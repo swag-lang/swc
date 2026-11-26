@@ -4,12 +4,14 @@ using Swag
 func(T, N: s32) makeRepeated(value: T)->[N] T
 {
     var result: [N] T
-    for i in N do
+    for i in N
+    {
         result[i] = value
+    }
     return result
 }
 
-const FUNC_INFO   = cast(const *Swag.TypeInfoFunc, #typeof(makeRepeated'(u16, 3)))
+const FUNC_INFO   = cast(const *Swag.TypeInfoFunc, #typeof(makeRepeated!{u16, 3}))
 const COUNT_VALUE = cast(const *s32?, FUNC_INFO.generics[1].value)
 
 #assert(FUNC_INFO.generics.count == 2)

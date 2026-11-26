@@ -3,7 +3,7 @@
 
 using Swag
 
-func assertOrderedMapBorrowTypes(map: *OrderedMap'(s32, String))
+func assertOrderedMapBorrowTypes(map: *OrderedMap!{s32, String})
 {
     for &key, value in map[]
     {
@@ -18,7 +18,7 @@ func assertOrderedMapBorrowTypes(map: *OrderedMap'(s32, String))
     }
 }
 
-func assertConstOrderedMapBorrowTypes(map: const *OrderedMap'(s32, String))
+func assertConstOrderedMapBorrowTypes(map: const *OrderedMap!{s32, String})
 {
     for &key, value in map[].reversed()
     {
@@ -41,7 +41,7 @@ struct OrderedMapEquivalentKey
 
 #test
 {
-    var map: OrderedMap'(s32, String)
+    var map: OrderedMap!{s32, String}
     map.initialize(func(left, right: const *s32)->s32 => left[] <=> right[])
     map.add(30, "thirty")
     map.add(10, "ten")
@@ -55,8 +55,10 @@ struct OrderedMapEquivalentKey
     for key, value, index in map
     {
         keyCode = keyCode * 100 + key
-        if index == 1 do
+        if index == 1
+        {
             Swag.require(value[] == "TWENTY")
+        }
     }
 
     Swag.require(keyCode == 102030)
@@ -77,18 +79,23 @@ struct OrderedMapEquivalentKey
 
 #test
 {
-    var map: OrderedMap'(s32, s32)
+    var map: OrderedMap!{s32, s32}
     map.initialize(func(left, right: const *s32)->s32 => right[] <=> left[])
     map.add(1, 10)
     map.add(3, 30)
     map.add(2, 20)
 
     var forward = 0
-    for key in map do
+    for key in map
+    {
         forward = forward * 10 + key
+    }
+
     var reverse = 0
-    for key in map.reversed() do
+    for key in map.reversed()
+    {
         reverse = reverse * 10 + key
+    }
 
     Swag.require(forward == 321)
     Swag.require(reverse == 123)
@@ -96,7 +103,7 @@ struct OrderedMapEquivalentKey
 
 #test
 {
-    var map: OrderedMap'(OrderedMapKey, s32)
+    var map: OrderedMap!{OrderedMapKey, s32}
     map.initialize(func(left, right: const *OrderedMapKey)->s32 => left.rank <=> right.rank)
     map.add({rank: 4}, 40)
     map.add({rank: 1}, 10)
@@ -110,7 +117,7 @@ struct OrderedMapEquivalentKey
 
 #test
 {
-    var map: OrderedMap'(OrderedMapEquivalentKey, s32)
+    var map: OrderedMap!{OrderedMapEquivalentKey, s32}
     map.initialize(func(left, right: const *OrderedMapEquivalentKey)->s32 => left.rank <=> right.rank)
     map.add({rank: 1, label: 10}, 100)
     let entry = map.add({rank: 1, label: 20}, 200)
@@ -122,7 +129,7 @@ struct OrderedMapEquivalentKey
 // Reserving less storage preserves the elements and their existing capacity.
 #test
 {
-    var map = OrderedMap'(s32, String).create(func(left, right: const *s32)->s32 => left[] <=> right[])
+    var map = OrderedMap!{s32, String}.create(func(left, right: const *s32)->s32 => left[] <=> right[])
     map.add(42, "kept")
     let capacity = map.capacity()
     map.reserve(0)
@@ -133,7 +140,7 @@ struct OrderedMapEquivalentKey
 // Clearing retains ordered-map capacity; freeing releases it while keeping the comparator.
 #test
 {
-    var map = OrderedMap'(s32, s32).create(func(left, right: const *s32)->s32 => left[] <=> right[])
+    var map = OrderedMap!{s32, s32}.create(func(left, right: const *s32)->s32 => left[] <=> right[])
     map.reserve(8)
     map.add(2, 20)
     map.add(1, 10)

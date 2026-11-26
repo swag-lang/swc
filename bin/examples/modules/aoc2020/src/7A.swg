@@ -43,24 +43,29 @@ func day7A0()
     let dataPath = Path.combine(Path.directoryName(#file), "7.txt")
     var lines    = expect File.readAllLines(dataPath)
 
-    var id: HashTable'(string, Array'(string))
+    var id: HashTable!{string, Array!{string}}
 
     for &l in lines
     {
-        for r in ["bags", "bag", "."] do
+        for r in ["bags", "bag", "."]
+        {
             l.replace(r, "")
+        }
+
         l.replace(" , ", ",")
         l.replace("  ", " ")
         l.trim()
 
         let split = Tokenize.split(l[], " contain ")
-        if split[1] == "no other" do
+        if split[1] == "no other"
+        {
             continue
+        }
 
-        let split1 = Tokenize.split(split[1], ','u8)
+        let split1 = Tokenize.split(split[1], ','_u8)
         for v in split1
         {
-            let splitVal = Tokenize.split(v, ' 'u8, 1)
+            let splitVal = Tokenize.split(v, ' '_u8, 1)
             for can in splitVal[1 to]
             {
                 let it = id.tryFind(split[0])
@@ -70,7 +75,7 @@ func day7A0()
                 }
                 else
                 {
-                    var tmp: Array'(string)
+                    var tmp: Array!{string}
                     tmp.add(can)
                     id.add(split[0], tmp)
                 }
@@ -78,26 +83,35 @@ func day7A0()
         }
     }
 
-    func contains(id: *HashTable'(string, Array'(string)), what: string)->bool
+    func contains(id: *HashTable!{string, Array!{string}}, what: string)->bool
     {
         let it = id.tryFind(what)
-        if not it do
+        if not it
+        {
             return false
+        }
 
         for v in it.value
         {
-            if v == "shiny gold" do
+            if v == "shiny gold"
+            {
                 return true
-            if contains(id, v) do
+            }
+
+            if contains(id, v)
+            {
                 return true
+            }
         }
 
         return false
     }
 
     var total: u32
-    for v in id do
+    for v in id
+    {
         total += cast(s32, contains(&id, v))
+    }
 
     Swag.assert(total == 296)
 }
@@ -107,7 +121,7 @@ func day7A1()
     let dataPath = Path.combine(Path.directoryName(#file), "7.txt")
     let lines    = expect File.readAllLines(dataPath)
 
-    var id: HashTable'(string, Array'(string))
+    var id: HashTable!{string, Array!{string}}
 
     var r = expect Parser.RegExp.create(#raw "(\d+) (\w+ \w+)")
     for l in lines
@@ -115,29 +129,35 @@ func day7A1()
         let split = Tokenize.split(l[], " bags contain ")
         for v in r.grepAll(split[1])
         {
-            let splitVal = Tokenize.split(v, ' 'u8, 1)
+            let splitVal = Tokenize.split(v, ' '_u8, 1)
             id.findOrAdd(split[0]).value.add(splitVal[1])
         }
     }
 
-    func contains(id: *HashTable'(string, Array'(string)), what: string)->bool
+    func contains(id: *HashTable!{string, Array!{string}}, what: string)->bool
     {
         let it = id.tryFind(what)
-        if not it do
+        if not it
+        {
             return false
+        }
 
         for v in it.value
         {
-            if v == "shiny gold" or contains(id, v) do
+            if v == "shiny gold" or contains(id, v)
+            {
                 return true
+            }
         }
 
         return false
     }
 
     var total: u32
-    for v in id do
+    for v in id
+    {
         total += cast(s32, contains(&id, v))
+    }
 
     Swag.assert(total == 296)
 }

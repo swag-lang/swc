@@ -21,13 +21,13 @@ enum DefaultShaderId
 // half of it is read as a distance. The contour sits half a unit either side of the bias, which
 // puts the signed distance on the same scale as the ramp it replaces and leaves the screen-space
 // coverage both backends derive from it unchanged.
-const StrokeCoverageBias = 4.0'f32
+const StrokeCoverageBias = 4.0_f32
 
 // Antialiasing fringe half-width, in untransformed path-space pixels.
 //
 // The fringe band is centered on the shape contour (AAHalf inside / AAHalf
 // outside), giving a 1px transition with 50% coverage on the true edge.
-const AAHalf = 0.5'f32
+const AAHalf = 0.5_f32
 
 // Defines the packed vertex format consumed by [[Pixel.RenderOgl]] and [[Pixel.RenderCpu]].
 #[Swag.Pack(1)]
@@ -181,7 +181,7 @@ struct PaintState
         blendingMode:      BlendingMode      = Alpha       // Current color blend operation.
         interpolationMode: InterpolationMode = .Pixel      // Current texture sampler mode.
         clippingRect:      Math.Rectangle                  // Active surface-space clipping rectangle.
-        stackClipRect:     Array'Math.Rectangle            // Saved nested clipping rectangles.
+        stackClipRect:     Array!{Math.Rectangle}          // Saved nested clipping rectangles.
         clippingRectOn:    bool                            // Whether `clippingRect` is active.
         colorMask:         ColorMask                       // Channels currently writable by the renderer.
     }
@@ -337,13 +337,13 @@ struct Painter
 
     public readonly
     {
-        commandBuffer: Array'Command          // Deferred renderer command stream.
-        vertexBuffer:  Array'VertexLayout     // Packed vertices referenced by draw commands.
+        commandBuffer: Array!{Command}          // Deferred renderer command stream.
+        vertexBuffer:  Array!{VertexLayout}     // Packed vertices referenced by draw commands.
     }
 
     // Gradient stops referenced by command ranges. Keeping them beside the command stream
     // makes every recorded brush independent of the caller's lifetime without imposing a cap.
-    gradientStops: Array'GradientStop
+    gradientStops: Array!{GradientStop}
 
     // Each range references its own immutable contour points through the contour end table.
     scanPoints:       Array'Vector2
@@ -361,20 +361,20 @@ struct Painter
 
     private
     {
-        triangulateIdx:   Array's32                    // Reusable tessellation index workspace.
+        triangulateIdx:   Array!{s32}                  // Reusable tessellation index workspace.
         sharedLinePath:   LinePath                     // Reusable single-path workspace.
-        sharedContours:   Array'u64                    // Path indices of the list being filled, grouped by region.
-        sharedRegions:    Array'FillRegion             // The regions those contours form.
-        sharedDirections: HashTable'(u64, Vector2)     // Outward direction of each contour point of a region.
-        sharedRoundTmp:   Array'{ factor: f32, pos: Vector2 }     // Reusable stroke-rounding workspace.
+        sharedContours:   Array!{u64}                  // Path indices of the list being filled, grouped by region.
+        sharedRegions:    Array!{FillRegion}           // The regions those contours form.
+        sharedDirections: HashTable!{u64, Vector2}     // Outward direction of each contour point of a region.
+        sharedRoundTmp:   Array!{{ factor: f32, pos: Vector2 } }     // Reusable stroke-rounding workspace.
         tess: Poly2Tri.Tessellate                      // Reusable polygon tessellator.
 
         // Reusable shaped run for the immediate drawString path, so per-frame text drawing
         // shapes without allocating a fresh glyph buffer on every call.
         scratchShaped:     ShapedRun                 // Reusable shaping result for immediate text drawing.
-        scratchPlaced:     Array'PlacedGlyph         // Quad positions and rasterizations of the run being drawn.
-        transientTextures: Array'Texture             // Renderer-owned images released after the recorded frame.
-        transientTargets:  Array'(*RenderTarget)     // Off-screen targets released after nested alpha replay.
+        scratchPlaced:     Array!{PlacedGlyph}       // Quad positions and rasterizations of the run being drawn.
+        transientTextures: Array!{Texture}           // Renderer-owned images released after the recorded frame.
+        transientTargets:  Array!{*RenderTarget}     // Off-screen targets released after nested alpha replay.
     }
 
     // Recording state: the saved-state stacks, the render-target stack, and the emitted-uniform
@@ -382,16 +382,16 @@ struct Painter
 
     private
     {
-        stackState:     Array'PaintState     // States saved by [[Pixel.Painter.pushState]].
-        stackTransform: Array'Transform2     // Transforms saved by [[Pixel.Painter.pushTransform]].
+        stackState:     Array!{PaintState}     // States saved by [[Pixel.Painter.pushState]].
+        stackTransform: Array!{Transform2}     // Transforms saved by [[Pixel.Painter.pushTransform]].
 
-        stackRT: Array'(*RenderTarget?)     // Nested off-screen render targets.
+        stackRT: Array!{*RenderTarget?}     // Nested off-screen render targets.
         curRT:   *RenderTarget?             // Active off-screen target, or `null` for the surface.
 
         // Whether the bound target rebuilds its alpha by replaying the recording, as the caller
         // asked when it bound. The target carries the same answer, but only once the renderer has
         // executed that bind: while a frame is being recorded, this is the one that is true.
-        stackPaintAlpha: Array'bool
+        stackPaintAlpha: Array!{bool}
         curPaintAlpha:   bool
 
         lastTexture0Type:   BrushType = SolidColor     // Last brush type emitted to the command stream.
@@ -524,11 +524,17 @@ impl Painter
     func quantizeFlattenScale(scale: f32)->f32
     {
         Swag.assert(scale > 0)
-        var bucket = 1.0'f32
-        while bucket * 2 <= scale and bucket < 64 do
+        var bucket = 1.0_f32
+        while bucket * 2 <= scale and bucket < 64
+        {
             bucket *= 2
-        while bucket > scale and bucket > 1.0 / 64 do
+        }
+
+        while bucket > scale and bucket > 1.0 / 64
+        {
             bucket *= 0.5
+        }
+
         return bucket
     }
 
@@ -542,8 +548,11 @@ impl Painter
     // unchanged. Use it to keep hairlines and carets on whole device pixels.
     mtd const snapToDeviceX(x: f32)->f32
     {
-        if not .curState.transform.isTranslationOnly() do
+        if not .curState.transform.isTranslationOnly()
+        {
             return x
+        }
+
         let k = .curContentScale
         return Math.round((x + .curState.transform.tx) * k) / k - .curState.transform.tx
     }
@@ -553,8 +562,11 @@ impl Painter
     // See [[Pixel.Painter.snapToDeviceX]].
     mtd const snapToDeviceY(y: f32)->f32
     {
-        if not .curState.transform.isTranslationOnly() do
+        if not .curState.transform.isTranslationOnly()
+        {
             return y
+        }
+
         let k = .curContentScale
         return Math.round((y + .curState.transform.ty) * k) / k - .curState.transform.ty
     }
@@ -581,8 +593,11 @@ impl Painter
     // Gives the physical bounds of the target currently receiving recorded commands.
     internal mtd recordingTargetSize()->{width, height: s32}
     {
-        if .curRT do
+        if .curRT
+        {
             return {.curRT.colorBuffer.width, .curRT.colorBuffer.height}
+        }
+
         return .renderer().targetSize()
     }
 
@@ -643,8 +658,11 @@ impl Painter
 
     private mtd setTexture0(bvMin, bvMax: Vector2, brush: Brush)
     {
-        if not .canSetTexture0 do
+        if not .canSetTexture0
+        {
             return
+        }
+
         if brush.type == .SolidColor
         {
             .resetTexture0()
@@ -717,10 +735,14 @@ impl Painter
         // Pixel mode keeps its meaning at every scale: the renderers sharpen it to
         // one device pixel of smoothing per texel edge when the content scale makes
         // the texel-to-pixel mapping fractional.
-        if brush.type == .Hatch do
+        if brush.type == .Hatch
+        {
             params.interpolationMode = .Pixel
-        else do
+        }
+        else
+        {
             params.interpolationMode = .curState.interpolationMode
+        }
 
         .lastTexture0Handle = brush.texture.handle
         .lastTexture0Type   = brush.type
@@ -779,8 +801,10 @@ impl Painter
            .lastFontEffect.glowInner == fx.glowInner and
            .lastFontEffect.glowOuter == fx.glowOuter and
            .lastFontEffect.glowPower == fx.glowPower and
-           .lastFontEffect.bevel == fx.bevel do
+           .lastFontEffect.bevel == fx.bevel
+        {
             return
+        }
 
         .lastFontEffect = fx
         .hasFontEffect  = true
@@ -792,8 +816,11 @@ impl Painter
     {
         .curTextureFont      = null
         .curTextureFontAtlas = -1
-        if not .hasTextureFont do
+        if not .hasTextureFont
+        {
             return
+        }
+
         .hasTextureFont = false
         .newCommand(.ResetTextureFont, true).op = .ResetTextureFont
     }
@@ -802,8 +829,10 @@ impl Painter
     {
         // Already bound to this atlas: nothing to emit, so the following glyph
         // triangles extend the current DrawTriangles batch instead of starting a new one.
-        if .hasTextureFont and .curTextureFont == font and .curTextureFontAtlas == atlasIndex do
+        if .hasTextureFont and .curTextureFont == font and .curTextureFontAtlas == atlasIndex
+        {
             return
+        }
 
         .newCommand(.BindTextureFont, true).op = .BindTextureFont{font, atlasIndex}
         .hasTextureFont      = true
@@ -818,8 +847,10 @@ impl Painter
         if not .commandBuffer.isEmpty()
         {
             let last = .commandBuffer.storage() + .commandBuffer.count - 1
-            if last.op is .DrawTriangles do
+            if last.op is .DrawTriangles
+            {
                 return &last.drawTriangles
+            }
         }
 
         // An empty batch starts inverted, so the first point it takes in becomes both bounds.
@@ -1011,19 +1042,22 @@ impl Painter
     {
         let scale = .curState.transform.axisScale()
         let sc    = Math.min(scale.x, scale.y) * .curContentScale
-        if sc <= 0.001 do
+        if sc <= 0.001
+        {
             return AAHalf
+        }
+
         return AAHalf / sc
     }
 
     private mtd aaHalfPathSpace(normal: Vector2)->f32
     {
-        let device = .curState.transform.transformVector(normal)
-        let length = device.x == 0 ? Math.abs(device.y) :
-                     device.y == 0 ? Math.abs(device.x) : device.length()
-        let sc = length * .curContentScale
-        if sc <= 0.001 do
+        let sc = .curState.transform.transformVector(normal).length() * .curContentScale
+        if sc <= 0.001
+        {
             return AAHalf
+        }
+
         return AAHalf / sc
     }
 
@@ -1062,10 +1096,13 @@ impl Painter
 
         // Outward normal: perpendicular to the edge, pointing away from the centroid.
         let centroid = (v0[0].pos + v0[1].pos + v0[2].pos) * (1.0 / 3.0)
-        var n        = strokeUnitVector({q.y - p.y, p.x - q.x})
-        let mid      = (p + q) * 0.5
-        if n.dot(mid - centroid) < 0 do
+        var n        = Vector2{q.y - p.y, p.x - q.x}
+        n.normalizeOrZero()
+        let mid = (p + q) * 0.5
+        if n.dot(mid - centroid) < 0
+        {
             n = -n
+        }
 
         let off = n * .aaHalfPathSpace(n)
         .pushFringeQuad(p - off, p + off, q - off, q + off, v0.color)
@@ -1086,9 +1123,12 @@ impl Painter
     #[Swag.Safety(.All, false)]
     private mtd addEdgeAAFlipped(p, q: Vector2, flip: bool, color: u32)
     {
-        var n = strokeUnitVector({q.y - p.y, p.x - q.x})
-        if flip do
+        var n = Vector2{q.y - p.y, p.x - q.x}
+        n.normalizeOrZero()
+        if flip
+        {
             n = -n
+        }
 
         let off = n * .aaHalfPathSpace(n)
         .pushFringeQuad(p - off, p + off, q - off, q + off, color)
@@ -1111,8 +1151,10 @@ impl Painter
         if replaceLast and .commandBuffer.count
         {
             let last = .commandBuffer.storage() + .commandBuffer.count - 1
-            if Swag.kindOf(last.op) == op do
+            if Swag.kindOf(last.op) == op
+            {
                 return last
+            }
         }
 
         return .commandBuffer.emplaceAddress(1)
@@ -1120,20 +1162,32 @@ impl Painter
 
     private mtd updateFont(fontRef: *Font)
     {
-        if not fontRef.cache.dirty do
+        if not fontRef.cache.dirty
+        {
             return
+        }
+
         .newCommand(.UpdateFont).op = .UpdateFont{fontRef}
     }
 
     private mtd startOverlapMode(pen: Pen)
     {
         var alpha = false
-        if .curState.paintParams & .Antialiased do
+        if .curState.paintParams & .Antialiased
+        {
             alpha = true
-        if not pen.brush.isOpaque() do
+        }
+
+        if not pen.brush.isOpaque()
+        {
             alpha = true
-        if .curPaintAlpha and .curState.paintParams & .Antialiased do
+        }
+
+        if .curPaintAlpha and .curState.paintParams & .Antialiased
+        {
             alpha = true
+        }
+
         if alpha and .curState.blendingMode == .Alpha
         {
             .overlapMode = true
@@ -1170,7 +1224,7 @@ impl Painter
                     var texture = command.texture0.texture
                     renderer.removeTexture(&texture)
                 }
-                elif command.op is .ReleaseRenderTarget
+                else if command.op is .ReleaseRenderTarget
                 {
                     renderer.releaseRenderTarget(command.renderTgt.tgt)
                 }
@@ -1255,8 +1309,11 @@ impl Painter
     {
         let hadClippingRect = .curState.clippingRectOn
         .curState = state
-        if hadClippingRect and not .curState.clippingRectOn do
+        if hadClippingRect and not .curState.clippingRectOn
+        {
             .newCommand(.ResetClippingRect, true).op = .ResetClippingRect
+        }
+
         .emitState()
     }
 
@@ -1266,8 +1323,10 @@ impl Painter
         .setBlendingMode(.curState.blendingMode)
         .setColorMask(.curState.colorMask)
 
-        if .curState.clippingRectOn do
+        if .curState.clippingRectOn
+        {
             .emitClippingRect()
+        }
     }
 
     // Returns a copy of the complete current drawing state.
@@ -1312,10 +1371,14 @@ impl Painter
     // Enables or disables antialiased path fringes.
     mtd setAntialiased(aa = true)
     {
-        if aa do
+        if aa
+        {
             .curState.paintParams |= .Antialiased
-        else do
+        }
+        else
+        {
             .curState.paintParams &= ~.Antialiased
+        }
     }
 
     // Enables or disables measuring a stroke's antialiasing from its centre line.
@@ -1323,10 +1386,14 @@ impl Painter
     // See [[Pixel.PaintParams.DistanceStrokes]] for what it costs and what it changes.
     mtd setDistanceStrokes(on = true)
     {
-        if on do
+        if on
+        {
             .curState.paintParams |= .DistanceStrokes
-        else do
+        }
+        else
+        {
             .curState.paintParams &= ~.DistanceStrokes
+        }
     }
 
     // Returns the currently enabled painter behavior flags.
@@ -1346,8 +1413,11 @@ impl Painter
     // Appends a translation, in path-space pixels, to the current transform.
     mtd translateTransform(x, y: f32)
     {
-        if isZeroEpsilon(x) and isZeroEpsilon(y) do
+        if isZeroEpsilon(x) and isZeroEpsilon(y)
+        {
             return
+        }
+
         let tr = Transform2.createTranslation(x, y)
         .curState.transform.multiply(tr)
         .emitTransform()
@@ -1356,8 +1426,11 @@ impl Painter
     // Appends a rotation around the path-space origin.
     mtd rotateTransform(angle: Math.Angle)
     {
-        if isZeroEpsilon(angle.radians) do
+        if isZeroEpsilon(angle.radians)
+        {
             return
+        }
+
         let tr = Transform2.createRotation(angle.radians, 0, 0)
         .curState.transform.multiply(tr)
         .emitTransform()
@@ -1366,8 +1439,11 @@ impl Painter
     // Appends a rotation around the specified path-space center.
     mtd rotateTransform(angle: Math.Angle, centerX, centerY: f32)
     {
-        if isZeroEpsilon(angle.radians) do
+        if isZeroEpsilon(angle.radians)
+        {
             return
+        }
+
         let tr = Transform2.createRotation(angle.radians, centerX, centerY)
         .curState.transform.multiply(tr)
         .emitTransform()
@@ -1378,8 +1454,11 @@ impl Painter
     // The pivot is the transform's translation, so a shape placed there turns on the spot.
     mtd rotateTransformInPlace(angle: Math.Angle)
     {
-        if isZeroEpsilon(angle.radians) do
+        if isZeroEpsilon(angle.radians)
+        {
             return
+        }
+
         let tr = Transform2.createRotation(angle.radians, .curState.transform.tx, .curState.transform.ty)
         .curState.transform.multiply(tr)
         .emitTransform()
@@ -1388,8 +1467,11 @@ impl Painter
     // Appends independent horizontal and vertical scale factors.
     mtd scaleTransform(x, y: f32)
     {
-        if isZeroEpsilon(x - 1) and isZeroEpsilon(y - 1) do
+        if isZeroEpsilon(x - 1) and isZeroEpsilon(y - 1)
+        {
             return
+        }
+
         let tr = Transform2.createScale(x, y, 0, 0)
         .curState.transform.multiply(tr)
         .emitTransform()
@@ -1398,8 +1480,11 @@ impl Painter
     // Appends a uniform scale factor.
     mtd scaleTransform(x: f32)
     {
-        if isZeroEpsilon(x - 1) do
+        if isZeroEpsilon(x - 1)
+        {
             return
+        }
+
         let tr = Transform2.createScale(x, x, 0, 0)
         .curState.transform.multiply(tr)
         .emitTransform()
@@ -1465,8 +1550,11 @@ impl Painter
     // Replaces the current clipping rectangle with a surface-space rectangle.
     mtd setClippingRect(rect: Math.Rectangle)
     {
-        if .curState.clippingRect == rect and .curState.clippingRectOn do
+        if .curState.clippingRect == rect and .curState.clippingRectOn
+        {
             return
+        }
+
         .curState.clippingRect = rect
         .emitClippingRect()
     }
@@ -1502,8 +1590,11 @@ impl Painter
     mtd pushClippingRect(rect: Math.Rectangle, isSurfacePos = false)
     {
         var rrect = rect
-        if not isSurfacePos do
+        if not isSurfacePos
+        {
             rrect.offset(.curState.transform.tx, .curState.transform.ty)
+        }
+
         rrect.round()
 
         if .curState.clippingRectOn
@@ -1538,8 +1629,11 @@ impl Painter
     // Returns the current clipping rectangle, or an unbounded rectangle when clipping is disabled.
     mtd const clippingRect()->Math.Rectangle
     {
-        if .curState.clippingRectOn do
+        if .curState.clippingRectOn
+        {
             return .curState.clippingRect
+        }
+
         return {0, 0, Swag.F32.Max, Swag.F32.Max}
     }
 
@@ -1651,8 +1745,11 @@ impl Painter
         .newCommand(.BindRenderTarget, true).op = .BindRenderTarget{tgt, paintAlpha}
         .resetState()
 
-        if .curRT do
+        if .curRT
+        {
             .stackRT.add(.curRT)
+        }
+
         .stackPaintAlpha.add(.curPaintAlpha)
         .curRT         = tgt
         .curPaintAlpha = paintAlpha
@@ -1684,14 +1781,16 @@ impl Painter
     // target is returned to the renderer immediately.
     mtd releaseRenderTarget(tgt: *RenderTarget?)
     {
-        if not tgt do
+        if not tgt
+        {
             return
+        }
 
         if .drawingBegin
         {
             .transientTargets.add(tgt)
         }
-        elif .submissionPending
+        else if .submissionPending
         {
             .commandBuffer.emplaceAddress(1).op = .ReleaseRenderTarget{tgt: tgt}
         }

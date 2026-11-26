@@ -30,9 +30,9 @@ func dtoa(dst: *ConcatBuffer, precision: s64, fmt: u8, neg, forceSign: bool, man
         // Precision for shortest representation mode.
         switch fmt
         {
-        case 'e'u8, 'E'u8: prec = digs.nd - 1
-        case 'f'u8:        prec = Math.max(digs.nd - digs.dp, 0)
-        case 'g'u8, 'G'u8: prec = digs.nd
+        case 'e'_u8, 'E'_u8: prec = digs.nd - 1
+        case 'f'_u8:         prec = Math.max(digs.nd - digs.dp, 0)
+        case 'g'_u8, 'G'_u8: prec = digs.nd
         }
     }
     else
@@ -40,9 +40,9 @@ func dtoa(dst: *ConcatBuffer, precision: s64, fmt: u8, neg, forceSign: bool, man
         // Round appropriately.
         switch fmt
         {
-        case 'e'u8, 'E'u8: d.round(prec + 1)
-        case 'f'u8:        d.round(d.dp + prec)
-        case 'g'u8, 'G'u8: d.round(prec == 0 ? 1 : prec)
+        case 'e'_u8, 'E'_u8: d.round(prec + 1)
+        case 'f'_u8:         d.round(d.dp + prec)
+        case 'g'_u8, 'G'_u8: d.round(prec == 0 ? 1 : prec)
         }
 
         digs.d  = d.d
@@ -58,34 +58,45 @@ func formatDigits(dst: *ConcatBuffer, shortest: bool, neg, forceSign: bool, digs
     var prec = precision
     switch fmt
     {
-    case 'e'u8, 'E'u8:
+    case 'e'_u8, 'E'_u8:
         return fmtE(dst, neg, forceSign, digs, prec, fmt, numberFormat)
 
-    case 'f'u8:
+    case 'f'_u8:
         return fmtF(dst, neg, forceSign, digs, prec, numberFormat)
 
-    case 'g'u8, 'G'u8:
+    case 'g'_u8, 'G'_u8:
 
         // trailing fractional zeros in 'e' form will be trimmed.
         var eprec = prec
-        if eprec > digs.nd and digs.nd >= digs.dp do
+        if eprec > digs.nd and digs.nd >= digs.dp
+        {
             eprec = digs.nd
+        }
 
         // %e is used if the exponent from the conversion
         // is less than -4 or greater than or equal to the precision.
         // if precision was the shortest possible, use precision 6 for this decision.
-        if shortest do
+        if shortest
+        {
             eprec = 6
+        }
+
         let exp = digs.dp - 1
         if exp < -4 or exp >= eprec
         {
-            if prec > digs.nd do
+            if prec > digs.nd
+            {
                 prec = digs.nd
-            return fmtE(dst, neg, forceSign, digs, prec - 1, cast(u8, (fmt + 'e'u8 - 'g'u8)), numberFormat)
+            }
+
+            return fmtE(dst, neg, forceSign, digs, prec - 1, cast(u8, (fmt + 'e'_u8 - 'g'_u8)), numberFormat)
         }
 
-        if prec > digs.dp do
+        if prec > digs.dp
+        {
             prec = digs.nd
+        }
+
         return fmtF(dst, neg, forceSign, digs, Math.max(prec - digs.dp, 0), numberFormat)
     }
 }
@@ -93,22 +104,29 @@ func formatDigits(dst: *ConcatBuffer, shortest: bool, neg, forceSign: bool, digs
 func fmtE(dst: *ConcatBuffer, neg, forceSign: bool, d: DecimalSlice, prec: s64, fmt: u8, numberFormat: NumberFormatInfo)
 {
     // sign
-    if neg do
+    if neg
+    {
         dst.addNative(numberFormat.negativeSign)
-    elif forceSign do
+    }
+    else if forceSign
+    {
         dst.addNative(numberFormat.positiveSign)
+    }
 
     // first digit
-    var ch = '0'u8
-    if d.nd != 0 do
+    var ch = '0'_u8
+    if d.nd != 0
+    {
         ch = d.d[0]
+    }
+
     dst.addNative(ch)
 
     // .moredigits
     if prec > 0
     {
         dst.addNative(numberFormat.decimalSeparator)
-        var i = 1's64
+        var i = 1_s64
         let m = Math.min(d.nd, prec + 1)
         if i < m
         {
@@ -126,16 +144,19 @@ func fmtE(dst: *ConcatBuffer, neg, forceSign: bool, d: DecimalSlice, prec: s64, 
     // e±
     dst.addNative(fmt)
     var exp = d.dp - 1
-    if d.nd == 0 do
+    if d.nd == 0
+    {
         exp = 0
+    }
+
     if exp < 0
     {
-        ch  = '-'u8
+        ch  = '-'_u8
         exp = -exp
     }
     else
     {
-        ch = '+'u8
+        ch = '+'_u8
     }
 
     dst.addNative(ch)
@@ -144,27 +165,31 @@ func fmtE(dst: *ConcatBuffer, neg, forceSign: bool, d: DecimalSlice, prec: s64, 
     switch
     {
     case exp < 10:
-        dst.addNative('0'u8)
-        dst.addNative(cast(u8, (exp + '0'u8)))
+        dst.addNative('0'_u8)
+        dst.addNative(cast(u8, (exp + '0'_u8)))
 
     case exp < 100:
-        dst.addNative(cast(u8, ((exp / 10) + '0'u8)))
-        dst.addNative(cast(u8, ((exp % 10) + '0'u8)))
+        dst.addNative(cast(u8, ((exp / 10) + '0'_u8)))
+        dst.addNative(cast(u8, ((exp % 10) + '0'_u8)))
 
     default:
-        dst.addNative(cast(u8, ((exp / 100) + '0'u8)))
-        dst.addNative(cast(u8, (((exp / 10) % 10) + '0'u8)))
-        dst.addNative(cast(u8, ((exp % 10) + '0'u8)))
+        dst.addNative(cast(u8, ((exp / 100) + '0'_u8)))
+        dst.addNative(cast(u8, (((exp / 10) % 10) + '0'_u8)))
+        dst.addNative(cast(u8, ((exp % 10) + '0'_u8)))
     }
 }
 
 func fmtF(dst: *ConcatBuffer, neg, forceSign: bool, d: DecimalSlice, prec: s64, numberFormat: NumberFormatInfo)
 {
     // sign
-    if neg do
+    if neg
+    {
         dst.addNative(numberFormat.negativeSign)
-    elif forceSign do
+    }
+    else if forceSign
+    {
         dst.addNative(numberFormat.positiveSign)
+    }
 
     // integer, padded with zeros as needed.
     if d.dp > 0
@@ -173,13 +198,13 @@ func fmtF(dst: *ConcatBuffer, neg, forceSign: bool, d: DecimalSlice, prec: s64, 
         dst.addBytes(Swag.makeSlice(&d.d[0], m))
         while m < d.dp
         {
-            dst.addNative('0'u8)
+            dst.addNative('0'_u8)
             m += 1
         }
     }
     else
     {
-        dst.addNative('0'u8)
+        dst.addNative('0'_u8)
     }
 
     // fraction
@@ -188,10 +213,13 @@ func fmtF(dst: *ConcatBuffer, neg, forceSign: bool, d: DecimalSlice, prec: s64, 
         dst.addNative(numberFormat.decimalSeparator)
         for i in prec
         {
-            var ch = '0'u8
+            var ch = '0'_u8
             let j  = d.dp + i
-            if 0 <= j and j < d.nd do
+            if 0 <= j and j < d.nd
+            {
                 ch = d.d[j]
+            }
+
             dst.addNative(ch)
         }
     }
@@ -244,7 +272,7 @@ func roundShortest(d: *Decimal, mant: u64, exp: s64)
     // Our lower bound is halfway between, mantlo*2+1 << explo-mantbits-1.
     var mantlo: u64
     var explo:  s64
-    if mant > (1'u64 << Swag.F64.MantBits) or exp == minexp
+    if mant > (1_u64 << Swag.F64.MantBits) or exp == minexp
     {
         mantlo = mant - 1
         explo  = exp
@@ -286,18 +314,29 @@ func roundShortest(d: *Decimal, mant: u64, exp: s64)
         // places. In this case upper is the longest, so we iterate from
         // ui==0 and start li and mi at (possibly) -1.
         let mi = ui - upper.dp + d.dp
-        if mi >= d.nd do
+        if mi >= d.nd
+        {
             break
+        }
+
         let li = ui - upper.dp + lower.dp
-        var l  = '0'u8     // lower digit
-        if li >= 0 and li < lower.nd do
+        var l  = '0'_u8     // lower digit
+        if li >= 0 and li < lower.nd
+        {
             l = lower.d[li]
-        var m = '0'u8     // middle digit
-        if mi >= 0 do
+        }
+
+        var m = '0'_u8     // middle digit
+        if mi >= 0
+        {
             m = d.d[mi]
-        var u = '0'u8     // upper digit
-        if ui < upper.nd do
+        }
+
+        var u = '0'_u8     // upper digit
+        if ui < upper.nd
+        {
             u = upper.d[ui]
+        }
 
         // Okay to round down (truncate) if lower has a different digit
         // or if lower is inclusive and is exactly the result of rounding
@@ -320,7 +359,7 @@ func roundShortest(d: *Decimal, mant: u64, exp: s64)
             // u = 12346xxx
             upperdelta = 1
 
-        case upperdelta == 1 and (m != '9'u8 or u != '0'u8):
+        case upperdelta == 1 and (m != '9'_u8 or u != '0'_u8):
 
             // Example:
             // m = 1234598x
@@ -383,7 +422,7 @@ func appendWithFormat(buf: *ConcatBuffer, val: f64, fmt: u8, precision: s64, for
     var prec = precision
     let neg  = bits >> (Swag.F64.ExpBits + Swag.F64.MantBits) != 0
     var exp  = cast(s64, (bits >> Swag.F64.MantBits)) & ((1 << Swag.F64.ExpBits) - 1)
-    var mant = bits & ((1'u64 << Swag.F64.MantBits) - 1)
+    var mant = bits & ((1_u64 << Swag.F64.MantBits) - 1)
 
     switch exp
     {
@@ -403,7 +442,7 @@ func appendWithFormat(buf: *ConcatBuffer, val: f64, fmt: u8, precision: s64, for
         exp += 1
 
     default:
-        mant |= 1'u64 << Swag.F64.MantBits
+        mant |= 1_u64 << Swag.F64.MantBits
     }
 
     exp += Swag.F64.Bias
@@ -428,26 +467,29 @@ func appendWithFormat(buf: *ConcatBuffer, val: f64, fmt: u8, precision: s64, for
             // Precision for shortest representation mode.
             switch fmt
             {
-            case 'e'u8, 'E'u8: prec = Math.max(digs.nd - 1, 0)
-            case 'f'u8:        prec = Math.max(digs.nd - digs.dp, 0)
-            case 'g'u8, 'G'u8: prec = digs.nd
+            case 'e'_u8, 'E'_u8: prec = Math.max(digs.nd - 1, 0)
+            case 'f'_u8:         prec = Math.max(digs.nd - digs.dp, 0)
+            case 'g'_u8, 'G'_u8: prec = digs.nd
             }
 
             return formatDigits(buf, shortest, neg, forceSign, digs, prec, fmt, numberFormat)
         }
     }
-    elif fmt != 'f'u8
+    else if fmt != 'f'_u8
     {
         // Fixed number of digits.
         var digits = prec
         switch fmt
         {
-        case 'e'u8, 'E'u8:
+        case 'e'_u8, 'E'_u8:
             digits += 1
 
-        case 'g'u8, 'G'u8:
-            if prec == 0 do
+        case 'g'_u8, 'G'_u8:
+            if prec == 0
+            {
                 prec = 1
+            }
+
             digits = prec
         }
 
@@ -462,8 +504,10 @@ func appendWithFormat(buf: *ConcatBuffer, val: f64, fmt: u8, precision: s64, for
             digs.neg = false
             var f = FloatExt{mant, exp - cast(s64, Swag.F64.MantBits), neg}
             ok = f.fixedDecimal(&digs, digits)
-            if ok do
+            if ok
+            {
                 return formatDigits(buf, shortest, neg, forceSign, digs, prec, fmt, numberFormat)
+            }
         }
     }
 

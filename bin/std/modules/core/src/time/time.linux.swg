@@ -5,8 +5,11 @@
 public func monotonicTicks()->u64
 {
     var value: Linux.timespec
-    if Linux.clock_gettime(Linux.CLOCK_MONOTONIC, &value) != 0 do
+    if Linux.clock_gettime(Linux.CLOCK_MONOTONIC, &value) != 0
+    {
         Swag.panic("cannot read the monotonic clock", #curlocation)
+    }
+
     return cast(u64, value.tv_sec) * 1_000_000_000 + cast(u64, value.tv_nsec)
 }
 

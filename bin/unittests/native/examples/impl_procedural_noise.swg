@@ -26,21 +26,23 @@ impl GardenRng
 {
     mtd seed(seed: u64)
     {
-        .state = seed | 1'u64
+        .state = seed | 1_u64
     }
 
     #[Swag.Safety(.Overflow, false)]
     mtd nextU32()->u32
     {
-        .state = (.state * #wrap 6364136223846793005'u64) + #wrap 1442695040888963407'u64
+        .state = (.state * #wrap 6364136223846793005_u64) + #wrap 1442695040888963407_u64
         return cast(u32, (.state >> 32))
     }
 
     mtd nextF32()->f32
     {
         var value = .nextU32()
-        while value == Swag.U32.Max do
+        while value == Swag.U32.Max
+        {
             value = .nextU32()
+        }
         return cast(f32, value) / cast(f32, Swag.U32.Max)
     }
 
@@ -59,7 +61,7 @@ impl GardenRng
 
     mtd nextBool()->bool
     {
-        return (.nextU32() & 1'u32) != 0'u32
+        return (.nextU32() & 1_u32) != 0_u32
     }
 }
 
@@ -79,7 +81,7 @@ func sameSummary(lhs, rhs: GardenPlanSummary)->bool
 
 func smoothStep(value: f32)->f32
 {
-    return value * value * (3.0'f32 - 2.0'f32 * value)
+    return value * value * (3.0_f32 - 2.0_f32 * value)
 }
 
 func lerp(a, b, alpha: f32)->f32
@@ -90,13 +92,13 @@ func lerp(a, b, alpha: f32)->f32
 #[Swag.Safety(.Overflow, false)]
 func hashGrid(x, y, seed: s32)->u32
 {
-    var hash = cast #wrap(u32, x) * #wrap 0x9E3779B9'u32
-    hash ^= cast #wrap(u32, y) * #wrap 0x85EBCA77'u32
-    hash ^= cast #wrap(u32, seed) * #wrap 0xC2B2AE3D'u32
+    var hash = cast #wrap(u32, x) * #wrap 0x9E3779B9_u32
+    hash ^= cast #wrap(u32, y) * #wrap 0x85EBCA77_u32
+    hash ^= cast #wrap(u32, seed) * #wrap 0xC2B2AE3D_u32
     hash ^= hash >> 16
-    hash = hash * #wrap 0x7FEB352D'u32
+    hash = hash * #wrap 0x7FEB352D_u32
     hash ^= hash >> 15
-    hash = hash * #wrap 0x846CA68B'u32
+    hash = hash * #wrap 0x846CA68B_u32
     hash ^= hash >> 16
     return hash
 }
@@ -105,7 +107,7 @@ func gridValue(x, y, seed: s32)->f32
 {
     let hash = hashGrid(x, y, seed)
     let unit = cast(f32, hash) / cast(f32, Swag.U32.Max)
-    return unit * 2.0'f32 - 1.0'f32
+    return unit * 2.0_f32 - 1.0_f32
 }
 
 func valueNoise(x, y: f32, seed: s32)->f32
@@ -127,8 +129,8 @@ func valueNoise(x, y: f32, seed: s32)->f32
 
 func fractalNoise(x, y: f32, seed: s32)->f32
 {
-    var amplitude = 1.0'f32
-    var frequency = 0.35'f32
+    var amplitude = 1.0_f32
+    var frequency = 0.35_f32
     var sum:        f32
     var normalizer: f32
 
@@ -137,8 +139,8 @@ func fractalNoise(x, y: f32, seed: s32)->f32
         let octaveSeed = seed + cast(s32, index) * 131
         sum        += valueNoise(x * frequency, y * frequency, octaveSeed) * amplitude
         normalizer += amplitude
-        amplitude  *= 0.55'f32
-        frequency  *= 2.0'f32
+        amplitude  *= 0.55_f32
+        frequency  *= 2.0_f32
     }
 
     return sum / normalizer
@@ -161,17 +163,17 @@ func buildGardenPlan(seed: u32)->GardenPlanSummary
         for column in 4
         {
             let x             = cast(f32, column)
-            let jitterX       = rng.nextF32(-0.35'f32, 0.35'f32)
-            let jitterY       = rng.nextF32(-0.35'f32, 0.35'f32)
+            let jitterX       = rng.nextF32(-0.35_f32, 0.35_f32)
+            let jitterY       = rng.nextF32(-0.35_f32, 0.35_f32)
             let terrainHeight = fractalNoise(x + jitterX, y + jitterY, terrainSeed)
             let moistureLevel = fractalNoise(x - jitterY, y + jitterX, moistureSeed)
-            let sunlight      = rng.nextF32(0.75'f32, 1.25'f32)
-            let terrainMark   = cast(s32, ((terrainHeight + 1.0'f32) * 1000.0'f32))
-            let moistureMark  = cast(s32, ((moistureLevel + 1.0'f32) * 1000.0'f32))
-            let sunlightMark  = cast(s32, (sunlight * 1000.0'f32))
+            let sunlight      = rng.nextF32(0.75_f32, 1.25_f32)
+            let terrainMark   = cast(s32, ((terrainHeight + 1.0_f32) * 1000.0_f32))
+            let moistureMark  = cast(s32, ((moistureLevel + 1.0_f32) * 1000.0_f32))
+            let sunlightMark  = cast(s32, (sunlight * 1000.0_f32))
             result.layoutSignature += terrainMark * 3 + moistureMark * 5 + sunlightMark * 7 + row * 11 + column * 13
 
-            if terrainHeight < -0.30'f32
+            if terrainHeight < -0.30_f32
             {
                 result.pondPlots          += 1
                 result.waterReserveLiters += 900
@@ -179,29 +181,33 @@ func buildGardenPlan(seed: u32)->GardenPlanSummary
                 continue
             }
 
-            if moistureLevel > 0.35'f32 and sunlight > 0.95'f32
+            if moistureLevel > 0.35_f32 and sunlight > 0.95_f32
             {
                 result.wildflowerPlots += 1
                 result.fertilityScore  += 6
-                if rng.nextBool() do
+                if rng.nextBool()
+                {
                     result.compostBins += 1
+                }
                 continue
             }
 
-            if terrainHeight > 0.45'f32 and moistureLevel < -0.10'f32
+            if terrainHeight > 0.45_f32 and moistureLevel < -0.10_f32
             {
                 result.stonePathPlots     += 1
                 result.waterReserveLiters += 120
-                if sunlight > 1.10 do
+                if sunlight > 1.10
+                {
                     result.compostBins += 1
+                }
                 continue
             }
 
             result.vegetablePlots += 1
             result.raisedBeds     += rng.nextS32(2, 5)
-            result.fertilityScore += moistureLevel > 0.10'f32 ? 5 : 3
+            result.fertilityScore += moistureLevel > 0.10_f32 ? 5 : 3
 
-            if moistureLevel < 0.15'f32 or sunlight > 1.05'f32
+            if moistureLevel < 0.15_f32 or sunlight > 1.05_f32
             {
                 result.irrigatedPlots     += 1
                 result.waterReserveLiters += 180
@@ -211,8 +217,10 @@ func buildGardenPlan(seed: u32)->GardenPlanSummary
                 result.waterReserveLiters += 60
             }
 
-            if rng.nextBool() and sunlight > 0.90'f32 do
+            if rng.nextBool() and sunlight > 0.90_f32
+            {
                 result.compostBins += 1
+            }
         }
     }
 
@@ -221,9 +229,9 @@ func buildGardenPlan(seed: u32)->GardenPlanSummary
 
 #test
 {
-    let springLayoutA = buildGardenPlan(0x00C0FFEE'u32)
-    let springLayoutB = buildGardenPlan(0x00C0FFEE'u32)
-    let autumnLayout  = buildGardenPlan(0x0BADF00D'u32)
+    let springLayoutA = buildGardenPlan(0x00C0FFEE_u32)
+    let springLayoutB = buildGardenPlan(0x00C0FFEE_u32)
+    let autumnLayout  = buildGardenPlan(0x0BADF00D_u32)
 
     Swag.require(sameSummary(springLayoutA, springLayoutB))
     Swag.require(sameSummary(springLayoutA, autumnLayout) == false)

@@ -20,6 +20,8 @@ func castUnsignedToDouble(value: u64)->f64 => cast(f64, value)
         0x43F0000000000000, 0x43F0000000000000
         ]
 
-    for i in values.count do
+    for i in values.count
+    {
         Swag.require(cast #bit (u64, castUnsignedToDouble(values[i])) == bits[i])
+    }
 }

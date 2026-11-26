@@ -39,8 +39,10 @@ using Swag, Core, Gui
         editor.newMain.sendCommandEvent(ActionSelection.DeleteSelection)
         editor.newMain.sendCommandEvent(ActionUndo.DoUndo)
         Swag.require(capture.forms.count == count and not view.isEditingText())
-        for form in capture.forms do
+        for form in capture.forms
+        {
             Swag.require(not capture.isFormShown(form))
+        }
 
         // The bottom-right zone handle remains available while form editing is blocked.
         capture.selection.clear()
@@ -58,8 +60,11 @@ using Swag, Core, Gui
         var chosen: bool
         host.app.sigFrame += func|host = &host, chosen = &chosen|(_)
         {
-            if chosen[] do
+            if chosen[]
+            {
                 return
+            }
+
             Swag.require(host.clickPopupMenuItem(kindMenuId(.Picture)))
             chosen[] = true
         }
@@ -68,7 +73,9 @@ using Swag, Core, Gui
         host.app.sigFrame.clear()
         Swag.require(chosen and g_CaptureMedia == .Picture)
         Swag.require(capture.forms.count == count)
-        for form in capture.forms do
+        for form in capture.forms
+        {
             Swag.require(capture.isFormShown(form))
+        }
     }
 }

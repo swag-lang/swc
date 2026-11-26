@@ -5,8 +5,8 @@
 struct LinuxEventProbe
 {
     event:     Sync.Event
-    completed: Swag.AtomicValue'u32
-    rounds = 1'u32
+    completed: Swag.AtomicValue!{u32}
+    rounds = 1_u32
     published: u32
     observed:  u32
 }
@@ -17,8 +17,11 @@ func linuxEventWaiter(thread: const *Threading.Thread)
     for probe.rounds
     {
         probe.event.wait()
-        if probe.rounds == 2 do
+        if probe.rounds == 2
+        {
             probe.observed = probe.published
+        }
+
         discard probe.completed.add(1)
     }
 }
@@ -37,8 +40,11 @@ internal impl Sync.Event
             Swag.require(Linux.pthread_mutex_lock(&state.mutex) == 0)
             let ready = state.waiters == count
             Swag.require(Linux.pthread_mutex_unlock(&state.mutex) == 0)
-            if ready do
+            if ready
+            {
                 return true
+            }
+
             Threading.Thread.yield()
         }
 
@@ -52,8 +58,11 @@ func waitForEventCompletion(probe: *LinuxEventProbe, count: u32)->bool
     watch.start()
     while watch.elapsedMilliseconds() < 2000
     {
-        if probe.completed.load() == count do
+        if probe.completed.load() == count
+        {
             return true
+        }
+
         Threading.Thread.yield()
     }
 
@@ -107,8 +116,11 @@ func waitForEventCompletion(probe: *LinuxEventProbe, count: u32)->bool
 
         // Release any stranded waiter before reporting a failed assertion.
         probe.event.signal()
-        for &thread in threads do
+        for &thread in threads
+        {
             thread.wait()
+        }
+
         Swag.require(waiting and completed)
     }
 }
@@ -128,16 +140,22 @@ func waitForEventCompletion(probe: *LinuxEventProbe, count: u32)->bool
 
     let waiting = probe.event.waitForTestWaiters(3)
     var each    = true
-    for i in 3'u32
+    for i in 3_u32
     {
         probe.event.signal()
         probe.event.reset()
         each = waitForEventCompletion(&probe, i + 1) and each
     }
 
-    for 3 do
+    for 3
+    {
         probe.event.signal()
-    for &thread in threads do
+    }
+
+    for &thread in threads
+    {
         thread.wait()
+    }
+
     Swag.require(waiting and each and probe.completed.load() == 3)
 }

@@ -22,13 +22,14 @@ using Core, Gui, Viewers
 {
     let source   = expect File.readAllText(scopeTestDataPath("viewer.field-notes.ipynb"))
     let document = expect Notebook.parseNotebook(source)
-    let reading = Notebook.renderMarkdown(&document)
+    let reading  = Notebook.renderMarkdown(&document)
     let rendered = reading.toString()
     Swag.require(Utf8.startsWith(rendered, "# Wetland survey") and
                  Utf8.contains(rendered, "## Code cell 2 · In [4]") and
                  Utf8.contains(rendered, "Kernel: Python 3") and
                  Utf8.contains(rendered, "north-marsh,6.8,14.2") and
-                 Utf8.contains(rendered, "ValueError"), rendered)
+                 Utf8.contains(rendered, "ValueError"),
+                 rendered)
     Swag.require(Utf8.contains(rendered, "Rich output omitted") and
                  Utf8.contains(rendered, "not rendered, executed or fetched"))
     Swag.require(not Utf8.contains(rendered, "<img") and
@@ -40,7 +41,7 @@ using Core, Gui, Viewers
 #test
 {
     let document = expect Notebook.parseNotebook("{\"cells\":[],\"metadata\":{\"kernelspec\":{\"display_name\":\"<script>alert(1)</script>\",\"name\":\"py```\",\"language\":\"python\"},\"language_info\":{\"name\":\"Python\",\"version\":\"3.13\"}},\"nbformat\":4}")
-    let reading = Notebook.renderMarkdown(&document)
+    let reading  = Notebook.renderMarkdown(&document)
     let rendered = reading.toString()
     Swag.require(Utf8.contains(rendered, "Kernel: <script>alert(1)</script>") and
                  Utf8.contains(rendered, "Kernel identifier: py```") and
@@ -52,8 +53,11 @@ using Core, Gui, Viewers
 #test
 {
     var large: String
-    for 70 * 1024 do
+    for 70 * 1024
+    {
         large += 'x'
+    }
+
     let bounded = Notebook.boundedText(large.toString()).toString()
     Swag.require(bounded.count < large.count and Utf8.contains(bounded, "truncated at 64 KiB"))
 }
@@ -68,7 +72,7 @@ using Core, Gui, Viewers
 #test
 {
     let document = expect Notebook.parseNotebook("{\"cells\":[{\"cell_type\":\"code\",\"source\":[\"snippet = ```\\n<script>alert(1)</script>\"]}],\"nbformat\":4}")
-    let reading = Notebook.renderMarkdown(&document)
+    let reading  = Notebook.renderMarkdown(&document)
     let rendered = reading.toString()
     Swag.require(Utf8.contains(rendered, "````text") and Utf8.contains(rendered, "<script>alert(1)</script>"))
 }
@@ -82,7 +86,7 @@ using Core, Gui, Viewers
     Swag.require(output.data.textPlain.count == 3 and
                  Notebook.joinLines(output.data.textPlain).toString() == "station  readings  median_ph\nnorth    3         6.9\nsouth    2         7.1\n")
 
-    let reading = Notebook.renderMarkdown(&document)
+    let reading  = Notebook.renderMarkdown(&document)
     let rendered = reading.toString()
     Swag.require(Utf8.contains(rendered, "north    3         6.9") and
                  Utf8.contains(rendered, "Rich output omitted") and

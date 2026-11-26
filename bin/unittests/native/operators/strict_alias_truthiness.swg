@@ -7,8 +7,10 @@ func runtimeHandleTruthy()->bool
 {
     var value: s32 = 1
     let handle     = cast(Handle, &value)
-    if not handle do
+    if not handle
+    {
         return false
+    }
 
     let asAnd = handle and true
     let asOr  = handle or false

@@ -11,22 +11,28 @@ interface IBoolTestAbsence
 
 func boolTestAbsenceNullableTypeInfo(type: typeinfo?)->bool
 {
-    if type do
+    if type
+    {
         return true
+    }
     return false
 }
 
 func boolTestAbsenceNullableFunc(fn: (func()->s32)?)->s32
 {
-    if fn do
+    if fn
+    {
         return fn()
+    }
     return 0
 }
 
 func boolTestAbsenceNullableItf(itf: IBoolTestAbsence?)->s32
 {
-    if itf do
+    if itf
+    {
         return itf.get()
+    }
     return 0
 }
 
@@ -46,29 +52,37 @@ func boolTestAbsenceNullableCString(text: cstring?)->bool
 
 func boolTestAbsenceErrTypeInfo(type: typeinfo)->bool
 {
-    if type do     // swc-expected-error {{sema_err_bool_test_not_nullable_absence}}
+    if type     // swc-expected-error {{sema_err_bool_test_not_nullable_absence}}
+    {
         return true
+    }
     return false
 }
 
 func boolTestAbsenceErrFunc(fn: func()->s32)->s32
 {
-    if fn do     // swc-expected-error {{sema_err_bool_test_not_nullable_absence}}
+    if fn     // swc-expected-error {{sema_err_bool_test_not_nullable_absence}}
+    {
         return fn()
+    }
     return 0
 }
 
 func boolTestAbsenceErrItf(itf: IBoolTestAbsence)->s32
 {
-    if itf do     // swc-expected-error {{sema_err_bool_test_not_nullable_absence}}
+    if itf     // swc-expected-error {{sema_err_bool_test_not_nullable_absence}}
+    {
         return itf.get()
+    }
     return 0
 }
 
 func boolTestAbsenceErrCString(text: cstring)->bool
 {
-    if not text do     // swc-expected-error {{sema_err_bool_test_not_nullable_absence}}
+    if not text     // swc-expected-error {{sema_err_bool_test_not_nullable_absence}}
+    {
         return false
+    }
     return true
 }
 

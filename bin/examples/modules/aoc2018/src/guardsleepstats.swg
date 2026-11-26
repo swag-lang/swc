@@ -2,8 +2,8 @@ using Core, Core.Parser
 
 struct GuardSleepStats
 {
-    minutesByGuard: [60] HashTable'(s32, s32)
-    totalByGuard:   HashTable'(s32, s32)
+    minutesByGuard: [60] HashTable!{s32, s32}
+    totalByGuard:   HashTable!{s32, s32}
 }
 
 func readGuardSleepStats(dataPath: string)->GuardSleepStats
@@ -34,11 +34,11 @@ func readGuardSleepStats(dataPath: string)->GuardSleepStats
         {
             currentGuard = expect StrConv.toS32(shiftStart[1])
         }
-        elif fallsAsleep.grep(line[])
+        else if fallsAsleep.grep(line[])
         {
             sleepStart = currentMinute
         }
-        elif wakesUp.grep(line[])
+        else if wakesUp.grep(line[])
         {
             while sleepStart < currentMinute
             {

@@ -2,5 +2,5 @@
 
 func invalidStaticControl()
 {
-    #static while true do break     // swc-expected-error {{parser_err_static_control}}
+    #static while true { break }     // swc-expected-error {{parser_err_static_control}}
 }

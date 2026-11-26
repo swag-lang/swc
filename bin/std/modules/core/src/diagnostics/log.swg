@@ -33,7 +33,7 @@ struct Log
         lock:        Swag.Mutex                // Protects configuration, writers, and output.
         buf:         StrConv.StringBuilder     // Reused message buffer.
         dt:          Time.DateTime             // Timestamp captured for the current message.
-        writers:     Array'ILogWriter          // Registered borrowed writer interfaces.
+        writers:     Array!{ILogWriter}        // Registered borrowed writer interfaces.
         prefixText:  String                    // Owned prefix added to each line.
         formatFlags: LogFlags = Default        // Enabled header components.
     }
@@ -65,7 +65,7 @@ impl Log
             .buf.appendString(Path.fileName(loc.fileName))
             .buf.appendString(.formatFlags & (.Line | .FullLoc) ? ":" : " ")
         }
-        elif .formatFlags & .LongFileName
+        else if .formatFlags & .LongFileName
         {
             .buf.appendString(loc.fileName)
             .buf.appendString(.formatFlags & (.Line | .FullLoc) ? ":" : " ")
@@ -76,7 +76,7 @@ impl Log
             .buf.appendAny(loc.lineStart)
             .buf.appendString(" ")
         }
-        elif .formatFlags & .FullLoc
+        else if .formatFlags & .FullLoc
         {
             .buf.appendFormat("%:%:%:% ", loc.lineStart, loc.colStart, loc.lineEnd, loc.colEnd)
         }
@@ -137,8 +137,10 @@ impl Log
         // fields are only read and written once the lock is held.
         let now = Time.DateTime.now()
         Sync.scopedLock(&.lock)
-        if .formatFlags & (.Date | .Time) do
+        if .formatFlags & (.Date | .Time)
+        {
             .dt = now
+        }
 
         // Build log string
         .buf.clear()
@@ -156,7 +158,9 @@ impl Log
         }
 
         // Otherwise call all writers
-        for w in .writers do
+        for w in .writers
+        {
             w.print(rendered.toString())
+        }
     }
 }

@@ -30,7 +30,7 @@ struct SoftwareVideoRateControl
 private struct SoftwareAudioTrack
 {
     encoder: Aac.StreamEncoder
-    packet:  Array'u8
+    packet:  Array!{u8}
 }
 
 // Records RGB pictures and PCM16 sound as a fragmented MP4 without codec libraries.
@@ -63,7 +63,7 @@ struct SoftwareRecording
         writer:           FragmentedWriter
         muxMutex:         Swag.Mutex
         video:            H264.Encoder
-        tracks:           Array'SoftwareAudioTrack
+        tracks:           Array!{SoftwareAudioTrack}
         nv12:             Nv12Frame
         videoOffset:      u64
         nextVideoTime:    u64
@@ -116,16 +116,25 @@ impl SoftwareRecording
     // complete macroblock-row bands. A rate controller can replace fixed QP selection.
     func createWithAudioTracks(path: string, width, height: s32, videoTimescale: u32, audioConfigs: const [..] SoftwareAudioConfig, keyInterval: u32 = 60, options: FragmentedOptions = {}, quantizationQp: u32 = 0, sliceCount: u32 = 1, rateControl: const *SoftwareVideoRateControl? = null)->SoftwareRecording fail
     {
-        if audioConfigs.count > 4 do
+        if audioConfigs.count > 4
+        {
             fail BadParameterError{"software recording supports at most four audio tracks"}
-        if rateControl and quantizationQp do
+        }
+
+        if rateControl and quantizationQp
+        {
             fail BadParameterError{"software recording cannot combine fixed QP and bitrate control"}
+        }
+
         var result: #returntype
         if rateControl
         {
             let config = rateControl
-            if not config.minQp or config.minQp > config.maxQp do
+            if not config.minQp or config.minQp > config.maxQp
+            {
                 fail BadParameterError{"software video rate control needs a QP range from 1 to 51"}
+            }
+
             result.rateControl = try H264.RateControl.create(config.targetBitsPerSecond,
                                                              config.reservoirBits,
                                                              videoTimescale,
@@ -150,8 +159,11 @@ impl SoftwareRecording
         result.tracks.reserve(audioConfigs.count)
         for config in audioConfigs
         {
-            if config.sampleRate != audioConfigs[0].sampleRate do
+            if config.sampleRate != audioConfigs[0].sampleRate
+            {
                 fail BadParameterError{"software recording audio tracks need one sample rate"}
+            }
+
             var track: SoftwareAudioTrack
             track.encoder = try Aac.StreamEncoder.create(config.sampleRate, config.channelCount, config.bandwidth)
             result.tracks.add(#move track)
@@ -167,9 +179,12 @@ impl SoftwareRecording
                              audioConfigs[0].sampleRate
         if delay and
            result.videoOffset * audioConfigs[0].sampleRate <=
-           cast(u64, delay - 1) * clock.ticksPerSecond() do
+           cast(u64, delay - 1) * clock.ticksPerSecond()
+        {
             fail BadParameterError{"video timescale cannot express AAC priming to one sample"}
-        var mp4Configs: Array'FragmentedAudioConfig
+        }
+
+        var mp4Configs: Array!{FragmentedAudioConfig}
         for index in audioConfigs.count
         {
             let config = audioConfigs[index]
@@ -212,16 +227,22 @@ impl SoftwareRecording
     // Returns source PCM16 frames consumed by the selected sound track.
     mtd const audioInputFrameCountOf(trackIndex: u32)->u64 fail
     {
-        if trackIndex >= .tracks.count do
+        if trackIndex >= .tracks.count
+        {
             fail BadParameterError{"software recording has no audio track at this index"}
+        }
+
         return .tracks[trackIndex].encoder.inputFrameCount()
     }
 
     // Returns AAC-LC packets submitted on the selected track, including its drain packet.
     mtd const audioPacketCountOf(trackIndex: u32)->u64 fail
     {
-        if trackIndex >= .tracks.count do
+        if trackIndex >= .tracks.count
+        {
             fail BadParameterError{"software recording has no audio track at this index"}
+        }
+
         return .tracks[trackIndex].encoder.packetCount()
     }
 
@@ -241,13 +262,22 @@ impl SoftwareRecording
     mtd addFrame(image: const *Image, slot: FrameSlot) fail
     {
         try .checkFailure()
-        if .ended do
+        if .ended
+        {
             fail BadParameterError{"cannot append to a finished software recording"}
-        if slot.index != .frameCount or slot.decodeTime != .nextVideoTime or not slot.duration do
+        }
+
+        if slot.index != .frameCount or slot.decodeTime != .nextVideoTime or not slot.duration
+        {
             fail BadParameterError{"software recording needs consecutive video slots"}
+        }
+
         if slot.decodeTime > Swag.U64.Max - .videoOffset or
-           slot.duration > Swag.U64.Max - slot.decodeTime - .videoOffset do
+           slot.duration > Swag.U64.Max - slot.decodeTime - .videoOffset
+        {
             fail OverflowError{"software recording video time overflows"}
+        }
+
         if .hasRateControl
         {
             try .rateControl.validateDuration(slot.duration)
@@ -265,20 +295,28 @@ impl SoftwareRecording
             packet = try .video.encode(&.nv12, slot.decodeTime + .videoOffset, slot.duration)
         }
 
-        if packet.bytes.count > Swag.U64.Max - .videoPacketBytes do
+        if packet.bytes.count > Swag.U64.Max - .videoPacketBytes
+        {
             fail OverflowError{"software recording video packet byte count overflows"}
+        }
+
         .muxMutex.lock()
         defer .muxMutex.unlock()
         try .raiseFailure()
         var failure: Swag.Error
         catch .writer.addPacket(packet) as failure
-        if not failure.isEmpty() do
+        if not failure.isEmpty()
+        {
             try .rememberFailure(failure)
+        }
+
         if .hasRateControl
         {
             catch .rateControl.observe(packet.bytes.count, slot.duration, .videoQp) as failure
-            if not failure.isEmpty() do
+            if not failure.isEmpty()
+            {
                 try .rememberFailure(failure)
+            }
         }
 
         .videoPacketBytes += packet.bytes.count
@@ -293,13 +331,22 @@ impl SoftwareRecording
     mtd repeatLastFrame(slot: FrameSlot) fail
     {
         try .checkFailure()
-        if .ended or not .frameCount do
+        if .ended or not .frameCount
+        {
             fail BadParameterError{"software recording has no live picture to repeat"}
-        if slot.index != .frameCount or slot.decodeTime != .nextVideoTime or not slot.duration do
+        }
+
+        if slot.index != .frameCount or slot.decodeTime != .nextVideoTime or not slot.duration
+        {
             fail BadParameterError{"software recording needs consecutive video slots"}
+        }
+
         if slot.decodeTime > Swag.U64.Max - .videoOffset or
-           slot.duration > Swag.U64.Max - slot.decodeTime - .videoOffset do
+           slot.duration > Swag.U64.Max - slot.decodeTime - .videoOffset
+        {
             fail OverflowError{"software recording video time overflows"}
+        }
+
         if .hasRateControl
         {
             try .rateControl.validateDuration(slot.duration)
@@ -316,20 +363,28 @@ impl SoftwareRecording
             packet = try .video.repeatPrevious(slot.decodeTime + .videoOffset, slot.duration)
         }
 
-        if packet.bytes.count > Swag.U64.Max - .videoPacketBytes do
+        if packet.bytes.count > Swag.U64.Max - .videoPacketBytes
+        {
             fail OverflowError{"software recording video packet byte count overflows"}
+        }
+
         .muxMutex.lock()
         defer .muxMutex.unlock()
         try .raiseFailure()
         var failure: Swag.Error
         catch .writer.addPacket(packet) as failure
-        if not failure.isEmpty() do
+        if not failure.isEmpty()
+        {
             try .rememberFailure(failure)
+        }
+
         if .hasRateControl
         {
             catch .rateControl.observe(packet.bytes.count, slot.duration, .videoQp) as failure
-            if not failure.isEmpty() do
+            if not failure.isEmpty()
+            {
                 try .rememberFailure(failure)
+            }
         }
 
         .videoPacketBytes += packet.bytes.count
@@ -345,15 +400,24 @@ impl SoftwareRecording
     mtd addAudioFrames(samples: const [..] s16, trackIndex: u32 = 0) fail
     {
         try .checkFailure()
-        if .ended do
+        if .ended
+        {
             fail BadParameterError{"cannot append to a finished software recording"}
-        if trackIndex >= .tracks.count do
+        }
+
+        if trackIndex >= .tracks.count
+        {
             fail BadParameterError{"software recording has no audio track at this index"}
+        }
+
         let track    = &.tracks[trackIndex]
         let channels = track.encoder.channelCount()
-        if samples.count % channels do
+        if samples.count % channels
+        {
             fail BadParameterError{"software recording needs complete audio frames"}
-        var cursor = 0'u64
+        }
+
+        var cursor = 0_u64
         while cursor < samples.count
         {
             let consumed = try track.encoder.push(samples[cursor until samples.count], &track.packet)
@@ -369,8 +433,10 @@ impl SoftwareRecording
                                                            track.encoder.lastPacketStartSample(),
                                                            1_024, true},
                                              trackIndex) as failure
-                if not failure.isEmpty() do
+                if not failure.isEmpty()
+                {
                     try .rememberFailure(failure)
+                }
             }
         }
     }
@@ -383,8 +449,10 @@ impl SoftwareRecording
         try .raiseFailure()
         var failure: Swag.Error
         catch .writer.flush() as failure
-        if not failure.isEmpty() do
+        if not failure.isEmpty()
+        {
             try .rememberFailure(failure)
+        }
     }
 
     // Drains audio and finalizes the MP4 recording; repeated calls are harmless.
@@ -395,10 +463,16 @@ impl SoftwareRecording
     mtd end() fail
     {
         try .checkFailure()
-        if .ended do
+        if .ended
+        {
             return
-        if not .frameCount do
+        }
+
+        if not .frameCount
+        {
             fail BadParameterError{"software recording needs at least one video frame"}
+        }
+
         for index in .tracks.count
         {
             let track = &.tracks[index]
@@ -410,26 +484,36 @@ impl SoftwareRecording
                                                            track.encoder.lastPacketStartSample(),
                                                            1_024, true},
                                              cast(u32, index)) as failure
-                if not failure.isEmpty() do
+                if not failure.isEmpty()
+                {
                     try .rememberFailure(failure)
+                }
             }
         }
 
         if .tracks.count
         {
-            var frameCounts: Array'u64
-            for &track in .tracks do
+            var frameCounts: Array!{u64}
+            for &track in .tracks
+            {
                 frameCounts.add(track.encoder.inputFrameCount())
+            }
+
             var failure: Swag.Error
             catch .writer.setPresentationEdits(.videoOffset, frameCounts.toSlice()) as failure
-            if not failure.isEmpty() do
+            if not failure.isEmpty()
+            {
                 try .rememberFailure(failure)
+            }
         }
 
         var failure: Swag.Error
         catch .writer.end() as failure
-        if not failure.isEmpty() do
+        if not failure.isEmpty()
+        {
             try .rememberFailure(failure)
+        }
+
         .ended = true
     }
 }
@@ -440,17 +524,24 @@ private impl SoftwareRecording
     {
         var failure: Swag.Error
         .muxMutex.lock()
-        if .failed do
+        if .failed
+        {
             failure = .failureError
+        }
+
         .muxMutex.unlock()
-        if not failure.isEmpty() do
+        if not failure.isEmpty()
+        {
             try failure.raise()
+        }
     }
 
     mtd raiseFailure() fail
     {
-        if .failed do
+        if .failed
+        {
             try .failureError.raise()
+        }
     }
 
     mtd rememberFailure(failure: Swag.Error) fail

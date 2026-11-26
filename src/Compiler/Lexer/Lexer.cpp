@@ -735,6 +735,19 @@ uint32_t Lexer::lexDigitRun(bool& ioLastWasSep)
         if (!langSpec_->isNumberSep(buffer_[0]))
             break;
 
+        // An underscore before an identifier starts a literal suffix; one before a digit
+        // remains the numeric separator. Hex digits also include 'f', so recognize the
+        // built-in floating suffixes when they follow a hexadecimal literal.
+        const bool floatSuffix = endBuffer_ - buffer_ >= 4 &&
+                                 (buffer_[1] == 'f' || buffer_[1] == 'F') &&
+                                 ((buffer_[2] == '3' && buffer_[3] == '2') ||
+                                  (buffer_[2] == '6' && buffer_[3] == '4'));
+        const bool emptySuffix = buffer_[1] == '\0' || langSpec_->isWhiteSpace(buffer_[1]);
+        const bool namedSuffix = buffer_[1] != '_' && langSpec_->isIdentifierStart(buffer_[1]) &&
+                                 !langSpec_->isDigit(buffer_[1]) && !(langSpec_->*IsDigit)(buffer_[1]);
+        if (emptySuffix || namedSuffix || floatSuffix)
+            break;
+
         if (ioLastWasSep)
         {
             while (langSpec_->isNumberSep(buffer_[0]))
@@ -766,7 +779,7 @@ void Lexer::lexHexNumber()
     if (lastWasSep)
         raiseTokenError(DiagnosticId::lex_err_trailing_num_sep, static_cast<uint32_t>(buffer_ - startBuffer_ - 1));
 
-    if (langSpec_->isLetter(buffer_[0]))
+    if (buffer_[0] != '_' && langSpec_->isLetter(buffer_[0]))
         raiseTokenError(DiagnosticId::lex_err_invalid_hex_digit, static_cast<uint32_t>(buffer_ - startBuffer_), 1);
 
     pushToken();
@@ -786,8 +799,9 @@ void Lexer::lexBinNumber()
     if (lastWasSep)
         raiseTokenError(DiagnosticId::lex_err_trailing_num_sep, static_cast<uint32_t>(buffer_ - startBuffer_ - 1));
 
-    if (langSpec_->isLetter(buffer_[0]) ||
-        (langSpec_->isDigit(buffer_[0]) && !langSpec_->isBinNumber(buffer_[0])))
+    if (buffer_[0] != '_' &&
+        (langSpec_->isLetter(buffer_[0]) ||
+         (langSpec_->isDigit(buffer_[0]) && !langSpec_->isBinNumber(buffer_[0]))))
         raiseTokenError(DiagnosticId::lex_err_invalid_bin_digit, static_cast<uint32_t>(buffer_ - startBuffer_), 1);
 
     pushToken();
@@ -867,7 +881,7 @@ void Lexer::lexNumber()
         lexDecimalNumber();
 
     // Report the entire invalid suffix, rather than just its first letter.
-    if (langSpec_->isLetter(buffer_[0]))
+    if (buffer_[0] != '_' && langSpec_->isLetter(buffer_[0]))
     {
         const uint32_t suffixOffset = static_cast<uint32_t>(buffer_ - startBuffer_);
         const char8_t* suffixStart  = buffer_;
@@ -932,11 +946,6 @@ void Lexer::lexIdentifier()
     pushToken();
 }
 
-bool Lexer::canPrecedeQuoteOperator() const
-{
-    return Token::isQuoteOperatorPredecessor(prevCodeTokenId_);
-}
-
 void Lexer::lexSymbol()
 {
     // Safe to read buffer_[1] and buffer_[2] due to padding after endBuffer_
@@ -944,11 +953,6 @@ void Lexer::lexSymbol()
 
     switch (c)
     {
-        case '\'':
-            token_.id = TokenId::SymSingleQuote;
-            buffer_++;
-            break;
-
         case '\\':
             token_.id = TokenId::SymBackSlash;
             buffer_++;
@@ -1522,6 +1526,14 @@ void Lexer::tokenize(TaskContext& ctx, SourceView& srcView, LexerFlags flags)
             continue;
         }
 
+        if (buffer_[0] == '_' && Token::isLiteral(prevCodeTokenId_))
+        {
+            token_.id = TokenId::SymLiteralSuffixStart;
+            buffer_++;
+            pushToken();
+            continue;
+        }
+
         if (langSpec_->isIdentifierStart(buffer_[0]))
         {
             lexIdentifier();
@@ -1531,16 +1543,10 @@ void Lexer::tokenize(TaskContext& ctx, SourceView& srcView, LexerFlags flags)
             continue;
         }
 
-        // After a token that can carry a suffix or generic arguments on this line,
-        // ' is a quote operator; otherwise it opens a character literal. Trivia does
-        // not change the meaning of 5's32 versus 5 's32.
         if (buffer_[0] == '\'')
         {
-            if (!canPrecedeQuoteOperator())
-            {
-                lexCharacterLiteral();
-                continue;
-            }
+            lexCharacterLiteral();
+            continue;
         }
 
         lexSymbol();

@@ -30,8 +30,10 @@ impl FrameTiming
     mtd update()
     {
         let newTick = monotonicTicks()
-        if .isPaused do
+        if .isPaused
+        {
             return
+        }
 
         .frameCount += 1
 
@@ -58,8 +60,11 @@ impl FrameTiming
     // Resumes frame timing and resets the tick reference.
     mtd resume()
     {
-        if not .isPaused do
+        if not .isPaused
+        {
             return
+        }
+
         .isPaused     = false
         .previousTick = monotonicTicks()
     }

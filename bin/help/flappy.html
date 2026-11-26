@@ -54,10 +54,14 @@
     <span class="SKwd">let</span> cfg = <span class="SKwd">unwrap</span> itf.<span class="SFct">getBuildCfg</span>()
 
     <span class="SCmt">// Keep runtime safety guards outside release builds.</span>
-    <span class="SCmp">#static</span> <span class="SLgc">if</span> <span class="SCmp">#cfg</span> == <span class="SStr">"release"</span> <span class="SLgc">do</span>
+    <span class="SCmp">#static</span> <span class="SLgc">if</span> <span class="SCmp">#cfg</span> == <span class="SStr">"release"</span>
+    {
         cfg.safetyGuards = <span class="SNsp">Swag</span>.<span class="SCst">SafetyWhat</span>.<span class="SCst">None</span>
-    <span class="SLgc">else</span> <span class="SLgc">do</span>
+    }
+    <span class="SLgc">else</span>
+    {
         cfg.safetyGuards = <span class="SNsp">Swag</span>.<span class="SCst">SafetyWhat</span>.<span class="SCst">All</span>
+    }
 }</span></div>
 <p>Semicolons are optional. This script follows the canonical formatter and omits them.</p>
 <p>Each standard module exposes its API in a namespace. File-scope <span class="code-inline">using</span> declarations make the frequently used Core, Pixel, and Gui names available without a prefix. Audio remains qualified so sound operations stay visible at their call sites.</p>
@@ -227,10 +231,15 @@
     <span class="SCmt">// Scroll two ground copies to form a seamless strip.</span>
     painter.<span class="SFct">drawTexture</span>(-g_BasePos, g_Rect.<span class="SFct">bottom</span>() - <span class="SCst">GroundHeight</span>, <span class="SKwd">cast</span>(<span class="STpe">f32</span>, g_BaseTexture.width), <span class="SCst">GroundHeight</span>, g_BaseTexture)
     painter.<span class="SFct">drawTexture</span>(-g_BasePos + g_BaseTexture.width, g_Rect.<span class="SFct">bottom</span>() - <span class="SCst">GroundHeight</span>, <span class="SKwd">cast</span>(<span class="STpe">f32</span>, g_BaseTexture.width), <span class="SCst">GroundHeight</span>, g_BaseTexture)
-    <span class="SLgc">if</span> <span class="SLgc">not</span> g_GameOver <span class="SLgc">do</span>
+    <span class="SLgc">if</span> <span class="SLgc">not</span> g_GameOver
+    {
         g_BasePos += <span class="SCst">SpeedHorz</span> * g_Dt
-    <span class="SLgc">if</span> g_BasePos &gt;= g_BaseTexture.width <span class="SLgc">do</span>
+    }
+
+    <span class="SLgc">if</span> g_BasePos &gt;= g_BaseTexture.width
+    {
         g_BasePos = <span class="SNum">0</span>
+    }
 
     <span class="SCmt">// Center the game-over texture.</span>
     <span class="SLgc">if</span> g_GameOver
@@ -292,19 +301,25 @@
 <p>Advance gameplay by one frame.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">move</span>()
 {
-    <span class="SLgc">if</span> g_GameOver <span class="SLgc">do</span>
+    <span class="SLgc">if</span> g_GameOver
+    {
         <span class="SLgc">return</span>
+    }
 
     g_Bird.pos   += g_Bird.speed * g_Dt
     g_Bird.pos.y = <span class="SCst">Math</span>.<span class="SFct">max</span>(g_Bird.pos.y, <span class="SNum">0</span>)
-    <span class="SLgc">if</span> g_Start <span class="SLgc">do</span>
+    <span class="SLgc">if</span> g_Start
+    {
         g_Bird.speed.y += <span class="SCst">Gravity</span>
+    }
 
     g_Bird.frame += <span class="SNum">10</span> * g_Dt
 
     <span class="SCmt">// Keep at least one obstacle pair alive.</span>
-    <span class="SLgc">if</span> g_Pipes.count == <span class="SNum">0</span> <span class="SLgc">do</span>
+    <span class="SLgc">if</span> g_Pipes.count == <span class="SNum">0</span>
+    {
         <span class="SFct">createPipe</span>()
+    }
 
     <span class="SCmt">// '&amp;pipe' binds a mutable reference so updates modify the stored array element.</span>
     <span class="SLgc">if</span> g_Start
@@ -332,12 +347,16 @@
     }
 
     <span class="SCmt">// Remove the oldest pair once it leaves the surface.</span>
-    <span class="SLgc">if</span> g_Pipes[<span class="SNum">0</span>].rectUp.<span class="SFct">right</span>() &lt; <span class="SNum">0</span> <span class="SLgc">do</span>
+    <span class="SLgc">if</span> g_Pipes[<span class="SNum">0</span>].rectUp.<span class="SFct">right</span>() &lt; <span class="SNum">0</span>
+    {
         g_Pipes.<span class="SFct">removeAt</span>(<span class="SNum">0</span>)
+    }
 
     <span class="SCmt">// Create the next pair after the configured horizontal gap appears.</span>
-    <span class="SLgc">if</span> g_Rect.width - g_Pipes.<span class="SFct">back</span>().rectUp.<span class="SFct">right</span>() &gt; g_Pipes.<span class="SFct">back</span>().distToNext <span class="SLgc">do</span>
+    <span class="SLgc">if</span> g_Rect.width - g_Pipes.<span class="SFct">back</span>().rectUp.<span class="SFct">right</span>() &gt; g_Pipes.<span class="SFct">back</span>().distToNext
+    {
         <span class="SFct">createPipe</span>()
+    }
 
     <span class="SCmt">// Touching the scrolling ground ends the round.</span>
     <span class="SLgc">if</span> g_Bird.pos.y + g_BirdTexture[<span class="SNum">0</span>].height &gt; g_Rect.<span class="SFct">bottom</span>() - <span class="SCst">GroundHeight</span>
@@ -347,8 +366,10 @@
     }
 
     <span class="SCmt">// Play the death cue after either collision path.</span>
-    <span class="SLgc">if</span> g_GameOver <span class="SLgc">do</span>
+    <span class="SLgc">if</span> g_GameOver
+    {
         <span class="SKwd">expect</span> <span class="SCst">Audio</span>.<span class="SCst">Voice</span>.<span class="SFct">play</span>(&amp;g_SoundDie)
+    }
 }</span></div>
 <p>Create one randomized upper/lower pipe pair at the right edge of the surface.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">createPipe</span>()

@@ -3,7 +3,7 @@
 #[Swag.NoInline]
 func raiseDeferredPatternError() fail
 {
-    fail 7's32
+    fail 7_s32
 }
 
 // Catch handlers are emitted separately from their managed expression.
@@ -12,8 +12,10 @@ func raiseDeferredPatternError() fail
     var matched = false
     catch raiseDeferredPatternError()
     {
-        if Swag.getContext().curError is s32 as error do
+        if Swag.getContext().curError is s32 as error
+        {
             matched = error[] == 7
+        }
     }
     Swag.require(matched)
 }
@@ -24,11 +26,15 @@ func deferredPatternBinding(value: s32, result: *s32, early: bool)
     defer
     {
         let boxed: any = &value
-        if boxed is s32 as number where number[] > 0 do
+        if boxed is s32 as number where number[] > 0
+        {
             result[] += number[]
+        }
     }
-    if early do
+    if early
+    {
         return
+    }
 }
 
 // One deferred binding is emitted on two exit paths; neither address can serve the other.

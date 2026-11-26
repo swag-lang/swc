@@ -28,8 +28,10 @@ func createColumnsPage(parent: *Wnd)
         line.setItem(1, i % 3 == 0 ? "source" : "resource")
         line.setItem(2, i % 2 == 0 ? "design" : "runtime")
         line.setItem(3, Format.toString("2026-06-%", 10 + (i % 12)))
-        if i % 5 == 0 do
+        if i % 5 == 0
+        {
             line.canCheck = true
+        }
     }
 
     files.computeLayout()

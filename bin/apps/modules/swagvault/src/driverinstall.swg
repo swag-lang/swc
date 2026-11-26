@@ -37,8 +37,11 @@ impl MainWindow
         if not SupportsWinFspInstall or
            .operation.kind != .None or
            .resident.batch or
-           not .mountedDrives.drives.isEmpty() do
+           not .mountedDrives.drives.isEmpty()
+        {
             return
+        }
+
         .operation.path = resumePath
         .setStatus(.InstallingDriver)
         .beginOperation(.InstallDriver)
@@ -50,7 +53,7 @@ impl MainWindow
         {
             .setStatus(.DriverInstalled)
         }
-        elif isCanceledError(operationError)
+        else if isCanceledError(operationError)
         {
             .setStatus(.Ready)
         }

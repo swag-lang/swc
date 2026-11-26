@@ -10,7 +10,7 @@ func(T, V) localStructPartialLiteral()->V
     }
 
     var third: V
-    let data = Local'T{first: false, second: "ok", third: third}
+    let data = Local!{T}{first: false, second: "ok", third: third}
     return data.third
 }
 
@@ -23,12 +23,12 @@ func(T) localUnionValueDefaultPartialLiteral()->T
     }
 
     var value: T
-    let data = Local'5{value: value}
+    let data = Local!{5}{value: value}
     return data.value
 }
 
 func semaTest001()
 {
-    #assert(#typeof(localStructPartialLiteral'(bool, f32)()) == f32)
-    #assert(#typeof(localUnionValueDefaultPartialLiteral'f32()) == f32)
+    #assert(#typeof(localStructPartialLiteral!{bool, f32}()) == f32)
+    #assert(#typeof(localUnionValueDefaultPartialLiteral!{f32}()) == f32)
 }

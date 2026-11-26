@@ -3,43 +3,43 @@
 
 // The state that no match can continue from; its identifier is zero so a cleared transition
 // table reads as "dead" rather than as a valid state.
-const DeadState = 0'u32
+const DeadState = 0_u32
 
 // The answer of a transition that has not been computed yet.
-const UnknownState = 0xFFFF_FFFF'u32
+const UnknownState = 0xFFFF_FFFF_u32
 
 // The answer of an automaton that cannot go on: a byte it must not read, or a cache that
 // filled up. The caller falls back to the simulation.
-const QuitState = 0xFFFF_FFFE'u32
+const QuitState = 0xFFFF_FFFE_u32
 
 // The offset that means "no match was seen".
-const NoOffset = 0xFFFF_FFFF_FFFF_FFFF'u64
+const NoOffset = 0xFFFF_FFFF_FFFF_FFFF_u64
 
 // The offset that means "the automaton refused this subject", which is not the same answer as
 // "no match": the caller has to ask another engine.
-const QuitOffset = 0xFFFF_FFFF_FFFF_FFFE'u64
+const QuitOffset = 0xFFFF_FFFF_FFFF_FFFE_u64
 
 // A state remembers what the byte on the side it came from was, because that is what the
 // zero-width assertions read.
-const FlagIsMatch     = 0x01'u32     // A match ended just before the byte that led here.
-const FlagFromStart   = 0x02'u32     // There was no byte on that side: the subject ended there.
-const FlagFromWord    = 0x04'u32     // That byte was a word byte.
-const FlagFromNewline = 0x08'u32     // That byte was a line feed.
-const FlagIsStart     = 0x10'u32     // Nothing of the pattern is matched yet.
+const FlagIsMatch     = 0x01_u32     // A match ended just before the byte that led here.
+const FlagFromStart   = 0x02_u32     // There was no byte on that side: the subject ended there.
+const FlagFromWord    = 0x04_u32     // That byte was a word byte.
+const FlagFromNewline = 0x08_u32     // That byte was a line feed.
+const FlagIsStart     = 0x10_u32     // Nothing of the pattern is matched yet.
 
 // A state identifier carries the two facts the search loop tests on every byte, so that the
 // loop reads the transition table and nothing else.
 //
 // Both are properties of the state, so tagging its identifier costs nothing and saves one
 // dependent load per byte of the subject — which is a large part of the cost of a step.
-const TagMatch       = 0x8000_0000'u32     // A match ended just before the byte that led here.
-const TagStart       = 0x4000_0000'u32     // Nothing of the pattern is matched yet.
-const TagMask        = 0xC000_0000'u32     // Both of them.
-const StateIndexMask = 0x3FFF_FFFF'u32     // What is left: the index of the state itself.
+const TagMatch       = 0x8000_0000_u32     // A match ended just before the byte that led here.
+const TagStart       = 0x4000_0000_u32     // Nothing of the pattern is matched yet.
+const TagMask        = 0xC000_0000_u32     // Both of them.
+const StateIndexMask = 0x3FFF_FFFF_u32     // What is left: the index of the state itself.
 
 // How large the index of interned states starts. It doubles as states are discovered, and
 // most patterns never need more than the first size.
-const InitialIndexSize = 64'u64
+const InitialIndexSize = 64_u64
 
 // How much of a subject's worth of states one automaton may remember.
 //
@@ -47,8 +47,8 @@ const InitialIndexSize = 64'u64
 // pattern that grows with the subject rather than with the pattern. These two bounds keep a
 // compiled pattern under about two megabytes whatever it is asked to read; past them the
 // simulation, which needs no cache at all, finishes the search.
-const MaxCachedTransitions = 250_000'u64
-const MaxCachedStates      = 30_000'u64
+const MaxCachedTransitions = 250_000_u64
+const MaxCachedStates      = 30_000_u64
 
 // Hashes the content of a state.
 //
@@ -56,12 +56,15 @@ const MaxCachedStates      = 30_000'u64
 #[Swag.Safety(.Overflow, false)]
 func hashState(flags: u32, pcs: const [..] u32)->u64
 {
-    const Offset = 0xCBF2_9CE4_8422_2325'u64
-    const Prime  = 0x0000_0100_0000_01B3'u64
+    const Offset = 0xCBF2_9CE4_8422_2325_u64
+    const Prime  = 0x0000_0100_0000_01B3_u64
 
     var hash = (Offset ^ cast(u64, flags)) * Prime
-    for pc in pcs do
+    for pc in pcs
+    {
         hash = (hash ^ cast(u64, pc)) * Prime
+    }
+
     return hash
 }
 
@@ -78,27 +81,27 @@ func hashState(flags: u32, pcs: const [..] u32)->u64
 // for the end, backwards for the start, and only then hands that span to the simulation.
 struct Dfa
 {
-    stateOffset: Array'u64     // State identifier to where its program counters start in 'stateData'.
-    stateFlags:  Array'u32     // Flags of each state, read once per byte by the search loops.
-    stateData:   Array'u32     // For each state: its count of program counters, then those.
-    trans:       Array'u32     // Transitions, 'stride' of them per state.
-    hashSlots:   Array'u32     // Open-addressed index of the interned states, holding identifier plus one.
-    hashMask:    u64           // Size of that index, minus one.
-    stride:      u64           // Transitions per state, rounded up to a power of two.
-    strideShift: u64           // The base-two logarithm of that stride.
-    maxStates:   u64           // How many states fit in the transition budget.
-    startCache:  [32] u32      // Start state of each look-behind context, or 'UnknownState'.
-    reverse:     bool          // Whether the automaton walks the subject backwards.
-    matchAll:    bool          // Whether a match keeps the lower-priority branches alive.
-    quitHigh:    bool          // Whether a byte outside ASCII must stop the automaton.
-    exhausted:   bool          // Whether the cache filled up, so the automaton no longer answers.
+    stateOffset: Array!{u64}     // State identifier to where its program counters start in 'stateData'.
+    stateFlags:  Array!{u32}     // Flags of each state, read once per byte by the search loops.
+    stateData:   Array!{u32}     // For each state: its count of program counters, then those.
+    trans:       Array!{u32}     // Transitions, 'stride' of them per state.
+    hashSlots:   Array!{u32}     // Open-addressed index of the interned states, holding identifier plus one.
+    hashMask:    u64             // Size of that index, minus one.
+    stride:      u64             // Transitions per state, rounded up to a power of two.
+    strideShift: u64             // The base-two logarithm of that stride.
+    maxStates:   u64             // How many states fit in the transition budget.
+    startCache:  [32] u32        // Start state of each look-behind context, or 'UnknownState'.
+    reverse:     bool            // Whether the automaton walks the subject backwards.
+    matchAll:    bool            // Whether a match keeps the lower-priority branches alive.
+    quitHigh:    bool            // Whether a byte outside ASCII must stop the automaton.
+    exhausted:   bool            // Whether the cache filled up, so the automaton no longer answers.
 
-    stack:      Array'u32     // Closure walk.
-    seen:       Array'u32     // Generation at which each program counter was last closed over.
+    stack:      Array!{u32}     // Closure walk.
+    seen:       Array!{u32}     // Generation at which each program counter was last closed over.
     generation: u32
-    closure:    Array'u32     // Program counters reached without consuming a byte.
-    stepped:    Array'u32     // Program counters reached by consuming one byte.
-    roots:      Array'u32     // The one program counter a start state holds.
+    closure:    Array!{u32}     // Program counters reached without consuming a byte.
+    stepped:    Array!{u32}     // Program counters reached by consuming one byte.
+    roots:      Array!{u32}     // The one program counter a start state holds.
 }
 
 impl Dfa
@@ -111,8 +114,10 @@ impl Dfa
     #[Swag.Inline]
     mtd ensure(program: const *Program)
     {
-        if .stride == 0 do
+        if .stride == 0
+        {
             .configure(program)
+        }
     }
 
     // Prepares the automaton for one program, dropping whatever it cached for another.
@@ -135,8 +140,11 @@ impl Dfa
         }
 
         .maxStates = MaxCachedTransitions / .stride
-        if .maxStates > MaxCachedStates do
+        if .maxStates > MaxCachedStates
+        {
             .maxStates = MaxCachedStates
+        }
+
         .reverse  = program.reverse
         .matchAll = program.reverse
         .quitHigh = program.hasWordAssert
@@ -161,8 +169,10 @@ impl Dfa
         .hashMask  = .hashSlots.count - 1
         .exhausted = false
 
-        for var i = 0; i < 32; i += 1 do
+        for var i = 0; i < 32; i += 1
+        {
             .startCache[i] = UnknownState
+        }
 
         // The dead state has to be the first one, so that a zero in the transition table means
         // exactly "nothing can match from here".
@@ -178,18 +188,26 @@ impl Dfa
     // it when it is new.
     mtd intern(pcs: const [..] u32, flags: u32)->u32
     {
-        var tags = 0'u32
-        if (flags & FlagIsMatch) != 0 do
+        var tags = 0_u32
+        if (flags & FlagIsMatch) != 0
+        {
             tags |= TagMatch
-        if (flags & FlagIsStart) != 0 do
+        }
+
+        if (flags & FlagIsStart) != 0
+        {
             tags |= TagStart
+        }
 
         var slot = hashState(flags, pcs) & .hashMask
         while .hashSlots[slot] != 0
         {
             let candidate = .hashSlots[slot] - 1
-            if .sameState(candidate, pcs, flags) do
+            if .sameState(candidate, pcs, flags)
+            {
                 return .identifierOf(candidate) | tags
+            }
+
             slot = (slot + 1) & .hashMask
         }
 
@@ -207,12 +225,16 @@ impl Dfa
 
         let base = .trans.count
         .trans.resize(base + .stride)
-        for var i = 0'u64; i < .stride; i += 1 do
+        for var i = 0_u64; i < .stride; i += 1
+        {
             .trans[base + i] = UnknownState
+        }
 
         .hashSlots[slot] = stateId + 1
-        if (.stateOffset.count * 2) > .hashSlots.count do
+        if (.stateOffset.count * 2) > .hashSlots.count
+        {
             .growIndex()
+        }
 
         return .identifierOf(stateId) | tags
     }
@@ -226,17 +248,23 @@ impl Dfa
 
     mtd const sameState(stateId: u32, pcs: const [..] u32, flags: u32)->bool
     {
-        if .stateFlags[stateId] != flags do
+        if .stateFlags[stateId] != flags
+        {
             return false
+        }
 
         let offset = .stateOffset[stateId]
-        if .stateData[offset] != cast(u32, pcs.count) do
-            return false
-
-        for var i = 0'u64; i < pcs.count; i += 1
+        if .stateData[offset] != cast(u32, pcs.count)
         {
-            if .stateData[offset + 1 + i] != pcs[i] do
+            return false
+        }
+
+        for var i = 0_u64; i < pcs.count; i += 1
+        {
+            if .stateData[offset + 1 + i] != pcs[i]
+            {
                 return false
+            }
         }
 
         return true
@@ -250,15 +278,18 @@ impl Dfa
         .hashSlots.fill(0)
         .hashMask = .hashSlots.count - 1
 
-        for var stateId = 0'u64; stateId < .stateOffset.count; stateId += 1
+        for var stateId = 0_u64; stateId < .stateOffset.count; stateId += 1
         {
             let offset = .stateOffset[stateId]
             let count  = .stateData[offset]
             let pcs    = Swag.makeSlice(cast(const [*] u32, &.stateData[offset + 1]), cast(u64, count))
 
             var slot = hashState(.stateFlags[stateId], pcs) & .hashMask
-            while .hashSlots[slot] != 0 do
+            while .hashSlots[slot] != 0
+            {
                 slot = (slot + 1) & .hashMask
+            }
+
             .hashSlots[slot] = cast(u32, stateId) + 1
         }
     }
@@ -281,9 +312,11 @@ impl Dfa
         let count  = .stateData[offset]
 
         let atEnd = symbol == .stride - 1
-        var byte  = 0'u8
-        if not atEnd do
+        var byte  = 0_u8
+        if not atEnd
+        {
             byte = program.classFirstByte[symbol]
+        }
 
         // The state remembers the side it came from; the byte being read is on the other side,
         // and the two sides swap when the automaton walks backwards.
@@ -319,15 +352,20 @@ impl Dfa
         .stack.clear()
         .generation += 1
 
-        for var i = count; i > 0; i -= 1 do
+        for var i = count; i > 0; i -= 1
+        {
             .stack.add(.stateData[offset + i])
+        }
 
         var isMatch = false
         while not .stack.isEmpty()
         {
             let pc = .stack.popBack()
-            if .seen[pc] == .generation do
+            if .seen[pc] == .generation
+            {
                 continue
+            }
+
             .seen[pc] = .generation
 
             let inst = program.insts[pc]
@@ -352,8 +390,10 @@ impl Dfa
                 case .NotWordBoundary: holds = previousIsWord == nextIsWord
                 }
 
-                if holds do
+                if holds
+                {
                     .stack.add(inst.next)
+                }
 
             case .Match:
                 isMatch = true
@@ -362,8 +402,10 @@ impl Dfa
                 // none of them can take part in the leftmost match any more. Dropping them is
                 // also what stops the search: the branch that skips ahead looking for a later
                 // start is one of them.
-                if not .matchAll do
+                if not .matchAll
+                {
                     .stack.clear()
+                }
 
             case .ByteRange, .ByteSet:
                 .closure.add(pc)
@@ -380,23 +422,35 @@ impl Dfa
         {
             for pc in .closure
             {
-                if program.acceptsByte(pc, byte) do
+                if program.acceptsByte(pc, byte)
+                {
                     .stepped.add(program.insts[pc].next)
+                }
             }
         }
 
-        var newFlags = 0'u32
-        if isMatch do
+        var newFlags = 0_u32
+        if isMatch
+        {
             newFlags |= FlagIsMatch
-        if byteWord do
+        }
+
+        if byteWord
+        {
             newFlags |= FlagFromWord
-        if byteNewline do
+        }
+
+        if byteNewline
+        {
             newFlags |= FlagFromNewline
+        }
 
         // A state holding nothing but the entry point has matched nothing yet, so a search
         // sitting in it may skip ahead to the next offset a match could begin at.
-        if not .reverse and .stepped.count == 1 and .stepped[0] == program.startUnanchored do
+        if not .reverse and .stepped.count == 1 and .stepped[0] == program.startUnanchored
+        {
             newFlags |= FlagIsStart
+        }
 
         return .intern(.stepped.toSlice(), newFlags)
     }
@@ -419,18 +473,28 @@ impl Dfa
         else
         {
             let previous = hay[at - 1]
-            if .quitHigh and previous >= 0x80 do
+            if .quitHigh and previous >= 0x80
+            {
                 return QuitState
-            if isWordByte(previous) do
+            }
+
+            if isWordByte(previous)
+            {
                 flags |= FlagFromWord
-            if previous == '\n' do
+            }
+
+            if previous == '\n'
+            {
                 flags |= FlagFromNewline
+            }
         }
 
-        let index  = cast(u64, ((flags >> 1) & 0x0F)) | (anchored ? 16'u64 : 0'u64)
+        let index  = cast(u64, ((flags >> 1) & 0x0F)) | (anchored ? 16_u64 : 0_u64)
         let cached = .startCache[index]
-        if cached != UnknownState do
+        if cached != UnknownState
+        {
             return cached
+        }
 
         return .createStartState(program, flags, index, anchored)
     }
@@ -442,8 +506,11 @@ impl Dfa
         .roots.add(anchored ? program.start : program.startUnanchored)
 
         let stateId = .intern(.roots.toSlice(), flags)
-        if stateId != QuitState do
+        if stateId != QuitState
+        {
             .startCache[index] = stateId
+        }
+
         return stateId
     }
 
@@ -458,18 +525,28 @@ impl Dfa
         else
         {
             let following = hay[at]
-            if .quitHigh and following >= 0x80 do
+            if .quitHigh and following >= 0x80
+            {
                 return QuitState
-            if isWordByte(following) do
+            }
+
+            if isWordByte(following)
+            {
                 flags |= FlagFromWord
-            if following == '\n' do
+            }
+
+            if following == '\n'
+            {
                 flags |= FlagFromNewline
+            }
         }
 
-        let index  = cast(u64, ((flags >> 1) & 0x0F)) | 16'u64
+        let index  = cast(u64, ((flags >> 1) & 0x0F)) | 16_u64
         let cached = .startCache[index]
-        if cached != UnknownState do
+        if cached != UnknownState
+        {
             return cached
+        }
 
         return .createStartState(program, flags, index, true)
     }
@@ -555,8 +632,10 @@ impl Dfa
 
             if (next & TagMask) != 0
             {
-                if (next & TagMatch) != 0 do
+                if (next & TagMatch) != 0
+                {
                     lastMatch = pos - 1
+                }
 
                 // Nothing of the pattern is matched here, so the subject may be skipped up to
                 // the next offset a match could begin at.
@@ -569,8 +648,10 @@ impl Dfa
                         return result
                     }
 
-                    if not jump.found do
+                    if not jump.found
+                    {
                         return forwardResult(lastMatch)
+                    }
 
                     pos         = jump.at
                     stateId     = jump.state
@@ -579,8 +660,10 @@ impl Dfa
                 }
             }
 
-            if next == DeadState do
+            if next == DeadState
+            {
                 return forwardResult(lastMatch)
+            }
 
             stateId = next
         }
@@ -592,8 +675,11 @@ impl Dfa
             return result
         }
 
-        if (last & TagMatch) != 0 do
+        if (last & TagMatch) != 0
+        {
             lastMatch = limit
+        }
+
         return forwardResult(lastMatch)
     }
 
@@ -603,8 +689,10 @@ impl Dfa
         var result: #returntype
 
         let candidate = prefilter.find(hay, pos)
-        if candidate >= limit do
+        if candidate >= limit
+        {
             return result
+        }
 
         let state = .startState(program, hay, candidate, false)
         if state == QuitState
@@ -627,12 +715,16 @@ impl Dfa
     mtd searchAnchoredEnd(program: const *Program, hay: const [..] u8, start, limit: u64)->u64
     {
         .ensure(program)
-        if .exhausted do
+        if .exhausted
+        {
             return QuitOffset
+        }
 
         var stateId = .startState(program, hay, start, true)
-        if stateId == QuitState do
+        if stateId == QuitState
+        {
             return QuitOffset
+        }
 
         let classes     = cast(const [*] u8, &program.byteClass[0])
         let data        = hay.buffer
@@ -644,16 +736,20 @@ impl Dfa
         while pos < limit
         {
             let byte = data[pos]
-            if quitHigh and byte >= 0x80 do
+            if quitHigh and byte >= 0x80
+            {
                 return QuitOffset
+            }
 
             let slot = cast(u64, (stateId & StateIndexMask)) + cast(u64, classes[byte])
             var next = transitions[slot]
             if next == UnknownState
             {
                 next = .computeTransition(program, stateId, cast(u64, classes[byte]))
-                if next == QuitState do
+                if next == QuitState
+                {
                     return QuitOffset
+                }
 
                 transitions       = .trans.storage()
                 transitions[slot] = next
@@ -661,19 +757,30 @@ impl Dfa
 
             pos += 1
 
-            if (next & TagMatch) != 0 do
+            if (next & TagMatch) != 0
+            {
                 lastMatch = pos - 1
-            if next == DeadState do
+            }
+
+            if next == DeadState
+            {
                 return lastMatch
+            }
 
             stateId = next
         }
 
         let last = .transition(program, stateId, .stride - 1)
-        if last == QuitState do
+        if last == QuitState
+        {
             return QuitOffset
-        if (last & TagMatch) != 0 do
+        }
+
+        if (last & TagMatch) != 0
+        {
             lastMatch = limit
+        }
+
         return lastMatch
     }
 
@@ -737,8 +844,11 @@ impl Dfa
                 transitions[slot] = next
             }
 
-            if (next & TagMatch) != 0 do
+            if (next & TagMatch) != 0
+            {
                 lastMatch = pos
+            }
+
             if next == DeadState
             {
                 alive = false
@@ -760,8 +870,10 @@ impl Dfa
                 return result
             }
 
-            if (last & TagMatch) != 0 do
+            if (last & TagMatch) != 0
+            {
                 lastMatch = 0
+            }
         }
 
         result.found = lastMatch != NoOffset
@@ -776,12 +888,16 @@ impl Dfa
     {
         let slot   = cast(u64, (stateId & StateIndexMask)) + symbol
         let cached = .trans[slot]
-        if cached != UnknownState do
+        if cached != UnknownState
+        {
             return cached
+        }
 
         let computed = .computeTransition(program, stateId, symbol)
-        if computed == QuitState do
+        if computed == QuitState
+        {
             return QuitState
+        }
 
         .trans[slot] = computed
         return computed

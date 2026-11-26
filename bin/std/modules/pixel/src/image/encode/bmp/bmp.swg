@@ -26,27 +26,40 @@ internal impl IImageEncoder for Encoder
         var userOptions: EncodeOptions
         if options.buffer != null
         {
-            if Swag.kindOf(options) != EncodeOptions do
+            if Swag.kindOf(options) != EncodeOptions
+            {
                 fail BadParameterError{"BMP encoder options must be Bmp.EncodeOptions"}
+            }
+
             userOptions = cast(const *EncodeOptions, unwrap options.buffer)[]
         }
 
-        if image.width <= 0 or image.height <= 0 or not image.pixels.buffer do
+        if image.width <= 0 or image.height <= 0 or not image.pixels.buffer
+        {
             fail InvalidFormatError{"invalid image"}
+        }
+
         if image.pixelFormat != .BGR8 and
            image.pixelFormat != .BGRA8 and
            image.pixelFormat != .RGB8 and
-           image.pixelFormat != .RGBA8 do
+           image.pixelFormat != .RGBA8
+        {
             fail UnsupportedFormatError{"BMP encoding accepts only 8-bit RGB and BGR pixels"}
-        if image.width > Swag.S32.Max / image.bytesPerPixel or image.height > Swag.S32.Max / image.width do
+        }
+
+        if image.width > Swag.S32.Max / image.bytesPerPixel or image.height > Swag.S32.Max / image.width
+        {
             fail UnsupportedFormatError{"image is too big"}
+        }
 
         let rowBytes  = cast(u64, image.width) * image.bytesPerPixel
         let stride    = rowStride(image.width, image.bitsPerPixel)
         let imageSize = stride * cast(u64, image.height)
         let fileSize  = (userOptions.fileHeader ? cast(u64, #sizeof(FileHeader)) : 0) + #sizeof(Header) + imageSize
-        if fileSize > Swag.U32.Max do
+        if fileSize > Swag.U32.Max
+        {
             fail UnsupportedFormatError{"image is too big"}
+        }
 
         result.grow(fileSize)
 
@@ -80,7 +93,30 @@ internal impl IImageEncoder for Encoder
         let padding = stride - rowBytes
         if not padding and (image.pixelFormat == .BGR8 or image.pixelFormat == .BGRA8)
         {
-            Memory.copy(target, source, imageSize)
+            var converted: Array!{u8}
+            converted.resize(imageSize)
+            let src = image.pixels.storage()
+            for y in image.height
+            {
+                let srcRow = src + cast(u64, y) * rowBytes
+                let dstRow = converted.storage() + cast(u64, y) * stride
+                if image.pixelFormat == .RGB8
+                {
+                    PackedPixel.swapRedBlue24Row(srcRow, dstRow, image.width)
+                }
+                else
+                {
+                    PackedPixel.swapRedBlue32Row(srcRow, dstRow, image.width)
+                }
+
+                let padding = stride - rowBytes
+                if padding
+                {
+                    Memory.set(dstRow + rowBytes, 0, padding)
+                }
+            }
+
+            result.addBytes(converted.toSlice())
             return
         }
 
@@ -96,8 +132,14 @@ internal impl IImageEncoder for Encoder
             default:            unreachable
             }
 
-            if padding do
-                Memory.set(dst + rowBytes, 0, padding)
+            let padding = stride - rowBytes
+            if padding
+            {
+                for padding
+                {
+                    result.addNative(0_u8)
+                }
+            }
         }
     }
 }

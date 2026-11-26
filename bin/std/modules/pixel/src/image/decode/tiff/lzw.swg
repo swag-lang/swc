@@ -25,15 +25,10 @@ impl LzwBitReader
     #[Swag.Inline]
     mtd refillWord()->bool
     {
-        let next = .source + 4
-        if next > .end do
-            return false
-        let word = Math.byteSwap(cast(const [*] u32, .source)[0])
-        .bits      = (.bits << 32) | word
-        .available += 32
-        .source    = next
-        return true
-    }
+        if .bitPosition + width > .bitCount
+        {
+            fail InvalidFormatError{"invalid source buffer"}
+        }
 
     #[Swag.Inline]
     mtd read(width, mask: u32)->u32 fail
@@ -69,47 +64,24 @@ private func(LITERAL_PAIRS: bool) unpackLzwStrip(dst: [*] u8, expected: u64, src
     dictionary.reserve(LZW_FIRST_CODE + Math.min(expected, cast(u64, LZW_MAX_CODE + 1 - LZW_FIRST_CODE)))
     let words = dictionary.storage()
 
-    var output:       u64
-    var previousWord: u64
-    var width = 9'u32
-    var mask  = 511'u32
+    for index in 256
+    {
+        suffixes[index] = cast(u8, index)
+    }
 
-    // The first literal writes into the unused EOI slot, then starts the dictionary.
-    // Until then a dictionary reference is necessarily greater than nextCode.
-    var nextCode = LZW_EOI_CODE
+    var output: u64
+    var width    = 9_u32
+    var nextCode = LZW_FIRST_CODE
+    var oldCode  = Swag.U32.Max
 
     while true
     {
-        #static if LITERAL_PAIRS
+        let code = try reader.read(width)
+        if code == LZW_EOI_CODE
         {
-            let pairWidth = width * 2
-            if reader.available < pairWidth do
-                discard reader.refillWord()
-
-            // Both literals must use this code width and fit in the output.
-            if reader.available >= pairWidth and nextCode + 2 < mask and expected - output >= 2
-            {
-                let codes  = cast(u32, (reader.bits >> (reader.available - pairWidth)))
-                let first  = (codes >> width) & mask
-                let second = codes & mask
-                if (first | second) < LZW_CLEAR_CODE
-                {
-                    let firstWord = output << LengthBits
-                    cast(*u16, (dst + output))[] = cast(u16, (first | (second << 8)))
-                    words[nextCode]     = previousWord + 1
-                    words[nextCode + 1] = firstWord | 2
-                    previousWord        = ((output + 1) << LengthBits) | 1
-                    output              += 2
-                    reader.available    -= pairWidth
-                    nextCode            += 2
-                    continue
-                }
-            }
+            break
         }
 
-        let code = try reader.read(width, mask)
-        if code == LZW_EOI_CODE do
-            break
         if code == LZW_CLEAR_CODE
         {
             width    = 9
@@ -118,31 +90,38 @@ private func(LITERAL_PAIRS: bool) unpackLzwStrip(dst: [*] u8, expected: u64, src
             continue
         }
 
-        if output >= expected do
+        if output >= expected
+        {
             fail InvalidFormatError{"invalid lzw stream"}
+        }
 
         let target = dst + output
         var length = 1'u64
         if code < LZW_CLEAR_CODE
         {
-            target[0] = cast(u8, code)
+            if code > 255
+            {
+                fail InvalidFormatError{"invalid lzw stream"}
+            }
+
+            dst[output] = cast(u8, code)
+            output      += 1
+            oldCode     = code
+            continue
         }
-        else
+
+        if code > nextCode or code > LZW_MAX_CODE
         {
-            if code > nextCode do
-                fail InvalidFormatError{"invalid lzw stream"}
+            fail InvalidFormatError{"invalid lzw stream"}
+        }
 
-            // A reference to the next entry uses the previous word and its first byte.
-            let repeat     = code == nextCode
-            let word       = repeat ? previousWord : words[code]
-            let wordLength = word & LengthMask
-            length = repeat ? wordLength + 1 : wordLength
-            if length > expected - output do
-                fail InvalidFormatError{"invalid lzw stream"}
+        let specialCase = code == nextCode
+        var current     = specialCase ? oldCode : code
+        var stackCount: u32
 
-            let sourceOffset = word >> LengthBits
-            let source       = dst + sourceOffset
-            if wordLength <= 4 and sourceOffset + 4 <= output and expected - output >= 4
+        while current >= 256
+        {
+            if current >= nextCode or stackCount >= 4095
             {
                 // The source is already decoded and the extra destination bytes
                 // stay inside the strip until later phrases overwrite them.
@@ -192,8 +171,36 @@ private func(LITERAL_PAIRS: bool) unpackLzwStrip(dst: [*] u8, expected: u64, src
                 }
             }
 
-            if repeat do
-                target[wordLength] = source[0]
+            stack[stackCount] = suffixes[current]
+            stackCount        += 1
+            current           = prefixes[current]
+        }
+
+        let first = cast(u8, current)
+        stack[stackCount] = first
+        stackCount        += 1
+
+        while stackCount
+        {
+            if output >= expected
+            {
+                fail InvalidFormatError{"invalid lzw stream"}
+            }
+
+            stackCount  -= 1
+            dst[output] = stack[stackCount]
+            output      += 1
+        }
+
+        if specialCase
+        {
+            if output >= expected
+            {
+                fail InvalidFormatError{"invalid lzw stream"}
+            }
+
+            dst[output] = first
+            output      += 1
         }
 
         // This entry ends at the first byte of this word. All future copies are disjoint.
@@ -202,11 +209,12 @@ private func(LITERAL_PAIRS: bool) unpackLzwStrip(dst: [*] u8, expected: u64, src
             words[nextCode] = previousWord + 1
             nextCode        += 1
 
-            // TIFF changes width when the next code reaches the current all-ones value.
-            if width < 12 and nextCode == mask
+            // The decoder is one dictionary entry behind the encoder. TIFF's
+            // early transition therefore happens when the next free code is
+            // the current width's all-ones value.
+            if width < 12 and nextCode == (1_u32 << width) - 1
             {
                 width += 1
-                mask  = (mask << 1) | 1
             }
         }
 
@@ -214,8 +222,10 @@ private func(LITERAL_PAIRS: bool) unpackLzwStrip(dst: [*] u8, expected: u64, src
         output       += length
     }
 
-    if output != expected do
+    if output != expected
+    {
         fail InvalidFormatError{"invalid lzw stream"}
+    }
 }
 
 func unpackLzw(dst: [*] u8, expected: u64, src: const [*] u8, srcCount: u32, dictionary: *Array'u64) fail

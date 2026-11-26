@@ -48,14 +48,16 @@ impl IActionUI for ActionPixSel
 
 impl MainWnd
 {
-    mtd getPixSels()->Array'IForm
+    mtd getPixSels()->Array!{IForm}
     {
         var result: #returntype
         let capture = unwrap .getCapture()
-        foreachSelected'BaseForm(capture, capture.selection)
+        foreachSelected!{BaseForm}(capture, capture.selection)
         {
-            if form.subKind == .PixSel do
+            if form.subKind == .PixSel
+            {
                 result.add(itf)
+            }
         }
 
         return result
@@ -75,8 +77,10 @@ impl MainWnd
     mtd pixSelSetPixels(argb: u32)
     {
         var forms = .getPixSels()
-        if forms.isEmpty() do
+        if forms.isEmpty()
+        {
             return
+        }
 
         let capture = unwrap .getCapture()
 
@@ -86,9 +90,11 @@ impl MainWnd
             .newImg      = capture.backImg
         }
 
-        var boundRects: Array'Math.Rectangle
-        for f in forms do
+        var boundRects: Array!{Math.Rectangle}
+        for f in forms
+        {
             boundRects.add(f.boundRect())
+        }
 
         var params = {capture: capture, boundRects: boundRects.buffer, forms: &forms, argb: argb}
         undo.newImg.visitPixels(&params)
@@ -100,8 +106,10 @@ impl MainWnd
                 var pt = Math.Point{cast(f32, x), cast(f32, p.capture.backImg.height) - y}
                 pt.x += p.capture.backImagePos.x
                 pt.y += p.capture.backImagePos.y
-                if not boundRects[idx].contains(pt) do
+                if not boundRects[idx].contains(pt)
+                {
                     continue
+                }
 
                 if f.isInside(pt)
                 {
@@ -117,11 +125,13 @@ impl MainWnd
     // Fills every pixel selection with what surrounds it: each column blends from
     // the pixel above the selection to the pixel below. `masks`, when given,
     // receives the area each selection covers.
-    mtd pixSelSmartFill(serial: u64 = 0, masks: *Array'Image? = null)
+    mtd pixSelSmartFill(serial: u64 = 0, masks: *Array!{Image}? = null)
     {
         var forms = .getPixSels()
-        if forms.isEmpty() do
+        if forms.isEmpty()
+        {
             return
+        }
 
         let capture = unwrap .getCapture()
 
@@ -136,10 +146,10 @@ impl MainWnd
         struct Info
         {
             boundRect: Math.Rectangle
-            boundCols: Array'{ y1: s32, y2: s32, col1: Color, col2: Color }
+            boundCols: Array!{{ y1: s32, y2: s32, col1: Color, col2: Color }}
         }
 
-        var infos: Array'Info
+        var infos: Array!{Info}
 
         for f in forms
         {
@@ -212,8 +222,10 @@ impl MainWnd
 
             for f, idx in p.forms[]
             {
-                if not infos[idx].boundRect.contains(pt) or not f.isInside(pt) do
+                if not infos[idx].boundRect.contains(pt) or not f.isInside(pt)
+                {
                     continue
+                }
 
                 let column = infos[idx].boundCols[x]
                 if column.y2 != column.y1
@@ -252,8 +264,10 @@ impl MainWnd
     mtd pixSelSmartMove()
     {
         let forms = .getPixSels()
-        if forms.isEmpty() do
+        if forms.isEmpty()
+        {
             return
+        }
 
         let capture = unwrap .getCapture()
 
@@ -266,7 +280,7 @@ impl MainWnd
         {
             let br = f.boundRect()
 
-            with let nf = Memory.new'FormImage()
+            with let nf = Memory.new!{FormImage}()
             {
                 .kind             = .Capture
                 .x                = cast(s32, br.x)
@@ -286,7 +300,7 @@ impl MainWnd
 
         capture.pushUndo(undo, serial)
 
-        var masks: Array'Image
+        var masks: Array!{Image}
         .pixSelSmartFill(serial, &masks)
 
         for f, idx in undo.oldForms
@@ -299,7 +313,9 @@ impl MainWnd
         capture.pushUndo(undo, serial)
 
         capture.selection.clear()
-        for i in startCount until capture.forms.count do
+        for i in startCount until capture.forms.count
+        {
             capture.selection.add(i)
+        }
     }
 }

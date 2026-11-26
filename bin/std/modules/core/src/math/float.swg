@@ -27,10 +27,10 @@ struct(T) Const
 }
 
 // Names the mathematical constants in `f32` precision.
-alias ConstF32 = Const'f32
+alias ConstF32 = Const!{f32}
 
 // Names the mathematical constants in `f64` precision.
-alias ConstF64 = Const'f64
+alias ConstF64 = Const!{f64}
 
 #[Swag.ConstExpr, Swag.Inline]
 {
@@ -45,39 +45,57 @@ alias ConstF64 = Const'f64
     func copysign(x, y: f64)->f64 => cast #bit (f64, ((cast #bit (u64, x) & 0x7FFF_FFFF_FFFF_FFFF) | (cast #bit (u64, y) & 0x8000_0000_0000_0000)))
 
     // Returns `x` clamped to the range [0, 1].
-    func saturate(x: f32) => clamp(x, 0'f32, 1'f32)
-    func saturate(x: f64) => clamp(x, 0'f64, 1'f64)
+    func saturate(x: f32) => clamp(x, 0_f32, 1_f32)
+    func saturate(x: f64) => clamp(x, 0_f64, 1_f64)
 
     // Returns the linear interpolation from `x` to `y` at `factor`.
     //
     // A `factor` of 0 gives `x` and 1 gives `y`. It is not clamped, so other values extrapolate.
     func lerp(x, y, factor: f32)->f32
     {
-        if factor == 0 do
+        if factor == 0
+        {
             return x
-        if factor == 1 do
+        }
+
+        if factor == 1
+        {
             return y
+        }
+
         if factor > 0 and
            factor < 1 and
            Math.isFinite(x) and
            Math.isFinite(y) and
-           ((x < 0 and y > 0) or (x > 0 and y < 0)) do
-            return (1'f32 - factor) * x + factor * y
+           ((x < 0 and y > 0) or (x > 0 and y < 0))
+        {
+            return (1_f32 - factor) * x + factor * y
+        }
+
         return x + factor * (y - x)
     }
 
     func lerp(x, y, factor: f64)->f64
     {
-        if factor == 0 do
+        if factor == 0
+        {
             return x
-        if factor == 1 do
+        }
+
+        if factor == 1
+        {
             return y
+        }
+
         if factor > 0 and
            factor < 1 and
            Math.isFinite(x) and
            Math.isFinite(y) and
-           ((x < 0 and y > 0) or (x > 0 and y < 0)) do
-            return (1'f64 - factor) * x + factor * y
+           ((x < 0 and y > 0) or (x > 0 and y < 0))
+        {
+            return (1_f64 - factor) * x + factor * y
+        }
+
         return x + factor * (y - x)
     }
 
@@ -114,20 +132,20 @@ alias ConstF64 = Const'f64
     func pingPong(value, length: f32)->f32
     {
         Debug.safetyBoundCheck(length > 0, "ping-pong length must be positive")
-        let phase = wrap(value, 0'f32, 2 * length)
+        let phase = wrap(value, 0_f32, 2 * length)
         return length - abs(phase - length)
     }
 
     func pingPong(value, length: f64)->f64
     {
         Debug.safetyBoundCheck(length > 0, "ping-pong length must be positive")
-        let phase = wrap(value, 0'f64, 2 * length)
+        let phase = wrap(value, 0_f64, 2 * length)
         return length - abs(phase - length)
     }
 
     // Returns the signed shortest turn from `start` to `end`, in radians within [-π, π).
-    func deltaAngle(start, end: f32)->f32 => wrap(end - start + ConstF32.Pi, 0'f32, ConstF32.TwoPi) - ConstF32.Pi
-    func deltaAngle(start, end: f64)->f64 => wrap(end - start + ConstF64.Pi, 0'f64, ConstF64.TwoPi) - ConstF64.Pi
+    func deltaAngle(start, end: f32)->f32 => wrap(end - start + ConstF32.Pi, 0_f32, ConstF32.TwoPi) - ConstF32.Pi
+    func deltaAngle(start, end: f64)->f64 => wrap(end - start + ConstF64.Pi, 0_f64, ConstF64.TwoPi) - ConstF64.Pi
 
     // Interpolates from `start` to `end` along the shortest angular path, in radians.
     //
@@ -179,16 +197,22 @@ alias ConstF64 = Const'f64
     func moveTowards(current, target, speed: f32)->f32
     {
         let distance = target - current
-        if abs(distance) <= speed do
+        if abs(distance) <= speed
+        {
             return target
+        }
+
         return current + sign(distance) * speed
     }
 
     func moveTowards(current, target, speed: f64)->f64
     {
         let distance = target - current
-        if abs(distance) <= speed do
+        if abs(distance) <= speed
+        {
             return target
+        }
+
         return current + sign(distance) * speed
     }
 
@@ -220,12 +244,12 @@ alias ConstF64 = Const'f64
     }
 
     // Returns the angle `x`, given in radians, converted to degrees.
-    func toDegrees(x: f32) => x * 57.295779513082320876798154814105'f32
-    func toDegrees(x: f64) => x * (180'f64 / ConstF64.Pi)
+    func toDegrees(x: f32) => x * 57.295779513082320876798154814105_f32
+    func toDegrees(x: f64) => x * (180_f64 / ConstF64.Pi)
 
     // Returns the angle `x`, given in degrees, converted to radians.
-    func toRadians(x: f32) => x * 0.017453292519943295769236907684886'f32
-    func toRadians(x: f64) => x * (ConstF64.Pi / 180'f64)
+    func toRadians(x: f32) => x * 0.017453292519943295769236907684886_f32
+    func toRadians(x: f64) => x * (ConstF64.Pi / 180_f64)
 
     // Returns whether `x` is closer to zero than `eps`.
     func isZeroEpsilon(x: f32, eps = ConstF32.Epsilon) => abs(x) < eps
@@ -247,13 +271,13 @@ alias ConstF64 = Const'f64
     func isFinite(value: f32)->bool
     {
         let bits = cast #bit (u32, value)
-        return (bits & 0x7F800000'u32) != 0x7F800000'u32
+        return (bits & 0x7F800000_u32) != 0x7F800000_u32
     }
 
     func isFinite(value: f64)->bool
     {
         let bits = cast #bit (u64, value)
-        return (bits & 0x7FF0000000000000'u64) != 0x7FF0000000000000'u64
+        return (bits & 0x7FF0000000000000_u64) != 0x7FF0000000000000_u64
     }
 
     // Returns the smooth Hermite step of `x` from `edge0` to `edge1`.
@@ -262,13 +286,13 @@ alias ConstF64 = Const'f64
     // [[Core.Math.interpHermite]]. The two edges must differ.
     func smoothstep(edge0, edge1, x: f32)->f32
     {
-        let t = clamp((x - edge0) / (edge1 - edge0), 0'f32, 1'f32)
+        let t = clamp((x - edge0) / (edge1 - edge0), 0_f32, 1_f32)
         return t * t * (3 - 2 * t)
     }
 
     func smoothstep(edge0, edge1, x: f64)->f64
     {
-        let t = clamp((x - edge0) / (edge1 - edge0), 0'f64, 1'f64)
+        let t = clamp((x - edge0) / (edge1 - edge0), 0_f64, 1_f64)
         return t * t * (3 - 2 * t)
     }
 
@@ -292,16 +316,22 @@ alias ConstF64 = Const'f64
     // Every `value` below 1 answers 1.
     func nextPowerOfTen(value: f32)->f32
     {
-        if value < 1 do
-            return 1'f32
-        return pow(10'f32, floor(log10(value)) + 1)
+        if value < 1
+        {
+            return 1_f32
+        }
+
+        return pow(10_f32, floor(log10(value)) + 1)
     }
 
     func nextPowerOfTen(value: f64)->f64
     {
-        if value < 1 do
-            return 1'f64
-        return pow(10'f64, floor(log10(value)) + 1)
+        if value < 1
+        {
+            return 1_f64
+        }
+
+        return pow(10_f64, floor(log10(value)) + 1)
     }
 }
 

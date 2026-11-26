@@ -15,7 +15,7 @@ func renderViewChild(dpiScale: f32)->Image
     var host: Testing.HeadlessHost
     host.setup(96, 64, dpiScale)
 
-    let child = Wnd.create'Wnd(&host.root, {16, 8, 32, 24})
+    let child = Wnd.create!{Wnd}(&host.root, {16, 8, 32, 24})
     child.backgroundStyle = .View
     return host.render()
 }
@@ -27,15 +27,15 @@ func renderViewChild(dpiScale: f32)->Image
     var host: Testing.HeadlessHost
     host.setup(180, 20)
 
-    let application = Wnd.create'Wnd(&host.root, {0, 0, 20, 20})
-    let view        = Wnd.create'Wnd(&host.root, {20, 0, 20, 20})
-    let window      = Wnd.create'Wnd(&host.root, {40, 0, 20, 20})
-    let infoBar     = Wnd.create'Wnd(&host.root, {60, 0, 20, 20})
-    let commandBar  = Wnd.create'Wnd(&host.root, {80, 0, 20, 20})
-    let toolBar     = Wnd.create'Wnd(&host.root, {100, 0, 20, 20})
-    let panel       = Wnd.create'Wnd(&host.root, {120, 0, 20, 20})
-    let panelHost   = Wnd.create'Wnd(&host.root, {140, 0, 20, 20})
-    let viewPanel   = Wnd.create'Wnd(&host.root, {160, 0, 20, 20})
+    let application = Wnd.create!{Wnd}(&host.root, {0, 0, 20, 20})
+    let view        = Wnd.create!{Wnd}(&host.root, {20, 0, 20, 20})
+    let window      = Wnd.create!{Wnd}(&host.root, {40, 0, 20, 20})
+    let infoBar     = Wnd.create!{Wnd}(&host.root, {60, 0, 20, 20})
+    let commandBar  = Wnd.create!{Wnd}(&host.root, {80, 0, 20, 20})
+    let toolBar     = Wnd.create!{Wnd}(&host.root, {100, 0, 20, 20})
+    let panel       = Wnd.create!{Wnd}(&host.root, {120, 0, 20, 20})
+    let panelHost   = Wnd.create!{Wnd}(&host.root, {140, 0, 20, 20})
+    let viewPanel   = Wnd.create!{Wnd}(&host.root, {160, 0, 20, 20})
     application.backgroundStyle = .Application
     view.backgroundStyle        = .View
     window.backgroundStyle      = .Window
@@ -51,7 +51,7 @@ func renderViewChild(dpiScale: f32)->Image
     panelHost.style.addStyleSheetColors("toolBar_Bk $raised")
     viewPanel.style.addStyleSheetColors("wnd_Bk $view_Bk")
 
-    let integratedPanel = Wnd.create'Wnd(panelHost, {0, 0, 20, 20})
+    let integratedPanel = Wnd.create!{Wnd}(panelHost, {0, 0, 20, 20})
     integratedPanel.backgroundStyle = .Panel
 
     let image = host.render()
@@ -69,8 +69,10 @@ func renderViewChild(dpiScale: f32)->Image
         for x in 140 until 147
         {
             let pixel = pixelAt(&image, x, y)
-            if pixel != host.theme.colors.raised.argb and pixel != host.theme.colors.wnd_Bk.argb do
+            if pixel != host.theme.colors.raised.argb and pixel != host.theme.colors.wnd_Bk.argb
+            {
                 antialiasedCorner = true
+            }
         }
     }
 
@@ -94,7 +96,7 @@ func renderViewChild(dpiScale: f32)->Image
 
     // A view-background child at logical (16, 8, 32, 24) must cover the physical
     // rectangle (32, 16, 64, 48).
-    let child = Wnd.create'Wnd(&host.root, {16, 8, 32, 24})
+    let child = Wnd.create!{Wnd}(&host.root, {16, 8, 32, 24})
     child.backgroundStyle = .View
     let framed = host.render()
 

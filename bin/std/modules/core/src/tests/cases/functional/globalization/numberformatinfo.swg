@@ -30,9 +30,9 @@ using Swag
 #test
 {
     let en = Globalization.CultureInfo.fromName("en-US")
-    Swag.require(en.numberFormat.format(0'u64) == "0")
-    Swag.require(en.numberFormat.format(1234567'u64, grouped: true) == "1,234,567")
-    Swag.require(en.numberFormat.format(-9223372036854775807's64 - 1, grouped: true) == "-9,223,372,036,854,775,808")
+    Swag.require(en.numberFormat.format(0_u64) == "0")
+    Swag.require(en.numberFormat.format(1234567_u64, grouped: true) == "1,234,567")
+    Swag.require(en.numberFormat.format(-9223372036854775807_s64 - 1, grouped: true) == "-9,223,372,036,854,775,808")
     Swag.require(en.numberFormat.format(1234.5, 2, grouped: true) == "1,234.50")
     Swag.require(en.numberFormat.format(18446744073709549568.0, 0) == "18446744073709549568")
     var info             = en.numberFormat
@@ -44,11 +44,11 @@ using Swag
     Swag.require(rejectedOverflow.raised and rejectedOverflow.message() == "numeric value is too large at the requested precision")
 
     let fr = Globalization.CultureInfo.fromName("fr-FR")
-    Swag.require(fr.numberFormat.format(1234567'u64, grouped: true) == "1\u202F234\u202F567")
+    Swag.require(fr.numberFormat.format(1234567_u64, grouped: true) == "1\u202F234\u202F567")
     Swag.require(fr.numberFormat.format(1234.5, 2, grouped: true) == "1\u202F234,50")
 
     let hi = Globalization.CultureInfo.fromName("hi-IN")
-    Swag.require(hi.numberFormat.format(1234567'u64, grouped: true) == "12,34,567")
+    Swag.require(hi.numberFormat.format(1234567_u64, grouped: true) == "12,34,567")
 }
 
 #test

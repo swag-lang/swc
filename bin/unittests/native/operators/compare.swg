@@ -59,8 +59,8 @@ func touch(flag: bool, delta: s32)->bool
 {
     let a = -5 < 12
     let b = 12 <= 12
-    let c = 0xFFFF_FFFF_FFFF_FFFF'u64 > 1'u64
-    let d = 9'u64 >= 9'u64
+    let c = 0xFFFF_FFFF_FFFF_FFFF_u64 > 1_u64
+    let d = 9_u64 >= 9_u64
 
     Swag.require(a)
     Swag.require(b)
@@ -85,9 +85,9 @@ func touch(flag: bool, delta: s32)->bool
 // Float comparison and three-way compare
 #test
 {
-    let a = 1.5'f64 < 2.5'f64
-    let b = 2.5'f64 <=> 1.5'f64
-    let c = 3.25'f64 <=> 3.25'f64
+    let a = 1.5_f64 < 2.5_f64
+    let b = 2.5_f64 <=> 1.5_f64
+    let c = 3.25_f64 <=> 3.25_f64
 
     Swag.require(a)
     Swag.require(b == 1)

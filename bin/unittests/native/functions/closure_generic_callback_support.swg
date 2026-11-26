@@ -16,8 +16,10 @@ namespace ClosureGenericCallbackSupport
         {
             for i in count
             {
-                if values[i] == value do
+                if values[i] == value
+                {
                     return true
+                }
             }
 
             return false
@@ -41,8 +43,10 @@ namespace ClosureGenericCallbackSupport
     {
         for v in values
         {
-            if not cb(v) do
+            if not cb(v)
+            {
                 return false
+            }
         }
 
         return true

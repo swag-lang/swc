@@ -66,11 +66,13 @@ impl Keyboard
                 .isRepeating[key] = false
                 .pressedAtMs[key] = 0
             }
-            elif .repeatEnabled
+            else if .repeatEnabled
             {
                 // First pressed time
-                if not .pressedAtMs[key] do
+                if not .pressedAtMs[key]
+                {
                     .pressedAtMs[key] = now
+                }
 
                 // First repetition
                 if not .isRepeating[key]
@@ -82,7 +84,7 @@ impl Keyboard
                         .previousState.setPressed(key, false)
                     }
                 }
-                elif now - .pressedAtMs[key] >= .repeatIntervalMs
+                else if now - .pressedAtMs[key] >= .repeatIntervalMs
                 {
                     .pressedAtMs[key] = now
                     .previousState.setPressed(key, false)
@@ -116,12 +118,21 @@ impl Keyboard
     mtd pressedModifiers()->KeyModifiers
     {
         var modifiers: KeyModifiers = .None
-        if .isKeyPressed(.LShift) or .isKeyPressed(.RShift) do
+        if .isKeyPressed(.LShift) or .isKeyPressed(.RShift)
+        {
             modifiers |= .Shift
-        if .isKeyPressed(.LControl) or .isKeyPressed(.RControl) do
+        }
+
+        if .isKeyPressed(.LControl) or .isKeyPressed(.RControl)
+        {
             modifiers |= .Control
-        if .isKeyPressed(.LMenu) or .isKeyPressed(.RMenu) do
+        }
+
+        if .isKeyPressed(.LMenu) or .isKeyPressed(.RMenu)
+        {
             modifiers |= .Alt
+        }
+
         return modifiers
     }
 }

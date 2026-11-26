@@ -10,8 +10,10 @@ func touch(_: ...)->u32
     func loopIndexUsedInVariadicForDo()->s32
     {
         var count: s32 = 0
-        for i in 1 to 5 do
+        for i in 1 to 5
+        {
             count += cast(s32, touch(i, " "))
+        }
         return count
     }
 

@@ -3,16 +3,20 @@
 #[Swag.Macro]
 func macroValue(flag: bool)->s32
 {
-    if flag do
+    if flag
+    {
         return 11
+    }
     return 22
 }
 
 #[Swag.Mixin]
 func mixinValue(flag: bool)->s32
 {
-    if flag do
+    if flag
+    {
         return 13
+    }
     return 24
 }
 

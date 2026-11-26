@@ -50,13 +50,13 @@ private struct State
 
 private struct Reader
 {
-    bytes:               Array'u8
+    bytes:               Array!{u8}
     offset:              u64
-    groups:              Array'State
+    groups:              Array!{State}
     state:               State
     shown:               State
-    fonts:               Array'Font
-    colors:              Array'String
+    fonts:               Array!{Font}
+    colors:              Array!{String}
     defaultFont:         u32 = Swag.U32.Max
     shownSpan:           bool
     paragraph:           String
@@ -74,12 +74,21 @@ impl Document
     mtd const details()->String
     {
         var result = Format.toString(texts().ui_Details, .paragraphs)
-        if .images do
+        if .images
+        {
             result += .images == 1 ? String.from(texts().ui_OneImage) : Format.toString(texts().ui_Images, .images)
-        if .omittedObjects do
+        }
+
+        if .omittedObjects
+        {
             result += .omittedObjects == 1 ? String.from(texts().ui_OneOmitted) : Format.toString(texts().ui_Omitted, .omittedObjects)
-        if .simplifiedStyles do
+        }
+
+        if .simplifiedStyles
+        {
             result += texts().ui_StylesSimplified
+        }
+
         return result
     }
 
@@ -87,8 +96,10 @@ impl Document
     func load(fileName: string)->Document fail
     {
         let info = try File.info(fileName)
-        if info.size > 8 * 1024 * 1024 do
+        if info.size > 8 * 1024 * 1024
+        {
             fail Errors.UnsupportedFormatError{texts().err_TooLarge}
+        }
 
         var reader: Reader
         reader.bytes = try File.readAllBytes(fileName)
@@ -100,8 +111,11 @@ private impl Reader
 {
     mtd read()->Document fail
     {
-        if .bytes.count < 6 or .bytes[0] != '{' or .bytes[1] != '\\' do
+        if .bytes.count < 6 or .bytes[0] != '{' or .bytes[1] != '\\'
+        {
             fail Errors.InvalidFormatError{texts().err_Invalid}
+        }
+
         .document.html = "<html><body>"
 
         while .offset < .bytes.count
@@ -109,8 +123,11 @@ private impl Reader
             let value = .bytes[.offset]
             if .groups.isEmpty() and .offset != 0
             {
-                if value != ' ' and value != '\r' and value != '\n' do
+                if value != ' ' and value != '\r' and value != '\n'
+                {
                     fail Errors.InvalidFormatError{texts().err_Invalid}
+                }
+
                 .offset += 1
                 continue
             }
@@ -118,20 +135,31 @@ private impl Reader
             switch value
             {
             case '{':
-                if .groups.count >= 128 do
+                if .groups.count >= 128
+                {
                     fail Errors.UnsupportedFormatError{texts().err_TooLarge}
+                }
+
                 .groups.add(.state)
                 .offset += 1
 
             case '}':
-                if .groups.isEmpty() do
+                if .groups.isEmpty()
+                {
                     fail Errors.InvalidFormatError{texts().err_Invalid}
+                }
+
                 if .groups.count == 1
                 {
-                    if .tableOpen do
+                    if .tableOpen
+                    {
                         .finishRow()
-                    if not .paragraph.isEmpty() do
+                    }
+
+                    if not .paragraph.isEmpty()
+                    {
                         .finishParagraph(force: false)
+                    }
                 }
 
                 .state = .groups[.groups.count - 1]
@@ -151,28 +179,50 @@ private impl Reader
                       .bytes[.offset] != '}' and
                       .bytes[.offset] != '\\' and
                       .bytes[.offset] != '\r' and
-                      .bytes[.offset] != '\n' do
+                      .bytes[.offset] != '\n'
+                {
                     .offset += 1
-                if not .state.skip and not .state.hidden and not .state.ignorable do
+                }
+
+                if not .state.skip and not .state.hidden and not .state.ignorable
+                {
                     .appendText(Text.decode(.bytes.toSlice()[start until .offset], .Windows1252))
+                }
             }
 
-            if .document.html.count + .paragraph.count > 32 * 1024 * 1024 do
+            if .document.html.count + .paragraph.count > 32 * 1024 * 1024
+            {
                 fail Errors.UnsupportedFormatError{texts().err_TooLarge}
+            }
         }
 
-        if not .sawHeader or not .groups.isEmpty() do
+        if not .sawHeader or not .groups.isEmpty()
+        {
             fail Errors.InvalidFormatError{texts().err_Invalid}
-        if .tableOpen do
+        }
+
+        if .tableOpen
+        {
             .finishRow()
-        if not .paragraph.isEmpty() do
+        }
+
+        if not .paragraph.isEmpty()
+        {
             .finishParagraph(force: false)
-        if not .document.paragraphs do
+        }
+
+        if not .document.paragraphs
+        {
             fail Errors.InvalidFormatError{texts().err_Invalid}
+        }
+
         .document.html += "</body></html>"
         var bodyStyle: String = " style=\"padding:24px;box-sizing:border-box;"
-        if .document.paper do
+        if .document.paper
+        {
             bodyStyle += "background-color:#FFFFFF;color:#202024;"
+        }
+
         bodyStyle += "\""
         .document.html.insert("<html><body".count, bodyStyle)
         return #move .document
@@ -210,12 +260,18 @@ private impl Reader
                 .state.ignorable = true
 
             case '\'':
-                if .offset + 2 > .bytes.count do
+                if .offset + 2 > .bytes.count
+                {
                     fail Errors.InvalidFormatError{texts().err_Invalid}
+                }
+
                 let first  = .hexDigit(.bytes[.offset])
                 let second = .hexDigit(.bytes[.offset + 1])
-                if first < 0 or second < 0 do
+                if first < 0 or second < 0
+                {
                     fail Errors.InvalidFormatError{texts().err_Invalid}
+                }
+
                 .offset += 2
                 .appendRune(Text.windows1252Rune(cast(u8, first * 16 + second)))
             }
@@ -230,52 +286,71 @@ private impl Reader
         if .state.ignorable
         {
             .state.ignorable = false
-            if word != "shppict" do
+            if word != "shppict"
+            {
                 .state.skip = true
+            }
         }
 
         if word == "bin"
         {
-            if not hasNumber or number < 0 or cast(u64, number) > .bytes.count - .offset do
+            if not hasNumber or number < 0 or cast(u64, number) > .bytes.count - .offset
+            {
                 fail Errors.InvalidFormatError{texts().err_Invalid}
+            }
+
             .offset += cast(u64, number)
             return
         }
 
         if word == "rtf"
         {
-            if start != 2 or .sawHeader do
+            if start != 2 or .sawHeader
+            {
                 fail Errors.InvalidFormatError{texts().err_Invalid}
+            }
+
             .sawHeader = hasNumber and number >= 1
             return
         }
 
         if word == "ansicpg"
         {
-            if not hasNumber or number != 1252 do
+            if not hasNumber or number != 1252
+            {
                 fail Errors.UnsupportedFormatError{texts().err_CodePage}
+            }
+
             return
         }
 
         if word == "uc"
         {
-            if not hasNumber or number < 0 or number > 16 do
+            if not hasNumber or number < 0 or number > 16
+            {
                 fail Errors.InvalidFormatError{texts().err_Invalid}
+            }
+
             .state.unicodeFallback = cast(u32, number)
             return
         }
 
         if word == "u"
         {
-            if not hasNumber or number < -32768 or number > 32767 do
+            if not hasNumber or number < -32768 or number > 32767
+            {
                 fail Errors.InvalidFormatError{texts().err_Invalid}
+            }
+
             .appendUnicodeUnit(cast(u32, number < 0 ? number + 65536 : number))
             .skipUnicodeFallback()
             return
         }
 
-        if .state.skip do
+        if .state.skip
+        {
             return
+        }
 
         switch word
         {
@@ -283,10 +358,15 @@ private impl Reader
             let table = try Catalog.parse(.bytes.toSlice(), .offset, .groups.count, word == "fonttbl")
             .offset = table.end
             .document.simplifiedStyles = .document.simplifiedStyles or table.limited
-            if word == "fonttbl" do
+            if word == "fonttbl"
+            {
                 .fonts = table.fonts
-            else do
+            }
+            else
+            {
                 .colors = table.colors
+            }
+
             .state.skip = true
 
         case "deff":
@@ -297,32 +377,49 @@ private impl Reader
             }
 
         case "f":
-            if hasNumber and number >= 0 do
+            if hasNumber and number >= 0
+            {
                 .state.font = cast(u32, number)
+            }
 
         case "fs":
-            if hasNumber and number >= 1 and number <= 800 do
-                .state.size = cast(u32, number)
-            else do
-                .document.simplifiedStyles = true
-
-        case "cf", "highlight":
-            if hasNumber and number >= 0 and cast(u64, number) < .colors.count
+            if hasNumber and number >= 1 and number <= 800
             {
-                if word == "cf" do
-                    .state.color = cast(u32, number)
-                else do
-                    .state.highlight = cast(u32, number)
-                if not .colors[cast(u64, number)].isEmpty() do
-                    .document.paper = true
+                .state.size = cast(u32, number)
             }
             else
             {
                 .document.simplifiedStyles = true
-                if word == "cf" do
+            }
+
+        case "cf", "highlight":
+            if hasNumber and number >= 0 and cast(u64, number) < .colors.count
+            {
+                if word == "cf"
+                {
+                    .state.color = cast(u32, number)
+                }
+                else
+                {
+                    .state.highlight = cast(u32, number)
+                }
+
+                if not .colors[cast(u64, number)].isEmpty()
+                {
+                    .document.paper = true
+                }
+            }
+            else
+            {
+                .document.simplifiedStyles = true
+                if word == "cf"
+                {
                     .state.color = Swag.U32.Max
-                else do
+                }
+                else
+                {
                     .state.highlight = Swag.U32.Max
+                }
             }
 
         case "sb", "sa", "li", "ri", "fi", "sl":
@@ -347,8 +444,10 @@ private impl Reader
             .state.multipleLine = number == 1
 
         case "s", "cs", "ds", "ts":
-            if hasNumber and number != 0 do
+            if hasNumber and number != 0
+            {
                 .document.simplifiedStyles = true
+            }
 
         case "stylesheet", "info", "generator", "filetbl", "listtable", "listoverridetable",
              "xmlnstbl", "datastore", "themedata", "colorschememapping", "header", "headerl",
@@ -359,8 +458,11 @@ private impl Reader
             .state.shapePicture = true
 
         case "nonshppict":
-            if .skipFallbackPicture do
+            if .skipFallbackPicture
+            {
                 .state.skip = true
+            }
+
             .skipFallbackPicture = false
 
         case "pict":
@@ -441,10 +543,14 @@ private impl Reader
             .state.multipleLine = false
 
         case "par":
-            if .tableOpen do
+            if .tableOpen
+            {
                 .appendHtml("<br>")
-            else do
+            }
+            else
+            {
                 .finishParagraph(force: true)
+            }
 
         case "line":
             .appendHtml("<br>")
@@ -457,20 +563,27 @@ private impl Reader
             .document.html += "<hr>"
 
         case "trowd":
-            if .tableOpen do
+            if .tableOpen
+            {
                 .finishRow()
+            }
+
             .finishParagraph(force: false)
             .document.html += "<table><tr>"
             .tableOpen     = true
             .rowHasCell    = false
 
         case "cell":
-            if .tableOpen do
+            if .tableOpen
+            {
                 .finishCell()
+            }
 
         case "row":
-            if .tableOpen do
+            if .tableOpen
+            {
                 .finishRow()
+            }
 
         case "bullet":
             .appendRune(0x2022)
@@ -502,12 +615,16 @@ private impl Reader
         {
             if .bytes[.offset] == '\\' and .offset + 1 < .bytes.count
             {
-                if .bytes[.offset + 1] == '\'' and .offset + 3 < .bytes.count do
+                if .bytes[.offset + 1] == '\'' and .offset + 3 < .bytes.count
+                {
                     .offset += 4
-                else do
+                }
+                else
+                {
                     .offset += 2
+                }
             }
-            elif .bytes[.offset] != '{' and .bytes[.offset] != '}'
+            else if .bytes[.offset] != '{' and .bytes[.offset] != '}'
             {
                 .offset += 1
             }
@@ -530,8 +647,11 @@ private impl Reader
 
         if unit >= 0xD800 and unit <= 0xDBFF
         {
-            if .highSurrogate do
+            if .highSurrogate
+            {
                 .appendRune(0xFFFD)
+            }
+
             .highSurrogate = unit
             return
         }
@@ -543,16 +663,22 @@ private impl Reader
             return
         }
 
-        if .highSurrogate do
+        if .highSurrogate
+        {
             .appendRune(0xFFFD)
+        }
+
         .highSurrogate = 0
         .appendRune(cast(rune, unit >= 0xDC00 and unit <= 0xDFFF ? 0xFFFD : unit))
     }
 
     mtd appendRune(value: rune)
     {
-        if .state.skip or .state.hidden do
+        if .state.skip or .state.hidden
+        {
             return
+        }
+
         var encoded: String
         encoded.append(value)
         .appendText(encoded)
@@ -560,18 +686,27 @@ private impl Reader
 
     mtd appendText(value: string)
     {
-        if .state.skip or .state.hidden do
+        if .state.skip or .state.hidden
+        {
             return
-        for byte in value where byte != ' 'u8 and byte != '\t'u8 and byte != '\r'u8 and byte != '\n'u8 do
+        }
+
+        for byte in value where byte != ' '_u8 and byte != '\t'_u8 and byte != '\r'_u8 and byte != '\n'_u8
+        {
             .skipFallbackPicture = false
+        }
+
         .syncStyle()
         Package.appendHtmlEscaped(&.paragraph, value)
     }
 
     mtd appendHtml(value: string)
     {
-        if .state.skip or .state.hidden do
+        if .state.skip or .state.hidden
+        {
             return
+        }
+
         .syncStyle()
         .paragraph += value
     }
@@ -585,12 +720,18 @@ private impl Reader
            .shown.font == .state.font and
            .shown.size == .state.size and
            .shown.color == .state.color and
-           .shown.highlight == .state.highlight do
+           .shown.highlight == .state.highlight
+        {
             return
+        }
+
         .closeStyle()
         var css: String
-        if .state.size != 24 do
+        if .state.size != 24
+        {
             css += Format.toString("font-size:%pt;", cast(f64, .state.size) / 2)
+        }
+
         if .state.font != Swag.U32.Max
         {
             var found = false
@@ -601,43 +742,78 @@ private impl Reader
                 break
             }
 
-            if not found do
+            if not found
+            {
                 .document.simplifiedStyles = true
+            }
         }
 
-        if .state.color < .colors.count and not .colors[.state.color].isEmpty() do
+        if .state.color < .colors.count and not .colors[.state.color].isEmpty()
+        {
             css += Format.toString("color:#%;", .colors[.state.color])
-        if .state.highlight < .colors.count and not .colors[.state.highlight].isEmpty() do
+        }
+
+        if .state.highlight < .colors.count and not .colors[.state.highlight].isEmpty()
+        {
             css += Format.toString("background-color:#%;", .colors[.state.highlight])
+        }
+
         if not css.isEmpty()
         {
             .paragraph += Format.toString("<span style=\"%\">", css)
             .shownSpan = true
         }
 
-        if .state.bold do
+        if .state.bold
+        {
             .paragraph += "<b>"
-        if .state.italic do
+        }
+
+        if .state.italic
+        {
             .paragraph += "<i>"
-        if .state.underline do
+        }
+
+        if .state.underline
+        {
             .paragraph += "<u>"
-        if .state.strike do
+        }
+
+        if .state.strike
+        {
             .paragraph += "<s>"
+        }
+
         .shown = .state
     }
 
     mtd closeStyle()
     {
-        if .shown.strike do
+        if .shown.strike
+        {
             .paragraph += "</s>"
-        if .shown.underline do
+        }
+
+        if .shown.underline
+        {
             .paragraph += "</u>"
-        if .shown.italic do
+        }
+
+        if .shown.italic
+        {
             .paragraph += "</i>"
-        if .shown.bold do
+        }
+
+        if .shown.bold
+        {
             .paragraph += "</b>"
-        if .shownSpan do
+        }
+
+        if .shownSpan
+        {
             .paragraph += "</span>"
+        }
+
         .shownSpan = false
         .shown     = {}
     }
@@ -645,8 +821,11 @@ private impl Reader
     mtd finishParagraph(force: bool)
     {
         .closeStyle()
-        if .paragraph.isEmpty() and not force do
+        if .paragraph.isEmpty() and not force
+        {
             return
+        }
+
         .document.html += "<p"
         var css: String
         switch .state.alignment
@@ -657,22 +836,41 @@ private impl Reader
         case .Justify: css += "text-align:justify;"
         }
 
-        if .state.before >= 0 do
+        if .state.before >= 0
+        {
             css += Format.toString("margin-top:%pt;", cast(f64, .state.before) / 20)
-        if .state.after >= 0 do
+        }
+
+        if .state.after >= 0
+        {
             css += Format.toString("margin-bottom:%pt;", cast(f64, .state.after) / 20)
-        if .state.left do
+        }
+
+        if .state.left
+        {
             css += Format.toString("margin-left:%pt;", cast(f64, .state.left) / 20)
-        if .state.right do
+        }
+
+        if .state.right
+        {
             css += Format.toString("margin-right:%pt;", cast(f64, .state.right) / 20)
-        if .state.first do
+        }
+
+        if .state.first
+        {
             css += Format.toString("text-indent:%pt;", cast(f64, .state.first) / 20)
+        }
+
         if .state.line
         {
-            if .state.multipleLine do
+            if .state.multipleLine
+            {
                 css += Format.toString("line-height:%;", Math.abs(cast(f64, .state.line)) / 240)
-            else do
+            }
+            else
+            {
                 css += Format.toString("line-height:%pt;", Math.abs(cast(f64, .state.line)) / 20)
+            }
         }
 
         if not css.isEmpty()
@@ -701,8 +899,11 @@ private impl Reader
 
     mtd finishRow()
     {
-        if not .paragraph.isEmpty() or not .rowHasCell do
+        if not .paragraph.isEmpty() or not .rowHasCell
+        {
             .finishCell()
+        }
+
         .document.html += "</tr></table>"
         .tableOpen     = false
         .rowHasCell    = false
@@ -710,12 +911,21 @@ private impl Reader
 
     func hexDigit(value: u8)->s32
     {
-        if value >= '0' and value <= '9' do
+        if value >= '0' and value <= '9'
+        {
             return cast(s32, value - '0')
-        if value >= 'a' and value <= 'f' do
+        }
+
+        if value >= 'a' and value <= 'f'
+        {
             return cast(s32, value - 'a') + 10
-        if value >= 'A' and value <= 'F' do
+        }
+
+        if value >= 'A' and value <= 'F'
+        {
             return cast(s32, value - 'A') + 10
+        }
+
         return -1
     }
 }

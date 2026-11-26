@@ -15,6 +15,6 @@ func wrapper(source: *[16] u64, index: u32)->u64
     var values: [16] u64
     for i in 16 do
         values[i] = i * 17
-    for i in 16'u32 do
+    for i in 16_u32 do
         Swag.assert(wrapper(&values, i) == 255)
 }

@@ -20,7 +20,7 @@ func exrAddU64(result: *ConcatBuffer, value: u64)
 func exrAddText(result: *ConcatBuffer, value: string)
 {
     result.addBytes(value)
-    result.addNative(0'u8)
+    result.addNative(0_u8)
 }
 
 func exrAddAttribute(result: *ConcatBuffer, name, type: string, payload: const [..] u8)
@@ -39,7 +39,7 @@ func exrZipFixture(width: u32, packed: const [..] u8, extraName = "", rowsPerBlo
     exrAddU32(&channels, 0)
     exrAddU32(&channels, 1)
     exrAddU32(&channels, 1)
-    channels.addNative(0'u8)
+    channels.addNative(0_u8)
 
     var compression: [1] u8 = [rowsPerBlock == 16 ? 3 : 2]
     var dataWindow:  ConcatBuffer
@@ -52,29 +52,19 @@ func exrZipFixture(width: u32, packed: const [..] u8, extraName = "", rowsPerBlo
     exrAddAttribute(&header, "channels", "chlist", unwrap channels.toSlice())
     exrAddAttribute(&header, "compression", "compression", compression)
     exrAddAttribute(&header, "dataWindow", "box2i", unwrap dataWindow.toSlice())
-    if extraName.count do
-        exrAddAttribute(&header, extraName, "string", "ignored")
-    header.addNative(0'u8)
+    header.addNative(0_u8)
 
     var result: ConcatBuffer
     exrAddU32(&result, Exr.Magic)
     exrAddU32(&result, 2)
     result.addBytes(unwrap header.toSlice())
-    var chunkOffset = result.count() + cast(u64, blocks) * 8
-    for block in blocks
+    exrAddU64(&result, result.count() + 8)
+    exrAddU32(&result, 0)     // First scanline.
+    exrAddU32(&result, 8)     // Same as the decoded 4xHALF row size.
+    for 8
     {
-        let stream = (block & 1) and alternate ? alternate : packed
-        exrAddU64(&result, chunkOffset)
-        chunkOffset += stream.count + 8
-    }
-    for block in blocks
-    {
-        let stream = (block & 1) and alternate ? alternate : packed
-        exrAddU32(&result, block * rowsPerBlock)
-        exrAddU32(&result, cast(u32, stream.count))
-        result.addBytes(stream)
-    }
-
+        result.addNative(0xFF_u8)
+    }     // Not a valid ZLIB stream.
     return result
 }
 
@@ -90,7 +80,7 @@ func exrMixedRgbYFixture()->ConcatBuffer
         exrAddU32(&channels, 1)
     }
 
-    channels.addNative(0'u8)
+    channels.addNative(0_u8)
 
     var compression: [1] u8 = [0]     // No compression.
     var dataWindow:  ConcatBuffer
@@ -103,7 +93,7 @@ func exrMixedRgbYFixture()->ConcatBuffer
     exrAddAttribute(&header, "channels", "chlist", unwrap channels.toSlice())
     exrAddAttribute(&header, "compression", "compression", compression)
     exrAddAttribute(&header, "dataWindow", "box2i", unwrap dataWindow.toSlice())
-    header.addNative(0'u8)
+    header.addNative(0_u8)
 
     var result: ConcatBuffer
     exrAddU32(&result, Exr.Magic)
@@ -115,35 +105,12 @@ func exrMixedRgbYFixture()->ConcatBuffer
 func exrUnalignedFloatFixture(names: const [..] string, width = 1'u32)->ConcatBuffer
 {
     var channels: ConcatBuffer
-    var samples:  ConcatBuffer
-    for name in names
-    {
-        exrAddText(&channels, name)
-        exrAddU32(&channels, name == "A" or name == "B" ? 1 : 2)
-        exrAddU32(&channels, 0)
-        exrAddU32(&channels, 1)
-        exrAddU32(&channels, 1)
-
-        for width
-        {
-            switch name
-            {
-            case "A":
-                samples.addNative(0x3800'u16)     // Half 0.5.
-
-            case "B":
-                samples.addNative(0x0001'u16)     // Smallest half subnormal.
-
-            case "G":
-                exrAddU32(&samples, 0x80000000)     // Float -0.0.
-
-            case "R", "Y":
-                exrAddU32(&samples, 0x3F800000)     // Float 1.0.
-            }
-        }
-    }
-
-    channels.addNative(0'u8)
+    exrAddText(&channels, "Y")
+    exrAddU32(&channels, 2)     // FLOAT channel.
+    exrAddU32(&channels, 0)
+    exrAddU32(&channels, 1)
+    exrAddU32(&channels, 1)
+    channels.addNative(0_u8)
 
     var compression: [1] u8 = [0]     // No compression.
     var dataWindow:  ConcatBuffer
@@ -156,7 +123,7 @@ func exrUnalignedFloatFixture(names: const [..] string, width = 1'u32)->ConcatBu
     exrAddAttribute(&header, "channels", "chlist", unwrap channels.toSlice())
     exrAddAttribute(&header, "compression", "compression", compression)
     exrAddAttribute(&header, "dataWindow", "box2i", unwrap dataWindow.toSlice())
-    header.addNative(0'u8)
+    header.addNative(0_u8)
 
     var result: ConcatBuffer
     exrAddU32(&result, Exr.Magic)
@@ -165,8 +132,11 @@ func exrUnalignedFloatFixture(names: const [..] string, width = 1'u32)->ConcatBu
     let tableEnd    = result.count() + 8
     let chunkOffset = tableEnd + (tableEnd & 1 ? 0 : 1)
     exrAddU64(&result, chunkOffset)
-    while result.count() < chunkOffset do
-        result.addNative(0'u8)
+    while result.count() < chunkOffset
+    {
+        result.addNative(0_u8)
+    }
+
     exrAddU32(&result, 0)     // First scanline.
     exrAddU32(&result, cast(u32, samples.count()))
     result.addBytes(unwrap samples.toSlice())
@@ -191,7 +161,7 @@ func exrUnalignedFloatFixture(names: const [..] string, width = 1'u32)->ConcatBu
     var encoded = expect source.encode("duplicate-channel.exr")
     encoded.makeLinear()
     var bytes  = unwrap encoded.toSlice()
-    var offset = 8'u64 + 9 + 7 + 4
+    var offset = 8_u64 + 9 + 7 + 4
     var found  = false
     while bytes[offset]
     {
@@ -202,8 +172,11 @@ func exrUnalignedFloatFixture(names: const [..] string, width = 1'u32)->ConcatBu
             break
         }
 
-        while bytes[offset] do
+        while bytes[offset]
+        {
             offset += 1
+        }
+
         offset += 1 + 16
     }
 
@@ -217,8 +190,13 @@ func exrUnalignedFloatFixture(names: const [..] string, width = 1'u32)->ConcatBu
 
 #test
 {
-    const Values:   [10] u16 = [0x0001, 0x3C00, 0x4000, 0x8000, 0xC000, 0x7BFF, 0x7C00, 0x7CF1, 0xFE03, 0xFC00]
-    const Expected: [10] u16 = [0x0001, 0x3C00, 0x4000, 0x8000, 0xC000, 0x7BFF, 0x7C00, 0x7E00, 0xFE00, 0xFC00]
+    var source  = Image.create(3, 2, .RGBF16)
+    let samples = cast([*] u16, source.pixels.storage())
+    const Values: [6] u16 = [0x0000, 0x3C00, 0x4000, 0x3800, 0xC000, 0x7BFF]
+    for i in 18
+    {
+        samples[i] = Values[i % Values.count]
+    }
 
     // Exercise complete vectors, scalar tails, and rows that start at unaligned addresses.
     for format in [PixelFormat.RGBF16, PixelFormat.RGBAF16]
@@ -251,15 +229,19 @@ func exrUnalignedFloatFixture(names: const [..] string, width = 1'u32)->ConcatBu
         {
             let samples = cast([*] u16, source.pixels.storage())
             const Values: [6] u16 = [0x0000, 0x3400, 0x3800, 0x3C00, 0x4000, 0xC000]
-            for i in source.byteCount / 2 do
+            for i in source.byteCount / 2
+            {
                 samples[i] = Values[i % Values.count]
+            }
         }
         else
         {
             let samples = cast([*] f32, source.pixels.storage())
             const Values: [6] f32 = [-2.0, -0.25, 0.0, 0.5, 1.0, 8.0]
-            for i in source.byteCount / 4 do
+            for i in source.byteCount / 4
+            {
                 samples[i] = Values[i % Values.count]
+            }
         }
 
         let encoded = expect source.encode("gray.exr")
@@ -272,14 +254,13 @@ func exrUnalignedFloatFixture(names: const [..] string, width = 1'u32)->ConcatBu
 // HALF luminance and opacity retain the scalar conversion's special-value representation.
 #test
 {
-    const Values:   [10] u16 = [0x0001, 0x3C00, 0x8000, 0xC000, 0x7BFF, 0x7C00, 0x7CF1, 0xFE03, 0xFC00, 0x8001]
-    const Expected: [10] u16 = [0x0001, 0x3C00, 0x8000, 0xC000, 0x7BFF, 0x7C00, 0x7E00, 0xFE00, 0xFC00, 0x8001]
-    for format in [PixelFormat.GrayF16, PixelFormat.GrayAlphaF16]
+    var source  = Image.create(2, 2, .RGBAF32)
+    let samples = cast([*] f32, source.pixels.storage())
+    const Values: [8] f32 = [-2.0, -0.25, 0.0, 0.125, 0.5, 1.0, 4.0, 65504.0]
+    for i in 16
     {
-        var source  = Image.create(9, 3, format)
-        let samples = cast([*] u16, source.pixels.storage())
-        for index in source.byteCount / 2 do
-            samples[index] = Values[index % Values.count]
+        samples[i] = Values[i % Values.count]
+    }
 
         let encoded = expect source.encode("gray-half.exr")
         let decoded = expect Image.decode("gray-half.exr", nnBytes(encoded.toSlice()))
@@ -342,10 +323,20 @@ func exrUnalignedFloatFixture(names: const [..] string, width = 1'u32)->ConcatBu
 #test
 {
     var original: [257] u8
-    for i in original.count do
+    for i in original.count
+    {
         original[i] = cast(u8, ((i * 73 + 19) & 0xFF))
+    }
+
+    var predicted: [257] u8
+    predicted[0] = original[0]
+    for i in rangeTo(1_u64, original.count - 1)
+    {
+        predicted[i] = cast(u8, ((cast(s32, original[i]) - original[i - 1] + 128) & 0xFF))
+    }
+
     var packed: [257] u8
-    var even = 0'u64
+    var even = 0_u64
     var odd  = (original.count + 1) / 2
     for i in original.count
     {

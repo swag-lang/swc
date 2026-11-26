@@ -19,7 +19,7 @@ func(U) localStructExplicitType()->u16
         value: T
     }
 
-    var data: Local'u16
+    var data: Local!{u16}
     data.value = 7
     return data.value
 }
@@ -45,7 +45,7 @@ func(U) localUnionExplicitType()->u16
         other: s32
     }
 
-    var data: Local'u16
+    var data: Local!{u16}
     data.value = 9
     return data.value
 }
@@ -57,7 +57,7 @@ func(U) localStructExplicitLiteral()->u16
         value: T
     }
 
-    let data = Local'u16{value: 11'u16}
+    let data = Local!{u16}{value: 11_u16}
     return data.value
 }
 
@@ -80,7 +80,7 @@ func(U) localUnionExplicitLiteral()->u16
         other: s32
     }
 
-    let data = Local'u16{value: 13'u16}
+    let data = Local!{u16}{value: 13_u16}
     return data.value
 }
 
@@ -105,7 +105,7 @@ func(T, V) localStructPartialLiteral(tail: V)->V
         third:  C
     }
 
-    let data = Local'T{first: false, second: "ok", third: tail}
+    let data = Local!{T}{first: false, second: "ok", third: tail}
     return data.third
 }
 
@@ -117,47 +117,47 @@ func(T) localUnionPartialLiteral(value: T)->T
         count: s32
     }
 
-    let data = Local'5{value: value}
+    let data = Local!{5}{value: value}
     return data.value
 }
 
 #test
 {
-    Swag.require(localStructDefaultType'f32())
-    Swag.require(localUnionDefaultType'f32())
+    Swag.require(localStructDefaultType!{f32}())
+    Swag.require(localUnionDefaultType!{f32}())
 
-    let structValue = localStructExplicitType'f32()
-    let unionValue  = localUnionExplicitType'f32()
+    let structValue = localStructExplicitType!{f32}()
+    let unionValue  = localUnionExplicitType!{f32}()
     #assert(#typeof(structValue) == u16)
     #assert(#typeof(unionValue) == u16)
-    Swag.require(structValue == 7'u16)
-    Swag.require(unionValue == 9'u16)
+    Swag.require(structValue == 7_u16)
+    Swag.require(unionValue == 9_u16)
 }
 
 #test
 {
-    let structExplicit = localStructExplicitLiteral'f32()
-    let structImplicit = localStructImplicitLiteral(1.5'f32)
-    let unionExplicit  = localUnionExplicitLiteral'f32()
-    let unionImplicit  = localUnionImplicitLiteral(2.5'f32)
+    let structExplicit = localStructExplicitLiteral!{f32}()
+    let structImplicit = localStructImplicitLiteral(1.5_f32)
+    let unionExplicit  = localUnionExplicitLiteral!{f32}()
+    let unionImplicit  = localUnionImplicitLiteral(2.5_f32)
 
     #assert(#typeof(structExplicit) == u16)
     #assert(#typeof(structImplicit) == f32)
     #assert(#typeof(unionExplicit) == u16)
     #assert(#typeof(unionImplicit) == f32)
-    Swag.require(structExplicit == 11'u16)
-    Swag.require(structImplicit == 1.5'f32)
-    Swag.require(unionExplicit == 13'u16)
-    Swag.require(unionImplicit == 2.5'f32)
+    Swag.require(structExplicit == 11_u16)
+    Swag.require(structImplicit == 1.5_f32)
+    Swag.require(unionExplicit == 13_u16)
+    Swag.require(unionImplicit == 2.5_f32)
 }
 
 #test
 {
-    let structPartial = localStructPartialLiteral'(bool, f32)(4.5)
-    let unionPartial  = localUnionPartialLiteral'f32(6.5)
+    let structPartial = localStructPartialLiteral!{bool, f32}(4.5)
+    let unionPartial  = localUnionPartialLiteral!{f32}(6.5)
 
     #assert(#typeof(structPartial) == f32)
     #assert(#typeof(unionPartial) == f32)
-    Swag.require(structPartial == 4.5'f32)
-    Swag.require(unionPartial == 6.5'f32)
+    Swag.require(structPartial == 4.5_f32)
+    Swag.require(unionPartial == 6.5_f32)
 }

@@ -52,8 +52,10 @@ func editorRow(editor: *Wnd, title: string)->*ListLine
     for index in list.lineCount()
     {
         let row = unwrap list.lineAt(index)
-        if row.items[0]!.name.text == title do
+        if row.items[0]!.name.text == title
+        {
             return row
+        }
     }
 
     Swag.panic(Format.toString("Missing shortcut row for %", title), #curlocation)
@@ -61,8 +63,11 @@ func editorRow(editor: *Wnd, title: string)->*ListLine
 
 func editorAction(editor: *Wnd, title: string)->*Wnd
 {
-    for button in (unwrap editorChange(editor).parent).children where button.name.text == title do
+    for button in (unwrap editorChange(editor).parent).children where button.name.text == title
+    {
         return button
+    }
+
     Swag.panic(Format.toString("Missing shortcut action %", title), #curlocation)
 }
 
@@ -78,8 +83,11 @@ func editorAction(editor: *Wnd, title: string)->*Wnd
 
     let drive: FrameCallback = func|host = &host, &checked|(app)
     {
-        if checked do
+        if checked
+        {
             return
+        }
+
         checked = true
         let editor = app.modalSurfaces.back().view()
         let filter = editorFilter(editor)
@@ -126,7 +134,7 @@ func editorAction(editor: *Wnd, title: string)->*Wnd
     host.root.registerKeyShortcut(.Control, .F1, Open)
     host.root.registerKeyShortcut(.Control, .F2, Open)
     host.root.registerKeyShortcut(.Control, .F3, Close)
-    var draft: Array'ShortcutOverride
+    var draft: Array!{ShortcutOverride}
     setShortcutOverride(&draft, Open, .None, .None)
     setShortcutOverride(&draft, Close, .Control, .F2)
     expect host.app.updateShortcuts(draft)
@@ -204,8 +212,11 @@ func editorAction(editor: *Wnd, title: string)->*Wnd
             let keys   = assume cast(*ComboBox, unwrap editor.childById("gui.shortcuts.key"))
             let assign = unwrap editor.childById(Dialog.BtnOk)
             Swag.require(field.hasFocus() and not assign.isEnabled())
-            for key in [Input.Key.Shift, .LControl, .RMenu] do
+            for key in [Input.Key.Shift, .LControl, .RMenu]
+            {
                 host.keyPress(key)
+            }
+
             Swag.require(field.hasFocus() and not app.endModal)
             host.keyPress(.Tab)
             Swag.require(mods.hasFocus() and not app.endModal)
@@ -395,7 +406,9 @@ func editorAction(editor: *Wnd, title: string)->*Wnd
         Swag.require(stage == 4)
         Swag.require(host.root.keyShortcut(.Control, .F3) == (replace ? Open : Close))
         Swag.require(host.root.keyShortcutName(Read, "Ctrl F3") == (replace ? "" : "Ctrl F3"))
-        if not replace do
+        if not replace
+        {
             Swag.require(host.app.shortcutOverrides.isEmpty())
+        }
     }
 }

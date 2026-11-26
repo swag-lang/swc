@@ -34,7 +34,7 @@ func assertMd5Split(buffer: const [..] u8, split0, split1: u64, expected: string
 
 func fillMd5Pattern(buffer: [..] u8)
 {
-    var i = 0'u64
+    var i = 0_u64
     while i < buffer.count
     {
         buffer[i] = cast(u8, ((i * 37 + 11) & 0xFF))

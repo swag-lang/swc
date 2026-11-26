@@ -75,8 +75,10 @@ impl RichEditCtrl
     {
         for &p in .mapping
         {
-            if p.key == key and p.modifiers == modifiers do
+            if p.key == key and p.modifiers == modifiers
+            {
                 return p.command
+            }
         }
 
         return RichEditCommand.None
@@ -141,17 +143,27 @@ impl RichEditCtrl
         switch cmd
         {
         case .CursorLeft:
-            if .isSelectionEmpty() do
+            if .isSelectionEmpty()
+            {
                 .moveCursorLeft(&.cursorPos)
-            else do
+            }
+            else
+            {
                 .cursorPos = .selectionStart()
+            }
+
             .clearSelection()
 
         case .CursorRight:
-            if .isSelectionEmpty() do
+            if .isSelectionEmpty()
+            {
                 .moveCursorRight(&.cursorPos)
-            else do
+            }
+            else
+            {
                 .cursorPos = .selectionEnd()
+            }
+
             .clearSelection()
 
         case .CursorUp:
@@ -310,33 +322,51 @@ impl RichEditCtrl
             }
 
         case .DeleteLeft:
-            if .isReadOnly() do
+            if .isReadOnly()
+            {
                 return
+            }
+
             .deleteLeft()
 
         case .DeleteRight:
-            if .isReadOnly() do
+            if .isReadOnly()
+            {
                 return
+            }
+
             .deleteRight()
 
         case .DeleteWordLeft:
-            if .isReadOnly() do
+            if .isReadOnly()
+            {
                 return
+            }
+
             .deleteWordLeft()
 
         case .DeleteWordRight:
-            if .isReadOnly() do
+            if .isReadOnly()
+            {
                 return
+            }
+
             .deleteWordRight()
 
         case .DeleteLine:
-            if .isReadOnly() do
+            if .isReadOnly()
+            {
                 return
+            }
+
             .deleteLine()
 
         case .EditTabulation:
-            if .isReadOnly() do
+            if .isReadOnly()
+            {
                 return
+            }
+
             if .selectionStart().lineIndex == .selectionEnd().lineIndex
             {
                 .pushUndo()
@@ -350,18 +380,27 @@ impl RichEditCtrl
             }
 
         case .EditBackTabulation:
-            if .isReadOnly() do
+            if .isReadOnly()
+            {
                 return
+            }
+
             .deleteBegLine("\t", false)
 
         case .Undo:
-            if .isReadOnly() do
+            if .isReadOnly()
+            {
                 return
+            }
+
             .undo()
 
         case .Redo:
-            if .isReadOnly() do
+            if .isReadOnly()
+            {
                 return
+            }
+
             .redo()
 
         case .ToggleOverwrite:
@@ -372,13 +411,19 @@ impl RichEditCtrl
             .copyToClipboard()
 
         case .ClipboardPaste:
-            if .isReadOnly() do
+            if .isReadOnly()
+            {
                 return
+            }
+
             .pasteFromClipboard()
 
         case .ClipboardCut:
-            if .isReadOnly() do
+            if .isReadOnly()
+            {
                 return
+            }
+
             .copyToClipboard()
             .deleteSelection()
 
@@ -403,11 +448,17 @@ impl RichEditCtrl
         let hasSel   = not .isSelectionEmpty()
 
         let menu = MenuCtrl.createPopup(me, owner: me)
-        if not readOnly do
+        if not readOnly
+        {
             menu.addItem(strings().edit_Cut, CtxCut, rightName: "Ctrl X", disabled: not hasSel)
+        }
+
         menu.addItem(strings().edit_Copy, CtxCopy, rightName: "Ctrl C", disabled: not hasSel)
-        if not readOnly do
+        if not readOnly
+        {
             menu.addItem(strings().edit_Paste, CtxPaste, rightName: "Ctrl V", disabled: not Clipboard.hasString())
+        }
+
         menu.addSeparator()
         menu.addItem(strings().edit_SelectAll, CtxSelectAll, rightName: "Ctrl A")
 

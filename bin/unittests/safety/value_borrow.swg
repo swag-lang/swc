@@ -187,8 +187,10 @@ func inlineReadAlongsideWrite(value: BorrowedValue, destination: *BorrowedValue)
 #[Swag.NoInline]
 func fillAlongside(value: BorrowedValue, destination: [*] u64, count: u64)->u64
 {
-    for i in count do
+    for i in count
+    {
         destination[i] = i + 1
+    }
     return value.second
 }
 
@@ -205,8 +207,10 @@ func fillAlongside(value: BorrowedValue, destination: [*] u64, count: u64)->u64
     #[Swag.NoInline]
     func fillIntoBorrow(value: BorrowedValue, destination: [*] u64, count: u64)->u64
     {
-        for i in count do
+        for i in count
+        {
             destination[i] = i     // swc-expected-error {{safety_err_runtime}}
+        }
         return value.second
     }
 

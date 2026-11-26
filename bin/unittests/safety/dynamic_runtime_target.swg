@@ -10,7 +10,7 @@ func assumeRuntimeValue(target: typeinfo, source: any)
 
 #test
 {
-    assumeRuntimeValue(s64, 42's32)
+    assumeRuntimeValue(s64, 42_s32)
 }
 
 #[Swag.Safety(.Assume, true), Swag.NoInline]

@@ -18,10 +18,14 @@ using Core
         {
             var tag: [32] u8
             expect Crypto.argon2id("parallel benchmark", "benchmark salt!!", {memoryKib: memory[index], iterations: 3, parallelism: 4}, tag)
-            if count == 1 do
+            if count == 1
+            {
                 expected[index] = tag
-            else do
+            }
+            else
+            {
                 Swag.assert(Crypto.constantTimeEqual(tag, expected[index]))
+            }
 
             for sample in 3
             {

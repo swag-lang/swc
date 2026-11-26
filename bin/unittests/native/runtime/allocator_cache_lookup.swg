@@ -10,7 +10,7 @@ using Swag
     allocator.setup()
     defer allocator.releaseAll()
     let itf: IAllocator = &allocator
-    const Sizes = [100_000'u64, 200_000, 350_000, 700_000]
+    const Sizes = [100_000_u64, 200_000, 350_000, 700_000]
     var requests:  [Sizes.count] AllocatorRequest
     var addresses: [Sizes.count] u64
 
@@ -23,26 +23,30 @@ using Swag
             Swag.require(requests[i].address != null)
             addresses[i] = cast(u64, requests[i].address)
         }
-        for &request in requests do
+        for &request in requests
+        {
             itf.free(request)
+        }
 
         // A wrapped undersized block must not fit, even when the reuse limit saturates.
-        for size in [1'u64 << 63, Swag.U64.Max - 1, Swag.U64.Max]
+        for size in [1_u64 << 63, Swag.U64.Max - 1, Swag.U64.Max]
         {
             var reserved, committed: u64
             let block = allocator.popCachedBlock(size, &reserved, &committed)
             Swag.require(block == null)
         }
 
-        for i in [1'u64, 3, 0, 2]
+        for i in [1_u64, 3, 0, 2]
         {
             requests[i].size = i == 3 ? 600_000 : Sizes[i]
             itf.alloc(&requests[i])
             Swag.require(cast(u64, requests[i].address) == addresses[i])
             cast([*] u8, unwrap requests[i].address)[requests[i].size - 1] = 29
         }
-        for &request in requests do
+        for &request in requests
+        {
             itf.free(request)
+        }
         allocator.trim()
     }
 

@@ -9,8 +9,10 @@ impl IDynamicField for NestedDynamicField {}
 
 func borrowNestedDynamicField(view: IDynamicField)->*s32?
 {
-    if view is NestedDynamicField as value do
+    if view is NestedDynamicField as value
+    {
         return &value.inner.value
+    }
     return null
 }
 

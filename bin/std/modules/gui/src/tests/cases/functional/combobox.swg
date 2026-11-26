@@ -31,8 +31,10 @@ func comboHeadlessChanged(_: *ComboBox, idx: u32)
     host.pump()
     let addedWidth = combo.measure({}).preferred.x
     var failures: u32
-    if addedWidth <= initial or combo.position.width != addedWidth do
+    if addedWidth <= initial or combo.position.width != addedWidth
+    {
         failures |= 1
+    }
 
     // Force the current item set into the layout so the removal phase starts at its wide size.
     row.computeLayout()
@@ -42,8 +44,10 @@ func comboHeadlessChanged(_: *ComboBox, idx: u32)
     combo.removeItemAt(0)
     host.pump()
     let removedWidth = combo.measure({}).preferred.x
-    if removedWidth >= withWideItem or combo.position.width != removedWidth do
+    if removedWidth >= withWideItem or combo.position.width != removedWidth
+    {
         failures |= 2
+    }
 
     // The clear phase likewise starts with a committed wide item.
     combo.addItem("A combo entry wide enough to exceed the default field width")
@@ -53,8 +57,10 @@ func comboHeadlessChanged(_: *ComboBox, idx: u32)
     combo.clear()
     host.pump()
     let clearedWidth = combo.measure({}).preferred.x
-    if clearedWidth >= beforeClear or combo.position.width != clearedWidth do
+    if clearedWidth >= beforeClear or combo.position.width != clearedWidth
+    {
         failures |= 4
+    }
 
     // The segmented flag and explicit segment widths also change the measured outer width.
     combo.addItem("A long first segmented caption")
@@ -65,23 +71,30 @@ func comboHeadlessChanged(_: *ComboBox, idx: u32)
     combo.updateFlags(.Segmented)
     host.pump()
     let segmentedWidth = combo.measure({}).preferred.x
-    if segmentedWidth == beforeSegmented or combo.position.width != segmentedWidth do
+    if segmentedWidth == beforeSegmented or combo.position.width != segmentedWidth
+    {
         failures |= 8
+    }
 
-    var widths: Array'f32
+    var widths: Array!{f32}
     widths.add(240)
     widths.add(240)
     combo.setSegmentWidths(widths)
     host.pump()
     let explicitWidth = combo.measure({}).preferred.x
-    if explicitWidth == segmentedWidth or combo.position.width != explicitWidth do
+    if explicitWidth == segmentedWidth or combo.position.width != explicitWidth
+    {
         failures |= 16
+    }
 
     discard combo.addSeparator()
     host.pump()
     let afterSeparator = combo.measure({}).preferred.x
-    if afterSeparator == explicitWidth or combo.position.width != afterSeparator do
+    if afterSeparator == explicitWidth or combo.position.width != afterSeparator
+    {
         failures |= 32
+    }
+
     Swag.require(failures == 0, Format.toString("ComboBox layout invalidation failures: %", failures).toString())
 }
 
@@ -387,7 +400,7 @@ func comboHeadlessChanged(_: *ComboBox, idx: u32)
     let combo = ComboBox.create(&host.root, flags: .Segmented)
 
     let styles       = [FontFamilyStyle.Regular, FontFamilyStyle.Bold, FontFamilyStyle.Italic, FontFamilyStyle.BoldItalic]
-    var contentWidth = 0'f32
+    var contentWidth = 0_f32
     for style in styles
     {
         let item = combo.addItem("MWMWWM")

@@ -8,32 +8,36 @@ func captureChoice(app: *Application, choice: *Wnd)->Image
     // Let the hover animation finish and read the frame Windows actually composited.
     var watch: Time.Stopwatch
     watch.start()
-    while watch.elapsedMilliseconds() < 200 do
+    while watch.elapsedMilliseconds() < 200
+    {
         app.runFrame()
+    }
+
     discard DwmFlush()
 
     let rect    = choice.surfaceRect()
     let surface = unwrap choice.surface
     var origin  = rect.topLeft()
     surface.surfaceToScreen(&origin)
-    return expect getScreenRectImage(false, cast(s32, origin.x), cast(s32, origin.y),
-                                     cast(s32, rect.width * surface.dpiScale), cast(s32, rect.height * surface.dpiScale))
+    return expect getScreenRectImage(false, cast(s32, origin.x), cast(s32, origin.y), cast(s32, rect.width * surface.dpiScale), cast(s32, rect.height * surface.dpiScale))
 }
 
 func visiblyDiffers(rest, current: Image)->bool
 {
-    var changed = 0'u32
+    var changed = 0_u32
     for y in rest.height
     {
         for x in rest.width
         {
-            let a = rest.pixelColor(cast(s32, x), cast(s32, y))
-            let b = current.pixelColor(cast(s32, x), cast(s32, y))
+            let a     = rest.pixelColor(cast(s32, x), cast(s32, y))
+            let b     = current.pixelColor(cast(s32, x), cast(s32, y))
             let red   = Math.abs(cast(s32, a.r) - b.r)
             let green = Math.abs(cast(s32, a.g) - b.g)
             let blue  = Math.abs(cast(s32, a.b) - b.b)
-            if Math.max(red, Math.max(green, blue)) >= 8 do
+            if Math.max(red, Math.max(green, blue)) >= 8
+            {
                 changed += 1
+            }
         }
     }
 
@@ -50,6 +54,7 @@ func visiblyDiffers(rest, current: Image)->bool
     journey.app.setAppearance(.Dark)
     journey.main.captureOptions.pictureDestination = .InPlace
     journey.main.captureOptions.delay = 0
+
     // Keep the window on the fixture's monitor regardless of where the desktop pointer starts.
     journey.main.hubBounds = journey.surface.position
     journey.main.showHub()
@@ -61,6 +66,7 @@ func visiblyDiffers(rest, current: Image)->bool
     let delays    = assume cast(*StackLayoutCtrl, menu.children[1])
     let delay     = assume cast(*IconButton, delays.children[2])
     let surface   = unwrap panel.surface
+
     // Screen samples must come from this test window even when another app repaints behind it.
     surface.updateFlags(add: .TopMost)
     var input = Gui.Testing.DesktopInput.create(journey.app, surface)
@@ -101,6 +107,7 @@ func visiblyDiffers(rest, current: Image)->bool
     input.click(delay)
     Swag.require(delay.isChecked and journey.main.captureOptions.delay == 3)
     let delaySelected = captureChoice(journey.app, delay)
+
     // Sample the fill between the glyph and the label, inside the selection outline.
     let x = delayHot.width / 2
     let y = delayHot.height / 2

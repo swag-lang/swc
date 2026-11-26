@@ -34,25 +34,34 @@ impl IWnd for ResidentPanel
             return
         }
 
-        if .placement == .AtPointer and PopupMenuSurface.shouldDismiss(me, .menu, &.wasActive, &.armed) do
+        if .placement == .AtPointer and PopupMenuSurface.shouldDismiss(me, .menu, &.wasActive, &.armed)
+        {
             .close()
+        }
     }
 
     mtd impl onKeyEvent(evt: *KeyEvent)
     {
         if evt.kind == .Pressed and evt.key == .Escape
         {
-            if .otherCaptures do
+            if .otherCaptures
+            {
                 .choose(BackToCaptures)
-            elif .placement == .AtPointer do
+            }
+            else if .placement == .AtPointer
+            {
                 .close()
+            }
+
             evt.accepted = true
             return
         }
 
         .menu.handleKeyboard(evt)
-        if .menu.isModalEnded() do
+        if .menu.isModalEnded()
+        {
             .choose(.menu.modalResult())
+        }
     }
 
     mtd impl onSysCommandEvent(evt: *SysCommandEvent)
@@ -60,28 +69,34 @@ impl IWnd for ResidentPanel
         evt.accepted = evt.kind == .Close
         if evt.accepted
         {
-            if .placement == .AtPointer do
+            if .placement == .AtPointer
+            {
                 .close()
-            else do
+            }
+            else
+            {
                 .main.postCommandEvent(ActionGlobal.Exit)
+            }
         }
     }
 
     mtd impl onDestroyEvent(_: *DestroyEvent)
     {
-        if .main.residentPanel == me do
+        if .main.residentPanel == me
+        {
             .main.residentPanel = null
+        }
     }
 }
 
 impl ResidentPanel
 {
-    const WatchPeriod: Time.Duration = 30'ms
+    const WatchPeriod: Time.Duration = 30_ms
     const MoreCaptures               = "capture.hub.moreCaptures"
     const BackToCaptures             = "capture.hub.backToCaptures"
     const ClipboardPreviewId         = "capture.hub.clipboardPreview"
-    const ClipboardPreviewWidth      = 120's32
-    const ClipboardPreviewHeight     = 56's32
+    const ClipboardPreviewWidth      = 120_s32
+    const ClipboardPreviewHeight     = 56_s32
 
     #[Swag.Discardable]
     func open(main: *MainWnd, placement: ResidentPanelPlacement)->*ResidentPanel?
@@ -106,8 +121,10 @@ impl ResidentPanel
             }
         }
 
-        if not surface do
+        if not surface
+        {
             return null
+        }
 
         main.residentPanel?.close()
         let result = create(surface.wnd, main, placement, placement == .Centered and main.hubOtherCaptures)
@@ -126,8 +143,10 @@ impl ResidentPanel
             surface.bringToFront()
             #static if #os == Swag.TargetOs.Windows
             {
-                if surface.win32Handle() do
+                if surface.win32Handle()
+                {
                     discard Win32.SetForegroundWindow(surface.win32Handle())
+                }
             }
 
             result.setFocus()
@@ -139,7 +158,7 @@ impl ResidentPanel
 
     func create(parent: *Wnd, main: *MainWnd, placement: ResidentPanelPlacement, otherCaptures = false)->*ResidentPanel
     {
-        with let result = Wnd.create'ResidentPanel(parent)
+        with let result = Wnd.create!{ResidentPanel}(parent)
         {
             .dockStyle       = .Center
             .backgroundStyle = .Window
@@ -163,12 +182,19 @@ impl ResidentPanel
             .main.hubOtherCaptures = .otherCaptures
         }
 
-        if .main.residentPanel == me do
+        if .main.residentPanel == me
+        {
             .main.residentPanel = null
-        if .floating do
+        }
+
+        if .floating
+        {
             .surface?.destroy()
-        else do
+        }
+        else
+        {
             .destroy()
+        }
     }
 
     // Dispatches after the input event. Options and a failed tray registration keep the window.
@@ -182,27 +208,42 @@ impl ResidentPanel
         }
 
         let main = .main
-        if .placement == .AtPointer do
+        if .placement == .AtPointer
+        {
             .close()
-        elif not id or id == ActionOptions.Options or id == ActionGlobal.Minimize do
+        }
+        else if not id or id == ActionOptions.Options or id == ActionGlobal.Minimize
+        {
             .rebuild()
+        }
 
-        if id do
+        if id
+        {
             main.postCommandEvent(id)
+        }
     }
 
     private mtd fill()
     {
-        .menu = Wnd.create'MenuCtrl(me)
+        .menu = Wnd.create!{MenuCtrl}(me)
         .pictureChoices = null
-        if .main.clipboardPreview.isValid() and not g_Recorder do
+        if .main.clipboardPreview.isValid() and not g_Recorder
+        {
             .addClipboardPreview()
-        if g_Recorder do
+        }
+
+        if g_Recorder
+        {
             .addRecordingItems()
-        elif .otherCaptures do
+        }
+        else if .otherCaptures
+        {
             .addOtherCaptures()
-        else do
+        }
+        else
+        {
             .addHubItems()
+        }
 
         with .menu
         {
@@ -263,8 +304,11 @@ impl ResidentPanel
         .setFocus()
         if .floating
         {
-            if .placement == .Centered do
+            if .placement == .Centered
+            {
                 .main.hubBounds = .surface!.position
+            }
+
             .place(.anchor)
         }
     }
@@ -316,8 +360,10 @@ impl ResidentPanel
             .addItem(texts.ui_HubBackToCaptures, BackToCaptures, me.theme().icon(.ChevronLeft))
             .addLabel(texts.ui_MenuCapture)
             .addItem(ActionCapture.LastArea)
-            for index in screens do
+            for index in screens
+            {
                 .addItem(ActionCapture.screenId(index))
+            }
         }
 
         .addPictureChoices()
@@ -329,8 +375,10 @@ impl ResidentPanel
             .addItem(ActionCapture.RecordScreen)
             .addItem(ActionCapture.RecordActiveWindow)
             .addItem(ActionCapture.Record)
-            for index in screens do
+            for index in screens
+            {
                 .addItem(ActionCapture.recordScreenId(index))
+            }
         }
     }
 

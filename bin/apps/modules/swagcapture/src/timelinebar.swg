@@ -70,8 +70,10 @@ impl IWnd for TimelineBar
     mtd impl onPaint(evt: *PaintEvent)
     {
         let capture = .capture()
-        if not capture or not capture.frames do
+        if not capture or not capture.frames
+        {
             return
+        }
 
         let painter = evt.paintContext.painter
         let metrics = .themeMetrics()
@@ -92,8 +94,11 @@ impl IWnd for TimelineBar
         // The kept part sits on a compact rail. Its bounds mark the trim, while the playhead
         // shows progress through it; the recording outside it stays visibly muted.
         let track = .trackRect()
-        if .zoom > 1 do
+        if .zoom > 1
+        {
             .prepareThumbnails(capture)
+        }
+
         for texture, slot in .thumbTextures where .zoom > 1 and texture.isValid()
         {
             let width = track.width / TimelineThumbnails
@@ -112,17 +117,25 @@ impl IWnd for TimelineBar
         painter.fillRoundRect({track.x, railY - railRadius, track.width, railHeight}, railRadius, railRadius, colors.raised)
         let shownLeft  = Math.max(keepL, track.x)
         let shownRight = Math.min(Math.min(played, keepR), track.right())
-        if shownRight > shownLeft do
+        if shownRight > shownLeft
+        {
             painter.fillRoundRect({shownLeft, railY - railRadius, shownRight - shownLeft, railHeight}, railRadius, railRadius, colors.arc)
+        }
+
         if capture.isTrimmed()
         {
             let shade      = colors.disabled.withAlpha(72)
             let beforeEnd  = Math.clamp(keepL, track.x, track.right())
             let afterStart = Math.clamp(keepR, track.x, track.right())
-            if beforeEnd > track.x do
+            if beforeEnd > track.x
+            {
                 painter.fillRoundRect({track.x, railY - railRadius, beforeEnd - track.x, railHeight}, railRadius, railRadius, shade)
-            if afterStart < track.right() do
+            }
+
+            if afterStart < track.right()
+            {
                 painter.fillRoundRect({afterStart, railY - railRadius, track.right() - afterStart, railHeight}, railRadius, railRadius, shade)
+            }
         }
 
         for bound in [keepL, keepR] where bound >= track.x and bound <= track.right()
@@ -239,8 +252,10 @@ impl IWnd for TimelineBar
             return
         }
 
-        if evt.timer != .playTimer do
+        if evt.timer != .playTimer
+        {
             return
+        }
 
         let capture = .capture()
         if not capture or not capture.frames
@@ -262,8 +277,11 @@ impl IWnd for TimelineBar
 
             if not .playStart
             {
-                if not .decoder.isBuffered() do
+                if not .decoder.isBuffered()
+                {
                     return
+                }
+
                 catch .startAudio(.playFrom)
                 .playStart = Time.monotonicMicroseconds()
             }
@@ -346,7 +364,7 @@ impl TimelineBar
             .padding = {}
         }
 
-        with let result = Wnd.create'TimelineBar(panel)
+        with let result = Wnd.create!{TimelineBar}(panel)
         {
             .main            = main
             .panel           = panel
@@ -361,8 +379,10 @@ impl TimelineBar
             .sigPressed += func|bar = result|(_) { bar.togglePlay() }
         }
 
-        if not Swag.jit() do
+        if not Swag.jit()
+        {
             result.decoder.start(result.taskNotifier(&result.decoder.task))
+        }
 
         return result
     }
@@ -416,15 +436,19 @@ impl TimelineBar
     {
         let media     = Capture.mediaPathOf(file, .Video)
         let displayed = .viewCapture and .viewCapture.isStoredIn(file)
-        if not displayed and not .decoder.isDecoding(media) and not Path.equals(.audioPath, media) do
+        if not displayed and not .decoder.isDecoding(media) and not Path.equals(.audioPath, media)
+        {
             return
+        }
 
         .stop(materialize: false)
         .disposeAudio()
         .clearThumbnails()
         .decoder.releaseReader()
-        if displayed do
+        if displayed
+        {
             .viewCapture = null
+        }
     }
 
     // Disposes the six visible thumbnails and their independent decoder.
@@ -432,12 +456,17 @@ impl TimelineBar
     {
         for &texture in .thumbTextures
         {
-            if texture[].isValid() do
+            if texture[].isValid()
+            {
                 .app().renderer.removeTexture(texture)
+            }
         }
 
-        if .thumbReader do
+        if .thumbReader
+        {
             Memory.delete(.thumbReader)
+        }
+
         .thumbReader = null
         .thumbsReady = false
     }
@@ -447,19 +476,24 @@ impl TimelineBar
     private mtd prepareThumbnails(capture: *Capture)
     {
         let span = .visibleDuration()
-        if .thumbsReady and .thumbStart == .viewStart and .thumbSpan == span do
+        if .thumbsReady and .thumbStart == .viewStart and .thumbSpan == span
+        {
             return
+        }
+
         if not .thumbReader
         {
             let reader = catch TimedReader.open(Capture.mediaPathOf(capture.file, capture.media), capture.media) { return; }
-            .thumbReader   = Memory.new'TimedReader()
+            .thumbReader   = Memory.new!{TimedReader}()
             .thumbReader[] = #move reader
         }
 
         for &texture in .thumbTextures
         {
-            if texture[].isValid() do
+            if texture[].isValid()
+            {
                 .app().renderer.removeTexture(texture)
+            }
         }
 
         let frames = .thumbReader
@@ -490,8 +524,10 @@ impl TimelineBar
         }
 
         let capture = .capture()
-        if not capture or not capture.frames do
+        if not capture or not capture.frames
+        {
             return
+        }
 
         let frame = .seekTimer ? .decoder.firstFrame : capture.playhead
         .playFrom = capture.frames.timeOf(frame)
@@ -520,8 +556,11 @@ impl TimelineBar
         .stopAudio()
         .decoder.stop()
         let capture = .main.getCapture()
-        if materialize and capture and capture == .viewCapture and capture.playbackPlanar do
+        if materialize and capture and capture == .viewCapture and capture.playbackPlanar
+        {
             catch capture.showFrame(capture.playhead)
+        }
+
         .playButton.setIcon(.theme().icon(.Play))
         .playButton.toolTip = appStrings().tip_PlayAnimation
     }
@@ -532,18 +571,25 @@ impl TimelineBar
     {
         .audioClockLast = -1
         let capture = .capture()
-        if not capture or capture.media != .Video do
+        if not capture or capture.media != .Video
+        {
             return
+        }
 
         let path = Capture.mediaPathOf(capture.file, .Video)
-        if .audioReader and not Path.equals(.audioPath, path) do
+        if .audioReader and not Path.equals(.audioPath, path)
+        {
             .disposeAudio()
+        }
 
         // A video without sound is opened once: each later play or loop knows it has nothing to play.
         if not .audioReader
         {
-            if Path.equals(.silentPath, path) do
+            if Path.equals(.silentPath, path)
+            {
                 return
+            }
+
             var reader = try Video.Reader.open(path)
             if not reader.audioTrackCount()
             {
@@ -551,7 +597,7 @@ impl TimelineBar
                 return
             }
 
-            let stored = Memory.new'Video.Reader()
+            let stored = Memory.new!{Video.Reader}()
             stored[]     = #move reader
             .audioReader = stored
             .audioPath   = path
@@ -595,8 +641,10 @@ impl TimelineBar
         for index in .audioVoiceCount
         {
             let voice = .audioVoices[index]
-            if voice do
+            if voice
+            {
                 catch voice.pause()
+            }
         }
     }
 
@@ -617,8 +665,11 @@ impl TimelineBar
         .audioVoiceCount = 0
 
         // Destroying an engine drains voices that borrow the reader's sound before the reader closes.
-        if .ownsAudioEngine do
+        if .ownsAudioEngine
+        {
             Audio.destroyEngine()
+        }
+
         if .audioReader
         {
             .audioReader.close()
@@ -635,7 +686,7 @@ impl TimelineBar
     mtd visibleDuration()->u64
     {
         let capture = unwrap .capture()
-        return Math.max(cast(u64, cast(f64, capture.timeline.duration) / .zoom), 1'u64)
+        return Math.max(cast(u64, cast(f64, capture.timeline.duration) / .zoom), 1_u64)
     }
 
     // Returns where `time`, in microseconds, lies on the track, in local coordinates.
@@ -658,8 +709,11 @@ impl TimelineBar
     mtd zoomAt(x, factor: f32)
     {
         let capture = .capture()
-        if not capture or not capture.frames do
+        if not capture or not capture.frames
+        {
             return
+        }
+
         let anchor = .timeAt(x)
         let track  = .trackRect()
         let ratio  = Math.clamp((x - track.x) / Math.max(track.width, 1), 0, 1)
@@ -675,8 +729,11 @@ impl TimelineBar
     mtd pan(fraction: f32)
     {
         let capture = .capture()
-        if not capture or not capture.frames do
+        if not capture or not capture.frames
+        {
             return
+        }
+
         let span   = .visibleDuration()
         let change = cast(s64, cast(f64, span) * fraction)
         .viewStart = cast(u64,
@@ -690,8 +747,11 @@ impl TimelineBar
     mtd revealTime(time: u64)
     {
         let capture = .capture()
-        if not capture or .zoom <= 1 do
+        if not capture or .zoom <= 1
+        {
             return
+        }
+
         let span = .visibleDuration()
         if time < .viewStart or time > .viewStart + span
         {
@@ -711,10 +771,15 @@ impl TimelineBar
             let finish = form.timeEnd ? form.timeEnd : capture.timeline.duration
             let left   = .trackX(form.timeStart)
             let right  = .trackX(finish)
-            if left >= track.x and left <= track.right() and Math.abs(x - left) <= TimelineEdgeReach do
+            if left >= track.x and left <= track.right() and Math.abs(x - left) <= TimelineEdgeReach
+            {
                 return .FormStart
-            if right >= track.x and right <= track.right() and Math.abs(x - right) <= TimelineEdgeReach do
+            }
+
+            if right >= track.x and right <= track.right() and Math.abs(x - right) <= TimelineEdgeReach
+            {
                 return .FormEnd
+            }
         }
 
         return .None
@@ -724,8 +789,10 @@ impl TimelineBar
     mtd drag(x: f32)
     {
         let capture = .capture()
-        if not capture or not capture.frames do
+        if not capture or not capture.frames
+        {
             return
+        }
 
         // A form edge follows the pointer without leaving an undo step at each move; the release
         // makes the whole drag one step. Video trim bounds belong to the context menu.
@@ -757,15 +824,20 @@ impl TimelineBar
         let edge = .dragEdge
         .dragEdge = .None
         let capture = .capture()
-        if edge == .None or not capture or capture.selection.count != 1 do
+        if edge == .None or not capture or capture.selection.count != 1
+        {
             return
+        }
 
         // The drag moved the form live; put its span back so the edit is recorded from it.
         let form: *BaseForm = capture.forms[capture.selection[0]]
         let chosen = edge == .FormStart ? form.timeStart : form.timeEnd
         let old    = edge == .FormStart ? .dragFromStart : .dragFromEnd
-        if chosen == old do
+        if chosen == old
+        {
             return
+        }
+
         form.timeStart = .dragFromStart
         form.timeEnd   = .dragFromEnd
         capture.setSelectionSpanAt(edge == .FormStart, chosen ? chosen : capture.timeline.duration)
@@ -776,8 +848,10 @@ impl TimelineBar
     mtd seek(x: f32)
     {
         let capture = .capture()
-        if not capture or not capture.frames do
+        if not capture or not capture.frames
+        {
             return
+        }
 
         let frames = capture.frames
         let frame  = frames.frameAt(.timeAt(x))
@@ -790,9 +864,9 @@ impl TimelineBar
                 .playFrom  = frames.timeOf(frame)
                 .playStart = 0
             }
-            elif not .seekTimer
+            else if not .seekTimer
             {
-                .seekTimer = .addTimer(10'ms)
+                .seekTimer = .addTimer(10_ms)
             }
 
             .invalidate()

@@ -9,7 +9,7 @@ using Swag, Core, Core.Errors
 
 private
 {
-    const MaxPaletteColors = 256'u32
+    const MaxPaletteColors = 256_u32
 
     struct PaletteColor
     {
@@ -23,7 +23,7 @@ private
         tableBits:        u8
         lzwMinCodeSize:   u8
         transparentIndex: s32 = -1
-        indexes:          Array'u8
+        indexes:          Array!{u8}
     }
 
     struct(T) HistogramCell
@@ -61,19 +61,30 @@ internal impl IImageEncoder for Encoder
         if image.width <= 0 or
            image.height <= 0 or
            not image.isValid() or
-           image.pixels.count != image.byteCount do
+           image.pixels.count != image.byteCount
+        {
             fail InvalidFormatError{"invalid image"}
-        if image.width > Swag.U16.Max do
+        }
+
+        if image.width > Swag.U16.Max
+        {
             fail UnsupportedFormatError{"width is too big"}
-        if image.height > Swag.U16.Max do
+        }
+
+        if image.height > Swag.U16.Max
+        {
             fail UnsupportedFormatError{"height is too big"}
+        }
+
         if image.pixelFormat != .RGB8 and
            image.pixelFormat != .BGR8 and
            image.pixelFormat != .RGBA8 and
            image.pixelFormat != .BGRA8 and
            image.pixelFormat != .Gray8 and
-           image.pixelFormat != .GrayAlpha8 do
+           image.pixelFormat != .GrayAlpha8
+        {
             fail UnsupportedFormatError{"unsupported pixel format"}
+        }
 
         var palette:  PaletteData
         var literals: [256] u8
@@ -91,27 +102,27 @@ internal impl IImageEncoder for Encoder
         Encoder.writeU16(result, cast(u16, image.width))
         Encoder.writeU16(result, cast(u16, image.height))
         result.addNative(packed)
-        result.addNative(0'u8)
-        result.addNative(0'u8)
+        result.addNative(0_u8)
+        result.addNative(0_u8)
         Encoder.writeColorTable(result, palette)
 
         if palette.transparentIndex >= 0
         {
-            result.addNative(0x21'u8)
-            result.addNative(0xF9'u8)
-            result.addNative(0x04'u8)
-            result.addNative(0x01'u8)
+            result.addNative(0x21_u8)
+            result.addNative(0xF9_u8)
+            result.addNative(0x04_u8)
+            result.addNative(0x01_u8)
             Encoder.writeU16(result, 0)
             result.addNative(cast(u8, palette.transparentIndex))
-            result.addNative(0'u8)
+            result.addNative(0_u8)
         }
 
-        result.addNative(0x2C'u8)
+        result.addNative(0x2C_u8)
         Encoder.writeU16(result, 0)
         Encoder.writeU16(result, 0)
         Encoder.writeU16(result, cast(u16, image.width))
         Encoder.writeU16(result, cast(u16, image.height))
-        result.addNative(0'u8)
+        result.addNative(0_u8)
         result.addNative(palette.lzwMinCodeSize)
 
         var compressed: Array'u8
@@ -123,6 +134,6 @@ internal impl IImageEncoder for Encoder
             compressed = lzwCompress(palette.indexes.toSlice(), palette.lzwMinCodeSize, palette.count == 1)
         Encoder.writeSubBlocks(result, compressed.toSlice())
 
-        result.addNative(0x3B'u8)
+        result.addNative(0x3B_u8)
     }
 }

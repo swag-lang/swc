@@ -2,14 +2,16 @@
 
 func appendDigits(lhs, rhs: u64)->u64
 {
-    var magnitude = 1'u64
+    var magnitude = 1_u64
     var value     = rhs
     for
     {
         magnitude *= 10
         value     /= 10
-        if value == 0 do
+        if value == 0
+        {
             break
+        }
     }
 
     return lhs * magnitude + rhs
@@ -20,17 +22,27 @@ func canReachTarget(target: u64, first: u64, operands: [..] u64)->bool
     func search(target: u64, accumulator: u64, operands: [..] u64, op: u8)->bool
     {
         var next: u64
-        if op == '+' do
+        if op == '+'
+        {
             next = accumulator + operands[0]
-        elif op == '*' do
+        }
+        else if op == '*'
+        {
             next = accumulator * operands[0]
-        else do
+        }
+        else
+        {
             next = appendDigits(accumulator, operands[0])
+        }
 
-        if next > target do
+        if next > target
+        {
             return false
-        if operands.count == 1 do
+        }
+        if operands.count == 1
+        {
             return next == target
+        }
 
         return search(target, next, operands[1 to], '+') or
                search(target, next, operands[1 to], '*') or

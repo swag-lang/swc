@@ -8,7 +8,7 @@ struct InlineMillisecondsDuration
 #[Swag.Inline]
 func inlineDurationFromMilliseconds(value: u64)->InlineMillisecondsDuration => InlineMillisecondsDuration{value / 1000.0}
 
-var InlineMillisecondsRuntimeValue = 250'u32
+var InlineMillisecondsRuntimeValue = 250_u32
 
 #test
 {

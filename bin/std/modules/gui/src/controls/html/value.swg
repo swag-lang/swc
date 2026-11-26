@@ -77,8 +77,8 @@ struct HtmlLengthContext
 // flat value that can be copied per element without a heap allocation.
 struct HtmlValuePool
 {
-    calc:    Array'HtmlCalcNode
-    strings: Array'String
+    calc:    Array!{HtmlCalcNode}
+    strings: Array!{String}
 }
 
 impl HtmlValuePool
@@ -98,8 +98,11 @@ impl HtmlValuePool
 
     mtd addString(value: string)->u32
     {
-        for index in .strings.count where .strings[index].toString() == value do
+        for index in .strings.count where .strings[index].toString() == value
+        {
             return cast(u32, index)
+        }
+
         let index = cast(u32, .strings.count)
         .strings.add(String.from(value))
         return index
@@ -107,16 +110,21 @@ impl HtmlValuePool
 
     mtd const text(index: u32)->string
     {
-        if index >= .strings.count do
+        if index >= .strings.count
+        {
             return ""
+        }
+
         return .strings[index].toString()
     }
 
     // Evaluates one math node against the surroundings a box provides.
     mtd const evaluateCalc(index: u32, context: HtmlLengthContext)->f32
     {
-        if index >= .calc.count do
+        if index >= .calc.count
+        {
             return 0
+        }
 
         let node = &.calc[index]
         switch node.op
@@ -160,15 +168,22 @@ impl HtmlValuePool
     // the parent has an automatic height.
     mtd const calcNeedsBasis(index: u32)->bool
     {
-        if index >= .calc.count do
+        if index >= .calc.count
+        {
             return false
+        }
 
         let node = &.calc[index]
-        if node.op == .Value do
+        if node.op == .Value
+        {
             return node.percent != 0
+        }
 
-        if .calcNeedsBasis(node.left) or .calcNeedsBasis(node.right) do
+        if .calcNeedsBasis(node.left) or .calcNeedsBasis(node.right)
+        {
             return true
+        }
+
         return node.op == .Clamp and .calcNeedsBasis(node.extra)
     }
 }
@@ -191,7 +206,7 @@ impl HtmlLength
     mtd const isIntrinsic()->bool => .kind == .MinContent or .kind == .MaxContent or .kind == .FitContent
 
     // Returns the used pixel value, or `fallback` when the length has no definite answer.
-    mtd const resolve(pool: const *HtmlValuePool, context: HtmlLengthContext, fallback = 0.0'f32)->f32
+    mtd const resolve(pool: const *HtmlValuePool, context: HtmlLengthContext, fallback = 0.0_f32)->f32
     {
         switch .kind
         {
@@ -218,21 +233,24 @@ impl HtmlLength
 }
 
 // Splits a declaration value into its top-level components, keeping a function call whole.
-func htmlSplitValue(value: string, separator: u8 = ' ')->Array'String
+func htmlSplitValue(value: string, separator: u8 = ' ')->Array!{String}
 {
     var result: #returntype
-    var depth = 0'u32
-    var start = 0'u64
-    var index = 0'u64
-    var quote = 0'u8
+    var depth = 0_u32
+    var start = 0_u64
+    var index = 0_u64
+    var quote = 0_u8
 
     while index < value.count
     {
         let character = value[index]
         if quote
         {
-            if character == quote do
+            if character == quote
+            {
                 quote = 0
+            }
+
             index += 1
             continue
         }
@@ -246,16 +264,21 @@ func htmlSplitValue(value: string, separator: u8 = ' ')->Array'String
             depth += 1
 
         case ')':
-            if depth do
+            if depth
+            {
                 depth -= 1
+            }
         }
 
         let split = not depth and (character == separator or (separator == ' ' and Latin1.isSpace(character)))
         if split
         {
             let part = Latin1.trim(value[start until index])
-            if part.count do
+            if part.count
+            {
                 result.add(String.from(part))
+            }
+
             start = index + 1
         }
 
@@ -265,26 +288,36 @@ func htmlSplitValue(value: string, separator: u8 = ' ')->Array'String
     if index > start
     {
         let last = Latin1.trim(value[start until index])
-        if last.count do
+        if last.count
+        {
             result.add(String.from(last))
+        }
     }
 
     return result
 }
 
 // Returns the argument list of `name(...)`, or an empty array when the text is another value.
-func htmlFunctionArguments(value: string, name: string)->{ arguments: Array'String, matched: bool }
+func htmlFunctionArguments(value: string, name: string)->{ arguments: Array!{String}, matched: bool }
 {
     var result: #returntype
-    if value.count <= name.count + 1 do
+    if value.count <= name.count + 1
+    {
         return result
-    if Utf8.compare(value[0 until name.count], name, .Latin1NoCase) != 0 do
+    }
+
+    if Utf8.compare(value[0 until name.count], name, .Latin1NoCase) != 0
+    {
         return result
-    if value[name.count] != '(' or value[value.count - 1] != ')' do
+    }
+
+    if value[name.count] != '(' or value[value.count - 1] != ')'
+    {
         return result
+    }
 
     result.matched   = true
-    result.arguments = htmlSplitValue(value[name.count + 1 until value.count - 1], ','u8)
+    result.arguments = htmlSplitValue(value[name.count + 1 until value.count - 1], ','_u8)
     return result
 }
 
@@ -296,11 +329,14 @@ func htmlFunctionArguments(value: string, name: string)->{ arguments: Array'Stri
 func htmlParseNumber(text: string)->{ value: f32, eat: u64 }
 {
     var result: #returntype
-    var index  = 0'u64
-    var digits = 0'u64
+    var index  = 0_u64
+    var digits = 0_u64
 
-    if index < text.count and (text[index] == '+' or text[index] == '-') do
+    if index < text.count and (text[index] == '+' or text[index] == '-')
+    {
         index += 1
+    }
+
     while index < text.count and Latin1.isDigit(text[index])
     {
         index  += 1
@@ -317,12 +353,16 @@ func htmlParseNumber(text: string)->{ value: f32, eat: u64 }
         }
     }
 
-    if not digits do
+    if not digits
+    {
         return result
+    }
 
     let parsed = catch StrConv.parseF64(text[0 until index]) { return result }
-    if parsed.ovf do
+    if parsed.ovf
+    {
         return result
+    }
 
     result.value = cast(f32, parsed.value)
     result.eat   = index
@@ -360,8 +400,10 @@ private func htmlParseCalcTerm(text: string, context: HtmlLengthContext)->{ node
     var result: #returntype
     let trimmed = Latin1.trim(text)
     let number  = htmlParseNumber(trimmed)
-    if not number.eat do
+    if not number.eat
+    {
         return result
+    }
 
     let unit = String.from(Latin1.trim(trimmed[number.eat to])).toLower()
     switch unit.toString()
@@ -393,14 +435,16 @@ private func htmlParseCalcTerm(text: string, context: HtmlLengthContext)->{ node
 // parentheses and the `min`, `max` and `clamp` functions.
 private func htmlParseCalcExpression(pool: *HtmlValuePool, text: string, context: HtmlLengthContext)->u32
 {
-    var scan = 0'u64
+    var scan = 0_u64
     return htmlParseCalcSum(pool, text, &scan, context)
 }
 
 private func htmlSkipCalcSpace(text: string, scan: *u64)
 {
-    while scan[] < text.count and Latin1.isSpace(text[scan[]]) do
+    while scan[] < text.count and Latin1.isSpace(text[scan[]])
+    {
         scan[] += 1
+    }
 }
 
 private func htmlParseCalcSum(pool: *HtmlValuePool, text: string, scan: *u64, context: HtmlLengthContext)->u32
@@ -409,16 +453,23 @@ private func htmlParseCalcSum(pool: *HtmlValuePool, text: string, scan: *u64, co
     while left != HtmlNoNode
     {
         htmlSkipCalcSpace(text, scan)
-        if scan[] >= text.count do
+        if scan[] >= text.count
+        {
             break
+        }
+
         let operator = text[scan[]]
-        if operator != '+' and operator != '-' do
+        if operator != '+' and operator != '-'
+        {
             break
+        }
 
         scan[] += 1
         let right = htmlParseCalcProduct(pool, text, scan, context)
-        if right == HtmlNoNode do
+        if right == HtmlNoNode
+        {
             break
+        }
 
         var node: HtmlCalcNode
         node.op    = operator == '+' ? .Add : .Sub
@@ -436,16 +487,23 @@ private func htmlParseCalcProduct(pool: *HtmlValuePool, text: string, scan: *u64
     while left != HtmlNoNode
     {
         htmlSkipCalcSpace(text, scan)
-        if scan[] >= text.count do
+        if scan[] >= text.count
+        {
             break
+        }
+
         let operator = text[scan[]]
-        if operator != '*' and operator != '/' do
+        if operator != '*' and operator != '/'
+        {
             break
+        }
 
         scan[] += 1
         let right = htmlParseCalcPrimary(pool, text, scan, context)
-        if right == HtmlNoNode do
+        if right == HtmlNoNode
+        {
             break
+        }
 
         var node: HtmlCalcNode
         node.op    = operator == '*' ? .Mul : .Div
@@ -461,16 +519,23 @@ private func htmlParseCalcProduct(pool: *HtmlValuePool, text: string, scan: *u64
 func htmlReadBalanced(text: string, scan: *u64)->string
 {
     let start = scan[] + 1
-    var depth = 1'u32
+    var depth = 1_u32
     var index = start
     while index < text.count and depth
     {
-        if text[index] == '(' do
+        if text[index] == '('
+        {
             depth += 1
-        elif text[index] == ')' do
+        }
+        else if text[index] == ')'
+        {
             depth -= 1
-        if depth do
+        }
+
+        if depth
+        {
             index += 1
+        }
     }
 
     scan[] = Math.min(index + 1, text.count)
@@ -480,8 +545,10 @@ func htmlReadBalanced(text: string, scan: *u64)->string
 private func htmlParseCalcPrimary(pool: *HtmlValuePool, text: string, scan: *u64, context: HtmlLengthContext)->u32
 {
     htmlSkipCalcSpace(text, scan)
-    if scan[] >= text.count do
+    if scan[] >= text.count
+    {
         return HtmlNoNode
+    }
 
     if text[scan[]] == '('
     {
@@ -491,15 +558,17 @@ private func htmlParseCalcPrimary(pool: *HtmlValuePool, text: string, scan: *u64
 
     let nameStart = scan[]
     var nameEnd   = scan[]
-    while nameEnd < text.count and (Latin1.isLetter(text[nameEnd]) or text[nameEnd] == '-') do
+    while nameEnd < text.count and (Latin1.isLetter(text[nameEnd]) or text[nameEnd] == '-')
+    {
         nameEnd += 1
+    }
 
     if nameEnd > nameStart and nameEnd < text.count and text[nameEnd] == '('
     {
         let name = String.from(text[nameStart until nameEnd]).toLower()
         scan[] = nameEnd
         let inner     = htmlReadBalanced(text, scan)
-        let arguments = htmlSplitValue(inner, ','u8)
+        let arguments = htmlSplitValue(inner, ','_u8)
         switch name.toString()
         {
         case "calc":
@@ -509,15 +578,21 @@ private func htmlParseCalcPrimary(pool: *HtmlValuePool, text: string, scan: *u64
             return htmlFoldCalcArguments(pool, arguments.toSlice(), name == "min" ? HtmlCalcOp.Min : HtmlCalcOp.Max, context)
 
         case "clamp":
-            if arguments.count != 3 do
+            if arguments.count != 3
+            {
                 return HtmlNoNode
+            }
+
             var node: HtmlCalcNode
             node.op    = .Clamp
             node.left  = htmlParseCalcExpression(pool, arguments[0].toString(), context)
             node.right = htmlParseCalcExpression(pool, arguments[1].toString(), context)
             node.extra = htmlParseCalcExpression(pool, arguments[2].toString(), context)
-            if node.left == HtmlNoNode or node.right == HtmlNoNode or node.extra == HtmlNoNode do
+            if node.left == HtmlNoNode or node.right == HtmlNoNode or node.extra == HtmlNoNode
+            {
                 return HtmlNoNode
+            }
+
             return pool.addCalc(node)
         }
 
@@ -530,8 +605,10 @@ private func htmlParseCalcPrimary(pool: *HtmlValuePool, text: string, scan: *u64
           text[termEnd] != '-' and
           text[termEnd] != '*' and
           text[termEnd] != '/' and
-          text[termEnd] != ')' do
+          text[termEnd] != ')'
+    {
         termEnd += 1
+    }
 
     // A sign belongs to the number when nothing readable precedes it.
     if termEnd == scan[] and (text[termEnd] == '+' or text[termEnd] == '-')
@@ -542,28 +619,37 @@ private func htmlParseCalcPrimary(pool: *HtmlValuePool, text: string, scan: *u64
               text[termEnd] != '-' and
               text[termEnd] != '*' and
               text[termEnd] != '/' and
-              text[termEnd] != ')' do
+              text[termEnd] != ')'
+        {
             termEnd += 1
+        }
     }
 
     let term = htmlParseCalcTerm(text[scan[] until termEnd], context)
     scan[] = termEnd
-    if not term.matched do
+    if not term.matched
+    {
         return HtmlNoNode
+    }
+
     return pool.addCalc(term.node)
 }
 
 private func htmlFoldCalcArguments(pool: *HtmlValuePool, arguments: const [..] String, op: HtmlCalcOp, context: HtmlLengthContext)->u32
 {
-    if not arguments.count do
+    if not arguments.count
+    {
         return HtmlNoNode
+    }
 
     var folded = htmlParseCalcExpression(pool, arguments[0].toString(), context)
     for index in 1 until arguments.count
     {
         let right = htmlParseCalcExpression(pool, arguments[index].toString(), context)
-        if folded == HtmlNoNode or right == HtmlNoNode do
+        if folded == HtmlNoNode or right == HtmlNoNode
+        {
             return HtmlNoNode
+        }
 
         var node: HtmlCalcNode
         node.op    = op
@@ -580,8 +666,10 @@ func htmlParseLength(pool: *HtmlValuePool, text: string, context: HtmlLengthCont
 {
     var result: #returntype
     let trimmed = Latin1.trim(text)
-    if not trimmed.count do
+    if not trimmed.count
+    {
         return result
+    }
 
     let lower = String.from(trimmed).toLower()
     switch lower.toString()
@@ -664,10 +752,12 @@ func htmlParseLength(pool: *HtmlValuePool, text: string, context: HtmlLengthCont
 
     // Anything left is a math expression; a single node that only carries pixels is folded so a
     // trivial `calc()` costs nothing at layout.
-    var scan = 0'u64
+    var scan = 0_u64
     let root = htmlParseCalcPrimary(pool, lower.toString(), &scan, context)
-    if root == HtmlNoNode do
+    if root == HtmlNoNode
+    {
         return result
+    }
 
     let node = &pool.calc[root]
     if node.op == .Value and not node.percent and not node.vw and not node.vh

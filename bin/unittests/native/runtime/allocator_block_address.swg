@@ -14,7 +14,7 @@ using Swag
         page.areaStart = 0x1_0000_0000
         page.areaEnd   = page.areaStart + (512 * 1024 / size) * size
 
-        for offset in 65536'u64
+        for offset in 65536_u64
         {
             let address = page.areaStart + offset
             Swag.require(page.isBlockAddress(address) == (address < page.areaEnd and offset % size == 0))

@@ -3,18 +3,21 @@
 
 using Swag, Core, Core.Errors
 
-func sineFrames(count, rate: u64, frequency: f64)->Array'f32
+func sineFrames(count, rate: u64, frequency: f64)->Array!{f32}
 {
-    var result: Array'f32
+    var result: Array!{f32}
     result.reserve(count)
-    for frame in count do
+    for frame in count
+    {
         result.add(cast(f32, Math.sin(Math.ConstF64.TwoPi * frequency * frame / rate)))
+    }
+
     return result
 }
 
 func rootMeanSquare(samples: const [..] f32, startIndex, endIndex: u64)->f64
 {
-    var power = 0.0'f64
+    var power = 0.0_f64
     for index in startIndex until endIndex
     {
         let sample = cast(f64, samples[index])
@@ -30,22 +33,24 @@ func rootMeanSquare(samples: const [..] f32, startIndex, endIndex: u64)->f64
     let input = sineFrames(4_800, 48_000, 1_000.0)
     var whole = expect Resampler.create(48_000, 44_100, 1)
     var parts = expect Resampler.create(48_000, 44_100, 1)
-    var one:  Array'f32
-    var many: Array'f32
+    var one:  Array!{f32}
+    var many: Array!{f32}
     expect whole.addFrames(input.toSlice(), &one)
     expect whole.end(&one)
-    var start = 0'u64
+    var start = 0_u64
     while start < input.count
     {
-        let count = Math.min(137'u64, input.count - start)
+        let count = Math.min(137_u64, input.count - start)
         expect parts.addFrames(input.toSlice()[start until start + count], &many)
         start += count
     }
 
     expect parts.end(&many)
     Swag.require(one.count == 4_410 and many.count == one.count)
-    for index in one.count do
+    for index in one.count
+    {
         Swag.require(one[index] == many[index])
+    }
 }
 
 // The low-pass filter preserves audible passband energy and suppresses out-of-band aliasing.
@@ -53,7 +58,7 @@ func rootMeanSquare(samples: const [..] f32, startIndex, endIndex: u64)->f64
 {
     let passband = sineFrames(9_600, 48_000, 18_000.0)
     var pass     = expect Resampler.create(48_000, 44_100, 1)
-    var passed: Array'f32
+    var passed: Array!{f32}
     expect pass.addFrames(passband.toSlice(), &passed)
     expect pass.end(&passed)
     let inputPower  = rootMeanSquare(passband.toSlice(), 200, 9_400)
@@ -62,7 +67,7 @@ func rootMeanSquare(samples: const [..] f32, startIndex, endIndex: u64)->f64
 
     let stopband = sineFrames(9_600, 96_000, 30_000.0)
     var stop     = expect Resampler.create(96_000, 48_000, 1)
-    var stopped: Array'f32
+    var stopped: Array!{f32}
     expect stop.addFrames(stopband.toSlice(), &stopped)
     expect stop.end(&stopped)
     Swag.require(rootMeanSquare(stopped.toSlice(), 200, stopped.count - 200) < 0.01)
@@ -72,21 +77,24 @@ func rootMeanSquare(samples: const [..] f32, startIndex, endIndex: u64)->f64
 #test
 {
     var empty = expect Resampler.create(48_000, 48_000, 2)
-    var output: Array'f32
+    var output: Array!{f32}
     expect empty.end(&output)
     expect empty.end(&output)
     Swag.require(output.isEmpty())
 
     var stereo = expect Resampler.create(48_000, 48_000, 2)
     var input: [192] f32
-    for frame in 96 do
+    for frame in 96
+    {
         input[frame * 2] = 1
+    }
+
     expect stereo.addFrames(Swag.makeSlice(&input[0], input.count), &output)
     expect stereo.end(&output)
     Swag.require(output.count == input.count)
     for frame in 96
     {
-        Swag.require(Math.abs(output[frame * 2] - 1.0'f32) < 0.0001)
+        Swag.require(Math.abs(output[frame * 2] - 1.0_f32) < 0.0001)
         Swag.require(output[frame * 2 + 1] == 0)
     }
 }
@@ -96,15 +104,17 @@ func rootMeanSquare(samples: const [..] f32, startIndex, endIndex: u64)->f64
 {
     var resampler = expect Resampler.create(48_000, 48_000, 1)
     var input:  [4_800] f32
-    var output: Array'f32
+    var output: Array!{f32}
     expect resampler.addFrames(Swag.makeSlice(&input[0], input.count), &output)
     let firstCount = output.count
     expect resampler.setInputClockDriftPpm(1_000)
     expect resampler.addFrames(Swag.makeSlice(&input[0], input.count), &output)
     expect resampler.end(&output)
     Swag.require(firstCount == 4_752 and output.count == 9_596)
-    for sample in output do
+    for sample in output
+    {
         Swag.require(sample == 0)
+    }
 }
 
 // Rejected configurations and partial frames leave a stream usable.
@@ -120,7 +130,7 @@ func rootMeanSquare(samples: const [..] f32, startIndex, endIndex: u64)->f64
     discard catch resampler.setInputClockDriftPpm(1_001) as rejected
     Swag.require(rejected.value() is BadParameterError)
     const Odd: [1] f32 = [1]
-    var output: Array'f32
+    var output: Array!{f32}
     discard catch resampler.addFrames(Swag.makeSlice(&Odd[0], 1), &output) as rejected
     Swag.require(rejected.value() is BadParameterError and output.isEmpty())
     const Pair: [2] f32 = [1, 0]

@@ -28,9 +28,9 @@
     }
 
     // cnt=3, 5<<3=40, 40+2+3=45
-    const V = #run shiftCountFromArith(1'u32, 4'u32, 5'u32, 2'u32, 3'u32)
+    const V = #run shiftCountFromArith(1_u32, 4_u32, 5_u32, 2_u32, 3_u32)
     #assert(#typeof(V) == u32)
-    #assert(V == 45'u32)
+    #assert(V == 45_u32)
 }
 
 // ---------------------------------------------------------------------------
@@ -48,9 +48,9 @@
         return a + b + c         // 8 + 2 + 32 = 42
     }
 
-    const V = #run multiShiftChain(1'u32, 3'u32, 2'u32, 4'u32)
+    const V = #run multiShiftChain(1_u32, 3_u32, 2_u32, 4_u32)
     #assert(#typeof(V) == u32)
-    #assert(V == 42'u32)
+    #assert(V == 42_u32)
 }
 
 // ---------------------------------------------------------------------------
@@ -62,18 +62,18 @@
 {
     func shiftMixWidths(cnt: u32)->u64
     {
-        var a:  u32 = 0x80'u32      // 128
-        var b:  u32 = 0x200'u32     // 512
-        var c:  u64 = 0x800'u64     // 2048
+        var a:  u32 = 0x80_u32      // 128
+        var b:  u32 = 0x200_u32     // 512
+        var c:  u64 = 0x800_u64     // 2048
         var ra: u32 = a >> cnt      // 128  >> 2 = 32;   cnt → CL
         var rb: u32 = b >> cnt      // 512  >> 2 = 128;  cnt → CL
         var rc: u64 = c >> cnt      // 2048 >> 2 = 512;  cnt → CL (64-bit)
         return cast(u64, ra) + cast(u64, rb) + rc     // 32 + 128 + 512 = 672
     }
 
-    const V = #run shiftMixWidths(2'u32)
+    const V = #run shiftMixWidths(2_u32)
     #assert(#typeof(V) == u64)
-    #assert(V == 672'u64)
+    #assert(V == 672_u64)
 }
 
 // ---------------------------------------------------------------------------
@@ -93,9 +93,9 @@
         return r + a                  // 56 + 1 = 57
     }
 
-    const V = #run shiftLiveAcrossCall(1'u32, 3'u32, 10'u32)
+    const V = #run shiftLiveAcrossCall(1_u32, 3_u32, 10_u32)
     #assert(#typeof(V) == u32)
-    #assert(V == 57'u32)
+    #assert(V == 57_u32)
 }
 
 // ---------------------------------------------------------------------------
@@ -114,9 +114,9 @@
         return r1 + r2     // 12 + 24 = 36
     }
 
-    const V = #run nestedShiftCount(3'u32, 2'u32)
+    const V = #run nestedShiftCount(3_u32, 2_u32)
     #assert(#typeof(V) == u32)
-    #assert(V == 36'u32)
+    #assert(V == 36_u32)
 }
 
 // ---------------------------------------------------------------------------
@@ -133,9 +133,9 @@
         return r     // 5 << 3 = 40
     }
 
-    const V = #run shiftInsideDivExpr(12'u32, 4'u32, 5'u32)
+    const V = #run shiftInsideDivExpr(12_u32, 4_u32, 5_u32)
     #assert(#typeof(V) == u32)
-    #assert(V == 40'u32)
+    #assert(V == 40_u32)
 }
 
 // ---------------------------------------------------------------------------
@@ -153,9 +153,9 @@
         return r + b + c + d + e + f + g + h     // 2+2+3+4+5+6+3+4 = 29
     }
 
-    const V = #run manyLiveShift(1'u32, 2'u32, 3'u32, 4'u32, 5'u32, 6'u32, 3'u32, 4'u32)
+    const V = #run manyLiveShift(1_u32, 2_u32, 3_u32, 4_u32, 5_u32, 6_u32, 3_u32, 4_u32)
     #assert(#typeof(V) == u32)
-    #assert(V == 29'u32)
+    #assert(V == 29_u32)
 }
 
 // ---------------------------------------------------------------------------

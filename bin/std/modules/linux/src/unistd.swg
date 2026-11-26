@@ -1,9 +1,9 @@
 #global if #os == Swag.TargetOs.Linux
 #global export
 
-const SEEK_SET = 0's32
-const SEEK_CUR = 1's32
-const SEEK_END = 2's32
+const SEEK_SET = 0_s32
+const SEEK_CUR = 1_s32
+const SEEK_END = 2_s32
 
 #[Swag.Foreign(module: "libc.so.6", link: "c", callconv: .C)]
 {

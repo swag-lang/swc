@@ -13,11 +13,13 @@ func day6B()
 {
     let dataPath = Path.combine(Path.directoryName(#curlocation.fileName), "6.txt")
     let lines    = expect File.readAllLines(dataPath)
-    let str      = Tokenize.split(lines[0], ','u8)
+    let str      = Tokenize.split(lines[0], ','_u8)
 
     var state: [9] u64
-    for v in str do
+    for v in str
+    {
         state[expect StrConv.toS32(v)] += 1
+    }
 
     var total: u64
     for 256

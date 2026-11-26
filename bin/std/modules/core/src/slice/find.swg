@@ -7,7 +7,7 @@ private func findByte(values: const [*] u8, count: u64, value: u8)->u64
 {
     const VectorSize = #sizeof(Simd.U8x16)
     let needle = Simd.splat(value)
-    var offset = 0'u64
+    var offset = 0_u64
     while count - offset >= 4 * VectorSize
     {
         let block    = values + offset
@@ -16,14 +16,26 @@ private func findByte(values: const [*] u8, count: u64, value: u8)->u64
         let matches2 = Simd.bitmask(Simd.load(block + 2 * VectorSize) == needle)
         let matches3 = Simd.bitmask(Simd.load(block + 3 * VectorSize) == needle)
 
-        if matches0 do
+        if matches0
+        {
             return offset + Math.trailingZeros(matches0)
-        if matches1 do
+        }
+
+        if matches1
+        {
             return offset + VectorSize + Math.trailingZeros(matches1)
-        if matches2 do
+        }
+
+        if matches2
+        {
             return offset + 2 * VectorSize + Math.trailingZeros(matches2)
-        if matches3 do
+        }
+
+        if matches3
+        {
             return offset + 3 * VectorSize + Math.trailingZeros(matches3)
+        }
+
         offset += 4 * VectorSize
     }
 
@@ -31,15 +43,21 @@ private func findByte(values: const [*] u8, count: u64, value: u8)->u64
     while count - offset >= VectorSize
     {
         let matches = Simd.bitmask(Simd.load(values + offset) == needle)
-        if matches do
+        if matches
+        {
             return offset + Math.trailingZeros(matches)
+        }
+
         offset += VectorSize
     }
 
     while offset < count
     {
-        if values[offset] == value do
+        if values[offset] == value
+        {
             return offset
+        }
+
         offset += 1
     }
 
@@ -53,8 +71,11 @@ private func verifyByteCandidates(values, subslice: const [*] u8, subCount, base
     while mask
     {
         let offset = baseOffset + Math.trailingZeros(mask)
-        if Memory.compare(values + offset, subslice, subCount) == 0 do
+        if Memory.compare(values + offset, subslice, subCount) == 0
+        {
             return offset
+        }
+
         mask &= mask - 1
     }
 
@@ -67,10 +88,13 @@ private func verifyByteCandidates(values, subslice: const [*] u8, subCount, base
 // index of any one of them is returned. Returns `Swag.U64.Max` when `value` is absent.
 func(T, V) findSorted(values: const [..] T?, value: V)->u64
 {
-    var lower = 0'u64
+    var lower = 0_u64
     var upper = values.count
-    if not upper do
+    if not upper
+    {
         return Swag.U64.Max
+    }
+
     let vals = unwrap values
 
     while lower < upper
@@ -78,12 +102,19 @@ func(T, V) findSorted(values: const [..] T?, value: V)->u64
         let mid = lower + (upper - lower) / 2
 
         let res = vals[mid] <=> value
-        if res == 0 do
+        if res == 0
+        {
             return mid
-        if res < 0 do
+        }
+
+        if res < 0
+        {
             lower = mid + 1
-        else do
+        }
+        else
+        {
             upper = mid
+        }
     }
 
     return Swag.U64.Max
@@ -96,15 +127,21 @@ func(T, V) findSorted(values: const [..] T?, value: V)->u64
 func findLinear(values: const [..] u8?, value: u8)->u64
 {
     let count = values.count
-    if not count do
+    if not count
+    {
         return Swag.U64.Max
+    }
+
     return findByte(values!.buffer, count, value)
 }
 
 func(T, V) findLinear(values: const [..] T?, value: V)->u64
 {
-    for &v, i in values where v[] == value do
+    for &v, i in values where v[] == value
+    {
         return i
+    }
+
     return Swag.U64.Max
 }
 
@@ -115,10 +152,15 @@ func findSubslice(values, subslice: const [..] u8)->u64
 {
     let valueCount = values.count
     let subCount   = subslice.count
-    if not subCount do
+    if not subCount
+    {
         return 0
-    if subCount > valueCount do
+    }
+
+    if subCount > valueCount
+    {
         return Swag.U64.Max
+    }
 
     let valueData      = values.buffer
     let subData        = subslice.buffer
@@ -126,29 +168,38 @@ func findSubslice(values, subslice: const [..] u8)->u64
     let candidateCount = lastStart + 1
     const VectorSize = #sizeof(Simd.U8x16)
     let needle = Simd.splat(subData[0])
-    var offset = 0'u64
+    var offset = 0_u64
 
     // Filter candidate starts by their first byte before comparing the complete subslice.
     while offset <= lastStart
     {
         let relative = findByte(valueData + offset, candidateCount - offset, subData[0])
-        if relative == Swag.U64.Max do
+        if relative == Swag.U64.Max
+        {
             return Swag.U64.Max
+        }
+
         offset += relative
         if candidateCount - offset >= VectorSize
         {
             let mask   = Simd.bitmask(Simd.load(valueData + offset) == needle)
             let result = verifyByteCandidates(valueData, subData, subCount, offset, mask)
-            if result != Swag.U64.Max do
+            if result != Swag.U64.Max
+            {
                 return result
+            }
+
             offset += VectorSize
             continue
         }
 
         while offset <= lastStart
         {
-            if valueData[offset] == subData[0] and Memory.compare(valueData + offset, subData, subCount) == 0 do
+            if valueData[offset] == subData[0] and Memory.compare(valueData + offset, subData, subCount) == 0
+            {
                 return offset
+            }
+
             offset += 1
         }
     }
@@ -158,14 +209,22 @@ func findSubslice(values, subslice: const [..] u8)->u64
 
 func(T) findSubslice(values: const [..] T, subslice: const [..] T)->u64
 {
-    if not subslice.count do
+    if not subslice.count
+    {
         return 0
-    if subslice.count > values.count do
+    }
+
+    if subslice.count > values.count
+    {
         return Swag.U64.Max
+    }
 
     for start in 0 to values.count - subslice.count
-        where equals(values[start until start + subslice.count], subslice) do
+        where equals(values[start until start + subslice.count], subslice)
+    {
         return start
+    }
+
     return Swag.U64.Max
 }
 
@@ -182,8 +241,11 @@ func contains(values: const [..] u8?, value: u8)->bool => findLinear(values, val
 #[Swag.ConstExpr]
 func(T, V) contains(values: const [..] T?, value: V)->bool
 {
-    for v in values where v == value do
+    for v in values where v == value
+    {
         return true
+    }
+
     return false
 }
 
@@ -191,24 +253,38 @@ func(T, V) contains(values: const [..] T?, value: V)->bool
 #[Swag.ConstExpr]
 func equals(dst, src: const [..] u8?)->bool
 {
-    if dst.count != src.count do
+    if dst.count != src.count
+    {
         return false
-    if not dst.count do
+    }
+
+    if not dst.count
+    {
         return true
+    }
+
     return Memory.compare(dst!.buffer, src!.buffer, dst.count) == 0
 }
 
 #[Swag.ConstExpr]
 func(T) equals(dst, src: const [..] T?)->bool
 {
-    if dst.count != src.count do
+    if dst.count != src.count
+    {
         return false
-    if not dst.count or not src.count do
+    }
+
+    if not dst.count or not src.count
+    {
         return true
+    }
 
     let dstn = unwrap dst
     let srcn = unwrap src
-    for i in dstn.count where dstn[i] != srcn[i] do
+    for i in dstn.count where dstn[i] != srcn[i]
+    {
         return false
+    }
+
     return true
 }

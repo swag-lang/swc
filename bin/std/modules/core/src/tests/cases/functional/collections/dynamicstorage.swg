@@ -72,7 +72,7 @@ struct CollectionSwapChild { using base: CollectionSwapBase }
     var child: CollectionDynamicChild
     Swag.require(Hash.hash32(base) == Hash.hash32(child.base))
     Swag.require(Hash.hash64(base) == Hash.hash64(child.base))
-    var values: HashTable'(CollectionDynamicBase, u32)
+    var values: HashTable!{CollectionDynamicBase, u32}
     values.add(child.base, 42)
     Swag.require(values.find(base).value == 42)
     values.reserve(64)
@@ -82,7 +82,7 @@ struct CollectionSwapChild { using base: CollectionSwapBase }
 #test
 {
     var child:  CollectionDynamicChild
-    var values: HashTable'(u32, CollectionDynamicBase)
+    var values: HashTable!{u32, CollectionDynamicBase}
     values.add(1, child.base)
     Swag.require(not (&values.find(1).value is CollectionDynamicChild))
     values.reserve(64)
@@ -100,7 +100,7 @@ struct CollectionSwapChild { using base: CollectionSwapBase }
 
     var child:  CollectionDynamicChild
     let baseView = Swag.makeSlice(&child.base, 1)
-    var values: Array'CollectionDynamicBase
+    var values: Array!{CollectionDynamicBase}
     values.add(baseView)
     values.insertAt(0, baseView)
     values.reserve(64)
@@ -122,7 +122,7 @@ struct CollectionSwapChild { using base: CollectionSwapBase }
 {
     var child:  CollectionDynamicChild
     let baseView = Swag.makeSlice(&child.base, 1)
-    var values: StaticArray'(CollectionDynamicBase, 4)
+    var values: StaticArray!{CollectionDynamicBase, 4}
     values.add(baseView)
     values.insertAt(0, baseView)
     Swag.require(values.count == 2)

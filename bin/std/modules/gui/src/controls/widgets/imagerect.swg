@@ -9,7 +9,7 @@ struct ImageRect
     {
         using wnd: Wnd     // Embedded window behavior and presentation.
 
-        sigFrameChanged: SigArray'func||(*Wnd)     // Emitted after the visible animation frame changes.
+        sigFrameChanged: SigArray!{func||(*Wnd)}     // Emitted after the visible animation frame changes.
 
         readonly
         {
@@ -29,8 +29,10 @@ impl IWnd for ImageRect
 
     mtd impl onPaint(evt: *PaintEvent)
     {
-        if not .movie.isValid() do
+        if not .movie.isValid()
+        {
             return
+        }
 
         // Advance playback and upload a newly decoded GIF frame when necessary.
         if .movie.update(.paintDeltaSeconds())
@@ -59,8 +61,10 @@ impl IWnd for ImageRect
             painter.drawTexture(rect, .uploadedTexture, color)
         }
 
-        if .movie.frameCount > 1 and not .movie.isPaused do
+        if .movie.frameCount > 1 and not .movie.isPaused
+        {
             .invalidate()
+        }
     }
 }
 
@@ -75,16 +79,24 @@ impl ImageRect
            .uploadedTexture.pixelFormat != frame.pixelFormat
         {
             let uploaded = .app().renderer.addImage(frame[])
-            if not uploaded.isValid() do
+            if not uploaded.isValid()
+            {
                 return
-            if .uploadedTexture.isValid() do
+            }
+
+            if .uploadedTexture.isValid()
+            {
                 .app().renderer.removeTexture(&.uploadedTexture)
+            }
+
             .uploadedTexture = uploaded
         }
         else
         {
-            if not .app().renderer.updateTexture(.uploadedTexture, nnPixels(frame.pixels.buffer)) do
+            if not .app().renderer.updateTexture(.uploadedTexture, nnPixels(frame.pixels.buffer))
+            {
                 .app().renderer.removeTexture(&.uploadedTexture)
+            }
         }
     }
 
@@ -93,7 +105,7 @@ impl ImageRect
     func create(parent: *Wnd, position: Math.Rectangle = {}, id: WndId? = null)->*ImageRect
     {
         Swag.assert(parent != null)
-        let result = Wnd.create'ImageRect(parent, null, position, id)
+        let result = Wnd.create!{ImageRect}(parent, null, position, id)
         result.movie.sigFrameChanged += func|result|(_)
         {
             result.sigFrameChanged.call(result)
@@ -106,8 +118,11 @@ impl ImageRect
     // Releases renderer-owned content and restores an empty image window.
     mtd clear()
     {
-        if .uploadedTexture.isValid() do
+        if .uploadedTexture.isValid()
+        {
             .app().renderer.removeTexture(&.uploadedTexture)
+        }
+
         .movie.clear()
         .invalidate()
     }
@@ -153,8 +168,11 @@ impl ImageRect
         }
 
         let uploaded = .app().renderer.addImage(image)
-        if not uploaded.isValid() do
+        if not uploaded.isValid()
+        {
             return
+        }
+
         .clear()
         .uploadedTexture = uploaded
         .movie.setSpriteSheet(ImageList.create(.uploadedTexture))
@@ -172,8 +190,11 @@ impl ImageRect
     // Pauses or resumes time-based playback.
     mtd setPaused(paused: bool)
     {
-        if .movie.isPaused == paused do
+        if .movie.isPaused == paused
+        {
             return
+        }
+
         .movie.setPaused(paused)
         .invalidate()
     }
@@ -204,10 +225,16 @@ impl ImageRect
         var movie: Movie
         try movie.load(fileName)
         let uploaded = .app().renderer.addImage(movie.frame)
-        if not uploaded.isValid() do
+        if not uploaded.isValid()
+        {
             fail Pixel.RenderResourceError{"renderer cannot allocate the movie texture"}
-        if .uploadedTexture.isValid() do
+        }
+
+        if .uploadedTexture.isValid()
+        {
             .app().renderer.removeTexture(&.uploadedTexture)
+        }
+
         swap(&.movie, &movie)
         .uploadedTexture = uploaded
         .invalidate()

@@ -32,7 +32,7 @@ func differentMasks(a, b, mask: u64)->u64 => (a & mask) | (b & ~(mask << 1))
 #test
 {
     Swag.require(differentMasks(0xFF, 0xFF, 1) == 0xFD)
-    let values = [0'u64, 1, 0xFFFFFFFF, 0x100000000, 0xFFFFFFFFFFFFFFFF, 0x5555555555555555, 0xAAAAAAAAAAAAAAAA]
+    let values = [0_u64, 1, 0xFFFFFFFF, 0x100000000, 0xFFFFFFFFFFFFFFFF, 0x5555555555555555, 0xAAAAAAAAAAAAAAAA]
     for a in values
     {
         for b in values

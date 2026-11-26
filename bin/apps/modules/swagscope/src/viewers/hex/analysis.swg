@@ -5,19 +5,19 @@ using Core
 
 // One analysis pass reads this many bytes before publishing cancellation progress. The buffer is
 // large enough for sequential I/O and small enough that stopping never waits on a resident file.
-const AnalysisChunkSize = 256 * 1024'u64
+const AnalysisChunkSize = 256 * 1024_u64
 
 // String inference is intentionally bounded: the first findings stay useful on a damaged or
 // repetitive image without letting a synthetic file turn an inspection panel into the file.
-const AnalysisStringLimit       = 4096'u64
-const AnalysisStringPreview     = 192'u64
-const AnalysisMinimumStringSize = 4'u64
-const AnalysisEntropyBlockMinimum = 64 * 1024'u64
-const AnalysisEntropyBlockLimit   = 256'u64
-const AnalysisRepeatedBlockSize   = 64 * 1024'u64
-const AnalysisRepeatRepresentativeLimit = 256'u64
-const AnalysisRepeatedPairLimit         = 256'u64
-const AnalysisRepeatBucketCount         = 512'u64
+const AnalysisStringLimit               = 4096_u64
+const AnalysisStringPreview             = 192_u64
+const AnalysisMinimumStringSize         = 4_u64
+const AnalysisEntropyBlockMinimum       = 64 * 1024_u64
+const AnalysisEntropyBlockLimit         = 256_u64
+const AnalysisRepeatedBlockSize         = 64 * 1024_u64
+const AnalysisRepeatRepresentativeLimit = 256_u64
+const AnalysisRepeatedPairLimit         = 256_u64
+const AnalysisRepeatBucketCount         = 512_u64
 
 // Encoding an inferred string was read in.
 enum AnalysisStringKind
@@ -55,16 +55,16 @@ private struct AnalysisRepeatRepresentative
     fingerprint: u32
     offset:      u64
     next:        u16
-    bytes:       Array'u8
+    bytes:       Array!{u8}
 }
 
 // Bounded exact duplicate detector. The hash table narrows candidates; retained block bytes
 // decide equality, so fingerprint collisions can never become repeated-block findings.
 private struct AnalysisRepeatScanner
 {
-    representatives: Array'AnalysisRepeatRepresentative
+    representatives: Array!{AnalysisRepeatRepresentative}
     buckets:         [512] u16
-    block:           Array'u8
+    block:           Array!{u8}
     blockOffset:     u64
     blockCount:      u64
 }
@@ -94,31 +94,31 @@ struct AnalysisString
 // Bounded findings for one explicit file range.
 struct AnalysisResult
 {
-    range:            AnalysisRange
-    scanned:          u64           // Bytes read before completion, cancellation, or failure.
-    histogram:        [256] u64     // Occurrences of each byte value.
-    zeroCount:        u64
-    printableCount:   u64      // Bytes the text column shows as themselves.
-    entropy:          f64      // Shannon entropy of the scanned bytes, in bits per byte.
-    entropyBlockSize: u64      // Target byte width of each block; the last block may be shorter.
-    entropyBlocks:    Array'AnalysisEntropyBlock
-    repeatedBlocks:   Array'AnalysisRepeatedBlock // At most `AnalysisRepeatedPairLimit` exact pairs.
-    repeatScanTruncated: bool   // More than the first `AnalysisRepeatRepresentativeLimit` unique blocks were seen.
-    repeatHintsTruncated: bool  // More than `AnalysisRepeatedPairLimit` matching pairs were seen.
-    strings:          Array'AnalysisString     // Inferred runs in file order, at most `AnalysisStringLimit`.
-    stringsTruncated: bool     // Whether more runs were found than `strings` keeps.
-    cancelled:        bool
-    failureReason:    String                 // Empty unless the file could not be read.
-    hasDigests:       bool                   // Whether every byte of the range was read, so the digests below cover it.
-    algorithms:       AnalysisAlgorithms    // Algorithms selected for this complete result.
-    crc32:            u32                    // CRC-32 of the range, as ZIP and PNG compute it.
-    crc64:            u64                    // CRC-64/ECMA-182 of the range.
-    sha256:           Hash.Sha256.Digest     // SHA-256 of the range.
-    md5:              Hash.Md5.Digest        // MD5 of the range, which download pages still print.
-    sha1:             Hash.Sha1.Digest       // SHA-1 of the range.
-    sha512:           Hash.Sha512.Digest     // SHA-512 of the range.
-    blake2s:          [32] u8               // BLAKE2s-256 of the range.
-    blake2b:          [64] u8               // BLAKE2b-512 of the range.
+    range:                AnalysisRange
+    scanned:              u64           // Bytes read before completion, cancellation, or failure.
+    histogram:            [256] u64     // Occurrences of each byte value.
+    zeroCount:            u64
+    printableCount:       u64     // Bytes the text column shows as themselves.
+    entropy:              f64     // Shannon entropy of the scanned bytes, in bits per byte.
+    entropyBlockSize:     u64     // Target byte width of each block; the last block may be shorter.
+    entropyBlocks:        Array!{AnalysisEntropyBlock}
+    repeatedBlocks:       Array!{AnalysisRepeatedBlock}     // At most `AnalysisRepeatedPairLimit` exact pairs.
+    repeatScanTruncated:  bool                              // More than the first `AnalysisRepeatRepresentativeLimit` unique blocks were seen.
+    repeatHintsTruncated: bool                              // More than `AnalysisRepeatedPairLimit` matching pairs were seen.
+    strings:              Array!{AnalysisString}            // Inferred runs in file order, at most `AnalysisStringLimit`.
+    stringsTruncated:     bool                              // Whether more runs were found than `strings` keeps.
+    cancelled:            bool
+    failureReason:        String                 // Empty unless the file could not be read.
+    hasDigests:           bool                   // Whether every byte of the range was read, so the digests below cover it.
+    algorithms:           AnalysisAlgorithms     // Algorithms selected for this complete result.
+    crc32:                u32                    // CRC-32 of the range, as ZIP and PNG compute it.
+    crc64:                u64                    // CRC-64/ECMA-182 of the range.
+    sha256:               Hash.Sha256.Digest     // SHA-256 of the range.
+    md5:                  Hash.Md5.Digest        // MD5 of the range, which download pages still print.
+    sha1:                 Hash.Sha1.Digest       // SHA-1 of the range.
+    sha512:               Hash.Sha512.Digest     // SHA-512 of the range.
+    blake2s:              [32] u8                // BLAKE2s-256 of the range.
+    blake2b:              [64] u8                // BLAKE2b-512 of the range.
 }
 
 private impl AnalysisRepeatScanner
@@ -126,12 +126,17 @@ private impl AnalysisRepeatScanner
     // Starts a block when needed and passes each complete 64 KiB block to the exact detector.
     mtd scan(value: u8, offset: u64, result: *AnalysisResult)
     {
-        if not .blockCount do
+        if not .blockCount
+        {
             .blockOffset = offset
+        }
+
         .block[.blockCount] = value
-        .blockCount += 1
-        if .blockCount == AnalysisRepeatedBlockSize do
+        .blockCount         += 1
+        if .blockCount == AnalysisRepeatedBlockSize
+        {
             .finishBlock(result)
+        }
     }
 
     mtd finishBlock(result: *AnalysisResult)
@@ -142,10 +147,10 @@ private impl AnalysisRepeatScanner
             return
         }
 
-        let source = .block.toSlice()
+        let source      = .block.toSlice()
         let fingerprint = Hash.hashBytes32(source)
-        let bucket = fingerprint % AnalysisRepeatBucketCount
-        var candidate = .buckets[bucket]
+        let bucket      = fingerprint % AnalysisRepeatBucketCount
+        var candidate   = .buckets[bucket]
         while candidate
         {
             let representative = &.representatives[candidate - 1]
@@ -168,10 +173,12 @@ private impl AnalysisRepeatScanner
                     {
                         result.repeatHintsTruncated = true
                     }
+
                     .resetBlock()
                     return
                 }
             }
+
             candidate = representative.next
         }
 
@@ -182,8 +189,11 @@ private impl AnalysisRepeatScanner
             representative.offset      = .blockOffset
             representative.next        = .buckets[bucket]
             representative.bytes.resize(AnalysisRepeatedBlockSize)
-            for index in AnalysisRepeatedBlockSize do
+            for index in AnalysisRepeatedBlockSize
+            {
                 representative.bytes[index] = .block[index]
+            }
+
             .representatives.add(#move representative)
             .buckets[bucket] = cast(u16, .representatives.count)
         }
@@ -191,6 +201,7 @@ private impl AnalysisRepeatScanner
         {
             result.repeatScanTruncated = true
         }
+
         .resetBlock()
     }
 
@@ -229,14 +240,46 @@ impl AnalysisResult
     mtd const digestsText()->String
     {
         var result: String
-        if .algorithms.crc32 do result += Format.toString("CRC-32 %\n", .crc32Text())
-        if .algorithms.crc64 do result += Format.toString("CRC-64/ECMA-182 %{X016}\n", .crc64)
-        if .algorithms.md5 do result += Format.toString("MD5 %\n", .md5Text())
-        if .algorithms.sha1 do result += Format.toString("SHA-1 %\n", .sha1Text())
-        if .algorithms.sha256 do result += Format.toString("SHA-256 %\n", .sha256Text())
-        if .algorithms.sha512 do result += Format.toString("SHA-512 %\n", wordsText(.sha512))
-        if .algorithms.blake2s do result += Format.toString("BLAKE2s-256 %\n", bytesText(.blake2s))
-        if .algorithms.blake2b do result += Format.toString("BLAKE2b-512 %\n", bytesText(.blake2b))
+        if .algorithms.crc32
+        {
+            result += Format.toString("CRC-32 %\n", .crc32Text())
+        }
+
+        if .algorithms.crc64
+        {
+            result += Format.toString("CRC-64/ECMA-182 %{X016}\n", .crc64)
+        }
+
+        if .algorithms.md5
+        {
+            result += Format.toString("MD5 %\n", .md5Text())
+        }
+
+        if .algorithms.sha1
+        {
+            result += Format.toString("SHA-1 %\n", .sha1Text())
+        }
+
+        if .algorithms.sha256
+        {
+            result += Format.toString("SHA-256 %\n", .sha256Text())
+        }
+
+        if .algorithms.sha512
+        {
+            result += Format.toString("SHA-512 %\n", wordsText(.sha512))
+        }
+
+        if .algorithms.blake2s
+        {
+            result += Format.toString("BLAKE2s-256 %\n", bytesText(.blake2s))
+        }
+
+        if .algorithms.blake2b
+        {
+            result += Format.toString("BLAKE2b-512 %\n", bytesText(.blake2b))
+        }
+
         return result
     }
 
@@ -264,8 +307,10 @@ private func wordsText(words: const [..] u32)->String
     var result: String
     for word in words
     {
-        for shift in 8 do
+        for shift in 8
+        {
             result.append(cast(rune, Digits[(word >> (28 - shift * 4)) & 0xF]))
+        }
     }
 
     return result
@@ -277,8 +322,10 @@ private func wordsText(words: const [..] u64)->String
     var result: String
     for word in words
     {
-        for shift in 16 do
+        for shift in 16
+        {
             result.append(cast(rune, Digits[(word >> (60 - shift * 4)) & 0xF]))
+        }
     }
 
     return result
@@ -303,7 +350,7 @@ private struct StringScanner
     start:   u64
     length:  u64
     units:   u64
-    preview: Array'u8
+    preview: Array!{u8}
 }
 
 private impl StringScanner
@@ -318,12 +365,17 @@ private impl StringScanner
 
     mtd append(offset, byteLength: u64, value: u8)
     {
-        if not .units do
+        if not .units
+        {
             .start = offset
+        }
+
         .length += byteLength
         .units  += 1
-        if .preview.count < AnalysisStringPreview do
+        if .preview.count < AnalysisStringPreview
+        {
             .preview.add(value)
+        }
     }
 
     // Ends the current string run and records it when it is long enough; past `AnalysisStringLimit`
@@ -336,8 +388,11 @@ private impl StringScanner
             {
                 var entry = AnalysisString{offset: .start, length: .length, kind: kind}
                 entry.text = cast(string, .preview.toSlice())
-                if .units > .preview.count do
+                if .units > .preview.count
+                {
                     entry.text += "..."
+                }
+
                 result.strings.add(#move entry)
             }
             else
@@ -356,8 +411,10 @@ private impl AnalysisResult
     mtd scanByte(ascii: *StringScanner, value: u8, offset: u64)
     {
         .histogram[value] += 1
-        if value == 0 do
+        if value == 0
+        {
             .zeroCount += 1
+        }
 
         if isPrintable(value)
         {
@@ -373,15 +430,23 @@ private impl AnalysisResult
     // Extends or closes the UTF-16 runs with the byte pair `first`, `second` at `offset`.
     mtd scanPair(little, big: *StringScanner, first, second: u8, offset: u64)
     {
-        if isPrintable(first) and second == 0 do
+        if isPrintable(first) and second == 0
+        {
             little.append(offset, 2, first)
-        else do
+        }
+        else
+        {
             little.flush(.Utf16Little, me)
+        }
 
-        if first == 0 and isPrintable(second) do
+        if first == 0 and isPrintable(second)
+        {
             big.append(offset, 2, second)
-        else do
+        }
+        else
+        {
             big.flush(.Utf16Big, me)
+        }
     }
 
     // Closes every open run, orders the strings by offset, and derives the entropy.
@@ -396,8 +461,11 @@ private impl AnalysisResult
 
         .strings.sort(func(a, b) => a.offset <=> b.offset)
 
-        if not .scanned do
+        if not .scanned
+        {
             return
+        }
+
         for count in .histogram where count
         {
             let share = cast(f64, count) / cast(f64, .scanned)
@@ -408,8 +476,10 @@ private impl AnalysisResult
     // Records the current partial block and clears its bounded byte histogram.
     mtd finishEntropyBlock(histogram: *[256] u64, blockScanned: *u64)
     {
-        if not blockScanned[] do
+        if not blockScanned[]
+        {
             return
+        }
 
         var block: AnalysisEntropyBlock
         block.range = AnalysisRange{.range.offset + .scanned - blockScanned[], blockScanned[]}
@@ -418,9 +488,13 @@ private impl AnalysisResult
             let share = cast(f64, count) / cast(f64, blockScanned[])
             block.entropy -= share * Math.log2(share)
         }
+
         .entropyBlocks.add(#move block)
         blockScanned[] = 0
-        for index in 256 do histogram[][index] = 0
+        for index in 256
+        {
+            histogram[][index] = 0
+        }
     }
 }
 
@@ -433,10 +507,13 @@ private impl AnalysisResult
 func analyzeRange(fileName: string, range: AnalysisRange, processed: *u64? = null, algorithms: AnalysisAlgorithms = {})->AnalysisResult
 {
     var result: #returntype
-    result.range = range
+    result.range      = range
     result.algorithms = algorithms
-    if not range.length do
+    if not range.length
+    {
         return result
+    }
+
     if Swag.isCancelled()
     {
         result.cancelled = true
@@ -455,22 +532,22 @@ func analyzeRange(fileName: string, range: AnalysisRange, processed: *u64? = nul
         return result
     }
 
-    var ascii:       StringScanner
-    var little:      [2] StringScanner
-    var big:         [2] StringScanner
-    var previous:    u8
-    var hasPrevious: bool
+    var ascii:          StringScanner
+    var little:         [2] StringScanner
+    var big:            [2] StringScanner
+    var previous:       u8
+    var hasPrevious:    bool
     var blockHistogram: [256] u64
     var blockScanned:   u64
     var repeatScanner:  AnalysisRepeatScanner
     repeatScanner.block.resize(AnalysisRepeatedBlockSize)
-    var bytes:       Array'u8
-    var crc:         Hash.Crc32
-    var sha:         Hash.Sha256
-    var md5:         Hash.Md5
-    var sha1:        Hash.Sha1
-    var crc64:       Hash.Crc64
-    var sha512:      Hash.Sha512
+    var bytes:   Array!{u8}
+    var crc:     Hash.Crc32
+    var sha:     Hash.Sha256
+    var md5:     Hash.Md5
+    var sha1:    Hash.Sha1
+    var crc64:   Hash.Crc64
+    var sha512:  Hash.Sha512
     var blake2s: Hash.Blake2s
     var blake2b: Hash.Blake2b
     if algorithms.blake2s
@@ -481,6 +558,7 @@ func analyzeRange(fileName: string, range: AnalysisRange, processed: *u64? = nul
             return result
         }
     }
+
     if algorithms.blake2b
     {
         blake2b = catch Hash.Blake2b.create(64)
@@ -489,7 +567,12 @@ func analyzeRange(fileName: string, range: AnalysisRange, processed: *u64? = nul
             return result
         }
     }
-    if algorithms.crc64 do crc64.reset(.Ecma182)
+
+    if algorithms.crc64
+    {
+        crc64.reset(.Ecma182)
+    }
+
     var remaining = range.length
     let estimatedBlockSize = range.length / AnalysisEntropyBlockLimit + (range.length % AnalysisEntropyBlockLimit ? 1 : 0)
     result.entropyBlockSize = Math.max(AnalysisEntropyBlockMinimum, estimatedBlockSize)
@@ -516,24 +599,59 @@ func analyzeRange(fileName: string, range: AnalysisRange, processed: *u64? = nul
         }
 
         bytes.resize(count)
-        if algorithms.crc32 do crc.update(bytes.toSlice())
-        if algorithms.crc64 do crc64.update(bytes.toSlice())
-        if algorithms.sha256 do sha.update(bytes.toSlice())
-        if algorithms.md5 do md5.update(bytes.toSlice())
-        if algorithms.sha1 do sha1.update(bytes.toSlice())
-        if algorithms.sha512 do sha512.update(bytes.toSlice())
-        if algorithms.blake2s do blake2s.update(bytes.toSlice())
-        if algorithms.blake2b do blake2b.update(bytes.toSlice())
+        if algorithms.crc32
+        {
+            crc.update(bytes.toSlice())
+        }
+
+        if algorithms.crc64
+        {
+            crc64.update(bytes.toSlice())
+        }
+
+        if algorithms.sha256
+        {
+            sha.update(bytes.toSlice())
+        }
+
+        if algorithms.md5
+        {
+            md5.update(bytes.toSlice())
+        }
+
+        if algorithms.sha1
+        {
+            sha1.update(bytes.toSlice())
+        }
+
+        if algorithms.sha512
+        {
+            sha512.update(bytes.toSlice())
+        }
+
+        if algorithms.blake2s
+        {
+            blake2s.update(bytes.toSlice())
+        }
+
+        if algorithms.blake2b
+        {
+            blake2b.update(bytes.toSlice())
+        }
+
         for value in bytes
         {
             let offset = range.offset + result.scanned
             result.scanByte(&ascii, value, offset)
             repeatScanner.scan(value, offset, &result)
             blockHistogram[value] += 1
-            blockScanned += 1
-            result.scanned += 1
-            if blockScanned == result.entropyBlockSize do
+            blockScanned          += 1
+            result.scanned        += 1
+            if blockScanned == result.entropyBlockSize
+            {
                 result.finishEntropyBlock(&blockHistogram, &blockScanned)
+            }
+
             if hasPrevious
             {
                 let pairOffset = offset - 1
@@ -541,12 +659,15 @@ func analyzeRange(fileName: string, range: AnalysisRange, processed: *u64? = nul
                 result.scanPair(&little[parity], &big[parity], previous, value, pairOffset)
             }
 
-            previous       = value
-            hasPrevious    = true
+            previous    = value
+            hasPrevious = true
         }
 
-        if processed do
+        if processed
+        {
             Atomic.exchange(processed, result.scanned)
+        }
+
         remaining -= count
     }
 
@@ -555,25 +676,50 @@ func analyzeRange(fileName: string, range: AnalysisRange, processed: *u64? = nul
     if result.scanned == range.length and not result.cancelled and result.failureReason.isEmpty()
     {
         result.hasDigests = true
-        if algorithms.crc32 do result.crc32 = crc.value()
-        if algorithms.crc64 do result.crc64 = crc64.value()
-        if algorithms.sha256 do result.sha256 = sha.finalize()
-        if algorithms.md5 do result.md5 = md5.finalize()
-        if algorithms.sha1 do result.sha1 = sha1.finalize()
-        if algorithms.sha512 do result.sha512 = sha512.finalize()
+        if algorithms.crc32
+        {
+            result.crc32 = crc.value()
+        }
+
+        if algorithms.crc64
+        {
+            result.crc64 = crc64.value()
+        }
+
+        if algorithms.sha256
+        {
+            result.sha256 = sha.finalize()
+        }
+
+        if algorithms.md5
+        {
+            result.md5 = md5.finalize()
+        }
+
+        if algorithms.sha1
+        {
+            result.sha1 = sha1.finalize()
+        }
+
+        if algorithms.sha512
+        {
+            result.sha512 = sha512.finalize()
+        }
+
         if algorithms.blake2s
         {
             catch blake2s.finalize(result.blake2s)
             {
-                result.hasDigests = false
+                result.hasDigests    = false
                 result.failureReason = Viewer.failureText(Swag.err)
             }
         }
+
         if algorithms.blake2b
         {
             catch blake2b.finalize(result.blake2b)
             {
-                result.hasDigests = false
+                result.hasDigests    = false
                 result.failureReason = Viewer.failureText(Swag.err)
             }
         }
@@ -603,10 +749,10 @@ impl AnalysisOperation
     mtd start(fileName: string, range: AnalysisRange, owner: *Wnd? = null, algorithms: AnalysisAlgorithms = {})
     {
         Swag.assert(not .started)
-        .fileName = fileName
-        .range    = range
+        .fileName   = fileName
+        .range      = range
         .algorithms = algorithms
-        .result   = {}
+        .result     = {}
         Atomic.exchange(&.processed, 0)
 
         .submit(func|operation = me|()
@@ -619,8 +765,10 @@ impl AnalysisOperation
     // Asks a running analysis to stop; the partial result is still collected by [[AnalysisOperation.finish]].
     mtd cancel()
     {
-        if .started do
+        if .started
+        {
             .task.cancel()
+        }
     }
 
     mtd progress()->u64 => Atomic.get(&.processed)
@@ -639,8 +787,11 @@ impl AnalysisOperation
     mtd retire()->bool
     {
         .cancel()
-        if .started and not .isDone() do
+        if .started and not .isDone()
+        {
             return false
+        }
+
         .wait()
         .abandon()
         return true

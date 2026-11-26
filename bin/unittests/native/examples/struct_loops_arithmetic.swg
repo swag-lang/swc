@@ -58,8 +58,10 @@ func buildSchedule(orders: const [..] BakeOrder, trayCapacity: s32, shiftStartMi
     for order in orders
     {
         let traysNeeded = clampNeededTrays(order)
-        if traysNeeded == 0 do
+        if traysNeeded == 0
+        {
             continue
+        }
 
         if currentTemp != order.ovenTempC
         {
@@ -80,8 +82,10 @@ func buildSchedule(orders: const [..] BakeOrder, trayCapacity: s32, shiftStartMi
             result.batchCount    += 1
             result.traysProduced += traysThisBatch
             result.bakeMinutes   += order.minutesPerBatch
-            if order.needsSteam do
+            if order.needsSteam
+            {
                 result.steamBatchCount += 1
+            }
 
             currentMinute += order.minutesPerBatch
         }

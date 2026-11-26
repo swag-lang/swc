@@ -18,19 +18,28 @@ func forwardVaultLaunch(surfaceId, path: string)->bool fail
     let name  = launchRequestName(token)
     let flags = Linux.O_RDWR | Linux.O_CREAT | Linux.O_EXCL | Linux.O_CLOEXEC
     let fd    = Linux.shm_open(name.storage(), flags, 0x180)
-    if fd < 0 do
+    if fd < 0
+    {
         fail sharedMemoryError()
+    }
+
     defer
     {
         discard Linux.shm_unlink(name.storage())
         discard Linux.close(fd)
     }
 
-    if Linux.ftruncate(fd, #sizeof(LaunchRequest)) != 0 do
+    if Linux.ftruncate(fd, #sizeof(LaunchRequest)) != 0
+    {
         fail sharedMemoryError()
+    }
+
     let view = Linux.mmap(null, #sizeof(LaunchRequest), Linux.PROT_READ | Linux.PROT_WRITE, Linux.MAP_SHARED, fd, 0)
-    if not view or cast(s64, view) == -1 do
+    if not view or cast(s64, view) == -1
+    {
         fail sharedMemoryError()
+    }
+
     defer discard Linux.munmap(view, #sizeof(LaunchRequest))
     return (assume cast(*LaunchRequest, view)).send(surfaceId, token, path)
 }
@@ -39,19 +48,28 @@ func receiveVaultLaunch(token: u64)->String
 {
     let name = launchRequestName(token)
     let fd   = Linux.shm_open(name.storage(), Linux.O_RDWR | Linux.O_CLOEXEC, 0)
-    if fd < 0 do
+    if fd < 0
+    {
         return {}
+    }
+
     defer discard Linux.close(fd)
 
     var info: Linux.stat
     if Linux.fstat(fd, &info) != 0 or
        info.st_uid != Linux.getuid() or
        (info.st_mode & 0x3F) != 0 or
-       info.st_size != #sizeof(LaunchRequest) do
+       info.st_size != #sizeof(LaunchRequest)
+    {
         return {}
+    }
+
     let view = Linux.mmap(null, #sizeof(LaunchRequest), Linux.PROT_READ | Linux.PROT_WRITE, Linux.MAP_SHARED, fd, 0)
-    if not view or cast(s64, view) == -1 do
+    if not view or cast(s64, view) == -1
+    {
         return {}
+    }
+
     defer discard Linux.munmap(view, #sizeof(LaunchRequest))
     discard Linux.shm_unlink(name.storage())
     return (assume cast(*LaunchRequest, view)).receive()

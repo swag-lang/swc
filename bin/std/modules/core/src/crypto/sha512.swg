@@ -99,13 +99,13 @@ impl Sha512Core
                 0xCBBB9D5DC1059ED8, 0x629A292A367CD507, 0x9159015A3070DD17, 0x152FECD8F70E5939,
                 0x67332667FFC00B31, 0x8EB44A8768581511, 0xDB0C2E0D64F98FA7, 0x47B5481DBEFA4FA4]
         }
-        elif variant == 2
+        else if variant == 2
         {
             .state = [
                 0x8C3D37C819544DA2, 0x73E1996689DCD4D6, 0x1DFAB7AE32FF9C82, 0x679DD514582F9FCF,
                 0x0F6D2B697BD44DA8, 0x77E36F7304C48942, 0x3F9D85A86A1D36C8, 0x1112E6AD91D692A1]
         }
-        elif variant == 3
+        else if variant == 3
         {
             .state = [
                 0x22312194FC2BF72C, 0x9F555FA3C84C64C2, 0x2393B86B6F53B151, 0x963877195940EABD,
@@ -121,38 +121,17 @@ impl Sha512Core
 
     mtd update(data: const [..] u8)
     {
-        var remaining = data.count
-        if remaining == 0 do
-            return
-        var input = data.buffer
-
-        if .dataLength
+        var offset = 0_u64
+        while offset < data.count
         {
-            let copied = Math.min(remaining, Sha512BlockSize - .dataLength)
-            Swag.memcpy(.data.buffer + .dataLength, input, copied)
-            .dataLength += copied
-            if .dataLength < Sha512BlockSize do
-                return
-
-            .transformBlocks(.data)
-            .dataLength = 0
-            input       += copied
-            remaining   -= copied
-        }
-
-        let blocks = remaining / Sha512BlockSize
-        if blocks
-        {
-            .transformBlocks(input, blocks)
-            let consumed = blocks * Sha512BlockSize
-            input     += consumed
-            remaining -= consumed
-        }
-
-        if remaining
-        {
-            Swag.memcpy(.data.buffer, input, remaining)
-            .dataLength = remaining
+            let count = Math.min(data.count - offset, Sha512BlockSize - .dataLength)
+            Swag.memcpy(&.data[.dataLength], data.buffer + offset, count)
+            .dataLength += count
+            offset      += count
+            if .dataLength == Sha512BlockSize
+            {
+                .transformBlock()
+            }
         }
     }
 
@@ -177,8 +156,11 @@ impl Sha512Core
     {
         let oldLow = .bitLengthLow
         .bitLengthLow += .dataLength * 8
-        if .bitLengthLow < oldLow do
+        if .bitLengthLow < oldLow
+        {
             .bitLengthHigh += 1
+        }
+
         let finalLow  = .bitLengthLow
         let finalHigh = .bitLengthHigh
 
@@ -222,68 +204,63 @@ impl Sha512Core
         let schedule = words.buffer
         for block in blockCount
         {
-            let input = cast(const [*] u64, buf + block * Sha512BlockSize)
-            for pair in 8
+            var word = 0_u64
+            for byte in 8
             {
-                let index = pair * 2
-                Simd.store(schedule + index, Math.bigEndianToNative(Simd.load(input + index)))
+                word = (word << 8) | cast(u64, .data[index * 8 + byte])
             }
 
-            var a = .state[0]
-            var b = .state[1]
-            var c = .state[2]
-            var d = .state[3]
-            var e = .state[4]
-            var f = .state[5]
-            var g = .state[6]
-            var h = .state[7]
+            words[index] = word
+        }
 
-            // Rotate the roles of the local variables through all eight positions.
-            #[Swag.Inline]
-            func(Extend: bool) compressGroup(index: u64, schedule: [*] u64, a, b, c, d, e, f, g, h: *u64)
-            {
-                let pair0 = sha512SchedulePair'Extend(index, schedule)
+        for index in 16 until 80
+        {
+            let x      = words[index - 15]
+            let y      = words[index - 2]
+            let sigma0 = Swag.ror(x, 1_u8) ^ Swag.ror(x, 8_u8) ^ (x >> 7)
+            let sigma1 = Swag.ror(y, 19_u8) ^ Swag.ror(y, 61_u8) ^ (y >> 6)
+            words[index] = words[index - 16] + sigma0 + words[index - 7] + sigma1
+        }
 
-                sha512Round(a[], b[], c[], d, e[], f[], g[], h, pair0[0])
-                sha512Round(h[], a[], b[], c, d[], e[], f[], g, pair0[1])
+        var a = .state[0]
+        var b = .state[1]
+        var c = .state[2]
+        var d = .state[3]
+        var e = .state[4]
+        var f = .state[5]
+        var g = .state[6]
+        var h = .state[7]
+        for index in 80
+        {
+            let sum1     = Swag.ror(e, 14_u8) ^ Swag.ror(e, 18_u8) ^ Swag.ror(e, 41_u8)
+            let choice   = (e & f) ^ (~e & g)
+            let temp1    = h + sum1 + choice + Sha512Constants[index] + words[index]
+            let sum0     = Swag.ror(a, 28_u8) ^ Swag.ror(a, 34_u8) ^ Swag.ror(a, 39_u8)
+            let majority = (a & b) ^ (a & c) ^ (b & c)
+            let temp2    = sum0 + majority
+            h = g
+            g = f
+            f = e
+            e = d + temp1
+            d = c
+            c = b
+            b = a
+            a = temp1 + temp2
+        }
 
-                let pair1 = sha512SchedulePair'Extend(index + 2, schedule)
-                sha512Round(g[], h[], a[], b, c[], d[], e[], f, pair1[0])
-                sha512Round(f[], g[], h[], a, b[], c[], d[], e, pair1[1])
-
-                let pair2 = sha512SchedulePair'Extend(index + 4, schedule)
-                sha512Round(e[], f[], g[], h, a[], b[], c[], d, pair2[0])
-                sha512Round(d[], e[], f[], g, h[], a[], b[], c, pair2[1])
-
-                let pair3 = sha512SchedulePair'Extend(index + 6, schedule)
-                sha512Round(c[], d[], e[], f, g[], h[], a[], b, pair3[0])
-                sha512Round(b[], c[], d[], e, f[], g[], h[], a, pair3[1])
-            }
-
-            // The first two groups consume the original sixteen words. Each later
-            // group extends the schedule just before consuming its words.
-            compressGroup'false(0, schedule, &a, &b, &c, &d, &e, &f, &g, &h)
-            compressGroup'false(8, schedule, &a, &b, &c, &d, &e, &f, &g, &h)
-            compressGroup'true(16, schedule, &a, &b, &c, &d, &e, &f, &g, &h)
-            compressGroup'true(24, schedule, &a, &b, &c, &d, &e, &f, &g, &h)
-            compressGroup'true(32, schedule, &a, &b, &c, &d, &e, &f, &g, &h)
-            compressGroup'true(40, schedule, &a, &b, &c, &d, &e, &f, &g, &h)
-            compressGroup'true(48, schedule, &a, &b, &c, &d, &e, &f, &g, &h)
-            compressGroup'true(56, schedule, &a, &b, &c, &d, &e, &f, &g, &h)
-            compressGroup'true(64, schedule, &a, &b, &c, &d, &e, &f, &g, &h)
-            compressGroup'true(72, schedule, &a, &b, &c, &d, &e, &f, &g, &h)
-
-            .state[0]     += a
-            .state[1]     += b
-            .state[2]     += c
-            .state[3]     += d
-            .state[4]     += e
-            .state[5]     += f
-            .state[6]     += g
-            .state[7]     += h
-            .bitLengthLow += Sha512BlockSize * 8
-            if .bitLengthLow < Sha512BlockSize * 8 do
-                .bitLengthHigh += 1
+        .state[0]     += a
+        .state[1]     += b
+        .state[2]     += c
+        .state[3]     += d
+        .state[4]     += e
+        .state[5]     += f
+        .state[6]     += g
+        .state[7]     += h
+        .dataLength   = 0
+        .bitLengthLow += Sha512BlockSize * 8
+        if .bitLengthLow < Sha512BlockSize * 8
+        {
+            .bitLengthHigh += 1
         }
     }
 }
@@ -329,8 +306,11 @@ public impl Sha512
     // Includes `data` in the running digest.
     mtd update(data: const [..] u8)
     {
-        if not .core.digestSize do
+        if not .core.digestSize
+        {
             .reset()
+        }
+
         .core.update(data)
     }
 
@@ -340,8 +320,11 @@ public impl Sha512
     // Finalizes the current sequence and returns its 512-bit digest.
     mtd finalize()->Digest
     {
-        if not .core.digestSize do
+        if not .core.digestSize
+        {
             .reset()
+        }
+
         return .core.finalize()
     }
 
@@ -388,8 +371,11 @@ public impl Sha384
     // Includes `data` in the running digest.
     mtd update(data: const [..] u8)
     {
-        if not .core.digestSize do
+        if not .core.digestSize
+        {
             .reset()
+        }
+
         .core.update(data)
     }
 
@@ -399,12 +385,18 @@ public impl Sha384
     // Finalizes the current sequence and returns its 384-bit digest.
     mtd finalize()->Digest
     {
-        if not .core.digestSize do
+        if not .core.digestSize
+        {
             .reset()
+        }
+
         let state = .core.finalize()
         var result: #returntype
-        for index in result.count do
+        for index in result.count
+        {
             result[index] = state[index]
+        }
+
         return result
     }
 
@@ -435,8 +427,11 @@ public impl Sha512_224
     // Includes `data` in the running digest.
     mtd update(data: const [..] u8)
     {
-        if not .core.digestSize do
+        if not .core.digestSize
+        {
             .reset()
+        }
+
         .core.update(data)
     }
 
@@ -446,8 +441,11 @@ public impl Sha512_224
     // Finalizes the current sequence and returns its 224-bit digest.
     mtd finalize()->Digest
     {
-        if not .core.digestSize do
+        if not .core.digestSize
+        {
             .reset()
+        }
+
         let fullDigest = .core.finalize()
         var result: #returntype
         for index in result.count
@@ -486,8 +484,11 @@ public impl Sha512_256
     // Includes `data` in the running digest.
     mtd update(data: const [..] u8)
     {
-        if not .core.digestSize do
+        if not .core.digestSize
+        {
             .reset()
+        }
+
         .core.update(data)
     }
 
@@ -497,12 +498,18 @@ public impl Sha512_256
     // Finalizes the current sequence and returns its 256-bit digest.
     mtd finalize()->Digest
     {
-        if not .core.digestSize do
+        if not .core.digestSize
+        {
             .reset()
+        }
+
         let fullDigest = .core.finalize()
         var result: #returntype
-        for index in result.count do
+        for index in result.count
+        {
             result[index] = fullDigest[index]
+        }
+
         return result
     }
 

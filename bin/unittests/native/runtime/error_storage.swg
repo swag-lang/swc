@@ -4,7 +4,7 @@ using Swag
 
 func failStoredScalar() fail
 {
-    fail 7's64
+    fail 7_s64
 }
 
 func copyStoredText(text: string)->string
@@ -48,11 +48,15 @@ func returnStoredText(text: string)->string? fail
     Swag.setContext(context)
 
     let baseline = allocator.stats().countAlloc
-    for 32 do
+    for 32
+    {
         catch failStoredScalar()
+    }
     let after32 = allocator.stats().countAlloc
-    for 32 do
+    for 32
+    {
         catch failStoredScalar()
+    }
     let after64 = allocator.stats().countAlloc
     context.errorAllocator.release()
     let afterRelease = allocator.stats().countAlloc
@@ -93,10 +97,14 @@ func returnStoredText(text: string)->string? fail
         catch failStoredText("a long retained message stored beyond the small bump buffer") as longErrorOutcome
         let longError = longErrorOutcome.value()
         context.errorAllocator.release()
-        if shortError is BaseError as error do
+        if shortError is BaseError as error
+        {
             shortValid = error.message == "short"
-        if longError is BaseError as error do
+        }
+        if longError is BaseError as error
+        {
             longValid = error.message == "a long retained message stored beyond the small bump buffer"
+        }
     }
     let afterOwners = allocator.stats().countAlloc
     Swag.setContext(previous)
@@ -124,11 +132,15 @@ func returnStoredText(text: string)->string? fail
     Swag.setContext(context)
 
     let baseline = allocator.stats().countAlloc
-    for 32 do
+    for 32
+    {
         catch failStoredText("a copied failure message larger than the configured error buffer")
+    }
     let after32 = allocator.stats().countAlloc
-    for 32 do
+    for 32
+    {
         catch failStoredText("a copied failure message larger than the configured error buffer")
+    }
     let after64 = allocator.stats().countAlloc
     Swag.setContext(previous)
     Swag.require(after32 == baseline and after64 == baseline)
@@ -223,9 +235,11 @@ func failStoredTextWithCleanup() fail
         var pairedOutcome: Swag.Error
         catch failNestedStoredText() as pairedOutcome
         let paired = pairedOutcome.value()
-        if paired is PairedStoredError as error do
+        if paired is PairedStoredError as error
+        {
             pairValid = error.message == "before the successful child" and
                         error.second == "returned from the successful child"
+        }
     }
     let afterPair = allocator.stats().countAlloc
     storedTextCleanupCount = 0
@@ -234,8 +248,10 @@ func failStoredTextWithCleanup() fail
         var originalOutcome: Swag.Error
         catch failStoredTextWithCleanup() as originalOutcome
         let original = originalOutcome.value()
-        if original is BaseError as error do
+        if original is BaseError as error
+        {
             cleanupValid = error.message == "the original failure survives cleanup"
+        }
     }
     let afterCleanup = allocator.stats().countAlloc
     context.releaseErrorStorage()
@@ -265,8 +281,10 @@ func failStoredTextWithCleanup() fail
 
     let baseline      = allocator.stats().countAlloc
     var last: string? = ""
-    for 16384 do
+    for 16384
+    {
         last = expect returnStoredText("a successful copied message")
+    }
     let valid = last == "a successful copied message"
     context.errorAllocator.release()
     let afterRelease = allocator.stats().countAlloc
@@ -304,8 +322,10 @@ func failStoredTextWithCleanup() fail
         } as transportedOutcome
         let transported = transportedOutcome.value()
         context.errorAllocator.release()
-        if transported is BaseError as error do
+        if transported is BaseError as error
+        {
             valid = error.message == "the copied parallel error retains its message"
+        }
     }
     let afterOwner = allocator.stats().countAlloc
     Swag.setContext(previous)
@@ -317,6 +337,8 @@ func failStoredTextWithCleanup() fail
 // message allocator, joins it, then re-raises and drops every generation on this thread.
 #test
 {
-    if not Swag.jit() do
+    if not Swag.jit()
+    {
         Swag.require(Swag.testErrorTransportAfterThreadExit())
+    }
 }

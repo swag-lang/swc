@@ -7,15 +7,15 @@ using Swag, Core
 // The four-hour phase-only test covers arithmetic beyond this PCM throughput window.
 func checkCaptureFilterEndurance(sourceRate: u32, driftPpm: s32)
 {
-    const OutputRate  = 48_000'u32
-    const TickRate    = 10_000_000'u64
-    const PacketCount = 6_000'u64
+    const OutputRate  = 48_000_u32
+    const TickRate    = 10_000_000_u64
+    const PacketCount = 6_000_u64
     var queue           = expect CaptureQueue.create(OutputRate, 2, 0, TickRate, blockFrames: 1_024, slots: 8, tolerance: 1)
     var feeder          = expect CaptureResampledFeeder.create(&queue, sourceRate)
     let framesPerPacket = sourceRate / 100
-    var copied: Array's16
+    var copied: Array!{s16}
     var info:   CaptureBlock
-    var deliveredEnd    = 0'u64
+    var deliveredEnd    = 0_u64
     for packet in PacketCount
     {
         let firstFrame = packet * framesPerPacket
@@ -54,7 +54,7 @@ func checkCaptureFilterEndurance(sourceRate: u32, driftPpm: s32)
 #[Swag.TestTag("stress")]
 #test
 {
-    for sourceRate in [96_000'u32, 44_100]
+    for sourceRate in [96_000_u32, 44_100]
     {
         checkCaptureFilterEndurance(sourceRate, 100)
         checkCaptureFilterEndurance(sourceRate, -100)

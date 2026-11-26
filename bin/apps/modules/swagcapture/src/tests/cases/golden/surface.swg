@@ -31,8 +31,10 @@ func testAssertLibraryMenuGolden(host: *Gui.Testing.HeadlessHost, main: *MainWnd
     var captured: bool
     host.app.sigFrame += func|host, main, button, golden, captured = &captured|(_)
     {
-        if captured[] do
+        if captured[]
+        {
             return
+        }
 
         let menu = host.capturedPopupMenu()
         Swag.require(menu != null)
@@ -58,8 +60,11 @@ func testAssertLibrarySheetGolden(host: *Gui.Testing.HeadlessHost, main: *MainWn
     host.app.sigFrame += func|host, main, golden, link, captured = &captured|(_)
     {
         let sheet = host.capturedOptionSheet()
-        if captured[] or not sheet do
+        if captured[] or not sheet
+        {
             return
+        }
+
         host.finishAnimations()
         if link
         {
@@ -85,8 +90,11 @@ func testAssertEditGolden(host: *Gui.Testing.HeadlessHost, main: *MainWnd, indic
 {
     let capture = unwrap main.getCapture()
     capture.selection.clear()
-    for i in indices do
+    for i in indices
+    {
         capture.selection.add(i)
+    }
+
     capture.selectionHasChanged()
     main.applyLayout()
     host.finishAnimations()
@@ -96,12 +104,15 @@ func testAssertEditGolden(host: *Gui.Testing.HeadlessHost, main: *MainWnd, indic
 }
 
 // Collects the colour swatches of the head of the inspector, in display order.
-internal func testCollectSwatches(wnd: *Wnd, result: *Array'(*IconButton))
+internal func testCollectSwatches(wnd: *Wnd, result: *Array!{*IconButton})
 {
     for child in wnd.children
     {
-        if child is IconButton as button where button.flags.has(.Popup) do
+        if child is IconButton as button where button.flags.has(.Popup)
+        {
             result.add(button)
+        }
+
         testCollectSwatches(child, result)
     }
 }
@@ -143,8 +154,11 @@ const LibraryGoldenTitles = ["Side panel", "Error bubble", "Swag lexer", "Dark e
     var captured: bool
     host.app.sigFrame += func|host = &host, captured = &captured|(_)
     {
-        if captured[] do
+        if captured[]
+        {
             return
+        }
+
         let menu = host.capturedPopupMenu()
         Swag.require(menu and menu.items.count > 0)
         host.finishAnimations()
@@ -180,8 +194,11 @@ const LibraryGoldenTitles = ["Side panel", "Error bubble", "Swag lexer", "Dark e
     var captured: bool
     host.app.sigFrame += func|host = &host, captured = &captured|(_)
     {
-        if captured[] do
+        if captured[]
+        {
             return
+        }
+
         Swag.require(host.openPopupSubMenu(appStrings().ui_MenuFile))
         host.finishAnimations()
         var image = host.render(&host.surfaceWnd)
@@ -212,8 +229,11 @@ const LibraryGoldenTitles = ["Side panel", "Error bubble", "Swag lexer", "Dark e
     var captured: bool
     host.app.sigFrame += func|host = &host, captured = &captured|(_)
     {
-        if captured[] do
+        if captured[]
+        {
             return
+        }
+
         Swag.require(host.openPopupSubMenu(appStrings().ui_MenuCapture))
         host.finishAnimations()
         var image = host.render(&host.surfaceWnd)
@@ -244,8 +264,11 @@ const LibraryGoldenTitles = ["Side panel", "Error bubble", "Swag lexer", "Dark e
     var captured: bool
     host.app.sigFrame += func|host = &host, captured = &captured|(_)
     {
-        if captured[] do
+        if captured[]
+        {
             return
+        }
+
         Swag.require(host.openPopupSubMenu(appStrings().ui_MenuCapture))
         Swag.require(host.openPopupSubMenu(appStrings().act_DelayBefore))
         host.finishAnimations()
@@ -277,8 +300,11 @@ const LibraryGoldenTitles = ["Side panel", "Error bubble", "Swag lexer", "Dark e
     var captured: bool
     host.app.sigFrame += func|host = &host, captured = &captured|(_)
     {
-        if captured[] do
+        if captured[]
+        {
             return
+        }
+
         Swag.require(host.openPopupSubMenu(appStrings().ui_MenuImage))
         host.finishAnimations()
         var image = host.render(&host.surfaceWnd)
@@ -309,8 +335,11 @@ const LibraryGoldenTitles = ["Side panel", "Error bubble", "Swag lexer", "Dark e
     var captured: bool
     host.app.sigFrame += func|host = &host, captured = &captured|(_)
     {
-        if captured[] do
+        if captured[]
+        {
             return
+        }
+
         Swag.require(host.openPopupSubMenu(appStrings().ui_MenuView))
         host.finishAnimations()
         var image = host.render(&host.surfaceWnd)
@@ -341,8 +370,11 @@ const LibraryGoldenTitles = ["Side panel", "Error bubble", "Swag lexer", "Dark e
     var captured: bool
     host.app.sigFrame += func|host = &host, captured = &captured|(_)
     {
-        if captured[] do
+        if captured[]
+        {
             return
+        }
+
         Swag.require(host.openPopupSubMenu(Gui.strings().lens_Application))
         Swag.require(host.openPopupSubMenu(Gui.strings().appearance_Theme))
         host.finishAnimations()
@@ -374,8 +406,11 @@ const LibraryGoldenTitles = ["Side panel", "Error bubble", "Swag lexer", "Dark e
     var captured: bool
     host.app.sigFrame += func|host = &host, captured = &captured|(_)
     {
-        if captured[] do
+        if captured[]
+        {
             return
+        }
+
         Swag.require(host.openPopupSubMenu(Gui.strings().lens_Application))
         Swag.require(host.openPopupSubMenu(Gui.strings().appearance_Language))
         host.finishAnimations()
@@ -408,8 +443,11 @@ const LibraryGoldenTitles = ["Side panel", "Error bubble", "Swag lexer", "Dark e
     var captured: bool
     host.app.sigFrame += func|host = &host, main, captured = &captured|(_)
     {
-        if captured[] do
+        if captured[]
+        {
             return
+        }
+
         Swag.require(host.capturedPopupMenu() != null)
         var image = host.render(main)
         Pixel.Testing.assertImageGolden(&image, "edit.context-menu")
@@ -451,8 +489,11 @@ const LibraryGoldenTitles = ["Side panel", "Error bubble", "Swag lexer", "Dark e
     // A test run sees no installed font, and a picture must not list the fonts of the machine
     // that recorded it: the families offered are named here, enough of them to scroll.
     g_MiniBarFonts.clear()
-    for index in 24 do
+    for index in 24
+    {
         g_MiniBarFonts.add(Pixel.SystemFontFamilyInfo{name: Format.toString("Test Family %{02}", index + 1)})
+    }
+
     defer g_MiniBarFonts.clear()
 
     var host: Gui.Testing.HeadlessHost
@@ -653,8 +694,10 @@ const LibraryGoldenTitles = ["Side panel", "Error bubble", "Swag lexer", "Dark e
     capture.backImg.fillGradient(Color.fromArgb(0xFFF2E9DF), Color.fromArgb(0xFF4E79B4), Color.fromArgb(0xFFD5745A), Color.fromArgb(0xFF2A436D))
     capture.backImg.visitPixels()
     {
-        if x >= 80 and x < 320 and y >= 98 and y < 146 and x % 28 < 18 and y % 16 < 6 do
+        if x >= 80 and x < 320 and y >= 98 and y < 146 and x % 28 < 18 and y % 16 < 6
+        {
             cast(*u32, pix)[] = Color.fromArgb(0xFF233049).argb
+        }
     }
 
     let mask = testAddImage(capture, 60, 80, 280, 40)
@@ -693,7 +736,7 @@ const LibraryGoldenTitles = ["Side panel", "Error bubble", "Swag lexer", "Dark e
     main.applyLayout()
     host.finishAnimations()
 
-    var swatches: Array'(*IconButton)
+    var swatches: Array!{*IconButton}
     testCollectSwatches(main.propWnd.topLayout, &swatches)
     Swag.require(not swatches.isEmpty())
     swatches[0].sigPopupRequested.call(swatches[0])
@@ -749,8 +792,11 @@ const LibraryGoldenTitles = ["Side panel", "Error bubble", "Swag lexer", "Dark e
     var captured: bool
     host.app.sigFrame += func|host = &host, captured = &captured|(_)
     {
-        if captured[] do
+        if captured[]
+        {
             return
+        }
+
         Swag.require(host.capturedPopupMenu() != null)
         host.finishAnimations()
         var image = host.render(&host.surfaceWnd)
@@ -907,9 +953,12 @@ const LibraryGoldenTitles = ["Side panel", "Error bubble", "Swag lexer", "Dark e
     Swag.require(main.libWnd.header.surfaceRect().y >= main.libWnd.surfaceRect().y + main.libWnd.stripInset())
 
     var image = host.render(main)
-    for item in lib.view.items do
+    for item in lib.view.items
+    {
         Swag.require(item.rect.right() <= lib.view.paddedClientRect().right() + 0.5,
                      "a library thumbnail overlaps the scrollbar gutter")
+    }
+
     Pixel.Testing.assertImageGolden(&image, "library.surface")
 }
 
@@ -932,7 +981,7 @@ const LibraryGoldenTitles = ["Side panel", "Error bubble", "Swag lexer", "Dark e
     main.libWnd.view.focusItem = 0
     main.lens.open()
     var ratingRow = Swag.U64.Max
-    var steps     = 0'u64
+    var steps     = 0_u64
     for row, index in main.lens.rows
     {
         if row.entry == Lens.InlineRow and row.section.label == appStrings().act_Rating
@@ -941,19 +990,27 @@ const LibraryGoldenTitles = ["Side panel", "Error bubble", "Swag lexer", "Dark e
             break
         }
 
-        if row.entry == Lens.InlineRow or row.entry < row.section.entries.count do
+        if row.entry == Lens.InlineRow or row.entry < row.section.entries.count
+        {
             steps += 1
+        }
     }
 
     Swag.require(ratingRow != Swag.U64.Max)
-    for steps do
+    for steps
+    {
         host.keyPress(.Down)
+    }
+
     Swag.require(main.lens.chosen == ratingRow)
     host.finishAnimations()
 
     var rating: *Lens.Section?
-    for section in main.lens.results.sections where section and section.label == appStrings().act_Rating do
+    for section in main.lens.results.sections where section and section.label == appStrings().act_Rating
+    {
         rating = section
+    }
+
     Swag.require(rating and rating.entries[3].paint != null)
 
     var image = host.render(main)
@@ -1046,7 +1103,7 @@ const LibraryGoldenTitles = ["Side panel", "Error bubble", "Swag lexer", "Dark e
     const Pad        = 24.0
     let metrics    = main.themeMetrics()
     let strip      = 6 * QuickChipWidth
-    with let panel = Wnd.create'Wnd(main, null, {0, 0, 1024, 640})
+    with let panel = Wnd.create!{Wnd}(main, null, {0, 0, 1024, 640})
     {
         .backgroundStyle = .Window
     }
@@ -1068,8 +1125,11 @@ const LibraryGoldenTitles = ["Side panel", "Error bubble", "Swag lexer", "Dark e
         quick.setPosition(Math.Rectangle{x + LabelWidth, y, strip, QuickChipHeight})
         quick.updateQuickStyles(forceRebuild: true)
         Swag.require(quick.layout.children.count > 1)
-        if mode == .Shape do
+        if mode == .Shape
+        {
             hoverCell = quick.rowCells()[0]
+        }
+
         Label.create(panel, mode.name(), Math.Rectangle{x, y, LabelWidth, QuickChipHeight}, flags: .SecondaryText)
         y += quick.position.height + metrics.inspector_RowGap
         Swag.require(y <= panel.position.height)
@@ -1206,8 +1266,10 @@ const LibraryGoldenTitles = ["Side panel", "Error bubble", "Swag lexer", "Dark e
             // Keep a visible landmark at each end of the panoramic capture.
             preview.visitPixels()
             {
-                if x < 100 or x >= 856 do
+                if x < 100 or x >= 856
+                {
                     cast(*u32, pix)[] = x < 100 ? 0xFF3A6EA5 : 0xFFB0532B
+                }
             }
         }
 

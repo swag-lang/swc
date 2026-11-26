@@ -16,8 +16,14 @@ func mul16(a, b, c, flag: u16)->u16 => flag != 0 ? a * b : a * c
 
 #test
 {
-    let values = [0'u16, 1, 7, 0x7FFF, 0x8000, 0xFFFF]
-    for a in values do for b in values do for c in values do for flag in values
+    let values = [0_u16, 1, 7, 0x7FFF, 0x8000, 0xFFFF]
+    for a in values
+    {
+        for b in values
+        {
+            for c in values
+            {
+                for flag in values
                 {
                     let selected = flag != 0 ? b : c
                     Swag.require(add16(a, b, c, flag) == a + selected)
@@ -27,4 +33,7 @@ func mul16(a, b, c, flag: u16)->u16 => flag != 0 ? a * b : a * c
                     Swag.require(or16(a, b, c, flag) == (a | selected))
                     Swag.require(mul16(a, b, c, flag) == a * selected)
                 }
+            }
+        }
+    }
 }

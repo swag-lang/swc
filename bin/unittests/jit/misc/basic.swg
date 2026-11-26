@@ -7,7 +7,7 @@ struct S
 
 #test
 {
-    const V = #run 100's32 + 23's32
+    const V = #run 100_s32 + 23_s32
     #assert(V == 123)
 }
 
@@ -24,14 +24,14 @@ struct S
 
 #test
 {
-    const V = #run 40's32 + 2's32
+    const V = #run 40_s32 + 2_s32
     #assert(#typeof(V) == s32)
     #assert(V == 42)
 }
 
 #test
 {
-    const V = #run 40's32 + 2's32
+    const V = #run 40_s32 + 2_s32
     #assert(V == 0)     // swc-expected-error {{sema_err_compiler_assert}}
 }
 
@@ -102,10 +102,10 @@ struct S
 
 #test
 {
-    func localRun()->s64 { return 42's64 }
+    func localRun()->s64 { return 42_s64 }
     const V = #run localRun()
     #assert(#typeof(V) == s64)
-    #assert(V == 42's64)
+    #assert(V == 42_s64)
 }
 
 #test
@@ -118,5 +118,5 @@ struct S
 {
     const V = #run cast(s64, (40 + 2))
     #assert(#typeof(V) == s64)
-    #assert(V == 42's64)
+    #assert(V == 42_s64)
 }

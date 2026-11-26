@@ -12,7 +12,7 @@ private struct ImageLink
 // Embedded images are resolved through document relationships, never through network URLs.
 struct ImageCatalog
 {
-    links:        Array'ImageLink
+    links:        Array!{ImageLink}
     fileName:     string = ""
     archive:      const *Archive.Zip?
     encodedBytes: u64
@@ -24,63 +24,103 @@ impl ImageCatalog
     {
         var result = ImageCatalog{fileName: fileName, archive: archive}
         let entry  = archive.tryFindEntry(relationsPath)
-        if not entry do
+        if not entry
+        {
             return result
-        if entry.uncompressedSize > 1024 * 1024 do
+        }
+
+        if entry.uncompressedSize > 1024 * 1024
+        {
             fail Errors.UnsupportedFormatError{tooLargeMessage}
+        }
+
         let bytes = try Archive.Zip.loadEntry(fileName, entry)
         var scan  = Package.Scanner.create(cast(string, bytes.toSlice()))
         var token: Package.Token
         while scan.next(&token)
         {
-            if token.kind != .Start or not token.isElement("Relationship") do
+            if token.kind != .Start or not token.isElement("Relationship")
+            {
                 continue
+            }
+
             let kind = token.attribute("Type") orelse ""
-            if not Utf8.contains(kind, "/image") or token.attribute("TargetMode") == "External" do
+            if not Utf8.contains(kind, "/image") or token.attribute("TargetMode") == "External"
+            {
                 continue
+            }
+
             let id     = token.attribute("Id") orelse ""
             let target = token.attribute("Target") orelse ""
             let path   = resolveRelationshipTarget(baseDirectory, target)
-            if id.count and not path.isEmpty() do
+            if id.count and not path.isEmpty()
+            {
                 result.links.add(ImageLink{String.from(id), path})
-            if result.links.count > 1024 do
+            }
+
+            if result.links.count > 1024
+            {
                 fail Errors.UnsupportedFormatError{tooLargeMessage}
+            }
         }
 
-        if scan.damaged do
+        if scan.damaged
+        {
             fail Errors.InvalidFormatError{invalidMessage}
+        }
+
         return result
     }
 
     // Produces a self-contained image only after a bounded metadata decode succeeds.
     internal mtd html(id: string, width, height: u32, description: string)->String
     {
-        if not id.count or .archive == null do
+        if not id.count or .archive == null
+        {
             return {}
+        }
+
         for &link in .links where link.id == id
         {
             let path      = link.path.toString()
             let extension = Path.lowercaseExtension(path)
             var mediaType: string
-            if extension == ".png" do
+            if extension == ".png"
+            {
                 mediaType = "image/png"
-            elif extension == ".jpg" or extension == ".jpeg" do
+            }
+            else if extension == ".jpg" or extension == ".jpeg"
+            {
                 mediaType = "image/jpeg"
-            elif extension == ".gif" do
+            }
+            else if extension == ".gif"
+            {
                 mediaType = "image/gif"
-            elif extension == ".webp" do
+            }
+            else if extension == ".webp"
+            {
                 mediaType = "image/webp"
-            else do
+            }
+            else
+            {
                 return {}
+            }
+
             let entry = .archive.tryFindEntry(path)
             if not entry or
                entry.uncompressedSize > 2 * 1024 * 1024 or
-               .encodedBytes + entry.uncompressedSize > 8 * 1024 * 1024 do
+               .encodedBytes + entry.uncompressedSize > 8 * 1024 * 1024
+            {
                 return {}
+            }
+
             let bytes  = catch Archive.Zip.loadEntry(.fileName, entry) { return {} }
             let result = embeddedImageHtml(bytes.toSlice(), mediaType, width, height, description)
-            if not result.isEmpty() do
+            if not result.isEmpty()
+            {
                 .encodedBytes += bytes.count
+            }
+
             return result
         }
 

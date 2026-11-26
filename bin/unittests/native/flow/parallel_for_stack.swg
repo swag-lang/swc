@@ -2,13 +2,17 @@
 
 func nestedParallelStack(depth: u64)->u64
 {
-    var location = 0'u64
+    var location = 0_u64
     parallel for |&location, depth| 1
     {
-        if depth == 0 do
+        if depth == 0
+        {
             location = cast(u64, &location)
-        else do
+        }
+        else
+        {
             location = nestedParallelStack(depth - 1)
+        }
     }
     return location
 }
@@ -17,10 +21,12 @@ func nestedParallelStack(depth: u64)->u64
 // measure native stack use without dereferencing returned addresses or asserting a duration.
 #test
 {
-    if Swag.jit() do
+    if Swag.jit()
+    {
         return
+    }
 
-    var marker   = 0'u64
+    var marker   = 0_u64
     let anchor   = cast(u64, &marker)
     let leaf     = nestedParallelStack(16)
     let distance = anchor > leaf ? anchor - leaf : leaf - anchor

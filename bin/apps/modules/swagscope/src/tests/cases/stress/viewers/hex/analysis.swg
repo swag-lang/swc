@@ -3,7 +3,7 @@
 
 using Core, Gui.Testing
 
-const RepeatedTestBlockSize = 64 * 1024'u64
+const RepeatedTestBlockSize = 64 * 1024_u64
 
 // Duplicate findings stay capped while the rest of the analysis reaches the end of the range.
 #[Swag.TestTag("stress")]
@@ -12,11 +12,14 @@ const RepeatedTestBlockSize = 64 * 1024'u64
     let fileName = Testing.tempFilePath("scope-hex-repeat-pair-cap-", ".bin")
     defer discard catch File.delete(fileName)
 
-    const BlockCount = 258'u64
-    var payload: Array'u8
+    const BlockCount = 258_u64
+    var payload: Array!{u8}
     payload.resize(RepeatedTestBlockSize * BlockCount)
-    for index in payload.count do
+    for index in payload.count
+    {
         payload[index] = 0xA5
+    }
+
     expect File.writeAllBytes(fileName, payload.toSlice())
 
     let result = Viewers.Hex.analyzeRange(fileName, Viewers.Hex.AnalysisRange{0, payload.count})
@@ -35,17 +38,21 @@ const RepeatedTestBlockSize = 64 * 1024'u64
     let fileName = Testing.tempFilePath("scope-hex-repeat-representative-cap-", ".bin")
     defer discard catch File.delete(fileName)
 
-    const BlockCount = 257'u64
-    var payload: Array'u8
+    const BlockCount = 257_u64
+    var payload: Array!{u8}
     payload.resize(RepeatedTestBlockSize * BlockCount)
     for blockIndex in BlockCount
     {
         let offset = blockIndex * RepeatedTestBlockSize
-        for byteIndex in RepeatedTestBlockSize do
+        for byteIndex in RepeatedTestBlockSize
+        {
             payload[offset + byteIndex] = 0xA5
-        payload[offset] = cast(u8, blockIndex)
+        }
+
+        payload[offset]     = cast(u8, blockIndex)
         payload[offset + 1] = cast(u8, blockIndex >> 8)
     }
+
     expect File.writeAllBytes(fileName, payload.toSlice())
 
     let result = Viewers.Hex.analyzeRange(fileName, Viewers.Hex.AnalysisRange{0, payload.count})

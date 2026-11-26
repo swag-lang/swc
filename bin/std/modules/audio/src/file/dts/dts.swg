@@ -10,55 +10,39 @@ using Core, Core.Errors
 
 // Bytes the core frame header spans in its widest packing, fourteen bits per word, which is
 // what the walk peeks at each frame.
-private const HeaderBytes = 18'u64
+private const HeaderBytes = 18_u64
 
 internal func openElementaryStream(path: string)->SoundFile fail
 {
     var source    = try ByteSource.openFile(path)
     let fileBytes = source.size()
 
-    var packets:     Array'SoundPacket
-    var byteOffset   = 0'u64
-    var totalFrames  = 0'u64
-    var sampleRate   = 0'u32
-    var channelCount = 0'u32
-    var speakerMask  = 0'u32
-    var window:      const [..] u8 = []
-    var windowStart:    u64
-    var previousHeader: [HeaderBytes] u8
-    var previousSize:   u64
-    var info:           FrameInfo
+    var packets: Array!{SoundPacket}
+    var byteOffset   = 0_u64
+    var totalFrames  = 0_u64
+    var sampleRate   = 0_u32
+    var channelCount = 0_u32
+    var speakerMask  = 0_u32
 
     for
     {
-        if byteOffset > fileBytes do
-            break
-        if fileBytes - byteOffset < 16 do
-            break
-
-        // Walk the borrowed read-ahead window until a header crosses its end.
-        let headerSize = Math.min(HeaderBytes, fileBytes - byteOffset)
-        if byteOffset - windowStart + headerSize > window.count
+        if byteOffset > fileBytes
         {
-            try source.seek(byteOffset)
-            window      = try source.peek(headerSize)
-            windowStart = byteOffset
+            break
         }
 
-        let headerOffset = byteOffset - windowStart
-        let header       = window[headerOffset until headerOffset + headerSize]
-
-        // Repeated core headers carry the same decoded dimensions and packet size.
-        // Own the previous bytes so a window refill cannot invalidate the comparison.
-        if headerSize != previousSize or Memory.compare(header.buffer, &previousHeader[0], headerSize) != 0
+        if fileBytes - byteOffset < 16
         {
-            info = try frameInfo(header)
-            Memory.copy(&previousHeader[0], header.buffer, headerSize)
-            previousSize = headerSize
+            break
         }
 
-        if not info.frameBytes or info.frameBytes > fileBytes - byteOffset do
+        try source.seek(byteOffset)
+        let probe = try source.peek(Math.min(HeaderBytes, fileBytes - byteOffset))
+        let info  = try frameInfo(probe)
+        if not info.frameBytes or info.frameBytes > fileBytes - byteOffset
+        {
             break
+        }
 
         if not packets.count
         {
@@ -66,30 +50,41 @@ internal func openElementaryStream(path: string)->SoundFile fail
             channelCount = info.channels
             speakerMask  = info.speakerMask
         }
-        elif info.sampleRate != sampleRate or
-             info.channels != channelCount or
-             info.speakerMask != speakerMask
+        else if info.sampleRate != sampleRate or
+                info.channels != channelCount or
+                info.speakerMask != speakerMask
         {
             break
         }
 
-        if info.frameBytes > Swag.U32.Max do
+        if info.frameBytes > Swag.U32.Max
+        {
             fail InvalidFormatError{"DTS core frame is larger than a packet may be"}
+        }
+
         packets.add(SoundPacket{byteOffset, cast(u32, info.frameBytes), info.frames})
         let frameCount = cast(u64, info.frames)
-        if totalFrames > Swag.U64.Max - frameCount do
+        if totalFrames > Swag.U64.Max - frameCount
+        {
             fail OverflowError{"DTS stream sample count overflows"}
+        }
+
         totalFrames += frameCount
         byteOffset  += info.frameBytes
     }
 
-    if not packets.count do
+    if not packets.count
+    {
         fail InvalidFormatError{"file carries no DTS core frame"}
-    if byteOffset != fileBytes do
+    }
+
+    if byteOffset != fileBytes
+    {
         fail InvalidFormatError{"DTS elementary stream ends between core frames"}
+    }
 
     source.close()
-    var config: Array'u8
+    var config: Array!{u8}
     return try SoundFile.openPacketStream(path,
                                           .Dts,
                                           sampleRate,

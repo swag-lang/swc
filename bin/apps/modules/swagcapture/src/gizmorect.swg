@@ -69,11 +69,15 @@ impl GizmoRect
         {
             // The top-left and bottom-right corners grow both ways at once, the others one
             // against the other.
-            let sign = (edges == .Left | .Top or edges == .Right | .Bottom) ? 1'f32 : -1
-            if Math.abs(delta.x) > Math.abs(delta.y) do
+            let sign = (edges == .Left | .Top or edges == .Right | .Bottom) ? 1_f32 : -1
+            if Math.abs(delta.x) > Math.abs(delta.y)
+            {
                 delta.y = sign * delta.x
-            else do
+            }
+            else
+            {
                 delta.x = sign * delta.y
+            }
         }
 
         if edges & .Left
@@ -88,10 +92,15 @@ impl GizmoRect
             .movingRect.height = .startRect.bottom() - .movingRect.y
         }
 
-        if edges & .Right do
+        if edges & .Right
+        {
             .movingRect.width = Math.max(.movingRect.width + delta.x, .minSizeX)
-        if edges & .Bottom do
+        }
+
+        if edges & .Bottom
+        {
             .movingRect.height = Math.max(.movingRect.height + delta.y, .minSizeY)
+        }
     }
 
     // Moves, resizes, or rotates the box from the anchor or handle under the mouse, and returns
@@ -110,8 +119,11 @@ impl GizmoRect
             return .drag(view, pos, evt)
 
         case .Leave:
-            if .hotAnchor == Swag.U32.Max do
+            if .hotAnchor == Swag.U32.Max
+            {
                 return false
+            }
+
             .hotAnchor = Swag.U32.Max
             return true
 
@@ -125,10 +137,16 @@ impl GizmoRect
     // Starts a rotation from the handle, or a move or resize from the anchor, under `pos`.
     mtd press(view: *EditView, pos: Math.Point, evt: *MouseEvent)->bool
     {
-        if .moving or .rotating do
+        if .moving or .rotating
+        {
             return true
-        if evt.button != .Left do
+        }
+
+        if evt.button != .Left
+        {
             return false
+        }
+
         if .rotateEnabled and .rotateAnchor.contains(.toLocal(pos))
         {
             .rotating         = true
@@ -139,8 +157,11 @@ impl GizmoRect
             return true
         }
 
-        if .hotAnchor == Swag.U32.Max do
+        if .hotAnchor == Swag.U32.Max
+        {
             return false
+        }
+
         .moving, .firstMoving = true
         .gizmoRad    = .gizmoAngleRad()
         .gizmoCenter = Math.Point{.rect.horzCenter(), .rect.vertCenter()}
@@ -177,10 +198,15 @@ impl GizmoRect
                 // Only commit if a rotation actually happened (mouse moved)
                 if not .firstRotating
                 {
-                    if .sigRotate do
+                    if .sigRotate
+                    {
                         .sigRotate(me, false, true, .rotateValue)
-                    if .sigHasChanged do
+                    }
+
+                    if .sigHasChanged
+                    {
                         .sigHasChanged()
+                    }
                 }
             }
 
@@ -194,10 +220,15 @@ impl GizmoRect
                 .moving, .firstMoving = false
                 .hotAnchor = Swag.U32.Max
                 view.releaseMouse()
-                if not .trackChange and .sigChanged do
+                if not .trackChange and .sigChanged
+                {
                     .sigChanged(me, false, .Zero)
-                if .sigHasChanged do
+                }
+
+                if .sigHasChanged
+                {
                     .sigHasChanged()
+                }
             }
 
             return true
@@ -213,18 +244,28 @@ impl GizmoRect
         if .rotating
         {
             var deg = .rotateStartValue + (.computeRotate(pos) - .rotateStartAngle)
-            while deg < 0 do
+            while deg < 0
+            {
                 deg += 360
-            while deg >= 360 do
+            }
+
+            while deg >= 360
+            {
                 deg -= 360
+            }
 
             // Snap to 15° steps while Shift is held
-            if evt.modifiers & .Shift do
+            if evt.modifiers & .Shift
+            {
                 deg = Math.round(deg / 15) * 15
+            }
 
             .rotateValue = deg
-            if .sigRotate do
+            if .sigRotate
+            {
                 .sigRotate(me, .firstRotating, false, deg)
+            }
+
             .firstRotating = false
 
             view.app().setFrameCursor(Cursor.from(.Hand))
@@ -234,22 +275,29 @@ impl GizmoRect
         if .moving
         {
             let keepRatio = (evt.modifiers & .Shift) and not (evt.modifiers & .Control)
-            if .firstMoving and .sigChanged and .trackChange do
+            if .firstMoving and .sigChanged and .trackChange
+            {
                 .sigChanged(me, true, .Zero)
+            }
+
             .firstMoving = false
 
             var diff = pos - .movingStart
             .movingStart = pos
 
             // Express the drag in the box's own (rotated) axes
-            if .gizmoRad != 0 do
+            if .gizmoRad != 0
+            {
                 diff = GizmoRect.rotateVec(diff, -.gizmoRad)
+            }
 
             // A `Leave` drops the hot handle in the middle of a drag; the box then stays put.
             let edges = .hotAnchor < AnchorEdges.count ? AnchorEdges[.hotAnchor] : .Zero
             .resizeFrom(edges, diff, keepRatio)
-            if .trackChange and .sigChanged do
+            if .trackChange and .sigChanged
+            {
                 .sigChanged(me, false, edges)
+            }
         }
         else
         {
@@ -264,8 +312,10 @@ impl GizmoRect
             .rotateHot = .rotateEnabled and .hotAnchor == Swag.U32.Max and .rotateAnchor.contains(lp)
         }
 
-        if .hotAnchor < AnchorCursors.count do
+        if .hotAnchor < AnchorCursors.count
+        {
             view.app().setFrameCursor(Cursor.from(AnchorCursors[.hotAnchor]))
+        }
 
         if .rotateHot
         {
@@ -283,16 +333,22 @@ impl GizmoRect
         let dx  = pos.x - .rect.horzCenter()
         let dy  = pos.y - .rect.vertCenter()
         var deg = Math.toDegrees(Math.atan2(dx, -dy))
-        if deg < 0 do
+        if deg < 0
+        {
             deg += 360
+        }
+
         return deg
     }
 
     // Current gizmo rotation in radians (0 when the form is not rotated)
     mtd gizmoAngleRad()->f32
     {
-        if not .rotateEnabled or Math.isZeroEpsilon(.rotateValue) do
+        if not .rotateEnabled or Math.isZeroEpsilon(.rotateValue)
+        {
             return 0
+        }
+
         return Math.toRadians(.rotateValue)
     }
 
@@ -309,8 +365,11 @@ impl GizmoRect
     mtd toLocal(pos: Math.Point)->Math.Point
     {
         let ang = .gizmoAngleRad()
-        if ang == 0 do
+        if ang == 0
+        {
             return pos
+        }
+
         let cx = .rect.horzCenter()
         let cy = .rect.vertCenter()
         let r  = GizmoRect.rotateVec(Math.Point{pos.x - cx, pos.y - cy}, -ang)
@@ -355,15 +414,19 @@ impl GizmoRect
             painter.rotateTransform(ang, sc.x, sc.y)
         }
 
-        if .moving and not .trackChange do
+        if .moving and not .trackChange
+        {
             painter.drawRect(.movingRect, Pen.createDash(.Dot, color, 1))
+        }
 
         if not hot
         {
             // A form is framed by a hairline in the ink; the capture's own edge needs none, since
             // the picture ends there.
-            if .paintBorder do
+            if .paintBorder
+            {
                 painter.drawRect(.rect, col, 1)
+            }
         }
 
         .placeAnchors()
@@ -397,8 +460,10 @@ impl GizmoRect
             paintSelectionHandle(painter, cx, handleY, anchorSize2, col, .rotateHot)
         }
 
-        if ang != 0 do
+        if ang != 0
+        {
             painter.popTransform()
+        }
     }
 
     // Applies the current drag to `iform` as one undo step that replaces the previous step of the
@@ -408,8 +473,11 @@ impl GizmoRect
         let capture = unwrap iform.capture
         let oldRect = iform.boundRect()
         capture.interactiveMove = true
-        if not first do
+        if not first
+        {
             capture.undo()
+        }
+
         let undo = capture.newUndo(.MoveBaseForm)
         undo.baseForm = iform
         let zoom = capture.editView!.zoom
@@ -444,24 +512,39 @@ impl GizmoRect
         let dy = cast(s32, ((.movingRect.y - .startRect.y) / zoom))
         undo.newPosX = dx
         undo.newPosY = dy
-        if edges & .Left do
+        if edges & .Left
+        {
             capture.snap(&undo.newPosX, null, false, false)
-        if edges & .Top do
+        }
+
+        if edges & .Top
+        {
             capture.snap(null, &undo.newPosY, false, false)
+        }
 
         let dsx = cast(s32, ((.movingRect.width - .startRect.width) / zoom))
         let dsy = cast(s32, ((.movingRect.height - .startRect.height) / zoom))
         undo.newSizeX = dsx
         undo.newSizeY = dsy
-        if edges & .Right do
+        if edges & .Right
+        {
             capture.snap(&undo.newSizeX, null, true, true)
-        if edges & .Bottom do
-            capture.snap(null, &undo.newSizeY, true, true)
+        }
 
-        if edges & .Left do
+        if edges & .Bottom
+        {
+            capture.snap(null, &undo.newSizeY, true, true)
+        }
+
+        if edges & .Left
+        {
             undo.newSizeX -= (undo.newPosX - dx)
-        if edges & .Top do
+        }
+
+        if edges & .Top
+        {
             undo.newSizeY -= (undo.newPosY - dy)
+        }
 
         capture.pushUndo(undo)
         capture.invalidateAfterMove(iform, oldRect)
@@ -490,8 +573,10 @@ impl GizmoRect
     mtd applyRotate(iform: IForm, first, last: bool, angle: f32)
     {
         let capture = unwrap iform.capture
-        if not first do
+        if not first
+        {
             capture.undo()
+        }
 
         with let undo = capture.newUndo(.SetTypedValue)
         {
@@ -502,10 +587,16 @@ impl GizmoRect
         capture.pushUndo(undo)
 
         let main = capture.editView!.main
-        if main.quickWnd != null do
+        if main.quickWnd != null
+        {
             main.quickWnd.updateSelection()
-        if last and (main.propWnd != null) do
+        }
+
+        if last and (main.propWnd != null)
+        {
             main.propWnd.selectionHasChanged()
+        }
+
         main.editWnd.invalidate()
     }
 }

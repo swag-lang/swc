@@ -8,13 +8,15 @@ using Swag
 {
     const Count = AllocatorArenaSize / AllocatorSegmentSize + 1
     var segments: [Count] (*AllocatorSegment?)
-    var owner = 0'u64
+    var owner = 0_u64
     defer
     {
         for segment in segments
         {
-            if segment do
+            if segment
+            {
                 allocatorReleaseSegment(segment)
+            }
         }
     }
 
@@ -26,8 +28,10 @@ using Swag
         let base = cast(u64, segment)
         Swag.require(allocatorPageOf(base + AllocatorSegmentHeaderBytes) == &segment.pages[0])
         Swag.require(allocatorPageOf(base + AllocatorSegmentSize - 1) == &segment.pages[segment.pageCount - 1])
-        for unit in AllocatorUnitsPerSegment do
+        for unit in AllocatorUnitsPerSegment
+        {
             Swag.require(allocatorPageOf(base + cast(u64, unit) * AllocatorPageSize) == &segment.pages[unit >> shift])
+        }
     }
 
     Swag.require(allocatorPageOf(0) == null)
@@ -37,7 +41,7 @@ using Swag
     allocator.setup()
     defer allocator.releaseAll()
     let itf: IAllocator = &allocator
-    for size in [24'u64, 60000]
+    for size in [24_u64, 60000]
     {
         var request: AllocatorRequest
         request.size = size

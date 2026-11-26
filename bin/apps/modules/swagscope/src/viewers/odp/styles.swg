@@ -22,41 +22,74 @@ private impl Paint
 {
     internal mtd overlay(other: const *Paint)
     {
-        if other.mask & 1 do
+        if other.mask & 1
+        {
             .fill = other.fill
-        if other.mask & 2 do
+        }
+
+        if other.mask & 2
+        {
             .line = other.line
-        if other.mask & 4 do
+        }
+
+        if other.mask & 4
+        {
             .lineWidth = other.lineWidth
-        for index in 4 where other.mask & (8'u32 << index) do
+        }
+
+        for index in 4 where other.mask & (8_u32 << index)
+        {
             .inset[index] = other.inset[index]
-        if other.centered != .Inherit do
+        }
+
+        if other.centered != .Inherit
+        {
             .centered = other.centered
-        if other.showMaster != .Inherit do
+        }
+
+        if other.showMaster != .Inherit
+        {
             .showMaster = other.showMaster
-        if other.showBackground != .Inherit do
+        }
+
+        if other.showBackground != .Inherit
+        {
             .showBackground = other.showBackground
-        if other.fillEnabled != .Inherit do
+        }
+
+        if other.fillEnabled != .Inherit
+        {
             .fillEnabled = other.fillEnabled
-        if other.lineEnabled != .Inherit do
+        }
+
+        if other.lineEnabled != .Inherit
+        {
             .lineEnabled = other.lineEnabled
+        }
+
         .mask    |= other.mask
         .limited = .limited or other.limited
     }
 
     mtd read(token: const *Package.Token)
     {
-        if let value = token.attribute("background-objects-visible") do
+        if let value = token.attribute("background-objects-visible")
+        {
             .showMaster = value == "false" ? .Off : .On
-        if let value = token.attribute("background-visible") do
+        }
+
+        if let value = token.attribute("background-visible")
+        {
             .showBackground = value == "false" ? .Off : .On
+        }
+
         if let value = token.attribute("fill")
         {
             if value == "none"
             {
                 .fillEnabled = .Off
             }
-            elif value == "solid"
+            else if value == "solid"
             {
                 .fillEnabled = .On
             }
@@ -71,8 +104,10 @@ private impl Paint
         {
             .mask |= 1
             .fill = Odf.rgb(value)
-            if .fill.isEmpty() do
+            if .fill.isEmpty()
+            {
                 .limited = true
+            }
         }
 
         if let value = token.attribute("stroke")
@@ -81,7 +116,7 @@ private impl Paint
             {
                 .lineEnabled = .Off
             }
-            elif value == "solid"
+            else if value == "solid"
             {
                 .lineEnabled = .On
             }
@@ -96,8 +131,10 @@ private impl Paint
         {
             .mask |= 2
             .line = Odf.rgb(value)
-            if .line.isEmpty() do
+            if .line.isEmpty()
+            {
                 .limited = true
+            }
         }
 
         if let value = token.attribute("stroke-width")
@@ -117,12 +154,15 @@ private impl Paint
         for name, index in ["padding-left", "padding-top", "padding-right", "padding-bottom"]
         {
             let value = token.attribute(name) orelse token.attribute("padding")
-            if not value do
+            if not value
+            {
                 continue
+            }
+
             let size = Odf.points(value)
             if size.valid and size.value >= 0
             {
-                .mask         |= 8'u32 << index
+                .mask         |= 8_u32 << index
                 .inset[index] = cast(f32, size.value * 4 / 3)
             }
             else
@@ -131,8 +171,10 @@ private impl Paint
             }
         }
 
-        if let value = token.attribute("textarea-vertical-align") do
+        if let value = token.attribute("textarea-vertical-align")
+        {
             .centered = value == "middle" ? .On : .Off
+        }
     }
 }
 
@@ -154,11 +196,11 @@ struct Master
 struct Styles
 {
     typography: Odf.StyleCatalog
-    paints:     Array'Named
-    index:      HashTable'(String, u64)
-    defaults:   HashTable'(String, Paint)
-    layouts:    HashTable'(String, Math.Point)
-    masters:    HashTable'(String, Master)
+    paints:     Array!{Named}
+    index:      HashTable!{String, u64}
+    defaults:   HashTable!{String, Paint}
+    layouts:    HashTable!{String, Math.Point}
+    masters:    HashTable!{String, Master}
 }
 
 private func key(name, family: string)->String => Format.toString("%:%", family, name)
@@ -180,8 +222,11 @@ impl Styles
         while true
         {
             let at = scan.offset
-            if not scan.next(&token) do
+            if not scan.next(&token)
+            {
                 break
+            }
+
             if token.kind == .Start
             {
                 if token.isElement("style") or token.isElement("default-style")
@@ -194,10 +239,12 @@ impl Styles
                                      current.family == "presentation" or
                                      current.family == "drawing-page"
                     isDefault = token.isElement("default-style")
-                    if current.name.count > 256 or current.parent.count > 256 do
+                    if current.name.count > 256 or current.parent.count > 256
+                    {
                         fail Errors.UnsupportedFormatError{texts().err_TooLarge}
+                    }
                 }
-                elif inStyle and (token.isElement("graphic-properties") or token.isElement("drawing-page-properties"))
+                else if inStyle and (token.isElement("graphic-properties") or token.isElement("drawing-page-properties"))
                 {
                     current.paint.read(&token)
                 }
@@ -206,17 +253,24 @@ impl Styles
                 {
                     layout = token.attribute("name") orelse ""
                 }
-                elif not layout.isEmpty() and token.isElement("page-layout-properties")
+                else if not layout.isEmpty() and token.isElement("page-layout-properties")
                 {
                     let width  = Odf.points(token.attribute("page-width") orelse "")
                     let height = Odf.points(token.attribute("page-height") orelse "")
-                    if not width.valid or not height.valid or width.value < 1 or height.value < 1 do
+                    if not width.valid or not height.valid or width.value < 1 or height.value < 1
+                    {
                         fail Errors.InvalidFormatError{texts().err_Invalid}
+                    }
+
                     let size = Math.Point{cast(f32, width.value * 4 / 3), cast(f32, height.value * 4 / 3)}
-                    if let entry = .layouts.tryFind(layout) do
+                    if let entry = .layouts.tryFind(layout)
+                    {
                         entry.value = size
-                    else do
+                    }
+                    else
+                    {
                         .layouts.add(layout, size)
+                    }
                 }
 
                 if token.isElement("master-page")
@@ -234,12 +288,16 @@ impl Styles
                 {
                     if isDefault
                     {
-                        if let entry = .defaults.tryFind(current.family) do
+                        if let entry = .defaults.tryFind(current.family)
+                        {
                             entry.value.overlay(&current.paint)
-                        else do
+                        }
+                        else
+                        {
                             .defaults.add(current.family, current.paint)
+                        }
                     }
-                    elif not current.name.isEmpty()
+                    else if not current.name.isEmpty()
                     {
                         let name = key(current.name, current.family)
                         if let entry = .index.tryFind(name)
@@ -256,38 +314,57 @@ impl Styles
                     inStyle = false
                 }
 
-                if token.isElement("page-layout") do
+                if token.isElement("page-layout")
+                {
                     layout.clear()
+                }
+
                 if token.isElement("master-page") and masterAt != Swag.U64.Max
                 {
                     master.source = source[masterAt until scan.offset]
-                    if let entry = .masters.tryFind(masterName) do
+                    if let entry = .masters.tryFind(masterName)
+                    {
                         entry.value = master
-                    else do
+                    }
+                    else
+                    {
                         .masters.add(masterName, master)
+                    }
+
                     masterAt = Swag.U64.Max
                 }
             }
 
-            if .paints.count > 4096 or .masters.count > 200 or .layouts.count > 200 do
+            if .paints.count > 4096 or .masters.count > 200 or .layouts.count > 200
+            {
                 fail Errors.UnsupportedFormatError{texts().err_TooLarge}
+            }
         }
     }
 
     mtd const paint(name, family: string)->Paint
     {
         var result: Paint
-        if let entry = .defaults.tryFind(String.from(family)) do
+        if let entry = .defaults.tryFind(String.from(family))
+        {
             result = entry.value
-        if not name.count do
+        }
+
+        if not name.count
+        {
             return result
-        var chain: Array'u64
+        }
+
+        var chain: Array!{u64}
         var next = .index.tryFind(key(name, family))
         while next
         {
             var repeated = false
-            for previous in chain where previous == next.value do
+            for previous in chain where previous == next.value
+            {
                 repeated = true
+            }
+
             if repeated or chain.count >= 64
             {
                 result.limited = true
@@ -296,17 +373,28 @@ impl Styles
 
             chain.add(next.value)
             let parent = .paints[next.value].parent
-            if parent.isEmpty() do
+            if parent.isEmpty()
+            {
                 break
+            }
+
             next = .index.tryFind(key(parent, family))
-            if not next do
+            if not next
+            {
                 result.limited = true
+            }
         }
 
-        if chain.isEmpty() do
+        if chain.isEmpty()
+        {
             result.limited = true
-        for offset in chain.count do
+        }
+
+        for offset in chain.count
+        {
             result.overlay(&.paints[chain[chain.count - offset - 1]].paint)
+        }
+
         return result
     }
 }

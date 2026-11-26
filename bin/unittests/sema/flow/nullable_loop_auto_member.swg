@@ -12,8 +12,10 @@ impl NarrowLoopOwner
     mtd keepImmutableLocal(arg: *s32?)
     {
         let font = arg
-        if not font do
+        if not font
+        {
             return
+        }
 
         for row in 1
         {

@@ -80,8 +80,10 @@ impl WorkflowIndexBox
     mtd opIndex(index: s32)->s32
     {
         .reads += 1
-        if index == 0 do
+        if index == 0
+        {
             return .first
+        }
         return .second
     }
 
@@ -89,10 +91,14 @@ impl WorkflowIndexBox
     mtd opIndexSet(index: s32, value: s32)
     {
         .writes += 1
-        if index == 0 do
+        if index == 0
+        {
             .first = value
-        else do
+        }
+        else
+        {
             .second = value
+        }
     }
 }
 
@@ -114,11 +120,11 @@ struct WorkflowState
         slots: WorkflowIndexBox{first: 10, second: 20}
         }
 
-    flow.target = 7's32
+    flow.target = 7_s32
     let source = WorkflowSource{value: 5}
     flow.target = source
 
-    flow.accum += 3's32
+    flow.accum += 3_s32
     let bonus = WorkflowAssignBox{a: 4, b: 6}
     flow.accum += bonus
 
@@ -146,8 +152,8 @@ struct WorkflowState
 {
     var flow = WorkflowState{}
 
-    flow.target   = 42's32
-    flow.accum    += 5's32
+    flow.target   = 42_s32
+    flow.accum    += 5_s32
     flow.slots[0] = flow.target.value + flow.accum.a
     let first  = flow.slots[0]
     let second = flow.slots[1]

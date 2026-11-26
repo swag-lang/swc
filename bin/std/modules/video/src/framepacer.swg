@@ -41,8 +41,11 @@ impl FramePacer
     // tick per frame, including fractional rates such as 30000/1001.
     func create(rate: FrameRate, clockFrequency: u64, videoTimescale: u32)->FramePacer fail
     {
-        if not rate.isValid() or not clockFrequency or not videoTimescale do
+        if not rate.isValid() or not clockFrequency or not videoTimescale
+        {
             fail BadParameterError{"frame pacer needs positive clock and frame rates"}
+        }
+
         let ticksPerFrame = cast(u64, videoTimescale) * rate.denominator()
         let maxDuration   = ticksPerFrame / rate.numerator() +
                             cast(u64, ticksPerFrame % rate.numerator() != 0)
@@ -51,8 +54,11 @@ impl FramePacer
         let clockScale = cast(u64, reduced.numerator()) * reduced.denominator()
         if ticksPerFrame < rate.numerator() or
            maxDuration > Swag.U32.Max or
-           clockFrequency > Swag.U64.Max / clockScale do
+           clockFrequency > Swag.U64.Max / clockScale
+        {
             fail BadParameterError{"frame pacer rate cannot fit its video or monotonic clock"}
+        }
+
         return FramePacer{reduced, clockFrequency, videoTimescale}
     }
 
@@ -75,12 +81,18 @@ impl FramePacer
     // `skippedFrames` is zero because this query does not accept a captured picture.
     mtd const slotAt(index: u64)->FrameSlot fail
     {
-        if index == Swag.U64.Max do
+        if index == Swag.U64.Max
+        {
             fail OverflowError{"frame pacer frame position overflows"}
+        }
+
         let start = try .slotEnd(index)
         let end   = try .slotEnd(index + 1)
-        if end - start > Swag.U32.Max do
+        if end - start > Swag.U32.Max
+        {
             fail OverflowError{"frame pacer frame duration exceeds the packet range"}
+        }
+
         return FrameSlot{index, start, cast(u32, end - start), 0}
     }
 
@@ -100,17 +112,26 @@ impl FramePacer
             return true
         }
 
-        if tick < .previousTick do
+        if tick < .previousTick
+        {
             fail BadParameterError{"frame pacer timestamps must not move backwards"}
+        }
+
         let elapsed      = tick - .firstTick
         let clockPeriod  = .clockFrequency * .rate.denominator()
         let wholePeriods = elapsed / clockPeriod
-        if wholePeriods > Swag.U64.Max / .rate.numerator() do
+        if wholePeriods > Swag.U64.Max / .rate.numerator()
+        {
             fail OverflowError{"frame pacer elapsed time exceeds its frame range"}
+        }
+
         let wholeFrames      = wholePeriods * .rate.numerator()
         let fractionalFrames = (elapsed % clockPeriod) * .rate.numerator() / clockPeriod
-        if fractionalFrames > Swag.U64.Max - wholeFrames do
+        if fractionalFrames > Swag.U64.Max - wholeFrames
+        {
             fail OverflowError{"frame pacer elapsed time exceeds its frame range"}
+        }
+
         let current = wholeFrames + fractionalFrames
         if .hasPicture and current <= .previousSlot
         {
@@ -129,8 +150,11 @@ impl FramePacer
 
     private mtd const slotEnd(index: u64)->u64 fail
     {
-        if index > Swag.U64.Max / .rate.denominator() do
+        if index > Swag.U64.Max / .rate.denominator()
+        {
             fail OverflowError{"frame pacer frame position overflows"}
+        }
+
         let timebase = try Timebase.create(.videoTimescale)
         return try timebase.convertFrom(index * .rate.denominator(), .rate.numerator())
     }

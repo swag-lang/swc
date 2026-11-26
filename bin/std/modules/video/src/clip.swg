@@ -15,7 +15,7 @@ struct Clip
         frameWidth:  s32
         frameHeight: s32
         rate:        FrameRate
-        frames:      Array'Image
+        frames:      Array!{Image}
     }
 }
 
@@ -27,10 +27,15 @@ impl Clip
     // not positive or the frame rate is invalid.
     func create(width, height: s32, frameRate: FrameRate)->Clip fail
     {
-        if width <= 0 or height <= 0 do
+        if width <= 0 or height <= 0
+        {
             fail BadParameterError{"video width and height need positive values"}
-        if not frameRate.isValid() do
+        }
+
+        if not frameRate.isValid()
+        {
             fail BadParameterError{"video frame rate needs positive numerator and denominator values"}
+        }
 
         with var result: #returntype
         {
@@ -60,8 +65,11 @@ impl Clip
     // Returns the clip duration in seconds.
     mtd const durationInSeconds()->f64
     {
-        if not .rate.isValid() do
+        if not .rate.isValid()
+        {
             return 0
+        }
+
         return cast(f64, .frameCount()) * cast(f64, .rate.denominator()) / cast(f64, .rate.numerator())
     }
 
@@ -72,10 +80,16 @@ impl Clip
     // does not carry it.
     mtd addFrame(frame: Image) fail
     {
-        if not frame.isValid() do
+        if not frame.isValid()
+        {
             fail BadParameterError{"video frame needs allocated pixels"}
-        if frame.width != .frameWidth or frame.height != .frameHeight do
+        }
+
+        if frame.width != .frameWidth or frame.height != .frameHeight
+        {
             fail BadParameterError{"video frame dimensions do not match the clip"}
+        }
+
         .frames.add(frame)
     }
 
@@ -85,8 +99,11 @@ impl Clip
     // its own frame, so the result can outlive it and can be modified freely.
     mtd const frame(index: u64)->Image fail
     {
-        if index >= .frameCount() do
+        if index >= .frameCount()
+        {
             fail BadParameterError{"video frame index exceeds the clip frame count"}
+        }
+
         return .frames[index]
     }
 
@@ -109,7 +126,7 @@ impl Clip
     }
 
     // Encodes the clip to one contiguous owned byte array.
-    mtd const encodeToBytes(fileName: string, options: any? = null)->Array'u8 fail
+    mtd const encodeToBytes(fileName: string, options: any? = null)->Array!{u8} fail
     {
         let buffer = try .encode(fileName, options)
         return buffer.toArray()
@@ -139,17 +156,25 @@ impl Clip
     // not it holds frames, and adding one never turns that answer into a different error.
     private mtd const validateEncode(fileName: string) fail
     {
-        if not Writer.canCreate(fileName) do
+        if not Writer.canCreate(fileName)
+        {
             fail UnsupportedFormatError{"no video encoder accepts this file extension"}
-        if not .frameCount() do
+        }
+
+        if not .frameCount()
+        {
             fail InvalidFormatError{"video clip needs at least one frame"}
+        }
     }
 
     // Feeds every frame to `writer` and finishes the stream.
     private mtd const write(writer: *Writer) fail
     {
-        for frame in .frames do
+        for frame in .frames
+        {
             try writer.addFrame(frame[])
+        }
+
         try writer.end()
     }
 }

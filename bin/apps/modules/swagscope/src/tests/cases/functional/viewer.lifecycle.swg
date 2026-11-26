@@ -5,15 +5,18 @@ using Core
 
 func lifecycleTestLoad(fileName: string)->s32 fail
 {
-    if fileName == "success" do
+    if fileName == "success"
+    {
         return 42
+    }
+
     fail Errors.InvalidFormatError{Errors.mkString(fileName)}
 }
 
 // The worker's caught value has ended before finish reads its independently owned message.
 #test
 {
-    var load: Viewer.BackgroundLoad's32
+    var load: Viewer.BackgroundLoad!{s32}
     load.start("worker-owned failure", &lifecycleTestLoad)
     load.task.wait()
     var value: s32

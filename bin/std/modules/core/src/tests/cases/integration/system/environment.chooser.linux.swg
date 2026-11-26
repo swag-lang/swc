@@ -5,13 +5,19 @@
 func chooserControl(method: string, version: string = "", mode: string = "")->String fail
 {
     let qualified = Format.toString("org.swag.TestPortal.%", method)
-    var command: Array'string
+    var command: Array!{string}
     for argument in ["call", "--session", "--dest", "org.swag.TestPortal", "--object-path",
-                     "/org/freedesktop/portal/desktop", "--method"] do
+                     "/org/freedesktop/portal/desktop", "--method"]
+    {
         command.add(argument)
+    }
+
     command.add(qualified.toString())
-    for argument in [version, mode] where argument != "" do
+    for argument in [version, mode] where argument != ""
+    {
         command.add(argument)
+    }
+
     let result = try Env.runProcess("gdbus", command.toSlice())
     Swag.require(result.exitCode() == 0, String.from(result.standardError()).toString())
     return String.from(result.standardOutput())
@@ -118,7 +124,7 @@ func desktopChooserPeer() fail
             discard expect File.writeAllText(Path.combine(libraries, "libsystemd.so.0"), "not an ELF library")
             environment.set("LD_LIBRARY_PATH", Format.toString("%:%", libraries, Env.variable("LD_LIBRARY_PATH")))
         }
-        elif mode == "no-bus"
+        else if mode == "no-bus"
         {
             let unavailable = Format.toString("unix:path=%/missing-bus", root)
             environment.set("DBUS_SESSION_BUS_ADDRESS", unavailable)
@@ -136,8 +142,10 @@ func desktopChooserPeer() fail
         var process = expect Env.startProcess(info)
         defer
         {
-            if process.isRunning() do
+            if process.isRunning()
+            {
                 discard catch process.kill()
+            }
         }
 
         let completed = expect process.tryWaitForExit(Time.Duration.fromSeconds(20))

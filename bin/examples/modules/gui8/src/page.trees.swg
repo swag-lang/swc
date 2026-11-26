@@ -75,8 +75,10 @@ func createTreesPage(parent: *Wnd)
             child.canCheck = true
         }
 
-        if i < 3 do
+        if i < 3
+        {
             table.expand(root)
+        }
     }
 
     table.sort(0, false, true)

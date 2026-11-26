@@ -129,8 +129,10 @@ func nullableUseSiteCallThroughRef(box: *NullableUseSiteBox)->s32
 func nullableUseSiteKilled(p: *NullableUseSiteItem?, q: *NullableUseSiteItem?)->s32
 {
     var cur = p
-    if cur == null do
+    if cur == null
+    {
         return 0
+    }
     let a = cur.value
     cur = q
     return a + cur.value     // swc-expected-error {{sema_err_nullable_member_access}}
@@ -175,8 +177,10 @@ func nullableUseSiteAssertOtherPath(p: *NullableUseSiteItem?, q: *NullableUseSit
 func nullableUseSiteAssignedInBranch(flag: bool, q: *NullableUseSiteItem)->s32
 {
     var p: *NullableUseSiteItem?
-    if flag do
+    if flag
+    {
         p = q
+    }
     return p.value     // swc-expected-error {{sema_err_nullable_member_access}}
 }
 
@@ -184,10 +188,14 @@ func nullableUseSiteAssignedInBranch(flag: bool, q: *NullableUseSiteItem)->s32
 func nullableUseSiteAssignedInElse(flag: bool, q: *NullableUseSiteItem)->s32
 {
     var p: *NullableUseSiteItem?
-    if flag do
+    if flag
+    {
         p = null
-    else do
+    }
+    else
+    {
         p = q
+    }
     return p.value     // swc-expected-error {{sema_err_nullable_member_access}}
 }
 
@@ -197,8 +205,10 @@ func nullableReferenceCapture(value: *s32?)
     var pointer = value
     let read    = func|&pointer|()->s32
     {
-        if pointer != null do
+        if pointer != null
+        {
             return pointer[]     // swc-expected-error {{sema_err_nullable_deref}}
+        }
         return -1
     }
     discard read
@@ -208,8 +218,10 @@ func nullableMutableCapture(value: *s32?)
 {
     let read = func|var value|()->s32
     {
-        if value != null do
+        if value != null
+        {
             return value[]     // swc-expected-error {{sema_err_nullable_deref}}
+        }
         return -1
     }
     discard read
@@ -220,8 +232,10 @@ func nullableCaptureAfterGuard(value: *s32?)
 {
     let read = func|value|()->s32
     {
-        if value != null do
+        if value != null
+        {
             discard value[]
+        }
         return value[]     // swc-expected-error {{sema_err_nullable_deref}}
     }
     discard read

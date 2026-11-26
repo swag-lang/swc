@@ -8,8 +8,8 @@ func mix(values: [*] u64, seed: u64)->u64
     var b    = seed ^ 0x123456789ABCDEF0
     var c    = seed + 17
     var d    = seed - 29
-    var last = 0'u64
-    for i in 64'u64
+    var last = 0_u64
+    for i in 64_u64
     {
         let x = values[i] + ((a << 7) ^ (a >> 13))
         let y = (b ^ c) + d + i
@@ -30,8 +30,8 @@ func reference(values: [*] u64, seed: u64)->u64
     var b    = seed ^ 0x123456789ABCDEF0
     var c    = seed + 17
     var d    = seed - 29
-    var last = 0'u64
-    for i in 64'u64
+    var last = 0_u64
+    for i in 64_u64
     {
         let x = values[i] + ((a << 7) ^ (a >> 13))
         let y = (b ^ c) + d + i
@@ -51,8 +51,8 @@ func strided(seed: u32)->u32
     var a    = seed
     var b    = seed + 19
     var c    = seed ^ 0x87654321
-    var last = 0'u32
-    for var i = 5's32; i < 197; i += 3
+    var last = 0_u32
+    for var i = 5_s32; i < 197; i += 3
     {
         let value = cast(u32, i)
         let x     = (a << 5) ^ (a >> 17) ^ b
@@ -71,8 +71,8 @@ func stridedReference(seed: u32)->u32
     var a    = seed
     var b    = seed + 19
     var c    = seed ^ 0x87654321
-    var last = 0'u32
-    for var i = 5's32; i < 197; i += 3
+    var last = 0_u32
+    for var i = 5_s32; i < 197; i += 3
     {
         let value = cast(u32, i)
         let x     = (a << 5) ^ (a >> 17) ^ b
@@ -87,20 +87,26 @@ func stridedReference(seed: u32)->u32
 
 #test
 {
-    for seed in [0'u64, 1, 0x123456789ABCDEF0, 0xFFFFFFFFFFFFFFFF]
+    for seed in [0_u64, 1, 0x123456789ABCDEF0, 0xFFFFFFFFFFFFFFFF]
     {
         var actual: [65] u64
-        for i in 65 do
+        for i in 65
+        {
             actual[i] = i * 0x1234567 + seed
+        }
         var expected = actual
         Swag.require(mix(&actual[0], seed) == reference(&expected[0], seed))
-        for i in 65 do
+        for i in 65
+        {
             Swag.require(actual[i] == expected[i])
+        }
     }
 }
 
 #test
 {
-    for seed in [0'u32, 1, 0x12345678, 0xFFFFFFFF] do
+    for seed in [0_u32, 1, 0x12345678, 0xFFFFFFFF]
+    {
         Swag.require(strided(seed) == stridedReference(seed))
+    }
 }

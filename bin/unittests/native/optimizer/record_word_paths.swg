@@ -27,8 +27,10 @@ struct Small
 func motionOf(kind: u32, refIdx: s8, x, y: s16)->Motion
 {
     var result: #returntype
-    if kind == 0 do
+    if kind == 0
+    {
         return result
+    }
     if kind == 1
     {
         result.available = true
@@ -44,8 +46,10 @@ func motionOf(kind: u32, refIdx: s8, x, y: s16)->Motion
     if kind == 3
     {
         result.mvX = y
-        if result.refIdx < 0 do
+        if result.refIdx < 0
+        {
             result.intra = true
+        }
     }
     return result
 }
@@ -55,8 +59,10 @@ func smallOf(tag: u8, value: s16)->Small
 {
     var result: #returntype
     result.tag = tag
-    if value < 0 do
+    if value < 0
+    {
         result.flags = 0x80
+    }
     result.value = value
     return result
 }

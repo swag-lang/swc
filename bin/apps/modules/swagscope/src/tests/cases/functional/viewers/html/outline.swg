@@ -15,8 +15,10 @@ using Core, Gui, Gui.Testing, Viewers
         source += Format.toString("<h2>Part %</h2>", section)
 
         // The last part is short: it ends the page without room to rise to the top.
-        for section == 7 ? 2 : 12 do
+        for section == 7 ? 2 : 12
+        {
             source += "<p>A paragraph that gives the part some height on the page.</p>"
+        }
     }
 
     source += "</body></html>"
@@ -29,7 +31,7 @@ using Core, Gui, Gui.Testing, Viewers
     let isLoading = unwrap result.isLoading
     for 100 where isLoading()
     {
-        Threading.Thread.sleep(5'ms)
+        Threading.Thread.sleep(5_ms)
         host.app.runFrame()
     }
 

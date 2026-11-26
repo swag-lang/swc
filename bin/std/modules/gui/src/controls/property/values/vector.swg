@@ -17,15 +17,19 @@ internal impl Properties
             width = .listContentWidthFromUseful(width)
         }
 
-        let line = Wnd.create'Wnd(item.line, Math.Rectangle{0, 0, width, .themeMetrics().editBox_Height})
-        if not .isGridLike() do
+        let line = Wnd.create!{Wnd}(item.line, Math.Rectangle{0, 0, width, .themeMetrics().editBox_Height})
+        if not .isGridLike()
+        {
             line.maxSize.x = width
+        }
 
         // Grid rows center the field row vertically in the cell; list rows stack it
         // under the name label, capped at the edit width by maxSize (an anchored width
         // would drift with the resize history).
-        if .isGridLike() do
+        if .isGridLike()
+        {
             line.dockStyle = .CenterKeepSizeVert
+        }
 
         .adaptCondensedControl(line)
 
@@ -85,5 +89,5 @@ internal impl IPropertyEditor for VectorEditor
 
 #init
 {
-    Properties.registerEditor'(VectorEditor)()
+    Properties.registerEditor!{VectorEditor}()
 }

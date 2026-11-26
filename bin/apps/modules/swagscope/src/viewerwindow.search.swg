@@ -13,9 +13,16 @@ impl ViewerWindow
     mtd lineComparison()->*SceneComparison?
     {
         let workspace = .workspace
-        let compare = workspace?.comparison
-        if workspace and compare and compare.isLocallyVisible() and compare.hasLineNumbers() and workspace.activeDocument() == me do
+        let compare   = workspace?.comparison
+        if workspace and
+           compare and
+           compare.isLocallyVisible() and
+           compare.hasLineNumbers() and
+           workspace.activeDocument() == me
+        {
             return compare
+        }
+
         return null
     }
 
@@ -31,8 +38,10 @@ impl ViewerWindow
     private mtd showSearchOptionsMenu()
     {
         let chosen = .createSearchOptionsMenu().doModal(.searchOptionsButton, autoDestroy: true) orelse ""
-        if chosen.count do
+        if chosen.count
+        {
             .setSearchOption(chosen)
+        }
     }
 
     // Builds the current search choices. Kept module-visible so the menu's checked state can be
@@ -41,7 +50,9 @@ impl ViewerWindow
     {
         let texts     = appStrings()
         let menu      = MenuCtrl.createPopup(me, owner: me)
-        let canFilter = not .lineComparison() and .activeChoiceIndex < .instances.count and .instances[.activeChoiceIndex].filterSearch != null
+        let canFilter = not .lineComparison() and
+                        .activeChoiceIndex < .instances.count and
+                        .instances[.activeChoiceIndex].filterSearch != null
         if canFilter
         {
             menu.addRadioItem(texts.ui_SearchMode, ViewerCommands.SearchMode, checked: not .searchFilterMode)
@@ -59,8 +70,11 @@ impl ViewerWindow
     // otherwise the text options decide whether it is a valid pattern. An empty query is valid.
     private mtd validateSearchEdit(edit: *EditBox)->EditBoxCheckResult
     {
-        if not (edit.text()).count do
+        if not (edit.text()).count
+        {
             return .Valid
+        }
+
         if not .lineComparison() and .activeChoiceIndex < .instances.count
         {
             let instance = &.instances[.activeChoiceIndex]
@@ -100,12 +114,16 @@ impl ViewerWindow
         if not .lineComparison() and .activeChoiceIndex < .instances.count
         {
             let instance = &.instances[.activeChoiceIndex]
-            if instance.view and instance.describeSearch do
+            if instance.view and instance.describeSearch
+            {
                 instance.describeSearch(&presentation)
+            }
         }
 
-        if not presentation.canFilter do
+        if not presentation.canFilter
+        {
             .searchFilterMode = false
+        }
 
         if .searchFilterMode
         {
@@ -134,8 +152,11 @@ impl ViewerWindow
         }
 
         var searchToolTip = appStrings().ui_SearchOptions
-        if presentation.canFilter do
+        if presentation.canFilter
+        {
             searchToolTip = .searchFilterMode ? appStrings().ui_FilterMode : appStrings().ui_SearchMode
+        }
+
         .searchOptionsButton.toolTip = searchToolTip
 
         // With no options button, let the enlarged field meet navigation directly. Keeping the
@@ -157,12 +178,20 @@ impl ViewerWindow
         {
             // The Explorer stays visible until the file viewer replaces it. The shared field is
             // cleared for that file, but its empty text must not erase the folder's filter.
-            if .explorerTransition do
+            if .explorerTransition
+            {
                 return
-            if .explorer!.filter.text() == .searchBox.text() do
+            }
+
+            if .explorer!.filter.text() == .searchBox.text()
+            {
                 .explorer.fill()
-            else do
+            }
+            else
+            {
                 .explorer.filter.setText(.searchBox.text())
+            }
+
             .refreshSearchReadout()
             return
         }
@@ -175,8 +204,11 @@ impl ViewerWindow
             .searchSelectLast   = selectLast
             .searchKeepPosition = keepPosition
             .searchError.clear()
-            if not .searchQuery.isEmpty() and .searchBox.isValid() do
+            if not .searchQuery.isEmpty() and .searchBox.isValid()
+            {
                 comparison.collectMatches(.searchQuery, .searchOptions(), &.searchMatches)
+            }
+
             .finishSearch()
             comparison.invalidate()
             return
@@ -185,17 +217,20 @@ impl ViewerWindow
         // Capture viewer-owned query context before clearing the previous result presentation.
         // A hexadecimal selection is also the scope for a `selection:` query, and clearing the
         // old search mark may collapse that selection.
-        var preparedPlan: Viewer.SearchPlan
-        var preparedState = EditBoxCheckResult.Incomplete
+        var preparedPlan:    Viewer.SearchPlan
+        var preparedState  = EditBoxCheckResult.Incomplete
         var hasPreparedPlan: bool
         let requestedQuery = .searchBox.text()
-        if .searchBox.isEnabled() and not .currentFile.isEmpty() and
-           .activeChoiceIndex < .instances.count and not .searchFilterMode and requestedQuery.count
+        if .searchBox.isEnabled() and
+           not .currentFile.isEmpty() and
+           .activeChoiceIndex < .instances.count and
+           not .searchFilterMode and
+           requestedQuery.count
         {
             let candidate = &.instances[.activeChoiceIndex]
             if candidate.prepareSearch and candidate.view and not candidate.collectMatches
             {
-                preparedState = candidate.prepareSearch(requestedQuery, &preparedPlan)
+                preparedState   = candidate.prepareSearch(requestedQuery, &preparedPlan)
                 hasPreparedPlan = true
             }
         }
@@ -203,15 +238,17 @@ impl ViewerWindow
         .forgetSearch()
         .searchSelectLast   = selectLast
         .searchKeepPosition = keepPosition
-        .searchQuery      = requestedQuery
-        .searchSpan       = Math.max(.searchQuery.length, 1)
+        .searchQuery        = requestedQuery
+        .searchSpan         = Math.max(.searchQuery.length, 1)
         .searchError.clear()
         .refreshSearchReadout()
 
         if not .searchBox.isEnabled() or
            .currentFile.isEmpty() or
-           .activeChoiceIndex >= .instances.count do
+           .activeChoiceIndex >= .instances.count
+        {
             return
+        }
 
         let instance = &.instances[.activeChoiceIndex]
         if .searchFilterMode and instance.filterSearch and instance.view
@@ -225,11 +262,15 @@ impl ViewerWindow
         // Leaving filter mode restores the complete report before the same field starts finding
         // occurrences in it. An empty filter is also delivered above, so clearing the field is an
         // immediate return to the unfiltered tree.
-        if instance.filterSearch and instance.view do
+        if instance.filterSearch and instance.view
+        {
             instance.filterSearch("", .searchOptions())
+        }
 
-        if .searchQuery.isEmpty() do
+        if .searchQuery.isEmpty()
+        {
             return
+        }
 
         if not .searchBox.isValid() and not (instance.prepareSearch and instance.view)
         {
@@ -241,32 +282,42 @@ impl ViewerWindow
         if instance.collectMatches and instance.view
         {
             .searchProgress = 0
-            if .collectViewerMatches() do
+            if .collectViewerMatches()
+            {
                 .finishSearch()
-            else do
+            }
+            else
+            {
                 .continueViewerSearch()
+            }
+
             return
         }
 
         if instance.prepareSearch and instance.view
         {
-            var plan = preparedPlan
+            var plan  = preparedPlan
             let state = hasPreparedPlan ? preparedState : instance.prepareSearch(.searchQuery, &plan)
             if state != .Valid
             {
                 .searchComplete = true
-                if state == .InvalidVisible do
+                if state == .InvalidVisible
+                {
                     .searchError = #move plan.error
+                }
+
                 .refreshSearchReadout()
                 return
             }
 
-            .searchSpan = Math.max(plan.span, 1)
+            .searchSpan      = Math.max(plan.span, 1)
             .searchByteRange = plan.byteRange
         }
 
-        if instance.useSearchMatches and instance.view do
+        if instance.useSearchMatches and instance.view
+        {
             instance.useSearchMatches(&.searchMatches)
+        }
 
         .beginSearch()
     }
@@ -313,21 +364,31 @@ impl ViewerWindow
     // restarts it first, landing on the last match when moving backward.
     private mtd navigateSearch(direction: s32)
     {
-        if not .searchBox.isEnabled() or not (.searchBox.text()).count do
+        if not .searchBox.isEnabled() or not (.searchBox.text()).count
+        {
             return
+        }
+
         if .searchQuery != .searchBox.text()
         {
             .restartSearch(selectLast: direction < 0)
             return
         }
 
-        if .searchMatches.isEmpty() do
+        if .searchMatches.isEmpty()
+        {
             return
+        }
 
-        if direction < 0 do
+        if direction < 0
+        {
             .searchIndex = .searchIndex ? .searchIndex - 1 : .searchMatches.count - 1
-        else do
+        }
+        else
+        {
             .searchIndex = (.searchIndex + 1) % .searchMatches.count
+        }
+
         .revealCurrentSearchMatch()
     }
 
@@ -365,24 +426,30 @@ impl ViewerWindow
             .searchCountLabel.setText("")
             .searchCountLabel.toolTip = ""
         }
-        elif not .searchError.isEmpty()
+        else if not .searchError.isEmpty()
         {
             .searchCountLabel.setText("!")
             .searchCountLabel.toolTip = .searchError
         }
-        elif not .searchBox.isValid()
+        else if not .searchBox.isValid()
         {
             .searchCountLabel.setText("0/0")
             .searchCountLabel.toolTip = appStrings().ui_SearchInvalidRegularExpression
         }
-        elif not .searchComplete
+        else if not .searchComplete
         {
             var current = Format.toString("…")
-            if .searchIndex < .searchMatches.count do
+            if .searchIndex < .searchMatches.count
+            {
                 current = Format.toString("%", .searchIndex + 1)
+            }
+
             var total = Format.toString("%", .searchMatches.count)
-            if .searchMatchesCapped do
+            if .searchMatchesCapped
+            {
                 total += "+"
+            }
+
             var status = Format.toString("%/%…", current, total)
             .searchCountLabel.toolTip = appStrings().ui_Searching
             if .searchStream.isOpen()
@@ -394,12 +461,15 @@ impl ViewerWindow
                                                             StrConv.toDisplaySize(.searchTotalBytes))
             }
 
-            if .searchMatchesCapped do
+            if .searchMatchesCapped
+            {
                 .searchCountLabel.toolTip += Format.toString(" · %",
                                                              Format.toString(appStrings().ui_SearchResultsLimited, SearchMatchLimit))
+            }
+
             .searchCountLabel.setText(status)
         }
-        elif .searchMatches.isEmpty()
+        else if .searchMatches.isEmpty()
         {
             .searchCountLabel.setText("0/0")
             .searchCountLabel.toolTip = .searchCancelled ?
@@ -411,27 +481,37 @@ impl ViewerWindow
                 if instance.view and instance.explainSearch
                 {
                     let reason = instance.explainSearch(.searchQuery)
-                    if not reason.isEmpty() do
+                    if not reason.isEmpty()
+                    {
                         .searchCountLabel.toolTip = Format.toString("% · %", appStrings().ui_NoMatch, reason)
+                    }
                 }
             }
         }
         else
         {
             var total = Format.toString("%", .searchMatches.count)
-            if .searchMatchesCapped do
+            if .searchMatchesCapped
+            {
                 total += "+"
+            }
+
             .searchCountLabel.setText(Format.toString("%/%", .searchIndex + 1, total))
             .searchCountLabel.toolTip = .searchCountLabel.text()
-            if .searchMatchesCapped do
+            if .searchMatchesCapped
+            {
                 .searchCountLabel.toolTip = Format.toString(appStrings().ui_SearchResultsLimited, SearchMatchLimit)
+            }
+
             if .searchCancelled
             {
                 .searchCountLabel.toolTip = Format.toString(appStrings().ui_SearchCancelled,
                                                             StrConv.toDisplaySize(.searchProcessed))
-                if .searchMatchesCapped do
+                if .searchMatchesCapped
+                {
                     .searchCountLabel.toolTip += Format.toString(" · %",
                                                                  Format.toString(appStrings().ui_SearchResultsLimited, SearchMatchLimit))
+                }
             }
 
             // A count over a document some of which could not be read says what it leaves out.
@@ -465,8 +545,11 @@ impl ViewerWindow
     // the keyboard in the search box when the reveal started there.
     private mtd revealCurrentSearchMatch()
     {
-        if .searchIndex >= .searchMatches.count do
+        if .searchIndex >= .searchMatches.count
+        {
             return
+        }
+
         if let comparison = .searchComparison
         {
             if comparison == .lineComparison()
@@ -478,22 +561,32 @@ impl ViewerWindow
             return
         }
 
-        if .activeChoiceIndex >= .instances.count do
+        if .activeChoiceIndex >= .instances.count
+        {
             return
+        }
+
         let instance = &.instances[.activeChoiceIndex]
-        if not instance.revealMatch or not instance.view do
+        if not instance.revealMatch or not instance.view
+        {
             return
+        }
 
         // Revealing may legitimately focus a document when invoked outside the search bar. Live
         // typing is different: the viewer scrolls and selects behind the field, while the caret
         // stays in the query so the next letter extends it instead of going into the document.
         let preserveSearchFocus = .searchBox.hasFocus()
-        defer if preserveSearchFocus do
+        defer if preserveSearchFocus
+        {
             .searchBox.setFocus()
+        }
 
         let match = .searchMatches[.searchIndex]
-        if not instance.revealMatch(match, .searchQuery) do
+        if not instance.revealMatch(match, .searchQuery)
+        {
             return
+        }
+
         .searchMatch = match.offset
         .refreshSearchReadout()
         .refreshSearchHighlight()
@@ -521,10 +614,14 @@ impl ViewerWindow
         {
             let viewport = instance.view.surfaceRect()
             bounds.intersect(viewport)
-            if not bounds.isEmpty() do
+            if not bounds.isEmpty()
+            {
                 .searchOverlay.showMatch(bounds)
-            else do
+            }
+            else
+            {
                 .searchOverlay.hide()
+            }
         }
         else
         {
@@ -534,8 +631,10 @@ impl ViewerWindow
         // A streamed document can materialize the result after revealMatch returns, and any
         // viewer can still adjust its scroll or layout. Follow the geometry for as long as this
         // occurrence is current rather than freezing an overlay at yesterday's coordinates.
-        if not .searchBoundsTimer do
+        if not .searchBoundsTimer
+        {
             .searchBoundsTimer = .addTimer(SearchBoundsPoll)
+        }
     }
 
     private mtd finishSearch()
@@ -546,13 +645,15 @@ impl ViewerWindow
         {
             .searchIndex = .searchMatches.count - 1
         }
-        elif .searchIndex >= .searchMatches.count and not .searchMatches.isEmpty()
+        else if .searchIndex >= .searchMatches.count and not .searchMatches.isEmpty()
         {
             .searchIndex = 0
         }
 
-        if not .searchKeepPosition and not .searchMatches.isEmpty() do
+        if not .searchKeepPosition and not .searchMatches.isEmpty()
+        {
             .revealCurrentSearchMatch()
+        }
 
         .refreshSearchReadout()
     }
@@ -560,8 +661,11 @@ impl ViewerWindow
     // Stops the current file scan immediately while preserving matches already found.
     mtd cancelSearch()
     {
-        if not .searchStream.isOpen() do
+        if not .searchStream.isOpen()
+        {
             return
+        }
+
         .searchCancelled = true
         .finishSearch()
     }
@@ -569,8 +673,11 @@ impl ViewerWindow
     // Opens the search strip above the document and gives it the keyboard.
     mtd showSearch()
     {
-        if not .searchBox.isEnabled() do
+        if not .searchBox.isEnabled()
+        {
             return
+        }
+
         if .isExploring()
         {
             .layoutSearchBar()
@@ -581,8 +688,11 @@ impl ViewerWindow
 
         .searchShown = true
         .searchBar.show()
-        if .searchComparison != .lineComparison() do
+        if .searchComparison != .lineComparison()
+        {
             .updateSearchAvailability()
+        }
+
         .updateDocumentInsets()
         .documentHost.applyLayout()
         .layoutFloatingParts()
@@ -614,8 +724,11 @@ impl ViewerWindow
     // forwarding helper declines and the original event follows its normal path.
     mtd routeSearchNavigationKey(evt: *KeyEvent)->bool
     {
-        if .forwardingViewerKey or evt.kind != .Pressed do
+        if .forwardingViewerKey or evt.kind != .Pressed
+        {
             return false
+        }
+
         let focus     = .focusedWindow()
         let searching = .searchGroup.isVisible() and focus and .searchGroup.isOwnerOf(focus)
         if searching and evt.key == .Escape
@@ -630,10 +743,15 @@ impl ViewerWindow
             return true
         }
 
-        if Viewer.pageKeyDirection(evt) do
+        if Viewer.pageKeyDirection(evt)
+        {
             return .forwardKeyToViewer(evt, takeFocus: false)
-        if .searchIndex >= .searchMatches.count do
+        }
+
+        if .searchIndex >= .searchMatches.count
+        {
             return false
+        }
 
         let pageKey         = evt.modifiers == .None and (evt.key == .PageUp or evt.key == .PageDown)
         let focused         = .focusedWindow()
@@ -641,8 +759,10 @@ impl ViewerWindow
         let fieldNavigation = inSearchField and
                               ((evt.modifiers == .None and (evt.key == .Up or evt.key == .Down)) or
                                (evt.modifiers == .Control and (evt.key == .Home or evt.key == .End)))
-        if not pageKey and not fieldNavigation do
+        if not pageKey and not fieldNavigation
+        {
             return false
+        }
 
         return .forwardKeyToViewer(evt, takeFocus: false)
     }
@@ -652,8 +772,10 @@ impl ViewerWindow
     // the new viewer for its rows as well.
     mtd updateSearchAvailability()
     {
-        let active         = .activeChoiceIndex < .instances.count
-        let available      = .isExploring() or .lineComparison() != null or (active and .instances[.activeChoiceIndex].revealMatch != null)
+        let active    = .activeChoiceIndex < .instances.count
+        let available = .isExploring() or
+                        .lineComparison() != null or
+                        (active and .instances[.activeChoiceIndex].revealMatch != null)
         let focused        = .focusedWindow()
         let searchHadFocus = focused and (focused == .searchGroup or .searchGroup.isOwnerOf(focused))
 
@@ -666,13 +788,17 @@ impl ViewerWindow
         .currentActions?.show()
         .layoutSearchBar()
         .restartSearch()
-        if not available and searchHadFocus do
+        if not available and searchHadFocus
+        {
             .viewerFocusTarget()?.setFocus()
+        }
 
         // The rows a viewer gave the lens run on that viewer, which a failure, a reload or another
         // file may have destroyed while the lens stayed open.
-        if .lens.isOpen() do
+        if .lens.isOpen()
+        {
             .lens.refresh()
+        }
     }
 
     // Cancels the search in progress and hides its highlight; `clearPresentation` also clears the
@@ -692,10 +818,15 @@ impl ViewerWindow
         if clearPresentation and .activeChoiceIndex < .instances.count
         {
             let instance = &.instances[.activeChoiceIndex]
-            if instance.view and instance.useSearchMatches do
+            if instance.view and instance.useSearchMatches
+            {
                 instance.useSearchMatches(null)
-            if instance.view and instance.clearSearch do
+            }
+
+            if instance.view and instance.clearSearch
+            {
                 instance.clearSearch()
+            }
         }
 
         .stopTimer(&.searchBoundsTimer)
@@ -725,14 +856,17 @@ impl ViewerWindow
         .searchCancelled     = false
         .searchStream        = catch File.openReadLive(.currentFile)
         {
-            if .searchByteRange.length > 0 do
+            if .searchByteRange.length > 0
+            {
                 .searchError = appStrings().ui_SearchRangeUnavailable
+            }
+
             .finishSearch()
             return
         }
 
         let decoder = .instances[.activeChoiceIndex].fileEncoding
-        .searchEncoding = decoder ? decoder() : .Utf8
+        .searchEncoding   = decoder ? decoder() : .Utf8
         .searchTotalBytes = 0
         catch { .searchTotalBytes = try .searchStream.size() }
 
@@ -747,18 +881,21 @@ impl ViewerWindow
                 .finishSearch()
                 return
             }
+
             catch .searchStream.seek(.Begin, byteRange.offset)
             {
                 .searchError = appStrings().ui_SearchRangeUnavailable
                 .finishSearch()
                 return
             }
+
             .searchTotalBytes = byteRange.length
-            .searchCarryBase = byteRange.offset
+            .searchCarryBase  = byteRange.offset
         }
+
         .searchProcessed = 0
         .searchCarry.clear()
-        .searchTimer = .addTimer(1'ms)
+        .searchTimer = .addTimer(1_ms)
         .refreshSearchReadout()
     }
 
@@ -771,25 +908,35 @@ impl ViewerWindow
            .instances[.activeChoiceIndex].collectMatches and
            .instances[.activeChoiceIndex].view
         {
-            if .collectViewerMatches() do
+            if .collectViewerMatches()
+            {
                 .finishSearch()
-            else do
+            }
+            else
+            {
                 .continueViewerSearch()
+            }
+
             return
         }
 
-        if not .searchStream.isOpen() do
+        if not .searchStream.isOpen()
+        {
             return
+        }
 
-        let rangeOrigin = .searchByteRange.length > 0 ? .searchByteRange.offset : 0
+        let rangeOrigin    = .searchByteRange.length > 0 ? .searchByteRange.offset : 0
         let rangeRemaining = .searchByteRange.length > 0 ? .searchTotalBytes - .searchBytesRead : SearchChunkSize
-        let requested = Math.min(SearchChunkSize, rangeRemaining)
-        var bytes: Array'u8
+        let requested      = Math.min(SearchChunkSize, rangeRemaining)
+        var bytes: Array!{u8}
         bytes.resize(requested)
         let count = catch .searchStream.read(bytes.toSlice())
         {
-            if .searchByteRange.length > 0 do
+            if .searchByteRange.length > 0
+            {
                 .searchError = appStrings().ui_SearchRangeUnavailable
+            }
+
             .finishSearch()
             return
         }
@@ -797,13 +944,14 @@ impl ViewerWindow
         .searchBytesRead += count
         bytes.resize(count)
         .searchCarry += cast(string, bytes.toSlice())
-        let eof      = count == 0 or (.searchByteRange.length > 0 and .searchBytesRead == .searchTotalBytes)
+        let eof = count == 0 or (.searchByteRange.length > 0 and .searchBytesRead == .searchTotalBytes)
         if .searchByteRange.length > 0 and count == 0 and .searchBytesRead < .searchTotalBytes
         {
             .searchError = appStrings().ui_SearchRangeUnavailable
             .finishSearch()
             return
         }
+
         let instance = &.instances[.activeChoiceIndex]
 
         // A regular expression may span an arbitrary number of chunks, and ^/$ refer to the
@@ -811,25 +959,36 @@ impl ViewerWindow
         // interface remains responsive, then evaluate once against the complete source.
         if .searchRegexOption and not instance.collectFileMatches and not eof
         {
-            .searchTimer = .addTimer(1'ms)
+            .searchTimer = .addTimer(1_ms)
             return
         }
 
-        let unit = Text.unitSize(.searchEncoding)
+        let unit      = Text.unitSize(.searchEncoding)
         let deferSize = (.searchSpan + SearchCarryMargin) * unit
-        var stableEnd = 0'u64
-        if eof do
+        var stableEnd = 0_u64
+        if eof
+        {
             stableEnd = .searchCarry.length
-        elif .searchCarry.length > deferSize do
+        }
+        else if .searchCarry.length > deferSize
+        {
             stableEnd = .searchCarry.length - deferSize
+        }
 
-        var candidates: Array'Viewer.SearchMatch
-        if instance.collectFileMatches and instance.view do
+        var candidates: Array!{Viewer.SearchMatch}
+        if instance.collectFileMatches and instance.view
+        {
             instance.collectFileMatches(.searchCarry, .searchCarryBase, &candidates)
-        elif .searchEncoding != .Utf8 do
+        }
+        else if .searchEncoding != .Utf8
+        {
             Viewer.collectEncodedMatches(.searchCarry, .searchQuery, .searchEncoding, .searchOptions(), .searchCarryBase, &candidates)
-        else do
+        }
+        else
+        {
             Viewer.collectTextMatches(.searchCarry, .searchQuery, .searchOptions(), 0, 0, .searchCarryBase, &candidates)
+        }
+
         let absoluteProcessed = rangeOrigin + .searchProcessed
         for match in candidates where match.offset >= absoluteProcessed and (eof or match.offset < .searchCarryBase + stableEnd)
         {
@@ -857,10 +1016,10 @@ impl ViewerWindow
         }
 
         var retainStart = stableEnd > SearchCarryMargin * unit ? stableEnd - SearchCarryMargin * unit : 0
-        retainStart -= retainStart % unit
+        retainStart      -= retainStart % unit
         .searchCarryBase += retainStart
         .searchCarry     = .searchCarry.toString()[retainStart to]
-        .searchTimer     = .addTimer(1'ms)
+        .searchTimer     = .addTimer(1_ms)
         .refreshSearchReadout()
     }
 }

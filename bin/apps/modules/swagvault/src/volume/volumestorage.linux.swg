@@ -10,7 +10,9 @@ impl VolumeStorage
     mtd acquireLock(readOnly: bool) fail
     {
         let operation = (readOnly ? Linux.LOCK_SH : Linux.LOCK_EX) | Linux.LOCK_NB
-        if Linux.flock(try .stream.nativeFileDescriptor(), operation) != 0 do
+        if Linux.flock(try .stream.nativeFileDescriptor(), operation) != 0
+        {
             fail volumeError(.AccessDenied, cast(u64, Linux.errno()))
+        }
     }
 }

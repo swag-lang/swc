@@ -8,24 +8,24 @@
 using Core, Core.Errors, Core.Math
 
 // Every Opus decoder produces 48 kHz output, whatever rate the stream was encoded from.
-internal const OutputRate = 48_000'u32
+internal const OutputRate = 48_000_u32
 
 // The most a packet may play, RFC 6716 clause 3.2.
-private const MaxPacketFrames    = 5_760'u64
-private const MaxFrameBytes      = 1275'u32
-private const MaxFramesPerPacket = 48'u32
+private const MaxPacketFrames    = 5_760_u64
+private const MaxFrameBytes      = 1275_u32
+private const MaxFramesPerPacket = 48_u32
 
-private const ModeSilk             = 1'u32
-private const ModeHybrid           = 2'u32
-private const ModeCelt             = 3'u32
-private const BandwidthNarrow      = 1'u32
-private const BandwidthMedium      = 2'u32
-private const BandwidthWide        = 3'u32
-private const BandwidthSuperWide   = 4'u32
-private const BandwidthFull        = 5'u32
-private const Frame20Ms            = 960'u32
-private const Frame5Ms             = 240'u32
-private const Frame2Ms5            = 120'u32
+private const ModeSilk             = 1_u32
+private const ModeHybrid           = 2_u32
+private const ModeCelt             = 3_u32
+private const BandwidthNarrow      = 1_u32
+private const BandwidthMedium      = 2_u32
+private const BandwidthWide        = 3_u32
+private const BandwidthSuperWide   = 4_u32
+private const BandwidthFull        = 5_u32
+private const Frame20Ms            = 960_u32
+private const Frame5Ms             = 240_u32
+private const Frame2Ms5            = 120_u32
 private const SilenceFrame: [2] u8 = [0xFF, 0xFF]
 
 // Returns one Opus frame's 48 kHz sample count from its configuration.
@@ -42,9 +42,12 @@ private func frameSampleCount(config: u32)->u32
         }
     }
 
-    if config < 16 do
-        return 480'u32 << (config & 1)
-    return 120'u32 << (config & 3)
+    if config < 16
+    {
+        return 480_u32 << (config & 1)
+    }
+
+    return 120_u32 << (config & 3)
 }
 
 // Returns the number of 48 kHz sample frames a packet plays, or zero for an invalid packet.
@@ -52,8 +55,11 @@ private func frameSampleCount(config: u32)->u32
 // The count follows from the table of contents alone, so an index can be built without decoding.
 internal func packetFrames(packet: const [..] u8)->u64
 {
-    if not packet.count do
+    if not packet.count
+    {
         return 0
+    }
+
     let toc    = cast(u32, packet[0])
     let config = toc >> 3
     let code   = toc & 3
@@ -61,18 +67,23 @@ internal func packetFrames(packet: const [..] u8)->u64
     // Frame sizes in 48 kHz samples: 2.5, 5, 10, 20, 40, and 60 ms.
     let frameSize = cast(u64, frameSampleCount(config))
 
-    var frames = 1'u64
+    var frames = 1_u64
     if code == 1 or code == 2
     {
         frames = 2
     }
-    elif code == 3
+    else if code == 3
     {
-        if packet.count < 2 do
+        if packet.count < 2
+        {
             return 0
+        }
+
         frames = cast(u64, packet[1]) & 63
-        if not frames do
+        if not frames
+        {
             return 0
+        }
     }
 
     let total = frames * frameSize
@@ -97,11 +108,14 @@ private func frameInfo(toc: u8)->FrameInfo
     {
         result.mode      = ModeCelt
         result.bandwidth = BandwidthMedium + ((value >> 5) & 3)
-        if result.bandwidth == BandwidthMedium do
+        if result.bandwidth == BandwidthMedium
+        {
             result.bandwidth = BandwidthNarrow
+        }
+
         result.frameSize = frameSampleCount(config)
     }
-    elif (value & 0x60) == 0x60
+    else if (value & 0x60) == 0x60
     {
         result.mode      = ModeHybrid
         result.bandwidth = value & 0x10 ? BandwidthFull : BandwidthSuperWide
@@ -114,7 +128,7 @@ private func frameInfo(toc: u8)->FrameInfo
         result.frameSize = frameSampleCount(config)
     }
 
-    result.streamChannels = value & 0x04 ? 2'u32 : 1
+    result.streamChannels = value & 0x04 ? 2_u32 : 1
     return result
 }
 
@@ -123,8 +137,10 @@ private func smoothFade(first, second: const [*] f32, out: [*] f32, channels: u3
     for i in Frame2Ms5
     {
         let w = CeltWindow[i] * CeltWindow[i]
-        for c in channels do
+        for c in channels
+        {
             out[i * channels + c] = w * second[i * channels + c] + (1.0 - w) * first[i * channels + c]
+        }
     }
 }
 
@@ -158,12 +174,11 @@ private struct Decoder
     celt:           CeltDecoder
     prevMode:       u32
     prevRedundancy: bool
-    pcm:            Array'f32     // One frame of mixed output, interleaved.
-    silkPcm:        Array's16     // One frame of SILK output at 48 kHz, interleaved.
-    redundant:      Array'f32     // The 5 ms redundant CELT frame of a transition.
-    output:         Array's16     // Reusable storage for interleaved output.
-    outputCount:    u64           // Samples written in the current packet.
-    packet:         Array'u8      // Packet being assembled across pages.
+    pcm:            Array!{f32}     // One frame of mixed output, interleaved.
+    silkPcm:        Array!{s16}     // One frame of SILK output at 48 kHz, interleaved.
+    redundant:      Array!{f32}     // The 5 ms redundant CELT frame of a transition.
+    output:         Array!{s16}     // Interleaved samples of the run being decoded.
+    packet:         Array!{u8}      // Packet being assembled across pages.
 
     serial:                   u32
     firstAudioSequence:       u32
@@ -188,7 +203,7 @@ private impl Decoder
     // Matroska track carries.
     mtd readConfig(config: const [..] u8) fail
     {
-        var head: Array'u8
+        var head: Array!{u8}
         if config.count >= 4 and
            config[0] == 'O' and
            config[1] == 'g' and
@@ -196,14 +211,17 @@ private impl Decoder
            config[3] == 'S'
         {
             var hasSerial = false
-            var completed = 0'u32
-            var offset    = 0'u64
+            var completed = 0_u32
+            var offset    = 0_u64
             while offset < config.count and completed < 2
             {
                 let page      = try Ogg.readPageHeader(config, offset)
                 let pageBytes = page.totalBytes()
-                if pageBytes > config.count - offset do
+                if pageBytes > config.count - offset
+                {
                     fail InvalidFormatError{"Opus header pages are truncated"}
+                }
+
                 let body = config[offset + page.headerBytes until offset + pageBytes]
                 if not hasSerial and
                    (page.flags & Ogg.FirstPage) and
@@ -223,13 +241,16 @@ private impl Decoder
 
                 if hasSerial and page.serial == .serial
                 {
-                    var at = 0'u64
-                    var completedOnPage = 0'u32
+                    var at = 0_u64
+                    var completedOnPage = 0_u32
                     for index in page.segments
                     {
                         let size = cast(u64, page.lacing[index])
-                        if completed == 0 do
+                        if completed == 0
+                        {
                             head.add(body[at until at + size])
+                        }
+
                         at += size
                         if size < 255
                         {
@@ -257,8 +278,10 @@ private impl Decoder
                 offset += pageBytes
             }
 
-            if completed < 2 do
+            if completed < 2
+            {
                 fail InvalidFormatError{"Opus stream ends inside its header packets"}
+            }
         }
         else
         {
@@ -273,16 +296,27 @@ private impl Decoder
            head[4] != 'H' or
            head[5] != 'e' or
            head[6] != 'a' or
-           head[7] != 'd' do
+           head[7] != 'd'
+        {
             fail InvalidFormatError{"Opus identification header is missing"}
-        if (head[8] >> 4) != 0 do
+        }
+
+        if (head[8] >> 4) != 0
+        {
             fail UnsupportedFormatError{"Opus stream uses an unknown version"}
+        }
+
         .channels = cast(u32, head[9])
-        if not .channels or .channels > 2 do
+        if not .channels or .channels > 2
+        {
             fail UnsupportedFormatError{"Opus stream needs one or two channels"}
+        }
+
         .gainQ8 = cast(s32, cast #bit (s16, (cast(u16, head[16]) | (cast(u16, head[17]) << 8))))
-        if head[18] != 0 do
+        if head[18] != 0
+        {
             fail UnsupportedFormatError{"Opus stream uses a multistream channel mapping"}
+        }
     }
 
     // Decodes one frame of a packet and appends its samples to `.output`.
@@ -291,15 +325,22 @@ private impl Decoder
         let CC        = .channels
         let frameSize = info.frameSize
         let mode      = info.mode
-        let base      = .outputCount
-        .outputCount += cast(u64, frameSize) * CC
-        .output.growResize(.outputCount)
+        let base      = .output.count
+        .output.resize(base + cast(u64, frameSize) * CC)
+        let pcm = .pcm.storage()
+        for i in frameSize * CC
+        {
+            pcm[i] = 0
+        }
 
         // A frame of one byte or none is a request for concealment; a file plays it as silence.
         if data.count <= 1
         {
-            for i in frameSize * CC do
+            for i in frameSize * CC
+            {
                 .output[base + i] = 0
+            }
+
             .prevMode = mode
             return
         }
@@ -313,33 +354,43 @@ private impl Decoder
 
         if mode != ModeCelt
         {
-            if .prevMode == ModeCelt do
-                .silk.reset()
-            let payloadMs    = Math.max(10'u32, 1000 * frameSize / OutputRate)
-            var internalRate = 16_000'u32
-            if mode == ModeSilk
+            if .prevMode == ModeCelt
             {
-                if info.bandwidth == BandwidthNarrow do
-                    internalRate = 8_000
-                elif info.bandwidth == BandwidthMedium do
-                    internalRate = 12_000
+                .silk.reset()
             }
 
-            var decoded = 0'u32
+            let payloadMs    = Math.max(10_u32, 1000 * frameSize / OutputRate)
+            var internalRate = 16_000_u32
+            if mode == ModeSilk
+            {
+                if info.bandwidth == BandwidthNarrow
+                {
+                    internalRate = 8_000
+                }
+                else if info.bandwidth == BandwidthMedium
+                {
+                    internalRate = 12_000
+                }
+            }
+
+            var decoded = 0_u32
             let silkOut = .silkPcm.storage()
             while decoded < frameSize
             {
                 let produced = try .silk.decode(&dec, decoded == 0, payloadMs, internalRate, info.streamChannels, silkOut + decoded * CC)
-                if not produced do
+                if not produced
+                {
                     fail InvalidFormatError{"Opus SILK frame decoded to nothing"}
+                }
+
                 decoded += produced
             }
         }
 
-        var startBand       = 0'u32
+        var startBand       = 0_u32
         var redundancy      = false
         var celtToSilk      = false
-        var redundancyBytes = 0's32
+        var redundancyBytes = 0_s32
         if mode != ModeCelt and dec.tell() + 17 + (mode == ModeHybrid ? 20 : 0) <= 8 * len
         {
             redundancy = mode == ModeHybrid ? dec.decodeBit(12) : true
@@ -359,8 +410,11 @@ private impl Decoder
             }
         }
 
-        if mode != ModeCelt do
+        if mode != ModeCelt
+        {
             startBand = 17
+        }
+
         var endBand = CeltBandCount
         switch info.bandwidth
         {
@@ -386,19 +440,14 @@ private impl Decoder
         if mode != ModeSilk
         {
             let celtFrameSize = Math.min(Frame20Ms, frameSize)
-            if mode != .prevMode and .prevMode > 0 and not .prevRedundancy do
-                .celt.reset()
-            if mode == ModeCelt and not .gainQ8
+            if mode != .prevMode and .prevMode > 0 and not .prevRedundancy
             {
-                try .celt.decodeFrame(data[0 until usable], &dec, celtFrameSize, pcm, .output.storage() + base)
-                .prevMode       = mode
-                .prevRedundancy = false
-                return
+                .celt.reset()
             }
 
             try .celt.decodeFrame(data[0 until usable], &dec, celtFrameSize, pcm)
         }
-        elif .prevMode == ModeHybrid and not (redundancy and celtToSilk and .prevRedundancy)
+        else if .prevMode == ModeHybrid and not (redundancy and celtToSilk and .prevRedundancy)
         {
             // Let the CELT overlap fade out through a frame of silence.
             .celt.startBand = 0
@@ -409,8 +458,10 @@ private impl Decoder
         if mode != ModeCelt
         {
             let silkOut = .silkPcm.storage()
-            for i in frameSize * CC do
+            for i in frameSize * CC
+            {
                 pcm[i] += cast(f32, silkOut[i]) * (1.0 / 32768.0)
+            }
         }
 
         if redundancy and not celtToSilk
@@ -426,47 +477,43 @@ private impl Decoder
 
         if redundancy and celtToSilk and (.prevMode != ModeSilk or .prevRedundancy)
         {
-            for i in Frame2Ms5 * CC do
+            for i in Frame2Ms5 * CC
+            {
                 pcm[i] = redundant[i]
+            }
+
             smoothFade(redundant + Frame2Ms5 * CC, pcm + Frame2Ms5 * CC, pcm + Frame2Ms5 * CC, CC)
         }
 
         if .gainQ8
         {
             let gain = cast(f32, Math.exp(0.6931471805599453 * 6.48814081e-4 * cast(f64, .gainQ8)))
-            for i in frameSize * CC do
+            for i in frameSize * CC
+            {
                 pcm[i] *= gain
+            }
         }
 
         .prevMode       = mode
         .prevRedundancy = redundancy and not celtToSilk
-        .writePcm16(base, frameSize * CC)
-    }
-
-    mtd writePcm16(base: u64, count: u32)
-    {
-        let source      = .pcm.storage()
-        let destination = .output.storage() + base
-
-        // Every Opus frame size is a multiple of eight samples.
-        for block in count / 8
+        for i in frameSize * CC
         {
-            let i    = block * 8
-            let low  = roundOpusPcm16(Simd.load(source + i) * 32768.0'f32)
-            let high = roundOpusPcm16(Simd.load(source + i + 4) * 32768.0'f32)
-            Simd.store(destination + i, Simd.packSigned(low, high))
+            .output[base + i] = cast(s16, Math.clamp(Math.round(cast(f64, pcm[i]) * 32768.0), -32768.0, 32767.0))
         }
     }
 
     // Splits a packet into its frames, RFC 6716 clause 3.2, and decodes each of them.
     mtd decodePacketFrames(packet: const [..] u8)->u64 fail
     {
-        if not packet.count do
+        if not packet.count
+        {
             fail InvalidFormatError{"Opus packet is empty"}
+        }
+
         let info  = frameInfo(packet[0])
         var sizes: [MaxFramesPerPacket] u32
-        var count = 1'u32
-        var pos   = 1'u64
+        var count = 1_u32
+        var pos   = 1_u64
         var len   = cast(s64, packet.count) - 1
         switch cast(u32, packet[0]) & 3
         {
@@ -474,8 +521,11 @@ private impl Decoder
             sizes[0] = cast(u32, len)
 
         case 1:
-            if len & 1 do
+            if len & 1
+            {
                 fail InvalidFormatError{"Opus packet splits an odd length into two equal frames"}
+            }
+
             count    = 2
             sizes[0] = cast(u32, (len / 2))
             sizes[1] = sizes[0]
@@ -487,30 +537,43 @@ private impl Decoder
             sizes[1] = cast(u32, len) - first
 
         default:
-            if len < 1 do
+            if len < 1
+            {
                 fail InvalidFormatError{"Opus packet is truncated"}
+            }
+
             let flags = cast(u32, packet[pos])
             pos   += 1
             len   -= 1
             count = flags & 63
-            if not count or cast(u64, info.frameSize) * count > MaxPacketFrames do
+            if not count or cast(u64, info.frameSize) * count > MaxPacketFrames
+            {
                 fail InvalidFormatError{"Opus packet states an invalid frame count"}
+            }
+
             if flags & 0x40
             {
                 while true
                 {
-                    if len <= 0 do
+                    if len <= 0
+                    {
                         fail InvalidFormatError{"Opus packet padding is truncated"}
+                    }
+
                     let p = cast(s64, packet[pos])
                     pos += 1
                     len -= 1
                     len -= p == 255 ? 254 : p
-                    if p != 255 do
+                    if p != 255
+                    {
                         break
+                    }
                 }
 
-                if len < 0 do
+                if len < 0
+                {
                     fail InvalidFormatError{"Opus packet padding exceeds the packet"}
+                }
             }
 
             if flags & 0x80
@@ -523,26 +586,40 @@ private impl Decoder
                     last     -= (before - len) + cast(s64, sizes[i])
                 }
 
-                if last < 0 do
+                if last < 0
+                {
                     fail InvalidFormatError{"Opus packet frame sizes exceed the packet"}
+                }
+
                 sizes[count - 1] = cast(u32, last)
             }
             else
             {
                 let each = len / count
-                if each * count != len do
+                if each * count != len
+                {
                     fail InvalidFormatError{"Opus packet length is not a multiple of its frame count"}
-                for i in count do
+                }
+
+                for i in count
+                {
                     sizes[i] = cast(u32, each)
+                }
             }
         }
 
-        if sizes[count - 1] > MaxFrameBytes do
+        if sizes[count - 1] > MaxFrameBytes
+        {
             fail InvalidFormatError{"Opus frame is larger than the format allows"}
+        }
+
         for i in count
         {
-            if pos + sizes[i] > packet.count do
+            if pos + sizes[i] > packet.count
+            {
                 fail InvalidFormatError{"Opus frame runs past its packet"}
+            }
+
             try .decodeFrame(packet[pos until pos + sizes[i]], info)
             pos += sizes[i]
         }
@@ -554,28 +631,36 @@ private impl Decoder
     // the trimming its granule positions ask for.
     mtd decodeRun(run: const [..] u8)->u64 fail
     {
-        var produced      = 0'u64
+        var produced      = 0_u64
         var lastGranule   = Ogg.NoGranule
         var firstSequence = Swag.U32.Max
-        var offset        = 0'u64
+        var offset        = 0_u64
         .packet.clear()
         while offset < run.count
         {
             let page      = try Ogg.readPageHeader(run, offset)
             let pageBytes = page.totalBytes()
-            if pageBytes > run.count - offset do
+            if pageBytes > run.count - offset
+            {
                 fail InvalidFormatError{"Ogg page run is truncated"}
+            }
+
             if page.serial == .serial
             {
-                if firstSequence == Swag.U32.Max do
+                if firstSequence == Swag.U32.Max
+                {
                     firstSequence = page.sequence
-                if page.granule != Ogg.NoGranule do
+                }
+
+                if page.granule != Ogg.NoGranule
+                {
                     lastGranule = page.granule
-                let body          = run[offset + page.headerBytes until offset + pageBytes]
-                var at            = 0'u64
-                var start         = 0'u64
-                var headersToSkip = page.sequence == .firstAudioSequence ? .headerPacketsOnAudioPage : 0'u32
-                for size in page.lacing[until page.segments]
+                }
+
+                let body = run[offset + page.headerBytes until offset + pageBytes]
+                var at   = 0_u64
+                var headersToSkip = page.sequence == .firstAudioSequence ? .headerPacketsOnAudioPage : 0_u32
+                for index in page.segments
                 {
                     at += size
                     if size == 255 do
@@ -584,7 +669,16 @@ private impl Decoder
                     let payload = body[start until at]
                     if headersToSkip
                     {
-                        headersToSkip -= 1
+                        if headersToSkip
+                        {
+                            headersToSkip -= 1
+                        }
+                        else if .packet.count
+                        {
+                            produced += try .decodePacketFrames(.packet.toSlice())
+                        }
+
+                        .packet.clear()
                     }
                     elif .packet.count
                     {
@@ -608,8 +702,10 @@ private impl Decoder
             offset += pageBytes
         }
 
-        if lastGranule == Ogg.NoGranule do
+        if lastGranule == Ogg.NoGranule
+        {
             return produced
+        }
 
         // The first run starts at position zero and the later ones where the previous one ended;
         // a run decoded fresh after a seek knows neither, and keeps what it produced.
@@ -618,18 +714,27 @@ private impl Decoder
         {
             expected = Math.min(produced, lastGranule)
         }
-        elif .granuleKnown
+        else if .granuleKnown
         {
-            if lastGranule < .granule do
+            if lastGranule < .granule
+            {
                 fail InvalidFormatError{"Ogg granule position runs backwards"}
+            }
+
             expected = lastGranule - .granule
         }
 
         if produced < expected
         {
-            .output.growResize(expected * .channels)
-            let padding = .output.storage() + produced * .channels
-            Memory.clear(padding, (expected - produced) * .channels * #sizeof(s16))
+            .output.resize(expected * .channels)
+        }
+        else if produced < expected
+        {
+            .output.resize(expected * .channels)
+            for index in produced * .channels until expected * .channels
+            {
+                .output[index] = 0
+            }
         }
 
         .granule      = lastGranule
@@ -645,8 +750,11 @@ impl IPacketCodec for Decoder
     mtd impl initialize(config: const [..] u8, sampleRateHz, channels: u32) fail
     {
         try .readConfig(config)
-        if sampleRateHz != OutputRate or .channels != channels do
+        if sampleRateHz != OutputRate or .channels != channels
+        {
             fail InvalidFormatError{"Opus stream shape differs from its container track"}
+        }
+
         .silk = SilkDecoder.create(.channels)
         .celt = CeltDecoder.create(.channels)
         .pcm.resize(cast(u64, Frame20Ms) * 3 * .channels)
@@ -665,16 +773,23 @@ impl IPacketCodec for Decoder
            packet[0] == 'O' and
            packet[1] == 'g' and
            packet[2] == 'g' and
-           packet[3] == 'S' do
+           packet[3] == 'S'
+        {
             frames = try .decodeRun(packet)
-        else do
+        }
+        else
+        {
             frames = try .decodePacketFrames(packet)
+        }
 
         // A container's index is the authority on what a packet contributes: the discard padding
         // a Matroska block declares shortens the last packet below what its table of contents says.
         let produced = Math.min(frames * .channels * #sizeof(s16), destinationSize)
-        if produced do
+        if produced
+        {
             Memory.copy(destination, .output.storage(), produced)
+        }
+
         return produced
     }
 }
@@ -682,29 +797,41 @@ impl IPacketCodec for Decoder
 // Reads one frame size of a code-3 packet: one byte below 252, two bytes otherwise.
 private func parseFrameSize(packet: const [..] u8, pos: *u64, len: *s64)->u32 fail
 {
-    if len[] < 1 do
+    if len[] < 1
+    {
         fail InvalidFormatError{"Opus packet frame size is truncated"}
+    }
+
     let first = cast(u32, packet[pos[]])
     if first < 252
     {
         pos[] += 1
         len[] -= 1
-        if cast(s64, first) > len[] do
+        if cast(s64, first) > len[]
+        {
             fail InvalidFormatError{"Opus frame size exceeds the packet"}
+        }
+
         return first
     }
 
-    if len[] < 2 do
+    if len[] < 2
+    {
         fail InvalidFormatError{"Opus packet frame size is truncated"}
+    }
+
     let size = 4 * cast(u32, packet[pos[] + 1]) + first
     pos[] += 2
     len[] -= 2
-    if cast(s64, size) > len[] do
+    if cast(s64, size) > len[]
+    {
         fail InvalidFormatError{"Opus frame size exceeds the packet"}
+    }
+
     return size
 }
 
 #init
 {
-    registerPacketCodec'Decoder()
+    registerPacketCodec!{Decoder}()
 }

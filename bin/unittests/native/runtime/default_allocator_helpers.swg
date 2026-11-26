@@ -8,16 +8,20 @@ internal const TestAllocationHeaderSize = #sizeof(TestAllocationHeader)
 
 internal func testAlloc(size: u64)->[*] void?
 {
-    if size > Swag.U64.Max - TestAllocationHeaderSize do
+    if size > Swag.U64.Max - TestAllocationHeaderSize
+    {
         return null
+    }
 
     var request: Swag.AllocatorRequest
     request.size      = size + TestAllocationHeaderSize
     request.alignment = 16
     let allocator = unwrap Swag.getContext().allocator
     allocator.alloc(&request)
-    if not request.address do
+    if not request.address
+    {
         return null
+    }
 
     let header = cast(*TestAllocationHeader, request.address)
     header.totalSize = request.size
@@ -27,15 +31,19 @@ internal func testAlloc(size: u64)->[*] void?
 
 internal func testRealloc(ptr: [*] void?, size: u64)->[*] void?
 {
-    if not ptr do
+    if not ptr
+    {
         return testAlloc(size)
+    }
     if not size
     {
         testFree(ptr)
         return null
     }
-    if size > Swag.U64.Max - TestAllocationHeaderSize do
+    if size > Swag.U64.Max - TestAllocationHeaderSize
+    {
         return null
+    }
 
     let header = cast(*TestAllocationHeader, (cast([*] u8, ptr) - TestAllocationHeaderSize))
     var request: Swag.AllocatorRequest
@@ -45,8 +53,10 @@ internal func testRealloc(ptr: [*] void?, size: u64)->[*] void?
     request.alignment = 16
     let allocator = unwrap Swag.getContext().allocator
     allocator.realloc(&request)
-    if not request.address do
+    if not request.address
+    {
         return null
+    }
 
     let replacement = cast(*TestAllocationHeader, request.address)
     replacement.totalSize = request.size
@@ -56,8 +66,10 @@ internal func testRealloc(ptr: [*] void?, size: u64)->[*] void?
 
 internal func testFree(ptr: [*] void?)
 {
-    if not ptr do
+    if not ptr
+    {
         return
+    }
 
     let header = cast(*TestAllocationHeader, (cast([*] u8, ptr) - TestAllocationHeaderSize))
     var request: Swag.AllocatorRequest

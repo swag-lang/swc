@@ -19,6 +19,7 @@ using Core, Pixel
     {
         cast(*u32, pix)[] = cast(u32, x < 100 ? Argb.Red : x >= 856 ? Argb.Blue : Argb.White)
     }
+
     capture.backgroundChanged()
     capture.computePreview()
 
@@ -33,6 +34,7 @@ using Core, Pixel
     {
         cast(*u32, pix)[] = cast(u32, x < 12 ? Argb.Black : Argb.White)
     }
+
     capture.backgroundChanged()
     capture.computePreview()
 

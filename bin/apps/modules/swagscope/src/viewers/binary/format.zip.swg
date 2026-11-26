@@ -6,13 +6,13 @@ using Core
 private
 {
     // Signatures the three records a reader needs are found by.
-    const ZipEndSignature          = 0x06054B50'u32
-    const ZipEntrySignature        = 0x02014B50'u32
-    const ZipZip64LocatorSignature = 0x07064B50'u32
+    const ZipEndSignature          = 0x06054B50_u32
+    const ZipEntrySignature        = 0x02014B50_u32
+    const ZipZip64LocatorSignature = 0x07064B50_u32
 
     // How far back the trailing record is looked for. It sits at the very end unless the archive
     // carries a comment, and a comment is bounded by the sixteen bits that measure it.
-    const ZipEndSearch = 0xFFFF + 22'u64
+    const ZipEndSearch = 0xFFFF + 22_u64
 }
 
 // Returns whether the file is a ZIP archive, whatever the container built on top of it is called.
@@ -24,8 +24,11 @@ func isZipArchive(image: *BinaryImage)->bool
     image.bigEndian = false
     if image.matches(0, "PK\x03\x04") or
        image.matches(0, "PK\x05\x06") or
-       image.matches(0, "PK\x07\x08") do
+       image.matches(0, "PK\x07\x08")
+    {
         return true
+    }
+
     return zipEndAt(image) != Swag.U64.Max
 }
 
@@ -84,14 +87,17 @@ func reportZipArchive(image: *BinaryImage, report: *Report)
 
     if commentLen
     {
-        let comment = image.fixedTextAt(endAt + 22, Math.min(commentLen, 512'u64))
+        let comment = image.fixedTextAt(endAt + 22, Math.min(commentLen, 512_u64))
         report.field(endAt + 22, commentLen, texts.zip_Comment, comment)
     }
 
     // A Zip64 locator sits immediately in front of the record when the archive outgrew the fields
     // above, so the numbers they carry are placeholders rather than the truth.
-    if endAt >= 20 and image.u32At(endAt - 20) == ZipZip64LocatorSignature do
+    if endAt >= 20 and image.u32At(endAt - 20) == ZipZip64LocatorSignature
+    {
         report.hexField(endAt - 20 + 8, 8, texts.zip_Zip64, image.u64At(endAt - 20 + 8))
+    }
+
     report.endGroup()
 
     reportZipEntries(image, report, at, size, declared)
@@ -109,14 +115,16 @@ private func reportZipEntries(image: *BinaryImage, report: *Report, at, size, de
     report.beginGroup(texts.zip_Directory, total, texts.zip_DirectoryDesc, offset: at, length: size, open: true)
 
     var scan     = at
-    var shown    = 0'u64
-    var packed   = 0'u64
-    var unpacked = 0'u64
+    var shown    = 0_u64
+    var packed   = 0_u64
+    var unpacked = 0_u64
 
     while scan + 46 <= end and shown < ListLimit
     {
-        if image.u32At(scan) != ZipEntrySignature do
+        if image.u32At(scan) != ZipEntrySignature
+        {
             break
+        }
 
         let flags      = image.u16At(scan + 8)
         let method     = image.u16At(scan + 10)
@@ -127,7 +135,7 @@ private func reportZipEntries(image: *BinaryImage, report: *Report, at, size, de
         let extraLen   = cast(u64, image.u16At(scan + 30))
         let commentLen = cast(u64, image.u16At(scan + 32))
         let localAt    = cast(u64, image.u32At(scan + 42))
-        let name       = image.fixedTextAt(scan + 46, Math.min(nameLen, 512'u64))
+        let name       = image.fixedTextAt(scan + 46, Math.min(nameLen, 512_u64))
         let stamp      = zipTimeText(image.u16At(scan + 14), image.u16At(scan + 12))
         let stored     = StrConv.toDisplaySize(compressed)
 
@@ -136,7 +144,7 @@ private func reportZipEntries(image: *BinaryImage, report: *Report, at, size, de
 
         // A name that ends in a separator is a folder the archive recorded rather than a payload,
         // and it has no bytes anywhere to point at.
-        let folder      = nameLen and (name.toString()[nameLen - 1] == '/'u8 or name.toString()[nameLen - 1] == '\\'u8)
+        let folder      = nameLen and (name.toString()[nameLen - 1] == '/'_u8 or name.toString()[nameLen - 1] == '\\'_u8)
         let groupValue  = folder ? texts.zip_Folder : stored
         let groupOffset = folder ? Swag.U64.Max : localAt
         let groupLength = folder ? 0 : compressed + 30 + nameLen
@@ -179,20 +187,28 @@ private func reportZipEntries(image: *BinaryImage, report: *Report, at, size, de
 // Returns where the trailing record starts, searching backwards from the end of what was loaded.
 private func zipEndAt(image: *BinaryImage)->u64
 {
-    if image.bytes.count < 22 do
+    if image.bytes.count < 22
+    {
         return Swag.U64.Max
+    }
 
     let last  = image.bytes.count - 22
     let limit = last > ZipEndSearch ? last - ZipEndSearch : 0
-    for scan in rangeTo(limit, last).reversed() where image.u32At(scan) == ZipEndSignature do
+    for scan in rangeTo(limit, last).reversed() where image.u32At(scan) == ZipEndSignature
+    {
         return scan
+    }
+
     return Swag.U64.Max
 }
 
 // Returns the calendar time the two packed DOS words name.
 private func zipTimeText(date, time: u16)->String
 {
-    if not date do
+    if not date
+    {
         return NoValue
+    }
+
     return Format.toString("%-%{02}-%{02} %{02}:%{02}:%{02}", 1980 + (date >> 9), (date >> 5) & 0xF, date & 0x1F, time >> 11, (time >> 5) & 0x3F, (time & 0x1F) * 2)
 }

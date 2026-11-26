@@ -103,8 +103,11 @@ using Core, Viewers
 {
     let workbook = expect Xlsx.Workbook.load(scopeTestDataPath("viewer.formats.xlsx"))
     Swag.require(workbook.sheets.count == 2 and workbook.omittedFormats == 0)
-    for displayed in ["$1,250.50", "12.50%", "(45.70)", "12,345", "00042", "1/1/24", "2026-11-15", "36:00:00", "12:00:00", "75.00%"] do
+    for displayed in ["$1,250.50", "12.50%", "(45.70)", "12,345", "00042", "1/1/24", "2026-11-15", "36:00:00", "12:00:00", "75.00%"]
+    {
         Swag.require(Utf8.contains(workbook.sheets[0].readingHtml(), displayed) or Utf8.contains(workbook.sheets[1].readingHtml(), displayed))
+    }
+
     Swag.require(not Utf8.contains(workbook.sheets[0].readingHtml(), "=3/4"))
 }
 
@@ -113,8 +116,10 @@ using Core, Viewers
 {
     let workbook = expect Xlsx.Workbook.load(scopeTestDataPath("viewer.monthly-budget.xlsx"))
     Swag.require(workbook.omittedFormats == 0)
-    for displayed in ["$2,500.00", "$1,414", "62%"] do
+    for displayed in ["$2,500.00", "$1,414", "62%"]
+    {
         Swag.require(Utf8.contains(workbook.sheets[0].readingHtml(), displayed))
+    }
 }
 
 // Unsupported numeric display codes leave the stored value intact and name the limitation.

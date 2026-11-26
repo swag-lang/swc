@@ -4,11 +4,11 @@ using Core, Gui, Pixel
 
 struct PageGallery
 {
-    using wnd: Wnd
+    using wnd:  Wnd
     late panel: *DocumentPageNavigation
-    columns:    u64 = 1
+    columns:    u64        = 1
     cell:       Math.Point = {120, 160}
-    hovered:    u64 = Swag.U64.Max
+    hovered:    u64        = Swag.U64.Max
 }
 
 // Both navigation modes occupy the same integrated outline lane and use its existing toggle.
@@ -38,8 +38,8 @@ impl DocumentPageNavigation
     mtd createPageNavigation(outline: *DocumentOutline, pages, headings: string)
     {
         .outlinePanel = outline
-        let parent    = unwrap outline.parent
-        let height    = themeCompactButtonSize(parent.themeMetrics())
+        let parent = unwrap outline.parent
+        let height = themeCompactButtonSize(parent.themeMetrics())
         with .navigationMode = ComboBox.create(parent, {0, 0, 0, height}, flags: .Segmented)
         {
             .dockStyle = .Top
@@ -48,13 +48,14 @@ impl DocumentPageNavigation
             .sigChanged += func|panel = me|(_, index) { panel.setNavigationMode(index == 0) }
         }
 
-        with .thumbnailScroll = Wnd.create'ScrollWnd(parent)
+        with .thumbnailScroll = Wnd.create!{ScrollWnd}(parent)
         {
             .dockStyle       = .Center
             .backgroundStyle = .Transparent
             .updateFlags(.DisableHorizontal | .TransparentBars)
         }
-        with .gallery = .thumbnailScroll.createView'PageGallery()
+
+        with .gallery = .thumbnailScroll.createView!{PageGallery}()
         {
             .panel           = me
             .focusPolicy     = .Tab
@@ -65,8 +66,10 @@ impl DocumentPageNavigation
         .setNavigationMode(true)
         outline.toggle.sigCheckedChanged += func|panel = me|(button)
         {
-            if button.isChecked and panel.pagesSelected do
+            if button.isChecked and panel.pagesSelected
+            {
                 panel.gallery.revealCurrentPage()
+            }
         }
     }
 
@@ -87,11 +90,16 @@ impl DocumentPageNavigation
         .outlinePanel.show(not .pagesSelected)
         .thumbnailScroll.show(.pagesSelected)
         let lane = unwrap .outlinePanel.parent
-        if lane.parent is ViewerSidePanelHost as side do
+        if lane.parent is ViewerSidePanelHost as side
+        {
             side.setDocumentAlignment(.outlinePanel.headings.isEmpty())
+        }
+
         lane.applyLayout()
-        if .pagesSelected and .thumbnailScroll.isVisible() do
+        if .pagesSelected and .thumbnailScroll.isVisible()
+        {
             .gallery.revealCurrentPage()
+        }
     }
 
     mtd openPages()
@@ -110,8 +118,11 @@ impl PageGallery
 {
     mtd refreshLayout()
     {
-        if .panel == null do
+        if .panel == null
+        {
             return
+        }
+
         // Keep the page being browsed in view even when reflow changes its row.
         let topRow     = .scrollPos.y / .cell.y
         let anchor     = cast(u64, topRow) * .columns
@@ -119,14 +130,17 @@ impl PageGallery
         let oldColumns = .columns
         let oldHeight  = .cell.y
         let width      = Math.max(.position.width, 1)
-        .columns   = Math.max(cast(u64, width / 118), 1)
-        .cell.x    = width / cast(f32, .columns)
+        .columns = Math.max(cast(u64, width / 118), 1)
+        .cell.x  = width / cast(f32, .columns)
         let height = .panel.slideAspect > 0 ? (.cell.x - 20) / .panel.slideAspect + 36 : .cell.x * 1.35
-        .cell.y    = Math.clamp(Math.min(height, .position.height * 0.55), 72, 192)
-        let rows   = (.panel.pageCount + .columns - 1) / .columns
+        .cell.y = Math.clamp(Math.min(height, .position.height * 0.55), 72, 192)
+        let rows = (.panel.pageCount + .columns - 1) / .columns
         .panel.thumbnailScroll.setScrollSize(0, cast(f32, rows) * .cell.y)
-        if oldColumns != .columns or oldHeight != .cell.y do
+        if oldColumns != .columns or oldHeight != .cell.y
+        {
             .panel.thumbnailScroll.setScrollPos(0, (cast(f32, anchor / .columns) + fraction) * .cell.y)
+        }
+
         .invalidate()
     }
 
@@ -139,45 +153,55 @@ impl PageGallery
     }
 
     mtd cellRect(index: u64)->Math.Rectangle
-        => {cast(f32, index % .columns) * .cell.x, cast(f32, index / .columns) * .cell.y, .cell.x, .cell.y}
+        =>
+    {cast(f32, index % .columns) * .cell.x, cast(f32, index / .columns) * .cell.y, .cell.x, .cell.y}
 
     mtd revealCurrentPage()
     {
         .refreshLayout()
         let tile = .cellRect(.panel.currentPage)
-        if tile.y < .scrollPos.y do
+        if tile.y < .scrollPos.y
+        {
             .panel.thumbnailScroll.setScrollPos(0, tile.y)
-        elif tile.bottom() > .scrollPos.y + .position.height do
+        }
+        else if tile.bottom() > .scrollPos.y + .position.height
+        {
             .panel.thumbnailScroll.setScrollPos(0, tile.bottom() - .position.height)
+        }
+
         .panel.preparePreviews()
     }
 
     mtd choose(index: u64)
     {
-        if index >= .panel.pageCount do
+        if index >= .panel.pageCount
+        {
             return
+        }
+
         if index == .panel.currentPage
         {
             .revealCurrentPage()
             return
         }
+
         .panel.selectPage(index)
     }
 
     mtd paintPage(context: *PaintContext, index: u64)
     {
         let painter = context.painter
-        let tile   = .cellRect(index)
-        let colors = .themeColors()
-        let font   = unwrap .font().regular
-        let label  = .panel.labelOf ? .panel.labelOf(index) : ""
-        let text   = label.count ? String.from(label) : Format.toString("%", index + 1)
-        let size   = Painter.measureString(text, font)
-        let space  = Math.Point{Math.max(1.0, tile.width - 20), Math.max(1.0, tile.height - size.height - 20)}
-        let aspect = .panel.previewAspect(index)
-        let width  = Math.min(space.x, space.y * aspect)
-        let height = width / aspect
-        let paper  = Math.Rectangle{tile.horzCenter() - width / 2, tile.y + 8 + (space.y - height) / 2, width, height}
+        let tile    = .cellRect(index)
+        let colors  = .themeColors()
+        let font    = unwrap .font().regular
+        let label   = .panel.labelOf ? .panel.labelOf(index) : ""
+        let text    = label.count ? String.from(label) : Format.toString("%", index + 1)
+        let size    = Painter.measureString(text, font)
+        let space   = Math.Point{Math.max(1.0, tile.width - 20), Math.max(1.0, tile.height - size.height - 20)}
+        let aspect  = .panel.previewAspect(index)
+        let width   = Math.min(space.x, space.y * aspect)
+        let height  = width / aspect
+        let paper   = Math.Rectangle{tile.horzCenter() - width / 2, tile.y + 8 + (space.y - height) / 2, width, height}
         .panel.paintPreview(context, index, paper)
         let selected = index == .panel.currentPage
         let edge     = selected ? colors.arc : colors.faintText.withAlphaF32(index == .hovered ? 0.8 : 0.22)
@@ -188,9 +212,13 @@ impl PageGallery
             focus.inflate(3)
             painter.drawRect(focus, colors.arc)
         }
+
         painter.pushClippingRect(tile)
-        painter.drawString(Math.max(tile.x + 4, tile.horzCenter() - size.width / 2), font.opticalLineTop(tile.bottom() - size.height / 2 - 5),
-                           text, font, selected ? colors.arc : colors.softText)
+        painter.drawString(Math.max(tile.x + 4, tile.horzCenter() - size.width / 2),
+                           font.opticalLineTop(tile.bottom() - size.height / 2 - 5),
+                           text,
+                           font,
+                           selected ? colors.arc : colors.softText)
         painter.popClippingRect()
     }
 }
@@ -203,15 +231,17 @@ impl IWnd for PageGallery
     {
         .panel.preparePreviews()
         let range = .visibleRange()
-        for index in range.first until range.end do
+        for index in range.first until range.end
+        {
             .paintPage(evt.paintContext, index)
+        }
     }
 
     mtd impl onMouseEvent(evt: *MouseEvent)
     {
         let pos   = .surfaceToLocal(evt.surfacePos) + .scrollPos
         let index = pos.x >= 0 and pos.x < .position.width and pos.y >= 0 ?
-                        cast(u64, pos.y / .cell.y) * .columns + cast(u64, pos.x / .cell.x) : Swag.U64.Max
+                    cast(u64, pos.y / .cell.y) * .columns + cast(u64, pos.x / .cell.x) : Swag.U64.Max
         switch evt.kind
         {
         case .Move, .Enter, .Leave:
@@ -221,9 +251,11 @@ impl IWnd for PageGallery
                 .hovered = hovered
                 .invalidate()
             }
+
         case .Pressed where evt.button == .Left:
             .setFocus()
             .choose(index)
+
         default:
             evt.accepted = false
         }
@@ -237,19 +269,20 @@ impl IWnd for PageGallery
             evt.accepted = false
             return
         }
+
         let index = .panel.currentPage
         let step  = Math.max(cast(u64, .position.height / .cell.y), 1) * .columns
         switch evt.key
         {
-        case .Left:  .choose(index - Math.min(index, 1))
-        case .Right: .choose(Math.min(index + 1, count - 1))
-        case .Up:    .choose(index - Math.min(index, .columns))
-        case .Down:  .choose(Math.min(index + .columns, count - 1))
+        case .Left:     .choose(index - Math.min(index, 1))
+        case .Right:    .choose(Math.min(index + 1, count - 1))
+        case .Up:       .choose(index - Math.min(index, .columns))
+        case .Down:     .choose(Math.min(index + .columns, count - 1))
         case .PageUp:   .choose(index - Math.min(index, step))
         case .PageDown: .choose(Math.min(index + step, count - 1))
-        case .Home:  .choose(0)
-        case .End:   .choose(count - 1)
-        default:     evt.accepted = false
+        case .Home:     .choose(0)
+        case .End:      .choose(count - 1)
+        default:        evt.accepted = false
         }
     }
 }

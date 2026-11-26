@@ -30,7 +30,7 @@ using Swag, Core, Core.Errors
     discard expect timeline.place(0, 1)
     let midpoint = expect timeline.place(11_338, 1)
     Swag.require(midpoint.startSample == 1 and midpoint.discardedFrames == 0)
-    let distant = expect timeline.place(10'u64 * 24 * 60 * 60 * 1_000_000_000, 441)
+    let distant = expect timeline.place(10_u64 * 24 * 60 * 60 * 1_000_000_000, 441)
     Swag.require(distant.startSample == 38_102_400_000 and distant.silenceFrames == 38_102_399_998)
     Swag.require(timeline.sampleEnd() == 38_102_400_441)
 }
@@ -147,11 +147,11 @@ using Swag, Core, Core.Errors
 
     Swag.require(writer.sampleFrameCount() == timeline.sampleEnd())
     let sound = expect SoundFile.load(path.toString())
-    var decoded: Array's16
+    var decoded: Array!{s16}
     expect sound.decodePcm16(func|decoded = &decoded|(part: const [..] s16)->bool
     {
         decoded.add(part)
         return true
     })
-    Swag.require(Slice.equals(decoded.toSlice(), [10's16, 20, 0, 0, 30, 40, 60, 0, 0]))
+    Swag.require(Slice.equals(decoded.toSlice(), [10_s16, 20, 0, 0, 30, 40, 60, 0, 0]))
 }

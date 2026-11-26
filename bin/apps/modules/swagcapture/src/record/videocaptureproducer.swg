@@ -40,7 +40,7 @@ impl VideoCaptureProducer
             {
                 if Atomic.get(&.paused)
                 {
-                    Threading.Thread.sleep(1'ms)
+                    Threading.Thread.sleep(1_ms)
                     continue
                 }
 
@@ -53,8 +53,10 @@ impl VideoCaptureProducer
 
                 let fresh = try .session.captureAt(Time.monotonicMicroseconds())
                 Atomic.exchange(&.missedSlots, .session.missedFrameSlotCount())
-                if .session.hasCaptureOrigin() do
+                if .session.hasCaptureOrigin()
+                {
                     Atomic.exchange(&.ready, 1)
+                }
 
                 if not fresh
                 {
@@ -79,7 +81,7 @@ impl VideoCaptureProducer
 
     mtd setPaused(paused: bool)
     {
-        discard Atomic.exchange(&.paused, paused ? 1'u32 : 0'u32)
+        discard Atomic.exchange(&.paused, paused ? 1_u32 : 0_u32)
     }
 
     mtd const hasOrigin()->bool => Atomic.get(&.ready) != 0

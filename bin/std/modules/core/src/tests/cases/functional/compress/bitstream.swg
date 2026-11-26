@@ -56,14 +56,16 @@ func callBitStreamPeekUnchecked32(stream: *Compress.BitStream)
     // Cross-check varying-width reads (non-byte-aligned) against a manual LSB-first
     // extraction. 64 bytes forces many bulk-refill fast paths at assorted numBits.
     var input: [64] u8
-    for i in 64 do
+    for i in 64
+    {
         input[i] = cast #bit (u8, (i * 173 + 41))
+    }
 
     var stream: Compress.BitStream
     stream.reset(input)
 
     let widths: [8] u8 = [1, 3, 5, 7, 9, 11, 13, 2]
-    var bitPos         = 0'u64
+    var bitPos         = 0_u64
     var wi             = 0
     while bitPos + 16 <= 64 * 8
     {
@@ -71,7 +73,7 @@ func callBitStreamPeekUnchecked32(stream: *Compress.BitStream)
         wi += 1
         let got = stream.readBits(w)
 
-        var exp = 0'u32
+        var exp = 0_u32
         for b in w
         {
             let byteIdx = (bitPos + b) >> 3
@@ -80,8 +82,11 @@ func callBitStreamPeekUnchecked32(stream: *Compress.BitStream)
             exp |= cast(u32, bit) << b
         }
 
-        if got != exp do
+        if got != exp
+        {
             Console.println("BITSTREAM DIVERGE bitPos=", bitPos, " w=", w, " got=", got, " exp=", exp)
+        }
+
         Swag.require(got == exp)
         bitPos += w
     }
@@ -94,14 +99,19 @@ func callBitStreamPeekUnchecked32(stream: *Compress.BitStream)
     let base   = cast(u64, cast(const [*] u8, backing.buffer))
     let offset = (1 + 8 - (base & 7)) & 7
     var input  = backing[offset to offset + 64]
-    for i in 64 do
+    for i in 64
+    {
         input[i] = cast #bit (u8, (i * 173 + 41))
+    }
+
     Swag.require((cast(u64, cast(const [*] u8, input.buffer)) & 7) == 1)
 
     var stream: Compress.BitStream
     stream.reset(input)
-    for i in 64 do
+    for i in 64
+    {
         Swag.require(stream.readBits(8) == cast(u32, input[i]))
+    }
 }
 
 #test
@@ -133,7 +143,7 @@ func callBitStreamPeekUnchecked32(stream: *Compress.BitStream)
 
 #test
 {
-    let input = [0x10'u8, 0x20, 0x30, 0x40]
+    let input = [0x10_u8, 0x20, 0x30, 0x40]
 
     var stream: Compress.BitStream
     stream.reset(input)
@@ -193,10 +203,14 @@ func callBitStreamPeekUnchecked32(stream: *Compress.BitStream)
     var converted: [4] u8
     bigEndianView.read32Be(&converted[0])
 
-    #static if BIG_ENDIAN do
+    #static if BIG_ENDIAN
+    {
         Swag.require(Slice.equals(converted, expectedDirect))
-    else do
+    }
+    else
+    {
         Swag.require(Slice.equals(converted, [0x40, 0x30, 0x20, 0x10]))
+    }
 }
 
 // Reset discards buffered bits and the old source position, including after
@@ -204,7 +218,7 @@ func callBitStreamPeekUnchecked32(stream: *Compress.BitStream)
 #test
 {
     let first:  [2] u8 = [0xD6, 0xA5]
-    var empty:  Array'u8
+    var empty:  Array!{u8}
     let second: [2] u8 = [0x39, 0x72]
 
     var stream: Compress.BitStream

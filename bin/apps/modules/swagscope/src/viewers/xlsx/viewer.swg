@@ -30,7 +30,7 @@ struct Panel
     propertiesRead: bool
 
     workbook:         Workbook
-    load:             Viewer.BackgroundLoad'Workbook
+    load:             Viewer.BackgroundLoad!{Workbook}
     services:         Viewer.HostServices
     view:             *HtmlView?
     grid:             *Grid?
@@ -39,16 +39,16 @@ struct Panel
     textMode:         bool
     showHiddenRanges: bool
     sheet:            u64 = Swag.U64.Max
-    visible:          Array'u64
+    visible:          Array!{u64}
     showHidden:       bool
 
     using steps: Viewer.PageSteps
 
     late
     {
-        status:         *Label
-        sheetLabel:     *IconButton
-        outline:        *DocumentOutline
+        status:     *Label
+        sheetLabel: *IconButton
+        outline:    *DocumentOutline
     }
 }
 
@@ -86,8 +86,11 @@ private impl IWnd for Panel
 
     mtd impl onNotifyEvent(evt: *NotifyEvent)
     {
-        if evt.kind == .LanguageChanged and not .workbook.sheets.isEmpty() do
+        if evt.kind == .LanguageChanged and not .workbook.sheets.isEmpty()
+        {
             .publishSheets()
+        }
+
         .wnd.IWnd.onNotifyEvent(evt)
     }
 }
@@ -96,13 +99,16 @@ private impl Panel
 {
     mtd fitGridMargins()
     {
-        if not .gridHost do
+        if not .gridHost
+        {
             return
-        let metrics = .themeMetrics()
-        let rows = 3 * .workbook.sheets[.sheet].defaultRowHeight
-        let room = .clientRect().height - HeaderHeight - rows - metrics.scrollBar_Size
+        }
+
+        let metrics  = .themeMetrics()
+        let rows     = 3 * .workbook.sheets[.sheet].defaultRowHeight
+        let room     = .clientRect().height - HeaderHeight - rows - metrics.scrollBar_Size
         let vertical = Math.clamp(Math.floor(room * 0.5), 0.0, metrics.floating_Inset)
-        let side = Math.min(metrics.floating_Inset, Math.floor(.clientRect().width * 0.04))
+        let side     = Math.min(metrics.floating_Inset, Math.floor(.clientRect().width * 0.04))
         .gridHost.margin = {side, vertical, side, vertical}
     }
 
@@ -111,10 +117,16 @@ private impl Panel
     mtd refreshNavigation()
     {
         var position = Swag.U64.Max
-        for index, ordinal in .visible where index == .sheet do
+        for index, ordinal in .visible where index == .sheet
+        {
             position = ordinal
-        if .steps.updateSteps(position, .visible.count) do
+        }
+
+        if .steps.updateSteps(position, .visible.count)
+        {
             .services.chromeChanged(me)
+        }
+
         .previousButton.toolTip = texts().ui_Previous
         .nextButton.toolTip     = texts().ui_Next
         if .sheet < .workbook.sheets.count
@@ -123,9 +135,12 @@ private impl Panel
             if .grid
             {
                 details = Format.toString("% · %", .workbook.sheets[.sheet].name, details)
-                if .grid.hasSelection do
+                if .grid.hasSelection
+                {
                     details += Format.toString(" · %", .grid.selected.label())
+                }
             }
+
             .services.showDetails(me, details)
         }
         else
@@ -137,7 +152,7 @@ private impl Panel
     mtd publishSheets()
     {
         .visible.clear()
-        var headings: Array'DocumentHeading
+        var headings: Array!{DocumentHeading}
         for page, index in .workbook.sheets where .showHidden or not page.hidden
         {
             .visible.add(index)
@@ -148,10 +163,16 @@ private impl Panel
         // Publishing can reset the list selection. Choose the sheet after the rows exist.
         .outline.publish(headings.toSlice())
         var target = Swag.U64.Max
-        for index in .visible where index == .sheet do
+        for index in .visible where index == .sheet
+        {
             target = index
-        if target == Swag.U64.Max and not .visible.isEmpty() do
+        }
+
+        if target == Swag.U64.Max and not .visible.isEmpty()
+        {
             target = .visible[0]
+        }
+
         if target == Swag.U64.Max
         {
             .sheet = target
@@ -171,8 +192,11 @@ private impl Panel
 
     internal mtd showSheet(index: u64)
     {
-        if index >= .workbook.sheets.count or (.workbook.sheets[index].hidden and not .showHidden) do
+        if index >= .workbook.sheets.count or (.workbook.sheets[index].hidden and not .showHidden)
+        {
             return
+        }
+
         if index != .sheet or (not .view and not .grid)
         {
             .sheet = index
@@ -181,8 +205,11 @@ private impl Panel
 
         for row, position in .outline.rows where cast(u64, row.userData0) == index + 1
         {
-            if .outline.list.selectedLine() != row do
+            if .outline.list.selectedLine() != row
+            {
                 .outline.list.selectLine(cast(u32, position))
+            }
+
             break
         }
 
@@ -217,7 +244,7 @@ private impl Panel
         }
         else
         {
-            with .gridHost = Wnd.create'Wnd(me, "scope.xlsx.grid")
+            with .gridHost = Wnd.create!{Wnd}(me, "scope.xlsx.grid")
             {
                 .dockStyle       = .Center
                 .backgroundStyle = .Transparent
@@ -229,8 +256,11 @@ private impl Panel
             .selection        = .grid.selected
             .grid.sigSelected += func|view = me|(_)
             {
-                if view.grid do
+                if view.grid
+                {
                     view.selection = view.grid.selected
+                }
+
                 view.refreshNavigation()
             }
         }
@@ -242,49 +272,73 @@ private impl Panel
 
     internal mtd setTextMode(enabled: bool)
     {
-        if .textMode == enabled do
+        if .textMode == enabled
+        {
             return
+        }
+
         .textMode = enabled
-        if .sheet < .workbook.sheets.count do
+        if .sheet < .workbook.sheets.count
+        {
             .buildSheet(true)
+        }
     }
 
     internal mtd setHiddenRanges(enabled: bool)
     {
-        if .showHiddenRanges == enabled do
+        if .showHiddenRanges == enabled
+        {
             return
+        }
+
         .showHiddenRanges = enabled
-        if .sheet < .workbook.sheets.count do
+        if .sheet < .workbook.sheets.count
+        {
             .buildSheet(true)
+        }
     }
 
     internal mtd turn(direction: s32)
     {
         for index, position in .visible where index == .sheet
         {
-            if direction < 0 and position > 0 do
+            if direction < 0 and position > 0
+            {
                 .showSheet(.visible[position - 1])
-            elif direction > 0 and position + 1 < .visible.count do
+            }
+            else if direction > 0 and position + 1 < .visible.count
+            {
                 .showSheet(.visible[position + 1])
+            }
+
             return
         }
     }
 
     internal mtd setShowHidden(enabled: bool)
     {
-        if .showHidden == enabled do
+        if .showHidden == enabled
+        {
             return
+        }
+
         .showHidden = enabled
         .publishSheets()
     }
 
     mtd handleKey(key: const *KeyEvent)->bool
     {
-        if key.kind != .Pressed do
+        if key.kind != .Pressed
+        {
             return false
+        }
+
         let direction = Viewer.pageKeyDirection(key)
-        if not direction do
+        if not direction
+        {
             return false
+        }
+
         .turn(direction)
         return true
     }
@@ -292,8 +346,11 @@ private impl Panel
     // Shows the cell at `address` of the sheet in view in the grid, selected and in view.
     internal mtd revealCell(address: Address)
     {
-        if .textMode do
+        if .textMode
+        {
             .setTextMode(false)
+        }
+
         .grid?.selectAddress(address)
     }
 
@@ -306,30 +363,44 @@ private impl Panel
             var typed = String.from(Latin1.trim(entries.query.toString()))
             typed.makeUpper()
             let address = catch Address.parse(typed.toString()) { return; }
-            if .sheet >= .workbook.sheets.count do
+            if .sheet >= .workbook.sheets.count
+            {
                 return
+            }
+
             let entry = entries.add(Format.toString(texts().ui_GoToCell, address.label()), .GoTo, func|view = me, address|() { view.revealCell(address) })
-            if entry do
+            if entry
+            {
                 entry.lead = address.label()
+            }
+
             return
         }
 
         .steps.addPageJump(entries, "scope.xlsx.goToPage")
         entries.add(texts().ui_Previous, .ChevronLeft, func|view = me|() { view.turn(-1) }, disabled: not .previousButton.isEnabled(), defaultKey: {modifiers: .Control, key: .PageUp}, bindId: "scope.xlsx.previous")
         entries.add(texts().ui_Next, .ChevronRight, func|view = me|() { view.turn(1) }, disabled: not .nextButton.isEnabled(), defaultKey: {modifiers: .Control, key: .PageDown}, bindId: "scope.xlsx.next")
-        if .workbook.hiddenSheets do
+        if .workbook.hiddenSheets
+        {
             entries.add(texts().ui_ShowHidden, .File, func|view = me|() { view.setShowHidden(not view.showHidden) }, checked: .showHidden, bindId: "scope.xlsx.showHidden")
+        }
+
         entries.add(texts().ui_Grid, .File, func|view = me|() { view.setTextMode(false) }, checked: not .textMode, bindId: "scope.xlsx.grid")
         entries.add(texts().ui_ReadText, .Wrap, func|view = me|() { view.setTextMode(true) }, checked: .textMode, bindId: "scope.xlsx.readText")
-        if .grid do
+        if .grid
+        {
             entries.add(texts().ui_CopyCell, .Copy, func|view = me|() { view.grid?.copy() }, disabled: not .grid.hasSelection, defaultKey: {modifiers: .Control, key: .C}, bindId: "scope.xlsx.copyCell")
-        if .sheet < .workbook.sheets.count and .workbook.sheets[.sheet].hiddenRanges do
+        }
+
+        if .sheet < .workbook.sheets.count and .workbook.sheets[.sheet].hiddenRanges
+        {
             entries.add(texts().ui_HiddenRanges, .File, func|view = me|() { view.setHiddenRanges(not view.showHiddenRanges) }, checked: .showHiddenRanges, bindId: "scope.xlsx.hiddenRanges")
+        }
     }
 
     func create(host: Viewer.Host)->*Panel
     {
-        with let result = Wnd.create'Panel(host.contentParent(), "scope.xlsx")
+        with let result = Wnd.create!{Panel}(host.contentParent(), "scope.xlsx")
         {
             .backgroundStyle = .View
             .focusPolicy     = .Tab
@@ -337,15 +408,17 @@ private impl Panel
         }
 
         let controls = host.createCommandGroup(Viewer.pageControlWidth(result.themeMetrics()))
-        result.sheetLabel = result.steps.create(controls, "scope.xlsx.page", .Sheet,
-            func|view = result|(dir) { view.turn(dir) }, func|view = result|(index) { view.showSheet(view.visible[index]) })
+        result.sheetLabel = result.steps.create(controls, "scope.xlsx.page", .Sheet, func|view = result|(dir) { view.turn(dir) }, func|view = result|(index) { view.showSheet(view.visible[index]) })
 
         result.status = Viewer.createLoadingLabel(result, texts().ui_Preparing)
 
         result.hookOnChildEvent = func|result|(_, evt)
         {
-            if evt is KeyEvent as key do
+            if evt is KeyEvent as key
+            {
                 return result.handleKey(key)
+            }
+
             return false
         }
 

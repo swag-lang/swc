@@ -22,8 +22,10 @@ struct PatrolReport
 func wrapCoordinate(value, size: s32)->s32
 {
     var result = value % size
-    if result < 0 do
+    if result < 0
+    {
         result += size
+    }
     return result
 }
 
@@ -52,8 +54,10 @@ func computeSafetyFactor(robots: const [..] PatrolRobot, width, height, step: s3
         let x = robotX(robot, step, width)
         let y = robotY(robot, step, height)
 
-        if x == middleX or y == middleY do
+        if x == middleX or y == middleY
+        {
             continue
+        }
 
         if x < middleX and y < middleY
         {
@@ -101,14 +105,22 @@ func analyzePatrol(robots: const [..] PatrolRobot, width, height, safetyStep, se
             let x = robotX(robot, step, width)
             let y = robotY(robot, step, height)
 
-            if x < minX do
+            if x < minX
+            {
                 minX = x
-            if y < minY do
+            }
+            if y < minY
+            {
                 minY = y
-            if x > maxX do
+            }
+            if x > maxX
+            {
                 maxX = x
-            if y > maxY do
+            }
+            if y > maxY
+            {
                 maxY = y
+            }
         }
 
         let area = cast(u32, (maxX - minX + 1)) * cast(u32, (maxY - minY + 1))
@@ -136,9 +148,9 @@ func analyzePatrol(robots: const [..] PatrolRobot, width, height, safetyStep, se
 
     let sampleReport = analyzePatrol(sampleRobots, 11, 7, 2, 20)
 
-    Swag.require(sampleReport.safetyFactor == 1'u64)
-    Swag.require(sampleReport.mostCompactStep == 3'u32)
-    Swag.require(sampleReport.compactArea == 15'u32)
+    Swag.require(sampleReport.safetyFactor == 1_u64)
+    Swag.require(sampleReport.mostCompactStep == 3_u32)
+    Swag.require(sampleReport.compactArea == 15_u32)
 
     const concourseRobots: [8] PatrolRobot =
         [
@@ -154,7 +166,7 @@ func analyzePatrol(robots: const [..] PatrolRobot, width, height, safetyStep, se
 
     let concourseReport = analyzePatrol(concourseRobots, 11, 7, 1, 20)
 
-    Swag.require(concourseReport.safetyFactor == 1'u64)
-    Swag.require(concourseReport.mostCompactStep == 2'u32)
-    Swag.require(concourseReport.compactArea == 27'u32)
+    Swag.require(concourseReport.safetyFactor == 1_u64)
+    Swag.require(concourseReport.mostCompactStep == 2_u32)
+    Swag.require(concourseReport.compactArea == 27_u32)
 }

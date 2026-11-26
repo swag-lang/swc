@@ -109,7 +109,7 @@ using Core, Gui, Pixel, Audio
 
 #test
 {
-    var reference: Array'f32
+    var reference: Array!{f32}
     reference.resize(3000)
     for index in reference.count
     {
@@ -117,7 +117,7 @@ using Core, Gui, Pixel, Audio
         reference[index] = cast(f32, Math.sin(phase * 0.0321) + Math.cos(phase * 0.0779) * Math.sin(phase * 0.012))
     }
 
-    var recording: Array'f32
+    var recording: Array!{f32}
     recording.resize(173)
     recording.add(reference.toSlice())
     let result = estimateSoundOffset(reference.toSlice(), recording.toSlice(), 400)
@@ -258,9 +258,12 @@ using Core, Gui, Pixel, Audio
     for 400
     {
         host.tickTimer(workspace.mediaTimer)
-        if a.frameIndex == 1 and b.frameIndex == 2 do
+        if a.frameIndex == 1 and b.frameIndex == 2
+        {
             break
-        Threading.Thread.sleep(1'ms)
+        }
+
+        Threading.Thread.sleep(1_ms)
     }
 
     Swag.require(a.frameIndex == 1 and b.frameIndex == 2)
@@ -294,8 +297,8 @@ using Core, Gui, Pixel, Audio
     host.setReducedMotion(false)
     for view in scene.views
     {
-        let pane = unwrap view.document
-        let film = unwrap ScenePlayer.from(pane).film
+        let pane    = unwrap view.document
+        let film    = unwrap ScenePlayer.from(pane).film
         let picture = film.imageView.surfaceRect()
         pane.concealViewerBar()
         host.finishAnimations()
@@ -338,11 +341,17 @@ using Core, Gui, Pixel, Audio
     host.surface.surfaceToScreen(&outside)
     host.app.sigFrame += func|host = &host, peerDocument, outside, checked = &checked|(_)
     {
-        if checked[] do
+        if checked[]
+        {
             return
+        }
+
         let sheet = host.capturedOptionSheet()
-        if not sheet do
+        if not sheet
+        {
             return
+        }
+
         checked[] = true
         Swag.require(sheet.activateRow(appStrings().scene_Layout))
         host.fireTimer(peerDocument.viewerBarTimer)
@@ -350,6 +359,7 @@ using Core, Gui, Pixel, Audio
         host.click(outside, .Right)
         Swag.require(sheet.isClosed())
     }
+
     host.clickWnd(workspace.mediaTransport)
     Swag.require(checked and scene.layout == .Grid2 and not host.capturedOptionSheet())
 
@@ -388,7 +398,7 @@ using Core, Gui, Pixel, Audio
     while short.playing and wait.elapsedMilliseconds() < 2_000
     {
         workspace.synchronizeMedia()
-        Threading.Thread.sleep(1'ms)
+        Threading.Thread.sleep(1_ms)
     }
 
     Swag.require(not short.playing and long.playing and document.pendingFile.isEmpty())
@@ -404,7 +414,7 @@ using Core, Gui, Pixel, Audio
     while short.playing and wait.elapsedMilliseconds() < 2_000
     {
         workspace.synchronizeMedia()
-        Threading.Thread.sleep(1'ms)
+        Threading.Thread.sleep(1_ms)
     }
 
     Swag.require(document.pendingFile == next and long.playing)
@@ -446,8 +456,8 @@ using Core, Gui, Pixel, Audio
     Swag.require(not outline.isLocallyVisible())
     let infoBounds   = info.surfaceRect()
     let viewerBounds = viewer.surfaceRect()
-    let strip = Math.Rectangle{0, 0, host.surfaceWnd.clientRect().width, host.surfaceWnd.stripInset()}
-    var expected = host.render(&host.surfaceWnd)
+    let strip        = Math.Rectangle{0, 0, host.surfaceWnd.clientRect().width, host.surfaceWnd.stripInset()}
+    var expected     = host.render(&host.surfaceWnd)
     expected.crop(strip)
 
     workspace.selectScene(0)
@@ -490,7 +500,7 @@ using Core, Gui, Pixel, Audio
     openViews(&host, workspace)
 
     let document = workspace.activeDocument()
-    let film = unwrap ScenePlayer.from(document).film
+    let film     = unwrap ScenePlayer.from(document).film
     Swag.require(film.hasFrame and not film.playing and not film.autoPlayPending)
     Swag.require(workspace.mediaPlayPause.isLocallyVisible() and not workspace.mediaLinks.isLocallyVisible())
     let edit = EditBox.create(document, "Find", {16, 16, 120, 28})
@@ -541,13 +551,15 @@ using Core, Gui, Pixel, Audio
     let files = [scopeTestDataPath("viewer.animation.gif"), scopeTestDataPath("viewer.png"), scopeTestDataPath("viewer.wav")]
     workspace.openScene(files, .Grid2)
     openViews(&host, workspace)
-    let scene    = unwrap workspace.scene()
+    let scene     = unwrap workspace.scene()
     let animation = unwrap scene.views[0].document
     let still     = unwrap scene.views[1].document
     let audio     = unwrap scene.views[2].document
     let picture   = assume cast(*Viewers.Picture.Panel, animation.currentView)
     let sound     = unwrap ScenePlayer.from(audio).sound
-    Swag.require(picture.imageView.movie.isAnimated() and workspace.mediaTransport.isVisible() and workspace.mediaPlayPause.isVisible())
+    Swag.require(picture.imageView.movie.isAnimated() and
+                 workspace.mediaTransport.isVisible() and
+                 workspace.mediaPlayPause.isVisible())
 
     Swag.require(animation.runCommand(MediaCommands.PlayModes[3]))
     Swag.require(workspace.scenePlayModeIs(.Shuffle))
@@ -672,17 +684,20 @@ using Core, Gui, Pixel, Audio
         defer host.shutdown()
         workspace.openScene([scopeTestDataPath(name), scopeTestDataPath("viewer.png")], .SideBySide)
         openViews(&host, workspace)
-        let scene = unwrap workspace.scene()
+        let scene    = unwrap workspace.scene()
         let document = workspace.activeDocument()
-        let view = assume cast(*Viewers.Picture.Panel, document.currentView)
+        let view     = assume cast(*Viewers.Picture.Panel, document.currentView)
         view.imageView.setPaused(true)
         view.imageView.setFrameIndex(0)
         scene.split = 0.18
         workspace.layoutScene()
         document.revealViewerBar()
         Swag.require(view.optionsButton.isLocallyVisible() and not view.transformButton.isLocallyVisible())
-        for child in view.actions.children where child.isLocallyVisible() and child != view.optionsButton do
+        for child in view.actions.children where child.isLocallyVisible() and child != view.optionsButton
+        {
             Swag.require(child.position.x >= 0 and child.position.right() <= view.optionsButton.position.x)
+        }
+
         let strings = Viewers.Picture.texts()
         host.activateOptionRowWhenShown(view.imageView.movie.isAnimated() ? strings.ui_Frame : strings.ui_Image, 1)
         view.optionsButton.sigPressed.call(view.optionsButton)
@@ -703,7 +718,8 @@ using Core, Gui, Pixel, Audio
     let workspace = testWorkspace(&host)
     defer host.shutdown()
     workspace.openScene([scopeTestDataPath("viewer.wav"), scopeTestDataPath("pacman_beginning.wav"),
-                         scopeTestDataPath("viewer.png")], .Grid2)
+                         scopeTestDataPath("viewer.png")],
+                        .Grid2)
     openViews(&host, workspace)
     let scene  = unwrap workspace.scene()
     let first  = unwrap ScenePlayer.from(scene.views[0].document).sound
@@ -764,25 +780,28 @@ using Core, Gui, Pixel, Audio
     workspace.openScene([scopeTestDataPath("viewer.field-guide.html"), scopeTestDataPath("viewer.png")], .SideBySide)
     openViews(&host, workspace)
     let document = workspace.activeDocument()
-    let scene = unwrap workspace.scene()
+    let scene    = unwrap workspace.scene()
     document.sendCommandEvent(ViewerCommands.Outline)
     let panel = unwrap document.currentSidePanelHost
-    for split in [0.18'f32, 0.65'f32]
+    for split in [0.18_f32, 0.65_f32]
     {
         scene.split = split
         workspace.layoutScene()
-        let body = document.surfaceRect()
+        let body    = document.surfaceRect()
         let content = document.documentPanel.surfaceRect()
-        Swag.require(panel.isVisible() and panel.surfaceRect().x >= body.x and panel.surfaceRect().right() <= content.x)
+        Swag.require(panel.isVisible() and
+                     panel.surfaceRect().x >= body.x and
+                     panel.surfaceRect().right() <= content.x)
         Swag.require(content.width > 0 and content.right() <= body.right())
         let footer = document.readingLine.surfaceRect()
-        let inset = footer.x - body.x
+        let inset  = footer.x - body.x
         Swag.require(inset >= document.themeMetrics().miniBar_Padding and inset <= document.themeMetrics().floating_Inset)
         document.sendCommandEvent(ViewerCommands.Outline)
         Swag.require(not panel.isVisible() and document.readingLine.surfaceRect() == footer)
         document.sendCommandEvent(ViewerCommands.Outline)
         Swag.require(panel.isVisible() and document.readingLine.surfaceRect() == footer)
     }
+
     workspace.closeView(1)
     Swag.require(panel.isVisible() and document.documentPanel.surfaceRect().right() == document.surfaceRect().right())
 }

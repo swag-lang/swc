@@ -66,8 +66,10 @@ impl BackdropEffect
                     Math.isFinite(rect.width) and
                     Math.isFinite(rect.height))
         let opacity = Math.saturate(.opacity)
-        if opacity <= 0 or rect.isEmpty() or painter.isEmptyClippingRect() do
+        if opacity <= 0 or rect.isEmpty() or painter.isEmptyClippingRect()
+        {
             return
+        }
 
         let transform = painter.transform()
         Swag.assert(transform.isTranslationOnly())
@@ -81,8 +83,10 @@ impl BackdropEffect
         // Include the reconstruction kernels' complete reach, not just the nominal extent.
         capture.inflate(radius * 8 + 4, radius * 8 + 4)
         capture.intersect(bounds)
-        if capture.isEmpty() do
+        if capture.isEmpty()
+        {
             return
+        }
 
         // Align the snapshot to device texels, including on fractional display scales.
         let left   = Math.floor(capture.x * scale)
@@ -106,8 +110,11 @@ impl BackdropEffect
                                                   reuse: *RenderTarget?)->BackdropImage
         {
             let target = reuse orelse renderer.acquireRenderTarget(w, h)
-            if not reuse do
+            if not reuse
+            {
                 painter.releaseRenderTarget(target)
+            }
+
             painter.bindRenderTarget(target)
             painter.setAntialiased(false)
             painter.setInterpolationMode(.Linear)
@@ -141,7 +148,7 @@ impl BackdropEffect
                 // Complementary kernels follow Marius Bjorge's dual filter (SIGGRAPH 2015).
                 // Stop at a small pyramid and vary tap spacing for the remaining extent.
                 var levels = 1
-                var extent = 2.0'f32
+                var extent = 2.0_f32
                 while extent < radius * scale and levels < 6
                 {
                     levels += 1
@@ -160,8 +167,10 @@ impl BackdropEffect
                     content = pass(content, w, h, {mode: 2, radius: offset}, null)
                 }
 
-                for var level = levels - 1; level >= 0; level -= 1 do
+                for var level = levels - 1; level >= 0; level -= 1
+                {
                     content = pass(content, sizes[level].x, sizes[level].y, {mode: 3, radius: offset}, null)
+                }
             }
         }
 

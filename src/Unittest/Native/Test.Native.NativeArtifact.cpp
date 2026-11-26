@@ -1950,10 +1950,10 @@ struct(T) GenericHolder
 }
 
 #[Swag.NoInline]
-func equalSmall(left, right: const *GenericHolder's32)->bool => left[] == right[]
+func equalSmall(left, right: const *GenericHolder!{s32})->bool => left[] == right[]
 
 #[Swag.NoInline]
-func equalLarge(left, right: const *GenericHolder'u64)->bool => left[] == right[]
+func equalLarge(left, right: const *GenericHolder!{u64})->bool => left[] == right[]
 
 #[Swag.NoInline]
 internal func reachedFromExport()->u32 => 11
@@ -2625,10 +2625,10 @@ SWC_FILESYSTEM_TEST_BEGIN(NativeArtifact_PrintRoundsFractionalCarries)
 {
     static constexpr std::string_view SOURCE     = R"(#main
 {
-    Swag.print("rounding:", 0.9999999999'f64, "|", -1.9999999999'f64,
-               "|", 0.000000009'f64, "|", -0.000000009'f64,
-               "|", 0.0999999999'f64, "|", -0.0999999999'f64,
-               "|", 0.0099999999'f64, "\n")
+    Swag.print("rounding:", 0.9999999999_f64, "|", -1.9999999999_f64,
+               "|", 0.000000009_f64, "|", -0.000000009_f64,
+               "|", 0.0999999999_f64, "|", -0.0999999999_f64,
+               "|", 0.0099999999_f64, "\n")
 }
 )";
     static constexpr std::string_view EXPECTED   = "rounding:1.0|-2.0|0.00000001|-0.00000001|0.10000000|-0.10000000|0.01000000";

@@ -27,7 +27,7 @@ struct RefCountedBySpecOp
 
 impl CountedBySpecOp
 {
-    mtd opCount() => 9'u64
+    mtd opCount() => 9_u64
 }
 
 impl RefCountedBySpecOp
@@ -113,32 +113,40 @@ func countSpecOpRef(value: RefCountedBySpecOp)->u64
 func loopStringRef(value: string)->u64
 {
     var count: u64 = 0
-    for value do
+    for value
+    {
         count += 1
+    }
     return count
 }
 
 func loopCStringRef(value: *cstring)->u64
 {
     var count: u64 = 0
-    for value[] do
+    for value[]
+    {
         count += 1
+    }
     return count
 }
 
 func loopSliceRef(value: [..] u8)->u64
 {
     var count: u64 = 0
-    for value do
+    for value
+    {
         count += 1
+    }
     return count
 }
 
 func loopUnsignedRef(value: *u32)->u32
 {
     var count: u32 = 0
-    for value[] do
+    for value[]
+    {
         count += 1
+    }
     return count
 }
 
@@ -150,7 +158,7 @@ func semaTest005()
     #assert(#typeof(countStringRef(textRef)) == u64)
     #assert(#typeof(loopStringRef(textRef[])) == u64)
 
-    var cstrData: [4] u8   = ['a'u8, 'b'u8, 'c'u8, 0]
+    var cstrData: [4] u8   = ['a'_u8, 'b'_u8, 'c'_u8, 0]
     var cstr:     cstring  = cast(cstring, &cstrData[0])
     var cstrRef:  *cstring = &cstr
     #assert(#typeof((cstrRef[]).count) == u64)

@@ -137,7 +137,7 @@ using Core, Gui, Viewers
 {
     for file in ["viewer.geometry.pptx", "viewer.odp", "viewer.navigation.xlsx", "viewer.ods", "viewer.epub", "viewer.comic.cbz", "imageset-pages-raw.tiff"]
     {
-        var host: Testing.HeadlessHost
+        var host:  Testing.HeadlessHost
         let window = framedViewerWindow(&host, scopeTestDataPath(file), false)
         var steps: *Viewer.PageSteps?
         switch window.currentView
@@ -148,13 +148,16 @@ using Core, Gui, Viewers
         case Comic.Panel as book:      steps = &book.steps
         case Picture.Panel as picture: steps = &picture.frameSteps
         }
+
         Swag.require(steps != null and steps.totalSteps > 1, file)
         let control = steps.counter
-        Swag.require(control.arrowPosition == .None and control.focusPolicy == .Tab and control.wndFlags.has(.ActivatesOnKey))
+        Swag.require(control.arrowPosition == .None and
+                     control.focusPolicy == .Tab and
+                     control.wndFlags.has(.ActivatesOnKey))
         Swag.require(control.position.width == Viewer.PageReadoutWidth and control.toolTip.count)
-        let dialog = steps.createPageDialog()
+        let dialog   = steps.createPageDialog()
         let validate = unwrap dialog.validateResult
-        let next = steps.ordinal == 0 ? 1'u64 : 0'u64
+        let next     = steps.ordinal == 0 ? 1_u64 : 0_u64
         dialog.setText("0")
         Swag.require(dialog.edit!.revalidate() == .InvalidVisible and not validate(dialog, Dialog.BtnOk))
         dialog.setText(Format.toString("%", next + 1))

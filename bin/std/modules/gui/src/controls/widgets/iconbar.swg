@@ -24,9 +24,9 @@ struct IconBar
             itemSpacing: f32 = 8     // Gap between neighboring button cells in logical units.
         }
 
-        sigComputeState:   SigArray'func||(*CommandStateEvent)     // Invoked when child command state must be computed.
-        sigCheckedChanged: SigArray'func||(*IconButton)            // Emitted after a child changes checked state.
-        sigPressed:        SigArray'func||(*IconButton)            // Emitted after a plain child button is activated.
+        sigComputeState:   SigArray!{func||(*CommandStateEvent)}     // Invoked when child command state must be computed.
+        sigCheckedChanged: SigArray!{func||(*IconButton)}            // Emitted after a child changes checked state.
+        sigPressed:        SigArray!{func||(*IconButton)}            // Emitted after a plain child button is activated.
     }
 }
 
@@ -48,18 +48,23 @@ private impl IconBar
 {
     mtd computeLayout()
     {
-        var itemCount = 0'u64
+        var itemCount = 0_u64
         for child in .children
         {
-            if not child.wndFlags.has(.Hidden) do
+            if not child.wndFlags.has(.Hidden)
+            {
                 itemCount += 1
+            }
         }
 
-        var visibleIndex = 0'u64
+        var visibleIndex = 0_u64
         for child in .children
         {
-            if child.wndFlags.has(.Hidden) do
+            if child.wndFlags.has(.Hidden)
+            {
                 continue
+            }
+
             visibleIndex += 1
 
             if .orientation == .Vertical
@@ -78,10 +83,14 @@ private impl IconBar
         let itemExtent     = cast(f32, itemCount)
         let gapCount       = itemCount > 0 ? cast(f32, itemCount - 1) : 0
         let barLength      = itemExtent * paddedIconSize + gapCount * .itemSpacing
-        if .orientation == .Vertical do
+        if .orientation == .Vertical
+        {
             .resize(paddedIconSize, barLength)
-        else do
+        }
+        else
+        {
             .resize(barLength, paddedIconSize)
+        }
     }
 
     mtd updateButtonMetrics()
@@ -100,11 +109,11 @@ impl IconBar
 {
     // Creates an empty icon bar with a non-negative icon size, item padding, and item spacing.
     #[Swag.Discardable]
-    func create(parent: *Wnd, iconSize: f32, position: Math.Rectangle = {}, id: WndId? = null, orientation = IconBarOrientation.Horizontal, itemPadding = 4'f32, itemSpacing = 8'f32)->*IconBar
+    func create(parent: *Wnd, iconSize: f32, position: Math.Rectangle = {}, id: WndId? = null, orientation = IconBarOrientation.Horizontal, itemPadding = 4_f32, itemSpacing = 8_f32)->*IconBar
     {
         Swag.assert(parent != null)
         Swag.assert(iconSize >= 0 and itemPadding >= 0 and itemSpacing >= 0)
-        let result = Wnd.create'IconBar(parent, null, position, id)
+        let result = Wnd.create!{IconBar}(parent, null, position, id)
         result.iconSize    = iconSize
         result.itemPadding = itemPadding
         result.itemSpacing = itemSpacing
@@ -126,10 +135,14 @@ impl IconBar
         button.setForm(.orientation == .Horizontal ? .RoundedRectangle : .Rectangle)
         button.setCheckIndicator(.orientation == .Horizontal ? .Frame : .Left)
 
-        if flags.has(.Radio) or flags.has(.Toggle) do
+        if flags.has(.Radio) or flags.has(.Toggle)
+        {
             button.sigCheckedChanged += func|bar = me|(btn) { bar.sigCheckedChanged.call(btn) }
-        else do
+        }
+        else
+        {
             button.sigPressed += func|bar = me|(btn) { bar.sigPressed.call(assume cast (*IconButton, btn)) }
+        }
 
         .computeLayout()
         return button
@@ -146,8 +159,11 @@ impl IconBar
     // Changes the layout axis and immediately recomputes the bar size.
     mtd setOrientation(orientation: IconBarOrientation)
     {
-        if .orientation == orientation do
+        if .orientation == orientation
+        {
             return
+        }
+
         .orientation = orientation
         for child in .children
         {
@@ -163,8 +179,11 @@ impl IconBar
     mtd setItemPadding(padding: f32)
     {
         Swag.assert(padding >= 0)
-        if .itemPadding == padding do
+        if .itemPadding == padding
+        {
             return
+        }
+
         .itemPadding = padding
         .updateButtonMetrics()
         .computeLayout()
@@ -174,8 +193,11 @@ impl IconBar
     mtd setItemSpacing(spacing: f32)
     {
         Swag.assert(spacing >= 0)
-        if .itemSpacing == spacing do
+        if .itemSpacing == spacing
+        {
             return
+        }
+
         .itemSpacing = spacing
         .computeLayout()
     }
@@ -184,8 +206,11 @@ impl IconBar
     mtd setIconSize(size: f32)
     {
         Swag.assert(size >= 0)
-        if .iconSize == size do
+        if .iconSize == size
+        {
             return
+        }
+
         .iconSize = size
         .updateButtonMetrics()
         .computeLayout()
@@ -195,8 +220,11 @@ impl IconBar
     mtd buttonById(id: WndId)->*IconButton?
     {
         let button = .childById(id)
-        if not button do
+        if not button
+        {
             return null
+        }
+
         return catch cast(*IconButton?, button) orelse null
     }
 }

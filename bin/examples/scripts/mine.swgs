@@ -4,7 +4,7 @@
 using Core, Gui, Pixel
 
 const GridSize = 24
-const CellSize = 30'f32
+const CellSize = 30_f32
 
 // The board is inset by one cell on every side, and the controls sit one row below it. The window
 // is sized from that rather than from a round number, so the layout has no dead space to the right
@@ -56,8 +56,11 @@ func fillGrid()
                 {
                     let ti = i + ii
                     let tj = j + jj
-                    if ti < 0 or ti >= GridSize or tj < 0 or tj >= GridSize do
+                    if ti < 0 or ti >= GridSize or tj < 0 or tj >= GridSize
+                    {
                         continue
+                    }
+
                     g_Grid[i, j].score += g_Grid[ti, tj].mine ? 1 : 0
                 }
             }
@@ -67,7 +70,7 @@ func fillGrid()
 
 func floodFill(x, y: s32)
 {
-    var arr: Array'{ x: s32, y: s32 }
+    var arr: Array!{{ x: s32, y: s32 }}
     arr.add({x, y})
 
     while arr.count
@@ -79,8 +82,10 @@ func floodFill(x, y: s32)
             g_Discovered += 1
         }
 
-        if g_Grid[pt.x, pt.y].score do
+        if g_Grid[pt.x, pt.y].score
+        {
             continue
+        }
 
         for ii in -1 to 1
         {
@@ -88,12 +93,21 @@ func floodFill(x, y: s32)
             {
                 let ti = pt.x + ii
                 let tj = pt.y + jj
-                if ti < 0 or ti >= GridSize or tj < 0 or tj >= GridSize do
+                if ti < 0 or ti >= GridSize or tj < 0 or tj >= GridSize
+                {
                     continue
-                if ii and jj do
+                }
+
+                if ii and jj
+                {
                     continue
-                if g_Grid[ti, tj].show do
+                }
+
+                if g_Grid[ti, tj].show
+                {
                     continue
+                }
+
                 arr.add({x: ti, y: tj})
             }
         }
@@ -134,19 +148,28 @@ func onEvent(wnd: *Wnd, evt: IEvent)->bool
         var x   = cast(s32, (pos.x / CellSize))
         var y   = cast(s32, (pos.y / CellSize))
         x, y -= 1
-        if x < 0 or x >= GridSize or y < 0 or y >= GridSize do
+        if x < 0 or x >= GridSize or y < 0 or y >= GridSize
+        {
             break
-        if g_Win or g_Lost or g_Grid[x, y].show do
+        }
+
+        if g_Win or g_Lost or g_Grid[x, y].show
+        {
             break
+        }
 
         if mouseEvt.button == .Left
         {
-            if g_Grid[x, y].mine do
+            if g_Grid[x, y].mine
+            {
                 g_Lost = true
-            else do
+            }
+            else
+            {
                 floodFill(x, y)
+            }
         }
-        elif mouseEvt.button == .Right
+        else if mouseEvt.button == .Right
         {
             g_Grid[x, y].mark = not g_Grid[x, y].mark
             g_NumMarks        += g_Grid[x, y].mark ? 1 : -1
@@ -187,12 +210,12 @@ func onEvent(wnd: *Wnd, evt: IEvent)->bool
                     rect.inflate(-2)
                     painter.fillRect(rect, g_Grid[i, j].mark ? Argb.DarkBlue : Argb.DarkGray)
                 }
-                elif g_Grid[i, j].mine
+                else if g_Grid[i, j].mine
                 {
                     let color = g_Win ? Argb.Green : Argb.Red
                     painter.fillCircle(x + CellSize * 0.5, y + CellSize * 0.5, CellSize * 0.4, color)
                 }
-                elif g_Grid[i, j].score
+                else if g_Grid[i, j].score
                 {
                     let str = Format.toString("%", g_Grid[i, j].score)
 

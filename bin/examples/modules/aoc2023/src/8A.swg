@@ -39,8 +39,8 @@ func day8A()
     let lines    = expect File.readAllLines(dataPath)
 
     var instructions:    string = ""
-    var nodes:           Array'{ left, right: u64 }
-    var nodeIndexByName: HashTable'(string, u64)
+    var nodes:           Array!{{ left, right: u64 }}
+    var nodeIndexByName: HashTable!{string, u64}
 
     var startNodeIndex, endNodeIndex: u64
 
@@ -50,22 +50,29 @@ func day8A()
         {
             instructions = l.toString()
         }
-        elif i > 1
+        else if i > 1
         {
             let name = l[0 to 2]
             nodeIndexByName.add(name, i - 2)
-            if name == "AAA" do
+            if name == "AAA"
+            {
                 startNodeIndex = i - 2
-            elif name == "ZZZ" do
+            }
+            else if name == "ZZZ"
+            {
                 endNodeIndex = i - 2
+            }
         }
     }
 
     nodes.resize(lines.count - 2)
     for l, i in lines
     {
-        if i <= 1 do
+        if i <= 1
+        {
             continue
+        }
+
         let left           = l[7 to 9]
         let right          = l[12 to 14]
         let leftNodeIndex  = nodeIndexByName.find(left).value
@@ -79,13 +86,20 @@ func day8A()
     {
         for instruction in instructions
         {
-            if instruction == 'L' do
+            if instruction == 'L'
+            {
                 currentNodeIndex = nodes[currentNodeIndex].left
-            else do
+            }
+            else
+            {
                 currentNodeIndex = nodes[currentNodeIndex].right
+            }
+
             steps += 1
-            if currentNodeIndex == endNodeIndex do
+            if currentNodeIndex == endNodeIndex
+            {
                 break
+            }
         }
     }
 

@@ -9,8 +9,10 @@
 // cannot fold away.
 func runtimeString(buffer: [*] u8, text: string)->string
 {
-    for index in text.count do
+    for index in text.count
+    {
         buffer[index] = text[index]
+    }
     return Swag.makeString(buffer, text.count)
 }
 
@@ -46,10 +48,16 @@ func searchedGroup(value: string)->s32
         "echo--name05", "foxtrot-nm06", "golf--name07", "hotel-name08",
         "india-name09", "juliet-nam10", "kilo--name11", "lima--name12"]
 
-    for text, index in names do Swag.require(searchedGroup(runtimeString(&buffer[0], text)) == cast(s32, index) + 1)
+    for text, index in names
+    {
+        Swag.require(searchedGroup(runtimeString(&buffer[0], text)) == cast(s32, index) + 1)
+    }
 
     let others: [4] string = ["alpha-name0", "alpha-name010", "alpha-name02", "zulu--name99"]
-    for text in others do Swag.require(not searchedGroup(runtimeString(&buffer[0], text)))
+    for text in others
+    {
+        Swag.require(not searchedGroup(runtimeString(&buffer[0], text)))
+    }
 }
 
 // Ten names of one length that share their first eight bytes. Nothing tells them apart there, so
@@ -81,10 +89,16 @@ func sharedPrefixGroup(value: string)->s32
         "shared--a01", "shared--a02", "shared--a03", "shared--a04", "shared--a05",
         "shared--a06", "shared--a07", "shared--a08", "shared--a09", "shared--a10"]
 
-    for text, index in names do Swag.require(sharedPrefixGroup(runtimeString(&buffer[0], text)) == cast(s32, index) + 1)
+    for text, index in names
+    {
+        Swag.require(sharedPrefixGroup(runtimeString(&buffer[0], text)) == cast(s32, index) + 1)
+    }
 
     let others: [3] string = ["shared--a11", "shared--a0", "shared--b01"]
-    for text in others do Swag.require(not sharedPrefixGroup(runtimeString(&buffer[0], text)))
+    for text in others
+    {
+        Swag.require(not sharedPrefixGroup(runtimeString(&buffer[0], text)))
+    }
 }
 
 // Twenty names of one single length, so the length separates nothing at all and the whole answer
@@ -130,11 +144,17 @@ func sameLengthNames(value: string)->s32
         "delta1", "delta2", "eps001", "eps002", "zeta01",
         "zeta02", "eta001", "eta002", "iota01", "kappa1"]
 
-    for text, index in names do Swag.require(sameLengthNames(runtimeString(&buffer[0], text)) == cast(s32, index) + 1)
+    for text, index in names
+    {
+        Swag.require(sameLengthNames(runtimeString(&buffer[0], text)) == cast(s32, index) + 1)
+    }
 
     // Every one of these shares a chunk with a case it must not be mistaken for.
     let others: [8] string = ["alpha6", "beta04", "zeta03", "iota02", "eta003", "kappa2", "alpha", "alpha11"]
-    for text in others do Swag.require(not sameLengthNames(runtimeString(&buffer[0], text)))
+    for text in others
+    {
+        Swag.require(not sameLengthNames(runtimeString(&buffer[0], text)))
+    }
 }
 
 // One case listing strings of two different lengths belongs to both length groups.
@@ -206,10 +226,16 @@ func searchedValue(value: s32)->s32
 #test
 {
     let values: [12] s32 = [700, 3, 42, -8, 0, 19, -100000, 5, 6, 1000000, -1, 128]
-    for value, index in values do Swag.require(searchedValue(value) == cast(s32, index) + 1)
+    for value, index in values
+    {
+        Swag.require(searchedValue(value) == cast(s32, index) + 1)
+    }
 
     let others: [6] s32 = [1, 2, 4, -2, -99999, 1000001]
-    for value in others do Swag.require(not searchedValue(value))
+    for value in others
+    {
+        Swag.require(not searchedValue(value))
+    }
 }
 
 // The upper half of an unsigned type sorts above its lower half, never below it.
@@ -234,10 +260,16 @@ func unsignedValue(value: u8)->s32
 #test
 {
     let values: [10] u8 = [0, 1, 2, 64, 127, 128, 129, 200, 254, 255]
-    for value, index in values do Swag.require(unsignedValue(value) == cast(s32, index) + 1)
+    for value, index in values
+    {
+        Swag.require(unsignedValue(value) == cast(s32, index) + 1)
+    }
 
     let others: [4] u8 = [3, 63, 130, 253]
-    for value in others do Swag.require(not unsignedValue(value))
+    for value in others
+    {
+        Swag.require(not unsignedValue(value))
+    }
 }
 
 // A sixty-four bit key does not fit an instruction immediate and has to be materialized first.
@@ -298,7 +330,10 @@ func rangedValue(value: s32)->s32
 
     // Nothing matches an empty range, and nothing falls just outside a bound.
     let others: [7] s32 = [20, -51, -39, 12, 99, 201, 2002]
-    for value in others do Swag.require(not rangedValue(value))
+    for value in others
+    {
+        Swag.require(not rangedValue(value))
+    }
 }
 
 enum Fruit
@@ -337,7 +372,10 @@ func fruitValue(value: Fruit)->s32
 #test
 {
     let values: [10] Fruit = [.Apple, .Banana, .Cherry, .Date, .Elder, .Fig, .Grape, .Honey, .Ivy, .Jack]
-    for value, index in values do Swag.require(fruitValue(value) == cast(s32, index) + 1)
+    for value, index in values
+    {
+        Swag.require(fruitValue(value) == cast(s32, index) + 1)
+    }
 }
 
 #test

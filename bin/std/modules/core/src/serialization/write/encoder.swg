@@ -87,7 +87,7 @@ Encodes reflected Swag values through a format backend such as [[Core.Serializat
 
 ```swag
 var buf:     ConcatBuffer
-var encoder: Encoder'Write.TagBin
+var encoder: Encoder!{Write.TagBin}
 try encoder.writeAll(&buf, myStruct)
 try File.writeAllBytes(file, buf)
 ```
@@ -130,10 +130,16 @@ impl Encoder
     // JSON ignores the type information; XML uses it to reject unsupported root shapes.
     mtd start(result: *ConcatBuffer, rootType: typeinfo) fail
     {
-        #static if T == Write.TagBin do
+        #static if T == Write.TagBin
+        {
             .serializer.setRootType(rootType)
-        #static if T == Write.Xml do
+        }
+
+        #static if T == Write.Xml
+        {
             try .serializer.setRootType(rootType)
+        }
+
         try .start(result)
     }
 
@@ -142,23 +148,38 @@ impl Encoder
     // JSON rejects invalid UTF-8; XML rejects unsupported value shapes and XML 1.0 forbidden characters here.
     mtd end() fail
     {
-        #static if T == Write.Xml or T == Write.Json do
+        #static if T == Write.Xml or T == Write.Json
+        {
             try .serializer.endRoot()
-        else do
+        }
+        else
+        {
             .serializer.endRoot()
+        }
     }
 
     // Writes the field or element `typeVal`, whose value is stored at `data`.
     mtd writeTypeValue(typeVal: TypeValue, data: const [*] void?) fail
     {
-        if not typeVal.pointedType do
+        if not typeVal.pointedType
+        {
             fail SerializationError{"missing type value pointed type"}
-        if not data do
+        }
+
+        if not data
+        {
             fail SerializationError{"missing data for type value"}
-        #static if T == Write.TagBin do
+        }
+
+        #static if T == Write.TagBin
+        {
             try .serializer.beginElement(typeVal)
-        else do
+        }
+        else
+        {
             .serializer.beginElement(typeVal)
+        }
+
         try .writeValue(data, typeVal.pointedType)
         .serializer.endElement(typeVal)
     }
@@ -166,8 +187,11 @@ impl Encoder
     // Writes the value of type `dataType` stored at `data`.
     mtd writeValue(data: const [*] void, dataType: typeinfo?) fail
     {
-        if not dataType do
+        if not dataType
+        {
             fail SerializationError{"missing data type"}
+        }
+
         var type = Reflection.resolveAliases(dataType)
         type = Reflection.enumUnderlyingType(type)
 
@@ -179,8 +203,11 @@ impl Encoder
             if Reflection.isInterface(type)
             {
                 let itf = cast(const *Swag.Interface, data)
-                if not itf.itable and type.flags & .Nullable == 0 do
+                if not itf.itable and type.flags & .Nullable == 0
+                {
                     fail SerializationError{"non-null interface value is missing"}
+                }
+
                 let objType = itf.itable ? cast(const *Swag.TypeInfo?, itf.itable[]) : null
                 discard try .serializer.interfaceTypeKey(objType)
             }
@@ -215,7 +242,7 @@ impl Encoder
         if Reflection.isType(type)
         {
             let typeType = cast(const *(typeinfo?), unwrap data)[]
-            .serializer.writeNative(typeType ? .serializer.typeCrcOf(typeType) : 0'u32)
+            .serializer.writeNative(typeType ? .serializer.typeCrcOf(typeType) : 0_u32)
             return
         }
 
@@ -238,8 +265,11 @@ impl Encoder
                 try .serializer.writeInterfaceType(objType)
                 if objType
                 {
-                    if not itf.obj do
+                    if not itf.obj
+                    {
                         fail SerializationError{"interface object is missing"}
+                    }
+
                     var objValue: TypeValue
                     objValue.pointedType = objType
                     try .writeTypeValue(objValue, itf.obj)
@@ -256,8 +286,11 @@ impl Encoder
             {
                 try .writeTypeValue(typeVal, &itfType)
                 typeVal.pointedType = objType
-                if not itf.obj do
+                if not itf.obj
+                {
                     fail SerializationError{"missing interface object"}
+                }
+
                 try .writeTypeValue(typeVal, itf.obj)
             }
 
@@ -268,8 +301,11 @@ impl Encoder
         {
             if Reflection.isTuple(type)
             {
-                if .errorIfUnknown do
+                if .errorIfUnknown
+                {
                     fail UnsupportedFormatError{"cannot serialize an anonymous struct"}
+                }
+
                 return
             }
 
@@ -285,7 +321,7 @@ impl Encoder
             let valueType = Reflection.dynamicArrayElementType(type)
             if valueType
             {
-                let ptrArr  = cast(const *Array'u8, data)
+                let ptrArr  = cast(const *Array!{u8}, data)
                 let treated = .serializer.beginSequence(type, data, ptrArr.count)
                 defer .serializer.endSequence()
 
@@ -306,20 +342,29 @@ impl Encoder
             let itf = Swag.makeInterface(data, type, ISerialize)
             if itf != null
             {
-                if try itf.write(me) do
+                if try itf.write(me)
+                {
                     return
+                }
             }
 
             // Start a fields section
             let structType = assume cast(const *TypeInfoStruct, type)
             var treated: bool
-            #static if T == Write.TagBin do
+            #static if T == Write.TagBin
+            {
                 treated = try .serializer.beginStruct(structType, data)
-            else do
+            }
+            else
+            {
                 treated = .serializer.beginStruct(structType, data)
+            }
+
             defer #nofail .serializer.endStruct()
-            if treated do
+            if treated
+            {
                 return
+            }
 
             // Generic structure save, driven by the shared per-type plan: the field
             // filter, the crcs and the compression policy are computed once per type
@@ -346,8 +391,10 @@ impl Encoder
             let elemType = typeArr.pointedType
             let treated  = .serializer.beginSequence(elemType, data, typeArr.count)
             defer .serializer.endSequence()
-            if treated do
+            if treated
+            {
                 return
+            }
 
             var bufArr = cast(const [*] u8, data)
             for typeArr.count
@@ -359,8 +406,10 @@ impl Encoder
             return
         }
 
-        if .errorIfUnknown do
+        if .errorIfUnknown
+        {
             fail UnsupportedFormatError{Errors.mkString(Format.toString("cannot serialize type [[%]]", type.name))}
+        }
     }
 
     // Writes the struct `value` as a complete document to `result`.
@@ -379,6 +428,7 @@ impl Encoder
                 result.truncate(start)
             #static if T == Write.Xml do
                 .serializer.abortWrite()
+            }
         }
 
         try .start(result, Swag.kindOf(value))
@@ -399,18 +449,27 @@ impl IEncoder for Encoder
 
     mtd impl end() fail
     {
-        #static if T == Write.Xml or T == Write.Json do
+        #static if T == Write.Xml or T == Write.Json
+        {
             try .serializer.endRoot()
-        else do
+        }
+        else
+        {
             .serializer.endRoot()
+        }
     }
 
     mtd impl beginField(val: Swag.TypeValue) fail
     {
-        #static if T == Write.TagBin do
+        #static if T == Write.TagBin
+        {
             try .serializer.beginElement(val)
-        else do
+        }
+        else
+        {
             .serializer.beginElement(val)
+        }
+
         .serializer.beginValue()
     }
 
@@ -439,8 +498,11 @@ impl IEncoder for Encoder
     {
         if not data
         {
-            if count do
+            if count
+            {
                 fail SerializationError{"cannot write a null u8 buffer"}
+            }
+
             return
         }
 

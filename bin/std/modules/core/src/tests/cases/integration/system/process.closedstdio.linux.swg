@@ -3,8 +3,10 @@
 
 func closedStandardDescriptorsPeer()
 {
-    for descriptor in 3 do
+    for descriptor in 3
+    {
         discard Linux.close(cast(s32, descriptor))
+    }
 
     let arguments = ["-c", "read value; printf 'out:%s' \"$value\"; printf 'err:%s' \"$value\" >&2"]
     var process   = expect Env.startProcess(Env.StartInfo{fileName: "/bin/sh", arguments: arguments,

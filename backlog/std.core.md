@@ -129,7 +129,7 @@ outcomes owned by `core` together.
 
 - Evidence: `Core.Atomic` (`thread/atomic.swg`) is a namespace of `#[Swag.Inline]` wrappers
   over the `Swag.atom*` intrinsics, with about 220 uses in 26 files under `bin/`.
-  `Swag.AtomicValue'T` (`bin/runtime/atomic.swg`) owns atomic storage and exposes the same
+  `Swag.AtomicValue!{T}` (`bin/runtime/atomic.swg`) owns atomic storage and exposes the same
   operations as methods. The concurrency contract says one owner for each concurrency type
   family; there are two, and the runtime one is named `AtomicValue` because `Atomic` is already
   taken by the Core namespace in every file that writes `using Threading`.

@@ -18,12 +18,12 @@
 {
     func mulEqFloat()->f64
     {
-        var v: f64 = 6.0'f64
-        v *= 7.0'f64
+        var v: f64 = 6.0_f64
+        v *= 7.0_f64
         return v
     }
 
     const V = #run mulEqFloat()
     #assert(#typeof(V) == f64)
-    #assert(V == 42.0'f64)
+    #assert(V == 42.0_f64)
 }

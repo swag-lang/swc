@@ -9,14 +9,16 @@ func absolute(path: string)->String fail
 {
     let winPath = Utf16.toZeroTerminated(path)
 
-    var buffer: Array'u16
+    var buffer: Array!{u16}
     buffer.reserve(100)
     var length: u64
     for
     {
         length = cast(u64, try GetFullPathNameW(winPath.buffer, cast(DWORD, buffer.capacity), buffer.buffer, null))
-        if length < buffer.capacity do
+        if length < buffer.capacity
+        {
             break
+        }
 
         // When the buffer is too small, the API returns the required size including its
         // terminator. Retry because the path or current directory may change between calls.

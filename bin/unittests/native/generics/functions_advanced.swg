@@ -3,8 +3,10 @@
 // Generic with control flow (if/else)
 func(T) clampPositive(value: T)->T
 {
-    if value < 0 do
+    if value < 0
+    {
         return 0
+    }
     return value
 }
 
@@ -12,8 +14,10 @@ func(T) clampPositive(value: T)->T
 func(T, N: s32) sum(values: [N] T)->T
 {
     var total: T = 0
-    for var i = 0; i < N; i += 1 do
+    for var i = 0; i < N; i += 1
+    {
         total += values[i]
+    }
     return total
 }
 
@@ -23,8 +27,10 @@ func(T, N: s32) countPositive(values: [N] T)->s32
     var count: s32 = 0
     for var i = 0; i < N; i += 1
     {
-        if values[i] > 0 do
+        if values[i] > 0
+        {
             count += 1
+        }
     }
     return count
 }
@@ -41,23 +47,29 @@ func(T) doubleAsF64(value: T)->f64 => toF64(value) * 2.0
 // Generic with multiple return paths
 func(T) absValue(value: T)->T
 {
-    if value < 0 do
+    if value < 0
+    {
         return -value
+    }
     return value
 }
 
 // Generic min/max
 func(T) minVal(a: T, b: T)->T
 {
-    if a < b do
+    if a < b
+    {
         return a
+    }
     return b
 }
 
 func(T) maxVal(a: T, b: T)->T
 {
-    if a > b do
+    if a > b
+    {
         return a
+    }
     return b
 }
 
@@ -79,8 +91,10 @@ func doubleF64(x: f64)->f64 => x * 2.0
 func mapS32x3(values: [3] s32, transform: func(s32)->s32)->[3] s32
 {
     var result: [3] s32
-    for var i = 0; i < 3; i += 1 do
+    for var i = 0; i < 3; i += 1
+    {
         result[i] = transform(values[i])
+    }
     return result
 }
 
@@ -88,8 +102,10 @@ func mapS32x3(values: [3] s32, transform: func(s32)->s32)->[3] s32
 func reduceS32x4(values: [4] s32, initial: s32, combine: func(s32, s32)->s32)->s32
 {
     var acc = initial
-    for var i = 0; i < 4; i += 1 do
+    for var i = 0; i < 4; i += 1
+    {
         acc = combine(acc, values[i])
+    }
     return acc
 }
 
@@ -112,8 +128,10 @@ func(T, N: s32) indexOf(values: [N] T, target: T)->s32
 {
     for var i = 0; i < N; i += 1
     {
-        if values[i] == target do
+        if values[i] == target
+        {
             return i
+        }
     }
     return -1
 }
@@ -123,8 +141,10 @@ func(T, N: s32) allEqual(values: [N] T, target: T)->bool
 {
     for var i = 0; i < N; i += 1
     {
-        if values[i] != target do
+        if values[i] != target
+        {
             return false
+        }
     }
     return true
 }
@@ -133,8 +153,10 @@ func(T, N: s32) allEqual(values: [N] T, target: T)->bool
 func(T, N: s32) reverse(values: [N] T)->[N] T
 {
     var result: [N] T
-    for var i = 0; i < N; i += 1 do
+    for var i = 0; i < N; i += 1
+    {
         result[i] = values[N - 1 - i]
+    }
     return result
 }
 
@@ -150,8 +172,10 @@ func(T, N: s32) countOf(values: [N] T, target: T)->s32
     var count: s32 = 0
     for var i = 0; i < N; i += 1
     {
-        if values[i] == target do
+        if values[i] == target
+        {
             count += 1
+        }
     }
     return count
 }
@@ -175,8 +199,8 @@ func(T, N: s32) countOf(values: [N] T, target: T)->s32
     let b: [4] f64 = [1.0, 2.0, 3.0, 4.0]
     Swag.require(sum(b) == 10.0)
 
-    let c: [2] s64 = [100's64, 200]
-    Swag.require(sum(c) == 300's64)
+    let c: [2] s64 = [100_s64, 200]
+    Swag.require(sum(c) == 300_s64)
 }
 
 #test
@@ -194,14 +218,14 @@ func(T, N: s32) countOf(values: [N] T, target: T)->s32
     Swag.require(addTwo(0) == 2)
     Swag.require(addFour(10) == 14)
     Swag.require(addFour(0) == 4)
-    Swag.require(addFour'(f64)(1.0) == 5.0)
+    Swag.require(addFour!{f64}(1.0) == 5.0)
 }
 
 #test
 {
     Swag.require(doubleAsF64(5) == 10.0)
-    Swag.require(doubleAsF64(3'u8) == 6.0)
-    Swag.require(doubleAsF64(2's16) == 4.0)
+    Swag.require(doubleAsF64(3_u8) == 6.0)
+    Swag.require(doubleAsF64(2_s16) == 4.0)
 }
 
 #test
@@ -264,10 +288,10 @@ func(T, N: s32) countOf(values: [N] T, target: T)->s32
 
 #test
 {
-    Swag.require(castTo'(s32, f64)(42) == 42.0)
-    Swag.require(castTo'(f64, s32)(3.7) == 3)
-    Swag.require(castTo'(u8, s32)(255'u8) == 255)
-    Swag.require(castTo'(bool, s32)(true) == 1)
+    Swag.require(castTo!{s32, f64}(42) == 42.0)
+    Swag.require(castTo!{f64, s32}(3.7) == 3)
+    Swag.require(castTo!{u8, s32}(255_u8) == 255)
+    Swag.require(castTo!{bool, s32}(true) == 1)
 }
 
 #test

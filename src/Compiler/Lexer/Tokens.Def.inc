@@ -10,19 +10,19 @@ SWC_TOKEN_DEF(CommentBlock, "", TokenIdKindE::Trivia)
 
 // LITERALS
 
-SWC_TOKEN_DEF(StringLine, "", TokenIdKindE::Literal | TokenIdKindE::QuoteOperatorPredecessor)
-SWC_TOKEN_DEF(StringMultiLine, "", TokenIdKindE::Literal | TokenIdKindE::QuoteOperatorPredecessor)
+SWC_TOKEN_DEF(StringLine, "", TokenIdKindE::Literal)
+SWC_TOKEN_DEF(StringMultiLine, "", TokenIdKindE::Literal)
 
 SWC_TOKEN_DEF(Character, "", TokenIdKindE::Literal)
 
-SWC_TOKEN_DEF(NumberHex, "", TokenIdKindE::Literal | TokenIdKindE::QuoteOperatorPredecessor)
-SWC_TOKEN_DEF(NumberBin, "", TokenIdKindE::Literal | TokenIdKindE::QuoteOperatorPredecessor)
-SWC_TOKEN_DEF(NumberInteger, "", TokenIdKindE::Literal | TokenIdKindE::QuoteOperatorPredecessor)
-SWC_TOKEN_DEF(NumberFloat, "", TokenIdKindE::Literal | TokenIdKindE::QuoteOperatorPredecessor)
+SWC_TOKEN_DEF(NumberHex, "", TokenIdKindE::Literal)
+SWC_TOKEN_DEF(NumberBin, "", TokenIdKindE::Literal)
+SWC_TOKEN_DEF(NumberInteger, "", TokenIdKindE::Literal)
+SWC_TOKEN_DEF(NumberFloat, "", TokenIdKindE::Literal)
 
 // IDENTIFIERS
 
-SWC_TOKEN_DEF(Identifier, "", TokenIdKindE::Zero | TokenIdKindE::SubTypeStart | TokenIdKindE::QuoteOperatorPredecessor)
+SWC_TOKEN_DEF(Identifier, "", TokenIdKindE::Zero | TokenIdKindE::SubTypeStart)
 SWC_TOKEN_DEF(SharpIdentifier, "", TokenIdKindE::Compiler)
 
 SWC_TOKEN_DEF(KwdMe, "me", TokenIdKindE::Keyword)
@@ -35,7 +35,7 @@ SWC_TOKEN_DEF(KwdVersion, "version", TokenIdKindE::Zero)
 
 // SYMBOLS
 
-SWC_TOKEN_DEF(SymSingleQuote, "'", TokenIdKindE::Symbol)
+SWC_TOKEN_DEF(SymLiteralSuffixStart, "_", TokenIdKindE::Symbol)
 SWC_TOKEN_DEF(SymBackSlash, "\\", TokenIdKindE::Symbol)
 SWC_TOKEN_DEF(SymLeftParen, "(", TokenIdKindE::Symbol | TokenIdKindE::SubTypeStart)
 SWC_TOKEN_DEF(SymRightParen, ")", TokenIdKindE::Symbol)
@@ -92,7 +92,6 @@ SWC_TOKEN_DEF(SymAttrStart, "#[", TokenIdKindE::Symbol)
 
 SWC_TOKEN_DEF(KwdIf, "if", TokenIdKindE::Keyword | TokenIdKindE::Logic)
 SWC_TOKEN_DEF(KwdElse, "else", TokenIdKindE::Keyword | TokenIdKindE::Logic)
-SWC_TOKEN_DEF(KwdElseIf, "elif", TokenIdKindE::Keyword | TokenIdKindE::Logic)
 SWC_TOKEN_DEF(KwdFor, "for", TokenIdKindE::Keyword | TokenIdKindE::Logic)
 SWC_TOKEN_DEF(KwdWhile, "while", TokenIdKindE::Keyword | TokenIdKindE::Logic)
 SWC_TOKEN_DEF(KwdParallel, "parallel", TokenIdKindE::Keyword | TokenIdKindE::Logic)
@@ -118,7 +117,6 @@ SWC_TOKEN_DEF(KwdUntil, "until", TokenIdKindE::Keyword | TokenIdKindE::Logic)
 SWC_TOKEN_DEF(KwdIn, "in", TokenIdKindE::Keyword | TokenIdKindE::Logic)
 SWC_TOKEN_DEF(KwdAs, "as", TokenIdKindE::Keyword | TokenIdKindE::Logic)
 SWC_TOKEN_DEF(KwdIs, "is", TokenIdKindE::Keyword | TokenIdKindE::Logic | TokenIdKindE::OpOrdering)
-SWC_TOKEN_DEF(KwdDo, "do", TokenIdKindE::Keyword | TokenIdKindE::Logic)
 
 // MODULE / ERROR HANDLING
 

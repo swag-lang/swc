@@ -16,15 +16,20 @@ impl KeyboardStateNative
 {
     mtd updateNative()
     {
-        if not GetKeyboardState(.nativeState) do
+        if not GetKeyboardState(.nativeState)
+        {
             Memory.clear(&.nativeState, #sizeof(.nativeState))
+        }
     }
 
     mtd isKeyPressed(key: Input.Key)->bool
     {
         let vkey = Keyboard.mapKeyToVKey[key]
-        if vkey == 0 do
+        if vkey == 0
+        {
             return false
+        }
+
         return (.nativeState[vkey] & 0x80) != 0
     }
 }

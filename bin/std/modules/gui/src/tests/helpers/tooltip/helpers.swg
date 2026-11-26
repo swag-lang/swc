@@ -4,11 +4,13 @@
 using Swag, Core, Pixel
 
 // Collects the whole tip tree, so a test can state what a tip may never contain.
-func collectTree(wnd: *Wnd, result: *Array'(*Wnd))
+func collectTree(wnd: *Wnd, result: *Array!{*Wnd})
 {
     result.add(wnd)
-    for child in wnd.children do
+    for child in wnd.children
+    {
         collectTree(child, result)
+    }
 }
 
 // Asserts the shared contract of every tip: a passive box holding its text whole.
@@ -18,7 +20,7 @@ func collectTree(wnd: *Wnd, result: *Array'(*Wnd))
 // only one of them passes while the other is broken.
 func assertPassiveAndFits(tip: *FrameWnd, label: *Label)
 {
-    var tree: Array'(*Wnd)
+    var tree: Array!{*Wnd}
     collectTree(tip, &tree)
 
     // No viewport, no editable field, and no stop the keyboard traversal could land on.
@@ -47,14 +49,14 @@ func assertPassiveAndFits(tip: *FrameWnd, label: *Label)
 // Shows a tip immediately and returns the label it built.
 func showTip(owner: *Wnd, text: string)->*Label
 {
-    ToolTip.show(owner, {40, 40}, text, 0's)
+    ToolTip.show(owner, {40, 40}, text, 0_s)
     return assume cast (*Label, owner.app().toolTip.current!.view)
 }
 
 // Shows the markup sentence `markup` for `owner` at once and returns the label holding it.
 func showMarkupTip(owner: *Wnd, markup: string)->*Label
 {
-    ToolTip.showMarkup(owner, {40, 40}, markup, 0's)
+    ToolTip.showMarkup(owner, {40, 40}, markup, 0_s)
     return assume cast (*Label, owner.app().toolTip.current!.view)
 }
 
@@ -62,7 +64,10 @@ func showMarkupTip(owner: *Wnd, markup: string)->*Label
 func longAnnotation()->String
 {
     var result: #returntype
-    for 40 do
+    for 40
+    {
         result += "every sentence adds another line to this annotation. "
+    }
+
     return result
 }

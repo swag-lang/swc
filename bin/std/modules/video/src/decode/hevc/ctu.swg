@@ -11,7 +11,7 @@ using Core, Core.Errors
 // Table 8-2: the three directional modes a chroma block may take instead of the luma one, plus
 // the diagonal it falls back to when the chosen one is already the luma mode.
 const ChromaModeCandidates: [4] u8 = [IntraPlanar, 26, 10, IntraDc]
-const IntraAngular34 = 34'u8
+const IntraAngular34 = 34_u8
 
 impl Decoder
 {
@@ -22,8 +22,10 @@ impl Decoder
         let xCtb = cast(s32, ((.ctbAddrRs % sps.widthInCtbs) << sps.ctbLog2Size))
         let yCtb = cast(s32, ((.ctbAddrRs / sps.widthInCtbs) << sps.ctbLog2Size))
 
-        if .header.saoLuma or .header.saoChroma do
+        if .header.saoLuma or .header.saoChroma
+        {
             try .readSaoParameters(xCtb >> sps.ctbLog2Size, yCtb >> sps.ctbLog2Size)
+        }
 
         try .codingQuadtree(xCtb, yCtb, sps.ctbLog2Size, 0)
     }
@@ -33,18 +35,24 @@ impl Decoder
     {
         let sps  = unwrap .activeSps
         let pps  = unwrap .activePps
-        let size = 1's32 << log2CbSize
+        let size = 1_s32 << log2CbSize
 
         var split = log2CbSize > sps.minCbLog2Size
         if x0 + size <= cast(s32, sps.width) and
            y0 + size <= cast(s32, sps.height) and
            log2CbSize > sps.minCbLog2Size
         {
-            var context = 0'u32
-            if .isAvailable(x0, y0, x0 - 1, y0) and cast(u32, .ctDepth[.blockIndex(x0 - 1, y0)]) > depth do
+            var context = 0_u32
+            if .isAvailable(x0, y0, x0 - 1, y0) and cast(u32, .ctDepth[.blockIndex(x0 - 1, y0)]) > depth
+            {
                 context += 1
-            if .isAvailable(x0, y0, x0, y0 - 1) and cast(u32, .ctDepth[.blockIndex(x0, y0 - 1)]) > depth do
+            }
+
+            if .isAvailable(x0, y0, x0, y0 - 1) and cast(u32, .ctDepth[.blockIndex(x0, y0 - 1)]) > depth
+            {
                 context += 1
+            }
+
             split = .cabac.decision(CtxSplitCuFlag + context) != 0
         }
 
@@ -64,12 +72,20 @@ impl Decoder
 
         let half = size >> 1
         try .codingQuadtree(x0, y0, log2CbSize - 1, depth + 1)
-        if x0 + half < cast(s32, sps.width) do
+        if x0 + half < cast(s32, sps.width)
+        {
             try .codingQuadtree(x0 + half, y0, log2CbSize - 1, depth + 1)
-        if y0 + half < cast(s32, sps.height) do
+        }
+
+        if y0 + half < cast(s32, sps.height)
+        {
             try .codingQuadtree(x0, y0 + half, log2CbSize - 1, depth + 1)
-        if x0 + half < cast(s32, sps.width) and y0 + half < cast(s32, sps.height) do
+        }
+
+        if x0 + half < cast(s32, sps.width) and y0 + half < cast(s32, sps.height)
+        {
             try .codingQuadtree(x0 + half, y0 + half, log2CbSize - 1, depth + 1)
+        }
     }
 
     // Decodes one coding unit, clause 7.3.8.5.
@@ -78,25 +94,33 @@ impl Decoder
         let sps    = unwrap .activeSps
         let pps    = unwrap .activePps
         let header = &.header
-        let nCbS   = 1's32 << log2CbSize
+        let nCbS   = 1_s32 << log2CbSize
 
         var bypass = false
-        if pps.transquantBypassEnabled do
+        if pps.transquantBypassEnabled
+        {
             bypass = .cabac.decision(CtxCuTransquantBypassFlag) != 0
+        }
 
         var skip = false
         if header.sliceType != SliceTypeI
         {
-            var context = 0'u32
-            if .isAvailable(x0, y0, x0 - 1, y0) and .skipFlag[.blockIndex(x0 - 1, y0)] != 0 do
+            var context = 0_u32
+            if .isAvailable(x0, y0, x0 - 1, y0) and .skipFlag[.blockIndex(x0 - 1, y0)] != 0
+            {
                 context += 1
-            if .isAvailable(x0, y0, x0, y0 - 1) and .skipFlag[.blockIndex(x0, y0 - 1)] != 0 do
+            }
+
+            if .isAvailable(x0, y0, x0, y0 - 1) and .skipFlag[.blockIndex(x0, y0 - 1)] != 0
+            {
                 context += 1
+            }
+
             skip = .cabac.decision(CtxCuSkipFlag + context) != 0
         }
 
         .fillBlocks(.ctDepth.storage(), x0, y0, nCbS, cast(u8, depth))
-        .fillBlocks(.skipFlag.storage(), x0, y0, nCbS, skip ? 1'u8 : 0'u8)
+        .fillBlocks(.skipFlag.storage(), x0, y0, nCbS, skip ? 1_u8 : 0_u8)
 
         // A coding block boundary is a transform block boundary and a prediction block boundary
         // whatever the unit turns out to hold, clauses 8.7.2.2 and 8.7.2.3. A unit that codes no
@@ -107,9 +131,12 @@ impl Decoder
         {
             .fillBlocks(.predMode.storage(), x0, y0, nCbS, ModeSkip)
             .fillBlocks(.intraModeY.storage(), x0, y0, nCbS, IntraDc)
-            var mergeIdx = 0'u32
-            if header.maxNumMergeCand > 1 do
+            var mergeIdx = 0_u32
+            if header.maxNumMergeCand > 1
+            {
                 mergeIdx = .readMergeIdx()
+            }
+
             let motion = .deriveMergeMotion(x0, y0, nCbS, x0, y0, nCbS, nCbS, 0, Part2Nx2N, mergeIdx)
             .storeMotion(x0, y0, nCbS, nCbS, &motion)
             .interPredict(x0, y0, nCbS, nCbS, &motion)
@@ -118,19 +145,26 @@ impl Decoder
         }
 
         var isIntra = header.sliceType == SliceTypeI
-        if header.sliceType != SliceTypeI do
+        if header.sliceType != SliceTypeI
+        {
             isIntra = .cabac.decision(CtxPredModeFlag) != 0
+        }
 
         var partMode = Part2Nx2N
-        if not isIntra or log2CbSize == sps.minCbLog2Size do
+        if not isIntra or log2CbSize == sps.minCbLog2Size
+        {
             partMode = .readPartMode(isIntra, log2CbSize, sps)
+        }
 
         .fillBlocks(.predMode.storage(), x0, y0, nCbS, isIntra ? ModeIntra : ModeInter)
 
         if isIntra
         {
-            if partMode == PartNxN and log2CbSize != sps.minCbLog2Size do
+            if partMode == PartNxN and log2CbSize != sps.minCbLog2Size
+            {
                 fail InvalidFormatError{"HEVC intra coding unit splits a block that may not be split"}
+            }
+
             try .intraCodingUnit(x0, y0, log2CbSize, partMode, bypass)
             return
         }
@@ -142,19 +176,21 @@ impl Decoder
     private mtd intraCodingUnit(x0, y0: s32, log2CbSize, partMode: u32, bypass: bool) fail
     {
         let sps  = unwrap .activeSps
-        let nCbS = 1's32 << log2CbSize
+        let nCbS = 1_s32 << log2CbSize
 
         // The four blocks of a split unit each state their own mode; a whole unit states one.
         let split  = partMode == PartNxN
-        let blocks = split ? 2'u32 : 1'u32
+        let blocks = split ? 2_u32 : 1_u32
         let pbSize = split ? nCbS >> 1 : nCbS
 
         var previousFlag: [4] bool
         var candidate:    [4] u32
         for j in blocks
         {
-            for i in blocks do
+            for i in blocks
+            {
                 previousFlag[j * 2 + i] = .cabac.decision(CtxPrevIntraLumaPredFlag) != 0
+            }
         }
 
         for j in blocks
@@ -165,12 +201,14 @@ impl Decoder
                 if previousFlag[slot]
                 {
                     // Truncated Rice with a maximum of two, whose bins after the first bypass.
-                    var index = 0'u32
+                    var index = 0_u32
                     if .cabac.bypass() != 0
                     {
                         index = 1
-                        if .cabac.bypass() != 0 do
+                        if .cabac.bypass() != 0
+                        {
                             index = 2
+                        }
                     }
 
                     candidate[slot] = index
@@ -196,7 +234,7 @@ impl Decoder
         }
 
         // One chroma mode covers the whole unit in every layout this decoder reads.
-        var chromaCode = 4'u32
+        var chromaCode = 4_u32
         if .cabac.decision(CtxIntraChromaPredMode) != 0
         {
             chromaCode = .cabac.bypassBits(2)
@@ -206,11 +244,13 @@ impl Decoder
         if chromaCode != 4
         {
             chromaMode = ChromaModeCandidates[chromaCode]
-            if chromaMode == modes[0] do
+            if chromaMode == modes[0]
+            {
                 chromaMode = IntraAngular34
+            }
         }
 
-        let maxDepth = sps.maxTrafoDepthIntra + (split ? 1'u32 : 0'u32)
+        let maxDepth = sps.maxTrafoDepthIntra + (split ? 1_u32 : 0_u32)
         try .transformTree(x0, y0, x0, y0, log2CbSize, 0, 0, parentCbfCb: false, parentCbfCr: false, maxTrafoDepth: maxDepth, isIntra: true, intraSplit: split, bypass: bypass, partMode: partMode, chromaMode: chromaMode)
         .finishCodingUnit(x0, y0, nCbS)
     }
@@ -221,16 +261,20 @@ impl Decoder
         let sps = unwrap .activeSps
 
         var candidateA = IntraDc
-        if .isAvailable(x, y, x - 1, y) and .predMode[.blockIndex(x - 1, y)] == ModeIntra do
+        if .isAvailable(x, y, x - 1, y) and .predMode[.blockIndex(x - 1, y)] == ModeIntra
+        {
             candidateA = .intraModeY[.blockIndex(x - 1, y)]
+        }
 
         var candidateB = IntraDc
         if .isAvailable(x, y, x, y - 1) and .predMode[.blockIndex(x, y - 1)] == ModeIntra
         {
             // A block above the coding tree block row would have to be kept for a whole picture
             // row, so the standard refuses it rather than storing it.
-            if (y - 1) >= ((y >> sps.ctbLog2Size) << sps.ctbLog2Size) do
+            if (y - 1) >= ((y >> sps.ctbLog2Size) << sps.ctbLog2Size)
+            {
                 candidateB = .intraModeY[.blockIndex(x, y - 1)]
+            }
         }
 
         var most: [3] u8
@@ -253,22 +297,30 @@ impl Decoder
         {
             most[0] = candidateA
             most[1] = candidateB
-            if candidateA != IntraPlanar and candidateB != IntraPlanar do
+            if candidateA != IntraPlanar and candidateB != IntraPlanar
+            {
                 most[2] = IntraPlanar
-            elif candidateA != IntraDc and candidateB != IntraDc do
+            }
+            else if candidateA != IntraDc and candidateB != IntraDc
+            {
                 most[2] = IntraDc
-            else do
+            }
+            else
+            {
                 most[2] = IntraAngular26
+            }
         }
 
-        if code < 32 do
+        if code < 32
+        {
             return most[code]
+        }
 
         // The remaining mode is stated as an index into the modes the three candidates leave.
         var sorted = most
-        for outer in 3'u32
+        for outer in 3_u32
         {
-            for inner in outer + 1 until 3'u32
+            for inner in outer + 1 until 3_u32
             {
                 if sorted[inner] < sorted[outer]
                 {
@@ -280,10 +332,12 @@ impl Decoder
         }
 
         var mode = cast(u8, (code - 32))
-        for index in 3'u32
+        for index in 3_u32
         {
-            if mode >= sorted[index] do
+            if mode >= sorted[index]
+            {
                 mode += 1
+            }
         }
 
         return mode
@@ -293,7 +347,7 @@ impl Decoder
     private mtd interCodingUnit(x0, y0: s32, log2CbSize, partMode: u32, bypass: bool) fail
     {
         let sps     = unwrap .activeSps
-        let nCbS    = 1's32 << log2CbSize
+        let nCbS    = 1_s32 << log2CbSize
         let half    = nCbS >> 1
         let quarter = nCbS >> 2
 
@@ -338,8 +392,10 @@ impl Decoder
 
         // A whole unit taken from a merge candidate carries its residual flag implicitly.
         var hasResidual = true
-        if not (partMode == Part2Nx2N and merge2Nx2N) do
+        if not (partMode == Part2Nx2N and merge2Nx2N)
+        {
             hasResidual = .cabac.decision(CtxRqtRootCbf) != 0
+        }
 
         if hasResidual
         {
@@ -364,9 +420,12 @@ impl Decoder
         let merge = .cabac.decision(CtxMergeFlag) != 0
         if merge
         {
-            var mergeIdx = 0'u32
-            if header.maxNumMergeCand > 1 do
+            var mergeIdx = 0_u32
+            if header.maxNumMergeCand > 1
+            {
                 mergeIdx = .readMergeIdx()
+            }
+
             let motion = .deriveMergeMotion(xCb, yCb, nCbS, xPb, yPb, nPbW, nPbH, partIdx, partMode, mergeIdx)
             .storeMotion(xPb, yPb, nPbW, nPbH, &motion)
             .markEdges(xPb, yPb, nPbW, nPbH, EdgePredictionLeft, EdgePredictionTop)
@@ -377,7 +436,7 @@ impl Decoder
         var motion: PuMotion
 
         // Which lists the block predicts from, Table 9-47.
-        var predFlags = 1'u8
+        var predFlags = 1_u8
         if header.sliceType == SliceTypeB
         {
             if nPbW + nPbH != 12
@@ -389,29 +448,35 @@ impl Decoder
                 }
                 else
                 {
-                    predFlags = .cabac.decision(CtxInterPredIdc + 4) != 0 ? 2'u8 : 1'u8
+                    predFlags = .cabac.decision(CtxInterPredIdc + 4) != 0 ? 2_u8 : 1_u8
                 }
             }
             else
             {
-                predFlags = .cabac.decision(CtxInterPredIdc + 4) != 0 ? 2'u8 : 1'u8
+                predFlags = .cabac.decision(CtxInterPredIdc + 4) != 0 ? 2_u8 : 1_u8
             }
         }
 
         motion.predFlags = predFlags
         for list in ListCount
         {
-            if (cast(u32, predFlags) & (1'u32 << list)) == 0
+            if (cast(u32, predFlags) & (1_u32 << list)) == 0
             {
                 motion.refIdx[list] = -1
                 continue
             }
 
-            var refIdx = 0'u32
-            if header.numRefIdx[list] > 1 do
+            var refIdx = 0_u32
+            if header.numRefIdx[list] > 1
+            {
                 refIdx = .readRefIdx(header.numRefIdx[list])
-            if refIdx >= header.numRefIdx[list] do
+            }
+
+            if refIdx >= header.numRefIdx[list]
+            {
                 fail InvalidFormatError{"HEVC prediction unit selects a reference past the end of its list"}
+            }
+
             motion.refIdx[list] = cast(s8, refIdx)
 
             var difference: [2] s32
@@ -429,7 +494,7 @@ impl Decoder
             let predictor = .derivePredictor(xCb, yCb, nCbS, xPb, yPb, nPbW, nPbH, partIdx, list, cast(s32, refIdx), mvpFlag)
 
             // The sum wraps in sixteen bits, clause 8-133.
-            for component in 2'u32
+            for component in 2_u32
             {
                 let sum = (cast(s32, predictor[component]) + difference[component] + 65536) & 0xFFFF
                 motion.mv[list, component] = cast(s16, (sum >= 32768 ? sum - 65536 : sum))
@@ -445,27 +510,44 @@ impl Decoder
     // Reads one merge index, clause 9.3.3.2 with a truncated Rice binarization.
     private mtd readMergeIdx()->u32
     {
-        if .cabac.decision(CtxMergeIdx) == 0 do
+        if .cabac.decision(CtxMergeIdx) == 0
+        {
             return 0
-        var index = 1'u32
-        while index + 1 < .header.maxNumMergeCand and .cabac.bypass() != 0 do
+        }
+
+        var index = 1_u32
+        while index + 1 < .header.maxNumMergeCand and .cabac.bypass() != 0
+        {
             index += 1
+        }
+
         return index
     }
 
     // Reads one reference index, whose first two bins carry a context.
     private mtd readRefIdx(count: u32)->u32
     {
-        if .cabac.decision(CtxRefIdx) == 0 do
+        if .cabac.decision(CtxRefIdx) == 0
+        {
             return 0
-        if count == 2 do
-            return 1
-        if .cabac.decision(CtxRefIdx + 1) == 0 do
-            return 1
+        }
 
-        var index = 2'u32
-        while index + 1 < count and .cabac.bypass() != 0 do
+        if count == 2
+        {
+            return 1
+        }
+
+        if .cabac.decision(CtxRefIdx + 1) == 0
+        {
+            return 1
+        }
+
+        var index = 2_u32
+        while index + 1 < count and .cabac.bypass() != 0
+        {
             index += 1
+        }
+
         return index
     }
 
@@ -473,23 +555,33 @@ impl Decoder
     private mtd readMotionDifference()->[2] s32
     {
         var greater0, greater1: [2] bool
-        for component in 2'u32 do
-            greater0[component] = .cabac.decision(CtxAbsMvdGreater0Flag) != 0
-        for component in 2'u32
+        for component in 2_u32
         {
-            if greater0[component] do
+            greater0[component] = .cabac.decision(CtxAbsMvdGreater0Flag) != 0
+        }
+
+        for component in 2_u32
+        {
+            if greater0[component]
+            {
                 greater1[component] = .cabac.decision(CtxAbsMvdGreater1Flag) != 0
+            }
         }
 
         var result: #returntype
-        for component in 2'u32
+        for component in 2_u32
         {
-            if not greater0[component] do
+            if not greater0[component]
+            {
                 continue
+            }
 
-            var magnitude = 1'u32
-            if greater1[component] do
+            var magnitude = 1_u32
+            if greater1[component]
+            {
                 magnitude = 2 + .readExpGolomb(1)
+            }
+
             let negative = .cabac.bypass() != 0
             result[component] = negative ? -cast(s32, magnitude) : cast(s32, magnitude)
         }
@@ -500,40 +592,63 @@ impl Decoder
     // Reads one bypass-coded Exp-Golomb value of order `order`, clause 9.3.3.3.
     private mtd readExpGolomb(order: u32)->u32
     {
-        var length = 0'u32
-        while length < 24 and .cabac.bypass() != 0 do
+        var length = 0_u32
+        while length < 24 and .cabac.bypass() != 0
+        {
             length += 1
-        let escape = ((1'u32 << length) - 1) << order
+        }
+
+        let escape = ((1_u32 << length) - 1) << order
         return escape + .cabac.bypassBits(order + length)
     }
 
     // Reads one partition mode, clause 9.3.3.7.
     private mtd readPartMode(isIntra: bool, log2CbSize: u32, sps: const *Sps)->u32
     {
-        if .cabac.decision(CtxPartMode) != 0 do
+        if .cabac.decision(CtxPartMode) != 0
+        {
             return Part2Nx2N
-        if isIntra do
+        }
+
+        if isIntra
+        {
             return PartNxN
+        }
 
         let smallest   = log2CbSize == sps.minCbLog2Size
         let horizontal = .cabac.decision(CtxPartMode + 1) != 0
 
         if not smallest
         {
-            if not sps.ampEnabled do
+            if not sps.ampEnabled
+            {
                 return horizontal ? Part2NxN : PartNx2N
-            if .cabac.decision(CtxPartMode + 3) != 0 do
+            }
+
+            if .cabac.decision(CtxPartMode + 3) != 0
+            {
                 return horizontal ? Part2NxN : PartNx2N
+            }
+
             let second = .cabac.bypass() != 0
-            if horizontal do
+            if horizontal
+            {
                 return second ? Part2NxnD : Part2NxnU
+            }
+
             return second ? PartnRx2N : PartnLx2N
         }
 
-        if horizontal do
+        if horizontal
+        {
             return Part2NxN
-        if log2CbSize == 3 do
+        }
+
+        if log2CbSize == 3
+        {
             return PartNx2N
+        }
+
         return .cabac.decision(CtxPartMode + 2) != 0 ? PartNx2N : PartNxN
     }
 
@@ -545,8 +660,10 @@ impl Decoder
         for row in blocks
         {
             let line = origin + cast(u64, row) * cast(u64, .gridWidth)
-            for column in blocks do
+            for column in blocks
+            {
                 .qpY[line + cast(u64, column)] = cast(s8, .currentQp)
+            }
         }
 
         .qpYPrev = .currentQp
@@ -580,15 +697,20 @@ impl Decoder
         {
             cbfCb = false
             cbfCr = false
-            if not trafoDepth or parentCbfCb do
+            if not trafoDepth or parentCbfCb
+            {
                 cbfCb = .cabac.decision(CtxCbfChroma + trafoDepth) != 0
-            if not trafoDepth or parentCbfCr do
+            }
+
+            if not trafoDepth or parentCbfCr
+            {
                 cbfCr = .cabac.decision(CtxCbfChroma + trafoDepth) != 0
+            }
         }
 
         if split
         {
-            let half = 1's32 << (log2TrafoSize - 1)
+            let half = 1_s32 << (log2TrafoSize - 1)
             try .transformTree(x0, y0, x0, y0, log2TrafoSize - 1, trafoDepth + 1, 0, cbfCb, cbfCr, maxTrafoDepth, isIntra, intraSplit, bypass, partMode, chromaMode)
             try .transformTree(x0 + half, y0, x0, y0, log2TrafoSize - 1, trafoDepth + 1, 1, cbfCb, cbfCr, maxTrafoDepth, isIntra, intraSplit, bypass, partMode, chromaMode)
             try .transformTree(x0, y0 + half, x0, y0, log2TrafoSize - 1, trafoDepth + 1, 2, cbfCb, cbfCr, maxTrafoDepth, isIntra, intraSplit, bypass, partMode, chromaMode)
@@ -597,8 +719,10 @@ impl Decoder
         }
 
         var cbfLuma = true
-        if isIntra or trafoDepth != 0 or cbfCb or cbfCr do
-            cbfLuma = .cabac.decision(CtxCbfLuma + (trafoDepth == 0 ? 1'u32 : 0'u32)) != 0
+        if isIntra or trafoDepth != 0 or cbfCb or cbfCr
+        {
+            cbfLuma = .cabac.decision(CtxCbfLuma + (trafoDepth == 0 ? 1_u32 : 0_u32)) != 0
+        }
 
         try .transformUnit(x0, y0, xBase, yBase, log2TrafoSize, trafoDepth, blkIdx, cbfLuma, cbfCb, cbfCr, isIntra, bypass, chromaMode)
     }
@@ -608,20 +732,22 @@ impl Decoder
     {
         let sps  = unwrap .activeSps
         let pps  = unwrap .activePps
-        let size = 1's32 << log2TrafoSize
+        let size = 1_s32 << log2TrafoSize
 
         // A 4x4 luma block shares one chroma block with its three siblings, so the chroma of the
         // group is decoded once, with the last of them.
         let smallest       = log2TrafoSize == 2
-        let log2ChromaSize = smallest ? 2'u32 : log2TrafoSize - 1
+        let log2ChromaSize = smallest ? 2_u32 : log2TrafoSize - 1
         let xChroma        = smallest ? xBase : x0
         let yChroma        = smallest ? yBase : y0
         let hasChroma      = not smallest or blkIdx == 3
 
         if cbfLuma or cbfCb or cbfCr
         {
-            if pps.cuQpDeltaEnabled and not .isCuQpDeltaCoded do
+            if pps.cuQpDeltaEnabled and not .isCuQpDeltaCoded
+            {
                 .readQuantizationDelta()
+            }
         }
 
         .cbfLumaAt(x0, y0, size, cbfLuma)
@@ -639,8 +765,10 @@ impl Decoder
         block.qp        = .currentQp + sps.qpBdOffsetY
 
         let lumaMode = cast(u32, .intraModeY[.blockIndex(x0, y0)])
-        if isIntra do
+        if isIntra
+        {
             .intraPredict(x0, y0, x0, y0, log2TrafoSize, 0, lumaMode)
+        }
 
         if cbfLuma
         {
@@ -651,17 +779,23 @@ impl Decoder
             .reconstructResidual(&block)
         }
 
-        if isIntra do
+        if isIntra
+        {
             .addResidual(&block, cbfLuma)
-        elif cbfLuma do
+        }
+        else if cbfLuma
+        {
             .addResidualInPlace(&block)
+        }
 
-        if not hasChroma do
+        if not hasChroma
+        {
             return
+        }
 
         // Chroma, in its own sample grid.
-        let chromaSize = 1's32 << log2ChromaSize
-        for component in 1 to 2'u32
+        let chromaSize = 1_s32 << log2ChromaSize
+        for component in 1 to 2_u32
         {
             let coded = component == 1 ? cbfCb : cbfCr
             var chroma: TransformBlock
@@ -674,8 +808,10 @@ impl Decoder
             chroma.bypass    = bypass
             chroma.qp        = .chromaQp(component) + sps.qpBdOffsetC
 
-            if isIntra do
+            if isIntra
+            {
                 .intraPredict(xChroma / 2, yChroma / 2, xChroma, yChroma, log2ChromaSize, component, cast(u32, chromaMode))
+            }
 
             if coded
             {
@@ -686,10 +822,14 @@ impl Decoder
                 .reconstructResidual(&chroma)
             }
 
-            if isIntra do
+            if isIntra
+            {
                 .addResidual(&chroma, coded)
-            elif coded do
+            }
+            else if coded
+            {
                 .addResidualInPlace(&chroma)
+            }
         }
     }
 
@@ -698,17 +838,26 @@ impl Decoder
     {
         .isCuQpDeltaCoded = true
 
-        var prefix = 0'u32
-        while prefix < 5 and .cabac.decision(CtxCuQpDeltaAbs + (prefix ? 1'u32 : 0'u32)) != 0 do
+        var prefix = 0_u32
+        while prefix < 5 and .cabac.decision(CtxCuQpDeltaAbs + (prefix ? 1_u32 : 0_u32)) != 0
+        {
             prefix += 1
+        }
 
         var magnitude = prefix
-        if prefix > 4 do
+        if prefix > 4
+        {
             magnitude = 5 + .readExpGolomb(0)
-        if magnitude != 0 and .cabac.bypass() != 0 do
+        }
+
+        if magnitude != 0 and .cabac.bypass() != 0
+        {
             .cuQpDeltaVal = -cast(s32, magnitude)
-        else do
+        }
+        else
+        {
             .cuQpDeltaVal = cast(s32, magnitude)
+        }
 
         .refreshQp()
     }
@@ -716,7 +865,7 @@ impl Decoder
     // Records whether one transform block held luma coefficients, which the loop filter reads.
     private mtd cbfLumaAt(x0, y0, size: s32, coded: bool)
     {
-        .fillBlocks(.cbfLuma.storage(), x0, y0, size, coded ? 1'u8 : 0'u8)
+        .fillBlocks(.cbfLuma.storage(), x0, y0, size, coded ? 1_u8 : 0_u8)
     }
 
     // Writes one value over every four-sample block a square region covers.
@@ -727,8 +876,10 @@ impl Decoder
         for row in blocks
         {
             let line = origin + cast(u64, row) * cast(u64, .gridWidth)
-            for column in blocks do
+            for column in blocks
+            {
                 grid[line + cast(u64, column)] = value
+            }
         }
     }
 }

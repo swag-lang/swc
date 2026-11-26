@@ -7,8 +7,8 @@ alias HRESULT  = s32
 alias SHSTDAPI = HRESULT
 alias HDROP    = const *void?
 
-const S_OK    = 0's32
-const S_FALSE = 1's32
+const S_OK    = 0_s32
+const S_FALSE = 1_s32
 
 #assert(#sizeof(HRESULT) == 4)
 
@@ -276,16 +276,16 @@ const CFSTR_FILEDESCRIPTORW = "FileGroupDescriptorW"
 const CFSTR_FILECONTENTS    = "FileContents"
 
 // Which fields of a [[Win32.FILEDESCRIPTORW]] the source actually filled in.
-const FD_CLSID      = 0x00000001'u32
-const FD_SIZEPOINT  = 0x00000002'u32
-const FD_ATTRIBUTES = 0x00000004'u32
-const FD_CREATETIME = 0x00000008'u32
-const FD_ACCESSTIME = 0x00000010'u32
-const FD_WRITESTIME = 0x00000020'u32
-const FD_FILESIZE   = 0x00000040'u32
-const FD_PROGRESSUI = 0x00004000'u32
-const FD_LINKUI     = 0x00008000'u32
-const FD_UNICODE    = 0x80000000'u32
+const FD_CLSID      = 0x00000001_u32
+const FD_SIZEPOINT  = 0x00000002_u32
+const FD_ATTRIBUTES = 0x00000004_u32
+const FD_CREATETIME = 0x00000008_u32
+const FD_ACCESSTIME = 0x00000010_u32
+const FD_WRITESTIME = 0x00000020_u32
+const FD_FILESIZE   = 0x00000040_u32
+const FD_PROGRESSUI = 0x00004000_u32
+const FD_LINKUI     = 0x00008000_u32
+const FD_UNICODE    = 0x80000000_u32
 
 struct SIZEL
 {
@@ -337,7 +337,7 @@ const IID_IDragSourceHelper = GUID{0xDE5BF786, 0x477A, 0x11D2, [0x83, 0x9D, 0x00
 // Color key indicating that a picture has no transparent color.
 //
 // A bitmap carrying its own alpha uses this value.
-const CLR_NONE = 0xFFFFFFFF'u32
+const CLR_NONE = 0xFFFFFFFF_u32
 
 // The picture a source hands the drag helper, and where the pointer sits inside it.
 //
@@ -515,29 +515,36 @@ internal namespace Shell32Priv
     func SHChangeNotify(wEventId: LONG, uFlags: UINT, dwItem1: const *void?, dwItem2: const *void?)
 }
 
-const SHCNE_ASSOCCHANGED = 0x08000000's32
-const SHCNF_IDLIST       = 0x0000'u32
+const SHCNE_ASSOCCHANGED = 0x08000000_s32
+const SHCNF_IDLIST       = 0x0000_u32
 
 #[Inline]
 {
     func SHGetSpecialFolderPathA(hwnd: HWND, pszPath: LPSTR, csidl: s32, fCreate: BOOL) fail
     {
-        if not Shell32Priv.SHGetSpecialFolderPathA(hwnd, pszPath, csidl, fCreate) do
+        if not Shell32Priv.SHGetSpecialFolderPathA(hwnd, pszPath, csidl, fCreate)
+        {
             try failWinError(GetLastError())
+        }
     }
 
     func SHGetSpecialFolderPathW(hwnd: HWND, pszPath: LPWSTR, csidl: s32, fCreate: BOOL) fail
     {
-        if not Shell32Priv.SHGetSpecialFolderPathW(hwnd, pszPath, csidl, fCreate) do
+        if not Shell32Priv.SHGetSpecialFolderPathW(hwnd, pszPath, csidl, fCreate)
+        {
             try failWinError(GetLastError())
+        }
     }
 
     #[Swag.Discardable]
     func ExtractIconExA(lpszFile: LPCSTR, nIconIndex: s32, phiconLarge: *HICON?, phiconSmall: *HICON?, nIcons: UINT)->UINT fail
     {
         let res = Shell32Priv.ExtractIconExA(lpszFile, nIconIndex, phiconLarge, phiconSmall, nIcons)
-        if res == Swag.U32.Max do
+        if res == Swag.U32.Max
+        {
             try failWinError(GetLastError())
+        }
+
         return res
     }
 
@@ -545,28 +552,37 @@ const SHCNF_IDLIST       = 0x0000'u32
     func ExtractIconExW(lpszFile: LPCWSTR, nIconIndex: s32, phiconLarge: *HICON?, phiconSmall: *HICON?, nIcons: UINT)->UINT fail
     {
         let res = Shell32Priv.ExtractIconExW(lpszFile, nIconIndex, phiconLarge, phiconSmall, nIcons)
-        if res == Swag.U32.Max do
+        if res == Swag.U32.Max
+        {
             try failWinError(GetLastError())
+        }
+
         return res
     }
 
     func SHGetStockIconInfo(siid: SHSTOCKICONID, uFlags: UINT, psii: *SHSTOCKICONINFO) fail
     {
         let result = Shell32Priv.SHGetStockIconInfo(siid, uFlags, psii)
-        if result != S_OK do
+        if result != S_OK
+        {
             try failWinError(cast #bit (u32, result))
+        }
     }
 
     func Shell_NotifyIconA(dwMessage: DWORD, lpData: *NOTIFYICONDATAA) fail
     {
-        if not Shell32Priv.Shell_NotifyIconA(dwMessage, lpData) do
+        if not Shell32Priv.Shell_NotifyIconA(dwMessage, lpData)
+        {
             try failWinError(GetLastError())
+        }
     }
 
     func Shell_NotifyIconW(dwMessage: DWORD, lpData: *NOTIFYICONDATAW) fail
     {
-        if not Shell32Priv.Shell_NotifyIconW(dwMessage, lpData) do
+        if not Shell32Priv.Shell_NotifyIconW(dwMessage, lpData)
+        {
             try failWinError(GetLastError())
+        }
     }
 
     func Shell_NotifyIconGetRect(identifier: const *NOTIFYICONIDENTIFIER, iconLocation: *RECT)->SHSTDAPI =>
@@ -575,16 +591,22 @@ const SHCNF_IDLIST       = 0x0000'u32
     func ShellExecuteA(hwnd: HWND, lpOperation: LPCSTR, lpFile: LPCSTR, lpParameters: LPCSTR, lpDirectory: LPCSTR, nShowCmd: INT)->HINSTANCE fail
     {
         let result = Shell32Priv.ShellExecuteA(hwnd, lpOperation, lpFile, lpParameters, lpDirectory, nShowCmd)
-        if cast(u64, result) <= 32 do
+        if cast(u64, result) <= 32
+        {
             try failWinError(GetLastError())
+        }
+
         return result
     }
 
     func ShellExecuteW(hwnd: HWND, lpOperation: LPCWSTR, lpFile: LPCWSTR, lpParameters: LPCWSTR, lpDirectory: LPCWSTR, nShowCmd: INT)->HINSTANCE fail
     {
         let result = Shell32Priv.ShellExecuteW(hwnd, lpOperation, lpFile, lpParameters, lpDirectory, nShowCmd)
-        if cast(u64, result) <= 32 do
+        if cast(u64, result) <= 32
+        {
             try failWinError(GetLastError())
+        }
+
         return result
     }
 }

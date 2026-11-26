@@ -23,6 +23,7 @@ namespace
 SWC_TEST_BEGIN(FormatUniform_ChainBracesEveryBranchWhenOneNeedsIt)
 {
     static constexpr std::string_view SOURCE =
+        
         "func f(a: s32)\n"
         "{\n"
         "    if a > 0\n"
@@ -30,10 +31,12 @@ SWC_TEST_BEGIN(FormatUniform_ChainBracesEveryBranchWhenOneNeedsIt)
         "        x = 1\n"
         "        y = 2\n"
         "    }\n"
-        "    elif a == 0 do\n"
+        "    else if a == 0 {\n"
         "        x = 4\n"
-        "    else do\n"
+        "    }\n"
+        "    else {\n"
         "        x = 3\n"
+        "    }\n"
         "}\n";
 
     static constexpr std::string_view EXPECTED =
@@ -44,7 +47,7 @@ SWC_TEST_BEGIN(FormatUniform_ChainBracesEveryBranchWhenOneNeedsIt)
         "        x = 1\n"
         "        y = 2\n"
         "    }\n"
-        "    elif a == 0\n"
+        "    else if a == 0\n"
         "    {\n"
         "        x = 4\n"
         "    }\n"
@@ -58,29 +61,38 @@ SWC_TEST_BEGIN(FormatUniform_ChainBracesEveryBranchWhenOneNeedsIt)
 }
 SWC_TEST_END()
 
-SWC_TEST_BEGIN(FormatUniform_ChainDropsBracesWhenEveryBranchIsOneStatement)
+SWC_TEST_BEGIN(FormatUniform_ChainKeepsBracesWhenEveryBranchIsOneStatement)
 {
     static constexpr std::string_view SOURCE =
+        
         "func f(a: s32)\n"
         "{\n"
         "    if a > 0\n"
         "    {\n"
         "        x = 1\n"
         "    }\n"
-        "    elif a == 0 do\n"
+        "    else if a == 0 {\n"
         "        x = 4\n"
+        "    }\n"
         "    else { x = 5 }\n"
         "}\n";
 
     static constexpr std::string_view EXPECTED =
+        
         "func f(a: s32)\n"
         "{\n"
-        "    if a > 0 do\n"
+        "    if a > 0\n"
+        "    {\n"
         "        x = 1\n"
-        "    elif a == 0 do\n"
+        "    }\n"
+        "    else if a == 0\n"
+        "    {\n"
         "        x = 4\n"
-        "    else do\n"
+        "    }\n"
+        "    else\n"
+        "    {\n"
         "        x = 5\n"
+        "    }\n"
         "}\n";
 
     return FormatRewriteCheck::check(ctx, SOURCE, EXPECTED, swagStyle());
@@ -89,17 +101,19 @@ SWC_TEST_END()
 
 SWC_TEST_BEGIN(FormatUniform_ChainKeepsBracesThatHoldAnElse)
 {
-    // After `do`, `try a()` would take the `else` that follows as its own
-    // failure handler: that branch keeps its braces, so the chain is braced.
+    // A failure handler owns its `else`, so the outer branch keeps its braces.
     static constexpr std::string_view SOURCE =
+        
         "func f(a: s32)\n"
         "{\n"
         "    if a > 0\n"
         "    {\n"
         "        try g()\n"
         "    }\n"
-        "    else do\n"
+        "    else\n"
+        "    {\n"
         "        x = 3\n"
+        "    }\n"
         "}\n";
 
     static constexpr std::string_view EXPECTED =
@@ -124,14 +138,17 @@ SWC_TEST_BEGIN(FormatUniform_ChainKeepsDeclarationsInTheirScope)
     // `let` belongs to the scope its braces open: neither branch can change
     // form, so the chain stays as written.
     static constexpr std::string_view SOURCE =
+        
         "func f(a: s32)\n"
         "{\n"
         "    if a > 0\n"
         "    {\n"
         "        let y = 1\n"
         "    }\n"
-        "    else do\n"
+        "    else\n"
+        "    {\n"
         "        let z = 2\n"
+        "    }\n"
         "}\n";
 
     return FormatRewriteCheck::check(ctx, SOURCE, SOURCE, swagStyle());
@@ -177,44 +194,58 @@ SWC_TEST_BEGIN(FormatUniform_ChainCommentBeforeElseStaysAttached)
 }
 SWC_TEST_END()
 
-SWC_TEST_BEGIN(FormatUniform_GuardsShareTheOneLineForm)
+SWC_TEST_BEGIN(FormatUniform_GuardedBlocksUseOneLayout)
 {
     static constexpr std::string_view SOURCE =
+        
         "func f(a: s32)\n"
         "{\n"
-        "    if a == 0 do\n"
+        "    if a == 0 {\n"
         "        return\n"
+        "    }\n"
         "    if a == 1\n"
         "    {\n"
         "        return\n"
         "    }\n"
-        "    if a == 2 do\n"
+        "    if a == 2 {\n"
         "        return\n"
+        "    }\n"
         "}\n";
 
     static constexpr std::string_view EXPECTED =
+        
         "func f(a: s32)\n"
         "{\n"
-        "    if a == 0 do\n"
+        "    if a == 0\n"
+        "    {\n"
         "        return\n"
-        "    if a == 1 do\n"
+        "    }\n"
+        "\n"
+        "    if a == 1\n"
+        "    {\n"
         "        return\n"
-        "    if a == 2 do\n"
+        "    }\n"
+        "\n"
+        "    if a == 2\n"
+        "    {\n"
         "        return\n"
+        "    }\n"
         "}\n";
 
     return FormatRewriteCheck::check(ctx, SOURCE, EXPECTED, swagStyle());
 }
 SWC_TEST_END()
 
-SWC_TEST_BEGIN(FormatUniform_GuardsNeverGrowBraces)
+SWC_TEST_BEGIN(FormatUniform_GuardsKeepBracedBodies)
 {
-    // A guard reads as one line whatever its neighbour holds.
+    // Braced control bodies keep the style's canonical layout.
     static constexpr std::string_view SOURCE =
+        
         "func f(a: s32)\n"
         "{\n"
-        "    if a == 0 do\n"
+        "    if a == 0 {\n"
         "        return\n"
+        "    }\n"
         "    if a == 1\n"
         "    {\n"
         "        x = 1\n"
@@ -222,7 +253,21 @@ SWC_TEST_BEGIN(FormatUniform_GuardsNeverGrowBraces)
         "    }\n"
         "}\n";
 
-    return FormatRewriteCheck::check(ctx, SOURCE, SOURCE, swagStyle());
+    static constexpr std::string_view EXPECTED =
+        "func f(a: s32)\n"
+        "{\n"
+        "    if a == 0\n"
+        "    {\n"
+        "        return\n"
+        "    }\n"
+        "\n"
+        "    if a == 1\n"
+        "    {\n"
+        "        x = 1\n"
+        "        return\n"
+        "    }\n"
+        "}\n";
+    return FormatRewriteCheck::check(ctx, SOURCE, EXPECTED, swagStyle());
 }
 SWC_TEST_END()
 
@@ -389,6 +434,7 @@ SWC_TEST_END()
 SWC_TEST_BEGIN(FormatUniform_EveryFamilyCanBeTurnedOff)
 {
     static constexpr std::string_view SOURCE =
+        
         "func f(a: s32)\n"
         "{\n"
         "    if a > 0\n"
@@ -396,10 +442,44 @@ SWC_TEST_BEGIN(FormatUniform_EveryFamilyCanBeTurnedOff)
         "        x = 1\n"
         "        y = 2\n"
         "    }\n"
-        "    else do\n"
+        "    else {\n"
         "        x = 3\n"
-        "    if a == 0 do\n"
+        "    }\n"
+        "    if a == 0 {\n"
         "        return\n"
+        "    }\n"
+        "    if a == 1\n"
+        "    {\n"
+        "        return\n"
+        "    }\n"
+        "\n"
+        "    api.first = func(x)->bool\n"
+        "    {\n"
+        "        let y = x + 1\n"
+        "        return y > 2\n"
+        "    }\n"
+        "\n"
+        "    api.second = func(x)->bool => x > 3\n"
+        "}\n";
+
+    static constexpr std::string_view EXPECTED =
+        "func f(a: s32)\n"
+        "{\n"
+        "    if a > 0\n"
+        "    {\n"
+        "        x = 1\n"
+        "        y = 2\n"
+        "    }\n"
+        "    else\n"
+        "    {\n"
+        "        x = 3\n"
+        "    }\n"
+        "\n"
+        "    if a == 0\n"
+        "    {\n"
+        "        return\n"
+        "    }\n"
+        "\n"
         "    if a == 1\n"
         "    {\n"
         "        return\n"
@@ -415,11 +495,10 @@ SWC_TEST_BEGIN(FormatUniform_EveryFamilyCanBeTurnedOff)
         "}\n";
 
     FormatOptions options         = swagStyle();
-    options.uniformBranchBodies   = false;
     options.uniformGuardBodies    = FormatAlignMode::None;
     options.uniformClosureBodies  = FormatAlignMode::None;
     options.uniformFunctionBodies = FormatAlignMode::None;
-    return FormatRewriteCheck::check(ctx, SOURCE, SOURCE, options);
+    return FormatRewriteCheck::check(ctx, SOURCE, EXPECTED, options);
 }
 SWC_TEST_END()
 

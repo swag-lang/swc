@@ -44,10 +44,15 @@ public func encodeAll(images: const [..] Image)->ConcatBuffer fail
 
 private func appendAll(result: *ConcatBuffer, images: const [..] Image) fail
 {
-    if images.count == 0 do
+    if images.count == 0
+    {
         fail InvalidFormatError{"an icon needs at least one image"}
-    if images.count > 0xFFFF do
+    }
+
+    if images.count > 0xFFFF
+    {
         fail UnsupportedFormatError{"an icon holds at most 65535 images"}
+    }
 
     let directoryBytes = cast(u64, #sizeof(IconDir)) + images.count * #sizeof(IconDirEntry)
     var bytes = directoryBytes
@@ -56,18 +61,23 @@ private func appendAll(result: *ConcatBuffer, images: const [..] Image) fail
         if image.width <= 0 or
            image.height <= 0 or
            not image.isValid() or
-           image.pixels.count != image.byteCount do
+           image.pixels.count != image.byteCount
+        {
             fail InvalidFormatError{"invalid image"}
-        if image.width > 256 or image.height > 256 do
+        }
+
+        if image.width > 256 or image.height > 256
+        {
             fail UnsupportedFormatError{"icon dimensions must be <= 256"}
+        }
+
         if image.pixelFormat != .RGB8 and
            image.pixelFormat != .BGR8 and
            image.pixelFormat != .RGBA8 and
-           image.pixelFormat != .BGRA8 do
+           image.pixelFormat != .BGRA8
+        {
             fail UnsupportedFormatError{"ICO encoding only supports RGB8, BGR8, RGBA8, and BGRA8 images"}
-        if bytes > Swag.U32.Max do
-            fail UnsupportedFormatError{"icon entry offset exceeds 32 bits"}
-        bytes += dibSizeOf(image)
+        }
     }
 
     // All offsets are relative to this icon's header.
@@ -183,12 +193,47 @@ private func writeDib(destination: [*] u8, image: Image)
     {
         switch image.pixelFormat
         {
-        case .BGRA8: Memory.copy(pixels, source, xorBytes)
-        case .RGBA8: PackedPixel.swapRedBlue32Row(source, pixels, count)
-        default:     expandIconPixels(source, pixels, count, image.pixelFormat == .RGB8)
+        case .BGRA8:
+            result.addBytes(Swag.makeSlice(psrc, xorStride))
+
+        case .BGR8:
+            for width
+            {
+                result.addNative(psrc[0])
+                result.addNative(psrc[1])
+                result.addNative(psrc[2])
+                result.addNative(255_u8)
+                psrc += 3
+            }
+
+        case .RGBA8:
+            for width
+            {
+                result.addNative(psrc[2])
+                result.addNative(psrc[1])
+                result.addNative(psrc[0])
+                result.addNative(psrc[3])
+                psrc += 4
+            }
+
+        case .RGB8:
+            for width
+            {
+                result.addNative(psrc[2])
+                result.addNative(psrc[1])
+                result.addNative(psrc[0])
+                result.addNative(255_u8)
+                psrc += 3
+            }
+
+        default:
+            break
         }
     }
 
-    // Alpha carries transparency. Every bit of the AND mask stays clear.
-    Memory.clear(pixels + xorBytes, andBytes)
+    // AND (transparency) mask, fully opaque
+    for andBytes
+    {
+        result.addNative(0_u8)
+    }
 }

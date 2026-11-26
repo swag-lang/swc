@@ -4,7 +4,9 @@ var Storage: s32
 
 func neverReturnsNull(condition: bool)->*s32?     // swc-expected-error {{sema_err_nullable_return_contract}}
 {
-    if condition do
+    if condition
+    {
         return &Storage
+    }
     return &Storage
 }

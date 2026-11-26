@@ -31,61 +31,61 @@ alias CompoundStrictS32Ptr = [*] s32
 // Bitwise compound assignment on u32
 #test
 {
-    var a: u32 = 0xFF'u32
-    a &= 0x0F'u32
-    Swag.require(a == 0x0F'u32)
-    a |= 0x30'u32
-    Swag.require(a == 0x3F'u32)
-    a ^= 0x15'u32
-    Swag.require(a == 0x2A'u32)
+    var a: u32 = 0xFF_u32
+    a &= 0x0F_u32
+    Swag.require(a == 0x0F_u32)
+    a |= 0x30_u32
+    Swag.require(a == 0x3F_u32)
+    a ^= 0x15_u32
+    Swag.require(a == 0x2A_u32)
 }
 
 // Shift compound assignment on u32
 #test
 {
-    var a: u32 = 1'u32
+    var a: u32 = 1_u32
     a <<= 5
-    Swag.require(a == 32'u32)
+    Swag.require(a == 32_u32)
     a >>= 2
-    Swag.require(a == 8'u32)
+    Swag.require(a == 8_u32)
 }
 
 // Shift compound assignment on u64
 #test
 {
-    var a: u64 = 1'u64
+    var a: u64 = 1_u64
     a <<= 40
-    Swag.require(a == 0x0000_0100_0000_0000'u64)
+    Swag.require(a == 0x0000_0100_0000_0000_u64)
     a >>= 20
-    Swag.require(a == 0x0000_0000_0010_0000'u64)
+    Swag.require(a == 0x0000_0000_0010_0000_u64)
 }
 
 // Float compound assignment on f64
 #test
 {
-    var a: f64 = 10.0'f64
-    a += 2.5'f64
-    Swag.require(a == 12.5'f64)
-    a -= 0.5'f64
-    Swag.require(a == 12.0'f64)
-    a *= 3.5'f64
-    Swag.require(a == 42.0'f64)
-    a /= 6.0'f64
-    Swag.require(a == 7.0'f64)
+    var a: f64 = 10.0_f64
+    a += 2.5_f64
+    Swag.require(a == 12.5_f64)
+    a -= 0.5_f64
+    Swag.require(a == 12.0_f64)
+    a *= 3.5_f64
+    Swag.require(a == 42.0_f64)
+    a /= 6.0_f64
+    Swag.require(a == 7.0_f64)
 }
 
 // Compound assignment on s64
 #test
 {
-    var a: s64 = 1000000000's64
-    a += 42's64
-    Swag.require(a == 1000000042's64)
-    a -= 1000000000's64
-    Swag.require(a == 42's64)
-    a *= 1000000000's64
-    Swag.require(a == 42000000000's64)
-    a /= 1000000000's64
-    Swag.require(a == 42's64)
+    var a: s64 = 1000000000_s64
+    a += 42_s64
+    Swag.require(a == 1000000042_s64)
+    a -= 1000000000_s64
+    Swag.require(a == 42_s64)
+    a *= 1000000000_s64
+    Swag.require(a == 42000000000_s64)
+    a /= 1000000000_s64
+    Swag.require(a == 42_s64)
 }
 
 func addAssign(a: *s32, b: s32)
@@ -137,16 +137,16 @@ func mulAssignStrict(a: *CompoundStrictS32, b: CompoundStrictS32)
     f *= cast(CompoundStrictF32, 2.0)
     Swag.require(f == cast(CompoundStrictF32, 25.0))
 
-    var bits = cast(CompoundStrictU32, 0xFF'u32)
-    bits &= cast(CompoundStrictU32, 0x0F'u32)
-    bits |= cast(CompoundStrictU32, 0x30'u32)
-    bits ^= cast(CompoundStrictU32, 0x15'u32)
-    Swag.require(bits == cast(CompoundStrictU32, 0x2A'u32))
+    var bits = cast(CompoundStrictU32, 0xFF_u32)
+    bits &= cast(CompoundStrictU32, 0x0F_u32)
+    bits |= cast(CompoundStrictU32, 0x30_u32)
+    bits ^= cast(CompoundStrictU32, 0x15_u32)
+    Swag.require(bits == cast(CompoundStrictU32, 0x2A_u32))
 
-    var shift = cast(CompoundStrictU32, 1'u32)
+    var shift = cast(CompoundStrictU32, 1_u32)
     shift <<= cast(CompoundStrictS32, 5)
     shift >>= cast(CompoundStrictS32, 2)
-    Swag.require(shift == cast(CompoundStrictU32, 8'u32))
+    Swag.require(shift == cast(CompoundStrictU32, 8_u32))
 
     var throughRef = cast(CompoundStrictS32, 10)
     addAssignStrict(&throughRef, cast(CompoundStrictS32, 32))
@@ -157,9 +157,9 @@ func mulAssignStrict(a: *CompoundStrictS32, b: CompoundStrictS32)
     wrapped += #wrap cast(CompoundStrictS32, 1)
     Swag.require(wrapped == cast(CompoundStrictS32, -2147483648))
 
-    var wrapShift = cast(CompoundStrictU32, 1'u32)
+    var wrapShift = cast(CompoundStrictU32, 1_u32)
     wrapShift <<= #wrap cast(CompoundStrictS32, 31)
-    Swag.require(wrapShift == cast(CompoundStrictU32, 0x8000_0000'u32))
+    Swag.require(wrapShift == cast(CompoundStrictU32, 0x8000_0000_u32))
 }
 
 #test

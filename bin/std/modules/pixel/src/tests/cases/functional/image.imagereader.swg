@@ -11,8 +11,11 @@ impl IImageDecoder for ImageReaderMismatchDecoder
 
     mtd impl decode(_: const [..] u8, options: DecodeOptions)->Image fail
     {
-        if options.decodePixels do
+        if options.decodePixels
+        {
             return Image.create(2, 1, .BGRA8)
+        }
+
         return Image.create(1, 1, .RGBA8)
     }
 }
@@ -126,7 +129,7 @@ impl IAllocator for ImageReaderDecoderAllocatorProbe
     var reader = expect ImageReader.load(getTestDataPath("imageset-restore.apng"))
     let pixels = expect File.readAllBytes(getTestDataPath("imageset-restore.apng.rgba"))
     Swag.require(reader.info.frames.count == 4 and reader.info.frames[2].disposal == .Previous)
-    for index in [0'u32, 1, 2, 3, 1, 3]
+    for index in [0_u32, 1, 2, 3, 1, 3]
     {
         let image = expect reader.read(index)
         Swag.require(Memory.compare(image.pixels.storage(), pixels.storage() + cast(u64, index) * 64, 64) == 0)
@@ -159,16 +162,18 @@ impl IAllocator for ImageReaderDecoderAllocatorProbe
     var webp = expect File.readAllBytes(getTestDataPath("imageset-animation.webp"))
     webp[20] |= 8
     webp.add("EXIF")
-    webp.add([26'u8, 0, 0, 0])
+    webp.add([26_u8, 0, 0, 0])
     webp.add(ExifBytes)
     cast(*u32, (webp.storage() + 4))[] = cast(u32, webp.count) - 8
     for enabled in [false, true]
     {
         var reader = expect ImageReader.decode("metadata.webp", webp.toSlice(), {decodeMetadata: enabled})
         let frame  = expect reader.read(2)
-        Swag.require(frame.metadata.count == (enabled ? 1'u64 : 0'u64))
-        if enabled do
+        Swag.require(frame.metadata.count == (enabled ? 1_u64 : 0_u64))
+        if enabled
+        {
             Swag.require(frame.metadata[0].isTag("Exif") and frame.metadata[0].value.count == 26)
+        }
     }
 }
 
@@ -206,7 +211,7 @@ impl IAllocator for ImageReaderDecoderAllocatorProbe
         Swag.require(reader.info.frames[1].durationSeconds == 0.12)
         Swag.require(reader.info.frames[2].durationSeconds == 0.08)
         Swag.require(reader.info.loopCount == (extension == "gif" ? 2 : 1))
-        for index in [0'u32, 1, 2, 2, 0, 2, 1, 0]
+        for index in [0_u32, 1, 2, 2, 0, 2, 1, 0]
         {
             let frame = expect reader.read(index)
             Swag.require(frame.width == 4 and frame.height == 4 and frame.pixelFormat == .RGBA8)
@@ -232,7 +237,7 @@ impl IAllocator for ImageReaderDecoderAllocatorProbe
         var reader = expect ImageReader.load(getTestDataPath(Format.toString("imageset-pages-%.tiff", compression).toString()))
         Swag.require(reader.info.frames.count == 3)
         Swag.require(reader.info.frames[0].kind == .Page)
-        for index in [2'u32, 0, 1]
+        for index in [2_u32, 0, 1]
         {
             let image  = expect reader.read(index)
             let width  = index == 0 ? 2 : (index == 1 ? 4 : 1)
@@ -258,9 +263,9 @@ impl IAllocator for ImageReaderDecoderAllocatorProbe
         for variant in ["array", "cube", "volume"]
         {
             var reader = expect ImageReader.load(getTestDataPath(Format.toString("imageset-%.%", variant, extension).toString()))
-            let count  = variant == "array" ? 4'u64 : (variant == "cube" ? 12'u64 : 3'u64)
+            let count  = variant == "array" ? 4_u64 : (variant == "cube" ? 12_u64 : 3_u64)
             Swag.require(reader.info.frames.count == count)
-            for index in range(0'u64, count).reversed()
+            for index in range(0_u64, count).reversed()
             {
                 let info  = &reader.info.frames[index]
                 let image = expect reader.read(cast(u32, index))
@@ -282,7 +287,7 @@ impl IAllocator for ImageReaderDecoderAllocatorProbe
     var reader = expect ImageReader.load(getTestDataPath("imageset-parts.exr"))
     Swag.require(reader.info.frames.count == 2)
     Swag.require(reader.info.frames[1].name == "Part 2")
-    for index in [1'u32, 0, 1]
+    for index in [1_u32, 0, 1]
     {
         let image = expect reader.read(index)
         Swag.require(image.width == (index ? 3 : 2) and image.pixelFormat == .RGBF32)
@@ -342,7 +347,7 @@ impl IAllocator for ImageReaderDecoderAllocatorProbe
         let inputError = inputErrorOutcome.value()
         Swag.require(inputError != null)
         let bytes = expect File.readAllBytes(getTestDataPath(name))
-        for length in [0'u64, 4, 12]
+        for length in [0_u64, 4, 12]
         {
             var truncatedErrorOutcome: Swag.Error
             catch { limited = try ImageReader.decode(name, Swag.makeSlice(bytes.storage(), length)) } as truncatedErrorOutcome
@@ -355,7 +360,7 @@ impl IAllocator for ImageReaderDecoderAllocatorProbe
 // A reader rejects a decoder whose pixel output differs from its indexed frame.
 #test
 {
-    Image.registerDecoder'(ImageReaderMismatchDecoder)()
+    Image.registerDecoder!{ImageReaderMismatchDecoder}()
     var reader = expect ImageReader.decode("image.readermismatch", "input")
     var errorOutcome: Swag.Error
     var image:        #decltype(expect reader.read(0))
@@ -381,7 +386,7 @@ impl IAllocator for ImageReaderDecoderAllocatorProbe
 // A high-precision later animation frame keeps its channels in the composited canvas.
 #test
 {
-    Image.registerDecoder'(ImageReaderMixedDepthDecoder)()
+    Image.registerDecoder!{ImageReaderMixedDepthDecoder}()
     var reader   = expect ImageReader.decode("image.mixeddepthanimation", "input")
     let image    = expect reader.read(1)
     let channels = cast(const [*] u16, image.pixels.storage())

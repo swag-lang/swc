@@ -27,18 +27,24 @@ var RebuildLastIndex  = ""
 public func listTenantUsers(tenantId: s64, includeSuspended: bool)->s32
 {
     var count = cast(s32, (tenantId % 100))
-    if includeSuspended do
+    if includeSuspended
+    {
         count += 5
+    }
     return count
 }
 
 #[AdminRoute("POST", "/tenants/:tenantId/rotate-api-keys", "tenant.write", "tenant.keys.rotate", true)]
 public func rotateTenantApiKeys(tenantId: s64, actorEmail: string, forceRevoke: bool)->bool
 {
-    if tenantId <= 0 do
+    if tenantId <= 0
+    {
         return false
-    if actorEmail.count < 12 do
+    }
+    if actorEmail.count < 12
+    {
         return false
+    }
     return forceRevoke
 }
 
@@ -46,8 +52,10 @@ public func rotateTenantApiKeys(tenantId: s64, actorEmail: string, forceRevoke: 
 public func setInvoiceDelivery(tenantId: s64, billingEmail: string, sendCopyToOps: bool)->InvoiceDeliveryReceipt
 {
     var recipientCount = 1
-    if sendCopyToOps do
+    if sendCopyToOps
+    {
         recipientCount = 2
+    }
 
     return {updated: tenantId > 0 and billingEmail.count >= 8, recipientCount: recipientCount}
 }
@@ -85,8 +93,10 @@ func countPathParams(path: string)->s32
     var count: s32
     for c in path
     {
-        if c == ':' do
+        if c == ':'
+        {
             count += 1
+        }
     }
 
     return count
@@ -122,8 +132,10 @@ func appendS32Literal(buffer: [*] u8, start: u64, value: s32)->u64
     var tmpLen: u64
     while true
     {
-        if v == 0 do
+        if v == 0
+        {
             break
+        }
         tmp[tmpLen] = cast(u8, (v % 10)) + '0'
         tmpLen      += 1
         v           /= 10
@@ -141,23 +153,29 @@ func appendS32Literal(buffer: [*] u8, start: u64, value: s32)->u64
 #[Compiler]
 func appendBoolLiteral(buffer: [*] u8, start: u64, value: bool)->u64
 {
-    if value do
+    if value
+    {
         return appendAst(buffer, start, "true")
+    }
     return appendAst(buffer, start, "false")
 }
 
 #message(CompilerMsgMask.SemFunctions)
 {
     let msg = Swag.compiler().getMessage()
-    if msg == null or msg.type == null do
+    if msg == null or msg.type == null
+    {
         return
+    }
 
     let typeFunc = assume cast(const *TypeInfoFunc, msg.type)
 
     for attribute in typeFunc.attributes
     {
-        if attribute.type != #typeof(AdminRoute) do
+        if attribute.type != #typeof(AdminRoute)
+        {
             continue
+        }
 
         Swag.assert(g_AdminRouteCount < MaxAdminRoutes)
         let params = unwrap attribute.params
@@ -178,7 +196,7 @@ func appendBoolLiteral(buffer: [*] u8, start: u64, value: bool)->u64
 {
     let itf = Swag.compiler()
     var buffer: [65536] u8
-    var len = 0'u64
+    var len = 0_u64
 
     for var routeIndex = 0; routeIndex < g_AdminRouteCount; routeIndex += 1
     {
@@ -210,15 +228,19 @@ func appendBoolLiteral(buffer: [*] u8, start: u64, value: bool)->u64
         }
 
         len = appendAst(&buffer[0], len, "\n{\n    ")
-        if typeFunc.returnType != null and typeFunc.returnType != void do
+        if typeFunc.returnType != null and typeFunc.returnType != void
+        {
             len = appendAst(&buffer[0], len, "return ")
+        }
 
         len = appendAst(&buffer[0], len, route.handlerName)
         len = appendAst(&buffer[0], len, "(")
         for parameter, index in typeFunc.parameters
         {
-            if index != 0 do
+            if index != 0
+            {
                 len = appendAst(&buffer[0], len, ", ")
+            }
             len = appendAst(&buffer[0], len, "request.")
             len = appendAst(&buffer[0], len, unwrap parameter.name)
         }
@@ -395,9 +417,9 @@ func appendBoolLiteral(buffer: [*] u8, start: u64, value: bool)->u64
         len = appendAst(&buffer[0], len, route.method)
         len = appendAst(&buffer[0], len, "\" and path == \"")
         len = appendAst(&buffer[0], len, route.path)
-        len = appendAst(&buffer[0], len, "\" do\n        return ")
+        len = appendAst(&buffer[0], len, "\" {\n        return ")
         len = appendS32Literal(&buffer[0], len, routeIndex)
-        len = appendAst(&buffer[0], len, "\n")
+        len = appendAst(&buffer[0], len, "\n    }\n")
     }
     len = appendAst(&buffer[0], len, "    return -1\n")
     len = appendAst(&buffer[0], len, "}\n\n")
@@ -407,8 +429,10 @@ func appendBoolLiteral(buffer: [*] u8, start: u64, value: bool)->u64
     for var routeIndex = 0; routeIndex < g_AdminRouteCount; routeIndex += 1
     {
         let route = g_AdminRoutes[routeIndex]
-        if route.critical do
+        if route.critical
+        {
             len = appendAst(&buffer[0], len, "    count += 1\n")
+        }
     }
     len = appendAst(&buffer[0], len, "    return count\n")
     len = appendAst(&buffer[0], len, "}\n")

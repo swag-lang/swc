@@ -36,7 +36,7 @@ func day3B()
     var firstLineIndex: s32
     while firstLineIndex < lines.count
     {
-        var rucksackPriorities: [3] Array's32
+        var rucksackPriorities: [3] Array!{s32}
         for groupIndex in 3
         {
             let rucksack = lines[firstLineIndex]
@@ -44,10 +44,15 @@ func day3B()
             {
                 let itemType = rucksack[itemIndex]
                 var priority: s32
-                if Latin1.isLower(itemType) do
+                if Latin1.isLower(itemType)
+                {
                     priority = itemType - 'a'
-                else do
+                }
+                else
+                {
                     priority = 26 + (itemType - 'A')
+                }
+
                 rucksackPriorities[groupIndex].add(priority + 1)
             }
 

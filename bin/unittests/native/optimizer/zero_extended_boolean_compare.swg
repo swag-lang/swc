@@ -23,7 +23,7 @@ func preserveInput(a: u64)->u64 => a ^ byteZero(a)
 
 #test
 {
-    let values = [0'u64, 1, 127, 128, 255, 256, 32768, 65535, 65536, 0xFFFFFFFFFFFFFFFF]
+    let values = [0_u64, 1, 127, 128, 255, 256, 32768, 65535, 65536, 0xFFFFFFFFFFFFFFFF]
     for value in values
     {
         let byte = value % 256

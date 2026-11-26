@@ -11,7 +11,6 @@ allow-short-structs-on-single-line = preserve
 allow-short-if-statements-on-single-line = preserve
 allow-short-loops-on-single-line = preserve
 case-body-style = preserve
-uniform-branch-bodies = preserve
 uniform-guard-bodies = preserve
 uniform-closure-bodies = preserve
 uniform-function-bodies = preserve

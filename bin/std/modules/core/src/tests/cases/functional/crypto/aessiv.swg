@@ -5,16 +5,19 @@ using Swag
 
 func aesSivHexDigit(value: u8)->u8
 {
-    if value >= '0' and value <= '9' do
+    if value >= '0' and value <= '9'
+    {
         return value - '0'
+    }
+
     return (value - 'a') + 10
 }
 
-func aesSivHexBytes(text: string)->Array'u8
+func aesSivHexBytes(text: string)->Array!{u8}
 {
     var result: #returntype
     result.reserve(text.count / 2)
-    var index = 0'u64
+    var index = 0_u64
     while index + 1 < text.count
     {
         result.add(cast(u8, (aesSivHexDigit(text[index]) << 4) | aesSivHexDigit(text[index + 1])))
@@ -79,8 +82,8 @@ func aesSivHexBytes(text: string)->Array'u8
     // No associated data, an empty message, and authentication failure preserve the destination.
     let key         = aesSivHexBytes("000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f")
     let expectedTag = aesSivHexBytes("6890e5685ed0253753a2121dab850fdf")
-    var empty: Array'u8
-    var emptyCiphertext: Array'u8
+    var empty: Array!{u8}
+    var emptyCiphertext: Array!{u8}
     var tag:   [Crypto.AesSivTagSize] u8
     expect Crypto.aesSivEncrypt(key.toSlice(), empty.toSlice(), emptyCiphertext.toSlice(), tag)
     Swag.require(Crypto.constantTimeEqual(tag, expectedTag.toSlice()))
@@ -89,12 +92,14 @@ func aesSivHexBytes(text: string)->Array'u8
     var ciphertext: [8] u8
     expect Crypto.aesSivEncrypt(key.toSlice(), plaintext, ciphertext, tag)
     tag[0] ^= 1
-    Memory.set(plaintext.buffer, 0xA5'u8, plaintext.count)
+    Memory.set(plaintext.buffer, 0xA5_u8, plaintext.count)
     var error: Swag.Error
     discard catch Crypto.aesSivDecrypt(key.toSlice(), ciphertext, tag, plaintext) as error
     Swag.require(error.value() is Errors.BadParameterError)
-    for byte in plaintext do
+    for byte in plaintext
+    {
         Swag.require(byte == 0xA5)
+    }
 
     var associatedData: [4] u8
     var authenticatedCiphertext: [8] u8
@@ -102,6 +107,8 @@ func aesSivHexBytes(text: string)->Array'u8
     associatedData[0] ^= 1
     discard catch Crypto.aesSivDecryptWithAssociatedData(key.toSlice(), associatedData, authenticatedCiphertext, tag, plaintext) as error
     Swag.require(error.value() is Errors.BadParameterError)
-    for byte in plaintext do
+    for byte in plaintext
+    {
         Swag.require(byte == 0xA5)
+    }
 }

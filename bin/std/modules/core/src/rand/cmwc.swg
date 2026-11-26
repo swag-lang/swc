@@ -20,8 +20,11 @@ impl ComplementaryMultiplyWithCarry4096
     {
         var generator: MultiplyWithCarry32
         generator.seedU32(value)
-        for stateIndex in (.state).count do
+        for stateIndex in (.state).count
+        {
             .state[stateIndex] = generator.nextU32()
+        }
+
         .index = 4095
         .carry = value % 809430660
     }
@@ -32,12 +35,14 @@ impl ComplementaryMultiplyWithCarry4096
     #[Swag.Safety(.Overflow, false)]
     mtd nextU32()->u32
     {
-        const a = 18782'u64
+        const a = 18782_u64
         const r = 0xFFFFFFFE
 
         // An index past the state means the generator was never seeded.
-        if .index > 4095 do
+        if .index > 4095
+        {
             .seedU32(362436)
+        }
 
         .index = (.index + 1) & 4095
         let t = a * .state[.index] + .carry

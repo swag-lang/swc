@@ -32,16 +32,30 @@ func toggledFontStyle(style: FontFamilyStyle, bold: bool)->FontFamilyStyle
 {
     var isBold   = style == .Bold or style == .BoldItalic
     var isItalic = style == .Italic or style == .BoldItalic
-    if bold do
+    if bold
+    {
         isBold = not isBold
-    else do
+    }
+    else
+    {
         isItalic = not isItalic
-    if isBold and isItalic do
+    }
+
+    if isBold and isItalic
+    {
         return .BoldItalic
-    if isBold do
+    }
+
+    if isBold
+    {
         return .Bold
-    if isItalic do
+    }
+
+    if isItalic
+    {
         return .Italic
+    }
+
     return .Regular
 }
 
@@ -151,8 +165,11 @@ impl IActionUI for ActionEdit
                 for it in capture.selection
                 {
                     let itfForm = capture.forms[it]
-                    if not itfForm.canRotate() do
+                    if not itfForm.canRotate()
+                    {
                         continue
+                    }
+
                     evt.hidden = false
                     if not Math.isZeroEpsilon(itfForm.rotate)
                     {
@@ -194,8 +211,11 @@ impl IActionUI for ActionEdit
 
         case .Bold, .Italic:
             let {found, style} = selectedFontStyle(capture)
-            if not found do
+            if not found
+            {
                 return true
+            }
+
             let toggled = toggledFontStyle(style, bold: cxt.id == .Bold)
             main.propWnd.pushTypedValue(cast(u32, toggled), unwrap capture.getSelectedFormType(), #nameof(FormText.fontStyle), true)
             capture.selectionHasChanged()

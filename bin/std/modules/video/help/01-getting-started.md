@@ -11,8 +11,9 @@ pictures, and bounded decoding and audio buffers; they do not retain every decod
 ```swag
 var reader = try Video.Reader.open("clip.y4m")
 var frame: Pixel.Image
-for index in reader.frameCount() do
-    try reader.decodeFrameInto(&frame, index)
+for index in reader.frameCount() {
+    try reader.decodeFrameInto(&frame, index)}
+
 ```
 
 [[Video.Reader.decodeFrameInto]] reuses the caller's output image when its geometry and format

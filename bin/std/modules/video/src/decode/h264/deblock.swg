@@ -13,7 +13,7 @@ using Core
 // vertical edges left to right, then its horizontal edges top to bottom, in place, in raster
 // macroblock order.
 
-private const DeblockLanes = 8'u32
+private const DeblockLanes = 8_u32
 
 private struct DeblockContext
 {
@@ -31,8 +31,10 @@ func deblockPicture(dec: *Decoder)
     {
         for mbY in sps.mbHeight
         {
-            for mbX in sps.mbWidth do
+            for mbX in sps.mbWidth
+            {
                 deblockMb(dec, mbX, mbY)
+            }
         }
 
         return
@@ -48,7 +50,7 @@ func deblockPicture(dec: *Decoder)
     // the lanes run together or one after another. `parallel for` promises neither: a cold loop
     // runs one lane alone on the caller before starting the others, so a lane that owned every
     // eighth row waited forever on a row belonging to a lane that had not started.
-    var rowProgress: Array'u32
+    var rowProgress: Array!{u32}
     rowProgress.resize(cast(u64, sps.mbHeight))
     var context = DeblockContext{dec, rowProgress.storage(), 0}
     parallel for |&context| _ in cast(u64, laneCount)
@@ -59,8 +61,11 @@ func deblockPicture(dec: *Decoder)
         for
         {
             let row = Atomic.add(&state.nextRow, 1)
-            if row >= height do
+            if row >= height
+            {
                 break
+            }
+
             let mbY = cast(s32, row)
             for mbX in width
             {
@@ -71,7 +76,7 @@ func deblockPicture(dec: *Decoder)
                     // that means the lane holding the answer has no core of its own, and
                     // spinning is what keeps it from getting one, so hand this one over.
                     let required = cast(u32, Math.min(mbX + 2, width))
-                    var spins    = 0'u32
+                    var spins    = 0_u32
                     while Atomic.get(state.rowProgress + cast(u64, mbY) - 1) < required
                     {
                         spins += 1
@@ -107,8 +112,11 @@ struct EdgeStrength
 #[Swag.Inline]
 private func deblockMotion(dec: *Decoder, mbIndex, blockIndex: u64)->Simd.S16x8
 {
-    if deblockMotionFromJob(dec, mbIndex) do
+    if deblockMotionFromJob(dec, mbIndex)
+    {
         return deblockJobMotion(dec, mbIndex)
+    }
+
     return deblockGridMotion(cast(const [*] u64, dec.motionL0.storage()), cast(const [*] u64, dec.motionL1.storage()), blockIndex)
 }
 
@@ -141,27 +149,35 @@ private func deblockGridMotion(grid0, grid1: const [*] u64, blockIndex: u64)->Si
 #[Swag.Inline]
 private func deblockMotionMatches(p, q: Simd.S16x8)->bool
 {
-    const Compared = cast(Simd.U16x8, [0xFFFF'u16, 0xFFFF, 0xFF00, 0, 0xFFFF, 0xFFFF, 0xFF00, 0])
+    const Compared = cast(Simd.U16x8, [0xFFFF_u16, 0xFFFF, 0xFF00, 0, 0xFFFF, 0xFFFF, 0xFF00, 0])
     let difference = (cast #bit(Simd.U16x8, q) & Compared) - (cast #bit(Simd.U16x8, p) & Compared) + 3
-    return Simd.allTrue(Simd.subSaturating(difference, Simd.splat(6'u16)) == Simd.splat(0'u16))
+    return Simd.allTrue(Simd.subSaturating(difference, Simd.splat(6_u16)) == Simd.splat(0_u16))
 }
 
 // Computes the strength of one 4x4 block edge between blocks `p` and `q`, section 8.7.2.1.
 private func edgeStrength(dec: *Decoder, pMbIndex, pIndex, qMbIndex, qIndex: u64, mbEdge, pIntra, qIntra, pCoded, qCoded: bool)->u32
 {
-    if pIntra or qIntra do
-        return mbEdge ? 4'u32 : 3'u32
-    if pCoded or qCoded do
+    if pIntra or qIntra
+    {
+        return mbEdge ? 4_u32 : 3_u32
+    }
+
+    if pCoded or qCoded
+    {
         return 2
+    }
 
     // The same references with close vectors on each list, or each list's reference found on
     // the other list with close vectors, which in lanes is `q` with its two halves swapped.
     let p = deblockMotion(dec, pMbIndex, pIndex)
     let q = deblockMotion(dec, qMbIndex, qIndex)
-    if deblockMotionMatches(p, q) do
+    if deblockMotionMatches(p, q)
+    {
         return 0
-    let swapped = cast #bit(Simd.S16x8, Simd.permute(cast #bit(Simd.U64x2, q), cast(Simd.U64x2, [1'u64, 0])))
-    return deblockMotionMatches(p, swapped) ? 0'u32 : 1'u32
+    }
+
+    let swapped = cast #bit(Simd.S16x8, Simd.permute(cast #bit(Simd.U64x2, q), cast(Simd.U64x2, [1_u64, 0])))
+    return deblockMotionMatches(p, swapped) ? 0_u32 : 1_u32
 }
 
 // Computes the four segment strengths of one edge, section 8.7.2.1: `pFirst` and `qFirst` are
@@ -177,7 +193,7 @@ private func edgeStrengths(dec: *Decoder, pMbIndex, qMbIndex, pFirst, qFirst, st
 {
     if pIntra or qIntra
     {
-        let bs = mbEdge ? 4'u32 : 3'u32
+        let bs = mbEdge ? 4_u32 : 3_u32
         strengths.bs = [bs, bs, bs, bs]
         return true
     }
@@ -187,18 +203,18 @@ private func edgeStrengths(dec: *Decoder, pMbIndex, qMbIndex, pFirst, qFirst, st
     let grid1    = cast(const [*] u64, dec.motionL1.storage())
     let pFromJob = deblockMotionFromJob(dec, pMbIndex)
     let qFromJob = deblockMotionFromJob(dec, qMbIndex)
-    let pJob     = pFromJob ? deblockJobMotion(dec, pMbIndex) : Simd.splat(0's16)
-    let qJob     = qFromJob ? deblockJobMotion(dec, qMbIndex) : Simd.splat(0's16)
-    var filtered = 0'u32
-    for segment in 4'u64
+    let pJob     = pFromJob ? deblockJobMotion(dec, pMbIndex) : Simd.splat(0_s16)
+    let qJob     = qFromJob ? deblockJobMotion(dec, qMbIndex) : Simd.splat(0_s16)
+    var filtered = 0_u32
+    for segment in 4_u64
     {
         let pIndex  = pFirst + segment * step
         let qIndex  = qFirst + segment * step
         let p       = pFromJob ? pJob : deblockGridMotion(grid0, grid1, pIndex)
         let q       = qFromJob ? qJob : deblockGridMotion(grid0, grid1, qIndex)
-        let swapped = cast #bit(Simd.S16x8, Simd.permute(cast #bit(Simd.U64x2, q), cast(Simd.U64x2, [1'u64, 0])))
+        let swapped = cast #bit(Simd.S16x8, Simd.permute(cast #bit(Simd.U64x2, q), cast(Simd.U64x2, [1_u64, 0])))
         let moved   = deblockMotionDiffers(p, q) & deblockMotionDiffers(p, swapped)
-        let bs      = (coded[pIndex] | coded[qIndex]) != 0 ? 2'u32 : moved
+        let bs      = (coded[pIndex] | coded[qIndex]) != 0 ? 2_u32 : moved
         strengths.bs[segment] = bs
         filtered |= bs
     }
@@ -211,14 +227,14 @@ private func edgeStrengths(dec: *Decoder, pMbIndex, qMbIndex, pFirst, qFirst, st
 #[Swag.Inline]
 private func deblockMotionDiffers(p, q: Simd.S16x8)->u32
 {
-    const Compared = cast(Simd.U16x8, [0xFFFF'u16, 0xFFFF, 0xFF00, 0, 0xFFFF, 0xFFFF, 0xFF00, 0])
+    const Compared = cast(Simd.U16x8, [0xFFFF_u16, 0xFFFF, 0xFF00, 0, 0xFFFF, 0xFFFF, 0xFF00, 0])
     let difference = (cast #bit(Simd.U16x8, q) & Compared) - (cast #bit(Simd.U16x8, p) & Compared) + 3
-    let within     = Simd.subSaturating(difference, Simd.splat(6'u16)) == Simd.splat(0'u16)
-    return Simd.allTrue(within) ? 0'u32 : 1'u32
+    let within     = Simd.subSaturating(difference, Simd.splat(6_u16)) == Simd.splat(0_u16)
+    return Simd.allTrue(within) ? 0_u32 : 1_u32
 }
 
 // All ones for the strengths the normal filter applies, 1 to 3, as the bytes a strength indexes.
-const WeakStrengths = cast(Simd.U8x16, [0'u8, 0xFF, 0xFF, 0xFF, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0])
+const WeakStrengths = cast(Simd.U8x16, [0_u8, 0xFF, 0xFF, 0xFF, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0])
 
 // The four strengths of an edge as byte shuffle indices, each repeated over the `repeat`
 // lanes its segment covers: a strength is at most four, so it indexes the first five bytes of
@@ -226,8 +242,8 @@ const WeakStrengths = cast(Simd.U8x16, [0'u8, 0xFF, 0xFF, 0xFF, 0, 0, 0, 0, 0, 0
 #[Swag.Inline]
 private func weakStrengthLanes(strengths: const *EdgeStrength, repeat: u64)->Simd.U8x16
 {
-    const ByFour = cast(Simd.U8x16, [0'u8, 0, 0, 0, 4, 4, 4, 4, 8, 8, 8, 8, 12, 12, 12, 12])
-    const ByTwo  = cast(Simd.U8x16, [0'u8, 0, 4, 4, 8, 8, 12, 12, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80])
+    const ByFour = cast(Simd.U8x16, [0_u8, 0, 0, 0, 4, 4, 4, 4, 8, 8, 8, 8, 12, 12, 12, 12])
+    const ByTwo  = cast(Simd.U8x16, [0_u8, 0, 4, 4, 8, 8, 12, 12, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80])
     return Simd.shuffle(Simd.load(cast(const [*] u8, strengths)), repeat == 4 ? ByFour : ByTwo)
 }
 
@@ -235,8 +251,10 @@ private func weakStrengthLanes(strengths: const *EdgeStrength, repeat: u64)->Sim
 // Filters one complete macroblock row, in the raster order the specification defines.
 func deblockRow(dec: *Decoder, mbY: s32)
 {
-    for mbX in dec.sps!.mbWidth do
+    for mbX in dec.sps!.mbWidth
+    {
         deblockMb(dec, mbX, mbY)
+    }
 }
 
 func deblockMb(dec: *Decoder, mbX, mbY: s32)
@@ -245,43 +263,59 @@ func deblockMb(dec: *Decoder, mbX, mbY: s32)
     let frame   = unwrap dec.current
     let mbIndex = cast(u64, (mbY * sps.mbWidth + mbX))
     let info    = &dec.mbInfo[mbIndex]
-    if info.deblockIdc == 1 do
+    if info.deblockIdc == 1
+    {
         return
+    }
 
     // Below index 16 either threshold is zero and no edge is filtered. When the quantizers of
     // this macroblock and of the neighbours its outer edges average with keep every edge of both
     // planes there, the strengths are not worth deriving, which is FFmpeg's `qp_thresh` test.
     // The chroma quantizer only grows with the luma one, so the largest luma one bounds both.
     var maxQp = cast(s32, info.qp)
-    if mbX > 0 do
+    if mbX > 0
+    {
         maxQp = Math.max(maxQp, cast(s32, dec.mbInfo[mbIndex - 1].qp))
-    if mbY > 0 do
+    }
+
+    if mbY > 0
+    {
         maxQp = Math.max(maxQp, cast(s32, dec.mbInfo[mbIndex - cast(u64, sps.mbWidth)].qp))
+    }
+
     let thresholdOffset = Math.min(cast(s32, info.alphaOffset), cast(s32, info.betaOffset))
-    if maxQp + thresholdOffset < 16 and chromaQpAtLevel(dec, maxQp) + thresholdOffset < 16 do
+    if maxQp + thresholdOffset < 16 and chromaQpAtLevel(dec, maxQp) + thresholdOffset < 16
+    {
         return
+    }
 
     let gw     = sps.mbWidth * 4
     let qIntra = info.class != MbClassInter
 
     // Vertical edges: luma columns 0, 4, 8, 12.
-    for edge in 4's32
+    for edge in 4_s32
     {
         var leftUniform = false
         if edge == 0
         {
-            if mbX == 0 do
+            if mbX == 0
+            {
                 continue
+            }
+
             let leftInfo = &dec.mbInfo[cast(u64, (mbY * sps.mbWidth + mbX - 1))]
-            if info.deblockIdc == 2 and leftInfo.sliceId != info.sliceId do
+            if info.deblockIdc == 2 and leftInfo.sliceId != info.sliceId
+            {
                 continue
+            }
+
             leftUniform = leftInfo.uniform
         }
-        elif info.transform8x8 and (edge & 1) != 0
+        else if info.transform8x8 and (edge & 1) != 0
         {
             continue
         }
-        elif info.uniform
+        else if info.uniform
         {
             // Every inner edge of a uniform macroblock has strength zero.
             continue
@@ -294,8 +328,11 @@ func deblockMb(dec: *Decoder, mbX, mbY: s32)
             // One motion on each side: the whole edge carries one strength.
             let qIndex = cast(u64, (mbY * 4 * gw + mbX * 4))
             let bs     = edgeStrength(dec, mbIndex - 1, qIndex - 1, mbIndex, qIndex, true, false, false, false, false)
-            if bs == 0 do
+            if bs == 0
+            {
                 continue
+            }
+
             strengths.bs = [bs, bs, bs, bs]
             hasAny       = true
         }
@@ -307,13 +344,18 @@ func deblockMb(dec: *Decoder, mbX, mbY: s32)
             hasAny = edgeStrengths(dec, pMbIndex, mbIndex, qFirst - 1, qFirst, cast(u64, gw), edge == 0, pIntra, qIntra, &strengths)
         }
 
-        if not hasAny do
+        if not hasAny
+        {
             continue
+        }
 
         // Average QP of the two sides.
         var qpP = cast(s32, info.qp)
-        if edge == 0 do
+        if edge == 0
+        {
             qpP = cast(s32, dec.mbInfo[cast(u64, (mbY * sps.mbWidth + mbX - 1))].qp)
+        }
+
         let qpAvg  = (qpP + cast(s32, info.qp) + 1) >> 1
         let indexA = Math.clamp(qpAvg + cast(s32, info.alphaOffset), 0, 51)
         let indexB = Math.clamp(qpAvg + cast(s32, info.betaOffset), 0, 51)
@@ -342,8 +384,10 @@ func deblockMb(dec: *Decoder, mbX, mbY: s32)
             let cBeta   = cast(s32, DeblockBeta[cast(u64, cIndexB)])
             if cAlpha != 0 and cBeta != 0
             {
-                for plane in 2'u32 do
+                for plane in 2_u32
+                {
                     filterLumaVertical(frame.pixChroma(plane, mbX * 16 + edge * 4, mbY * 16), frame.strideChroma, &strengths, cIndexA, cAlpha, cBeta)
+                }
             }
 
             continue
@@ -361,39 +405,49 @@ func deblockMb(dec: *Decoder, mbX, mbY: s32)
             let cBeta   = cast(s32, DeblockBeta[cast(u64, cIndexB)])
             if cAlpha != 0 and cBeta != 0
             {
-                for plane in 2'u32
+                for plane in 2_u32
                 {
                     let pix = frame.pixChroma(plane, mbX * 8 + edge * 2, mbY * 8)
                     if strengths.bs[0] < 4 and
                        strengths.bs[1] < 4 and
                        strengths.bs[2] < 4 and
-                       strengths.bs[3] < 4 do
+                       strengths.bs[3] < 4
+                    {
                         filterChromaWeakVertical(pix, frame.strideChroma, &strengths, cIndexA, cAlpha, cBeta)
-                    else do
+                    }
+                    else
+                    {
                         filterChromaStrongVertical(pix, frame.strideChroma, &strengths, cIndexA, cAlpha, cBeta)
+                    }
                 }
             }
         }
     }
 
     // Horizontal edges: luma rows 0, 4, 8, 12.
-    for edge in 4's32
+    for edge in 4_s32
     {
         var topUniform = false
         if edge == 0
         {
-            if mbY == 0 do
+            if mbY == 0
+            {
                 continue
+            }
+
             let topInfo = &dec.mbInfo[cast(u64, ((mbY - 1) * sps.mbWidth + mbX))]
-            if info.deblockIdc == 2 and topInfo.sliceId != info.sliceId do
+            if info.deblockIdc == 2 and topInfo.sliceId != info.sliceId
+            {
                 continue
+            }
+
             topUniform = topInfo.uniform
         }
-        elif info.transform8x8 and (edge & 1) != 0
+        else if info.transform8x8 and (edge & 1) != 0
         {
             continue
         }
-        elif info.uniform
+        else if info.uniform
         {
             continue
         }
@@ -404,8 +458,11 @@ func deblockMb(dec: *Decoder, mbX, mbY: s32)
         {
             let qIndex = cast(u64, (mbY * 4 * gw + mbX * 4))
             let bs     = edgeStrength(dec, mbIndex - cast(u64, sps.mbWidth), qIndex - cast(u64, gw), mbIndex, qIndex, true, false, false, false, false)
-            if bs == 0 do
+            if bs == 0
+            {
                 continue
+            }
+
             strengths.bs = [bs, bs, bs, bs]
             hasAny       = true
         }
@@ -417,12 +474,17 @@ func deblockMb(dec: *Decoder, mbX, mbY: s32)
             hasAny = edgeStrengths(dec, pMbIndex, mbIndex, qFirst - cast(u64, gw), qFirst, 1, edge == 0, pIntra, qIntra, &strengths)
         }
 
-        if not hasAny do
+        if not hasAny
+        {
             continue
+        }
 
         var qpP = cast(s32, info.qp)
-        if edge == 0 do
+        if edge == 0
+        {
             qpP = cast(s32, dec.mbInfo[cast(u64, ((mbY - 1) * sps.mbWidth + mbX))].qp)
+        }
+
         let qpAvg  = (qpP + cast(s32, info.qp) + 1) >> 1
         let indexA = Math.clamp(qpAvg + cast(s32, info.alphaOffset), 0, 51)
         let indexB = Math.clamp(qpAvg + cast(s32, info.betaOffset), 0, 51)
@@ -463,13 +525,17 @@ func deblockMb(dec: *Decoder, mbX, mbY: s32)
                            strengths.bs[1] < 4 and
                            strengths.bs[2] < 4 and
                            strengths.bs[3] < 4
-                for plane in 2'u32
+                for plane in 2_u32
                 {
                     let planePix = frame.pixChroma(plane, mbX * 16, mbY * 16 + edge * 4)
-                    if weak do
+                    if weak
+                    {
                         filterLumaWeakHorizontal(planePix, frame.strideChroma, &strengths, cIndexA, cAlpha, cBeta)
-                    else do
+                    }
+                    else
+                    {
                         filterLumaStrongHorizontal(planePix, frame.strideChroma, &strengths, cIndexA, cAlpha, cBeta)
+                    }
                 }
             }
 
@@ -487,7 +553,7 @@ func deblockMb(dec: *Decoder, mbX, mbY: s32)
             let cBeta   = cast(s32, DeblockBeta[cast(u64, cIndexB)])
             if cAlpha != 0 and cBeta != 0
             {
-                for plane in 2'u32
+                for plane in 2_u32
                 {
                     let pix = frame.pixChroma(plane, mbX * 8, mbY * 8 + edge * 2)
                     if strengths.bs[0] < 4 and
@@ -522,12 +588,12 @@ func deblockMb(dec: *Decoder, mbX, mbY: s32)
 private func within(a, b, limit: Simd.U8x16)->Simd.U8x16
 {
     let distance = Simd.subSaturating(a, b) | Simd.subSaturating(b, a)
-    return Simd.subSaturating(distance, limit) == Simd.splat(0'u8)
+    return Simd.subSaturating(distance, limit) == Simd.splat(0_u8)
 }
 
 // The exact half-sum of two bytes: the rounding average less the bit it rounded away.
 #[Swag.Inline]
-private func halfSum(a, b: Simd.U8x16)->Simd.U8x16 => Simd.subSaturating(Simd.average(a, b), (a ^ b) & Simd.splat(1'u8))
+private func halfSum(a, b: Simd.U8x16)->Simd.U8x16 => Simd.subSaturating(Simd.average(a, b), (a ^ b) & Simd.splat(1_u8))
 
 // The correction one edge applies to its two nearest samples, section 8.7.2.3, carried around a
 // bias of 161.
@@ -539,10 +605,10 @@ private func halfSum(a, b: Simd.U8x16)->Simd.U8x16 => Simd.subSaturating(Simd.av
 #[Swag.Inline]
 private func biasedEdge(p1, p0, q0, q1: Simd.U8x16)->Simd.U8x16
 {
-    let ones    = Simd.splat(1'u8)
-    let allOnes = Simd.splat(0xFF'u8)
+    let ones    = Simd.splat(1_u8)
+    let allOnes = Simd.splat(0xFF_u8)
     var edge    = Simd.average(q1 ^ allOnes, p1)
-    edge = Simd.average(edge, Simd.splat(3'u8))
+    edge = Simd.average(edge, Simd.splat(3_u8))
     edge = Simd.average(edge, (p0 ^ q0) & ones)
     return Simd.addSaturating(edge, Simd.average(p0 ^ allOnes, q0))
 }
@@ -574,7 +640,7 @@ func filterLumaWeakHorizontal(pix: [*] u8, stride: u64, strengths: const *EdgeSt
 
     // The standard states its two thresholds as strict bounds and a byte comparison is inclusive,
     // so both drop by one.
-    let ones      = Simd.splat(1'u8)
+    let ones      = Simd.splat(1_u8)
     let alphaEdge = Simd.splat(cast(u8, (alpha - 1)))
     let betaEdge  = Simd.splat(cast(u8, (beta - 1)))
     let filtering = strengthy & within(p0, q0, alphaEdge) & within(p1, p0, betaEdge) & within(q1, q0, betaEdge)
@@ -589,7 +655,7 @@ func filterLumaWeakHorizontal(pix: [*] u8, stride: u64, strengths: const *EdgeSt
     let clipEdge = clip + (pullsP & ones) + (pullsQ & ones)
 
     let edge  = biasedEdge(p1, p0, q0, q1)
-    let bias  = Simd.splat(0xA1'u8)
+    let bias  = Simd.splat(0xA1_u8)
     let below = Math.min(Simd.subSaturating(bias, edge), clipEdge)
     let above = Math.min(Simd.subSaturating(edge, bias), clipEdge)
 
@@ -609,7 +675,7 @@ func filterChromaWeakHorizontal(pix: [*] u8, stride: u64, strengths: const *Edge
     let p1    = cast #bit(Simd.S16x8, Simd.widenLow(Simd.load(pix - 2 * stride)))
     let q1    = cast #bit(Simd.S16x8, Simd.widenLow(Simd.load(pix + stride)))
     let delta = chromaWeakDelta(p1, p0, q0, q1, strengths, indexA, alpha, beta)
-    let zeros = Simd.splat(0's16)
+    let zeros = Simd.splat(0_s16)
     Simd.storeLow8(pix - stride, Simd.packUnsigned(p0 + delta, zeros))
     Simd.storeLow8(pix, Simd.packUnsigned(q0 - delta, zeros))
 }
@@ -630,7 +696,7 @@ private func chromaWeakDelta(p1, p0, q0, q1: Simd.S16x8, strengths: const *EdgeS
                     (Math.abs(q1 - q0) < Simd.splat(cast(s16, beta)))
     var delta = (((q0 - p0) << 2) + (p1 - q1) + 4) >> 3
     delta = Math.max(Math.min(delta, limits), -limits)
-    return Simd.select(active, delta, Simd.splat(0's16))
+    return Simd.select(active, delta, Simd.splat(0_s16))
 }
 
 // Filters every strong luma lane of one horizontal edge. Weak lanes are applied first when
@@ -641,8 +707,10 @@ func filterLumaStrongHorizontal(pix: [*] u8, stride: u64, strengths: const *Edge
     let bs1 = cast(s16, strengths.bs[1])
     let bs2 = cast(s16, strengths.bs[2])
     let bs3 = cast(s16, strengths.bs[3])
-    if (0 < bs0 and bs0 < 4) or (0 < bs1 and bs1 < 4) or (0 < bs2 and bs2 < 4) or (0 < bs3 and bs3 < 4) do
+    if (0 < bs0 and bs0 < 4) or (0 < bs1 and bs1 < 4) or (0 < bs2 and bs2 < 4) or (0 < bs3 and bs3 < 4)
+    {
         filterLumaWeakHorizontal(pix, stride, strengths, indexA, alpha, beta)
+    }
 
     let p0Bytes = Simd.load(pix - stride)
     let q0Bytes = Simd.load(pix)
@@ -654,7 +722,7 @@ func filterLumaStrongHorizontal(pix: [*] u8, stride: u64, strengths: const *Edge
     let q3Bytes = Simd.load(pix + 3 * stride)
     let bsLow   = cast(Simd.S16x8, [bs0, bs0, bs0, bs0, bs1, bs1, bs1, bs1])
     let bsHigh  = cast(Simd.S16x8, [bs2, bs2, bs2, bs2, bs3, bs3, bs3, bs3])
-    let fours   = Simd.splat(4's16)
+    let fours   = Simd.splat(4_s16)
     let alphas  = Simd.splat(cast(s16, alpha))
     let betas   = Simd.splat(cast(s16, beta))
     let shorts  = Simd.splat(cast(s16, ((alpha >> 2) + 2)))
@@ -724,21 +792,23 @@ func filterChromaStrongHorizontal(pix: [*] u8, stride: u64, strengths: const *Ed
     let bs1 = cast(s16, strengths.bs[1])
     let bs2 = cast(s16, strengths.bs[2])
     let bs3 = cast(s16, strengths.bs[3])
-    if (0 < bs0 and bs0 < 4) or (0 < bs1 and bs1 < 4) or (0 < bs2 and bs2 < 4) or (0 < bs3 and bs3 < 4) do
+    if (0 < bs0 and bs0 < 4) or (0 < bs1 and bs1 < 4) or (0 < bs2 and bs2 < 4) or (0 < bs3 and bs3 < 4)
+    {
         filterChromaWeakHorizontal(pix, stride, strengths, indexA, alpha, beta)
+    }
 
     let p0         = cast #bit(Simd.S16x8, Simd.widenLow(Simd.load(pix - stride)))
     let q0         = cast #bit(Simd.S16x8, Simd.widenLow(Simd.load(pix)))
     let p1         = cast #bit(Simd.S16x8, Simd.widenLow(Simd.load(pix - 2 * stride)))
     let q1         = cast #bit(Simd.S16x8, Simd.widenLow(Simd.load(pix + stride)))
     let strengths8 = cast(Simd.S16x8, [bs0, bs0, bs1, bs1, bs2, bs2, bs3, bs3])
-    let active     = (strengths8 == Simd.splat(4's16)) &
+    let active     = (strengths8 == Simd.splat(4_s16)) &
                      (Math.abs(p0 - q0) < Simd.splat(cast(s16, alpha))) &
                      (Math.abs(p1 - p0) < Simd.splat(cast(s16, beta))) &
                      (Math.abs(q1 - q0) < Simd.splat(cast(s16, beta)))
     let newP0 = Simd.select(active, (2 * p1 + p0 + q1 + 2) >> 2, p0)
     let newQ0 = Simd.select(active, (2 * q1 + q0 + p1 + 2) >> 2, q0)
-    let zeros = Simd.splat(0's16)
+    let zeros = Simd.splat(0_s16)
     Simd.storeLow8(pix - stride, Simd.packUnsigned(newP0, zeros))
     Simd.storeLow8(pix, Simd.packUnsigned(newQ0, zeros))
 }
@@ -757,7 +827,7 @@ private func storeLines4(dst: [*] u8, stride: u64, columns: Simd.U32x4)
 // back into the lines. `pix` sits on the first q sample of the first line.
 func filterLumaVertical(pix: [*] u8, stride: u64, strengths: const *EdgeStrength, indexA, alpha, beta: s32)
 {
-    const TileStride = 16'u64
+    const TileStride = 16_u64
     var tile: [8 * TileStride] u8
 
     // Line k holds p3 p2 p1 p0 q0 q1 q2 q3 in its low eight bytes; the loads read eight more
@@ -861,8 +931,10 @@ func filterLumaVertical(pix: [*] u8, stride: u64, strengths: const *EdgeStrength
     var pairs: [16] u16
     Simd.store(cast([*] u8, pairs.buffer), Simd.interleaveLow(q1, q2))
     Simd.store(cast([*] u8, pairs.buffer) + 16, Simd.interleaveHigh(q1, q2))
-    for line in 16'u64 do
+    for line in 16_u64
+    {
         cast([*] u16, (pix + 1 + line * stride))[0] = pairs[line]
+    }
 }
 
 // Filters one complete vertical weak chroma edge the same way: eight lines of p1 p0 q0 q1
@@ -921,7 +993,7 @@ func filterChromaWeakVertical(pix: [*] u8, stride: u64, strengths: const *EdgeSt
 func filterChromaStrongVertical(pix: [*] u8, stride: u64, strengths: const *EdgeStrength, indexA, alpha, beta: s32)
 {
     var line = pix
-    for segment in 4'u64
+    for segment in 4_u64
     {
         let bs = strengths.bs[segment]
         if bs == 0
@@ -961,8 +1033,10 @@ func filterLuma(pix: [*] u8, step, lineStride: u64, bs: u32, indexA, alpha, beta
     let q1 = cast(s32, (pix + step)[0])
 
     // The three sample conditions of 8.7.2.2 fold into one sign test.
-    if ((alpha - 1 - Math.abs(p0 - q0)) | (beta - 1 - Math.abs(p1 - p0)) | (beta - 1 - Math.abs(q1 - q0))) < 0 do
+    if ((alpha - 1 - Math.abs(p0 - q0)) | (beta - 1 - Math.abs(p1 - p0)) | (beta - 1 - Math.abs(q1 - q0))) < 0
+    {
         return
+    }
 
     // `-1` when the side condition holds, `0` otherwise, so the count rides on a subtraction.
     let p2     = cast(s32, (pix - 3 * step)[0])
@@ -1029,8 +1103,10 @@ func filterChroma(pix: [*] u8, step, _: u64, bs: u32, indexA, alpha, beta: s32)
     let q0 = cast(s32, pix[0])
     let p1 = cast(s32, (pix - 2 * step)[0])
     let q1 = cast(s32, (pix + step)[0])
-    if ((alpha - 1 - Math.abs(p0 - q0)) | (beta - 1 - Math.abs(p1 - p0)) | (beta - 1 - Math.abs(q1 - q0))) < 0 do
+    if ((alpha - 1 - Math.abs(p0 - q0)) | (beta - 1 - Math.abs(p1 - p0)) | (beta - 1 - Math.abs(q1 - q0))) < 0
+    {
         return
+    }
 
     if bs < 4
     {

@@ -11,7 +11,7 @@ const RenderLayerWidth     = 160
 const RenderLayerHeight    = 104
 const RenderSvgWidth       = 96
 const RenderSvgHeight      = 64
-const RenderSvgSupersample = 4'u8
+const RenderSvgSupersample = 4_u8
 const RenderBlendWidth     = 180
 const RenderBlendHeight    = 48
 const RenderPlanarWidth    = 64
@@ -74,7 +74,7 @@ func makeRenderParityTexture(renderer: IRenderer)->Texture
 // Records the portable painter surface once so both backends execute the exact same operations.
 // Strokes measured from the centre line, over the widths, angles, joins and caps that decide
 // whether one quad can stand in for a quad and two bands.
-func renderStrokeParityScene(renderer: IRenderer, pixelOffset = 0.0'f32)->Image
+func renderStrokeParityScene(renderer: IRenderer, pixelOffset = 0.0_f32)->Image
 {
     var target = renderer.createRenderTarget(RenderParityWidth, RenderParityHeight)
     defer renderer.deleteRenderTarget(&target)
@@ -84,7 +84,7 @@ func renderStrokeParityScene(renderer: IRenderer, pixelOffset = 0.0'f32)->Image
     painter.bindRenderTarget(&target)
     painter.setColorMaskFull()
     painter.setBlendingMode(.Copy)
-    painter.clear(Color.fromArgb(255'u8, 16'u8, 18'u8, 24'u8))
+    painter.clear(Color.fromArgb(255_u8, 16_u8, 18_u8, 24_u8))
 
     painter.setBlendingMode(.Alpha)
     painter.setAntialiased(true)
@@ -93,10 +93,10 @@ func renderStrokeParityScene(renderer: IRenderer, pixelOffset = 0.0'f32)->Image
 
     // Widths across and below one device pixel, at an angle that lands the contour between two
     // pixel centres on both axes.
-    var width = 0.35'f32
+    var width = 0.35_f32
     for i in 6
     {
-        let x = 8.0'f32 + cast(f32, i) * 30
+        let x = 8.0_f32 + cast(f32, i) * 30
         painter.drawLine(x, 6, x + 22, 40, Color.fromArgb(Argb.White), width)
         width *= 1.9
     }
@@ -106,7 +106,7 @@ func renderStrokeParityScene(renderer: IRenderer, pixelOffset = 0.0'f32)->Image
     for j, i in joins
     {
         var path: LinePath
-        let x = 8.0'f32 + cast(f32, i) * 46
+        let x = 8.0_f32 + cast(f32, i) * 46
         path.start(x, 78)
         path.lineTo(x + 18, 50)
         path.lineTo(x + 36, 78)
@@ -138,7 +138,7 @@ func renderStrokeParityScene(renderer: IRenderer, pixelOffset = 0.0'f32)->Image
     // Under a transform, because the measured span is a path-space quantity and the contour it
     // places has to land where the banded one did.
     painter.pushTransform()
-    painter.rotateTransform(18.0'deg, 150, 96)
+    painter.rotateTransform(18.0_deg, 150, 96)
     painter.scaleTransform(1.6)
     painter.drawLine(96, 58, 124, 58, Color.fromArgb(Argb.Violet), 1)
     painter.popTransform()
@@ -162,20 +162,20 @@ func renderParityScene(renderer: IRenderer)->Image
     painter.bindRenderTarget(&target)
     painter.setColorMaskFull()
     painter.setBlendingMode(.Copy)
-    painter.clear(Color.fromArgb(255'u8, 18'u8, 22'u8, 30'u8))
+    painter.clear(Color.fromArgb(255_u8, 18_u8, 22_u8, 30_u8))
 
     // Geometry and screen-space antialiasing.
     painter.setBlendingMode(.Alpha)
     painter.setAntialiased(true)
-    painter.fillCircle(18, 18, 12, Color.fromArgb(220'u8, 239'u8, 71'u8, 111'u8))
+    painter.fillCircle(18, 18, 12, Color.fromArgb(220_u8, 239_u8, 71_u8, 111_u8))
     painter.drawRoundRect({34, 6, 34, 24}, 7, 7, Color.fromArgb(Argb.White), 3)
     painter.setAntialiased(false)
-    painter.fillEllipse({74, 6, 34, 24}, Color.fromArgb(255'u8, 72'u8, 149'u8, 239'u8))
+    painter.fillEllipse({74, 6, 34, 24}, Color.fromArgb(255_u8, 72_u8, 149_u8, 239_u8))
     painter.setAntialiased(true)
 
     painter.pushTransform()
-    painter.rotateTransform(12.0'deg, 131, 18)
-    painter.fillRect({114, 8, 34, 20}, Color.fromArgb(210'u8, 255'u8, 184'u8, 77'u8))
+    painter.rotateTransform(12.0_deg, 131, 18)
+    painter.fillRect({114, 8, 34, 20}, Color.fromArgb(210_u8, 255_u8, 184_u8, 77_u8))
     painter.popTransform()
 
     // Every built-in brush family.
@@ -214,9 +214,9 @@ func renderParityScene(renderer: IRenderer)->Image
 
     // Channel masking followed by all framebuffer blend equations.
     painter.setBlendingMode(.Copy)
-    painter.fillRect({86, 98, 18, 22}, Color.fromArgb(255'u8, 30'u8, 80'u8, 140'u8))
+    painter.fillRect({86, 98, 18, 22}, Color.fromArgb(255_u8, 30_u8, 80_u8, 140_u8))
     painter.setColorMask(true, false, false, true)
-    painter.fillRect({90, 102, 18, 14}, Color.fromArgb(160'u8, 240'u8, 20'u8, 20'u8))
+    painter.fillRect({90, 102, 18, 14}, Color.fromArgb(160_u8, 240_u8, 20_u8, 20_u8))
     painter.setColorMaskFull()
 
     let modes: [7] BlendingMode = [.Copy, .Alpha, .Add, .Sub, .SubDst, .Min, .Max]
@@ -224,9 +224,9 @@ func renderParityScene(renderer: IRenderer)->Image
     {
         let x = 114 + cast(f32, idx) * 11
         painter.setBlendingMode(.Copy)
-        painter.fillRect(Math.Rectangle{x, 100, 9, 18}, Color.fromArgb(190'u8, 35'u8, 90'u8, 145'u8))
+        painter.fillRect(Math.Rectangle{x, 100, 9, 18}, Color.fromArgb(190_u8, 35_u8, 90_u8, 145_u8))
         painter.setBlendingMode(mode)
-        painter.fillRect(Math.Rectangle{x + 3, 104, 6, 10}, Color.fromArgb(135'u8, 210'u8, 70'u8, 25'u8))
+        painter.fillRect(Math.Rectangle{x + 3, 104, 6, 10}, Color.fromArgb(135_u8, 210_u8, 70_u8, 25_u8))
     }
 
     painter.unbindRenderTarget()
@@ -253,7 +253,7 @@ func renderTextParityScene(renderer: IRenderer)->Image
     var outlineGlow: TextEffect
     outlineGlow.outlineWidth = 0.16
     outlineGlow.outlineColor = Color.fromArgb(Argb.DodgerBlue)
-    outlineGlow.glowColor    = Color.fromArgb(150'u8, Argb.Gold)
+    outlineGlow.glowColor    = Color.fromArgb(150_u8, Argb.Gold)
     outlineGlow.glowInner    = 0.04
     outlineGlow.glowOuter    = 0.42
     outlineGlow.glowPower    = 1.4
@@ -264,7 +264,7 @@ func renderTextParityScene(renderer: IRenderer)->Image
     face.bevel      = 0.65
 
     var shadow: TextEffect
-    shadow.shadowColor    = Color.fromArgb(150'u8, Argb.Black)
+    shadow.shadowColor    = Color.fromArgb(150_u8, Argb.Black)
     shadow.shadowOffset   = {3, 3}
     shadow.shadowDilate   = 0.08
     shadow.shadowSoftness = 0.32
@@ -301,15 +301,15 @@ func renderLayerParityScene(renderer: IRenderer)->Image
     painter.bindRenderTarget(&target)
     painter.setColorMaskFull()
     painter.setBlendingMode(.Copy)
-    painter.clear(Color.fromArgb(255'u8, 24'u8, 30'u8, 42'u8))
+    painter.clear(Color.fromArgb(255_u8, 24_u8, 30_u8, 42_u8))
 
     layer.begin(&painter, {width: 72, height: 48, renderScale: 2})
     painter.fillRoundRect({7, 7, 58, 34}, 9, 9, Brush.createLinearGradient(7, 7, 65, 41, Color.fromArgb(Argb.DeepPink), Color.fromArgb(Argb.DodgerBlue)))
-    painter.fillCircle(36, 24, 10, Color.fromArgb(190'u8, Argb.White))
+    painter.fillCircle(36, 24, 10, Color.fromArgb(190_u8, Argb.White))
     layer.end()
     layer.draw({dstRect: Math.Rectangle{42, 26, 72, 48},
                 shadow: {enabled: true, margin: 10, radius: 4, offsetX: 5, offsetY: 6,
-                         color: Color.fromArgb(170'u8, Argb.Black)}})
+                         color: Color.fromArgb(170_u8, Argb.Black)}})
 
     painter.unbindRenderTarget()
     painter.end()
@@ -350,7 +350,7 @@ func assertSvgPixel(image: const *Image, x, y: s32, expected: Color)
 // along both axes, and chroma held constant over each half so bilinear chroma upsampling only
 // differs at one seam. A backend that uploads the planes in the wrong row order, or samples them
 // mirrored, cannot reproduce it.
-func makeRenderPlanarPicture(storage: *Array'u8)->YuvPlanarView
+func makeRenderPlanarPicture(storage: *Array!{u8})->YuvPlanarView
 {
     const Width        = cast(u64, RenderPlanarWidth)
     const Height       = cast(u64, RenderPlanarHeight)
@@ -364,16 +364,18 @@ func makeRenderPlanarPicture(storage: *Array'u8)->YuvPlanarView
 
     for y in Height
     {
-        for x in Width do
+        for x in Width
+        {
             luma[y * Width + x] = cast(u8, (16 + x * 110 / (Width - 1) + y * 109 / (Height - 1)))
+        }
     }
 
     for y in ChromaHeight
     {
         for x in ChromaWidth
         {
-            chromaB[y * ChromaWidth + x] = x < ChromaWidth / 2 ? 96'u8 : 168'u8
-            chromaR[y * ChromaWidth + x] = y < ChromaHeight / 2 ? 96'u8 : 168'u8
+            chromaB[y * ChromaWidth + x] = x < ChromaWidth / 2 ? 96_u8 : 168_u8
+            chromaR[y * ChromaWidth + x] = y < ChromaHeight / 2 ? 96_u8 : 168_u8
         }
     }
 
@@ -391,7 +393,7 @@ func makeRenderPlanarPicture(storage: *Array'u8)->YuvPlanarView
 // Draws one planar picture at its own size, which is what a video view does for every frame.
 func renderPlanarParityScene(renderer: IRenderer)->Image
 {
-    var storage: Array'u8
+    var storage: Array!{u8}
     let picture = makeRenderPlanarPicture(&storage)
     var texture = renderer.addImage(&picture)
     defer renderer.removeTexture(&texture)
@@ -418,7 +420,7 @@ func renderPlanarParityScene(renderer: IRenderer)->Image
 // a test uses one flat colour, and only a corner states which way round the rows went.
 func assertPlanarCornersUpright(image: const *Image, view: const *YuvPlanarView)
 {
-    for corner in 4's32
+    for corner in 4_s32
     {
         let x        = corner & 1 ? view.width - 1 : 0
         let y        = corner & 2 ? view.height - 1 : 0
@@ -483,8 +485,10 @@ func hasSoftEdge(image: const *Image, x, y: s32, fill: Color)->bool
         for dx in -1 to 1
         {
             let color = image.pixelColor(x + dx, y + dy)
-            if color.r > fill.r + 20 and color.r < 235 do
+            if color.r > fill.r + 20 and color.r < 235
+            {
                 return true
+            }
         }
     }
 
@@ -501,9 +505,9 @@ func renderOpaqueBackdropParityScene(renderer: IRenderer)->Image
     var target = renderer.createRenderTarget(RenderBlendWidth, RenderBlendHeight)
     defer renderer.deleteRenderTarget(&target)
 
-    const ClearDst  = Color.fromArgb(0'u8, 64'u8, 128'u8, 192'u8)
-    const OpaqueDst = Color.fromArgb(255'u8, 64'u8, 128'u8, 192'u8)
-    const Src       = Color.fromArgb(128'u8, 192'u8, 64'u8, 128'u8)
+    const ClearDst  = Color.fromArgb(0_u8, 64_u8, 128_u8, 192_u8)
+    const OpaqueDst = Color.fromArgb(255_u8, 64_u8, 128_u8, 192_u8)
+    const Src       = Color.fromArgb(128_u8, 192_u8, 64_u8, 128_u8)
 
     var painter = Painter.create(renderer)
     painter.begin()

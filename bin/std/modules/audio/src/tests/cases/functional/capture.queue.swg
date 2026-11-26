@@ -35,7 +35,7 @@ func produceCaptureBlocks(thread: const *Threading.Thread)
     Swag.require(second.startSample == 3 and second.acceptedFrames == 2)
     Swag.require(queue.pendingBlocks() == 2 and queue.sampleEnd() == 5)
 
-    var samples: Array's16
+    var samples: Array!{s16}
     var info = CaptureBlock{startSample: 5, firstTick: 7, frameCount: 1,
                             gapFrames: 2, sourceInterrupted: true}
     Swag.require(queue.pop(&samples, &info))
@@ -67,13 +67,13 @@ func produceCaptureBlocks(thread: const *Threading.Thread)
     Swag.require(gap.silenceFrames == 3 and gap.acceptedFrames == 3)
     Swag.require(overlap.discardedFrames == 1 and overlap.acceptedFrames == 3)
 
-    var samples: Array's16
+    var samples: Array!{s16}
     var info:    CaptureBlock
     Swag.require(queue.pop(&samples, &info) and info.gapFrames == 0)
     Swag.require(queue.pop(&samples, &info) and info.startSample == 7 and info.gapFrames == 3)
     Swag.require(Slice.equals(samples.toSlice(), Second))
     Swag.require(queue.pop(&samples, &info) and info.startSample == 10 and info.gapFrames == 0)
-    Swag.require(Slice.equals(samples.toSlice(), [9's16, 10, 11]))
+    Swag.require(Slice.equals(samples.toSlice(), [9_s16, 10, 11]))
 }
 
 // Frames clipped by committed silence retain their original sample-grid offset.
@@ -82,7 +82,7 @@ func produceCaptureBlocks(thread: const *Threading.Thread)
     var queue = expect CaptureQueue.create(10, 1, 0, 100, blockFrames: 10, tolerance: 0)
     const Initial: [10] s16 = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
     discard expect queue.push(Initial, 0)
-    var samples: Array's16
+    var samples: Array!{s16}
     var info:    CaptureBlock
     Swag.require(queue.pop(&samples, &info) and info.startSample == 0 and info.frameCount == 10)
     discard expect queue.markSilentUntil(100)
@@ -101,7 +101,7 @@ func produceCaptureBlocks(thread: const *Threading.Thread)
     var queue = expect CaptureQueue.create(3, 1, 0, 2, blockFrames: 4, tolerance: 0)
     const Initial: [1] s16 = [0]
     discard expect queue.push(Initial, 0)
-    var samples: Array's16
+    var samples: Array!{s16}
     var info:    CaptureBlock
     Swag.require(queue.pop(&samples, &info) and info.startSample == 0 and info.frameCount == 1)
     discard expect queue.markSilentUntil(1)
@@ -127,7 +127,7 @@ func produceCaptureBlocks(thread: const *Threading.Thread)
     Swag.require(queue.pendingBlocks() == 2)
     Swag.require(queue.droppedBlockCount() == 1 and queue.droppedFrameCount() == 2)
 
-    var samples: Array's16
+    var samples: Array!{s16}
     var info:    CaptureBlock
     Swag.require(queue.pop(&samples, &info) and info.startSample == 2 and info.gapFrames == 2)
     Swag.require(Slice.equals(samples.toSlice(), Second))
@@ -153,7 +153,7 @@ func produceCaptureBlocks(thread: const *Threading.Thread)
     Swag.require(not queue.sourceIsLost())
     discard expect queue.push(Swag.makeSlice(&Second[0], Second.count), 10)
 
-    var samples: Array's16
+    var samples: Array!{s16}
     var info:    CaptureBlock
     Swag.require(queue.pop(&samples, &info) and not info.sourceInterrupted)
     Swag.require(queue.pop(&samples, &info))
@@ -190,7 +190,7 @@ func produceCaptureBlocks(thread: const *Threading.Thread)
     discard catch queue.push(Swag.makeSlice(&Stereo[0], Stereo.count), 99) as rejected
     Swag.require(rejected.value() is BadParameterError)
     Swag.require(queue.pendingBlocks() == 1 and queue.sampleEnd() == 2)
-    var samples: Array's16
+    var samples: Array!{s16}
     var info:    CaptureBlock
     Swag.require(queue.pop(&samples, &info) and info.startSample == 0)
     Swag.require(Slice.equals(samples.toSlice(), Stereo))
@@ -209,7 +209,7 @@ func produceCaptureBlocks(thread: const *Threading.Thread)
 
     Swag.require(queue.pendingBlocks() == 4 and queue.sampleEnd() == 160_000)
     Swag.require(queue.droppedBlockCount() == 9_996 and queue.droppedFrameCount() == 159_936)
-    var samples: Array's16
+    var samples: Array!{s16}
     var info:    CaptureBlock
     Swag.require(queue.pop(&samples, &info) and info.startSample == 159_936)
     Swag.require(info.gapFrames == 159_936 and samples[0] == 9_996)
@@ -224,9 +224,9 @@ func produceCaptureBlocks(thread: const *Threading.Thread)
     discard expect thread.init(&produceCaptureBlocks, &source)
     discard expect thread.start()
 
-    var samples: Array's16
+    var samples: Array!{s16}
     var info:    CaptureBlock
-    var previousEnd = 0'u64
+    var previousEnd = 0_u64
     while Swag.atomicLoad(&source.done) == 0 or queue.pendingBlocks() != 0
     {
         if queue.pop(&samples, &info)
@@ -254,10 +254,10 @@ func produceCaptureBlocks(thread: const *Threading.Thread)
     const Sample: [1] s16 = [123]
     discard expect queue.push(Swag.makeSlice(&Sample[0], 1), 0)
     expect queue.markLost(20_834)
-    let resumedTick = 4'u64 * 60 * 60 * 1_000_000_000
+    let resumedTick = 4_u64 * 60 * 60 * 1_000_000_000
     expect queue.markRestored(resumedTick)
     discard expect queue.push(Swag.makeSlice(&Sample[0], 1), resumedTick)
-    var samples: Array's16
+    var samples: Array!{s16}
     var info:    CaptureBlock
     Swag.require(queue.pop(&samples, &info) and info.gapFrames == 0)
     Swag.require(queue.pop(&samples, &info))
@@ -278,7 +278,7 @@ func produceCaptureBlocks(thread: const *Threading.Thread)
     discard expect queue.push(Swag.makeSlice(&First[0], First.count), 0)
     discard expect queue.push(Swag.makeSlice(&Second[0], Second.count), 4)
     var writer = expect Wav.Writer.create(path.toString(), 1, 1_000)
-    var samples: Array's16
+    var samples: Array!{s16}
     var info:    CaptureBlock
     while queue.pop(&samples, &info)
     {
@@ -288,13 +288,13 @@ func produceCaptureBlocks(thread: const *Threading.Thread)
 
     expect writer.end()
     let sound = expect SoundFile.load(path.toString())
-    var decoded: Array's16
+    var decoded: Array!{s16}
     expect sound.decodePcm16(func|decoded = &decoded|(part: const [..] s16)->bool
     {
         decoded.add(part)
         return true
     })
-    Swag.require(Slice.equals(decoded.toSlice(), [10's16, 20, 0, 0, 30, 40]))
+    Swag.require(Slice.equals(decoded.toSlice(), [10_s16, 20, 0, 0, 30, 40]))
 }
 
 // Simulated microphone loss becomes a silent AAC packet between two captured tones.
@@ -306,18 +306,21 @@ func produceCaptureBlocks(thread: const *Threading.Thread)
     var queue = expect CaptureQueue.create(48_000, 1, 0, 48_000, blockFrames: 1_024, tolerance: 0)
     var signal:  [1_024] s16
     var silence: [1_024] s16
-    for frame in 1_024 do
+    for frame in 1_024
+    {
         signal[frame] = cast(s16,
                              Math.round(10_000.0 * Math.sin(Math.ConstF64.TwoPi *
                                                             1_000.0 * frame / 48_000.0)))
+    }
+
     discard expect queue.push(Swag.makeSlice(&signal[0], signal.count), 0)
     discard expect queue.push(Swag.makeSlice(&signal[0], signal.count), 2_048)
 
     var encoder = expect Aac.StreamEncoder.create(48_000, 1)
-    var file:     Array'u8
-    var packets:  Array'SoundPacket
-    var captured: Array's16
-    var packet:   Array'u8
+    var file:     Array!{u8}
+    var packets:  Array!{SoundPacket}
+    var captured: Array!{s16}
+    var packet:   Array!{u8}
     var info:     CaptureBlock
     while queue.pop(&captured, &info)
     {
@@ -343,16 +346,16 @@ func produceCaptureBlocks(thread: const *Threading.Thread)
     Swag.require(packets.count == 4 and encoder.inputFrameCount() == 3 * 1_024)
     discard expect File.writeAllBytes(path.toString(), file.toSlice())
     let sound = expect SoundFile.openPacketStream(path.toString(), .AacLc, 48_000, 1, 4 * 1_024, packets.toSlice(), encoder.decoderConfig())
-    var decoded: Array's16
+    var decoded: Array!{s16}
     expect sound.decodePcm16(func|decoded = &decoded|(part: const [..] s16)->bool
     {
         decoded.add(part)
         return true
     })
     Swag.require(decoded.count == 4 * 1_024)
-    var before = 0.0'f64
-    var gap    = 0.0'f64
-    var after  = 0.0'f64
+    var before = 0.0_f64
+    var gap    = 0.0_f64
+    var after  = 0.0_f64
     for frame in 1_024
     {
         before += cast(f64, decoded[1_024 + frame]) * decoded[1_024 + frame]

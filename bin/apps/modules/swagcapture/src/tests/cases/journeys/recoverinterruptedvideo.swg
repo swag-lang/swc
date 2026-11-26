@@ -19,8 +19,11 @@ using Core, Gui, Pixel, Video
     var picture  = Image.create(32, 16, .BGRA8)
     picture.fill(Argb.White)
     var writer = expect Mp4.SoftwareRecording.createVideoOnly(media, 32, 16, 1_000_000)
-    for frame in 2'u64 do
+    for frame in 2_u64
+    {
         expect writer.addFrame(&picture, FrameSlot{frame, frame * 100_000, 100_000, 0})
+    }
+
     expect writer.end()
 
     expect g_Library.setFolder(folder)

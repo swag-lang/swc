@@ -46,7 +46,7 @@ using Swag, Core
     var path:    LinePath
 
     path.start(10, 50)
-    path.arcTo(50, 50, 40, 40, 180.0'deg, 180.0'deg)
+    path.arcTo(50, 50, 40, 40, 180.0_deg, 180.0_deg)
 
     painter.begin()
     painter.drawPath(&path, Pen.createSolid(Color.fromArgb(Argb.Red), 2))
@@ -59,7 +59,7 @@ using Swag, Core
 {
     var painter: Painter
     painter.begin()
-    painter.drawArc(50, 50, 40, 0.0'deg, 90.0'deg, Color.fromArgb(Argb.Red), 2)
+    painter.drawArc(50, 50, 40, 0.0_deg, 90.0_deg, Color.fromArgb(Argb.Red), 2)
     painter.end()
     Testing.assertGolden(&painter, "curve.arc.quarter")
 }

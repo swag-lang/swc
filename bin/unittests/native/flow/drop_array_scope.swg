@@ -6,7 +6,7 @@ var sum:     u32
 #[Swag.NoCopy]
 struct Item
 {
-    value = 7'u32
+    value = 7_u32
 }
 
 impl Item
@@ -21,8 +21,10 @@ impl Item
     scope
     {
         var items: [3] Item
-        for &item in items do
+        for &item in items
+        {
             item.value = 1
+        }
     }
     Swag.require(dropped == 3)
     Swag.require(sum == 3)
@@ -33,8 +35,10 @@ alias Grid = [2][3] Item
 func leaveArrayScope(early: bool)
 {
     var items: Grid
-    if early do
+    if early
+    {
         return
+    }
     items[1][2].value = 9
 }
 

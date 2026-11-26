@@ -179,8 +179,11 @@ assigned again.
     shape.geometry = .Rect{w: 2, h: 5}
     Swag.require(area(shape) == 10)
 
-    if shape.geometry is .Rect do
+    if shape.geometry is .Rect
+    {
         shape.rect.w = 4
+    }
+
     Swag.require(area(shape) == 20)
 }
 

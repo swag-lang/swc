@@ -124,24 +124,38 @@ private func loadChaChaKeyRows(key: const [*] u8, rows: *[4] Simd.U32x4)
 // Fails with [[Core.Errors.BadParameterError]] when `key` does not hold 32 bytes or `nonce` 12.
 func chacha20Block(key: const [..] u8, counter: u32, nonce: const [..] u8)->[ChaCha20BlockSize] u8 fail
 {
-    if key.count != ChaCha20KeySize do
+    if key.count != ChaCha20KeySize
+    {
         fail Errors.BadParameterError{"ChaCha20 needs a 32-byte key"}
-    if nonce.count != ChaCha20NonceSize do
-        fail Errors.BadParameterError{"ChaCha20 needs a 12-byte nonce"}
+    }
 
-    var initial: [4] Simd.U32x4
-    loadChaChaKeyRows(key.buffer, &initial)
-    initial[3] = cast(Simd.U32x4,
-                      [counter, load32(nonce.buffer), load32(nonce.buffer + 4), load32(nonce.buffer + 8)])
+    if nonce.count != ChaCha20NonceSize
+    {
+        fail Errors.BadParameterError{"ChaCha20 needs a 12-byte nonce"}
+    }
+
+    var initial: [16] u32
+    initial[0] = 0x61707865
+    initial[1] = 0x3320646E
+    initial[2] = 0x79622D32
+    initial[3] = 0x6B206574
+    for i in 8
+    {
+        initial[4 + i] = load32(key.buffer + i * 4)
+    }
+
+    initial[12] = counter
+    initial[13] = load32(nonce.buffer)
+    initial[14] = load32(nonce.buffer + 4)
+    initial[15] = load32(nonce.buffer + 8)
 
     var state = initial
     roundRows(&state)
 
     var result: #returntype
-    for i in 4
+    for i in 16
     {
-        let words = cast #bit (Simd.U8x16, state[i] + initial[i])
-        Simd.store(result.buffer + i * #sizeof(Simd.U8x16), swapWordBytesOnBigEndian(words))
+        store32(&result[i * 4], add32(state[i], initial[i]))
     }
 
     secureClear(initial)
@@ -152,21 +166,54 @@ func chacha20Block(key: const [..] u8, counter: u32, nonce: const [..] u8)->[Cha
 // Derives the XChaCha20 subkey from a 32-byte key and the first 16 nonce bytes.
 internal func hchacha20(key: const [..] u8, nonce: const [..] u8)->[ChaCha20KeySize] u8 fail
 {
-    if key.count != ChaCha20KeySize do
+    if key.count != ChaCha20KeySize
+    {
         fail Errors.BadParameterError{"HChaCha20 needs a 32-byte key"}
-    if nonce.count != 16 do
-        fail Errors.BadParameterError{"HChaCha20 needs a 16-byte nonce"}
+    }
 
-    var state: [4] Simd.U32x4
-    state[0] = ChaChaConstants
-    state[1] = cast #bit (Simd.U32x4, swapWordBytesOnBigEndian(Simd.load(key.buffer)))
-    state[2] = cast #bit (Simd.U32x4, swapWordBytesOnBigEndian(Simd.load(key.buffer + 16)))
-    state[3] = cast #bit (Simd.U32x4, swapWordBytesOnBigEndian(Simd.load(nonce.buffer)))
-    roundRows(&state)
+    if nonce.count != 16
+    {
+        fail Errors.BadParameterError{"HChaCha20 needs a 16-byte nonce"}
+    }
+
+    var state: [16] u32
+    state[0] = 0x61707865
+    state[1] = 0x3320646E
+    state[2] = 0x79622D32
+    state[3] = 0x6B206574
+    for i in 8
+    {
+        state[4 + i] = load32(key.buffer + i * 4)
+    }
+
+    for i in 4
+    {
+        state[12 + i] = load32(nonce.buffer + i * 4)
+    }
+
+    for 10
+    {
+        quarterRound(&state, 0, 4, 8, 12)
+        quarterRound(&state, 1, 5, 9, 13)
+        quarterRound(&state, 2, 6, 10, 14)
+        quarterRound(&state, 3, 7, 11, 15)
+        quarterRound(&state, 0, 5, 10, 15)
+        quarterRound(&state, 1, 6, 11, 12)
+        quarterRound(&state, 2, 7, 8, 13)
+        quarterRound(&state, 3, 4, 9, 14)
+    }
 
     var subkey: #returntype
-    Simd.store(subkey.buffer, swapWordBytesOnBigEndian(cast #bit (Simd.U8x16, state[0])))
-    Simd.store(subkey.buffer + 16, swapWordBytesOnBigEndian(cast #bit (Simd.U8x16, state[3])))
+    for i in 4
+    {
+        store32(&subkey[i * 4], state[i])
+    }
+
+    for i in 4
+    {
+        store32(&subkey[(i + 4) * 4], state[i + 12])
+    }
+
     secureClear(state)
     return subkey
 }
@@ -338,20 +385,24 @@ private func chacha20XorTail(key, nonce, source: const [*] u8, destination: [*] 
 // Fails with [[Core.Errors.BadParameterError]] when `key` does not hold 32 bytes, `nonce` 12,
 // or `destination` as many bytes as `source`, and with [[Core.Errors.OverflowError]] when the
 // input needs more blocks than the counter range starting at `initialCounter` provides.
-func chacha20Xor(key, nonce, source: const [..] u8, destination: [..] u8, initialCounter = 0'u32) fail
+func chacha20Xor(key, nonce, source: const [..] u8, destination: [..] u8, initialCounter = 0_u32) fail
 {
     func chacha20XorBatches(key, nonce: const [..] u8, counter: u32, source: const [*] u8, destination: [*] u8, count: u64)
     {
-        var initial: [16] Simd.U32x4
-        initial[0] = Simd.splat(0x61707865'u32)
-        initial[1] = Simd.splat(0x3320646E'u32)
-        initial[2] = Simd.splat(0x79622D32'u32)
-        initial[3] = Simd.splat(0x6B206574'u32)
-        for i in 8 do
-            initial[4 + i] = Simd.splat(load32(key.buffer + i * 4))
-        initial[13] = Simd.splat(load32(nonce.buffer))
-        initial[14] = Simd.splat(load32(nonce.buffer + 4))
-        initial[15] = Simd.splat(load32(nonce.buffer + 8))
+        var initial: [16] Math.Simd.U32x4
+        initial[0] = Math.Simd.splat(0x61707865_u32)
+        initial[1] = Math.Simd.splat(0x3320646E_u32)
+        initial[2] = Math.Simd.splat(0x79622D32_u32)
+        initial[3] = Math.Simd.splat(0x6B206574_u32)
+        for i in 8
+        {
+            initial[4 + i] = Math.Simd.splat(load32(key.buffer + i * 4))
+        }
+
+        initial[12] = cast(Math.Simd.U32x4, [counter, counter + 1, counter + 2, counter + 3])
+        initial[13] = Math.Simd.splat(load32(nonce.buffer))
+        initial[14] = Math.Simd.splat(load32(nonce.buffer + 4))
+        initial[15] = Math.Simd.splat(load32(nonce.buffer + 8))
 
         const counterOffsets = cast(Simd.U32x4, [0'u32, 1, 2, 3])
         var state: [16] Simd.U32x4
@@ -393,16 +444,26 @@ func chacha20Xor(key, nonce, source: const [..] u8, destination: [..] u8, initia
         secureClear(words)
     }
 
-    if key.count != ChaCha20KeySize do
+    if key.count != ChaCha20KeySize
+    {
         fail Errors.BadParameterError{"ChaCha20 needs a 32-byte key"}
-    if nonce.count != ChaCha20NonceSize do
+    }
+
+    if nonce.count != ChaCha20NonceSize
+    {
         fail Errors.BadParameterError{"ChaCha20 needs a 12-byte nonce"}
-    if source.count != destination.count do
+    }
+
+    if source.count != destination.count
+    {
         fail Errors.BadParameterError{"ChaCha20 source and destination need the same length"}
+    }
 
     let blockCount = source.count ? ((source.count - 1) / ChaCha20BlockSize) + 1 : 0
-    if blockCount and blockCount - 1 > Swag.U32.Max - initialCounter do
+    if blockCount and blockCount - 1 > Swag.U32.Max - initialCounter
+    {
         fail Errors.OverflowError{"ChaCha20 input exceeds the counter range"}
+    }
 
     const BatchesPerChunk = 16
     const BatchSize = 4 * ChaCha20BlockSize
@@ -429,7 +490,38 @@ func chacha20Xor(key, nonce, source: const [..] u8, destination: [..] u8, initia
     // The last legal counter need not have a successor when there is no tail.
     if offset < source.count
     {
-        let counter = initialCounter + cast(u32, (batches * 4))
-        chacha20XorTail(key.buffer, nonce.buffer, source.buffer + offset, destination.buffer + offset, source.count - offset, counter)
+        counter += cast(u32, (batches * 4))
+    }
+
+    while offset < source.count
+    {
+        var block = try chacha20Block(key, counter, nonce)
+        let count = Math.min(source.count - offset, ChaCha20BlockSize)
+
+        // Apply the key stream a word at a time; the tail of the final
+        // partial block falls back to bytes.
+        let src = source.buffer + offset
+        let dst = destination.buffer + offset
+        var i   = 0_u64
+        while i + 8 <= count
+        {
+            let sourceWord = load64(src + i)
+            let streamWord = load64(&block[i])
+            store64(dst + i, sourceWord ^ streamWord)
+            i += 8
+        }
+
+        while i < count
+        {
+            dst[i] = src[i] ^ block[i]
+            i      += 1
+        }
+
+        secureClear(block)
+        offset += count
+        if offset < source.count
+        {
+            counter += 1
+        }
     }
 }

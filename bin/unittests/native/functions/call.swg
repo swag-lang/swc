@@ -8,7 +8,7 @@ namespace compiler115
     //
     #test
     {
-        var v = 10's8 + 2.0'f64
+        var v = 10_s8 + 2.0_f64
         Swag.require(v == 12.0)
     }
 }
@@ -127,8 +127,8 @@ namespace compiler1648
     //
     #test
     {
-        var x = 0xFFFFFFFF'u64
-        x %= 16'u32
+        var x = 0xFFFFFFFF_u64
+        x %= 16_u32
 
         let m: u32 = 16
         x %= cast(u64, m)
@@ -590,7 +590,7 @@ namespace compiler208
 
     #test
     {
-        Swag.require(main(666's64) == 666)
+        Swag.require(main(666_s64) == 666)
     }
 }
 
@@ -607,7 +607,7 @@ namespace compiler209
 
     #test
     {
-        Swag.require(main(666'f64, 555'f64) == 1221.0)
+        Swag.require(main(666_f64, 555_f64) == 1221.0)
     }
 }
 
@@ -806,8 +806,8 @@ namespace compiler231
         var a = 10
         a += 1; Swag.assert(a == 11)
 
-        var b = 1.0'f64
-        b += 1.5'f64; Swag.assert(b == 2.5)
+        var b = 1.0_f64
+        b += 1.5_f64; Swag.assert(b == 2.5)
         return cast(f64, a) + b
     }
 
@@ -827,7 +827,7 @@ namespace compiler234
         a *= 2; Swag.require(a == 2)
         a *= 2; Swag.require(a == 4)
 
-        var b = 1.0'f32
+        var b = 1.0_f32
         b /= 2; Swag.require(b == 0.5)
     }
 }

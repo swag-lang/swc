@@ -256,7 +256,7 @@ private:
     bool       isDestructuringAssignmentAhead() const;
     AstNodeRef parseDefer();
     AstNodeRef parseDiscard();
-    AstNodeRef parseDoCurlyBlock();
+    AstNodeRef parseControlBlock();
     AstNodeRef parseEmbeddedStmt();
     AstNodeRef parseStatementInBlock();
     AstNodeRef parseEnumDecl();
@@ -290,7 +290,7 @@ private:
 
     AstNodeRef parseGenericParam();
     AstNodeRef parseAccessModifier();
-    AstNodeRef parseQuotedIdentifier();
+    AstNodeRef parseIdentifierWithGenericArguments();
     AstNodeRef parseIdentifierType();
     AstNodeRef parseIf();
     AstNodeRef parseImpl();
@@ -326,8 +326,7 @@ private:
     void       skipMisplacedTypePatternBinding();
     AstNodeRef parsePostFixExpression();
     AstNodeRef parseIdentifierSuffixValue();
-    AstNodeRef parseQuotedSingleSuffixValue();
-    AstNodeRef parseQuoteSuffix(AstNodeRef nodeRef);
+    AstNodeRef parseGenericArgumentSuffix(AstNodeRef nodeRef);
     TokenRef   parseParenArgumentExpressions(SmallVector<AstNodeRef>& outArgs);
     AstNodeRef parseDynamicTypeTarget();
     AstNodeRef parseIdentifier();
@@ -372,8 +371,7 @@ private:
     void        setReportSymbol(Diagnostic& diag, TokenRef tokRef) const;
     void        setReportArgumentCount(Diagnostic& diag, TokenRef calleeRef, uint32_t expectedCount, uint32_t actualCount, bool atLeast) const;
 
-    Diagnostic reportExpectedDoBlock(TokenRef tknRefAfterHeader);
-    Diagnostic reportUnexpectedDoBlock(TokenRef doTokRef);
+    Diagnostic reportExpectedControlBlock(TokenRef tknRefAfterHeader);
     void       reportEmptySwitchCase(AstNodeRef caseRef, TokenRef boundaryRef, DiagnosticId noteId);
     void       reportEmptySwitchBody(TokenRef openRef, TokenRef closeRef);
     Diagnostic reportArgumentCountError(DiagnosticId id, TokenRef calleeRef, TokenRef errorRef, uint32_t expectedCount, uint32_t actualCount, bool atLeast = false);

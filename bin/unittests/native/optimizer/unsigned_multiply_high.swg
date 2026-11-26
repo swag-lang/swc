@@ -25,7 +25,7 @@ func keepInputs(a, b, c, d: u64)->u64 => (a / 7) ^ (b % 10) ^ (c / 63) ^ (d % 3)
 
 #test
 {
-    let values = [0'u64, 1, 2, 3, 6, 7, 9, 10, 62, 63, 64, 0xFFFFFFFF, 0x100000000, 0x7FFFFFFFFFFFFFFF, 0x8000000000000000, 0xFFFFFFFFFFFFFFFF]
+    let values = [0_u64, 1, 2, 3, 6, 7, 9, 10, 62, 63, 64, 0xFFFFFFFF, 0x100000000, 0x7FFFFFFFFFFFFFFF, 0x8000000000000000, 0xFFFFFFFFFFFFFFFF]
     for value in values
     {
         Swag.require(divide3(value) == dynamicDivide(value, 3))

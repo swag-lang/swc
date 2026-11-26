@@ -7,7 +7,7 @@ using Swag
 // runtime would hand it a default context created on first access; the timer inherits the
 // arming thread's policy and user values. The marker below travels through that snapshot.
 
-const TimerTestMarker = 0x5741474E'u64
+const TimerTestMarker = 0x5741474E_u64
 
 var g_timerFired:  s32
 var g_timerMarker: u64
@@ -21,7 +21,7 @@ func timerTestCallback(_: *Time.Timer)
 #test
 {
     var zeroFailure: Swag.Error
-    discard catch Time.Timer.create(0'ms, &timerTestCallback) as zeroFailure
+    discard catch Time.Timer.create(0_ms, &timerTestCallback) as zeroFailure
     Swag.require(zeroFailure.value() is Errors.BadParameterError)
     Swag.require(Errors.message(zeroFailure.value()) == "timer delay must be positive and finite")
 
@@ -47,14 +47,17 @@ func timerTestCallback(_: *Time.Timer)
     context.user0 = TimerTestMarker
     defer context.user0 = previousUser0
 
-    var timer = expect Time.Timer.create(1'ms, &timerTestCallback)
+    var timer = expect Time.Timer.create(1_ms, &timerTestCallback)
 
     // The worker thread is scheduled by the operating system: wait for it, but never forever.
     for 200
     {
-        if Atomic.get(&g_timerFired) != 0 do
+        if Atomic.get(&g_timerFired) != 0
+        {
             break
-        Threading.Thread.sleep(10'ms)
+        }
+
+        Threading.Thread.sleep(10_ms)
     }
 
     Swag.require(Atomic.get(&g_timerFired) != 0)
@@ -63,8 +66,8 @@ func timerTestCallback(_: *Time.Timer)
     timer.release()
 }
 
-var g_timerOwnedFired: Swag.AtomicValue'u32
-var g_timerOwnedBad:   Swag.AtomicValue'u32
+var g_timerOwnedFired: Swag.AtomicValue!{u32}
+var g_timerOwnedBad:   Swag.AtomicValue!{u32}
 
 func failTimerMessage(text: string) fail
 {
@@ -81,15 +84,20 @@ func timerOwnedContextCallback(_: *Time.Timer)
        context.tempAllocator.block != null or
        context.tempAllocator.firstLeak != null or
        context.errorAllocator.block != null or
-       context.errorAllocator.firstLeak != null do
+       context.errorAllocator.firstLeak != null
+    {
         g_timerOwnedBad.add(1)
+    }
 
     var errorOutcome: Swag.Error
     catch failTimerMessage("the callback owns this copied error message") as errorOutcome
     let error = errorOutcome.value()
-    if Errors.message(error) != "the callback owns this copied error message" do
+    if Errors.message(error) != "the callback owns this copied error message"
+    {
         g_timerOwnedBad.add(1)
-    Threading.Thread.sleep(3'ms)
+    }
+
+    Threading.Thread.sleep(3_ms)
     g_timerOwnedFired.add(1)
 }
 
@@ -97,19 +105,25 @@ func timerOwnedContextCallback(_: *Time.Timer)
 // error stack to an OS callback. Repeated callbacks each start with fresh storage.
 #test
 {
-    if Swag.jit() do
+    if Swag.jit()
+    {
         return
+    }
+
     g_timerOwnedFired.store(0)
     g_timerOwnedBad.store(0)
     var creatorErrorOutcome: Swag.Error
     catch failTimerMessage("the creator retains its own copied error message") as creatorErrorOutcome
     let creatorError = creatorErrorOutcome.value()
-    var timer        = expect Time.Timer.create(1'ms, &timerOwnedContextCallback, periodic: true)
+    var timer        = expect Time.Timer.create(1_ms, &timerOwnedContextCallback, periodic: true)
     for 200
     {
-        if g_timerOwnedFired.load() >= 4 do
+        if g_timerOwnedFired.load() >= 4
+        {
             break
-        Threading.Thread.sleep(10'ms)
+        }
+
+        Threading.Thread.sleep(10_ms)
     }
 
     timer.release()

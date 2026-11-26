@@ -53,7 +53,7 @@ func indexedWrap(a: u32)->u64
 
 #test
 {
-    let values = [0'u32, 1, 7, 0x7FFFFFFF, 0x80000000, 0xFFFFFFFE, 0xFFFFFFFF]
+    let values = [0_u32, 1, 7, 0x7FFFFFFF, 0x80000000, 0xFFFFFFFE, 0xFFFFFFFF]
     for a in values
     {
         let added:   u32 = a + 1
@@ -74,10 +74,10 @@ func indexedWrap(a: u32)->u64
             Swag.require(retainHigh(wide, b) == (cast(u64, sum) ^ wide))
         }
     }
-    Swag.require(signedPlus(0x7FFFFFFF) == -2147483648's64)
+    Swag.require(signedPlus(0x7FFFFFFF) == -2147483648_s64)
     Swag.require(signedPlus(-1) == 0)
-    Swag.require(signedPlus(-2147483648) == -2147483647's64)
-    var cells = [17'u64, 29, 41]
+    Swag.require(signedPlus(-2147483648) == -2147483647_s64)
+    var cells = [17_u64, 29, 41]
     Swag.require(loadAfterPlus(&cells[0], 0xFFFFFFFF) == 17)
     Swag.require(loadAfterPlus(&cells[0], 1) == 41)
     Swag.require(loadAfterMinus(&cells[0], 1) == 17)

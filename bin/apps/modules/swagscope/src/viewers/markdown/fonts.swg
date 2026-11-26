@@ -3,7 +3,7 @@
 
 using Core, Pixel
 
-private var g_FontFamilies: HashTable'(String, [FontFamilyStyle.count] (*TypeFace?))
+private var g_FontFamilies: HashTable!{String, [FontFamilyStyle.count] (*TypeFace?)}
 private var g_FontLock:     Swag.Mutex
 
 // Returns the type faces of the first installed system family among `names`, one per style.
@@ -20,19 +20,29 @@ func systemFaces(names: const [..] string)->[FontFamilyStyle.count] (*TypeFace?)
     }
 
     Sync.scopedLock(&g_FontLock)
-    if let found = g_FontFamilies.tryFind(key) do
+    if let found = g_FontFamilies.tryFind(key)
+    {
         return found.value
+    }
 
     var result: #returntype
     for name in names
     {
         let family = FontFamily.findSystemFont(name)
-        if family.name.isEmpty() do
+        if family.name.isEmpty()
+        {
             continue
-        for index in FontFamilyStyle.count do
+        }
+
+        for index in FontFamilyStyle.count
+        {
             result[index] = catch FontFamily.createTypeFace(family, FontFamilyStyleValues[index]) orelse null
-        if result[0] != null do
+        }
+
+        if result[0] != null
+        {
             break
+        }
     }
 
     g_FontFamilies.add(key, result)

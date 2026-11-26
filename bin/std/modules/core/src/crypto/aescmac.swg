@@ -12,7 +12,7 @@ alias AesCmacTag = [AesCmacTagSize] u8
 
 private func aesCmacDouble(value: *[AesBlockSize] u8)
 {
-    var carry = 0'u8
+    var carry = 0_u8
     for index in AesBlockSize
     {
         let byteIndex = AesBlockSize - 1 - index
@@ -21,7 +21,7 @@ private func aesCmacDouble(value: *[AesBlockSize] u8)
         carry = next
     }
 
-    value[][AesBlockSize - 1] ^= 0x87'u8 & cast(u8, 0'u8 - carry)
+    value[][AesBlockSize - 1] ^= 0x87_u8 & cast(u8, 0_u8 - carry)
 }
 
 // Computes AES-CMAC incrementally using an opaque key schedule and chaining state.
@@ -68,17 +68,14 @@ impl AesCmac
     mtd update(data: const [..] u8) fail
     {
         Swag.assert(.initialized, "AES-CMAC needs an initialized sequence")
-        if .aes.usesHardwareRounds() and data.count > AesBlockSize - .bufferCount
-        {
-            .updateHardware(data)
-            return
-        }
-
-        var offset = 0'u64
+        var offset = 0_u64
         while offset < data.count
         {
-            if .bufferCount == AesBlockSize do
+            if .bufferCount == AesBlockSize
+            {
                 try .processBufferedBlock()
+            }
+
             let count = Math.min(AesBlockSize - .bufferCount, data.count - offset)
             Swag.memcpy(&.buffer[.bufferCount], data.buffer + offset, count)
             .bufferCount += count
@@ -109,20 +106,30 @@ impl AesCmac
         var finalBlock: [AesBlockSize] u8
         if .bufferCount == AesBlockSize
         {
-            for index in AesBlockSize do
+            for index in AesBlockSize
+            {
                 finalBlock[index] = .buffer[index] ^ .subKey1[index]
+            }
         }
         else
         {
-            if .bufferCount do
+            if .bufferCount
+            {
                 Swag.memcpy(&finalBlock[0], &.buffer[0], .bufferCount)
+            }
+
             finalBlock[.bufferCount] = 0x80
-            for index in AesBlockSize do
+            for index in AesBlockSize
+            {
                 finalBlock[index] ^= .subKey2[index]
+            }
         }
 
-        for index in AesBlockSize do
+        for index in AesBlockSize
+        {
             finalBlock[index] ^= .state[index]
+        }
+
         var result: #returntype
         try .aes.encryptBlock(finalBlock, result)
         Crypto.secureClear(finalBlock)
@@ -187,8 +194,11 @@ impl AesCmac
     private mtd processBufferedBlock() fail
     {
         var block: [AesBlockSize] u8
-        for index in AesBlockSize do
+        for index in AesBlockSize
+        {
             block[index] = .state[index] ^ .buffer[index]
+        }
+
         try .aes.encryptBlock(block, .state)
         Crypto.secureClear(block)
         Crypto.secureClear(.buffer)

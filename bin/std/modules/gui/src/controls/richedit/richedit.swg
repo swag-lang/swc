@@ -41,21 +41,21 @@ struct RichEditCtrl
 {
     public
     {
-        using frameWnd:           FrameWnd                   // Embedded frame behavior and presentation.
-        flags = RichEditFlags.None                           // Active editor behavior flags.
-        lineSpacing:              f32                        // Extra vertical spacing, in logical pixels, between display lines.
-        overwriteMode:            bool                       // Whether typed text replaces the rune under the caret.
-        tabSize:                  s32 = 4                    // Tab width in spaces; values below one act as one.
-        marginLeft:               f32                        // Blank space between the view and the left text edge.
-        marginRight:              f32                        // Blank space between the right text edge and the view.
-        lexer:                    IRichEditLexer?            // Optional lexer responsible for assigning style indices.
-        form  = RichEditForm.RichEditCtrl                    // Current theme treatment.
-        sigIsReadOnly:            SigArray'func||(*bool)     // Lets owners impose read-only state in addition to `flags`.
-        sigChanged:               SigArray'func||(*Wnd)      // Emitted after document content changes.
-        sigModified:              SigArray'func||(*Wnd)      // Emitted when the modified state toggles.
-        sigScrollPositionChanged: SigArray'func||(*Wnd, Math.Point, Math.Point)     // Emitted with old and new scroll positions.
-        sigCaretMoved:            SigArray'func||(*Wnd)      // Emitted after the caret reaches another place, by the keyboard, the pointer, an edit, or a call that places it.
-        backgroundColorModel:     String                     // Optional theme color expression used for the editor background.
+        using frameWnd:           FrameWnd                     // Embedded frame behavior and presentation.
+        flags = RichEditFlags.None                             // Active editor behavior flags.
+        lineSpacing:              f32                          // Extra vertical spacing, in logical pixels, between display lines.
+        overwriteMode:            bool                         // Whether typed text replaces the rune under the caret.
+        tabSize:                  s32 = 4                      // Tab width in spaces; values below one act as one.
+        marginLeft:               f32                          // Blank space between the view and the left text edge.
+        marginRight:              f32                          // Blank space between the right text edge and the view.
+        lexer:                    IRichEditLexer?              // Optional lexer responsible for assigning style indices.
+        form  = RichEditForm.RichEditCtrl                      // Current theme treatment.
+        sigIsReadOnly:            SigArray!{func||(*bool)}     // Lets owners impose read-only state in addition to `flags`.
+        sigChanged:               SigArray!{func||(*Wnd)}      // Emitted after document content changes.
+        sigModified:              SigArray!{func||(*Wnd)}      // Emitted when the modified state toggles.
+        sigScrollPositionChanged: SigArray!{func||(*Wnd, Math.Point, Math.Point)}     // Emitted with old and new scroll positions.
+        sigCaretMoved:            SigArray!{func||(*Wnd)}      // Emitted after the caret reaches another place, by the keyboard, the pointer, an edit, or a call that places it.
+        backgroundColorModel:     String                       // Optional theme color expression used for the editor background.
 
         // Appearance of each style index a lexer can assign to a rune, and of the selection. Fill
         // these in to give the control its syntax colors.
@@ -66,13 +66,13 @@ struct RichEditCtrl
     // The document and everything the control derives from it: the line pool, the cursor and
     // selection, the visible window, and the undo timeline. Edit through the methods and
     // connect to the signals; this state only makes sense together.
-    cursorPos:      RichEditCursor            // Caret, the moving end of the selection.
-    selBeg:         RichEditCursor            // Anchor, the fixed end of the selection.
-    lines:          ArrayPtr'RichEditLine     // Logical lines of the document.
-    freeLines:      ArrayPtr'RichEditLine     // Removed lines kept for reuse.
-    late scrollWnd: *ScrollWnd                // Scrolling container of the text view.
-    late edView:    *RichEditView             // View that paints the text and reads the input.
-    selRectangle:   Math.Rectangle            // Bounds of a rectangular selection.
+    cursorPos:      RichEditCursor              // Caret, the moving end of the selection.
+    selBeg:         RichEditCursor              // Anchor, the fixed end of the selection.
+    lines:          ArrayPtr!{RichEditLine}     // Logical lines of the document.
+    freeLines:      ArrayPtr!{RichEditLine}     // Removed lines kept for reuse.
+    late scrollWnd: *ScrollWnd                  // Scrolling container of the text view.
+    late edView:    *RichEditView               // View that paints the text and reads the input.
+    selRectangle:   Math.Rectangle              // Bounds of a rectangular selection.
 
     hasSelRect:              bool     // Whether the selection is rectangular.
     modified:                bool     // Whether the document differs from its last saved state.
@@ -82,24 +82,24 @@ struct RichEditCtrl
     forceCaretVisible:       bool     // Whether the next layout scrolls the caret into view.
     forceCaretVisibleCenter: bool     // Whether that scroll centers the caret.
 
-    undoMgr:                ArrayPtr'RichEditUndo     // Committed undo records, oldest first.
-    toUndo:                 ArrayPtr'RichEditUndo     // Records of the open undo group, committed by `popUndo`.
-    mapping:                Array'RichEditMapping     // Keyboard shortcuts and the commands they run.
-    currentUndo:            u64                       // Number of committed records currently applied.
-    undoCounter:            u64                       // Nesting depth of `pushUndo` groups.
-    modifiedUndoMarker:     u64                       // Undo position at which the document was last marked unmodified.
-    serialUndo:             u64                       // Group number given to the next committed records.
-    countVisibleLines:      u64                       // Number of lines not hidden by a fold.
-    firstVisibleLineView:   u64                       // First line the view shows.
-    lastVisibleLineView:    u64                       // Last line the view shows.
-    loadedContentHeight:    f32                       // Height laid out from the text currently held in memory.
-    residentContentOffset:  f32                       // Virtual y origin of the resident text window.
-    estimatedContentHeight: f32                       // Optional larger virtual height published by a streaming owner.
-    firstLineNumber:        u64 = 1                   // Number the gutter gives the first logical line.
-    clipFormat:             Clipboard.ValueFormat     // Clipboard format carrying the rune styles of a copy.
-    cursorPosUndo:          RichEditCursor            // Caret when the outermost undo group opened.
-    caretReported:          RichEditCursor            // Caret as `sigCaretMoved` last reported it.
-    selBegUndo:             RichEditCursor            // Anchor when the outermost undo group opened.
+    undoMgr:                ArrayPtr!{RichEditUndo}     // Committed undo records, oldest first.
+    toUndo:                 ArrayPtr!{RichEditUndo}     // Records of the open undo group, committed by `popUndo`.
+    mapping:                Array!{RichEditMapping}     // Keyboard shortcuts and the commands they run.
+    currentUndo:            u64                         // Number of committed records currently applied.
+    undoCounter:            u64                         // Nesting depth of `pushUndo` groups.
+    modifiedUndoMarker:     u64                         // Undo position at which the document was last marked unmodified.
+    serialUndo:             u64                         // Group number given to the next committed records.
+    countVisibleLines:      u64                         // Number of lines not hidden by a fold.
+    firstVisibleLineView:   u64                         // First line the view shows.
+    lastVisibleLineView:    u64                         // Last line the view shows.
+    loadedContentHeight:    f32                         // Height laid out from the text currently held in memory.
+    residentContentOffset:  f32                         // Virtual y origin of the resident text window.
+    estimatedContentHeight: f32                         // Optional larger virtual height published by a streaming owner.
+    firstLineNumber:        u64 = 1                     // Number the gutter gives the first logical line.
+    clipFormat:             Clipboard.ValueFormat       // Clipboard format carrying the rune styles of a copy.
+    cursorPosUndo:          RichEditCursor              // Caret when the outermost undo group opened.
+    caretReported:          RichEditCursor              // Caret as `sigCaretMoved` last reported it.
+    selBegUndo:             RichEditCursor              // Anchor when the outermost undo group opened.
 }
 
 private impl IWnd for RichEditCtrl
@@ -125,10 +125,12 @@ private impl RichEditCtrl
     // document does not shift its text as it grows, one blank advance before it and two after.
     internal mtd gutterWidth()->f32
     {
-        if not .flags.has(.LineNumbers) do
+        if not .flags.has(.LineNumbers)
+        {
             return 0
+        }
 
-        var digits = 1'u64
+        var digits = 1_u64
         var last   = .firstLineNumber + Math.max(.lines.count, 1) - 1
         while last >= 10
         {
@@ -144,16 +146,21 @@ private impl RichEditCtrl
     mtd setDefaultStyles()
     {
         let colors = .themeColors()
-        for i in .styles.count do
+        for i in .styles.count
+        {
             .styles[i].colFg = colors.richEdit_Text
+        }
+
         .setForm(.RichEditCtrl)
     }
 
     mtd computeScrollY()
     {
         let size = .xGlyphSize()
-        if not .recomputeScroll do
+        if not .recomputeScroll
+        {
             return
+        }
 
         var y = .residentContentOffset
         var firstHidden = true
@@ -171,7 +178,7 @@ private impl RichEditCtrl
                 y += size.y
                 firstHidden           = true
             }
-            elif firstHidden
+            else if firstHidden
             {
                 .countVisibleLines    += 1
                 ln.drawingRect.y      = y
@@ -184,10 +191,16 @@ private impl RichEditCtrl
 
     mtd setModified(modifiers: bool)
     {
-        if modifiers do
+        if modifiers
+        {
             .sigChanged.call(me)
-        if .modified == modifiers do
+        }
+
+        if .modified == modifiers
+        {
             return
+        }
+
         .modified = modifiers
         .sigModified.call(me)
     }
@@ -202,8 +215,11 @@ private impl RichEditCtrl
     // caret end here, and only a place that differs from the last one reported is reported.
     internal mtd reportCaretMove()
     {
-        if .caretReported.lineIndex == .cursorPos.lineIndex and .caretReported.charPosInLine == .cursorPos.charPosInLine do
+        if .caretReported.lineIndex == .cursorPos.lineIndex and .caretReported.charPosInLine == .cursorPos.charPosInLine
+        {
             return
+        }
+
         .caretReported = .cursorPos
         .sigCaretMoved.call(me)
     }
@@ -214,10 +230,14 @@ private impl RichEditCtrl
     {
         var p: *RichEditLine?
 
-        if .freeLines.count do
+        if .freeLines.count
+        {
             p = .freeLines.popBack()
-        else do
-            p = Memory.new'RichEditLine()
+        }
+        else
+        {
+            p = Memory.new!{RichEditLine}()
+        }
 
         let pn = unwrap p
         pn.resetInternal()
@@ -244,29 +264,44 @@ private impl RichEditCtrl
 
     mtd firstVisibleLine()->u64
     {
-        for i in .lines.count where .lines[i]!.isVisible() do
+        for i in .lines.count where .lines[i]!.isVisible()
+        {
             return i
+        }
+
         return 0
     }
 
     mtd lastVisibleLine()->u64
     {
-        for i in reversed(.lines.count) where .lines[i]!.isVisible() do
+        for i in reversed(.lines.count) where .lines[i]!.isVisible()
+        {
             return i
+        }
+
         return 0
     }
 
     mtd previousVisibleLine(lineIndex: u64)->u64
     {
-        if not lineIndex do
+        if not lineIndex
+        {
             return 0
+        }
+
         var i = lineIndex - 1
         for
         {
-            if .lines[i]!.isVisible() do
+            if .lines[i]!.isVisible()
+            {
                 return i
-            if not i do
+            }
+
+            if not i
+            {
                 break
+            }
+
             i -= 1
         }
 
@@ -276,16 +311,24 @@ private impl RichEditCtrl
     mtd nextVisibleLine(lineIndex: u64)->u64
     {
         let count = .lines.count
-        if not count or lineIndex >= count do
+        if not count or lineIndex >= count
+        {
             return lineIndex
+        }
 
         var i = lineIndex + 1
         for
         {
-            if .lines[i]!.isVisible() do
+            if .lines[i]!.isVisible()
+            {
                 return i
-            if i == count - 1 do
+            }
+
+            if i == count - 1
+            {
                 break
+            }
+
             i += 1
         }
 
@@ -300,18 +343,23 @@ impl RichEditCtrl
     func create(parent: *Wnd, position: Math.Rectangle = {}, id: WndId? = null)->*RichEditCtrl
     {
         var pos = position
-        if pos.height == 0 do
+        if pos.height == 0
+        {
             pos.height = parent.themeMetrics().editBox_Height
-        if pos.width == 0 do
-            pos.width = parent.themeMetrics().editBox_Width
+        }
 
-        with let ed = Wnd.create'RichEditCtrl(parent, "", pos, id)
+        if pos.width == 0
+        {
+            pos.width = parent.themeMetrics().editBox_Width
+        }
+
+        with let ed = Wnd.create!{RichEditCtrl}(parent, "", pos, id)
         {
             // One stop of the keyboard traversal for the whole editor, on the view that owns the
             // caret and the key mapping.
             .focusPolicy         = .Tab
             .wndFlags            |= .NoFocusRing
-            .scrollWnd           = .createView'ScrollWnd()
+            .scrollWnd           = .createView!{ScrollWnd}()
             .scrollWnd.dockStyle = .Center
 
             // Keep text and the caret clear of overlaid scroll bars with a
@@ -321,12 +369,15 @@ impl RichEditCtrl
             .scrollWnd.setPadding(pad, pad, edge, edge)
             .scrollWnd.sigScrollPositionChanged += func|ed|(_, op, np)
             {
-                if op.y != np.y do
+                if op.y != np.y
+                {
                     ed.dirtyFirstLineView = true
+                }
+
                 ed.sigScrollPositionChanged.call(ed, op, np)
             }
 
-            .edView             = .scrollWnd.createView'RichEditView()
+            .edView             = .scrollWnd.createView!{RichEditView}()
             .edView.ed          = ed
             .edView.focusPolicy = .Inner
             .edView.wndFlags    |= .NoScroll
@@ -360,8 +411,11 @@ impl RichEditCtrl
         {
         case .RichEditCtrl:
             .style.setFont(.parent!.theme().res.fontDefaultFs)
-            if mdlBk.isEmpty() do
+            if mdlBk.isEmpty()
+            {
                 mdlBk = String.from("$richEdit_Bk")
+            }
+
             .stylesSelect[0].colFg = colors.richEdit_SelText
             .stylesSelect[0].colBk = colors.richEdit_SelBk
             .stylesSelect[1].colFg = colors.richEdit_SelTextNoFocus
@@ -369,8 +423,11 @@ impl RichEditCtrl
 
         case .Edit:
             .style.clearFont()
-            if mdlBk.isEmpty() do
+            if mdlBk.isEmpty()
+            {
                 mdlBk = String.from("$edit_Bk")
+            }
+
             .stylesSelect[0].colFg = colors.edit_Text
             .stylesSelect[0].colBk = colors.edit_SelectedBk
             .stylesSelect[1].colFg = 0
@@ -413,11 +470,16 @@ impl RichEditCtrl
         for line, index in .lines
         {
             let text = unwrap line
-            if index and not text.wordWrap do
+            if index and not text.wordWrap
+            {
                 number += 1
+            }
+
             let bounds = text.drawingRect
-            if bounds.height > 0 and bounds.y <= y and y < bounds.bottom() do
+            if bounds.height > 0 and bounds.y <= y and y < bounds.bottom()
+            {
                 return number
+            }
         }
 
         return 0
@@ -428,18 +490,30 @@ impl RichEditCtrl
     // Line numbers start at one. Returns false when the line is outside the resident layout or hidden inside a fold.
     mtd scrollToLogicalLine(number: u64)->bool
     {
-        if not number or number < .firstLineNumber do
+        if not number or number < .firstLineNumber
+        {
             return false
+        }
+
         var current = .firstLineNumber
         for line, index in .lines
         {
             let text = unwrap line
-            if index and not text.wordWrap do
+            if index and not text.wordWrap
+            {
                 current += 1
-            if current != number or text.wordWrap do
+            }
+
+            if current != number or text.wordWrap
+            {
                 continue
-            if text.drawingRect.height <= 0 or not text.isVisible() do
+            }
+
+            if text.drawingRect.height <= 0 or not text.isVisible()
+            {
                 return false
+            }
+
             .setScrollPosition({.scrollPosition().x, text.drawingRect.y})
             return true
         }
@@ -476,8 +550,11 @@ impl RichEditCtrl
     // line, so the gutter keeps counting the lines of the whole document.
     mtd setFirstLineNumber(number: u64)
     {
-        if .firstLineNumber == number do
+        if .firstLineNumber == number
+        {
             return
+        }
+
         .firstLineNumber = number
         .recomputeWrap   = true
         .recomputeScroll = true
@@ -492,8 +569,11 @@ impl RichEditCtrl
     {
         let origin = Math.max(offset, 0)
         let extent = Math.max(height, origin + .loadedContentHeight)
-        if .residentContentOffset == origin and .estimatedContentHeight == extent do
+        if .residentContentOffset == origin and .estimatedContentHeight == extent
+        {
             return
+        }
+
         .residentContentOffset  = origin
         .estimatedContentHeight = extent
         .recomputeScroll        = true
@@ -509,34 +589,48 @@ impl RichEditCtrl
     mtd charPressed(key: Input.Key, ch: rune, modifiers: Input.KeyModifiers)
     {
         var isChar = false
-        if modifiers == .None and ch >= '0' and ch <= '9' do
+        if modifiers == .None and ch >= '0' and ch <= '9'
+        {
             isChar = true
+        }
 
         // A key combination bound to a command is not text.
         if not isChar
         {
             let cmd = .commandForShortcut(key, modifiers)
-            if cmd != .None do
+            if cmd != .None
+            {
                 return
+            }
         }
 
-        if .isReadOnly() do
+        if .isReadOnly()
+        {
             return
+        }
 
         var c = ch
-        if c == '\r' do
+        if c == '\r'
+        {
             c = '\n'
+        }
 
         // A control character is text only when its own key typed it: `Ctrl K` and `Ctrl I` send
         // one too, and a window that binds them to a command must not find it in the text.
-        if c < ' ' and not (c == '\n' and key == .Return) and not (c == '\t' and key == .Tab) do
+        if c < ' ' and not (c == '\n' and key == .Return) and not (c == '\t' and key == .Tab)
+        {
             return
+        }
 
-        if c == '\n' and modifiers.equals(.None) and .flags.has(.AutoLoseFocus) do
+        if c == '\n' and modifiers.equals(.None) and .flags.has(.AutoLoseFocus)
+        {
             return
+        }
 
-        if .lexer and .lexer.insertRune(me, c) do
+        if .lexer and .lexer.insertRune(me, c)
+        {
             return
+        }
 
         .insertRune(c)
         .forceCaretVisible = true
@@ -547,8 +641,11 @@ impl RichEditCtrl
     mtd keyPressed(key: Input.Key, modifiers: Input.KeyModifiers)
     {
         let cmd = .commandForShortcut(key, modifiers)
-        if cmd == .None do
+        if cmd == .None
+        {
             return
+        }
+
         .executeCommand(cmd)
         .forceCaretVisible = true
         .invalidate()
@@ -565,8 +662,10 @@ impl RichEditCtrl
     // Runs the lexer over every line, in order.
     mtd lexAll()
     {
-        if not .lexer do
+        if not .lexer
+        {
             return
+        }
 
         var prev, cur, next: *RichEditLine?
         for i in .lines.count

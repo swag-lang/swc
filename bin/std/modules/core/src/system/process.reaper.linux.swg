@@ -18,8 +18,11 @@ private var g_ClosedProcesses:       *LinuxProcessState?
 #init
 {
     g_ProcessReaperMutex.lock()
-    if not g_ProcessReaperStarted do
+    if not g_ProcessReaperStarted
+    {
         g_ProcessReaperStopping = false
+    }
+
     g_ProcessReaperMutex.unlock()
 }
 
@@ -34,8 +37,11 @@ private func processReaperEntry(_: *void?)->*void?
         for
         {
             let state = link[]
-            if not state do
+            if not state
+            {
                 break
+            }
+
             var status: s32
             let reaped = Linux.waitpid(state.pid, &status, Linux.WNOHANG)
             if (reaped > 0 and (Linux.WIFEXITED(status) or Linux.WIFSIGNALED(status))) or
@@ -46,18 +52,28 @@ private func processReaperEntry(_: *void?)->*void?
             }
             else
             {
-                if reaped < 0 and Linux.errno() != Linux.EINTR do
+                if reaped < 0 and Linux.errno() != Linux.EINTR
+                {
                     Swag.panic("cannot reap a closed child process", #curlocation)
+                }
+
                 link = &state.next
             }
         }
 
-        if g_ProcessReaperStopping and not g_ClosedProcesses do
+        if g_ProcessReaperStopping and not g_ClosedProcesses
+        {
             return null
-        if g_ClosedProcesses do
+        }
+
+        if g_ClosedProcesses
+        {
             discard g_ProcessReaperChanged.waitFor(&g_ProcessReaperMutex, 25)
-        else do
+        }
+        else
+        {
             g_ProcessReaperChanged.wait(&g_ProcessReaperMutex)
+        }
     }
 }
 
@@ -65,13 +81,22 @@ private func ensureProcessReaperNative() fail
 {
     g_ProcessReaperMutex.lock()
     defer g_ProcessReaperMutex.unlock()
-    if g_ProcessReaperStopping do
+    if g_ProcessReaperStopping
+    {
         fail Errors.BadParameterError{"process services have shut down"}
-    if g_ProcessReaperStarted do
+    }
+
+    if g_ProcessReaperStarted
+    {
         return
+    }
+
     let error = Linux.pthread_create(&g_ProcessReaperThread, null, &processReaperEntry, null)
-    if error != 0 do
+    if error != 0
+    {
         try Errors.failLinuxError(error)
+    }
+
     g_ProcessReaperStarted = true
 }
 
@@ -93,15 +118,23 @@ private func releaseProcessNative(state: *LinuxProcessState)
         {
             var status: s32
             let result = Linux.waitpid(state.pid, &status, 0)
-            if result > 0 and (Linux.WIFEXITED(status) or Linux.WIFSIGNALED(status)) do
+            if result > 0 and (Linux.WIFEXITED(status) or Linux.WIFSIGNALED(status))
+            {
                 break
+            }
+
             if result < 0
             {
                 let error = Linux.errno()
-                if error == Linux.ECHILD do
+                if error == Linux.ECHILD
+                {
                     break
-                if error != Linux.EINTR do
+                }
+
+                if error != Linux.EINTR
+                {
                     Swag.panic("cannot reap a closed child process", #curlocation)
+                }
             }
         }
 
@@ -123,11 +156,17 @@ internal func shutdownProcessesNative()
     let started = g_ProcessReaperStarted
     g_ProcessReaperChanged.wakeAll()
     g_ProcessReaperMutex.unlock()
-    if not started do
+    if not started
+    {
         return
+    }
+
     let error = Linux.pthread_join(g_ProcessReaperThread, null)
-    if error != 0 do
+    if error != 0
+    {
         Swag.panic("cannot join the process reaper", #curlocation)
+    }
+
     g_ProcessReaperMutex.lock()
     g_ProcessReaperStarted = false
     g_ProcessReaperMutex.unlock()

@@ -15,8 +15,10 @@ impl Text
 {
     mtd opDrop()
     {
-        for i in 16 do
+        for i in 16
+        {
             .storage[i] = 0
+        }
         .len = 0
     }
 
@@ -30,28 +32,30 @@ impl Text
 func makeText()->Text
 {
     var t: Text
-    t.storage[0] = 'H'u8
-    t.storage[1] = 'i'u8
+    t.storage[0] = 'H'_u8
+    t.storage[1] = 'i'_u8
     t.len        = 2
     return t
 }
 
 func firstByte(s: string)->u8
 {
-    if s.count != 2 do
+    if s.count != 2
+    {
         return 0
+    }
     return s[0]
 }
 
 #test
 {
     // Rvalue receiver: the slice must still see the receiver's bytes.
-    Swag.require(firstByte(makeText().view()) == 'H'u8)
+    Swag.require(firstByte(makeText().view()) == 'H'_u8)
 }
 
 #test
 {
     // Named receiver: the healthy control.
     let t = makeText()
-    Swag.require(firstByte(t.view()) == 'H'u8)
+    Swag.require(firstByte(t.view()) == 'H'_u8)
 }

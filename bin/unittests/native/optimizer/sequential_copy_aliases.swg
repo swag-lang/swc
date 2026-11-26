@@ -3,29 +3,37 @@
 #[Swag.NoInline, Swag.Optimize(false)]
 func referenceWords(target, source: [*] u64)
 {
-    for index in 8'u64 do
+    for index in 8_u64
+    {
         target[index] = source[index]
+    }
 }
 
 #[Swag.NoInline, Swag.Optimize(true)]
 func optimizedWords(target, source: [*] u64)
 {
-    for index in 8'u64 do
+    for index in 8_u64
+    {
         target[index] = source[index]
+    }
 }
 
 #[Swag.NoInline, Swag.Optimize(false)]
 func referenceHalves(target, source: [*] u32)
 {
-    for index in 16'u64 do
+    for index in 16_u64
+    {
         target[index] = source[index]
+    }
 }
 
 #[Swag.NoInline, Swag.Optimize(true)]
 func optimizedHalves(target, source: [*] u32)
 {
-    for index in 16'u64 do
+    for index in 16_u64
+    {
         target[index] = source[index]
+    }
 }
 
 #[Swag.NoInline, Swag.Optimize(false)]
@@ -33,8 +41,10 @@ func referenceLive(target, source: [*] u64)->u64
 {
     let first = source[0]
     target[0] = first
-    for index in 1'u64 until 9 do
+    for index in 1_u64 until 9
+    {
         target[index] = source[index]
+    }
     return first
 }
 
@@ -43,21 +53,23 @@ func optimizedLive(target, source: [*] u64)->u64
 {
     let first = source[0]
     target[0] = first
-    for index in 1'u64 until 9 do
+    for index in 1_u64 until 9
+    {
         target[index] = source[index]
+    }
     return first
 }
 
 #test
 {
-    for seed in [0'u64, 1, 17, 255]
+    for seed in [0_u64, 1, 17, 255]
     {
-        for source in [64'u64, 65, 71]
+        for source in [64_u64, 65, 71]
         {
-            for target in 48'u64 until 112
+            for target in 48_u64 until 112
             {
                 var expected, actual: [256] u8
-                for index in 256'u64
+                for index in 256_u64
                 {
                     expected[index] = cast(u8, (index * 37 + seed * 13) & 255)
                     actual[index]   = expected[index]

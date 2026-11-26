@@ -12,8 +12,10 @@ func GetWindowDisplayAffinity(hWnd: HWND, pdwAffinity: *DWORD)->BOOL
 
 func excludeCaptureChrome(surface: *Surface)
 {
-    if surface.win32Handle() do
-        discard SetWindowDisplayAffinity(surface.win32Handle(), 0x11'u32)     // WDA_EXCLUDEFROMCAPTURE
+    if surface.win32Handle()
+    {
+        discard SetWindowDisplayAffinity(surface.win32Handle(), 0x11_u32)
+    }     // WDA_EXCLUDEFROMCAPTURE
 }
 
 // Windows hides owned recording controls from BitBlt through display affinity.
@@ -47,11 +49,15 @@ internal
     #[Swag.CallingConvention(.C)]
     func enumProc(hWnd: HWND, _: LPARAM)->BOOL
     {
-        if not IsWindowVisible(hWnd) do
+        if not IsWindowVisible(hWnd)
+        {
             return TRUE
+        }
 
-        if hWnd == g_Ignore do
+        if hWnd == g_Ignore
+        {
             return TRUE
+        }
 
         var r: RECT
         GetWindowRect(hWnd, &r)
@@ -70,8 +76,10 @@ internal
 
             for s in systemClasses
             {
-                if str == s do
+                if str == s
+                {
                     return TRUE
+                }
             }
 
             g_Hit = hWnd
@@ -87,40 +95,56 @@ internal
 func captureWindowInfo(hWnd: HWND)->CaptureWindowInfo
 {
     var result: #returntype
-    if not hWnd do
+    if not hWnd
+    {
         return result
+    }
 
     var window = hWnd
     let root   = GetAncestor(window, GA_ROOT)
-    if root do
+    if root
+    {
         window = root
+    }
+
     result.nativeWindow = cast(u64, window)
 
     var title: [1024] u16
     let titleLength = GetWindowTextW(window, &title[0], cast(s32, title.count))
-    if titleLength > 0 do
+    if titleLength > 0
+    {
         result.title = Utf8.fromUtf16(Swag.makeSlice(&title[0], cast(u64, titleLength)))
+    }
 
     var className: [256] u16
     let classLength = GetClassNameW(window, &className[0], cast(s32, className.count))
-    if classLength > 0 do
+    if classLength > 0
+    {
         result.className = Utf8.fromUtf16(Swag.makeSlice(&className[0], cast(u64, classLength)))
+    }
 
     var processId: u32
     discard GetWindowThreadProcessId(window, &processId)
-    if not processId do
+    if not processId
+    {
         return result
+    }
 
     let process = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, 0, processId)
-    if not process do
+    if not process
+    {
         return result
+    }
+
     defer CloseHandle(process)
 
-    var path: Array'u16
+    var path: Array!{u16}
     path.resize(32768)
     var pathLength = cast(u32, path.count)
-    if not QueryFullProcessImageNameW(process, 0, (path.toSlice()).buffer, &pathLength) do
+    if not QueryFullProcessImageNameW(process, 0, (path.toSlice()).buffer, &pathLength)
+    {
         return result
+    }
 
     result.executable  = Utf8.fromUtf16(Swag.makeSlice((path.toSlice()).buffer, cast(u64, pathLength)))
     result.application = Path.fileNameWithoutExtension(result.executable) orelse ""
@@ -131,14 +155,20 @@ func captureWindowInfo(hWnd: HWND)->CaptureWindowInfo
 func getCaptureWindowBounds(id: u64)->{rect: Math.Rectangle, visible: bool, exists: bool}
 {
     var result: #returntype
-    if not id do
+    if not id
+    {
         return result
+    }
+
     let window = cast(HWND, id)
     var frame:     RECT
     var placement: WINDOWPLACEMENT
     placement.length = #sizeof(WINDOWPLACEMENT)
-    if not GetWindowRect(window, &frame) or not GetWindowPlacement(window, &placement) do
+    if not GetWindowRect(window, &frame) or not GetWindowPlacement(window, &placement)
+    {
         return result
+    }
+
     result.rect    = {frame.left, frame.top, frame.right - frame.left, frame.bottom - frame.top}
     result.visible = IsWindowVisible(window) and
                      placement.showCmd != SW_SHOWMINIMIZED and
@@ -161,8 +191,10 @@ func findWndAtPos(srf: *Surface, x, y: f32)->HWND
     g_Hit    = null
     g_Ignore = srf.win32Handle()
     EnumWindows(cast(WNDENUMPROC, &enumProc), 0)
-    if not g_Hit do
+    if not g_Hit
+    {
         return null
+    }
 
     for
     {
@@ -171,13 +203,18 @@ func findWndAtPos(srf: *Surface, x, y: f32)->HWND
         pt1.y = g_HitTest.y
         ScreenToClient(g_Hit, &pt1)
         let child = ChildWindowFromPointEx(g_Hit, pt1, CWP_SKIPINVISIBLE | CWP_SKIPDISABLED | CWP_SKIPTRANSPARENT)
-        if not child or child == g_Hit do
+        if not child or child == g_Hit
+        {
             break
+        }
+
         g_Hit = child
     }
 
-    if not g_Hit do
+    if not g_Hit
+    {
         return null
+    }
 
     return g_Hit
 }
@@ -186,8 +223,10 @@ func getCaptureWindowAtPos(srf: *Surface, x, y: f32)->{ rect: Math.Rectangle, in
 {
     var result: #returntype
     let hit = findWndAtPos(srf, x, y)
-    if not hit do
+    if not hit
+    {
         return result
+    }
 
     var r: RECT
     GetWindowRect(hit, &r)
@@ -201,20 +240,26 @@ func getCaptureWindowAtPos(srf: *Surface, x, y: f32)->{ rect: Math.Rectangle, in
 func getCaptureWindowForRect(srf: *Surface, captureRect: Math.Rectangle)->CaptureWindowInfo
 {
     let hit = findWndAtPos(srf, captureRect.horzCenter(), captureRect.vertCenter())
-    if not hit do
+    if not hit
+    {
         return {}
+    }
 
     var window = GetAncestor(hit, GA_ROOT)
-    if not window do
+    if not window
+    {
         window = hit
+    }
 
     var r: RECT
     GetWindowRect(window, &r)
     if captureRect.x < r.left or
        captureRect.y < r.top or
        captureRect.right() > r.right or
-       captureRect.bottom() > r.bottom do
+       captureRect.bottom() > r.bottom
+    {
         return {}
+    }
 
     return captureWindowInfo(window)
 }
@@ -225,8 +270,10 @@ func getBackgroundWindow()->{ rect: Math.Rectangle, info: CaptureWindowInfo }
 {
     var result: #returntype
     let hit = GetForegroundWindow()
-    if not hit do
+    if not hit
+    {
         return result
+    }
 
     let awareness = SetThreadDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE)
     defer discard SetThreadDpiAwarenessContext(awareness)
@@ -244,10 +291,15 @@ func drawCursorInto(memDC: HDC, offsetX, offsetY: s32)
 {
     var ci: CURSORINFO
     ci.cbSize = #sizeof(CURSORINFO)
-    if not GetCursorInfo(&ci) do
+    if not GetCursorInfo(&ci)
+    {
         return
-    if not (ci.flags & CURSOR_SHOWING) or not ci.hCursor do
+    }
+
+    if not (ci.flags & CURSOR_SHOWING) or not ci.hCursor
+    {
         return
+    }
 
     let hIcon = cast(HICON, ci.hCursor)
 
@@ -255,10 +307,15 @@ func drawCursorInto(memDC: HDC, offsetX, offsetY: s32)
     catch GetIconInfo(hIcon, &ii)
     defer
     {
-        if ii.hbmMask do
+        if ii.hbmMask
+        {
             catch DeleteObject(cast(HGDIOBJ, ii.hbmMask))
-        if ii.hbmColor do
+        }
+
+        if ii.hbmColor
+        {
             catch DeleteObject(cast(HGDIOBJ, ii.hbmColor))
+        }
     }
 
     let x = ci.ptScreenPos.x - offsetX - cast(s32, ii.xHotspot)
@@ -292,8 +349,11 @@ func getScreenRectImageInto(target: *Image, drawCursor: bool, x, y, w, h: s32) f
     {
         if not Env.hasArgument("swag.capture.native-screen=true")
         {
-            if target.width != w or target.height != h or target.pixelFormat != .BGRA8 do
+            if target.width != w or target.height != h or target.pixelFormat != .BGRA8
+            {
                 target[] = Image.create(Math.max(w, 1), Math.max(h, 1), .BGRA8)
+            }
+
             return
         }
     }
@@ -323,8 +383,11 @@ func getScreenRectImageInto(target: *Image, drawCursor: bool, x, y, w, h: s32) f
 
     var bits: *u8?
     let memBMP = try CreateDIBSection(hDesktopDC, &bi, cast(UINT, DIB_RGB_COLORS), &bits, null, 0)
-    if not memBMP or not bits do
+    if not memBMP or not bits
+    {
         try failWinError(GetLastError())
+    }
+
     defer catch DeleteObject(cast(HGDIOBJ, memBMP))
 
     // Keep the DC's original bitmap so we can re-select it before deleting memBMP:
@@ -336,13 +399,18 @@ func getScreenRectImageInto(target: *Image, drawCursor: bool, x, y, w, h: s32) f
 
     try BitBlt(memDC, 0, 0, w, h, hDesktopDC, x, y, SRCCOPY | CAPTUREBLT)
 
-    if drawCursor do
+    if drawCursor
+    {
         drawCursorInto(memDC, x, y)
+    }
 
     // Flush the GDI command batch so the DIB memory is fully written before we read it.
     GdiFlush()
 
-    if target.width != w or target.height != h or target.pixelFormat != .BGRA8 do
+    if target.width != w or target.height != h or target.pixelFormat != .BGRA8
+    {
         target[] = Image.create(w, h, .BGRA8)
+    }
+
     Memory.copy(target.pixels.storage(), unwrap bits, target.byteCount)
 }

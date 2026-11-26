@@ -14,7 +14,7 @@ func subtract32(value: u32)->u32 => (value << 3) - (value << 1)
 
 #test
 {
-    for value in [0'u64, 1, 2, 7, 0x7FFFFFFF, 0xFFFFFFFF, 0xFFFFFFFFFFFFFFFF]
+    for value in [0_u64, 1, 2, 7, 0x7FFFFFFF, 0xFFFFFFFF, 0xFFFFFFFFFFFFFFFF]
     {
         Swag.require(add64(value) == value * #wrap 10)
         Swag.require(subtract64(value) == value * #wrap 6)

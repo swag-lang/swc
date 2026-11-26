@@ -53,8 +53,10 @@ impl PathOwner
 
 func maybeInvoke(cb: (func||()->s32)? = null)->s32
 {
-    if cb do
+    if cb
+    {
         return cb()
+    }
     return -1
 }
 

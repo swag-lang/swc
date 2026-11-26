@@ -9,7 +9,7 @@
     allocator.setup()
     allocator.configure(false, false, false, false, false)
     let itf = Swag.makeInterface(&allocator, #typeof(allocator), Swag.IAllocator)
-    for size in [64'u64, 128 * 1024]
+    for size in [64_u64, 128 * 1024]
     {
         var request = Swag.AllocatorRequest{size: size}
         itf.alloc(&request)

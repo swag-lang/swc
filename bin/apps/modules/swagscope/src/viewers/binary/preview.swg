@@ -4,7 +4,7 @@
 using Core, Pixel, Serialization
 
 // Most images of one container that get a preview.
-private const PreviewLimit = 8'u64
+private const PreviewLimit = 8_u64
 
 // One image understood inside a binary container, with the short label shown under it.
 struct Preview
@@ -14,7 +14,7 @@ struct Preview
 }
 
 // Writes `value` as four little-endian bytes at `offset`.
-private func writePreviewU32(bytes: *Array'u8, offset: u64, value: u32)
+private func writePreviewU32(bytes: *Array!{u8}, offset: u64, value: u32)
 {
     bytes[offset]     = cast(u8, value)
     bytes[offset + 1] = cast(u8, value >> 8)
@@ -25,8 +25,11 @@ private func writePreviewU32(bytes: *Array'u8, offset: u64, value: u32)
 // Returns whether the file begins with the directory of a Windows icon or cursor.
 func isIconContainer(image: *BinaryImage)->bool
 {
-    if not image.has(0, 6) or image.u16At(0) != 0 or not image.u16At(4) do
+    if not image.has(0, 6) or image.u16At(0) != 0 or not image.u16At(4)
+    {
         return false
+    }
+
     let kind = image.u16At(2)
     return kind == 1 or kind == 2
 }
@@ -35,7 +38,7 @@ func isIconContainer(image: *BinaryImage)->bool
 //
 // Each directory entry is rebuilt as a one-image ICO so the existing decoder can expose every size,
 // rather than selecting only the largest image from the original container.
-func reportIconContainer(image: *BinaryImage, report: *Report, previews: *Array'Preview)
+func reportIconContainer(image: *BinaryImage, report: *Report, previews: *Array!{Preview})
 {
     image.bigEndian = false
     let count      = cast(u64, image.u16At(4))
@@ -53,8 +56,11 @@ func reportIconContainer(image: *BinaryImage, report: *Report, previews: *Array'
     for index in shown
     {
         let at = 6 + index * 16
-        if not image.has(at, 16) do
+        if not image.has(at, 16)
+        {
             break
+        }
+
         let width  = image.u8At(at) ? cast(u32, image.u8At(at)) : 256
         let height = image.u8At(at + 1) ? cast(u32, image.u8At(at + 1)) : 256
         let bits   = image.u16At(at + 6)
@@ -67,9 +73,12 @@ func reportIconContainer(image: *BinaryImage, report: *Report, previews: *Array'
         report.hexField(at + 12, 4, "Offset", offset)
         report.endGroup()
 
-        if not size or not image.has(offset, size) do
+        if not size or not image.has(offset, size)
+        {
             continue
-        var one: Array'u8
+        }
+
+        var one: Array!{u8}
         one.resize(22 + size)
         one[2] = cast(u8, kind)
         one[4] = 1
@@ -100,12 +109,12 @@ private func captureBackgroundRole()->Guid128 => previewGuid("648e64f2-ca4b-43ef
 private func captureOriginalRole()->Guid128   => previewGuid("7206ea20-cd74-4832-afa9-0ce33c7699cd")
 
 // Adds the image a TagBin payload serializes as one preview labelled `label`.
-private func addTagBinImage(bytes: const [..] u8, label: string, previews: *Array'Preview)
+private func addTagBinImage(bytes: const [..] u8, label: string, previews: *Array!{Preview})
 {
-    var decoder: Decoder'Read.TagBin
+    var decoder: Decoder!{Read.TagBin}
     catch
     {
-        let image = try decoder.readAll'Image(bytes)
+        let image = try decoder.readAll!{Image}(bytes)
         defer Memory.delete(image)
 
         var preview: Preview
@@ -120,21 +129,26 @@ private func addTagBinImage(bytes: const [..] u8, label: string, previews: *Arra
 // Swag Capture declares the role of every picture. `Scc.Reader.readChunk` performs the registered
 // deflate step first, so compressed background and original images reach the same decoder as stored
 // ones.
-func loadSccImagePreviews(fileName: string, previews: *Array'Preview)
+func loadSccImagePreviews(fileName: string, previews: *Array!{Preview})
 {
     var reader: Scc.Reader
     var openErrorOutcome: Swag.Error
     catch reader.initialize(fileName) as openErrorOutcome
     let openError = openErrorOutcome.value()
-    if openError != null or reader.kind() != captureContainerKind() do
+    if openError != null or reader.kind() != captureContainerKind()
+    {
         return
+    }
 
     for chunk in reader.chunks() where previews.count < PreviewLimit
     {
         if chunk.roleId != capturePreviewRole() and
            chunk.roleId != captureBackgroundRole() and
-           chunk.roleId != captureOriginalRole() do
+           chunk.roleId != captureOriginalRole()
+        {
             continue
+        }
+
         let bytes = catch reader.readChunk(chunk.id) { continue }
 
         if chunk.roleId == capturePreviewRole()
@@ -145,7 +159,7 @@ func loadSccImagePreviews(fileName: string, previews: *Array'Preview)
             preview.label = texts().ui_Preview
             previews.add(#move preview)
         }
-        elif chunk.roleId == captureBackgroundRole()
+        else if chunk.roleId == captureBackgroundRole()
         {
             addTagBinImage(bytes.toSlice(), "Background", previews)
         }

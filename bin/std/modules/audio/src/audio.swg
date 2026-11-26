@@ -12,14 +12,18 @@ var g_Driver: Driver
 // `--run-arg swag.audio.native-output=true` for a native audio integration test.
 public func createEngine(kind: DriverKind = .Default) fail
 {
-    if g_Driver.isCreated do
+    if g_Driver.isCreated
+    {
         fail BadParameterError{"audio engine is already created"}
+    }
 
     // Ordinary tests and smokes stay silent. A device integration runner must opt in explicitly;
     // filesystem and settings isolation still apply to that run.
     var resolved = kind
-    if Env.isSandboxed() and not Env.hasArgument("swag.audio.native-output=true") do
+    if Env.isSandboxed() and not Env.hasArgument("swag.audio.native-output=true")
+    {
         resolved = .NoSound
+    }
 
     try g_Driver.create(resolved)
 }
@@ -37,8 +41,11 @@ public func createNoSoundEngine() fail => try createEngine(.NoSound)
 // invalid afterward. Calling this without an engine does nothing.
 public func destroyEngine()
 {
-    if not g_Driver.isCreated do
+    if not g_Driver.isCreated
+    {
         return
+    }
+
     g_Driver.destroy()
 }
 
@@ -54,18 +61,27 @@ public func activeDriverKind()->DriverKind => g_Driver.kind
 // calls without an engine fail with [[Core.Errors.BadParameterError]].
 public func setOutputVolume(volume: f32) fail
 {
-    if not g_Driver.isCreated do
+    if not g_Driver.isCreated
+    {
         fail BadParameterError{"audio engine is not created"}
-    if not Math.isFinite(volume) do
+    }
+
+    if not Math.isFinite(volume)
+    {
         fail BadParameterError{"output volume must be finite"}
+    }
+
     try g_Driver.setOutputVolume(Math.clamp(volume, 0, 1))
 }
 
 // Returns the current mastering output gain as a linear value.
 public func outputVolume()->f32 fail
 {
-    if not g_Driver.isCreated do
+    if not g_Driver.isCreated
+    {
         fail BadParameterError{"audio engine is not created"}
+    }
+
     return g_Driver.outputVolume()
 }
 

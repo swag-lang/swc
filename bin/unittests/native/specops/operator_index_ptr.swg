@@ -210,12 +210,12 @@ impl NestedContainer
 // A generic container hands back a typed element address.
 #test
 {
-    var box: GenBox's32
+    var box: GenBox!{s32}
     box[0] = 4
     box[0] += 3
     Swag.require(box.values[0] == 7)
 
-    var pts: GenBox'PtrElem
+    var pts: GenBox!{PtrElem}
     pts[1].x = 11
     Swag.require(pts.values[1].x == 11)
 }

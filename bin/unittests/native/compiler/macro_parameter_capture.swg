@@ -34,10 +34,12 @@ func readPointerParameterCapture(pixelUserData: *void? = null)->*void?
 #[Swag.Macro]
 func captureParallelParameter(pixelUserData: *void? = null)
 {
-    parallel for |pixelUserData| index in 8'u64
+    parallel for |pixelUserData| index in 8_u64
     {
-        if pixelUserData != null do
+        if pixelUserData != null
+        {
             cast([*] u64, pixelUserData)[index] = index + 1
+        }
     }
 }
 
@@ -45,7 +47,9 @@ func captureParallelParameter(pixelUserData: *void? = null)
 {
     var values: [8] u64
     captureParallelParameter(&values)
-    for index in 8 do
+    for index in 8
+    {
         Swag.require(values[index] == index + 1)
+    }
     captureParallelParameter()
 }

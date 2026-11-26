@@ -48,10 +48,10 @@
 {
     func nestedTypedLocals()->s32
     {
-        var first: s8 = 7's8
+        var first: s8 = 7_s8
         scope
         {
-            var second: u16 = 20'u16
+            var second: u16 = 20_u16
             scope
             {
                 var third: s32 = cast(s32, first) + cast(s32, second)

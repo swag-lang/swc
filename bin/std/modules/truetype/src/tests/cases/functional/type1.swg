@@ -5,7 +5,7 @@ using Swag, Core
 func buildBinaryType1Fixture(firstCipher: const [4] u8,
                              hexEncoded: bool = false,
                              rdSeparator: string = " ",
-                             firstNotDefByte: u8 = 139)->Array'u8
+                             firstNotDefByte: u8 = 139)->Array!{u8}
 {
     const ClearHeader:        string = "%!PS-AdobeFont-1.0: Fixture 1.0\n/FontName /Fixture\n/FontMatrix [0.001 0 0 0.001 0 0]\n/FontBBox [0 0 1000 1000]\n/Encoding StandardEncoding\neexec\n"
     const ClearPrivatePrefix: string = "/lenIV -1 def\n/CharStrings 2 dict dup begin\n/.notdef 4 RD"
@@ -15,7 +15,7 @@ func buildBinaryType1Fixture(firstCipher: const [4] u8,
     const ACharstring: [4] u8 = [139, 189, 13, 14]
     notDefCharstring[0] = firstNotDefByte
 
-    var plain: Array'u8
+    var plain: Array!{u8}
     plain.add(cast(const [..] u8, ClearPrivatePrefix))
     plain.add(cast(const [..] u8, rdSeparator))
     plain.add(notDefCharstring)
@@ -24,8 +24,8 @@ func buildBinaryType1Fixture(firstCipher: const [4] u8,
     plain.add(ACharstring)
     plain.add(cast(const [..] u8, ClearPrivateSuffix))
 
-    var encrypted: Array'u8
-    var state = 55665'u32
+    var encrypted: Array!{u8}
+    var state = 55665_u32
     for cipher in firstCipher
     {
         encrypted.add(cipher)
@@ -39,7 +39,7 @@ func buildBinaryType1Fixture(firstCipher: const [4] u8,
         state = ((cast(u32, cipher) + state) * 52845 + 22719) & 0xFFFF
     }
 
-    var program: Array'u8
+    var program: Array!{u8}
     program.add(cast(const [..] u8, ClearHeader))
     if hexEncoded
     {

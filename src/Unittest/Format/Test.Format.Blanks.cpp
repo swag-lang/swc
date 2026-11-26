@@ -574,20 +574,24 @@ SWC_TEST_END()
 SWC_TEST_BEGIN(FormatBlanks_BeforeCommentBlockKeepsInlineBodyStart)
 {
     static constexpr std::string_view SOURCE =
+        
         "func foo(ready: bool)\n"
         "{\n"
-        "    if ready do\n"
+        "    if ready {\n"
         "\n"
         "        // First comment in the inline body.\n"
         "        work()\n"
+        "    }\n"
         "}\n";
 
     static constexpr std::string_view EXPECTED =
+        
         "func foo(ready: bool)\n"
         "{\n"
-        "    if ready do\n"
+        "    if ready {\n"
         "        // First comment in the inline body.\n"
         "        work()\n"
+        "    }\n"
         "}\n";
 
     FormatOptions options;

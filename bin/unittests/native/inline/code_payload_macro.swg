@@ -10,14 +10,16 @@ namespace InlineCodePayloadDebug
     {
         #static if #safety(what)
         {
-            if not #inject(expr) do
+            if not #inject(expr)
+            {
                 Swag.panic(message, loc)
+            }
         }
     }
 
     #[Swag.Macro]
     func bound(expr50: #code->bool, message: string? = null, loc = #callerlocation)
     {
-        guard'(Swag.SafetyWhat.BoundCheck)(expr50, message, loc)
+        guard!{Swag.SafetyWhat.BoundCheck}(expr50, message, loc)
     }
 }

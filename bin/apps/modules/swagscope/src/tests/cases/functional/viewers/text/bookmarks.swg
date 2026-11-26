@@ -21,7 +21,7 @@ private func textBookmarkRows(view: *PlainText.Panel, host: *Testing.HeadlessHos
     var host: Testing.HeadlessHost
     host.setup(640, 360)
     var session = openTestViewer(PlainText.viewerPlugin(), &host.root, fileName, commandParent: &host.root)
-    let view = assume cast(*PlainText.Panel, session.view)
+    let view    = assume cast(*PlainText.Panel, session.view)
     completeTextReads(&host, view)
     let first = view.lines.offsetOfLine(fileName, 1, view.encoding, view.contentStart)
     let third = view.lines.offsetOfLine(fileName, 3, view.encoding, view.contentStart)
@@ -58,13 +58,16 @@ private func textBookmarkRows(view: *PlainText.Panel, host: *Testing.HeadlessHos
     Swag.require(view.renameBookmark(2, "End"))
     Swag.require(not view.renameBookmark(2, "Start"))
 
-    let rows = textBookmarkRows(view, &host, "End")
+    let rows  = textBookmarkRows(view, &host, "End")
     var found = false
     for section in rows.sections
     {
-        for entry in section!.entries where entry.title == "End" do
+        for entry in section!.entries where entry.title == "End"
+        {
             found = not entry.disabled and entry.detail == Format.toString(PlainText.texts().ui_BookmarkLine, 3)
+        }
     }
+
     Swag.require(found)
 
     host.clickModalButtonWhenShown(Dialog.BtnYes)
@@ -83,10 +86,10 @@ private func textBookmarkRows(view: *PlainText.Panel, host: *Testing.HeadlessHos
     var host: Testing.HeadlessHost
     host.setup(640, 360)
     var session = openTestViewer(PlainText.viewerPlugin(), &host.root, fileName)
-    let view = assume cast(*PlainText.Panel, session.view)
+    let view    = assume cast(*PlainText.Panel, session.view)
     completeTextReads(&host, view)
     let second = view.lines.offsetOfLine(fileName, 2, view.encoding, view.contentStart)
-    let third = view.lines.offsetOfLine(fileName, 3, view.encoding, view.contentStart)
+    let third  = view.lines.offsetOfLine(fileName, 3, view.encoding, view.contentStart)
     Swag.require(view.revealLensDestination(second, "", caret: true))
     completeTextReads(&host, view)
     view.windowLine = 0
@@ -97,13 +100,16 @@ private func textBookmarkRows(view: *PlainText.Panel, host: *Testing.HeadlessHos
     Swag.require(view.bookmarks[0].line == 0 and view.bookmarks[0].offset == second)
     Swag.require(view.storeBookmark("Later", 3, third))
 
-    let rows = textBookmarkRows(view, &host, "Here")
+    let rows  = textBookmarkRows(view, &host, "Here")
     var found = false
     for section in rows.sections
     {
-        for entry in section!.entries where entry.title == "Here" do
+        for entry in section!.entries where entry.title == "Here"
+        {
             found = not entry.disabled and entry.detail == Format.toString(PlainText.texts().ui_BookmarkOffset, second)
+        }
     }
+
     Swag.require(found)
     Swag.require(view.navigateBookmark(1))
     completeTextReads(&host, view)
@@ -118,13 +124,13 @@ private func textBookmarkRows(view: *PlainText.Panel, host: *Testing.HeadlessHos
 {
     let fileName = Testing.tempFilePath("scope-text-bookmarks-unknown-line-utf16-", ".txt")
     defer discard catch File.delete(fileName)
-    let bytes = [0xFF'u8, 0xFE, 0x61, 0, 0x0A, 0, 0xE9, 0, 0x78, 0, 0x0A, 0, 0x7A, 0]
+    let bytes = [0xFF_u8, 0xFE, 0x61, 0, 0x0A, 0, 0xE9, 0, 0x78, 0, 0x0A, 0, 0x7A, 0]
     discard expect File.writeAllBytes(fileName, bytes)
 
     var host: Testing.HeadlessHost
     host.setup(640, 360)
     var session = openTestViewer(PlainText.viewerPlugin(), &host.root, fileName)
-    let view = assume cast(*PlainText.Panel, session.view)
+    let view    = assume cast(*PlainText.Panel, session.view)
     completeTextReads(&host, view)
     Swag.require(view.encoding == .Utf16Le and view.contentStart == 2)
     let second = view.lines.offsetOfLine(fileName, 2, view.encoding, view.contentStart)
@@ -143,27 +149,35 @@ private func textBookmarkRows(view: *PlainText.Panel, host: *Testing.HeadlessHos
     let fileName = Testing.tempFilePath("scope-text-bookmarks-stream-", ".txt")
     defer discard catch File.delete(fileName)
     var source: String
-    for line in 0 until 50_000 do
+    for line in 0 until 50_000
+    {
         source += Format.toString("line %\n", line)
+    }
+
     discard expect File.writeAllText(fileName, source)
 
     var host: Testing.HeadlessHost
     host.setup(640, 360)
     var session = openTestViewer(PlainText.viewerPlugin(), &host.root, fileName)
-    let view = assume cast(*PlainText.Panel, session.view)
+    let view    = assume cast(*PlainText.Panel, session.view)
     completeTextReads(&host, view)
     let distant = view.lines.offsetOfLine(fileName, 40_000, view.encoding, view.contentStart)
     Swag.require(distant > 256 * 1024)
     Swag.require(view.storeBookmark("Far", 40_000, distant))
-    for index in 1 until 64 do
+    for index in 1 until 64
+    {
         Swag.require(view.storeBookmark(Format.toString("Mark %", index), 1, 0))
+    }
+
     Swag.require(not view.storeBookmark("Too Many", 1, 0))
 
     let rows = textBookmarkRows(view, &host, "Bookmark Current Line")
     for section in rows.sections
     {
-        for entry in section!.entries where entry.title == PlainText.texts().ui_BookmarkCurrentPosition do
+        for entry in section!.entries where entry.title == PlainText.texts().ui_BookmarkCurrentPosition
+        {
             Swag.require(entry.disabled)
+        }
     }
 
     Swag.require(view.navigateToBookmark(0))
@@ -180,7 +194,7 @@ private func textBookmarkRows(view: *PlainText.Panel, host: *Testing.HeadlessHos
 
     var host: Testing.HeadlessHost
     host.setup(640, 360)
-    var original = openTestViewer(PlainText.viewerPlugin(), &host.root, fileName)
+    var original     = openTestViewer(PlainText.viewerPlugin(), &host.root, fileName)
     let originalView = assume cast(*PlainText.Panel, original.view)
     completeTextReads(&host, originalView)
     let second = originalView.lines.offsetOfLine(fileName, 2, originalView.encoding, originalView.contentStart)
@@ -189,20 +203,23 @@ private func textBookmarkRows(view: *PlainText.Panel, host: *Testing.HeadlessHos
     state.capture(&original, "text", "")
 
     discard expect File.writeAllText(fileName, "replacement has a different length\n")
-    var replacement = openTestViewer(PlainText.viewerPlugin(), &host.root, fileName)
+    var replacement     = openTestViewer(PlainText.viewerPlugin(), &host.root, fileName)
     let replacementView = assume cast(*PlainText.Panel, replacement.view)
     completeTextReads(&host, replacementView)
     Swag.require(state.restore(&replacement))
     Swag.require(replacementView.bookmarks.count == 1 and replacementView.refreshBookmarkStaleness())
     Swag.require(not replacementView.navigateToBookmark(0))
 
-    let rows = textBookmarkRows(replacementView, &host, "Saved")
+    let rows       = textBookmarkRows(replacementView, &host, "Saved")
     var foundStale = false
     for section in rows.sections
     {
-        for entry in section!.entries where entry.title == "Saved" do
+        for entry in section!.entries where entry.title == "Saved"
+        {
             foundStale = entry.disabled and entry.detail == PlainText.texts().ui_BookmarkStale
+        }
     }
+
     Swag.require(foundStale)
 }
 
@@ -218,7 +235,7 @@ private func textBookmarkRows(view: *PlainText.Panel, host: *Testing.HeadlessHos
     let window = ViewerWindow.create(&host.surfaceWnd, createViewerPluginRegistry())
     window.openFile(fileName, remember: false)
     completeQueuedViewerFile(&host, window)
-    let view = assume cast(*PlainText.Panel, window.currentView)
+    let view   = assume cast(*PlainText.Panel, window.currentView)
     let second = view.lines.offsetOfLine(fileName, 2, view.encoding, view.contentStart)
     Swag.require(view.storeBookmark("Saved", 2, second))
 
@@ -252,9 +269,12 @@ private func textBookmarkRows(view: *PlainText.Panel, host: *Testing.HeadlessHos
     var host: Testing.HeadlessHost
     host.setup(800, 560)
     let window = ViewerWindow.create(&host.surfaceWnd, createViewerPluginRegistry())
-    var bookmarks: Array'Viewers.PlainText.Bookmark
-    for bookmark in 80 do
+    var bookmarks: Array!{Viewers.PlainText.Bookmark}
+    for bookmark in 80
+    {
         bookmarks.add(Viewers.PlainText.Bookmark{String.from(Format.toString("Mark %", bookmark)), bookmark + 1, bookmark})
+    }
+
     for file in 65
     {
         window.storeTextBookmarkFile(Format.toString("text-bookmark-%", file), "identity", bookmarks.toSlice())

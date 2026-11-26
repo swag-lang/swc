@@ -22,21 +22,29 @@ func ddsBc1Fixture(height: u32 = 4)->ConcatBuffer
     ddsAddU32(&result, ((height + 3) / 4) * 8)
     ddsAddU32(&result, 0)
     ddsAddU32(&result, 0)
-    for 11 do
+    for 11
+    {
         ddsAddU32(&result, 0)
+    }
+
     ddsAddU32(&result, 32)
     ddsAddU32(&result, 4)
     ddsAddU32(&result, 0x31545844)
-    for 5 do
+    for 5
+    {
         ddsAddU32(&result, 0)
-    ddsAddU32(&result, 0x1000)
-    for 4 do
-        ddsAddU32(&result, 0)
+    }
 
-    result.addNative(0x00'u8)
-    result.addNative(0xF8'u8)
-    result.addNative(0xE0'u8)
-    result.addNative(0x07'u8)
+    ddsAddU32(&result, 0x1000)
+    for 4
+    {
+        ddsAddU32(&result, 0)
+    }
+
+    result.addNative(0x00_u8)
+    result.addNative(0xF8_u8)
+    result.addNative(0xE0_u8)
+    result.addNative(0x07_u8)
     ddsAddU32(&result, 0xE4E4E4E4)
     if height > 4
     {
@@ -58,8 +66,11 @@ func ddsMaskedRgbaFixture(pixelFlags: u32, alpha: u8)->ConcatBuffer
     ddsAddU32(&result, 4)     // Pitch.
     ddsAddU32(&result, 0)     // Depth.
     ddsAddU32(&result, 0)     // Mip count.
-    for 11 do
+    for 11
+    {
         ddsAddU32(&result, 0)
+    }
+
     ddsAddU32(&result, 32)     // Pixel format size.
     ddsAddU32(&result, pixelFlags)
     ddsAddU32(&result, 0)      // FourCC.
@@ -69,11 +80,14 @@ func ddsMaskedRgbaFixture(pixelFlags: u32, alpha: u8)->ConcatBuffer
     ddsAddU32(&result, 0x00FF0000)
     ddsAddU32(&result, 0xFF000000)
     ddsAddU32(&result, 0x1000)     // Texture caps.
-    for 4 do
+    for 4
+    {
         ddsAddU32(&result, 0)
-    result.addNative(10'u8)
-    result.addNative(20'u8)
-    result.addNative(30'u8)
+    }
+
+    result.addNative(10_u8)
+    result.addNative(20_u8)
+    result.addNative(30_u8)
     result.addNative(alpha)
     return result
 }
@@ -112,27 +126,33 @@ func ddsRoundtrip(source: Image)->Image
 {
     for hasAlpha in 2
     {
-        let pixelFlags = 0x40'u32 | (hasAlpha ? 0x1'u32 : 0'u32)
+        let pixelFlags = 0x40_u32 | (hasAlpha ? 0x1_u32 : 0_u32)
         let bytes      = ddsMaskedRgbaFixture(pixelFlags, 0)
         let image      = expect Image.decode("alpha-flag.dds", nnBytes(bytes.toSlice()))
         assertImage(image, 1, 1, .RGBA8)
         Swag.require(image.pixels[0] == 10 and image.pixels[1] == 20 and image.pixels[2] == 30)
-        Swag.require(image.pixels[3] == (hasAlpha ? 0'u8 : 255'u8))
+        Swag.require(image.pixels[3] == (hasAlpha ? 0_u8 : 255_u8))
     }
 }
 
 #test
 {
     var rgba = Image.create(2, 2, .RGBA8)
-    for i in rgba.byteCount do
+    for i in rgba.byteCount
+    {
         rgba.pixels.storage()[i] = cast(u8, (i * 13))
+    }
+
     let decoded = ddsRoundtrip(rgba)
     assertImage(decoded, 2, 2, .RGBA8)
     Swag.require(Memory.compare(rgba.pixels.storage(), decoded.pixels.storage(), rgba.byteCount) == 0)
 
     var grayAlpha = Image.create(3, 2, .GrayAlpha8)
-    for i in grayAlpha.byteCount do
+    for i in grayAlpha.byteCount
+    {
         grayAlpha.pixels.storage()[i] = cast(u8, (i * 17))
+    }
+
     let decodedGray = ddsRoundtrip(grayAlpha)
     assertImage(decodedGray, 3, 2, .GrayAlpha8)
     Swag.require(Memory.compare(grayAlpha.pixels.storage(), decodedGray.pixels.storage(), grayAlpha.byteCount) == 0)
@@ -142,8 +162,11 @@ func ddsRoundtrip(source: Image)->Image
 {
     var deep    = Image.create(2, 2, .RGBA16)
     let samples = cast([*] u16, deep.pixels.storage())
-    for i in 16 do
+    for i in 16
+    {
         samples[i] = cast(u16, (i * 4001))
+    }
+
     let decoded = ddsRoundtrip(deep)
     assertImage(decoded, 2, 2, .RGBA16)
     Swag.require(Memory.compare(deep.pixels.storage(), decoded.pixels.storage(), deep.byteCount) == 0)
@@ -166,8 +189,11 @@ func ddsRoundtrip(source: Image)->Image
                    PixelFormat.GrayAlphaF16, PixelFormat.GrayF32, PixelFormat.GrayAlphaF32]
     {
         var gray = Image.create(3, 2, format)
-        for i in gray.byteCount do
+        for i in gray.byteCount
+        {
             gray.pixels.storage()[i] = cast(u8, ((i * 31 + 9) & 0xFF))
+        }
+
         let decodedGray = ddsRoundtrip(gray)
         assertImage(decodedGray, 3, 2, format)
         Swag.require(Memory.compare(gray.pixels.storage(), decodedGray.pixels.storage(), gray.byteCount) == 0)

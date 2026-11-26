@@ -23,8 +23,10 @@ using Swag, Core
     let expected = [appStrings().ui_MenuCapture, appStrings().ui_MenuFile, appStrings().ui_MenuEdit,
                     appStrings().ui_MenuImage, appStrings().ui_MenuView, Gui.strings().lens_Application]
     Swag.require(menu.items.count == expected.count)
-    for name, index in expected do
+    for name, index in expected
+    {
         Swag.require(menu.items[index]!.name.text == name and menu.items[index]!.popup != null)
+    }
 
     let capture       = menu.items[0]!.popup
     let captureDirect = 10 + 2 * main.monitors.count
@@ -37,8 +39,11 @@ using Swag, Core
     Swag.require(capture.items[captureDirect - 1]!.id == ActionCapture.Record)
     Swag.require(capture.items[captureDirect]!.separator)
     var delay: *MenuCtrl?
-    for item in capture.items where item and item.name.text == appStrings().act_DelayBefore do
+    for item in capture.items where item and item.name.text == appStrings().act_DelayBefore
+    {
         delay = item.popup
+    }
+
     Swag.require(delay and delay.items.count == CaptureDelayIds.count)
 
     let file = menu.items[1]!.popup
@@ -70,8 +75,11 @@ using Swag, Core
     Swag.require(edit.items[0]!.id == ActionUndo.DoUndo and edit.items[2]!.separator)
     Swag.require(edit.items[3]!.id == ActionCopyPaste.Copy and edit.items[7]!.separator)
     var selection: *MenuCtrl?
-    for item in edit.items where item and item.name.text == appStrings().lens_Selection do
+    for item in edit.items where item and item.name.text == appStrings().lens_Selection
+    {
         selection = item.popup
+    }
+
     Swag.require(selection and selection.items.count == EditorSelectionIds.count)
 
     let image = menu.items[3]!.popup
@@ -79,16 +87,20 @@ using Swag, Core
     Swag.require(image.items[1]!.separator)
     Swag.require(image.items[2 + ImageGeometryIds.count]!.separator)
     Swag.require(image.items[3 + ImageGeometryIds.count + ImageFlattenIds.count]!.separator)
-    for item in image.items where item and not item.separator do
+    for item in image.items where item and not item.separator
+    {
         Swag.require(item.popup == null)
+    }
 
     let view = menu.items[4]!.popup
     Swag.require(view.items[0]!.id == ActionView.Inspector)
     Swag.require(view.items[ViewPanelIds.count]!.id == ActionGlobal.ShowLibrary)
     Swag.require(view.items[ViewPanelIds.count + 1]!.separator)
     Swag.require(view.items.count == ViewPanelIds.count + 1 + ViewZoomIds.count + 1)
-    for item in view.items where item and not item.separator do
+    for item in view.items where item and not item.separator
+    {
         Swag.require(item.popup == null)
+    }
 
     let application = menu.items[5]!.popup
     Swag.require(application.items.count == 8)
@@ -103,8 +115,11 @@ using Swag, Core
     var chosen: bool
     host.app.sigFrame += func|host = &host, chosen = &chosen|(_)
     {
-        if chosen[] do
+        if chosen[]
+        {
             return
+        }
+
         Swag.require(host.openPopupSubMenu(appStrings().ui_MenuCapture))
         Swag.require(host.openPopupSubMenu(appStrings().act_DelayBefore))
         Swag.require(host.clickPopupMenuItem(ActionCaptureDelay.Delay3))
@@ -133,8 +148,11 @@ using Swag, Core
     var selected: bool
     host.app.sigFrame += func|host = &host, selected = &selected|(_)
     {
-        if selected[] or not host.capturedPopupMenu() do
+        if selected[] or not host.capturedPopupMenu()
+        {
             return
+        }
+
         selected[] = true
         Swag.require(host.openPopupSubMenu(Gui.strings().lens_Application))
         Swag.require(host.openPopupSubMenu(Gui.strings().appearance_Theme))
@@ -151,15 +169,21 @@ using Swag, Core
     selected = false
     host.app.sigFrame += func|host = &host, selected = &selected|(_)
     {
-        if selected[] or not host.capturedPopupMenu() do
+        if selected[] or not host.capturedPopupMenu()
+        {
             return
+        }
+
         selected[] = true
         Swag.require(host.openPopupSubMenu(Gui.strings().lens_Application))
         Swag.require(host.openPopupSubMenu(Gui.strings().appearance_Language))
         let languages = unwrap host.capturedPopupMenu()
         var french: WndId?
-        for item in languages.items where item and item.name.text == "Français" do
+        for item in languages.items where item and item.name.text == "Français"
+        {
             french = item.id
+        }
+
         Swag.require(french != null)
         Swag.require(host.clickPopupMenuItem(french))
     }
@@ -185,14 +209,20 @@ using Swag, Core
 
     for library in [false, true]
     {
-        if library do
+        if library
+        {
             main.swapLibraryMode()
+        }
+
         main.lens.open(">")
         var commands: u32
         for section in main.lens.results.sections where section
         {
-            if section.inline do
+            if section.inline
+            {
                 continue
+            }
+
             for &entry in section.entries where (entry.id or entry.run) and entry.lead.isEmpty() and not entry.paint
             {
                 Swag.require(entry.glyph.isValid(), entry.title)
@@ -251,9 +281,14 @@ using Swag, Core
 
     main.lens.open("delete")
     Swag.require(not main.lens.rows.isEmpty())
-    for section in main.lens.results.sections where section do
-        for &entry in section.entries where entry.id == ActionSelection.DeleteSelection or entry.id == ActionFile.DeleteCapture do
+    for section in main.lens.results.sections where section
+    {
+        for &entry in section.entries where entry.id == ActionSelection.DeleteSelection or entry.id == ActionFile.DeleteCapture
+        {
             Swag.require(entry.critical and entry.glyph.isValid())
+        }
+    }
+
     main.lens.close()
 }
 
@@ -274,8 +309,11 @@ using Swag, Core
     var inspected: bool
     host.app.sigFrame += func|host = &host, inspected = &inspected|(_)
     {
-        if inspected[] do
+        if inspected[]
+        {
             return
+        }
+
         let menu = unwrap host.capturedPopupMenu()
         var actions: u32
         for item in menu.items where item and not item.separator
@@ -343,14 +381,19 @@ using Swag, Core
     Swag.require(nudge.shortcut == Input.formatKeyShortcut(.Shift, .Right))
     main.lens.open(nudge.name)
     var found: bool
-    for section in main.lens.results.sections where section do
-        for &entry in section.entries where entry.id == ActionMoveSel.Right do
+    for section in main.lens.results.sections where section
+    {
+        for &entry in section.entries where entry.id == ActionMoveSel.Right
+        {
             found = entry.detail == nudge.shortcut and not entry.disabled
+        }
+    }
+
     Swag.require(found)
     main.lens.close()
 
     Swag.require(main.sendComputeCommandStateEvent(ActionTimeline.TrimStart).hidden)
-    let capture = Memory.new'Capture()
+    let capture = Memory.new!{Capture}()
     capture.file = testTempCapturePath()
     let file = String.from(capture.file)
     defer catch Capture.deleteFiles(file)
@@ -360,9 +403,14 @@ using Swag, Core
     main.editWnd.editView.setCapture(capture)
     main.lens.open(appStrings().act_TrimStart)
     found = false
-    for section in main.lens.results.sections where section do
-        for &entry in section.entries where entry.id == ActionTimeline.TrimStart do
+    for section in main.lens.results.sections where section
+    {
+        for &entry in section.entries where entry.id == ActionTimeline.TrimStart
+        {
             found = entry.detail == Input.formatKeyShortcut(.Shift, .I) and not entry.disabled
+        }
+    }
+
     Swag.require(found)
     main.lens.close()
 }

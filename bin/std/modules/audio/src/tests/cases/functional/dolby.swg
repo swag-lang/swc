@@ -2,23 +2,29 @@
 
 using Core
 
-private func ac3TestAppendBits(bytes: *Array'u8, bitCount: *u64, value: u32, count: u32)
+private func ac3TestAppendBits(bytes: *Array!{u8}, bitCount: *u64, value: u32, count: u32)
 {
     for bit in count
     {
-        if not (bitCount[] & 7) do
+        if not (bitCount[] & 7)
+        {
             bytes.add(0)
+        }
+
         let shift = count - bit - 1
-        if (value >> shift) & 1 do
-            bytes[bitCount[] >> 3] |= cast(u8, 1'u32 << (7 - cast(u32, bitCount[] & 7)))
+        if (value >> shift) & 1
+        {
+            bytes[bitCount[] >> 3] |= cast(u8, 1_u32 << (7 - cast(u32, bitCount[] & 7)))
+        }
+
         bitCount[] += 1
     }
 }
 
-private func ac3TestFrameWithBandwidth(bandwidth, exponentStrategy: u32, invalidDelta: bool, absoluteExponent = 12'u32, groupCode = 62'u32)->Array'u8
+private func ac3TestFrameWithBandwidth(bandwidth, exponentStrategy: u32, invalidDelta: bool)->Array!{u8}
 {
-    var frame: Array'u8
-    var bits = 0'u64
+    var frame: Array!{u8}
+    var bits = 0_u64
     ac3TestAppendBits(&frame, &bits, 0x0B77, 16)     // Sync word.
     ac3TestAppendBits(&frame, &bits, 0, 16)          // CRC.
     ac3TestAppendBits(&frame, &bits, 0, 2)           // 48 kHz.
@@ -45,8 +51,10 @@ private func ac3TestFrameWithBandwidth(bandwidth, exponentStrategy: u32, invalid
         ac3TestAppendBits(&frame, &bits, absoluteExponent, 4)     // Absolute exponent.
         let end    = 37 + 3 * cast(s32, (bandwidth + 12))
         let groups = cast(u32, ((end - 1 + 2) / 3))
-        for groups do
-            ac3TestAppendBits(&frame, &bits, groupCode, 7)
+        for groups
+        {
+            ac3TestAppendBits(&frame, &bits, 62, 7)
+        }     // Keep every exponent at the absolute value.
         ac3TestAppendBits(&frame, &bits, 0, 2)     // Gain range.
     }
 
@@ -70,31 +78,43 @@ private func ac3TestFrameWithBandwidth(bandwidth, exponentStrategy: u32, invalid
 
     ac3TestAppendBits(&frame, &bits, 0, 1)     // No skip field.
 
-    while frame.count < 128 do
+    while frame.count < 128
+    {
         frame.add(0)
+    }
+
     return frame
 }
 
-private func ac3TestPackets(path: string)->Array'SoundPacket fail
+private func ac3TestPackets(path: string)->Array!{SoundPacket} fail
 {
     const BitRates: [19] u32 = [32, 40, 48, 56, 64, 80, 96, 112, 128, 160, 192, 224, 256, 320, 384, 448, 512, 576, 640]
     let bytes  = try File.readAllBytes(path)
     var result: #returntype
-    var offset = 0'u64
+    var offset = 0_u64
     while offset < bytes.count
     {
-        if bytes.count - offset < 5 or bytes[offset] != 0x0B or bytes[offset + 1] != 0x77 do
+        if bytes.count - offset < 5 or bytes[offset] != 0x0B or bytes[offset + 1] != 0x77
+        {
             fail InvalidFormatError{"AC-3 test fixture has an invalid sync frame"}
+        }
+
         let fscod    = bytes[offset + 4] >> 6
         let sizeCode = bytes[offset + 4] & 0x3F
-        if fscod >= 3 or sizeCode >= 38 do
+        if fscod >= 3 or sizeCode >= 38
+        {
             fail InvalidFormatError{"AC-3 test fixture has a reserved frame-size code"}
+        }
+
         let bitRate   = BitRates[sizeCode >> 1]
         let frameSize = fscod == 0 ? 4 * bitRate :
                         fscod == 1 ? 2 * ((320 * bitRate) / 147 + (sizeCode & 1)) :
                         6 * bitRate
-        if frameSize > bytes.count - offset do
+        if frameSize > bytes.count - offset
+        {
             fail InvalidFormatError{"AC-3 test fixture has a truncated sync frame"}
+        }
+
         result.add(SoundPacket{offset, frameSize, 1536})
         offset += frameSize
     }
@@ -116,21 +136,27 @@ private func dolbyTonePower(samples: const [*] s16, firstFrame, frameCount, chan
     return real * real + imaginary * imaginary
 }
 
-private func eac3TestPackets(path: string)->Array'SoundPacket fail
+private func eac3TestPackets(path: string)->Array!{SoundPacket} fail
 {
     let bytes  = try File.readAllBytes(path)
     var result: #returntype
-    var offset = 0'u64
+    var offset = 0_u64
     while offset < bytes.count
     {
-        if bytes.count - offset < 6 or bytes[offset] != 0x0B or bytes[offset + 1] != 0x77 do
+        if bytes.count - offset < 6 or bytes[offset] != 0x0B or bytes[offset + 1] != 0x77
+        {
             fail InvalidFormatError{"E-AC-3 test fixture has an invalid sync frame"}
+        }
+
         let frameSize = 2 * (((cast(u32, bytes[offset + 2]) & 7) << 8) | bytes[offset + 3]) + 2
         let fscod     = bytes[offset + 4] >> 6
         const Blocks: [4] u32 = [1, 2, 3, 6]
         let blockCount = fscod == 3 ? 6 : Blocks[(bytes[offset + 4] >> 4) & 3]
-        if frameSize > bytes.count - offset do
+        if frameSize > bytes.count - offset
+        {
             fail InvalidFormatError{"E-AC-3 test fixture has a truncated sync frame"}
+        }
+
         result.add(SoundPacket{offset, frameSize, blockCount * 256})
         offset += frameSize
     }
@@ -150,7 +176,7 @@ private func dolbyRequireDecodeFormatError(path: string, encoding: SoundFileEnco
 {
     discard expect File.writeAllBytes(path, bytes)
     let packets: [1] SoundPacket = [SoundPacket{0, cast(u32, bytes.count), frameFrames}]
-    var config:  Array'u8
+    var config:  Array!{u8}
     var sound = expect SoundFile.openPacketStream(path, encoding, 48_000, 1, frameFrames, packets, config.toSlice())
     var error:   Swag.Error
     discard catch sound.decodePcm16(func(_)->bool => true) as error
@@ -158,10 +184,10 @@ private func dolbyRequireDecodeFormatError(path: string, encoding: SoundFileEnco
     Swag.require(Errors.message(error.value()) == expectedMessage)
 }
 
-private func eac3TestChannelBandwidthFrame(bandwidth: u32, invalidDelta: bool)->Array'u8
+private func eac3TestChannelBandwidthFrame(bandwidth: u32, invalidDelta: bool)->Array!{u8}
 {
-    var frame: Array'u8
-    var bits = 0'u64
+    var frame: Array!{u8}
+    var bits = 0_u64
     ac3TestAppendBits(&frame, &bits, 0x0B77, 16)     // Sync word.
     ac3TestAppendBits(&frame, &bits, 0, 2)           // Independent substream.
     ac3TestAppendBits(&frame, &bits, 0, 3)           // Substream id.
@@ -188,8 +214,10 @@ private func eac3TestChannelBandwidthFrame(bandwidth: u32, invalidDelta: bool)->
     ac3TestAppendBits(&frame, &bits, invalidDelta ? 1 : 0, 1)
     ac3TestAppendBits(&frame, &bits, 0, 1)     // No skipped data.
     ac3TestAppendBits(&frame, &bits, 0, 1)     // No spectral-extension attenuation.
-    for block in 6 do
-        ac3TestAppendBits(&frame, &bits, block == 0 ? 1 : 0, 2)     // Decode exponents in block zero only.
+    for block in 6
+    {
+        ac3TestAppendBits(&frame, &bits, block == 0 ? 1 : 0, 2)
+    }     // Decode exponents in block zero only.
     ac3TestAppendBits(&frame, &bits, 0, 5)      // Converter strategy.
     ac3TestAppendBits(&frame, &bits, 15, 6)     // Zero bit-allocation SNR offset.
     ac3TestAppendBits(&frame, &bits, 0, 4)      // Fine SNR.
@@ -207,8 +235,10 @@ private func eac3TestChannelBandwidthFrame(bandwidth: u32, invalidDelta: bool)->
             ac3TestAppendBits(&frame, &bits, 24, 4)     // Minimize mantissas if validation is missing.
             let end    = 37 + 3 * cast(s32, (bandwidth + 12))
             let groups = cast(u32, ((end + 1) / 3))
-            for groups do
-                ac3TestAppendBits(&frame, &bits, 62, 7)     // Keep each exponent unchanged.
+            for groups
+            {
+                ac3TestAppendBits(&frame, &bits, 62, 7)
+            }     // Keep each exponent unchanged.
             ac3TestAppendBits(&frame, &bits, 0, 2)     // Gain range.
         }
 
@@ -230,8 +260,11 @@ private func eac3TestChannelBandwidthFrame(bandwidth: u32, invalidDelta: bool)->
         }
     }
 
-    while frame.count < 512 do
+    while frame.count < 512
+    {
         frame.add(0)
+    }
+
     return frame
 }
 
@@ -283,7 +316,7 @@ private func eac3TestChannelBandwidthFrame(bandwidth: u32, invalidDelta: bool)->
     let fixture = expect File.readAllBytes(sourcePath)
 
     var partialHeader = fixture
-    partialHeader.add([0x0B'u8, 0x77, 0])
+    partialHeader.add([0x0B_u8, 0x77, 0])
     dolbyRequireInvalidFile(testPath, partialHeader.toSlice())
 
     var truncatedFrame = fixture
@@ -306,7 +339,7 @@ private func eac3TestChannelBandwidthFrame(bandwidth: u32, invalidDelta: bool)->
     let fixture = expect File.readAllBytes(sourcePath)
 
     var partialHeader = fixture
-    partialHeader.add([0x0B'u8, 0x77, 0])
+    partialHeader.add([0x0B_u8, 0x77, 0])
     dolbyRequireInvalidFile(testPath, partialHeader.toSlice())
 
     var truncatedFrame = fixture
@@ -353,7 +386,7 @@ private func eac3TestChannelBandwidthFrame(bandwidth: u32, invalidDelta: bool)->
 // E-AC-3 rejects frames too short to contain the seven-byte mandatory BSI header.
 #test
 {
-    for frameSizeCode in [0'u8, 2]     // Declare two bytes, then six bytes.
+    for frameSizeCode in [0_u8, 2]     // Declare two bytes, then six bytes.
     {
         var frame: [8] u8
         frame[0] = 0x0B
@@ -418,13 +451,13 @@ private func eac3TestChannelBandwidthFrame(bandwidth: u32, invalidDelta: bool)->
                             Format.toString("dolby-bandwidth-eac3-%.eac3", Guid128.random()))
     defer discard catch File.delete(path)
 
-    for bandwidth in [61'u32, 62, 63]
+    for bandwidth in [61_u32, 62, 63]
     {
         let frame = eac3TestChannelBandwidthFrame(bandwidth, false)
         discard expect File.writeAllBytes(path, frame.toSlice())
 
         var packets: [1] SoundPacket = [SoundPacket{0, cast(u32, frame.count), 1536}]
-        var config:  Array'u8
+        var config:  Array!{u8}
         var sound = expect SoundFile.openPacketStream(path.toString(),
                                                       .Eac3,
                                                       48_000,
@@ -446,13 +479,13 @@ private func eac3TestChannelBandwidthFrame(bandwidth: u32, invalidDelta: bool)->
                             Format.toString("dolby-bandwidth-%.ac3", Guid128.random()))
     defer discard catch File.delete(path.toString())
 
-    for bandwidth in [62'u32, 63]
+    for bandwidth in [62_u32, 63]
     {
         let bytes = ac3TestFrameWithBandwidth(bandwidth, 1, false)
         expect File.writeAllBytes(path.toString(), bytes.toSlice())
-        var packets: Array'SoundPacket
+        var packets: Array!{SoundPacket}
         packets.add(SoundPacket{0, 128, 1536})
-        var config: Array'u8
+        var config: Array!{u8}
         var sound = expect SoundFile.openPacketStream(path.toString(), .Ac3, 48_000, 1, 1536, packets.toSlice(), config.toSlice())
         var error:  Swag.Error
         discard catch sound.decodePcm16(func(_)->bool => true) as error
@@ -488,7 +521,7 @@ private func eac3TestChannelBandwidthFrame(bandwidth: u32, invalidDelta: bool)->
 {
     let path    = audioGetTestDataPath("ac3-5.1-48000.ac3")
     let packets = expect ac3TestPackets(path)
-    var config: Array'u8
+    var config: Array!{u8}
     var sound   = expect SoundFile.openPacketStream(path,
                                                     .Ac3,
                                                     48_000,
@@ -522,7 +555,7 @@ private func eac3TestChannelBandwidthFrame(bandwidth: u32, invalidDelta: bool)->
 {
     let path    = audioGetTestDataPath("eac3-stereo-48000.eac3")
     let packets = expect eac3TestPackets(path)
-    var config: Array'u8
+    var config: Array!{u8}
     var sound   = expect SoundFile.openPacketStream(path,
                                                     .Eac3,
                                                     48_000,
@@ -548,7 +581,7 @@ private func eac3TestChannelBandwidthFrame(bandwidth: u32, invalidDelta: bool)->
 {
     let path    = audioGetTestDataPath("eac3-5.1-48000.eac3")
     let packets = expect eac3TestPackets(path)
-    var config: Array'u8
+    var config: Array!{u8}
     var sound   = expect SoundFile.openPacketStream(path,
                                                     .Eac3,
                                                     48_000,

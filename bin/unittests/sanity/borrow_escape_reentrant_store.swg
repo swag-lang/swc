@@ -27,8 +27,10 @@ func reentrantStorePublishOwner(owner: *ReentrantStoreHolder)
 func reentrantStoreInvoke(owner: *ReentrantStoreHolder, callback: func||())
 {
     owner.callback = callback
-    if owner.callback do
+    if owner.callback
+    {
         owner.callback()
+    }
     owner.callback = null
 }
 
@@ -171,8 +173,10 @@ func reentrantStoreClearOnlyOnFailure(owner: *ReentrantStoreHolder, callback: fu
 {
     owner.callback = callback
     defer #fail owner.callback = null
-    if shouldFail do
+    if shouldFail
+    {
         fail ReentrantStoreFailure{}
+    }
 }
 
 func reentrantStoreRejectNormalExit(owner: *ReentrantStoreHolder)
@@ -188,8 +192,10 @@ func reentrantStoreClearOnlyOnSuccess(owner: *ReentrantStoreHolder, callback: fu
 {
     owner.callback = callback
     defer #nofail owner.callback = null
-    if shouldFail do
+    if shouldFail
+    {
         fail ReentrantStoreFailure{}
+    }
 }
 
 func reentrantStoreRejectFailureExit(owner: *ReentrantStoreHolder)

@@ -37,7 +37,7 @@ impl OverS
     gOverMethodS32  = 0
     gOverMethodBool = false
     gOverMethodStr  = ""
-    s.process(42's32)
+    s.process(42_s32)
     s.process(true)
     s.process("hello")
     Swag.require(gOverMethodS32 == 42)
@@ -56,8 +56,8 @@ func sizedOp(a: u32) { gOverU32 = a }
 {
     gOverU8  = 0
     gOverU32 = 0
-    sizedOp(5'u8)
-    sizedOp(1000'u32)
+    sizedOp(5_u8)
+    sizedOp(1000_u32)
     Swag.require(gOverU8 == 5)
     Swag.require(gOverU32 == 1000)
 }
@@ -130,7 +130,7 @@ func boolOrInt(a: s32) { gIntHit = a }
     gBoolHit = false
     gIntHit  = 0
     boolOrInt(true)
-    boolOrInt(42's32)
+    boolOrInt(42_s32)
     Swag.require(gBoolHit == true)
     Swag.require(gIntHit == 42)
 }

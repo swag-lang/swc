@@ -17,11 +17,17 @@ func nnFont(font: *Font?)->*Font => unwrap font
 // the same point.
 func opticalTop(family: const *FontFamily?, centerY, size: f32)->f32
 {
-    if not family do
+    if not family
+    {
         return centerY - size * 0.5
+    }
+
     let font = family.getFont(.Regular)
-    if not font do
+    if not font
+    {
         return centerY - size * 0.5
+    }
+
     return font.opticalTop(centerY, size)
 }
 

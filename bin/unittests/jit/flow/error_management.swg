@@ -113,8 +113,10 @@ func alwaysFailTypedVoid(code: s32) fail
 
 func currentErrCode(err: any?)->s32
 {
-    if err == null do
+    if err == null
+    {
         return 0
+    }
 
     return assume cast (ErrValue, err).code
 }
@@ -354,8 +356,10 @@ func catchTryBlockVoidFailureCode()->s32
     var err5Outcome: Swag.Error
     catch propagateTryBlockVoidFailure() as err5Outcome
     let err5 = err5Outcome.value()
-    if err5 == null do
+    if err5 == null
+    {
         return -1
+    }
 
     let errv = assume cast (ErrValue, err5)
     return errv.code
@@ -421,8 +425,10 @@ func nestedTryHandled()->s32
     } as errOutcome
     let err = errOutcome.value()
 
-    if err == null do
+    if err == null
+    {
         return -1
+    }
 
     let errv = assume cast (ErrValue, err)
     return errv.code
@@ -610,10 +616,14 @@ func errIsAsFailureInfo()->ErrCastInfo
     result.exactCastOk   = exactErr != null
     result.baseCastOk    = baseErr != null
     result.wrongCastNull = otherErr == null
-    if exactErr != null do
+    if exactErr != null
+    {
         result.code = exactErr.code
-    if baseErr != null do
+    }
+    if baseErr != null
+    {
         result.messageOk = baseErr.message == "typed error"
+    }
     return result
 }
 

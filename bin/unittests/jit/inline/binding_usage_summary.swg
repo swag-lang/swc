@@ -18,8 +18,10 @@ func mixedUses(repeated, assigned, addressed: s32, values: [..] s32)->s32
     assignedValue += 3
     let pointer = &addressedValue
     pointer[] += 5
-    for value in values do
+    for value in values
+    {
         total += value
+    }
     return total + assignedValue + pointer[]
 }
 
@@ -40,8 +42,10 @@ func countOnly(values: s32...)->u64 => values.count
 func sumPack(values: s32...)->s32
 {
     var total: s32
-    for value in values do
+    for value in values
+    {
         total += value
+    }
     return total + cast(s32, values.count)
 }
 

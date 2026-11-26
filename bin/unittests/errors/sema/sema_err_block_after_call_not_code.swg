@@ -5,8 +5,10 @@ func plain(value: s32)->s32 => value
 #[Swag.Macro]
 func repeat(count: s32, stmt: #code)
 {
-    for count do
+    for count
+    {
         #inject(stmt)
+    }
 }
 
 // A block after a call is the trailing code of that call, so the call must take code.

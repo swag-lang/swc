@@ -26,8 +26,10 @@ func day1B()
     for i in text.count
     {
         let matchIndex = (i + offset) % text.length
-        if text[i] == text[matchIndex] do
+        if text[i] == text[matchIndex]
+        {
             total += text[i] - '0'
+        }
     }
 
     Swag.assert(total == 1292)

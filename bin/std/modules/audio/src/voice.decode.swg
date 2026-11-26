@@ -4,7 +4,7 @@ impl Voice
 {
     mtd decodedBytesPerFrame()->u64
     {
-        var bytesPerSample = 2'u64
+        var bytesPerSample = 2_u64
         switch .requestedEncoding
         {
         case .Pcm8:  bytesPerSample = 1
@@ -21,14 +21,19 @@ impl Voice
     // source when one decodes to more than that, since a packet is never split across buffers.
     mtd decodedBufferCapacity()->u64
     {
-        if .decodedCapacity do
+        if .decodedCapacity
+        {
             return .decodedCapacity
+        }
+
         let file = unwrap .file
-        var largestPacketFrames = 0'u64
+        var largestPacketFrames = 0_u64
         if file.usesPacketCodec()
         {
-            for packet in file.packets do
+            for packet in file.packets
+            {
                 largestPacketFrames = Math.max(largestPacketFrames, cast(u64, packet.sampleFrameCount))
+            }
         }
 
         .decodedCapacity = Math.max(DecodedBufferSize, largestPacketFrames * .decodedBytesPerFrame())
@@ -59,13 +64,19 @@ impl Voice
         {
             if .streamPacketIdx >= file.packets.count
             {
-                if not .playFlags.has(.Loop) do
+                if not .playFlags.has(.Loop)
+                {
                     return {buffer: null, size: 0}
+                }
+
                 .rewindData()
             }
 
-            if .decodedBuffers[.decodedBufferIdx].count < .decodedBufferCapacity() do
+            if .decodedBuffers[.decodedBufferIdx].count < .decodedBufferCapacity()
+            {
                 .decodedBuffers[.decodedBufferIdx].resize(.decodedBufferCapacity())
+            }
+
             let destBuffer   = .decodedBuffers[.decodedBufferIdx].storage()
             let decodedBytes = try .decodePacketData(destBuffer, .decodedFillSize())
             .decodedBufferIdx = (.decodedBufferIdx + 1) % NumDecodedBuffers
@@ -76,8 +87,11 @@ impl Voice
         // the source before filling the next buffer.
         if .streamCurSeek >= file.dataSize
         {
-            if not .playFlags.has(.Loop) do
+            if not .playFlags.has(.Loop)
+            {
                 return {buffer: null, size: 0}
+            }
+
             .rewindData()
         }
 
@@ -93,8 +107,10 @@ impl Voice
         }
 
         // Otherwise decode into a temporary buffer.
-        if not .decodedBuffers[.decodedBufferIdx].buffer do
+        if not .decodedBuffers[.decodedBufferIdx].buffer
+        {
             .decodedBuffers[.decodedBufferIdx].resize(DecodedBufferSize)
+        }
 
         let destBuffer   = .decodedBuffers[.decodedBufferIdx].storage()
         let decodedBytes = try .decodeData(destBuffer, .decodedFillSize())
@@ -114,8 +130,11 @@ impl Voice
     {
         let file       = unwrap .file
         let descriptor = findCodec(.requestedEncoding, file.encoding)
-        if not descriptor do
+        if not descriptor
+        {
             fail UnsupportedFormatError{"unsupported encoding"}
+        }
+
         let allocator   = .handle ? .allocationAllocator : unwrap Swag.getContext().allocator
         let decoderData = Memory.new(descriptor.type, allocator)
         let decoder     = cast(*Codec, decoderData)
@@ -125,12 +144,18 @@ impl Voice
 
     mtd destroyCodec()
     {
-        if not .codec do
+        if not .codec
+        {
             return
+        }
+
         let decoder   = cast(*Codec, (.codec).buffer)
         let allocator = decoder.allocationAllocator
-        if decoder.type.opDrop do
+        if decoder.type.opDrop
+        {
             decoder.type.opDrop(decoder)
+        }
+
         Memory.free(decoder, cast(u64, decoder.type.sizeof), allocator)
         .codec = null
     }
@@ -139,8 +164,11 @@ impl Voice
     {
         let file       = unwrap .file
         let descriptor = findPacketCodec(file.encoding)
-        if not descriptor do
+        if not descriptor
+        {
             fail UnsupportedFormatError{"unsupported packetized encoding"}
+        }
+
         let allocator   = .handle ? .allocationAllocator : unwrap Swag.getContext().allocator
         let decoderData = Memory.new(descriptor.type, allocator)
         let decoder     = cast(*Codec, decoderData)
@@ -152,12 +180,18 @@ impl Voice
 
     mtd destroyPacketCodec()
     {
-        if not .packetCodec do
+        if not .packetCodec
+        {
             return
+        }
+
         let decoder   = cast(*Codec, (.packetCodec).buffer)
         let allocator = decoder.allocationAllocator
-        if decoder.type.opDrop do
+        if decoder.type.opDrop
+        {
             decoder.type.opDrop(decoder)
+        }
+
         Memory.free(decoder, cast(u64, decoder.type.sizeof), allocator)
         .packetCodec = null
     }
@@ -168,10 +202,12 @@ impl Voice
     mtd decodePacketData(destination: [*] void, destinationSize: u64)->u64 fail
     {
         let file = unwrap .file
-        if not .packetCodec do
+        if not .packetCodec
+        {
             try .createPacketCodec()
+        }
 
-        var writtenBytes = 0'u64
+        var writtenBytes = 0_u64
         while .streamPacketIdx < file.packets.count
         {
             let packet    = file.packets[.streamPacketIdx]
@@ -179,8 +215,10 @@ impl Voice
             let trimBytes = .streamPacketIdx + 1 == file.packets.count ?
                             file.trailingTrim * file.channelCount * 2 : 0
             let keptPacketBytes = packetDecodedBytes - trimBytes
-            if keptPacketBytes > destinationSize - writtenBytes do
+            if keptPacketBytes > destinationSize - writtenBytes
+            {
                 break
+            }
 
             // A packet without payload is a gap in the stream: it plays as silence, of which a
             // seek discards the part before its target.
@@ -197,18 +235,28 @@ impl Voice
                 continue
             }
 
-            if .packetBuffer.count != packet.byteSize do
+            if .packetBuffer.count != packet.byteSize
+            {
                 .packetBuffer.resize(packet.byteSize)
-            if not .stream.isOpen() do
+            }
+
+            if not .stream.isOpen()
+            {
                 .stream = try ByteSource.openFile(file.path)
+            }
+
             try .stream.seek(packet.sourceOffset)
-            if try .stream.read(.packetBuffer.toSlice()) != packet.byteSize do
+            if try .stream.read(.packetBuffer.toSlice()) != packet.byteSize
+            {
                 fail InvalidFormatError{"compressed sound packet is truncated"}
+            }
 
             if .seekDiscardFrames
             {
-                if .packetScratch.count != packetDecodedBytes do
+                if .packetScratch.count != packetDecodedBytes
+                {
                     .packetScratch.resize(packetDecodedBytes)
+                }
 
                 // A codec restarted by a seek may lack the history the first packets of the run need
                 // and produce fewer frames than the index states. Those frames are the leading ones,
@@ -216,16 +264,25 @@ impl Voice
                 let producedBytes = try .packetCodec!.decodePacket(.packetScratch.storage(),
                                                                    packetDecodedBytes,
                                                                    .packetBuffer.toSlice())
-                if producedBytes > packetDecodedBytes do
+                if producedBytes > packetDecodedBytes
+                {
                     fail InvalidFormatError{"compressed sound packet decoded to an unexpected size"}
+                }
+
                 let missingBytes  = packetDecodedBytes - producedBytes
                 let discardFrames = Math.min(.seekDiscardFrames, packet.sampleFrameCount)
                 let discardBytes  = cast(u64, discardFrames) * file.channelCount * 2
-                if discardBytes < missingBytes do
+                if discardBytes < missingBytes
+                {
                     fail InvalidFormatError{"compressed sound packet decoded fewer frames than its index states"}
+                }
+
                 let availableDiscardBytes = discardBytes - missingBytes
-                if trimBytes > producedBytes - availableDiscardBytes do
+                if trimBytes > producedBytes - availableDiscardBytes
+                {
                     fail InvalidFormatError{"compressed sound packet ends before its audible frames"}
+                }
+
                 let keptBytes = producedBytes - availableDiscardBytes - trimBytes
                 if keptBytes
                 {
@@ -242,16 +299,25 @@ impl Voice
                 var output = cast([*] u8, destination) + writtenBytes
                 if trimBytes
                 {
-                    if .packetScratch.count != packetDecodedBytes do
+                    if .packetScratch.count != packetDecodedBytes
+                    {
                         .packetScratch.resize(packetDecodedBytes)
+                    }
+
                     output = .packetScratch.storage()
                 }
 
                 let producedBytes = try .packetCodec!.decodePacket(output, packetDecodedBytes, .packetBuffer.toSlice())
-                if producedBytes != packetDecodedBytes do
+                if producedBytes != packetDecodedBytes
+                {
                     fail InvalidFormatError{"compressed sound packet decoded to an unexpected size"}
-                if trimBytes do
+                }
+
+                if trimBytes
+                {
                     Memory.copy(cast([*] u8, destination) + writtenBytes, output, keptPacketBytes)
+                }
+
                 writtenBytes += keptPacketBytes
             }
 
@@ -302,13 +368,17 @@ impl Voice
         let file = unwrap .file
 
         // End of the audio payload.
-        if .streamCurSeek >= file.dataSize do
+        if .streamCurSeek >= file.dataSize
+        {
             return 0
+        }
 
         var wantedBytes = length
 
-        if not file.packets.isEmpty() do
+        if not file.packets.isEmpty()
+        {
             return try .readPacketBytes(destBuffer, wantedBytes)
+        }
 
         // First take from the prefetched buffer if there's something there, instead of reading
         // from the file.
@@ -318,22 +388,32 @@ impl Voice
             let dataBuffer      = file.data.storage()
             Memory.copy(destBuffer, dataBuffer + .streamCurSeek, prefetchedBytes)
             .streamCurSeek += prefetchedBytes
-            if .streamCurSeek >= file.dataSize do
+            if .streamCurSeek >= file.dataSize
+            {
                 return prefetchedBytes
+            }
+
             wantedBytes -= prefetchedBytes
-            if not wantedBytes do
+            if not wantedBytes
+            {
                 return prefetchedBytes
+            }
         }
 
         // Open file for streaming
-        if not .stream.isOpen() do
+        if not .stream.isOpen()
+        {
             .stream = try ByteSource.openFile(file.path)
+        }
 
         // Read exactly the indexed payload range. A file shortened after it was loaded is
         // malformed input, not a shorter sound.
         let fileOffset = file.dataOffset + .streamCurSeek
-        if fileOffset >= .stream.size() do
+        if fileOffset >= .stream.size()
+        {
             fail InvalidFormatError{"sound payload is truncated"}
+        }
+
         try .stream.seek(fileOffset)
         wantedBytes = Math.min(wantedBytes, file.dataSize - .streamCurSeek)
         try .stream.readExact(Swag.makeSlice(cast([*] u8, destBuffer), wantedBytes))
@@ -345,9 +425,9 @@ impl Voice
     {
         let file              = unwrap .file
         let bytesPerFrame     = cast(u64, file.channelCount) * cast(u64, (file.bitsPerSample / 8))
-        var writtenBytes      = 0'u64
+        var writtenBytes      = 0_u64
         var logicalByteOffset = .streamCurSeek
-        var low               = 0'u64
+        var low               = 0_u64
         var high              = file.packetStarts.count
 
         // Locate the packet containing the logical playback position.
@@ -355,16 +435,22 @@ impl Voice
         while low + 1 < high
         {
             let middle = low + (high - low) / 2
-            if file.packetStarts[middle] <= targetFrame do
+            if file.packetStarts[middle] <= targetFrame
+            {
                 low = middle
-            else do
+            }
+            else
+            {
                 high = middle
+            }
         }
 
         var packetIndex = low
 
-        if not .stream.isOpen() do
+        if not .stream.isOpen()
+        {
             .stream = try ByteSource.openFile(file.path)
+        }
 
         while writtenBytes < length and packetIndex < file.packets.count
         {
@@ -380,12 +466,17 @@ impl Voice
             let packetSkipBytes = logicalByteOffset - packetStartByte
             let readBytes       = Math.min(cast(u64, packet.byteSize) - packetSkipBytes, length - writtenBytes)
             try .stream.seek(packet.sourceOffset + packetSkipBytes)
-            if try .stream.read(Swag.makeSlice(cast([*] u8, destBuffer) + writtenBytes, readBytes)) != readBytes do
+            if try .stream.read(Swag.makeSlice(cast([*] u8, destBuffer) + writtenBytes, readBytes)) != readBytes
+            {
                 fail InvalidFormatError{"PCM source chunk is truncated"}
+            }
+
             writtenBytes      += readBytes
             logicalByteOffset += readBytes
-            if logicalByteOffset == packetEndByte do
+            if logicalByteOffset == packetEndByte
+            {
                 packetIndex += 1
+            }
         }
 
         return writtenBytes

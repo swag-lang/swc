@@ -21,8 +21,11 @@ func viewerPlugin()->Viewer.Plugin
         .smokeFixture = "sample.svg"
     }
 
-    for format in Image.decodableFormats() do
+    for format in Image.decodableFormats()
+    {
         result.addSelectors(format.extensions)
+    }
+
     result.addSelectors(".svg")
     return result
 }
@@ -59,10 +62,15 @@ private func imageItemDescription(info: const *ImageFrameInfo, index, count: s32
 
     case .Texture:
         result += Format.toString(" · %", Format.toString(texts().ui_ItemLevel, info.level))
-        if info.layer do
+        if info.layer
+        {
             result += Format.toString(" · %", Format.toString(texts().ui_ItemLayer, info.layer))
-        if info.face do
+        }
+
+        if info.face
+        {
             result += Format.toString(" · %", Format.toString(texts().ui_ItemFace, info.face))
+        }
 
     default:
         break
@@ -70,8 +78,11 @@ private func imageItemDescription(info: const *ImageFrameInfo, index, count: s32
 
     // Decoder-owned names can be as large as the source file. Only copy short names into the
     // bounded selector; dimensions and item position remain available for every entry.
-    if not info.name.isEmpty() and info.name.count <= 64 do
+    if not info.name.isEmpty() and info.name.count <= 64
+    {
         result += Format.toString(" · %", info.name)
+    }
+
     return result
 }
 
@@ -88,17 +99,26 @@ struct ViewerContent
 // Decodes only one indexed image on a worker and bounds the largest temporary pixel buffer.
 private func loadItemThumbnail(fileName: string, index: u32)->Image fail
 {
-    if Swag.isCancelled() do
+    if Swag.isCancelled()
+    {
         return Image{}
+    }
+
     var reader = try ImageReader.load(fileName, {maxPixels: 4 * 1024 * 1024,
                                                  maxDecodedBytes: 16 * 1024 * 1024,
                                                  maxInputBytes: 128 * 1024 * 1024})
-    if Swag.isCancelled() do
+    if Swag.isCancelled()
+    {
         return Image{}
+    }
+
     var result = try reader.read(index)
     result.orient(Exif.orientationOf(result.metadata.toSlice()))
-    if result.width > ImageThumbnailWidth or result.height > ImageThumbnailHeight do
+    if result.width > ImageThumbnailWidth or result.height > ImageThumbnailHeight
+    {
         result.fitInside(ImageThumbnailWidth, ImageThumbnailHeight, .Bilinear)
+    }
+
     return result
 }
 
@@ -138,7 +158,7 @@ func loadThumbnail(fileName: string, maxSide: u32)->Image fail
     {
         var image   = try loadViewerImage(fileName)
         let largest = Math.max(image.width, image.height)
-        let side    = Math.max(maxSide, 1'u32)
+        let side    = Math.max(maxSide, 1_u32)
         if largest > side
         {
             let scale = cast(f32, side) / cast(f32, largest)
@@ -183,8 +203,8 @@ private func loadViewerContent(fileName: string)->ViewerContent fail
     }
     else
     {
-        let jpeg = Jpg.matchesFileName(fileName)
-        var originalMetadata: Array'ImageMetadata
+        let jpeg = isJpegExtension(extension)
+        var originalMetadata: Array!{ImageMetadata}
 
         // JPEG has one still frame. Decode straight into the picture the view will own.
         if jpeg
@@ -223,22 +243,35 @@ private func loadViewerContent(fileName: string)->ViewerContent fail
         let pixelFormat = Reflection.enumName(PixelFormat, &shown.pixelFormat, fullyQualified: false)
         let depth       = Format.toString("%", shown.bitsPerPixel)
         var transparency: String
-        if not animated and shown.pixelFormat.hasAlpha() do
+        if not animated and shown.pixelFormat.hasAlpha()
+        {
             transparency = transparencyText(shown)
+        }
+
         result.information.add(.Dimensions, dimensions)
         result.information.add(.PixelFormat, pixelFormat)
         result.information.add(.Depth, depth)
-        if animated do
+        if animated
+        {
             result.information.add(.Frames, Format.toString("%", frameCount))
-        if transparency.count do
+        }
+
+        if transparency.count
+        {
             result.information.add(.Transparency, transparency)
+        }
 
         var metadata = result.movie.frame.metadata.toSlice()
-        if jpeg do
+        if jpeg
+        {
             metadata = originalMetadata.isEmpty() ? result.image.metadata.toSlice() : originalMetadata.toSlice()
+        }
+
         result.information.addImageMetadata(metadata, extension == ".png" or extension == ".apng")
-        if result.movie.frameCount == 1 do
+        if result.movie.frameCount == 1
+        {
             result.movie.clear()
+        }
     }
 
     return result
@@ -249,7 +282,7 @@ private func loadViewerContent(fileName: string)->ViewerContent fail
 // other formats.
 func transparencyText(image: const *Image)->String
 {
-    var step = 4'u64
+    var step = 4_u64
     switch image.pixelFormat
     {
     case .RGBA8, .BGRA8: step = 4
@@ -265,23 +298,37 @@ func transparencyText(image: const *Image)->String
     while at < bytes.count
     {
         let alpha = bytes[at]
-        if alpha == 0 do
+        if alpha == 0
+        {
             transparent += 1
-        elif alpha != 255 do
+        }
+        else if alpha != 255
+        {
             partial += 1
+        }
+
         at += step
     }
 
-    if not transparent and not partial do
+    if not transparent and not partial
+    {
         return String.from(texts().ui_Opaque)
+    }
+
     let total = Math.max(cast(u64, image.width) * cast(u64, image.height), 1)
     var result: String
-    if transparent do
+    if transparent
+    {
         result = Format.toString(texts().ui_Transparent, shareText(transparent, total))
+    }
+
     if partial
     {
-        if not result.isEmpty() do
+        if not result.isEmpty()
+        {
             result += " · "
+        }
+
         result += Format.toString(texts().ui_Translucent, shareText(partial, total))
     }
 
@@ -292,8 +339,11 @@ func transparencyText(image: const *Image)->String
 func shareText(count, total: u64)->String
 {
     let percent = count * 100 / total
-    if not percent do
+    if not percent
+    {
         return String.from("<1%")
+    }
+
     var result = Format.toString("%", percent)
     result += "%"
     return result
@@ -302,8 +352,11 @@ func shareText(count, total: u64)->String
 // Writes one view-box extent the way the document authored it: a whole number stays whole.
 private func formatViewBoxExtent(value: f32)->String
 {
-    if value == Math.round(value) do
+    if value == Math.round(value)
+    {
         return Format.toString("%", cast(s64, value))
+    }
+
     return Format.toString("%", value)
 }
 
@@ -320,10 +373,16 @@ private impl ViewerFacts
 {
     mtd const text()->String
     {
-        if .vector do
+        if .vector
+        {
             return Format.toString(texts().ui_DetailsVector, .width, .height)
-        if .frames > 1 do
+        }
+
+        if .frames > 1
+        {
             return Format.toString(texts().ui_DetailsMovie, .width, .height, frameCountText(.frames))
+        }
+
         return Format.toString(texts().ui_DetailsStill, .width, .height, .bits)
     }
 }
@@ -359,22 +418,22 @@ struct Panel
     information:                MediaInfoData
     lastCompletedLoops:         u32      // Playback cycles observed by the latest frame refresh.
     handedOff:                  bool     // The host was told the animation has run its cycle, and answered that it moves on.
-    load:                       Viewer.BackgroundLoad'ViewerContent
+    load:                       Viewer.BackgroundLoad!{ViewerContent}
     failureReason:              String
-    shownItem:                  String              // What the summary last said of the item in view.
-    selectorStart:              s32                 // First movie index represented by the bounded item selector.
-    thumbnailPixels:            Image               // Fixed 128-cell RGBA8 atlas (384 KiB CPU and GPU).
-    thumbnailList:              ImageList           // GPU atlas borrowed by selector and popup icons.
-    thumbnailReady:             Array'bool          // Decoded cells in the current selector window.
-    thumbnailFailed:            Array'bool          // Failed cells are not retried until the window changes.
-    thumbnailRequested:         Array'bool          // Requested cells in this window, for bounded scheduling and verification.
-    thumbnailPopup:             *PopupListCtrl?     // Borrowed popup while its selector is open.
-    thumbnailGeneration:        u32                 // Invalidates work from an old selector window or file.
-    thumbnailRequestLocalIndex: u32                 // Selector position receiving the in-flight result.
-    thumbnailRequestGeneration: u32                 // Window generation captured when work was submitted.
-    thumbnailTask:              Swag.Task'Image     // At most one visible-first decode at a time.
-    probed:                     Math.Point          // Pixel of the stored picture the pointer last read.
-    hasProbe:                   bool                // Whether the pointer has read a pixel of the picture shown.
+    shownItem:                  String                // What the summary last said of the item in view.
+    selectorStart:              s32                   // First movie index represented by the bounded item selector.
+    thumbnailPixels:            Image                 // Fixed 128-cell RGBA8 atlas (384 KiB CPU and GPU).
+    thumbnailList:              ImageList             // GPU atlas borrowed by selector and popup icons.
+    thumbnailReady:             Array!{bool}          // Decoded cells in the current selector window.
+    thumbnailFailed:            Array!{bool}          // Failed cells are not retried until the window changes.
+    thumbnailRequested:         Array!{bool}          // Requested cells in this window, for bounded scheduling and verification.
+    thumbnailPopup:             *PopupListCtrl?       // Borrowed popup while its selector is open.
+    thumbnailGeneration:        u32                   // Invalidates work from an old selector window or file.
+    thumbnailRequestLocalIndex: u32                   // Selector position receiving the in-flight result.
+    thumbnailRequestGeneration: u32                   // Window generation captured when work was submitted.
+    thumbnailTask:              Swag.Task!{Image}     // At most one visible-first decode at a time.
+    probed:                     Math.Point            // Pixel of the stored picture the pointer last read.
+    hasProbe:                   bool                  // Whether the pointer has read a pixel of the picture shown.
 }
 
 impl Panel
@@ -397,8 +456,10 @@ impl Panel
         {
             let angle = .imageView.rotationQuarterTurns * 90
             .transformButton.toolTip = Format.toString("% · %°", texts().ui_TipTransform, angle)
-            if .imageView.isMirrored do
+            if .imageView.isMirrored
+            {
                 .transformButton.toolTip = Format.toString("% · %", .transformButton.toolTip, texts().word_Mirrored)
+            }
         }
 
         .services.chromeChanged(me)
@@ -411,34 +472,53 @@ impl Panel
     {
         var result: String
         let movie = &.imageView.movie
-        if movie.frameCount <= 1 do
+        if movie.frameCount <= 1
+        {
             return result
+        }
+
         let info = movie.frameInfo()
-        if not info do
+        if not info
+        {
             return result
+        }
 
         // A paused animation says how long its frame stays on screen; a playing one says nothing,
         // the frames passing too quickly to be read.
         if info.kind == .Animation
         {
-            if movie.isPaused do
+            if movie.isPaused
+            {
                 result = Format.toString(texts().ui_FrameDelay, cast(u32, Math.round(movie.currentFrameDuration() * 1000)))
+            }
+
             return result
         }
 
         result = Format.toString("% × % px", info.width, info.height)
         if info.kind == .Texture
         {
-            if info.level do
+            if info.level
+            {
                 result += Format.toString(" · %", Format.toString(texts().ui_ItemLevel, info.level))
-            if info.layer do
+            }
+
+            if info.layer
+            {
                 result += Format.toString(" · %", Format.toString(texts().ui_ItemLayer, info.layer))
-            if info.face do
+            }
+
+            if info.face
+            {
                 result += Format.toString(" · %", Format.toString(texts().ui_ItemFace, info.face))
+            }
         }
 
-        if not info.name.isEmpty() do
+        if not info.name.isEmpty()
+        {
             result += Format.toString(" · %", info.name)
+        }
+
         return result
     }
 
@@ -446,8 +526,11 @@ impl Panel
     mtd shownDetails()->String
     {
         let item = .itemText()
-        if item.isEmpty() do
+        if item.isEmpty()
+        {
             return String.from(.details)
+        }
+
         return .imageView.movie.isAnimated() ? Format.toString("% · %", .details, item) : item
     }
 
@@ -456,8 +539,11 @@ impl Panel
     mtd refreshFrame()
     {
         let movie = &.imageView.movie
-        if movie.frameCount <= 1 do
+        if movie.frameCount <= 1
+        {
             return
+        }
+
         let item = .itemText()
         if item != .shownItem
         {
@@ -465,8 +551,11 @@ impl Panel
             .services.showDetails(me, .shownDetails())
         }
 
-        if movie.isAnimated() do
+        if movie.isAnimated()
+        {
             .timeline.setValueWithoutGesture(cast(f32, movie.frameIndex))
+        }
+
         .frameSteps.unit = movie.isAnimated() ? .Frame : .Page
         .frameSteps.setPageRange(cast(u64, movie.frameIndex), cast(u64, movie.frameCount))
         .refreshItemSelector()
@@ -478,21 +567,28 @@ impl Panel
         let completed = movie.completedLoopCount()
         let finished  = completed != 0 and .lastCompletedLoops == 0
         .lastCompletedLoops = completed
-        if finished do
+        if finished
+        {
             .finishCycle()
+        }
     }
 
     // Fills a bounded window of metadata-only choices around the current independent image.
     mtd populateItemSelector(start: s32)
     {
         let movie = &.imageView.movie
-        if movie.isAnimated() or movie.frameCount <= 1 do
+        if movie.isAnimated() or movie.frameCount <= 1
+        {
             return
+        }
 
         let lastStart = Math.max(movie.frameCount - ImageItemSelectorLimit, 0)
         .selectorStart = Math.clamp(start, 0, lastStart)
-        if .thumbnailPopup do
+        if .thumbnailPopup
+        {
             .itemSelector.closePopup()
+        }
+
         .resetThumbnailWindow()
         let end = Math.min(.selectorStart + ImageItemSelectorLimit, movie.frameCount)
         .itemSelector.clear()
@@ -511,8 +607,11 @@ impl Panel
     mtd refreshItemSelector()
     {
         let movie = &.imageView.movie
-        if movie.isAnimated() or movie.frameCount <= 1 do
+        if movie.isAnimated() or movie.frameCount <= 1
+        {
             return
+        }
+
         let end = .selectorStart + cast(s32, .itemSelector.items.count)
         if movie.frameIndex < .selectorStart or movie.frameIndex >= end
         {
@@ -532,8 +631,11 @@ impl Panel
     mtd resetThumbnailWindow()
     {
         .thumbnailGeneration += 1
-        if .thumbnailTask.isPending() do
+        if .thumbnailTask.isPending()
+        {
             .thumbnailTask.cancel()
+        }
+
         .thumbnailReady.resize(ImageItemSelectorLimit)
         .thumbnailFailed.resize(ImageItemSelectorLimit)
         .thumbnailRequested.resize(ImageItemSelectorLimit)
@@ -553,8 +655,11 @@ impl Panel
 
     mtd ensureThumbnailAtlas()
     {
-        if .thumbnailList.isValid() do
+        if .thumbnailList.isValid()
+        {
             return
+        }
+
         .thumbnailPixels = Image.create(ImageThumbnailWidth * 8, ImageThumbnailHeight * 16, .RGBA8)
         .thumbnailPixels.fill(Color{r: 0, g: 0, b: 0, a: 0})
         let texture = .app().renderer.addImage(&.thumbnailPixels)
@@ -563,12 +668,18 @@ impl Panel
 
     mtd updateVisibleThumbnails(popup: *PopupListCtrl)
     {
-        if .imageView.movie.isAnimated() or .imageView.movie.frameCount <= 1 do
+        if .imageView.movie.isAnimated() or .imageView.movie.frameCount <= 1
+        {
             return
+        }
+
         .ensureThumbnailAtlas()
         let visible = popup.visibleItemRange()
-        if visible.end > .itemSelector.items.count do
+        if visible.end > .itemSelector.items.count
+        {
             return
+        }
+
         for localIndex in visible.first until visible.end
         {
             if .thumbnailReady[localIndex]
@@ -583,8 +694,11 @@ impl Panel
 
     mtd scheduleVisibleThumbnail(first, end: u32)
     {
-        if .thumbnailTask.isPending() or first >= end do
+        if .thumbnailTask.isPending() or first >= end
+        {
             return
+        }
+
         let selected = .itemSelector.selectedIndex
         if selected >= first and
            selected < end and
@@ -618,8 +732,11 @@ impl Panel
 
     mtd installThumbnail(image: *Image, localIndex: u32)->bool
     {
-        if not image.isValid() or localIndex >= ImageItemSelectorLimit do
+        if not image.isValid() or localIndex >= ImageItemSelectorLimit
+        {
             return false
+        }
+
         let cellX   = cast(s32, localIndex % 8) * ImageThumbnailWidth
         let cellY   = cast(s32, localIndex / 8) * ImageThumbnailHeight
         let offsetX = Math.max((ImageThumbnailWidth - image.width) / 2, 0)
@@ -644,8 +761,11 @@ impl Panel
     // Keeps the completed cycle's last frame until the host explicitly requests another cycle.
     mtd finishCycle()
     {
-        if .handedOff or not .services.reportFinished do
+        if .handedOff or not .services.reportFinished
+        {
             return
+        }
+
         switch #complete .services.finished(me)
         {
         case .Stop:
@@ -684,17 +804,17 @@ impl Panel
     // Spend the available width on the operation that belongs to the picture: file, page or frame.
     mtd fitCommandBar()
     {
-        let width = .actions.position.width
-        let movie = &.imageView.movie
-        let paged = movie.frameCount > 1
-        let animated = paged and movie.isAnimated()
-        let metrics = .themeMetrics()
-        let action = themeActionButtonSize(metrics)
-        let compact = width < (paged ? imageSetCommandWidth(metrics, animated) : commandWidth(metrics))
-        let room = width - (compact ? .optionsButton.position.width : 0)
+        let width     = .actions.position.width
+        let movie     = &.imageView.movie
+        let paged     = movie.frameCount > 1
+        let animated  = paged and movie.isAnimated()
+        let metrics   = .themeMetrics()
+        let action    = themeActionButtonSize(metrics)
+        let compact   = width < (paged ? imageSetCommandWidth(metrics, animated) : commandWidth(metrics))
+        let room      = width - (compact ? .optionsButton.position.width : 0)
         let stepWidth = animated ? Viewer.pageControlWidth(metrics) + 3 * action : 2 * action
-        let steps = room >= stepWidth
-        let counter = paged and steps and room >= Viewer.pageControlWidth(metrics)
+        let steps     = room >= stepWidth
+        let counter   = paged and steps and room >= Viewer.pageControlWidth(metrics)
         .optionsButton.show(compact)
         .transformButton.show(not compact)
         .playModeButton.show(not compact)
@@ -710,39 +830,54 @@ impl Panel
         .timeline.resize(compact ? Math.clamp(free, 0, 128) : 128, .timeline.position.height, computeLayout: false)
         .timeline.show(animated and (not compact or free >= action))
         .itemSelector.resize(compact ? Math.clamp(free, 0, ImageItemSelectorWidth) : ImageItemSelectorWidth,
-                             .itemSelector.position.height, computeLayout: false)
+                             .itemSelector.position.height,
+                             computeLayout: false)
         let selectItem = paged and not animated and (not compact or free >= 3 * action)
-        if .thumbnailPopup and not selectItem do
+        if .thumbnailPopup and not selectItem
+        {
             .itemSelector.closePopup()
+        }
+
         .itemSelector.show(selectItem)
     }
 
     mtd showCompactOptions()
     {
-        let sheet = OptionSheet.View.create(.optionsButton, func|view = me|(page)
-        {
-            let strings = texts()
-            let movie = &view.imageView.movie
-            if movie.frameCount > 1
-            {
-                let index = movie.frameIndex
-                if movie.isAnimated() and not view.playButton.isLocallyVisible() do
-                    page.addAction(movie.isPaused ? appStrings().cmd_Play : appStrings().cmd_Pause,
-                                   func|view|() { view.toggleAnimation() },
-                                   icon: view.theme().icon(movie.isPaused ? .Play : .Pause, themeRowIconSize(view.themeMetrics())))
-                page.addStepper(movie.isAnimated() ? strings.ui_Frame : strings.ui_Image,
-                                Viewer.pageText(cast(u64, index), cast(u64, movie.frameCount)),
-                                func|view|(step) { view.turnPage(step) }, index > 0, index + 1 < movie.frameCount)
-            }
-            if not view.previousButton.isLocallyVisible() and movie.frameCount <= 1
-            {
-                page.addAction(strings.ui_TipPrevious, func|view|() { view.navigate(-1) }, disabled: not view.previousButton.isEnabled(), closesSheet: true)
-                page.addAction(strings.ui_TipNext, func|view|() { view.navigate(1) }, disabled: not view.nextButton.isEnabled(), closesSheet: true)
-            }
-            page.addAction(strings.ui_TipTransform, func|view|() { view.showTransformMenu() }, closesSheet: true,
-                           icon: view.theme().icon(.Redo, themeRowIconSize(view.themeMetrics())))
-            view.services.playback.addOptionRows(page, view, showSlideDuration: true)
-        }, owner: me)
+        let sheet = OptionSheet.View.create(.optionsButton,
+                                            func|view = me|(page)
+                                            {
+                                                let strings = texts()
+                                                let movie   = &view.imageView.movie
+                                                if movie.frameCount > 1
+                                                {
+                                                    let index = movie.frameIndex
+                                                    if movie.isAnimated() and not view.playButton.isLocallyVisible()
+                                                    {
+                                                        page.addAction(movie.isPaused ? appStrings().cmd_Play : appStrings().cmd_Pause,
+                                                                       func|view|() { view.toggleAnimation() },
+                                                                       icon: view.theme().icon(movie.isPaused ? .Play : .Pause, themeRowIconSize(view.themeMetrics())))
+                                                    }
+
+                                                    page.addStepper(movie.isAnimated() ? strings.ui_Frame : strings.ui_Image,
+                                                                    Viewer.pageText(cast(u64, index), cast(u64, movie.frameCount)),
+                                                                    func|view|(step) { view.turnPage(step) },
+                                                                    index > 0,
+                                                                    index + 1 < movie.frameCount)
+                                                }
+
+                                                if not view.previousButton.isLocallyVisible() and movie.frameCount <= 1
+                                                {
+                                                    page.addAction(strings.ui_TipPrevious, func|view|() { view.navigate(-1) }, disabled: not view.previousButton.isEnabled(), closesSheet: true)
+                                                    page.addAction(strings.ui_TipNext, func|view|() { view.navigate(1) }, disabled: not view.nextButton.isEnabled(), closesSheet: true)
+                                                }
+
+                                                page.addAction(strings.ui_TipTransform,
+                                                               func|view|() { view.showTransformMenu() },
+                                                               closesSheet: true,
+                                                               icon: view.theme().icon(.Redo, themeRowIconSize(view.themeMetrics())))
+                                                view.services.playback.addOptionRows(page, view, showSlideDuration: true)
+                                            },
+                                            owner: me)
         sheet.doModal(.optionsButton, autoDestroy: true)
     }
 
@@ -823,16 +958,25 @@ impl Panel
     {
         var result: #returntype
         let picture = .imageView.picture()
-        if not .hasProbe or not picture do
+        if not .hasProbe or not picture
+        {
             return result
+        }
+
         let x = cast(s32, .probed.x)
         let y = cast(s32, .probed.y)
-        if x >= picture.width or y >= picture.height do
+        if x >= picture.width or y >= picture.height
+        {
             return result
+        }
+
         let color = picture.pixelColor(x, y)
         result = Format.toString("#%{X02}%{X02}%{X02}", color.r, color.g, color.b)
-        if color.a != 255 do
+        if color.a != 255
+        {
             result += Format.toString("%{X02}", color.a)
+        }
+
         return result
     }
 
@@ -840,8 +984,10 @@ impl Panel
     mtd copyProbedColor()
     {
         let color = .probedColorText()
-        if color.count do
+        if color.count
+        {
             Clipboard.setString(color)
+        }
     }
 
     // Puts the picture on the clipboard as decoded and stood upright, without the view's own
@@ -849,8 +995,10 @@ impl Panel
     mtd copyPicture()
     {
         let picture = .imageView.picture()
-        if picture do
+        if picture
+        {
             Clipboard.addImage(picture[])
+        }
     }
 
     // Gives the lens the neighbouring pictures, the orientation, the zoom, the animation and the
@@ -866,13 +1014,17 @@ impl Panel
         entries.add(texts.ui_MirrorHorizontal, .MirrorHorizontal, func|view = me|() { view.mirrorHorizontally() }, defaultKey: {modifiers: .None, key: .H}, bindId: "scope.image.mirrorHorizontal")
         entries.add(texts.ui_MirrorVertical, .MirrorVertical, func|view = me|() { view.mirrorVertically() }, defaultKey: {modifiers: .None, key: .V}, bindId: "scope.image.mirrorVertical")
         entries.add(texts.ui_ResetTransform, .Update, func|view = me|() { view.resetTransform() }, defaultKey: {modifiers: .Control, key: .R}, bindId: "scope.image.resetTransform")
-        if .imageView.picture() do
+        if .imageView.picture()
+        {
             entries.add(texts.ui_CopyImage, .Copy, func|view = me|() { view.copyPicture() }, defaultKey: {modifiers: .Control, key: .C}, bindId: "scope.image.copyImage")
+        }
 
         // The pixel the pointer read last, whose color the reader may want elsewhere.
         let color = .probedColorText()
-        if color.count do
+        if color.count
+        {
             entries.add(Format.toString(texts.ui_CopyColor, color, Format.toString(texts.ui_ProbePixel, cast(s32, .probed.x), cast(s32, .probed.y))), .Copy, func|view = me|() { view.copyProbedColor() }, defaultKey: {modifiers: Input.KeyModifiers.Control | .Shift, key: .C}, bindId: "scope.image.copyColor")
+        }
 
         // The picture zooms by factors, far past the shared bounds, so only actual size, the 100 %
         // of the readout, is the shared row; it reads as chosen while the picture shows at it.
@@ -901,15 +1053,18 @@ impl Panel
                         bindId: "scope.image.playPause")
         }
 
-        entries.add(lens.cmd_PlayMode, .RepeatAll, func|view = me|()
-        {
-            view.playModeButton.showOptions(view.optionsButton.isLocallyVisible() ? view.optionsButton : null)
-        }, bindId: "scope.image.playMode")
+        entries.add(lens.cmd_PlayMode,
+                    .RepeatAll,
+                    func|view = me|()
+                    {
+                        view.playModeButton.showOptions(view.optionsButton.isLocallyVisible() ? view.optionsButton : null)
+                    },
+                    bindId: "scope.image.playMode")
     }
 
     mtd showTransformMenu()
     {
-        let menu = .createTransformMenu()
+        let menu   = .createTransformMenu()
         let anchor = .optionsButton.isLocallyVisible() ? .optionsButton : .transformButton
         switch menu.doModal(anchor, autoDestroy: true) orelse ""
         {
@@ -956,14 +1111,14 @@ private impl IWnd for Panel
     {
         if evt.kind == .LanguageChanged
         {
-            .previousButton.toolTip  = texts().ui_TipPrevious
-            .nextButton.toolTip      = texts().ui_TipNext
-            .frameSteps.previousButton.toolTip    = appStrings().ui_PreviousPage
-            .frameSteps.nextButton.toolTip        = appStrings().ui_NextPage
-            .transformButton.toolTip = texts().ui_TipTransform
-            .playButton.toolTip      = texts().ui_TipPlay
-            .optionsButton.toolTip   = appStrings().ui_Options
-            .zoomLabel.toolTip       = texts().ui_ZoomMenu
+            .previousButton.toolTip            = texts().ui_TipPrevious
+            .nextButton.toolTip                = texts().ui_TipNext
+            .frameSteps.previousButton.toolTip = appStrings().ui_PreviousPage
+            .frameSteps.nextButton.toolTip     = appStrings().ui_NextPage
+            .transformButton.toolTip           = texts().ui_TipTransform
+            .playButton.toolTip                = texts().ui_TipPlay
+            .optionsButton.toolTip             = appStrings().ui_Options
+            .zoomLabel.toolTip                 = texts().ui_ZoomMenu
             .refreshZoom()
             if not .facts.width.isEmpty()
             {
@@ -980,8 +1135,11 @@ private impl IWnd for Panel
         if evt.task == &.thumbnailTask
         {
             .thumbnailTask.waitSubmission(evt.submission)
-            if evt.submission != .thumbnailTask.currentSubmission() or not .thumbnailTask.isDone() do
+            if evt.submission != .thumbnailTask.currentSubmission() or not .thumbnailTask.isDone()
+            {
                 return
+            }
+
             var thumbnailErrorOutcome: Swag.Error
             var thumbnail: Image
             catch { thumbnail = try .thumbnailTask.take() } as thumbnailErrorOutcome
@@ -989,14 +1147,21 @@ private impl IWnd for Panel
             let localIndex     = .thumbnailRequestLocalIndex
             if .thumbnailRequestGeneration == .thumbnailGeneration and localIndex < .thumbnailReady.count
             {
-                if thumbnailError == null and .installThumbnail(&thumbnail, localIndex) do
+                if thumbnailError == null and .installThumbnail(&thumbnail, localIndex)
+                {
                     .thumbnailReady[localIndex] = true
-                else do
+                }
+                else
+                {
                     .thumbnailFailed[localIndex] = true
+                }
             }
 
-            if .thumbnailPopup do
+            if .thumbnailPopup
+            {
                 .updateVisibleThumbnails(.thumbnailPopup)
+            }
+
             return
         }
 
@@ -1016,18 +1181,23 @@ private impl IWnd for Panel
 
         if content.movie.isValid()
         {
-            if .services.reportFinished do
+            if .services.reportFinished
+            {
                 content.movie.loops = false
+            }
+
             if not .imageView.exchangeMovie(&content.movie)
             {
                 .services.failed(me, "renderer cannot allocate the movie texture")
                 return
             }
 
-            if .imageView.movie.frameCount > 1 do
+            if .imageView.movie.frameCount > 1
+            {
                 .showPlayback()
+            }
         }
-        elif content.drawing.width > 0 and content.drawing.height > 0
+        else if content.drawing.width > 0 and content.drawing.height > 0
         {
             .imageView.setDrawing(#move content.drawing)
         }
@@ -1046,8 +1216,10 @@ private impl IWnd for Panel
 
         // A still picture has no end of its own; the host's slideshow gives it one.
         let still = not .imageView.movie.isValid() or .imageView.movie.frameCount <= 1
-        if still do
+        if still
+        {
             .services.shown(me)
+        }
     }
 
     mtd impl onKeyEvent(evt: *KeyEvent)
@@ -1061,16 +1233,24 @@ private impl IWnd for Panel
         switch evt.key
         {
         case .Left where evt.modifiers == .None:
-            if .services.navigateFile do
+            if .services.navigateFile
+            {
                 .navigate(-1)
-            else do
+            }
+            else
+            {
                 evt.accepted = false
+            }
 
         case .Right where evt.modifiers == .None:
-            if .services.navigateFile do
+            if .services.navigateFile
+            {
                 .navigate(1)
-            else do
+            }
+            else
+            {
                 evt.accepted = false
+            }
 
         case .Add, .OemPlus where evt.modifiers == .Control:
             .imageView.zoomIn()
@@ -1123,14 +1303,22 @@ private impl Panel
         if .thumbnailTask.isPending()
         {
             .thumbnailTask.cancel()
-            if not .thumbnailTask.isDone() do
+            if not .thumbnailTask.isDone()
+            {
                 return false
+            }
         }
 
-        if .thumbnailTask.isDone() do
+        if .thumbnailTask.isDone()
+        {
             discard catch .thumbnailTask.take()
-        if .thumbnailList.isValid() do
+        }
+
+        if .thumbnailList.isValid()
+        {
             .thumbnailList.release(.app().renderer)
+        }
+
         return .load.retire()
     }
 
@@ -1139,7 +1327,7 @@ private impl Panel
     func create(host: Viewer.Host)->*Panel
     {
         let services    = host.services()
-        with let result = Wnd.create'Panel(host.contentParent(), "scope.image")
+        with let result = Wnd.create!{Panel}(host.contentParent(), "scope.image")
         {
             .backgroundStyle = .View
             .services        = services
@@ -1147,7 +1335,7 @@ private impl Panel
 
         if host.isEmbedded()
         {
-            result.actions = Wnd.create'Wnd(result)
+            result.actions = Wnd.create!{Wnd}(result)
             result.actions.hide()
         }
         else
@@ -1163,8 +1351,11 @@ private impl Panel
         result.createImageView()
         result.actions.hookOnEvent = func|view = result|(_, evt)->bool
         {
-            if evt is ResizeEvent do
+            if evt is ResizeEvent
+            {
                 view.fitCommandBar()
+            }
+
             return false
         }
 
@@ -1197,6 +1388,7 @@ private impl Panel
             .hide()
             .sigPressed += func|view = me|(_) { view.showCompactOptions() }
         }
+
         with .previousButton = Viewer.createActionButton(.actions, .ChevronLeft)
         {
             .dockStyle = .Left
@@ -1266,8 +1458,10 @@ private impl Panel
                     view.thumbnailPopup = popup
                     popup.scrollWnd.sigScrollPositionChanged += func|view = view, popup = popup|(_, _, _)
                     {
-                        if view.thumbnailPopup == popup do
+                        if view.thumbnailPopup == popup
+                        {
                             view.updateVisibleThumbnails(popup)
+                        }
                     }
 
                     view.updateVisibleThumbnails(popup)
@@ -1276,8 +1470,10 @@ private impl Panel
                 {
                     view.thumbnailPopup      = null
                     view.thumbnailGeneration += 1
-                    if view.thumbnailTask.isPending() do
+                    if view.thumbnailTask.isPending()
+                    {
                         view.thumbnailTask.cancel()
+                    }
                 }
             }
 
@@ -1288,8 +1484,7 @@ private impl Panel
             }
         }
 
-        .frameLabel = .frameSteps.create(.actions, "scope.image.page", .Page,
-            func|view = me|(dir) { view.turnPage(dir) }, func|view = me|(index) { view.imageView.setFrameIndex(cast(s32, index)) })
+        .frameLabel = .frameSteps.create(.actions, "scope.image.page", .Page, func|view = me|(dir) { view.turnPage(dir) }, func|view = me|(index) { view.imageView.setFrameIndex(cast(s32, index)) })
         discard .frameSteps.showSteps(false)
 
         .timeline.sendToBack()
@@ -1304,8 +1499,10 @@ private impl Panel
     mtd turnPage(direction: s32)
     {
         let movie = &.imageView.movie
-        if movie.frameCount > 1 do
+        if movie.frameCount > 1
+        {
             .imageView.setFrameIndex(Math.clamp(movie.frameIndex + direction, 0, movie.frameCount - 1))
+        }
     }
 
     // Creates the zoom menu button in the information group.
@@ -1322,8 +1519,10 @@ private impl Panel
     {
         var result: String
         let pixel = .imageView.pixelAt(local)
-        if not pixel.inside do
+        if not pixel.inside
+        {
             return result
+        }
 
         result    = Format.toString(texts().ui_ProbePixel, pixel.x, pixel.y)
         .probed   = {cast(f32, pixel.x), cast(f32, pixel.y)}
@@ -1333,8 +1532,10 @@ private impl Panel
         {
             let color = picture.pixelColor(pixel.x, pixel.y)
             result += Format.toString(" · #%{X02}%{X02}%{X02}", color.r, color.g, color.b)
-            if color.a != 255 do
+            if color.a != 255
+            {
                 result += Format.toString(" · %", Format.toString(texts().ui_ProbeAlpha, shareText(color.a, 255)))
+            }
         }
 
         return result
@@ -1361,10 +1562,14 @@ private impl Panel
             {
                 if evt is MouseEvent as mouse
                 {
-                    if mouse.kind == .Move do
+                    if mouse.kind == .Move
+                    {
                         view.showProbe(imageView.surfaceToLocal(mouse.surfacePos))
-                    elif mouse.kind == .Leave do
+                    }
+                    else if mouse.kind == .Leave
+                    {
                         view.services.showDetails(view, view.shownDetails())
+                    }
                 }
 
                 return false

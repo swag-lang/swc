@@ -42,10 +42,10 @@ func day8B()
     let lines    = expect File.readAllLines(dataPath)
 
     var instructions:    string = ""
-    var nodes:           Array'{isEnd: bool, left, right: u64}
-    var nodeIndexByName: HashTable'(string, u64)
+    var nodes:           Array!{{isEnd: bool, left, right: u64}}
+    var nodeIndexByName: HashTable!{string, u64}
 
-    var startNodeIndices: Array'u64
+    var startNodeIndices: Array!{u64}
 
     for l, i in lines
     {
@@ -53,20 +53,25 @@ func day8B()
         {
             instructions = l.toString()
         }
-        elif i > 1
+        else if i > 1
         {
             let name = l[0 to 2]
             nodeIndexByName.add(name, i - 2)
-            if name[2] == 'A' do
+            if name[2] == 'A'
+            {
                 startNodeIndices.add(i - 2)
+            }
         }
     }
 
     nodes.resize(lines.count - 2)
     for l, i in lines
     {
-        if i <= 1 do
+        if i <= 1
+        {
             continue
+        }
+
         let name           = l[0 to 2]
         let left           = l[7 to 9]
         let right          = l[12 to 14]
@@ -77,7 +82,7 @@ func day8B()
 
     var currentNodeIndices = startNodeIndices
 
-    var stepsToFirstEnd: Array'u64
+    var stepsToFirstEnd: Array!{u64}
     stepsToFirstEnd.resize(startNodeIndices.count)
 
     // For each starting node, count steps until its first node ending in Z.
@@ -90,19 +95,28 @@ func day8B()
             instructionIndex = (instructionIndex + 1) % instructions.count
 
             let currentNodeIndex = currentNodeIndices[startIndex]
-            if instruction == 'L' do
+            if instruction == 'L'
+            {
                 currentNodeIndices[startIndex] = nodes[currentNodeIndex].left
-            else do
+            }
+            else
+            {
                 currentNodeIndices[startIndex] = nodes[currentNodeIndex].right
+            }
+
             stepsToFirstEnd[startIndex] += 1
-            if nodes[currentNodeIndices[startIndex]].isEnd do
+            if nodes[currentNodeIndices[startIndex]].isEnd
+            {
                 break
+            }
         }
     }
 
     var steps = stepsToFirstEnd[0]
-    for i in 1 until stepsToFirstEnd.count do
+    for i in 1 until stepsToFirstEnd.count
+    {
         steps = expect Math.lcm(cast(s64, steps), cast(s64, stepsToFirstEnd[i]))
+    }
 
     Swag.assert(steps == 16187743689077)
 }

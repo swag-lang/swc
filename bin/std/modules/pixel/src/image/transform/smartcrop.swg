@@ -11,9 +11,9 @@ impl Image
 
     internal struct ScoreCtx
     {
-        iiS:     *Array'f32     // Integral image of saliency values (blurred/combined)
-        iiT:     *Array'f32     // Integral image of rule-of-thirds weights
-        iiE:     *Array'f32     // Integral image of edge distance values (high away from edges)
+        iiS:     *Array!{f32}     // Integral image of saliency values (blurred/combined)
+        iiT:     *Array!{f32}     // Integral image of rule-of-thirds weights
+        iiE:     *Array!{f32}     // Integral image of edge distance values (high away from edges)
         w, h:    s32
         imgArea: f32
         thirdsW: f32
@@ -27,12 +27,12 @@ impl Image
     // Pack of precomputed features + integrals to avoid recomputation
     internal struct FeaturePack
     {
-        sblur: Array'f32     // blurred saliency (and may contain thirds blended in fast paths)
-        T:     Array'f32     // thirds map (may be zero if disabled)
-        E:     Array'f32     // edge distance map (high away from edges; 1 at far, 0 at edges)
-        iiS:   Array'f32
-        iiT:   Array'f32
-        iiE:   Array'f32
+        sblur: Array!{f32}     // blurred saliency (and may contain thirds blended in fast paths)
+        T:     Array!{f32}     // thirds map (may be zero if disabled)
+        E:     Array!{f32}     // edge distance map (high away from edges; 1 at far, 0 at edges)
+        iiS:   Array!{f32}
+        iiT:   Array!{f32}
+        iiE:   Array!{f32}
     }
 
     internal const SALIENCY_RADIUS  = 4
@@ -43,12 +43,15 @@ impl Image
     #[Swag.Inline]
     func srgbToLinear(c: f32)->f32
     {
-        if c <= 0.04045 do
+        if c <= 0.04045
+        {
             return c / 12.92
+        }
+
         return Math.pow((c + 0.055) / 1.055, 2.4)
     }
 
-    func buildIntegral(src: Array'f32, w, h: s32)->Array'f32
+    func buildIntegral(src: Array!{f32}, w, h: s32)->Array!{f32}
     {
         var ii: #returntype
         ii.resize((w + 1) * (h + 1))
@@ -69,7 +72,7 @@ impl Image
     }
 
     #[Swag.Inline]
-    func sumRect(ii: *Array'f32, w, _, x0, y0, x1, y1: s32)->f32
+    func sumRect(ii: *Array!{f32}, w, _, x0, y0, x1, y1: s32)->f32
     {
         let a = y0 * (w + 1) + x0
         let b = y0 * (w + 1) + x1
@@ -78,10 +81,12 @@ impl Image
         return ii[d] - ii[b] - ii[c] + ii[a]
     }
 
-    func boxBlurViaIntegral(src: Array'f32, w, h, radius: s32)->Array'f32
+    func boxBlurViaIntegral(src: Array!{f32}, w, h, radius: s32)->Array!{f32}
     {
-        if radius <= 0 do
+        if radius <= 0
+        {
             return src
+        }
 
         var ii = buildIntegral(src, w, h)
 
@@ -104,9 +109,9 @@ impl Image
         return dst
     }
 
-    func buildThirdsMap(w, h: s32, sigma: f32)->Array'f32
+    func buildThirdsMap(w, h: s32, sigma: f32)->Array!{f32}
     {
-        var tx, ty: Array'f32
+        var tx, ty: Array!{f32}
         tx.resize(w)
         ty.resize(h)
 
@@ -130,14 +135,19 @@ impl Image
 
         var T: #returntype
         T.resize(w * h)
-        for y in 0 to (h - 1) do
-            for x in 0 to (w - 1) do
+        for y in 0 to (h - 1)
+        {
+            for x in 0 to (w - 1)
+            {
                 T[y * w + x] = Math.pow(tx[x] * ty[y], 1.5)
+            }
+        }
+
         return T
     }
 
     // Sobel on (slightly) blurred luminance (shared by saliency and edge-distance)
-    func sobelMagFromLumBlur(lumBlur: *Array'f32, w, h: s32, outEdge: *Array'f32)
+    func sobelMagFromLumBlur(lumBlur: *Array!{f32}, w, h: s32, outEdge: *Array!{f32})
     {
         for y in 0 to (h - 1)
         {
@@ -167,7 +177,7 @@ impl Image
     }
 
     // Build luminance & saturation once (used by saliency and, indirectly, edge)
-    mtd const extractLumSat(lum: *Array'f32, sat: *Array'f32)
+    mtd const extractLumSat(lum: *Array!{f32}, sat: *Array!{f32})
     {
         var f   = {lum: lum, sat: sat}
         let mec = cast #unconst (*Image, me)
@@ -186,14 +196,14 @@ impl Image
             let bs     = p.b / 255.0
             let maxC   = Math.max(rs, gs, bs)
             let minC   = Math.min(rs, gs, bs)
-            let eps    = 1e-6'f32
+            let eps    = 1e-6_f32
             let satBuf = params.sat.storage()
             satBuf[index] = (maxC > 0.0) ? ((maxC - minC) / (maxC + eps)) : 0.0
         }
     }
 
     // Correct edge distance map: high away from edges, low near edges
-    func buildEdgeDistanceMap(edges: *Array'f32, w, h: s32)->Array'f32
+    func buildEdgeDistanceMap(edges: *Array!{f32}, w, h: s32)->Array!{f32}
     {
         // blur edge magnitude
         let B = boxBlurViaIntegral(edges[], w, h, 3)
@@ -216,17 +226,19 @@ impl Image
         return D
     }
 
-    func estimatePercentiles(buf: *Array'f32, N: s32, pLow, pHigh: f32)->{ a: f32, b: f32 }
+    func estimatePercentiles(buf: *Array!{f32}, N: s32, pLow, pHigh: f32)->{ a: f32, b: f32 }
     {
-        const K = 4096's32
-        var tmp: Array'f32
+        const K = 4096_s32
+        var tmp: Array!{f32}
         var M = Math.min(K, N)
         tmp.resize(M)
 
         if N <= K
         {
-            for i in 0 to (N - 1) do
+            for i in 0 to (N - 1)
+            {
                 tmp[i] = buf[i]
+            }
         }
         else
         {
@@ -243,23 +255,26 @@ impl Image
         let ih = Math.max(0, Math.min(M - 1, cast(s32, Math.floor(pHigh * cast(f32, (M - 1))))))
         let lo = tmp[il]
         let hi = tmp[ih]
-        if hi <= lo do
+        if hi <= lo
+        {
             return {a: lo, b: lo + 1e-6}
+        }
+
         return {a: lo, b: hi}
     }
 
     // Core saliency builder that reuses extracted lum/sat and Sobel edges
-    mtd const buildSaliencyAndEdges(w, h: s32, weights: SaliencyWeights)->{ S: Array'f32, Eedge: Array'f32 }
+    mtd const buildSaliencyAndEdges(w, h: s32, weights: SaliencyWeights)->{ S: Array!{f32}, Eedge: Array!{f32} }
     {
         let N = cast(s32, (w * h))
 
-        var lum, sat: Array'f32
+        var lum, sat: Array!{f32}
         lum.resize(N)
         sat.resize(N)
         .extractLumSat(&lum, &sat)
 
         // integral images of luminance for local contrast
-        var ii, iiSq: Array'f32
+        var ii, iiSq: Array!{f32}
         ii.resize((w + 1) * (h + 1))
         iiSq.resize((w + 1) * (h + 1))
         for y in 1 to h
@@ -279,13 +294,13 @@ impl Image
 
         // Blur luminance and compute Sobel once
         var lumBlur = boxBlurViaIntegral(lum, w, h, 1)
-        var edgeMag: Array'f32
+        var edgeMag: Array!{f32}
         edgeMag.resize(N)
         sobelMagFromLumBlur(&lumBlur, w, h, &edgeMag)
 
         // Downsampled local contrast (same as before)
         const R = SALIENCY_RADIUS
-        var contrast: Array'f32
+        var contrast: Array!{f32}
         contrast.resize(N)
         let sampleStep = 2
         for var y = 0; y < h; y += sampleStep
@@ -311,13 +326,18 @@ impl Image
                 let ovar = Math.max(0.0, (sumSq / n) - mean * mean)
                 contrast[i] = cast(f32, Math.sqrt(ovar))
 
-                if x + 1 < w do
+                if x + 1 < w
+                {
                     contrast[i + 1] = contrast[i]
+                }
+
                 if y + 1 < h
                 {
                     contrast[i + w] = contrast[i]
-                    if x + 1 < w do
+                    if x + 1 < w
+                    {
                         contrast[i + w + 1] = contrast[i]
+                    }
                 }
             }
         }
@@ -331,7 +351,7 @@ impl Image
         let sDen = Math.max(1e-6, sHi - sLo)
         let eDen = Math.max(1e-6, eHi - eLo)
 
-        var S: Array'f32
+        var S: Array!{f32}
         S.resize(N)
         for i in 0 to (N - 1)
         {
@@ -348,12 +368,15 @@ impl Image
         return {S, Eedge: edgeMag}
     }
 
-    func getThirdsOrZero(w, h: s32, enabled: bool)->Array'f32
+    func getThirdsOrZero(w, h: s32, enabled: bool)->Array!{f32}
     {
         var tmp: #returntype
         tmp.resize(w * h)
-        if enabled do
+        if enabled
+        {
             return buildThirdsMap(w, h, THIRDS_SIGMA)
+        }
+
         return tmp
     }
 
@@ -369,7 +392,7 @@ impl Image
         var T = getThirdsOrZero(w, h, opts.thirdsWeight > 0.01)
 
         // Edge distance (or ones if disabled)
-        var E: Array'f32
+        var E: Array!{f32}
         if needEdges and opts.edgePenalty > 0.01
         {
             E = buildEdgeDistanceMap(&Eedge, w, h)
@@ -377,8 +400,10 @@ impl Image
         else
         {
             E.resize(w * h)
-            for i in 0 to (w * h - 1) do
+            for i in 0 to (w * h - 1)
+            {
                 E[i] = 1.0
+            }
         }
 
         // Build integrals
@@ -519,23 +544,35 @@ impl Image
 
         for i in 0 to 4
         {
-            if i == 2 do
+            if i == 2
+            {
                 continue
+            }
+
             let cw = Math.roundS32(bestW * scales[i])
             let ch = Math.roundS32(bestH * scales[i])
-            if cw < 4 or ch < 4 do
+            if cw < 4 or ch < 4
+            {
                 continue
-            if cw > ctx.w or ch > ctx.h do
+            }
+
+            if cw > ctx.w or ch > ctx.h
+            {
                 continue
+            }
 
             let {w0: fw, h0: fh} = fitAspect(cw, ch, ctx.w, ctx.h, aspect, imgAspect)
-            if fw < 4 or fh < 4 do
+            if fw < 4 or fh < 4
+            {
                 continue
+            }
 
             let maxX = ctx.w - fw
             let maxY = ctx.h - fh
-            if maxX < 0 or maxY < 0 do
+            if maxX < 0 or maxY < 0
+            {
                 continue
+            }
 
             let x0 = Math.clamp(bestX + (bestW - fw) / 2, 0, maxX)
             let y0 = Math.clamp(bestY + (bestH - fh) / 2, 0, maxY)
@@ -659,12 +696,17 @@ impl Image
                 ch = Math.min(h, Math.max(1, Math.roundS32(cw / aspect)))
             }
 
-            if cw <= 0 or ch <= 0 do
+            if cw <= 0 or ch <= 0
+            {
                 continue
+            }
+
             let maxX = w - cw
             let maxY = h - ch
-            if maxX < 0 or maxY < 0 do
+            if maxX < 0 or maxY < 0
+            {
                 continue
+            }
 
             let strideX = Math.max(1, Math.roundS32(opts.strideFrac * cw))
             let strideY = Math.max(1, Math.roundS32(opts.strideFrac * ch))
@@ -742,8 +784,11 @@ impl Image
         let aspect    = targetWidth / targetHeight
         let imgAspect = cast(f32, w) / h
 
-        if opts.minCoverage >= 0.95 do
+        if opts.minCoverage >= 0.95
+        {
             return .calculateSingleScale(aspect, imgAspect, w, h, opts)
+        }
+
         return .calculateMultiScale(aspect, imgAspect, w, h, opts)
     }
 
@@ -869,8 +914,11 @@ public impl Image
         }
 
         // Without penalty terms, the cheaper scorer suffices.
-        if opts.edgePenalty <= 0.01 and opts.shrinkPrior <= 0.01 and opts.centerWeight <= 0.01 do
+        if opts.edgePenalty <= 0.01 and opts.shrinkPrior <= 0.01 and opts.centerWeight <= 0.01
+        {
             return .evaluateCropScoreFast(rect, opts)
+        }
+
         return .evaluateCropScoreFull(rect, opts)
     }
 

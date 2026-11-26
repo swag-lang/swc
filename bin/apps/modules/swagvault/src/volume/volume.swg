@@ -2,7 +2,7 @@ using Core
 
 // Bounds one encrypted host transfer. Large enough to amortize system calls and small enough to
 // keep temporary ciphertext away from the heap's large-allocation path.
-const MaximumIoBatchBlocks = 256'u64
+const MaximumIoBatchBlocks = 256_u64
 
 // One run of consecutive blocks sealed or opened in parallel, one block per job.
 struct CryptoBatch
@@ -21,31 +21,36 @@ impl CryptoBatch
     // Keeps `err` as the batch failure unless a job has already reported one.
     mtd keepFirstError(err: any?)
     {
-        if err == null do
+        if err == null
+        {
             return
+        }
+
         Sync.scopedLock(&.errorLock)
-        if .error.isEmpty() do
+        if .error.isEmpty()
+        {
             .error.capture(err)
+        }
     }
 }
 
 // Original block map of one node while a shrink is still reversible in memory.
 struct BlockMapBackup
 {
-    blocks: Array'BlockMapping
+    blocks: Array!{BlockMapping}
 }
 
 // Serialized timestamps use 100-nanosecond ticks since 1601-01-01 UTC.
 // Keeping the epoch in the format layer preserves compatibility with existing volumes.
-const VolumeTimestampEpoch = 504_911_232_000_000_000'u64
+const VolumeTimestampEpoch = 504_911_232_000_000_000_u64
 
 // Returns the current time in the serialized timestamp unit.
 func volumeTimeNow()->u64 => Time.Timestamp.utcNow().ticks - VolumeTimestampEpoch
 
-const FileAttributeReadOnly  = 0x00000001'u32
-const FileAttributeDirectory = 0x00000010'u32
-const FileAttributeArchive   = 0x00000020'u32
-const FileAttributeNormal    = 0x00000080'u32
+const FileAttributeReadOnly  = 0x00000001_u32
+const FileAttributeDirectory = 0x00000010_u32
+const FileAttributeArchive   = 0x00000020_u32
+const FileAttributeNormal    = 0x00000080_u32
 
 enum VolumeProgressPhase
 {
@@ -85,7 +90,7 @@ impl VolumeProgress
     mtd begin(total: u64, phase = VolumeProgressPhase.Volume)
     {
         .setTotal(total, phase)
-        Atomic.exchange(&.canceled, 0'u8)
+        Atomic.exchange(&.canceled, 0_u8)
     }
 
     // Starts measuring a phase of the running operation. The cancellation is deliberately
@@ -108,7 +113,7 @@ impl VolumeProgress
     // Asks the operation to stop at its next boundary.
     mtd cancel()
     {
-        Atomic.exchange(&.canceled, 1'u8)
+        Atomic.exchange(&.canceled, 1_u8)
     }
 
     // Returns whether the watcher asked the operation to stop.
@@ -144,21 +149,21 @@ struct Volume
     checkpointAt:       u64     // Sequence of the last checkpoint; journal records above it are live.
     nextNodeId:         u64
     activeSlot:         u32
-    keySlotMask:        u32           // Which key slots hold a password; kept in the encrypted header, never in the slot area.
-    metadataPages:      Array'u64     // Physical blocks holding the metadata image, in order.
-    metadataSize:       u64           // Exact byte count of that image.
-    nodes:              Array'Node
+    keySlotMask:        u32             // Which key slots hold a password; kept in the encrypted header, never in the slot area.
+    metadataPages:      Array!{u64}     // Physical blocks holding the metadata image, in order.
+    metadataSize:       u64             // Exact byte count of that image.
+    nodes:              Array!{Node}
     nodeLookup:         NodeIndex
     blocks:             BlockAllocator
     ioLock:             Swag.Mutex      // Serializes the shared seek-based container stream.
     accessLock:         Swag.RWLock     // Protects nodes and allocation across concurrent host callbacks.
-    touched:            Array'u64       // Nodes changed since the last journal record.
-    touchedSet:         HashSet'u64
-    metadataTouched:    Array'u64     // Nodes whose block map and security data did not change.
-    metadataTouchedSet: HashSet'u64
-    removed:            Array'u64     // Nodes deleted since the last journal record.
-    scalarsDirty:       bool          // Whether a scalar such as the label or the next identifier changed.
-    dirty:              bool          // Whether anything at all is not yet in a checkpoint.
+    touched:            Array!{u64}     // Nodes changed since the last journal record.
+    touchedSet:         HashSet!{u64}
+    metadataTouched:    Array!{u64}     // Nodes whose block map and security data did not change.
+    metadataTouchedSet: HashSet!{u64}
+    removed:            Array!{u64}     // Nodes deleted since the last journal record.
+    scalarsDirty:       bool            // Whether a scalar such as the label or the next identifier changed.
+    dirty:              bool            // Whether anything at all is not yet in a checkpoint.
 
     #static if #command == Swag.CompilerCommand.Test
     {
@@ -173,28 +178,36 @@ struct Volume
 
 // Chooses a byte-granular physical length above the logical capacity. The
 // optional avoided length makes an explicit camouflage refresh observable.
-func camouflageSize(logicalSize: u64, avoidedSize = 0'u64)->u64 fail
+func camouflageSize(logicalSize: u64, avoidedSize = 0_u64)->u64 fail
 {
     var minimum = CamouflageMinimum
     var maximum = CamouflageMaximum
     #static if #command != Swag.CompilerCommand.Test
     {
-        minimum = Math.min(Math.max(minimum, logicalSize / 32), 512'u64 * 1024 * 1024)
-        maximum = Math.min(Math.max(64'u64 * 1024 * 1024, logicalSize / 8), maximum)
+        minimum = Math.min(Math.max(minimum, logicalSize / 32), 512_u64 * 1024 * 1024)
+        maximum = Math.min(Math.max(64_u64 * 1024 * 1024, logicalSize / 8), maximum)
     }
 
-    if logicalSize > Swag.U64.Max - minimum do
+    if logicalSize > Swag.U64.Max - minimum
+    {
         fail volumeError(.InvalidInput)
-    maximum = Math.min(maximum, Swag.U64.Max - logicalSize)
-    if maximum < minimum do
-        fail volumeError(.InvalidInput)
+    }
 
-    var random = 0'u64
+    maximum = Math.min(maximum, Swag.U64.Max - logicalSize)
+    if maximum < minimum
+    {
+        fail volumeError(.InvalidInput)
+    }
+
+    var random = 0_u64
     try Core.Crypto.randomBytes(Swag.makeSlice(cast([*] u8, &random), #sizeof(random)))
     let range  = maximum - minimum + 1
     var result = logicalSize + minimum + random % range
-    if result == avoidedSize do
+    if result == avoidedSize
+    {
         result = result == logicalSize + maximum ? logicalSize + minimum : result + 1
+    }
+
     return result
 }
 
@@ -205,18 +218,22 @@ impl Volume
     // like encrypted data.
     mtd randomizeRange(first, last: u64, progress: *VolumeProgress?, progressBase: u64) fail
     {
-        if first >= last do
+        if first >= last
+        {
             return
+        }
 
-        var randomChunk: Array'u8
+        var randomChunk: Array!{u8}
         randomChunk.resize(RandomizeChunkSize)
         defer Core.Crypto.secureClear(randomChunk.toSlice())
 
         var offset = first
         while offset < last
         {
-            if progress and progress.isCanceled() do
+            if progress and progress.isCanceled()
+            {
                 fail volumeError(.Canceled)
+            }
 
             let count = Math.min(last - offset, randomChunk.count)
             try Core.Crypto.randomBytes(randomChunk[0 until count])
@@ -232,10 +249,15 @@ impl Volume
     // answer whether it asks to write a byte, to rename an entry, or to rewrite a key slot.
     mtd requireWritable() fail
     {
-        if .file.protectionTriggered do
+        if .file.protectionTriggered
+        {
             fail volumeError(.HiddenProtected)
-        if .readOnly do
+        }
+
+        if .readOnly
+        {
             fail volumeError(.WriteProtected)
+        }
     }
 
     // Checkpoints pending changes, closes the file, and wipes every key the volume holds.
@@ -271,8 +293,10 @@ impl Volume
     // deletes the partial file, exactly like any other failure.
     func create(path: string, password: const [..] u8, requestedSize: u64, progress: *VolumeProgress? = null)->Volume fail
     {
-        if requestedSize < MinimumSize do
+        if requestedSize < MinimumSize
+        {
             fail volumeError(.SizeTooSmall)
+        }
 
         var result: #returntype
         var created   = false
@@ -285,8 +309,10 @@ impl Volume
             if not completed
             {
                 result.close()
-                if created do
+                if created
+                {
                     discard catch File.delete(path)
+                }
             }
         }
 
@@ -306,8 +332,11 @@ impl Volume
 
         result.file.stream = try File.open(path, .CreateNew, .ReadWrite, .Read)
         created = true
-        #static if #os == Swag.TargetOs.Linux do
+        #static if #os == Swag.TargetOs.Linux
+        {
             try result.file.acquireLock(false)
+        }
+
         try result.file.resize(result.physicalSize)
 
         // Fill the whole container with random bytes before anything real is
@@ -322,8 +351,10 @@ impl Volume
         // bounds this loop long before either of them does.
         progress?.setTotal(result.physicalSize)
         try result.randomizeRange(0, result.physicalSize, progress, 0)
-        if (try File.attributes(path)).has(.SparseFile) do
+        if (try File.attributes(path)).has(.SparseFile)
+        {
             fail volumeError(.SparseContainer)
+        }
 
         // The master key is drawn once and never derived. A password only ever
         // unwraps it, which is what makes changing a password cheap.
@@ -373,19 +404,29 @@ impl Volume
     // Empty protection bytes leave normal allocation and writes unrestricted.
     func open(path: string, password: const [..] u8, readOnly = false, protectionPassword: const [..] u8 = "")->Volume fail
     {
-        if (try File.attributes(path)).has(.SparseFile) do
+        if (try File.attributes(path)).has(.SparseFile)
+        {
             fail volumeError(.SparseContainer)
+        }
 
         var result: #returntype
         result.dirty    = false
         result.readOnly = readOnly
         result.path     = path
-        if readOnly do
+        if readOnly
+        {
             result.file.stream = try File.open(path, .Open, .Read, .Read)
-        else do
+        }
+        else
+        {
             result.file.stream = try File.open(path, .Open, .ReadWrite, .Read)
-        #static if #os == Swag.TargetOs.Linux do
+        }
+
+        #static if #os == Swag.TargetOs.Linux
+        {
             try result.file.acquireLock(readOnly)
+        }
+
         var completed = false
         defer
         {
@@ -397,8 +438,11 @@ impl Volume
         }
 
         result.physicalSize = try result.file.size()
-        if result.physicalSize < MinimumSize do
+        if result.physicalSize < MinimumSize
+        {
             fail volumeError(.PasswordOrDamaged)
+        }
+
         result.containerSize = result.physicalSize
         result.blockCount    = (result.physicalSize - DataOffset) / BlockRecordSize
 
@@ -415,8 +459,11 @@ impl Volume
 
         if protectionPassword.count
         {
-            if result.file.base do
+            if result.file.base
+            {
                 fail volumeError(.InvalidInput)
+            }
+
             let region = try HiddenLocator.find(&result.file.stream, protectionPassword)
             result.file.protectedFirst = region.first
             result.file.protectedEnd   = region.first + region.count
@@ -427,14 +474,22 @@ impl Volume
         var second = try result.readHeader(1)
         defer Core.Crypto.secureClear(second.plain.toSlice())
         var selected: *HeaderCandidate?
-        if first.valid and second.valid do
+        if first.valid and second.valid
+        {
             selected = first.sequence >= second.sequence ? &first : &second
-        elif first.valid do
+        }
+        else if first.valid
+        {
             selected = &first
-        elif second.valid do
+        }
+        else if second.valid
+        {
             selected = &second
-        else do
+        }
+        else
+        {
             fail volumeError(.PasswordOrDamaged)
+        }
 
         result.activeSlot = selected == &first ? 0 : 1
 
@@ -444,8 +499,10 @@ impl Volume
         // first.
         discard catch result.restore(selected.plain.toSlice()) { fail volumeError(.PasswordOrDamaged) }
 
-        if result.file.protectedEnd do
+        if result.file.protectedEnd
+        {
             try result.validateHiddenRegion(FreeExtent{result.file.protectedFirst, result.file.protectedEnd - result.file.protectedFirst})
+        }
 
         // A shrink publishes its authenticated geometry before truncating the now-unused tail.
         // If the process stopped between those steps, the next writable open completes the
@@ -468,14 +525,19 @@ impl Volume
     {
         if region.first < DataOffset or
            region.first > .containerSize or
-           region.count > .containerSize - region.first do
+           region.count > .containerSize - region.first
+        {
             fail volumeError(.HiddenProtected)
+        }
+
         for extent in .blocks.free
         {
             let first = DataOffset + extent.first * BlockRecordSize
             let end   = first + extent.count * BlockRecordSize
-            if region.first >= first and region.first <= end and region.count <= end - region.first do
+            if region.first >= first and region.first <= end and region.count <= end - region.first
+            {
                 return
+            }
         }
 
         fail volumeError(.HiddenProtected)
@@ -491,36 +553,58 @@ impl Volume
                       progress: *VolumeProgress? = null,
                       outerReserve: u64 = MinimumBlocks * BlockSize)->Volume fail
     {
-        if requestedSize < MinimumSize do
+        if requestedSize < MinimumSize
+        {
             fail volumeError(.SizeTooSmall)
-        if not hiddenPassword.count do
+        }
+
+        if not hiddenPassword.count
+        {
             fail volumeError(.PasswordRequired)
+        }
+
         var outer = try Volume.open(path, outerPassword)
-        if outer.file.base do
+        if outer.file.base
+        {
             fail volumeError(.InvalidInput)
-        if (try outer.findKeySlot(hiddenPassword)) != Swag.U64.Max do
+        }
+
+        if (try outer.findKeySlot(hiddenPassword)) != Swag.U64.Max
+        {
             fail volumeError(.InvalidInput)
+        }
+
         try outer.checkpoint()
-        let hiddenBlocks  = requestedSize / BlockRecordSize + (requestedSize % BlockRecordSize != 0 ? 1'u64 : 0)
-        let reserveBlocks = outerReserve / BlockSize + (outerReserve % BlockSize != 0 ? 1'u64 : 0)
+        let hiddenBlocks  = requestedSize / BlockRecordSize + (requestedSize % BlockRecordSize != 0 ? 1_u64 : 0)
+        let reserveBlocks = outerReserve / BlockSize + (outerReserve % BlockSize != 0 ? 1_u64 : 0)
         let freeBlocks    = outer.blocks.freeBlockCount()
-        if hiddenBlocks > freeBlocks or Math.max(reserveBlocks, MinimumBlocks) > freeBlocks - hiddenBlocks do
+        if hiddenBlocks > freeBlocks or Math.max(reserveBlocks, MinimumBlocks) > freeBlocks - hiddenBlocks
+        {
             fail volumeError(.DiskFull)
+        }
+
         var region: FreeExtent
         for extent in outer.blocks.free
         {
             let size = extent.count * BlockRecordSize
-            if size >= requestedSize and size > region.count do
+            if size >= requestedSize and size > region.count
+            {
                 region = FreeExtent{DataOffset + extent.first * BlockRecordSize, size}
+            }
         }
 
-        if region.count < requestedSize do
+        if region.count < requestedSize
+        {
             fail volumeError(.DiskFull)
+        }
+
         region.first += region.count - requestedSize
         region.count = requestedSize
         try outer.validateHiddenRegion(region)
-        if progress and progress.isCanceled() do
+        if progress and progress.isCanceled()
+        {
             fail volumeError(.Canceled)
+        }
 
         with var result: #returntype
         {
@@ -575,8 +659,11 @@ impl Volume
         try result.checkpoint()
 
         // Remove every old hidden access before publishing the replacement's first locator.
-        for index in KeySlotCount do
+        for index in KeySlotCount
+        {
             try HiddenLocator.erase(&result.file.stream, index)
+        }
+
         try result.writeKeySlot(slot, hiddenPassword)
         completed = true
         return result

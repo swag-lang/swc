@@ -1,6 +1,6 @@
 using Core
 
-private const KeyFileChunkSize  = 1024'u64 * 1024
+private const KeyFileChunkSize  = 1024_u64 * 1024
 private const KeyFileBatchSize  = 8 * KeyFileChunkSize
 private const KeyFileDigestSize = Core.Hash.Blake2bMaxDigestSize
 
@@ -11,7 +11,7 @@ private const KeyFileDigestSize = Core.Hash.Blake2bMaxDigestSize
 #[Swag.NoCopy]
 struct VaultCredential
 {
-    bytes: Array'u8
+    bytes: Array!{u8}
 }
 
 impl VaultCredential
@@ -36,23 +36,28 @@ impl VaultCredential
 #[Swag.NoCopy]
 struct VaultAccess
 {
-    password: Array'u8
-    keyFiles: Array'String
+    password: Array!{u8}
+    keyFiles: Array!{String}
 }
 
 // Feeds `value` to the digest as eight little-endian bytes.
 private func updateAccessWord(hash: *Core.Hash.Blake2b, value: u64)
 {
     var bytes: [8] u8
-    for i in 8 do
+    for i in 8
+    {
         bytes[i] = cast(u8, (value >> (i * 8)) & 0xFF)
+    }
+
     hash.update(bytes)
 }
 
 private func requireAccessRunning(progress: *VolumeProgress?) fail
 {
-    if progress and progress.isCanceled() do
+    if progress and progress.isCanceled()
+    {
         fail volumeError(.Canceled)
+    }
 }
 
 // Binds one file length and its ordered chunk digests to the access digest.
@@ -64,19 +69,21 @@ private func hashKeyFile(hash: *Core.Hash.Blake2b, path: string, progress: *Volu
     progress?.setTotal(size, .KeyFile)
     updateAccessWord(hash, size)
 
-    var buffer: Array'u8
+    var buffer: Array!{u8}
     buffer.resize(Math.min(size, KeyFileBatchSize))
     defer Core.Crypto.secureClear(buffer.toSlice())
     var digests: [KeyFileBatchSize / KeyFileChunkSize * KeyFileDigestSize] u8
     defer Core.Crypto.secureClear(digests)
 
-    var done = 0'u64
+    var done = 0_u64
     while done < size
     {
         try requireAccessRunning(progress)
         let length = Math.min(size - done, buffer.count)
-        if not (try stream.readExact(buffer[until length])) do
+        if not (try stream.readExact(buffer[until length]))
+        {
             fail volumeError(.Io)
+        }
 
         let data  = buffer[until length]
         let count = (length + KeyFileChunkSize - 1) / KeyFileChunkSize
@@ -102,8 +109,10 @@ impl VaultAccess
     {
         .clear()
         .password.add(password)
-        for &path in keyFiles do
+        for &path in keyFiles
+        {
             .keyFiles.add(path[])
+        }
     }
 
     // Wipes the password bytes and forgets the key-file paths.
@@ -144,8 +153,11 @@ impl VaultAccess
         hash.update(.password.toSlice())
         updateAccessWord(&hash, .keyFiles.count)
 
-        for &path in .keyFiles do
+        for &path in .keyFiles
+        {
             try hashKeyFile(&hash, path.toString(), progress)
+        }
+
         try requireAccessRunning(progress)
 
         result.bytes.resize(KeyFileDigestSize)

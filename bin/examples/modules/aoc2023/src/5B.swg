@@ -39,8 +39,8 @@ private struct SeedRange
     start, end: u64
 }
 
-private var seeds:   Array'u64
-private var convert: [7] Array'Range
+private var seeds:   Array!{u64}
+private var convert: [7] Array!{Range}
 
 func day5B()
 {
@@ -50,8 +50,10 @@ func day5B()
     var mode = Mode.Invalid
     for l in lines
     {
-        if l.isEmpty() do
+        if l.isEmpty()
+        {
             continue
+        }
 
         var isHeader = false
         switch l.toString()
@@ -85,19 +87,24 @@ func day5B()
             isHeader = true
         }
 
-        if isHeader do
-            continue
-
-        if mode == .Invalid
+        if isHeader
         {
-            let seedField  = Tokenize.split(l[], ':'u8)
-            let seedTokens = Tokenize.split(seedField[1], ' 'u8)
-            for seed in seedTokens do
-                seeds.add(expect StrConv.toU64(seed))
             continue
         }
 
-        let mappingValues = Tokenize.split(l[], ' 'u8)
+        if mode == .Invalid
+        {
+            let seedField  = Tokenize.split(l[], ':'_u8)
+            let seedTokens = Tokenize.split(seedField[1], ' '_u8)
+            for seed in seedTokens
+            {
+                seeds.add(expect StrConv.toU64(seed))
+            }
+
+            continue
+        }
+
+        let mappingValues = Tokenize.split(l[], ' '_u8)
         var mapping: Range
         let sourceLength  = expect StrConv.toU64(mappingValues[2])
         mapping.destinationStart = expect StrConv.toU64(mappingValues[0])
@@ -106,7 +113,7 @@ func day5B()
         convert[cast(s32, mode)].add(mapping)
     }
 
-    var ranges: Array'SeedRange
+    var ranges: Array!{SeedRange}
     for pairIndex in seeds.count / 2
     {
         let seedIndex  = pairIndex * 2
@@ -117,7 +124,7 @@ func day5B()
 
     for i in 7
     {
-        var newRanges: Array'SeedRange
+        var newRanges: Array!{SeedRange}
         for var idx = 0; idx < ranges.count; idx += 1
         {
             let seedRange = ranges[idx]
@@ -125,14 +132,21 @@ func day5B()
             {
                 for mapping in convert[i]
                 {
-                    if seedRange.start > mapping.sourceEnd or seedRange.end < mapping.sourceStart do
+                    if seedRange.start > mapping.sourceEnd or seedRange.end < mapping.sourceStart
+                    {
                         continue
+                    }
 
                     // Keep the portions outside the mapped source range for the remaining rules.
-                    if seedRange.start < mapping.sourceStart do
+                    if seedRange.start < mapping.sourceStart
+                    {
                         ranges.add(SeedRange{seedRange.start, mapping.sourceStart - 1})
-                    if seedRange.end > mapping.sourceEnd do
+                    }
+
+                    if seedRange.end > mapping.sourceEnd
+                    {
                         ranges.add(SeedRange{mapping.sourceEnd + 1, seedRange.end})
+                    }
 
                     let overlapStart     = Math.max(seedRange.start, mapping.sourceStart)
                     let overlapEnd       = Math.min(seedRange.end, mapping.sourceEnd)
@@ -150,8 +164,10 @@ func day5B()
     }
 
     var total = Swag.U64.Max
-    for seedRange in ranges do
+    for seedRange in ranges
+    {
         total = Math.min(total, seedRange.start)
+    }
 
     Swag.assert(total == 69323688)
 }

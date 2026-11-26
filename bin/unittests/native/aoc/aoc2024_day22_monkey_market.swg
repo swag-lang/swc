@@ -57,7 +57,7 @@ func evolveN(secret: u64, n: u32)->u64
 // Parsing
 // ---------------------------------------------------------------------------
 
-const MaxBuyers = 2500'u32
+const MaxBuyers = 2500_u32
 
 struct BuyerList
 {
@@ -82,7 +82,7 @@ func parseBuyers(text: string)->BuyerList
             acc   = acc * 10 + cast(u64, (ch - '0'))
             inNum = true
         }
-        elif inNum
+        else if inNum
         {
             if result.count < MaxBuyers
             {
@@ -123,7 +123,7 @@ func solvePart1(buyers: *BuyerList, steps: u32)->u64
 
 // Encode a sequence of 4 changes (each in -9..9) as a single index.
 // Shift each change by +9 to make it 0..18, then pack as base-19 digits.
-const SeqBase  = 19'u32
+const SeqBase  = 19_u32
 const SeqCount = SeqBase * SeqBase * SeqBase * SeqBase     // 130321
 
 #[Swag.Inline]
@@ -203,8 +203,10 @@ func solvePart2(buyers: *BuyerList, steps: u32)->SeqResult
     var best: u64
     for index in SeqCount
     {
-        if totals[index] > best do
+        if totals[index] > best
+        {
             best = totals[index]
+        }
     }
 
     return makeSeqResult(best)
@@ -239,36 +241,36 @@ func solve(text: string)->SolveResult
 {
     var s: u64 = 123
     s = evolve(s)
-    Swag.require(s == 15887950'u64)
+    Swag.require(s == 15887950_u64)
     s = evolve(s)
-    Swag.require(s == 16495136'u64)
+    Swag.require(s == 16495136_u64)
 }
 
 // evolveN
 #test
 {
-    Swag.require(evolveN(1, 2000) == 8685429'u64)
-    Swag.require(evolveN(10, 2000) == 4700978'u64)
-    Swag.require(evolveN(100, 2000) == 15273692'u64)
-    Swag.require(evolveN(2024, 2000) == 8667524'u64)
+    Swag.require(evolveN(1, 2000) == 8685429_u64)
+    Swag.require(evolveN(10, 2000) == 4700978_u64)
+    Swag.require(evolveN(100, 2000) == 15273692_u64)
+    Swag.require(evolveN(2024, 2000) == 8667524_u64)
 }
 
 // Parsing
 #test
 {
     let buyers = parseBuyers(SamplePart1)
-    Swag.require(buyers.count == 4'u32)
-    Swag.require(buyers.secrets[0] == 1'u64)
-    Swag.require(buyers.secrets[1] == 10'u64)
-    Swag.require(buyers.secrets[2] == 100'u64)
-    Swag.require(buyers.secrets[3] == 2024'u64)
+    Swag.require(buyers.count == 4_u32)
+    Swag.require(buyers.secrets[0] == 1_u64)
+    Swag.require(buyers.secrets[1] == 10_u64)
+    Swag.require(buyers.secrets[2] == 100_u64)
+    Swag.require(buyers.secrets[3] == 2024_u64)
 }
 
 // Part 1
 #test
 {
     var buyers = parseBuyers(SamplePart1)
-    Swag.require(solvePart1(&buyers, 2000) == 37327623'u64)
+    Swag.require(solvePart1(&buyers, 2000) == 37327623_u64)
 }
 
 // encodeSeq inline
@@ -285,7 +287,7 @@ func solve(text: string)->SolveResult
 #test
 {
     let r = makeSeqResult(42)
-    Swag.require(r.bestBananas == 42'u64)
+    Swag.require(r.bestBananas == 42_u64)
 }
 
 // reverse-view iteration sliding window
@@ -306,14 +308,14 @@ func solve(text: string)->SolveResult
 {
     var buyers = parseBuyers(SamplePart2)
     let p2     = solvePart2(&buyers, 2000)
-    Swag.require(p2.bestBananas == 23'u64)
+    Swag.require(p2.bestBananas == 23_u64)
 }
 
 // mix and prune inline
 #test
 {
-    Swag.require(mix(42, 15) == 37'u64)     // 42 ^ 15 = 37
-    Swag.require(prune(100000000) == 16113920'u64)     // 100000000 % 16777216
+    Swag.require(mix(42, 15) == 37_u64)     // 42 ^ 15 = 37
+    Swag.require(prune(100000000) == 16113920_u64)     // 100000000 % 16777216
 }
 
 // with &ptr on Coord (exercises the with-pointer fix)
@@ -325,8 +327,8 @@ func solve(text: string)->SolveResult
         .part1 = 111
         .part2 = 222
     }
-    Swag.require(sr.part1 == 111'u64)
-    Swag.require(sr.part2 == 222'u64)
+    Swag.require(sr.part1 == 111_u64)
+    Swag.require(sr.part2 == 222_u64)
 }
 
 // Swag.makeSlice in inline (exercises the mkslice fix)

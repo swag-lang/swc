@@ -40,8 +40,7 @@ public struct AnimationWriter
     pendingHeight:   s32
     pendingDuration: u64      // Time the pending frame is shown so far, in microseconds.
     writtenTime:     u64     // Time covered by the frames written, in microseconds.
-    globalTable:     Array'u8
-    globalColorMap:  Array'u64
+    globalTable:     Array!{u8}
     globalBits:      u8
     loopCount:       u16
     dither:          bool
@@ -55,10 +54,15 @@ public impl AnimationWriter
     // The header is written when the first frame is flushed, after its global colour table is known.
     func create(fileName: string, width, height: s32, options: AnimationOptions = {})->AnimationWriter fail
     {
-        if width <= 0 or height <= 0 do
+        if width <= 0 or height <= 0
+        {
             fail InvalidFormatError{"invalid animation size"}
-        if width > Swag.U16.Max or height > Swag.U16.Max do
+        }
+
+        if width > Swag.U16.Max or height > Swag.U16.Max
+        {
             fail UnsupportedFormatError{"animation is too big"}
+        }
 
         return AnimationWriter{sink: try ByteSink.createFile(fileName),
                                width: width,
@@ -75,22 +79,39 @@ public impl AnimationWriter
     mtd addFrame(image: Image, duration: u64) fail
     {
         Swag.assert(not .isEnded)
-        if not image.isValid() or image.pixels.count != image.byteCount do
+        if not image.isValid() or image.pixels.count != image.byteCount
+        {
             fail InvalidFormatError{"invalid frame image"}
-        if image.width != .width or image.height != .height do
+        }
+
+        if image.width != .width or image.height != .height
+        {
             fail InvalidFormatError{"frame size differs from the animation size"}
+        }
+
         if image.pixelFormat != .BGRA8 and
            image.pixelFormat != .RGBA8 and
            image.pixelFormat != .BGR8 and
-           image.pixelFormat != .RGB8 do
+           image.pixelFormat != .RGB8
+        {
             fail UnsupportedFormatError{"unsupported frame pixel format"}
-        if .writtenTime > Swag.U64.Max - 5_000 do
+        }
+
+        if .writtenTime > Swag.U64.Max - 5_000
+        {
             fail OverflowError{"GIF animation duration exceeds the supported range"}
+        }
+
         let available = Swag.U64.Max - 5_000 - .writtenTime
-        if .pendingDuration > available do
+        if .pendingDuration > available
+        {
             fail OverflowError{"GIF animation duration exceeds the supported range"}
-        if duration > available - .pendingDuration do
+        }
+
+        if duration > available - .pendingDuration
+        {
             fail OverflowError{"GIF animation duration exceeds the supported range"}
+        }
 
         if not .previous.isValid()
         {
@@ -114,13 +135,19 @@ public impl AnimationWriter
     // Writes the last frame and the trailer, and closes the file.
     mtd end() fail
     {
-        if .isEnded do
+        if .isEnded
+        {
             return
+        }
+
         .isEnded = true
 
         try .flush()
-        if .globalTable.isEmpty() do
+        if .globalTable.isEmpty()
+        {
             try .writeHeader()
+        }
+
         try .sink.writeByte(0x3B)
         try .sink.close()
     }
@@ -134,17 +161,19 @@ private impl AnimationWriter
         try .sink.write("GIF89a")
         try .sink.writeLittleEndian(cast(u16, .width))
         try .sink.writeLittleEndian(cast(u16, .height))
-        let packed = .globalTable.isEmpty() ? 0'u8 : 0x80'u8 | ((.globalBits - 1) << 4) | (.globalBits - 1)
+        let packed = .globalTable.isEmpty() ? 0_u8 : 0x80_u8 | ((.globalBits - 1) << 4) | (.globalBits - 1)
         try .sink.write([packed, 0, 0])
-        if not .globalTable.isEmpty() do
+        if not .globalTable.isEmpty()
+        {
             try .sink.write(.globalTable.toSlice())
+        }
 
         if .loopCount != 1
         {
-            try .sink.write([0x21'u8, 0xFF, 0x0B])
+            try .sink.write([0x21_u8, 0xFF, 0x0B])
             try .sink.write("NETSCAPE2.0")
-            try .sink.write([0x03'u8, 0x01])
-            let repeatCount = .loopCount ? .loopCount - 1 : 0'u16
+            try .sink.write([0x03_u8, 0x01])
+            let repeatCount = .loopCount ? .loopCount - 1 : 0_u16
             try .sink.writeLittleEndian(repeatCount)
             try .sink.writeByte(0)
         }
@@ -173,9 +202,10 @@ private impl AnimationWriter
     {
         if not .pendingWidth do
             return
+        }
 
         let endTime = .writtenTime + .pendingDuration
-        let delay   = Math.max((endTime + 5_000) / 10_000 - (.writtenTime + 5_000) / 10_000, 2'u64)
+        let delay   = Math.max((endTime + 5_000) / 10_000 - (.writtenTime + 5_000) / 10_000, 2_u64)
         .writtenTime = endTime
 
         var palette   = Encoder.buildPaletteRegion(.previous, .pendingX, .pendingY, .pendingWidth, .pendingHeight, false, .dither)
@@ -201,7 +231,7 @@ private impl AnimationWriter
         block.addBytes([0x21'u8, 0xF9, 0x04, 0x04, 0, 0, 0, 0])
 
         // Image descriptor, with a local colour table only when the global one lacks a colour.
-        block.addNative(0x2C'u8)
+        block.addNative(0x2C_u8)
         Encoder.writeU16(&block, cast(u16, .pendingX))
         Encoder.writeU16(&block, cast(u16, .pendingY))
         Encoder.writeU16(&block, cast(u16, .pendingWidth))
@@ -221,8 +251,10 @@ private impl AnimationWriter
         while remaining
         {
             var chunk = Math.min(remaining, cast(u64, Swag.U16.Max))
-            if remaining - chunk == 1 do
+            if remaining - chunk == 1
+            {
                 chunk -= 1
+            }
 
             // Disposal mode 1 keeps the picture; another copy carries time beyond 655.35 seconds.
             picture[4] = cast #wrap(u8, chunk)
@@ -378,15 +410,26 @@ private impl AnimationWriter
                 rowRight = changed.right
             }
 
-            if top < 0 do
+            if rowLeft < 0
+            {
+                continue
+            }
+
+            if top < 0
+            {
                 top = y
+            }
+
             bottom = y
             left   = Math.min(left, rowLeft)
             right  = Math.max(right, rowRight)
         }
 
-        if top < 0 do
+        if top < 0
+        {
             return {0, 0, 0, 0}
+        }
+
         return {left, top, right - left + 1, bottom - top + 1}
     }
 }

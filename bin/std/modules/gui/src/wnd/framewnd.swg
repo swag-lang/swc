@@ -68,8 +68,10 @@ impl IWnd for FrameWnd
 
     mtd impl onPaint(evt: *PaintEvent)
     {
-        if .frameForm == .Transparent do
+        if .frameForm == .Transparent
+        {
             return
+        }
 
         let bc      = evt.paintContext
         let painter = bc.painter
@@ -101,10 +103,15 @@ impl IWnd for FrameWnd
 
     mtd impl onAfterPaint(evt: *PaintEvent)
     {
-        if .frameForm == .Transparent do
+        if .frameForm == .Transparent
+        {
             return
-        if not .frameFlags.has(.Borders) do
+        }
+
+        if not .frameFlags.has(.Borders)
+        {
             return
+        }
 
         let bc      = evt.paintContext
         let painter = bc.painter
@@ -191,8 +198,11 @@ impl IWnd for FrameWnd
 
     mtd impl onResizeEvent(_: *ResizeEvent)
     {
-        if .view == null do
+        if .view == null
+        {
             return
+        }
+
         var rect = .paddedClientRect()
         rect.applyPadding(.view.margin)
         .view.setPosition(rect)
@@ -208,7 +218,7 @@ impl FrameWnd
         // The view is born at its final laid-out rectangle — the frame minus its
         // caption and border paddings — because a hook may lay out its content from
         // the client rectangle it sees in the create event.
-        let view = Wnd.create'T(me, "", .paddedClientRect(), hook: hook)
+        let view = Wnd.create!{T}(me, "", .paddedClientRect(), hook: hook)
         .view = view
         .view.backgroundStyle = .Transparent
         .sendResizeEvent()
@@ -218,10 +228,16 @@ impl FrameWnd
     // Replaces and destroys the current view, then attaches `what` to this frame.
     mtd setView(what: *Wnd)
     {
-        if .view == what do
+        if .view == what
+        {
             return
-        if .view != null do
+        }
+
+        if .view != null
+        {
             .view.destroy()
+        }
+
         what.setParent(me)
         .view = what
         .sendResizeEvent()
@@ -233,15 +249,23 @@ impl FrameWnd
         .frameFlags.add(add)
         .frameFlags.remove(remove)
 
-        if .frameFlags.has(.SmallShadow) do
+        if .frameFlags.has(.SmallShadow)
+        {
             .wndFlags.add(.BeforeChildrenPaint)
-        else do
+        }
+        else
+        {
             .wndFlags.remove(.BeforeChildrenPaint)
+        }
 
-        if .frameFlags.has(.SmallShadow) do
+        if .frameFlags.has(.SmallShadow)
+        {
             .invalidatePadding = -.themeMetrics().frameWnd_SmallShadowSize
-        else do
+        }
+        else
+        {
             .invalidatePadding.setZero()
+        }
 
         .invalidate()
     }
@@ -249,8 +273,11 @@ impl FrameWnd
     // Changes the frame geometry and updates content padding.
     mtd setFrameForm(form: FrameWndForm)
     {
-        if .frameForm == form do
+        if .frameForm == form
+        {
             return
+        }
+
         .frameForm = form
 
         switch #complete .frameForm

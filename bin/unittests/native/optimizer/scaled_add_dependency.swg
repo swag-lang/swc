@@ -25,7 +25,7 @@ func dynamicChain64(a, b, c, d, coefficient: u64)->u64 => ((a * coefficient + b)
 
 #test
 {
-    let values = [0'u64, 1, 255, 65535, 0x7FFFFFFFFFFFFFFF, 0x8000000000000000, 0xFFFFFFFFFFFFFFFF]
+    let values = [0_u64, 1, 255, 65535, 0x7FFFFFFFFFFFFFFF, 0x8000000000000000, 0xFFFFFFFFFFFFFFFF]
     for x in values
     {
         for y in values
@@ -40,50 +40,62 @@ func dynamicChain64(a, b, c, d, coefficient: u64)->u64 => ((a * coefficient + b)
 
 #test
 {
-    let values = [0'u32, 1, 255, 65535, 0x7FFFFFFF, 0x80000000, 0xFFFFFFFF]
+    let values = [0_u32, 1, 255, 65535, 0x7FFFFFFF, 0x80000000, 0xFFFFFFFF]
     for x in values
     {
-        for y in values do
+        for y in values
+        {
             Swag.require(scaled32(x, y) == dynamic32(x, y, 17))
+        }
     }
 }
 
 #test
 {
-    let values = [-9223372036854775808's64, -65537, -1, 0, 1, 65537, 9223372036854775807]
+    let values = [-9223372036854775808_s64, -65537, -1, 0, 1, 65537, 9223372036854775807]
     for x in values
     {
-        for y in values do
+        for y in values
+        {
             Swag.require(signed64(x, y) == dynamicSigned64(x, y, 33))
+        }
     }
 }
 
 #[Swag.NoInline]
 func weighted64(values: [*] u8, count: u64)->u64
 {
-    var result = 7'u64
-    for i in count do
+    var result = 7_u64
+    for i in count
+    {
         result += cast(u64, values[i]) * 33
+    }
     return result
 }
 
 #[Swag.NoInline, Swag.Optimize(false)]
 func referenceWeighted64(values: [*] u8, count: u64)->u64
 {
-    var result = 7'u64
-    for i in count do
+    var result = 7_u64
+    for i in count
+    {
         result += cast(u64, values[i]) * 33
+    }
     return result
 }
 
 #test
 {
     var values: [64] u8
-    for i in 64 do
+    for i in 64
+    {
         values[i] = cast(u8, i)
+    }
 
-    for count in [0'u64, 1, 7, 32, 64] do
+    for count in [0_u64, 1, 7, 32, 64]
+    {
         Swag.require(weighted64(&values[0], count) == referenceWeighted64(&values[0], count))
+    }
 }
 
 #[Swag.NoInline]
@@ -122,7 +134,7 @@ func referenceWideCoefficient64(a, b, c, d: u64)->u64 => ((a * 65537 + b) * 6553
 
 #test
 {
-    let values = [0'u64, 1, 255, 65535, 0x7FFFFFFFFFFFFFFF, 0x8000000000000000, 0xFFFFFFFFFFFFFFFF]
+    let values = [0_u64, 1, 255, 65535, 0x7FFFFFFFFFFFFFFF, 0x8000000000000000, 0xFFFFFFFFFFFFFFFF]
     for x in values
     {
         for y in values
@@ -136,20 +148,24 @@ func referenceWideCoefficient64(a, b, c, d: u64)->u64 => ((a * 65537 + b) * 6553
 
 #test
 {
-    let values = [0'u32, 1, 255, 65535, 0x7FFFFFFF, 0x80000000, 0xFFFFFFFF]
+    let values = [0_u32, 1, 255, 65535, 0x7FFFFFFF, 0x80000000, 0xFFFFFFFF]
     for x in values
     {
-        for y in values do
+        for y in values
+        {
             Swag.require(chain32(x, y, x, y) == referenceChain32(x, y, x, y))
+        }
     }
 }
 
 #test
 {
-    let values = [-9223372036854775808's64, -65537, -1, 0, 1, 65537, 9223372036854775807]
+    let values = [-9223372036854775808_s64, -65537, -1, 0, 1, 65537, 9223372036854775807]
     for x in values
     {
-        for y in values do
+        for y in values
+        {
             Swag.require(signedChain64(x, y, x, y) == referenceSignedChain64(x, y, x, y))
+        }
     }
 }

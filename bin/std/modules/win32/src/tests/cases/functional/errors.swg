@@ -14,7 +14,7 @@ using Swag
     Swag.require(missing.errorID == 0)
     Swag.require(missing.message == "the Windows operation failed without an error code")
 
-    const InvalidHandleError = 6'u32
+    const InvalidHandleError = 6_u32
     var invalidHandleOutcome: Swag.Error
     catch failWinError(InvalidHandleError) as invalidHandleOutcome
     let invalidHandle = invalidHandleOutcome.value()
@@ -43,7 +43,7 @@ using Swag
     defer context.errorAllocator.release()
     Swag.setContext(context)
 
-    const InvalidHandleError = 6'u32
+    const InvalidHandleError = 6_u32
     let baseline      = allocator.stats().countAlloc
     var messagesValid = true
     for 32
@@ -51,10 +51,14 @@ using Swag
         var errorOutcome: Swag.Error
         catch failWinError(InvalidHandleError) as errorOutcome
         let error = errorOutcome.value()
-        if error is SystemError as value do
+        if error is SystemError as value
+        {
             messagesValid = messagesValid and value.message != null and value.message.count != 0
-        else do
+        }
+        else
+        {
             messagesValid = false
+        }
     }
 
     let afterHandled = allocator.stats().countAlloc
@@ -71,8 +75,10 @@ using Swag
         let retained = retainedOutcome.value()
         context.errorAllocator.release()
         retainedBlocks = allocator.stats().countAlloc
-        if retained is SystemError as value do
+        if retained is SystemError as value
+        {
             retainedValid = value.message != null and value.message.count != 0
+        }
     }
 
     let afterOwner = allocator.stats().countAlloc

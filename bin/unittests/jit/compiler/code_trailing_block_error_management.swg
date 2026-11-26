@@ -15,8 +15,10 @@ func visitUpTo(count, failAt: s32, stmt: #code(index: s32)) fail
 {
     for i in count
     {
-        if i == failAt do
+        if i == failAt
+        {
             fail TrailingBlockError{}
+        }
         #inject(stmt, index = i)
     }
 }

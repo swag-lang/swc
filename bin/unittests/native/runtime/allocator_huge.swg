@@ -7,8 +7,8 @@ using Swag
 // empty; the next cached block replaces it, and trim() releases it. Both reserve eight sizes per
 // power of two and grow in place inside that reservation.
 
-const HugeBytes = 20'u64 * 1024 * 1024
-const MidBytes  = 8'u64 * 1024 * 1024
+const HugeBytes = 20_u64 * 1024 * 1024
+const MidBytes  = 8_u64 * 1024 * 1024
 
 func hugeAllocator(allocator: *Allocator)->IAllocator
 {

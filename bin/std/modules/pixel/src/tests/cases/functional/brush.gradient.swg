@@ -4,7 +4,7 @@ using Swag, Core
 
 #test
 {
-    var linear = Brush.createLinearGradient(0, 0, 10, 0, Color.fromArgb(0'u8, Argb.Red), Color.fromArgb(Argb.Blue), .Repeat)
+    var linear = Brush.createLinearGradient(0, 0, 10, 0, Color.fromArgb(0_u8, Argb.Red), Color.fromArgb(Argb.Blue), .Repeat)
     Swag.require(linear.type == .LinearGradient)
     Swag.require(linear.gradientSpread == .Repeat)
     Swag.require(linear.gradientStops.count == 2)
@@ -27,7 +27,7 @@ using Swag, Core
     Swag.require(radial.gradientRadius1 == 20)
     Swag.require(radial.isOpaque())
 
-    let sweep = Brush.createSweepGradient({4, 6}, -90.0'deg, 270.0'deg, Argb.DeepSkyBlue, Argb.Crimson, .Repeat)
+    let sweep = Brush.createSweepGradient({4, 6}, -90.0_deg, 270.0_deg, Argb.DeepSkyBlue, Argb.Crimson, .Repeat)
     Swag.require(sweep.type == .SweepGradient)
     Swag.require(sweep.gradientSpread == .Repeat)
     Swag.require(sweep.gradientStart == Math.Vector2{4, 6})
@@ -36,7 +36,7 @@ using Swag, Core
     Swag.require(sweep.isOpaque())
 
     var tinted = sweep
-    tinted.multiplyTint(Color.fromArgb(128'u8, Argb.White))
+    tinted.multiplyTint(Color.fromArgb(128_u8, Argb.White))
     Swag.require(tinted.color.a == 128)
     Swag.require(tinted.hasVisibleAlpha())
     Swag.require(not tinted.isOpaque())
@@ -46,7 +46,7 @@ using Swag, Core
     Swag.require(not transparent.hasVisibleAlpha())
     Swag.require(not transparent.isOpaque())
 
-    let hidden = Brush.createLinearGradient(0, 0, 1, 1, Color.fromArgb(0'u8, Argb.White), Color.fromArgb(0'u8, Argb.Black))
+    let hidden = Brush.createLinearGradient(0, 0, 1, 1, Color.fromArgb(0_u8, Argb.White), Color.fromArgb(0_u8, Argb.Black))
     Swag.require(not hidden.hasVisibleAlpha())
 }
 
@@ -62,10 +62,14 @@ using Swag, Core
 #test
 {
     var gradient = Brush.createLinearGradient(0, 0, 1, 0, Argb.Black, Argb.White)
-    for i in 32 do
+    for i in 32
+    {
         gradient.addGradientStop(cast(f32, (31 - i)) / 31.0, Color.fromRgb(cast(u8, i), 0, 0))
+    }
 
     Swag.require(gradient.gradientStops.count == 34)
-    for var i = 1'u64; i < gradient.gradientStops.count; i += 1 do
+    for var i = 1_u64; i < gradient.gradientStops.count; i += 1
+    {
         Swag.require(gradient.gradientStops[i - 1].offset <= gradient.gradientStops[i].offset)
+    }
 }

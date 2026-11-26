@@ -30,11 +30,11 @@ struct ServerRequest
 {
     public
     {
-        method:  String       // Request method token.
-        target:  String       // Origin-form request target.
-        version: String       // `HTTP/1.0` or `HTTP/1.1`.
-        headers: Array'ServerHeader     // Request headers in wire order.
-        body:    Array'u8     // Request body after Content-Length or chunked decoding.
+        method:  String         // Request method token.
+        target:  String         // Origin-form request target.
+        version: String         // `HTTP/1.0` or `HTTP/1.1`.
+        headers: Array!{ServerHeader}     // Request headers in wire order.
+        body:    Array!{u8}     // Request body after Content-Length or chunked decoding.
     }
 }
 
@@ -77,16 +77,22 @@ private func httpHeaderNameEquals(name: string, expected: string)->bool
 
 private func httpHeaderContainsToken(value: string, token: string)->bool
 {
-    var start = 0'u64
+    var start = 0_u64
     while start < value.count
     {
         let separator = Utf8.indexOf(value, ",", start)
         let end       = separator == Swag.U64.Max ? value.count : separator
         let part      = Latin1.trim(value[start until end])
-        if part.count == token.count and Utf8.indexOf(part, token, 0, .Latin1NoCase) == 0 do
+        if part.count == token.count and Utf8.indexOf(part, token, 0, .Latin1NoCase) == 0
+        {
             return true
-        if separator == Swag.U64.Max do
+        }
+
+        if separator == Swag.U64.Max
+        {
             break
+        }
+
         start = separator + 1
     }
 
@@ -131,8 +137,11 @@ impl Server
     // `idleTimeoutMs`, which bounds each blocking read while parsing requests.
     func listen(endpoint: SocketEndpoint, options: ServerOptions = {})->Server fail
     {
-        if options.maxHeaderBytes < 16 or options.maxRequestsPerConnection == 0 or options.maxRequestsPerConnection > 1 and options.idleTimeoutMs == 0 do
+        if options.maxHeaderBytes < 16 or options.maxRequestsPerConnection == 0 or options.maxRequestsPerConnection > 1 and options.idleTimeoutMs == 0
+        {
             fail Errors.BadParameterError{}
+        }
+
         var listener = try TcpListener.listen(endpoint)
         return {listener: #move listener, options: options}
     }
@@ -156,8 +165,11 @@ impl Server
     mtd accept()->ServerConnection fail
     {
         var stream = try .listener.accept()
-        if .options.idleTimeoutMs do
+        if .options.idleTimeoutMs
+        {
             try stream.setReadTimeout(.options.idleTimeoutMs)
+        }
+
         return {stream: #move stream, options: .options}
     }
 }
@@ -176,8 +188,10 @@ impl ServerConnection
         {
             .inputOffset = 0
             .inputCount  = try .stream.read(.input)
-            if .inputCount == 0 do
+            if .inputCount == 0
+            {
                 fail Errors.InvalidFormatError{"unexpected end of HTTP request"}
+            }
         }
 
         let byte = .input[.inputOffset]
@@ -193,13 +207,19 @@ impl ServerConnection
             let value = try .readByte()
             if value == '\r'
             {
-                if try .readByte() != '\n' do
+                if try .readByte() != '\n'
+                {
                     fail Errors.InvalidFormatError{"HTTP lines must end with CRLF"}
+                }
+
                 return line
             }
 
-            if value == '\n' or value < ' ' and value != '\t' or value == 0x7F do
+            if value == '\n' or value < ' ' and value != '\t' or value == 0x7F
+            {
                 fail Errors.InvalidFormatError{"HTTP line contains a control character"}
+            }
+
             line.append(value)
         }
 
@@ -208,7 +228,7 @@ impl ServerConnection
 
     private mtd readExact(buffer: [..] u8) fail
     {
-        var offset = 0'u64
+        var offset = 0_u64
         while offset < buffer.count
         {
             if .inputOffset < .inputCount
@@ -221,8 +241,11 @@ impl ServerConnection
             }
 
             let count = try .stream.read(buffer[offset to])
-            if count == 0 do
+            if count == 0
+            {
                 fail Errors.InvalidFormatError{"HTTP request body ended early"}
+            }
+
             offset += count
         }
     }
@@ -233,13 +256,19 @@ impl ServerConnection
         {
             let line = try .readLine(128)
             headerBytes.value += line.count + 2
-            if headerBytes.value > .options.maxHeaderBytes do
+            if headerBytes.value > .options.maxHeaderBytes
+            {
                 fail Errors.OverflowError{"HTTP request headers exceed the configured limit"}
+            }
+
             let separator  = Utf8.indexOf(line, ";")
             let sizeText   = separator == Swag.U64.Max ? line.toString() : line[until separator]
             let parsedSize = catch StrConv.parseX64(sizeText) { fail Errors.InvalidFormatError{"invalid HTTP chunk size"} }
-            if parsedSize.ovf or parsedSize.eat != sizeText.count do
+            if parsedSize.ovf or parsedSize.eat != sizeText.count
+            {
                 fail Errors.InvalidFormatError{"invalid HTTP chunk size"}
+            }
+
             let size = parsedSize.value
             if size == 0
             {
@@ -247,60 +276,99 @@ impl ServerConnection
                 {
                     let trailer = try .readLine(.options.maxHeaderBytes - Math.min(.options.maxHeaderBytes, headerBytes.value))
                     headerBytes.value += trailer.count + 2
-                    if headerBytes.value > .options.maxHeaderBytes do
+                    if headerBytes.value > .options.maxHeaderBytes
+                    {
                         fail Errors.OverflowError{"HTTP request headers exceed the configured limit"}
-                    if trailer.isEmpty() do
+                    }
+
+                    if trailer.isEmpty()
+                    {
                         return
+                    }
+
                     let colon = Utf8.indexOf(trailer, ":")
-                    if colon == 0 or colon == Swag.U64.Max do
+                    if colon == 0 or colon == Swag.U64.Max
+                    {
                         fail Errors.InvalidFormatError{"invalid HTTP trailer field"}
+                    }
+
                     let name = trailer[until colon]
-                    for byte in name do
-                        if not httpTokenByte(byte) do
+                    for byte in name
+                    {
+                        if not httpTokenByte(byte)
+                        {
                             fail Errors.InvalidFormatError{"invalid HTTP trailer name"}
+                        }
+                    }
+
                     if httpHeaderNameEquals(name, "content-length") or
                        httpHeaderNameEquals(name, "transfer-encoding") or
-                       httpHeaderNameEquals(name, "host") do
+                       httpHeaderNameEquals(name, "host")
+                    {
                         fail Errors.InvalidFormatError{"forbidden HTTP trailer field"}
-                    for byte in trailer[colon + 1 to] do
-                        if (byte < ' ' and byte != '\t') or byte == 0x7F do
+                    }
+
+                    for byte in trailer[colon + 1 to]
+                    {
+                        if (byte < ' ' and byte != '\t') or byte == 0x7F
+                        {
                             fail Errors.InvalidFormatError{"invalid HTTP trailer value"}
+                        }
+                    }
                 }
             }
 
-            if size > .options.maxBodyBytes - Math.min(.options.maxBodyBytes, request.body.count) do
+            if size > .options.maxBodyBytes - Math.min(.options.maxBodyBytes, request.body.count)
+            {
                 fail Errors.OverflowError{"HTTP request body exceeds the configured limit"}
+            }
+
             let start = request.body.count
             request.body.resize(start + size)
             try .readExact(request.body[start to])
-            if try .readByte() != '\r' or try .readByte() != '\n' do
+            if try .readByte() != '\r' or try .readByte() != '\n'
+            {
                 fail Errors.InvalidFormatError{"HTTP chunk is not followed by CRLF"}
+            }
         }
     }
 
     // Reads and validates one bounded request, including Content-Length and chunked bodies.
     mtd readRequest()->ServerRequest fail
     {
-        if .responseStarted or .requestPending do
+        if .responseStarted or .requestPending
+        {
             fail Errors.BadParameterError{}
+        }
+
         var request: ServerRequest
         var headerBytes = HeaderByteCount{}
         let requestLine = try .readLine(.options.maxHeaderBytes)
         headerBytes.value = requestLine.count + 2
         let firstSpace  = Utf8.indexOf(requestLine, " ")
         let secondSpace = firstSpace == Swag.U64.Max ? firstSpace : Utf8.indexOf(requestLine, " ", firstSpace + 1)
-        if firstSpace == 0 or secondSpace == Swag.U64.Max or secondSpace + 1 >= requestLine.count do
+        if firstSpace == 0 or secondSpace == Swag.U64.Max or secondSpace + 1 >= requestLine.count
+        {
             fail Errors.InvalidFormatError{"invalid HTTP request line"}
+        }
+
         let method = requestLine[until firstSpace]
-        for value in method do
-            if not httpTokenByte(value) do
+        for value in method
+        {
+            if not httpTokenByte(value)
+            {
                 fail Errors.InvalidFormatError{"invalid HTTP method"}
+            }
+        }
+
         let target  = requestLine[firstSpace + 1 until secondSpace]
         let version = requestLine[secondSpace + 1 to]
-        if target.count == 0 or target[0] != '/' or (version != "HTTP/1.0" and version != "HTTP/1.1") do
+        if target.count == 0 or target[0] != '/' or (version != "HTTP/1.0" and version != "HTTP/1.1")
+        {
             fail Errors.InvalidFormatError{"unsupported HTTP request target or version"}
+        }
 
-        var targetIndex = 0'u64
+        var targetIndex = 0_u64
         var inQuery     = false
         while targetIndex < target.count
         {
@@ -314,11 +382,17 @@ impl ServerConnection
 
             if value == '%'
             {
-                if target.count - targetIndex < 3 do
+                if target.count - targetIndex < 3
+                {
                     fail Errors.InvalidFormatError{"invalid escape in HTTP request target"}
+                }
+
                 if not Latin1.isHexDigit(target[targetIndex + 1]) or
-                   not Latin1.isHexDigit(target[targetIndex + 2]) do
+                   not Latin1.isHexDigit(target[targetIndex + 2])
+                {
                     fail Errors.InvalidFormatError{"invalid escape in HTTP request target"}
+                }
+
                 targetIndex += 3
                 continue
             }
@@ -333,8 +407,11 @@ impl ServerConnection
                     value == ':' or
                     value == '@' or
                     value == '/' or
-                    (inQuery and value == '?')) do
+                    (inQuery and value == '?'))
+            {
                 fail Errors.InvalidFormatError{"invalid character in HTTP request target"}
+            }
+
             targetIndex += 1
         }
 
@@ -343,9 +420,9 @@ impl ServerConnection
         request.version = String.from(version)
 
         var hasContentLength    = false
-        var contentLength       = 0'u64
+        var contentLength       = 0_u64
         var isChunked           = false
-        var hostCount           = 0'u32
+        var hostCount           = 0_u32
         var emptyHost           = false
         var connectionClose     = false
         var connectionKeepAlive = false
@@ -353,45 +430,82 @@ impl ServerConnection
         {
             let line = try .readLine(.options.maxHeaderBytes - Math.min(.options.maxHeaderBytes, headerBytes.value))
             headerBytes.value += line.count + 2
-            if headerBytes.value > .options.maxHeaderBytes do
+            if headerBytes.value > .options.maxHeaderBytes
+            {
                 fail Errors.OverflowError{"HTTP request headers exceed the configured limit"}
-            if line.isEmpty() do
+            }
+
+            if line.isEmpty()
+            {
                 break
-            if line[0] == ' ' or line[0] == '\t' do
+            }
+
+            if line[0] == ' ' or line[0] == '\t'
+            {
                 fail Errors.InvalidFormatError{"obsolete folded HTTP headers are not accepted"}
+            }
+
             let colon = Utf8.indexOf(line, ":")
-            if colon == 0 or colon == Swag.U64.Max do
+            if colon == 0 or colon == Swag.U64.Max
+            {
                 fail Errors.InvalidFormatError{"invalid HTTP header field"}
+            }
+
             let name = line[until colon]
-            for value in name do
-                if not httpTokenByte(value) do
+            for value in name
+            {
+                if not httpTokenByte(value)
+                {
                     fail Errors.InvalidFormatError{"invalid HTTP header name"}
-            let value = Latin1.trim(line[colon + 1 to])
-            for byte in value do
-                if byte < ' ' and byte != '\t' or byte == 0x7F do
+                }
+            }
+
+            var value: String
+            if colon + 1 == line.count
+            {
+                value = String{}
+            }
+            else
+            {
+                value = Latin1.trim(line[colon + 1 to])
+            }
+
+            for byte in value
+            {
+                if byte < ' ' and byte != '\t' or byte == 0x7F
+                {
                     fail Errors.InvalidFormatError{"invalid HTTP header value"}
+                }
+            }
+
             if httpHeaderNameEquals(name, "content-length")
             {
                 let parsed = catch StrConv.toU64(value) { fail Errors.InvalidFormatError{"invalid HTTP Content-Length"} }
-                if hasContentLength and parsed != contentLength do
+                if hasContentLength and parsed != contentLength
+                {
                     fail Errors.InvalidFormatError{"conflicting HTTP Content-Length fields"}
+                }
+
                 hasContentLength = true
                 contentLength    = parsed
             }
-            elif httpHeaderNameEquals(name, "host")
+            else if httpHeaderNameEquals(name, "host")
             {
                 hostCount += 1
                 emptyHost = value.count == 0
             }
-            elif httpHeaderNameEquals(name, "transfer-encoding")
+            else if httpHeaderNameEquals(name, "transfer-encoding")
             {
                 if isChunked or
                    Utf8.indexOf(value, "chunked", 0, .Latin1NoCase) != 0 or
-                   value.count != 7 do
+                   value.count != 7
+                {
                     fail Errors.InvalidFormatError{"unsupported HTTP Transfer-Encoding"}
+                }
+
                 isChunked = true
             }
-            elif httpHeaderNameEquals(name, "connection")
+            else if httpHeaderNameEquals(name, "connection")
             {
                 connectionClose     = connectionClose or httpHeaderContainsToken(value, "close")
                 connectionKeepAlive = connectionKeepAlive or httpHeaderContainsToken(value, "keep-alive")
@@ -400,18 +514,27 @@ impl ServerConnection
             request.headers.add({name: String.from(name), value: String.from(value)})
         }
 
-        if version == "HTTP/1.1" and (hostCount != 1 or emptyHost) do
+        if version == "HTTP/1.1" and (hostCount != 1 or emptyHost)
+        {
             fail Errors.InvalidFormatError{"HTTP/1.1 request needs exactly one non-empty Host field"}
-        if isChunked and hasContentLength do
+        }
+
+        if isChunked and hasContentLength
+        {
             fail Errors.InvalidFormatError{"HTTP request cannot combine Transfer-Encoding and Content-Length"}
+        }
+
         if isChunked
         {
             try .readChunkedBody(&request, &headerBytes)
         }
         else
         {
-            if contentLength > .options.maxBodyBytes do
+            if contentLength > .options.maxBodyBytes
+            {
                 fail Errors.OverflowError{"HTTP request body exceeds the configured limit"}
+            }
+
             request.body.resize(contentLength)
             try .readExact(request.body.toSlice())
         }
@@ -426,12 +549,15 @@ impl ServerConnection
 
     private mtd writeAll(bytes: const [..] u8) fail
     {
-        var offset = 0'u64
+        var offset = 0_u64
         while offset < bytes.count
         {
             let count = try .stream.write(bytes[offset to])
-            if count == 0 do
+            if count == 0
+            {
                 fail NetworkError{"HTTP connection stopped accepting response bytes", code: 0}
+            }
+
             offset += count
         }
     }
@@ -443,29 +569,52 @@ impl ServerConnection
             if header.name.count == 0 or
                httpHeaderNameEquals(header.name, "content-length") or
                httpHeaderNameEquals(header.name, "transfer-encoding") or
-               httpHeaderNameEquals(header.name, "connection") do
+               httpHeaderNameEquals(header.name, "connection")
+            {
                 fail Errors.BadParameterError{}
-            for value in header.name do
-                if not httpTokenByte(value) do
+            }
+
+            for value in header.name
+            {
+                if not httpTokenByte(value)
+                {
                     fail Errors.BadParameterError{}
-            for value in header.value do
-                if (value < ' ' and value != '\t') or value == 0x7F do
+                }
+            }
+
+            for value in header.value
+            {
+                if (value < ' ' and value != '\t') or value == 0x7F
+                {
                     fail Errors.BadParameterError{}
+                }
+            }
         }
     }
 
     private mtd writeResponseHead(status: u32, headers: const [..] Header, chunked: bool, bodyLength: u64) fail
     {
-        if not .requestPending or .responseStarted or status < 200 or status > 599 do
+        if not .requestPending or .responseStarted or status < 200 or status > 599
+        {
             fail Errors.BadParameterError{}
+        }
+
         try .validateResponseHeaders(headers)
         var text = Format.toString("HTTP/1.1 % %\r\n", status, httpReasonPhrase(status))
-        for header in headers do
+        for header in headers
+        {
             text += Format.toString("%: %\r\n", header.name, header.value)
-        if chunked do
+        }
+
+        if chunked
+        {
             text += "Transfer-Encoding: chunked\r\n"
-        else do
+        }
+        else
+        {
             text += Format.toString("Content-Length: %\r\n", bodyLength)
+        }
+
         text += .requestKeepAlive ? "Connection: keep-alive\r\n\r\n" : "Connection: close\r\n\r\n"
         try .writeAll(cast(const [..] u8, text))
         .responseStarted = true
@@ -488,8 +637,11 @@ impl ServerConnection
     // Completes an RFC 6455 upgrade and transfers this connection to a WebSocket owner.
     mtd upgradeWebSocket(request: ServerRequest, options: WebSocketOptions = {})->WebSocket fail
     {
-        if not .requestPending or .responseStarted do
+        if not .requestPending or .responseStarted
+        {
             fail Errors.BadParameterError{}
+        }
+
         let accept   = try webSocketValidateUpgrade(request)
         let response = Format.toString("HTTP/1.1 101 Switching Protocols\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Accept: %\r\n\r\n", accept)
         try .writeAll(cast(const [..] u8, response))
@@ -504,10 +656,16 @@ impl ServerConnection
     // Writes one chunk of a response started by [[Net.Http.ServerConnection.beginChunkedResponse]].
     mtd writeBody(bytes: const [..] u8) fail
     {
-        if not .responseStarted or .responseFinished do
+        if not .responseStarted or .responseFinished
+        {
             fail Errors.BadParameterError{}
-        if bytes.count == 0 do
+        }
+
+        if bytes.count == 0
+        {
             return
+        }
+
         let prefix = Format.toString("%{X}\r\n", bytes.count)
         try .writeAll(cast(const [..] u8, prefix))
         try .writeAll(bytes)
@@ -517,8 +675,11 @@ impl ServerConnection
     // Completes the chunked response and applies the connection policy.
     mtd finishResponse() fail
     {
-        if not .responseStarted or .responseFinished do
+        if not .responseStarted or .responseFinished
+        {
             fail Errors.BadParameterError{}
+        }
+
         try .writeAll(cast(const [..] u8, "0\r\n\r\n"))
         .completeResponse()
     }

@@ -20,8 +20,10 @@ impl NumericArray
     {
         for i in N
         {
-            if .buf[i] != other.buf[i] do
+            if .buf[i] != other.buf[i]
+            {
                 return false
+            }
         }
 
         return true
@@ -82,8 +84,10 @@ impl NumericArray
     #[Safety(.BoundCheck, false), FullInit]
     mtd opSet(what: T)
     {
-        for i in N do
+        for i in N
+        {
             .buf[i] = what
+        }
     }
 
     // Copies the components from `what`, which must hold exactly `N` values.
@@ -91,8 +95,10 @@ impl NumericArray
     mtd opSet(what: const [..] T)
     {
         Swag.assert(what.count == N)
-        for i in N do
+        for i in N
+        {
             .buf[i] = what[i]
+        }
     }
 
     // Creates an array from exactly `N` component values.
@@ -101,8 +107,11 @@ impl NumericArray
     {
         Swag.assert(values.count == N)
         var result: #returntype
-        for index in N do
+        for index in N
+        {
             result.buf[index] = values[index]
+        }
+
         return result
     }
 
@@ -111,23 +120,29 @@ impl NumericArray
     mtd set(values: T...)
     {
         Swag.assert(values.count == N)
-        for i in N do
+        for i in N
+        {
             .buf[i] = values[i]
+        }
     }
 
     // Multiplies every component by `value1`, then adds `value2`, in place.
     #[Safety(.BoundCheck, false)]
     mtd mulAdd(value1, value2: T)
     {
-        for i in N do
+        for i in N
+        {
             .buf[i] = (.buf[i] * value1) + value2
+        }
     }
 
     // Multiplies every component by the matching component of `value1`, then adds the matching component of `value2`, in place.
     #[Safety(.BoundCheck, false)]
     mtd mulAdd(value1, value2: NumericArray)
     {
-        for i in N do
+        for i in N
+        {
             .buf[i] = (.buf[i] * value1.buf[i]) + value2.buf[i]
+        }
     }
 }

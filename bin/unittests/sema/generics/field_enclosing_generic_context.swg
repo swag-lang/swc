@@ -100,35 +100,35 @@ struct(U, M: s32) MethodBufferContext {}
 
 struct(A, B) PartialMiddleDefaultHolder
 {
-    item: MiddleDefaultBox'A
+    item: MiddleDefaultBox!{A}
 }
 
 struct(A, B: s32) PartialTrailingValueDefaultHolder
 {
-    item: TrailingValueDefaultBuffer'A
+    item: TrailingValueDefaultBuffer!{A}
 }
 
 struct(A, B: s32) PartialBufferHolder
 {
-    item: Buffer'A
+    item: Buffer!{A}
 }
 
 struct(A) ExplicitPrefixValueHolder
 {
-    item: PrefixDefaultBuffer'3
+    item: PrefixDefaultBuffer!{3}
 }
 
 struct(A) ExplicitSplitValueHolder
 {
-    item: SplitValueDefaultBuffer'3
+    item: SplitValueDefaultBuffer!{3}
 }
 
 struct(A, B) PartialTailOnlyHolder
 {
-    item: MiddleDefaultBox'(A, f64)
+    item: MiddleDefaultBox!{A, f64}
 }
 
-struct(T, U = Box'T) ComposedTypeDefaultBox
+struct(T, U = Box!{T}) ComposedTypeDefaultBox
 {
     value: U
 }
@@ -198,30 +198,30 @@ impl MethodBufferContext
 
 func semaTest001()
 {
-    var wrapped:                           WrapperImplicit'u16
-    var doubled:                           DoubleBufferImplicit'(u8, 4)
-    var renamed:                           RenamedDoubleBufferImplicit'(u16, 3)
-    var reordered:                         ReorderedRenamedDoubleBufferImplicit'(5, u32)
-    var renamedWrapper:                    RenamedWrapperImplicit'(bool, 7)
-    var prefixDefaultHolder:               PrefixDefaultHolderImplicit'u8
-    var middleDefaultHolder:               MiddleDefaultHolderImplicit'(u16, f32)
-    var nestedMiddleDefaultHolder:         NestedMiddleDefaultHolderImplicit'(u16, f32)
-    var twinImplicitHolder:                TwinImplicitHolder's64
-    var trailingValueDefaultHolder:        TrailingValueDefaultHolder'(u16, 6)
-    var splitValueDefaultHolder:           SplitValueDefaultHolder'u32
-    let methodBufferContext:               MethodBufferContext'(u16, 9)
-    let distinctMethodBuffer = methodBufferContext.makeWithDistinctName'f32()
-    var partialMiddleDefaultHolder:        PartialMiddleDefaultHolder'(u32, f64)
-    var partialTrailingValueDefaultHolder: PartialTrailingValueDefaultHolder'(u16, 8)
-    var partialBufferHolder:               PartialBufferHolder'(bool, 5)
-    var explicitPrefixValueHolder:         ExplicitPrefixValueHolder'u8
-    var explicitSplitValueHolder:          ExplicitSplitValueHolder'u16
-    var partialTailOnlyHolder:             PartialTailOnlyHolder'(bool, f32)
-    var composedTypeDefaultHolder:         ComposedTypeDefaultHolder's16
-    var sizeofDefaultHolder:               SizeofDefaultHolder'u64
-    var anonymousStructFieldHolder:        AnonymousStructFieldHolder'bool
-    var anonymousStructBufferHolder:       AnonymousStructBufferHolder'(u8, 4)
-    var anonymousUnionFieldHolder:         AnonymousUnionFieldHolder's32
+    var wrapped:                           WrapperImplicit!{u16}
+    var doubled:                           DoubleBufferImplicit!{u8, 4}
+    var renamed:                           RenamedDoubleBufferImplicit!{u16, 3}
+    var reordered:                         ReorderedRenamedDoubleBufferImplicit!{5, u32}
+    var renamedWrapper:                    RenamedWrapperImplicit!{bool, 7}
+    var prefixDefaultHolder:               PrefixDefaultHolderImplicit!{u8}
+    var middleDefaultHolder:               MiddleDefaultHolderImplicit!{u16, f32}
+    var nestedMiddleDefaultHolder:         NestedMiddleDefaultHolderImplicit!{u16, f32}
+    var twinImplicitHolder:                TwinImplicitHolder!{s64}
+    var trailingValueDefaultHolder:        TrailingValueDefaultHolder!{u16, 6}
+    var splitValueDefaultHolder:           SplitValueDefaultHolder!{u32}
+    let methodBufferContext:               MethodBufferContext!{u16, 9}
+    let distinctMethodBuffer = methodBufferContext.makeWithDistinctName!{f32}()
+    var partialMiddleDefaultHolder:        PartialMiddleDefaultHolder!{u32, f64}
+    var partialTrailingValueDefaultHolder: PartialTrailingValueDefaultHolder!{u16, 8}
+    var partialBufferHolder:               PartialBufferHolder!{bool, 5}
+    var explicitPrefixValueHolder:         ExplicitPrefixValueHolder!{u8}
+    var explicitSplitValueHolder:          ExplicitSplitValueHolder!{u16}
+    var partialTailOnlyHolder:             PartialTailOnlyHolder!{bool, f32}
+    var composedTypeDefaultHolder:         ComposedTypeDefaultHolder!{s16}
+    var sizeofDefaultHolder:               SizeofDefaultHolder!{u64}
+    var anonymousStructFieldHolder:        AnonymousStructFieldHolder!{bool}
+    var anonymousStructBufferHolder:       AnonymousStructBufferHolder!{u8, 4}
+    var anonymousUnionFieldHolder:         AnonymousUnionFieldHolder!{s32}
 
     #assert(#typeof(wrapped.item.value) == u16)
     #assert(#typeof(doubled.first.values) == #type [4] u8)
@@ -253,7 +253,7 @@ func semaTest001()
     #assert(#typeof(partialTailOnlyHolder.item.first) == bool)
     #assert(#typeof(partialTailOnlyHolder.item.second) == f64)
     #assert(#typeof(partialTailOnlyHolder.item.third) == f32)
-    #assert(#typeof(composedTypeDefaultHolder.item.value) == Box's16)
+    #assert(#typeof(composedTypeDefaultHolder.item.value) == Box!{s16})
     #assert(#typeof(composedTypeDefaultHolder.item.value.value) == s16)
     #assert(#typeof(sizeofDefaultHolder.item.values) == #type [8] u8)
     #assert(#typeof(anonymousStructFieldHolder.inner.item.value) == bool)
@@ -262,5 +262,5 @@ func semaTest001()
     #assert(methodBufferContext.localStructInferenceWorks())
     #assert(methodBufferContext.defaultCount() == 9)
     #assert(#typeof(methodBufferContext.defaultTyped()) == u16)
-    #assert(methodBufferContext.defaultTyped() == 9'u16)
+    #assert(methodBufferContext.defaultTyped() == 9_u16)
 }

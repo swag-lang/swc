@@ -39,17 +39,25 @@ using Swag, Core, Gui, Pixel, Video
     picture.fill(Argb.White)
     let configs: [2] Mp4.SoftwareAudioConfig = [{48_000, 1, .Voice}, {48_000, 2, .Full}]
     var recorder = expect Mp4.SoftwareRecording.createWithAudioTracks(source, 64, 48, 1_000_000, Swag.makeSlice(&configs[0], configs.count))
-    for frame in 3'u64 do
+    for frame in 3_u64
+    {
         expect recorder.addFrame(&picture, FrameSlot{frame, frame * 100_000, 100_000, 0})
+    }
 
-    var microphone: Array's16
-    var system:     Array's16
+    var microphone: Array!{s16}
+    var system:     Array!{s16}
     microphone.resize(14_400)
     system.resize(2 * 14_400)
-    for i in microphone.count do
+    for i in microphone.count
+    {
         microphone[i] = 1_000
-    for i in system.count do
+    }
+
+    for i in system.count
+    {
         system[i] = 2_000
+    }
+
     expect recorder.addAudioFrames(microphone.toSlice(), 0)
     expect recorder.addAudioFrames(system.toSlice(), 1)
     expect recorder.end()
@@ -107,10 +115,10 @@ using Swag, Core, Gui, Pixel, Video
 
     // Copy offers the rendered video as a file, including sound, rather than a GIF or still.
     var copyState = Gui.Testing.commandState(ActionCopyPaste.CopyAsImage)
-    Swag.require(Gui.Testing.actionUpdate'ActionCopyPaste(f.main, ActionCopyPaste.CopyAsImage, &copyState))
+    Swag.require(Gui.Testing.actionUpdate!{ActionCopyPaste}(f.main, ActionCopyPaste.CopyAsImage, &copyState))
     Swag.require(copyState.name == appStrings().act_CopyVideo)
     copyState = Gui.Testing.commandState(ActionFile.CopyImage)
-    Swag.require(Gui.Testing.actionUpdate'ActionFile(f.main, ActionFile.CopyImage, &copyState))
+    Swag.require(Gui.Testing.actionUpdate!{ActionFile}(f.main, ActionFile.CopyImage, &copyState))
     Swag.require(copyState.name == appStrings().act_CopyVideoToClipboard)
     f.main.copyLibraryImage(document)
     f.main.copyJob!.task.wait()
@@ -149,8 +157,11 @@ using Swag, Core, Gui, Pixel, Video
     let picture = Image.create(64, 48, .BGRA8)
     picture.fill(Argb.Black)
     var recording = expect Mp4.SoftwareRecording.createVideoOnly(source, 64, 48, 1_000_000)
-    for frame in 3'u64 do
+    for frame in 3_u64
+    {
         expect recording.addFrame(&picture, FrameSlot{frame, frame * 100_000, 100_000, 0})
+    }
+
     expect recording.end()
 
     f.capture.file = document
@@ -162,7 +173,7 @@ using Swag, Core, Gui, Pixel, Video
     var result = expect Reader.open(exported)
     defer result.close()
     Swag.require(result.width() == 64 and result.height() == 48 and result.frameCount() == 3)
-    for frame in 3'u64
+    for frame in 3_u64
     {
         let image = expect result.decodeFrame(frame)
         Swag.require(image.pixelColor(8, 24).g < 80 and image.pixelColor(63, 24).g > 180)

@@ -23,8 +23,10 @@ private func htmlNamedEntity(name: string)->HtmlEntity
 {
     var result: #returntype
     let found = htmlFindNamedRef(HtmlNamedRefs, name)
-    if found == Swag.U64.Max do
+    if found == Swag.U64.Max
+    {
         return result
+    }
 
     result.first  = HtmlNamedRefs[found].first
     result.second = HtmlNamedRefs[found].second
@@ -34,18 +36,25 @@ private func htmlNamedEntity(name: string)->HtmlEntity
 // Returns the index of `name` in a table sorted by name, or `Swag.U64.Max`.
 private func htmlFindNamedRef(table: const [..] HtmlNamedRef, name: string)->u64
 {
-    var low  = 0'u64
+    var low  = 0_u64
     var high = table.count
     while low < high
     {
         let middle = low + (high - low) / 2
         let order  = Latin1.compare(table[middle].name, name)
-        if not order do
+        if not order
+        {
             return middle
-        if order < 0 do
+        }
+
+        if order < 0
+        {
             low = middle + 1
-        else do
+        }
+        else
+        {
             high = middle
+        }
     }
 
     return Swag.U64.Max
@@ -68,8 +77,10 @@ private func htmlLegacyEntity(text: string, inAttribute: bool)->HtmlEntity
             if inAttribute and length < text.count
             {
                 let next = text[length]
-                if next == '=' or Latin1.isLetterOrDigit(next) do
+                if next == '=' or Latin1.isLetterOrDigit(next)
+                {
                     return result
+                }
             }
 
             result.first  = HtmlLegacyRefs[found].first
@@ -130,27 +141,39 @@ private func htmlNumericReplacement(value: u64)->rune
 func htmlDecodeEntity(source: string, start: u64, inAttribute = false)->HtmlEntity
 {
     var result: #returntype
-    if start >= source.count or source[start] != '&' do
+    if start >= source.count or source[start] != '&'
+    {
         return result
+    }
 
     // A reference never runs past the longest name the standard lists, plus its `&` and its `;`,
     // so a stray `&` in prose costs a bounded scan instead of a search to the end of the document.
     let limit = Math.min(start + HtmlMaxRefName + 2, source.count)
     var close = start + 1
-    while close < limit and source[close] != ';' do
+    while close < limit and source[close] != ';'
+    {
         close += 1
-    if close >= limit or close == start + 1 do
+    }
+
+    if close >= limit or close == start + 1
+    {
         return htmlDecodeLegacyEntity(source, start, inAttribute)
+    }
 
     let name = source[start + 1 until close]
     if name[0] == '#'
     {
-        if name.count < 2 do
+        if name.count < 2
+        {
             return result
+        }
+
         let hexadecimal = name[1] == 'x' or name[1] == 'X'
         let digits      = hexadecimal ? name[2 to] : name[1 to]
-        if not digits.count do
+        if not digits.count
+        {
             return result
+        }
 
         var number: u64
         if hexadecimal
@@ -159,8 +182,11 @@ func htmlDecodeEntity(source: string, start: u64, inAttribute = false)->HtmlEnti
             var parsed: #decltype(expect StrConv.parseX64(digits))
             catch { parsed = try StrConv.parseX64(digits) } as parseErrorOutcome
             let parseError = parseErrorOutcome.value()
-            if parseError != null or parsed.ovf or parsed.eat != digits.count do
+            if parseError != null or parsed.ovf or parsed.eat != digits.count
+            {
                 return result
+            }
+
             number = parsed.value
         }
         else
@@ -169,22 +195,30 @@ func htmlDecodeEntity(source: string, start: u64, inAttribute = false)->HtmlEnti
             var parsed: #decltype(expect StrConv.parseU64(digits))
             catch { parsed = try StrConv.parseU64(digits) } as parseErrorOutcome
             let parseError = parseErrorOutcome.value()
-            if parseError != null or parsed.ovf or parsed.eat != digits.count do
+            if parseError != null or parsed.ovf or parsed.eat != digits.count
+            {
                 return result
+            }
+
             number = parsed.value
         }
 
         let character = htmlNumericReplacement(number)
-        if not Utf8.isValidRune(character) or not number do
+        if not Utf8.isValidRune(character) or not number
+        {
             return result
+        }
+
         result.first = character
         result.eat   = close - start + 1
         return result
     }
 
     result = htmlNamedEntity(name)
-    if not result.first do
+    if not result.first
+    {
         return htmlDecodeLegacyEntity(source, start, inAttribute)
+    }
 
     result.eat = close - start + 1
     return result
@@ -196,8 +230,10 @@ private func htmlDecodeLegacyEntity(source: string, start: u64, inAttribute: boo
     var result: #returntype
     let tail   = source[start + 1 until Math.min(start + 1 + HtmlMaxRefName, source.count)]
     let legacy = htmlLegacyEntity(tail, inAttribute)
-    if not legacy.eat do
+    if not legacy.eat
+    {
         return result
+    }
 
     result     = legacy
     result.eat += 1
@@ -218,13 +254,15 @@ func htmlDecodeText(source: string)->String
 // is appended in a single copy.
 func htmlDecodeInto(output: *String, source: string, inAttribute = false)
 {
-    var index  = 0'u64
-    var copied = 0'u64
+    var index  = 0_u64
+    var copied = 0_u64
     while index < source.count
     {
-        let next = Utf8.indexOf(source, '&'rune, index)
-        if next == Swag.U64.Max do
+        let next = Utf8.indexOf(source, '&'_rune, index)
+        if next == Swag.U64.Max
+        {
             break
+        }
 
         let entity = htmlDecodeEntity(source, next, inAttribute)
         if not entity.eat
@@ -235,8 +273,11 @@ func htmlDecodeInto(output: *String, source: string, inAttribute = false)
 
         output[] += source[copied until next]
         output.append(entity.first)
-        if entity.second do
+        if entity.second
+        {
             output.append(entity.second)
+        }
+
         index  = next + entity.eat
         copied = index
     }

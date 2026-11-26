@@ -4,22 +4,28 @@
 func fill(buffer: *u8, size: u32)->bool
 {
     let bytes = cast([*] u8, buffer)
-    var done  = 0'u32
+    var done  = 0_u32
     while done < size
     {
-        let count = Swag.min(size - done, 256'u32)
-        for i in count do bytes[done + i] = 42
+        let count = Swag.min(size - done, 256_u32)
+        for i in count
+        {
+            bytes[done + i] = 42
+        }
         done += count
     }
     return true
 }
 func fillChunks(buffer: [..] u8) fail
 {
-    var done = 0'u64
+    var done = 0_u64
     while done < buffer.count
     {
         let chunk = cast(u32, buffer.count - done)
-        if not fill(buffer.buffer + done, chunk) do fail Swag.SystemError{"fill failed"}
+        if not fill(buffer.buffer + done, chunk)
+        {
+            fail Swag.SystemError{"fill failed"}
+        }
         done += chunk
     }
 }
@@ -32,6 +38,8 @@ func fillChunks(buffer: [..] u8) fail
     data[1025] = 29
     expect fillChunks(data[1 until 1025])
     Swag.require(data[0] == 17 and data[1025] == 29)
-    for value in data[1 until 1025] do
+    for value in data[1 until 1025]
+    {
         Swag.require(value == 42)
+    }
 }

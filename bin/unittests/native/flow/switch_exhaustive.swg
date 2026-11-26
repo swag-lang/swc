@@ -77,7 +77,7 @@ func isSmallInteger(value: const any)->bool
     Swag.require(not readOnly(Flags.Read | Flags.Write))
     Swag.require(wasFound(OpenState.Found))
     Swag.require(not wasFound(cast(OpenState, 9)))
-    Swag.require(isSmallInteger(5's32))
+    Swag.require(isSmallInteger(5_s32))
     Swag.require(not isSmallInteger("5"))
 }
 

@@ -1,13 +1,13 @@
 #global if #os == Swag.TargetOs.Linux
 #global export
 
-const XCB_CLIENT_MESSAGE     = 33'u8
-const XCB_PROPERTY_NOTIFY    = 28'u8
-const XCB_SELECTION_CLEAR    = 29'u8
-const XCB_SELECTION_REQUEST  = 30'u8
-const XCB_SELECTION_NOTIFY   = 31'u8
-const XCB_PROPERTY_NEW_VALUE = 0'u8
-const XCB_PROPERTY_DELETE    = 1'u8
+const XCB_CLIENT_MESSAGE     = 33_u8
+const XCB_PROPERTY_NOTIFY    = 28_u8
+const XCB_SELECTION_CLEAR    = 29_u8
+const XCB_SELECTION_REQUEST  = 30_u8
+const XCB_SELECTION_NOTIFY   = 31_u8
+const XCB_PROPERTY_NEW_VALUE = 0_u8
+const XCB_PROPERTY_DELETE    = 1_u8
 
 struct xcb_property_notify_event_t
 {

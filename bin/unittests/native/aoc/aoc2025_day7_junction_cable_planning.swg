@@ -38,7 +38,7 @@ func parseNumber(bytes: const [..] u8, index: *u32)->u32
 
     while index[] < bytes.count and bytes[index[]] >= '0' and bytes[index[]] <= '9'
     {
-        result  = result * 10'u32 + cast(u32, (bytes[index[]] - '0'))
+        result  = result * 10_u32 + cast(u32, (bytes[index[]] - '0'))
         index[] += 1
     }
 
@@ -95,8 +95,10 @@ func registerCluster(size: u32, largest: *u32, second: *u32, third: *u32)
         second[] = size
         return
     }
-    if size > third[] do
+    if size > third[]
+    {
         third[] = size
+    }
 }
 
 func planCables(pointLines: const [..] string, attemptedLinks: u32)->CablePlan
@@ -118,8 +120,10 @@ func planCables(pointLines: const [..] string, attemptedLinks: u32)->CablePlan
 
     for lhs in pointLines.count
     {
-        if cast(u32, lhs) + 1 >= pointLines.count do
+        if cast(u32, lhs) + 1 >= pointLines.count
+        {
             continue
+        }
 
         for rhs in cast(u32, lhs) + 1 to pointLines.count - 1
         {
@@ -163,8 +167,10 @@ func planCables(pointLines: const [..] string, attemptedLinks: u32)->CablePlan
         let rootA = findRoot(parents[0 to pointLines.count], edge.a)
         let rootB = findRoot(parents[0 to pointLines.count], edge.b)
 
-        if rootA != rootB do
+        if rootA != rootB
+        {
             parents[rootB] = rootA
+        }
     }
 
     for pointIndex in pointLines.count
@@ -218,12 +224,12 @@ func planCables(pointLines: const [..] string, attemptedLinks: u32)->CablePlan
 
     let samplePlan = planCables(samplePoints, 10)
 
-    Swag.require(samplePlan.pointCount == 20'u32)
-    Swag.require(samplePlan.attemptedLinks == 10'u32)
-    Swag.require(samplePlan.largestCluster == 5'u32)
-    Swag.require(samplePlan.secondCluster == 4'u32)
-    Swag.require(samplePlan.thirdCluster == 2'u32)
-    Swag.require(samplePlan.topThreeProduct == 40'u64)
+    Swag.require(samplePlan.pointCount == 20_u32)
+    Swag.require(samplePlan.attemptedLinks == 10_u32)
+    Swag.require(samplePlan.largestCluster == 5_u32)
+    Swag.require(samplePlan.secondCluster == 4_u32)
+    Swag.require(samplePlan.thirdCluster == 2_u32)
+    Swag.require(samplePlan.topThreeProduct == 40_u64)
 
     const corridorPoints: [7] string =
         [
@@ -238,10 +244,10 @@ func planCables(pointLines: const [..] string, attemptedLinks: u32)->CablePlan
 
     let corridorPlan = planCables(corridorPoints, 5)
 
-    Swag.require(corridorPlan.pointCount == 7'u32)
-    Swag.require(corridorPlan.attemptedLinks == 5'u32)
-    Swag.require(corridorPlan.largestCluster == 3'u32)
-    Swag.require(corridorPlan.secondCluster == 2'u32)
-    Swag.require(corridorPlan.thirdCluster == 2'u32)
-    Swag.require(corridorPlan.topThreeProduct == 12'u64)
+    Swag.require(corridorPlan.pointCount == 7_u32)
+    Swag.require(corridorPlan.attemptedLinks == 5_u32)
+    Swag.require(corridorPlan.largestCluster == 3_u32)
+    Swag.require(corridorPlan.secondCluster == 2_u32)
+    Swag.require(corridorPlan.thirdCluster == 2_u32)
+    Swag.require(corridorPlan.topThreeProduct == 12_u64)
 }

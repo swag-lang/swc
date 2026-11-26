@@ -16,17 +16,17 @@ struct StructureTabs
     active:    u64 = Swag.U64.Max
 
     // Hit areas of the tabs, as the last paint placed them.
-    tabRects: Array'Math.Rectangle
+    tabRects: Array!{Math.Rectangle}
 
-    sigPicked: SigArray'func||(*StructureTabs, u64)     // Emitted with the index of the tab the reader picked.
+    sigPicked: SigArray!{func||(*StructureTabs, u64)}     // Emitted with the index of the tab the reader picked.
 }
 
 private
 {
     // Size of a tab's words and of the format's name, the air between two tabs, and where the Arc
     // rule stands under the words.
-    const TabFontSize    = 13'u32
-    const FormatFontSize = 11'u32
+    const TabFontSize    = 13_u32
+    const FormatFontSize = 11_u32
     const TabGap         = 24.0
     const RuleGap        = 6.0
     const RuleWidth      = 2.0
@@ -36,7 +36,7 @@ impl StructureTabs
 {
     func create(parent: *Wnd)->*StructureTabs
     {
-        with let result = Wnd.create'StructureTabs(parent, "scope.hex.tabs", {})
+        with let result = Wnd.create!{StructureTabs}(parent, "scope.hex.tabs", {})
         {
             .backgroundStyle = .Transparent
             .dockStyle       = .Top
@@ -58,8 +58,11 @@ impl StructureTabs
     mtd follow(offset: u64)
     {
         let index = .structure ? .structure.tabAt(offset) : Swag.U64.Max
-        if index == .active do
+        if index == .active
+        {
             return
+        }
+
         .active = index
         .invalidate()
     }
@@ -70,8 +73,10 @@ impl IWnd for StructureTabs
     mtd impl onPaint(evt: *PaintEvent)
     {
         .tabRects.clear()
-        if not .structure do
+        if not .structure
+        {
             return
+        }
 
         let painter    = evt.paintContext.painter
         let colors     = .themeColors()
@@ -90,13 +95,17 @@ impl IWnd for StructureTabs
         for tab, index in .structure.tabs
         {
             let width = Painter.measureString(tab.label, tabFont).width
-            if x + width > client.right() do
+            if x + width > client.right()
+            {
                 break
+            }
 
             let chosen = index == .active
             painter.drawString(x, lineTop, tab.label, tabFont, chosen ? colors.text : colors.softText)
-            if chosen do
+            if chosen
+            {
                 painter.fillRect(Math.Rectangle{x, lineTop + tabFont.height + RuleGap - RuleWidth, width, RuleWidth}, colors.arc)
+            }
 
             .tabRects.add({x - TabGap * 0.5, client.y, width + TabGap, client.height})
             x += width + TabGap

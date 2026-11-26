@@ -35,23 +35,35 @@ func debugBreak() => Swag.breakpoint()
 // Concurrent callers can interleave their output. This call does not allocate.
 func log(msg: string)
 {
-    if msg.count == 0 do
+    if msg.count == 0
+    {
         return
+    }
+
     let previousError = Linux.errno()
     defer Linux.errno(previousError)
     var blocked, previous, pending: Linux.sigset_t
-    if Linux.sigemptyset(&blocked) != 0 or Linux.sigaddset(&blocked, Linux.SIGPIPE) != 0 do
+    if Linux.sigemptyset(&blocked) != 0 or Linux.sigaddset(&blocked, Linux.SIGPIPE) != 0
+    {
         return
-    if Linux.pthread_sigmask(Linux.SIG_BLOCK, &blocked, &previous) != 0 do
+    }
+
+    if Linux.pthread_sigmask(Linux.SIG_BLOCK, &blocked, &previous) != 0
+    {
         return
+    }
+
     defer discard Linux.pthread_sigmask(Linux.SIG_SETMASK, &previous, null)
-    if Linux.sigpending(&pending) != 0 do
+    if Linux.sigpending(&pending) != 0
+    {
         return
+    }
+
     let alreadyPending = Linux.sigismember(&pending, Linux.SIGPIPE) == 1
-    var offset         = 0'u64
+    var offset         = 0_u64
     while offset < msg.count
     {
-        let written = Linux.write(2, msg.buffer + offset, Math.min(msg.count - offset, 0x7FFFF000'u64))
+        let written = Linux.write(2, msg.buffer + offset, Math.min(msg.count - offset, 0x7FFFF000_u64))
         if written > 0
         {
             offset += cast(u64, written)
@@ -59,8 +71,11 @@ func log(msg: string)
         }
 
         let error = Linux.errno()
-        if written < 0 and error == Linux.EINTR do
+        if written < 0 and error == Linux.EINTR
+        {
             continue
+        }
+
         if written < 0 and error == Linux.EPIPE and not alreadyPending
         {
             var noWait: Linux.timespec

@@ -24,13 +24,16 @@ impl ViewerWindow
 
         // A 10 ms cadence leaves the viewers' own 4-8 ms progressive timers a dispatch turn
         // between readiness checks instead of letting the review timer dominate a smoke loop.
-        .smokeTimer = .addTimer(10'ms)
+        .smokeTimer = .addTimer(10_ms)
     }
 
     private mtd finishSmokeReview(exitCode: s32, message: string)
     {
-        if message.count do
+        if message.count
+        {
             Console.println(message)
+        }
+
         .stopTimer(&.smokeTimer)
 
         .smokeRunning = false
@@ -40,8 +43,10 @@ impl ViewerWindow
     private mtd waitForSmokeViewer(key, fileName: string)
     {
         .smokeWaitSteps += 1
-        if .smokeWaitSteps <= SmokeStepLimit do
+        if .smokeWaitSteps <= SmokeStepLimit
+        {
             return
+        }
 
         .finishSmokeReview(1, Format.toString("Swag Scope smoke viewer '%' did not finish '%' after % readiness checks", key, fileName, SmokeStepLimit))
     }

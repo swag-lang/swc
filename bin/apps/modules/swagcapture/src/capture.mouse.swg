@@ -45,10 +45,15 @@ impl Capture
             menu.addPopup(appStrings().ui_MenuArrange, popup1, view.theme().icon(.BringToFront))
         }
 
-        if .canGroup() do
+        if .canGroup()
+        {
             menu.addItem(ActionGroup.Group)
-        if .canUngroup() do
+        }
+
+        if .canUngroup()
+        {
             menu.addItem(ActionGroup.Ungroup)
+        }
 
         for it in .selection
         {
@@ -76,8 +81,10 @@ impl Capture
         // deferred during the interactive move (runs on every exit of this handler).
         defer
         {
-            if evt.kind == .Released do
+            if evt.kind == .Released
+            {
                 me.endInteractiveMove()
+            }
         }
 
         var localPos    = view.surfaceToLocal(evt.surfacePos)
@@ -88,19 +95,31 @@ impl Capture
 
         // Recording preparation exposes the rectangle alone. Tool shortcuts and modifier
         // drags must not reach the image annotation paths, even outside the selected zone.
-        if .inPlaceEdit and g_CaptureMedia != .Picture do
+        if .inPlaceEdit and g_CaptureMedia != .Picture
+        {
             return .gizmo.mouse(view, localPos, evt)
+        }
 
-        if .mouseMode == .None and .mouseHover(view, localPos, evt) do
+        if .mouseMode == .None and .mouseHover(view, localPos, evt)
+        {
             return true
-        if .hotForm != Swag.U64.Max do
+        }
+
+        if .hotForm != Swag.U64.Max
+        {
             view.app().setFrameCursor(Cursor.from(.Move))
+        }
 
         let pressed = evt.kind == .Pressed or evt.kind == .DoubleClick
-        if .mouseMode == .None and evt.button == .Left and pressed and .startDrag(view, localPos, evt) do
+        if .mouseMode == .None and evt.button == .Left and pressed and .startDrag(view, localPos, evt)
+        {
             return true
-        if evt.kind == .Released and evt.button == .Left do
+        }
+
+        if evt.kind == .Released and evt.button == .Left
+        {
             .finishDrag(view)
+        }
 
         switch #complete .mouseMode
         {
@@ -121,8 +140,10 @@ impl Capture
         {
             view.invalidate()
             evt.accepted = true
-            if evt.kind != .Leave do
+            if evt.kind != .Leave
+            {
                 return true
+            }
         }
 
         // A form edits its own handles only while it is the whole selection.
@@ -133,8 +154,10 @@ impl Capture
             if not frozen and selForm.mouse(view, localPos, evt)
             {
                 evt.accepted = true
-                if evt.kind != .Leave do
+                if evt.kind != .Leave
+                {
                     return true
+                }
             }
         }
 
@@ -152,8 +175,11 @@ impl Capture
 
         // A frozen form is out of reach while the selection is frozen.
         var hot = .hitTest(localPos)
-        if hot != Swag.U64.Max and view.main.freezeSel and .forms[hot].freeze do
+        if hot != Swag.U64.Max and view.main.freezeSel and .forms[hot].freeze
+        {
             hot = Swag.U64.Max
+        }
+
         if hot != .hotForm
         {
             view.invalidate()
@@ -210,14 +236,17 @@ impl Capture
             else
             {
                 .lastSelectHit += 1
-                if .lastSelectHit >= result.count do
+                if .lastSelectHit >= result.count
+                {
                     .lastSelectHit = 0
+                }
+
                 .hotForm = result[.lastSelectHit]
             }
 
             here = .selection.contains(.hotForm)
         }
-        elif not ctrlPressed and not here and not .selection.isEmpty()
+        else if not ctrlPressed and not here and not .selection.isEmpty()
         {
             .updateModelValuesFromSelection()
             .selection.clear()
@@ -298,8 +327,10 @@ impl Capture
             // A body-drag move ends here (it does NOT go through GizmoRect/sigHasChanged,
             // unlike a resize). Refresh the Properties panel so x/y reflect the new
             // position, mirroring the rotate path.
-            if wasMoving and view.main.propWnd != null do
+            if wasMoving and view.main.propWnd != null
+            {
                 view.main.propWnd.selectionHasChanged()
+            }
         }
     }
 
@@ -313,15 +344,19 @@ impl Capture
 
         // Keep the selection highlight live. Updating the inspector here would move the capture
         // as the selection changes, shifting the lasso under the pointer during the gesture.
-        var newSel: Array'u64
-        if addToSelection do
+        var newSel: Array!{u64}
+        if addToSelection
+        {
             newSel = .selection
+        }
 
         for f, idx in .forms where .isFormShown(f)
         {
             let pp = f.boundRect() * view.zoom
-            if pp.intersects(r) and not newSel.contains(idx) do
+            if pp.intersects(r) and not newSel.contains(idx)
+            {
                 newSel.add(idx)
+            }
         }
 
         // Touching any group member with the lasso selects the whole group.
@@ -331,8 +366,10 @@ impl Capture
 
         .firstMouseMove = false
         view.invalidate()
-        if selChanged do
+        if selChanged
+        {
             .selection = newSel
+        }
 
         return true
     }
@@ -346,8 +383,11 @@ impl Capture
         let firstDragMove = .firstMouseMove
         if firstDragMove
         {
-            if not .leftClickZone(localPos) do
+            if not .leftClickZone(localPos)
+            {
                 return true
+            }
+
             .firstMouseMove = false
         }
 
@@ -357,8 +397,10 @@ impl Capture
         // only the region the selection leaves and enters is repainted below.
         let oldMovedBound = .getSelectionBoundRect()
         .interactiveMove = true
-        if not firstDragMove do
+        if not firstDragMove
+        {
             .undo()
+        }
 
         let u = .newUndo(.OffsetSelection)
 
@@ -367,7 +409,7 @@ impl Capture
         var nx, nx1 = newPosX
         var ny, ny1 = newPosY
         .snapX, .snapY = -1
-        var saveSnapX, saveSnapY = -1'f32
+        var saveSnapX, saveSnapY = -1_f32
         if .isSnapping()
         {
             let targets = .snapTargets(0, null)
@@ -409,8 +451,11 @@ impl Capture
         if .firstMouseMove
         {
             let editView = unwrap .editView
-            if not .leftClickZone(localPos) and editView.main.editMode != .Step do
+            if not .leftClickZone(localPos) and editView.main.editMode != .Step
+            {
                 return true
+            }
+
             .firstMouseMove = false
             createdNow      = true
 
@@ -423,13 +468,17 @@ impl Capture
                 form.timeStart = .playheadTime()
             }
 
-            if editView.main.editMode == .PixSel do
+            if editView.main.editMode == .PixSel
+            {
                 itf.subKind = .PixSel
+            }
 
             // Publishing the new form lets the inspector and mini-bar read its bounds. Start
             // the polygon first so those readers cannot seed the empty point list with a preset.
-            if itf is FormPolygon do
+            if itf is FormPolygon
+            {
                 discard itf.edit(evt, .movingStart, localPos, view.zoom)
+            }
 
             let undo = .newUndo(.CreateForm)
             undo.oldForms.add(itf)
@@ -448,8 +497,10 @@ impl Capture
         // Creating the undo step already invalidated the whole view. Later moves only
         // repaint the old and new bounds.
         var oldCreateBound: Math.Rectangle
-        if not createdNow do
+        if not createdNow
+        {
             oldCreateBound = f.boundRect()
+        }
 
         // Sizing the new form is as interactive as a body drag: skip the full
         // refresh hasChanged() would run on every move and repaint just the region
@@ -465,8 +516,11 @@ impl Capture
         // Every edit step reshapes the new form's content.
         .invalidateFormCache(f)
         .hasChanged()
-        if createdNow do
+        if createdNow
+        {
             oldCreateBound = f.boundRect()
+        }
+
         .invalidateMovedRegion(oldCreateBound, f.boundRect())
         return true
     }
@@ -476,8 +530,11 @@ impl Capture
     mtd hitTest(localPos: Math.Point)->u64
     {
         let result = .hitTests(localPos, true)
-        if result.isEmpty() do
+        if result.isEmpty()
+        {
             return Swag.U64.Max
+        }
+
         return result[0]
     }
 
@@ -487,22 +544,33 @@ impl Capture
     // Holding `O` makes the mouse ignore every form, so a click can start a lasso or create a
     // new form on top of existing ones; a press repeated on the same spot finds none to cycle
     // through either.
-    mtd hitTests(localPos: Math.Point, retFirst: bool)->Array'u64
+    mtd hitTests(localPos: Math.Point, retFirst: bool)->Array!{u64}
     {
         var result: #returntype
-        if .forms.isEmpty() do
+        if .forms.isEmpty()
+        {
             return result
+        }
+
         let editView = unwrap .editView
-        if editView.app().keyboard.isKeyPressed(Input.Key.O) do
+        if editView.app().keyboard.isKeyPressed(Input.Key.O)
+        {
             return result
+        }
+
         for i in reversed(.forms.count)
         {
             let f = .forms[i]
-            if not .isFormShown(f) or not f.hitTest(localPos, editView.zoom) do
+            if not .isFormShown(f) or not f.hitTest(localPos, editView.zoom)
+            {
                 continue
+            }
+
             result.add(i)
-            if retFirst do
+            if retFirst
+            {
                 break
+            }
         }
 
         return result

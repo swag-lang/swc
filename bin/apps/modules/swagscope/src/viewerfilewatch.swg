@@ -6,7 +6,7 @@ using Core
 // Watching the path also detects editors that save by replacing the file atomically.
 struct ViewerFileWatch
 {
-    load:          Viewer.BackgroundLoad'File.FileInfo
+    load:          Viewer.BackgroundLoad!{File.FileInfo}
     current:       File.FileInfo
     candidate:     File.FileInfo
     hasCandidate:  bool
@@ -31,8 +31,10 @@ impl ViewerFileWatch
             return false
         }
 
-        if not .load.isDone() do
+        if not .load.isDone()
+        {
             return false
+        }
 
         let matchesPath = .load.fileName == fileName and not .ignorePending
         .ignorePending = false
@@ -50,8 +52,10 @@ impl ViewerFileWatch
             return false
         }
 
-        if .hasCandidate and sameFile(info, .candidate) do
+        if .hasCandidate and sameFile(info, .candidate)
+        {
             return true
+        }
 
         .candidate    = #move info
         .hasCandidate = true

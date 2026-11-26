@@ -10,21 +10,29 @@ func pushContextRestoresAfterContinue()->bool
     var reachedTail = 0
     for index in 4
     {
-        if Swag.getContext() != base or Swag.getContext().user0 != base.user0 do
+        if Swag.getContext() != base or Swag.getContext().user0 != base.user0
+        {
             return false
+        }
 
         System.pushContext(pushed)
         {
-            if Swag.getContext() != &pushed or Swag.getContext().user0 != pushed.user0 do
+            if Swag.getContext() != &pushed or Swag.getContext().user0 != pushed.user0
+            {
                 return false
+            }
 
-            if index != 3 do
+            if index != 3
+            {
                 continue
+            }
         }
 
         reachedTail += 1
-        if Swag.getContext() != base or Swag.getContext().user0 != base.user0 do
+        if Swag.getContext() != base or Swag.getContext().user0 != base.user0
+        {
             return false
+        }
     }
 
     return reachedTail == 1 and Swag.getContext() == base and Swag.getContext().user0 == base.user0
@@ -39,13 +47,18 @@ func pushContextRestoresAfterBreak()->bool
     var iterations = 0
     for 5
     {
-        if Swag.getContext() != base or Swag.getContext().user0 != base.user0 do
+        if Swag.getContext() != base or Swag.getContext().user0 != base.user0
+        {
             return false
+        }
 
         System.pushContext(pushed)
         {
-            if Swag.getContext() != &pushed or Swag.getContext().user0 != pushed.user0 do
+            if Swag.getContext() != &pushed or Swag.getContext().user0 != pushed.user0
+            {
                 return false
+            }
+
             iterations += 1
             break
         }
@@ -64,8 +77,11 @@ func pushContextRestoresAfterReturn()->bool
 
     System.pushContext(pushed)
     {
-        if Swag.getContext() != &pushed or Swag.getContext().user0 != pushed.user0 do
+        if Swag.getContext() != &pushed or Swag.getContext().user0 != pushed.user0
+        {
             return false
+        }
+
         return true
     }
 

@@ -21,9 +21,9 @@ struct PasswordEdit
     {
         using wnd: Wnd     // Embedded window behavior and presentation.
 
-        sigChanged:   SigArray'func||(*Wnd)     // Emitted after the password changes.
-        sigSubmitted: SigArray'func||(*Wnd)     // Emitted when Enter is pressed.
-        sigCancelled: SigArray'func||(*Wnd)     // Emitted when Escape is pressed.
+        sigChanged:   SigArray!{func||(*Wnd)}     // Emitted after the password changes.
+        sigSubmitted: SigArray!{func||(*Wnd)}     // Emitted when Enter is pressed.
+        sigCancelled: SigArray!{func||(*Wnd)}     // Emitted when Escape is pressed.
 
         readonly flags = PasswordEditFlags.RevealButton     // Active interaction and presentation options.
     }
@@ -46,7 +46,7 @@ private impl PasswordEdit
 {
     mtd byteOffsetAt(runeIndex: u64)->u64
     {
-        var byteOffset = 0'u64
+        var byteOffset = 0_u64
         for runeIndex
         {
             let {c: _, eat} = Utf8.decodeRune(.storage[byteOffset until .byteCount])
@@ -58,10 +58,13 @@ private impl PasswordEdit
 
     mtd refresh(caret: u64)
     {
-        var mask: Array'u8
+        var mask: Array!{u8}
         mask.resize(.runeCount)
-        if mask.count do
+        if mask.count
+        {
             Swag.memset(mask.storage(), '*', mask.count)
+        }
+
         .edit.setText(mask.count ? Swag.makeString(mask.buffer, mask.count) : "", false)
         .edit.setSelection(caret, caret)
     }
@@ -70,10 +73,12 @@ private impl PasswordEdit
     {
         let rect = .clientRect()
         .edit.setPosition(rect)
-        if not .revealButton do
+        if not .revealButton
+        {
             return
+        }
 
-        let inset = 2'f32
+        let inset = 2_f32
         let side  = Math.max(rect.height - inset * 2, 0)
         .revealButton.setPosition(rect.right() - side - inset, inset, side, side)
         .edit.setTrailingMargin(side + inset * 2)
@@ -81,8 +86,10 @@ private impl PasswordEdit
 
     mtd setRevealed(revealed: bool)
     {
-        if .isRevealed == revealed do
+        if .isRevealed == revealed
+        {
             return
+        }
 
         if revealed
         {
@@ -109,17 +116,23 @@ private impl PasswordEdit
             switch mouse.kind
             {
             case .Pressed:
-                if mouse.button == .Left do
+                if mouse.button == .Left
+                {
                     .setRevealed(true)
+                }
 
             case .Released:
-                if mouse.button == .Left do
+                if mouse.button == .Left
+                {
                     .setRevealed(false)
+                }
 
             case .Move:
                 let button = unwrap .revealButton
-                if button.isPressing do
+                if button.isPressing
+                {
                     .setRevealed(wnd.clientRect().contains(wnd.surfaceToLocal(mouse.surfacePos)))
+                }
 
             case .Leave:
                 .setRevealed(false)
@@ -134,15 +147,20 @@ private impl PasswordEdit
 
     mtd eraseRunes(start, end: u64)
     {
-        if start >= end do
+        if start >= end
+        {
             return
+        }
 
         let firstByte  = .byteOffsetAt(start)
         let endByte    = .byteOffsetAt(end)
         let removeSize = endByte - firstByte
         let tailSize   = .byteCount - endByte
-        if tailSize do
+        if tailSize
+        {
             Memory.copyOverlapping(&.storage[firstByte], &.storage[endByte], tailSize)
+        }
+
         Crypto.secureClear(.storage[.byteCount - removeSize until .byteCount])
         .byteCount -= removeSize
         .runeCount -= end - start
@@ -152,8 +170,11 @@ private impl PasswordEdit
     {
         let start = Math.min(.edit.selBeg, .edit.selEnd)
         let end   = Math.max(.edit.selBeg, .edit.selEnd)
-        if start == end do
+        if start == end
+        {
             return {changed: false, caret: start}
+        }
+
         .eraseRunes(start, end)
         return {changed: true, caret: start}
     }
@@ -176,8 +197,11 @@ private impl PasswordEdit
         let caret      = erased.caret
         let byteOffset = .byteOffsetAt(caret)
         let tailSize   = .byteCount - byteOffset
-        if tailSize do
+        if tailSize
+        {
             Memory.copyOverlapping(&.storage[byteOffset + count], &.storage[byteOffset], tailSize)
+        }
+
         Swag.memcpy(&.storage[byteOffset], &encoded[0], count)
         .byteCount += count
         .runeCount += 1
@@ -197,7 +221,7 @@ private impl PasswordEdit
             caret   -= 1
             changed = true
         }
-        elif not changed and key == .Delete and caret < .runeCount
+        else if not changed and key == .Delete and caret < .runeCount
         {
             .eraseRunes(caret, caret + 1)
             changed = true
@@ -223,8 +247,11 @@ private impl PasswordEdit
 
             if key.kind == .Character
             {
-                if key.character >= 0x20'rune do
+                if key.character >= 0x20_rune
+                {
                     .insertRune(key.character)
+                }
+
                 key.accepted = true
                 return true
             }
@@ -265,8 +292,10 @@ impl IWnd for PasswordEdit
     // Keeps the private edit box fitted to this control.
     mtd impl onResizeEvent(_: *ResizeEvent)
     {
-        if .edit != null do
+        if .edit != null
+        {
             .layoutChildren()
+        }
     }
 
     // Restores masking if input capture or keyboard focus ends elsewhere.
@@ -276,7 +305,7 @@ impl IWnd for PasswordEdit
         {
             .setRevealed(false)
         }
-        elif evt is FocusEvent as focus where focus.kind == .Lost
+        else if evt is FocusEvent as focus where focus.kind == .Lost
         {
             .setRevealed(false)
         }
@@ -285,8 +314,10 @@ impl IWnd for PasswordEdit
     // Restores masking before a hidden or disabled subtree stops receiving input.
     mtd impl onStateEvent(evt: *StateEvent)
     {
-        if evt.kind == .Hide or evt.kind == .Disable do
+        if evt.kind == .Hide or evt.kind == .Disable
+        {
             .setRevealed(false)
+        }
     }
 
     // Clears plaintext before the GUI releases the widget allocation.
@@ -313,12 +344,17 @@ impl PasswordEdit
     {
         Swag.assert(parent != null)
         var pos = position
-        if pos.height == 0 do
+        if pos.height == 0
+        {
             pos.height = parent.themeMetrics().editBox_Height
-        if pos.width == 0 do
-            pos.width = parent.themeMetrics().editBox_Width
+        }
 
-        let result = Wnd.create'PasswordEdit(parent, null, pos, id)
+        if pos.width == 0
+        {
+            pos.width = parent.themeMetrics().editBox_Width
+        }
+
+        let result = Wnd.create!{PasswordEdit}(parent, null, pos, id)
         result.flags = flags
 
         // One stop of the keyboard traversal for the control, on the private box that holds the
@@ -376,7 +412,9 @@ impl PasswordEdit
         .byteCount = 0
         .runeCount = 0
         .edit.setText("", false)
-        if changed and notify do
+        if changed and notify
+        {
             .sigChanged.call(me)
+        }
     }
 }

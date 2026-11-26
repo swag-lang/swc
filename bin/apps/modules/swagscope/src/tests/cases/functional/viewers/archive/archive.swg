@@ -25,7 +25,7 @@ using Core, Pixel, Gui, Viewers
     Swag.require(failure == failureShape(appStrings().ui_FailureFormat, Format.toString(Archive.texts().err_Method, 99)))
 }
 
-func buildZipFixture()->Array'u8
+func buildZipFixture()->Array!{u8}
 {
     var entries: [2] ZipFixtureEntry
     entries[0].name = "docs/readme.txt"
@@ -118,10 +118,14 @@ func writeZipFixture()->String
         defer discard catch File.delete(output)
         expect Archive.Zip.extractEntry(archiveFile, entry, output)
         let decoded = expect File.readAllBytes(output)
-        if entry.path == "data/sample.json" do
+        if entry.path == "data/sample.json"
+        {
             Swag.require(cast(string, decoded.toSlice()) == "{\"answer\": 42}\n")
-        else do
+        }
+        else
+        {
             Swag.require(cast(string, decoded.toSlice()) == "Archive preview through the text viewer.\n")
+        }
     }
 }
 
@@ -144,7 +148,7 @@ func writeZipFixture()->String
                 foundReadme = true
                 Swag.require(cast(string, payload.toSlice()) == "Archive preview through the text viewer.\n")
             }
-            elif entry.path == "data/sample.json"
+            else if entry.path == "data/sample.json"
             {
                 foundJson = true
                 Swag.require(cast(string, payload.toSlice()) == "{\"answer\": 42}\n")
@@ -198,7 +202,7 @@ func writeZipFixture()->String
 
     var firstCopy  = false
     var secondCopy = false
-    var duplicates = 0'u64
+    var duplicates = 0_u64
     for &entry in archive.entries where entry.path == "reports/repeated.txt"
     {
         duplicates += 1
@@ -206,10 +210,14 @@ func writeZipFixture()->String
         defer discard catch File.delete(output)
         expect Archive.Zip.extractEntry(archiveFile, entry, output)
         let text = expect File.readAllText(output)
-        if text == "first copy\n" do
+        if text == "first copy\n"
+        {
             firstCopy = true
-        elif text == "second copy\n" do
+        }
+        else if text == "second copy\n"
+        {
             secondCopy = true
+        }
     }
 
     Swag.require(duplicates == 2 and firstCopy and secondCopy)
@@ -400,12 +408,17 @@ func writeZipFixture()->String
     }
 
     var first: const *Archive.ZipEntry? = null
-    for &entry in zip.entries where first == null and entry.path == "b/chapter.xhtml" do
+    for &entry in zip.entries where first == null and entry.path == "b/chapter.xhtml"
+    {
         first = entry
+    }
+
     Swag.require(first != null and zip.tryFindEntry("b/chapter.xhtml") == first)
 
-    for path in ["b/CHAPTER.xhtml", "b/chapter", "0", "d"] do
+    for path in ["b/CHAPTER.xhtml", "b/chapter", "0", "d"]
+    {
         Swag.require(zip.tryFindEntry(path) == null, path)
+    }
 }
 
 // A split central directory is rejected before any entry is offered for preview.

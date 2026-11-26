@@ -218,14 +218,14 @@ var globalReplaced:      PartialDefault           = {whole: 79}
 // Constant-set folding must not substitute zero storage for a runtime receiver default.
 #test
 {
-    let value    = cast(RuntimeDefaultSet, 7'u64)
+    let value    = cast(RuntimeDefaultSet, 7_u64)
     let expected = (unionRuntimeAddress() & 0xFFFFFFFFFFFFFF00) | 0x55
     Swag.require(value.value.whole == expected)
     Swag.require(value.observed == (expected ^ 7))
 
     let resolved: FullRuntimeDefaultSet
     Swag.require(resolved.value.whole == expected)
-    const initialized = cast(FullRuntimeDefaultSet, 89'u64)
+    const initialized = cast(FullRuntimeDefaultSet, 89_u64)
     Swag.require(initialized.value.whole == 0)
     Swag.require(initialized.observed == 89)
 }

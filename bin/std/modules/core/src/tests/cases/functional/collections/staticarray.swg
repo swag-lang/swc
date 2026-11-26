@@ -19,8 +19,10 @@ impl StaticArrayDropTracked
 {
     mtd opDrop()
     {
-        if .value == 0 do
+        if .value == 0
+        {
             return
+        }
 
         Swag.require(.value > 0)
         StaticArrayDropCount += 1
@@ -33,12 +35,14 @@ func resetStaticArrayDropTrace()
     StaticArrayDropCount = 0
 }
 
-func visitStructStaticArray(values: *StaticArray'(StaticArrayVisitProbe, 4'u64))->s32
+func visitStructStaticArray(values: *StaticArray!{StaticArrayVisitProbe, 4_u64})->s32
 {
     for value, index in values[] where value.value != 12
     {
-        if index == 0 do
+        if index == 0
+        {
             continue
+        }
 
         return value.value + cast(s32, index)
     }
@@ -46,20 +50,22 @@ func visitStructStaticArray(values: *StaticArray'(StaticArrayVisitProbe, 4'u64))
     return 0
 }
 
-func visitStructStaticArrayReverse(values: *StaticArray'(StaticArrayVisitProbe, 4'u64))->s32
+func visitStructStaticArrayReverse(values: *StaticArray!{StaticArrayVisitProbe, 4_u64})->s32
 {
     var score = 0
     for value, index in values.reversed()
     {
         score += value.value + cast(s32, index)
-        if value.value == 12 do
+        if value.value == 12
+        {
             return score
+        }
     }
 
     return score
 }
 
-func assertConstStaticArrayEnds(values: const *StaticArray'(s32, 4'u64))->s32
+func assertConstStaticArrayEnds(values: const *StaticArray!{s32, 4_u64})->s32
 {
     let front = values[].frontPtr()
     let back  = values[].backPtr()
@@ -72,7 +78,7 @@ func assertConstStaticArrayEnds(values: const *StaticArray'(s32, 4'u64))->s32
 {
     let seed: [4] s32 = [1, 2, 3, 4]
 
-    var values: StaticArray'(s32, 4'u64)
+    var values: StaticArray!{s32, 4_u64}
     values = seed
 
     Swag.require(values.count == 4)
@@ -83,7 +89,7 @@ func assertConstStaticArrayEnds(values: const *StaticArray'(s32, 4'u64))->s32
 // A rejected replacement leaves the existing array intact.
 #test
 {
-    var values:    StaticArray'(s32, 2'u64)
+    var values:    StaticArray!{s32, 2_u64}
     let oversized: [3] s32 = [1, 2, 3]
     values.add(10)
     values.add(20)
@@ -99,7 +105,7 @@ func assertConstStaticArrayEnds(values: const *StaticArray'(s32, 4'u64))->s32
 
 #test
 {
-    var values: StaticArray'(s32, 4'u64)
+    var values: StaticArray!{s32, 4_u64}
     values.resize(4)
 
     Swag.require(values.count == 4)
@@ -111,7 +117,7 @@ func assertConstStaticArrayEnds(values: const *StaticArray'(s32, 4'u64))->s32
 
 #test
 {
-    var values: StaticArray'(s32, 4'u64)
+    var values: StaticArray!{s32, 4_u64}
     values.add(3)
     values.add(1)
     values.add(4)
@@ -126,7 +132,7 @@ func assertConstStaticArrayEnds(values: const *StaticArray'(s32, 4'u64))->s32
 
 #test
 {
-    var values: StaticArray'(s32, 3'u64)
+    var values: StaticArray!{s32, 3_u64}
     values.addOnce(1)
     values.addOnce(2)
     values.addOnce(2)
@@ -147,7 +153,7 @@ func assertConstStaticArrayEnds(values: const *StaticArray'(s32, 4'u64))->s32
 
 #test
 {
-    var values: StaticArray'(s32, 4'u64)
+    var values: StaticArray!{s32, 4_u64}
     values.add(1)
     values.add(2)
 
@@ -160,7 +166,7 @@ func assertConstStaticArrayEnds(values: const *StaticArray'(s32, 4'u64))->s32
 
 #test
 {
-    var values: StaticArray'(s32, 5'u64)
+    var values: StaticArray!{s32, 5_u64}
     let initialized = values.emplaceInitAddress(2)
     Swag.require(initialized[0] == 0 and initialized[1] == 0)
     initialized[0] = 1
@@ -186,13 +192,15 @@ func assertConstStaticArrayEnds(values: const *StaticArray'(s32, 4'u64))->s32
 
 #test
 {
-    var values: StaticArray'(StaticArrayVisitProbe, 4'u64)
+    var values: StaticArray!{StaticArrayVisitProbe, 4_u64}
     values.add({value: 1})
     values.add({value: 2})
     values.add({value: 3})
 
-    for &value in values do
+    for &value in values
+    {
         value.value += 10
+    }
 
     Swag.require(values[0].value == 11)
     Swag.require(values[1].value == 12)
@@ -203,12 +211,12 @@ func assertConstStaticArrayEnds(values: const *StaticArray'(s32, 4'u64))->s32
 
 #test
 {
-    var values: StaticArray'(s32, 4'u64)
+    var values: StaticArray!{s32, 4_u64}
     values.add(3)
     values.add(5)
     values.add(7)
 
-    var pairCount = 0'u64
+    var pairCount = 0_u64
     var pairCode  = 0
     for left, right, index in values.pairs()
     {
@@ -219,10 +227,12 @@ func assertConstStaticArrayEnds(values: const *StaticArray'(s32, 4'u64))->s32
 
     Swag.require(pairCount == 2 and pairCode == 3557)
 
-    var empty: StaticArray'(s32, 2'u64)
+    var empty: StaticArray!{s32, 2_u64}
     for _, _, _ in empty.pairs()
-        do
+    {
         pairCount += 1
+    }
+
     Swag.require(pairCount == 2)
 }
 
@@ -230,14 +240,16 @@ func assertConstStaticArrayEnds(values: const *StaticArray'(s32, 4'u64))->s32
 {
     let seed: [4] s32 = [10, 20, 30, 40]
 
-    var values: StaticArray'(s32, 4'u64)
+    var values: StaticArray!{s32, 4_u64}
     values = seed
 
     var reverseIndex = Swag.U64.Max
     for value, index in values.reversed()
     {
-        if value == 30 do
+        if value == 30
+        {
             reverseIndex = index
+        }
     }
 
     Swag.require(reverseIndex == 2)
@@ -249,7 +261,7 @@ func assertConstStaticArrayEnds(values: const *StaticArray'(s32, 4'u64))->s32
 
     scope
     {
-        var values: StaticArray'(StaticArrayDropTracked, 4'u64)
+        var values: StaticArray!{StaticArrayDropTracked, 4_u64}
         let seed = values.emplaceAddress(4)
         seed[0].value = 1
         seed[1].value = 2
@@ -269,7 +281,7 @@ func assertConstStaticArrayEnds(values: const *StaticArray'(s32, 4'u64))->s32
 #test
 {
     resetStaticArrayDropTrace()
-    var values: StaticArray'(StaticArrayDropTracked, 3'u64)
+    var values: StaticArray!{StaticArrayDropTracked, 3_u64}
     let initial = values.emplaceAddress(2)
     initial[0].value = 1
     initial[1].value = 2
@@ -287,7 +299,7 @@ func assertConstStaticArrayEnds(values: const *StaticArray'(s32, 4'u64))->s32
 // before it is copied.
 #test
 {
-    var s: StaticArray'(String, 8)
+    var s: StaticArray!{String, 8}
     s.add("one")
     s.add("two")
     s.add("three")

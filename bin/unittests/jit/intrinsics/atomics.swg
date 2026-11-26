@@ -39,7 +39,7 @@ alias AtomicStrictU32 = u32
     #[Swag.NoInline]
     func runAtomAdd()->bool
     {
-        var x = 0's32
+        var x = 0_s32
         let a = atomAddS32(&x, 1)
         let b = atomAddS32(&x, 2)
         return a == 0 and b == 1 and x == 3
@@ -48,7 +48,7 @@ alias AtomicStrictU32 = u32
     #[Swag.NoInline]
     func runAtomAnd()->bool
     {
-        var x = 0xFF'u32
+        var x = 0xFF_u32
         let a = atomAndU32(&x, 3)
         let b = atomAndU32(&x, 2)
         return a == 0xFF and b == 3 and x == 2
@@ -57,7 +57,7 @@ alias AtomicStrictU32 = u32
     #[Swag.NoInline]
     func runAtomOr()->bool
     {
-        var x = 0'u32
+        var x = 0_u32
         let a = atomOrU32(&x, 1)
         let b = atomOrU32(&x, 2)
         return a == 0 and b == 1 and x == 3
@@ -66,7 +66,7 @@ alias AtomicStrictU32 = u32
     #[Swag.NoInline]
     func runAtomXor()->bool
     {
-        var x = 7'u32
+        var x = 7_u32
         let a = atomXorU32(&x, 3)
         let b = atomXorU32(&x, 4)
         return a == 7 and b == 4 and x == 0
@@ -75,7 +75,7 @@ alias AtomicStrictU32 = u32
     #[Swag.NoInline]
     func runAtomXchg()->bool
     {
-        var x = 10'u32
+        var x = 10_u32
         let a = atomXchgU32(&x, 20)
         return a == 10 and x == 20
     }
@@ -83,7 +83,7 @@ alias AtomicStrictU32 = u32
     #[Swag.NoInline]
     func runAtomCmpXchg()->bool
     {
-        var x = 7's32
+        var x = 7_s32
         let a = atomCmpXchgS32(&x, 7, 3)
         let b = atomCmpXchgS32(&x, 3, 5)
         let c = atomCmpXchgS32(&x, 66, 66)
@@ -93,11 +93,11 @@ alias AtomicStrictU32 = u32
     #[Swag.NoInline]
     func runAtomStrictAlias()->bool
     {
-        var sx = 0's32
+        var sx = 0_s32
         let a  = atomAddStrictS32(&sx, cast(AtomicStrictS32, 2))
         let b  = atomCmpXchgStrictS32(&sx, cast(AtomicStrictS32, 2), cast(AtomicStrictS32, 5))
 
-        var ux = 1'u32
+        var ux = 1_u32
         let c  = atomOrStrictU32(&ux, cast(AtomicStrictU32, 4))
 
         #assert(#typeof(a) == AtomicStrictS32)
@@ -114,7 +114,7 @@ alias AtomicStrictU32 = u32
     #[Swag.NoInline]
     func runAtomGet()->bool
     {
-        var x = 0'u32
+        var x = 0_u32
         publishIfZero(&x, 5)
         let a = atomGetU32(&x)
         publishIfZero(&x, 9)
@@ -143,7 +143,7 @@ alias AtomicStrictU32 = u32
 
 #test
 {
-    var flag    = 0x100'u32
+    var flag    = 0x100_u32
     let isClear = func|flag = &flag|()->bool => not Swag.atomicLoad(flag)
 
     Swag.require(not isClear())
@@ -154,12 +154,15 @@ alias AtomicStrictU32 = u32
 
     let waitForFlag = func|flag = &flag|()->u32
     {
-        var turns = 0'u32
+        var turns = 0_u32
         while not Swag.atomicLoad(flag)
         {
             turns += 1
-            if turns == 3 do break
-            Swag.atomicStore(flag, 0x100'u32)
+            if turns == 3
+            {
+                break
+            }
+            Swag.atomicStore(flag, 0x100_u32)
         }
         return turns
     }

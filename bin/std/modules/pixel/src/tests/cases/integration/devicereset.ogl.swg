@@ -54,8 +54,10 @@ func paintProbe(gpu: IRenderer, target: *RenderTarget, font: *Font, texture: Tex
     while not recovered and watch.elapsedMilliseconds() < 30000
     {
         recovered = catch renderer.recoverLostDevice() orelse false
-        if not recovered do
-            Threading.Thread.sleep(50'ms)
+        if not recovered
+        {
+            Threading.Thread.sleep(50_ms)
+        }
     }
 
     Swag.require(recovered and renderer.deviceResets == 1, "the device reset was never reported")
@@ -89,8 +91,10 @@ func paintProbe(gpu: IRenderer, target: *RenderTarget, font: *Font, texture: Tex
     while not copied and copyWatch.elapsedMilliseconds() < 2000
     {
         copied = readback.tryCopyTo(copy.pixels.toSlice())
-        if not copied do
-            Threading.Thread.sleep(1'ms)
+        if not copied
+        {
+            Threading.Thread.sleep(1_ms)
+        }
     }
 
     Swag.require(copied and Slice.equals(copy.pixels.toSlice(), before.pixels.toSlice()))

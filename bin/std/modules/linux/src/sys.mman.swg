@@ -1,19 +1,19 @@
 #global if #os == Swag.TargetOs.Linux
 #global export
 
-const PROT_NONE  = 0's32
-const PROT_READ  = 1's32
-const PROT_WRITE = 2's32
-const PROT_EXEC  = 4's32
+const PROT_NONE  = 0_s32
+const PROT_READ  = 1_s32
+const PROT_WRITE = 2_s32
+const PROT_EXEC  = 4_s32
 
-const MAP_SHARED    = 0x01's32
-const MAP_PRIVATE   = 0x02's32
-const MAP_ANONYMOUS = 0x20's32
+const MAP_SHARED    = 0x01_s32
+const MAP_PRIVATE   = 0x02_s32
+const MAP_ANONYMOUS = 0x20_s32
 
-const MFD_CLOEXEC = 1'u32
+const MFD_CLOEXEC = 1_u32
 
-const MADV_PAGEOUT = 21's32
-const MS_SYNC      = 4's32
+const MADV_PAGEOUT = 21_s32
+const MS_SYNC      = 4_s32
 
 #[Swag.Foreign(module: "libc.so.6", link: "c", callconv: .C)]
 {

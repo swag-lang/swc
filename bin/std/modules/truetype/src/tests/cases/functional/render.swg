@@ -13,8 +13,11 @@ using Swag, Core
     Swag.require(grayRow[0] == 4 and grayRow[1] == 5 and grayRow[2] == 6)
 
     var rgbaPixels: [20] u8
-    for index in cast(u32, rgbaPixels.count) do
+    for index in cast(u32, rgbaPixels.count)
+    {
         rgbaPixels[index] = cast(u8, index)
+    }
+
     var rgba: Bitmap
     rgba.set(2, 2, 12, &rgbaPixels[0], .Rgba)
 
@@ -80,10 +83,15 @@ using Swag, Core
     for index in cast(u64, sdf.width) * sdf.rows
     {
         let value = sdfBuf[index]
-        if value < 128 do
+        if value < 128
+        {
             hasOutside = true
-        if value > 128 do
+        }
+
+        if value > 128
+        {
             hasInside = true
+        }
     }
 
     Swag.require(hasOutside)
@@ -124,10 +132,10 @@ func referenceSdfInside(edges: const [..] Edge, x, y: f64)->bool
     let face = unwrap faceScope.face
 
     var sawOddWidth = false
-    for pixelSize in [17'u32, 31, 64]
+    for pixelSize in [17_u32, 31, 64]
     {
         discard expect face.setPixelSize(0, pixelSize)
-        for character in ['A'rune, 'W', 'g']
+        for character in ['A'_rune, 'W', 'g']
         {
             discard expect face.loadChar(character, .Default)
 
@@ -146,8 +154,10 @@ func referenceSdfInside(edges: const [..] Edge, x, y: f64)->bool
             let bitmap = &face.glyph.bitmap
             Swag.require(bitmap.width == width)
             Swag.require(bitmap.rows == rows)
-            if width & 1 do
+            if width & 1
+            {
                 sawOddWidth = true
+            }
 
             for py in rows
             {
@@ -190,12 +200,18 @@ func referenceSdfInside(edges: const [..] Edge, x, y: f64)->bool
     for index in cast(u64, bmp.width) * bmp.rows
     {
         let v = bmpBuf[index]
-        if v == 0 do
+        if v == 0
+        {
             hasZero = true
-        elif v == 255 do
+        }
+        else if v == 255
+        {
             hasFull = true
-        else do
+        }
+        else
+        {
             hasPartial = true
+        }
     }
 
     Swag.require(hasZero)        // background corners
@@ -236,7 +252,7 @@ func referenceSdfInside(edges: const [..] Edge, x, y: f64)->bool
     let normalLeft  = face.glyph.bitmapLeft
     let normalTop   = face.glyph.bitmapTop
 
-    let spread = 8'u32
+    let spread = 8_u32
     discard expect face.renderGlyphMsdf(spread)
     let msdf = &face.glyph.bitmap
     Swag.require(msdf.width > normalWidth)
@@ -268,16 +284,30 @@ func referenceSdfInside(edges: const [..] Edge, x, y: f64)->bool
             let b = msdfBuf[p + 2]
             let a = msdfBuf[p + 3]
             let m = Math.max(Math.min(r, g), Math.min(Math.max(r, g), b))
-            if m > 128 do
+            if m > 128
+            {
                 hasInside = true
-            if m < 128 do
+            }
+
+            if m < 128
+            {
                 hasOutside = true
-            if r != g or g != b do
+            }
+
+            if r != g or g != b
+            {
                 channelsDiffer = true
-            if a > 128 do
+            }
+
+            if a > 128
+            {
                 hasInsideA = true
-            if a < 128 do
+            }
+
+            if a < 128
+            {
                 hasOutsideA = true
+            }
         }
     }
 

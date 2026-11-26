@@ -15,8 +15,11 @@ using Core
     defer expect Directory.delete(target, recurse: true)
 
     var digest: String
-    for 64 do
+    for 64
+    {
         digest += "A"
+    }
+
     let link   = Path.combine(root, Format.toString("Swag.MountPrivacy.1.%.1.1", digest.toString()))
     let cached = Path.combine(target, "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA.png")
     discard expect File.writeAllText(cached, "keep")

@@ -8,10 +8,14 @@ func scalarCountZeroPositions(bytes: const [..] u8)->{ even: u64, odd: u64 }
     var result: #returntype
     for value, index in bytes where not value
     {
-        if index & 1 do
+        if index & 1
+        {
             result.odd += 1
-        else do
+        }
+        else
+        {
             result.even += 1
+        }
     }
 
     return result
@@ -88,8 +92,11 @@ func encodeText(text: string, encoding: Text.Encoding) fail
     let bytes = expect Text.encode("café €", .Windows1252, includeBom: true)
     let expected: [6] u8 = ['c', 'a', 'f', 0xE9, ' ', 0x80]
     Swag.require(bytes.count == 6)
-    for index in bytes.count do
+    for index in bytes.count
+    {
         Swag.require(bytes[index] == expected[index])
+    }
+
     Swag.require(not Text.hasBom(bytes.toSlice(), .Windows1252))
     Swag.require(Text.decode(bytes.toSlice(), .Windows1252) == "café €")
 }
@@ -112,8 +119,10 @@ func encodeText(text: string, encoding: Text.Encoding) fail
 #test
 {
     var bytes: [80] u8
-    for index in bytes.count do
+    for index in bytes.count
+    {
         bytes[index] = ((index * 13 + 5) % 11) ? cast(u8, (index + 1)) : 0
+    }
 
     for idx in 80
     {
@@ -130,7 +139,7 @@ func encodeText(text: string, encoding: Text.Encoding) fail
 #test
 {
     Swag.require(Text.detectEncoding(cast(const [..] u8, "plain ascii line\n")) == .Utf8)
-    Swag.require(Text.detectEncoding([0x66'u8, 0x6F, 0x00, 0x6F]) == .Windows1252)
+    Swag.require(Text.detectEncoding([0x66_u8, 0x6F, 0x00, 0x6F]) == .Windows1252)
     Swag.require(Text.detectEncoding(cast(const [..] u8, "café naïve\n")) == .Utf8)
 
     let le: [12] u8 = ['H', 0, 'e', 0, 'l', 0, 'l', 0, 'o', 0, '!', 0]
@@ -211,7 +220,7 @@ func encodeText(text: string, encoding: Text.Encoding) fail
         Swag.require(Text.decode(be16[until 2 * count], .Utf16Be) == expected)
     }
 
-    let utf32: [9] rune = ['A'rune, 0x80, 0x7FF, 0x800, 0x20AC, 0xD800, 0x10000, 0x10FFFF, 0x110000]
+    let utf32: [9] rune = ['A'_rune, 0x80, 0x7FF, 0x800, 0x20AC, 0xD800, 0x10000, 0x10FFFF, 0x110000]
     var le32:  [4 * utf32.count] u8
     var be32:  [4 * utf32.count] u8
     for value, index in utf32
@@ -277,10 +286,16 @@ func encodeText(text: string, encoding: Text.Encoding) fail
 
     var atLimit:   [20] u8
     var overLimit: [19] u8
-    for index in atLimit.count do
+    for index in atLimit.count
+    {
         atLimit[index] = 'a'
-    for index in overLimit.count do
+    }
+
+    for index in overLimit.count
+    {
         overLimit[index] = 'a'
+    }
+
     atLimit[0]   = 1
     overLimit[0] = 1
 
@@ -297,7 +312,7 @@ func encodeText(text: string, encoding: Text.Encoding) fail
     defer discard catch File.delete(fileName)
 
     // "Hello!" repeated, in UTF-16 LE, with one emoji whose surrogate pair straddles a boundary.
-    var bytes: Array'u8
+    var bytes: Array!{u8}
     for 5
     {
         for c in "Hello!"
@@ -316,12 +331,15 @@ func encodeText(text: string, encoding: Text.Encoding) fail
     var stream = expect File.openRead(fileName)
 
     var text: String
-    var reads = 0'u32
+    var reads = 0_u32
     for 64
     {
         let chunk = expect stream.readTextChunk(10, .Utf16Le)
-        if chunk.isEmpty() do
+        if chunk.isEmpty()
+        {
             break
+        }
+
         text  += chunk
         reads += 1
     }

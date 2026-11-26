@@ -46,9 +46,9 @@ enum RunSwitchEnum: s32
         }
     }
 
-    const V0 = #run switchFloat(1.25'f64)
-    const V1 = #run switchFloat(2.5'f64)
-    const V2 = #run switchFloat(8.0'f64)
+    const V0 = #run switchFloat(1.25_f64)
+    const V1 = #run switchFloat(2.5_f64)
+    const V2 = #run switchFloat(8.0_f64)
     #assert(V0 == 12)
     #assert(V1 == 25)
     #assert(V2 == 0)

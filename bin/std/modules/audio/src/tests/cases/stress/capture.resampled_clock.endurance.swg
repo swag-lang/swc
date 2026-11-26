@@ -8,26 +8,29 @@ using Swag, Core
 #[Swag.TestTag("stress")]
 #test
 {
-    const Rate         = 48_000'u64
-    const TickRate     = 10_000_000'u64
-    const BlocksPerRun = 337_500'u64
-    const FractionUnit = 4_294_967_296.0'f64
+    const Rate         = 48_000_u64
+    const TickRate     = 10_000_000_u64
+    const BlocksPerRun = 337_500_u64
+    const FractionUnit = 4_294_967_296.0_f64
     var clock           = expect CaptureClockDrift.create(cast(u32, Rate), TickRate)
     var resampler       = expect Resampler.create(cast(u32, Rate), cast(u32, Rate), 2)
     let tableCapacity   = resampler.coefficients.capacity
     let historyCapacity = resampler.history.capacity
-    var globalOutput    = 0.0'f64
-    var globalExpected  = 0.0'f64
+    var globalOutput    = 0.0_f64
+    var globalExpected  = 0.0_f64
     for run in 2
     {
         let ppm        = run == 0 ? 100 : -100
         let originTick = cast(u64, run) * (2 * 60 * 60 + 5) * TickRate
-        if run == 1 do
+        if run == 1
+        {
             resampler.restart()
+        }
+
         clock.reset(originTick, 0)
         Swag.require(not clock.estimateIsReady())
-        var outputFrames = 0.0'f64
-        var observations = 0'u64
+        var outputFrames = 0.0_f64
+        var observations = 0_u64
         for block in BlocksPerRun
         {
             let sourceFrame = block * 1_024

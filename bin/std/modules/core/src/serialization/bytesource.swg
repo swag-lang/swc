@@ -40,7 +40,7 @@ impl ByteSource
     //
     // It bounds the memory a source of any length uses, and it is the threshold from which a
     // read goes straight to its destination instead of being copied twice.
-    const WindowSize = 64 * 1024'u64
+    const WindowSize = 64 * 1024_u64
 
     // Opens `fileName` for streaming reads.
     //
@@ -100,16 +100,22 @@ impl ByteSource
     // Seeking to the end of the stream is valid; seeking past it fails.
     mtd seek(offset: u64) fail
     {
-        if offset > .length do
+        if offset > .length
+        {
             fail InvalidFormatError{"byte source offset runs past the end of the stream"}
+        }
+
         .cursor = offset
     }
 
     // Advances the read position by `count` bytes.
     mtd skip(count: u64) fail
     {
-        if count > .remaining() do
+        if count > .remaining()
+        {
             fail InvalidFormatError{"byte source ends before the skipped bytes"}
+        }
+
         .cursor += count
     }
 
@@ -121,8 +127,10 @@ impl ByteSource
     mtd read(buffer: [..] u8)->u64 fail
     {
         let wanted = Math.min(buffer.count, .remaining())
-        if not wanted do
+        if not wanted
+        {
             return 0
+        }
 
         if not .isFile
         {
@@ -131,7 +139,7 @@ impl ByteSource
             return wanted
         }
 
-        var done = 0'u64
+        var done = 0_u64
         while done < wanted
         {
             let missing = wanted - done
@@ -165,8 +173,11 @@ impl ByteSource
     // decoder that hits the end of a stream reopens or seeks rather than resuming.
     mtd readExact(buffer: [..] u8) fail
     {
-        if buffer.count > .remaining() do
+        if buffer.count > .remaining()
+        {
             fail InvalidFormatError{"byte source ends before the requested bytes"}
+        }
+
         discard try .read(buffer)
     }
 
@@ -185,8 +196,10 @@ impl ByteSource
     // [[Core.ByteSource.readBigEndian]] for a persisted or transmitted integer.
     mtd(T) readNative()->T fail
     {
-        if not Reflection.isPod(#typeof(T)) do
+        if not Reflection.isPod(#typeof(T))
+        {
             fail BadParameterError{"byte source native reads require a POD type"}
+        }
 
         var result: T
         try .readExact(Swag.makeSlice(cast([*] u8, &result), #sizeof(T)))
@@ -194,10 +207,10 @@ impl ByteSource
     }
 
     // Reads a little-endian integer of type `T`.
-    mtd(T) readLittleEndian()->T fail => Math.littleEndianToNative(try .readNative'T())
+    mtd(T) readLittleEndian()->T fail => Math.littleEndianToNative(try .readNative!{T}())
 
     // Reads a big-endian integer of type `T`.
-    mtd(T) readBigEndian()->T fail => Math.bigEndianToNative(try .readNative'T())
+    mtd(T) readBigEndian()->T fail => Math.bigEndianToNative(try .readNative!{T}())
 
     // Reads bytes up to the next line feed and returns the line without its terminator.
     //
@@ -245,13 +258,20 @@ impl ByteSource
     // fit, so a caller bounds `count` to bound its memory.
     mtd peek(count: u64)->const [..] u8 fail
     {
-        if count > .remaining() do
+        if count > .remaining()
+        {
             fail InvalidFormatError{"byte source ends before the requested bytes"}
-        if .isAtEnd() do
-            return Swag.makeSlice(.window.buffer, 0)
+        }
 
-        if not .isFile do
+        if .isAtEnd()
+        {
+            return Swag.makeSlice(.window.buffer, 0)
+        }
+
+        if not .isFile
+        {
             return Swag.makeSlice(unwrap .memory.buffer + .cursor, .remaining())
+        }
 
         let needed = Math.max(1'u64, count)
         if .cursor < .windowStart or .cursor + needed > .windowStart + .windowCount do
@@ -263,8 +283,10 @@ impl ByteSource
     private mtd fillWindow(wanted: u64) fail
     {
         let size = Math.max(WindowSize, wanted)
-        if .window.count < size do
+        if .window.count < size
+        {
             .window.resize(size)
+        }
 
         let count = Math.min(size, .remaining())
         .windowCount = 0

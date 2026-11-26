@@ -10,8 +10,10 @@ const NoiseMax = 5.0
 func onEvent(wnd: *Wnd, evt: IEvent)->bool
 {
     let paintEvt = catch cast(*PaintEvent?, evt) orelse null
-    if not paintEvt do
+    if not paintEvt
+    {
         return false
+    }
 
     let painter = paintEvt.paintContext.painter
 
@@ -19,7 +21,7 @@ func onEvent(wnd: *Wnd, evt: IEvent)->bool
     zoff += wnd.app().deltaSeconds()
 
     var lp: LinePath
-    for var a = 0'f32; a < ConstF32.TwoPi; a += 0.1
+    for var a = 0_f32; a < ConstF32.TwoPi; a += 0.1
     {
         let xoff = map(cos(a), -1, 1, 0, NoiseMax)
         let yoff = map(sin(a), -1, 1, 0, NoiseMax)
@@ -27,10 +29,14 @@ func onEvent(wnd: *Wnd, evt: IEvent)->bool
 
         let x = r * cos(a)
         let y = r * sin(a)
-        if a == 0 do
+        if a == 0
+        {
             lp.start(x, y)
-        else do
+        }
+        else
+        {
             lp.curveTo(x, y)
+        }
     }
 
     lp.close()

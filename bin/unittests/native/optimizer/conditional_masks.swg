@@ -37,7 +37,7 @@ func conditionalNot64(value, flag: u64)->u64 => flag != 0 ? ~value : value
 
 #test
 {
-    let values = [0'u64, 1, 0xFFFFFFFF, 0x100000000, 0x7FFFFFFFFFFFFFFF, 0x8000000000000000, 0xFFFFFFFFFFFFFFFF]
+    let values = [0_u64, 1, 0xFFFFFFFF, 0x100000000, 0x7FFFFFFFFFFFFFFF, 0x8000000000000000, 0xFFFFFFFFFFFFFFFF]
     for a in values
     {
         for b in values
@@ -47,8 +47,8 @@ func conditionalNot64(value, flag: u64)->u64 => flag != 0 ? ~value : value
             Swag.require(bit32(a, b) == bit << 32)
             Swag.require(bit63(a, b) == bit << 63)
             Swag.require(inverseBit(a, b) == (1 - bit) << 8)
-            Swag.require(mask64(a, b) == (bit == 0 ? 0 : ~0'u64))
-            Swag.require(mask32(a, b) == (bit == 0 ? 0 : ~0'u32))
+            Swag.require(mask64(a, b) == (bit == 0 ? 0 : ~0_u64))
+            Swag.require(mask32(a, b) == (bit == 0 ? 0 : ~0_u32))
             Swag.require(multipleUses(a, b) == ((bit << 32) | ((1 - bit) << 63)))
             Swag.require(conditionalNot64(a, b) == (b == 0 ? a : ~a))
             Swag.require(conditionalNot32(cast #wrap (u32, a), cast #wrap (u32, b)) == (cast #wrap (u32, b) == 0 ? cast #wrap (u32, a) : ~cast #wrap (u32, a)))

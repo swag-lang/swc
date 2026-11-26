@@ -35,11 +35,17 @@ impl DecodeOptions
 {
     mtd const checkImage(width, height: s32, format: PixelFormat) fail
     {
-        if width <= 0 or height <= 0 do
+        if width <= 0 or height <= 0
+        {
             fail InvalidFormatError{"image dimensions must be positive"}
+        }
+
         let pixels = cast(u64, width) * cast(u64, height)
-        if .maxPixels and pixels > .maxPixels do
+        if .maxPixels and pixels > .maxPixels
+        {
             fail UnsupportedFormatError{"image exceeds the decoded pixel limit"}
+        }
+
         if .maxDecodedBytes
         {
             var exceedsByteLimit = false
@@ -58,15 +64,19 @@ impl DecodeOptions
                 exceedsByteLimit = bytesPerPixel != 0 and pixels > .maxDecodedBytes / bytesPerPixel
             }
 
-            if exceedsByteLimit do
+            if exceedsByteLimit
+            {
                 fail UnsupportedFormatError{"image exceeds the decoded byte limit"}
+            }
         }
     }
 
     mtd const checkFrameCount(count: u64) fail
     {
-        if count > 0x7FFFFFFF or (.maxFrames and count > .maxFrames) do
+        if count > 0x7FFFFFFF or (.maxFrames and count > .maxFrames)
+        {
             fail UnsupportedFormatError{"image set exceeds the frame limit"}
+        }
     }
 }
 
@@ -88,7 +98,7 @@ public interface IImageDecoder
 
 impl Image
 {
-    var decoders: Array'ImageDecoder
+    var decoders: Array!{ImageDecoder}
 
     // Returns the registered decoder claiming `fileName`, or `null` when none does.
     func getDecoder(fileName: string)->*ImageDecoder?
@@ -99,6 +109,8 @@ impl Image
             return null
         for &decoder in decoders where decoder.format.matchesLowercaseExtension(ext) do
             return decoder
+        }
+
         return null
     }
 
@@ -114,13 +126,12 @@ impl Image
     // Decodes a buffer with one registered decoder type, enforcing the limits of `options`.
     func decode(decoderType: const *TypeInfoStruct, bytes: const [..] u8, options: DecodeOptions, checksGeometry: bool)->Image fail
     {
-        if options.maxInputBytes and bytes.count > options.maxInputBytes do
+        if options.maxInputBytes and bytes.count > options.maxInputBytes
+        {
             fail UnsupportedFormatError{"image exceeds the encoded byte limit"}
+        }
 
-        // Custom decoders may need a separate probe before they allocate pixels.
-        if not checksGeometry and
-           options.decodePixels and
-           (options.maxPixels or options.maxDecodedBytes)
+        if options.decodePixels and (options.maxPixels or options.maxDecodedBytes)
         {
             var probeOptions = options
             probeOptions.decodePixels   = false
@@ -133,8 +144,11 @@ impl Image
         let ptrDecoder = Memory.new(decoderType)
         defer
         {
-            if decoderType.opDrop do
+            if decoderType.opDrop
+            {
                 decoderType.opDrop(ptrDecoder)
+            }
+
             Memory.free(ptrDecoder, cast(u64, decoderType.sizeof))
         }
 
@@ -143,8 +157,11 @@ impl Image
         let itf    = unwrap Swag.makeInterface(ptrDecoder, decoderType, IImageDecoder)
         var result = #move try itf.decode(bytes, options)
         try options.checkImage(result.width, result.height, result.pixelFormat)
-        if options.decodePixels and not result.isValid() do
+        if options.decodePixels and not result.isValid()
+        {
             fail InvalidFormatError{"decoder returned incomplete pixel storage"}
+        }
+
         return #move result
     }
 }
@@ -166,19 +183,28 @@ public impl Image
     // a decoding already in progress keeps using its selected type, including its metadata probe.
     func registerDecoder(type: const *TypeInfoStruct)
     {
-        registerDecoderEntry(type, false)
+        for &decoder in decoders where decoder.type == type
+        {
+            return
+        }
+
+        let itf = unwrap Swag.makeInterface(null, type, IImageDecoder)
+        decoders.add(ImageDecoder{itf.format(), type})
     }
 
     // Returns the format read by each registered decoder, in registration order.
     //
     // The result is owned by the caller and is a snapshot: registering another decoder
     // afterwards does not change it. Use it to build the format list of an open dialog.
-    func decodableFormats()->Array'ImageFormat
+    func decodableFormats()->Array!{ImageFormat}
     {
         var result: #returntype
         result.reserve(decoders.count)
-        for &decoder in decoders do
+        for &decoder in decoders
+        {
             result.add(decoder.format)
+        }
+
         return result
     }
 
@@ -192,11 +218,16 @@ public impl Image
     // exceeded, or the data is malformed or unsupported.
     func decode(fileName: string, bytes: const [..] u8?, options: DecodeOptions = {})->Image fail
     {
-        if not bytes do
+        if not bytes
+        {
             fail InvalidFormatError{"invalid image buffer"}
+        }
+
         let found = getDecoder(fileName)
-        if not found do
+        if not found
+        {
             fail UnsupportedFormatError{"no matching image decoder"}
+        }
 
         // Both the metadata probe and decoding may register more codec types.
         return try decode(found.type, bytes, options, found.checksGeometry)
@@ -210,13 +241,17 @@ public impl Image
     func load(fileName: string, options: DecodeOptions = {})->Image fail
     {
         let found = getDecoder(fileName)
-        if not found do
+        if not found
+        {
             fail UnsupportedFormatError{"no matching image decoder"}
-        let decoderType    = found.type
-        let checksGeometry = found.checksGeometry
-        var file           = File.MappedFile.open(fileName)
-        if options.maxInputBytes and file.size() > options.maxInputBytes do
+        }
+
+        var file = File.MappedFile.open(fileName)
+        if options.maxInputBytes and file.size() > options.maxInputBytes
+        {
             fail UnsupportedFormatError{"image exceeds the encoded byte limit"}
+        }
+
         let region = file.mapAll()
         var result = #move decode(decoderType, region.bytes(), options, checksGeometry)
         return #move result
@@ -231,18 +266,24 @@ public impl Image
     // `UnsupportedFormatError`; a malformed payload reports the codec's own failure.
     func fromDataUri(uri: string, options: DecodeOptions = {})->Image fail
     {
-        if not Utf8.startsWith(uri, "data:image/", .Latin1NoCase) do
+        if not Utf8.startsWith(uri, "data:image/", .Latin1NoCase)
+        {
             fail UnsupportedFormatError{"not an image data URI"}
+        }
 
         let marker = Utf8.indexOf(uri, ";base64,")
-        if marker == Swag.U64.Max do
+        if marker == Swag.U64.Max
+        {
             fail UnsupportedFormatError{"data URI images must use base64 encoding"}
+        }
 
         // The media type can carry parameters of its own; only its subtype names the format.
         var mediaType = uri[11 until marker]
-        let semicolon = Utf8.indexOf(mediaType, ';'rune)
-        if semicolon != Swag.U64.Max do
+        let semicolon = Utf8.indexOf(mediaType, ';'_rune)
+        if semicolon != Swag.U64.Max
+        {
             mediaType = mediaType[0 until semicolon]
+        }
 
         var extension = String.from(mediaType).toLower()
         switch extension.toString()
@@ -261,17 +302,17 @@ public impl Image
 // Initialize predefined decoders
 #init
 {
-    Image.registerDecoderEntry(#typeof(Bmp.Decoder), true)
-    Image.registerDecoderEntry(#typeof(Tga.Decoder), true)
-    Image.registerDecoderEntry(#typeof(Jpg.Decoder), true)
-    Image.registerDecoderEntry(#typeof(Png.Decoder), true)
-    Image.registerDecoderEntry(#typeof(Gif.SetDecoder), true)
-    Image.registerDecoderEntry(#typeof(Tiff.Decoder), true)
-    Image.registerDecoderEntry(#typeof(Ico.Decoder), true)
-    Image.registerDecoderEntry(#typeof(Webp.Decoder), true)
-    Image.registerDecoderEntry(#typeof(Qoi.Decoder), true)
-    Image.registerDecoderEntry(#typeof(Psd.Decoder), true)
-    Image.registerDecoderEntry(#typeof(Dds.Decoder), true)
-    Image.registerDecoderEntry(#typeof(Ktx2.Decoder), true)
-    Image.registerDecoderEntry(#typeof(Exr.Decoder), true)
+    Image.registerDecoder!{Bmp.Decoder}()
+    Image.registerDecoder!{Tga.Decoder}()
+    Image.registerDecoder!{Jpg.Decoder}()
+    Image.registerDecoder!{Png.Decoder}()
+    Image.registerDecoder!{Gif.SetDecoder}()
+    Image.registerDecoder!{Tiff.Decoder}()
+    Image.registerDecoder!{Ico.Decoder}()
+    Image.registerDecoder!{Webp.Decoder}()
+    Image.registerDecoder!{Qoi.Decoder}()
+    Image.registerDecoder!{Psd.Decoder}()
+    Image.registerDecoder!{Dds.Decoder}()
+    Image.registerDecoder!{Ktx2.Decoder}()
+    Image.registerDecoder!{Exr.Decoder}()
 }

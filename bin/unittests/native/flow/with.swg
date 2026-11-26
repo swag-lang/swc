@@ -98,8 +98,10 @@ func nativeWithMakePoint(x, y: s32)->NativeWithPoint
 
 func nativeWithColorScore(c: NativeWithColor)->s32
 {
-    if c == .Red do
+    if c == .Red
+    {
         return 3
+    }
     return 7
 }
 
@@ -145,8 +147,10 @@ func nativeWithAssignmentsAndScopes()->s32
     let b = Blue
     total += nativeWithColorScore(a)
     total += nativeWithColorScore(.Blue)
-    if b == Blue do
+    if b == Blue
+    {
         total += 1
+    }
 
     total += NativeWithNs.bias(2)
     total += NativeWithNs.bias(0)

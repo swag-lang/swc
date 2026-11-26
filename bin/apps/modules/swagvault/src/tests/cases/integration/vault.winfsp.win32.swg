@@ -20,12 +20,12 @@ namespace Integration
     const VisibilityProbeArgument = "--integration-drive-probe"
     const AccessBenchmarkArgument = "--integration-access-benchmark"
     const PreviewMountArgument    = "--integration-preview-mount"
-    const ContainerSize           = 64'u64 * 1024 * 1024
-    const LargeMoveSize           = 16'u64 * 1024 * 1024 + 37
+    const ContainerSize           = 64_u64 * 1024 * 1024
+    const LargeMoveSize           = 16_u64 * 1024 * 1024 + 37
     const BatchRenameCount        = 24
-    const FileAttributeReadOnly   = 0x00000001'u32
-    const FileAttributeNormal     = 0x00000080'u32
-    const MoveReplaceExisting     = 0x00000001'u32
+    const FileAttributeReadOnly   = 0x00000001_u32
+    const FileAttributeNormal     = 0x00000080_u32
+    const MoveReplaceExisting     = 0x00000001_u32
 
     var g_CheckCount: u32
     var g_Failure:    String
@@ -51,8 +51,11 @@ namespace Integration
     func runVisibilityProbe()->s32
     {
         let args = Env.arguments()
-        if args.count < 3 do
+        if args.count < 3
+        {
             return 2
+        }
+
         let payload = "VISIBLE"
         var writeErrorOutcome: Swag.Error
         discard catch File.writeAllText(args[2], payload) as writeErrorOutcome
@@ -73,11 +76,13 @@ namespace Integration
         let operation = cast(*IFileOperation, unwrap raw)
         defer discard (operation.lpVtbl.base.Release)(cast(*Win32.IUnknown, unwrap raw))
 
-        var idLists: Array'PIDLIST_ABSOLUTE
+        var idLists: Array!{PIDLIST_ABSOLUTE}
         defer
         {
-            for idList in idLists do
+            for idList in idLists
+            {
                 Win32.CoTaskMemFree(cast(LPVOID, idList))
+            }
         }
 
         for path in paths
@@ -97,7 +102,7 @@ namespace Integration
         defer discard (items!.lpVtbl.Release)(cast(*IUnknown, cast(*void, items)))
 
         // Suppress UI, stop on errors, and let Windows choose numbered names while keeping extensions.
-        const Flags = 0x0004'u32 | 0x0008 | 0x0010 | 0x0400 | 0x00100000 | 0x00200000
+        const Flags = 0x0004_u32 | 0x0008 | 0x0010 | 0x0400 | 0x00100000 | 0x00200000
         verify((operation.lpVtbl.SetOperationFlags)(operation, Flags) >= 0, "the Shell must accept the batch rename options")
         let name16 = Utf16.toZeroTerminated(name)
         verify((operation.lpVtbl.RenameItems)(operation, cast(*IUnknown, cast(*void, unwrap items)), name16.storage()) >= 0, "the Shell must queue every file under the same requested name")
@@ -111,15 +116,21 @@ namespace Integration
 
     func verify(condition: bool, message: string) fail
     {
-        if not condition do
+        if not condition
+        {
             fail harnessError(Format.toString("Integration check failed: %", message))
+        }
+
         g_CheckCount += 1
     }
 
     func allZero(bytes: const [..] u8)->bool
     {
-        for byte in bytes where byte != 0 do
+        for byte in bytes where byte != 0
+        {
             return false
+        }
+
         return true
     }
 
@@ -128,8 +139,11 @@ namespace Integration
 
     func containsDriveLetter(letters: const [..] rune, expected: rune)->bool
     {
-        for letter in letters where letter == expected do
+        for letter in letters where letter == expected
+        {
             return true
+        }
+
         return false
     }
 
@@ -138,9 +152,11 @@ namespace Integration
         let available = WinFsp.availableDriveLetters()
         for offset in 23
         {
-            let index = 25'u32 - cast(u32, offset)
-            if containsDriveLetter(available.toSlice(), cast(rune, ('A' + index))) do
+            let index = 25_u32 - cast(u32, offset)
+            if containsDriveLetter(available.toSlice(), cast(rune, ('A' + index)))
+            {
                 return Format.toString("%:", cast(rune, ('A' + index)))
+            }
         }
 
         fail harnessError("No unused drive letter is available for the integration sandbox.")
@@ -156,8 +172,10 @@ namespace Integration
     func setAttributes(path: string, attributes: u32) fail
     {
         let path16 = Utf16.toZeroTerminated(path)
-        if not SetFileAttributesW(path16.buffer, attributes) do
+        if not SetFileAttributesW(path16.buffer, attributes)
+        {
             fail harnessError(Format.toString("Windows error %: cannot set attributes on [[%]].", GetLastError(), path))
+        }
     }
 
     func attributes(path: string)->u32
@@ -240,8 +258,11 @@ namespace Integration
 
     func containsEntry(entries: const [..] File.FileInfo, name: string)->bool
     {
-        for entry in entries where (Path.fileName(entry.fullName) orelse "") == name do
+        for entry in entries where (Path.fileName(entry.fullName) orelse "") == name
+        {
             return true
+        }
+
         return false
     }
 
@@ -281,8 +302,11 @@ namespace Integration
         {
             var result: #returntype
             let temp = Env.getSpecialDirectory(.Temp)
-            if temp.isEmpty() do
+            if temp.isEmpty()
+            {
                 fail harnessError("Windows did not provide a temporary directory for the sandbox.")
+            }
+
             result.root = Path.combine(temp, Format.toString("vault-integration-%", Guid64.random()))
             try Directory.create(result.root)
             result.container  = Path.combine(result.root, "integration")
@@ -294,9 +318,12 @@ namespace Integration
 
         mtd mountVolume(passwordBytes: const [..] u8, protectionPassword: const [..] u8 = "") fail
         {
-            if .mountedActive do
+            if .mountedActive
+            {
                 fail harnessError("The integration volume is already mounted.")
-            let mounted = Memory.new'WinFsp.MountedVolume()
+            }
+
+            let mounted = Memory.new!{WinFsp.MountedVolume}()
             discard catch mounted.open(.container, passwordBytes, .mountPoint, protectionPassword: protectionPassword)
             {
                 Memory.delete(mounted)
@@ -309,8 +336,11 @@ namespace Integration
 
         mtd unmountVolume() fail
         {
-            if not .mountedActive do
+            if not .mountedActive
+            {
                 return
+            }
+
             let mounted = unwrap .mounted
             try mounted.close()
             Memory.delete(mounted)
@@ -329,24 +359,32 @@ namespace Integration
                 .mountedActive = false
             }
 
-            if not .root.isEmpty() do
+            if not .root.isEmpty()
+            {
                 WinFsp.removeRuntimeTree(.root)
+            }
         }
 
         mtd closeSandbox() fail
         {
-            if .mountedActive do
+            if .mountedActive
+            {
                 try .unmountVolume()
+            }
+
             WinFsp.removeRuntimeTree(.root)
-            if Directory.exists(.root) do
+            if Directory.exists(.root)
+            {
                 fail harnessError(Format.toString("The integration sandbox could not be removed: %", .root))
+            }
+
             .root.clear()
         }
 
         mtd opDrop() { .cleanup() }
     }
 
-    func createPayload(size: u64)->Array'u8 fail
+    func createPayload(size: u64)->Array!{u8} fail
     {
         var result: #returntype
         result.resize(size)
@@ -357,8 +395,11 @@ namespace Integration
     func batchRenamePayload(index: u64)->[113] u8
     {
         var result: #returntype
-        for byteIndex in result.count do
+        for byteIndex in result.count
+        {
             result[byteIndex] = cast(u8, ((index * 31 + byteIndex * 17) & 0xFF))
+        }
+
         return result
     }
 
@@ -375,7 +416,7 @@ namespace Integration
     }
 
     #[Swag.Propagate]
-    func runFilesystemScenarios(box: *Sandbox, original: const [..] u8)->Array'String fail
+    func runFilesystemScenarios(box: *Sandbox, original: const [..] u8)->Array!{String} fail
     {
         let root      = driveRoot(box.mountPoint)
         let documents = Path.combine(root, "Documents")
@@ -527,7 +568,7 @@ namespace Integration
         let occupied = Path.combine(bulk, "occupied.bin")
         File.writeAllBytes(occupied, first)
         let occupied16 = Utf16.toZeroTerminated(occupied)
-        var renamePaths: Array'String
+        var renamePaths: Array!{String}
         for index in BatchRenameCount
         {
             let source   = Path.combine(bulk, Format.toString("item-%.bin", index))
@@ -536,8 +577,11 @@ namespace Integration
             catch MoveFileExW(source16.buffer, occupied16.buffer, 0) as collisionOutcome
             let collision = collisionOutcome.value()
             var error: u64
-            if collision is Swag.SystemError as system do
+            if collision is Swag.SystemError as system
+            {
                 error = system.errorID
+            }
+
             verify(collision != null and (error == 183 or error == 80), "a rename to an occupied name must report a name collision")
             verify(File.exists(source) and Slice.equals(File.readAllBytes(occupied).toSlice(), first), "a refused rename must preserve both files")
 
@@ -553,17 +597,22 @@ namespace Integration
 
         // Seed the first number, as an Explorer batch rename does; the Shell chooses the rest.
         shellRenameItems(renamePaths.toSlice(), "video (1).mp4")
-        for &path in renamePaths do
+        for &path in renamePaths
+        {
             verify(not File.exists(path[]), "the Shell batch rename must remove every old file name")
+        }
+
         verifyNumberedBatch(bulk)
 
         // The Shell can change extension casing. Keep the exact spelling it published.
         let numberedEntries = Directory.enumerateFiles(bulk)
         verify(numberedEntries.count == BatchRenameCount + 1 and containsEntry(numberedEntries.toSlice(), "occupied.bin"),
                "the renamed directory must contain the numbered files and the collision target")
-        var batchNames: Array'String
-        for &entry in numberedEntries do
+        var batchNames: Array!{String}
+        for &entry in numberedEntries
+        {
             batchNames.add(unwrap Path.fileName(entry.fullName))
+        }
 
         let documentsEntries = Directory.enumerate(documents, {})
         let scannedDocuments = containsEntry(documentsEntries.toSlice(), "Renamed-Nested") and
@@ -600,8 +649,11 @@ namespace Integration
         let bulk    = Path.combine(root, "Documents", "Bulk")
         let entries = Directory.enumerateFiles(bulk)
         verify(entries.count == batchNames.count, "the renamed directory must keep its file count across remount")
-        for &name in batchNames do
+        for &name in batchNames
+        {
             verify(containsEntry(entries.toSlice(), name[]), Format.toString("remount must preserve the exact file name [[%]]", name[]))
+        }
+
         verifyNumberedBatch(bulk)
 
         let newAfterRemount = Path.combine(root, "created-after-remount.txt")
@@ -620,7 +672,7 @@ namespace Integration
         var outer = Volume.create(box.container, password(), ContainerSize)
         outer.close()
         const HiddenPassword = "independent hidden integration access"
-        var hidden = Volume.createHidden(box.container, password(), HiddenPassword, 16'u64 * 1024 * 1024)
+        var hidden = Volume.createHidden(box.container, password(), HiddenPassword, 16_u64 * 1024 * 1024)
         hidden.close()
         box.mountVolume(HiddenPassword)
         let secret = Path.combine(driveRoot(box.mountPoint), "secret.txt")
@@ -634,7 +686,7 @@ namespace Integration
         var stream   = File.open(ordinary, .CreateNew, .ReadWrite, .Read)
         var chunk    = createPayload(1024 * 1024)
         var stopped  = false
-        var written  = 0'u64
+        var written  = 0_u64
         for 64
         {
             discard catch stream.writeAllAt(written, chunk.toSlice())
@@ -676,9 +728,12 @@ namespace Integration
         try verify(address != null, "WinFsp must expose its active SxS identity")
         let readIdentity = cast(FspSxsIdentFn, unwrap address)
         let identity     = readIdentity()
-        var count        = 0'u64
-        while count < 32 and identity[count] do
+        var count        = 0_u64
+        while count < 32 and identity[count]
+        {
             count += 1
+        }
+
         return Utf8.fromUtf16(Swag.makeSlice(identity, count))
     }
 

@@ -23,15 +23,17 @@ func checkedTwice(a: u64)->u64 => a + a
 #[Swag.Safety(.Overflow, false)]
 #test
 {
-    let values = [0'u64, 1, 0xFFFFFFFF, 0x100000000, 0x7FFFFFFFFFFFFFFF, 0x8000000000000000, 0xFFFFFFFFFFFFFFFF]
+    let values = [0_u64, 1, 0xFFFFFFFF, 0x100000000, 0x7FFFFFFFFFFFFFFF, 0x8000000000000000, 0xFFFFFFFFFFFFFFFF]
     for a in values
     {
         Swag.require(twice64(a) == (a << 1))
         Swag.require(keepOriginal(a) == ((a << 1) ^ a))
         let a32 = cast(u32, (a & 0xFFFFFFFF))
         Swag.require(twice32(a32) == (a32 << 1))
-        for b in values do
+        for b in values
+        {
             Swag.require(accumulateTwice(a, b) == ((a + b) << 1))
+        }
     }
     Swag.require(checkedTwice(0x7FFFFFFFFFFFFFFF) == 0xFFFFFFFFFFFFFFFE)
 }

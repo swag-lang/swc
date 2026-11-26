@@ -12,7 +12,7 @@ struct VideoAudioPump
 {
     late session:      *VideoCaptureSession
     late queue:        *CaptureQueue
-    samples:           Array's16
+    samples:           Array!{s16}
     block:             CaptureBlock
     offset:            u64
     nextSample:        u64
@@ -29,13 +29,19 @@ impl VideoAudioPump
     // Binds one PCM queue to an empty AAC track with the same sample rate and channels.
     func create(session: *VideoCaptureSession, queue: *CaptureQueue, trackIndex: u32)->VideoAudioPump fail
     {
-        if trackIndex >= session.audioConfigs.count do
+        if trackIndex >= session.audioConfigs.count
+        {
             fail BadParameterError{"video session has no audio track at this index"}
+        }
+
         let config = session.audioConfigs[trackIndex]
         if queue.sampleRateHz() != config.sampleRate or
            queue.channelCount() != config.channelCount or
-           (try session.recording.audioInputFrameCountOf(trackIndex)) != 0 do
+           (try session.recording.audioInputFrameCountOf(trackIndex)) != 0
+        {
             fail BadParameterError{"capture queue does not match an empty MP4 sound track"}
+        }
+
         var result: #returntype
         result.session    = session
         result.queue      = queue
@@ -59,11 +65,17 @@ impl VideoAudioPump
     // means no sound is available yet. The per-call bound is 1 through 65536 sample frames.
     mtd pump(maxFrames: u32 = 4_096)->u64 fail
     {
-        if not maxFrames or maxFrames > 65_536 do
+        if not maxFrames or maxFrames > 65_536
+        {
             fail BadParameterError{"capture audio pump frame budget is outside 1-65536"}
-        if (try .session.recording.audioInputFrameCountOf(.trackIndex)) != .nextSample do
+        }
+
+        if (try .session.recording.audioInputFrameCountOf(.trackIndex)) != .nextSample
+        {
             fail BadParameterError{"capture audio track also received PCM outside its pump"}
-        var emitted = 0'u64
+        }
+
+        var emitted = 0_u64
         while emitted < maxFrames
         {
             if .hasBlock
@@ -92,8 +104,11 @@ impl VideoAudioPump
                 .offset     += count
                 .nextSample += count
                 emitted     += count
-                if .offset == cast(u64, .block.frameCount) do
+                if .offset == cast(u64, .block.frameCount)
+                {
                     .hasBlock = false
+                }
+
                 continue
             }
 
@@ -101,14 +116,20 @@ impl VideoAudioPump
             {
                 .hasBlock = true
                 .offset   = 0
-                if .block.sourceInterrupted do
+                if .block.sourceInterrupted
+                {
                     .interruptionCount += 1
+                }
+
                 continue
             }
 
             let silentEnd = .queue.silentGapEnd()
-            if silentEnd <= .nextSample do
+            if silentEnd <= .nextSample
+            {
                 break
+            }
+
             let count = Math.min(cast(u64, maxFrames) - emitted,
                                  silentEnd - .nextSample)
             emitted += try .addSilence(count)
@@ -122,7 +143,7 @@ impl VideoAudioPump
         var remaining = frameCount
         while remaining
         {
-            let count = Math.min(remaining, 1_024'u64)
+            let count = Math.min(remaining, 1_024_u64)
             try .session.addAudioFrames(Swag.makeSlice(&.zeros[0], count * .channels), .trackIndex)
             .nextSample      += count
             .syntheticFrames += count

@@ -7,38 +7,9 @@
 
 using Core, Core.Errors
 
-private const WriterMinBlockFrames = 16'u16
-private const WriterBlockFrames    = 4_096'u32
-private const WriterMaxSamples     = (1'u64 << 36) - 1
-private const WriterPrologueBytes  = 58'u64
-
-private const WriterMaxPartitionOrder = 4'u32
-private const WriterMaxPartitions     = 1'u32 << WriterMaxPartitionOrder
-
-private struct WriterRicePartition
-{
-    bits:      u64
-    parameter: u32
-}
-
-private struct WriterFixedStats
-{
-    total:         [2] u32
-    partitionSums: [2, WriterMaxPartitions] u32
-}
-
-private struct WriterRicePlan
-{
-    bits:       u64
-    partitions: [WriterMaxPartitions] WriterRicePartition
-}
-
-private enum WriterStereoMode
-{
-    Independent
-    Duplicated
-    Constant
-}
+private const WriterBlockFrames   = 4_096_u32
+private const WriterMaxSamples    = (1_u64 << 36) - 1
+private const WriterPrologueBytes = 58_u64
 
 // Writes signed PCM16 frames to a native FLAC file without retaining the recording.
 //
@@ -54,8 +25,8 @@ struct Writer
     private
     {
         sink:          ByteSink
-        pending:       Array's16
-        frame:         Array'u8
+        pending:       Array!{s16}
+        frame:         Array!{u8}
         checksum:      Hash.Md5
         bitBuffer:     u64
         bufferedBits:  u32
@@ -79,8 +50,10 @@ impl Writer
     // A newly created file has no audio frame; add samples and flush or end it to make it playable.
     func create(fileName: string, channels: u16, sampleRate: u32)->Writer fail
     {
-        if not channels or channels > 8 or not sampleRate or sampleRate > 0xFFFFF do
+        if not channels or channels > 8 or not sampleRate or sampleRate > 0xFFFFF
+        {
             fail BadParameterError{"FLAC writer needs one to eight channels and a representable sample rate"}
+        }
 
         with var result: #returntype
         {
@@ -105,8 +78,11 @@ impl Writer
     {
         var source       = try ByteSource.openFile(fileName)
         let originalSize = source.size()
-        if originalSize < WriterPrologueBytes do
+        if originalSize < WriterPrologueBytes
+        {
             fail InvalidFormatError{"FLAC resume header is truncated"}
+        }
+
         var header: [WriterPrologueBytes] u8
         try source.readExact(Swag.makeSlice(&header[0], header.count))
         let prologue = Swag.makeSlice(&header[0], header.count)
@@ -119,16 +95,21 @@ impl Writer
            prologue[43] != 0 or
            prologue[44] != 0 or
            prologue[45] != 12 or
-           Memory.compare(prologue.buffer + 46, "SWAG".buffer, 4) != 0 do
+           Memory.compare(prologue.buffer + 46, "SWAG".buffer, 4) != 0
+        {
             fail InvalidFormatError{"FLAC resume needs this writer's metadata checkpoint"}
+        }
 
         var codec: Codec
         try codec.readStreamInfo(prologue[until 42])
         if codec.info.bitsPerSample != 16 or
            codec.info.maxBlockSize > WriterBlockFrames or
            codec.info.channels > 8 or
-           not codec.info.sampleRate do
+           not codec.info.sampleRate
+        {
             fail UnsupportedFormatError{"FLAC resume needs a PCM16 recording from this writer"}
+        }
+
         let channelCount = codec.info.channels
         let sampleRateHz = codec.info.sampleRate
         let declared     = codec.info.totalSamples
@@ -136,41 +117,55 @@ impl Writer
         var expectedDigest: [16] u8
         Memory.copy(&expectedDigest[0], prologue.buffer + 26, 16)
         try source.seek(50)
-        let committedEnd = try source.readBigEndian'u64()
+        let committedEnd = try source.readBigEndian!{u64}()
         if committedEnd < WriterPrologueBytes or
            committedEnd > originalSize or
-           (declared == 0 and committedEnd != WriterPrologueBytes) do
+           (declared == 0 and committedEnd != WriterPrologueBytes)
+        {
             fail InvalidFormatError{"FLAC resume checkpoint is outside the committed prefix"}
+        }
 
         let decoder: IPacketCodec = &codec
         try decoder.initialize(prologue[until 42], sampleRateHz, channelCount)
-        var pcm: Array'u8
+        var pcm: Array!{u8}
         pcm.resize(cast(u64, WriterBlockFrames) * channelCount * 2)
         var checksum: Hash.Md5
         checksum.reset()
-        var frames        = 0'u64
+        var frames        = 0_u64
         var offset        = WriterPrologueBytes
         var minBlock      = Swag.U16.Max
-        var maxBlock      = 0'u16
+        var maxBlock      = 0_u16
         var minFrameBytes = Swag.U32.Max
-        var maxFrameBytes = 0'u32
+        var maxFrameBytes = 0_u32
         while offset < committedEnd
         {
             let next   = try findFrameEnd(&source, offset, committedEnd, frameLimit)
             let length = next - offset
-            if length < 10 or length > frameLimit do
+            if length < 10 or length > frameLimit
+            {
                 fail InvalidFormatError{"FLAC resume frame size is outside the writer's limit"}
+            }
+
             try source.seek(offset)
             let packet  = (try source.peek(length))[until length]
             let trailer = (cast(u16, packet[length - 2]) << 8) | packet[length - 1]
-            if frameCrc16(packet[until length - 2]) != trailer or readSampleNumber(packet) != frames do
+            if frameCrc16(packet[until length - 2]) != trailer or readSampleNumber(packet) != frames
+            {
                 fail InvalidFormatError{"FLAC resume frame checksum or sample position differs"}
+            }
+
             let block = try packetFrameCount(packet)
-            if block > WriterBlockFrames or block > WriterMaxSamples - frames do
+            if block > WriterBlockFrames or block > WriterMaxSamples - frames
+            {
                 fail InvalidFormatError{"FLAC resume frame count exceeds the writer's limit"}
+            }
+
             let decoded = try decoder.decodePacket(pcm.storage(), pcm.count, packet)
-            if decoded != cast(u64, block) * channelCount * 2 do
+            if decoded != cast(u64, block) * channelCount * 2
+            {
                 fail InvalidFormatError{"FLAC resume frame decoded an unexpected sample count"}
+            }
+
             if Core.BIG_ENDIAN
             {
                 let samples = cast(const [*] s16, pcm.storage())
@@ -193,8 +188,11 @@ impl Writer
             offset        = next
         }
 
-        if frames != declared do
+        if frames != declared
+        {
             fail InvalidFormatError{"FLAC resume sample count differs from STREAMINFO"}
+        }
+
         if frames
         {
             let minimumFrame = (cast(u32, header[12]) << 16) | (cast(u32, header[13]) << 8) | header[14]
@@ -206,21 +204,29 @@ impl Writer
                                    codec.info.maxBlockSize == Math.max(maxBlock, WriterMinBlockFrames)
             if (not exactBounds and not normalizedBounds) or
                minimumFrame != minFrameBytes or
-               maximumFrame != maxFrameBytes do
+               maximumFrame != maxFrameBytes
+            {
                 fail InvalidFormatError{"FLAC resume frame bounds differ from STREAMINFO"}
+            }
         }
 
         var finalHash    = checksum
         let actualDigest = finalHash.finalize()
-        if frames and Memory.compare(&actualDigest[0], &expectedDigest[0], 16) != 0 do
+        if frames and Memory.compare(&actualDigest[0], &expectedDigest[0], 16) != 0
+        {
             fail InvalidFormatError{"FLAC resume PCM checksum differs from STREAMINFO"}
+        }
+
         source.close()
 
         scope
         {
             var file = try File.open(fileName, .Open, .ReadWrite, .Zero)
-            if try file.size() != originalSize do
+            if try file.size() != originalSize
+            {
                 fail InvalidFormatError{"FLAC file changed during resume"}
+            }
+
             try file.resize(committedEnd)
             file.close()
         }
@@ -251,15 +257,26 @@ impl Writer
     // before appending; a malformed input leaves the file and writer state unchanged.
     mtd addFrames(samples: const [..] s16) fail
     {
-        if .isEnded do
+        if .isEnded
+        {
             fail BadParameterError{"cannot append to an ended FLAC writer"}
-        if samples.count % .channels do
+        }
+
+        if samples.count % .channels
+        {
             fail BadParameterError{"FLAC samples must contain complete interleaved frames"}
+        }
+
         let added = samples.count / .channels
-        if added > WriterMaxSamples - .frameCount do
+        if added > WriterMaxSamples - .frameCount
+        {
             fail OverflowError{"FLAC sample count exceeds its 36-bit limit"}
-        if not added do
+        }
+
+        if not added
+        {
             return
+        }
 
         if Core.BIG_ENDIAN
         {
@@ -269,10 +286,12 @@ impl Writer
                 .checksum.update(Swag.makeSlice(cast(const [*] u8, &little), 2))
             }
         }
-        else do
+        else
+        {
             .checksum.update(Swag.makeSlice(cast(const [*] u8, samples.buffer), samples.count * 2))
+        }
 
-        var offset = 0'u64
+        var offset = 0_u64
         while offset < samples.count
         {
             let room = cast(u64, WriterBlockFrames) * .channels - .pending.count
@@ -295,8 +314,11 @@ impl Writer
     // `addFrames` starts a new independent frame and can therefore resume after this prefix.
     mtd flush() fail
     {
-        if .isEnded do
+        if .isEnded
+        {
             fail BadParameterError{"cannot flush an ended FLAC writer"}
+        }
+
         if .pending.count
         {
             try .writeFrame()
@@ -310,8 +332,11 @@ impl Writer
     // Finishes the file and closes its sink; repeated calls do nothing.
     mtd end() fail
     {
-        if .isEnded do
+        if .isEnded
+        {
             return
+        }
+
         try .flush()
         try .sink.close()
         .isEnded = true
@@ -323,33 +348,60 @@ private impl Writer
     func readSampleNumber(packet: const [..] u8)->u64
     {
         let lead = packet[4]
-        if lead == 0xFF do
+        if lead == 0xFF
+        {
             return Swag.U64.Max
-        var width = 1'u32
-        if lead == 0xFE do
+        }
+
+        var width = 1_u32
+        if lead == 0xFE
+        {
             width = 7
-        elif lead >= 0xFC do
+        }
+        else if lead >= 0xFC
+        {
             width = 6
-        elif lead >= 0xF8 do
+        }
+        else if lead >= 0xF8
+        {
             width = 5
-        elif lead >= 0xF0 do
+        }
+        else if lead >= 0xF0
+        {
             width = 4
-        elif lead >= 0xE0 do
+        }
+        else if lead >= 0xE0
+        {
             width = 3
-        elif lead >= 0xC0 do
+        }
+        else if lead >= 0xC0
+        {
             width = 2
-        elif lead >= 0x80 do
+        }
+        else if lead >= 0x80
+        {
             return Swag.U64.Max
-        if width == 1 do
+        }
+
+        if width == 1
+        {
             return lead
-        if packet.count < 4 + width do
+        }
+
+        if packet.count < 4 + width
+        {
             return Swag.U64.Max
+        }
+
         var result = cast(u64, lead & (0x7F >> width))
         for index in 1 until width
         {
             let next = packet[4 + index]
-            if next & 0xC0 != 0x80 do
+            if next & 0xC0 != 0x80
+            {
                 return Swag.U64.Max
+            }
+
             result = (result << 6) | (next & 0x3F)
         }
 
@@ -363,16 +415,22 @@ private impl Writer
         try .sink.writeByte(0)
         try .sink.writeByte(0)
         try .sink.writeByte(34)
-        try .sink.writeBigEndian(WriterMinBlockFrames)
+        try .sink.writeBigEndian(16_u16)
         try .sink.writeBigEndian(cast(u16, WriterBlockFrames))
-        for 6 do
+        for 6
+        {
             try .sink.writeByte(0)
+        }
+
         let description = (cast(u64, .sampleRate) << 44) |
                           (cast(u64, .channels - 1) << 41) |
-                          (15'u64 << 36)
+                          (15_u64 << 36)
         try .sink.writeBigEndian(description)
-        for 16 do
+        for 16
+        {
             try .sink.writeByte(0)
+        }
+
         try .sink.writeByte(0x82)     // APPLICATION is the last metadata block.
         try .sink.writeByte(0)
         try .sink.writeByte(0)
@@ -384,11 +442,8 @@ private impl Writer
     mtd patchStreamInfo() fail
     {
         var sizes: [10] u8
-
-        // STREAMINFO requires block-size bounds of at least sixteen samples.
-        // The frame headers retain the exact sizes of short flushes.
-        let minimum = Math.max(.minBlock, WriterMinBlockFrames)
-        let maximum = .maxBlock ? Math.max(.maxBlock, WriterMinBlockFrames) : cast(u16, WriterBlockFrames)
+        let minimum = .minBlock ? .minBlock : 16_u16
+        let maximum = .maxBlock ? .maxBlock : cast(u16, WriterBlockFrames)
         sizes[0] = cast(u8, minimum >> 8)
         sizes[1] = cast(u8, minimum & 0xFF)
         sizes[2] = cast(u8, maximum >> 8)
@@ -403,7 +458,7 @@ private impl Writer
 
         var description = Math.nativeToBigEndian((cast(u64, .sampleRate) << 44) |
                                                  (cast(u64, .channels - 1) << 41) |
-                                                 (15'u64 << 36) | .writtenFrames)
+                                                 (15_u64 << 36) | .writtenFrames)
         try .sink.patch(18, Swag.makeSlice(cast(const [*] u8, &description), 8))
         var hash   = .checksum
         let digest = hash.finalize()
@@ -432,26 +487,9 @@ private impl Writer
         let headerChecksum = crc8(.frame.toSlice())
         .writeByte(headerChecksum)
 
-        switch stereo
+        for channel in .channels
         {
-        case .Duplicated:
-
-            // Equal channels have the original signal as their mid channel and a zero side.
-            .writeChannel(0, count)
-            .writeBits(0, 8)
-            .writeBits(0, 17)
-
-        case .Constant:
-            let sample = cast #bit(u16, .pending[0])
-            for 2
-            {
-                .writeBits(0, 8)
-                .writeBits(sample, 16)
-            }
-
-        default:
-            for channel in .channels do
-                .writeChannel(cast(u64, channel), count)
+            .writeChannel(cast(u64, channel), count)
         }
 
         .alignByte()
@@ -504,26 +542,43 @@ private impl Writer
 
     mtd writeSampleNumber(number: u64)
     {
-        var width = 1'u32
-        if number >= 0x800 do
+        var width = 1_u32
+        if number >= 0x800
+        {
             width = 3
-        elif number >= 0x80 do
+        }
+        else if number >= 0x80
+        {
             width = 2
-        if number >= 0x1_0000 do
+        }
+
+        if number >= 0x1_0000
+        {
             width = 4
-        if number >= 0x20_0000 do
+        }
+
+        if number >= 0x20_0000
+        {
             width = 5
-        if number >= 0x400_0000 do
+        }
+
+        if number >= 0x400_0000
+        {
             width = 6
-        if number >= 0x8000_0000 do
+        }
+
+        if number >= 0x8000_0000
+        {
             width = 7
+        }
+
         if width == 1
         {
             .writeByte(cast(u8, number))
             return
         }
 
-        let marker = cast(u8, (0xFF'u32 << (8 - width)) & 0xFF)
+        let marker = cast(u8, (0xFF_u32 << (8 - width)) & 0xFF)
         .writeByte(marker | cast(u8, number >> (6 * (width - 1))))
         for index in 1 until width
         {
@@ -534,13 +589,14 @@ private impl Writer
 
     mtd writeChannel(channel: u64, count: u32)
     {
-        let samples = .pending.storage() + channel
-        let stride  = cast(u64, .channels)
-        let first   = cast(s32, samples[0])
-        var changed = 1'u32
-        while changed < count and samples[cast(u64, changed) * stride] == first do
-            changed += 1
-        if changed == count
+        let first    = cast(s32, .pending[channel])
+        var constant = true
+        for index in 1 until count where .pending[cast(u64, index) * .channels + channel] != first
+        {
+            constant = false
+        }
+
+        if constant
         {
             .writeBits(0, 8)
             .writeBits(cast #bit(u16, cast(s16, first)), 16)
@@ -926,7 +982,31 @@ private impl Writer
             }
         }
 
-        return {bestBits, bestRice}
+        if bestRice == 15
+        {
+            .writeBits(0x02, 8)
+            for index in count
+            {
+                .writeBits(cast #bit(u16, .pending[cast(u64, index) * .channels + channel]), 16)
+            }
+
+            return
+        }
+
+        .writeBits(0x12, 8)     // First-order fixed predictor.
+        .writeBits(cast #bit(u16, cast(s16, first)), 16)
+        .writeBits(0, 6)     // Rice method 0 and one partition.
+        .writeBits(bestRice, 4)
+        var previous = first
+        for index in 1 until count
+        {
+            let current = cast(s32, .pending[cast(u64, index) * .channels + channel])
+            let delta   = current - previous
+            let folded  = delta < 0 ? cast(u32, -delta) * 2 - 1 : cast(u32, delta) * 2
+            .writeUnary(folded >> bestRice)
+            .writeBits(folded, bestRice)
+            previous = current
+        }
     }
 
     #[Swag.Inline]
@@ -970,11 +1050,7 @@ private impl Writer
         var bits = overhead
         for part in 1'u32 << partitionOrder
         {
-            let samples  = part ? size : size - order
-            let mean     = sums[part] / samples
-            let rice     = mean ? Math.min(14'u32, 31 - cast(u32, Swag.leadingZeros(mean))) : 0
-            let quotient = (sums[part] >> rice)
-            bits += 4 + cast(u64, samples) * (1 + rice) + (Math.max(quotient, samples / 2) - samples / 2)
+            .writeBits(0, 1)
         }
 
         return bits
@@ -1285,10 +1361,14 @@ private impl Writer
         var used   = .bufferedBits + count
         if used >= 32
         {
-            used -= 32
-            let word   = Math.nativeToBigEndian(cast #wrap(u32, queued >> used))
-            let output = cast([*] u32, .frame.emplaceAddress(4))
-            output[0] = word
+            if .bitCount == .frame.count * 8
+            {
+                .frame.add(0_u8)
+            }
+
+            let shift = count - index - 1
+            .frame[.bitCount >> 3] |= cast(u8, ((value >> shift) & 1) << (7 - cast(u32, .bitCount & 7)))
+            .bitCount += 1
         }
 
         .bitBuffer    = queued
@@ -1297,25 +1377,23 @@ private impl Writer
 
     mtd alignByte()
     {
-        let padding = (8 - (.bufferedBits & 7)) & 7
-        let padded  = .bitBuffer << padding
-        let bytes   = (.bufferedBits + padding) >> 3
-        let output  = .frame.emplaceAddress(bytes)
-        for index in bytes do
-            output[index] = cast #wrap(u8, padded >> ((bytes - index - 1) * 8))
-        .bitBuffer    = 0
-        .bufferedBits = 0
+        if .bitCount & 7
+        {
+            .bitCount = (.bitCount + 7) & ~7_u64
+        }
     }
 
     func crc8(bytes: const [..] u8)->u8
     {
-        var checksum = 0'u8
+        var checksum = 0_u8
         for byte in bytes
         {
             checksum ^= byte
-            for 8 do
+            for 8
+            {
                 checksum = checksum & 0x80 ? cast(u8, ((cast(u32, checksum) << 1) ^ 7) & 0xFF) :
                            cast(u8, (cast(u32, checksum) << 1) & 0xFF)
+            }
         }
 
         return checksum

@@ -7,14 +7,17 @@ using Swag, Core, Core.Errors, Pixel
 #test
 {
     let image = Image.create(50, 34, .BGRA8)
-    for index in image.pixels.count do
+    for index in image.pixels.count
+    {
         image.pixels[index] = cast(u8, (index * 37 + index / 13) & 255)
+    }
+
     var frame: Nv12Frame
     expect frame.convertFrom(&image)
 
-    for qp in [0'u32, 28]
+    for qp in [0_u32, 28]
     {
-        for sliceCount in [1'u32, 3]
+        for sliceCount in [1_u32, 3]
         {
             let path = videoTempPath("h264-repeat", "mp4")
             defer discard catch File.delete(path)
@@ -25,7 +28,7 @@ using Swag, Core, Core.Errors, Pixel
             Swag.require(rejected.value() is BadParameterError)
 
             expect writer.addPacket(expect encoder.encode(&frame, 0, 3_000))
-            for index in 1'u64 until 5
+            for index in 1_u64 until 5
             {
                 let packet = expect encoder.repeatPrevious(index * 3_000, 3_000)
                 Swag.require(packet.isKeyFrame == (index == 3))
@@ -39,7 +42,7 @@ using Swag, Core, Core.Errors, Pixel
             var first:   PlanarFrame
             var decoded: PlanarFrame
             expect reader.decodeFramePlanesInto(&first, 0)
-            for index in 1'u64 until 5
+            for index in 1_u64 until 5
             {
                 expect reader.decodeFramePlanesInto(&decoded, index)
                 Swag.require(Slice.equals(first.luma.toSlice(), decoded.luma.toSlice()))

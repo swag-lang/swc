@@ -116,12 +116,16 @@ impl IPropertyNotify for SceneCard
         switch item.typeValue.name
         {
         case #nameof(SceneCard.label):
-            if .label.isEmpty() do
+            if .label.isEmpty()
+            {
                 return {.Error, "A label is required."}
+            }
 
         case #nameof(SceneCard.scale):
-            if .scale >= 1.6 do
+            if .scale >= 1.6
+            {
                 return {.Warning, "Large cards may overflow their slot."}
+            }
         }
 
         return {}
@@ -176,11 +180,11 @@ func createText(parent: *Wnd, text: string, rect: Math.Rectangle, flags = LabelF
 
 func createPanel(parent: *Wnd, title, subtitle: string, rect: Math.Rectangle)->*FrameWnd
 {
-    let frame = Wnd.create'FrameWnd(parent, rect)
+    let frame = Wnd.create!{FrameWnd}(parent, rect)
     frame.setFrameForm(.Round)
     frame.setFrameFlags(.Borders)
 
-    let view = frame.createView'Wnd()
+    let view = frame.createView!{Wnd}()
     discard createText(view, title, Math.Rectangle{16, 10, rect.width - 32, 24})
     let help = createText(view, subtitle, Math.Rectangle{16, 36, rect.width - 32, 42}, .WordWrap | .SecondaryText)
     help.setTextVerticalAlignment(.Top)
@@ -190,18 +194,26 @@ func createPanel(parent: *Wnd, title, subtitle: string, rect: Math.Rectangle)->*
 func updateThemeButton()
 {
     let btn = g_ThemeButton
-    if not btn do
+    if not btn
+    {
         return
+    }
+
     btn.name = g_DarkTheme ? "Switch to Papier" : "Switch to Encre"
     btn.invalidate()
 }
 
 func applyTheme()
 {
-    if g_DarkTheme do
+    if g_DarkTheme
+    {
         app.theme.colors.setDark()
-    else do
+    }
+    else
+    {
         app.theme.colors.setLight()
+    }
+
     updateThemeButton()
     app.notifyThemeChanged()
 }
@@ -310,8 +322,10 @@ func displayModeFromIndex(idx: u32)->PropertiesKind
 func rebuildInspector()
 {
     let objHost = g_ObjHost
-    if not objHost do
+    if not objHost
+    {
         return
+    }
 
     g_PropCtrl?.destroy()
 
@@ -321,18 +335,25 @@ func rebuildInspector()
     g_Props        = props
     ctrl.dockStyle = .Center
     props.setEditorWidth(320)
-    if props.isGridLike() do
+    if props.isGridLike()
+    {
         props.setNameColumnWidth(190)
+    }
 
-    var bases: Array'(*u8)
-    for i in g_CardCount do
+    var bases: Array!{*u8}
+    for i in g_CardCount
+    {
         bases.add(cast(*u8, &g_Cards[i]))
+    }
+
     props.addStructMulti(SceneCard,
                          bases.toSlice(),
                          Format.toString("Editing % card%", g_CardCount, g_CardCount > 1 ? "s" : ""))
 
-    if not g_Filter.isEmpty() do
+    if not g_Filter.isEmpty()
+    {
         ctrl.search.setText(g_Filter.toString())
+    }
 
     ctrl.search.sigTextChanged += func(fil)
     {
@@ -350,16 +371,22 @@ func rebuildInspector()
 
 func setDisplayMode(kind: PropertiesKind)
 {
-    if g_DisplayMode == kind do
+    if g_DisplayMode == kind
+    {
         return
+    }
+
     g_DisplayMode = kind
     rebuildInspector()
 }
 
 func setCardCount(count: s32)
 {
-    if g_CardCount == count do
+    if g_CardCount == count
+    {
         return
+    }
+
     g_CardCount = count
     rebuildInspector()
     g_Preview?.invalidate()
@@ -368,12 +395,12 @@ func setCardCount(count: s32)
 func createInspectorPage(parent: *Wnd)
 {
     // Left column: a control row (display mode + edited count), then the property controller.
-    let objHost = Wnd.create'Wnd(parent, {0, 0, InspectorWidth, 10})
+    let objHost = Wnd.create!{Wnd}(parent, {0, 0, InspectorWidth, 10})
     g_ObjHost         = objHost
     objHost.dockStyle = .Left
     objHost.margin.z  = SplitGap
 
-    let controls = Wnd.create'Wnd(objHost, {0, 0, 0, 44})
+    let controls = Wnd.create!{Wnd}(objHost, {0, 0, 0, 44})
     controls.dockStyle = .Top
     controls.margin.w  = 8
 
@@ -438,8 +465,8 @@ func drawCard(painter: *Painter, slot: Math.Rectangle, card: *SceneCard, selecte
 
     if card.castShadow and card.shadowKind != .None
     {
-        let off = card.shadowKind == .Soft ? 14.0'f32 : 7.0'f32
-        let sa  = card.shadowKind == .Soft ? 45.0'f32 : 90.0'f32
+        let off = card.shadowKind == .Soft ? 14.0_f32 : 7.0_f32
+        let sa  = card.shadowKind == .Soft ? 45.0_f32 : 90.0_f32
         let sh  = Math.Rectangle{body.x + off, body.y + off, body.width, body.height}
         painter.fillRoundRect(sh, rad, rad, Color.fromArgb(cast(u8, (sa * card.opacity)), Argb.Black))
     }
@@ -455,10 +482,16 @@ func drawCard(painter: *Painter, slot: Math.Rectangle, card: *SceneCard, selecte
         painter.fillRoundRect(hi, rad, rad, Color.fromArgb(cast(u8, (gloss * 90 * card.opacity)), Argb.White))
     }
 
-    if card.badges & CardBadge.Ring do
+    if card.badges & CardBadge.Ring
+    {
         painter.drawRoundRect(body, rad, rad, Color.lerpRgb(card.fill, Argb.White, 0.5).withAlpha(a), 2.0)
-    if card.badges & CardBadge.Accent do
+    }
+
+    if card.badges & CardBadge.Accent
+    {
         painter.fillCircle(body.x + 20, body.y + 20, 6, Color.fromArgb(Argb.Orange).withAlpha(a))
+    }
+
     if card.badges & CardBadge.Tag
     {
         let tag = Math.Rectangle{body.right() - 62, body.y + 14, 48, 22}
@@ -506,7 +539,7 @@ func onPreviewEvent(view: *Wnd, evt: IEvent)->bool
 // ---------------------------------------------------------------------------
 
 const RatingMax     = 5
-const RatingPipSize = 28'f32
+const RatingPipSize = 28_f32
 
 struct RatingEditor {}
 
@@ -521,12 +554,16 @@ impl IPropertyEditor for RatingEditor
         let prop   = list
 
         let height = Math.min(item.line.position.height, list.themeMetrics().editBox_Height)
-        let line   = Wnd.create'Wnd(item.line, Math.Rectangle{0, 0, RatingMax * RatingPipSize, height})
+        let line   = Wnd.create!{Wnd}(item.line, Math.Rectangle{0, 0, RatingMax * RatingPipSize, height})
         line.maxSize.x = RatingMax * RatingPipSize
-        if list.isGridLike() do
+        if list.isGridLike()
+        {
             line.dockStyle = .CenterKeepSizeVert
-        else do
+        }
+        else
+        {
             line.anchorStyle = .Right
+        }
 
         for i in RatingMax
         {
@@ -546,7 +583,7 @@ impl IPropertyEditor for RatingEditor
                 {
                     bc.painter.setParams(.Antialiased)
                     let on  = idx < rating!.value
-                    let col = on ? Argb.Goldenrod : Color.fromArgb(70'u8, Argb.Gray)
+                    let col = on ? Argb.Goldenrod : Color.fromArgb(70_u8, Argb.Gray)
                     let rad = Math.min(pos.width, pos.height) * 0.28
                     bc.painter.fillCircle(pos.horzCenter(), pos.vertCenter(), rad, col)
                 }
@@ -555,8 +592,10 @@ impl IPropertyEditor for RatingEditor
 
         item.sigRefresh += func|line|(_)
         {
-            for c in line.children do
+            for c in line.children
+            {
                 c.invalidate()
+            }
         }
 
         return item
@@ -565,7 +604,7 @@ impl IPropertyEditor for RatingEditor
 
 #init
 {
-    Properties.registerEditor'(RatingEditor)()
+    Properties.registerEditor!{RatingEditor}()
 }
 
 // ---------------------------------------------------------------------------
@@ -574,14 +613,21 @@ impl IPropertyEditor for RatingEditor
 
 func updateStatus(item: *PropertiesItem?)
 {
-    if item == null do
+    if item == null
+    {
         return
+    }
 
     var name: String = item.typeValue.name
-    if name == "" and (item.label != null) do
+    if name == "" and (item.label != null)
+    {
         name = item.label.text()
-    if name == "" do
+    }
+
+    if name == ""
+    {
         name = "section"
+    }
 
     g_StatusText = Format.toString("Last change: %.", name)
     updateHeader()
@@ -599,8 +645,10 @@ func updateHeader()
 
 func layoutRootView()
 {
-    if not g_View or not g_PageView do
+    if not g_View or not g_PageView
+    {
         return
+    }
 
     let view     = unwrap g_View
     let pageView = unwrap g_PageView
@@ -670,7 +718,7 @@ func createRootView()
     themeButton.setIcon(app.theme.icon(ThemeIcons.Picker, 18))
     themeButton.sigPressed += &toggleTheme
 
-    let pageView = Wnd.create'Wnd(view, {})
+    let pageView = Wnd.create!{Wnd}(view, {})
     g_PageView = pageView
     pageView.backgroundStyle = .Transparent
 
@@ -687,8 +735,10 @@ func createRootView()
 // real rebuild path), then quit after a fixed number of frames.
 func updateTestMode()
 {
-    if not Env.isSmokeRun() or not g_Surface do
+    if not Env.isSmokeRun() or not g_Surface
+    {
         return
+    }
 
     g_TestFrame += 1
     let displayCombo = g_DisplayCombo
@@ -700,8 +750,10 @@ func updateTestMode()
         countCombo.setSelectedIndex(cast(u32, ((g_TestStep / 4) % 3)))
     }
 
-    if g_TestFrame >= 200 do
+    if g_TestFrame >= 200
+    {
         Env.exit(0)
+    }
 }
 
 func onFrame(_: *Application)
@@ -715,10 +767,14 @@ func onFrame(_: *Application)
 
     for arg in Env.arguments()
     {
-        if arg == "--dark" do
+        if arg == "--dark"
+        {
             g_DarkTheme = true
-        elif arg == "--light" do
+        }
+        else if arg == "--light"
+        {
             g_DarkTheme = false
+        }
     }
 
     let flags = SurfaceFlags.SmallCaption |
@@ -736,8 +792,10 @@ func onFrame(_: *Application)
     applyTheme()
 
     app.sigFrame += &onFrame
-    if Env.isSmokeRun() do
+    if Env.isSmokeRun()
+    {
         app.maxRunFrame = 240
+    }
 
     surface.show()
     app.run()

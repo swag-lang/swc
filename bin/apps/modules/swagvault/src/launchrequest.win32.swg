@@ -2,7 +2,7 @@
 
 using Core, Win32
 
-private func launchRequestName(token: u64)->Array'u16
+private func launchRequestName(token: u64)->Array!{u16}
 {
     return Utf16.toZeroTerminated(Format.toString("Local\\Swag.Vault.Launch.%", token))
 }
@@ -14,8 +14,10 @@ func forwardVaultLaunch(surfaceId, path: string)->bool fail
     let handle        = try CreateFileMappingW(INVALID_HANDLE_VALUE, null, PAGE_READWRITE, 0, #sizeof(LaunchRequest), name.buffer)
     let alreadyExists = GetLastError() == ERROR_ALREADY_EXISTS
     defer CloseHandle(handle)
-    if alreadyExists do
+    if alreadyExists
+    {
         return false
+    }
 
     let view = try MapViewOfFile(handle, FILE_MAP_WRITE, 0, 0, #sizeof(LaunchRequest))
     defer discard catch UnmapViewOfFile(view)

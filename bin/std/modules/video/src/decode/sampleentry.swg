@@ -11,18 +11,18 @@
 // stays in the file, and the reader keeps only where it is and when it is shown.
 struct SampleEntry
 {
-    offset: u64      // Absolute byte offset of the access unit in the source file.
-    size:   u64      // Access unit size in bytes.
-    presentationTime: s64     // Presentation timestamp, in the container's own units.
-    isSync: bool     // Whether the unit starts a decode that needs nothing before it.
-    repeatPrevious: bool     // A container slot that holds the preceding picture.
+    offset:           u64      // Absolute byte offset of the access unit in the source file.
+    size:             u64      // Access unit size in bytes.
+    presentationTime: s64      // Presentation timestamp, in the container's own units.
+    isSync:           bool     // Whether the unit starts a decode that needs nothing before it.
+    repeatPrevious:   bool     // A container slot that holds the preceding picture.
 }
 
 // Reads one stored frame, putting back whatever the container took off its front.
 //
 // A writer that knows every frame of a track begins with the same bytes may store them once and
 // strip them, so what lies in the file is not the whole frame. A decoder is handed the frame.
-func readStoredFrame(source: *ByteSource, entry: SampleEntry, prefix: const [..] u8, payload: *Array'u8) fail
+func readStoredFrame(source: *ByteSource, entry: SampleEntry, prefix: const [..] u8, payload: *Array!{u8}) fail
 {
     let count      = prefix.count
     let totalCount = entry.size + count
@@ -34,8 +34,11 @@ func readStoredFrame(source: *ByteSource, entry: SampleEntry, prefix: const [..]
         payload.count = totalCount
     }
 
-    if count do
+    if count
+    {
         Memory.copy(payload.storage(), prefix.buffer, count)
+    }
+
     try source.seek(entry.offset)
     try source.readExact(payload.toSlice()[count until payload.count])
 }

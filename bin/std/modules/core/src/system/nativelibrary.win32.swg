@@ -11,8 +11,11 @@ internal func loadNativeLibrary(path: string)->const *void fail
     let handle = Path.isRooted(path) ?
                  LoadLibraryExW(nativePath.buffer, null, LOAD_LIBRARY_SEARCH_DLL_LOAD_DIR | LOAD_LIBRARY_SEARCH_DEFAULT_DIRS) :
                  LoadLibraryW(nativePath.buffer)
-    if not handle do
+    if not handle
+    {
         try failWinError(GetLastError())
+    }
+
     return cast(const *void, unwrap handle)
 }
 

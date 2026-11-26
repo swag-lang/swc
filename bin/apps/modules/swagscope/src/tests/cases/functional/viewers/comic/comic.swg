@@ -170,12 +170,12 @@ using Core, Pixel, Gui, Gui.Testing, Viewers
                 {
                     result.previousDisabled = entry.disabled
                 }
-                elif entry.title == Comic.texts().ui_Next
+                else if entry.title == Comic.texts().ui_Next
                 {
                     result.nextDisabled = entry.disabled
                     result.nextKey      = entry.detail
                 }
-                elif entry.title == Comic.texts().ui_RightToLeft
+                else if entry.title == Comic.texts().ui_RightToLeft
                 {
                     Swag.require(entry.detail.isEmpty(), "no key toggles the reading direction")
                 }

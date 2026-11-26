@@ -8,7 +8,7 @@ struct WindowPointerNotice
     event: Env.WindowPointerEvent
 }
 
-var g_WindowPointerNotices: Array'WindowPointerNotice
+var g_WindowPointerNotices: Array!{WindowPointerNotice}
 
 func recordWindowPointer(owner: *Env.Window, event: Env.WindowPointerEvent)
 {
@@ -64,7 +64,7 @@ func sendWindowPointerForTest(window: u32, kind, button: u8, x, y: s16)
         sendWindowPointerForTest(id, Linux.XCB_BUTTON_RELEASE, button, 17, -31)
     }
 
-    for button in 4'u8 to 7'u8
+    for button in 4_u8 to 7_u8
     {
         sendWindowPointerForTest(id, Linux.XCB_BUTTON_PRESS, button, 5, 7)
         sendWindowPointerForTest(id, Linux.XCB_BUTTON_RELEASE, button, 5, 7)
@@ -77,8 +77,11 @@ func sendWindowPointerForTest(window: u32, kind, button: u8, x, y: s16)
     var moved   = #move window
     let running = Env.processWindowMessages()
     Swag.require(running and g_WindowPointerNotices.count == 15)
-    for notice in g_WindowPointerNotices do
+    for notice in g_WindowPointerNotices
+    {
         Swag.require(notice.owner == &moved)
+    }
+
     let motion = g_WindowPointerNotices[0].event
     Swag.require(motion.kind == .Move and motion.x == -32768 and motion.y == 32767)
     Swag.require(motion.wheelX == 0 and motion.wheelY == 0)

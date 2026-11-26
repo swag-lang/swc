@@ -36,8 +36,11 @@ using Core
 {
     var bytes = makeTypeFaceCollection()
     let path  = makeTempImagePath(".ttc")
-    for index in 4 do
+    for index in 4
+    {
         bytes[16 + index] = 255
+    }
+
     discard expect File.writeAllBytes(path.toString(), bytes.toSlice())
     defer discard catch File.delete(path.toString())
     var catalog: FontCatalog
@@ -79,12 +82,12 @@ using Core
 {
     func fixture(weight, width: u16, italic: bool)->String
     {
-        func read32(bytes: *Array'u8, offset: u64)->u32 => cast(u32, bytes[offset]) << 24 |
-                                                           cast(u32, bytes[offset + 1]) << 16 |
-                                                           cast(u32, bytes[offset + 2]) << 8 |
-                                                           bytes[offset + 3]
+        func read32(bytes: *Array!{u8}, offset: u64)->u32 => cast(u32, bytes[offset]) << 24 |
+                                                             cast(u32, bytes[offset + 1]) << 16 |
+                                                             cast(u32, bytes[offset + 2]) << 8 |
+                                                             bytes[offset + 3]
 
-        func write16(bytes: *Array'u8, offset: u64, value: u16)
+        func write16(bytes: *Array!{u8}, offset: u64, value: u16)
         {
             bytes[offset]     = cast(u8, value >> 8)
             bytes[offset + 1] = cast(u8, value & 255)
@@ -95,18 +98,18 @@ using Core
         var foundStyle = false
         for table in tables
         {
-            let record = 12'u64 + table * 16
+            let record = 12_u64 + table * 16
             let offset = read32(&bytes, record + 8)
             let tag    = read32(&bytes, record)
             if tag == 0x68656164
             {
-                write16(&bytes, offset + 44, italic ? 2'u16 : 0'u16)
+                write16(&bytes, offset + 44, italic ? 2_u16 : 0_u16)
             }
-            elif tag == 0x4F532F32
+            else if tag == 0x4F532F32
             {
                 write16(&bytes, offset + 4, weight)
                 write16(&bytes, offset + 6, width)
-                write16(&bytes, offset + 62, italic ? 1'u16 : 0'u16)
+                write16(&bytes, offset + 62, italic ? 1_u16 : 0_u16)
                 foundStyle = true
             }
         }
@@ -121,13 +124,18 @@ using Core
                  fixture(600, 5, false), fixture(300, 5, false), fixture(700, 5, false)]
     defer
     {
-        for path in paths do
+        for path in paths
+        {
             discard catch File.delete(path.toString())
+        }
     }
 
     var catalog: FontCatalog
-    for path in paths do
+    for path in paths
+    {
         discard expect catalog.addFile(path.toString())
+    }
+
     Swag.require((unwrap catalog.findFace("Segoe UI")).path == paths[0])
     Swag.require((unwrap catalog.findFace("Segoe UI", .Bold)).path == paths[5])
     Swag.require((unwrap catalog.findFace("Segoe UI", .Italic)).path == paths[2])

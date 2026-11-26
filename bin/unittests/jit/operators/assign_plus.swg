@@ -18,12 +18,12 @@
 {
     func plusEqFloat()->f64
     {
-        var v: f64 = 39.5'f64
-        v += 2.5'f64
+        var v: f64 = 39.5_f64
+        v += 2.5_f64
         return v
     }
 
     const V = #run plusEqFloat()
     #assert(#typeof(V) == f64)
-    #assert(V == 42.0'f64)
+    #assert(V == 42.0_f64)
 }

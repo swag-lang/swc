@@ -25,19 +25,28 @@ namespace WinFsp
     {
         let keyName   = Utf16.toZeroTerminated("Software\\WinFsp")
         var key: HKEY = null
-        if RegOpenKeyExW(HKEY_LOCAL_MACHINE, keyName.buffer, 0, KEY_READ | KEY_WOW64_32KEY, &key) != 0 do
+        if RegOpenKeyExW(HKEY_LOCAL_MACHINE, keyName.buffer, 0, KEY_READ | KEY_WOW64_32KEY, &key) != 0
+        {
             return ""
+        }
+
         defer discard RegCloseKey(key)
 
         let valueName = Utf16.toZeroTerminated("InstallDir")
         var directory: [MAX_PATH + 1] u16
         var size      = cast(u32, (MAX_PATH * #sizeof(u16)))
         var kind:      u32
-        if RegQueryValueExW(key, valueName.buffer, null, &kind, cast(*u8, directory.buffer), &size) != 0 or kind != REG_SZ do
+        if RegQueryValueExW(key, valueName.buffer, null, &kind, cast(*u8, directory.buffer), &size) != 0 or kind != REG_SZ
+        {
             return ""
+        }
+
         let root = stringFromWide(directory.buffer)
-        if not Path.isRooted(root) do
+        if not Path.isRooted(root)
+        {
             return ""
+        }
+
         let path = Path.combine(root, "bin", WinFspDllName)
         return File.exists(path) ? path : String{}
     }
@@ -45,16 +54,23 @@ namespace WinFsp
     // Windows Installer owns the elevation and waits for the user's answer in its own UI.
     func install() fail
     {
-        if Env.isSandboxed() do
+        if Env.isSandboxed()
+        {
             fail volumeError(.DriverUnavailable)
-        if not installedLibrary().isEmpty() do
+        }
+
+        if not installedLibrary().isEmpty()
+        {
             return
+        }
 
         let executable = try Env.Process.currentExecutablePath()
         let directory  = unwrap Path.directoryName(executable)
         let package    = installerPackagePath(directory)
-        if not File.exists(package) do
+        if not File.exists(package)
+        {
             fail volumeError(.DriverUnavailable)
+        }
 
         var system: [MAX_PATH] u16
         try SHGetSpecialFolderPathW(null, system.buffer, CSIDL_SYSTEM, FALSE)
@@ -76,8 +92,10 @@ namespace WinFsp
             fail volumeError(.DriverRestartRequired)
 
         case 0:
-            if installedLibrary().isEmpty() do
+            if installedLibrary().isEmpty()
+            {
                 fail volumeError(.DriverUnavailable)
+            }
 
         default:
             fail volumeError(.DriverUnavailable, cast #bit (u32, status))

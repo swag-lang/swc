@@ -14,7 +14,7 @@ const SingleInput = "0"
 // Compile-time: precompute powers of 10 via #run
 // ---------------------------------------------------------------------------
 
-const MaxPow = 20'u32
+const MaxPow = 20_u32
 
 func buildPow10()->[MaxPow] u64
 {
@@ -40,8 +40,10 @@ func digitCount(n: u64)->u32
 {
     for i in 1 until MaxPow
     {
-        if n < Pow10[i] do
+        if n < Pow10[i]
+        {
             return cast(u32, i)
+        }
     }
     return 1
 }
@@ -62,7 +64,7 @@ func splitHalf(n: u64, digits: u32)->SplitResult
 // StoneMap: open-addressing hash map (stone value → count)
 // ---------------------------------------------------------------------------
 
-const MapCap = 4096'u32
+const MapCap = 4096_u32
 
 struct StoneMap
 {
@@ -91,9 +93,18 @@ func mapInit()->StoneMap
 
 func mapFree(m: *StoneMap)
 {
-    if m.keys do testFree(m.keys)
-    if m.counts do testFree(m.counts)
-    if m.alive do testFree(m.alive)
+    if m.keys
+    {
+        testFree(m.keys)
+    }
+    if m.counts
+    {
+        testFree(m.counts)
+    }
+    if m.alive
+    {
+        testFree(m.alive)
+    }
 }
 
 func mapIsEmpty(m: *StoneMap)->bool
@@ -111,8 +122,10 @@ func mapProbe(m: *StoneMap, key: u64)->u32
     let keys  = unwrap m.keys
     for MapCap
     {
-        if not alive[idx] or keys[idx] == key do
+        if not alive[idx] or keys[idx] == key
+        {
             return idx
+        }
         idx = (idx + 1) % MapCap
     }
     Swag.assert(false)
@@ -125,8 +138,10 @@ func mapLookup(m: *StoneMap, key: u64)->*u64?
     let idx   = mapProbe(m, key)
     let alive = unwrap m.alive
     let keys  = unwrap m.keys
-    if alive[idx] and keys[idx] == key do
+    if alive[idx] and keys[idx] == key
+    {
         return &m.counts![idx]
+    }
     return null
 }
 
@@ -166,8 +181,10 @@ func mapTotal(m: *StoneMap)->u64
     let counts = unwrap m.counts
     for i in MapCap
     {
-        if alive[i] do
+        if alive[i]
+        {
             total += counts[i]
+        }
     }
     return total
 }
@@ -185,8 +202,10 @@ func forEachStone(m: *StoneMap, cb: StoneVisitor)
     let counts = unwrap m.counts
     for i in MapCap
     {
-        if alive[i] do
+        if alive[i]
+        {
             cb(keys[i], counts[i])
+        }
     }
 }
 
@@ -194,7 +213,7 @@ func forEachStone(m: *StoneMap, cb: StoneVisitor)
 // Blink simulation
 // ---------------------------------------------------------------------------
 
-const Multiplier = 2024'u64
+const Multiplier = 2024_u64
 
 func blinkStone(stone: u64, count: u64, dst: *StoneMap)
 {
@@ -224,8 +243,10 @@ func blinkOnce(src: *StoneMap, dst: *StoneMap)
     let counts = unwrap src.counts
     for i in MapCap
     {
-        if alive[i] do
+        if alive[i]
+        {
             blinkStone(keys[i], counts[i], dst)
+        }
     }
 }
 
@@ -258,7 +279,7 @@ func parseInput(text: string)->StoneMap
             acc   = acc * 10 + cast(u64, (ch - '0'))
             inNum = true
         }
-        elif inNum
+        else if inNum
         {
             mapAdd(&result, acc, 1)
             acc   = 0
@@ -266,8 +287,10 @@ func parseInput(text: string)->StoneMap
         }
     }
 
-    if inNum do
+    if inNum
+    {
         mapAdd(&result, acc, 1)
+    }
     return result
 }
 
@@ -284,8 +307,10 @@ struct BlinkResult
 
 func currentMap(a: *StoneMap, b: *StoneMap, step: u32)->*StoneMap
 {
-    if step % 2 == 0 do
+    if step % 2 == 0
+    {
         return a
+    }
     return b
 }
 
@@ -298,8 +323,14 @@ func solve(text: string)->BlinkResult
     for i in 75
     {
         let cur = currentMap(&a, &b, cast(u32, i))
-        if i == 6 do result.after6 = mapTotal(cur)
-        if i == 25 do result.after25 = mapTotal(cur)
+        if i == 6
+        {
+            result.after6 = mapTotal(cur)
+        }
+        if i == 25
+        {
+            result.after25 = mapTotal(cur)
+        }
 
         if i % 2 == 0
         {
@@ -325,33 +356,33 @@ func solve(text: string)->BlinkResult
 // Test compile-time power table
 #test
 {
-    Swag.require(Pow10[0] == 1'u64)
-    Swag.require(Pow10[1] == 10'u64)
-    Swag.require(Pow10[9] == 1000000000'u64)
+    Swag.require(Pow10[0] == 1_u64)
+    Swag.require(Pow10[1] == 10_u64)
+    Swag.require(Pow10[9] == 1000000000_u64)
 }
 
 // Test digit counting
 #test
 {
-    Swag.require(digitCount(0) == 1'u32)
-    Swag.require(digitCount(1) == 1'u32)
-    Swag.require(digitCount(9) == 1'u32)
-    Swag.require(digitCount(10) == 2'u32)
-    Swag.require(digitCount(99) == 2'u32)
-    Swag.require(digitCount(100) == 3'u32)
-    Swag.require(digitCount(1000) == 4'u32)
-    Swag.require(digitCount(123456) == 6'u32)
+    Swag.require(digitCount(0) == 1_u32)
+    Swag.require(digitCount(1) == 1_u32)
+    Swag.require(digitCount(9) == 1_u32)
+    Swag.require(digitCount(10) == 2_u32)
+    Swag.require(digitCount(99) == 2_u32)
+    Swag.require(digitCount(100) == 3_u32)
+    Swag.require(digitCount(1000) == 4_u32)
+    Swag.require(digitCount(123456) == 6_u32)
 }
 
 // Test split
 #test
 {
     let s = splitHalf(1234, 4)
-    Swag.require(s.left == 12'u64)
-    Swag.require(s.right == 34'u64)
+    Swag.require(s.left == 12_u64)
+    Swag.require(s.right == 34_u64)
     let s2 = splitHalf(1000, 4)
-    Swag.require(s2.left == 10'u64)
-    Swag.require(s2.right == 0'u64)
+    Swag.require(s2.left == 10_u64)
+    Swag.require(s2.right == 0_u64)
 }
 
 // Test StoneMap basics and orelse
@@ -365,27 +396,27 @@ func solve(text: string)->BlinkResult
 
     var zero: u64 = 0
     let p         = mapLookup(&m, 42) orelse &zero
-    Swag.require(p[] == 5'u64)
+    Swag.require(p[] == 5_u64)
 
     let q = mapLookup(&m, 999) orelse &zero
-    Swag.require(q[] == 0'u64)
+    Swag.require(q[] == 0_u64)
 
     mapAdd(&m, 42, 3)
     let r = mapLookup(&m, 42) orelse &zero
-    Swag.require(r[] == 8'u64)
+    Swag.require(r[] == 8_u64)
 
-    Swag.require(mapTotal(&m) == 8'u64)
+    Swag.require(mapTotal(&m) == 8_u64)
     mapFree(&m)
 }
 
 // Test typed variadic constructor
 #test
 {
-    var m = mapFromValues(0'u64, 1, 10, 99, 999)
-    Swag.require(mapTotal(&m) == 5'u64)
+    var m = mapFromValues(0_u64, 1, 10, 99, 999)
+    Swag.require(mapTotal(&m) == 5_u64)
     var zero: u64 = 0
-    Swag.require((mapLookup(&m, 0) orelse &zero)[] == 1'u64)
-    Swag.require((mapLookup(&m, 10) orelse &zero)[] == 1'u64)
+    Swag.require((mapLookup(&m, 0) orelse &zero)[] == 1_u64)
+    Swag.require((mapLookup(&m, 10) orelse &zero)[] == 1_u64)
     mapFree(&m)
 }
 
@@ -403,7 +434,7 @@ func solve(text: string)->BlinkResult
         pSum[] += key * count
     }
     forEachStone(&m, cb)
-    Swag.require(sum == 80'u64)
+    Swag.require(sum == 80_u64)
     mapFree(&m)
 }
 
@@ -415,8 +446,8 @@ func solve(text: string)->BlinkResult
     var b = mapInit()
     blinkOnce(&a, &b)
     var zero: u64 = 0
-    Swag.require((mapLookup(&b, 1) orelse &zero)[] == 1'u64)
-    Swag.require(mapTotal(&b) == 1'u64)
+    Swag.require((mapLookup(&b, 1) orelse &zero)[] == 1_u64)
+    Swag.require(mapTotal(&b) == 1_u64)
     mapFree(&a)
     mapFree(&b)
 }
@@ -426,19 +457,19 @@ func solve(text: string)->BlinkResult
 {
     var a = mapInit()
     mapAdd(&a, 1234, 1)
-    Swag.require(mapTotal(&a) == 1'u64)
+    Swag.require(mapTotal(&a) == 1_u64)
 
     var b = mapInit()
     blinkOnce(&a, &b)
-    Swag.require(mapTotal(&b) == 2'u64)
+    Swag.require(mapTotal(&b) == 2_u64)
 
     var zero: u64 = 0
     let p12       = mapLookup(&b, 12)
     let p34       = mapLookup(&b, 34)
     Swag.require(p12 != null)
     Swag.require(p34 != null)
-    Swag.require((p12 orelse &zero)[] == 1'u64)
-    Swag.require((p34 orelse &zero)[] == 1'u64)
+    Swag.require((p12 orelse &zero)[] == 1_u64)
+    Swag.require((p34 orelse &zero)[] == 1_u64)
     mapFree(&a)
     mapFree(&b)
 }
@@ -451,7 +482,7 @@ func solve(text: string)->BlinkResult
     var b = mapInit()
     blinkOnce(&a, &b)
     var zero: u64 = 0
-    Swag.require((mapLookup(&b, 253000) orelse &zero)[] == 1'u64)
+    Swag.require((mapLookup(&b, 253000) orelse &zero)[] == 1_u64)
     mapFree(&a)
     mapFree(&b)
 }
@@ -460,15 +491,15 @@ func solve(text: string)->BlinkResult
 #test
 {
     let result = solve(SampleInput)
-    Swag.require(result.after6 == 22'u64)
-    Swag.require(result.after25 == 55312'u64)
+    Swag.require(result.after6 == 22_u64)
+    Swag.require(result.after25 == 55312_u64)
 }
 
 // Test single zero stone
 #test
 {
     let result = solve(SingleInput)
-    Swag.require(result.after6 > 0'u64)
+    Swag.require(result.after6 > 0_u64)
 }
 
 // Test map clear
@@ -477,9 +508,9 @@ func solve(text: string)->BlinkResult
     var m = mapInit()
     mapAdd(&m, 1, 10)
     mapAdd(&m, 2, 20)
-    Swag.require(mapTotal(&m) == 30'u64)
+    Swag.require(mapTotal(&m) == 30_u64)
     mapClear(&m)
     Swag.require(mapIsEmpty(&m))
-    Swag.require(mapTotal(&m) == 0'u64)
+    Swag.require(mapTotal(&m) == 0_u64)
     mapFree(&m)
 }

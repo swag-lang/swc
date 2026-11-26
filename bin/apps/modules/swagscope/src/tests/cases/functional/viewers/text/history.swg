@@ -21,7 +21,7 @@ private func textHistoryRows(view: *PlainText.Panel, host: *Testing.HeadlessHost
     var host: Testing.HeadlessHost
     host.setup(640, 360)
     var session = openTestViewer(PlainText.viewerPlugin(), &host.root, fileName)
-    let view = assume cast(*PlainText.Panel, session.view)
+    let view    = assume cast(*PlainText.Panel, session.view)
     completeTextReads(&host, view)
     Swag.require(view.lensHistory.isEmpty() and view.lensHistoryIndex == Swag.U64.Max)
     let initial = view.currentByteOffset()
@@ -33,26 +33,38 @@ private func textHistoryRows(view: *PlainText.Panel, host: *Testing.HeadlessHost
     firstJump.entries[0].run!()
     completeTextReads(&host, view)
     let thirdLine = view.lines.offsetOfLine(fileName, 3, view.encoding, view.contentStart)
-    Swag.require(view.lensHistory.count == 2 and view.lensHistory[0] == initial and view.lensHistory[1] == thirdLine)
+    Swag.require(view.lensHistory.count == 2 and
+                 view.lensHistory[0] == initial and
+                 view.lensHistory[1] == thirdLine)
 
     var backResults = textHistoryRows(view, &host, "Back in Text")
     var back: *Lens.Entry?
-    for &entry in backResults.sections[0]!.entries where entry.title == PlainText.texts().ui_Back do
+    for &entry in backResults.sections[0]!.entries where entry.title == PlainText.texts().ui_Back
+    {
         back = entry
+    }
+
     Swag.require(back != null)
     let backEntry = back
-    Swag.require(not backEntry.disabled and backEntry.defaultKey.modifiers == .Alt and backEntry.defaultKey.key == .Left)
+    Swag.require(not backEntry.disabled and
+                 backEntry.defaultKey.modifiers == .Alt and
+                 backEntry.defaultKey.key == .Left)
     backEntry.run!()
     completeTextReads(&host, view)
     Swag.require(view.currentByteOffset() == initial)
 
     var forwardResults = textHistoryRows(view, &host, "Forward in Text")
     var forward: *Lens.Entry?
-    for &entry in forwardResults.sections[0]!.entries where entry.title == PlainText.texts().ui_Forward do
+    for &entry in forwardResults.sections[0]!.entries where entry.title == PlainText.texts().ui_Forward
+    {
         forward = entry
+    }
+
     Swag.require(forward != null)
     let forwardEntry = forward
-    Swag.require(not forwardEntry.disabled and forwardEntry.defaultKey.modifiers == .Alt and forwardEntry.defaultKey.key == .Right)
+    Swag.require(not forwardEntry.disabled and
+                 forwardEntry.defaultKey.modifiers == .Alt and
+                 forwardEntry.defaultKey.key == .Right)
     forwardEntry.run!()
     completeTextReads(&host, view)
     Swag.require(view.currentByteOffset() == thirdLine)
@@ -67,8 +79,11 @@ private func textHistoryRows(view: *PlainText.Panel, host: *Testing.HeadlessHost
     Swag.require(view.currentByteOffset() == thirdLine)
 
     var again = textHistoryRows(view, &host, "Back in Text")
-    for &entry in again.sections[0]!.entries where entry.title == PlainText.texts().ui_Back do
+    for &entry in again.sections[0]!.entries where entry.title == PlainText.texts().ui_Back
+    {
         entry.run!()
+    }
+
     completeTextReads(&host, view)
     lineResults = Testing.lensResults("4", .Line)
     Swag.require(view.describeTypedPosition(&lineResults))
@@ -78,8 +93,10 @@ private func textHistoryRows(view: *PlainText.Panel, host: *Testing.HeadlessHost
     Swag.require(view.lensHistory[view.lensHistoryIndex] == view.lines.offsetOfLine(fileName, 4, view.encoding, view.contentStart))
 
     let noForward = textHistoryRows(view, &host, "Forward in Text")
-    for &entry in noForward.sections[0]!.entries where entry.title == PlainText.texts().ui_Forward do
+    for &entry in noForward.sections[0]!.entries where entry.title == PlainText.texts().ui_Forward
+    {
         Swag.require(entry.disabled)
+    }
 
     let secondLine = view.lines.offsetOfLine(fileName, 2, view.encoding, view.contentStart)
     Swag.require(view.revealOffset(secondLine, "", caret: true))
@@ -91,8 +108,11 @@ private func textHistoryRows(view: *PlainText.Panel, host: *Testing.HeadlessHost
     completeTextReads(&host, view)
     Swag.require(view.lensHistory[view.lensHistoryIndex - 1] == secondLine)
     var returnResults = textHistoryRows(view, &host, "Back in Text")
-    for &entry in returnResults.sections[0]!.entries where entry.title == PlainText.texts().ui_Back do
+    for &entry in returnResults.sections[0]!.entries where entry.title == PlainText.texts().ui_Back
+    {
         entry.run!()
+    }
+
     completeTextReads(&host, view)
     Swag.require(view.currentByteOffset() == secondLine)
 }
@@ -103,14 +123,17 @@ private func textHistoryRows(view: *PlainText.Panel, host: *Testing.HeadlessHost
     let fileName = Testing.tempFilePath("scope-text-history-stream-", ".txt")
     defer discard catch File.delete(fileName)
     var source: String
-    for line in 0 until 50_000 do
+    for line in 0 until 50_000
+    {
         source += Format.toString("line %\n", line)
+    }
+
     discard expect File.writeAllText(fileName, source)
 
     var host: Testing.HeadlessHost
     host.setup(640, 360)
     var session = openTestViewer(PlainText.viewerPlugin(), &host.root, fileName)
-    let view = assume cast(*PlainText.Panel, session.view)
+    let view    = assume cast(*PlainText.Panel, session.view)
     completeTextReads(&host, view)
 
     for line in 2 until 72
@@ -120,18 +143,22 @@ private func textHistoryRows(view: *PlainText.Panel, host: *Testing.HeadlessHost
         Swag.require(view.revealLensDestination(offset))
         completeTextReads(&host, view)
     }
+
     Swag.require(view.lensHistory.count == 64)
     let latest = view.lines.offsetOfLine(fileName, 71, view.encoding, view.contentStart)
     Swag.require(view.lensHistory[view.lensHistoryIndex] == latest)
 
-    let distant = 400_000'u64
+    let distant = 400_000_u64
     Swag.require(view.revealLensDestination(distant))
     completeTextReads(&host, view)
     Swag.require(view.residentStart > 0 and view.lensHistory[view.lensHistoryIndex] == distant)
 
     var backResults = textHistoryRows(view, &host, "Back in Text")
-    for &entry in backResults.sections[0]!.entries where entry.title == PlainText.texts().ui_Back do
+    for &entry in backResults.sections[0]!.entries where entry.title == PlainText.texts().ui_Back
+    {
         entry.run!()
+    }
+
     completeTextReads(&host, view)
     Swag.require(view.residentStart == 0 and view.currentByteOffset() == latest)
 }

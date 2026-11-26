@@ -28,22 +28,22 @@ struct Panel
     using wnd: Wnd
 
     presentation:     Presentation
-    load:             Viewer.BackgroundLoad'Presentation
+    load:             Viewer.BackgroundLoad!{Presentation}
     services:         Viewer.HostServices
     view:             *HtmlView?
     slide:            u64 = Swag.U64.Max
     textMode:         bool
     notesMode:        bool
     using navigation: DocumentPageNavigation
-    previews:         Array'Layer
+    previews:         Array!{Layer}
 
     using steps: Viewer.PageSteps
 
     late
     {
-        status:           *Label
-        slideLabel:       *IconButton
-        outline:          *DocumentOutline
+        status:     *Label
+        slideLabel: *IconButton
+        outline:    *DocumentOutline
     }
 }
 
@@ -73,7 +73,7 @@ private impl IWnd for Panel
         }
 
         var hasTitles = false
-        var headings: Array'DocumentHeading
+        var headings: Array!{DocumentHeading}
         for page, index in .presentation.slides
         {
             hasTitles = hasTitles or not page.title.isEmpty()
@@ -82,8 +82,11 @@ private impl IWnd for Panel
         }
 
         // A deck without named slides opens directly to its visual index.
-        if not hasTitles do
+        if not hasTitles
+        {
             headings.clear()
+        }
+
         .outline.publish(headings.toSlice())
         .navigation.pageCount   = .presentation.slides.count
         .navigation.slideAspect = .presentation.width / .presentation.height
@@ -108,10 +111,14 @@ private impl IWnd for Panel
         if evt.kind == .LanguageChanged
         {
             .translateNavigation(texts().ui_Thumbnails, texts().ui_Titles)
-            if .notesMode and .slide < .presentation.slides.count do
+            if .notesMode and .slide < .presentation.slides.count
+            {
                 .buildSlide()
-            else do
+            }
+            else
+            {
                 .refreshNavigation()
+            }
         }
 
         .wnd.IWnd.onNotifyEvent(evt)
@@ -125,62 +132,97 @@ private impl Panel
     mtd refreshNavigation()
     {
         let count = .presentation.slides.count
-        if .steps.updateSteps(.slide, count) do
+        if .steps.updateSteps(.slide, count)
+        {
             .services.chromeChanged(me)
+        }
+
         .previousButton.toolTip = texts().ui_Previous
         .nextButton.toolTip     = texts().ui_Next
-        if .slide >= count do
+        if .slide >= count
+        {
             return
+        }
+
         var detail = String.from(texts().ui_Name)
-        if .notesMode do
+        if .notesMode
+        {
             detail += Format.toString(" · %", texts().ui_NotesMode)
-        elif .textMode do
+        }
+        else if .textMode
+        {
             detail += Format.toString(" · %", texts().ui_TextMode)
-        elif .presentation.slides[.slide].simplified do
+        }
+        else if .presentation.slides[.slide].simplified
+        {
             detail += Format.toString(" · %", texts().ui_Simplified)
+        }
+
         .services.showDetails(me, detail)
     }
 
     internal mtd showSlide(index: u64)
     {
-        if index >= .presentation.slides.count or (index == .slide and .view) do
+        if index >= .presentation.slides.count or (index == .slide and .view)
+        {
             return
+        }
+
         .slide = index
         .buildSlide()
         .outline.markReading(index)
         .navigation.currentPage = index
-        if .gallery.isVisible() do
+        if .gallery.isVisible()
+        {
             .gallery.revealCurrentPage()
+        }
     }
 
     internal mtd turn(direction: s32)
     {
-        if .slide >= .presentation.slides.count do
+        if .slide >= .presentation.slides.count
+        {
             return
-        if direction < 0 and .slide > 0 do
+        }
+
+        if direction < 0 and .slide > 0
+        {
             .showSlide(.slide - 1)
-        elif direction > 0 and .slide + 1 < .presentation.slides.count do
+        }
+        else if direction > 0 and .slide + 1 < .presentation.slides.count
+        {
             .showSlide(.slide + 1)
+        }
     }
 
     internal mtd setTextMode(enabled: bool)
     {
-        if .textMode == enabled and not .notesMode do
+        if .textMode == enabled and not .notesMode
+        {
             return
+        }
+
         .textMode  = enabled
         .notesMode = false
-        if .slide < .presentation.slides.count do
+        if .slide < .presentation.slides.count
+        {
             .buildSlide()
+        }
     }
 
     internal mtd showNotes()
     {
-        if .notesMode do
+        if .notesMode
+        {
             return
+        }
+
         .notesMode = true
         .textMode  = false
-        if .slide < .presentation.slides.count do
+        if .slide < .presentation.slides.count
+        {
             .buildSlide()
+        }
     }
 
     mtd buildSlide()
@@ -210,7 +252,7 @@ private impl Panel
             style.maxContentWidth = 680
             style.bodyFontSize    = 18
         }
-        elif .textMode or page.simplified
+        else if .textMode or page.simplified
         {
             source                = "<html><body>"
             source                += page.readingHtml()
@@ -237,8 +279,11 @@ private impl Panel
     mtd layoutSlide()
     {
         let view = .view
-        if not view or .slide >= .presentation.slides.count do
+        if not view or .slide >= .presentation.slides.count
+        {
             return
+        }
+
         let inset      = .themeMetrics().floating_Inset
         let top        = .stripInset() + inset
         let area       = .clientRect()
@@ -260,8 +305,11 @@ private impl Panel
 
     mtd handleKey(key: const *KeyEvent)->bool
     {
-        if key.kind != .Pressed do
+        if key.kind != .Pressed
+        {
             return false
+        }
+
         let direction = Viewer.pageKeyDirection(key)
         if direction
         {
@@ -269,8 +317,11 @@ private impl Panel
             return true
         }
 
-        if key.modifiers != .None and key.modifiers != .Control do
+        if key.modifiers != .None and key.modifiers != .Control
+        {
             return false
+        }
+
         switch key.key
         {
         case .PageUp:   .turn(-1)
@@ -296,7 +347,7 @@ private impl Panel
 
     func create(host: Viewer.Host)->*Panel
     {
-        with let result = Wnd.create'Panel(host.contentParent(), "scope.pptx")
+        with let result = Wnd.create!{Panel}(host.contentParent(), "scope.pptx")
         {
             .backgroundStyle = .View
             .focusPolicy     = .Tab
@@ -304,15 +355,17 @@ private impl Panel
         }
 
         let controls = host.createCommandGroup(Viewer.pageControlWidth(result.themeMetrics()))
-        result.slideLabel = result.steps.create(controls, "scope.pptx.page", .Slide,
-            func|view = result|(dir) { view.turn(dir) }, func|view = result|(index) { view.showSlide(index) })
+        result.slideLabel = result.steps.create(controls, "scope.pptx.page", .Slide, func|view = result|(dir) { view.turn(dir) }, func|view = result|(index) { view.showSlide(index) })
 
         result.status = Viewer.createLoadingLabel(result, texts().ui_Preparing)
 
         result.hookOnChildEvent = func|result|(_, evt)
         {
-            if evt is KeyEvent as key do
+            if evt is KeyEvent as key
+            {
                 return result.handleKey(key)
+            }
+
             return false
         }
 
@@ -332,10 +385,16 @@ func createViewer(host: Viewer.Host)
 func loadPresentationFile(fileName: string)->Presentation fail
 {
     let extension = String.toLower(Path.extension(fileName))
-    if extension == ".ppt" or extension == ".pps" do
+    if extension == ".ppt" or extension == ".pps"
+    {
         fail Errors.UnsupportedFormatError{texts().err_LegacyFormat}
-    if extension == ".pot" or extension == ".potx" or extension == ".potm" do
+    }
+
+    if extension == ".pot" or extension == ".potx" or extension == ".potm"
+    {
         fail Errors.UnsupportedFormatError{texts().err_TemplateFormat}
+    }
+
     return try Presentation.load(fileName)
 }
 

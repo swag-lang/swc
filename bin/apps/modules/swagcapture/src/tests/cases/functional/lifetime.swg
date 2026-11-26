@@ -8,9 +8,12 @@ using Swag, Core
 {
     func countWindows(wnd: *Wnd)->u64
     {
-        var count = 1'u64
-        for child in wnd.children do
+        var count = 1_u64
+        for child in wnd.children
+        {
             count += countWindows(child)
+        }
+
         return count
     }
 

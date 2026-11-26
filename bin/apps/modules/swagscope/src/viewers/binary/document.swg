@@ -5,7 +5,7 @@ using Core
 
 // Bytes an entropy estimate is taken over. Byte disorder is a property of the whole file, and a
 // quarter of a megabyte says as much about it as ten do.
-private const EntropySample = 256 * 1024'u64
+private const EntropySample = 256 * 1024_u64
 
 // Formats this viewer takes apart rather than merely identifies.
 enum FormatKind
@@ -31,7 +31,7 @@ struct Document
 {
     image:    BinaryImage
     report:   Report
-    previews: Array'Preview
+    previews: Array!{Preview}
     kind:     FormatKind
     opened:   bool
 }
@@ -49,8 +49,10 @@ impl Document
         .previews.clear()
         .report.level = 0
         .opened       = .image.load(fileName)
-        if not .opened do
+        if not .opened
+        {
             return false
+        }
 
         // Recognition reads past the end of a short file on purpose, so what it learned about the
         // bytes is dropped before the chosen reader starts: only the reader's own short reads are
@@ -76,8 +78,10 @@ impl Document
         case .Unknown:    reportUnknown(&.image, &.report)
         }
 
-        if .kind == .Scc do
+        if .kind == .Scc
+        {
             loadSccImagePreviews(fileName, &.previews)
+        }
 
         Swag.assert(.report.level == 0, "a format reader left a group open")
         .prependFileSummary()
@@ -115,7 +119,7 @@ impl Document
         if not magic.isEmpty()
         {
             let readable = .signatureAsText()
-            head.field(0, Math.min(.image.bytes.count, 16'u64), texts.rep_FirstBytes, magic, readable)
+            head.field(0, Math.min(.image.bytes.count, 16_u64), texts.rep_FirstBytes, magic, readable)
         }
 
         if .image.bytes.count
@@ -124,17 +128,27 @@ impl Document
             let value   = Format.toString("%{f2} / 8", entropy)
             .report.overview.entropy = entropy
             var entropyLabel: string
-            if entropy > 7.2 do
+            if entropy > 7.2
+            {
                 entropyLabel = texts.rep_EntropyHigh
-            elif entropy > 5 do
+            }
+            else if entropy > 5
+            {
                 entropyLabel = texts.rep_EntropyMid
-            else do
+            }
+            else
+            {
                 entropyLabel = texts.rep_EntropyLow
+            }
+
             head.derived(texts.rep_Entropy, value, entropyLabel)
         }
 
-        if .image.truncated do
+        if .image.truncated
+        {
             head.note(texts.rep_Truncated)
+        }
+
         head.endGroup()
 
         .report.rows.insertAt(0, head.rows.toSlice())
@@ -143,20 +157,27 @@ impl Document
     // Returns the leading bytes as the hexadecimal a signature is quoted in.
     private mtd const signatureText()->String
     {
-        let count = Math.min(.image.bytes.count, 16'u64)
-        if not count do
+        let count = Math.min(.image.bytes.count, 16_u64)
+        if not count
+        {
             return {}
+        }
 
-        var text: Array'u8
+        var text: Array!{u8}
         text.reserve(count * 3)
         for index in count
         {
             let value  = .image.bytes[index]
             let digits = [cast(u8, value >> 4), value & 0xF]
-            if index do
-                text.add(' 'u8)
-            for nibble in digits do
-                text.add(nibble < 10 ? '0'u8 + nibble : 'A'u8 + nibble - 10)
+            if index
+            {
+                text.add(' '_u8)
+            }
+
+            for nibble in digits
+            {
+                text.add(nibble < 10 ? '0'_u8 + nibble : 'A'_u8 + nibble - 10)
+            }
         }
 
         return cast(string, text.toSlice())
@@ -165,16 +186,18 @@ impl Document
     // Returns the same leading bytes as the letters a reader recognizes them by.
     private mtd const signatureAsText()->String
     {
-        let count = Math.min(.image.bytes.count, 16'u64)
-        if not count do
+        let count = Math.min(.image.bytes.count, 16_u64)
+        if not count
+        {
             return {}
+        }
 
-        var text: Array'u8
+        var text: Array!{u8}
         text.reserve(count)
         for index in count
         {
             let value = .image.bytes[index]
-            text.add(value >= 32 and value < 127 ? value : '.'u8)
+            text.add(value >= 32 and value < 127 ? value : '.'_u8)
         }
 
         return cast(string, text.toSlice())
@@ -185,17 +208,19 @@ impl Document
     // It is the reading `strings` gives: names, messages and paths a binary carries in clear.
     private mtd const countStrings()->u64
     {
-        const StringLength = 5'u64
+        const StringLength = 5_u64
 
-        var result = 0'u64
-        var run    = 0'u64
+        var result = 0_u64
+        var run    = 0_u64
         for value in .image.bytes
         {
             if value >= 32 and value < 127
             {
                 run += 1
-                if run == StringLength do
+                if run == StringLength
+                {
                     result += 1
+                }
             }
             else
             {
@@ -213,14 +238,18 @@ impl Document
     private mtd const entropy()->f32
     {
         let count = Math.min(.image.bytes.count, EntropySample)
-        if not count do
+        if not count
+        {
             return 0
+        }
 
         var histogram: [256] u32
-        for index in count do
+        for index in count
+        {
             histogram[.image.bytes[index]] += 1
+        }
 
-        var result = 0'f32
+        var result = 0_f32
         for slot in 256 where histogram[slot]
         {
             let share = cast(f32, histogram[slot]) / cast(f32, count)
@@ -238,35 +267,73 @@ impl Document
 // this view by default.
 func detectFormat(image: *BinaryImage)->FormatKind
 {
-    if isIconContainer(image) do
+    if isIconContainer(image)
+    {
         return .Icon
-    if isSccContainer(image) do
+    }
+
+    if isSccContainer(image)
+    {
         return .Scc
-    if isArchive(image) do
+    }
+
+    if isArchive(image)
+    {
         return .Archive
-    if isElfImage(image) do
+    }
+
+    if isElfImage(image)
+    {
         return .Elf
-    if isPeImage(image) do
+    }
+
+    if isPeImage(image)
+    {
         return .PeImage
-    if isMachO(image) do
+    }
+
+    if isMachO(image)
+    {
         return .MachO
-    if isWasmModule(image) do
+    }
+
+    if isWasmModule(image)
+    {
         return .Wasm
-    if isRiffContainer(image) do
+    }
+
+    if isRiffContainer(image)
+    {
         return .Riff
-    if isMidiFile(image) do
+    }
+
+    if isMidiFile(image)
+    {
         return .Midi
-    if isSfntFont(image) do
+    }
+
+    if isSfntFont(image)
+    {
         return .Font
-    if isPngImage(image) do
+    }
+
+    if isPngImage(image)
+    {
         return .Png
+    }
 
     // A ZIP is recognized by the record at its end as well as by the one at its start, so it is
     // asked last: a file that begins with something more specific is that thing first.
-    if isZipArchive(image) do
+    if isZipArchive(image)
+    {
         return .Zip
-    if isCoffObject(image) do
+    }
+
+    if isCoffObject(image)
+    {
         return .CoffObject
+    }
+
     return .Unknown
 }
 
@@ -344,7 +411,10 @@ func signatureName(image: *BinaryImage)->String
                       Signature{0, "wOF2", texts.sig_Woff2},
                       Signature{0, "wOFF", texts.sig_Woff}]
 
-    for signature in signatures where image.matches(signature.offset, signature.magic) do
+    for signature in signatures where image.matches(signature.offset, signature.magic)
+    {
         return signature.name
+    }
+
     return {}
 }

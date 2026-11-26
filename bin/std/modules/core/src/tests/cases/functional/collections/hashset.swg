@@ -20,9 +20,9 @@ impl Hash.IHash32 for HashSetCollisionKey
 
 #test
 {
-    #assert(not Reflection.canCopy(HashSet'HashSetNonCopyKey))
+    #assert(not Reflection.canCopy(HashSet!{HashSetNonCopyKey}))
 
-    var values: HashSet'HashSetNonCopyKey
+    var values: HashSet!{HashSetNonCopyKey}
     for i in 40
     {
         var key = HashSetNonCopyKey{value: cast(u32, i)}
@@ -34,7 +34,7 @@ impl Hash.IHash32 for HashSetCollisionKey
     Swag.require(values.contains(HashSetNonCopyKey{value: 39}))
 }
 
-func assertHashSetKeysAreReadOnly(values: *HashSet's32)
+func assertHashSetKeysAreReadOnly(values: *HashSet!{s32})
 {
     for &key in values[]
     {
@@ -56,34 +56,44 @@ impl Swag.IAllocator for RejectHashSetGrowthAllocator
     mtd impl free(_: *Swag.AllocatorRequest) {}
 }
 
-func assertStringSetHas(values: HashSet'String, expected: string)->bool
+func assertStringSetHas(values: HashSet!{String}, expected: string)->bool
 {
     for value in values
     {
-        if value.toString() == expected do
+        if value.toString() == expected
+        {
             return true
+        }
     }
 
     return false
 }
 
-func assertReverseIntSetIteration(values: HashSet's32)->bool
+func assertReverseIntSetIteration(values: HashSet!{s32})->bool
 {
-    var forward: Array's32
-    for value in values do
+    var forward: Array!{s32}
+    for value in values
+    {
         forward.add(value)
+    }
 
-    var reverse: Array's32
-    for value in values.reversed() do
+    var reverse: Array!{s32}
+    for value in values.reversed()
+    {
         reverse.add(value)
+    }
 
-    if forward.count != reverse.count do
+    if forward.count != reverse.count
+    {
         return false
+    }
 
     for i in forward.count
     {
-        if forward[i] != reverse[reverse.count - i - 1] do
+        if forward[i] != reverse[reverse.count - i - 1]
+        {
             return false
+        }
     }
 
     return true
@@ -91,13 +101,16 @@ func assertReverseIntSetIteration(values: HashSet's32)->bool
 
 #test
 {
-    var values: HashSet's32
+    var values: HashSet!{s32}
     Swag.require(values.isEmpty())
     Swag.require(not values.contains(1))
 
     var emptyVisits = 0
-    for _ in values do
+    for _ in values
+    {
         emptyVisits += 1
+    }
+
     Swag.require(emptyVisits == 0)
 
     values.add(1)
@@ -111,15 +124,18 @@ func assertReverseIntSetIteration(values: HashSet's32)->bool
     Swag.require(values.contains(3))
 
     var sum = 0
-    for value in values do
+    for value in values
+    {
         sum += value
+    }
+
     Swag.require(sum == 4)
 }
 
 // Colliding keys remain findable across removal, tombstone reuse, and rehashing.
 #test
 {
-    var values: HashSet'HashSetCollisionKey
+    var values: HashSet!{HashSetCollisionKey}
     values.add({value: 1})
     values.add({value: 2})
     values.add({value: 3})
@@ -157,7 +173,7 @@ func assertReverseIntSetIteration(values: HashSet's32)->bool
 
 #test
 {
-    var values: HashSet's32
+    var values: HashSet!{s32}
     values.add(1)
     values.add(2)
     values.add(3)
@@ -168,7 +184,7 @@ func assertReverseIntSetIteration(values: HashSet's32)->bool
 
 #test
 {
-    var values: HashSet's32
+    var values: HashSet!{s32}
     values.add(1)
     values.add(2)
     values.add(3)
@@ -199,7 +215,7 @@ func assertReverseIntSetIteration(values: HashSet's32)->bool
 // Clearing after a removal drops tombstones and leaves the allocated table reusable.
 #test
 {
-    var values: HashSet's32
+    var values: HashSet!{s32}
     values.add(1)
     values.add(2)
     values.add(3)
@@ -217,7 +233,7 @@ func assertReverseIntSetIteration(values: HashSet's32)->bool
 // Free drops active and deleted string slots, releases capacity, and permits reuse.
 #test
 {
-    var values: HashSet'String
+    var values: HashSet!{String}
     values.add("keep")
     values.add("deleted")
     values.remove("deleted")
@@ -235,7 +251,7 @@ func assertReverseIntSetIteration(values: HashSet's32)->bool
 {
     var moved: String = "beta"
 
-    var values: HashSet'String
+    var values: HashSet!{String}
     values.add("alpha")
     values.add(#move moved)
 
@@ -248,7 +264,7 @@ func assertReverseIntSetIteration(values: HashSet's32)->bool
 
 #test
 {
-    var original: HashSet'String
+    var original: HashSet!{String}
     original.add("alpha")
     original.add("beta")
     original.remove("alpha")
@@ -267,7 +283,7 @@ func assertReverseIntSetIteration(values: HashSet's32)->bool
 
 #test
 {
-    var values: HashSet's32
+    var values: HashSet!{s32}
     values.add(1)
     values.add(2)
 
@@ -282,7 +298,7 @@ func assertReverseIntSetIteration(values: HashSet's32)->bool
 
 #test
 {
-    var values: HashSet's32
+    var values: HashSet!{s32}
     values.reserve(33)
 
     values.add(10)
@@ -299,12 +315,14 @@ func assertReverseIntSetIteration(values: HashSet's32)->bool
 #test
 {
     var reject: RejectHashSetGrowthAllocator
-    var values: HashSet's32
+    var values: HashSet!{s32}
     values.add(-1)
 
-    var replacement: Array's32
-    for i in 17 do
+    var replacement: Array!{s32}
+    for i in 17
+    {
         replacement.add(cast(s32, i))
+    }
 
     let oldAllocator = values.allocator
     values.allocator = &reject
@@ -321,7 +339,7 @@ func assertReverseIntSetIteration(values: HashSet's32)->bool
 #test
 {
     var reject: RejectHashSetGrowthAllocator
-    var values: HashSet's32
+    var values: HashSet!{s32}
     values.allocator = &reject
 
     let result = Swag.catchPanic(func|&values|() { values.reserve(0) })
@@ -330,7 +348,7 @@ func assertReverseIntSetIteration(values: HashSet's32)->bool
 
 #test
 {
-    var values: HashSet's32
+    var values: HashSet!{s32}
     let result = Swag.catchPanic(func|&values|() { values.reserve(Swag.U64.Max) })
     Swag.require(result.raised)
     Swag.require(result.message() == "HashSet capacity exceeds addressable memory")
@@ -339,7 +357,7 @@ func assertReverseIntSetIteration(values: HashSet's32)->bool
 #test
 {
     var reject: RejectHashSetGrowthAllocator
-    var values: HashSet's32
+    var values: HashSet!{s32}
     values.add(42)
 
     let oldCapacity  = values.capacity
@@ -356,9 +374,11 @@ func assertReverseIntSetIteration(values: HashSet's32)->bool
 #test
 {
     var reject: RejectHashSetGrowthAllocator
-    var values: HashSet's32
-    for value in 16 do
+    var values: HashSet!{s32}
+    for value in 16
+    {
         values.add(cast(s32, value))
+    }
 
     let oldCapacity  = values.capacity
     let oldAllocator = values.allocator
@@ -375,7 +395,7 @@ func assertReverseIntSetIteration(values: HashSet's32)->bool
 
 #test
 {
-    var values: HashSet's32
+    var values: HashSet!{s32}
 
     Swag.require(values.toggle(10))
     Swag.require(values.contains(10))
@@ -394,7 +414,7 @@ func assertReverseIntSetIteration(values: HashSet's32)->bool
 // A key read from the set itself can be added back while the set grows.
 #test
 {
-    var s: HashSet'String
+    var s: HashSet!{String}
     discard s.add("a key long enough to live outside the inline storage")
     for i in 100
     {

@@ -31,7 +31,7 @@ func day6A()
 
     // The set owns its keys: 'val' is rebuilt every cycle and released with the iteration, so a
     // set of views would be left pointing at freed buffers after the first one.
-    var set: HashSet'String
+    var set: HashSet!{String}
     var total = 0
     for
     {
@@ -54,12 +54,17 @@ func day6A()
         }
 
         var val: String
-        for i in blocks.count do
+        for i in blocks.count
+        {
             val += Format.toString("%.", blocks[i])
+        }
 
         total += 1
-        if set.contains(val) do
+        if set.contains(val)
+        {
             break
+        }
+
         set.add(val)
     }
 

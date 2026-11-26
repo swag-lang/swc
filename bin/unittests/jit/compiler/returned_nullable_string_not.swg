@@ -3,16 +3,20 @@
 #[Swag.NoInline]
 func maybeText(flag: bool)->string?
 {
-    if flag do
+    if flag
+    {
         return "abc"
+    }
     return null
 }
 
 #[Swag.NoInline]
 func negateReturnedNullable(flag: bool)->bool
 {
-    if not maybeText(flag) do
+    if not maybeText(flag)
+    {
         return true
+    }
     return false
 }
 

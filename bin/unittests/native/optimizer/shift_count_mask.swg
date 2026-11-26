@@ -37,8 +37,8 @@ func oracleSigned32(a: s32, b: u32)->s32 => a >> b
 
 #test
 {
-    let values = [0'u64, 1, 0xFFFFFFFF, 0x100000000, 0x8000000000000000, 0xABCDEF0123456789, 0xFFFFFFFFFFFFFFFF]
-    let counts = [0'u64, 1, 7, 31, 32, 33, 63, 64, 65, 127, 128, 255, 0x100000000, 0x8000000000000000, 0xFFFFFFFFFFFFFFFF]
+    let values = [0_u64, 1, 0xFFFFFFFF, 0x100000000, 0x8000000000000000, 0xABCDEF0123456789, 0xFFFFFFFFFFFFFFFF]
+    let counts = [0_u64, 1, 7, 31, 32, 33, 63, 64, 65, 127, 128, 255, 0x100000000, 0x8000000000000000, 0xFFFFFFFFFFFFFFFF]
     for a in values
     {
         for b in counts

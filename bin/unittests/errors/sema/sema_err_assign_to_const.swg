@@ -10,10 +10,14 @@ impl WriteOnlyIndexBox
 {
     mtd opIndexSet(index: s32, value: s32)
     {
-        if index == 0 do
+        if index == 0
+        {
             .first = value
-        else do
+        }
+        else
+        {
             .second = value
+        }
     }
 }
 
@@ -117,19 +121,19 @@ func plainAssignConstParam(payload: InlineConstAssignPayload)
 #test
 {
     var text: const cstring = cast(const cstring, ("abc").buffer)
-    text[0] = 'A'u8     // swc-expected-error {{sema_err_assign_to_const}}
+    text[0] = 'A'_u8     // swc-expected-error {{sema_err_assign_to_const}}
 }
 
 #test
 {
     var text: const cstring = cast(const cstring, ("abc").buffer)
-    text[0] = 'A'u8     // swc-expected-error {{sema_err_assign_to_const}}
+    text[0] = 'A'_u8     // swc-expected-error {{sema_err_assign_to_const}}
 }
 
 #test
 {
     var text: string = "abc"
-    text[0] = 'A'u8     // swc-expected-error {{sema_err_assign_to_const}}
+    text[0] = 'A'_u8     // swc-expected-error {{sema_err_assign_to_const}}
 }
 
 #test
@@ -137,7 +141,7 @@ func plainAssignConstParam(payload: InlineConstAssignPayload)
     var text: string = "abc"
     for &value in text
     {
-        value[] = 'A'u8     // swc-expected-error {{sema_err_assign_to_const}}
+        value[] = 'A'_u8     // swc-expected-error {{sema_err_assign_to_const}}
     }
 }
 
@@ -146,7 +150,7 @@ func plainAssignConstParam(payload: InlineConstAssignPayload)
     var text: const cstring = cast(const cstring, ("abc").buffer)
     for &value in text
     {
-        value[] = 'A'u8     // swc-expected-error {{sema_err_assign_to_const}}
+        value[] = 'A'_u8     // swc-expected-error {{sema_err_assign_to_const}}
     }
 }
 
@@ -154,34 +158,34 @@ func plainAssignConstParam(payload: InlineConstAssignPayload)
 {
     var data:   [3] u8        = [1, 2, 3]
     let values: const [..] u8 = cast(const [..] u8, data)
-    values[0] = 9'u8     // swc-expected-error {{sema_err_assign_to_const}}
+    values[0] = 9_u8     // swc-expected-error {{sema_err_assign_to_const}}
 }
 
 #test
 {
     let bytes = cast(const [..] u8, cast(const cstring, ("abc").buffer))
-    bytes[0] = 'A'u8     // swc-expected-error {{sema_err_assign_to_const}}
+    bytes[0] = 'A'_u8     // swc-expected-error {{sema_err_assign_to_const}}
 }
 
 #test
 {
     var data: [3] u8       = [1, 2, 3]
     let ptr:  const [*] u8 = cast(const [*] u8, &data[0])
-    ptr[0] = 9'u8     // swc-expected-error {{sema_err_assign_to_const}}
+    ptr[0] = 9_u8     // swc-expected-error {{sema_err_assign_to_const}}
 }
 
 #test
 {
-    var value = 1's32
+    var value = 1_s32
     let ptr: const *s32 = &value
-    ptr[] = 2's32     // swc-expected-error {{sema_err_assign_to_const}}
+    ptr[] = 2_s32     // swc-expected-error {{sema_err_assign_to_const}}
 }
 
 #test
 {
-    var value = 1's32
+    var value = 1_s32
     let ptr: const *s32 = &value
-    cast(const *u32, ptr)[] = 2'u32     // swc-expected-error {{sema_err_assign_to_const}}
+    cast(const *u32, ptr)[] = 2_u32     // swc-expected-error {{sema_err_assign_to_const}}
 }
 
 #test
@@ -223,18 +227,18 @@ func plainAssignConstParam(payload: InlineConstAssignPayload)
 
 #test
 {
-    var data:   [1] ConstAssignArrayBox        = [{bytes: [1'u8, 2'u8]}]
+    var data:   [1] ConstAssignArrayBox        = [{bytes: [1_u8, 2_u8]}]
     let values: const [..] ConstAssignArrayBox = cast(const [..] ConstAssignArrayBox, data)
     let ptr = (values[0].bytes).buffer
-    ptr[0] = 9'u8     // swc-expected-error {{sema_err_assign_to_const}}
+    ptr[0] = 9_u8     // swc-expected-error {{sema_err_assign_to_const}}
 }
 
 #test
 {
-    var data:   [1] ConstAssignArrayBox       = [{bytes: [1'u8, 2'u8]}]
+    var data:   [1] ConstAssignArrayBox       = [{bytes: [1_u8, 2_u8]}]
     let values: const [*] ConstAssignArrayBox = cast(const [*] ConstAssignArrayBox, &data[0])
     let ptr = (values[0].bytes).buffer
-    ptr[0] = 9'u8     // swc-expected-error {{sema_err_assign_to_const}}
+    ptr[0] = 9_u8     // swc-expected-error {{sema_err_assign_to_const}}
 }
 
 #test

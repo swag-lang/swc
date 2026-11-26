@@ -86,8 +86,10 @@ impl LoadedSubtitle
 
     mtd opDrop()
     {
-        if .track do
+        if .track
+        {
             Subtitle.Track.destroy(.track)
+        }
     }
 }
 
@@ -106,10 +108,16 @@ func subtitlePresentationAt(track: const *Subtitle.Track, seconds: f64, result: 
             break
         }
 
-        if end <= seconds do
+        if end <= seconds
+        {
             continue
-        if not result.isEmpty() do
-            result.append('\n'rune)
+        }
+
+        if not result.isEmpty()
+        {
+            result.append('\n'_rune)
+        }
+
         result[]   += track.cueContent(index)
         nextChange = Math.min(nextChange, end)
     }
@@ -127,33 +135,40 @@ func hasSubtitleExtension(fileName: string)->bool
     }
 }
 
-private func addSidecar(fileName: string, result: *Array'*Subtitle.Track) fail
+private func addSidecar(fileName: string, result: *Array!{*Subtitle.Track}) fail
 {
     result.add(try Subtitle.Track.loadOwned(fileName))
 }
 
 // Finds VLC-style sidecars: `movie.srt`, `movie.en.srt`, and other dotted qualifiers.
-func loadSidecars(fileName: string, result: *Array'*Subtitle.Track)
+func loadSidecars(fileName: string, result: *Array!{*Subtitle.Track})
 {
     let folder = Path.directoryName(fileName)
     let stem   = Path.fileNameWithoutExtension(fileName)
-    if not folder or not stem do
+    if not folder or not stem
+    {
         return
+    }
 
     let files = catch Directory.enumerateFiles(folder)
     {
         return
     }
 
-    var candidates: Array'String
+    var candidates: Array!{String}
     for file in files where not file.isDirectory() and hasSubtitleExtension(file.fullName)
     {
         let candidate = Path.fileNameWithoutExtension(file.fullName)
-        if not candidate or not Utf8.startsWith(candidate, stem, .Latin1NoCase) do
+        if not candidate or not Utf8.startsWith(candidate, stem, .Latin1NoCase)
+        {
             continue
+        }
+
         let exactName = Latin1.compare(candidate, stem, ignoreCase: true) == 0
-        if not exactName and (candidate.count <= stem.count or candidate[stem.count] != '.') do
+        if not exactName and (candidate.count <= stem.count or candidate[stem.count] != '.')
+        {
             continue
+        }
 
         candidates.add(file.fullName)
     }
@@ -162,6 +177,8 @@ func loadSidecars(fileName: string, result: *Array'*Subtitle.Track)
     // The exact stem compares before every dotted qualifier, matching VLC's preferred sidecar
     // while keeping the language variants deterministic.
     candidates.sort(func(a, b) => Text.compareNames(a, b))
-    for candidate in candidates do
+    for candidate in candidates
+    {
         discard catch addSidecar(candidate.toString(), result)
+    }
 }

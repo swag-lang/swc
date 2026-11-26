@@ -37,11 +37,11 @@ func day3B()
         {
             enable = true
         }
-        elif cpy == "don't()"
+        else if cpy == "don't()"
         {
             enable = false
         }
-        elif enable
+        else if enable
         {
             cpy.replace("mul(", "")
             cpy.replace(")", "")

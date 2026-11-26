@@ -42,7 +42,7 @@ using Swag, Core
     Swag.require(Math.abs(local.x - 60) < 0.001)
     Swag.require(Math.abs(local.y + 5) < 0.001)
 
-    let rotated = GizmoRect.rotateVec({10, 0}, Math.toRadians(90.0'f32))
+    let rotated = GizmoRect.rotateVec({10, 0}, Math.toRadians(90.0_f32))
     Swag.require(Math.abs(rotated.x) < 0.001)
     Swag.require(Math.abs(rotated.y - 10) < 0.001)
 }

@@ -114,15 +114,24 @@ func encodingRune(encoding: BaseEncoding, code: u8)->rune
         return Text.windows1252Rune(code)
 
     case .MacRoman:
-        if code < 0x80 do
+        if code < 0x80
+        {
             return cast(rune, code)
+        }
+
         return cast(rune, MacRomanEncodingHigh[code - 0x80])
 
     case .Standard:
-        for entry in StandardEncodingHigh where entry.code == code do
+        for entry in StandardEncodingHigh where entry.code == code
+        {
             return cast(rune, entry.value)
-        if code >= 0x20 and code < 0x7F do
+        }
+
+        if code >= 0x20 and code < 0x7F
+        {
             return cast(rune, code)
+        }
+
         return 0
     }
 }
@@ -133,13 +142,21 @@ func encodingRune(encoding: BaseEncoding, code: u8)->rune
 // names glyphs by code point still extracts as text.
 func glyphNameRune(name: string)->rune
 {
-    for entry in GlyphNames where entry.name == name do
+    for entry in GlyphNames where entry.name == name
+    {
         return cast(rune, entry.value)
+    }
 
-    if name.count == 7 and name[0 to 2] == "uni" do
+    if name.count == 7 and name[0 to 2] == "uni"
+    {
         return parseGlyphHex(name[3 until])
-    if name.count >= 5 and name.count <= 7 and name[0] == 'u' do
+    }
+
+    if name.count >= 5 and name.count <= 7 and name[0] == 'u'
+    {
         return parseGlyphHex(name[1 until])
+    }
+
     return 0
 }
 
@@ -150,18 +167,24 @@ func glyphNameRune(name: string)->rune
 // embedded PostScript program keys its outlines by.
 func runeGlyphName(value: rune)->string
 {
-    for entry in GlyphNames where entry.value == cast(u32, value) do
+    for entry in GlyphNames where entry.value == cast(u32, value)
+    {
         return entry.name
+    }
+
     return ""
 }
 
 private func parseGlyphHex(digits: string)->rune
 {
-    var result = 0'u32
+    var result = 0_u32
     for c in cast(const [..] u8, digits)
     {
-        if not isHex(c) do
+        if not isHex(c)
+        {
             return 0
+        }
+
         result = result * 16 + hexValue(c)
     }
 

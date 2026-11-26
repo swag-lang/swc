@@ -150,14 +150,18 @@ struct RecordCounter { value: s32 }
 #[Swag.NoInline]
 func countRecords(counter: *RecordCounter?)->s32
 {
-    if not counter do
+    if not counter
+    {
         return 0
+    }
     for
     {
         let {amount} = {amount: 1}
         counter.value += amount
-        if counter.value == 3 do
+        if counter.value == 3
+        {
             break
+        }
     }
     return counter.value
 }

@@ -19,7 +19,7 @@ impl IOrelseProbe for OrelseProbe
     mtd impl id()->u32 => .value
 }
 
-const StrictHandleFallback = cast(OrelseStrictHandle, 0x1234'u64)
+const StrictHandleFallback = cast(OrelseStrictHandle, 0x1234_u64)
 const StrictHandleResolved = cast(OrelseStrictHandle, null) orelse StrictHandleFallback
 #assert(#typeof(StrictHandleResolved) == OrelseStrictHandle)
 #assert(StrictHandleResolved == StrictHandleFallback)
@@ -43,7 +43,7 @@ const AnyFalseValue: any = false
 
 func semaTest001()
 {
-    var raw:     [2] u8         = ['x'u8, 'y'u8]
+    var raw:     [2] u8         = ['x'_u8, 'y'_u8]
     let primary: const [..] u8? = null
     let resolved                = primary orelse raw
     #assert(#typeof(resolved) == const [..] u8)
@@ -52,7 +52,7 @@ func semaTest001()
 
 func semaTest002()
 {
-    var cstrData: [3] u8 = ['o'u8, 'k'u8, 0]
+    var cstrData: [3] u8 = ['o'_u8, 'k'_u8, 0]
     let resolved         = cast(cstring?, null) orelse cast(cstring, &cstrData[0])
     #assert(#typeof(resolved) == cstring)
     Swag.assert(resolved.count == 2)
@@ -72,7 +72,7 @@ func semaTest003()
 // type resolves the same way.
 func semaTest005(value: u8)->u8
 {
-    let resolved = value != 0 ? value : 0'u8
+    let resolved = value != 0 ? value : 0_u8
     #assert(#typeof(resolved) == u8)
     return resolved
 }

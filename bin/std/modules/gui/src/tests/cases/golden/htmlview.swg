@@ -29,8 +29,11 @@ using Core, Pixel
     for index in view.layout.boxes.count
     {
         let node = view.layout.constBox(cast(u32, index)).node
-        if node == HtmlNoNode do
+        if node == HtmlNoNode
+        {
             continue
+        }
+
         Swag.require(view.document.constNode(node).tag != .Script)
         Swag.require(view.document.constNode(node).tag != .Template)
     }

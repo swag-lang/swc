@@ -43,6 +43,6 @@ func queryOverload(_: u64)->u64 => 64
     let offset    = #offsetof(LayoutPair.second)
     #assert(#typeof(size) == u64 and #typeof(alignment) == u64 and #typeof(offset) == u64)
 
-    size += 4'u64
+    size += 4_u64
     Swag.require(size == 20 and alignment == 8 and offset == 8)
 }

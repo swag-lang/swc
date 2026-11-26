@@ -6,7 +6,10 @@
 #test
 {
     Swag.require(not Ogl.isValidWglProcAddress(null))
-    for value in [1'u64, 2, 3, 0xFFFFFFFFFFFFFFFF] do
+    for value in [1_u64, 2, 3, 0xFFFFFFFFFFFFFFFF]
+    {
         Swag.require(not Ogl.isValidWglProcAddress(cast(const *void?, value)))
-    Swag.require(Ogl.isValidWglProcAddress(cast(const *void?, 4'u64)))
+    }
+
+    Swag.require(Ogl.isValidWglProcAddress(cast(const *void?, 4_u64)))
 }

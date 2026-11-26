@@ -50,13 +50,13 @@ func oracle32(a, b: u32)->u32
 #[Swag.Safety(.Overflow, false)]
 #test
 {
-    let values = [0'u64, 1, 0xFFFFFFFF, 0x100000000, 0x8000000000000000, 0xABCDEF0123456789, 0xFFFFFFFFFFFFFFFF]
-    let counts = [0'u64, 1, 7, 31, 32, 33, 63, 64, 65, 127, 128, 255, 0x100000000, 0xFFFFFFFFFFFFFFFF]
+    let values = [0_u64, 1, 0xFFFFFFFF, 0x100000000, 0x8000000000000000, 0xABCDEF0123456789, 0xFFFFFFFFFFFFFFFF]
+    let counts = [0_u64, 1, 7, 31, 32, 33, 63, 64, 65, 127, 128, 255, 0x100000000, 0xFFFFFFFFFFFFFFFF]
     for a in values
     {
         for b in counts
         {
-            let opposite = 0'u64 - b
+            let opposite = 0_u64 - b
             Swag.require(left(a, b) == oracle(a, b))
             Swag.require(right(a, b) == oracle(a, opposite))
             Swag.require(shared(a, b) == (oracle(a, b) ^ shiftLeft(a, b & 63)))
@@ -65,7 +65,7 @@ func oracle32(a, b: u32)->u32
             let lowA = cast(u32, (a & 0xFFFFFFFF))
             let lowB = cast(u32, (b & 0xFFFFFFFF))
             Swag.require(left32(lowA, lowB) == oracle32(lowA, lowB))
-            Swag.require(right32(lowA, lowB) == oracle32(lowA, 0'u32 - lowB))
+            Swag.require(right32(lowA, lowB) == oracle32(lowA, 0_u32 - lowB))
         }
     }
 }

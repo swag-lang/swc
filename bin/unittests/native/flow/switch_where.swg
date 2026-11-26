@@ -111,7 +111,7 @@ func guardedType(value: const any, calls: *s32)->s32
     Swag.require(calls == 1)
 
     calls = 0
-    Swag.require(guardedType(-4's32, &calls) == 0)
+    Swag.require(guardedType(-4_s32, &calls) == 0)
     Swag.require(calls == 1)
 }
 
@@ -197,7 +197,7 @@ func fallthroughIntoType(value: const any, calls: *s32)->s32
     Swag.require(fallthroughIntoType(true, &calls) == 101)
     Swag.require(calls == 0)
 
-    Swag.require(fallthroughIntoType(5's32, &calls) == 10)
+    Swag.require(fallthroughIntoType(5_s32, &calls) == 10)
     Swag.require(calls == 1)
 }
 
@@ -218,10 +218,14 @@ func bindingFallthroughAfterDefault(value: *s32?, advance: bool)->s32
     switch
     {
     default:
-        if advance do
+        if advance
+        {
             fallthrough
-        else do
+        }
+        else
+        {
             return 1
+        }
     case let item = value: return item[]
     }
     return 3

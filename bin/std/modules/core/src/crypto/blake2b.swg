@@ -34,22 +34,32 @@ private const Sigma: [192] u8 = [
 #[Swag.Inline]
 private func mixPair(state: *[16] u64, a0, b0, c0, d0, a1, b1, c1, d1: u64, x0, y0, x1, y1: u64)
 {
-    state[][a0] = (state[][a0] + x0) + state[][b0]
-    state[][a1] = (state[][a1] + x1) + state[][b1]
-    state[][d0] = Swag.ror(state[][d0] ^ state[][a0], 32'u8)
-    state[][d1] = Swag.ror(state[][d1] ^ state[][a1], 32'u8)
-    state[][c0] += state[][d0]
-    state[][c1] += state[][d1]
-    state[][b0] = Swag.ror(state[][b0] ^ state[][c0], 24'u8)
-    state[][b1] = Swag.ror(state[][b1] ^ state[][c1], 24'u8)
-    state[][a0] = (state[][a0] + y0) + state[][b0]
-    state[][a1] = (state[][a1] + y1) + state[][b1]
-    state[][d0] = Swag.ror(state[][d0] ^ state[][a0], 16'u8)
-    state[][d1] = Swag.ror(state[][d1] ^ state[][a1], 16'u8)
-    state[][c0] += state[][d0]
-    state[][c1] += state[][d1]
-    state[][b0] = Swag.ror(state[][b0] ^ state[][c0], 63'u8)
-    state[][b1] = Swag.ror(state[][b1] ^ state[][c1], 63'u8)
+    return cast(u64, data[0]) | (cast(u64, data[1]) << 8) |
+           (cast(u64, data[2]) << 16) | (cast(u64, data[3]) << 24) |
+           (cast(u64, data[4]) << 32) | (cast(u64, data[5]) << 40) |
+           (cast(u64, data[6]) << 48) | (cast(u64, data[7]) << 56)
+}
+
+#[Swag.Inline]
+private func store64(data: [*] u8, value: u64)
+{
+    for i in 8
+    {
+        data[i] = cast(u8, ((value >> cast(u32, (i * 8))) & 0xFF))
+    }
+}
+
+#[Swag.Inline]
+private func mix(state: *[16] u64, a, b, c, d: u64, x, y: u64)
+{
+    state[][a] += state[][b] + x
+    state[][d] = Swag.ror(state[][d] ^ state[][a], 32_u8)
+    state[][c] += state[][d]
+    state[][b] = Swag.ror(state[][b] ^ state[][c], 24_u8)
+    state[][a] += state[][b] + y
+    state[][d] = Swag.ror(state[][d] ^ state[][a], 16_u8)
+    state[][c] += state[][d]
+    state[][b] = Swag.ror(state[][b] ^ state[][c], 63_u8)
 }
 
 // Computes a BLAKE2b digest incrementally, in unkeyed or keyed mode.
@@ -102,10 +112,15 @@ public impl Blake2b
     // digest length or key.
     mtd resetKeyed(key: const [..] u8, digestSize: u64) fail
     {
-        if not digestSize or digestSize > Blake2bMaxDigestSize do
+        if not digestSize or digestSize > Blake2bMaxDigestSize
+        {
             fail Errors.BadParameterError{"BLAKE2b needs a digest length of 1 to 64 bytes"}
-        if key.count > Blake2bMaxKeySize do
+        }
+
+        if key.count > Blake2bMaxKeySize
+        {
             fail Errors.BadParameterError{"BLAKE2b accepts a key of at most 64 bytes"}
+        }
 
         .clear()
         .state      = Iv
@@ -126,7 +141,7 @@ public impl Blake2b
     // Includes `data` in the running digest.
     mtd update(data: const [..] u8)
     {
-        var offset = 0'u64
+        var offset = 0_u64
         while offset < data.count
         {
             // A full buffer is only compressed once more input is known to
@@ -157,10 +172,15 @@ public impl Blake2b
     // with. Call [[Core.Hash.Blake2b.reset]] before reusing this value.
     mtd finalize(destination: [..] u8) fail
     {
-        if not .digestSize do
+        if not .digestSize
+        {
             fail Errors.BadParameterError{"BLAKE2b needs an initialized sequence"}
-        if destination.count != .digestSize do
+        }
+
+        if destination.count != .digestSize
+        {
             fail Errors.BadParameterError{"BLAKE2b needs a destination of the declared digest length"}
+        }
 
         // A sequence ending on a block boundary leaves the buffer full: the final compression
         // takes it as it is, and there is no element at `bufferCount` to address.
@@ -183,6 +203,14 @@ public impl Blake2b
         else do
             Swag.memcpy(destination.buffer, &.state[0], .digestSize)
 
+        var words: [Blake2bMaxDigestSize] u8
+        for i in 8
+        {
+            store64(&words[i * 8], .state[i])
+        }
+
+        Swag.memcpy(destination.buffer, &words[0], .digestSize)
+        Crypto.secureClear(words)
         .clear()
     }
 
@@ -241,55 +269,17 @@ public impl Blake2b
     #[Swag.Inline]
     private mtd computeFinalBlock(data: const [..] u8, destination: [..] u8)
     {
-        // A pending key block needs its own compression before a nonempty message.
-        if .bufferCount
+        .counterLow += .bufferCount
+        if .counterLow < .bufferCount
         {
-            if not data.count
-            {
-                .compress(.buffer.buffer, .bufferCount, true)
-                .writeDigest(destination)
-                return
-            }
-
-            .compress(.buffer.buffer, .bufferCount, false)
-        }
-
-        if data.count == Blake2bBlockSize
-        {
-            .compress(data.buffer, data.count, true)
-        }
-        else
-        {
-            if data.count do
-                Swag.memcpy(.buffer.buffer, data.buffer, data.count)
-            Swag.memset(.buffer.buffer + data.count, 0, Blake2bBlockSize - data.count)
-            .compress(.buffer.buffer, data.count, true)
-        }
-
-        .writeDigest(destination)
-    }
-
-    private mtd compress(input: const [*] u8, count: u64, last: bool)
-    {
-        let words = cast(const [*] u64, input)
-        #static if BIG_ENDIAN
-        {
-            var converted: [16] u64
-            for index in 16 do
-                converted[index] = Math.littleEndianToNative(words[index])
-            .compressWords(converted.buffer, count, last)
-            Crypto.secureClear(converted)
-        }
-        else do
-            .compressWords(words, count, last)
-    }
-
-    #[Swag.Inline]
-    private mtd compressWords(m: const [*] u64, count: u64, last: bool)
-    {
-        .counterLow += count
-        if .counterLow < count do
             .counterHigh += 1
+        }
+
+        var m: [16] u64
+        for i in 16
+        {
+            m[i] = load64(&.buffer[i * 8])
+        }
 
         var v: [16] u64
         const WordsPerVector = 2
@@ -302,8 +292,10 @@ public impl Blake2b
 
         v[12] ^= .counterLow
         v[13] ^= .counterHigh
-        if last do
+        if last
+        {
             v[14] ^= 0xFFFF_FFFF_FFFF_FFFF
+        }
 
         for round in 12
         {
@@ -318,14 +310,9 @@ public impl Blake2b
                     m[schedule[12]], m[schedule[13]], m[schedule[14]], m[schedule[15]])
         }
 
-        for group in 8 / WordsPerVector
+        for i in 8
         {
-            let word     = group * WordsPerVector
-            let position = .state.buffer + word
-            let updated  = Math.Simd.load(position) ^
-                           Math.Simd.load(v.buffer + word) ^
-                           Math.Simd.load(v.buffer + 8 + word)
-            Math.Simd.store(position, updated)
+            .state[i] ^= v[i] ^ v[8 + i]
         }
 
         Crypto.secureClear(v)

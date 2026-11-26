@@ -77,7 +77,7 @@ using Core, Pixel, Gui
     discard expect File.writeAllText(source, "not a decodable film")
     defer catch File.delete(source)
     var buffer:  ConcatBuffer
-    var encoder: Serialization.Encoder'Serialization.Write.TagBin
+    var encoder: Serialization.Encoder!{Serialization.Write.TagBin}
     expect encoder.writeAll(&buffer, ThumbnailSettings{onlineMovies: true, movieDetection: {minimumMinutes: 0}})
     var preview: ExplorerPreview
     preview.path     = source
@@ -124,7 +124,7 @@ using Core, Pixel, Gui
     discard expect File.writeAllText(source, "fixture")
     defer catch File.delete(source)
     var buffer:  ConcatBuffer
-    var encoder: Serialization.Encoder'Serialization.Write.TagBin
+    var encoder: Serialization.Encoder!{Serialization.Write.TagBin}
     expect encoder.writeAll(&buffer, ThumbnailSettings{onlineMovies: true, movieDetection: {minimumMinutes: 0}})
     let settings = buffer.toString()
     let key      = expect ThumbnailCache.key(source, settings: settings)

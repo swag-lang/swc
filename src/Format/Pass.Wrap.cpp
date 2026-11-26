@@ -1372,8 +1372,6 @@ namespace
                 candidate = pieceIndex;
             else if (piece.hasRole(FormatRoleE::Arrow) && options_->breakAfterReturnType.value_or(false))
                 candidate = pieceIndex;
-            else if (piece.hasRole(FormatRoleE::TrailingDo) && options_->breakBeforeDo.value_or(false))
-                candidate = pieceIndex;
 
             if (candidate == INVALID_PIECE || candidate == columns.front().piece || model_->piece(candidate).isComment)
                 return INVALID_PIECE;
@@ -1547,18 +1545,6 @@ namespace
                                        FormatRoleE::LiteralClose, FormatRoleE::DestructuringClose, FormatRoleE::WhereKeyword});
         }
 
-        uint32_t inlineBodyDepthAt(const uint32_t pieceIndex) const
-        {
-            uint32_t result = 0;
-            for (const FormatInlineBody& body : model_->inlineBodies())
-            {
-                if (pieceIndex > body.doPiece && pieceIndex <= body.lastPiece)
-                    result++;
-            }
-
-            return result;
-        }
-
         // What an item holds: a named argument or literal field starts with its
         // name, and it is the value after the `:` that can open a block.
         uint32_t itemValue(const uint32_t item) const
@@ -1591,7 +1577,6 @@ namespace
             const uint32_t tabWidth        = std::max(options_->tabWidth, 1u);
             const uint32_t itemCols        = FormatModel::textColumns(model_->lineIndentOf(item), tabWidth);
             const uint32_t itemDepth       = model_->piece(item).depth;
-            const uint32_t itemInlineDepth = inlineBodyDepthAt(item);
             const bool     bracketItem     = model_->piece(value).is(TokenId::SymLeftBracket) || model_->piece(value).is(TokenId::SymLeftCurly);
             int32_t        lastDelta       = 0;
 
@@ -1613,9 +1598,7 @@ namespace
                         structuralDepth = model_->piece(piece.match).depth;
 
                     const uint32_t bracketDepth     = structuralDepth > itemDepth ? structuralDepth - itemDepth : 0;
-                    const uint32_t pieceInlineDepth = inlineBodyDepthAt(lineStart);
-                    const uint32_t inlineDepth      = pieceInlineDepth > itemInlineDepth ? pieceInlineDepth - itemInlineDepth : 0;
-                    const uint32_t relativeDepth    = bracketDepth + inlineDepth;
+                    const uint32_t relativeDepth = bracketDepth;
                     targetCols                      = itemCols + relativeDepth * std::max(options_->indentWidth, 1u);
                     lastDelta                       = static_cast<int32_t>(targetCols) - static_cast<int32_t>(current);
                 }

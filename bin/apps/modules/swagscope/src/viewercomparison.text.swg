@@ -25,17 +25,17 @@ struct ComparisonLine
 
 struct TextComparison
 {
-    left:    Array'ComparisonLine
-    right:   Array'ComparisonLine
-    rows:    Array'ComparisonRow
-    changes: Array'u64
+    left:    Array!{ComparisonLine}
+    right:   Array!{ComparisonLine}
+    rows:    Array!{ComparisonRow}
+    changes: Array!{u64}
 }
 
 impl TextComparison
 {
-    const WorkLimit = 4_000_000'u64
-    const ByteLimit = 8 * 1024 * 1024'u64
-    const LookAhead = 64'u64
+    const WorkLimit = 4_000_000_u64
+    const ByteLimit = 8 * 1024 * 1024_u64
+    const LookAhead = 64_u64
 
     mtd compare(left, right: string, options: ComparisonOptions)
     {
@@ -60,29 +60,40 @@ impl TextComparison
         var previousChanged = false
         for &row, index in .rows
         {
-            if row.left != Swag.U32.Max and row.right != Swag.U32.Max do
+            if row.left != Swag.U32.Max and row.right != Swag.U32.Max
+            {
                 row.changed = row.changed or .left[row.left].text != .right[row.right].text
-            if row.changed and not previousChanged do
+            }
+
+            if row.changed and not previousChanged
+            {
                 .changes.add(index)
+            }
+
             previousChanged = row.changed
         }
     }
 
-    private mtd lines(source: string, options: ComparisonOptions)->Array'ComparisonLine
+    private mtd lines(source: string, options: ComparisonOptions)->Array!{ComparisonLine}
     {
         var result: #returntype
         var start:  u64
         while start < source.count
         {
             var end = start
-            while end < source.count and source[end] != '\r' and source[end] != '\n' do
+            while end < source.count and source[end] != '\r' and source[end] != '\n'
+            {
                 end += 1
+            }
+
             var next = end
             if next < source.count
             {
                 next += 1
-                if source[end] == '\r' and next < source.count and source[next] == '\n' do
+                if source[end] == '\r' and next < source.count and source[next] == '\n'
+                {
                     next += 1
+                }
             }
 
             let text = source[start until end]
@@ -93,8 +104,11 @@ impl TextComparison
                 while offset < text.count
                 {
                     let decoded = Utf8.decodeRune(text[offset to])
-                    if not Unicode.isSpace(decoded.c) do
+                    if not Unicode.isSpace(decoded.c)
+                    {
                         key += text[offset until offset + decoded.eat]
+                    }
+
                     offset += decoded.eat
                 }
             }
@@ -103,10 +117,16 @@ impl TextComparison
                 key = text
             }
 
-            if options.ignoreCase do
+            if options.ignoreCase
+            {
                 key = String.toLower(key.toString(), .Unicode)
-            if not options.ignoreEndings do
+            }
+
+            if not options.ignoreEndings
+            {
                 key += source[end until next]
+            }
+
             result.add({text: String.from(text), key: #move key})
             start = next
         }
@@ -114,7 +134,7 @@ impl TextComparison
         return result
     }
 
-    private mtd hexLines(bytes: const [..] u8)->Array'ComparisonLine
+    private mtd hexLines(bytes: const [..] u8)->Array!{ComparisonLine}
     {
         const Digits = "0123456789ABCDEF"
         var result: #returntype
@@ -124,8 +144,11 @@ impl TextComparison
             var text: String
             for byte in bytes[at until Math.min(at + 16, bytes.count)]
             {
-                if not text.isEmpty() do
+                if not text.isEmpty()
+                {
                     text += ' '
+                }
+
                 text += cast(rune, Digits[byte >> 4])
                 text += cast(rune, Digits[byte & 15])
             }
@@ -160,12 +183,19 @@ impl TextComparison
 
         let width  = endB - first + 1
         let height = endA - first + 1
-        if height * width <= WorkLimit do
+        if height * width <= WorkLimit
+        {
             .alignExact(first, endA, endB)
-        else do
+        }
+        else
+        {
             .alignWindow(first, endA, endB)
-        for offset in a - endA do
+        }
+
+        for offset in a - endA
+        {
             .same(endA + offset, endB + offset)
+        }
     }
 
     private mtd same(a, b: u64)
@@ -178,8 +208,11 @@ impl TextComparison
         let left  = endA - a
         let right = endB - b
         let count = Math.max(left, right)
-        if not count do
+        if not count
+        {
             return
+        }
+
         .changes.add(.rows.count)
         for offset in count
         {
@@ -193,7 +226,7 @@ impl TextComparison
     {
         let width  = endB - start + 1
         let height = endA - start + 1
-        var length: Array'u32
+        var length: Array!{u32}
         length.resize(width * height)
         for y in reversed(height - 1)
         {
@@ -219,7 +252,7 @@ impl TextComparison
                 previousY = y
                 previousX = x
             }
-            elif length[(y + 1) * width + x] >= length[y * width + x + 1]
+            else if length[(y + 1) * width + x] >= length[y * width + x + 1]
             {
                 y += 1
             }
@@ -282,23 +315,32 @@ impl TextComparison
     }
 }
 
-private func reportLines(report: const *Viewers.Binary.Report)->Array'ComparisonLine
+private func reportLines(report: const *Viewers.Binary.Report)->Array!{ComparisonLine}
 {
     var result: #returntype
-    var groups: Array'String
+    var groups: Array!{String}
     for &row in report.rows
     {
         groups.resize(row.level)
         var key: String
-        if not groups.isEmpty() do
+        if not groups.isEmpty()
+        {
             key = groups.back()
+        }
+
         key += '\n'
         key += row.label
-        if row.kind == .Group do
+        if row.kind == .Group
+        {
             groups.add(key)
+        }
+
         var text: String
-        for row.level do
+        for row.level
+        {
             text += "  "
+        }
+
         text += row.label
         if not row.value.isEmpty()
         {
@@ -330,8 +372,11 @@ impl ComparisonLoad
         .paths   = paths
         .options = options
         .kind    = kind
-        for report, side in reports do
+        for report, side in reports
+        {
             .reports[side] = report ? report[] : Viewers.Binary.Report{}
+        }
+
         .error.clear()
         let request = me
         .submit(func|request|()
@@ -339,16 +384,21 @@ impl ComparisonLoad
             if request.kind == .Structured
             {
                 request.text.compareReports(&request.reports[0], &request.reports[1])
-                for &report in request.reports do
+                for &report in request.reports
+                {
                     report[] = {}
+                }
+
                 return
             }
 
             catch request.read()
             {
                 request.error = Viewer.failureText(Swag.err)
-                if request.error.isEmpty() do
+                if request.error.isEmpty()
+                {
                     request.error = appStrings().ui_OpenStopped
+                }
             }
         },
                 parent)
@@ -356,13 +406,16 @@ impl ComparisonLoad
 
     private mtd read() fail
     {
-        var bytes: [2] Array'u8
+        var bytes: [2] Array!{u8}
         for index in 2
         {
             var stream = try File.openRead(.paths[index])
             let size   = try stream.size()
-            if size > TextComparison.ByteLimit do
+            if size > TextComparison.ByteLimit
+            {
                 fail Errors.InvalidFormatError{}
+            }
+
             bytes[index].resize(size)
             bytes[index].resize(try stream.read(bytes[index].toSlice()))
         }

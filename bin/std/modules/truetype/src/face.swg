@@ -110,8 +110,10 @@ private func detectProgramSource(bytes: const [..] u8)->{ source: OutlineSource,
 {
     var result: #returntype
     result.sfnt = true
-    if bytes.count < 4 do
+    if bytes.count < 4
+    {
         return result
+    }
 
     // A bare CFF opens with its format version, followed by a header size of at least four
     // and an offset size of one to four; no sfnt signature can be mistaken for it.
@@ -133,13 +135,31 @@ private func detectProgramSource(bytes: const [..] u8)->{ source: OutlineSource,
 
 func loadFaceBytes(bytes: const [..] u8, faceIndex: u32, fallbackFamilyName: string, allocator: IAllocator?, fileName: string? = null, source: const *FontSource? = null)->*Face fail
 {
+    if bytes.count == 0
+    {
+        try fault(0x06)
+    }
+
     let allocationAllocator = unwrap (allocator orelse Swag.getContext().allocator)
     let context = Swag.getContext()
     let previousAllocator   = context.allocator
     context.allocator = allocationAllocator
     defer context.allocator = previousAllocator
 
-    let faceData = Memory.new'FaceImpl(allocationAllocator)
+    var normalized: Array!{u8}
+    var fontBytes = bytes
+    if bytes.count >= 4 and try readU32(bytes, 0) == TAG_WOFF
+    {
+        if faceIndex
+        {
+            try fault(0x0F)
+        }
+
+        normalized = try inflateWoff(bytes)
+        fontBytes  = normalized.toSlice()
+    }
+
+    let faceData = Memory.new!{FaceImpl}(allocationAllocator)
     faceData.allocationAllocator = allocationAllocator
     defer #fail Memory.delete(faceData, allocationAllocator)
     var memberIndex = faceIndex
@@ -186,8 +206,11 @@ func loadFaceBytes(bytes: const [..] u8, faceIndex: u32, fallbackFamilyName: str
         return &faceData.face
     }
 
-    if faceIndex do
+    if faceIndex
+    {
         try fault(0x0F)
+    }
+
     faceData.outlineSource = detected.source
     try parseProgramFace(faceData, fallbackFamilyName)
     return &faceData.face
@@ -197,14 +220,19 @@ func loadFaceBytes(bytes: const [..] u8, faceIndex: u32, fallbackFamilyName: str
 // A positive point size that rounds below one pixel is not a usable size.
 private func pointsToPpem(pointSize: s32, dpi: u32)->u32 fail
 {
-    if pointSize <= 0 or not dpi do
+    if pointSize <= 0 or not dpi
+    {
         try fault(0x17)
+    }
 
     let numerator   = cast(u64, pointSize) * cast(u64, dpi)
-    let denominator = 72'u64 * 64
+    let denominator = 72_u64 * 64
     let ppem        = (numerator + denominator / 2) / denominator
-    if not ppem or ppem > Swag.U16.Max do
+    if not ppem or ppem > Swag.U16.Max
+    {
         try fault(0x17)
+    }
+
     return cast(u32, ppem)
 }
 
@@ -331,8 +359,11 @@ public impl Face
     // Ownership and cleanup match [[TrueType.Face.load]].
     func loadSubset(bytes: const [..] u8, familyName: string, allocator: IAllocator? = null)->*Face fail
     {
-        if not familyName.count do
+        if not familyName.count
+        {
             try fault(0x06)
+        }
+
         return try loadFaceBytes(bytes, 0, familyName, allocator)
     }
 
@@ -386,7 +417,7 @@ public impl Face
     // let count = try TrueType.Face.countFaces(bytes.toSlice())
     // for index in count
     // {
-    //     if (try TrueType.Face.familyNameAt(bytes.toSlice(), index)) == "MS PGothic" do
+    //     if (try TrueType.Face.familyNameAt(bytes.toSlice(), index)) == "MS PGothic" { }
     //         break
     // }
     // ```
@@ -440,15 +471,22 @@ public impl Face
     {
         if (not pixelWidth and not pixelHeight) or
            pixelWidth > Swag.U16.Max or
-           pixelHeight > Swag.U16.Max do
+           pixelHeight > Swag.U16.Max
+        {
             try fault(0x17)
+        }
 
         var width  = pixelWidth
         var height = pixelHeight
-        if not width do
+        if not width
+        {
             width = height
-        if not height do
+        }
+
+        if not height
+        {
             height = width
+        }
 
         try .size.setPixelMetrics(width, height)
     }
@@ -471,19 +509,32 @@ public impl Face
            charHeight26_6 < 0 or
            (not charWidth26_6 and not charHeight26_6) or
            not horizontalDpi or
-           not verticalDpi do
+           not verticalDpi
+        {
             try fault(0x17)
+        }
 
-        var widthPpem  = 0'u32
-        var heightPpem = 0'u32
-        if charWidth26_6 do
+        var widthPpem  = 0_u32
+        var heightPpem = 0_u32
+        if charWidth26_6
+        {
             widthPpem = try pointsToPpem(charWidth26_6, horizontalDpi)
-        if charHeight26_6 do
+        }
+
+        if charHeight26_6
+        {
             heightPpem = try pointsToPpem(charHeight26_6, verticalDpi)
-        if not widthPpem do
+        }
+
+        if not widthPpem
+        {
             widthPpem = heightPpem
-        if not heightPpem do
+        }
+
+        if not heightPpem
+        {
             heightPpem = widthPpem
+        }
 
         try .size.setPixelMetrics(widthPpem, heightPpem)
     }
@@ -507,8 +558,10 @@ public impl Face
     // [[TrueType.Face.glyphCount]] fails with an invalid-glyph error.
     mtd const getVerticalMetrics(glyphIndex: u32)->const *GlyphVerticalMetrics? fail
     {
-        if glyphIndex >= .glyphCount do
+        if glyphIndex >= .glyphCount
+        {
             try fault(0x10)
+        }
 
         let faceData = cast(const *FaceImpl, cast(const *void, me))
         if let metrics = faceData.verticalMetrics do
@@ -523,8 +576,10 @@ public impl Face
     // [[TrueType.Face.glyphCount]] fails with an invalid-glyph error.
     mtd const getAdvanceWidth(glyphIndex: u32)->u16 fail
     {
-        if glyphIndex >= .glyphCount do
+        if glyphIndex >= .glyphCount
+        {
             try fault(0x10)
+        }
 
         let faceData = cast(const *FaceImpl, cast(const *void, me))
         return faceData.glyphAdvance(glyphIndex)
@@ -537,7 +592,7 @@ public impl Face
     // is zero for the special COLR foreground entry (0xFFFF). The returned array is
     // owned by the caller. An absent COLR table or base glyph returns an empty array;
     // invalid glyph or palette indices and malformed or unsupported tables fail.
-    mtd const getColorLayers(baseGlyph: u32, paletteIndex: u16 = 0)->Array'ColorGlyphLayer fail
+    mtd const getColorLayers(baseGlyph: u32, paletteIndex: u16 = 0)->Array!{ColorGlyphLayer} fail
     {
         let faceData = cast(const *FaceImpl, cast(const *void, me))
         return try readColorGlyphLayers(faceData, baseGlyph, paletteIndex)
@@ -575,8 +630,10 @@ public impl Face
         let faceData = cast(const *FaceImpl, cast(const *void, me))
         var result: #returntype
         let units    = lookupKerningDesignUnits(faceData, leftGlyph, rightGlyph)
-        if not units do
+        if not units
+        {
             return result
+        }
 
         result.x = roundDiv(cast(s64, units) * .size.metrics.xScale, 65536)
         return result
@@ -633,7 +690,7 @@ public impl Face
     // indices and empty or unavailable names return null.
     //
     // ```swag
-    // if let name = face.glyphName(glyphIndex) do
+    // if let name = face.glyphName(glyphIndex) { }
     //     Swag.print("glyph name: ", name)
     // ```
     mtd glyphName(glyphIndex: u32)->string?
@@ -704,8 +761,10 @@ public impl Face
     mtd loadGlyph(glyphIndex: u32, loadFlags = LoadFlag.Default) fail
     {
         try loadGlyphInternal(me, glyphIndex)
-        if loadFlags.has(.Render) do
+        if loadFlags.has(.Render)
+        {
             try .renderGlyph()
+        }
     }
 
     // Resolves and loads a Unicode scalar value into the reusable slot.
@@ -748,18 +807,28 @@ public impl Face
     {
         let faceData = try getFaceImpl(me)
         let o        = &.glyph.outline
-        if o.pointCount <= 0 do
+        if o.pointCount <= 0
+        {
             return
-        if faceData.xHeight <= 0 do
+        }
+
+        if faceData.xHeight <= 0
+        {
             return
+        }
 
         let yScale = .size.metrics.yScale
         let xh     = roundDiv(cast(s64, faceData.xHeight) * yScale, 65536)
-        if xh <= 0 do
+        if xh <= 0
+        {
             return
+        }
+
         let xhS = roundDiv(xh, 64) * 64
-        if xhS <= 0 do
+        if xhS <= 0
+        {
             return
+        }
 
         var ch  = 0
         var chS = 0
@@ -770,12 +839,16 @@ public impl Face
         }
 
         // Nothing to snap.
-        if xhS == xh and (ch <= xh or chS == ch) do
+        if xhS == xh and (ch <= xh or chS == ch)
+        {
             return
+        }
 
         let points = unwrap o.points
-        for index in cast(u32, o.pointCount) do
+        for index in cast(u32, o.pointCount)
+        {
             points[index].y = hintMapY(points[index].y, xh, xhS, ch, chS)
+        }
     }
 
     // Renders the current outline as a single-channel signed-distance field.
@@ -799,17 +872,21 @@ func lookupKerningDesignUnits(faceData: const *FaceImpl, leftGlyph, rightGlyph: 
        leftGlyph >= faceData.face.glyphCount or
        rightGlyph >= faceData.face.glyphCount or
        leftGlyph > Swag.U16.Max or
-       rightGlyph > Swag.U16.Max do
+       rightGlyph > Swag.U16.Max
+    {
         return 0
+    }
 
-    var units = 0's16
+    var units = 0_s16
     if not faceData.gposPairSubtables.isEmpty()
     {
         units = lookupGposKerning(faceData, cast(u16, leftGlyph), cast(u16, rightGlyph))
     }
 
-    if not units do
-        units = lookupLegacyKerning(faceData, (leftGlyph << 16) | rightGlyph)
+    if not units
+    {
+        units = faceData.kernPairs.tryFind((leftGlyph << 16) | rightGlyph)?.value orelse 0
+    }
 
     return units
 }
@@ -820,11 +897,16 @@ func lookupKerningDesignUnits(faceData: const *FaceImpl, leftGlyph, rightGlyph: 
 func hintMapY(y, xh, xhS, ch, chS: s32)->s32
 {
     // No usable cap-height: single zone, uniform scale about the baseline.
-    if ch <= xh or chS <= 0 do
+    if ch <= xh or chS <= 0
+    {
         return roundDiv(cast(s64, y) * xhS, xh)
+    }
 
-    if y <= xh do
+    if y <= xh
+    {
         return roundDiv(cast(s64, y) * xhS, xh)
+    }
+
     if y <= ch
     {
         let num = cast(s64, xhS) * (ch - y) + cast(s64, chS) * (y - xh)

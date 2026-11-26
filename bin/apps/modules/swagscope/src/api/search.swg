@@ -54,7 +54,7 @@ alias ClearSearch = func||()
 // in `progress`, and answers false; the host then calls again, with the same query, options,
 // progress and array, until the viewer answers true. A viewer that has everything at hand
 // appends every match and answers true at once.
-alias CollectSearchMatches = func||(string, SearchOptions, *u64, *Array'SearchMatch)->bool
+alias CollectSearchMatches = func||(string, SearchOptions, *u64, *Array!{SearchMatch})->bool
 
 // Says what a complete search of a query could not read, when the viewer knows a reason the
 // reader cannot see on screen — a scanned page holds a picture of words, not words — or returns an
@@ -89,8 +89,8 @@ struct SearchByteRange
 {
     public
     {
-        offset: u64 // Absolute byte offset of the first searchable byte.
-        length: u64 // Number of searchable bytes beginning at `offset`.
+        offset: u64     // Absolute byte offset of the first searchable byte.
+        length: u64     // Number of searchable bytes beginning at `offset`.
     }
 }
 
@@ -99,9 +99,9 @@ struct SearchPlan
 {
     public
     {
-        span:      u64               // Greatest number of source bytes one match can cover.
-        byteRange: SearchByteRange    // Absolute half-open range; length zero searches the whole file.
-        error:     String             // Explanation shown beside the shared field when the query is invalid.
+        span:      u64        // Greatest number of source bytes one match can cover.
+        byteRange: SearchByteRange     // Absolute half-open range; length zero searches the whole file.
+        error:     String     // Explanation shown beside the shared field when the query is invalid.
     }
 }
 
@@ -109,10 +109,10 @@ struct SearchPlan
 alias PrepareSearch = func||(string, *SearchPlan)->EditBoxCheckResult
 
 // Collects candidates inside one host-owned streamed source window.
-alias CollectFileMatches = func||(string, u64, *Array'SearchMatch)
+alias CollectFileMatches = func||(string, u64, *Array!{SearchMatch})
 
 // Lets a viewer borrow the host-owned result index while the current query remains active.
-alias UseSearchMatches = func||(*Array'SearchMatch?)
+alias UseSearchMatches = func||(*Array!{SearchMatch}?)
 
 // Configures the optional search behavior of one attached document view.
 //
@@ -123,17 +123,17 @@ struct SearchApi
 {
     public
     {
-        revealMatch:        RevealSearchMatch?        // Makes one host-selected match visible.
-        matchBounds:        SearchMatchBounds?        // Reports the revealed match geometry.
-        clear:              ClearSearch?              // Removes the current match presentation.
-        collectMatches:     CollectSearchMatches?     // Replaces host file scanning with viewer search.
-        filter:             ApplySearchFilter?        // Reuses the shared query as a viewer-owned visibility filter.
-        describe:           DescribeSearch?           // Supplies localized query presentation.
-        prepare:            PrepareSearch?            // Validates a streamed-file query before scanning.
-        collectFileMatches: CollectFileMatches?       // Scans one host-owned streamed source window.
-        useMatches:         UseSearchMatches?         // Borrows the active host result index.
-        explainSearch:      ExplainSearch?            // Says what a complete search could not read, when the viewer knows.
-        fileEncoding:       (func||()->Text.Encoding)? // Active decoder when the host starts a text search; defaults to UTF-8.
+        revealMatch:        RevealSearchMatch?             // Makes one host-selected match visible.
+        matchBounds:        SearchMatchBounds?             // Reports the revealed match geometry.
+        clear:              ClearSearch?                   // Removes the current match presentation.
+        collectMatches:     CollectSearchMatches?          // Replaces host file scanning with viewer search.
+        filter:             ApplySearchFilter?             // Reuses the shared query as a viewer-owned visibility filter.
+        describe:           DescribeSearch?                // Supplies localized query presentation.
+        prepare:            PrepareSearch?                 // Validates a streamed-file query before scanning.
+        collectFileMatches: CollectFileMatches?            // Scans one host-owned streamed source window.
+        useMatches:         UseSearchMatches?              // Borrows the active host result index.
+        explainSearch:      ExplainSearch?                 // Says what a complete search could not read, when the viewer knows.
+        fileEncoding:       (func||()->Text.Encoding)?     // Active decoder when the host starts a text search; defaults to UTF-8.
     }
 }
 
@@ -155,10 +155,12 @@ func createNameMatcher(query: string, options: SearchOptions)->Text.NameMatcher 
 }
 
 // Appends every non-overlapping match in one text container.
-func collectTextMatches(source, query: string, options: SearchOptions, major, minor, baseOffset: u64, result: *Array'SearchMatch)
+func collectTextMatches(source, query: string, options: SearchOptions, major, minor, baseOffset: u64, result: *Array!{SearchMatch})
 {
-    if not query.count do
+    if not query.count
+    {
         return
+    }
 
     var matcher = catch createNameMatcher(query, options)
     {
@@ -169,36 +171,41 @@ func collectTextMatches(source, query: string, options: SearchOptions, major, mi
 }
 
 // Appends matches from a prepared query without recompiling it for each text field.
-func collectTextMatches(source: string, matcher: *Text.NameMatcher, major, minor, baseOffset: u64, result: *Array'SearchMatch)
+func collectTextMatches(source: string, matcher: *Text.NameMatcher, major, minor, baseOffset: u64, result: *Array!{SearchMatch})
 {
-    for span in matcher.findAll(source) do
+    for span in matcher.findAll(source)
+    {
         result.add(SearchMatch{major, minor, baseOffset + span.start, span.length})
+    }
 }
 
 // Finds matches in decoded text and maps their ordered spans back to the original file bytes.
-internal func collectEncodedMatches(bytes, query: string, encoding: Text.Encoding, options: SearchOptions, baseOffset: u64, result: *Array'SearchMatch)
+internal func collectEncodedMatches(bytes, query: string, encoding: Text.Encoding, options: SearchOptions, baseOffset: u64, result: *Array!{SearchMatch})
 {
-    let text = Text.decode(cast(const [..] u8, bytes), encoding)
+    let text  = Text.decode(cast(const [..] u8, bytes), encoding)
     let first = result.count
     collectTextMatches(text, query, options, 0, 0, 0, result)
     var decoded, source: u64
     for &match in result.toSlice()[first to]
     {
         let begin = match.offset
-        let end = begin + match.length
-        source += sourceByteCount(text.toString()[decoded until begin], encoding)
+        let end   = begin + match.length
+        source       += sourceByteCount(text.toString()[decoded until begin], encoding)
         match.offset = baseOffset + source
         match.length = sourceByteCount(text.toString()[begin until end], encoding)
-        source += match.length
-        decoded = end
+        source       += match.length
+        decoded      = end
     }
 }
 
 // Reports whether a non-empty regular-expression query can be compiled.
 func patternIsValid(query: string, options: SearchOptions)->bool
 {
-    if not query.count or not options.regularExpression do
+    if not query.count or not options.regularExpression
+    {
         return true
+    }
+
     var matcherError: Swag.Error
     discard catch createNameMatcher(query, options) as matcherError
     return matcherError.value() == null
@@ -224,15 +231,21 @@ func highlightRichEditMatch(editor: *RichEditCtrl, source: string, start, length
     func cursorAt(source: string, byteOffset: u64)->RichEditCursor
     {
         var result: #returntype
-        var scan = 0'u64
+        var scan = 0_u64
         while scan < Math.min(byteOffset, source.count)
         {
             let {c, eat} = Utf8.decodeRune(source[scan to])
-            if not eat do
+            if not eat
+            {
                 break
+            }
+
             scan += eat
-            if c == '\r' do
+            if c == '\r'
+            {
                 continue
+            }
+
             if c == '\n'
             {
                 result.lineIndex     += 1
@@ -285,12 +298,16 @@ func clearRichEditMatch(editor: *RichEditCtrl)
 // marker.
 func listCellMatchBounds(list: *ListCtrl, index: u32, column: u32, text: string, offset, length: u64, result: *Math.Rectangle)->bool
 {
-    if not isByteRangeInBounds(text.count, offset, length) do
+    if not isByteRangeInBounds(text.count, offset, length)
+    {
         return false
+    }
 
     let slot = list.cellTextRect(index, column)
-    if slot.isEmpty() do
+    if slot.isEmpty()
+    {
         return false
+    }
 
     let font   = unwrap list.font().regular
     let prefix = Painter.measureString(text[until offset], font).width
@@ -298,8 +315,10 @@ func listCellMatchBounds(list: *ListCtrl, index: u32, column: u32, text: string,
 
     var local = Math.Rectangle{slot.x + prefix, slot.y + (slot.height - font.height) * 0.5, Math.max(width, 2), font.height}
     local.intersect(slot)
-    if local.isEmpty() do
+    if local.isEmpty()
+    {
         return false
+    }
 
     result[] = list.listView.localToSurface(local)
     return not result.isEmpty()

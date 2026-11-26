@@ -143,11 +143,11 @@ struct PointerConstCastBox
 
 #test
 {
-    const data: [2] u8 = [11'u8, 13'u8]
+    const data: [2] u8 = [11_u8, 13_u8]
     let ptr = cast(const [*] u8, data)
     #assert(#typeof(ptr) == const [*] u8)
-    Swag.require(ptr[0] == 11'u8)
-    Swag.require(ptr[1] == 13'u8)
+    Swag.require(ptr[0] == 11_u8)
+    Swag.require(ptr[1] == 13_u8)
 }
 
 #test

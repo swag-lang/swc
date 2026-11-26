@@ -30,8 +30,11 @@ internal func waitForWorkspace(app: *Application, workspace: *ViewerWorkspace)
             ready = document and document.currentFile == view.path and document.currentView != null
         }
 
-        if ready and expect Testing.verifyNativePresentation(surface) do
+        if ready and expect Testing.verifyNativePresentation(surface)
+        {
             return
+        }
+
         Swag.require(surface.renderFailure.isEmpty() and watch.elapsedMilliseconds() < 15_000)
     }
 }

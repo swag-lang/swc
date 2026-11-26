@@ -37,10 +37,13 @@ impl Read
 
         // Only a random seek may begin in a multibyte character. Retry its boundary, never
         // reinterpret a malformed chunk in the middle of an otherwise continuous read.
-        for adjustment in (.replace ? 4'u64 : 1'u64)
+        for adjustment in (.replace ? 4_u64 : 1_u64)
         {
-            if Swag.isCancelled() do
+            if Swag.isCancelled()
+            {
                 return
+            }
+
             discard try stream.seek(.Begin, .start)
             var readErrorOutcome: Swag.Error
             var chunk: #decltype(expect stream.readTextChunk(.limit, .encoding))

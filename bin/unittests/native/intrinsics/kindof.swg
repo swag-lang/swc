@@ -9,7 +9,7 @@ alias StrictKindOfAny = any
 
 #test
 {
-    var a: any = 0's32
+    var a: any = 0_s32
     var b      = Swag.kindOf(a)
     #assert(#typeof(b) == typeinfo)
     Swag.require(#typeof(b) == typeinfo)

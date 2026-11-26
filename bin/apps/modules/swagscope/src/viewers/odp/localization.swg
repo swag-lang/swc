@@ -21,7 +21,7 @@ func texts()->const *Texts => &g_Texts
 func registerTexts(app: *Application)
 {
     app.resources.addEmbedded(FrenchStringsName, FrenchStrings)
-    Gui.registerStrings'Texts(&g_Texts, "scope.odp")
+    Gui.registerStrings!{Texts}(&g_Texts, "scope.odp")
 }
 
-#run { expect Gui.validateStrings'Texts(cast(string, FrenchStrings)) }
+#run { expect Gui.validateStrings!{Texts}(cast(string, FrenchStrings)) }

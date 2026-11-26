@@ -25,20 +25,26 @@ func solveMachine(machine: PrizeMachine, prizeOffset: s64)->s64
     let targetY     = machine.prizeY + prizeOffset
     let determinant = machine.buttonAX * machine.buttonBY - machine.buttonAY * machine.buttonBX
 
-    if determinant == 0 do
+    if determinant == 0
+    {
         return 0
+    }
 
     let aNumerator = targetX * machine.buttonBY - targetY * machine.buttonBX
     let bNumerator = machine.buttonAX * targetY - machine.buttonAY * targetX
 
-    if aNumerator % determinant != 0 or bNumerator % determinant != 0 do
+    if aNumerator % determinant != 0 or bNumerator % determinant != 0
+    {
         return 0
+    }
 
     let pressA = aNumerator / determinant
     let pressB = bNumerator / determinant
 
-    if pressA < 0 or pressB < 0 do
+    if pressA < 0 or pressB < 0
+    {
         return 0
+    }
 
     return pressA * 3 + pressB
 }
@@ -73,9 +79,9 @@ func analyzeMachines(machines: const [..] PrizeMachine, prizeOffset: s64)->Prize
     let sampleReport     = analyzeMachines(sampleMachines, 0)
     let calibratedReport = analyzeMachines(sampleMachines, 10_000_000_000_000)
 
-    Swag.require(sampleReport.solvableCount == 2'u32)
+    Swag.require(sampleReport.solvableCount == 2_u32)
     Swag.require(sampleReport.totalTokenCost == 480)
-    Swag.require(calibratedReport.solvableCount == 2'u32)
+    Swag.require(calibratedReport.solvableCount == 2_u32)
     Swag.require(calibratedReport.totalTokenCost == 875_318_608_908)
 
     const arcadeMachines: [3] PrizeMachine =
@@ -88,8 +94,8 @@ func analyzeMachines(machines: const [..] PrizeMachine, prizeOffset: s64)->Prize
     let arcadeReport       = analyzeMachines(arcadeMachines, 0)
     let recalibratedArcade = analyzeMachines(arcadeMachines, 100)
 
-    Swag.require(arcadeReport.solvableCount == 1'u32)
+    Swag.require(arcadeReport.solvableCount == 1_u32)
     Swag.require(arcadeReport.totalTokenCost == 7)
-    Swag.require(recalibratedArcade.solvableCount == 2'u32)
+    Swag.require(recalibratedArcade.solvableCount == 2_u32)
     Swag.require(recalibratedArcade.totalTokenCost == 148)
 }

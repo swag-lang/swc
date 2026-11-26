@@ -29,13 +29,13 @@ struct InfoBar
     {
         using frameWnd: FrameWnd     // Embedded framed-window behavior and presentation.
 
-        sigDismissed: SigArray'func||(*Wnd)     // Emitted when user action or timeout dismisses the bar.
+        sigDismissed: SigArray!{func||(*Wnd)}     // Emitted when user action or timeout dismisses the bar.
 
         readonly
         {
             kind:  InfoBarKind      // Current semantic presentation.
             flags: InfoBarFlags     // Current placement and lifetime options.
-            autoDismissDelay: Time.Duration = 4's     // Delay used by [[Gui.InfoBarFlags.AutoDismiss]].
+            autoDismissDelay: Time.Duration = 4_s     // Delay used by [[Gui.InfoBarFlags.AutoDismiss]].
 
             late label:       *Label          // Message label owned by this bar.
             late closeButton: *IconButton     // Dismiss button owned by this bar.
@@ -74,8 +74,10 @@ impl IWnd for InfoBar
 
     mtd impl onNotifyEvent(evt: *NotifyEvent)
     {
-        if evt.kind == .ThemeChanged do
+        if evt.kind == .ThemeChanged
+        {
             .applyTheme()
+        }
     }
 }
 
@@ -128,7 +130,7 @@ impl InfoBar
     // [[Gui.InfoBarFlags.Bottom]] docks the bar at the bottom instead. `height` is in logical
     // units, and `autoDismissDelay` applies with [[Gui.InfoBarFlags.AutoDismiss]].
     #[Swag.Discardable]
-    func create(parent: *Wnd, message: string?, kind: InfoBarKind, flags = InfoBarFlags.None, height: f32 = 40, autoDismissDelay: Time.Duration = 4's)->*InfoBar
+    func create(parent: *Wnd, message: string?, kind: InfoBarKind, flags = InfoBarFlags.None, height: f32 = 40, autoDismissDelay: Time.Duration = 4_s)->*InfoBar
     {
         Swag.assert(parent != null)
         Swag.assert(height > 0, "information bar height must be positive")
@@ -136,7 +138,7 @@ impl InfoBar
 
         let theme    = parent.theme()
         let metrics  = parent.themeMetrics()
-        with let bar = Wnd.create'InfoBar(parent, Math.Rectangle{0, 0, 0, height})
+        with let bar = Wnd.create!{InfoBar}(parent, Math.Rectangle{0, 0, 0, height})
         {
             .wndFlags.add(.NoScroll)
             .dockStyle        = flags.has(.Bottom) ? .Bottom : .Top
@@ -169,8 +171,10 @@ impl InfoBar
             .sigPressed += func|bar|(_) { bar.dismiss() }
         }
 
-        if flags.has(.AutoDismiss) do
+        if flags.has(.AutoDismiss)
+        {
             bar.timer = bar.addTimer(autoDismissDelay)
+        }
 
         bar.applyTheme()
         parent.applyLayout()
@@ -202,8 +206,11 @@ impl InfoBar
     // Changes semantic presentation and reapplies current theme colors.
     mtd setKind(kind: InfoBarKind)
     {
-        if .kind == kind do
+        if .kind == kind
+        {
             return
+        }
+
         .kind = kind
         .applyTheme()
         .invalidate()
@@ -216,8 +223,11 @@ impl InfoBar
     // leaves does nothing.
     mtd dismiss()
     {
-        if .dismissing do
+        if .dismissing
+        {
             return
+        }
+
         .dismissing = true
         .sigDismissed.call(me)
 
@@ -261,8 +271,10 @@ impl InfoBar
                                     height,
                                     func|bar|(_)
                                     {
-                                        if not bar.isPendingDestroy do
+                                        if not bar.isPendingDestroy
+                                        {
                                             bar.destroy()
+                                        }
                                     })
     }
 }

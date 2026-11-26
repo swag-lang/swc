@@ -15,14 +15,18 @@ struct CsvPreview
 func countRows(csv: string)->u32
 {
     let bytes = cast(const [..] u8, csv)
-    if not bytes.count do
+    if not bytes.count
+    {
         return 0
+    }
 
-    var result = 1'u32
+    var result = 1_u32
     for ch in bytes
     {
-        if ch == '\n'u8 do
+        if ch == '\n'_u8
+        {
             result += 1
+        }
     }
 
     return result
@@ -31,17 +35,23 @@ func countRows(csv: string)->u32
 func countColumns(csv: string)->u32
 {
     let bytes = cast(const [..] u8, csv)
-    if not bytes.count do
+    if not bytes.count
+    {
         return 0
+    }
 
-    var result = 1'u32
+    var result = 1_u32
     for ch in bytes
     {
-        if ch == '\n'u8 do
+        if ch == '\n'_u8
+        {
             break
+        }
 
-        if ch == ','u8 do
+        if ch == ','_u8
+        {
             result += 1
+        }
     }
 
     return result
@@ -57,14 +67,18 @@ func countNumericCells(csv: string)->u32
 
     for ch in bytes
     {
-        if rowIndex != 0 and cellStart and ch >= '0'u8 and ch <= '9'u8 do
+        if rowIndex != 0 and cellStart and ch >= '0'_u8 and ch <= '9'_u8
+        {
             result += 1
+        }
 
         cellStart = false
-        if ch == ','u8 do
+        if ch == ','_u8
+        {
             cellStart = true
+        }
 
-        if ch == '\n'u8
+        if ch == '\n'_u8
         {
             rowIndex  += 1
             cellStart = true
@@ -83,10 +97,12 @@ func longestLineLength(csv: string)->u32
 
     for ch in bytes
     {
-        if ch == '\n'u8
+        if ch == '\n'_u8
         {
-            if current > best do
+            if current > best
+            {
                 best = current
+            }
             current = 0
         }
         else
@@ -95,8 +111,10 @@ func longestLineLength(csv: string)->u32
         }
     }
 
-    if current > best do
+    if current > best
+    {
         best = current
+    }
 
     return best
 }
@@ -106,8 +124,10 @@ func hasQuotedField(csv: string)->bool
     let bytes = cast(const [..] u8, csv)
     for ch in bytes
     {
-        if ch == '"'u8 do
+        if ch == '"'_u8
+        {
             return true
+        }
     }
 
     return false

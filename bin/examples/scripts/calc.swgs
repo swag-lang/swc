@@ -47,10 +47,14 @@ func enter(str: string)
             g_ComputeValue *= g_CurValue
 
         case Div:
-            if g_CurValue == 0 do
+            if g_CurValue == 0
+            {
                 g_Error = "divide by zero"
-            else do
+            }
+            else
+            {
                 g_ComputeValue /= g_CurValue
+            }
 
         default:
             g_ComputeValue = g_CurValue
@@ -62,10 +66,14 @@ func enter(str: string)
     }
 
     let edit = g_Edit
-    if g_Error do
+    if g_Error
+    {
         edit.setText(unwrap g_Error)
-    else do
+    }
+    else
+    {
         edit.setText(Format.toString("%", g_CurValue))
+    }
 }
 
 func addKey(layout: *GridLayoutCtrl, text: string, column, row: s32, span = 1)

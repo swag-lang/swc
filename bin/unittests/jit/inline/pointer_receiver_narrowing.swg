@@ -10,14 +10,16 @@ impl PointerReceiverNarrowing
     #[Swag.Inline]
     mtd clearFirst()
     {
-        if .buffer do
+        if .buffer
+        {
             .buffer[0] = 0
+        }
     }
 }
 
 #test
 {
-    var storage = [7'u8]
+    var storage = [7_u8]
     var value: PointerReceiverNarrowing
     value.buffer = &storage[0]
     value.clearFirst()

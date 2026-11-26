@@ -9,7 +9,7 @@ public const Kmac256KeyMinSize = 32
 
 private func kmacEncodeLeft(value: u64, destination: [*] u8)->u64
 {
-    var byteCount = 1'u64
+    var byteCount = 1_u64
     var remaining = value
     while remaining > 0xFF
     {
@@ -29,7 +29,7 @@ private func kmacEncodeLeft(value: u64, destination: [*] u8)->u64
 
 private func kmacEncodeRight(value: u64, destination: *[9] u8)->u64
 {
-    var byteCount = 1'u64
+    var byteCount = 1_u64
     var remaining = value
     while remaining > 0xFF
     {
@@ -71,8 +71,25 @@ private func kmacAbsorbBytepad(shake: *Hash.Shake, rate: u64, block: *[Hash.Sha3
 
 private func kmacBytepadString(shake: *Hash.Shake, rate: u64, value: const [..] u8) fail
 {
-    if value.count > Swag.U64.Max / 8 do
+    if value.count > Swag.U64.Max / 8
+    {
         fail Errors.BadParameterError{"KMAC string is too long to encode"}
+    }
+
+    var widthEncoding:  [9] u8
+    var lengthEncoding: [9] u8
+    let widthLength  = kmacEncodeLeft(rate, &widthEncoding)
+    let lengthLength = kmacEncodeLeft(value.count * 8, &lengthEncoding)
+    let totalLength  = widthLength + lengthLength + value.count
+    shake[].update(Swag.makeSlice(&widthEncoding[0], widthLength))
+    shake[].update(Swag.makeSlice(&lengthEncoding[0], lengthLength))
+    shake[].update(value)
+    let padding = (rate - (totalLength % rate)) % rate
+    if padding
+    {
+        var zeros: [Hash.Sha3MaxRate] u8
+        shake[].update(Swag.makeSlice(&zeros[0], padding))
+    }
 
     var prefix: [Hash.Sha3MaxRate] u8
     prefix[0] = 1
@@ -83,8 +100,29 @@ private func kmacBytepadString(shake: *Hash.Shake, rate: u64, value: const [..] 
 
 private func kmacBytepadPrefix(shake: *Hash.Shake, rate: u64, customization: const [..] u8) fail
 {
-    if customization.count > Swag.U64.Max / 8 do
+    if customization.count > Swag.U64.Max / 8
+    {
         fail Errors.BadParameterError{"KMAC customization is too long to encode"}
+    }
+
+    var widthEncoding:      [9] u8
+    var nameLengthEncoding: [9] u8
+    var customizationLengthEncoding: [9] u8
+    let widthLength         = kmacEncodeLeft(rate, &widthEncoding)
+    let nameLength          = kmacEncodeLeft(32, &nameLengthEncoding)
+    let customizationLength = kmacEncodeLeft(customization.count * 8, &customizationLengthEncoding)
+    let totalLength         = widthLength + nameLength + 4 + customizationLength + customization.count
+    shake[].update(Swag.makeSlice(&widthEncoding[0], widthLength))
+    shake[].update(Swag.makeSlice(&nameLengthEncoding[0], nameLength))
+    shake[].update("KMAC")
+    shake[].update(Swag.makeSlice(&customizationLengthEncoding[0], customizationLength))
+    shake[].update(customization)
+    let padding = (rate - (totalLength % rate)) % rate
+    if padding
+    {
+        var zeros: [Hash.Sha3MaxRate] u8
+        shake[].update(Swag.makeSlice(&zeros[0], padding))
+    }
 
     var prefix: [Hash.Sha3MaxRate] u8
     prefix[0] = 1
@@ -102,15 +140,19 @@ private func kmacBytepadPrefix(shake: *Hash.Shake, rate: u64, customization: con
 private func kmacCompute(securityBits: u64, key, message, customization: const [..] u8, output: [..] u8, xof: bool) fail
 {
     let minimumKeySize = securityBits / 8
-    if key.count < minimumKeySize or not output.count do
+    if key.count < minimumKeySize or not output.count
+    {
         fail Errors.BadParameterError{"KMAC key is shorter than its security strength or output is empty"}
-    if key.count > Swag.U64.Max / 8 or output.count > Swag.U64.Max / 8 do
-        fail Errors.BadParameterError{"KMAC input or output is too long to encode"}
+    }
 
-    let rate  = securityBits == 128 ? 168'u64 : 136'u64
-    var shake = try Hash.Shake.createCShake(securityBits, emptyKmacPrefix: not customization.count)
-    if customization.count do
-        try kmacBytepadPrefix(&shake, rate, customization)
+    if key.count > Swag.U64.Max / 8 or output.count > Swag.U64.Max / 8
+    {
+        fail Errors.BadParameterError{"KMAC input or output is too long to encode"}
+    }
+
+    let rate  = securityBits == 128 ? 168_u64 : 136_u64
+    var shake = try Hash.Shake.createCShake(securityBits)
+    try kmacBytepadPrefix(&shake, rate, customization)
     try kmacBytepadString(&shake, rate, key)
     shake.update(message)
 

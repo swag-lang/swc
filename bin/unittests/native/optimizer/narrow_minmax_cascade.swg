@@ -20,7 +20,7 @@ func maximum32(values: const [*]u32, index: u64)->u32 => Swag.max(values[index],
 
 #test
 {
-    let values16 = [9'u16, 4, 7, 0, 0xFFFF, 23, 8, 8, 8]
+    let values16 = [9_u16, 4, 7, 0, 0xFFFF, 23, 8, 8, 8]
     Swag.require(minimum16(&values16[0], 0) == 4)
     Swag.require(maximum16(&values16[0], 0) == 9)
     Swag.require(minimum16(&values16[0], 3) == 0)
@@ -28,13 +28,13 @@ func maximum32(values: const [*]u32, index: u64)->u32 => Swag.max(values[index],
     Swag.require(minimum16(&values16[0], 6) == 8)
     Swag.require(maximum16(&values16[0], 6) == 8)
 
-    let values8 = [9'u8, 4, 7, 0, 0xFF, 23]
+    let values8 = [9_u8, 4, 7, 0, 0xFF, 23]
     Swag.require(minimum8(&values8[0], 0) == 4)
     Swag.require(maximum8(&values8[0], 0) == 9)
     Swag.require(minimum8(&values8[0], 3) == 0)
     Swag.require(maximum8(&values8[0], 3) == 0xFF)
 
-    let values32 = [9'u32, 4, 7, 0, 0xFFFFFFFF, 23]
+    let values32 = [9_u32, 4, 7, 0, 0xFFFFFFFF, 23]
     Swag.require(minimum32(&values32[0], 0) == 4)
     Swag.require(maximum32(&values32[0], 0) == 9)
     Swag.require(minimum32(&values32[0], 3) == 0)

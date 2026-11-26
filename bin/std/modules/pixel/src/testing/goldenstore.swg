@@ -83,8 +83,10 @@ func assertGoldenText(text: string, name: string, loc = #callerlocation)
         return
     }
 
-    if expected.toString() == text do
+    if expected.toString() == text
+    {
         return
+    }
 
     let actual = actualPath(path.toString(), ".txt", ".actual.txt")
     discard writeGoldenText(actual.toString(), text)
@@ -106,8 +108,10 @@ func assertImagesNear(expected, actual: const *Image, name: string, options: Ima
     Swag.require(actual != null and actual.isValid(), "actual image needs allocated pixels")
 
     let difference = compareImages(expected, actual, options)
-    if isWithinTolerance(&difference, options) do
+    if isWithinTolerance(&difference, options)
+    {
         return
+    }
 
     let expectedPath = goldenPath(name, ".expected.png", loc)
     let actualPath   = goldenPath(name, ".actual.png", loc)
@@ -153,8 +157,10 @@ func assertRenderersAgree(cpu, gpu: const *Image, name: string, options: ImageGo
     var tolerance = options
     tolerance.maxChannelDelta = Math.max(tolerance.maxChannelDelta, GpuChannelSlack)
     let difference = compareGpuImage(cpu, gpu, tolerance)
-    if isWithinTolerance(&difference, tolerance) do
+    if isWithinTolerance(&difference, tolerance)
+    {
         return
+    }
 
     let cpuPath = goldenPath(name, ".parity.cpu.png", loc)
     let gpuPath = goldenPath(name, ".parity.gpu.png", loc)
@@ -233,11 +239,11 @@ func assertImageGolden(image: const *Image, name: string, options: ImageGoldenOp
 }
 
 // Levels each channel of a GPU image may be off by anywhere, for rounding in blending.
-private const GpuChannelSlack = 3'u8
+private const GpuChannelSlack = 3_u8
 
 // Share of the contrast around a pixel a GPU image may also be off by, for antialiasing and
 // filtering. A shape moved by one pixel costs the whole contrast, so it stays a difference.
-private const GpuContrastShare = 0.35'f32
+private const GpuContrastShare = 0.35_f32
 
 private
 {
@@ -283,12 +289,18 @@ private
         #[Swag.Inline]
         mtd const color(row: const [*] u8, x, y: s32)->Color
         {
-            if not .packed do
+            if not .packed
+            {
                 return .image.pixelColor(x, y)
+            }
+
             let pixel = row + cast(u64, x) * .image.bytesPerPixel
-            let alpha = .image.bytesPerPixel == 4 ? pixel[3] : 255'u8
-            if .image.alphaMode == .Premultiplied and alpha != 255 do
+            let alpha = .image.bytesPerPixel == 4 ? pixel[3] : 255_u8
+            if .image.alphaMode == .Premultiplied and alpha != 255
+            {
                 return .image.pixelColor(x, y)
+            }
+
             var result: #returntype
             result.r = pixel[.red]
             result.g = pixel[1]
@@ -358,8 +370,10 @@ private
             let dx = stepX[side]
             let dy = stepY[side]
             if channelDelta(reference, expected.at(x - dx, y - dy)) <= slack and
-               channelDelta(drawn, expected.at(x + dx, y + dy)) <= slack do
+               channelDelta(drawn, expected.at(x + dx, y + dy)) <= slack
+            {
                 return true
+            }
         }
 
         return false
@@ -376,8 +390,10 @@ private
     {
         var result: #returntype
         result.sameSize = expected.width == actual.width and expected.height == actual.height
-        if not result.sameSize do
+        if not result.sameSize
+        {
             return result
+        }
 
         let expectedPixels = ComparisonPixels.create(expected)
         let actualPixels   = ComparisonPixels.create(actual)
@@ -385,7 +401,7 @@ private
         let height         = actual.height
 
         // Mark the pixels neither tolerance explains.
-        var rejected: Array'bool
+        var rejected: Array!{bool}
         rejected.resize(cast(u64, width) * cast(u64, height))
         var anyRejected = false
         for y in height
@@ -394,43 +410,58 @@ private
             {
                 let delta = channelDelta(expectedPixels.at(x, y), actualPixels.at(x, y))
                 result.maxChannelDelta = Math.max(result.maxChannelDelta, cast(u8, delta))
-                if delta <= options.maxChannelDelta do
+                if delta <= options.maxChannelDelta
+                {
                     continue
+                }
 
                 let contrast = localContrast(expectedPixels, actualPixels, x, y)
-                if cast(f32, delta) <= options.maxChannelDelta + GpuContrastShare * contrast do
+                if cast(f32, delta) <= options.maxChannelDelta + GpuContrastShare * contrast
+                {
                     continue
-                if options.acceptEdgeChoice and isEdgeChoice(expectedPixels, actualPixels, x, y, options.maxChannelDelta) do
+                }
+
+                if options.acceptEdgeChoice and isEdgeChoice(expectedPixels, actualPixels, x, y, options.maxChannelDelta)
+                {
                     continue
+                }
 
                 rejected[cast(u64, y) * cast(u64, width) + cast(u64, x)] = true
                 anyRejected = true
             }
         }
 
-        if not anyRejected do
+        if not anyRejected
+        {
             return result
+        }
 
         // Keep the rejected pixels that form a shape.
         for y in height
         {
             for x in width
             {
-                if not rejected[cast(u64, y) * cast(u64, width) + cast(u64, x)] do
+                if not rejected[cast(u64, y) * cast(u64, width) + cast(u64, x)]
+                {
                     continue
+                }
 
                 var cluster = 0
                 for ny in Math.max(y - 1, 0) to Math.min(y + 1, height - 1)
                 {
                     for nx in Math.max(x - 1, 0) to Math.min(x + 1, width - 1)
                     {
-                        if rejected[cast(u64, ny) * cast(u64, width) + cast(u64, nx)] do
+                        if rejected[cast(u64, ny) * cast(u64, width) + cast(u64, nx)]
+                        {
                             cluster += 1
+                        }
                     }
                 }
 
-                if cluster < 3 do
+                if cluster < 3
+                {
                     continue
+                }
 
                 result.differentPixels += 1
                 if result.differentPixels == 1
@@ -450,8 +481,10 @@ private
     {
         var result: #returntype
         result.sameSize = expected.width == actual.width and expected.height == actual.height
-        if not result.sameSize do
+        if not result.sameSize
+        {
             return result
+        }
 
         let expectedPixels = ComparisonPixels.create(expected)
         let actualPixels   = ComparisonPixels.create(actual)
@@ -483,16 +516,21 @@ private
                 }
             }
 
-            if rowsMatch do
+            if rowsMatch
+            {
                 return result
+            }
         }
 
         for y in actual.height
         {
             let expectedRow = expected.pixels.storage() + cast(u64, expected.height - y - 1) * expected.rowStride
             let actualRow   = actual.pixels.storage() + cast(u64, actual.height - y - 1) * actual.rowStride
-            if sameStorage and Memory.compare(expectedRow, actualRow, actual.rowStride) == 0 do
+            if sameStorage and Memory.compare(expectedRow, actualRow, actual.rowStride) == 0
+            {
                 continue
+            }
+
             for x in actual.width
             {
                 let expectedColor = expectedPixels.color(expectedRow, x, y)
@@ -503,8 +541,10 @@ private
                 let deltaB        = Math.abs(cast(s32, expectedColor.b) - actualColor.b)
                 let delta         = Math.max(deltaA, deltaR, deltaG, deltaB)
                 result.maxChannelDelta = Math.max(result.maxChannelDelta, cast(u8, delta))
-                if delta <= options.maxChannelDelta do
+                if delta <= options.maxChannelDelta
+                {
                     continue
+                }
 
                 result.differentPixels += 1
                 if result.differentPixels == 1
@@ -565,8 +605,10 @@ private
     // problem on a file the reader can see is perfectly writable.
     func reportSandboxRefusal(path: string)
     {
-        if not Env.isSandboxed() or Env.isInsideCorpus(path) do
+        if not Env.isSandboxed() or Env.isInsideCorpus(path)
+        {
             return
+        }
 
         Console.println("         it is outside the sandbox at ", Env.sandboxRoot())
         Console.println("         run the test with 'swag.sandbox.corpus=<directory>' to record there")
@@ -630,14 +672,14 @@ private
         return true
     }
 
-    func splitLines(text: string)->Array'String
+    func splitLines(text: string)->Array!{String}
     {
         var result: #returntype
         var cur:    String
 
         for i in text.count
         {
-            if text[i] == '\n'u8
+            if text[i] == '\n'_u8
             {
                 result.add(cur)
                 cur.clear()
@@ -648,8 +690,11 @@ private
             }
         }
 
-        if not cur.isEmpty() do
+        if not cur.isEmpty()
+        {
             result.add(cur)
+        }
+
         return result
     }
 
@@ -668,8 +713,10 @@ private
         let common = Math.min(expectedLines.count, actualLines.count)
         for i in common
         {
-            if expectedLines[i] == actualLines[i] do
+            if expectedLines[i] == actualLines[i]
+            {
                 continue
+            }
 
             Console.println("         first difference at line ", i + 1)
             Console.println("           expected | ", expectedLines[i])
@@ -682,7 +729,7 @@ private
             Console.println("         extra line ", common + 1)
             Console.println("           produced | ", actualLines[common])
         }
-        elif expectedLines.count > common
+        else if expectedLines.count > common
         {
             Console.println("         missing line ", common + 1)
             Console.println("           expected | ", expectedLines[common])

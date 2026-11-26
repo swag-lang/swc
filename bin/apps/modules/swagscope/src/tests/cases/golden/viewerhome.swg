@@ -38,8 +38,10 @@ using Core, Pixel, Gui
     Swag.require(home.openButton.position.x - place.column.x > Painter.measureString(appStrings().home_Invite, home.theme().createDefaultFont(ViewerHome.FontSize)).width)
     Swag.require(host.mouseTargetAt(home.localToSurface(home.openButton.position.center())) == home.openButton)
     Swag.require(host.mouseTargetAt(home.localToSurface(home.exploreButton.position.center())) == home.exploreButton)
-    for index in 1 until home.rows.count do
+    for index in 1 until home.rows.count
+    {
         Swag.require(home.rows[index].attempted)
+    }
 
     var rest = host.renderSettled(window)
     assertScopeImageGolden(&rest, "home.paper")

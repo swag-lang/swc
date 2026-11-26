@@ -7,10 +7,10 @@ using Swag, Core
 // action must accept its own ids and reject those of every other action.
 #test
 {
-    Swag.require(Gui.Testing.actionAccept'ActionSelection(null, ActionSelection.SelectAll))
-    Swag.require(Gui.Testing.actionAccept'ActionSelection(null, ActionSelection.Freeze))
-    Swag.require(not Gui.Testing.actionAccept'ActionSelection(null, ActionCapture.Area))
-    Swag.require(not Gui.Testing.actionAccept'ActionSelection(null, ActionZoom.ZoomFit))
+    Swag.require(Gui.Testing.actionAccept!{ActionSelection}(null, ActionSelection.SelectAll))
+    Swag.require(Gui.Testing.actionAccept!{ActionSelection}(null, ActionSelection.Freeze))
+    Swag.require(not Gui.Testing.actionAccept!{ActionSelection}(null, ActionCapture.Area))
+    Swag.require(not Gui.Testing.actionAccept!{ActionSelection}(null, ActionZoom.ZoomFit))
 }
 
 // The headless fixture can register safe commands and drive them through the
@@ -85,12 +85,12 @@ using Swag, Core
     Swag.require(f.main.editMode == .Selection)
 
     var evt = Gui.Testing.commandState(ActionToolMode.Selection)
-    Swag.require(Gui.Testing.actionUpdate'ActionToolMode(f.main, ActionToolMode.Selection, &evt))
+    Swag.require(Gui.Testing.actionUpdate!{ActionToolMode}(f.main, ActionToolMode.Selection, &evt))
     Swag.require(evt.updatedFields.has(CommandStateEvent.UpdatedFields.Checked))
     Swag.require(evt.checked)
 
     evt = Gui.Testing.commandState(ActionToolMode.Text)
-    Swag.require(Gui.Testing.actionUpdate'ActionToolMode(f.main, ActionToolMode.Text, &evt))
+    Swag.require(Gui.Testing.actionUpdate!{ActionToolMode}(f.main, ActionToolMode.Text, &evt))
     Swag.require(not evt.checked)
 }
 
@@ -106,7 +106,7 @@ using Swag, Core
         let id = mode.command()
         Swag.require(ActionToolMode.modeOf(id) == mode)
         var evt = Gui.Testing.commandState(id)
-        Swag.require(Gui.Testing.actionUpdate'ActionToolMode(f.main, id, &evt))
+        Swag.require(Gui.Testing.actionUpdate!{ActionToolMode}(f.main, id, &evt))
         Swag.require(evt.name == mode.name())
         Swag.require(evt.toolTip == mode.tip())
     }
@@ -123,10 +123,10 @@ using Swag, Core
     f.main.sendCommandEvent(ActionCaptureDelay.Delay5)
     Swag.require(f.main.captureOptions.delay == 5)
     var delayEvt = Gui.Testing.commandState(ActionCaptureDelay.Delay)
-    Swag.require(Gui.Testing.actionUpdate'ActionCaptureDelay(f.main, ActionCaptureDelay.Delay, &delayEvt))
+    Swag.require(Gui.Testing.actionUpdate!{ActionCaptureDelay}(f.main, ActionCaptureDelay.Delay, &delayEvt))
 
     delayEvt = Gui.Testing.commandState(ActionCaptureDelay.Delay5)
-    Swag.require(Gui.Testing.actionUpdate'ActionCaptureDelay(f.main, ActionCaptureDelay.Delay5, &delayEvt))
+    Swag.require(Gui.Testing.actionUpdate!{ActionCaptureDelay}(f.main, ActionCaptureDelay.Delay5, &delayEvt))
     Swag.require(delayEvt.checked)
     Swag.require(delayEvt.renderingHint.has(CommandStateEvent.RenderingHint.ExclusiveGroup))
 
@@ -137,40 +137,40 @@ using Swag, Core
     f.main.sendCommandEvent(ActionCaptureDelay.Delay10)
     Swag.require(f.main.captureOptions.delay == 10)
     delayEvt = Gui.Testing.commandState(ActionCaptureDelay.Delay10)
-    Swag.require(Gui.Testing.actionUpdate'ActionCaptureDelay(f.main, ActionCaptureDelay.Delay10, &delayEvt))
+    Swag.require(Gui.Testing.actionUpdate!{ActionCaptureDelay}(f.main, ActionCaptureDelay.Delay10, &delayEvt))
     Swag.require(delayEvt.checked)
     Swag.require(delayEvt.name == "10 Seconds")
 
     // A wait set in the options that the menu does not offer is still named by the menu entry.
     f.main.captureOptions.delay = 7
     delayEvt = Gui.Testing.commandState(ActionCaptureDelay.Delay)
-    Swag.require(Gui.Testing.actionUpdate'ActionCaptureDelay(f.main, ActionCaptureDelay.Delay, &delayEvt))
+    Swag.require(Gui.Testing.actionUpdate!{ActionCaptureDelay}(f.main, ActionCaptureDelay.Delay, &delayEvt))
     Swag.require(delayEvt.name == "Delay Before Capture (7 Seconds)")
 
     let hideEditor     = f.main.captureOptions.hideEditorBefore
-    var actionExecuted = Gui.Testing.actionExecute'ActionCapture(f.main, ActionCapture.HideEditor)
+    var actionExecuted = Gui.Testing.actionExecute!{ActionCapture}(f.main, ActionCapture.HideEditor)
     Swag.require(actionExecuted)
     Swag.require(f.main.captureOptions.hideEditorBefore != hideEditor)
 
     let captureCursor = f.main.captureOptions.captureCursor
-    actionExecuted = Gui.Testing.actionExecute'ActionCapture(f.main, ActionCapture.CaptureCursor)
+    actionExecuted = Gui.Testing.actionExecute!{ActionCapture}(f.main, ActionCapture.CaptureCursor)
     Swag.require(actionExecuted)
     Swag.require(f.main.captureOptions.captureCursor != captureCursor)
 
-    actionExecuted = Gui.Testing.actionExecute'ActionCapture(f.main, ActionCapture.ToInPlace)
+    actionExecuted = Gui.Testing.actionExecute!{ActionCapture}(f.main, ActionCapture.ToInPlace)
     Swag.require(actionExecuted)
     Swag.require(f.main.captureOptions.pictureDestination == .InPlace)
 
-    actionExecuted = Gui.Testing.actionExecute'ActionCapture(f.main, ActionCapture.ToEditor)
+    actionExecuted = Gui.Testing.actionExecute!{ActionCapture}(f.main, ActionCapture.ToEditor)
     Swag.require(actionExecuted)
     Swag.require(f.main.captureOptions.pictureDestination == .Editor)
 
-    actionExecuted = Gui.Testing.actionExecute'ActionCapture(f.main, ActionCapture.ToClipboard)
+    actionExecuted = Gui.Testing.actionExecute!{ActionCapture}(f.main, ActionCapture.ToClipboard)
     Swag.require(actionExecuted)
     Swag.require(f.main.captureOptions.pictureDestination == .Clipboard)
 
     var capEvt = Gui.Testing.commandState(ActionCapture.ToClipboard)
-    Swag.require(Gui.Testing.actionUpdate'ActionCapture(f.main, ActionCapture.ToClipboard, &capEvt))
+    Swag.require(Gui.Testing.actionUpdate!{ActionCapture}(f.main, ActionCapture.ToClipboard, &capEvt))
     Swag.require(capEvt.updatedFields.has(CommandStateEvent.UpdatedFields.Checked))
     Swag.require(capEvt.checked)
 
@@ -179,7 +179,7 @@ using Swag, Core
     Swag.require(f.main.editorOptions.clipToSelection != clip)
 
     var clipEvt = Gui.Testing.commandState(ActionView.Clip)
-    Swag.require(Gui.Testing.actionUpdate'ActionView(f.main, ActionView.Clip, &clipEvt))
+    Swag.require(Gui.Testing.actionUpdate!{ActionView}(f.main, ActionView.Clip, &clipEvt))
     Swag.require(clipEvt.checked == f.main.editorOptions.clipToSelection)
 }
 
@@ -275,21 +275,21 @@ using Swag, Core
     Swag.require(Math.abs(f.editView.zoom - EditView.MaxZoom) < 0.001)
     Swag.require(not f.editView.canZoomIn())
     var evt = Gui.Testing.commandState(ActionZoom.ZoomIn)
-    Swag.require(Gui.Testing.actionUpdate'ActionZoom(f.main, ActionZoom.ZoomIn, &evt))
+    Swag.require(Gui.Testing.actionUpdate!{ActionZoom}(f.main, ActionZoom.ZoomIn, &evt))
     Swag.require(evt.disabled)
 
     f.editView.setZoom(EditView.MinZoom - 5)
     Swag.require(Math.abs(f.editView.zoom - EditView.MinZoom) < 0.001)
     Swag.require(not f.editView.canZoomOut())
     evt = Gui.Testing.commandState(ActionZoom.ZoomOut)
-    Swag.require(Gui.Testing.actionUpdate'ActionZoom(f.main, ActionZoom.ZoomOut, &evt))
+    Swag.require(Gui.Testing.actionUpdate!{ActionZoom}(f.main, ActionZoom.ZoomOut, &evt))
     Swag.require(evt.disabled)
 
     evt = Gui.Testing.commandState(ActionZoom.Zoom1)
-    Swag.require(Gui.Testing.actionUpdate'ActionZoom(f.main, ActionZoom.Zoom1, &evt))
+    Swag.require(Gui.Testing.actionUpdate!{ActionZoom}(f.main, ActionZoom.Zoom1, &evt))
     Swag.require(evt.updatedFields.has(.Icon) and evt.icon.isValid())
     evt = Gui.Testing.commandState(ActionZoom.ZoomFit)
-    Swag.require(Gui.Testing.actionUpdate'ActionZoom(f.main, ActionZoom.ZoomFit, &evt))
+    Swag.require(Gui.Testing.actionUpdate!{ActionZoom}(f.main, ActionZoom.ZoomFit, &evt))
     Swag.require(evt.updatedFields.has(.Icon) and evt.icon.isValid())
 }
 
@@ -305,23 +305,23 @@ using Swag, Core
     pixSel.kind = .Rectangle
 
     var undoEvt = Gui.Testing.commandState(ActionUndo.DoUndo)
-    Swag.require(Gui.Testing.actionUpdate'ActionUndo(f.main, ActionUndo.DoUndo, &undoEvt))
+    Swag.require(Gui.Testing.actionUpdate!{ActionUndo}(f.main, ActionUndo.DoUndo, &undoEvt))
     Swag.require(undoEvt.disabled)
 
     var evt = Gui.Testing.commandState(ActionEdit.EditText)
-    Swag.require(Gui.Testing.actionUpdate'ActionEdit(f.main, ActionEdit.EditText, &evt))
+    Swag.require(Gui.Testing.actionUpdate!{ActionEdit}(f.main, ActionEdit.EditText, &evt))
     Swag.require(evt.disabled)
     Swag.require(evt.hidden)
 
     f.capture.selection.add(0)
     evt = Gui.Testing.commandState(ActionEdit.EditText)
-    Swag.require(Gui.Testing.actionUpdate'ActionEdit(f.main, ActionEdit.EditText, &evt))
+    Swag.require(Gui.Testing.actionUpdate!{ActionEdit}(f.main, ActionEdit.EditText, &evt))
     Swag.require(not evt.disabled)
     Swag.require(not evt.hidden)
 
     text.rotate = 25
     evt         = Gui.Testing.commandState(ActionEdit.ResetRotation)
-    Swag.require(Gui.Testing.actionUpdate'ActionEdit(f.main, ActionEdit.ResetRotation, &evt))
+    Swag.require(Gui.Testing.actionUpdate!{ActionEdit}(f.main, ActionEdit.ResetRotation, &evt))
     Swag.require(not evt.disabled)
     Swag.require(not evt.hidden)
     f.main.sendCommandEvent(ActionEdit.ResetRotation)
@@ -330,26 +330,26 @@ using Swag, Core
     f.capture.selection.clear()
     f.capture.selection.add(1)
     evt = Gui.Testing.commandState(ActionEdit.ClearImageInside)
-    Swag.require(Gui.Testing.actionUpdate'ActionEdit(f.main, ActionEdit.ClearImageInside, &evt))
+    Swag.require(Gui.Testing.actionUpdate!{ActionEdit}(f.main, ActionEdit.ClearImageInside, &evt))
     Swag.require(not evt.hidden)
     Swag.require(evt.disabled)
 
     image.image = Image.create(2, 2, .BGRA8)
     evt         = Gui.Testing.commandState(ActionEdit.ClearImageInside)
-    Swag.require(Gui.Testing.actionUpdate'ActionEdit(f.main, ActionEdit.ClearImageInside, &evt))
+    Swag.require(Gui.Testing.actionUpdate!{ActionEdit}(f.main, ActionEdit.ClearImageInside, &evt))
     Swag.require(not evt.disabled)
     f.main.sendCommandEvent(ActionEdit.ClearImageInside)
     Swag.require(not image.image.isValid())
 
     f.capture.selection.clear()
     evt = Gui.Testing.commandState(ActionPixSel.Fill)
-    Swag.require(Gui.Testing.actionUpdate'ActionPixSel(f.main, ActionPixSel.Fill, &evt))
+    Swag.require(Gui.Testing.actionUpdate!{ActionPixSel}(f.main, ActionPixSel.Fill, &evt))
     Swag.require(evt.disabled)
     Swag.require(evt.hidden)
 
     f.capture.selection.add(2)
     evt = Gui.Testing.commandState(ActionPixSel.Fill)
-    Swag.require(Gui.Testing.actionUpdate'ActionPixSel(f.main, ActionPixSel.Fill, &evt))
+    Swag.require(Gui.Testing.actionUpdate!{ActionPixSel}(f.main, ActionPixSel.Fill, &evt))
     Swag.require(not evt.disabled)
     Swag.require(not evt.hidden)
 
@@ -357,19 +357,19 @@ using Swag, Core
     undo.newPosX = 1
     f.capture.pushUndo(undo)
     evt = Gui.Testing.commandState(ActionUndo.DoUndo)
-    Swag.require(Gui.Testing.actionUpdate'ActionUndo(f.main, ActionUndo.DoUndo, &evt))
+    Swag.require(Gui.Testing.actionUpdate!{ActionUndo}(f.main, ActionUndo.DoUndo, &evt))
     Swag.require(not evt.disabled)
     f.main.sendCommandEvent(ActionUndo.DoUndo)
     evt = Gui.Testing.commandState(ActionUndo.DoRedo)
-    Swag.require(Gui.Testing.actionUpdate'ActionUndo(f.main, ActionUndo.DoRedo, &evt))
+    Swag.require(Gui.Testing.actionUpdate!{ActionUndo}(f.main, ActionUndo.DoRedo, &evt))
     Swag.require(not evt.disabled)
 
     evt = Gui.Testing.commandState(ActionImage.RestoreOrg)
-    Swag.require(Gui.Testing.actionUpdate'ActionImage(f.main, ActionImage.RestoreOrg, &evt))
+    Swag.require(Gui.Testing.actionUpdate!{ActionImage}(f.main, ActionImage.RestoreOrg, &evt))
     Swag.require(evt.disabled)
     f.capture.backImgOriginal = Image.create(5, 5, .BGRA8)
     evt = Gui.Testing.commandState(ActionImage.RestoreOrg)
-    Swag.require(Gui.Testing.actionUpdate'ActionImage(f.main, ActionImage.RestoreOrg, &evt))
+    Swag.require(Gui.Testing.actionUpdate!{ActionImage}(f.main, ActionImage.RestoreOrg, &evt))
     Swag.require(not evt.disabled)
 
     // Image commands stay present when disabled. Only descriptors that explicitly opt into
@@ -379,7 +379,7 @@ using Swag, Core
     for id in [ActionImage.ResizeImage, ActionImage.ExpandImage, ActionImage.ExpandCapture, ActionImage.TrimCapture, ActionImage.FlipImage, ActionImage.MirrorImage, ActionImage.RotateImageRight, ActionImage.RotateImageLeft]
     {
         evt = Gui.Testing.commandState(id)
-        Swag.require(Gui.Testing.actionUpdate'ActionImage(f.main, id, &evt))
+        Swag.require(Gui.Testing.actionUpdate!{ActionImage}(f.main, id, &evt))
         Swag.require(not evt.updatedFields.has(.Hidden))
         Swag.require(not evt.hidden)
     }
@@ -395,13 +395,13 @@ using Swag, Core
     let b = testAddShape(f.capture, 50, 40, 20, 20)
 
     var evt = Gui.Testing.commandState(ActionMoveSel.Right1)
-    Swag.require(Gui.Testing.actionUpdate'ActionMoveSel(f.main, ActionMoveSel.Right1, &evt))
+    Swag.require(Gui.Testing.actionUpdate!{ActionMoveSel}(f.main, ActionMoveSel.Right1, &evt))
     Swag.require(evt.disabled)
 
     f.capture.selection.add(0)
     f.capture.selection.add(1)
     evt = Gui.Testing.commandState(ActionMoveSel.Right1)
-    Swag.require(Gui.Testing.actionUpdate'ActionMoveSel(f.main, ActionMoveSel.Right1, &evt))
+    Swag.require(Gui.Testing.actionUpdate!{ActionMoveSel}(f.main, ActionMoveSel.Right1, &evt))
     Swag.require(not evt.disabled)
 
     f.main.sendCommandEvent(ActionMoveSel.Left1)
@@ -438,7 +438,7 @@ using Swag, Core
     Swag.require(b.y == 40)
 
     evt = Gui.Testing.commandState(ActionAlign.AlignLeft)
-    Swag.require(Gui.Testing.actionUpdate'ActionAlign(f.main, ActionAlign.AlignLeft, &evt))
+    Swag.require(Gui.Testing.actionUpdate!{ActionAlign}(f.main, ActionAlign.AlignLeft, &evt))
     Swag.require(not evt.disabled)
     f.main.sendCommandEvent(ActionAlign.AlignLeft)
     Swag.require(a.x == 10)
@@ -448,7 +448,7 @@ using Swag, Core
     Swag.require(b.x == 50)
 
     evt = Gui.Testing.commandState(ActionAlign.AlignRight)
-    Swag.require(Gui.Testing.actionUpdate'ActionAlign(f.main, ActionAlign.AlignRight, &evt))
+    Swag.require(Gui.Testing.actionUpdate!{ActionAlign}(f.main, ActionAlign.AlignRight, &evt))
     Swag.require(not evt.disabled)
     f.main.sendCommandEvent(ActionAlign.AlignRight)
     Swag.require(a.x == 60)
@@ -458,7 +458,7 @@ using Swag, Core
     Swag.require(b.x == 50)
 
     evt = Gui.Testing.commandState(ActionAlign.AlignCenter)
-    Swag.require(Gui.Testing.actionUpdate'ActionAlign(f.main, ActionAlign.AlignCenter, &evt))
+    Swag.require(Gui.Testing.actionUpdate!{ActionAlign}(f.main, ActionAlign.AlignCenter, &evt))
     Swag.require(not evt.disabled)
     f.main.sendCommandEvent(ActionAlign.AlignCenter)
     Swag.require(a.x == 35)
@@ -468,7 +468,7 @@ using Swag, Core
     Swag.require(b.x == 50)
 
     evt = Gui.Testing.commandState(ActionAlign.AlignTop)
-    Swag.require(Gui.Testing.actionUpdate'ActionAlign(f.main, ActionAlign.AlignTop, &evt))
+    Swag.require(Gui.Testing.actionUpdate!{ActionAlign}(f.main, ActionAlign.AlignTop, &evt))
     Swag.require(not evt.disabled)
     f.main.sendCommandEvent(ActionAlign.AlignTop)
     Swag.require(a.y == 10)
@@ -479,7 +479,7 @@ using Swag, Core
     Swag.require(b.y == 40)
 
     evt = Gui.Testing.commandState(ActionAlign.AlignBottom)
-    Swag.require(Gui.Testing.actionUpdate'ActionAlign(f.main, ActionAlign.AlignBottom, &evt))
+    Swag.require(Gui.Testing.actionUpdate!{ActionAlign}(f.main, ActionAlign.AlignBottom, &evt))
     Swag.require(not evt.disabled)
     f.main.sendCommandEvent(ActionAlign.AlignBottom)
     Swag.require(a.y == 50)
@@ -489,7 +489,7 @@ using Swag, Core
     Swag.require(b.y == 40)
 
     evt = Gui.Testing.commandState(ActionAlign.AlignMiddle)
-    Swag.require(Gui.Testing.actionUpdate'ActionAlign(f.main, ActionAlign.AlignMiddle, &evt))
+    Swag.require(Gui.Testing.actionUpdate!{ActionAlign}(f.main, ActionAlign.AlignMiddle, &evt))
     Swag.require(not evt.disabled)
     f.main.sendCommandEvent(ActionAlign.AlignMiddle)
     Swag.require(a.y == 30)
@@ -501,7 +501,7 @@ using Swag, Core
     f.capture.selection.clear()
     f.capture.selection.add(1)
     evt = Gui.Testing.commandState(ActionAlign.AlignTop)
-    Swag.require(Gui.Testing.actionUpdate'ActionAlign(f.main, ActionAlign.AlignTop, &evt))
+    Swag.require(Gui.Testing.actionUpdate!{ActionAlign}(f.main, ActionAlign.AlignTop, &evt))
     Swag.require(evt.disabled)
 }
 
@@ -560,39 +560,39 @@ using Swag, Core
     f.setup(registerHeadlessCommands: true)
     defer f.shutdown()
     var evt = Gui.Testing.commandState(ActionFile.SaveAsImage)
-    Swag.require(Gui.Testing.actionUpdate'ActionFile(f.main, ActionFile.SaveAsImage, &evt))
+    Swag.require(Gui.Testing.actionUpdate!{ActionFile}(f.main, ActionFile.SaveAsImage, &evt))
     Swag.require(not evt.disabled)
 
     evt = Gui.Testing.commandState(ActionFile.CaptureFileLocation)
-    Swag.require(Gui.Testing.actionUpdate'ActionFile(f.main, ActionFile.CaptureFileLocation, &evt))
+    Swag.require(Gui.Testing.actionUpdate!{ActionFile}(f.main, ActionFile.CaptureFileLocation, &evt))
     Swag.require(not evt.disabled)
 
     evt = Gui.Testing.commandState(ActionFile.UnlinkImage)
-    Swag.require(Gui.Testing.actionUpdate'ActionFile(f.main, ActionFile.UnlinkImage, &evt))
+    Swag.require(Gui.Testing.actionUpdate!{ActionFile}(f.main, ActionFile.UnlinkImage, &evt))
     Swag.require(evt.disabled)
 
     f.capture.linkedImage = "linked.png"
     evt = Gui.Testing.commandState(ActionFile.UnlinkImage)
-    Swag.require(Gui.Testing.actionUpdate'ActionFile(f.main, ActionFile.UnlinkImage, &evt))
+    Swag.require(Gui.Testing.actionUpdate!{ActionFile}(f.main, ActionFile.UnlinkImage, &evt))
     Swag.require(not evt.disabled)
 
     evt = Gui.Testing.commandState(ActionFile.LinkedFileLocation)
-    Swag.require(Gui.Testing.actionUpdate'ActionFile(f.main, ActionFile.LinkedFileLocation, &evt))
+    Swag.require(Gui.Testing.actionUpdate!{ActionFile}(f.main, ActionFile.LinkedFileLocation, &evt))
     Swag.require(not evt.disabled)
 
     evt = Gui.Testing.commandState(ActionCopyPaste.Copy)
-    Swag.require(Gui.Testing.actionUpdate'ActionCopyPaste(f.main, ActionCopyPaste.Copy, &evt))
+    Swag.require(Gui.Testing.actionUpdate!{ActionCopyPaste}(f.main, ActionCopyPaste.Copy, &evt))
     Swag.require(evt.disabled)
 
     let shape = testAddShape(f.capture, 10, 10, 20, 20)
     shape.kind = .Rectangle
     f.capture.selection.add(0)
     evt = Gui.Testing.commandState(ActionCopyPaste.Copy)
-    Swag.require(Gui.Testing.actionUpdate'ActionCopyPaste(f.main, ActionCopyPaste.Copy, &evt))
+    Swag.require(Gui.Testing.actionUpdate!{ActionCopyPaste}(f.main, ActionCopyPaste.Copy, &evt))
     Swag.require(not evt.disabled)
 
     evt = Gui.Testing.commandState(ActionFlatten.Flatten)
-    Swag.require(Gui.Testing.actionUpdate'ActionFlatten(f.main, ActionFlatten.Flatten, &evt))
+    Swag.require(Gui.Testing.actionUpdate!{ActionFlatten}(f.main, ActionFlatten.Flatten, &evt))
     Swag.require(not evt.disabled)
     f.main.sendCommandEvent(ActionFlatten.Flatten)
     Swag.require(f.capture.forms.count == 0)
@@ -603,11 +603,11 @@ using Swag, Core
 
     f.capture.selection.clear()
     evt = Gui.Testing.commandState(ActionFlatten.Flatten)
-    Swag.require(Gui.Testing.actionUpdate'ActionFlatten(f.main, ActionFlatten.Flatten, &evt))
+    Swag.require(Gui.Testing.actionUpdate!{ActionFlatten}(f.main, ActionFlatten.Flatten, &evt))
     Swag.require(evt.disabled)
 
     evt = Gui.Testing.commandState(ActionFlatten.FlattenAll)
-    Swag.require(Gui.Testing.actionUpdate'ActionFlatten(f.main, ActionFlatten.FlattenAll, &evt))
+    Swag.require(Gui.Testing.actionUpdate!{ActionFlatten}(f.main, ActionFlatten.FlattenAll, &evt))
     Swag.require(not evt.disabled)
 
     f.capture.selection.add(0)
@@ -616,7 +616,7 @@ using Swag, Core
     f.capture.selection.clear()
     f.capture.selection.add(1)
     evt = Gui.Testing.commandState(ActionCopyPaste.PasteImageInside)
-    Swag.require(Gui.Testing.actionUpdate'ActionCopyPaste(f.main, ActionCopyPaste.PasteImageInside, &evt))
+    Swag.require(Gui.Testing.actionUpdate!{ActionCopyPaste}(f.main, ActionCopyPaste.PasteImageInside, &evt))
     Swag.require(not evt.hidden)
 
     f.capture.selection.clear()
@@ -624,20 +624,20 @@ using Swag, Core
     pixSel.kind = .Rectangle
     f.capture.selection.add(2)
     evt = Gui.Testing.commandState(ActionPixSel.SmartMove)
-    Swag.require(Gui.Testing.actionUpdate'ActionPixSel(f.main, ActionPixSel.SmartMove, &evt))
+    Swag.require(Gui.Testing.actionUpdate!{ActionPixSel}(f.main, ActionPixSel.SmartMove, &evt))
     Swag.require(not evt.disabled)
     Swag.require(not evt.hidden)
 
     evt = Gui.Testing.commandState(ActionOptions.Options)
-    Swag.require(Gui.Testing.actionUpdate'ActionOptions(f.main, ActionOptions.Options, &evt))
+    Swag.require(Gui.Testing.actionUpdate!{ActionOptions}(f.main, ActionOptions.Options, &evt))
     Swag.require(not evt.name.isEmpty())
 
     evt = Gui.Testing.commandState(ActionAbout.About)
-    Swag.require(Gui.Testing.actionUpdate'ActionAbout(f.main, ActionAbout.About, &evt))
+    Swag.require(Gui.Testing.actionUpdate!{ActionAbout}(f.main, ActionAbout.About, &evt))
     Swag.require(not evt.name.isEmpty())
 
     evt = Gui.Testing.commandState(ActionQuickStyle.Reset)
-    Swag.require(Gui.Testing.actionUpdate'ActionQuickStyle(f.main, ActionQuickStyle.Reset, &evt))
+    Swag.require(Gui.Testing.actionUpdate!{ActionQuickStyle}(f.main, ActionQuickStyle.Reset, &evt))
     Swag.require(not evt.name.isEmpty())
 }
 

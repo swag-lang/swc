@@ -33,8 +33,8 @@ struct Bundle
 {
     public
     {
-        folders:  Array'String     // Disk roots, searched in registration order.
-        embedded: Array'EmbeddedResource     // Compile-time fallback bytes, searched last.
+        folders:  Array!{String}     // Disk roots, searched in registration order.
+        embedded: Array!{EmbeddedResource}     // Compile-time fallback bytes, searched last.
     }
 }
 
@@ -100,11 +100,13 @@ impl Bundle
     // Disk names must be relative and cannot contain empty, `.` or `..` path segments.
     // Fails with [[Core.Errors.FileNotFoundError]] when no provider knows `name`, or
     // with the underlying filesystem error when a disk read goes wrong.
-    mtd const load(name: string)->Array'u8 fail
+    mtd const load(name: string)->Array!{u8} fail
     {
         let path = .diskPath(name)
-        if not path.isEmpty() do
+        if not path.isEmpty()
+        {
             return try File.readAllBytes(path)
+        }
 
         let entry = .findEmbedded(name)
         if entry
@@ -129,7 +131,7 @@ impl Bundle
     // without duplicates, so a language picker can discover what is installed with
     // `list("lang/")`. An empty prefix returns every resource. Unreadable folders are
     // skipped rather than reported: a missing optional folder is not an error.
-    mtd const list(prefix: string)->Array'String
+    mtd const list(prefix: string)->Array!{String}
     {
         var result: #returntype
 
@@ -144,8 +146,10 @@ impl Bundle
             if fullName.count > root.count and Utf8.startsWith(fullName, root)
             {
                 relativeName = fullName[root.count to]
-                if Path.isDirectorySeparator(relativeName[0]) do
+                if Path.isDirectorySeparator(relativeName[0])
+                {
                     relativeName = relativeName[1 to]
+                }
             }
 
             result = relativeName
@@ -160,15 +164,19 @@ impl Bundle
             for file in files
             {
                 let name = relativeResourceName(folder[], file.fullName)
-                if Utf8.startsWith(name, prefix) and not result.contains(name) do
+                if Utf8.startsWith(name, prefix) and not result.contains(name)
+                {
                     result.add(name)
+                }
             }
         }
 
         for entry in .embedded where Utf8.startsWith(entry.name, prefix)
         {
-            if not result.contains(entry.name) do
+            if not result.contains(entry.name)
+            {
                 result.add(entry.name)
+            }
         }
 
         result.sort()
@@ -179,14 +187,18 @@ impl Bundle
     // string when no folder does.
     private mtd const diskPath(name: string)->String
     {
-        if not isSafeDiskName(name) do
+        if not isSafeDiskName(name)
+        {
             return ""
+        }
 
         for folder in .folders
         {
             let path = Path.combine(folder[], name)
-            if File.exists(path) do
+            if File.exists(path)
+            {
                 return path
+            }
         }
 
         return ""
@@ -194,27 +206,40 @@ impl Bundle
 
     private func isSafeDiskName(name: string)->bool
     {
-        if not name.count or not Path.isValidPathName(name) do
+        if not name.count or not Path.isValidPathName(name)
+        {
             return false
-        if Path.isRooted(name) or name[name.count - 1] == '/' do
-            return false
+        }
 
-        var segmentBegin = 0'u64
+        if Path.isRooted(name) or name[name.count - 1] == '/'
+        {
+            return false
+        }
+
+        var segmentBegin = 0_u64
         for index in name.count
         {
             let c = name[index]
-            if c == '\\' do
+            if c == '\\'
+            {
                 return false
-            if c != '/' and index != name.count - 1 do
+            }
+
+            if c != '/' and index != name.count - 1
+            {
                 continue
+            }
 
             let end     = c == '/' ? index : index + 1
             let segment = name[segmentBegin until end]
             if not segment.count or
                segment == "." or
                segment == ".." or
-               not Path.isValidFileName(segment) do
+               not Path.isValidFileName(segment)
+            {
                 return false
+            }
+
             segmentBegin = index + 1
         }
 
@@ -223,8 +248,11 @@ impl Bundle
 
     private mtd const findEmbedded(name: string)->const *EmbeddedResource?
     {
-        for &entry in .embedded where entry.name == name do
+        for &entry in .embedded where entry.name == name
+        {
             return entry
+        }
+
         return null
     }
 }

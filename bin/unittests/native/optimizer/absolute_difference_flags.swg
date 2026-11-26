@@ -13,7 +13,7 @@ func distance64(a, b: s64)->s64 => a > b ? a - b : b - a
 #[Swag.Optimize(true), Swag.NoInline, Swag.Safety(.Overflow, false)]
 func sumOfDistances(a, b: const [*] u8, count: u64)->u32
 {
-    var total = 0'u32
+    var total = 0_u32
     for i in count
     {
         let x = cast(u32, a[i])
@@ -36,7 +36,7 @@ func slowDistance(a, b: s64)->s64 => a > b ? a - b : b - a
 
 #test
 {
-    let values = [0's64, 1, 2, 100, -1, -100, 0x7FFFFFFF, 0xFFFFFFFF]
+    let values = [0_s64, 1, 2, 100, -1, -100, 0x7FFFFFFF, 0xFFFFFFFF]
     for a in values
     {
         for b in values

@@ -21,8 +21,10 @@ const ShowHelloOutput = false
 
 #test
 {
-    if ShowHelloOutput do
+    if ShowHelloOutput
+    {
         Swag.print("Hello, world!\n")
+    }
 }
 
 /**
@@ -41,8 +43,10 @@ const HelloAudience = #run helloAudience()
 
 #test
 {
-    if ShowHelloOutput do
+    if ShowHelloOutput
+    {
         Swag.print("Hello, ", HelloAudience, "!\n")
+    }
 }
 
 /**

@@ -65,10 +65,15 @@ using Core, Gui, Pixel
 
     let parent = count - 3
     explorer.fillBreadcrumbMenu(parent, menu)
-    for entry in menu.items do
+    for entry in menu.items
+    {
         Swag.require(entry!.icon.color == host.theme.colors.arc)
-    for &target in explorer.menuPaths do
+    }
+
+    for &target in explorer.menuPaths
+    {
         Swag.require(not Utf8.endsWith(target[], "viewer.archive.zip\n"))
+    }
 
     // Typing starts on the whole location, selected, and the focus leaving gives the path back.
     explorer.folder = ""
@@ -123,8 +128,11 @@ using Core, Gui, Pixel
         var host: Testing.HeadlessHost
         host.setup(ViewerWindow.MinWidth, 680)
         shipFrame(&host)
-        if light do
+        if light
+        {
             host.theme.setLight()
+        }
+
         host.notify(.ThemeChanged)
         let window   = ViewerWindow.create(&host.surfaceWnd, createViewerPluginRegistry())
         let explorer = Explorer.create(window.documentPanel, window)

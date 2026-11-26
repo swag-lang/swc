@@ -3,8 +3,10 @@ using Swag, Core
 func compositeColorGlyphPixel(dst: [*] u8, color: u32, coverage: u8)
 {
     let sourceAlpha = (((color >> 24) & 255) * cast(u32, coverage) + 127) / 255
-    if not sourceAlpha do
+    if not sourceAlpha
+    {
         return
+    }
 
     let destinationAlpha = cast(u32, dst[3])
     let outputAlpha      = sourceAlpha + (destinationAlpha * (255 - sourceAlpha) + 127) / 255
@@ -29,8 +31,10 @@ func renderColorGlyph(face: *Face, baseGlyph: u32, paletteIndex: u16, foreground
 {
     let faceData = try getFaceImpl(face)
     let layers   = try readColorGlyphLayers(faceData, baseGlyph, paletteIndex)
-    if layers.isEmpty() do
+    if layers.isEmpty()
+    {
         try fault(0x12)
+    }
 
     // First find the union of the positioned layer bitmaps. The existing rasterizer
     // owns one reusable grayscale buffer, so the second pass renders directly into
@@ -45,8 +49,10 @@ func renderColorGlyph(face: *Face, baseGlyph: u32, paletteIndex: u16, foreground
         try loadGlyphInternal(face, layer.glyphIndex)
         try renderCurrentOutline(&face.glyph)
         let bitmap = face.glyph.bitmap
-        if not bitmap.width or not bitmap.rows do
+        if not bitmap.width or not bitmap.rows
+        {
             continue
+        }
 
         let layerLeft   = face.glyph.bitmapLeft
         let layerRight  = layerLeft + cast(s32, bitmap.width)
@@ -78,10 +84,15 @@ func renderColorGlyph(face: *Face, baseGlyph: u32, paletteIndex: u16, foreground
 
     let width = cast(u32, right - left)
     let rows  = cast(u32, top - bottom)
-    if width > cast(u32, Swag.S32.Max / 4) do
+    if width > cast(u32, Swag.S32.Max / 4)
+    {
         try fault(0x0A)
-    if cast(u64, width) * rows > Swag.U64.Max / 4 do
+    }
+
+    if cast(u64, width) * rows > Swag.U64.Max / 4
+    {
         try fault(0x0A)
+    }
 
     let byteCount = cast(u64, width) * rows * 4
     faceData.colorBitmapPixels.resize(byteCount)
@@ -93,8 +104,10 @@ func renderColorGlyph(face: *Face, baseGlyph: u32, paletteIndex: u16, foreground
         try loadGlyphInternal(face, layer.glyphIndex)
         try renderCurrentOutline(&face.glyph)
         let bitmap = face.glyph.bitmap
-        if not bitmap.width or not bitmap.rows do
+        if not bitmap.width or not bitmap.rows
+        {
             continue
+        }
 
         let color   = layer.hasColor ? layer.argb : foregroundArgb
         let offsetX = cast(u32, face.glyph.bitmapLeft - left)
@@ -103,8 +116,10 @@ func renderColorGlyph(face: *Face, baseGlyph: u32, paletteIndex: u16, foreground
         {
             let coverage = try bitmap.row(row)
             let dstRow   = (cast(u64, offsetY + row) * width + offsetX) * 4
-            for column in bitmap.width do
+            for column in bitmap.width
+            {
                 compositeColorGlyphPixel(output + dstRow + cast(u64, column) * 4, color, coverage[column])
+            }
         }
     }
 

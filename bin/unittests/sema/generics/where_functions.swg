@@ -30,8 +30,10 @@ func(T) onlyFloat(value: T)->T
 func(T) onlyIntegersBlock(value: T)->T
     where
     {
-        if T == s32 or T == s64 do
+        if T == s32 or T == s64
+        {
             return true
+        }
         return false
     }
 {
@@ -66,8 +68,10 @@ func(T, U = T) sameTypePair(left: T, right: U)->U
 func(T, U = T) sameTypeBlock(left: T, right: U)->bool
     where
     {
-        if T == U do
+        if T == U
+        {
             return true
+        }
         return false
     }
 {
@@ -81,7 +85,7 @@ func(T, U = T) interpolateWithWhere(left: T, right: U, ratio: T)->T
     return left + (right - left) * ratio
 }
 
-func(T, U) secondIfLeftIsSigned(pair: Pair'(T, U))->U
+func(T, U) secondIfLeftIsSigned(pair: Pair!{T, U})->U
     where T == s32 or T == s64
 {
     return pair.second
@@ -130,8 +134,10 @@ impl Wrapper
     func(U, Count: s32) repeatValue(const me, other: U)->U
         where
         {
-            if T == f32 and U == s32 and Count > 0 do
+            if T == f32 and U == s32 and Count > 0
+            {
                 return true
+            }
             return false
         }
     {
@@ -192,45 +198,45 @@ impl InterpolationWindow
     func midpoint(const me)->T
         where Count >= 3
     {
-        return interpolateWithWhere'(T)(me.values[0], me.values[Count - 1], cast(T, 0.5))
+        return interpolateWithWhere!{T}(me.values[0], me.values[Count - 1], cast(T, 0.5))
     }
 }
 
 func semaTest001()
 {
-    Swag.assert(kind(1.0'f32) == 1)
-    Swag.assert(kind(1's64) == 2)
-    Swag.assert(onlyFloat(1.0'f64) == 1.0'f64)
-    Swag.assert(onlyIntegersBlock(12's32) == 12)
+    Swag.assert(kind(1.0_f32) == 1)
+    Swag.assert(kind(1_s64) == 2)
+    Swag.assert(onlyFloat(1.0_f64) == 1.0_f64)
+    Swag.assert(onlyIntegersBlock(12_s32) == 12)
 
     let values: [3] s32 = [5, 6, 7]
-    let fixed:  [4] u8  = [1'u8, 2, 3, 4]
+    let fixed:  [4] u8  = [1_u8, 2, 3, 4]
     Swag.assert(head(values) == 5)
-    Swag.assert(mustBePositive'3() == 3)
-    Swag.assert(defaultFloatValue() == 2.0'f32)
-    Swag.assert(defaultFloatValue'(f64)() == 2.0'f64)
-    Swag.assert(fixedTail(fixed) == 4'u8)
+    Swag.assert(mustBePositive!{3}() == 3)
+    Swag.assert(defaultFloatValue() == 2.0_f32)
+    Swag.assert(defaultFloatValue!{f64}() == 2.0_f64)
+    Swag.assert(fixedTail(fixed) == 4_u8)
 
-    Swag.assert(sameTypePair(1's32, 2's32) == 2)
-    Swag.assert(sameTypePair'(f64)(1.0'f64, 2.0'f64) == 2.0'f64)
-    Swag.assert(sameTypeBlock(1.5'f32, 2.5'f32))
+    Swag.assert(sameTypePair(1_s32, 2_s32) == 2)
+    Swag.assert(sameTypePair!{f64}(1.0_f64, 2.0_f64) == 2.0_f64)
+    Swag.assert(sameTypeBlock(1.5_f32, 2.5_f32))
 
-    let signedPair: Pair'(s32, string) = {first: 7, second: "ok"}
+    let signedPair: Pair!{s32, string} = {first: 7, second: "ok"}
     Swag.assert(secondIfLeftIsSigned(signedPair) == "ok")
 
-    let floatBox: Wrapper'f32 = {value: 1.5}
-    Swag.assert(floatBox.pairValue's32(99) == 99)
-    Swag.assert(floatBox.repeatValue'(s32, 2)(123) == 123)
-    Swag.assert(floatBox.mirrorType(2.5'f32) == 2.5'f32)
-    Swag.assert(floatBox.copyIfFloat() == 1.5'f32)
+    let floatBox: Wrapper!{f32} = {value: 1.5}
+    Swag.assert(floatBox.pairValue!{s32}(99) == 99)
+    Swag.assert(floatBox.repeatValue!{s32, 2}(123) == 123)
+    Swag.assert(floatBox.mirrorType(2.5_f32) == 2.5_f32)
+    Swag.assert(floatBox.copyIfFloat() == 1.5_f32)
 
-    let floatWindow:  Window'(f32, 3) = {values: [10.0'f32, 20.0, 30.0]}
-    let intWindow:    Window'(s32, 3) = {values: [1, 2, 3]}
-    let interpolated: InterpolationWindow'(f64, 3) = {values: [10.0'f64, 20.0, 30.0]}
-    Swag.assert(floatWindow.at'1() == 20.0'f32)
-    Swag.assert(intWindow.at'2() == 3)
-    Swag.assert(floatWindow.sameSample(77.0'f32) == 77.0'f32)
-    Swag.assert(intWindow.sameSample(9's32) == 9)
-    Swag.assert(floatWindow.firstIfFloat() == 10.0'f32)
-    Swag.assert(interpolated.midpoint() == 20.0'f64)
+    let floatWindow:  Window!{f32, 3} = {values: [10.0_f32, 20.0, 30.0]}
+    let intWindow:    Window!{s32, 3} = {values: [1, 2, 3]}
+    let interpolated: InterpolationWindow!{f64, 3} = {values: [10.0_f64, 20.0, 30.0]}
+    Swag.assert(floatWindow.at!{1}() == 20.0_f32)
+    Swag.assert(intWindow.at!{2}() == 3)
+    Swag.assert(floatWindow.sameSample(77.0_f32) == 77.0_f32)
+    Swag.assert(intWindow.sameSample(9_s32) == 9)
+    Swag.assert(floatWindow.firstIfFloat() == 10.0_f32)
+    Swag.assert(interpolated.midpoint() == 20.0_f64)
 }

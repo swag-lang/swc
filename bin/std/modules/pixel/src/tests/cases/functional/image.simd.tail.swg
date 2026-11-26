@@ -2,23 +2,28 @@
 
 using Swag, Core
 
-private func simdTailSeed(width, height: s32, pf: PixelFormat)->Array'u8
+private func simdTailSeed(width, height: s32, pf: PixelFormat)->Array!{u8}
 {
     let bytesPerPixel = cast(u64, (pf.bitsPerPixel() >> 3))
     var result: #returntype
     result.resize(cast(u64, (width * height)) * bytesPerPixel)
-    for index in result.count do
+    for index in result.count
+    {
         result[index] = cast(u8, ((index * 37 + 11) & 0xFF))
+    }
+
     if pf.hasAlpha()
     {
-        for pixel in cast(u64, (width * height)) do
+        for pixel in cast(u64, (width * height))
+        {
             result[pixel * 4 + 3] = pixel % 3 == 0 ? 0 : cast(u8, ((pixel * 13 + 17) & 0xFF))
+        }
     }
 
     return result
 }
 
-private func simdTailAssertBytes(image: const *Image, expected: const *Array'u8, stage: string, pf: PixelFormat, width: s32)
+private func simdTailAssertBytes(image: const *Image, expected: const *Array!{u8}, stage: string, pf: PixelFormat, width: s32)
 {
     Swag.require(image.byteCount == expected.count)
     if Memory.compare(image.pixels.storage(), expected.storage(), expected.count) != 0
@@ -45,8 +50,10 @@ private func simdTailCheckFilters(pf: PixelFormat, width: s32)
     var image    = Image.create(width, Height, pf, expected.toSlice())
     for pixel in cast(u64, (width * Height))
     {
-        for channel in 3 do
+        for channel in 3
+        {
             expected[pixel * bytesPerPixel + channel] ^= 255
+        }
     }
 
     image.invert()
@@ -69,12 +76,12 @@ private func simdTailCheckFilters(pf: PixelFormat, width: s32)
     expected = simdTailSeed(width, Height, pf)
     image    = Image.create(width, Height, pf, expected.toSlice())
     let blueFirst = pf == .BGR8 or pf == .BGRA8
-    let weight0   = blueFirst ? 19's32 : 54's32
-    let weight2   = blueFirst ? 54's32 : 19's32
+    let weight0   = blueFirst ? 19_s32 : 54_s32
+    let weight2   = blueFirst ? 54_s32 : 19_s32
     for pixel in cast(u64, (width * Height))
     {
         let offset = pixel * bytesPerPixel
-        let gray   = cast(u8, ((expected[offset] * weight0 + expected[offset + 1] * 183's32 + expected[offset + 2] * weight2) >> 8))
+        let gray   = cast(u8, ((expected[offset] * weight0 + expected[offset + 1] * 183_s32 + expected[offset + 2] * weight2) >> 8))
         expected[offset]     = gray
         expected[offset + 1] = gray
         expected[offset + 2] = gray
@@ -115,8 +122,11 @@ private func simdTailCheckFilters(pf: PixelFormat, width: s32)
     {
         expected = simdTailSeed(width, Height, pf)
         image    = Image.create(width, Height, pf, expected.toSlice())
-        for pixel in cast(u64, (width * Height)) do
+        for pixel in cast(u64, (width * Height))
+        {
             expected[pixel * 4 + 3] = 91
+        }
+
         image.setAlpha(91)
         simdTailAssertBytes(&image, &expected, "setAlpha", pf, width)
     }
@@ -163,7 +173,7 @@ private func simdTailCheckConversion(srcPf, dstPf: PixelFormat, width: s32)
     let dstBpp      = cast(u64, (dstPf.bitsPerPixel() >> 3))
     let srcBlue     = srcPf == .BGR8 or srcPf == .BGRA8
     let dstBlue     = dstPf == .BGR8 or dstPf == .BGRA8
-    var expected: Array'u8
+    var expected: Array!{u8}
     expected.resize(cast(u64, (width * Height)) * dstBpp)
     for pixel in cast(u64, (width * Height))
     {
@@ -174,8 +184,10 @@ private func simdTailCheckConversion(srcPf, dstPf: PixelFormat, width: s32)
         target[0] = dstBlue ? blue : red
         target[1] = source[1]
         target[2] = dstBlue ? red : blue
-        if dstBpp == 4 do
+        if dstBpp == 4
+        {
             target[3] = srcBpp == 4 ? source[3] : 255
+        }
     }
 
     let converted = Image.create(width, Height, srcPf, sourceBytes.toSlice()).convertedTo(dstPf)
@@ -184,19 +196,22 @@ private func simdTailCheckConversion(srcPf, dstPf: PixelFormat, width: s32)
 
 #test
 {
-    for bytesPerPixel in [3'u64, 4'u64]
+    for bytesPerPixel in [3_u64, 4_u64]
     {
-        for width in 20'u64
+        for width in 20_u64
         {
             let pixelCount = width + 1
-            var source:   Array'u8
-            var actual:   Array'u8
-            var expected: Array'u8
+            var source:   Array!{u8}
+            var actual:   Array!{u8}
+            var expected: Array!{u8}
             source.resize(1 + pixelCount * bytesPerPixel + 1)
             actual.resize(3 + pixelCount * bytesPerPixel + 1)
             expected.resize(actual.count)
-            for i in source.count do
+            for i in source.count
+            {
                 source[i] = cast(u8, ((i * 31 + 7) & 0xFF))
+            }
+
             for i in actual.count
             {
                 actual[i]   = 0xA5
@@ -210,16 +225,25 @@ private func simdTailCheckConversion(srcPf, dstPf: PixelFormat, width: s32)
                 expected[dstOffset]     = source[srcOffset + 2]
                 expected[dstOffset + 1] = source[srcOffset + 1]
                 expected[dstOffset + 2] = source[srcOffset]
-                if bytesPerPixel == 4 do
+                if bytesPerPixel == 4
+                {
                     expected[dstOffset + 3] = source[srcOffset + 3]
+                }
             }
 
-            if bytesPerPixel == 3 do
+            if bytesPerPixel == 3
+            {
                 PackedPixel.swapRedBlue24Row(source.storage() + 1, actual.storage() + 3, pixelCount)
-            else do
+            }
+            else
+            {
                 PackedPixel.swapRedBlue32Row(source.storage() + 1, actual.storage() + 3, pixelCount)
-            for i in actual.count do
+            }
+
+            for i in actual.count
+            {
                 Swag.require(actual[i] == expected[i])
+            }
         }
     }
 }

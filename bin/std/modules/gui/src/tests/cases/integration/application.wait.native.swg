@@ -27,8 +27,11 @@
 
         Swag.require(settled)
         let frames = app.frameTrace.frames
-        for 16 do
+        for 16
+        {
             app.runFrame()
+        }
+
         Swag.require(app.frameTrace.frames == frames)
     }
 

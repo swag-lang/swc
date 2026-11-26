@@ -23,8 +23,10 @@ func loopReturnsToCaller()     // swc-expected-error {{sema_err_noreturn_reaches
 #[Swag.NoReturn]
 func reachesEnd(flag: bool)     // swc-expected-error {{sema_err_noreturn_reaches_end}}
 {
-    if flag do
+    if flag
+    {
         stop()
+    }
 }
 
 #[Swag.NoReturn]
@@ -32,8 +34,10 @@ func breaksPastNoReturnCall(flag: bool)     // swc-expected-error {{sema_err_nor
 {
     scope(Done)
     {
-        if flag do
+        if flag
+        {
             break to Done     // swc-expected-note {{sema_note_function_continues}}
+        }
         stop()
     }
 }
@@ -41,8 +45,10 @@ func breaksPastNoReturnCall(flag: bool)     // swc-expected-error {{sema_err_nor
 #[Swag.NoReturn]
 func returnsOnOnePath(flag: bool)
 {
-    if flag do
+    if flag
+    {
         return     // swc-expected-error {{sema_err_noreturn_return}}
+    }
     stop()
 }
 
@@ -79,8 +85,10 @@ func spins()
 // A function with a return type needs no 'return' after a call that never comes back.
 func valueOrStop(flag: bool)->s32
 {
-    if flag do
+    if flag
+    {
         return 1
+    }
     stop()
 }
 

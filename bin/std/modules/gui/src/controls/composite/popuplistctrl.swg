@@ -57,9 +57,9 @@ struct PopupListCtrl
 
         readonly
         {
-            items: ArrayPtr'PopupListCtrlItem     // Entries in display order.
-            selectedIndex = Swag.U32.Max          // Initially highlighted item, or U32.Max.
-            late scrollWnd: *ScrollWnd            // Scrollable viewport owned by the popup.
+            items: ArrayPtr!{PopupListCtrlItem}     // Entries in display order.
+            selectedIndex = Swag.U32.Max            // Initially highlighted item, or U32.Max.
+            late scrollWnd: *ScrollWnd              // Scrollable viewport owned by the popup.
         }
     }
 
@@ -77,24 +77,31 @@ public impl PopupListCtrl
         var result: PopupListVisibleRange
         let top    = .scrollWnd.scrollPosition().y
         let bottom = top + .scrollWnd.paddedClientRect().height
-        if bottom <= top or .items.count == 0 do
+        if bottom <= top or .items.count == 0
+        {
             return result
+        }
 
-        var y = 0'f32
+        var y = 0_f32
         for itemIt, i in .items
         {
             let item   = unwrap itemIt
             let height = item.isSeparator ? .separatorHeight : .itemHeight
             if y + height > top and y < bottom
             {
-                if result.end == 0 do
+                if result.end == 0
+                {
                     result.first = cast(u32, i)
+                }
+
                 result.end = cast(u32, i + 1)
             }
 
             y += height
-            if y >= bottom do
+            if y >= bottom
+            {
                 break
+            }
         }
 
         return result
@@ -103,8 +110,11 @@ public impl PopupListCtrl
     // Replaces an entry's icon after it has been added, then refreshes the visible popup.
     mtd setItemIcon(index: u32, icon: Icon)
     {
-        if index >= .items.count do
+        if index >= .items.count
+        {
             return
+        }
+
         .items[index]!.icon = icon
         .maxIconSize        = 0
         for itemIt in .items
@@ -140,8 +150,10 @@ internal impl IWnd for PopupListView
 
             // The focus left the popup (clicked elsewhere, another window, ...):
             // dismiss it.
-            if not .closing and evt.other != .parent do
+            if not .closing and evt.other != .parent
+            {
                 .close(Swag.U32.Max)
+            }
 
         default:
             break
@@ -154,8 +166,10 @@ internal impl IWnd for PopupListView
     mtd impl onKeyEvent(evt: *KeyEvent)
     {
         evt.accepted = false
-        if evt.kind != .Pressed do
+        if evt.kind != .Pressed
+        {
             return
+        }
 
         switch evt.key
         {
@@ -218,8 +232,11 @@ internal impl IWnd for PopupListView
             let h = v.isSeparator ? .list.separatorHeight : .list.itemHeight
             if y <= h
             {
-                if v.isSeparator do
+                if v.isSeparator
+                {
                     return Swag.U32.Max
+                }
+
                 return v.disabled ? Swag.U32.Max : cast(u32, i)
             }
 
@@ -244,7 +261,7 @@ internal impl IWnd for PopupListView
         var labelPos:  Math.Rectangle
         var colorText: Color
 
-        var y = 0'f32
+        var y = 0_f32
         for i, idx in .list.items
         {
             let it = unwrap i
@@ -255,8 +272,10 @@ internal impl IWnd for PopupListView
 
             var format: RichStringFormat
             colorText = colors.popupList_Text
-            if it.disabled do
+            if it.disabled
+            {
                 colorText = colors.disabled
+            }
 
             // Separator
             if it.isSeparator
@@ -272,10 +291,16 @@ internal impl IWnd for PopupListView
             var colorCheck = colors.popupList_CheckMark
             let isHot      = .hotIdx == idx
             var paintFlags: PaintItemFlags = .None
-            if it.disabled do
+            if it.disabled
+            {
                 paintFlags.add(.Disabled)
-            if idx == .list.selectedIndex do
+            }
+
+            if idx == .list.selectedIndex
+            {
                 paintFlags.add(.Checked)
+            }
+
             if isHot
             {
                 colorSel   = colors.popupList_HotBk
@@ -322,13 +347,18 @@ internal impl IWnd for PopupListView
                 if it.icon.isValid()
                 {
                     var icon = it.icon
-                    if .list.iconSize != 0 do
+                    if .list.iconSize != 0
+                    {
                         icon.sizeX, icon.sizeY = .list.iconSize
+                    }
+
                     icon.paint(painter, labelPos.x, labelPos.vertCenter() - icon.sizeY * 0.5, colorText)
                 }
 
-                if .list.maxIconSize do
+                if .list.maxIconSize
+                {
                     labelPos.moveLeft(.list.maxIconSize + metrics.popupList_IconTextMargin)
+                }
 
                 // Text
                 theme.setTextColors(&format, colorText)
@@ -349,34 +379,49 @@ private impl PopupListView
     // Close the popup, optionally committing the highlighted item.
     mtd close(idx: u32)
     {
-        if .closing do
+        if .closing
+        {
             return
+        }
+
         .closing = true
 
-        if .app().mouseCaptureWnd == cast(*Wnd, me) do
+        if .app().mouseCaptureWnd == cast(*Wnd, me)
+        {
             .releaseMouse()
+        }
 
         let list = .list
-        if list.sigClosed do
+        if list.sigClosed
+        {
             list.sigClosed(list, idx)
-        else do
+        }
+        else
+        {
             list.destroy()
+        }
     }
 
     // Move the highlight by 'dir' (+1/-1), skipping separators and clamping. Starts
     // from the current selection when nothing is highlighted yet.
     mtd moveHot(dir: s32)
     {
-        if .list.items.isEmpty() do
+        if .list.items.isEmpty()
+        {
             return
+        }
 
         var idx: s64
         if .hotIdx >= .list.items.count
         {
-            if .list.selectedIndex < .list.items.count do
+            if .list.selectedIndex < .list.items.count
+            {
                 idx = cast(s64, .list.selectedIndex)
-            else do
+            }
+            else
+            {
                 idx = dir > 0 ? -1 : cast(s64, .list.items.count)
+            }
         }
         else
         {
@@ -386,11 +431,16 @@ private impl PopupListView
         for
         {
             idx += dir
-            if idx < 0 or idx >= cast(s64, .list.items.count) do
+            if idx < 0 or idx >= cast(s64, .list.items.count)
+            {
                 return
+            }
+
             let item = unwrap .list.items[cast(u64, idx)]
-            if not item.isSeparator and not item.disabled do
+            if not item.isSeparator and not item.disabled
+            {
                 break
+            }
         }
 
         .hotIdx = cast(u32, idx)
@@ -432,7 +482,7 @@ impl PopupListCtrl
     // Creates a hidden popup list owned by the top view of `owner`.
     func create(owner: *Wnd)->*PopupListCtrl
     {
-        with let popup = Wnd.create'PopupListCtrl(owner.topView(), owner.position, owner.id)
+        with let popup = Wnd.create!{PopupListCtrl}(owner.topView(), owner.position, owner.id)
         {
             .setFrameFlags(.SmallShadow)
             .setFrameForm(.Square)
@@ -440,9 +490,9 @@ impl PopupListCtrl
             // The scrolling child grows into the trailing padding without moving its text.
             let gutter = .themeMetrics().scrollBar_HitSize + .themeMetrics().scrollBar_EdgeInset
             .setPadding(gutter, .themeMetrics().frameWnd_SquarePadding, gutter, .themeMetrics().frameWnd_SquarePadding)
-            .scrollWnd = .createView'ScrollWnd()
+            .scrollWnd = .createView!{ScrollWnd}()
             .scrollWnd.dockStyle = .Center
-            let popupView = .scrollWnd.createView'PopupListView()
+            let popupView = .scrollWnd.createView!{PopupListView}()
             popupView.list = popup
         }
 
@@ -478,23 +528,34 @@ impl PopupListCtrl
     {
         let metrics = .themeMetrics()
         let font    = .scrollWnd.view.font()
-        var text    = 0'f32
+        var text    = 0_f32
         for item in .items
         {
             let it = unwrap item
-            if it.isSeparator or it.contentPainter do
+            if it.isSeparator or it.contentPainter
+            {
                 continue
+            }
+
             text = Math.max(text, Painter.measureString(it.name.text, unwrap font.regular).width)
         }
 
-        if text == 0 do
+        if text == 0
+        {
             return 0
+        }
 
         var lanes = 2 * metrics.popupList_Padding
-        if .selectedIndex < .items.count do
+        if .selectedIndex < .items.count
+        {
             lanes += font.regular!.height + metrics.popupList_IconTextMargin
-        if .maxIconSize do
+        }
+
+        if .maxIconSize
+        {
             lanes += .maxIconSize + metrics.popupList_IconTextMargin
+        }
+
         return Math.ceil(text + lanes + .padding.x + .padding.z + metrics.scrollBar_Size)
     }
 
@@ -506,8 +567,11 @@ impl PopupListCtrl
     mtd show(x, y: f32, width: f32 = 10)
     {
         var contentHeight: f32
-        for item in .items do
+        for item in .items
+        {
             contentHeight += item!.isSeparator ? .separatorHeight : .itemHeight
+        }
+
         .scrollWnd.setScrollSize(0, contentHeight)
 
         // Highlight the current selection as the keyboard starting point. A list whose entries

@@ -1,8 +1,8 @@
 #global if #command == Swag.CompilerCommand.Test
 #global private
 
-var g_workerTimerEntries:        Swag.AtomicValue'u32
-var g_workerTimerCalls:          Swag.AtomicValue'u32
+var g_workerTimerEntries:        Swag.AtomicValue!{u32}
+var g_workerTimerCalls:          Swag.AtomicValue!{u32}
 var g_workerTimerEntered:        Swag.AtomicFlag
 var g_workerTimerContinue:       Swag.AtomicFlag
 var g_workerTimerReleaseStarted: Swag.AtomicFlag
@@ -17,8 +17,11 @@ func workerTimerBlocked(_: *Time.Timer)
 {
     g_workerTimerEntries.add(1)
     g_workerTimerEntered.raise()
-    while not g_workerTimerContinue.isRaised() do
+    while not g_workerTimerContinue.isRaised()
+    {
         Threading.Thread.yield()
+    }
+
     g_workerTimerCalls.add(1)
 }
 
@@ -34,8 +37,11 @@ func waitForWorkerTimer(flag: *Swag.AtomicFlag)->bool
 {
     var elapsed: Time.Stopwatch
     elapsed.start()
-    while not flag.isRaised() and elapsed.elapsedMilliseconds() < 5000 do
-        Threading.Thread.sleep(1'ms)
+    while not flag.isRaised() and elapsed.elapsedMilliseconds() < 5000
+    {
+        Threading.Thread.sleep(1_ms)
+    }
+
     return flag.isRaised()
 }
 
@@ -43,7 +49,7 @@ func waitForWorkerTimer(flag: *Swag.AtomicFlag)->bool
 #test
 {
     g_workerTimerCalls.store(0)
-    var timer  = expect Time.Timer.create(60's, &workerTimerCount)
+    var timer  = expect Time.Timer.create(60_s, &workerTimerCount)
     let before = Time.monotonicTicks()
     timer.release()
     timer.release()
@@ -61,7 +67,7 @@ func waitForWorkerTimer(flag: *Swag.AtomicFlag)->bool
     g_workerTimerContinue.reset()
     g_workerTimerReleaseStarted.reset()
     g_workerTimerReleased.reset()
-    var timer   = expect Time.Timer.create(1'ms, &workerTimerBlocked, periodic: true)
+    var timer   = expect Time.Timer.create(1_ms, &workerTimerBlocked, periodic: true)
     let entered = waitForWorkerTimer(&g_workerTimerEntered)
     if not entered
     {
@@ -71,13 +77,13 @@ func waitForWorkerTimer(flag: *Swag.AtomicFlag)->bool
         return
     }
 
-    Threading.Thread.sleep(10'ms)
+    Threading.Thread.sleep(10_ms)
     let entriesBeforeRelease = g_workerTimerEntries.load()
     var releaser: Threading.Thread
     expect releaser.init(&workerTimerRelease, &timer)
     expect releaser.start()
     let releaseStarted = waitForWorkerTimer(&g_workerTimerReleaseStarted)
-    Threading.Thread.sleep(10'ms)
+    Threading.Thread.sleep(10_ms)
     let releasedEarly = g_workerTimerReleased.isRaised()
     g_workerTimerContinue.raise()
     releaser.wait()

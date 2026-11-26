@@ -53,25 +53,31 @@ impl RegressionArray
     func(ptr: bool) opVisit(const me, stmt: #code(item, index: u64))
     {
 
-        if not .count do
+        if not .count
+        {
             return
+        }
 
         var scan = cast([*] T, &.values[0]) - 1
         for idx in .count
         {
             scan += 1
 
-            #static if ptr do
+            #static if ptr
+            {
                 #inject(stmt, item = scan, index = idx)
-            else do
+            }
+            else
+            {
                 #inject(stmt, item = scan[0], index = idx)
+            }
         }
     }
 }
 
 struct(T) RegressionSignal
 {
-    arr: RegressionArray'T
+    arr: RegressionArray!{T}
 }
 
 impl RegressionSignal
@@ -109,7 +115,7 @@ func addOne(value: *s32)
 
 #test
 {
-    var signal: RegressionSignal'func||(*s32) = {arr: {values: [&addOne, &addOne], count: 0}}
+    var signal: RegressionSignal!{func||(*s32)} = {arr: {values: [&addOne, &addOne], count: 0}}
     signal += &addOne
     signal += func(value: *s32) { discard value; callbackTotal += 10 }
 

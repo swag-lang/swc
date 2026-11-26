@@ -12,8 +12,11 @@ func writeReloadFile(fileName, text: string)
 func pollFileWatch(host: *Testing.HeadlessHost, window: *ViewerWindow)
 {
     host.fireTimer(window.fileWatchTimer)
-    if window.fileWatch.load.started do
+    if window.fileWatch.load.started
+    {
         window.fileWatch.load.task.wait()
+    }
+
     host.fireTimer(window.fileWatchTimer)
 }
 
@@ -77,7 +80,7 @@ func createTestViewerFoot(parent: *Wnd)->TestViewerFoot
         .dockStyle = .Bottom
     }
 
-    with result.commands = Wnd.create'Wnd(parent, {0, 0, 0, ViewerWindow.BarHeight})
+    with result.commands = Wnd.create!{Wnd}(parent, {0, 0, 0, ViewerWindow.BarHeight})
     {
         .dockStyle = .Bottom
     }
@@ -111,8 +114,10 @@ func testViewerPlugin(create: Viewer.PluginCreate)->Viewer.Plugin
 func openTestViewer(plugin: Viewer.Plugin, contentParent: *Wnd, fileName: string, commandParent: *Wnd? = null, actionParent: *Wnd? = null, infoParent: *Wnd? = null, icon: Icon = {}, services: Viewer.HostServices = {}, waitForText = true)->ViewerSession
 {
     var result: #returntype
-    if plugin.attach do
+    if plugin.attach
+    {
         plugin.attach(contentParent.app())
+    }
 
     with var pluginHost: ViewerPluginHost
     {
@@ -149,11 +154,13 @@ func openTestViewer(plugin: Viewer.Plugin, contentParent: *Wnd, fileName: string
 }
 
 // Collects every match a viewer answers for, polling one that reads its document in the background.
-func collectViewerMatches(collect: Viewer.CollectSearchMatches, text: string, matches: *Array'Viewer.SearchMatch)
+func collectViewerMatches(collect: Viewer.CollectSearchMatches, text: string, matches: *Array!{Viewer.SearchMatch})
 {
-    var progress = 0'u64
-    while not collect(text, {}, &progress, matches) do
-        Threading.Thread.sleep(1'ms)
+    var progress = 0_u64
+    while not collect(text, {}, &progress, matches)
+    {
+        Threading.Thread.sleep(1_ms)
+    }
 }
 
 // Completes a viewer worker deterministically, then lets the headless GUI deliver the event that
@@ -178,8 +185,11 @@ func expireViewerLoadingDelay(window: *ViewerWindow)
 // A wait that ended before the mark could linger has nothing to age; the call is then harmless.
 func expireViewerLoadingLinger(window: *ViewerWindow)
 {
-    if not window.loadingShownSince do
+    if not window.loadingShownSince
+    {
         return
+    }
+
     window.loadingShownSince = 1
     window.updateLoadingIndicator()
 }
@@ -198,11 +208,15 @@ func completeViewerWindowClassification(host: *Testing.HeadlessHost, window: *Vi
         Swag.drainWork()
         host.pump()
 
-        if window.startupTimer do
+        if window.startupTimer
+        {
             host.fireTimer(window.startupTimer)
-        elif window.awaitingRetirement do
+        }
+        else if window.awaitingRetirement
+        {
             // A video decoder retires on its own executor, outside the shared worker pool.
-            Threading.Thread.sleep(1'ms)
+            Threading.Thread.sleep(1_ms)
+        }
     }
 
     Swag.require(window.pendingFile.isEmpty())
@@ -216,8 +230,10 @@ func completeTextStatistics(host: *Testing.HeadlessHost, view: *PlainText.Panel)
     {
         view.statisticsTask.wait()
         host.pump()
-        if not view.statisticsTask.isPending() and not view.statisticsTask.isDone() do
+        if not view.statisticsTask.isPending() and not view.statisticsTask.isDone()
+        {
             return
+        }
     }
 
     Swag.require(false, "text statistics did not settle")
@@ -228,12 +244,15 @@ func completeQueuedViewerFile(host: *Testing.HeadlessHost, window: *ViewerWindow
 {
     completeViewerWindowClassification(host, window)
 
-    var steps = 0'u32
+    var steps = 0_u32
     while window.activeChoiceIndex < window.instances.count and steps < 4_096
     {
         let instance = &window.instances[window.activeChoiceIndex]
-        if not instance.view or not instance.isLoading or not instance.isLoading() do
+        if not instance.view or not instance.isLoading or not instance.isLoading()
+        {
             break
+        }
+
         if window.choices[window.activeChoiceIndex].key == PlainText.ViewerKey
         {
             let view = assume cast(*PlainText.Panel, instance.view)
@@ -249,19 +268,23 @@ func completeQueuedViewerFile(host: *Testing.HeadlessHost, window: *ViewerWindow
             if window.activeChoiceIndex < window.instances.count
             {
                 let current = &window.instances[window.activeChoiceIndex]
-                if not current.view or not current.isLoading or not current.isLoading() do
+                if not current.view or not current.isLoading or not current.isLoading()
+                {
                     break
+                }
             }
 
             // Every timer of the loading viewer fires, but not the one that lets the floating
             // commands go once the pointer rests: firing it would hide them only when the
             // viewer happened to be still loading at this point, which is a race, not a state.
-            Threading.Thread.sleep(1'ms)
+            Threading.Thread.sleep(1_ms)
             let lingering = window.viewerBarTimer != null
             window.stopTimer(&window.viewerBarTimer)
             host.fireTimers()
-            if lingering and not window.viewerBarTimer do
+            if lingering and not window.viewerBarTimer
+            {
                 window.viewerBarTimer = window.addTimer(ViewerWindow.ViewerBarLinger)
+            }
         }
 
         steps += 1
@@ -277,20 +300,23 @@ func pinVideoFrame(view: *Film.Panel, index: u64)
     var attempts: u32
     while (not view.openFinished or not view.hasFrame or view.awaitingFrame) and attempts < 5_000
     {
-        Threading.Thread.sleep(1'ms)
+        Threading.Thread.sleep(1_ms)
         view.updatePlayback()
         attempts += 1
     }
 
     Swag.require(view.openFinished and view.hasFrame and not view.awaitingFrame)
-    if view.playing do
+    if view.playing
+    {
         view.togglePlayback()
+    }
+
     Swag.require(view.showFrame(index))
 
     attempts = 0
     while view.awaitingFrame and attempts < 5_000
     {
-        Threading.Thread.sleep(1'ms)
+        Threading.Thread.sleep(1_ms)
         view.updatePlayback()
         attempts += 1
     }
@@ -307,13 +333,18 @@ func completeTextReads(host: *Testing.HeadlessHost, view: *PlainText.Panel)
 {
     for 64
     {
-        if view.read.started do
+        if view.read.started
+        {
             view.read.task.wait()
+        }
+
         view.loadNextChunk()
         discard host.render(view)
         view.updateEstimatedHeight()
-        if not view.read.started and not view.pendingSeek and not view.needsMore() do
+        if not view.read.started and not view.pendingSeek and not view.needsMore()
+        {
             return
+        }
     }
 
     Swag.require(false, "text loading did not settle")
@@ -326,24 +357,24 @@ struct StoredZipFile
     bytes: const [..] u8
 }
 
-private func appendZipU16(bytes: *Array'u8, value: u16)
+private func appendZipU16(bytes: *Array!{u8}, value: u16)
 {
     bytes.add(cast #bit (u8, value))
     bytes.add(cast #bit (u8, (value >> 8)))
 }
 
-private func appendZipU32(bytes: *Array'u8, value: u32)
+private func appendZipU32(bytes: *Array!{u8}, value: u32)
 {
     appendZipU16(bytes, cast #bit (u16, value))
     appendZipU16(bytes, cast #bit (u16, (value >> 16)))
 }
 
 // Returns a ZIP archive holding `files` uncompressed and in order, with UTF-8 names.
-func storedZipBytes(files: const [..] StoredZipFile)->Array'u8
+func storedZipBytes(files: const [..] StoredZipFile)->Array!{u8}
 {
     var result:  #returntype
-    var crcs:    Array'u32
-    var offsets: Array'u32
+    var crcs:    Array!{u32}
+    var offsets: Array!{u32}
     for file in files
     {
         let crc = Hash.Crc32.compute(file.bytes)
@@ -417,14 +448,22 @@ func shipFrame(host: *Testing.HeadlessHost)
 func createFramedViewerWindow(host: *Testing.HeadlessHost, light: bool, width = 960, height = 600, fallbackFaces: const [..] (*TypeFace) = [])->*ViewerWindow
 {
     host.setup(width, height)
-    if fallbackFaces.count do
+    if fallbackFaces.count
+    {
         host.app.renderer.fontCache().setFallbackTypeFaces(fallbackFaces, false)
+    }
+
     host.surface.updateFlags(SurfaceFlags.StandardWindow | SurfaceFlags.NoShadow)
     host.app.setAppIcon(expect Image.decode(".png", AppIcon))
-    if light do
+    if light
+    {
         host.theme.setLight()
-    else do
+    }
+    else
+    {
         host.theme.setDark()
+    }
+
     host.theme.metrics.surfaceWnd_ShadowSize   = 0
     host.theme.metrics.surfaceWnd_CornerRadius = 0
     host.notify(.ThemeChanged)
@@ -458,8 +497,11 @@ func testSourceRoot(loc: Swag.SourceCodeLocation = #callerlocation)->String
     var directory = Path.directoryName(loc.fileName)
     while directory != null
     {
-        if Path.fileName(directory) == "tests" do
+        if Path.fileName(directory) == "tests"
+        {
             return directory
+        }
+
         directory = Path.directoryName(directory)
     }
 

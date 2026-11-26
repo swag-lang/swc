@@ -1,6 +1,6 @@
 #global private
 
-var catchOwnerDrops:        [256] Swag.AtomicValue'u32
+var catchOwnerDrops:        [256] Swag.AtomicValue!{u32}
 var catchOwnerFailDefers:   u32
 var catchOwnerNoFailDefers: u32
 var catchOwnerHandlerRuns:  u32
@@ -25,8 +25,10 @@ func catchOwnerEarlyReturn()->u32
 {
     defer #fail catchOwnerFailDefers += 1
     defer #nofail catchOwnerNoFailDefers += 1
-    catch failCatchOwner(48) do
+    catch failCatchOwner(48)
+    {
         return 1
+    }
     return 0
 }
 
@@ -91,13 +93,15 @@ func deferredFailingCatchOwner() fail
 // Count destruction without dereferencing a payload after it might have been released.
 #test
 {
-    for &drops in catchOwnerDrops do
+    for &drops in catchOwnerDrops
+    {
         drops.store(0)
+    }
     catchOwnerFailDefers   = 0
     catchOwnerNoFailDefers = 0
 
-    var firstGeneration  = 0'u32
-    var secondGeneration = 0'u32
+    var firstGeneration  = 0_u32
+    var secondGeneration = 0_u32
     scope
     {
         var firstOutcome: Swag.Error
@@ -141,7 +145,7 @@ func deferredFailingCatchOwner() fail
     }
     Swag.require(catchOwnerDrops[64 + firstGeneration].load() == 3)
 
-    var rethrownGeneration = 0'u32
+    var rethrownGeneration = 0_u32
     scope
     {
         var errorOutcome: Swag.Error
@@ -156,8 +160,10 @@ func deferredFailingCatchOwner() fail
 
     for 3
     {
-        catch failCatchOwner(96) do
+        catch failCatchOwner(96)
+        {
             break
+        }
     }
     Swag.require(catchOwnerDrops[96 + firstGeneration].load() == 1)
     Swag.require(Swag.getContext().curError == null and Swag.getContext().hasError == 0)

@@ -3,8 +3,10 @@ using Swag
 
 func selectArrayTypeInfo(flag: bool)->const *Swag.TypeInfoArray
 {
-    if flag do
+    if flag
+    {
         return #typeof([1, 2.5])
+    }
     return #typeof([3.5, 4])
 }
 

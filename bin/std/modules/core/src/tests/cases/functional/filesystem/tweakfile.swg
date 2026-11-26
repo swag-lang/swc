@@ -21,8 +21,8 @@ struct TweakBeta
     var beta:  TweakBeta
     var tweak: File.TweakFile
 
-    tweak.registerFolder'TweakAlpha(&alpha)
-    tweak.registerFolder'TweakBeta(&beta)
+    tweak.registerFolder!{TweakAlpha}(&alpha)
+    tweak.registerFolder!{TweakBeta}(&beta)
 
     discard expect tweak.parse("/TweakAlpha\nfoo 1\nbar $foo\n/TweakBeta\nbar 2\nfoo $bar\n")
     Swag.require(alpha.foo == 1)
@@ -42,7 +42,7 @@ struct TweakBeta
     var cycle: TweakCycle
     var tweak: File.TweakFile
 
-    tweak.registerFolder'TweakCycle(&cycle)
+    tweak.registerFolder!{TweakCycle}(&cycle)
 
     var err2Outcome: Swag.Error
     discard catch tweak.parse("/TweakCycle\nfoo $bar\nbar $foo\n") as err2Outcome
@@ -81,7 +81,7 @@ struct TweakBeta
 
     var loop:  TweakLoop
     var tweak: File.TweakFile
-    tweak.registerFolder'TweakLoop(&loop)
+    tweak.registerFolder!{TweakLoop}(&loop)
 
     var errOutcome: Swag.Error
     discard catch tweak.parse("/TweakLoop\nfirst $second\nsecond $third\nthird $second\n") as errOutcome
@@ -113,8 +113,8 @@ namespace TweakDeep
     var palette: TweakDeep.Palette
     var tweak:   File.TweakFile
 
-    tweak.registerFolder'TweakDeep.Sheet(&sheet)
-    tweak.registerFolder'TweakDeep.Palette(&palette)
+    tweak.registerFolder!{TweakDeep.Sheet}(&sheet)
+    tweak.registerFolder!{TweakDeep.Palette}(&palette)
 
     discard expect tweak.parse("/Sheet\nwidth 44\nheight 27.5\n/Palette\nmain 3\n")
     Swag.require(sheet.width == 44)

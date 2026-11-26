@@ -45,16 +45,16 @@ enum CreateRow
 
 impl CreatePage
 {
-    const SizeFontSize = 22'u32     // Size of the capacity, the one figure of the form.
-    const SizeWidth    = 140'f32
-    const SizeHeight   = 44'f32
-    const RowSpacing   = 24'f32
-    const PairSpacing  = 16'f32
+    const SizeFontSize = 22_u32     // Size of the capacity, the one figure of the form.
+    const SizeWidth    = 140_f32
+    const SizeHeight   = 44_f32
+    const RowSpacing   = 24_f32
+    const PairSpacing  = 16_f32
 
     // Creates the page in `window`, hidden.
     func create(window: *MainWindow)->*CreatePage
     {
-        with let result = Wnd.create'CreatePage(window, "vault.create")
+        with let result = Wnd.create!{CreatePage}(window, "vault.create")
         {
             .window          = window
             .dockStyle       = .Center
@@ -162,7 +162,7 @@ impl CreatePage
     private mtd createActions()
     {
         let texts = appStrings()
-        with .actions = Wnd.create'Wnd(.column, Math.Rectangle{0, 0, 0, .themeMetrics().btnPush_Height})
+        with .actions = Wnd.create!{Wnd}(.column, Math.Rectangle{0, 0, 0, .themeMetrics().btnPush_Height})
         {
             .backgroundStyle = .Transparent
             .margin.y        = PageHeadGap
@@ -218,17 +218,27 @@ impl CreatePage
         .invalidate()
 
         let location = .path.text()
-        if location.count == 0 or not Path.isValidPathName(location) or Directory.isRemote(location) do
+        if location.count == 0 or not Path.isValidPathName(location) or Directory.isRemote(location)
+        {
             return
+        }
+
         let root = Path.rootName(location) orelse ""
-        if root.count == 0 do
+        if root.count == 0
+        {
             return
+        }
 
         var folder = Path.directoryName(location) orelse ""
-        while folder.count != 0 and not Directory.exists(folder) do
+        while folder.count != 0 and not Directory.exists(folder)
+        {
             folder = Path.directoryName(folder) orelse ""
-        if folder.count == 0 do
+        }
+
+        if folder.count == 0
+        {
             return
+        }
 
         let bytes = catch Directory.freeSpace(folder)
         {
@@ -242,7 +252,7 @@ impl CreatePage
     // is one, in mebibytes below.
     mtd showFreeSpace(bytes: u64, root: string)
     {
-        const Mebibyte = 1024'u64 * 1024
+        const Mebibyte = 1024_u64 * 1024
         const Gibibyte = Mebibyte * 1024
         let texts     = appStrings()
         let gibibytes = bytes >= Gibibyte
@@ -251,8 +261,10 @@ impl CreatePage
 
         // The volume is named as a reader writes it, without the separator its root ends with.
         var volume = root
-        while volume.count > 1 and Path.isDirectorySeparator(volume[volume.count - 1]) do
+        while volume.count > 1 and Path.isDirectorySeparator(volume[volume.count - 1])
+        {
             volume = volume[until volume.count - 1]
+        }
 
         .freeSpace = Format.toString(texts.ui_FreeSpace, Format.toString("% %", amount, unit), volume)
         .invalidate()
@@ -262,10 +274,15 @@ impl CreatePage
     mtd setKeyFileCount(count: u64)
     {
         let texts = appStrings()
-        if count do
+        if count
+        {
             .keyFiles.setText(Format.toString(texts.ui_KeyFilesCount, count))
-        else do
+        }
+        else
+        {
             .keyFiles.setText(texts.ui_AddKeyFilesLink)
+        }
+
         .arrangeActions()
     }
 
@@ -273,8 +290,11 @@ impl CreatePage
     mtd arrange()
     {
         // A window is laid out as soon as it is made, before its parts exist.
-        if .createAction == null do
+        if .createAction == null
+        {
             return
+        }
+
         placePageColumn(me, .column)
         .arrangeActions()
     }
@@ -304,8 +324,10 @@ impl IWnd for CreatePage
     // Writes the room left on the volume at the end of the capacity's line, as a measure.
     mtd impl onPaint(evt: *PaintEvent)
     {
-        if .freeSpace.isEmpty() or .createAction == null do
+        if .freeSpace.isEmpty() or .createAction == null
+        {
             return
+        }
 
         let painter = evt.paintContext.painter
         let font    = .theme().createDefaultFontFs(.themeMetrics().hintLine_FontSize)

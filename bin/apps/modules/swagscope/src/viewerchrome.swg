@@ -3,7 +3,7 @@ using Core, Pixel, Gui
 // The name of the file in the window title or the cell's reading line.
 struct ViewerFileCaption
 {
-    using wnd: Wnd
+    using wnd:  Wnd
     late title: *Label
 }
 
@@ -12,7 +12,7 @@ impl ViewerFileCaption
     func create(parent: *Wnd)->*ViewerFileCaption
     {
         let metrics = parent.themeMetrics()
-        let result = Wnd.create'ViewerFileCaption(parent, "scope.file.caption")
+        let result  = Wnd.create!{ViewerFileCaption}(parent, "scope.file.caption")
         result.backgroundStyle = .Transparent
         result.wndFlags.add(.TopMost)
         result.hide()
@@ -21,20 +21,24 @@ impl ViewerFileCaption
             .style.setFont(parent.theme().createDefaultFont(metrics.wnd_TitleFontSize), .Regular)
             .setTextAlignment(.Left, .OpticalCenter)
         }
+
         return result
     }
 
     mtd setFile(path, name: string)
     {
-        if .title.text() != name do
+        if .title.text() != name
+        {
             .title.setText(name)
+        }
+
         .title.toolTip = path
     }
 
     mtd widthFor(room: f32)->f32
     {
-        let text = .title.text()
-        let font = .title.font().regular orelse .theme().createDefaultFont(.themeMetrics().wnd_TitleFontSize)
+        let text  = .title.text()
+        let font  = .title.font().regular orelse .theme().createDefaultFont(.themeMetrics().wnd_TitleFontSize)
         let width = Painter.measureStringSnapped(text, font, deviceScale: .deviceScale())
         return Math.min(Math.max(room, 0), Math.ceil(width))
     }
@@ -49,13 +53,14 @@ impl ViewerFileCaption
 
 func createViewCloseButton(parent: *Wnd)->*IconButton
 {
-    let icon = parent.theme().icon(.WndClose, parent.themeMetrics().chevron_Size)
+    let icon        = parent.theme().icon(.WndClose, parent.themeMetrics().chevron_Size)
     with let button = IconButton.create(parent, icon, id: "scope.view.close", flags: .Overlay | .CenterContent)
     {
         .focusPolicy = .None
         .setForm(.RoundedRectangle)
         .hide()
     }
+
     return button
 }
 
@@ -84,15 +89,17 @@ struct ViewerReadingLine
 
     late details: *Label
     late close:   *IconButton
-    caption: *ViewerFileCaption?
+    caption:      *ViewerFileCaption?
 }
 
 impl IWnd for ViewerReadingLine
 {
     mtd impl onResizeEvent(_: *ResizeEvent)
     {
-        if .close != null do
+        if .close != null
+        {
             .computeLayout()
+        }
     }
 }
 
@@ -104,7 +111,7 @@ impl ViewerReadingLine
 
     func create(parent: *Wnd)->*ViewerReadingLine
     {
-        with let result = Wnd.create'ViewerReadingLine(parent, {0, 0, 0, Height}, "scope.reading")
+        with let result = Wnd.create!{ViewerReadingLine}(parent, {0, 0, 0, Height}, "scope.reading")
         {
             .backgroundStyle = .Transparent
             .style.addStyleSheetColors("label_TextLight $label_TextFaint")
@@ -121,12 +128,17 @@ impl ViewerReadingLine
     }
 
     // Returns the viewer contributions the line shows, in creation order.
-    mtd contributions()->Array'(*Wnd)
+    mtd contributions()->Array!{*Wnd}
     {
         var result: #returntype
-        for child in .children where child != cast(*Wnd, .details) and child != cast(*Wnd, .close) and
-                                     child != cast(*Wnd?, .caption) and child.isLocallyVisible() do
+        for child in .children where child != cast(*Wnd, .details) and
+                                     child != cast(*Wnd, .close) and
+                                     child != cast(*Wnd?, .caption) and
+                                     child.isLocallyVisible()
+        {
             result.add(child)
+        }
+
         return result
     }
 
@@ -139,14 +151,15 @@ impl ViewerReadingLine
         let client  = .clientRect()
         let viewers = .contributions()
 
-        let named = .caption and .caption.parent == me and .caption.isLocallyVisible()
+        let named   = .caption and .caption.parent == me and .caption.isLocallyVisible()
         let spacing = named and client.width < 8 * ViewerWorkspace.ViewTitleHeight ? GroupSpacing * 0.5 : GroupSpacing
-        var right = client.right()
+        var right   = client.right()
         if .close.isLocallyVisible()
         {
             placeViewCloseButton(.close, client)
             right = Math.max(client.x, .close.position.x - spacing)
         }
+
         let reserved = named ? .caption!.widthFor((right - client.x) * 0.45) : 0.0
         for i in reversed(viewers.count)
         {
@@ -159,8 +172,10 @@ impl ViewerReadingLine
             right -= width
             one.setPosition(Math.Rectangle{right, client.y + Math.round((client.height - one.position.height) * 0.5), width, one.position.height}, computeLayout: false)
             one.applyLayout()
-            if width do
+            if width
+            {
                 right = Math.max(client.x + reserved, right - spacing)
+            }
         }
 
         var left = client.x
@@ -169,10 +184,14 @@ impl ViewerReadingLine
             let width = .caption!.widthFor(right - left)
             .caption.place(left, client.vertCenter(), width)
             left += width + spacing
+
             // A few clipped letters beside the name are less useful than its full tooltip.
-            if right - left < 80 do
+            if right - left < 80
+            {
                 left = right
+            }
         }
+
         .details.setPosition(Math.Rectangle{left, client.y, Math.max(right - left, 0), client.height}, computeLayout: false)
     }
 }
@@ -234,8 +253,10 @@ impl IWnd for ViewerSearchOverlay
         let colors  = .themeColors()
 
         let mark = .clientRect()
-        if mark.isEmpty() do
+        if mark.isEmpty()
+        {
             return
+        }
 
         painter.fillRoundRect(mark, MarkRadius, MarkRadius, colors.searchMatch_Bk)
 
@@ -258,7 +279,7 @@ impl ViewerSearchOverlay
 
     func create(parent: *Wnd)->*ViewerSearchOverlay
     {
-        with let result = Wnd.create'ViewerSearchOverlay(parent, "scope.search.highlight")
+        with let result = Wnd.create!{ViewerSearchOverlay}(parent, "scope.search.highlight")
         {
             .wndFlags        |= WndFlags.TopMost | WndFlags.Disabled
             .backgroundStyle = .Transparent
@@ -287,14 +308,14 @@ impl ViewerSearchOverlay
 impl ViewerLoadingOverlay
 {
     // How long the overlay takes to fade in once the wait has lasted long enough to show it.
-    const FadeIn: Time.Duration = 120'ms
+    const FadeIn: Time.Duration = 120_ms
 
     // Side of the activity mark: the toolkit's spinner, a size up from a row's, since it waits for a whole document.
     const SpinnerSize = 32.0
 
     func create(parent: *Wnd)->*ViewerLoadingOverlay
     {
-        with let result = Wnd.create'ViewerLoadingOverlay(parent, "scope.loading")
+        with let result = Wnd.create!{ViewerLoadingOverlay}(parent, "scope.loading")
         {
             .wndFlags                |= WndFlags.TopMost | WndFlags.Disabled
             .backgroundStyle         = .Transparent
@@ -317,13 +338,19 @@ impl ViewerLoadingOverlay
     // Shows the mark, fading it in unless motion is reduced.
     mtd reveal()
     {
-        if .isLocallyVisible() do
+        if .isLocallyVisible()
+        {
             return
+        }
+
         .show()
 
         let animator = &.app().animator
-        if animator.isActive(.fadeAni) do
+        if animator.isActive(.fadeAni)
+        {
             animator.cancel(.fadeAni)
+        }
+
         if .app().isReducedMotion()
         {
             .setPresentationOpacity(1)
@@ -341,8 +368,11 @@ impl ViewerLoadingOverlay
     mtd conceal()
     {
         let animator = &.app().animator
-        if animator.isActive(.fadeAni) do
+        if animator.isActive(.fadeAni)
+        {
             animator.cancel(.fadeAni)
+        }
+
         .hide()
     }
 }
@@ -353,12 +383,12 @@ impl ViewerErrorView
     const TextWidth  = 512.0
     const DotSize    = 8.0
     const DotGap     = 10.0
-    const MaxViewers = 2'u64     // Other viewers offered at most, beside the file's own application.
+    const MaxViewers = 2_u64     // Other viewers offered at most, beside the file's own application.
 
     // Creates a failure surface with the heading for the affected viewer or folder.
     func create(parent: *Wnd, reason: string, source = ScopeErrorSource.Viewer)->*ViewerErrorView
     {
-        let result  = Wnd.create'ViewerErrorView(parent, "scope.error")
+        let result  = Wnd.create!{ViewerErrorView}(parent, "scope.error")
         let metrics = result.themeMetrics()
         result.backgroundStyle = .View
         result.source = source
@@ -402,14 +432,19 @@ impl ViewerErrorView
     // the file's own application, as direct actions under the reason.
     mtd offer(window: *ViewerWindow, failing: u32)
     {
-        while not .actions.children.isEmpty() do
+        while not .actions.children.isEmpty()
+        {
             .actions.children.back().destroyNow()
+        }
 
-        var offered = 0'u64
+        var offered = 0_u64
         for choice, index in window.choices where index != failing and offered < MaxViewers
         {
-            if index < window.instances.count and not window.instances[index].failureReason.isEmpty() do
+            if index < window.instances.count and not window.instances[index].failureReason.isEmpty()
+            {
                 continue
+            }
+
             let name   = window.index.plugins[choice.pluginIndex].displayName()
             let button = PushButton.create(.actions, Format.toString(appStrings().ui_ViewAsChoice, name), {}, null)
             let target = cast(u32, index)
@@ -423,8 +458,11 @@ impl ViewerErrorView
 
         // The row is as wide as its buttons, which a language with longer words widens.
         var width = 0.0
-        for child, i in .actions.children do
+        for child, i in .actions.children
+        {
             width += child.position.width + (i ? .actions.spacing : 0)
+        }
+
         .actions.position.width  = Math.max(width, TextWidth)
         .actions.preferredSize.x = .actions.position.width
         .actions.show()

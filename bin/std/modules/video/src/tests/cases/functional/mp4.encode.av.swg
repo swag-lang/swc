@@ -9,7 +9,7 @@ using Swag, Core, Audio, Pixel
     let path = videoTempPath("mp4-encoded-video-silence", "mp4")
     defer discard catch File.delete(path)
 
-    var rgb: Array'u8
+    var rgb: Array!{u8}
     rgb.resize(32 * 16 * 3)
     for pixel in 32 * 16
     {
@@ -31,7 +31,7 @@ using Swag, Core, Audio, Pixel
                                                              video.decoderConfig(),
                                                              Mp4.FragmentedAudioConfig{48_000, 2,
                                                                                        audio.decoderConfig()})
-    for index in 3'u64
+    for index in 3_u64
     {
         expect writer.addPacket(expect video.encode(&nv12, index * 3_000, 3_000))
         expect writer.addAudioPacket(EncodedPacket{audio.packet(), index * 1_024,
@@ -58,13 +58,15 @@ using Swag, Core, Audio, Pixel
 
     let sound = unwrap reader.audioTrack(0)
     Swag.require(sound.sampleEncoding() == .AacLc and sound.sampleFrameCount() == 3 * 1_024)
-    var pcm: Array's16
+    var pcm: Array!{s16}
     expect sound.decodePcm16(func|pcm = &pcm|(part: const [..] s16)->bool
     {
         pcm.add(part)
         return true
     })
     Swag.require(pcm.count == 3 * 1_024 * 2)
-    for sample in pcm do
+    for sample in pcm
+    {
         Swag.require(sample == 0)
+    }
 }

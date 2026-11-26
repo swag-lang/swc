@@ -8,8 +8,11 @@ using Core, Viewers
 #test
 {
     var source: String = "<presentation:notes>"
-    for 2049 do
+    for 2049
+    {
         source += "<draw:frame presentation:class='page-number'/>"
+    }
+
     source += "</presentation:notes>"
     var styles: Odf.StyleCatalog
     var error:  Swag.Error

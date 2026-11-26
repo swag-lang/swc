@@ -7,9 +7,12 @@ func openDescriptorCount()->u32
     Swag.require(directory != null)
     defer discard Linux.closedir(unwrap directory)
 
-    var count = 0'u32
-    while Linux.readdir(directory) do
+    var count = 0_u32
+    while Linux.readdir(directory)
+    {
         count += 1
+    }
+
     return count
 }
 

@@ -40,21 +40,35 @@ impl ViewerSession
     mtd create(plugin: const *Viewer.Plugin, host: Viewer.Host) fail
     {
         plugin.create(host)
-        if .view and not .failureReason.isEmpty() do
+        if .view and not .failureReason.isEmpty()
+        {
             fail Errors.InvalidFormatError{}
-        if not .view and .failureReason.isEmpty() do
+        }
+
+        if not .view and .failureReason.isEmpty()
+        {
             fail Errors.InvalidFormatError{}
-        if not .view and (.actions or .info or .commands) do
+        }
+
+        if not .view and (.actions or .info or .commands)
+        {
             fail Errors.InvalidFormatError{}
+        }
     }
 
     // Requests resource release and reports whether GUI destruction may proceed.
     mtd retireView()->bool
     {
-        if not .view or not .retire do
+        if not .view or not .retire
+        {
             return true
-        if not .retire() do
+        }
+
+        if not .retire()
+        {
             return false
+        }
+
         .retire = null
         return true
     }
@@ -109,25 +123,28 @@ struct ViewerPluginHost
 // The host clears the title strip. A panel with its own leading space can align to the document.
 struct ViewerSidePanelHost
 {
-    using wnd: Wnd
+    using wnd:       Wnd
     alignToDocument: bool
-    strip: f32
-    positioned: bool
+    strip:           f32
+    positioned:      bool
 }
 
 impl ViewerSidePanelHost
 {
     mtd placeBelowStrip(height: f32)
     {
-        .strip = height
+        .strip      = height
         .positioned = true
-        .padding.y = height + (.alignToDocument ? 0 : .themeMetrics().floating_Inset)
+        .padding.y  = height + (.alignToDocument ? 0 : .themeMetrics().floating_Inset)
     }
 
     mtd setDocumentAlignment(enabled: bool)
     {
-        if enabled == .alignToDocument do
+        if enabled == .alignToDocument
+        {
             return
+        }
+
         .alignToDocument = enabled
         if .positioned
         {
@@ -160,10 +177,15 @@ impl IWnd for ViewerInfoGroup
             let size  = child.itf.measureContent(available)
             let side  = child.dockStyle == .Left or child.dockStyle == .Right
             let width = (side ? Math.max(size.x, child.position.width) : size.x) + child.margin.x + child.margin.z
-            if side do
+            if side
+            {
                 horizontal += width
-            else do
+            }
+            else
+            {
                 center = Math.max(center, width)
+            }
+
             result.y = Math.max(result.y, size.y + child.margin.y + child.margin.w)
         }
 
@@ -176,7 +198,7 @@ private impl ViewerPluginHost
 {
     mtd createGroup(parent: *Wnd, width: f32)->*Wnd
     {
-        with let result = Wnd.create'Wnd(parent, Math.Rectangle{0, 0, width, 36})
+        with let result = Wnd.create!{Wnd}(parent, Math.Rectangle{0, 0, width, 36})
         {
             .backgroundStyle = .Transparent
             .preferredSize.x = width
@@ -187,7 +209,7 @@ private impl ViewerPluginHost
 
     mtd createInfoWnd(parent: *Wnd, width: f32)->*Wnd
     {
-        let result = Wnd.create'ViewerInfoGroup(parent, Math.Rectangle{0, 0, width, 36})
+        let result = Wnd.create!{ViewerInfoGroup}(parent, Math.Rectangle{0, 0, width, 36})
         result.backgroundStyle = .Transparent
 
         // The width the plugin asks for is the most this group may take, and the band shrinks the
@@ -247,14 +269,16 @@ impl Viewer.Host for ViewerPluginHost
         if .window
         {
             let savedWidth = placement == .Left ? .window.leftPanelWidth : .window.rightPanelWidth
-            if savedWidth > 0 do
+            if savedWidth > 0
+            {
                 panelWidth = savedWidth
+            }
         }
 
         panelWidth = Math.clamp(panelWidth, ViewerWindow.RightPanelMinWidth, ViewerWindow.RightPanelMaxWidth)
 
         // The floating inset stands the panel away from the edges of the window, beside the work.
-        with .session.sidePanelHost = Wnd.create'ViewerSidePanelHost(.sidePanelParent, Math.Rectangle{0, 0, panelWidth + gutter, 0})
+        with .session.sidePanelHost = Wnd.create!{ViewerSidePanelHost}(.sidePanelParent, Math.Rectangle{0, 0, panelWidth + gutter, 0})
         {
             .dockStyle       = .None
             .backgroundStyle = .Transparent
@@ -274,7 +298,7 @@ impl Viewer.Host for ViewerPluginHost
         }
         else
         {
-            with .session.sidePanel = Wnd.create'Wnd(.session.sidePanelHost)
+            with .session.sidePanel = Wnd.create!{Wnd}(.session.sidePanelHost)
             {
                 .dockStyle       = .Center
                 .backgroundStyle = .Transparent
@@ -321,8 +345,10 @@ impl Viewer.Host for ViewerPluginHost
             let window = .window
             .session.sidePanelButton.sigCheckedChanged += func|window|(button)
             {
-                if window and window.currentSidePanelButton == button and button.id == OutlineToggleId do
+                if window and window.currentSidePanelButton == button and button.id == OutlineToggleId
+                {
                     window.updateOutlineCaptionState()
+                }
             }
         }
 
@@ -400,8 +426,11 @@ func visibleViewerCommands(commands: *Wnd?)->*Wnd?
 {
     if commands
     {
-        for child in commands.children where child.isLocallyVisible() do
+        for child in commands.children where child.isLocallyVisible()
+        {
             return commands
+        }
     }
+
     return null
 }

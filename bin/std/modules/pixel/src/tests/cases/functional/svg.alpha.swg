@@ -71,8 +71,10 @@ using Swag, Core
     Swag.require(tiled.pixelColor(72, 48).argb == 0xFF806040)
     Swag.require(tiled.pixelColor(48, 24).argb == 0xFF806040)
     Swag.require(tiled.pixelColor(48, 72).argb == 0xFF806040)
-    for value, index in tiled.pixels do
+    for value, index in tiled.pixels
+    {
         Swag.require(Math.abs(cast(s32, value) - cast(s32, whole.pixels[index])) <= 1)
+    }
 }
 
 // An ancestor clip intersects the descendant's own clip instead of replacing it.
@@ -102,7 +104,7 @@ using Swag, Core
 #test
 {
     let drawing = expect Svg.Drawing.parse("<svg width='32' height='24'><rect width='32' height='24' fill='white'/><rect x='4' y='4' width='24' height='16' fill='#204060' fill-opacity='0.25'/><path d='M1 1H3' fill='none' stroke='black'/></svg>")
-    for samples in [1'u8, 2'u8, 4'u8]
+    for samples in [1_u8, 2_u8, 4_u8]
     {
         let image = drawing.rasterize(32, 24, samples)
         let color = image.pixelColor(16, 12)

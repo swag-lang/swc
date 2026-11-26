@@ -7,7 +7,7 @@ func encoderStressPicture(shiftY: s32, flat: bool)->Nv12Frame fail
 {
     const Width  = 1920
     const Height = 1080
-    var rgb: Array'u8
+    var rgb: Array!{u8}
     rgb.resize(Width * Height * 3)
     for y in Height
     {
@@ -29,7 +29,7 @@ func encoderStressPicture(shiftY: s32, flat: bool)->Nv12Frame fail
 
 func encoderStressTiles(bright: s32, width: s32 = 1920, height: s32 = 1080)->Nv12Frame fail
 {
-    var rgb: Array'u8
+    var rgb: Array!{u8}
     rgb.resize(width * height * 3)
     for y in height
     {
@@ -51,7 +51,7 @@ func encoderStressTiles(bright: s32, width: s32 = 1920, height: s32 = 1080)->Nv1
 
 func encoderStressSparse(width, height: s32, changed: bool)->Nv12Frame fail
 {
-    var rgb: Array'u8
+    var rgb: Array!{u8}
     rgb.resize(cast(u64, width) * cast(u64, height) * 3)
     for y in cast(u64, height)
     {
@@ -123,9 +123,9 @@ private impl Nv12Frame
             for mbX in width / 16
             {
                 let luma = mbY * 16 * width + mbX * 16
-                for row in 16'u64
+                for row in 16_u64
                 {
-                    for column in 16'u64
+                    for column in 16_u64
                     {
                         let offset = luma + row * width + column
                         .bytes[offset] = cast(u8, (row * 17 + column * 31 + mbX * 7 + mbY * 13) & 255)
@@ -176,7 +176,7 @@ private impl Nv12Frame
     var reader = expect Reader.open(path)
     Swag.require(reader.frameCount() == 5)
     var decoded: PlanarFrame
-    for index in 5'u64
+    for index in 5_u64
     {
         expect reader.decodeFramePlanesInto(&decoded, index)
         let source = index == 0 ? &base : (index < 3 ? &scrolled : &flat)
@@ -210,7 +210,7 @@ private impl Nv12Frame
 
     var reader = expect Reader.open(path)
     var decoded: PlanarFrame
-    for index in 3'u64
+    for index in 3_u64
     {
         expect reader.decodeFramePlanesInto(&decoded, index)
         let source = index == 0 ? &base : (index == 1 ? &brighter : &brightest)
@@ -222,7 +222,7 @@ private impl Nv12Frame
 #[Swag.TestTag("stress")]
 #test
 {
-    for resolution in 2'u64
+    for resolution in 2_u64
     {
         let width  = resolution == 0 ? 1920 : 3840
         let height = resolution == 0 ? 1080 : 2160
@@ -246,7 +246,7 @@ private impl Nv12Frame
 
         var reader = expect Reader.open(path)
         var decoded: PlanarFrame
-        for index in 3'u64
+        for index in 3_u64
         {
             expect reader.decodeFramePlanesInto(&decoded, index)
             requireStressPicture(index == 1 ? &changed : &base, &decoded)
@@ -279,7 +279,7 @@ private impl Nv12Frame
 
     var reader = expect Reader.open(path)
     var decoded: PlanarFrame
-    for index in 3'u64
+    for index in 3_u64
     {
         expect reader.decodeFramePlanesInto(&decoded, index)
         requireStressPicture(index == 1 ? &tinted : &base, &decoded)
@@ -311,7 +311,7 @@ private impl Nv12Frame
 
     var reader = expect Reader.open(path)
     var decoded: PlanarFrame
-    for index in 3'u64
+    for index in 3_u64
     {
         expect reader.decodeFramePlanesInto(&decoded, index)
         requireStressPicture(index == 1 ? &changed : &base, &decoded)
@@ -388,7 +388,7 @@ private impl Nv12Frame
                 let offset = y * width + x
                 let delta  = cast(s32, (x * 13 + y * 7 + (x / 5) * 11) % 25) - 12
                 let value  = cast(s32, .bytes[offset]) + delta
-                .bytes[offset] = cast(u8, Math.max(16's32, Math.min(235's32, value)))
+                .bytes[offset] = cast(u8, Math.max(16_s32, Math.min(235_s32, value)))
             }
         }
 
@@ -413,8 +413,10 @@ private impl Nv12Frame
         for y in height
         {
             let fromY = (y + 16) % height
-            for x in width do
+            for x in width
+            {
                 .bytes[y * width + x] = luma[fromY * width + x]
+            }
         }
     }
 }
@@ -430,8 +432,8 @@ func qpStressQuality(reference: const *Nv12Frame, decoded: const *PlanarFrame)->
     Swag.require(decoded.width == reference.width and decoded.height == reference.height)
     let y         = reference.luma()
     let uv        = reference.chroma()
-    var ySquared  = 0'u64
-    var uvSquared = 0'u64
+    var ySquared  = 0_u64
+    var uvSquared = 0_u64
     for index in y.count
     {
         let error = Math.abs(cast(s32, y[index]) - cast(s32, decoded.luma[index]))
@@ -460,7 +462,7 @@ func runQpStress(width, height: s32) fail
     var losslessTextureBytes: u64
     var qp28TextureBytes:     u64
     var qp28TextureY:         f64
-    for qp in [0'u32, 28, 36]
+    for qp in [0_u32, 28, 36]
     {
         let path = videoTempPath("h264-qp-stress", "mp4")
         defer discard catch File.delete(path)
@@ -471,8 +473,11 @@ func runQpStress(width, height: s32) fail
         for &target, scene in targets
         {
             let packet = try encoder.encode(target, (scene + 1) * 1_500, 1_500)
-            if scene == 2 do
+            if scene == 2
+            {
                 textureBytes = packet.bytes.count
+            }
+
             try writer.addPacket(packet)
         }
 
@@ -496,15 +501,20 @@ func runQpStress(width, height: s32) fail
             if qp == 0
             {
                 requireStressPicture(target, &decoded)
-                if scene == 2 do
+                if scene == 2
+                {
                     losslessTextureBytes = textureBytes
+                }
+
                 continue
             }
 
             let quality = qpStressQuality(target, &decoded)
             Swag.require(quality.yPsnr >= 18.0 and quality.uvPsnr >= 18.0)
-            if scene != 2 do
+            if scene != 2
+            {
                 continue
+            }
 
             Swag.require(textureBytes < losslessTextureBytes)
             if qp == 28
@@ -542,17 +552,20 @@ func runQpRepeatedInput(width, height: s32) fail
     let base   = try encoderStressTiles(0, width, height)
     var source = try encoderStressTiles(0, width, height)
     source.qpStressTexture()
-    for qp in 2'u32
+    for qp in 2_u32
     {
-        let selectedQp = qp == 0 ? 28'u32 : 36'u32
+        let selectedQp = qp == 0 ? 28_u32 : 36_u32
         let path       = videoTempPath("h264-qp-repeat", "mp4")
         defer discard catch File.delete(path)
         var encoder = try H264.Encoder.create(width, height, 60, selectedQp)
         var writer  = try Mp4.FragmentedWriter.create(path, width, height, 90_000, encoder.decoderConfig())
         try writer.addPacket(try encoder.encode(&base, 0, 1_500))
         try writer.addPacket(try encoder.encode(&source, 1_500, 1_500))
-        for frame in 2'u64 until 4 do
+        for frame in 2_u64 until 4
+        {
             try writer.addPacket(try encoder.encode(&source, frame * 1_500, 1_500))
+        }
+
         try writer.end()
 
         var reader = try Reader.open(path)
@@ -560,7 +573,7 @@ func runQpRepeatedInput(width, height: s32) fail
         try reader.decodeFramePlanesInto(&decoded, 0)
         let idrQuality = qpStressQuality(&base, &decoded)
         Swag.require(idrQuality.yPsnr >= 18.0 and idrQuality.uvPsnr >= 18.0)
-        for frame in 1'u64 until 4
+        for frame in 1_u64 until 4
         {
             try reader.decodeFramePlanesInto(&decoded, frame)
             let quality = qpStressQuality(&source, &decoded)
@@ -586,8 +599,11 @@ private impl Nv12Frame
     mtd qpStressUniformDelta()
     {
         let yCount = cast(u64, .width) * cast(u64, .height)
-        for index in yCount do
+        for index in yCount
+        {
             .bytes[index] += 5
+        }
+
         for index in yCount / 4
         {
             .bytes[yCount + index * 2]     += 3
@@ -628,11 +644,17 @@ func qpStressIdrScene(source: const *Nv12Frame, qp: u32)->u64 fail
 #test
 {
     var flat   = expect encoderStressTiles(0, 3840, 2160)
-    let yCount = 3840'u64 * 2160
-    for index in yCount do
+    let yCount = 3840_u64 * 2160
+    for index in yCount
+    {
         flat.bytes[index] = 110
-    for index in yCount / 2 do
+    }
+
+    for index in yCount / 2
+    {
         flat.bytes[yCount + index] = 128
+    }
+
     let textured          = expect encoderStressTiles(0, 3840, 2160)
     let flatExact         = expect qpStressIdrScene(&flat, 0)
     let texturedExact     = expect qpStressIdrScene(&textured, 0)
@@ -664,8 +686,11 @@ func qpStressCavlcProbe(width, height: s32, qp, mode: u32) fail
         var anchor: PlanarFrame
         try anchorReader.decodeFramePlanesInto(&anchor, 0)
         let yCount = cast(u64, width) * cast(u64, height)
-        for index in yCount do
+        for index in yCount
+        {
             source.bytes[index] = anchor.luma[index] + 5
+        }
+
         for index in yCount / 4
         {
             source.bytes[yCount + index * 2]     = anchor.chromaB[index] + 3
@@ -695,10 +720,14 @@ func qpStressCavlcProbe(width, height: s32, qp, mode: u32) fail
     var decoded: PlanarFrame
     try reader.decodeFramePlanesInto(&decoded, 1)
     let quality = qpStressQuality(&source, &decoded)
-    if qp == 0 do
+    if qp == 0
+    {
         requireStressPicture(&source, &decoded)
-    else do
+    }
+    else
+    {
         Swag.require(quality.yPsnr >= 25.0 and quality.uvPsnr >= 25.0)
+    }
 }
 
 #[Swag.TestTag("stress")]

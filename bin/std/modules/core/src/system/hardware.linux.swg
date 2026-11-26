@@ -9,9 +9,12 @@
 func processorCount()->u32
 {
     var mask: [1024] u8
-    if Linux.sched_getaffinity(0, #sizeof(mask), &mask[0]) != 0 do
+    if Linux.sched_getaffinity(0, #sizeof(mask), &mask[0]) != 0
+    {
         return 1
-    var count = 0'u32
+    }
+
+    var count = 0_u32
     for byte in mask
     {
         var remaining = byte
@@ -32,27 +35,44 @@ func processorCount()->u32
 func macAddress()->u64
 {
     var first: *Linux.ifaddrs?
-    if Linux.getifaddrs(&first) != 0 or not first do
+    if Linux.getifaddrs(&first) != 0 or not first
+    {
         return 0
+    }
+
     defer Linux.freeifaddrs(unwrap first)
     var current = first
     while current
     {
         let adapter = current
         current = adapter.ifa_next
-        if (adapter.ifa_flags & Linux.IFF_LOOPBACK) != 0 or not adapter.ifa_addr do
+        if (adapter.ifa_flags & Linux.IFF_LOOPBACK) != 0 or not adapter.ifa_addr
+        {
             continue
+        }
+
         let address = adapter.ifa_addr
-        if address.sa_family != Linux.AF_PACKET do
+        if address.sa_family != Linux.AF_PACKET
+        {
             continue
+        }
+
         let link = cast(const *Linux.sockaddr_ll, cast(const *void, address))
-        if link.sll_halen != 6 do
+        if link.sll_halen != 6
+        {
             continue
-        var result = 0'u64
-        for i in 6 do
+        }
+
+        var result = 0_u64
+        for i in 6
+        {
             result |= cast(u64, link.sll_addr[i]) << (i * 8)
-        if result != 0 do
+        }
+
+        if result != 0
+        {
             return result
+        }
     }
 
     return 0

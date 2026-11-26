@@ -98,7 +98,7 @@ using Core, Gui, Pixel
 #[Swag.TestTag("golden")]
 #test
 {
-    for scale in [1.0'f32, 1.5'f32]
+    for scale in [1.0_f32, 1.5_f32]
     {
         var host: Testing.HeadlessHost
         host.setup(900, 700, scale)

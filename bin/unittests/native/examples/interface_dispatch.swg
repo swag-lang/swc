@@ -38,8 +38,10 @@ impl IDiscountRule for BulkDiscount
 {
     mtd impl apply(line: *OrderLine)->s32
     {
-        if line.quantity > 5 do
+        if line.quantity > 5
+        {
             return (line.quantity * line.unitCent) / 10
+        }
         return 0
     }
     mtd impl tag()->string => "bulk"
@@ -52,8 +54,10 @@ impl IDiscountRule for BookDiscount
 {
     mtd impl apply(line: *OrderLine)->s32
     {
-        if line.kind == ProductKind.Book do
+        if line.kind == ProductKind.Book
+        {
             return (line.quantity * line.unitCent) * 15 / 100
+        }
         return 0
     }
     mtd impl tag()->string => "book"
@@ -75,8 +79,10 @@ func bestDiscount(rules: [..] IDiscountRule, line: *OrderLine)->s32
     for i in rules.count
     {
         let d = rules[i].apply(line)
-        if d > best do
+        if d > best
+        {
             best = d
+        }
     }
     return best
 }

@@ -46,8 +46,7 @@ impl MainWindow
         [VaultCommands.ReadOnly, VaultCommands.ProtectHidden, VaultCommands.AtStartup],
         VaultEditIds,
         [VaultCommands.CreateHidden, VaultCommands.Forget],
-        [VaultCommands.Stop],
-    ]
+        [VaultCommands.Stop]]
 
     // The actions of the chosen vault the lens offers at rest; only those that apply to it now show.
     const RestVaultIds = [VaultCommands.OpenDrive, VaultCommands.Mount, VaultCommands.Unmount, VaultCommands.Stop]
@@ -70,10 +69,16 @@ impl MainWindow
             .addCommand(func()->string => appStrings().lens_File, VaultCommands.OpenFile, func()->string => appStrings().search_Open)
             .addCommands(func()->string => appStrings().lens_File, [VaultCommands.Vaults, VaultCommands.Options, VaultCommands.ShowWindow,
                                                                     VaultCommands.UnmountAll, VaultCommands.Quit, VaultCommands.Resident, VaultCommands.SessionStartup])
-            for ids in VaultCommandGroups do
+            for ids in VaultCommandGroups
+            {
                 .addCommands(func()->string => appStrings().lens_Vault, ids)
-            #static if SupportsWinFspInstall do
+            }
+
+            #static if SupportsWinFspInstall
+            {
                 .addCommands(func()->string => appStrings().lens_File, [VaultCommands.InstallWinFsp])
+            }
+
             .addCommands(func()->string => appStrings().lens_Privacy, [VaultCommands.PrivacyMode, VaultCommands.UnmountOnLock, VaultCommands.UnmountOnSuspend,
                                                                        VaultCommands.UnmountOnIdle])
         }
@@ -91,8 +96,11 @@ impl MainWindow
     // Answers the lens at rest with the actions of the chosen vault, under its name.
     mtd describeChosenVault(results: *Lens.Results)
     {
-        if .chosenPath.isEmpty() do
+        if .chosenPath.isEmpty()
+        {
             return
+        }
+
         let path    = .chosenPath.toString()
         let section = results.addSection(Path.fileName(path) orelse path)
         .lens.addCommandRows(section, RestVaultIds, enabledOnly: true)
@@ -107,10 +115,16 @@ impl MainWindow
             let path  = vault.path.toString()
             let name  = Path.fileName(path) orelse path
             var found = Lens.match(results.folded, name)
-            if not found.matched do
+            if not found.matched
+            {
                 continue
-            if not section do
+            }
+
+            if not section
+            {
                 section = results.addSection(appStrings().lens_Vaults)
+            }
+
             with let entry = section.addEntry(name, #move found)
             {
                 .detail     = me.vaultIdentity(path)
@@ -131,10 +145,16 @@ impl MainWindow
             var first = true
             for id in ids
             {
-                if .sendComputeCommandStateEvent(id).hidden do
+                if .sendComputeCommandStateEvent(id).hidden
+                {
                     continue
-                if first do
+                }
+
+                if first
+                {
                     menu.addSeparator()
+                }
+
                 menu.addItem(id)
                 first = false
             }
@@ -146,8 +166,10 @@ impl MainWindow
     // Opens the modification commands from the unfolded vault's header.
     mtd showVaultEditMenu(button: *IconButton)
     {
-        if .chosenLockedPath().count == 0 do
+        if .chosenLockedPath().count == 0
+        {
             return
+        }
 
         let menu = MenuCtrl.createPopup(button, owner: me)
         menu.addItems(VaultEditIds)
@@ -249,8 +271,10 @@ impl MainWindow
         case VaultCommands.OpenDrive:
             icon   = .OpenExternal
             hidden = drive == null
-            if drive do
+            if drive
+            {
                 name = Format.toString(texts.ui_OpenDrive, drive.mountLabel)
+            }
 
         case VaultCommands.ReadOnly:
             name    = texts.ui_ReadOnly
@@ -273,8 +297,10 @@ impl MainWindow
             hidden   = drive == null
             disabled = .privacyMode
             toggle   = true
-            if drive do
+            if drive
+            {
                 checked = drive.atStartup
+            }
 
         case VaultCommands.ChangePassword:
             name     = texts.ui_ChangePassword
@@ -428,8 +454,10 @@ impl MainWindow
     // Lets the reader pick a container to mount or unlock.
     mtd openVaultFile()
     {
-        if not .canOpenVaultFile() do
+        if not .canOpenVaultFile()
+        {
             return
+        }
 
         // Privacy controls persistence, not the convenience of returning to the last folder
         // during this run. Serialization remains the only path from this state to disk.
@@ -444,29 +472,39 @@ impl MainWindow
         }
 
         let dialog = FileDlg.create(unwrap .surface, options)
-        if dialog.doModal() == Dialog.BtnOk do
+        if dialog.doModal() == Dialog.BtnOk
+        {
             .queueAutomaticMount(dialog.selectedPath())
+        }
     }
 
     // Opens the drive of the mounted vault at `path` in the file explorer.
     mtd openDrive(path: string)
     {
         let drive = .mountedDrives.find(path)
-        if not drive do
+        if not drive
+        {
             return
+        }
 
         // A letter names a drive, not its root folder: the shell opens the folder it is given.
         var target = String.from(drive.mountLabel)
-        if Utf8.endsWith(target.toSlice(), ":") do
+        if Utf8.endsWith(target.toSlice(), ":")
+        {
             target += "\\"
+        }
+
         Env.openFile(target)
     }
 
     // Turns read-only mounting of the unfolded vault on or off, as its check box does.
     mtd toggleReadOnly()
     {
-        if .chosenLockedPath().count == 0 do
+        if .chosenLockedPath().count == 0
+        {
             return
+        }
+
         .readOnly.toggle()
     }
 
@@ -476,8 +514,11 @@ impl MainWindow
     // protection and the choice waits until read only is off.
     mtd toggleProtectHidden()
     {
-        if .chosenLockedPath().count == 0 or .readOnly.isChecked() do
+        if .chosenLockedPath().count == 0 or .readOnly.isChecked()
+        {
             return
+        }
+
         .protectHiddenOnMount = not .protectHiddenOnMount
         .refreshVaults()
     }
@@ -485,12 +526,17 @@ impl MainWindow
     // Takes the vault at `path` off the list, and out of the vaults mounted at startup with it.
     mtd forgetVault(path: string)
     {
-        if .operation.kind != .None or .isMounted(path) do
+        if .operation.kind != .None or .isMounted(path)
+        {
             return
+        }
 
         let known = .startupIndex(path)
-        if known != Swag.U64.Max do
+        if known != Swag.U64.Max
+        {
             .startupVaults.removeAtOrdered(known)
+        }
+
         for &one, index in .vaults where one.path == path
         {
             .vaults.removeAtOrdered(index)
@@ -509,7 +555,7 @@ impl MainWindow
 
     // Lets the reader state the key files of an access in a box of their own, starting from
     // `paths`, and writes the choice back there. Returns whether the box was confirmed.
-    mtd chooseKeyFiles(paths: *Array'String, canGenerate: bool)->bool
+    mtd chooseKeyFiles(paths: *Array!{String}, canGenerate: bool)->bool
     {
         with var options: FormDlgOptions
         {
@@ -519,8 +565,11 @@ impl MainWindow
 
         let dialog = FormDlg.create(unwrap .surface, options)
         let field  = buildKeyFileChangeForm(dialog, paths.toSlice(), canGenerate)
-        if dialog.doModal() != Dialog.BtnOk do
+        if dialog.doModal() != Dialog.BtnOk
+        {
             return false
+        }
+
         field.copyPaths(paths)
         return true
     }
@@ -534,7 +583,9 @@ impl MainWindow
     // States the key files the new vault will need besides its password.
     mtd chooseCreateKeyFiles()
     {
-        if .chooseKeyFiles(&.createKeyFiles, canGenerate: true) do
+        if .chooseKeyFiles(&.createKeyFiles, canGenerate: true)
+        {
             .createPage.setKeyFileCount(.createKeyFiles.count)
+        }
     }
 }

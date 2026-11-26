@@ -12,8 +12,11 @@ private func checkedDynamicX11(connection: *void, check: Linux.xcb_request_check
 
 private func has4KDesktop()->bool fail
 {
-    if Env.variable("SWAG_CAPTURE_4K_STRESS").isEmpty() do
+    if Env.variable("SWAG_CAPTURE_4K_STRESS").isEmpty()
+    {
         return false
+    }
+
     var capture = try X11Capture.create()
     return capture.desktopWidth() >= 3840 and capture.desktopHeight() >= 2160
 }
@@ -23,16 +26,22 @@ private func has4KDesktop()->bool fail
 #[Swag.TestTag("stress.capture.x11.4k")]
 #test
 {
-    if not expect has4KDesktop() do
+    if not expect has4KDesktop()
+    {
         return
+    }
+
     const Width  = 3840
     const Height = 2160
     let path = Path.combine(Env.getSpecialDirectory(.Temp).toString(),
                             Format.toString("swag-capture-4k60-%.mp4", Guid64.random()).toString())
     defer discard catch File.delete(path)
     var session = expect VideoCaptureSession.create(path, {0, 0, Width, Height}, expect FrameRate.create(60, 1), false)
-    for frame in 60'u64 do
+    for frame in 60_u64
+    {
         Swag.require(expect session.captureAt(frame * 16_667))
+    }
+
     expect session.end()
     Swag.require(session.frameCount() == 60 and session.repeatedFrameCount() == 0)
     var reader = expect Reader.open(path)
@@ -48,8 +57,11 @@ private func has4KDesktop()->bool fail
 #[Swag.TestTag("stress.capture.x11.4k.av")]
 #test
 {
-    if not expect has4KDesktop() do
+    if not expect has4KDesktop()
+    {
         return
+    }
+
     const Width  = 3840
     const Height = 2160
     let path = Path.combine(Env.getSpecialDirectory(.Temp).toString(),
@@ -58,7 +70,7 @@ private func has4KDesktop()->bool fail
     let configs: [1] Mp4.SoftwareAudioConfig = [{48_000, 2, .Full}]
     var session = expect VideoCaptureSession.create(path, {0, 0, Width, Height}, expect FrameRate.create(60, 1), false, Swag.makeSlice(&configs[0], configs.count))
     var samples: [2 * 1_024] s16
-    for frame in 1_024'u64
+    for frame in 1_024_u64
     {
         samples[frame * 2] = cast(s16,
                                   Math.round(8_000.0 * Math.sin(Math.ConstF64.TwoPi *
@@ -68,8 +80,8 @@ private func has4KDesktop()->bool fail
                                                                     1_500.0 * frame / 48_000.0)))
     }
 
-    var audioBlocks = 0'u64
-    for frame in 60'u64
+    var audioBlocks = 0_u64
+    for frame in 60_u64
     {
         Swag.require(expect session.captureAt(frame * 16_667))
         while audioBlocks < 47 and audioBlocks * 1_024 < (frame + 1) * 800
@@ -87,16 +99,19 @@ private func has4KDesktop()->bool fail
     Swag.require(reader.frameCount() == 60 and reader.audioTrackCount() == 1)
     let sound = unwrap reader.audioTrack(0)
     Swag.require(sound.sampleFrameCount() == 47 * 1_024)
-    var pcm: Array's16
+    var pcm: Array!{s16}
     expect sound.decodePcm16(func|pcm = &pcm|(part: const [..] s16)->bool
     {
         pcm.add(part)
         return true
     })
     Swag.require(pcm.count == 47 * 1_024 * 2)
-    var power = 0.0'f64
-    for sample in pcm do
+    var power = 0.0_f64
+    for sample in pcm
+    {
         power += cast(f64, sample) * sample
+    }
+
     Swag.require(Math.sqrt(power / pcm.count) > 2_000)
 }
 
@@ -110,21 +125,24 @@ private func has4KDesktop()->bool fail
 #[Swag.TestTag("stress.capture.x11.4k.dynamic")]
 #test
 {
-    if not expect has4KDesktop() do
+    if not expect has4KDesktop()
+    {
         return
+    }
+
     const Width  = 3840
     const Height = 2160
-    const Tile   = 512'u64
+    const Tile   = 512_u64
     var x11        = expect X11Capture.create()
     let library    = unwrap x11.nativeLibrary()
     let connection = unwrap x11.nativeConnection()
-    let generate   = expect X11Capture.symbol'Linux.xcb_generate_id_fn(library, "xcb_generate_id")
-    let createGc   = expect X11Capture.symbol'Linux.xcb_create_gc_checked_fn(library, "xcb_create_gc_checked")
-    let freeGc     = expect X11Capture.symbol'Linux.xcb_free_gc_checked_fn(library, "xcb_free_gc_checked")
-    let put        = expect X11Capture.symbol'Linux.xcb_put_image_checked_fn(library, "xcb_put_image_checked")
-    let change     = expect X11Capture.symbol'Linux.xcb_change_window_attributes_checked_fn(library, "xcb_change_window_attributes_checked")
-    let clear      = expect X11Capture.symbol'Linux.xcb_clear_area_checked_fn(library, "xcb_clear_area_checked")
-    let check      = expect X11Capture.symbol'Linux.xcb_request_check_fn(library, "xcb_request_check")
+    let generate   = expect X11Capture.symbol!{Linux.xcb_generate_id_fn}(library, "xcb_generate_id")
+    let createGc   = expect X11Capture.symbol!{Linux.xcb_create_gc_checked_fn}(library, "xcb_create_gc_checked")
+    let freeGc     = expect X11Capture.symbol!{Linux.xcb_free_gc_checked_fn}(library, "xcb_free_gc_checked")
+    let put        = expect X11Capture.symbol!{Linux.xcb_put_image_checked_fn}(library, "xcb_put_image_checked")
+    let change     = expect X11Capture.symbol!{Linux.xcb_change_window_attributes_checked_fn}(library, "xcb_change_window_attributes_checked")
+    let clear      = expect X11Capture.symbol!{Linux.xcb_clear_area_checked_fn}(library, "xcb_clear_area_checked")
+    let check      = expect X11Capture.symbol!{Linux.xcb_request_check_fn}(library, "xcb_request_check")
     let gc         = generate(connection)
     checkedDynamicX11(connection, check, createGc(connection, gc, x11.rootWindow(), 0, null))
     defer
@@ -135,7 +153,7 @@ private func has4KDesktop()->bool fail
         Linux.free(check(connection, freeGc(connection, gc)))
     }
 
-    var tile: Array'u8
+    var tile: Array!{u8}
     tile.resize(Tile * Tile * 4)
     for row in Tile
     {
@@ -145,7 +163,7 @@ private func has4KDesktop()->bool fail
             let cell  = (row / 16 + column / 16) % 2
             tile[pixel]     = cast(u8, (column * 3 + row * 5) % 256)
             tile[pixel + 1] = cast(u8, (column * 7 + row * 2) % 256)
-            tile[pixel + 2] = cell ? 224'u8 : 32'u8
+            tile[pixel + 2] = cell ? 224_u8 : 32_u8
             tile[pixel + 3] = 0
         }
     }
@@ -154,22 +172,24 @@ private func has4KDesktop()->bool fail
     let qpText         = Env.variable("SWAG_CAPTURE_4K_QP")
     let slicesText     = Env.variable("SWAG_CAPTURE_4K_SLICES")
     let localized      = not Env.variable("SWAG_CAPTURE_4K_STATIC_BACKGROUND").isEmpty()
-    let quantizationQp = qpText.isEmpty() ? 0'u32 : expect StrConv.toU32(qpText.toString())
-    let sliceCount     = slicesText.isEmpty() ? 1'u32 : expect StrConv.toU32(slicesText.toString())
+    let quantizationQp = qpText.isEmpty() ? 0_u32 : expect StrConv.toU32(qpText.toString())
+    let sliceCount     = slicesText.isEmpty() ? 1_u32 : expect StrConv.toU32(slicesText.toString())
     let retained       = not externalPath.isEmpty()
     let path           = retained ? externalPath :
                          Path.combine(Env.getSpecialDirectory(.Temp).toString(),
                                       Format.toString("swag-capture-4k60-dynamic-%.mp4", Guid64.random()).toString())
     defer
     {
-        if not retained do
+        if not retained
+        {
             discard catch File.delete(path)
+        }
     }
 
     let configs: [1] Mp4.SoftwareAudioConfig = [{48_000, 2, .Full}]
     var session = expect VideoCaptureSession.create(path, {0, 0, Width, Height}, expect FrameRate.create(60, 1), false, Swag.makeSlice(&configs[0], configs.count), quantizationQp: quantizationQp, sliceCount: sliceCount)
     var samples: [2 * 1_024] s16
-    for frame in 1_024'u64
+    for frame in 1_024_u64
     {
         samples[frame * 2] = cast(s16,
                                   Math.round(8_000.0 * Math.sin(Math.ConstF64.TwoPi *
@@ -179,7 +199,7 @@ private func has4KDesktop()->bool fail
                                                                     1_500.0 * frame / 48_000.0)))
     }
 
-    var audioBlocks = 0'u64
+    var audioBlocks = 0_u64
     if localized
     {
         var black: u32
@@ -187,13 +207,13 @@ private func has4KDesktop()->bool fail
         checkedDynamicX11(connection, check, clear(connection, 0, x11.rootWindow(), 0, 0, 0, 0))
     }
 
-    for frame in 60'u64
+    for frame in 60_u64
     {
         if localized
         {
             if frame
             {
-                for quadrant in 4'u64
+                for quadrant in 4_u64
                 {
                     let previousX = cast(s16, (quadrant % 2) * 1_920 + 32 + (frame - 1) * 16)
                     let previousY = cast(s16, (quadrant / 2) * 1_080 + 32 + (frame - 1) * 8)
@@ -211,7 +231,7 @@ private func has4KDesktop()->bool fail
             checkedDynamicX11(connection, check, clear(connection, 0, x11.rootWindow(), 0, 0, 0, 0))
         }
 
-        for quadrant in 4'u64
+        for quadrant in 4_u64
         {
             let destinationX = cast(s16, (quadrant % 2) * 1_920 + 32 + frame * 16)
             let destinationY = cast(s16, (quadrant / 2) * 1_080 + 32 + frame * 8)
@@ -253,7 +273,7 @@ private func has4KDesktop()->bool fail
 
     let sound = unwrap reader.audioTrack(0)
     Swag.require(sound.sampleFrameCount() == 47 * 1_024)
-    var pcm: Array's16
+    var pcm: Array!{s16}
     expect sound.decodePcm16(func|pcm = &pcm|(part: const [..] s16)->bool
     {
         pcm.add(part)

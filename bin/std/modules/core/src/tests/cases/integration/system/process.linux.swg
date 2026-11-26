@@ -43,8 +43,11 @@
     // More than pipe capacity in both directions exposes a writer that forgets to drain stdout.
     var process = expect Env.startProcess(Env.StartInfo{fileName: "/bin/cat", standardInput: .Pipe, standardOutput: .Pipe, standardError: .Pipe})
     var data: String
-    for 32768 do
+    for 32768
+    {
         data.append("abcdefgh")
+    }
+
     expect process.writeStandardInput(data.toString())
     process.closeStandardInput()
     process.closeStandardInput()
@@ -96,8 +99,11 @@
     Swag.require(Linux.kill(pid, 0) == 0)
     var clock: Time.Stopwatch
     clock.start()
-    while Directory.exists(directory.toString()) and clock.elapsedMilliseconds() < 5000 do
+    while Directory.exists(directory.toString()) and clock.elapsedMilliseconds() < 5000
+    {
         Threading.Thread.sleep(Time.Duration.fromMilliseconds(10))
+    }
+
     Swag.require(not Directory.exists(directory.toString()), "closed child must not remain a zombie")
 }
 

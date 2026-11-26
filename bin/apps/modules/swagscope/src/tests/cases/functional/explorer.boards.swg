@@ -8,8 +8,11 @@ func settleBoardListing(host: *Testing.HeadlessHost, explorer: *Explorer)
 {
     for 16
     {
-        if not explorer.load.started do
+        if not explorer.load.started
+        {
             return
+        }
+
         explorer.load.task.wait()
         host.pump()
     }
@@ -24,10 +27,15 @@ internal func boardWindow(host: *Testing.HeadlessHost, light: bool, films: bool,
     host.setup(width, height, scale)
     registerAppStrings(&host.app.resources)
     host.surface.updateFlags(SurfaceFlags.StandardWindow | SurfaceFlags.NoShadow)
-    if light do
+    if light
+    {
         host.theme.setLight()
-    else do
+    }
+    else
+    {
         host.theme.setDark()
+    }
+
     host.notify(.ThemeChanged)
 
     let window = ViewerWindow.create(&host.surfaceWnd, createViewerPluginRegistry())
@@ -45,8 +53,11 @@ internal func boardWindow(host: *Testing.HeadlessHost, light: bool, films: bool,
 
     // Retire listing/preview work before replacing the model, just as for a populated folder.
     explorer.suspend()
-    for preview in explorer.previews do
+    for preview in explorer.previews
+    {
         preview.wait()
+    }
+
     explorer.generation += 1
     explorer.entries.clear()
     return window
@@ -89,18 +100,29 @@ internal func showBoard(host: *Testing.HeadlessHost, window: *ViewerWindow, pare
             let state = window.sendComputeCommandStateEvent(command)
             Swag.require(state.checked and not state.hidden and not state.disabled)
             Swag.require(explorer.forced == (index != 0))
-            if index do
+            if index
+            {
                 Swag.require(cast(u64, explorer.forcedBoard) == index - 1)
-            if index == 2 do
+            }
+
+            if index == 2
+            {
                 Swag.require(state.name == appStrings().board_Posters and explorer.grid.board == .Posters)
-            if index == 3 do
+            }
+
+            if index == 3
+            {
                 Swag.require(state.name == appStrings().board_Covers and explorer.grid.board == .Covers)
+            }
+
             window.lens.open(state.name)
             var found = false
             for section in window.lens.results.sections
             {
-                for entry in section!.entries where entry.id == command do
+                for entry in section!.entries where entry.id == command
+                {
                     found = true
+                }
             }
 
             Swag.require(found)
@@ -110,8 +132,11 @@ internal func showBoard(host: *Testing.HeadlessHost, window: *ViewerWindow, pare
         // The source of the pictures is a choice only where films or albums take pictures.
         if language == ReferenceLanguage
         {
-            for command in ViewerCommands.Artwork do
+            for command in ViewerCommands.Artwork
+            {
                 Swag.require(window.sendComputeCommandStateEvent(command).hidden)
+            }
+
             explorer.entries.add({name: "Film.mkv", path: "Film.mkv", attempted: true})
             explorer.fill()
         }
@@ -166,14 +191,18 @@ internal func showBoard(host: *Testing.HeadlessHost, window: *ViewerWindow, pare
     {
         let album = Path.combine(root, name)
         expect Directory.create(album)
-        for index in 2 do
+        for index in 2
+        {
             discard expect File.writeAllText(Path.combine(album, Format.toString("%.flac", index)), "fixture")
+        }
     }
 
     var listing = expect ExplorerListing.load(root)
     Swag.require(listing.entries.count == 2)
-    for &entry in listing.entries do
+    for &entry in listing.entries
+    {
         Swag.require(entry.directory and not entry.albumTrack.isEmpty() and entry.music.title == entry.name)
+    }
 
     var host: Testing.HeadlessHost
     let window   = boardWindow(&host, false, films: false)

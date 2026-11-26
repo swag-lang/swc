@@ -9,8 +9,8 @@ are expressed in bytes. All block pointers must be non-null, including when the 
 */
 #test
 {
-    var source      = [1'u8, 2, 3, 4]
-    var destination = [0'u8, 0, 0, 0]
+    var source      = [1_u8, 2, 3, 4]
+    var destination = [0_u8, 0, 0, 0]
 
     Swag.memcpy(&destination[0], &source[0], source.count)
     Swag.require(Swag.memcmp(&destination[0], &source[0], source.count) == 0)
@@ -19,7 +19,7 @@ are expressed in bytes. All block pointers must be non-null, including when the 
     Swag.require(destination[0] == 1 and destination[1] == 1)
     Swag.require(destination[2] == 2 and destination[3] == 3)
 
-    Swag.memset(&destination[0], 0'u8, destination.count)
+    Swag.memset(&destination[0], 0_u8, destination.count)
     Swag.require(destination[0] == 0 and destination[1] == 0)
     Swag.require(destination[2] == 0 and destination[3] == 0)
 }
@@ -33,7 +33,7 @@ exchange.
 */
 #test
 {
-    var counter = 10's32
+    var counter = 10_s32
 
     let beforeAdd = Swag.atomicAdd(&counter, 5)
     Swag.require(beforeAdd == 10 and counter == 15)
@@ -54,7 +54,7 @@ it: a loop polling a value that another thread publishes reads memory on every i
 */
 #test
 {
-    var flag = 0'u32
+    var flag = 0_u32
     Swag.require(Swag.atomicLoad(&flag) == 0)
 
     discard Swag.atomicExchange(&flag, 1)
@@ -72,7 +72,7 @@ states what that write does not order.
 */
 #test
 {
-    var flag = 0'u32
+    var flag = 0_u32
     Swag.atomicStore(&flag, 1)
     Swag.require(Swag.atomicLoad(&flag) == 1)
 }
@@ -94,14 +94,16 @@ interpolate for the next block.
 {
     const Width = 64
     var pixels: [4 * Width] u8
-    var sum = 0'u32
+    var sum = 0_u32
     for row in 0 until 4
     {
         // Ask for the next row while this one is summed. The last hint points one past
         // the end of 'pixels', which is harmless.
         Swag.prefetch(pixels.buffer + (row + 1) * Width)
-        for col in 0 until Width do
+        for col in 0 until Width
+        {
             sum += pixels[row * Width + col]
+        }
     }
 
     Swag.require(sum == 0)

@@ -38,8 +38,11 @@ impl DesktopInput
     // Releases held native inputs and restores the saved pointer when this value leaves scope.
     mtd opDrop()
     {
-        if not .started do
+        if not .started
+        {
             return
+        }
+
         .closeNative()
         Input.setMousePosition(cast(s32, .savedCursor.x), cast(s32, .savedCursor.y))
     }
@@ -58,8 +61,11 @@ impl DesktopInput
         {
             Console.println("desktop target=", target.id, " surface=", point.x, ",", point.y)
             Console.println("desktop target rect=", target.surfaceRect())
-            if hit do
+            if hit
+            {
                 Console.println("desktop hit=", hit.id, " rect=", hit.surfaceRect())
+            }
+
             Swag.require(false, "another GUI control covers the desktop pointer target")
         }
     }
@@ -93,8 +99,11 @@ impl DesktopInput
                 }
             }
 
-            if watch.elapsedMilliseconds() > 3000 do
+            if watch.elapsedMilliseconds() > 3000
+            {
                 Swag.require(false, "desktop click target did not become stable and actionable")
+            }
+
             previous = rect
         }
 

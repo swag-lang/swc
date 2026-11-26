@@ -6,13 +6,13 @@ using Core
 // The severity a log prefix spells without guessing from its message.
 enum LogSeverity
 {
-    Unknown,
-    Trace,
-    Debug,
-    Info,
-    Warning,
-    Error,
-    Fatal,
+    Unknown
+    Trace
+    Debug
+    Info
+    Warning
+    Error
+    Fatal
 }
 
 // One source event and its exact byte range in the original text.
@@ -29,7 +29,7 @@ struct LogEvent
 struct LogDocument
 {
     source: String
-    events: Array'LogEvent
+    events: Array!{LogEvent}
 }
 
 impl LogDocument
@@ -49,38 +49,75 @@ impl LogDocument
         func severityAt(line: string, offset: *u64)->LogSeverity
         {
             var at = offset[]
-            while at < line.count and (line[at] == '[' or line[at] == ' ' or line[at] == '\t') do
+            while at < line.count and (line[at] == '[' or line[at] == ' ' or line[at] == '\t')
+            {
                 at += 1
+            }
 
             // A severity may follow a timestamp, a bracket, or begin the line.
-            if at < line.count and line[at] == '[' do
+            if at < line.count and line[at] == '['
+            {
                 at += 1
-            while at < line.count and (digit(line[at]) or line[at] == '-' or line[at] == ':' or line[at] == 'T' or line[at] == 'Z' or line[at] == '.' or line[at] == '+' or line[at] == ' ' or line[at] == '/') do
+            }
+
+            while at < line.count and
+                  (digit(line[at]) or
+                   line[at] == '-' or
+                   line[at] == ':' or
+                   line[at] == 'T' or
+                   line[at] == 'Z' or
+                   line[at] == '.' or
+                   line[at] == '+' or
+                   line[at] == ' ' or
+                   line[at] == '/')
+            {
                 at += 1
-            while at < line.count and (line[at] == ']' or line[at] == ' ' or line[at] == '\t' or line[at] == '-' or line[at] == ':' or line[at] == '|') do
+            }
+
+            while at < line.count and
+                  (line[at] == ']' or
+                   line[at] == ' ' or
+                   line[at] == '\t' or
+                   line[at] == '-' or
+                   line[at] == ':' or
+                   line[at] == '|')
+            {
                 at += 1
+            }
 
             let tokenStart = at
-            while at < line.count and ((line[at] >= 'A' and line[at] <= 'Z') or (line[at] >= 'a' and line[at] <= 'z')) do
+            while at < line.count and ((line[at] >= 'A' and line[at] <= 'Z') or (line[at] >= 'a' and line[at] <= 'z'))
+            {
                 at += 1
-            if at == tokenStart do
+            }
+
+            if at == tokenStart
+            {
                 return .Unknown
+            }
 
             let token = line[tokenStart until at]
-            if at < line.count and line[at] != ':' and line[at] != ']' and line[at] != ' ' and line[at] != '\t' and line[at] != '|' do
+            if at < line.count and
+               line[at] != ':' and
+               line[at] != ']' and
+               line[at] != ' ' and
+               line[at] != '\t' and
+               line[at] != '|'
+            {
                 return .Unknown
+            }
 
             offset[] = at
             let lowerToken = String.toLower(token)
             switch lowerToken.toString()
             {
             case "trace", "verbose": return .Trace
-            case "debug": return .Debug
-            case "info", "notice": return .Info
-            case "warn", "warning": return .Warning
-            case "error", "err": return .Error
+            case "debug":            return .Debug
+            case "info", "notice":   return .Info
+            case "warn", "warning":  return .Warning
+            case "error", "err":     return .Error
             case "fatal", "critical", "crit", "panic": return .Fatal
-            default: return .Unknown
+            default:                 return .Unknown
             }
         }
 
@@ -88,28 +125,52 @@ impl LogDocument
         {
             // ISO-like dates and times are recognized only at the start of a line (or inside
             // one opening bracket), and only when the complete date/time shape is present.
-            var at = line.count and line[0] == '[' ? 1'u64 : 0'u64
-            if at + 10 <= line.count and digit(line[at]) and digit(line[at + 1]) and digit(line[at + 2]) and digit(line[at + 3]) and
-               line[at + 4] == '-' and digit(line[at + 5]) and digit(line[at + 6]) and line[at + 7] == '-' and digit(line[at + 8]) and digit(line[at + 9])
+            var at = line.count and line[0] == '[' ? 1_u64 : 0_u64
+            if at + 10 <= line.count and
+               digit(line[at]) and
+               digit(line[at + 1]) and
+               digit(line[at + 2]) and
+               digit(line[at + 3]) and
+               line[at + 4] == '-' and
+               digit(line[at + 5]) and
+               digit(line[at + 6]) and
+               line[at + 7] == '-' and
+               digit(line[at + 8]) and
+               digit(line[at + 9])
             {
                 at += 10
                 if at < line.count and (line[at] == 'T' or line[at] == ' ')
                 {
                     at += 1
-                    if at + 8 <= line.count and digit(line[at]) and digit(line[at + 1]) and line[at + 2] == ':' and digit(line[at + 3]) and digit(line[at + 4]) and line[at + 5] == ':' and digit(line[at + 6]) and digit(line[at + 7])
+                    if at + 8 <= line.count and
+                       digit(line[at]) and
+                       digit(line[at + 1]) and
+                       line[at + 2] == ':' and
+                       digit(line[at + 3]) and
+                       digit(line[at + 4]) and
+                       line[at + 5] == ':' and
+                       digit(line[at + 6]) and
+                       digit(line[at + 7])
                     {
                         at += 8
                         if at < line.count and line[at] == '.'
                         {
                             at += 1
-                            while at < line.count and digit(line[at]) do
+                            while at < line.count and digit(line[at])
+                            {
                                 at += 1
+                            }
                         }
-                        if at < line.count and (line[at] == 'Z' or line[at] == 'z') do
+
+                        if at < line.count and (line[at] == 'Z' or line[at] == 'z')
+                        {
                             at += 1
+                        }
                     }
-                    else do
+                    else
+                    {
                         return 0
+                    }
                 }
 
                 return at
@@ -121,32 +182,78 @@ impl LogDocument
             {
                 month = String.toLower(line[at until at + 3])
             }
-            if month != "jan" and month != "feb" and month != "mar" and month != "apr" and month != "may" and month != "jun" and month != "jul" and month != "aug" and month != "sep" and month != "oct" and month != "nov" and month != "dec" do
+
+            if month != "jan" and
+               month != "feb" and
+               month != "mar" and
+               month != "apr" and
+               month != "may" and
+               month != "jun" and
+               month != "jul" and
+               month != "aug" and
+               month != "sep" and
+               month != "oct" and
+               month != "nov" and
+               month != "dec"
+            {
                 return 0
+            }
+
             at += 3
-            if at >= line.count or line[at] != ' ' do
+            if at >= line.count or line[at] != ' '
+            {
                 return 0
-            while at < line.count and line[at] == ' ' do
+            }
+
+            while at < line.count and line[at] == ' '
+            {
                 at += 1
-            if at >= line.count or not digit(line[at]) do
+            }
+
+            if at >= line.count or not digit(line[at])
+            {
                 return 0
+            }
+
             at += 1
-            if at < line.count and digit(line[at]) do
+            if at < line.count and digit(line[at])
+            {
                 at += 1
-            if at >= line.count or line[at] != ' ' do
+            }
+
+            if at >= line.count or line[at] != ' '
+            {
                 return 0
+            }
+
             at += 1
-            if at + 8 > line.count or not digit(line[at]) or not digit(line[at + 1]) or line[at + 2] != ':' or not digit(line[at + 3]) or not digit(line[at + 4]) or line[at + 5] != ':' or not digit(line[at + 6]) or not digit(line[at + 7]) do
+            if at + 8 > line.count or
+               not digit(line[at]) or
+               not digit(line[at + 1]) or
+               line[at + 2] != ':' or
+               not digit(line[at + 3]) or
+               not digit(line[at + 4]) or
+               line[at + 5] != ':' or
+               not digit(line[at + 6]) or
+               not digit(line[at + 7])
+            {
                 return 0
+            }
+
             return at + 8
         }
 
         func isContinuation(line: string)->bool
         {
-            if line.count == 0 do
+            if line.count == 0
+            {
                 return false
-            if line[0] == ' ' or line[0] == '\t' do
+            }
+
+            if line[0] == ' ' or line[0] == '\t'
+            {
                 return true
+            }
 
             let lower = String.toLower(line)
             return Utf8.startsWith(lower, "at ") or
@@ -158,30 +265,38 @@ impl LogDocument
 
         var result: LogDocument
         result.source = text
-        var lineStart = 0'u64
+        var lineStart = 0_u64
         while lineStart < text.count
         {
             var lineEnd = lineStart
-            while lineEnd < text.count and text[lineEnd] != '\n' do
+            while lineEnd < text.count and text[lineEnd] != '\n'
+            {
                 lineEnd += 1
+            }
 
             var contentEnd = lineEnd
-            if contentEnd > lineStart and text[contentEnd - 1] == '\r' do
+            if contentEnd > lineStart and text[contentEnd - 1] == '\r'
+            {
                 contentEnd -= 1
-            let line = text[lineStart until contentEnd]
-            var levelOffset = 0'u64
-            let severity = severityAt(line, &levelOffset)
+            }
+
+            let line            = text[lineStart until contentEnd]
+            var levelOffset     = 0_u64
+            let severity        = severityAt(line, &levelOffset)
             let timestampLength = timestampEnd(line)
-            let recognized = severity != .Unknown or timestampLength > 0
+            let recognized      = severity != .Unknown or timestampLength > 0
 
             if recognized
             {
                 var timestamp: String
-                if timestampLength do
+                if timestampLength
+                {
                     timestamp = line[0 until timestampLength]
+                }
+
                 result.events.add({startOffset: lineStart, endOffset: contentEnd, timestamp: timestamp, severity: severity, recognized: true})
             }
-            elif isContinuation(line) and not result.events.isEmpty()
+            else if isContinuation(line) and not result.events.isEmpty()
             {
                 result.events.back().endOffset = contentEnd
             }
@@ -190,7 +305,7 @@ impl LogDocument
                 result.events.add({startOffset: lineStart, endOffset: contentEnd, timestamp: {}, severity: LogSeverity.Unknown, recognized: false})
             }
 
-            lineStart = lineEnd + (lineEnd < text.count ? 1'u64 : 0'u64)
+            lineStart = lineEnd + (lineEnd < text.count ? 1_u64 : 0_u64)
         }
 
         return result

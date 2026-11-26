@@ -12,14 +12,19 @@ private func isFiniteTransform(transform: Transform2)->bool => Math.isFinite(tra
 
 private func isValidStrokeStyle(style: const *PathStrokeStyle)->bool
 {
-    if style.miterLimit < 1 or not Math.isFinite(style.miterLimit) or not Math.isFinite(style.dashPhase) do
+    if style.miterLimit < 1 or not Math.isFinite(style.miterLimit) or not Math.isFinite(style.dashPhase)
+    {
         return false
+    }
 
     var hasPositiveLength = false
     for length in style.dashPattern
     {
-        if length < 0 or not Math.isFinite(length) do
+        if length < 0 or not Math.isFinite(length)
+        {
             return false
+        }
+
         hasPositiveLength = hasPositiveLength or length > 0
     }
 
@@ -33,8 +38,10 @@ private func normalizedStrokeStyle(style: PathStrokeStyle)->PathStrokeStyle
     if result.dashPattern.count & 1
     {
         let count = result.dashPattern.count
-        for i in count do
+        for i in count
+        {
             result.dashPattern.add(result.dashPattern[i])
+        }
     }
 
     return result
@@ -51,19 +58,19 @@ struct Page
         width:  f32     // Page width in PDF points.
         height: f32     // Page height in PDF points.
 
-        readonly items: Array'Item     // Page content in paint order.
+        readonly items: Array!{Item}     // Page content in paint order.
     }
 
     internal
     {
-        fonts: Array'FontResource
+        fonts: Array!{FontResource}
 
         // Clip shapes the content stream established beyond a rectangle, in page coordinates.
         //
         // An item names its shape by index, so consecutive items painted through one shape share
         // it, a `q`/`Q` pair copies a number rather than a path, and a frame writes each shape
         // into the painter's clipping region once.
-        clipPaths: ArrayPtr'ClipPath
+        clipPaths: ArrayPtr!{ClipPath}
     }
 }
 
@@ -284,14 +291,21 @@ impl Page
     // ```
     mtd prepare(scale: f32)
     {
-        if scale <= 0 or not Math.isFinite(scale) do
+        if scale <= 0 or not Math.isFinite(scale)
+        {
             return
+        }
 
         var preparer: Pixel.FillPreparer
-        for index in .clipPaths.count do
+        for index in .clipPaths.count
+        {
             .prepareClipPath(index, scale, &preparer)
-        for index in .items.count do
+        }
+
+        for index in .items.count
+        {
             .prepareItem(index, scale, &preparer)
+        }
     }
 }
 
@@ -305,13 +319,16 @@ internal impl Page
     mtd const memoryUsage()->u64
     {
         var result = cast(u64, #sizeof(Page))
-        for item in .items do
-            result += item.memoryUsage()
-        for value in .clipPaths
+        for item in .items
         {
-            let clip = unwrap value
-            result += clip.path.memoryUsage() + clip.intersection.memoryUsage()
+            result += item.memoryUsage()
         }
+
+        for clip in .clipPaths
+        {
+            result += clip!.path.memoryUsage()
+        }
+
         return result
     }
 
@@ -324,8 +341,11 @@ internal impl Page
     mtd appendItem(item: #move Item)
     {
         item.refreshPaintBounds()
-        if item.hasClip and item.clip.contains(item.paintBounds()) do
+        if item.hasClip and item.clip.contains(item.paintBounds())
+        {
             item.hasClip = false
+        }
+
         .items.add(#move item)
     }
 
@@ -423,10 +443,14 @@ internal impl Page
             break
 
         case .Path:
-            if item.hasFill do
+            if item.hasFill
+            {
                 preparer.prepare(&item.path, scale, item.evenOddFill ? PathFillRule.EvenOdd : PathFillRule.NonZero)
-            elif item.hasStroke do
+            }
+            else if item.hasStroke
+            {
                 preparer.flatten(&item.path, scale)
+            }
 
         case .Image:
 

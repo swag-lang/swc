@@ -41,8 +41,11 @@ impl MountedVault
         Swag.assert(.handle == null)
         .handle = try mountVaultNative(path, password, destination, readOnly, protectionPassword)
         var root = String.from(destination)
-        if WINDOWS and root.count == 2 and root[1] == ':' do
+        if WINDOWS and root.count == 2 and root[1] == ':'
+        {
             root += '/'
+        }
+
         catch .privacy.open(root)
         {
             let error = Swag.err
@@ -60,11 +63,16 @@ impl MountedVault
     {
         .mutex.lock()
         defer .mutex.unlock()
-        if not .handle do
+        if not .handle
+        {
             return
+        }
 
-        defer if not .handle do
+        defer if not .handle
+        {
             .privacy.close()
+        }
+
         try unmountVaultNative(&.handle, force)
     }
 
@@ -81,8 +89,11 @@ impl MountedVault
     {
         .mutex.lock()
         defer .mutex.unlock()
-        if not .handle do
+        if not .handle
+        {
             return {}
+        }
+
         return mountedVaultSpaceNative(.handle)
     }
 
@@ -90,7 +101,7 @@ impl MountedVault
 }
 
 // Returns the destinations the active host backend can currently mount on.
-func availableMountDestinations()->Array'MountDestination => availableMountDestinationsNative()
+func availableMountDestinations()->Array!{MountDestination} => availableMountDestinationsNative()
 
 // Returns whether this process invocation belongs to the host filesystem helper.
 func isMountHostInvocation()->bool => isMountHostInvocationNative()
@@ -101,7 +112,10 @@ func runMountHost()->s32 => runMountHostNative()
 // Whether an ordinary unmount was refused because the drive still has open handles.
 func isBusyError(err: any?)->bool
 {
-    if err is Error as error do
+    if err is Error as error
+    {
         return error.kind == .Busy
+    }
+
     return false
 }

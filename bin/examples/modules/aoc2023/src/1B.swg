@@ -24,7 +24,7 @@ private func process(line: String)->u64
     const V = [1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
 
     var bestStart = Swag.U64.Max
-    var bestEnd   = 0'u64
+    var bestEnd   = 0_u64
     var bestStartValue, bestEndValue: u64
 
     for n, i in N
@@ -52,7 +52,7 @@ func day1B()
     let dataPath = Path.combine(Path.directoryName(#curlocation.fileName), "1.txt")
     let lines    = expect File.readAllLines(dataPath)
 
-    var total = 0'u64
+    var total = 0_u64
     for l in lines
     {
         total += process(l)

@@ -22,13 +22,21 @@ namespace Dns
     // Resolution blocks in the platform resolver. The port is copied into each result; resolution
     // itself does not open a socket. An empty host fails with [[Core.Errors.BadParameterError]],
     // while a host that cannot be resolved fails with [[Net.NetworkError]].
-    func resolve(host: string, port: u16 = 0, options: ResolveOptions = {})->Array'SocketEndpoint fail
+    func resolve(host: string, port: u16 = 0, options: ResolveOptions = {})->Array!{SocketEndpoint} fail
     {
-        if host.count == 0 do
+        if host.count == 0
+        {
             fail Errors.BadParameterError{}
-        for i in host.count do
-            if host[i] == 0 do
+        }
+
+        for i in host.count
+        {
+            if host[i] == 0
+            {
                 fail Errors.BadParameterError{}
+            }
+        }
+
         let ownedHost = String.from(host)
         return try resolveNative(ownedHost.toString(), null, port, options)
     }
@@ -39,16 +47,29 @@ namespace Dns
     // in the platform resolver and cannot be cancelled; use a worker when the caller must remain
     // responsive. An empty host or service fails with [[Core.Errors.BadParameterError]], while
     // an unknown host or service fails with [[Net.NetworkError]].
-    func resolve(host, service: string, options: ResolveOptions = {})->Array'SocketEndpoint fail
+    func resolve(host, service: string, options: ResolveOptions = {})->Array!{SocketEndpoint} fail
     {
-        if host.count == 0 or service.count == 0 do
+        if host.count == 0 or service.count == 0
+        {
             fail Errors.BadParameterError{}
-        for i in host.count do
-            if host[i] == 0 do
+        }
+
+        for i in host.count
+        {
+            if host[i] == 0
+            {
                 fail Errors.BadParameterError{}
-        for i in service.count do
-            if service[i] == 0 do
+            }
+        }
+
+        for i in service.count
+        {
+            if service[i] == 0
+            {
                 fail Errors.BadParameterError{}
+            }
+        }
+
         let ownedHost    = String.from(host)
         let ownedService = String.from(service)
         return try resolveNative(ownedHost.toString(), ownedService.buffer, 0, options)

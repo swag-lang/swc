@@ -11,10 +11,15 @@ func assertHomeCombination(files, folders: u32, light: bool, name: string)
     host.setup(960, 720)
     shipFrame(&host)
     host.app.setAppIcon(expect Image.decode(".png", AppIcon))
-    if light do
+    if light
+    {
         host.theme.setLight()
-    else do
+    }
+    else
+    {
         host.theme.setDark()
+    }
+
     host.theme.metrics.surfaceWnd_ShadowSize   = 0
     host.theme.metrics.surfaceWnd_CornerRadius = 0
     host.notify(.ThemeChanged)
@@ -37,8 +42,10 @@ func assertHomeCombination(files, folders: u32, light: bool, name: string)
     let tests   = Path.directoryName(data) orelse ""
     let sources = Path.directoryName(tests) orelse ""
     let Paths: [3] string = [data, tests, sources]
-    for index in folders do
+    for index in folders
+    {
         window.exploredFolders.add(Paths[index])
+    }
 
     window.home.now = HomeNow
     window.showEmpty(appStrings().ui_DropTitle)
@@ -57,8 +64,10 @@ func assertHomeCombination(files, folders: u32, light: bool, name: string)
     Swag.require(home.openButton.position.y == place.actions and home.exploreButton.position.y == place.actions)
     Swag.require(host.mouseTargetAt(home.localToSurface(home.openButton.position.center())) == home.openButton)
     Swag.require(host.mouseTargetAt(home.localToSurface(home.exploreButton.position.center())) == home.exploreButton)
-    if folders != 0 do
+    if folders != 0
+    {
         Swag.require(home.placeShown(folders - 1))
+    }
 
     var image = host.renderSettled(window)
     assertScopeImageGolden(&image, name)

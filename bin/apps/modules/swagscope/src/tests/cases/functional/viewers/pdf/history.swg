@@ -91,10 +91,14 @@ using Core, Gui, Gui.Testing, Viewers
     var back, forward: const *Lens.Entry?
     for &entry in entries.section!.entries
     {
-        if entry.title == "Retour dans le document" do
+        if entry.title == "Retour dans le document"
+        {
             back = entry
-        elif entry.title == "Avancer dans le document" do
+        }
+        else if entry.title == "Avancer dans le document"
+        {
             forward = entry
+        }
     }
 
     Swag.require(back != null and forward != null)

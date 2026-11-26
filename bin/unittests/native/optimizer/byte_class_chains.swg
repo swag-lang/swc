@@ -33,6 +33,8 @@ func table(c: u32, lo, hi: u32)->bool => c >= lo and c <= hi
         Swag.require(notControl(c) == (u >= 32 and u != 127))
     }
 
-    for v in [0'u32, 1, 2, 89, 90, 91, 199, 200, 201, 3999, 4000, 4001, 0xFFFFFFFF] do
+    for v in [0_u32, 1, 2, 89, 90, 91, 199, 200, 201, 3999, 4000, 4001, 0xFFFFFFFF]
+    {
         Swag.require(isFar(v) == (v == 1 or v == 90 or v == 200 or v == 4000))
+    }
 }

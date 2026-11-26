@@ -27,8 +27,10 @@ func remoteFreeWorker(thread: const *Threading.Thread)
 {
     let shared = cast(*RemoteFreeShared, unwrap thread.userParam)
     discard Swag.atomicAdd(&shared.ready, 1)
-    while Swag.atomicLoad(&shared.start) == 0 do
+    while Swag.atomicLoad(&shared.start) == 0
+    {
         Threading.Thread.yield()
+    }
 
     let first = Swag.atomicAdd(&shared.nextWorker, 1) * (shared.addresses.count / 4)
     for offset in shared.addresses.count / 4
@@ -36,15 +38,19 @@ func remoteFreeWorker(thread: const *Threading.Thread)
         let i       = first + offset
         let address = shared.addresses[i]
         let bytes   = cast([*] u8, address)
-        if bytes[0] != cast(u8, i) or bytes[63] != cast(u8, i ^ 0xA5) do
+        if bytes[0] != cast(u8, i) or bytes[63] != cast(u8, i ^ 0xA5)
+        {
             discard Swag.atomicAdd(&shared.errors, 1)
+        }
 
         var request: AllocatorRequest
         request.address = cast(*void, address)
         request.size    = 64
         shared.allocator.free(&request)
-        if (offset & 7) == 7 do
+        if (offset & 7) == 7
+        {
             Threading.Thread.yield()
+        }
     }
 
     discard Swag.atomicAdd(&shared.done, 1)
@@ -54,12 +60,14 @@ func pageCommitWorker(thread: const *Threading.Thread)
 {
     let shared = cast(*PageCommitShared, unwrap thread.userParam)
     discard Swag.atomicAdd(&shared.ready, 1)
-    while Swag.atomicLoad(&shared.start) == 0 do
+    while Swag.atomicLoad(&shared.start) == 0
+    {
         Threading.Thread.yield()
+    }
 
     for round in 512
     {
-        let sizes = [128'u64, 4096, 32768, 65536]
+        let sizes = [128_u64, 4096, 32768, 65536]
         let size  = sizes[round % sizes.count]
         var addresses: [48] u64
         for i in addresses.count
@@ -78,8 +86,11 @@ func pageCommitWorker(thread: const *Threading.Thread)
         for i in addresses.count
         {
             let bytes = cast([*] u8, addresses[i])
-            if bytes[0] != cast(u8, i) or bytes[size - 1] != cast(u8, (round & 255)) do
+            if bytes[0] != cast(u8, i) or bytes[size - 1] != cast(u8, (round & 255))
+            {
                 discard Swag.atomicAdd(&shared.errors, 1)
+            }
+
             var request: AllocatorRequest
             request.address = cast(*void, addresses[i])
             shared.allocator.free(&request)
@@ -105,8 +116,11 @@ func pageCommitWorker(thread: const *Threading.Thread)
         discard expect thread.start()
     }
 
-    while Swag.atomicLoad(&shared.ready) != threads.count do
+    while Swag.atomicLoad(&shared.ready) != threads.count
+    {
         Threading.Thread.yield()
+    }
+
     discard Swag.atomicExchange(&shared.start, 1)
 
     while Swag.atomicLoad(&shared.done) != threads.count
@@ -118,8 +132,10 @@ func pageCommitWorker(thread: const *Threading.Thread)
         Threading.Thread.yield()
     }
 
-    for &thread in threads do
+    for &thread in threads
+    {
         thread.wait()
+    }
 
     allocator.trim()
     let stats = allocator.stats()
@@ -157,8 +173,11 @@ func pageCommitWorker(thread: const *Threading.Thread)
         discard expect threads[i].start()
     }
 
-    while Swag.atomicLoad(&shared.ready) != threads.count do
+    while Swag.atomicLoad(&shared.ready) != threads.count
+    {
         Threading.Thread.yield()
+    }
+
     discard Swag.atomicExchange(&shared.start, 1)
 
     while Swag.atomicLoad(&shared.done) != threads.count
@@ -169,8 +188,10 @@ func pageCommitWorker(thread: const *Threading.Thread)
         Threading.Thread.yield()
     }
 
-    for &thread in threads do
+    for &thread in threads
+    {
         thread.wait()
+    }
 
     Swag.releaseAllocatorThreadCache()
     allocator.trim()

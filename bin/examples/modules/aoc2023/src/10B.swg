@@ -113,7 +113,7 @@ func day10B()
     let lines    = expect File.readAllLines(dataPath)
 
     var width, height: u64
-    var maze: Array'Dir
+    var maze: Array!{Dir}
 
     width  = lines[0].length + 2
     height = lines.count + 2
@@ -157,14 +157,26 @@ func day10B()
 
     // Determine the shape of the start 'S'.
     let startConnections = pipeAt(startX, startY)
-    if pipeAt(startX - 1, startY)[] & .East do
+    if pipeAt(startX - 1, startY)[] & .East
+    {
         startConnections[] |= .West
-    if pipeAt(startX + 1, startY)[] & .West do
+    }
+
+    if pipeAt(startX + 1, startY)[] & .West
+    {
         startConnections[] |= .East
-    if pipeAt(startX, startY - 1)[] & .South do
+    }
+
+    if pipeAt(startX, startY - 1)[] & .South
+    {
         startConnections[] |= .North
-    if pipeAt(startX, startY + 1)[] & .North do
+    }
+
+    if pipeAt(startX, startY + 1)[] & .North
+    {
         startConnections[] |= .South
+    }
+
     var currentX = startX
 
     // Visit the maze
@@ -194,8 +206,11 @@ func day10B()
             moved    = true
         }
 
-        if moved do
+        if moved
+        {
             continue
+        }
+
         break
     }
 
@@ -205,15 +220,19 @@ func day10B()
         for _, column in sourceLine.bytes()
         {
             let pipeConnections = pipeAt(cast(s64, column), cast(s64, lineIndex))[]
-            if pipeConnections & .Edge do
+            if pipeConnections & .Edge
+            {
                 continue
+            }
 
             var inside = false
             for crossingColumn in column
             {
                 let crossingPipe = pipeAt(cast(s64, crossingColumn), cast(s64, lineIndex))[]
-                if crossingPipe & .Edge and crossingPipe & .North do
+                if crossingPipe & .Edge and crossingPipe & .North
+                {
                     inside = not inside
+                }
             }
 
             enclosedTileCount += inside ? 1 : 0

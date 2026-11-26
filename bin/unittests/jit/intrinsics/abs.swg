@@ -16,11 +16,11 @@
     #[Swag.NoInline]
     func absRuntimeF64(v: f64)->f64 => Swag.abs(v)
 
-    const S8  = #run absRuntimeS8(-7's8)
-    const S16 = #run absRuntimeS16(-321's16)
+    const S8  = #run absRuntimeS8(-7_s8)
+    const S16 = #run absRuntimeS16(-321_s16)
     const S32 = #run absRuntimeS32(-123456)
-    const S64 = #run absRuntimeS64(-5000000000's64)
-    const F32 = #run absRuntimeF32(-3.5'f32)
+    const S64 = #run absRuntimeS64(-5000000000_s64)
+    const F32 = #run absRuntimeF32(-3.5_f32)
     const F64 = #run absRuntimeF64(-9.25)
 
     #assert(S8 == 7)

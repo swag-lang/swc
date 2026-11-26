@@ -19,31 +19,43 @@ impl OwnerSignal
 
     mtd add(fn: T)
     {
-        if not .first do
+        if not .first
+        {
             .first = fn
-        elif not .second do
+        }
+        else if not .second
+        {
             .second = fn
-        else do
+        }
+        else
+        {
             .third = fn
+        }
     }
 }
 
 struct SignalWnd
 {
     id:         s32
-    sigPressed: OwnerSignal'func||(*SignalWnd)
+    sigPressed: OwnerSignal!{func||(*SignalWnd)}
 }
 
 impl SignalWnd
 {
     mtd press()
     {
-        if .sigPressed.first do
+        if .sigPressed.first
+        {
             .sigPressed.first(me)
-        if .sigPressed.second do
+        }
+        if .sigPressed.second
+        {
             .sigPressed.second(me)
-        if .sigPressed.third do
+        }
+        if .sigPressed.third
+        {
             .sigPressed.third(me)
+        }
     }
 }
 

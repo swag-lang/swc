@@ -17,7 +17,10 @@ func readFreshThreadContext(parameter: *void?)->u32
 // must return the same initialized context through the direct TLS path.
 #test
 {
-    if Swag.jit() do return
+    if Swag.jit()
+    {
+        return
+    }
     var initialized = false
     var threadId: Win32.DWORD
     let thread      = expect Win32.CreateThread(null, 0, &readFreshThreadContext, &initialized, 0, &threadId)

@@ -27,7 +27,7 @@ func day9A()
     var decode: String
 
     var r     = expect Parser.RegExp.create(#raw "\((\d+)x(\d+)\)")
-    var start = 0'u64
+    var start = 0_u64
     while start != line.count
     {
         let res = r.partialMatch(line[start to])

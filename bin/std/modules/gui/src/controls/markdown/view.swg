@@ -3,20 +3,20 @@
 
 using Core, Pixel
 
-private const StreamChunkSize    = 8 * 1024'u64
-private const RevealContextSize  = 64 * 1024'u64
-private const ReverseContextSize = 32 * 1024'u64
+private const StreamChunkSize    = 8 * 1024_u64
+private const RevealContextSize  = 64 * 1024_u64
+private const ReverseContextSize = 32 * 1024_u64
 private const RevealChunkSize    = RevealContextSize + StreamChunkSize
-private const ResidentSourceSize = 256 * 1024'u64
+private const ResidentSourceSize = 256 * 1024_u64
 
 // Includes the viewport: five complete screens remain ready ahead of a continuous scroll.
 private const StreamLookAhead   = 6.0
-private const StreamFrameBudget = 3_000'u64
-private const StreamBlockBudget = 8'u32
+private const StreamFrameBudget = 3_000_u64
+private const StreamBlockBudget = 8_u32
 
 // A jump gets one bounded frame to prepare its visible blocks; reserves keep the smaller budget.
-private const SeekFrameBudget = 12_000'u64
-private const SeekBlockBudget = 64'u32
+private const SeekFrameBudget = 12_000_u64
+private const SeekBlockBudget = 64_u32
 
 // Selects the theme color used by a document rule.
 enum RuleColor
@@ -136,12 +136,21 @@ internal impl VisualBlock
     // Counts rendered occurrences, or one match for a text-only block.
     mtd searchMatchCount(text: string)->u64
     {
-        if .inline do
+        if .inline
+        {
             return .inline.searchMatchCount(text)
-        if .table do
+        }
+
+        if .table
+        {
             return .table.searchMatchCount(text)
-        if .html do
+        }
+
+        if .html
+        {
             return .html.searchMatchCount(text)
+        }
+
         return not .searchText.isEmpty() and
                Utf8.indexOf(.searchText.toString(), text, 0, .Latin1NoCase) != Swag.U64.Max ? 1 : 0
     }
@@ -149,12 +158,21 @@ internal impl VisualBlock
     // Highlights a rendered occurrence; text-only blocks can only be scrolled into view.
     mtd highlightText(text: string, occurrence: u64)->bool
     {
-        if .inline do
+        if .inline
+        {
             return .inline.highlightText(text, occurrence)
-        if .table do
+        }
+
+        if .table
+        {
             return .table.highlightText(text, occurrence)
-        if .html do
+        }
+
+        if .html
+        {
             return .html.findTextOccurrence(text, occurrence)
+        }
+
         return occurrence == 0 and .searchMatchCount(text) != 0
     }
 
@@ -164,8 +182,10 @@ internal impl VisualBlock
         .inline?.releaseRenderCache()
         if .table
         {
-            for &cell in .table.cells do
+            for &cell in .table.cells
+            {
                 cell.view.releaseRenderCache()
+            }
         }
     }
 }
@@ -176,16 +196,21 @@ internal impl VisualBlock
 // change and a reading-width change; only rebuilding the blocks retires it.
 private func textOccurrenceCount(source, text: string)->u64
 {
-    if not text.count do
+    if not text.count
+    {
         return 0
+    }
 
     var result: u64
     var from:   u64
     while true
     {
         let match = Utf8.indexOf(source, text, from, .Latin1NoCase)
-        if match == Swag.U64.Max do
+        if match == Swag.U64.Max
+        {
             return result
+        }
+
         result += 1
         from   = match + text.count
     }
@@ -209,9 +234,9 @@ struct View
     {
         using wnd: Wnd     // Embedded window behavior and presentation.
 
-        sigLinkActivated: SigArray'func||(*Wnd, string)     // Emitted when a rendered link is activated.
-        sigLoadFailed:    SigArray'func||(*Wnd, string)     // Emitted with the exact reason when progressive file loading stops.
-        sigScrolled:      SigArray'func||(*Wnd)             // Emitted after the document moved under the view.
+        sigLinkActivated: SigArray!{func||(*Wnd, string)}     // Emitted when a rendered link is activated.
+        sigLoadFailed:    SigArray!{func||(*Wnd, string)}     // Emitted with the exact reason when progressive file loading stops.
+        sigScrolled:      SigArray!{func||(*Wnd)}             // Emitted after the document moved under the view.
 
         readonly
         {
@@ -242,7 +267,7 @@ struct View
     pendingSeekPreservesPosition: bool
     seekPreviousPosition:         Math.Point
     prioritizeViewport:           bool
-    retainedBlocks:               Array'VisualBlock
+    retainedBlocks:               Array!{VisualBlock}
     retainedOrigin:               f32
     retainedHeight:               f32
     replacementAnchorOffset:      u64 = Swag.U64.Max
@@ -253,11 +278,11 @@ struct View
     waitingScrollTarget:          Math.Point
     sourceCarry:                  String
     sourceDone:                   bool
-    pendingBlocks:                Array'Block
+    pendingBlocks:                Array!{Block}
     pendingIndex:                 u64
     imageTask:                    Swag.Task
     pendingImages:                HtmlImageCache
-    pendingImageSources:          Array'String
+    pendingImageSources:          Array!{String}
     pendingImageIndex:            u64 = Swag.U64.Max
     loadTimer:                    *Timer?
     contentHeight:                f32
@@ -269,12 +294,12 @@ struct View
     repositioning:                bool
     searchBlockIndex:             u64 = Swag.U64.Max
     documentThemeColors:          String
-    blocks:                       Array'VisualBlock
+    blocks:                       Array!{VisualBlock}
 
     // Every text view of the document in reading order, and the two ends of the reader's
     // selection over them. The anchor is where the press landed and the caret follows the
     // pointer; normalization into reading order happens on read.
-    inlineOrder: Array'(*InlineView)
+    inlineOrder: Array!{*InlineView}
     selAnchor:   SelectionPoint
     selCaret:    SelectionPoint
     selecting:   bool
@@ -286,8 +311,10 @@ private func applyThemeColors(wnd: *Wnd, colors: string)
 
     // Embedded HTML resolves its own cascade before the next paint computes dirty window styles.
     wnd.computeStyle()
-    for child in wnd.children do
+    for child in wnd.children
+    {
         applyThemeColors(child, colors)
+    }
 }
 
 private func blockGap(kind: BlockKind)->f32
@@ -318,10 +345,10 @@ private func htmlStyle(documentStyle: Style)->HtmlStyle
 
 private func streamBoundary(source: string)->u64
 {
-    var result       = 0'u64
-    var lineStart    = 0'u64
-    var fenceMarker  = 0'u8
-    var fenceLength  = 0'u32
+    var result       = 0_u64
+    var lineStart    = 0_u64
+    var fenceMarker  = 0_u8
+    var fenceLength  = 0_u32
     var displayMath: bool
     var bracketMath: bool
     var html:        bool
@@ -356,35 +383,40 @@ private func streamBoundary(source: string)->u64
                 htmlParser.feed("\n")
             }
         }
-        elif fence.found and not fenceMarker
+        else if fence.found and not fenceMarker
         {
             fenceMarker = fence.marker
             fenceLength = fence.length
         }
-        elif fence.found and
-             fence.marker == fenceMarker and
-             fence.length >= fenceLength and
-             not fence.info.count
+        else if fence.found and
+                fence.marker == fenceMarker and
+                fence.length >= fenceLength and
+                not fence.info.count
         {
             fenceMarker = 0
         }
-        elif not fenceMarker and Utf8.startsWith(trimmed, "$$")
+        else if not fenceMarker and Utf8.startsWith(trimmed, "$$")
         {
             let rest = trimmed[2 to]
-            if not (rest.count >= 2 and Utf8.endsWith(rest, "$$")) do
+            if not (rest.count >= 2 and Utf8.endsWith(rest, "$$"))
+            {
                 displayMath = not displayMath
+            }
         }
-        elif not fenceMarker and Utf8.startsWith(trimmed, "\\[")
+        else if not fenceMarker and Utf8.startsWith(trimmed, "\\[")
         {
             bracketMath = true
         }
-        elif not fenceMarker and Utf8.startsWith(trimmed, "\\]")
+        else if not fenceMarker and Utf8.startsWith(trimmed, "\\]")
         {
             bracketMath = false
         }
 
-        if not html and not fenceMarker and not displayMath and not bracketMath and not trimmed.count do
+        if not html and not fenceMarker and not displayMath and not bracketMath and not trimmed.count
+        {
             result = index + 1
+        }
+
         lineStart = index + 1
     }
 
@@ -393,13 +425,17 @@ private func streamBoundary(source: string)->u64
 
 private func takeStreamSource(source: *String, sourceDone: bool)->String
 {
-    if source.isEmpty() do
+    if source.isEmpty()
+    {
         return {}
+    }
 
     let boundary = sourceDone ? source.length : streamBoundary(source.toString())
 
-    if not boundary do
+    if not boundary
+    {
         return {}
+    }
 
     let result    = String.from(source.toString()[0 until boundary])
     var remaining = String.from(source.toString()[boundary to])
@@ -416,8 +452,10 @@ private impl View
         let viewport = .scroll.paddedClientRect()
         let keepTop  = positionY - viewport.height
         let keepEnd  = positionY + viewport.height * 2
-        for &block in .blocks where block.wnd.position.bottom() < keepTop or block.wnd.position.y > keepEnd do
+        for &block in .blocks where block.wnd.position.bottom() < keepTop or block.wnd.position.y > keepEnd
+        {
             block.releaseRenderCaches()
+        }
     }
 
     mtd documentGeometry()->{ x: f32, width: f32 }
@@ -460,8 +498,11 @@ private impl View
             let shift  = origin - .virtualOrigin
             if shift != 0
             {
-                for &block in .blocks do
+                for &block in .blocks
+                {
                     block.wnd.move(block.wnd.position.x, block.wnd.position.y + shift)
+                }
+
                 .virtualOrigin  = origin
                 .contentHeight  += shift
                 loadedHeight    += shift
@@ -477,15 +518,19 @@ private impl View
         }
 
         // Refine estimates without publishing incomplete replacement geometry to the viewport.
-        if not .retainedBlocks.isEmpty() do
+        if not .retainedBlocks.isEmpty()
+        {
             return
+        }
 
         let height   = Math.max(estimatedHeight, viewport.height)
         let position = .scroll.scrollPosition()
         let target   = .scroll.scrollTarget()
         .scroll.setScrollSize(viewport.width, height)
-        if target != position and .scroll.scrollTarget() != target do
+        if target != position and .scroll.scrollTarget() != target
+        {
             .scroll.smoothScrollTo(target)
+        }
     }
 
     mtd blockMargins(kind: BlockKind)->Math.Vector2
@@ -511,14 +556,22 @@ private impl View
         // Retain the current height while measuring. Collapsing an embedded HTML view first
         // makes it lay out once at zero height and again at its final size.
         block.wnd.setPosition(Math.Rectangle{x, y[], width, block.wnd.position.height})
-        if block.kind == .Math do
+        if block.kind == .Math
+        {
             block.wnd.resize(width, assume cast (*MathView, block.wnd).preferredHeight())
-        elif block.kind == .Table do
+        }
+        else if block.kind == .Table
+        {
             block.wnd.resize(width, block.table!.preferredHeight(width))
-        elif block.kind == .Html do
+        }
+        else if block.kind == .Html
+        {
             block.wnd.resize(width, block.html!.embeddedHeight(width))
-        else do
+        }
+        else
+        {
             block.wnd.resize(width, block.inline!.preferredHeight(width))
+        }
 
         let gap = collapse ? .blockMargins(block.kind).y : blockGap(block.kind)
         y[] += block.wnd.position.height + gap
@@ -527,8 +580,10 @@ private impl View
     internal mtd layoutDocument(preservePosition = false)
     {
         let viewport = .scroll.paddedClientRect()
-        if viewport.width <= 0 do
+        if viewport.width <= 0
+        {
             return
+        }
 
         let wasRepositioning = .repositioning
         .repositioning = .repositioning or preservePosition
@@ -538,7 +593,7 @@ private impl View
         let position = .scroll.scrollPosition()
         var anchor: *Wnd?
         var anchorY, anchorHeight: f32
-        var fraction = 0'f32
+        var fraction = 0_f32
         if preservePosition and position.y > 0
         {
             for block in .blocks where block.wnd.position.bottom() > position.y
@@ -553,8 +608,11 @@ private impl View
 
         let geometry = .documentGeometry()
         var y        = .virtualOrigin + .documentStyle.topInset
-        for &block, index in .blocks do
+        for &block, index in .blocks
+        {
             .placeBlock(block, index, geometry.x, geometry.width, &y)
+        }
+
         .contentHeight = y
         .updateDocumentSize()
 
@@ -573,8 +631,11 @@ private impl View
            .retainedBlocks.isEmpty() and
            .blocks[0].wnd.position.width == Math.round(geometry.width)
         {
-            for block in .blocks do
+            for block in .blocks
+            {
                 block.wnd.move(geometry.x, block.wnd.position.y)
+            }
+
             .updateDocumentSize()
             return
         }
@@ -595,27 +656,33 @@ private impl View
             if math
             {
                 visual.wnd = math
-                if not .documentThemeColors.isEmpty() do
+                if not .documentThemeColors.isEmpty()
+                {
                     applyThemeColors(visual.wnd, .documentThemeColors.toString())
+                }
+
                 .blocks.add(visual)
                 let geometry = .documentGeometry()
                 .placeBlock(.blocks.backPtr(), .blocks.count - 1, geometry.x, geometry.width, &.contentHeight)
                 return
             }
         }
-        elif block.kind == .Table
+        else if block.kind == .Table
         {
             let table = TableView.create(me, .body, block.text.toString())
             visual.wnd   = table
             visual.table = table
-            if not .documentThemeColors.isEmpty() do
+            if not .documentThemeColors.isEmpty()
+            {
                 applyThemeColors(visual.wnd, .documentThemeColors.toString())
+            }
+
             .blocks.add(visual)
             let geometry = .documentGeometry()
             .placeBlock(.blocks.backPtr(), .blocks.count - 1, geometry.x, geometry.width, &.contentHeight)
             return
         }
-        elif block.kind == .Html
+        else if block.kind == .Html
         {
             let basePath = .fileName.isEmpty() ? "" : (Path.directoryName(.fileName.toString()) orelse "")
             let prepared = .pendingImageIndex == .pendingIndex ? &.pendingImages : null
@@ -642,13 +709,19 @@ private impl View
 
         let displayText = blockDisplayText(block.kind, block.text.toString())
         let inline      = InlineView.create(me, .body, displayText.toString(), block.kind)
-        if .pendingImageIndex == .pendingIndex do
+        if .pendingImageIndex == .pendingIndex
+        {
             inline.images = #move .pendingImages
+        }
+
         inline.images.asynchronous = not .app().deterministicStreaming
         visual.wnd    = inline
         visual.inline = inline
-        if not .documentThemeColors.isEmpty() do
+        if not .documentThemeColors.isEmpty()
+        {
             applyThemeColors(visual.wnd, .documentThemeColors.toString())
+        }
+
         .blocks.add(visual)
 
         let geometry = .documentGeometry()
@@ -657,16 +730,28 @@ private impl View
 
     mtd needsMore()->bool
     {
-        if .pendingIndex >= .pendingBlocks.count and .sourceDone and .sourceCarry.isEmpty() do
+        if .pendingIndex >= .pendingBlocks.count and .sourceDone and .sourceCarry.isEmpty()
+        {
             return false
-        if .blocks.isEmpty() do
+        }
+
+        if .blocks.isEmpty()
+        {
             return true
+        }
+
         if .bytesRead - .residentStart >= ResidentSourceSize and
            not .jumpToEnd and
-           not .hasPendingTarget do
+           not .hasPendingTarget
+        {
             return false
-        if .jumpToEnd or .hasPendingTarget do
+        }
+
+        if .jumpToEnd or .hasPendingTarget
+        {
             return true
+        }
+
         let viewport = .scroll.paddedClientRect()
         let target   = Math.max(.scroll.scrollPosition().y, .scroll.scrollTarget().y, .waitingScroll ? .waitingScrollTarget.y : 0)
         return target + viewport.height * StreamLookAhead >= .contentHeight
@@ -696,9 +781,12 @@ private impl View
             }
         }
 
-        if .loadTimer or (not .pendingSeek and not .needsMore()) do
+        if .loadTimer or (not .pendingSeek and not .needsMore())
+        {
             return
-        .loadTimer = .addTimer(8'ms)
+        }
+
+        .loadTimer = .addTimer(8_ms)
     }
 
     // Source bytes do not bound decoded SVG memory. Keep two prefetch reserves behind the
@@ -711,36 +799,61 @@ private impl View
            .hasPendingTarget or
            .jumpToEnd or
            .hasSelection() or
-           .blocks.count < 2 do
+           .blocks.count < 2
+        {
             return
-        if .scroll.scrollPosition().y + .scroll.paddedClientRect().height > .contentHeight do
+        }
+
+        if .scroll.scrollPosition().y + .scroll.paddedClientRect().height > .contentHeight
+        {
             return
+        }
+
         let keepY = .scroll.scrollPosition().y - .scroll.paddedClientRect().height * StreamLookAhead * 2
         var count: u64
-        while count + 1 < .blocks.count and .blocks[count + 1].wnd.position.y < keepY do
+        while count + 1 < .blocks.count and .blocks[count + 1].wnd.position.y < keepY
+        {
             count += 1
-        if not count do
+        }
+
+        if not count
+        {
             return
+        }
+
         let inlineCount = .blocks[count].orderIndex
-        for index in count do
+        for index in count
+        {
             .blocks[index].wnd.destroy()
+        }
+
         .blocks.removeAtOrdered(0, count)
         .inlineOrder.removeAtOrdered(0, inlineCount)
-        for inline in .inlineOrder do
+        for inline in .inlineOrder
+        {
             inline.orderIndex -= inlineCount
-        for &block in .blocks do
+        }
+
+        for &block in .blocks
+        {
             block.orderIndex -= inlineCount
+        }
+
         .searchBlockIndex = .searchBlockIndex >= count and .searchBlockIndex != Swag.U64.Max ? .searchBlockIndex - count : Swag.U64.Max
         .residentStart    = .blocks[0].sourceOffset
         .virtualOrigin    = .blocks[0].wnd.position.y - .documentStyle.topInset
-        if .documentStyle.blockMargins.x >= 0 and .documentStyle.blockMargins.y >= 0 do
+        if .documentStyle.blockMargins.x >= 0 and .documentStyle.blockMargins.y >= 0
+        {
             .virtualOrigin -= .blockMargins(.blocks[0].kind).x
+        }
     }
 
     mtd readSource()
     {
-        if .sourceDone do
+        if .sourceDone
+        {
             return
+        }
 
         let chunk = catch .stream.readUtf8Chunk(StreamChunkSize)
         {
@@ -748,7 +861,7 @@ private impl View
             return
         }
 
-        if Utf8.indexOf(chunk.toSlice(), 0'rune) != Swag.U64.Max
+        if Utf8.indexOf(chunk.toSlice(), 0_rune) != Swag.U64.Max
         {
             .reportLoadFailure(strings().markdown_NotUtf8)
             return
@@ -767,15 +880,20 @@ private impl View
         var position: #decltype(expect .stream.position())
         catch { position = try .stream.position() } as positionErrorOutcome
         let positionError = positionErrorOutcome.value()
-        if positionError == null do
+        if positionError == null
+        {
             .bytesRead = position
+        }
     }
 
     mtd reportLoadFailure(reason: string)
     {
         .failureReason = reason
-        if .failureReason.isEmpty() do
+        if .failureReason.isEmpty()
+        {
             .failureReason = strings().markdown_ReadFailed
+        }
+
         .sigLoadFailed.call(me, .failureReason.toString())
         .sourceCarry = strings().markdown_LoadFailed
         .sourceDone  = true
@@ -785,8 +903,10 @@ private impl View
 
     internal mtd preparePending()->bool
     {
-        if .pendingIndex < .pendingBlocks.count do
+        if .pendingIndex < .pendingBlocks.count
+        {
             return true
+        }
 
         .pendingBlocks.clear()
         .pendingIndex      = 0
@@ -798,14 +918,19 @@ private impl View
             source = takeStreamSource(&.sourceCarry, .sourceDone)
         }
 
-        if source.isEmpty() do
+        if source.isEmpty()
+        {
             return false
+        }
 
         let sourceSize   = .sourceCarry.length + source.length
         let sourceOffset = .bytesRead >= sourceSize ? .bytesRead - sourceSize : 0
         .pendingBlocks = parseBlocks(source.toString(), frontmatter: sourceOffset == 0)
-        for &block in .pendingBlocks do
+        for &block in .pendingBlocks
+        {
             block.sourceOffset += sourceOffset
+        }
+
         return not .pendingBlocks.isEmpty()
     }
 
@@ -813,8 +938,10 @@ private impl View
     // contents remain deferred until paint, where each visible image can show its own spinner.
     internal mtd prepareImages()->bool
     {
-        if .pendingImageIndex == .pendingIndex do
+        if .pendingImageIndex == .pendingIndex
+        {
             return not .imageTask.isPending()
+        }
 
         .pendingImages.clear()
         .pendingImages.basePath     = .fileName.isEmpty() ? "" : (Path.directoryName(.fileName.toString()) orelse "")
@@ -829,10 +956,12 @@ private impl View
             parser.start(&document, .Fragment)
             parser.feed(block.text.toString())
             parser.finish()
-            for node, index in document.nodes where node.tag == .Img do
+            for node, index in document.nodes where node.tag == .Img
+            {
                 .pendingImageSources.add(String.from(document.attribute(cast(u32, index), "src")))
+            }
         }
-        elif block.kind != .Table and block.kind != .Math
+        else if block.kind != .Table and block.kind != .Math
         {
             let display = blockDisplayText(block.kind, block.text.toString())
             let text    = display.toString()
@@ -861,18 +990,25 @@ private impl View
             }
         }
 
-        if .pendingImageSources.isEmpty() do
+        if .pendingImageSources.isEmpty()
+        {
             return true
+        }
 
         // The worker owns only the unpublished cache. Window creation, layout, texture upload,
         // and all renderer calls stay on the UI thread; stopLoading joins before retiring it.
         .imageTask.submit(func|view = me|()
         {
-            for source in view.pendingImageSources do
+            for source in view.pendingImageSources
+            {
                 discard view.pendingImages.fetch(source.toString())
+            }
         })
-        if .app().deterministicStreaming do
+        if .app().deterministicStreaming
+        {
             .imageTask.wait()
+        }
+
         return not .imageTask.isPending()
     }
 
@@ -889,13 +1025,19 @@ private impl View
         let visibleWork = .prioritizeViewport or .waitingScroll
         let blockBudget = visibleWork ? SeekBlockBudget : StreamBlockBudget
         let frameBudget = visibleWork ? SeekFrameBudget : StreamFrameBudget
-        var blockCount  = 0'u32
+        var blockCount  = 0_u32
         while .needsMore() and blockCount < blockBudget
         {
-            if not .preparePending() do
+            if not .preparePending()
+            {
                 break
-            if not .prepareImages() do
+            }
+
+            if not .prepareImages()
+            {
                 break
+            }
+
             .appendBlock(#move .pendingBlocks[.pendingIndex])
             if .pendingHeadingOffset != Swag.U64.Max and .blocks.back().sourceOffset == .pendingHeadingOffset
             {
@@ -913,8 +1055,11 @@ private impl View
                     // Source identity, rather than byte/height ratios, keeps the old block at
                     // precisely the same screen position while the replacement grows around it.
                     let shift = .replacementAnchorY - appended.wnd.position.y
-                    for &block in .blocks do
+                    for &block in .blocks
+                    {
                         block.wnd.move(block.wnd.position.x, block.wnd.position.y + shift)
+                    }
+
                     .virtualOrigin       += shift
                     .contentHeight       += shift
                     .replacementAnchored = true
@@ -924,37 +1069,52 @@ private impl View
             .pendingIndex += 1
             blockCount    += 1
             var target = .replacementAnchored ? .scroll.scrollPosition().y : .pendingTarget
-            if .waitingScroll do
+            if .waitingScroll
+            {
                 target = Math.max(target, .waitingScrollTarget.y)
+            }
+
             if visibleWork and
                not .jumpToEnd and
                .pendingHeadingOffset == Swag.U64.Max and
                (.replacementAnchorOffset == Swag.U64.Max or .replacementAnchored) and
-               .contentHeight >= target + .scroll.paddedClientRect().height do
+               .contentHeight >= target + .scroll.paddedClientRect().height
+            {
                 break
-            if not .app().deterministicStreaming and stopwatch.elapsedMicroseconds() >= frameBudget do
+            }
+
+            if not .app().deterministicStreaming and stopwatch.elapsedMicroseconds() >= frameBudget
+            {
                 break
+            }
         }
 
         if .sourceDone and
            .sourceCarry.isEmpty() and
            .pendingIndex >= .pendingBlocks.count and
-           .blocks.isEmpty() do
+           .blocks.isEmpty()
+        {
             .appendBlock(Block{.Paragraph, strings().markdown_EmptyDocument})
+        }
 
         // Publish one complete batch. Updating the scroll extent for every block repeats resize
         // notifications and exposes intermediate height estimates to an active wheel glide.
         .updateDocumentSize()
-        if blockCount do
+        if blockCount
+        {
             .invalidate()
+        }
 
         // A byte-estimated target may finish once enough layout surrounds it. A search target may
         // not: its exact rendered occurrence is the completion signal. Stopping on the estimate
         // can leave the requested block just beyond the resident tail, so next/previous appears
         // to stay on the old page.
         let anchorReady = .replacementAnchorOffset == Swag.U64.Max or .replacementAnchored
-        if .replacementAnchored do
+        if .replacementAnchored
+        {
             .pendingTarget = .scroll.scrollPosition().y
+        }
+
         let targetHeight = .scroll.paddedClientRect().height * (.prioritizeViewport ? 1 : 2)
         if anchorReady and
            .hasPendingTarget and
@@ -976,8 +1136,11 @@ private impl View
             {
                 .repositioning = true
                 .scroll.setScrollPos(position.x, .pendingTarget)
-                if animating do
+                if animating
+                {
                     .scroll.smoothScrollTo(animatedTarget)
+                }
+
                 .repositioning = false
             }
         }
@@ -994,8 +1157,10 @@ private impl View
             .pendingTargetOffset = Swag.U64.Max
         }
 
-        if .hasUnloadedSource() do
+        if .hasUnloadedSource()
+        {
             return
+        }
 
         if .jumpToEnd
         {
@@ -1011,8 +1176,10 @@ private impl View
 
     mtd publishReplacement(force = false)
     {
-        if .retainedBlocks.isEmpty() or (not force and (.hasPendingTarget or not .pendingSearch.isEmpty() or .jumpToEnd)) do
+        if .retainedBlocks.isEmpty() or (not force and (.hasPendingTarget or not .pendingSearch.isEmpty() or .jumpToEnd))
+        {
             return
+        }
 
         // An overlapping seek rebuilds the same visible blocks. Keep their decoded images and
         // in-flight jobs so publishing the new window does not make visible figures reload.
@@ -1021,19 +1188,28 @@ private impl View
             var oldIndex: u64
             for &block in .blocks
             {
-                while oldIndex < .retainedBlocks.count and .retainedBlocks[oldIndex].sourceOffset < block.sourceOffset do
+                while oldIndex < .retainedBlocks.count and .retainedBlocks[oldIndex].sourceOffset < block.sourceOffset
+                {
                     oldIndex += 1
-                if oldIndex >= .retainedBlocks.count or .retainedBlocks[oldIndex].sourceOffset != block.sourceOffset do
+                }
+
+                if oldIndex >= .retainedBlocks.count or .retainedBlocks[oldIndex].sourceOffset != block.sourceOffset
+                {
                     continue
+                }
+
                 let old = &.retainedBlocks[oldIndex]
-                if old.kind != block.kind do
+                if old.kind != block.kind
+                {
                     continue
+                }
+
                 if block.inline and old.inline
                 {
                     block.inline.images.clear()
                     block.inline.images = #move old.inline.images
                 }
-                elif block.html and old.html
+                else if block.html and old.html
                 {
                     block.html.images.clear()
                     block.html.images = #move old.html.images
@@ -1041,11 +1217,17 @@ private impl View
             }
         }
 
-        for &block in .retainedBlocks do
+        for &block in .retainedBlocks
+        {
             block.wnd.destroy()
+        }
+
         .retainedBlocks.clear()
-        for &block in .blocks do
+        for &block in .blocks
+        {
             block.wnd.show()
+        }
+
         .replacementAnchorOffset = Swag.U64.Max
         .replacementAnchored     = false
         .repositioning           = true
@@ -1059,8 +1241,11 @@ private impl View
         let animating = .app().animator.isActive(.scroll.scrollAnimation)
         if shift != 0
         {
-            for block in .blocks do
+            for block in .blocks
+            {
                 block.wnd.move(block.wnd.position.x, block.wnd.position.y - shift)
+            }
+
             .virtualOrigin         = 0
             .contentHeight         -= shift
             .virtualHeight         = Math.max(.virtualHeight - shift, .contentHeight)
@@ -1072,8 +1257,10 @@ private impl View
         if shift != 0
         {
             .scroll.setScrollPos(position.x, position.y - shift)
-            if animating do
+            if animating
+            {
                 .scroll.smoothScrollTo(Math.Point{target.x, target.y - shift})
+            }
         }
 
         .repositioning = false
@@ -1086,15 +1273,24 @@ private impl View
         let viewport = .scroll.paddedClientRect()
         let origin   = .retainedBlocks.isEmpty() ? .virtualOrigin : .retainedOrigin
         let height   = .retainedBlocks.isEmpty() ? .contentHeight : .retainedHeight
-        if height - origin < viewport.height and not .hasUnloadedSource() do
+        if height - origin < viewport.height and not .hasUnloadedSource()
+        {
             return
+        }
+
         let safeY = Math.clamp(newPosition.y, origin, Math.max(origin, height - viewport.height))
-        if safeY == newPosition.y do
+        if safeY == newPosition.y
+        {
             return
+        }
+
         .waitingScrollTarget   = .scroll.scrollTarget()
         .waitingScrollTarget.y = Math.max(.waitingScrollTarget.y, newPosition.y)
-        if newPosition.y < oldPosition.y do
+        if newPosition.y < oldPosition.y
+        {
             .waitingScrollTarget.y = Math.min(.scroll.scrollTarget().y, newPosition.y)
+        }
+
         .waitingScroll = true
         .repositioning = true
         .scroll.setScrollPos(newPosition.x, safeY)
@@ -1103,11 +1299,17 @@ private impl View
 
     mtd resumeWaitingScroll()
     {
-        if not .waitingScroll or not .retainedBlocks.isEmpty() do
+        if not .waitingScroll or not .retainedBlocks.isEmpty()
+        {
             return
+        }
+
         let viewport = .scroll.paddedClientRect()
-        if .waitingScrollTarget.y < .virtualOrigin or (.waitingScrollTarget.y + viewport.height > .contentHeight and .hasUnloadedSource()) do
+        if .waitingScrollTarget.y < .virtualOrigin or (.waitingScrollTarget.y + viewport.height > .contentHeight and .hasUnloadedSource())
+        {
             return
+        }
+
         .waitingScroll = false
         .scroll.smoothScrollTo(.waitingScrollTarget)
     }
@@ -1130,13 +1332,18 @@ private impl View
 
     mtd handleDocumentKey(evt: *KeyEvent)->bool
     {
-        if evt.kind != .Pressed do
+        if evt.kind != .Pressed
+        {
             return false
+        }
 
         // What a read-only document can give the clipboard comes first: the same three keys every
         // other rendered document in the toolkit binds.
-        if evt.key == .C and evt.modifiers == .Control do
+        if evt.key == .C and evt.modifiers == .Control
+        {
             return .copySelection()
+        }
+
         if evt.key == .A and evt.modifiers == .Control
         {
             .selectAll()
@@ -1182,14 +1389,22 @@ private impl View
     // Repaints every text view between two reading-order positions, inclusive.
     mtd invalidateInlines(one, other: u64)
     {
-        if .inlineOrder.isEmpty() do
+        if .inlineOrder.isEmpty()
+        {
             return
+        }
+
         let first = Math.min(one, other)
-        if first >= .inlineOrder.count do
+        if first >= .inlineOrder.count
+        {
             return
+        }
+
         let last = Math.min(Math.max(one, other), .inlineOrder.count - 1)
-        for index in first to last do
+        for index in first to last
+        {
             .inlineOrder[index].invalidateRenderCache()
+        }
     }
 
     // Returns the document position nearest to a surface point.
@@ -1208,21 +1423,31 @@ private impl View
         {
             let rect = view.surfaceRect()
 
-            var dx = 0'f32
-            if surfacePos.x < rect.x do
+            var dx = 0_f32
+            if surfacePos.x < rect.x
+            {
                 dx = rect.x - surfacePos.x
-            elif surfacePos.x > rect.right() do
+            }
+            else if surfacePos.x > rect.right()
+            {
                 dx = surfacePos.x - rect.right()
+            }
 
-            var dy = 0'f32
-            if surfacePos.y < rect.y do
+            var dy = 0_f32
+            if surfacePos.y < rect.y
+            {
                 dy = rect.y - surfacePos.y
-            elif surfacePos.y > rect.bottom() do
+            }
+            else if surfacePos.y > rect.bottom()
+            {
                 dy = surfacePos.y - rect.bottom()
+            }
 
             let score = dy * 4096 + dx
-            if score >= best do
+            if score >= best
+            {
                 continue
+            }
 
             best          = score
             result.view   = index
@@ -1248,17 +1473,23 @@ private impl View
             if block.inline
             {
                 block.inline.layoutWidth = 0
-                if block.kind >= .Heading1 and block.kind <= .Heading6 do
+                if block.kind >= .Heading1 and block.kind <= .Heading6
+                {
                     block.inline.horizontalAlignment = block.inline.headingAlignment()
-                elif block.kind == .Paragraph do
+                }
+                else if block.kind == .Paragraph
+                {
                     block.inline.horizontalAlignment = .documentStyle.paragraphAlignment
+                }
             }
 
             if block.table
             {
                 block.table.layoutWidth = 0
-                for &cell in block.table.cells do
+                for &cell in block.table.cells
+                {
                     cell.view.layoutWidth = 0
+                }
             }
 
             block.html?.setDocumentStyle(htmlStyle(.documentStyle))
@@ -1278,19 +1509,27 @@ internal impl View
         let slot = cast(u32, style)
         if kind == .Code or kind == .Metadata
         {
-            if let face = .documentStyle.codeTypeFaces[slot] do
+            if let face = .documentStyle.codeTypeFaces[slot]
+            {
                 return .theme().fonts.createFont(face, size)
+            }
+
             return .theme().createDefaultFontFs(size, style)
         }
 
         if kind >= .Heading1 and kind <= .Heading6
         {
-            if let face = .documentStyle.headingTypeFaces[slot] do
+            if let face = .documentStyle.headingTypeFaces[slot]
+            {
                 return .theme().fonts.createFont(face, size)
+            }
         }
 
-        if let face = .documentStyle.bodyTypeFaces[slot] do
+        if let face = .documentStyle.bodyTypeFaces[slot]
+        {
             return .theme().fonts.createFont(face, size)
+        }
+
         return .theme().createDefaultFont(size, style)
     }
 }
@@ -1344,7 +1583,7 @@ impl View
     #[Swag.Discardable]
     func create(contentParent: *Wnd, documentStyle: Style = {})->*View
     {
-        with let result = Wnd.create'View(contentParent, "gui.markdown")
+        with let result = Wnd.create!{View}(contentParent, "gui.markdown")
         {
             .backgroundStyle = .View
             .focusPolicy     = .Tab
@@ -1353,18 +1592,20 @@ impl View
             .contentHeight   = documentStyle.topInset
         }
 
-        result.scroll = Wnd.create'ScrollWnd(result, "", {})
+        result.scroll = Wnd.create!{ScrollWnd}(result, "", {})
         result.scroll.dockStyle = .Center
         result.scroll.updateFlags(.DisableHorizontal)
         result.scroll.verticalScrollStep       = documentStyle.bodyLineHeight > 0 ? documentStyle.bodyLineHeight : result.documentFont(.Paragraph, documentStyle.bodyFontSize).height * documentStyle.lineHeight
-        result.body = result.scroll.createView'Wnd()
+        result.body = result.scroll.createView!{Wnd}()
         result.body.backgroundStyle            = .View
         result.scroll.sigScrollPositionChanged += func|view = result|(_, oldPosition, newPosition)
         {
             view.sigScrolled.call(view)
             view.trimRenderCaches(newPosition.y)
-            if (view.jumpToEnd and not view.prioritizeViewport) or view.repositioning do
+            if (view.jumpToEnd and not view.prioritizeViewport) or view.repositioning
+            {
                 return
+            }
 
             // Keep an in-flight overlap alive while the wheel moves inside its visible window.
             // A distant scrollbar gesture can still supersede it immediately.
@@ -1419,8 +1660,11 @@ impl View
                (approachingResidentStart or approachingResidentEnd or outside)
             {
                 let ratio = Math.clamp(newPosition.y / view.scroll.scrollableClientRect().height, 0, 1)
-                if not view.pendingSeek and view.retainedBlocks.isEmpty() do
+                if not view.pendingSeek and view.retainedBlocks.isEmpty()
+                {
                     view.seekPreviousPosition = oldPosition
+                }
+
                 view.pendingSeekOffset = cast(u64, (ratio * cast(f32, view.fileSize)))
                 view.pendingSeek       = true
                 view.pendingSeekPreservesPosition = (continuous or not outside) and (approachingResidentStart or approachingResidentEnd)
@@ -1449,8 +1693,11 @@ impl View
             if evt is MouseEvent as mouse where mouse.kind == .Wheel and mouse.modifiers.has(.Control)
             {
                 view.processEvent(evt)
-                if mouse.accepted do
+                if mouse.accepted
+                {
                     return true
+                }
+
                 mouse.accepted = true
             }
 
@@ -1461,8 +1708,11 @@ impl View
                 let distance = -mouse.delta.y * view.scroll.verticalScrollStep * 3
 
                 // Reversing the wheel responds immediately instead of first consuming a queued glide.
-                if (distance < 0 and target.y > position.y) or (distance > 0 and target.y < position.y) do
+                if (distance < 0 and target.y > position.y) or (distance > 0 and target.y < position.y)
+                {
                     target = position
+                }
+
                 target.y += distance
                 view.waitingScroll  = false
                 view.wheelScrolling = true
@@ -1486,10 +1736,15 @@ impl View
             {
                 // ScrollWnd also sends this event when its virtual content size changes.
                 // Appending source must not remeasure every resident block, including HTML.
-                if resize.oldSize.x != view.scroll.position.width do
+                if resize.oldSize.x != view.scroll.position.width
+                {
                     view.resizeDocument()
-                else do
+                }
+                else
+                {
                     view.updateDocumentSize()
+                }
+
                 view.scheduleMore()
             }
 
@@ -1507,11 +1762,15 @@ impl View
         let result = View.create(contentParent, documentStyle)
         result.sourceDone = true
         let parsed = parseBlocks(source)
-        for &block in parsed do
+        for &block in parsed
+        {
             result.appendBlock(#move block[])
+        }
 
-        if result.blocks.isEmpty() do
+        if result.blocks.isEmpty()
+        {
             result.appendBlock(Block{.Paragraph, strings().markdown_EmptyDocument})
+        }
 
         result.updateDocumentSize()
         return result
@@ -1538,10 +1797,14 @@ impl View
             var size: #decltype(expect result.stream.size())
             catch { size = try result.stream.size() } as sizeErrorOutcome
             let sizeError = sizeErrorOutcome.value()
-            if sizeError == null do
+            if sizeError == null
+            {
                 result.fileSize = size
-            else do
+            }
+            else
+            {
                 result.reportLoadFailure(Errors.message(sizeError))
+            }
         }
 
         result.scheduleMore()
@@ -1563,8 +1826,11 @@ impl View
     {
         .documentThemeColors = styleSheetColors
         applyThemeColors(me, styleSheetColors)
-        for &block in .blocks do
+        for &block in .blocks
+        {
             block.releaseRenderCaches()
+        }
+
         .invalidate()
     }
 
@@ -1587,8 +1853,10 @@ impl View
         .selAnchor = {}
         .selCaret  = {}
         .selecting = false
-        if range.has do
+        if range.has
+        {
             .invalidateInlines(range.startView, range.endView)
+        }
     }
 
     // Selects the whole rendered document.
@@ -1597,8 +1865,11 @@ impl View
     // can see; the rest of the file has no position to select.
     mtd selectAll()
     {
-        if not .retainedBlocks.isEmpty() or .inlineOrder.isEmpty() do
+        if not .retainedBlocks.isEmpty() or .inlineOrder.isEmpty()
+        {
             return
+        }
+
         .selAnchor = {0, 0}
         .selCaret  = SelectionPoint{.inlineOrder.count - 1, .inlineOrder[.inlineOrder.count - 1].textLength}
         .selecting = false
@@ -1614,8 +1885,10 @@ impl View
     {
         var result: #returntype
         let range = .selectionRange()
-        if not range.has do
+        if not range.has
+        {
             return result
+        }
 
         var started: bool
         for &block in .blocks
@@ -1623,10 +1896,16 @@ impl View
             if block.inline
             {
                 let piece = .selectionInInline(block.inline.orderIndex)
-                if not piece.has do
+                if not piece.has
+                {
                     continue
-                if started do
+                }
+
+                if started
+                {
                     result += "\n"
+                }
+
                 result  += block.inline.textSlice(piece.start, piece.end)
                 started = true
                 continue
@@ -1638,14 +1917,19 @@ impl View
                 for &cell in block.table.cells
                 {
                     let piece = .selectionInInline(cell.view.orderIndex)
-                    if not piece.has do
+                    if not piece.has
+                    {
                         continue
+                    }
+
                     if lastRow == Swag.U32.Max
                     {
-                        if started do
+                        if started
+                        {
                             result += "\n"
+                        }
                     }
-                    elif cell.row != lastRow
+                    else if cell.row != lastRow
                     {
                         result += "\n"
                     }
@@ -1668,8 +1952,11 @@ impl View
                range.endView >= block.orderIndex and
                not block.searchText.isEmpty()
             {
-                if started do
+                if started
+                {
                     result += "\n"
+                }
+
                 result  += block.searchText
                 started = true
             }
@@ -1681,11 +1968,17 @@ impl View
     // Puts the selected text on the clipboard, and reports whether there was one.
     mtd copySelection()->bool
     {
-        if not .hasSelection() do
+        if not .hasSelection()
+        {
             return false
+        }
+
         let text = .selectedText()
-        if text.isEmpty() do
+        if text.isEmpty()
+        {
             return false
+        }
+
         Clipboard.setString(text.toString())
         return true
     }
@@ -1719,31 +2012,44 @@ impl View
     // Matching ignores ASCII and Latin-1 letter case.
     mtd findText(text: string)->bool
     {
-        if not text.count or .blocks.isEmpty() do
+        if not text.count or .blocks.isEmpty()
+        {
             return false
+        }
 
         var matchCount: u64
-        for &block in .blocks do
+        for &block in .blocks
+        {
             matchCount += block.searchMatchCount(text)
+        }
+
         if not matchCount
         {
-            for &block in .blocks do
+            for &block in .blocks
+            {
                 block.clearSearchHighlight()
+            }
+
             .searchBlockIndex = Swag.U64.Max
             .searchQuery.clear()
             .searchMatchOccurrenceInBlock = 0
             return false
         }
 
-        var occurrence = 0'u64
+        var occurrence = 0_u64
         if Utf8.compare(.searchQuery.toString(), text, .Latin1NoCase) == 0 and
            .searchBlockIndex < .blocks.count
         {
-            for index in .searchBlockIndex do
+            for index in .searchBlockIndex
+            {
                 occurrence += .blocks[index].searchMatchCount(text)
+            }
+
             occurrence += .searchMatchOccurrenceInBlock + 1
-            if occurrence >= matchCount do
+            if occurrence >= matchCount
+            {
                 occurrence = 0
+            }
         }
 
         return .findTextOccurrence(text, occurrence)
@@ -1754,11 +2060,15 @@ impl View
     // collapse onto its first visible match.
     private mtd findTextOccurrence(text: string, occurrence: u64)->bool
     {
-        if not text.count or .blocks.isEmpty() do
+        if not text.count or .blocks.isEmpty()
+        {
             return false
+        }
 
-        for &block in .blocks do
+        for &block in .blocks
+        {
             block.clearSearchHighlight()
+        }
 
         var remaining = occurrence
         for index in .blocks.count
@@ -1772,12 +2082,18 @@ impl View
             }
 
             let found = block.highlightText(text, remaining)
-            if not found do
+            if not found
+            {
                 return false
+            }
+
             if not .retainedBlocks.isEmpty() and
                .hasUnloadedSource() and
-               block.wnd.position.y + .scroll.paddedClientRect().height > .contentHeight do
+               block.wnd.position.y + .scroll.paddedClientRect().height > .contentHeight
+            {
                 return false
+            }
+
             .searchBlockIndex = index
             .searchQuery      = text
             .searchMatchOccurrenceInBlock = remaining
@@ -1804,8 +2120,10 @@ impl View
     // that source because an in-memory view does not retain its serialized text.
     mtd revealTextMatch(source: string, offset: u64, text: string)->bool
     {
-        if not text.count or offset > source.count do
+        if not text.count or offset > source.count
+        {
             return false
+        }
 
         let precedingBlocks = parseBlocks(source[0 until offset])
         var occurrence: u64
@@ -1815,17 +2133,19 @@ impl View
             {
                 occurrence += textOccurrenceCount(block.text.toString(), text)
             }
-            elif block.kind == .Html
+            else if block.kind == .Html
             {
                 var document = HtmlDocument.create()
                 var parser: HtmlParser
                 parser.start(&document, .Fragment)
                 parser.feed(block.text.toString())
                 parser.finish()
-                for node, index in document.nodes where node.kind == .Text do
+                for node, index in document.nodes where node.kind == .Text
+                {
                     occurrence += textOccurrenceCount(document.textOf(cast(u32, index)), text)
+                }
             }
-            elif block.kind == .Table
+            else if block.kind == .Table
             {
                 let lines = Tokenize.splitLines(block.text.toString())
                 for line, index in lines where index != 1
@@ -1878,8 +2198,10 @@ impl View
                                    block.sourceOffset == offset and
                                    (not headingOnly or (block.kind >= .Heading1 and block.kind <= .Heading6))
         {
-            if .hasUnloadedSource() and block.wnd.position.y - .documentStyle.topInset + .scroll.paddedClientRect().height > .contentHeight do
+            if .hasUnloadedSource() and block.wnd.position.y - .documentStyle.topInset + .scroll.paddedClientRect().height > .contentHeight
+            {
                 break
+            }
 
             // This is a known document coordinate, not a scrollbar gesture to estimate again.
             .repositioning = true
@@ -1889,8 +2211,11 @@ impl View
             return true
         }
 
-        if .fileName.isEmpty() or offset >= .fileSize do
+        if .fileName.isEmpty() or offset >= .fileSize
+        {
             return false
+        }
+
         .seekPreviousPosition = .scroll.scrollPosition()
         let queued = .beginReveal(offset, "", exactHeading: true)
         if queued
@@ -1913,8 +2238,11 @@ impl View
 
         // Only an overlapping prefetch belongs to the held gesture. A search or explicit
         // jump owns a new destination and must not resume the wheel's older request.
-        if not preservePosition do
+        if not preservePosition
+        {
             .waitingScroll = false
+        }
+
         .pendingSeek          = false
         .pendingSeekOffset    = 0
         .pendingHeadingOffset = Swag.U64.Max
@@ -1934,8 +2262,11 @@ impl View
         }
         else
         {
-            for &block in .blocks do
+            for &block in .blocks
+            {
                 block.wnd.destroy()
+            }
+
             .blocks.clear()
         }
 
@@ -1967,13 +2298,16 @@ impl View
         // Outline offsets already identify a complete block and a UTF-8 boundary. Reading from
         // that boundary makes the work depend on the viewport, not on the preceding section.
         let viewportBytes = cast(u64, Math.ceil(.scroll.paddedClientRect().height * cast(f32, .fileSize) / Math.max(.virtualHeight, 1)))
-        let tailContext   = Math.min(Math.max(viewportBytes * 4, 4096'u64), RevealContextSize)
+        let tailContext   = Math.min(Math.max(viewportBytes * 4, 4096_u64), RevealContextSize)
         let headingTail   = exactHeading and .fileSize - requested <= tailContext
         let start         = headingTail ? requested - Math.min(requested, tailContext) :
                             exactHeading ? requested : requested > RevealContextSize ? requested - RevealContextSize : 0
         let revealTail = viewportFirst and .fileSize - requested <= viewportBytes * 2
-        if revealTail do
+        if revealTail
+        {
             .jumpToEnd = true
+        }
+
         for adjustment in 4
         {
             .stream = catch File.openReadLive(.fileName.toString()) { return false }
@@ -2001,22 +2335,24 @@ impl View
                 // empty viewport. Bound the leading context by blocks too, leaving half the
                 // seek budget for the heading and the content that follows it.
                 let preceding = parseBlocks(chunk.toString()[0 until localTarget], frontmatter: actual == 0)
-                if preceding.count > SeekBlockBudget / 2 do
+                if preceding.count > SeekBlockBudget / 2
+                {
                     boundary = Math.max(boundary, preceding[preceding.count - SeekBlockBudget / 2].sourceOffset)
+                }
             }
-            elif viewportFirst
+            else if viewportFirst
             {
                 // Locate a complete block without laying out its offscreen predecessors.
                 // At EOF retain enough preceding source to fill the final viewport as well.
-                let tailContext = revealTail ? Math.max(viewportBytes * 2, 1024'u64) : 0
+                let tailContext = revealTail ? Math.max(viewportBytes * 2, 1024_u64) : 0
                 let probeEnd    = localTarget > tailContext ? localTarget - tailContext : 0
                 boundary = streamBoundary(chunk.toString()[0 until probeEnd])
             }
-            elif not exactHeading and (actual or preservePosition)
+            else if not exactHeading and (actual or preservePosition)
             {
                 // Overlap only a few screens when continuing a gesture. Parsing a fixed 32 KiB
                 // prefix can take hundreds of blocks before the wheel's first line is ready.
-                let context = preservePosition ? Math.min(ReverseContextSize, Math.max(viewportBytes * 2, 1024'u64)) : ReverseContextSize
+                let context = preservePosition ? Math.min(ReverseContextSize, Math.max(viewportBytes * 2, 1024_u64)) : ReverseContextSize
 
                 // Reaching byte zero in the read buffer does not require rendering its whole
                 // prefix. Keep zero only when it falls inside the useful reverse reserve.
@@ -2024,8 +2360,10 @@ impl View
                 {
                     let probeEnd = localTarget > context ? localTarget - context : Math.min(localTarget, StreamChunkSize)
                     boundary = streamBoundary(chunk.toString()[0 until probeEnd])
-                    if not boundary and localTarget > probeEnd do
+                    if not boundary and localTarget > probeEnd
+                    {
                         boundary = streamBoundary(chunk.toString()[0 until localTarget])
+                    }
                 }
             }
 
@@ -2038,8 +2376,11 @@ impl View
             while text.count > 0
             {
                 let match = Utf8.indexOf(.sourceCarry.toString(), text, searchFrom, .Latin1NoCase)
-                if match == Swag.U64.Max or match >= targetInResident do
+                if match == Swag.U64.Max or match >= targetInResident
+                {
                     break
+                }
+
                 .pendingSearchOccurrence += 1
                 searchFrom = match + Math.max(text.count, 1)
             }
@@ -2066,8 +2407,11 @@ impl View
 
             // A text reveal has an exact rendered destination. Keep the current position until
             // that occurrence exists instead of exposing the byte-based loading estimate first.
-            if .retainedBlocks.isEmpty() and not .jumpToEnd and .pendingSearch.isEmpty() do
+            if .retainedBlocks.isEmpty() and not .jumpToEnd and .pendingSearch.isEmpty()
+            {
                 .scroll.setScrollPos(0, .virtualOrigin)
+            }
+
             .scheduleMore()
             return true
         }
@@ -2089,8 +2433,10 @@ impl View
         .searchBlockIndex        = Swag.U64.Max
         .searchQuery.clear()
         .searchMatchOccurrenceInBlock = 0
-        for &block in .blocks do
+        for &block in .blocks
+        {
             block.clearSearchHighlight()
+        }
     }
 
     // Reports the current search highlight in surface coordinates.
@@ -2099,15 +2445,27 @@ impl View
     // owns presentation and may poll after [[Gui.Markdown.View.revealFileOffset]].
     mtd searchMatchRect(result: *Math.Rectangle)->bool
     {
-        if .searchBlockIndex >= .blocks.count do
+        if .searchBlockIndex >= .blocks.count
+        {
             return false
+        }
+
         let block = &.blocks[.searchBlockIndex]
-        if block.inline do
+        if block.inline
+        {
             return block.inline.searchMatchRect(result)
-        if block.table do
+        }
+
+        if block.table
+        {
             return block.table.searchMatchRect(result)
-        if block.html do
+        }
+
+        if block.html
+        {
             return block.html.searchMatchRect(result)
+        }
+
         return false
     }
 }
@@ -2126,8 +2484,11 @@ internal impl View
     {
         // Retained windows still paint, but their reading-order indices belong to the old
         // document. Do not let a click address an unrelated, unpublished replacement inline.
-        if not .retainedBlocks.isEmpty() do
+        if not .retainedBlocks.isEmpty()
+        {
             return
+        }
+
         .setFocus()
         .clearSelection()
         .selAnchor = SelectionPoint{view.orderIndex, offset}
@@ -2138,11 +2499,16 @@ internal impl View
     // Moves the free end of the drag to the document position under a surface point.
     mtd extendSelection(surfacePos: Math.Point)
     {
-        if not .selecting do
+        if not .selecting
+        {
             return
+        }
+
         let hit = .documentPositionAt(surfacePos)
-        if not hit.has or (hit.view == .selCaret.view and hit.offset == .selCaret.offset) do
+        if not hit.has or (hit.view == .selCaret.view and hit.offset == .selCaret.offset)
+        {
             return
+        }
 
         // Both the range the caret left and the range it now covers have to be repainted, so the
         // union of where it was, where it is, and the anchor is what the drag touches.
@@ -2162,8 +2528,11 @@ internal impl View
     // Selects the word around one position, the double-click gesture.
     mtd selectWordAt(view: *InlineView, offset: u64)
     {
-        if not .retainedBlocks.isEmpty() do
+        if not .retainedBlocks.isEmpty()
+        {
             return
+        }
+
         .setFocus()
         .clearSelection()
         let word = view.wordRangeAt(offset)
@@ -2177,10 +2546,15 @@ internal impl View
     mtd const selectionRange()->{ startView: u64, startOffset: u64, endView: u64, endOffset: u64, has: bool }
     {
         var result: #returntype
-        if .selAnchor.view == Swag.U64.Max or .selCaret.view == Swag.U64.Max do
+        if .selAnchor.view == Swag.U64.Max or .selCaret.view == Swag.U64.Max
+        {
             return result
-        if .selAnchor.view == .selCaret.view and .selAnchor.offset == .selCaret.offset do
+        }
+
+        if .selAnchor.view == .selCaret.view and .selAnchor.offset == .selCaret.offset
+        {
             return result
+        }
 
         let anchorFirst = .selAnchor.view < .selCaret.view or (.selAnchor.view == .selCaret.view and .selAnchor.offset < .selCaret.offset)
         result.startView   = anchorFirst ? .selAnchor.view : .selCaret.view
@@ -2197,8 +2571,10 @@ internal impl View
     {
         var result: #returntype
         let range = .selectionRange()
-        if not range.has or orderIndex < range.startView or orderIndex > range.endView do
+        if not range.has or orderIndex < range.startView or orderIndex > range.endView
+        {
             return result
+        }
 
         result.start = orderIndex == range.startView ? range.startOffset : 0
         result.end   = orderIndex == range.endView ? range.endOffset : .inlineOrder[orderIndex].textLength
@@ -2218,8 +2594,11 @@ internal impl IWnd for View
             discard .beginReveal(offset, "", preservePosition, viewportFirst: not preservePosition)
         }
 
-        if not .prioritizeViewport and not .waitingScroll do
+        if not .prioritizeViewport and not .waitingScroll
+        {
             return
+        }
+
         .streamStep()
         if (.hasPendingTarget or .jumpToEnd) and
            .replacementAnchorOffset == Swag.U64.Max and
@@ -2242,8 +2621,11 @@ internal impl IWnd for View
             var changed = false
             for &block in .blocks where block.kind >= .AlertNote and block.kind <= .AlertCaution
             {
-                if not changed do
+                if not changed
+                {
                     .clearSelection()
+                }
+
                 let displayText = blockDisplayText(block.kind, block.searchText.toString())
                 block.inline!.clearSearchHighlight()
                 block.inline.parse(displayText.toString())
@@ -2263,14 +2645,18 @@ internal impl IWnd for View
 
     mtd impl onThemeEvent(_: *ThemeEvent)
     {
-        if .scroll != null do
+        if .scroll != null
+        {
             .applyDocumentStyle()
+        }
     }
 
     mtd impl onKeyEvent(evt: *KeyEvent)
     {
-        if not .handleDocumentKey(evt) do
+        if not .handleDocumentKey(evt)
+        {
             evt.accepted = false
+        }
     }
 
     // The ground between and around the blocks answers for the document as a whole: a press on it
@@ -2313,8 +2699,11 @@ internal impl IWnd for View
             let preservePosition = .pendingSeekPreservesPosition
             .pendingSeek = false
             discard .beginReveal(offset, "", preservePosition, viewportFirst: not preservePosition)
-            if not preservePosition do
+            if not preservePosition
+            {
                 .streamStep()
+            }
+
             return
         }
 

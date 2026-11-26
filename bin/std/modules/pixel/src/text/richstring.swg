@@ -87,15 +87,15 @@ struct RichString
         // Everything below comes out of [[Pixel.RichString.compute]] and the layout pass that
         // follows it. They describe the last result, and stay writable because the layout engine
         // lives in [[Pixel.Painter]].
-        chunks:      Array'RichChunk     // Styled runs produced by 'compute'.
-        layoutRect:  Math.Rectangle      // Rectangle used by the most recent layout.
-        boundRect:   Math.Rectangle      // Bounds of visible content from the most recent layout.
-        hasUrl:      bool                // Whether at least one chunk is a link.
-        layoutScale: f32                 // Device scale used by the most recent layout, or zero before one.
+        chunks:      Array!{RichChunk}     // Styled runs produced by 'compute'.
+        layoutRect:  Math.Rectangle        // Rectangle used by the most recent layout.
+        boundRect:   Math.Rectangle        // Bounds of visible content from the most recent layout.
+        hasUrl:      bool                  // Whether at least one chunk is a link.
+        layoutScale: f32                   // Device scale used by the most recent layout, or zero before one.
     }
 
     // Styled ranges of `text`, in text order.
-    spans: Array'RichSpan
+    spans: Array!{RichSpan}
 
     // Whether the chunks must be rebuilt before the next layout or paint.
     dirty: bool
@@ -105,19 +105,19 @@ struct RichString
 //
 // A no-break space is a space the author placed to keep its neighbours on one line, so it
 // stays inside the word it sits in.
-private func isBreakingSpace(c: rune)->bool => Unicode.isSpace(c) and c != ' 'rune and c != ' 'rune and c != ' 'rune
+private func isBreakingSpace(c: rune)->bool => Unicode.isSpace(c) and c != ' '_rune and c != ' '_rune and c != ' '_rune
 
 // Reads inline markup into visible text and, when `spans` is given, its style ranges.
 private struct MarkupReader
 {
     late text: *String     // Receives the visible text.
-    spans:     *Array'RichSpan?     // Receives the style ranges, or null to keep the text only.
+    spans:     *Array!{RichSpan}?     // Receives the style ranges, or null to keep the text only.
 
-    bold:      u32           // Open `<b>` elements.
-    italic:    u32           // Open `<i>` elements.
-    underline: u32           // Open `<u>` elements.
-    links:     u32           // Open `<a>` elements.
-    colors:    Array'u32     // Palette slots of the open `<span>` elements.
+    bold:      u32             // Open `<b>` elements.
+    italic:    u32             // Open `<i>` elements.
+    underline: u32             // Open `<u>` elements.
+    links:     u32             // Open `<a>` elements.
+    colors:    Array!{u32}     // Palette slots of the open `<span>` elements.
 
     runStart:  u64        // Text offset where the current style took effect.
     linkStart: u64 = Swag.U64.Max     // Text offset where the outermost open link starts.
@@ -131,8 +131,10 @@ private impl MarkupReader
     {
         let end = .text.length
         defer .runStart = end
-        if not .spans or end == .runStart do
+        if not .spans or end == .runStart
+        {
             return
+        }
 
         var span: RichSpan
         span.start              = .runStart
@@ -147,8 +149,10 @@ private impl MarkupReader
             span.target    = .target
         }
 
-        if not span.style.isPlain() or .links do
+        if not span.style.isPlain() or .links
+        {
             .spans.add(span)
+        }
     }
 
     mtd openLink(target: string)
@@ -185,8 +189,11 @@ private impl MarkupReader
 
         case Utf8.startsWith(source, "</b>"):
             .flush()
-            if .bold do
+            if .bold
+            {
                 .bold -= 1
+            }
+
             return 4
 
         case Utf8.startsWith(source, "<i>"):
@@ -196,8 +203,11 @@ private impl MarkupReader
 
         case Utf8.startsWith(source, "</i>"):
             .flush()
-            if .italic do
+            if .italic
+            {
                 .italic -= 1
+            }
+
             return 4
 
         case Utf8.startsWith(source, "<u>"):
@@ -207,8 +217,11 @@ private impl MarkupReader
 
         case Utf8.startsWith(source, "</u>"):
             .flush()
-            if .underline do
+            if .underline
+            {
                 .underline -= 1
+            }
+
             return 4
 
         case Utf8.startsWith(source, "<span class=\"p1\">"):
@@ -225,8 +238,11 @@ private impl MarkupReader
 
         case Utf8.startsWith(source, "</span>"):
             .flush()
-            if not .colors.isEmpty() do
+            if not .colors.isEmpty()
+            {
                 .colors.removeBack()
+            }
+
             return 7
 
         case Utf8.startsWith(source, "<a>"):
@@ -235,19 +251,25 @@ private impl MarkupReader
 
         case Utf8.startsWith(source, HrefOpen):
             let close = Utf8.indexOf(source, HrefClose, HrefOpen.count)
-            if close == Swag.U64.Max do
+            if close == Swag.U64.Max
+            {
                 return 0
+            }
+
             .openLink(Swag.makeString(source.buffer + HrefOpen.count, close - HrefOpen.count))
             return close + HrefClose.count
 
         case Utf8.startsWith(source, "</a>"):
             .flush()
-            if .links do
+            if .links
+            {
                 .links -= 1
+            }
+
             return 4
 
         case Utf8.startsWith(source, "<br>"):
-            .text.append('\n'u8)
+            .text.append('\n'_u8)
             return 4
         }
 
@@ -261,23 +283,23 @@ private impl MarkupReader
         switch
         {
         case Utf8.startsWith(source, "&lt;"):
-            .text.append('<'u8)
+            .text.append('<'_u8)
             return 4
 
         case Utf8.startsWith(source, "&gt;"):
-            .text.append('>'u8)
+            .text.append('>'_u8)
             return 4
 
         case Utf8.startsWith(source, "&amp;"):
-            .text.append('&'u8)
+            .text.append('&'_u8)
             return 5
 
         case Utf8.startsWith(source, "&quot;"):
-            .text.append('"'u8)
+            .text.append('"'_u8)
             return 6
 
         case Utf8.startsWith(source, "&apos;"):
-            .text.append('\''u8)
+            .text.append('\''_u8)
             return 6
 
         case Utf8.startsWith(source, "&nbsp;"):
@@ -298,11 +320,15 @@ private impl MarkupReader
         {
             let source = Swag.makeSlice(scan, count)
 
-            var eaten = 0'u64
-            if scan[] == '<' do
+            var eaten = 0_u64
+            if scan[] == '<'
+            {
                 eaten = .element(source)
-            elif scan[] == '&' do
+            }
+            else if scan[] == '&'
+            {
                 eaten = .entity(source)
+            }
 
             if not eaten
             {
@@ -374,13 +400,18 @@ impl RichString
     mtd set(text: string?, style: RichStyle = {})
     {
         let value = text orelse ""
-        if style.isPlain() and .spans.isEmpty() and .text == value do
+        if style.isPlain() and .spans.isEmpty() and .text == value
+        {
             return
+        }
 
         .text = value
         .spans.clear()
-        if not style.isPlain() and value.count do
+        if not style.isPlain() and value.count
+        {
             .spans.add({start: 0, count: value.count, style: style})
+        }
+
         .dirty = true
     }
 
@@ -393,11 +424,16 @@ impl RichString
     mtd append(text: string?, style: RichStyle = {})
     {
         let value = text orelse ""
-        if not value.count do
+        if not value.count
+        {
             return
+        }
 
-        if not style.isPlain() do
+        if not style.isPlain()
+        {
             .spans.add({start: .text.length, count: value.count, style: style})
+        }
+
         .text  += value
         .dirty = true
     }
@@ -408,8 +444,10 @@ impl RichString
     // text is its own target. The link is drawn in the link colors of the format, in `style`.
     mtd appendLink(text: string, target: string? = null, style: RichStyle = {})
     {
-        if not text.count do
+        if not text.count
+        {
             return
+        }
 
         var span: RichSpan
         span.start     = .text.length
@@ -496,14 +534,19 @@ impl RichString
     // `at` is expressed in the coordinates of the last layout.
     mtd getUrlChunkAt(at: Math.Point)->*RichChunk?
     {
-        if .dirty or not .hasUrl do
+        if .dirty or not .hasUrl
+        {
             return null
+        }
+
         for &c in .chunks where c.isUrl and c.visible
         {
             var r = c.boundRect
             r.offset(c.pos)
-            if r.contains(at) do
+            if r.contains(at)
+            {
                 return c
+            }
         }
 
         return null
@@ -517,8 +560,11 @@ impl RichString
     {
         .compute()
         var result: #returntype
-        for &chunk in .chunks where chunk.isUrl and chunk.urlStart == start do
+        for &chunk in .chunks where chunk.isUrl and chunk.urlStart == start
+        {
             result += chunk.slice
+        }
+
         return result
     }
 
@@ -528,16 +574,21 @@ impl RichString
     // offset returns empty.
     mtd urlTarget(start: u64)->String
     {
-        for &span in .spans where span.linkStart == start and not span.target.isEmpty() do
+        for &span in .spans where span.linkStart == start and not span.target.isEmpty()
+        {
             return span.target
+        }
+
         return .urlText(start)
     }
 
     // Adds the chunk covering the text bytes from `first` up to `last`, styled by `span`.
     private mtd addChunk(first, last: u64, span: const *RichSpan?, space: bool = false, eol: bool = false)
     {
-        if last == first do
+        if last == first
+        {
             return
+        }
 
         var chunk: RichChunk
         chunk.isSpace = space
@@ -552,16 +603,25 @@ impl RichString
             chunk.under    = span.style.underline
 
             chunk.hasFontStyle = span.style.bold or span.style.italic
-            if span.style.bold and span.style.italic do
+            if span.style.bold and span.style.italic
+            {
                 chunk.fontStyle = .BoldItalic
-            elif span.style.bold do
+            }
+            else if span.style.bold
+            {
                 chunk.fontStyle = .Bold
-            elif span.style.italic do
+            }
+            else if span.style.italic
+            {
                 chunk.fontStyle = .Italic
+            }
         }
 
-        if chunk.isUrl do
+        if chunk.isUrl
+        {
             .hasUrl = true
+        }
+
         .chunks.add(chunk)
     }
 
@@ -572,8 +632,10 @@ impl RichString
     // layout is discarded with them.
     mtd compute(force = false)
     {
-        if not .dirty and not force do
+        if not .dirty and not force
+        {
             return
+        }
 
         .dirty  = false
         .hasUrl = false
@@ -581,16 +643,18 @@ impl RichString
         .layoutRect.clear()
 
         let length     = .text.length
-        var index      = 0'u64
-        var chunkStart = 0'u64
-        var spanIndex  = 0'u64
+        var index      = 0_u64
+        var chunkStart = 0_u64
+        var spanIndex  = 0_u64
 
         while index < length
         {
             // The text up to `regionEnd` shares one style: that of the range covering `index`, or
             // the plain style up to the next range.
-            while spanIndex < .spans.count and .spans[spanIndex].start + .spans[spanIndex].count <= index do
+            while spanIndex < .spans.count and .spans[spanIndex].start + .spans[spanIndex].count <= index
+            {
                 spanIndex += 1
+            }
 
             var span: const *RichSpan?
             var regionEnd = length
@@ -622,8 +686,10 @@ impl RichString
                     .addChunk(chunkStart, index, span)
                     chunkStart = index
                     index      += eat
-                    if c == '\r' and index < length and .text[index] == '\n' do
+                    if c == '\r' and index < length and .text[index] == '\n'
+                    {
                         index += 1
+                    }
 
                     .addChunk(chunkStart, index, span, eol: true)
                     chunkStart = index

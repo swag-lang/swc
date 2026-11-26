@@ -5,14 +5,16 @@ using Core, Core.Errors, Pixel
 // Validates dimensions before a native source or image storage is allocated.
 internal func validateSourceOptions(options: SourceOptions) fail
 {
-    if options.width <= 0 or options.height <= 0 or options.width > 0x7FFFFFFF's32 / 4 do
+    if options.width <= 0 or options.height <= 0 or options.width > 0x7FFFFFFF_s32 / 4
+    {
         fail BadParameterError{"screen source needs positive dimensions"}
+    }
 }
 
 // Converts QPC ticks to the microsecond units used by Core.Time.
 internal func qpcTicksToMicroseconds(ticks, frequency: u64)->u64
 {
-    let divisor   = Math.max(1'u64, frequency)
+    let divisor   = Math.max(1_u64, frequency)
     let seconds   = ticks / divisor
     let remainder = ticks % divisor
     let scaled    = seconds * 1_000_000 + (remainder * 1_000_000) / divisor
@@ -21,8 +23,11 @@ internal func qpcTicksToMicroseconds(ticks, frequency: u64)->u64
 
 internal func frameAgeAt(now, capturedAt: u64)->u64
 {
-    if not capturedAt do
+    if not capturedAt
+    {
         return 0
+    }
+
     return now - capturedAt
 }
 
@@ -35,7 +40,7 @@ internal func copyFrameBytes(destination: [*] u8, source: const [*] u8, byteCoun
         return
     }
 
-    let chunkSize  = 1_048_576'u64
+    let chunkSize  = 1_048_576_u64
     let chunkCount = (byteCount + chunkSize - 1) / chunkSize
     parallel for |destination, source, byteCount, chunkSize| chunk in chunkCount
     {
@@ -68,14 +73,19 @@ internal func copyCachedFrameIfNeeded(target: *Image,
                                       copyRequested: bool)->bool
 {
     let reusable = targetMatchesImage(target, width, height, imageAddress, storageAddress, ready)
-    if not copyRequested and reusable do
+    if not copyRequested and reusable
+    {
         return false
+    }
 
     if not target.isValid() or
        target.width != width or
        target.height != height or
-       target.pixelFormat != .BGRA8 do
+       target.pixelFormat != .BGRA8
+    {
         target[] = Image.create(width, height, .BGRA8)
+    }
+
     copyFrameBytes(target.pixels.storage(), sourcePixels, target.byteCount)
     return true
 }
@@ -124,8 +134,8 @@ struct Source
     internal
     {
         options:                   SourceOptions
-        sources:                   Array'(*NativeSource)
-        pictures:                  Array'Image
+        sources:                   Array!{*NativeSource}
+        pictures:                  Array!{Image}
         composed:                  Image
         composeMicroseconds:       u64
         lastFrameCaptureTime:      u64
@@ -140,7 +150,7 @@ struct Source
             cursorBitmap:                              Win32.HBITMAP
             cursorOldBitmap:                           Gdi32.HGDIOBJ
             cursorPixels:                              *void?
-            cursorRenderedPixels:                      Array'u8
+            cursorRenderedPixels:                      Array!{u8}
             cursorRenderedLeft, cursorRenderedTop:     s32
             cursorRenderedRight, cursorRenderedBottom: s32
             cursorTargetImage:                         u64
@@ -184,8 +194,11 @@ impl Source
                 let top        = Math.max(cast(s64, options.y), cast(s64, bounds.y))
                 let partRight  = Math.min(right, cast(s64, bounds.right()))
                 let partBottom = Math.min(bottom, cast(s64, bounds.bottom()))
-                if partRight <= left or partBottom <= top do
+                if partRight <= left or partBottom <= top
+                {
                     continue
+                }
+
                 let part = SourceOptions{cast(s32, left), cast(s32, top),
                                          cast(s32, partRight - left), cast(s32, partBottom - top),
                                          options.includeCursor}
@@ -193,8 +206,10 @@ impl Source
                 covered += cast(u64, part.width) * cast(u64, part.height)
             }
 
-            if covered == 0 do
+            if covered == 0
+            {
                 fail UnsupportedFormatError{"screen capture area has no available display"}
+            }
         }
         else
         {
@@ -220,8 +235,11 @@ impl Source
     func openMonitor(monitorIndex: u64, includeCursor: bool = false)->Source fail
     {
         let monitors = Env.getMonitors()
-        if monitorIndex >= monitors.count do
+        if monitorIndex >= monitors.count
+        {
             fail BadParameterError{"screen monitor index is unavailable"}
+        }
+
         return try .openMonitor(monitors[monitorIndex], includeCursor)
     }
 
@@ -244,8 +262,11 @@ impl Source
     func openMonitorAt(point: Math.Point, includeCursor: bool = false)->Source fail
     {
         let monitor = Env.monitorForPoint(point)
-        if monitor.physicalBounds.width <= 0 or monitor.physicalBounds.height <= 0 do
+        if monitor.physicalBounds.width <= 0 or monitor.physicalBounds.height <= 0
+        {
             fail UnsupportedFormatError{"screen monitors are unavailable"}
+        }
+
         return try .openMonitor(monitor, includeCursor)
     }
 
@@ -256,8 +277,11 @@ impl Source
     func openDesktop(includeCursor: bool = false)->Source fail
     {
         let monitors = Env.getMonitors()
-        if monitors.isEmpty() do
+        if monitors.isEmpty()
+        {
             fail UnsupportedFormatError{"screen virtual desktop is unavailable"}
+        }
+
         var left   = monitors[0].physicalBounds.x
         var top    = monitors[0].physicalBounds.y
         var right  = monitors[0].physicalBounds.right()
@@ -277,7 +301,7 @@ impl Source
 
     private mtd addPart(options: SourceOptions) fail
     {
-        let native = Memory.new'NativeSource()
+        let native = Memory.new!{NativeSource}()
         catch
         {
             #static if #os == Swag.TargetOs.Windows
@@ -285,8 +309,10 @@ impl Source
                 native[] = try NativeSource.open(options,
                                                  .sources.count ? .sources[0] : null)
             }
-            else do
+            else
+            {
                 native[] = try NativeSource.open(options)
+            }
         }
         {
             Memory.delete(native)
@@ -371,8 +397,11 @@ impl Source
                         }
                     }
 
-                    if frameFresh do
+                    if frameFresh
+                    {
                         .lastFrameCaptureTime = Time.monotonicMicroseconds()
+                    }
+
                     return frameFresh
                 }
             }
@@ -420,8 +449,11 @@ impl Source
                                         nativeSource.options.height)
                 let changed = try nativeSource.grabInto(&.pictures[index], true)
                 fresh = changed or fresh
-                if not first and not changed do
+                if not first and not changed
+                {
                     continue
+                }
+
                 let part             = &.pictures[index]
                 let rowBytes         = cast(u64, part.width) * 4
                 let partComposeStart = Time.monotonicMicroseconds()
@@ -454,8 +486,11 @@ impl Source
                 if target.width != .options.width or
                    target.height != .options.height or
                    target.pixelFormat != .BGRA8 or
-                   not target.isValid() do
+                   not target.isValid()
+                {
                     target[] = Image.create(.options.width, .options.height, .BGRA8)
+                }
+
                 let outputStart  = Time.monotonicMicroseconds()
                 let cursorCopied = copyCachedFrameIfNeeded(target,
                                                            cast(const [*]u8, unwrap .cursorPixels),
@@ -473,8 +508,11 @@ impl Source
                     .cursorTargetReady   = true
                 }
 
-                if outputFresh do
+                if outputFresh
+                {
                     .lastFrameCaptureTime = Time.monotonicMicroseconds()
+                }
+
                 return outputFresh
             }
         }
@@ -482,16 +520,22 @@ impl Source
         if mirroring
         {
             .mirrorReady = true
-            if fresh do
+            if fresh
+            {
                 .lastFrameCaptureTime = Time.monotonicMicroseconds()
+            }
+
             return fresh
         }
 
         if target.width != .options.width or
            target.height != .options.height or
            target.pixelFormat != .BGRA8 or
-           not target.isValid() do
+           not target.isValid()
+        {
             target[] = Image.create(.options.width, .options.height, .BGRA8)
+        }
+
         let composeStart = Time.monotonicMicroseconds()
         var targetImageAddress:   u64  = 0
         var targetStorageAddress: u64  = 0
@@ -534,8 +578,11 @@ impl Source
             .mirrorReady     = true
         }
 
-        if fresh do
+        if fresh
+        {
             .lastFrameCaptureTime = Time.monotonicMicroseconds()
+        }
+
         return fresh
     }
 
@@ -597,8 +644,10 @@ impl Source
     {
         .composeMicroseconds = 0
         .mirroredPixels      = 0
-        for source in .sources do
+        for source in .sources
+        {
             source.metrics = SourceMetrics{}
+        }
     }
 
     // Returns the physical desktop rectangle and cursor policy selected when this source was opened.
@@ -609,19 +658,25 @@ impl Source
     {
         #static if #os == Swag.TargetOs.Windows
         {
-            for index in .sources.count do
+            for index in .sources.count
+            {
                 try .sources[index].reopen(index ? .sources[0] : null)
+            }
         }
         else
         {
-            for source in .sources do
+            for source in .sources
+            {
                 try source[].reopen()
+            }
         }
 
         #static if #os == Swag.TargetOs.Linux
         {
-            for index in .pictures.count do
+            for index in .pictures.count
+            {
                 .pictures[index] = {}
+            }
         }
 
         #static if #os == Swag.TargetOs.Windows
@@ -642,7 +697,9 @@ impl Source
             .closeCursorOverlay()
         }
 
-        for source in .sources do
+        for source in .sources
+        {
             Memory.delete(source)
+        }
     }
 }

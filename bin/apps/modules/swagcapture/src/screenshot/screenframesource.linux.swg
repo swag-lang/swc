@@ -21,10 +21,13 @@ impl ScreenFrameSource
 {
     func create(drawCursor: bool, x, y, width, height: s32)->ScreenFrameSource fail
     {
-        if width <= 0 or height <= 0 or width > 0x7FFFFFFF's32 / 4 do
+        if width <= 0 or height <= 0 or width > 0x7FFFFFFF_s32 / 4
+        {
             fail BadParameterError{"screen frame source needs positive image dimensions"}
+        }
+
         var result: #returntype
-        result.source     = Memory.new'Screen.Source()
+        result.source     = Memory.new!{Screen.Source}()
         result.source[]   = try Screen.Source.open({x, y, width, height, drawCursor})
         result.x          = x
         result.y          = y
@@ -38,7 +41,7 @@ impl ScreenFrameSource
 
     private mtd replaceSource() fail
     {
-        let replacement = Memory.new'Screen.Source()
+        let replacement = Memory.new!{Screen.Source}()
         catch
         {
             replacement[] = try Screen.Source.open({.x, .y, .width, .height, .drawCursor})

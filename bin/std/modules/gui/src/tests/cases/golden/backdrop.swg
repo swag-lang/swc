@@ -7,9 +7,9 @@ using Core, Pixel
 func backdropMaterialSheet(light: bool)->Image
 {
     var sheet = Image.create(1140, 780, .BGRA8)
-    for tint, row in [0.08'f32, 0.14, 0.20]
+    for tint, row in [0.08_f32, 0.14, 0.20]
     {
-        for radius, column in [2.0'f32, 3.5, 4.0]
+        for radius, column in [2.0_f32, 3.5, 4.0]
         {
             var host: Testing.HeadlessHost
             let lens = backdropLens(&host, light, 0.5)

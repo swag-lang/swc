@@ -21,7 +21,7 @@ impl ValueOrPtr
 
 func semaTest001()
 {
-    var boxed = ValueOrPtr's32{value: 10}
+    var boxed = ValueOrPtr!{s32}{value: 10}
     Swag.assert(boxed.sameType(12))
-    Swag.assert(boxed.pair'bool(true))
+    Swag.assert(boxed.pair!{bool}(true))
 }

@@ -9,7 +9,7 @@ using Core, Pixel, Pdf
 #test
 {
     const fixtures: [4] string = ["llvm-polly-impact-2011-slides.pdf", "llvm-polly-kernelgen-ncar-2012-slides.pdf", "pdfbox-form-xobject.pdf", "pdfbox-jpeg-rgb.pdf"]
-    var indexed = 0'u64
+    var indexed = 0_u64
     for name in fixtures
     {
         let path   = guiTestDataPath(name)
@@ -21,8 +21,10 @@ using Core, Pixel, Pdf
             let index = TextIndex.build(&page)
             let text  = expect reader.loadPageText(pageIndex)
             Swag.require(text == index.text)
-            if not text.isEmpty() do
+            if not text.isEmpty()
+            {
                 indexed += 1
+            }
         }
     }
 

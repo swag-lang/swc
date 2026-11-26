@@ -19,7 +19,7 @@ func clampUnsigned(a, b, c: u64)->u64 => a > 100 ? 100 : a
 func clampSigned(a, b, c: s64)->s64 => a < -10 ? -10 : a > 10 ? 10 : a
 
 #[Swag.NoInline, Swag.Safety(.Overflow, false)]
-func absSigned(a, b, c: s64)->u64 => a < 0 ? 0'u64 - (cast #bit (u64) a) : cast(u64) a
+func absSigned(a, b, c: s64)->u64 => a < 0 ? 0_u64 - (cast #bit (u64) a) : cast(u64) a
 
 #[Swag.NoInline, Swag.Safety(.Overflow, false)]
 func zeroSelect(a, b, c: u64)->u64 => a == 0 ? b : c
@@ -31,16 +31,16 @@ func bitSelect(a, b, c: u64)->u64 => (a & 1) != 0 ? b : c
 func bitTimesValue(a, b, c: u64)->u64 => (a & 1) * b
 
 #[Swag.NoInline, Swag.Safety(.Overflow, false)]
-func addIfZero(a, b, c: u64)->u64 => a + (b == 0 ? 1'u64 : 0)
+func addIfZero(a, b, c: u64)->u64 => a + (b == 0 ? 1_u64 : 0)
 
 #[Swag.NoInline, Swag.Safety(.Overflow, false)]
-func addIfNotZero(a, b, c: u64)->u64 => a + (b != 0 ? 1'u64 : 0)
+func addIfNotZero(a, b, c: u64)->u64 => a + (b != 0 ? 1_u64 : 0)
 
 #[Swag.NoInline, Swag.Safety(.Overflow, false)]
-func subtractIfBelow(a, b, c: u64)->u64 => a - (b < c ? 1'u64 : 0)
+func subtractIfBelow(a, b, c: u64)->u64 => a - (b < c ? 1_u64 : 0)
 
 #[Swag.NoInline, Swag.Safety(.Overflow, false)]
-func addIfAboveEqual(a, b, c: u64)->u64 => a + (b >= c ? 1'u64 : 0)
+func addIfAboveEqual(a, b, c: u64)->u64 => a + (b >= c ? 1_u64 : 0)
 
 #[Swag.NoInline, Swag.Safety(.Overflow, false)]
 func equalMask(a, b, c: u64)->u64 => a == 0 ? 0xFFFFFFFFFFFFFFFF : 0

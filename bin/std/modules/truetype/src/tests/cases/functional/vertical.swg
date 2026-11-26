@@ -17,30 +17,32 @@ const VerticalLongMetricsFixture: [8] u8 = [
     0x03, 0xE8, 0x00, 0x64,
     0x03, 0x84, 0x00, 0xC8]
 
-func writeTestU16(bytes: *Array'u8, offset: u64, value: u16)
+func writeTestU16(bytes: *Array!{u8}, offset: u64, value: u16)
 {
     bytes[offset]     = cast(u8, value >> 8)
     bytes[offset + 1] = cast(u8, value & 0xFF)
 }
 
-func findTestTableRecord(bytes: *Array'u8, tag: u32)->u64
+func findTestTableRecord(bytes: *Array!{u8}, tag: u32)->u64
 {
     for index in readBigU16(bytes, 4)
     {
-        let record = 12'u64 + cast(u64, index) * 16
-        if readBigU32(bytes, record) == tag do
+        let record = 12_u64 + cast(u64, index) * 16
+        if readBigU32(bytes, record) == tag
+        {
             return record
+        }
     }
 
     Swag.require(false, "font fixture must contain the requested table")
     return 0
 }
 
-func buildVerticalFont()->Array'u8
+func buildVerticalFont()->Array!{u8}
 {
     var source       = loadFontBytes("arial.ttf")
     let tableCount   = readBigU16(&source, 4)
-    let directoryEnd = 12'u64 + cast(u64, tableCount) * 16
+    let directoryEnd = 12_u64 + cast(u64, tableCount) * 16
 
     var result: #returntype
     result.add(Swag.makeSlice(source.buffer, directoryEnd))
@@ -50,25 +52,28 @@ func buildVerticalFont()->Array'u8
 
     for index in tableCount
     {
-        let record = 12'u64 + cast(u64, index) * 16
+        let record = 12_u64 + cast(u64, index) * 16
         writeBigU32(&result, record + 8, readBigU32(&result, record + 8) + 32)
     }
 
-    result.resize((result.count + 3) & ~3'u64)
+    result.resize((result.count + 3) & ~3_u64)
     let vheaOffset = cast(u32, result.count)
     result.add(VerticalHeaderFixture)
-    result.resize((result.count + 3) & ~3'u64)
+    result.resize((result.count + 3) & ~3_u64)
     let vmtxOffset = cast(u32, result.count)
 
-    var verticalMetrics: Array'u8
+    var verticalMetrics: Array!{u8}
     verticalMetrics.add(VerticalLongMetricsFixture)
     let maxpRecord = findTestTableRecord(&result, TAG_MAXP)
     let glyphCount = readBigU16(&result, readBigU32(&result, maxpRecord + 8) + 4)
     for glyphIndex in glyphCount
     {
-        if glyphIndex < 2 do
+        if glyphIndex < 2
+        {
             continue
-        let topSideBearing = glyphIndex == 3 ? 400'u16 : 300'u16
+        }
+
+        let topSideBearing = glyphIndex == 3 ? 400_u16 : 300_u16
         verticalMetrics.add(cast(u8, topSideBearing >> 8))
         verticalMetrics.add(cast(u8, topSideBearing & 0xFF))
     }

@@ -10,16 +10,16 @@ private
     const KeyboardWidth = 72.0
     const ContentInset  = 24.0
     const QuarterWidth  = 64.0
-    const MinZoom       = 0.01'f32
-    const MaxZoom       = 16.0'f32
-    const MinPitchZoom  = 0.5'f32
-    const MaxPitchZoom  = 8.0'f32
+    const MinZoom       = 0.01_f32
+    const MaxZoom       = 16.0_f32
+    const MinPitchZoom  = 0.5_f32
+    const MaxPitchZoom  = 8.0_f32
 
     // A key or lens step scales the timeline or the pitch by a quarter and a wheel notch by an
     // eighth, as the picture and PDF views scale their canvas, so the same gesture moves every canvas
     // viewer alike.
-    const ZoomStep      = 1.25'f32
-    const WheelZoomStep = 1.12'f32
+    const ZoomStep      = 1.25_f32
+    const WheelZoomStep = 1.12_f32
 
     // The measures of the tracks presentation, after `scope.midi`.
     const LaneColumn  = 208.0     // Width of the column the names of the tracks stand in.
@@ -28,7 +28,7 @@ private
     const PlotBottom  = 168.0     // Room kept under the lanes for the transport and the readings.
     const LanePadding = 12.0      // Air at the top and the bottom of a lane.
     const NoteHeight  = 7.0       // Height of the rule of a note.
-    const BarStride   = 4'u64     // Bars between two numbered bar lines.
+    const BarStride   = 4_u64     // Bars between two numbered bar lines.
     const DotSize     = 8.0       // Diameter of the dot of a track.
 }
 
@@ -66,8 +66,8 @@ struct RollView
 
     document:       Document
     mode:           RollMode = .Pitches
-    lanes:          Array'RollLane
-    laneOfTrack:    Array'u32     // Index in `lanes` of each track, or `Swag.U32.Max` for a track with no notes.
+    lanes:          Array!{RollLane}
+    laneOfTrack:    Array!{u32}     // Index in `lanes` of each track, or `Swag.U32.Max` for a track with no notes.
     selectedTrack:  u32      = Swag.U32.Max
     zoom:           f32      = 1
     pitchZoom:      f32      = 1
@@ -82,7 +82,7 @@ struct RollView
     beatTicks:      u64
     pixelsPerTick:  f32
     timelineWidth:  f32
-    sigZoomChanged: SigArray'func||(*Wnd)
+    sigZoomChanged: SigArray!{func||(*Wnd)}
 }
 
 // Names a key in scientific pitch notation, where middle C, key 60, is C4.
@@ -128,7 +128,7 @@ func instrumentName(program: u8)->string
 // map in any sequencer spells them.
 func percussionName(key: u8)->string
 {
-    const FirstKey = 35'u8
+    const FirstKey = 35_u8
     const Names: [47] string = [
         "Acoustic Bass Drum", "Bass Drum 1", "Side Stick", "Acoustic Snare", "Hand Clap",
         "Electric Snare", "Low Floor Tom", "Closed Hi-Hat", "High Floor Tom", "Pedal Hi-Hat",
@@ -138,8 +138,11 @@ func percussionName(key: u8)->string
         "Open Hi Conga", "Low Conga", "High Timbale", "Low Timbale", "High Agogo", "Low Agogo",
         "Cabasa", "Maracas", "Short Whistle", "Long Whistle", "Short Guiro", "Long Guiro", "Claves",
         "Hi Wood Block", "Low Wood Block", "Mute Cuica", "Open Cuica", "Mute Triangle", "Open Triangle"]
-    if key < FirstKey or key >= FirstKey + Names.count do
+    if key < FirstKey or key >= FirstKey + Names.count
+    {
         return ""
+    }
+
     return Names[key - FirstKey]
 }
 
@@ -153,15 +156,20 @@ private func isBlackKey(key: u8)->bool
 // and pitch classes; the event's mode remains available to the information sheet.
 private func keyPitchMask(key: const *KeySignature)->u16
 {
-    if key.sharps < -7 or key.sharps > 7 do
+    if key.sharps < -7 or key.sharps > 7
+    {
         return 0
+    }
 
     const Tonics: [15] u8 = [11, 6, 1, 8, 3, 10, 5, 0, 7, 2, 9, 4, 11, 6, 1]
     const Steps:  [7] u8  = [0, 2, 4, 5, 7, 9, 11]
     let tonic  = Tonics[cast(u32, key.sharps + 7)]
-    var result = 0'u16
-    for step in Steps do
-        result |= 1'u16 << ((tonic + step) % 12)
+    var result = 0_u16
+    for step in Steps
+    {
+        result |= 1_u16 << ((tonic + step) % 12)
+    }
+
     return result
 }
 
@@ -175,10 +183,16 @@ impl RollView
 {
     mtd selectedNoteCount()->u64
     {
-        if .selectedTrack == Swag.U32.Max do
+        if .selectedTrack == Swag.U32.Max
+        {
             return .document.notes.count
-        if .selectedTrack >= .document.tracks.count do
+        }
+
+        if .selectedTrack >= .document.tracks.count
+        {
             return 0
+        }
+
         return .document.tracks[.selectedTrack].noteCount
     }
 
@@ -189,19 +203,26 @@ impl RollView
     // Returns the signature active at `tick`, or zero when none declares a supported key.
     mtd keyPitchMaskAt(tick: u64)->u16
     {
-        var first = 0'u64
+        var first = 0_u64
         var last  = .document.keySignatures.count
         while first < last
         {
             let middle = first + (last - first) / 2
-            if .document.keySignatures[middle].tick <= tick do
+            if .document.keySignatures[middle].tick <= tick
+            {
                 first = middle + 1
-            else do
+            }
+            else
+            {
                 last = middle
+            }
         }
 
-        if not first do
+        if not first
+        {
             return 0
+        }
+
         return keyPitchMask(&.document.keySignatures[first - 1])
     }
 
@@ -209,12 +230,15 @@ impl RollView
     // the note rows change tint at each signature event.
     mtd scaleHighlightMaskAt(tick: u64)->u16
     {
-        if not .scaleHighlight or .mode != .Pitches or .showsPercussion() do
+        if not .scaleHighlight or .mode != .Pitches or .showsPercussion()
+        {
             return 0
+        }
+
         return .keyPitchMaskAt(tick)
     }
 
-    mtd pitchIsHighlighted(tick: u64, key: u8)->bool => cast(bool, .scaleHighlightMaskAt(tick) & (1'u16 << (key % 12)))
+    mtd pitchIsHighlighted(tick: u64, key: u8)->bool => cast(bool, .scaleHighlightMaskAt(tick) & (1_u16 << (key % 12)))
 
     mtd setScaleHighlight(enabled: bool)
     {
@@ -224,8 +248,11 @@ impl RollView
 
     mtd visibleFirstTick(plotLeft: f32)->u64
     {
-        if not .pixelsPerTick do
+        if not .pixelsPerTick
+        {
             return 0
+        }
+
         return cast(u64, Math.max(Math.floor(Math.max(.scrollPos.x - plotLeft, 0) / .pixelsPerTick), 0))
     }
 
@@ -250,22 +277,29 @@ impl RollView
     // much as its loading did.
     mtd collectLanes()
     {
-        var ranges: Array'RollLane
+        var ranges: Array!{RollLane}
         ranges.resize(.document.tracks.count)
-        for &range, index in ranges do
+        for &range, index in ranges
+        {
             range.track = cast(u32, index)
+        }
 
         // A range still empty has its low key above its high one.
         for note in .document.notes where note.track < ranges.count
         {
             let range = &ranges[note.track]
-            if range.lowKey > range.highKey do
+            if range.lowKey > range.highKey
+            {
                 range.channel = note.channel
+            }
+
             range.lowKey    = Math.min(range.lowKey, note.key)
             range.highKey   = Math.max(range.highKey, note.key)
             range.noteCount += 1
-            if note.isHit() do
+            if note.isHit()
+            {
                 range.hitCount += 1
+            }
         }
 
         .lanes.clear()
@@ -287,8 +321,8 @@ impl RollView
     // Returns the ticks of one bar, from the first time signature.
     mtd barTicks()->u64
     {
-        var numerator   = 4'u64
-        var denominator = 4'u64
+        var numerator   = 4_u64
+        var denominator = 4_u64
         if not .document.timeSignatures.isEmpty()
         {
             numerator   = Math.max(cast(u64, .document.timeSignatures[0].numerator), 1)
@@ -332,7 +366,7 @@ impl RollView
         if .document.division & 0x8000
         {
             let encoded = cast(u8, .document.division >> 8)
-            .beatTicks = cast(u64, 256'u32 - encoded) * cast(u64, .document.division & 0xFF)
+            .beatTicks = cast(u64, 256_u32 - encoded) * cast(u64, .document.division & 0xFF)
         }
         else
         {
@@ -343,16 +377,24 @@ impl RollView
 
         let viewport = Math.max(client.width - .plotLeft() - ContentInset, 1)
         let natural  = Math.max(cast(f32, .document.durationTicks) / cast(f32, .beatTicks) * QuarterWidth, 1)
-        if .fit do
+        if .fit
+        {
             .zoom = Math.clamp(viewport / natural, MinZoom, 1)
+        }
+
         .timelineWidth = Math.max(viewport, natural * .zoom)
         .pixelsPerTick = .timelineWidth / cast(f32, Math.max(.document.durationTicks, 1))
 
         // The lanes share the height of the view, so only the time scrolls.
-        if .mode == .Tracks do
+        if .mode == .Tracks
+        {
             .scroll.setScrollSize(.plotLeft() + ContentInset + .timelineWidth, 0)
-        else do
+        }
+        else
+        {
             .scroll.setScrollSize(.plotLeft() + ContentInset + .timelineWidth, .plotTop + cast(f32, .keyCount()) * .rowHeight + ContentInset)
+        }
+
         .invalidate()
         .sigZoomChanged.call(me)
     }
@@ -377,8 +419,11 @@ impl RollView
 
     mtd pitchLabel(key: u8)->String
     {
-        if .pitchLabelMode == .MidiNumber do
+        if .pitchLabelMode == .MidiNumber
+        {
             return Format.toString("%", key)
+        }
+
         return pitchName(key)
     }
 
@@ -408,8 +453,10 @@ impl RollView
     // fitted at the smallest zoom would stop following the window.
     mtd stepZoom(target: f32)
     {
-        if target > .zoom ? .canZoomIn() : .canZoomOut() do
+        if target > .zoom ? .canZoomIn() : .canZoomOut()
+        {
             .applyZoom(target)
+        }
     }
 
     mtd zoomIn()  => .stepZoom(.zoom * ZoomStep)
@@ -474,15 +521,18 @@ impl RollView
         // Every fourth bar is numbered and drawn across the lanes; the first stands at the edge.
         let barTicks = .barTicks()
         let axisY    = .scroll.stripInset() + AxisTop
-        var bar      = 0'u64
+        var bar      = 0_u64
         while bar * barTicks <= .document.durationTicks
         {
             let x     = left + cast(f32, bar * barTicks) * .pixelsPerTick
             let label = Format.toString("%", bar + 1)
             let width = Painter.measureString(label, mono).width
             painter.drawString(bar ? x - width * 0.5 : x, mono.opticalLineTop(axisY), label, mono, colors.faintText)
-            if bar do
+            if bar
+            {
                 painter.fillRect(Math.Rectangle{painter.snapToDeviceX(x), top, painter.hairline(1), bottom - top}, colors.line)
+            }
+
             bar += BarStride
         }
 
@@ -494,14 +544,22 @@ impl RollView
         for noteIndex in .firstNoteReaching(left, leftEdge, NoteHeight) until .document.notes.count
         {
             let note = &.document.notes[noteIndex]
-            if note.track >= .laneOfTrack.count do
+            if note.track >= .laneOfTrack.count
+            {
                 continue
+            }
+
             let x = left + cast(f32, note.startTick) * .pixelsPerTick
-            if x > right do
+            if x > right
+            {
                 break
+            }
+
             let width = note.isHit() ? NoteHeight : Math.max(cast(f32, note.endTick - note.startTick) * .pixelsPerTick, 2)
-            if x + width < leftEdge do
+            if x + width < leftEdge
+            {
                 continue
+            }
 
             let index  = cast(u64, .laneOfTrack[note.track])
             let lane   = &.lanes[index]
@@ -509,8 +567,11 @@ impl RollView
             let range  = Math.max(cast(f32, lane.highKey - lane.lowKey), 1)
             let spread = Math.max(band.height - 2 * LanePadding - NoteHeight, 0)
             var color  = colors.series[index % colors.series.count]
-            if .selectedTrack != Swag.U32.Max and .selectedTrack != lane.track do
+            if .selectedTrack != Swag.U32.Max and .selectedTrack != lane.track
+            {
                 color = Color.lerp(colors.ground, color, 0.35)
+            }
+
             let y = band.y + LanePadding + (cast(f32, lane.highKey - note.key) / range) * spread
             painter.fillRoundRect(Math.Rectangle{x, y, width, NoteHeight}, NoteHeight * 0.5, NoteHeight * 0.5, color)
         }
@@ -525,8 +586,10 @@ impl RollView
             let x     = .scrollPos.x + ContentInset + 20
             let muted = .selectedTrack != Swag.U32.Max and .selectedTrack != lane.track
             var color = colors.series[index % colors.series.count]
-            if muted do
+            if muted
+            {
                 color = Color.lerp(colors.ground, color, 0.35)
+            }
 
             let nameY = band.y + LanePadding + nameFont.height * 0.5
             painter.fillCircle(x, nameY, DotSize * 0.5, color)
@@ -551,8 +614,10 @@ impl RollView
         {
             let key = .keyAtRow(row)
             let y   = .plotTop + cast(f32, row) * .rowHeight
-            if isBlackKey(key) do
+            if isBlackKey(key)
+            {
                 painter.fillRect(plotLeft, y, .timelineWidth, .rowHeight, colors.edit_Bk)
+            }
         }
 
         .paintScaleBands(painter, plotLeft, plotRight)
@@ -572,33 +637,46 @@ impl RollView
     // long score does not need a precomputed per-tick scale map.
     mtd paintScaleBands(painter: *Painter, plotLeft, plotRight: f32)
     {
-        if not .scaleHighlight or .mode != .Pitches or .showsPercussion() do
+        if not .scaleHighlight or .mode != .Pitches or .showsPercussion()
+        {
             return
-        if not .pixelsPerTick or not .document.keySignatures.count do
+        }
+
+        if not .pixelsPerTick or not .document.keySignatures.count
+        {
             return
+        }
 
         let visibleLeft  = Math.max(plotLeft, .scrollPos.x)
         let visibleRight = Math.min(plotRight, .scrollPos.x + .clientRect().width)
-        if visibleRight <= visibleLeft do
+        if visibleRight <= visibleLeft
+        {
             return
+        }
 
         let firstTick = .visibleFirstTick(plotLeft)
         let lastTick  = cast(u64, Math.min(Math.ceil((visibleRight - plotLeft) / .pixelsPerTick), cast(f64, .document.durationTicks)))
-        if lastTick <= firstTick do
+        if lastTick <= firstTick
+        {
             return
+        }
 
-        var signatureAt = 0'u64
+        var signatureAt = 0_u64
         var after       = .document.keySignatures.count
         while signatureAt < after
         {
             let middle = signatureAt + (after - signatureAt) / 2
-            if .document.keySignatures[middle].tick <= firstTick do
+            if .document.keySignatures[middle].tick <= firstTick
+            {
                 signatureAt = middle + 1
-            else do
+            }
+            else
+            {
                 after = middle
+            }
         }
 
-        var mask = signatureAt ? keyPitchMask(&.document.keySignatures[signatureAt - 1]) : 0'u16
+        var mask = signatureAt ? keyPitchMask(&.document.keySignatures[signatureAt - 1]) : 0_u16
         var tick = firstTick
         while tick < lastTick
         {
@@ -625,15 +703,20 @@ impl RollView
 
     mtd paintScaleMask(painter: *Painter, mask: u16, left, width: f32)
     {
-        if mask == 0 or width <= 0 do
+        if mask == 0 or width <= 0
+        {
             return
+        }
 
         let colors = .themeColors()
         for row in .keyCount()
         {
             let key = .keyAtRow(row)
-            if mask & (1'u16 << (key % 12)) == 0 do
+            if mask & (1_u16 << (key % 12)) == 0
+            {
                 continue
+            }
+
             let y    = .plotTop + cast(f32, row) * .rowHeight
             let base = isBlackKey(key) ? colors.edit_Bk : colors.view_Bk
             painter.fillRect(Math.Rectangle{left, y, width, .rowHeight}, Color.lerp(base, colors.highlight, 0.35))
@@ -647,9 +730,12 @@ impl RollView
         let colors    = .themeColors()
         let plotLeft  = .keyboardWidth + ContentInset
         let beatWidth = .pixelsPerTick * cast(f32, .beatTicks)
-        var stride    = 1'u64
-        while beatWidth * cast(f32, stride) < 72 do
+        var stride    = 1_u64
+        while beatWidth * cast(f32, stride) < 72
+        {
             stride *= 2
+        }
+
         let firstVisible = cast(u64, Math.max(Math.floor(Math.max(.scrollPos.x - plotLeft, 0) / beatWidth), 0))
         var beat         = firstVisible / stride * stride
         let lastBeat     = cast(u64, Math.ceil((.scrollPos.x + .clientRect().width - plotLeft) / beatWidth)) + stride
@@ -658,8 +744,11 @@ impl RollView
         {
             let x = plotLeft + cast(f32, beat * .beatTicks) * .pixelsPerTick
             painter.drawLine(x, top, x, bottom, colors.line, 1)
-            if numbered do
+            if numbered
+            {
                 painter.drawString(x + 5, top + 6, Format.toString("%", beat + 1), .codeFont, colors.label_TextFaint)
+            }
+
             beat += stride
         }
     }
@@ -683,15 +772,19 @@ impl RollView
     mtd firstNoteReaching(left, edge, hitWidth: f32)->u64
     {
         let widest = Math.max(cast(f32, .document.longestNote) * .pixelsPerTick, 2, hitWidth)
-        var first  = 0'u64
+        var first  = 0_u64
         var last   = .document.notes.count
         while first < last
         {
             let middle = first + (last - first) / 2
-            if left + cast(f32, .document.notes[middle].startTick) * .pixelsPerTick + widest < edge do
+            if left + cast(f32, .document.notes[middle].startTick) * .pixelsPerTick + widest < edge
+            {
                 first = middle + 1
-            else do
+            }
+            else
+            {
                 last = middle
+            }
         }
 
         return first
@@ -711,16 +804,25 @@ impl RollView
         for index in .firstNoteReaching(plotLeft, leftEdge, height) until .document.notes.count
         {
             let note = &.document.notes[index]
-            if .selectedTrack != Swag.U32.Max and note.track != .selectedTrack do
+            if .selectedTrack != Swag.U32.Max and note.track != .selectedTrack
+            {
                 continue
+            }
+
             let x = plotLeft + cast(f32, note.startTick) * .pixelsPerTick
-            if x > .scrollPos.x + .clientRect().width do
+            if x > .scrollPos.x + .clientRect().width
+            {
                 break
+            }
+
             let width = note.isHit() ? height : Math.max(cast(f32, note.endTick - note.startTick) * .pixelsPerTick, 2)
-            if x + width < leftEdge do
+            if x + width < leftEdge
+            {
                 continue
+            }
+
             let y        = .plotTop + cast(f32, .highKey - note.key) * .rowHeight + 1
-            let strength = 0.58'f32 + cast(f32, note.track % 4) * 0.09
+            let strength = 0.58_f32 + cast(f32, note.track % 4) * 0.09
             let color    = Color.lerp(colors.view_Bk, alternate, strength)
             painter.fillRoundRect(Math.Rectangle{x, y, width, height}, 2, 2, color)
         }
@@ -741,9 +843,12 @@ impl RollView
         {
             let key = .keyAtRow(row)
             let y   = .plotTop + cast(f32, row) * .rowHeight
-            if isBlackKey(key) do
+            if isBlackKey(key)
+            {
                 painter.fillRect(left + ContentInset, y, .keyboardWidth, .rowHeight, colors.edit_Bk)
-            if .scaleHighlightMaskAt(.visibleFirstTick(.keyboardWidth + ContentInset)) & (1'u16 << (key % 12)) != 0
+            }
+
+            if .scaleHighlightMaskAt(.visibleFirstTick(.keyboardWidth + ContentInset)) & (1_u16 << (key % 12)) != 0
             {
                 let base = isBlackKey(key) ? colors.edit_Bk : colors.view_Bk
                 painter.fillRect(left + ContentInset, y, .keyboardWidth, .rowHeight, Color.lerp(base, colors.highlight, 0.35))
@@ -780,8 +885,10 @@ impl IWnd for RollView
 {
     mtd impl onResizeEvent(_: *ResizeEvent)
     {
-        if .scroll != null do
+        if .scroll != null
+        {
             .refreshLayout()
+        }
     }
 
     mtd impl onNotifyEvent(evt: *NotifyEvent)
@@ -837,19 +944,29 @@ impl IWnd for RollView
     {
         if evt.kind == .Wheel and evt.modifiers == .Control
         {
-            if evt.delta.y > 0 do
+            if evt.delta.y > 0
+            {
                 .stepZoom(.zoom * WheelZoomStep)
-            elif evt.delta.y < 0 do
+            }
+            else if evt.delta.y < 0
+            {
                 .stepZoom(.zoom / WheelZoomStep)
+            }
+
             return
         }
 
         if evt.kind == .Wheel and evt.modifiers == (.Control | .Shift)
         {
-            if evt.delta.y > 0 do
+            if evt.delta.y > 0
+            {
                 .applyPitchZoom(.pitchZoom * WheelZoomStep)
-            elif evt.delta.y < 0 do
+            }
+            else if evt.delta.y < 0
+            {
                 .applyPitchZoom(.pitchZoom / WheelZoomStep)
+            }
+
             return
         }
 
@@ -888,13 +1005,13 @@ impl RollView
     // Builds the piano roll inside its own scroll window, taking ownership of `document`.
     func create(parent: *Wnd, document: #move Document)->*RollView
     {
-        with let scroll = Wnd.create'ScrollWnd(parent, "scope.midi.scroll", {})
+        with let scroll = Wnd.create!{ScrollWnd}(parent, "scope.midi.scroll", {})
         {
             .dockStyle = .Center
             .updateFlags(.TransparentBars)
         }
 
-        with let result = scroll.createView'RollView()
+        with let result = scroll.createView!{RollView}()
         {
             .scroll          = scroll
             .document        = #move document

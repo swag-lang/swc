@@ -337,8 +337,9 @@ SWC_FILESYSTEM_TEST_BEGIN(Compiler_PrintMicroElidesProvenArrayLoopBoundChecks)
 func fillExactly()->u32
 {
     var values: [256] u32
-    for index in values.count do
+    for index in values.count {
         values[index] = 1
+    }
     return values[255]
 }
 
@@ -346,8 +347,9 @@ func fillExactly()->u32
 func fillDynamic(count: u64)->u32
 {
     var values: [4] u32
-    for index in count do
+    for index in count {
         values[index] = 1
+    }
     return values[0]
 }
 
@@ -355,8 +357,9 @@ func fillDynamic(count: u64)->u32
 func fillRangeExactly()->u32
 {
     var values: [4] u32
-    for index in 0 until 4 do
+    for index in 0 until 4 {
         values[index] = 1
+    }
     return values[3]
 }
 
@@ -364,8 +367,9 @@ func fillRangeExactly()->u32
 func fillRangeInclusive()->u32
 {
     var values: [4] u32
-    for index in 1 to 3 do
+    for index in 1 to 3 {
         values[index] = 1
+    }
     return values[3]
 }
 
@@ -373,8 +377,9 @@ func fillRangeInclusive()->u32
 func fillRangeDynamic(lower: s32)->u32
 {
     var values: [4] u32
-    for index in lower until 4 do
+    for index in lower until 4 {
         values[index] = 1
+    }
     return values[3]
 }
 
@@ -382,8 +387,9 @@ func fillRangeDynamic(lower: s32)->u32
 func fillRangeOverlong()->u32
 {
     var values: [4] u32
-    for index in 0 to 4 do
+    for index in 0 to 4 {
         values[index] = 1
+    }
     return values[0]
 }
 
@@ -391,8 +397,9 @@ func fillRangeOverlong()->u32
 func fillRangeNegative()->u32
 {
     var values: [4] u32
-    for index in -1 until 3 do
+    for index in -1 until 3 {
         values[index] = 1
+    }
     return values[0]
 }
 
@@ -477,7 +484,7 @@ struct View
 #[Swag.NoInline]
 func sumValue(dst: [*] s64, view: View)->s64
 {
-    var total = 0's64
+    var total = 0_s64
     for i in view.count
     {
         dst[i] = view.data[i]
@@ -490,7 +497,7 @@ func sumValue(dst: [*] s64, view: View)->s64
 #[Swag.NoInline]
 func sumPointer(dst: [*] s64, view: const *View)->s64
 {
-    var total = 0's64
+    var total = 0_s64
     for i in view.count
     {
         dst[i] = view.data[i]
@@ -557,8 +564,9 @@ func writeThroughPointer(target: *u64, value: u64)
 func writeBorrowingLocals(value: Pair)->u64
 {
     var total = value.first
-    for 16 do
+    for 16 {
         total += value.second
+    }
     return total
 }
 
@@ -731,7 +739,7 @@ func readAfterStore(count: u32)->s32
     g_storage.value = 2
     g_item = &g_storage
     var total = g_item.value
-    for count do total += g_item.value
+    for count { total += g_item.value }
     return total
 }
 
@@ -739,7 +747,7 @@ func readAfterStore(count: u32)->s32
 func readAfterRead(count: u32)->s32
 {
     var total = g_item.value
-    for count do total += g_item.value
+    for count { total += g_item.value }
     return total + g_item.value
 }
 

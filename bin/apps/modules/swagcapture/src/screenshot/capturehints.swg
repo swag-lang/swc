@@ -13,7 +13,7 @@ impl CaptureHints
 {
     func create(parent: *Wnd, main: *MainWnd)->*CaptureHints
     {
-        with let result = Wnd.create'CaptureHints(parent)
+        with let result = Wnd.create!{CaptureHints}(parent)
         {
             .main = main
             .line = HintLine.create(result)
@@ -39,8 +39,11 @@ impl CaptureHints
             let dx       = point.x - Math.clamp(point.x, screen.x, screen.right())
             let dy       = point.y - Math.clamp(point.y, screen.y, screen.bottom())
             let distance = dx * dx + dy * dy
-            if distance >= nearest do
+            if distance >= nearest
+            {
                 continue
+            }
+
             nearest    = distance
             screenRoom = monitor.physicalWorkArea
         }

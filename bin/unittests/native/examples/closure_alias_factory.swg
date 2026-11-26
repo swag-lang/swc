@@ -33,21 +33,29 @@ alias SupportFeeRule   = func||(bool)->s32
 func makeSeatDiscountRule(requestedSeats: s32)->SeatDiscountRule
 {
     var discountPerSeatCents: s32
-    if requestedSeats >= 20 do
+    if requestedSeats >= 20
+    {
         discountPerSeatCents = 350
+    }
     else
     {
-        if requestedSeats >= 10 do
+        if requestedSeats >= 10
+        {
             discountPerSeatCents = 150
+        }
     }
 
     return func|requestedSeats, discountPerSeatCents|(seatSubtotalCents: s32)->s32
     {
-        if requestedSeats <= 4 do
+        if requestedSeats <= 4
+        {
             return 0
+        }
 
-        if (requestedSeats - 4) * discountPerSeatCents > seatSubtotalCents do
+        if (requestedSeats - 4) * discountPerSeatCents > seatSubtotalCents
+        {
             return seatSubtotalCents
+        }
 
         return (requestedSeats - 4) * discountPerSeatCents
     }
@@ -59,8 +67,10 @@ func buildQuote(plan: SubscriptionPlan, order: TeamOrder, supportFeeRule: Suppor
 
     var result: QuoteSummary
     result.billableSeats = order.requestedSeats - plan.includedSeats
-    if result.billableSeats < 0 do
+    if result.billableSeats < 0
+    {
         result.billableSeats = 0
+    }
 
     result.seatSubtotalCents = result.billableSeats * plan.baseSeatPriceCents
     result.addOnCents        = order.analyticsAddOnCents
@@ -77,8 +87,10 @@ func buildQuote(plan: SubscriptionPlan, order: TeamOrder, supportFeeRule: Suppor
 
     let supportFeeRule: SupportFeeRule = func(needsPrioritySupport: bool)->s32
     {
-        if needsPrioritySupport do
+        if needsPrioritySupport
+        {
             return 2500
+        }
         return 0
     }
 

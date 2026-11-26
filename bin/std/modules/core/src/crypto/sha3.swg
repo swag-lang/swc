@@ -28,11 +28,12 @@ private const KeccakRoundConstants: [24] u64 = [
 #[Swag.Inline]
 private func keccakChi(row: [*] u64, a, b, c, d, e: u64, roundConstant = 0'u64)
 {
-    row[0] = a ^ (~b & c) ^ roundConstant
-    row[1] = b ^ (~c & d)
-    row[2] = c ^ (~d & e)
-    row[3] = d ^ (~e & a)
-    row[4] = e ^ (~a & b)
+    if not count
+    {
+        return value
+    }
+
+    return (value << count) | (value >> (64 - count))
 }
 
 #[Swag.Inline]
@@ -96,11 +97,42 @@ private func(EraseScratch: bool) permuteKeccak(state: *[25] u64)
     // Each round writes rows into the other state, keeping only one row of rotations live.
     for group in 6
     {
-        let round = group * 4
-        keccakRound(lanes, buffer.buffer, KeccakRoundConstants[round])
-        keccakRound(buffer.buffer, lanes, KeccakRoundConstants[round + 1])
-        keccakRound(lanes, buffer.buffer, KeccakRoundConstants[round + 2])
-        keccakRound(buffer.buffer, lanes, KeccakRoundConstants[round + 3])
+        var columns: [5] u64
+        for x in 5
+        {
+            columns[x] = state[][x] ^ state[][x + 5] ^ state[][x + 10] ^ state[][x + 15] ^ state[][x + 20]
+        }
+
+        for x in 5
+        {
+            let delta = columns[(x + 4) % 5] ^ rotateLeft64(columns[(x + 1) % 5], 1)
+            for y in 5
+            {
+                state[][x + 5 * y] ^= delta
+            }
+        }
+
+        var lanes: [25] u64
+        for x in 5
+        {
+            for y in 5
+            {
+                let source = x + 5 * y
+                let target = y + 5 * ((2 * x + 3 * y) % 5)
+                lanes[target] = rotateLeft64(state[][source], KeccakRotation[source])
+            }
+        }
+
+        for x in 5
+        {
+            for y in 5
+            {
+                let index = x + 5 * y
+                state[][index] = lanes[index] ^ ((~lanes[(x + 1) % 5 + 5 * y]) & lanes[(x + 2) % 5 + 5 * y])
+            }
+        }
+
+        state[][0] ^= KeccakRoundConstants[round]
     }
 
     #static if EraseScratch do
@@ -257,7 +289,20 @@ public impl Sha3
     // Replaces prior state and starts a SHA-3 sequence for a supported digest size.
     mtd reset(digestSize: u64) fail
     {
-        let rate = try sha3Rate(digestSize)
+        var rate: u64
+        switch digestSize
+        {
+        case 28: rate = 144
+        case 32: rate = 136
+        case 48: rate = 104
+        case 64: rate = 72
+        default: rate = 0
+        }
+
+        if not rate
+        {
+            fail Errors.BadParameterError{"SHA-3 digest size must be 28, 32, 48, or 64 bytes"}
+        }
 
         .clear()
         .rate       = rate
@@ -268,16 +313,32 @@ public impl Sha3
     mtd update(data: const [..] u8)
     {
         Swag.assert(.rate != 0, "SHA-3 needs an initialized sequence")
-        updateKeccak(&.state, &.buffer, &.bufferSize, .rate, data)
+        var offset = 0_u64
+        while offset < data.count
+        {
+            let count = Math.min(data.count - offset, .rate - .bufferSize)
+            Swag.memcpy(&.buffer[.bufferSize], data.buffer + offset, count)
+            .bufferSize += count
+            offset      += count
+            if .bufferSize == .rate
+            {
+                .absorbBuffer()
+            }
+        }
     }
 
     // Finalizes the sequence into a destination of exactly the configured digest size and clears the sponge state.
     mtd finalize(destination: [..] u8) fail
     {
-        if not .rate do
+        if not .rate
+        {
             fail Errors.BadParameterError{"SHA-3 needs an initialized sequence"}
-        if destination.count != .digestSize do
+        }
+
+        if destination.count != .digestSize
+        {
             fail Errors.BadParameterError{"SHA-3 destination length must match the configured digest size"}
+        }
 
         finalizeKeccak(&.state, .buffer[until .bufferSize], .rate, 0x06)
         squeezeKeccak(&.state, .rate, destination)
@@ -299,8 +360,49 @@ public impl Sha3
     // `destination.count` selects the standard digest size: 28, 32, 48, or 64 bytes.
     func compute(data: const [..] u8, destination: [..] u8) fail
     {
-        let rate = try sha3Rate(destination.count)
-        computeKeccak(data, rate, 0x06, destination)
+        var digest = try Sha3.create(destination.count)
+        digest.update(data)
+        try digest.finalize(destination)
+    }
+
+    private mtd absorbBuffer()
+    {
+        let laneCount = .rate / 8
+        for lane in laneCount
+        {
+            var word = 0_u64
+            for byte in 8
+            {
+                word |= cast(u64, .buffer[lane * 8 + byte]) << cast(u32, byte * 8)
+            }
+
+            .state[lane] ^= word
+        }
+
+        permuteKeccak(&.state)
+        Crypto.secureClear(.buffer)
+        .bufferSize = 0
+    }
+
+    private mtd squeeze(destination: [..] u8)
+    {
+        var written = 0_u64
+        while written < destination.count
+        {
+            let count = Math.min(destination.count - written, .rate)
+            for index in count
+            {
+                let lane  = index / 8
+                let shift = cast(u32, (index % 8) * 8)
+                destination[written + index] = cast(u8, (.state[lane] >> shift) & 0xFF)
+            }
+
+            written += count
+            if written < destination.count
+            {
+                permuteKeccak(&.state)
+            }
+        }
     }
 
     // Clears state when this value leaves scope.
@@ -370,7 +472,11 @@ public impl Shake
     // Replaces prior state and selects SHAKE128 or SHAKE256 with 128 or 256 security bits.
     mtd reset(securityBits: u64) fail
     {
-        let rate = try shakeRate(securityBits)
+        if securityBits != 128 and securityBits != 256
+        {
+            fail Errors.BadParameterError{"SHAKE security strength must be 128 or 256 bits"}
+        }
+
         .clear()
         .rate   = rate
         .suffix = 0x1F
@@ -379,7 +485,11 @@ public impl Shake
     // Replaces prior state and selects cSHAKE128 or cSHAKE256 with its domain separator.
     internal mtd resetCShake(securityBits: u64) fail
     {
-        let rate = try cshakeRate(securityBits)
+        if securityBits != 128 and securityBits != 256
+        {
+            fail Errors.BadParameterError{"cSHAKE security strength must be 128 or 256 bits"}
+        }
+
         .clear()
         .rate   = rate
         .suffix = 0x04
@@ -389,14 +499,27 @@ public impl Shake
     mtd update(data: const [..] u8)
     {
         Swag.assert(.rate != 0, "SHAKE needs an initialized sequence")
-        updateKeccak(&.state, &.buffer, &.bufferSize, .rate, data)
+        var offset = 0_u64
+        while offset < data.count
+        {
+            let count = Math.min(data.count - offset, .rate - .bufferSize)
+            Swag.memcpy(&.buffer[.bufferSize], data.buffer + offset, count)
+            .bufferSize += count
+            offset      += count
+            if .bufferSize == .rate
+            {
+                .absorbBuffer()
+            }
+        }
     }
 
     // Finalizes the input into any requested number of output bytes, then clears the sponge state.
     mtd finalize(destination: [..] u8) fail
     {
-        if not .rate do
+        if not .rate
+        {
             fail Errors.BadParameterError{"SHAKE needs an initialized sequence"}
+        }
 
         finalizeKeccak(&.state, .buffer[until .bufferSize], .rate, .suffix)
         squeezeKeccak(&.state, .rate, destination)
@@ -418,8 +541,49 @@ public impl Shake
     // `securityBits` selects SHAKE128 or SHAKE256; destination length selects the output length.
     func compute(data: const [..] u8, securityBits: u64, destination: [..] u8) fail
     {
-        let rate = try shakeRate(securityBits)
-        computeKeccak(data, rate, 0x1F, destination)
+        var shake = try Shake.create(securityBits)
+        shake.update(data)
+        try shake.finalize(destination)
+    }
+
+    private mtd absorbBuffer()
+    {
+        let laneCount = .rate / 8
+        for lane in laneCount
+        {
+            var word = 0_u64
+            for byte in 8
+            {
+                word |= cast(u64, .buffer[lane * 8 + byte]) << cast(u32, byte * 8)
+            }
+
+            .state[lane] ^= word
+        }
+
+        permuteKeccak(&.state)
+        Crypto.secureClear(.buffer)
+        .bufferSize = 0
+    }
+
+    private mtd squeeze(destination: [..] u8)
+    {
+        var written = 0_u64
+        while written < destination.count
+        {
+            let count = Math.min(destination.count - written, .rate)
+            for index in count
+            {
+                let lane  = index / 8
+                let shift = cast(u32, (index % 8) * 8)
+                destination[written + index] = cast(u8, (.state[lane] >> shift) & 0xFF)
+            }
+
+            written += count
+            if written < destination.count
+            {
+                permuteKeccak(&.state)
+            }
+        }
     }
 
     // Clears state when this value leaves scope.

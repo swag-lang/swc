@@ -93,34 +93,34 @@ const PackedFormats: [18] PixelFormat = [
 {
     // The exact halfway point between zero and the smallest half subnormal rounds to even zero.
     // Its adjacent binary32 values prove that the interval above it rounds up, preserving sign.
-    Swag.require(floatToHalf(cast #bit (f32, 0x32FFFFFF'u32)) == 0)
-    Swag.require(floatToHalf(cast #bit (f32, 0x33000000'u32)) == 0)
-    Swag.require(floatToHalf(cast #bit (f32, 0x33000001'u32)) == 1)
-    Swag.require(floatToHalf(cast #bit (f32, 0xB2FFFFFF'u32)) == 0x8000)
-    Swag.require(floatToHalf(cast #bit (f32, 0xB3000000'u32)) == 0x8000)
-    Swag.require(floatToHalf(cast #bit (f32, 0xB3000001'u32)) == 0x8001)
+    Swag.require(floatToHalf(cast #bit (f32, 0x32FFFFFF_u32)) == 0)
+    Swag.require(floatToHalf(cast #bit (f32, 0x33000000_u32)) == 0)
+    Swag.require(floatToHalf(cast #bit (f32, 0x33000001_u32)) == 1)
+    Swag.require(floatToHalf(cast #bit (f32, 0xB2FFFFFF_u32)) == 0x8000)
+    Swag.require(floatToHalf(cast #bit (f32, 0xB3000000_u32)) == 0x8000)
+    Swag.require(floatToHalf(cast #bit (f32, 0xB3000001_u32)) == 0x8001)
 
     // Rounding around the largest subnormal keeps the tie-to-even boundary at 0x0400.
-    Swag.require(floatToHalf(cast #bit (f32, 0x387FDFFF'u32)) == 0x03FF)
-    Swag.require(floatToHalf(cast #bit (f32, 0x387FE000'u32)) == 0x0400)
-    Swag.require(floatToHalf(cast #bit (f32, 0x387FE001'u32)) == 0x0400)
-    Swag.require(floatToHalf(cast #bit (f32, 0xB87FDFFF'u32)) == 0x83FF)
-    Swag.require(floatToHalf(cast #bit (f32, 0xB87FE000'u32)) == 0x8400)
-    Swag.require(floatToHalf(cast #bit (f32, 0xB87FE001'u32)) == 0x8400)
+    Swag.require(floatToHalf(cast #bit (f32, 0x387FDFFF_u32)) == 0x03FF)
+    Swag.require(floatToHalf(cast #bit (f32, 0x387FE000_u32)) == 0x0400)
+    Swag.require(floatToHalf(cast #bit (f32, 0x387FE001_u32)) == 0x0400)
+    Swag.require(floatToHalf(cast #bit (f32, 0xB87FDFFF_u32)) == 0x83FF)
+    Swag.require(floatToHalf(cast #bit (f32, 0xB87FE000_u32)) == 0x8400)
+    Swag.require(floatToHalf(cast #bit (f32, 0xB87FE001_u32)) == 0x8400)
 
     // The overflow midpoint rounds to infinity, the even neighbor of max finite.
-    Swag.require(floatToHalf(cast #bit (f32, 0x477FEFFF'u32)) == 0x7BFF)
-    Swag.require(floatToHalf(cast #bit (f32, 0x477FF000'u32)) == 0x7C00)
-    Swag.require(floatToHalf(cast #bit (f32, 0x477FF001'u32)) == 0x7C00)
+    Swag.require(floatToHalf(cast #bit (f32, 0x477FEFFF_u32)) == 0x7BFF)
+    Swag.require(floatToHalf(cast #bit (f32, 0x477FF000_u32)) == 0x7C00)
+    Swag.require(floatToHalf(cast #bit (f32, 0x477FF001_u32)) == 0x7C00)
 
-    for value in [0.0'f32, -0.0'f32, 1.0'f32, -2.0'f32, 0.00006103515625'f32, 0.000000059604645'f32, 65504.0'f32]
+    for value in [0.0_f32, -0.0_f32, 1.0_f32, -2.0_f32, 0.00006103515625_f32, 0.000000059604645_f32, 65504.0_f32]
     {
         let restored = halfToFloat(floatToHalf(value))
         Swag.require(cast #bit (u32, restored) == cast #bit (u32, value))
     }
 
-    let positiveInfinity = cast #bit (f32, 0x7F800000'u32)
-    let nan = cast #bit (f32, 0x7FC01234'u32)
+    let positiveInfinity = cast #bit (f32, 0x7F800000_u32)
+    let nan = cast #bit (f32, 0x7FC01234_u32)
     Swag.require(cast #bit (u32, halfToFloat(floatToHalf(positiveInfinity))) == 0x7F800000)
     Swag.require(halfToFloat(floatToHalf(nan)) != halfToFloat(floatToHalf(nan)))
 }
@@ -233,7 +233,7 @@ const PackedFormats: [18] PixelFormat = [
     for &format in encodable
     {
         Swag.require(format.name.count != 0)
-        for ext in Tokenize.split(format.extensions, ';'rune)
+        for ext in Tokenize.split(format.extensions, ';'_rune)
         {
             Swag.require(Utf8.startsWith(ext, "."))
             Swag.require(Image.canSave(Format.toString("image%", ext)))
@@ -245,7 +245,7 @@ const PackedFormats: [18] PixelFormat = [
     for &format in decodable
     {
         Swag.require(format.name.count != 0)
-        for ext in Tokenize.split(format.extensions, ';'rune)
+        for ext in Tokenize.split(format.extensions, ';'_rune)
         {
             Swag.require(Utf8.startsWith(ext, "."))
             Swag.require(Image.canLoad(Format.toString("image%", ext)))
@@ -281,8 +281,10 @@ const PackedFormats: [18] PixelFormat = [
     for format in PackedFormats
     {
         var source = Image.create(4, 4, format)
-        for i in source.byteCount do
+        for i in source.byteCount
+        {
             source.pixels.storage()[i] = cast(u8, ((i * 29 + 7) & 0xFF))
+        }
 
         let mirrored = source.mirrored().mirrored()
         let flipped  = source.flipped().flipped()
@@ -309,8 +311,11 @@ const PackedFormats: [18] PixelFormat = [
     {
         var source = Image.create(3, 2, sourceFormat)
         source.fill(Color.fromArgb(137, 31, 109, 223))
-        if sourceFormat.hasAlpha() do
+        if sourceFormat.hasAlpha()
+        {
             source.convertAlphaTo(.Premultiplied)
+        }
+
         for destinationFormat in PackedFormats
         {
             let converted = source.convertedTo(destinationFormat)

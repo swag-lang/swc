@@ -20,8 +20,9 @@ func swagSampleSource()->String
     result += "func answer(value: u32)->u32\n"
     result += "{\n"
     result += "    let doubled = value * 2\n"
-    result += "    if doubled > 40 do\n"
+    result += "    if doubled > 40 {\n"
     result += "        return doubled + 2\n"
+    result += "    }\n"
     result += "    return 0\n"
     result += "}\n"
     return result

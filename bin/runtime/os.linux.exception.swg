@@ -53,10 +53,10 @@ namespace __LinuxRT
     }
 }
 
-private const LinuxFaultSignals    = [11's32, 7's32, 4's32, 8's32]     // SEGV, BUS, ILL, FPE
-private const LinuxSignalInfo      = 4'u32
-private const LinuxSignalOnStack   = 0x08000000'u32
-private const LinuxSignalResetHand = 0x80000000'u32
+private const LinuxFaultSignals    = [11_s32, 7_s32, 4_s32, 8_s32]     // SEGV, BUS, ILL, FPE
+private const LinuxSignalInfo      = 4_u32
+private const LinuxSignalOnStack   = 0x08000000_u32
+private const LinuxSignalResetHand = 0x80000000_u32
 
 private struct LinuxTestFilter
 {
@@ -94,7 +94,7 @@ private func __linuxTerminateSignal(signal: s32)
     discard __LinuxRT.sigaction(signal, &action, null)
     discard __LinuxRT.raise(signal)
     var mask: [16] u64
-    mask[0] = 1'u64 << cast(u32, signal - 1)
+    mask[0] = 1_u64 << cast(u32, signal - 1)
     discard __LinuxRT.sigprocmask(1, &mask, null)     // SIG_UNBLOCK delivers the pending default action.
     __LinuxRT._exit(128 + signal)
 }
@@ -107,10 +107,13 @@ private func __linuxTestSignal(signal: s32, info: *__LinuxRT.SignalInfo, context
        info.code > 0 and
        __hostCurrentThreadId() == Swag.g_TestThreadId
     {
-        if linuxTestFilter.recovering do
+        if linuxTestFilter.recovering
+        {
             __linuxTerminateSignal(signal)
+        }
+
         linuxTestFilter.recovering  = true
-        linuxTestFilter.code        = signal == 11 or signal == 7 ? 0xC0000005'u32 : cast(u32, signal)
+        linuxTestFilter.code        = signal == 11 or signal == 7 ? 0xC0000005_u32 : cast(u32, signal)
         linuxTestFilter.instruction = context.registers[16]     // REG_RIP
         linuxTestFilter.address     = cast(u64, info.address)
         let pageError = context.registers[19]     // REG_ERR: page-fault write and instruction-fetch bits.
@@ -121,17 +124,23 @@ private func __linuxTestSignal(signal: s32, info: *__LinuxRT.SignalInfo, context
     }
 
     // Preserve the embedding process's handlers for asynchronous signals and other threads.
-    for index in 4'u32 where LinuxFaultSignals[index] == signal
+    for index in 4_u32 where LinuxFaultSignals[index] == signal
     {
         let previous = &linuxTestFilter.previous[index]
         let handler  = cast(u64, previous.handler)
-        if handler == 1 and info.code <= 0 do
+        if handler == 1 and info.code <= 0
+        {
             return
+        }
+
         if handler > 1
         {
             if (previous.flags & LinuxSignalResetHand) != 0 and
-               Swag.atomicExchange(&linuxTestFilter.consumed[index], 1) != 0 do
+               Swag.atomicExchange(&linuxTestFilter.consumed[index], 1) != 0
+            {
                 __linuxTerminateSignal(signal)
+            }
+
             if (previous.flags & LinuxSignalInfo) != 0
             {
                 let call = cast(__LinuxRT.SignalInfoHandler, unwrap previous.handler)
@@ -153,24 +162,35 @@ private func __linuxTestSignal(signal: s32, info: *__LinuxRT.SignalInfo, context
 #[Swag.Safety(.ValueBorrow, false)]
 func __hostTestRestoreHardwareFilter(previous: *void?)
 {
-    if previous != cast(*void, &linuxTestFilter) do
+    if previous != cast(*void, &linuxTestFilter)
+    {
         __hostTestAbort()
+    }
+
     linuxTestFilter.active = false
     for index in linuxTestFilter.installed
     {
         // A one-shot handler consumed while ours was installed must stay consumed.
         var action = linuxTestFilter.previous[index]
-        if linuxTestFilter.consumed[index] != 0 do
+        if linuxTestFilter.consumed[index] != 0
+        {
             action.handler = null
-        if __LinuxRT.sigaction(LinuxFaultSignals[index], &action, null) != 0 do
+        }
+
+        if __LinuxRT.sigaction(LinuxFaultSignals[index], &action, null) != 0
+        {
             __hostTestAbort()
+        }
     }
 
     linuxTestFilter.installed = 0
     if linuxTestFilter.mapping
     {
-        if __LinuxRT.sigaltstack(&linuxTestFilter.previousStack, null) != 0 do
+        if __LinuxRT.sigaltstack(&linuxTestFilter.previousStack, null) != 0
+        {
             __hostTestAbort()
+        }
+
         discard __LinuxRT.munmap(linuxTestFilter.mapping, linuxTestFilter.mappingSize)
         linuxTestFilter.mapping = null
     }
@@ -179,16 +199,22 @@ func __hostTestRestoreHardwareFilter(previous: *void?)
 #[Swag.Safety(.ValueBorrow, false)]
 func __hostTestInstallHardwareFilter()->*void
 {
-    if linuxTestFilter.active do
+    if linuxTestFilter.active
+    {
         __hostTestAbort()
+    }
+
     linuxTestFilter = LinuxTestFilter{}
-    const Page = 4096'u64
+    const Page = 4096_u64
     let recommended = __LinuxRT.sysconf(250)     // _SC_SIGSTKSZ includes extended CPU-state storage.
-    let usable      = (Swag.max(65536'u64, recommended > 0 ? cast(u64, recommended) : 0) + Page - 1) & ~(Page - 1)
+    let usable      = (Swag.max(65536_u64, recommended > 0 ? cast(u64, recommended) : 0) + Page - 1) & ~(Page - 1)
     let size        = usable + 2 * Page
     let mapping     = __LinuxRT.mmap(null, size, 0, __LinuxRT.MapPrivateAnonymous, -1, 0)
-    if cast(s64, mapping) == -1 do
+    if cast(s64, mapping) == -1
+    {
         __hostTestAbort()
+    }
+
     let base = cast(*void, cast(u64, mapping) + Page)
     if __LinuxRT.mprotect(base, usable, __LinuxRT.ProtectReadWrite) != 0
     {
@@ -209,7 +235,7 @@ func __hostTestInstallHardwareFilter()->*void
     cast(*u64, linuxTestFilter.stackTop)[] = 0     // End of the recovery stack for unwinding.
 
     let token = cast(*void, &linuxTestFilter)
-    for index in 4'u32
+    for index in 4_u32
     {
         if __LinuxRT.sigaction(LinuxFaultSignals[index], null, &linuxTestFilter.previous[index]) != 0
         {
@@ -237,22 +263,28 @@ func __hostTestInstallHardwareFilter()->*void
 // entire storage while the captured frame is live; no C++ frame is crossed by native recovery.
 const HostResumeStorageSize = 200 + 7
 
-private func __linuxResumeStorage(storage: *u8)->*void => cast(*void, (cast(u64, storage) + 7) & ~7'u64)
+private func __linuxResumeStorage(storage: *u8)->*void => cast(*void, (cast(u64, storage) + 7) & ~7_u64)
 
 #[Swag.Optimize(false)]
 func __hostCatchCall(storage: *u8, resumed: *bool, fn: func||())
 {
     discard resumed
-    if __LinuxRT.__sigsetjmp(__linuxResumeStorage(storage), 1) != 0 do
+    if __LinuxRT.__sigsetjmp(__linuxResumeStorage(storage), 1) != 0
+    {
         return
+    }
+
     fn()
 }
 
 #[Swag.NoReturn]
 func __hostResume(storage: *u8)
 {
-    if linuxTestFilter.active and __hostCurrentThreadId() == Swag.g_TestThreadId do
+    if linuxTestFilter.active and __hostCurrentThreadId() == Swag.g_TestThreadId
+    {
         linuxTestFilter.recovering = false
+    }
+
     __LinuxRT.siglongjmp(__linuxResumeStorage(storage), 1)
 }
 
@@ -261,8 +293,11 @@ private var linuxTestResume: [HostResumeStorageSize] u8
 #[Swag.Optimize(false)]
 func __hostTestCall(fn: *void)
 {
-    if __LinuxRT.__sigsetjmp(__linuxResumeStorage(&linuxTestResume[0]), 1) != 0 do
+    if __LinuxRT.__sigsetjmp(__linuxResumeStorage(&linuxTestResume[0]), 1) != 0
+    {
         return
+    }
+
     let call = cast(func(), fn)
     call()
 }

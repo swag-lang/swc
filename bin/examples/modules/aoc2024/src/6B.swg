@@ -97,7 +97,7 @@ func day6B()
     let dataPath = Path.combine(Path.directoryName(#curlocation.fileName), "6.txt")
     let lines    = expect File.readAllLines(dataPath)
 
-    var arr0:   Array'u8
+    var arr0:   Array!{u8}
     var sx, sy: s32
     w = cast(s32, lines[0].length)
     h = cast(s32, lines.count)
@@ -107,21 +107,25 @@ func day6B()
         if not sx
         {
             let f = l.indexOf("^")
-            if f != Swag.U64.Max do
+            if f != Swag.U64.Max
+            {
                 sx = cast(s32, f)
-            else do
+            }
+            else
+            {
                 sy += 1
+            }
         }
 
         arr0.add(l.toSlice())
     }
 
-    func test(arr: *Array'u8, sx0, sy0: s32, first: bool)->bool
+    func test(arr: *Array!{u8}, sx0, sy0: s32, first: bool)->bool
     {
         var sx   = sx0
         var sy   = sy0
         var dx   = 0, dy = -1
-        var what = 'D'u8
+        var what = 'D'_u8
         for
         {
             if sx + dx < 0 or sx + dx >= w or sy + dy < 0 or sy + dy >= h
@@ -138,13 +142,13 @@ func day6B()
                     dy   = 0
                     what = 'A'
                 }
-                elif dx == 1 and dy == 0
+                else if dx == 1 and dy == 0
                 {
                     dx   = 0
                     dy   = 1
                     what = 'B'
                 }
-                elif dx == 0 and dy == 1
+                else if dx == 0 and dy == 1
                 {
                     dx   = -1
                     dy   = 0
@@ -162,10 +166,15 @@ func day6B()
 
             let r = arr.ptr2(sx, sy, w)
 
-            if first do
+            if first
+            {
                 what = 'O'
-            elif r[] == what do
+            }
+            else if r[] == what
+            {
                 return true
+            }
+
             r[] = what
 
             sx += dx
@@ -182,14 +191,18 @@ func day6B()
     var total = 0
     for v, index in arr0
     {
-        if v != 'O' do
+        if v != 'O'
+        {
             continue
+        }
 
         var arr1 = arr0
         arr1[index] = '#'
 
-        if test(&arr1, sx, sy, false) do
+        if test(&arr1, sx, sy, false)
+        {
             total += 1
+        }
     }
 
     Swag.assert(total == 1836)

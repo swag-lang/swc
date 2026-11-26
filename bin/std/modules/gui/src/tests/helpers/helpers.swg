@@ -9,7 +9,7 @@ using Swag, Core
 // keeps a test case readable as the object graph it is really about.
 
 // Appends one plain object, numbered `number`.
-func addObject(bytes: *Array'u8, number: u32, body: string)
+func addObject(bytes: *Array!{u8}, number: u32, body: string)
 {
     bytes.add(cast(const [..] u8, Format.toString("% 0 obj\n", number).toString()))
     bytes.add(cast(const [..] u8, body))
@@ -17,7 +17,7 @@ func addObject(bytes: *Array'u8, number: u32, body: string)
 }
 
 // Appends one stream object whose `/Length` is computed from the payload.
-func addStreamObject(bytes: *Array'u8, number: u32, dictionary: string, stream: const [..] u8)
+func addStreamObject(bytes: *Array!{u8}, number: u32, dictionary: string, stream: const [..] u8)
 {
     bytes.add(cast(const [..] u8, Format.toString("% 0 obj\n<< % /Length % >>\nstream\n", number, dictionary, stream.count).toString()))
     bytes.add(stream)
@@ -28,7 +28,7 @@ func addStreamObject(bytes: *Array'u8, number: u32, dictionary: string, stream: 
 //
 // Objects 1 to 4 are the catalog, the page tree, the page, and the content stream, so a test
 // numbers its own objects from 5 up and names them from `resources`.
-func singlePagePdf(resources: string, content: const [..] u8, extra: const [..] u8, mediaBox = "[0 0 200 100]")->Array'u8
+func singlePagePdf(resources: string, content: const [..] u8, extra: const [..] u8, mediaBox = "[0 0 200 100]")->Array!{u8}
 {
     var result: #returntype
     result.add(cast(const [..] u8, "%PDF-1.7\n"))
@@ -45,7 +45,7 @@ func singlePagePdf(resources: string, content: const [..] u8, extra: const [..] 
 func onlyItem(page: const *Pdf.Page, kind: Pdf.ItemKind)->const *Pdf.Item
 {
     var result: const *Pdf.Item?
-    var count = 0'u64
+    var count = 0_u64
     for item in page.items where item.kind == kind
     {
         result = item
@@ -60,8 +60,11 @@ func onlyItem(page: const *Pdf.Page, kind: Pdf.ItemKind)->const *Pdf.Item
 func pageText(page: const *Pdf.Page)->String
 {
     var result: #returntype
-    for item in page.items where item.kind == .Text do
+    for item in page.items where item.kind == .Text
+    {
         result += item.textValue()
+    }
+
     return result
 }
 
@@ -78,11 +81,17 @@ func settlePdfView(host: *Gui.Testing.HeadlessHost, view: *Gui.PdfView)
 
         var ready = not view.cache.isLoading() and not view.preparing
         let range = view.visibleRange()
-        for index in range.first to range.last where not view.cache.isResident(index) do
+        for index in range.first to range.last where not view.cache.isResident(index)
+        {
             ready = false
-        if ready do
+        }
+
+        if ready
+        {
             return
-        Threading.Thread.sleep(1'ms)
+        }
+
+        Threading.Thread.sleep(1_ms)
     }
 
     Swag.panic("PDF pages never finished decoding", #curlocation)
@@ -109,8 +118,11 @@ func testSourceRoot(loc: Swag.SourceCodeLocation = #callerlocation)->String
     var directory = Path.directoryName(loc.fileName)
     while directory != null
     {
-        if Path.fileName(directory) == "cases" or Path.fileName(directory) == "helpers" do
+        if Path.fileName(directory) == "cases" or Path.fileName(directory) == "helpers"
+        {
             return unwrap Path.directoryName(directory)
+        }
+
         directory = Path.directoryName(directory)
     }
 

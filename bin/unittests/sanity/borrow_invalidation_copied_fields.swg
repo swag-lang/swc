@@ -45,7 +45,10 @@ impl BorrowFieldCache
     mtd get()->*s32?
     {
         let found = .entry()
-        if found do return found.value
+        if found
+        {
+            return found.value
+        }
         return null
     }
 }
@@ -188,7 +191,10 @@ func borrowFieldRejectCopyFirst(cache: *BorrowFieldCache, chooseSlot: bool)->s32
 {
     let entry   = unwrap cache.entry()
     var pointer = entry.value
-    if chooseSlot do pointer = &entry.marker
+    if chooseSlot
+    {
+        pointer = &entry.marker
+    }
     cache.reserve(2)     // swc-expected-error {{sanity_err_borrow_invalidated}}
     return pointer![]
 }
@@ -197,7 +203,10 @@ func borrowFieldRejectSlotFirst(cache: *BorrowFieldCache, chooseCopy: bool)->s32
 {
     let entry = unwrap cache.entry()
     var pointer: *s32? = &entry.marker
-    if chooseCopy do pointer = entry.value
+    if chooseCopy
+    {
+        pointer = entry.value
+    }
     cache.reserve(2)     // swc-expected-error {{sanity_err_borrow_invalidated}}
     return pointer![]
 }
@@ -206,7 +215,10 @@ func borrowFieldRejectSlotFirst(cache: *BorrowFieldCache, chooseCopy: bool)->s32
 func borrowFieldSelect(cache: *BorrowFieldCache, chooseSlot: bool)->*s32?
 {
     let entry = unwrap cache.entry()
-    if chooseSlot do return &entry.marker
+    if chooseSlot
+    {
+        return &entry.marker
+    }
     return entry.value
 }
 

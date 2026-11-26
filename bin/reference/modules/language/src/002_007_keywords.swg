@@ -22,7 +22,7 @@ field, or a '#code' binder that the code does not use, and nothing can refer to 
 # Control Flow and Expressions
 
 ```swag
-and  as  break  case  continue  default  defer  do  elif  else
+and  as  break  case  continue  default  defer  else
 fallthrough  for  if  in  is  me  not  or  orelse  parallel  return
 scope  switch  to  unreachable  until  where  while  _
 ```

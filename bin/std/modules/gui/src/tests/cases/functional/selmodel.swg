@@ -85,15 +85,17 @@ using Swag, Core
     model.selectRange(1, 3)
     model.selectRange(6, 7)
 
-    var expectedOrdinal = 0'u64
-    var visitedCount    = 0'u32
+    var expectedOrdinal = 0_u64
+    var visitedCount    = 0_u32
     for item, ordinal in model
     {
         Swag.require(ordinal == expectedOrdinal)
         expectedOrdinal += 1
 
-        if item == 2 do
+        if item == 2
+        {
             continue
+        }
 
         visitedCount += 1
     }
@@ -140,7 +142,7 @@ using Swag, Core
     Swag.require(model.ranges()[0].start == 1)
     Swag.require(model.ranges()[0].end == 5)
 
-    var expected = 1'u32
+    var expected = 1_u32
     for index in model
     {
         Swag.require(index == expected)

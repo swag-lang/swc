@@ -12,8 +12,10 @@ func gdipCheck(status: GpStatus)
 
 func initGdiPlus()
 {
-    if g_GdiToken do
+    if g_GdiToken
+    {
         return
+    }
 
     var input: GdiplusStartupInput
     input.GdiplusVersion = 1
@@ -22,8 +24,10 @@ func initGdiPlus()
 
 func shutdownGdiPlus()
 {
-    if not g_GdiToken do
+    if not g_GdiToken
+    {
         return
+    }
 
     GdiplusShutdown(g_GdiToken)
     g_GdiToken = 0
@@ -41,14 +45,22 @@ func addGdiPathText(path: *GpPath, text16: const [*] u16, count: s32, family: *G
 
 func unpremultiplyChannel(value, alpha: u8)->u8
 {
-    if not alpha do
+    if not alpha
+    {
         return 0
-    if alpha == 255 do
+    }
+
+    if alpha == 255
+    {
         return value
+    }
 
     let result = (cast(u32, value) * 255 + cast(u32, alpha) / 2) / cast(u32, alpha)
-    if result > 255 do
+    if result > 255
+    {
         return 255
+    }
+
     return cast(u8, result)
 }
 
@@ -67,7 +79,7 @@ func unpremultiplyImage(image: *Image)
 
 func flipImageVertical(image: *Image)
 {
-    var row = Array'u8{}
+    var row = Array!{u8}{}
     row.resize(cast(u64, image.rowStride))
 
     var top = image.pixels.storage()
@@ -204,7 +216,7 @@ func drawShadowedTexture(painter: *Pixel.Painter, area: Math.Rectangle, texture:
 
         .bindRenderTarget(rtBlur)
         .setShader(&g_Renderer.shaderBlur)
-        .setShaderParam(g_Renderer.shaderBlur.axis, 0's32)
+        .setShaderParam(g_Renderer.shaderBlur.axis, 0_s32)
         .setShaderParam(g_Renderer.shaderBlur.radius, 7.0)
         .setBlendingMode(.Copy)
         .setColorMaskFull()
@@ -215,7 +227,7 @@ func drawShadowedTexture(painter: *Pixel.Painter, area: Math.Rectangle, texture:
 
         .bindRenderTarget(rtText)
         .setShader(&g_Renderer.shaderBlur)
-        .setShaderParam(g_Renderer.shaderBlur.axis, 1's32)
+        .setShaderParam(g_Renderer.shaderBlur.axis, 1_s32)
         .setShaderParam(g_Renderer.shaderBlur.radius, 7.0)
         .setBlendingMode(.Copy)
         .setColorMaskFull()

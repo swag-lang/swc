@@ -66,10 +66,15 @@ func __testHardwareException(code: u32, instructionAddress: u64, accessKind: u64
     Swag.print("\n#test stops on hardware exception ", cast(s64, code), "\n")
     Swag.print("#test faulting instruction address ", instructionAddress, "\n")
     let symbol = symbolizeStackAddress(cast(*void, instructionAddress))
-    if symbol.hasLine do
+    if symbol.hasLine
+    {
         Swag.print("#test faulting symbol ", symbol.name, " (", symbol.file, ":", symbol.line, ")\n")
-    elif symbol.found do
+    }
+    else if symbol.found
+    {
         Swag.print("#test faulting symbol ", symbol.name, "\n")
+    }
+
     if code == 0xC0000005 and (accessKind == 0 or accessKind == 1 or accessKind == 8)
     {
         let operation = accessKind == 0 ? "read" : accessKind == 1 ? "write" : "execute"
@@ -93,13 +98,18 @@ func __testCheckFailed(message: string?, loc: Swag.SourceCodeLocation)->bool
 
 private func recordTestCheckFailure(message: string?, loc: Swag.SourceCodeLocation)->bool
 {
-    if not g_TestRunning do
+    if not g_TestRunning
+    {
         return false
+    }
 
     Swag.print("\ncheck does not hold\n")
     Swag.print("-------------------\n")
-    if message do
+    if message
+    {
         Swag.print("message: ", message, "\n")
+    }
+
     Swag.print("source:  ", loc.fileName, ":", loc.lineStart, ":", loc.colStart, "\n\n")
     g_TestFailed = true
     return true
@@ -109,8 +119,11 @@ private func recordTestCheckFailure(message: string?, loc: Swag.SourceCodeLocati
 // every #test is skipped and #main runs on a state no test has touched.
 func __isTestRun()->bool
 {
-    for arg in Swag.args() where Swag.stringCmp(arg, "swag.test") do
+    for arg in Swag.args() where Swag.stringCmp(arg, "swag.test")
+    {
         return true
+    }
+
     return false
 }
 
@@ -123,20 +136,29 @@ func __isTestFileSelected(path: string)->bool
 
     for arg in Swag.args()
     {
-        if arg.count < prefix.count or Swag.memcmp(arg.buffer, prefix.buffer, prefix.count) do
+        if arg.count < prefix.count or Swag.memcmp(arg.buffer, prefix.buffer, prefix.count)
+        {
             continue
+        }
 
         hasFilter = true
         let filterCount = arg.count - prefix.count
-        if filterCount > path.count do
+        if filterCount > path.count
+        {
             continue
-        if not filterCount do
+        }
+
+        if not filterCount
+        {
             return true
+        }
 
         for offset in path.count - filterCount + 1
         {
-            if not Swag.memcmp(path.buffer + offset, arg.buffer + prefix.count, filterCount) do
+            if not Swag.memcmp(path.buffer + offset, arg.buffer + prefix.count, filterCount)
+            {
                 return true
+            }
         }
     }
 
@@ -153,15 +175,19 @@ func __isTestTagSelected(tag: string)->bool
 
     for arg in Swag.args()
     {
-        if arg.count < prefix.count or Swag.memcmp(arg.buffer, prefix.buffer, prefix.count) do
+        if arg.count < prefix.count or Swag.memcmp(arg.buffer, prefix.buffer, prefix.count)
+        {
             continue
+        }
 
         let filter = Swag.makeString(arg.buffer + prefix.count, arg.count - prefix.count)
         if filter.count and filter.buffer[0] == '!'
         {
             let excluded = Swag.makeString(filter.buffer + 1, filter.count - 1)
-            if Swag.stringCmp(tag, excluded) do
+            if Swag.stringCmp(tag, excluded)
+            {
                 return false
+            }
         }
         else
         {
@@ -170,8 +196,10 @@ func __isTestTagSelected(tag: string)->bool
         }
     }
 
-    if hasInclude do
+    if hasInclude
+    {
         return included
+    }
 
     let integration = "integration."
     return tag.count < integration.count or Swag.memcmp(tag.buffer, integration.buffer, integration.count) != 0
@@ -182,14 +210,18 @@ func __isTestTagSelected(tag: string)->bool
 #[Swag.Optimize(false)]
 func __runTest(fn: *void, name: const [*] u8, path: const [*] u8, tag: const [*] u8)
 {
-    if not __isTestRun() do
+    if not __isTestRun()
+    {
         return
+    }
 
     let testName = Swag.makeString(name, cast(const cstring, name).count)
     let testPath = Swag.makeString(path, cast(const cstring, path).count)
     let testTag  = Swag.makeString(tag, cast(const cstring, tag).count)
-    if not __isTestFileSelected(testPath) or not __isTestTagSelected(testTag) do
+    if not __isTestFileSelected(testPath) or not __isTestTagSelected(testTag)
+    {
         return
+    }
 
     Swag.print("[swag.test] event=start executed=",
                cast(s64, g_TestsExecuted),
@@ -225,8 +257,10 @@ func __runTest(fn: *void, name: const [*] u8, path: const [*] u8, tag: const [*]
     g_TestContext = null
     __hostTestRestoreHardwareFilter(previousFilter)
 
-    if g_TestFailed do
+    if g_TestFailed
+    {
         g_TestsFailedCnt += 1
+    }
 
     Swag.print("[swag.test] event=",
                g_TestFailed ? "fail" : "pass",
@@ -240,17 +274,23 @@ func __runTest(fn: *void, name: const [*] u8, path: const [*] u8, tag: const [*]
 
     // A panic skipped the test's defers and destructors. A later test could wait forever on
     // abandoned state, so publish the tally and stop this process before running another one.
-    if g_TestAbandoned do
+    if g_TestAbandoned
+    {
         __testsDone()
+    }
 }
 
 func __testsDone()
 {
-    if not __isTestRun() do
+    if not __isTestRun()
+    {
         return
+    }
 
     // Marker parsed by the compiler's test command to report the native tally.
     Swag.print("[swag.test] executed=", cast(s64, g_TestsExecuted), " failed=", cast(s64, g_TestsFailedCnt), "\n")
-    if g_TestsFailedCnt do
+    if g_TestsFailedCnt
+    {
         __exitError()
+    }
 }

@@ -5,29 +5,29 @@ using Core, Gui, Pixel
 struct SavedSceneView
 {
     cellPlusOne: u64
-    path:      String
-    reading:   ViewerReadingState
-    readState: bool
-    offset:    f64
-    playMode:  Viewer.PlayMode
+    path:        String
+    reading:     ViewerReadingState
+    readState:   bool
+    offset:      f64
+    playMode:    Viewer.PlayMode
 }
 
 struct SavedScene
 {
-    views:      Array'SavedSceneView
-    layout:     SceneLayout
-    active:     u64
-    recent:     u64
+    views:        Array!{SavedSceneView}
+    layout:       SceneLayout
+    active:       u64
+    recent:       u64
     split:        f32 = 0.5
     columnCuts:   SceneTrackCuts
     rowCuts:      SceneTrackCuts
-    manual:     bool
-    maximized:  bool
-    compared:   bool
-    linked:     bool
-    links:      SceneLinks
+    manual:       bool
+    maximized:    bool
+    compared:     bool
+    linked:       bool
+    links:        SceneLinks
     savedEndMode: bool
-    comparison: SceneComparisonState
+    comparison:   SceneComparisonState
 }
 
 impl ViewerWorkspace
@@ -35,8 +35,10 @@ impl ViewerWorkspace
     mtd storeComparisonState()
     {
         let scene = .scene()
-        if scene and scene == .comparisonScene and .comparison do
+        if scene and scene == .comparisonScene and .comparison
+        {
             scene.comparisonState = .comparison.state
+        }
     }
 
     mtd serializeScenes(serializer: *Serialization.Serializer)
@@ -49,7 +51,7 @@ impl ViewerWorkspace
         }
 
         .storeComparisonState()
-        var saved:    Array'SavedScene
+        var saved:    Array!{SavedScene}
         var selected: u64
         for sceneValue, index in .scenes
         {
@@ -72,27 +74,48 @@ impl ViewerWorkspace
             for &view, viewIndex in scene.views
             {
                 let owner = view.document orelse .primary
-                if not owner.privacy.mayRemember(view.path) do
+                if not owner.privacy.mayRemember(view.path)
+                {
                     continue
-                if viewIndex == scene.active do
+                }
+
+                if viewIndex == scene.active
+                {
                     record.active = record.views.count
-                if viewIndex == scene.links.leader do
+                }
+
+                if viewIndex == scene.links.leader
+                {
                     record.links.leader = record.views.count
-                if viewIndex == scene.links.solo do
+                }
+
+                if viewIndex == scene.links.solo
+                {
                     record.links.solo = record.views.count
+                }
+
                 .captureView(view)
                 record.views.add({path: view.path, reading: view.reading, readState: view.readState, offset: view.offset, playMode: view.playMode, cellPlusOne: scene.cellOf(viewIndex) + 1})
             }
 
-            if record.views.isEmpty() and (not scene.manual or not scene.views.isEmpty()) do
+            if record.views.isEmpty() and (not scene.manual or not scene.views.isEmpty())
+            {
                 continue
+            }
+
             if record.views.count != scene.views.count
             {
-                for &view in record.views do
+                for &view in record.views
+                {
                     view.cellPlusOne = 0
+                }
             }
-            if index == .active do
+
+            if index == .active
+            {
                 selected = saved.count
+            }
+
             saved.add(#move record)
         }
 
@@ -102,62 +125,93 @@ impl ViewerWorkspace
 
     mtd restoreScenes(resume = true)
     {
-        if not .scenes.isEmpty() do
+        if not .scenes.isEmpty()
+        {
             return
+        }
+
         defer .restored.clear()
         for &record in .restored
         {
-            if .scenes.count >= MaxScenes do
+            if .scenes.count >= MaxScenes
+            {
                 break
+            }
+
             var scene: ViewerScene
-            if cast(u32, record.layout) <= cast(u32, SceneLayout.Auto) do
+            if cast(u32, record.layout) <= cast(u32, SceneLayout.Auto)
+            {
                 scene.layout = record.layout
-            scene.split = Math.clamp(record.split, 0.18, 0.82)
+            }
+
+            scene.split      = Math.clamp(record.split, 0.18, 0.82)
             scene.columnCuts = record.columnCuts
             scene.rowCuts    = record.rowCuts
             scene.columnCuts.validate()
             scene.rowCuts.validate()
             for &view in record.views
             {
-                if scene.views.count >= MaxViews do
+                if scene.views.count >= MaxViews
+                {
                     break
-                if not view.path.isEmpty() and .primary.privacy.mayRemember(view.path) do
+                }
+
+                if not view.path.isEmpty() and .primary.privacy.mayRemember(view.path)
+                {
                     scene.views.add({path: #move view.path, reading: #move view.reading, readState: view.readState, offset: view.offset, playMode: view.playMode, cellPlusOne: view.cellPlusOne})
+                }
             }
 
-            if scene.views.isEmpty() and (not record.manual or not record.views.isEmpty()) do
+            if scene.views.isEmpty() and (not record.manual or not record.views.isEmpty())
+            {
                 continue
+            }
+
             scene.manual = record.manual
             for _, index in scene.views where scene.cellOf(index) >= scene.cellCount() or scene.viewInCell(scene.cellOf(index)) != index
             {
                 scene.packCells()
                 break
             }
-            if not scene.views.isEmpty() do
+
+            if not scene.views.isEmpty()
+            {
                 scene.active = Math.min(record.active, scene.views.count - 1)
-            scene.maximized       = record.maximized and scene.views.count > 1
+            }
+
+            scene.maximized = record.maximized and scene.views.count > 1
             if scene.layout == .Single and scene.views.count > 1
             {
                 scene.layout    = .Auto
                 scene.maximized = true
             }
-            scene.recent          = record.recent
-            scene.compared        = record.compared and scene.views.count == 2
-            scene.linked          = record.linked and (scene.views.count > 1 or record.links.explorer and scene.cellCount() > 1)
-            scene.links           = record.links
+
+            scene.recent   = record.recent
+            scene.compared = record.compared and scene.views.count == 2
+            scene.linked   = record.linked and (scene.views.count > 1 or record.links.explorer and scene.cellCount() > 1)
+            scene.links    = record.links
+
             // Older sessions stored Stop with Shortest as their default.
-            if not record.savedEndMode and scene.links.end == .Shortest do
+            if not record.savedEndMode and scene.links.end == .Shortest
+            {
                 scene.links.end = .Independent
+            }
+
             scene.comparisonState = record.comparison
             .activation           = Math.max(.activation, scene.recent)
             .scenes.addNew()[]    = #move scene
         }
 
-        if .scenes.isEmpty() do
+        if .scenes.isEmpty()
+        {
             return
+        }
+
         .active = Math.min(.restoredTab, .scenes.count - 1)
-        if resume do
+        if resume
+        {
             .resumeScene(false)
+        }
     }
 }
 
@@ -188,8 +242,11 @@ impl IWnd for SceneSwitcherList
             let index = workspace.switchOrder[row]
             let scene = unwrap workspace.scenes[index]
             let rect  = Math.Rectangle{0, 28 + cast(f32, slot) * 56, area.width, 54}
-            if row == workspace.switchCursor do
+            if row == workspace.switchCursor
+            {
                 painter.fillRoundRect(rect, 8, 8, colors.selection)
+            }
+
             let preview = Math.Rectangle{12, rect.y + 7, 64, 40}
             painter.fillRoundRect(preview, 5, 5, colors.raised)
             let size = scene.dimensions()
@@ -197,7 +254,7 @@ impl IWnd for SceneSwitcherList
             {
                 painter.drawTexture(preview, scene.preview)
             }
-            elif scene.views.count == 1
+            else if scene.views.count == 1
             {
                 let icon = .theme().fileGlyph(scene.views[0].path, false, 24)
                 icon.paint(painter, preview.horzCenter() - 12, preview.vertCenter() - 12, colors.softText)
@@ -210,8 +267,8 @@ impl IWnd for SceneSwitcherList
                 for view, index in scene.views
                 {
                     let cell = scene.cellOf(index)
-                    let x = preview.x + cast(f32, cell % cols) * width
-                    let y = preview.y + cast(f32, cell / cols) * height
+                    let x    = preview.x + cast(f32, cell % cols) * width
+                    let y    = preview.y + cast(f32, cell / cols) * height
                     if y + height <= preview.bottom()
                     {
                         let glyph = .theme().fileGlyph(view.path, false)
@@ -270,8 +327,10 @@ impl ViewerWorkspace
            not surface or
            not surface.rt.colorBuffer.isValid() or
            .switcher or
-           .activeDocument().lens.isOpen() do
+           .activeDocument().lens.isOpen()
+        {
             return
+        }
 
         let rect   = .surfaceRect()
         let scale  = .deviceScale()
@@ -281,15 +340,20 @@ impl ViewerWorkspace
         let y      = Math.clamp(cast(s32, (rect.y + inset) * scale), 0, room.height - 1)
         let width  = Math.min(cast(s32, rect.width * scale), room.width - x)
         let height = Math.min(cast(s32, (rect.height - inset) * scale), room.height - y)
-        if width < 64 or height < 40 do
+        if width < 64 or height < 40
+        {
             return
+        }
 
         let cropWidth  = Math.min(width, height * 64 / 40)
         let cropHeight = Math.min(height, width * 40 / 64)
         let renderer   = .app().renderer
         var image      = surface.captureFrame(x + (width - cropWidth) / 2, y + (height - cropHeight) / 2, cropWidth, cropHeight)
-        if image.pixels.isEmpty() do
+        if image.pixels.isEmpty()
+        {
             return
+        }
+
         image.resize(64, 40, .Bilinear)
         renderer.removeTexture(&scene.preview)
         scene.preview = renderer.addImage(image)
@@ -297,14 +361,20 @@ impl ViewerWorkspace
 
     mtd cycleSwitcher(backward: bool)
     {
-        if .scenes.count < 2 do
+        if .scenes.count < 2
+        {
             return
+        }
+
         if not .switcher
         {
             .captureScenePreview()
             .switchOrder.clear()
-            for index in .scenes.count do
+            for index in .scenes.count
+            {
                 .switchOrder.add(index)
+            }
+
             let workspace = me
             .switchOrder.sort(func|workspace|(first, second)->s32
             {
@@ -318,14 +388,17 @@ impl ViewerWorkspace
             let width    = Math.min(460, area.width - 32)
             let rows     = Math.min(.switchOrder.count, cast(u64, Math.max(area.height - 150, 112.0) / 56))
             let height   = 79 + cast(f32, rows) * 56
-            let backdrop = Wnd.create'Wnd(me, area, "scope.scene.switcher.backdrop")
+            let backdrop = Wnd.create!{Wnd}(me, area, "scope.scene.switcher.backdrop")
             backdrop.backgroundStyle = .Transparent
             backdrop.hookOnEvent     = func|workspace|(wnd, evt)
             {
                 if evt is MouseEvent as mouse where mouse.target == wnd
                 {
-                    if mouse.kind == .Pressed do
+                    if mouse.kind == .Pressed
+                    {
                         workspace.closeSwitcher(choose: false)
+                    }
+
                     mouse.accepted = mouse.kind == .Accept or mouse.kind == .Pressed
                     return mouse.accepted
                 }
@@ -343,7 +416,7 @@ impl ViewerWorkspace
             backdrop.backdrop = {algorithm: .Gaussian, radius: metrics.lens_BlurRadius * 3,
                                  saturation: metrics.lens_Saturation,
                                  tint: .themeColors().floating_Shadow.withAlphaF32(metrics.lens_TintOpacity)}
-            let list = Wnd.create'SceneSwitcherList(.switcher)
+            let list = Wnd.create!{SceneSwitcherList}(.switcher)
             list.workspace       = me
             list.backgroundStyle = .Transparent
             list.dockStyle       = .Center
@@ -358,13 +431,18 @@ impl ViewerWorkspace
 
     mtd closeSwitcher(choose: bool)
     {
-        if not .switcher do
+        if not .switcher
+        {
             return
+        }
+
         let index = .switchOrder[.switchCursor]
         .switchBackdrop?.destroy()
         .switchBackdrop = null
         .switcher       = null
-        if choose do
+        if choose
+        {
             .selectScene(index, capturePreview: false)
+        }
     }
 }

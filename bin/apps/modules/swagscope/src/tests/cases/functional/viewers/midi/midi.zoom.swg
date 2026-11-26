@@ -83,14 +83,14 @@ internal func midiZoomFixturePath()->String => scopeTestDataPath("viewer.mid")
 // limit changes nothing, so the roll keeps following the window instead of freezing its scale.
 #test
 {
-    var bytes: Array'u8
+    var bytes: Array!{u8}
     bytes.add(cast(const [..] u8, "MThd"))
-    bytes.add([0'u8, 0, 0, 6, 0, 0, 0, 1, 1, 0xE0])
+    bytes.add([0_u8, 0, 0, 6, 0, 0, 0, 1, 1, 0xE0])
     bytes.add(cast(const [..] u8, "MTrk"))
-    bytes.add([0'u8, 0, 0, 15])
-    bytes.add([0'u8, 0x90, 60, 100])
-    bytes.add([0x81'u8, 0x80, 0x80, 0x00, 0x80, 60, 0])
-    bytes.add([0'u8, 0xFF, 0x2F, 0])
+    bytes.add([0_u8, 0, 0, 15])
+    bytes.add([0_u8, 0x90, 60, 100])
+    bytes.add([0x81_u8, 0x80, 0x80, 0x00, 0x80, 60, 0])
+    bytes.add([0_u8, 0xFF, 0x2F, 0])
     let fileName = Gui.Testing.tempFilePath("scope-midi-long-", ".mid")
     defer discard catch File.delete(fileName)
     expect File.writeAllBytes(fileName, bytes.toSlice())

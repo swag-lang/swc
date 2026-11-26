@@ -50,8 +50,10 @@ func buildInvoiceTotals(lines: const [..] InvoiceLine, expeditedShipping: bool)-
     }
 
     var shippingCents = 600
-    if expeditedShipping do
+    if expeditedShipping
+    {
         shippingCents = 1500
+    }
 
     let taxCents = taxableSubtotalCents / 10
 

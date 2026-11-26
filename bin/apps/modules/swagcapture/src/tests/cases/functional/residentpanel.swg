@@ -23,8 +23,11 @@ using Swag, Core, Gui, Pixel
         main.hubBounds = {}
         let centered = testOpenResidentPanel(&host, main, .Centered)
         let pointer  = testOpenResidentPanel(&host, main, .AtPointer)
-        for id in [ActionCapture.Area, ActionCapture.FullScreen, ActionCapture.ActiveWnd, ActionCapture.RecordVideo] do
+        for id in [ActionCapture.Area, ActionCapture.FullScreen, ActionCapture.ActiveWnd, ActionCapture.RecordVideo]
+        {
             Swag.require(testPanelOffers(centered, id) and testPanelOffers(pointer, id))
+        }
+
         Swag.require(centered.surface!.flags.has(.SmallCaption))
         Swag.require(not pointer.surface!.flags.has(.SmallCaption))
         Swag.require(testPanelOffers(centered, ActionGlobal.Minimize))
@@ -94,8 +97,11 @@ using Swag, Core, Gui, Pixel
     Swag.require(main.residentPanel == panel)
     for id in [ActionGlobal.ShowLibrary, ActionGlobal.ShowEditor, ActionCapture.Area, ActionCapture.FullScreen,
                ActionCapture.ActiveWnd, ActionCapture.RecordVideo, ResidentPanel.MoreCaptures,
-               ActionGlobal.ShowHub, ActionGlobal.Exit] do
+               ActionGlobal.ShowHub, ActionGlobal.Exit]
+    {
         Swag.require(testPanelOffers(panel, id), id)
+    }
+
     for item, index in panel.menu.items where item and item.id == ActionCapture.RecordVideo
     {
         Swag.require(item.rightName.text == Input.formatKeyShortcut(.CtrlShift, .F10))
@@ -119,8 +125,11 @@ using Swag, Core, Gui, Pixel
     let delays = assume cast(*StackLayoutCtrl, panel.menu.children[1])
     Swag.require(delays.children.count == CaptureDelays.count + 1)
     panel.choose(ResidentPanel.MoreCaptures)
-    for id in [ActionCapture.LastArea, ActionCapture.RecordScreen, ActionCapture.RecordActiveWindow, ActionCapture.Record] do
+    for id in [ActionCapture.LastArea, ActionCapture.RecordScreen, ActionCapture.RecordActiveWindow, ActionCapture.Record]
+    {
         Swag.require(testPanelOffers(panel, id), id)
+    }
+
     Swag.require(not testPanelOffers(panel, ActionCapture.screenId(0)))
     Swag.require(not testPanelOffers(panel, ActionCapture.recordScreenId(0)))
     panel.choose(ResidentPanel.BackToCaptures)
@@ -216,8 +225,10 @@ using Swag, Core, Gui, Pixel
             Swag.require(main.captureOptions.delay == choice.seconds)
             Swag.require(main.residentPanel == panel and not panel.menu.isModalEnded())
             Swag.require(cursor.isChecked != previousCursor)
-            for child, other in choices.children where other > 0 do
+            for child, other in choices.children where other > 0
+            {
                 Swag.require((assume cast(*IconButton, child)).isChecked == (other == index + 1))
+            }
         }
 
         panel.close()
@@ -262,8 +273,10 @@ using Swag, Core, Gui, Pixel
             selecting = not destinationHeading
         }
 
-        if entry.label and entry.name.text == appStrings().ui_AfterPictureCapture do
+        if entry.label and entry.name.text == appStrings().ui_AfterPictureCapture
+        {
             destinationHeading = true
+        }
     }
 
     var left = KeyEvent{kind: .Pressed, key: .Left}
@@ -273,13 +286,19 @@ using Swag, Core, Gui, Pixel
 
     for secondary in [false, true]
     {
-        if secondary do
+        if secondary
+        {
             panel.choose(ResidentPanel.MoreCaptures)
-        var icons: Array'Icon
+        }
+
+        var icons: Array!{Icon}
         for item in panel.menu.items where item!.icon.isValid()
         {
-            for existing in icons do
+            for existing in icons
+            {
                 Swag.require(existing.imageList != item.icon.imageList or existing.index != item.icon.index, item.name.text)
+            }
+
             icons.add(item.icon)
         }
     }
@@ -309,8 +328,10 @@ using Swag, Core, Gui, Pixel
         for item in panel.menu.items where item and not item.disabled and not item.label and not item.separator
         {
             panel.sendEvent(&down)
-            if item.id == ResidentPanel.MoreCaptures do
+            if item.id == ResidentPanel.MoreCaptures
+            {
                 break
+            }
         }
 
         var enter = KeyEvent{kind: .Pressed, key: .Return}
@@ -339,7 +360,7 @@ using Swag, Core, Gui, Pixel
 {
     var host: Testing.HeadlessHost
     let main     = testSetupSurfaceMain(&host)
-    let recorder = Memory.new'Recorder()
+    let recorder = Memory.new!{Recorder}()
     defer
     {
         g_Recorder = null

@@ -37,7 +37,7 @@ impl IWnd for FileTileFactsProbe
 {
     var host: Testing.HeadlessHost
     host.setup(240, 140)
-    let probe = Wnd.create'FileTileFactsProbe(&host.root, {0, 0, 240, 140})
+    let probe = Wnd.create!{FileTileFactsProbe}(&host.root, {0, 0, 240, 140})
     let image = host.renderSettled()
     Swag.require(probe.called and probe.factsRect.width > 0)
     Swag.require(probe.factsRect.x == probe.tile.x)
@@ -69,9 +69,9 @@ impl IWnd for FileTileFactsProbe
 {
     var host: Testing.HeadlessHost
     host.setup(360, 180, dpiScale: 1.5)
-    let probe = Wnd.create'FileTileFactsProbe(&host.root, {0, 0, 360, 180})
+    let probe = Wnd.create!{FileTileFactsProbe}(&host.root, {0, 0, 360, 180})
     discard host.renderSettled()
-    let mono = host.theme.createDefaultFontFs(host.theme.metrics.fileTile_FactsFontSize)
+    let mono  = host.theme.createDefaultFontFs(host.theme.metrics.fileTile_FactsFontSize)
     let width = Painter.measureStringSnapped("1280 x 800", mono, deviceScale: probe.deviceScale())
     Swag.require(Math.isEqualEpsilon(probe.factsRect.right() + host.theme.metrics.fileTile_Inset + width, probe.tile.right(), 0.01))
     let name = "Contact sheet.png"

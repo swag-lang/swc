@@ -155,8 +155,11 @@ public impl Argb
     func fromName(name: string)->Argb
     {
         let t = #typeof(Argb)
-        for it in t.values where it.name == name do
+        for it in t.values where it.name == name
+        {
             return cast(const *Argb, unwrap it.value)[]
+        }
+
         return Argb.Black
     }
 }

@@ -15,12 +15,12 @@ func reorder(values: [*] u64, first, second, next: u64)->u64
 
 #test
 {
-    for input in [[100'u64, 17, 23], [0'u64, 17, 23],
-                  [0x8000000000000000'u64, 0xFFFFFFFFFFFFFFFF, 17]]
+    for input in [[100_u64, 17, 23], [0_u64, 17, 23],
+                  [0x8000000000000000_u64, 0xFFFFFFFFFFFFFFFF, 17]]
     {
-        for first in 3'u64
+        for first in 3_u64
         {
-            for second in 3'u64
+            for second in 3_u64
             {
                 var actual   = input
                 var expected = input
@@ -30,8 +30,10 @@ func reorder(values: [*] u64, first, second, next: u64)->u64
                     expected[second] = input[first]
                 }
                 Swag.require(reorder(&actual[0], first, second, 2) == (expected[first] ^ expected[2]))
-                for i in 3 do
+                for i in 3
+                {
                     Swag.require(actual[i] == expected[i])
+                }
             }
         }
     }

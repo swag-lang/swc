@@ -37,13 +37,21 @@ func outlineTestSpan(img: Image, x: s32, whiteOnly: bool)->{ top, bottom: s32 }
     for y in OutlineTestHeight
     {
         let c = img.pixelColor(x, cast(s32, y))
-        if c.r <= 60 and c.b >= 150 do
+        if c.r <= 60 and c.b >= 150
+        {
             continue
-        if whiteOnly and c.r < 200 do
-            continue
+        }
 
-        if result.top < 0 do
+        if whiteOnly and c.r < 200
+        {
+            continue
+        }
+
+        if result.top < 0
+        {
             result.top = cast(s32, y)
+        }
+
         result.bottom = cast(s32, y)
     }
 
@@ -51,7 +59,7 @@ func outlineTestSpan(img: Image, x: s32, whiteOnly: bool)->{ top, bottom: s32 }
 }
 
 // The x of every place the stroke starts or stops covering the row it runs along.
-func outlineTestRuns(img: Image, y: s32)->Array's32
+func outlineTestRuns(img: Image, y: s32)->Array!{s32}
 {
     var result: #returntype
     var inside = false
@@ -131,8 +139,10 @@ func outlineTestPen(outline: f32, cap: LineCapStyle, dash: DashStyle)->Pen
     let borderedRuns = outlineTestRuns(bordered, 60)
     Swag.require(plainRuns.count > 4)
     Swag.require(plainRuns.count == borderedRuns.count)
-    for r, i in plainRuns do
+    for r, i in plainRuns
+    {
         Swag.require(r == borderedRuns[i])
+    }
 }
 
 // An arc fan covers its own centre.
@@ -165,8 +175,10 @@ func outlineTestPen(outline: f32, cap: LineCapStyle, dash: DashStyle)->Pen
     let img = renderer.surfaceImage()
     for y in 58 to 62
     {
-        for x in 38 to 42 do
+        for x in 38 to 42
+        {
             Swag.require(img.pixelColor(cast(s32, x), cast(s32, y)).r == 255)
+        }
     }
 }
 
@@ -190,11 +202,14 @@ func outlineTestPen(outline: f32, cap: LineCapStyle, dash: DashStyle)->Pen
     painter.drawPath(&path, pen)
     painter.end()
 
-    var vertices = 0'u64
+    var vertices = 0_u64
     for cmd in painter.commandBuffer
     {
-        if not (cmd.op is .DrawTriangles) do
+        if not (cmd.op is .DrawTriangles)
+        {
             continue
+        }
+
         for i in cmd.drawTriangles.count
         {
             let pos = painter.vertexBuffer[cmd.drawTriangles.start + i].pos
@@ -245,8 +260,11 @@ func outlineTestPen(outline: f32, cap: LineCapStyle, dash: DashStyle)->Pen
             // antialiasing reaches half a pixel past both.
             for cmd in painter.commandBuffer
             {
-                if not (cmd.op is .DrawTriangles) do
+                if not (cmd.op is .DrawTriangles)
+                {
                     continue
+                }
+
                 for i in cmd.drawTriangles.count
                 {
                     let pos     = painter.vertexBuffer[cmd.drawTriangles.start + i].pos

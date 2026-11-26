@@ -7,7 +7,7 @@ using Core, Core.Math, Pdf
 #[Swag.TestTag("golden")]
 #test
 {
-    var objects: Array'u8
+    var objects: Array!{u8}
     addObject(&objects, 5, "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>")
     let content  = "BT /F0 10 Tf 10 80 Td 3 Tr (hidden) Tj 7 Tr (clipped) Tj ET"
     var document = expect Document.decode(singlePagePdf("/Font << /F0 5 0 R >>", cast(const [..] u8, content), objects.toSlice()).toSlice())
@@ -44,8 +44,11 @@ using Core, Core.Math, Pdf
         .Courier, .CourierBold, .CourierOblique, .CourierBoldOblique]
     var document = Document.create()
     var page     = Page.create(240, 300)
-    for face, index in faces do
+    for face, index in faces
+    {
         page.addText("Visible café 123", 10, 10 + cast(f32, index) * 23, 14, font: face)
+    }
+
     document.addPage(#move page)
     let bytes     = expect document.encode()
     var roundtrip = expect Document.decode(bytes.toSlice())

@@ -108,8 +108,10 @@ may omit a redundant clear only when it proves complete element coverage.
 #test
 {
     var array: [100] s32
-    for i in array.count do
+    for i in array.count
+    {
         array[i] = i
+    }
 }
 
 /**
@@ -134,12 +136,12 @@ first element: a later element widens the result, and an explicit suffix on the
 first one does not pin it down.
 
 ```swag
-let widened = [1's32, 2.75, 3]     // a '[3] f32', not a '[3] s32'
+let widened = [1_s32, 2.75, 3]     // a '[3] f32', not a '[3] s32'
 ```
 */
 #test
 {
-    var arr = [1'f64, 2, 3, 4]
+    var arr = [1_f64, 2, 3, 4]
     #assert(arr.count == 4)
     #assert(#typeof(arr) == #type [4] f64)
     Swag.require(arr[3] == 4.0)

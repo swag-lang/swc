@@ -14,7 +14,7 @@ struct XmlPayload
     id:     u32
     active: bool
     name:   String
-    counts: Array's32
+    counts: Array!{s32}
     pair:   XmlPair
 }
 
@@ -31,7 +31,7 @@ struct XmlFloatPayload
 
 struct XmlPairSequencePayload
 {
-    pairs: Array'XmlPair
+    pairs: Array!{XmlPair}
 }
 
 // XML writes fields in declaration order, escapes text, and round-trips its supported values.
@@ -45,7 +45,7 @@ struct XmlPairSequencePayload
     payload.pair = {x: 3, y: -2}
 
     var output:  ConcatBuffer
-    var encoder: Serialization.Encoder'Serialization.Write.Xml
+    var encoder: Serialization.Encoder!{Serialization.Write.Xml}
     expect encoder.writeAll(&output, payload)
     let xml = output.toString()
     var expected: ConcatBuffer
@@ -54,8 +54,8 @@ struct XmlPairSequencePayload
     expected.addBytes("<counts>-1 0 4</counts><pair><x>3</x><y>-2</y></pair></root>")
     Swag.require(xml == expected.toString())
 
-    var decoder: Serialization.Decoder'Serialization.Read.Xml
-    let decoded = expect decoder.readAll'XmlPayload(xml.toSlice())
+    var decoder: Serialization.Decoder!{Serialization.Read.Xml}
+    let decoded = expect decoder.readAll!{XmlPayload}(xml.toSlice())
     defer Memory.delete(decoded)
     Swag.require(decoded.id == 7)
     Swag.require(decoded.active)
@@ -70,13 +70,13 @@ struct XmlPairSequencePayload
     let payload = XmlFloatPayload{single: 1.5, double: -2.25}
 
     var output:  ConcatBuffer
-    var encoder: Serialization.Encoder'Serialization.Write.Xml
+    var encoder: Serialization.Encoder!{Serialization.Write.Xml}
     expect encoder.writeAll(&output, payload)
     let xml = output.toString()
     Swag.require(xml == "<root><single>1.5</single><double>-2.25</double></root>")
 
-    var decoder: Serialization.Decoder'Serialization.Read.Xml
-    let decoded = expect decoder.readAll'XmlFloatPayload(xml.toSlice())
+    var decoder: Serialization.Decoder!{Serialization.Read.Xml}
+    let decoded = expect decoder.readAll!{XmlFloatPayload}(xml.toSlice())
     defer Memory.delete(decoded)
     Swag.require(decoded.single == payload.single and decoded.double == payload.double)
 }
@@ -86,7 +86,7 @@ struct XmlPairSequencePayload
 {
     let value = XmlTextPayload{value: "before\x01after"}
     var output:  ConcatBuffer
-    var encoder: Serialization.Encoder'Serialization.Write.Xml
+    var encoder: Serialization.Encoder!{Serialization.Write.Xml}
     var error:   Swag.Error
     discard catch encoder.writeAll(&output, value) as error
     Swag.require(error.value() is Errors.SerializationError)
@@ -99,7 +99,7 @@ struct XmlPairSequencePayload
     let value = XmlTextPayload{value: Swag.makeString(&InvalidUtf8[0], InvalidUtf8.count)}
 
     var output:  ConcatBuffer
-    var encoder: Serialization.Encoder'Serialization.Write.Xml
+    var encoder: Serialization.Encoder!{Serialization.Write.Xml}
     var error:   Swag.Error
     discard catch encoder.writeAll(&output, value) as error
     Swag.require(error.value() is Errors.SerializationError)
@@ -110,8 +110,8 @@ struct XmlPairSequencePayload
 {
     let xml = "<payload><value>  preserve this  </value></payload>"
 
-    var decoder: Serialization.Decoder'Serialization.Read.Xml
-    let decoded = expect decoder.readAll'XmlTextPayload(cast(const [..] u8, xml))
+    var decoder: Serialization.Decoder!{Serialization.Read.Xml}
+    let decoded = expect decoder.readAll!{XmlTextPayload}(cast(const [..] u8, xml))
     defer Memory.delete(decoded)
     Swag.require(decoded.value == "  preserve this  ")
 }
@@ -123,7 +123,7 @@ struct XmlPairSequencePayload
     value.pairs.add({x: 1, y: 2})
 
     var output:  ConcatBuffer
-    var encoder: Serialization.Encoder'Serialization.Write.Xml
+    var encoder: Serialization.Encoder!{Serialization.Write.Xml}
     var error:   Swag.Error
     discard catch encoder.writeAll(&output, value) as error
     Swag.require(error.value() is Errors.UnsupportedFormatError)
@@ -135,8 +135,8 @@ struct XmlPairSequencePayload
 {
     let source: String = "\uFEFF<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<payload>\n  <id>7</id>\n  <active>true</active>\n  <name>a &lt;b&gt; &amp; &quot;c&apos;</name>\n  <counts> -1 0 4 </counts>\n  <pair><x>3</x><y>-2</y></pair>\n</payload>\n"
 
-    var decoder: Serialization.Decoder'Serialization.Read.Xml
-    let decoded = expect decoder.readAll'XmlPayload(source.toSlice())
+    var decoder: Serialization.Decoder!{Serialization.Read.Xml}
+    let decoded = expect decoder.readAll!{XmlPayload}(source.toSlice())
     defer Memory.delete(decoded)
     Swag.require(decoded.id == 7)
     Swag.require(decoded.active)
@@ -157,9 +157,9 @@ struct XmlPairSequencePayload
 
     for input in InvalidXml
     {
-        var decoder:    Serialization.Decoder'Serialization.Read.Xml
+        var decoder:    Serialization.Decoder!{Serialization.Read.Xml}
         var errOutcome: Swag.Error
-        catch CoreTests.readAndDelete'(XmlPayload, Serialization.Read.Xml)(&decoder, cast(const [..] u8, input)) as errOutcome
+        catch CoreTests.readAndDelete!{XmlPayload, Serialization.Read.Xml}(&decoder, cast(const [..] u8, input)) as errOutcome
         let err = errOutcome.value()
         Swag.require(err != null)
     }
@@ -176,9 +176,9 @@ struct XmlPairSequencePayload
 
     for input in InvalidXml
     {
-        var decoder:      Serialization.Decoder'Serialization.Read.Xml
+        var decoder:      Serialization.Decoder!{Serialization.Read.Xml}
         var errorOutcome: Swag.Error
-        catch CoreTests.readAndDelete'(XmlPayload, Serialization.Read.Xml)(&decoder, cast(const [..] u8, input)) as errorOutcome
+        catch CoreTests.readAndDelete!{XmlPayload, Serialization.Read.Xml}(&decoder, cast(const [..] u8, input)) as errorOutcome
         Swag.require(errorOutcome.value() is Errors.SyntaxError)
     }
 }
@@ -186,9 +186,9 @@ struct XmlPairSequencePayload
 #test
 {
     let invalidXml: String = "<p>\n<id>7</id>\n<active>true</active>\n<name>x\ny&nbsp;</name><counts></counts><pair><x>0</x><y>0</y></pair></p>"
-    var decoder:    Serialization.Decoder'Serialization.Read.Xml
+    var decoder:    Serialization.Decoder!{Serialization.Read.Xml}
     var errOutcome: Swag.Error
-    discard catch CoreTests.readAndDelete'(XmlPayload, Serialization.Read.Xml)(&decoder, invalidXml.toSlice()) as errOutcome
+    discard catch CoreTests.readAndDelete!{XmlPayload, Serialization.Read.Xml}(&decoder, invalidXml.toSlice()) as errOutcome
     let syntax = expect cast(*SyntaxError, errOutcome.value())
     Swag.require(syntax.line == 5 and syntax.col == 3)
 }
@@ -203,9 +203,9 @@ struct XmlPairSequencePayload
 
     for input in MalformedDocuments
     {
-        var decoder:      Serialization.Decoder'Serialization.Read.Xml
+        var decoder:      Serialization.Decoder!{Serialization.Read.Xml}
         var errorOutcome: Swag.Error
-        catch CoreTests.readAndDelete'(XmlPayload, Serialization.Read.Xml)(&decoder, cast(const [..] u8, input)) as errorOutcome
+        catch CoreTests.readAndDelete!{XmlPayload, Serialization.Read.Xml}(&decoder, cast(const [..] u8, input)) as errorOutcome
         Swag.require(errorOutcome.value() is SyntaxError)
     }
 }
@@ -219,15 +219,15 @@ struct XmlPairSequencePayload
 
     for input in InvalidRoots
     {
-        var decoder:    Serialization.Decoder'Serialization.Read.Xml
+        var decoder:    Serialization.Decoder!{Serialization.Read.Xml}
         var errOutcome: Swag.Error
-        catch CoreTests.readAndDelete'(XmlTextPayload, Serialization.Read.Xml)(&decoder, cast(const [..] u8, input)) as errOutcome
+        catch CoreTests.readAndDelete!{XmlTextPayload, Serialization.Read.Xml}(&decoder, cast(const [..] u8, input)) as errOutcome
         Swag.require(errOutcome.value() is SyntaxError)
     }
 
     let validUnicodeRoot: String = "<é_2><value>x</value></é_2>"
-    var decoder: Serialization.Decoder'Serialization.Read.Xml
-    let decoded = expect decoder.readAll'XmlTextPayload(validUnicodeRoot.toSlice())
+    var decoder: Serialization.Decoder!{Serialization.Read.Xml}
+    let decoded = expect decoder.readAll!{XmlTextPayload}(validUnicodeRoot.toSlice())
     defer Memory.delete(decoded)
     Swag.require(decoded.value == "x")
 }
@@ -235,7 +235,7 @@ struct XmlPairSequencePayload
 // XML input is rejected at the boundary when its bytes are not valid UTF-8.
 #test
 {
-    let invalidXml:   [4] u8 = ['<'u8, 'p', '>', 0xFF]
+    let invalidXml:   [4] u8 = ['<'_u8, 'p', '>', 0xFF]
     var decoder:      Serialization.Read.Xml
     var errorOutcome: Swag.Error
     catch decoder.startRead(invalidXml) as errorOutcome
@@ -245,8 +245,8 @@ struct XmlPairSequencePayload
 #test
 {
     let numericEntities: String = "<p><value>&#233;&#x1F600;</value></p>"
-    var decoder:         Serialization.Decoder'Serialization.Read.Xml
-    let decoded = expect decoder.readAll'XmlTextPayload(numericEntities.toSlice())
+    var decoder:         Serialization.Decoder!{Serialization.Read.Xml}
+    let decoded = expect decoder.readAll!{XmlTextPayload}(numericEntities.toSlice())
     defer Memory.delete(decoded)
     Swag.require(decoded.value == "é😀")
 
@@ -256,7 +256,7 @@ struct XmlPairSequencePayload
     {
         let invalidXml = Format.toString("<p><value>[[%]]</value></p>", reference)
         var errorOutcome: Swag.Error
-        catch CoreTests.readAndDelete'(XmlTextPayload, Serialization.Read.Xml)(&decoder, cast(const [..] u8, invalidXml)) as errorOutcome
+        catch CoreTests.readAndDelete!{XmlTextPayload, Serialization.Read.Xml}(&decoder, cast(const [..] u8, invalidXml)) as errorOutcome
         Swag.require(errorOutcome.value() is SyntaxError)
     }
 }
@@ -265,18 +265,18 @@ struct XmlPairSequencePayload
 #test
 {
     let invalidXml:   String = "<p><value>before\x01after</value></p>"
-    var decoder:      Serialization.Decoder'Serialization.Read.Xml
+    var decoder:      Serialization.Decoder!{Serialization.Read.Xml}
     var errorOutcome: Swag.Error
-    catch CoreTests.readAndDelete'(XmlTextPayload, Serialization.Read.Xml)(&decoder, invalidXml.toSlice()) as errorOutcome
+    catch CoreTests.readAndDelete!{XmlTextPayload, Serialization.Read.Xml}(&decoder, invalidXml.toSlice()) as errorOutcome
     Swag.require(errorOutcome.value() is SyntaxError)
 
     let validXml: String = "<p><value>a\tb\nc\rd</value></p>"
-    let decoded = expect decoder.readAll'XmlTextPayload(validXml.toSlice())
+    let decoded = expect decoder.readAll!{XmlTextPayload}(validXml.toSlice())
     defer Memory.delete(decoded)
     Swag.require(decoded.value.count == 7)
 
     let lineEndXml: String = "<p><value>a\r\nb\rc</value></p>"
-    let normalized         = expect decoder.readAll'XmlTextPayload(lineEndXml.toSlice())
+    let normalized         = expect decoder.readAll!{XmlTextPayload}(lineEndXml.toSlice())
     defer Memory.delete(normalized)
     Swag.require(normalized.value == "a\nb\nc")
 }
@@ -285,9 +285,9 @@ struct XmlPairSequencePayload
 #test
 {
     let invalidXml:   String = "<p><value>before]]>after</value></p>"
-    var decoder:      Serialization.Decoder'Serialization.Read.Xml
+    var decoder:      Serialization.Decoder!{Serialization.Read.Xml}
     var errorOutcome: Swag.Error
-    catch CoreTests.readAndDelete'(XmlTextPayload, Serialization.Read.Xml)(&decoder, invalidXml.toSlice()) as errorOutcome
+    catch CoreTests.readAndDelete!{XmlTextPayload, Serialization.Read.Xml}(&decoder, invalidXml.toSlice()) as errorOutcome
     Swag.require(errorOutcome.value() is Errors.SyntaxError)
 }
 
@@ -296,7 +296,7 @@ func(T) xmlAssertNative(input: string, expected: T)
 {
     var reader: Serialization.Read.Xml
     expect reader.startRead(input)
-    let value = expect reader.readNative'T()
+    let value = expect reader.readNative!{T}()
     Swag.require(value == expected)
     Swag.require(reader.stream.position() == input.count - 1)
     Swag.require(reader.stream.peekU8() == '<')
@@ -307,22 +307,22 @@ func(T) xmlRejectsOverflow(input: string)->bool
     var reader: Serialization.Read.Xml
     expect reader.startRead(input)
     var outcome: Swag.Error
-    discard catch reader.readNative'T() as outcome
+    discard catch reader.readNative!{T}() as outcome
     return outcome.value() != null
 }
 
 #test
 {
-    xmlAssertNative(" 1.5<", 1.5'f32)
-    xmlAssertNative(" -2.5<", -2.5'f64)
-    xmlAssertNative(" -7<", -7's8)
-    xmlAssertNative(" -700<", -700's16)
-    xmlAssertNative(" -70000<", -70000's32)
-    xmlAssertNative(" -7000000000<", -7000000000's64)
-    xmlAssertNative(" 250<", 250'u8)
-    xmlAssertNative(" 65000<", 65000'u16)
-    xmlAssertNative(" 4000000000<", 4000000000'u32)
-    xmlAssertNative(" 18000000000000000000<", 18000000000000000000'u64)
+    xmlAssertNative(" 1.5<", 1.5_f32)
+    xmlAssertNative(" -2.5<", -2.5_f64)
+    xmlAssertNative(" -7<", -7_s8)
+    xmlAssertNative(" -700<", -700_s16)
+    xmlAssertNative(" -70000<", -70000_s32)
+    xmlAssertNative(" -7000000000<", -7000000000_s64)
+    xmlAssertNative(" 250<", 250_u8)
+    xmlAssertNative(" 65000<", 65000_u16)
+    xmlAssertNative(" 4000000000<", 4000000000_u32)
+    xmlAssertNative(" 18000000000000000000<", 18000000000000000000_u64)
 }
 
 #test
@@ -332,18 +332,18 @@ func(T) xmlRejectsOverflow(input: string)->bool
     defer culture.numberFormat = previousNumberFmt
     culture.numberFormat = Globalization.CultureInfo.fromName("fr-FR").numberFormat
 
-    xmlAssertNative(" 1.5<", 1.5'f32)
-    xmlAssertNative(" -2.5<", -2.5'f64)
+    xmlAssertNative(" 1.5<", 1.5_f32)
+    xmlAssertNative(" -2.5<", -2.5_f64)
     Swag.require(culture.numberFormat.decimalSeparator == ',')
 }
 
 // Numeric overflow must fail instead of returning the parser's saturated value.
 #test
 {
-    Swag.require(xmlRejectsOverflow'u8("256<"))
-    Swag.require(xmlRejectsOverflow's8("-129<"))
-    Swag.require(xmlRejectsOverflow'f32("1e39<"))
-    Swag.require(xmlRejectsOverflow'f32("-1e39<"))
-    Swag.require(xmlRejectsOverflow'f64("1e309<"))
-    Swag.require(xmlRejectsOverflow'f64("-1e309<"))
+    Swag.require(xmlRejectsOverflow!{u8}("256<"))
+    Swag.require(xmlRejectsOverflow!{s8}("-129<"))
+    Swag.require(xmlRejectsOverflow!{f32}("1e39<"))
+    Swag.require(xmlRejectsOverflow!{f32}("-1e39<"))
+    Swag.require(xmlRejectsOverflow!{f64}("1e309<"))
+    Swag.require(xmlRejectsOverflow!{f64}("-1e309<"))
 }

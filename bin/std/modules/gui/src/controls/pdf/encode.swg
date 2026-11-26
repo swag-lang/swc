@@ -2,9 +2,9 @@
 
 using Core, Core.Errors, Core.Math, Pixel
 
-private const CatalogObject = 1'u32
-private const PagesObject   = 2'u32
-private const InfoObject    = 3'u32
+private const CatalogObject = 1_u32
+private const PagesObject   = 2_u32
+private const InfoObject    = 3_u32
 
 private struct ImageObject
 {
@@ -30,22 +30,22 @@ private struct PageObjects
 {
     page:    u32
     content: u32
-    images:  Array'ImageObject
+    images:  Array!{u32}
+    masks:   Array!{u32}     // Soft-mask object of each image, or zero when it is opaque.
 }
 
 // One image reduced to what the writer stores: gray or RGB samples, plus coverage.
 private struct EncodedImage
 {
-    samples:          Array'u8
-    alpha:            Array'u8
-    bitsPerComponent: u8 = 8
-    isGray:           bool
+    samples: Array!{u8}
+    alpha:   Array!{u8}
+    isGray:  bool
 }
 
 private struct Writer
 {
-    bytes:   Array'u8
-    offsets: Array'u64
+    bytes:   Array!{u8}
+    offsets: Array!{u64}
     flushed: u64
     zlib:    Compress.ZLib
 }
@@ -68,8 +68,11 @@ private impl Writer
 
     mtd beginObject(number: u32)
     {
-        if number >= .offsets.count do
+        if number >= .offsets.count
+        {
             .offsets.resize(cast(u64, number) + 1)
+        }
+
         .offsets[number] = .position()
         .append(Format.toString("% 0 obj\n", number).toString())
     }
@@ -160,25 +163,28 @@ private func appendPdfNumber(result: *String, value: f32)
 private func pdfNumber(value: f32)->String
 {
     var result: #returntype
-    appendPdfNumber(&result, value)
+    if value == Math.trunc(value) and Math.abs(value) < 1e9
+    {
+        let magnitude = cast(s64, Math.abs(value))
+        result.appendFormat("%", value < 0 ? -magnitude : magnitude)
+        return result
+    }
+
+    result.appendFormat("%{f4}", value)
+    while result.endsWith("0")
+    {
+        result.removeBack(1)
+    }
+
+    if result.endsWith(".")
+    {
+        result.removeBack(1)
+    }
+
     return result
 }
 
-private func appendPdfPoint(result: *String, point: Vector2, suffix: string)
-{
-    appendPdfNumber(result, point.x)
-    result[] += ' '
-    appendPdfNumber(result, point.y)
-    result[] += suffix
-}
-
-private func appendPdfMatrix(result: *String, transform: Transform2)
-{
-    appendPdfPoint(result, {transform.m11, -transform.m12}, " ")
-    appendPdfPoint(result, {-transform.m21, transform.m22}, " ")
-}
-
-private func windows1252(text: string)->Array'u8 fail
+private func windows1252(text: string)->Array!{u8} fail
 {
     var result: #returntype
     Utf8.visitRunes(text)
@@ -190,7 +196,7 @@ private func windows1252(text: string)->Array'u8 fail
         }
 
         var found = false
-        for value in 0x80'u32 to 0x9F
+        for value in 0x80_u32 to 0x9F
         {
             if Text.windows1252Rune(cast(u8, value)) == c
             {
@@ -200,8 +206,10 @@ private func windows1252(text: string)->Array'u8 fail
             }
         }
 
-        if not found do
+        if not found
+        {
             fail UnsupportedFormatError{"PDF text output cannot encode this Unicode character"}
+        }
     }
 
     return result
@@ -267,9 +275,12 @@ private func appendStrokeStyle(result: *String, item: const *Item)
     result.appendFormat("% J\n% j\n% M\n[", cap, join, pdfNumber(item.strokeStyle.miterLimit))
     for length, index in item.strokeStyle.dashPattern
     {
-        if index do
+        if index
+        {
             result[] += ' '
-        appendPdfNumber(result, length)
+        }
+
+        result[] += pdfNumber(length)
     }
 
     result.appendFormat("] % d\n", pdfNumber(item.strokeStyle.dashPhase))
@@ -303,8 +314,11 @@ private func appendPath(result: *String, page: const *Page, item: const *Item)
                 appendPdfPoint(result, encoded, index == 0 ? " m\n" : " l\n")
             }
 
-            if path.isClosed do
+            if path.isClosed
+            {
                 result[] += "h\n"
+            }
+
             continue
         }
 
@@ -347,12 +361,17 @@ private func appendPath(result: *String, page: const *Page, item: const *Item)
             current = element.position
         }
 
-        if path.isClosed do
+        if path.isClosed
+        {
             result[] += "h\n"
+        }
     }
 
-    if item.hasFill do
+    if item.hasFill
+    {
         appendColor(result, item.fillColor, false)
+    }
+
     if item.hasStroke
     {
         appendColor(result, item.strokeColor, true)
@@ -361,16 +380,22 @@ private func appendPath(result: *String, page: const *Page, item: const *Item)
         appendStrokeStyle(result, item)
     }
 
-    if item.hasFill and item.hasStroke do
+    if item.hasFill and item.hasStroke
+    {
         result[] += "B\n"
-    elif item.hasFill do
+    }
+    else if item.hasFill
+    {
         result[] += "f\n"
-    else do
+    }
+    else
+    {
         result[] += "S\n"
+    }
 }
 
 // Returns the index each standard face occupies in the shared font resource dictionary.
-private func documentFonts(document: const *Document)->Array'StandardFont
+private func documentFonts(document: const *Document)->Array!{StandardFont}
 {
     var result: #returntype
     for page in document.pages
@@ -384,8 +409,10 @@ private func documentFonts(document: const *Document)->Array'StandardFont
                 break
             }
 
-            if not found do
+            if not found
+            {
                 result.add(item.standardFont)
+            }
         }
     }
 
@@ -394,15 +421,18 @@ private func documentFonts(document: const *Document)->Array'StandardFont
 
 private func fontSlot(fonts: const [..] StandardFont, font: StandardFont)->u64
 {
-    for candidate, index in fonts where candidate == font do
+    for candidate, index in fonts where candidate == font
+    {
         return index
+    }
+
     return 0
 }
 
 private func pageContent(page: const *Page, fonts: const [..] StandardFont)->String fail
 {
     var result: #returntype
-    var imageIndex = 0'u32
+    var imageIndex = 0_u32
     for item in page.items
     {
         switch item.kind
@@ -410,13 +440,12 @@ private func pageContent(page: const *Page, fonts: const [..] StandardFont)->Str
         case .Text:
             appendColor(&result, item.fillColor, false)
             let baseline = item.transform.transformPoint(Math.Vector2{0, item.fontSize})
-            result.appendFormat("BT\n/F% ", fontSlot(fonts, item.standardFont))
-            appendPdfNumber(&result, item.fontSize)
-            result += " Tf\n"
-            appendPdfMatrix(&result, item.transform)
-            appendPdfPoint(&result, {baseline.x, page.height - baseline.y}, " Tm\n")
-            if item.invisibleText do
+            result.appendFormat("BT\n/F% % Tf\n% % % % % % Tm\n", fontSlot(fonts, item.standardFont), pdfNumber(item.fontSize), pdfNumber(item.transform.m11), pdfNumber(-item.transform.m12), pdfNumber(-item.transform.m21), pdfNumber(item.transform.m22), pdfNumber(baseline.x), pdfNumber(page.height - baseline.y))
+            if item.invisibleText
+            {
                 result += "3 Tr\n"
+            }
+
             try appendPdfString(&result, item.text.toString())
             result += item.invisibleText ? " Tj\n0 Tr\nET\n" : " Tj\nET\n"
 
@@ -455,25 +484,30 @@ private func encodeImagePixels(image: const *Image)->EncodedImage
     var pixel = source
     for width * height
     {
-        let gray = pixel[grayChannel]
-        if not nativeGray and (pixel[0] != gray or pixel[2] != gray) do
-            result.isGray = false
-        if gray != 0 and gray != 255 do
-            bilevel = false
-        if hasAlpha and pixel[sourceStep - 1] != 255 do
-            transparent = true
-        if not result.isGray and (not hasAlpha or transparent) do
-            break
-        pixel += sourceStep
+        let sourceY = height - y - 1
+        for x in width
+        {
+            let src = (sourceY * width + x) * image.bytesPerPixel
+            let r   = image.pixels[src + (swapRedBlue ? 2 : 0)]
+            let b   = image.pixels[src + (swapRedBlue ? 0 : 2)]
+            if r != image.pixels[src + 1] or r != b
+            {
+                result.isGray = false
+            }
+
+            if hasAlpha and image.pixels[src + 3] != 0xFF
+            {
+                transparent = true
+            }
+        }
     }
 
-    let packBits   = result.isGray and bilevel
-    let components = result.isGray ? 1'u64 : 3'u64
-    let rowBytes   = packBits ? (width + 7) / 8 : width * components
-    result.bitsPerComponent = packBits ? 1 : 8
-    result.samples.resize(rowBytes * height)
-    if transparent do
+    let components = result.isGray ? 1_u64 : 3_u64
+    result.samples.resize(width * height * components)
+    if transparent
+    {
         result.alpha.resize(width * height)
+    }
 
     for y in height
     {
@@ -511,11 +545,10 @@ private func encodeImagePixels(image: const *Image)->EncodedImage
             }
         }
 
-        if transparent
-        {
-            let coverage = result.alpha.storage() + y * width
-            for x in width do
-                coverage[x] = row[x * sourceStep + sourceStep - 1]
+            if transparent
+            {
+                result.alpha[y * width + x] = image.pixels[src + 3]
+            }
         }
     }
 
@@ -666,15 +699,31 @@ private func allocatePageObjects(page: const *Page, nextObject: *u32, sources: *
     if page.width <= 0 or
        page.height <= 0 or
        not Math.isFinite(page.width) or
-       not Math.isFinite(page.height) do
+       not Math.isFinite(page.height)
+    {
         fail BadParameterError{}
+    }
+
     var objects: #returntype
     objects.page    = nextObject[]
     nextObject[]    += 1
     objects.content = nextObject[]
     nextObject[]    += 1
-    for item in page.items where item.kind == .Image do
-        objects.images.add(allocateImageObject(item, nextObject, sources))
+    for item in page.items where item.kind == .Image
+    {
+        objects.images.add(nextObject[])
+        nextObject[] += 1
+        if item.image.pixelFormat == .BGRA8 or item.image.pixelFormat == .RGBA8
+        {
+            objects.masks.add(nextObject[])
+            nextObject[] += 1
+        }
+        else
+        {
+            objects.masks.add(0)
+        }
+    }
+
     return objects
 }
 
@@ -683,7 +732,7 @@ private impl Writer
     mtd writeHeader()
     {
         .append("%PDF-1.7\n")
-        .bytes.add([0x25'u8, 0xE2, 0xE3, 0xCF, 0xD3, 0x0A])
+        .bytes.add([0x25_u8, 0xE2, 0xE3, 0xCF, 0xD3, 0x0A])
         .beginObject(CatalogObject)
         .append("<< /Type /Catalog /Pages 2 0 R >>\n")
         .endObject()
@@ -723,16 +772,22 @@ private impl Writer
         if fontObjects.count
         {
             .append(" /Font <<")
-            for fontObject, fontIndex in fontObjects do
+            for fontObject, fontIndex in fontObjects
+            {
                 .append(Format.toString(" /F% % 0 R", fontIndex, fontObject).toString())
+            }
+
             .append(" >>")
         }
 
         if objects.images.count
         {
             .append(" /XObject <<")
-            for imageObject, imageIndex in objects.images do
-                .append(Format.toString(" /Im% % 0 R", imageIndex, imageObject.number).toString())
+            for imageObject, imageIndex in objects.images
+            {
+                .append(Format.toString(" /Im% % 0 R", imageIndex, imageObject).toString())
+            }
+
             .append(" >>")
         }
 
@@ -743,72 +798,39 @@ private impl Writer
         let compressed = #move try .zlib.compress(cast(const [..] u8, content))
         .streamObject(objects.content, compressed.toSlice(), "/Filter /FlateDecode")
 
-        var imageIndex = 0'u64
+        var imageIndex = 0_u64
         for item in page.items where item.kind == .Image
         {
-            let imageObject = objects.images[imageIndex]
-            imageIndex += 1
-            if not imageObject.firstUse do
-                continue
-
-            let image = unwrap item.imageValue()
-            let source = item.image.encoded()
-            if source.bytes.count
+            let encoded    = encodeImagePixels(&item.image)
+            var samplesZlib: Compress.ZLib
+            let samples    = #move try samplesZlib.compress(encoded.samples.toSlice())
+            let maskObject = objects.masks[imageIndex]
+            var dictionary = Format.toString("/Type /XObject /Subtype /Image /Width % /Height % /ColorSpace /Device% /BitsPerComponent 8 /Filter /FlateDecode", item.image.width, item.image.height, encoded.isGray ? "Gray" : "RGB")
+            if maskObject and encoded.alpha.count
             {
-                let space = source.channels == 1 ? "Gray" : (source.channels == 4 ? "CMYK" : "RGB")
-                let filter = source.filter == .Dct ? "DCTDecode" : (source.filter == .Ccitt ? "CCITTFaxDecode" : "FlateDecode")
-                var dictionary = Format.toString("/Type /XObject /Subtype /Image /Width % /Height % /ColorSpace /Device% /BitsPerComponent % /Filter /%", image.width, image.height, space, source.bits, filter)
-                if source.filter == .Ccitt
-                {
-                    let fax = &source.fax
-                    dictionary.appendFormat(" /DecodeParms << /K % /Columns %", fax.k, image.width)
-                    if fax.rows >= 0 do
-                        dictionary.appendFormat(" /Rows %", fax.rows)
-                    if fax.blackIs1 do
-                        dictionary += " /BlackIs1 true"
-                    if fax.byteAlign do
-                        dictionary += " /EncodedByteAlign true"
-                    if fax.endOfLine do
-                        dictionary += " /EndOfLine true"
-                    if not fax.endOfBlock do
-                        dictionary += " /EndOfBlock false"
-                    if fax.damagedRows do
-                        dictionary.appendFormat(" /DamagedRowsBeforeError %", fax.damagedRows)
-                    dictionary += " >>"
-                }
-                elif source.predictor > 1 do
-                    dictionary.appendFormat(" /DecodeParms << /Predictor % /Colors % /Columns % /BitsPerComponent % >>", source.predictor, source.channels, image.width, source.bits)
-                if source.interpolate do
-                    dictionary += " /Interpolate true"
-                .streamObject(imageObject.number, source.bytes.toSlice(), dictionary.toString())
-                continue
-            }
-
-            let encoded    = encodeImagePixels(image)
-            let width      = cast(u64, image.width)
-            let components = encoded.isGray ? 1'u64 : 3'u64
-            let samples    = #move try compressImageSamples(&.zlib, encoded.samples.toSlice(), width, components, encoded.bitsPerComponent)
-            var maskObject: u32
-            if encoded.alpha.count
-            {
-                maskObject = nextObject[]
-                nextObject[] += 1
-            }
-
-            var dictionary = Format.toString("/Type /XObject /Subtype /Image /Width % /Height % /ColorSpace /Device% /BitsPerComponent % /Filter /FlateDecode", image.width, image.height, encoded.isGray ? "Gray" : "RGB", encoded.bitsPerComponent)
-            if maskObject do
                 dictionary.appendFormat(" /SMask % 0 R", maskObject)
-            if samples.predicted do
-                dictionary.appendFormat(" /DecodeParms << /Predictor 15 /Colors % /Columns % >>", components, width)
-            .streamObject(imageObject.number, samples.bytes.toSlice(), dictionary.toString())
+            }
+
+            .streamObject(objects.images[imageIndex], samples.toSlice(), dictionary.toString())
 
             if maskObject
             {
-                let maskData = #move try compressImageSamples(&.zlib, encoded.alpha.toSlice(), width, 1)
-                var maskDict = Format.toString("/Type /XObject /Subtype /Image /Width % /Height % /ColorSpace /DeviceGray /BitsPerComponent 8 /Filter /FlateDecode", image.width, image.height)
-                if maskData.predicted do
-                    maskDict.appendFormat(" /DecodeParms << /Predictor 15 /Colors 1 /Columns % >>", width)
-                .streamObject(maskObject, maskData.bytes.toSlice(), maskDict.toString())
+                // An opaque channel still needs an object when one was reserved, so the
+                // cross-reference table keeps one entry per reserved number.
+                var alpha = encoded.alpha
+                if not alpha.count
+                {
+                    alpha.resize(cast(u64, item.image.width) * cast(u64, item.image.height))
+                    for i in alpha.count
+                    {
+                        alpha[i] = 0xFF
+                    }
+                }
+
+                var maskZlib: Compress.ZLib
+                let maskData = #move try maskZlib.compress(alpha.toSlice())
+                let maskDict = Format.toString("/Type /XObject /Subtype /Image /Width % /Height % /ColorSpace /DeviceGray /BitsPerComponent 8 /Filter /FlateDecode", item.image.width, item.image.height)
+                .streamObject(maskObject, maskData.toSlice(), maskDict.toString())
             }
         }
     }
@@ -818,8 +840,10 @@ private impl Writer
 // bytes, and the cross-reference and page-tree indexes need to be retained.
 internal func writeGeneratedDocument(file: *File.FileStream, count: u64, source: func||(u64)->Page fail) fail
 {
-    if not count or count > cast(u64, Swag.U32.Max - 4) / 4 do
+    if not count or count > cast(u64, Swag.U32.Max - 4) / 4
+    {
         fail BadParameterError{}
+    }
 
     var writer: Writer
     writer.writeHeader()
@@ -827,13 +851,13 @@ internal func writeGeneratedDocument(file: *File.FileStream, count: u64, source:
     writer.append("<< >>\n")
     writer.endObject()
 
-    var nextObject = 4'u32
-    var pages: Array'u32
-    let noFonts: Array'StandardFont
-    let noFontObjects: Array'u32
+    var nextObject = 4_u32
+    var pages:         Array!{u32}
+    let noFonts:       Array!{StandardFont}
+    let noFontObjects: Array!{u32}
     for i in count
     {
-        let page = #move try source(i)
+        let page    = #move try source(i)
         let objects = #move try allocatePageObjects(&page, &nextObject)
         try writer.writePage(&page, &objects, noFonts.toSlice(), noFontObjects.toSlice(), &nextObject)
         try writer.flush(file)
@@ -842,31 +866,35 @@ internal func writeGeneratedDocument(file: *File.FileStream, count: u64, source:
 
     writer.beginObject(PagesObject)
     writer.append(Format.toString("<< /Type /Pages /Count % /Kids [", count).toString())
-    for number in pages do
+    for number in pages
+    {
         writer.append(Format.toString(" % 0 R", number).toString())
+    }
+
     writer.append(" ] >>\n")
     writer.endObject()
     writer.writeTrailer(nextObject)
     try writer.flush(file)
 }
 
-func encodeDocument(document: const *Document)->Array'u8 fail
+func encodeDocument(document: const *Document)->Array!{u8} fail
 {
-    if not document.pages.count do
+    if not document.pages.count
+    {
         fail BadParameterError{}
+    }
 
-    var nextObject = 4'u32
+    var nextObject = 4_u32
 
     let fonts = documentFonts(document)
-    var fontObjects: Array'u32
+    var fontObjects: Array!{u32}
     for fonts
     {
         fontObjects.add(nextObject)
         nextObject += 1
     }
 
-    var layout: Array'PageObjects
-    var imageSources: ImageSources
+    var layout: Array!{PageObjects}
     for page in document.pages
     {
         let objects = #move try allocatePageObjects(page, &nextObject, &imageSources)
@@ -885,8 +913,11 @@ func encodeDocument(document: const *Document)->Array'u8 fail
 
     writer.beginObject(PagesObject)
     writer.append(Format.toString("<< /Type /Pages /Count % /Kids [", document.pages.count).toString())
-    for objects in layout do
+    for objects in layout
+    {
         writer.append(Format.toString(" % 0 R", objects.page).toString())
+    }
+
     writer.append(" ] >>\n")
     writer.endObject()
 

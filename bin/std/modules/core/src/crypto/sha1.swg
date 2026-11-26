@@ -129,9 +129,16 @@ impl Sha1
     {
         var w: [80] u32
 
-        let input = cast(const [*] u32, buf)
-        for index in 16 do
-            w[index] = Math.bigEndianToNative(input[index])
+        var i, j = 0_u32
+        while i < 16
+        {
+            w[i] = (cast(u32, buf[j]) << 24) |
+                   (cast(u32, buf[j + 1]) << 16) |
+                   (cast(u32, buf[j + 2]) << 8) |
+                   buf[j + 3]
+            i += 1
+            j += 4
+        }
 
         var i = 16'u32
         while i < 80
@@ -155,12 +162,12 @@ impl Sha1
                 f = f1(b, c, d)
                 k = 0x5A827999
             }
-            elif i < 40
+            else if i < 40
             {
                 f = f2(b, c, d)
                 k = 0x6ED9EBA1
             }
-            elif i < 60
+            else if i < 60
             {
                 f = f3(b, c, d)
                 k = 0x8F1BBCDC

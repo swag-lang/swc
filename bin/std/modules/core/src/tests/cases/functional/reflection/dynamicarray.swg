@@ -21,7 +21,7 @@ impl ReflectionDynamicArrayDropProbe
 #test
 {
     ReflectionDynamicArrayDropCount = 0
-    var values: Array'ReflectionDynamicArrayDropProbe
+    var values: Array!{ReflectionDynamicArrayDropProbe}
 
     let first = cast(*ReflectionDynamicArrayDropProbe,
                      Reflection.appendDynamicArrayElement(&values, #typeof(ReflectionDynamicArrayDropProbe)))

@@ -16,17 +16,25 @@ public struct KeyboardStateNative
 
 private func keysymRune(symbol: u32)->rune
 {
-    if (symbol >= 0x20 and symbol <= 0x7E) or (symbol >= 0xA0 and symbol <= 0xFF) do
+    if (symbol >= 0x20 and symbol <= 0x7E) or (symbol >= 0xA0 and symbol <= 0xFF)
+    {
         return cast(rune, symbol)
+    }
+
     if symbol >= 0x01000100 and symbol <= 0x0110FFFF
     {
         let code = symbol - 0x01000000
-        if code < 0xD800 or code > 0xDFFF do
+        if code < 0xD800 or code > 0xDFFF
+        {
             return cast(rune, code)
+        }
     }
 
-    if symbol >= 0xFFB0 and symbol <= 0xFFB9 do
+    if symbol >= 0xFFB0 and symbol <= 0xFFB9
+    {
         return cast(rune, symbol - 0xFFB0 + '0')
+    }
+
     switch symbol
     {
     case 0xFF80: return ' '
@@ -37,7 +45,7 @@ private func keysymRune(symbol: u32)->rune
     case 0xFFAD: return '-'
     case 0xFFAE: return '.'
     case 0xFFAF: return '/'
-    default:     return 0'rune
+    default:     return 0_rune
     }
 }
 
@@ -51,22 +59,34 @@ impl KeyboardStateNative
         let connection = unwrap context.connection
         let setup      = context.xcb_get_setup(connection)
         let count      = cast(u32, setup.max_keycode) - setup.min_keycode + 1
-        if count > 255 do
+        if count > 255
+        {
             return
+        }
+
         let keys = context.xcb_query_keymap_reply(connection, context.xcb_query_keymap(connection), null)
-        if not keys do
+        if not keys
+        {
             return
+        }
+
         defer Linux.free(keys)
         let mapping = context.xcb_get_keyboard_mapping_reply(connection,
                                                              context.xcb_get_keyboard_mapping(connection, setup.min_keycode, cast(u8, count)),
                                                              null)
-        if not mapping do
+        if not mapping
+        {
             return
+        }
+
         defer Linux.free(mapping)
         let columns = mapping.keysyms_per_keycode
         let length  = context.xcb_get_keyboard_mapping_keysyms_length(mapping)
-        if columns == 0 or length < 0 or cast(u32, length) < count * columns do
+        if columns == 0 or length < 0 or cast(u32, length) < count * columns
+        {
             return
+        }
+
         let symbols = context.xcb_get_keyboard_mapping_keysyms(mapping)
         var mask: u16
         let pointer = context.xcb_query_pointer_reply(connection, context.xcb_query_pointer(connection, context.screen.root), null)
@@ -80,51 +100,70 @@ impl KeyboardStateNative
         let modifiers = context.xcb_get_modifier_mapping_reply(connection,
                                                                context.xcb_get_modifier_mapping(connection),
                                                                null)
-        if not modifiers do
+        if not modifiers
+        {
             return
+        }
+
         defer Linux.free(modifiers)
         let modifierCount  = cast(u32, modifiers.keycodes_per_modifier) * 8
         let modifierLength = context.xcb_get_modifier_mapping_keycodes_length(modifiers)
-        if modifierLength < 0 or cast(u32, modifierLength) < modifierCount do
+        if modifierLength < 0 or cast(u32, modifierLength) < modifierCount
+        {
             return
+        }
+
         let codes = context.xcb_get_modifier_mapping_keycodes(modifiers)
         var numLockMask: u16
         for index in modifierCount
         {
             let code = codes[index]
-            if code < setup.min_keycode or code > setup.max_keycode do
+            if code < setup.min_keycode or code > setup.max_keycode
+            {
                 continue
+            }
+
             let offset = cast(u32, code - setup.min_keycode) * columns
-            for column in cast(u32, columns) where symbols[offset + column] == 0xFF7F do
+            for column in cast(u32, columns) where symbols[offset + column] == 0xFF7F
+            {
                 numLockMask |= cast(u16, 1 << (index / modifiers.keycodes_per_modifier))
+            }
         }
 
         for key in Key
         {
             let wanted = Keyboard.keyToVirtualKey(key)
-            if wanted == 0 do
+            if wanted == 0
+            {
                 continue
+            }
+
             for index in 0 until count
             {
                 let offset  = index * columns
                 let base    = symbols[offset]
-                let shifted = columns > 1 ? symbols[offset + 1] : 0'u32
+                let shifted = columns > 1 ? symbols[offset + 1] : 0_u32
                 var symbol  = (mask & 1) and shifted != 0 ? shifted : base
                 if base >= 0xFF80 and base <= 0xFFBD
                 {
                     let shiftedLevel = (mask & numLockMask) != 0 and (mask & 1) == 0
                     symbol = shiftedLevel and shifted != 0 ? shifted : base
-                    if Keyboard.virtualKeyToKey(symbol) != Keyboard.virtualKeyToKey(wanted) do
+                    if Keyboard.virtualKeyToKey(symbol) != Keyboard.virtualKeyToKey(wanted)
+                    {
                         continue
+                    }
                 }
-                elif base != wanted
+                else if base != wanted
                 {
                     continue
                 }
 
                 let code = index + setup.min_keycode
-                if (keys.keys[code / 8] & (1 << (code % 8))) != 0 do
+                if (keys.keys[code / 8] & (1 << (code % 8))) != 0
+                {
                     .nativePressed[key] = true
+                }
+
                 if base >= 'a' and base <= 'z'
                 {
                     let upper = ((mask & 1) != 0) != ((mask & 2) != 0)

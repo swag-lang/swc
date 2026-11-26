@@ -23,8 +23,11 @@ using Core, Gui, Pixel
                     main.duplicateJob == null and main.libWnd.view.allItems.count == 2)
 
     var copiedPath: String
-    for item in g_Library.files where item.fullName != source do
+    for item in g_Library.files where item.fullName != source
+    {
         copiedPath = item.fullName
+    }
+
     Swag.require(not copiedPath.isEmpty())
 
     let sourceCapture = expect Capture.load(source)

@@ -11,8 +11,8 @@ struct(T) Deque
 {
     private
     {
-        frontItems: Array'T     // Front segment in reverse logical order.
-        backItems:  Array'T     // Back segment in logical order.
+        frontItems: Array!{T}     // Front segment in reverse logical order.
+        backItems:  Array!{T}     // Back segment in logical order.
     }
 
     public readonly count: u64     // The number of elements in the queue.
@@ -38,22 +38,33 @@ impl Deque
     // zero, do nothing. Additional storage is split between both ends.
     mtd reserve(newCapacity: u64)
     {
-        if newCapacity <= .capacity() do
+        if newCapacity <= .capacity()
+        {
             return
+        }
+
         let frontCapacity = newCapacity / 2 + newCapacity % 2
         let backCapacity  = newCapacity - frontCapacity
-        if frontCapacity > .frontItems.capacity do
+        if frontCapacity > .frontItems.capacity
+        {
             .frontItems.reserve(frontCapacity)
-        if backCapacity > .backItems.capacity do
+        }
+
+        if backCapacity > .backItems.capacity
+        {
             .backItems.reserve(backCapacity)
+        }
     }
 
     // Returns the mutable address of the element at logical `index` from the front.
     mtd opIndexPtr(index: u64)->*T
     {
         Debug.safetyBoundCheck(index < .count, "index out of range")
-        if index < .frontItems.count do
+        if index < .frontItems.count
+        {
             return &.frontItems[.frontItems.count - index - 1]
+        }
+
         return &.backItems[index - .frontItems.count]
     }
 
@@ -61,8 +72,11 @@ impl Deque
     mtd const opIndexPtr(index: u64)->const *T
     {
         Debug.safetyBoundCheck(index < .count, "index out of range")
-        if index < .frontItems.count do
+        if index < .frontItems.count
+        {
             return &.frontItems[.frontItems.count - index - 1]
+        }
+
         return &.backItems[index - .frontItems.count]
     }
 
@@ -94,20 +108,27 @@ impl Deque
     // Refills an empty front segment with the logical front half of the back segment.
     private mtd ensureFrontSegment()
     {
-        if .frontItems.count or not .backItems.count do
+        if .frontItems.count or not .backItems.count
+        {
             return
+        }
 
         let sourceCount = .backItems.count
         let frontCount  = (sourceCount + 1) / 2
-        var newFront: Array'T
-        var newBack:  Array'T
+        var newFront: Array!{T}
+        var newBack:  Array!{T}
         newFront.reserve(frontCount)
         newBack.reserve(sourceCount - frontCount)
 
-        for index in reversed(frontCount) do
+        for index in reversed(frontCount)
+        {
             newFront.add(#move .backItems[index])
-        for index in frontCount until sourceCount do
+        }
+
+        for index in frontCount until sourceCount
+        {
             newBack.add(#move .backItems[index])
+        }
 
         .frontItems = #move newFront
         .backItems  = #move newBack
@@ -116,21 +137,28 @@ impl Deque
     // Refills an empty back segment with the logical back half of the front segment.
     private mtd ensureBackSegment()
     {
-        if .backItems.count or not .frontItems.count do
+        if .backItems.count or not .frontItems.count
+        {
             return
+        }
 
         let sourceCount = .frontItems.count
         let backCount   = (sourceCount + 1) / 2
         let frontCount  = sourceCount - backCount
-        var newFront: Array'T
-        var newBack:  Array'T
+        var newFront: Array!{T}
+        var newBack:  Array!{T}
         newFront.reserve(frontCount)
         newBack.reserve(backCount)
 
-        for index in reversed(frontCount) do
+        for index in reversed(frontCount)
+        {
             newFront.add(#move .frontItems[sourceCount - index - 1])
-        for index in frontCount until sourceCount do
+        }
+
+        for index in frontCount until sourceCount
+        {
             newBack.add(#move .frontItems[sourceCount - index - 1])
+        }
 
         .frontItems = #move newFront
         .backItems  = #move newBack
@@ -230,31 +258,41 @@ impl Deque
         for itemIndex in .count
         {
             var itemPtr: [*] T
-            if itemIndex < .frontItems.count do
+            if itemIndex < .frontItems.count
+            {
                 itemPtr = .frontItems.storage() + .frontItems.count - itemIndex - 1
-            else do
+            }
+            else
+            {
                 itemPtr = .backItems.storage() + itemIndex - .frontItems.count
+            }
 
             scope(Down)
             {
-                #static if ptr do
+                #static if ptr
+                {
                     #inject(stmt,
                             item = cast(*T, itemPtr),
                             index = itemIndex,
                             break = break to Up,
                             continue = break to Down)
-                elif Reflection.isStruct(T) do
+                }
+                else if Reflection.isStruct(T)
+                {
                     #inject(stmt,
                             item = cast(const *T, itemPtr),
                             index = itemIndex,
                             break = break to Up,
                             continue = break to Down)
-                else do
+                }
+                else
+                {
                     #inject(stmt,
                             item = itemPtr[0],
                             index = itemIndex,
                             break = break to Up,
                             continue = break to Down)
+                }
             }
         }
     }
@@ -267,31 +305,41 @@ impl Deque
         for itemIndex in .count
         {
             var itemPtr: const [*] T
-            if itemIndex < .frontItems.count do
+            if itemIndex < .frontItems.count
+            {
                 itemPtr = .frontItems.storage() + .frontItems.count - itemIndex - 1
-            else do
+            }
+            else
+            {
                 itemPtr = .backItems.storage() + itemIndex - .frontItems.count
+            }
 
             scope(Down)
             {
-                #static if ptr do
+                #static if ptr
+                {
                     #inject(stmt,
                             item = cast(const *T, itemPtr),
                             index = itemIndex,
                             break = break to Up,
                             continue = break to Down)
-                elif Reflection.isStruct(T) do
+                }
+                else if Reflection.isStruct(T)
+                {
                     #inject(stmt,
                             item = cast(const *T, itemPtr),
                             index = itemIndex,
                             break = break to Up,
                             continue = break to Down)
-                else do
+                }
+                else
+                {
                     #inject(stmt,
                             item = itemPtr[0],
                             index = itemIndex,
                             break = break to Up,
                             continue = break to Down)
+                }
             }
         }
     }

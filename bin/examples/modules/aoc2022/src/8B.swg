@@ -46,44 +46,56 @@ func day8B()
     var total: s32
     for l, line in lines
     {
-        if line == 0 or line == lines.count - 1 do
+        if line == 0 or line == lines.count - 1
+        {
             continue
+        }
 
         for _, col in l.bytes()
         {
-            if col == 0 or col == l.length - 1 do
+            if col == 0 or col == l.length - 1
+            {
                 continue
+            }
 
             var score0 = 0
-            for x in range(0'u64, col).reversed()
+            for x in range(0_u64, col).reversed()
             {
                 score0 += 1
-                if l[x] >= l[col] do
+                if l[x] >= l[col]
+                {
                     break
+                }
             }
 
             var score1 = 0
             for x in col + 1 to l.length - 1
             {
                 score1 += 1
-                if l[x] >= l[col] do
+                if l[x] >= l[col]
+                {
                     break
+                }
             }
 
             var score2 = 0
-            for y in range(0'u64, line).reversed()
+            for y in range(0_u64, line).reversed()
             {
                 score2 += 1
-                if lines[y][col] >= l[col] do
+                if lines[y][col] >= l[col]
+                {
                     break
+                }
             }
 
             var score3 = 0
             for y in line + 1 to lines.count - 1
             {
                 score3 += 1
-                if lines[y][col] >= l[col] do
+                if lines[y][col] >= l[col]
+                {
                     break
+                }
             }
 
             total = Math.max(score0 * score1 * score2 * score3, total)

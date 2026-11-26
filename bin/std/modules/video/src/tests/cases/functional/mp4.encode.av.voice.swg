@@ -9,7 +9,7 @@ using Swag, Core, Audio, Pixel
     let path = videoTempPath("mp4-encoded-video-voice", "mp4")
     defer discard catch File.delete(path)
 
-    var rgb: Array'u8
+    var rgb: Array!{u8}
     rgb.resize(32 * 16 * 3)
     for pixel in 32 * 16
     {
@@ -31,17 +31,22 @@ using Swag, Core, Audio, Pixel
                                                              video.decoderConfig(),
                                                              Mp4.FragmentedAudioConfig{48_000, 1,
                                                                                        audio.decoderConfig()})
-    for index in 8'u64 do
+    for index in 8_u64
+    {
         expect writer.addPacket(expect video.encode(&nv12, index * 3_000, 3_000))
+    }
 
     var input: [12 * 1_024] s16
-    for sample in input.count do
+    for sample in input.count
+    {
         input[sample] = cast(s16,
                              Math.round(10_000.0 * Math.sin(Math.ConstF64.TwoPi *
                                                             1_000.0 * sample / 48_000.0)))
-    for block in 12'u64
+    }
+
+    for block in 12_u64
     {
-        var packet: Array'u8
+        var packet: Array!{u8}
         expect audio.encode(Swag.makeSlice(&input[block * 1_024], 1_024), &packet)
         expect writer.addAudioPacket(EncodedPacket{packet.toSlice(), block * 1_024,
                                                    block * 1_024, 1_024, true})
@@ -67,17 +72,17 @@ using Swag, Core, Audio, Pixel
 
     let sound = unwrap reader.audioTrack(0)
     Swag.require(sound.sampleEncoding() == .AacLc and sound.sampleFrameCount() == input.count)
-    var pcm: Array's16
+    var pcm: Array!{s16}
     expect sound.decodePcm16(func|pcm = &pcm|(part: const [..] s16)->bool
     {
         pcm.add(part)
         return true
     })
     Swag.require(pcm.count == input.count)
-    var error        = 0.0'f64
-    var power        = 0.0'f64
-    var cross        = 0.0'f64
-    var decodedPower = 0.0'f64
+    var error        = 0.0_f64
+    var power        = 0.0_f64
+    var cross        = 0.0_f64
+    var decodedPower = 0.0_f64
     for index in 3_072 until 10_240
     {
         let original = cast(f64, input[index - 1_024])

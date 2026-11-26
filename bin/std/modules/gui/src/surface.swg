@@ -3,7 +3,7 @@
 using Core, Pixel, Serialization
 
 // Physical-pixel growth step: reserve room for a border drag without doubling large GPU buffers.
-private const SurfaceRenderTargetStep = 256's32
+private const SurfaceRenderTargetStep = 256_s32
 
 private struct AccessKeyCandidate
 {
@@ -168,18 +168,27 @@ impl Surface
     internal mtd containsWindow(wnd: *Wnd)->bool
     {
         let root = cast(*Wnd, .wnd)
-        if FocusOrder.contains(root, wnd) do
+        if FocusOrder.contains(root, wnd)
+        {
             return true
-        if not FocusOrder.contains(root, .wnd.view) do
+        }
+
+        if not FocusOrder.contains(root, .wnd.view)
+        {
             return FocusOrder.contains(.wnd.view, wnd)
+        }
+
         return false
     }
 
     // Shows or hides access-key underlines and repaints the surface when the state changes.
     internal mtd setAccessKeysVisible(visible: bool)
     {
-        if .accessKeysVisible == visible do
+        if .accessKeysVisible == visible
+        {
             return
+        }
+
         .accessKeysVisible = visible
         .wnd.invalidate()
     }
@@ -187,28 +196,39 @@ impl Surface
     // Activates the one enabled, visible target that owns `key`; ambiguity is a no-op.
     internal mtd activateAccessKey(key: rune)->bool
     {
-        var candidates: Array'AccessKeyCandidate
+        var candidates: Array!{AccessKeyCandidate}
         .collectAccessKeyCandidates(cast(*Wnd, .wnd), key, &candidates)
 
         // A headless surface hosts its root view separately rather than as a child of SurfaceWnd.
         // Scan that view too, while keeping normal views (already parented to SurfaceWnd) single.
-        if not FocusOrder.contains(cast(*Wnd, .wnd), .wnd.view) do
+        if not FocusOrder.contains(cast(*Wnd, .wnd), .wnd.view)
+        {
             .collectAccessKeyCandidates(.wnd.view, key, &candidates)
+        }
 
-        var popupCandidates: Array'AccessKeyCandidate
-        for candidate in candidates where candidate.menu and not candidate.menu.bar do
+        var popupCandidates: Array!{AccessKeyCandidate}
+        for candidate in candidates where candidate.menu and not candidate.menu.bar
+        {
             popupCandidates.add(candidate)
+        }
+
         if popupCandidates.count > 0
         {
-            if popupCandidates.count != 1 do
+            if popupCandidates.count != 1
+            {
                 return false
+            }
+
             let candidate = popupCandidates[0]
             let menu      = unwrap candidate.menu
             return menu.activateAccessKey(menu.items[candidate.menuItemIndex]!.accessKey)
         }
 
-        if candidates.count != 1 do
+        if candidates.count != 1
+        {
             return false
+        }
+
         let candidate = candidates[0]
         if candidate.menu
         {
@@ -229,40 +249,59 @@ impl Surface
         if target.surface != me or
            target.focusPolicy == .None or
            not target.isEnabled() or
-           not target.isVisible() do
+           not target.isVisible()
+        {
             return false
+        }
 
-        if not target.requestFocus(.Navigation) do
+        if not target.requestFocus(.Navigation)
+        {
             return false
-        if focusOnly do
+        }
+
+        if focusOnly
+        {
             return true
+        }
+
         var evt = KeyEvent{kind: .Pressed, key: .Return}
         target.sendEvent(&evt)
         return evt.accepted
     }
 
-    private mtd collectAccessKeyCandidates(wnd: *Wnd, key: rune, candidates: *Array'AccessKeyCandidate)
+    private mtd collectAccessKeyCandidates(wnd: *Wnd, key: rune, candidates: *Array!{AccessKeyCandidate})
     {
-        if not wnd.isVisible() or not wnd.isEnabled() do
+        if not wnd.isVisible() or not wnd.isEnabled()
+        {
             return
+        }
 
-        if wnd.accessKey != 0 and Unicode.toLower(wnd.accessKey) == Unicode.toLower(key) do
+        if wnd.accessKey != 0 and Unicode.toLower(wnd.accessKey) == Unicode.toLower(key)
+        {
             candidates.add({wnd: wnd})
+        }
 
         if wnd is MenuCtrl as menu
         {
             for item, index in menu.items
             {
                 let entry = unwrap item
-                if entry.hidden or entry.disabled or entry.separator or entry.note do
+                if entry.hidden or entry.disabled or entry.separator or entry.note
+                {
                     continue
-                if entry.accessKey != 0 and Unicode.toLower(entry.accessKey) == Unicode.toLower(key) do
+                }
+
+                if entry.accessKey != 0 and Unicode.toLower(entry.accessKey) == Unicode.toLower(key)
+                {
                     candidates.add({wnd: wnd, menu: menu, menuItemIndex: index})
+                }
             }
         }
 
-        for child in wnd.children do
+        for child in wnd.children
+        {
             .collectAccessKeyCandidates(child, key, candidates)
+        }
     }
 
     internal mtd bindPainterToRenderer(renderer: IRenderer)
@@ -284,8 +323,11 @@ impl Surface
     {
         var surfacePos = screenPos
         .screenToSurface(&surfacePos)
-        if not .isMaximized and .wnd.hitTestBorders(surfacePos) != SizingBorder.None do
+        if not .isMaximized and .wnd.hitTestBorders(surfacePos) != SizingBorder.None
+        {
             return .wnd
+        }
+
         let target = .wnd.windowAt(surfacePos.x, surfacePos.y)
         return .wnd.captionPathAt(surfacePos, target) ? .wnd : target
     }
@@ -327,8 +369,10 @@ impl Surface
         .dpiScale = scale
 
         // A move to a denser monitor must resharpen the shared theme atlas.
-        if .app.theme != null and .app.theme.initialized and (.app.renderer != null) do
+        if .app.theme != null and .app.theme.initialized and (.app.renderer != null)
+        {
             .app.ensureThemeAtlasScale(scale)
+        }
     }
 
     // Returns the drawable and viewport of this surface.
@@ -363,10 +407,14 @@ impl Surface
     {
         // The strip of an application window floats over its view, so it takes no room from it;
         // only the compact strip of a dialog or a tool window still sits above the content.
-        if .flags.has(.SmallCaption) and not .flags.has(.LargeCaption) do
+        if .flags.has(.SmallCaption) and not .flags.has(.LargeCaption)
+        {
             .wnd.padding.y = .app.theme.metrics.wnd_SmallCaptionCY
-        else do
+        }
+        else
+        {
             .wnd.padding.y = 0
+        }
 
         if .flags.has(.Border)
         {
@@ -393,7 +441,7 @@ impl Surface
         with surface
         {
             .flags           = flags
-            .wnd             = Memory.new'SurfaceWnd()
+            .wnd             = Memory.new!{SurfaceWnd}()
             .wnd.isAllocated = true
             .wnd.itf         = .wnd
             .wnd.surface     = surface
@@ -414,8 +462,10 @@ impl Surface
         // window in physical pixels; everything after this point that touches the screen is
         // physical.
         let app = surface.app
-        if app.renderer.needsNativeWindow() do
+        if app.renderer.needsNativeWindow()
+        {
             try createNative(app, surface, x, y, outerW, outerH, flags)
+        }
 
         let physWidth  = cast(s32, Math.round(outerW * surface.dpiScale))
         let physHeight = cast(s32, Math.round(outerH * surface.dpiScale))
@@ -452,14 +502,20 @@ impl Surface
     // is clipped to the surface. Returns an empty image before painting or outside its bounds.
     mtd captureFrame(x, y, width, height: s32)->Image
     {
-        if not .rt.colorBuffer.isValid() or width <= 0 or height <= 0 do
+        if not .rt.colorBuffer.isValid() or width <= 0 or height <= 0
+        {
             return {}
-        let left = Math.max(x, 0)
-        let top = Math.max(y, 0)
-        let right = Math.min(cast(s64, x) + width, Math.min(.rt.colorBuffer.width, .rc.width))
+        }
+
+        let left   = Math.max(x, 0)
+        let top    = Math.max(y, 0)
+        let right  = Math.min(cast(s64, x) + width, Math.min(.rt.colorBuffer.width, .rc.width))
         let bottom = Math.min(cast(s64, y) + height, Math.min(.rt.colorBuffer.height, .rc.height))
-        if right <= left or bottom <= top do
+        if right <= left or bottom <= top
+        {
             return {}
+        }
+
         .app.renderer.setCurrentContext(.rc)
         return .app.renderer.readRenderTarget(&.rt, left, top, cast(s32, right - left), cast(s32, bottom - top))
     }
@@ -508,8 +564,11 @@ impl Surface
     {
         // Layout and hidden controls can invalidate an empty extent while their bounds change.
         // It owns no pixels and must not become a native scissor on an otherwise clean surface.
-        if rect.width <= 0 or rect.height <= 0 do
+        if rect.width <= 0 or rect.height <= 0
+        {
             return
+        }
+
         if not .isDirty
         {
             .dirtyRect = rect
@@ -554,10 +613,12 @@ impl Surface
     //
     // `topLeft` and `bottomRight` select which corners are constrained. `margin` keeps the
     // selected edges that many physical pixels away from the monitor boundary.
-    mtd constrainPositionToScreen(topLeft = true, bottomRight = true, margin = 0'f32)
+    mtd constrainPositionToScreen(topLeft = true, bottomRight = true, margin = 0_f32)
     {
-        if .isMaximized or .isMinimized do
+        if .isMaximized or .isMinimized
+        {
             return
+        }
 
         // The surface position and the constraint work in physical desktop pixels.
         let monitor = Env.monitorForPoint(Math.Point{.position.x, .position.y})
@@ -593,8 +654,11 @@ impl Surface
             let w           = (width + SurfaceRenderTargetStep - 1) / SurfaceRenderTargetStep * SurfaceRenderTargetStep
             let h           = (height + SurfaceRenderTargetStep - 1) / SurfaceRenderTargetStep * SurfaceRenderTargetStep
             let replacement = .app.renderer.createRenderTarget(w, h)
-            if not replacement.colorBuffer.isValid() do
+            if not replacement.colorBuffer.isValid()
+            {
                 return false
+            }
+
             .app.renderer.deleteRenderTarget(&.rt)
             .rt = replacement
             .invalidate()
@@ -606,8 +670,10 @@ impl Surface
     internal mtd paint()
     {
         // Keep the pending repaint until the native window has a drawable again.
-        if .isMinimized do
+        if .isMinimized
+        {
             return
+        }
 
         #static if #os == Swag.TargetOs.Windows
         {
@@ -631,21 +697,30 @@ impl Surface
     // deterministic root; native surfaces use the SurfaceWnd selected by paint().
     internal mtd paintWnd(root: *Wnd)
     {
-        if .app.renderingSuspended do
+        if .app.renderingSuspended
+        {
             return
+        }
+
         var paintedRect: Math.Rectangle
-        if .paintToRenderTarget(root, &paintedRect) do
+        if .paintToRenderTarget(root, &paintedRect)
+        {
             discard .presentRenderTarget(paintedRect)
+        }
     }
 
     private mtd paintToRenderTarget(root: *Wnd, paintedRect: *Math.Rectangle)->bool
     {
         root.flushLayout()
-        if not .createRT() do
+        if not .createRT()
+        {
             return false
+        }
 
-        if not .isDirty do
+        if not .isDirty
+        {
             return false
+        }
 
         // Round the dirty rectangle once, on the logical grid the painter clip uses:
         // deriving the physical clear scissor from the raw edges instead would put
@@ -655,8 +730,11 @@ impl Surface
 
         // A backdrop reads neighbouring pixels from this frame. Reconstruct the scene first,
         // including on caret/hover invalidations, instead of sampling last frame's material.
-        if root.hasBackdrop() do
+        if root.hasBackdrop()
+        {
             clipRect = {0, 0, .position.width / .dpiScale, .position.height / .dpiScale}
+        }
+
         clipRect.round()
         .paintedWnds = 0
         .skippedWnds = 0
@@ -782,18 +860,24 @@ impl Surface
 
     private mtd finishFrameWithoutPresent()
     {
-        if .app.renderer is Pixel.RenderOgl as ogl do
+        if .app.renderer is Pixel.RenderOgl as ogl
+        {
             ogl.finishFrameWithoutPresent()
-        else do
+        }
+        else
+        {
             .app.renderer.end()
+        }
     }
 
     private mtd presentRenderTarget(paintedRect: Math.Rectangle)->bool
     {
         var traceWatch: Time.Stopwatch
         let tracing = .app.frameTrace.enabled
-        if tracing do
+        if tracing
+        {
             traceWatch.restart()
+        }
 
         let native = .app.renderer.needsNativeWindow()
 
@@ -828,12 +912,17 @@ impl Surface
             }
         }
 
-        var presentUs = 0'u64
-        if tracing do
+        var presentUs = 0_u64
+        if tracing
+        {
             presentUs = traceWatch.elapsedMicroseconds()
+        }
+
         .app.renderer.end()
-        if native do
+        if native
+        {
             .presentedFrame = true
+        }
 
         if tracing
         {
@@ -883,8 +972,11 @@ impl Surface
            .presentationTarget.colorBuffer.height != .rc.height
         {
             let replacement = .app.renderer.createRenderTarget(.rc.width, .rc.height)
-            if not replacement.colorBuffer.isValid() do
+            if not replacement.colorBuffer.isValid()
+            {
                 return false
+            }
+
             .app.renderer.deleteRenderTarget(&.presentationTarget)
             .presentationTarget = replacement
         }
@@ -930,20 +1022,32 @@ impl Surface
     // sides; any other surface keeps [[Gui.ThemeMetrics.surfaceWnd_ShadowSize]].
     mtd const shadowMargin()->f32
     {
-        if .flags.has(.NoShadow) do
+        if .flags.has(.NoShadow)
+        {
             return 0
-        if .flags.has(.Sheet) do
+        }
+
+        if .flags.has(.Sheet)
+        {
             return .app.theme.floatingShadowMargin()
+        }
+
         return .app.theme.metrics.surfaceWnd_ShadowSize
     }
 
     // Returns the themed corner radius, or zero when rounding is disabled by the surface state.
     mtd const cornerRadius()->f32
     {
-        if .isMaximized or .flags.has(.NoShadow) do
+        if .isMaximized or .flags.has(.NoShadow)
+        {
             return 0
-        if .flags.has(.Sheet) do
+        }
+
+        if .flags.has(.Sheet)
+        {
             return .app.theme.metrics.corner_Floating
+        }
+
         return .app.theme.metrics.surfaceWnd_CornerRadius
     }
 
@@ -971,14 +1075,18 @@ impl Surface
     private mtd const clipInsideOpaqueBody(body: Math.Rectangle, radius: f32)->bool
     {
         let clip = .painter.clippingRect()
-        if radius <= 0 do
+        if radius <= 0
+        {
             return body.contains(clip)
+        }
 
         let fringe = Math.ceil(1 / .dpiScale) + 1
         var center = body
         center.inflate(-fringe)
-        if not center.contains(clip) do
+        if not center.contains(clip)
+        {
             return false
+        }
 
         return (clip.y >= center.y + radius and clip.bottom() <= center.bottom() - radius) or
                (clip.x >= center.x + radius and clip.right() <= center.right() - radius)
@@ -993,8 +1101,10 @@ impl Surface
         interior.round()
 
         let clip = .painter.clippingRect()
-        if interior.isEmpty() do
+        if interior.isEmpty()
+        {
             return [clip, Math.Rectangle{}, Math.Rectangle{}, Math.Rectangle{}]
+        }
 
         let top    = Math.clamp(interior.y, clip.y, clip.bottom())
         let bottom = Math.clamp(interior.bottom(), top, clip.bottom())
@@ -1014,8 +1124,10 @@ impl Surface
     // beside the caption, which nothing covers, and at half strength down the sides.
     private mtd paintBorder(body: Math.Rectangle, radius: f32)
     {
-        if not .flags.has(.Border) do
+        if not .flags.has(.Border)
+        {
             return
+        }
 
         var pen = Pen.createSolid(.wnd.themeColors().wnd_Border, .painter.hairline(.app.theme.metrics.wnd_BorderSize))
         pen.borderPos = .Inside
@@ -1025,8 +1137,10 @@ impl Surface
         // even when every edge of that stroke is clipped away.
         var interior = body
         interior.inflate(-Math.max(radius, pen.size) - Math.ceil(1 / .dpiScale) - 1)
-        if not interior.isEmpty() and interior.contains(.painter.clippingRect()) do
+        if not interior.isEmpty() and interior.contains(.painter.clippingRect())
+        {
             return
+        }
 
         .painter.resetTransform()
         .painter.setColorMaskColor()
@@ -1055,10 +1169,14 @@ impl Surface
 
     private mtd paintBorderShape(body: Math.Rectangle, radius: f32, pen: Pen)
     {
-        if radius > 0 do
+        if radius > 0
+        {
             .painter.drawRoundRect(body, radius, radius, pen)
-        else do
+        }
+        else
+        {
             .painter.drawRect(body, pen)
+        }
     }
 
     // Casts the themed drop shadow into the transparent margin, outside the body.
@@ -1074,20 +1192,30 @@ impl Surface
     // silhouette premultiplied stay untouched.
     private mtd paintShadowOutsideBody(body: Math.Rectangle, radius: f32, bands: const [..] Math.Rectangle)
     {
-        if .isMaximized or .shadowMargin() <= 0 do
+        if .isMaximized or .shadowMargin() <= 0
+        {
             return
+        }
 
         .painter.startClippingRegion()
-        for band in bands where not band.isEmpty() do
+        for band in bands where not band.isEmpty()
+        {
             .painter.fillRect(band, Argb.White)
+        }
+
         .painter.setClippingRegionMode(.Clear)
         for band in bands where not band.isEmpty()
         {
             .painter.pushClippingRect(band)
-            if radius > 0 do
+            if radius > 0
+            {
                 .painter.fillRoundRect(body, radius, radius, Argb.White)
-            else do
+            }
+            else
+            {
                 .painter.fillRect(body, Argb.White)
+            }
+
             .painter.popClippingRect()
         }
 
@@ -1130,10 +1258,16 @@ impl Surface
     // one detached from this surface, does not answer.
     private mtd pressStandardButton(button: *Wnd?)->bool
     {
-        if not button or button.surface != me do
+        if not button or button.surface != me
+        {
             return false
-        if not button.isVisible() or not button.isEnabled() do
+        }
+
+        if not button.isVisible() or not button.isEnabled()
+        {
             return false
+        }
+
         return button.sendKeyPress(Input.Key.Return)
     }
 
@@ -1168,10 +1302,14 @@ impl Surface
 
         // Stamp the same coverage into the alpha channel.
         .painter.setColorMaskAlpha()
-        if radius > 0 do
+        if radius > 0
+        {
             .painter.fillRoundRect(rect, radius, radius, Argb.Black)
-        else do
+        }
+        else
+        {
             .painter.fillRect(rect, Argb.Black)
+        }
     }
 
     // Remembers the accepted focus for the next activation of this surface.
@@ -1179,14 +1317,18 @@ impl Surface
     {
         .focusWnd        = wnd
         .focusAllowsNone = allowNone
-        if reason != .Restore do
+        if reason != .Restore
+        {
             .savedFocusReason = reason
+        }
     }
 
     internal mtd forgetFocus(wnd: *Wnd)
     {
-        if .focusWnd == wnd or wnd.isAncestorOf(.focusWnd) do
+        if .focusWnd == wnd or wnd.isAncestorOf(.focusWnd)
+        {
             .focusWnd = null
+        }
     }
 
     // Removes the logical keyboard focus when the native surface loses it, while retaining the
@@ -1195,21 +1337,27 @@ impl Surface
     internal mtd loseKeyboardFocus()
     {
         let focused = .app.keyboardFocusWnd
-        if not focused or focused.surface != me do
+        if not focused or focused.surface != me
+        {
             return
+        }
 
         .app.updateKeyboardFocus(null, false)
         focused.invalidateFocusDecoration()
 
         var evt = FocusEvent{kind: FocusEvent.Kind.Lost}
         focused.sendEvent(&evt)
-        if focused.surface do
+        if focused.surface
+        {
             focused.ownerNotifyEvent(.ChildFocusChanged)
+        }
 
         // A Lost callback may deliberately put the keyboard somewhere else. That transition
         // owns the resulting focus and the surfaces it already invalidated.
-        if .app.keyboardFocusWnd do
+        if .app.keyboardFocusWnd
+        {
             return
+        }
 
         .defaultButton?.invalidate()
         .wnd.ownerNotifyEvent(.ChildFocusChanged)
@@ -1222,13 +1370,18 @@ impl Surface
     // point instead, and the surface goes back to the control the reader was using.
     mtd clearFocus()
     {
-        if .app.keyboardFocusWnd and .app.keyboardFocusWnd.surface == me do
+        if .app.keyboardFocusWnd and .app.keyboardFocusWnd.surface == me
+        {
             .loseKeyboardFocus()
+        }
 
         // A Lost callback can deliberately choose another control. Its transition owns the
         // new saved point; clearing it here would make the next native activation forget it.
-        if .app.keyboardFocusWnd and .app.keyboardFocusWnd.surface == me do
+        if .app.keyboardFocusWnd and .app.keyboardFocusWnd.surface == me
+        {
             return
+        }
+
         .focusWnd = null
     }
 
@@ -1237,8 +1390,11 @@ impl Surface
     internal mtd restoreFocus()->bool
     {
         let focused = .focusWnd
-        if not focused or focused.surface != me do
+        if not focused or focused.surface != me
+        {
             return false
+        }
+
         return focused.requestFocus(.Restore, .focusAllowsNone)
     }
 
@@ -1261,24 +1417,36 @@ impl Surface
         switch key
         {
         case .Tab:
-            if modifiers != .None and modifiers != .Shift do
+            if modifiers != .None and modifiers != .Shift
+            {
                 return false
+            }
+
             return from.traverseFocus(modifiers == .None, inGroup: false, reason: .Navigation)
 
         case .Left, .Up, .Right, .Down:
-            if modifiers != .None do
+            if modifiers != .None
+            {
                 return false
+            }
+
             let forward = key == .Right or key == .Down
             return from.traverseFocus(forward, inGroup: true, reason: .Navigation)
 
         case .Return:
-            if modifiers != .None do
+            if modifiers != .None
+            {
                 return false
+            }
+
             return .pressStandardButton(.defaultButton)
 
         case .Escape:
-            if modifiers != .None do
+            if modifiers != .None
+            {
                 return false
+            }
+
             if .view() is Dialog
             {
                 var field: *Wnd? = from
@@ -1306,10 +1474,16 @@ impl Surface
     // Replaces and destroys the current user view, then attaches `view` to this surface.
     mtd setView(view: *Wnd)
     {
-        if .wnd.view == view do
+        if .wnd.view == view
+        {
             return
-        if .wnd.view != null do
+        }
+
+        if .wnd.view != null
+        {
             .wnd.view.destroy()
+        }
+
         view.setParent(.wnd)
         view.sendToBack()
         .wnd.view = view

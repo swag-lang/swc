@@ -1,5 +1,5 @@
-const MIN_DEPTH = 4's32
-const MAX_DEPTH = 12's32
+const MIN_DEPTH = 4_s32
+const MAX_DEPTH = 12_s32
 
 struct Node
 {
@@ -26,8 +26,11 @@ func bottomUp(depth: s32)->*Node
 
 func check(node: *Node)->u64
 {
-    if node.left and node.right do
+    if node.left and node.right
+    {
         return 1 + check(node.left) + check(node.right)
+    }
+
     return 1
 }
 
@@ -47,7 +50,7 @@ func release(node: *Node)
     // ---- timed work (no input data) ----
     let t0 = now()
 
-    var total = 0'u64
+    var total = 0_u64
 
     let stretch = bottomUp(MAX_DEPTH + 1)
     total += check(stretch)
@@ -58,7 +61,7 @@ func release(node: *Node)
     var d = MIN_DEPTH
     while d <= MAX_DEPTH
     {
-        let iterations = 1'u64 << cast(u64, (MAX_DEPTH - d + MIN_DEPTH))
+        let iterations = 1_u64 << cast(u64, (MAX_DEPTH - d + MIN_DEPTH))
         for iterations
         {
             let tree = bottomUp(d)

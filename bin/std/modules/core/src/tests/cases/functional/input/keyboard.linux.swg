@@ -18,16 +18,21 @@
 // Keypad navigation and Enter share the portable commands of their main-keyboard counterparts.
 #test
 {
-    let symbols = [0xFF80'u32, 0xFF89, 0xFF8D, 0xFF91, 0xFF92, 0xFF93, 0xFF94,
+    let symbols = [0xFF80_u32, 0xFF89, 0xFF8D, 0xFF91, 0xFF92, 0xFF93, 0xFF94,
                    0xFF95, 0xFF96, 0xFF97, 0xFF98, 0xFF99, 0xFF9A, 0xFF9B, 0xFF9C,
                    0xFF9D, 0xFF9E, 0xFF9F, 0xFFBD]
     let expected: const [..]Input.Key = [.Space, .Tab, .Return, .F1, .F2, .F3, .F4,
                                          .Home, .Left, .Up, .Right, .Down, .PageUp, .PageDown, .End,
                                          .Clear, .Insert, .Delete, .OemPlus]
-    for index in symbols.count do
+    for index in symbols.count
+    {
         Swag.require(Input.Keyboard.virtualKeyToKey(symbols[index]) == expected[index])
+    }
+
     const keypadDigits: [10] Input.Key = [.NumPad0, .NumPad1, .NumPad2, .NumPad3, .NumPad4,
                                           .NumPad5, .NumPad6, .NumPad7, .NumPad8, .NumPad9]
-    for index in 10 do
+    for index in 10
+    {
         Swag.require(Input.Keyboard.virtualKeyToKey(0xFFB0 + cast(u32, index)) == keypadDigits[index])
+    }
 }

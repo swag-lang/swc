@@ -2,20 +2,26 @@
 
 using Core
 
-private func aacTestPackets(path: string)->Array'SoundPacket fail
+private func aacTestPackets(path: string)->Array!{SoundPacket} fail
 {
     let bytes  = try File.readAllBytes(path)
     var result: #returntype
-    var offset = 0'u64
+    var offset = 0_u64
     while offset < bytes.count
     {
-        if bytes.count - offset < 7 or bytes[offset] != 0xFF or bytes[offset + 1] & 0xF6 != 0xF0 do
+        if bytes.count - offset < 7 or bytes[offset] != 0xFF or bytes[offset + 1] & 0xF6 != 0xF0
+        {
             fail InvalidFormatError{"AAC test fixture has an invalid ADTS header"}
+        }
+
         let frameSize = (cast(u32, (bytes[offset + 3] & 3)) << 11) |
                         (cast(u32, bytes[offset + 4]) << 3) |
                         (cast(u32, bytes[offset + 5]) >> 5)
-        if frameSize < 7 or frameSize > bytes.count - offset do
+        if frameSize < 7 or frameSize > bytes.count - offset
+        {
             fail InvalidFormatError{"AAC test fixture has a truncated ADTS frame"}
+        }
+
         result.add(SoundPacket{offset + 7, frameSize - 7, 1024})
         offset += frameSize
     }
@@ -48,11 +54,14 @@ private func aacTestSound51()->SoundFile fail
     const GapFrames: u32    = 2048
     let path    = audioGetTestDataPath("aac-lc-stereo-44100.aac")
     let packets = expect aacTestPackets(path)
-    var gapped: Array'SoundPacket
+    var gapped: Array!{SoundPacket}
     for packet, index in packets
     {
-        if index == GapAt do
+        if index == GapAt
+        {
             gapped.add({0, 0, GapFrames})
+        }
+
         gapped.add(packet)
     }
 
@@ -60,7 +69,7 @@ private func aacTestSound51()->SoundFile fail
     var sparse = expect SoundFile.openPacketStream(path, .AacLc, 44_100, 2, packets.count * 1024 + GapFrames, gapped.toSlice(), Config)
     Swag.require(sparse.sampleFrameCount() == plain.sampleFrameCount() + GapFrames)
 
-    var plainSamples, sparseSamples: Array's16
+    var plainSamples, sparseSamples: Array!{s16}
     expect plain.decodePcm16(func|plainSamples = &plainSamples|(samples: const [..] s16)->bool
     {
         plainSamples.add(samples)
@@ -76,8 +85,11 @@ private func aacTestSound51()->SoundFile fail
     let gapCount = cast(u64, GapFrames) * 2
     let after    = plainSamples.count - gapStart
     Swag.require(sparseSamples.count == plainSamples.count + gapCount)
-    for index in gapCount do
+    for index in gapCount
+    {
         Swag.require(sparseSamples[gapStart + index] == 0)
+    }
+
     Swag.require(Memory.compare(unwrap sparseSamples.buffer, unwrap plainSamples.buffer, gapStart * #sizeof(s16)) == 0)
     Swag.require(Memory.compare(sparseSamples.buffer + gapStart + gapCount, plainSamples.buffer + gapStart, after * #sizeof(s16)) == 0)
 
@@ -86,12 +98,15 @@ private func aacTestSound51()->SoundFile fail
     defer destroyEngine()
     let voice = expect Voice.create(&sparse)
     defer voice.destroy()
-    var streamed: Array's16
+    var streamed: Array!{s16}
     for
     {
         let chunk = expect voice.readBuffer()
-        if not chunk.size do
+        if not chunk.size
+        {
             break
+        }
+
         streamed.add(cast(const [*] s16, unwrap chunk.buffer)[0 until chunk.size / #sizeof(s16)])
     }
 
@@ -125,8 +140,8 @@ private func aacTonePower(samples: const [*] s16, firstFrame, frameCount, channe
 #test
 {
     const Config: [2] u8 = [0x12, 0x10]
-    const Lead = 1_024'u64
-    const Tail = 37'u64
+    const Lead = 1_024_u64
+    const Tail = 37_u64
     let path          = audioGetTestDataPath("aac-lc-stereo-44100.aac")
     let packets       = expect aacTestPackets(path)
     let decodedFrames = packets.count * 1_024
@@ -137,18 +152,18 @@ private func aacTonePower(samples: const [*] s16, firstFrame, frameCount, channe
     var invalidPadding: Swag.Error
     discard catch SoundFile.openPacketStream(path, .AacLc, 44_100, 2, decodedFrames, packets.toSlice(), Config, {trailingTrimFrames: 1_024}) as invalidPadding
     Swag.require(invalidPadding.value() is BadParameterError)
-    var withTerminal: Array'SoundPacket
+    var withTerminal: Array!{SoundPacket}
     withTerminal.add(packets.toSlice())
     withTerminal.add({0, 1, 0})
     let untrimmed = expect SoundFile.openPacketStream(path, .AacLc, 44_100, 2, decodedFrames, withTerminal.toSlice(), Config)
     Swag.require(untrimmed.sampleFrameCount() == decodedFrames)
-    var all: Array's16
+    var all: Array!{s16}
     expect full.decodePcm16(func|all = &all|(part: const [..] s16)->bool
     {
         all.add(part)
         return true
     })
-    var audible: Array's16
+    var audible: Array!{s16}
     expect trimmed.decodePcm16(func|audible = &audible|(part: const [..] s16)->bool
     {
         audible.add(part)
@@ -161,12 +176,15 @@ private func aacTonePower(samples: const [*] s16, firstFrame, frameCount, channe
     defer destroyEngine()
     let voice = expect Voice.create(&trimmed)
     defer voice.destroy()
-    var played: Array's16
+    var played: Array!{s16}
     for
     {
         let part = expect voice.readBuffer()
-        if not part.buffer do
+        if not part.buffer
+        {
             break
+        }
+
         let samples = cast(const [*] s16, part.buffer)
         played.add(samples[until part.size / #sizeof(s16)])
     }
@@ -198,8 +216,11 @@ private func aacTonePower(samples: const [*] s16, firstFrame, frameCount, channe
     let finalPart = expect voice.readBuffer()
     Swag.require(finalPart.size == 23 * 2 * #sizeof(s16))
     let samples = cast(const [*] s16, unwrap finalPart.buffer)
-    for index in 23 * 2 do
+    for index in 23 * 2
+    {
         Swag.require(samples[index] == 0)
+    }
+
     Swag.require((expect voice.readBuffer()).size == 0)
 }
 
@@ -227,9 +248,12 @@ private func aacTonePower(samples: const [*] s16, firstFrame, frameCount, channe
     let decoded = expect voice.readBuffer()
     Swag.require(decoded.size == 4 * 1024 * 2 * #sizeof(s16))
     let samples = cast(const [*] s16, unwrap decoded.buffer)
-    var peak    = 0's32
-    for index in decoded.size / #sizeof(s16) do
+    var peak    = 0_s32
+    for index in decoded.size / #sizeof(s16)
+    {
         peak = Math.max(peak, Math.abs(cast(s32, samples[index])))
+    }
+
     Swag.require(peak > 1_000)
     Swag.require(aacTonePower(samples, 2_048, 2_048, 2, 0, 44_100, 440) > 10.0 * aacTonePower(samples, 2_048, 2_048, 2, 0, 44_100, 660))
     Swag.require(aacTonePower(samples, 2_048, 2_048, 2, 1, 44_100, 660) > 10.0 * aacTonePower(samples, 2_048, 2_048, 2, 1, 44_100, 440))
@@ -260,16 +284,22 @@ private func aacTonePower(samples: const [*] s16, firstFrame, frameCount, channe
     {
         // The AAC encoder deliberately low-passes LFE; its 600 Hz probe is almost entirely
         // removed, so channel 3 is checked for decoded activity rather than tone dominance.
-        if channel == 3 do
+        if channel == 3
+        {
             continue
+        }
+
         let wanted = aacTonePower(samples, 2_048, 2_048, 6, channel, 48_000, Frequencies[channel])
         let other  = aacTonePower(samples, 2_048, 2_048, 6, channel, 48_000, Frequencies[(channel + 1) % 6])
         Swag.require(wanted > 8.0 * other)
     }
 
-    var lfePeak = 0's32
-    for frame in 4 * 1024 do
+    var lfePeak = 0_s32
+    for frame in 4 * 1024
+    {
         lfePeak = Math.max(lfePeak, Math.abs(cast(s32, samples[frame * 6 + 3])))
+    }
+
     Swag.require(lfePeak > 100)
 }
 
@@ -278,7 +308,7 @@ private func aacTonePower(samples: const [*] s16, firstFrame, frameCount, channe
 // identical stream to that decoded position, including the AAC overlap pre-roll.
 #test
 {
-    const Trim = 1280'u64
+    const Trim = 1280_u64
     const Config: [2] u8 = [0x12, 0x10]
     let path    = audioGetTestDataPath("aac-lc-stereo-44100.aac")
     let packets = expect aacTestPackets(path)
@@ -306,7 +336,7 @@ private func aacTonePower(samples: const [*] s16, firstFrame, frameCount, channe
     let actual   = expect trimmedVoice.readBuffer()
     Swag.require(actual.size == expected.size)
     Swag.require(Memory.compare(unwrap actual.buffer, unwrap expected.buffer, actual.size) == 0)
-    var firstRead: Array'u8
+    var firstRead: Array!{u8}
     firstRead.resize(actual.size)
     Memory.copy(unwrap firstRead.buffer, actual.buffer, actual.size)
 
@@ -409,7 +439,7 @@ private func aacTonePower(samples: const [*] s16, firstFrame, frameCount, channe
     defer discard catch File.delete(shortFramePath)
 
     var shortHeader = source
-    shortHeader.add([0xFF'u8, 0xF1, 0x50, 0x80, 0, 0])
+    shortHeader.add([0xFF_u8, 0xF1, 0x50, 0x80, 0, 0])
     expect File.writeAllBytes(shortHeaderPath, shortHeader.toSlice())
     let headerSound = expect SoundFile.load(shortHeaderPath.toString())
     Swag.require(headerSound.packetCount() == reference.packetCount())

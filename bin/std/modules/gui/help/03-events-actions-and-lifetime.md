@@ -96,8 +96,9 @@ mtd impl onDragDropEvent(evt: *DragDropEvent)
         return
     }
 
-    if evt.kind == .Drop do
+    if evt.kind == .Drop {
         .openContainer(path)
+    }
     evt.effect = pickDropEffect(evt.allowed & (DropEffect.Copy | DropEffect.Link), evt.modifiers)
 }
 ```

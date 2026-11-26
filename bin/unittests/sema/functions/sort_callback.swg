@@ -8,8 +8,10 @@ struct SortNamedItem
 
 func(T) pickCompare(values: [..] T, bigFirst = false)->s32
 {
-    if bigFirst do
+    if bigFirst
+    {
         return pickCompare(values, func(x, y: T)->s32 => y <=> x)
+    }
     return pickCompare(values, func(x, y: T)->s32 => x <=> y)
 }
 
@@ -34,14 +36,14 @@ func semaTest002()
 
 func semaTest003()
 {
-    var values = [{rank: 1'u64, total: 20's64}, {rank: 0'u64, total: 10's64}]
+    var values = [{rank: 1_u64, total: 20_s64}, {rank: 0_u64, total: 10_s64}]
     let result = pickCompare(values[to], func(x, y) => x.total <=> y.total)
     #assert(#typeof(result) == s32)
 }
 
 func semaTest004()
 {
-    var values = [{rank: 1'u64, total: 20's64}, {rank: 0'u64, total: 10's64}]
+    var values = [{rank: 1_u64, total: 20_s64}, {rank: 0_u64, total: 10_s64}]
     let result = values[to].pickCompare(func(x, y) => x.total <=> y.total)
     #assert(#typeof(result) == s32)
 }

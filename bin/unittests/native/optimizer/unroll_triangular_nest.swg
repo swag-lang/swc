@@ -53,7 +53,7 @@ func exchangeFrom(cells: [*] Cell, first: s64)
 #[Swag.Optimize(true)]
 func pairSum(values: [*] s64)->s64
 {
-    var total = 0's64
+    var total = 0_s64
     for i in 16
     {
         for j in i + 1 until 16
@@ -71,9 +71,11 @@ func pairSum(values: [*] s64)->s64
 #[Swag.Optimize(true)]
 func lastCell(cells: [*] Cell)->s64
 {
-    var total = 0's64
-    for i in N - 1 until N do
+    var total = 0_s64
+    for i in N - 1 until N
+    {
         total += cells[i].value * cells[i].weight
+    }
     return total
 }
 
@@ -101,8 +103,10 @@ func exchangeReference(cells: [*] Cell)
     var expected: [N] Cell = [Cell{7, 1}, Cell{-3, 2}, Cell{11, -1}, Cell{4, 3}, Cell{-9, 2}]
     exchange(&cells[0])
     exchangeReference(&expected[0])
-    for i in N do
+    for i in N
+    {
         Swag.require(cells[i].value == expected[i].value and cells[i].weight == expected[i].weight)
+    }
     Swag.require(cells[0].value == -3740 and cells[2].value == -82771 and cells[4].value == 127551)
 
     var plain: [N] Cell = [Cell{1, 1}, Cell{2, 2}, Cell{3, 3}, Cell{4, 4}, Cell{5, 5}]
@@ -111,8 +115,10 @@ func exchangeReference(cells: [*] Cell)
     Swag.require(plain[3].value == 63 and plain[4].value == 73)
 
     var values: [16] s64
-    for i in 16 do
+    for i in 16
+    {
         values[i] = i * 7 + 1
+    }
     let total = pairSum(&values[0])
     Swag.require(total == 25596)
     Swag.require(values[0] == 24 and values[14] == 101 and values[15] == 106)

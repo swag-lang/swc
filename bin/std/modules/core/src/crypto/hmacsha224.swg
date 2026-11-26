@@ -13,6 +13,20 @@ struct HmacSha224
     initialized: bool
 }
 
+private func sha224Bytes(digest: Hash.Sha224.Digest)->HmacSha224Digest
+{
+    var result: #returntype
+    for index in digest.count
+    {
+        for byte in 4
+        {
+            result[index * 4 + byte] = Math.byteAt(digest[index], 3 - byte)
+        }
+    }
+
+    return result
+}
+
 impl HmacSha224
 {
     // Creates an initialized HMAC-SHA-224 sequence for `key`.
@@ -36,7 +50,7 @@ impl HmacSha224
             Swag.memcpy(&pad[0], &hashed[0], #sizeof(hashed))
             secureClear(hashed)
         }
-        elif key.count
+        else if key.count
         {
             Swag.memcpy(&pad[0], key.buffer, key.count)
         }

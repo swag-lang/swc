@@ -111,10 +111,14 @@ the corresponding type. This enables dynamic yet type-safe patterns.
     #[Swag.ConstExpr]
     func getType(needAString: bool)->typeinfo
     {
-        if needAString do
+        if needAString
+        {
             return string?
-        else do
+        }
+        else
+        {
             return s32
+        }
     }
 
     // Materialize the chosen type via '#decltype'

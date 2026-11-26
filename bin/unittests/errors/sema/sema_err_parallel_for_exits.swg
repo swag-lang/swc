@@ -4,24 +4,28 @@
 // the rest of that partition while the other partitions keep going, so both exits are rejected.
 #test
 {
-    var total = 0'u64
+    var total = 0_u64
 
     parallel for |&total| index in 10
     {
-        if index == 5 do
+        if index == 5
+        {
             break     // swc-expected-error {{sema_err_break_leaves_parallel_for}}
+        }
         total += index
     }
 }
 
 func earlyReturn()->u64
 {
-    var total = 0'u64
+    var total = 0_u64
 
     parallel for |&total| index in 10
     {
-        if index == 5 do
+        if index == 5
+        {
             return 0     // swc-expected-error {{sema_err_return_leaves_parallel_for}}
+        }
         total += index
     }
 
@@ -31,15 +35,17 @@ func earlyReturn()->u64
 // A loop written inside the body owns its own 'break'.
 #test
 {
-    var total = 0'u64
+    var total = 0_u64
 
     parallel for |&total| index in 4
     {
         discard index
         for inner in 10
         {
-            if inner == 2 do
+            if inner == 2
+            {
                 break
+            }
             total += 1
         }
     }

@@ -21,12 +21,14 @@ func highFirst(x: u64)->bool => x <= 1000 and x >= 900
 #[Swag.Optimize(true), Swag.NoInline]
 func countLetters(text: const [*] u8, count: u64)->u64
 {
-    var letters = 0'u64
+    var letters = 0_u64
     for i in count
     {
         let c = text[i]
-        if c >= 'a' and c <= 'z' do
+        if c >= 'a' and c <= 'z'
+        {
             letters += 1
+        }
     }
 
     return letters

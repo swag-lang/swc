@@ -56,8 +56,10 @@ impl BitReader
     // Reads `count` bits as an unsigned value. `count` is at most 32.
     mtd read(count: u32)->u32
     {
-        if count == 1 do
+        if count == 1
+        {
             return .bit()
+        }
 
         if count >= 2 and count <= 32
         {
@@ -74,22 +76,28 @@ impl BitReader
                     let packed = Math.bigEndianToNative(cast(const [*] u64, unwrap .data + startByte)[0])
                     let shift  = 64 - cast(u32, (startBit & 7)) - count
                     .bitPos = endBit
-                    return cast(u32, ((packed >> shift) & ((1'u64 << count) - 1)))
+                    return cast(u32, ((packed >> shift) & ((1_u64 << count) - 1)))
                 }
 
                 let endByte = (endBit + 7) >> 3
-                var packed  = 0'u64
-                for index in startByte until endByte do
+                var packed  = 0_u64
+                for index in startByte until endByte
+                {
                     packed = (packed << 8) | .data![index]
+                }
+
                 .bitPos = endBit
                 let shift = cast(u32, (endByte * 8 - endBit))
-                return cast(u32, ((packed >> shift) & ((1'u64 << count) - 1)))
+                return cast(u32, ((packed >> shift) & ((1_u64 << count) - 1)))
             }
         }
 
-        var result = 0'u32
-        for count do
+        var result = 0_u32
+        for count
+        {
             result = (result << 1) | .bit()
+        }
+
         return result
     }
 
@@ -103,12 +111,14 @@ impl BitReader
             return (packed >> cast(u32, (16 - (.bitPos & 7)))) & 0xFFFF
         }
 
-        var result = 0'u32
-        for offset in 3'u64
+        var result = 0_u32
+        for offset in 3_u64
         {
             result <<= 8
-            if byteIndex + offset < .size do
+            if byteIndex + offset < .size
+            {
                 result |= cast(u32, .data![byteIndex + offset])
+            }
         }
 
         return (result >> cast(u32, (8 - (.bitPos & 7)))) & 0xFFFF
@@ -128,20 +138,37 @@ impl BitReader
     // Reads one unsigned Exp-Golomb value.
     mtd ue()->u32
     {
-        if .bit() do
+        if .bit()
+        {
             return 0
-        if .overran do
-            return 0
-        if .bit() do
-            return 1 + .read(1)
-        if .overran do
-            return 0
-        if .bit() do
-            return 3 + .read(2)
-        if .overran do
-            return 0
+        }
 
-        var zeros = 3'u32
+        if .overran
+        {
+            return 0
+        }
+
+        if .bit()
+        {
+            return 1 + .read(1)
+        }
+
+        if .overran
+        {
+            return 0
+        }
+
+        if .bit()
+        {
+            return 3 + .read(2)
+        }
+
+        if .overran
+        {
+            return 0
+        }
+
+        var zeros = 3_u32
         while not .bit()
         {
             zeros += 1
@@ -152,7 +179,7 @@ impl BitReader
             }
         }
 
-        return (1'u32 << zeros) - 1 + .read(zeros)
+        return (1_u32 << zeros) - 1 + .read(zeros)
     }
 
     // Reads one signed Exp-Golomb value.
@@ -166,8 +193,10 @@ impl BitReader
     // Reports whether more syntax follows, before the trailing stop bit of the payload.
     mtd const moreData()->bool
     {
-        if .overran or .bitPos >= .size * 8 do
+        if .overran or .bitPos >= .size * 8
+        {
             return false
+        }
 
         // The payload ends with a stop bit and zero padding. Its last set bit is the
         // least significant set bit of the last nonzero byte.
@@ -193,22 +222,22 @@ impl BitReader
 // A reader that tops its bit buffer up with one whole-word load can then do so right up to the
 // last payload byte without a bound, and what it loads past the end is the zeros a read past
 // the end yields anyway.
-const RbspPadding = 8'u64
+const RbspPadding = 8_u64
 
 // Appends the raw byte sequence payload of one NAL unit, removing emulation-prevention bytes.
 //
 // `data` is the NAL payload after its header byte. The destination is reset first and reused
 // across NAL units, so a decoder unescapes a whole stream with one allocation. The payload is
 // followed by [[RbspPadding]] zero bytes in the destination's storage, past its count.
-func unescapeRbsp(destination: *Array'u8, data: const [..] u8)
+func unescapeRbsp(destination: *Array!{u8}, data: const [..] u8)
 {
     let count = data.count
     destination.clear()
     destination.resize(count)
     let output = destination.storage()
-    var index, outputIndex = 0'u64
-    var zeros  = 0'u32
-    let threes = Math.Simd.splat(3'u8)
+    var index, outputIndex = 0_u64
+    var zeros  = 0_u32
+    let threes = Math.Simd.splat(3_u8)
     while index < count
     {
         if count - index >= 16
@@ -258,9 +287,9 @@ func unescapeRbsp(destination: *Array'u8, data: const [..] u8)
 func escapedOffsetOf(data: const [..] u8, unescapedCount: u64)->u64
 {
     let count    = data.count
-    var produced = 0'u64
-    var index    = 0'u64
-    var zeros    = 0'u32
+    var produced = 0_u64
+    var index    = 0_u64
+    var zeros    = 0_u32
     while index < count and produced < unescapedCount
     {
         let value = data[index]
@@ -284,7 +313,7 @@ func escapedOffsetOf(data: const [..] u8, unescapedCount: u64)->u64
 // `escapedBounds` holds byte positions in `data`, in increasing order; `unescapedBounds` receives
 // the position each of them takes in the unescaped output. Unescaping the substreams of a slice
 // in one pass is what keeps a zero run that crosses a boundary from being read twice.
-func unescapeRbspWithBounds(destination: *Array'u8, data: const [..] u8, escapedBounds: const [..] u64, unescapedBounds: *Array'u64)
+func unescapeRbspWithBounds(destination: *Array!{u8}, data: const [..] u8, escapedBounds: const [..] u64, unescapedBounds: *Array!{u64})
 {
     let count = data.count
     destination.clear()
@@ -292,12 +321,12 @@ func unescapeRbspWithBounds(destination: *Array'u8, data: const [..] u8, escaped
     unescapedBounds.clear()
 
     let output    = destination.storage()
-    var index     = 0'u64
-    var produced  = 0'u64
-    var zeros     = 0'u32
-    var boundary  = 0'u64
-    var nextBlock = 0'u64
-    let threes    = Math.Simd.splat(3'u8)
+    var index     = 0_u64
+    var produced  = 0_u64
+    var zeros     = 0_u32
+    var boundary  = 0_u64
+    var nextBlock = 0_u64
+    let threes    = Math.Simd.splat(3_u8)
 
     while index < count
     {

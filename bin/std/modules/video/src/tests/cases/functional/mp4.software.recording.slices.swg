@@ -6,9 +6,9 @@ using Swag, Core, Core.Errors, Pixel
 private func slicedRecordingPicture(shift: u64)->Image
 {
     var image = Image.create(64, 64, .BGRA8)
-    for y in 64'u64
+    for y in 64_u64
     {
-        for x in 64'u64
+        for x in 64_u64
         {
             let offset = (y * 64 + x) * 4
             image.pixels[offset]     = cast(u8, (x * 7 + y * 3 + shift * 5) & 255)
@@ -28,7 +28,7 @@ private func slicedRecordingPicture(shift: u64)->Image
     const SliceCounts: [2] u32 = [2, 4]
     const Quantizers:  [2] u32 = [0, 28]
     let retainProbe = not Env.variable("SWAG_VIDEO_SLICE_PROBE").isEmpty()
-    for scenario in 2'u64
+    for scenario in 2_u64
     {
         let sliceCount = SliceCounts[scenario]
         let qp         = Quantizers[scenario]
@@ -37,15 +37,17 @@ private func slicedRecordingPicture(shift: u64)->Image
                                        "mp4")
         defer
         {
-            if not retainProbe do
+            if not retainProbe
+            {
                 discard catch File.delete(path)
+            }
         }
 
         var recorder = expect Mp4.SoftwareRecording.createVideoOnly(path, 64, 64, 90_000, keyInterval: 3, quantizationQp: qp, sliceCount: sliceCount)
         let pacer    = expect FramePacer.create(expect FrameRate.create(30, 1),
                                                 1_000_000,
                                                 90_000)
-        for frame in 4'u64
+        for frame in 4_u64
         {
             let image = slicedRecordingPicture(frame)
             expect recorder.addFrame(&image, expect pacer.slotAt(frame))
@@ -61,29 +63,42 @@ private func slicedRecordingPicture(shift: u64)->Image
         var reader = expect Reader.open(path)
         Swag.require(reader.frameCount() == 5 and reader.audioTrackCount() == 0)
         var decoded:      PlanarFrame
-        var previousLuma: Array'u8
-        for frame in 5'u64
+        var previousLuma: Array!{u8}
+        for frame in 5_u64
         {
             expect reader.decodeFramePlanesInto(&decoded, frame)
-            let image = slicedRecordingPicture(Math.min(frame, 3'u64))
+            let image = slicedRecordingPicture(Math.min(frame, 3_u64))
             var expected: Nv12Frame
             expect expected.convertFrom(&image)
-            if qp == 0 do
+            if qp == 0
+            {
                 Swag.require(Slice.equals(decoded.luma.toSlice(), expected.luma()))
+            }
+
             Swag.require(decoded.width == 64 and decoded.height == 64)
-            if qp != 0 and frame == 1 do
+            if qp != 0 and frame == 1
+            {
                 Swag.require(not Slice.equals(decoded.luma.toSlice(), expected.luma()))
-            if frame == 3 do
+            }
+
+            if frame == 3
+            {
                 previousLuma.add(decoded.luma.toSlice())
-            if frame == 4 do
+            }
+
+            if frame == 4
+            {
                 Swag.require(Slice.equals(decoded.luma.toSlice(), previousLuma.toSlice()))
+            }
         }
 
-        if retainProbe do
+        if retainProbe
+        {
             Console.printf("Software MP4 slice probe: % slices, QP %, path %\n",
                            sliceCount,
                            qp,
                            path)
+        }
     }
 }
 

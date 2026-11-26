@@ -12,8 +12,10 @@ func resetDropHooks()
 
 func helperFree(buffer: [*] void?, size: u64, allocator: IAllocator? = null)
 {
-    if not buffer do
+    if not buffer
+    {
         return
+    }
 
     var req: AllocatorRequest
     req.size    = size
@@ -37,8 +39,10 @@ func helperRealloc(buffer: [*] void?, newSize: u64, oldSize: u64, allocator: IAl
 
 func memoryLikeFree(buffer: [*] void?, size: u64, allocator: IAllocator? = null, hint: string? = null, loc = #callerlocation)
 {
-    if not buffer do
+    if not buffer
+    {
         return
+    }
 
     var req: AllocatorRequest
     req.callerLoc = loc
@@ -70,8 +74,10 @@ func encodeByteTrace(buffer: [*] u8?, count: u64)->u64
     var result: u64 = 0
     if buffer != null
     {
-        for i in count do
+        for i in count
+        {
             result = result * 100 + cast(u64, buffer[i])
+        }
     }
     return result * 100 + count
 }
@@ -81,8 +87,10 @@ func encodeTrackedTrace(buffer: [*] DropTracked?, count: u64)->u64
     var result: u64 = 0
     if buffer != null
     {
-        for i in count do
+        for i in count
+        {
             result = result * 100 + cast(u64, buffer[i].value)
+        }
     }
     return result * 100 + count
 }
@@ -132,10 +140,14 @@ impl DirectByteBuffer
 
     mtd reserve(newCapacity: u64)
     {
-        if newCapacity <= .capacity do
+        if newCapacity <= .capacity
+        {
             return
-        if .allocator == null do
+        }
+        if .allocator == null
+        {
             .allocator = Swag.getContext().allocator
+        }
 
         var req: AllocatorRequest
         req.address = .buffer
@@ -149,8 +161,10 @@ impl DirectByteBuffer
 
     mtd resize(newCount: u64)
     {
-        if newCount == .count do
+        if newCount == .count
+        {
             return
+        }
         if newCount > .count
         {
             .reserve(newCount)
@@ -166,8 +180,10 @@ impl DirectByteBuffer
 
     mtd free()
     {
-        if not .buffer do
+        if not .buffer
+        {
             return
+        }
 
         Swag.drop(.buffer, .count)
 
@@ -195,10 +211,14 @@ impl HelperByteBuffer
 
     mtd reserve(newCapacity: u64)
     {
-        if newCapacity <= .capacity do
+        if newCapacity <= .capacity
+        {
             return
-        if .allocator == null do
+        }
+        if .allocator == null
+        {
             .allocator = Swag.getContext().allocator
+        }
 
         .buffer   = cast([*] u8?, helperRealloc(.buffer, newCapacity, .capacity, .allocator))
         .capacity = newCapacity
@@ -206,8 +226,10 @@ impl HelperByteBuffer
 
     mtd resize(newCount: u64)
     {
-        if newCount == .count do
+        if newCount == .count
+        {
             return
+        }
         if newCount > .count
         {
             .reserve(newCount)
@@ -223,8 +245,10 @@ impl HelperByteBuffer
 
     mtd free()
     {
-        if not .buffer do
+        if not .buffer
+        {
             return
+        }
 
         Swag.drop(.buffer, .count)
         helperFree(.buffer, .capacity, .allocator)
@@ -247,10 +271,14 @@ impl MemoryTrackedBuffer
 
     mtd reserve(newCapacity: u64)
     {
-        if newCapacity <= .capacity do
+        if newCapacity <= .capacity
+        {
             return
-        if .allocator == null do
+        }
+        if .allocator == null
+        {
             .allocator = Swag.getContext().allocator
+        }
 
         .buffer   = cast([*] DropTracked?, memoryLikeRealloc(.buffer, newCapacity * #sizeof(DropTracked), .capacity * #sizeof(DropTracked), .allocator))
         .capacity = newCapacity
@@ -258,8 +286,10 @@ impl MemoryTrackedBuffer
 
     mtd resize(newCount: u64, seed: s32 = 9)
     {
-        if newCount == .count do
+        if newCount == .count
+        {
             return
+        }
         if newCount > .count
         {
             .reserve(newCount)
@@ -275,8 +305,10 @@ impl MemoryTrackedBuffer
 
     mtd free()
     {
-        if not .buffer do
+        if not .buffer
+        {
             return
+        }
 
         Swag.drop(.buffer, .count)
         memoryLikeFree(.buffer, .capacity * #sizeof(DropTracked), .allocator)
@@ -330,8 +362,10 @@ func memoryAllocatorRunDropInfo()->DropRunInfo
     var values: MemoryTrackedBuffer
     values.resize(4, 9)
     let buf = unwrap values.buffer
-    for i in 4 do
+    for i in 4
+    {
         buf[i].value = cast(s32, (i + 1))
+    }
 
     values.resize(2, 8)
     values.resize(5, 8)

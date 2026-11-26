@@ -25,22 +25,22 @@ func moveDelta(outDx: *s32, outDy: *s32, instruction: u8)
 {
     switch instruction
     {
-    case '<'u8:
+    case '<'_u8:
         outDx[] = -1
         outDy[] = 0
         break
 
-    case '>'u8:
+    case '>'_u8:
         outDx[] = 1
         outDy[] = 0
         break
 
-    case '^'u8:
+    case '^'_u8:
         outDx[] = 0
         outDy[] = -1
         break
 
-    case 'v'u8:
+    case 'v'_u8:
         outDx[] = 0
         outDy[] = 1
         break
@@ -74,11 +74,11 @@ func simulateWarehouse(layout: const [..] string, instructions: string)->Warehou
             let src   = row[x]
             let index = cellIndex(x, cast(u32, rowIndex), width)
 
-            if src == '@'u8
+            if src == '@'_u8
             {
                 robotX       = cast(s32, x)
                 robotY       = cast(s32, rowIndex)
-                cells[index] = '.'u8
+                cells[index] = '.'_u8
             }
             else
             {
@@ -101,31 +101,35 @@ func simulateWarehouse(layout: const [..] string, instructions: string)->Warehou
         let nextIndex = cellIndex(cast(u32, nextX), cast(u32, nextY), width)
         let nextCell  = cells[nextIndex]
 
-        if nextCell == '#'u8 do
+        if nextCell == '#'_u8
+        {
             continue
+        }
 
-        if nextCell == '.'u8
+        if nextCell == '.'_u8
         {
             robotX = nextX
             robotY = nextY
             continue
         }
 
-        Swag.assert(nextCell == 'O'u8)
+        Swag.assert(nextCell == 'O'_u8)
 
         var scanX     = nextX
         var scanY     = nextY
         var scanIndex = nextIndex
 
-        while cells[scanIndex] == 'O'u8
+        while cells[scanIndex] == 'O'_u8
         {
             scanX     += dx
             scanY     += dy
             scanIndex = cellIndex(cast(u32, scanX), cast(u32, scanY), width)
         }
 
-        if cells[scanIndex] == '#'u8 do
+        if cells[scanIndex] == '#'_u8
+        {
             continue
+        }
 
         while scanX != nextX or scanY != nextY
         {
@@ -139,7 +143,7 @@ func simulateWarehouse(layout: const [..] string, instructions: string)->Warehou
             scanIndex        = prevIndex
         }
 
-        cells[nextIndex]        = '.'u8
+        cells[nextIndex]        = '.'_u8
         robotX                  = nextX
         robotY                  = nextY
         result.successfulPushes += 1
@@ -147,11 +151,11 @@ func simulateWarehouse(layout: const [..] string, instructions: string)->Warehou
 
     for idx in totalCells
     {
-        if cells[idx] == 'O'u8
+        if cells[idx] == 'O'_u8
         {
             let x = cast(u64, (idx % width))
             let y = cast(u64, (idx / width))
-            result.gpsSum += y * 100'u64 + x
+            result.gpsSum += y * 100_u64 + x
         }
     }
 
@@ -174,13 +178,13 @@ func simulateWarehouse(layout: const [..] string, instructions: string)->Warehou
 
     let sampleReport = simulateWarehouse(sampleLayout, "<^^>>>vv<v>>v<<")
 
-    Swag.require(sampleReport.successfulPushes == 6'u32)
-    Swag.require(sampleReport.gpsSum == 2028'u64)
+    Swag.require(sampleReport.successfulPushes == 6_u32)
+    Swag.require(sampleReport.gpsSum == 2028_u64)
 
     let secondReport = simulateWarehouse(sampleLayout, ">v>v<<^>>vv<^")
 
-    Swag.require(secondReport.successfulPushes == 4'u32)
-    Swag.require(secondReport.gpsSum == 1825'u64)
+    Swag.require(secondReport.successfulPushes == 4_u32)
+    Swag.require(secondReport.gpsSum == 1825_u64)
 
     const compactLayout: [6] string =
         [
@@ -194,6 +198,6 @@ func simulateWarehouse(layout: const [..] string, instructions: string)->Warehou
 
     let compactReport = simulateWarehouse(compactLayout, ">>>v<<")
 
-    Swag.require(compactReport.successfulPushes == 2'u32)
-    Swag.require(compactReport.gpsSum == 512'u64)
+    Swag.require(compactReport.successfulPushes == 2_u32)
+    Swag.require(compactReport.gpsSum == 512_u64)
 }

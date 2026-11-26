@@ -9,18 +9,18 @@
 using Core, Core.Errors
 
 // Video object plane coding types, clause 6.3.5.
-const VopIntra         = 0'u32
-const VopPredicted     = 1'u32
-const VopBidirectional = 2'u32
-const VopSprite        = 3'u32
+const VopIntra         = 0_u32
+const VopPredicted     = 1_u32
+const VopBidirectional = 2_u32
+const VopSprite        = 3_u32
 
 // Start codes this decoder acts on, clause 6.3.1.
-const CodeVideoObjectSequence    = 0xB0'u32
-const CodeVideoObjectSequenceEnd = 0xB1'u32
-const CodeUserData               = 0xB2'u32
-const CodeGroupOfVop             = 0xB3'u32
-const CodeVisualObject           = 0xB5'u32
-const CodeVop                    = 0xB6'u32
+const CodeVideoObjectSequence    = 0xB0_u32
+const CodeVideoObjectSequenceEnd = 0xB1_u32
+const CodeUserData               = 0xB2_u32
+const CodeGroupOfVop             = 0xB3_u32
+const CodeVisualObject           = 0xB5_u32
+const CodeVop                    = 0xB6_u32
 
 // Reads syntax elements most significant bit first.
 //
@@ -40,9 +40,19 @@ impl BitReader
     // Reads `count` bits. Past the end every bit reads as zero, and `overran` says so.
     mtd read(count: u32)->u32
     {
-        var result = 0'u32
-        for count do
-            result = (result << 1) | .bit()
+        var result = 0_u32
+        for count
+        {
+            result <<= 1
+            if .bitPos < .bitEnd
+            {
+                let byte = .data![.bitPos >> 3]
+                result |= cast(u32, (byte >> (7 - cast(u32, (.bitPos & 7))))) & 1
+            }
+
+            .bitPos += 1
+        }
+
         return result
     }
 
@@ -60,8 +70,10 @@ impl BitReader
     // Reads the marker bit the format inserts to keep start codes out of a header.
     mtd marker() fail
     {
-        if .bit() != 1 do
+        if .read(1) != 1
+        {
             fail InvalidFormatError{"MPEG-4 marker bit is not set"}
+        }
     }
 
     mtd const overran()->bool => .bitPos > .bitEnd
@@ -69,18 +81,26 @@ impl BitReader
     // Walks one variable length code through its tree and returns the entry it reaches.
     mtd decode(tree: const [..] s16)->s32
     {
-        var node = 0's32
-        for 24'u32
+        var node = 0_s32
+        for 24_u32
         {
-            let slot = cast(u64, (node * 2)) + cast(u64, .bit())
-            if slot >= tree.count do
+            let slot = cast(u64, (node * 2)) + cast(u64, .read(1))
+            if slot >= tree.count
+            {
                 return -1
+            }
 
             let next = tree[slot]
-            if not next do
+            if not next
+            {
                 return -1
-            if next < 0 do
+            }
+
+            if next < 0
+            {
                 return cast(s32, (-next - 1))
+            }
+
             node = cast(s32, next)
         }
 
@@ -120,7 +140,7 @@ impl Layer
     // Installs the quantiser weights a layer that states none inherits.
     mtd useDefaultMatrices()
     {
-        for index in 64'u64
+        for index in 64_u64
         {
             .intraMatrix[index] = DefaultIntraMatrix[index]
             .interMatrix[index] = DefaultInterMatrix[index]
@@ -133,13 +153,16 @@ impl Layer
     // read fills the rest.
     private mtd readMatrix(reader: *BitReader, target: *[64] u8)
     {
-        var last  = 0'u32
-        var index = 0'u64
+        var last  = 0_u32
+        var index = 0_u64
         while index < 64
         {
             let value = reader.read(8)
-            if not value do
+            if not value
+            {
                 break
+            }
+
             last  = value
             target[][cast(u64, ScanZigzag[index])] = cast(u8, value)
             index += 1
@@ -166,13 +189,18 @@ impl Layer
             discard reader.read(3)     // video_object_layer_priority
         }
 
-        if reader.read(4) == 15 do
-            discard reader.read(16)     // pixel aspect ratio
+        if reader.read(4) == 15
+        {
+            discard reader.read(16)
+        }     // pixel aspect ratio
 
         if reader.bit() != 0
         {
-            if reader.read(2) != 1 do
+            if reader.read(2) != 1
+            {
                 fail UnsupportedFormatError{"video decoder does not read MPEG-4 chroma formats other than 4:2:0"}
+            }
+
             .lowDelay = reader.bit() != 0
             if reader.bit() != 0
             {
@@ -192,44 +220,63 @@ impl Layer
         }
 
         .shape = reader.read(2)
-        if .shape != 0 do
+        if .shape != 0
+        {
             fail UnsupportedFormatError{"video decoder reads rectangular MPEG-4 Part 2 objects only"}
+        }
 
         try reader.marker()
         .timeResolution = reader.read(16)
         try reader.marker()
-        if not .timeResolution do
+        if not .timeResolution
+        {
             fail InvalidFormatError{"MPEG-4 layer states a zero time resolution"}
+        }
 
         // The plane header spends as many bits on its time as the resolution needs.
         .timeIncrementBits = 1
-        while (1'u32 << .timeIncrementBits) < .timeResolution and .timeIncrementBits < 16 do
+        while (1_u32 << .timeIncrementBits) < .timeResolution and .timeIncrementBits < 16
+        {
             .timeIncrementBits += 1
+        }
 
-        if reader.bit() != 0 do
-            discard reader.read(.timeIncrementBits)     // fixed_vop_time_increment
+        if reader.bit() != 0
+        {
+            discard reader.read(.timeIncrementBits)
+        }     // fixed_vop_time_increment
 
         try reader.marker()
         .width = reader.read(13)
         try reader.marker()
         .height = reader.read(13)
         try reader.marker()
-        if not .width or not .height do
+        if not .width or not .height
+        {
             fail InvalidFormatError{"MPEG-4 layer states an empty picture"}
-        if .width > 4096 or .height > 4096 do
+        }
+
+        if .width > 4096 or .height > 4096
+        {
             fail UnsupportedFormatError{"MPEG-4 picture exceeds the supported size"}
+        }
 
         .interlaced = reader.bit() != 0
-        if .interlaced do
+        if .interlaced
+        {
             fail UnsupportedFormatError{"video decoder does not read interlaced MPEG-4 Part 2"}
+        }
 
         .obmcDisabled = reader.bit() != 0
-        if not .obmcDisabled do
+        if not .obmcDisabled
+        {
             fail UnsupportedFormatError{"video decoder does not read overlapped block motion compensation"}
+        }
 
-        .spriteEnable = .versionId == 1 ? reader.bit() : reader.read(2)
-        if .spriteEnable do
+        .spriteEnable = .versionId == 1 ? reader.read(1) : reader.read(2)
+        if .spriteEnable
+        {
             fail UnsupportedFormatError{"video decoder does not read MPEG-4 sprites or global motion compensation"}
+        }
 
         if reader.bit() != 0
         {
@@ -242,30 +289,43 @@ impl Layer
         .useDefaultMatrices()
         if .quantType != 0
         {
-            if reader.bit() != 0 do
+            if reader.bit() != 0
+            {
                 .readMatrix(reader, &.intraMatrix)
-            if reader.bit() != 0 do
+            }
+
+            if reader.bit() != 0
+            {
                 .readMatrix(reader, &.interMatrix)
+            }
         }
 
         .quarterSample = .versionId != 1 and reader.bit() != 0
-        if .quarterSample do
+        if .quarterSample
+        {
             fail UnsupportedFormatError{"video decoder does not read quarter-sample MPEG-4 Part 2"}
+        }
 
         .complexityDisabled = reader.bit() != 0
-        if not .complexityDisabled do
+        if not .complexityDisabled
+        {
             fail UnsupportedFormatError{"video decoder does not read MPEG-4 complexity estimation"}
+        }
 
         .resyncDisabled  = reader.bit() != 0
         .dataPartitioned = reader.bit() != 0
-        if .dataPartitioned do
+        if .dataPartitioned
+        {
             fail UnsupportedFormatError{"video decoder does not read data-partitioned MPEG-4 Part 2"}
+        }
 
         .mbWidth    = (.width + 15) / 16
         .mbHeight   = (.height + 15) / 16
         .configured = true
-        if reader.overran() do
+        if reader.overran()
+        {
             fail InvalidFormatError{"MPEG-4 video object layer header is truncated"}
+        }
     }
 }
 
@@ -290,49 +350,66 @@ func readPlaneHeader(layer: const *Layer, reader: *BitReader, header: *PlaneHead
     header.codingType = reader.read(2)
 
     // The time base advances by one for every set bit before the zero that closes it.
-    var guard = 0'u32
+    var guard = 0_u32
     while reader.bit() != 0
     {
         header.moduloTime += 1
         guard += 1
-        if guard > 64 do
+        if guard > 64
+        {
             fail InvalidFormatError{"MPEG-4 plane header states an unbounded time base"}
+        }
     }
 
     try reader.marker()
     header.timeIncrement = reader.read(layer.timeIncrementBits)
-    if header.timeIncrement >= layer.timeResolution do
+    if header.timeIncrement >= layer.timeResolution
+    {
         fail InvalidFormatError{"MPEG-4 plane time increment needs a value below its time resolution"}
+    }
+
     try reader.marker()
 
     header.coded = reader.bit() != 0
-    if not header.coded do
+    if not header.coded
+    {
         return
+    }
 
-    if header.codingType == VopPredicted do
+    if header.codingType == VopPredicted
+    {
         header.rounding = reader.bit()
+    }
 
     header.intraDcThreshold = reader.read(3)
     header.quant = reader.read(layer.quantPrecision)
-    if not header.quant do
+    if not header.quant
+    {
         fail InvalidFormatError{"MPEG-4 plane states a zero quantiser"}
+    }
 
     if header.codingType != VopIntra
     {
         header.fcodeForward = reader.read(3)
-        if not header.fcodeForward do
+        if not header.fcodeForward
+        {
             fail InvalidFormatError{"MPEG-4 plane states a zero forward code"}
+        }
     }
 
     if header.codingType == VopBidirectional
     {
         header.fcodeBackward = reader.read(3)
-        if not header.fcodeBackward do
+        if not header.fcodeBackward
+        {
             fail InvalidFormatError{"MPEG-4 plane states a zero backward code"}
+        }
     }
 
-    if reader.overran() do
+    if reader.overran()
+    {
         fail InvalidFormatError{"MPEG-4 plane header is truncated"}
+    }
 }
 
 // Finds the start of the next complete four-byte start code at or after `at`.
@@ -340,17 +417,21 @@ func readPlaneHeader(layer: const *Layer, reader: *BitReader, header: *PlaneHead
 // Returns the size of `bytes` when none is left.
 func nextStartCode(bytes: const [..] u8, at: u64)->u64
 {
-    if at >= bytes.count or bytes.count - at < 4 do
+    if at >= bytes.count or bytes.count - at < 4
+    {
         return bytes.count
+    }
 
     // Most samples have a code immediately at the current position.
     let data = bytes.buffer
-    if data[at] == 0 and data[at + 1] == 0 and data[at + 2] == 1 do
+    if data[at] == 0 and data[at + 1] == 0 and data[at + 2] == 1
+    {
         return at
+    }
 
     const Lanes = #sizeof(Math.Simd.U8x16)
-    let zero  = Math.Simd.splat(0'u8)
-    let one   = Math.Simd.splat(1'u8)
+    let zero  = Math.Simd.splat(0_u8)
+    let one   = Math.Simd.splat(1_u8)
     var index = at + 1
     while bytes.count - index >= Lanes + 3
     {
@@ -358,15 +439,21 @@ func nextStartCode(bytes: const [..] u8, at: u64)->u64
         let second = Math.Simd.load(data + index + 1) == zero
         let third  = Math.Simd.load(data + index + 2) == one
         let mask   = Math.Simd.bitmask(first & second & third)
-        if mask do
+        if mask
+        {
             return index + Math.trailingZeros(mask)
+        }
+
         index += Lanes
     }
 
     while bytes.count - index >= 4
     {
-        if data[index] == 0 and data[index + 1] == 0 and data[index + 2] == 1 do
+        if data[index] == 0 and data[index + 1] == 0 and data[index + 2] == 1
+        {
             return index
+        }
+
         index += 1
     }
 

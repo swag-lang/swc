@@ -111,7 +111,7 @@ namespace
             {
                 FormatShortBlockStyle style = options.allowShortBlocksOnSingleLine;
                 const FormatPiece&    head  = model.piece(block.headPiece);
-                if (head.is(TokenId::KwdIf) || head.is(TokenId::KwdElseIf) || head.is(TokenId::KwdElse))
+                if (head.is(TokenId::KwdIf) || head.is(TokenId::KwdElse))
                 {
                     if (options.allowShortIfStatementsOnSingleLine)
                         style = *options.allowShortIfStatementsOnSingleLine ? FormatShortBlockStyle::Inline : FormatShortBlockStyle::Never;
@@ -227,7 +227,6 @@ namespace
                 }
             }
 
-            runInlineBodies();
             runShortCases();
         }
 
@@ -321,7 +320,7 @@ namespace
             }
 
             // Braced branches of one chain all expand once one of them is.
-            const bool chains = options_->uniformBranchBodies.value_or(false);
+            const bool chains = true;
             for (const auto& group : FormatSiblings::branchGroups(*model_, chains, FormatAlignMode::Preserve))
             {
                 bool braced   = true;
@@ -415,29 +414,6 @@ namespace
 
             model_->setGapSpaces(firstContent, 1);
             model_->setGapSpaces(block.closePiece, 1);
-        }
-
-        void runInlineBodies() const
-        {
-            for (const FormatInlineBody& body : model_->inlineBodies())
-            {
-                const FormatPiece&         head   = model_->piece(body.headPiece);
-                const std::optional<bool>* option = nullptr;
-                if (head.is(TokenId::KwdIf) || head.is(TokenId::KwdElseIf) || head.is(TokenId::KwdElse))
-                    option = &options_->allowShortIfStatementsOnSingleLine;
-                else if (head.is(TokenId::KwdWhile) || head.is(TokenId::KwdFor))
-                    option = &options_->allowShortLoopsOnSingleLine;
-
-                if (!option || !option->has_value() || **option)
-                    continue;
-
-                const uint32_t first = model_->nextPiece(body.doPiece);
-                if (first == INVALID_PIECE || model_->gapHasNewline(first) || !FormatPassUtil::canEditGap(*model_, first))
-                    continue;
-
-                const Utf8 indent = FormatPassUtil::indentPlusOne(*model_, model_->lineIndentOf(body.headPiece));
-                model_->setGapBreak(first, 1, indent.view());
-            }
         }
 
         void applyCompactEmpty(const FormatBlock& block, const bool compact) const
@@ -1019,7 +995,7 @@ namespace
             const FormatPiece& piece = model.piece(i);
             if (piece.removed || piece.frozen || !piece.hasRole(FormatRoleE::ControlKeyword))
                 continue;
-            if (piece.isNot(TokenId::KwdIf) && piece.isNot(TokenId::KwdElseIf) && piece.isNot(TokenId::KwdWhile) &&
+            if (piece.isNot(TokenId::KwdIf) && piece.isNot(TokenId::KwdWhile) &&
                 piece.isNot(TokenId::KwdSwitch))
                 continue;
 
@@ -1032,10 +1008,10 @@ namespace
                 continue;
 
             // The parentheses must cover the whole condition: the body (`{`
-            // or trailing `do`) follows immediately.
+            // or another opening brace follows immediately.
             const uint32_t after = model.nextPiece(close);
             if (after == INVALID_PIECE ||
-                (model.piece(after).isNot(TokenId::SymLeftCurly) && model.piece(after).isNot(TokenId::KwdDo)))
+                model.piece(after).isNot(TokenId::SymLeftCurly))
                 continue;
 
             // Keep multi-line conditions: the parentheses anchor their layout.

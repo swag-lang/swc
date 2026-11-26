@@ -33,8 +33,8 @@ public struct Plan
         hasVersion: bool                            // Whether the type carries a [[Core.Serialization.Version]] attribute.
         podFinal:   bool                            // Whether the type serializes as raw bytes (see [[Core.Serialization.isPodFinal]]).
         hasCustom:  bool                            // Whether the type implements [[Core.Serialization.ISerialize]] and drives its own fields.
-        fields:     Array'PlanField                 // The serializable fields, in declaration order.
-        keyToIndex: HashTable'(string, u64)         // Maps a field key to its index in 'fields'.
+        fields:     Array!{PlanField}               // The serializable fields, in declaration order.
+        keyToIndex: HashTable!{string, u64}         // Maps a field key to its index in 'fields'.
     }
 }
 
@@ -59,16 +59,22 @@ public impl Plan
         .fields.reserve(structType.fields.count)
         for field in structType.fields
         {
-            if Reflection.hasAttribute(field, NoSerialize) or Reflection.hasAttribute(field.pointedType, NoSerialize) do
+            if Reflection.hasAttribute(field, NoSerialize) or Reflection.hasAttribute(field.pointedType, NoSerialize)
+            {
                 continue
+            }
+
             Swag.assert(field.pointedType != null)
 
             with var planned: PlanField
             {
                 .value = field
                 .key   = wireFieldKey(field)
-                if .key == "" do
+                if .key == ""
+                {
                     fail SerializationError{"serialized field needs a non-empty key", field: field}
+                }
+
                 .wireCrc    = wireTypeCrc(field.pointedType)
                 .compressed = Reflection.hasAttribute(field, Compress) or
                               Reflection.hasAttribute(field.pointedType, Compress)
@@ -95,8 +101,11 @@ public impl Plan
     mtd const fieldByKey(key: string)->const *PlanField?
     {
         let entry = .keyToIndex.tryFind(key)
-        if not entry do
+        if not entry
+        {
             return null
+        }
+
         return .fields.storage() + entry.value
     }
 }
@@ -106,8 +115,8 @@ public impl Plan
 
 private
 {
-    var g_Plans:    HashTable'(u64, *Plan)
-    var g_PlanPool: ArrayPtr'Plan
+    var g_Plans:    HashTable!{u64, *Plan}
+    var g_PlanPool: ArrayPtr!{Plan}
     var g_PlanLock: Swag.RWLock
 }
 
@@ -121,16 +130,20 @@ public func planFor(structType: const *Swag.TypeInfoStruct)->const *Plan fail
     {
         Sync.sharedLock(&g_PlanLock)
         let existing = g_Plans.tryFind(key)
-        if existing do
+        if existing
+        {
             return existing.value
+        }
     }
 
     Sync.scopedLock(&g_PlanLock)
 
     // Another thread can have built the plan between the two locks.
     let existing = g_Plans.tryFind(key)
-    if existing do
+    if existing
+    {
         return existing.value
+    }
 
     var built: Plan
     try built.build(structType)

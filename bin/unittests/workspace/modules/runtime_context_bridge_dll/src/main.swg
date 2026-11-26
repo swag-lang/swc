@@ -1,8 +1,8 @@
 using RuntimeCtxBase
 
-public const CTX_SHARED_INIT_FLAG    = 0x0008'u64
-public const CTX_SHARED_PREMAIN_FLAG = 0x0010'u64
-public const CTX_SHARED_DROP_FLAG    = 0x0020'u64
+public const CTX_SHARED_INIT_FLAG    = 0x0008_u64
+public const CTX_SHARED_PREMAIN_FLAG = 0x0010_u64
+public const CTX_SHARED_DROP_FLAG    = 0x0020_u64
 
 private var g_InitEntryCount: u32
 
@@ -159,14 +159,18 @@ public impl CtxSelfBufferSet
 {
     mtd opPostMove()
     {
-        if buffer do
+        if buffer
+        {
             buffer = cast([*] u8, &storage[0])
+        }
     }
 
     mtd opPostCopy()
     {
-        if buffer do
+        if buffer
+        {
             buffer = cast([*] u8, &storage[0])
+        }
     }
 
     #[Swag.NoInline]
@@ -206,8 +210,10 @@ public func ctxSharedContains(values: const [..] u8, count: u32, value: u8)->boo
 {
     for i in count
     {
-        if values[i] == value do
+        if values[i] == value
+        {
             return true
+        }
     }
 
     return false
@@ -218,8 +224,10 @@ public func(T) ctxSharedContainsGeneric(values: const [..] T, count: u32, value:
 {
     for i in count
     {
-        if values[i] == value do
+        if values[i] == value
+        {
             return true
+        }
     }
 
     return false
@@ -256,8 +264,10 @@ public func(T) ctxSharedAllOf(values: const [..] T, cb: func||(T)->bool)->bool
 {
     for v in values
     {
-        if not cb(v) do
+        if not cb(v)
+        {
             return false
+        }
     }
 
     return true

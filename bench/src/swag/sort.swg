@@ -1,4 +1,4 @@
-const N = 300000's64
+const N = 300000_s64
 
 func swap(a: [*] u64, i, j: s64)
 {
@@ -14,22 +14,36 @@ func qsort(a: [*] u64, first, last: s64)
     while hi - lo > 16
     {
         let mid = lo + (hi - lo) / 2
-        if a[mid] < a[lo] do
+        if a[mid] < a[lo]
+        {
             swap(a, lo, mid)
-        if a[hi] < a[lo] do
+        }
+
+        if a[hi] < a[lo]
+        {
             swap(a, lo, hi)
-        if a[hi] < a[mid] do
+        }
+
+        if a[hi] < a[mid]
+        {
             swap(a, mid, hi)
+        }
 
         let pivot = a[mid]
         var i     = lo
         var j     = hi
         while true
         {
-            while a[i] < pivot do
+            while a[i] < pivot
+            {
                 i += 1
-            while a[j] > pivot do
+            }
+
+            while a[j] > pivot
+            {
                 j -= 1
+            }
+
             if i <= j
             {
                 swap(a, i, j)
@@ -37,8 +51,10 @@ func qsort(a: [*] u64, first, last: s64)
                 j -= 1
             }
 
-            if i > j do
+            if i > j
+            {
                 break
+            }
         }
 
         // Recurse into the smaller side, loop on the larger one.
@@ -75,10 +91,13 @@ func qsort(a: [*] u64, first, last: s64)
 {
     // ---- data generation (not timed) ----
     let a = cast([*] u64, unwrap benchAlloc(cast(u64, N) * #sizeof(u64)))
-    for i in N do
+    for i in N
+    {
         a[i] = rnd()
 
-    // ---- timed work ----
+        // ---- timed work ----
+    }
+
     let t0 = now()
 
     qsort(a, 0, N - 1)
@@ -86,15 +105,19 @@ func qsort(a: [*] u64, first, last: s64)
     var sorted = true
     for i in 1 until N
     {
-        if a[i - 1] > a[i] do
+        if a[i - 1] > a[i]
+        {
             sorted = false
+        }
     }
 
-    var check = 0'u64
+    var check = 0_u64
     if sorted
     {
-        for i in N do
+        for i in N
+        {
             check += (a[i] % 1000) * cast(u64, (i % 7 + 1))
+        }
     }
 
     let t1 = now()

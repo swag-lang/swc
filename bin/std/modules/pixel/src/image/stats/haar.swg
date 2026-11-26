@@ -10,10 +10,16 @@ func haarTransform2D(data: [*] f32, size: u32, output: [*] f32)
     var currentSize = size
     while currentSize > 1
     {
-        for row in currentSize do
+        for row in currentSize
+        {
             haarTransform1D(output, row * size, currentSize)
-        for col in currentSize do
+        }
+
+        for col in currentSize
+        {
             haarTransform1DVertical(output, col, currentSize, size)
+        }
+
         currentSize /= 2
     }
 }
@@ -21,41 +27,58 @@ func haarTransform2D(data: [*] f32, size: u32, output: [*] f32)
 // 1D Haar transform on a row
 func haarTransform1D(data: [*] f32, offset: s32, length: s32)
 {
-    if length <= 1 do
+    if length <= 1
+    {
         return
+    }
 
-    var temp: Array'f32
+    var temp: Array!{f32}
     temp.resize(length)
 
     let half = length / 2
 
-    for i in half do
-        temp[i] = (data[offset + i * 2] + data[offset + i * 2 + 1]) * 0.70710678118     // sqrt(2)/2 normalization
-    for i in half do
+    for i in half
+    {
+        temp[i] = (data[offset + i * 2] + data[offset + i * 2 + 1]) * 0.70710678118
+    }     // sqrt(2)/2 normalization
+    for i in half
+    {
         temp[half + i] = (data[offset + i * 2] - data[offset + i * 2 + 1]) * 0.70710678118
+    }
 
-    for i in length do
+    for i in length
+    {
         data[offset + i] = temp[i]
+    }
 }
 
 // 1D Haar transform on a column
 func haarTransform1DVertical(data: [*] f32, col: s32, length: s32, stride: s32)
 {
-    if length <= 1 do
+    if length <= 1
+    {
         return
+    }
 
-    var temp: Array'f32
+    var temp: Array!{f32}
     temp.resize(length)
 
     let half = length / 2
 
-    for i in half do
+    for i in half
+    {
         temp[i] = (data[col + i * 2 * stride] + data[col + (i * 2 + 1) * stride]) * 0.70710678118
-    for i in half do
-        temp[half + i] = (data[col + i * 2 * stride] - data[col + (i * 2 + 1) * stride]) * 0.70710678118
+    }
 
-    for i in length do
+    for i in half
+    {
+        temp[half + i] = (data[col + i * 2 * stride] - data[col + (i * 2 + 1) * stride]) * 0.70710678118
+    }
+
+    for i in length
+    {
         data[col + i * stride] = temp[i]
+    }
 }
 
 func resampleToGrayscale(image: Image, targetWidth, targetHeight: s32, output: [*] f32)
@@ -106,9 +129,9 @@ public struct HaarFeatures
 {
     public
     {
-        coefficients: Array'f32     // Multi-scale Haar coefficients
-        size:         s32           // Representation size (power of 2)
-        levels:       s32           // Number of decomposition levels
+        coefficients: Array!{f32}     // Multi-scale Haar coefficients
+        size:         s32             // Representation size (power of 2)
+        levels:       s32             // Number of decomposition levels
     }
 }
 
@@ -132,7 +155,7 @@ public func extractHaarFeatures(image: Image, windowSize: u32 = 128)->HaarFeatur
     features.coefficients.resize(targetSize * targetSize)
 
     // Convert image to grayscale and resize
-    var grayImage: Array'f32
+    var grayImage: Array!{f32}
     grayImage.resize(targetSize * targetSize)
     image.resampleToGrayscale(cast(s32, targetSize), cast(s32, targetSize), grayImage.storage())
 
@@ -178,7 +201,8 @@ public func compareHaarCoefficients(haar1, haar2: HaarFeatures)->f32
             let levelSize = size >> level
 
             // LH (horizontal details): top-right
-            for y in 0 until levelSize do
+            for y in 0 until levelSize
+            {
                 for x in levelSize until levelSize * 2
                 {
                     let idx = y * size + x
@@ -188,9 +212,11 @@ public func compareHaarCoefficients(haar1, haar2: HaarFeatures)->f32
                     levelNorm1      += c1 * c1
                     levelNorm2      += c2 * c2
                 }
+            }
 
             // HL (vertical details): bottom-left
-            for y in levelSize until levelSize * 2 do
+            for y in levelSize until levelSize * 2
+            {
                 for x in 0 until levelSize
                 {
                     let idx = y * size + x
@@ -200,9 +226,11 @@ public func compareHaarCoefficients(haar1, haar2: HaarFeatures)->f32
                     levelNorm1      += c1 * c1
                     levelNorm2      += c2 * c2
                 }
+            }
 
             // HH (diagonal details): bottom-right
-            for y in levelSize until levelSize * 2 do
+            for y in levelSize until levelSize * 2
+            {
                 for x in levelSize until levelSize * 2
                 {
                     let idx = y * size + x
@@ -212,22 +240,29 @@ public func compareHaarCoefficients(haar1, haar2: HaarFeatures)->f32
                     levelNorm1      += c1 * c1
                     levelNorm2      += c2 * c2
                 }
+            }
         }
 
         let denominator = Math.sqrt(levelNorm1 * levelNorm2)
-        if denominator > 0.0 do
+        if denominator > 0.0
+        {
             levelSimilarity = Math.abs(levelSimilarity / denominator)
-        else do
+        }
+        else
+        {
             levelSimilarity = (levelNorm1 == 0.0 and levelNorm2 == 0.0) ? 1.0 : 0.0
+        }
 
         totalSimilarity += levelSimilarity * weight
         totalWeight     += weight
     }
 
-    if totalWeight > 0.0 do
+    if totalWeight > 0.0
+    {
         return cast(f32, (totalSimilarity / totalWeight))
+    }
 
-    return 0.0'f32     // Considered more neutral than 1.0
+    return 0.0_f32     // Considered more neutral than 1.0
 }
 
 // Returns the Haar similarity of two images, from 0 to 1.
@@ -258,7 +293,7 @@ public func quickExtractHaarFeatures(image: Image, windowSize: u32 = 32)->HaarFe
     features.levels = cast(s32, Math.log2(cast(f32, windowSize)))     // Number of decomposition levels
 
     // Fast grayscale resizing with proper bounds checking
-    var grayData: Array'f32
+    var grayData: Array!{f32}
     grayData.resize(windowSize * windowSize)
     let grayBuf = grayData.storage()
 
@@ -300,9 +335,12 @@ public func quickCompareHaarCoefficients(haar1, haar2: HaarFeatures)->f32
     }
 
     let denominator = Math.sqrt(norm1 * norm2)
-    if denominator > 0.0 do
+    if denominator > 0.0
+    {
         return cast(f32, Math.abs(correlation / denominator))
-    return (norm1 == 0.0 and norm2 == 0.0) ? 1.0'f32 : 0.0'f32
+    }
+
+    return (norm1 == 0.0 and norm2 == 0.0) ? 1.0_f32 : 0.0_f32
 }
 
 // Returns the quick Haar similarity of two images, from 0 to 1.

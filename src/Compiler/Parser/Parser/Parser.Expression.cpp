@@ -475,23 +475,15 @@ AstNodeRef Parser::parseIdentifierSuffixValue()
     return parseExpression();
 }
 
-// Parses the quote suffix that follows 'nodeRef': `X'(A, B)` or `X'A`.
-AstNodeRef Parser::parseQuoteSuffix(AstNodeRef nodeRef)
+// Parses the explicit generic argument list that follows 'nodeRef': `X!{A, B}`.
+AstNodeRef Parser::parseGenericArgumentSuffix(AstNodeRef nodeRef)
 {
-    const TokenRef tokQuote = consume();
+    const TokenRef tokBang = consume();
     markCallCalleeNode(nodeRef);
 
-    if (is(TokenId::SymLeftParen))
-    {
-        auto [nodeParent, nodePtr] = ast_->makeNode<AstNodeId::QuotedListExpr>(tokQuote);
-        nodePtr->nodeExprRef       = nodeRef;
-        nodePtr->spanChildrenRef   = parseCompoundContent(AstNodeId::QuotedListExpr, TokenId::SymLeftParen);
-        return nodeParent;
-    }
-
-    auto [nodeParent, nodePtr] = ast_->makeNode<AstNodeId::QuotedExpr>(tokQuote);
+    auto [nodeParent, nodePtr] = ast_->makeNode<AstNodeId::GenericArgListExpr>(tokBang);
     nodePtr->nodeExprRef       = nodeRef;
-    nodePtr->nodeSuffixRef     = parseQuotedSingleSuffixValue();
+    nodePtr->spanChildrenRef   = parseCompoundContent(AstNodeId::GenericArgListExpr, TokenId::SymLeftCurly);
     return nodeParent;
 }
 
@@ -509,48 +501,6 @@ AstNodeRef Parser::parseDynamicTypeTarget()
     }
 
     return typeRef;
-}
-
-AstNodeRef Parser::parseQuotedSingleSuffixValue()
-{
-    // `Type'Arg` must recognize the same leading type syntax as `Type'(Arg, ...)`.
-    // In a type context the suffix is an operand of the enclosing type constructor,
-    // so it must leave a following '?' for that constructor: `*Array'u8?` is a nullable
-    // pointer to `Array'u8`, while `*Array'(u8?)` explicitly makes the element nullable.
-    // A quoted generic may carry a value argument (`Buffer'3`) as well as a type argument.
-    // Only type-shaped suffixes need the type parser in a declaration; literals still belong to
-    // the generic-expression path.
-    if (hasContextFlag(ParserContextFlagsE::InType) && !Token::isLiteral(id()))
-        return parseSubType(false);
-
-    if (isAny(TokenId::SymLeftCurly, TokenId::KwdFunc, TokenId::KwdMtd))
-        return parseType();
-
-    AstNodeRef nodeRef = parsePrimaryExpression();
-    if (nodeRef.isInvalid())
-        return AstNodeRef::invalid();
-
-    while (true)
-    {
-        if (is(TokenId::SymDot) && !tok().flags.has(TokenFlagsE::EolBefore))
-        {
-            auto [nodeParent, nodePtr] = ast_->makeNode<AstNodeId::MemberAccessExpr>(consume());
-            nodePtr->nodeLeftRef       = nodeRef;
-            nodePtr->nodeRightRef      = parseIdentifier();
-            nodeRef                    = nodeParent;
-            continue;
-        }
-
-        if (is(TokenId::SymSingleQuote) && !tok().flags.has(TokenFlagsE::EolBefore))
-        {
-            nodeRef = parseQuoteSuffix(nodeRef);
-            continue;
-        }
-
-        break;
-    }
-
-    return nodeRef;
 }
 
 AstNodeRef Parser::parseIdentifier()
@@ -592,29 +542,15 @@ AstNodeRef Parser::parseIdentifier()
     return identRef;
 }
 
-AstNodeRef Parser::parseQuotedIdentifier()
+AstNodeRef Parser::parseIdentifierWithGenericArguments()
 {
     const AstNodeRef idRef = parseIdentifier();
     if (idRef.isInvalid())
         return AstNodeRef::invalid();
 
-    if (is(TokenId::SymSingleQuote) && !tok().flags.has(TokenFlagsE::EolBefore))
+    if (is(TokenId::SymBang) && !tok().flags.hasAny({TokenFlagsE::EolBefore, TokenFlagsE::BlankBefore}) && nextIs(TokenId::SymLeftCurly))
     {
-        const TokenRef tokQuote = consume();
-        markCallCalleeNode(idRef);
-
-        if (is(TokenId::SymLeftParen))
-        {
-            auto [nodeRef, nodePtr]  = ast_->makeNode<AstNodeId::QuotedListExpr>(tokQuote);
-            nodePtr->nodeExprRef     = idRef;
-            nodePtr->spanChildrenRef = parseCompoundContent(AstNodeId::QuotedListExpr, TokenId::SymLeftParen);
-            return nodeRef;
-        }
-
-        auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::QuotedExpr>(tokQuote);
-        nodePtr->nodeExprRef    = idRef;
-        nodePtr->nodeSuffixRef  = parseQuotedSingleSuffixValue();
-        return nodeRef;
+        return parseGenericArgumentSuffix(idRef);
     }
 
     return idRef;
@@ -742,6 +678,12 @@ AstNodeRef Parser::parsePostFixExpression()
     TokenRef firstOptionalAccessTokRef = TokenRef::invalid();
     while (true)
     {
+        if (is(TokenId::SymBang) && !tok().flags.hasAny({TokenFlagsE::EolBefore, TokenFlagsE::BlankBefore}) && nextIs(TokenId::SymLeftCurly))
+        {
+            nodeRef = parseGenericArgumentSuffix(nodeRef);
+            continue;
+        }
+
         // An asserted access keeps its receiver non-null. Standalone extraction is
         // spelled 'unwrap expr', so a postfix '!' always leads into an access.
         if (is(TokenId::SymBang) && !tok().flags.hasAny({TokenFlagsE::EolBefore, TokenFlagsE::BlankBefore}))
@@ -804,13 +746,6 @@ AstNodeRef Parser::parsePostFixExpression()
         if (is(TokenId::SymLeftCurly) && !tok().flags.has(TokenFlagsE::BlankBefore))
         {
             nodeRef = parseInitializerList(nodeRef);
-            continue;
-        }
-
-        // Quote
-        if (is(TokenId::SymSingleQuote) && !tok().flags.has(TokenFlagsE::EolBefore))
-        {
-            nodeRef = parseQuoteSuffix(nodeRef);
             continue;
         }
 
@@ -1090,7 +1025,7 @@ AstNodeRef Parser::parsePrimaryExpression()
 
         case TokenId::Identifier:
         {
-            AstNodeRef nodeRef = parseQuotedIdentifier();
+            AstNodeRef nodeRef = parseIdentifierWithGenericArguments();
 
             // A named type used as a type-value in an expression (most visibly on the right of
             // '#typeof(x) == T?') still owns its postfix nullability. The suffix is deliberately
@@ -1130,7 +1065,7 @@ AstNodeRef Parser::parsePrimaryExpression()
 
 AstNodeRef Parser::parseQualifiedIdentifier()
 {
-    AstNodeRef leftNodeRef = parseQuotedIdentifier();
+    AstNodeRef leftNodeRef = parseIdentifierWithGenericArguments();
     if (leftNodeRef.isInvalid())
         return AstNodeRef::invalid();
 
@@ -1138,7 +1073,7 @@ AstNodeRef Parser::parseQualifiedIdentifier()
     {
         const TokenRef tokDot = consume();
 
-        const AstNodeRef rightNodeRef = parseQuotedIdentifier();
+        const AstNodeRef rightNodeRef = parseIdentifierWithGenericArguments();
         if (rightNodeRef.isInvalid())
             return AstNodeRef::invalid();
 
@@ -1292,7 +1227,7 @@ AstNodeRef Parser::parseInitializerList(AstNodeRef nodeWhat)
 }
 
 // After a 'catch' operand and its optional 'as owner': 'orelse V' replaces the result, and a
-// block (or, on a statement, 'do S') handles the failure. In a control-statement header, the
+// block handles the failure. In a control-statement header, the
 // '{' that follows opens the statement body. A 'Swag.err' read inside binds the error.
 void Parser::parseCatchHandlerOrFallback(AstNodeRef& outHandlerRef, TokenRef& outErrTokRef, bool statement)
 {
@@ -1305,7 +1240,7 @@ void Parser::parseCatchHandlerOrFallback(AstNodeRef& outHandlerRef, TokenRef& ou
         diag.report(*ctx_);
         consume();
         if (statement)
-            outHandlerRef = parseDoCurlyBlock();
+            outHandlerRef = parseControlBlock();
         else
             outHandlerRef = is(TokenId::SymLeftCurly) ? parseCompound<AstNodeId::EmbeddedBlock>(TokenId::SymLeftCurly) : parseExpression();
     }
@@ -1314,9 +1249,9 @@ void Parser::parseCatchHandlerOrFallback(AstNodeRef& outHandlerRef, TokenRef& ou
         consume();
         outHandlerRef = parseExpression();
     }
-    else if (statement && isAny(TokenId::SymLeftCurly, TokenId::KwdDo))
+    else if (statement && is(TokenId::SymLeftCurly))
     {
-        outHandlerRef = parseDoCurlyBlock();
+        outHandlerRef = parseControlBlock();
     }
     else if (!statement && is(TokenId::SymLeftCurly) && !isBlockHeaderBodyStart())
     {

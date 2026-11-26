@@ -7,7 +7,7 @@ struct MovieServerFixture
 {
     late listener: *TcpListener
     port:          u16
-    poster:        Array'u8
+    poster:        Array!{u8}
     requests:      [8] String
     cancelTask:    *Swag.Task?
     appleMiss:     bool
@@ -17,12 +17,15 @@ struct MovieServerFixture
 
 func writeMovieBytes(stream: *TcpStream, bytes: const [..] u8)
 {
-    var written = 0'u64
+    var written = 0_u64
     while written < bytes.count
     {
         let count = expect stream.write(bytes[written to])
-        if count == 0 do
+        if count == 0
+        {
             return
+        }
+
         written += count
     }
 }
@@ -37,46 +40,49 @@ func serveMovies(thread: const *Threading.Thread)
         while Utf8.indexOf(fixture.requests[index].toString(), "\r\n\r\n") == Swag.U64.Max
         {
             let count = expect stream.read(bytes)
-            if count == 0 do
+            if count == 0
+            {
                 return
+            }
+
             fixture.requests[index] += cast(string, bytes[0 until count])
         }
 
-        var body: Array'u8
+        var body: Array!{u8}
         if fixture.cancelTask
         {
             fixture.cancelTask.cancel()
             body.add(cast(const [..] u8, """{"results":[],"resultCount":0,"query":{"pages":[]}}"""))
         }
-        elif fixture.tmdbMiss and index < 2
+        else if fixture.tmdbMiss and index < 2
         {
             body.add(cast(const [..] u8, """{"results":[]}"""))
         }
-        elif fixture.tmdbHit and index == 0
+        else if fixture.tmdbHit and index == 0
         {
             let json = """{"results":[{"id":78,"title":"Blade Runner","original_title":"Blade Runner","release_date":"1982-06-25","overview":"A detective hunts replicants.","poster_path":"/blade-runner.jpg","vote_average":8.1,"vote_count":1000},{"id":335984,"title":"Blade Runner 2049","release_date":"2017-10-06"}]}"""
             body.add(cast(const [..] u8, json))
         }
-        elif fixture.tmdbHit and index == 1
+        else if fixture.tmdbHit and index == 1
         {
             let json = """{"genres":[{"name":"Science Fiction"},{"name":"Drama"}],"credits":{"cast":[{"name":"Harrison Ford"},{"name":"Rutger Hauer"},{"name":"Sean Young"},{"name":"Extra Performer"}],"crew":[{"name":"Ridley Scott","job":"Director"}]}}"""
             body.add(cast(const [..] u8, json))
         }
-        elif fixture.appleMiss and index == 0
+        else if fixture.appleMiss and index == 0
         {
             body.add(cast(const [..] u8, """{"resultCount":0,"results":[]}"""))
         }
-        elif fixture.appleMiss and index == 1
+        else if fixture.appleMiss and index == 1
         {
             let json = Format.toString("""{"query":{"pages":[{"title":"Blade Runner (film)","description":"film de Ridley Scott sorti en 1982","extract":"A futuristic detective story.","pageprops":{"wikibase_item":"Q184843"},"thumbnail":{"source":"http://127.0.0.1:%/poster.png","width":100,"height":150}}]}}""", fixture.port)
             body.add(cast(const [..] u8, json.toString()))
         }
-        elif fixture.appleMiss and index == 2
+        else if fixture.appleMiss and index == 2
         {
             let json = """{"results":{"bindings":[{"directorLabel":{"value":"Ridley Scott"},"castLabel":{"value":"Harrison Ford"},"genreLabel":{"value":"Science fiction"},"score":{"value":"8.1/10"},"scoreDate":{"value":"2026-02-25T00:00:00Z"}}]}}"""
             body.add(cast(const [..] u8, json))
         }
-        elif index == 0 or (fixture.tmdbMiss and index == 2)
+        else if index == 0 or (fixture.tmdbMiss and index == 2)
         {
             // A trimmed catalogue response: one exact match and one different sequel.
             let json = Format.toString("""{"resultCount":2,"results":[{"trackName":"Blade Runner","trackViewUrl":"https://tv.apple.com/movie/blade-runner","releaseDate":"1982-06-25T07:00:00Z","artworkUrl100":"http://127.0.0.1:%/poster/100x100bb.jpg","longDescription":"In a dark future, a blade runner hunts replicants.","primaryGenreName":"Sci-Fi & Fantasy"},{"trackName":"Blade Runner 2049","releaseDate":"2017-10-06T07:00:00Z","artworkUrl100":"http://127.0.0.1:%/other/100x100bb.jpg"}]}""", fixture.port, fixture.port)
@@ -90,8 +96,10 @@ func serveMovies(thread: const *Threading.Thread)
         let header = Format.toString("HTTP/1.1 200 OK\r\nContent-Length: %\r\nConnection: close\r\n\r\n", body.count)
         writeMovieBytes(&stream, cast(const [..] u8, header.toString()))
         writeMovieBytes(&stream, body.toSlice())
-        if Utf8.contains(fixture.requests[index], "GET /stop ") do
+        if Utf8.contains(fixture.requests[index], "GET /stop ")
+        {
             return
+        }
     }
 }
 
@@ -187,8 +195,8 @@ func serveMovies(thread: const *Threading.Thread)
     let leading = MovieQuery.fromFile("2001.A.Space.Odyssey.1968.mkv")
     Swag.require(leading.title == "2001 A Space Odyssey" and leading.year == "1968")
     let json   = """{"query":{"pages":[{"title":"Blade Runner","description":"1982 film","pageprops":{"wikibase_item":"Q1"}},{"title":"Blade Runner (film)","description":"1982 film","pageprops":{"wikibase_item":"Q2"}}]}}"""
-    var decoder: Serialization.Decoder'Serialization.Read.Json
-    let search = expect decoder.readAll'MovieSearch(cast(const [..] u8, json))
+    var decoder: Serialization.Decoder!{Serialization.Read.Json}
+    let search = expect decoder.readAll!{MovieSearch}(cast(const [..] u8, json))
     defer Memory.delete(search)
     Swag.require(query.choose(search) == Swag.U64.Max)
 }
@@ -224,8 +232,8 @@ func serveMovies(thread: const *Threading.Thread)
     // Only one film of the catalogue answers to a title and a year; a title alone that several
     // films share is not taken.
     let json   = """{"results":[{"trackName":"Dune","releaseDate":"1984-12-14T08:00:00Z"},{"trackName":"Dune","releaseDate":"2021-10-22T07:00:00Z"}]}"""
-    var decoder: Serialization.Decoder'Serialization.Read.Json
-    let search = expect decoder.readAll'AppleSearch(cast(const [..] u8, json))
+    var decoder: Serialization.Decoder!{Serialization.Read.Json}
+    let search = expect decoder.readAll!{AppleSearch}(cast(const [..] u8, json))
     defer Memory.delete(search)
     let dated   = MovieQuery{title: "Dune", year: "2021"}
     let undated = MovieQuery{title: "Dune"}
@@ -287,8 +295,8 @@ func serveMovies(thread: const *Threading.Thread)
     Swag.require(summary.genre == "Science Fiction, Drama")
 
     let json   = """{"results":[{"id":10,"title":"Dune","release_date":"1984-12-14"},{"id":11,"title":"Dune","release_date":"2021-10-22"}]}"""
-    var decoder: Serialization.Decoder'Serialization.Read.Json
-    let search = expect decoder.readAll'TmdbSearch(cast(const [..] u8, json))
+    var decoder: Serialization.Decoder!{Serialization.Read.Json}
+    let search = expect decoder.readAll!{TmdbSearch}(cast(const [..] u8, json))
     defer Memory.delete(search)
     Swag.require(MovieQuery{title: "Dune", year: "2021"}.chooseTMDB(search) == 1)
     Swag.require(MovieQuery{title: "Dune"}.chooseTMDB(search) == Swag.U64.Max)

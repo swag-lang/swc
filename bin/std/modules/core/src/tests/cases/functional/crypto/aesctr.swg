@@ -5,16 +5,19 @@ using Swag
 
 func aesCtrHexDigit(value: u8)->u8
 {
-    if value >= '0' and value <= '9' do
+    if value >= '0' and value <= '9'
+    {
         return value - '0'
+    }
+
     return (value - 'a') + 10
 }
 
-func aesCtrHexBytes(text: string)->Array'u8
+func aesCtrHexBytes(text: string)->Array!{u8}
 {
     var result: #returntype
     result.reserve(text.count / 2)
-    var index = 0'u64
+    var index = 0_u64
     while index + 1 < text.count
     {
         result.add(cast(u8, ((aesCtrHexDigit(text[index]) << 4) | aesCtrHexDigit(text[index + 1]))))
@@ -64,15 +67,18 @@ func aesCtrHexBytes(text: string)->Array'u8
 {
     var key:       [16] u8
     var counter:   [Crypto.AesCtrCounterSize] u8
-    var plaintext: Array'u8
+    var plaintext: Array!{u8}
     plaintext.resize(65 * 1024 + 19)
-    for index in plaintext.count do
+    for index in plaintext.count
+    {
         plaintext[index] = cast(u8, (index * 29 + 7) & 0xFF)
-    var ciphertext: Array'u8
+    }
+
+    var ciphertext: Array!{u8}
     ciphertext.resize(plaintext.count)
     Swag.setWorkerCount(4)
     expect Crypto.aesCtrCrypt(key, counter, plaintext.toSlice(), ciphertext.toSlice())
-    var decrypted: Array'u8
+    var decrypted: Array!{u8}
     decrypted.resize(plaintext.count)
     expect Crypto.aesCtrCrypt(key, counter, ciphertext.toSlice(), decrypted.toSlice())
     Swag.require(Crypto.constantTimeEqual(plaintext.toSlice(), decrypted.toSlice()))
@@ -82,15 +88,17 @@ func aesCtrHexBytes(text: string)->Array'u8
 {
     var key:     [16] u8
     var counter: [Crypto.AesCtrCounterSize] u8
-    Memory.set(counter.buffer, 0xFF'u8, counter.count)
+    Memory.set(counter.buffer, 0xFF_u8, counter.count)
     var input:  [17] u8
     var output: [17] u8
-    Memory.set(output.buffer, 0xA5'u8, output.count)
+    Memory.set(output.buffer, 0xA5_u8, output.count)
     var error: Swag.Error
     discard catch Crypto.aesCtrCrypt(key, counter, input, output) as error
     Swag.require(error.value() is Errors.BadParameterError)
-    for value in output do
+    for value in output
+    {
         Swag.require(value == 0xA5)
+    }
 }
 
 #test

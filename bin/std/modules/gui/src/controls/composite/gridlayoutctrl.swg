@@ -46,9 +46,9 @@ struct GridLayoutCtrl
         verticalSpacing:   f32 = 5       // Gap between adjacent rows.
     }
 
-    layout:       Array'(*Wnd?)       // Window assigned to each cell.
-    columnTracks: Array'GridTrack     // Column definitions.
-    rowTracks:    Array'GridTrack     // Row definitions.
+    layout:       Array!{*Wnd?}         // Window assigned to each cell.
+    columnTracks: Array!{GridTrack}     // Column definitions.
+    rowTracks:    Array!{GridTrack}     // Row definitions.
 }
 
 impl IWnd for GridLayoutCtrl
@@ -75,19 +75,30 @@ private impl GridLayoutCtrl
         let rows  = cast(u64, .numRows)
         let cells = cols * rows
 
-        if .layout.count != cells do
+        if .layout.count != cells
+        {
             .layout.resize(cells)
+        }
 
-        while .columnTracks.count < cols do
+        while .columnTracks.count < cols
+        {
             .columnTracks.add({kind: GridTrackKind.Fixed, value: 100})
+        }
 
-        while .rowTracks.count < rows do
+        while .rowTracks.count < rows
+        {
             .rowTracks.add({kind: GridTrackKind.Fixed, value: 30})
+        }
 
-        if .columnTracks.count > cols do
+        if .columnTracks.count > cols
+        {
             .columnTracks.resize(cols)
-        if .rowTracks.count > rows do
+        }
+
+        if .rowTracks.count > rows
+        {
             .rowTracks.resize(rows)
+        }
     }
 
     mtd trackMax(track: GridTrack)->f32 => track.maximum > 0 ? track.maximum : Swag.F32.Max
@@ -114,8 +125,11 @@ private impl GridLayoutCtrl
         var c   = col
         while c < .numColumns
         {
-            if .layout[idx] != child do
+            if .layout[idx] != child
+            {
                 break
+            }
+
             result += 1
             c      += 1
             idx    += 1
@@ -131,8 +145,11 @@ private impl GridLayoutCtrl
         var r   = row
         while r < .numRows
         {
-            if .layout[idx] != child do
+            if .layout[idx] != child
+            {
                 break
+            }
+
             result += 1
             r      += 1
             idx    += .numColumns
@@ -141,14 +158,16 @@ private impl GridLayoutCtrl
         return result
     }
 
-    mtd computeContentSizes(columns: bool)->Array'f32
+    mtd computeContentSizes(columns: bool)->Array!{f32}
     {
         var result: #returntype
         let count = columns ? .numColumns : .numRows
-        for count do
+        for count
+        {
             result.add(0)
+        }
 
-        var done: Array'(*Wnd?)
+        var done: Array!{*Wnd?}
         let client = .paddedClientRect()
         for row in .numRows
         {
@@ -156,12 +175,21 @@ private impl GridLayoutCtrl
             {
                 let idx   = col + (row * .numColumns)
                 let child = .layout[idx]
-                if not child do
+                if not child
+                {
                     continue
-                if done.contains(child) do
+                }
+
+                if done.contains(child)
+                {
                     continue
-                if not child.isLocallyVisible() do
+                }
+
+                if not child.isLocallyVisible()
+                {
                     continue
+                }
+
                 done.add(child)
 
                 let sh     = .spanH(col, row, child)
@@ -170,13 +198,17 @@ private impl GridLayoutCtrl
                 let margin = child.layoutMargin()
                 if columns
                 {
-                    if sh == 1 do
+                    if sh == 1
+                    {
                         result[col] = Math.max(result[col], hint.preferred.x + margin.x + margin.z)
+                    }
                 }
                 else
                 {
-                    if sv == 1 do
+                    if sv == 1
+                    {
                         result[row] = Math.max(result[row], hint.preferred.y + margin.y + margin.w)
+                    }
                 }
             }
         }
@@ -184,24 +216,29 @@ private impl GridLayoutCtrl
         return result
     }
 
-    mtd computeTrackSizes(tracks: const [..] GridTrack, content: const [..] f32, available: f32, spacing: f32, forceEqual: bool)->Array'f32
+    mtd computeTrackSizes(tracks: const [..] GridTrack, content: const [..] f32, available: f32, spacing: f32, forceEqual: bool)->Array!{f32}
     {
         var result: #returntype
         let count = tracks.count
-        if not count do
+        if not count
+        {
             return result
+        }
 
         let spacingTotal = cast(f32, (count - 1)) * spacing
         if forceEqual
         {
             let size = Math.max(available - spacingTotal, 0) / cast(f32, count)
-            for count do
+            for count
+            {
                 result.add(size)
+            }
+
             return result
         }
 
         var total  = spacingTotal
-        var weight = 0'f32
+        var weight = 0_f32
         for i in count
         {
             let size = .computeTrackSize(tracks[i], content[i])
@@ -209,9 +246,12 @@ private impl GridLayoutCtrl
             total += size
             if tracks[i].kind == GridTrackKind.Fraction
             {
-                var trackWeight = 1'f32
-                if tracks[i].value > 0 do
+                var trackWeight = 1_f32
+                if tracks[i].value > 0
+                {
                     trackWeight = tracks[i].value
+                }
+
                 weight += trackWeight
             }
         }
@@ -222,21 +262,28 @@ private impl GridLayoutCtrl
             var remaining = extra
             while remaining > 0.001
             {
-                var activeWeight = 0'f32
+                var activeWeight = 0_f32
                 for i in count
                 {
-                    if tracks[i].kind == GridTrackKind.Fraction and result[i] < .trackMax(tracks[i]) do
+                    if tracks[i].kind == GridTrackKind.Fraction and result[i] < .trackMax(tracks[i])
+                    {
                         activeWeight += tracks[i].value > 0 ? tracks[i].value : 1
+                    }
                 }
 
-                if activeWeight <= 0 do
+                if activeWeight <= 0
+                {
                     break
+                }
 
-                var distributed = 0'f32
+                var distributed = 0_f32
                 for i in count
                 {
-                    if tracks[i].kind != GridTrackKind.Fraction or result[i] >= .trackMax(tracks[i]) do
+                    if tracks[i].kind != GridTrackKind.Fraction or result[i] >= .trackMax(tracks[i])
+                    {
                         continue
+                    }
+
                     let w      = tracks[i].value > 0 ? tracks[i].value : 1
                     let share  = remaining * w / activeWeight
                     let actual = Math.min(share, .trackMax(tracks[i]) - result[i])
@@ -244,16 +291,21 @@ private impl GridLayoutCtrl
                     distributed += actual
                 }
 
-                if distributed <= 0.001 do
+                if distributed <= 0.001
+                {
                     break
+                }
+
                 remaining -= distributed
             }
         }
-        elif extra < 0
+        else if extra < 0
         {
-            var shrinkPool = 0'f32
-            for i in count do
+            var shrinkPool = 0_f32
+            for i in count
+            {
                 shrinkPool += Math.max(result[i] - tracks[i].minimum, 0)
+            }
 
             if shrinkPool > 0
             {
@@ -287,8 +339,11 @@ private impl GridLayoutCtrl
         var result: #returntype
         for i in span
         {
-            if i do
+            if i
+            {
                 result += spacing
+            }
+
             result += sizes[idx + i]
         }
 
@@ -303,7 +358,7 @@ impl GridLayoutCtrl
     {
         Swag.assert(numColumns > 0 and numRows > 0)
 
-        let res = Wnd.create'GridLayoutCtrl(parent, position)
+        let res = Wnd.create!{GridLayoutCtrl}(parent, position)
         res.numColumns = numColumns
         res.numRows    = numRows
         res.ensureStorage()
@@ -314,8 +369,11 @@ impl GridLayoutCtrl
     // Recomputes track sizes and arranges every assigned child.
     mtd computeLayout()
     {
-        if .children.isEmpty() do
+        if .children.isEmpty()
+        {
             return
+        }
+
         .ensureStorage()
 
         let client     = .paddedClientRect()
@@ -324,20 +382,28 @@ impl GridLayoutCtrl
         let colWidths  = .computeTrackSizes(.columnTracks.toSlice(), colContent.toSlice(), client.width, .horizontalSpacing, .flags.has(.EqualColumnWidths))
         let rowHeights = .computeTrackSizes(.rowTracks.toSlice(), rowContent.toSlice(), client.height, .verticalSpacing, .flags.has(.EqualRowHeights))
 
-        var done: Array'(*Wnd?)
-        var maxW, maxH = 0'f32
+        var done: Array!{*Wnd?}
+        var maxW, maxH = 0_f32
         for row in .numRows
         {
             for col in .numColumns
             {
                 let idx   = col + (row * .numColumns)
                 let child = .layout[idx]
-                if not child do
+                if not child
+                {
                     continue
-                if done.contains(child) do
+                }
+
+                if done.contains(child)
+                {
                     continue
-                if not child.isLocallyVisible() do
+                }
+
+                if not child.isLocallyVisible()
+                {
                     continue
+                }
 
                 done.add(child)
                 let sh = .spanH(col, row, child)
@@ -417,8 +483,10 @@ impl GridLayoutCtrl
 
         for idx in .layout.count
         {
-            if .layout[idx] == child do
+            if .layout[idx] == child
+            {
                 .layout[idx] = null
+            }
         }
 
         for i in columnSpan

@@ -1,7 +1,7 @@
 #global if #os == Swag.TargetOs.Linux
 #global export
 
-const WNOHANG = 1's32
+const WNOHANG = 1_s32
 
 // Native wait-status macros exposed as functions; these do not wait or consume a child status.
 #[Swag.Inline]

@@ -55,8 +55,10 @@ struct Pair
     g_PostCopy = 0
     g_Drop     = 0
     var sum = 0
-    for v in arr do
+    for v in arr
+    {
         sum += v.x
+    }
 
     Swag.require(sum == 6)
     Swag.require(g_PostCopy == 0)
@@ -92,8 +94,10 @@ struct Pair
     pins[0].x = 7
     pins[1].x = 8
     var sum = 0
-    for p in pins do
+    for p in pins
+    {
         sum += p.x
+    }
     Swag.require(sum == 15)
 }
 
@@ -101,8 +105,10 @@ struct Pair
 #test
 {
     var arr: [2] Pair = [Pair{1, 2}, Pair{3, 4}]
-    for &v, i in arr do
+    for &v, i in arr
+    {
         v[] = Pair{cast(s32, i) + 10, cast(s32, i) + 20}
+    }
     Swag.require(arr[0].a == 10 and arr[0].b == 20)
     Swag.require(arr[1].a == 11 and arr[1].b == 21)
 }
@@ -115,10 +121,14 @@ struct Pair
     var hits          = 0
     for v in arr
     {
-        if v[] == Pair{2, 2} do
+        if v[] == Pair{2, 2}
+        {
             hits += 1
-        if v[] == wanted do
+        }
+        if v[] == wanted
+        {
             hits += 1
+        }
     }
     Swag.require(hits == 2)
 }
@@ -128,7 +138,9 @@ struct Pair
 {
     var text: string = "AB"
     var sum = 0
-    for &b in text do
+    for &b in text
+    {
         sum += cast(s32, b[])
+    }
     Swag.require(sum == 65 + 66)
 }

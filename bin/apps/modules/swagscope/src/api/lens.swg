@@ -53,10 +53,15 @@ impl LensEntries
     {
         // The row takes the answer of its title along, so the lens does not match it again.
         var found = Lens.match(.results.folded, title)
-        if not .labelAnswers and not found.matched do
+        if not .labelAnswers and not found.matched
+        {
             return null
-        if not .section do
+        }
+
+        if not .section
+        {
             .section = .results.addSection(.label)
+        }
 
         let glyph      = .theme.icon(icon, .theme.metrics.menuPopup_IconSize)
         with let entry = .section.addEntry(title, #move found)
@@ -67,10 +72,15 @@ impl LensEntries
             .disabled   = disabled
             .bindId     = bindId
             .defaultKey = defaultKey
-            if defaultKey.key == .OemPlus do
+            if defaultKey.key == .OemPlus
+            {
                 .alternateDefaultKey = {modifiers: defaultKey.modifiers, key: .Add}
-            elif defaultKey.key == .OemMinus do
+            }
+            else if defaultKey.key == .OemMinus
+            {
                 .alternateDefaultKey = {modifiers: defaultKey.modifiers, key: .Subtract}
+            }
+
             .detail     = defaultKey.key == .None ? String.from(shortcut) : Input.formatKeyShortcut(defaultKey.modifiers, defaultKey.key)
             .monoDetail = true
         }
@@ -102,8 +112,11 @@ impl LensEntries
 func jumpRowText(title: string, value: string, typed: string)->String
 {
     let query = Latin1.trim(typed)
-    if Utf8.compare(query, value, .Latin1NoCase) == 0 do
+    if Utf8.compare(query, value, .Latin1NoCase) == 0
+    {
         return Format.toString(title, value)
+    }
+
     return Format.toString(title, Format.toString("% (%)", value, query))
 }
 

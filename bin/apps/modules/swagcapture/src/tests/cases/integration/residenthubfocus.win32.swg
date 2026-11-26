@@ -35,20 +35,29 @@ using Core, Gui, Pixel, Win32
     let panel      = unwrap journey.main.residentPanel
     let hubSurface = unwrap panel.surface
     watch.restart()
-    while watch.elapsedMilliseconds() < 120 do
+    while watch.elapsedMilliseconds() < 120
+    {
         journey.app.runFrame()
+    }
+
     Swag.require(journey.main.residentPanel == panel, "the capture window closed before the focus change")
 
     // Activate the owned fixture without clicking through whatever the user's desktop shows.
     discard Win32.SetForegroundWindow(peerWindow)
     watch.restart()
-    while Win32.GetForegroundWindow() != peerWindow and watch.elapsedMilliseconds() < 1000 do
+    while Win32.GetForegroundWindow() != peerWindow and watch.elapsedMilliseconds() < 1000
+    {
         journey.app.runFrame()
+    }
+
     Swag.require(Win32.GetForegroundWindow() == peerWindow, "the other application did not take desktop focus")
 
     watch.restart()
-    while watch.elapsedMilliseconds() < 150 do
+    while watch.elapsedMilliseconds() < 150
+    {
         journey.app.runFrame()
+    }
+
     Swag.require(journey.main.residentPanel == panel and not hubSurface.isHidden)
     Swag.require(journey.main.workspace == .Hub and not journey.surface.hasTrayIcon())
 }

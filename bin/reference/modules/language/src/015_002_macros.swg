@@ -260,8 +260,10 @@ Bindings and control-flow replacements live in the same '#inject'.
     repeatSquare(5)
     {
         a += 1
-        if a == 10 do
-            break     // remapped to 'break to ScopeTarget'
+        if a == 10
+        {
+            break
+        }     // remapped to 'break to ScopeTarget'
     }
 
     Swag.require(a == 10)
@@ -297,14 +299,18 @@ Remap both 'break' and 'continue' to influence outer/inner loop flow.
         a += 1
 
         // If 'a' divisible by 3, skip to next inner iteration (acts like 'continue')
-        if a % 3 == 0 do
+        if a % 3 == 0
+        {
             continue
+        }
 
         b += 1
 
         // Exit both loops when 'a' reaches 8
-        if a == 8 do
+        if a == 8
+        {
             break
+        }
     }
 
     Swag.require(a == 8)

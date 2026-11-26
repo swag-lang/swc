@@ -25,7 +25,7 @@ using Swag, Core
         discard catch File.delete(Path.combine(Library.getFolder(), base))
     }
 
-    let cap = Memory.new'Capture()
+    let cap = Memory.new!{Capture}()
     cap.width, cap.widthOrg   = 8
     cap.height, cap.heightOrg = 6
     cap.backImg               = Gui.Testing.indexedImage(8, 6)
@@ -102,8 +102,11 @@ using Swag, Core
 
     func countOf(lib: *LibraryWnd, folder: string)->String
     {
-        for path, i in lib.tabFolders where path[] == folder do
+        for path, i in lib.tabFolders where path[] == folder
+        {
             return lib.folderTabs.items[i]!.count
+        }
+
         return ""
     }
 
@@ -126,8 +129,11 @@ using Swag, Core
     Swag.require(hadCached)
     lib.updateFolderTabs()
     var stillCurrent = false
-    for cached in lib.folderCounts where cached.folder == sub do
+    for cached in lib.folderCounts where cached.folder == sub
+    {
         stillCurrent = cached.written == previousWritten and cached.revision == previousRevision
+    }
+
     Swag.require(countOf(lib, sub) == (stillCurrent ? "7" : "1"))
 
     // An outdated timestamp must recount even if the cached number looks valid.
@@ -140,8 +146,11 @@ using Swag, Core
     lib.updateFolderTabs()
     Swag.require(countOf(lib, sub) == "1")
 
-    for &cached in lib.folderCounts where cached.folder == sub do
+    for &cached in lib.folderCounts where cached.folder == sub
+    {
         cached.count = 7
+    }
+
     g_Library.revision += 1
     lib.updateFolderTabs()
     Swag.require(countOf(lib, sub) == "1")
@@ -176,7 +185,7 @@ using Swag, Core
     var f: HeadlessFixture
     f.setup()
     defer f.shutdown()
-    let cap = Memory.new'Capture()
+    let cap = Memory.new!{Capture}()
     cap.width, cap.widthOrg   = 8
     cap.height, cap.heightOrg = 6
     cap.backImg = Gui.Testing.indexedImage(8, 6)
@@ -197,10 +206,10 @@ using Swag, Core
 
     f.main.setCaptureTitle(path, "Renamed")
 
-    var tags: Array'String
+    var tags: Array!{String}
     tags.add("reviewed")
     let favorite = true
-    let rating   = 4'u8
+    let rating   = 4_u8
     let library  = f.setupLibraryWnd()
     library.updateMetadata(path, tags: &tags, favorite: &favorite, rating: &rating)
     Swag.require(g_CaptureSaves.writing(path))
@@ -246,7 +255,7 @@ using Swag, Core
     f.capture.title   = "Automatic save"
     f.capture.changed = true
     expect f.capture.scheduleSave()
-    let rating = 3'u8
+    let rating = 3_u8
     f.main.queueCaptureMetadata(path, rating: &rating)
     Swag.require(g_CaptureSaves.writing(path))
     Swag.require(g_CaptureSaves.flush(path).isEmpty())
@@ -271,7 +280,7 @@ using Swag, Core
         discard catch File.delete(target)
     }
 
-    let capture = Memory.new'Capture()
+    let capture = Memory.new!{Capture}()
     capture.width, capture.widthOrg   = 18
     capture.height, capture.heightOrg = 12
     capture.backImg                   = Gui.Testing.indexedImage(18, 12)
@@ -314,7 +323,7 @@ using Swag, Core
     var f: HeadlessFixture
     f.setup()
     defer f.shutdown()
-    let cap = Memory.new'Capture()
+    let cap = Memory.new!{Capture}()
     cap.width, cap.widthOrg   = 20
     cap.height, cap.heightOrg = 14
     cap.backImg = Gui.Testing.indexedImage(20, 14)
@@ -351,7 +360,7 @@ using Swag, Core
         Clipboard.clear()
     }
 
-    let first = Memory.new'Capture()
+    let first = Memory.new!{Capture}()
     first.width, first.widthOrg   = 9
     first.height, first.heightOrg = 7
     first.backImg                 = Gui.Testing.indexedImage(9, 7)
@@ -360,7 +369,7 @@ using Swag, Core
     expect first.save()
     Memory.delete(first)
 
-    let second = Memory.new'Capture()
+    let second = Memory.new!{Capture}()
     second.width, second.widthOrg   = 13
     second.height, second.heightOrg = 7
     second.backImg                  = Gui.Testing.indexedImage(13, 7)
@@ -371,7 +380,7 @@ using Swag, Core
 
     f.main.copyLibraryImage(firstPath)
     let firstJob = unwrap f.main.copyJob
-    let rating   = 4'u8
+    let rating   = 4_u8
     f.main.queueCaptureMetadata(secondPath, rating: &rating)
     f.main.copyLibraryImage(secondPath)
     firstJob.task.wait()
@@ -412,7 +421,7 @@ using Swag, Core
         discard catch File.delete(target)
     }
 
-    let capture = Memory.new'Capture()
+    let capture = Memory.new!{Capture}()
     capture.width, capture.widthOrg   = 19
     capture.height, capture.heightOrg = 13
     capture.backImg                   = Gui.Testing.indexedImage(19, 13)
@@ -421,7 +430,7 @@ using Swag, Core
     expect capture.save()
     Memory.delete(capture)
 
-    let rating = 4'u8
+    let rating = 4_u8
     f.main.queueCaptureMetadata(source, rating: &rating)
     f.main.requestLibraryExport(source, target, false)
     Swag.require(f.main.exportJob == null and f.main.exportTimer != null)
@@ -507,8 +516,10 @@ using Swag, Core
     var trash: *Lens.Entry?
     for section in results.sections where section!.label == appStrings().ui_BarFolders
     {
-        for &entry in section.entries where entry.title == appStrings().act_RecycleBin do
+        for &entry in section.entries where entry.title == appStrings().act_RecycleBin
+        {
             trash = entry
+        }
     }
 
     let run = unwrap (unwrap trash).run
@@ -527,7 +538,7 @@ using Swag, Core
     let lib  = f.setupLibraryWnd()
     let view = lib.view
 
-    let cap = Memory.new'Capture()
+    let cap = Memory.new!{Capture}()
     cap.width, cap.widthOrg   = 8
     cap.height, cap.heightOrg = 6
     cap.backImg = Gui.Testing.indexedImage(8, 6)
@@ -557,7 +568,7 @@ using Swag, Core
     defer f.shutdown()
     let lib = f.setupLibraryWnd()
 
-    let capture = Memory.new'Capture()
+    let capture = Memory.new!{Capture}()
     capture.width, capture.widthOrg   = 24
     capture.height, capture.heightOrg = 16
     capture.backImg = Gui.Testing.indexedImage(24, 16)
@@ -603,7 +614,7 @@ using Swag, Core
         discard catch Directory.delete(folder, recurse: true)
     }
 
-    let first = Memory.new'Capture()
+    let first = Memory.new!{Capture}()
     first.width, first.widthOrg   = 16
     first.height, first.heightOrg = 10
     first.backImg                 = Gui.Testing.indexedImage(16, 10)
@@ -612,7 +623,7 @@ using Swag, Core
     expect first.save()
     Memory.delete(first)
 
-    let second = Memory.new'Capture()
+    let second = Memory.new!{Capture}()
     second.width, second.widthOrg   = 19
     second.height, second.heightOrg = 12
     second.backImg                  = Gui.Testing.indexedImage(19, 12)
@@ -621,15 +632,18 @@ using Swag, Core
     expect second.save()
     Memory.delete(second)
 
-    var files: Array'String
+    var files: Array!{String}
     files.add(firstPath)
     files.add(secondPath)
     library.beginExport(files, folder)
     Swag.require(library.exporting and library.exportJob != null)
     for 4
     {
-        if not library.exporting do
+        if not library.exporting
+        {
             break
+        }
+
         Swag.require(library.exportJob != null)
         library.exportJob.task.wait()
         f.gui.pump()
@@ -653,7 +667,7 @@ using Swag, Core
     testPrepareRecentLibrary(f.main)
     let lib = f.setupLibraryWnd()
 
-    let cap = Memory.new'Capture()
+    let cap = Memory.new!{Capture}()
     defer Memory.delete(cap)
     cap.width, cap.widthOrg   = 20
     cap.height, cap.heightOrg = 14
@@ -673,13 +687,13 @@ using Swag, Core
 
     Clipboard.addImage(Gui.Testing.indexedImage(4, 4))
     var evt = Gui.Testing.commandState(ActionCopyPaste.Paste)
-    Swag.require(Gui.Testing.actionUpdate'ActionCopyPaste(f.main, ActionCopyPaste.Paste, &evt))
+    Swag.require(Gui.Testing.actionUpdate!{ActionCopyPaste}(f.main, ActionCopyPaste.Paste, &evt))
     Swag.require(evt.disabled)
 
     evt = Gui.Testing.commandState(ActionCopyPaste.CopyAsImage)
-    Swag.require(Gui.Testing.actionUpdate'ActionCopyPaste(f.main, ActionCopyPaste.CopyAsImage, &evt))
+    Swag.require(Gui.Testing.actionUpdate!{ActionCopyPaste}(f.main, ActionCopyPaste.CopyAsImage, &evt))
     Swag.require(not evt.disabled)
-    Swag.require(Gui.Testing.actionExecute'ActionCopyPaste(f.main, ActionCopyPaste.CopyAsImage))
+    Swag.require(Gui.Testing.actionExecute!{ActionCopyPaste}(f.main, ActionCopyPaste.CopyAsImage))
     Swag.require(f.main.copyJob != null)
     f.main.copyJob.task.wait()
     f.gui.pump()

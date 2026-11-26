@@ -1,11 +1,11 @@
 #global if #os == Swag.TargetOs.Linux
 #global export
 
-const POLLIN   = 0x001's16
-const POLLOUT  = 0x004's16
-const POLLERR  = 0x008's16
-const POLLHUP  = 0x010's16
-const POLLNVAL = 0x020's16
+const POLLIN   = 0x001_s16
+const POLLOUT  = 0x004_s16
+const POLLERR  = 0x008_s16
+const POLLHUP  = 0x010_s16
+const POLLNVAL = 0x020_s16
 
 struct pollfd
 {

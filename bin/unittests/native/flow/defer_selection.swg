@@ -39,8 +39,10 @@ func selectedValue(left: bool)->s32
 #[Swag.NoInline]
 func selectionMayFail(raise: bool) fail
 {
-    if raise do
+    if raise
+    {
         fail SelectionError{base: Swag.BaseError{"selection"}}
+    }
 }
 
 // Cleanup is emitted separately for the failed call and the successful return.

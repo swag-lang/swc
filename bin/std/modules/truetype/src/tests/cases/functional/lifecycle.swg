@@ -31,7 +31,7 @@ func assertFixtureFontLoads(fileName: string, expectedStyle: StyleFlag)
     let err3 = err3Outcome.value()
     Swag.require(err3 != null)
 
-    var empty:       Array'u8
+    var empty:       Array!{u8}
     var err4Outcome: Swag.Error
     catch checkFaceLoad(empty.toSlice()) as err4Outcome
     let err4 = err4Outcome.value()

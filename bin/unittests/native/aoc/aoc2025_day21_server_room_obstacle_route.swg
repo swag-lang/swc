@@ -45,8 +45,10 @@ func hasEscapeRoute(outSteps: *u32, drops: const [..] ByteDrop, gridSize, dropCo
 
     let startCell = cellIndex(0, 0, gridSize)
     let endCell   = cellIndex(gridSize - 1, gridSize - 1, gridSize)
-    if blocked[startCell] or blocked[endCell] do
+    if blocked[startCell] or blocked[endCell]
+    {
         return false
+    }
 
     var visited:  [MaxGridCells] bool
     var distance: [MaxGridCells] u32

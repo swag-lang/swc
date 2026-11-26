@@ -22,21 +22,30 @@ func contractAllocator(allocator: *Allocator, electric = false)->IAllocator
         itf.alloc(block)
         Swag.require(block.address != null)
     }
-    defer for &block in blocks do itf.free(block)
+    defer for &block in blocks
+    {
+        itf.free(block)
+    }
 
     let index   = (cast(u64, blocks[0].address) & 15) != 0 ? 0 : 1
     let request = &blocks[index]
     Swag.require((cast(u64, request.address) & 15) == 8)
     let bytes = cast([*] u8, unwrap request.address)
-    for i in 8 do bytes[i] = cast(u8, (i + 17))
+    for i in 8
+    {
+        bytes[i] = cast(u8, (i + 17))
+    }
     request.oldSize   = 8
     request.alignment = 16
     itf.realloc(request)
     Swag.require(request.address != null)
     Swag.require((cast(u64, request.address) & 15) == 0)
-    for i in 8 do Swag.require(cast([*] u8, request.address)[i] == cast(u8, (i + 17)))
+    for i in 8
+    {
+        Swag.require(cast([*] u8, request.address)[i] == cast(u8, (i + 17)))
+    }
     let aligned = request.address
-    for alignment in [16'u32, 8'u32, 0'u32]
+    for alignment in [16_u32, 8_u32, 0_u32]
     {
         request.alignment = alignment
         itf.realloc(request)
@@ -51,7 +60,7 @@ func contractAllocator(allocator: *Allocator, electric = false)->IAllocator
     {
         var allocator: Allocator
         let itf = contractAllocator(&allocator, electric: true)
-        for alignment in [16'u32, 64'u32]
+        for alignment in [16_u32, 64_u32]
         {
             var request: AllocatorRequest
             request.size      = 129
@@ -59,18 +68,27 @@ func contractAllocator(allocator: *Allocator, electric = false)->IAllocator
             itf.alloc(&request)
             Swag.require(request.address != null)
             defer itf.free(&request)
-            for i in 129 do cast([*] u8, request.address)[i] = cast(u8, i)
+            for i in 129
+            {
+                cast([*] u8, request.address)[i] = cast(u8, i)
+            }
             request.oldSize = 129
             request.size    = 200
             itf.realloc(&request)
             Swag.require(request.address != null)
-            for i in 129 do Swag.require(cast([*] u8, request.address)[i] == cast(u8, i))
+            for i in 129
+            {
+                Swag.require(cast([*] u8, request.address)[i] == cast(u8, i))
+            }
             request.oldSize = 200
             request.size    = 17
             itf.realloc(&request)
             Swag.require(request.address != null)
             Swag.require((cast(u64, request.address) & (alignment - 1)) == 0)
-            for i in 17 do Swag.require(cast([*] u8, request.address)[i] == cast(u8, i))
+            for i in 17
+            {
+                Swag.require(cast([*] u8, request.address)[i] == cast(u8, i))
+            }
         }
     }
 }
@@ -80,11 +98,13 @@ func contractAllocator(allocator: *Allocator, electric = false)->IAllocator
 {
     for electric in [false, true]
     {
-        if electric and not #hastag("Swag.AllocatorDiagnostics") do
+        if electric and not #hastag("Swag.AllocatorDiagnostics")
+        {
             continue
+        }
         var allocator: Allocator
         let itf = contractAllocator(&allocator, electric)
-        for alignment in [0'u32, 64'u32, 0x8000_0000'u32]
+        for alignment in [0_u32, 64_u32, 0x8000_0000_u32]
         {
             for size in [Swag.U64.Max, Swag.U64.Max - 4095, Swag.U64.Max - 8191]
             {
@@ -105,13 +125,15 @@ func contractAllocator(allocator: *Allocator, electric = false)->IAllocator
 {
     for tracked in [false, true]
     {
-        if tracked and not #hastag("Swag.AllocatorDiagnostics") do
+        if tracked and not #hastag("Swag.AllocatorDiagnostics")
+        {
             continue
+        }
         var allocator: Allocator
         let itf = contractAllocator(&allocator)
         allocator.configure(false, false, false, tracked, false)
         let before = allocator.stats().sizeCommitted
-        for size in [131072'u64, 1048576'u64]
+        for size in [131072_u64, 1048576_u64]
         {
             var request: AllocatorRequest
             request.size = size
@@ -159,12 +181,12 @@ func contractAllocator(allocator: *Allocator, electric = false)->IAllocator
     Swag.require(original.address != null)
     cast([*] u8, original.address)[0] = 73
     let before = allocator.stats().sizeCommitted
-    for size in [Swag.U64.Max, 200'u64]
+    for size in [Swag.U64.Max, 200_u64]
     {
         request           = original
         request.oldSize   = original.size
         request.size      = size
-        request.alignment = size == 200 ? 3'u32 : 16'u32
+        request.alignment = size == 200 ? 3_u32 : 16_u32
         itf.realloc(&request)
         Swag.require(request.address == null)
         Swag.require(allocator.stats().countAlloc == 1)

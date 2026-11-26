@@ -105,21 +105,31 @@ impl Property
 // numeric arrays are limited to 4096 bytes and 64 values respectively, with an ellipsis when
 // shortened. Undefined binary values are summarized by byte count. Rational zero denominators
 // remain visible as fractions and are never divided.
-func decode(bytes: const [..] u8)->Array'Property fail
+func decode(bytes: const [..] u8)->Array!{Property} fail
 {
     var reader = Reader{bytes: bytes}
     try reader.checkRange(0, 8)
-    if bytes[0] == 'I' and bytes[1] == 'I' do
+    if bytes[0] == 'I' and bytes[1] == 'I'
+    {
         reader.littleEndian = true
-    elif bytes[0] != 'M' or bytes[1] != 'M' do
+    }
+    else if bytes[0] != 'M' or bytes[1] != 'M'
+    {
         fail InvalidFormatError{"EXIF header has no TIFF byte order"}
-    if try reader.number(2, 2) != 42 do
+    }
+
+    if try reader.number(2, 2) != 42
+    {
         fail InvalidFormatError{"EXIF header has no TIFF signature"}
+    }
 
     var result: #returntype
     let offset = try reader.number(4, 4)
-    if offset < 8 do
+    if offset < 8
+    {
         fail InvalidFormatError{"EXIF directory overlaps its TIFF header"}
+    }
+
     try reader.readDirectory(offset, .Image, &result)
     return result
 }
@@ -150,8 +160,11 @@ func orientationOf(metadata: const [..] ImageMetadata)->u32
     for record in metadata where record.signature == 1 and record.isTag("Exif")
     {
         var payload = record.toSlice()
-        while payload.count and payload[0] != 'I' and payload[0] != 'M' do
+        while payload.count and payload[0] != 'I' and payload[0] != 'M'
+        {
             payload = payload[1 to]
+        }
+
         let properties = catch decode(payload) { return 1 }
         return orientation(properties.toSlice())
     }
@@ -161,49 +174,76 @@ func orientationOf(metadata: const [..] ImageMetadata)->u32
 
 // Resets an inline EXIF Orientation field after the corresponding pixels are made upright.
 // Unknown records and every other EXIF byte are preserved.
-internal func resetOrientation(metadata: *Array'ImageMetadata)
+internal func resetOrientation(metadata: *Array!{ImageMetadata})
 {
     for recordIndex in metadata[].count
     {
         let record = &metadata[][recordIndex]
-        if record.signature != 1 or not record.isTag("Exif") do
+        if record.signature != 1 or not record.isTag("Exif")
+        {
             continue
+        }
 
         let bytes     = record.value.toSlice()
-        var tiffStart = 0'u64
-        while tiffStart + 2 <= bytes.count and bytes[tiffStart] != 'I' and bytes[tiffStart] != 'M' do
+        var tiffStart = 0_u64
+        while tiffStart + 2 <= bytes.count and bytes[tiffStart] != 'I' and bytes[tiffStart] != 'M'
+        {
             tiffStart += 1
-        if tiffStart + 8 > bytes.count do
+        }
+
+        if tiffStart + 8 > bytes.count
+        {
             continue
+        }
 
         let littleEndian = bytes[tiffStart] == 'I' and bytes[tiffStart + 1] == 'I'
-        if not littleEndian and (bytes[tiffStart] != 'M' or bytes[tiffStart + 1] != 'M') do
+        if not littleEndian and (bytes[tiffStart] != 'M' or bytes[tiffStart + 1] != 'M')
+        {
             continue
-        if rawNumber(bytes, tiffStart + 2, 2, littleEndian) != 42 do
+        }
+
+        if rawNumber(bytes, tiffStart + 2, 2, littleEndian) != 42
+        {
             continue
+        }
 
         let firstDirectory = rawNumber(bytes, tiffStart + 4, 4, littleEndian)
-        if firstDirectory < 8 or firstDirectory > bytes.count - tiffStart - 2 do
+        if firstDirectory < 8 or firstDirectory > bytes.count - tiffStart - 2
+        {
             continue
+        }
+
         let directory  = tiffStart + firstDirectory
         let entryCount = rawNumber(bytes, directory, 2, littleEndian)
-        if entryCount > 1024 or entryCount > (bytes.count - directory - 2) / 12 do
+        if entryCount > 1024 or entryCount > (bytes.count - directory - 2) / 12
+        {
             continue
+        }
 
         for entryIndex in entryCount
         {
             let entry = directory + 2 + entryIndex * 12
-            if rawNumber(bytes, entry, 2, littleEndian) != 0x0112 do
+            if rawNumber(bytes, entry, 2, littleEndian) != 0x0112
+            {
                 continue
-            if rawNumber(bytes, entry + 2, 2, littleEndian) != 3 do
+            }
+
+            if rawNumber(bytes, entry + 2, 2, littleEndian) != 3
+            {
                 continue
+            }
 
             let valueCount = rawNumber(bytes, entry + 4, 4, littleEndian)
-            if valueCount == 0 do
+            if valueCount == 0
+            {
                 continue
+            }
+
             let valueOffset = valueCount * 2 <= 4 ? entry + 8 : (tiffStart + rawNumber(bytes, entry + 8, 4, littleEndian))
-            if valueOffset > bytes.count - 2 do
+            if valueOffset > bytes.count - 2
+            {
                 continue
+            }
 
             if littleEndian
             {
@@ -221,7 +261,7 @@ internal func resetOrientation(metadata: *Array'ImageMetadata)
 
 private func rawNumber(bytes: const [..] u8, offset, size: u64, littleEndian: bool)->u64
 {
-    var result = 0'u64
+    var result = 0_u64
     for index in size
     {
         let shift = littleEndian ? index * 8 : (size - 1 - index) * 8
@@ -235,7 +275,7 @@ private struct Reader
 {
     bytes:        const [..] u8
     littleEndian: bool
-    visited:      Array'u64
+    visited:      Array!{u64}
     entries:      u64
 }
 
@@ -243,14 +283,16 @@ private impl Reader
 {
     mtd const checkRange(offset, size: u64) fail
     {
-        if offset > .bytes.count or size > .bytes.count - offset do
+        if offset > .bytes.count or size > .bytes.count - offset
+        {
             fail InvalidFormatError{"EXIF field exceeds its metadata record"}
+        }
     }
 
     mtd const number(offset, size: u64)->u64 fail
     {
         try .checkRange(offset, size)
-        var result = 0'u64
+        var result = 0_u64
         for index in size
         {
             let shift = .littleEndian ? index * 8 : (size - 1 - index) * 8
@@ -267,37 +309,55 @@ private impl Reader
         for index in limit
         {
             let byte = .bytes[offset + index]
-            if not byte do
+            if not byte
+            {
                 return result
+            }
+
             result += cast(rune, (byte < 32 and byte != 9 and byte != 10 and byte != 13 ? 32 : byte))
         }
 
-        if count > limit do
+        if count > limit
+        {
             result += "…"
+        }
+
         return result
     }
 
     mtd const fieldValue(offset, count, kind, size: u64)->String fail
     {
-        if kind == 2 do
+        if kind == 2
+        {
             return .textValue(offset, count)
-        if kind == 7 do
+        }
+
+        if kind == 7
+        {
             return Format.toString("% bytes", count)
+        }
 
         var result: #returntype
         for index in Math.min(count, 64)
         {
-            if index do
+            if index
+            {
                 result += ", "
+            }
+
             let at = offset + index * size
             if kind == 5 or kind == 10
             {
                 let numerator   = try .number(at, 4)
                 let denominator = try .number(at + 4, 4)
-                if kind == 10 do
+                if kind == 10
+                {
                     result += Format.toString("%/%", cast #bit(s32, cast(u32, numerator)), cast #bit(s32, cast(u32, denominator)))
-                else do
+                }
+                else
+                {
                     result += Format.toString("%/%", numerator, denominator)
+                }
             }
             else
             {
@@ -306,20 +366,29 @@ private impl Reader
             }
         }
 
-        if count > 64 do
+        if count > 64
+        {
             result += ", …"
+        }
+
         return result
     }
 
-    mtd readDirectory(offset: u64, directory: Directory, result: *Array'Property) fail
+    mtd readDirectory(offset: u64, directory: Directory, result: *Array!{Property}) fail
     {
-        for previous in .visited where previous == offset do
+        for previous in .visited where previous == offset
+        {
             fail InvalidFormatError{"EXIF directory pointer forms a cycle"}
+        }
+
         .visited.add(offset)
         let count = try .number(offset, 2)
         .entries += count
-        if .entries > 1024 do
+        if .entries > 1024
+        {
             fail UnsupportedFormatError{"EXIF metadata exceeds 1024 directory entries"}
+        }
+
         try .checkRange(offset + 2, count * 12 + 4)
 
         for index in count
@@ -328,7 +397,7 @@ private impl Reader
             let tag      = cast(u16, try .number(at, 2))
             let kind     = try .number(at + 2, 2)
             let elements = try .number(at + 4, 4)
-            var size     = 0'u64
+            var size     = 0_u64
             switch kind
             {
             case 1, 2, 7: size = 1
@@ -337,18 +406,27 @@ private impl Reader
             case 5, 10:   size = 8
             }
 
-            if not size or not elements do
+            if not size or not elements
+            {
                 continue
+            }
+
             let byteCount = elements * size
             let valueAt   = byteCount <= 4 ? at + 8 : try .number(at + 8, 4)
             try .checkRange(valueAt, byteCount)
             if directory == .Image and (tag == 0x8769 or tag == 0x8825)
             {
-                if kind != 4 or elements != 1 do
+                if kind != 4 or elements != 1
+                {
                     fail InvalidFormatError{"EXIF directory pointer needs one LONG value"}
+                }
+
                 let next = try .number(valueAt, 4)
-                if next < 8 do
+                if next < 8
+                {
                     fail InvalidFormatError{"EXIF directory overlaps its TIFF header"}
+                }
+
                 try .readDirectory(next, tag == 0x8769 ? .Photo : .Gps, result)
                 continue
             }

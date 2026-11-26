@@ -111,8 +111,10 @@ using Swag, Core, Pixel
         Swag.require(colors.live == palette.live)
 
         // A link is a word, read on the window or on a floating surface.
-        for ground in [palette.ground, palette.surface] do
+        for ground in [palette.ground, palette.surface]
+        {
             Swag.require(colors.link.contrastRatio(ground) >= 4.5)
+        }
 
         // The check is written in the ink Arc carries: ink on Encre, white on Papier.
         Swag.require(colors.btnCheck_CheckedMark.contrastRatio(colors.btnCheck_CheckedBk) >= 3.5)
@@ -231,8 +233,11 @@ using Swag, Core, Pixel
         Swag.require(rect.radius == metrics.corner_Control)
     }
 
-    for rect in [rects.frameWnd_RoundBk, rects.frameWnd_RoundBorder, rects.panel_Bk] do
+    for rect in [rects.frameWnd_RoundBk, rects.frameWnd_RoundBorder, rects.panel_Bk]
+    {
         Swag.require(rect.radius == metrics.corner_Floating)
+    }
+
     Swag.require(rects.menuPopup_Bk.radius == metrics.corner_Menu)
     Swag.require(rects.btnCheck_Normal.radius == metrics.corner_Chip)
 

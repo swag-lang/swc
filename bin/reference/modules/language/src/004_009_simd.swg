@@ -8,7 +8,7 @@ using Swag
 The '#simd' modifier turns a one-dimensional fixed-size array shape into a
 packed vector: one 16-byte value whose lanes compute element-wise, in a
 single machine register. The shape must total exactly 16 bytes, and the lanes
-must be a sized native numeric type: 'u8', 's8', 'u16', 's16', 'u32', 's32',
+must be a sized native numeric type: 'u8', 's8', '_u16', 's16', '_u32', 's32',
 'u64', 's64', 'f32' or 'f64'.
 
 A vector has value semantics like a scalar: it copies in one move, passes and
@@ -41,12 +41,12 @@ like the other forms, which is what lets a vector be declared 'const'.
 #test
 {
     let lanes: #simd [4] s32 = [1, 2, 3, 4]
-    let fours = Swag.vecSplat(4's32)
+    let fours = Swag.vecSplat(4_s32)
     let sum   = cast([4] s32, (lanes + fours))
     Swag.require(sum[0] == 5 and sum[3] == 8)
 
     // A broadcast of a constant is a constant.
-    const Ones     = Swag.vecSplat(1'u8)
+    const Ones     = Swag.vecSplat(1_u8)
     const OneLanes = cast([16] u8, Ones)
     #assert(OneLanes[0] == 1 and OneLanes[15] == 1)
 
@@ -96,8 +96,8 @@ for every vector shape.
     Swag.require(products[0] == 0xFFFF_FFFF_FFFF_FFFE and products[1] == 0x2_0000_0001)
 
     // Lanes wrap by definition.
-    let big  = Swag.vecSplat(2_147_483_647's32)
-    let wrap = cast([4] s32, (big + Swag.vecSplat(1's32)))
+    let big  = Swag.vecSplat(2_147_483_647_s32)
+    let wrap = cast([4] s32, (big + Swag.vecSplat(1_s32)))
     Swag.require(wrap[0] == -2_147_483_648)
 }
 
@@ -155,7 +155,7 @@ input halves,
 32-bit sums and 'Swag.vecMulAddPairsSat' does the same for unsigned and signed bytes with
 a saturating sum, 'Swag.vecSumAbsDiff' sums the absolute byte differences of each half,
 'Swag.vecTruncToS32' converts four 'f32' lanes to 's32' by truncating
-toward zero, 'Swag.vecGather' loads four 's32' values through four 'u32' indices,
+toward zero, 'Swag.vecGather' loads four 's32' values through four '_u32' indices,
 and 'Swag.vecPermute' permutes bytes through a dynamic table. NaN and
 values outside the 's32' range become 's32.Min'. 'Swag.min',
 'Swag.max', 'Swag.abs', 'Swag.sqrt', 'Swag.mulAdd', 'Swag.floor', 'Swag.ceil' and 'Swag.trunc' also accept
@@ -167,8 +167,8 @@ designate a readable table element and be at most 's32.Max'.
 */
 #test
 {
-    let a = Swag.vecSplat(200'u8)
-    let b = Swag.vecSplat(100'u8)
+    let a = Swag.vecSplat(200_u8)
+    let b = Swag.vecSplat(100_u8)
     let r = cast([16] u8, Swag.vecSatAdd(a, b))
     Swag.require(r[0] == 255)
 
@@ -474,6 +474,6 @@ value: struct fields, arrays of vectors, and compile-time execution all work.
     }
 
     var p: Pixels
-    p.row = Swag.vecSplat(7'u8)
+    p.row = Swag.vecSplat(7_u8)
     Swag.require(p.row[15] == 7)
 }

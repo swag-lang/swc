@@ -16,8 +16,11 @@ using Core, Gui, Pixel, Viewers
     journey.waitForFile(file)
 
     var hexIndex = Swag.U32.Max
-    for choice, index in window.choices where choice.key == "hex" do
+    for choice, index in window.choices where choice.key == "hex"
+    {
         hexIndex = cast(u32, index)
+    }
+
     Swag.require(hexIndex != Swag.U32.Max)
     window.selectViewer(hexIndex)
     journey.waitFor("hexadecimal viewer", func|window|()->bool =>
@@ -32,8 +35,11 @@ using Core, Gui, Pixel, Viewers
     let analysisQuery = [Input.Key.A, .N, .A, .L, .Y, .Z, .E, .Space, .T, .H, .E]
     input.shortcut(.Space, .Control)
     journey.waitFor("native command lens", func|window|()->bool => window.lens.isOpen())
-    for key in analysisQuery do
+    for key in analysisQuery
+    {
         input.shortcut(key, .None)
+    }
+
     journey.waitFor("analysis command found", func|window, hex|()->bool =>
                     window.lens.chosenEntry() != null and window.lens.chosenEntry()!.title == hex.analysisButton.toolTip)
     input.shortcut(.Return, .None)
@@ -42,8 +48,11 @@ using Core, Gui, Pixel, Viewers
     journey.waitFor("hexadecimal analysis complete", func|hex|()->bool => hex.analysisView.result.hasDigests)
     input.shortcut(.Space, .Control)
     journey.waitFor("native command lens reopened", func|window|()->bool => window.lens.isOpen())
-    for key in analysisQuery do
+    for key in analysisQuery
+    {
         input.shortcut(key, .None)
+    }
+
     journey.waitFor("analysis command found again", func|window, hex|()->bool =>
                     window.lens.chosenEntry() != null and window.lens.chosenEntry()!.title == hex.analysisButton.toolTip)
     input.shortcut(.Return, .None)

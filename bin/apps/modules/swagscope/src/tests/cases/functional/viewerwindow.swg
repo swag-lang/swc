@@ -12,13 +12,13 @@ struct LegacyViewerPreference
 internal func saveViewerState(window: *ViewerWindow, legacyViewer = false)->String
 {
     var result:     ConcatBuffer
-    var encoder:    Serialization.Encoder'Serialization.Write.TagBin
+    var encoder:    Serialization.Encoder!{Serialization.Write.TagBin}
     var serializer: Serialization.Serializer
     expect serializer.startWrite(&encoder, &result)
     expect serializer.beginSection(.Unordered)
     if legacyViewer
     {
-        var oldPreferences: Array'LegacyViewerPreference
+        var oldPreferences: Array!{LegacyViewerPreference}
         oldPreferences.add({"text", "hex"})
         expect serializer.serialize("ViewerWindow.preferences", &oldPreferences)
     }
@@ -32,7 +32,7 @@ internal func saveViewerState(window: *ViewerWindow, legacyViewer = false)->Stri
 internal func saveViewerTabWidthState(textWidth, codeWidth: s32)->String
 {
     var result:     ConcatBuffer
-    var encoder:    Serialization.Encoder'Serialization.Write.TagBin
+    var encoder:    Serialization.Encoder!{Serialization.Write.TagBin}
     var serializer: Serialization.Serializer
     expect serializer.startWrite(&encoder, &result)
     expect serializer.beginSection(.Unordered)
@@ -48,8 +48,10 @@ internal func lensHasEntry(window: *ViewerWindow, title: string)->bool
 {
     for section in window.lens.results.sections
     {
-        for &entry in section!.entries where entry.title == title do
+        for &entry in section!.entries where entry.title == title
+        {
             return true
+        }
     }
 
     return false
@@ -57,7 +59,7 @@ internal func lensHasEntry(window: *ViewerWindow, title: string)->bool
 
 internal func loadViewerState(window: *ViewerWindow, bytes: const [..] u8)
 {
-    var decoder:    Serialization.Decoder'Serialization.Read.TagBin
+    var decoder:    Serialization.Decoder!{Serialization.Read.TagBin}
     var serializer: Serialization.Serializer
     expect serializer.startRead(&decoder, bytes)
     expect serializer.beginSection(.Unordered)
@@ -74,7 +76,7 @@ internal func loadViewerState(window: *ViewerWindow, bytes: const [..] u8)
     var host: Testing.HeadlessHost
     host.setup(880, 560)
     let window = ViewerWindow.create(&host.surfaceWnd, createViewerPluginRegistry())
-    for percent in [150'u32, 0, 400]
+    for percent in [150_u32, 0, 400]
     {
         MarkdownText.g_ViewerSettings.zoomPercent = percent
         let saved = saveViewerState(window)
@@ -118,7 +120,7 @@ internal func loadViewerState(window: *ViewerWindow, bytes: const [..] u8)
     defer Code.setDefaultTabWidth(previousCodeWidth)
     var host: Testing.HeadlessHost
     host.setup(880, 560)
-    let window = ViewerWindow.create(&host.surfaceWnd, createViewerPluginRegistry())
+    let window  = ViewerWindow.create(&host.surfaceWnd, createViewerPluginRegistry())
     let damaged = saveViewerTabWidthState(3, 16)
     loadViewerState(window, damaged.toSlice())
     Swag.require(window.textTabWidth == 4 and window.codeTabWidth == 4)
@@ -195,20 +197,25 @@ internal func completeViewerStatistics(host: *Testing.HeadlessHost, window: *Vie
 // document in the background.
 internal func completeViewerSearch(host: *Testing.HeadlessHost, window: *ViewerWindow)
 {
-    var steps = 0'u32
+    var steps = 0_u32
     while window.searchTimer and steps < 4_096
     {
         host.fireTimer(window.searchTimer)
-        if window.searchTimer and not window.searchStream.isOpen() do
-            Threading.Thread.sleep(1'ms)
+        if window.searchTimer and not window.searchStream.isOpen()
+        {
+            Threading.Thread.sleep(1_ms)
+        }
+
         steps += 1
     }
 
     Swag.require(window.searchTimer == null)
     if window.currentView and
        window.activeChoiceIndex < window.choices.count and
-       window.choices[window.activeChoiceIndex].key == PlainText.ViewerKey do
+       window.choices[window.activeChoiceIndex].key == PlainText.ViewerKey
+    {
         completeTextReads(host, assume cast(*PlainText.Panel, window.currentView))
+    }
 }
 
 func createSidePanelFixture(host: Viewer.Host)
@@ -217,7 +224,7 @@ func createSidePanelFixture(host: Viewer.Host)
     let label = Label.create(panel.content, "Viewer details")
     label.dockStyle = .Center
 
-    with let view = Wnd.create'Wnd(host.contentParent())
+    with let view = Wnd.create!{Wnd}(host.contentParent())
     {
         .dockStyle       = .Center
         .backgroundStyle = .View
@@ -234,7 +241,7 @@ func createSidePanelFixture(host: Viewer.Host)
     var host: Testing.HeadlessHost
     host.setup(720, 460)
 
-    let infoParent = Wnd.create'Wnd(&host.root, {0, 0, 720, 40})
+    let infoParent = Wnd.create!{Wnd}(&host.root, {0, 0, 720, 40})
     var session    = openTestViewer(testViewerPlugin(&createSidePanelFixture), &host.root, "fixture.panel", infoParent: infoParent)
     host.root.applyLayout()
 
@@ -268,7 +275,7 @@ func createSidePanelFixture(host: Viewer.Host)
 #test
 {
     const Source = "Cat catalog cat catapult\ncat"
-    var matches: Array'Viewer.SearchMatch
+    var matches: Array!{Viewer.SearchMatch}
     Viewer.collectTextMatches(Source, "cat", {}, 0, 0, 0, &matches)
     Swag.require(matches.count == 5)
 
@@ -313,13 +320,16 @@ func createSidePanelFixture(host: Viewer.Host)
 
     let fixture = Path.combine(testSourceRoot(#curlocation), "datas/comprehensive.txt")
     var source  = expect File.readAllText(fixture)
-    for 2_000 do
+    for 2_000
+    {
         source += "A source line that stays readable while the rest remains on disk.\n"
+    }
+
     discard expect File.writeAllText(fileName, source)
 
     var host: Testing.HeadlessHost
     host.setup(800, 560)
-    let commands      = Wnd.create'Wnd(&host.root, {0, 0, 200, 36})
+    let commands      = Wnd.create!{Wnd}(&host.root, {0, 0, 200, 36})
     var viewerSession = openTestViewer(PlainText.viewerPlugin(), &host.root, fileName, commandParent: commands)
 
     with let view = assume cast(*PlainText.Panel, viewerSession.view)
@@ -363,7 +373,7 @@ func createSidePanelFixture(host: Viewer.Host)
 
     var host: Testing.HeadlessHost
     host.setup(640, 420)
-    let commands      = Wnd.create'Wnd(&host.root, {0, 0, 240, 36})
+    let commands      = Wnd.create!{Wnd}(&host.root, {0, 0, 240, 36})
     var viewerSession = openTestViewer(PlainText.viewerPlugin(), &host.root, fileName, commandParent: commands)
     let view          = assume cast(*PlainText.Panel, viewerSession.view)
     completeTextStatistics(&host, view)
@@ -408,7 +418,7 @@ internal func writeTempFile(suffix: string, bytes: const [..] u8)->String
 // names the encoding, the mark itself never reaches the document, and the reader sees characters.
 #test
 {
-    var utf16: Array'u8
+    var utf16: Array!{u8}
     utf16.add(0xFF)
     utf16.add(0xFE)
     for c in "Hello, wide world"
@@ -426,7 +436,7 @@ internal func writeTempFile(suffix: string, bytes: const [..] u8)->String
 
     var host: Testing.HeadlessHost
     host.setup(800, 560)
-    let commands      = Wnd.create'Wnd(&host.root, {0, 0, 240, 36})
+    let commands      = Wnd.create!{Wnd}(&host.root, {0, 0, 240, 36})
     var viewerSession = openTestViewer(PlainText.viewerPlugin(), &host.root, wideFile, commandParent: commands)
 
     with let view = assume cast(*PlainText.Panel, viewerSession.view)
@@ -463,7 +473,7 @@ internal func writeTempFile(suffix: string, bytes: const [..] u8)->String
 
     var host: Testing.HeadlessHost
     host.setup(800, 560)
-    let commands      = Wnd.create'Wnd(&host.root, {0, 0, 240, 36})
+    let commands      = Wnd.create!{Wnd}(&host.root, {0, 0, 240, 36})
     var viewerSession = openTestViewer(PlainText.viewerPlugin(), &host.root, file, commandParent: commands)
 
     with let view = assume cast(*PlainText.Panel, viewerSession.view)
@@ -485,9 +495,12 @@ internal func writeTempFile(suffix: string, bytes: const [..] u8)->String
 // streaming has begun. That late byte changes the tentative encoding; it does not reject the file.
 #test
 {
-    var bytes: Array'u8
-    for 16 * 1024 do
+    var bytes: Array!{u8}
+    for 16 * 1024
+    {
         bytes.add('a')
+    }
+
     bytes.add(0xE9)
     bytes.add('\n')
 
@@ -496,7 +509,7 @@ internal func writeTempFile(suffix: string, bytes: const [..] u8)->String
 
     var host: Testing.HeadlessHost
     host.setup(800, 560)
-    let commands      = Wnd.create'Wnd(&host.root, {0, 0, 240, 36})
+    let commands      = Wnd.create!{Wnd}(&host.root, {0, 0, 240, 36})
     var viewerSession = openTestViewer(PlainText.viewerPlugin(), &host.root, file, commandParent: commands)
 
     with let view = assume cast(*PlainText.Panel, viewerSession.view)
@@ -516,9 +529,12 @@ internal func writeTempFile(suffix: string, bytes: const [..] u8)->String
 // what keeps a binary out of the text view is the content it decodes to.
 #test
 {
-    var binary: Array'u8
-    for i in 512'u32 do
+    var binary: Array!{u8}
+    for i in 512_u32
+    {
         binary.add(cast(u8, ((i * 7) & 0xFF)))
+    }
+
     let file = writeTempFile("binary.bin", binary.toSlice())
     defer discard catch File.delete(file)
     Swag.require(not PlainText.Panel.supports(file))
@@ -533,7 +549,7 @@ internal func writeTempFile(suffix: string, bytes: const [..] u8)->String
     expect Directory.create(root)
     defer discard catch Directory.delete(root, recurse: true)
 
-    var files: Array'String
+    var files: Array!{String}
     for i in ViewerWindow.FolderHistoryCount + 2
     {
         let folder = Path.combine(root, Format.toString("folder%", i))
@@ -577,8 +593,8 @@ internal func writeTempFile(suffix: string, bytes: const [..] u8)->String
     expect Directory.create(folder)
     defer discard catch Directory.delete(folder, recurse: true)
 
-    var names: Array'String
-    for i in 3'u32
+    var names: Array!{String}
+    for i in 3_u32
     {
         let one = Path.combine(folder, Format.toString("file%.txt", i))
         discard expect File.writeAllText(one, "a readable line\n")
@@ -631,8 +647,8 @@ internal func writeTempFile(suffix: string, bytes: const [..] u8)->String
     expect Directory.create(folder)
     defer discard catch Directory.delete(folder, recurse: true)
 
-    var names: Array'String
-    for i in 3'u32
+    var names: Array!{String}
+    for i in 3_u32
     {
         let one = Path.combine(folder, Format.toString("file%.txt", i))
         discard expect File.writeAllText(one, "a readable line\n")
@@ -684,8 +700,11 @@ internal func writeTempFile(suffix: string, bytes: const [..] u8)->String
     completeQueuedViewerFile(&host, window)
     let folderMenu = window.createFileActionsMenu()
     defer folderMenu.destroy()
-    for item in folderMenu.items do
+    for item in folderMenu.items
+    {
         Swag.require(item!.id != "scope.file.forget")
+    }
+
     host.pump()
 }
 
@@ -700,8 +719,10 @@ internal func writeTempFile(suffix: string, bytes: const [..] u8)->String
 
     let first  = Path.combine(folder, "notes.txt")
     let second = Path.combine(folder, "other.txt")
-    for one in [first, second] do
+    for one in [first, second]
+    {
         discard expect File.writeAllText(one[], "a readable line\n")
+    }
 
     var host: Testing.HeadlessHost
     host.setup(960, 680)
@@ -982,8 +1003,11 @@ internal func writeTempFile(suffix: string, bytes: const [..] u8)->String
     Swag.require(window.searchOverlay.position.height >= ViewerSearchOverlay.MarkMinHeight and
                  window.searchOverlay.position.height < Math.round(matchBounds.height))
     let firstMark = host.render(window)
-    for 8 do
+    for 8
+    {
         host.fireTimer(window.searchBoundsTimer)
+    }
+
     window.searchOverlay.invalidate()
     let repeatedMark = host.render(window)
     Swag.require(Hash.hashBytes32(firstMark.pixels.toSlice()) == Hash.hashBytes32(repeatedMark.pixels.toSlice()))
@@ -1042,14 +1066,16 @@ internal func writeTempFile(suffix: string, bytes: const [..] u8)->String
 
     const Query = "streamed-search-anchor"
     var source = String.from("# Search fixture\n\n")
-    var offsets: Array'u64
+    var offsets: Array!{u64}
     for occurrence in 3
     {
         offsets.add(source.length)
         source += Query
         source += Format.toString(" occurrence %\n\n", occurrence + 1)
-        for 600 do
+        for 600
+        {
             source += "A long Markdown paragraph separates this result from the next page.\n\n"
+        }
     }
 
     expect File.writeAllBytes(fileName, source)
@@ -1062,8 +1088,11 @@ internal func writeTempFile(suffix: string, bytes: const [..] u8)->String
     completeQueuedViewerFile(&host, window)
 
     var markdownIndex = Swag.U32.Max
-    for choice, choiceIndex in window.choices where choice.key == "markdown" do
+    for choice, choiceIndex in window.choices where choice.key == "markdown"
+    {
         markdownIndex = cast(u32, choiceIndex)
+    }
+
     Swag.require(markdownIndex != Swag.U32.Max)
     window.selectViewer(markdownIndex)
     window.showSearch()
@@ -1071,29 +1100,41 @@ internal func writeTempFile(suffix: string, bytes: const [..] u8)->String
     completeViewerSearch(&host, window)
     Swag.require(window.searchMatches.count == 3 and window.searchMatch == offsets[0])
 
-    for 2_048 where not window.searchOverlay.isLocallyVisible() do
+    for 2_048 where not window.searchOverlay.isLocallyVisible()
+    {
         host.fireTimers()
+    }
+
     Swag.require(window.searchOverlay.isLocallyVisible())
 
     window.findNext()
     Swag.require(window.searchIndex == 1 and window.searchMatch == offsets[1])
     window.searchOverlay.hide()
-    for 2_048 where not window.searchOverlay.isLocallyVisible() do
+    for 2_048 where not window.searchOverlay.isLocallyVisible()
+    {
         host.fireTimers()
+    }
+
     Swag.require(window.searchOverlay.isLocallyVisible())
 
     window.findNext()
     Swag.require(window.searchIndex == 2 and window.searchMatch == offsets[2])
     window.searchOverlay.hide()
-    for 2_048 where not window.searchOverlay.isLocallyVisible() do
+    for 2_048 where not window.searchOverlay.isLocallyVisible()
+    {
         host.fireTimers()
+    }
+
     Swag.require(window.searchOverlay.isLocallyVisible())
 
     window.findPrevious()
     Swag.require(window.searchIndex == 1 and window.searchMatch == offsets[1])
     window.searchOverlay.hide()
-    for 2_048 where not window.searchOverlay.isLocallyVisible() do
+    for 2_048 where not window.searchOverlay.isLocallyVisible()
+    {
         host.fireTimers()
+    }
+
     Swag.require(window.searchOverlay.isLocallyVisible())
 
     let markdown = assume cast(*Markdown.View, window.currentView)
@@ -1202,8 +1243,8 @@ internal func writeTempFile(suffix: string, bytes: const [..] u8)->String
     // The viewer's commands float centred at the foot of the document, as wide as they ask and
     // never wider than the document, and leave once the pointer rests.
     window.resize(ViewerWindow.MinWidth, 680)
-    let widestCommands = Wnd.create'Wnd(window.viewerBar, {0, 0, 2_000, 36})
-    let action = Viewer.createActionButton(widestCommands, .ChevronRight)
+    let widestCommands = Wnd.create!{Wnd}(window.viewerBar, {0, 0, 2_000, 36})
+    let action         = Viewer.createActionButton(widestCommands, .ChevronRight)
     widestCommands.preferredSize.x = 2_000
     window.currentCommands         = widestCommands
     window.notePointer({20, 20})
@@ -1373,8 +1414,8 @@ internal func writeTempFile(suffix: string, bytes: const [..] u8)->String
 
     var index    = createViewerPluginRegistry()
     let window   = ViewerWindow.create(&host.surfaceWnd, #move index)
-    let failed   = Wnd.create'Wnd(window)
-    let commands = Wnd.create'Wnd(window.viewerBar)
+    let failed   = Wnd.create!{Wnd}(window)
+    let commands = Wnd.create!{Wnd}(window.viewerBar)
     var retired: bool
     failed.userData = &retired
     window.choices.add(ViewerPluginChoice{pluginIndex: 0, key: "html"})
@@ -1397,15 +1438,20 @@ internal func writeTempFile(suffix: string, bytes: const [..] u8)->String
 // Counts the buttons under `wnd` whose arrow points down.
 func downwardArrows(wnd: *Wnd)->u64
 {
-    var result = 0'u64
+    var result = 0_u64
     if wnd is IconButton as button
     {
-        if button.arrowPosition == .RightDownward do
+        if button.arrowPosition == .RightDownward
+        {
             result += 1
+        }
     }
 
-    for child in wnd.children do
+    for child in wnd.children
+    {
         result += downwardArrows(child[])
+    }
+
     return result
 }
 
@@ -1450,8 +1496,10 @@ func downwardArrows(wnd: *Wnd)->u64
     {
         let button = assume cast(*PushButton, child[])
         for choice in window.choices where choice.key == "hex" and
-                                           Format.toString(appStrings().ui_ViewAsChoice, window.index.plugins[choice.pluginIndex].displayName()) == button.text() do
+                                           Format.toString(appStrings().ui_ViewAsChoice, window.index.plugins[choice.pluginIndex].displayName()) == button.text()
+        {
             hex = i
+        }
     }
 
     Swag.require(hex != Swag.U64.Max)
@@ -1472,7 +1520,7 @@ func downwardArrows(wnd: *Wnd)->u64
 
     var index  = createViewerPluginRegistry()
     let window = ViewerWindow.create(&host.surfaceWnd, #move index)
-    let old    = Wnd.create'Wnd(window)
+    let old    = Wnd.create!{Wnd}(window)
     old.setPosition({19, 73, 617, 389})
     var retireCalls: u32
     old.userData = &retireCalls
@@ -1514,8 +1562,8 @@ func downwardArrows(wnd: *Wnd)->u64
 
     var index  = createViewerPluginRegistry()
     let window = ViewerWindow.create(&host.surfaceWnd, #move index)
-    window.currentView     = Wnd.create'Wnd(window)
-    window.currentCommands = Wnd.create'Wnd(window.viewerBar)
+    window.currentView     = Wnd.create!{Wnd}(window)
+    window.currentCommands = Wnd.create!{Wnd}(window.viewerBar)
     window.instances.resize(1)
     window.instances[0].view     = window.currentView
     window.instances[0].commands = window.currentCommands
@@ -1544,8 +1592,11 @@ func downwardArrows(wnd: *Wnd)->u64
 
     completeQueuedViewerFile(&host, window)
     var hexChoice = Swag.U32.Max
-    for choice, index in window.choices where choice.key == "hex" do
+    for choice, index in window.choices where choice.key == "hex"
+    {
         hexChoice = cast(u32, index)
+    }
+
     Swag.require(hexChoice != Swag.U32.Max)
     window.selectViewer(hexChoice)
     completeQueuedViewerFile(&host, window)
@@ -1631,8 +1682,11 @@ func downwardArrows(wnd: *Wnd)->u64
     defer discard catch File.delete(secondFile)
 
     var source: String
-    for 2_000 do
+    for 2_000
+    {
         source += "A streamed document keeps loading while another file is selected.\n"
+    }
+
     let bytes = source.bytes()
     discard expect File.writeAllBytes(firstFile, bytes)
     discard expect File.writeAllBytes(secondFile, bytes)
@@ -1678,9 +1732,12 @@ func downwardArrows(wnd: *Wnd)->u64
     window.sendCommandEvent(ViewerCommands.Close)
     for 4_096
     {
-        if window.pendingEmpty.isEmpty() do
+        if window.pendingEmpty.isEmpty()
+        {
             break
-        Threading.Thread.sleep(1'ms)
+        }
+
+        Threading.Thread.sleep(1_ms)
         host.fireTimers()
     }
 
@@ -1707,13 +1764,19 @@ func downwardArrows(wnd: *Wnd)->u64
         host.setup(880, 560)
         let window = ViewerWindow.create(&host.surfaceWnd, createViewerPluginRegistry())
         window.openFile(viewerFixturePath(), remember: false)
-        if started do
+        if started
+        {
             host.fireTimer(window.startupTimer)
+        }
+
         window.sendCommandEvent(ViewerCommands.Close)
         Swag.drainWork()
         host.pump()
-        if window.startupTimer do
+        if window.startupTimer
+        {
             host.fireTimer(window.startupTimer)
+        }
+
         Swag.require(window.pendingFile.isEmpty() and window.pendingEmpty.isEmpty())
         Swag.require(not window.choiceLoad.started and window.currentFile.isEmpty())
         Swag.require(window.instances.isEmpty() and window.home.isLocallyVisible())
@@ -1780,8 +1843,10 @@ func downwardArrows(wnd: *Wnd)->u64
     defer discard catch Directory.delete(folder, recurse: true)
 
     let names: [5] string = ["pic1.png", "pic2.jpg", "notes.txt", "more.txt", "readme.md"]
-    for one in names do
+    for one in names
+    {
         discard expect File.writeAllBytes(Path.combine(folder, one), "a readable line\n")
+    }
 
     var host: Testing.HeadlessHost
     host.setup(960, 680)
@@ -1899,8 +1964,11 @@ func createPictureFolder(stem: string, names: const [..] string)->String
     expect Directory.create(folder)
     let imageSource = expect File.readAllText(Path.combine(testSourceRoot(#curlocation), "datas/sample.svg"))
     let imageBytes  = imageSource.bytes()
-    for name in names do
+    for name in names
+    {
         discard expect File.writeAllBytes(Path.combine(folder, name), imageBytes)
+    }
+
     return folder
 }
 
@@ -1913,8 +1981,10 @@ func createPictureFolder(stem: string, names: const [..] string)->String
 
     let imageSource = expect File.readAllText(Path.combine(testSourceRoot(#curlocation), "datas/sample.svg"))
     let imageBytes  = imageSource.bytes()
-    for i in 24 do
+    for i in 24
+    {
         discard expect File.writeAllBytes(Path.combine(folder, Format.toString("pic%.svg", i)), imageBytes)
+    }
 
     var host: Testing.HeadlessHost
     host.setup(960, 680)
@@ -2031,7 +2101,7 @@ func createPictureFolder(stem: string, names: const [..] string)->String
     window.setPlayMode(.Shuffle)
 
     // Three continuations from the first picture reach the three others, whatever their order.
-    var seen: Array'String
+    var seen: Array!{String}
     for step in 3
     {
         Swag.require(seen.count == step)
@@ -2127,15 +2197,22 @@ func createPictureFolder(stem: string, names: const [..] string)->String
     {
         let sheet = host.capturedOptionSheet()
         let menu  = host.capturedPopupMenu()
-        if not sheet and not menu do
+        if not sheet and not menu
+        {
             return
+        }
+
         checked[] += 1
         host.fireTimer(window.viewerBarTimer)
         Swag.require(window.viewerBarShown and opener.isVisible())
-        if sheet do
+        if sheet
+        {
             sheet.close()
-        else do
+        }
+        else
+        {
             Swag.require(host.clickPopupMenuItem("test.viewer.popup"))
+        }
     }
 
     for 5
@@ -2217,8 +2294,10 @@ func createPictureFolder(stem: string, names: const [..] string)->String
 
     var paces: OptionSheet.Page
     options.rows[1].buildLink(&paces)
-    for entry in Viewer.SlideChoices.count do
+    for entry in Viewer.SlideChoices.count
+    {
         Swag.require(paces.rows[entry].checked == (entry == 2))
+    }
 
     // The same picture can be inspected as bytes; presentation follows the selected viewer.
     for choice, index in window.choices where choice.key == "hex"

@@ -35,7 +35,7 @@ func contextualRows(index: u32)->u32
 {
     // Nested array constants retain their narrow target; scalar fields merge after sizing.
     let records = [
-        {lanes: [1'u8, 2'u8], tag: 3'u8},
+        {lanes: [1_u8, 2_u8], tag: 3_u8},
         {lanes: [4, 5],       tag: 6}
         ]
     #assert(#typeof(records[1].lanes[0]) == u8)

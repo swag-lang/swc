@@ -36,8 +36,10 @@ impl Swag.IAllocator for ScratchOverflowAllocator
     mtd impl alloc(request: *Swag.AllocatorRequest)
     {
         .calls += 1
-        if .calls == 1 do
+        if .calls == 1
+        {
             request.address = &.storage[0]
+        }
     }
 
     mtd impl realloc(request: *Swag.AllocatorRequest) { request.address = null }
@@ -169,15 +171,18 @@ func formatAllocationFailure(operation: string, request: Swag.AllocatorRequest, 
     runtime.setup()
     defer runtime.releaseAll()
     let allocator: Swag.IAllocator = &runtime
-    for size in [1'u64, 8, 16, 32, 500, 65536, 131072]
+    for size in [1_u64, 8, 16, 32, 500, 65536, 131072]
     {
-        for alignment in [0'u32, 8, 16, 32, 256]
+        for alignment in [0_u32, 8, 16, 32, 256]
         {
             for 2
             {
                 let block = cast([*] u8, Memory.alloc(size, allocator, alignment))
-                if alignment != 0 do
+                if alignment != 0
+                {
                     Swag.require(cast(u64, block) % alignment == 0)
+                }
+
                 block[0]        = 17
                 block[size - 1] = 29
                 Swag.require(block[size - 1] == 29)
@@ -198,7 +203,7 @@ func formatAllocationFailure(operation: string, request: Swag.AllocatorRequest, 
     var backing:   TypedAllocationAlignmentAllocator
     let allocator: Swag.IAllocator = &backing
 
-    let single = Memory.new'OverAlignedMemoryValue(allocator)
+    let single = Memory.new!{OverAlignedMemoryValue}(allocator)
     Swag.require(cast(u64, single) % 64 == 0,
                  "Memory.new<T> must honor T's alignment")
     Swag.require(backing.requestedAlignment >= 64,
@@ -211,7 +216,7 @@ func formatAllocationFailure(operation: string, request: Swag.AllocatorRequest, 
 
     var backing:   TypedAllocationAlignmentAllocator
     let allocator: Swag.IAllocator = &backing
-    let items = Memory.new'OverAlignedMemoryValue(2, allocator)
+    let items = Memory.new!{OverAlignedMemoryValue}(2, allocator)
     Swag.require(cast(u64, items) % 64 == 0,
                  "Memory.new<T>(count) must honor T's alignment")
     Swag.require(backing.requestedAlignment >= 64,
@@ -236,8 +241,11 @@ func formatAllocationFailure(operation: string, request: Swag.AllocatorRequest, 
 
             let loc   = #curlocation
             let block = cast([*] u8, Memory.alloc(32, allocator, hint: "tracked fast allocation", loc: loc))
-            for i in 32 do
+            for i in 32
+            {
                 Swag.require(block[i] == Swag.Allocator.AllocByte)
+            }
+
             if tracked
             {
                 let tracking = unwrap runtime.firstAlloc!.tracking

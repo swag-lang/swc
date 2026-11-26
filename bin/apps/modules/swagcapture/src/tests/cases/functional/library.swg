@@ -25,8 +25,10 @@ impl IAllocator for LibraryRejectAllocator
     let lib = f.main.libWnd
     lib.setPosition({0, 0, 900, 600})
     lib.applyLayout()
-    for index in 30 do
+    for index in 30
+    {
         discard testAddLibraryItem(lib.view, Format.toString("capture-%", index), 10, 1)
+    }
 
     let wasDirty = g_DirtyList
     defer g_DirtyList = wasDirty
@@ -35,9 +37,12 @@ impl IAllocator for LibraryRejectAllocator
 
     let scroll = lib.captureHost
     Swag.require(scroll.scrollSize.y > scroll.position.height)
-    var contentBottom = 0'f32
-    for item in lib.view.items do
+    var contentBottom = 0_f32
+    for item in lib.view.items
+    {
         contentBottom = Math.max(contentBottom, item.rect.bottom())
+    }
+
     Swag.require(scroll.scrollSize.y == contentBottom + LibraryCellRing)
     let metrics = scroll.themeMetrics()
     var grip    = scroll.localToSurface(Math.Point{scroll.clientRect().right() - metrics.scrollBar_EdgeInset - metrics.scrollBar_HitSize + 2,
@@ -66,8 +71,10 @@ impl IAllocator for LibraryRejectAllocator
 
     func loadUntilStopped(thread: const *Thread)
     {
-        while not thread.requestEnd.isRaised() do
+        while not thread.requestEnd.isRaised()
+        {
             Thread.yield()
+        }
     }
 
     expect view.thread.init(&loadUntilStopped)
@@ -90,24 +97,24 @@ impl IAllocator for LibraryRejectAllocator
     let libWnd = cast(*Wnd, f.main.libWnd)
 
     var sizeEvt = Gui.Testing.commandState(ActionRecentSize.LibBig)
-    Swag.require(Gui.Testing.actionUpdate'ActionRecentSize(f.main, ActionRecentSize.LibBig, &sizeEvt))
+    Swag.require(Gui.Testing.actionUpdate!{ActionRecentSize}(f.main, ActionRecentSize.LibBig, &sizeEvt))
     Swag.require(not sizeEvt.checked)
     f.main.sendCommandEvent(ActionRecentSize.LibBig)
     Swag.require(f.main.libWnd.previewSize == .Big)
-    var actionExecuted = Gui.Testing.actionExecute'ActionRecentSize(f.main, ActionRecentSize.LibMedium)
+    var actionExecuted = Gui.Testing.actionExecute!{ActionRecentSize}(f.main, ActionRecentSize.LibMedium)
     Swag.require(actionExecuted)
     Swag.require(f.main.libWnd.previewSize == .Medium)
-    actionExecuted = Gui.Testing.actionExecute'ActionRecentSize(f.main, ActionRecentSize.LibSmall)
+    actionExecuted = Gui.Testing.actionExecute!{ActionRecentSize}(f.main, ActionRecentSize.LibSmall)
     Swag.require(actionExecuted)
     Swag.require(f.main.libWnd.previewSize == .Small)
 
     var overlayEvt = Gui.Testing.commandState(ActionLibView.Ratings)
-    Swag.require(Gui.Testing.actionUpdate'ActionLibView(libWnd, ActionLibView.Ratings, &overlayEvt))
+    Swag.require(Gui.Testing.actionUpdate!{ActionLibView}(libWnd, ActionLibView.Ratings, &overlayEvt))
     Swag.require(overlayEvt.checked)
-    actionExecuted = Gui.Testing.actionExecute'ActionLibView(libWnd, ActionLibView.Ratings)
+    actionExecuted = Gui.Testing.actionExecute!{ActionLibView}(libWnd, ActionLibView.Ratings)
     Swag.require(actionExecuted)
     Swag.require(not f.main.libWnd.showRatingOverlay)
-    actionExecuted = Gui.Testing.actionExecute'ActionLibView(libWnd, ActionLibView.LinkMarkers)
+    actionExecuted = Gui.Testing.actionExecute!{ActionLibView}(libWnd, ActionLibView.LinkMarkers)
     Swag.require(actionExecuted)
     Swag.require(not f.main.libWnd.showLinkOverlay)
 
@@ -115,30 +122,30 @@ impl IAllocator for LibraryRejectAllocator
     Swag.require(ratingLabel(3) == appStrings().act_Rating3)
     Swag.require(ratingLabel(5) == appStrings().act_Rating5)
 
-    with f.main.recentBar = Wnd.create'Wnd(f.main, {0, 0, 0, 128})
+    with f.main.recentBar = Wnd.create!{Wnd}(f.main, {0, 0, 0, 128})
     {
         .dockStyle = .Bottom
     }
 
-    actionExecuted = Gui.Testing.actionExecute'ActionRecentSize(f.main, ActionRecentSize.RecentSmall)
+    actionExecuted = Gui.Testing.actionExecute!{ActionRecentSize}(f.main, ActionRecentSize.RecentSmall)
     Swag.require(actionExecuted)
     Swag.require(f.main.bottomSize == .Small)
-    actionExecuted = Gui.Testing.actionExecute'ActionRecentSize(f.main, ActionRecentSize.RecentMedium)
+    actionExecuted = Gui.Testing.actionExecute!{ActionRecentSize}(f.main, ActionRecentSize.RecentMedium)
     Swag.require(actionExecuted)
     Swag.require(f.main.bottomSize == .Medium)
-    actionExecuted = Gui.Testing.actionExecute'ActionRecentSize(f.main, ActionRecentSize.RecentBig)
+    actionExecuted = Gui.Testing.actionExecute!{ActionRecentSize}(f.main, ActionRecentSize.RecentBig)
     Swag.require(actionExecuted)
     Swag.require(f.main.bottomSize == .Big)
 
     var evt = Gui.Testing.commandState(ActionLibSort.Recent)
-    Swag.require(Gui.Testing.actionUpdate'ActionLibSort(libWnd, ActionLibSort.Recent, &evt))
+    Swag.require(Gui.Testing.actionUpdate!{ActionLibSort}(libWnd, ActionLibSort.Recent, &evt))
     Swag.require(evt.checked)
 
     libWnd.sendCommandEvent(ActionLibSort.FileSize)
     Swag.require(f.main.libWnd.sortMethod == .FileSize)
 
     evt = Gui.Testing.commandState(ActionLibSort.Invert)
-    Swag.require(Gui.Testing.actionUpdate'ActionLibSort(libWnd, ActionLibSort.Invert, &evt))
+    Swag.require(Gui.Testing.actionUpdate!{ActionLibSort}(libWnd, ActionLibSort.Invert, &evt))
     Swag.require(not evt.name.isEmpty())
     Swag.require(not evt.disabled)
 
@@ -147,11 +154,11 @@ impl IAllocator for LibraryRejectAllocator
 
     libWnd.sendCommandEvent(ActionLibSort.Similar)
     evt = Gui.Testing.commandState(ActionLibSort.Invert)
-    Swag.require(Gui.Testing.actionUpdate'ActionLibSort(libWnd, ActionLibSort.Invert, &evt))
+    Swag.require(Gui.Testing.actionUpdate!{ActionLibSort}(libWnd, ActionLibSort.Invert, &evt))
     Swag.require(evt.disabled)
 
     evt = Gui.Testing.commandState(ActionLibFilter.LinkedImage)
-    Swag.require(Gui.Testing.actionUpdate'ActionLibFilter(libWnd, ActionLibFilter.LinkedImage, &evt))
+    Swag.require(Gui.Testing.actionUpdate!{ActionLibFilter}(libWnd, ActionLibFilter.LinkedImage, &evt))
     Swag.require(evt.checked)
     libWnd.sendCommandEvent(ActionLibFilter.LinkedImage)
     Swag.require(not f.main.libWnd.showLinkedImage)
@@ -170,13 +177,13 @@ impl IAllocator for LibraryRejectAllocator
     Swag.require(f.main.libWnd.showLinkedImage)
 
     evt = Gui.Testing.commandState(ActionLibSel.Right)
-    Swag.require(Gui.Testing.actionUpdate'ActionLibSel(libWnd, ActionLibSel.Right, &evt))
+    Swag.require(Gui.Testing.actionUpdate!{ActionLibSel}(libWnd, ActionLibSel.Right, &evt))
     Swag.require(evt.disabled)
 
     // With a capture in the grid, the arrows are ready before one is chosen.
     discard testAddLibraryItem(f.main.libWnd.view, "capture", 10, 1)
     evt = Gui.Testing.commandState(ActionLibSel.Right)
-    Swag.require(Gui.Testing.actionUpdate'ActionLibSel(libWnd, ActionLibSel.Right, &evt))
+    Swag.require(Gui.Testing.actionUpdate!{ActionLibSel}(libWnd, ActionLibSel.Right, &evt))
     Swag.require(not evt.disabled)
 }
 
@@ -314,10 +321,10 @@ impl IAllocator for LibraryRejectAllocator
     g_Library.onDeleteFile += func|libWnd = lib|(file) { libWnd.view.removeFile(file) }
 
     // Three real capture files, registered in the library and the view.
-    var paths: Array'String
+    var paths: Array!{String}
     for idx in 3
     {
-        let capture = Memory.new'Capture()
+        let capture = Memory.new!{Capture}()
         capture.width, capture.widthOrg   = 8
         capture.height, capture.heightOrg = 6
         capture.backImg = Gui.Testing.indexedImage(8, 6)
@@ -348,8 +355,10 @@ impl IAllocator for LibraryRejectAllocator
     Swag.require(view.items.count == 3)
     Swag.require(g_Library.files.count == 3)
 
-    for idx in view.items.count do
+    for idx in view.items.count
+    {
         view.selModel.select(cast(u32, idx))
+    }
 
     lib.removeSelected()
 
@@ -374,8 +383,11 @@ impl IAllocator for LibraryRejectAllocator
     defer f.shutdown()
     let view = f.setupLibraryWnd().view
 
-    for name in ["a.scc", "b.scc", "c.scc", "d.scc"] do
+    for name in ["a.scc", "b.scc", "c.scc", "d.scc"]
+    {
         discard testAddLibraryItem(view, name, 10, 1)
+    }
+
     view.selModel.select(2)
     view.focusItem = 2
 
@@ -442,7 +454,7 @@ impl IAllocator for LibraryRejectAllocator
     let libWnd = f.main.libWnd
 
     let oldLibraryLoaded = g_Library.loaded
-    var paths: Array'String
+    var paths: Array!{String}
     var loadingStarted: bool
     defer
     {
@@ -452,8 +464,11 @@ impl IAllocator for LibraryRejectAllocator
             libWnd.view.thread.wait()
         }
 
-        for path in paths do
+        for path in paths
+        {
             discard catch File.delete(path[])
+        }
+
         g_Library.files.clear()
         g_Library.loaded = oldLibraryLoaded
     }
@@ -462,7 +477,7 @@ impl IAllocator for LibraryRejectAllocator
     g_Library.files.clear()
     for index in 3
     {
-        let capture = Memory.new'Capture()
+        let capture = Memory.new!{Capture}()
         capture.width, capture.widthOrg   = 8
         capture.height, capture.heightOrg = 6
         capture.backImg = Gui.Testing.indexedImage(8, 6)
@@ -480,7 +495,7 @@ impl IAllocator for LibraryRejectAllocator
             fi.lastWriteTime.month = 5
             fi.lastWriteTime.day   = 11
         }
-        elif index == 1
+        else if index == 1
         {
             fi.lastWriteTime.year  = 2024
             fi.lastWriteTime.month = 5
@@ -637,8 +652,11 @@ impl IAllocator for LibraryRejectAllocator
     view.sort()
     Swag.require(view.items[0] == chrome)
 
-    for item, i in view.items where item == slack do
+    for item, i in view.items where item == slack
+    {
         view.setFocusItem(cast(u32, i))
+    }
+
     lib.sortMethod = .Dimensions
     view.sort()
     Swag.require(view.focusItem < view.items.count)
@@ -680,7 +698,7 @@ impl IAllocator for LibraryRejectAllocator
     f.main.libraryMode = true
     view.focusItem     = 0
     var deleteState = Gui.Testing.commandState(ActionFile.DeleteCapture)
-    Swag.require(Gui.Testing.actionUpdate'ActionFile(f.main, ActionFile.DeleteCapture, &deleteState))
+    Swag.require(Gui.Testing.actionUpdate!{ActionFile}(f.main, ActionFile.DeleteCapture, &deleteState))
     Swag.require(deleteState.disabled)
 }
 
@@ -703,7 +721,7 @@ impl IAllocator for LibraryRejectAllocator
         discard catch g_Library.setFolder("")
     }
 
-    let capture = Memory.new'Capture()
+    let capture = Memory.new!{Capture}()
     capture.width, capture.widthOrg   = 8
     capture.height, capture.heightOrg = 6
     capture.backImg                   = Gui.Testing.indexedImage(8, 6)
@@ -769,8 +787,10 @@ impl IAllocator for LibraryRejectAllocator
     // screen rectangles throughout a refresh.
     let controls: [4] *Wnd = [lib.viewBtn, lib.filterBtn, lib.folderBtn, lib.searchEdit]
     var bounds:   [4] Math.Rectangle
-    for control, i in controls do
+    for control, i in controls
+    {
         bounds[i] = control.surfaceRect()
+    }
 
     let spinner = lib.view.imgSpin
     Swag.require(not spinner.isLocallyVisible())
@@ -778,13 +798,17 @@ impl IAllocator for LibraryRejectAllocator
     lib.applyLayout()
     Swag.require(spinner.surfaceRect().y >= lib.folderTabs.surfaceRect().bottom())
     Swag.require(spinner.surfaceRect().bottom() <= lib.captureHost.surfaceRect().y)
-    for control, i in controls do
+    for control, i in controls
+    {
         Swag.require(control.surfaceRect() == bounds[i])
+    }
 
     spinner.hide()
     lib.applyLayout()
-    for control, i in controls do
+    for control, i in controls
+    {
         Swag.require(control.surfaceRect() == bounds[i])
+    }
 
     lib.setTrashMode(true)
     Swag.require(lib.header.isLocallyVisible() and lib.titleLabel.name == appStrings().act_RecycleBin)
@@ -828,8 +852,10 @@ impl IAllocator for LibraryRejectAllocator
     var chromeEntry: *Lens.Entry?
     for section in results.sections where section!.label == appStrings().act_Application
     {
-        for &entry in section.entries where entry.title == "Chrome" do
+        for &entry in section.entries where entry.title == "Chrome"
+        {
             chromeEntry = entry
+        }
     }
 
     let chromeRun = unwrap (unwrap chromeEntry).run
@@ -844,8 +870,10 @@ impl IAllocator for LibraryRejectAllocator
     for child in lib.tagChips.children
     {
         let chip = assume cast(*IconButton, child)
-        if chip.text() == "work" do
+        if chip.text() == "work"
+        {
             workChip = chip
+        }
     }
 
     f.gui.clickWnd(unwrap workChip)
@@ -923,8 +951,10 @@ impl IAllocator for LibraryRejectAllocator
     var chromeRun: (func||())?
     for section in results.sections where section!.label == appStrings().act_Application
     {
-        for &entry in section.entries where entry.title == "Chrome" do
+        for &entry in section.entries where entry.title == "Chrome"
+        {
             chromeRun = entry.run
+        }
     }
 
     let slack = testAddLibraryItem(lib.view, "slack.scc", 10, 3)
@@ -958,7 +988,7 @@ impl IAllocator for LibraryRejectAllocator
     // The first capture is a real file, so rating it writes the file and reads it back.
     let path = testTempCapturePath()
     defer discard catch File.delete(path)
-    let saved = Memory.new'Capture()
+    let saved = Memory.new!{Capture}()
     saved.width, saved.widthOrg   = 8
     saved.height, saved.heightOrg = 6
     saved.backImg                 = Gui.Testing.indexedImage(8, 6)
@@ -990,15 +1020,21 @@ impl IAllocator for LibraryRejectAllocator
     Swag.require(actions.label == texts.lens_Selection)
     let titles = [texts.act_OpenSelected, texts.act_ExportSelected, texts.act_EditTags, texts.act_FavoriteCapture, texts.act_MoveSelected, texts.act_Delete]
     Swag.require(actions.entries.count == 6)
-    for title, i in titles do
+    for title, i in titles
+    {
         Swag.require(actions.entries[i].title == title)
+    }
+
     Swag.require(actions.entries[0].glyph.isValid() and actions.entries[0].detail == Input.formatKeyShortcut(.None, .Return))
     Swag.require(actions.entries[5].glyph.isValid() and actions.entries[5].detail == Input.formatKeyShortcut(.None, .Delete))
 
     let rating = unwrap chosen.sections[1]
     Swag.require(rating.label == texts.act_Rating and rating.inline and rating.entries.count == 6)
-    for entry, i in rating.entries do
+    for entry, i in rating.entries
+    {
         Swag.require(entry.checked == (i == 3))
+    }
+
     Swag.require(rating.entries[0].paint == null and rating.entries[0].detail == "0")
     Swag.require(rating.entries[1].paint != null and rating.entries[1].paintWidth == RatingStarSize)
     Swag.require(rating.entries[5].paint != null and rating.entries[5].paintWidth == 5 * RatingStarSize + 4 * RatingStarGap)
@@ -1027,7 +1063,7 @@ impl IAllocator for LibraryRejectAllocator
     }
 
     let path    = Path.combine(root, "moved.scc")
-    let capture = Memory.new'Capture()
+    let capture = Memory.new!{Capture}()
     capture.width, capture.widthOrg   = 8
     capture.height, capture.heightOrg = 6
     capture.backImg                   = Gui.Testing.indexedImage(8, 6)
@@ -1179,17 +1215,21 @@ impl IAllocator for LibraryRejectAllocator
     libWnd.applyLanguage()
     libWnd.applyLayout()
     Swag.require(libWnd.viewBtn.text() == appStrings().ui_BarView)
-    for button in [libWnd.viewBtn, libWnd.filterBtn, libWnd.folderBtn] do
+    for button in [libWnd.viewBtn, libWnd.filterBtn, libWnd.folderBtn]
+    {
         Swag.require(button.position.width >= Math.floor(button.itf.measureContent({}).x))
+    }
 }
 
 // Runs one keyboard command of the library grid as its shortcut does: only when it is enabled.
 func testLibraryKey(lib: *Wnd, id: WndId)
 {
     var state = Gui.Testing.commandState(id)
-    Swag.require(Gui.Testing.actionUpdate'ActionLibSel(lib, id, &state))
-    if not state.disabled do
-        Swag.require(Gui.Testing.actionExecute'ActionLibSel(lib, id))
+    Swag.require(Gui.Testing.actionUpdate!{ActionLibSel}(lib, id, &state))
+    if not state.disabled
+    {
+        Swag.require(Gui.Testing.actionExecute!{ActionLibSel}(lib, id))
+    }
 }
 
 // The arrows walk the library grid by cell and by row. With no capture chosen, the first arrow
@@ -1205,8 +1245,11 @@ func testLibraryKey(lib: *Wnd, id: WndId)
     let view = lib.view
     let n    = view.numImagesPerLine()
     Swag.require(n >= 2)
-    for index in n * 2 + 1 do
+    for index in n * 2 + 1
+    {
         discard testAddLibraryItem(view, Format.toString("capture-%", index), 10, 1)
+    }
+
     let last = n * 2
 
     testLibraryKey(wnd, ActionLibSel.Right)
@@ -1241,11 +1284,11 @@ func testLibraryKey(lib: *Wnd, id: WndId)
     // An empty grid has nothing to walk, and Open needs a chosen capture.
     var state = Gui.Testing.commandState(ActionLibSel.Open)
     view.clearSelection()
-    Swag.require(Gui.Testing.actionUpdate'ActionLibSel(wnd, ActionLibSel.Open, &state))
+    Swag.require(Gui.Testing.actionUpdate!{ActionLibSel}(wnd, ActionLibSel.Open, &state))
     Swag.require(state.disabled)
     view.items.clear()
     state = Gui.Testing.commandState(ActionLibSel.Home)
-    Swag.require(Gui.Testing.actionUpdate'ActionLibSel(wnd, ActionLibSel.Home, &state))
+    Swag.require(Gui.Testing.actionUpdate!{ActionLibSel}(wnd, ActionLibSel.Home, &state))
     Swag.require(state.disabled)
 }
 
@@ -1262,8 +1305,10 @@ func testLibraryKey(lib: *Wnd, id: WndId)
     let wnd = cast(*Wnd, lib)
     lib.setPosition({0, 0, 900, 600})
     lib.applyLayout()
-    for index in 30 do
+    for index in 30
+    {
         discard testAddLibraryItem(lib.view, Format.toString("capture-%", index), 10, 1)
+    }
 
     let wasDirty = g_DirtyList
     defer g_DirtyList = wasDirty
@@ -1283,7 +1328,7 @@ func testLibraryKey(lib: *Wnd, id: WndId)
         return rect.y - LibraryCellRing >= top - 0.5 and rect.bottom() + LibraryCellRing <= top + view.position.height + 0.5
     }
 
-    var previous = 0'f32
+    var previous = 0_f32
     for rows - 1
     {
         testLibraryKey(wnd, ActionLibSel.Down)
@@ -1343,8 +1388,11 @@ func testLibraryKey(lib: *Wnd, id: WndId)
     var checked: bool
     host.app.sigFrame += func|host = &host, view, checked = &checked|(_)
     {
-        if checked[] or not host.capturedPopupMenu() do
+        if checked[] or not host.capturedPopupMenu()
+        {
             return
+        }
+
         checked[] = true
         Swag.require(view.focusItem == 0 and view.selModel.isSelected(0) and view.selModel.isSelected(1))
         Swag.require(host.dismissPopupMenu())

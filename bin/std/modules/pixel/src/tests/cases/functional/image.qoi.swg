@@ -96,8 +96,10 @@ using Swag, Core
                     pixel[2] = cast(u8, ((x * 13 + y * 3) & 0xFF))
                 }
 
-                if source.bytesPerPixel == 4 do
+                if source.bytesPerPixel == 4
+                {
                     pixel[3] = cast(u8, ((x * 9 + y * 19) & 0xFF))
+                }
             }
         }
 
@@ -106,8 +108,10 @@ using Swag, Core
         Swag.require(decoded.width == source.width and decoded.height == source.height)
         for y in source.height
         {
-            for x in source.width do
+            for x in source.width
+            {
                 Swag.require(decoded.pixelColor(x, y).argb == source.pixelColor(x, y).argb)
+            }
         }
     }
 }

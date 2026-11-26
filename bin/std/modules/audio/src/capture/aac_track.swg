@@ -35,7 +35,7 @@ struct CaptureAacTrack
     {
         late queue:         *CaptureQueue
         encoder:            Aac.StreamEncoder
-        captured:           Array's16
+        captured:           Array!{s16}
         current:            CaptureBlock
         zeros:              [2 * 1_024] s16
         channels:           u16
@@ -84,12 +84,18 @@ impl CaptureAacTrack
     //
     // Returns false with empty outputs when no complete unit is ready. A later call may succeed
     // after the producer submits another block or advances the lost-source timeline.
-    mtd nextPacket(packet: *Array'u8, info: *CaptureAacPacket)->bool fail
+    mtd nextPacket(packet: *Array!{u8}, info: *CaptureAacPacket)->bool fail
     {
-        if .finishing do
+        if .finishing
+        {
             fail BadParameterError{"capture AAC track has begun finalization"}
-        if try .pull(packet, info) do
+        }
+
+        if try .pull(packet, info)
+        {
             return true
+        }
+
         Swag.init(info, 1)
         return false
     }
@@ -98,7 +104,7 @@ impl CaptureAacTrack
     //
     // Stop the capture producer first. Call repeatedly until false; each successful call returns
     // one packet. Repeated calls after completion return false with empty outputs.
-    mtd finish(packet: *Array'u8, info: *CaptureAacPacket)->bool fail
+    mtd finish(packet: *Array!{u8}, info: *CaptureAacPacket)->bool fail
     {
         packet.clear()
         if .finished
@@ -108,8 +114,11 @@ impl CaptureAacTrack
         }
 
         .finishing = true
-        if try .pull(packet, info) do
+        if try .pull(packet, info)
+        {
             return true
+        }
+
         if try .encoder.finish(packet)
         {
             .describePacket(info)
@@ -124,14 +133,14 @@ impl CaptureAacTrack
 
 private impl CaptureAacTrack
 {
-    mtd pull(packet: *Array'u8, info: *CaptureAacPacket)->bool fail
+    mtd pull(packet: *Array!{u8}, info: *CaptureAacPacket)->bool fail
     {
         packet.clear()
         for
         {
             if .gapFrames
             {
-                let frames   = Math.min(.gapFrames, 1_024'u64)
+                let frames   = Math.min(.gapFrames, 1_024_u64)
                 let consumed = try .encoder.push(Swag.makeSlice(&.zeros[0], frames * .channels), packet)
                 .gapFrames         -= consumed
                 .nextInputSample   += consumed
@@ -166,8 +175,11 @@ private impl CaptureAacTrack
                 .capturedOffset = .nextInputSample > .current.startSample ?
                                   Math.min(.nextInputSample - .current.startSample, .current.frameCount) : 0
                 .pendingInterrupted = .current.sourceInterrupted
-                if .current.startSample > .nextInputSample do
+                if .current.startSample > .nextInputSample
+                {
                     .gapFrames = .current.startSample - .nextInputSample
+                }
+
                 continue
             }
 

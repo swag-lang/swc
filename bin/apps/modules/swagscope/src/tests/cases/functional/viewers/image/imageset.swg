@@ -27,8 +27,11 @@ using Core, Pixel, Gui, Viewers
             let firstInfo  = movie.frameInfo(view.selectorStart)
             let firstLabel = view.itemSelector.items[0]!.name.text
             Swag.require(firstInfo and Utf8.contains(firstLabel, Format.toString("% × %", firstInfo.width, firstInfo.height).toString()))
-            if firstInfo.kind == .Texture do
+            if firstInfo.kind == .Texture
+            {
                 Swag.require(Utf8.contains(firstLabel, Format.toString(Picture.texts().ui_ItemLevel, firstInfo.level).toString()))
+            }
+
             let currentInfo = movie.frameInfo(movie.frameIndex)
             Swag.require(currentInfo and currentInfo.width > 0 and currentInfo.height > 0)
             Swag.require(not movie.frameInfo(movie.frameCount))
@@ -70,8 +73,10 @@ using Core, Pixel, Gui, Viewers
     cast(*u64, bytes.buffer + 96)[] = 1024
     var array: ConcatBuffer
     array.addBytes(bytes[until dataOffset])
-    for _ in range(0, 256) do
+    for _ in range(0, 256)
+    {
         array.addBytes(bytes[dataOffset until dataOffset + 4])
+    }
 
     let fileName = Testing.tempFilePath("scope-image-selector-window-", ".ktx2")
     defer discard catch File.delete(fileName)
@@ -99,8 +104,11 @@ using Core, Pixel, Gui, Viewers
     // just one visible row, into a fixed 128-cell atlas; closing invalidates the in-flight result.
     view.imageView.setFrameIndex(0)
     view.refreshFrame()
-    for index in 128 do
+    for index in 128
+    {
         Swag.require(not view.thumbnailReady[index] and not view.thumbnailRequested[index])
+    }
+
     let selectorRect = view.itemSelector.surfaceRect()
     host.click({selectorRect.x + selectorRect.width / 2, selectorRect.y + selectorRect.height / 2})
     let popup   = unwrap view.thumbnailPopup
@@ -109,8 +117,10 @@ using Core, Pixel, Gui, Viewers
     Swag.require(view.thumbnailRequestLocalIndex >= visible.first and view.thumbnailRequestLocalIndex < visible.end)
     for index in 128
     {
-        if view.thumbnailRequested[index] do
+        if view.thumbnailRequested[index]
+        {
             Swag.require(index >= visible.first and index < visible.end)
+        }
     }
 
     Swag.require(view.thumbnailPixels.width == 256 and view.thumbnailPixels.height == 384)
@@ -126,8 +136,11 @@ using Core, Pixel, Gui, Viewers
     view.imageView.setFrameIndex(129)
     view.refreshFrame()
     Swag.require(view.selectorStart == 65 and view.thumbnailGeneration > oldGeneration)
-    for index in 128 do
+    for index in 128
+    {
         Swag.require(not view.thumbnailReady[index] and not view.thumbnailRequested[index])
+    }
+
     let nextSelectorRect = view.itemSelector.surfaceRect()
     host.click({nextSelectorRect.x + nextSelectorRect.width / 2, nextSelectorRect.y + nextSelectorRect.height / 2})
     let nextPopup   = view.thumbnailPopup
@@ -176,8 +189,11 @@ using Core, Pixel, Gui, Viewers
             var entries = Viewer.LensEntries.create(&results, "Image", host.theme)
             view.describeLens(&entries)
             var frames = 0
-            for &entry in results.sections[0]!.entries where entry.title == appStrings().cmd_PreviousFrame or entry.title == appStrings().cmd_NextFrame do
+            for &entry in results.sections[0]!.entries where entry.title == appStrings().cmd_PreviousFrame or entry.title == appStrings().cmd_NextFrame
+            {
                 frames += 1
+            }
+
             Swag.require(frames == 2)
             view.imageView.setPaused(false)
             view.refreshFrame()
@@ -187,7 +203,9 @@ using Core, Pixel, Gui, Viewers
 
         Swag.require(shown == view.itemText(), name)
         Swag.require(Utf8.contains(shown.toString(), Format.toString("% × %", info.width, info.height).toString()), shown.toString())
-        if info.kind == .Texture and info.layer do
+        if info.kind == .Texture and info.layer
+        {
             Swag.require(Utf8.contains(shown.toString(), Format.toString(Picture.texts().ui_ItemLayer, info.layer).toString()), shown.toString())
+        }
     }
 }

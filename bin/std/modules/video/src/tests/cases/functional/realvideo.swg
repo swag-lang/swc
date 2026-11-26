@@ -6,7 +6,7 @@ using Core, Core.Errors
 func realVideoCompareFrame(reader: *Reader, reference: const [..] u8, index: u64)
 {
     var frame: PlanarFrame
-    let size = 96'u64 * 64 * 3 / 2
+    let size = 96_u64 * 64 * 3 / 2
     expect reader.decodeFramePlanesInto(&frame, index)
     Swag.require(frame.width == 96 and frame.height == 64)
     var offset = index * size
@@ -34,18 +34,28 @@ func realVideoCompare(name: string)
     let reference = expect File.readAllBytes(Path.combine(testSourceRoot(#curlocation), Format.toString("goldens/%.yuv", golden)))
     let count     = reference.count / (96 * 64 * 3 / 2)
     var reader    = expect Reader.open(path, pictureOnly: true)
-    for index in count do
+    for index in count
+    {
         realVideoCompareFrame(&reader, reference.toSlice(), index)
-    for step in count do
+    }
+
+    for step in count
+    {
         realVideoCompareFrame(&reader, reference.toSlice(), count - step - 1)
+    }
 
     let bytes  = expect File.readAllBytes(path)
     var memory = expect Reader.openMemory(path, bytes.toSlice(), pictureOnly: true)
-    for index in [count - 1, 0, count / 2, 1] do
+    for index in [count - 1, 0, count / 2, 1]
+    {
         realVideoCompareFrame(&memory, reference.toSlice(), index)
+    }
+
     Swag.require(memory.frameCount() == count)
-    for index in count do
+    for index in count
+    {
         Swag.require(Math.isEqualEpsilon(memory.frameTimestamp(index), cast(f64, index) / 25, 0.000001))
+    }
 }
 
 #test { realVideoCompare("rv40-intra") }
@@ -136,10 +146,14 @@ func realVideoCompare(name: string)
     for original, index in RealVideo.CodeTree32
     {
         let encoded = cast(s32, RealVideo.CodeTree[index])
-        if original < 0 do
+        if original < 0
+        {
             Swag.require(encoded >= 0xF000 and (encoded ^ 0xFFFF) == -original - 1)
-        else do
+        }
+        else
+        {
             Swag.require(encoded < 0xF000 and encoded * 2 == original)
+        }
     }
 }
 
@@ -203,8 +217,10 @@ func realVideoCompare(name: string)
     var reader = expect Reader.open(videoFixturePath("rv40-ipb.mkv"), pictureOnly: true)
     var frame: PlanarFrame
     expect reader.decodeFramePlanesInto(&frame, 0)
-    for expected, index in [0'u64, 4, 4, 4, 4, 8, 8, 8, 8, 9] do
+    for expected, index in [0_u64, 4, 4, 4, 4, 8, 8, 8, 8, 9]
+    {
         Swag.require(reader.syncFrameAt(index) == expected)
+    }
 }
 
 func realVideoClockPacket(timestamp, kind: u32)->[13] u8
@@ -212,8 +228,11 @@ func realVideoClockPacket(timestamp, kind: u32)->[13] u8
     var result: #returntype
     result[1] = 1
     let header = (kind << 29) | (timestamp << 6)
-    for i in 4'u32 do
+    for i in 4_u32
+    {
         result[9 + i] = cast(u8, ((header >> (24 - i * 8)) & 255))
+    }
+
     return result
 }
 
@@ -257,7 +276,7 @@ func realVideoClockPacket(timestamp, kind: u32)->[13] u8
     var decoder: RealVideo.Decoder
     expect decoder.configure(96, 64)
     var frame: PlanarFrame
-    for length in [0'u64, 1, 9, 14, packet.count / 2]
+    for length in [0_u64, 1, 9, 14, packet.count / 2]
     {
         var error: Swag.Error
         catch decoder.decode(packet[0 until length], &frame) as error

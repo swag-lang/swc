@@ -13,8 +13,10 @@ struct NotNullProvenNode
 // The dominating null test is the proof; the assertion adds nothing.
 func notNullAfterGuard(node: *NotNullProvenNode?)->s32
 {
-    if node == null do
+    if node == null
+    {
         return 0
+    }
     return node!.value     // swc-expected-error {{sema_err_notnull_already_proven}}
 }
 
@@ -49,10 +51,14 @@ func notNullOnNonNullDeclared(node: *NotNullProvenNode)->s32
 // reached only through it, so the proof carries.
 func notNullProvenBySoleBranch(node: *NotNullProvenNode?)->s32
 {
-    if node == null do
+    if node == null
+    {
         return 0
-    else do
+    }
+    else
+    {
         discard node!.value     // swc-expected-error {{sema_err_notnull_already_proven}}
+    }
     return node.value
 }
 
@@ -79,8 +85,10 @@ func notNullReassigned(a: *NotNullProvenNode?, b: *NotNullProvenNode?)->s32
 // A '!' in a short-circuit branch proves the rest of that branch, but not the following statement.
 func notNullUnderShortCircuit(flag: bool, node: *NotNullProvenNode?)->s32
 {
-    if flag and node!.value > 0 do
+    if flag and node!.value > 0
+    {
         discard flag
+    }
     return node!.value
 }
 

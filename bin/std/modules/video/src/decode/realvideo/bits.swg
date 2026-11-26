@@ -73,27 +73,19 @@ impl Bits
     #[Swag.Inline]
     mtd read(count: u32)->u32
     {
-        if .broken do
+        if .broken
+        {
             return 0
-        if count > 32 or count > .length * 8 - .position
+        }
+
+        if count > 32 or .position + count > .length * 8
         {
             .broken = true
             return 0
         }
 
-        if not count do
-            return 0
-
-        let byteIndex = .position >> 3
-        let skip      = cast(u32, .position & 7)
-        let first     = unwrap .data + byteIndex
-        .position += count
-        if skip + count <= 8 do
-            return (cast(u32, first[0]) >> (8 - skip - count)) & ((1'u32 << count) - 1)
-
-        let needed = (skip + count + 7) >> 3
-        var value: u64
-        if .length - byteIndex >= 8
+        var result = 0_u32
+        for count
         {
             value = Math.bigEndianToNative(cast(const [*] u64, first)[0]) >> (64 - skip - count)
         }
@@ -139,10 +131,15 @@ impl Bits
         {
             let branch = cast(s32, .read(1))
             node = cast(s32, CodeTree[node * 2 + branch])
-            if node >= 0xF000 do
+            if node >= 0xF000
+            {
                 return node ^ 0xFFFF
-            if not node or .broken do
+            }
+
+            if not node or .broken
+            {
                 break
+            }
         }
 
         .broken = true
@@ -151,14 +148,19 @@ impl Bits
 
     mtd unsignedCode()->s32
     {
-        var value = 1's32
+        var value = 1_s32
         for 24
         {
-            if .read(1) do
+            if .read(1)
+            {
                 return value - 1
+            }
+
             value = (value << 1) | cast(s32, .read(1))
-            if .broken do
+            if .broken
+            {
                 break
+            }
         }
 
         .broken = true
@@ -177,16 +179,21 @@ impl Bits
         const Heights: [12] s32 = [120, 132, 144, 240, 288, 480, -8, -10, 180, 360, 576, 0]
         let index = .read(3)
         var value = height ? Heights[index] : Widths[index]
-        if value < 0 do
+        if value < 0
+        {
             value = Heights[cast(s32, .read(1)) - value]
+        }
+
         if not value
         {
             for 64
             {
                 let part = cast(s32, .read(8))
                 value += part * 4
-                if part != 255 do
+                if part != 255
+                {
                     return value
+                }
             }
 
             .broken = true
@@ -212,14 +219,23 @@ impl SliceHeader
     func read(bits: *Bits, width, height: s32)->SliceHeader fail
     {
         var result: #returntype
-        if bits.read(1) do
+        if bits.read(1)
+        {
             fail InvalidFormatError{"RealVideo slice has a nonzero reserved bit"}
+        }
+
         result.kind = cast(s32, bits.read(2))
-        if result.kind == 1 do
+        if result.kind == 1
+        {
             result.kind = 0
+        }
+
         result.quant = cast(s32, bits.read(5))
-        if bits.read(2) do
+        if bits.read(2)
+        {
             fail InvalidFormatError{"RealVideo slice has nonzero reserved bits"}
+        }
+
         result.set = cast(s32, bits.read(2))
         discard bits.read(1)
         result.timestamp = cast(s32, bits.read(13))
@@ -231,17 +247,26 @@ impl SliceHeader
             result.height = bits.dimension(true)
         }
 
-        if result.width <= 0 or result.height <= 0 or result.width > 8192 or result.height > 8192 do
+        if result.width <= 0 or result.height <= 0 or result.width > 8192 or result.height > 8192
+        {
             fail InvalidFormatError{"RealVideo picture dimensions exceed the supported range"}
+        }
+
         let count = ((result.width + 15) >> 4) * ((result.height + 15) >> 4)
         const Limits = [47, 98, 395, 1583, 6335, 9215]
         const Widths: [6] u32 = [6, 7, 9, 11, 13, 14]
-        var index = 0'u32
-        while index < 5 and Limits[index] < count - 1 do
+        var index = 0_u32
+        while index < 5 and Limits[index] < count - 1
+        {
             index += 1
+        }
+
         result.start = cast(s32, bits.read(Widths[index]))
-        if bits.broken or result.start >= count do
+        if bits.broken or result.start >= count
+        {
             fail InvalidFormatError{"RealVideo slice header is truncated or its start exceeds the picture"}
+        }
+
         return result
     }
 }

@@ -7,7 +7,7 @@ using Core
 // The same placement contract holds for narrow icons, wide text and both opening directions.
 #test
 {
-    for width in [44'f32, 120'f32, 220'f32]
+    for width in [44_f32, 120_f32, 220_f32]
     {
         for edge in [0, 1, 2]
         {
@@ -15,12 +15,17 @@ using Core
             {
                 var host: Testing.HeadlessHost
                 host.setup(540, 300, 1.5)
-                let x      = edge == 0 ? 0'f32 : (edge == 1 ? 160'f32 : 540 - width)
+                let x      = edge == 0 ? 0_f32 : (edge == 1 ? 160_f32 : 540 - width)
                 let button = IconButton.createQuiet(&host.root)
-                if width > 44 do
+                if width > 44
+                {
                     button.setQuietText("Projects")
-                else do
+                }
+                else
+                {
                     button.setIcon(host.theme.icon(.Folder, 16))
+                }
+
                 button.setArrowPosition(up ? .RightUpward : .RightDownward)
                 button.setPosition({x, up ? 258 : 6, width, 34})
                 let original = button.surfaceRect()
@@ -31,8 +36,11 @@ using Core
                 var checked: bool
                 host.app.sigFrame += func|host = &host, popup, button, original, up, verifyIconCenter, checked = &checked|(_)
                 {
-                    if checked[] do
+                    if checked[]
+                    {
                         return
+                    }
+
                     let body   = popup.localToSurface(popup.getPopupBodyRect())
                     let gap    = popup.themeMetrics().menuPopup_AnchorGap
                     let margin = popup.themeMetrics().menuPopup_WindowMargin
@@ -85,7 +93,7 @@ using Core
 // A popup menu keeps fractional measured rows when Wnd commits its rounded frame size.
 #test
 {
-    for scale in [1.0'f32, 1.25'f32, 1.5'f32, 1.75'f32, 2.0'f32]
+    for scale in [1.0_f32, 1.25_f32, 1.5_f32, 1.75_f32, 2.0_f32]
     {
         var host: Testing.HeadlessHost
         host.setup(360, 220, scale)
@@ -94,8 +102,10 @@ using Core
         {
             host.theme.metrics.menuPopup_ItemHeight = 30.1 + cast(f32, count) * 0.1
             var caption = String.from("A caption measured at a fractional width")
-            for index in count do
+            for index in count
+            {
                 caption += index % 2 == 0 ? "!" : "?"
+            }
 
             let popup = MenuCtrl.createPopup(&host.root)
             popup.addItem(caption.toString(), "open")
@@ -103,8 +113,11 @@ using Core
             var checked: bool
             host.app.sigFrame += func|popup, checked = &checked|(_)
             {
-                if checked[] do
+                if checked[]
+                {
                     return
+                }
+
                 let item      = unwrap popup.items[0]
                 let body      = popup.getPopupBodyRect()
                 let metrics   = popup.themeMetrics()

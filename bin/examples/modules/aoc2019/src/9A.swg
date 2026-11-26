@@ -37,9 +37,9 @@ Once your Intcode computer is fully functional, the BOOST program should report 
 
 using Core
 
-private func run(op: *Array's64, input: s64)->s64
+private func run(op: *Array!{s64}, input: s64)->s64
 {
-    var output, ip, base = 0's64
+    var output, ip, base = 0_s64
 
     #[Swag.Mixin]
     func addrp(offset: u64)->*s64
@@ -60,10 +60,16 @@ private func run(op: *Array's64, input: s64)->s64
     #[Swag.Mixin]
     func readParameter(offset, mode: s64)->s64
     {
-        if mode == 1 do
+        if mode == 1
+        {
             return addr(ip + offset)
-        if mode == 2 do
+        }
+
+        if mode == 2
+        {
             return addr(op[ip + offset] + base)
+        }
+
         return addr(op[ip + offset])
     }
 
@@ -74,11 +80,16 @@ private func run(op: *Array's64, input: s64)->s64
         let mode2 = (op[ip] / 10000) % 10
         let inst  = op[ip] % 10
 
-        var param0, param1 = 0's64
-        if inst != 3 do
+        var param0, param1 = 0_s64
+        if inst != 3
+        {
             param0 = readParameter(1, mode0)
-        if inst != 3 and inst != 4 and inst != 9 do
+        }
+
+        if inst != 3 and inst != 4 and inst != 9
+        {
             param1 = readParameter(2, mode1)
+        }
 
         switch inst
         {
@@ -126,9 +137,11 @@ func day9A()
     let dataPath = Path.combine(Path.directoryName(#file), "9.txt")
     let lines    = expect File.readAllLines(dataPath)
 
-    var prg: Array's64
-    for v in Tokenize.split(lines[0], ','u8) do
+    var prg: Array!{s64}
+    for v in Tokenize.split(lines[0], ','_u8)
+    {
         prg.add(expect StrConv.toS64(v))
+    }
 
     let total = run(&prg, 1)
 

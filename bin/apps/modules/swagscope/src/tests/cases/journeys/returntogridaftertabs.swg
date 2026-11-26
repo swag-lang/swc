@@ -12,9 +12,9 @@ using Audio, Core, Gui
     var journey: ScopeJourney
     journey.setup(withWorkspace: true)
     let workspace = unwrap journey.window.workspace
-    let first = journey.copyData("comprehensive.txt", "first.txt")
-    let other = journey.copyData("sample.cpp", "other.cpp")
-    let film  = journey.copyData("viewer.avi", "film.avi")
+    let first     = journey.copyData("comprehensive.txt", "first.txt")
+    let other     = journey.copyData("sample.cpp", "other.cpp")
+    let film      = journey.copyData("viewer.avi", "film.avi")
 
     workspace.openScene([first, other], .Grid2, manual: true)
     let grid = unwrap workspace.scene()
@@ -22,18 +22,25 @@ using Audio, Core, Gui
     journey.waitForFile(other, unwrap grid.views[1].document)
     for loaded in [false, true]
     {
-        let selected = loaded ? 1'u64 : 0'u64
+        let selected = loaded ? 1_u64 : 0_u64
         workspace.selectView(selected)
-        if not loaded do
+        if not loaded
+        {
             workspace.releaseCellFocus()
+        }
+
         let command = loaded ? TabCommands.OpenFile : ViewerCommands.Open
         journey.chooseFile(workspace.activeDocument(), film, command)
         Swag.require(workspace.scenes.count == 2 and workspace.scene()!.layout == .Single)
         let solo = workspace.activeDocument()
-        if loaded do
+        if loaded
+        {
             journey.waitForFile(film, solo)
-        else do
+        }
+        else
+        {
             Swag.require(solo.pendingFile == film)
+        }
 
         solo.sendCommandEvent(TabCommands.Close)
         Swag.require(workspace.scene() == grid and workspace.scenes.count == 1)

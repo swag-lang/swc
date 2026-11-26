@@ -17,11 +17,14 @@ using Swag, Core
     painter.end()
 
     var program = DefaultShaderId.Default
-    var draws   = 0'u32
+    var draws   = 0_u32
     for cmd in painter.commandBuffer
     {
-        if cmd.op is .SetDefaultShader do
+        if cmd.op is .SetDefaultShader
+        {
             program = cmd.defaultShader.id
+        }
+
         if cmd.op is .DrawTriangles
         {
             Swag.require(program == (draws == 0 ? DefaultShaderId.Simple : DefaultShaderId.Default))
@@ -45,7 +48,7 @@ using Swag, Core
         painter.setBlendingMode(.Copy)
         switch mode
         {
-        case 0: painter.rotateTransform(15.0'deg)
+        case 0: painter.rotateTransform(15.0_deg)
         case 1: painter.setBlendingMode(.Add)
         case 2: painter.setBlurShader(0, 3)
         case 3: painter.setResolveShader(2)
@@ -55,8 +58,10 @@ using Swag, Core
 
         painter.drawTexture({0, 0, 64, 32}, texture)
         painter.end()
-        for cmd in painter.commandBuffer where cmd.op is .SetDefaultShader do
+        for cmd in painter.commandBuffer where cmd.op is .SetDefaultShader
+        {
             Swag.require(cmd.defaultShader.id != .Simple)
+        }
     }
 }
 
@@ -71,7 +76,7 @@ using Swag, Core
     painter.setBlendingMode(.Copy)
     painter.drawTexture({0, 0, 64, 32}, texture)
     painter.end()
-    var programs = 0'u32
+    var programs = 0_u32
     for cmd in painter.commandBuffer where cmd.op is .SetDefaultShader
     {
         Swag.require(cmd.defaultShader.id == .Simple)
@@ -84,8 +89,11 @@ using Swag, Core
     painter.drawTexture({0, 0, 64, 32}, texture)
     painter.end()
     programs = 0
-    for cmd in painter.commandBuffer where cmd.op is .SetDefaultShader do
+    for cmd in painter.commandBuffer where cmd.op is .SetDefaultShader
+    {
         programs += 1
+    }
+
     Swag.require(programs == 2)
 }
 
@@ -101,12 +109,20 @@ using Swag, Core
     var changed, rebound: bool
     for cmd in painter.commandBuffer
     {
-        if cmd.op is .SetDefaultShader do
+        if cmd.op is .SetDefaultShader
+        {
             changed = true
-        if changed and cmd.op is .ResetTexture0 do
+        }
+
+        if changed and cmd.op is .ResetTexture0
+        {
             rebound = true
-        if changed and cmd.op is .DrawTriangles do
+        }
+
+        if changed and cmd.op is .DrawTriangles
+        {
             Swag.require(rebound)
+        }
     }
 
     Swag.require(changed and rebound)
@@ -132,6 +148,6 @@ using Swag, Core
     painter.end()
     expect renderer.draw(&painter)
     let image = cpu.surfaceImage()
-    Swag.require(image.pixelColor(3, 3) == Color.fromArgb(0'u8, 255'u8, 0'u8, 0'u8))
+    Swag.require(image.pixelColor(3, 3) == Color.fromArgb(0_u8, 255_u8, 0_u8, 0_u8))
     Swag.require(image.pixelColor(1, 3) == Color.fromArgb(Argb.Blue))
 }

@@ -48,8 +48,11 @@ private func frameSeconds(frames: u64, sampleRateHz: u32)->f32 => cast(f32, cast
 private func findSoundFileFormat(path: string)->u64
 {
     let extension = Path.lowercaseExtension(path)
-    for format, index in SoundFileFormats where extension == format.extension do
+    for format, index in SoundFileFormats where extension == format.extension
+    {
         return index
+    }
+
     return Swag.U64.Max
 }
 
@@ -141,16 +144,16 @@ struct SoundFile
 {
     internal
     {
-        path:          String                // Source path used for deferred streaming reads.
-        data:          Array'u8              // Prefetched payload bytes in [[Audio.SoundFile.sampleEncoding]].
-        packets:       Array'SoundPacket     // Indexed source packets or chunks, empty for one contiguous byte stream.
-        packetStarts:  Array'u64             // Decoded sample-frame start of every packet.
-        decoderConfig: Array'u8              // Codec initialization bytes copied from the container.
-        mediaName:     Array'u8              // Human-readable track name copied from the container.
-        mediaLanguage: Array'u8              // Media language code copied from the container.
-        leadingTrim:   u64                   // Decoded priming frames before audible frame zero.
-        trailingTrim:  u64                   // Decoded padding frames after the audible stream.
-        timelineStart: f64                   // Position of frame zero on an enclosing media timeline.
+        path:          String                  // Source path used for deferred streaming reads.
+        data:          Array!{u8}              // Prefetched payload bytes in [[Audio.SoundFile.sampleEncoding]].
+        packets:       Array!{SoundPacket}     // Indexed source packets or chunks, empty for one contiguous byte stream.
+        packetStarts:  Array!{u64}             // Decoded sample-frame start of every packet.
+        decoderConfig: Array!{u8}              // Codec initialization bytes copied from the container.
+        mediaName:     Array!{u8}              // Human-readable track name copied from the container.
+        mediaLanguage: Array!{u8}              // Media language code copied from the container.
+        leadingTrim:   u64                     // Decoded priming frames before audible frame zero.
+        trailingTrim:  u64                     // Decoded padding frames after the audible stream.
+        timelineStart: f64                     // Position of frame zero on an enclosing media timeline.
 
         frameCount: u64     // Number of sample frames across all channels.
         dataSize:   u64     // Payload size in bytes.
@@ -174,12 +177,15 @@ impl SoundFile
     //
     // Entries are lowercase and dot-prefixed. The returned array is owned by the caller and
     // can be used to build file-dialog filters or format-viewer registries.
-    func decodableExtensions()->Array'String
+    func decodableExtensions()->Array!{String}
     {
         var result: #returntype
         result.reserve(SoundFileFormats.count)
-        for format in SoundFileFormats do
+        for format in SoundFileFormats
+        {
             result.add(String.from(format.extension))
+        }
+
         return result
     }
 
@@ -210,15 +216,19 @@ impl SoundFile
     // The packet table is sorted by decoded-frame start; callers clamp before looking up.
     internal mtd const packetAtDecodedFrame(frame: u64)->u64
     {
-        var low  = 0'u64
+        var low  = 0_u64
         var high = .packetStarts.count
         while low + 1 < high
         {
             let middle = low + (high - low) / 2
-            if .packetStarts[middle] <= frame do
+            if .packetStarts[middle] <= frame
+            {
                 low = middle
-            else do
+            }
+            else
+            {
                 high = middle
+            }
         }
 
         return low
@@ -230,8 +240,11 @@ impl SoundFile
     // Returns packet `index` in playback order.
     mtd const packet(index: u64)->SoundPacket fail
     {
-        if index >= .packets.count do
+        if index >= .packets.count
+        {
             fail BadParameterError{"sound packet index exceeds the packet count"}
+        }
+
         return .packets[index]
     }
 
@@ -241,20 +254,22 @@ impl SoundFile
     // and an offset at or beyond that end returns an empty array. A prefetched sound copies from
     // memory; a streamed sound opens its own [[Core.ByteSource]] on the file and can therefore
     // be sampled independently of any voice reading the same file.
-    mtd const readPayload(offset, count: u64)->Array'u8 fail
+    mtd const readPayload(offset, count: u64)->Array!{u8} fail
     {
         var result: #returntype
-        if not count or offset >= .dataSize do
+        if not count or offset >= .dataSize
+        {
             return result
+        }
 
         let wanted = Math.min(count, .dataSize - offset)
         result.resize(wanted)
         if not .packets.isEmpty()
         {
             var source        = try ByteSource.openFile(.path.toString(), .ReadWrite)
-            var logicalStart  = 0'u64
+            var logicalStart  = 0_u64
             var logicalOffset = offset
-            var written       = 0'u64
+            var written       = 0_u64
             for packet in .packets
             {
                 let logicalEnd = logicalStart + packet.byteSize
@@ -270,8 +285,10 @@ impl SoundFile
                 }
 
                 logicalStart = logicalEnd
-                if written == wanted do
+                if written == wanted
+                {
                     break
+                }
             }
 
             result.resize(written)
@@ -343,8 +360,10 @@ impl SoundFile
     func load(path: string, preloadData = true)->SoundFile fail
     {
         let format = findSoundFileFormat(path)
-        if format == Swag.U64.Max do
+        if format == Swag.U64.Max
+        {
             fail UnsupportedFormatError{"unsupported file extension"}
+        }
 
         switch #complete SoundFileFormats[format].loader
         {
@@ -378,20 +397,37 @@ impl SoundFile
                           decoderConfig: const [..] u8,
                           options: PacketStreamOptions = {})->SoundFile fail
     {
-        if not isPacketEncoding(encoding) do
+        if not isPacketEncoding(encoding)
+        {
             fail UnsupportedFormatError{"unsupported packetized sound encoding"}
-        if not sampleRateHz or not channels do
+        }
+
+        if not sampleRateHz or not channels
+        {
             fail BadParameterError{"packetized sound needs a non-zero sample rate and channel count"}
-        if channels > maxPacketChannelCount(encoding) do
+        }
+
+        if channels > maxPacketChannelCount(encoding)
+        {
             fail UnsupportedFormatError{"packetized sound encoding does not support this channel count"}
-        if not packets.count do
+        }
+
+        if not packets.count
+        {
             fail BadParameterError{"packetized sound needs packets"}
-        if packetEncodingNeedsConfig(encoding) and not decoderConfig.count do
+        }
+
+        if packetEncodingNeedsConfig(encoding) and not decoderConfig.count
+        {
             fail BadParameterError{"packetized sound needs decoder configuration"}
+        }
+
         if options.speakerMask and
-           (options.speakerMask & ~0x0003_FFFF'u32 or
-            Swag.countOnes(options.speakerMask) != channels) do
+           (options.speakerMask & ~0x0003_FFFF_u32 or
+            Swag.countOnes(options.speakerMask) != channels)
+        {
             fail BadParameterError{"speaker mask must name one supported position per channel"}
+        }
 
         var stream     = try File.open(path, .Open, .Read, .ReadWrite)
         let sourceSize = try stream.size()
@@ -410,8 +446,11 @@ impl SoundFile
             .mediaLanguage.add(cast(const [..] u8, options.language))
         }
 
-        if not Math.isFinite(result.timelineStart) or result.timelineStart < 0 do
+        if not Math.isFinite(result.timelineStart) or result.timelineStart < 0
+        {
             fail BadParameterError{"sound timeline start is not finite and non-negative"}
+        }
+
         if not result.waveSpeakerMask
         {
             switch channels
@@ -433,20 +472,28 @@ impl SoundFile
         result.packetStarts.reserve(packets.count)
         result.decoderConfig.add(decoderConfig)
 
-        var decodedFrames = 0'u64
-        var payloadBytes  = 0'u64
+        var decodedFrames = 0_u64
+        var payloadBytes  = 0_u64
         for packet in packets
         {
             // A packet may complete no frame at all: the first Vorbis packet of a stream only
             // primes the overlap of the next one. One without payload is silence, so it needs
             // a duration.
-            if not packet.byteSize and not packet.sampleFrameCount do
+            if not packet.byteSize and not packet.sampleFrameCount
+            {
                 fail BadParameterError{"sound packets need a payload or a duration"}
-            if packet.sourceOffset > sourceSize or cast(u64, packet.byteSize) > sourceSize - packet.sourceOffset do
+            }
+
+            if packet.sourceOffset > sourceSize or cast(u64, packet.byteSize) > sourceSize - packet.sourceOffset
+            {
                 fail InvalidFormatError{"sound packet runs past the end of its source file"}
+            }
+
             if decodedFrames > Swag.U64.Max - packet.sampleFrameCount or
-               payloadBytes > Swag.U64.Max - packet.byteSize do
+               payloadBytes > Swag.U64.Max - packet.byteSize
+            {
                 fail OverflowError{"sound packet table is too large"}
+            }
 
             result.packetStarts.add(decodedFrames)
             result.packets.add(packet)
@@ -454,16 +501,30 @@ impl SoundFile
             payloadBytes  += packet.byteSize
         }
 
-        if decodedFrames != frameCount do
+        if decodedFrames != frameCount
+        {
             fail InvalidFormatError{"sound packet durations do not match the declared frame count"}
-        if result.leadingTrim > Swag.U32.Max do
+        }
+
+        if result.leadingTrim > Swag.U32.Max
+        {
             fail UnsupportedFormatError{"sound priming exceeds the supported seek-discard range"}
-        if result.leadingTrim >= decodedFrames do
+        }
+
+        if result.leadingTrim >= decodedFrames
+        {
             fail InvalidFormatError{"sound priming consumes every decoded frame"}
-        if result.trailingTrim >= decodedFrames - result.leadingTrim do
+        }
+
+        if result.trailingTrim >= decodedFrames - result.leadingTrim
+        {
             fail InvalidFormatError{"sound padding consumes every audible frame"}
-        if result.trailingTrim and result.trailingTrim >= packets[packets.count - 1].sampleFrameCount do
+        }
+
+        if result.trailingTrim and result.trailingTrim >= packets[packets.count - 1].sampleFrameCount
+        {
             fail BadParameterError{"sound padding consumes the final packet"}
+        }
 
         result.frameCount      = frameCount - result.leadingTrim - result.trailingTrim
         result.dataSize        = payloadBytes
@@ -501,10 +562,16 @@ impl SoundFile
         default:     fail UnsupportedFormatError{"packetized PCM stream only supports 8-, 16-, 24-, and 32-bit integer PCM"}
         }
 
-        if not sampleRateHz or not channels do
+        if not sampleRateHz or not channels
+        {
             fail BadParameterError{"packetized PCM needs channels and a non-zero sample rate"}
-        if not packets.count do
+        }
+
+        if not packets.count
+        {
             fail BadParameterError{"packetized PCM needs source chunks"}
+        }
+
         let bytesPerFrame = cast(u64, channels) * cast(u64, (bitsPerSample / 8))
         var stream        = try File.open(path, .Open, .Read, .ReadWrite)
         let sourceSize    = try stream.size()
@@ -519,25 +586,41 @@ impl SoundFile
             .validBitsPerSample = cast(u16, bitsPerSample)
         }
 
-        if channels == 1 do
+        if channels == 1
+        {
             result.waveSpeakerMask = 4
-        elif channels == 2 do
+        }
+        else if channels == 2
+        {
             result.waveSpeakerMask = 3
+        }
+
         result.packets.reserve(packets.count)
         result.packetStarts.reserve(packets.count)
 
         for packet in packets
         {
-            if not packet.byteSize or not packet.sampleFrameCount do
+            if not packet.byteSize or not packet.sampleFrameCount
+            {
                 fail BadParameterError{"PCM source chunks need non-zero byte and sample-frame counts"}
-            if packet.sourceOffset > sourceSize or cast(u64, packet.byteSize) > sourceSize - packet.sourceOffset do
+            }
+
+            if packet.sourceOffset > sourceSize or cast(u64, packet.byteSize) > sourceSize - packet.sourceOffset
+            {
                 fail InvalidFormatError{"PCM source chunk runs past the end of its source file"}
+            }
+
             if cast(u64, packet.sampleFrameCount) > Swag.U64.Max / bytesPerFrame or
-               cast(u64, packet.sampleFrameCount) * bytesPerFrame != packet.byteSize do
+               cast(u64, packet.sampleFrameCount) * bytesPerFrame != packet.byteSize
+            {
                 fail InvalidFormatError{"PCM source chunk size does not match its sample-frame count"}
+            }
+
             if result.frameCount > Swag.U64.Max - packet.sampleFrameCount or
-               result.dataSize > Swag.U64.Max - packet.byteSize do
+               result.dataSize > Swag.U64.Max - packet.byteSize
+            {
                 fail OverflowError{"packetized PCM stream exceeds the supported size"}
+            }
 
             result.packetStarts.add(result.frameCount)
             result.packets.add(packet)
@@ -554,8 +637,11 @@ impl SoundFile
                                  .Duration |
                                  .FrameCount |
                                  .Data
-        if result.waveSpeakerMask do
+        if result.waveSpeakerMask
+        {
             result.availableFields |= .SpeakerMask
+        }
+
         return result
     }
 }

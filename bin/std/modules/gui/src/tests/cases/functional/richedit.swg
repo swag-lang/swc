@@ -107,8 +107,11 @@ using Swag, Core
     var checked: bool
     host.app.sigFrame += func|host = &host, ed, checked = &checked|(_)
     {
-        if checked[] do
+        if checked[]
+        {
             return
+        }
+
         checked[] = true
         ed.setFocus()
 
@@ -167,8 +170,11 @@ using Swag, Core
 
     let ed = RichEditCtrl.create(&host.root, {0, 0, 300, 100})
     var text: Core.String
-    for 80 do
+    for 80
+    {
         text += "a very long line that must overflow horizontally\n"
+    }
+
     ed.setText(text.toString())
     discard host.render(ed)
     discard host.render(ed)
@@ -200,8 +206,11 @@ using Swag, Core
         notified = newPosition.y > 0
     }
 
-    for 80 do
+    for 80
+    {
         ed.addText("one line\n")
+    }
+
     host.settleAnimations(ed)
     Swag.require(ed.scrollableClientRect().height > ed.paddedClientRect().height)
 
@@ -218,8 +227,11 @@ using Swag, Core
     host.setup(320, 120)
 
     let ed = RichEditCtrl.create(&host.root, {0, 0, 300, 100})
-    for 20 do
+    for 20
+    {
         ed.addText("one line\n")
+    }
+
     host.settleAnimations(ed)
 
     let loadedHeight = ed.loadedDocumentHeight()
@@ -231,8 +243,11 @@ using Swag, Core
 
     // Rendering the not-yet-resident gap must stay safe and blank while the owner fetches more.
     host.settleAnimations(ed)
-    for 10 do
+    for 10
+    {
         ed.addText("another line\n")
+    }
+
     host.settleAnimations(ed)
     Swag.require(ed.scrollPosition() == position)
     Swag.require(ed.scrollableClientRect().height >= loadedHeight * 4)
@@ -388,8 +403,11 @@ using Swag, Core
     ed.marginRight = 12
     ed.setFlags(.ReadOnly | .WordWrap)
     var text: Core.String
-    for 16_384 do
+    for 16_384
+    {
         text += "x"
+    }
+
     ed.setText(text.toString())
     ed.setVirtualDocumentRange(0, 100_000)
     host.root.applyLayout()
@@ -486,8 +504,11 @@ impl IRichEditLexer for CountingLexer
     ed.setLexer(&lexer)
 
     var text: Core.String
-    for 200 do
+    for 200
+    {
         text += "let value = 1\n"
+    }
+
     ed.setText(text.toString())
     host.root.applyLayout()
     discard host.render(ed)
@@ -512,8 +533,11 @@ impl IRichEditLexer for CountingLexer
     ed.setFlags(.WordWrap)
 
     var text: Core.String
-    for 400 do
+    for 400
+    {
         text += "word "
+    }
+
     ed.setText(text.toString())
     host.root.applyLayout()
     discard host.render(ed)

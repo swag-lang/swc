@@ -59,8 +59,11 @@ impl FormImage
 
     mtd releaseTexture()
     {
-        if .textureApp do
+        if .textureApp
+        {
             .textureApp.renderer.removeTexture(&.texture)
+        }
+
         .textureApp = null
     }
 
@@ -75,8 +78,11 @@ impl FormImage
         let app = .ownerApp()
         if .textureApp != app
         {
-            if .textureApp do
+            if .textureApp
+            {
                 .textureApp.renderer.removeTexture(&.texture)
+            }
+
             .textureApp = app
         }
 
@@ -93,8 +99,10 @@ impl FormImage
             var maskImg = cast(*Image, userData)
             var pix1    = maskImg.pixels.storage() + x * 4
             pix1 += maskImg.width * y * 4
-            if not pix1[0] do
+            if not pix1[0]
+            {
                 cast(*u32, pix)[] = 0
+            }
         }
 
         renderer.removeTexture(&.texture)
@@ -122,8 +130,10 @@ impl FormImage
         else
         {
             renderer.removeTexture(&.texture)
-            if .image.isValid() do
+            if .image.isValid()
+            {
                 .texture = renderer.addImage(.image)
+            }
         }
     }
 
@@ -195,15 +205,22 @@ impl FormImage
                 .textureKind = .kind
                 renderer.removeTexture(&.texture)
                 .texture = renderer.addImage(.image)
-                if not .freePos.width do
+                if not .freePos.width
+                {
                     .freePos.width = .image.width
-                if not .freePos.height do
+                }
+
+                if not .freePos.height
+                {
                     .freePos.height = .image.height
+                }
             }
 
         case .Capture:
-            if not .texture.isValid() or .textureKind != .kind do
+            if not .texture.isValid() or .textureKind != .kind
+            {
                 .backCapture()
+            }
 
         case .Blur, .Pixelate, .Zoom:
             if .effectIsStale(capture) and .w > 1 and .h > 1
@@ -230,8 +247,10 @@ impl IForm for FormImage
     mtd impl isSame(ptr: *BaseForm)->bool
     {
         let other = catch cast(*FormImage?, ptr) orelse null
-        if not other do
+        if not other
+        {
             return false
+        }
 
         // backColor only matters for the plain image kind; the processed kinds
         // (blur, pixelate, zoom, capture) have no fill.
@@ -247,8 +266,10 @@ impl IForm for FormImage
         let srcf = assume cast(*FormImage, src)
         dstf.kind     = srcf.kind
         dstf.strength = srcf.strength
-        if srcf.image.isValid() do
+        if srcf.image.isValid()
+        {
             dstf.image = srcf.image
+        }
     }
 
     mtd impl edit(evt: *MouseEvent, movingStart: Math.Point, localPos: Math.Point, zoom: f32)->bool
@@ -403,38 +424,45 @@ impl IForm for FormImage
         var pp    = .boundRect() * z
         let pen   = Pen.createSolid(.borderColor, bSize)
 
-        if not cxt.quickMode do
+        if not cxt.quickMode
+        {
             .refreshTexture()
+        }
 
         let iconColor = .ownerApp().theme.colors.btnIcon_Icon
         var main      = g_Main
-        if .capture and .capture.editView do
+        if .capture and .capture.editView
+        {
             main = .capture.editView.main
+        }
 
         // Both axes must use the same operator so degenerate rects render consistently.
         if .borderColor.a and (pp.width <= 2 * bSize or pp.height <= 2 * bSize)
         {
             painter.fillRect(pp, .borderColor)
         }
-        elif cxt.quickMode
+        else if cxt.quickMode
         {
             // Reserve room below the icon, but never let a tiny thumbnail's height go
             // negative and invert the rect.
-            pp.height = Math.max(pp.height - 10, 1'f32)
+            pp.height = Math.max(pp.height - 10, 1_f32)
 
-            if .kind == .Image do
+            if .kind == .Image
+            {
                 painter.fillRect(pp, .backColor)
+            }
+
             var icon = main!.icon(kindIcon(.kind), 48)
             icon.sizeX, icon.sizeY = 32
             icon.paint(painter, pp.horzCenter() - icon.sizeX * 0.5, pp.vertCenter() - icon.sizeY * 0.5, iconColor)
             pp.inflate(-bSize * 0.5)
             painter.drawRect(pp, pen)
         }
-        elif .kind == .Capture and not .texture.isValid()
+        else if .kind == .Capture and not .texture.isValid()
         {
             painter.drawRect(pp, Argb.White, 4)
         }
-        elif .kind == .Image and not .image.isValid()
+        else if .kind == .Image and not .image.isValid()
         {
             painter.fillRect(pp, .backColor)
             let icon = main!.icon(.Image, 48)
@@ -442,7 +470,7 @@ impl IForm for FormImage
             pp.inflate(-bSize * 0.5)
             painter.drawRect(pp, pen)
         }
-        elif .kind == .Image
+        else if .kind == .Image
         {
             painter.fillRect(pp, .backColor)
             switch .place

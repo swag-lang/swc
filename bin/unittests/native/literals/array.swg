@@ -1,12 +1,12 @@
 #global private     //
 
-const A: [5] s32 = [1's32, 2, 3, 4, 5]
+const A: [5] s32 = [1_s32, 2, 3, 4, 5]
 #assert(#typeof(A) == #type [5] s32)
 
 const A1: [5] s32 = [1, 2, 3, 4, 5]
 #assert(#typeof(A1) == #type [5] s32)
 
-const Af: [2] f64 = [1.0'f64, 2.0]
+const Af: [2] f64 = [1.0_f64, 2.0]
 #assert(#typeof(Af) == #type [2] f64)
 
 const A2 = [1, true, 3]
@@ -23,7 +23,7 @@ const A2 = [1, true, 3]
     var C: [3] s32 = [x, 2, 3]
     #assert(#typeof(C) == #type [3] s32)
 
-    var D: [2] f32 = [1.0'f32, cast(f32, 2)]
+    var D: [2] f32 = [1.0_f32, cast(f32, 2)]
     #assert(#typeof(D) == #type [2] f32)
     #assert(#typeof(D[0]) == f32)
     #assert(#typeof(D[1]) == f32)
@@ -84,7 +84,7 @@ const AB2: [?] u32 = [[1], [2]]
 
 #test
 {
-    var a = [1'f64, 2, 3]
+    var a = [1_f64, 2, 3]
     #assert(#typeof(a) == #type [3] f64)
     Swag.require(a[2] == 3.0)
 }
@@ -135,15 +135,15 @@ private
 #test
 {
     const a: [2] u8 = [HexFill, HexFill]
-    Swag.require(a[0] == 0xF0'u8)
-    Swag.require(a[1] == 0xF0'u8)
+    Swag.require(a[0] == 0xF0_u8)
+    Swag.require(a[1] == 0xF0_u8)
 }
 
 #test
 {
     const a: [3] u8 = HexFill
-    Swag.require(a[0] == 0xF0'u8)
-    Swag.require(a[2] == 0xF0'u8)
+    Swag.require(a[0] == 0xF0_u8)
+    Swag.require(a[2] == 0xF0_u8)
 }
 
 #test
@@ -160,10 +160,10 @@ private
 // element after it moves up and the literal reaches memory with fewer values than it lists.
 #test
 {
-    var a = 111's16
-    var b = 222's16
+    var a = 111_s16
+    var b = 222_s16
 
-    #assert(#sizeof([a, b, 0's16, a]) == 8)
+    #assert(#sizeof([a, b, 0_s16, a]) == 8)
     #assert(#sizeof([a, b, 0, a]) == 8)
 
     let v = cast(#simd [8] s16, [a, b, 0, a, b, 0, a, b])

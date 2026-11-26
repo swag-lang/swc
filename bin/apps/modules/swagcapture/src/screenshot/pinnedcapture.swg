@@ -22,8 +22,11 @@ impl IWnd for PinnedCapture
     mtd impl onPaint(evt: *PaintEvent)
     {
         let painter = evt.paintContext.painter
-        if not .texture.isValid() do
+        if not .texture.isValid()
+        {
             .texture = evt.paintContext.renderer.addImage(.image)
+        }
+
         painter.setInterpolationMode(.Linear)
         painter.drawTexture(.clientRect(), .texture)
     }
@@ -31,8 +34,10 @@ impl IWnd for PinnedCapture
     mtd impl onMouseEvent(evt: *MouseEvent)
     {
         let surface = .surface
-        if not surface do
+        if not surface
+        {
             return
+        }
 
         switch evt.kind
         {
@@ -76,8 +81,10 @@ impl IWnd for PinnedCapture
 
     mtd impl onDestroyEvent(_: *DestroyEvent)
     {
-        if .texture.isValid() do
+        if .texture.isValid()
+        {
             .app().renderer.removeTexture(&.texture)
+        }
     }
 }
 
@@ -101,7 +108,7 @@ impl PinnedCapture
             return null
         }
 
-        with let result = Wnd.create'PinnedCapture(surface.wnd)
+        with let result = Wnd.create!{PinnedCapture}(surface.wnd)
         {
             .image           = image
             .backgroundStyle = .Transparent

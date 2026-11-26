@@ -11,16 +11,22 @@ func readSpeakerNotes(source: string, styles: const *Odf.StyleCatalog)->String f
     var token:  Package.Token
     var start   = Swag.U64.Max
     var include = false
-    var frames  = 0'u32
+    var frames  = 0_u32
     while true
     {
         let at = scan.offset
-        if not scan.next(&token) do
+        if not scan.next(&token)
+        {
             break
+        }
+
         if token.kind == .Start and token.isElement("frame")
         {
-            if start != Swag.U64.Max do
+            if start != Swag.U64.Max
+            {
                 fail Errors.InvalidFormatError{texts().err_Invalid}
+            }
+
             start = at
             let kind = token.attribute("class")
             include = (kind == null or kind == "notes") and
@@ -35,18 +41,25 @@ func readSpeakerNotes(source: string, styles: const *Odf.StyleCatalog)->String f
                 let text  = try readText(source[start until scan.offset], styles, {}, 960, readerStyle: true)
                 var plain = text.plain
                 plain.trim()
-                if not plain.isEmpty() do
+                if not plain.isEmpty()
+                {
                     result += text.html
+                }
             }
 
             start  = Swag.U64.Max
             frames += 1
-            if frames > 2048 or result.count > 1024 * 1024 do
+            if frames > 2048 or result.count > 1024 * 1024
+            {
                 fail Errors.UnsupportedFormatError{texts().err_TooLarge}
+            }
         }
     }
 
-    if scan.damaged or start != Swag.U64.Max do
+    if scan.damaged or start != Swag.U64.Max
+    {
         fail Errors.InvalidFormatError{texts().err_Invalid}
+    }
+
     return result
 }

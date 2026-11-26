@@ -20,7 +20,7 @@ struct FontResource
     objectId: u32
     name:     String
     baseName: String
-    bytes:    Array'u8
+    bytes:    Array!{u8}
     program:  FontProgramKind
 
     // Key this program takes in the process-wide typeface table.
@@ -32,19 +32,19 @@ struct FontResource
 
     // Code to text, from a `/ToUnicode` CMap, and code to character from the font's simple
     // encoding. The CMap wins when both describe a code.
-    unicode:  HashTable'(u32, String)
-    encoding: HashTable'(u32, rune)
+    unicode:  HashTable!{u32, String}
+    encoding: HashTable!{u32, rune}
 
     // Code to glyph name, from `/Differences`. A PostScript program is keyed by these names,
     // so this is the only address that reaches the glyph the writer meant.
-    glyphNames: HashTable'(u32, String)
+    glyphNames: HashTable!{u32, String}
 
     // Advance widths in fractions of the text size, as `/Widths` or `/W` declares them.
-    widths: HashTable'(u32, f32)
+    widths: HashTable!{u32, f32}
 
     // A CIDFontType2 either addresses the embedded TrueType glyphs directly or provides the
     // explicit CID-to-GID table used to do so.
-    glyphIndices:   Array'u32
+    glyphIndices:   Array!{u32}
     identityGlyphs: bool
 
     // A composite font whose descendant is a CIDFontType0 addresses a CID-keyed CFF through
@@ -72,13 +72,18 @@ impl FontResource
     mtd const codeWidth(code: u32)->f32
     {
         let entry = .widths.tryFind(code)
-        if entry do
+        if entry
+        {
             return entry.value
+        }
+
         if .hasStandard and .codeBytes == 1
         {
             let value = .runeOf(code)
-            if value do
+            if value
+            {
                 return .standard.glyphWidth(value)
+            }
         }
 
         return .defaultWidth
@@ -87,10 +92,16 @@ impl FontResource
     // Returns the embedded TrueType glyph index for a PDF character code.
     mtd const glyphIndex(code: u32)->{index: u32, found: bool}
     {
-        if .identityGlyphs do
+        if .identityGlyphs
+        {
             return {index: code, found: true}
-        if code < .glyphIndices.count do
+        }
+
+        if code < .glyphIndices.count
+        {
             return {index: .glyphIndices[code], found: true}
+        }
+
         return {index: 0, found: false}
     }
 
@@ -105,8 +116,11 @@ impl FontResource
     {
         if .codeBytes > 1
         {
-            if not .cidKeyed do
+            if not .cidKeyed
+            {
                 return .glyphIndex(code)
+            }
+
             let mapped = font.glyphIndexByCid(code)
             return mapped ? {index: mapped, found: true} : .glyphIndex(code)
         }
@@ -115,8 +129,10 @@ impl FontResource
         if named
         {
             let mapped = font.glyphIndexByName(named.value.toString())
-            if mapped do
+            if mapped
+            {
                 return {index: mapped, found: true}
+            }
         }
 
         let value = .runeOf(code)
@@ -126,27 +142,35 @@ impl FontResource
             if name.count
             {
                 let mapped = font.glyphIndexByName(name)
-                if mapped do
+                if mapped
+                {
                     return {index: mapped, found: true}
+                }
             }
         }
 
         let builtIn = font.glyphIndexByCode(code)
-        if builtIn do
+        if builtIn
+        {
             return {index: builtIn, found: true}
+        }
 
         if value
         {
             let mapped = font.glyphIndex(value)
-            if mapped do
+            if mapped
+            {
                 return {index: mapped, found: true}
+            }
         }
 
         // A symbolic TrueType subset maps its codes into the private use area rather than
         // declaring them as characters, which is the one place a raw code is an address.
         let symbol = font.glyphIndex(cast(rune, (0xF000 + code)))
-        if symbol do
+        if symbol
+        {
             return {index: symbol, found: true}
+        }
 
         return {index: 0, found: false}
     }
@@ -155,13 +179,18 @@ impl FontResource
     mtd const codeText(code: u32)->String
     {
         let mapped = .unicode.tryFind(code)
-        if mapped do
+        if mapped
+        {
             return mapped.value
+        }
 
         var result: #returntype
         let value = .runeOf(code)
-        if value do
+        if value
+        {
             result.append(value)
+        }
+
         return result
     }
 
@@ -169,10 +198,16 @@ impl FontResource
     mtd const runeOf(code: u32)->rune
     {
         let mapped = .encoding.tryFind(code)
-        if mapped do
+        if mapped
+        {
             return mapped.value
-        if .codeBytes == 1 do
+        }
+
+        if .codeBytes == 1
+        {
             return encodingRune(.baseEncoding, cast(u8, code))
+        }
+
         return 0
     }
 
@@ -180,17 +215,17 @@ impl FontResource
     // Accumulate the text matrix advance in the same order as the individual PDF operations.
     mtd const decodeRun(bytes: string, fontSize, charSpacing, wordSpacing: f32, item: *Item)->f32
     {
-        let size       = Math.max(.codeBytes, 1)
-        let count      = bytes.count / size
-        var runAdvance = 0.0'f32
-        var pos        = 0'u64
-        item.textCodes.reserve(count)
-        item.textAdvances.reserve(count)
-        for count
+        var result: #returntype
+        let size = Math.max(.codeBytes, 1)
+        var pos  = 0_u64
+        while pos + size <= bytes.count
         {
-            var code = 0'u32
-            for i in size do
+            var code = 0_u32
+            for i in size
+            {
                 code = code << 8 | bytes[pos + i]
+            }
+
             pos += size
 
             let mapped = .unicode.tryFind(code)
@@ -205,21 +240,88 @@ impl FontResource
                     item.text.append(value)
             }
 
-            var advance = .codeWidth(code) * fontSize + charSpacing
-            runAdvance += advance
-
-            // Word spacing applies to single-byte code 32, regardless of its Unicode mapping.
-            if size == 1 and code == 32
+            let value = .runeOf(code)
+            if value
             {
-                advance    += wordSpacing
-                runAdvance += wordSpacing
+                result.append(value)
             }
-
-            item.textCodes.add(code)
-            item.textAdvances.add(advance)
         }
 
-        return runAdvance
+        return result
+    }
+
+    // Retains the PDF character codes that address the embedded font program. Text extraction
+    // maps those codes to Unicode, but rasterization must keep the original font addresses.
+    mtd const decodeCodes(bytes: string)->Array!{u32}
+    {
+        var result: #returntype
+        let size = Math.max(.codeBytes, 1)
+        var pos  = 0_u64
+        result.reserve(bytes.count / size)
+        while pos + size <= bytes.count
+        {
+            var code = 0_u32
+            for i in size
+            {
+                code = code << 8 | bytes[pos + i]
+            }
+
+            pos += size
+            result.add(code)
+        }
+
+        return result
+    }
+
+    // Returns each character code's declared PDF advance before horizontal text scaling.
+    mtd const codeAdvances(bytes: string, fontSize, charSpacing, wordSpacing: f32)->Array!{f32}
+    {
+        var result: #returntype
+        let codes = #move .decodeCodes(bytes)
+        result.reserve(codes.count)
+        for code in codes
+        {
+            var advance = .codeWidth(code) * fontSize + charSpacing
+            if .codeBytes == 1 and code == 32
+            {
+                advance += wordSpacing
+            }
+
+            result.add(advance)
+        }
+
+        return result
+    }
+
+    // Returns how far the text position moves after one shown string, in text-space units.
+    //
+    // Horizontal scaling is applied by the caller because it also scales the offsets a `TJ`
+    // array contributes.
+    mtd const runAdvance(bytes: string, fontSize, charSpacing, wordSpacing: f32)->f32
+    {
+        var result = 0.0_f32
+        let size   = Math.max(.codeBytes, 1)
+        var pos    = 0_u64
+        while pos + size <= bytes.count
+        {
+            var code = 0_u32
+            for i in size
+            {
+                code = code << 8 | bytes[pos + i]
+            }
+
+            pos += size
+
+            result += .codeWidth(code) * fontSize + charSpacing
+
+            // Word spacing applies to the single-byte code 32 only, whatever glyph it maps to.
+            if size == 1 and code == 32
+            {
+                result += wordSpacing
+            }
+        }
+
+        return result
     }
 }
 
@@ -261,12 +363,14 @@ internal func decodeFontResource(parser: *PdfParser, fontId: u32, name: string)-
                     {
                         result.identityGlyphs = true
                     }
-                    elif parser.nodes[mapping].kind != .Name
+                    else if parser.nodes[mapping].kind != .Name
                     {
                         let bytes = #move try parser.decodeStream(mapping)
                         result.glyphIndices.reserve(bytes.count / 2)
-                        for i in bytes.count / 2 do
+                        for i in bytes.count / 2
+                        {
                             result.glyphIndices.add(cast(u32, bytes[i * 2]) << 8 | bytes[i * 2 + 1])
+                        }
                     }
                 }
                 else
@@ -287,8 +391,10 @@ internal func decodeFontResource(parser: *PdfParser, fontId: u32, name: string)-
     if descriptor != InvalidNode
     {
         let missing = parser.dict(descriptor, "MissingWidth")
-        if missing != InvalidNode do
+        if missing != InvalidNode
+        {
             result.defaultWidth = cast(f32, parser.number(missing)) / 1000.0
+        }
 
         try readFontProgram(parser, &result, descriptor)
     }
@@ -304,11 +410,11 @@ internal func decodeFontResource(parser: *PdfParser, fontId: u32, name: string)-
 }
 
 // Bits of the `/Flags` entry of a font descriptor this module reads.
-private const FlagFixedPitch = 1'u32 << 0
-private const FlagSerif      = 1'u32 << 1
-private const FlagSymbolic   = 1'u32 << 2
-private const FlagItalic     = 1'u32 << 6
-private const FlagForceBold  = 1'u32 << 18
+private const FlagFixedPitch = 1_u32 << 0
+private const FlagSerif      = 1_u32 << 1
+private const FlagSymbolic   = 1_u32 << 2
+private const FlagItalic     = 1_u32 << 6
+private const FlagForceBold  = 1_u32 << 18
 
 // Reads the traits that decide which substitute face stands in for a font.
 //
@@ -327,17 +433,28 @@ private func readDescriptorTraits(parser: *PdfParser, font: *FontResource, descr
     // The base name is the writer's own description of the face and outranks the flags,
     // which many producers leave at their defaults.
     let baseName = font.baseName
-    if baseName.contains(cast(string, "Bold")) do
+    if baseName.contains(cast(string, "Bold"))
+    {
         font.bold = true
-    if baseName.contains(cast(string, "Italic")) or baseName.contains(cast(string, "Oblique")) do
+    }
+
+    if baseName.contains(cast(string, "Italic")) or baseName.contains(cast(string, "Oblique"))
+    {
         font.italic = true
+    }
+
     if baseName.contains(cast(string, "Times")) or
        baseName.contains(cast(string, "Roman")) or
        baseName.contains(cast(string, "Georgia")) or
-       baseName.contains(cast(string, "Serif")) do
+       baseName.contains(cast(string, "Serif"))
+    {
         font.serif = true
-    if baseName.contains(cast(string, "Courier")) or baseName.contains(cast(string, "Mono")) do
+    }
+
+    if baseName.contains(cast(string, "Courier")) or baseName.contains(cast(string, "Mono"))
+    {
         font.fixedPitch = true
+    }
 }
 
 // Reads the embedded font program, whichever of the three forms a descriptor stores it in.
@@ -378,8 +495,11 @@ private func readFontProgram(parser: *PdfParser, font: *FontResource, descriptor
 // Names the program in the process-wide typeface table.
 private func keyFontProgram(font: *FontResource)
 {
-    if font.bytes.isEmpty() do
+    if font.bytes.isEmpty()
+    {
         return
+    }
+
     font.programKey = Format.toString("pdf-font-%{X08}", Hash.Crc32.compute(font.bytes.toSlice()))
 }
 
@@ -387,51 +507,71 @@ private func readSimpleWidths(parser: *PdfParser, font: *FontResource, metricsId
 {
     let firstChar = parser.integer(parser.dict(metricsId, "FirstChar"), -1)
     let widthsId  = parser.dict(metricsId, "Widths")
-    if firstChar < 0 or widthsId == InvalidNode or parser.nodes[widthsId].kind != .Array do
+    if firstChar < 0 or widthsId == InvalidNode or parser.nodes[widthsId].kind != .Array
+    {
         return
-    for value, index in parser.nodes[widthsId].values do
+    }
+
+    for value, index in parser.nodes[widthsId].values
+    {
         font.widths[cast(u32, firstChar) + cast(u32, index)] = cast(f32, parser.number(value)) / 1000.0
+    }
 }
 
 // Reads the `/W` array of a CIDFont, which alternates between a list form and a range form.
 private func readCidWidths(parser: *PdfParser, font: *FontResource, widthsId: u32)
 {
-    if widthsId == InvalidNode or parser.nodes[widthsId].kind != .Array do
+    if widthsId == InvalidNode or parser.nodes[widthsId].kind != .Array
+    {
         return
+    }
+
     let values = parser.nodes[widthsId].values
-    var index  = 0'u64
+    var index  = 0_u64
     while index < values.count
     {
         let first = parser.integer(values[index])
         index += 1
-        if index >= values.count or first < 0 do
+        if index >= values.count or first < 0
+        {
             return
+        }
 
         let listId = parser.resolve(values[index])
         if listId != InvalidNode and parser.nodes[listId].kind == .Array
         {
-            for value, offset in parser.nodes[listId].values do
+            for value, offset in parser.nodes[listId].values
+            {
                 font.widths[cast(u32, first) + cast(u32, offset)] = cast(f32, parser.number(value)) / 1000.0
+            }
+
             index += 1
             continue
         }
 
         let last = parser.integer(values[index])
         index += 1
-        if index >= values.count or last < first or last - first > 65_535 do
+        if index >= values.count or last < first or last - first > 65_535
+        {
             return
+        }
+
         let width = cast(f32, parser.number(values[index])) / 1000.0
         index += 1
-        for code in cast(u32, first) to cast(u32, last) do
+        for code in cast(u32, first) to cast(u32, last)
+        {
             font.widths[code] = width
+        }
     }
 }
 
 private func readEncoding(parser: *PdfParser, font: *FontResource, encodingRaw: u32)
 {
     let encodingId = parser.resolve(encodingRaw)
-    if encodingId == InvalidNode do
+    if encodingId == InvalidNode
+    {
         return
+    }
 
     if parser.nodes[encodingId].kind == .Name
     {
@@ -439,32 +579,48 @@ private func readEncoding(parser: *PdfParser, font: *FontResource, encodingRaw: 
         return
     }
 
-    if parser.nodes[encodingId].kind != .Dictionary do
+    if parser.nodes[encodingId].kind != .Dictionary
+    {
         return
+    }
+
     let baseName = parser.name(parser.dict(encodingId, "BaseEncoding"))
-    if baseName.count do
+    if baseName.count
+    {
         applyBaseEncoding(font, baseName)
+    }
 
     // `/Differences` alternates a starting code with the glyph names that follow it.
     let differencesId = parser.dict(encodingId, "Differences")
-    if differencesId == InvalidNode or parser.nodes[differencesId].kind != .Array do
+    if differencesId == InvalidNode or parser.nodes[differencesId].kind != .Array
+    {
         return
-    var code = 0'u32
+    }
+
+    var code = 0_u32
     for value in parser.nodes[differencesId].values
     {
         let id = parser.resolve(value)
-        if id == InvalidNode do
-            continue
-        if parser.nodes[id].kind == .Integer
+        if id == InvalidNode
         {
-            let start = parser.nodes[id].integer
-            if start >= 0 and start <= Swag.U16.Max do
-                code = cast(u32, start)
             continue
         }
 
-        if parser.nodes[id].kind != .Name do
+        if parser.nodes[id].kind == .Integer
+        {
+            let start = parser.nodes[id].integer
+            if start >= 0 and start <= Swag.U16.Max
+            {
+                code = cast(u32, start)
+            }
+
             continue
+        }
+
+        if parser.nodes[id].kind != .Name
+        {
+            continue
+        }
 
         // The name is what addresses a PostScript program; the character it stands for is
         // only what the text extracts as, and may well be unknown.
@@ -472,8 +628,11 @@ private func readEncoding(parser: *PdfParser, font: *FontResource, encodingRaw: 
         let glyph     = glyphNameRune(name)
         var glyphName = #move String.from(name)
         font.glyphNames[code] = #move glyphName
-        if glyph do
+        if glyph
+        {
             font.encoding[code] = glyph
+        }
+
         code += 1
     }
 }
@@ -512,13 +671,15 @@ private enum CMapSection
 private func readToUnicode(font: *FontResource, bytes: const [..] u8)
 {
     var scanner = PdfParser{bytes: bytes}
-    var pending: Array'u32
+    var pending: Array!{u32}
     var section = CMapSection.None
     while scanner.pos < bytes.count
     {
         scanner.skip()
-        if scanner.pos >= bytes.count do
+        if scanner.pos >= bytes.count
+        {
             break
+        }
 
         // The PostScript scaffolding around the mapping sections carries dictionaries and
         // strings of its own, so anything that does not parse is stepped over rather than
@@ -537,10 +698,15 @@ private func readToUnicode(font: *FontResource, bytes: const [..] u8)
             var id: #decltype(expect scanner.parseHexString())
             catch { id = try scanner.parseHexString() } as hexErrorOutcome
             let hexError = hexErrorOutcome.value()
-            if hexError != null do
+            if hexError != null
+            {
                 scanner.pos = mark + 1
-            else do
+            }
+            else
+            {
                 pending.add(id)
+            }
+
             continue
         }
 
@@ -550,10 +716,15 @@ private func readToUnicode(font: *FontResource, bytes: const [..] u8)
             var id: #decltype(expect scanner.parseArray())
             catch { id = try scanner.parseArray() } as arrayErrorOutcome
             let arrayError = arrayErrorOutcome.value()
-            if arrayError != null do
+            if arrayError != null
+            {
                 scanner.pos = mark + 1
-            else do
+            }
+            else
+            {
                 pending.add(id)
+            }
+
             continue
         }
 
@@ -564,8 +735,11 @@ private func readToUnicode(font: *FontResource, bytes: const [..] u8)
         }
 
         let start = scanner.pos
-        while scanner.pos < bytes.count and not isDelimiter(bytes[scanner.pos]) do
+        while scanner.pos < bytes.count and not isDelimiter(bytes[scanner.pos])
+        {
             scanner.pos += 1
+        }
+
         let word = cast(string, Swag.makeSlice(bytes.buffer + start, scanner.pos - start))
         switch word
         {
@@ -586,14 +760,20 @@ private func readToUnicode(font: *FontResource, bytes: const [..] u8)
             section = .None
 
         case "endbfchar":
-            if section == .Char do
+            if section == .Char
+            {
                 applyCMapChars(font, &scanner, pending.toSlice())
+            }
+
             pending.clear()
             section = .None
 
         case "endbfrange":
-            if section == .Range do
+            if section == .Range
+            {
                 applyCMapRanges(font, &scanner, pending.toSlice())
+            }
+
             pending.clear()
             section = .None
         }
@@ -606,8 +786,11 @@ private func applyCMapChars(font: *FontResource, scanner: *PdfParser, pending: c
     {
         let source = &scanner.nodes[pending[i * 2]]
         let target = &scanner.nodes[pending[i * 2 + 1]]
-        if source.kind != .String or target.kind != .String do
+        if source.kind != .String or target.kind != .String
+        {
             continue
+        }
+
         var decoded = #move Text.decode(cast(const [..] u8, target.text.toString()), .Utf16Be)
         font.unicode[cmapCode(source.text.toString())] = #move decoded
     }
@@ -620,13 +803,17 @@ private func applyCMapRanges(font: *FontResource, scanner: *PdfParser, pending: 
         let low  = &scanner.nodes[pending[i * 3]]
         let high = &scanner.nodes[pending[i * 3 + 1]]
         let dest = &scanner.nodes[pending[i * 3 + 2]]
-        if low.kind != .String or high.kind != .String do
+        if low.kind != .String or high.kind != .String
+        {
             continue
+        }
 
         let first = cmapCode(low.text.toString())
         let last  = cmapCode(high.text.toString())
-        if first > last or last - first > 65_535 do
+        if first > last or last - first > 65_535
+        {
             continue
+        }
 
         // The list form gives one destination per code; the scalar form gives the first
         // destination and increments its last UTF-16 unit across the range.
@@ -645,8 +832,11 @@ private func applyCMapRanges(font: *FontResource, scanner: *PdfParser, pending: 
             continue
         }
 
-        if dest.kind != .String or dest.text.length < 2 do
+        if dest.kind != .String or dest.text.length < 2
+        {
             continue
+        }
+
         if dest.text.length > 2
         {
             var decoded = #move Text.decode(cast(const [..] u8, dest.text.toString()), .Utf16Be)
@@ -667,8 +857,11 @@ private func applyCMapRanges(font: *FontResource, scanner: *PdfParser, pending: 
 
 private func cmapCode(bytes: string)->u32
 {
-    var result = 0'u32
-    for value in cast(const [..] u8, bytes) do
+    var result = 0_u32
+    for value in cast(const [..] u8, bytes)
+    {
         result = result << 8 | value
+    }
+
     return result
 }

@@ -34,8 +34,10 @@ func nestedAlignmentRemainder(depth: u32)->u64
     var value: LocalAligned64
     value.values[2] = depth
     var remainder = localAlignmentRemainder() | (cast(u64, &value) % 64)
-    if depth != 0 do
+    if depth != 0
+    {
         remainder |= nestedAlignmentRemainder(depth - 1)
+    }
     Swag.assert(value.values[2] == depth)
     return remainder
 }
@@ -56,8 +58,10 @@ func nestedAlignmentRemainder(depth: u32)->u64
         Swag.require(cast(u64, value) % 128 == 0)
         Swag.require(cast(u64, &value.hot) % 128 == 0)
     }
-    for value, index in values do
+    for value, index in values
+    {
         Swag.require(value.head == index + 1 and value.hot == index + 17)
+    }
 }
 
 #[Swag.NoInline]
@@ -65,8 +69,10 @@ func makeAlignedLocal(seed: u64)->LocalAligned32
 {
     var result: LocalAligned32
     Swag.assert(cast(u64, &result) % 32 == 0)
-    for &value, index in result.values do
+    for &value, index in result.values
+    {
         value[] = seed + index
+    }
     return result
 }
 
@@ -74,6 +80,8 @@ func makeAlignedLocal(seed: u64)->LocalAligned32
 {
     let value = makeAlignedLocal(41)
     Swag.require(cast(u64, &value) % 32 == 0)
-    for entry, index in value.values do
+    for entry, index in value.values
+    {
         Swag.require(entry == 41 + index)
+    }
 }

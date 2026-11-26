@@ -603,8 +603,8 @@ by portable modules and products. The earlier entries prepare and enforce the sa
   `lpVtbl` silently breaks every OLE callback.
 - Blocker: composing with `using base: IDropTarget` (and siblings) makes recovery a checked
   descent. However, `lpVtbl` is non-nullable in the `ole32.swg` interface structs, so the
-  composed objects have no valid zero default, and `Memory.new'DragFormatEnum()` and
-  `Memory.new'Surface()` stop compiling.
+  composed objects have no valid zero default, and `Memory.new!{DragFormatEnum}()` and
+  `Memory.new!{Surface}()` stop compiling.
 - Next: decide how a composed ABI header reaches its vtable pointer under zero-initialization:
   a nullable `lpVtbl` in the four `ole32.swg` interface structs, a `late` field, or an
   explicit constructor at each creation site. Then compose the four objects and delete their

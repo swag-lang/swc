@@ -16,7 +16,7 @@
     defer discard close(descriptors[1])
     let written = write(descriptors[1], "abc".buffer, 3)
     Swag.require(written == 3)
-    var count   = -1's32
+    var count   = -1_s32
     let queried = ioctl(descriptors[0], FIONREAD, &count)
     Swag.require(queried == 0 and count == 3)
 }
@@ -66,8 +66,11 @@
     let filled = getentropy(&bytes[1], 256)
     Swag.require(filled == 0 and bytes[0] == 17 and bytes[257] == 29)
     explicit_bzero(&bytes[1], 256)
-    for value in bytes[1 until 257] do
+    for value in bytes[1 until 257]
+    {
         Swag.require(value == 0)
+    }
+
     Swag.require(bytes[0] == 17 and bytes[257] == 29)
 
     let oversized = getentropy(&bytes[1], 257)
@@ -120,20 +123,25 @@ alias UnaryDouble = func(f64)->f64
 #test
 {
     // UTC conversion must preserve negative epochs, the leap day and post-2038 dates.
-    for seconds in [-1's64, 0, 951_827_696, 1_719_792_000, 2_208_988_800]
+    for seconds in [-1_s64, 0, 951_827_696, 1_719_792_000, 2_208_988_800]
     {
         var universal: tm
         let utcResult = gmtime_r(&seconds, &universal)
         Swag.require(utcResult == &universal)
         let roundTrip = timegm(&universal)
         Swag.require(roundTrip == seconds)
-        if seconds == -1 do
+        if seconds == -1
+        {
             Swag.require(universal.tm_year == 69 and
                          universal.tm_mon == 11 and
                          universal.tm_mday == 31 and
                          universal.tm_sec == 59)
-        if seconds == 951_827_696 do
+        }
+
+        if seconds == 951_827_696
+        {
             Swag.require(universal.tm_year == 100 and universal.tm_mon == 1 and universal.tm_mday == 29)
+        }
 
         var local: tm
         let localResult = localtime_r(&seconds, &local)
@@ -153,7 +161,7 @@ alias UnaryDouble = func(f64)->f64
     Swag.require(descriptor >= 0)
     defer discard close(descriptor)
 
-    const LargeOffset = 4_294_967_297's64
+    const LargeOffset = 4_294_967_297_s64
     let resized = ftruncate(descriptor, LargeOffset)
     Swag.require(resized == 0)
     let sought = lseek(descriptor, LargeOffset, SEEK_SET)
@@ -199,12 +207,15 @@ alias UnaryDouble = func(f64)->f64
 {
     var descriptor = memfd_create("swag-map-ownership".buffer, MFD_CLOEXEC)
     Swag.require(descriptor >= 0)
-    defer if descriptor >= 0 do
+    defer if descriptor >= 0
+    {
         discard close(descriptor)
+    }
+
     let length  = cast(u64, getpagesize()) * 2
     let resized = ftruncate(descriptor, cast(s64, length))
     Swag.require(resized == 0)
-    let duplicate = fcntl(descriptor, F_DUPFD_CLOEXEC, 0's32)
+    let duplicate = fcntl(descriptor, F_DUPFD_CLOEXEC, 0_s32)
     Swag.require(duplicate >= 0 and duplicate != descriptor)
     defer discard close(duplicate)
     let flags = fcntl(duplicate, F_GETFD)
@@ -236,8 +247,11 @@ alias UnaryDouble = func(f64)->f64
 {
     const Template = "/tmp/swag-linux-directory-XXXXXX"
     var temporary: [128] u8
-    for byte, index in Template do
+    for byte, index in Template
+    {
         temporary[index] = byte
+    }
+
     let created = mkdtemp(temporary.buffer)
     Swag.require(created == temporary.buffer)
     defer discard unlinkat(AT_FDCWD, temporary.buffer, AT_REMOVEDIR)
@@ -290,7 +304,7 @@ alias UnaryDouble = func(f64)->f64
             childSeen = true
             Swag.require((metadata.stx_mode & S_IFMT) == S_IFDIR)
         }
-        elif name == "link"
+        else if name == "link"
         {
             linkSeen = true
             Swag.require((metadata.stx_mode & S_IFMT) == S_IFLNK)
@@ -318,19 +332,22 @@ alias UnaryDouble = func(f64)->f64
 {
     const Template = "/tmp/swag-linux-mutation-XXXXXX"
     var temporary: [128] u8
-    for byte, index in Template do
+    for byte, index in Template
+    {
         temporary[index] = byte
+    }
+
     let created = mkdtemp(temporary.buffer)
     Swag.require(created == temporary.buffer)
     defer discard unlinkat(AT_FDCWD, temporary.buffer, AT_REMOVEDIR)
     let directory = openat(AT_FDCWD, temporary.buffer, O_RDONLY | O_DIRECTORY | O_CLOEXEC)
     Swag.require(directory >= 0)
     defer discard close(directory)
-    let source = openat(directory, "source".buffer, O_RDWR | O_CREAT | O_EXCL | O_CLOEXEC, 0x180'u32)
+    let source = openat(directory, "source".buffer, O_RDWR | O_CREAT | O_EXCL | O_CLOEXEC, 0x180_u32)
     Swag.require(source >= 0)
     defer discard close(source)
     defer discard unlinkat(directory, "source".buffer, 0)
-    let destination = openat(directory, "destination".buffer, O_WRONLY | O_CREAT | O_EXCL | O_CLOEXEC, 0x180'u32)
+    let destination = openat(directory, "destination".buffer, O_WRONLY | O_CREAT | O_EXCL | O_CLOEXEC, 0x180_u32)
     Swag.require(destination >= 0)
     defer discard close(destination)
     defer discard unlinkat(directory, "destination".buffer, 0)
@@ -382,8 +399,11 @@ alias UnaryDouble = func(f64)->f64
     for
     {
         let error = clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &deadline, null)
-        if error == EINTR do
+        if error == EINTR
+        {
             continue
+        }
+
         Swag.require(error == 0)
         break
     }
@@ -411,7 +431,7 @@ alias UnaryDouble = func(f64)->f64
     let descriptor = memfd_create("swag-statx-layout".buffer, MFD_CLOEXEC)
     Swag.require(descriptor >= 0)
     defer discard close(descriptor)
-    const LargeSize = 4_294_967_297's64
+    const LargeSize = 4_294_967_297_s64
     let resized = ftruncate(descriptor, LargeSize)
     Swag.require(resized == 0)
     var guarded: { before: u64, info: Structs.statx, after: u64 }
@@ -427,8 +447,10 @@ alias UnaryDouble = func(f64)->f64
     let compared = fstat(descriptor, &ordinary)
     Swag.require(compared == 0 and ordinary.st_ino == guarded.info.stx_ino)
     Swag.require(ordinary.st_atim.tv_sec == guarded.info.stx_atime.tv_sec and ordinary.st_atim.tv_nsec == guarded.info.stx_atime.tv_nsec)
-    if guarded.info.stx_mask & STATX_BTIME do
+    if guarded.info.stx_mask & STATX_BTIME
+    {
         Swag.require(guarded.info.stx_btime.tv_nsec < 1_000_000_000)
+    }
 }
 
 struct PthreadProbe
@@ -447,8 +469,11 @@ func pthreadProbeEntry(argument: *void?)->*void?
     probe.mutex.lock()
     probe.id = gettid()
     probe.changed.wake()
-    while not probe.released do
+    while not probe.released
+    {
         probe.changed.wait(&probe.mutex)
+    }
+
     probe.mutex.unlock()
     probe.value = 73
     return argument
@@ -464,8 +489,11 @@ func pthreadProbeEntry(argument: *void?)->*void?
     let created = pthread_create(&thread, null, &pthreadProbeEntry, &probe)
     Swag.require(created == 0)
     probe.mutex.lock()
-    while probe.id == 0 do
+    while probe.id == 0
+    {
         probe.changed.wait(&probe.mutex)
+    }
+
     probe.mutex.unlock()
     Swag.require(probe.id > 0 and probe.id != gettid())
     let pending = pthread_tryjoin_np(thread, null)
@@ -524,8 +552,11 @@ func pthreadProbeEntry(argument: *void?)->*void?
     Swag.require(affinity == 0)
     Swag.require(guarded.before == 0x123456789ABCDEF0 and guarded.after == 0xFEDCBA9876543210)
     var hasProcessor = false
-    for byte in guarded.mask where byte != 0 do
+    for byte in guarded.mask where byte != 0
+    {
         hasProcessor = true
+    }
+
     Swag.require(hasProcessor)
 }
 
@@ -534,15 +565,18 @@ func pthreadProbeEntry(argument: *void?)->*void?
 {
     const Template = "/tmp/swag-linux-open-XXXXXX"
     var temporary: [128] u8
-    for byte, index in Template do
+    for byte, index in Template
+    {
         temporary[index] = byte
+    }
+
     let created = mkdtemp(temporary.buffer)
     Swag.require(created == temporary.buffer)
     defer discard unlinkat(AT_FDCWD, temporary.buffer, AT_REMOVEDIR)
     let directory = openat(AT_FDCWD, temporary.buffer, O_RDONLY | O_DIRECTORY | O_CLOEXEC)
     Swag.require(directory >= 0)
     defer discard close(directory)
-    let original = openat(directory, "data".buffer, O_RDWR | O_CREAT | O_EXCL | O_CLOEXEC | O_NOCTTY, 0x180'u32)
+    let original = openat(directory, "data".buffer, O_RDWR | O_CREAT | O_EXCL | O_CLOEXEC | O_NOCTTY, 0x180_u32)
     Swag.require(original >= 0)
     defer discard close(original)
     defer discard unlinkat(directory, "data".buffer, 0)
@@ -550,7 +584,7 @@ func pthreadProbeEntry(argument: *void?)->*void?
     Swag.require(written == 3)
     let flags = fcntl(original, F_GETFD)
     Swag.require(flags >= 0 and (flags & FD_CLOEXEC) != 0)
-    let duplicate      = openat(directory, "data".buffer, O_WRONLY | O_CREAT | O_EXCL | O_CLOEXEC, 0x180'u32)
+    let duplicate      = openat(directory, "data".buffer, O_WRONLY | O_CREAT | O_EXCL | O_CLOEXEC, 0x180_u32)
     let duplicateError = errno()
     Swag.require(duplicate == -1 and duplicateError == EEXIST)
     var before: stat
@@ -600,8 +634,11 @@ func pthreadProbeEntry(argument: *void?)->*void?
 {
     const Template = "/tmp/swag-linux-realpath-XXXXXX"
     var temporary: [128] u8
-    for byte, index in Template do
+    for byte, index in Template
+    {
         temporary[index] = byte
+    }
+
     let created = mkdtemp(temporary.buffer)
     Swag.require(created == temporary.buffer)
     defer discard unlinkat(AT_FDCWD, temporary.buffer, AT_REMOVEDIR)
@@ -627,18 +664,27 @@ func pthreadProbeEntry(argument: *void?)->*void?
         expected[index] = byte
     }
 
-    for byte, index in "/link/.." do
+    for byte, index in "/link/.."
+    {
         input[rootView.count + index] = byte
-    for byte, index in "/target" do
+    }
+
+    for byte, index in "/target"
+    {
         expected[rootView.count + index] = byte
+    }
+
     let resolved = unwrap realpath(input.buffer, null)
     defer free(resolved)
     Swag.require(cast(string, cast(cstring, resolved)) == cast(string, cast(cstring, expected.buffer)))
     let looped = symlinkat("loop".buffer, directory, "loop".buffer)
     Swag.require(looped == 0)
     defer discard unlinkat(directory, "loop".buffer, 0)
-    for byte, index in "/loop" do
+    for byte, index in "/loop"
+    {
         input[rootView.count + index] = byte
+    }
+
     input[rootView.count + 5] = 0
     let loopResult = realpath(input.buffer, null)
     let loopError  = errno()
@@ -650,8 +696,11 @@ func pthreadProbeEntry(argument: *void?)->*void?
 {
     const Template = "/tmp/swag-linux-inotify-XXXXXX"
     var temporary: [128] u8
-    for byte, index in Template do
+    for byte, index in Template
+    {
         temporary[index] = byte
+    }
+
     let created = mkdtemp(temporary.buffer)
     Swag.require(created == temporary.buffer)
     defer discard unlinkat(AT_FDCWD, temporary.buffer, AT_REMOVEDIR)
@@ -675,7 +724,7 @@ func pthreadProbeEntry(argument: *void?)->*void?
     fds[1] = {fd: cancellation[0], events: POLLIN}
     let idle = poll(fds.buffer, fds.count, 0)
     Swag.require(idle == 0)
-    let file = openat(directory, "before".buffer, O_WRONLY | O_CREAT | O_EXCL | O_CLOEXEC, 0x180'u32)
+    let file = openat(directory, "before".buffer, O_WRONLY | O_CREAT | O_EXCL | O_CLOEXEC, 0x180_u32)
     Swag.require(file >= 0)
     discard close(file)
     defer discard unlinkat(directory, "before".buffer, 0)
@@ -741,8 +790,11 @@ func pthreadProbeEntry(argument: *void?)->*void?
     let piped = pipe2(descriptors.buffer, O_CLOEXEC)
     Swag.require(piped == 0)
     defer discard close(descriptors[0])
-    defer if descriptors[1] >= 0 do
+    defer if descriptors[1] >= 0
+    {
         discard close(descriptors[1])
+    }
+
     let redirected       = posix_spawn_file_actions_adddup2(&guardedActions.value, descriptors[1], 1)
     let closedRead       = posix_spawn_file_actions_addclose(&guardedActions.value, descriptors[0])
     let closedWrite      = posix_spawn_file_actions_addclose(&guardedActions.value, descriptors[1])
@@ -755,8 +807,11 @@ func pthreadProbeEntry(argument: *void?)->*void?
                  openedInput == 0)
     let arguments = ["sh", "-c", "printf '<%s>' \"$@\"; printf '<%s>' \"$SWAG_PROCESS_NATIVE\"; pwd; exit 37", "probe", "", "a b", "a\"b", "tail\\", "é"]
     var argv: [10] ([*] u8?)
-    for argument, index in arguments do
+    for argument, index in arguments
+    {
         argv[index] = cast #unconst ([*] u8, argument.buffer)
+    }
+
     var envp: [2] ([*] u8?)
     envp[0] = cast #unconst ([*] u8, "SWAG_PROCESS_NATIVE=value".buffer)
     var child: s32
@@ -772,14 +827,20 @@ func pthreadProbeEntry(argument: *void?)->*void?
     descriptors[1] = -1
     Swag.require(closed == 0)
     var buffer: [128] u8
-    var count = 0'u64
+    var count = 0_u64
     for
     {
         let received = read(descriptors[0], buffer.buffer + count, buffer.count - count)
-        if received == 0 do
+        if received == 0
+        {
             break
-        if received < 0 and errno() == EINTR do
+        }
+
+        if received < 0 and errno() == EINTR
+        {
             continue
+        }
+
         Swag.require(received > 0)
         count += cast(u64, received)
         Swag.require(count < buffer.count)
@@ -790,13 +851,18 @@ func pthreadProbeEntry(argument: *void?)->*void?
     for
     {
         waited = waitpid(child, &status, 0)
-        if waited >= 0 or errno() != EINTR do
+        if waited >= 0 or errno() != EINTR
+        {
             break
+        }
     }
 
     let expectedChild = child
-    if waited == child do
+    if waited == child
+    {
         child = 0
+    }
+
     Swag.require(waited == expectedChild and WIFEXITED(status) and WEXITSTATUS(status) == 37)
     Swag.require(not WIFSIGNALED(status))
     Swag.require(cast(string, buffer[until count]) == "<><a b><a\"b><tail\\><é><value>/\n")
@@ -831,13 +897,18 @@ func pthreadProbeEntry(argument: *void?)->*void?
     for
     {
         waited = waitpid(child, &status, 0)
-        if waited >= 0 or errno() != EINTR do
+        if waited >= 0 or errno() != EINTR
+        {
             break
+        }
     }
 
     let expectedChild = child
-    if waited == child do
+    if waited == child
+    {
         child = 0
+    }
+
     Swag.require(waited == expectedChild and WIFSIGNALED(status) and WTERMSIG(status) == SIGKILL)
     Swag.require(not WIFEXITED(status))
     let reapedAgain = waitpid(expectedChild, &status, WNOHANG)
@@ -853,8 +924,10 @@ func pthreadProbeEntry(argument: *void?)->*void?
     guarded.after  = 0xFEDCBA9876543210
 
     // readlinkat writes the path bytes without appending a C-string terminator.
-    for index in guarded.bytes.count do
+    for index in guarded.bytes.count
+    {
         guarded.bytes[index] = 0xA5
+    }
 
     let tiny = readlinkat(AT_FDCWD, "/proc/self/exe".buffer, guarded.bytes.buffer, 1)
     Swag.require(tiny == 1 and guarded.bytes[0] == '/' and guarded.bytes[1] == 0xA5)
@@ -887,12 +960,15 @@ func pthreadProbeEntry(argument: *void?)->*void?
     var foundPath    = false
     if table
     {
-        var index = 0'u64
+        var index = 0_u64
         for
         {
             let entry = table[index]
-            if not entry do
+            if not entry
+            {
                 break
+            }
+
             let text = cast(string, cast(cstring, entry))
             if text.count >= 5 and text[until 5] == "PATH="
             {
@@ -922,8 +998,11 @@ func pthreadProbeEntry(argument: *void?)->*void?
     let alreadyPending = sigismember(&pending, SIGPIPE)
     Swag.require(queried == 0 and alreadyPending >= 0)
     var immediate: timespec
-    defer if alreadyPending == 0 do
+    defer if alreadyPending == 0
+    {
         discard sigtimedwait(&blocked, null, &immediate)
+    }
+
     var descriptors: [2] s32
     let piped = pipe2(descriptors.buffer, O_CLOEXEC | O_NONBLOCK)
     Swag.require(piped == 0)
@@ -958,8 +1037,10 @@ func pthreadProbeEntry(argument: *void?)->*void?
     Swag.require(memory != null)
     defer free(memory)
     let words = cast([*] u64, memory)
-    for index in 4 do
+    for index in 4
+    {
         Swag.require(words[index] == 0)
+    }
 }
 
 #[Swag.TestTag("integration.native")]

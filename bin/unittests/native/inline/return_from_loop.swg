@@ -5,7 +5,10 @@ func hasAnyAbove(arr: [*] u8, count: u32, limit: u8)->bool
 {
     for i in count
     {
-        if arr[i] > limit do return true
+        if arr[i] > limit
+        {
+            return true
+        }
     }
     return false
 }

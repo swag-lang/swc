@@ -21,8 +21,11 @@ private impl DesktopChooser
 {
     mtd close()
     {
-        if .bus do
+        if .bus
+        {
             .bus = .freeBus(.bus)
+        }
+
         .library.close()
     }
 
@@ -31,8 +34,11 @@ private impl DesktopChooser
     mtd(T) symbol(name: string)->T fail
     {
         let address = .library.symbol(name)
-        if not address do
+        if not address
+        {
             fail Swag.SystemError{"a required desktop D-Bus symbol is unavailable"}
+        }
+
         return cast(T, address)
     }
 
@@ -40,21 +46,27 @@ private impl DesktopChooser
     {
         var result: #returntype
         result.library     = try NativeLibrary.load("libsystemd.so.0")
-        result.openUser    = try result.symbol'Linux.sd_bus_open_user_fn("sd_bus_open_user")
-        result.freeBus     = try result.symbol'Linux.sd_bus_unref_fn("sd_bus_unref")
-        result.isOpen      = try result.symbol'Linux.sd_bus_is_open_fn("sd_bus_is_open")
-        result.setTimeout  = try result.symbol'Linux.sd_bus_set_method_call_timeout_fn("sd_bus_set_method_call_timeout")
-        result.property    = try result.symbol'Linux.sd_bus_get_property_trivial_fn("sd_bus_get_property_trivial")
-        result.call        = try result.symbol'Linux.sd_bus_call_method_fn("sd_bus_call_method")
-        result.read        = try result.symbol'Linux.sd_bus_message_read_fn("sd_bus_message_read")
-        result.freeMessage = try result.symbol'Linux.sd_bus_message_unref_fn("sd_bus_message_unref")
-        result.process     = try result.symbol'Linux.sd_bus_process_fn("sd_bus_process")
+        result.openUser    = try result.symbol!{Linux.sd_bus_open_user_fn}("sd_bus_open_user")
+        result.freeBus     = try result.symbol!{Linux.sd_bus_unref_fn}("sd_bus_unref")
+        result.isOpen      = try result.symbol!{Linux.sd_bus_is_open_fn}("sd_bus_is_open")
+        result.setTimeout  = try result.symbol!{Linux.sd_bus_set_method_call_timeout_fn}("sd_bus_set_method_call_timeout")
+        result.property    = try result.symbol!{Linux.sd_bus_get_property_trivial_fn}("sd_bus_get_property_trivial")
+        result.call        = try result.symbol!{Linux.sd_bus_call_method_fn}("sd_bus_call_method")
+        result.read        = try result.symbol!{Linux.sd_bus_message_read_fn}("sd_bus_message_read")
+        result.freeMessage = try result.symbol!{Linux.sd_bus_message_unref_fn}("sd_bus_message_unref")
+        result.process     = try result.symbol!{Linux.sd_bus_process_fn}("sd_bus_process")
         let connected = result.openUser(&result.bus)
-        if connected < 0 do
+        if connected < 0
+        {
             try Errors.failLinuxError(-connected)
+        }
+
         let timeout = result.setTimeout(unwrap result.bus, 2_000_000)
-        if timeout < 0 do
+        if timeout < 0
+        {
             try Errors.failLinuxError(-timeout)
+        }
+
         return result
     }
 
@@ -66,8 +78,10 @@ private impl DesktopChooser
         // No callbacks enter application code from this connection.
         for 64
         {
-            if .process(bus, null) <= 0 do
+            if .process(bus, null) <= 0
+            {
                 break
+            }
         }
 
         const Destination = "org.freedesktop.portal.Desktop"
@@ -75,8 +89,10 @@ private impl DesktopChooser
         const Interface   = "org.freedesktop.portal.OpenURI"
         var version: u32
         if .property(bus, Destination.buffer, ObjectPath.buffer, Interface.buffer, "version".buffer, null, 'u', &version) < 0 or
-           version < 3 do
+           version < 3
+        {
             return false
+        }
 
         // Version 3 introduced ask=true. Older portals could silently use the default
         // application, which is not the Open With operation requested by this API.
@@ -93,12 +109,15 @@ private impl DesktopChooser
                              "sha{sv}".buffer,
                              parent.storage(),
                              descriptor,
-                             1'u32,
+                             1_u32,
                              "ask".buffer,
                              "b".buffer,
-                             1's32)
-        if accepted < 0 or not reply do
+                             1_s32)
+        if accepted < 0 or not reply
+        {
             return false
+        }
+
         var requestPath: const [*]u8?
         return .read(reply, "o".buffer, &requestPath) > 0 and requestPath != null
     }
@@ -120,37 +139,58 @@ private var g_DesktopChooser:      DesktopChooser
 #[Swag.Discardable]
 public func openFileWith(path: string)->bool
 {
-    if isSandboxed() or not Utf8.isValid(cast(const [..]u8, path)) do
+    if isSandboxed() or not Utf8.isValid(cast(const [..]u8, path))
+    {
         return false
+    }
+
     let native = catch Path.nativePath(path) { return false }
     var descriptor: s32 = -1
     for
     {
         descriptor = Linux.openat(Linux.AT_FDCWD, native.storage(), Linux.O_RDONLY | Linux.O_NONBLOCK | Linux.O_NOCTTY | Linux.O_CLOEXEC)
-        if descriptor >= 0 do
+        if descriptor >= 0
+        {
             break
-        if Linux.errno() != Linux.EINTR do
+        }
+
+        if Linux.errno() != Linux.EINTR
+        {
             return false
+        }
     }
 
     defer discard Linux.close(descriptor)
     var info: Linux.stat
     for
     {
-        if Linux.fstat(descriptor, &info) == 0 do
+        if Linux.fstat(descriptor, &info) == 0
+        {
             break
-        if Linux.errno() != Linux.EINTR do
+        }
+
+        if Linux.errno() != Linux.EINTR
+        {
             return false
+        }
     }
 
     let kind = info.st_mode & Linux.S_IFMT
-    if kind != Linux.S_IFREG and kind != Linux.S_IFDIR do
+    if kind != Linux.S_IFREG and kind != Linux.S_IFDIR
+    {
         return false
+    }
 
     Sync.scopedLock(&g_DesktopChooserMutex)
-    if g_DesktopChooser.bus and g_DesktopChooser.isOpen(unwrap g_DesktopChooser.bus) <= 0 do
+    if g_DesktopChooser.bus and g_DesktopChooser.isOpen(unwrap g_DesktopChooser.bus) <= 0
+    {
         g_DesktopChooser.close()
-    if not g_DesktopChooser.bus do
+    }
+
+    if not g_DesktopChooser.bus
+    {
         g_DesktopChooser = catch DesktopChooser.load() { return false }
+    }
+
     return g_DesktopChooser.request(descriptor)
 }

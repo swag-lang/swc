@@ -19,7 +19,7 @@ struct Row
     index:  u32
     height: f32 = 20
     hidden: bool
-    cells:  Array'Cell
+    cells:  Array!{Cell}
 }
 
 struct Column
@@ -40,32 +40,47 @@ impl Address
     func parse(reference: string)->Address fail
     {
         var result: #returntype
-        var at     = 0'u64
-        var column = 0'u32
-        while at < reference.count and reference[at] >= 'A'u8 and reference[at] <= 'Z'u8
+        var at     = 0_u64
+        var column = 0_u32
+        while at < reference.count and reference[at] >= 'A'_u8 and reference[at] <= 'Z'_u8
         {
-            column = column * 26 + reference[at] - 'A'u8 + 1
-            if column > 512 do
+            column = column * 26 + reference[at] - 'A'_u8 + 1
+            if column > 512
+            {
                 fail Errors.UnsupportedFormatError{texts().err_TooLarge}
+            }
+
             at += 1
         }
 
-        if not column or at == reference.count do
+        if not column or at == reference.count
+        {
             fail Errors.InvalidFormatError{texts().err_Invalid}
-        var row = 0'u32
+        }
+
+        var row = 0_u32
         while at < reference.count
         {
             let byte = reference[at]
-            if byte < '0'u8 or byte > '9'u8 do
+            if byte < '0'_u8 or byte > '9'_u8
+            {
                 fail Errors.InvalidFormatError{texts().err_Invalid}
-            row = row * 10 + byte - '0'u8
-            if row > 1_048_576 do
+            }
+
+            row = row * 10 + byte - '0'_u8
+            if row > 1_048_576
+            {
                 fail Errors.InvalidFormatError{texts().err_Invalid}
+            }
+
             at += 1
         }
 
-        if not row do
+        if not row
+        {
             fail Errors.InvalidFormatError{texts().err_Invalid}
+        }
+
         result.row    = row - 1
         result.column = column - 1
         return result
@@ -88,9 +103,12 @@ struct MergedCells
 func columnName(column: u32)->String
 {
     var result: String
-    if column >= 26 do
-        result += cast(u8, 'A'u8 + cast(u8, column / 26 - 1))
-    result += cast(u8, 'A'u8 + cast(u8, column % 26))
+    if column >= 26
+    {
+        result += cast(u8, 'A'_u8 + cast(u8, column / 26 - 1))
+    }
+
+    result += cast(u8, 'A'_u8 + cast(u8, column % 26))
     return result
 }
 
@@ -98,9 +116,9 @@ func columnName(column: u32)->String
 struct Sheet
 {
     name:             String
-    rows:             Array'Row
-    columns:          Array'Column
-    merges:           Array'MergedCells
+    rows:             Array!{Row}
+    columns:          Array!{Column}
+    merges:           Array!{MergedCells}
     defaultRowHeight: f32  = 20
     rowCount:         u32
     cells:            u64
@@ -119,24 +137,34 @@ impl Sheet
     mtd const details()->String
     {
         var result = Format.toString(.cells == 1 ? texts().ui_Cell : texts().ui_Cells, .cells)
-        if .omittedFormats do
+        if .omittedFormats
+        {
             result += Format.toString(texts().ui_FormatsOmitted, .omittedFormats)
-        if .simplifiedStyles do
+        }
+
+        if .simplifiedStyles
+        {
             result += texts().ui_StylesSimplified
+        }
+
         return result
     }
 
     mtd const findRow(index: u32)->u64
     {
-        var first = 0'u64
+        var first = 0_u64
         var last  = .rows.count
         while first < last
         {
             let middle = first + (last - first) / 2
-            if .rows[middle].index < index do
+            if .rows[middle].index < index
+            {
                 first = middle + 1
-            else do
+            }
+            else
+            {
                 last = middle
+            }
         }
 
         return first
@@ -145,10 +173,16 @@ impl Sheet
     mtd const cellAt(address: Address)->const *Cell?
     {
         let row = .findRow(address.row)
-        if row >= .rows.count or .rows[row].index != address.row do
+        if row >= .rows.count or .rows[row].index != address.row
+        {
             return null
-        for &cell in .rows[row].cells where cell.column == address.column do
+        }
+
+        for &cell in .rows[row].cells where cell.column == address.column
+        {
             return cell
+        }
+
         return null
     }
 
@@ -177,19 +211,25 @@ impl Sheet
         for row in .rows where includeHidden or not row.hidden
         {
             html += Format.toString("<tr><th style=\"padding-right:8px\">%</th>", row.index + 1)
-            var nextColumn = 0'u32
+            var nextColumn = 0_u32
             for cell in row.cells
             {
                 while nextColumn < cell.column
                 {
-                    if includeHidden or not .columns[nextColumn].hidden do
+                    if includeHidden or not .columns[nextColumn].hidden
+                    {
                         html += "<td></td>"
+                    }
+
                     nextColumn += 1
                 }
 
                 nextColumn = cell.column + 1
-                if not includeHidden and .columns[cell.column].hidden do
+                if not includeHidden and .columns[cell.column].hidden
+                {
                     continue
+                }
+
                 html += cell.numeric ? "<td style=\"text-align:right;padding-right:8px\">" : "<td>"
                 Package.appendHtmlEscaped(&html, cell.text)
                 html += "</td>"

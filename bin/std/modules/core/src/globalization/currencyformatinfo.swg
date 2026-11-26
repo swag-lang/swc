@@ -43,7 +43,7 @@ public impl CurrencyFormatInfo
 
         case .SymbolBeforeWithSpace:
             result.append(.symbol)
-            result.append(' 'u8)
+            result.append(' '_u8)
             result.append(number)
 
         case .SymbolAfter:
@@ -52,7 +52,7 @@ public impl CurrencyFormatInfo
 
         case .SymbolAfterWithSpace:
             result.append(number)
-            result.append(' 'u8)
+            result.append(' '_u8)
             result.append(.symbol)
         }
     }
@@ -86,7 +86,7 @@ public impl CurrencyFormatInfo
 
             case .SymbolBeforeWithSpace:
                 result.append(.symbol)
-                result.append(' 'u8)
+                result.append(' '_u8)
                 result.append(numberFormat.negativeSign)
                 result.append(number)
 
@@ -96,9 +96,9 @@ public impl CurrencyFormatInfo
             }
 
         case .Parentheses:
-            result.append('('u8)
+            result.append('('_u8)
             .appendPositive(&result, number)
-            result.append(')'u8)
+            result.append(')'_u8)
         }
 
         return result

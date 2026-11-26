@@ -45,7 +45,10 @@ func possibleFailure(code: s32) fail
 #[Swag.NoInline]
 func earlySuccess(code: s32) fail
 {
-    if code == 0 do return
+    if code == 0
+    {
+        return
+    }
     fail Swag.SystemError{errorID: 3}
 }
 
@@ -77,7 +80,10 @@ func generatedEarlySuccess(code: s32) fail
 {
     callerReturnProbe()
     {
-        if code == 0 do return
+        if code == 0
+        {
+            return
+        }
     }
     fail Swag.SystemError{errorID: 5}
 }
@@ -108,7 +114,10 @@ func afterPossibleFailure(release: bool, code: s32)->s32 fail
         try possibleFailure(code)
     }
     let result = pointer[]     // swc-expected-warning {{sanity_warn_possible_use_after_free}}
-    if not release do releaseProbe(pointer)
+    if not release
+    {
+        releaseProbe(pointer)
+    }
     return result
 }
 
@@ -123,7 +132,10 @@ func afterEarlySuccess(release: bool, code: s32)->s32 fail
         try earlySuccess(code)
     }
     let result = pointer[]     // swc-expected-warning {{sanity_warn_possible_use_after_free}}
-    if not release do releaseProbe(pointer)
+    if not release
+    {
+        releaseProbe(pointer)
+    }
     return result
 }
 
@@ -138,7 +150,10 @@ func afterCaughtFailure(release: bool, code: s32)->s32 fail
         try caughtFailure(code)
     }
     let result = pointer[]     // swc-expected-warning {{sanity_warn_possible_use_after_free}}
-    if not release do releaseProbe(pointer)
+    if not release
+    {
+        releaseProbe(pointer)
+    }
     return result
 }
 
@@ -153,7 +168,10 @@ func afterIncompleteFailure(release: bool, code: s32)->s32 fail
         try incompleteFailure(code)
     }
     let result = pointer[]     // swc-expected-warning {{sanity_warn_possible_use_after_free}}
-    if not release do releaseProbe(pointer)
+    if not release
+    {
+        releaseProbe(pointer)
+    }
     return result
 }
 
@@ -178,7 +196,10 @@ func afterGeneratedEarlySuccess(release: bool, code: s32)->s32 fail
         try generatedEarlySuccess(code)
     }
     let result = pointer[]     // swc-expected-warning {{sanity_warn_possible_use_after_free}}
-    if not release do releaseProbe(pointer)
+    if not release
+    {
+        releaseProbe(pointer)
+    }
     return result
 }
 

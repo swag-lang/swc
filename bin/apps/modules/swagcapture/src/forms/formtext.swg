@@ -52,13 +52,13 @@ struct FormText
         cacheBColorA: u8
 
         totalY:      f32
-        paths:       Array'LinePathList
-        borderPaths: Array'LinePathList
+        paths:       Array!{LinePathList}
+        borderPaths: Array!{LinePathList}
 
         // The border without the glyphs: the border grown around them, and the glyphs as holes
         // in it under the even-odd rule. A fill that lets the capture through shows the capture,
         // not the colour of the border under it.
-        ringPaths: Array'LinePathList
+        ringPaths: Array!{LinePathList}
 
         // Whether the words are being typed in place: the editor writes them, the form does not.
         editingText: bool
@@ -75,8 +75,11 @@ impl FormText
     mtd measuredPath(idx: u64)->*LinePathList
     {
         let borderPath = &.borderPaths[idx]
-        if borderPath.count() do
+        if borderPath.count()
+        {
             return borderPath
+        }
+
         return &.paths[idx]
     }
 
@@ -118,7 +121,7 @@ impl FormText
     // the height the lines stack to.
     mtd rebuildOutlines(text: string, face: *TypeFace, bSize, fSize, sSize: f32)
     {
-        let tokens = Tokenize.split(text, '\n'rune)
+        let tokens = Tokenize.split(text, '\n'_rune)
         .cacheFace    = face
         .cachesSize   = sSize
         .cachebSize   = bSize
@@ -162,10 +165,14 @@ impl FormText
             }
 
             // With no border, the line is as tall as the glyph outline itself.
-            if borderPath.count() do
+            if borderPath.count()
+            {
                 .totalY += (borderPath.maxBounds.y - borderPath.minBounds.y)
-            else do
+            }
+            else
+            {
                 .totalY += (pathl.maxBounds.y - pathl.minBounds.y)
+            }
         }
     }
 }
@@ -175,8 +182,11 @@ impl IForm for FormText
     mtd impl isSame(ptr: *BaseForm)->bool
     {
         let other = catch cast(*FormText?, ptr) orelse null
-        if not other do
+        if not other
+        {
             return false
+        }
+
         return .isSameBase(ptr) and
                .fontSize == other.fontSize and
                .boldSize == other.boldSize and
@@ -256,8 +266,10 @@ impl IForm for FormText
 
     mtd impl paint(painter: *Painter, cxt: FormPaintContext)
     {
-        if .editingText and not cxt.quickMode do
+        if .editingText and not cxt.quickMode
+        {
             return
+        }
 
         var cxtCpy = cxt
         cxtCpy.z = 1
@@ -278,8 +290,10 @@ impl IForm for FormText
         // back into .text fights in-place editing and desyncs undo/serialization. An empty
         // form draws and measures an "A" instead, leaving .text untouched.
         let empty = .text.isEmpty()
-        if empty do
+        if empty
+        {
             .isDirty = true
+        }
 
         let face = .resolveFace()
 
@@ -301,10 +315,10 @@ impl IForm for FormText
             .rebuildOutlines(empty ? "A" : .text.toString(), face, bSize, fSize, sSize)
         }
 
-        let zscale  = z * (cxt.quickMode ? 1 : Math.map(.scale, 0, 100, 1'f32, 2'f32))
+        let zscale  = z * (cxt.quickMode ? 1 : Math.map(.scale, 0, 100, 1_f32, 2_f32))
         let rscale  = cxt.renderScale
         let pscale  = zscale * rscale
-        var y0      = 0'f32
+        var y0      = 0_f32
         let addSize = (bSize + sSize) * zscale
 
         let count = .paths.count
@@ -313,15 +327,17 @@ impl IForm for FormText
         // the border path is empty and its bounds are zero, so measuring it alone put every
         // line of a plain text form at zero height and started the glyph at the middle of the
         // box instead of centering it there.
-        var totalYZ = 0'f32
+        var totalYZ = 0_f32
         for _, idx in .paths
         {
             let mp = .measuredPath(idx)
             totalYZ += (mp.maxBounds.y - mp.minBounds.y) * zscale
         }
 
-        if count > 1 do
+        if count > 1
+        {
             totalYZ += cast(f32, count - 1) * (.lineSpacing * zscale)
+        }
 
         let aV = cxt.quickMode ? FormTextAlign.Center : .alignVert
         let aH = cxt.quickMode ? FormTextAlign.Center : .alignHorz
@@ -339,7 +355,7 @@ impl IForm for FormText
             let wt         = (mp.maxBounds.x - mp.minBounds.x) * zscale
             let ht         = (mp.maxBounds.y - mp.minBounds.y) * zscale
 
-            var x0 = 0'f32
+            var x0 = 0_f32
             switch aH
             {
             case .LeftTop:     x0 = pp.x + addSize
@@ -364,14 +380,20 @@ impl IForm for FormText
             // without a seam; under a fill the capture shows through, only the ring is.
             if not Math.isZeroEpsilon(bSize) and .borderColor.a
             {
-                if .backColor.a == 255 do
+                if .backColor.a == 255
+                {
                     painter.fillPath(borderPath, .borderColor)
-                else do
+                }
+                else
+                {
                     painter.fillPath(&.ringPaths[idx], .borderColor, .EvenOdd)
+                }
             }
 
-            if .backColor.a do
+            if .backColor.a
+            {
                 painter.fillPath(pathl, .backColor)
+            }
 
             painter.popTransform()
 

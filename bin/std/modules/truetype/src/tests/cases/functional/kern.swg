@@ -2,7 +2,7 @@
 
 using Swag, Core
 
-func writePairPosition(table: *Array'u8, offset: u64, xAdvance: s16)
+func writePairPosition(table: *Array!{u8}, offset: u64, xAdvance: s16)
 {
     writeBigU16(table, offset + 0, 1)          // PairPos format 1.
     writeBigU16(table, offset + 2, 18)         // Coverage follows the pair set.
@@ -12,13 +12,13 @@ func writePairPosition(table: *Array'u8, offset: u64, xAdvance: s16)
     writeBigU16(table, offset + 10, 12)
     writeBigU16(table, offset + 12, 1)     // One pair value.
     writeBigU16(table, offset + 14, 2)     // Second glyph.
-    writeBigU16(table, offset + 16, cast #bit(u16, xAdvance))
+    writeBigU16(table, offset + 16, cast #bit (u16, xAdvance))
     writeBigU16(table, offset + 18, 1)     // Coverage format 1.
     writeBigU16(table, offset + 20, 1)
     writeBigU16(table, offset + 22, 1)     // First glyph.
 }
 
-func writeZeroClassPairPosition(table: *Array'u8, offset: u64)
+func writeZeroClassPairPosition(table: *Array!{u8}, offset: u64)
 {
     writeBigU16(table, offset + 0, 2)
     writeBigU16(table, offset + 2, 34)
@@ -44,7 +44,7 @@ func writeZeroClassPairPosition(table: *Array'u8, offset: u64)
     writeBigU16(table, offset + 38, 1)
 }
 
-func makeGposKernFixture()->Array'u8
+func makeGposKernFixture()->Array!{u8}
 {
     var table: #returntype
     table.resize(96)
@@ -104,7 +104,7 @@ func makeGposKernFixture()->Array'u8
 // GPOS lookup selection covers every possible u16 index without linear searches.
 #test
 {
-    var table: Array'u8
+    var table: Array!{u8}
     table.resize(26)
     writeBigU16(&table, 10, 1)     // One feature record.
     writeBigU32(&table, 12, TAG_KERN)
@@ -124,7 +124,7 @@ func makeGposKernFixture()->Array'u8
 // A matching zero adjustment ends subtable selection for its lookup.
 #test
 {
-    var table: Array'u8
+    var table: Array!{u8}
     table.resize(48)
     writePairPosition(&table, 0, 0)
     writePairPosition(&table, 24, -40)
@@ -141,7 +141,7 @@ func makeGposKernFixture()->Array'u8
 // A zero class-matrix adjustment also matches and ends subtable selection.
 #test
 {
-    var table: Array'u8
+    var table: Array!{u8}
     table.resize(64)
     writeZeroClassPairPosition(&table, 0)
     writePairPosition(&table, 40, -40)
@@ -159,7 +159,7 @@ func makeGposKernFixture()->Array'u8
 // even when the overall table contains enough trailing bytes for that record.
 #test
 {
-    var bytes: Array'u8
+    var bytes: Array!{u8}
     bytes.add([
         0x00, 0x00, 0x00, 0x01,     // version, subtable count
         0x00, 0x00, 0x00, 0x0E, 0x00, 0x01,      // format, length, horizontal coverage

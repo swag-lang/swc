@@ -16,12 +16,17 @@ using Core, Ogl
     gpu.init()
 
     var targets: [4] RenderTarget
-    for index in targets.count do
+    for index in targets.count
+    {
         targets[index] = gpu.createRenderTarget(16, 16)
+    }
+
     defer
     {
-        for index in targets.count do
+        for index in targets.count
+        {
             gpu.deleteRenderTarget(&targets[index])
+        }
     }
 
     var painter = Painter.create(gpu)

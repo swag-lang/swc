@@ -4,7 +4,7 @@
 
 using Win32
 
-var g_WinPointerNotices: Array'Env.WindowPointerEvent
+var g_WinPointerNotices: Array!{Env.WindowPointerEvent}
 var g_WinPointerOwner:   *Env.Window?
 
 func recordWinPointer(owner: *Env.Window, event: Env.WindowPointerEvent)
@@ -56,7 +56,7 @@ func pointerCoordinates(x, y: s32)->LPARAM
     Swag.require(converted != 0)
     let coordinates = pointerCoordinates(position.x, position.y)
     let positive    = cast(WPARAM, 60) << 16
-    let negative    = cast(WPARAM, cast #bit (u16, -60's16)) << 16
+    let negative    = cast(WPARAM, cast #bit (u16, -60_s16)) << 16
     discard SendMessageA(handle, WM_MOUSEWHEEL, positive, coordinates)
     discard SendMessageA(handle, WM_MOUSEWHEEL, negative, coordinates)
     discard SendMessageA(handle, WM_MOUSEHWHEEL, positive, coordinates)

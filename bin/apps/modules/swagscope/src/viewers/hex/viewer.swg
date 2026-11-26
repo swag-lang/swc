@@ -25,8 +25,8 @@ func viewerPlugin()->Viewer.Plugin
 
 private
 {
-    const RowWidthCount = 5'u32
-    const NavigationHistoryLimit = 64'u64
+    const RowWidthCount = 5_u32
+    const NavigationHistoryLimit = 64_u64
 
     // The page: the air before the grid's offsets on a wide window, the height of the tabs over
     // the grid, and the floating inspector — its width, its distance from the window's edges, and
@@ -39,7 +39,7 @@ private
     const WideWidth      = 1120.0
 
     // Fields of one structure the inspector lists at most, around the one the caret stands on.
-    const FieldLimit = 8'u64
+    const FieldLimit = 8_u64
 }
 
 // What the background load hands to the view: the file, its first window resident, and what the
@@ -54,11 +54,16 @@ struct Loaded
 private func loadDocument(fileName: string)->Loaded fail
 {
     var result: #returntype
-    if not result.document.open(fileName) do
+    if not result.document.open(fileName)
+    {
         fail InvalidFormatError{Errors.mkString(result.document.failureReason)}
+    }
+
     let resident = Math.min(result.document.fileSize, WindowSize)
-    if resident and not result.document.ensure(0, resident) do
+    if resident and not result.document.ensure(0, resident)
+    {
         fail InvalidFormatError{Errors.mkString(result.document.failureReason)}
+    }
 
     result.structure = Structure.read(fileName)
     return result
@@ -67,7 +72,7 @@ private func loadDocument(fileName: string)->Loaded fail
 // Reads `bytes` as one unsigned scalar, in the byte order `bigEndian` names.
 func readScalar(bytes: const [..] u8, bigEndian: bool)->u64
 {
-    var result = 0'u64
+    var result = 0_u64
     for index in bytes.count
     {
         let position = bigEndian ? index : bytes.count - 1 - index
@@ -80,95 +85,119 @@ func readScalar(bytes: const [..] u8, bigEndian: bool)->u64
 // Reads signed packed decimal with a trailing C/F positive or D negative sign nibble.
 func readPackedBcd(bytes: const [..] u8)->String
 {
-    if bytes.count < 2 or bytes.count > 8 do
+    if bytes.count < 2 or bytes.count > 8
+    {
         return String.from(texts().ui_ReadingInvalid)
+    }
 
     const Digits = "0123456789"
     let sign = bytes[bytes.count - 1] & 0x0F
-    if sign != 0x0C and sign != 0x0D and sign != 0x0F do
+    if sign != 0x0C and sign != 0x0D and sign != 0x0F
+    {
         return String.from(texts().ui_ReadingInvalid)
+    }
 
     var result: String
-    if sign == 0x0D do
-        result.append('-'rune)
+    if sign == 0x0D
+    {
+        result.append('-'_rune)
+    }
+
     for index in bytes.count
     {
         let byte = bytes[index]
         let high = byte >> 4
-        if high > 9 do
+        if high > 9
+        {
             return String.from(texts().ui_ReadingInvalid)
+        }
+
         result.append(cast(rune, Digits[high]))
 
         if index + 1 < bytes.count
         {
             let low = byte & 0x0F
-            if low > 9 do
+            if low > 9
+            {
                 return String.from(texts().ui_ReadingInvalid)
+            }
+
             result.append(cast(rune, Digits[low]))
         }
     }
+
     return result
 }
 
 // Reads the packed little-endian date and time used by FAT directory entries.
 func readFatDateTime(bytes: const [..] u8)->String
 {
-    if bytes.count < 4 do
+    if bytes.count < 4
+    {
         return String.from(texts().ui_ReadingInvalid)
+    }
 
-    let date = readScalar(bytes[until 2], false)
-    let time = readScalar(bytes[2 until 4], false)
+    let date  = readScalar(bytes[until 2], false)
+    let time  = readScalar(bytes[2 until 4], false)
     let value = Time.DateTime{cast(u16, 1980 + ((date >> 9) & 0x7F)),
                               cast(u16, (date >> 5) & 0x0F),
                               cast(u16, date & 0x1F),
                               cast(u16, (time >> 11) & 0x1F),
                               cast(u16, (time >> 5) & 0x3F),
                               cast(u16, (time & 0x1F) * 2), 0}
-    if not value.isValid() do
+    if not value.isValid()
+    {
         return String.from(texts().ui_ReadingInvalid)
+    }
+
     return value.toString(.DateTimeIso)
 }
 
 // Converts a little-endian FILETIME to UTC while rejecting dates beyond the calendar range.
 func readFileTime(bytes: const [..] u8)->String
 {
-    if bytes.count < 8 do
+    if bytes.count < 8
+    {
         return String.from(texts().ui_ReadingInvalid)
+    }
 
-    const FileTimeEpoch = 504911232000000000'u64
-    const MaxFileTime   = 2650467743999999999'u64
+    const FileTimeEpoch = 504911232000000000_u64
+    const MaxFileTime   = 2650467743999999999_u64
     let ticks = readScalar(bytes[until 8], false)
-    if ticks > MaxFileTime do
+    if ticks > MaxFileTime
+    {
         return String.from(texts().ui_ReadingInvalid)
+    }
 
     let dateTime = Time.Timestamp.fromTicks(ticks + FileTimeEpoch).toDateTime()
-    var result = dateTime.toString(.DateTimeIsoMs)
-    result.append('Z'rune)
+    var result   = dateTime.toString(.DateTimeIsoMs)
+    result.append('Z'_rune)
     return result
 }
 
 // Converts one IEEE-754 binary16 value to binary32 without relying on host-specific half types.
 func float16ToFloat(value: u16)->f32
 {
-    let sign     = cast(u32, value & 0x8000'u16) << 16
-    let exponent = (value >> 10) & 0x1F'u16
-    var fraction = cast(u32, value & 0x03FF'u16)
+    let sign     = cast(u32, value & 0x8000_u16) << 16
+    let exponent = (value >> 10) & 0x1F_u16
+    var fraction = cast(u32, value & 0x03FF_u16)
     var bits     = sign
     if exponent == 0
     {
         if fraction
         {
-            var exponent32 = 113'u32
+            var exponent32 = 113_u32
             while (fraction & 0x400) == 0
             {
-                fraction <<= 1
+                fraction   <<= 1
                 exponent32 -= 1
             }
+
             fraction &= 0x3FF
-            bits |= exponent32 << 23 | fraction << 13
+            bits     |= exponent32 << 23 | fraction << 13
         }
     }
-    elif exponent == 0x1F
+    else if exponent == 0x1F
     {
         bits |= 0x7F800000 | fraction << 13
     }
@@ -240,8 +269,11 @@ func readSleb128(bytes: const [..] u8)->VarintRead
         if not (byte & 0x80)
         {
             let usedBits = shift + 7
-            if usedBits < 64 and (byte & 0x40) do
+            if usedBits < 64 and (byte & 0x40)
+            {
                 result.value |= Swag.U64.Max << usedBits
+            }
+
             result.state = .Valid
             return result
         }
@@ -287,7 +319,7 @@ struct Panel
     bookmarkOffset:    u64
     hasBookmark:       bool     // One session-local byte offset; set after the lens stores it.
     baseAddress:       u64      // Virtual address mapped to file offset zero for Go To expressions.
-    navigationHistory: Array'u64
+    navigationHistory: Array!{u64}
     navigationIndex:   u64 = Swag.U64.Max
     navigatingHistory: bool
     analysis:          AnalysisOperation
@@ -295,7 +327,7 @@ struct Panel
     fileName:          String
     details:           String
     structure:         Structure     // What the binary readers recognized; the tabs and the inspector read it.
-    load:              Viewer.BackgroundLoad'Loaded
+    load:              Viewer.BackgroundLoad!{Loaded}
     services:          Viewer.HostServices
     failureReason:     String
 }
@@ -345,8 +377,10 @@ private impl IWnd for Panel
         // way from the start.
         .structure = #move loaded.structure
         .tabs.setStructure(&.structure)
-        if not .structure.formatName.isEmpty() do
+        if not .structure.formatName.isEmpty()
+        {
             .setBigEndian(.structure.bigEndian)
+        }
 
         .layoutPage()
         .applyLayout()
@@ -359,17 +393,23 @@ private impl IWnd for Panel
 
     mtd impl onNotifyEvent(evt: *NotifyEvent)
     {
-        if evt.kind == .LanguageChanged do
+        if evt.kind == .LanguageChanged
+        {
             .retranslate()
-        else do
+        }
+        else
+        {
             evt.accepted = false
+        }
     }
 
     mtd impl onResizeEvent(_: *ResizeEvent)
     {
         // The panel is sized while it is created, before the parts it places exist.
-        if .built do
+        if .built
+        {
             .layoutPage()
+        }
     }
 }
 
@@ -379,25 +419,33 @@ impl Panel
     // as a return point and dropping any forward branch after a new visit.
     private mtd recordNavigation(offset, from: u64)
     {
-        if .navigatingHistory or offset >= .grid.doc.fileSize do
+        if .navigatingHistory or offset >= .grid.doc.fileSize
+        {
             return
+        }
 
         if not .navigationHistory.count
         {
             .navigationHistory.add(from)
             .navigationIndex = 0
         }
-        elif .navigationIndex < .navigationHistory.count and .navigationHistory[.navigationIndex] != from
+        else if .navigationIndex < .navigationHistory.count and .navigationHistory[.navigationIndex] != from
         {
             .navigationHistory.resize(.navigationIndex + 1)
             .navigationHistory.add(from)
             .navigationIndex = .navigationHistory.count - 1
         }
 
-        if .navigationIndex < .navigationHistory.count and .navigationHistory[.navigationIndex] == offset do
+        if .navigationIndex < .navigationHistory.count and .navigationHistory[.navigationIndex] == offset
+        {
             return
-        if .navigationIndex != Swag.U64.Max and .navigationIndex + 1 < .navigationHistory.count do
+        }
+
+        if .navigationIndex != Swag.U64.Max and .navigationIndex + 1 < .navigationHistory.count
+        {
             .navigationHistory.resize(.navigationIndex + 1)
+        }
+
         .navigationHistory.add(offset)
         .navigationIndex = .navigationHistory.count - 1
 
@@ -411,17 +459,22 @@ impl Panel
     // Reveals an explicit destination and optionally selects its byte range.
     private mtd navigateTo(offset, length: u64, selectRange = false)->bool
     {
-        if offset >= .grid.doc.fileSize do
+        if offset >= .grid.doc.fileSize
+        {
             return false
+        }
+
         let previous = .grid.caret
         if selectRange
         {
             .grid.selectRange(offset, length)
         }
-        elif length
+        else if length
         {
-            if not .grid.revealRange(offset, length) do
+            if not .grid.revealRange(offset, length)
+            {
                 return false
+            }
         }
         else
         {
@@ -436,11 +489,17 @@ impl Panel
     // Returns to a preceding or following explicit byte offset.
     mtd navigateHistory(direction: s32)->bool
     {
-        if .navigationIndex == Swag.U64.Max do
+        if .navigationIndex == Swag.U64.Max
+        {
             return false
+        }
+
         let next = cast(s64, .navigationIndex) + direction
-        if next < 0 or next >= cast(s64, .navigationHistory.count) do
+        if next < 0 or next >= cast(s64, .navigationHistory.count)
+        {
             return false
+        }
+
         .navigatingHistory = true
         defer .navigatingHistory = false
         .navigationIndex = cast(u64, next)
@@ -454,8 +513,11 @@ impl Panel
     // A false result means a worker still borrows the view; the host polls again.
     mtd retire()->bool
     {
-        if not .load.retire() or not .analysis.retire() do
+        if not .load.retire() or not .analysis.retire()
+        {
             return false
+        }
+
         .stopTimer(&.analysisTimer)
         return true
     }
@@ -482,8 +544,11 @@ impl Panel
             return
         }
 
-        if not .grid.doc.fileSize do
+        if not .grid.doc.fileSize
+        {
             return
+        }
+
         let target = .analysisRange()
         .startAnalysisRange(target.range, target.selection)
     }
@@ -539,8 +604,11 @@ impl Panel
     {
         Swag.assert(index < 4)
         .valueWidthIndex = index
-        if .formatIndex >= .formatCount() do
+        if .formatIndex >= .formatCount()
+        {
             .formatIndex = 0
+        }
+
         .grid.setGrouping(.selectedGrouping())
     }
 
@@ -563,10 +631,14 @@ impl Panel
     {
         Swag.assert(index < RowWidthCount)
         .rowWidthIndex = index
-        if not index do
+        if not index
+        {
             .grid.setBytesPerRow(0, true)
-        else do
-            .grid.setBytesPerRow(4'u64 << index, false)
+        }
+        else
+        {
+            .grid.setBytesPerRow(4_u64 << index, false)
+        }
     }
 
     // Rebuilds what follows the language, keeping every choice, then republishes the details.
@@ -620,6 +692,7 @@ impl Panel
             let value = reading.value.toString()
             entries.add(title, .Copy, func|value|() { Clipboard.setString(value) }, disabled: reading.value.isEmpty())
         }
+
         entries.add(strings.ui_SelectAll, .SelectAll, func|view = me|() { view.grid.selectAll() }, disabled: not .grid.doc.fileSize, defaultKey: {modifiers: .Control, key: .A}, bindId: "scope.hex.selectAll")
         entries.add(strings.ui_SetBookmark, .GoTo, func|view = me|() { view.bookmarkOffset = view.grid.caret; view.grid.bookmarkOffset = view.bookmarkOffset; view.hasBookmark = true }, disabled: not .grid.doc.fileSize, defaultKey: {modifiers: Input.KeyModifiers.Control | .Shift, key: .B}, bindId: "scope.hex.setBookmark")
         if .hasBookmark
@@ -642,14 +715,45 @@ impl Panel
         let result = &.analysisView.result
         if result.hasDigests
         {
-            if result.algorithms.crc32 do entries.add(strings.ui_AnalysisCopyCrc32, .Copy, func|view = me|() { Clipboard.setString(view.analysisView.result.digestCopyText("CRC-32", view.analysisView.result.crc32Text())) }, bindId: "scope.hex.analysisCopyCrc32")
-            if result.algorithms.crc64 do entries.add(strings.ui_AnalysisCopyCrc64, .Copy, func|view = me|() { Clipboard.setString(view.analysisView.result.digestCopyText("CRC-64/ECMA-182", view.analysisView.result.crc64Text())) }, bindId: "scope.hex.analysisCopyCrc64")
-            if result.algorithms.md5 do entries.add(strings.ui_AnalysisCopyMd5, .Copy, func|view = me|() { Clipboard.setString(view.analysisView.result.digestCopyText("MD5", view.analysisView.result.md5Text())) }, bindId: "scope.hex.analysisCopyMd5")
-            if result.algorithms.sha1 do entries.add(strings.ui_AnalysisCopySha1, .Copy, func|view = me|() { Clipboard.setString(view.analysisView.result.digestCopyText("SHA-1", view.analysisView.result.sha1Text())) }, bindId: "scope.hex.analysisCopySha1")
-            if result.algorithms.sha256 do entries.add(strings.ui_AnalysisCopySha256, .Copy, func|view = me|() { Clipboard.setString(view.analysisView.result.digestCopyText("SHA-256", view.analysisView.result.sha256Text())) }, bindId: "scope.hex.analysisCopySha256")
-            if result.algorithms.sha512 do entries.add(strings.ui_AnalysisCopySha512, .Copy, func|view = me|() { Clipboard.setString(view.analysisView.result.digestCopyText("SHA-512", view.analysisView.result.sha512Text())) }, bindId: "scope.hex.analysisCopySha512")
-            if result.algorithms.blake2s do entries.add(strings.ui_AnalysisCopyBlake2s, .Copy, func|view = me|() { Clipboard.setString(view.analysisView.result.digestCopyText("BLAKE2s-256", view.analysisView.result.blake2sText())) }, bindId: "scope.hex.analysisCopyBlake2s")
-            if result.algorithms.blake2b do entries.add(strings.ui_AnalysisCopyBlake2b, .Copy, func|view = me|() { Clipboard.setString(view.analysisView.result.digestCopyText("BLAKE2b-512", view.analysisView.result.blake2bText())) }, bindId: "scope.hex.analysisCopyBlake2b")
+            if result.algorithms.crc32
+            {
+                entries.add(strings.ui_AnalysisCopyCrc32, .Copy, func|view = me|() { Clipboard.setString(view.analysisView.result.digestCopyText("CRC-32", view.analysisView.result.crc32Text())) }, bindId: "scope.hex.analysisCopyCrc32")
+            }
+
+            if result.algorithms.crc64
+            {
+                entries.add(strings.ui_AnalysisCopyCrc64, .Copy, func|view = me|() { Clipboard.setString(view.analysisView.result.digestCopyText("CRC-64/ECMA-182", view.analysisView.result.crc64Text())) }, bindId: "scope.hex.analysisCopyCrc64")
+            }
+
+            if result.algorithms.md5
+            {
+                entries.add(strings.ui_AnalysisCopyMd5, .Copy, func|view = me|() { Clipboard.setString(view.analysisView.result.digestCopyText("MD5", view.analysisView.result.md5Text())) }, bindId: "scope.hex.analysisCopyMd5")
+            }
+
+            if result.algorithms.sha1
+            {
+                entries.add(strings.ui_AnalysisCopySha1, .Copy, func|view = me|() { Clipboard.setString(view.analysisView.result.digestCopyText("SHA-1", view.analysisView.result.sha1Text())) }, bindId: "scope.hex.analysisCopySha1")
+            }
+
+            if result.algorithms.sha256
+            {
+                entries.add(strings.ui_AnalysisCopySha256, .Copy, func|view = me|() { Clipboard.setString(view.analysisView.result.digestCopyText("SHA-256", view.analysisView.result.sha256Text())) }, bindId: "scope.hex.analysisCopySha256")
+            }
+
+            if result.algorithms.sha512
+            {
+                entries.add(strings.ui_AnalysisCopySha512, .Copy, func|view = me|() { Clipboard.setString(view.analysisView.result.digestCopyText("SHA-512", view.analysisView.result.sha512Text())) }, bindId: "scope.hex.analysisCopySha512")
+            }
+
+            if result.algorithms.blake2s
+            {
+                entries.add(strings.ui_AnalysisCopyBlake2s, .Copy, func|view = me|() { Clipboard.setString(view.analysisView.result.digestCopyText("BLAKE2s-256", view.analysisView.result.blake2sText())) }, bindId: "scope.hex.analysisCopyBlake2s")
+            }
+
+            if result.algorithms.blake2b
+            {
+                entries.add(strings.ui_AnalysisCopyBlake2b, .Copy, func|view = me|() { Clipboard.setString(view.analysisView.result.digestCopyText("BLAKE2b-512", view.analysisView.result.blake2bText())) }, bindId: "scope.hex.analysisCopyBlake2b")
+            }
         }
     }
 
@@ -667,8 +771,10 @@ impl Panel
                      rowWidthName(.rowWidthIndex),
                      func|view = me|(rows)
                      {
-                         for index in RowWidthCount do
+                         for index in RowWidthCount
+                         {
                              rows.addChoice(rowWidthName(index), index == view.rowWidthIndex, func|view, index|() { view.setRowWidth(index) })
+                         }
                      },
                      icon: .theme().icon(.FitWidth, themeRowIconSize(.themeMetrics())))
 
@@ -676,8 +782,10 @@ impl Panel
                      valueWidthName(.valueWidthIndex),
                      func|view = me|(widths)
                      {
-                         for index in 4'u32 do
+                         for index in 4_u32
+                         {
                              widths.addChoice(valueWidthName(index), index == view.valueWidthIndex, func|view, index|() { view.setValueWidth(index) })
+                         }
                      },
                      icon: .theme().icon(.ActualSize, themeRowIconSize(.themeMetrics())))
 
@@ -685,8 +793,10 @@ impl Panel
                      formatName(.formatIndex),
                      func|view = me|(formats)
                      {
-                         for index in view.formatCount() do
+                         for index in view.formatCount()
+                         {
                              formats.addChoice(formatName(index), index == view.formatIndex, func|view, index|() { view.setFormat(index) })
+                         }
                      },
                      icon: .theme().icon(.FileCode, themeRowIconSize(.themeMetrics())))
 
@@ -715,15 +825,17 @@ impl Panel
     // fixed font size; 100% restores the default.
     private mtd showZoomMenu()
     {
-        if not .zoomLabel do
+        if not .zoomLabel
+        {
             return
+        }
 
         let percent = Viewer.pickZoom(me, .zoomLabel, .zoomPercent())
         if percent == 100
         {
             .grid.resetFontSize()
         }
-        elif percent
+        else if percent
         {
             let base = .themeMetrics().defaultFixedFontSize
             .grid.setFontSize(cast(u32, Math.max(Math.round(cast(f32, base) * cast(f32, percent) / 100), 1)))
@@ -733,8 +845,10 @@ impl Panel
     // Offers the two alternate bounded clipboard spellings beside the direct Copy Bytes action.
     private mtd showCopyFormatsMenu()
     {
-        if not .grid.hasSelection() do
+        if not .grid.hasSelection()
+        {
             return
+        }
 
         with let menu = MenuCtrl.createPopup(.grid, owner: .grid)
         {
@@ -782,8 +896,10 @@ impl Panel
         .tabs.left = inset + ViewInset
         .grid.scroll.margin = {inset, 0, wide ? InspectorWidth + 2 * InspectorGap : 0, 0}
         .inspector.show(wide and .grid.doc.fileSize != 0)
-        if wide do
+        if wide
+        {
             .inspector.setPosition({width - InspectorWidth - InspectorGap, InspectorTop, InspectorWidth, .inspectorView.contentHeight()})
+        }
     }
 
     // Selects the bytes of the structure behind tab `index`, the caret on its first byte.
@@ -818,8 +934,9 @@ impl Panel
             .refreshDetails()
             return
         }
+
         let caret     = .grid.caret
-        let bytes     = .grid.doc.read(caret, Math.min(16'u64, .grid.doc.fileSize - caret))
+        let bytes     = .grid.doc.read(caret, Math.min(16_u64, .grid.doc.fileSize - caret))
         let bigEndian = .readingBigEndian()
         if bytes.isEmpty()
         {
@@ -859,10 +976,15 @@ impl Panel
         let kind     = size == 1 ? String.from(.activeValueTag()) : Format.toString("% %", .activeValueTag(), order)
         let bytes    = .grid.doc.read(start, size)
         let grouping = .grid.grouping == .Bytes ? Grouping.Unsigned8 : .grid.grouping
-        if bytes.count == size do
+        if bytes.count == size
+        {
             view.headline = Viewer.groupThousands(formatScalar(grouping, readScalar(bytes.toSlice(), bigEndian)))
-        else do
+        }
+        else
+        {
             view.headline = String.from("--")
+        }
+
         view.caption = Format.toString(texts().ui_InspectorAt, kind, .offsetText(start))
     }
 
@@ -884,33 +1006,49 @@ impl Panel
         if unsignedVarint.state != .Incomplete
         {
             var value = String.from(texts().ui_ReadingInvalid)
-            if unsignedVarint.state == .Valid do
+            if unsignedVarint.state == .Valid
+            {
                 value = Viewer.groupThousands(unsignedVarint.value)
+            }
+
             view.readings.add({texts().ui_InspectorUleb128, value, false})
         }
+
         let signedVarint = readSleb128(bytes)
         if signedVarint.state != .Incomplete
         {
             let signedValue = cast #bit (s64, signedVarint.value)
-            var value = String.from(texts().ui_ReadingInvalid)
-            if signedVarint.state == .Valid do
+            var value       = String.from(texts().ui_ReadingInvalid)
+            if signedVarint.state == .Valid
+            {
                 value = Viewer.groupThousands(Format.toString("%", signedValue))
+            }
+
             view.readings.add({texts().ui_InspectorSleb128, value, false})
         }
 
-        if bytes.count >= 2 do
+        if bytes.count >= 2
+        {
             view.readings.add({texts().ui_InspectorBcd, readPackedBcd(bytes[until Math.min(bytes.count, 8)]), false})
-        if bytes.count < 4 do
+        }
+
+        if bytes.count < 4
+        {
             return
+        }
+
         view.readings.add({texts().ui_InspectorFatDateTime, readFatDateTime(bytes), false})
         let address = Format.toString("%.%.%.%",
-                                     cast(u32, bytes[0]),
-                                     cast(u32, bytes[1]),
-                                     cast(u32, bytes[2]),
-                                     cast(u32, bytes[3]))
+                                      cast(u32, bytes[0]),
+                                      cast(u32, bytes[1]),
+                                      cast(u32, bytes[2]),
+                                      cast(u32, bytes[3]))
         view.readings.add({texts().ui_InspectorIpv4, address, false})
         let rgba8 = Format.toString("#%{X02}%{X02}%{X02}%{X02}",
-                                    bytes[0], bytes[1], bytes[2], bytes[3])
+                                    bytes[0],
+                                    bytes[1],
+                                    bytes[2],
+                                    bytes[3])
         view.readings.add({texts().ui_InspectorRgba8, rgba8, false})
         if bytes.count >= 16
         {
@@ -926,14 +1064,30 @@ impl Panel
             view.readings.add({texts().ui_InspectorIpv6, ipv6, false})
 
             let guid = Format.toString("%{X02}%{X02}%{X02}%{X02}-%{X02}%{X02}-%{X02}%{X02}-%{X02}%{X02}-%{X02}%{X02}%{X02}%{X02}%{X02}%{X02}",
-                                       bytes[0], bytes[1], bytes[2], bytes[3],
-                                       bytes[4], bytes[5], bytes[6], bytes[7],
-                                       bytes[8], bytes[9], bytes[10], bytes[11],
-                                       bytes[12], bytes[13], bytes[14], bytes[15])
+                                       bytes[0],
+                                       bytes[1],
+                                       bytes[2],
+                                       bytes[3],
+                                       bytes[4],
+                                       bytes[5],
+                                       bytes[6],
+                                       bytes[7],
+                                       bytes[8],
+                                       bytes[9],
+                                       bytes[10],
+                                       bytes[11],
+                                       bytes[12],
+                                       bytes[13],
+                                       bytes[14],
+                                       bytes[15])
             view.readings.add({texts().ui_InspectorGuid, guid, false})
         }
-        if bytes.count >= 8 do
+
+        if bytes.count >= 8
+        {
             view.readings.add({texts().ui_InspectorFileTime, readFileTime(bytes), false})
+        }
+
         let word  = readScalar(bytes[until 4], bigEndian)
         let other = readScalar(bytes[until 4], not bigEndian)
         view.readings.add({"s32", Viewer.groupThousands(Format.toString("%", signedScalar(word, 4))), false})
@@ -947,14 +1101,18 @@ impl Panel
     private mtd describeFields(caret: u64)
     {
         let group = .structure.groupAt(caret)
-        if group == Swag.U64.Max do
+        if group == Swag.U64.Max
+        {
             return
+        }
 
         let rows  = .structure.fieldsOf(group)
         let field = .structure.fieldAt(caret)
-        var first = 0'u64
-        for row, index in rows where row == field and index >= FieldLimit do
+        var first = 0_u64
+        for row, index in rows where row == field and index >= FieldLimit
+        {
             first = index + 1 - FieldLimit
+        }
 
         for index in first until Math.min(first + FieldLimit, rows.count)
         {
@@ -963,8 +1121,11 @@ impl Panel
             line.label  = row.label
             line.value  = Viewer.groupThousands(row.value)
             line.strong = rows[index] == field
-            if not row.detail.isEmpty() do
+            if not row.detail.isEmpty()
+            {
                 line.value = Format.toString("% · %", line.value, row.detail)
+            }
+
             .inspectorView.fields.add(#move line)
         }
     }
@@ -973,11 +1134,11 @@ impl Panel
     // the file size and keeps the complete string as the line's tooltip.
     mtd refreshDetails()
     {
-        let fileSize = .grid.doc.fileSize
-        let percent = fileSize > 1 ? cast(f64, .grid.caret) * 100 / cast(f64, fileSize - 1) : 0'f64
-        let hexCaret = Format.toString("0x%{X}", .grid.caret)
+        let fileSize     = .grid.doc.fileSize
+        let percent      = fileSize > 1 ? cast(f64, .grid.caret) * 100 / cast(f64, fileSize - 1) : 0_f64
+        let hexCaret     = Format.toString("0x%{X}", .grid.caret)
         let decimalCaret = Format.toString("%", .grid.caret)
-        var value = .inspectorView.headline.isEmpty() ? String.from("—") : .inspectorView.headline
+        var value        = .inspectorView.headline.isEmpty() ? String.from("—") : .inspectorView.headline
         value.replace(" ", "")
         if .grid.hasSelection()
         {
@@ -1012,9 +1173,9 @@ impl Panel
     // reporting a visible error for an invalid value or pattern.
     mtd prepareSearch(query: string, result: *Viewer.SearchPlan)->EditBoxCheckResult
     {
-        let trimmed = Latin1.trim(query)
+        let trimmed         = Latin1.trim(query)
         let selectionScoped = Utf8.startsWith(trimmed, "selection:", .Latin1NoCase)
-        let patternQuery = selectionScoped ? Latin1.trim(cast(string, trimmed[10 to])) : query
+        let patternQuery    = selectionScoped ? Latin1.trim(cast(string, trimmed[10 to])) : query
         if selectionScoped
         {
             if Utf8.startsWith(patternQuery, "range:", .Latin1NoCase)
@@ -1022,13 +1183,18 @@ impl Panel
                 result.error = texts().ui_SearchRangeInvalid
                 return .InvalidVisible
             }
+
             if not .grid.hasSelection()
             {
                 result.error = texts().ui_SearchSelectionRequired
                 return .InvalidVisible
             }
-            if not patternQuery.count do
+
+            if not patternQuery.count
+            {
                 return .Incomplete
+            }
+
             result.byteRange = {offset: .grid.selectionStart(), length: .grid.selectionLength()}
         }
 
@@ -1047,6 +1213,7 @@ impl Panel
             {
                 result.error = parsed.error == .Value ? texts().ui_SearchValueError : texts().ui_SearchPatternError
             }
+
             return .InvalidVisible
 
         case .Valid:
@@ -1057,15 +1224,17 @@ impl Panel
                     result.error = texts().ui_SearchRangeInvalid
                     return .InvalidVisible
                 }
+
                 result.byteRange = {offset: parsed.rangeOffset, length: parsed.rangeLength}
             }
+
             .searchPattern = #move parsed.pattern
             result.span    = .searchPattern.length()
             return .Valid
         }
     }
 
-    mtd collectSearchMatches(source: string, baseOffset: u64, result: *Array'Viewer.SearchMatch)
+    mtd collectSearchMatches(source: string, baseOffset: u64, result: *Array!{Viewer.SearchMatch})
     {
         .searchPattern.collectMatches(source, baseOffset, result)
     }
@@ -1082,7 +1251,7 @@ impl Panel
     // Keeps the configured virtual base address available to every Go To entry point.
     mtd setBaseAddress(address: u64)
     {
-        .baseAddress = address
+        .baseAddress      = address
         .grid.baseAddress = address
     }
 
@@ -1098,12 +1267,16 @@ impl Panel
         }
 
         let dialog = EditDlg.createSingleLine(unwrap .surface, options)
-        if dialog.doModal() != Dialog.BtnOk do
+        if dialog.doModal() != Dialog.BtnOk
+        {
             return
+        }
 
         let address = parseFileOffset(dialog.text(), 0, Swag.U64.Max)
-        if address != Swag.U64.Max do
+        if address != Swag.U64.Max
+        {
             .setBaseAddress(address)
+        }
     }
 
     // Builds the hex panel: command bar, analysis panel, information group and byte grid. Loads the
@@ -1112,7 +1285,7 @@ impl Panel
     {
         let services = host.services()
 
-        with let result = Wnd.create'Panel(host.contentParent(), "scope.hex")
+        with let result = Wnd.create!{Panel}(host.contentParent(), "scope.hex")
         {
             .backgroundStyle = .View
             .services        = services
@@ -1179,10 +1352,14 @@ impl Panel
             .enable(false)
             .sigCheckedChanged += func|view = me|(button)
             {
-                if button.isChecked do
+                if button.isChecked
+                {
                     view.startAnalysis()
-                else do
+                }
+                else
+                {
                     view.closeAnalysis()
+                }
             }
         }
 
@@ -1246,7 +1423,7 @@ impl Panel
         {
             .baseAddress    = me.baseAddress
             .bookmarkOffset = me.hasBookmark ? me.bookmarkOffset : Swag.U64.Max
-            .sigGoToOffset += func|view = me|(_, offset)
+            .sigGoToOffset  += func|view = me|(_, offset)
             {
                 view.recordNavigation(offset, view.grid.caret)
             }

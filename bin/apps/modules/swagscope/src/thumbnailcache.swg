@@ -23,22 +23,37 @@ private var g_CachePruned:    bool
 
 private func cacheFileName(name: string)->bool
 {
-    if name.count != 68 or not Utf8.endsWith(name, ".png") do
+    if name.count != 68 or not Utf8.endsWith(name, ".png")
+    {
         return false
-    for byte in name[0 until 64] where not Latin1.isHexDigit(byte) do
+    }
+
+    for byte in name[0 until 64] where not Latin1.isHexDigit(byte)
+    {
         return false
+    }
+
     return true
 }
 
 private func mountCacheDirectoryName(name: string)->bool
 {
     const Prefix = "Swag.MountPrivacy.1."
-    if not Utf8.startsWith(name, Prefix) or name.count < Prefix.count + 68 do
+    if not Utf8.startsWith(name, Prefix) or name.count < Prefix.count + 68
+    {
         return false
-    for byte in name[Prefix.count until Prefix.count + 64] where not Latin1.isHexDigit(byte) do
+    }
+
+    for byte in name[Prefix.count until Prefix.count + 64] where not Latin1.isHexDigit(byte)
+    {
         return false
-    for byte in name[Prefix.count + 64 to] where byte != '.' and not Latin1.isDigit(byte) do
+    }
+
+    for byte in name[Prefix.count + 64 to] where byte != '.' and not Latin1.isDigit(byte)
+    {
         return false
+    }
+
     return true
 }
 
@@ -51,8 +66,11 @@ impl ThumbnailCache
 {
     private func policyDirectory(policy: const *File.MountPrivacy)->String
     {
-        if policy.root.isEmpty() do
+        if policy.root.isEmpty()
+        {
             return directory()
+        }
+
         return Path.combine(directory(), Format.toString("%.%.%", policy.channel, policy.instance, policy.activation))
     }
 
@@ -60,8 +78,11 @@ impl ThumbnailCache
     func clearMount(channel: string) fail
     {
         let root = directory()
-        if not Directory.exists(root) do
+        if not Directory.exists(root)
+        {
             return
+        }
+
         let entries = try Directory.enumerate(root, {})
         for &entry in entries where isMountCacheDirectory(entry)
         {
@@ -80,35 +101,52 @@ impl ThumbnailCache
     // outside the cache's SHA-256 filename format or remove files modified in the last 120 days.
     func prune(root: string, nowTicks: u64) fail
     {
-        if not Directory.exists(root) do
+        if not Directory.exists(root)
+        {
             return
+        }
+
         let files = try Directory.enumerate(root, {})
         for &file in files
         {
             if file.isDirectory()
             {
-                if isMountCacheDirectory(file) do
+                if isMountCacheDirectory(file)
+                {
                     try prune(file.fullName, nowTicks)
+                }
+
                 continue
             }
 
             let name = Path.fileName(file.fullName) orelse ""
-            if not cacheFileName(name) do
+            if not cacheFileName(name)
+            {
                 continue
+            }
+
             let modified = Time.Timestamp.fromDateTime(file.lastWriteTime).ticks
-            if modified and modified <= nowTicks and nowTicks - modified >= 120 * Time.TicksPerDay do
+            if modified and modified <= nowTicks and nowTicks - modified >= 120 * Time.TicksPerDay
+            {
                 catch File.delete(file.fullName)
+            }
         }
     }
 
     // One worker cleans in the background; other workers do not wait for a large cache scan.
     func pruneOnce()
     {
-        if not g_CachePruneLock.tryLock() do
+        if not g_CachePruneLock.tryLock()
+        {
             return
+        }
+
         defer g_CachePruneLock.unlock()
-        if g_CachePruned do
+        if g_CachePruned
+        {
             return
+        }
+
         g_CachePruned = true
         catch ThumbnailCache.prune(ThumbnailCache.directory(), Time.Timestamp.utcNow().ticks)
     }
@@ -116,14 +154,20 @@ impl ThumbnailCache
     // Remove only Scope's cache-shaped files; leave other application data in place.
     func clear(root: string, includeMounts = true)->u64 fail
     {
-        if not Directory.exists(root) do
+        if not Directory.exists(root)
+        {
             return 0
+        }
+
         let files = try Directory.enumerate(root, {})
         var removed: u64
         for &file in files
         {
-            if Swag.isCancelled() do
+            if Swag.isCancelled()
+            {
                 break
+            }
+
             if file.isDirectory()
             {
                 if includeMounts and isMountCacheDirectory(file)
@@ -135,8 +179,11 @@ impl ThumbnailCache
                 continue
             }
 
-            if not cacheFileName(Path.fileName(file.fullName) orelse "") do
+            if not cacheFileName(Path.fileName(file.fullName) orelse "")
+            {
                 continue
+            }
+
             try File.delete(file.fullName)
             removed += 1
         }
@@ -148,8 +195,11 @@ impl ThumbnailCache
     {
         g_CachePruneLock.lock()
         defer g_CachePruneLock.unlock()
-        if not root.count do
+        if not root.count
+        {
             g_CachePruned = true
+        }
+
         return try clear(root.count ? String.from(root) : ThumbnailCache.directory())
     }
 
@@ -157,8 +207,11 @@ impl ThumbnailCache
     {
         var policy = privacy.root.isEmpty() ? File.MountPrivacy.query(source) : privacy
         discard policy.refresh()
-        if policy.privateMode do
+        if policy.privateMode
+        {
             return ""
+        }
+
         let appPath  = executable.count ? executable : Env.executablePath()
         let file     = try File.info(source)
         let app      = try File.info(appPath)
@@ -175,16 +228,22 @@ impl ThumbnailCache
                                        settings)
         let digest = Hash.Sha256.compute(cast(const [..] u8, identity.toString()))
         var name: String
-        for word in digest do
+        for word in digest
+        {
             name += Format.toString("%{X08}", word)
+        }
+
         name += ".png"
         return Path.combine(policyDirectory(&policy), name)
     }
 
     func read(path: string)->Image
     {
-        if not path.count or not File.exists(path) do
+        if not path.count or not File.exists(path)
+        {
             return {}
+        }
+
         var result: #returntype
         catch { result = try Image.load(path) }
         {
@@ -204,15 +263,20 @@ impl ThumbnailCache
     // Publish only complete PNGs. A competing process may already have published the same key.
     func write(path: string, image: const *Image, source: string = "", privacy: File.MountPrivacy = {}) fail
     {
-        if not path.count do
+        if not path.count
+        {
             return
+        }
+
         var policy: File.MountPrivacy
         if source.count
         {
             policy = privacy.root.isEmpty() ? File.MountPrivacy.query(source) : privacy
             discard policy.refresh()
-            if policy.privateMode or not Path.equals(Path.directoryName(path) orelse "", policyDirectory(&policy)) do
+            if policy.privateMode or not Path.equals(Path.directoryName(path) orelse "", policyDirectory(&policy))
+            {
                 return
+            }
         }
 
         let instance   = policy.instance
@@ -223,8 +287,10 @@ impl ThumbnailCache
         var ownsTemporary = false
         defer
         {
-            if ownsTemporary do
+            if ownsTemporary
+            {
                 discard catch File.delete(temporary)
+            }
         }
 
         var stream = try File.open(temporary, .CreateNew, .Write, .Delete)
@@ -234,7 +300,9 @@ impl ThumbnailCache
         try File.move(path, temporary)
         ownsTemporary = false
         discard policy.refresh()
-        if policy.privateMode or policy.instance != instance or policy.activation != activation do
+        if policy.privateMode or policy.instance != instance or policy.activation != activation
+        {
             catch File.delete(path)
+        }
     }
 }

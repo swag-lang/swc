@@ -5,16 +5,19 @@ using Swag
 
 func pbkdf2HexDigit(value: u8)->u8
 {
-    if value >= '0' and value <= '9' do
+    if value >= '0' and value <= '9'
+    {
         return value - '0'
+    }
+
     return (value - 'a') + 10
 }
 
-func pbkdf2HexBytes(text: string)->Array'u8
+func pbkdf2HexBytes(text: string)->Array!{u8}
 {
     var result: #returntype
     result.reserve(text.count / 2)
-    var index = 0'u64
+    var index = 0_u64
     while index + 1 < text.count
     {
         result.add(cast(u8, ((pbkdf2HexDigit(text[index]) << 4) | pbkdf2HexDigit(text[index + 1]))))
@@ -48,7 +51,7 @@ func pbkdf2HexBytes(text: string)->Array'u8
 #test
 {
     var key: [131] u8
-    Memory.set(key.buffer, 0xAA'u8, key.count)
+    Memory.set(key.buffer, 0xAA_u8, key.count)
     let data = cast(const [..] u8, "Test Using Larger Than Block-Size Key - Hash Key First")
     const expected: [32] u8 = [
         0x60, 0xE4, 0x31, 0x59, 0x1E, 0xE0, 0xB6, 0x7F,
@@ -93,12 +96,17 @@ func pbkdf2HexBytes(text: string)->Array'u8
     var tails: [64] u8
     for length in 65
     {
-        for index in tails.count do
+        for index in tails.count
+        {
             tails[index] = 0xA5
+        }
+
         expect Crypto.pbkdf2HmacSha256(password, salt, 2, tails[until length])
         Swag.require(Slice.equals(tails[until length], expected[until length]))
-        for i in length until tails.count do
+        for i in length until tails.count
+        {
             Swag.require(tails[i] == 0xA5)
+        }
     }
 
     var errOutcome: Swag.Error
@@ -129,13 +137,18 @@ func pbkdf2HexBytes(text: string)->Array'u8
     var random: [64] u8
     expect Crypto.randomBytes(random)
     var anyNonZero: bool
-    for byte in random do
+    for byte in random
+    {
         anyNonZero = anyNonZero or byte != 0
+    }
+
     Swag.require(anyNonZero)
 
     Crypto.secureClear(random)
-    for byte in random do
+    for byte in random
+    {
         Swag.require(byte == 0)
+    }
 }
 
 #test
@@ -196,15 +209,18 @@ func pbkdf2HexBytes(text: string)->Array'u8
 #test
 {
     var bytes: [1026] u8
-    for length in [0'u64, 1, 255, 256, 257, 1024]
+    for length in [0_u64, 1, 255, 256, 257, 1024]
     {
         bytes[0] = 19
         bytes[length + 1] = 73
         let range = bytes[1 until length + 1]
         expect Crypto.randomBytes(range)
         Crypto.secureClear(range)
-        for value in range do
+        for value in range
+        {
             Swag.require(value == 0)
+        }
+
         Swag.require(bytes[0] == 19 and bytes[length + 1] == 73)
     }
 }

@@ -33,7 +33,7 @@ struct WikiPage
 
 struct WikiPageList
 {
-    pages: Array'WikiPage
+    pages: Array!{WikiPage}
 }
 
 struct MovieSearch
@@ -57,7 +57,7 @@ struct WikiMovieRow
 
 struct WikiRows
 {
-    bindings: Array'WikiMovieRow
+    bindings: Array!{WikiMovieRow}
 }
 
 struct WikiDetails
@@ -72,8 +72,10 @@ func normalizedMovieTitle(value: string)->String
     var result: String
     for character in lower
     {
-        if Unicode.isLetterOrDigit(character) do
+        if Unicode.isLetterOrDigit(character)
+        {
             result.append(character)
+        }
     }
 
     return result
@@ -82,15 +84,22 @@ func normalizedMovieTitle(value: string)->String
 // Uses edit distance only after punctuation and spacing have been removed from both titles.
 func movieTitleDistance(left, right: string)->u64
 {
-    if left.count == 0 do
+    if left.count == 0
+    {
         return right.count
-    if right.count == 0 do
-        return left.count
+    }
 
-    var costs: Array'u64
+    if right.count == 0
+    {
+        return left.count
+    }
+
+    var costs: Array!{u64}
     costs.resize(right.count + 1)
-    for index in right.count + 1 do
+    for index in right.count + 1
+    {
         costs[index] = index
+    }
 
     for leftIndex in left.count
     {
@@ -111,8 +120,11 @@ func movieTitleDistance(left, right: string)->u64
 // Keep short titles exact; longer titles can tolerate one or two mistyped characters.
 func movieTitleDistanceLimit(title: string)->u64
 {
-    if title.count < 6 do
+    if title.count < 6
+    {
         return 0
+    }
+
     return title.count < 16 ? 1 : 2
 }
 
@@ -129,7 +141,7 @@ struct AppleMovie
 
 struct AppleSearch
 {
-    results: Array'AppleMovie
+    results: Array!{AppleMovie}
 }
 
 struct TmdbMovie
@@ -151,7 +163,7 @@ struct TmdbMovie
 
 struct TmdbSearch
 {
-    results: Array'TmdbMovie
+    results: Array!{TmdbMovie}
 }
 
 struct TmdbGenre
@@ -173,13 +185,13 @@ struct TmdbCrewMember
 struct TmdbCredits
 {
     #[Serialization.Key("cast")]
-    castMembers: Array'TmdbCastMember
-    crew:        Array'TmdbCrewMember
+    castMembers: Array!{TmdbCastMember}
+    crew:        Array!{TmdbCrewMember}
 }
 
 struct TmdbMovieDetails
 {
-    genres:  Array'TmdbGenre
+    genres:  Array!{TmdbGenre}
     credits: TmdbCredits
 }
 
@@ -189,27 +201,42 @@ func tmdbStoredCredential(name: string, directory: string = "")->String
 {
     let root = directory.count ? String.from(directory) : tmdbSettingsDirectory()
     let path = Path.combine(root, name)
-    if not File.exists(path) do
+    if not File.exists(path)
+    {
         return {}
+    }
+
     let value = catch File.readAllText(path) { return {} }
     return Latin1.trim(value.toString())
 }
 
 func validTMDBToken(token: string)->bool
 {
-    if token.count < 20 or token.count > 1024 do
+    if token.count < 20 or token.count > 1024
+    {
         return false
-    for byte in token where not Latin1.isLetterOrDigit(byte) and byte != '-' and byte != '_' and byte != '.' do
+    }
+
+    for byte in token where not Latin1.isLetterOrDigit(byte) and byte != '-' and byte != '_' and byte != '.'
+    {
         return false
+    }
+
     return true
 }
 
 func validTMDBKey(key: string)->bool
 {
-    if key.count != 32 do
+    if key.count != 32
+    {
         return false
-    for byte in key where not Latin1.isHexDigit(byte) do
+    }
+
+    for byte in key where not Latin1.isHexDigit(byte)
+    {
         return false
+    }
+
     return true
 }
 
@@ -219,22 +246,39 @@ func saveTMDBCredentials(directory, token, key: string, clear: bool) fail
     let keyPath   = Path.combine(directory, "tmdb.key")
     if clear
     {
-        if File.exists(tokenPath) do
+        if File.exists(tokenPath)
+        {
             try File.delete(tokenPath)
-        if File.exists(keyPath) do
+        }
+
+        if File.exists(keyPath)
+        {
             try File.delete(keyPath)
+        }
+
         return
     }
 
-    if (token.count and not validTMDBToken(token)) or (key.count and not validTMDBKey(key)) do
+    if (token.count and not validTMDBToken(token)) or (key.count and not validTMDBKey(key))
+    {
         fail Errors.InvalidFormatError{}
-    if not token.count and not key.count do
+    }
+
+    if not token.count and not key.count
+    {
         return
+    }
+
     try Directory.create(directory, recurse: true)
-    if token.count do
+    if token.count
+    {
         discard try File.writeAllText(tokenPath, token)
-    if key.count do
+    }
+
+    if key.count
+    {
         discard try File.writeAllText(keyPath, key)
+    }
 }
 
 private const AppleCatalogueHost = "itunes.apple.com"
@@ -275,16 +319,19 @@ private var g_MovieLookupLock: Swag.Mutex
 
 // Keep Apple catalogue requests within its approximate limit of twenty per minute.
 private var g_AppleLastRequest: u64
-const AppleRequestSpacing = 3000'u64     // Milliseconds between two questions to the Apple catalogue.
+const AppleRequestSpacing = 3000_u64     // Milliseconds between two questions to the Apple catalogue.
 
 // Waiting workers can retire promptly when a navigation change cancels their task.
 func lockMediaLookup(mutex: *Swag.Mutex)->bool
 {
     while not mutex.tryLock()
     {
-        if Swag.isCancelled() do
+        if Swag.isCancelled()
+        {
             return false
-        Threading.Thread.sleep(50'ms)
+        }
+
+        Threading.Thread.sleep(50_ms)
     }
 
     if Swag.isCancelled()
@@ -328,10 +375,14 @@ func safeMediaText(value: string)->String
     var result: #returntype
     for byte in value
     {
-        if byte < ' ' or byte == 0x7F do
-            result.append(' 'u8)
-        else do
+        if byte < ' ' or byte == 0x7F
+        {
+            result.append(' '_u8)
+        }
+        else
+        {
             result.append(byte)
+        }
     }
 
     return result
@@ -345,26 +396,46 @@ impl MovieSummary
         for &record in image.metadata
         {
             let value = cast(string, record.toSlice())
-            if record.isTag(cast(const [..] u8, MovieTitleTag)) do
+            if record.isTag(cast(const [..] u8, MovieTitleTag))
+            {
                 result.title = value
-            elif record.isTag(cast(const [..] u8, MovieImdbRatingTag)) do
+            }
+            else if record.isTag(cast(const [..] u8, MovieImdbRatingTag))
+            {
                 result.imdbRating = value
-            elif record.isTag(cast(const [..] u8, MovieRatingSourceTag)) do
+            }
+            else if record.isTag(cast(const [..] u8, MovieRatingSourceTag))
+            {
                 result.ratingSource = value
-            elif record.isTag(cast(const [..] u8, MovieDirectorTag)) do
+            }
+            else if record.isTag(cast(const [..] u8, MovieDirectorTag))
+            {
                 result.director = value
-            elif record.isTag(cast(const [..] u8, MovieCastTag)) do
+            }
+            else if record.isTag(cast(const [..] u8, MovieCastTag))
+            {
                 result.actors = value
-            elif record.isTag(cast(const [..] u8, MovieGenreTag)) do
+            }
+            else if record.isTag(cast(const [..] u8, MovieGenreTag))
+            {
                 result.genre = value
-            elif record.isTag(cast(const [..] u8, MovieDateTag)) do
+            }
+            else if record.isTag(cast(const [..] u8, MovieDateTag))
+            {
                 result.date = value
-            elif record.isTag(cast(const [..] u8, MovieOverviewTag)) do
+            }
+            else if record.isTag(cast(const [..] u8, MovieOverviewTag))
+            {
                 result.overview = value
-            elif record.isTag(cast(const [..] u8, MovieSourceTag)) do
+            }
+            else if record.isTag(cast(const [..] u8, MovieSourceTag))
+            {
                 result.source = value
-            elif record.isTag(cast(const [..] u8, MovieSourcesTag)) do
+            }
+            else if record.isTag(cast(const [..] u8, MovieSourcesTag))
+            {
                 result.sources = value
+            }
         }
 
         return result
@@ -372,8 +443,11 @@ impl MovieSummary
 
     mtd text()->String
     {
-        if .title.isEmpty() do
+        if .title.isEmpty()
+        {
             return {}
+        }
+
         var result  = safeMediaText(.title)
         let strings = appStrings()
         if not .imdbRating.isEmpty()
@@ -382,26 +456,47 @@ impl MovieSummary
             result += Format.toString("  ·  %", Format.toString(label, safeMediaText(.imdbRating)))
         }
 
-        if not .date.isEmpty() do
+        if not .date.isEmpty()
+        {
             result += Format.toString("  ·  %", Format.toString(strings.explore_MovieDate, safeMediaText(.date)))
-        if not .director.isEmpty() do
+        }
+
+        if not .director.isEmpty()
+        {
             result += Format.toString("\n%", Format.toString(strings.explore_MovieDirector, safeMediaText(.director)))
-        if not .actors.isEmpty() do
+        }
+
+        if not .actors.isEmpty()
+        {
             result += Format.toString("\n%", Format.toString(strings.explore_MovieCast, safeMediaText(.actors)))
-        if not .genre.isEmpty() do
+        }
+
+        if not .genre.isEmpty()
+        {
             result += Format.toString("\n%", Format.toString(strings.explore_MovieGenre, safeMediaText(.genre)))
-        if not .overview.isEmpty() do
+        }
+
+        if not .overview.isEmpty()
+        {
             result += Format.toString("\n%", Format.toString(strings.explore_MovieOverview, safeMediaText(.overview)))
-        if not .source.isEmpty() do
+        }
+
+        if not .source.isEmpty()
+        {
             result += Format.toString("\n%: %", safeMediaText(.sources), safeMediaText(.source))
+        }
+
         return result
     }
 }
 
 private func addMovieTag(image: *Image, tag, value: string)
 {
-    if not value.count do
+    if not value.count
+    {
         return
+    }
+
     var record: ImageMetadata
     record.tag   = tag
     record.value = value
@@ -415,20 +510,32 @@ func stampMovieCache(image: *Image)
 
 func validWikiId(id: string)->bool
 {
-    if id.count < 2 or id.count > 16 or id[0] != 'Q' do
+    if id.count < 2 or id.count > 16 or id[0] != 'Q'
+    {
         return false
-    for c in id[1 to] where not Latin1.isDigit(c) do
+    }
+
+    for c in id[1 to] where not Latin1.isDigit(c)
+    {
         return false
+    }
+
     return id[1] != '0'
 }
 
 // Returns the year `word` writes when a film can have been released in it, or zero.
 private func movieYear(word: string)->u32
 {
-    if word.count != 4 do
+    if word.count != 4
+    {
         return 0
-    for c in word where not Latin1.isDigit(c) do
+    }
+
+    for c in word where not Latin1.isDigit(c)
+    {
         return 0
+    }
+
     let year = cast(u32, word[0] - '0') * 1000 + cast(u32, word[1] - '0') * 100 + cast(u32, word[2] - '0') * 10 + cast(u32, word[3] - '0')
     return year >= 1888 and year <= 2099 ? year : 0
 }
@@ -440,8 +547,11 @@ private func isReleaseTag(word: string)->bool
     const Tags = ["480p", "576p", "720p", "1080p", "1080i", "2160p", "4k", "uhd", "hdr", "bluray", "brrip", "bdrip",
                   "dvdrip", "webrip", "web-dl", "webdl", "hdtv", "remux", "x264", "x265", "h264", "h265", "hevc", "xvid"]
     let lower = String.toLower(word)
-    for tag in Tags where lower == tag do
+    for tag in Tags where lower == tag
+    {
         return true
+    }
+
     return false
 }
 
@@ -457,8 +567,8 @@ impl MovieQuery
     func fromFile(path: string)->MovieQuery
     {
         let stem  = Path.fileNameWithoutExtension(path) orelse ""
-        var words:     Array'String
-        var bracketed: Array'bool
+        var words:     Array!{String}
+        var bracketed: Array!{bool}
         var word:      String
         var depth = 0
         for byte in stem
@@ -474,10 +584,15 @@ impl MovieQuery
                     word.clear()
                 }
 
-                if opens do
+                if opens
+                {
                     depth += 1
-                elif closes and depth > 0 do
+                }
+                else if closes and depth > 0
+                {
                     depth -= 1
+                }
+
                 continue
             }
 
@@ -496,8 +611,11 @@ impl MovieQuery
         for index in 1 until words.count
         {
             let year = movieYear(words[index])
-            if not year or not (bracketed[index] or index + 1 < words.count or year <= thisYear) do
+            if not year or not (bracketed[index] or index + 1 < words.count or year <= thisYear)
+            {
                 continue
+            }
+
             end         = index
             result.year = words[index]
         }
@@ -513,8 +631,11 @@ impl MovieQuery
 
         for index in end
         {
-            if result.title.length do
+            if result.title.length
+            {
                 result.title += " "
+            }
+
             result.title += words[index]
         }
 
@@ -535,11 +656,17 @@ impl MovieQuery
         {
             let candidate = normalizedMovieTitle(film.trackName.toString())
             let distance  = movieTitleDistance(wantedText, candidate.toString())
-            if distance > distanceLimit do
+            if distance > distanceLimit
+            {
                 continue
+            }
+
             let filmYear = film.releaseDate.length >= 4 ? String.from(film.releaseDate.toString()[0 until 4]) : String.from("")
-            if not .year.isEmpty() and filmYear != .year do
+            if not .year.isEmpty() and filmYear != .year
+            {
                 continue
+            }
+
             if distance < bestDistance
             {
                 chosen       = index
@@ -552,8 +679,10 @@ impl MovieQuery
                 let previousUrl = search.results[chosen].trackViewUrl
                 if previousUrl.isEmpty() or
                    film.trackViewUrl.isEmpty() or
-                   previousUrl != film.trackViewUrl do
+                   previousUrl != film.trackViewUrl
+                {
                     ambiguous = true
+                }
             }
         }
 
@@ -575,11 +704,17 @@ impl MovieQuery
             let original = normalizedMovieTitle(film.originalTitle.toString())
             var distance = movieTitleDistance(wantedText, title.toString())
             distance = Math.min(distance, movieTitleDistance(wantedText, original.toString()))
-            if distance > distanceLimit do
+            if distance > distanceLimit
+            {
                 continue
+            }
+
             let filmYear = film.releaseDate.length >= 4 ? String.from(film.releaseDate.toString()[0 until 4]) : String.from("")
-            if not .year.isEmpty() and filmYear != .year do
+            if not .year.isEmpty() and filmYear != .year
+            {
                 continue
+            }
+
             if distance < bestDistance
             {
                 chosen       = index
@@ -607,18 +742,33 @@ impl MovieQuery
         var chosen = Swag.U64.Max
         for &page, index in search.query.pages
         {
-            if not validWikiId(page.pageprops.id) do
+            if not validWikiId(page.pageprops.id)
+            {
                 continue
+            }
+
             let description = page.description.toLower(.Unicode)
-            if not Utf8.contains(description.toString(), "film") do
+            if not Utf8.contains(description.toString(), "film")
+            {
                 continue
+            }
+
             let title = page.title.toLower(.Unicode)
-            if title != wanted and not Utf8.startsWith(title.toString(), prefix.toString()) do
+            if title != wanted and not Utf8.startsWith(title.toString(), prefix.toString())
+            {
                 continue
-            if not .year.isEmpty() and not Utf8.contains(description.toString(), .year.toString()) do
+            }
+
+            if not .year.isEmpty() and not Utf8.contains(description.toString(), .year.toString())
+            {
                 continue
-            if chosen != Swag.U64.Max and search.query.pages[chosen].pageprops.id != page.pageprops.id do
+            }
+
+            if chosen != Swag.U64.Max and search.query.pages[chosen].pageprops.id != page.pageprops.id
+            {
                 return Swag.U64.Max
+            }
+
             chosen = index
         }
 
@@ -649,25 +799,43 @@ impl OnlineMovie
     // TMDB supplies the preferred poster and synopsis; Apple and Wikipedia remain fallbacks.
     func lookup(path: string, source: MovieSource = {}, language: string = "en")->OnlineMovie fail
     {
-        if Swag.isCancelled() do
+        if Swag.isCancelled()
+        {
             return {}
+        }
+
         let query = MovieQuery.fromFile(path)
-        if query.title.isEmpty() or query.title.length > 256 do
+        if query.title.isEmpty() or query.title.length > 256
+        {
             return {}
+        }
+
         var movie: OnlineMovie
         catch movie.lookupTMDB(query, source, language)
-        if Swag.isCancelled() do
+        if Swag.isCancelled()
+        {
             return {}
-        if not movie.posterUrl.isEmpty() do
+        }
+
+        if not movie.posterUrl.isEmpty()
+        {
             return movie
+        }
+
         var apple: OnlineMovie
         catch apple.lookupApple(query, source, language)
-        if Swag.isCancelled() do
+        if Swag.isCancelled()
+        {
             return {}
+        }
+
         if not apple.posterUrl.isEmpty()
         {
-            if movie.id.isEmpty() do
+            if movie.id.isEmpty()
+            {
                 return apple
+            }
+
             movie.posterUrl = #move apple.posterUrl
             movie.sources   += " · Apple"
             return movie
@@ -676,20 +844,28 @@ impl OnlineMovie
         var article: OnlineMovie
         var articleErrorOutcome: Swag.Error
         catch { article = try lookupArticle(query, source, language) } as articleErrorOutcome
-        if Swag.isCancelled() do
+        if Swag.isCancelled()
+        {
             return {}
+        }
+
         if article.posterUrl.isEmpty()
         {
             var alternate: OnlineMovie
             let alternateLanguage = Utf8.startsWith(language, "fr") ? "en" : "fr"
             var alternateArticleErrorOutcome: Swag.Error
             catch { alternate = try lookupArticle(query, source, alternateLanguage) } as alternateArticleErrorOutcome
-            if not alternate.posterUrl.isEmpty() or (article.id.isEmpty() and not alternate.id.isEmpty()) do
+            if not alternate.posterUrl.isEmpty() or (article.id.isEmpty() and not alternate.id.isEmpty())
+            {
                 article = #move alternate
+            }
         }
 
-        if not article.id.isEmpty() do
+        if not article.id.isEmpty()
+        {
             article.sources = "Wikipedia · Wikidata"
+        }
+
         if not article.posterUrl.isEmpty()
         {
             if not movie.id.isEmpty()
@@ -707,35 +883,64 @@ impl OnlineMovie
             }
         }
 
-        if movie.found() do
+        if movie.found()
+        {
             return movie
-        if apple.found() do
+        }
+
+        if apple.found()
+        {
             return apple
+        }
+
         return article
     }
 
     private mtd lookupTMDB(query: MovieQuery, source: MovieSource, language: string) fail
     {
-        if not source.tmdbHost.count do
+        if not source.tmdbHost.count
+        {
             return
+        }
+
         var token = String.from(source.tmdbToken)
-        if token.isEmpty() and source.useLocalCredentials do
+        if token.isEmpty() and source.useLocalCredentials
+        {
             token = tmdbStoredCredential("tmdb.token")
-        if token.isEmpty() and source.useLocalCredentials do
+        }
+
+        if token.isEmpty() and source.useLocalCredentials
+        {
             token = Env.variable("SWAG_SCOPE_TMDB_TOKEN")
+        }
+
         var key = String.from(source.tmdbKey)
-        if key.isEmpty() and source.useLocalCredentials do
+        if key.isEmpty() and source.useLocalCredentials
+        {
             key = tmdbStoredCredential("tmdb.key")
-        if key.isEmpty() and source.useLocalCredentials do
+        }
+
+        if key.isEmpty() and source.useLocalCredentials
+        {
             key = Env.variable("SWAG_SCOPE_TMDB_KEY")
+        }
+
         token = Latin1.trim(token.toString())
         key   = Latin1.trim(key.toString())
-        if not token.isEmpty() and not validTMDBToken(token) do
+        if not token.isEmpty() and not validTMDBToken(token)
+        {
             token.clear()
-        if not key.isEmpty() and not validTMDBKey(key) do
+        }
+
+        if not key.isEmpty() and not validTMDBKey(key)
+        {
             key.clear()
-        if token.isEmpty() and key.isEmpty() do
+        }
+
+        if token.isEmpty() and key.isEmpty()
+        {
             return
+        }
 
         // Film filenames often use the other shipped language from the application's interface.
         let french = Utf8.startsWith(language, "fr")
@@ -749,8 +954,10 @@ impl OnlineMovie
             var alternate: OnlineMovie
             var alternateMovieErrorOutcome: Swag.Error
             catch { alternate = try .lookupTMDBAtLocale(query, source, french ? "en-US" : "fr-FR", token, key) } as alternateMovieErrorOutcome
-            if not alternate.posterUrl.isEmpty() or (not movie.found() and alternate.found()) do
+            if not alternate.posterUrl.isEmpty() or (not movie.found() and alternate.found())
+            {
                 movie = #move alternate
+            }
         }
 
         me[] = #move movie
@@ -758,11 +965,17 @@ impl OnlineMovie
 
     private mtd lookupTMDBAtLocale(query: MovieQuery, source: MovieSource, locale, token, key: string)->OnlineMovie fail
     {
-        if Swag.isCancelled() do
+        if Swag.isCancelled()
+        {
             return {}
+        }
+
         var path = Format.toString("/3/search/movie?query=%&language=%&include_adult=false", Url.encodeComponent(cast(const [..] u8, query.title.toString())), locale)
-        if not query.year.isEmpty() do
+        if not query.year.isEmpty()
+        {
             path += Format.toString("&year=%", query.year)
+        }
+
         var authorization: String
         var options:       Http.GetOptions
         options.userAgent = "SwagScope/1.0 (https://github.com/swag-lang/swc)"
@@ -772,24 +985,36 @@ impl OnlineMovie
             authorization = Format.toString("Bearer %", token)
             options.headers.add({name: "Authorization", value: authorization})
         }
-        else do
+        else
+        {
             path += Format.toString("&api_key=%", Url.encodeComponent(cast(const [..] u8, key)))
+        }
+
         let response = try Http.get(source.tmdbHost, source.port, path.toString(), source.secure, options)
-        if response.status != 200 do
+        if response.status != 200
+        {
             return {}
-        var decoder: Serialization.Decoder'Serialization.Read.Json
-        let search = try decoder.readAll'TmdbSearch(response.body.toSlice())
+        }
+
+        var decoder: Serialization.Decoder!{Serialization.Read.Json}
+        let search = try decoder.readAll!{TmdbSearch}(response.body.toSlice())
         defer Memory.delete(search)
         let index = query.chooseTMDB(search)
-        if index == Swag.U64.Max do
+        if index == Swag.U64.Max
+        {
             return {}
+        }
+
         var movie: OnlineMovie
         let film = &search.results[index]
         movie.id       = Format.toString("tmdb:%", film.id)
         movie.title    = film.title
         movie.overview = film.overview
-        if film.releaseDate.length >= 4 do
+        if film.releaseDate.length >= 4
+        {
             movie.releaseDate = film.releaseDate.toString()[0 until 4]
+        }
+
         if film.posterPath.length > 1 and
            film.posterPath[0] == '/' and
            not Utf8.contains(film.posterPath.toString(), "..") and
@@ -798,8 +1023,11 @@ impl OnlineMovie
             let scheme = source.secure ? "https" : "http"
             let host   = source.imageHost.count ? source.imageHost : "image.tmdb.org"
             movie.posterUrl = Format.toString("%://%", scheme, host)
-            if source.port != 443 do
+            if source.port != 443
+            {
                 movie.posterUrl += Format.toString(":%", source.port)
+            }
+
             movie.posterUrl += "/t/p/w500"
             movie.posterUrl += film.posterPath
         }
@@ -819,8 +1047,11 @@ impl OnlineMovie
 
     private mtd loadTMDBDetails(id: u64, source: MovieSource, locale, token, key: string) fail
     {
-        if Swag.isCancelled() do
+        if Swag.isCancelled()
+        {
             return
+        }
+
         var path = Format.toString("/3/movie/%?language=%&append_to_response=credits", id, locale)
         var authorization: String
         var options:       Http.GetOptions
@@ -831,33 +1062,46 @@ impl OnlineMovie
             authorization = Format.toString("Bearer %", token)
             options.headers.add({name: "Authorization", value: authorization})
         }
-        else do
+        else
+        {
             path += Format.toString("&api_key=%", Url.encodeComponent(cast(const [..] u8, key)))
+        }
 
         let response = try Http.get(source.tmdbHost, source.port, path.toString(), source.secure, options)
-        if response.status != 200 do
+        if response.status != 200
+        {
             return
-        var decoder: Serialization.Decoder'Serialization.Read.Json
-        let details = try decoder.readAll'TmdbMovieDetails(response.body.toSlice())
+        }
+
+        var decoder: Serialization.Decoder!{Serialization.Read.Json}
+        let details = try decoder.readAll!{TmdbMovieDetails}(response.body.toSlice())
         defer Memory.delete(details)
         for &genre in details.genres where not genre.name.isEmpty() and
                                            not Utf8.contains(.genre.toString(), genre.name.toString())
         {
-            if not .genre.isEmpty() do
+            if not .genre.isEmpty()
+            {
                 .genre += ", "
+            }
+
             .genre += genre.name
         }
 
         for &member in details.credits.crew where member.job == "Director" and not member.name.isEmpty()
         {
-            if .director.isEmpty() do
+            if .director.isEmpty()
+            {
                 .director = member.name
+            }
         }
 
         for &member, index in details.credits.castMembers where index < 3 and not member.name.isEmpty()
         {
-            if not .actors.isEmpty() do
+            if not .actors.isEmpty()
+            {
                 .actors += ", "
+            }
+
             .actors += member.name
         }
     }
@@ -866,12 +1110,18 @@ impl OnlineMovie
     // its year when exactly one film answers to its title, and to its year when the name says it.
     private mtd lookupApple(query: MovieQuery, source: MovieSource, language: string) fail
     {
-        if not source.appleHost.count do
+        if not source.appleHost.count
+        {
             return
+        }
+
         if source.appleHost == AppleCatalogueHost
         {
-            if not lockMediaLookup(&g_MovieLookupLock) do
+            if not lockMediaLookup(&g_MovieLookupLock)
+            {
                 return
+            }
+
             defer g_MovieLookupLock.unlock()
 
             // Reserve the next catalogue slot; the network request needs no shared state.
@@ -881,52 +1131,79 @@ impl OnlineMovie
                 let elapsed = (now - g_AppleLastRequest) / Time.TicksPerMillisecond
                 if g_AppleLastRequest == 0 or
                    now < g_AppleLastRequest or
-                   elapsed >= AppleRequestSpacing do
+                   elapsed >= AppleRequestSpacing
+                {
                     break
-                if Swag.isCancelled() do
+                }
+
+                if Swag.isCancelled()
+                {
                     return
-                Threading.Thread.sleep(50'ms)
+                }
+
+                Threading.Thread.sleep(50_ms)
             }
 
             g_AppleLastRequest = Time.Timestamp.utcNow().ticks
         }
 
-        if Swag.isCancelled() do
+        if Swag.isCancelled()
+        {
             return
+        }
+
         let country = Utf8.startsWith(language, "fr") ? "FR" : "US"
         let path    = Format.toString("/search?term=%&entity=movie&limit=10&country=%", Url.encodeComponent(cast(const [..] u8, query.title.toString())), country)
         var options: Http.GetOptions
         options.userAgent = "SwagScope/1.0 (https://github.com/swag-lang/swc)"
         options.timeoutMs = 5_000
         let response = try Http.get(source.appleHost, source.port, path.toString(), source.secure, options)
-        if response.status != 200 do
+        if response.status != 200
+        {
             return
-        var decoder: Serialization.Decoder'Serialization.Read.Json
-        let search = try decoder.readAll'AppleSearch(response.body.toSlice())
+        }
+
+        var decoder: Serialization.Decoder!{Serialization.Read.Json}
+        let search = try decoder.readAll!{AppleSearch}(response.body.toSlice())
         defer Memory.delete(search)
         let index = query.chooseApple(search)
-        if index == Swag.U64.Max do
+        if index == Swag.U64.Max
+        {
             return
+        }
 
         let film = &search.results[index]
         .id = "apple"
-        if .title.isEmpty() do
+        if .title.isEmpty()
+        {
             .title = query.title
+        }
+
         .articleUrl = film.trackViewUrl
-        if .releaseDate.isEmpty() and film.releaseDate.length >= 4 do
+        if .releaseDate.isEmpty() and film.releaseDate.length >= 4
+        {
             .releaseDate = film.releaseDate.toString()[0 until 4]
-        if not film.longDescription.isEmpty() do
+        }
+
+        if not film.longDescription.isEmpty()
+        {
             .overview = film.longDescription
+        }
+
         .genre = film.primaryGenreName
         if not film.artworkUrl100.isEmpty()
         {
             // The artwork address names its size; a poster asks for a larger one.
             var url = film.artworkUrl100.toString()
             let at  = Utf8.indexOf(url, "100x100")
-            if at != Swag.U64.Max do
+            if at != Swag.U64.Max
+            {
                 .posterUrl = Format.toString("%600x900%", url[0 until at], url[at + 7 to])
-            else do
+            }
+            else
+            {
                 .posterUrl = film.artworkUrl100
+            }
         }
 
         .sources = "Apple"
@@ -934,8 +1211,11 @@ impl OnlineMovie
 
     private func lookupArticle(query: MovieQuery, source: MovieSource, language: string)->OnlineMovie fail
     {
-        if Swag.isCancelled() do
+        if Swag.isCancelled()
+        {
             return {}
+        }
+
         let french     = Utf8.startsWith(language, "fr")
         let wikiHost   = source.wikiHost.count ? source.wikiHost : (french ? "fr.wikipedia.org" : "en.wikipedia.org")
         let term       = Format.toString("% film", query.title)
@@ -944,14 +1224,20 @@ impl OnlineMovie
         options.userAgent = "SwagScope/1.0 (https://github.com/swag-lang/swc)"
         options.timeoutMs = 5_000
         let response = try Http.get(wikiHost, source.port, searchPath.toString(), source.secure, options)
-        if response.status != 200 do
+        if response.status != 200
+        {
             fail Errors.InvalidFormatError{}
-        var decoder: Serialization.Decoder'Serialization.Read.Json
-        let search = try decoder.readAll'MovieSearch(response.body.toSlice())
+        }
+
+        var decoder: Serialization.Decoder!{Serialization.Read.Json}
+        let search = try decoder.readAll!{MovieSearch}(response.body.toSlice())
         defer Memory.delete(search)
         let index = query.choose(search)
-        if index == Swag.U64.Max do
+        if index == Swag.U64.Max
+        {
             return {}
+        }
+
         let page = &search.query.pages[index]
         var movie: OnlineMovie
         movie.id          = page.pageprops.id
@@ -965,84 +1251,120 @@ impl OnlineMovie
         catch movie.loadDetails(source, options, language)
 
         // The French article often has a landscape logo while the English one has the poster.
-        if french and (page.thumbnail.height <= page.thumbnail.width or page.thumbnail.source.isEmpty()) do
+        if french and (page.thumbnail.height <= page.thumbnail.width or page.thumbnail.source.isEmpty())
+        {
             catch movie.loadEnglishPoster(query, source, searchPath, options)
+        }
+
         return movie
     }
 
     private mtd loadEnglishPoster(query: MovieQuery, source: MovieSource, path: string, options: Http.GetOptions) fail
     {
-        if Swag.isCancelled() do
+        if Swag.isCancelled()
+        {
             return
+        }
+
         let host     = source.wikiHost.count ? source.wikiHost : "en.wikipedia.org"
         let response = try Http.get(host, source.port, path, source.secure, options)
-        if response.status != 200 do
+        if response.status != 200
+        {
             return
-        var decoder: Serialization.Decoder'Serialization.Read.Json
-        let search = try decoder.readAll'MovieSearch(response.body.toSlice())
+        }
+
+        var decoder: Serialization.Decoder!{Serialization.Read.Json}
+        let search = try decoder.readAll!{MovieSearch}(response.body.toSlice())
         defer Memory.delete(search)
         let index = query.choose(search)
-        if index == Swag.U64.Max do
+        if index == Swag.U64.Max
+        {
             return
+        }
+
         let page = &search.query.pages[index]
-        if page.pageprops.id == .id and page.thumbnail.height > page.thumbnail.width do
+        if page.pageprops.id == .id and page.thumbnail.height > page.thumbnail.width
+        {
             .posterUrl = page.thumbnail.source
+        }
     }
 
     private mtd loadDetails(source: MovieSource, options: Http.GetOptions, language: string) fail
     {
-        if Swag.isCancelled() or not validWikiId(.id) do
+        if Swag.isCancelled() or not validWikiId(.id)
+        {
             return
+        }
+
         let lang     = Utf8.startsWith(language, "fr") ? "fr,en" : "en"
         let sparql   = Format.toString("""SELECT ?directorLabel ?castLabel ?genreLabel ?score ?scoreDate WHERE { OPTIONAL { wd:% wdt:P57 ?director } OPTIONAL { wd:% wdt:P161 ?cast } OPTIONAL { wd:% wdt:P136 ?genre } OPTIONAL { wd:% p:P444 ?s . ?s ps:P444 ?score; pq:P447 wd:Q37312 . OPTIONAL { ?s pq:P585 ?scoreDate } } SERVICE wikibase:label { bd:serviceParam wikibase:language "%" . } } LIMIT 20""", .id, .id, .id, .id, lang)
         let request  = Format.toString("/sparql?query=%&format=json", Url.encodeComponent(cast(const [..] u8, sparql.toString())))
         let response = try Http.get(source.dataHost, source.port, request.toString(), source.secure, options)
-        if response.status != 200 do
+        if response.status != 200
+        {
             fail Errors.InvalidFormatError{}
-        var decoder: Serialization.Decoder'Serialization.Read.Json
-        let details = try decoder.readAll'WikiDetails(response.body.toSlice())
+        }
+
+        var decoder: Serialization.Decoder!{Serialization.Read.Json}
+        let details = try decoder.readAll!{WikiDetails}(response.body.toSlice())
         defer Memory.delete(details)
         for &row in details.results.bindings
         {
-            if .director.isEmpty() do
+            if .director.isEmpty()
+            {
                 .director = row.directorLabel.value
+            }
+
             if .imdbRating.isEmpty() and not row.score.value.isEmpty()
             {
                 .imdbRating = row.score.value
-                if row.scoreDate.value.length >= 10 do
+                if row.scoreDate.value.length >= 10
+                {
                     .imdbRating += Format.toString(" (%)", row.scoreDate.value.toString()[0 until 10])
+                }
             }
 
             if not row.castLabel.value.isEmpty() and not Utf8.contains(.actors.toString(), row.castLabel.value.toString())
             {
-                if not .actors.isEmpty() do
+                if not .actors.isEmpty()
+                {
                     .actors += ", "
+                }
+
                 .actors += row.castLabel.value
             }
 
             if not row.genreLabel.value.isEmpty() and not Utf8.contains(.genre.toString(), row.genreLabel.value.toString())
             {
-                if not .genre.isEmpty() do
+                if not .genre.isEmpty()
+                {
                     .genre += ", "
+                }
+
                 .genre += row.genreLabel.value
             }
         }
     }
 
     // Restrict redirects and the final request to the image hosts of TMDB, Wikimedia and Apple.
-    mtd posterBytes(source: MovieSource = {})->Array'u8 fail
+    mtd posterBytes(source: MovieSource = {})->Array!{u8} fail
     {
-        if .posterUrl.isEmpty() do
+        if .posterUrl.isEmpty()
+        {
             return {}
+        }
+
         let target = try Url.parseHttp(.posterUrl)
         if source.imageHost.count
         {
-            if target.host != source.imageHost or target.port != source.port do
+            if target.host != source.imageHost or target.port != source.port
+            {
                 fail Errors.InvalidFormatError{}
+            }
         }
-        elif not target.secure or
-             target.port != 443 or
-             (target.host != "image.tmdb.org" and target.host != "upload.wikimedia.org" and target.host != "thumb.wikimedia.org" and not Utf8.endsWith(target.host, ".mzstatic.com"))
+        else if not target.secure or
+                target.port != 443 or
+                (target.host != "image.tmdb.org" and target.host != "upload.wikimedia.org" and target.host != "thumb.wikimedia.org" and not Utf8.endsWith(target.host, ".mzstatic.com"))
         {
             fail Errors.InvalidFormatError{}
         }
@@ -1051,8 +1373,11 @@ impl OnlineMovie
         options.userAgent = "SwagScope/1.0 (https://github.com/swag-lang/swc)"
         options.timeoutMs = 5_000
         var response = try Http.get(target.host, target.port, target.path, target.secure, options)
-        if response.status != 200 do
+        if response.status != 200
+        {
             fail Errors.InvalidFormatError{}
+        }
+
         return #move response.body
     }
 }

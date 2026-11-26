@@ -9,5 +9,5 @@ func uncheckedDescriptor(type: typeinfo)->const *Swag.TypeInfoStruct
 #test
 {
     // swc-expected-error@(+1) {{sema_err_cast_unrelated_structs}}
-    let descriptor = cast(const *Swag.TypeInfoStruct, #typeof(42's32))
+    let descriptor = cast(const *Swag.TypeInfoStruct, #typeof(42_s32))
 }

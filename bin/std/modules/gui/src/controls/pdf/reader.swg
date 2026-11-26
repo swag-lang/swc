@@ -42,7 +42,7 @@ struct Reader
         sourceFileName:   String
         region:           File.MappedRegion
         parser:           PdfParser
-        sources:          Array'PageSource
+        sources:          Array!{PageSource}
     }
 }
 
@@ -80,28 +80,34 @@ impl Reader
     // Direct destinations, named destinations, and local GoTo actions are resolved. Entries
     // without a usable local destination retain their hierarchy and have `pageIndex` set to `Swag.U64.Max`.
     // An absent outline returns an empty array; cycles in damaged outline and name trees are ignored.
-    mtd loadOutline()->Array'OutlineEntry
+    mtd loadOutline()->Array!{OutlineEntry}
     {
         var result:       #returntype
-        var names:        HashTable'(String, u32)
-        var pendingNames: Array'u32
-        var visitedNames: HashTable'(u32, bool)
+        var names:        HashTable!{String, u32}
+        var pendingNames: Array!{u32}
+        var visitedNames: HashTable!{u32, bool}
         let catalog      = .parser.catalogId
         let firstOutline = .parser.dict(.parser.dict(catalog, "Outlines"), "First")
-        if firstOutline == InvalidNode do
+        if firstOutline == InvalidNode
+        {
             return result
+        }
+
         pendingNames.add(.parser.dict(.parser.dict(catalog, "Names"), "Dests"))
         while pendingNames.count
         {
             let node = .parser.resolve(pendingNames.popBack())
-            if node == InvalidNode or visitedNames.contains(node) do
+            if node == InvalidNode or visitedNames.contains(node)
+            {
                 continue
+            }
+
             visitedNames[node] = true
             let pairsId = .parser.dict(node, "Names")
             if pairsId != InvalidNode and .parser.nodes[pairsId].kind == .Array
             {
                 let pairs = .parser.nodes[pairsId].values
-                var index = 0'u64
+                var index = 0_u64
                 while index + 1 < pairs.count
                 {
                     let name = String.from(.parser.stringValue(pairs[index]))
@@ -114,52 +120,69 @@ impl Reader
             if kidsId != InvalidNode and .parser.nodes[kidsId].kind == .Array
             {
                 let kids = .parser.nodes[kidsId].values
-                for child in kids do
+                for child in kids
+                {
                     pendingNames.add(child)
+                }
             }
         }
 
-        var pages: HashTable'(u32, u64)
-        for source, index in .sources do
+        var pages: HashTable!{u32, u64}
+        for source, index in .sources
+        {
             pages[source.objectId] = index
-        var pending: Array'{node: u32, level: u32}
-        var visited: HashTable'(u32, bool)
+        }
+
+        var pending: Array!{{node: u32, level: u32}}
+        var visited: HashTable!{u32, bool}
         pending.add({node: firstOutline, level: 1})
         while pending.count
         {
             let item = pending.popBack()
             let node = .parser.resolve(item.node)
-            if node == InvalidNode or visited.contains(node) do
+            if node == InvalidNode or visited.contains(node)
+            {
                 continue
+            }
+
             visited[node] = true
             var entry: OutlineEntry
             entry.level = item.level
             let title = .parser.stringValue(.parser.dict(node, "Title"))
-            if title.count >= 2 and title[0] == 0xFE and title[1] == 0xFF do
+            if title.count >= 2 and title[0] == 0xFE and title[1] == 0xFF
+            {
                 entry.title = Text.decode(cast(const [..] u8, title[2 to]), .Utf16Be)
-            else do
+            }
+            else
+            {
                 entry.title = Text.decode(cast(const [..] u8, title), .Windows1252)
+            }
 
             var destination = .parser.dict(node, "Dest")
             if destination == InvalidNode
             {
                 let action = .parser.dict(node, "A")
-                if .parser.name(.parser.dict(action, "S")) == "GoTo" do
+                if .parser.name(.parser.dict(action, "S")) == "GoTo"
+                {
                     destination = .parser.dict(action, "D")
+                }
             }
 
-            var resolved: HashTable'(u32, bool)
+            var resolved: HashTable!{u32, bool}
             while destination != InvalidNode and not resolved.contains(destination)
             {
                 resolved[destination] = true
                 let kind = .parser.nodes[destination].kind
-                if kind == .Array do
+                if kind == .Array
+                {
                     break
+                }
+
                 if kind == .Dictionary
                 {
                     destination = .parser.dict(destination, "D")
                 }
-                elif kind == .Name or kind == .String
+                else if kind == .Name or kind == .String
                 {
                     let name  = .parser.nodes[destination].text
                     let found = names.tryFind(name)
@@ -190,14 +213,24 @@ impl Reader
                             let mode = String.from(.parser.name(values[1]))
                             var x    = region.box.x
                             var y    = region.box.bottom()
-                            if (mode == "XYZ" or mode == "FitV" or mode == "FitBV" or mode == "FitR") and values.count > 2 do
+                            if (mode == "XYZ" or mode == "FitV" or mode == "FitBV" or mode == "FitR") and values.count > 2
+                            {
                                 x = cast(f32, .parser.number(values[2], x))
-                            if mode == "XYZ" and values.count > 3 do
+                            }
+
+                            if mode == "XYZ" and values.count > 3
+                            {
                                 y = cast(f32, .parser.number(values[3], y))
-                            elif (mode == "FitH" or mode == "FitBH") and values.count > 2 do
+                            }
+                            else if (mode == "FitH" or mode == "FitBH") and values.count > 2
+                            {
                                 y = cast(f32, .parser.number(values[2], y))
-                            elif mode == "FitR" and values.count > 5 do
+                            }
+                            else if mode == "FitR" and values.count > 5
+                            {
                                 y = cast(f32, .parser.number(values[5], y))
+                            }
+
                             x -= region.box.x
                             y -= region.box.y
                             switch region.rotate
@@ -208,21 +241,31 @@ impl Reader
                             default:  entry.position = Math.Point{x, region.box.height - y}
                             }
 
-                            if mode == "Fit" or mode == "FitB" do
+                            if mode == "Fit" or mode == "FitB"
+                            {
                                 entry.position = {}
+                            }
                         }
                     }
                 }
             }
 
-            if not entry.title.isEmpty() do
+            if not entry.title.isEmpty()
+            {
                 result.add(#move entry)
+            }
+
             let next  = .parser.dict(node, "Next")
             let first = .parser.dict(node, "First")
-            if next != InvalidNode do
+            if next != InvalidNode
+            {
                 pending.add({node: next, level: item.level})
-            if first != InvalidNode do
+            }
+
+            if first != InvalidNode
+            {
                 pending.add({node: first, level: item.level + 1})
+            }
         }
 
         return result
@@ -234,34 +277,42 @@ impl Reader
     // tree: each range a prefix and a decimal, Roman or alphabetic count from its own start, so a
     // book's front matter reads `i`, `ii`, `iii` before page `1`. Returns an empty array when the
     // document labels no page; a page before the first range is named by its position.
-    mtd loadPageLabels()->Array'String
+    mtd loadPageLabels()->Array!{String}
     {
         var result: #returntype
         let root = .parser.dict(.parser.catalogId, "PageLabels")
-        if root == InvalidNode do
+        if root == InvalidNode
+        {
             return result
+        }
 
         // The ranges, in the order of the pages they start at.
-        var ranges:  Array'PageLabelRange
-        var pending: Array'u32
-        var visited: HashTable'(u32, bool)
+        var ranges:  Array!{PageLabelRange}
+        var pending: Array!{u32}
+        var visited: HashTable!{u32, bool}
         pending.add(root)
         while pending.count
         {
             let node = .parser.resolve(pending.popBack())
-            if node == InvalidNode or visited.contains(node) or visited.count > 4096 do
+            if node == InvalidNode or visited.contains(node) or visited.count > 4096
+            {
                 continue
+            }
+
             visited[node] = true
             let numsId = .parser.dict(node, "Nums")
             if numsId != InvalidNode and .parser.nodes[numsId].kind == .Array
             {
                 let pairs = .parser.nodes[numsId].values
-                var index = 0'u64
+                var index = 0_u64
                 while index + 1 < pairs.count
                 {
                     let start = .parser.integer(pairs[index], -1)
-                    if start >= 0 do
+                    if start >= 0
+                    {
                         ranges.add(PageLabelRange{cast(u64, start), pairs[index + 1]})
+                    }
+
                     index += 2
                 }
             }
@@ -269,20 +320,28 @@ impl Reader
             let kidsId = .parser.dict(node, "Kids")
             if kidsId != InvalidNode and .parser.nodes[kidsId].kind == .Array
             {
-                for child in .parser.nodes[kidsId].values do
+                for child in .parser.nodes[kidsId].values
+                {
                     pending.add(child)
+                }
             }
         }
 
-        if ranges.isEmpty() do
+        if ranges.isEmpty()
+        {
             return result
+        }
+
         ranges.sort(func(a, b: PageLabelRange)->s32 => a.start < b.start ? -1 : (a.start > b.start ? 1 : 0))
 
         var range = Swag.U64.Max
         for page in .sources.count
         {
-            while (range == Swag.U64.Max and ranges[0].start <= page) or (range != Swag.U64.Max and range + 1 < ranges.count and ranges[range + 1].start <= page) do
+            while (range == Swag.U64.Max and ranges[0].start <= page) or (range != Swag.U64.Max and range + 1 < ranges.count and ranges[range + 1].start <= page)
+            {
                 range = range == Swag.U64.Max ? 0 : range + 1
+            }
+
             if range == Swag.U64.Max
             {
                 result.add(Format.toString("%", page + 1))
@@ -292,10 +351,15 @@ impl Reader
             let node   = .parser.resolve(ranges[range].node)
             let prefix = .parser.stringValue(.parser.dict(node, "P"))
             var label: String
-            if prefix.count >= 2 and prefix[0] == 0xFE and prefix[1] == 0xFF do
+            if prefix.count >= 2 and prefix[0] == 0xFE and prefix[1] == 0xFF
+            {
                 label = Text.decode(cast(const [..] u8, prefix[2 to]), .Utf16Be)
-            else do
+            }
+            else
+            {
                 label = Text.decode(cast(const [..] u8, prefix), .Windows1252)
+            }
+
             let first  = Math.max(.parser.integer(.parser.dict(node, "St"), 1), 1)
             let number = cast(u64, first) + page - ranges[range].start
             label += pageNumberText(.parser.name(.parser.dict(node, "S")), number)
@@ -311,8 +375,11 @@ impl Reader
     // released. An out-of-range index reports [[Core.Errors.BadParameterError]].
     mtd loadPage(index: u64)->Page fail
     {
-        if index >= .sources.count do
+        if index >= .sources.count
+        {
             fail Errors.BadParameterError{"PDF page index exceeds the document page count"}
+        }
+
         let source = .sources[index]
         var result = #move try decodePage(&.parser, source.objectId, source.resourcesId, source.mediaBoxId, source.cropBoxId, source.rotate, .Complete)
         return #move result
@@ -326,8 +393,11 @@ impl Reader
     // [[Core.Errors.BadParameterError]].
     mtd pageSize(index: u64)->Math.Point fail
     {
-        if index >= .sources.count do
+        if index >= .sources.count
+        {
             fail Errors.BadParameterError{"PDF page index exceeds the document page count"}
+        }
+
         let source = .sources[index]
         return try pageBoxSize(&.parser, source.objectId, source.mediaBoxId, source.cropBoxId, source.rotate)
     }
@@ -343,8 +413,11 @@ impl Reader
     // An out-of-range index reports [[Core.Errors.BadParameterError]].
     mtd loadPageText(index: u64)->String fail
     {
-        if index >= .sources.count do
+        if index >= .sources.count
+        {
             fail Errors.BadParameterError{"PDF page index exceeds the document page count"}
+        }
+
         let source = .sources[index]
         var page   = #move try decodePage(&.parser, source.objectId, source.resourcesId, source.mediaBoxId, source.cropBoxId, source.rotate, .TextOnly)
         var text   = TextIndex.build(&page)
@@ -387,11 +460,16 @@ func pageNumberText(style: string, number: u64)->String
         }
 
     case "A", "a":
-        if not number do
+        if not number
+        {
             return result
-        let letter = cast(u8, (number - 1) % 26) + (style == "A" ? 'A'u8 : 'a'u8)
-        for (number - 1) / 26 + 1 do
+        }
+
+        let letter = cast(u8, (number - 1) % 26) + (style == "A" ? 'A'_u8 : 'a'_u8)
+        for (number - 1) / 26 + 1
+        {
             result += cast(rune, letter)
+        }
     }
 
     return result

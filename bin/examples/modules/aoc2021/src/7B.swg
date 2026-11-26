@@ -31,9 +31,9 @@ func day7B()
 {
     let dataPath = Path.combine(Path.directoryName(#curlocation.fileName), "7.txt")
     let lines    = expect File.readAllLines(dataPath)
-    let str      = Tokenize.split(lines[0], ','u8)
+    let str      = Tokenize.split(lines[0], ','_u8)
 
-    var crabs: Array's32
+    var crabs: Array!{s32}
     var mean:  s32
     for v in str
     {
@@ -42,8 +42,10 @@ func day7B()
         crabs.add(c)
     }
 
-    if crabs.count do
+    if crabs.count
+    {
         mean = cast(s32, (mean / cast(f32, crabs.count)))
+    }
 
     var total = 0
     for v in crabs

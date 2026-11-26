@@ -59,4 +59,4 @@ struct Error
 // > Every way a container can refuse to open reports [[ErrorKind.PasswordOrDamaged]] —
 // > a wrong password, a damaged container, and an older format version are deliberately
 // > indistinguishable, and nothing the error carries may tell them apart either.
-func volumeError(kind = ErrorKind.General, code = 0'u64, location = #callerlocation)->Error => {kind: kind, code: code, location: location}
+func volumeError(kind = ErrorKind.General, code = 0_u64, location = #callerlocation)->Error => {kind: kind, code: code, location: location}

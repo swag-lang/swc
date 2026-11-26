@@ -26,9 +26,9 @@ private func paintVideoWindow(window: *Env.Window, pixel: u32)
     let library  = Linux.dlopen("libxcb.so.1".buffer, Linux.RTLD_NOW | Linux.RTLD_LOCAL)
     Swag.require(library != null)
     defer discard Linux.dlclose(unwrap library)
-    let attributes = expect X11Capture.symbol'Linux.xcb_change_window_attributes_checked_fn(library, "xcb_change_window_attributes_checked")
-    let clear      = expect X11Capture.symbol'Linux.xcb_clear_area_checked_fn(library, "xcb_clear_area_checked")
-    let check      = expect X11Capture.symbol'Linux.xcb_request_check_fn(library, "xcb_request_check")
+    let attributes = expect X11Capture.symbol!{Linux.xcb_change_window_attributes_checked_fn}(library, "xcb_change_window_attributes_checked")
+    let clear      = expect X11Capture.symbol!{Linux.xcb_clear_area_checked_fn}(library, "xcb_clear_area_checked")
+    let check      = expect X11Capture.symbol!{Linux.xcb_request_check_fn}(library, "xcb_request_check")
     let connection = unwrap drawable.connection
     let changed    = check(connection, attributes(connection, drawable.window, 2, &pixel))
     defer Linux.free(changed)
@@ -71,10 +71,13 @@ private func paintVideoWindow(window: *Env.Window, pixel: u32)
     expect recorder.repeatLastFrame(expect pacer.slotAt(2))
 
     var signal: [1_024] s16
-    for frame in signal.count do
+    for frame in signal.count
+    {
         signal[frame] = cast(s16,
                              Math.round(10_000.0 * Math.sin(Math.ConstF64.TwoPi *
                                                             1_000.0 * frame / 48_000.0)))
+    }
+
     expect recorder.addAudioFrames(Swag.makeSlice(&signal[0], signal.count))
     expect recorder.end()
     Swag.require(recorder.videoFrameCount() == 3 and recorder.repeatedFrameCount() == 1)
@@ -90,16 +93,19 @@ private func paintVideoWindow(window: *Env.Window, pixel: u32)
     Swag.require(Slice.equals(decoded.luma.toSlice(), expectedBlue.luma()))
     let sound = unwrap reader.audioTrack(0)
     Swag.require(sound.sampleFrameCount() == signal.count)
-    var pcm: Array's16
+    var pcm: Array!{s16}
     expect sound.decodePcm16(func|pcm = &pcm|(part: const [..] s16)->bool
     {
         pcm.add(part)
         return true
     })
     Swag.require(pcm.count == signal.count)
-    var power = 0.0'f64
-    for sample in pcm do
+    var power = 0.0_f64
+    for sample in pcm
+    {
         power += cast(f64, sample) * sample
+    }
+
     Swag.require(Math.sqrt(power / pcm.count) > 3_000)
 }
 
@@ -137,10 +143,13 @@ private func paintVideoWindow(window: *Env.Window, pixel: u32)
     session.source.x = 10
     Swag.require(expect session.captureAt(1_083_334))
     var signal: [1_024] s16
-    for frame in signal.count do
+    for frame in signal.count
+    {
         signal[frame] = cast(s16,
                              Math.round(8_000.0 * Math.sin(Math.ConstF64.TwoPi *
                                                            700.0 * frame / 48_000.0)))
+    }
+
     expect session.addAudioFrames(Swag.makeSlice(&signal[0], signal.count))
     expect session.end()
     var reader = expect Reader.open(path)
@@ -152,13 +161,13 @@ private func paintVideoWindow(window: *Env.Window, pixel: u32)
     expect reader.decodeFramePlanesInto(&decoded, 3)
     let blue = decoded.luma[0]
     Swag.require(red != blue)
-    for frame in 1'u64 until 3
+    for frame in 1_u64 until 3
     {
         expect reader.decodeFramePlanesInto(&decoded, frame)
         Swag.require(decoded.luma[0] == red)
     }
 
-    for frame in 4'u64 until 6
+    for frame in 4_u64 until 6
     {
         expect reader.decodeFramePlanesInto(&decoded, frame)
         Swag.require(decoded.luma[0] == blue)
@@ -212,14 +221,17 @@ private func paintVideoWindow(window: *Env.Window, pixel: u32)
     let configs: [2] Mp4.SoftwareAudioConfig = [{48_000, 1, .Voice},
                                                 {48_000, 2, .Full}]
     var session = expect VideoCaptureSession.create(path, {10, 20, 32, 16}, expect FrameRate.create(60, 1), false, Swag.makeSlice(&configs[0], configs.count))
-    for frame in 7'u64 do
+    for frame in 7_u64
+    {
         Swag.require(expect session.captureAt(1_000_000 + frame * 16_667))
+    }
+
     let soundOrigin = expect session.captureOrigin100ns()
     var microphone  = expect CaptureQueue.create(48_000, 1, soundOrigin, 10_000_000, blockFrames: 1_024, tolerance: 0)
     var system      = expect CaptureQueue.create(48_000, 2, soundOrigin, 10_000_000, blockFrames: 1_024, tolerance: 0)
     var voice:   [1_024] s16
     var desktop: [2 * 1_024] s16
-    for frame in 1_024'u64
+    for frame in 1_024_u64
     {
         voice[frame] = cast(s16,
                             Math.round(9_000.0 * Math.sin(Math.ConstF64.TwoPi *
@@ -244,8 +256,10 @@ private func paintVideoWindow(window: *Env.Window, pixel: u32)
     {
         let mic    = expect micPump.pump(512)
         let output = expect systemPump.pump(512)
-        if not mic and not output do
+        if not mic and not output
+        {
             break
+        }
     }
 
     Swag.require(micPump.inputFrameCount() == 4_096 and systemPump.inputFrameCount() == 4_096)
@@ -260,26 +274,26 @@ private func paintVideoWindow(window: *Env.Window, pixel: u32)
     let systemSound = unwrap reader.audioTrack(1)
     Swag.require(micSound.sampleFrameCount() == 4_096 and
                  systemSound.sampleFrameCount() == 4_096)
-    var micPcm: Array's16
+    var micPcm: Array!{s16}
     expect micSound.decodePcm16(func|micPcm = &micPcm|(part: const [..] s16)->bool
     {
         micPcm.add(part)
         return true
     })
-    var systemPcm: Array's16
+    var systemPcm: Array!{s16}
     expect systemSound.decodePcm16(func|systemPcm = &systemPcm|(part: const [..] s16)->bool
     {
         systemPcm.add(part)
         return true
     })
     Swag.require(micPcm.count == 4_096 and systemPcm.count == 8_192)
-    var micBefore    = 0.0'f64
-    var micGap       = 0.0'f64
-    var micAfter     = 0.0'f64
-    var systemBefore = 0.0'f64
-    var systemGap    = 0.0'f64
-    var systemAfter  = 0.0'f64
-    for frame in 1_024'u64
+    var micBefore    = 0.0_f64
+    var micGap       = 0.0_f64
+    var micAfter     = 0.0_f64
+    var systemBefore = 0.0_f64
+    var systemGap    = 0.0_f64
+    var systemAfter  = 0.0_f64
+    for frame in 1_024_u64
     {
         micBefore    += cast(f64, micPcm[frame]) * micPcm[frame]
         micGap       += cast(f64, micPcm[1_024 + frame]) * micPcm[1_024 + frame]
@@ -312,7 +326,7 @@ private func paintVideoWindow(window: *Env.Window, pixel: u32)
     var rejected: Swag.Error
     discard catch VideoAudioPump.create(&session, &wrongChannels, 0) as rejected
     Swag.require(rejected.value() is Errors.BadParameterError)
-    expect queue.markLost(4'u64 * 60 * 60 * 48_000)
+    expect queue.markLost(4_u64 * 60 * 60 * 48_000)
     var pump = expect VideoAudioPump.create(&session, &queue, 0)
     var invalidBudget: Swag.Error
     discard catch pump.pump(0) as invalidBudget
@@ -342,8 +356,11 @@ private func paintVideoWindow(window: *Env.Window, pixel: u32)
     discard expect queue.push(Swag.makeSlice(&samples[0], samples.count), 8)
     Swag.require(queue.droppedBlockCount() == 2 and queue.droppedFrameCount() == 8)
     var pump = expect VideoAudioPump.create(&session, &queue, 0)
-    for 4 do
+    for 4
+    {
         Swag.require(expect pump.pump(3) == 3)
+    }
+
     Swag.require(expect pump.pump(3) == 0)
     Swag.require(pump.inputFrameCount() == 12 and pump.syntheticFrameCount() == 8)
     expect session.end()
@@ -367,10 +384,10 @@ private func paintVideoWindow(window: *Env.Window, pixel: u32)
     var feeder      = expect CaptureResampledFeeder.create(&queue, 96_000)
     var pump        = expect VideoAudioPump.create(&session, &queue, 0)
     var packet: [2 * 512] f32
-    var sourceFrame = 0'u64
+    var sourceFrame = 0_u64
     while sourceFrame < 9_600
     {
-        let count = Math.min(512'u64, 9_600 - sourceFrame)
+        let count = Math.min(512_u64, 9_600 - sourceFrame)
         for frame in count
         {
             let phase = Math.ConstF64.TwoPi * 440.0 * (sourceFrame + frame) / 96_000.0
@@ -387,8 +404,10 @@ private func paintVideoWindow(window: *Env.Window, pixel: u32)
     expect feeder.finish()
     for 16
     {
-        if not (expect pump.pump(512)) do
+        if not (expect pump.pump(512))
+        {
             break
+        }
     }
 
     Swag.require(pump.inputFrameCount() == 4_800 and
@@ -418,8 +437,11 @@ private func paintVideoWindow(window: *Env.Window, pixel: u32)
     Swag.require(expect session.captureAt(0))
     Swag.require(session.frameCount() == 1)
     var sound: [512] s16
-    for frame in sound.count do
+    for frame in sound.count
+    {
         sound[frame] = cast(s16, frame % 2 ? 4_000 : -4_000)
+    }
+
     expect session.addAudioFrames(Swag.makeSlice(&sound[0], sound.count))
     session.minimumFreeSpace   = Swag.U64.Max
     session.nextSpaceCheckTick = 0
@@ -446,7 +468,7 @@ private func paintVideoWindow(window: *Env.Window, pixel: u32)
     defer discard catch File.delete(path)
     var session = expect VideoCaptureSession.create(path, {0, 0, 16, 16}, expect FrameRate.create(60, 1), false)
     Swag.require(expect session.captureAt(0))
-    Swag.require(expect session.captureAt(4'u64 * 60 * 60 * 1_000_000))
+    Swag.require(expect session.captureAt(4_u64 * 60 * 60 * 1_000_000))
     Swag.require(session.missedFrameSlotCount() == 864_000 - 1 and
                  session.repeatedFrameCount() == 1 and
                  session.frameCount() == 3)

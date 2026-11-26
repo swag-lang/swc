@@ -5,11 +5,11 @@ using Core
 
 // Bytes the viewer keeps resident at once. One window covers many screens, so a reader moving
 // through a file crosses a read every few hundred rows rather than on every scroll notch.
-const WindowSize = 256 * 1024'u64
+const WindowSize = 256 * 1024_u64
 
 // Reads start on this boundary, so scrolling back by one row lands on the block that was already
 // read instead of on a window shifted by sixteen bytes.
-const WindowAlign = 64 * 1024'u64
+const WindowAlign = 64 * 1024_u64
 
 // File the viewer reads through, one bounded window at a time.
 //
@@ -21,7 +21,7 @@ struct Document
     stream:        File.FileStream
     fileSize:      u64
     windowStart:   u64
-    window:        Array'u8
+    window:        Array!{u8}
     readFailed:    bool
     failureReason: String
     reportFailure: (func||(string))?
@@ -32,14 +32,22 @@ impl Document
     // Records `reason` as the failure that stops every later read, and reports it to `reportFailure` once.
     mtd failRead(reason: string)
     {
-        if .readFailed do
+        if .readFailed
+        {
             return
+        }
+
         .failureReason = reason
-        if .failureReason.isEmpty() do
+        if .failureReason.isEmpty()
+        {
             .failureReason = texts().err_Read
+        }
+
         .readFailed = true
-        if .reportFailure do
+        if .reportFailure
+        {
             .reportFailure(.failureReason)
+        }
     }
 
     // Opens `fileName` for reading and reports whether its size could be established.
@@ -82,17 +90,25 @@ impl Document
     // for more than one screen of bytes, which is what keeps that bound invisible.
     mtd ensure(offset, length: u64)->bool
     {
-        if .readFailed or not .stream.isOpen() do
+        if .readFailed or not .stream.isOpen()
+        {
             return false
-        if offset >= .fileSize do
+        }
+
+        if offset >= .fileSize
+        {
             return length == 0
+        }
+
         let end         = Math.min(offset + length, .fileSize)
         let margin      = Math.min(Math.max(length * 6, WindowAlign), WindowSize / 4)
         let windowEnd   = .windowStart + .window.count
         let readyBefore = not .windowStart or offset >= .windowStart + margin
         let readyAfter  = windowEnd >= .fileSize or end + margin <= windowEnd
-        if offset >= .windowStart and end <= windowEnd and readyBefore and readyAfter do
+        if offset >= .windowStart and end <= windowEnd and readyBefore and readyAfter
+        {
             return true
+        }
 
         // Keep overlap on both sides, so reversing near a read boundary does not reread a new
         // window on every row. Paint always receives the complete requested range synchronously.
@@ -132,11 +148,17 @@ impl Document
     // establishes residency once for the whole row range through [[Document.ensure]].
     mtd byteAt(offset: u64)->u8
     {
-        if offset < .windowStart do
+        if offset < .windowStart
+        {
             return 0
+        }
+
         let index = offset - .windowStart
-        if index >= .window.count do
+        if index >= .window.count
+        {
             return 0
+        }
+
         return .window[index]
     }
 
@@ -144,11 +166,13 @@ impl Document
     //
     // This is how the clipboard and the value inspector reach bytes: both need a range the display
     // window does not necessarily hold, and neither may disturb what is on screen.
-    mtd read(offset, count: u64)->Array'u8
+    mtd read(offset, count: u64)->Array!{u8}
     {
         var result: #returntype
-        if .readFailed or not .stream.isOpen() or not count or offset >= .fileSize do
+        if .readFailed or not .stream.isOpen() or not count or offset >= .fileSize
+        {
             return result
+        }
 
         let wanted = Math.min(count, .fileSize - offset)
         result.resize(wanted)

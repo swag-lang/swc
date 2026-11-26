@@ -32,7 +32,7 @@ func scalar(value, scale: f64)->f64
             Swag.require(values[5] == scalar(right, values[2]))
         }
     }
-    for scale in [1e-80'f64, 1.0, 1e80]
+    for scale in [1e-80_f64, 1.0, 1e80]
     {
         var values: [8] f64 = [3.25 * scale, 7.125 * scale, 0.125, 0, 0, 0, 0, 0]
         paired(&values)

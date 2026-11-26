@@ -15,8 +15,10 @@ func compute(index, rounds: u64)->u64
 
 func fill(values: [..] u64, rounds, heavyBegin, heavyEnd, heavyRounds: u64)
 {
-    parallel for |values, rounds, heavyBegin, heavyEnd, heavyRounds| index in values.count do
+    parallel for |values, rounds, heavyBegin, heavyEnd, heavyRounds| index in values.count
+    {
         values[index] = compute(index, index >= heavyBegin and index < heavyEnd ? heavyRounds : rounds)
+    }
 }
 
 #[Swag.Safety(.Assert, true)]
@@ -24,17 +26,26 @@ func measure(name: string, count, rounds, heavyBegin, heavyEnd, heavyRounds, rep
 {
     var values: [2048] u64
     let target = values[0 until count]
-    for 32 do
+    for 32
+    {
         fill(target, rounds, heavyBegin, heavyEnd, heavyRounds)
+    }
+
     for sample in 3
     {
         var watch: Time.Stopwatch
         watch.start()
-        for repeats do
+        for repeats
+        {
             fill(target, rounds, heavyBegin, heavyEnd, heavyRounds)
+        }
+
         watch.stop()
-        for index in count do
+        for index in count
+        {
             Swag.assert(values[index] == compute(index, index >= heavyBegin and index < heavyEnd ? heavyRounds : rounds))
+        }
+
         Console.println(name, " workers=", Swag.workerCount(), " sample=", sample, " us=", watch.elapsedMicroseconds())
     }
 }

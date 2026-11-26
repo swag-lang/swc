@@ -10,7 +10,7 @@ private func transparencyDocument(resources, content: string, extra: const [..] 
 // White is full luminosity and therefore full coverage; everywhere else the group paints
 // nothing and the black backdrop leaves the coverage at zero. Object 5 is the graphics state
 // that selects it and object 6 is the group.
-private func luminosityMaskObjects()->Array'u8
+private func luminosityMaskObjects()->Array!{u8}
 {
     var result: #returntype
     addObject(&result, 5, "<< /Type /ExtGState /SMask << /S /Luminosity /G 6 0 R >> >>")
@@ -30,8 +30,10 @@ private func markedPixels(frame: const *Image)->u64
         for x in frame.width
         {
             let color = frame.pixelColor(x, y)
-            if color.r > 200 and color.g < 60 and color.b < 60 do
+            if color.r > 200 and color.g < 60 and color.b < 60
+            {
                 result += 1
+            }
         }
     }
 
@@ -60,7 +62,7 @@ private func markedPixels(frame: const *Image)->u64
 // Constant alpha modulates the fill and the stroke independently.
 #test
 {
-    var objects: Array'u8
+    var objects: Array!{u8}
     addObject(&objects, 5, "<< /Type /ExtGState /ca 0.25 /CA 0.5 >>")
 
     let document = transparencyDocument("/ExtGState << /GS0 5 0 R >>", "/GS0 gs 1 0 0 rg 0 0 1 RG 0 0 50 50 re B", objects.toSlice())
@@ -73,7 +75,7 @@ private func markedPixels(frame: const *Image)->u64
 // module cannot express.
 #test
 {
-    var objects: Array'u8
+    var objects: Array!{u8}
     addObject(&objects, 5, "<< /Type /ExtGState /BM /Multiply >>")
     addObject(&objects, 6, "<< /Type /ExtGState /BM [/Fictional /Screen /Darken] >>")
     addObject(&objects, 7, "<< /Type /ExtGState /BM /Fictional >>")
@@ -154,7 +156,7 @@ private func markedPixels(frame: const *Image)->u64
 // A group's own transparency multiplies the one in force around it.
 #test
 {
-    var objects: Array'u8
+    var objects: Array!{u8}
     addObject(&objects, 5, "<< /Type /ExtGState /ca 0.5 >>")
     addObject(&objects, 6, "<< /Type /ExtGState /ca 0.5 >>")
     addStreamObject(&objects, 7, "/Type /XObject /Subtype /Form /BBox [0 0 100 100] /Group << /S /Transparency >>", cast(const [..] u8, "/GS1 gs 0 0 100 100 re f"))

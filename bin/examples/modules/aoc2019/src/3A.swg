@@ -62,7 +62,7 @@ func day3A0()
     {
         var x, y   = S / 2
         var dx, dy = 0
-        for v in Tokenize.split(line, ','u8)
+        for v in Tokenize.split(line, ','_u8)
         {
             switch v[0]
             {
@@ -88,8 +88,11 @@ func day3A0()
             {
                 x = x + dx
                 y = y + dy
-                if idx == 0 do
+                if idx == 0
+                {
                     grid[x, y] = true
+                }
+
                 if idx == 1 and grid[x, y]
                 {
                     let d = Math.abs(x - S / 2) + Math.abs(y - S / 2)
@@ -110,12 +113,12 @@ func day3A1()
     let dataPath = Path.combine(Path.directoryName(#curlocation.fileName), "3.txt")
     let lines    = expect File.readAllLines(dataPath)
 
-    func trace(line: string)->Array'Vector2
+    func trace(line: string)->Array!{Vector2}
     {
         var result: #returntype
         var pos:    Vector2
         result.add(pos)
-        for v in Tokenize.split(line, ','u8)
+        for v in Tokenize.split(line, ','_u8)
         {
             let val = expect StrConv.toF32(v[1 to])
             switch v[0]

@@ -31,14 +31,16 @@ func differentInputs(a, b: u64)->u64 => (a & 0xFF) | (b & 0xFF00)
 #[Swag.NoInline]
 func maskedBranch(a: u64)->s32
 {
-    if ((a & 0xFF) ^ (a & 0xF0F0)) == 0 do
+    if ((a & 0xFF) ^ (a & 0xF0F0)) == 0
+    {
         return 11
+    }
     return 27
 }
 
 #test
 {
-    let values = [0'u64, 1, 0xFFFFFFFF, 0x100000000, 0xFFFFFFFFFFFFFFFF, 0x5555555555555555, 0xAAAAAAAAAAAAAAAA, 0x0123456789ABCDEF]
+    let values = [0_u64, 1, 0xFFFFFFFF, 0x100000000, 0xFFFFFFFFFFFFFFFF, 0x5555555555555555, 0xAAAAAAAAAAAAAAAA, 0x0123456789ABCDEF]
     for a in values
     {
         Swag.require(unionMasks(a) == (a & 0xFFFF))
@@ -50,7 +52,9 @@ func maskedBranch(a: u64)->s32
         Swag.require(disjointMasks(a32) == 0)
         Swag.require(reusedMask(a) == (((a & 0xFFFF) << 8) | (a & 0xFF)))
         Swag.require(maskedBranch(a) == ((a & 0xF00F) == 0 ? 11 : 27))
-        for b in values do
+        for b in values
+        {
             Swag.require(differentInputs(a, b) == ((a & 0xFF) + (b & 0xFF00)))
+        }
     }
 }

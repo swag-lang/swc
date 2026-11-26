@@ -16,7 +16,10 @@ func rotr64(x, n: u64)->u64 => (x >> (n & 63)) | (x << ((64 - n) & 63))
 func oracle32(x, n: u32)->u32
 {
     var r = x
-    for n & 31 do r = (r << 1) | (r >> 31)
+    for n & 31
+    {
+        r = (r << 1) | (r >> 31)
+    }
     return r
 }
 
@@ -24,19 +27,22 @@ func oracle32(x, n: u32)->u32
 func oracle64(x, n: u64)->u64
 {
     var r = x
-    for n & 63 do r = (r >> 1) | (r << 63)
+    for n & 63
+    {
+        r = (r >> 1) | (r << 63)
+    }
     return r
 }
 
 #test
 {
-    let counts32 = [0'u32, 1, 7, 31, 32, 33, 100]
+    let counts32 = [0_u32, 1, 7, 31, 32, 33, 100]
     for n in counts32
     {
         Swag.require(rotl32(0x80000001, n) == oracle32(0x80000001, n))
         Swag.require(rotl32(0x12345678, n) == oracle32(0x12345678, n))
     }
-    let counts64 = [0'u64, 1, 13, 63, 64, 65]
+    let counts64 = [0_u64, 1, 13, 63, 64, 65]
     for n in counts64
     {
         Swag.require(rotr64(0x8000000000000001, n) == oracle64(0x8000000000000001, n))

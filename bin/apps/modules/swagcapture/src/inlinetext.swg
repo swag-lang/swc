@@ -36,7 +36,7 @@ func inlineTextOf(form: IForm)->{ found: bool, spec: InlineText }
     switch form
     {
     case FormText as text:
-        let scale = Math.map(text.scale, 0, 100, 1'f32, 2'f32)
+        let scale = Math.map(text.scale, 0, 100, 1_f32, 2_f32)
         spec.rect = text.rectFormBound()
         spec.rect.inflate(-text.borderSize * 0.5)
         spec.rect.inflate(-(text.borderSize + text.boldSize) * scale, 0)
@@ -81,8 +81,8 @@ func stepLabel(type: FormStepType, index: u32)->String
     switch #complete type
     {
     case .Number:     return Format.toString("%", index)
-    case .LetterUp:   return Format.toString("%", cast(rune, 'A'rune + (index - 1) % 26))
-    case .LetterDown: return Format.toString("%", cast(rune, 'a'rune + (index - 1) % 26))
+    case .LetterUp:   return Format.toString("%", cast(rune, 'A'_rune + (index - 1) % 26))
+    case .LetterDown: return Format.toString("%", cast(rune, 'a'_rune + (index - 1) % 26))
     }
 }
 
@@ -92,18 +92,30 @@ func stepIndexOf(type: FormStepType, label: string)->u32
     if type == .Number
     {
         let {value, eat, ovf} = catch StrConv.parseU32(label) { return 0 }
-        if ovf or eat != label.count or value < 1 or value > MaxInlineStepNumber do
+        if ovf or eat != label.count or value < 1 or value > MaxInlineStepNumber
+        {
             return 0
+        }
+
         return value
     }
 
-    if label.count != 1 do
+    if label.count != 1
+    {
         return 0
+    }
+
     let c = label[0]
-    if c >= 'A'u8 and c <= 'Z'u8 do
-        return cast(u32, c - 'A'u8) + 1
-    if c >= 'a'u8 and c <= 'z'u8 do
-        return cast(u32, c - 'a'u8) + 1
+    if c >= 'A'_u8 and c <= 'Z'_u8
+    {
+        return cast(u32, c - 'A'_u8) + 1
+    }
+
+    if c >= 'a'_u8 and c <= 'z'_u8
+    {
+        return cast(u32, c - 'a'_u8) + 1
+    }
+
     return 0
 }
 
@@ -127,10 +139,16 @@ impl EditView
     mtd textEditForm()->IForm?
     {
         let capture = .capture
-        if not capture or not .textForm do
+        if not capture or not .textForm
+        {
             return null
-        for f in capture.forms where cast(*BaseForm, f) == .textForm do
+        }
+
+        for f in capture.forms where cast(*BaseForm, f) == .textForm
+        {
             return f
+        }
+
         return null
     }
 
@@ -140,8 +158,11 @@ impl EditView
         var result: #returntype
         for line, i in .textLines
         {
-            if i do
+            if i
+            {
                 result += "\n"
+            }
+
             result += line.text()
         }
 
@@ -153,8 +174,10 @@ impl EditView
     {
         .endTextEdit()
         let {found, spec} = inlineTextOf(form)
-        if not found do
+        if not found
+        {
             return
+        }
 
         let capture = unwrap .capture
         let size    = cast(u32, Math.max(spec.size * .zoom, MinInlineFontSize))
@@ -163,25 +186,36 @@ impl EditView
         .textSpec = spec
         .textForm = cast(*BaseForm, form)
 
-        for line in Tokenize.split(spec.text, '\n'u8, removeEmpty: false) do
+        for line in Tokenize.split(spec.text, '\n'_u8, removeEmpty: false)
+        {
             discard .addTextLine(.textLines.count, line)
-        if .textLines.isEmpty() do
+        }
+
+        if .textLines.isEmpty()
+        {
             discard .addTextLine(0, "")
+        }
 
         setEditingText(form, true)
 
         // A rotated form straightens while its words are typed level.
         .textRotate = form.rotate
-        if form.canRotate() and not Math.isZeroEpsilon(form.rotate) do
+        if form.canRotate() and not Math.isZeroEpsilon(form.rotate)
+        {
             .turnForm(form, form.rotate, 0)
+        }
 
         .placeTextLines()
         let last = .textLines.back()
         last.setFocus()
-        if spec.step do
+        if spec.step
+        {
             last.selectAll()
-        else do
+        }
+        else
+        {
             last.setSelection(last.text().count, last.text().count)
+        }
 
         // The form leaves its words to the fields; no other form changes.
         capture.invalidateFormCache(form)
@@ -196,30 +230,43 @@ impl EditView
     // elsewhere.
     mtd endTextEdit(keep = true, focus = true)
     {
-        if not .isEditingText() do
+        if not .isEditingText()
+        {
             return
+        }
 
         let text  = .inlineText()
         let form  = .textEditForm()
         let lines = #move .textLines
         .textForm = null
-        for line in lines do
+        for line in lines
+        {
             line.destroy()
+        }
 
         if form
         {
             setEditingText(form, false)
-            if form.canRotate() and not Math.isZeroEpsilon(.textRotate) do
+            if form.canRotate() and not Math.isZeroEpsilon(.textRotate)
+            {
                 .turnForm(form, form.rotate, .textRotate)
-            if keep and text != .textSpec.text do
+            }
+
+            if keep and text != .textSpec.text
+            {
                 .commitText(form, text)
+            }
+
             .capture?.invalidateFormCache(form)
         }
 
         .main.fillHintLine()
         .main.placeMiniBar()
-        if focus do
+        if focus
+        {
             .setFocus()
+        }
+
         .invalidate()
     }
 
@@ -232,8 +279,10 @@ impl EditView
         // it is made on this form alone, then the selection comes back.
         var saved = capture.selection
         capture.selection.clear()
-        for f, i in capture.forms where cast(*BaseForm, f) == cast(*BaseForm, form) do
+        for f, i in capture.forms where cast(*BaseForm, f) == cast(*BaseForm, form)
+        {
             capture.selection.add(i)
+        }
 
         if .textSpec.step
         {
@@ -241,8 +290,10 @@ impl EditView
             if index
             {
                 .main.propWnd.pushTypedValue(index, FormStep, #nameof(FormStep.index), true)
-                if form is FormStep as step do
+                if form is FormStep as step
+                {
                     step.isDirty = true
+                }
             }
         }
         else
@@ -271,8 +322,11 @@ impl EditView
                                            func|base|(view, value)
                                            {
                                                let capture = view.capture
-                                               if not capture do
+                                               if not capture
+                                               {
                                                    return
+                                               }
+
                                                for f in capture.forms where cast(*BaseForm, f) == base
                                                {
                                                    base.rotate = value
@@ -295,10 +349,14 @@ impl EditView
             .style.addStyleSheetColors(Format.toString("edit_Text 0x%{X08}", me.textSpec.ink.argb))
             if me.textSpec.step
             {
-                if me.textSpec.stepType == .Number do
+                if me.textSpec.stepType == .Number
+                {
                     .setUnsignedIntegerRange(1, MaxInlineStepNumber)
-                else do
+                }
+                else
+                {
                     .setMaximumLength(1)
+                }
             }
 
             .sigTextChanged += func|view = me|(_) { view.placeTextLines() }
@@ -313,8 +371,10 @@ impl EditView
     // of the form puts it, so the words do not move when they become editable.
     mtd placeTextLines()
     {
-        if not .isEditingText() do
+        if not .isEditingText()
+        {
             return
+        }
 
         let place = .getCaptureRect()
         var rect  = .textSpec.rect * .zoom
@@ -370,10 +430,16 @@ impl EditView
             }
 
         case FocusEvent as focus where focus.kind == .Lost:
-            if not .isEditingText() do
+            if not .isEditingText()
+            {
                 break
-            for other in .textLines where focus.other == cast(*Wnd, other) do
+            }
+
+            for other in .textLines where focus.other == cast(*Wnd, other)
+            {
                 return false
+            }
+
             .endTextEdit(focus: false)
         }
 
@@ -383,9 +449,11 @@ impl EditView
     // Handles the key `key` pressed in `line`. Returns false for a key the line keeps.
     mtd textLineKey(line: *EditBox, key: Input.Key, modifiers: Input.KeyModifiers)->bool
     {
-        var index = 0'u64
-        for other, i in .textLines where other == line do
+        var index = 0_u64
+        for other, i in .textLines where other == line
+        {
             index = i
+        }
 
         let sel   = line.selection()
         let caret = sel.end
@@ -404,8 +472,11 @@ impl EditView
             }
 
             // The line breaks at the caret, the selection gone.
-            if not empty do
+            if not empty
+            {
                 line.deleteSelection()
+            }
+
             let at: String = line.text()
             let cut        = line.selection().end
             let head       = Swag.makeString(at.buffer, cut)
@@ -418,8 +489,11 @@ impl EditView
             return true
 
         case .Back:
-            if not empty or caret or not index do
+            if not empty or caret or not index
+            {
                 return false
+            }
+
             let prev         = .textLines[index - 1]
             let join         = prev.text().count
             var text: String = prev.text()
@@ -433,8 +507,11 @@ impl EditView
             return true
 
         case .Delete:
-            if not empty or caret != line.text().count or index + 1 >= .textLines.count do
+            if not empty or caret != line.text().count or index + 1 >= .textLines.count
+            {
                 return false
+            }
+
             let next         = .textLines[index + 1]
             var text: String = line.text()
             text += next.text()
@@ -446,10 +523,16 @@ impl EditView
             return true
 
         case .Up, .Down:
-            if modifiers.has(.Shift) do
+            if modifiers.has(.Shift)
+            {
                 return false
-            if (key == .Up and not index) or (key == .Down and index + 1 >= .textLines.count) do
+            }
+
+            if (key == .Up and not index) or (key == .Down and index + 1 >= .textLines.count)
+            {
                 return true
+            }
+
             let other = .textLines[key == .Up ? index - 1 : index + 1]
             let pos   = runeStart(other.text(), Math.min(caret, other.text().count))
             other.setFocus()
@@ -468,7 +551,10 @@ impl EditView
 func runeStart(text: string, pos: u64)->u64
 {
     var result = pos
-    while result and result < text.count and (text[result] & 0xC0) == 0x80 do
+    while result and result < text.count and (text[result] & 0xC0) == 0x80
+    {
         result -= 1
+    }
+
     return result
 }

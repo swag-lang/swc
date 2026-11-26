@@ -2,14 +2,14 @@ internal impl Properties
 {
     func setDescEditBox(item: *PropertiesItem)
     {
-        let arrData = cast(*Array'u8, unwrap item.data)
+        let arrData = cast(*Array!{u8}, unwrap item.data)
         item.editBox.setText(Format.toString("% elements", arrData.count))
     }
 
     mtd reconstructArray(item: *PropertiesItem)
     {
         let valueType        = unwrap Reflection.dynamicArrayElementType(item.type)
-        let arrData          = cast(*Array'u8, unwrap item.data)
+        let arrData          = cast(*Array!{u8}, unwrap item.data)
         let countItemsBefore = .items.count
         let itemIdx          = Slice.findLinear(.items.toSlice(), item)
         let insertItemIdx    = itemIdx + item.numChilds + 1
@@ -27,8 +27,11 @@ internal impl Properties
 
         // Move all newly reconstructed items at the right place
         let numAddedChilds = cast(u32, (.items.count - countItemsBefore))
-        for i in numAddedChilds do
+        for i in numAddedChilds
+        {
             .items.insertAt(insertItemIdx + i, .items[.items.count - numAddedChilds + i])
+        }
+
         .items.count -= numAddedChilds
 
         .edView.moveLastChildrenTo(insertItemIdx, numAddedChilds)
@@ -43,15 +46,20 @@ internal impl Properties
 
         // Update state of all newly added items
         item.numChilds = numAddedChilds
-        for i in item.numChilds do
+        for i in item.numChilds
+        {
             .updateItemState(unwrap .items[itemIdx + i + 1])
+        }
     }
 
     mtd refreshArray(item: *PropertiesItem)
     {
-        let arrData = cast(*Array'u8, unwrap item.data)
-        if arrData.count == item.arrayElementCount do
+        let arrData = cast(*Array!{u8}, unwrap item.data)
+        if arrData.count == item.arrayElementCount
+        {
             return
+        }
+
         item.arrayElementCount = arrData.count
 
         .reconstructArray(item)
@@ -76,7 +84,7 @@ internal impl Properties
         if Reflection.isDynamicArray(arrayItem.type)
         {
             let vt  = unwrap Reflection.dynamicArrayElementType(arrayItem.type)
-            let arr = cast(*Array'u8, unwrap arrayItem.data)
+            let arr = cast(*Array!{u8}, unwrap arrayItem.data)
             return {base: arr.buffer, valueType: vt, count: arr.count}
         }
 
@@ -88,13 +96,18 @@ internal impl Properties
     // whose element rows are interleaved with their field rows in the flat item list.
     mtd arrayElementIndex(elemItem: *PropertiesItem)->u64
     {
-        var idx = 0'u64
+        var idx = 0_u64
         for it in .items
         {
-            if it == elemItem do
+            if it == elemItem
+            {
                 break
-            if it!.parent == elemItem.parent do
+            }
+
+            if it!.parent == elemItem.parent
+            {
                 idx += 1
+            }
         }
 
         return idx
@@ -107,8 +120,11 @@ internal impl Properties
         var scan = cast(*PropertiesItem?, item)
         while scan and scan.parent
         {
-            if .isArrayItem(scan.parent) do
+            if .isArrayItem(scan.parent)
+            {
                 return scan
+            }
+
             scan = scan.parent
         }
 
@@ -123,8 +139,10 @@ internal impl Properties
         let info      = .arrayElementInfo(unwrap arrayItem)
         let idx       = .arrayElementIndex(elemItem)
         let target    = cast(s64, idx) + dir
-        if target < 0 or target >= cast(s64, info.count) do
+        if target < 0 or target >= cast(s64, info.count)
+        {
             return
+        }
 
         Reflection.swapRuntimeValues(info.base, info.valueType, idx, cast(u64, target))
         .commitItemChange(arrayItem)
@@ -159,7 +177,7 @@ internal impl Properties
         item.flags.add(.NoSeparator)
 
         let valueType = unwrap Reflection.dynamicArrayElementType(item.type)
-        let arrData   = cast(*Array'u8, unwrap data)
+        let arrData   = cast(*Array!{u8}, unwrap data)
         var newData   = arrData.buffer
 
         item.arrayElementCount = arrData.count
@@ -178,8 +196,11 @@ internal impl Properties
         addBtn.dockStyle = .isGridLike() ? .Right : .None
         addBtn.setForm(IconButtonForm.Circle)
         item.arrayAddButton = addBtn
-        if not .isGridLike() do
+        if not .isGridLike()
+        {
             item.label.wndFlags.remove(.ClipChildren)
+        }
+
         addBtn.sigPressed += func|prop = me, item|(_) { prop.appendArrayValue(item) }
 
         with let editBox = EditBox.create(item.line, "")
@@ -187,10 +208,14 @@ internal impl Properties
             // Grid rows dock the read-only count field to the left of the cell; list
             // rows stack it under the name label (the row is a StackLayoutCtrl), where
             // docking would overlap the label — anchor the width instead.
-            if me.isGridLike() do
+            if me.isGridLike()
+            {
                 .dockStyle = .Left
-            else do
+            }
+            else
+            {
                 .anchorStyle = .Right
+            }
 
             .setForm(.Transparent)
             .enable(false)

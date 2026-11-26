@@ -28,7 +28,7 @@ struct CtxSelfBufferWrapper
 func keepDepScore(score: IDepScore)->IDepScore => score
 
 var gImportedDefaultOuter: DepImportedDefaultOuter
-var gStaticInlineStorage = [7'u8]
+var gStaticInlineStorage = [7_u8]
 var gStaticInlineBuffer:   StaticInlineBuffer
 const IMPORTED_DEFAULT_OUTER: DepImportedDefaultOuter
 
@@ -77,9 +77,9 @@ func verifyImportedInterfaceTablePreparation()
 
 func verifyImportedGenericRootMethodSema()
 {
-    var scratchRng      = DepSharedRng.Rng.makeScratch'DepSharedRng.MWC()
+    var scratchRng      = DepSharedRng.Rng.makeScratch!{DepSharedRng.MWC}()
     let scratchRngValue = scratchRng.nextU32()
-    var rng: DepSharedRng.Rng'DepSharedRng.MWC
+    var rng: DepSharedRng.Rng!{DepSharedRng.MWC}
     let sharedRngValue  = DepSharedRng.shared(&rng).nextU32()
 
     #assert(#typeof(scratchRngValue) == u32)
@@ -88,25 +88,25 @@ func verifyImportedGenericRootMethodSema()
 
 func verifyImportedClosureCallbacks()
 {
-    var unarySet: DepByteSet = DepByteSet{values: ['C'u8, 'A'u8, 'B'u8, 0], count: 3}
-    Swag.assert(depInvokeUnary('C'u8, func|&unarySet|(x: u8)->bool { return unarySet.contains(x) }))
-    Swag.assert(not depInvokeUnary('Z'u8, func|&unarySet|(x: u8)->bool { return unarySet.contains(x) }))
-    Swag.assert(depInvokeUnary('A'u8, func|&unarySet|(x: u8)->bool { return unarySet.containsViaGeneric(x) }))
+    var unarySet: DepByteSet = DepByteSet{values: ['C'_u8, 'A'_u8, 'B'_u8, 0], count: 3}
+    Swag.assert(depInvokeUnary('C'_u8, func|&unarySet|(x: u8)->bool { return unarySet.contains(x) }))
+    Swag.assert(not depInvokeUnary('Z'_u8, func|&unarySet|(x: u8)->bool { return unarySet.contains(x) }))
+    Swag.assert(depInvokeUnary('A'_u8, func|&unarySet|(x: u8)->bool { return unarySet.containsViaGeneric(x) }))
 
-    var genericSet: DepByteSet = DepByteSet{values: ['C'u8, 'A'u8, 'B'u8, 0], count: 3}
-    Swag.assert(depInvokeGeneric('A'u8, func|&genericSet|(x: u8)->bool { return genericSet.contains(x) }))
-    Swag.assert(not depInvokeGeneric('Z'u8, func|&genericSet|(x: u8)->bool { return genericSet.contains(x) }))
-    Swag.assert(depInvokeGeneric('B'u8, func|&genericSet|(x: u8)->bool { return genericSet.containsViaGeneric(x) }))
+    var genericSet: DepByteSet = DepByteSet{values: ['C'_u8, 'A'_u8, 'B'_u8, 0], count: 3}
+    Swag.assert(depInvokeGeneric('A'_u8, func|&genericSet|(x: u8)->bool { return genericSet.contains(x) }))
+    Swag.assert(not depInvokeGeneric('Z'_u8, func|&genericSet|(x: u8)->bool { return genericSet.contains(x) }))
+    Swag.assert(depInvokeGeneric('B'_u8, func|&genericSet|(x: u8)->bool { return genericSet.containsViaGeneric(x) }))
 
     var prev:     [3] u8     = ['C', 'A', 'B']
-    var allOfSet: DepByteSet = DepByteSet{values: ['A'u8, 'B'u8, 'C'u8, 'D'u8], count: 4}
+    var allOfSet: DepByteSet = DepByteSet{values: ['A'_u8, 'B'_u8, 'C'_u8, 'D'_u8], count: 4}
     Swag.assert(depAllOf(prev[to], func|&allOfSet|(x: u8)->bool { return allOfSet.contains(x) }))
     Swag.assert(depAllOf(prev[to], func|&allOfSet|(x: u8)->bool { return allOfSet.containsViaGeneric(x) }))
 
-    var selfBufferSet     = depMakeSelfBufferSet('A'u8, 'B'u8, 'C'u8, 'D'u8, 4)
-    var prevSelfBufferSet = depMakeSelfBufferSet('C'u8, 'A'u8, 'B'u8, 0, 3)
-    Swag.assert(depInvokeUnary('A'u8, func|&selfBufferSet|(x: u8)->bool { return selfBufferSet.contains(x) }))
-    Swag.assert(depInvokeGeneric('B'u8, func|&selfBufferSet|(x: u8)->bool { return selfBufferSet.containsViaGeneric(x) }))
+    var selfBufferSet     = depMakeSelfBufferSet('A'_u8, 'B'_u8, 'C'_u8, 'D'_u8, 4)
+    var prevSelfBufferSet = depMakeSelfBufferSet('C'_u8, 'A'_u8, 'B'_u8, 0, 3)
+    Swag.assert(depInvokeUnary('A'_u8, func|&selfBufferSet|(x: u8)->bool { return selfBufferSet.contains(x) }))
+    Swag.assert(depInvokeGeneric('B'_u8, func|&selfBufferSet|(x: u8)->bool { return selfBufferSet.containsViaGeneric(x) }))
     Swag.assert(depAllOf(prev[to], func|&selfBufferSet|(x: u8)->bool { return selfBufferSet.contains(x) }))
     Swag.assert(depAllOf(prev[to], func|&selfBufferSet|(x: u8)->bool { return selfBufferSet.containsViaGeneric(x) }))
     Swag.assert(depAllOf(prevSelfBufferSet.toSlice(), func|&selfBufferSet|(x: u8)->bool { return selfBufferSet.contains(x) }))
@@ -118,25 +118,25 @@ func verifyImportedClosureCallbacks()
         Swag.assert(depAllOf(wrapper.prev.toSlice(), func|&selfBufferSet|(x: u8)->bool { return selfBufferSet.containsViaGeneric(x) }))
     }
 
-    var sharedUnarySet: CtxClosureByteSet = CtxClosureByteSet{values: ['C'u8, 'A'u8, 'B'u8, 0], count: 3}
-    Swag.assert(ctxSharedInvokeUnary('C'u8, func|&sharedUnarySet|(x: u8)->bool { return sharedUnarySet.contains(x) }))
-    Swag.assert(not ctxSharedInvokeUnary('Z'u8, func|&sharedUnarySet|(x: u8)->bool { return sharedUnarySet.contains(x) }))
-    Swag.assert(ctxSharedInvokeUnary('A'u8, func|&sharedUnarySet|(x: u8)->bool { return sharedUnarySet.containsViaGeneric(x) }))
+    var sharedUnarySet: CtxClosureByteSet = CtxClosureByteSet{values: ['C'_u8, 'A'_u8, 'B'_u8, 0], count: 3}
+    Swag.assert(ctxSharedInvokeUnary('C'_u8, func|&sharedUnarySet|(x: u8)->bool { return sharedUnarySet.contains(x) }))
+    Swag.assert(not ctxSharedInvokeUnary('Z'_u8, func|&sharedUnarySet|(x: u8)->bool { return sharedUnarySet.contains(x) }))
+    Swag.assert(ctxSharedInvokeUnary('A'_u8, func|&sharedUnarySet|(x: u8)->bool { return sharedUnarySet.containsViaGeneric(x) }))
 
-    var sharedGenericSet: CtxClosureByteSet = CtxClosureByteSet{values: ['C'u8, 'A'u8, 'B'u8, 0], count: 3}
-    Swag.assert(ctxSharedInvokeGeneric('A'u8, func|&sharedGenericSet|(x: u8)->bool { return sharedGenericSet.contains(x) }))
-    Swag.assert(not ctxSharedInvokeGeneric('Z'u8, func|&sharedGenericSet|(x: u8)->bool { return sharedGenericSet.contains(x) }))
-    Swag.assert(ctxSharedInvokeGeneric('B'u8, func|&sharedGenericSet|(x: u8)->bool { return sharedGenericSet.containsViaGeneric(x) }))
+    var sharedGenericSet: CtxClosureByteSet = CtxClosureByteSet{values: ['C'_u8, 'A'_u8, 'B'_u8, 0], count: 3}
+    Swag.assert(ctxSharedInvokeGeneric('A'_u8, func|&sharedGenericSet|(x: u8)->bool { return sharedGenericSet.contains(x) }))
+    Swag.assert(not ctxSharedInvokeGeneric('Z'_u8, func|&sharedGenericSet|(x: u8)->bool { return sharedGenericSet.contains(x) }))
+    Swag.assert(ctxSharedInvokeGeneric('B'_u8, func|&sharedGenericSet|(x: u8)->bool { return sharedGenericSet.containsViaGeneric(x) }))
 
     var sharedPrev:     [3] u8 = ['C', 'A', 'B']
-    var sharedAllOfSet: CtxClosureByteSet = CtxClosureByteSet{values: ['A'u8, 'B'u8, 'C'u8, 'D'u8], count: 4}
+    var sharedAllOfSet: CtxClosureByteSet = CtxClosureByteSet{values: ['A'_u8, 'B'_u8, 'C'_u8, 'D'_u8], count: 4}
     Swag.assert(ctxSharedAllOf(sharedPrev[to], func|&sharedAllOfSet|(x: u8)->bool { return sharedAllOfSet.contains(x) }))
     Swag.assert(ctxSharedAllOf(sharedPrev[to], func|&sharedAllOfSet|(x: u8)->bool { return sharedAllOfSet.containsViaGeneric(x) }))
 
-    var sharedSelfBufferSet     = ctxSharedMakeSelfBufferSet('A'u8, 'B'u8, 'C'u8, 'D'u8, 4)
-    var sharedPrevSelfBufferSet = ctxSharedMakeSelfBufferSet('C'u8, 'A'u8, 'B'u8, 0, 3)
-    Swag.assert(ctxSharedInvokeUnary('A'u8, func|&sharedSelfBufferSet|(x: u8)->bool { return sharedSelfBufferSet.contains(x) }))
-    Swag.assert(ctxSharedInvokeGeneric('B'u8, func|&sharedSelfBufferSet|(x: u8)->bool { return sharedSelfBufferSet.containsViaGeneric(x) }))
+    var sharedSelfBufferSet     = ctxSharedMakeSelfBufferSet('A'_u8, 'B'_u8, 'C'_u8, 'D'_u8, 4)
+    var sharedPrevSelfBufferSet = ctxSharedMakeSelfBufferSet('C'_u8, 'A'_u8, 'B'_u8, 0, 3)
+    Swag.assert(ctxSharedInvokeUnary('A'_u8, func|&sharedSelfBufferSet|(x: u8)->bool { return sharedSelfBufferSet.contains(x) }))
+    Swag.assert(ctxSharedInvokeGeneric('B'_u8, func|&sharedSelfBufferSet|(x: u8)->bool { return sharedSelfBufferSet.containsViaGeneric(x) }))
     Swag.assert(ctxSharedAllOf(sharedPrev[to], func|&sharedSelfBufferSet|(x: u8)->bool { return sharedSelfBufferSet.contains(x) }))
     Swag.assert(ctxSharedAllOf(sharedPrev[to], func|&sharedSelfBufferSet|(x: u8)->bool { return sharedSelfBufferSet.containsViaGeneric(x) }))
     Swag.assert(ctxSharedAllOf(sharedPrevSelfBufferSet.toSlice(), func|&sharedSelfBufferSet|(x: u8)->bool { return sharedSelfBufferSet.contains(x) }))
@@ -162,8 +162,8 @@ func verifyExportAndStaticModules()
     Swag.assert(depSupportCompute(20) == 123)
     var supportReader: DepSupportReader
     supportReader.value = 41
-    Swag.assert(supportReader.read's32() == 42)
-    Swag.assert(DepOverloadWnd.create'DepOverloadWnd() == null)
+    Swag.assert(supportReader.read!{s32}() == 42)
+    Swag.assert(DepOverloadWnd.create!{DepOverloadWnd}() == null)
     Swag.assert(DepTools.DEP_NAMESPACE_A == 31)
     Swag.assert(DepTools.DEP_NAMESPACE_B == 37)
     Swag.assert(DepTools.DEP_NAMESPACE_C == 41)
@@ -186,7 +186,7 @@ func verifyExportAndStaticModules()
     Swag.assert(publicWithPrivate.publicValue == 41)
     Swag.assert(#sizeof(DepPublicWithPrivateInlineUnion) == 12)
 
-    var genericLayout: DepGenericLayout's32
+    var genericLayout: DepGenericLayout!{s32}
     genericLayout.value = 42
     Swag.assert(genericLayout.value == 42)
 
@@ -205,7 +205,7 @@ func verifyExportAndStaticModules()
     var namespaced: DepTools.DepNamespaced
     namespaced.value = 12
     Swag.assert(namespaced.value == 12)
-    Swag.assert(DepTools.hash32WithGeneratedFullName(namespaced) == 0x10C'u32)
+    Swag.assert(DepTools.hash32WithGeneratedFullName(namespaced) == 0x10C_u32)
     Swag.assert(DepTools.DepGeneratedCommandOwner.GeneratedAccept == "DepTools.DepGeneratedCommandOwner.GeneratedAccept")
 
     var staticInferredDepOwner: StaticInferredDepOwner
@@ -249,9 +249,9 @@ func verifyDllAbiCalls()
 {
     Swag.assert(ctxSharedPassString("abi-string") == "abi-string")
     Swag.assert(ctxSharedPassString("abi-string-2") == "abi-string-2")
-    Swag.assert(ctxSharedPassStringAt("abi-string", 1) == 98'u8)
-    Swag.assert(ctxSharedPassStringAt("abi-string", 2) == 'i'u8)
-    Swag.assert(ctxSharedPassStringAt("abi-string", 9) == 'g'u8)
+    Swag.assert(ctxSharedPassStringAt("abi-string", 1) == 98_u8)
+    Swag.assert(ctxSharedPassStringAt("abi-string", 2) == 'i'_u8)
+    Swag.assert(ctxSharedPassStringAt("abi-string", 9) == 'g'_u8)
 
     let array0 = ctxSharedPassArray([11, 22, 33, 44])
     let array1 = ctxSharedPassArray([101, 202, 303, 404])
@@ -274,29 +274,29 @@ func verifyDllAbiCalls()
     Swag.assert(ctxSharedPassPairSum({a: 9, b: 13}) == 22)
     Swag.assert(ctxSharedPassPairSum({a: 90, b: 130}) == 220)
     Swag.assert(ctxSharedPassPairSum({a: -90, b: 130}) == 40)
-    Swag.assert(payload0.a0 == 11'u64)
-    Swag.assert(payload0.a3 == 14'u64)
-    Swag.assert(payload1.a0 == 2'u64)
-    Swag.assert(payload1.a3 == 5'u64)
+    Swag.assert(payload0.a0 == 11_u64)
+    Swag.assert(payload0.a3 == 14_u64)
+    Swag.assert(payload1.a0 == 2_u64)
+    Swag.assert(payload1.a3 == 5_u64)
 
-    let offsets0 = ctxSharedMakeOffsets(1'u8, 2'u16, 3'u32, 4'u64)
-    Swag.assert(offsets0.a == 1'u8)
-    Swag.assert(offsets0.b == 2'u16)
-    Swag.assert(offsets0.c == 3'u32)
-    Swag.assert(offsets0.d == 4'u64)
-    Swag.assert(ctxSharedPassOffsets(offsets0) == 10'u64)
+    let offsets0 = ctxSharedMakeOffsets(1_u8, 2_u16, 3_u32, 4_u64)
+    Swag.assert(offsets0.a == 1_u8)
+    Swag.assert(offsets0.b == 2_u16)
+    Swag.assert(offsets0.c == 3_u32)
+    Swag.assert(offsets0.d == 4_u64)
+    Swag.assert(ctxSharedPassOffsets(offsets0) == 10_u64)
 
     let p0 = ctxSharedPassPointer(null)
-    let p1 = ctxSharedPassPointer(cast(*void?, 0x1234'u64))
+    let p1 = ctxSharedPassPointer(cast(*void?, 0x1234_u64))
     Swag.assert(p0 == null)
-    Swag.assert(p1 == cast(*void?, 0x1234'u64))
+    Swag.assert(p1 == cast(*void?, 0x1234_u64))
     Swag.assert(ctxSharedPassMixed(3, "mix", {a: 10, b: 11}, [8, 9], null) == 131)
-    Swag.assert(ctxSharedPassMixed(30, "mix2", {a: 100, b: 110}, [80, 90], cast(*void?, 0x4567'u64)) == 330)
+    Swag.assert(ctxSharedPassMixed(30, "mix2", {a: 100, b: 110}, [80, 90], cast(*void?, 0x4567_u64)) == 330)
 
     const pairRef: CtxAbiPair = CtxAbiPair{a: 6, b: 7}
     Swag.assert(ctxSharedPassConstRef(pairRef) == 13)
     Swag.assert(ctxSharedPassConstRef({a: 8, b: 9}) == 17)
-    Swag.assert(ctxSharedPassScalars(-5's8, -123's16, 77's32, 5000's64, 9'u8, 10'u16, 11'u32, 12'u64, 1.25'f32, 2.5'f64, true, 'R') == 5077)
+    Swag.assert(ctxSharedPassScalars(-5_s8, -123_s16, 77_s32, 5000_s64, 9_u8, 10_u16, 11_u32, 12_u64, 1.25_f32, 2.5_f64, true, 'R') == 5077)
     Swag.assert(ctxSharedPassBoolRunePositions(true, 3, 'Q', 4, true, 'W') == 177)
     Swag.assert(ctxSharedPassBoolRunePositions(false, 30, 'Q', 40, false, 'W') == 238)
     Swag.assert(ctxSharedPassBoolRunePositions(true, -3, 'Q', 7, false, 'W') == 173)
@@ -312,17 +312,17 @@ func verifyDllAbiCalls()
     Swag.assert(ctxSharedPassSlice(values0, 2) == 33)
     Swag.assert(ctxSharedPassSlice(values1, 3) == 404)
     Swag.assert(ctxSharedPassSlice(values2, 0) == -1)
-    Swag.assert(ctxSharedPassAggregatePositions(cast(*void?, 0x10'u64), [5, 6], "abc", {a: 7, b: 8}, {a0: 1'u64, a1: 2'u64, a2: 3'u64, a3: 4'u64}) == 115'u64)
-    Swag.assert(ctxSharedPassAggregatePositions(null, [50, 60], "Abc", {a: 70, b: 80}, {a0: 10'u64, a1: 20'u64, a2: 30'u64, a3: 40'u64}) == 235'u64)
-    Swag.assert(ctxSharedPassNested({p: {a: 3, b: 4}, q: {a0: 10'u64, a1: 20'u64, a2: 30'u64, a3: 40'u64}}, 5) == 62'u64)
-    Swag.assert(ctxSharedPassKindof({a: 1, b: 2}, {a0: 3'u64, a1: 4'u64, a2: 5'u64, a3: 6'u64}, "ok", null, [7, 8], CtxAbiEnum.A))
-    Swag.assert(ctxSharedPassNestedArray({p: {a: 10, b: 11}, q: {a0: 1'u64, a1: 2'u64, a2: 3'u64, a3: 4'u64}}, [{a: 20, b: 21}, {a: 30, b: 31}]) == 61)
+    Swag.assert(ctxSharedPassAggregatePositions(cast(*void?, 0x10_u64), [5, 6], "abc", {a: 7, b: 8}, {a0: 1_u64, a1: 2_u64, a2: 3_u64, a3: 4_u64}) == 115_u64)
+    Swag.assert(ctxSharedPassAggregatePositions(null, [50, 60], "Abc", {a: 70, b: 80}, {a0: 10_u64, a1: 20_u64, a2: 30_u64, a3: 40_u64}) == 235_u64)
+    Swag.assert(ctxSharedPassNested({p: {a: 3, b: 4}, q: {a0: 10_u64, a1: 20_u64, a2: 30_u64, a3: 40_u64}}, 5) == 62_u64)
+    Swag.assert(ctxSharedPassKindof({a: 1, b: 2}, {a0: 3_u64, a1: 4_u64, a2: 5_u64, a3: 6_u64}, "ok", null, [7, 8], CtxAbiEnum.A))
+    Swag.assert(ctxSharedPassNestedArray({p: {a: 10, b: 11}, q: {a0: 1_u64, a1: 2_u64, a2: 3_u64, a3: 4_u64}}, [{a: 20, b: 21}, {a: 30, b: 31}]) == 61)
 
     var nested0 = ctxSharedMakeNested(7)
     Swag.assert(nested0.p.a == 7)
     Swag.assert(nested0.p.b == 8)
-    Swag.assert(nested0.q.a0 == 17'u64)
-    Swag.assert(nested0.q.a3 == 47'u64)
+    Swag.assert(nested0.q.a0 == 17_u64)
+    Swag.assert(nested0.q.a3 == 47_u64)
 
     let floatPair0 = ctxSharedMakeFloatPair(733, 366)
     let floatPair1 = ctxSharedPassFloatPair({x: -1.5, y: 2.25})
@@ -360,12 +360,12 @@ func verifyDllAbiCalls()
     Swag.assert(writtenPair.a == 77)
     Swag.assert(writtenPair.b == -33)
 
-    var writtenPayload = CtxAbiPayload{a0: 0'u64, a1: 0'u64, a2: 0'u64, a3: 0'u64}
-    ctxSharedWritePayload(&writtenPayload, 30'u64)
-    Swag.assert(writtenPayload.a0 == 31'u64)
-    Swag.assert(writtenPayload.a1 == 32'u64)
-    Swag.assert(writtenPayload.a2 == 33'u64)
-    Swag.assert(writtenPayload.a3 == 34'u64)
+    var writtenPayload = CtxAbiPayload{a0: 0_u64, a1: 0_u64, a2: 0_u64, a3: 0_u64}
+    ctxSharedWritePayload(&writtenPayload, 30_u64)
+    Swag.assert(writtenPayload.a0 == 31_u64)
+    Swag.assert(writtenPayload.a1 == 32_u64)
+    Swag.assert(writtenPayload.a2 == 33_u64)
+    Swag.assert(writtenPayload.a3 == 34_u64)
 
     Swag.assert(ctxSharedScale(cast(s32, 10)) == 40)
     Swag.assert(ctxSharedScale(cast(f32, 2)) == cast(f32, 8))
@@ -381,11 +381,11 @@ func verifyDllAbiCalls()
     Swag.assert(calcPair.a == 7)
     Swag.assert(calcPair.b == 3)
 
-    let calcPayload = calc.makePayload(20'u64)
-    Swag.assert(calcPayload.a0 == 26'u64)
-    Swag.assert(calcPayload.a1 == 27'u64)
-    Swag.assert(calcPayload.a2 == 28'u64)
-    Swag.assert(calcPayload.a3 == 29'u64)
+    let calcPayload = calc.makePayload(20_u64)
+    Swag.assert(calcPayload.a0 == 26_u64)
+    Swag.assert(calcPayload.a1 == 27_u64)
+    Swag.assert(calcPayload.a2 == 28_u64)
+    Swag.assert(calcPayload.a3 == 29_u64)
 }
 
 // `Swag.setContext` installs a POINTER to its argument, so the patched copy must outlive the frame
@@ -436,12 +436,18 @@ var gEvtClassified: s32
 
 func onDepEvt(evt: IDepEvt)
 {
-    if (evt is DepDestroyEvt) do
+    if (evt is DepDestroyEvt)
+    {
         gEvtClassified = 1
-    elif (evt is DepResizeEvt) do
+    }
+    else if (evt is DepResizeEvt)
+    {
         gEvtClassified = 3
-    else do
+    }
+    else
+    {
         gEvtClassified = -1
+    }
 }
 
 func verifyEmptyDerivedInterfaceIs()
@@ -468,12 +474,12 @@ func verifyImportedDiscardable()
 func verifyImportedPropagate()
 {
     var genericSuccessOutcome: Swag.Error
-    var generic: #decltype(expect depPropagateGeneric(5's32, true))
-    catch { generic = try depPropagateGeneric(5's32, true) } as genericSuccessOutcome
+    var generic: #decltype(expect depPropagateGeneric(5_s32, true))
+    catch { generic = try depPropagateGeneric(5_s32, true) } as genericSuccessOutcome
     let genericSuccess = genericSuccessOutcome.value()
     Swag.assert(generic == 5 and genericSuccess == null)
     var genericFailureOutcome: Swag.Error
-    discard catch depPropagateGeneric(5's32, false) as genericFailureOutcome
+    discard catch depPropagateGeneric(5_s32, false) as genericFailureOutcome
     let genericFailure = genericFailureOutcome.value()
     Swag.assert(genericFailure is DepPropagateError)
 

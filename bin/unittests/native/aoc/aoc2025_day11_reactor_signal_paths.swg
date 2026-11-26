@@ -43,12 +43,16 @@ func resetMemo(memo: [..] s32)
 
 func countPaths(memo: [..] s32, graph: ReactorGraph, nodeIndex: u32)->u32
 {
-    if nodeIndex == cast(u32, ReactorNode.Output) do
+    if nodeIndex == cast(u32, ReactorNode.Output)
+    {
         return 1
+    }
 
     let cached = memo[nodeIndex]
-    if cached >= 0 do
+    if cached >= 0
+    {
         return cast(u32, cached)
+    }
 
     var total: u32
     let outputCount = graph.outputCounts[nodeIndex]
@@ -65,12 +69,16 @@ func countPaths(memo: [..] s32, graph: ReactorGraph, nodeIndex: u32)->u32
 
 func longestChain(memo: [..] s32, graph: ReactorGraph, nodeIndex: u32)->u32
 {
-    if nodeIndex == cast(u32, ReactorNode.Output) do
+    if nodeIndex == cast(u32, ReactorNode.Output)
+    {
         return 0
+    }
 
     let cached = memo[nodeIndex]
-    if cached >= 0 do
+    if cached >= 0
+    {
         return cast(u32, cached)
+    }
 
     var best: u32
     let outputCount = graph.outputCounts[nodeIndex]
@@ -78,9 +86,11 @@ func longestChain(memo: [..] s32, graph: ReactorGraph, nodeIndex: u32)->u32
     for index in outputCount
     {
         let nextIndex = graph.outputs[nodeIndex][index]
-        let candidate = 1'u32 + longestChain(memo, graph, nextIndex)
-        if candidate > best do
+        let candidate = 1_u32 + longestChain(memo, graph, nextIndex)
+        if candidate > best
+        {
             best = candidate
+        }
     }
 
     memo[nodeIndex] = cast(s32, best)
@@ -112,8 +122,10 @@ func auditReactor(graph: ReactorGraph)->ReactorReport
 
         let nextIndex   = graph.outputs[intakeIndex][index]
         let branchPaths = countPaths(branchMemo, graph, nextIndex)
-        if branchPaths > result.busiestBranchPaths do
+        if branchPaths > result.busiestBranchPaths
+        {
             result.busiestBranchPaths = branchPaths
+        }
     }
 
     return result
@@ -206,13 +218,13 @@ func buildCompactReactor()->ReactorGraph
 {
     let sampleReport = auditReactor(buildSampleReactor())
 
-    Swag.require(sampleReport.pathCount == 10'u32)
-    Swag.require(sampleReport.busiestBranchPaths == 4'u32)
-    Swag.require(sampleReport.longestChain == 5'u32)
+    Swag.require(sampleReport.pathCount == 10_u32)
+    Swag.require(sampleReport.busiestBranchPaths == 4_u32)
+    Swag.require(sampleReport.longestChain == 5_u32)
 
     let compactReport = auditReactor(buildCompactReactor())
 
-    Swag.require(compactReport.pathCount == 4'u32)
-    Swag.require(compactReport.busiestBranchPaths == 2'u32)
-    Swag.require(compactReport.longestChain == 3'u32)
+    Swag.require(compactReport.pathCount == 4_u32)
+    Swag.require(compactReport.busiestBranchPaths == 2_u32)
+    Swag.require(compactReport.longestChain == 3_u32)
 }

@@ -28,19 +28,24 @@ func writeHeader(result: *ConcatBuffer, image: Image, pitch, dxgi, flags, bits, 
     writeU32(result, pitch)
     writeU32(result, 0)
     writeU32(result, 0)
-    for 11 do
+    for 11
+    {
         writeU32(result, 0)
+    }
+
     writeU32(result, 32)
     writeU32(result, dxgi ? FourCcFlag : flags)
-    writeU32(result, dxgi ? 0x30315844'u32 : 0)     // DX10
+    writeU32(result, dxgi ? 0x30315844_u32 : 0)     // DX10
     writeU32(result, bits)
     writeU32(result, redMask)
     writeU32(result, greenMask)
     writeU32(result, blueMask)
     writeU32(result, alphaMask)
     writeU32(result, 0x1000)     // DDSCAPS_TEXTURE.
-    for 4 do
+    for 4
+    {
         writeU32(result, 0)
+    }
 
     if dxgi
     {
@@ -58,10 +63,14 @@ internal impl IImageEncoder for Encoder
 
     mtd impl encode(result: *ConcatBuffer, image: Image, _: any?) fail
     {
-        if not image.isValid() do
+        if not image.isValid()
+        {
             fail InvalidFormatError{"invalid image"}
+        }
 
-        var dxgi  = 0'u32
+        var converted: Image
+        var source:    const *Image = &image
+        var dxgi  = 0_u32
         var flags = RgbFlag
         var bits  = cast(u32, image.bitsPerPixel)
         var redMask, greenMask, blueMask, alphaMask: u32

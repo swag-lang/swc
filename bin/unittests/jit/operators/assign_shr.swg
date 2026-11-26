@@ -4,14 +4,14 @@
 {
     func shrEqU32()->u32
     {
-        var v: u32 = 168'u32
-        v >>= 2'u32
+        var v: u32 = 168_u32
+        v >>= 2_u32
         return v
     }
 
     const V = #run shrEqU32()
     #assert(#typeof(V) == u32)
-    #assert(V == 42'u32)
+    #assert(V == 42_u32)
 }
 
 #test

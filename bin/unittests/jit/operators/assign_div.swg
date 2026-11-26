@@ -18,12 +18,12 @@
 {
     func divEqFloat()->f32
     {
-        var v: f32 = 84.0'f32
-        v /= 2.0'f32
+        var v: f32 = 84.0_f32
+        v /= 2.0_f32
         return v
     }
 
     const V = #run divEqFloat()
     #assert(#typeof(V) == f32)
-    #assert(V == 42.0'f32)
+    #assert(V == 42.0_f32)
 }

@@ -11,8 +11,10 @@ func opaquePointer(value: [*] void)->[*] void => value
 #[Swag.Inline]
 func optionalPointer(value: [*] void?)->u64
 {
-    if not value do
+    if not value
+    {
         return 0
+    }
     return pointerValue(value)
 }
 
@@ -22,8 +24,10 @@ func scalarValue(value: *u64)->u64 => value[]
 #[Swag.Inline]
 func optionalScalar(value: *u64?)->u64
 {
-    if not value do
+    if not value
+    {
         return 0
+    }
     return scalarValue(value)
 }
 
@@ -33,8 +37,10 @@ func firstValue(values: [..] u32)->u32 => values[0]
 #[Swag.Inline]
 func optionalSlice(values: [..] u32?)->u32
 {
-    if not values do
+    if not values
+    {
         return 0
+    }
     return firstValue(values)
 }
 
@@ -44,16 +50,20 @@ func stringLength(value: string)->u64 => value.count
 #[Swag.Inline]
 func optionalString(value: string?)->u64
 {
-    if not value do
+    if not value
+    {
         return 0
+    }
     return stringLength(value)
 }
 
 #[Swag.Inline]
 func copyPointers(destination: [*] void?, source: const [*] void?, size: u64)
 {
-    if size do
+    if size
+    {
         Swag.memcpy(unwrap destination, unwrap source, size)
+    }
 }
 
 func optionalSlicePointer(source: const [..] u8)
@@ -63,7 +73,7 @@ func optionalSlicePointer(source: const [..] u8)
 
 #test
 {
-    var storage = 37'u64
+    var storage = 37_u64
     let pointer = opaquePointer(&storage)
     Swag.require(optionalPointer(pointer) == cast(u64, pointer))
     Swag.require(optionalPointer(cast([*] void?, pointer)) == cast(u64, pointer))
@@ -72,7 +82,7 @@ func optionalSlicePointer(source: const [..] u8)
     Swag.require(optionalScalar(&storage) == 37)
     Swag.require(optionalScalar(null) == 0)
 
-    var values = [17'u32, 29]
+    var values = [17_u32, 29]
     let slice: [..] u32 = values
     Swag.require(optionalSlice(slice) == 17)
     Swag.require(optionalSlice(null) == 0)
@@ -81,7 +91,7 @@ func optionalSlicePointer(source: const [..] u8)
     Swag.require(optionalString(text) == 9)
     Swag.require(optionalString(null) == 0)
 
-    var bytes = [1'u8, 2]
+    var bytes = [1_u8, 2]
     let byteSlice: [..] u8 = bytes
     optionalSlicePointer(byteSlice)
 }

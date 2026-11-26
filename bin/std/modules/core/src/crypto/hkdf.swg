@@ -15,25 +15,17 @@ public const HkdfSha384MaxOutputSize = 255 * 48
 
 private func(Hmac, Digest) deriveHkdf(salt, inputKeyMaterial, info: const [..] u8, destination: [..] u8)
 {
-    if not destination.count do
-        return
-
-    var pseudoRandomKey = Hmac.compute(salt, inputKeyMaterial)
-    defer secureClear(pseudoRandomKey)
-
-    if destination.count <= #sizeof(Digest)
+    if destination.count > HkdfSha256MaxOutputSize
     {
-        const FirstBlock = [1'u8]
-        var hmac = Hmac.create(pseudoRandomKey)
-        hmac.update(info)
-        hmac.update(FirstBlock)
-        var digest = hmac.finalize()
-        Swag.memcpy(destination.buffer, digest.buffer, destination.count)
-        secureClear(digest)
+        fail Errors.BadParameterError{"HKDF-SHA-256 output exceeds 255 digest blocks"}
+    }
+
+    if not destination.count
+    {
         return
     }
 
-    var infoCopy: Array'u8
+    var infoCopy: Array!{u8}
     var infoInput = info
     if info.count
     {
@@ -53,21 +45,31 @@ private func(Hmac, Digest) deriveHkdf(salt, inputKeyMaterial, info: const [..] u
     var previous: Digest
     defer secureClear(previous)
 
-    var offset     = 0'u64
-    var blockIndex = 1'u8
+    var pseudoRandomKey = HmacSha256.compute(salt, inputKeyMaterial)
+    defer secureClear(pseudoRandomKey)
+
+    var previous: HmacSha256Digest
+    var hasPrevious = false
+    var offset      = 0_u64
+    var blockIndex  = 1_u8
     while offset < destination.count
     {
-        restoreHmacPrefix(&hmac, &keyed)
-        if offset do
+        var hmac = HmacSha256.create(pseudoRandomKey)
+        if hasPrevious
+        {
             hmac.update(previous)
+        }
+
         hmac.update(infoInput)
         hmac.update(Swag.makeSlice(&blockIndex, 1))
         previous = hmac.finalize()
         let count = Math.min(destination.count - offset, #sizeof(Digest))
         Swag.memcpy(destination.buffer + offset, previous.buffer, count)
         offset += count
-        if offset < destination.count do
+        if offset < destination.count
+        {
             blockIndex += 1
+        }
     }
 }
 
@@ -88,9 +90,60 @@ func hkdfSha256(salt, inputKeyMaterial, info: const [..] u8, destination: [..] u
 // An empty salt uses the RFC 5869 zero-filled default. Fails when output exceeds 255 SHA-512 blocks.
 func hkdfSha512(salt, inputKeyMaterial, info: const [..] u8, destination: [..] u8) fail
 {
-    if destination.count > HkdfSha512MaxOutputSize do
+    if destination.count > HkdfSha512MaxOutputSize
+    {
         fail Errors.BadParameterError{"HKDF-SHA-512 output exceeds 255 digest blocks"}
-    deriveHkdf'(HmacSha512, HmacSha512Digest)(salt, inputKeyMaterial, info, destination)
+    }
+
+    if not destination.count
+    {
+        return
+    }
+
+    var infoCopy: Array!{u8}
+    var infoInput = info
+    if info.count and destination.count
+    {
+        let infoStart   = cast(u64, info.buffer)
+        let outputStart = cast(u64, destination.buffer)
+        if infoStart < outputStart + destination.count and outputStart < infoStart + info.count
+        {
+            infoCopy.add(info)
+            infoInput = infoCopy.toSlice()
+        }
+    }
+
+    defer secureClear(infoCopy.toSlice())
+
+    var pseudoRandomKey = HmacSha512.compute(salt, inputKeyMaterial)
+    defer secureClear(pseudoRandomKey)
+
+    var previous: HmacSha512Digest
+    var hasPrevious = false
+    var offset      = 0_u64
+    var blockIndex  = 1_u8
+    while offset < destination.count
+    {
+        var hmac = HmacSha512.create(pseudoRandomKey)
+        if hasPrevious
+        {
+            hmac.update(previous)
+        }
+
+        hmac.update(infoInput)
+        hmac.update(Swag.makeSlice(&blockIndex, 1))
+        previous    = hmac.finalize()
+        hasPrevious = true
+        let count = Math.min(destination.count - offset, #sizeof(previous))
+        Swag.memcpy(destination.buffer + offset, &previous[0], count)
+        offset += count
+        if offset < destination.count
+        {
+            blockIndex += 1
+        }
+    }
+
+    secureClear(previous)
 }
 
 // Derives key material with HKDF-SHA-224 as specified by RFC 5869.
@@ -99,9 +152,60 @@ func hkdfSha512(salt, inputKeyMaterial, info: const [..] u8, destination: [..] u
 // An empty salt uses the RFC 5869 zero-filled default. Fails when output exceeds 255 SHA-224 blocks.
 func hkdfSha224(salt, inputKeyMaterial, info: const [..] u8, destination: [..] u8) fail
 {
-    if destination.count > HkdfSha224MaxOutputSize do
+    if destination.count > HkdfSha224MaxOutputSize
+    {
         fail Errors.BadParameterError{"HKDF-SHA-224 output exceeds 255 digest blocks"}
-    deriveHkdf'(HmacSha224, HmacSha224Digest)(salt, inputKeyMaterial, info, destination)
+    }
+
+    if not destination.count
+    {
+        return
+    }
+
+    var infoCopy: Array!{u8}
+    var infoInput = info
+    if info.count and destination.count
+    {
+        let infoStart   = cast(u64, info.buffer)
+        let outputStart = cast(u64, destination.buffer)
+        if infoStart < outputStart + destination.count and outputStart < infoStart + info.count
+        {
+            infoCopy.add(info)
+            infoInput = infoCopy.toSlice()
+        }
+    }
+
+    defer secureClear(infoCopy.toSlice())
+
+    var pseudoRandomKey = HmacSha224.compute(salt, inputKeyMaterial)
+    defer secureClear(pseudoRandomKey)
+
+    var previous: HmacSha224Digest
+    var hasPrevious = false
+    var offset      = 0_u64
+    var blockIndex  = 1_u8
+    while offset < destination.count
+    {
+        var hmac = HmacSha224.create(pseudoRandomKey)
+        if hasPrevious
+        {
+            hmac.update(previous)
+        }
+
+        hmac.update(infoInput)
+        hmac.update(Swag.makeSlice(&blockIndex, 1))
+        previous    = hmac.finalize()
+        hasPrevious = true
+        let count = Math.min(destination.count - offset, #sizeof(previous))
+        Swag.memcpy(destination.buffer + offset, &previous[0], count)
+        offset += count
+        if offset < destination.count
+        {
+            blockIndex += 1
+        }
+    }
+
+    secureClear(previous)
 }
 
 // Derives key material with HKDF-SHA-384 as specified by RFC 5869.
@@ -110,7 +214,58 @@ func hkdfSha224(salt, inputKeyMaterial, info: const [..] u8, destination: [..] u
 // An empty salt uses the RFC 5869 zero-filled default. Fails when output exceeds 255 SHA-384 blocks.
 func hkdfSha384(salt, inputKeyMaterial, info: const [..] u8, destination: [..] u8) fail
 {
-    if destination.count > HkdfSha384MaxOutputSize do
+    if destination.count > HkdfSha384MaxOutputSize
+    {
         fail Errors.BadParameterError{"HKDF-SHA-384 output exceeds 255 digest blocks"}
-    deriveHkdf'(HmacSha384, HmacSha384Digest)(salt, inputKeyMaterial, info, destination)
+    }
+
+    if not destination.count
+    {
+        return
+    }
+
+    var infoCopy: Array!{u8}
+    var infoInput = info
+    if info.count and destination.count
+    {
+        let infoStart   = cast(u64, info.buffer)
+        let outputStart = cast(u64, destination.buffer)
+        if infoStart < outputStart + destination.count and outputStart < infoStart + info.count
+        {
+            infoCopy.add(info)
+            infoInput = infoCopy.toSlice()
+        }
+    }
+
+    defer secureClear(infoCopy.toSlice())
+
+    var pseudoRandomKey = HmacSha384.compute(salt, inputKeyMaterial)
+    defer secureClear(pseudoRandomKey)
+
+    var previous: HmacSha384Digest
+    var hasPrevious = false
+    var offset      = 0_u64
+    var blockIndex  = 1_u8
+    while offset < destination.count
+    {
+        var hmac = HmacSha384.create(pseudoRandomKey)
+        if hasPrevious
+        {
+            hmac.update(previous)
+        }
+
+        hmac.update(infoInput)
+        hmac.update(Swag.makeSlice(&blockIndex, 1))
+        previous    = hmac.finalize()
+        hasPrevious = true
+        let count = Math.min(destination.count - offset, #sizeof(previous))
+        Swag.memcpy(destination.buffer + offset, &previous[0], count)
+        offset += count
+        if offset < destination.count
+        {
+            blockIndex += 1
+        }
+    }
+
+    secureClear(previous)
 }

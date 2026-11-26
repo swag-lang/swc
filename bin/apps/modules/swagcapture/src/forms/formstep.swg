@@ -40,8 +40,11 @@ impl IForm for FormStep
     mtd impl isSame(ptr: *BaseForm)->bool
     {
         let other = catch cast(*FormStep?, ptr) orelse null
-        if not other do
+        if not other
+        {
             return false
+        }
+
         return .isSameBase(ptr) and
                .kind == other.kind and
                .typeIndex == other.typeIndex
@@ -118,8 +121,10 @@ impl IForm for FormStep
 
         let face = .ownerApp().theme.res.defaultTypeFaceR
 
-        if fSize != .cachefSize or .typeIndex != .cacheTypeIndex or face != .cacheFace do
+        if fSize != .cachefSize or .typeIndex != .cacheTypeIndex or face != .cacheFace
+        {
             .isDirty = true
+        }
 
         if .isDirty
         {
@@ -141,10 +146,10 @@ impl IForm for FormStep
 
                 // Wrap with modulo 26 so indices past 26 cycle back through A..Z
                 // instead of spilling past `Z` into punctuation glyphs.
-                t = Format.toString("%", cast(rune, ('A'rune + (curIndex - 1) % 26)))
+                t = Format.toString("%", cast(rune, ('A'_rune + (curIndex - 1) % 26)))
 
             case .LetterDown:
-                t = Format.toString("%", cast(rune, ('a'rune + (curIndex - 1) % 26)))
+                t = Format.toString("%", cast(rune, ('a'_rune + (curIndex - 1) % 26)))
             }
 
             .pathl = expect face.buildStringOutline(t, cast(u32, fSize))
@@ -154,8 +159,10 @@ impl IForm for FormStep
         }
 
         var bk = .backColor
-        if cxt.quickMode and .alpha != 100 do
+        if cxt.quickMode and .alpha != 100
+        {
             bk.a = .opacityAlpha()
+        }
 
         let pp = .boundRect() * z
 
@@ -164,25 +171,36 @@ impl IForm for FormStep
         case .Ellipse:
             let sizeX = pp.width * 0.5
             let sizeY = pp.height * 0.5
-            if cxt.quickMode and .alpha != 100 do
+            if cxt.quickMode and .alpha != 100
+            {
                 painter.fillEllipse(pp.x + sizeX, pp.y + sizeY, sizeX, sizeY, backBrush)
+            }
+
             painter.fillEllipse(pp.x + sizeX, pp.y + sizeY, sizeX, sizeY, .backColor)
 
         case .Rectangle:
-            if cxt.quickMode and .alpha != 100 do
+            if cxt.quickMode and .alpha != 100
+            {
                 painter.fillRect(pp, backBrush)
+            }
+
             painter.fillRect(pp, bk)
 
         case .RoundRectangle:
             var round = cast(f32, Math.min(.w, .h))
             round /= 3
-            if cxt.quickMode and .alpha != 100 do
+            if cxt.quickMode and .alpha != 100
+            {
                 painter.fillRoundRect(pp, round, round, backBrush)
+            }
+
             painter.fillRoundRect(pp, round, round, .backColor)
         }
 
-        if .editingText and not cxt.quickMode do
+        if .editingText and not cxt.quickMode
+        {
             return
+        }
 
         let wt = (.pathl.maxBounds.x - .pathl.minBounds.x) * z
         let ht = (.pathl.maxBounds.y - .pathl.minBounds.y) * z

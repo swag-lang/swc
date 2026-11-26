@@ -13,7 +13,7 @@ using Core, Core.Errors, Core.Math
 // The luma interpolator reads up to five samples beyond a block, so a motion vector pointing
 // just outside the frame stays inside the padded storage once the edges are replicated. Longer
 // excursions go through the bounded fallback of the interpolator instead.
-const FramePadding = 32's32
+const FramePadding = 32_s32
 
 // Row progress a picture publishes while it is being reconstructed.
 //
@@ -21,7 +21,7 @@ const FramePadding = 32's32
 // side padding, and that the top padding is written once `n` is at least one. The completion
 // value additionally covers the bottom padding, so a prediction reading past the picture waits
 // for it. A failed picture publishes [[FrameProgressFailed]] so nothing waits on it forever.
-const FrameProgressFailed = -1's32
+const FrameProgressFailed = -1_s32
 
 // Co-located motion read by direct B prediction.
 struct ColMotion
@@ -36,9 +36,9 @@ struct ColMotion
 // stream needs from it.
 struct Frame
 {
-    luma:         Array'u8     // Padded luma plane.
-    cb:           Array'u8     // Padded blue-difference plane.
-    cr:           Array'u8     // Padded red-difference plane.
+    luma:         Array!{u8}     // Padded luma plane.
+    cb:           Array!{u8}     // Padded blue-difference plane.
+    cr:           Array!{u8}     // Padded red-difference plane.
     strideLuma:   u64
     strideChroma: u64
     mbWidth:      s32
@@ -70,18 +70,18 @@ struct Frame
 
     // Motion exported for co-located prediction in later B slices, one entry per 4x4 block:
     // the L0 motion when the block had one, its L1 motion otherwise.
-    colMv:    Array's16     // Two components per block.
-    colRef:   Array's8      // Reference index, or -1 for an intra or unpredicted block.
-    colPoc:   Array's32     // Picture order count of the referenced frame.
-    colShort: Array'u8      // Whether the referenced frame was short-term.
+    colMv:    Array!{s16}     // Two components per block.
+    colRef:   Array!{s8}      // Reference index, or -1 for an intra or unpredicted block.
+    colPoc:   Array!{s32}     // Picture order count of the referenced frame.
+    colShort: Array!{u8}      // Whether the referenced frame was short-term.
 
     // A uniform P-skip exports the same co-located motion for all sixteen blocks. Keep it once
     // per macroblock so the serial entropy path does not write five full grids for still areas.
-    colUniform: Array'u8
-    colMbMv:    Array's16
-    colMbRef:   Array's8
-    colMbPoc:   Array's32
-    colMbShort: Array'u8
+    colUniform: Array!{u8}
+    colMbMv:    Array!{s16}
+    colMbRef:   Array!{s8}
+    colMbPoc:   Array!{s32}
+    colMbShort: Array!{u8}
 }
 
 impl Frame
@@ -122,8 +122,11 @@ impl Frame
 
         .isShortTerm = false
         .isLongTerm  = false
-        if not .progressEvent.isValid() do
+        if not .progressEvent.isValid()
+        {
             .progressEvent.init(manual: true)
+        }
+
         Atomic.exchange(&.heldByCaller, 0)
         Atomic.exchange(&.parseProgress, 0)
         Atomic.exchange(&.progressRows, 0)
@@ -155,8 +158,11 @@ impl Frame
         // Every macroblock row publishes, and with a picture per decoder lane that is thousands
         // of signals a second on a stream nobody is waiting on. Only pay for the wake-up when a
         // waiter registered itself.
-        if .progressWaiters do
+        if .progressWaiters
+        {
             .progressEvent.signal()
+        }
+
         .progressLock.unlock()
     }
 
@@ -170,16 +176,21 @@ impl Frame
     mtd awaitProgress(rows: s32)->s32
     {
         var value = Atomic.get(&.progressRows)
-        if value >= rows do
+        if value >= rows
+        {
             return value
+        }
 
         .progressLock.lock()
         .progressWaiters += 1
         while true
         {
             value = Atomic.get(&.progressRows)
-            if value >= rows or value == FrameProgressFailed do
+            if value >= rows or value == FrameProgressFailed
+            {
                 break
+            }
+
             .progressEvent.reset()
             .progressLock.unlock()
             .progressEvent.wait()
@@ -187,8 +198,11 @@ impl Frame
         }
 
         .progressWaiters -= 1
-        if .progressWaiters do
+        if .progressWaiters
+        {
             .progressEvent.signal()
+        }
+
         .progressLock.unlock()
         return value
     }
@@ -199,8 +213,11 @@ impl Frame
     {
         .progressLock.lock()
         Atomic.exchange(&.parseProgress, state)
-        if .progressWaiters do
+        if .progressWaiters
+        {
             .progressEvent.signal()
+        }
+
         .progressLock.unlock()
     }
 
@@ -214,16 +231,21 @@ impl Frame
     mtd awaitParse()->u32
     {
         var value = Atomic.get(&.parseProgress)
-        if value do
+        if value
+        {
             return value
+        }
 
         .progressLock.lock()
         .progressWaiters += 1
         while true
         {
             value = Atomic.get(&.parseProgress)
-            if value do
+            if value
+            {
                 break
+            }
+
             .progressEvent.reset()
             .progressLock.unlock()
             .progressEvent.wait()
@@ -231,8 +253,11 @@ impl Frame
         }
 
         .progressWaiters -= 1
-        if .progressWaiters do
+        if .progressWaiters
+        {
             .progressEvent.signal()
+        }
+
         .progressLock.unlock()
         return value
     }
@@ -256,8 +281,11 @@ impl Frame
     #[Swag.Inline]
     mtd pixPlane(plane: u32, x, y: s32)->[*] u8
     {
-        if plane == 0 do
+        if plane == 0
+        {
             return .pixLuma(x, y)
+        }
+
         return .pixChroma(plane - 1, x, y)
     }
 
@@ -403,8 +431,10 @@ private func extendPlaneTop(base: [*] u8, stride: u64)
 {
     let pad = cast(u64, FramePadding)
     let top = base + pad * stride
-    for index in pad do
+    for index in pad
+    {
         Memory.copy(base + index * stride, top, stride)
+    }
 }
 
 // Copies the last row of a plane into the padding below it.
@@ -412,8 +442,10 @@ private func extendPlaneBottom(base: [*] u8, stride: u64, height: s32)
 {
     let pad    = cast(u64, FramePadding)
     let bottom = base + (pad + cast(u64, height) - 1) * stride
-    for index in pad do
+    for index in pad
+    {
         Memory.copy(bottom + (index + 1) * stride, bottom, stride)
+    }
 }
 
 // Replicates the edges of one plane into its padding border.

@@ -21,7 +21,7 @@ using Core
     firstInput.shortcut(.Tab, .None)
     Swag.require(first.hasVisibleFocus())
 
-    let commands = Memory.new'u32()
+    let commands = Memory.new!{u32}()
     defer
     {
         secondary.view().hookOnEvent = null

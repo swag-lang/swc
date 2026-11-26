@@ -10,13 +10,16 @@ func createHeaderBand(parent: *Wnd, rect: Math.Rectangle, title: string, round: 
     let width  = rect.width - Inset * 2
     let header = Header.create(panel, {Inset, 84, width, 34})
     header.form = round ? .Round : .Flat
-    if disabledClick do
+    if disabledClick
+    {
         header.updateFlags(remove: .Clickable)
+    }
 
-    discard header.addColumn("Name", width * 0.34, app.theme.icon(.OpenFile, 16))
-    header.setItemWidthLimits(0, 106, 220)
-    discard header.addColumn("State", width * 0.23, app.theme.icon(.Filter, 16))
-    let size = header.addColumn("Size", width * 0.16)
+    discard header.addColumn("Name", 190, app.theme.icon(.OpenFile, 16))
+    header.setItemWidthLimits(0, 120, 260)
+    let state = header.addColumn("State", 120, app.theme.icon(.Filter, 16))
+    state.isClickable = not disabledClick
+    let size = header.addColumn("Size", 92)
     size.isResizable = false
     discard header.addColumn("Owner", width * 0.24)
     header.setSortIndicator(1, round ? .Ascending : .Descending)

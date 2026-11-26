@@ -25,27 +25,47 @@ impl Volume
         let count = destination.count / BlockSize
         Swag.assert(count <= MaximumIoBatchBlocks)
 
-        var records: Array'u8
+        var records: Array!{u8}
         records.resize(count * BlockRecordSize)
-        #static if #hastag("vault.integration") do
+        #static if #hastag("vault.integration")
+        {
             let waitStarted = Time.monotonicMicroseconds()
+        }
+
         scope
         {
             Sync.scopedLock(&.ioLock)
-            #static if #hastag("vault.integration") do
+            #static if #hastag("vault.integration")
+            {
                 let ioStarted = Time.monotonicMicroseconds()
-            #static if #hastag("vault.integration") do
+            }
+
+            #static if #hastag("vault.integration")
+            {
                 Atomic.add(&Integration.g_ReadWaitMicroseconds, ioStarted - waitStarted)
-            #static if #hastag("vault.integration") do
+            }
+
+            #static if #hastag("vault.integration")
+            {
                 Atomic.add(&Integration.g_ReadIoCount, 1)
-            if not (try .file.readExactAt(DataOffset + physical * BlockRecordSize, records.toSlice())) do
+            }
+
+            if not (try .file.readExactAt(DataOffset + physical * BlockRecordSize, records.toSlice()))
+            {
                 fail volumeError(.Io)
-            #static if #hastag("vault.integration") do
+            }
+
+            #static if #hastag("vault.integration")
+            {
                 Atomic.add(&Integration.g_ReadIoMicroseconds, Time.monotonicMicroseconds() - ioStarted)
+            }
         }
 
-        #static if #hastag("vault.integration") do
+        #static if #hastag("vault.integration")
+        {
             let cryptoStarted = Time.monotonicMicroseconds()
+        }
+
         var batch = CryptoBatch{keys: &.keys, physical: physical, records: records.toSlice(), plain: destination}
         parallel for |&batch| parIndex in cast(u64, count)
         {
@@ -68,15 +88,22 @@ impl Volume
                 continue
             }
 
-            if not opened do
+            if not opened
+            {
                 Atomic.add(&batch.invalidTags, 1)
+            }
         }
 
         try batch.error.raise()
-        if batch.invalidTags do
+        if batch.invalidTags
+        {
             fail volumeError(.Corrupted)
-        #static if #hastag("vault.integration") do
+        }
+
+        #static if #hastag("vault.integration")
+        {
             Atomic.add(&Integration.g_ReadCryptoMicroseconds, Time.monotonicMicroseconds() - cryptoStarted)
+        }
     }
 
     // Encrypts consecutive data blocks in parallel, each under a fresh nonce, and writes them from
@@ -87,7 +114,7 @@ impl Volume
         let count = source.count / BlockSize
         Swag.assert(count <= MaximumIoBatchBlocks)
 
-        var records: Array'u8
+        var records: Array!{u8}
         records.resize(count * BlockRecordSize)
         try Core.Crypto.randomBytes(records.toSlice())
 
@@ -125,7 +152,7 @@ impl Volume
     {
         Swag.assert(count != 0 and logical <= Swag.U64.Max - count)
         let end = logical + count
-        var updated: Array'BlockMapping
+        var updated: Array!{BlockMapping}
         updated.reserve(node.blocks.count + 2)
         var inserted = false
 
@@ -150,8 +177,10 @@ impl Volume
                 continue
             }
 
-            if mapping.logical < logical do
+            if mapping.logical < logical
+            {
                 updated.add(BlockMapping{mapping.logical, mapping.physical, logical - mapping.logical})
+            }
 
             let overlapFirst = Math.max(mapping.logical, logical)
             let overlapEnd   = Math.min(mappingEnd, end)
@@ -169,12 +198,16 @@ impl Volume
             }
         }
 
-        if not inserted do
+        if not inserted
+        {
             updated.add(BlockMapping{logical, physical, count})
+        }
 
         node.blocks.clear()
-        for mapping in updated do
+        for mapping in updated
+        {
             node.appendMapping(mapping[])
+        }
     }
 
     // Writes one logical block of a node to a newly allocated block, and releases the allocation
@@ -187,8 +220,10 @@ impl Volume
         var published = false
         defer
         {
-            if not published do
+            if not published
+            {
                 .blocks.release(physical)
+            }
         }
 
         try .writePhysicalRun(physical, source)
@@ -203,7 +238,7 @@ impl Volume
     mtd writeFullBlocks(nodeId, logical: u64, source: const [..] u8) fail
     {
         Swag.assert(source.count != 0 and source.count % BlockSize == 0)
-        var doneBlocks = 0'u64
+        var doneBlocks = 0_u64
         let blockCount = source.count / BlockSize
         while doneBlocks < blockCount
         {
@@ -212,8 +247,10 @@ impl Volume
             var published = false
             defer
             {
-                if not published do
+                if not published
+                {
                     .blocks.releaseRun(allocated.first, allocated.count)
+                }
             }
 
             let firstByte = doneBlocks * BlockSize
@@ -230,8 +267,11 @@ impl Volume
     // Releases every block of a node at the next commit.
     mtd freeNodeBlocks(node: *Node)
     {
-        for mapping in node.blocks do
+        for mapping in node.blocks
+        {
             .blocks.deferReleaseRun(mapping.physical, mapping.count)
+        }
+
         node.blocks.clear()
         .touch(node.id)
     }
@@ -240,8 +280,11 @@ impl Volume
     mtd trimNode(node: *Node, newSize: u64)
     {
         var keepBlocks = newSize / BlockSize
-        if newSize % BlockSize do
+        if newSize % BlockSize
+        {
             keepBlocks += 1
+        }
+
         for index in reversed(node.blocks.count)
         {
             let mapping = node.blocks[index]
@@ -269,13 +312,19 @@ impl Volume
     // what a shrink left there.
     mtd zeroOldTail(nodeId, oldSize, newSize: u64) fail
     {
-        if newSize <= oldSize or oldSize % BlockSize == 0 do
+        if newSize <= oldSize or oldSize % BlockSize == 0
+        {
             return
+        }
+
         let node    = unwrap .nodeById(nodeId)
         let logical = oldSize / BlockSize
         let search  = node.blockSearch(logical)
-        if not search.found do
+        if not search.found
+        {
             return
+        }
+
         var block: [BlockSize] u8
         defer Core.Crypto.secureClear(block)
         let mapping = node.blocks[search.index]
@@ -291,17 +340,31 @@ impl Volume
     {
         try .requireWritable()
         let node = unwrap .nodeById(nodeId)
-        if node.isDirectory() do
+        if node.isDirectory()
+        {
             fail volumeError(.IsDirectory)
+        }
+
         let oldSize = node.size
-        if newSize == oldSize do
+        if newSize == oldSize
+        {
             return
-        if (node.attributes & FileAttributeReadOnly) != 0 do
+        }
+
+        if (node.attributes & FileAttributeReadOnly) != 0
+        {
             fail volumeError(.AccessDenied)
-        if newSize > oldSize do
+        }
+
+        if newSize > oldSize
+        {
             try .zeroOldTail(nodeId, oldSize, newSize)
-        elif newSize < oldSize do
+        }
+        else if newSize < oldSize
+        {
             .trimNode(node, newSize)
+        }
+
         let current = unwrap .nodeById(nodeId)
         current.size          = newSize
         current.changeTime    = volumeTimeNow()
@@ -313,8 +376,11 @@ impl Volume
     mtd fileNode(nodeId: u64)->*Node fail
     {
         let node = .nodeById(nodeId)
-        if not node do
+        if not node
+        {
             fail volumeError(.NotFound)
+        }
+
         return node
     }
 
@@ -323,13 +389,18 @@ impl Volume
     mtd readNode(nodeId: u64, offset: u64, destination: [..] u8)->u32 fail
     {
         let node = try .fileNode(nodeId)
-        if node.isDirectory() do
+        if node.isDirectory()
+        {
             fail volumeError(.IsDirectory)
-        if offset >= node.size or not destination.count do
+        }
+
+        if offset >= node.size or not destination.count
+        {
             return 0
+        }
 
         let count = Math.min(destination.count, node.size - offset)
-        var done  = 0'u64
+        var done  = 0_u64
         while done < count
         {
             let absolute = offset + done
@@ -376,33 +447,51 @@ impl Volume
     {
         try .requireWritable()
         let node = try .fileNode(nodeId)
-        if node.isDirectory() do
+        if node.isDirectory()
+        {
             fail volumeError(.IsDirectory)
-        if (node.attributes & FileAttributeReadOnly) != 0 do
+        }
+
+        if (node.attributes & FileAttributeReadOnly) != 0
+        {
             fail volumeError(.AccessDenied)
+        }
 
         var writeOffset = offset
-        if writeToEnd do
+        if writeToEnd
+        {
             writeOffset = node.size
+        }
+
         var count = source.count
         if constrained
         {
-            if writeOffset >= node.size do
+            if writeOffset >= node.size
+            {
                 return 0
+            }
+
             count = Math.min(count, node.size - writeOffset)
         }
 
-        if not count do
+        if not count
+        {
             return 0
-        if writeOffset > Swag.U64.Max - count do
+        }
+
+        if writeOffset > Swag.U64.Max - count
+        {
             fail volumeError(.InvalidInput)
+        }
 
         let oldSize = node.size
         let end     = writeOffset + count
-        if not constrained and end > oldSize do
+        if not constrained and end > oldSize
+        {
             try .zeroOldTail(nodeId, oldSize, end)
+        }
 
-        var done = 0'u64
+        var done = 0_u64
         while done < count
         {
             let absolute = writeOffset + done
@@ -420,8 +509,11 @@ impl Volume
 
             let current = unwrap .nodeById(nodeId)
             var block: [BlockSize] u8
-            if inBlock or chunk != BlockSize do
+            if inBlock or chunk != BlockSize
+            {
                 try .readBlock(current, logical, block)
+            }
+
             Swag.memcpy(&block[inBlock], source.buffer + done, chunk)
             try .writeBlock(nodeId, logical, block)
             Core.Crypto.secureClear(block)
@@ -429,8 +521,11 @@ impl Volume
         }
 
         let updated = unwrap .nodeById(nodeId)
-        if end > updated.size do
+        if end > updated.size
+        {
             updated.size = end
+        }
+
         let now = volumeTimeNow()
         updated.lastWriteTime = now
         updated.changeTime    = now

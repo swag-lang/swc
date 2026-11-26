@@ -62,8 +62,11 @@ using Core
     var error: Swag.Error
     discard catch Volume.open(path, "inode lock password") as error
     Swag.require(error.value() is Error)
-    if error.value() is Error as typed do
+    if error.value() is Error as typed
+    {
         Swag.require(typed.kind == .AccessDenied)
+    }
+
     discard catch Volume.open(path, "inode lock password", true) as error
     Swag.require(error.value() is Error)
     first.close()

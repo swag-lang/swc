@@ -27,11 +27,11 @@ private
 
     // Sizes of the title, of a figure and of its label, of the identity line, and of the lines
     // that list sections and imports.
-    const TitleSize     = 26'u32
-    const FigureSize    = 36'u32
-    const LabelSize     = 13'u32
-    const MonoSize      = 12'u32
-    const SmallMonoSize = 11'u32
+    const TitleSize     = 26_u32
+    const FigureSize    = 36_u32
+    const LabelSize     = 13_u32
+    const MonoSize      = 12_u32
+    const SmallMonoSize = 11_u32
 
     // Air between two figures, between two bands of the page, and inside the legend; the height of
     // the sections bar, and the pitch of an import line and where its names start.
@@ -50,7 +50,7 @@ impl ReportPage
 {
     func create(parent: *Wnd)->*ReportPage
     {
-        with let result = Wnd.create'ReportPage(parent, "scope.binary.page", {})
+        with let result = Wnd.create!{ReportPage}(parent, "scope.binary.page", {})
         {
             .backgroundStyle = .View
             .dockStyle       = .Center
@@ -71,7 +71,7 @@ impl ReportPage
     //
     // The largest sections take the series hues, in file order; the small ones share the faint ink,
     // so the hues go to what holds the bytes.
-    private mtd sectionColor(sections: const *Array'OverviewSection, index: u64)->Color
+    private mtd sectionColor(sections: const *Array!{OverviewSection}, index: u64)->Color
     {
         let colors = .themeColors()
         let hues   = colors.series.count
@@ -79,22 +79,30 @@ impl ReportPage
         // A section ranks by how many others store more, the earlier one first on a tie.
         let rank = func|sections|(at: u64)->u64
         {
-            var result = 0'u64
+            var result = 0_u64
             for other, otherAt in sections
             {
                 let size = sections[at].size
-                if other.size > size or (other.size == size and otherAt < at) do
+                if other.size > size or (other.size == size and otherAt < at)
+                {
                     result += 1
+                }
             }
 
             return result
         }
 
-        if rank(index) >= hues do
+        if rank(index) >= hues
+        {
             return colors.faintText
-        var hue = 0'u64
-        for at in index where rank(at) < hues do
+        }
+
+        var hue = 0_u64
+        for at in index where rank(at) < hues
+        {
             hue += 1
+        }
+
         return colors.series[hue]
     }
 
@@ -127,15 +135,17 @@ impl ReportPage
 
     // Draws the sections as one bar split in proportion to the bytes each stores, with its legend
     // under it, and returns the bottom of the legend.
-    private mtd paintSections(painter: *Painter, left, right, top: f32, sections: const *Array'OverviewSection)->f32
+    private mtd paintSections(painter: *Painter, left, right, top: f32, sections: const *Array!{OverviewSection})->f32
     {
         let colors = .themeColors()
         let name   = .theme().createDefaultFont(LabelSize - 1)
         let share  = .theme().createDefaultFontFs(SmallMonoSize)
 
-        var total = 0'u64
-        for section in sections do
+        var total = 0_u64
+        for section in sections
+        {
             total += section.size
+        }
 
         // The bar: each section a run as long as its share, a hairline of air between two.
         let width = right - left - cast(f32, sections.count - 1) * BarJoint
@@ -174,7 +184,7 @@ impl ReportPage
 
     // Draws one line per imported library from `top`, its first names and its count beside it, as
     // many as the page holds.
-    private mtd paintImports(painter: *Painter, left, right, top: f32, libraries: const *Array'OverviewLibrary)
+    private mtd paintImports(painter: *Painter, left, right, top: f32, libraries: const *Array!{OverviewLibrary})
     {
         let colors  = .themeColors()
         let library = .theme().createDefaultFontFs(MonoSize, .Bold)
@@ -195,13 +205,19 @@ impl ReportPage
             var line: String
             for symbol, at in entry.symbols
             {
-                if at do
+                if at
+                {
                     line += ", "
+                }
+
                 line += symbol[]
             }
 
-            if entry.count > entry.symbols.count do
+            if entry.count > entry.symbols.count
+            {
                 line += Format.toString(" … %", entry.count)
+            }
+
             painter.drawString(left, library.opticalLineTop(center), entry.name, library, colors.text)
             painter.pushClippingRect(Math.Rectangle{left + NamesColumn, y, right - left - NamesColumn, ImportPitch})
             painter.drawString(left + NamesColumn, names.opticalLineTop(center), line, names, colors.softText)
@@ -215,8 +231,10 @@ impl IWnd for ReportPage
 {
     mtd impl onPaint(evt: *PaintEvent)
     {
-        if not .document do
+        if not .document
+        {
             return
+        }
 
         let painter  = evt.paintContext.painter
         let colors   = .themeColors()

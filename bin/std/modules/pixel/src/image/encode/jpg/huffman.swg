@@ -42,22 +42,45 @@ impl Encoder
         .dhtInfo.infoHTCbDC = 1
         .dhtInfo.infoHTCbAC = 0x11
 
-        for i in 16 do
+        for i in 16
+        {
             .dhtInfo.nrcodesYDC[i] = StdDcLuminanceNrCodes[i + 1]
-        for i in 12 do
+        }
+
+        for i in 12
+        {
             .dhtInfo.valuesYDC[i] = StdDcLuminanceValues[i]
-        for i in 16 do
+        }
+
+        for i in 16
+        {
             .dhtInfo.nrcodesYAC[i] = StdAcLuminanceNrCodes[i + 1]
-        for i in 162 do
+        }
+
+        for i in 162
+        {
             .dhtInfo.valuesYAC[i] = StdAcLuminanceValues[i]
-        for i in 16 do
+        }
+
+        for i in 16
+        {
             .dhtInfo.nrcodesCbDC[i] = StdDcChrominanceNrCodes[i + 1]
-        for i in 12 do
+        }
+
+        for i in 12
+        {
             .dhtInfo.valuesCbDC[i] = StdDcChrominanceValues[i]
-        for i in 16 do
+        }
+
+        for i in 16
+        {
             .dhtInfo.nrcodesCbAC[i] = StdAcChrominanceNrCodes[i + 1]
-        for i in 162 do
+        }
+
+        for i in 162
+        {
             .dhtInfo.valuesCbAC[i] = StdAcChrominanceValues[i]
+        }
     }
 
     const LumaDcCodes   = #run compileCodes'12(StdDcLuminanceNrCodes, StdDcLuminanceValues, false)
@@ -68,8 +91,9 @@ impl Encoder
     // A symbol already determines the category. Keep the shifted prefix and combined bit count.
     func(Size: u64) compileCodes(counts, symbols: const [..] u8, ac: bool)->[Size] u32
     {
-        var packed: #returntype
-        if ac
+        var codevalue  = 0_u16
+        var posInTable = 0
+        for k in 1 to 16
         {
             // Undefined symbols still carry the amplitude bits, as with a zero-length prefix.
             for i in packed.count do

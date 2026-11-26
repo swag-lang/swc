@@ -64,115 +64,18 @@ private func writePixelChunk(target: [*] u8, pixel, previous: u32, index: *[64] 
             return 2
         }
 
-        cast(*u32, target)[] = (pixel << 8) | 0xFE
-        return 4
-    }
-
-    target[0] = 0xFF
-    cast(*u32, target + 1)[] = pixel
-    return 5
-}
-
-private func(CHANNELS: u64, SWAP: bool) writeUniformChunks(result: *ConcatBuffer, pixels: const [*] u8, count: u64)->bool
-{
-    if count < 256 do
-        return false
-
-    let pixel = readPixel'(CHANNELS, SWAP)(pixels)
-    if readPixel'(CHANNELS, SWAP)(pixels + CHANNELS) != pixel or
-       readPixel'(CHANNELS, SWAP)(pixels + (count - 1) * CHANNELS) != pixel do
-        return false
-
-    var matched: u64
-    #static if CHANNELS == 4 do
-        matched = PackedPixel.countSame32(pixels, pixels + CHANNELS, count - 1)
-    else do
-        matched = PackedPixel.countSame24(pixels, pixels + CHANNELS, count - 1)
-    if matched != count - 1 do
-        return false
-
-    const InitialPixel = 0xFF00_0000'u32
-    var runs = count
-    if pixel != InitialPixel
-    {
-        var first: [5] u8
-        var index: [64] u32
-        let used = writePixelChunk(first.buffer, pixel, InitialPixel, &index)
-        result.addBytes(Swag.makeSlice(first.buffer, used))
-        runs -= 1
-    }
-
-    let full = runs / 62
-    Memory.set(result.reserveInPlace(full), 0xFD, full)
-    let tail = runs % 62
-    if tail do
-        result.addNative(cast(u8, (0xC0 | (tail - 1))))
-    return true
-}
-
-private func(CHANNELS: u64, SWAP: bool) writeChunks(result: *ConcatBuffer, image: const *Image)
-{
-    const BatchSize = 4096
-
-    // A pending run plus an RGBA chunk can extend past the flush point by six bytes.
-    var batch: [BatchSize + 6] u8
-    let bytes    = batch.buffer
-    let width    = cast(u64, image.width)
-    let height   = cast(u64, image.height)
-    let pixels   = image.pixels.storage()
-    if writeUniformChunks'(CHANNELS, SWAP)(result, pixels, width * height) do
+        result.addNative(0xFE_u8)
+        result.addNative(pixel.r)
+        result.addNative(pixel.g)
+        result.addNative(pixel.b)
         return
-
-    var previous = 0xFF00_0000'u32
-    var index: [64] u32
-    var run:   u8
-    var used:  u64
-    for y in height
-    {
-        var source = pixels + (height - y - 1) * image.rowStride
-        for width
-        {
-            if used >= BatchSize
-            {
-                result.addBytes(Swag.makeSlice(bytes, used))
-                used = 0
-            }
-
-            let pixel = readPixel'(CHANNELS, SWAP)(source)
-            source += CHANNELS
-            if pixel == previous
-            {
-                run += 1
-                if run == 62
-                {
-                    bytes[used] = 0xC0 | (run - 1)
-                    used        += 1
-                    run         = 0
-                }
-
-                continue
-            }
-
-            if run
-            {
-                bytes[used] = 0xC0 | (run - 1)
-                used        += 1
-                run         = 0
-            }
-
-            used     += writePixelChunk(bytes + used, pixel, previous, &index)
-            previous = pixel
-        }
     }
 
-    if run
-    {
-        bytes[used] = 0xC0 | (run - 1)
-        used        += 1
-    }
-
-    if used do
-        result.addBytes(Swag.makeSlice(bytes, used))
+    result.addNative(0xFF_u8)
+    result.addNative(pixel.r)
+    result.addNative(pixel.g)
+    result.addNative(pixel.b)
+    result.addNative(pixel.a)
 }
 
 internal impl IImageEncoder for Encoder
@@ -181,13 +84,18 @@ internal impl IImageEncoder for Encoder
 
     mtd impl encode(result: *ConcatBuffer, image: Image, _: any?) fail
     {
-        if not image.isValid() do
+        if not image.isValid()
+        {
             fail InvalidFormatError{"invalid image"}
+        }
+
         if image.pixelFormat != .RGB8 and
            image.pixelFormat != .BGR8 and
            image.pixelFormat != .RGBA8 and
-           image.pixelFormat != .BGRA8 do
+           image.pixelFormat != .BGRA8
+        {
             fail UnsupportedFormatError{"QOI encoding requires an 8-bit RGB or RGBA image"}
+        }
 
         // Small files fit in one bucket even if every pixel needs a literal chunk.
         let pixelCount = cast(u64, image.width) * image.height
@@ -196,8 +104,8 @@ internal impl IImageEncoder for Encoder
         result.addBytes(Magic)
         writeU32BigEndian(result, cast(u32, image.width))
         writeU32BigEndian(result, cast(u32, image.height))
-        result.addNative(image.pixelFormat.hasAlpha() ? 4'u8 : 3'u8)
-        result.addNative(0'u8)
+        result.addNative(image.pixelFormat.hasAlpha() ? 4_u8 : 3_u8)
+        result.addNative(0_u8)
 
         switch image.pixelFormat
         {

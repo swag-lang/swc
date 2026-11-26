@@ -21,7 +21,7 @@ func writeU32(result: *ConcatBuffer, value: u32)
 func writeText(result: *ConcatBuffer, value: string)
 {
     result.addBytes(value)
-    result.addNative(0'u8)
+    result.addNative(0_u8)
 }
 
 func writeAttribute(result: *ConcatBuffer, name, type: string, payload: const [..] u8)
@@ -477,8 +477,10 @@ internal impl IImageEncoder for Encoder
 
     mtd impl encode(result: *ConcatBuffer, image: Image, _: any?) fail
     {
-        if not image.isValid() or not image.pixelFormat.isPacked() do
+        if not image.isValid() or not image.pixelFormat.isPacked()
+        {
             fail InvalidFormatError{"invalid packed image"}
+        }
 
         let grayscale = image.pixelFormat.isGrayscale()
         let fullFloat = image.pixelFormat == .GrayF32 or
@@ -527,17 +529,21 @@ internal impl IImageEncoder for Encoder
             source    = &converted
         }
 
-        let pixelType   = fullFloat ? 2'u32 : 1'u32
-        let sampleBytes = pixelType == 2 ? 4'u64 : 2'u64
+        let pixelType   = fullFloat ? 2_u32 : 1_u32
+        let sampleBytes = pixelType == 2 ? 4_u64 : 2_u64
         const RgbNames:       [3] string = ["B", "G", "R"]
         const RgbaNames:      [4] string = ["A", "B", "G", "R"]
         const GrayNames:      [1] string = ["Y"]
         const GrayAlphaNames: [2] string = ["A", "Y"]
         var names: const [..] string
-        if grayscale do
+        if grayscale
+        {
             names = source.pixelFormat.hasAlpha() ? GrayAlphaNames : GrayNames
-        else do
+        }
+        else
+        {
             names = source.pixelFormat.hasAlpha() ? RgbaNames : RgbNames
+        }
 
         let rowBytes = cast(u64, source.width) * sampleBytes * names.count
         if rowBytes > Swag.U32.Max do
@@ -551,9 +557,12 @@ internal impl IImageEncoder for Encoder
         writeU32(result, Magic)
         writeU32(result, 2)
         var channels: ConcatBuffer
-        for name in names do
+        for name in names
+        {
             channelEntry(&channels, name, pixelType)
-        channels.addNative(0'u8)
+        }
+
+        channels.addNative(0_u8)
         writeAttribute(result, "channels", "chlist", unwrap channels.toSlice())
         const NoCompression: [1] u8 = [0]
         writeAttribute(result, "compression", "compression", NoCompression)
@@ -572,7 +581,7 @@ internal impl IImageEncoder for Encoder
         writeAttribute(result, "pixelAspectRatio", "float", One)
         writeAttribute(result, "screenWindowCenter", "v2f", Zero2)
         writeAttribute(result, "screenWindowWidth", "float", One)
-        result.addNative(0'u8)
+        result.addNative(0_u8)
 
         let fileOffset = result.count()
         let scanlines  = result.reserveInPlace(scanlineBytes)

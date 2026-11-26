@@ -33,17 +33,17 @@ struct VideoTimeline
 {
     using wnd: Wnd
 
-    sigStartChange: SigArray'func||(*VideoTimeline)     // Emitted when a press starts moving the knob.
-    sigEndChange:   SigArray'func||(*VideoTimeline)     // Emitted when the knob is let go, or set by a call.
+    sigStartChange: SigArray!{func||(*VideoTimeline)}     // Emitted when a press starts moving the knob.
+    sigEndChange:   SigArray!{func||(*VideoTimeline)}     // Emitted when the knob is let go, or set by a call.
 
     minimum:   f32
     maximum:   f32 = 1
     current:   f32
-    buffered:  f32 = -1      // Position read so far, or a negative value when unknown.
-    chapters:  Array'f32     // Start of each chapter.
-    loopStart: f32 = -1      // Where a looped passage starts, or a negative value without one.
-    loopEnd:   f32 = -1      // Where it ends, or a negative value while only its start is set.
-    pointerX:  f32 = -1      // Where the pointer stands over the timeline, or a negative value.
+    buffered:  f32 = -1        // Position read so far, or a negative value when unknown.
+    chapters:  Array!{f32}     // Start of each chapter.
+    loopStart: f32 = -1        // Where a looped passage starts, or a negative value without one.
+    loopEnd:   f32 = -1        // Where it ends, or a negative value while only its start is set.
+    pointerX:  f32 = -1        // Where the pointer stands over the timeline, or a negative value.
     dragging:  bool
 }
 
@@ -72,8 +72,11 @@ impl VideoTimeline
     // Moves the knob without telling anyone, as the clock does while the film plays.
     mtd setValueWithoutGesture(value: f32)
     {
-        if .dragging do
+        if .dragging
+        {
             return
+        }
+
         .current = Math.clamp(value, .minimum, .maximum)
         .invalidate()
     }
@@ -89,8 +92,11 @@ impl VideoTimeline
     // Says how far the film has been read, so the timeline can show it apart from what is to come.
     mtd setBuffered(value: f32)
     {
-        if .buffered == value do
+        if .buffered == value
+        {
             return
+        }
+
         .buffered = value
         .invalidate()
     }
@@ -138,10 +144,14 @@ impl IWnd for VideoTimeline
             var band = .themeColors().arc
             band.a = 64
             let left = .positionOf(.loopStart)
-            if .loopEnd > .loopStart do
+            if .loopEnd > .loopStart
+            {
                 painter.fillRect(Math.Rectangle{left, centerY - TickHeight * 0.5, .positionOf(.loopEnd) - left, TickHeight}, band)
-            else do
+            }
+            else
+            {
                 painter.fillRect(Math.Rectangle{Math.round(left), centerY - TickHeight * 0.5, 1, TickHeight}, .themeColors().arc)
+            }
         }
 
         for chapter in .chapters
@@ -168,8 +178,11 @@ impl IWnd for VideoTimeline
 
         case .Move:
             .pointerX = x
-            if .dragging do
+            if .dragging
+            {
                 .current = .valueAt(x)
+            }
+
             .parent?.invalidate()
 
         case .Released where .dragging:
@@ -226,13 +239,13 @@ impl BottomVeil
 
     func create(parent: *Wnd)->*BottomVeil
     {
-        with let result = Wnd.create'BottomVeil(parent, "scope.video.controls", Math.Rectangle{0, 0, 0, BottomHeight})
+        with let result = Wnd.create!{BottomVeil}(parent, "scope.video.controls", Math.Rectangle{0, 0, 0, BottomHeight})
         {
             .backgroundStyle = .Transparent
             .wndFlags        |= .TopMost
         }
 
-        result.timeline   = Wnd.create'VideoTimeline(result, "scope.video.timeline", Math.Rectangle{0, 0, 0, TimelineHeight})
+        result.timeline   = Wnd.create!{VideoTimeline}(result, "scope.video.timeline", Math.Rectangle{0, 0, 0, TimelineHeight})
         result.playButton = createGlyph(result, .Play, "scope.video.play")
         result.timeButton = IconButton.createQuiet(result, "scope.video.time", menu: false)
         result.timeButton.style.setFont(parent.theme().createDefaultFontFs(parent.themeMetrics().defaultFixedFontSize), .Regular)
@@ -256,8 +269,11 @@ impl BottomVeil
     // Writes the time of the row.
     mtd setTime(elapsed, length: string)
     {
-        if .elapsed == elapsed and .length == length do
+        if .elapsed == elapsed and .length == length
+        {
             return
+        }
+
         .elapsed = elapsed
         .length  = length
         .timeButton.setQuietText(.timeText())
@@ -316,14 +332,14 @@ impl BottomVeil
         if .muteButton.isLocallyVisible()
         {
             right -= glyph
-        .muteButton.setPosition(Math.Rectangle{right, lineY - glyph * 0.5, glyph, glyph})
+            .muteButton.setPosition(Math.Rectangle{right, lineY - glyph * 0.5, glyph, glyph})
             right -= gap
         }
 
         if .tracksButton.isLocallyVisible()
         {
             right -= glyph
-        .tracksButton.setPosition(Math.Rectangle{right, lineY - glyph * 0.5, glyph, glyph})
+            .tracksButton.setPosition(Math.Rectangle{right, lineY - glyph * 0.5, glyph, glyph})
             right -= gap * 0.5
         }
 
@@ -336,8 +352,10 @@ impl IWnd for BottomVeil
 {
     mtd impl onResizeEvent(_: *ResizeEvent)
     {
-        if .volumeSlider != null do
+        if .volumeSlider != null
+        {
             .arrange()
+        }
     }
 
     mtd impl onPaint(evt: *PaintEvent)
@@ -354,8 +372,10 @@ impl IWnd for BottomVeil
         let textEnd = .optionsButton.position.x
         if not .compact and
            not .chapter.isEmpty() and
-           x + Painter.measureString(.chapter, words).width + RowGap < textEnd do
+           x + Painter.measureString(.chapter, words).width + RowGap < textEnd
+        {
             painter.drawString(x, words.opticalLineTop(lineY), .chapter, words, .themeColors().faintText)
+        }
 
         // The time under the pointer reads in a dark tip above the timeline.
         let timeline = .timeline

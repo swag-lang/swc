@@ -26,9 +26,15 @@ func inlineDefinitionError(release: bool)->s32
 {
     let pointer = allocateWarningProbe()
     pointer[] = 42
-    if release do releaseWarningProbe(pointer)
+    if release
+    {
+        releaseWarningProbe(pointer)
+    }
     let result = pointer[]     // swc-expected-error {{sanity_warn_possible_use_after_free}}
-    if not release do releaseWarningProbe(pointer)
+    if not release
+    {
+        releaseWarningProbe(pointer)
+    }
     return result
 }
 
@@ -40,9 +46,15 @@ func inlineDefinitionWarning(release: bool)->s32
 {
     let pointer = allocateWarningProbe()
     pointer[] = 42
-    if release do releaseWarningProbe(pointer)
+    if release
+    {
+        releaseWarningProbe(pointer)
+    }
     let result = pointer[]     // swc-expected-warning {{sanity_warn_possible_use_after_free}}
-    if not release do releaseWarningProbe(pointer)
+    if not release
+    {
+        releaseWarningProbe(pointer)
+    }
     return result
 }
 
@@ -54,9 +66,15 @@ func inlineDefinitionDisable(release: bool)->s32
 {
     let pointer = allocateWarningProbe()
     pointer[] = 42
-    if release do releaseWarningProbe(pointer)
+    if release
+    {
+        releaseWarningProbe(pointer)
+    }
     let result = pointer[]
-    if not release do releaseWarningProbe(pointer)
+    if not release
+    {
+        releaseWarningProbe(pointer)
+    }
     return result
 }
 
@@ -72,9 +90,15 @@ func callerArgumentError(release: bool)->s32
 {
     let pointer = allocateWarningProbe()
     pointer[] = 42
-    if release do releaseWarningProbe(pointer)
+    if release
+    {
+        releaseWarningProbe(pointer)
+    }
     let result = inlineArgumentIdentity(pointer[])     // swc-expected-error {{sanity_warn_possible_use_after_free}}
-    if not release do releaseWarningProbe(pointer)
+    if not release
+    {
+        releaseWarningProbe(pointer)
+    }
     return result
 }
 

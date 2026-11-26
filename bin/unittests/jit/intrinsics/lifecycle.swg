@@ -22,8 +22,10 @@ func resetLifecycleHooks()
 
 func helperFree(buffer: [*] void?, size: u64, allocator: IAllocator? = null)
 {
-    if not buffer do
+    if not buffer
+    {
         return
+    }
 
     var req: AllocatorRequest
     req.size    = size
@@ -47,8 +49,10 @@ func helperRealloc(buffer: [*] void?, newSize: u64, oldSize: u64, allocator: IAl
 
 func memoryLikeFree(buffer: [*] void?, size: u64, allocator: IAllocator? = null, hint: string? = null, loc = #callerlocation)
 {
-    if not buffer do
+    if not buffer
+    {
         return
+    }
 
     var req: AllocatorRequest
     req.callerLoc = loc
@@ -226,12 +230,18 @@ impl ResizeBuffer
 {
     mtd resize(newCount: u64)
     {
-        if newCount == .count do
+        if newCount == .count
+        {
             return
-        if newCount > .count do
+        }
+        if newCount > .count
+        {
             Swag.init(.buffer + .count, newCount - .count)
-        else do
+        }
+        else
+        {
             Swag.drop(.buffer + newCount, .count - newCount)
+        }
         .count = newCount
     }
 }
@@ -271,8 +281,10 @@ impl OwnedDropBuffer
 {
     mtd free()
     {
-        if not .buffer do
+        if not .buffer
+        {
             return
+        }
 
         Swag.drop(.buffer, .count)
 
@@ -302,8 +314,10 @@ impl ReallocDropBuffer
 
     mtd reserve(newCapacity: u64)
     {
-        if newCapacity <= .capacity do
+        if newCapacity <= .capacity
+        {
             return
+        }
 
         var req: AllocatorRequest
         req.size    = newCapacity * #sizeof(DropOnlyTracked)
@@ -325,8 +339,10 @@ impl ReallocDropBuffer
 
     mtd free()
     {
-        if not .buffer do
+        if not .buffer
+        {
             return
+        }
 
         Swag.drop(.buffer, .count)
 
@@ -356,8 +372,10 @@ impl GenericOwnedBuffer
 
     mtd reserve(newCapacity: u64)
     {
-        if newCapacity <= .capacity do
+        if newCapacity <= .capacity
+        {
             return
+        }
 
         var req: AllocatorRequest
         req.size    = newCapacity * #sizeof(T)
@@ -379,8 +397,10 @@ impl GenericOwnedBuffer
 
     mtd free()
     {
-        if not .buffer do
+        if not .buffer
+        {
             return
+        }
 
         Swag.drop(.buffer, .count)
 
@@ -410,10 +430,14 @@ impl LazyAllocatorGenericBuffer
 
     mtd reserve(newCapacity: u64)
     {
-        if newCapacity <= .capacity do
+        if newCapacity <= .capacity
+        {
             return
-        if .allocator == null do
+        }
+        if .allocator == null
+        {
             .allocator = Swag.getContext().allocator
+        }
 
         var req: AllocatorRequest
         req.size    = newCapacity * #sizeof(T)
@@ -435,8 +459,10 @@ impl LazyAllocatorGenericBuffer
 
     mtd free()
     {
-        if not .buffer do
+        if not .buffer
+        {
             return
+        }
 
         Swag.drop(.buffer, .count)
 
@@ -466,10 +492,14 @@ impl HelperAllocatorGenericBuffer
 
     mtd reserve(newCapacity: u64)
     {
-        if newCapacity <= .capacity do
+        if newCapacity <= .capacity
+        {
             return
-        if .allocator == null do
+        }
+        if .allocator == null
+        {
             .allocator = Swag.getContext().allocator
+        }
 
         .buffer   = cast([*] T?, helperRealloc(.buffer, newCapacity * #sizeof(T), .capacity * #sizeof(T), .allocator))
         .capacity = newCapacity
@@ -485,8 +515,10 @@ impl HelperAllocatorGenericBuffer
 
     mtd free()
     {
-        if not .buffer do
+        if not .buffer
+        {
             return
+        }
 
         Swag.drop(.buffer, .count)
         helperFree(.buffer, .capacity * #sizeof(T), .allocator)
@@ -511,10 +543,14 @@ impl MemoryAllocatorGenericBuffer
 
     mtd reserve(newCapacity: u64)
     {
-        if newCapacity <= .capacity do
+        if newCapacity <= .capacity
+        {
             return
-        if .allocator == null do
+        }
+        if .allocator == null
+        {
             .allocator = Swag.getContext().allocator
+        }
 
         .buffer   = cast([*] T?, memoryLikeRealloc(.buffer, newCapacity * #sizeof(T), .capacity * #sizeof(T), .allocator))
         .capacity = newCapacity
@@ -530,32 +566,42 @@ impl MemoryAllocatorGenericBuffer
 
     mtd remove(index, num: u64)
     {
-        if not num do
+        if not num
+        {
             return
+        }
 
         // Drop the removed elements, then relocate the survivors into the freed slots.
         let buffer = unwrap .buffer
         Swag.drop(buffer + index, num)
         let shiftCount = .count - (index + num)
-        for i in shiftCount do
+        for i in shiftCount
+        {
             buffer[index + i] = #relocate buffer[index + num + i]
+        }
 
         .count -= num
     }
 
     mtd clear()
     {
-        if not .count do
+        if not .count
+        {
             return
-        for index in .count do
+        }
+        for index in .count
+        {
             Swag.drop(.buffer + index)
+        }
         .count = 0
     }
 
     mtd free()
     {
-        if not .buffer do
+        if not .buffer
+        {
             return
+        }
 
         Swag.drop(.buffer, .count)
         memoryLikeFree(.buffer, .capacity * #sizeof(T), .allocator)
@@ -583,10 +629,14 @@ impl PostCopyAllocatorGenericBuffer
 
     mtd reserve(newCapacity: u64)
     {
-        if newCapacity <= .capacity do
+        if newCapacity <= .capacity
+        {
             return
-        if .allocator == null do
+        }
+        if .allocator == null
+        {
             .allocator = Swag.getContext().allocator
+        }
 
         .buffer   = cast([*] T?, helperRealloc(.buffer, newCapacity * #sizeof(T), .capacity * #sizeof(T), .allocator))
         .capacity = newCapacity
@@ -602,8 +652,10 @@ impl PostCopyAllocatorGenericBuffer
 
     mtd free()
     {
-        if not .buffer do
+        if not .buffer
+        {
             return
+        }
 
         Swag.drop(.buffer, .count)
         helperFree(.buffer, .capacity * #sizeof(T), .allocator)
@@ -734,7 +786,7 @@ func intrinsicInitInfo()->InitInfo
     var x = 666
     Swag.init(x)
 
-    var y = 666'f32
+    var y = 666_f32
     Swag.init(y)(3.14)
 
     var arr = [1, 2]
@@ -863,8 +915,10 @@ func intrinsicAutoDropErrorImpl() fail
         scope
         {
             var nested = AutoDropNested{DropOnlyTracked{3}, [AutoDropPair{DropOnlyTracked{4}, DropOnlyTracked{5}}, AutoDropPair{DropOnlyTracked{6}, DropOnlyTracked{7}}], DropOnlyTracked{8}}
-            if pair.first.value == 1 and nested.tail.value == 8 do
+            if pair.first.value == 1 and nested.tail.value == 8
+            {
                 fail IntrinsicLifecycleErr{code: 77}
+            }
         }
     }
 }
@@ -943,8 +997,10 @@ func intrinsicAutoDropContinueInfo()->IntrinsicInfo
         {
             var pair = AutoDropPair{DropOnlyTracked{cast(s32, (i * 2 + 1))}, DropOnlyTracked{cast(s32, (i * 2 + 2))}}
             first += pair.first.value
-            if i == 0 do
+            if i == 0
+            {
                 continue
+            }
 
             var branch = AutoDropBranch{DropOnlyTracked{5}, AutoDropPair{DropOnlyTracked{6}, DropOnlyTracked{7}}}
             second = branch.head.value
@@ -1034,8 +1090,10 @@ func intrinsicAutoDropSwitchReturnInfo()->IntrinsicInfo
 func intrinsicAutoDropCatchResumeImpl(code: s32) fail
 {
     var branch = AutoCompactBranch{CompactDropTracked{3}, AutoCompactPair{CompactDropTracked{4}, CompactDropTracked{5}}}
-    if branch.head.value == 3 do
+    if branch.head.value == 3
+    {
         fail IntrinsicLifecycleErr{code: code}
+    }
 }
 
 func intrinsicAutoDropCatchResumeInfo()->IntrinsicInfo
@@ -1063,8 +1121,10 @@ func intrinsicAutoDropCatchResumeInfo()->IntrinsicInfo
 func intrinsicAutoDropCatchLoopStep(base: s32)->s32 fail
 {
     var branch = AutoCompactBranch{CompactDropTracked{base}, AutoCompactPair{CompactDropTracked{base + 1}, CompactDropTracked{base + 2}}}
-    if base == 1 do
+    if base == 1
+    {
         fail IntrinsicLifecycleErr{code: 66}
+    }
     return branch.pair.first.value
 }
 
@@ -1334,8 +1394,10 @@ func intrinsicHeapRemoveAtDropOnlyInfo()->IntrinsicInfo
 
     let ptr = cast([*] DropOnlyTracked, unwrap req.address)
     Swag.init(ptr, 3)
-    for i in 3 do
+    for i in 3
+    {
         ptr[i].value = cast(s32, (i + 1))
+    }
 
     Swag.drop(ptr + 1)
     ptr[1] = #relocate ptr[2]
@@ -1357,8 +1419,10 @@ func intrinsicOwnedBufferFreeInfo()->IntrinsicInfo
 
     var values = OwnedDropBuffer{itf, cast([*] DropOnlyTracked?, req.address), 3, 3}
     let buffer = unwrap values.buffer
-    for i in 3 do
+    for i in 3
+    {
         buffer[i].value = cast(s32, (i + 1))
+    }
 
     values.free()
     return IntrinsicInfo{0, 0, 0, DropCount, DropTrace, PostCopyCount, PostMoveCount}
@@ -1370,10 +1434,12 @@ func intrinsicMemoryAllocatorGenericBufferFreeInfo()->IntrinsicInfo
 
     scope
     {
-        var values: MemoryAllocatorGenericBuffer'DropOnlyTracked
+        var values: MemoryAllocatorGenericBuffer!{DropOnlyTracked}
         let ptr = values.emplaceAddress(3)
-        for i in 3 do
+        for i in 3
+        {
             ptr[i].value = cast(s32, (i + 1))
+        }
         values.clear()
         values.free()
     }
@@ -1391,10 +1457,12 @@ func intrinsicMemoryAllocatorGenericBufferRemoveRangeInfo()->IntrinsicInfo
 
     scope
     {
-        var values: MemoryAllocatorGenericBuffer'DropOnlyTracked
+        var values: MemoryAllocatorGenericBuffer!{DropOnlyTracked}
         let ptr = values.emplaceAddress(5)
-        for i in 5 do
+        for i in 5
+        {
             ptr[i].value = cast(s32, (i + 1))
+        }
 
         values.remove(1, 3)
         let buffer = unwrap values.buffer
@@ -1417,8 +1485,10 @@ func intrinsicReallocOwnedBufferAutoDropInfo()->IntrinsicInfo
         let itf    = unwrap Swag.getContext().allocator
         var values = ReallocDropBuffer{itf, null, 0, 0}
         let ptr    = values.emplaceAddress(3)
-        for i in 3 do
+        for i in 3
+        {
             ptr[i].value = cast(s32, (i + 1))
+        }
     }
 
     return IntrinsicInfo{0, 0, 0, DropCount, DropTrace, PostCopyCount, PostMoveCount}
@@ -1431,10 +1501,12 @@ func intrinsicGenericOwnedBufferAutoDropInfo()->IntrinsicInfo
     scope
     {
         let itf    = unwrap Swag.getContext().allocator
-        var values = GenericOwnedBuffer'DropOnlyTracked{itf, null, 0, 0}
+        var values = GenericOwnedBuffer!{DropOnlyTracked}{itf, null, 0, 0}
         let ptr    = values.emplaceAddress(3)
-        for i in 3 do
+        for i in 3
+        {
             ptr[i].value = cast(s32, (i + 1))
+        }
     }
 
     return IntrinsicInfo{0, 0, 0, DropCount, DropTrace, PostCopyCount, PostMoveCount}
@@ -1446,10 +1518,12 @@ func intrinsicGenericOwnedBufferContextAllocatorAutoDropInfo()->IntrinsicInfo
 
     scope
     {
-        var values = GenericOwnedBuffer'DropOnlyTracked{Swag.getContext().allocator, null, 0, 0}
+        var values = GenericOwnedBuffer!{DropOnlyTracked}{Swag.getContext().allocator, null, 0, 0}
         let ptr    = values.emplaceAddress(3)
-        for i in 3 do
+        for i in 3
+        {
             ptr[i].value = cast(s32, (i + 1))
+        }
     }
 
     return IntrinsicInfo{0, 0, 0, DropCount, DropTrace, PostCopyCount, PostMoveCount}
@@ -1461,10 +1535,12 @@ func intrinsicLazyAllocatorGenericBufferAutoDropInfo()->IntrinsicInfo
 
     scope
     {
-        var values: LazyAllocatorGenericBuffer'DropOnlyTracked
+        var values: LazyAllocatorGenericBuffer!{DropOnlyTracked}
         let ptr = values.emplaceAddress(3)
-        for i in 3 do
+        for i in 3
+        {
             ptr[i].value = cast(s32, (i + 1))
+        }
     }
 
     return IntrinsicInfo{0, 0, 0, DropCount, DropTrace, PostCopyCount, PostMoveCount}
@@ -1476,10 +1552,12 @@ func intrinsicHelperAllocatorGenericBufferAutoDropInfo()->IntrinsicInfo
 
     scope
     {
-        var values: HelperAllocatorGenericBuffer'DropOnlyTracked
+        var values: HelperAllocatorGenericBuffer!{DropOnlyTracked}
         let ptr = values.emplaceAddress(3)
-        for i in 3 do
+        for i in 3
+        {
             ptr[i].value = cast(s32, (i + 1))
+        }
     }
 
     return IntrinsicInfo{0, 0, 0, DropCount, DropTrace, PostCopyCount, PostMoveCount}
@@ -1491,10 +1569,12 @@ func intrinsicPostCopyAllocatorGenericBufferAutoDropInfo()->IntrinsicInfo
 
     scope
     {
-        var values: PostCopyAllocatorGenericBuffer'DropOnlyTracked
+        var values: PostCopyAllocatorGenericBuffer!{DropOnlyTracked}
         let ptr = values.emplaceAddress(3)
-        for i in 3 do
+        for i in 3
+        {
             ptr[i].value = cast(s32, (i + 1))
+        }
     }
 
     return IntrinsicInfo{0, 0, 0, DropCount, DropTrace, PostCopyCount, PostMoveCount}
@@ -1506,10 +1586,12 @@ func intrinsicPostCopyAllocatorGenericBufferExplicitOpDropInfo()->IntrinsicInfo
 
     scope
     {
-        var values: PostCopyAllocatorGenericBuffer'DropOnlyTracked
+        var values: PostCopyAllocatorGenericBuffer!{DropOnlyTracked}
         let ptr = values.emplaceAddress(3)
-        for i in 3 do
+        for i in 3
+        {
             ptr[i].value = cast(s32, (i + 1))
+        }
         values.opDrop()
     }
 
@@ -1523,8 +1605,10 @@ func intrinsicReallocOwnedBufferFreeInfo()->IntrinsicInfo
     let itf    = unwrap Swag.getContext().allocator
     var values = ReallocDropBuffer{itf, null, 0, 0}
     let ptr    = values.emplaceAddress(3)
-    for i in 3 do
+    for i in 3
+    {
         ptr[i].value = cast(s32, (i + 1))
+    }
 
     values.free()
     return IntrinsicInfo{0, 0, 0, DropCount, DropTrace, PostCopyCount, PostMoveCount}

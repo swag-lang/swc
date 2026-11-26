@@ -1,14 +1,14 @@
 #[Swag.NoInline]
 func low(dst: [*] u64)
 {
-    for i in 0'u64 until 4'u64 do
+    for i in 0_u64 until 4_u64 do
         dst[i] = i
 }
 
 #[Swag.NoInline]
 func high(dst: [*] u64)
 {
-    for i in 1000000000'u64 until 1000000004'u64 do
+    for i in 1000000000_u64 until 1000000004_u64 do
         dst[i - 1000000000] = i - 1000000000
 }
 

@@ -15,10 +15,12 @@ using Core, Audio
     Swag.require(sound.sampleRateHz() == 48_000 and sound.numChannels() == 6)
     Swag.require(sound.speakerChannelMask() == 0x003F)
     Swag.require(sound.packetCount() == 16 and sound.sampleFrameCount() == 16 * 1_536)
-    for index in [0'u64, 7, 15] do
+    for index in [0_u64, 7, 15]
+    {
         Swag.require((expect sound.packet(index)).sampleFrameCount == 1_536)
+    }
 
-    var decoded: Array's16
+    var decoded: Array!{s16}
     expect sound.decodePcm16(func|decoded = &decoded|(samples: const [..] s16)->bool
     {
         decoded.add(samples)
@@ -30,13 +32,13 @@ using Core, Audio
     Swag.require(decoded.count == sound.sampleFrameCount() * sound.numChannels())
     Swag.require(reference.count / #sizeof(s16) == decoded.count)
 
-    var energy = 0.0'f64
+    var energy = 0.0_f64
     for index in decoded.count
     {
         let difference = cast(f64, decoded[index]) - cast(f64, wanted[index])
         energy += difference * difference
     }
 
-    let rms = Math.sqrt(energy / cast(f64, decoded.count)) / 32768.0'f64
-    Swag.require(rms <= 0.012'f64)
+    let rms = Math.sqrt(energy / cast(f64, decoded.count)) / 32768.0_f64
+    Swag.require(rms <= 0.012_f64)
 }

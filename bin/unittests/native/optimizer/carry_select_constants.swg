@@ -7,9 +7,18 @@
 #[Swag.Optimize(true), Swag.NoInline]
 func utf8Len(c: u8)->u32
 {
-    if c < 0x80 do return 1
-    if c < 0xE0 do return 2
-    if c < 0xF0 do return 3
+    if c < 0x80
+    {
+        return 1
+    }
+    if c < 0xE0
+    {
+        return 2
+    }
+    if c < 0xF0
+    {
+        return 3
+    }
     return 4
 }
 #[Swag.Optimize(true), Swag.NoInline]
@@ -32,9 +41,18 @@ func wideNegativeBelow(x, y: u64)->s64 => x < y ? -1000 : -1001
 #[Swag.Optimize(false), Swag.NoInline]
 func slowUtf8Len(c: u8)->u32
 {
-    if c < 0x80 do return 1
-    if c < 0xE0 do return 2
-    if c < 0xF0 do return 3
+    if c < 0x80
+    {
+        return 1
+    }
+    if c < 0xE0
+    {
+        return 2
+    }
+    if c < 0xF0
+    {
+        return 3
+    }
     return 4
 }
 #[Swag.Optimize(false), Swag.NoInline]
@@ -48,7 +66,7 @@ func slowBelow(x, y: u64)->bool => x < y
         Swag.require(utf8Len(c) == slowUtf8Len(c))
     }
 
-    let values = [0'u64, 1, 2, 0x7FFFFFFF, 0x80000000, 0xFFFFFFFE, 0xFFFFFFFF, 0x100000000, 0xFFFFFFFFFFFFFFFF]
+    let values = [0_u64, 1, 2, 0x7FFFFFFF, 0x80000000, 0xFFFFFFFE, 0xFFFFFFFF, 0x100000000, 0xFFFFFFFFFFFFFFFF]
     for x in values
     {
         for y in values

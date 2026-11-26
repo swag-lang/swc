@@ -122,8 +122,11 @@ func renderDialog(host: *Testing.HeadlessHost, dlg: *Dialog)->Image
 func filler(count: u64)->String
 {
     var result: String
-    for count do
-        result += 'x'u8
+    for count
+    {
+        result += 'x'_u8
+    }
+
     return result
 }
 
@@ -208,8 +211,10 @@ func filler(count: u64)->String
         }
 
         let dlg = FileDlg.create(&host.surface, opt)
-        if mode == .SelectFiles do
+        if mode == .SelectFiles
+        {
             dlg.browser.pathField.setText(".md")
+        }
 
         pinBrowserDates(dlg.browser)
 

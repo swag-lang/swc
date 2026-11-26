@@ -16,16 +16,19 @@ using Core, Pixel, Gui, Gui.Testing, Viewers
         window.openFile(scopeTestDataPath(file), remember: false)
         completeQueuedViewerFile(&host, window)
         window.sendCommandEvent(ViewerCommands.Outline)
-        let lane = unwrap window.currentSidePanelHost
+        let lane    = unwrap window.currentSidePanelHost
         let outline = unwrap lane.childById("scope.outline")
         Swag.require(lane.isVisible() and not (outline.parent is FloatingPanel), file)
         let page = window.documentHost.surfaceRect()
         let grip = Math.Point{page.x - 2, page.vertCenter()}
         host.moveMouse(grip)
-        let image = host.renderSettled(&host.surfaceWnd)
+        let image  = host.renderSettled(&host.surfaceWnd)
         let review = Env.variable("SWAG_SCOPE_REVIEW")
-        if not review.isEmpty() do
+        if not review.isEmpty()
+        {
             expect image.save(Path.combine(review, Format.toString("outline-%.png", file)))
+        }
+
         let ground = window.currentView!.themeColors().view_Bk
         Swag.require(image.pixelColor(cast(s32, grip.x), cast(s32, grip.y)) == ground, file)
         Swag.require(image.pixelColor(cast(s32, lane.surfaceRect().x + 3), cast(s32, grip.y)) == ground, file)
@@ -38,6 +41,7 @@ using Core, Pixel, Gui, Gui.Testing, Viewers
             window.sendCommandEvent(ViewerCommands.Outline)
             Swag.require(not book.gallery.isVisible() and book.pdfView.pageIndex == 1)
         }
+
         if window.currentView is Viewers.Pptx.Panel as deck
         {
             Swag.require(not deck.gallery.isVisible())
@@ -89,8 +93,11 @@ using Core, Pixel, Gui, Gui.Testing, Viewers
     var session = openTestViewer(Html.viewerPlugin(), &host.root, fileName)
     let view    = assume cast(*Html.Panel, session.view)
     defer view.setZoom(100)
-    for 128 where session.isLoading!() do
+    for 128 where session.isLoading!()
+    {
         host.fireTimers()
+    }
+
     let outline = assume cast(*DocumentOutline, session.sidePanel!.children[0])
     Swag.require(outline.rows.count == 2 and outline.rows[0].level == 0 and outline.rows[1].level == 2)
     outline.list.selectLine(1)
@@ -107,8 +114,11 @@ using Core, Pixel, Gui, Gui.Testing, Viewers
 {
     let fileName = Testing.tempFilePath("scope-outline-scroll-", ".md")
     var source: String
-    for index in 40 do
+    for index in 40
+    {
         source += Format.toString("# Section %\n\n", index)
+    }
+
     discard expect File.writeAllBytes(fileName, source.toString())
     defer discard catch File.delete(fileName)
 
@@ -137,12 +147,13 @@ using Core, Pixel, Gui, Gui.Testing, Viewers
             workspace.closeView(1)
             window.applyTheme(cast(u32, AppearanceTheme.Light))
         }
+
         scroll.setScrollPos(0, 0)
-        let body = scroll.view.surfaceRect()
+        let body    = scroll.view.surfaceRect()
         let metrics = scroll.themeMetrics()
-        let thumb = Math.Point{body.right() + metrics.scrollBar_HitSize - metrics.scrollBar_Size * 0.5, body.y + 12}
-        let x = cast(s32, thumb.x)
-        let y = cast(s32, thumb.y)
+        let thumb   = Math.Point{body.right() + metrics.scrollBar_HitSize - metrics.scrollBar_Size * 0.5, body.y + 12}
+        let x       = cast(s32, thumb.x)
+        let y       = cast(s32, thumb.y)
         host.moveMouse({4, 4})
         let rest = host.renderSettled(&host.surfaceWnd).pixelColor(x, y)
         host.moveMouse(body.center())
@@ -176,8 +187,11 @@ using Core, Pixel, Gui, Gui.Testing, Viewers
     Swag.require(caption.isLocallyVisible() and caption.icon.isValid() and not caption.isChecked)
     Swag.require(window.currentSidePanelButton!.id == OutlineToggleId)
     let actions = [window.viewerCaptionButton, window.informationCaptionButton, window.fullScreenCaptionButton]
-    for i in actions.count - 1 do
+    for i in actions.count - 1
+    {
         Swag.require(actions[i].position.right() <= actions[i + 1].position.x)
+    }
+
     Swag.require(window.fullScreenCaptionButton.position.right() <= window.appearanceButton.position.x)
 
     caption.button.sigPressed.call(caption.button)

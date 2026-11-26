@@ -17,7 +17,7 @@ The scheduler supports `f32`, [[Pixel.Color]], [[Core.Math.Point]], [[Core.Math.
 
 ```swag
 var options: AnimationOptions
-options.duration = 180'ms
+options.duration = 180_ms
 options.easing   = .EaseOut
 
 discard app.animator.animatePoint(panel, AnimationChannel.from("Example.PanelOffset"), Math.Point{-24, 0}, {}, func(wnd, value) { wnd.setPresentationOffset(value) }, options)
@@ -66,7 +66,7 @@ which turns a pair of plays into a ping-pong that ends where it started.
 
 ```swag
 var options: AnimationOptions
-options.duration    = 900'ms
+options.duration    = 900_ms
 options.easing      = .EaseInOut
 options.repeatCount = 0
 options.autoReverse = true

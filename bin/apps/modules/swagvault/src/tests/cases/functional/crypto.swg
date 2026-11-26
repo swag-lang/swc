@@ -6,8 +6,11 @@ using Core
 func testMasterKey(seed: u8)->[Crypto.MasterKeySize] u8
 {
     var result: #returntype
-    for i in Crypto.MasterKeySize do
+    for i in Crypto.MasterKeySize
+    {
         result[i] = cast(u8, ((i * 7 + seed) & 0xFF))
+    }
+
     return result
 }
 
@@ -57,10 +60,16 @@ func testMasterKey(seed: u8)->[Crypto.MasterKeySize] u8
     Swag.require(not authenticated)
 
     keys.clear()
-    for byte in keys.record do
+    for byte in keys.record
+    {
         Swag.require(byte == 0)
-    for byte in keys.locator do
+    }
+
+    for byte in keys.locator
+    {
         Swag.require(byte == 0)
+    }
+
     otherKeys.clear()
 }
 

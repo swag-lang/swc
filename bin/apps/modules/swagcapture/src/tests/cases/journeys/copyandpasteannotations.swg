@@ -42,8 +42,11 @@ using Core, Gui, Pixel
     journey.waitFor("reopen pasted picture", func|main, &path|()->bool
     {
         let opened = main.editWnd.getCapture()
-        if main.libraryMode or not opened or opened.file != path or opened.forms.count != 2 do
+        if main.libraryMode or not opened or opened.file != path or opened.forms.count != 2
+        {
             return false
+        }
+
         let image = assume cast(*FormImage, opened.forms[1])
         return image.image.width == 17 and image.image.height == 13
     })

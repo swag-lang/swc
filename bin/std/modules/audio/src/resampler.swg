@@ -2,11 +2,11 @@
 
 using Core, Core.Errors
 
-private const ResamplerTaps         = 96'u64
-private const ResamplerPhases       = 1_024'u64
-private const ResamplerHistory      = 256'u64
+private const ResamplerTaps         = 96_u64
+private const ResamplerPhases       = 1_024_u64
+private const ResamplerHistory      = 256_u64
 private const ResamplerRightContext = ResamplerTaps / 2
-private const ResamplerFractionUnit = 4_294_967_296'u64
+private const ResamplerFractionUnit = 4_294_967_296_u64
 
 // Converts interleaved floating-point PCM between sample clocks in bounded memory.
 //
@@ -21,8 +21,8 @@ struct Resampler
 {
     internal
     {
-        coefficients:   Array'f32
-        history:        Array'f32
+        coefficients:   Array!{f32}
+        history:        Array!{f32}
         channels:       u32
         inputRate:      u32
         outputRate:     u32
@@ -47,8 +47,10 @@ impl Resampler
            outputRate < 8_000 or
            outputRate > 192_000 or
            not channels or
-           channels > 8 do
+           channels > 8
+        {
             fail BadParameterError{"resampler needs sample rates from 8000 to 192000 and one to eight channels"}
+        }
 
         with var result: #returntype
         {
@@ -64,7 +66,7 @@ impl Resampler
         for phase in ResamplerPhases
         {
             let fraction = cast(f64, phase) / ResamplerPhases
-            var sum      = 0.0'f64
+            var sum      = 0.0_f64
             for tap in ResamplerTaps
             {
                 let distance = cast(f64, cast(s64, tap) - cast(s64, ResamplerRightContext - 1)) - fraction
@@ -77,9 +79,11 @@ impl Resampler
                 sum += value
             }
 
-            for tap in ResamplerTaps do
+            for tap in ResamplerTaps
+            {
                 result.coefficients[phase * ResamplerTaps + tap] =
                     cast(f32, result.coefficients[phase * ResamplerTaps + tap] / sum)
+            }
         }
 
         return result
@@ -91,8 +95,11 @@ impl Resampler
     // on the next output frame without moving the current sample position or resetting history.
     mtd setInputClockDriftPpm(ppm: s32) fail
     {
-        if ppm < -1_000 or ppm > 1_000 do
+        if ppm < -1_000 or ppm > 1_000
+        {
             fail BadParameterError{"resampler input clock drift must be within 1000 ppm"}
+        }
+
         .step = makeStep(.inputRate, .outputRate, ppm)
     }
 
@@ -114,37 +121,56 @@ impl Resampler
     // The caller owns `output` and may reuse its array after consuming the appended frames.
     // Up to 48 future input frames are retained before an output frame can be emitted. Input and
     // output must not alias. An empty input is valid and emits nothing.
-    mtd addFrames(input: const [..] f32, output: *Array'f32) fail
+    mtd addFrames(input: const [..] f32, output: *Array!{f32}) fail
     {
-        if .isEnded do
+        if .isEnded
+        {
             fail BadParameterError{"cannot append to an ended resampler"}
-        if input.count % .channels do
+        }
+
+        if input.count % .channels
+        {
             fail BadParameterError{"resampler input must contain complete interleaved frames"}
+        }
+
         let frames = input.count / .channels
-        if frames > Swag.U64.Max - .receivedFrames do
+        if frames > Swag.U64.Max - .receivedFrames
+        {
             fail OverflowError{"resampler input frame count overflows"}
+        }
 
         for frame in frames
         {
             let base = (.receivedFrames % ResamplerHistory) * .channels
-            for channel in .channels do
+            for channel in .channels
+            {
                 .history[base + channel] = input[frame * .channels + channel]
+            }
+
             .receivedFrames += 1
             while .positionFrame < .receivedFrames and
-                  .receivedFrames - .positionFrame > ResamplerRightContext do
+                  .receivedFrames - .positionFrame > ResamplerRightContext
+            {
                 .emit(output)
+            }
         }
     }
 
     // Emits the delayed tail, extending the last input frame across the right filter boundary.
     //
     // The number of emitted frames follows the accumulated rate ratio. Repeated calls do nothing.
-    mtd end(output: *Array'f32) fail
+    mtd end(output: *Array!{f32}) fail
     {
-        if .isEnded do
+        if .isEnded
+        {
             return
-        while .positionFrame < .receivedFrames do
+        }
+
+        while .positionFrame < .receivedFrames
+        {
             .emit(output)
+        }
+
         .isEnded = true
     }
 
@@ -154,12 +180,12 @@ impl Resampler
         return cast(u64, Math.round(ratio * ResamplerFractionUnit))
     }
 
-    private mtd emit(output: *Array'f32)
+    private mtd emit(output: *Array!{f32})
     {
         let phase = .positionPart * ResamplerPhases / ResamplerFractionUnit
         for channel in .channels
         {
-            var value = 0.0'f64
+            var value = 0.0_f64
             for tap in ResamplerTaps
             {
                 let relative = cast(s64, tap) - cast(s64, ResamplerRightContext - 1)

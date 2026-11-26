@@ -2,22 +2,24 @@
 
 using Swag, Core
 
-func parseTestTableRecord(bytes: *Array'u8, tag: u32)->u64
+func parseTestTableRecord(bytes: *Array!{u8}, tag: u32)->u64
 {
     for index in readBigU16(bytes, 4)
     {
-        let record = 12'u64 + cast(u64, index) * 16
-        if readBigU32(bytes, record) == tag do
+        let record = 12_u64 + cast(u64, index) * 16
+        if readBigU32(bytes, record) == tag
+        {
             return record
+        }
     }
 
     Swag.require(false, "font fixture must contain the requested table")
     return 0
 }
 
-func buildPredefinedCffCharset(charset: u8)->Array'u8
+func buildPredefinedCffCharset(charset: u8)->Array!{u8}
 {
-    var result: Array'u8
+    var result: Array!{u8}
     result.add([
         0x01, 0x00, 0x04, 0x04,                       // Header
         0x00, 0x01, 0x01, 0x01, 0x02, 0x41,           // Name INDEX
@@ -30,9 +32,9 @@ func buildPredefinedCffCharset(charset: u8)->Array'u8
     return result
 }
 
-func buildCffExpertEncoding()->Array'u8
+func buildCffExpertEncoding()->Array!{u8}
 {
-    var result: Array'u8
+    var result: Array!{u8}
     result.add([
         0x01, 0x00, 0x04, 0x04,                       // Header
         0x00, 0x01, 0x01, 0x01, 0x02, 0x41,           // Name INDEX
@@ -44,9 +46,9 @@ func buildCffExpertEncoding()->Array'u8
     return result
 }
 
-func buildCffWithFdSelectPrefix()->Array'u8
+func buildCffWithFdSelectPrefix()->Array!{u8}
 {
-    var result: Array'u8
+    var result: Array!{u8}
     result.add([0x01, 0x00, 0x04, 0x04, 0x00, 0x01, 0x01, 0x01, 0x02, 0x41])     // Header and Name INDEX end at 10.
     result.add([0x00, 0x01, 0x01, 0x01, 0x10, 0xF8, 0x1B, 0xF8, 0x1C, 0x8B, 0x0C, 0x1E, 0xC4, 0x0C, 0x24, 0xC9, 0x0C, 0x25, 0xBE, 0x11])     // Top DICT INDEX ends at 30.
     result.add([0x00, 0x02, 0x01, 0x01, 0x06, 0x0E, 0x41, 0x64, 0x6F, 0x62, 0x65, 0x49, 0x64, 0x65, 0x6E, 0x74, 0x69, 0x74, 0x79])           // Adobe and Identity String INDEX ends at 49.
@@ -55,9 +57,9 @@ func buildCffWithFdSelectPrefix()->Array'u8
     return result
 }
 
-func buildTwoGlyphCffWithFdSelectPrefix()->Array'u8
+func buildTwoGlyphCffWithFdSelectPrefix()->Array!{u8}
 {
-    var result: Array'u8
+    var result: Array!{u8}
 
     // Header and Name INDEX end at 10.
     result.add([0x01, 0x00, 0x04, 0x04, 0x00, 0x01, 0x01, 0x01, 0x02, 0x41])
@@ -630,7 +632,7 @@ private func lookupCffName(thread: const *Threading.Thread)
     // Even an optional table the face parser does not otherwise consume must fit
     // within the font before its directory record is accepted.
     var bytes      = loadFontBytes("arial.ttf")
-    let dsigRecord = parseTestTableRecord(&bytes, imageTag('D'u32, 'S'u32, 'I'u32, 'G'u32))
+    let dsigRecord = parseTestTableRecord(&bytes, imageTag('D'_u32, 'S'_u32, 'I'_u32, 'G'_u32))
     writeBigU32(&bytes, dsigRecord + 8, cast(u32, bytes.count + 1))
 
     var rejected: Swag.Error
@@ -717,11 +719,11 @@ private func lookupCffName(thread: const *Threading.Thread)
 #test
 {
     // Fractional zeros and the explicit exponent can cancel even when 0.1-style accumulation underflows.
-    const FractionDigits = 400'u64
-    var nibbles: Array'u8
+    const FractionDigits = 400_u64
+    var nibbles: Array!{u8}
     nibbles.add(0)
     nibbles.add(0x0A)
-    var index = 0'u64
+    var index = 0_u64
     while index < FractionDigits
     {
         nibbles.add(0)
@@ -735,7 +737,7 @@ private func lookupCffName(thread: const *Threading.Thread)
     nibbles.add(1)
     nibbles.add(0x0F)
 
-    var bytes: Array'u8
+    var bytes: Array!{u8}
     index = 0
     while index < nibbles.count / 2
     {
@@ -812,7 +814,7 @@ private func lookupCffName(thread: const *Threading.Thread)
     let err7 = err7Outcome.value()
     Swag.require(err7 != null)
 
-    var empty:       Array'u8
+    var empty:       Array!{u8}
     var err8Outcome: Swag.Error
     catch checkFaceLoad(empty.toSlice()) as err8Outcome
     let err8 = err8Outcome.value()

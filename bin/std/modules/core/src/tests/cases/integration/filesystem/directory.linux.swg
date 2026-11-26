@@ -7,8 +7,11 @@
 {
     const Template = "/tmp/swag-core-directory-XXXXXX"
     var temporary: [128] u8
-    for byte, index in Template do
+    for byte, index in Template
+    {
         temporary[index] = byte
+    }
+
     let created = Linux.mkdtemp(temporary.buffer)
     Swag.require(created == temporary.buffer)
     let root = cast(string, cast(cstring, temporary.buffer))
@@ -32,8 +35,11 @@
     Swag.require((assume cast(const *Errors.InvalidFileNameError, invalidName.value())).nativeErrorID == 0)
 
     var component: String
-    for 256 do
+    for 256
+    {
         component.append("x")
+    }
+
     let tooLong = Path.combine(root, component.toString())
     discard catch Directory.createNative(tooLong) as invalidName
     Swag.require(invalidName.value() is Errors.InvalidFileNameError)
@@ -67,13 +73,19 @@
 
     let source     = Path.combine(root, "source")
     let target     = Path.combine(root, "target")
-    let descriptor = Linux.openat(Linux.AT_FDCWD, source.storage(), Linux.O_RDWR | Linux.O_CREAT | Linux.O_EXCL | Linux.O_CLOEXEC, 0x180'u32)
+    let descriptor = Linux.openat(Linux.AT_FDCWD, source.storage(), Linux.O_RDWR | Linux.O_CREAT | Linux.O_EXCL | Linux.O_CLOEXEC, 0x180_u32)
     Swag.require(descriptor >= 0)
     defer discard Linux.close(descriptor)
-    defer if File.exists(source) do
+    defer if File.exists(source)
+    {
         expect File.deleteNative(source)
-    defer if File.exists(target) do
+    }
+
+    defer if File.exists(target)
+    {
         expect File.deleteNative(target)
+    }
+
     Swag.require(File.exists(source) and not Directory.exists(source))
     let written = Linux.write(descriptor, "abc".buffer, 3)
     Swag.require(written == 3)

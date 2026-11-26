@@ -6,7 +6,7 @@ using Core
 // One slide and its safely decoded objects, before viewport fitting.
 struct SlidePage
 {
-    shapes:           Array'SlideShape
+    shapes:           Array!{SlideShape}
     notesHtml:        String
     title:            String
     background:       String
@@ -26,17 +26,23 @@ impl SlidePage
         var groupStart   = Swag.U64.Max
         var shapeName: String
         var groupName: String
-        var groupDepth   = 0'u32
+        var groupDepth   = 0_u32
         var inBackground = false
         while true
         {
             let at = scan.offset
-            if not scan.next(&token) do
+            if not scan.next(&token)
+            {
                 break
+            }
+
             if token.kind == .Start
             {
-                if token.isElement("sld") do
+                if token.isElement("sld")
+                {
                     result.showMasterShapes = token.attribute("showMasterSp") != "0" and token.attribute("showMasterSp") != "false"
+                }
+
                 if token.isElement("grpSp")
                 {
                     if groupStart == Swag.U64.Max
@@ -48,7 +54,8 @@ impl SlidePage
                     groupDepth += 1
                 }
 
-                if groupStart == Swag.U64.Max and shapeStart == Swag.U64.Max and
+                if groupStart == Swag.U64.Max and
+                   shapeStart == Swag.U64.Max and
                    (token.isElement("sp") or token.isElement("pic") or token.isElement("cxnSp") or token.isElement("graphicFrame"))
                 {
                     shapeStart = at
@@ -59,18 +66,24 @@ impl SlidePage
                 {
                     inBackground = not token.empty
                 }
-                elif inBackground and (token.isElement("srgbClr") or token.isElement("schemeClr"))
+                else if inBackground and (token.isElement("srgbClr") or token.isElement("schemeClr"))
                 {
                     let value = token.attribute("val") orelse ""
                     let color = token.isElement("schemeClr") ? theme.color(value) : String.from(value)
-                    if Package.isRgbHex(color) do
+                    if Package.isRgbHex(color)
+                    {
                         result.background = color
+                    }
                 }
             }
 
-            if token.kind == .End and token.isElement("bgPr") do
+            if token.kind == .End and token.isElement("bgPr")
+            {
                 inBackground = false
-            if groupStart != Swag.U64.Max and token.name == groupName and
+            }
+
+            if groupStart != Swag.U64.Max and
+               token.name == groupName and
                (token.kind == .End or token.empty)
             {
                 groupDepth -= 1
@@ -78,11 +91,17 @@ impl SlidePage
                 {
                     let group = try SlideGroup.parse(source[groupStart until scan.offset], theme, images, pageWidth)
                     result.simplified = result.simplified or not group.supported
-                    for shape in group.shapes do
+                    for shape in group.shapes
+                    {
                         result.omittedImages += shape.omittedImages
+                    }
+
                     result.shapes.add(group.shapes.toSlice())
-                    if result.shapes.count > 2048 do
+                    if result.shapes.count > 2048
+                    {
                         fail Errors.UnsupportedFormatError{texts().err_TooLarge}
+                    }
+
                     groupStart = Swag.U64.Max
                     groupName.clear()
                 }
@@ -93,7 +112,7 @@ impl SlidePage
                (token.kind == .End or token.empty)
             {
                 let shapeSource = source[shapeStart until scan.offset]
-                var shape = try SlideShape.parse(shapeSource, theme, images, pageWidth)
+                var shape       = try SlideShape.parse(shapeSource, theme, images, pageWidth)
                 if token.isElement("graphicFrame")
                 {
                     if let chart = findSlideChart(charts, shapeSource)
@@ -106,22 +125,26 @@ impl SlidePage
                         let table = try SlideTable.parse(shapeSource, theme, pageWidth)
                         if not table.html.isEmpty()
                         {
-                            shape.html      = table.html.toString()
-                            shape.plainText = table.plainText.toString()
+                            shape.html        = table.html.toString()
+                            shape.plainText   = table.plainText.toString()
                             result.simplified = result.simplified or table.requiresSimplified
                         }
-                        else do
+                        else
+                        {
                             result.simplified = true
+                        }
                     }
                 }
 
                 if not shape.hidden
                 {
-                    result.simplified = result.simplified or shape.unsupported
+                    result.simplified    = result.simplified or shape.unsupported
                     result.omittedImages += shape.omittedImages
                     result.shapes.add(shape)
-                    if result.shapes.count > 2048 do
+                    if result.shapes.count > 2048
+                    {
                         fail Errors.UnsupportedFormatError{texts().err_TooLarge}
+                    }
                 }
 
                 shapeStart = Swag.U64.Max
@@ -129,8 +152,11 @@ impl SlidePage
             }
         }
 
-        if scan.damaged or shapeStart != Swag.U64.Max or groupStart != Swag.U64.Max do
+        if scan.damaged or shapeStart != Swag.U64.Max or groupStart != Swag.U64.Max
+        {
             fail Errors.InvalidFormatError{texts().err_Invalid}
+        }
+
         return result
     }
 
@@ -154,8 +180,10 @@ impl SlidePage
                 theme.read(masterSource)
                 let masterRelations = try parts.relationships(masterPath)
                 let themePath       = Package.relationshipPath(masterRelations.toSlice(), "/theme")
-                if not themePath.isEmpty() do
+                if not themePath.isEmpty()
+                {
                     theme.read(try parts.text(themePath, required: false))
+                }
             }
         }
 
@@ -177,8 +205,10 @@ impl SlidePage
         var layout       = try SlidePage.parse(layoutSource, &theme, &layoutImages, pageWidth)
         for &shape in layout.shapes
         {
-            if let parent = shape.placeholderIn(master.shapes.toSlice()) do
+            if let parent = shape.placeholderIn(master.shapes.toSlice())
+            {
                 shape.inherit(parent)
+            }
         }
 
         let source = try parts.text(path)
@@ -188,61 +218,105 @@ impl SlidePage
         var images    = try imageCatalog(parts, path)
         var result    = try SlidePage.parse(source, &theme, &images, pageWidth, charts.toSlice())
         let notesPath = Package.relationshipPath(relations.toSlice(), "/notesSlide")
-        if not notesPath.isEmpty() do
+        if not notesPath.isEmpty()
+        {
             result.notesHtml = try readSpeakerNotes(try parts.text(notesPath), &theme)
-        if result.background.isEmpty() do
+        }
+
+        if result.background.isEmpty()
+        {
             result.background = layout.background.isEmpty() ? master.background : layout.background
-        if result.background.isEmpty() do
+        }
+
+        if result.background.isEmpty()
+        {
             result.background = theme.color("bg1")
+        }
+
         for &shape in result.shapes
         {
-            if let parent = shape.placeholderIn(layout.shapes.toSlice()) do
+            if let parent = shape.placeholderIn(layout.shapes.toSlice())
+            {
                 shape.inherit(parent)
-            if let parent = shape.placeholderIn(master.shapes.toSlice()) do
+            }
+
+            if let parent = shape.placeholderIn(master.shapes.toSlice())
+            {
                 shape.inherit(parent)
-            if not shape.fontSize do
+            }
+
+            if not shape.fontSize
+            {
                 shape.fontSize = shape.isTitle() ? theme.titleSize : theme.bodySize
-            if shape.textColor.isEmpty() do
+            }
+
+            if shape.textColor.isEmpty()
+            {
                 shape.textColor = theme.color("tx1")
-            if (not shape.positioned and not shape.html.isEmpty()) or shape.unsupported do
+            }
+
+            if (not shape.positioned and not shape.html.isEmpty()) or shape.unsupported
+            {
                 result.simplified = true
+            }
         }
 
         result.simplified = result.simplified or layout.simplified or (master.simplified and result.showMasterShapes)
 
         // Static master/layout shapes form the back of the slide; placeholder sample text does not.
-        var inherited: Array'SlideShape
-        for shape in master.shapes where not shape.placeholder and result.showMasterShapes do
+        var inherited: Array!{SlideShape}
+        for shape in master.shapes where not shape.placeholder and result.showMasterShapes
+        {
             inherited.add(shape)
-        for shape in layout.shapes where not shape.placeholder do
+        }
+
+        for shape in layout.shapes where not shape.placeholder
+        {
             inherited.add(shape)
+        }
+
         for &shape in inherited
         {
             result.omittedImages += shape.omittedImages
-            if not shape.fontSize do
+            if not shape.fontSize
+            {
                 shape.fontSize = theme.otherSize
-            if shape.textColor.isEmpty() do
+            }
+
+            if shape.textColor.isEmpty()
+            {
                 shape.textColor = theme.color("tx1")
-            if (not shape.positioned and not shape.html.isEmpty()) or shape.unsupported do
+            }
+
+            if (not shape.positioned and not shape.html.isEmpty()) or shape.unsupported
+            {
                 result.simplified = true
+            }
         }
 
         result.shapes.insertAt(0, inherited.toSlice())
-        if result.shapes.count > 2048 do
+        if result.shapes.count > 2048
+        {
             fail Errors.UnsupportedFormatError{texts().err_TooLarge}
+        }
+
         for shape in result.shapes where not shape.plainText.isEmpty()
         {
             if result.title.isEmpty() or shape.isTitle()
             {
                 result.title = shape.plainText
                 result.title.trim()
-                let end = Utf8.indexOf(result.title, '\n'rune)
-                if end != Swag.U64.Max do
+                let end = Utf8.indexOf(result.title, '\n'_rune)
+                if end != Swag.U64.Max
+                {
                     result.title = result.title.toString()[0 until end]
+                }
             }
 
-            if shape.isTitle() do
+            if shape.isTitle()
+            {
                 break
+            }
         }
 
         return result
@@ -255,7 +329,7 @@ impl SlidePage
         {
             // Author colors and canvas-relative font sizes belong to the slide, not the text view.
             let source = shape.html.toString()
-            var at     = 0'u64
+            var at     = 0_u64
             while at < source.count
             {
                 let span = Utf8.indexOf(source[at to], "<span style=")
@@ -267,9 +341,12 @@ impl SlidePage
 
                 result += source[at until at + span]
                 at     += span
-                let end = Utf8.indexOf(source[at to], '>'rune)
-                if end == Swag.U64.Max do
+                let end = Utf8.indexOf(source[at to], '>'_rune)
+                if end == Swag.U64.Max
+                {
                     break
+                }
+
                 at += end + 1
             }
         }
@@ -302,7 +379,7 @@ impl SlidePage
                                       bounds.y / height * 100,
                                       bounds.width / width * 100,
                                       bounds.height / height * 100)
-            let fontPixels = cast(f32, Math.clamp(shape.fontSize, 100'u32, 40000)) / 100 * 96 / 72
+            let fontPixels = cast(f32, Math.clamp(shape.fontSize, 100_u32, 40000)) / 100 * 96 / 72
             result += Format.toString("font-size:%{f4}vw;color:#%;", fontPixels / width * 100, shape.textColor)
             if not shape.picture and not shape.connector
             {
@@ -314,8 +391,11 @@ impl SlidePage
                                           inset.x / width * 100)
             }
 
-            if not shape.fill.isEmpty() do
+            if not shape.fill.isEmpty()
+            {
                 result += Format.toString("background-color:#%;", shape.fill)
+            }
+
             if shape.connector
             {
                 if not shape.line.isEmpty()
@@ -323,58 +403,88 @@ impl SlidePage
                     if shape.bounds.width > 0 and shape.bounds.height > 0
                     {
                         let lineLength = Math.sqrt(shape.bounds.width * shape.bounds.width + shape.bounds.height * shape.bounds.height)
-                        let angle = Math.toDegrees(Math.atan2(shape.bounds.height, shape.bounds.width))
+                        let angle      = Math.toDegrees(Math.atan2(shape.bounds.height, shape.bounds.width))
                         result += Format.toString("width:%{f4}vw;height:0;transform-origin:0 0;transform:rotate(%{f4}deg);border-top:%{f4}vw solid #%;",
                                                   lineLength / width * 100,
                                                   angle,
                                                   shape.lineWidth / width * 100,
                                                   shape.line)
                     }
-                    elif shape.bounds.height == 0 do
+                    else if shape.bounds.height == 0
+                    {
                         result += Format.toString("border-top:%{f4}vw solid #%;", shape.lineWidth / width * 100, shape.line)
-                    else do
+                    }
+                    else
+                    {
                         result += Format.toString("border-left:%{f4}vw solid #%;", shape.lineWidth / width * 100, shape.line)
+                    }
                 }
             }
-            elif not shape.line.isEmpty() do
+            else if not shape.line.isEmpty()
+            {
                 result += Format.toString("border:%{f4}vw solid #%;", shape.lineWidth / width * 100, shape.line)
+            }
+
             if shape.ellipse
             {
                 result += "border-radius:50%;"
             }
-            elif shape.round
+            else if shape.round
             {
                 result += Format.toString("border-radius:%{f4}vw;", Math.min(bounds.width, bounds.height) / width * 16.67)
             }
+
             if not shape.connector and (shape.rotation or shape.flipHorizontal or shape.flipVertical)
             {
                 result += "transform:"
-                if shape.rotation do
+                if shape.rotation
+                {
                     result += Format.toString("rotate(%{f2}deg) ", shape.rotation)
-                if shape.flipHorizontal do
+                }
+
+                if shape.flipHorizontal
+                {
                     result += "scaleX(-1) "
-                if shape.flipVertical do
+                }
+
+                if shape.flipVertical
+                {
                     result += "scaleY(-1) "
+                }
+
                 result += ";transform-origin:center;"
             }
-            if shape.centered do
+
+            if shape.centered
+            {
                 result += "display:flex;flex-direction:column;justify-content:center;"
+            }
+
             if shape.rotation or shape.flipHorizontal or shape.flipVertical
             {
                 var transform: String
-                if shape.rotation do
+                if shape.rotation
+                {
                     transform = Format.toString("rotate(%{f4}deg)", shape.rotation)
+                }
+
                 if shape.flipHorizontal
                 {
-                    if not transform.isEmpty() do
+                    if not transform.isEmpty()
+                    {
                         transform += " "
+                    }
+
                     transform += "scaleX(-1)"
                 }
 
                 if shape.flipVertical
                 {
-                    if not transform.isEmpty() do
+                    if not transform.isEmpty()
+                    {
                         transform += " "
+                    }
+
                     transform += "scaleY(-1)"
                 }
 

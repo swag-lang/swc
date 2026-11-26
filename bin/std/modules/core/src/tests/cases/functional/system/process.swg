@@ -39,8 +39,10 @@ func systemExecutablePath(name: string)->String
 
     defer
     {
-        if File.exists(targetExe.toString()) do
+        if File.exists(targetExe.toString())
+        {
             discard catch File.delete(targetExe.toString())
+        }
     }
 
     discard expect File.duplicate(targetExe.toString(), sourceExe.toString())
@@ -81,8 +83,10 @@ func systemExecutablePath(name: string)->String
     reported.replace("\\", "/")
 
     var expected = String.from(directory.toString())
-    if expected.endsWith("/") do
+    if expected.endsWith("/")
+    {
         expected.removeBack()
+    }
 
     Swag.require(Utf8.compare(reported.toSlice(), expected.toSlice(), .Latin1NoCase) == 0)
 }
@@ -143,7 +147,7 @@ func systemExecutablePath(name: string)->String
     Swag.require(process.isRunning())
     Swag.require(process.processId != 0)
 
-    let exitedEarly = expect process.tryWaitForExit(50'ms)
+    let exitedEarly = expect process.tryWaitForExit(50_ms)
     Swag.require(not exitedEarly)
 
     expect process.kill(9)

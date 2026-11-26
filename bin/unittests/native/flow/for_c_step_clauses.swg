@@ -5,10 +5,19 @@
 #test
 {
     var acc: s32 = 0
-    for var i = 0; i < 6; if i == 1 do i += 2 else do i += 1
+    for var i = 0; i < 6; if i == 1
     {
-        if i == 0 do
+        i += 2
+    }
+    else
+    {
+        i += 1
+    }
+    {
+        if i == 0
+        {
             continue
+        }
         acc = acc * 10 + i
     }
 
@@ -18,7 +27,12 @@
 #test
 {
     var acc: s32 = 0
-    for var i = 0; i < 10; { i += 1; if i == 4 do break }
+    for var i = 0; i < 10; {
+        i += 1; if i == 4
+        {
+            break
+        }
+    }
     {
         acc += i
     }

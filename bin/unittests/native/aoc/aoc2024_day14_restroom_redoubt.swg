@@ -24,16 +24,16 @@ p=9,5 v=-3,-3"""
 // Constants via const arithmetic
 // ---------------------------------------------------------------------------
 
-const MaxRobots    = 512'u32
-const SampleWidth  = 11's32
-const SampleHeight = 7's32
-const Steps        = 100'u32
+const MaxRobots    = 512_u32
+const SampleWidth  = 11_s32
+const SampleHeight = 7_s32
+const Steps        = 100_u32
 
 // Quadrant indices computed at compile time
-const QuadTL   = 0'u32
-const QuadTR   = 1'u32
-const QuadBL   = 2'u32
-const QuadBR   = 3'u32
+const QuadTL   = 0_u32
+const QuadTR   = 1_u32
+const QuadBL   = 2_u32
+const QuadBR   = 3_u32
 const NumQuads = QuadBR + 1
 #assert(NumQuads == 4)
 
@@ -69,11 +69,15 @@ func parseS32(bytes: const [..] u8, pos: *u32)->s32
     var val: s32
     for
     {
-        if pos[] >= bytes.count do
+        if pos[] >= bytes.count
+        {
             break
+        }
         let ch = bytes[pos[]]
-        if ch < '0' or ch > '9' do
+        if ch < '0' or ch > '9'
+        {
             break
+        }
         val   = val * 10 + cast(s32, (ch - '0'))
         pos[] += 1
     }
@@ -85,11 +89,15 @@ func skipToDigitOrMinus(bytes: const [..] u8, pos: *u32)
 {
     for
     {
-        if pos[] >= bytes.count do
+        if pos[] >= bytes.count
+        {
             break
+        }
         let ch = bytes[pos[]]
-        if ch == '-' or (ch >= '0' and ch <= '9') do
+        if ch == '-' or (ch >= '0' and ch <= '9')
+        {
             break
+        }
         pos[] += 1
     }
 }
@@ -104,12 +112,16 @@ func parseFleet(text: string, w, h: s32)->Fleet
     var pos: u32
     for
     {
-        if pos >= bytes.count or fleet.count >= MaxRobots do
+        if pos >= bytes.count or fleet.count >= MaxRobots
+        {
             break
+        }
 
         skipToDigitOrMinus(bytes, &pos)
-        if pos >= bytes.count do
+        if pos >= bytes.count
+        {
             break
+        }
 
         let px = parseS32(bytes, &pos)
         skipToDigitOrMinus(bytes, &pos)
@@ -170,16 +182,30 @@ func safetyFactor(fleet: *Fleet, steps: u32)->u64
         let bot = advanceRobot(fleet.bots[i], cast(s32, steps), fleet.w, fleet.h)
 
         // Skip robots exactly on the midlines
-        if bot.px == midX or bot.py == midY do
+        if bot.px == midX or bot.py == midY
+        {
             continue
+        }
 
         let right:  bool = bot.px > midX
         let bottom: bool = bot.py > midY
 
-        if not right and not bottom do quads[QuadTL] += 1
-        if right and not bottom do quads[QuadTR] += 1
-        if not right and bottom do quads[QuadBL] += 1
-        if right and bottom do quads[QuadBR] += 1
+        if not right and not bottom
+        {
+            quads[QuadTL] += 1
+        }
+        if right and not bottom
+        {
+            quads[QuadTR] += 1
+        }
+        if not right and bottom
+        {
+            quads[QuadBL] += 1
+        }
+        if right and bottom
+        {
+            quads[QuadBR] += 1
+        }
     }
 
     // Multiply quadrant counts using compound assignment (*=)
@@ -242,8 +268,8 @@ func findClusterStep(fleet: *Fleet, maxSteps: u32)->u32
 // Const arithmetic
 #test
 {
-    Swag.require(NumQuads == 4'u32)
-    Swag.require(QuadBR == 3'u32)
+    Swag.require(NumQuads == 4_u32)
+    Swag.require(QuadBR == 3_u32)
 }
 
 // Positive modulo
@@ -260,7 +286,7 @@ func findClusterStep(fleet: *Fleet, maxSteps: u32)->u32
 #test
 {
     let fleet = parseFleet(SampleInput, SampleWidth, SampleHeight)
-    Swag.require(fleet.count == 12'u32)
+    Swag.require(fleet.count == 12_u32)
     Swag.require(fleet.w == 11)
     Swag.require(fleet.h == 7)
 
@@ -302,7 +328,7 @@ func findClusterStep(fleet: *Fleet, maxSteps: u32)->u32
 {
     var fleet = parseFleet(SampleInput, SampleWidth, SampleHeight)
     let sf    = safetyFactor(&fleet, Steps)
-    Swag.require(sf == 12'u64)
+    Swag.require(sf == 12_u64)
 }
 
 // Explicit numeric casts
@@ -320,12 +346,12 @@ func findClusterStep(fleet: *Fleet, maxSteps: u32)->u32
 {
     var a: u64 = 3
     a *= 7
-    Swag.require(a == 21'u64)
+    Swag.require(a == 21_u64)
     var b: u32 = 1
     b <<= 4
-    Swag.require(b == 16'u32)
+    Swag.require(b == 16_u32)
     b >>= 2
-    Swag.require(b == 4'u32)
+    Swag.require(b == 4_u32)
 }
 
 // Mixin: variance computation injects axisVariance
@@ -334,7 +360,7 @@ func findClusterStep(fleet: *Fleet, maxSteps: u32)->u32
     var fleet = parseFleet(SampleInput, SampleWidth, SampleHeight)
     var axisVariance: u64
     computeVarianceX(&fleet, 0)
-    Swag.require(axisVariance > 0'u64)
+    Swag.require(axisVariance > 0_u64)
 }
 
 // Clustering: bestStep should be in valid range
@@ -342,7 +368,7 @@ func findClusterStep(fleet: *Fleet, maxSteps: u32)->u32
 {
     var fleet = parseFleet(SampleInput, SampleWidth, SampleHeight)
     let best  = findClusterStep(&fleet, 20)
-    Swag.require(best < 20'u32)
+    Swag.require(best < 20_u32)
 }
 
 // Edge case: single robot at origin

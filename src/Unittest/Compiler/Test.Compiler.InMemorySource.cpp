@@ -58,14 +58,14 @@ union(T) ValueOrPtr
     ptr:   *T
 }
 
-func(T) takeValue(boxed: ValueOrPtr'T)->T
+func(T) takeValue(boxed: ValueOrPtr!{T})->T
 {
     return boxed.value
 }
 
 func validate()
 {
-    let value = takeValue({value: 10's32})
+    let value = takeValue({value: 10_s32})
     #assert(#typeof(value) == s32)
 }
 )";
@@ -609,15 +609,17 @@ func hotMemoryCaller(a, b: [*] u8, size: u64)->s32
 
 func recursiveFirst(value: s32)->s32
 {
-    if value == 0 do
+    if value == 0 {
         return 0
+    }
     return recursiveSecond(value - 1)
 }
 
 func recursiveSecond(value: s32)->s32
 {
-    if value == 0 do
+    if value == 0 {
         return 0
+    }
     return recursiveFirst(value - 1)
 }
 
@@ -862,9 +864,9 @@ func initialize(value: u32) { initialized = value }
 
 #run
 {
-    var value = 0x12345678'u64
+    var value = 0x12345678_u64
     Swag.assert(rotate(value, 8) == 0x78123456)
-    var input = 13'u32
+    var input = 13_u32
     Swag.assert(compute(input) == 42)
     initialize(42)
     Swag.assert(initialized == 42)
@@ -873,7 +875,7 @@ func initialize(value: u32) { initialized = value }
     Swag.assert(expandedGlobal == calledGlobal)
 }
 
-const copied = #run identity(42'u32)
+const copied = #run identity(42_u32)
 #assert(copied == 42)
 )";
     const fs::path                    sourcePath = Unittest::makeTestSourcePath("Compiler", "AutoInlineCompileTimeContext");
@@ -947,8 +949,9 @@ func matchesInteger(target: typeinfo)->bool => target is s32
 )";
     static constexpr std::string_view CALLER       = R"(func checkPattern(target: typeinfo)->bool
 {
-    if matchesInteger(target) do
+    if matchesInteger(target) {
         return true
+    }
     return false
 }
 )";
@@ -1348,7 +1351,7 @@ using Swag
     Swag.require(__bootstrapRoundedSize(1, 8) == granularity)
     Swag.require(__bootstrapRoundedSize(granularity, 8) == 2 * granularity)
 
-    const LargeAlignment = 1'u32 << 31
+    const LargeAlignment = 1_u32 << 31
     let large = __bootstrapRoundedSize(1, LargeAlignment)
     Swag.require(large > LargeAlignment)
     Swag.require(large % granularity == 0)
@@ -2190,12 +2193,12 @@ func managed(value: *s32?)->s32 => try fallibleRead(value)
     static constexpr std::string_view CALLER       = R"(#global private
 func recursive(value: *s32?, depth: u32)->s32
 {
-    if depth == 0 do return 0
+    if depth == 0 { return 0 }
     return inRecursion(value) + recursive(value, depth - 1)
 }
 func first(value: *s32?, depth: u32)->s32
 {
-    if depth == 0 do return 0
+    if depth == 0 { return 0 }
     return inMutualRecursion(value) + second(value, depth - 1)
 }
 func second(value: *s32?, depth: u32)->s32

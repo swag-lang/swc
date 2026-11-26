@@ -8,8 +8,11 @@ internal func setSessionStartupNative(id, _: string, enabled: bool, arguments: c
     let key  = Utf16.toZeroTerminated("Software\\Microsoft\\Windows\\CurrentVersion\\Run")
     let name = Utf16.toZeroTerminated(id)
     var handle: HKEY
-    if RegCreateKeyExW(HKEY_CURRENT_USER, key.buffer, 0, null, 0, KEY_SET_VALUE, null, &handle, null) != ERROR_SUCCESS do
+    if RegCreateKeyExW(HKEY_CURRENT_USER, key.buffer, 0, null, 0, KEY_SET_VALUE, null, &handle, null) != ERROR_SUCCESS
+    {
         return false
+    }
+
     defer RegCloseKey(handle)
     if not enabled
     {
@@ -20,7 +23,7 @@ internal func setSessionStartupNative(id, _: string, enabled: bool, arguments: c
     var command = quoteArgument(try Process.currentExecutablePath())
     for argument in arguments
     {
-        command += ' 'u8
+        command += ' '_u8
         command += quoteArgument(argument)
     }
 

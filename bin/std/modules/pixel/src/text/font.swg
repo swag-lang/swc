@@ -10,19 +10,19 @@ public struct GlyphAtlas
 {
     internal
     {
-        texture:       Texture      // GPU texture associated with this atlas page.
-        width:         u32          // Row width in bytes.
-        height:        u32          // Page height in pixels.
-        bytesPerPixel: u32          // Bytes used by one atlas pixel.
-        data:          Array'u8     // CPU-side pixel storage.
-        dirty:         bool         // Whether `data` contains changes not uploaded to `texture`.
-        dirtyMinX:     u32          // Inclusive changed column in texture pixels.
-        dirtyMinY:     u32          // Inclusive changed row in bottom-up texture storage.
-        dirtyMaxX:     u32          // Exclusive changed column in texture pixels.
-        dirtyMaxY:     u32          // Exclusive changed row in bottom-up texture storage.
-        curX:          s32          // Byte offset of the next glyph in the current row.
-        curY:          s32          // Pixel offset of the current row.
-        nextY:         s32          // Pixel offset available for the following row.
+        texture:       Texture        // GPU texture associated with this atlas page.
+        width:         u32            // Row width in bytes.
+        height:        u32            // Page height in pixels.
+        bytesPerPixel: u32            // Bytes used by one atlas pixel.
+        data:          Array!{u8}     // CPU-side pixel storage.
+        dirty:         bool           // Whether `data` contains changes not uploaded to `texture`.
+        dirtyMinX:     u32            // Inclusive changed column in texture pixels.
+        dirtyMinY:     u32            // Inclusive changed row in bottom-up texture storage.
+        dirtyMaxX:     u32            // Exclusive changed column in texture pixels.
+        dirtyMaxY:     u32            // Exclusive changed row in bottom-up texture storage.
+        curX:          s32            // Byte offset of the next glyph in the current row.
+        curY:          s32            // Pixel offset of the current row.
+        nextY:         s32            // Pixel offset available for the following row.
     }
 }
 
@@ -31,8 +31,10 @@ impl GlyphAtlas
     // Track the bytes actually written, not the top-down placement coordinates used by glyph UVs.
     mtd markDirty(x, y, width, height: u32)
     {
-        if width == 0 or height == 0 do
+        if width == 0 or height == 0
+        {
             return
+        }
 
         if .dirty
         {
@@ -153,9 +155,9 @@ public struct GlyphCache
         underlinePos:  f32     // Underline position relative to the baseline.
         underlineSize: f32     // Recommended underline thickness.
 
-        atlases:  Array'GlyphAtlas                // Atlas pages populated on demand.
-        glyphRef: HashTable'(u32, *GlyphDesc)     // Cached descriptors keyed by glyph index and subpixel position.
-        kernRef:  HashTable'(u64, f32)            // Kerning cache keyed by two glyph indices.
+        atlases:  Array!{GlyphAtlas}              // Atlas pages populated on demand.
+        glyphRef: HashTable!{u32, *GlyphDesc}     // Cached descriptors keyed by glyph index and subpixel position.
+        kernRef:  HashTable!{u64, f32}            // Kerning cache keyed by two glyph indices.
         dirty:    bool     // Whether at least one atlas requires a GPU upload.
     }
 }
@@ -199,7 +201,7 @@ public struct Font
     {
         late owner:    *FontCache      // Cache that created this view and owns it.
         late cache:    *GlyphCache     // Shared glyph storage borrowed by this font view.
-        fallbackFonts: HashTable'(rune, *Font)     // Resolved misses, including the primary font when no face covers the rune.
+        fallbackFonts: HashTable!{rune, *Font}     // Resolved misses, including the primary font when no face covers the rune.
     }
 }
 
@@ -220,9 +222,9 @@ public struct FontCache
 
     internal
     {
-        glyphCaches:       Array'(*GlyphCache?)     // Glyph storage, one per typeface / reference size / style.
-        fonts:             ArrayPtr'Font            // Views handed out by this cache.
-        fallbackTypeFaces: Array'(*TypeFace)
+        glyphCaches:       Array!{*GlyphCache?}     // Glyph storage, one per typeface / reference size / style.
+        fonts:             ArrayPtr!{Font}          // Views handed out by this cache.
+        fallbackTypeFaces: Array!{*TypeFace}
         useSystemFallback: bool = true
     }
 }
@@ -254,8 +256,11 @@ public impl FontCache
     mtd clear()
     {
         .fonts.clear()
-        for it in .glyphCaches do
+        for it in .glyphCaches
+        {
             Memory.delete(it)
+        }
+
         .glyphCaches.clear()
         .fallbackTypeFaces.clear()
         .useSystemFallback = true
@@ -276,11 +281,16 @@ public impl FontCache
     mtd setFallbackTypeFaces(faces: const [..] (*TypeFace), useSystemFonts = true)
     {
         .fallbackTypeFaces.clear()
-        for face in faces do
+        for face in faces
+        {
             .fallbackTypeFaces.add(face)
+        }
+
         .useSystemFallback = useSystemFonts
-        for font in .fonts do
+        for font in .fonts
+        {
             font!.fallbackFonts.clear()
+        }
     }
 
     // Releases every glyph cache and font view owned by this cache.
@@ -302,11 +312,13 @@ public impl FontCache
                cache.spread == spread and
                cache.renderMode == renderMode and
                cache.forceBold == forceBold and
-               cache.forceItalic == forceItalic do
+               cache.forceItalic == forceItalic
+            {
                 return cache
+            }
         }
 
-        let cache = Memory.new'GlyphCache()
+        let cache = Memory.new!{GlyphCache}()
         .glyphCaches.add(cache)
         cache.typeFace    = typeFace
         cache.renderMode  = renderMode
@@ -330,8 +342,10 @@ public impl FontCache
         // take the proportion the common interface faces share rather than pay for a glyph
         // load on every cache miss.
         cache.capHeight = metrics.capHeight / 64.0
-        if cache.capHeight <= 0 do
+        if cache.capHeight <= 0
+        {
             cache.capHeight = cache.ascent * 0.72
+        }
 
         return cache
     }
@@ -356,8 +370,10 @@ public impl FontCache
                font.cache.renderMode == atlasMode and
                font.mode == intent and
                font.forceBold == forceBold and
-               font.forceItalic == forceItalic do
+               font.forceItalic == forceItalic
+            {
                 return font
+            }
         }
 
         let cache = .acquireGlyphCache(typeFace, refSize, spread, atlasMode, forceBold, forceItalic)
@@ -457,12 +473,20 @@ public impl Font
     // This resolves individual scalars; it does not perform cluster shaping or bidi layout.
     mtd resolveRune(c: rune)->*Font
     {
-        if .glyphIndex(c) do
+        if .glyphIndex(c)
+        {
             return me
-        if not isFontFallbackRune(c) do
+        }
+
+        if not isFontFallbackRune(c)
+        {
             return me
-        if let found = .fallbackFonts.tryFind(c) do
+        }
+
+        if let found = .fallbackFonts.tryFind(c)
+        {
             return found.value
+        }
 
         var face: *TypeFace?
         for candidate in .owner.fallbackTypeFaces
@@ -476,8 +500,10 @@ public impl Font
 
         #static if #os == Swag.TargetOs.Windows
         {
-            if not face and .owner.useSystemFallback do
+            if not face and .owner.useSystemFallback
+            {
                 face = FontFamily.findSystemFallback(c, .cache.typeFace.isBold() or .cache.typeFace.forceBold or .forceBold, .cache.typeFace.isItalic() or .cache.typeFace.forceItalic or .forceItalic)
+            }
         }
 
         let resolved = face ? .withTypeFace(face) : me
@@ -541,15 +567,23 @@ public impl Font
         if font.mode == .Bitmap
         {
             let px = cast(s32, Math.max(Math.round(effectivePx), 1.0))
-            if px == font.cache.refSize do
+            if px == font.cache.refSize
+            {
                 return font
+            }
+
             return font.owner.createView(font.cache.typeFace, font.size, cast(u32, px), 0, .Bitmap, .Bitmap, font.forceBold, font.forceItalic)
         }
 
-        if font.mode != .Auto do
+        if font.mode != .Auto
+        {
             return font
-        if effectivePx >= AutoMsdfMinPx do
+        }
+
+        if effectivePx >= AutoMsdfMinPx
+        {
             return font
+        }
 
         var px = cast(s32, Math.round(effectivePx))
         px = Math.clamp(px, 1, cast(s32, AutoMsdfMinPx))
@@ -562,8 +596,11 @@ impl GlyphCache
     // Releases atlas descriptors and cached kerning data owned by this cache.
     mtd opDrop()
     {
-        for _, v in .glyphRef do
+        for _, v in .glyphRef
+        {
             Memory.delete(v)
+        }
+
         .glyphRef.free()
         .kernRef.free()
     }
@@ -574,12 +611,16 @@ impl GlyphCache
     mtd kerning(leftIndex, rightIndex: u32)->f32
     {
         // Most fonts carry no legacy 'kern' table: skip the per-pair hash lookup entirely.
-        if not .hasKerning or not leftIndex or not rightIndex do
+        if not .hasKerning or not leftIndex or not rightIndex
+        {
             return 0
+        }
 
         let key = (cast(u64, leftIndex) << 32) | cast(u64, rightIndex)
-        if let here = .kernRef.tryFind(key) do
+        if let here = .kernRef.tryFind(key)
+        {
             return here.value
+        }
 
         // 'kern' is scaled to the current pixel size, so query it at the reference size.
         Sync.scopedLock(&.typeFace.glyphMutex)
@@ -630,8 +671,10 @@ impl GlyphCache
         let position = .renderMode == .Msdf ? 0 : subpixel % SubpixelPositions
         let key      = glyphIndex | (position << 28)
         let entry    = .glyphRef.tryFind(key)
-        if entry do
+        if entry
+        {
             return cast(const *GlyphDesc, entry.value)
+        }
 
         // Separate renderer caches share one mutable face. Keep its slot stable through
         // rasterization, the atlas copy and the metrics read; a render-only lock is too short.
@@ -647,7 +690,7 @@ impl GlyphCache
         // texels. A glyph that starts on a block boundary and fills whole blocks reads the same
         // whatever was packed beside it, so a text renders alike whichever texts came first. The
         // cell is the spread every glyph keeps as its margin, and the chain stops at that size.
-        let cell      = .renderMode.isDistanceField() ? RefEmSpread : 1'u32
+        let cell      = .renderMode.isDistanceField() ? RefEmSpread : 1_u32
         let cellBytes = ((bmpRef.width + cell - 1) / cell) * cell * bpp
         let cellRows  = ((bmpRef.rows + cell - 1) / cell) * cell
 
@@ -659,12 +702,16 @@ impl GlyphCache
             if a.curX + cellBytes > a.width
             {
                 a.curX = 0
-                if a.nextY + cellRows > a.height do
+                if a.nextY + cellRows > a.height
+                {
                     atlas = null
-                else do
+                }
+                else
+                {
                     a.curY = a.nextY
+                }
             }
-            elif a.curY + cellRows > a.height
+            else if a.curY + cellRows > a.height
             {
                 atlas = null
             }
@@ -702,7 +749,7 @@ impl GlyphCache
         }
 
         // Setup GlyphDesc
-        let refr = Memory.new'GlyphDesc()
+        let refr = Memory.new!{GlyphDesc}()
         .glyphRef.add(key, refr)
         refr.cache = me
 

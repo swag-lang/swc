@@ -36,7 +36,7 @@ Try every combination of the new phase settings on the amplifier feedback loop. 
 
 using Core
 
-internal func run(op: *Array's32, input: const [2] s32, ipp: *s32)->{ output: s32, stopped: bool }
+internal func run(op: *Array!{s32}, input: const [2] s32, ipp: *s32)->{ output: s32, stopped: bool }
 {
     // Work on a local instruction pointer, and publish it back on every exit.
     var ip = ipp[]
@@ -51,11 +51,16 @@ internal func run(op: *Array's32, input: const [2] s32, ipp: *s32)->{ output: s3
         let imm1 = (op[ip] / 1000) % 10
         let inst = op[ip] % 10
 
-        var param0, param1 = 0's32
-        if inst != 3 do
+        var param0, param1 = 0_s32
+        if inst != 3
+        {
             param0 = imm0 ? op[ip + 1] : op[op[ip + 1]]
-        if inst != 3 and inst != 4 do
+        }
+
+        if inst != 3 and inst != 4
+        {
             param1 = imm1 ? op[ip + 2] : op[op[ip + 2]]
+        }
 
         switch inst
         {
@@ -101,9 +106,11 @@ func day7B()
     let dataPath = Path.combine(Path.directoryName(#file), "7.txt")
     let lines    = expect File.readAllLines(dataPath)
 
-    var prg: Array's32
-    for v in Tokenize.split(lines[0], ','u8) do
+    var prg: Array!{s32}
+    for v in Tokenize.split(lines[0], ','_u8)
+    {
         prg.add(expect StrConv.toS32(v))
+    }
 
     var phase = [5, 6, 7, 8, 9]
     var total = 0
@@ -118,12 +125,16 @@ func day7B()
             total = Math.max(total, result.output)
             input = result.output
             cpt   = (cpt + 1) % 5
-            if result.stopped and not cpt do
+            if result.stopped and not cpt
+            {
                 break
+            }
         }
 
-        if not Slice.nextPermutation(phase[to]) do
+        if not Slice.nextPermutation(phase[to])
+        {
             break
+        }
     }
 
     Swag.assert(total == 44282086)

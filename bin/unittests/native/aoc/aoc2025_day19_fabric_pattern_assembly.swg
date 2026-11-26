@@ -16,14 +16,18 @@ func matchesPattern(design: const [..] u8, startIndex: u32, pattern: string)->bo
     let patternBytes  = cast(const [..] u8, pattern)
     let patternLength = cast(u32, patternBytes.count)
 
-    if startIndex + patternLength > cast(u32, design.count) do
+    if startIndex + patternLength > cast(u32, design.count)
+    {
         return false
+    }
 
     for index in patternLength
     {
         let offset = cast(u32, index)
-        if design[startIndex + offset] != patternBytes[offset] do
+        if design[startIndex + offset] != patternBytes[offset]
+        {
             return false
+        }
     }
 
     return true
@@ -41,8 +45,10 @@ func countAssemblies(patterns: const [..] string, design: string)->u64
     for idx in designLength
     {
         let index = cast(u32, idx)
-        if ways[index] == 0 do
+        if ways[index] == 0
+        {
             continue
+        }
 
         for pattern in patterns
         {

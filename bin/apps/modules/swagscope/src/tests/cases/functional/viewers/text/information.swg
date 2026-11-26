@@ -24,7 +24,7 @@ using Core, Pixel, Gui, Viewers
     window.infoSheet.open()
 
     var local: Math.Point
-    var found = false
+    var found  = false
     let bounds = window.infoSheet.position
     for y in cast(u64, bounds.height)
     {
@@ -38,9 +38,13 @@ using Core, Pixel, Gui, Viewers
                 break
             }
         }
-        if found do
+
+        if found
+        {
             break
+        }
     }
+
     Swag.require(found)
     host.click(window.infoSheet.localToSurface(local))
     Swag.require(view.currentLine() == 2 and view.editor.selectionEnd().lineIndex == 1)

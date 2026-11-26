@@ -26,8 +26,11 @@ const CaptureDelays: [4] CaptureDelayChoice = [{0, ActionCaptureDelay.Delay0}, {
 // Returns the words naming a wait of `seconds`: "No Delay", or "5 Seconds".
 func captureDelayName(seconds: s32)->String
 {
-    if seconds <= 0 do
+    if seconds <= 0
+    {
         return appStrings().act_NoDelay
+    }
+
     return MainWnd.countWords(appStrings().count_Seconds, cast(u64, seconds))
 }
 
@@ -64,8 +67,11 @@ impl IActionUI for ActionCaptureDelay
     mtd impl execute(cxt: ActionContext)->bool
     {
         let main = mainWndOf(cxt)
-        for choice in CaptureDelays where choice.id == cxt.id do
+        for choice in CaptureDelays where choice.id == cxt.id
+        {
             main.captureOptions.delay = choice.seconds
+        }
+
         return true
     }
 }

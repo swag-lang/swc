@@ -20,7 +20,7 @@ private struct Picture
 // A stream refers forward once and no further: every bidirectional plane follows the plane it
 // refers to, so one picture held back is enough to know which comes first. One sample can carry
 // two of them, and the answer is emitted after the fill, so four slots cover the widest moment.
-private const HeldPictures = 4'u64
+private const HeldPictures = 4_u64
 
 // Drives an indexed MPEG-4 Part 2 track independently of its container.
 //
@@ -30,10 +30,10 @@ private const HeldPictures = 4'u64
 struct Mpeg4Stream
 {
     decoder:        Decoder
-    frames:         Array'SampleEntry     // Samples in decoding order.
-    sampleAtRank:   Array'u32             // Sample of each display rank, by container time.
-    payload:        Array'u8
-    prefix:         Array'u8     // Bytes the container took off the front of every stored frame.
+    frames:         Array!{SampleEntry}     // Samples in decoding order.
+    sampleAtRank:   Array!{u32}             // Sample of each display rank, by container time.
+    payload:        Array!{u8}
+    prefix:         Array!{u8}     // Bytes the container took off the front of every stored frame.
     queue:          [HeldPictures] Picture
     queued:         u64
     emitRank:       u64     // Display rank of the next picture the queue gives up.
@@ -50,10 +50,12 @@ struct Mpeg4Stream
 impl Mpeg4Stream
 {
     // Configures the decoder from a container's setup headers and installs the samples.
-    mtd open(config: const [..] u8, frames: #move Array'SampleEntry, slotTimestamps = false) fail
+    mtd open(config: const [..] u8, frames: #move Array!{SampleEntry}, slotTimestamps = false) fail
     {
-        if not config.count do
+        if not config.count
+        {
             fail InvalidFormatError{"MPEG-4 track has no decoder configuration"}
+        }
 
         try .decoder.configure(config)
         .width          = cast(s32, .decoder.layer.width)
@@ -71,8 +73,11 @@ impl Mpeg4Stream
     mtd rebuildOrder()
     {
         .sampleAtRank.clear()
-        if .slotTimestamps do
+        if .slotTimestamps
+        {
             return
+        }
+
         .sampleAtRank.reserve(.frames.count)
 
         // A stable insertion by presentation time: the tables are short, and equal times must
@@ -82,21 +87,26 @@ impl Mpeg4Stream
             var at = .sampleAtRank.count
             while not .lowDelay and
                   at > 0 and
-                  .frames[cast(u64, .sampleAtRank[at - 1])].presentationTime > .frames[index].presentationTime do
+                  .frames[cast(u64, .sampleAtRank[at - 1])].presentationTime > .frames[index].presentationTime
+            {
                 at -= 1
+            }
+
             .sampleAtRank.insertAt(at, cast(u32, index))
         }
     }
 
     // Installs a window and starts over from its first picture.
-    mtd installFrames(frames: #move Array'SampleEntry)
+    mtd installFrames(frames: #move Array!{SampleEntry})
     {
         .frames         = #move frames
         .firstRepeatEnd = 1
         if .slotTimestamps and not .lowDelay
         {
-            while .firstRepeatEnd < .frames.count and .frames[.firstRepeatEnd].repeatPrevious do
+            while .firstRepeatEnd < .frames.count and .frames[.firstRepeatEnd].repeatPrevious
+            {
                 .firstRepeatEnd += 1
+            }
         }
 
         .rebuildOrder()
@@ -108,7 +118,7 @@ impl Mpeg4Stream
     }
 
     // Replaces the container window while keeping the configured decoder.
-    mtd replaceFrames(frames: #move Array'SampleEntry) fail
+    mtd replaceFrames(frames: #move Array!{SampleEntry}) fail
     {
         .installFrames(#move frames)
     }
@@ -119,8 +129,11 @@ impl Mpeg4Stream
     // decoder has read, so the anchors it holds stay the anchors they were.
     mtd appendFrames(frames: const [..] SampleEntry) fail
     {
-        if not frames.count do
+        if not frames.count
+        {
             return
+        }
+
         .frames.add(frames)
         .rebuildOrder()
     }
@@ -131,8 +144,11 @@ impl Mpeg4Stream
 
     mtd const presentationTimeAtRank(rank: u64)->s64
     {
-        if rank >= .frames.count do
+        if rank >= .frames.count
+        {
             return 0
+        }
+
         return .frames[.sampleIndex(rank)].presentationTime
     }
 
@@ -147,8 +163,11 @@ impl Mpeg4Stream
     mtd const syncRankAt(rank: u64)->u64
     {
         var scan = rank
-        while scan < .frames.count and not .isSyncRank(scan) do
+        while scan < .frames.count and not .isSyncRank(scan)
+        {
             scan += 1
+        }
+
         return Math.min(scan, .frames.count)
     }
 
@@ -156,24 +175,35 @@ impl Mpeg4Stream
     // which is where decoding the picture of `rank` has to begin.
     mtd const decodeStartRank(rank: u64)->u64
     {
-        if not .frames.count do
+        if not .frames.count
+        {
             return 0
+        }
+
         var scan = Math.min(rank, .frames.count - 1)
-        while scan > 0 and not .isSyncRank(scan) do
+        while scan > 0 and not .isSyncRank(scan)
+        {
             scan -= 1
+        }
+
         return scan
     }
 
     // Positions the stream so the next decoded picture has display rank `rank`.
     mtd seekTo(rank: u64)
     {
-        if rank == .nextRank do
+        if rank == .nextRank
+        {
             return
+        }
 
         // An AVI skip inside the active GOP can continue from its ready pictures and anchors.
         // A new GOP may offer a shorter decode, and backward skips always need new anchors.
-        if .started and (not .slotTimestamps or rank < .nextRank or .decodeStartRank(rank) > .emitRank) do
+        if .started and (not .slotTimestamps or rank < .nextRank or .decodeStartRank(rank) > .emitRank)
+        {
             .started = false
+        }
+
         .nextRank = rank
     }
 
@@ -182,7 +212,7 @@ impl Mpeg4Stream
     // Reads samples until enough pictures are held to know which of them comes first.
     mtd fill(source: *ByteSource) fail
     {
-        let lookahead = .lowDelay ? 1'u64 : 2'u64
+        let lookahead = .lowDelay ? 1_u64 : 2_u64
         while .queued < lookahead and .nextDecode < .frames.count
         {
             let entry = .frames[.nextDecode]
@@ -191,8 +221,11 @@ impl Mpeg4Stream
             // next picture. In a low-delay stream an empty slot holds the latest anchor.
             if entry.repeatPrevious and (.lowDelay or .nextDecode < .firstRepeatEnd)
             {
-                if not .decoder.anchors do
+                if not .decoder.anchors
+                {
                     break
+                }
+
                 .enqueuePicture()
                 .nextDecode += 1
                 continue
@@ -203,13 +236,18 @@ impl Mpeg4Stream
             .decoder.beginSample()
             while try .decoder.nextPicture(sample.bytes)
             {
-                if .queued >= HeldPictures do
+                if .queued >= HeldPictures
+                {
                     break
+                }
+
                 .enqueuePicture()
             }
 
-            if sample.borrowed do
+            if sample.borrowed
+            {
                 try source.skip(entry.size)
+            }
         }
     }
 
@@ -237,9 +275,12 @@ impl Mpeg4Stream
     // Which held picture is shown first.
     mtd const earliest()->u64
     {
-        var at = 0'u64
-        for index in .queued where .queue[index].order < .queue[at].order do
+        var at = 0_u64
+        for index in .queued where .queue[index].order < .queue[at].order
+        {
             at = index
+        }
+
         return at
     }
 
@@ -247,11 +288,17 @@ impl Mpeg4Stream
     mtd release(at: u64, target: *PlanarFrame?)
     {
         // Keep the caller's old plane allocation available for the next queued picture.
-        if let output = target do
+        if let output = target
+        {
             Core.swap(output, &.queue[at].planes)
+        }
+
         .queued -= 1
-        if at != .queued do
+        if at != .queued
+        {
             Core.swap(&.queue[at], &.queue[.queued])
+        }
+
         .emitRank += 1
     }
 
@@ -264,16 +311,20 @@ impl Mpeg4Stream
             .queued     = 0
             .emitRank   = start
             .nextDecode = .sampleIndex(start)
-            if not .slotTimestamps or .lowDelay or not start do
+            if not .slotTimestamps or .lowDelay or not start
+            {
                 break
+            }
 
             // AVI numbers packed and reordered samples as slots. An I-picture in such a slot
             // can be displayed after B-pictures that depend on the preceding GOP. When starting
             // here those pictures are skipped, so advance the first available display rank.
             try .fill(source)
             .emitRank += .decoder.leadingB
-            if .emitRank <= .nextRank do
+            if .emitRank <= .nextRank
+            {
                 break
+            }
 
             // The requested picture needs the preceding GOP's final anchor as well as this I.
             start = .decodeStartRank(start - 1)
@@ -285,25 +336,34 @@ impl Mpeg4Stream
     // Decodes forward until the picture of the current rank is reconstructed.
     private mtd nextDisplaySlot(source: *ByteSource)->u64 fail
     {
-        if .nextRank >= .frames.count do
+        if .nextRank >= .frames.count
+        {
             fail InvalidFormatError{"MPEG-4 stream has no picture at the requested position"}
+        }
 
         // A picture that is not a clean decode point needs everything back to the last one.
-        if not .started or .emitRank > .nextRank do
+        if not .started or .emitRank > .nextRank
+        {
             try .startAtRank(source)
+        }
 
         while true
         {
             // A failed sample may have changed the reference pictures before reporting an error.
             .started = false
             try .fill(source)
-            if not .queued do
+            if not .queued
+            {
                 fail InvalidFormatError{"MPEG-4 stream ends before the picture asked for"}
+            }
+
             .started = true
 
             let at = .earliest()
-            if .emitRank == .nextRank do
+            if .emitRank == .nextRank
+            {
                 return at
+            }
 
             // A picture shown before the one asked for is decoded for what it anchors, not for
             // itself.
@@ -328,10 +388,15 @@ impl Mpeg4Stream
         let sample = try .readSample(source, entry)
         .decoder.beginSample()
         let decoded = try .decoder.nextPicture(sample.bytes)
-        if sample.borrowed do
+        if sample.borrowed
+        {
             try source.skip(entry.size)
-        if not decoded do
+        }
+
+        if not decoded
+        {
             return false
+        }
 
         .decoder.reference().writePlanar(&.queue[0].planes)
         .queue[0].planes.view().convertToRgb(target)

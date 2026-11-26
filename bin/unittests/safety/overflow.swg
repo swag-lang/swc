@@ -83,14 +83,14 @@ func opaqueS64(v: s64)->s64
 
 #test
 {
-    const value = #run wrapCompoundU8(255'u8, 1'u8)
-    #assert(value == 0'u8)
+    const value = #run wrapCompoundU8(255_u8, 1_u8)
+    #assert(value == 0_u8)
 }
 
 #test
 {
-    const value = #run wrapCompoundU8(255'u8, 255'u8)
-    #assert(value == 254'u8)
+    const value = #run wrapCompoundU8(255_u8, 255_u8)
+    #assert(value == 254_u8)
 }
 
 // =============================================
@@ -105,7 +105,7 @@ func opaqueS64(v: s64)->s64
         return a + b     // swc-expected-error {{safety_err_runtime}}
     }
 
-    const value = #run addOverflowS8(127's8, 1's8)
+    const value = #run addOverflowS8(127_s8, 1_s8)
 }
 
 #test
@@ -116,7 +116,7 @@ func opaqueS64(v: s64)->s64
         return a + b     // swc-expected-error {{safety_err_runtime}}
     }
 
-    const value = #run addOverflowS16(32767's16, 1's16)
+    const value = #run addOverflowS16(32767_s16, 1_s16)
 }
 
 #test
@@ -127,7 +127,7 @@ func opaqueS64(v: s64)->s64
         return a + b     // swc-expected-error {{safety_err_runtime}}
     }
 
-    const value = #run addOverflowS32(2147483647's32, 1's32)
+    const value = #run addOverflowS32(2147483647_s32, 1_s32)
 }
 
 #test
@@ -138,7 +138,7 @@ func opaqueS64(v: s64)->s64
         return a + b     // swc-expected-error {{safety_err_runtime}}
     }
 
-    const value = #run addOverflowS64(9223372036854775807's64, 1's64)
+    const value = #run addOverflowS64(9223372036854775807_s64, 1_s64)
 }
 
 // Negative direction: MIN + (-1) underflows
@@ -150,7 +150,7 @@ func opaqueS64(v: s64)->s64
         return a + b     // swc-expected-error {{safety_err_runtime}}
     }
 
-    const value = #run addUnderflowS8(-128's8, -1's8)
+    const value = #run addUnderflowS8(-128_s8, -1_s8)
 }
 
 // =============================================
@@ -165,7 +165,7 @@ func opaqueS64(v: s64)->s64
         return a + b     // swc-expected-error {{safety_err_runtime}}
     }
 
-    const value = #run addOverflowU8(255'u8, 1'u8)
+    const value = #run addOverflowU8(255_u8, 1_u8)
 }
 
 #test
@@ -176,7 +176,7 @@ func opaqueS64(v: s64)->s64
         return a + b     // swc-expected-error {{safety_err_runtime}}
     }
 
-    const value = #run addOverflowU16(65535'u16, 1'u16)
+    const value = #run addOverflowU16(65535_u16, 1_u16)
 }
 
 #test
@@ -187,7 +187,7 @@ func opaqueS64(v: s64)->s64
         return a + b     // swc-expected-error {{safety_err_runtime}}
     }
 
-    const value = #run addOverflowU32(4294967295'u32, 1'u32)
+    const value = #run addOverflowU32(4294967295_u32, 1_u32)
 }
 
 #test
@@ -198,7 +198,7 @@ func opaqueS64(v: s64)->s64
         return a + b     // swc-expected-error {{safety_err_runtime}}
     }
 
-    const value = #run addOverflowU64(18446744073709551615'u64, 1'u64)
+    const value = #run addOverflowU64(18446744073709551615_u64, 1_u64)
 }
 
 // =============================================
@@ -213,7 +213,7 @@ func opaqueS64(v: s64)->s64
         return a - b     // swc-expected-error {{safety_err_runtime}}
     }
 
-    const value = #run subOverflowS8(-128's8, 1's8)
+    const value = #run subOverflowS8(-128_s8, 1_s8)
 }
 
 #test
@@ -224,7 +224,7 @@ func opaqueS64(v: s64)->s64
         return a - b     // swc-expected-error {{safety_err_runtime}}
     }
 
-    const value = #run subOverflowS16(-32768's16, 1's16)
+    const value = #run subOverflowS16(-32768_s16, 1_s16)
 }
 
 #test
@@ -235,7 +235,7 @@ func opaqueS64(v: s64)->s64
         return a - b     // swc-expected-error {{safety_err_runtime}}
     }
 
-    const value = #run subOverflowS32(-2147483648's32, 1's32)
+    const value = #run subOverflowS32(-2147483648_s32, 1_s32)
 }
 
 #test
@@ -246,7 +246,7 @@ func opaqueS64(v: s64)->s64
         return a - b     // swc-expected-error {{safety_err_runtime}}
     }
 
-    const value = #run subOverflowS64(-9223372036854775808's64, 1's64)
+    const value = #run subOverflowS64(-9223372036854775808_s64, 1_s64)
 }
 
 // Positive direction: MAX - (-1) overflows
@@ -258,7 +258,7 @@ func opaqueS64(v: s64)->s64
         return a - b     // swc-expected-error {{safety_err_runtime}}
     }
 
-    const value = #run subOverflowPosS8(127's8, -1's8)
+    const value = #run subOverflowPosS8(127_s8, -1_s8)
 }
 
 // =============================================
@@ -273,7 +273,7 @@ func opaqueS64(v: s64)->s64
         return a - b     // swc-expected-error {{safety_err_runtime}}
     }
 
-    const value = #run subOverflowU8(0'u8, 1'u8)
+    const value = #run subOverflowU8(0_u8, 1_u8)
 }
 
 #test
@@ -284,7 +284,7 @@ func opaqueS64(v: s64)->s64
         return a - b     // swc-expected-error {{safety_err_runtime}}
     }
 
-    const value = #run subOverflowU16(0'u16, 1'u16)
+    const value = #run subOverflowU16(0_u16, 1_u16)
 }
 
 #test
@@ -295,7 +295,7 @@ func opaqueS64(v: s64)->s64
         return a - b     // swc-expected-error {{safety_err_runtime}}
     }
 
-    const value = #run subOverflowU32(0'u32, 1'u32)
+    const value = #run subOverflowU32(0_u32, 1_u32)
 }
 
 #test
@@ -306,7 +306,7 @@ func opaqueS64(v: s64)->s64
         return a - b     // swc-expected-error {{safety_err_runtime}}
     }
 
-    const value = #run subOverflowU64(0'u64, 1'u64)
+    const value = #run subOverflowU64(0_u64, 1_u64)
 }
 
 // =============================================
@@ -321,7 +321,7 @@ func opaqueS64(v: s64)->s64
         return a * b     // swc-expected-error {{safety_err_runtime}}
     }
 
-    const value = #run mulOverflowS8(127's8, 2's8)
+    const value = #run mulOverflowS8(127_s8, 2_s8)
 }
 
 #test
@@ -332,7 +332,7 @@ func opaqueS64(v: s64)->s64
         return a * b     // swc-expected-error {{safety_err_runtime}}
     }
 
-    const value = #run mulOverflowS16(32767's16, 2's16)
+    const value = #run mulOverflowS16(32767_s16, 2_s16)
 }
 
 #test
@@ -343,7 +343,7 @@ func opaqueS64(v: s64)->s64
         return a * b     // swc-expected-error {{safety_err_runtime}}
     }
 
-    const value = #run mulOverflowS32(2147483647's32, 2's32)
+    const value = #run mulOverflowS32(2147483647_s32, 2_s32)
 }
 
 #test
@@ -354,7 +354,7 @@ func opaqueS64(v: s64)->s64
         return a * b     // swc-expected-error {{safety_err_runtime}}
     }
 
-    const value = #run mulOverflowS64(9223372036854775807's64, 2's64)
+    const value = #run mulOverflowS64(9223372036854775807_s64, 2_s64)
 }
 
 // =============================================
@@ -369,7 +369,7 @@ func opaqueS64(v: s64)->s64
         return a * b     // swc-expected-error {{safety_err_runtime}}
     }
 
-    const value = #run mulOverflowU8(128'u8, 2'u8)
+    const value = #run mulOverflowU8(128_u8, 2_u8)
 }
 
 #test
@@ -380,7 +380,7 @@ func opaqueS64(v: s64)->s64
         return a * b     // swc-expected-error {{safety_err_runtime}}
     }
 
-    const value = #run mulOverflowU16(32768'u16, 2'u16)
+    const value = #run mulOverflowU16(32768_u16, 2_u16)
 }
 
 #test
@@ -391,7 +391,7 @@ func opaqueS64(v: s64)->s64
         return a * b     // swc-expected-error {{safety_err_runtime}}
     }
 
-    const value = #run mulOverflowU32(2147483648'u32, 2'u32)
+    const value = #run mulOverflowU32(2147483648_u32, 2_u32)
 }
 
 #test
@@ -402,7 +402,7 @@ func opaqueS64(v: s64)->s64
         return a * b     // swc-expected-error {{safety_err_runtime}}
     }
 
-    const value = #run mulOverflowU64(9223372036854775808'u64, 2'u64)
+    const value = #run mulOverflowU64(9223372036854775808_u64, 2_u64)
 }
 
 // =============================================
@@ -417,7 +417,7 @@ func opaqueS64(v: s64)->s64
         return a / b     // swc-expected-error {{safety_err_runtime}}
     }
 
-    const value = #run divOverflowS8(opaqueS8(-128's8), opaqueS8(-1))
+    const value = #run divOverflowS8(opaqueS8(-128_s8), opaqueS8(-1))
 }
 
 #test
@@ -428,7 +428,7 @@ func opaqueS64(v: s64)->s64
         return a / b     // swc-expected-error {{safety_err_runtime}}
     }
 
-    const value = #run divOverflowS16(opaqueS16(-32768's16), opaqueS16(-1))
+    const value = #run divOverflowS16(opaqueS16(-32768_s16), opaqueS16(-1))
 }
 
 #test
@@ -439,7 +439,7 @@ func opaqueS64(v: s64)->s64
         return a / b     // swc-expected-error {{safety_err_runtime}}
     }
 
-    const value = #run divOverflowS32(opaqueS32(-2147483648's32), opaqueS32(-1))
+    const value = #run divOverflowS32(opaqueS32(-2147483648_s32), opaqueS32(-1))
 }
 
 #test
@@ -450,7 +450,7 @@ func opaqueS64(v: s64)->s64
         return a / b     // swc-expected-error {{safety_err_runtime}}
     }
 
-    const value = #run divOverflowS64(opaqueS64(-9223372036854775808's64), opaqueS64(-1))
+    const value = #run divOverflowS64(opaqueS64(-9223372036854775808_s64), opaqueS64(-1))
 }
 
 // =============================================
@@ -465,7 +465,7 @@ func opaqueS64(v: s64)->s64
         return a % b     // swc-expected-error {{safety_err_runtime}}
     }
 
-    const value = #run modOverflowS8(opaqueS8(-128's8), opaqueS8(-1))
+    const value = #run modOverflowS8(opaqueS8(-128_s8), opaqueS8(-1))
 }
 
 #test
@@ -476,7 +476,7 @@ func opaqueS64(v: s64)->s64
         return a % b     // swc-expected-error {{safety_err_runtime}}
     }
 
-    const value = #run modOverflowS16(opaqueS16(-32768's16), opaqueS16(-1))
+    const value = #run modOverflowS16(opaqueS16(-32768_s16), opaqueS16(-1))
 }
 
 #test
@@ -487,7 +487,7 @@ func opaqueS64(v: s64)->s64
         return a % b     // swc-expected-error {{safety_err_runtime}}
     }
 
-    const value = #run modOverflowS32(opaqueS32(-2147483648's32), opaqueS32(-1))
+    const value = #run modOverflowS32(opaqueS32(-2147483648_s32), opaqueS32(-1))
 }
 
 #test
@@ -498,7 +498,7 @@ func opaqueS64(v: s64)->s64
         return a % b     // swc-expected-error {{safety_err_runtime}}
     }
 
-    const value = #run modOverflowS64(opaqueS64(-9223372036854775808's64), opaqueS64(-1))
+    const value = #run modOverflowS64(opaqueS64(-9223372036854775808_s64), opaqueS64(-1))
 }
 
 // =============================================
@@ -513,7 +513,7 @@ func opaqueS64(v: s64)->s64
         return -v     // swc-expected-error {{safety_err_runtime}}
     }
 
-    const value = #run negOverflowS8(-128's8)
+    const value = #run negOverflowS8(-128_s8)
 }
 
 #test
@@ -524,7 +524,7 @@ func opaqueS64(v: s64)->s64
         return -v     // swc-expected-error {{safety_err_runtime}}
     }
 
-    const value = #run negOverflowS16(-32768's16)
+    const value = #run negOverflowS16(-32768_s16)
 }
 
 #test
@@ -535,7 +535,7 @@ func opaqueS64(v: s64)->s64
         return -v     // swc-expected-error {{safety_err_runtime}}
     }
 
-    const value = #run negOverflowS32(-2147483648's32)
+    const value = #run negOverflowS32(-2147483648_s32)
 }
 
 #test
@@ -546,7 +546,7 @@ func opaqueS64(v: s64)->s64
         return -v     // swc-expected-error {{safety_err_runtime}}
     }
 
-    const value = #run negOverflowS64(-9223372036854775808's64)
+    const value = #run negOverflowS64(-9223372036854775808_s64)
 }
 
 // =============================================
@@ -561,8 +561,8 @@ func opaqueS64(v: s64)->s64
         return a << count
     }
 
-    const value = #run shlTruncatesS8(64's8, 1's8)
-    Swag.require(value == -128's8)
+    const value = #run shlTruncatesS8(64_s8, 1_s8)
+    Swag.require(value == -128_s8)
 }
 
 #test
@@ -573,8 +573,8 @@ func opaqueS64(v: s64)->s64
         return a << count
     }
 
-    const value = #run shlTruncatesS16(16384's16, 1's16)
-    Swag.require(value == -32768's16)
+    const value = #run shlTruncatesS16(16384_s16, 1_s16)
+    Swag.require(value == -32768_s16)
 }
 
 #test
@@ -585,8 +585,8 @@ func opaqueS64(v: s64)->s64
         return a << count
     }
 
-    const value = #run shlTruncatesS32(1073741824's32, 1's32)
-    Swag.require(value == -2147483648's32)
+    const value = #run shlTruncatesS32(1073741824_s32, 1_s32)
+    Swag.require(value == -2147483648_s32)
 }
 
 #test
@@ -597,8 +597,8 @@ func opaqueS64(v: s64)->s64
         return a << count
     }
 
-    const value = #run shlTruncatesS64(4611686018427387904's64, 1's64)
-    Swag.require(value == -9223372036854775808's64)
+    const value = #run shlTruncatesS64(4611686018427387904_s64, 1_s64)
+    Swag.require(value == -9223372036854775808_s64)
 }
 
 // =============================================
@@ -613,8 +613,8 @@ func opaqueS64(v: s64)->s64
         return a << count
     }
 
-    const value = #run shlTruncatesU8(128'u8, 1'u8)
-    Swag.require(value == 0'u8)
+    const value = #run shlTruncatesU8(128_u8, 1_u8)
+    Swag.require(value == 0_u8)
 }
 
 #test
@@ -625,8 +625,8 @@ func opaqueS64(v: s64)->s64
         return a << count
     }
 
-    const value = #run shlTruncatesU16(32768'u16, 1'u16)
-    Swag.require(value == 0'u16)
+    const value = #run shlTruncatesU16(32768_u16, 1_u16)
+    Swag.require(value == 0_u16)
 }
 
 #test
@@ -637,8 +637,8 @@ func opaqueS64(v: s64)->s64
         return a << count
     }
 
-    const value = #run shlTruncatesU32(2147483648'u32, 1'u32)
-    Swag.require(value == 0'u32)
+    const value = #run shlTruncatesU32(2147483648_u32, 1_u32)
+    Swag.require(value == 0_u32)
 }
 
 #test
@@ -649,8 +649,8 @@ func opaqueS64(v: s64)->s64
         return a << count
     }
 
-    const value = #run shlTruncatesU64(9223372036854775808'u64, 1'u64)
-    Swag.require(value == 0'u64)
+    const value = #run shlTruncatesU64(9223372036854775808_u64, 1_u64)
+    Swag.require(value == 0_u64)
 }
 
 // Shift left with an amount equal to the bit width
@@ -662,7 +662,7 @@ func opaqueS64(v: s64)->s64
         return a << count     // swc-expected-error {{safety_err_runtime}}
     }
 
-    const value = #run shlLargeCountS8(1's8, 8's8)
+    const value = #run shlLargeCountS8(1_s8, 8_s8)
 }
 
 // The amount is checked whatever the value, a zero included
@@ -674,7 +674,7 @@ func opaqueS64(v: s64)->s64
         return a << count     // swc-expected-error {{safety_err_runtime}}
     }
 
-    const value = #run shlLargeCountZero(0'u8, 8'u8)
+    const value = #run shlLargeCountZero(0_u8, 8_u8)
 }
 
 // Right shift with an amount above the bit width
@@ -686,7 +686,7 @@ func opaqueS64(v: s64)->s64
         return a >> count     // swc-expected-error {{safety_err_runtime}}
     }
 
-    const value = #run shrLargeCountU32(1'u32, 40'u64)
+    const value = #run shrLargeCountU32(1_u32, 40_u64)
 }
 
 // An amount just below the bit width is valid
@@ -698,8 +698,8 @@ func opaqueS64(v: s64)->s64
         return a << count
     }
 
-    const value = #run shlMaxCountU32(1'u32, 31'u32)
-    Swag.require(value == 0x80000000'u32)
+    const value = #run shlMaxCountU32(1_u32, 31_u32)
+    Swag.require(value == 0x80000000_u32)
 }
 
 // =============================================
@@ -714,7 +714,7 @@ func opaqueS64(v: s64)->s64
         return a << count     // swc-expected-error {{safety_err_runtime}}
     }
 
-    const value = #run shlNegCountS8(1's8, -1's8)
+    const value = #run shlNegCountS8(1_s8, -1_s8)
 }
 
 #test
@@ -725,7 +725,7 @@ func opaqueS64(v: s64)->s64
         return a << count     // swc-expected-error {{safety_err_runtime}}
     }
 
-    const value = #run shlNegCountS16(1's16, -1's16)
+    const value = #run shlNegCountS16(1_s16, -1_s16)
 }
 
 #test
@@ -736,7 +736,7 @@ func opaqueS64(v: s64)->s64
         return a << count     // swc-expected-error {{safety_err_runtime}}
     }
 
-    const value = #run shlNegCountS32(1's32, -1's32)
+    const value = #run shlNegCountS32(1_s32, -1_s32)
 }
 
 #test
@@ -747,7 +747,7 @@ func opaqueS64(v: s64)->s64
         return a << count     // swc-expected-error {{safety_err_runtime}}
     }
 
-    const value = #run shlNegCountS64(1's64, -1's64)
+    const value = #run shlNegCountS64(1_s64, -1_s64)
 }
 
 // =============================================
@@ -762,7 +762,7 @@ func opaqueS64(v: s64)->s64
         return a >> count     // swc-expected-error {{safety_err_runtime}}
     }
 
-    const value = #run shrNegCountS8(42's8, -1's8)
+    const value = #run shrNegCountS8(42_s8, -1_s8)
 }
 
 #test
@@ -773,7 +773,7 @@ func opaqueS64(v: s64)->s64
         return a >> count     // swc-expected-error {{safety_err_runtime}}
     }
 
-    const value = #run shrNegCountS16(42's16, -1's16)
+    const value = #run shrNegCountS16(42_s16, -1_s16)
 }
 
 #test
@@ -784,7 +784,7 @@ func opaqueS64(v: s64)->s64
         return a >> count     // swc-expected-error {{safety_err_runtime}}
     }
 
-    const value = #run shrNegCountS32(42's32, -1's32)
+    const value = #run shrNegCountS32(42_s32, -1_s32)
 }
 
 #test
@@ -795,7 +795,7 @@ func opaqueS64(v: s64)->s64
         return a >> count     // swc-expected-error {{safety_err_runtime}}
     }
 
-    const value = #run shrNegCountS64(42's64, -1's64)
+    const value = #run shrNegCountS64(42_s64, -1_s64)
 }
 
 // The count's signedness is independent from the shifted value's signedness.
@@ -807,7 +807,7 @@ func opaqueS64(v: s64)->s64
         return a << count     // swc-expected-error {{safety_err_runtime}}
     }
 
-    const value = #run shlUnsignedValueNegCount(1'u8, -1's64)
+    const value = #run shlUnsignedValueNegCount(1_u8, -1_s64)
 }
 
 #test
@@ -818,7 +818,7 @@ func opaqueS64(v: s64)->s64
         return a >> count     // swc-expected-error {{safety_err_runtime}}
     }
 
-    const value = #run shrUnsignedValueNegCount(1'u8, -1's64)
+    const value = #run shrUnsignedValueNegCount(1_u8, -1_s64)
 }
 
 #test
@@ -829,7 +829,7 @@ func opaqueS64(v: s64)->s64
         return a >> count     // swc-expected-error {{safety_err_runtime}}
     }
 
-    const value = #run shrSignedValueWideCount(-128's8, 0xFFFF_FFFF_FFFF_FFFF'u64)
+    const value = #run shrSignedValueWideCount(-128_s8, 0xFFFF_FFFF_FFFF_FFFF_u64)
 }
 
 #test
@@ -979,7 +979,7 @@ func opaqueS64(v: s64)->s64
     }
 
     const value = #run shlAssignTruncatesS8()
-    Swag.require(value == -128's8)
+    Swag.require(value == -128_s8)
 }
 
 #test
@@ -993,7 +993,7 @@ func opaqueS64(v: s64)->s64
     }
 
     const value = #run shlAssignTruncatesU8()
-    Swag.require(value == 0'u8)
+    Swag.require(value == 0_u8)
 }
 
 #test
@@ -1034,7 +1034,7 @@ func opaqueS64(v: s64)->s64
         return cast(s8, v)     // swc-expected-error {{safety_err_runtime}}
     }
 
-    const value = #run castS16ToS8(128's16)
+    const value = #run castS16ToS8(128_s16)
 }
 
 #test
@@ -1045,7 +1045,7 @@ func opaqueS64(v: s64)->s64
         return cast(s8, v)     // swc-expected-error {{safety_err_runtime}}
     }
 
-    const value = #run castS16ToS8Neg(-129's16)
+    const value = #run castS16ToS8Neg(-129_s16)
 }
 
 #test
@@ -1056,7 +1056,7 @@ func opaqueS64(v: s64)->s64
         return cast(s16, v)     // swc-expected-error {{safety_err_runtime}}
     }
 
-    const value = #run castS32ToS16(32768's32)
+    const value = #run castS32ToS16(32768_s32)
 }
 
 #test
@@ -1067,7 +1067,7 @@ func opaqueS64(v: s64)->s64
         return cast(s32, v)     // swc-expected-error {{safety_err_runtime}}
     }
 
-    const value = #run castS64ToS32(2147483648's64)
+    const value = #run castS64ToS32(2147483648_s64)
 }
 
 // =============================================
@@ -1082,7 +1082,7 @@ func opaqueS64(v: s64)->s64
         return cast(u8, v)     // swc-expected-error {{safety_err_runtime}}
     }
 
-    const value = #run castU16ToU8(256'u16)
+    const value = #run castU16ToU8(256_u16)
 }
 
 #test
@@ -1093,7 +1093,7 @@ func opaqueS64(v: s64)->s64
         return cast(u16, v)     // swc-expected-error {{safety_err_runtime}}
     }
 
-    const value = #run castU32ToU16(65536'u32)
+    const value = #run castU32ToU16(65536_u32)
 }
 
 #test
@@ -1104,7 +1104,7 @@ func opaqueS64(v: s64)->s64
         return cast(u32, v)     // swc-expected-error {{safety_err_runtime}}
     }
 
-    const value = #run castU64ToU32(4294967296'u64)
+    const value = #run castU64ToU32(4294967296_u64)
 }
 
 // =============================================
@@ -1119,7 +1119,7 @@ func opaqueS64(v: s64)->s64
         return cast(u8, v)     // swc-expected-error {{safety_err_runtime}}
     }
 
-    const value = #run castS8ToU8(-1's8)
+    const value = #run castS8ToU8(-1_s8)
 }
 
 #test
@@ -1130,7 +1130,7 @@ func opaqueS64(v: s64)->s64
         return cast(u16, v)     // swc-expected-error {{safety_err_runtime}}
     }
 
-    const value = #run castS16ToU16(-1's16)
+    const value = #run castS16ToU16(-1_s16)
 }
 
 #test
@@ -1141,7 +1141,7 @@ func opaqueS64(v: s64)->s64
         return cast(u32, v)     // swc-expected-error {{safety_err_runtime}}
     }
 
-    const value = #run castS32ToU32(-1's32)
+    const value = #run castS32ToU32(-1_s32)
 }
 
 #test
@@ -1152,7 +1152,7 @@ func opaqueS64(v: s64)->s64
         return cast(u64, v)     // swc-expected-error {{safety_err_runtime}}
     }
 
-    const value = #run castS64ToU64(-1's64)
+    const value = #run castS64ToU64(-1_s64)
 }
 
 // =============================================
@@ -1167,7 +1167,7 @@ func opaqueS64(v: s64)->s64
         return cast(s8, v)     // swc-expected-error {{safety_err_runtime}}
     }
 
-    const value = #run castU8ToS8(128'u8)
+    const value = #run castU8ToS8(128_u8)
 }
 
 #test
@@ -1178,7 +1178,7 @@ func opaqueS64(v: s64)->s64
         return cast(s16, v)     // swc-expected-error {{safety_err_runtime}}
     }
 
-    const value = #run castU16ToS16(32768'u16)
+    const value = #run castU16ToS16(32768_u16)
 }
 
 #test
@@ -1189,7 +1189,7 @@ func opaqueS64(v: s64)->s64
         return cast(s32, v)     // swc-expected-error {{safety_err_runtime}}
     }
 
-    const value = #run castU32ToS32(2147483648'u32)
+    const value = #run castU32ToS32(2147483648_u32)
 }
 
 #test
@@ -1200,7 +1200,7 @@ func opaqueS64(v: s64)->s64
         return cast(s64, v)     // swc-expected-error {{safety_err_runtime}}
     }
 
-    const value = #run castU64ToS64(9223372036854775808'u64)
+    const value = #run castU64ToS64(9223372036854775808_u64)
 }
 
 // =============================================
@@ -1333,7 +1333,7 @@ func opaqueS64(v: s64)->s64
         return cast(s8, v)     // swc-expected-error {{safety_err_runtime}}
     }
 
-    const value = #run castF32ToS8(128.0'f32)
+    const value = #run castF32ToS8(128.0_f32)
 }
 
 #test
@@ -1344,7 +1344,7 @@ func opaqueS64(v: s64)->s64
         return cast(u8, v)     // swc-expected-error {{safety_err_runtime}}
     }
 
-    const value = #run castF32ToU8(256.0'f32)
+    const value = #run castF32ToU8(256.0_f32)
 }
 
 #test
@@ -1355,7 +1355,7 @@ func opaqueS64(v: s64)->s64
         return cast(s16, v)     // swc-expected-error {{safety_err_runtime}}
     }
 
-    const value = #run castF32ToS16(32768.0'f32)
+    const value = #run castF32ToS16(32768.0_f32)
 }
 
 #test
@@ -1366,7 +1366,7 @@ func opaqueS64(v: s64)->s64
         return cast(u16, v)     // swc-expected-error {{safety_err_runtime}}
     }
 
-    const value = #run castF32ToU16(65536.0'f32)
+    const value = #run castF32ToU16(65536.0_f32)
 }
 
 #test
@@ -1377,7 +1377,7 @@ func opaqueS64(v: s64)->s64
         return cast(s32, v)     // swc-expected-error {{safety_err_runtime}}
     }
 
-    const value = #run castF32ToS32(2147483648.0'f32)
+    const value = #run castF32ToS32(2147483648.0_f32)
 }
 
 #test
@@ -1388,7 +1388,7 @@ func opaqueS64(v: s64)->s64
         return cast(u32, v)     // swc-expected-error {{safety_err_runtime}}
     }
 
-    const value = #run castF32ToU32(4294967296.0'f32)
+    const value = #run castF32ToU32(4294967296.0_f32)
 }
 
 // =============================================
@@ -1403,8 +1403,8 @@ func opaqueS64(v: s64)->s64
         return a + #wrap b
     }
 
-    const value = #run addWrapU8(255'u8, 1'u8)
-    Swag.require(value == 0'u8)
+    const value = #run addWrapU8(255_u8, 1_u8)
+    Swag.require(value == 0_u8)
 }
 
 #test
@@ -1415,8 +1415,8 @@ func opaqueS64(v: s64)->s64
         return a - #wrap b
     }
 
-    const value = #run subWrapU8(0'u8, 1'u8)
-    Swag.require(value == 255'u8)
+    const value = #run subWrapU8(0_u8, 1_u8)
+    Swag.require(value == 255_u8)
 }
 
 #test
@@ -1427,8 +1427,8 @@ func opaqueS64(v: s64)->s64
         return a * #wrap b
     }
 
-    const value = #run mulWrapU8(128'u8, 2'u8)
-    Swag.require(value == 0'u8)
+    const value = #run mulWrapU8(128_u8, 2_u8)
+    Swag.require(value == 0_u8)
 }
 
 #test
@@ -1439,8 +1439,8 @@ func opaqueS64(v: s64)->s64
         return a << #wrap count
     }
 
-    const value = #run shlWrapU8(0x81'u8, 7'u8)
-    Swag.require(value == 0x80'u8)
+    const value = #run shlWrapU8(0x81_u8, 7_u8)
+    Swag.require(value == 0x80_u8)
 }
 
 // #wrap is redundant on << and a negative count still errors.
@@ -1452,7 +1452,7 @@ func opaqueS64(v: s64)->s64
         return a << #wrap count     // swc-expected-error {{safety_err_runtime}}
     }
 
-    const value = #run shlWrapNegCount(1's8, -1's8)
+    const value = #run shlWrapNegCount(1_s8, -1_s8)
 }
 
 // #wrap on << keeps the ordinary truncating result.
@@ -1464,8 +1464,8 @@ func opaqueS64(v: s64)->s64
         return a << #wrap count
     }
 
-    const value = #run shlWrapBitLoss(64's8, 1's8)
-    Swag.require(value == -128's8)
+    const value = #run shlWrapBitLoss(64_s8, 1_s8)
+    Swag.require(value == -128_s8)
 }
 
 // #wrap on <<= keeps the ordinary truncating result.
@@ -1480,7 +1480,7 @@ func opaqueS64(v: s64)->s64
     }
 
     const value = #run shlAssignWrapBitLoss()
-    Swag.require(value == 0'u8)
+    Swag.require(value == 0_u8)
 }
 
 #test
@@ -1491,8 +1491,8 @@ func opaqueS64(v: s64)->s64
         return cast #wrap(u8, v)
     }
 
-    const value = #run wrapCastU16ToU8(257'u16)
-    Swag.require(value == 1'u8)
+    const value = #run wrapCastU16ToU8(257_u16)
+    Swag.require(value == 1_u8)
 }
 
 #test
@@ -1503,8 +1503,8 @@ func opaqueS64(v: s64)->s64
         return cast #wrap(u8, v)
     }
 
-    const value = #run wrapCastS8ToU8(-1's8)
-    Swag.require(value == 255'u8)
+    const value = #run wrapCastS8ToU8(-1_s8)
+    Swag.require(value == 255_u8)
 }
 
 // =============================================
@@ -1519,7 +1519,7 @@ func opaqueS64(v: s64)->s64
         return a + #prom b
     }
 
-    const value = #run addPromS8(127's8, 1's8)
+    const value = #run addPromS8(127_s8, 1_s8)
     Swag.require(value == 128)
 }
 
@@ -1531,7 +1531,7 @@ func opaqueS64(v: s64)->s64
         return a - #prom b
     }
 
-    const value = #run subPromS8(-128's8, 1's8)
+    const value = #run subPromS8(-128_s8, 1_s8)
     Swag.require(value == -129)
 }
 
@@ -1543,6 +1543,6 @@ func opaqueS64(v: s64)->s64
         return a * #prom b
     }
 
-    const value = #run mulPromS8(127's8, 2's8)
+    const value = #run mulPromS8(127_s8, 2_s8)
     Swag.require(value == 254)
 }

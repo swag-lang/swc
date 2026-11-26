@@ -19,8 +19,10 @@ struct(T, N: s32) FixedNumbers
 struct(T, Rows: s32, Cols: s32) DenseMatrix
     where
     {
-        if Rows > 0 and Cols > 0 and (T == f32 or T == f64) do
+        if Rows > 0 and Cols > 0 and (T == f32 or T == f64)
+        {
             return true
+        }
         return false
     }
 {
@@ -50,8 +52,8 @@ struct(T, N: s32 = 4) SmallVector
 struct(T) FloatSegment
     where T == f32 or T == f64
 {
-    start: FloatPoint'T
-    stop:  FloatPoint'T
+    start: FloatPoint!{T}
+    stop:  FloatPoint!{T}
 }
 
 struct(T, Rows: s32, Cols: s32 = Rows) SquareMatrix
@@ -74,8 +76,10 @@ struct(T, Min: s32, Max: s32) BoundedRange
 struct(T, Count: s32) FloatHistory
     where
     {
-        if Count >= 2 and (T == f32 or T == f64) do
+        if Count >= 2 and (T == f32 or T == f64)
+        {
             return true
+        }
         return false
     }
 {
@@ -105,39 +109,39 @@ struct(T) BadConstExpr
 
 func semaTest001()
 {
-    let point: FloatPoint'f64 = {x: 1.0, y: 2.0}
+    let point: FloatPoint!{f64} = {x: 1.0, y: 2.0}
     #assert(#typeof(point.x) == f64)
 
-    let fixed: FixedNumbers'(s64, 3) = {values: [10, 20, 30]}
+    let fixed: FixedNumbers!{s64, 3} = {values: [10, 20, 30]}
     #assert(#typeof(fixed.values[0]) == s64)
 
-    let defaultBox:         DefaultFloatBox'f64 = {value: 4.0}
-    let inferredDefaultBox: DefaultFloatBox     = {value: 4.0}
+    let defaultBox:         DefaultFloatBox!{f64} = {value: 4.0}
+    let inferredDefaultBox: DefaultFloatBox       = {value: 4.0}
     #assert(#typeof(defaultBox.value) == Real64)
     #assert(inferredDefaultBox.value == 4.0)
 
-    let twin: TwinValue's32 = {first: 1, second: 2}
+    let twin: TwinValue!{s32} = {first: 1, second: 2}
     #assert(#typeof(twin.second) == s32)
 
-    let compact: SmallVector'(u16, 2) = {values: [10'u16, 20]}
-    let small:   SmallVector'u8       = {values: [1'u8, 2, 3, 4]}
+    let compact: SmallVector!{u16, 2} = {values: [10_u16, 20]}
+    let small:   SmallVector!{u8}     = {values: [1_u8, 2, 3, 4]}
     #assert(#typeof(compact.values) == #type [2] u16)
     #assert(#typeof(small.values) == #type [4] u8)
 
-    let segment: FloatSegment'f32 = {start: {x: 0.0, y: 1.0}, stop: {x: 2.0, y: 3.0}}
+    let segment: FloatSegment!{f32} = {start: {x: 0.0, y: 1.0}, stop: {x: 2.0, y: 3.0}}
     #assert(#typeof(segment.start.x) == f32)
     #assert(#typeof(segment.stop.y) == f32)
 
-    var matrix: DenseMatrix'(f32, 2, 3)
+    var matrix: DenseMatrix!{f32, 2, 3}
     #assert(#typeof(matrix.data[0]) == f32)
 
-    let square: SquareMatrix'(f32, 2) = {data: [1.0'f32, 2.0, 3.0, 4.0]}
+    let square: SquareMatrix!{f32, 2} = {data: [1.0_f32, 2.0, 3.0, 4.0]}
     #assert(#typeof(square.data) == #type [4] f32)
 
-    let safe: BoundedRange'(f32, 0, 100) = {min: 10.0, max: 90.0}
+    let safe: BoundedRange!{f32, 0, 100} = {min: 10.0, max: 90.0}
     #assert(#typeof(safe.min) == f32)
     #assert(#typeof(safe.max) == f32)
 
-    let history: FloatHistory'(f64, 3) = {values: [1.0'f64, 2.0, 3.0]}
+    let history: FloatHistory!{f64, 3} = {values: [1.0_f64, 2.0, 3.0]}
     #assert(#typeof(history.values[1]) == f64)
 }

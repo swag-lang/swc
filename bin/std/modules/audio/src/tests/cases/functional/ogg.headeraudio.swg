@@ -11,18 +11,27 @@ private struct OggTestPage
 
 private func oggTestPage(source: const [..] u8, wantedIndex: u64)->OggTestPage fail
 {
-    var offset = 0'u64
-    var index  = 0'u64
+    var offset = 0_u64
+    var index  = 0_u64
     for
     {
-        if offset >= source.count do
+        if offset >= source.count
+        {
             break
+        }
+
         let header = try Ogg.readPageHeader(source, offset)
         let bytes  = header.totalBytes()
-        if bytes > source.count - offset do
+        if bytes > source.count - offset
+        {
             fail InvalidFormatError{"Ogg test page runs past its fixture"}
-        if index == wantedIndex do
+        }
+
+        if index == wantedIndex
+        {
             return OggTestPage{offset, bytes, header}
+        }
+
         offset += bytes
         index  += 1
     }
@@ -30,67 +39,95 @@ private func oggTestPage(source: const [..] u8, wantedIndex: u64)->OggTestPage f
     fail InvalidFormatError{"Ogg test fixture has too few pages"}
 }
 
-private func oggRefreshTestChecksum(page: *Array'u8)
+private func oggRefreshTestChecksum(page: *Array!{u8})
 {
-    for index in 4 do
+    for index in 4
+    {
         page[22 + index] = 0
-    let checksum = Ogg.pageChecksum(page.toSlice())
-    for index in 4 do
-        page[22 + index] = cast(u8, (checksum >> cast(u32, index * 8)) & 0xFF'u32)
+    }
+
+    let checksum = Ogg.pageChecksum(page.toSlice(), Ogg.buildChecksumTable())
+    for index in 4
+    {
+        page[22 + index] = cast(u8, (checksum >> cast(u32, index * 8)) & 0xFF_u32)
+    }
 }
 
 // Moves the first audio page's packets onto the page that ends the codec headers.
 private func oggMoveAudioPageAfterHeaders(source: const [..] u8,
                                           headerPageIndex,
-                                          audioPageIndex: u64)->Array'u8 fail
+                                          audioPageIndex: u64)->Array!{u8} fail
 {
-    if audioPageIndex <= headerPageIndex do
+    if audioPageIndex <= headerPageIndex
+    {
         fail BadParameterError{"Ogg test audio page must follow its header page"}
+    }
+
     let headerPage = try oggTestPage(source, headerPageIndex)
     let audioPage  = try oggTestPage(source, audioPageIndex)
-    if headerPage.header.serial != audioPage.header.serial do
+    if headerPage.header.serial != audioPage.header.serial
+    {
         fail InvalidFormatError{"Ogg test pages must belong to the same stream"}
-    let segmentCount = headerPage.header.segments + audioPage.header.segments
-    if segmentCount > 255 do
-        fail InvalidFormatError{"Ogg test page exceeds its segment table"}
+    }
 
-    var merged: Array'u8
+    let segmentCount = headerPage.header.segments + audioPage.header.segments
+    if segmentCount > 255
+    {
+        fail InvalidFormatError{"Ogg test page exceeds its segment table"}
+    }
+
+    var merged: Array!{u8}
     merged.add(source[headerPage.offset until headerPage.offset + Ogg.PageHeaderSize])
     merged[26] = cast(u8, segmentCount)
-    for index in 8 do
-        merged[6 + index] = cast(u8, (audioPage.header.granule >> cast(u32, index * 8)) & 0xFF'u64)
-    for index in headerPage.header.segments do
+    for index in 8
+    {
+        merged[6 + index] = cast(u8, (audioPage.header.granule >> cast(u32, index * 8)) & 0xFF_u64)
+    }
+
+    for index in headerPage.header.segments
+    {
         merged.add(headerPage.header.lacing[index])
-    for index in audioPage.header.segments do
+    }
+
+    for index in audioPage.header.segments
+    {
         merged.add(audioPage.header.lacing[index])
+    }
+
     merged.add(source[headerPage.offset + headerPage.header.headerBytes until
                       headerPage.offset + headerPage.bytes])
     merged.add(source[audioPage.offset + audioPage.header.headerBytes until
                       audioPage.offset + audioPage.bytes])
     oggRefreshTestChecksum(&merged)
 
-    var result: Array'u8
-    var offset = 0'u64
-    var index  = 0'u64
+    var result: Array!{u8}
+    var offset = 0_u64
+    var index  = 0_u64
     for
     {
-        if offset >= source.count do
+        if offset >= source.count
+        {
             break
+        }
+
         let header = try Ogg.readPageHeader(source, offset)
         let bytes  = header.totalBytes()
         if index == headerPageIndex
         {
             result.add(merged.toSlice())
         }
-        elif index != audioPageIndex
+        else if index != audioPageIndex
         {
-            var page: Array'u8
+            var page: Array!{u8}
             page.add(source[offset until offset + bytes])
             if index > audioPageIndex
             {
                 let sequence = header.sequence - 1
-                for part in 4 do
-                    page[18 + part] = cast(u8, (sequence >> cast(u32, part * 8)) & 0xFF'u32)
+                for part in 4
+                {
+                    page[18 + part] = cast(u8, (sequence >> cast(u32, part * 8)) & 0xFF_u32)
+                }
+
                 oggRefreshTestChecksum(&page)
             }
 
@@ -105,15 +142,18 @@ private func oggMoveAudioPageAfterHeaders(source: const [..] u8,
 }
 
 // Sets an impossible continuation bit on a later page and keeps that page's CRC valid.
-private func oggSetUnexpectedContinuation(source: const [..] u8)->Array'u8 fail
+private func oggSetUnexpectedContinuation(source: const [..] u8)->Array!{u8} fail
 {
     var previous: OggTestPage
     var hasPrevious = false
-    var offset      = 0'u64
+    var offset      = 0_u64
     for
     {
-        if offset >= source.count do
+        if offset >= source.count
+        {
             break
+        }
+
         let header = try Ogg.readPageHeader(source, offset)
         let page   = OggTestPage{offset, header.totalBytes(), header}
         if hasPrevious and
@@ -125,7 +165,7 @@ private func oggSetUnexpectedContinuation(source: const [..] u8)->Array'u8 fail
            previous.header.segments and
            previous.header.lacing[previous.header.segments - 1] < 255
         {
-            var changedPage: Array'u8
+            var changedPage: Array!{u8}
             changedPage.add(source[offset until offset + page.bytes])
             changedPage[5] |= Ogg.ContinuedPacket
             oggRefreshTestChecksum(&changedPage)
@@ -146,35 +186,45 @@ private func oggSetUnexpectedContinuation(source: const [..] u8)->Array'u8 fail
 }
 
 // Skips a page sequence number between the first two pages of the sound stream.
-private func oggSetHeaderSequenceGap(source: const [..] u8)->Array'u8 fail
+private func oggSetHeaderSequenceGap(source: const [..] u8)->Array!{u8} fail
 {
-    var serial    = 0'u32
+    var serial    = 0_u32
     var hasStream = false
-    var offset    = 0'u64
+    var offset    = 0_u64
     for
     {
-        if offset >= source.count do
+        if offset >= source.count
+        {
             break
+        }
+
         let header = try Ogg.readPageHeader(source, offset)
         let bytes  = header.totalBytes()
-        if bytes > source.count - offset do
+        if bytes > source.count - offset
+        {
             fail InvalidFormatError{"Ogg test page runs past its fixture"}
+        }
 
         if not hasStream and (header.flags & Ogg.FirstPage) != 0
         {
             serial    = header.serial
             hasStream = true
         }
-        elif hasStream and header.serial == serial
+        else if hasStream and header.serial == serial
         {
-            if header.sequence > Swag.U32.Max - 2 do
+            if header.sequence > Swag.U32.Max - 2
+            {
                 fail InvalidFormatError{"Ogg test page sequence cannot carry a gap"}
+            }
 
-            var changedPage: Array'u8
+            var changedPage: Array!{u8}
             changedPage.add(source[offset until offset + bytes])
             let sequence = header.sequence + 2
-            for part in 4 do
-                changedPage[18 + part] = cast(u8, (sequence >> cast(u32, part * 8)) & 0xFF'u32)
+            for part in 4
+            {
+                changedPage[18 + part] = cast(u8, (sequence >> cast(u32, part * 8)) & 0xFF_u32)
+            }
+
             oggRefreshTestChecksum(&changedPage)
 
             var result: #returntype
@@ -191,20 +241,25 @@ private func oggSetHeaderSequenceGap(source: const [..] u8)->Array'u8 fail
 }
 
 // Claims a header packet continues even though the preceding header page completed it.
-private func oggSetUnexpectedHeaderContinuation(source: const [..] u8)->Array'u8 fail
+private func oggSetUnexpectedHeaderContinuation(source: const [..] u8)->Array!{u8} fail
 {
-    var serial    = 0'u32
+    var serial    = 0_u32
     var hasStream = false
     var previous: OggTestPage
-    var offset    = 0'u64
+    var offset    = 0_u64
     for
     {
-        if offset >= source.count do
+        if offset >= source.count
+        {
             break
+        }
+
         let header = try Ogg.readPageHeader(source, offset)
         let bytes  = header.totalBytes()
-        if bytes > source.count - offset do
+        if bytes > source.count - offset
+        {
             fail InvalidFormatError{"Ogg test page runs past its fixture"}
+        }
 
         if not hasStream and (header.flags & Ogg.FirstPage) != 0
         {
@@ -212,14 +267,19 @@ private func oggSetUnexpectedHeaderContinuation(source: const [..] u8)->Array'u8
             hasStream = true
             previous  = OggTestPage{offset, bytes, header}
         }
-        elif hasStream and header.serial == serial
+        else if hasStream and header.serial == serial
         {
-            if not previous.header.segments or previous.header.lacing[previous.header.segments - 1] == 255 do
+            if not previous.header.segments or previous.header.lacing[previous.header.segments - 1] == 255
+            {
                 fail InvalidFormatError{"Ogg first header page does not complete its last packet"}
-            if (header.flags & Ogg.ContinuedPacket) != 0 do
-                fail InvalidFormatError{"Ogg second header page already continues a packet"}
+            }
 
-            var changedPage: Array'u8
+            if (header.flags & Ogg.ContinuedPacket) != 0
+            {
+                fail InvalidFormatError{"Ogg second header page already continues a packet"}
+            }
+
+            var changedPage: Array!{u8}
             changedPage.add(source[offset until offset + bytes])
             changedPage[5] |= Ogg.ContinuedPacket
             oggRefreshTestChecksum(&changedPage)
@@ -231,15 +291,18 @@ private func oggSetUnexpectedHeaderContinuation(source: const [..] u8)->Array'u8
             return result
         }
 
-        if hasStream and header.serial == serial do
+        if hasStream and header.serial == serial
+        {
             previous = OggTestPage{offset, bytes, header}
+        }
+
         offset += bytes
     }
 
     fail InvalidFormatError{"Ogg fixture has no second page of its sound stream"}
 }
 
-private func oggDecodePcm16(sound: const *SoundFile)->Array's16 fail
+private func oggDecodePcm16(sound: const *SoundFile)->Array!{s16} fail
 {
     var result: #returntype
     try sound.decodePcm16(func|result = &result|(samples: const [..] s16)->bool
@@ -261,8 +324,8 @@ private func oggAssertMatchesPcm(decoded: const [..] s16, expected: const [..] u
         energy += difference * difference
     }
 
-    let rms = Math.sqrt(energy / cast(f64, decoded.count)) / 32768.0'f64
-    Swag.require(rms <= 0.0001'f64)
+    let rms = Math.sqrt(energy / cast(f64, decoded.count)) / 32768.0_f64
+    Swag.require(rms <= 0.0001_f64)
 }
 
 // The folded CRC matches the defining polynomial at short, block and group boundaries.
@@ -357,8 +420,8 @@ private func oggAssertMatchesPcm(decoded: const [..] s16, expected: const [..] u
 // Header and audio packets may share an Ogg page; indexing and decoding retain every audio packet.
 #test
 {
-    const HeaderPage = 1'u64
-    const AudioPage  = 2'u64
+    const HeaderPage = 1_u64
+    const AudioPage  = 2_u64
 
     let opusSource = expect File.readAllBytes(audioGetTestDataPath("opus-stereo-48000.opus").toString())
     let opusMerged = expect oggMoveAudioPageAfterHeaders(opusSource.toSlice(), HeaderPage, AudioPage)

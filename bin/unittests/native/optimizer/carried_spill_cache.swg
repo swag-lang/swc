@@ -22,8 +22,10 @@ func transform(values: [*] u64, rounds, stop: u32)->u64
     var v13 = values[13]
     for i in rounds
     {
-        if i == stop do
+        if i == stop
+        {
             return v0 ^ v1 ^ v2 ^ v3 ^ v4 ^ v5 ^ v6 ^ v7 ^ v8 ^ v9 ^ v10 ^ v11 ^ v12 ^ v13
+        }
         if i & 1
         {
             v0  = ((v0 << (v1 & 63)) ^ v2) * (v3 | 1)
@@ -58,8 +60,10 @@ func transform(values: [*] u64, rounds, stop: u32)->u64
             v12 += (v13 ^ v0) + i
             v13 += (v0 ^ v1) + i
         }
-        if i + 1 == stop do
+        if i + 1 == stop
+        {
             return v0 + v1 + v2 + v3 + v4 + v5 + v6 + v7 + v8 + v9 + v10 + v11 + v12 + v13
+        }
     }
     return v0 ^ v1 ^ v2 ^ v3 ^ v4 ^ v5 ^ v6 ^ v7 ^ v8 ^ v9 ^ v10 ^ v11 ^ v12 ^ v13
 }
@@ -68,52 +72,68 @@ func transform(values: [*] u64, rounds, stop: u32)->u64
 func reference(values: [*] u64, rounds, stop: u32)->u64
 {
     var state: [14] u64
-    for i in 14 do
+    for i in 14
+    {
         state[i] = values[i]
+    }
     for i in rounds
     {
         if i == stop
         {
-            var result = 0'u64
-            for value in state do
+            var result = 0_u64
+            for value in state
+            {
                 result ^= value
+            }
             return result
         }
         if i & 1
         {
-            for j in 14 do
+            for j in 14
+            {
                 state[j] = ((state[j] << (state[(j + 1) % 14] & 63)) ^ state[(j + 2) % 14]) * (state[(j + 3) % 14] | 1)
+            }
         }
         else
         {
-            for j in 14 do
+            for j in 14
+            {
                 state[j] += (state[(j + 1) % 14] ^ state[(j + 2) % 14]) + i
+            }
         }
         if i + 1 == stop
         {
-            var result = 0'u64
-            for value in state do
+            var result = 0_u64
+            for value in state
+            {
                 result += value
+            }
             return result
         }
     }
-    var result = 0'u64
-    for value in state do
+    var result = 0_u64
+    for value in state
+    {
         result ^= value
+    }
     return result
 }
 
 #test
 {
-    for seed in [0'u64, 1, 0x8000000000000000, 0xFFFFFFFFFFFFFFFF]
+    for seed in [0_u64, 1, 0x8000000000000000, 0xFFFFFFFFFFFFFFFF]
     {
         var values: [14] u64
-        for i in 14 do
-            values[i] = seed ^ (cast(u64, i) * 0x123456789ABCDEF'u64)
-        for rounds in 12'u32
+        for i in 14
         {
-            for stop in 14'u32 do
+            values[i] = seed ^ (cast(u64, i) * 0x123456789ABCDEF_u64)
+        }
+        for rounds in 12_u32
+        {
+            for stop in 14_u32
+            {
                 Swag.require(transform(&values[0], rounds, stop) == reference(&values[0], rounds, stop))
+            }
         }
     }
 }

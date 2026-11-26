@@ -15,14 +15,18 @@ impl SelfBuf
 {
     mtd opPostMove()
     {
-        if buffer do
+        if buffer
+        {
             buffer = cast([*] u8, &storage[0])
+        }
     }
 
     mtd opPostCopy()
     {
-        if buffer do
+        if buffer
+        {
             buffer = cast([*] u8, &storage[0])
+        }
     }
 
     #[Swag.NoInline]
@@ -66,8 +70,10 @@ func makeWrapper()->Wrapper => {prev: makeSelfBuf(1, 2, 2)}
     let wrappers = [Wrapper{prev: direct}, Wrapper{prev: direct}]
     Swag.require(wrappers[0].prev.valid() and wrappers[1].prev.valid())
 
-    for wrapper in wrappers do
+    for wrapper in wrappers
+    {
         Swag.require(wrapper.prev.valid())
+    }
 }
 
 var g_ConstantMoves: s32

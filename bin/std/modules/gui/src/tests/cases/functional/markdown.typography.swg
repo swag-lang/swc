@@ -33,6 +33,8 @@ using Core
     // Taller glyphs still fit a deliberately undersized line box.
     style.bodyLineHeight = 1
     view.setDocumentStyle(style)
-    for atom in view.blocks[0].inline!.atoms where atom.visible do
+    for atom in view.blocks[0].inline!.atoms where atom.visible
+    {
         Swag.require(atom.position.bottom() <= view.blocks[0].inline!.layoutHeight)
+    }
 }

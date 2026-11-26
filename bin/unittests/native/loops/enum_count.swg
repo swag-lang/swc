@@ -22,20 +22,29 @@ enum Large
 #test
 {
     var visits = 0
-    for Sparse do visits += 1
+    for Sparse
+    {
+        visits += 1
+    }
     Swag.require(visits == 3)
 }
 
 #test
 {
     var visits = 0
-    for Medium do visits += 1
+    for Medium
+    {
+        visits += 1
+    }
     Swag.require(visits == 12)
 }
 
 #test
 {
     var visits = 0
-    for Large do visits += 1
+    for Large
+    {
+        visits += 1
+    }
     Swag.require(visits == 70)
 }

@@ -36,8 +36,8 @@ struct PropDefaultRoot
 
 // Size of the revert arrow icon inside its (square, editBox-height) button, and the gap kept on
 // each side of the button so it reads as an airy action, not packed against the editor.
-const PropRevertIconSize = 18'f32
-const PropRevertGap      = 4'f32
+const PropRevertIconSize = 18_f32
+const PropRevertGap      = 4_f32
 
 internal impl Properties
 {
@@ -50,8 +50,10 @@ internal impl Properties
     // the same fixed-offset trick: a field at offset O from the struct base sits at defBase + O.
     mtd assignDefaults(fromIdx: u64, rootType: typeinfo, base0: [*] u8)
     {
-        if rootType.kind != Swag.TypeInfoKind.Struct do
+        if rootType.kind != Swag.TypeInfoKind.Struct
+        {
             return
+        }
 
         // A pristine instance with every field at its declared default value.
         let def = Memory.new(rootType)
@@ -65,20 +67,28 @@ internal impl Properties
             let it = unwrap .items[i]
             it.defaultData = null
 
-            if not it.data do
+            if not it.data
+            {
                 continue
+            }
 
             // Items under a dynamic array live in a heap buffer, not at a fixed offset from the
             // struct base — no meaningful declared default to compare against.
-            if .isUnderDynamicArray(it) do
+            if .isUnderDynamicArray(it)
+            {
                 continue
+            }
 
-            if not canHaveDefault(it.type) do
+            if not canHaveDefault(it.type)
+            {
                 continue
+            }
 
             let off = cast([*] u8?, it.data) - base0
-            if off < 0 or cast(u64, off) >= rootSize do
+            if off < 0 or cast(u64, off) >= rootSize
+            {
                 continue
+            }
 
             it.defaultData = cast(*u8, (defBase + off))
         }
@@ -87,8 +97,11 @@ internal impl Properties
     // Drop + free the owned default instances (from onDestroyEvent).
     mtd freeDefaultRoots()
     {
-        for r in .defaultRoots do
+        for r in .defaultRoots
+        {
             Memory.delete(unwrap r.base, unwrap r.type)
+        }
+
         .defaultRoots.clear()
     }
 
@@ -96,10 +109,16 @@ internal impl Properties
     // comparable default, is not read-only, and its type is one the grid can copy back safely.
     mtd canReset(item: *PropertiesItem)->bool
     {
-        if not .revertButtonsVisible or not item.defaultData or not item.data or not item.type do
+        if not .revertButtonsVisible or not item.defaultData or not item.data or not item.type
+        {
             return false
-        if .isItemReadOnly(item) do
+        }
+
+        if .isItemReadOnly(item)
+        {
             return false
+        }
+
         return canHaveDefault(item.type)
     }
 
@@ -108,8 +127,10 @@ internal impl Properties
     // built-in per-instance comparison.
     mtd computeItemModified(item: *PropertiesItem)->bool
     {
-        if not .canReset(item) do
+        if not .canReset(item)
+        {
             return false
+        }
 
         var scan = cast(*PropertiesItem?, item)
         while scan
@@ -117,8 +138,10 @@ internal impl Properties
             if scan.ntfyItf
             {
                 let st = scan.ntfyItf.isItemAtDefault(me, item)
-                if st != .Auto do
+                if st != .Auto
+                {
                     return st == .Modified
+                }
             }
 
             scan = scan.parent
@@ -132,21 +155,27 @@ internal impl Properties
             let d = cast(*String, unwrap item.defaultData)
             for k in n
             {
-                if cast(const *String, unwrap .instanceAddr(item, k))[] != d[] do
+                if cast(const *String, unwrap .instanceAddr(item, k))[] != d[]
+                {
                     return true
+                }
             }
 
             return false
         }
 
         let sz = .fieldSize(item)
-        if sz == 0 do
+        if sz == 0
+        {
             return false
+        }
 
         for k in n
         {
-            if Memory.compare(unwrap .instanceAddr(item, k), unwrap item.defaultData, sz) != 0 do
+            if Memory.compare(unwrap .instanceAddr(item, k), unwrap item.defaultData, sz) != 0
+            {
                 return true
+            }
         }
 
         return false
@@ -169,22 +198,28 @@ internal impl Properties
             scan = scan.parent
         }
 
-        if not .canReset(item) do
+        if not .canReset(item)
+        {
             return
+        }
 
         // Write the default into every instance ourselves (composite editors set selfPropagate,
         // so commitItemChange would not propagate a whole-field write for us).
         let n = .instanceCount(item)
         if item.type == Core.String
         {
-            for k in n do
+            for k in n
+            {
                 cast(*String, unwrap .instanceAddr(item, k))[] = cast(const *String, unwrap item.defaultData)[]
+            }
         }
         else
         {
             let sz = .fieldSize(item)
-            for k in n do
+            for k in n
+            {
                 Memory.copy(unwrap .instanceAddr(item, k), unwrap item.defaultData, sz)
+            }
         }
 
         .refreshItem(item)
@@ -199,8 +234,10 @@ internal impl Properties
         var changed = false
         for it in .items
         {
-            if .updateItemDefaultState(unwrap it) do
+            if .updateItemDefaultState(unwrap it)
+            {
                 changed = true
+            }
         }
 
         return changed
@@ -215,10 +252,16 @@ internal impl Properties
     // buffers) are left out — a raw byte copy would corrupt them.
     func canHaveDefault(type: typeinfo?)->bool
     {
-        if not type do
+        if not type
+        {
             return false
-        if type == Core.String do
+        }
+
+        if type == Core.String
+        {
             return true
+        }
+
         return Reflection.isPod(type)
     }
 
@@ -237,21 +280,32 @@ internal impl Properties
 
         if not .isGridLike()
         {
-            if item.isModified != wasModified do
+            if item.isModified != wasModified
+            {
                 item.line.invalidate()
+            }
+
             return false
         }
 
-        if .canReset(item) do
+        if .canReset(item)
+        {
             .ensureRevertButton(item)
-        if item.revertButton == null do
+        }
+
+        if item.revertButton == null
+        {
             return false
+        }
 
         let btn = item.revertButton
         if item.isModified
         {
-            if not btn.icon.isValid() do
+            if not btn.icon.isValid()
+            {
                 btn.setIcon(.theme().icon(.Undo, .revertIconSize(btn.position.height)))
+            }
+
             btn.enable(true)
         }
         else
@@ -271,12 +325,16 @@ internal impl Properties
     // the painted modified bar instead (see updateItemDefaultState).
     mtd ensureRevertButton(item: *PropertiesItem)
     {
-        if item.revertButton != null or not .isGridLike() do
+        if item.revertButton != null or not .isGridLike()
+        {
             return
+        }
 
         let host = .rowActionArea(item)
-        if not host do
+        if not host
+        {
             return
+        }
 
         let h = .revertButtonSize()
         with item.revertButton = IconButton.create(host, .theme().icon(.Undo, .revertIconSize(h)), Math.Rectangle{0, 0, h, h})

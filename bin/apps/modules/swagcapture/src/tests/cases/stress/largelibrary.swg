@@ -26,8 +26,11 @@ using Swag, Core, Pixel
     var image = fixture.gui.render(library)
     Swag.require(image.isValid())
     var visible = 0
-    for item in view.items where item.visible do
+    for item in view.items where item.visible
+    {
         visible += 1
+    }
+
     Swag.require(visible > 0 and visible < 800)
 
     library.sortMethod = .FileSize

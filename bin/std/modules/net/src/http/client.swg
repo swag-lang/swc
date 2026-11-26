@@ -55,8 +55,11 @@ func post(host: string, port: u16, path: string, secure = true, options: PostOpt
     try validateHttpRequest(host, port, path, options, true)
     if options.requestBodyLength > Swag.U32.Max or
        options.requestBodyLength != 0 and
-       not options.bodyReader do
+       not options.bodyReader
+    {
         fail Errors.BadParameterError{}
+    }
+
     return try postNative(host, port, path, secure, options)
 }
 
@@ -71,28 +74,44 @@ private func validateHttpRequest(host: string, port: u16, path: string, options:
        options.timeoutMs > Swag.S32.Max or
        options.maxRedirects > 10 or
        hasRequestBody and
-       options.maxRedirects > 0 do
+       options.maxRedirects > 0
+    {
         fail Errors.BadParameterError{}
-    for c in host where c <= ' ' or c == 0x7F do
+    }
+
+    for c in host where c <= ' ' or c == 0x7F
+    {
         fail Errors.BadParameterError{}
-    for c in options.userAgent where c < ' ' or c == 0x7F do
+    }
+
+    for c in options.userAgent where c < ' ' or c == 0x7F
+    {
         fail Errors.BadParameterError{}
+    }
 
     for header in options.headers
     {
-        if header.name.count == 0 do
+        if header.name.count == 0
+        {
             fail Errors.BadParameterError{}
+        }
+
         for c in header.name
         {
             if not ((c >= 'a' and c <= 'z') or
                     (c >= 'A' and c <= 'Z') or
                     (c >= '0' and c <= '9') or
-                    Utf8.indexOf("!#$%&'*+-.^_`|~", cast(rune, c)) != Swag.U64.Max) do
+                    Utf8.indexOf("!#$%&'*+-.^_`|~", cast(rune, c)) != Swag.U64.Max)
+            {
                 fail Errors.BadParameterError{}
+            }
         }
 
-        for c in header.value where c < ' ' or c == 0x7F do
+        for c in header.value where c < ' ' or c == 0x7F
+        {
             fail Errors.BadParameterError{}
+        }
+
         let isContentLength = header.name.count == 14 and
                               Utf8.indexOf(header.name, "content-length", 0, .Latin1NoCase) == 0
         let isTransferEncoding = header.name.count == 17 and
@@ -102,10 +121,15 @@ private func validateHttpRequest(host: string, port: u16, path: string, options:
             (header.name.count == 13 and Utf8.indexOf(header.name, "authorization", 0, .Latin1NoCase) == 0) or
             (header.name.count == 6 and Utf8.indexOf(header.name, "cookie", 0, .Latin1NoCase) == 0) or
             (header.name.count == 19 and Utf8.indexOf(header.name, "proxy-authorization", 0, .Latin1NoCase) == 0)
-        if hasRequestBody and (isContentLength or isTransferEncoding) do
+        if hasRequestBody and (isContentLength or isTransferEncoding)
+        {
             fail Errors.BadParameterError{}
-        if options.maxRedirects > 0 and isRedirectSensitive do
+        }
+
+        if options.maxRedirects > 0 and isRedirectSensitive
+        {
             fail Errors.BadParameterError{}
+        }
     }
 }
 
@@ -113,22 +137,27 @@ private func validateHttpRequest(host: string, port: u16, path: string, options:
 // complete percent escapes before either native HTTP backend sees it.
 private func isValidRequestPath(path: string)->bool
 {
-    var index = 0'u64
+    var index = 0_u64
     while index < path.count
     {
         let c = path[index]
         if not ((c >= 'a' and c <= 'z') or
                 (c >= 'A' and c <= 'Z') or
                 Latin1.isDigit(c) or
-                Utf8.indexOf("-._~:/?@!$&'()*+,;=%", cast(rune, c)) != Swag.U64.Max) do
+                Utf8.indexOf("-._~:/?@!$&'()*+,;=%", cast(rune, c)) != Swag.U64.Max)
+        {
             return false
+        }
 
         if c == '%'
         {
             if path.count - index < 3 or
                not Latin1.isHexDigit(path[index + 1]) or
-               not Latin1.isHexDigit(path[index + 2]) do
+               not Latin1.isHexDigit(path[index + 2])
+            {
                 return false
+            }
+
             index += 2
         }
 
@@ -148,22 +177,40 @@ private struct ResponseHeaderParser
 private func appendResponseHeader(response: *Response, parser: *ResponseHeaderParser, line: string)->bool
 {
     var end = line.count
-    while end > 0 and (line[end - 1] == '\r' or line[end - 1] == '\n') do
+    while end > 0 and (line[end - 1] == '\r' or line[end - 1] == '\n')
+    {
         end -= 1
+    }
+
     let text = line[0 until end]
-    if text.count == 0 do
+    if text.count == 0
+    {
         return true
+    }
+
     if text[0] == ' ' or text[0] == '\t'
     {
-        if parser.lastHeaderIndex == Swag.U64.Max do
+        if parser.lastHeaderIndex == Swag.U64.Max
+        {
             return false
-        var start = 0'u64
-        while start < text.count and (text[start] == ' ' or text[start] == '\t') do
+        }
+
+        var start = 0_u64
+        while start < text.count and (text[start] == ' ' or text[start] == '\t')
+        {
             start += 1
-        while end > start and (text[end - 1] == ' ' or text[end - 1] == '\t') do
+        }
+
+        while end > start and (text[end - 1] == ' ' or text[end - 1] == '\t')
+        {
             end -= 1
-        if end == start do
+        }
+
+        if end == start
+        {
             return true
+        }
+
         let value  = text[start until end]
         let header = &response.headers[parser.lastHeaderIndex]
         if header.value.count + 1 + value.count > 65536
@@ -172,8 +219,11 @@ private func appendResponseHeader(response: *Response, parser: *ResponseHeaderPa
             return false
         }
 
-        if not header.value.isEmpty() do
+        if not header.value.isEmpty()
+        {
             header.value += " "
+        }
+
         header.value += value
         if parser.lastHeaderIndex == parser.locationHeaderIndex
         {
@@ -183,8 +233,11 @@ private func appendResponseHeader(response: *Response, parser: *ResponseHeaderPa
                 return false
             }
 
-            if not response.location.isEmpty() do
+            if not response.location.isEmpty()
+            {
                 response.location += " "
+            }
+
             response.location += value
         }
 
@@ -192,27 +245,41 @@ private func appendResponseHeader(response: *Response, parser: *ResponseHeaderPa
     }
 
     let colon = Utf8.indexOf(text, ':')
-    if colon == Swag.U64.Max or colon == 0 do
+    if colon == Swag.U64.Max or colon == 0
+    {
         return false
+    }
+
     let name = text[0 until colon]
     for c in name
     {
         if not ((c >= 'a' and c <= 'z') or
                 (c >= 'A' and c <= 'Z') or
                 (c >= '0' and c <= '9') or
-                Utf8.indexOf("!#$%&'*+-.^_`|~", cast(rune, c)) != Swag.U64.Max) do
+                Utf8.indexOf("!#$%&'*+-.^_`|~", cast(rune, c)) != Swag.U64.Max)
+        {
             return false
+        }
     }
 
     var start = colon + 1
     end = text.count
-    while start < end and (text[start] == ' ' or text[start] == '\t') do
+    while start < end and (text[start] == ' ' or text[start] == '\t')
+    {
         start += 1
-    while end > start and (text[end - 1] == ' ' or text[end - 1] == '\t') do
+    }
+
+    while end > start and (text[end - 1] == ' ' or text[end - 1] == '\t')
+    {
         end -= 1
+    }
+
     let value = text[start until end]
-    for c in value where (c < ' ' and c != '\t') or c == 0x7F do
+    for c in value where (c < ' ' and c != '\t') or c == 0x7F
+    {
         return false
+    }
+
     response.headers.add({name: String.from(name), value: String.from(value)})
     parser.lastHeaderIndex = response.headers.count - 1
     if name.count == 8 and
@@ -234,13 +301,16 @@ private func appendResponseHeader(response: *Response, parser: *ResponseHeaderPa
 
 private func parseResponseHeaders(raw: string, response: *Response) fail
 {
-    if raw.count > 65536 do
+    if raw.count > 65536
+    {
         fail Errors.OverflowError{}
+    }
+
     var parser = ResponseHeaderParser{lastHeaderIndex: Swag.U64.Max,
                                       locationHeaderIndex: Swag.U64.Max}
     var inHeaders = false
-    var lineStart = 0'u64
-    var index     = 0'u64
+    var lineStart = 0_u64
+    var index     = 0_u64
     while index < raw.count
     {
         if raw[index] == '\n'
@@ -254,15 +324,18 @@ private func parseResponseHeaders(raw: string, response: *Response) fail
                 parser.locationHeaderIndex = Swag.U64.Max
                 inHeaders = true
             }
-            elif line == "\r\n" or line == "\n"
+            else if line == "\r\n" or line == "\n"
             {
                 inHeaders = false
                 parser.lastHeaderIndex = Swag.U64.Max
             }
-            elif inHeaders and not appendResponseHeader(response, &parser, line)
+            else if inHeaders and not appendResponseHeader(response, &parser, line)
             {
-                if parser.overflow do
+                if parser.overflow
+                {
                     fail Errors.OverflowError{}
+                }
+
                 fail NetworkError{"malformed HTTP response header", code: 0}
             }
 
@@ -276,8 +349,11 @@ private func parseResponseHeaders(raw: string, response: *Response) fail
        inHeaders and
        not appendResponseHeader(response, &parser, raw[lineStart to])
     {
-        if parser.overflow do
+        if parser.overflow
+        {
             fail Errors.OverflowError{}
+        }
+
         fail NetworkError{"malformed HTTP response header", code: 0}
     }
 }

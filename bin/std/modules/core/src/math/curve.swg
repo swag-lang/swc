@@ -80,7 +80,7 @@ struct Curve
         // [[Core.Math.Curve.addKey]] maintains that order. Editing a key in place is allowed, and is how a
         // curve editor retimes one; call [[Core.Math.Curve.sortKeys]] afterwards when the edit moved a key
         // past a neighbour. Keys with the same abscissa retain their order, which controls a vertical jump.
-        keys: Array'CurveKey
+        keys: Array!{CurveKey}
 
         // User-space window the normalized unit square maps onto.
         //
@@ -99,7 +99,7 @@ private impl Curve
     // Anticipation of the classic back curves. It makes `EaseOutBack` peak about ten percent past
     // its end value, which reads as weight rather than as a mistake; the symmetric form widens it
     // so both halves keep that proportion.
-    const BackOvershoot = 1.70158'f32
+    const BackOvershoot = 1.70158_f32
     const BackOvershootSymmetric = BackOvershoot * 1.525
 
     // Builds one key, tangents included.
@@ -159,8 +159,8 @@ private impl Curve
     // tangents: every landing arrives climbing and leaves falling.
     func makeBounce()->Curve
     {
-        const Steepness = 7.5625'f32
-        const Segment   = 1 / 2.75'f32
+        const Steepness = 7.5625_f32
+        const Segment   = 1 / 2.75_f32
 
         // Slope at which the second parabola leaves the first landing. Every later rebound leaves
         // at half the previous one, which is what makes the bounce die out.
@@ -187,23 +187,23 @@ private impl Curve
     // sampling every quarter period instead costs sixteen times that, which is enough to see.
     func makeElastic()->Curve
     {
-        const Decay  = 10'f32         // Amplitude falls as two to the minus 'Decay' times the abscissa.
+        const Decay  = 10_f32         // Amplitude falls as two to the minus 'Decay' times the abscissa.
         const Omega  = Decay * Math.ConstF32.TwoPi / 3     // Angular speed of the sine, in radians per abscissa unit.
-        const Eighth = 0.0375'f32     // Abscissa covered by one eighth of a period.
+        const Eighth = 0.0375_f32     // Abscissa covered by one eighth of a period.
         const Steps  = 27             // Eighths of a period that fit inside the unit interval.
 
         // Sine and cosine of a sample, indexed by the eighth it sits on. The spring starts at the
         // trough, which is what puts its first sample exactly on zero.
         const Diagonal = Math.ConstF32.OneBySqrt2
-        const Sines    = [0'f32, Diagonal, 1, Diagonal, 0, -Diagonal, -1, -Diagonal]
-        const Cosines  = [1'f32, Diagonal, 0, -Diagonal, -1, -Diagonal, 0, Diagonal]
+        const Sines    = [0_f32, Diagonal, 1, Diagonal, 0, -Diagonal, -1, -Diagonal]
+        const Cosines  = [1_f32, Diagonal, 0, -Diagonal, -1, -Diagonal, 0, Diagonal]
 
         var result: #returntype
         for index in Steps
         {
             let eighth   = (index + 6) % 8
             let x        = cast(f32, index) * Eighth
-            let envelope = Math.pow(2'f32, -Decay * x)
+            let envelope = Math.pow(2_f32, -Decay * x)
             let value    = envelope * Sines[eighth] + 1
             let slope    = envelope * (Omega * Cosines[eighth] - Decay * Math.ConstF32.Ln2 * Sines[eighth])
             result.keys.add(makeKey(x, value, slope, slope))
@@ -219,8 +219,10 @@ private impl Curve
     func segmentValue(k0, k1: CurveKey, x: f32)->f32
     {
         let span = k1.x - k0.x
-        if span <= 0 do
+        if span <= 0
+        {
             return k1.y
+        }
 
         let t = (x - k0.x) / span
         switch #complete k0.interpolation
@@ -276,34 +278,47 @@ private impl Curve
     {
         const NewtonSteps    = 8
         const BisectionSteps = 24
-        const FlatDerivative = 1e-5'f32
-        const Precision      = 1e-6'f32
+        const FlatDerivative = 1e-5_f32
+        const Precision      = 1e-6_f32
 
         var param = x
         for NewtonSteps
         {
             let error = bezierAbscissa(c1, c2, param) - x
-            if Math.abs(error) < Precision do
+            if Math.abs(error) < Precision
+            {
                 return param
+            }
 
             let slope = bezierAbscissaSlope(c1, c2, param)
-            if Math.abs(slope) < FlatDerivative do
+            if Math.abs(slope) < FlatDerivative
+            {
                 break
+            }
+
             param -= error / slope
         }
 
-        var low  = 0'f32
-        var high = 1'f32
+        var low  = 0_f32
+        var high = 1_f32
         param = Math.saturate(x)
         for BisectionSteps
         {
             let error = bezierAbscissa(c1, c2, param) - x
-            if Math.abs(error) < Precision do
+            if Math.abs(error) < Precision
+            {
                 return param
-            if error > 0 do
+            }
+
+            if error > 0
+            {
                 high = param
-            else do
+            }
+            else
+            {
                 low = param
+            }
+
             param = (low + high) * 0.5
         }
 
@@ -334,7 +349,7 @@ impl Curve
     // Handle length at which a `Bezier` segment draws the `Hermite` segment with the same tangents.
     //
     // It is the default of both weights, so a weight is only felt once it is changed.
-    const NeutralWeight = 1 / 3.0'f32
+    const NeutralWeight = 1 / 3.0_f32
 
     // Returns the classic curve named by `preset`, owned by the caller and free to edit.
     //
@@ -371,8 +386,8 @@ impl Curve
     {
         let outWeight = Math.saturate(x1)
         let inWeight  = 1 - Math.saturate(x2)
-        let outSlope  = outWeight > 0 ? y1 / outWeight : 0'f32
-        let inSlope   = inWeight > 0 ? (1 - y2) / inWeight : 0'f32
+        let outSlope  = outWeight > 0 ? y1 / outWeight : 0_f32
+        let inSlope   = inWeight > 0 ? (1 - y2) / inWeight : 0_f32
 
         var result: #returntype
         var first  = makeKey(0, 0, 0, outSlope, .Bezier)
@@ -401,8 +416,11 @@ impl Curve
     mtd addKey(key: CurveKey)->u64
     {
         var index = .keys.count
-        while index and .keys[index - 1].x > key.x do
+        while index and .keys[index - 1].x > key.x
+        {
             index -= 1
+        }
+
         .keys.insertAt(index, key)
         return index
     }
@@ -420,7 +438,7 @@ impl Curve
     mtd sortKeys()
     {
         // Retiming usually moves only a few keys; insertion sort stays cheap and keeps vertical-jump order.
-        for var index = 1'u64; index < .keys.count; index += 1
+        for var index = 1_u64; index < .keys.count; index += 1
         {
             let key      = .keys[index]
             var insertAt = index
@@ -465,15 +483,17 @@ impl Curve
     mtd smoothTangents()
     {
         let count = .keys.count
-        if count < 2 do
+        if count < 2
+        {
             return
+        }
 
         for index in count
         {
             let low  = index ? index - 1 : index
             let high = index + 1 < count ? index + 1 : index
             let span = .keys[high].x - .keys[low].x
-            .setTangent(index, span > 0 ? (.keys[high].y - .keys[low].y) / span : 0'f32)
+            .setTangent(index, span > 0 ? (.keys[high].y - .keys[low].y) / span : 0_f32)
         }
     }
 
@@ -496,28 +516,38 @@ impl Curve
     mtd const evaluateNormalized(x: f32)->f32
     {
         let count = .keys.count
-        if not count do
-            return 0'f32
+        if not count
+        {
+            return 0_f32
+        }
 
         let first = .keys[0]
-        if x <= first.x do
+        if x <= first.x
+        {
             return first.y
+        }
 
         let last = .keys[count - 1]
-        if x >= last.x do
+        if x >= last.x
+        {
             return last.y
+        }
 
         // The abscissa now sits strictly inside the keys, so this search always closes on one
         // segment: 'low' stays at or before it, and 'high' stays after it.
-        var low  = 0'u64
+        var low  = 0_u64
         var high = count - 1
         while high - low > 1
         {
             let mid = (low + high) >> 1
-            if .keys[mid].x <= x do
+            if .keys[mid].x <= x
+            {
                 low = mid
-            else do
+            }
+            else
+            {
                 high = mid
+            }
         }
 
         return segmentValue(.keys[low], .keys[high], x)
@@ -531,7 +561,7 @@ impl Curve
     mtd const evaluate(x: f32)->f32
     {
         let span       = .endX - .startX
-        let normalized = span != 0 ? (x - .startX) / span : 0'f32
+        let normalized = span != 0 ? (x - .startX) / span : 0_f32
         return Math.lerp(.startY, .endY, .evaluateNormalized(normalized))
     }
 
@@ -587,15 +617,17 @@ impl Curve
     // Returns the real roots of `a * t² + b * t + c` that lie within [0, 1].
     //
     // A near-zero `a` reduces the equation to a linear one.
-    internal func solveQuadratic(a: f32, b: f32, c: f32)->Array'f32
+    internal func solveQuadratic(a: f32, b: f32, c: f32)->Array!{f32}
     {
         var roots: #returntype
 
         // Scale before solving so the same curve keeps its extrema when its coordinates are
         // uniformly tiny or large. An absolute cutoff here drops real extrema on small curves.
         let scale = Math.max(Math.max(Math.abs(a), Math.abs(b)), Math.abs(c))
-        if scale == 0 do
+        if scale == 0
+        {
             return roots
+        }
 
         let scaledA = a / scale
         let scaledB = b / scale
@@ -607,8 +639,10 @@ impl Curve
             if scaledB != 0
             {
                 let root = -scaledC / scaledB
-                if root >= 0.0 and root <= 1.0 do
+                if root >= 0.0 and root <= 1.0
+                {
                     roots.add(root)
+                }
             }
         }
         else
@@ -633,10 +667,15 @@ impl Curve
                     root2 = scaledC / q
                 }
 
-                if root1 >= 0.0 and root1 <= 1.0 do
+                if root1 >= 0.0 and root1 <= 1.0
+                {
                     roots.add(root1)
-                if root2 >= 0.0 and root2 <= 1.0 do
+                }
+
+                if root2 >= 0.0 and root2 <= 1.0
+                {
                     roots.add(root2)
+                }
             }
         }
 
@@ -657,8 +696,8 @@ impl Curve
 
         // Find extrema by solving derivative = 0
         // For cubic Bézier B(t) = (1-t)³P₀ + 3(1-t)²tP₁ + 3(1-t)t²P₂ + t³P₃
-        // Derivative B'(t) = 3[(1-t)²(P₁-P₀) + 2(1-t)t(P₂-P₁) + t²(P₃-P₂)]
-        // Which simplifies to: B'(t) = at² + bt + c where:
+        // Derivative B!{t} = 3[(1-t)²(P₁-P₀) + 2(1-t)t(P₂-P₁) + t²(P₃-P₂)]
+        // Which simplifies to: B!{t} = at² + bt + c where:
 
         // For X component:
         let ax = 3.0 * (end.x - 3.0 * ctrl1.x + 3.0 * ctrl0.x - start.x)
@@ -702,8 +741,8 @@ impl Curve
 
         // Find extrema by solving derivative = 0
         // For quadratic Bézier B(t) = (1-t)²P₀ + 2(1-t)tP₁ + t²P₂
-        // Derivative B'(t) = 2[(1-t)(P₁-P₀) + t(P₂-P₁)]
-        // Which simplifies to: B'(t) = 2[P₀ - 2P₁ + P₂]t + 2[P₁ - P₀]
+        // Derivative B!{t} = 2[(1-t)(P₁-P₀) + t(P₂-P₁)]
+        // Which simplifies to: B!{t} = 2[P₀ - 2P₁ + P₂]t + 2[P₁ - P₀]
         // Setting to zero: at + b = 0, where a = 2(P₀ - 2P₁ + P₂), b = 2(P₁ - P₀)
 
         // For X component:
@@ -741,6 +780,8 @@ private var g_CurvePresets: [CurvePreset] Curve
 // program does not pay for it and no evaluation ever has to lock.
 #init
 {
-    for preset in CurvePreset do
+    for preset in CurvePreset
+    {
         g_CurvePresets[preset] = Curve.create(preset)
+    }
 }

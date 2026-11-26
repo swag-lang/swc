@@ -6,8 +6,8 @@ using Core, Core.Math, Pixel
 // How far two runs may sit apart vertically, as a share of the taller one, and still be read as
 // one line; and the horizontal gap, as a share of the run height, past which two runs on one
 // line are two words rather than one split by kerning.
-private const TextLineOverlap = 0.5'f32
-private const TextWordGap     = 0.18'f32
+private const TextLineOverlap = 0.5_f32
+private const TextWordGap     = 0.18_f32
 
 // One code of a run: the byte range it decoded to inside the run's text, and the horizontal
 // span it covers in the item's local units.
@@ -32,7 +32,7 @@ struct TextRun
     axisAligned: bool
     originX:     f32     // Page-space x of the run's local origin.
     scaleX:      f32     // Local-to-page horizontal scale.
-    codes:       Array'TextCode     // Per-code spans, in text order.
+    codes:       Array!{TextCode}     // Per-code spans, in text order.
 }
 
 // The text of one page in reading order, with the geometry to hit-test, select, and highlight
@@ -42,7 +42,7 @@ struct TextRun
 struct TextIndex
 {
     text: String
-    runs: Array'TextRun
+    runs: Array!{TextRun}
 }
 
 // Reading-order construction state for one run.
@@ -62,14 +62,20 @@ impl TextIndex
     {
         var result: #returntype
 
-        var seeds: Array'TextRunSeed
+        var seeds: Array!{TextRunSeed}
         for item, itemIndex in page.items
         {
-            if item.kind != .Text or item.text.isEmpty() do
+            if item.kind != .Text or item.text.isEmpty()
+            {
                 continue
+            }
+
             var seed = seedRun(page, item, cast(u32, itemIndex))
-            if seed.run.rect.width <= 0 or seed.run.rect.height <= 0 do
+            if seed.run.rect.width <= 0 or seed.run.rect.height <= 0
+            {
                 continue
+            }
+
             seeds.add(#move seed)
         }
 
@@ -78,19 +84,31 @@ impl TextIndex
         // whatever order the writer emitted them.
         seeds.sort(func(a, b)
         {
-            if a.yCenter < b.yCenter do
+            if a.yCenter < b.yCenter
+            {
                 return -1
-            if a.yCenter > b.yCenter do
+            }
+
+            if a.yCenter > b.yCenter
+            {
                 return 1
-            if a.x < b.x do
+            }
+
+            if a.x < b.x
+            {
                 return -1
-            if a.x > b.x do
+            }
+
+            if a.x > b.x
+            {
                 return 1
+            }
+
             return 0
         })
 
-        var lineStart = 0'u64
-        var scan      = 0'u64
+        var lineStart = 0_u64
+        var scan      = 0_u64
         while scan < seeds.count
         {
             // A line ends where the next run no longer overlaps it vertically.
@@ -112,10 +130,12 @@ impl TextIndex
     }
 
     // Appends one line's runs to the page text, separating words by the gaps between them.
-    private mtd emitLine(seeds: *Array'TextRunSeed, first, last: u64, breakBefore: bool)
+    private mtd emitLine(seeds: *Array!{TextRunSeed}, first, last: u64, breakBefore: bool)
     {
-        if breakBefore do
+        if breakBefore
+        {
             .text += "\n"
+        }
 
         var previousRight = seeds[first].run.rect.right()
         for index in first until last
@@ -126,9 +146,11 @@ impl TextIndex
                 let gap = seed.run.rect.x - previousRight
                 if gap > seed.run.rect.height * TextWordGap and
                    not .text.isEmpty() and
-                   .text.back() != ' 'u8 and
-                   seed.text.toString()[0] != ' 'u8 do
+                   .text.back() != ' '_u8 and
+                   seed.text.toString()[0] != ' '_u8
+                {
                     .text += " "
+                }
             }
 
             var run = seed.run
@@ -140,7 +162,7 @@ impl TextIndex
         }
     }
 
-    private func sortLineByX(seeds: *Array'TextRunSeed, first, last: u64)
+    private func sortLineByX(seeds: *Array!{TextRunSeed}, first, last: u64)
     {
         // Lines are short; a stable insertion keeps equal columns in paint order.
         var i = first + 1
@@ -169,7 +191,7 @@ impl TextIndex
 
         // The local box of the run: the origin sits one em above the baseline, so the run
         // occupies local y in [0, fontSize].
-        var codes: Array'TextCode
+        var codes: Array!{TextCode}
         let width = itemLocalWidth(page, item, &codes)
 
         if axisAligned
@@ -212,15 +234,15 @@ impl TextIndex
     //
     // A run whose font resource is missing has no decoded codes; its geometry is estimated from
     // the standard face the decoder matched, one rune per code.
-    private func itemLocalWidth(page: const *Page, item: const *Item, codes: *Array'TextCode)->f32
+    private func itemLocalWidth(page: const *Page, item: const *Item, codes: *Array!{TextCode})->f32
     {
-        var x = 0.0'f32
+        var x = 0.0_f32
         if item.textCodes.count and
            item.textCodes.count == item.textAdvances.count and
            item.fontIndex < page.fonts.count
         {
             let font      = &page.fonts[item.fontIndex]
-            var byteStart = 0'u64
+            var byteStart = 0_u64
             for code, index in item.textCodes
             {
                 let codeString = font.codeText(code)
@@ -232,13 +254,16 @@ impl TextIndex
 
             // The decoded text and the codes can disagree on a malformed file; keep the byte
             // ranges inside the text whatever happened.
-            if byteStart < item.text.length and codes.count do
+            if byteStart < item.text.length and codes.count
+            {
                 codes.backPtr().byteEnd = cast(u32, item.text.length)
+            }
+
             return x
         }
 
         let source = item.text.toString()
-        var scan   = 0'u64
+        var scan   = 0_u64
         while scan < source.count
         {
             let {c: value, eat} = Utf8.decodeRune(source[scan to])
@@ -261,21 +286,32 @@ impl TextIndex
 
         for run in .runs
         {
-            var dx = 0.0'f32
-            if point.x < run.rect.x do
+            var dx = 0.0_f32
+            if point.x < run.rect.x
+            {
                 dx = run.rect.x - point.x
-            elif point.x > run.rect.right() do
+            }
+            else if point.x > run.rect.right()
+            {
                 dx = point.x - run.rect.right()
-            var dy = 0.0'f32
-            if point.y < run.rect.y do
+            }
+
+            var dy = 0.0_f32
+            if point.y < run.rect.y
+            {
                 dy = run.rect.y - point.y
-            elif point.y > run.rect.bottom() do
+            }
+            else if point.y > run.rect.bottom()
+            {
                 dy = point.y - run.rect.bottom()
+            }
 
             // A run on the pointed line beats every run of another line, however close.
             let distance = dy * 4096 + dx
-            if distance >= result.distance do
+            if distance >= result.distance
+            {
                 continue
+            }
 
             result.distance = distance
             result.offset   = .offsetInRun(run, point.x)
@@ -286,14 +322,19 @@ impl TextIndex
 
     private mtd const offsetInRun(run: const *TextRun, pageX: f32)->u64
     {
-        if not run.axisAligned or not run.codes.count or run.scaleX <= 0 do
+        if not run.axisAligned or not run.codes.count or run.scaleX <= 0
+        {
             return pageX < run.rect.horzCenter() ? run.textStart : run.textEnd
+        }
 
         let localX = (pageX - run.originX) / run.scaleX
         for code in run.codes
         {
-            if localX >= code.x1 do
+            if localX >= code.x1
+            {
                 continue
+            }
+
             let middle = (code.x0 + code.x1) * 0.5
             return run.textStart + (localX < middle ? code.byteStart : code.byteEnd)
         }
@@ -302,15 +343,19 @@ impl TextIndex
     }
 
     // Appends the page-space rectangles covering a byte range of the page text.
-    mtd const rangeRects(start, end: u64, rects: *Array'Rectangle)
+    mtd const rangeRects(start, end: u64, rects: *Array!{Rectangle})
     {
-        if end <= start do
+        if end <= start
+        {
             return
+        }
 
         for run in .runs
         {
-            if end <= run.textStart or start >= run.textEnd do
+            if end <= run.textStart or start >= run.textEnd
+            {
                 continue
+            }
 
             var rect = run.rect
             if run.axisAligned and run.codes.count and (start > run.textStart or end < run.textEnd)
@@ -321,14 +366,20 @@ impl TextIndex
                 let hi = end < run.textEnd ? end - run.textStart : run.textEnd - run.textStart
                 for code in run.codes
                 {
-                    if code.byteEnd <= lo or code.byteStart >= hi do
+                    if code.byteEnd <= lo or code.byteStart >= hi
+                    {
                         continue
+                    }
+
                     x0 = Math.min(x0, code.x0)
                     x1 = Math.max(x1, code.x1)
                 }
 
-                if x1 <= x0 do
+                if x1 <= x0
+                {
                     continue
+                }
+
                 rect.x     = run.originX + x0 * run.scaleX
                 rect.width = (x1 - x0) * run.scaleX
             }
@@ -342,34 +393,43 @@ impl TextIndex
     {
         var result: #returntype
         let source = .text.toString()
-        if not source.count do
+        if not source.count
+        {
             return result
+        }
 
-        var starts: Array'u64
-        var words:  Array'bool
-        var scan = 0'u64
+        var starts: Array!{u64}
+        var words:  Array!{bool}
+        var scan = 0_u64
         while scan < source.count
         {
             let {c: value, eat} = Utf8.decodeRune(source[scan to])
             starts.add(scan)
-            words.add(Unicode.isLetterOrDigit(value) or value == '_'rune)
+            words.add(Unicode.isLetterOrDigit(value) or value == '_'_rune)
             scan += eat
         }
 
         starts.add(scan)
         let position  = Math.min(offset, source.count - 1)
-        var runeIndex = 0'u64
-        for i in words.count where starts[i] <= position do
+        var runeIndex = 0_u64
+        for i in words.count where starts[i] <= position
+        {
             runeIndex = i
+        }
 
         var lo = runeIndex
         var hi = runeIndex
         if words[runeIndex]
         {
-            while lo and words[lo - 1] do
+            while lo and words[lo - 1]
+            {
                 lo -= 1
-            while hi + 1 < words.count and words[hi + 1] do
+            }
+
+            while hi + 1 < words.count and words[hi + 1]
+            {
                 hi += 1
+            }
         }
 
         result.start = starts[lo]

@@ -25,8 +25,11 @@ impl ActionToolMode
     // Returns the tool the command `id` takes in hand.
     func modeOf(id: WndId)->EditMode
     {
-        for mode in EditMode where mode.command() == id do
+        for mode in EditMode where mode.command() == id
+        {
             return mode
+        }
+
         unreachable
     }
 }

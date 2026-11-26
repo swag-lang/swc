@@ -16,8 +16,8 @@ func day3B()
 
     var r = expect Parser.RegExp.create(#raw "#(\d+) @ (\d+),(\d+): (\d+)x(\d+)")
 
-    var ids:  Array's32
-    var here: HashSet's32
+    var ids:  Array!{s32}
+    var here: HashSet!{s32}
     ids.resize(1000 * 1000)
     here.reserve(1000)
     for l in lines
@@ -45,8 +45,10 @@ func day3B()
             }
         }
 
-        if alone do
+        if alone
+        {
             here.add(id)
+        }
     }
 
     Swag.assert(here.count == 1)

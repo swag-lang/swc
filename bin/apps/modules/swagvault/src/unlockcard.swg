@@ -29,9 +29,9 @@ struct UnlockCard
 impl UnlockCard
 {
     // Air between the password and the line of choices, and under that line.
-    const OptionsGap    = 16'f32
-    const KeyFilesGap   = 12'f32
-    const BottomPadding = 24'f32
+    const OptionsGap    = 16_f32
+    const KeyFilesGap   = 12_f32
+    const BottomPadding = 24_f32
 
     // Creates the card, hidden, over the rows of `list`.
     func create(list: *Wnd, window: *MainWindow)->UnlockCard
@@ -116,9 +116,12 @@ impl UnlockCard
         let formTop   = VaultRow.Height - .panel.themeMetrics().dialog_BtnPadding
         let form      = Math.ceil(.form.measure(Math.Point{formWidth, 0}).preferred.y)
         let options   = .panel.themeMetrics().btnPush_Height
-        var keyFiles  = 0'f32
-        if .keyFileList.isLocallyVisible() do
+        var keyFiles  = 0_f32
+        if .keyFileList.isLocallyVisible()
+        {
             keyFiles = KeyFilesGap + .keyFileList.measure(Math.Point{formWidth, 0}).preferred.y
+        }
+
         return formTop + form + OptionsGap + options + keyFiles + BottomPadding
     }
 
@@ -185,10 +188,15 @@ impl UnlockCard
     mtd setKeyFileCount(count: u64)
     {
         let texts = appStrings()
-        if count do
+        if count
+        {
             .keyFiles.setText(Format.toString(texts.ui_UnlockKeyFilesCount, count))
-        else do
+        }
+        else
+        {
             .keyFiles.setText(texts.ui_KeyFilesLink)
+        }
+
         .keyFiles.setArrowPosition(.keyFileList.isLocallyVisible() ? .RightUpward : .RightDownward)
         .options.computeLayout()
     }
@@ -205,8 +213,11 @@ impl UnlockCard
     mtd setKeyFiles(paths: const [..] String)
     {
         .keyFileList.setPaths(paths)
-        if paths.count == 0 do
+        if paths.count == 0
+        {
             .keyFileList.hide()
+        }
+
         .setKeyFileCount(paths.count)
     }
 

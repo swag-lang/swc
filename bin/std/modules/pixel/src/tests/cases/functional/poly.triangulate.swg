@@ -11,8 +11,11 @@ using Swag, Core, Core.Math
 func triCount(pts: [..] Vector2)->u64
 {
     var poly: Pixel.Polygon
-    for p in pts do
+    for p in pts
+    {
         poly.add(p)
+    }
+
     let first = pts[0]
     poly.add(first)     // close the ring
     poly.recompute()
@@ -47,8 +50,11 @@ func triCount(pts: [..] Vector2)->u64
     large.add({14.285715, 1})
     large.add({100, 1})
     large.add({100, 10})
-    for i in 1 until 44 do
+    for i in 1 until 44
+    {
         large.add({100 * (1 - cast(f32, i) / 44), 10})
+    }
+
     large.add({0, 10})
     large.recompute()
 
@@ -105,7 +111,7 @@ func triCount(pts: [..] Vector2)->u64
 }
 
 // Regular convex N-gon centered at (cx,cy).
-func makeNgon(cx, cy, radius: f32, count: s32)->Array'Math.Vector2
+func makeNgon(cx, cy, radius: f32, count: s32)->Array!{Math.Vector2}
 {
     var result: #returntype
     for i in count
@@ -166,13 +172,16 @@ func makeNgon(cx, cy, radius: f32, count: s32)->Array'Math.Vector2
 {
     for b in 3 until 11
     {
-        var pts: Array'Vector2
+        var pts: Array!{Vector2}
         let total = b * 2
         for i in total
         {
-            var r = 25'f32
-            if (i & 1) == 0 do
+            var r = 25_f32
+            if (i & 1) == 0
+            {
                 r = 60
+            }
+
             let a = cast(f32, i) * (Math.ConstF32.TwoPi / cast(f32, total))
             pts.add(Math.Vector2{100 + Math.cos(a) * r, 100 + Math.sin(a) * r})
         }
@@ -187,8 +196,11 @@ func makeNgon(cx, cy, radius: f32, count: s32)->Array'Math.Vector2
 func assertRecycledMatchesFresh(reused: *Pixel.Poly2Tri.Tessellate, pts: [..] Vector2)
 {
     var poly: Pixel.Polygon
-    for pt in pts do
+    for pt in pts
+    {
         poly.add(pt)
+    }
+
     poly.add(pts[0])
     poly.recompute()
 
@@ -203,8 +215,10 @@ func assertRecycledMatchesFresh(reused: *Pixel.Poly2Tri.Tessellate, pts: [..] Ve
     let expected = fresh.takeResult()
 
     Swag.require(recycled.vertices.count == expected.vertices.count)
-    for index in recycled.vertices.count do
+    for index in recycled.vertices.count
+    {
         Swag.require(recycled.vertices[index] == expected.vertices[index])
+    }
 }
 
 // One tessellator serves every fill of a frame, and it recycles its points, edges and triangles
@@ -336,7 +350,7 @@ func assertRecycledMatchesFresh(reused: *Pixel.Poly2Tri.Tessellate, pts: [..] Ve
     contours.flatten()
 
     var filled: Pixel.LinePath
-    Pixel.tessellateFillSlabs(&filled, contours.toSlice(), [0'u64, 1'u64, 2'u64], outward: 1)
+    Pixel.tessellateFillSlabs(&filled, contours.toSlice(), [0_u64, 1_u64, 2_u64], outward: 1)
     let triangles = filled.triangles.vertices.toSlice()
     Swag.require(triangles.count == 30)
     Swag.require(filled.triangleOffsets.count == triangles.count)

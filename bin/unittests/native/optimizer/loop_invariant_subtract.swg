@@ -24,9 +24,9 @@ func referenceReplay(values: [*] u8, start, distance, count: u64)
 
 #test
 {
-    for distance in [1'u64, 2, 3, 7, 16, 32]
+    for distance in [1_u64, 2, 3, 7, 16, 32]
     {
-        for count in [0'u64, 1, 2, 7, 31, 32, 64]
+        for count in [0_u64, 1, 2, 7, 31, 32, 64]
         {
             var actual, expected: [128] u8
             for i in 128

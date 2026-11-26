@@ -21,27 +21,33 @@
                                                              standardOutput: .Pipe, standardError: .Pipe})
         defer { discard catch peer.kill(); discard catch peer.waitForExit(); }
         let deadline = Time.monotonicMilliseconds() + 3000
-        while not File.exists(ready) and Time.monotonicMilliseconds() < deadline do
-            Threading.Thread.sleep(5'ms)
+        while not File.exists(ready) and Time.monotonicMilliseconds() < deadline
+        {
+            Threading.Thread.sleep(5_ms)
+        }
+
         Swag.require(File.exists(ready), "native keypad peer did not become ready")
         var keyboard: Input.Keyboard
         keyboard.update()
         let numeric = mode == 1
         var expected: Input.Key = numeric ? .NumPad1 : .End
-        if mode == 4 do
+        if mode == 4
+        {
             expected = .Return
+        }
+
         let pressed      = keyboard.isKeyPressed(expected)
         let character    = keyboard.keyToRune(expected)
         let otherPressed = keyboard.isKeyPressed(numeric ? .End : .NumPad1)
 
         // Finish the peer before asserting observations so even a regression restores lock state.
         discard expect File.writeAllText(done, "done")
-        let exited = expect peer.tryWaitForExit(3's)
+        let exited = expect peer.tryWaitForExit(3_s)
         Swag.require(exited and peer.exitCode() == 0, peer.standardError())
         expect File.delete(ready)
         expect File.delete(done)
         Swag.require(pressed and not otherPressed, Format.toString("keypad polling mode %", mode))
-        Swag.require(character == (numeric ? '1' : 0'rune))
+        Swag.require(character == (numeric ? '1' : 0_rune))
     }
 }
 
@@ -66,8 +72,11 @@
                                                              standardOutput: .Pipe, standardError: .Pipe})
         defer { discard catch peer.kill(); discard catch peer.waitForExit(); }
         let deadline = Time.monotonicMilliseconds() + 3000
-        while not File.exists(ready) and Time.monotonicMilliseconds() < deadline do
-            Threading.Thread.sleep(5'ms)
+        while not File.exists(ready) and Time.monotonicMilliseconds() < deadline
+        {
+            Threading.Thread.sleep(5_ms)
+        }
+
         Swag.require(File.exists(ready), "native pointer peer did not become ready")
         let left   = Input.Mouse.isButtonPressed(.Left)
         let right  = Input.Mouse.isButtonPressed(.Right)
@@ -75,7 +84,7 @@
 
         // Finish the peer before asserting observations so even a regression releases the button.
         discard expect File.writeAllText(done, "done")
-        let exited = expect peer.tryWaitForExit(3's)
+        let exited = expect peer.tryWaitForExit(3_s)
         Swag.require(exited and peer.exitCode() == 0, peer.standardError())
         expect File.delete(ready)
         expect File.delete(done)

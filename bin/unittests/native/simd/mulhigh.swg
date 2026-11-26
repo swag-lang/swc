@@ -87,8 +87,10 @@ func liveMulHighS64(x, y: #simd [2] s64)->#simd [2] s64 => Swag.vecMulHigh(x, y)
     }
 
     r = cast([8] u16, liveMulHighU16(x, y))
-    for i in 8 do
+    for i in 8
+    {
         Swag.require(r[i] == cast(u16, ((cast(u32, left[i]) * cast(u32, right[i])) >> 16)))
+    }
 }
 
 #test
@@ -148,8 +150,10 @@ func liveMulHighS64(x, y: #simd [2] s64)->#simd [2] s64 => Swag.vecMulHigh(x, y)
     }
 
     r = cast([4] s32, liveMulHighS32(x, y))
-    for i in 4 do
+    for i in 4
+    {
         Swag.require(r[i] == cast(s32, ((cast(s64, left[i]) * cast(s64, right[i])) >> 32)))
+    }
 }
 
 #test

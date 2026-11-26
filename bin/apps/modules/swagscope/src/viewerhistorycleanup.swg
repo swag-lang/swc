@@ -5,34 +5,45 @@ struct ViewerHistoryCleanup
 {
     using operation: Viewer.BackgroundOperation
     executor:        Swag.Executor
-    recent:          Array'String
-    opened:          Array'u64
-    folders:         Array'String
-    missing:         Array'String
-    missingFolders:  Array'String
+    recent:          Array!{String}
+    opened:          Array!{u64}
+    folders:         Array!{String}
+    missing:         Array!{String}
+    missingFolders:  Array!{String}
 }
 
 impl ViewerHistoryCleanup
 {
     mtd start(window: *ViewerWindow)
     {
-        if .started do
+        if .started
+        {
             return
+        }
+
         window.recentOpened.resize(window.recent.count)
         .recent  = window.recent
         .opened  = window.recentOpened
         .folders = window.exploredFolders
         .missing.clear()
         .missingFolders.clear()
-        if not .executor.isStarted() do
+        if not .executor.isStarted()
+        {
             .executor.start(.Background)
+        }
+
         let cleanup = me
         .submit(func|cleanup|()
         {
-            for path in cleanup.recent where not Swag.isCancelled() and not File.exists(path[]) do
+            for path in cleanup.recent where not Swag.isCancelled() and not File.exists(path[])
+            {
                 cleanup.missing.add(path[])
-            for path in cleanup.folders where not Swag.isCancelled() and not Directory.exists(path[]) do
+            }
+
+            for path in cleanup.folders where not Swag.isCancelled() and not Directory.exists(path[])
+            {
                 cleanup.missingFolders.add(path[])
+            }
         },
                 window,
                 executor: &.executor)
@@ -44,12 +55,20 @@ impl ViewerHistoryCleanup
         .wait()
         if window.recent.count != .recent.count or
            window.recentOpened.count != .opened.count or
-           window.exploredFolders.count != .folders.count do
+           window.exploredFolders.count != .folders.count
+        {
             return
-        for path, index in .recent where path != window.recent[index] or .opened[index] != window.recentOpened[index] do
+        }
+
+        for path, index in .recent where path != window.recent[index] or .opened[index] != window.recentOpened[index]
+        {
             return
-        for path, index in .folders where path != window.exploredFolders[index] do
+        }
+
+        for path, index in .folders where path != window.exploredFolders[index]
+        {
             return
+        }
 
         for index in reversed(window.recent.count) where .missing.contains(window.recent[index])
         {
@@ -57,8 +76,11 @@ impl ViewerHistoryCleanup
             window.recentOpened.removeAtOrdered(index)
         }
 
-        for index in reversed(window.exploredFolders.count) where .missingFolders.contains(window.exploredFolders[index]) do
+        for index in reversed(window.exploredFolders.count) where .missingFolders.contains(window.exploredFolders[index])
+        {
             window.exploredFolders.removeAtOrdered(index)
+        }
+
         window.historyChanged()
     }
 

@@ -32,8 +32,10 @@ struct RestockPlan
 
 func missingUnits(item: InventoryItem)->u32
 {
-    if item.inStock >= item.targetStock do
+    if item.inStock >= item.targetStock
+    {
         return 0
+    }
 
     return item.targetStock - item.inStock
 }
@@ -43,8 +45,10 @@ func countItemsToReorder(items: const [..] InventoryItem)->u32
     var result: u32
     for item in items
     {
-        if missingUnits(item) != 0 do
+        if missingUnits(item) != 0
+        {
             result += 1
+        }
     }
 
     return result
@@ -53,16 +57,20 @@ func countItemsToReorder(items: const [..] InventoryItem)->u32
 func computeUnitsToOrder(items: const [..] InventoryItem)->u32
 {
     var result: u32
-    for item in items do
+    for item in items
+    {
         result += missingUnits(item)
+    }
     return result
 }
 
 func computeEstimatedCost(items: const [..] InventoryItem)->u32
 {
     var result: u32
-    for item in items do
+    for item in items
+    {
         result += missingUnits(item) * item.unitCostCents
+    }
     return result
 }
 
@@ -71,8 +79,10 @@ func countDelayedEssentialItems(items: const [..] InventoryItem)->u32
     var result: u32
     for item in items
     {
-        if item.essential and missingUnits(item) != 0 and item.leadTimeDays > 7 do
+        if item.essential and missingUnits(item) != 0 and item.leadTimeDays > 7
+        {
             result += 1
+        }
     }
 
     return result
@@ -100,12 +110,16 @@ func computePriority(items: const [..] InventoryItem)->ReorderPriority
 {
     for item in items
     {
-        if item.essential and missingUnits(item) != 0 and item.leadTimeDays > 7 do
+        if item.essential and missingUnits(item) != 0 and item.leadTimeDays > 7
+        {
             return ReorderPriority.Urgent
+        }
     }
 
-    if computeUnitsToOrder(items) >= 100'u32 do
+    if computeUnitsToOrder(items) >= 100_u32
+    {
         return ReorderPriority.Normal
+    }
 
     return ReorderPriority.Low
 }
@@ -141,7 +155,7 @@ func buildRestockPlan(items: const [..] InventoryItem)->RestockPlan
     Swag.require(missingUnits(inventory[3]) == 0)
     Swag.require(countItemsToReorder(inventory) == 3)
     Swag.require(computeUnitsToOrder(inventory) == 95)
-    Swag.require(computeEstimatedCost(inventory) == 191500'u32)
+    Swag.require(computeEstimatedCost(inventory) == 191500_u32)
     Swag.require(countDelayedEssentialItems(inventory) == 1)
     Swag.require(pickTopSku(inventory) == "patch-cable")
     Swag.require(computePriority(inventory) == ReorderPriority.Urgent)
@@ -151,7 +165,7 @@ func buildRestockPlan(items: const [..] InventoryItem)->RestockPlan
     Swag.require(plan.itemCount == 4)
     Swag.require(plan.reorderItemCount == 3)
     Swag.require(plan.totalUnitsToOrder == 95)
-    Swag.require(plan.estimatedCostCents == 191500'u32)
+    Swag.require(plan.estimatedCostCents == 191500_u32)
     Swag.require(plan.delayedEssentialCount == 1)
     Swag.require(plan.priority == ReorderPriority.Urgent)
     Swag.require(plan.topSku == "patch-cable")

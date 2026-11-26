@@ -13,12 +13,12 @@ struct Box
 
 impl Box
 {
-    mtd(T) pairWith(other: T)->Pair'(s32, T)
+    mtd(T) pairWith(other: T)->Pair!{s32, T}
     {
         return {first: .value, second: other}
     }
 
-    mtd(T, const Mult: s32) tagged(other: T)->Pair'(T, s32)
+    mtd(T, const Mult: s32) tagged(other: T)->Pair!{T, s32}
     {
         return {first: other, second: Mult}
     }
@@ -27,13 +27,13 @@ impl Box
 #test
 {
     var box    = Box{value: 42}
-    let pair   = box.pairWith(0'u8)
-    let tagged = box.tagged'(string, 3)("ok")
+    let pair   = box.pairWith(0_u8)
+    let tagged = box.tagged!{string, 3}("ok")
 
-    #assert(#typeof(pair) == Pair'(s32, u8))
-    #assert(#typeof(tagged) == Pair'(string, s32))
+    #assert(#typeof(pair) == Pair!{s32, u8})
+    #assert(#typeof(tagged) == Pair!{string, s32})
     Swag.require(pair.first == 42)
-    Swag.require(pair.second == 0'u8)
+    Swag.require(pair.second == 0_u8)
     Swag.require(tagged.first == "ok")
     Swag.require(tagged.second == 3)
 }

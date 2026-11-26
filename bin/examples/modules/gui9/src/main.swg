@@ -138,14 +138,20 @@ func addDlgButton(parent: *Wnd, text: string, fn: func(*Button))
 
 func applyTheme()
 {
-    if g_DarkTheme do
+    if g_DarkTheme
+    {
         app.theme.setDark()
-    else do
+    }
+    else
+    {
         app.theme.setLight()
+    }
 
     let btn = g_ThemeButton
-    if btn do
+    if btn
+    {
         btn.setText(g_DarkTheme ? "Switch to Papier" : "Switch to Encre")
+    }
 
     app.notifyThemeChanged()
 }
@@ -172,7 +178,7 @@ func createRootView()
     }
 
     // Content area below the title.
-    let content = Wnd.create'Wnd(unwrap g_View, {})
+    let content = Wnd.create!{Wnd}(unwrap g_View, {})
     content.dockStyle       = .Center
     content.backgroundStyle = .Transparent
 
@@ -197,7 +203,7 @@ func createRootView()
     }
 
     // Right: a column of buttons launching each predefined dialog.
-    let panel = Wnd.create'Wnd(content, {})
+    let panel = Wnd.create!{Wnd}(content, {})
     panel.dockStyle       = .Center
     panel.backgroundStyle = .Transparent
 
@@ -250,10 +256,14 @@ func onRootEvent(_: *Wnd, evt: IEvent)->bool
 {
     for arg in Env.arguments()
     {
-        if arg == "--dark" do
+        if arg == "--dark"
+        {
             g_DarkTheme = true
-        elif arg == "--light" do
+        }
+        else if arg == "--light"
+        {
             g_DarkTheme = false
+        }
     }
 
     let flags = SurfaceFlags.SmallCaption |
@@ -271,8 +281,10 @@ func onRootEvent(_: *Wnd, evt: IEvent)->bool
 
     // In automated test mode we just exercise the composite/build and exit;
     // the modal dialogs require interaction so they are not auto-opened.
-    if Env.isSmokeRun() do
+    if Env.isSmokeRun()
+    {
         app.maxRunFrame = 30
+    }
 
     applyTheme()
     surface.show()

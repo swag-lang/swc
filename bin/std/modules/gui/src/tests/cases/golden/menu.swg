@@ -43,8 +43,11 @@ func assertMenuMarkerGolden(palette: MenuMarkerPalette, golden: string)
     var captured: bool
     host.app.sigFrame += func|host = &host, golden, captured = &captured|(_)
     {
-        if captured[] do
+        if captured[]
+        {
             return
+        }
+
         var image = host.render()
         Pixel.Testing.assertImageGolden(&image, golden)
         let menuDismissed = host.dismissPopupMenu()
@@ -101,8 +104,11 @@ func assertMenuMarkerGolden(palette: MenuMarkerPalette, golden: string)
     var captured: bool
     host.app.sigFrame += func|host = &host, captured = &captured|(_)
     {
-        if captured[] do
+        if captured[]
+        {
             return
+        }
+
         var image = host.render()
         Pixel.Testing.assertImageGolden(&image, "menu.popup.widget-choice.encre")
         captured[] = true
@@ -172,8 +178,11 @@ func assertMenuMarkerGolden(palette: MenuMarkerPalette, golden: string)
     var captured: bool
     host.app.sigFrame += func|host = &host, captured = &captured|(_)
     {
-        if captured[] do
+        if captured[]
+        {
             return
+        }
+
         var image = host.render()
         Pixel.Testing.assertImageGolden(&image, "menu.popup.widget-choice.paper")
         captured[] = true
@@ -205,8 +214,11 @@ func assertMenuMarkerGolden(palette: MenuMarkerPalette, golden: string)
     var captured: bool
     host.app.sigFrame += func|host = &host, captured = &captured|(_)
     {
-        if captured[] do
+        if captured[]
+        {
             return
+        }
+
         var image = host.render()
         Pixel.Testing.assertImageGolden(&image, "menu.popup.section-label.light")
         Swag.require(host.dismissPopupMenu())
@@ -236,8 +248,11 @@ func assertMenuMarkerGolden(palette: MenuMarkerPalette, golden: string)
     var checked: bool
     host.app.sigFrame += func|host = &host, popup, button, checked = &checked|(_)
     {
-        if checked[] do
+        if checked[]
+        {
             return
+        }
+
         let anchor = button.surfaceRect()
         Swag.require(popup.popupAnchorButton == button)
         Swag.require(popup.popupBarItemSurfaceRect == anchor)
@@ -274,8 +289,11 @@ func assertMenuMarkerGolden(palette: MenuMarkerPalette, golden: string)
     var checked: bool
     host.app.sigFrame += func|host = &host, popup, button, checked = &checked|(_)
     {
-        if checked[] do
+        if checked[]
+        {
             return
+        }
+
         let anchor = button.surfaceRect()
         Swag.require(popup.popupAnchorButton == button and popup.popupButtonOpensUp)
         Swag.require(popup.position.y + popup.getPopupBodyRect().bottom() == anchor.y - popup.themeMetrics().menuPopup_AnchorGap)
@@ -315,8 +333,11 @@ func assertMenuMarkerGolden(palette: MenuMarkerPalette, golden: string)
     var checked: bool
     host.app.sigFrame += func|host = &host, popup, button, checked = &checked|(_)
     {
-        if checked[] do
+        if checked[]
+        {
             return
+        }
+
         Swag.require(popup.popupAnchorButton == button and popup.popupButtonOpensUp)
         Swag.require(popup.presentationOpacity == 1 and popup.presentationOffset == Math.Point{})
         Swag.require(popup.position.y + popup.getPopupBodyRect().bottom() == button.surfaceRect().y - popup.themeMetrics().menuPopup_AnchorGap)
@@ -349,8 +370,11 @@ func assertMenuMarkerGolden(palette: MenuMarkerPalette, golden: string)
     var checked: bool
     host.app.sigFrame += func|host = &host, popup, button, checked = &checked|(_)
     {
-        if checked[] do
+        if checked[]
+        {
             return
+        }
+
         let shadow = popup.themeMetrics().menuPopup_ShadowSize
         Swag.require(popup.popupAnchorButton == button)
         Swag.require(popup.position.right() - shadow <= host.root.clientRect().right() - popup.themeMetrics().menuPopup_WindowMargin)
@@ -385,8 +409,11 @@ func assertMenuMarkerGolden(palette: MenuMarkerPalette, golden: string)
     var checked: bool
     host.app.sigFrame += func|host = &host, checked = &checked|(_)
     {
-        if checked[] do
+        if checked[]
+        {
             return
+        }
+
         var image = host.render()
         Pixel.Testing.assertImageGolden(&image, "menu.popup.left")
         let menuDismissed = host.dismissPopupMenu()
@@ -433,8 +460,11 @@ func assertMenuMarkerGolden(palette: MenuMarkerPalette, golden: string)
     var checked: bool
     host.app.sigFrame += func|host = &host, checked = &checked|(_)
     {
-        if checked[] do
+        if checked[]
+        {
             return
+        }
+
         var image = host.render()
         Pixel.Testing.assertImageGolden(&image, "menu.popup.left.no-icons")
         let menuDismissed = host.dismissPopupMenu()

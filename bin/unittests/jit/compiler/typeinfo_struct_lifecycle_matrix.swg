@@ -157,56 +157,76 @@ func podShapesStayEmpty()->bool
            hasInitPointer(#typeof(Pod)) and
            hasLifecycleShape(#typeof(Empty), false, false, false) and
            hasInitPointer(#typeof(Empty)) and
-           hasLifecycleShape(#typeof(GenericPod's32), false, false, false) and
-           hasInitPointer(#typeof(GenericPod's32)) and
-           hasLifecycleShape(#typeof(GenericBox'Pod), false, false, false) and
-           hasInitPointer(#typeof(GenericBox'Pod))
+           hasLifecycleShape(#typeof(GenericPod!{s32}), false, false, false) and
+           hasInitPointer(#typeof(GenericPod!{s32})) and
+           hasLifecycleShape(#typeof(GenericBox!{Pod}), false, false, false) and
+           hasInitPointer(#typeof(GenericBox!{Pod}))
 }
 
 func initPointersRestoreDefaults()->bool
 {
-    if not hasInitPointer(#typeof(InitOnly)) do
+    if not hasInitPointer(#typeof(InitOnly))
+    {
         return false
-    if not hasInitPointer(#typeof(WrappedInitOnly)) do
+    }
+    if not hasInitPointer(#typeof(WrappedInitOnly))
+    {
         return false
-    if not hasInitPointer(#typeof(GenericBox'InitOnly)) do
+    }
+    if not hasInitPointer(#typeof(GenericBox!{InitOnly}))
+    {
         return false
+    }
 
     var direct = InitOnly{value: 0, ready: false}
     runInit(#typeof(InitOnly), &direct)
-    if direct.value != 17 or not direct.ready do
+    if direct.value != 17 or not direct.ready
+    {
         return false
+    }
 
     var wrapped = WrappedInitOnly{value: InitOnly{value: 0, ready: false}}
     runInit(#typeof(WrappedInitOnly), &wrapped)
-    if wrapped.value.value != 17 or not wrapped.value.ready do
+    if wrapped.value.value != 17 or not wrapped.value.ready
+    {
         return false
+    }
 
-    var genericValue = GenericBox'InitOnly{value: InitOnly{value: 0, ready: false}}
-    runInit(#typeof(GenericBox'InitOnly), &genericValue)
+    var genericValue = GenericBox!{InitOnly}{value: InitOnly{value: 0, ready: false}}
+    runInit(#typeof(GenericBox!{InitOnly}), &genericValue)
     return genericValue.value.value == 17 and genericValue.value.ready
 }
 
 func directPartialLifecyclePointersWork()->bool
 {
-    if not hasLifecycleShape(#typeof(DropOnly), true, false, false) do
+    if not hasLifecycleShape(#typeof(DropOnly), true, false, false)
+    {
         return false
-    if not hasLifecycleShape(#typeof(CopyOnly), false, true, false) do
+    }
+    if not hasLifecycleShape(#typeof(CopyOnly), false, true, false)
+    {
         return false
-    if not hasLifecycleShape(#typeof(MoveOnly), false, false, true) do
+    }
+    if not hasLifecycleShape(#typeof(MoveOnly), false, false, true)
+    {
         return false
+    }
 
     resetCounts()
     var dropValue = DropOnly{}
     runDrop(#typeof(DropOnly), &dropValue)
-    if DropHits != 1 or CopyHits != 0 or MoveHits != 0 do
+    if DropHits != 1 or CopyHits != 0 or MoveHits != 0
+    {
         return false
+    }
 
     resetCounts()
     var copyValue = CopyOnly{value: 5}
     runCopy(#typeof(CopyOnly), &copyValue)
-    if DropHits != 0 or CopyHits != 1 or MoveHits != 0 or copyValue.value != 15 do
+    if DropHits != 0 or CopyHits != 1 or MoveHits != 0 or copyValue.value != 15
+    {
         return false
+    }
 
     resetCounts()
     var moveValue = MoveOnly{value: 7}
@@ -216,24 +236,34 @@ func directPartialLifecyclePointersWork()->bool
 
 func synthesizedPartialLifecyclePointersWork()->bool
 {
-    if not hasLifecycleShape(#typeof(WrappedDropOnly), true, false, false) do
+    if not hasLifecycleShape(#typeof(WrappedDropOnly), true, false, false)
+    {
         return false
-    if not hasLifecycleShape(#typeof(WrappedCopyOnly), false, true, false) do
+    }
+    if not hasLifecycleShape(#typeof(WrappedCopyOnly), false, true, false)
+    {
         return false
-    if not hasLifecycleShape(#typeof(WrappedMoveOnly), false, false, true) do
+    }
+    if not hasLifecycleShape(#typeof(WrappedMoveOnly), false, false, true)
+    {
         return false
+    }
 
     resetCounts()
     var dropValue = WrappedDropOnly{}
     runDrop(#typeof(WrappedDropOnly), &dropValue)
-    if DropHits != 1 or CopyHits != 0 or MoveHits != 0 do
+    if DropHits != 1 or CopyHits != 0 or MoveHits != 0
+    {
         return false
+    }
 
     resetCounts()
     var copyValue = WrappedCopyOnly{value: CopyOnly{value: 8}}
     runCopy(#typeof(WrappedCopyOnly), &copyValue)
-    if DropHits != 0 or CopyHits != 1 or MoveHits != 0 or copyValue.value.value != 18 do
+    if DropHits != 0 or CopyHits != 1 or MoveHits != 0 or copyValue.value.value != 18
+    {
         return false
+    }
 
     resetCounts()
     var moveValue = WrappedMoveOnly{value: MoveOnly{value: 4}}
@@ -244,8 +274,10 @@ func synthesizedPartialLifecyclePointersWork()->bool
 func mixedLifecycleFlagsMatchPointers()->bool
 {
     let type = #typeof(MixedLifecycle)
-    if not hasLifecycleShape(type, true, true, true) do
+    if not hasLifecycleShape(type, true, true, true)
+    {
         return false
+    }
 
     resetCounts()
     var value = MixedLifecycle{dropValue: DropOnly{}, copyValue: CopyOnly{value: 2}, moveValue: MoveOnly{value: 3}}
@@ -254,8 +286,10 @@ func mixedLifecycleFlagsMatchPointers()->bool
        CopyHits != 1 or
        MoveHits != 0 or
        value.copyValue.value != 12 or
-       value.moveValue.value != 3 do
+       value.moveValue.value != 3
+    {
         return false
+    }
 
     resetCounts()
     runMove(type, &value)
@@ -263,8 +297,10 @@ func mixedLifecycleFlagsMatchPointers()->bool
        CopyHits != 0 or
        MoveHits != 1 or
        value.moveValue.value != 103 or
-       value.copyValue.value != 12 do
+       value.copyValue.value != 12
+    {
         return false
+    }
 
     resetCounts()
     runDrop(type, &value)
@@ -273,41 +309,57 @@ func mixedLifecycleFlagsMatchPointers()->bool
 
 func genericMatrixStaysAligned()->bool
 {
-    if not hasLifecycleShape(#typeof(GenericBox'DropOnly), true, false, false) do
+    if not hasLifecycleShape(#typeof(GenericBox!{DropOnly}), true, false, false)
+    {
         return false
-    if not hasLifecycleShape(#typeof(GenericBox'CopyOnly), false, true, false) do
+    }
+    if not hasLifecycleShape(#typeof(GenericBox!{CopyOnly}), false, true, false)
+    {
         return false
-    if not hasLifecycleShape(#typeof(GenericBox'MoveOnly), false, false, true) do
+    }
+    if not hasLifecycleShape(#typeof(GenericBox!{MoveOnly}), false, false, true)
+    {
         return false
-    if not hasLifecycleShape(#typeof(GenericBox'MixedLifecycle), true, true, true) do
+    }
+    if not hasLifecycleShape(#typeof(GenericBox!{MixedLifecycle}), true, true, true)
+    {
         return false
+    }
 
     resetCounts()
-    var copyValue = GenericBox'CopyOnly{value: CopyOnly{value: 9}}
-    runCopy(#typeof(GenericBox'CopyOnly), &copyValue)
-    if DropHits != 0 or CopyHits != 1 or MoveHits != 0 or copyValue.value.value != 19 do
+    var copyValue = GenericBox!{CopyOnly}{value: CopyOnly{value: 9}}
+    runCopy(#typeof(GenericBox!{CopyOnly}), &copyValue)
+    if DropHits != 0 or CopyHits != 1 or MoveHits != 0 or copyValue.value.value != 19
+    {
         return false
+    }
 
     resetCounts()
-    var moveValue = GenericBox'MoveOnly{value: MoveOnly{value: 11}}
-    runMove(#typeof(GenericBox'MoveOnly), &moveValue)
-    if DropHits != 0 or CopyHits != 0 or MoveHits != 1 or moveValue.value.value != 111 do
+    var moveValue = GenericBox!{MoveOnly}{value: MoveOnly{value: 11}}
+    runMove(#typeof(GenericBox!{MoveOnly}), &moveValue)
+    if DropHits != 0 or CopyHits != 0 or MoveHits != 1 or moveValue.value.value != 111
+    {
         return false
+    }
 
     resetCounts()
-    var mixedValue = GenericBox'MixedLifecycle{value: MixedLifecycle{dropValue: DropOnly{}, copyValue: CopyOnly{value: 1}, moveValue: MoveOnly{value: 6}}}
-    runCopy(#typeof(GenericBox'MixedLifecycle), &mixedValue)
-    if CopyHits != 1 or mixedValue.value.copyValue.value != 11 do
+    var mixedValue = GenericBox!{MixedLifecycle}{value: MixedLifecycle{dropValue: DropOnly{}, copyValue: CopyOnly{value: 1}, moveValue: MoveOnly{value: 6}}}
+    runCopy(#typeof(GenericBox!{MixedLifecycle}), &mixedValue)
+    if CopyHits != 1 or mixedValue.value.copyValue.value != 11
+    {
         return false
+    }
 
     resetCounts()
-    runMove(#typeof(GenericBox'MixedLifecycle), &mixedValue)
-    if MoveHits != 1 or mixedValue.value.moveValue.value != 106 do
+    runMove(#typeof(GenericBox!{MixedLifecycle}), &mixedValue)
+    if MoveHits != 1 or mixedValue.value.moveValue.value != 106
+    {
         return false
+    }
 
     resetCounts()
-    var dropValue = GenericBox'DropOnly{}
-    runDrop(#typeof(GenericBox'DropOnly), &dropValue)
+    var dropValue = GenericBox!{DropOnly}{}
+    runDrop(#typeof(GenericBox!{DropOnly}), &dropValue)
     return DropHits == 1
 }
 

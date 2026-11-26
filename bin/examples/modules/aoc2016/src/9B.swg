@@ -24,12 +24,12 @@ func day9B()
     let dataPath = Path.combine(Path.directoryName(#file), "9.txt")
     let line     = expect File.readAllText(dataPath)
 
-    var sum: Array'u64
+    var sum: Array!{u64}
     sum.resize(line.length)
     sum.fill(1)
 
     var r = expect Parser.RegExp.create(#raw "\((\d+)x(\d+)\)")
-    var start, total = 0'u64
+    var start, total = 0_u64
     while start != line.count
     {
         let res = r.partialMatch(line[start to])
@@ -38,8 +38,10 @@ func day9B()
             let n = expect StrConv.toU64(r[1])
             let x = expect StrConv.toU64(r[2])
             start += res.count
-            for i in n do
+            for i in n
+            {
                 sum[start + i] *= x
+            }
         }
         else
         {

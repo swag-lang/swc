@@ -3,7 +3,7 @@
 
 using Swag, Math
 
-const CoreSimdS64Min = -9_223_372_036_854_775_807's64 - 1
+const CoreSimdS64Min = -9_223_372_036_854_775_807_s64 - 1
 
 // The aliases name the '#simd' types themselves.
 #test
@@ -25,8 +25,10 @@ const CoreSimdS64Min = -9_223_372_036_854_775_807's64 - 1
 #test
 {
     var source: [17] u8
-    for i in 17 do
+    for i in 17
+    {
         source[i] = cast(u8, (i + 1))
+    }
 
     // An offset of one makes the load deliberately unaligned.
     let v = Simd.load(source.buffer + 1)
@@ -50,21 +52,21 @@ const CoreSimdS64Min = -9_223_372_036_854_775_807's64 - 1
 // Saturating arithmetic clamps instead of wrapping, and the rounding average rounds up.
 #test
 {
-    let big   = Simd.splat(200'u8)
-    let small = Simd.splat(100'u8)
+    let big   = Simd.splat(200_u8)
+    let small = Simd.splat(100_u8)
     Swag.require(Simd.addSaturating(big, small)[0] == 255)
     Swag.require(Simd.subSaturating(small, big)[0] == 0)
     Swag.require(Simd.average(big, small)[15] == 150)
-    Swag.require(Simd.average(Simd.splat(1'u8), Simd.splat(2'u8))[0] == 2)
+    Swag.require(Simd.average(Simd.splat(1_u8), Simd.splat(2_u8))[0] == 2)
 
-    let words = cast(Simd.S16x8, [1's16, 2, 3, 4, 5, 6, 7, 8])
+    let words = cast(Simd.S16x8, [1_s16, 2, 3, 4, 5, 6, 7, 8])
     let pairs = Simd.mulAddPairs(words, words)
     Swag.require(pairs[0] == 1 * 1 + 2 * 2 and pairs[3] == 7 * 7 + 8 * 8)
 
-    Swag.require(Simd.sum(cast(Simd.S32x4, [1's32, 2, 3, 4])) == 10)
-    Swag.require(Simd.sum(cast(Simd.S32x4, [2_147_483_647's32, 1, 0, 0])) == -2_147_483_648)
+    Swag.require(Simd.sum(cast(Simd.S32x4, [1_s32, 2, 3, 4])) == 10)
+    Swag.require(Simd.sum(cast(Simd.S32x4, [2_147_483_647_s32, 1, 0, 0])) == -2_147_483_648)
 
-    let truncated = Simd.truncateToS32(cast(Simd.F32x4, [1.9'f32, -1.9, 32767.9, -32768.9]))
+    let truncated = Simd.truncateToS32(cast(Simd.F32x4, [1.9_f32, -1.9, 32767.9, -32768.9]))
     Swag.require(truncated[0] == 1 and truncated[1] == -1 and truncated[2] == 32767 and truncated[3] == -32768)
 }
 
@@ -72,33 +74,35 @@ const CoreSimdS64Min = -9_223_372_036_854_775_807's64 - 1
 #test
 {
     var table: [17] s32
-    for i in 17 do
+    for i in 17
+    {
         table[i] = cast(s32, i) * cast(s32, i) - 31
+    }
 
-    let gathered = Simd.gather(table.buffer, cast(Simd.U32x4, [16'u32, 3, 3, 9]))
+    let gathered = Simd.gather(table.buffer, cast(Simd.U32x4, [16_u32, 3, 3, 9]))
     Swag.require(gathered[0] == 225 and gathered[1] == -22 and gathered[2] == -22 and gathered[3] == 50)
 }
 
 // Interleaving alternates lanes from the corresponding low or high input halves.
 #test
 {
-    let x    = cast(Simd.U8x16, [0'u8, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15])
-    let y    = cast(Simd.U8x16, [100'u8, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 113, 114, 115])
+    let x    = cast(Simd.U8x16, [0_u8, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15])
+    let y    = cast(Simd.U8x16, [100_u8, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 113, 114, 115])
     let low  = Simd.interleaveLow(x, y)
     let high = Simd.interleaveHigh(x, y)
     Swag.require(low[0] == 0 and low[1] == 100 and low[14] == 7 and low[15] == 107)
     Swag.require(high[0] == 8 and high[1] == 108 and high[14] == 15 and high[15] == 115)
 
-    let wordLow = Simd.interleaveLow(cast(Simd.U16x8, [0'u16, 1, 2, 3, 4, 5, 6, 7]), cast(Simd.U16x8, [10'u16, 11, 12, 13, 14, 15, 16, 17]))
+    let wordLow = Simd.interleaveLow(cast(Simd.U16x8, [0_u16, 1, 2, 3, 4, 5, 6, 7]), cast(Simd.U16x8, [10_u16, 11, 12, 13, 14, 15, 16, 17]))
     Swag.require(wordLow[0] == 0 and wordLow[1] == 10 and wordLow[6] == 3 and wordLow[7] == 13)
 
-    let quadLow  = Simd.interleaveLow(cast(Simd.U32x4, [0'u32, 1, 2, 3]), cast(Simd.U32x4, [10'u32, 11, 12, 13]))
-    let quadHigh = Simd.interleaveHigh(cast(Simd.U32x4, [0'u32, 1, 2, 3]), cast(Simd.U32x4, [10'u32, 11, 12, 13]))
+    let quadLow  = Simd.interleaveLow(cast(Simd.U32x4, [0_u32, 1, 2, 3]), cast(Simd.U32x4, [10_u32, 11, 12, 13]))
+    let quadHigh = Simd.interleaveHigh(cast(Simd.U32x4, [0_u32, 1, 2, 3]), cast(Simd.U32x4, [10_u32, 11, 12, 13]))
     Swag.require(quadLow[0] == 0 and quadLow[1] == 10 and quadLow[2] == 1 and quadLow[3] == 11)
     Swag.require(quadHigh[0] == 2 and quadHigh[1] == 12 and quadHigh[2] == 3 and quadHigh[3] == 13)
 
-    let octLow  = Simd.interleaveLow(cast(Simd.U64x2, [0'u64, 1]), cast(Simd.U64x2, [10'u64, 11]))
-    let octHigh = Simd.interleaveHigh(cast(Simd.U64x2, [0'u64, 1]), cast(Simd.U64x2, [10'u64, 11]))
+    let octLow  = Simd.interleaveLow(cast(Simd.U64x2, [0_u64, 1]), cast(Simd.U64x2, [10_u64, 11]))
+    let octHigh = Simd.interleaveHigh(cast(Simd.U64x2, [0_u64, 1]), cast(Simd.U64x2, [10_u64, 11]))
     Swag.require(octLow[0] == 0 and octLow[1] == 10)
     Swag.require(octHigh[0] == 1 and octHigh[1] == 11)
 }
@@ -106,15 +110,15 @@ const CoreSimdS64Min = -9_223_372_036_854_775_807's64 - 1
 // Packs narrow with saturation, and the widening halves extend with the lane's signedness.
 #test
 {
-    let sums = cast(Simd.S16x8, [-20's16, 0, 128, 300, 255, 256, 64, 1])
+    let sums = cast(Simd.S16x8, [-20_s16, 0, 128, 300, 255, 256, 64, 1])
     let px   = Simd.packUnsigned(sums, sums)
     Swag.require(px[0] == 0 and px[2] == 128 and px[3] == 255 and px[8] == 0)
     let sx = Simd.packSigned(sums, sums)
     Swag.require(sx[0] == -20 and sx[3] == 127)
 
-    let bytes = Simd.splat(-3's8)
+    let bytes = Simd.splat(-3_s8)
     Swag.require(Simd.widenLow(bytes)[0] == -3 and Simd.widenHigh(bytes)[7] == -3)
-    let wide = Simd.widenHigh(Simd.splat(200'u8))
+    let wide = Simd.widenHigh(Simd.splat(200_u8))
     Swag.require(wide[0] == 200)
 }
 
@@ -122,52 +126,55 @@ const CoreSimdS64Min = -9_223_372_036_854_775_807's64 - 1
 #test
 {
     var lanes: [16] u8
-    for i in 16 do
+    for i in 16
+    {
         lanes[i] = cast(u8, (i * 3))
+    }
+
     let value    = Simd.load(lanes.buffer)
-    let reversed = Simd.shuffle(value, cast(Simd.U8x16, [15'u8, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0]))
+    let reversed = Simd.shuffle(value, cast(Simd.U8x16, [15_u8, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0]))
     Swag.require(reversed[0] == 45 and reversed[15] == 0)
-    let cleared = Simd.shuffle(value, cast(Simd.U8x16, [128'u8, 1, 128, 3, 128, 5, 128, 7, 128, 9, 128, 11, 128, 13, 128, 15]))
+    let cleared = Simd.shuffle(value, cast(Simd.U8x16, [128_u8, 1, 128, 3, 128, 5, 128, 7, 128, 9, 128, 11, 128, 13, 128, 15]))
     Swag.require(cleared[0] == 0 and cleared[1] == 3)
 }
 
 // Comparisons produce masks, and select, bitmask, any and all consume them.
 #test
 {
-    let a = cast(Simd.S32x4, [1's32, 50, 3, 70])
-    let b = cast(Simd.S32x4, [10's32, 20, 30, 40])
+    let a = cast(Simd.S32x4, [1_s32, 50, 3, 70])
+    let b = cast(Simd.S32x4, [10_s32, 20, 30, 40])
 
     let mask    = a > b
     let clamped = Simd.select(mask, b, a)
     Swag.require(clamped[0] == 1 and clamped[1] == 20 and clamped[2] == 3 and clamped[3] == 40)
     Swag.require(Simd.bitmask(mask) == 0b1010)
     Swag.require(Simd.anyTrue(mask) and not Simd.allTrue(mask))
-    Swag.require(not Simd.anyTrue(a > Simd.splat(100's32)))
-    Swag.require(Simd.allTrue(a < Simd.splat(100's32)))
+    Swag.require(not Simd.anyTrue(a > Simd.splat(100_s32)))
+    Swag.require(Simd.allTrue(a < Simd.splat(100_s32)))
 }
 
 // The element-wise Math functions accept the vector types, including the generic min and max.
 #test
 {
-    let a = cast(Simd.S16x8, [-5's16, 10, -300, 4, 0, 1, -1, 32767])
+    let a = cast(Simd.S16x8, [-5_s16, 10, -300, 4, 0, 1, -1, 32767])
     let r = Math.abs(a)
     Swag.require(r[0] == 5 and r[2] == 300 and r[7] == 32767)
     let wide    = cast(Simd.S64x2, [CoreSimdS64Min, -9_000_000_000])
     let wideAbs = Math.abs(wide)
     Swag.require(wideAbs[0] == CoreSimdS64Min and wideAbs[1] == 9_000_000_000)
-    Swag.require(Math.min(wide, Simd.splat(-7's64))[0] == CoreSimdS64Min)
-    Swag.require(Math.max(wide, Simd.splat(-7's64))[1] == -7)
+    Swag.require(Math.min(wide, Simd.splat(-7_s64))[0] == CoreSimdS64Min)
+    Swag.require(Math.max(wide, Simd.splat(-7_s64))[1] == -7)
 
-    let x = cast(Simd.F32x4, [1'f32, 4, 9, 16])
+    let x = cast(Simd.F32x4, [1_f32, 4, 9, 16])
     let s = Math.sqrt(x)
     Swag.require(s[0] == 1 and s[3] == 4)
-    Swag.require(Math.floor(Simd.splat(1.5'f32))[0] == 1)
-    Swag.require(Math.ceil(Simd.splat(1.5'f32))[0] == 2)
-    Swag.require(Math.trunc(Simd.splat(-1.5'f64))[0] == -1)
+    Swag.require(Math.floor(Simd.splat(1.5_f32))[0] == 1)
+    Swag.require(Math.ceil(Simd.splat(1.5_f32))[0] == 2)
+    Swag.require(Math.trunc(Simd.splat(-1.5_f64))[0] == -1)
     Swag.require(Math.mulAdd(x, x, x)[1] == 20)
 
-    let lo = Math.min(a, Simd.splat(0's16))
-    let hi = Math.max(a, Simd.splat(0's16))
+    let lo = Math.min(a, Simd.splat(0_s16))
+    let hi = Math.max(a, Simd.splat(0_s16))
     Swag.require(lo[0] == -5 and lo[1] == 0)
     Swag.require(hi[0] == 0 and hi[1] == 10)
 }
@@ -175,8 +182,8 @@ const CoreSimdS64Min = -9_223_372_036_854_775_807's64 - 1
 // The packed bit vocabulary repeats the scalar one, lane by lane.
 #test
 {
-    let bytes = cast(Simd.U8x16, [0'u8, 1, 2, 3, 0x0F, 0x10, 0x55, 0x7F, 0x80, 0xAA, 0xC3, 0xE0, 0xF0, 0xFE, 0xFF, 0x18])
-    let quads = cast(Simd.U32x4, [0'u32, 1, 0x1234_5678, 0xFFFF_FFFF])
+    let bytes = cast(Simd.U8x16, [0_u8, 1, 2, 3, 0x0F, 0x10, 0x55, 0x7F, 0x80, 0xAA, 0xC3, 0xE0, 0xF0, 0xFE, 0xFF, 0x18])
+    let quads = cast(Simd.U32x4, [0_u32, 1, 0x1234_5678, 0xFFFF_FFFF])
 
     let rotated  = Math.rol(bytes, 3)
     let restored = Math.ror(rotated, 3)
@@ -197,43 +204,55 @@ const CoreSimdS64Min = -9_223_372_036_854_775_807's64 - 1
     }
 
     let swapped = Math.byteSwap(quads)
-    for i in 4 do
+    for i in 4
+    {
         Swag.require(swapped[i] == Math.byteSwap(quads[i]))
+    }
 
     let reversedBytes = Math.reverse(bytes)
-    for i in 16 do
+    for i in 16
+    {
         Swag.require(reversedBytes[i] == Math.reverse(bytes[i]))
+    }
 
     let reversedQuads = Math.reverse(quads)
-    for i in 4 do
+    for i in 4
+    {
         Swag.require(reversedQuads[i] == Math.reverse(quads[i]))
+    }
 
-    let words         = cast(Simd.U16x8, [0'u16, 1, 0x00FF, 0x0100, 0x1234, 0x8000, 0xAAAA, 0xFFFF])
+    let words         = cast(Simd.U16x8, [0_u16, 1, 0x00FF, 0x0100, 0x1234, 0x8000, 0xAAAA, 0xFFFF])
     let reversedWords = Math.reverse(words)
-    for i in 8 do
+    for i in 8
+    {
         Swag.require(reversedWords[i] == Math.reverse(words[i]))
+    }
 
-    let pairs         = cast(Simd.U64x2, [0'u64, 0x0102_0304_0506_0708])
+    let pairs         = cast(Simd.U64x2, [0_u64, 0x0102_0304_0506_0708])
     let reversedPairs = Math.reverse(pairs)
-    for i in 2 do
+    for i in 2
+    {
         Swag.require(reversedPairs[i] == Math.reverse(pairs[i]))
+    }
 }
 
 // The elementary float lane operations: magnitude, sign transfer, sign, clamp
 // and interpolation.
 #test
 {
-    let values = cast(Simd.F32x4, [-1.5'f32, 2.5, -0.0, 8.25])
+    let values = cast(Simd.F32x4, [-1.5_f32, 2.5, -0.0, 8.25])
 
     let magnitude = Math.abs(values)
     Swag.require(magnitude[0] == 1.5 and magnitude[1] == 2.5 and magnitude[3] == 8.25)
     Swag.require(1.0 / magnitude[2] > 0)
 
-    let negative = Math.copysign(values, Simd.splat(-1'f32))
+    let negative = Math.copysign(values, Simd.splat(-1_f32))
     Swag.require(negative[0] == -1.5 and negative[1] == -2.5 and negative[3] == -8.25)
     Swag.require(1.0 / negative[2] < 0)
-    for i in 4 do
-        Swag.require(negative[i] == Math.copysign(values[i], -1'f32))
+    for i in 4
+    {
+        Swag.require(negative[i] == Math.copysign(values[i], -1_f32))
+    }
 
     let signs = Math.sign(values)
     Swag.require(signs[0] == -1 and signs[1] == 1 and signs[2] == 0 and signs[3] == 1)
@@ -241,40 +260,40 @@ const CoreSimdS64Min = -9_223_372_036_854_775_807's64 - 1
     let bounded = Math.saturate(values)
     Swag.require(bounded[0] == 0 and bounded[1] == 1 and bounded[3] == 1)
 
-    let clamped = Math.clamp(values, Simd.splat(-1'f32), Simd.splat(2'f32))
+    let clamped = Math.clamp(values, Simd.splat(-1_f32), Simd.splat(2_f32))
     Swag.require(clamped[0] == -1 and clamped[1] == 2 and clamped[3] == 2)
 
-    let mixed = Math.lerp(Simd.splat(0'f32), Simd.splat(10'f32), Simd.splat(0.25'f32))
+    let mixed = Math.lerp(Simd.splat(0_f32), Simd.splat(10_f32), Simd.splat(0.25_f32))
     Swag.require(mixed[0] == 2.5 and mixed[3] == 2.5)
 
-    let wide = cast(Simd.F64x2, [-3.25'f64, -0.0])
+    let wide = cast(Simd.F64x2, [-3.25_f64, -0.0])
     Swag.require(Math.abs(wide)[0] == 3.25 and 1.0 / Math.abs(wide)[1] > 0)
-    Swag.require(Math.copysign(wide, Simd.splat(1'f64))[0] == 3.25)
+    Swag.require(Math.copysign(wide, Simd.splat(1_f64))[0] == 3.25)
     Swag.require(Math.sign(wide)[0] == -1 and Math.sign(wide)[1] == 0)
     Swag.require(Math.saturate(wide)[0] == 0)
-    Swag.require(Math.lerp(Simd.splat(1'f64), Simd.splat(3'f64), Simd.splat(0.5'f64))[1] == 2)
+    Swag.require(Math.lerp(Simd.splat(1_f64), Simd.splat(3_f64), Simd.splat(0.5_f64))[1] == 2)
 }
 
 // Float rounding and interpolation helpers match the scalar math contracts lane by lane.
 #test
 {
-    let f32Values = cast(Simd.F32x4, [-1.5'f32, -0.25, 0.5, 1.75])
+    let f32Values = cast(Simd.F32x4, [-1.5_f32, -0.25, 0.5, 1.75])
     let rounded32 = Math.round(f32Values)
     let fractions = Math.fract(f32Values)
     Swag.require(rounded32[0] == -2 and rounded32[1] == 0 and rounded32[2] == 1 and rounded32[3] == 2)
     Swag.require(fractions[0] == 0.5 and fractions[1] == 0.75 and fractions[2] == 0.5 and fractions[3] == 0.75)
 
-    let f64Values = cast(Simd.F64x2, [-2.5'f64, 1.5])
+    let f64Values = cast(Simd.F64x2, [-2.5_f64, 1.5])
     let rounded64 = Math.round(f64Values)
     Swag.require(rounded64[0] == -3 and rounded64[1] == 2)
     let fractions64 = Math.fract(f64Values)
     Swag.require(fractions64[0] == 0.5 and fractions64[1] == 0.5)
 
-    let a       = Simd.splat(0'f32)
-    let b       = Simd.splat(1'f32)
-    let c       = Simd.splat(2'f32)
-    let d       = Simd.splat(3'f32)
-    let factors = cast(Simd.F32x4, [0'f32, 0.25, 0.5, 1])
+    let a       = Simd.splat(0_f32)
+    let b       = Simd.splat(1_f32)
+    let c       = Simd.splat(2_f32)
+    let d       = Simd.splat(3_f32)
+    let factors = cast(Simd.F32x4, [0_f32, 0.25, 0.5, 1])
     let cubic   = Math.cubicLerp(a, b, c, d, factors)
     Swag.require(cubic[0] == 1 and cubic[3] == 2)
     let hermite = Math.interpHermite(factors)
@@ -282,56 +301,56 @@ const CoreSimdS64Min = -9_223_372_036_854_775_807's64 - 1
     Swag.require(hermite[0] == 0 and hermite[3] == 1)
     Swag.require(quintic[0] == 0 and quintic[3] == 1)
 
-    let factors64 = cast(Simd.F64x2, [0'f64, 1])
-    let cubic64   = Math.cubicLerp(Simd.splat(0'f64), Simd.splat(1'f64), Simd.splat(2'f64), Simd.splat(3'f64), factors64)
+    let factors64 = cast(Simd.F64x2, [0_f64, 1])
+    let cubic64   = Math.cubicLerp(Simd.splat(0_f64), Simd.splat(1_f64), Simd.splat(2_f64), Simd.splat(3_f64), factors64)
     Swag.require(cubic64[0] == 1 and cubic64[1] == 2)
 }
 
 // The horizontal reductions and their widening forms.
 #test
 {
-    let quads = cast(Simd.S32x4, [1's32, -2, 3, 4])
+    let quads = cast(Simd.S32x4, [1_s32, -2, 3, 4])
     Swag.require(Simd.sum(quads) == 6)
     Swag.require(Simd.minimum(quads) == -2)
     Swag.require(Simd.maximum(quads) == 4)
 
-    let bits = cast(Simd.U32x4, [0b1110'u32, 0b1010, 0b1111, 0b0110])
+    let bits = cast(Simd.U32x4, [0b1110_u32, 0b1010, 0b1111, 0b0110])
     Swag.require(Simd.bitwiseAnd(bits) == 0b0010)
     Swag.require(Simd.bitwiseOr(bits) == 0b1111)
     Swag.require(Simd.bitwiseXor(bits) == 0b1101)
 
-    let floats = cast(Simd.F32x4, [1.5'f32, -2.5, 8, 0.25])
+    let floats = cast(Simd.F32x4, [1.5_f32, -2.5, 8, 0.25])
     Swag.require(Simd.sum(floats) == 7.25)
     Swag.require(Simd.minimum(floats) == -2.5)
     Swag.require(Simd.maximum(floats) == 8)
 
-    let mask = quads > Simd.splat(0's32)
+    let mask = quads > Simd.splat(0_s32)
     Swag.require(Simd.countTrue(mask) == 3)
 
     // The widening sums cannot overflow their accumulator, whatever the lanes hold.
-    Swag.require(Simd.sumWide(Simd.splat(255'u8)) == 16 * 255)
-    Swag.require(Simd.sumWide(Simd.splat(65535'u16)) == 8 * 65535)
-    Swag.require(Simd.sumWide(Simd.splat(-128's8)) == 16 * -128)
-    Swag.require(Simd.sumWide(Simd.splat(-32768's16)) == 8 * -32768)
-    Swag.require(Simd.sumWide(Simd.splat(0xFFFF_FFFF'u32)) == 4'u64 * 0xFFFF_FFFF)
-    Swag.require(Simd.sumWide(Simd.splat(2_147_483_647's32)) == 4's64 * 2_147_483_647)
+    Swag.require(Simd.sumWide(Simd.splat(255_u8)) == 16 * 255)
+    Swag.require(Simd.sumWide(Simd.splat(65535_u16)) == 8 * 65535)
+    Swag.require(Simd.sumWide(Simd.splat(-128_s8)) == 16 * -128)
+    Swag.require(Simd.sumWide(Simd.splat(-32768_s16)) == 8 * -32768)
+    Swag.require(Simd.sumWide(Simd.splat(0xFFFF_FFFF_u32)) == 4_u64 * 0xFFFF_FFFF)
+    Swag.require(Simd.sumWide(Simd.splat(2_147_483_647_s32)) == 4_s64 * 2_147_483_647)
 
     // The narrow sums wrap in their own lane width.
-    Swag.require(Simd.sum(Simd.splat(255'u8)) == cast(u8, ((16 * 255) % 256)))
+    Swag.require(Simd.sum(Simd.splat(255_u8)) == cast(u8, ((16 * 255) % 256)))
 }
 
 // The sum of absolute differences and the byte dot product.
 #test
 {
-    let left  = cast(Simd.U8x16, [10'u8, 20, 30, 40, 50, 60, 70, 80, 0, 0, 0, 0, 0, 0, 0, 0])
-    let right = cast(Simd.U8x16, [1'u8, 2, 3, 4, 5, 6, 7, 8, 255, 0, 0, 0, 0, 0, 0, 0])
+    let left  = cast(Simd.U8x16, [10_u8, 20, 30, 40, 50, 60, 70, 80, 0, 0, 0, 0, 0, 0, 0, 0])
+    let right = cast(Simd.U8x16, [1_u8, 2, 3, 4, 5, 6, 7, 8, 255, 0, 0, 0, 0, 0, 0, 0])
 
     let halves = Simd.absoluteDifferences(left, right)
     Swag.require(halves[0] == 324 and halves[1] == 255)
     Swag.require(Simd.sumAbsoluteDifferences(left, right) == 324 + 255)
 
-    let unsignedBytes = cast(Simd.U8x16, [1'u8, 2, 3, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0])
-    let signedBytes   = cast(Simd.S8x16, [10's8, -20, 30, -40, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0])
+    let unsignedBytes = cast(Simd.U8x16, [1_u8, 2, 3, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0])
+    let signedBytes   = cast(Simd.S8x16, [10_s8, -20, 30, -40, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0])
     let products      = Simd.mulAddPairs(unsignedBytes, signedBytes)
     Swag.require(products[0] == -30 and products[1] == -70)
 }
@@ -339,20 +358,22 @@ const CoreSimdS64Min = -9_223_372_036_854_775_807's64 - 1
 // Lane permutation, byte alignment, deinterleaving and the transposes.
 #test
 {
-    let quads = cast(Simd.U32x4, [10'u32, 20, 30, 40])
-    let other = cast(Simd.U32x4, [50'u32, 60, 70, 80])
+    let quads = cast(Simd.U32x4, [10_u32, 20, 30, 40])
+    let other = cast(Simd.U32x4, [50_u32, 60, 70, 80])
 
-    let reversed = Simd.permute(quads, cast(Simd.U32x4, [3'u32, 2, 1, 0]))
+    let reversed = Simd.permute(quads, cast(Simd.U32x4, [3_u32, 2, 1, 0]))
     Swag.require(reversed[0] == 40 and reversed[3] == 10)
 
-    let mixed = Simd.permute2(quads, other, cast(Simd.U32x4, [0'u32, 4, 1, 5]))
+    let mixed = Simd.permute2(quads, other, cast(Simd.U32x4, [0_u32, 4, 1, 5]))
     Swag.require(mixed[0] == 10 and mixed[1] == 50 and mixed[2] == 20 and mixed[3] == 60)
 
-    let low  = cast(Simd.U8x16, [0'u8, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15])
-    let high = cast(Simd.U8x16, [16'u8, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31])
+    let low  = cast(Simd.U8x16, [0_u8, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15])
+    let high = cast(Simd.U8x16, [16_u8, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31])
     let slid = Simd.align(low, high, 4)
-    for i in 16 do
+    for i in 16
+    {
         Swag.require(slid[i] == cast(u8, (i + 4)))
+    }
 
     let evens = Simd.deinterleaveEven(low, high)
     let odds  = Simd.deinterleaveOdd(low, high)
@@ -370,40 +391,50 @@ const CoreSimdS64Min = -9_223_372_036_854_775_807's64 - 1
     for r in 4
     {
         var lanes: [4] u32
-        for c in 4 do
+        for c in 4
+        {
             lanes[c] = cast(u32, (r * 4 + c))
+        }
+
         rows[r] = cast(Simd.U32x4, lanes)
     }
 
     Simd.transpose4x4(&rows)
     for r in 4
     {
-        for c in 4 do
+        for c in 4
+        {
             Swag.require(rows[r][c] == cast(u32, (c * 4 + r)))
+        }
     }
 
     var wide: [8] Simd.U16x8
     for r in 8
     {
         var lanes: [8] u16
-        for c in 8 do
+        for c in 8
+        {
             lanes[c] = cast(u16, (r * 8 + c))
+        }
+
         wide[r] = cast(Simd.U16x8, lanes)
     }
 
     Simd.transpose8x8(&wide)
     for r in 8
     {
-        for c in 8 do
+        for c in 8
+        {
             Swag.require(wide[r][c] == cast(u16, (c * 8 + r)))
+        }
     }
 }
 
 // The high half of a lane product, and the widening products it composes into.
 #test
 {
-    let x = cast(Simd.S16x8, [-32768's16, 32767, 1000, -1000, 3, -3, 0, 12345])
-    let y = cast(Simd.S16x8, [32767's16, 32767, -2000, 2000, 5, 5, 12345, -1])
+    let x = cast(Simd.S16x8, [-32768_s16, 32767, 1000, -1000, 3, -3, 0, 12345])
+    let y = cast(Simd.S16x8, [32767_s16, 32767, -2000, 2000, 5, 5, 12345, -1])
 
     let low  = x * y
     let high = Simd.mulHigh(x, y)
@@ -427,51 +458,53 @@ const CoreSimdS64Min = -9_223_372_036_854_775_807's64 - 1
     let ux = cast #bit (Simd.U16x8, x)
     let uy = cast #bit (Simd.U16x8, y)
     let uh = Simd.mulHigh(ux, uy)
-    for i in 8 do
+    for i in 8
+    {
         Swag.require(uh[i] == cast(u16, ((cast(u32, ux[i]) * cast(u32, uy[i])) >> 16)))
+    }
 }
 
 // Range mapping and angular interpolation keep the scalar contracts in every lane.
 #test
 {
-    let start   = cast(Simd.F32x4, [0'f32, 10, 0, 170])
-    let end     = cast(Simd.F32x4, [10'f32, 0, 10, -170])
-    let values  = cast(Simd.F32x4, [2'f32, 2, -2, 0])
+    let start   = cast(Simd.F32x4, [0_f32, 10, 0, 170])
+    let end     = cast(Simd.F32x4, [10_f32, 0, 10, -170])
+    let values  = cast(Simd.F32x4, [2_f32, 2, -2, 0])
     let inverse = Math.inverseLerp(start, end, values)
-    Swag.require(Math.isEqualEpsilon(inverse[0], 0.2'f32, 0.001))
-    Swag.require(Math.isEqualEpsilon(inverse[1], 0.8'f32, 0.001))
-    Swag.require(Math.isEqualEpsilon(inverse[2], -0.2'f32, 0.001))
+    Swag.require(Math.isEqualEpsilon(inverse[0], 0.2_f32, 0.001))
+    Swag.require(Math.isEqualEpsilon(inverse[1], 0.8_f32, 0.001))
+    Swag.require(Math.isEqualEpsilon(inverse[2], -0.2_f32, 0.001))
 
-    let wrapped = Math.wrap(cast(Simd.F32x4, [2.25'f32, -0.25, 5, 12]),
-                            Simd.splat(0'f32),
-                            Simd.splat(1'f32))
-    Swag.require(wrapped[0] == 0.25'f32 and wrapped[1] == 0.75'f32)
-    Swag.require(wrapped[2] == 0'f32 and wrapped[3] == 0'f32)
+    let wrapped = Math.wrap(cast(Simd.F32x4, [2.25_f32, -0.25, 5, 12]),
+                            Simd.splat(0_f32),
+                            Simd.splat(1_f32))
+    Swag.require(wrapped[0] == 0.25_f32 and wrapped[1] == 0.75_f32)
+    Swag.require(wrapped[2] == 0_f32 and wrapped[3] == 0_f32)
 
-    let radiansStart = cast(Simd.F32x4, [0'f32, 0, 0, Math.toRadians(170'f32)])
-    let radiansEnd   = cast(Simd.F32x4, [0'f32, 0, 0, Math.toRadians(-170'f32)])
-    let halfway      = Math.lerpAngle(radiansStart, radiansEnd, Simd.splat(0.5'f32))
-    Swag.require(Math.isEqualEpsilon(halfway[3], Math.toRadians(180'f32), 0.001))
+    let radiansStart = cast(Simd.F32x4, [0_f32, 0, 0, Math.toRadians(170_f32)])
+    let radiansEnd   = cast(Simd.F32x4, [0_f32, 0, 0, Math.toRadians(-170_f32)])
+    let halfway      = Math.lerpAngle(radiansStart, radiansEnd, Simd.splat(0.5_f32))
+    Swag.require(Math.isEqualEpsilon(halfway[3], Math.toRadians(180_f32), 0.001))
 }
 
 // SIMD range, wave, and smoothstep helpers operate independently on each lane.
 #test
 {
-    let values  = cast(Simd.F32x4, [-2'f32, 0, 2, 4])
-    let lengths = cast(Simd.F32x4, [3'f32, 3, 3, 3])
+    let values  = cast(Simd.F32x4, [-2_f32, 0, 2, 4])
+    let lengths = cast(Simd.F32x4, [3_f32, 3, 3, 3])
     let wave    = Math.pingPong(values, lengths)
     Swag.require(wave[0] == 2 and wave[1] == 0 and wave[2] == 2 and wave[3] == 2)
 
-    let smooth = Math.smoothstep(Simd.splat(0'f32), Simd.splat(1'f32), cast(Simd.F32x4, [-1'f32, 0, 0.5, 2]))
+    let smooth = Math.smoothstep(Simd.splat(0_f32), Simd.splat(1_f32), cast(Simd.F32x4, [-1_f32, 0, 0.5, 2]))
     Swag.require(smooth[0] == 0 and smooth[1] == 0 and smooth[3] == 1)
-    Swag.require(Math.isEqualEpsilon(smooth[2], 0.5'f32, 0.001))
+    Swag.require(Math.isEqualEpsilon(smooth[2], 0.5_f32, 0.001))
 
-    let mapped = Math.map(cast(Simd.F64x2, [0'f64, 5]), Simd.splat(0'f64), Simd.splat(10'f64), Simd.splat(-1'f64), Simd.splat(1'f64))
+    let mapped = Math.map(cast(Simd.F64x2, [0_f64, 5]), Simd.splat(0_f64), Simd.splat(10_f64), Simd.splat(-1_f64), Simd.splat(1_f64))
     Swag.require(mapped[0] == -1 and mapped[1] == 0)
 
-    let values64 = cast(Simd.F64x2, [-1'f64, 3])
-    let wave64   = Math.pingPong(values64, Simd.splat(2'f64))
+    let values64 = cast(Simd.F64x2, [-1_f64, 3])
+    let wave64   = Math.pingPong(values64, Simd.splat(2_f64))
     Swag.require(wave64[0] == 1 and wave64[1] == 1)
-    let smooth64 = Math.smoothstep(Simd.splat(0'f64), Simd.splat(10'f64), cast(Simd.F64x2, [0'f64, 5]))
+    let smooth64 = Math.smoothstep(Simd.splat(0_f64), Simd.splat(10_f64), cast(Simd.F64x2, [0_f64, 5]))
     Swag.require(smooth64[0] == 0 and smooth64[1] == 0.5)
 }

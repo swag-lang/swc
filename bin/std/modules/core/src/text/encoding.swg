@@ -51,8 +51,10 @@ func unitSize(encoding: Encoding)->u64
 func hasBom(bytes: const [..] u8, encoding: Encoding)->bool
 {
     let length = bomLength(encoding)
-    if not length or bytes.count < length do
+    if not length or bytes.count < length
+    {
         return false
+    }
 
     switch encoding
     {
@@ -74,8 +76,8 @@ private func countZeroPositions(bytes: const [..] u8)->{ even: u64, odd: u64 }
 {
     var result: #returntype
     const VectorSize = #sizeof(Math.Simd.U8x16)
-    let zero  = Math.Simd.splat(0'u8)
-    var index = 0'u64
+    let zero  = Math.Simd.splat(0_u8)
+    var index = 0_u64
     while bytes.count - index >= VectorSize
     {
         let mask = Math.Simd.bitmask(Math.Simd.load(bytes.buffer + index) == zero)
@@ -88,10 +90,14 @@ private func countZeroPositions(bytes: const [..] u8)->{ even: u64, odd: u64 }
     {
         if not bytes[index]
         {
-            if index & 1 do
+            if index & 1
+            {
                 result.odd += 1
-            else do
+            }
+            else
+            {
                 result.even += 1
+            }
         }
 
         index += 1
@@ -104,25 +110,39 @@ private func countZeroPositions(bytes: const [..] u8)->{ even: u64, odd: u64 }
 // incomplete, since that is the longest UTF-8 sequence minus one byte.
 private func isValidUtf8Prefix(bytes: const [..] u8)->bool
 {
-    if Utf8.isValid(bytes) do
+    if Utf8.isValid(bytes)
+    {
         return true
+    }
 
     let count = bytes.count
     for back in 1 to 4 where back <= count
     {
         let start = count - back
         let lead  = bytes[start]
-        var size  = 0'u8
-        if lead >= 0xC2 and lead <= 0xDF do
+        var size  = 0_u8
+        if lead >= 0xC2 and lead <= 0xDF
+        {
             size = 2
-        elif lead >= 0xE0 and lead <= 0xEF do
+        }
+        else if lead >= 0xE0 and lead <= 0xEF
+        {
             size = 3
-        elif lead >= 0xF0 and lead <= 0xF4 do
+        }
+        else if lead >= 0xF0 and lead <= 0xF4
+        {
             size = 4
-        if not size or back >= size do
+        }
+
+        if not size or back >= size
+        {
             continue
-        if not Utf8.isValid(bytes[until start]) do
+        }
+
+        if not Utf8.isValid(bytes[until start])
+        {
             continue
+        }
 
         var validTail = true
         for offset in 1 until back
@@ -146,8 +166,10 @@ private func isValidUtf8Prefix(bytes: const [..] u8)->bool
             }
         }
 
-        if validTail do
+        if validTail
+        {
             return true
+        }
     }
 
     return false
@@ -166,23 +188,32 @@ private func isValidUtf8Prefix(bytes: const [..] u8)->bool
 func detectEncoding(probe: const [..] u8)->Encoding
 {
     // UTF-32 LE opens with the two bytes of UTF-16 LE, so it has to be tested first.
-    for candidate in [Encoding.Utf32Le, .Utf32Be, .Utf8, .Utf16Le, .Utf16Be] where hasBom(probe, candidate) do
+    for candidate in [Encoding.Utf32Le, .Utf32Be, .Utf8, .Utf16Le, .Utf16Be] where hasBom(probe, candidate)
+    {
         return candidate
+    }
 
     // A null byte is perfectly valid UTF-8, so validity alone would claim every UTF-16 file: what
     // separates them is that text written in UTF-8 never spells a null character at all.
     let zeros = countZeroPositions(probe)
     let total = zeros.even + zeros.odd
-    if not total and isValidUtf8Prefix(probe) do
+    if not total and isValidUtf8Prefix(probe)
+    {
         return .Utf8
+    }
 
     // One embedded NUL in a short byte string supplies no repeating code-unit pattern.
     if total >= 2 and total * 4 >= probe.count
     {
-        if zeros.odd > zeros.even * 4 do
+        if zeros.odd > zeros.even * 4
+        {
             return .Utf16Le
-        if zeros.even > zeros.odd * 4 do
+        }
+
+        if zeros.even > zeros.odd * 4
+        {
             return .Utf16Be
+        }
     }
 
     return .Windows1252
@@ -198,15 +229,20 @@ private const Windows1252Supplement: [32] rune = [
 // Returns whether code page 1252 represents `value` and, when it does, the encoded byte.
 private func windows1252Byte(value: rune)->{found: bool, byte: u8}
 {
-    if value <= 0x7F or 0xA0 <= value and value <= 0xFF do
+    if value <= 0x7F or 0xA0 <= value and value <= 0xFF
+    {
         return {found: true, byte: cast(u8, value)}
+    }
 
-    for codepoint, index in Windows1252Supplement where codepoint == value do
+    for codepoint, index in Windows1252Supplement where codepoint == value
+    {
         return {found: true, byte: cast(u8, 0x80 + index)}
+    }
+
     return {found: false, byte: 0}
 }
 
-private func append16(output: *Array'u8, value: u16, littleEndian: bool)
+private func append16(output: *Array!{u8}, value: u16, littleEndian: bool)
 {
     if littleEndian
     {
@@ -220,7 +256,7 @@ private func append16(output: *Array'u8, value: u16, littleEndian: bool)
     }
 }
 
-private func append32(output: *Array'u8, value: u32, littleEndian: bool)
+private func append32(output: *Array!{u8}, value: u32, littleEndian: bool)
 {
     if littleEndian
     {
@@ -244,13 +280,15 @@ private func append32(output: *Array'u8, value: u32, littleEndian: bool)
 // The input must be well-formed UTF-8. The method fails with [[Core.Errors.InvalidFormatError]]
 // for malformed input or when Windows-1252 cannot represent a rune; it never substitutes or
 // drops a character.
-func encode(text: string, encoding: Encoding, includeBom = false)->Array'u8 fail
+func encode(text: string, encoding: Encoding, includeBom = false)->Array!{u8} fail
 {
     let source = cast(const [..] u8, text)
-    if not Utf8.isValid(source) do
+    if not Utf8.isValid(source)
+    {
         fail InvalidFormatError{"text is not valid UTF-8"}
+    }
 
-    var result: Array'u8
+    var result: Array!{u8}
     if includeBom
     {
         switch encoding
@@ -294,8 +332,11 @@ func encode(text: string, encoding: Encoding, includeBom = false)->Array'u8 fail
         for value in Unicode.fromUtf8(source)
         {
             let encoded = windows1252Byte(value)
-            if not encoded.found do
+            if not encoded.found
+            {
                 fail InvalidFormatError{"text contains a rune that Windows-1252 cannot encode"}
+            }
+
             result.add(encoded.byte)
         }
 
@@ -305,14 +346,18 @@ func encode(text: string, encoding: Encoding, includeBom = false)->Array'u8 fail
         {
             var units: [2] u16
             let count = Utf16.encodeRune(units, value)
-            for index in count do
+            for index in count
+            {
                 append16(&result, units[index], littleEndian)
+            }
         }
 
     case .Utf32Le, .Utf32Be:
         let littleEndian = encoding == .Utf32Le
-        for value in Unicode.fromUtf8(source) do
+        for value in Unicode.fromUtf8(source)
+        {
             append32(&result, cast(u32, value), littleEndian)
+        }
     }
 
     return result
@@ -321,8 +366,11 @@ func encode(text: string, encoding: Encoding, includeBom = false)->Array'u8 fail
 // Returns the character one code page 1252 byte spells.
 func windows1252Rune(value: u8)->rune
 {
-    if value >= 0x80 and value <= 0x9F do
+    if value >= 0x80 and value <= 0x9F
+    {
         return Windows1252Supplement[value - 0x80]
+    }
+
     return cast(rune, value)
 }
 
@@ -337,18 +385,20 @@ func windows1252Rune(value: u8)->rune
 // byte where it is.
 func decode(bytes: const [..] u8, encoding: Encoding)->String
 {
-    if not bytes.count do
+    if not bytes.count
+    {
         return {}
+    }
 
     // Reorders complete big-endian UTF-16 units into native-endian storage.
-    func decodeUtf16BeUnits(bytes: const [..] u8)->Array'u16
+    func decodeUtf16BeUnits(bytes: const [..] u8)->Array!{u16}
     {
-        const SwapBytes = cast(Math.Simd.U8x16, [1'u8, 0, 3, 2, 5, 4, 7, 6, 9, 8, 11, 10, 13, 12, 15, 14])
+        const SwapBytes = cast(Math.Simd.U8x16, [1_u8, 0, 3, 2, 5, 4, 7, 6, 9, 8, 11, 10, 13, 12, 15, 14])
         var result: #returntype
         result.resize(bytes.count / 2)
         let source      = bytes.buffer
         let destination = result.storage()
-        var offset      = 0'u64
+        var offset      = 0_u64
 
         #static if not BIG_ENDIAN
         {
@@ -370,14 +420,14 @@ func decode(bytes: const [..] u8, encoding: Encoding)->String
     }
 
     // Reorders complete big-endian UTF-32 units into native-endian rune storage.
-    func decodeUtf32BeRunes(bytes: const [..] u8)->Array'rune
+    func decodeUtf32BeRunes(bytes: const [..] u8)->Array!{rune}
     {
-        const SwapBytes = cast(Math.Simd.U8x16, [3'u8, 2, 1, 0, 7, 6, 5, 4, 11, 10, 9, 8, 15, 14, 13, 12])
+        const SwapBytes = cast(Math.Simd.U8x16, [3_u8, 2, 1, 0, 7, 6, 5, 4, 11, 10, 9, 8, 15, 14, 13, 12])
         var result: #returntype
         result.resize(bytes.count / 4)
         let source      = bytes.buffer
         let destination = result.storage()
-        var offset      = 0'u64
+        var offset      = 0_u64
 
         #static if not BIG_ENDIAN
         {
@@ -402,29 +452,40 @@ func decode(bytes: const [..] u8, encoding: Encoding)->String
     switch #complete encoding
     {
     case .Utf8:
-        if Utf8.isValid(bytes) do
+        if Utf8.isValid(bytes)
+        {
             return String.from(cast(string, bytes))
+        }
+
         return Utf8.fromUnicode(Unicode.fromUtf8(bytes).toSlice())
 
     case .Windows1252:
-        var runes: Array'rune
+        var runes: Array!{rune}
         runes.reserve(bytes.count)
-        for value in bytes do
+        for value in bytes
+        {
             runes.add(windows1252Rune(value))
+        }
+
         return Utf8.fromUnicode(runes.toSlice())
 
     case .Utf16Le:
         #static if BIG_ENDIAN
         {
-            var units: Array'u16
+            var units: Array!{u16}
             units.resize(bytes.count / 2)
-            for i in units.count do
+            for i in units.count
+            {
                 units[i] = Math.make16(bytes.buffer[2 * i + 1], bytes.buffer[2 * i])
+            }
+
             return Utf8.fromUtf16(units.toSlice())
         }
 
-        #static if not BIG_ENDIAN do
+        #static if not BIG_ENDIAN
+        {
             return Utf8.fromUtf16(Swag.makeSlice(cast(const [*] u16, bytes.buffer), bytes.count / 2))
+        }
 
     case .Utf16Be:
         let units = decodeUtf16BeUnits(bytes)
@@ -433,7 +494,7 @@ func decode(bytes: const [..] u8, encoding: Encoding)->String
     case .Utf32Le:
         #static if BIG_ENDIAN
         {
-            var runes: Array'rune
+            var runes: Array!{rune}
             runes.resize(bytes.count / 4)
             for i in runes.count
             {
@@ -444,8 +505,10 @@ func decode(bytes: const [..] u8, encoding: Encoding)->String
             return Utf8.fromUnicode(runes.toSlice())
         }
 
-        #static if not BIG_ENDIAN do
+        #static if not BIG_ENDIAN
+        {
             return Utf8.fromUnicode(Swag.makeSlice(cast(const [*] rune, bytes.buffer), bytes.count / 4))
+        }
 
     case .Utf32Be:
         let runes = decodeUtf32BeRunes(bytes)
@@ -463,22 +526,34 @@ func decode(bytes: const [..] u8, encoding: Encoding)->String
 // an incomplete character at the very end is allowed because the probe may be a file prefix.
 func looksLikeText(probe: const [..] u8, encoding: Encoding)->bool
 {
-    if not probe.count do
+    if not probe.count
+    {
         return true
-    if encoding == .Utf8 and not isValidUtf8Prefix(probe) do
+    }
+
+    if encoding == .Utf8 and not isValidUtf8Prefix(probe)
+    {
         return false
+    }
 
     let text = decode(probe, encoding)
-    if text.isEmpty() do
+    if text.isEmpty()
+    {
         return false
+    }
 
-    var controls = 0'u64
+    var controls = 0_u64
     for c in text
     {
-        if not c do
+        if not c
+        {
             return false
-        if c < 0x20 and c != '\t' and c != '\n' and c != '\r' and c != 0x0C do
+        }
+
+        if c < 0x20 and c != '\t' and c != '\n' and c != '\r' and c != 0x0C
+        {
             controls += 1
+        }
     }
 
     // One in twenty is already generous for a document and far below what any binary reaches.

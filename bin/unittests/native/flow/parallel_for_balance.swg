@@ -12,12 +12,12 @@ func expectedValue(index, rounds: u64)->u64
     return value
 }
 
-func fillBalanced(values: [..] u64, visits: [..] Swag.AtomicValue'u32, begin, heavyBegin, heavyEnd: u64)
+func fillBalanced(values: [..] u64, visits: [..] Swag.AtomicValue!{u32}, begin, heavyBegin, heavyEnd: u64)
 {
     parallel for |values, visits, begin, heavyBegin, heavyEnd| index in begin until begin + values.count
     {
         let offset = index - begin
-        let rounds = offset >= heavyBegin and offset < heavyEnd ? 4096'u64 : 128'u64
+        let rounds = offset >= heavyBegin and offset < heavyEnd ? 4096_u64 : 128_u64
         values[offset] = expectedValue(offset, rounds)
         visits[offset].add(1)
     }
@@ -31,14 +31,14 @@ func fillBalanced(values: [..] u64, visits: [..] Swag.AtomicValue'u32, begin, he
     for pass in 3
     {
         var values: [2053] u64
-        var visits: [2053] Swag.AtomicValue'u32
-        let heavyBegin = pass == 0 ? 0'u64 : 1796'u64
+        var visits: [2053] Swag.AtomicValue!{u32}
+        let heavyBegin = pass == 0 ? 0_u64 : 1796_u64
         let heavyEnd   = heavyBegin + 257
-        let begin      = pass == 2 ? Swag.U64.Max - values.count : 19'u64
+        let begin      = pass == 2 ? Swag.U64.Max - values.count : 19_u64
         fillBalanced(values, visits, begin, heavyBegin, heavyEnd)
         for index in values.count
         {
-            let rounds = index >= heavyBegin and index < heavyEnd ? 4096'u64 : 128'u64
+            let rounds = index >= heavyBegin and index < heavyEnd ? 4096_u64 : 128_u64
             Swag.require(visits[index].load() == 1)
             Swag.require(values[index] == expectedValue(index, rounds))
         }
@@ -51,9 +51,9 @@ struct BalanceFailure { index: u64 }
 // before the caller catches the error, and no block may visit an index twice.
 #test
 {
-    var visits:       [2053] Swag.AtomicValue'u32
-    var entered:      Swag.AtomicValue'u32
-    var left:         Swag.AtomicValue'u32
+    var visits:       [2053] Swag.AtomicValue!{u32}
+    var entered:      Swag.AtomicValue!{u32}
+    var left:         Swag.AtomicValue!{u32}
     var errorOutcome: Swag.Error
     catch parallel for |&visits, &entered, &left| index in visits.count
     {
@@ -61,14 +61,18 @@ struct BalanceFailure { index: u64 }
         defer left.add(1)
         visits[index].add(1)
         let value = expectedValue(index, 4096)
-        if index == 1796 do
+        if index == 1796
+        {
             fail BalanceFailure{value}
+        }
     } as errorOutcome
     let error = errorOutcome.value()
     Swag.require(error != null and (error is BalanceFailure))
     Swag.require(assume cast(const *BalanceFailure, error).index == expectedValue(1796, 4096))
     Swag.require(entered.load() == left.load())
     Swag.require(visits[1796].load() == 1)
-    for visit in visits do
+    for visit in visits
+    {
         Swag.require(visit.load() <= 1)
+    }
 }

@@ -18,7 +18,7 @@ impl ValueOrPtr
         return #typeof(.value) == T and #typeof(other) == U
     }
 
-    func makeValue(value: T)->ValueOrPtr'T
+    func makeValue(value: T)->ValueOrPtr!{T}
     {
         return {value: value}
     }
@@ -27,22 +27,22 @@ impl ValueOrPtr
 alias ValueOrPtrAlias  = ValueOrPtr
 alias ValueOrPtrAlias2 = ValueOrPtrAlias
 
-func(T) takeValue(boxed: ValueOrPtr'T)->T
+func(T) takeValue(boxed: ValueOrPtr!{T})->T
 {
     return boxed.value
 }
 
 #test
 {
-    var boxed = ValueOrPtr's32{value: 10}
+    var boxed = ValueOrPtr!{s32}{value: 10}
     Swag.require(boxed.sameType(12))
-    Swag.require(boxed.pair'bool(true))
+    Swag.require(boxed.pair!{bool}(true))
 }
 
 #test
 {
-    let boxed1 = ValueOrPtr's32.makeValue(42)
-    let boxed2 = ValueOrPtrAlias2's32.makeValue(24)
+    let boxed1 = ValueOrPtr!{s32}.makeValue(42)
+    let boxed2 = ValueOrPtrAlias2!{s32}.makeValue(24)
 
     #assert(#typeof(boxed1.value) == s32)
     #assert(#typeof(boxed2.value) == s32)
@@ -52,7 +52,7 @@ func(T) takeValue(boxed: ValueOrPtr'T)->T
 
 #test
 {
-    let value = takeValue({value: 10's32})
+    let value = takeValue({value: 10_s32})
     #assert(#typeof(value) == s32)
     Swag.require(value == 10)
 }

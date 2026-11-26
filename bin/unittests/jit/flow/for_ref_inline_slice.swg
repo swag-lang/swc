@@ -7,22 +7,28 @@
 #[Swag.Inline]
 func forRefInlineBump(values: [..] s32, action: func||(*s32))
 {
-    for &value in values do
+    for &value in values
+    {
         action(value)
+    }
 }
 
 #[Swag.Inline]
 func(T) forRefInlineGenericBump(values: [..] T, action: func||(*T))
 {
-    for &value in values do
+    for &value in values
+    {
         action(value)
+    }
 }
 
 #[Swag.Macro]
 func forRefMacroBump(values: [..] s32)
 {
-    for &value in values do
+    for &value in values
+    {
         value[] += 100
+    }
 }
 
 #test

@@ -20,14 +20,14 @@
     #[Swag.NoInline]
     func roundF64(v: f64)->f64 => Swag.round(v)
 
-    const A0 = #run floorF32(1.75'f32)
+    const A0 = #run floorF32(1.75_f32)
     const A1 = #run floorF64(-1.1)
-    const B0 = #run ceilF32(1.1'f32)
+    const B0 = #run ceilF32(1.1_f32)
     const B1 = #run ceilF64(-1.75)
-    const C0 = #run truncF32(-1.75'f32)
+    const C0 = #run truncF32(-1.75_f32)
     const C1 = #run truncF64(1.75)
-    const D0 = #run roundF32(1.5'f32)
-    const D1 = #run roundF32(-1.5'f32)
+    const D0 = #run roundF32(1.5_f32)
+    const D1 = #run roundF32(-1.5_f32)
     const D2 = #run roundF64(2.5)
     const D3 = #run roundF64(-2.5)
 

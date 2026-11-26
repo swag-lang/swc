@@ -3,12 +3,12 @@
 
 using Swag, Core, Core.Errors
 
-func collectCaptureSamples(queue: *CaptureQueue)->Array's16
+func collectCaptureSamples(queue: *CaptureQueue)->Array!{s16}
 {
-    var output: Array's16
-    var block:  Array's16
+    var output: Array!{s16}
+    var block:  Array!{s16}
     var info:   CaptureBlock
-    var expected = 0'u64
+    var expected = 0_u64
     while queue.pop(&block, &info)
     {
         Swag.require(info.startSample == expected and info.gapFrames == 0)
@@ -25,17 +25,20 @@ func collectCaptureSamples(queue: *CaptureQueue)->Array's16
     var queue  = expect CaptureQueue.create(48_000, 2, 0, 10_000_000, slots: 8)
     var feeder = expect CaptureResampledFeeder.create(&queue, 48_000, 1)
     var source: [1_024] s16
-    for frame in source.count do
+    for frame in source.count
+    {
         source[frame] = cast(s16,
                              Math.round(10_000.0 * Math.sin(Math.ConstF64.TwoPi *
                                                             1_000.0 * frame / 48_000.0)))
+    }
+
     expect feeder.pushPcm16(Swag.makeSlice(&source[0], source.count), 0, 0)
     expect feeder.finish()
     let output = collectCaptureSamples(&queue)
     Swag.require(output.count == 2 * 1_024 and queue.sampleEnd() == 1_024)
-    var sourcePower = 0.0'f64
-    var outputPower = 0.0'f64
-    var cross       = 0.0'f64
+    var sourcePower = 0.0_f64
+    var outputPower = 0.0_f64
+    var cross       = 0.0_f64
     for frame in 200 until 800
     {
         Swag.require(output[frame * 2] == output[frame * 2 + 1])
@@ -63,8 +66,10 @@ func collectCaptureSamples(queue: *CaptureQueue)->Array's16
     expect feeder.finish()
     let output = collectCaptureSamples(&queue)
     Swag.require(output.count == 1_024 and queue.sampleEnd() == 1_024)
-    for frame in 200 until 800 do
+    for frame in 200 until 800
+    {
         Swag.require(Math.abs(cast(s32, output[frame]) - 6_554) <= 64)
+    }
 }
 
 // The other native sample formats use the same deterministic mono/stereo rules.
@@ -73,15 +78,20 @@ func collectCaptureSamples(queue: *CaptureQueue)->Array's16
     var stereo = expect CaptureQueue.create(48_000, 2, 0, 10_000_000, slots: 8)
     var upmix  = expect CaptureResampledFeeder.create(&stereo, 48_000, 1)
     var one: [1_024] f32
-    for frame in one.count do
+    for frame in one.count
+    {
         one[frame] = 0.125
+    }
+
     expect upmix.pushFloat32(Swag.makeSlice(&one[0], one.count), 0, 0)
     expect upmix.finish()
     let doubled = collectCaptureSamples(&stereo)
     Swag.require(doubled.count == 2 * 1_024)
-    for frame in 200 until 800 do
+    for frame in 200 until 800
+    {
         Swag.require(doubled[frame * 2] == doubled[frame * 2 + 1] and
                      Math.abs(cast(s32, doubled[frame * 2]) - 4_096) <= 64)
+    }
 
     var mono    = expect CaptureQueue.create(48_000, 1, 0, 10_000_000, slots: 8)
     var downmix = expect CaptureResampledFeeder.create(&mono, 48_000, 2)
@@ -96,8 +106,10 @@ func collectCaptureSamples(queue: *CaptureQueue)->Array's16
     expect downmix.finish()
     let averaged = collectCaptureSamples(&mono)
     Swag.require(averaged.count == 1_024)
-    for frame in 200 until 800 do
+    for frame in 200 until 800
+    {
         Swag.require(Math.abs(cast(s32, averaged[frame]) - 2_000) <= 64)
+    }
 }
 
 // Unsupported native layouts and incomplete stereo frames fail before advancing the queue.

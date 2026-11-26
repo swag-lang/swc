@@ -47,9 +47,9 @@ struct GamepadState
 
 impl GamepadState
 {
-    private func normalizedStick(value: s16)->f32 => Math.max(cast(f32, value) / 32767.0'f32, -1.0'f32)
+    private func normalizedStick(value: s16)->f32 => Math.max(cast(f32, value) / 32767.0_f32, -1.0_f32)
 
-    private mtd activationThreshold(button: GamepadButton)->f32 => .pressed[button] ? 0.7'f32 : 0.9'f32
+    private mtd activationThreshold(button: GamepadButton)->f32 => .pressed[button] ? 0.7_f32 : 0.9_f32
 
     internal mtd update(raw: RawGamepadState)
     {
@@ -71,8 +71,8 @@ impl GamepadState
 
         .position[LeftStick]      = Point{normalizedStick(raw.leftStickX), normalizedStick(raw.leftStickY)}
         .position[RightStick]     = Point{normalizedStick(raw.rightStickX), normalizedStick(raw.rightStickY)}
-        .position[LeftTrigger].y  = raw.leftTrigger / 255.0'f32
-        .position[RightTrigger].y = raw.rightTrigger / 255.0'f32
+        .position[LeftTrigger].y  = raw.leftTrigger / 255.0_f32
+        .position[RightTrigger].y = raw.rightTrigger / 255.0_f32
 
         .pressed[LeftThumbstickDown]   = .position[LeftStick].y < -activationThreshold(me, LeftThumbstickDown)
         .pressed[LeftThumbstickUp]     = .position[LeftStick].y > .activationThreshold(LeftThumbstickUp)

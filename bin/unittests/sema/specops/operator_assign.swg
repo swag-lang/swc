@@ -49,9 +49,9 @@ struct AssignHolder
 func semaTest001()
 {
     var box = AssignBox{a: 1, b: 2}
-    box += 3's32
-    box *= 2's32
-    box <<= 1'u32
+    box += 3_s32
+    box *= 2_s32
+    box <<= 1_u32
 
     let rhs = AssignBox{a: 5, b: 7}
     box += rhs
@@ -62,12 +62,12 @@ func semaTest001()
 func semaTest002()
 {
     var holder = AssignHolder{}
-    holder.value += 4's32
+    holder.value += 4_s32
 }
 
 func semaTest003()
 {
     var box = AssignBox{}
     let ptr = &box
-    ptr[] += 9's32
+    ptr[] += 9_s32
 }

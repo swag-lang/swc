@@ -15,7 +15,7 @@ private func checkColorValue(color: *Color, text: string) fail { discard try Str
 // Values on both sides of the sRGB threshold round-trip with their alpha intact.
 #test
 {
-    for value in [0'u8, 10, 11, 128, 255]
+    for value in [0_u8, 10, 11, 128, 255]
     {
         let original = Color.fromArgb(73, value, value, value)
         Swag.require(Color.fromLinear(original.toLinear()) == original)

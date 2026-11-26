@@ -14,9 +14,9 @@ const TYPE_RLE_MAP  = 9
 const TYPE_RLE_RGB  = 10
 const TYPE_RLE_MONO = 11
 
-const DESC_ALPHA_MASK   = 0x0F'u8
-const DESC_ORIGIN_RIGHT = 0x10'u8
-const DESC_ORIGIN_TOP   = 0x20'u8
+const DESC_ALPHA_MASK   = 0x0F_u8
+const DESC_ORIGIN_RIGHT = 0x10_u8
+const DESC_ORIGIN_TOP   = 0x20_u8
 
 #[Swag.Pack(1)]
 struct Header
@@ -51,8 +51,10 @@ internal struct Decoder {}
 #[Swag.Inline]
 func checkBuffer(ptr, last: const [*] u8, size: u64) fail
 {
-    if ptr + size > last do
+    if ptr + size > last
+    {
         fail InvalidFormatError{"invalid source buffer"}
+    }
 }
 
 func isMappedType(imageType: u8)->bool => imageType == TYPE_MAP or imageType == TYPE_RLE_MAP
@@ -69,24 +71,36 @@ func sourcePixelBytes(header: Header)->u8 fail
 {
     if isMappedType(header.imageTypeCode)
     {
-        if header.bitsPerPixel != 8 and header.bitsPerPixel != 16 do
+        if header.bitsPerPixel != 8 and header.bitsPerPixel != 16
+        {
             fail UnsupportedFormatError{"unsupported bit depth"}
+        }
+
         return header.bitsPerPixel / 8
     }
 
     if isMonoType(header.imageTypeCode)
     {
-        if header.bitsPerPixel != 8 and header.bitsPerPixel != 16 do
+        if header.bitsPerPixel != 8 and header.bitsPerPixel != 16
+        {
             fail UnsupportedFormatError{"unsupported bit depth"}
+        }
+
         return header.bitsPerPixel / 8
     }
 
     if isRgbType(header.imageTypeCode)
     {
-        if header.bitsPerPixel == 15 or header.bitsPerPixel == 16 do
+        if header.bitsPerPixel == 15 or header.bitsPerPixel == 16
+        {
             return 2
-        if header.bitsPerPixel == 24 or header.bitsPerPixel == 32 do
+        }
+
+        if header.bitsPerPixel == 24 or header.bitsPerPixel == 32
+        {
             return header.bitsPerPixel / 8
+        }
+
         fail UnsupportedFormatError{"unsupported bit depth"}
     }
 
@@ -108,20 +122,34 @@ func pixelFormat(header: Header, palette: Palette)->PixelFormat fail
 {
     if isMappedType(header.imageTypeCode)
     {
-        if palette.bitsPerPixel == 16 or palette.bitsPerPixel == 32 do
+        if palette.bitsPerPixel == 16 or palette.bitsPerPixel == 32
+        {
             return .BGRA8
-        if palette.bitsPerPixel == 15 or palette.bitsPerPixel == 24 do
+        }
+
+        if palette.bitsPerPixel == 15 or palette.bitsPerPixel == 24
+        {
             return .BGR8
+        }
+
         fail UnsupportedFormatError{"unsupported palette bit depth"}
     }
 
-    if isMonoType(header.imageTypeCode) do
+    if isMonoType(header.imageTypeCode)
+    {
         return header.bitsPerPixel == 16 ? .BGRA8 : .BGR8
+    }
 
-    if header.bitsPerPixel == 16 or header.bitsPerPixel == 32 do
+    if header.bitsPerPixel == 16 or header.bitsPerPixel == 32
+    {
         return .BGRA8
-    if header.bitsPerPixel == 15 or header.bitsPerPixel == 24 do
+    }
+
+    if header.bitsPerPixel == 15 or header.bitsPerPixel == 24
+    {
         return .BGR8
+    }
+
     fail UnsupportedFormatError{"unsupported bit depth"}
 }
 
@@ -148,10 +176,14 @@ func writeTga16Pixel(dst: [*] u8, value: u16, writeAlpha, alphaFromBit: bool)
     let b     = expand5(pixel & 0x1F)
     let g     = expand5((pixel >> 5) & 0x1F)
     let r     = expand5((pixel >> 10) & 0x1F)
-    if writeAlpha do
-        writeBgraPixel(dst, b, g, r, alphaFromBit ? (value & 0x8000 ? 255'u8 : 0'u8) : 255'u8)
-    else do
+    if writeAlpha
+    {
+        writeBgraPixel(dst, b, g, r, alphaFromBit ? (value & 0x8000 ? 255_u8 : 0_u8) : 255_u8)
+    }
+    else
+    {
         writeBgrPixel(dst, b, g, r)
+    }
 }
 
 func decodeTga15Row(source: const [*] u8, destination: [*] u8, pixelCount: u64)
@@ -176,15 +208,20 @@ func decodeTga16RowReversed(source: const [*] u8, destination: [*] u8, pixelCoun
 
 func paletteIndex(src: const [*] u8, bpp: u8)->u32
 {
-    if bpp == 16 do
+    if bpp == 16
+    {
         return cast(const *u16, src)[]
+    }
+
     return src[0]
 }
 
 func writePalettePixel(dst: [*] u8, palette: Palette, index: u32, alphaFromBit: bool) fail
 {
-    if index < palette.first or index >= cast(u32, palette.first) + palette.count do
+    if index < palette.first or index >= cast(u32, palette.first) + palette.count
+    {
         fail InvalidFormatError{"invalid palette index"}
+    }
 
     let paletteData = cast(const [*] u8, unwrap palette.data)
     let entry       = paletteData + cast(u64, (index - palette.first)) * palette.bytesPerPixel
@@ -208,10 +245,15 @@ func writeSourcePixel(dst: [*] u8, header: Header, palette: Palette, src: const 
     if isMonoType(header.imageTypeCode)
     {
         let gray = src[0]
-        if header.bitsPerPixel == 16 do
+        if header.bitsPerPixel == 16
+        {
             writeBgraPixel(dst, gray, gray, gray, src[1])
-        else do
+        }
+        else
+        {
             writeBgrPixel(dst, gray, gray, gray)
+        }
+
         return
     }
 
@@ -220,7 +262,7 @@ func writeSourcePixel(dst: [*] u8, header: Header, palette: Palette, src: const 
     case 15: writeTga16Pixel(dst, cast(const *u16, src)[], false, false)
     case 16: writeTga16Pixel(dst, cast(const *u16, src)[], true, (header.descriptorByte & DESC_ALPHA_MASK) != 0)
     case 24: writeBgrPixel(dst, src[0], src[1], src[2])
-    case 32: writeBgraPixel(dst, src[0], src[1], src[2], hasAttributeBits(header) ? src[3] : 255'u8)
+    case 32: writeBgraPixel(dst, src[0], src[1], src[2], hasAttributeBits(header) ? src[3] : 255_u8)
     }
 }
 
@@ -386,6 +428,43 @@ func decodeRaw(result: *Image, header: Header, palette: Palette, src, last: cons
 {
     var p = src
     try checkBuffer(p, last, pixelCount * pixelBytes)
+    if header.imageTypeCode == TYPE_RGB and (header.bitsPerPixel == 15 or header.bitsPerPixel == 16)
+    {
+        let rightOrigin = (header.descriptorByte & DESC_ORIGIN_RIGHT) != 0
+        for y in result.height
+        {
+            let dstY = header.descriptorByte & DESC_ORIGIN_TOP ? result.height - y - 1 : y
+            let dst  = cast([*] u8, result.pixels.storage()) + cast(u64, dstY) * result.rowStride
+            if header.bitsPerPixel == 15
+            {
+                if rightOrigin
+                {
+                    decodeTga15RowReversed(p, dst, result.width)
+                }
+                else
+                {
+                    decodeTga15Row(p, dst, result.width)
+                }
+            }
+            else
+            {
+                let alphaFromBit = (header.descriptorByte & DESC_ALPHA_MASK) != 0
+                if rightOrigin
+                {
+                    decodeTga16RowReversed(p, dst, result.width, alphaFromBit)
+                }
+                else
+                {
+                    decodeTga16Row(p, dst, result.width, alphaFromBit)
+                }
+            }
+
+            p += cast(u64, result.width) * 2
+        }
+
+        return
+    }
+
     if header.imageTypeCode == TYPE_RGB and
        (header.bitsPerPixel == 24 or (header.bitsPerPixel == 32 and hasAttributeBits(header)))
     {
@@ -397,10 +476,14 @@ func decodeRaw(result: *Image, header: Header, palette: Palette, src, last: cons
             let dst  = cast([*] u8, result.pixels.storage()) + cast(u64, dstY) * result.rowStride
             if rightOrigin
             {
-                if header.bitsPerPixel == 24 do
+                if header.bitsPerPixel == 24
+                {
                     PackedPixel.reverseBgr24Row(p, dst, result.width)
-                else do
+                }
+                else
+                {
                     PackedPixel.reverseBgra32Row(p, dst, result.width)
+                }
             }
             else
             {
@@ -440,6 +523,75 @@ func decodeRle(result: *Image, header: Header, palette: Palette, src, last: cons
     var decoded: [4] u8
     var index:   u64
     var p = src
+
+    if header.imageTypeCode == TYPE_RLE_RGB and
+       (header.bitsPerPixel == 24 or (header.bitsPerPixel == 32 and hasAttributeBits(header)))
+    {
+        let rightOrigin = (header.descriptorByte & DESC_ORIGIN_RIGHT) != 0
+        while index < pixelCount
+        {
+            try checkBuffer(p, last, 1)
+            let packet = p[0]
+            p += 1
+
+            let count = cast(u64, ((packet & 0x7F) + 1))
+            if index + count > pixelCount
+            {
+                fail InvalidFormatError{"invalid source buffer"}
+            }
+
+            let repeated = (packet & 0x80) != 0
+            try checkBuffer(p, last, repeated ? pixelBytes : count * pixelBytes)
+            var remaining = count
+            var source    = p
+            while remaining
+            {
+                let rowRemaining = cast(u64, header.width) - index % header.width
+                let segmentCount = Math.min(remaining, rowRemaining)
+                let dstIndex     = rightOrigin ? index + segmentCount - 1 : index
+                let dst          = dstPixel(result, header, dstIndex)
+                if repeated
+                {
+                    if header.bitsPerPixel == 24
+                    {
+                        PackedPixel.fillBgr24Row(source, dst, segmentCount)
+                    }
+                    else
+                    {
+                        PackedPixel.fillBgra32Row(source, dst, segmentCount)
+                    }
+                }
+                else
+                {
+                    if rightOrigin
+                    {
+                        if header.bitsPerPixel == 24
+                        {
+                            PackedPixel.reverseBgr24Row(source, dst, segmentCount)
+                        }
+                        else
+                        {
+                            PackedPixel.reverseBgra32Row(source, dst, segmentCount)
+                        }
+                    }
+                    else
+                    {
+                        Memory.copy(dst, source, segmentCount * pixelBytes)
+                    }
+
+                    source += segmentCount * pixelBytes
+                }
+
+                index     += segmentCount
+                remaining -= segmentCount
+            }
+
+            p += repeated ? pixelBytes : count * pixelBytes
+        }
+
+        return
+    }
+
     while index < pixelCount
     {
         try checkBuffer(p, last, 1)
@@ -447,8 +599,10 @@ func decodeRle(result: *Image, header: Header, palette: Palette, src, last: cons
         p += 1
 
         let count = cast(u64, ((packet & 0x7F) + 1))
-        if index + count > pixelCount do
+        if index + count > pixelCount
+        {
             fail InvalidFormatError{"invalid source buffer"}
+        }
 
         let repeated = (packet & 0x80) != 0
         try checkBuffer(p, last, repeated ? pixelBytes : count * pixelBytes)
@@ -514,18 +668,28 @@ internal impl IImageDecoder for Decoder
         let countof = buffer.count
         let last    = dataof + countof
 
-        if countof < #sizeof(Header) do
+        if countof < #sizeof(Header)
+        {
             fail InvalidFormatError{"invalid source buffer"}
+        }
 
         let header = cast(const *Header, dataof)[]
         dataof += #sizeof(Header)
 
-        if header.width == 0 or header.height == 0 do
+        if header.width == 0 or header.height == 0
+        {
             fail InvalidFormatError{"invalid dimensions"}
-        if header.colorMapType != 0 and header.colorMapType != 1 do
+        }
+
+        if header.colorMapType != 0 and header.colorMapType != 1
+        {
             fail UnsupportedFormatError{"unsupported palette"}
-        if (header.descriptorByte & 0xC0) != 0 do
+        }
+
+        if (header.descriptorByte & 0xC0) != 0
+        {
             fail UnsupportedFormatError{"unsupported interleave mode"}
+        }
 
         let pixelBytes = try sourcePixelBytes(header)
         try checkBuffer(dataof, last, header.idLength)
@@ -543,8 +707,10 @@ internal impl IImageDecoder for Decoder
             dataof += cast(u64, palette.count) * palette.bytesPerPixel
         }
 
-        if isMappedType(header.imageTypeCode) and not palette.count do
+        if isMappedType(header.imageTypeCode) and not palette.count
+        {
             fail InvalidFormatError{"missing palette"}
+        }
 
         let width  = cast(s32, header.width)
         let height = cast(s32, header.height)
@@ -554,25 +720,21 @@ internal impl IImageDecoder for Decoder
         var result: #returntype
         result.init(width, height, format)
 
-        if not options.decodePixels do
+        if not options.decodePixels
+        {
             return result
+        }
 
         result.allocPixels()
         let pixelCount = cast(u64, result.width) * result.height
-        var colors: Array'u32
-        if isMappedType(header.imageTypeCode) and pixelCount >= palette.count
+        if isRleType(header.imageTypeCode)
         {
-            colors.resize(palette.count)
-            let packed = cast([*] u8, colors.storage())
-            for i in palette.count do
-                try writePalettePixel(packed + i * 4, palette, cast(u32, palette.first) + i, hasAttributeBits(header))
-            palette.colors = colors.storage()
-        }
-
-        if isRleType(header.imageTypeCode) do
             try decodeRle(&result, header, palette, dataof, last, pixelBytes, pixelCount)
-        else do
+        }
+        else
+        {
             try decodeRaw(&result, header, palette, dataof, last, pixelBytes, pixelCount)
+        }
 
         return result
     }

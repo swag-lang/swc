@@ -34,13 +34,18 @@ using Core, Gui, Pixel
     journey.waitFor("reopen image effects", func|main, &path, kinds|()->bool
     {
         let opened = main.editWnd.getCapture()
-        if main.libraryMode or not opened or opened.file != path or opened.forms.count != 5 do
+        if main.libraryMode or not opened or opened.file != path or opened.forms.count != 5
+        {
             return false
+        }
+
         for kind, i in kinds
         {
             let effect = assume cast(*FormImage, opened.forms[i])
-            if effect.kind != kind do
+            if effect.kind != kind
+            {
                 return false
+            }
         }
 
         return true

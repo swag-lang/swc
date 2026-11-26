@@ -18,12 +18,16 @@ public func contextValue()->u64 => Swag.getContext().user0
 public func verifyArguments(expected: const [..] string)->bool
 {
     let actual = Swag.args()
-    if actual.count != expected.count do
+    if actual.count != expected.count
+    {
         return false
+    }
     for value, index in expected
     {
-        if actual[index] != value do
+        if actual[index] != value
+        {
             return false
+        }
     }
     return true
 }

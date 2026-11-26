@@ -9,8 +9,11 @@ namespace WinFsp
     func winFspExport(name: string)->const *void fail
     {
         let address = GetProcAddress(g_WinFsp.module, name.buffer)
-        if not address do
+        if not address
+        {
             fail volumeError(.DriverUnavailable)
+        }
+
         return address
     }
 
@@ -50,8 +53,11 @@ namespace WinFsp
     // Appends a loading stage to the trace; only integration builds keep one.
     func traceWinFspStage(message: string)
     {
-        #static if not #hastag("vault.integration") do
+        #static if not #hastag("vault.integration")
+        {
             return
+        }
+
         var stream = catch File.open(winFspStageLogPath(), .Append, .Write, .Read)
         {
             return
@@ -67,16 +73,22 @@ namespace WinFsp
     {
         let logPath16 = Utf16.toZeroTerminated(winFspLogPath())
         let handle    = catch CreateFileW(logPath16.buffer, GenericWrite, ShareRead, null, 2, NormalFile, null) { return InvalidHandle }
-        if handle != InvalidHandle do
+        if handle != InvalidHandle
+        {
             (g_WinFsp.setDebugLogHandle)(handle)
+        }
+
         return handle
     }
 
     // Stops the WinFsp debug output and closes its log file.
     func endWinFspLog(handle: NativeHandle)
     {
-        if handle == InvalidHandle do
+        if handle == InvalidHandle
+        {
             return
+        }
+
         (g_WinFsp.setDebugLogHandle)(InvalidHandle)
         CloseHandle(handle)
     }
@@ -92,8 +104,11 @@ namespace WinFsp
     // Removes the runtime this process staged; a runtime staged by the guardian is its own to remove.
     func discardStagedRuntime()
     {
-        if g_WinFsp.guardianManaged do
+        if g_WinFsp.guardianManaged
+        {
             return
+        }
+
         removeRuntimeTree(g_WinFsp.runtimeRoot)
         g_WinFsp.runtimeRoot.clear()
     }
@@ -102,19 +117,26 @@ namespace WinFsp
     // runtime shipped next to the executable, registered by the elevated guardian.
     func loadWinFsp() fail
     {
-        if g_WinFsp.module do
+        if g_WinFsp.module
+        {
             return
+        }
+
         g_WinFsp.portable = false
 
-        #static if #hastag("vault.integration") do
+        #static if #hastag("vault.integration")
+        {
             discard catch File.writeAllBytes(winFspStageLogPath(), Swag.makeSlice(cast(const [*] u8, ("load requested\n").buffer), ("load requested\n").count))
+        }
 
         let installedPath = g_WinFsp.guardianProcess ? String{} : installedLibrary()
         if not installedPath.isEmpty()
         {
             g_WinFsp.module = loadLibrary(installedPath)
-            if not g_WinFsp.module do
+            if not g_WinFsp.module
+            {
                 fail volumeError(.DriverUnavailable, GetLastError())
+            }
         }
         else
         {
@@ -154,8 +176,10 @@ namespace WinFsp
 
         traceWinFspStage("WinFsp exports resolved")
 
-        if g_WinFsp.portable do
+        if g_WinFsp.portable
+        {
             traceWinFspStage("portable SxS runtime ready")
+        }
     }
 
     // Releases WinFsp: unregisters the portable driver this process registered, unloads the
@@ -177,10 +201,14 @@ namespace WinFsp
         var canRemoveRuntime = true
         if g_WinFsp.portable and g_WinFsp.registered
         {
-            if (g_WinFsp.unregisterServer)() < 0 do
+            if (g_WinFsp.unregisterServer)() < 0
+            {
                 canRemoveRuntime = false
-            else do
+            }
+            else
+            {
                 g_WinFsp.registered = false
+            }
         }
 
         if g_WinFsp.module
@@ -189,8 +217,11 @@ namespace WinFsp
             g_WinFsp.module = null
         }
 
-        if canRemoveRuntime do
+        if canRemoveRuntime
+        {
             removeRuntimeTree(g_WinFsp.runtimeRoot)
+        }
+
         g_WinFsp.runtimeRoot.clear()
         g_WinFsp.dllPath.clear()
         g_WinFsp.portable = false

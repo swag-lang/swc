@@ -258,20 +258,33 @@ impl Color
         func hueToChannel(channelMin, channelMax, hue: f32)->u8
         {
             var wrappedHue = hue
-            if wrappedHue < 0 do
+            if wrappedHue < 0
+            {
                 wrappedHue += 1
-            if wrappedHue > 1 do
+            }
+
+            if wrappedHue > 1
+            {
                 wrappedHue -= 1
+            }
 
             var channel: f32
-            if 6 * wrappedHue < 1 do
+            if 6 * wrappedHue < 1
+            {
                 channel = channelMin + (channelMax - channelMin) * wrappedHue * 6
-            elif 2 * wrappedHue < 1 do
+            }
+            else if 2 * wrappedHue < 1
+            {
                 channel = channelMax
-            elif 3 * wrappedHue < 2 do
+            }
+            else if 3 * wrappedHue < 2
+            {
                 channel = channelMin + (channelMax - channelMin) * ((2.0 / 3.0) - wrappedHue) * 6
-            else do
+            }
+            else
+            {
                 channel = channelMin
+            }
 
             return cast(u8, Math.round(channel * 255))
         }
@@ -289,10 +302,14 @@ impl Color
         else
         {
             var channelMax: f32
-            if clampedLightness < 0.5 do
+            if clampedLightness < 0.5
+            {
                 channelMax = clampedLightness * (1 + clampedSaturation)
-            else do
+            }
+            else
+            {
                 channelMax = (clampedLightness + clampedSaturation) - (clampedLightness * clampedSaturation)
+            }
 
             let channelMin = 2 * clampedLightness - channelMax
             .r = hueToChannel(channelMin, channelMax, clampedHue + (1.0 / 3.0))
@@ -318,26 +335,41 @@ impl Color
             return result
         }
 
-        if result.l < 0.5 do
+        if result.l < 0.5
+        {
             result.s = delta / (maxChannel + minChannel)
-        else do
+        }
+        else
+        {
             result.s = delta / (2 - maxChannel - minChannel)
+        }
 
         let redOffset   = (((maxChannel - red) / 6) + (delta * 0.5)) / delta
         let greenOffset = (((maxChannel - green) / 6) + (delta * 0.5)) / delta
         let blueOffset  = (((maxChannel - blue) / 6) + (delta * 0.5)) / delta
 
-        if red == maxChannel do
+        if red == maxChannel
+        {
             result.h = blueOffset - greenOffset
-        elif green == maxChannel do
+        }
+        else if green == maxChannel
+        {
             result.h = (1.0 / 3.0) + redOffset - blueOffset
-        else do
+        }
+        else
+        {
             result.h = (2.0 / 3.0) + greenOffset - redOffset
+        }
 
-        if result.h < 0 do
+        if result.h < 0
+        {
             result.h += 1
-        if result.h > 1 do
+        }
+
+        if result.h > 1
+        {
             result.h -= 1
+        }
 
         return result
     }
@@ -353,8 +385,11 @@ impl Color
         // Convert a normalized sRGB channel [0,1] to linear light.
         func srgbToLinear(c: f32)->f32
         {
-            if c <= 0.04045 do
+            if c <= 0.04045
+            {
                 return c / 12.92
+            }
+
             return Math.pow((c + 0.055) / 1.055, 2.4)
         }
 
@@ -377,8 +412,11 @@ impl Color
         // Convert a linear-light channel [0,1] to gamma-encoded sRGB.
         func linearToSrgb(c: f32)->f32
         {
-            if c <= 0.0031308 do
+            if c <= 0.0031308
+            {
                 return c * 12.92
+            }
+
             return 1.055 * Math.pow(c, 1.0 / 2.4) - 0.055
         }
 
@@ -530,8 +568,10 @@ impl Color
         Swag.assert(maxSteps >= 0)
 
         let initialContrast = .contrastRatio(target)
-        if initialContrast >= requiredContrast do
+        if initialContrast >= requiredContrast
+        {
             return
+        }
 
         // Choose the lightness step that raises contrast the most.
         let stepMagnitude     = Math.abs(step)
@@ -619,11 +659,13 @@ impl Color
     // Hues advance from `startHue` by the golden ratio conjugate, so each color is clearly
     // separated from the others, and the lightness alternates slightly around `lum` for good
     // contrast against white text. All values are HSL components in [0, 1].
-    func generateDistinctColors(n: u32, startHue: f32 = 0.113, lum: f32 = 0.44, sat: f32 = 0.68)->Array'Color
+    func generateDistinctColors(n: u32, startHue: f32 = 0.113, lum: f32 = 0.44, sat: f32 = 0.68)->Array!{Color}
     {
         var colors: #returntype
-        if n == 0 do
+        if n == 0
+        {
             return colors
+        }
 
         const GoldenRatioConjugate = 0.61803398875
         const LightnessVariation   = 0.05
@@ -652,39 +694,56 @@ impl Core.StrConv.IPokeValue for Color
         var overflow:      bool
 
         var remaining = Tokenize.eatSpaces(buf)
-        if remaining.count == 0 do
+        if remaining.count == 0
+        {
             fail SyntaxError{}
+        }
 
         if remaining.count >= 2 and remaining[0] == '0' and remaining[1] | 32 == 'x'
         {
             {value: .argb, eat: consumedBytes, ovf: overflow} = try parseU32(remaining)
-            if overflow do
+            if overflow
+            {
                 fail OverflowError{}
+            }
+
             remaining = Tokenize.eatCount(remaining, consumedBytes)
         }
-        elif Latin1.isDigit(remaining[0])
+        else if Latin1.isDigit(remaining[0])
         {
             {value: .a, eat: consumedBytes, ovf: overflow} = try parseU8(remaining)
-            if overflow do
+            if overflow
+            {
                 fail OverflowError{}
+            }
+
             remaining = Tokenize.eatCount(remaining, consumedBytes)
 
             remaining = Tokenize.eatSpaces(remaining)
             {value: .r, eat: consumedBytes, ovf: overflow} = try parseU8(remaining)
-            if overflow do
+            if overflow
+            {
                 fail OverflowError{}
+            }
+
             remaining = Tokenize.eatCount(remaining, consumedBytes)
 
             remaining = Tokenize.eatSpaces(remaining)
             {value: .g, eat: consumedBytes, ovf: overflow} = try parseU8(remaining)
-            if overflow do
+            if overflow
+            {
                 fail OverflowError{}
+            }
+
             remaining = Tokenize.eatCount(remaining, consumedBytes)
 
             remaining = Tokenize.eatSpaces(remaining)
             {value: .b, eat: consumedBytes, ovf: overflow} = try parseU8(remaining)
-            if overflow do
+            if overflow
+            {
                 fail OverflowError{}
+            }
+
             remaining = Tokenize.eatCount(remaining, consumedBytes)
         }
         else

@@ -4,7 +4,7 @@
 using Core
 
 // How many places each direction of a [[Viewer.History]] keeps.
-const HistoryLimit = 128'u64
+const HistoryLimit = 128_u64
 
 // The places a reader left inside one document, to return to and to come back from.
 //
@@ -18,8 +18,8 @@ const HistoryLimit = 128'u64
 // forgotten.
 struct(T) History
 {
-    backVisits:    Array'T
-    forwardVisits: Array'T
+    backVisits:    Array!{T}
+    forwardVisits: Array!{T}
 }
 
 impl History
@@ -66,10 +66,13 @@ impl History
         .forwardVisits.clear()
     }
 
-    private func push(stack: *Array'T, place: T)
+    private func push(stack: *Array!{T}, place: T)
     {
-        if stack.count >= HistoryLimit do
+        if stack.count >= HistoryLimit
+        {
             stack.removeAtOrdered(0)
+        }
+
         stack.add(place)
     }
 }
@@ -77,8 +80,11 @@ impl History
 // Returns the direction a history key asks for: -1 for Alt Left, 1 for Alt Right, zero otherwise.
 func historyKeyDirection(key: const *Gui.KeyEvent)->s32
 {
-    if key.kind != .Pressed or key.modifiers != .Alt do
+    if key.kind != .Pressed or key.modifiers != .Alt
+    {
         return 0
+    }
+
     switch key.key
     {
     case .Left:  return -1

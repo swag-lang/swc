@@ -26,23 +26,27 @@ func labelFirstByte(label: u16)->u8
 
 func labelSecondByte(label: u16)->u8
 {
-    return cast(u8, (label & 0x00FF'u16))
+    return cast(u8, (label & 0x00FF_u16))
 }
 
 func labelLess(left, right: u16)->bool
 {
-    if labelFirstByte(left) < labelFirstByte(right) do
+    if labelFirstByte(left) < labelFirstByte(right)
+    {
         return true
+    }
 
-    if labelFirstByte(left) > labelFirstByte(right) do
+    if labelFirstByte(left) > labelFirstByte(right)
+    {
         return false
+    }
 
     return labelSecondByte(left) < labelSecondByte(right)
 }
 
 func isLeadComputer(label: u16)->bool
 {
-    return labelFirstByte(label) == 't'u8
+    return labelFirstByte(label) == 't'_u8
 }
 
 func edgeIndex(fromComputer, toComputer: u32)->u32
@@ -55,8 +59,10 @@ func findComputerIndex(labels: const [..] u16, labelCount: u32, target: u16)->u3
     for idx in labelCount
     {
         let index = cast(u32, idx)
-        if labels[index] == target do
+        if labels[index] == target
+        {
             return index
+        }
     }
 
     return Swag.U32.Max
@@ -69,8 +75,10 @@ func countBits(value: u32)->u32
 
     while bits != 0
     {
-        if (bits & 1'u32) != 0'u32 do
+        if (bits & 1_u32) != 0_u32
+        {
             result += 1
+        }
         bits >>= 1
     }
 
@@ -82,20 +90,28 @@ func isClique(mask: u32, adjacency: const [..] bool, computerCount: u32)->bool
     for index in computerCount
     {
         let left = cast(u32, index)
-        if (mask & (1'u32 << left)) == 0'u32 do
+        if (mask & (1_u32 << left)) == 0_u32
+        {
             continue
+        }
 
         for idx in computerCount
         {
             let right = cast(u32, idx)
-            if right <= left do
+            if right <= left
+            {
                 continue
+            }
 
-            if (mask & (1'u32 << right)) == 0'u32 do
+            if (mask & (1_u32 << right)) == 0_u32
+            {
                 continue
+            }
 
-            if not adjacency[edgeIndex(left, right)] do
+            if not adjacency[edgeIndex(left, right)]
+            {
                 return false
+            }
         }
     }
 
@@ -110,7 +126,7 @@ func buildPassword(outPassword: [..] u8, outLength: *u32, labels: const [..] u16
     for idx in computerCount
     {
         let index = cast(u32, idx)
-        if (mask & (1'u32 << index)) != 0'u32
+        if (mask & (1_u32 << index)) != 0_u32
         {
             selected[selectedCount] = labels[index]
             selectedCount += 1
@@ -123,8 +139,10 @@ func buildPassword(outPassword: [..] u8, outLength: *u32, labels: const [..] u16
         for ordinal in selectedCount
         {
             let right = cast(u32, ordinal)
-            if right <= left do
+            if right <= left
+            {
                 continue
+            }
 
             if labelLess(selected[right], selected[left])
             {
@@ -143,7 +161,7 @@ func buildPassword(outPassword: [..] u8, outLength: *u32, labels: const [..] u16
 
         if index != 0
         {
-            outPassword[length] = ','u8
+            outPassword[length] = ','_u8
             length += 1
         }
 
@@ -163,10 +181,14 @@ func passwordLess(leftPassword: const [..] u8, leftLength: u32, rightPassword: c
     for idx in commonLength
     {
         let index = cast(u32, idx)
-        if leftPassword[index] < rightPassword[index] do
+        if leftPassword[index] < rightPassword[index]
+        {
             return true
-        if leftPassword[index] > rightPassword[index] do
+        }
+        if leftPassword[index] > rightPassword[index]
+        {
             return false
+        }
     }
 
     return leftLength < rightLength
@@ -175,14 +197,18 @@ func passwordLess(leftPassword: const [..] u8, leftLength: u32, rightPassword: c
 func passwordMatches(audit: LanAudit, expected: string)->bool
 {
     let expectedBytes = cast(const [..] u8, expected)
-    if audit.passwordLength != cast(u32, expectedBytes.count) do
+    if audit.passwordLength != cast(u32, expectedBytes.count)
+    {
         return false
+    }
 
     for idx in audit.passwordLength
     {
         let index = cast(u32, idx)
-        if audit.password[index] != expectedBytes[index] do
+        if audit.password[index] != expectedBytes[index]
+        {
             return false
+        }
     }
 
     return true
@@ -201,7 +227,7 @@ func auditLan(connections: const [..] string)->LanAudit
     {
         let bytes = cast(const [..] u8, line)
         Swag.assert(bytes.count == 5)
-        Swag.assert(bytes[2] == '-'u8)
+        Swag.assert(bytes[2] == '-'_u8)
 
         let leftLabel  = parseLabel(bytes, 0)
         let rightLabel = parseLabel(bytes, 3)
@@ -234,41 +260,53 @@ func auditLan(connections: const [..] string)->LanAudit
         for ordinal in computerCount
         {
             let second = cast(u32, ordinal)
-            if second <= first do
+            if second <= first
+            {
                 continue
+            }
 
-            if not adjacency[edgeIndex(first, second)] do
+            if not adjacency[edgeIndex(first, second)]
+            {
                 continue
+            }
 
             for position in computerCount
             {
                 let third = cast(u32, position)
-                if third <= second do
+                if third <= second
+                {
                     continue
+                }
 
                 if adjacency[edgeIndex(first, third)] and adjacency[edgeIndex(second, third)]
                 {
                     if isLeadComputer(labels[first]) or
                        isLeadComputer(labels[second]) or
-                       isLeadComputer(labels[third]) do
+                       isLeadComputer(labels[third])
+                    {
                         result.leadTripletCount += 1
+                    }
                 }
             }
         }
     }
 
     Swag.assert(computerCount < 31)
-    let subsetCount = 1'u32 << computerCount
+    let subsetCount = 1_u32 << computerCount
 
     for idx in subsetCount - 1
     {
         let mask       = cast(u32, idx) + 1
         let cliqueSize = countBits(mask)
-        if cliqueSize < result.largestCliqueSize do
+        if cliqueSize < result.largestCliqueSize
+        {
             continue
+        }
 
-        if not isClique(mask, adjacencySlice, computerCount) do
+        if not isClique(mask, adjacencySlice, computerCount)
+        {
             continue
+        }
 
         var candidatePassword:      [MaxPasswordBytes] u8
         var candidatePasswordSlice: [..] u8 = candidatePassword

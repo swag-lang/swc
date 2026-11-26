@@ -69,14 +69,14 @@ impl NumberFormat
     }
 
     // Splits only unquoted sections, then decodes literal and display-only format tokens.
-    private mtd const tokens(number: f64)->{items: Array'FormatToken, negativeSection: bool, valid: bool}
+    private mtd const tokens(number: f64)->{items: Array!{FormatToken}, negativeSection: bool, valid: bool}
     {
         var result:   #returntype
         let source  = .code.toString()
-        var sections: Array'string
+        var sections: Array!{string}
         var quoted  = false
         var escaped = false
-        var start   = 0'u64
+        var start   = 0_u64
         for value, index in source
         {
             if escaped
@@ -85,15 +85,18 @@ impl NumberFormat
                 continue
             }
 
-            if value == '\\'u8
+            if value == '\\'_u8
             {
                 escaped = true
                 continue
             }
 
-            if value == '"'u8 do
+            if value == '"'_u8
+            {
                 quoted = not quoted
-            if value == ';'u8 and not quoted
+            }
+
+            if value == ';'_u8 and not quoted
             {
                 sections.add(source[start until index])
                 start = index + 1
@@ -101,27 +104,30 @@ impl NumberFormat
         }
 
         sections.add(source[start to])
-        if quoted or escaped or sections.count > 4 do
+        if quoted or escaped or sections.count > 4
+        {
             return result
-        var section = 0'u64
+        }
+
+        var section = 0_u64
         if number < 0 and sections.count >= 2
         {
             section = 1
             result.negativeSection = true
         }
-        elif number == 0 and sections.count >= 3
+        else if number == 0 and sections.count >= 3
         {
             section = 2
         }
 
         let selected = sections[section]
-        var at       = 0'u64
+        var at       = 0_u64
         quoted = false
         while at < selected.count
         {
             let value = selected[at]
             at += 1
-            if value == '"'u8
+            if value == '"'_u8
             {
                 quoted = not quoted
                 continue
@@ -133,24 +139,33 @@ impl NumberFormat
                 continue
             }
 
-            if value == '\\'u8
+            if value == '\\'_u8
             {
-                if at >= selected.count do
+                if at >= selected.count
+                {
                     return result
+                }
+
                 result.items.add(FormatToken{selected[at], true})
                 at += 1
             }
-            elif value == '_'u8 or value == '*'u8
+            else if value == '_'_u8 or value == '*'_u8
             {
-                if at >= selected.count do
+                if at >= selected.count
+                {
                     return result
+                }
+
                 at += 1     // Accounting alignment does not change the displayed quantity.
             }
-            elif value == '['u8
+            else if value == '['_u8
             {
-                let end = Utf8.indexOf(selected[at to], ']'rune)
-                if end == Swag.U64.Max do
+                let end = Utf8.indexOf(selected[at to], ']'_rune)
+                if end == Swag.U64.Max
+                {
                     return result
+                }
+
                 let option = selected[at until at + end]
                 at += end + 1
                 if option == "h" or
@@ -160,28 +175,35 @@ impl NumberFormat
                    option == "s" or
                    option == "ss"
                 {
-                    result.items.add(FormatToken{'['u8})
-                    for byte in option do
+                    result.items.add(FormatToken{'['_u8})
+                    for byte in option
+                    {
                         result.items.add(FormatToken{byte})
-                    result.items.add(FormatToken{']'u8})
+                    }
+
+                    result.items.add(FormatToken{']'_u8})
                 }
-                elif Utf8.startsWith(option, "$")
+                else if Utf8.startsWith(option, "$")
                 {
-                    let dash   = Utf8.indexOf(option, '-'rune)
+                    let dash   = Utf8.indexOf(option, '-'_rune)
                     let symbol = dash == Swag.U64.Max ? option[1 to] : option[1 until dash]
-                    if not symbol.count do
-                        return result     // Locale-specific long-date formats need a separate contract.
-                    for byte in symbol do
+                    if not symbol.count
+                    {
+                        return result
+                    }     // Locale-specific long-date formats need a separate contract.
+                    for byte in symbol
+                    {
                         result.items.add(FormatToken{byte, true})
+                    }
                 }
-                elif option != "Black" and
-                     option != "Blue" and
-                     option != "Cyan" and
-                     option != "Green" and
-                     option != "Magenta" and
-                     option != "Red" and
-                     option != "White" and
-                     option != "Yellow"
+                else if option != "Black" and
+                        option != "Blue" and
+                        option != "Cyan" and
+                        option != "Green" and
+                        option != "Magenta" and
+                        option != "Red" and
+                        option != "White" and
+                        option != "Yellow"
                 {
                     return result
                 }
@@ -202,12 +224,18 @@ impl NumberFormat
         {
             var result: #returntype = {omitted: true}
             let maximum = date1904 ? 2_957_003.0 : 2_958_465.0
-            if number < 0 or number >= maximum + 1 do
+            if number < 0 or number >= maximum + 1
+            {
                 return result
+            }
+
             let totalSeconds = cast(u64, Math.round(number * 86400))
             let days         = totalSeconds / 86400
-            if days > cast(u64, maximum) do
+            if days > cast(u64, maximum)
+            {
                 return result
+            }
+
             let seconds = totalSeconds % 86400
             var date: Time.DateTime
             if not date1904 and days == 0
@@ -215,7 +243,7 @@ impl NumberFormat
                 // Excel formats serial zero as day zero of January 1900.
                 date = Time.DateTime{year: 1900, month: 1, day: 0}
             }
-            elif not date1904 and days == 60
+            else if not date1904 and days == 60
             {
                 // Excel intentionally retains Lotus's non-existent 1900 leap day.
                 date = Time.DateTime{year: 1900, month: 2, day: 29}
@@ -231,13 +259,16 @@ impl NumberFormat
             let minute = seconds / 60 % 60
             let second = seconds % 60
             var amPm   = false
-            for token, index in items where not token.literal and token.value == 'A'u8 and index + 4 < items.count do
-                amPm = items[index + 1].value == 'M'u8 and
-                       items[index + 2].value == '/'u8 and
-                       items[index + 3].value == 'P'u8 and
-                       items[index + 4].value == 'M'u8
+            for token, index in items where not token.literal and token.value == 'A'_u8 and index + 4 < items.count
+            {
+                amPm = items[index + 1].value == 'M'_u8 and
+                       items[index + 2].value == '/'_u8 and
+                       items[index + 3].value == 'P'_u8 and
+                       items[index + 4].value == 'M'_u8
+            }
+
             var afterHour = false
-            var at        = 0'u64
+            var at        = 0_u64
             while at < items.count
             {
                 let token = items[at]
@@ -248,80 +279,111 @@ impl NumberFormat
                     continue
                 }
 
-                if token.value == 'A'u8 and amPm and at + 4 < items.count
+                if token.value == 'A'_u8 and amPm and at + 4 < items.count
                 {
                     result.text += hour < 12 ? "AM" : "PM"
                     at += 5
                     continue
                 }
 
-                if token.value == '['u8
+                if token.value == '['_u8
                 {
                     let start = at + 1
                     at = start
-                    while at < items.count and items[at].value != ']'u8 do
+                    while at < items.count and items[at].value != ']'_u8
+                    {
                         at += 1
-                    if at >= items.count or start == at do
+                    }
+
+                    if at >= items.count or start == at
+                    {
                         return result
+                    }
+
                     let unit  = items[start].value
-                    let value = unit == 'h'u8 ? totalSeconds / 3600 : unit == 'm'u8 ? totalSeconds / 60 : totalSeconds
+                    let value = unit == 'h'_u8 ? totalSeconds / 3600 : unit == 'm'_u8 ? totalSeconds / 60 : totalSeconds
                     result.text += Format.toString("%", value)
-                    afterHour   = unit == 'h'u8
+                    afterHour   = unit == 'h'_u8
                     at          += 1
                     continue
                 }
 
                 var end = at + 1
-                while end < items.count and not items[end].literal and items[end].value == token.value do
+                while end < items.count and not items[end].literal and items[end].value == token.value
+                {
                     end += 1
+                }
+
                 let count = end - at
                 switch token.value
                 {
                 case 'y':
-                    if count == 2 do
+                    if count == 2
+                    {
                         result.text += Format.toString("%{02}", date.year % 100)
-                    elif count == 4 do
+                    }
+                    else if count == 4
+                    {
                         result.text += Format.toString("%{04}", date.year)
-                    else do
+                    }
+                    else
+                    {
                         return result
+                    }
 
                 case 'd':
-                    if count == 1 do
+                    if count == 1
+                    {
                         result.text += Format.toString("%", date.day)
-                    elif count == 2 do
+                    }
+                    else if count == 2
+                    {
                         result.text += Format.toString("%{02}", date.day)
-                    else do
+                    }
+                    else
+                    {
                         return result
+                    }
+
                     afterHour = false
 
                 case 'm':
                     var isMinute = afterHour
                     if end + 1 < items.count and
-                       items[end].value == ':'u8 and
-                       items[end + 1].value == 's'u8 do
+                       items[end].value == ':'_u8 and
+                       items[end + 1].value == 's'_u8
+                    {
                         isMinute = true
+                    }
+
                     if isMinute
                     {
-                        if count == 1 do
+                        if count == 1
+                        {
                             result.text += Format.toString("%", minute)
-                        elif count == 2 do
+                        }
+                        else if count == 2
+                        {
                             result.text += Format.toString("%{02}", minute)
-                        else do
+                        }
+                        else
+                        {
                             return result
+                        }
                     }
-                    elif count == 1
+                    else if count == 1
                     {
                         result.text += Format.toString("%", date.month)
                     }
-                    elif count == 2
+                    else if count == 2
                     {
                         result.text += Format.toString("%{02}", date.month)
                     }
-                    elif count == 3
+                    else if count == 3
                     {
                         result.text += ShortMonthNames[date.month - 1]
                     }
-                    elif count == 4
+                    else if count == 4
                     {
                         result.text += FullMonthNames[date.month - 1]
                     }
@@ -334,26 +396,42 @@ impl NumberFormat
 
                 case 'h':
                     let displayed = amPm ? (hour % 12 ? hour % 12 : 12) : hour
-                    if count == 1 do
+                    if count == 1
+                    {
                         result.text += Format.toString("%", displayed)
-                    elif count == 2 do
+                    }
+                    else if count == 2
+                    {
                         result.text += Format.toString("%{02}", displayed)
-                    else do
+                    }
+                    else
+                    {
                         return result
+                    }
+
                     afterHour = true
 
                 case 's':
-                    if count == 1 do
+                    if count == 1
+                    {
                         result.text += Format.toString("%", second)
-                    elif count == 2 do
+                    }
+                    else if count == 2
+                    {
                         result.text += Format.toString("%{02}", second)
-                    else do
+                    }
+                    else
+                    {
                         return result
+                    }
+
                     afterHour = false
 
                 case '/', '-', ':', ' ', ',':
-                    for count do
+                    for count
+                    {
                         result.text += token.value
+                    }
 
                 default:
                     return result
@@ -367,20 +445,32 @@ impl NumberFormat
         }
 
         var result = FormattedCell{String.from(stored)}
-        if .code == "General" or .code == "@" or not stored.count do
+        if .code == "General" or .code == "@" or not stored.count
+        {
             return result
+        }
+
         result.omitted = true
         let number = catch StrConv.toF64(stored) { return result; }
-        if not Math.isFinite(number) or .code.isEmpty() do
+        if not Math.isFinite(number) or .code.isEmpty()
+        {
             return result
+        }
+
         let decoded = .tokens(number)
-        if not decoded.valid do
+        if not decoded.valid
+        {
             return result
+        }
+
         let items = decoded.items.toSlice()
         var date  = false
         for token in items where not token.literal and
-                                 (token.value == 'y'u8 or token.value == 'm'u8 or token.value == 'd'u8 or token.value == 'h'u8 or token.value == 's'u8) do
+                                 (token.value == 'y'_u8 or token.value == 'm'_u8 or token.value == 'd'_u8 or token.value == 'h'_u8 or token.value == 's'_u8)
+        {
             date = true
+        }
+
         if date
         {
             let formatted = dateText(items, number, date1904)
@@ -388,88 +478,118 @@ impl NumberFormat
         }
 
         var first   = Swag.U64.Max
-        var last    = 0'u64
-        var percent = 0'u32
+        var last    = 0_u64
+        var percent = 0_u32
         for token, index in items where not token.literal
         {
-            if token.value == '%'u8 do
-                percent += 1
-            if token.value == '0'u8 or token.value == '#'u8
+            if token.value == '%'_u8
             {
-                if first == Swag.U64.Max do
+                percent += 1
+            }
+
+            if token.value == '0'_u8 or token.value == '#'_u8
+            {
+                if first == Swag.U64.Max
+                {
                     first = index
+                }
+
                 last = index
             }
         }
 
-        if percent > 1 do
+        if percent > 1
+        {
             return result
+        }
 
         // An unescaped fraction, exponent or text placeholder must not masquerade as a suffix.
         for token, index in items where not token.literal and
                                         (first == Swag.U64.Max or index < first or index > last)
         {
             let value = token.value
-            if value == ','u8 and (first == Swag.U64.Max or index < first) do
+            if value == ','_u8 and (first == Swag.U64.Max or index < first)
+            {
                 return result
+            }
+
             if value < 128 and
-               value != ' 'u8 and
-               value != '$'u8 and
-               value != '%'u8 and
-               value != '('u8 and
-               value != ')'u8 and
-               value != '+'u8 and
-               value != '-'u8 and
-               value != ','u8 do
+               value != ' '_u8 and
+               value != '$'_u8 and
+               value != '%'_u8 and
+               value != '('_u8 and
+               value != ')'_u8 and
+               value != '+'_u8 and
+               value != '-'_u8 and
+               value != ','_u8
+            {
                 return result
+            }
         }
 
         if first == Swag.U64.Max
         {
             result.text.clear()
-            for token in items do
+            for token in items
+            {
                 result.text += token.value
+            }
+
             result.omitted = false
             return result
         }
 
-        var decimals         = 0'u8
-        var requiredDecimals = 0'u8
-        var integerZeros     = 0'u32
+        var decimals         = 0_u8
+        var requiredDecimals = 0_u8
+        var integerZeros     = 0_u32
         var fractional       = false
         var grouped          = false
         for index in first until last + 1
         {
             let token = items[index]
-            if token.literal do
+            if token.literal
+            {
                 return result
+            }
+
             switch token.value
             {
             case '.':
-                if fractional do
+                if fractional
+                {
                     return result
+                }
+
                 fractional = true
 
             case ',':
-                if fractional do
+                if fractional
+                {
                     return result
+                }
+
                 grouped = true
 
             case '0', '#':
                 if fractional
                 {
                     decimals += 1
-                    if token.value == '0'u8
+                    if token.value == '0'_u8
                     {
-                        if requiredDecimals + 1 != decimals do
+                        if requiredDecimals + 1 != decimals
+                        {
                             return result
+                        }
+
                         requiredDecimals += 1
                     }
 
-                    if decimals > 12 do
+                    if decimals > 12
+                    {
                         return result
+                    }
                 }
-                elif token.value == '0'u8
+                else if token.value == '0'_u8
                 {
                     integerZeros += 1
                 }
@@ -479,64 +599,88 @@ impl NumberFormat
             }
         }
 
-        if not integerZeros or integerZeros >= 32 or (grouped and integerZeros > 1) do
+        if not integerZeros or integerZeros >= 32 or (grouped and integerZeros > 1)
+        {
             return result
-        var magnitude   = Math.abs(number) * (percent ? 100.0'f64 : 1.0'f64)
+        }
+
+        var magnitude   = Math.abs(number) * (percent ? 100.0_f64 : 1.0_f64)
         var suffixStart = last + 1
 
         // Trailing commas scale thousands; interior commas group digits.
         while suffixStart < items.count and
               not items[suffixStart].literal and
-              items[suffixStart].value == ','u8
+              items[suffixStart].value == ','_u8
         {
             magnitude   /= 1000
             suffixStart += 1
         }
 
-        var scale = 1.0'f64
-        for decimals do
+        var scale = 1.0_f64
+        for decimals
+        {
             scale *= 10
-        if magnitude > 1.0e18 / scale do
+        }
+
+        if magnitude > 1.0e18 / scale
+        {
             return result
+        }
+
         let info: Globalization.NumberFormatInfo
         var digits = info.format(magnitude, decimals, grouped)
         if decimals > requiredDecimals
         {
             var end      = digits.count
             var optional = decimals - requiredDecimals
-            while optional and end and digits[end - 1] == '0'u8
+            while optional and end and digits[end - 1] == '0'_u8
             {
                 end      -= 1
                 optional -= 1
             }
 
-            if end and digits[end - 1] == '.'u8 do
+            if end and digits[end - 1] == '.'_u8
+            {
                 end -= 1
+            }
+
             digits.removeBack(digits.count - end)
         }
 
         if not grouped and integerZeros > 1 and integerZeros < 32
         {
-            let dot   = Utf8.indexOf(digits, '.'rune)
+            let dot   = Utf8.indexOf(digits, '.'_rune)
             let whole = dot == Swag.U64.Max ? digits.count : dot
             if whole < integerZeros
             {
                 var padded: String
-                for integerZeros - whole do
-                    padded += '0'u8
+                for integerZeros - whole
+                {
+                    padded += '0'_u8
+                }
+
                 padded += digits
                 digits = #move padded
             }
         }
 
         result.text.clear()
-        if number < 0 and not decoded.negativeSection do
+        if number < 0 and not decoded.negativeSection
+        {
             result.text += '-'
-        for index in 0 until first do
+        }
+
+        for index in 0 until first
+        {
             result.text += items[index].value
+        }
+
         result.text += digits
-        for index in suffixStart until items.count do
+        for index in suffixStart until items.count
+        {
             result.text += items[index].value
+        }
+
         result.omitted = false
         return result
     }

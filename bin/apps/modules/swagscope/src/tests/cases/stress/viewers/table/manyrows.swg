@@ -10,8 +10,11 @@ using Core, Pixel, Gui, Viewers
     let file = Testing.tempFilePath("scope-many-rows-", ".csv")
     defer discard catch File.delete(file)
     var source = String.from("name,quantity,group\n")
-    for index in 20_000 do
+    for index in 20_000
+    {
         source += Format.toString("row%,%,group%\n", index, index, index % 7)
+    }
+
     source += "target-final,20000,group0\n"
     expect File.writeAllText(file, source)
 
@@ -29,7 +32,7 @@ using Core, Pixel, Gui, Viewers
     view.sortBy(1)
     Swag.require(view.descending and view.order[0] == 20_000)
 
-    var matches: Array'Viewer.SearchMatch
+    var matches: Array!{Viewer.SearchMatch}
     collectViewerMatches(session.collectMatches, "target-final", &matches)
     Swag.require(matches.count == 1 and session.revealMatch(matches[0], "target-final"))
     Swag.require(view.searchRow == 20_000 and view.list.focusIndex == 0)

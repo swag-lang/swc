@@ -7,7 +7,7 @@ func pressCount(mask: u32)->u32
 
     while value != 0
     {
-        result += value & 1'u32
+        result += value & 1_u32
         value  >>= 1
     }
 
@@ -16,8 +16,8 @@ func pressCount(mask: u32)->u32
 
 func minimumPresses(buttonMasks: const [..] u32, targetMask: u32)->u32
 {
-    var best = 255'u32
-    let combinationCount = 1'u32 << cast(u32, buttonMasks.count)
+    var best = 255_u32
+    let combinationCount = 1_u32 << cast(u32, buttonMasks.count)
 
     var combo: u32
     while combo < combinationCount
@@ -27,8 +27,10 @@ func minimumPresses(buttonMasks: const [..] u32, targetMask: u32)->u32
 
         while button < buttonMasks.count
         {
-            if (combo & (1'u32 << button)) != 0
-                do state ^= buttonMasks[button]
+            if (combo & (1_u32 << button)) != 0
+            {
+                state ^= buttonMasks[button]
+            }
 
             button += 1
         }
@@ -37,7 +39,9 @@ func minimumPresses(buttonMasks: const [..] u32, targetMask: u32)->u32
         {
             let presses = pressCount(combo)
             if presses < best
-                do best = presses
+            {
+                best = presses
+            }
         }
 
         combo += 1
@@ -49,5 +53,5 @@ func minimumPresses(buttonMasks: const [..] u32, targetMask: u32)->u32
 #test
 {
     const masks: [6] u32 = [8, 10, 4, 12, 5, 3]
-    Swag.require(minimumPresses(masks, 6'u32) == 2'u32)
+    Swag.require(minimumPresses(masks, 6_u32) == 2_u32)
 }

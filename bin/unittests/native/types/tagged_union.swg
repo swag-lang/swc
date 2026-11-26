@@ -62,8 +62,10 @@ func width(shape: Shape)->f32 => shape.rect!.w
         Swag.require(area(shape) == 3)
     }
 
-    if not (shape.geometry is .Circle) do
+    if not (shape.geometry is .Circle)
+    {
         return
+    }
     Swag.require(false)
 }
 
@@ -102,7 +104,7 @@ struct Label
     Swag.require(a == b)
 }
 
-var taggedDropCount = 0's32
+var taggedDropCount = 0_s32
 
 struct Counted
 {
@@ -240,8 +242,10 @@ func sum(value: Value)->s32
 
     var values: [3] Value = [.Number{1}, .Point{x: 1, y: 1}, .None]
     var total = 0
-    for v in values do
+    for v in values
+    {
         total += sum(v)
+    }
     Swag.require(total == 3)
 }
 
@@ -253,12 +257,16 @@ func twice(v: s32)->s32 => v * 2
 {
     var values: [3] Value = [.Number{1}, .Point{x: 5, y: 5}, .Number{2}]
     var total = 0
-    for v in values where v is .Number do
+    for v in values where v is .Number
+    {
         total += twice(v.number)
+    }
     Swag.require(total == 6)
 
     // A block pointer reaches the union as well as a plain one.
     let first: [*] Value = &values[0]
-    if first is .Number do
+    if first is .Number
+    {
         Swag.require(first.number == 1)
+    }
 }

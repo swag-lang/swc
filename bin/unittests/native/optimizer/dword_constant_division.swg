@@ -28,7 +28,7 @@ func wide(x, d: u64)->u64 => x / d
 
 #test
 {
-    let values = [0'u32, 1, 2, 6, 9, 10, 99, 641, 65520, 65521, 65522, 1000000006, 1000000007, 0x7FFFFFFF, 0x80000000, 0x80000001, 0xFFFFFFFE, 0xFFFFFFFF, 123456789, 3141592653]
+    let values = [0_u32, 1, 2, 6, 9, 10, 99, 641, 65520, 65521, 65522, 1000000006, 1000000007, 0x7FFFFFFF, 0x80000000, 0x80000001, 0xFFFFFFFE, 0xFFFFFFFF, 123456789, 3141592653]
     for v in values
     {
         let x = cast(u64, v)

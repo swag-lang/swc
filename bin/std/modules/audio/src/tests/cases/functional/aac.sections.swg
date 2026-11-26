@@ -6,11 +6,14 @@ using Swag, Core
 // Long-window section lengths use 31 as an escape and preserve the final remainder.
 #test
 {
-    for length in [1'u64, 30, 31, 32, 49]
+    for length in [1_u64, 30, 31, 32, 49]
     {
         var active: [49] bool
-        for index in length do
+        for index in length
+        {
             active[index] = true
+        }
+
         var codes: [98] Aac.EncoderSectionCode
         let count = Aac.planEncoderSections(Swag.makeSlice(&active[0], length),
                                             Swag.makeSlice(&codes[0], codes.count))
@@ -46,12 +49,12 @@ using Swag, Core
                             Format.toString("aac-sections-%.aac", Guid128.random()))
     defer discard catch File.delete(path)
     var encoder = expect Aac.Encoder.create(48_000, 2)
-    var file:    Array'u8
-    var packets: Array'SoundPacket
-    for block in 10'u64
+    var file:    Array!{u8}
+    var packets: Array!{SoundPacket}
+    for block in 10_u64
     {
         var samples: [2 * 1_024] s16
-        for index in 1_024'u64
+        for index in 1_024_u64
         {
             let frame = block * 1_024 + index
             let time  = frame / 48_000.0
@@ -64,7 +67,7 @@ using Swag, Core
                                                      Math.sin(Math.ConstF64.TwoPi * 1_000.0 * time)))
         }
 
-        var packet: Array'u8
+        var packet: Array!{u8}
         expect encoder.encode(Swag.makeSlice(&samples[0], samples.count), &packet)
         packets.add({file.count, cast(u32, packet.count), 1_024})
         file.add(packet.toSlice())
@@ -73,15 +76,15 @@ using Swag, Core
     Swag.require(file.count > 100 and file.count < 1_500)
     discard expect File.writeAllBytes(path.toString(), file.toSlice())
     let sound = expect SoundFile.openPacketStream(path.toString(), .AacLc, 48_000, 2, 10 * 1_024, packets.toSlice(), encoder.decoderConfig())
-    var decoded: Array's16
+    var decoded: Array!{s16}
     expect sound.decodePcm16(func|decoded = &decoded|(part: const [..] s16)->bool
     {
         decoded.add(part)
         return true
     })
     Swag.require(decoded.count == 10 * 1_024 * 2)
-    var leftPower  = 0.0'f64
-    var rightPower = 0.0'f64
+    var leftPower  = 0.0_f64
+    var rightPower = 0.0_f64
     for frame in 3 * 1_024 until 8 * 1_024
     {
         leftPower  += cast(f64, decoded[frame * 2]) * decoded[frame * 2]

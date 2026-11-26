@@ -56,8 +56,11 @@ using Swag
     Swag.require(not Path.equals(invalid, "src/\uFFFD"))
     Swag.require(Path.equals(upper, invalid) == WINDOWS)
     Swag.require(Path.equals(invalid, invalid))
-    if WINDOWS do
+    if WINDOWS
+    {
         Swag.require(Path.equals(upper, Swag.makeString(invalidBytes.buffer, invalidBytes.count)))
+    }
+
     Swag.require(Path.equals("src/\uFFFD.swg", "src/\uFFFD.swg"))
     Swag.require(Path.lowercaseExtension("file.\u03A3\u0410") == ".\u03C3\u0430")
     Swag.require(not Path.equals("src/\u00E9.swg", "src/e\u0301.swg"))
@@ -66,9 +69,9 @@ using Swag
 
 #test
 {
-    Swag.require(Path.isDirectorySeparator('/'u8))
-    Swag.require(Path.isDirectorySeparator('\\'u8) == WINDOWS)
-    Swag.require(not Path.isDirectorySeparator('a'u8))
+    Swag.require(Path.isDirectorySeparator('/'_u8))
+    Swag.require(Path.isDirectorySeparator('\\'_u8) == WINDOWS)
+    Swag.require(not Path.isDirectorySeparator('a'_u8))
 
     Swag.require(Path.isValidPathName("src/tests/core.swg"))
     Swag.require(Path.isValidPathName("C:/src/tests/core.swg"))
@@ -215,15 +218,21 @@ using Swag
     Swag.require(Path.equals(Path.extension("archive.tar.gz") orelse "", ".gz"))
     Swag.require(Path.equals(Path.extension(".gitignore") orelse "", ".gitignore"))
     Swag.require(Path.equals(Path.extension("src/.gitignore") orelse "", ".gitignore"))
-    #static if not WINDOWS do
+    #static if not WINDOWS
+    {
         Swag.require(Path.equals(Path.extension("core.") orelse "", "."))
+    }
+
     Swag.require(Path.extension("core") == null)
     Swag.require(Path.extension("src.tests/core") == null)
     Swag.require(Path.hasExtension("core.swg"))
     Swag.require(Path.hasExtension("archive.tar.gz"))
     Swag.require(Path.hasExtension(".gitignore"))
-    #static if not WINDOWS do
+    #static if not WINDOWS
+    {
         Swag.require(Path.hasExtension("core."))
+    }
+
     Swag.require(not Path.hasExtension("core"))
     Swag.require(not Path.hasExtension("src.tests/core"))
     Swag.require(Path.hasExtension("CORE.SWG", ".swg") == WINDOWS)

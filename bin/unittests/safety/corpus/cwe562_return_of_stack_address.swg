@@ -58,7 +58,7 @@ func storeAddressInGlobal()
 // A closure that captures by address, and itself escapes, carries the frame with it.
 func returnClosureOverLocal()->func||()->s32
 {
-    var value = 42's32
+    var value = 42_s32
     let captured: func||()->s32 = func|&value|()->s32 { return value }
     return captured     // swc-expected-error {{sanity_err_borrow_escape}}
 }
@@ -98,7 +98,7 @@ func escapeInnerScope()->s32
     var pointer: *s32?
     scope
     {
-        var value = 42's32
+        var value = 42_s32
         pointer = &value     // swc-expected-error {{sanity_err_borrow_scope_escape}}
     }
 
@@ -131,15 +131,19 @@ impl ViewBag
 {
     mtd opDrop()
     {
-        if .slots != null do
+        if .slots != null
+        {
             heapFree(cast(*void, .slots), 4 * 8)
+        }
         .slots = null
     }
 
     mtd add(pointer: *s32)
     {
-        if .slots == null do
+        if .slots == null
+        {
             .slots = cast([*] (*s32?), heapAlloc(4 * 8))
+        }
         .slots[.count] = pointer
         .count         += 1
     }

@@ -84,8 +84,11 @@ func captureMonitorScale(capture: *Capture)->f32
 {
     let cx = cast(f32, g_DesktopX) - capture.backImagePos.x + cast(f32, capture.width) * 0.5
     let cy = cast(f32, g_DesktopY) - capture.backImagePos.y + cast(f32, capture.height) * 0.5
-    for monitor in Env.getMonitors() where monitor.physicalBounds.contains(cx, cy) do
+    for monitor in Env.getMonitors() where monitor.physicalBounds.contains(cx, cy)
+    {
         return Math.max(monitor.scaleFactor, 1.0)
+    }
+
     return 1.0
 }
 
@@ -121,15 +124,15 @@ impl InPlaceEditWnd
     // edits `capture` where it was taken.
     func createMainFrame(main: *MainWnd, parent: *Wnd, capture: *Capture)->*InPlaceEditWnd
     {
-        with let newMain = Wnd.create'MainWnd(main.parent, {})
+        with let newMain = Wnd.create!{MainWnd}(main.parent, {})
         {
-            .registerAction'InPlaceRecordingActions()
+            .registerAction!{InPlaceRecordingActions}()
             .registerActions()
             .registerShortcuts()
             .inPlaceEdit = true
         }
 
-        with let frame = Wnd.create'InPlaceEditWnd(parent)
+        with let frame = Wnd.create!{InPlaceEditWnd}(parent)
         {
             .owner   = newMain
             .capture = capture
@@ -169,7 +172,7 @@ impl InPlaceEditWnd
     {
         let metrics     = .themeMetrics()
         let main        = .source
-        var width       = 0'f32
+        var width       = 0_f32
         with let button = IconButton.createQuiet(.editWnd.editView, menu: true)
         {
             .setIcon(kindIcon(main, .theme(), g_CaptureMedia))
@@ -232,7 +235,7 @@ impl InPlaceEditWnd
                 .userData   = enumToUserData(tool.mode)
                 .sigPressed += func|editor = me|(btn)
                 {
-                    editor.editMode = enumFromUserData'InPlaceEditMode(btn.userData)
+                    editor.editMode = enumFromUserData!{InPlaceEditMode}(btn.userData)
                     editor.updateEditMode()
                 }
             }
@@ -255,10 +258,15 @@ impl InPlaceEditWnd
                 let popover = ColorPopover.open(assume cast(*IconButton, btn), appStrings().ui_PropColor, editor.toolColor(), &editor.newMain.recentColors)
                 popover.sigColorChanged += func|editor, btn|(pop)
                 {
-                    if editor.editMode == .Marker do
+                    if editor.editMode == .Marker
+                    {
                         editor.editColorHilight = pop.color
-                    else do
+                    }
+                    else
+                    {
                         editor.editColor = pop.color
+                    }
+
                     editor.updateEditMode()
                     btn.invalidate()
                 }
@@ -288,8 +296,10 @@ impl InPlaceEditWnd
         let main      = .source
         with let menu = MenuCtrl.createPopup(me)
         {
-            for media in KindMedia do
+            for media in KindMedia
+            {
                 .addItem(kindName(media), kindMenuId(media), kindIcon(main, .theme(), media), checked: media == g_CaptureMedia)
+            }
         }
 
         let chosen = menu.doModal(button, autoDestroy: true)
@@ -362,8 +372,10 @@ impl InPlaceEditWnd
 
                 .bar.addItem(system)
             }
-            else do
+            else
+            {
                 .bar.addItem(createRecordOption(.bar, .theme().icon(.Volume), texts.ui_AimSoundUnavailable, false, enabled: false))
+            }
         }
 
         let record = createRecordButton(.bar)
@@ -376,8 +388,11 @@ impl InPlaceEditWnd
     // changing its annotations.
     mtd setMedia(media: CaptureMedia)
     {
-        if media == g_CaptureMedia do
+        if media == g_CaptureMedia
+        {
             return
+        }
+
         if media == .Video
         {
             // Leave the frozen picture draft before offering video controls. The recording
@@ -400,8 +415,11 @@ impl InPlaceEditWnd
         g_CaptureMedia = media
         if media != .Picture
         {
-            if previous == .Picture do
+            if previous == .Picture
+            {
                 .pictureMode = .editMode
+            }
+
             .editMode = .Select
         }
         else
@@ -445,8 +463,11 @@ impl InPlaceEditWnd
         {
             if g_CaptureMedia != .Picture
             {
-                if me.capture and not me.capture.forms.isEmpty() do
+                if me.capture and not me.capture.forms.isEmpty()
+                {
                     .setReading(texts.ui_AimPictureDraft)
+                }
+
                 .addHint(strings().key_Enter, texts.hint_Record)
             }
             else
@@ -495,8 +516,11 @@ impl InPlaceEditWnd
     mtd save()
     {
         let fileName = .newMain.getSaveAsImageName()
-        if fileName.isEmpty() do
+        if fileName.isEmpty()
+        {
             return
+        }
+
         .capture!.cropToGrab()
         .newMain.doSaveAsImage(fileName)
         exitWithResult(false)
@@ -525,8 +549,10 @@ impl InPlaceEditWnd
     {
         for item in .bar.items
         {
-            if item.wnd is IconButton as button where button.flags.has(.Radio) do
-                button.setChecked(enumFromUserData'InPlaceEditMode(button.userData) == .editMode)
+            if item.wnd is IconButton as button where button.flags.has(.Radio)
+            {
+                button.setChecked(enumFromUserData!{InPlaceEditMode}(button.userData) == .editMode)
+            }
         }
 
         .configureMainWindowEditMode()
@@ -629,8 +655,11 @@ impl InPlaceEditWnd
         // Once the zone is taken, the view lets its capture go while the overlay is still being
         // torn down: a recording runs frames before that, and there is nothing left to place.
         let view = .editWnd.editView
-        if not view.capture do
+        if not view.capture
+        {
             return
+        }
+
         .hintArea.placeAt(view.capture.zoneScreenRect().center())
         var room = .barRoom
         room.intersect(view.clientRect())
@@ -682,8 +711,10 @@ impl InPlaceEditWnd
             }
         }
 
-        if let link = .linkButton do
+        if let link = .linkButton
+        {
             link.show(g_CaptureMedia != .Picture and g_CaptureWindow.nativeWindow != 0)
+        }
     }
 }
 
@@ -695,8 +726,11 @@ impl IActionUI for InPlaceRecordingActions
     mtd impl accept(cxt: ActionContext)->bool
     {
         // Kind choices remain available while annotation commands are out of reach.
-        for media in KindMedia where cxt.id == kindMenuId(media) do
+        for media in KindMedia where cxt.id == kindMenuId(media)
+        {
             return false
+        }
+
         return mainWndOf(cxt).inPlaceEdit and g_CaptureMedia != .Picture
     }
 
@@ -715,8 +749,10 @@ impl IWnd for InPlaceEditWnd
     mtd impl onSysCommandEvent(evt: *SysCommandEvent)
     {
         evt.accepted = evt.kind == .Close
-        if evt.accepted do
+        if evt.accepted
+        {
             exitWithResult(false)
+        }
     }
 
     mtd impl onFrameEvent(_: *FrameEvent)
@@ -730,8 +766,10 @@ impl IWnd for InPlaceEditWnd
     mtd impl onKeyEvent(evt: *KeyEvent)
     {
         evt.accepted = false
-        if evt.kind != .Pressed do
+        if evt.kind != .Pressed
+        {
             return
+        }
 
         let recording = g_CaptureMedia != .Picture
         switch
@@ -760,8 +798,10 @@ impl Capture
     mtd cropToGrab()
     {
         .backImg.crop(Math.Rectangle{-.backImagePos.x, -.backImagePos.y, .width, .height})
-        if .backImgOriginal.isValid() do
+        if .backImgOriginal.isValid()
+        {
             .backImgOriginal = .backImg
+        }
 
         .width, .widthOrg    = .backImg.width
         .height, .heightOrg  = .backImg.height

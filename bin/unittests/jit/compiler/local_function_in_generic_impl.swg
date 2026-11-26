@@ -13,7 +13,7 @@ namespace LocalFunctionInGenericImpl
         #[Swag.NoInline]
         mtd const countValues()->s64
         {
-            var total = 0's64
+            var total = 0_s64
             for value in .values
             {
                 func keep(v: T)->T
@@ -21,8 +21,10 @@ namespace LocalFunctionInGenericImpl
                     return v
                 }
 
-                if keep(value) == value do
+                if keep(value) == value
+                {
                     total += 1
+                }
             }
 
             return total
@@ -32,6 +34,6 @@ namespace LocalFunctionInGenericImpl
 
 #test
 {
-    let box = LocalFunctionInGenericImpl.Box's32{values: [1, 2, 3]}
+    let box = LocalFunctionInGenericImpl.Box!{s32}{values: [1, 2, 3]}
     Swag.require(box.countValues() == 3)
 }

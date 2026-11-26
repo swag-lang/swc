@@ -16,14 +16,20 @@ enum MouseButton
 // Returns the button whose stored enum value matches an index into mouse state arrays.
 public func mouseButtonFromStorageIndex(index: u64)->MouseButton
 {
-    if index >= MouseButton.count do
+    if index >= MouseButton.count
+    {
         Swag.panic("invalid mouse button storage index", #curlocation)
+    }
 
     let typeEnum = assume cast(const *TypeInfoEnum, #typeof(MouseButton))
     let value    = cast(s32, index)
-    for &caseInfo in typeEnum.values where caseInfo.value do
-        if cast(const *s32, caseInfo.value)[] == value do
+    for &caseInfo in typeEnum.values where caseInfo.value
+    {
+        if cast(const *s32, caseInfo.value)[] == value
+        {
             return cast(const *MouseButton, caseInfo.value)[]
+        }
+    }
 
     Swag.panic("mouse button enum values do not match storage indexes", #curlocation)
 }

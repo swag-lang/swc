@@ -8,8 +8,11 @@ using Core, Viewers
 #test
 {
     var source: String = "<p:notes>"
-    for 2049 do
+    for 2049
+    {
         source += "<p:sp><p:nvSpPr><p:nvPr><p:ph type='ftr'/></p:nvPr></p:nvSpPr></p:sp>"
+    }
+
     source += "</p:notes>"
     var theme = Pptx.SlideTheme.defaults()
     var error: Swag.Error
@@ -22,10 +25,16 @@ using Core, Viewers
 #test
 {
     var prose: String
-    for 1025 do
+    for 1025
+    {
         prose += "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
-    for 4 do
+    }
+
+    for 4
+    {
         prose += prose
+    }
+
     var source: String = "<p:notes><p:sp><p:txBody><a:p><a:r><a:t>"
     source += prose
     source += "</a:t></a:r></a:p></p:txBody></p:sp></p:notes>"

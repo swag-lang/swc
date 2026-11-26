@@ -24,7 +24,9 @@ impl EventStatus
     // unchanged and can be inspected or raised again.
     mtd const raise() fail
     {
-        if not .succeeded do
+        if not .succeeded
+        {
             try raiseEventFailure(.errorCode)
+        }
     }
 }

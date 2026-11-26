@@ -38,10 +38,15 @@ func electricFaultPeer(stale: bool)
 
 #premain
 {
-    if Env.hasArgument("--swag-electric-guard-peer") do
+    if Env.hasArgument("--swag-electric-guard-peer")
+    {
         electricFaultPeer(false)
-    if Env.hasArgument("--swag-electric-stale-peer") do
+    }
+
+    if Env.hasArgument("--swag-electric-stale-peer")
+    {
         electricFaultPeer(true)
+    }
 }
 
 #[Swag.TestTag("integration.allocator")]

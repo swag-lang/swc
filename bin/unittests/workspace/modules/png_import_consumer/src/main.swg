@@ -26,8 +26,10 @@ func checkImportedPng()
     Swag.require(decoded.width == 2 and decoded.height == 1)
     Swag.require(decoded.pixelFormat == .RGBA8)
     Swag.require(decoded.pixels.count == Pixels.count)
-    for expected, index in Pixels do
+    for expected, index in Pixels
+    {
         Swag.require(decoded.pixels.storage()[index] == expected)
+    }
 
     let probe = expect Image.load(path.toString(), {decodePixels: false})
     Swag.require(probe.width == decoded.width and probe.height == decoded.height)

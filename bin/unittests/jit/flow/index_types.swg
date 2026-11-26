@@ -5,7 +5,7 @@
     func countedIndexType()->u8
     {
         var last: u8 = 0
-        for index in 4'u8
+        for index in 4_u8
         {
             Swag.assert(#typeof(index) == u8)
             last = index
@@ -15,7 +15,7 @@
     }
 
     const V = #run countedIndexType()
-    #assert(V == 3'u8)
+    #assert(V == 3_u8)
 }
 
 #test
@@ -23,7 +23,7 @@
     func rangeIndexType()->s16
     {
         var acc: s16 = 0
-        for i in 1's16 until 4's16
+        for i in 1_s16 until 4_s16
         {
             Swag.assert(#typeof(i) == s16)
             acc += i
@@ -33,7 +33,7 @@
     }
 
     const V = #run rangeIndexType()
-    #assert(V == 6's16)
+    #assert(V == 6_s16)
 }
 
 #test
@@ -53,7 +53,7 @@
     }
 
     const V = #run foreachIndexType()
-    #assert(V == 21'u64)
+    #assert(V == 21_u64)
 }
 
 #test
@@ -79,5 +79,5 @@
     }
 
     const V = #run countLikeIndexType()
-    #assert(V == 9'u64)
+    #assert(V == 9_u64)
 }

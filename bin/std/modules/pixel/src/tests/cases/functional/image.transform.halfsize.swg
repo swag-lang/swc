@@ -5,24 +5,24 @@ using Swag, Core
 #test
 {
     const pixels = [
-        10'u8, 20'u8, 30'u8, 40'u8, 50'u8, 60'u8, 70'u8, 80'u8, 90'u8, 100'u8, 110'u8, 120'u8, 130'u8, 140'u8, 150'u8, 160'u8,
-        20'u8, 30'u8, 40'u8, 50'u8, 60'u8, 70'u8, 80'u8, 90'u8, 100'u8, 110'u8, 120'u8, 130'u8, 140'u8, 150'u8, 160'u8, 170'u8,
-        30'u8, 40'u8, 50'u8, 60'u8, 70'u8, 80'u8, 90'u8, 100'u8, 110'u8, 120'u8, 130'u8, 140'u8, 150'u8, 160'u8, 170'u8, 180'u8,
-        40'u8, 50'u8, 60'u8, 70'u8, 80'u8, 90'u8, 100'u8, 110'u8, 120'u8, 130'u8, 140'u8, 150'u8, 160'u8, 170'u8, 180'u8, 190'u8]
+        10_u8, 20_u8, 30_u8, 40_u8, 50_u8, 60_u8, 70_u8, 80_u8, 90_u8, 100_u8, 110_u8, 120_u8, 130_u8, 140_u8, 150_u8, 160_u8,
+        20_u8, 30_u8, 40_u8, 50_u8, 60_u8, 70_u8, 80_u8, 90_u8, 100_u8, 110_u8, 120_u8, 130_u8, 140_u8, 150_u8, 160_u8, 170_u8,
+        30_u8, 40_u8, 50_u8, 60_u8, 70_u8, 80_u8, 90_u8, 100_u8, 110_u8, 120_u8, 130_u8, 140_u8, 150_u8, 160_u8, 170_u8, 180_u8,
+        40_u8, 50_u8, 60_u8, 70_u8, 80_u8, 90_u8, 100_u8, 110_u8, 120_u8, 130_u8, 140_u8, 150_u8, 160_u8, 170_u8, 180_u8, 190_u8]
 
     let src = makeImage(4, 4, .RGBA8, pixels)
     let out = src.halved()
     assertImage(out, 2, 2, .RGBA8)
 
-    assertPixel(out, 0, 1, Color.fromArgb(65'u8, 42'u8, 52'u8, 62'u8))
-    assertPixel(out, 1, 1, Color.fromArgb(145'u8, 118'u8, 128'u8, 138'u8))
-    assertPixel(out, 0, 0, Color.fromArgb(85'u8, 60'u8, 70'u8, 80'u8))
-    assertPixel(out, 1, 0, Color.fromArgb(165'u8, 138'u8, 148'u8, 158'u8))
+    assertPixel(out, 0, 1, Color.fromArgb(65_u8, 42_u8, 52_u8, 62_u8))
+    assertPixel(out, 1, 1, Color.fromArgb(145_u8, 118_u8, 128_u8, 138_u8))
+    assertPixel(out, 0, 0, Color.fromArgb(85_u8, 60_u8, 70_u8, 80_u8))
+    assertPixel(out, 1, 0, Color.fromArgb(165_u8, 138_u8, 148_u8, 158_u8))
 }
 
 #test
 {
-    const pixels = [17'u8, 91, 203, 0, 255, 0, 0, 255, 255, 0, 0, 255, 255, 0, 0, 255]
+    const pixels = [17_u8, 91, 203, 0, 255, 0, 0, 255, 255, 0, 0, 255, 255, 0, 0, 255]
     let straight      = Image.create(2, 2, .RGBA8, pixels)
     var premultiplied = Image.create(2, 2, .RGBA8, pixels)
     premultiplied.convertAlphaTo(.Premultiplied)
@@ -31,7 +31,7 @@ using Swag, Core
     let premultHalf  = premultiplied.halved()
     Swag.require(straightHalf.alphaMode == .Straight)
     Swag.require(premultHalf.alphaMode == .Premultiplied)
-    assertPixel(premultHalf, 0, 0, Color.fromArgb(191'u8, 255, 0, 0))
+    assertPixel(premultHalf, 0, 0, Color.fromArgb(191_u8, 255, 0, 0))
     assertPixel(straightHalf, 0, 0, premultHalf.pixelColor(0, 0))
 }
 
@@ -46,10 +46,15 @@ using Swag, Core
             for height in [2, 3, 6, 7]
             {
                 var src = Image.create(width, height, format)
-                for i in src.byteCount do
+                for i in src.byteCount
+                {
                     src.pixels.storage()[i] = cast(u8, ((i * 37 + width * 11 + height * 13) & 255))
-                if format.hasAlpha() do
+                }
+
+                if format.hasAlpha()
+                {
                     src.convertAlphaTo(.Premultiplied)
+                }
 
                 let pixels = src.pixels.storage()
                 let result = src.halved()

@@ -60,7 +60,7 @@ impl SectionLabel
     #[Swag.Discardable]
     func create(parent: *Wnd, text: string, position: Math.Rectangle = {}, id: WndId? = null)->*SectionLabel
     {
-        with let result = Wnd.create'SectionLabel(parent, null, position, id)
+        with let result = Wnd.create!{SectionLabel}(parent, null, position, id)
         {
             .text = text
             .backgroundStyle = .Transparent

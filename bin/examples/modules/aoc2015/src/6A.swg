@@ -18,8 +18,8 @@ After following the instructions, how many lights are lit?
 
 using Core
 
-internal const DAY6_GRID_SIZE   = 1000'u64
-internal const DAY6_GRID_SIZE32 = 1000'u32
+internal const DAY6_GRID_SIZE   = 1000_u64
+internal const DAY6_GRID_SIZE32 = 1000_u32
 
 internal enum Day6Action
 {
@@ -38,17 +38,19 @@ internal struct Day6Instruction
 }
 
 internal var day6InstructionsLoaded = false
-internal var day6Instructions: Array'Day6Instruction
+internal var day6Instructions: Array!{Day6Instruction}
 
 internal func day6ParseNumber(line: string, cursorPtr: *u64)->u16
 {
     var cursor = cursorPtr[]
     defer cursorPtr[] = cursor
 
-    while cursor < line.count and (line[cursor] < '0' or line[cursor] > '9') do
+    while cursor < line.count and (line[cursor] < '0' or line[cursor] > '9')
+    {
         cursor += 1
+    }
 
-    var result = 0'u16
+    var result = 0_u16
     while cursor < line.count and line[cursor] >= '0' and line[cursor] <= '9'
     {
         result *= 10
@@ -61,8 +63,10 @@ internal func day6ParseNumber(line: string, cursorPtr: *u64)->u16
 
 internal func day6EnsureInstructions()
 {
-    if day6InstructionsLoaded do
+    if day6InstructionsLoaded
+    {
         return
+    }
 
     let dataPath = Path.combine(Path.directoryName(#file), "6.txt")
     let lines    = expect File.readAllLines(dataPath)
@@ -70,15 +74,21 @@ internal func day6EnsureInstructions()
     day6Instructions.reserve(lines.count)
     for line in lines
     {
-        var cursor = 0'u64
+        var cursor = 0_u64
         var instruction: Day6Instruction
 
-        if line[6] == 'n' do
+        if line[6] == 'n'
+        {
             instruction.action = .TurnOn
-        elif line[6] == 'f' do
+        }
+        else if line[6] == 'f'
+        {
             instruction.action = .TurnOff
-        else do
+        }
+        else
+        {
             instruction.action = .Toggle
+        }
 
         instruction.x0 = day6ParseNumber(line[], &cursor)
         instruction.y0 = day6ParseNumber(line[], &cursor)
@@ -102,7 +112,7 @@ func day6A0()
     // Time.Stopwatch.scopeMeasure()
 
     day6EnsureInstructions()
-    var lights: HashSet'u32
+    var lights: HashSet!{u32}
     lights.reserve(DAY6_GRID_SIZE * DAY6_GRID_SIZE)
 
     for instruction in day6Instructions
@@ -157,7 +167,7 @@ func day6A1()
     // Time.Stopwatch.scopeMeasure()
 
     day6EnsureInstructions()
-    var lights: Array'bool
+    var lights: Array!{bool}
     lights.resize(DAY6_GRID_SIZE * DAY6_GRID_SIZE)
     let lightsBuf = lights.storage()
 
@@ -206,8 +216,10 @@ func day6A1()
     }
 
     var total: u64
-    for v in lights do
+    for v in lights
+    {
         total += cast(s32, v)
+    }
 
     Swag.assert(total == 377891)
 }
@@ -265,8 +277,10 @@ func day6A2()
     }
 
     var total: u64
-    for v in lights do
+    for v in lights
+    {
         total += cast(s32, v)
+    }
 
     Swag.assert(total == 377891)
 }

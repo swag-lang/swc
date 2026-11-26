@@ -9,7 +9,7 @@ var SigArrayTestTrace: String
 // A callback without arguments has no reflected parameter slice.
 #test
 {
-    var signal: SigArray'func||()
+    var signal: SigArray!{func||()}
     SigArrayTestTotal = 0
     signal += func() { SigArrayTestTotal += 1 }
     signal.call()
@@ -41,7 +41,7 @@ func sigArrayTestAppendA(value: *s32)
 // A signal calls every registered callback, and disabling nests: each `disable` needs its own `enable`.
 #test
 {
-    var signal: SigArray'func||(*s32)
+    var signal: SigArray!{func||(*s32)}
     Swag.require(signal.isEmpty())
 
     signal += &sigArrayTestAdd
@@ -77,7 +77,7 @@ func sigArrayTestAppendA(value: *s32)
 // A callback with several parameters receives every argument.
 #test
 {
-    var signal: SigArray'func||(*s32, s32)
+    var signal: SigArray!{func||(*s32, s32)}
     signal += &sigArrayTestAddDelta
     signal += func(_: *s32, delta: s32)
     {
@@ -93,7 +93,7 @@ func sigArrayTestAppendA(value: *s32)
 // Callbacks run in registration order, each one seeing what the previous one wrote.
 #test
 {
-    var signal: SigArray'func||(*s32)
+    var signal: SigArray!{func||(*s32)}
     signal += &sigArrayTestAppendA
     signal += func(value: *s32)
     {

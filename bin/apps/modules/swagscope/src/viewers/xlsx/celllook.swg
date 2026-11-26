@@ -92,20 +92,34 @@ impl CellAlignment
             }
         }
 
-        if (token.attribute("textRotation") orelse "0") != "0" or token.attribute("shrinkToFit") == "1" do
+        if (token.attribute("textRotation") orelse "0") != "0" or token.attribute("shrinkToFit") == "1"
+        {
             .limited = true
+        }
     }
 
     mtd apply(other: const *CellAlignment)
     {
-        if other.mask & 1 do
+        if other.mask & 1
+        {
             .horizontal = other.horizontal
-        if other.mask & 2 do
+        }
+
+        if other.mask & 2
+        {
             .vertical = other.vertical
-        if other.mask & 4 do
+        }
+
+        if other.mask & 4
+        {
             .wrap = other.wrap
-        if other.mask & 8 do
+        }
+
+        if other.mask & 8
+        {
             .indent = other.indent
+        }
+
         .mask    |= other.mask
         .limited = .limited or other.limited
     }
@@ -124,14 +138,17 @@ impl CellLook
 {
     mtd const hasBorder()->bool
     {
-        for edge in .edges where edge.width > 0 do
+        for edge in .edges where edge.width > 0
+        {
             return true
+        }
+
         return false
     }
 
-    mtd const paintBorders(painter: *Painter, rect: Math.Rectangle, mask = 15'u32)
+    mtd const paintBorders(painter: *Painter, rect: Math.Rectangle, mask = 15_u32)
     {
-        for edge, index in .edges where edge.width > 0 and (mask & (1'u32 << index))
+        for edge, index in .edges where edge.width > 0 and (mask & (1_u32 << index))
         {
             var first, last: Math.Point
             switch index

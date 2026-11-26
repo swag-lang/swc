@@ -14,8 +14,8 @@ struct FreeExtent
 // never handed out again before that state is replaced.
 struct BlockAllocator
 {
-    free:            Array'FreeExtent     // Free extents, sorted by `first` and never adjacent.
-    deferredFree:    Array'FreeExtent     // Extents that become free once the pending change is durable.
+    free:            Array!{FreeExtent}     // Free extents, sorted by `first` and never adjacent.
+    deferredFree:    Array!{FreeExtent}     // Extents that become free once the pending change is durable.
     freeBlocksCount: u64     // Total number of blocks in `free`.
 }
 
@@ -25,8 +25,11 @@ impl BlockAllocator
     mtd initialize(blockCount: u64)
     {
         Swag.assert(.free.isEmpty() and .deferredFree.isEmpty())
-        if blockCount do
+        if blockCount
+        {
             .free.add(FreeExtent{0, blockCount})
+        }
+
         .freeBlocksCount = blockCount
     }
 
@@ -41,7 +44,7 @@ impl BlockAllocator
         .deferredFree.clear()
         .freeBlocksCount = 0
 
-        var first = 0'u64
+        var first = 0_u64
         var inRun = false
         for index in blockCount
         {
@@ -53,17 +56,22 @@ impl BlockAllocator
                     inRun = false
                 }
             }
-            elif not inRun
+            else if not inRun
             {
                 first = index
                 inRun = true
             }
         }
 
-        if inRun do
+        if inRun
+        {
             .free.add(FreeExtent{first, blockCount - first})
-        for extent in .free do
+        }
+
+        for extent in .free
+        {
             .freeBlocksCount += extent.count
+        }
     }
 
     // Adds the blocks `[first, first + count)` to the free list.
@@ -73,8 +81,10 @@ impl BlockAllocator
     // else in the list can be touched by them.
     mtd extend(first, count: u64)
     {
-        if not count do
+        if not count
+        {
             return
+        }
 
         if not .free.isEmpty() and .free.back().first + .free.back().count == first
         {
@@ -95,8 +105,11 @@ impl BlockAllocator
     // keeps the node map proportional to extents rather than to every 4 KiB block.
     mtd allocateRun(maximumCount: u64)->FreeExtent fail
     {
-        if .free.isEmpty() do
+        if .free.isEmpty()
+        {
             fail volumeError(.DiskFull)
+        }
+
         Swag.assert(maximumCount != 0)
 
         let index = .free.count - 1
@@ -110,8 +123,11 @@ impl BlockAllocator
         let result = FreeExtent{.free[index].first, count}
         .free[index].first += count
         .free[index].count -= count
-        if not .free[index].count do
+        if not .free[index].count
+        {
             .free.removeAtOrdered(index)
+        }
+
         .freeBlocksCount -= count
         return result
     }
@@ -126,8 +142,10 @@ impl BlockAllocator
             let extent       = .free[index]
             let availableEnd = Math.min(extent.first + extent.count, limit)
             let count        = Math.min(maximumCount, availableEnd - extent.first)
-            if not count do
+            if not count
+            {
                 continue
+            }
 
             return .takeFront(index, count)
         }
@@ -164,11 +182,16 @@ impl BlockAllocator
     // neighbours.
     mtd releaseRun(first, count: u64)
     {
-        if not count do
+        if not count
+        {
             return
-        var index = 0'u64
-        while index < .free.count and .free[index].first < first do
+        }
+
+        var index = 0_u64
+        while index < .free.count and .free[index].first < first
+        {
             index += 1
+        }
 
         if index and .free[index - 1].first + .free[index - 1].count == first
         {
@@ -179,7 +202,7 @@ impl BlockAllocator
                 .free.removeAtOrdered(index)
             }
         }
-        elif index < .free.count and first + count == .free[index].first
+        else if index < .free.count and first + count == .free[index].first
         {
             .free[index].first -= count
             .free[index].count += count
@@ -198,8 +221,10 @@ impl BlockAllocator
     // Frees the blocks `[first, first + count)` once the pending change is durable.
     mtd deferReleaseRun(first, count: u64)
     {
-        if count do
+        if count
+        {
             .deferredFree.add(FreeExtent{first, count})
+        }
     }
 
     // Frees one block once the pending change is durable.
@@ -209,8 +234,10 @@ impl BlockAllocator
     // is durable, and followed by [[BlockAllocator.completeCommit]].
     mtd publishDeferred()
     {
-        for extent in .deferredFree do
+        for extent in .deferredFree
+        {
             .releaseRun(extent.first, extent.count)
+        }
     }
 
     // Forgets the deferred extents [[BlockAllocator.publishDeferred]] has returned.

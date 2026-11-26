@@ -33,15 +33,18 @@ impl Vec
         var staged: T = #fwd value
         .count += 1
         let buffer = unwrap .buffer
-        for var idx = .count - 1; idx > index; idx -= 1 do
+        for var idx = .count - 1; idx > index; idx -= 1
+        {
             buffer[idx] = #relocate buffer[idx - 1]
+        }
+
         buffer[index] = #nodrop #move staged
     }
 }
 
 #test
 {
-    var v: Vec'String
+    var v: Vec!{String}
     v.push("one")
     v.push("two")
     v.insertMoved(0, "x")

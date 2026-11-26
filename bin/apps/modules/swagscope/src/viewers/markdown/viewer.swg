@@ -312,7 +312,7 @@ func viewerColors(themeIndex: u32)->String
 // Styles `view` with one appearance and reading measure, scaled by `zoomPercent`.
 //
 // `applyColors` is false when only the measure or the zoom changed, so the colors already applied stay.
-func applyViewerStyle(view: *Markdown.View, themeIndex, widthIndex: u32, zoomPercent = 100'u32, applyColors = true)
+func applyViewerStyle(view: *Markdown.View, themeIndex, widthIndex: u32, zoomPercent = 100_u32, applyColors = true)
 {
     var style = viewerStyle(themeIndex, widthIndex)
     let scale = cast(f32, zoomPercent) / 100
@@ -333,20 +333,41 @@ func applyViewerStyle(view: *Markdown.View, themeIndex, widthIndex: u32, zoomPer
     style.quoteIndent      *= scale
     style.topInset         *= scale
     style.bottomInset      *= scale
-    if style.blockMargins.x >= 0 and style.blockMargins.y >= 0 do
+    if style.blockMargins.x >= 0 and style.blockMargins.y >= 0
+    {
         style.blockMargins *= scale
-    for &height in style.headingLineHeights do
+    }
+
+    for &height in style.headingLineHeights
+    {
         height[] *= scale
-    for &width in style.headingRuleWidths where width[] > 0 do
+    }
+
+    for &width in style.headingRuleWidths where width[] > 0
+    {
         width[] *= scale
-    for &padding in style.headingRulePadding do
+    }
+
+    for &padding in style.headingRulePadding
+    {
         padding[] *= scale
-    for &spacing in style.headingTopSpacing do
+    }
+
+    for &spacing in style.headingTopSpacing
+    {
         spacing[] = cast(u32, Math.round(cast(f32, spacing[]) * scale))
-    for &spacing in style.headingBottomSpacing do
+    }
+
+    for &spacing in style.headingBottomSpacing
+    {
         spacing[] = cast(u32, Math.round(cast(f32, spacing[]) * scale))
-    if applyColors do
+    }
+
+    if applyColors
+    {
         view.setDocumentThemeColors(viewerColors(themeIndex))
+    }
+
     view.setDocumentStyle(style)
 }
 
@@ -359,20 +380,23 @@ struct ZoomButton
     late view: *Markdown.View
 
     zoomPercent:    u32 = 100
-    statisticsLoad: Viewer.BackgroundLoad'TextStatistics
+    statisticsLoad: Viewer.BackgroundLoad!{TextStatistics}
     statistics:     TextStatistics
     hasStatistics:  bool
     services:       Viewer.HostServices
     outline:        *DocumentOutline?
-    history:        Viewer.History'u64     // Source offsets the reader left by choosing a heading.
+    history:        Viewer.History!{u64}     // Source offsets the reader left by choosing a heading.
 }
 
 impl IWnd for ZoomButton
 {
     mtd impl onTaskEvent(evt: *TaskEvent)
     {
-        if not .statisticsLoad.claim(evt) do
+        if not .statisticsLoad.claim(evt)
+        {
             return
+        }
+
         let error = .statisticsLoad.finish(&.statistics)
         .hasStatistics = error.isEmpty()
         .reportStatistics()
@@ -398,8 +422,10 @@ impl ZoomButton
 
     mtd retire()->bool
     {
-        if .outline and not .outline.retire() do
+        if .outline and not .outline.retire()
+        {
             return false
+        }
 
         // Totals that arrive while the view retires have nobody left to show them to.
         return .statisticsLoad.retire()
@@ -408,15 +434,20 @@ impl ZoomButton
     mtd applyZoom(percent: u32, remember = true)
     {
         let bounded = Viewer.clampZoom(percent)
-        if .zoomPercent == bounded do
+        if .zoomPercent == bounded
+        {
             return
+        }
+
         .zoomPercent = bounded
         .setText(Viewer.zoomText(bounded))
         applyViewerStyle(.view, g_ViewerSettings.themeIndex, g_ViewerSettings.widthIndex, bounded, applyColors: false)
 
         // The window saves preferences on navigation and close, outside wheel handling.
-        if remember do
+        if remember
+        {
             g_ViewerSettings.zoomPercent = bounded
+        }
     }
 
     // Returns the source offset of the block being read; the start of the document until one is laid out.
@@ -435,24 +466,33 @@ impl ZoomButton
     // Returns to the place the last chosen heading left.
     mtd goBack()
     {
-        if .history.canGoBack() do
+        if .history.canGoBack()
+        {
             discard .view.revealBlock(.history.back(.readingPlace()))
+        }
     }
 
     // Undoes the last return.
     mtd goForward()
     {
-        if .history.canGoForward() do
+        if .history.canGoForward()
+        {
             discard .view.revealBlock(.history.forward(.readingPlace()))
+        }
     }
 
     mtd handleHistoryKey(evt: const *KeyEvent)->bool
     {
         let direction = Viewer.historyKeyDirection(evt)
-        if direction < 0 do
+        if direction < 0
+        {
             .goBack()
-        elif direction > 0 do
+        }
+        else if direction > 0
+        {
             .goForward()
+        }
+
         return direction != 0
     }
 
@@ -460,14 +500,16 @@ impl ZoomButton
     mtd showZoomMenu()
     {
         let percent = Viewer.pickZoom(.view, me, .zoomPercent)
-        if percent do
+        if percent
+        {
             .applyZoom(percent)
+        }
     }
 
     // Creates the zoom menu of `view` at the persisted zoom, in the persisted measure and appearance.
     func create(parent: *Wnd, view: *Markdown.View)->*ZoomButton
     {
-        with let result = Wnd.create'ZoomButton(parent, null, {0, 0, Viewer.ZoomButtonWidth, 32}, "scope.markdown.zoom")
+        with let result = Wnd.create!{ZoomButton}(parent, null, {0, 0, Viewer.ZoomButtonWidth, 32}, "scope.markdown.zoom")
         {
             .view        = view
             .zoomPercent = Viewer.clampZoom(g_ViewerSettings.zoomPercent)
@@ -501,8 +543,8 @@ func themeName(index: u32)->string
     return index ? Names[Math.min(index - 1, Names.count - 1)] : texts().ui_ThemeApp
 }
 
-const WidthCount = 4'u32
-const ThemeCount = 6'u32
+const WidthCount = 4_u32
+const ThemeCount = 6_u32
 
 // Opens how the document reads: its measure and its appearance. Both choices are remembered, and
 // the keyboard returns to the document when it opened the sheet from there.
@@ -513,8 +555,10 @@ func showOptions(anchor: *IconButton, view: *Markdown.View, zoom: *ZoomButton)
     let returnFocus = view.hasFocus()
     let sheet       = OptionSheet.View.create(anchor, func|view, zoom|(page) { describeOptions(page, view, zoom) }, owner: view)
     sheet.doModal(anchor, autoDestroy: true)
-    if returnFocus do
+    if returnFocus
+    {
         view.setFocus()
+    }
 }
 
 func describeOptions(page: *OptionSheet.Page, view: *Markdown.View, zoom: *ZoomButton)
@@ -562,8 +606,11 @@ private func describeMarkdown(sheet: *InfoSheet, zoomButton: *ZoomButton)
     data.add(.Text, group: true)
     data.add(.Format, "Markdown")
     data.add(.Encoding, "UTF-8")
-    if zoomButton.hasStatistics do
+    if zoomButton.hasStatistics
+    {
         data.addTextStatistics(&zoomButton.statistics)
+    }
+
     data.describe(sheet)
 }
 

@@ -11,8 +11,11 @@ impl VaultForm
     // Spaces the help paragraphs of `form` and lays it out again, once its rows are all present.
     func finish(form: *FormLayoutCtrl)
     {
-        for row in form.rows where row.help != null do
+        for row in form.rows where row.help != null
+        {
             row.help.setLineGap(cast(s32, form.themeMetrics().dialog_BtnPadding / 2))
+        }
+
         form.computeLayout()
         form.invalidateLayout()
     }
@@ -22,8 +25,11 @@ impl VaultForm
     {
         with let result = form.addRowChoice()
         {
-            for unit in [appStrings().ui_UnitMiB, appStrings().ui_UnitGiB] do
+            for unit in [appStrings().ui_UnitMiB, appStrings().ui_UnitGiB]
+            {
                 .addItem(unit)
+            }
+
             .setSelectedIndex(0, notify: false)
             setMachineFont(result)
         }

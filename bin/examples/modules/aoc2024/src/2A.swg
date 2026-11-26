@@ -15,7 +15,7 @@ func day2A()
     var total = 0
     for l in lines
     {
-        let levels = Slice.map(Tokenize.split(l[], ' 'u8).toSlice(),
+        let levels = Slice.map(Tokenize.split(l[], ' '_u8).toSlice(),
                                func(value) => expect StrConv.toS32(value))
         total += isReportSafe(levels.toSlice()) ? 1 : 0
     }

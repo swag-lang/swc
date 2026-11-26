@@ -12,21 +12,21 @@ struct NoticeLine
     late busy:    *Spinner
     late heading: *Label
     late detail:  *Label
-    tone: StatusTone
+    tone:         StatusTone
 }
 
 impl NoticeLine
 {
-    const Height   = 24'f32     // Minimum height of the first line.
-    const MarkSize = 16'f32     // Width of the lane the dot or the spinner stands in.
-    const DotSize  = 7'f32      // Diameter of the dot.
-    const TextGap  = 8'f32      // Air between that lane and the sentence.
+    const Height   = 24_f32     // Minimum height of the first line.
+    const MarkSize = 16_f32     // Width of the lane the dot or the spinner stands in.
+    const DotSize  = 7_f32      // Diameter of the dot.
+    const TextGap  = 8_f32      // Air between that lane and the sentence.
     const TextLeft = MarkSize + TextGap
 
     // Creates an empty line in `parent`.
     func create(parent: *Wnd)->*NoticeLine
     {
-        with let result = Wnd.create'NoticeLine(parent, Math.Rectangle{0, 0, 0, Height})
+        with let result = Wnd.create!{NoticeLine}(parent, Math.Rectangle{0, 0, 0, Height})
         {
             .backgroundStyle = .Transparent
         }
@@ -137,7 +137,7 @@ struct VaultList
     }
 
     card:         UnlockCard
-    rows:         Array'*VaultRow
+    rows:         Array!{*VaultRow}
     unfolding:    AnimationHandle
     noticeExtent: f32
     noticeTarget: f32
@@ -156,40 +156,40 @@ struct VaultList
 
 impl VaultList
 {
-    const NoticeGap     = 8'f32        // Air between the title and the notice under it.
-    const ActionsGap    = 8'f32        // Air between the two ways to another vault.
-    const RowsGap       = 36'f32       // Air between the head of the page and the first group.
-    const HeadHeight    = 20'f32       // Height of the line a group's section label stands on.
-    const HeadGap       = 8'f32        // Air between a section label and the first row of its group.
-    const GroupGap      = 28'f32       // Air between the last row of a group and the next label.
-    const CountGap      = 8'f32        // Air between a section label and its count.
-    const RowGap        = 4'f32        // Air between two rows.
-    const BottomRoom    = 72'f32       // Room kept under the page for the hint line.
-    const RecedeOpacity = 0.45'f32     // Opacity of the rows behind an unfolded vault.
+    const NoticeGap     = 8_f32        // Air between the title and the notice under it.
+    const ActionsGap    = 8_f32        // Air between the two ways to another vault.
+    const RowsGap       = 36_f32       // Air between the head of the page and the first group.
+    const HeadHeight    = 20_f32       // Height of the line a group's section label stands on.
+    const HeadGap       = 8_f32        // Air between a section label and the first row of its group.
+    const GroupGap      = 28_f32       // Air between the last row of a group and the next label.
+    const CountGap      = 8_f32        // Air between a section label and its count.
+    const RowGap        = 4_f32        // Air between two rows.
+    const BottomRoom    = 72_f32       // Room kept under the page for the hint line.
+    const RecedeOpacity = 0.45_f32     // Opacity of the rows behind an unfolded vault.
     const OpenChannel   = "Vault.Card.Height"
     const RecedeChannel = "Vault.Row.Recede"
     const NoticeChannel = "Vault.Notice.Height"
 
     // The home: the mark, the title and its two lines, the two ways, then the foot under a hairline.
-    const MarkSize         = 64'f32
-    const MarkToHeading    = 28'f32
-    const HeadingSize      = 22'u32
-    const HeadingToWelcome = 10'f32
-    const WelcomeToWays    = 28'f32
-    const WaysToRule       = 44'f32
-    const RuleWidth        = 400'f32
-    const RuleToFoot       = 26'f32     // From the hairline to the middle of the drop hint.
+    const MarkSize         = 64_f32
+    const MarkToHeading    = 28_f32
+    const HeadingSize      = 22_u32
+    const HeadingToWelcome = 10_f32
+    const WelcomeToWays    = 28_f32
+    const WaysToRule       = 44_f32
+    const RuleWidth        = 400_f32
+    const RuleToFoot       = 26_f32     // From the hairline to the middle of the drop hint.
 
     // Creates the page in `window`, empty.
     func create(window: *MainWindow)->*VaultList
     {
-        with let scroll = Wnd.create'ScrollWnd(window, "vault.list", {})
+        with let scroll = Wnd.create!{ScrollWnd}(window, "vault.list", {})
         {
             .dockStyle = .Center
             .updateFlags(.TransparentBars | .DisableHorizontal)
         }
 
-        with let result = scroll.createView'VaultList()
+        with let result = scroll.createView!{VaultList}()
         {
             .window = window
             .scroll = scroll
@@ -204,7 +204,7 @@ impl VaultList
 
         result.notice = NoticeLine.create(result)
         result.notice.hide()
-        result.card   = UnlockCard.create(result, window)
+        result.card = UnlockCard.create(result, window)
 
         let headingFont = result.theme().createDefaultFont(HeadingSize, .Bold)
         with result.heading = Label.create(result, "", {0, 0, 0, headingFont.height})
@@ -245,15 +245,24 @@ impl VaultList
     mtd refresh()
     {
         var previous = #move .rows
-        for vault in .window.vaults where .window.isMounted(vault.path) do
+        for vault in .window.vaults where .window.isMounted(vault.path)
+        {
             .rows.add(.takeRow(&previous, vault.path))
+        }
+
         .mountedCount = .rows.count
-        for vault in .window.vaults where not .window.isMounted(vault.path) do
+        for vault in .window.vaults where not .window.isMounted(vault.path)
+        {
             .rows.add(.takeRow(&previous, vault.path))
-        for removed in previous do
+        }
+
+        for removed in previous
+        {
             removed.destroy()
+        }
 
         let chosen = .window.chosenLockedPath()
+
         // The rows and the overlay form the last block of children, in keyboard order.
         .card.panel.bringToFront()
         let firstRow = .children.count - .rows.count - 1
@@ -277,20 +286,28 @@ impl VaultList
         .card.header.setPath(chosen)
         .card.header.refresh()
         let keyFiles = .window.unlockKeyFiles.toSlice()
-        if not .card.keyFileList.samePaths(keyFiles) do
+        if not .card.keyFileList.samePaths(keyFiles)
+        {
             .card.setKeyFiles(keyFiles)
+        }
+
         .unfold(chosen)
         .arrange()
 
         // The card arrives over its row, and the other rows recede behind it.
-        if chosen.count == 0 do
+        if chosen.count == 0
+        {
             discard .app().animator.leave(.card.panel)
-        elif not .card.panel.isLocallyVisible() do
+        }
+        else if not .card.panel.isLocallyVisible()
+        {
             discard .app().animator.arrive(.card.panel)
+        }
+
         .card.panel.bringToFront()
 
-        let opacity = chosen.count == 0 ? 1'f32 : RecedeOpacity
-        let channel = AnimationChannel.from(RecedeChannel)
+        let opacity  = chosen.count == 0 ? 1_f32 : RecedeOpacity
+        let channel  = AnimationChannel.from(RecedeChannel)
         let animator = &.app().animator
         for row in .rows
         {
@@ -301,8 +318,10 @@ impl VaultList
                 continue
             }
 
-            if row.opacityTarget == opacity and (row.presentationOpacity == opacity or animator.isActive(row, channel)) do
+            if row.opacityTarget == opacity and (row.presentationOpacity == opacity or animator.isActive(row, channel))
+            {
                 continue
+            }
 
             row.opacityTarget = opacity
             var options: AnimationOptions
@@ -314,7 +333,7 @@ impl VaultList
         .invalidate()
     }
 
-    private mtd takeRow(previous: *Array'(*VaultRow), path: string)->*VaultRow
+    private mtd takeRow(previous: *Array!{*VaultRow}, path: string)->*VaultRow
     {
         for old, index in previous[] where old.path == path
         {
@@ -331,7 +350,7 @@ impl VaultList
     // Closes the old slot and opens the new one from their current on-screen heights.
     mtd unfold(chosen: string)
     {
-        let extra = chosen.count == 0 ? 0 : Math.max(0, .card.measureHeight(.rowWidth()) - VaultRow.Height)
+        let extra   = chosen.count == 0 ? 0 : Math.max(0, .card.measureHeight(.rowWidth()) - VaultRow.Height)
         var changed = false
         for row in .rows
         {
@@ -340,30 +359,42 @@ impl VaultList
             row.expansionTarget = target
         }
 
-        if not changed do
+        if not changed
+        {
             return
+        }
 
         // Both slots use one clock owned by the list. The row under the card is hidden.
         let animator = &.app().animator
         animator.cancel(.unfolding)
-        for row in .rows do
+        for row in .rows
+        {
             row.expansionFrom = row.expansion
+        }
 
         var options: AnimationOptions
         options.duration = Time.Duration.fromSeconds(.themeMetrics().motion_PanelSeconds)
         options.easing   = .EaseInOut
-        .unfolding = animator.animateF32(me, AnimationChannel.from(OpenChannel), 0, 1, func(list, amount)
-        {
-            for row in list.rows do
-                row.expansion = Math.lerp(row.expansionFrom, row.expansionTarget, amount)
-            list.arrange()
-        }, options)
+        .unfolding       = animator.animateF32(me,
+                                               AnimationChannel.from(OpenChannel),
+                                               0,
+                                               1,
+                                               func(list, amount)
+                                         {
+                                             for row in list.rows
+                                             {
+                                                 row.expansion = Math.lerp(row.expansionFrom, row.expansionTarget, amount)
+                                             }
+
+                                             list.arrange()
+                                         },
+                                               options)
     }
 
     // Opens space under the title as a notice appears, and gives it back when it clears.
     mtd showNotice(visible: bool)
     {
-        let target = visible ? NoticeGap + .notice.measureHeight(.rowWidth() - 2 * RowOutset) : 0
+        let target  = visible ? NoticeGap + .notice.measureHeight(.rowWidth() - 2 * RowOutset) : 0
         let changed = target != .noticeTarget
         .noticeTarget = target
         .notice.show(visible)
@@ -383,11 +414,16 @@ impl VaultList
         var options: AnimationOptions
         options.duration = Time.Duration.fromSeconds(.themeMetrics().motion_PanelSeconds)
         options.easing   = .EaseInOut
-        discard .app().animator.animateF32(me, AnimationChannel.from(NoticeChannel), .noticeExtent, target, func(list, extent)
-        {
-            list.noticeExtent = extent
-            list.arrange()
-        }, options)
+        discard .app().animator.animateF32(me,
+                                           AnimationChannel.from(NoticeChannel),
+                                           .noticeExtent,
+                                           target,
+                                           func(list, extent)
+                                           {
+                                               list.noticeExtent = extent
+                                               list.arrange()
+                                           },
+                                           options)
     }
 
     // Returns the width of a row: the column, and the outset its ground reaches past it on each side.
@@ -409,8 +445,11 @@ impl VaultList
     // window how tall it is.
     mtd arrange()
     {
-        if .arranging or not .built do
+        if .arranging or not .built
+        {
             return
+        }
+
         .arranging = true
         defer .arranging = false
 
@@ -455,6 +494,7 @@ impl VaultList
             .noticeExtent = .notice.isLocallyVisible() ? NoticeGap + .notice.measureHeight(width) : 0
             .noticeTarget = .noticeExtent
         }
+
         if .notice.isLocallyVisible()
         {
             let height = Math.min(.notice.measureHeight(width), .noticeExtent + RowsGap - NoticeGap)
@@ -464,8 +504,8 @@ impl VaultList
 
         y += .noticeExtent + RowsGap
 
-        let rowW = .rowWidth()
-        let chosen = .window.chosenLockedPath()
+        let rowW    = .rowWidth()
+        let chosen  = .window.chosenLockedPath()
         let channel = AnimationChannel.from(OpenChannel)
 
         // The rows reach past the column on both sides, so their words stand on its edge. A group
@@ -484,8 +524,11 @@ impl VaultList
 
             if index == .mountedCount
             {
-                if index do
+                if index
+                {
                     y += GroupGap - RowGap
+                }
+
                 .lockedHead = Math.Rectangle{x, y, width, HeadHeight}
                 y += HeadHeight + HeadGap
             }
@@ -494,14 +537,17 @@ impl VaultList
             row.arrange(Math.Rectangle{rowX, y, rowW, height})
             if row.path == chosen
             {
-                if row.expansionTarget > 0 and row.expansion == row.expansionTarget and not .app().animator.isActive(me, channel)
+                if row.expansionTarget > 0 and
+                   row.expansion == row.expansionTarget and
+                   not .app().animator.isActive(me, channel)
                 {
-                    row.expansion = Math.max(0, .card.measureHeight(rowW) - height)
+                    row.expansion       = Math.max(0, .card.measureHeight(rowW) - height)
                     row.expansionTarget = row.expansion
                 }
 
                 .card.place(Math.Rectangle{rowX, y, rowW, height + row.expansion})
             }
+
             y += height + row.expansion + RowGap
         }
 
@@ -579,8 +625,10 @@ impl VaultList
     // `rect` is a group with no vault, which says nothing.
     mtd paintGroupHead(painter: *Painter, rect: Math.Rectangle, label: string, count: u64)
     {
-        if rect.width <= 0 do
+        if rect.width <= 0
+        {
             return
+        }
 
         let labelW = SectionLabel.paint(me, painter, rect, label)
         let mono   = .theme().createDefaultFontFs(.themeMetrics().sectionLabel_FontSize)
@@ -591,8 +639,11 @@ impl VaultList
     // Returns the row showing the vault at `path`, or null.
     mtd rowOf(path: string)->*VaultRow?
     {
-        for row in .rows where row.path == path do
+        for row in .rows where row.path == path
+        {
             return row
+        }
+
         return null
     }
 }
@@ -613,8 +664,11 @@ impl IWnd for VaultList
         if .markRect.width > 0
         {
             let mark = .app().appGlyph(MarkSize)
-            if mark.isValid() do
+            if mark.isValid()
+            {
                 mark.paint(painter, .markRect.x, .markRect.y, .themeColors().strongLine)
+            }
+
             .paintHomeFoot(painter)
             return
         }

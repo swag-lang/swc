@@ -34,13 +34,16 @@ func completeImageViewerWindow(host: *Testing.HeadlessHost, window: *ViewerWindo
 {
     completeViewerWindowClassification(host, window)
 
-    var steps = 0'u32
+    var steps = 0_u32
     while window.activeChoiceIndex < window.instances.count and steps < 4_096
     {
         let instance = &window.instances[window.activeChoiceIndex]
-        if not instance.view or not instance.isLoading or not instance.isLoading() do
+        if not instance.view or not instance.isLoading or not instance.isLoading()
+        {
             break
-        Threading.Thread.sleep(1'ms)
+        }
+
+        Threading.Thread.sleep(1_ms)
         host.fireTimers()
         steps += 1
     }
@@ -93,8 +96,11 @@ func checkImageOrientation(stored: const *Image, extension: string, orientation:
                  view.facts.height == Format.toString("%", image.height) and
                  view.facts.frames == 1)
     var recordedOrientation: String
-    for &row in view.information.rows where row.name == "Orientation" do
+    for &row in view.information.rows where row.name == "Orientation"
+    {
         recordedOrientation = row.value
+    }
+
     Swag.require(recordedOrientation == Format.toString("%", orientation))
 
     // Ctrl+C copies this upright picture.
@@ -107,24 +113,29 @@ func checkImageOrientation(stored: const *Image, extension: string, orientation:
     Swag.require(view.imageView.rotationQuarterTurns == 0 and not view.imageView.isMirrored)
     let resetPicture = unwrap view.imageView.picture()
     Swag.require(resetPicture.width == image.width and resetPicture.height == image.height)
-    for &row in view.information.rows where row.name == "Orientation" do
+    for &row in view.information.rows where row.name == "Orientation"
+    {
         Swag.require(row.value == Format.toString("%", orientation))
+    }
 }
 
 func orientedExifFixture(orientation: u32)->Image
 {
     // A little-endian TIFF header with one directory holding the requested Orientation value.
-    var tiff = [0x49'u8, 0x49'u8, 0x2A'u8, 0x00'u8, 0x08'u8, 0x00'u8, 0x00'u8, 0x00'u8,
-                0x01'u8, 0x00'u8,
-                0x12'u8, 0x01'u8, 0x03'u8, 0x00'u8, 0x01'u8, 0x00'u8, 0x00'u8, 0x00'u8, 0x00'u8, 0x00'u8, 0x00'u8, 0x00'u8,
-                0x00'u8, 0x00'u8, 0x00'u8, 0x00'u8]
+    var tiff = [0x49_u8, 0x49_u8, 0x2A_u8, 0x00_u8, 0x08_u8, 0x00_u8, 0x00_u8, 0x00_u8,
+                0x01_u8, 0x00_u8,
+                0x12_u8, 0x01_u8, 0x03_u8, 0x00_u8, 0x01_u8, 0x00_u8, 0x00_u8, 0x00_u8, 0x00_u8, 0x00_u8, 0x00_u8, 0x00_u8,
+                0x00_u8, 0x00_u8, 0x00_u8, 0x00_u8]
     tiff[18] = cast(u8, orientation)
     var stored = Image.create(40, 20, .RGB8)
     var record: ImageMetadata
     record.signature = 1
     record.tag       = "Exif"
-    for byte in tiff do
+    for byte in tiff
+    {
         record.value.add(byte)
+    }
+
     stored.metadata.add(#move record)
     return stored
 }
@@ -144,8 +155,10 @@ func orientedExifFixture(orientation: u32)->Image
         Swag.require(Exif.orientationOf(image.metadata.toSlice()) == 1)
         let thumbnail = expect Picture.loadThumbnail(fileName, 16)
         Swag.require(thumbnail.width == (swapsSides ? 8 : 16) and thumbnail.height == (swapsSides ? 16 : 8))
-        if orientation == 6 do
+        if orientation == 6
+        {
             checkImageOrientation(&stored, ".png", orientation)
+        }
     }
 
     var stored = orientedExifFixture(6)
@@ -167,8 +180,11 @@ func orientedExifFixture(orientation: u32)->Image
         let view = assume cast(*Picture.Panel, session.view)
         completeViewerBackgroundLoad(&host, &view.load)
         view.imageView.setPaused(true)
-        if view.imageView.movie.frameCount > 1 do
+        if view.imageView.movie.frameCount > 1
+        {
             view.imageView.setFrameIndex(1)
+        }
+
         view.imageView.setZoom(1.5)
         view.mirrorHorizontally()
         let oldTip     = String.from(view.transformButton.toolTip)
@@ -183,8 +199,11 @@ func orientedExifFixture(orientation: u32)->Image
         Swag.require(view.imageView.zoom == 1.5 and
                      view.imageView.isMirrored and
                      view.imageView.movie.frameIndex == frameIndex)
-        if view.imageView.movie.frameCount > 1 do
+        if view.imageView.movie.frameCount > 1
+        {
             Swag.require(view.imageView.movie.isPaused)
+        }
+
         expect host.app.setLanguage(ReferenceLanguage)
         host.notify(.LanguageChanged)
         Swag.require(view.transformButton.toolTip == oldTip and view.details == oldDetails)
@@ -269,8 +288,11 @@ func orientedExifFixture(orientation: u32)->Image
     {
         var entries = Viewer.LensEntries.create(results, "Image", host.theme)
         view.describeLens(&entries)
-        for &entry in results.sections[0]!.entries where entry.title == title do
+        for &entry in results.sections[0]!.entries where entry.title == title
+        {
             return entry
+        }
+
         Swag.require(false, title)
         return null
     }
@@ -409,8 +431,11 @@ func orientedExifFixture(orientation: u32)->Image
             view.applyLayout()
             for 120
             {
-                if reports.finished do
+                if reports.finished
+                {
                     break
+                }
+
                 discard host.render()
             }
 
@@ -454,8 +479,11 @@ var g_ImageDescriptions: u32
 
     // The pixel read last stays offered in the lens, its color copied as a code.
     var code = Format.toString("#%{X02}%{X02}%{X02}", stored.r, stored.g, stored.b)
-    if stored.a != 255 do
+    if stored.a != 255
+    {
         code += Format.toString("%{X02}", stored.a)
+    }
+
     Swag.require(view.probedColorText() == code, view.probedColorText())
     var results = Testing.lensResults("color")
     var entries = Viewer.LensEntries.create(&results, "Image", host.theme)
@@ -469,8 +497,10 @@ var g_ImageDescriptions: u32
     }
 
     Swag.require(found)
-    if Clipboard.isFake() do
+    if Clipboard.isFake()
+    {
         Swag.require(Clipboard.getString() == code, Clipboard.getString())
+    }
 
     // The pointer moving beside the picture tells the host nothing new, so the open sheet stays
     // as it was described.

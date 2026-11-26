@@ -229,8 +229,10 @@ internal func halfToFloat(value: u16)->f32
     var bits: u32
     if exponent == 0
     {
-        if mantissa == 0 do
+        if mantissa == 0
+        {
             return cast #bit (f32, sign)
+        }
 
         var unbiased = -14
         while (mantissa & 0x400) == 0
@@ -242,7 +244,7 @@ internal func halfToFloat(value: u16)->f32
         mantissa &= 0x3FF
         bits     = sign | (cast(u32, (unbiased + 127)) << 23) | (mantissa << 13)
     }
-    elif exponent == 0x1F
+    else if exponent == 0x1F
     {
         bits = sign | 0x7F800000 | (mantissa << 13)
     }
@@ -262,27 +264,36 @@ internal func floatToHalf(value: f32)->u16
     let sign     = cast(u16, ((bits >> 16) & 0x8000))
     let exponent = cast(s32, ((bits >> 23) & 0xFF))
     let mantissa = bits & 0x7FFFFF
-    if exponent == 0xFF do
-        return sign | (mantissa == 0 ? 0x7C00'u16 : 0x7E00'u16)
+    if exponent == 0xFF
+    {
+        return sign | (mantissa == 0 ? 0x7C00_u16 : 0x7E00_u16)
+    }
 
     let unbiased = exponent - 127
-    if unbiased > 15 do
+    if unbiased > 15
+    {
         return sign | 0x7C00
+    }
 
     // At -25, values above the exact halfway point can still round to the smallest
     // subnormal. Smaller exponents are strictly below that midpoint.
-    if unbiased < -25 do
+    if unbiased < -25
+    {
         return sign
+    }
 
     if unbiased < -14
     {
         let significand = mantissa | 0x800000
         let shift       = cast(u32, (-unbiased - 1))
         var rounded     = significand >> shift
-        let remainder   = significand & ((1'u32 << shift) - 1)
-        let halfway     = 1'u32 << (shift - 1)
-        if remainder > halfway or (remainder == halfway and (rounded & 1)) do
+        let remainder   = significand & ((1_u32 << shift) - 1)
+        let halfway     = 1_u32 << (shift - 1)
+        if remainder > halfway or (remainder == halfway and (rounded & 1))
+        {
             rounded += 1
+        }
+
         return sign | cast(u16, rounded)
     }
 
@@ -296,8 +307,10 @@ internal func floatToHalf(value: f32)->u16
         {
             halfMantissa = 0
             halfExponent += 1
-            if halfExponent >= 0x1F do
+            if halfExponent >= 0x1F
+            {
                 return sign | 0x7C00
+            }
         }
     }
 

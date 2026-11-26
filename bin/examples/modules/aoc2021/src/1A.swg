@@ -55,8 +55,11 @@ func day1A()
     for l in lines
     {
         let cur = expect StrConv.toS32(l[])
-        if cur > last do
+        if cur > last
+        {
             total += 1
+        }
+
         last = cur
     }
 

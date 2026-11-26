@@ -66,7 +66,7 @@ func fieldsStartAtZero()->s32
 // previous turn left in the same slot.
 func loopLocalIsFreshEveryTurn()->s32
 {
-    var total = 0's32
+    var total = 0_s32
     for turn in 3
     {
         var accumulated: s32

@@ -110,9 +110,9 @@ impl SemaFieldPointerVisits
     {
         #static if ptr
         {
-            #inject(stmt, item = cast(*s32, &(me.first)), index = 0'u64)
-            #inject(stmt, item = cast(*s32, &(me.second)), index = 1'u64)
-            #inject(stmt, item = cast(*s32, &(me.third)), index = 2'u64)
+            #inject(stmt, item = cast(*s32, &(me.first)), index = 0_u64)
+            #inject(stmt, item = cast(*s32, &(me.second)), index = 1_u64)
+            #inject(stmt, item = cast(*s32, &(me.third)), index = 2_u64)
         }
         else
         {
@@ -192,7 +192,7 @@ impl SemaConstPointerVisits
 
 struct(T) SemaGenericScopedVisits
 {
-    const FIRST = 1'u64
+    const FIRST = 1_u64
     values: [3] T
 }
 
@@ -205,8 +205,10 @@ impl SemaGenericScopedVisits
         scope(Outer)
         for idx in 3
         {
-            if idx < SemaGenericScopedVisits.FIRST do
+            if idx < SemaGenericScopedVisits.FIRST
+            {
                 continue
+            }
 
             scope(Inner)
             {
@@ -245,7 +247,7 @@ func semaTest002()
 
 func semaTest002b()
 {
-    var values: SemaGenericReverseVisits's32
+    var values: SemaGenericReverseVisits!{s32}
     values.values = [1, 2, 3]
 
     for value, ordinal in (values).reversed()
@@ -366,7 +368,7 @@ func semaTest008()
 
 func semaTest009()
 {
-    let values: SemaGenericScopedVisits's32 = {values: [10, 20, 30]}
+    let values: SemaGenericScopedVisits!{s32} = {values: [10, 20, 30]}
 
     for value, ordinal in values
     {
@@ -387,10 +389,14 @@ func semaTest010()
 
     for value, i in visits
     {
-        if not (i & 1) do
+        if not (i & 1)
+        {
             outside += value
-        else do
+        }
+        else
+        {
             inside += value
+        }
     }
 
     for i in 0 until 1

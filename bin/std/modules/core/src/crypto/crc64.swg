@@ -569,7 +569,85 @@ public impl Crc64
     #[ConstExpr]
     mtd update(data: const [..] u8?)
     {
-        .currentValue = updateValue(data, .currentValue, .kind)
+        let length = data.count
+        if length == 0
+        {
+            return
+        }
+
+        let bytes = cast(const [*] u8, unwrap data.buffer)
+        var cur   = .currentValue
+        var i     = 0_u64
+        switch #complete .kind
+        {
+        case .Ecma182:
+            const POLY: u64 = 0x42F0_E1EB_A9EA_3693
+            while i < length
+            {
+                cur ^= cast(u64, bytes[i]) << 56
+                for 8
+                {
+                    if cur & 0x8000_0000_0000_0000_u64
+                    {
+                        cur = (cur << 1) ^ POLY
+                    }
+                    else
+                    {
+                        cur <<= 1
+                    }
+                }
+
+                i += 1
+            }
+
+            .currentValue = cur
+
+        case .Iso:
+            const POLY: u64 = 0xD800_0000_0000_0000
+            cur = ~cur
+            while i < length
+            {
+                cur ^= bytes[i]
+                for 8
+                {
+                    if cur & 1
+                    {
+                        cur = (cur >> 1) ^ POLY
+                    }
+                    else
+                    {
+                        cur >>= 1
+                    }
+                }
+
+                i += 1
+            }
+
+            .currentValue = ~cur
+
+        case .IsoXz:
+            const POLY: u64 = 0xC96C_5795_D787_0F42
+            cur = ~cur
+            while i < length
+            {
+                cur ^= bytes[i]
+                for 8
+                {
+                    if cur & 1
+                    {
+                        cur = (cur >> 1) ^ POLY
+                    }
+                    else
+                    {
+                        cur >>= 1
+                    }
+                }
+
+                i += 1
+            }
+
+            .currentValue = ~cur
+        }
     }
 
     // Returns the checksum accumulated since construction or the latest [[reset]].

@@ -45,10 +45,16 @@ func drawAccessKeyText(painter: *Painter, position: Math.Rectangle, text: *RichS
     }
 
     var marked: RichString
-    if keyStart > 0 do
+    if keyStart > 0
+    {
         marked.append(text.text[0 until keyStart])
+    }
+
     marked.append(text.text[keyStart until keyStart + keySize], {underline: .Underline})
-    if keyStart + keySize < bytes.count do
+    if keyStart + keySize < bytes.count
+    {
         marked.append(text.text[keyStart + keySize to])
+    }
+
     painter.drawRichString(position, &marked, format)
 }

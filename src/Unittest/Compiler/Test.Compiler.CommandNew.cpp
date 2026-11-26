@@ -157,8 +157,10 @@ SWC_FILESYSTEM_TEST_BEGIN(Compiler_SmokeScriptRunsNativeWithModuleSetup)
 
 #main
 {
-    for argument in SmokeSupport.arguments() do
+    for argument in SmokeSupport.arguments()
+    {
         Swag.print(argument, "\n")
+    }
 }
 )";
     NewCommandTestDirectory           directory("SmokeScriptModuleSetup");

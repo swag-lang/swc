@@ -45,7 +45,7 @@ impl OffsetOwnedEvent
             }
             else
             {
-                let evt = Event.create'CommandEvent()
+                let evt = Event.create!{CommandEvent}()
                 evt.id = id.toString()
                 if route == 1
                 {
@@ -111,7 +111,7 @@ impl OffsetOwnedEvent
         Swag.require(moved.id == expected)
 
         // Posting a copy snapshots a view that already belongs to that same event.
-        let reposted = Event.create'CommandEvent()
+        let reposted = Event.create!{CommandEvent}()
         reposted[] = moved
         host.root.postEvent(reposted)
         host.pumpPostedEvents()
@@ -166,7 +166,7 @@ impl OffsetOwnedEvent
     host.setup(240, 120)
 
     var drops: u32
-    let evt = Event.create'OffsetOwnedEvent()
+    let evt = Event.create!{OffsetOwnedEvent}()
     evt.drops = &drops
     let base: *Event = evt
     Swag.require(cast(*void, base) != cast(*void, evt))
@@ -179,7 +179,7 @@ impl OffsetOwnedEvent
 // A heap command-state event reports its dynamic type and keeps every field a query fills.
 #test
 {
-    let evt = Event.create'CommandStateEvent()
+    let evt = Event.create!{CommandStateEvent}()
     defer Memory.delete(evt)
     let view: IEvent = evt
     Swag.require(Swag.kindOf(view) == #typeof(CommandStateEvent))
@@ -221,20 +221,20 @@ impl OffsetOwnedEvent
 // Heap command, resize, and move events report their dynamic type and keep their payload.
 #test
 {
-    let cmd = Event.create'CommandEvent()
+    let cmd = Event.create!{CommandEvent}()
     defer Memory.delete(cmd)
     cmd.id = Dialog.BtnCancel
     Swag.require(Swag.kindOf(cast(IEvent, cmd)) == #typeof(CommandEvent))
     Swag.require(cmd.id == "Dialog.BtnCancel")
     Swag.require(cmd.source == null)
 
-    let resize = Event.create'ResizeEvent()
+    let resize = Event.create!{ResizeEvent}()
     defer Memory.delete(resize)
     resize.oldSize = {640, 480}
     Swag.require(Swag.kindOf(cast(IEvent, resize)) == #typeof(ResizeEvent))
     Swag.require(resize.oldSize == Math.Point{640, 480})
 
-    let move = Event.create'MoveEvent()
+    let move = Event.create!{MoveEvent}()
     defer Memory.delete(move)
     move.oldPos = {12, 34}
     Swag.require(Swag.kindOf(cast(IEvent, move)) == #typeof(MoveEvent))
@@ -292,7 +292,7 @@ impl OffsetOwnedEvent
 }
 
 var g_TaskEventsSeen: u32
-var g_RecordDone:     bool     // The watched task is a `Swag.Task'u32`, and the watcher records whether it is done.
+var g_RecordDone:     bool     // The watched task is a `Swag.Task!{u32}`, and the watcher records whether it is done.
 var g_DoneWhenSeen:   bool
 
 // A window that records the tasks it is told have finished.
@@ -307,8 +307,11 @@ impl IWnd for TaskWatcher
     mtd impl onTaskEvent(evt: *TaskEvent)
     {
         g_TaskEventsSeen += 1
-        if g_RecordDone do
-            g_DoneWhenSeen = cast(const *Swag.Task'u32, evt.task).isDone()
+        if g_RecordDone
+        {
+            g_DoneWhenSeen = cast(const *Swag.Task!{u32}, evt.task).isDone()
+        }
+
         .lastTask = evt.task
     }
 }
@@ -316,8 +319,11 @@ impl IWnd for TaskWatcher
 // Runs until `gate` is raised.
 func waitForGate(gate: const *Swag.AtomicFlag)->u32
 {
-    while not gate.isRaised() do
-        Threading.Thread.sleep(1'ms)
+    while not gate.isRaised()
+    {
+        Threading.Thread.sleep(1_ms)
+    }
+
     return 2
 }
 
@@ -326,9 +332,12 @@ func raiseGateLater(gate: *Swag.AtomicFlag, milliseconds: u32)
 {
     for milliseconds
     {
-        if Swag.isCancelled() do
+        if Swag.isCancelled()
+        {
             return
-        Threading.Thread.sleep(1'ms)
+        }
+
+        Threading.Thread.sleep(1_ms)
     }
 
     discard gate.raise()
@@ -341,8 +350,8 @@ func raiseGateLater(gate: *Swag.AtomicFlag, milliseconds: u32)
     host.setup(240, 120)
 
     g_TaskEventsSeen = 0
-    let watcher = Wnd.create'TaskWatcher(&host.root)
-    var task: Swag.Task'u32
+    let watcher = Wnd.create!{TaskWatcher}(&host.root)
+    var task: Swag.Task!{u32}
     task.submit(func()->u32 => 3, watcher.taskNotifier(&task))
     task.wait()
     Swag.require(g_TaskEventsSeen == 0)
@@ -362,17 +371,19 @@ func raiseGateLater(gate: *Swag.AtomicFlag, milliseconds: u32)
 {
     // The submission has to run on a worker while the window handles the event, and a second
     // worker has to end it.
-    if Swag.workerCount() < 2 do
+    if Swag.workerCount() < 2
+    {
         return
+    }
 
     var host: Testing.HeadlessHost
     host.setup(240, 120)
 
     g_TaskEventsSeen = 0
-    let watcher = Wnd.create'TaskWatcher(&host.root)
+    let watcher = Wnd.create!{TaskWatcher}(&host.root)
     var gate:    Swag.AtomicFlag
     var release: Swag.Task
-    var task:    Swag.Task'u32
+    var task:    Swag.Task!{u32}
     g_RecordDone = true
     defer g_RecordDone = false
 
@@ -391,17 +402,19 @@ func raiseGateLater(gate: *Swag.AtomicFlag, milliseconds: u32)
 // next submission.
 #test
 {
-    if Swag.workerCount() < 2 do
+    if Swag.workerCount() < 2
+    {
         return
+    }
 
     var host: Testing.HeadlessHost
     host.setup(240, 120)
 
     g_TaskEventsSeen = 0
-    let watcher = Wnd.create'TaskWatcher(&host.root)
+    let watcher = Wnd.create!{TaskWatcher}(&host.root)
     var gate:    Swag.AtomicFlag
     var release: Swag.Task
-    var task:    Swag.Task'u32
+    var task:    Swag.Task!{u32}
     g_RecordDone = true
     defer g_RecordDone = false
 
@@ -431,7 +444,7 @@ func raiseGateLater(gate: *Swag.AtomicFlag, milliseconds: u32)
     host.setup(240, 120)
 
     g_TaskEventsSeen = 0
-    let watcher = Wnd.create'TaskWatcher(&host.root)
+    let watcher = Wnd.create!{TaskWatcher}(&host.root)
     var task: Swag.Task
     task.submit(func() {}, watcher.taskNotifier(&task))
     task.wait()
@@ -449,24 +462,29 @@ func raiseGateLater(gate: *Swag.AtomicFlag, milliseconds: u32)
     host.setup(240, 120)
 
     g_TaskEventsSeen = 0
-    let watcher = Wnd.create'TaskWatcher(&host.root)
+    let watcher = Wnd.create!{TaskWatcher}(&host.root)
 
     var started: Swag.AtomicFlag
     var task:    Swag.Task
     task.submit(func|&started|()
     {
         discard started.raise()
-        while not Swag.isCancelled() do
-            Threading.Thread.sleep(1'ms)
+        while not Swag.isCancelled()
+        {
+            Threading.Thread.sleep(1_ms)
+        }
     },
                 watcher.taskNotifier(&task))
     defer task.cancel()
 
     for 1000
     {
-        if started.isRaised() do
+        if started.isRaised()
+        {
             break
-        Threading.Thread.sleep(1'ms)
+        }
+
+        Threading.Thread.sleep(1_ms)
     }
 
     Swag.require(started.isRaised())
@@ -486,7 +504,7 @@ func raiseGateLater(gate: *Swag.AtomicFlag, milliseconds: u32)
     host.setup(240, 120)
 
     g_TaskEventsSeen = 0
-    let watcher = Wnd.create'TaskWatcher(&host.root)
+    let watcher = Wnd.create!{TaskWatcher}(&host.root)
     var entered: Swag.AtomicFlag
     var release: Swag.AtomicFlag
     defer discard release.raise()
@@ -495,16 +513,21 @@ func raiseGateLater(gate: *Swag.AtomicFlag, milliseconds: u32)
     task.submit(func|&entered, &release|()
     {
         discard entered.raise()
-        while not release.isRaised() do
-            Threading.Thread.sleep(1'ms)
+        while not release.isRaised()
+        {
+            Threading.Thread.sleep(1_ms)
+        }
     },
                 watcher.taskNotifier(&task))
 
     for 1000
     {
-        if entered.isRaised() do
+        if entered.isRaised()
+        {
             break
-        Threading.Thread.sleep(1'ms)
+        }
+
+        Threading.Thread.sleep(1_ms)
     }
 
     Swag.require(entered.isRaised())

@@ -53,12 +53,12 @@ public struct ImageSetInfo
 {
     public
     {
-        frames:              Array'ImageFrameInfo     // Images in encoded order, with texture indices identifying subresources.
-        canvasWidth:         s32                      // Animation canvas width; zero for an independent image set.
-        canvasHeight:        s32                      // Animation canvas height; zero for an independent image set.
-        loopCount:           u32   = 1                // Total animation plays; zero means unlimited.
-        background:          Color = {a: 0}           // Color used when clearing an animation canvas; transparent by default.
-        representativeIndex: u32                      // Image selected by a still-image view of the container.
+        frames:              Array!{ImageFrameInfo}     // Images in encoded order, with texture indices identifying subresources.
+        canvasWidth:         s32                        // Animation canvas width; zero for an independent image set.
+        canvasHeight:        s32                        // Animation canvas height; zero for an independent image set.
+        loopCount:           u32   = 1                  // Total animation plays; zero means unlimited.
+        background:          Color = {a: 0}             // Color used when clearing an animation canvas; transparent by default.
+        representativeIndex: u32                        // Image selected by a still-image view of the container.
     }
 }
 
@@ -94,7 +94,7 @@ public interface IImageSetDecoder
 public struct ImageReader
 {
     public readonly info: ImageSetInfo     // Indexed images; valid until close or replacement of the reader.
-    bytes:                Array'u8
+    bytes:                Array!{u8}
     decoder:              *void?
     decoderType:          const *TypeInfoStruct?
     decoderAllocator:     IAllocator?
@@ -111,8 +111,11 @@ impl ImageReader
         if .decoder
         {
             let type = unwrap .decoderType
-            if type.opDrop do
+            if type.opDrop
+            {
                 type.opDrop(.decoder)
+            }
+
             Memory.free(.decoder, cast(u64, type.sizeof), .decoderAllocator)
             .decoder = null
             .decoderAllocator = null
@@ -351,14 +354,19 @@ impl ImageReader
         if image.width != frame.width or
            image.height != frame.height or
            image.pixelFormat != frame.pixelFormat or
-           (.options.decodePixels and not image.isValid()) do
+           (.options.decodePixels and not image.isValid())
+        {
             fail InvalidFormatError{"decoded frame does not match its image index"}
+        }
     }
 
     mtd const animationCanvasFormat()->PixelFormat
     {
-        for frame in .info.frames where frame.kind == .Animation and frame.pixelFormat.bitDepth() > 8 do
+        for frame in .info.frames where frame.kind == .Animation and frame.pixelFormat.bitDepth() > 8
+        {
             return .RGBA16
+        }
+
         return .RGBA8
     }
 }
@@ -385,11 +393,17 @@ public impl ImageReader
     // icon containers retain their largest-entry representative selection.
     func decode(fileName: string, bytes: const [..] u8, options: DecodeOptions = {})->ImageReader fail
     {
-        if options.maxInputBytes and bytes.count > options.maxInputBytes do
+        if options.maxInputBytes and bytes.count > options.maxInputBytes
+        {
             fail UnsupportedFormatError{"image exceeds the encoded byte limit"}
+        }
+
         let found = Image.getDecoder(fileName)
-        if not found do
+        if not found
+        {
             fail UnsupportedFormatError{"no matching image decoder"}
+        }
+
         var result: #returntype
         result.bytes.add(bytes)
         result.options          = options
@@ -411,8 +425,11 @@ public impl ImageReader
             result.info.frames.add({width: probe.width, height: probe.height, pixelFormat: probe.pixelFormat})
         }
 
-        if result.info.frames.isEmpty() or result.info.representativeIndex >= result.info.frames.count do
+        if result.info.frames.isEmpty() or result.info.representativeIndex >= result.info.frames.count
+        {
             fail InvalidFormatError{"image container has no representative image"}
+        }
+
         try options.checkFrameCount(result.info.frames.count)
         for frame in result.info.frames
         {
@@ -423,8 +440,10 @@ public impl ImageReader
                 if frame.x < 0 or
                    frame.y < 0 or
                    frame.x > result.info.canvasWidth - frame.width or
-                   frame.y > result.info.canvasHeight - frame.height do
+                   frame.y > result.info.canvasHeight - frame.height
+                {
                     fail InvalidFormatError{"animation frame lies outside its canvas"}
+                }
             }
         }
 
@@ -436,8 +455,11 @@ public impl ImageReader
     func load(fileName: string, options: DecodeOptions = {})->ImageReader fail
     {
         var file = File.MappedFile.open(fileName)
-        if options.maxInputBytes and file.size() > options.maxInputBytes do
+        if options.maxInputBytes and file.size() > options.maxInputBytes
+        {
             fail UnsupportedFormatError{"image exceeds the encoded byte limit"}
+        }
+
         let region = file.mapAll()
         return decode(fileName, region.bytes(), options)
     }
@@ -447,8 +469,11 @@ public impl ImageReader
 
     internal mtd readFrame(index: u32, composeAnimation: bool)->Image fail
     {
-        if not .decoder or index >= .info.frames.count do
+        if not .decoder or index >= .info.frames.count
+        {
             fail InvalidFormatError{"image index is outside the open container"}
+        }
+
         let multiple = Swag.makeInterface(.decoder, unwrap .decoderType, IImageSetDecoder)
         if not multiple
         {
@@ -476,8 +501,11 @@ public impl ImageReader
         }
 
         var succeeded = false
-        defer if not succeeded do
+        defer if not succeeded
+        {
             .lastIndex = -1
+        }
+
         if .lastIndex < 0 or cast(s32, index) < .lastIndex
         {
             let format = .animationCanvasFormat()
@@ -501,8 +529,11 @@ public impl ImageReader
 
             let current    = cast(u32, (.lastIndex + 1))
             let descriptor = &.info.frames[current]
-            if descriptor.disposal == .Previous do
-                .copyPreviousRectangle'(true)(descriptor[])
+            if descriptor.disposal == .Previous
+            {
+                .previous = .canvas
+            }
+
             let image = try multiple.readFrame(current, .options)
             try .composite(descriptor[], image)
             .canvas.metadata = image.metadata

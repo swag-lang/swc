@@ -8,9 +8,9 @@ using Swag
 #[Swag.Optimize(true)]
 func scaleRows(dst: [*] u8, src: const [*] u8, stride: u64)->u32
 {
-    var sum  = 0'u32
-    var last = 0'u8
-    for row in 4'u64
+    var sum  = 0_u32
+    var last = 0_u8
+    for row in 4_u64
     {
         let value = src[row * stride]
         let twice = cast(u8, (value * 2))
@@ -26,10 +26,12 @@ func scaleRows(dst: [*] u8, src: const [*] u8, stride: u64)->u32
 #[Swag.Optimize(true)]
 func fillRows(dst: [*] u8, stride: u64, values: const [*] u8)
 {
-    for row in 8'u64
+    for row in 8_u64
     {
-        for column in 8'u64 do
+        for column in 8_u64
+        {
             dst[row * stride + column] = values[row]
+        }
     }
 }
 
@@ -37,8 +39,8 @@ func fillRows(dst: [*] u8, stride: u64, values: const [*] u8)
 func chain(values: const [*] s32)->s32
 {
     var previous = values[0]
-    var result   = 0's32
-    for i in 1'u64 until 5
+    var result   = 0_s32
+    for i in 1_u64 until 5
     {
         let current = values[i]
         result   += current - previous
@@ -52,8 +54,10 @@ func chain(values: const [*] s32)->s32
 {
     var src: [4 * 16] u8
     var dst: [4 * 16] u8
-    for i in 4 do
+    for i in 4
+    {
         src[i * 16] = cast(u8, (i + 1))
+    }
 
     let total = scaleRows(&dst[0], &src[0], 16)
     Swag.require(dst[0] == 2 and dst[1] == 2 and dst[16] == 4 and dst[17] == 4 and dst[48] == 8)

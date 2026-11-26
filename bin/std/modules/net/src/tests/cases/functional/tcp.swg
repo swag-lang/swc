@@ -36,7 +36,7 @@ using Core
     let emptyWrite = expect client.write(bytes[0 until 0])
     Swag.require(emptyRead == 0 and emptyWrite == 0)
     let payload = cast(const [..] u8, "hello")
-    var written = 0'u64
+    var written = 0_u64
     while written < payload.count
     {
         let count = expect client.write(payload[written to])
@@ -44,7 +44,7 @@ using Core
         written += count
     }
 
-    var read = 0'u64
+    var read = 0_u64
     while read < payload.count
     {
         let count = expect server.read(bytes[read until read + 1])
@@ -108,8 +108,11 @@ using Core
     for
     {
         let count = expect server.read(buffer)
-        if count == 0 do
+        if count == 0
+        {
             break
+        }
+
         received.append(cast(string, buffer[0 until count]))
     }
 
@@ -122,8 +125,11 @@ using Core
     for
     {
         let count = expect client.read(buffer)
-        if count == 0 do
+        if count == 0
+        {
             break
+        }
+
         received.append(cast(string, buffer[0 until count]))
     }
 

@@ -29,7 +29,7 @@ struct Json
         indent:         u32                          // Current indentation level.
         containerDepth: u32                          // Current logical nesting depth for arrays/objects.
         fmtInt:         StrConv.ConvertFormatInt     // Format used for converting integers.
-        fmtFloat:       StrConv.ConvertFormatFloat = {fmt: 'g'u8}     // Format used for converting floating-point numbers.
+        fmtFloat:       StrConv.ConvertFormatFloat = {fmt: 'g'_u8}     // Format used for converting floating-point numbers.
         lastSeekValue:  ConcatBufferPosition         // Position used for rollback of trailing commas.
         invalidUtf8:    bool                         // Whether a string held invalid UTF-8 bytes.
     }
@@ -43,17 +43,25 @@ impl Json
     // Returns the identity written for a type value: the canonical runtime crc.
     mtd typeCrcOf(type: typeinfo?)->u32
     {
-        if not type do
+        if not type
+        {
             return 0
+        }
+
         return type.crc
     }
 
     internal mtd writeIndent()
     {
-        if not .options.saveBlanks do
+        if not .options.saveBlanks
+        {
             return
-        for .indent * .options.indentLevel do
-            .output.addNative(' 'u8)
+        }
+
+        for .indent * .options.indentLevel
+        {
+            .output.addNative(' '_u8)
+        }
     }
 
     internal mtd writeString(value: string?)
@@ -109,7 +117,7 @@ impl Json
             }
         }
 
-        .output.addNative('"'u8)
+        .output.addNative('"'_u8)
     }
 
     // Starts writing a document to `buf`.
@@ -128,8 +136,10 @@ impl Json
     // Does nothing: a JSON document needs no root mark.
     mtd endRoot() fail
     {
-        if .invalidUtf8 do
+        if .invalidUtf8
+        {
             fail SerializationError{"JSON output contains invalid UTF-8"}
+        }
     }
 
     // Begins a JSON array.
@@ -211,9 +221,11 @@ impl Json
     mtd beginElement(val: TypeValue)
     {
         .writeString(wireFieldKey(val))
-        .output.addNative(':'u8)
-        if .options.saveBlanks do
+        .output.addNative(':'_u8)
+        if .options.saveBlanks
+        {
             .output.addBytes(" ")
+        }
     }
 
     // Does nothing: a property ends with its value.
@@ -225,13 +237,18 @@ impl Json
     // Appends the separator that follows a value inside an array or an object.
     mtd endValue()
     {
-        if .containerDepth == 0 do
+        if .containerDepth == 0
+        {
             return
+        }
 
         .lastSeekValue = .output.position()
         .output.addBytes(",")
-        if .options.saveBlanks do
+        if .options.saveBlanks
+        {
             .output.addBytes("\n")
+        }
+
         .writeIndent()
     }
 
@@ -242,18 +259,22 @@ impl Json
         {
             .output.addBytes(value ? "true" : "false")
         }
-        elif Reflection.isFloat(NT)
+        else if Reflection.isFloat(NT)
         {
-            if Math.isFinite(value) do
+            if Math.isFinite(value)
+            {
                 StrConv.convertFloatInvariant(.output, value, .fmtFloat)
-            else do
+            }
+            else
+            {
                 .output.addBytes("null")
+            }
         }
-        elif Reflection.isInteger(NT)
+        else if Reflection.isInteger(NT)
         {
             StrConv.convertInt(.output, value, .fmtInt)
         }
-        elif Reflection.isString(NT)
+        else if Reflection.isString(NT)
         {
             .writeString(value)
         }

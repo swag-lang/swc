@@ -115,8 +115,10 @@ func makeTrackedBranch()->Tracked
 {
     var result: Tracked
     result.value = g_seed
-    if g_cond do
+    if g_cond
+    {
         return result
+    }
     g_sink = result.value
     return result
 }

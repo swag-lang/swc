@@ -101,8 +101,10 @@ struct JitNonNullNested
 
 func jitHasNonNullFlags(type: typeinfo)->bool
 {
-    if not (type.flags & Swag.TypeInfoFlags.RequiresExplicitInit) do
+    if not (type.flags & Swag.TypeInfoFlags.RequiresExplicitInit)
+    {
         return false
+    }
     return not (type.flags & Swag.TypeInfoFlags.Nullable)
 }
 
@@ -113,7 +115,7 @@ func jitNonNullConstruction()->bool
     var first  = JitNonNullItem{value: 11}
     var second = JitNonNullItem{value: 22}
     var blockStorage:   [2] JitNonNullItem = [JitNonNullItem{value: 31}, JitNonNullItem{value: 32}]
-    var cstringStorage: [4] u8 = ['a'u8, 'b'u8, 'c'u8, 0]
+    var cstringStorage: [4] u8 = ['a'_u8, 'b'_u8, 'c'_u8, 0]
 
     let direct:                    *JitNonNullItem              = &first
     let block:                     [*] JitNonNullItem           = cast([*] JitNonNullItem, &blockStorage[0])
@@ -158,8 +160,10 @@ func jitNonNullConstruction()->bool
        not jitHasNonNullFlags(#typeof(text)) or
        not jitHasNonNullFlags(#typeof(ctext)) or
        not jitHasNonNullFlags(#typeof(boxed)) or
-       not jitHasNonNullFlags(#typeof(reflectedType)) do
+       not jitHasNonNullFlags(#typeof(reflectedType))
+    {
         return false
+    }
 
     let aliasReadOnlyType = #typeof(aliasReadOnly)
     let aliasRequiredType = #typeof(aliasRequired)
@@ -173,22 +177,34 @@ func jitNonNullConstruction()->bool
     let holderArrayType      = #typeof([2] JitNonNullHolder)
     let pointerArrayType     = #typeof([2] *JitNonNullItem)
     let defaultContainerType = #typeof(JitNonNullDefaultContainer)
-    let genericRequiredType  = cast(const *Swag.TypeInfoStruct, #typeof(JitNonNullGenericBox'(*JitNonNullItem)))
-    let genericDefaultType   = cast(const *Swag.TypeInfoStruct, #typeof(JitNonNullGenericBox'JitNonNullStringDefault))
-    if holderType.opInit != null or not (holderType.flags & Swag.TypeInfoFlags.RequiresExplicitInit) do
+    let genericRequiredType  = cast(const *Swag.TypeInfoStruct, #typeof(JitNonNullGenericBox!{*JitNonNullItem}))
+    let genericDefaultType   = cast(const *Swag.TypeInfoStruct, #typeof(JitNonNullGenericBox!{JitNonNullStringDefault}))
+    if holderType.opInit != null or not (holderType.flags & Swag.TypeInfoFlags.RequiresExplicitInit)
+    {
         return false
+    }
     if not (nestedType.flags & Swag.TypeInfoFlags.RequiresExplicitInit) or
        not (holderArrayType.flags & Swag.TypeInfoFlags.RequiresExplicitInit) or
-       not (pointerArrayType.flags & Swag.TypeInfoFlags.RequiresExplicitInit) do
+       not (pointerArrayType.flags & Swag.TypeInfoFlags.RequiresExplicitInit)
+    {
         return false
-    if not JIT_NONULL_FORWARD_ARRAY_REQUIRES_INIT do
+    }
+    if not JIT_NONULL_FORWARD_ARRAY_REQUIRES_INIT
+    {
         return false
-    if defaultContainerType.flags & Swag.TypeInfoFlags.RequiresExplicitInit do
+    }
+    if defaultContainerType.flags & Swag.TypeInfoFlags.RequiresExplicitInit
+    {
         return false
-    if genericRequiredType.opInit != null or not (genericRequiredType.flags & Swag.TypeInfoFlags.RequiresExplicitInit) do
+    }
+    if genericRequiredType.opInit != null or not (genericRequiredType.flags & Swag.TypeInfoFlags.RequiresExplicitInit)
+    {
         return false
-    if genericDefaultType.opInit == null or genericDefaultType.flags & Swag.TypeInfoFlags.RequiresExplicitInit do
+    }
+    if genericDefaultType.opInit == null or genericDefaultType.flags & Swag.TypeInfoFlags.RequiresExplicitInit
+    {
         return false
+    }
 
     let holder                           = JitNonNullHolder{required: direct}
     var moveSource                       = JitNonNullHolder{required: &first}
@@ -200,8 +216,8 @@ func jitNonNullConstruction()->bool
         JitNonNullHolder{required: &first},
         JitNonNullHolder{required: &second, count: 8}
         ]
-    let genericRequired: JitNonNullGenericBox'(*JitNonNullItem) = {value: &first}
-    var genericDefault:  JitNonNullGenericBox'JitNonNullStringDefault
+    let genericRequired: JitNonNullGenericBox!{*JitNonNullItem} = {value: &first}
+    var genericDefault:  JitNonNullGenericBox!{JitNonNullStringDefault}
     let pointerArray:    [2] *JitNonNullItem   = [&first, &second]
     let aliasedHolder:   JitNonNullHolderAlias = {required: &first}
     let pointerDefault                         = JitNonNullPointerDefault{}
@@ -231,47 +247,83 @@ func jitNonNullConstruction()->bool
     #assert(#typeof(moveDefaultSource.required) == string)
     #assert(#typeof(moveDefaultTarget.required) == string)
 
-    if holder.required != &first or holder.required.value != 11 do
+    if holder.required != &first or holder.required.value != 11
+    {
         return false
-    if moveTarget.required != &first do
+    }
+    if moveTarget.required != &first
+    {
         return false
-    if holder.optional != null or holder.legacy != null or holder.count != 7 do
+    }
+    if holder.optional != null or holder.legacy != null or holder.count != 7
+    {
         return false
-    if blockHolder.required[0].value != 31 or blockHolder.required[1].value != 32 do
+    }
+    if blockHolder.required[0].value != 31 or blockHolder.required[1].value != 32
+    {
         return false
-    if contextual.required != &second or contextual.count != 9 do
+    }
+    if contextual.required != &second or contextual.count != 9
+    {
         return false
-    if nested.holder.required != &first or nested.holder.optional != null or nested.holder.count != 7 do
+    }
+    if nested.holder.required != &first or nested.holder.optional != null or nested.holder.count != 7
+    {
         return false
-    if array[0].required != &first or array[0].count != 7 do
+    }
+    if array[0].required != &first or array[0].count != 7
+    {
         return false
-    if array[1].required != &second or array[1].count != 8 do
+    }
+    if array[1].required != &second or array[1].count != 8
+    {
         return false
-    if migrated != &first or widened != &first do
+    }
+    if migrated != &first or widened != &first
+    {
         return false
-    if genericRequired.value != &first or genericDefault.value.value != "fallback" do
+    }
+    if genericRequired.value != &first or genericDefault.value.value != "fallback"
+    {
         return false
-    if families.valuePointer != &first or families.blockPointer[1].value != 32 do
+    }
+    if families.valuePointer != &first or families.blockPointer[1].value != 32
+    {
         return false
-    if families.slice.count != 2 or families.slice[0].value != 31 do
+    }
+    if families.slice.count != 2 or families.slice[0].value != 31
+    {
         return false
-    if families.text != "nonull" or families.ctext[0] != 'a'u8 do
+    }
+    if families.text != "nonull" or families.ctext[0] != 'a'_u8
+    {
         return false
-    if assume cast(s32, families.boxed) != 123 or families.reflectedType.name != "JitNonNullItem" do
+    }
+    if assume cast(s32, families.boxed) != 123 or families.reflectedType.name != "JitNonNullItem"
+    {
         return false
+    }
     if boxedNullableValuePointer == null or
        boxedNullableBlockPointer == null or
        boxedNullableSlice == null or
        boxedNullableString == null or
        boxedNullableCString == null or
-       boxedNullableTypeInfo == null do
+       boxedNullableTypeInfo == null
+    {
         return false
-    if pointerArray[0] != &first or pointerArray[1] != &second or aliasedHolder.required != &first do
+    }
+    if pointerArray[0] != &first or pointerArray[1] != &second or aliasedHolder.required != &first
+    {
         return false
-    if pointerDefault.required != JIT_NONULL_POINTER_DEFAULT_TEXT.buffer or pointerDefault.required[0] != 'f'u8 do
+    }
+    if pointerDefault.required != JIT_NONULL_POINTER_DEFAULT_TEXT.buffer or pointerDefault.required[0] != 'f'_u8
+    {
         return false
-    if moveDefaultTarget.required != "explicit" or moveDefaultSource.required != "move-default" do
+    }
+    if moveDefaultTarget.required != "explicit" or moveDefaultSource.required != "move-default"
+    {
         return false
+    }
     var defaultItem:     JitNonNullStringDefault
     var defaultArray:    [2] JitNonNullStringDefault
     let omittedDefaults = JitNonNullDefaultContainer{}
@@ -295,8 +347,10 @@ func jitNonNullConstruction()->bool
     if mutable.required != &second or
        mutable.optional != null or
        mutable.legacy != null or
-       mutable.count != 7 do
+       mutable.count != 7
+    {
         return false
+    }
 
     // Non-null values are initialized explicitly; no uninitialized escape exists.
     var initializedPointer: *JitNonNullItem = &second
@@ -307,8 +361,10 @@ func jitNonNullConstruction()->bool
     // Only explicitly nullable pointers keep a null default; bare pointers have no implicit default.
     var nullablePointer: *JitNonNullItem?
     var legacyHolder:    struct {ptr: *JitNonNullItem?}
-    if nullablePointer != null or legacyHolder.ptr != null do
+    if nullablePointer != null or legacyHolder.ptr != null
+    {
         return false
+    }
 
     return true
 }

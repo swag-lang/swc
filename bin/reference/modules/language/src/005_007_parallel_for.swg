@@ -31,8 +31,10 @@ visible at the loop instead of hidden inside it.
 {
     var squares: [16] u64
 
-    parallel for |&squares| index in 16 do
+    parallel for |&squares| index in 16
+    {
         squares[index] = index * index
+    }
 
     Swag.require(squares[0] == 0)
     Swag.require(squares[15] == 225)
@@ -48,11 +50,13 @@ synchronization, because no two iterations touch the same storage.
 */
 #test
 {
-    let factor = 3'u64
+    let factor = 3_u64
     var values: [8] u64
 
-    parallel for |&values, factor| index in 8 do
+    parallel for |&values, factor| index in 8
+    {
         values[index] = index * factor
+    }
 
     Swag.require(values[7] == 21)
 }
@@ -66,10 +70,12 @@ one they are.
 */
 #test
 {
-    var started = 0'u64
+    var started = 0_u64
 
-    parallel for |&started| 8 do
+    parallel for |&started| 8
+    {
         discard Swag.atomicAdd(&started, 1)
+    }
 
     Swag.require(started == 8)
 }
@@ -85,11 +91,15 @@ runs no iteration at all.
 {
     var visited: [10] bool
 
-    parallel for |&visited| index in 2 until 5 do
+    parallel for |&visited| index in 2 until 5
+    {
         visited[index] = true
+    }
 
-    parallel for |&visited| index in 7 to 8 do
+    parallel for |&visited| index in 7 to 8
+    {
         visited[index] = true
+    }
 
     Swag.require(not visited[1] and visited[2] and visited[4] and not visited[5])
     Swag.require(visited[7] and visited[8] and not visited[9])
@@ -112,14 +122,20 @@ Compute the answer into captured storage and act on it after the loop.
 
     parallel for |&found| index in 32
     {
-        if index & 1 do
+        if index & 1
+        {
             continue
+        }
+
         found[index] = true
     }
 
     var count = 0
-    for index in 32 where found[index] do
+    for index in 32 where found[index]
+    {
         count += 1
+    }
+
     Swag.require(count == 16)
 }
 
@@ -155,8 +171,11 @@ struct ParallelInputError
     var errorOutcome: Swag.Error
     catch parallel for |&values| index in 8
     {
-        if index == 3 do
+        if index == 3
+        {
             fail ParallelInputError{index}
+        }
+
         values[index] = index + 1
     } as errorOutcome
 
@@ -164,8 +183,11 @@ struct ParallelInputError
     Swag.require(error != null and (error is ParallelInputError))
     Swag.require(values[3] == 0)
 
-    expect parallel for |&values| index in 8 do
+    expect parallel for |&values| index in 8
+    {
         values[index] = index + 1
+    }
+
     Swag.require(values[7] == 8)
 }
 
@@ -180,16 +202,18 @@ loop still runs every index and joins every partition.
 */
 #test
 {
-    var task: Swag.Task'u64
+    var task: Swag.Task!{u64}
     let self = &task
     task.submit(func|self|()->u64
     {
         self.cancel()
-        var skipped: Swag.AtomicValue'u64
+        var skipped: Swag.AtomicValue!{u64}
         parallel for |&skipped| 8
         {
-            if Swag.isCancelled() do
+            if Swag.isCancelled()
+            {
                 skipped.add(1)
+            }
         }
 
         return skipped.load()
@@ -207,10 +231,12 @@ An accumulator every index writes is shared storage, so it goes through
 */
 #test
 {
-    var total: Swag.AtomicValue'u64
+    var total: Swag.AtomicValue!{u64}
 
-    parallel for |&total| index in 100 do
+    parallel for |&total| index in 100
+    {
         total.add(index)
+    }
 
     Swag.require(total.load() == 4950)
 }

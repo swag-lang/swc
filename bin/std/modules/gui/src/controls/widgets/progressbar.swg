@@ -81,8 +81,11 @@ impl IWnd for ProgressBar
 
             // Advance only presentation; the caller's finite value remains intact.
             .animationPhase += .paintDeltaSeconds() * metrics.progressBar_SpeedInf
-            if .animationPhase > 1 do
+            if .animationPhase > 1
+            {
                 .animationPhase = 0
+            }
+
             .invalidate()
         }
         else
@@ -108,9 +111,12 @@ impl ProgressBar
     {
         Swag.assert(parent != null)
         var pos = position
-        if pos.height == 0 do
+        if pos.height == 0
+        {
             pos.height = parent.themeMetrics().progressBar_Height
-        let result = Wnd.create'ProgressBar(parent, null, pos, id)
+        }
+
+        let result = Wnd.create!{ProgressBar}(parent, null, pos, id)
         result.flags = flags
         return result
     }
@@ -119,8 +125,11 @@ impl ProgressBar
     mtd setValue(value: f32)
     {
         let newValue = Math.saturate(value)
-        if newValue == .value do
+        if newValue == .value
+        {
             return
+        }
+
         .value = newValue
         .invalidate()
     }
@@ -131,8 +140,11 @@ impl ProgressBar
         let oldFlags = .flags
         .flags.add(add)
         .flags.remove(remove)
-        if not oldFlags.has(.Indeterminate) and .flags.has(.Indeterminate) do
+        if not oldFlags.has(.Indeterminate) and .flags.has(.Indeterminate)
+        {
             .animationPhase = 0
+        }
+
         .invalidate()
     }
 }

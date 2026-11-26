@@ -32,8 +32,10 @@ func indirectReleaseClear(context: *IndirectReleaseContext)
     {
         let record = slot.record
         slot.record = null
-        if record do
+        if record
+        {
             indirectReleaseRecord(record)
+        }
     }
     context.marker = 37
 }

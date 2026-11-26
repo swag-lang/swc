@@ -5,8 +5,11 @@ using Swag, Core.Errors
 // Reject overflow before touching the destination, and return the consumed byte count.
 private func(T) storeParsedNumber(destination: *u8, parsed: {value: T, eat: u32, ovf: bool})->u32 fail
 {
-    if parsed.ovf do
+    if parsed.ovf
+    {
         fail OverflowError{}
+    }
+
     cast(*T, destination)[] = parsed.value
     return parsed.eat
 }
@@ -39,8 +42,11 @@ public func parseValue(addr: *void, type: typeinfo, buf: string)->string fail
             let addrVal       = Reflection.appendDynamicArrayElement(addr, safeValueType)
             let previousCount = one.count
             one = try parseValue(addrVal, safeValueType, one)
-            if one.count >= previousCount do
+            if one.count >= previousCount
+            {
                 fail InvalidFormatError{"array value parser did not consume input"}
+            }
+
             one = Tokenize.eatSpaces(one)
         }
 
@@ -52,15 +58,21 @@ public func parseValue(addr: *void, type: typeinfo, buf: string)->string fail
     {
         let arrayType = assume cast(const *TypeInfoArray, type)
         var addrVal   = cast([*] u8, addr)
-        var cpt       = 0'u64
+        var cpt       = 0_u64
         while one.count and one[0] != '#'
         {
-            if cpt == arrayType.totalCount do
+            if cpt == arrayType.totalCount
+            {
                 fail InvalidFormatError{"too many static array values"}
+            }
+
             let previousCount = one.count
             one = try parseValue(addrVal, arrayType.finalType, one)
-            if one.count >= previousCount do
+            if one.count >= previousCount
+            {
                 fail InvalidFormatError{"array value parser did not consume input"}
+            }
+
             one     = Tokenize.eatSpaces(one)
             addrVal += arrayType.finalType.sizeof
             cpt     += 1
@@ -74,8 +86,11 @@ public func parseValue(addr: *void, type: typeinfo, buf: string)->string fail
     {
         let enumType = assume cast(const *TypeInfoEnum, type)
         let rawType  = unwrap enumType.rawType
-        if rawType != string and enumType.sizeof > 8 do
+        if rawType != string and enumType.sizeof > 8
+        {
             fail UnsupportedFormatError{Errors.mkString(Format.toString("unsupported enum type [[%]]", rawType.name))}
+        }
+
         let enumFlags = Reflection.hasAttribute(enumType, EnumFlags)
         if enumFlags
         {
@@ -93,15 +108,18 @@ public func parseValue(addr: *void, type: typeinfo, buf: string)->string fail
             one = Tokenize.eatSpaces(one)
             let id = try parseIdentifier(one)
             let v  = Reflection.enumValue(type, id)
-            if not v do
+            if not v
+            {
                 fail InvalidFormatError{Errors.mkString(Format.toString("unknown enum value [[%]]", id))}
+            }
+
             let enumValue = unwrap v.value
 
             if enumType.rawType == string
             {
                 cast(*string, patch)[] = cast(const *string, enumValue)[]
             }
-            elif not enumFlags
+            else if not enumFlags
             {
                 switch enumType.sizeof
                 {
@@ -123,31 +141,46 @@ public func parseValue(addr: *void, type: typeinfo, buf: string)->string fail
             }
 
             one = Tokenize.eatCount(one, id.count)
-            if not enumFlags do
+            if not enumFlags
+            {
                 break
+            }
 
             one = Tokenize.eatSpaces(one)
-            if not one.count do
+            if not one.count
+            {
                 break
-            if one[0] == '#' do
-                break
+            }
 
-            if one[0] != '|' do
+            if one[0] == '#'
+            {
+                break
+            }
+
+            if one[0] != '|'
+            {
                 fail InvalidFormatError{"invalid enum flags format"}
+            }
+
             one = Tokenize.eatCount(one, 1)
         }
 
         let consumed = cast(u64, cast(s64, (one.buffer - buf.buffer)))
-        if consumed > Swag.U32.Max do
+        if consumed > Swag.U32.Max
+        {
             fail OverflowError{"enum token exceeds the supported length"}
+        }
+
         let eat = cast(u32, consumed)
         one = Tokenize.eatCount(buf, cast(u64, eat))
         return one
     }
 
     // Decode interface
-    if let itf = Swag.makeInterface(addr, type, IPokeValue) do
+    if let itf = Swag.makeInterface(addr, type, IPokeValue)
+    {
         return try itf.poke(one)
+    }
 
     // Struct: a brace-enclosed list of field values in declaration order. 'Core.String' is
     // excluded because it decodes as a quoted literal below, and a type with a poke interface
@@ -155,15 +188,21 @@ public func parseValue(addr: *void, type: typeinfo, buf: string)->string fail
     if Reflection.isStruct(type) and type != String
     {
         let structType = assume cast(const *TypeInfoStruct, type)
-        if not one.count or one[0] != '{' do
+        if not one.count or one[0] != '{'
+        {
             fail InvalidFormatError{Errors.mkString(Format.toString("missing [[{]] for struct [[%]]", type.name))}
+        }
+
         one = Tokenize.eatCount(one, 1)
         one = Tokenize.eatSpaces(one)
 
         for field in structType.fields
         {
-            if not one.count or one[0] == '}' do
+            if not one.count or one[0] == '}'
+            {
                 break
+            }
+
             one = try parseValue(cast([*] u8, addr) + field.offset, unwrap field.pointedType, one)
             one = Tokenize.eatSpaces(one)
             if one.count and one[0] == ','
@@ -173,8 +212,11 @@ public func parseValue(addr: *void, type: typeinfo, buf: string)->string fail
             }
         }
 
-        if not one.count or one[0] != '}' do
+        if not one.count or one[0] != '}'
+        {
             fail InvalidFormatError{Errors.mkString(Format.toString("missing [[}]] for struct [[%]]", type.name))}
+        }
+
         one = Tokenize.eatCount(one, 1)
         return one
     }
@@ -182,15 +224,17 @@ public func parseValue(addr: *void, type: typeinfo, buf: string)->string fail
     // Basic types. A native type reaching this function from another module is a
     // different typeinfo instance, so the dispatch reads the native kind instead of
     // switching on typeinfo identity.
-    var eat = 0'u32
+    var eat = 0_u32
     if type == String
     {
         eat = try parseString(cast(*String, patch), one)
         return Tokenize.eatCount(one, cast(u64, eat))
     }
 
-    if not Reflection.isNative(type) do
+    if not Reflection.isNative(type)
+    {
         fail UnsupportedFormatError{Errors.mkString(Format.toString("unsupported type [[%]]", type.name))}
+    }
 
     let nativeType = assume cast(const *TypeInfoNative, type)
     switch nativeType.nativeKind

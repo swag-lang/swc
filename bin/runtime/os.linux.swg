@@ -15,15 +15,15 @@ namespace __LinuxRT
         nanoseconds: s64
     }
 
-    const ClockMonotonic   = 1's32
-    const FutexWait        = 0's32
-    const FutexWake        = 1's32
-    const FutexWaitPrivate = 128's32
-    const FutexWakePrivate = 129's32
-    const FutexSyscall     = 202's64
-    const Interrupted      = 4's32
-    const WouldBlock       = 11's32
-    const TimedOut         = 110's32
+    const ClockMonotonic   = 1_s32
+    const FutexWait        = 0_s32
+    const FutexWake        = 1_s32
+    const FutexWaitPrivate = 128_s32
+    const FutexWakePrivate = 129_s32
+    const FutexSyscall     = 202_s64
+    const Interrupted      = 4_s32
+    const WouldBlock       = 11_s32
+    const TimedOut         = 110_s32
 
     #[Swag.Foreign(module: "libc.so.6", link: "c", callconv: .C)]
     {
@@ -44,7 +44,7 @@ namespace __LinuxRT
 }
 
 // Linux x86-64 has 4 KiB base pages; huge pages are not part of the bootstrap allocator.
-const AllocatorHostCommitGranularity = 4096'u64
+const AllocatorHostCommitGranularity = 4096_u64
 
 func __hostTlsAlloc()->u64
 {
@@ -70,8 +70,10 @@ func __hostThreadStorageAlloc(cleanup: __LinuxRT.ThreadCleanup?)->u64
 
 func __hostThreadStorageFree(id: u64)
 {
-    if id do
+    if id
+    {
         discard __LinuxRT.pthread_key_delete(cast(u32, (id - 1)))
+    }
 }
 
 func __hostThreadStorageGet(id: u64)->*void? => id ? __LinuxRT.pthread_getspecific(cast(u32, (id - 1))) : null
@@ -97,14 +99,16 @@ func __hostThreadSleep(milliseconds: u32)
     var duration = __LinuxRT.Timespec{seconds: cast(s64, milliseconds / 1000), nanoseconds: cast(s64, milliseconds % 1000) * 1_000_000}
     while __LinuxRT.nanosleep(&duration, &duration) != 0
     {
-        if __LinuxRT.__errno_location()[] != __LinuxRT.Interrupted do
+        if __LinuxRT.__errno_location()[] != __LinuxRT.Interrupted
+        {
             return
+        }
     }
 }
 
 // The common lock has one pointer-sized word, initialized to zero. Its low 32 bits hold
 // a reader count or the writer bit; futex waits need neither a heap object nor destruction.
-private const LinuxWriter = 0x8000_0000'u32
+private const LinuxWriter = 0x8000_0000_u32
 
 #[Swag.Safety(.ValueBorrow, false)]
 private func __linuxWake(address: *u32, count: u32)
@@ -123,8 +127,10 @@ func __linuxLockProcessWide(lock: *(*void?))
     while not __hostTryLockExclusive(lock)
     {
         let observed = Swag.atomicLoad(state)
-        if observed do
+        if observed
+        {
             discard __LinuxRT.syscall(__LinuxRT.FutexSyscall, state, __LinuxRT.FutexWait, observed, null, null, 0)
+        }
     }
 }
 
@@ -146,8 +152,10 @@ func __hostLockExclusive(lock: *(*void?))
     while not __hostTryLockExclusive(lock)
     {
         let observed = Swag.atomicLoad(state)
-        if observed do
+        if observed
+        {
             discard __LinuxRT.syscall(__LinuxRT.FutexSyscall, state, __LinuxRT.FutexWaitPrivate, observed, null, null, 0)
+        }
     }
 }
 
@@ -166,11 +174,17 @@ func __hostTryLockShared(lock: *(*void?))->bool
     var observed = Swag.atomicLoad(state)
     for
     {
-        if observed >= LinuxWriter - 1 do
+        if observed >= LinuxWriter - 1
+        {
             return false
+        }
+
         let previous = Swag.atomicCompareExchange(state, observed, observed + 1)
-        if previous == observed do
+        if previous == observed
+        {
             return true
+        }
+
         observed = previous
     }
 }
@@ -182,8 +196,10 @@ func __hostLockShared(lock: *(*void?))
     while not __hostTryLockShared(lock)
     {
         let observed = Swag.atomicLoad(state)
-        if observed >= LinuxWriter - 1 do
+        if observed >= LinuxWriter - 1
+        {
             discard __LinuxRT.syscall(__LinuxRT.FutexSyscall, state, __LinuxRT.FutexWaitPrivate, observed, null, null, 0)
+        }
     }
 }
 
@@ -192,8 +208,10 @@ func __hostUnlockShared(lock: *(*void?))
 {
     let state    = cast(*u32, lock)
     let previous = Swag.atomicAdd(state, Swag.U32.Max)
-    if previous == 1 or previous == LinuxWriter - 1 do
+    if previous == 1 or previous == LinuxWriter - 1
+    {
         __linuxWake(state, 0x7FFF_FFFF)
+    }
 }
 
 func __hostConditionInit(condition: *(*void?))
@@ -225,7 +243,7 @@ func __hostConditionWait(condition: *(*void?), lock: *(*void?), milliseconds: u3
     let sequence = cast(*u32, condition)
     let observed = Swag.atomicLoad(sequence)
     let finite   = milliseconds != Swag.InfiniteWait
-    let deadline = finite ? __hostMonotonicTicks() + cast(u64, milliseconds) * 1_000_000 : 0'u64
+    let deadline = finite ? __hostMonotonicTicks() + cast(u64, milliseconds) * 1_000_000 : 0_u64
     __hostUnlockExclusive(lock)
     defer __hostLockExclusive(lock)
 
@@ -236,8 +254,11 @@ func __hostConditionWait(condition: *(*void?), lock: *(*void?), milliseconds: u3
         if finite
         {
             let now = __hostMonotonicTicks()
-            if now >= deadline do
+            if now >= deadline
+            {
                 return false
+            }
+
             let remaining = deadline - now
             duration.seconds     = cast(s64, remaining / 1_000_000_000)
             duration.nanoseconds = cast(s64, remaining % 1_000_000_000)
@@ -245,11 +266,16 @@ func __hostConditionWait(condition: *(*void?), lock: *(*void?), milliseconds: u3
         }
 
         let result = __LinuxRT.syscall(__LinuxRT.FutexSyscall, sequence, __LinuxRT.FutexWaitPrivate, observed, timeout, null, 0)
-        if result == 0 do
+        if result == 0
+        {
             return true
+        }
+
         let error = __LinuxRT.__errno_location()[]
-        if error != __LinuxRT.Interrupted do
+        if error != __LinuxRT.Interrupted
+        {
             return error == __LinuxRT.WouldBlock
+        }
     }
 }
 

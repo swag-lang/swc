@@ -10,19 +10,25 @@ impl Scc.ICodec for ReverseSccCodec
 {
     mtd impl id()->Guid128 => .codecId
 
-    mtd impl encode(source: const [..] u8)->Array'u8 fail
+    mtd impl encode(source: const [..] u8)->Array!{u8} fail
     {
         var result: #returntype
         result.resize(source.count)
-        for value, index in source do
+        for value, index in source
+        {
             result[source.count - index - 1] = value
+        }
+
         return result
     }
 
-    mtd impl decode(source: const [..] u8, decodedSize: u64)->Array'u8 fail
+    mtd impl decode(source: const [..] u8, decodedSize: u64)->Array!{u8} fail
     {
-        if source.count != decodedSize do
+        if source.count != decodedSize
+        {
             fail Errors.InvalidFormatError{"reverse test codec received a different size"}
+        }
+
         return try .encode(source)
     }
 }
@@ -50,10 +56,13 @@ func sccTestId(text: string)->Guid128 => expect Guid128.parse(text)
     writer.manifest()[] = #move manifest
     let previewId = expect writer.addChunk("small preview", {typeId: bytesType, roleId: previewRole, flags: .Required})
 
-    var large: Array'u8
+    var large: Array!{u8}
     large.resize(256 * 1024)
-    for &value, index in large do
+    for &value, index in large
+    {
         value[] = cast(u8, (index & 0xFF))
+    }
+
     let imageId = expect writer.addChunk(large.toSlice(), {typeId: bytesType, roleId: imageRole, codecId: deflate})
     expect writer.saveAtomic(path)
 
@@ -70,7 +79,7 @@ func sccTestId(text: string)->Guid128 => expect Guid128.parse(text)
     }
 
     var stream  = expect File.open(path, .Open, .ReadWrite, .Read)
-    var damaged = 0xA5'u8
+    var damaged = 0xA5_u8
     expect stream.writeAllAt(imageOffset, Swag.makeSlice(&damaged, 1))
     stream.close()
 

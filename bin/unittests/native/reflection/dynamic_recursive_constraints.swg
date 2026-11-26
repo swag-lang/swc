@@ -22,7 +22,7 @@ impl DynamicRecursiveCollection
 
 struct DynamicRecursiveNode
 {
-    children: DynamicRecursiveCollection'(*DynamicRecursiveNode)
+    children: DynamicRecursiveCollection!{*DynamicRecursiveNode}
 }
 
 #test

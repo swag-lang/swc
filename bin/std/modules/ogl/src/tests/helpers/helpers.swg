@@ -10,8 +10,11 @@ func testSourceRoot(loc: Swag.SourceCodeLocation = #callerlocation)->String
     var directory = Path.directoryName(loc.fileName)
     while directory != null
     {
-        if Path.fileName(directory) == "cases" do
+        if Path.fileName(directory) == "cases"
+        {
             return unwrap Path.directoryName(directory)
+        }
+
         directory = Path.directoryName(directory)
     }
 

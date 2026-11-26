@@ -35,12 +35,12 @@ func day3B()
     let dataPath = Path.combine(Path.directoryName(#curlocation.fileName), "3.txt")
     let lines    = expect File.readAllLines(dataPath)
 
-    func trace(line: string)->Array'Vector2
+    func trace(line: string)->Array!{Vector2}
     {
         var result: #returntype
         var pos:    Vector2
         result.add(pos)
-        for v in Tokenize.split(line, ','u8)
+        for v in Tokenize.split(line, ','_u8)
         {
             let val = expect StrConv.toF32(v[1 to])
             switch v[0]
@@ -61,10 +61,10 @@ func day3B()
     let t1 = trace(lines[1])
 
     var best = Swag.F32.Max
-    var di   = 0'f32
+    var di   = 0_f32
     for i in t1.count - 1
     {
-        var dj = 0'f32
+        var dj = 0_f32
         for j in t0.count - 1
         {
             let {intersects, point} = Geometry.intersectSegments(t1[i], t1[i + 1], t0[j], t0[j + 1])

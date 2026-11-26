@@ -15,11 +15,11 @@ public impl DepOverloadWnd
 {
     // Resolves the imported generic overload family without a position.
     #[Swag.Inline]
-    func(T) create(parent: *DepOverloadWnd? = null, id: string? = null, hook: func||()? = null)->*T? => create'T(parent, "", {}, id, hook)
+    func(T) create(parent: *DepOverloadWnd? = null, id: string? = null, hook: func||()? = null)->*T? => create!{T}(parent, "", {}, id, hook)
 
     // Resolves the imported generic overload family at `position`.
     #[Swag.Inline]
-    func(T) create(parent: *DepOverloadWnd?, position: DepOverloadWnd, id: string? = null, hook: func||()? = null)->*T? => create'T(parent, "", position, id, hook)
+    func(T) create(parent: *DepOverloadWnd?, position: DepOverloadWnd, id: string? = null, hook: func||()? = null)->*T? => create!{T}(parent, "", position, id, hook)
 
     // Returns no window from the fully specified imported generic overload.
     func(T) create(parent: *DepOverloadWnd?, name: string?, position: DepOverloadWnd, id: string? = null, hook: func||()? = null)->*T? => null

@@ -32,7 +32,7 @@ Use the binary numbers in your diagnostic report to calculate the oxygen generat
 
 using Core
 
-internal var lines: Array'String
+internal var lines: Array!{String}
 
 // Restored after the for-in codegen fix for resolved string sources.
 func calc(a, b: u8)->u64
@@ -41,20 +41,26 @@ func calc(a, b: u8)->u64
     for c in scan[0].count
     {
         var count = 0
-        for l in scan do
+        for l in scan
+        {
             count += cast(s32, (l[c] == '1'))
+        }
 
-        var next: Array'String
+        var next: Array!{String}
         for l in scan
         {
             let v = count >= scan.count - count ? a : b
-            if l[c] == v do
+            if l[c] == v
+            {
                 next.add(l)
+            }
         }
 
         scan = #move next
-        if scan.count == 1 do
+        if scan.count == 1
+        {
             break
+        }
     }
 
     let {value: val, eat: _, ovf: _} = expect StrConv.parseB64(scan[0])

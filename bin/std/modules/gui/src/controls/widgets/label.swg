@@ -33,7 +33,7 @@ struct Label
     {
         using wnd: Wnd     // Embedded window behavior and presentation.
 
-        sigLinkActivated: SigArray'func||(*Wnd, string)     // Emitted with the target of the link the user activates.
+        sigLinkActivated: SigArray!{func||(*Wnd, string)}     // Emitted with the target of the link the user activates.
         accessKeyTarget:  *Wnd? = null     // Same-surface window focused when this label's access key is chosen.
 
         readonly
@@ -67,8 +67,10 @@ impl IWnd for Label
     mtd impl onNotifyEvent(evt: *NotifyEvent)
     {
         .wnd.IWnd.onNotifyEvent(evt)
-        if evt.kind == .LanguageChanged do
+        if evt.kind == .LanguageChanged
+        {
             .refreshLocalizedText()
+        }
     }
 
     mtd impl onMouseEvent(evt: *MouseEvent)
@@ -86,8 +88,10 @@ impl IWnd for Label
                 if .flags.has(.LinkActions)
                 {
                     .setFocus()
-                    for &chunk, index in .name.chunks where chunk == .hotChunk do
+                    for &chunk, index in .name.chunks where chunk == .hotChunk
+                    {
                         .activeLink = index
+                    }
                 }
 
                 let target = .name.urlTarget(.hotChunk.urlStart)
@@ -108,7 +112,7 @@ impl IWnd for Label
                     chunk.isHotUrl = true
                     .app().setFrameCursor(Cursor.from(.Hand))
                 }
-                elif .hotChunk
+                else if .hotChunk
                 {
                     .hotChunk.isHotUrl = false
                 }
@@ -132,33 +136,44 @@ impl IWnd for Label
     mtd impl onFocusEvent(evt: *FocusEvent)
     {
         .wnd.IWnd.onFocusEvent(evt)
-        if evt.kind == .Gained do
+        if evt.kind == .Gained
+        {
             .activeLink = .actionLink(Swag.U64.Max, false)
-        elif evt.kind == .Lost do
+        }
+        else if evt.kind == .Lost
+        {
             .activeLink = Swag.U64.Max
+        }
+
         .invalidate()
     }
 
     mtd impl onKeyEvent(evt: *KeyEvent)
     {
         evt.accepted = false
-        if evt.kind != .Pressed or not .linksEnabled or not .flags.has(.LinkActions) do
+        if evt.kind != .Pressed or not .linksEnabled or not .flags.has(.LinkActions)
+        {
             return
+        }
+
         if evt.key == .Tab and (evt.modifiers == .None or evt.modifiers == .Shift)
         {
             let next = .actionLink(.activeLink, evt.modifiers == .Shift)
             if next != Swag.U64.Max
             {
                 .activeLink = next
-                if .hasFocus() do
+                if .hasFocus()
+                {
                     .app().setFocusVisible(true)
+                }
+
                 .invalidate()
                 evt.accepted = true
             }
         }
-        elif (evt.key == .Enter or evt.key == .Space) and
-             evt.modifiers == .None and
-             .activeLink < .name.chunks.count
+        else if (evt.key == .Enter or evt.key == .Space) and
+                evt.modifiers == .None and
+                .activeLink < .name.chunks.count
         {
             let target = .name.urlTarget(.name.chunks[.activeLink].urlStart)
             .sigLinkActivated.call(me, target.toString())
@@ -199,10 +214,14 @@ impl IWnd for Label
                 // Level with the text the label carries, not with the middle of the box: a
                 // glyph centered on the cell reads as having slipped below the word beside it.
                 // An icon standing alone has nothing to be level with, so it takes the middle.
-                if .name.isEmpty() or .textVerticalAlignment != .Center do
+                if .name.isEmpty() or .textVerticalAlignment != .Center
+                {
                     posIcon.y = posIcon.vertCenter() - (.icon.sizeY * 0.5)
-                else do
+                }
+                else
+                {
                     posIcon.y = opticalTop(.font(), posIcon.vertCenter(), .icon.sizeY)
+                }
 
             case .Top, .OpticalCenter:
                 break
@@ -210,8 +229,11 @@ impl IWnd for Label
 
             // Icon
             var color = .iconColor
-            if not color.a do
+            if not color.a
+            {
                 color = (.wndFlags & .Disabled) ? theme.colors.label_DisabledIcon : theme.colors.label_Icon
+            }
+
             .icon.paint(painter, posIcon.x, posIcon.y, color)
         }
 
@@ -224,9 +246,11 @@ impl IWnd for Label
             let sf = .getStringFormat(bc.isDisabled)
             if .flags.has(.LinkActions)
             {
-                for &chunk in .name.chunks where chunk.isUrl do
+                for &chunk in .name.chunks where chunk.isUrl
+                {
                     chunk.isHotUrl = (.hotChunk and chunk.urlStart == .hotChunk.urlStart) or
                                      (.activeLink < .name.chunks.count and chunk.urlStart == .name.chunks[.activeLink].urlStart and .hasVisibleFocus())
+                }
             }
 
             drawAccessKeyText(painter, posText, &.name, sf, me.accessKey, .surface?.accessKeysVisible orelse false)
@@ -248,8 +272,10 @@ impl IWnd for Label
             // Wrapped text is only as tall as the width it is given; measuring it
             // unconstrained would report one long line and hide the wrap entirely.
             var layout = Math.Rectangle{0, 0, MaxTextLayoutExtent, MaxTextLayoutExtent}
-            if .flags.has(.WordWrap) and available.x > 0 do
+            if .flags.has(.WordWrap) and available.x > 0
+            {
                 layout.width = Math.max(available.x - .padding.x - .padding.z - .textPadding.x - .textPadding.z, 1)
+            }
 
             .name.compute()
             Painter.computeLayout(layout, &.name, sf, .deviceScale())
@@ -264,16 +290,22 @@ impl IWnd for Label
             result.y = Math.max(result.y, .icon.sizeY + .iconPadding.y + .iconPadding.w)
         }
 
-        if result.x > 0 do
+        if result.x > 0
+        {
             result.x += .padding.x + .padding.z
-        if result.y > 0 do
+        }
+
+        if result.y > 0
+        {
             result.y += .padding.y + .padding.w
+        }
+
         return result
     }
 }
 
 // Layout extent standing in for an unconstrained axis when measuring text.
-internal const MaxTextLayoutExtent = 8192.0'f32
+internal const MaxTextLayoutExtent = 8192.0_f32
 
 impl Label
 {
@@ -292,10 +324,16 @@ impl Label
 
         var sf: #returntype
         sf.flags |= .Clip
-        if .flags.has(.WordWrap) do
+        if .flags.has(.WordWrap)
+        {
             sf.flags.add(.WordWrap)
-        if .flags.has(.Ellipsis) do
+        }
+
+        if .flags.has(.Ellipsis)
+        {
             sf.flags.add(.Ellipsis)
+        }
+
         sf.font                = .font()
         sf.horzAlignment       = .textHorizontalAlignment
         sf.vertAlignment       = .textVerticalAlignment
@@ -316,7 +354,7 @@ impl Label
             sf.colorUrl    = .textColor
             sf.colorHotUrl = .textColor
         }
-        elif isDisabled
+        else if isDisabled
         {
             sf.palette[0]  = theme.colors.label_DisabledText
             sf.palette[1]  = theme.colors.label_DisabledText
@@ -327,10 +365,15 @@ impl Label
         }
         else
         {
-            if .flags.has(.SecondaryText) do
+            if .flags.has(.SecondaryText)
+            {
                 sf.palette[0] = theme.colors.label_TextLight
-            else do
+            }
+            else
+            {
                 sf.palette[0] = theme.colors.label_Text
+            }
+
             sf.palette[1]  = theme.colors.richColor1
             sf.palette[2]  = theme.colors.richColor2
             sf.palette[3]  = theme.colors.richColor3
@@ -349,12 +392,18 @@ impl Label
     {
         Swag.assert(parent != null)
         var pos = position
-        if pos.height == 0 do
+        if pos.height == 0
+        {
             pos.height = parent.themeMetrics().label_Height
-        let lbl = Wnd.create'Label(parent, "", pos, id)
+        }
+
+        let lbl = Wnd.create!{Label}(parent, "", pos, id)
         lbl.flags = flags
-        if flags.has(.AutoHeight) and position.height == 0 do
+        if flags.has(.AutoHeight) and position.height == 0
+        {
             lbl.releaseAutomaticHeight()
+        }
+
         lbl.setText(name)
         return lbl
     }
@@ -377,8 +426,11 @@ impl Label
     mtd setText(text: string?)
     {
         .localizedTextSource = null
-        if .name.isPlain() and .name == (text orelse "") do
+        if .name.isPlain() and .name == (text orelse "")
+        {
             return
+        }
+
         .name.set(text)
         .textChanged()
     }
@@ -417,8 +469,11 @@ impl Label
     // Copies the current string-table value into the label and refreshes its presentation.
     private mtd refreshLocalizedText()
     {
-        if not .localizedTextSource do
+        if not .localizedTextSource
+        {
             return
+        }
+
         .name.set(.localizedTextSource[])
         .textChanged()
     }
@@ -441,12 +496,18 @@ impl Label
     mtd setLinksEnabled(enabled: bool)
     {
         .linksEnabled = enabled
-        if .hotChunk do
+        if .hotChunk
+        {
             .hotChunk.isHotUrl = false
+        }
+
         .hotChunk = null
         .updateActionFocus()
-        if not enabled and .hasFocus() do
+        if not enabled and .hasFocus()
+        {
             .surface?.clearFocus()
+        }
+
         .invalidate()
     }
 
@@ -467,7 +528,7 @@ impl Label
                 start  = chunk.urlStart
                 result = rect
             }
-            elif chunk.urlStart != start
+            else if chunk.urlStart != start
             {
                 break
             }
@@ -484,8 +545,11 @@ impl Label
 
     private mtd updateActionFocus()
     {
-        if not .flags.has(.LinkActions) do
+        if not .flags.has(.LinkActions)
+        {
             return
+        }
+
         .name.compute()
         .focusPolicy = .linksEnabled and .name.hasUrl ? .Tab : .None
     }
@@ -498,16 +562,20 @@ impl Label
             for index in reversed(.name.chunks.count) where index < after and
                                                             .name.chunks[index].isUrl and
                                                             not .name.chunks[index].isSpace and
-                                                            .name.chunks[index].urlStart != current do
+                                                            .name.chunks[index].urlStart != current
+            {
                 return index
+            }
         }
         else
         {
             for index in .name.chunks.count where (after == Swag.U64.Max or index > after) and
                                                   .name.chunks[index].isUrl and
                                                   not .name.chunks[index].isSpace and
-                                                  .name.chunks[index].urlStart != current do
+                                                  .name.chunks[index].urlStart != current
+            {
                 return index
+            }
         }
 
         return Swag.U64.Max
@@ -519,19 +587,27 @@ impl Label
         var newFlags = .flags
         newFlags.add(add)
         newFlags.remove(remove)
-        if .flags == newFlags do
+        if .flags == newFlags
+        {
             return
+        }
+
         .flags = newFlags
         .updateActionFocus()
         if remove.has(.LinkActions)
         {
             .focusPolicy = .None
-            if .hasFocus() do
+            if .hasFocus()
+            {
                 .surface?.clearFocus()
+            }
         }
 
-        if add.has(.AutoHeight) do
+        if add.has(.AutoHeight)
+        {
             .releaseAutomaticHeight()
+        }
+
         .invalidate()
         .invalidateLayout()
         .updateAutomaticHeight()
@@ -556,8 +632,11 @@ impl Label
     // sees that something was left out rather than a sentence that appears to end there.
     mtd setMaxLines(count: u32)
     {
-        if .maxLines == count do
+        if .maxLines == count
+        {
             return
+        }
+
         .maxLines = count
         .invalidate()
         .invalidateLayout()
@@ -571,8 +650,11 @@ impl Label
     mtd setLineGap(gap: s32)
     {
         let value = Math.max(gap, 0)
-        if .lineGap == value do
+        if .lineGap == value
+        {
             return
+        }
+
         .lineGap = value
         .invalidate()
         .invalidateLayout()
@@ -582,8 +664,11 @@ impl Label
     // Changes text alignment and updates automatic height when needed.
     mtd setTextAlignment(horizontal: StringHorzAlignment, vertical: StringVertAlignment)
     {
-        if .textHorizontalAlignment == horizontal and .textVerticalAlignment == vertical do
+        if .textHorizontalAlignment == horizontal and .textVerticalAlignment == vertical
+        {
             return
+        }
+
         .textHorizontalAlignment = horizontal
         .textVerticalAlignment   = vertical
         .invalidate()
@@ -605,8 +690,11 @@ impl Label
     // Changes icon alignment.
     mtd setIconAlignment(horizontal: StringHorzAlignment, vertical: StringVertAlignment)
     {
-        if .iconHorizontalAlignment == horizontal and .iconVerticalAlignment == vertical do
+        if .iconHorizontalAlignment == horizontal and .iconVerticalAlignment == vertical
+        {
             return
+        }
+
         .iconHorizontalAlignment = horizontal
         .iconVerticalAlignment   = vertical
         .invalidate()
@@ -627,8 +715,11 @@ impl Label
     // Changes text insets and updates automatic height when needed.
     mtd setTextPadding(padding: Math.Vector4)
     {
-        if .textPadding == padding do
+        if .textPadding == padding
+        {
             return
+        }
+
         .textPadding = padding
         .invalidate()
         .invalidateLayout()
@@ -638,8 +729,11 @@ impl Label
     // Changes icon insets and updates layout and automatic height.
     mtd setIconPadding(padding: Math.Vector4)
     {
-        if .iconPadding == padding do
+        if .iconPadding == padding
+        {
             return
+        }
+
         .iconPadding = padding
         .invalidate()
         .invalidateLayout()
@@ -679,15 +773,22 @@ impl Label
     // unless `AutoHeight` is active.
     mtd updateAutomaticHeight()
     {
-        if not .flags.has(.AutoHeight) do
+        if not .flags.has(.AutoHeight)
+        {
             return
+        }
 
         let sf   = .getStringFormat(false)
         var rect = .position
-        if rect.width <= 0 do
+        if rect.width <= 0
+        {
             rect.width = .preferredSize.x
-        if rect.height <= 0 do
+        }
+
+        if rect.height <= 0
+        {
             rect.height = sf.font.regular!.height
+        }
 
         // The text is drawn inside the window and text paddings, so wrap against both insets and
         // add their vertical space back in.
@@ -698,11 +799,17 @@ impl Label
         Painter.computeLayout(rect, &.name, sf, .deviceScale())
 
         var height = .name.boundRect.height
-        if not .name.isEmpty() do
+        if not .name.isEmpty()
+        {
             height = Math.max(height, sf.font.regular!.height)
+        }
+
         height += .textPadding.y + .textPadding.w
-        if .icon.isValid() do
+        if .icon.isValid()
+        {
             height = Math.max(height, .icon.sizeY + .iconPadding.y + .iconPadding.w)
+        }
+
         height += .padding.y + .padding.w
         .position.height = height
         .invalidateLayout()

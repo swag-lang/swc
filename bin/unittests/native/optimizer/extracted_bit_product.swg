@@ -58,7 +58,7 @@ func widenedBit(a: u32, b: u64)->u64 => cast(u64, ((a >> 31) & 1)) * b
 
 #test
 {
-    let values = [0'u64, 1, 2, 0xFF, 0x100, 0x8000, 0x20000, 0x80000000, 0x100000000, 0x10000000000, 0x8000000000000000, 0xFFFFFFFFFFFFFFFF]
+    let values = [0_u64, 1, 2, 0xFF, 0x100, 0x8000, 0x20000, 0x80000000, 0x100000000, 0x10000000000, 0x8000000000000000, 0xFFFFFFFFFFFFFFFF]
     for a in values
     {
         for b in values

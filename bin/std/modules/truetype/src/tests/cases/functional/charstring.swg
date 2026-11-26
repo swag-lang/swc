@@ -119,9 +119,11 @@ using Swag, Core
 // Type 2 and Type 1 reject operands beyond their bounded charstring stacks.
 #test
 {
-    var code: Array'u8
-    for MaxCharstringStack + 1 do
+    var code: Array!{u8}
+    for MaxCharstringStack + 1
+    {
         code.add(32)
+    }
 
     var indexBytes: Array'u8
     indexBytes.add([0, 1, 1, 1, cast(u8, code.count + 1)])
@@ -159,12 +161,15 @@ using Swag, Core
 // Type 1 OtherSubr retains the full set of values it returns to the charstring stack.
 #test
 {
-    var charstring: Array'u8
+    var charstring: Array!{u8}
     charstring.add(139)     // zero side bearing
     charstring.add(139)     // zero advance
     charstring.add(13)      // hsbw
-    for index in 33 do
+    for index in 33
+    {
         charstring.add(cast(u8, index + 140))
+    }
+
     charstring.add(172)     // OtherSubr argument count 33
     charstring.add(142)     // OtherSubr 3, which returns its arguments unchanged
     charstring.add(12)

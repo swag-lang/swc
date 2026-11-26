@@ -45,8 +45,11 @@ impl CaptureClockDrift
            not clockFrequency or
            not windowSeconds or
            windowSeconds > 60 or
-           clockFrequency > Swag.U64.Max / windowSeconds do
+           clockFrequency > Swag.U64.Max / windowSeconds
+        {
             fail BadParameterError{"capture drift needs an 8-192 kHz source and a representable 1-60 second window"}
+        }
+
         return CaptureClockDrift{sampleRate, clockFrequency, clockFrequency * windowSeconds}
     }
 
@@ -76,8 +79,11 @@ impl CaptureClockDrift
             return false
         }
 
-        if firstTick <= .previousTick or sourceFrame <= .previousFrame do
+        if firstTick <= .previousTick or sourceFrame <= .previousFrame
+        {
             fail BadParameterError{"capture drift needs increasing source ticks and frame positions"}
+        }
+
         let elapsed  = firstTick - .windowStartTick
         var measured = .ppm
         let ready    = elapsed >= .windowTicks
@@ -89,9 +95,12 @@ impl CaptureClockDrift
 
             // Keep f64 roundoff at an exact bound from turning +/-1000 ppm into a rejected jump.
             // This sub-micro-ppm allowance is far below the estimator's practical resolution.
-            const BoundaryEpsilon = 0.000_001'f64
-            if offset < -1_000.0 - BoundaryEpsilon or offset > 1_000.0 + BoundaryEpsilon do
+            const BoundaryEpsilon = 0.000_001_f64
+            if offset < -1_000.0 - BoundaryEpsilon or offset > 1_000.0 + BoundaryEpsilon
+            {
                 fail BadParameterError{"capture clock jump exceeds the supported drift range"}
+            }
+
             measured = cast(s32, Math.round(offset))
         }
 
@@ -123,10 +132,16 @@ impl CaptureClockDrift
     // window. A resampler configured for another input rate is rejected.
     mtd const applyTo(resampler: *Resampler)->bool fail
     {
-        if resampler.inputRate != .sampleRate do
+        if resampler.inputRate != .sampleRate
+        {
             fail BadParameterError{"capture drift and resampler input rates differ"}
-        if not .hasEstimate do
+        }
+
+        if not .hasEstimate
+        {
             return false
+        }
+
         try resampler.setInputClockDriftPpm(.ppm)
         return true
     }

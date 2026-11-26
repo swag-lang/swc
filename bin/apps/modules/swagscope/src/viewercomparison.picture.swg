@@ -36,14 +36,20 @@ impl SceneComparison
     private mtd comparisonTexture(side: u64, view: *ImageView)->Texture
     {
         let raster = view.presentationTexture()
-        if raster.isValid() do
+        if raster.isValid()
+        {
             return raster
+        }
+
         let vector = &.vectors[side]
         if vector.source != view or not vector.texture.isValid()
         {
             let image = view.rasterizeDrawing(2048)
-            if not image.isValid() do
+            if not image.isValid()
+            {
                 return {}
+            }
+
             .app().renderer.removeTexture(&vector.texture)
             vector.source  = view
             vector.texture = .app().renderer.addImage(image)
@@ -55,8 +61,11 @@ impl SceneComparison
 
     private mtd comparisonImage(side: u64, view: *ImageView)->const *Image?
     {
-        if let image = view.picture() do
+        if let image = view.picture()
+        {
             return image
+        }
+
         let vector = &.vectors[side]
         return vector.source == view and vector.image.isValid() ? &vector.image : null
     }
@@ -67,17 +76,21 @@ impl SceneComparison
         let right  = .pictureView(1)
         let colors = .themeColors()
         let footer = Math.Rectangle{area.x, area.bottom() - FooterHeight, area.width, FooterHeight}
-        let top = area.y + ViewerWorkspace.ViewTitleHeight
-        let body = Math.Rectangle{area.x, top, area.width, Math.max(footer.y - top, 0)}
+        let top    = area.y + ViewerWorkspace.ViewTitleHeight
+        let body   = Math.Rectangle{area.x, top, area.width, Math.max(footer.y - top, 0)}
         painter.fillRect({area.x, area.y, area.width, ViewerWorkspace.ViewTitleHeight}, colors.ground)
         painter.fillRect(body, Color.fromArgb(Argb.Black))
         painter.fillRect(footer, colors.ground)
-        if not left or not right do
+        if not left or not right
+        {
             return
+        }
 
         let pictures = [.comparisonTexture(0, left), .comparisonTexture(1, right)]
-        if not pictures[0].isValid() or not pictures[1].isValid() do
+        if not pictures[0].isValid() or not pictures[1].isValid()
+        {
             return
+        }
 
         var bounds: [2] Math.Rectangle
         for side in 2
@@ -118,8 +131,10 @@ impl SceneComparison
 
         case .Difference:
             let difference = .pictureDifference(pictures)
-            if difference.isValid() do
+            if difference.isValid()
+            {
                 painter.drawTexture(.pictureBounds(body, difference, difference), difference)
+            }
 
         case .Flip:
             let side = .shownRight ? 1 : 0
@@ -141,10 +156,14 @@ impl SceneComparison
     mtd changePictureZoom(side: u64, factor: f32)
     {
         let zoom = Math.clamp(.pictureZoom(side) * factor, 0.1, 20)
-        if .independentRight(side) do
+        if .independentRight(side)
+        {
             .rightZoom = zoom
-        else do
+        }
+        else
+        {
             .zoom = zoom
+        }
     }
 
     mtd synchronizePictureFraming(fromRight: bool)
@@ -160,7 +179,7 @@ impl SceneComparison
         .refresh()
     }
 
-    private mtd pictureBounds(viewport: Math.Rectangle, image, other: Texture, side = 0'u64)->Math.Rectangle
+    private mtd pictureBounds(viewport: Math.Rectangle, image, other: Texture, side = 0_u64)->Math.Rectangle
     {
         let wide   = cast(f32, image.width)
         let high   = cast(f32, image.height)
@@ -178,22 +197,32 @@ impl SceneComparison
     {
         let a = .comparisonImage(0, left)
         let b = .comparisonImage(1, right)
-        if not a or not b do
+        if not a or not b
+        {
             return
+        }
+
         let sideBySide = .mode == .SideBySide
         let side       = sideBySide and .pointer.x >= footer.horzCenter() ? 1 : 0
         var pointA     = .pointer
         var pointB     = .pointer
         if sideBySide
         {
-            if side == 0 do
+            if side == 0
+            {
                 pointB.x += footer.width * 0.5
-            else do
+            }
+            else
+            {
                 pointA.x -= footer.width * 0.5
+            }
         }
 
-        if not bounds[0].contains(pointA) or not bounds[1].contains(pointB) do
+        if not bounds[0].contains(pointA) or not bounds[1].contains(pointB)
+        {
             return
+        }
+
         let first  = probePixel(a, bounds[0], pointA)
         let second = probePixel(b, bounds[1], pointB)
         let font   = .theme().createDefaultFontFs(12)
@@ -214,25 +243,34 @@ impl SceneComparison
         let scene = unwrap .workspace.scene()
         for side in 2
         {
-            if scene.views[side].document?.currentView is Viewers.Film.Panel as film do
+            if scene.views[side].document?.currentView is Viewers.Film.Panel as film
+            {
                 frames[side] = film.frameIndex
+            }
         }
 
         if .diffTexture.isValid() and
            .diffSources == sources and
            .diffFrames == frames and
-           .diffAligned == .pixelAligned do
+           .diffAligned == .pixelAligned
+        {
             return .diffTexture
+        }
 
         let width  = Math.max(sources[0].width, sources[1].width)
         let height = Math.max(sources[0].height, sources[1].height)
-        if cast(u64, width) * cast(u64, height) > 16 * 1024 * 1024 do
+        if cast(u64, width) * cast(u64, height) > 16 * 1024 * 1024
+        {
             return {}
+        }
+
         let renderer = .app().renderer
         let left     = renderer.readTexturePixels(sources[0], .RGBA8)
         let right    = renderer.readTexturePixels(sources[1], .RGBA8)
-        if left.isEmpty() or right.isEmpty() do
+        if left.isEmpty() or right.isEmpty()
+        {
             return {}
+        }
 
         let area    = Math.Rectangle{0, 0, cast(f32, width), cast(f32, height)}
         let sampleA = differenceBounds(area, sources[0], .pixelAligned)
@@ -273,16 +311,25 @@ impl SceneComparison
         case .Pressed where evt.button == .Left:
             if point.y < .stripInset() + ViewerWorkspace.ViewTitleHeight
             {
-                if .mode != .Flip do
+                if .mode != .Flip
+                {
                     .workspace.selectView(point.x < body.horzCenter() ? 0 : 1)
+                }
+
                 return
             }
+
             .drag = true
             .captureMouse()
-            if .mode == .Curtain do
+            if .mode == .Curtain
+            {
                 .separator = Math.clamp(point.x / Math.max(body.width, 1), 0, 1)
-            if .mode == .SideBySide do
+            }
+
+            if .mode == .SideBySide
+            {
                 .workspace.selectView(point.x < body.horzCenter() ? 0 : 1)
+            }
 
         case .Released where .drag:
             .drag = false
@@ -301,10 +348,14 @@ impl SceneComparison
                     let width  = .mode == .SideBySide ? body.width * 0.5 : body.width
                     let height = body.height - FooterHeight - ViewerWorkspace.ViewTitleHeight - .stripInset()
                     let delta  = Math.Point{evt.delta.x / Math.max(width, 1), evt.delta.y / Math.max(height, 1)}
-                    if .independentRight(side) do
+                    if .independentRight(side)
+                    {
                         .rightPan += delta
-                    else do
+                    }
+                    else
+                    {
                         .pan += delta
+                    }
                 }
             }
 
@@ -315,9 +366,12 @@ impl SceneComparison
             }
             else
             {
-                let side = .mode == .SideBySide and point.x >= body.horzCenter() ? 1'u64 : 0'u64
-                if .mode == .SideBySide do
+                let side = .mode == .SideBySide and point.x >= body.horzCenter() ? 1_u64 : 0_u64
+                if .mode == .SideBySide
+                {
                     .workspace.selectView(side)
+                }
+
                 .changePictureZoom(side, evt.delta.y > 0 ? 1.25 : 0.8)
             }
 
@@ -351,8 +405,11 @@ private func differenceBounds(area: Math.Rectangle, image: Texture, aligned: boo
 
 private func pictureSample(image: Texture, bytes: const [..] u8, bounds: Math.Rectangle, point: Math.Point)->Color
 {
-    if not bounds.contains(point) do
+    if not bounds.contains(point)
+    {
         return {}
+    }
+
     let sx    = cast(u64, cast(f32, image.width) * (point.x - bounds.x) / bounds.width)
     let sy    = cast(u64, cast(f32, image.height) * (point.y - bounds.y) / bounds.height)
     let index = 4 * (sy * cast(u64, image.width) + sx)

@@ -1,8 +1,8 @@
 const STEPS         = 500000
 const NB            = 5
-const PI            = 3.141592653589793'f64
-const SOLAR_MASS    = 4.0'f64 * PI * PI
-const DAYS_PER_YEAR = 365.24'f64
+const PI            = 3.141592653589793_f64
+const SOLAR_MASS    = 4.0_f64 * PI * PI
+const DAYS_PER_YEAR = 365.24_f64
 
 struct Body
 {
@@ -13,7 +13,7 @@ struct Body
 
 func offsetMomentum(bodies: [..] Body)
 {
-    var px, py, pz = 0.0'f64
+    var px, py, pz = 0.0_f64
     for b in bodies
     {
         px += b.vx * b.mass
@@ -58,11 +58,11 @@ func advance(bodies: [..] Body, dt: f64)
 
 func energy(bodies: const [..] Body)->f64
 {
-    var e = 0.0'f64
+    var e = 0.0_f64
     for i in NB
     {
         let bi = &bodies[i]
-        e += 0.5'f64 * bi.mass * (bi.vx * bi.vx + bi.vy * bi.vy + bi.vz * bi.vz)
+        e += 0.5_f64 * bi.mass * (bi.vx * bi.vx + bi.vy * bi.vy + bi.vz * bi.vz)
         for j in i + 1 until NB
         {
             let bj = &bodies[j]
@@ -95,11 +95,14 @@ func energy(bodies: const [..] Body)->f64
     let t0 = now()
 
     offsetMomentum(bodies)
-    for STEPS do
+    for STEPS
+    {
         advance(bodies, 0.01)
+    }
+
     let e = energy(bodies)
 
-    let check = cast(u64, Swag.floor(-e * 1e12'f64))
+    let check = cast(u64, Swag.floor(-e * 1e12_f64))
 
     let t1 = now()
     report(check, t0, t1)

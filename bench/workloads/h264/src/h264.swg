@@ -18,7 +18,7 @@ using Core, Pixel, Video
         Swag.require(rgb.count == bytes * count, "RGB input length differs from the requested picture count")
 
         // Conversion, allocation, file writes and decoding all stay outside the encode timer.
-        var frames: Array'Nv12Frame
+        var frames: Array!{Nv12Frame}
         var source = expect File.open(Format.toString("%.nv12", args[6]).toString(), .Create, .Write, .Read)
         for index in cast(u64, count)
         {
@@ -32,8 +32,8 @@ using Core, Pixel, Video
         source.close()
         var encoder     = expect Video.H264.Encoder.create(width, height, keyInterval: 120, quantizationQp: qp, sliceCount: slices)
         var writer      = expect Mp4.FragmentedWriter.create(args[6], width, height, 90_000, encoder.decoderConfig())
-        var micros      = 0'u64
-        var packetBytes = 0'u64
+        var micros      = 0_u64
+        var packetBytes = 0_u64
         for &frame, index in frames
         {
             var watch: Time.Stopwatch
@@ -67,6 +67,8 @@ using Core, Pixel, Video
                  "benchmark needs groups of RGB path, width, height, frame count, QP, slices and output MP4 path")
     Swag.setWorkerCount(3)
     Swag.startWorkers()
-    for index in (args.count - 1) / 7 do
+    for index in (args.count - 1) / 7
+    {
         encodeCase(args[1 + index * 7 until 1 + (index + 1) * 7])
+    }
 }

@@ -15,6 +15,8 @@ var g_Painter:     Pixel.Painter
 var g_RC:          Pixel.RenderContext
 var g_Keyboard:    Input.Keyboard
 
+var g_FontPath:          String
+var g_FontBytes:         Array!{u8}
 late var g_TypeFace:     *Pixel.TypeFace
 late var g_TitleFont:    *Pixel.Font
 late var g_OutlineFont:  *Pixel.Font
@@ -204,26 +206,34 @@ func drawWrappedText(painter: *Pixel.Painter,
 
 func drawClosedOutline(painter: *Pixel.Painter, points: [..] Math.Vector2, pen: Pen)
 {
-    if points.count < 2 do
+    if points.count < 2
+    {
         return
+    }
 
     var path: LinePath
     path.start(points[0].x, points[0].y)
-    for pt, index in points where index do
+    for pt, index in points where index
+    {
         path.lineTo(pt.x, pt.y)
+    }
+
     path.close()
     painter.drawPath(&path, pen)
 }
 
-func makeStarPolygon(cx, cy, outer, inner: f32, branches: s32)->Array'Math.Vector2
+func makeStarPolygon(cx, cy, outer, inner: f32, branches: s32)->Array!{Math.Vector2}
 {
     var result: #returntype
     let total = branches * 2
     for i in total
     {
         var radius = inner
-        if (i & 1) == 0 do
+        if (i & 1) == 0
+        {
             radius = outer
+        }
+
         let angle = -Math.ConstF32.Pi * 0.5 + cast(f32, i) * (Math.ConstF32.TwoPi / cast(f32, total))
         result.add(Math.Vector2{cx + Math.cos(angle) * radius, cy + Math.sin(angle) * radius})
     }
@@ -231,7 +241,7 @@ func makeStarPolygon(cx, cy, outer, inner: f32, branches: s32)->Array'Math.Vecto
     return result
 }
 
-func makeHexPolygon(cx, cy, radius: f32)->Array'Math.Vector2
+func makeHexPolygon(cx, cy, radius: f32)->Array!{Math.Vector2}
 {
     var result: #returntype
     for i in 6
@@ -243,7 +253,7 @@ func makeHexPolygon(cx, cy, radius: f32)->Array'Math.Vector2
     return result
 }
 
-func makeArrowPolygon(rect: Math.Rectangle)->Array'Math.Vector2
+func makeArrowPolygon(rect: Math.Rectangle)->Array!{Math.Vector2}
 {
     var result: #returntype
     let left   = rect.x + 22
@@ -408,10 +418,32 @@ func onPointer(_: *Env.Window, event: Env.WindowPointerEvent)
 func updateShortcuts()
 {
     g_Keyboard.update()
-    if g_Keyboard.isKeyJustPressed(.F1) do
-        changePage(1)
-    elif g_Keyboard.isKeyJustPressed(.F2) do
-        changePage(-1)
+    if g_Keyboard.isKeyJustPressed(Input.Key.F1)
+    {
+        nextPage()
+    }
+}
+
+func updateTestMode()
+{
+    if not Env.isSmokeRun()
+    {
+        return
+    }
+
+    g_TestFrame += 1
+    if g_TestFrame < TestFramesPerPage
+    {
+        return
+    }
+
+    g_TestFrame = 0
+    if g_Page + 1 >= MaxPages
+    {
+        return
+    }
+
+    nextPage()
 }
 
 #main
@@ -441,8 +473,10 @@ func updateShortcuts()
 
     let smoke = Env.isSmokeRun()
     var loop: Env.WindowLoop
-    if smoke do
-        loop.smokeFrames = MaxPages
+    if Env.isSmokeRun()
+    {
+        loop.smokeFrames = cast(u32, MaxPages) * cast(u32, TestFramesPerPage)
+    }
 
     while loop.next()
     {

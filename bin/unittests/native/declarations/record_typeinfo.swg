@@ -12,9 +12,9 @@
     Swag.require(not (recordType.flags & .Tuple))
     Swag.require(typedRecord.flags & .Record)
     Swag.require(not Swag.typeCmp(tupleType, recordType, .Strict))
-    Swag.require(not Swag.typeCmp(#typeof({x: 1's64}), #typeof({x: 1, y: 2}), .Strict))
-    let padded = #typeof({x: 1's32, y: 2's16})
-    let full   = #typeof({x: 1's32, y: 2's16, z: 3's16})
+    Swag.require(not Swag.typeCmp(#typeof({x: 1_s64}), #typeof({x: 1, y: 2}), .Strict))
+    let padded = #typeof({x: 1_s32, y: 2_s16})
+    let full   = #typeof({x: 1_s32, y: 2_s16, z: 3_s16})
     Swag.require(not Swag.typeCmp(full, padded, .Strict))
     Swag.require(not Swag.typeCmp(padded, full, .Strict))
 }

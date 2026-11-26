@@ -44,8 +44,10 @@ func semaLateTypeIsNonNull(it: *SemaLateItem)->bool
 func semaLatePresence(it: *SemaLateItem)->bool
 {
     var b: SemaLateBox
-    if (b.item != null) do
+    if (b.item != null)
+    {
         return false
+    }
     b.item = it
     return (b.item != null)
 }
@@ -97,8 +99,10 @@ func semaLateErrNestedWrite()
 func semaLateOkMaybeSet(it: *SemaLateItem, use: bool)->s32
 {
     var b: SemaLateBox
-    if use do
+    if use
+    {
         b.item = it
+    }
     return b.item.value
 }
 

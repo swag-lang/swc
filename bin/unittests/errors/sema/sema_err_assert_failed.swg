@@ -3,7 +3,7 @@
 
 func failAnyCastAssert()->s64
 {
-    const c: any = 1's64
+    const c: any = 1_s64
     let d = assume cast(s64, c)
     Swag.assert(d == 1)
     Swag.assert(d == 0)     // swc-expected-error {{sema_err_assert_failed}}

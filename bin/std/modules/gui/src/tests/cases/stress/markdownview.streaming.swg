@@ -11,8 +11,11 @@ using Swag, Core
     let fileName = Testing.tempFilePath("markdown-jump-wheel-", ".md")
     defer discard catch File.delete(fileName)
     var source: String
-    for index in 12_000 do
+    for index in 12_000
+    {
         source += Format.toString("## Section %\n\nVisible paragraph %.\n\n", index, index)
+    }
+
     discard expect File.writeAllBytes(fileName, cast(const [..] u8, source.toString()))
 
     var host: Testing.HeadlessHost
@@ -20,20 +23,29 @@ using Swag, Core
     let view = Markdown.View.createFile(&host.root, fileName)
     view.resize(720, 480)
     view.applyLayout()
-    for 64 where view.isLoading() do
+    for 64 where view.isLoading()
+    {
         host.fireTimers()
+    }
+
     let viewport = view.scroll.paddedClientRect()
 
     for delta, index in [1, -1, 1, -1, 1, -1, 1, -1]
     {
         host.setReducedMotion(index % 4 < 2)
         view.scroll.setScrollPos(0, view.virtualHeight * (index % 2 == 0 ? 0.7 : 0.3))
-        if index < 4 do
+        if index < 4
+        {
             host.paint(view)
+        }
+
         let position = view.scroll.scrollPosition().y
         host.mouseWheel({360, 240}, delta)
-        if index % 4 >= 2 do
+        if index % 4 >= 2
+        {
             host.advanceAnimations(0.04)
+        }
+
         host.paint(view)
         Swag.require(not view.waitingScroll and not view.hasPendingTarget and view.retainedBlocks.isEmpty(), Format.toString("gesture=% waiting=% pending=% retained=%", index, view.waitingScroll, view.hasPendingTarget, view.retainedBlocks.count).toString())
 
@@ -58,8 +70,11 @@ using Swag, Core
     let fileName = Testing.tempFilePath("markdown-wheel-end-", ".md")
     defer discard catch File.delete(fileName)
     var source: String
-    for index in 4_000 do
+    for index in 4_000
+    {
         source += Format.toString("Paragraph % gives the wheel a stable streaming destination.\n\n", index)
+    }
+
     discard expect File.writeAllBytes(fileName, cast(const [..] u8, source.toString()))
 
     var host: Testing.HeadlessHost
@@ -69,15 +84,20 @@ using Swag, Core
     defer view.destroy()
     view.resize(720, 480)
     view.applyLayout()
-    for 64 where view.isLoading() do
+    for 64 where view.isLoading()
+    {
         host.fireTimers()
+    }
 
     host.moveMouse({360, 240})
     Swag.require(host.app.mouseEnterWnd != null and host.app.mouseEnterWnd != view.scroll)
     view.scroll.setScrollPos(0, view.scroll.scrollableClientRect().height)
     host.paint(view)
-    for 1_024 where view.isLoading() do
+    for 1_024 where view.isLoading()
+    {
         host.fireTimers()
+    }
+
     Swag.require(host.app.mouseEnterWnd == null)
     let end = view.scroll.scrollPosition().y
     Swag.require(end > 0)
@@ -94,8 +114,11 @@ using Swag, Core
     let fileName = Testing.tempFilePath("markdown-navigation-", ".md")
     defer discard catch File.delete(fileName)
     var source: String
-    for index in 12_000 do
+    for index in 12_000
+    {
         source += Format.toString("## Section %\n\nVisible paragraph %.\n\n", index, index)
+    }
+
     discard expect File.writeAllBytes(fileName, cast(const [..] u8, source.toString()))
 
     var host: Testing.HeadlessHost
@@ -104,8 +127,11 @@ using Swag, Core
     view.resize(720, 480)
     view.applyLayout()
     view.setFocus()
-    for 64 where view.isLoading() do
+    for 64 where view.isLoading()
+    {
         host.fireTimers()
+    }
+
     let viewport = view.scroll.paddedClientRect()
     let line     = view.scroll.verticalScrollStep
     let page     = Math.max(viewport.height - line, line)
@@ -135,7 +161,10 @@ using Swag, Core
     host.keyPress(.End)
     host.keyPress(.Home)
     host.paint(view)
-    for 64 where view.isLoading() do
+    for 64 where view.isLoading()
+    {
         host.fireTimers()
+    }
+
     Swag.require(view.residentStart == 0 and view.scroll.scrollPosition().y == 0)
 }

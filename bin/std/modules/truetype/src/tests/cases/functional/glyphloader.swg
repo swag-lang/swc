@@ -12,7 +12,7 @@ using Swag, Core
     faceData.outlineTags.add(CURVE_TAG_ON)
     faceData.outlineContours.add(0)
 
-    var glyphData: Array'u8
+    var glyphData: Array!{u8}
     glyphData.resize(17)
     glyphData[1]  = 1        // One contour.
     glyphData[10] = 0        // End point index zero.
@@ -36,7 +36,7 @@ using Swag, Core
     var faceData: FaceImpl
     faceData.unitsPerEm = 1000
 
-    var negativeCount: Array'u8
+    var negativeCount: Array!{u8}
     negativeCount.resize(10)
     negativeCount[0] = 0xFF
     negativeCount[1] = 0xFF
@@ -45,7 +45,7 @@ using Swag, Core
     discard catch appendSimpleGlyph(&faceData, negativeCount.toSlice(), 16, 16) as rejected
     Swag.require(rejected.value() != null)
 
-    var glyphData: Array'u8
+    var glyphData: Array!{u8}
     glyphData.resize(9)
     glyphData[1] = 1
 

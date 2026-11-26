@@ -11,8 +11,10 @@ internal const BootstrapAllocationHeaderSize = #sizeof(BootstrapAllocationHeader
 
 internal func __bootstrapRoundedSize(size: u64, alignment: u32)->u64
 {
-    if alignment == 0 or (alignment & (alignment - 1)) != 0 do
+    if alignment == 0 or (alignment & (alignment - 1)) != 0
+    {
         return 0
+    }
 
     let effectiveAlignment = Swag.max(alignment, cast(u32, #alignof(BootstrapAllocationHeader)))
     let alignment64        = cast(u64, effectiveAlignment)
@@ -28,28 +30,40 @@ internal func __bootstrapRoundedSize(size: u64, alignment: u32)->u64
         overhead += alignment64 - 1
     }
 
-    if size > Swag.U64.Max - overhead do
+    if size > Swag.U64.Max - overhead
+    {
         return 0
+    }
 
     let total = size + overhead
-    if total > Swag.U64.Max - (AllocatorHostCommitGranularity - 1) do
+    if total > Swag.U64.Max - (AllocatorHostCommitGranularity - 1)
+    {
         return 0
+    }
+
     return (total + AllocatorHostCommitGranularity - 1) & ~(AllocatorHostCommitGranularity - 1)
 }
 
 internal func __bootstrapAllocAligned(size: u64, alignment: u32)->[*] void?
 {
-    if alignment == 0 or (alignment & (alignment - 1)) != 0 do
+    if alignment == 0 or (alignment & (alignment - 1)) != 0
+    {
         return null
+    }
 
     let effectiveAlignment = Swag.max(alignment, cast(u32, #alignof(BootstrapAllocationHeader)))
     let reservedSize       = __bootstrapRoundedSize(size, effectiveAlignment)
-    if not reservedSize do
+    if not reservedSize
+    {
         return null
+    }
 
     let base = __hostPageReserve(reservedSize)
-    if not base do
+    if not base
+    {
         return null
+    }
+
     if not __hostPageCommit(base, reservedSize)
     {
         __hostPageRelease(base, reservedSize)
@@ -69,8 +83,10 @@ internal func __bootstrapAlloc(size: u64)->[*] void? => __bootstrapAllocAligned(
 
 internal func __bootstrapFree(ptr: [*] void?)
 {
-    if not ptr do
+    if not ptr
+    {
         return
+    }
 
     let header = cast(*BootstrapAllocationHeader, (cast(u64, ptr) - BootstrapAllocationHeaderSize))
     __hostPageRelease(header.base, header.reservedSize)

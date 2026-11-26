@@ -120,7 +120,7 @@ alias MkanyStrictTypeInfo = typeinfo
     let p2 = cast(*s64, c.buffer)
     let p3 = cast(*s64, d.buffer)
 
-    Swag.require(cast(u64, (p0[] + p1[] + p2[] + p3[])) == 100'u64)
+    Swag.require(cast(u64, (p0[] + p1[] + p2[] + p3[])) == 100_u64)
 }
 
 #test
@@ -253,7 +253,7 @@ func mkanyCastStringToBytesFromAny(value: any)->u64
 
 #test
 {
-    var value = 733's32
+    var value = 733_s32
     let ptr: const *s32 = &value
     let boxed = Swag.makeAny(ptr, s32)
     let data  = assume cast(const *s32, boxed)
@@ -266,7 +266,7 @@ func mkanyCastStringToBytesFromAny(value: any)->u64
 
 #test
 {
-    var value             = 123's32
+    var value             = 123_s32
     let ptr:   const *s32 = &value
     let boxed: const any  = Swag.makeAny(ptr, s32)
     let data              = assume cast(const *s32, boxed)
@@ -277,36 +277,36 @@ func mkanyCastStringToBytesFromAny(value: any)->u64
 
 #test
 {
-    var storage: [3] u8        = [3'u8, 5'u8, 8'u8]
+    var storage: [3] u8        = [3_u8, 5_u8, 8_u8]
     let bytes:   const [..] u8 = cast(const [..] u8, storage)
     let boxed                  = Swag.makeAny(&bytes, const [..] u8)
     let view                   = assume cast(const [..] u8, boxed)
 
     Swag.require(view.count == 3)
-    Swag.require(view[0] == 3'u8)
-    Swag.require(view[2] == 8'u8)
+    Swag.require(view[0] == 3_u8)
+    Swag.require(view[2] == 8_u8)
 }
 
 #test
 {
-    var storage: [4] u8        = ['a'u8, 'n'u8, 'y'u8, 0]
+    var storage: [4] u8        = ['a'_u8, 'n'_u8, 'y'_u8, 0]
     let text:    const cstring = cast(const cstring, &storage[0])
     let boxed                  = Swag.makeAny(&text, const cstring)
     let view                   = assume cast(const cstring, boxed)
 
     Swag.require(view.count == 3)
-    Swag.require(view[0] == 'a'u8)
-    Swag.require(view[2] == 'y'u8)
+    Swag.require(view[0] == 'a'_u8)
+    Swag.require(view[2] == 'y'_u8)
 }
 
 #test
 {
-    var storage: [6] u8        = ['b'u8, 'o'u8, 'x'u8, 'e'u8, 'd'u8, 0]
+    var storage: [6] u8        = ['b'_u8, 'o'_u8, 'x'_u8, 'e'_u8, 'd'_u8, 0]
     let text:    const cstring = cast(const cstring, &storage[0])
     let boxed:   const any     = text
     let view = assume cast(const cstring, boxed)
 
     Swag.require(view.count == 5)
-    Swag.require(view[0] == 'b'u8)
-    Swag.require(view[4] == 'd'u8)
+    Swag.require(view[0] == 'b'_u8)
+    Swag.require(view[4] == 'd'_u8)
 }

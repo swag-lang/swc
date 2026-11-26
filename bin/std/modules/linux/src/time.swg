@@ -1,10 +1,9 @@
 #global if #os == Swag.TargetOs.Linux
 #global export
 
-const CLOCK_REALTIME           = 0's32
-const CLOCK_MONOTONIC          = 1's32
-const CLOCK_PROCESS_CPUTIME_ID = 2's32
-const TIMER_ABSTIME            = 1's32
+const CLOCK_REALTIME  = 0_s32
+const CLOCK_MONOTONIC = 1_s32
+const TIMER_ABSTIME   = 1_s32
 
 struct timespec
 {

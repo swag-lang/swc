@@ -7,8 +7,8 @@ using Core
 // Unaligned rows, odd/even sums and both aliasing cases share the scalar reference.
 #test
 {
-    const Stride = 19'u64
-    const Height = 5's32
+    const Stride = 19_u64
+    const Height = 5_s32
     var a, b, out: [Stride * 5 + 1] u8
     for index in a.count
     {
@@ -16,7 +16,7 @@ using Core
         b[index] = cast(u8, ((index * 71 + 3) & 0xFF))
     }
 
-    for width in [3's32, 4, 8, 16]
+    for width in [3_s32, 4, 8, 16]
     {
         for caseIndex in 3
         {
@@ -30,7 +30,7 @@ using Core
                 for column in Stride
                 {
                     let index    = 1 + row * Stride + column
-                    let expected = column < cast(u64, width) ? cast(u8, ((cast(u32, a[index]) + cast(u32, b[index]) + 1) >> 1)) : caseIndex == 0 ? 0xA5'u8 : caseIndex == 1 ? a[index] : b[index]
+                    let expected = column < cast(u64, width) ? cast(u8, ((cast(u32, a[index]) + cast(u32, b[index]) + 1) >> 1)) : caseIndex == 0 ? 0xA5_u8 : caseIndex == 1 ? a[index] : b[index]
                     Swag.require(destination[index] == expected)
                 }
             }
@@ -111,7 +111,7 @@ impl InterReference
 
     // Runs of 0 and 255 drive the six-tap sums to both ends of their range, where the packed
     // center filter saturates; the rest is noise.
-    var seed = 0x2545F491'u32
+    var seed = 0x2545F491_u32
     for index in frame.luma.count
     {
         seed = seed * #wrap 1664525 + #wrap 1013904223
@@ -120,8 +120,8 @@ impl InterReference
     }
 
     var reference = InterReference{frame: &frame}
-    const Shapes  = [16's32, 16, 16, 8, 8, 16, 8, 8, 8, 4, 4, 8, 4, 4]
-    const Origins = [0's32, 0, 5, 9, 23, 17, 40, 36, -3, -30, 60, 45, 50, 3]
+    const Shapes  = [16_s32, 16, 16, 8, 8, 16, 8, 8, 8, 4, 4, 8, 4, 4]
+    const Origins = [0_s32, 0, 5, 9, 23, 17, 40, 36, -3, -30, 60, 45, 50, 3]
     var predicted: [16 * 16] u8
     for shape in Shapes.count / 2
     {
@@ -131,7 +131,7 @@ impl InterReference
         {
             let x = Origins[origin * 2]
             let y = Origins[origin * 2 + 1]
-            for phase in 16's32
+            for phase in 16_s32
             {
                 let fracX = phase & 3
                 let fracY = phase >> 2
@@ -139,13 +139,17 @@ impl InterReference
                 H264.mcLuma(predicted.buffer, 16, &frame, 0, x, y, fracX, fracY, width, height)
                 for row in height
                 {
-                    for column in 16's32
+                    for column in 16_s32
                     {
                         let got = predicted[cast(u64, (row * 16 + column))]
-                        if column >= width do
+                        if column >= width
+                        {
                             Swag.require(got == 0x5A)
-                        else do
+                        }
+                        else
+                        {
                             Swag.require(got == reference.predict(x + column, y + row, fracX, fracY))
+                        }
                     }
                 }
             }
@@ -177,7 +181,7 @@ impl ChromaReference
     var frame: H264.Frame
     frame.prepare(4, 4, 1)
 
-    var seed = 0x9E3779B9'u32
+    var seed = 0x9E3779B9_u32
     for index in frame.cb.count
     {
         seed            = seed * #wrap 1664525 + #wrap 1013904223
@@ -186,10 +190,10 @@ impl ChromaReference
         frame.cr[index] = (index / 5) % 2 == 0 ? (((seed >> 21) & 1) == 0 ? 0 : 255) : cast(u8, (seed >> 24))
     }
 
-    const Shapes  = [8's32, 8, 8, 4, 4, 8, 4, 4, 4, 2, 2, 4, 2, 2]
-    const Origins = [0's32, 0, 3, 5, 11, 9, 27, 20, -2, -30, 31, 25, -40, 50]
+    const Shapes  = [8_s32, 8, 8, 4, 4, 8, 4, 4, 4, 2, 2, 4, 2, 2]
+    const Origins = [0_s32, 0, 3, 5, 11, 9, 27, 20, -2, -30, 31, 25, -40, 50]
     var predicted: [16 * 8] u8
-    for plane in 2'u32
+    for plane in 2_u32
     {
         var reference = ChromaReference{frame: &frame, plane: plane}
         for shape in Shapes.count / 2
@@ -200,7 +204,7 @@ impl ChromaReference
             {
                 let x = Origins[origin * 2]
                 let y = Origins[origin * 2 + 1]
-                for phase in 64's32
+                for phase in 64_s32
                 {
                     let fracX = phase & 7
                     let fracY = phase >> 3
@@ -208,7 +212,7 @@ impl ChromaReference
                     H264.mcChroma(predicted.buffer, 16, &frame, plane, x, y, fracX, fracY, width, height)
                     for row in height
                     {
-                        for column in 16's32
+                        for column in 16_s32
                         {
                             let got = predicted[cast(u64, (row * 16 + column))]
                             if column >= width
@@ -236,7 +240,7 @@ impl ChromaReference
 {
     var frame: H264.Frame
     frame.prepare(4, 4, 1)
-    var seed = 0x79B315D1'u32
+    var seed = 0x79B315D1_u32
     for index in frame.luma.count
     {
         seed = seed * #wrap 1664525 + #wrap 1013904223
@@ -245,11 +249,11 @@ impl ChromaReference
 
     var reference = InterReference{frame: &frame}
     var predicted: [21 * 16 + 1] u8
-    for height in [4's32, 8, 16]
+    for height in [4_s32, 8, 16]
     {
-        for origin in [0's32, -30]
+        for origin in [0_s32, -30]
         {
-            for phase in 16's32
+            for phase in 16_s32
             {
                 let fracX = phase & 3
                 let fracY = phase >> 2
@@ -257,10 +261,10 @@ impl ChromaReference
                 H264.mcLuma(predicted.buffer + 1, 21, &frame, 0, origin, origin, fracX, fracY, 16, height)
                 for row in height
                 {
-                    for column in 21's32
+                    for column in 21_s32
                     {
                         let got      = predicted[cast(u64, (1 + row * 21 + column))]
-                        let expected = column < 16 ? reference.predict(origin + column, origin + row, fracX, fracY) : 0x5A'u8
+                        let expected = column < 16 ? reference.predict(origin + column, origin + row, fracX, fracY) : 0x5A_u8
                         Swag.require(got == expected)
                     }
                 }
@@ -276,7 +280,7 @@ impl ChromaReference
     var frame: H264.Frame
     frame.prepare(4, 4, 1)
 
-    var seed = 0x2545F491'u32
+    var seed = 0x2545F491_u32
     for index in frame.cb.count
     {
         seed            = seed * #wrap 1664525 + #wrap 1013904223
@@ -285,8 +289,8 @@ impl ChromaReference
         frame.cr[index] = cast #wrap(u8, (seed >> 16))
     }
 
-    const Shapes  = [8's32, 8, 8, 4, 4, 8, 4, 4, 4, 2, 2, 4, 2, 2]
-    const Origins = [0's32, 0, 3, 5, 11, 9, 27, 20, -2, -30, 31, 25, -40, 50]
+    const Shapes  = [8_s32, 8, 8, 4, 4, 8, 4, 4, 4, 2, 2, 4, 2, 2]
+    const Origins = [0_s32, 0, 3, 5, 11, 9, 27, 20, -2, -30, 31, 25, -40, 50]
     var expectedB: [16 * 8] u8
     var expectedR: [16 * 8] u8
     var pairB:     [16 * 8] u8
@@ -299,7 +303,7 @@ impl ChromaReference
         {
             let x = Origins[origin * 2]
             let y = Origins[origin * 2 + 1]
-            for phase in 64's32
+            for phase in 64_s32
             {
                 let fracX = phase & 7
                 let fracY = phase >> 3

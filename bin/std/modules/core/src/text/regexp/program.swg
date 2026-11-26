@@ -45,29 +45,29 @@ struct ByteBitmap
 impl ByteBitmap
 {
     #[Swag.Inline]
-    mtd add(value: u8) { .words[value >> 6] |= 1'u64 << (value & 63) }
+    mtd add(value: u8) { .words[value >> 6] |= 1_u64 << (value & 63) }
 
     #[Swag.Inline]
-    mtd const contains(value: u8)->bool => (.words[value >> 6] & (1'u64 << (value & 63))) != 0
+    mtd const contains(value: u8)->bool => (.words[value >> 6] & (1_u64 << (value & 63))) != 0
 }
 
 // A compiled pattern, in the form every engine reads.
 struct Program
 {
-    insts:           Array'Inst           // The instructions; an index into this is a program counter.
-    byteSets:        Array'ByteBitmap     // The sets the 'ByteSet' instructions name.
-    start:           u32                  // Entry point of a match anchored at the search offset.
-    startUnanchored: u32                  // Entry point that first skips any number of bytes.
-    matchPc:         u32                  // The single 'Match' instruction.
-    captureCount:    u32                  // Number of capturing groups, not counting the whole match.
-    slotCount:       u32                  // Number of capture slots, two per group.
-    minLength:       u32                  // Shortest match, in bytes.
-    anchoredStart:   bool                 // Whether every match must start at the beginning of the subject.
-    hasBackref:      bool                 // Whether a backreference appears, which only the backtracker can run.
-    hasAssert:       bool                 // Whether any zero-width assertion appears.
-    hasWordAssert:   bool                 // Whether a word boundary appears, which reads the scalar values around a position.
-    ignoreCase:      bool                 // Whether the pattern matches without case, which a backreference also obeys.
-    reverse:         bool                 // Whether the program matches the subject read backwards.
+    insts:           Array!{Inst}           // The instructions; an index into this is a program counter.
+    byteSets:        Array!{ByteBitmap}     // The sets the 'ByteSet' instructions name.
+    start:           u32                    // Entry point of a match anchored at the search offset.
+    startUnanchored: u32                    // Entry point that first skips any number of bytes.
+    matchPc:         u32                    // The single 'Match' instruction.
+    captureCount:    u32                    // Number of capturing groups, not counting the whole match.
+    slotCount:       u32                    // Number of capture slots, two per group.
+    minLength:       u32                    // Shortest match, in bytes.
+    anchoredStart:   bool                   // Whether every match must start at the beginning of the subject.
+    hasBackref:      bool                   // Whether a backreference appears, which only the backtracker can run.
+    hasAssert:       bool                   // Whether any zero-width assertion appears.
+    hasWordAssert:   bool                   // Whether a word boundary appears, which reads the scalar values around a position.
+    ignoreCase:      bool                   // Whether the pattern matches without case, which a backreference also obeys.
+    reverse:         bool                   // Whether the program matches the subject read backwards.
 
     byteClass:      [256] u8     // Equivalence class of every byte, for the lazy automaton.
     classFirstByte: [256] u8     // One byte of each class, which stands for all of them.
@@ -96,14 +96,18 @@ impl Program
         result.matchPc = result.addInst({kind: .Match})
 
         var tail = result.matchPc
-        if not reverse do
+        if not reverse
+        {
             tail = result.addInst({kind: .Save, slot: 1, next: tail})
+        }
 
         let body = try result.emit(ast, entry, tail)
 
         result.start = body
-        if not reverse do
+        if not reverse
+        {
             result.start = result.addInst({kind: .Save, slot: 0, next: body})
+        }
 
         // The unanchored entry prefers entering the pattern over consuming one more byte,
         // which is what makes a search find the leftmost match rather than any match.
@@ -154,8 +158,11 @@ impl Program
             // the same position in both directions.
             .hasAssert = true
             let kind = current.assertion
-            if kind == AssertKind.WordBoundary or kind == AssertKind.NotWordBoundary do
+            if kind == AssertKind.WordBoundary or kind == AssertKind.NotWordBoundary
+            {
                 .hasWordAssert = true
+            }
+
             return .addInst({kind: .Assert, assertion: kind, next: next})
 
         case .Backref:
@@ -163,8 +170,10 @@ impl Program
 
         case .Group:
             let child = ast.kids[current.first]
-            if current.capture == 0 or .reverse do
+            if current.capture == 0 or .reverse
+            {
                 return try .emit(ast, child, next)
+            }
 
             let close = .addInst({kind: .Save, slot: 2 * current.capture + 1, next: next})
             let inner = try .emit(ast, child, close)
@@ -174,13 +183,17 @@ impl Program
             var tail = next
             if .reverse
             {
-                for var i = 0'u32; i < current.count; i += 1 do
+                for var i = 0_u32; i < current.count; i += 1
+                {
                     tail = try .emit(ast, ast.kids[current.first + i], tail)
+                }
             }
             else
             {
-                for var i = current.count; i > 0; i -= 1 do
+                for var i = current.count; i > 0; i -= 1
+                {
                     tail = try .emit(ast, ast.kids[current.first + i - 1], tail)
+                }
             }
 
             return tail
@@ -211,13 +224,17 @@ impl Program
         var pc = next
         if .reverse
         {
-            for var i = 0'u32; i < count; i += 1 do
+            for var i = 0_u32; i < count; i += 1
+            {
                 pc = .emitByteRange(buffer[i], buffer[i], pc)
+            }
         }
         else
         {
-            for var i = count; i > 0; i -= 1 do
+            for var i = count; i > 0; i -= 1
+            {
                 pc = .emitByteRange(buffer[i - 1], buffer[i - 1], pc)
+            }
         }
 
         return pc
@@ -230,9 +247,11 @@ impl Program
     // whatever the class looks like.
     mtd emitClass(value: const *RuneClass, next: u32)->u32
     {
-        var sequences: Array'ByteSequence
-        for &r in value.ranges do
+        var sequences: Array!{ByteSequence}
+        for &r in value.ranges
+        {
             appendUtf8Sequences(&sequences, r.lo, r.hi)
+        }
 
         if sequences.isEmpty()
         {
@@ -241,8 +260,8 @@ impl Program
         }
 
         var single: ByteBitmap
-        var singles = 0'u32
-        var longer: Array'ByteSequence
+        var singles = 0_u32
+        var longer: Array!{ByteSequence}
 
         for &seq in sequences
         {
@@ -253,8 +272,10 @@ impl Program
             }
 
             singles += 1
-            for var b = cast(u32, seq.lo[0]); b <= cast(u32, seq.hi[0]); b += 1 do
+            for var b = cast(u32, seq.lo[0]); b <= cast(u32, seq.hi[0]); b += 1
+            {
                 single.add(cast(u8, b))
+            }
         }
 
         var entry = NoNode
@@ -268,8 +289,10 @@ impl Program
             }
         }
 
-        if singles == 0 do
+        if singles == 0
+        {
             return entry
+        }
 
         // One interval is a byte range, which every engine reads without a table.
         var ascii = NoNode
@@ -283,8 +306,11 @@ impl Program
             ascii = .addInst({kind: .ByteSet, slot: cast(u32, .byteSets.count) - 1, next: next})
         }
 
-        if entry == NoNode do
+        if entry == NoNode
+        {
             return ascii
+        }
+
         return .addInst({kind: .Split, next: ascii, alt: entry})
     }
 
@@ -293,13 +319,17 @@ impl Program
         var pc = next
         if .reverse
         {
-            for var i = 0'u32; i < sequence.count; i += 1 do
+            for var i = 0_u32; i < sequence.count; i += 1
+            {
                 pc = .emitByteRange(sequence.lo[i], sequence.hi[i], pc)
+            }
         }
         else
         {
-            for var i = sequence.count; i > 0; i -= 1 do
+            for var i = sequence.count; i > 0; i -= 1
+            {
                 pc = .emitByteRange(sequence.lo[i - 1], sequence.hi[i - 1], pc)
+            }
         }
 
         return pc
@@ -329,8 +359,11 @@ impl Program
             .setSplit(split, body, next, greedy)
 
             var entry = body
-            for var i = 1'u32; i < current.minCount; i += 1 do
+            for var i = 1_u32; i < current.minCount; i += 1
+            {
                 entry = try .emit(ast, child, entry)
+            }
+
             return entry
         }
 
@@ -345,8 +378,11 @@ impl Program
             tail = split
         }
 
-        for var i = 0'u32; i < current.minCount; i += 1 do
+        for var i = 0_u32; i < current.minCount; i += 1
+        {
             tail = try .emit(ast, child, tail)
+        }
+
         return tail
     }
 
@@ -370,9 +406,9 @@ impl Program
     // Walking the compiled program rather than the pattern finds the prefix whatever spelling
     // produced it. 'complete' says the program holds nothing but that string, and a scan for
     // it is then the whole search.
-    mtd const startingLiteral()->{ bytes: Array'u8, complete: bool }
+    mtd const startingLiteral()->{ bytes: Array!{u8}, complete: bool }
     {
-        const LongestUsefulLiteral = 64'u64
+        const LongestUsefulLiteral = 64_u64
 
         var result: #returntype
         var pc        = .start
@@ -394,11 +430,17 @@ impl Program
                 pc        = inst.next
 
             case .ByteRange:
-                if inst.lo != inst.hi do
+                if inst.lo != inst.hi
+                {
                     return result
+                }
+
                 result.bytes.add(inst.lo)
-                if result.bytes.count >= LongestUsefulLiteral do
+                if result.bytes.count >= LongestUsefulLiteral
+                {
                     return result
+                }
+
                 pc = inst.next
 
             case .Match:
@@ -423,39 +465,48 @@ impl Program
     // The shape is recognized on the compiled program: at every offset the byte reads must all
     // continue at the same place, so that what one offset accepts never constrains another.
     // `ab|cd` fails that test, which is why it is not enough to collect the sets.
-    mtd const fixedSetSequence(sets: *Array'ByteSet, maxLength: u32)->bool
+    mtd const fixedSetSequence(sets: *Array!{ByteSet}, maxLength: u32)->bool
     {
-        var roots: Array'u32
+        var roots: Array!{u32}
         roots.add(.start)
 
-        var seen: Array'bool
+        var seen: Array!{bool}
         seen.resize(.insts.count)
 
-        for var depth = 0'u32; depth <= maxLength; depth += 1
+        for var depth = 0_u32; depth <= maxLength; depth += 1
         {
-            var reachable: Array'u32
+            var reachable: Array!{u32}
             var reachesMatch = false
             seen.fill(false)
 
-            if not .closeOverKeepingMatch(roots.toSlice(), &reachable, &seen, &reachesMatch) do
+            if not .closeOverKeepingMatch(roots.toSlice(), &reachable, &seen, &reachesMatch)
+            {
                 return false
+            }
 
             // The end of the chain: nothing left to read, and a match is what is left.
-            if reachesMatch do
+            if reachesMatch
+            {
                 return reachable.isEmpty() and depth > 0
+            }
 
-            if reachable.isEmpty() or depth == maxLength do
+            if reachable.isEmpty() or depth == maxLength
+            {
                 return false
+            }
 
             // Every byte read here has to continue at the same place, or one offset would
             // depend on what another accepted.
             let continuation = .insts[reachable[0]].next
             var set: ByteSet
-            var added        = 0'u32
+            var added        = 0_u32
             for pc in reachable
             {
-                if .insts[pc].next != continuation do
+                if .insts[pc].next != continuation
+                {
                     return false
+                }
+
                 me.addAcceptedBytes(pc, &set, &added)
             }
 
@@ -468,16 +519,19 @@ impl Program
     }
 
     // The same walk as 'closeOver', but a match is reported rather than refused.
-    mtd const closeOverKeepingMatch(roots: const [..] u32, out: *Array'u32, seen: *Array'bool, reachesMatch: *bool)->bool
+    mtd const closeOverKeepingMatch(roots: const [..] u32, out: *Array!{u32}, seen: *Array!{bool}, reachesMatch: *bool)->bool
     {
-        var stack: Array'u32
+        var stack: Array!{u32}
         stack.add(roots)
 
         while not stack.isEmpty()
         {
             let pc = stack.popBack()
-            if seen[pc] do
+            if seen[pc]
+            {
                 continue
+            }
+
             seen[pc] = true
 
             switch .insts[pc].kind
@@ -513,35 +567,44 @@ impl Program
     //
     // The walk stops as soon as a match can end, or as soon as a backreference appears: past
     // that point there is nothing every match must hold.
-    mtd const collectPositionSets(sets: *Array'ByteSet, scores: *Array'u32, counts: *Array'u32, maxDepth: u32)
+    mtd const collectPositionSets(sets: *Array!{ByteSet}, scores: *Array!{u32}, counts: *Array!{u32}, maxDepth: u32)
     {
-        var roots: Array'u32
+        var roots: Array!{u32}
         roots.add(.start)
 
-        var seen: Array'bool
+        var seen: Array!{bool}
         seen.resize(.insts.count)
 
-        for var depth = 0'u32; depth < maxDepth; depth += 1
+        for var depth = 0_u32; depth < maxDepth; depth += 1
         {
-            var reachable: Array'u32
+            var reachable: Array!{u32}
             seen.fill(false)
-            if not .closeOver(roots.toSlice(), &reachable, &seen) do
+            if not .closeOver(roots.toSlice(), &reachable, &seen)
+            {
                 return
-            if reachable.isEmpty() do
+            }
+
+            if reachable.isEmpty()
+            {
                 return
+            }
 
             var set: ByteSet
-            var count = 0'u32
-            for pc in reachable do
+            var count = 0_u32
+            for pc in reachable
+            {
                 me.addAcceptedBytes(pc, &set, &count)
+            }
 
             sets.add(set)
             scores.add(setScore(&set))
             counts.add(count)
 
             roots.clear()
-            for pc in reachable do
+            for pc in reachable
+            {
                 roots.add(.insts[pc].next)
+            }
         }
     }
 
@@ -549,16 +612,19 @@ impl Program
     //
     // Returns false when the walk meets the end of a match or a backreference, which is where
     // the caller must stop: nothing is required of the offsets beyond it.
-    mtd const closeOver(roots: const [..] u32, out: *Array'u32, seen: *Array'bool)->bool
+    mtd const closeOver(roots: const [..] u32, out: *Array!{u32}, seen: *Array!{bool})->bool
     {
-        var stack: Array'u32
+        var stack: Array!{u32}
         stack.add(roots)
 
         while not stack.isEmpty()
         {
             let pc = stack.popBack()
-            if seen[pc] do
+            if seen[pc]
+            {
                 continue
+            }
+
             seen[pc] = true
 
             switch .insts[pc].kind
@@ -601,27 +667,35 @@ impl Program
                 continue
             }
 
-            if inst.kind != InstKind.ByteSet do
+            if inst.kind != InstKind.ByteSet
+            {
                 continue
+            }
 
             // Every byte where the set starts or stops accepting is a boundary, the same way
             // the ends of an interval are.
-            for var b = 1'u32; b < 256; b += 1
+            for var b = 1_u32; b < 256; b += 1
             {
-                if .byteSets[inst.slot].contains(cast(u8, b)) != .byteSets[inst.slot].contains(cast(u8, (b - 1))) do
+                if .byteSets[inst.slot].contains(cast(u8, b)) != .byteSets[inst.slot].contains(cast(u8, (b - 1)))
+                {
                     boundary[b] = true
+                }
             }
 
-            if .byteSets[inst.slot].contains(0) do
+            if .byteSets[inst.slot].contains(0)
+            {
                 boundary[0] = true
+            }
         }
 
         if .hasWordAssert
         {
-            for var b = 1'u32; b < 256; b += 1
+            for var b = 1_u32; b < 256; b += 1
             {
-                if isWordByte(cast(u8, b)) != isWordByte(cast(u8, (b - 1))) do
+                if isWordByte(cast(u8, b)) != isWordByte(cast(u8, (b - 1)))
+                {
                     boundary[b] = true
+                }
             }
         }
 
@@ -632,8 +706,8 @@ impl Program
             boundary[NewLineByte + 1] = true
         }
 
-        var current = 0'u8
-        for var b = 0'u32; b < 256; b += 1
+        var current = 0_u8
+        for var b = 0_u32; b < 256; b += 1
         {
             if b != 0 and boundary[b]
             {
@@ -654,8 +728,11 @@ impl Program
     #[Swag.Inline]
     mtd const acceptsByte(pc: u32, value: u8)->bool
     {
-        if .insts[pc].kind == InstKind.ByteSet do
+        if .insts[pc].kind == InstKind.ByteSet
+        {
             return .byteSets[.insts[pc].slot].contains(value)
+        }
+
         return value >= .insts[pc].lo and value <= .insts[pc].hi
     }
 
@@ -671,16 +748,20 @@ impl Program
 
         if .insts[pc].kind == InstKind.ByteSet
         {
-            for var b = 0'u32; b < 256; b += 1
+            for var b = 0_u32; b < 256; b += 1
             {
-                if .byteSets[.insts[pc].slot].contains(cast(u8, b)) do
+                if .byteSets[.insts[pc].slot].contains(cast(u8, b))
+                {
                     set.add(cast(u8, b))
+                }
             }
         }
         else
         {
-            for var b = cast(u32, .insts[pc].lo); b <= cast(u32, .insts[pc].hi); b += 1 do
+            for var b = cast(u32, .insts[pc].lo); b <= cast(u32, .insts[pc].hi); b += 1
+            {
                 set.add(cast(u8, b))
+            }
         }
 
         added[] += set.members - before
@@ -728,8 +809,11 @@ func assertionHolds(kind: AssertKind, hay: const [..] u8, pos: u64)->bool
         afterIsWord = Unicode.isWord(after.c)
     }
 
-    if kind == AssertKind.WordBoundary do
+    if kind == AssertKind.WordBoundary
+    {
         return beforeIsWord != afterIsWord
+    }
+
     return beforeIsWord == afterIsWord
 }
 
@@ -746,23 +830,31 @@ struct ByteSequence
 // This is what makes a byte machine able to match Unicode: `[é-ÿ]` is not a byte interval,
 // but it is a small alternation of them. The split is the classic one — cut at every length
 // boundary, then at every position where the trailing bytes do not span their whole range.
-func appendUtf8Sequences(out: *Array'ByteSequence, lowValue, highValue: rune)
+func appendUtf8Sequences(out: *Array!{ByteSequence}, lowValue, highValue: rune)
 {
     var lo = lowValue
     var hi = highValue
 
-    if lo > hi do
+    if lo > hi
+    {
         return
+    }
 
     // Surrogates have no UTF-8 encoding, so no sequence may cover them.
-    const SurrogateLow  = 0xD800'rune
-    const SurrogateHigh = 0xDFFF'rune
+    const SurrogateLow  = 0xD800_rune
+    const SurrogateHigh = 0xDFFF_rune
     if lo <= SurrogateHigh and hi >= SurrogateLow
     {
-        if lo < SurrogateLow do
+        if lo < SurrogateLow
+        {
             appendUtf8Sequences(out, lo, SurrogateLow - 1)
-        if hi > SurrogateHigh do
+        }
+
+        if hi > SurrogateHigh
+        {
             appendUtf8Sequences(out, SurrogateHigh + 1, hi)
+        }
+
         return
     }
 
@@ -791,11 +883,13 @@ func appendUtf8Sequences(out: *Array'ByteSequence, lowValue, highValue: rune)
 
     // Split until every trailing byte of the interval spans its whole range, which is what
     // lets one sequence of independent byte intervals describe the whole interval.
-    for var i = 1'u32; i < length; i += 1
+    for var i = 1_u32; i < length; i += 1
     {
-        let mask = (1'rune << (6 * i)) - 1
-        if (lo & ~mask) == (hi & ~mask) do
+        let mask = (1_rune << (6 * i)) - 1
+        if (lo & ~mask) == (hi & ~mask)
+        {
             continue
+        }
 
         if (lo & mask) != 0
         {
@@ -816,7 +910,7 @@ func appendUtf8Sequences(out: *Array'ByteSequence, lowValue, highValue: rune)
     var lowBytes, highBytes: [4] u8
     seq.count = Utf8.encodeRune(lowBytes, lo)
     discard Utf8.encodeRune(highBytes, hi)
-    for var i = 0'u32; i < seq.count; i += 1
+    for var i = 0_u32; i < seq.count; i += 1
     {
         seq.lo[i] = lowBytes[i]
         seq.hi[i] = highBytes[i]
@@ -828,11 +922,20 @@ func appendUtf8Sequences(out: *Array'ByteSequence, lowValue, highValue: rune)
 // Number of bytes the UTF-8 encoding of one scalar value takes.
 func encodedLength(value: rune)->u32
 {
-    if value <= 0x7F do
+    if value <= 0x7F
+    {
         return 1
-    if value <= 0x7FF do
+    }
+
+    if value <= 0x7FF
+    {
         return 2
-    if value <= 0xFFFF do
+    }
+
+    if value <= 0xFFFF
+    {
         return 3
+    }
+
     return 4
 }

@@ -13,22 +13,27 @@ using Swag, Core, Core.Errors, Audio, Pixel
     var recorder = expect Mp4.SoftwareRecording.create(path, 32, 16, 90_000, 48_000, 1)
     Swag.require(recorder.videoPrerollTicks() == 1_920)
     let pacer = expect FramePacer.create(expect FrameRate.create(60, 1), 1_000_000, 90_000)
-    for frame in 13'u64
+    for frame in 13_u64
     {
         expect recorder.addFrame(&image, expect pacer.slotAt(frame))
-        if frame == 4 do
+        if frame == 4
+        {
             expect recorder.flush()
+        }
     }
 
     var source: [10 * 1_024] s16
-    for sample in source.count do
+    for sample in source.count
+    {
         source[sample] = cast(s16,
                               Math.round(10_000.0 * Math.sin(Math.ConstF64.TwoPi *
                                                              1_000.0 * sample / 48_000.0)))
-    var cursor = 0'u64
+    }
+
+    var cursor = 0_u64
     while cursor < source.count
     {
-        let count = Math.min(137'u64, source.count - cursor)
+        let count = Math.min(137_u64, source.count - cursor)
         expect recorder.addAudioFrames(Swag.makeSlice(&source[cursor], count))
         cursor += count
     }
@@ -59,15 +64,15 @@ using Swag, Core, Core.Errors, Audio, Pixel
     let sound = unwrap reader.audioTrack(0)
     Swag.require(sound.sampleFrameCount() == source.count)
     Swag.require(Math.abs(sound.timelineStartSeconds()) < 0.000001)
-    var decoded: Array's16
+    var decoded: Array!{s16}
     expect sound.decodePcm16(func|decoded = &decoded|(part: const [..] s16)->bool
     {
         decoded.add(part)
         return true
     })
     Swag.require(decoded.count == source.count)
-    var error = 0.0'f64
-    var power = 0.0'f64
+    var error = 0.0_f64
+    var power = 0.0_f64
     for sample in 2_048 until 8_192
     {
         let expectedSample = cast(f64, source[sample])
@@ -165,8 +170,11 @@ using Swag, Core, Core.Errors, Audio, Pixel
     expect recorder.addFrame(&image, expect pacer.slotAt(0))
     discard catch recorder.repeatLastFrame(expect pacer.slotAt(2)) as rejected
     Swag.require(rejected.value() is BadParameterError and recorder.videoFrameCount() == 1)
-    for index in 1'u64 until 4 do
+    for index in 1_u64 until 4
+    {
         expect recorder.repeatLastFrame(expect pacer.slotAt(index))
+    }
+
     expect recorder.addFrame(&image, expect pacer.slotAt(4))
     Swag.require(recorder.videoFrameCount() == 5 and recorder.repeatedFrameCount() == 3)
     var silence: [1_024] s16
@@ -178,7 +186,7 @@ using Swag, Core, Core.Errors, Audio, Pixel
     var expected: Nv12Frame
     expect expected.convertFrom(&image)
     var decoded: PlanarFrame
-    for index in 5'u64
+    for index in 5_u64
     {
         expect reader.decodeFramePlanesInto(&decoded, index)
         Swag.require(Slice.equals(decoded.luma.toSlice(), expected.luma()))

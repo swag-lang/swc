@@ -9,7 +9,7 @@ public const AesXtsTweakSize = 16
 
 private func aesXtsMultiplyTweak(tweak: *[AesXtsTweakSize] u8)
 {
-    var carry = 0'u8
+    var carry = 0_u8
     for index in AesXtsTweakSize
     {
         let next = tweak[][index] >> 7
@@ -17,7 +17,7 @@ private func aesXtsMultiplyTweak(tweak: *[AesXtsTweakSize] u8)
         carry = next
     }
 
-    tweak[][0] ^= 0x87'u8 & cast(u8, 0'u8 - carry)
+    tweak[][0] ^= 0x87_u8 & cast(u8, 0_u8 - carry)
 }
 
 #[Swag.Inline]
@@ -106,10 +106,15 @@ func aesXtsCrypt(key, dataUnitNumber, input: const [..] u8, output: [..] u8, dec
     if (key.count != 32 and key.count != 64) or
        dataUnitNumber.count != AesXtsTweakSize or
        input.count < AesBlockSize or
-       output.count != input.count do
+       output.count != input.count
+    {
         fail Errors.BadParameterError{"AES-XTS needs a 32 or 64-byte key, a 16-byte data unit number, and matching data of at least 16 bytes"}
-    if input.count > (1'u64 << 24) do
+    }
+
+    if input.count > (1_u64 << 24)
+    {
         fail Errors.BadParameterError{"AES-XTS data units cannot exceed 2^20 AES blocks"}
+    }
 
     let keySize = key.count / 2
     var dataAes = try Aes.create(key[0 until keySize])
@@ -122,7 +127,8 @@ func aesXtsCrypt(key, dataUnitNumber, input: const [..] u8, output: [..] u8, dec
     let fullBlocks     = input.count / AesBlockSize
     let remainder      = input.count % AesBlockSize
     let ordinaryBlocks = fullBlocks - cast(u64, remainder != 0)
-    if dataAes.usesHardwareRounds()
+    var offset         = 0_u64
+    while offset < ordinaryBlocks
     {
         if decrypt do
             dataAes.prepareHardwareDecryption()
@@ -160,10 +166,16 @@ func aesXtsCrypt(key, dataUnitNumber, input: const [..] u8, output: [..] u8, dec
         {
             try aesXtsCryptBlock(&dataAes, nextTweak, &sourceFull, &intermediate, true)
             var stolen: [AesXtsTweakSize] u8
-            for index in remainder do
+            for index in remainder
+            {
                 stolen[index] = sourcePartial[index]
-            for index in remainder until AesXtsTweakSize do
+            }
+
+            for index in remainder until AesXtsTweakSize
+            {
                 stolen[index] = intermediate[index]
+            }
+
             try aesXtsCryptBlock(&dataAes, tweak, &stolen, &resultFull, true)
             Swag.memcpy(output.buffer + lastFullOffset, &resultFull[0], AesXtsTweakSize)
             Swag.memcpy(output.buffer + partialOffset, &intermediate[0], remainder)
@@ -173,10 +185,16 @@ func aesXtsCrypt(key, dataUnitNumber, input: const [..] u8, output: [..] u8, dec
         {
             try aesXtsCryptBlock(&dataAes, tweak, &sourceFull, &intermediate, false)
             var stolen: [AesXtsTweakSize] u8
-            for index in remainder do
+            for index in remainder
+            {
                 stolen[index] = sourcePartial[index]
-            for index in remainder until AesXtsTweakSize do
+            }
+
+            for index in remainder until AesXtsTweakSize
+            {
                 stolen[index] = intermediate[index]
+            }
+
             try aesXtsCryptBlock(&dataAes, nextTweak, &stolen, &resultFull, false)
             Swag.memcpy(output.buffer + lastFullOffset, &resultFull[0], AesXtsTweakSize)
             Swag.memcpy(output.buffer + partialOffset, &intermediate[0], remainder)

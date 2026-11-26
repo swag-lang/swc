@@ -8,16 +8,16 @@
 using Core, Core.Errors
 
 // The format reserves four bits for the partition order, so a block never splits further.
-private const MaxPartitionOrder = 15'u32
+private const MaxPartitionOrder = 15_u32
 
 // A linear predictor reads at most thirty-two previous samples, which also bounds the warmup.
-private const MaxLpcOrder = 32'u32
+private const MaxLpcOrder = 32_u32
 
 // FLAC carries at most eight channels, and the escape codes that mean "raw bits" are the
 // largest value each Rice parameter field can hold.
-private const MaxChannels = 8'u32
-private const RiceEscape  = 15'u32
-private const Rice2Escape = 31'u32
+private const MaxChannels = 8_u32
+private const RiceEscape  = 15_u32
+private const Rice2Escape = 31_u32
 
 // Sample rates the frame header names by index rather than by value.
 private const CodedRates: [16] u32 = [0, 88200, 176400, 192000, 8000, 16000, 22050, 24000, 32000, 44100, 48000, 96000, 0, 0, 0, 0]
@@ -47,8 +47,11 @@ private impl BitReader
     // Reads `count` bits as an unsigned value. `count` is at most 32.
     mtd read(count: u32)->u32
     {
-        if not count do
+        if not count
+        {
             return 0
+        }
+
         if .bitPos + count > .size * 8
         {
             .overran = true
@@ -56,14 +59,14 @@ private impl BitReader
             return 0
         }
 
-        var result = 0'u32
+        var result = 0_u32
         var need   = count
         while need
         {
             let bitOffset = cast(u32, (.bitPos & 7))
             let available = 8 - bitOffset
             let take      = Math.min(available, need)
-            let value     = (cast(u32, .data![.bitPos >> 3]) >> (available - take)) & ((1'u32 << take) - 1)
+            let value     = (cast(u32, .data![.bitPos >> 3]) >> (available - take)) & ((1_u32 << take) - 1)
             result  = (result << take) | value
             .bitPos += take
             need    -= take
@@ -82,21 +85,29 @@ private impl BitReader
             let sign  = .read(1)
             let lower = .read(32)
             let value = (cast(u64, sign) << 32) | cast(u64, lower)
-            if sign do
-                return cast(s64, value) - (1's64 << 33)
+            if sign
+            {
+                return cast(s64, value) - (1_s64 << 33)
+            }
+
             return cast(s64, value)
         }
 
         let value = .read(count)
-        if count == 32 do
+        if count == 32
+        {
             return cast(s64, cast #bit(s32, value))
+        }
 
         // A negative value is `value - 2^count`. Subtracting the sign bit twice reaches it without
         // ever leaving the range of either type: the usual `(value ^ sign) - sign` is one unsigned
         // subtraction below zero, which is a fault here rather than a wrap.
-        let sign = 1'u32 << (count - 1)
-        if not (value & sign) do
+        let sign = 1_u32 << (count - 1)
+        if not (value & sign)
+        {
             return cast(s64, value)
+        }
+
         return cast(s64, cast(s32, (value - sign))) - cast(s64, sign)
     }
 
@@ -194,11 +205,11 @@ private impl BitReader
     // instead of walking bits.
     mtd unary()->u32
     {
-        var zeros = 0'u32
+        var zeros = 0_u32
         while .bitPos < .size * 8
         {
             let bitOffset = cast(u32, (.bitPos & 7))
-            let masked    = cast(u32, .data![.bitPos >> 3]) & (0xFF'u32 >> bitOffset)
+            let masked    = cast(u32, .data![.bitPos >> 3]) & (0xFF_u32 >> bitOffset)
             if masked
             {
                 let highest = 31 - cast(u32, Swag.leadingZeros(masked))
@@ -353,7 +364,7 @@ private impl BitReader
     // Advances to the next byte boundary.
     mtd alignByte()
     {
-        .bitPos = (.bitPos + 7) & ~7'u64
+        .bitPos = (.bitPos + 7) & ~7_u64
     }
 }
 
@@ -388,7 +399,7 @@ private struct FrameHeader
 // per-channel scratch it reuses. Output is interleaved 16-bit PCM: a stream wider than that is
 // reduced on the way out, which is what the mixer accepts.
 // Size of the stream information block, clause 8.2.
-private const StreamInfoSize = 34'u64
+private const StreamInfoSize = 34_u64
 
 internal struct Codec
 {
@@ -397,14 +408,14 @@ internal struct Codec
     using base: Audio.Codec
 
     info:                     StreamInfo
-    channels:                 [MaxChannels] Array's64
-    residual:                 Array's64
+    channels:                 [MaxChannels] Array!{s64}
+    residual:                 Array!{s64}
     capacity:                 u32
     inOgg:                    bool
     oggSerial:                u32
     firstAudioSequence:       u32
     headerPacketsOnAudioPage: u32
-    oggFrame:                 Array'u8
+    oggFrame:                 Array!{u8}
 }
 
 private impl Codec
@@ -412,17 +423,23 @@ private impl Codec
     // Reads the "fLaC" marker and the stream information block a container carries.
     internal mtd readStreamInfo(config: const [..] u8) fail
     {
-        if config.count < 4 do
+        if config.count < 4
+        {
             fail InvalidFormatError{"FLAC stream information is truncated"}
+        }
 
         // A container may hand over the whole metadata prologue, or the stream information
         // block alone. Both spellings are in use, so the marker is optional.
-        var offset = 0'u64
-        if config[0] == 'f' and config[1] == 'L' and config[2] == 'a' and config[3] == 'C' do
+        var offset = 0_u64
+        if config[0] == 'f' and config[1] == 'L' and config[2] == 'a' and config[3] == 'C'
+        {
             offset = 4
+        }
 
-        if config.count < offset + 4 do
+        if config.count < offset + 4
+        {
             fail InvalidFormatError{"FLAC stream information is truncated"}
+        }
 
         // A metadata block header may precede the payload: skip its type and length. Its type
         // alone does not identify it — a stream information block whose smallest block is under
@@ -430,11 +447,15 @@ private impl Codec
         let headerLength = (cast(u64, config[offset + 1]) << 16) |
                            (cast(u64, config[offset + 2]) << 8) |
                            cast(u64, config[offset + 3])
-        if (config[offset] & 0x7F) == 0 and headerLength == StreamInfoSize do
+        if (config[offset] & 0x7F) == 0 and headerLength == StreamInfoSize
+        {
             offset += 4
+        }
 
-        if config.count < offset + StreamInfoSize do
+        if config.count < offset + StreamInfoSize
+        {
             fail InvalidFormatError{"FLAC stream information block is truncated"}
+        }
 
         var reader = BitReader.create(config[offset until offset + StreamInfoSize])
 
@@ -450,23 +471,40 @@ private impl Codec
             .totalSamples  = (cast(u64, reader.read(4)) << 32) | cast(u64, reader.read(32))
         }
 
-        if not .info.sampleRate do
+        if not .info.sampleRate
+        {
             fail InvalidFormatError{"FLAC stream declares no sample rate"}
-        if .info.channels > MaxChannels do
+        }
+
+        if .info.channels > MaxChannels
+        {
             fail UnsupportedFormatError{"FLAC stream declares more than eight channels"}
-        if .info.bitsPerSample < 4 or .info.bitsPerSample > 32 do
+        }
+
+        if .info.bitsPerSample < 4 or .info.bitsPerSample > 32
+        {
             fail UnsupportedFormatError{"FLAC sample width is outside the supported range"}
-        if not .info.maxBlockSize do
+        }
+
+        if not .info.maxBlockSize
+        {
             fail InvalidFormatError{"FLAC stream declares no maximum block size"}
+        }
     }
 
     // Grows the per-channel scratch so one block of `blockSize` samples fits.
     mtd reserveBlock(blockSize: u32)
     {
-        if blockSize <= .capacity do
+        if blockSize <= .capacity
+        {
             return
-        for index in MaxChannels do
+        }
+
+        for index in MaxChannels
+        {
             .channels[index].resize(cast(u64, blockSize))
+        }
+
         .residual.resize(cast(u64, blockSize))
         .capacity = blockSize
     }
@@ -474,10 +512,15 @@ private impl Codec
     // Reads one frame header, which is what decides the shape of everything after it.
     mtd readFrameHeader(reader: *BitReader)->FrameHeader fail
     {
-        if reader.read(14) != 0x3FFE do
+        if reader.read(14) != 0x3FFE
+        {
             fail InvalidFormatError{"FLAC frame has no sync code"}
-        if reader.read(1) do
+        }
+
+        if reader.read(1)
+        {
             fail InvalidFormatError{"FLAC frame sets the reserved header bit"}
+        }
 
         discard reader.read(1)     // Blocking strategy bit: decoding does not depend on it.
         let blockSizeCode  = reader.read(4)
@@ -486,44 +529,65 @@ private impl Codec
         var result: #returntype
         result.channelAssignment = reader.read(4)
         let depthCode = reader.read(3)
-        if reader.read(1) do
+        if reader.read(1)
+        {
             fail InvalidFormatError{"FLAC frame sets the reserved header bit"}
+        }
 
         // The frame or sample number is a UTF-8-shaped integer whose leading byte states its
         // length. Its value only matters when seeking, which the container index already does.
         let lead       = reader.read(8)
-        var extraBytes = 0'u32
-        if lead == 0xFE do
+        var extraBytes = 0_u32
+        if lead == 0xFE
+        {
             extraBytes = 6
-        elif lead == 0xFF do
+        }
+        else if lead == 0xFF
+        {
             fail InvalidFormatError{"FLAC frame number is malformed"}
-        elif lead >= 0xFC do
+        }
+        else if lead >= 0xFC
+        {
             extraBytes = 5
-        elif lead >= 0xF8 do
+        }
+        else if lead >= 0xF8
+        {
             extraBytes = 4
-        elif lead >= 0xF0 do
+        }
+        else if lead >= 0xF0
+        {
             extraBytes = 3
-        elif lead >= 0xE0 do
+        }
+        else if lead >= 0xE0
+        {
             extraBytes = 2
-        elif lead >= 0xC0 do
+        }
+        else if lead >= 0xC0
+        {
             extraBytes = 1
-        elif lead >= 0x80 do
+        }
+        else if lead >= 0x80
+        {
             fail InvalidFormatError{"FLAC frame number is malformed"}
+        }
+
         for extraBytes
         {
             let continuation = reader.read(8)
-            if (continuation & 0xC0) != 0x80 do
+            if (continuation & 0xC0) != 0x80
+            {
                 fail InvalidFormatError{"FLAC frame number has an invalid continuation byte"}
+            }
         }
 
         switch blockSizeCode
         {
         case 0:          fail InvalidFormatError{"FLAC frame uses the reserved block size code"}
         case 1:          result.blockSize = 192
-        case 2, 3, 4, 5: result.blockSize = 576'u32 << (blockSizeCode - 2)
+        case 2, 3, 4, 5: result.blockSize = 576_u32 << (blockSizeCode - 2)
         case 6:          result.blockSize = reader.read(8) + 1
         case 7:          result.blockSize = reader.read(16) + 1
-        default:         result.blockSize = 256'u32 << (blockSizeCode - 8)
+        default:         result.blockSize = 256_u32 << (blockSizeCode - 8)
         }
 
         switch sampleRateCode
@@ -537,20 +601,31 @@ private impl Codec
         }
 
         result.bitsPerSample = depthCode ? CodedDepths[depthCode] : .info.bitsPerSample
-        if not result.bitsPerSample do
+        if not result.bitsPerSample
+        {
             fail InvalidFormatError{"FLAC frame uses the reserved sample width code"}
+        }
 
-        if result.channelAssignment < 8 do
+        if result.channelAssignment < 8
+        {
             result.channels = result.channelAssignment + 1
-        elif result.channelAssignment < 11 do
+        }
+        else if result.channelAssignment < 11
+        {
             result.channels = 2
-        else do
+        }
+        else
+        {
             fail InvalidFormatError{"FLAC frame uses a reserved channel assignment"}
+        }
 
         // The header ends with a checksum of itself, which the container index already stands in for.
         discard reader.read(8)
-        if reader.overran do
+        if reader.overran
+        {
             fail InvalidFormatError{"FLAC frame header is truncated"}
+        }
+
         return result
     }
 
@@ -558,18 +633,25 @@ private impl Codec
     mtd readResidual(reader: *BitReader, blockSize, predictorOrder: u32) fail
     {
         let method = reader.read(2)
-        if method > 1 do
+        if method > 1
+        {
             fail InvalidFormatError{"FLAC residual uses a reserved coding method"}
+        }
 
         let partitionOrder = reader.read(4)
-        let partitions     = 1'u32 << partitionOrder
-        if blockSize % partitions do
+        let partitions     = 1_u32 << partitionOrder
+        if blockSize % partitions
+        {
             fail InvalidFormatError{"FLAC residual partitioning does not divide the block"}
-        let partitionSize = blockSize >> partitionOrder
-        if partitionSize < predictorOrder do
-            fail InvalidFormatError{"FLAC residual first partition is shorter than the predictor"}
+        }
 
-        let paramBits = method ? 5'u32 : 4'u32
+        let partitionSize = blockSize >> partitionOrder
+        if partitionSize < predictorOrder
+        {
+            fail InvalidFormatError{"FLAC residual first partition is shorter than the predictor"}
+        }
+
+        let paramBits = method ? 5_u32 : 4_u32
         let escape    = method ? Rice2Escape : RiceEscape
         let output    = .residual.storage()
 
@@ -607,18 +689,22 @@ private impl Codec
     // Decodes one subframe of `blockSize` samples at `bitsPerSample` into `target`.
     mtd readSubframe(reader: *BitReader, target: [*] s64, blockSize, bitsPerSample: u32) fail
     {
-        if reader.read(1) do
+        if reader.read(1)
+        {
             fail InvalidFormatError{"FLAC subframe sets the reserved leading bit"}
+        }
 
         let kind = reader.read(6)
 
         // Wasted bits are trailing zeros the encoder removed from every sample of the subframe.
-        var wasted = 0'u32
+        var wasted = 0_u32
         if reader.read(1)
         {
             wasted = reader.unary() + 1
-            if wasted >= bitsPerSample do
+            if wasted >= bitsPerSample
+            {
                 fail InvalidFormatError{"FLAC subframe wastes every bit of its samples"}
+            }
         }
 
         let depth = bitsPerSample - wasted
@@ -626,39 +712,60 @@ private impl Codec
         if not kind
         {
             let value = reader.readSigned(depth)
-            for index in blockSize do
+            for index in blockSize
+            {
                 target[index] = value
+            }
         }
-        elif kind == 1
+        else if kind == 1
         {
-            reader.readSignedSamples(target, blockSize, depth)
+            for index in blockSize
+            {
+                target[index] = reader.readSigned(depth)
+            }
         }
-        elif kind >= 8 and kind <= 12
+        else if kind >= 8 and kind <= 12
         {
             let order = kind - 8
-            if blockSize < order do
+            if blockSize < order
+            {
                 fail InvalidFormatError{"FLAC fixed subframe is shorter than its predictor"}
-            for index in order do
+            }
+
+            for index in order
+            {
                 .residual[index] = reader.readSigned(depth)
+            }
+
             try .readResidual(reader, blockSize, order)
             .predictFixed(target, order, blockSize)
         }
-        elif kind >= 32
+        else if kind >= 32
         {
             let order = kind - 31
-            if blockSize < order do
+            if blockSize < order
+            {
                 fail InvalidFormatError{"FLAC linear subframe is shorter than its predictor"}
-            for index in order do
+            }
+
+            for index in order
+            {
                 .residual[index] = reader.readSigned(depth)
+            }
 
             let precision = reader.read(4) + 1
-            if precision == 16 do
+            if precision == 16
+            {
                 fail InvalidFormatError{"FLAC linear predictor uses the reserved coefficient precision"}
+            }
+
             let shift = reader.readSigned(5)
 
             var coefficients: [MaxLpcOrder] s64
-            for index in order do
+            for index in order
+            {
                 coefficients[index] = reader.readSigned(precision)
+            }
 
             try .readResidual(reader, blockSize, order)
             try .predictLinear(target, &coefficients[0], order, blockSize, cast(s32, shift), depth)
@@ -668,12 +775,17 @@ private impl Codec
             fail InvalidFormatError{"FLAC subframe uses a reserved type"}
         }
 
-        if reader.overran do
+        if reader.overran
+        {
             fail InvalidFormatError{"FLAC subframe is truncated"}
+        }
+
         if wasted
         {
-            for index in blockSize do
+            for index in blockSize
+            {
                 target[index] <<= wasted
+            }
         }
     }
 
@@ -681,30 +793,42 @@ private impl Codec
     mtd predictFixed(target: [*] s64, order, blockSize: u32)
     {
         let source = .residual.storage()
-        for index in order do
+        for index in order
+        {
             target[index] = source[index]
+        }
 
         switch order
         {
         case 0:
-            for index in blockSize do
+            for index in blockSize
+            {
                 target[index] = source[index]
+            }
 
         case 1:
-            for index in order until blockSize do
+            for index in order until blockSize
+            {
                 target[index] = source[index] + target[index - 1]
+            }
 
         case 2:
-            for index in order until blockSize do
+            for index in order until blockSize
+            {
                 target[index] = source[index] + 2 * target[index - 1] - target[index - 2]
+            }
 
         case 3:
-            for index in order until blockSize do
+            for index in order until blockSize
+            {
                 target[index] = source[index] + 3 * target[index - 1] - 3 * target[index - 2] + target[index - 3]
+            }
 
         default:
-            for index in order until blockSize do
+            for index in order until blockSize
+            {
                 target[index] = source[index] + 4 * target[index - 1] - 6 * target[index - 2] + 4 * target[index - 3] - target[index - 4]
+            }
         }
     }
 
@@ -846,8 +970,10 @@ private impl Codec
     mtd predictLinear(target: [*] s64, coefficients: const [*] s64, order, blockSize, shift: s32, depth: u32) fail
     {
         let source = .residual.storage()
-        for index in order do
+        for index in order
+        {
             target[index] = source[index]
+        }
 
         var start = cast(u32, order)
         if order >= 3 and order <= 8 and shift >= 0
@@ -864,19 +990,11 @@ private impl Codec
         let groupedTaps = groups * 4
         for index in start until blockSize
         {
-            var sum = 0's64
-            for group in groups
+            var sum = 0_s64
+            for tap in order
             {
-                let tap      = group * 4
-                let previous = index - 1 - tap
-                sum += coefficients[tap] * target[previous]
-                sum += coefficients[tap + 1] * target[previous - 1]
-                sum += coefficients[tap + 2] * target[previous - 2]
-                sum += coefficients[tap + 3] * target[previous - 3]
-            }
-
-            for tap in groupedTaps until order do
                 sum += coefficients[tap] * target[index - 1 - tap]
+            }
 
             var prediction: s64
             if shift >= 0
@@ -886,27 +1004,33 @@ private impl Codec
             else
             {
                 let amount = cast(u32, -shift)
-                if sum > (Swag.S64.Max >> amount) or sum < (Swag.S64.Min >> amount) do
+                if (sum > 0 and sum > (Swag.S64.Max >> amount)) or
+                   (sum < 0 and sum < (Swag.S64.Min >> amount))
+                {
                     fail InvalidFormatError{"FLAC linear predictor overflows its accumulator"}
+                }
+
                 prediction = sum << amount
             }
 
             let residual = source[index]
-
-            // Addition overflows if both operands have the opposite sign from the sum.
-            #[Swag.Safety(.Overflow, false)]
-            let sample = residual + prediction
-            if ((sample ^ residual) & (sample ^ prediction)) < 0 do
+            if (prediction > 0 and residual > Swag.S64.Max - prediction) or
+               (prediction < 0 and residual < Swag.S64.Min - prediction)
+            {
                 fail InvalidFormatError{"FLAC linear predictor overflows its accumulator"}
-            target[index] = sample
+            }
+
+            target[index] = residual + prediction
         }
     }
 
     // Undoes the inter-channel decorrelation a stereo frame may use.
     mtd undecorrelate(assignment, blockSize: u32)
     {
-        if assignment < 8 do
+        if assignment < 8
+        {
             return
+        }
 
         let first  = .channels[0].storage()
         let second = .channels[1].storage()
@@ -916,14 +1040,18 @@ private impl Codec
         case 8:
 
             // Left and side: the second channel holds left minus right.
-            for index in blockSize do
+            for index in blockSize
+            {
                 second[index] = first[index] - second[index]
+            }
 
         case 9:
 
             // Side and right: the first channel holds left minus right.
-            for index in blockSize do
+            for index in blockSize
+            {
                 first[index] += second[index]
+            }
 
         default:
 
@@ -944,10 +1072,16 @@ private impl Codec
     {
         var reader = BitReader.create(packet)
         let header = try .readFrameHeader(&reader)
-        if header.channels > MaxChannels do
+        if header.channels > MaxChannels
+        {
             fail UnsupportedFormatError{"FLAC frame declares more than eight channels"}
-        if header.blockSize > 65535 do
+        }
+
+        if header.blockSize > 65535
+        {
             fail InvalidFormatError{"FLAC frame block size is out of range"}
+        }
+
         .reserveBlock(header.blockSize)
 
         for channel in header.channels
@@ -955,10 +1089,15 @@ private impl Codec
             // In a decorrelated pair, the channel holding the difference needs one more bit
             // than the frame declares to represent its full range.
             var depth = header.bitsPerSample
-            if (header.channelAssignment == 8 or header.channelAssignment == 10) and channel == 1 do
+            if (header.channelAssignment == 8 or header.channelAssignment == 10) and channel == 1
+            {
                 depth += 1
-            elif header.channelAssignment == 9 and not channel do
+            }
+            else if header.channelAssignment == 9 and not channel
+            {
                 depth += 1
+            }
+
             try .readSubframe(&reader, .channels[channel].storage(), header.blockSize, depth)
         }
 
@@ -1172,38 +1311,14 @@ private impl Codec
     mtd writePcm16(destination: [*] s16, header: FrameHeader)
     {
         let shift = cast(s32, header.bitsPerSample) - 16
-        if shift >= 0 and header.channels == 2
-        {
-            if shift == 16 and header.channelAssignment == 1 do
-                .interleaveStereoPcm16'(1'u32, true, true)(destination, header.blockSize, 16)
-            elif shift do
-                .writeStereoPcm16'true(destination, header, cast(u32, shift))
-            else do
-                .writeStereoPcm16'false(destination, header, 0)
-            return
-        }
-
-        if not shift and header.channels == 6
-        {
-            .writeSixChannelPcm16(destination, header.blockSize)
-            return
-        }
-
-        if not shift and header.channels == 1
-        {
-            .writeMonoPcm16(destination, header.blockSize)
-            return
-        }
-
-        .undecorrelate(header.channelAssignment, header.blockSize)
-        var index = 0'u64
+        var index = 0_u64
         for sample in header.blockSize
         {
             for channel in header.channels
             {
                 let value  = .channels[channel][sample]
                 var scaled = shift > 0 ? value >> cast(u32, shift) : value << cast(u32, -shift)
-                scaled = Math.clamp(scaled, -32768's64, 32767's64)
+                scaled = Math.clamp(scaled, -32768_s64, 32767_s64)
                 destination[index] = cast(s16, scaled)
                 index  += 1
             }
@@ -1214,10 +1329,16 @@ private impl Codec
     {
         let header   = try .decodeFrame(packet)
         let produced = cast(u64, header.blockSize) * cast(u64, header.channels) * #sizeof(s16)
-        if header.channels != .info.channels do
+        if header.channels != .info.channels
+        {
             fail InvalidFormatError{"FLAC frame channel count differs from its stream"}
-        if destinationSize < produced do
+        }
+
+        if destinationSize < produced
+        {
             fail BadParameterError{"FLAC destination buffer is too small"}
+        }
+
         .writePcm16(destination, header)
         return produced
     }
@@ -1239,16 +1360,20 @@ private impl Codec
         while offset < pages.count
         {
             let page = try Ogg.readPageHeader(pages, offset)
-            if page.totalBytes() > pages.count - offset do
+            if page.totalBytes() > pages.count - offset
+            {
                 fail InvalidFormatError{"Ogg FLAC page runs past the end of its packet group"}
+            }
+
             var at = offset + page.headerBytes
             offset += page.totalBytes()
-            if page.serial != .oggSerial do
+            if page.serial != .oggSerial
+            {
                 continue
+            }
 
-            var start = at
-            var skip  = page.sequence == .firstAudioSequence ? .headerPacketsOnAudioPage : 0'u32
-            for size in page.lacing[until page.segments]
+            var skip = page.sequence == .firstAudioSequence ? .headerPacketsOnAudioPage : 0_u32
+            for index in page.segments
             {
                 at += size
                 if size == 255 do
@@ -1256,12 +1381,21 @@ private impl Codec
 
                 if skip
                 {
-                    skip -= 1
+                    if size < 255
+                    {
+                        skip -= 1
+                    }
                 }
                 else
                 {
-                    var frame = pages[start until at]
-                    if not .oggFrame.isEmpty()
+                    // Native FLAC frames fit in STREAMINFO's 24-bit maximum frame size.
+                    if .oggFrame.count + size > 0xFF_FFFF
+                    {
+                        fail InvalidFormatError{"Ogg FLAC frame exceeds the FLAC frame-size limit"}
+                    }
+
+                    .oggFrame.add(pages[at until at + size])
+                    if size < 255
                     {
                         try .appendOggFrame(frame)
                         frame = .oggFrame.toSlice()
@@ -1278,8 +1412,11 @@ private impl Codec
                 try .appendOggFrame(pages[start until at])
         }
 
-        if not .oggFrame.isEmpty() do
+        if not .oggFrame.isEmpty()
+        {
             fail InvalidFormatError{"Ogg FLAC packet group ends inside a frame"}
+        }
+
         return produced
     }
 }
@@ -1304,8 +1441,11 @@ impl IPacketCodec for Codec
             try .readStreamInfo(config)
         }
 
-        if .info.sampleRate != sampleRateHz or .info.channels != channels do
+        if .info.sampleRate != sampleRateHz or .info.channels != channels
+        {
             fail InvalidFormatError{"FLAC stream information does not match its container track"}
+        }
+
         .reserveBlock(.info.maxBlockSize)
     }
 
@@ -1314,8 +1454,11 @@ impl IPacketCodec for Codec
     mtd impl decodePacket(destination: [*] void, destinationSize: u64, packet: const [..] u8)->u64 fail
     {
         let pcm = cast([*] s16, destination)
-        if .inOgg do
+        if .inOgg
+        {
             return try .decodeOggRun(pcm, destinationSize, packet)
+        }
+
         return try .decodePcm(pcm, destinationSize, packet)
     }
 }
@@ -1326,19 +1469,24 @@ impl IPacketCodec for Codec
 // the frame header rather than decoding the frame.
 internal func packetFrameCount(packet: const [..] u8)->u32 fail
 {
-    if packet.count < 5 do
+    if packet.count < 5
+    {
         fail InvalidFormatError{"FLAC frame is truncated"}
-    if packet[0] != 0xFF or (packet[1] & 0xFC) != 0xF8 do
+    }
+
+    if packet[0] != 0xFF or (packet[1] & 0xFC) != 0xF8
+    {
         fail InvalidFormatError{"FLAC frame has no sync code"}
+    }
 
     let blockSizeCode = cast(u32, (packet[2] >> 4))
     switch blockSizeCode
     {
     case 0:          fail InvalidFormatError{"FLAC frame uses the reserved block size code"}
     case 1:          return 192
-    case 2, 3, 4, 5: return 576'u32 << (blockSizeCode - 2)
+    case 2, 3, 4, 5: return 576_u32 << (blockSizeCode - 2)
     case 6, 7:       break
-    default:         return 256'u32 << (blockSizeCode - 8)
+    default:         return 256_u32 << (blockSizeCode - 8)
     }
 
     // The block size is stated after the frame number, whose leading byte gives its length.
@@ -1346,29 +1494,47 @@ internal func packetFrameCount(packet: const [..] u8)->u32 fail
     discard reader.read(32)
 
     let lead       = reader.read(8)
-    var extraBytes = 0'u32
-    if lead >= 0xFE do
+    var extraBytes = 0_u32
+    if lead >= 0xFE
+    {
         extraBytes = 6
-    elif lead >= 0xFC do
+    }
+    else if lead >= 0xFC
+    {
         extraBytes = 5
-    elif lead >= 0xF8 do
+    }
+    else if lead >= 0xF8
+    {
         extraBytes = 4
-    elif lead >= 0xF0 do
+    }
+    else if lead >= 0xF0
+    {
         extraBytes = 3
-    elif lead >= 0xE0 do
+    }
+    else if lead >= 0xE0
+    {
         extraBytes = 2
-    elif lead >= 0xC0 do
+    }
+    else if lead >= 0xC0
+    {
         extraBytes = 1
-    for extraBytes do
+    }
+
+    for extraBytes
+    {
         discard reader.read(8)
+    }
 
     let blockSize = blockSizeCode == 6 ? reader.read(8) + 1 : reader.read(16) + 1
-    if reader.overran do
+    if reader.overran
+    {
         fail InvalidFormatError{"FLAC frame header is truncated"}
+    }
+
     return blockSize
 }
 
 #init
 {
-    registerPacketCodec'Codec()
+    registerPacketCodec!{Codec}()
 }

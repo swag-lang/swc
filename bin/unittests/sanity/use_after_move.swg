@@ -172,8 +172,10 @@ var g_takeBranch = false
 {
     var a = UamItem{x: 1}
     var b: UamItem
-    if g_takeBranch do
+    if g_takeBranch
+    {
         b = #relocate a
+    }
     Swag.require(a.x == 1)
 }
 

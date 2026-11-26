@@ -27,9 +27,15 @@ func sourceFileError(release: bool)->s32
 {
     let pointer = allocateWarningProbe()
     pointer[] = 42
-    if release do releaseWarningProbe(pointer)
+    if release
+    {
+        releaseWarningProbe(pointer)
+    }
     let result = pointer[]     // swc-expected-error {{sanity_warn_possible_use_after_free}}
-    if not release do releaseWarningProbe(pointer)
+    if not release
+    {
+        releaseWarningProbe(pointer)
+    }
     return result
 }
 

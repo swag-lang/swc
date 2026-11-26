@@ -8,8 +8,8 @@ func isNonzero32(values: [*] u32, index: u64)->u32 => cast(u32, (values[index] !
 
 #test
 {
-    var values64 = [0'u64, 1, 0x8000000000000000, 0xFFFFFFFFFFFFFFFF]
-    var values32 = [0'u32, 1, 0x80000000, 0xFFFFFFFF]
+    var values64 = [0_u64, 1, 0x8000000000000000, 0xFFFFFFFFFFFFFFFF]
+    var values32 = [0_u32, 1, 0x80000000, 0xFFFFFFFF]
     for i in values64.count
     {
         Swag.require(isZero64(&values64[0], i) == cast(u64, (values64[i] == 0)))

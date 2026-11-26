@@ -12,8 +12,8 @@ impl Decoder
     #[Discardable]
     mtd getBits1(numBits: s32)->u32
     {
-        let i = .bitBuf >> cast(u32, (16 - numBits)) & ((1'u32 << cast(u32, numBits)) - 1)
-        .lastBitsSynthetic = ((.bitSyntheticMask >> cast(u32, (16 - numBits))) & ((1'u32 << cast(u32, numBits)) - 1)) != 0
+        let i = .bitBuf >> cast(u32, (16 - numBits)) & ((1_u32 << cast(u32, numBits)) - 1)
+        .lastBitsSynthetic = ((.bitSyntheticMask >> cast(u32, (16 - numBits))) & ((1_u32 << cast(u32, numBits)) - 1)) != 0
         .bitsLeft -= numBits
         if .bitsLeft <= 0
         {
@@ -27,8 +27,8 @@ impl Decoder
 
             .bitBuf = (.bitBuf & 0xFFFF) | (cast(u32, c1) << 24) | (cast(u32, c2) << 16)
             .bitSyntheticMask = (.bitSyntheticMask & 0xFFFF) |
-                                (c1Synthetic ? 0xFF000000'u32 : 0) |
-                                (c2Synthetic ? 0x00FF0000'u32 : 0)
+                                (c1Synthetic ? 0xFF000000_u32 : 0) |
+                                (c2Synthetic ? 0x00FF0000_u32 : 0)
             let refillShift = cast(u32, -.bitsLeft)
             .bitBuf           = rol(.bitBuf, refillShift)
             .bitSyntheticMask = rol(.bitSyntheticMask, refillShift)
@@ -46,11 +46,18 @@ impl Decoder
     // A marker read starts from the byte stream, with provenance for its own lookahead.
     mtd primeMarkerBits()
     {
-        .bitSyntheticMask = 0
-        .bitsLeft         = 16
-        .getBits1(16)
-        .getBits1(16)
-    }
+        let count = cast(u32, numBits)
+        let bits  = (.bitBuf >> (16 - count)) & ((1_u32 << count) - 1)
+        .bitsLeft -= numBits
+        if .bitsLeft <= 0
+        {
+            .refillEntropyBits(numBits)
+        }
+        else
+        {
+            .bitBuf = rol(.bitBuf, count)
+            .bitSyntheticMask = rol(.bitSyntheticMask, count)
+        }
 
     // The next bit is always in the high lane. Keep sixteen bits available for the next code.
     #[Swag.Inline]
@@ -107,10 +114,14 @@ impl Decoder
             }
         }
 
-        word = .getOctet()
-        for 3 do
-            word = (word << 8) | .getOctet()
-        return word
+        .bitBuf = (.bitBuf & 0xFFFF) | (c1 << 24) | (c2 << 16)
+        .bitSyntheticMask = (.bitSyntheticMask & 0xFFFF) |
+                            (c1Synthetic ? 0xFF000000_u32 : 0) |
+                            (c2Synthetic ? 0x00FF0000_u32 : 0)
+        let refillShift = cast(u32, -.bitsLeft)
+        .bitBuf           = rol(.bitBuf, refillShift)
+        .bitSyntheticMask = rol(.bitSyntheticMask, refillShift)
+        .bitsLeft         += 16
     }
 
     mtd getOctet()->u8
@@ -119,8 +130,10 @@ impl Decoder
         var c = .getChar(&paddingFlag)
         if c == 0xFF
         {
-            if paddingFlag do
+            if paddingFlag
+            {
                 return 0xFF
+            }
 
             c = .getChar(&paddingFlag)
             if paddingFlag
@@ -129,8 +142,10 @@ impl Decoder
                 return 0xFF
             }
 
-            if c == 0x00 do
+            if c == 0x00
+            {
                 return 0xFF
+            }
 
             .stuffChar(cast(u8, c))
             .stuffChar(0xFF)
@@ -151,8 +166,11 @@ impl Decoder
                 .lastCharSynthetic = true
                 let t = .temFlag
                 .temFlag ^= 1
-                if t do
+                if t
+                {
                     return 0xD9
+                }
+
                 return 0xFF
             }
         }
@@ -176,8 +194,11 @@ impl Decoder
                 .lastCharSynthetic = true
                 let t = .temFlag
                 .temFlag ^= 1
-                if t do
+                if t
+                {
                     return 0xD9
+                }
+
                 return 0xFF
             }
         }
@@ -209,8 +230,10 @@ impl Decoder
             while c == 0xFF
             {
                 c = .getBits1(8)
-                if c == 0xFF do
+                if c == 0xFF
+                {
                     prefixSynthetic = .lastBitsSynthetic
+                }
             }
         }
 
@@ -247,10 +270,14 @@ impl Decoder
                 try .readDriMarker()
 
             default:
-                if cast(u32, c) & cast(u32, M_APP0) == cast(u32, M_APP0) do
+                if cast(u32, c) & cast(u32, M_APP0) == cast(u32, M_APP0)
+                {
                     try .readAppMarker(c)
-                else do
+                }
+                else
+                {
                     try .readVariableMarker(c)
+                }
             }
         }
 
@@ -260,8 +287,11 @@ impl Decoder
     mtd readVariableMarker(_: Marker) fail
     {
         var left = .getBits1(16)
-        if left < 2 do
+        if left < 2
+        {
             fail InvalidFormatError{"bad variable marker"}
+        }
+
         left -= 2
 
         Swag.assert(not .acceptMetadata)
@@ -322,8 +352,11 @@ impl Decoder
         var huffValt: [256] u8
 
         var left = .getBits1(16)
-        if left < 2 do
+        if left < 2
+        {
             fail InvalidFormatError{"bad dht marker"}
+        }
+
         left -= 2
 
         while left
@@ -335,11 +368,21 @@ impl Decoder
             for i in 1 to 16 do
                 count += huffNumt[i]
 
-            if count > 255 do
+            if count > 255
+            {
                 fail InvalidFormatError{"bad dht counts"}
-            let size = 1 + 16 + count
-            if left < size do
+            }
+
+            for i in count
+            {
+                huffValt[i] = cast(u8, .getBits1(8))
+            }
+
+            let i = 1 + 16 + count
+            if left < i
+            {
                 fail InvalidFormatError{"bad dht marker"}
+            }
 
             left -= size
             let tableClass = index >> 4
@@ -366,8 +409,11 @@ impl Decoder
     mtd readDqtMarker() fail
     {
         var left = .getBits1(16)
-        if left < 2 do
+        if left < 2
+        {
             fail InvalidFormatError{"bad dqt marker"}
+        }
+
         left -= 2
 
         while left
@@ -375,8 +421,10 @@ impl Decoder
             var n    = .getBits1(8)
             let prec = n >> 4
             n &= 0x0F
-            if n >= MaxQuantTables do
+            if n >= MaxQuantTables
+            {
                 fail InvalidFormatError{"bad dqt table"}
+            }
 
             .quant[n].resize(64)
             let qbuf   = .quant[n].storage()
@@ -423,53 +471,75 @@ impl Decoder
 
     mtd readDriMarker() fail
     {
-        if .getBits1(16) != 4 do
+        if .getBits1(16) != 4
+        {
             fail InvalidFormatError{"bad dri length"}
+        }
+
         .restartInterval = .getBits1(16)
     }
 
     mtd readSofMarker() fail
     {
         let left = .getBits1(16)
-        if .getBits1(8) != 8 do
+        if .getBits1(8) != 8
+        {
             fail InvalidFormatError{"bad precision"}
+        }
 
         .imageSizeY = .getBits1(16)
         .imageSizeX = .getBits1(16)
 
-        if .imageSizeY == 0 do
+        if .imageSizeY == 0
+        {
             fail InvalidFormatError{"bad height"}
-        if .imageSizeX == 0 do
+        }
+
+        if .imageSizeX == 0
+        {
             fail InvalidFormatError{"bad width"}
+        }
 
         .compsInFrame = .getBits1(8)
-        if .compsInFrame > MaxComponents do
+        if .compsInFrame > MaxComponents
+        {
             fail InvalidFormatError{"too many components"}
-        if left != (.compsInFrame * 3 + 8) do
+        }
+
+        if left != (.compsInFrame * 3 + 8)
+        {
             fail InvalidFormatError{"bad sof length"}
+        }
 
         for i in .compsInFrame
         {
             .compIdent[i] = .getBits1(8)
             for prior in i
             {
-                if .compIdent[prior] == .compIdent[i] do
+                if .compIdent[prior] == .compIdent[i]
+                {
                     fail InvalidFormatError{"JPEG frame component identifiers are duplicated"}
+                }
             }
 
             .compSampH[i] = .getBits1(4)
             .compSampV[i] = .getBits1(4)
             .compQuant[i] = .getBits1(8)
-            if .compSampH[i] < 1 or .compSampH[i] > 4 or .compSampV[i] < 1 or .compSampV[i] > 4 do
+            if .compSampH[i] < 1 or .compSampH[i] > 4 or .compSampV[i] < 1 or .compSampV[i] > 4
+            {
                 fail InvalidFormatError{"JPEG component sampling factors accept values from 1 through 4"}
+            }
         }
     }
 
     mtd readAppMarker(marker: Marker) fail
     {
         var left = .getBits1(16)
-        if left < 2 do
+        if left < 2
+        {
             fail InvalidFormatError{"Bad app marker"}
+        }
+
         left -= 2
 
         var prefix:      [12] u8
@@ -488,45 +558,17 @@ impl Decoder
 
             if .decOptions.decodeMetadata
             {
-                let separator = Slice.findLinear(payload, 0'u8)
-                if separator < left
+                if not inValue and c == 0
                 {
-                    meta.tag.add(payload[until separator])
-                    meta.value.add(payload[separator + 1 to])
+                    inValue = true
+                }
+                else if inValue
+                {
+                    meta.value.add(c)
                 }
                 else
                 {
-                    meta.tag.add(payload)
-                }
-            }
-
-            .streamSeek     = offset + cast(s32, left)
-            .totalBytesRead = .streamSeek
-            .eofReached     = 0
-            .prepareInBuffer()
-            .primeMarkerBits()
-        }
-        else
-        {
-            while left
-            {
-                let c = cast(u8, .getBits1(8))
-                left -= 1
-
-                if prefixCount < prefix.count
-                {
-                    prefix[prefixCount] = c
-                    prefixCount         += 1
-                }
-
-                if .decOptions.decodeMetadata
-                {
-                    if not inValue and c == 0 do
-                        inValue = true
-                    elif inValue do
-                        meta.value.add(c)
-                    else do
-                        meta.tag.add(c)
+                    meta.tag.add(c)
                 }
             }
         }
@@ -554,8 +596,10 @@ impl Decoder
             .adobeTransform = prefix[11]
         }
 
-        if .decOptions.decodeMetadata do
+        if .decOptions.decodeMetadata
+        {
             .metadata.add(meta)
+        }
     }
 
     mtd readSosMarker() fail
@@ -565,8 +609,10 @@ impl Decoder
         .compsInScan = n
         left         -= 3
 
-        if (left != (n * 2 + 3)) or (n < 1) or (n > MaxCompsInScan) do
+        if (left != (n * 2 + 3)) or (n < 1) or (n > MaxCompsInScan)
+        {
             fail InvalidFormatError{"bad sos length"}
+        }
 
         for i in n
         {
@@ -577,23 +623,33 @@ impl Decoder
             var ci = 0
             while ci < .compsInFrame
             {
-                if cc == .compIdent[ci] do
+                if cc == .compIdent[ci]
+                {
                     break
+                }
+
                 ci += 1
             }
 
-            if ci >= .compsInFrame do
+            if ci >= .compsInFrame
+            {
                 fail InvalidFormatError{"bad sos comp id"}
+            }
+
             for prior in i
             {
-                if .compList[prior] == cast(u32, ci) do
+                if .compList[prior] == cast(u32, ci)
+                {
                     fail InvalidFormatError{"JPEG scan component identifiers are duplicated"}
+                }
             }
 
             let dcTable = (c >> 4) & 15
             let acTable = c & 15
-            if dcTable >= (MaxHuffTables >> 1) or acTable >= (MaxHuffTables >> 1) do
+            if dcTable >= (MaxHuffTables >> 1) or acTable >= (MaxHuffTables >> 1)
+            {
                 fail InvalidFormatError{"JPEG scan Huffman table identifiers must be from 0 through 3"}
+            }
 
             .compList[i]   = ci
             .compDcTab[ci] = dcTable
@@ -622,10 +678,15 @@ impl Decoder
     mtd locateSosMarker()->bool fail
     {
         let c = try .processMarkers()
-        if c == .M_EOI do
+        if c == .M_EOI
+        {
             return false
-        elif c != .M_SOS do
+        }
+        else if c != .M_SOS
+        {
             fail InvalidFormatError{"unexpected marker"}
+        }
+
         try .readSosMarker()
         return true
     }
@@ -634,23 +695,33 @@ impl Decoder
     {
         var lastRune = .getBits1(8)
         var thisChar = .getBits1(8)
-        if (lastRune == 0xFF) and (thisChar == Marker.M_SOI) do
+        if (lastRune == 0xFF) and (thisChar == Marker.M_SOI)
+        {
             return
+        }
+
         var bytesLeft = 512
         for
         {
             bytesLeft -= 1
-            if bytesLeft == 0 do
+            if bytesLeft == 0
+            {
                 fail InvalidFormatError{"not a jpeg"}
+            }
+
             lastRune = thisChar
             thisChar = .getBits1(8)
-            if (lastRune == 0xFF) and (thisChar == Marker.M_SOI) do
+            if (lastRune == 0xFF) and (thisChar == Marker.M_SOI)
+            {
                 break
+            }
         }
 
         thisChar = (.bitBuf >> 8) & 0xFF
-        if thisChar != 0xFF do
+        if thisChar != 0xFF
+        {
             fail InvalidFormatError{"not a jpeg"}
+        }
     }
 
     mtd locateSofMarker() fail
@@ -689,8 +760,10 @@ impl Decoder
         let start = cast([*] u8, &.inBuf[PushbackBytes])
         .inBufLeft = 0
         .inBufOfs  = start
-        if .eofReached do
+        if .eofReached
+        {
             return
+        }
 
         for
         {
@@ -705,8 +778,10 @@ impl Decoder
             Memory.copy(start + .inBufLeft, unwrap .stream + .streamSeek, cast(u64, size))
             .streamSeek += size
             .inBufLeft  += bytesRead
-            if .inBufLeft >= InBufSize or .eofReached do
+            if .inBufLeft >= InBufSize or .eofReached
+            {
                 break
+            }
         }
 
         .totalBytesRead += .inBufLeft

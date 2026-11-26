@@ -22,8 +22,8 @@ struct Document
 {
     public
     {
-        metadata:       Metadata       // Descriptive document fields.
-        readonly pages: Array'Page     // Pages in display order.
+        metadata:       Metadata         // Descriptive document fields.
+        readonly pages: Array!{Page}     // Pages in display order.
     }
 }
 
@@ -94,7 +94,7 @@ impl Document
     // compressed content and image streams, with eligible JPEG streams retained in
     // their source format. It fails when text cannot be represented
     // by the writer's Windows-1252 encoding with the standard PDF faces.
-    mtd const encode()->Array'u8 fail
+    mtd const encode()->Array!{u8} fail
     {
         return try encodeDocument(me)
     }

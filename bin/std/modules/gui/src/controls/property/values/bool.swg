@@ -5,19 +5,28 @@ internal impl Properties
         if item.checkBox != null
         {
             // Multi-selection: a disagreeing bool shows as the indeterminate (mixed) mark.
-            if .fieldIsMixed(item) do
+            if .fieldIsMixed(item)
+            {
                 item.checkBox.setState(.Indeterminate)
-            else do
+            }
+            else
+            {
                 item.checkBox.setState(cast(const *bool, unwrap item.data)[] ? .Checked : .Unchecked)
+            }
+
             item.checkBox.invalidate()
         }
-        elif item.comboBox != null
+        else if item.comboBox != null
         {
             // Multi-selection: clear the selection when the instances disagree.
-            if .fieldIsMixed(item) do
+            if .fieldIsMixed(item)
+            {
                 item.comboBox.clearSelection(notify: false)
-            else do
+            }
+            else
+            {
                 item.comboBox.setSelectedIndex(cast(const *bool, unwrap item.data)[] ? 1 : 0, notify: false)
+            }
         }
     }
 
@@ -28,12 +37,15 @@ internal impl Properties
         {
             data[] = item.checkBox.isChecked()
         }
-        elif item.comboBox != null
+        else if item.comboBox != null
         {
             // A deselected combo means "mixed" was just shown: nothing to write.
             let sel = item.comboBox.selectedIndex
-            if sel > 1 do
+            if sel > 1
+            {
                 return
+            }
+
             data[] = sel == 1
         }
 
@@ -44,8 +56,10 @@ internal impl Properties
     // the width for them: every entry is then on screen and one click away.
     mtd segmentSmallChoice(combo: *ComboBox)
     {
-        if (.kind == .Panel or .kind == .Grid) and combo.items.count <= MaxSegmentedEntries do
+        if (.kind == .Panel or .kind == .Grid) and combo.items.count <= MaxSegmentedEntries
+        {
             combo.updateFlags(.Segmented)
+        }
     }
 
     // Bool shown as a two-entries combo (the BoolCombo attribute): 'off' labels false,
@@ -56,8 +70,11 @@ internal impl Properties
 
         if .kind == .Panel
         {
-            if item.label != null do
+            if item.label != null
+            {
                 item.label.hide()
+            }
+
             with let ctrl = ComboCtrl.create(item.line, itemDisplayName(value).toString())
             {
                 .anchorStyle = .Right
@@ -69,15 +86,22 @@ internal impl Properties
         else
         {
             var editWidth = cast(f32, Reflection.attributeValue(value, me.EditSize, "size", me.editorWidth))
-            if not .isGridLike() do
+            if not .isGridLike()
+            {
                 editWidth = .listContentWidthFromUseful(editWidth)
+            }
+
             with let ed = ComboBox.create(item.line)
             {
                 .maxSize.x = editWidth
-                if me.isGridLike() do
+                if me.isGridLike()
+                {
                     .dockStyle = .CenterKeepSizeVert
-                else do
+                }
+                else
+                {
                     .preferredSize.x = editWidth
+                }
             }
 
             me.adaptCondensedCombo(item, ed)
@@ -105,8 +129,11 @@ internal impl Properties
         if .kind == .Panel
         {
             let itemP = .addItem(value, data, parentItem)
-            if itemP.label != null do
+            if itemP.label != null
+            {
                 itemP.label.hide()
+            }
+
             with let ed = CheckButton.create(itemP.line, itemDisplayName(value).toString())
             {
                 .anchorStyle = .Right
@@ -123,24 +150,33 @@ internal impl Properties
         let item = .addItem(value, data, parentItem, flags: PropertiesAddItemFlags.Name)
 
         var editWidth = cast(f32, Reflection.attributeValue(value, me.EditSize, "size", me.editorWidth))
-        if not .isGridLike() do
+        if not .isGridLike()
+        {
             editWidth = .listContentWidthFromUseful(editWidth)
+        }
+
         let metrics    = .themeMetrics()
         let lineHeight = .kind == .Condensed ? PropCondensedControlHeight : metrics.btnPush_Height
-        let line       = Wnd.create'Wnd(item.line, Math.Rectangle{0, 0, editWidth, lineHeight})
+        let line       = Wnd.create!{Wnd}(item.line, Math.Rectangle{0, 0, editWidth, lineHeight})
 
         // Grid cell: the check line is capped to the value column. List rows let it span
         // the whole row so the side description wraps over the full control width.
-        if .isGridLike() do
+        if .isGridLike()
+        {
             line.maxSize.x = editWidth
+        }
 
         // Grid rows are single-line: center the editor vertically in the cell. List
         // rows stack the check line under the name label and stretch it over the row
         // width (the side description wraps over the whole control).
-        if .isGridLike() do
+        if .isGridLike()
+        {
             line.dockStyle = .CenterKeepSizeVert
-        else do
+        }
+        else
+        {
             line.layoutSpec.alignX = .Stretch
+        }
 
         if item.label == null
         {

@@ -299,7 +299,7 @@ with exactly one language and keeps deliberately.
   function. Produce a checked migration for calls whose target would change.
 - Done when: introducing a free function or import cannot redirect an existing receiver-method
   call, and a caller can still choose the free function explicitly.
-- Related: language.design.050, language.design.064, compiler.query.002.
+- Related: language.design.050, compiler.query.002.
 
 ### language.design.052 — Choose a consistent half-open convention for collection APIs
 
@@ -585,60 +585,6 @@ with exactly one language and keeps deliberately.
 - Done when: the reflected-field transformation uses checked declarations, errors identify both the
   generator and source member, and the implementation does not add a competing macro language.
 
-### language.design.064 — Choose one canonical instance-method declaration
-
-- Evidence: the [impl reference](../bin/reference/modules/language/src/006_002_impl.swg)
-  explicitly equates mtd f() with func f(me), and mtd const with an explicit const receiver.
-  [FileStream](../bin/std/modules/core/src/filesystem/filestream.swg) uses func isOpen(const me)
-  beside mtd declarations. Both forms already work; this is a syntax simplification proposal,
-  not missing methods, named receivers or UFCS.
-- Proposed contract: one canonical declaration should tell the reader whether there is an
-  instance receiver and whether it is mutable. Keep associated functions without a receiver
-  and ordinary [UFCS functions](../bin/reference/modules/language/src/007_006_ufcs.swg) distinct:
-  a function taking an ordinary typed first argument does not become an instance declaration
-  merely because it can be called with dot syntax.
-- Decisions: compare a single func form with an explicit receiver against mtd as the sole
-  instance shorthand. Preserve a way to name the receiver when that helps nested with blocks;
-  compare total syntax and semantic cases, not keyword count alone. Include const receivers,
-  generic methods, interface implementations, special operators and reflected method signatures.
-- Elsewhere: Rust [associated functions and methods](https://doc.rust-lang.org/reference/items/associated-items.html#methods)
-  use a receiver parameter to distinguish methods. That shows one possible distinction, not a
-  reason to discard Swag's existing receiver semantics or UFCS.
-- Next: inventory both spellings and translate representative FileStream, collection and GUI
-  methods into each candidate. Choose one complete declaration grammar and a semantic migration
-  which preserves overloads, visibility, receiver mutability and method reflection.
-- Done when: one receiver grammar is selected and applied across compiler/reference/editor
-  and bin/ without a permanent synonym, or a measured comparison rejects the simplification and
-  this entry is removed rather than left as an indefinite style preference.
-
-### language.design.065 — The apostrophe carries three unrelated roles
-
-- Evidence: `'` opens a character literal, introduces a literal suffix, and introduces a generic
-  argument list. Which one applies depends on the token *before* it
-  ([003_003_string.swg](../bin/reference/modules/language/src/003_003_string.swg)),
-  so `5's32`, `genericTwice's64(12)`, `floatWindow.at'1()`, `Duration = 500'ms` and `'a'` all use
-  the same character across those three roles — and a user-defined literal suffix
-  ([006_010_custom_literals.swg](../bin/reference/modules/language/src/006_010_custom_literals.swg))
-  makes the suffix set open, so `x'foo` cannot be read without knowing what `x` is. Blanks do not
-  disambiguate: `5 's32` is the suffixed literal, not `5` followed by a character.
-- Evidence: `let spaced = 5 's32` yields 5 as an `s32`; `idOf's32(7)` is a generic call and reads
-  like a suffixed identifier; `' 'u32` is a space literal followed by a suffix.
-- Elsewhere: Rust also overloads the apostrophe, distinguishing character literals from lifetime tokens
-  ([Rust tokens](https://doc.rust-lang.org/reference/tokens.html)). This is a lexer comparison,
-  not evidence that Swag must change its generic delimiter.
-- Proposed contract: If paired generation and refactoring tasks show a benefit, use a delimited
-  generic-argument form distinguishable from character literals and
-  numeric/unit suffixes. This is a readability/syntax proposal, not a missing generics feature or
-  an unresolved coloring bug. Compare angle brackets with another dedicated delimiter rather
-  than assuming familiar punctuation has no parse cost.
-- Next: Translate Array'u8, HashTable'(K, V), genericTwice's64(12), and value arguments such as
-  at'1() into each candidate. Test nesting, comparisons/shifts next to generic calls, inferred
-  arguments, formatting and incomplete editor input. Select one spelling and an AST-based
-  migration; literal suffixes and character literals must retain an independent grammar.
-- Done when: repo.tooling.013 settles whether a new delimiter reduces mistakes. If adopted,
-  the parser, formatter, reference and editor agree on one spelling, including nested and
-  value arguments.
-
 ### language.design.066 — `[2, 2] T` and `[2][2] T` are different types indexed the same way
 
 - Evidence: the two spellings produce unrelated types that do not convert to each other, and the
@@ -661,39 +607,3 @@ with exactly one language and keeps deliberately.
 - Done when: both multidimensional-array forms are measured in implementation and public APIs,
   and their compatibility or intentionally distinct use-site contract is documented and enforced.
 
-### language.design.067 — Use one spelling for chained conditions
-
-- Evidence: Swag spells a continuation `elif` in both ordinary and `#static if` chains.
-  The parser already represents each continuation as another conditional in the else slot.
-  `else if` currently lacks that same grammar, and `else do if` is parsed as an embedded
-  statement. A word search finds about 1,900 `elif` occurrences across 530 Swag files in `bin/`,
-  including the bootstrap runtime.
-- Proposed contract: compare one canonical `else if` spelling with the existing `elif`.
-  In the prototype `else if` continues the same chain and uses the same scope and guard rules
-  in both phases. An explicitly braced `else` containing an `if` remains a nested statement.
-- Next: prototype `else if` in the runtime and compiler parsers and migrate a representative
-  slice with the formatter, including comments between branches and `#static` declarations.
-  Compare syntax-repair rate and task success on repo.tooling.013; record the source migration
-  and old-compiler bootstrap cost before choosing one spelling.
-- Done when: one spelling is selected; if it changes, ordinary, binding and compile-time
-  chains preserve branch order, short-circuiting, name visibility and formatter behavior.
-
-### language.design.068 — Use one delimiter for control bodies
-
-- Evidence: `if`, `while`, `for` and `#static if` accept a braced body or `do` followed by
-  one statement or declaration. `do` followed by braces is diagnosed, except when the braces
-  open a destructuring assignment. The parser has separate runtime and compile-time entry
-  points, and the formatter has a branch-body uniformity option. A word search finds about
-  31,500 `do` occurrences across 2,825 Swag files in `bin/`.
-- Proposed contract: compare braced control bodies with the current two forms, including a
-  compact `{ statement }` layout for simple guards. Use an explicit inner block for constructs
-  that need one. Classify trailing code passed to macros and single-statement forms on `with`
-  and `defer` before deciding which grammar the rule covers.
-- Next: prototype a syntax-aware `do`-to-brace rewrite for guards, loops and top-level
-  `#static if`. Keep a destructuring assignment inside its new body, as in
-  `{ {field: target} = record }`. Check bindings, scope and cleanup order, `break` and
-  `continue`, comments and generated source. Compare edit reliability on repo.tooling.013 and report
-  source growth and formatter stability before selecting a syntax.
-- Done when: one rule for supported control bodies is selected from those results, with
-  a verified syntax migration and consistent parser, formatter, reference and editor behavior
-  if the rule changes.

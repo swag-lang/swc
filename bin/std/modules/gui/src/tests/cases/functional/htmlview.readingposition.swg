@@ -6,8 +6,11 @@ using Core, Pixel
 func readingPositionText()->String
 {
     var result: String = "<html><body><h1>A reading position</h1><p>"
-    for 500 do
+    for 500
+    {
         result += "A long paragraph keeps words together while typography and width change. "
+    }
+
     result += "</p><p>After the paragraph.</p></body></html>"
     return result
 }
@@ -22,8 +25,11 @@ func assertReadingPassage(view: *HtmlView, position: HtmlReadingPosition)
                                     item.sourceStart <= position.textOffset and
                                     item.sourceEnd > position.textOffset
         {
-            if view.document.constNode(item.node).sourceOffset != position.sourceOffset do
+            if view.document.constNode(item.node).sourceOffset != position.sourceOffset
+            {
                 continue
+            }
+
             let expected = item.y + Math.max(item.ascent + item.descent, 1) * position.lineFraction
             Swag.require(Math.abs(view.scroll.scrollPosition().y - expected) < 1)
             found = true
@@ -80,8 +86,11 @@ func assertReadingPassage(view: *HtmlView, position: HtmlReadingPosition)
 #test
 {
     var source: String = "<html><body>"
-    for index in 80 do
+    for index in 80
+    {
         source += Format.toString("<p>Passage % — Un café &amp; une pensée. <b>Continue reading.</b></p>", index)
+    }
+
     source += "</body></html>"
     var host: Testing.HeadlessHost
     host.setup(760, 450)

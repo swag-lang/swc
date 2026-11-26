@@ -39,11 +39,14 @@ using Core, Gui, Pixel, Video
     explorer.setMode(.Large)
     journey.waitFor("short recording in online posters", func|explorer|()->bool
     {
-        for &entry in explorer.entries where Path.hasExtension(entry.path, ".y4m") do
+        for &entry in explorer.entries where Path.hasExtension(entry.path, ".y4m")
+        {
             return entry.texture.isValid() and
                    entry.duration == 1 and
                    not entry.onlinePending and
                    entry.movie.title.isEmpty()
+        }
+
         return false
     })
     let caption = unwrap window.privacy.caption

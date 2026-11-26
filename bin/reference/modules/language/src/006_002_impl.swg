@@ -34,8 +34,9 @@ To access the constant or the function, use the 'MyStruct' namespace.
 /**
 # Multiple 'impl' Blocks
 
-Swag allows multiple 'impl' blocks for the same struct. Inside methods,
-'me' refers to the current instance. You can also name the receiver explicitly.
+Swag allows multiple 'impl' blocks for the same struct. Inside a method, `me` refers to the
+current instance. A regular function in an `impl` can take an explicit receiver and be called
+with UFCS, but it remains a function rather than a method.
 */
 
 impl MyStruct
@@ -49,17 +50,16 @@ impl MyStruct
 }
 
 /**
-# Method Syntax Sugar
+# Method Declarations
 
-Using 'mtd' makes the first parameter implicitly 'me'.
-Using 'mtd const' makes it 'const me'. This simplifies common patterns.
+Declare instance methods with `mtd`; the compiler supplies the `me` receiver. Use `mtd const` for
+a read-only receiver. A `func` that takes `me` remains an ordinary UFCS function.
 */
 
 impl MyStruct
 {
-    mtd methodReturnX()  => me.x     // Equivalent to 'func methodReturnX(me) => me.x'
-    func funcReturnX(me) => me.x
-    func funcReturnY(me) => .x     // 'me' can be omitted
+    mtd methodReturnX() => me.x
+    mtd methodReturnY() => .x
 }
 
 #test
@@ -67,9 +67,9 @@ impl MyStruct
     var c: MyStruct
 
     Swag.require(c.returnX() == 5)
-    Swag.require(c.methodReturnX() == 5)
-    Swag.require(c.funcReturnX() == 5)
     Swag.require(c.returnY() == 10)
+    Swag.require(c.methodReturnX() == 5)
+    Swag.require(c.methodReturnY() == 5)
     Swag.require(c.returnZ() == 20)
 }
 

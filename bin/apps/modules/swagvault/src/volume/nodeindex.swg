@@ -20,10 +20,10 @@ struct NodeIndexSiblingLinks
 // order, so listing a directory never depends on how many nodes the volume holds.
 struct NodeIndex
 {
-    byId:       HashTable'(u64, u64)                       // Position of each node in the node table.
-    byParent:   HashTable'(String, u64)                    // Node of each lowercased name, per directory.
-    childLists: HashTable'(u64, NodeIndexChildList)        // Children of each non-empty directory.
-    siblings:   HashTable'(u64, NodeIndexSiblingLinks)     // Neighbours of each node except the root.
+    byId:       HashTable!{u64, u64}                       // Position of each node in the node table.
+    byParent:   HashTable!{String, u64}                    // Node of each lowercased name, per directory.
+    childLists: HashTable!{u64, NodeIndexChildList}        // Children of each non-empty directory.
+    siblings:   HashTable!{u64, NodeIndexSiblingLinks}     // Neighbours of each node except the root.
 }
 
 impl NodeIndex
@@ -42,15 +42,24 @@ impl NodeIndex
     // already taken in its directory.
     mtd add(node: *Node, index: u64)->bool
     {
-        if not node.id do
+        if not node.id
+        {
             return false
-        if .byId.contains(node.id) do
+        }
+
+        if .byId.contains(node.id)
+        {
             return false
+        }
+
         if node.id != RootNodeId
         {
             let key = childKey(node.parentId, node.name)
-            if .byParent.contains(key) do
+            if .byParent.contains(key)
+            {
                 return false
+            }
+
             .byParent.add(#move key, node.id)
 
             let children = .childLists.findOrAdd(node.parentId)
@@ -79,8 +88,10 @@ impl NodeIndex
     mtd remove(node: *Node)
     {
         .byId.remove(node.id)
-        if node.id == RootNodeId do
+        if node.id == RootNodeId
+        {
             return
+        }
 
         .byParent.remove(childKey(node.parentId, node.name))
         let links    = .siblings.tryFind(node.id)
@@ -112,8 +123,10 @@ impl NodeIndex
         }
 
         .siblings.remove(node.id)
-        if not children.value.firstId do
+        if not children.value.firstId
+        {
             .childLists.remove(node.parentId)
+        }
     }
 
     // Records that the node `nodeId` moved to position `index` of the node table.
@@ -161,8 +174,10 @@ impl NodeIndex
     {
         let key         = childKey(parentId, name)
         let destination = .byParent.tryFind(key)
-        if destination != null and destination.value != node.id do
+        if destination != null and destination.value != node.id
+        {
             return false
+        }
 
         if node.parentId != parentId or node.name.toString() != name
         {

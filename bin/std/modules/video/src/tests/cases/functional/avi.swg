@@ -43,7 +43,7 @@ func aviAssertProbes(fileName: string, probes: const [..] AviProbe, tolerance: s
     Swag.require(sound.sampleEncoding() == .Pcm8 and sound.sampleRateHz() == 11_024 and sound.numChannels() == 1)
     Swag.require(sound.sampleFrameCount() == 171_240 and sound.payloadSize() == 171_240 and sound.isPacketStream())
     let crossing = expect sound.readPayload(11_020, 8)
-    Swag.require(Slice.equals(crossing.toSlice(), [127'u8, 127, 127, 126, 126, 125, 125, 125]))
+    Swag.require(Slice.equals(crossing.toSlice(), [127_u8, 127, 127, 126, 126, 125, 125, 125]))
 
     // The camera states its rate as 1000000/66666 rather than 15/1, and the decoder keeps what
     // the file says instead of rounding it to the rate the camera meant.
@@ -94,8 +94,11 @@ func aviAssertProbes(fileName: string, probes: const [..] AviProbe, tolerance: s
     var frame: Image
     expect reader.decodeFrameInto(&frame, 0)
     let storage = frame.pixels.buffer
-    for index in 8'u64 do
+    for index in 8_u64
+    {
         expect reader.decodeFrameInto(&frame, index * 29)
+    }
+
     Swag.require(frame.pixels.buffer == storage)
 }
 
@@ -127,7 +130,7 @@ func aviAssertProbes(fileName: string, probes: const [..] AviProbe, tolerance: s
     let reference      = expect Reader.open(videoFixturePath("ffmpeg-h264-mp3.mp4"))
     let referenceSound = unwrap reference.audioTrack(0)
     Swag.require(sound.packetCount() == referenceSound.packetCount() and sound.sampleFrameCount() == referenceSound.sampleFrameCount())
-    var decoded, expected: Array's16
+    var decoded, expected: Array!{s16}
     expect sound.decodePcm16(func|&decoded|(samples)
     {
         decoded.add(samples)
@@ -216,7 +219,7 @@ func aviAssertProbes(fileName: string, probes: const [..] AviProbe, tolerance: s
     // 33 pixels of 24 bits fill 99 bytes, and a bitmap row is padded to 100.
     var odd = expect Reader.open(videoFixturePath("ffmpeg-rawvideo-odd.avi"))
     Swag.require(odd.width() == 33 and odd.height() == 25 and odd.frameCount() == 3)
-    for index in 3'u64
+    for index in 3_u64
     {
         let frame = expect odd.decodeFrame(index)
         videoAssertFixtureFrame(frame, index, tolerance: 0)
@@ -265,7 +268,7 @@ func aviAssertProbes(fileName: string, probes: const [..] AviProbe, tolerance: s
 {
     var bytes       = expect File.readAllBytes(videoFixturePath("edited-record-groups.avi"))
     let raw         = bytes.toSlice()
-    var firstRecord = 0'u64
+    var firstRecord = 0_u64
     var foundRecord = false
     while firstRecord + 20 <= raw.count
     {
@@ -304,9 +307,12 @@ func aviAssertProbes(fileName: string, probes: const [..] AviProbe, tolerance: s
 {
     var bytes     = expect File.readAllBytes(videoFixturePath("edited-no-index.avi"))
     let raw       = bytes.toSlice()
-    var frameList = 0'u64
-    while frameList + 4 <= raw.count and not aviHasId(raw, frameList, "movi") do
+    var frameList = 0_u64
+    while frameList + 4 <= raw.count and not aviHasId(raw, frameList, "movi")
+    {
         frameList += 1
+    }
+
     Swag.require(frameList + 12 <= raw.count and aviHasId(raw, frameList + 4, "00dc"))
 
     let chunkSize = frameList + 8
@@ -325,14 +331,19 @@ func aviAssertProbes(fileName: string, probes: const [..] AviProbe, tolerance: s
 {
     var bytes = expect File.readAllBytes(videoFixturePath("ffmpeg-rawvideo-bgr24.avi"))
     let raw   = bytes.toSlice()
-    var index = 0'u64
-    while index + 24 <= raw.count and not aviHasId(raw, index, "idx1") do
+    var index = 0_u64
+    while index + 24 <= raw.count and not aviHasId(raw, index, "idx1")
+    {
         index += 1
+    }
+
     Swag.require(index + 24 <= raw.count)
 
     let firstOffset = index + 16
-    for byteIndex in 4'u64 do
+    for byteIndex in 4_u64
+    {
         bytes[firstOffset + byteIndex] = 0xFF
+    }
 
     var reader = expect Reader.openMemory("bad-index.avi", bytes.toSlice())
     Swag.require(reader.frameCount() == 6)
@@ -344,9 +355,12 @@ func aviAssertProbes(fileName: string, probes: const [..] AviProbe, tolerance: s
 {
     var bytes = expect File.readAllBytes(videoFixturePath("ffmpeg-rawvideo-bgr24.avi"))
     let raw   = bytes.toSlice()
-    var index = 0'u64
-    while index + 8 <= raw.count and not aviHasId(raw, index, "idx1") do
+    var index = 0_u64
+    while index + 8 <= raw.count and not aviHasId(raw, index, "idx1")
+    {
         index += 1
+    }
+
     Swag.require(index + 8 <= raw.count and aviReadU32(raw, index + 4) >= 6 * 16)
 
     bytes.resize(index + 8 + 16)
@@ -355,8 +369,10 @@ func aviAssertProbes(fileName: string, probes: const [..] AviProbe, tolerance: s
     bytes[index + 6] = 0
     bytes[index + 7] = 0
     let riffSize = cast(u32, bytes.count - 8)
-    for byteIndex in 4 do
+    for byteIndex in 4
+    {
         bytes[4 + byteIndex] = cast(u8, (riffSize >> cast(u32, (byteIndex * 8))) & 0xFF)
+    }
 
     var reader = expect Reader.openMemory("partial-index.avi", bytes.toSlice())
     Swag.require(reader.frameCount() == 6)
@@ -367,9 +383,12 @@ func aviAssertProbes(fileName: string, probes: const [..] AviProbe, tolerance: s
 #test
 {
     var bytes = expect File.readAllBytes(videoFixturePath("ffmpeg-mpeg4-packed.avi"))
-    var index = 0'u64
-    while index + 8 <= bytes.count and not aviHasId(bytes.toSlice(), index, "idx1") do
+    var index = 0_u64
+    while index + 8 <= bytes.count and not aviHasId(bytes.toSlice(), index, "idx1")
+    {
         index += 1
+    }
+
     Swag.require(index + 8 <= bytes.count)
 
     // Keep the media and headers, remove the optional index, and repair the RIFF length.
@@ -398,18 +417,18 @@ func aviAssertProbes(fileName: string, probes: const [..] AviProbe, tolerance: s
         chunk += 8 + size + (size & 1)
     }
 
-    func padHeader(bytes: *Array'u8, chunk: u64, userData: const [..] u8)
+    func padHeader(bytes: *Array!{u8}, chunk: u64, userData: const [..] u8)
     {
         let frameSize = aviReadU32(bytes.toSlice(), chunk + 4)
         let payload   = chunk + 8
-        const Vop: [4] u8 = [0'u8, 0, 1, 0xB6]
+        const Vop: [4] u8 = [0_u8, 0, 1, 0xB6]
         let vop = Slice.findSubslice(bytes.toSlice()[payload until payload + frameSize], Vop)
         Swag.require(vop < frameSize)
         bytes.insertAt(payload + vop, userData)
         aviWriteU32(bytes.toSlice(), chunk + 4, frameSize + cast(u32, userData.count))
     }
 
-    var userData: Array'u8
+    var userData: Array!{u8}
     userData.resize(2 * ByteSource.WindowSize)
     Memory.set(userData.storage(), 'A', userData.count)
     userData[0] = 0
@@ -459,7 +478,7 @@ func aviAssertProbes(fileName: string, probes: const [..] AviProbe, tolerance: s
 
     // Skip ahead within and between groups, alternating the two output representations.
     var planes: PlanarFrame
-    for rank in [3'u64, 5, 8, 17, 26, 31, 35, 58, 59]
+    for rank in [3_u64, 5, 8, 17, 26, 31, 35, 58, 59]
     {
         if rank & 1
         {
@@ -478,7 +497,7 @@ func aviAssertProbes(fileName: string, probes: const [..] AviProbe, tolerance: s
     Swag.require(checksums[28] != checksums[30] and checksums[58] != checksums[59])
     for preview in [&linear, &random]
     {
-        for moment, index in [0.04'f64, 1.21]
+        for moment, index in [0.04_f64, 1.21]
         {
             let key  = expect preview.decodeKeyPicture(moment)
             let rank = index ? 59 : 30
@@ -525,7 +544,7 @@ func aviAssertProbes(fileName: string, probes: const [..] AviProbe, tolerance: s
 
     // Some encoders mark a padding VOP as intra. Change just the type of the first padding
     // VOP, preserving its uncoded flag, and let the reader reconstruct the missing index.
-    const PaddingSlot = 5'u64
+    const PaddingSlot = 5_u64
     let movie = Slice.findSubslice(bytes.toSlice(), "movi")
     Swag.require(movie < bytes.count)
     let index = movie + aviReadU32(bytes.toSlice(), movie - 4)
@@ -546,7 +565,7 @@ func aviAssertProbes(fileName: string, probes: const [..] AviProbe, tolerance: s
     var unindexed = expect Reader.openMemory("xvid-no-index.avi", bytes.toSlice())
     Swag.require(unindexed.frameCount() == checksums.count)
     Swag.require(unindexed.syncFrameAt(1) == linear.syncFrameAt(1))
-    for rank in [PaddingSlot + 3, PaddingSlot, 23'u64, 0'u64]
+    for rank in [PaddingSlot + 3, PaddingSlot, 23_u64, 0_u64]
     {
         expect unindexed.decodeFramePlanesInto(&frame, rank)
         Swag.require(Hash.Crc32.compute(frame.luma.toSlice()) == checksums[rank])
@@ -560,14 +579,18 @@ func aviAssertProbes(fileName: string, probes: const [..] AviProbe, tolerance: s
     var reader = expect Reader.open(videoFixturePath("ffmpeg-mpeg4-b-packets.avi"))
     Swag.require(reader.frameCount() == 9)
     var frame: PlanarFrame
-    for rank in [8'u64, 1, 7, 2]
+    for rank in [8_u64, 1, 7, 2]
     {
         expect reader.decodeFramePlanesInto(&frame, rank)
         Swag.require(frame.width == 352 and frame.height == 256)
-        if rank < 4 do
+        if rank < 4
+        {
             Swag.require(Hash.Crc32.compute(frame.luma.toSlice()) == 0x288A1990)
-        else do
+        }
+        else
+        {
             Swag.require(frame.luma[136 * frame.strideLuma + 20] == 81)
+        }
     }
 }
 
@@ -623,8 +646,11 @@ func aviAssertProbes(fileName: string, probes: const [..] AviProbe, tolerance: s
     var audible: bool
     expect sound.decodePcm16(0, 11_520, func|&audible|(samples)
     {
-        for sample in samples where sample != 0 do
+        for sample in samples where sample != 0
+        {
             audible = true
+        }
+
         return true
     })
     Swag.require(audible)
@@ -646,7 +672,7 @@ func aviAssertProbes(fileName: string, probes: const [..] AviProbe, tolerance: s
 // A clip encoded as Motion JPEG reads back as the picture it was built from.
 #test
 {
-    const Size = 32's32
+    const Size = 32_s32
     let rate = expect FrameRate.create(30, 1)
     var clip = expect Clip.create(Size, Size, rate)
     expect clip.addFrame(videoGrayImage(Size, Size, 90))
@@ -672,8 +698,10 @@ func aviAssertProbes(fileName: string, probes: const [..] AviProbe, tolerance: s
 {
     let rate = expect FrameRate.create(25, 1)
     var clip = expect Clip.create(64, 48, rate)
-    for index in 4'u64 do
+    for index in 4_u64
+    {
         expect clip.addFrame(videoGrayImage(64, 48, cast(u8, (40 + index * 40))))
+    }
 
     var low: Avi.EncodeOptions
     low.quality = 20
@@ -695,8 +723,10 @@ func aviAssertProbes(fileName: string, probes: const [..] AviProbe, tolerance: s
 {
     let rate = expect FrameRate.create(24, 1)
     var clip = expect Clip.create(8, 4, rate)
-    for 3 do
+    for 3
+    {
         expect clip.addFrame(videoGrayImage(8, 4, 64))
+    }
 
     let bytes = expect clip.encodeToBytes("totals.avi")
     let raw   = bytes.toSlice()
@@ -835,22 +865,30 @@ func aviAssertProbes(fileName: string, probes: const [..] AviProbe, tolerance: s
 // Returns the little-endian 32-bit value the container stores at `offset`.
 func aviReadU32(bytes: const [..] u8, offset: u64)->u32
 {
-    var result = 0'u32
-    for shift in 4 do
+    var result = 0_u32
+    for shift in 4
+    {
         result |= cast(u32, bytes[offset + cast(u64, shift)]) << cast(u32, (shift * 8))
+    }
+
     return result
 }
 
 func aviWriteU32(bytes: [..] u8, offset: u64, value: u32)
 {
-    for index in 4'u64 do
+    for index in 4_u64
+    {
         bytes[offset + index] = cast(u8, (value >> cast(u32, index * 8)) & 0xFF)
+    }
 }
 
 // Reports whether the four characters of `id` sit at `offset`.
 func aviHasId(bytes: const [..] u8, offset: u64, id: string)->bool
 {
-    for index in 4 where bytes[offset + cast(u64, index)] != id[index] do
+    for index in 4 where bytes[offset + cast(u64, index)] != id[index]
+    {
         return false
+    }
+
     return true
 }

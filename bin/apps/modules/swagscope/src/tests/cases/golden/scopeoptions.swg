@@ -11,13 +11,18 @@ private func videoSectionCount(wnd: *Wnd)->u32
         for index in grid.list.lineCount()
         {
             let line = unwrap grid.list.lineAt(index)
-            if line.items[0]!.name.text == "Video" do
+            if line.items[0]!.name.text == "Video"
+            {
                 count += 1
+            }
         }
     }
 
-    for child in wnd.children do
+    for child in wnd.children
+    {
         count += videoSectionCount(child)
+    }
+
     return count
 }
 

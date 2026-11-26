@@ -27,7 +27,7 @@ func lineWidth(line: string)->u32
 func filledAt(schematic: const [..] string, row, column: u32)->bool
 {
     let bytes = cast(const [..] u8, schematic[row])
-    return bytes[column] == '#'u8
+    return bytes[column] == '#'_u8
 }
 
 func rowIsFilledWith(schematic: const [..] string, row: u32, ch: u8)->bool
@@ -38,8 +38,10 @@ func rowIsFilledWith(schematic: const [..] string, row: u32, ch: u8)->bool
     for index in SchematicWidth
     {
         let column = cast(u32, index)
-        if bytes[column] != ch do
+        if bytes[column] != ch
+        {
             return false
+        }
     }
 
     return true
@@ -47,12 +49,12 @@ func rowIsFilledWith(schematic: const [..] string, row: u32, ch: u8)->bool
 
 func isLockSchematic(schematic: const [..] string)->bool
 {
-    return rowIsFilledWith(schematic, 0, '#'u8) and rowIsFilledWith(schematic, SchematicHeight - 1, '.'u8)
+    return rowIsFilledWith(schematic, 0, '#'_u8) and rowIsFilledWith(schematic, SchematicHeight - 1, '.'_u8)
 }
 
 func isKeySchematic(schematic: const [..] string)->bool
 {
-    return rowIsFilledWith(schematic, 0, '.'u8) and rowIsFilledWith(schematic, SchematicHeight - 1, '#'u8)
+    return rowIsFilledWith(schematic, 0, '.'_u8) and rowIsFilledWith(schematic, SchematicHeight - 1, '#'_u8)
 }
 
 func profileFromSchematic(schematic: const [..] string)->PinProfile
@@ -74,8 +76,10 @@ func profileFromSchematic(schematic: const [..] string)->PinProfile
         for idx in SchematicHeight
         {
             let row = cast(u32, idx)
-            if filledAt(schematic, row, column) do
+            if filledAt(schematic, row, column)
+            {
                 filledCount += 1
+            }
         }
 
         Swag.assert(filledCount >= 1 and filledCount <= SchematicHeight - 1)
@@ -91,8 +95,10 @@ func fits(lockProfile, keyProfile: PinProfile)->bool
     for index in SchematicWidth
     {
         let column = cast(u32, index)
-        if lockProfile.heights[column] + keyProfile.heights[column] > MaxColumnHeight do
+        if lockProfile.heights[column] + keyProfile.heights[column] > MaxColumnHeight
+        {
             return false
+        }
     }
 
     return true
@@ -108,8 +114,10 @@ func auditPairings(lockProfiles: const [..] PinProfile, keyProfiles: const [..] 
     {
         for keyProfile in keyProfiles
         {
-            if fits(lockProfile, keyProfile) do
+            if fits(lockProfile, keyProfile)
+            {
                 result.compatiblePairCount += 1
+            }
         }
     }
 

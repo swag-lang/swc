@@ -20,8 +20,11 @@ impl CancelScope
         var cancelScope: const *CancelScope? = me
         while cancelScope
         {
-            if cancelScope.stop.isRaised() do
+            if cancelScope.stop.isRaised()
+            {
                 return true
+            }
+
             cancelScope = cancelScope.parent
         }
 
@@ -86,8 +89,10 @@ impl TaskState
     // can change between the check and the wait.
     mtd const waitSubmission(submission: u64)
     {
-        if .submission == submission do
+        if .submission == submission
+        {
             waitWork(cast #unconst (*WorkNode, &.node))
+        }
     }
 }
 
@@ -119,7 +124,7 @@ impl TaskState
 // submitted by hand has no such protection.
 //
 // ```swag
-// var task: Swag.Task'u64
+// var task: Swag.Task!{u64}
 // task.submit(func() => expensive())
 // let total = try task.take()
 // ```
@@ -257,10 +262,14 @@ impl Task
         try .failure.raise()
 
         // A value that owns something moves out; a scalar or a pointer is simply returned.
-        #static if #typeof(#type T).kind == .Struct do
+        #static if #typeof(#type T).kind == .Struct
+        {
             return #move .result
-        elif T != void do
+        }
+        else if T != void
+        {
             return .result
+        }
     }
 }
 
@@ -283,8 +292,10 @@ private impl Task
     {
         if executor
         {
-            if not executor.post(&.node) do
+            if not executor.post(&.node)
+            {
                 Swag.panic("cannot submit work while the executor is closing", #curlocation)
+            }
         }
         else
         {
@@ -296,21 +307,29 @@ private impl Task
     mtd runPlainBody()
     {
         let body = .plainBody
-        if not body do
+        if not body
+        {
             return
+        }
 
-        #static if T == void do
+        #static if T == void
+        {
             body()
-        else do
+        }
+        else
+        {
             .result = body()
+        }
     }
 
     // Runs a body that can fail and stores its value or its error.
     mtd runFallibleBody()
     {
         let body = .fallibleBody
-        if not body do
+        if not body
+        {
             return
+        }
 
         #static if T == void
         {
@@ -327,8 +346,10 @@ private func taskEntry(node: *WorkNode)
 {
     let state = assume cast (*TaskState, node)
     let run   = state.run
-    if not run do
+    if not run
+    {
         return
+    }
 
     let safeRun = run orelse func() {}
     if state.priority == .Background
@@ -342,8 +363,10 @@ private func taskEntry(node: *WorkNode)
         runInScope(&state.cancelScope, safeRun)
     }
 
-    if let notify = state.notify do
+    if let notify = state.notify
+    {
         notify()
+    }
 }
 
 // A helped child is a separate computation, even when its caller is handling or unwinding an
@@ -374,7 +397,7 @@ private func runTaskBody(body: func||())
 // Children a group keeps inside itself, so a small group allocates nothing at all. A child holds
 // a closure with room for its captures, so it is large: this storage is a deliberate trade of
 // four hundred bytes of the owner's stack against one page reservation and its release.
-private const GroupInlineCapacity = 4'u32
+private const GroupInlineCapacity = 4_u32
 
 // Children of one [[Swag.TaskGroup]] beyond the inline storage, allocated in blocks so a node
 // never moves.
@@ -431,8 +454,10 @@ struct GroupBlock
 // var results: [4] u64
 // {
 //     var group: Swag.TaskGroup
-//     for index in 4 do
+//     for index in 4
+//     {
 //         group.spawn(func|&results, index|() { results[index] = compute(index) })
+//     }
 // }
 // // Every child has finished here.
 // ```
@@ -514,14 +539,19 @@ impl TaskGroup
     // joins those too.
     mtd wait()
     {
-        for index in .inlinedUsed do
+        for index in .inlinedUsed
+        {
             waitWork(&.inlined[index].node)
+        }
 
         var block = .blocks
         while block
         {
-            for index in block.used do
+            for index in block.used
+            {
                 waitWork(&block.children[index].node)
+            }
+
             block = block.next
         }
     }
@@ -558,8 +588,10 @@ impl TaskGroup
         {
             .failureLock.lock()
             defer .failureLock.unlock()
-            if .failure.isEmpty() do
+            if .failure.isEmpty()
+            {
                 .failure.capture(error)
+            }
         }
 
         .cancel()
@@ -578,8 +610,11 @@ impl TaskGroup
         while block
         {
             let next = block.next
-            for index in block.used do
+            for index in block.used
+            {
                 Swag.drop(&block.children[index])
+            }
+
             __bootstrapFree(cast([*] void?, block))
             block = next
         }
@@ -611,8 +646,10 @@ impl TaskGroup
         }
 
         let block = cast(*GroupBlock?, __bootstrapAlloc(#sizeof(GroupBlock)))
-        if not block do
+        if not block
+        {
             Swag.panic("cannot allocate task group storage", #curlocation)
+        }
 
         Swag.init(block, 1)
         block.next = .blocks
@@ -626,8 +663,10 @@ private func groupChildEntry(node: *WorkNode)
 {
     let child = assume cast (*GroupChild, node)
     let group = child.group
-    if not group do
+    if not group
+    {
         return
+    }
 
     if let body = child.body
     {
@@ -642,8 +681,10 @@ private func groupChildEntry(node: *WorkNode)
 private func runFallibleChild(child: *GroupChild)
 {
     let body = child.fallibleBody
-    if not body do
+    if not body
+    {
         return
+    }
 
     catch body() { child.group!.recordFailure(Swag.err) }
 }
@@ -654,19 +695,27 @@ private func runFallibleChild(child: *GroupChild)
 //
 // The tasks keep their outcomes: take each value with [[Swag.Task.take]], which raises a failed
 // task's error again. Every task must be submitted, and its outcome not taken yet.
-public func(T) whenAll(tasks: [..] Task'T) fail
+public func(T) whenAll(tasks: [..] Task!{T}) fail
 {
-    for &task in tasks do
+    for &task in tasks
+    {
         requestWork(&task.node)
+    }
+
     waitWorkChange(func|tasks|()->bool
     {
         var pending = false
         for task in tasks
         {
-            if task.hasFailed() do
+            if task.hasFailed()
+            {
                 return true
-            if task.isPending() do
+            }
+
+            if task.isPending()
+            {
                 pending = true
+            }
         }
 
         return not pending
@@ -674,10 +723,16 @@ public func(T) whenAll(tasks: [..] Task'T) fail
 
     for task in tasks where task.hasFailed()
     {
-        for &other in tasks do
+        for &other in tasks
+        {
             other.cancel()
-        for &other in tasks do
+        }
+
+        for &other in tasks
+        {
             other.wait()
+        }
+
         try task.failure.raise()
     }
 }
@@ -688,20 +743,28 @@ public func(T) whenAll(tasks: [..] Task'T) fail
 // The winner keeps its value for [[Swag.Task.take]]. The others still have to be waited for, or
 // destroyed, before what they borrow is released. Every task must be submitted, and its outcome
 // not taken yet.
-public func(T) whenAny(tasks: [..] Task'T)->u64 fail
+public func(T) whenAny(tasks: [..] Task!{T})->u64 fail
 {
     Swag.assert(tasks.count != 0, "whenAny needs at least one task")
-    for &task in tasks do
+    for &task in tasks
+    {
         requestWork(&task.node)
+    }
+
     waitWorkChange(func|tasks|()->bool
     {
         var pending = false
         for task in tasks
         {
-            if task.isDone() and not task.hasFailed() do
+            if task.isDone() and not task.hasFailed()
+            {
                 return true
-            if task.isPending() do
+            }
+
+            if task.isPending()
+            {
                 pending = true
+            }
         }
 
         return not pending
@@ -714,13 +777,21 @@ public func(T) whenAny(tasks: [..] Task'T)->u64 fail
         break
     }
 
-    for &task, index in tasks where index != winner do
+    for &task, index in tasks where index != winner
+    {
         task.cancel()
-    if winner != Swag.U64.Max do
-        return winner
+    }
 
-    for task in tasks where task.hasFailed() do
+    if winner != Swag.U64.Max
+    {
+        return winner
+    }
+
+    for task in tasks where task.hasFailed()
+    {
         try task.failure.raise()
+    }
+
     Swag.assert(false, "whenAny needs submitted tasks whose outcome was not taken")
     return Swag.U64.Max
 }

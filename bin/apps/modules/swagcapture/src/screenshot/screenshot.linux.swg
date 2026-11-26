@@ -8,8 +8,10 @@ func excludeCaptureChrome(_: *Surface) {}
 // order both operations with the separate capture connection, without changing GUI state.
 func captureRecordingFrame(drawCursor: bool, area: Math.Rectangle, chrome: *Surface?, x, y, w, h: s32)->Image fail
 {
-    if not chrome or not chrome.position.intersects(area) do
+    if not chrome or not chrome.position.intersects(area)
+    {
         return try getScreenRectImage(drawCursor, x, y, w, h)
+    }
 
     let drawable = catch chrome.xcbDrawable()
     {
@@ -23,13 +25,16 @@ func captureRecordingFrame(drawCursor: bool, area: Math.Rectangle, chrome: *Surf
 func captureRecordingFrameWithWindow(drawCursor: bool, drawable: Env.XcbDrawable, x, y, w, h: s32)->Image fail
 {
     let library = Linux.dlopen("libxcb.so.1".buffer, Linux.RTLD_NOW | Linux.RTLD_LOCAL)
-    if not library do
+    if not library
+    {
         return try getScreenRectImage(drawCursor, x, y, w, h)
+    }
+
     defer discard Linux.dlclose(unwrap library)
 
-    let unmap       = try X11Capture.symbol'Linux.xcb_unmap_window_checked_fn(library, "xcb_unmap_window_checked")
-    let map         = try X11Capture.symbol'Linux.xcb_map_window_checked_fn(library, "xcb_map_window_checked")
-    let check       = try X11Capture.symbol'Linux.xcb_request_check_fn(library, "xcb_request_check")
+    let unmap       = try X11Capture.symbol!{Linux.xcb_unmap_window_checked_fn}(library, "xcb_unmap_window_checked")
+    let map         = try X11Capture.symbol!{Linux.xcb_map_window_checked_fn}(library, "xcb_map_window_checked")
+    let check       = try X11Capture.symbol!{Linux.xcb_request_check_fn}(library, "xcb_request_check")
     let connection  = unwrap drawable.connection
     let hiddenError = check(connection, unmap(connection, drawable.window))
     if hiddenError
@@ -41,8 +46,10 @@ func captureRecordingFrameWithWindow(drawCursor: bool, drawable: Env.XcbDrawable
     defer
     {
         let shownError = check(connection, map(connection, drawable.window))
-        if shownError do
+        if shownError
+        {
             Linux.free(shownError)
+        }
     }
 
     return try getScreenRectImage(drawCursor, x, y, w, h)
@@ -80,16 +87,25 @@ func captureWindowInfo(capture: *X11Capture, window: u32)->CaptureWindowInfo
     result.nativeWindow = window
     result.title        = native.title
     result.className    = native.className
-    if not native.processId do
+    if not native.processId
+    {
         return result
+    }
+
     let path  = Format.toString("/proc/%/exe", native.processId)
     var buffer: [32768] u8
     let count = Linux.readlinkat(Linux.AT_FDCWD, path.storage(), &buffer[0], buffer.count)
-    if count <= 0 or count >= cast(s64, buffer.count) do
+    if count <= 0 or count >= cast(s64, buffer.count)
+    {
         return result
+    }
+
     let value = buffer[until cast(u64, count)]
-    if not Utf8.isValid(value) do
+    if not Utf8.isValid(value)
+    {
         return result
+    }
+
     result.executable  = cast(string, value)
     result.application = Path.fileNameWithoutExtension(result.executable) orelse ""
     return result
@@ -99,8 +115,11 @@ func captureWindowInfo(capture: *X11Capture, window: u32)->CaptureWindowInfo
 func getCaptureWindowBounds(id: u64)->{rect: Math.Rectangle, visible: bool, exists: bool}
 {
     var result: #returntype
-    if not id do
+    if not id
+    {
         return result
+    }
+
     var capture = catch X11Capture.create() { return result }
     let window  = cast(u32, id)
     result.rect    = capture.windowRect(window)
@@ -129,14 +148,20 @@ func getCaptureWindowForRect(surface: *Surface, rect: Math.Rectangle)->CaptureWi
     var capture = catch X11Capture.create() { return {} }
     let overlay = catch surface.xcbDrawable() { return {} }
     let window  = capture.windowAt(overlay.window, rect.horzCenter(), rect.vertCenter())
-    if not window do
+    if not window
+    {
         return {}
+    }
+
     let bounds = capture.windowRect(window)
     if rect.x < bounds.x or
        rect.y < bounds.y or
        rect.right() > bounds.right() or
-       rect.bottom() > bounds.bottom() do
+       rect.bottom() > bounds.bottom()
+    {
         return {}
+    }
+
     return captureWindowInfo(&capture, window)
 }
 

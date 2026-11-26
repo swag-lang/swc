@@ -25,8 +25,11 @@ func viewerPlugin()->Viewer.Plugin
         .smokeFixture = "glint-aac-mjpeg.mp4"
     }
 
-    for format in Reader.decodableFormats() do
+    for format in Reader.decodableFormats()
+    {
         result.addSelectors(format.extensions)
+    }
+
     return result
 }
 
@@ -47,13 +50,14 @@ private
     // would jitter the presentation by the size of one output buffer. Playback therefore runs its own
     // clock and only re-anchors it when the two have actually separated.
     const AudioDriftSeconds = 0.1
+
     // A short presentation stall can drain in order while the sound device keeps playing.
     const AudioCatchUpSeconds = 0.75
-    const BackdropColors    = "view_Bk 0xFF000000"
+    const BackdropColors      = "view_Bk 0xFF000000"
 
     // How many times the stillness of a resting scroll bar the veils wait before they leave: a
     // film is watched, not read, so the hand is given longer to come back to the controls.
-    const VeilRestFactor = 3'u64
+    const VeilRestFactor = 3_u64
 
     // How far past the clock a resync jump may land.
     //
@@ -67,11 +71,11 @@ private
     // clock on the first one it produces asks it for real time from a standing start: it falls
     // behind within the second and jumps again, which is a stutter that feeds itself. Waiting for a
     // few pictures costs a fraction of a second once and buys a queue to play out of.
-    const RebufferPictures = 4'u64
+    const RebufferPictures = 4_u64
 
     // Let intermittent compositor stalls settle before starting the audio clock.
-    const StartupSteadyPaintUs  = 250_000'u64
-    const StartupPaintTimeoutUs = 1_500_000'u64
+    const StartupSteadyPaintUs  = 250_000_u64
+    const StartupPaintTimeoutUs = 1_500_000_u64
 
     // How much memory the decoded run-ahead may hold, and how many pictures it may hold at all.
     //
@@ -79,17 +83,17 @@ private
     // which at 4K is well over a hundred milliseconds. The queue exists to cover exactly that gap,
     // so it is sized in bytes: a 4K stream gets the few pictures that cover it, and a small stream
     // gets a deeper one for the same memory.
-    const PrefetchBytes = 64 * 1024 * 1024'u64
-    const PrefetchMax   = 12'u64
-    const PrefetchMin   = 2'u64
+    const PrefetchBytes = 64 * 1024 * 1024_u64
+    const PrefetchMax   = 12_u64
+    const PrefetchMin   = 2_u64
 
     // Names the absence of a queue slot.
     const NoSlot = Swag.U32.Max
 
     // What the opening worker publishes in `openState`: still running, opened, or failed.
-    const OpenRunning   = 0'u32
-    const OpenSucceeded = 1'u32
-    const OpenFailed    = 2'u32
+    const OpenRunning   = 0_u32
+    const OpenSucceeded = 1_u32
+    const OpenFailed    = 2_u32
 }
 
 // Returns the decoded-picture count that fits the run-ahead budget.
@@ -107,8 +111,11 @@ func rebufferPictureCount(slotCount: u32)->u64 => Math.min(RebufferPictures, cas
 func soundCovers(sound: const *SoundFile, seconds: f64)->bool
 {
     let local = seconds - sound.timelineStartSeconds()
-    if local < 0 do
+    if local < 0
+    {
         return false
+    }
+
     let wanted = cast(u64, Math.ceil(local * cast(f64, sound.sampleRateHz())))
     return wanted < sound.sampleFrameCount()
 }
@@ -159,11 +166,11 @@ struct Panel
     frameToast:    *Toast?
 
     // Copy and save share a worker with a reader of its own. A destination selects file output.
-    frameExport:     Swag.Task'Image
+    frameExport:     Swag.Task!{Image}
     frameExporting:  bool
     frameExportPath: String
 
-    subtitleLoad:        Viewer.BackgroundLoad'LoadedSubtitle
+    subtitleLoad:        Viewer.BackgroundLoad!{LoadedSubtitle}
     pendingSubtitle:     String
     subtitleDelay:       f64
     manualSubtitleIndex: u32 = Swag.U32.Max
@@ -216,7 +223,7 @@ struct Panel
     // Presenting straight off the decoder therefore stutters even when the average rate is
     // several times what the clock asks for. The run-ahead absorbs that: the decoder fills the
     // queue while it is fast and the clock drains it while the key picture is being decoded.
-    slots:     Array'Slot
+    slots:     Array!{Slot}
     slotCount: u32
 
     // Exactly one decode owns `video` and one free slot at a time. It runs on an executor of its
@@ -239,8 +246,8 @@ struct Panel
     //
     // Both sides of this queue mutate it. Fixed storage keeps a decoder thread from reallocating
     // an array owned by the GUI allocator when the queue grows from two entries to four.
-    ready:       StaticArray'(u32, PrefetchMax)
-    freeSlots:   StaticArray'(u32, PrefetchMax)
+    ready:       StaticArray!{u32, PrefetchMax}
+    freeSlots:   StaticArray!{u32, PrefetchMax}
     nextDecode:  u64     // Frame the producer takes next.
     produceFrom: u64     // Frame the producer was last aimed at.
     inFlight:    u32     // Pictures being decoded right now.
@@ -258,40 +265,40 @@ struct Panel
     resumeAudioAfterSeek: bool
     audioRangePending:    bool     // The progressive sound index does not reach the picture yet.
 
-    timer:            *Timer?
-    clock:            Time.Stopwatch
-    elapsed:          f64
-    frameIndex:       u64
-    playing:          bool
-    thumbnail:        bool
-    autoPlayPending:  bool = true
-    startupPaintClock: Time.Stopwatch
-    startupPaintTick:  u64
+    timer:              *Timer?
+    clock:              Time.Stopwatch
+    elapsed:            f64
+    frameIndex:         u64
+    playing:            bool
+    thumbnail:          bool
+    autoPlayPending:    bool = true
+    startupPaintClock:  Time.Stopwatch
+    startupPaintTick:   u64
     startupSteadySince: u64
-    sceneViewport:     Math.Point
-    sceneScratch:      PlanarFrame
-    sceneSeconds:      f64 = -1
-    sceneSilent:       bool
-    keepPlayingHidden: bool
-    sceneManaged: bool
-    sceneOwnsEnd:      bool
-    sceneToggle:       (func||()->bool)?
-    sceneStop:         (func||()->bool)?
-    sceneSeek:         (func||(f64))?
-    muted:            bool
-    playbackRate:     f64  = 1
-    optionsOpen:      bool
-    volume:           f32  = 1
-    details:          String        // What the footer reads under the film.
-    factsRate:        FrameRate     // The rate the footer and the sheet were last given.
-    factsDuration:    f64  = -1     // The length they were last given, negative before the first.
-    metadataReady:    bool
-    audioReady:       bool
-    timelineReady:    bool
-    timelineChanging: bool
-    services:         Viewer.HostServices
-    retireRequested:  bool
-    retired:          bool
+    sceneViewport:      Math.Point
+    sceneScratch:       PlanarFrame
+    sceneSeconds:       f64  = -1
+    sceneSilent:        bool
+    keepPlayingHidden:  bool
+    sceneManaged:       bool
+    sceneOwnsEnd:       bool
+    sceneToggle:        (func||()->bool)?
+    sceneStop:          (func||()->bool)?
+    sceneSeek:          (func||(f64))?
+    muted:              bool
+    playbackRate:       f64  = 1
+    optionsOpen:        bool
+    volume:             f32  = 1
+    details:            String        // What the footer reads under the film.
+    factsRate:          FrameRate     // The rate the footer and the sheet were last given.
+    factsDuration:      f64  = -1     // The length they were last given, negative before the first.
+    metadataReady:      bool
+    audioReady:         bool
+    timelineReady:      bool
+    timelineChanging:   bool
+    services:           Viewer.HostServices
+    retireRequested:    bool
+    retired:            bool
 
     // Pixel column the timeline thumb was last pushed to, so a value that would not move it is
     // not pushed at all.
@@ -307,14 +314,18 @@ private impl Panel
     // Finishes teardown after the decoder thread has stopped touching the reader and frame queue.
     mtd finishRetire()
     {
-        if .retired do
+        if .retired
+        {
             return
+        }
 
         .decode.wait()
         .frameExport.wait()
         .decodeExecutor.close()
-        if .decodeWake.isValid() do
+        if .decodeWake.isValid()
+        {
             .decodeWake.release()
+        }
 
         // GUI destruction is deferred until the replacement has a picture to present. Release
         // the run-ahead queue now, but leave the displayed image alive so the content does not
@@ -344,8 +355,11 @@ private impl Panel
     // Requests teardown, and reports whether deferred GUI destruction may release this view.
     mtd retire()->bool
     {
-        if .retired do
+        if .retired
+        {
             return true
+        }
+
         if not .retireRequested
         {
             .retireRequested = true
@@ -377,8 +391,11 @@ private impl Panel
 
         let subtitlesRetired = .subtitleLoad.retire()
         .frameExport.cancel()
-        if .decode.isPending() or .frameExport.isPending() or not subtitlesRetired do
+        if .decode.isPending() or .frameExport.isPending() or not subtitlesRetired
+        {
             return false
+        }
+
         .finishRetire()
         return true
     }
@@ -430,10 +447,16 @@ impl Panel
     // Returns the playback position in source seconds.
     mtd currentSeconds()->f64
     {
-        if .sceneSeconds >= 0 do
+        if .sceneSeconds >= 0
+        {
             return .sceneSeconds
-        if not .playing or .startupPaintClock.isRunning() do
+        }
+
+        if not .playing or .startupPaintClock.isRunning()
+        {
             return .elapsed
+        }
+
         return .elapsed + cast(f64, .clock.elapsedMicroseconds()) / 1_000_000.0 * .playbackRate
     }
 
@@ -444,19 +467,27 @@ impl Panel
     // correction stays valid. Pitch follows the rate, since the voice resamples without preserving it.
     mtd setPlaybackRate(rate: f64)
     {
-        if rate == .playbackRate do
+        if rate == .playbackRate
+        {
             return
+        }
 
         // Re-anchor first, so the time already spent on the old rate is not replayed at the new one.
         .elapsed = .currentSeconds()
-        if .playing do
+        if .playing
+        {
             .clock.restart()
+        }
+
         .playbackRate = rate
 
         // A backend that refuses the ratio keeps playing at 1x, and the audio clock then simply
         // keeps correcting the picture back onto the sound.
-        if .voice do
+        if .voice
+        {
             catch .voice.setFrequencyRatio(cast(f32, rate))
+        }
+
         .refreshDetails()
     }
 
@@ -471,16 +502,22 @@ impl Panel
     // the jitter of following a position that only moves once per output buffer.
     mtd followAudioClock()
     {
-        if not .playing or not .voice or .audioRangePending or .resumeAudioAfterSeek do
+        if not .playing or not .voice or .audioRangePending or .resumeAudioAfterSeek
+        {
             return
+        }
 
         let position = .audio!.timelineStartSeconds() + .voice.playbackPositionSeconds()
-        if position == .audioClockLast do
+        if position == .audioClockLast
+        {
             return
+        }
 
         .audioClockLast = position
-        if Math.abs(position - .currentSeconds()) <= AudioDriftSeconds do
+        if Math.abs(position - .currentSeconds()) <= AudioDriftSeconds
+        {
             return
+        }
 
         .elapsed = position
         .clock.restart()
@@ -491,8 +528,11 @@ impl Panel
     // or play.
     mtd resumeAudio()
     {
-        if .startupPaintClock.isRunning() do
+        if .startupPaintClock.isRunning()
+        {
             return
+        }
+
         if .sceneSilent or not .voice or not .audio
         {
             .resumeAudioAfterSeek = false
@@ -593,8 +633,10 @@ impl Panel
 
         // What the index has reached is what the timeline shows as read.
         let known = .video.frameCount()
-        if known and duration > 0 do
+        if known and duration > 0
+        {
             .timeline.setBuffered(cast(f32, Math.min(.frameSeconds(known - 1), duration)))
+        }
     }
 
     // Returns the time the bottom veil writes: played, then the length.
@@ -610,22 +652,33 @@ impl Panel
     // Remembers one deliberate jump; decoder resync, looping and state restoration bypass it.
     mtd jumpTo(seconds: f64)
     {
-        if not .hasFrame do
+        if not .hasFrame
+        {
             return
+        }
+
         .previousSeek = .currentSeconds()
         .seekSeconds(seconds)
-        if .sceneSeek do
+        if .sceneSeek
+        {
             .sceneSeek(Math.clamp(seconds, 0, .video.durationInSeconds()))
+        }
     }
 
     // Starts a looped passage where playback stands; an end before it no longer holds.
     mtd setLoopStart()
     {
-        if not .hasFrame do
+        if not .hasFrame
+        {
             return
+        }
+
         .loopStart = .currentSeconds()
-        if .loopEnd <= .loopStart do
+        if .loopEnd <= .loopStart
+        {
             .loopEnd = -1
+        }
+
         .refreshLoop()
     }
 
@@ -633,12 +686,18 @@ impl Panel
     // none was set. A point at or before the start sets nothing.
     mtd setLoopEnd()
     {
-        if not .hasFrame do
+        if not .hasFrame
+        {
             return
+        }
+
         let position = .currentSeconds()
         let start    = .loopStart >= 0 ? .loopStart : 0
-        if position <= start do
+        if position <= start
+        {
             return
+        }
+
         .loopStart = start
         .loopEnd   = position
         .refreshLoop()
@@ -665,16 +724,22 @@ impl Panel
     // whether it did. The return is not a jump the reader can undo.
     mtd followLoop()->bool
     {
-        if .loopStart < 0 or .loopEnd <= .loopStart or .currentSeconds() < .loopEnd do
+        if .loopStart < 0 or .loopEnd <= .loopStart or .currentSeconds() < .loopEnd
+        {
             return false
+        }
+
         .seekSeconds(.loopStart)
         return true
     }
 
     mtd undoSeek()
     {
-        if .previousSeek < 0 do
+        if .previousSeek < 0
+        {
             return
+        }
+
         let target = .previousSeek
         .previousSeek = -1
         .seekSeconds(target)
@@ -688,29 +753,40 @@ impl Panel
 
     mtd showSeekFeedback(seconds: f64)
     {
-        if not .seekOverlay do
+        if not .seekOverlay
+        {
             .seekOverlay = SeekOverlay.create(me)
+        }
+
         .seekOverlay.showSeek(seconds)
     }
 
     mtd setSceneSilent(silent: bool)
     {
-        if .sceneSilent == silent do
+        if .sceneSilent == silent
+        {
             return
+        }
+
         .elapsed = .currentSeconds()
         .startupPaintClock.reset()
         .clock.restart()
         .sceneSilent = silent
-        if not .voice do
+        if not .voice
+        {
             return
+        }
+
         catch .voice.setVolume(.muted or .sceneSilent ? 0 : .volume)
         if silent
         {
             catch .voice.pause()
-            if .playing do
+            if .playing
+            {
                 .clock.restart()
+            }
         }
-        elif .playing
+        else if .playing
         {
             .resumeAudioAfterSeek = true
             .resumeAudio()
@@ -723,8 +799,10 @@ impl Panel
         .muteButton.setChecked(muted)
         .muteButton.setIcon(.theme().icon(muted ? .VolumeMute : .Volume, themeActionIconSize(.themeMetrics())))
         .volumeSlider.enable(.audioReady and not muted)
-        if .voice do
+        if .voice
+        {
             catch .voice.setVolume(muted or .sceneSilent ? 0 : .volume)
+        }
     }
 
     // Sets the playback volume, from 0 to 1.
@@ -733,8 +811,10 @@ impl Panel
         let requested = Math.clamp(volume, 0, 1)
         .volume = requested
         .volumeSlider.setValueWithoutGesture(requested)
-        if .voice and not .muted and not .sceneSilent do
+        if .voice and not .muted and not .sceneSilent
+        {
             catch .voice.setVolume(.volume)
+        }
     }
 }
 
@@ -758,8 +838,11 @@ private impl IWnd for Panel
             return
         }
 
-        if not .sceneManaged do
+        if not .sceneManaged
+        {
             .updatePlayback()
+        }
+
         if not .isPendingDestroy
         {
             if not .pendingSubtitle.isEmpty() and not .subtitleLoad.started
@@ -779,8 +862,10 @@ private impl IWnd for Panel
 
     mtd impl onResizeEvent(_: *ResizeEvent)
     {
-        if .bottomVeil != null do
+        if .bottomVeil != null
+        {
             .arrangeVeils()
+        }
     }
 
     mtd impl onMouseEvent(evt: *MouseEvent)
@@ -794,8 +879,11 @@ private impl IWnd for Panel
             return
         }
 
-        if evt.kind == .Move and evt.delta != {} do
+        if evt.kind == .Move and evt.delta != {}
+        {
             .notePointer(evt.surfacePos, false)
+        }
+
         evt.accepted = false
     }
 
@@ -810,8 +898,10 @@ private impl IWnd for Panel
         }
 
         evt.effect = pickDropEffect(evt.allowed & (DropEffect.Copy | DropEffect.Link), evt.modifiers)
-        if evt.kind == .Drop and evt.effect != .None do
+        if evt.kind == .Drop and evt.effect != .None
+        {
             .pendingSubtitle = fileName
+        }
     }
 
     mtd impl onDestroyEvent(_: *DestroyEvent)
@@ -827,8 +917,10 @@ private impl IWnd for Panel
         if evt.kind == .Hide
         {
             .showPointer()
-            if .playing and not .keepPlayingHidden do
+            if .playing and not .keepPlayingHidden
+            {
                 .togglePlayback()
+            }
         }
     }
 
@@ -862,8 +954,10 @@ private impl IWnd for Panel
         default: evt.accepted = false
         }
 
-        if evt.accepted and evt.key != .G and evt.key != .C do
+        if evt.accepted and evt.key != .G and evt.key != .C
+        {
             .notePlaybackGesture()
+        }
     }
 }
 
@@ -874,16 +968,22 @@ private impl Panel
     // rate or a replaced subtitle file, clears `informationReady` first.
     mtd refreshInformation()
     {
-        if not .video.isOpen() do
+        if not .video.isOpen()
+        {
             return
+        }
+
         let frames    = .video.frameCount()
         let audio     = .video.audioTrackCount()
         let subtitles = .video.subtitleTrackCount()
         if .informationReady and
            frames == .informationFrames and
            audio == .informationAudio and
-           subtitles == .informationSubtitles do
+           subtitles == .informationSubtitles
+        {
             return
+        }
+
         .informationReady     = true
         .informationFrames    = frames
         .informationAudio     = audio
@@ -892,41 +992,69 @@ private impl Panel
         // The length and the picture size head the sheet; the window adds the size of the file.
         var data: MediaInfoData
         let duration = .video.durationInSeconds()
-        if duration > 0 do
+        if duration > 0
+        {
             data.addFigure(.Duration, Viewer.durationText(duration))
+        }
+
         data.add(.Video, group: true)
         data.add(.Format, .video.streamFormat().name)
-        if .video.streamInfo().codecName.count do
+        if .video.streamInfo().codecName.count
+        {
             data.add(.Codec, .video.streamInfo().codecName)
+        }
+
         data.add(.Dimensions, Format.toString("% × % px", .video.width(), .video.height()))
-        if .video.displayWidth() != .video.width() or .video.displayHeight() != .video.height() do
+        if .video.displayWidth() != .video.width() or .video.displayHeight() != .video.height()
+        {
             data.add(.DisplaySize, Format.toString("% × % px", .video.displayWidth(), .video.displayHeight()))
+        }
+
         data.add(.AspectRatio, videoAspectRatio(.video.displayWidth(), .video.displayHeight()))
         let rate = .video.frameRate()
         data.add(.FrameRate, Format.toString("% fps", rate.framesPerSecond()))
-        if rate.denominator() > 1 do
+        if rate.denominator() > 1
+        {
             data.add(.ExactFrameRate, Format.toString("%/%", rate.numerator(), rate.denominator()))
-        if frames do
+        }
+
+        if frames
+        {
             data.add(.Frames, Format.toString("%", frames))
+        }
+
         let bitrate = videoBitrate(.video.sourceSizeBytes(), duration)
-        if bitrate.count do
+        if bitrate.count
+        {
             data.add(.Bitrate, bitrate)
+        }
 
         // One row per track: its name, then what it is in mono. An undetermined language says nothing.
-        if audio do
+        if audio
+        {
             data.add(.Audio, Format.toString("%", audio), group: true)
+        }
+
         for index in audio
         {
             let track = .video.audioTrack(index)
-            if not track do
+            if not track
+            {
                 continue
-            var measures: Array'String
+            }
+
+            var measures: Array!{String}
             let language = knownLanguage(track.language())
             var name     = String.from(track.displayName())
-            if name.isEmpty() do
+            if name.isEmpty()
+            {
                 name = language.isEmpty() ? trackText(index + 1) : language
-            elif not language.isEmpty() do
+            }
+            else if not language.isEmpty()
+            {
                 measures.add(language)
+            }
+
             measures.add(String.from(Sound.encodingText(track.sampleEncoding())))
             measures.add(Format.toString("% Hz", track.sampleRateHz()))
             measures.add(channelsText(cast(u32, track.numChannels())))
@@ -937,31 +1065,44 @@ private impl Panel
         // as the track menu lists them; an attached file says where it comes from.
         func addSubtitle(data: *MediaInfoData, number: u64, track: const *Subtitle.Track, origin: string)
         {
-            var measures: Array'String
+            var measures: Array!{String}
             let language = knownLanguage(track.language)
             var name     = String.from(track.name)
-            if name.isEmpty() do
+            if name.isEmpty()
+            {
                 name = language.isEmpty() ? trackText(number) : language
-            elif not language.isEmpty() do
+            }
+            else if not language.isEmpty()
+            {
                 measures.add(language)
+            }
+
             measures.add(String.from(subtitleFormatText(track.format)))
             measures.add(String.from(origin))
             data.addTrack(number, name, joinMeasures(measures.toSlice()))
         }
 
         let sidecars = .subtitleOverlay.sidecars.count
-        if subtitles or sidecars do
+        if subtitles or sidecars
+        {
             data.add(.Subtitles, Format.toString("%", subtitles + sidecars), group: true)
+        }
+
         for index in subtitles
         {
             let track = .video.subtitleTrack(index)
-            if not track do
+            if not track
+            {
                 continue
+            }
+
             addSubtitle(&data, index + 1, track, "")
         }
 
-        for track, index in .subtitleOverlay.sidecars do
+        for track, index in .subtitleOverlay.sidecars
+        {
             addSubtitle(&data, subtitles + index + 1, track, texts().ui_SubtitleSidecar)
+        }
 
         .information = #move data
         .services.informationChanged(me)
@@ -973,18 +1114,27 @@ private impl Panel
     mtd refreshDetails()
     {
         .details = .facts()
-        if .playbackRate != 1 do
+        if .playbackRate != 1
+        {
             .details = Format.toString("% · %", .details, Viewer.playbackRateText(.playbackRate))
-        if .loopStart >= 0 and .loopEnd > .loopStart do
+        }
+
+        if .loopStart >= 0 and .loopEnd > .loopStart
+        {
             .details = Format.toString("% · %", .details, Format.toString(texts().ui_Loop, Viewer.timeText(.loopStart), Viewer.timeText(.loopEnd)))
+        }
+
         .services.showDetails(me, .details)
     }
 
     // Returns the facts for the shared bottom reading line: the picture, its rate and its length.
     mtd facts()->String
     {
-        if not .video.isOpen() do
+        if not .video.isOpen()
+        {
             return {}
+        }
+
         let rate = .video.frameRate().framesPerSecond()
         return Format.toString("% × % · %{f2} fps", .video.width(), .video.height(), rate)
     }
@@ -994,18 +1144,25 @@ private impl Panel
     // This method runs only on the GUI timer, so no window or audio object is ever touched off-thread.
     mtd completeOpen() fail
     {
-        if .openFinished do
+        if .openFinished
+        {
             return
+        }
 
         let state = Atomic.get(&.openState)
-        if state == OpenRunning do
+        if state == OpenRunning
+        {
             return
+        }
+
         if state == OpenFailed
         {
             // Failure exits the worker. Report it only once the worker has ended, so reporting the
             // error can retire the view without ever turning this poll into a wait.
-            if .decode.isPending() do
+            if .decode.isPending()
+            {
                 return
+            }
         }
 
         .openFinished = true
@@ -1053,8 +1210,11 @@ private impl Panel
         let count = .video.frameCount()
         if not .timelineReady
         {
-            if duration > 0 do
+            if duration > 0
+            {
                 .timeline.setBounds(0, duration, cast(f32, Math.min(step, duration / 100)))
+            }
+
             .timeline.enable(duration > 0 and (not count or count > 1))
             .timelineReady = true
         }
@@ -1062,8 +1222,11 @@ private impl Panel
         if not .metadataReady and count
         {
             .metadataReady = true
-            if duration > 0 do
+            if duration > 0
+            {
                 .timeline.setBounds(0, duration, cast(f32, Math.min(step, duration / 100)))
+            }
+
             .timeline.enable(duration > 0 and count > 1)
         }
 
@@ -1073,26 +1236,36 @@ private impl Panel
             .audioReady = true
             .muteButton.enable(true)
             .volumeSlider.enable(not .muted)
-            if not Sound.acquireEngine() do
+            if not Sound.acquireEngine()
+            {
                 fail UnsupportedFormatError{texts().err_AudioEngine}
+            }
+
             .audioEngineAcquired = true
             try .selectAudioTrack(0)
         }
-        elif .audioReady
+        else if .audioReady
         {
             let sound = .video.audioTrack(.audioTrackIndex)
-            if sound and sound != .audio do
+            if sound and sound != .audio
+            {
                 try .selectAudioTrack(.audioTrackIndex)
+            }
         }
     }
 
     internal mtd finishSubtitles()
     {
-        if .subtitleReady or not .video.isOpen() do
+        if .subtitleReady or not .video.isOpen()
+        {
             return
+        }
+
         let subtitleCount = .video.subtitleTrackCount()
-        if not subtitleCount and .subtitleOverlay.sidecars.isEmpty() do
+        if not subtitleCount and .subtitleOverlay.sidecars.isEmpty()
+        {
             return
+        }
 
         .subtitleReady       = true
         .subtitleSource      = .subtitleOverlay.sidecars.isEmpty() ? .Embedded : .Sidecar
@@ -1108,8 +1281,10 @@ private impl Panel
     // veil is not laid out again: its size and the width of the time arrange it.
     mtd refreshControls()
     {
-        if .optionsOpen do
+        if .optionsOpen
+        {
             return
+        }
 
         .tracksButton.enable(.hasFrame)
         .bottomVeil.timeButton.enable(.hasFrame)
@@ -1125,8 +1300,11 @@ private impl Panel
         if entries.results.prefix == .Line
         {
             let target = ready ? Viewer.parseTimeAddress(entries.query.toString(), .currentSeconds(), .video.durationInSeconds()) : -1
-            if target >= 0 do
+            if target >= 0
+            {
                 entries.add(Viewer.timeJumpText(target, entries.query.toString()), .GoTo, func|view = me, target|() { view.jumpTo(target) })
+            }
+
             return
         }
 
@@ -1134,14 +1312,23 @@ private impl Panel
         if entries.query.isEmpty()
         {
             let strings = Film.texts()
-            if ready do
+            if ready
+            {
                 entries.add(.playing ? texts.cmd_Pause : texts.cmd_Play, .playing ? .Pause : .Play, func|view = me|() { view.requestPlaybackToggle() }, defaultKey: {modifiers: .None, key: .Space}, bindId: "scope.video.playPause")
+            }
+
             entries.add(strings.cmd_Subtitles, .Wrap, func|view = me|() { view.showChoices(view.tracksButton, func|view|(page) { view.describeSubtitles(page) }) }, bindId: "scope.video.subtitles")
             entries.add(strings.cmd_GoToTime, .GoTo, func|view = me|() { view.promptGoToTime() }, disabled: not ready, defaultKey: {modifiers: .Control, key: .G}, bindId: "scope.video.goToTime")
-            if .audio and .video.audioTrackCount() > 1 do
+            if .audio and .video.audioTrackCount() > 1
+            {
                 entries.add(strings.cmd_AudioTrack, .AudioTracks, func|view = me|() { view.showChoices(view.tracksButton, func|view|(page) { view.describeAudioTracks(page) }) }, bindId: "scope.video.audioTrack")
-            if .tracksButton.isEnabled() do
+            }
+
+            if .tracksButton.isEnabled()
+            {
                 entries.add(strings.cmd_Tracks, .AudioTracks, func|view = me|() { view.showTracks() }, bindId: "scope.video.tracks")
+            }
+
             entries.add(strings.cmd_Speed, .PlaybackSpeed, func|view = me|() { view.showChoices(view.optionsButton, func|view|(page) { view.describeSpeeds(page) }) }, bindId: "scope.video.speed")
             entries.add(texts.cmd_Options, .Settings, func|view = me|() { view.showOptions() }, bindId: "scope.video.options")
             return
@@ -1163,8 +1350,11 @@ private impl Panel
         entries.add(strings.cmd_SaveFrame, .SaveAs, func|view = me|() { view.promptSaveFrame() }, disabled: not .hasPausedFrame() or .frameExporting, bindId: "scope.video.saveFrame")
         entries.add(strings.cmd_LoopStart, .RepeatAll, func|view = me|() { view.setLoopStart() }, disabled: not .hasFrame, defaultKey: {modifiers: .None, key: .Oem4}, bindId: "scope.video.loopStart")
         entries.add(strings.cmd_LoopEnd, .RepeatAll, func|view = me|() { view.setLoopEnd() }, disabled: not .hasFrame, defaultKey: {modifiers: .None, key: .Oem6}, bindId: "scope.video.loopEnd")
-        if .loopStart >= 0 do
+        if .loopStart >= 0
+        {
             entries.add(strings.cmd_LoopClear, .RepeatAll, func|view = me|() { view.clearLoop() }, bindId: "scope.video.loopClear")
+        }
+
         entries.add(strings.cmd_UndoSeek, .ChevronLeft, func|view = me|() { view.undoSeek() }, disabled: .previousSeek < 0, bindId: "scope.video.undoSeek")
         entries.add(strings.cmd_PlaybackHelp, .Information, func|view = me|() { view.showPlaybackHelp() }, bindId: "scope.video.playbackHelp")
         entries.add(strings.cmd_AudioTrack, .AudioTracks, func|view = me|() { view.showChoices(view.tracksButton, func|view|(page) { view.describeAudioTracks(page) }) }, disabled: not .audio or .video.audioTrackCount() < 2, bindId: "scope.video.audioTrack")
@@ -1234,8 +1424,11 @@ private impl Panel
             if evt is FocusEvent as focus
             {
                 let target = focus.target
-                if not target do
+                if not target
+                {
                     return false
+                }
+
                 if target == view.tracksButton or
                    target == view.optionsButton or
                    target == view.bottomVeil.timeButton
@@ -1243,7 +1436,7 @@ private impl Panel
                     if focus.kind == .Gained
                     {
                         view.pointerMoved()
-                        view.app().toolTip.show(target, target.surfaceRect().center(), target.toolTip, 0's)
+                        view.app().toolTip.show(target, target.surfaceRect().center(), target.toolTip, 0_s)
                     }
                     else
                     {
@@ -1277,8 +1470,11 @@ private impl Panel
     mtd notePointer(position: Math.Point, overVeil: bool)
     {
         .veilsHeld = overVeil
-        if .pointerKnown and position.x == .pointerPosition.x and position.y == .pointerPosition.y do
+        if .pointerKnown and position.x == .pointerPosition.x and position.y == .pointerPosition.y
+        {
             return
+        }
+
         .pointerKnown    = true
         .pointerPosition = position
         .pointerMoved(revealTransport: false)
@@ -1295,27 +1491,38 @@ private impl Panel
             .refreshHelp()
         }
 
-        if revealTransport do
+        if revealTransport
+        {
             .services.chromeChanged(me)
+        }
     }
 
     // Lets the veils leave once the hand has been still for `stillMs` milliseconds, unless the
     // pointer rests on them, a timeline is being dragged, or a page of the options is open.
     internal mtd settleVeils(stillMs: u64)
     {
-        if not .veilsShown or .veilsHeld or .optionsOpen or .timelineChanging do
+        if not .veilsShown or .veilsHeld or .optionsOpen or .timelineChanging
+        {
             return
+        }
+
         let rest = cast(u64, .themeMetrics().motion_ScrollRest * 1_000) * VeilRestFactor
-        if stillMs < rest do
+        if stillMs < rest
+        {
             return
+        }
+
         .hideVeils()
     }
 
     // Hides the playback hint and reports that the pointer chrome has settled.
     internal mtd hideVeils()
     {
-        if not .veilsShown do
+        if not .veilsShown
+        {
             return
+        }
+
         .veilsShown = false
         .helpLine?.hide()
         .services.chromeChanged(me)
@@ -1348,7 +1555,7 @@ private impl Panel
     {
         let services = host.services()
 
-        with let result = Wnd.create'Panel(host.contentParent(), "scope.video")
+        with let result = Wnd.create!{Panel}(host.contentParent(), "scope.video")
         {
             .backgroundStyle = .View
             .focusPolicy     = .Tab
@@ -1371,8 +1578,11 @@ private impl Panel
 
         // The sound device comes online while the file opens, so the first picture does not
         // wait for it; see [[Sound.warmEngine]].
-        if not host.isThumbnail() do
+        if not host.isThumbnail()
+        {
             Sound.warmEngine()
+        }
+
         result.decodeWake.init()
         if Swag.jit()
         {
@@ -1386,7 +1596,7 @@ private impl Panel
             result.decode.submit(func|view = result|() { runViewerDecode(view) }, result.taskNotifier(&result.decode), executor: &result.decodeExecutor)
         }
 
-        result.timer = result.addTimer(10'ms)
+        result.timer = result.addTimer(10_ms)
         result.applyLayout()
         result.arrangeVeils()
         result.refreshControls()
@@ -1420,8 +1630,11 @@ private func openViewerReader(view: *Panel)->bool
 
 private func runViewerDecode(view: *Panel)
 {
-    if not openViewerReader(view) do
+    if not openViewerReader(view)
+    {
         return
+    }
+
     while not Swag.isCancelled()
     {
         view.decodeWake.wait()
@@ -1433,10 +1646,14 @@ private func runViewerDecode(view: *Panel)
     view.slots.clear()
     view.ready.clear()
     view.freeSlots.clear()
-    if view.openFinished do
+    if view.openFinished
+    {
         view.video.close()
-    else do
+    }
+    else
+    {
         view.pendingVideo.close()
+    }
 }
 
 // Creates the integrated video playback view and connects it to the host.

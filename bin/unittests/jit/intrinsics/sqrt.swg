@@ -15,7 +15,7 @@
     }
 
     const R0 = #run sqrtRuntimeF64(9.0)
-    const R1 = #run sqrtRuntimeF32(16.0'f32)
+    const R1 = #run sqrtRuntimeF32(16.0_f32)
     #assert(R0 == 3.0)
     #assert(R1 == 4)
 }

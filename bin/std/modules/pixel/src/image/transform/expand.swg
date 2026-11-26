@@ -21,8 +21,10 @@ impl Image
         // vertical offset comes from the bottom margin.
         let retainedWidth  = .width + Math.min(l, 0) + Math.min(r, 0)
         let retainedHeight = .height + Math.min(t, 0) + Math.min(b, 0)
-        if retainedWidth <= 0 or retainedHeight <= 0 do
+        if retainedWidth <= 0 or retainedHeight <= 0
+        {
             return
+        }
 
         let dstX = l < 0 ? 0 : l
         let dstY = b < 0 ? 0 : b

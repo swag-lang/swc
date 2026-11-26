@@ -38,20 +38,20 @@ public struct SurfaceWnd
         groundHitTest: GroundHitTest?          // Answers, under the strip, whether a surface position is ground that drags the window.
         sizingBorder:  SizingBorder = None     // Border under the pointer, or being dragged.
 
-        sigCaptionPressed: SigArray'func||(*SurfaceWnd)     // Emitted when the primary button presses the draggable title strip, before a possible window move.
+        sigCaptionPressed: SigArray!{func||(*SurfaceWnd)}     // Emitted when the primary button presses the draggable title strip, before a possible window move.
 
         readonly titleHidden: bool     // Whether the document writes the title itself, so the strip does not.
     }
 
-    captionButtons:             Array'(*IconButton)     // Application actions immediately before the native caption controls.
-    leadingCaptionButtons:      Array'(*IconButton)     // Application actions after the app glyph and before the title.
+    captionButtons:             Array!{*IconButton}     // Application actions immediately before the native caption controls.
+    leadingCaptionButtons:      Array!{*IconButton}     // Application actions after the app glyph and before the title.
     appearanceButton:           *AppearanceButton?      // Appearance command owner on this surface, if present.
     appearanceActionRegistered: bool                    // Whether this surface already routes appearance commands.
     stripLeadingRoom:           f32                     // Room the view's own strip controls take after the leading actions.
     captionConcealed:           bool
-    stripTrailingRoom:          f32                     // Room the view's own strip controls take before the trailing actions.
-    chromePalette:              ThemePalette            // Document palette copied by setChromePalette.
-    hasChromePalette:           bool                    // Whether chrome follows the document rather than the application.
+    stripTrailingRoom:          f32              // Room the view's own strip controls take before the trailing actions.
+    chromePalette:              ThemePalette     // Document palette copied by setChromePalette.
+    hasChromePalette:           bool             // Whether chrome follows the document rather than the application.
 }
 
 impl IWnd for SurfaceWnd
@@ -69,17 +69,31 @@ impl IWnd for SurfaceWnd
         switch evt.kind
         {
         case .Pressed:
-            if evt.button != .Left do
+            if evt.button != .Left
+            {
                 break
+            }
+
             srfn.bringToFront()
-            if not srfn.isMaximized and srfn.flags.has(.Resizable) do
+            if not srfn.isMaximized and srfn.flags.has(.Resizable)
+            {
                 .sizingBorder = .hitTestBorders(evt.surfacePos)
-            else do
+            }
+            else
+            {
                 .sizingBorder = .None
-            if .sizingBorder == .None and not .hitTestCaption(evt.surfacePos) do
+            }
+
+            if .sizingBorder == .None and not .hitTestCaption(evt.surfacePos)
+            {
                 break
-            if .sizingBorder == .None do
+            }
+
+            if .sizingBorder == .None
+            {
                 .notifyCaptionPress(evt.surfacePos)
+            }
+
             if not srfn.isMaximized
             {
                 .captureMouse()
@@ -87,15 +101,19 @@ impl IWnd for SurfaceWnd
             }
 
         case .DoubleClick:
-            if evt.button == .Left do
+            if evt.button == .Left
+            {
                 discard .editCaptionPath(evt.surfacePos)
+            }
 
         case .Leave:
             .sizingBorder = .None
 
         case .Released:
-            if evt.button != .Left do
+            if evt.button != .Left
+            {
                 break
+            }
 
             .releaseMouse()
             .movingSurface = false
@@ -103,16 +121,23 @@ impl IWnd for SurfaceWnd
             fallthrough
 
         case .Move:
-            if srfn.isMaximized do
+            if srfn.isMaximized
+            {
                 break
-            if .app().mouseEnterWnd != me do
+            }
+
+            if .app().mouseEnterWnd != me
+            {
                 break
+            }
 
             if not .movingSurface and srfn.flags.has(.Resizable)
             {
                 let newSizingBorder = .hitTestBorders(evt.surfacePos)
-                if newSizingBorder != .sizingBorder do
+                if newSizingBorder != .sizingBorder
+                {
                     .sizingBorder = newSizingBorder
+                }
             }
 
             switch .sizingBorder
@@ -123,8 +148,10 @@ impl IWnd for SurfaceWnd
             case Right | Top, Left | Bottom: srfn.app.setFrameCursor(Cursor.from(.ResizeNortheastSouthwest))
             }
 
-            if not .movingSurface do
+            if not .movingSurface
+            {
                 break
+            }
 
             // The event delta is logical; the surface rectangle it moves is in
             // physical screen pixels.
@@ -194,10 +221,14 @@ impl IWnd for SurfaceWnd
             srfn.showMinimized()
 
         case .Restore:
-            if srfn.isMinimized and srfn.isMaximized do
+            if srfn.isMinimized and srfn.isMaximized
+            {
                 srfn.showMaximized()
-            else do
+            }
+            else
+            {
                 srfn.showNormal()
+            }
 
         case .Close:
             srfn.destroy()
@@ -213,15 +244,27 @@ impl IWnd for SurfaceWnd
         let metrics    = .themeMetrics()
         let surface    = unwrap .surface
 
-        var buttonCount = 0'u32
-        if .closeBtn do
+        var buttonCount = 0_u32
+        if .closeBtn
+        {
             buttonCount += 1
-        if .maximizeBtn do
+        }
+
+        if .maximizeBtn
+        {
             buttonCount += 1
-        if .minimizeBtn do
+        }
+
+        if .minimizeBtn
+        {
             buttonCount += 1
-        for button in .captionButtons where isShownCaptionButton(button) do
+        }
+
+        for button in .captionButtons where isShownCaptionButton(button)
+        {
             buttonCount += 1
+        }
+
         var gapCount = buttonCount > 0 ? buttonCount - 1 : 0
 
         // The buttons keep one size whatever the height of the strip, and sit on its middle line
@@ -235,14 +278,23 @@ impl IWnd for SurfaceWnd
 
         var leadingButtonX = clientRect.x + metrics.wnd_CaptionMarginTitle
         var icon = .icon
-        if not icon.isValid() do
+        if not icon.isValid()
+        {
             icon = surface.app.appGlyph(metrics.wnd_CaptionIconSize)
-        if icon.isValid() do
+        }
+
+        if icon.isValid()
+        {
             leadingButtonX += icon.sizeX + metrics.wnd_CaptionMarginTitle
+        }
+
         for button in .leadingCaptionButtons
         {
-            if not isShownCaptionButton(button) do
+            if not isShownCaptionButton(button)
+            {
                 continue
+            }
+
             var leadingPos = pos
             leadingPos.width = Math.max(button.preferredSize.x, Math.max(metrics.wnd_CaptionButtonGlyph + 2 * metrics.wnd_CaptionButtonMargin, pos.height * 0.75))
             leadingPos.x     = leadingButtonX
@@ -286,8 +338,11 @@ impl IWnd for SurfaceWnd
         var buttonRight = pos.x + pos.width
         for button in .captionButtons
         {
-            if not isShownCaptionButton(button) do
+            if not isShownCaptionButton(button)
+            {
                 continue
+            }
+
             var appButtonPos = pos
             appButtonPos.width = Math.max(button.preferredSize.x, Math.max(metrics.wnd_CaptionButtonGlyph + 2 * metrics.wnd_CaptionButtonMargin, pos.height * 0.75))
             appButtonPos.x     = buttonRight - appButtonPos.width
@@ -306,8 +361,11 @@ impl IWnd for SurfaceWnd
     mtd impl onPaint(evt: *PaintEvent)
     {
         let srfn = unwrap .surface
-        if .isPendingDestroy do
+        if .isPendingDestroy
+        {
             return
+        }
+
         let painter    = evt.paintContext.painter
         let clientRect = .clientRect()
         let radius     = srfn.cornerRadius()
@@ -316,18 +374,25 @@ impl IWnd for SurfaceWnd
         // rounded surface never lays opaque ink outside its own corner. The outline is not
         // drawn here either: the surface strokes it above the whole hierarchy, see
         // Surface.paintBorder.
-        if radius > 0 do
+        if radius > 0
+        {
             painter.fillRoundRect(clientRect, radius, radius, .themeColors().wnd_Bk)
-        else do
+        }
+        else
+        {
             painter.fillRect(clientRect, .themeColors().wnd_Bk)
+        }
     }
 
     // The glyph and the title are drawn once the view has painted, since the strip floats over
     // it: a document reaching the top edge passes under them.
     mtd impl onAfterPaint(evt: *PaintEvent)
     {
-        if .isPendingDestroy or .stripHeight() <= 0 do
+        if .isPendingDestroy or .stripHeight() <= 0
+        {
             return
+        }
+
         .paintTopStrip(evt.paintContext.painter)
     }
 }
@@ -351,8 +416,11 @@ impl SurfaceWnd
 
         var leading = strip.x + metrics.wnd_CaptionMarginTitle
         var icon    = .icon
-        if not icon.isValid() do
+        if not icon.isValid()
+        {
             icon = srfn.app.appGlyph(metrics.wnd_CaptionIconSize)
+        }
+
         if icon.isValid()
         {
             icon.paint(painter, leading, strip.vertCenter() - icon.sizeY * 0.5, colors.wnd_CaptionMark)
@@ -362,8 +430,10 @@ impl SurfaceWnd
         let content  = .captionContentRect()
         let center   = strip.horzCenter()
         let halfSpan = Math.min(center - content.x, content.right() - center)
-        if halfSpan <= 0 or .name.isEmpty() or .titleHidden do
+        if halfSpan <= 0 or .name.isEmpty() or .titleHidden
+        {
             return
+        }
 
         var sf: RichStringFormat
         sf.font          = .theme().createDefaultFontFamily(metrics.wnd_TitleFontSize)
@@ -382,8 +452,11 @@ impl SurfaceWnd
     public mtd captionContentRect()->Math.Rectangle
     {
         var room = .captionRoomRect()
-        if room.height <= 0 do
+        if room.height <= 0
+        {
             return {}
+        }
+
         let reserved = Math.min(.stripLeadingRoom + .stripTrailingRoom, room.width)
         room.x     += Math.min(.stripLeadingRoom, room.width)
         room.width = Math.max(room.width - reserved, 0)
@@ -397,8 +470,11 @@ impl SurfaceWnd
     // leave them out; pass zeros when the controls go.
     public mtd reserveCaptionRoom(leading: f32, trailing: f32)
     {
-        if .stripLeadingRoom == leading and .stripTrailingRoom == trailing do
+        if .stripLeadingRoom == leading and .stripTrailingRoom == trailing
+        {
             return
+        }
+
         .stripLeadingRoom  = leading
         .stripTrailingRoom = trailing
         .invalidate()
@@ -414,17 +490,29 @@ impl SurfaceWnd
     {
         var room = .clientRect()
         room.height = .stripHeight()
-        if room.height <= 0 do
+        if room.height <= 0
+        {
             return {}
+        }
+
         let metrics = .themeMetrics()
         var leading = room.x + metrics.wnd_CaptionMarginTitle
         var icon    = .icon
-        if not icon.isValid() do
+        if not icon.isValid()
+        {
             icon = .surface!.app.appGlyph(metrics.wnd_CaptionIconSize)
-        if icon.isValid() do
+        }
+
+        if icon.isValid()
+        {
             leading += icon.sizeX + metrics.wnd_CaptionMarginTitle
-        for button in .leadingCaptionButtons where isShownCaptionButton(button) do
+        }
+
+        for button in .leadingCaptionButtons where isShownCaptionButton(button)
+        {
             leading = Math.max(leading, button.position.right() + metrics.wnd_CaptionActionGap)
+        }
+
         room.x     = leading
         room.width = Math.max(.chromeButtonsLeft() - metrics.wnd_CaptionMarginTitle - leading, 0)
         return room
@@ -437,8 +525,11 @@ impl SurfaceWnd
     // and the window buttons alone. The surface keeps its title for the system all the same.
     public mtd showTitle(shown: bool)
     {
-        if .titleHidden == not shown do
+        if .titleHidden == not shown
+        {
             return
+        }
+
         .titleHidden = not shown
         .invalidate()
     }
@@ -449,8 +540,11 @@ impl SurfaceWnd
     // including the title and controls that were visible before it was concealed.
     public mtd setCaptionConcealed(concealed: bool)
     {
-        if .captionConcealed == concealed do
+        if .captionConcealed == concealed
+        {
             return
+        }
+
         .captionConcealed = concealed
         .sendResizeEvent()
         .invalidate()
@@ -463,26 +557,44 @@ impl SurfaceWnd
     // and application theme remain independently styled.
     public mtd setChromePalette(palette: const *ThemePalette?)
     {
-        if not palette and not .hasChromePalette do
+        if not palette and not .hasChromePalette
+        {
             return
+        }
+
         .hasChromePalette = palette != null
-        if palette do
+        if palette
+        {
             .chromePalette = palette[]
+        }
+
         .style.dirty = true
         .computeStyle()
-        for button in [.minimizeBtn, .maximizeBtn, .closeBtn] where button do
+        for button in [.minimizeBtn, .maximizeBtn, .closeBtn] where button
+        {
             .styleChromeButton(button)
-        for button in .captionButtons do
+        }
+
+        for button in .captionButtons
+        {
             .styleChromeButton(button)
-        for button in .leadingCaptionButtons do
+        }
+
+        for button in .leadingCaptionButtons
+        {
             .styleChromeButton(button)
+        }
+
         .invalidate()
     }
 
     mtd applyChromeTheme(wnd: *Wnd, evt: *ThemeEvent)
     {
-        if not .hasChromePalette do
+        if not .hasChromePalette
+        {
             return
+        }
+
         evt.style.create(unwrap evt.parent)
         wnd.themeColors().apply(.chromePalette)
         evt.accepted = true
@@ -499,14 +611,26 @@ impl SurfaceWnd
     private mtd chromeButtonsLeft()->f32
     {
         var result = .clientRect().right()
-        if .closeBtn do
+        if .closeBtn
+        {
             result = Math.min(result, .closeBtn.position.x)
-        if .maximizeBtn do
+        }
+
+        if .maximizeBtn
+        {
             result = Math.min(result, .maximizeBtn.position.x)
-        if .minimizeBtn do
+        }
+
+        if .minimizeBtn
+        {
             result = Math.min(result, .minimizeBtn.position.x)
-        for button in .captionButtons where isShownCaptionButton(button) do
+        }
+
+        for button in .captionButtons where isShownCaptionButton(button)
+        {
             result = Math.min(result, button.position.x)
+        }
+
         return result
     }
 
@@ -529,22 +653,35 @@ impl SurfaceWnd
     mtd hitTestCaptionButton(surfacePos: Math.Point)->bool
     {
         let pos = .surfaceToLocal(surfacePos)
-        if .closeBtn and .closeBtn.position.contains(pos.x, pos.y) do
+        if .closeBtn and .closeBtn.position.contains(pos.x, pos.y)
+        {
             return true
-        if .maximizeBtn and .maximizeBtn.position.contains(pos.x, pos.y) do
+        }
+
+        if .maximizeBtn and .maximizeBtn.position.contains(pos.x, pos.y)
+        {
             return true
-        if .minimizeBtn and .minimizeBtn.position.contains(pos.x, pos.y) do
+        }
+
+        if .minimizeBtn and .minimizeBtn.position.contains(pos.x, pos.y)
+        {
             return true
+        }
+
         for button in .captionButtons where isShownCaptionButton(button)
         {
-            if button.position.contains(pos.x, pos.y) do
+            if button.position.contains(pos.x, pos.y)
+            {
                 return true
+            }
         }
 
         for button in .leadingCaptionButtons where isShownCaptionButton(button)
         {
-            if button.position.contains(pos.x, pos.y) do
+            if button.position.contains(pos.x, pos.y)
+            {
                 return true
+            }
         }
 
         return false
@@ -553,8 +690,11 @@ impl SurfaceWnd
     // Reports whether any application caption action is shown.
     private mtd hasShownCaptionButton()->bool
     {
-        for button in .captionButtons where isShownCaptionButton(button) do
+        for button in .captionButtons where isShownCaptionButton(button)
+        {
             return true
+        }
+
         return false
     }
 
@@ -584,8 +724,11 @@ impl SurfaceWnd
     internal mtd unregisterCaptionButton(button: *IconButton)
     {
         .captionButtons.remove(button)
-        if not .isPendingDestroy do
+        if not .isPendingDestroy
+        {
             .sendResizeEvent()
+        }
+
         .invalidate()
     }
 
@@ -593,8 +736,11 @@ impl SurfaceWnd
     internal mtd unregisterLeadingCaptionButton(button: *IconButton)
     {
         .leadingCaptionButtons.remove(button)
-        if not .isPendingDestroy do
+        if not .isPendingDestroy
+        {
             .sendResizeEvent()
+        }
+
         .invalidate()
     }
 
@@ -607,20 +753,31 @@ impl SurfaceWnd
     mtd stripHeight()->f32
     {
         let srfn = .surface
-        if not srfn do
+        if not srfn
+        {
             return 0
-        if srfn.flags.has(.LargeCaption) do
+        }
+
+        if srfn.flags.has(.LargeCaption)
+        {
             return .captionConcealed ? 0 : .themeMetrics().wnd_StripHeight
-        if srfn.flags.has(.SmallCaption) do
+        }
+
+        if srfn.flags.has(.SmallCaption)
+        {
             return .padding.y
+        }
+
         return 0
     }
 
     internal mtd notifyCaptionPress(point: Math.Point)
     {
         let y = .surfaceToLocal(point).y
-        if y >= 0 and y < .stripHeight() do
+        if y >= 0 and y < .stripHeight()
+        {
             .sigCaptionPressed.call(me)
+        }
     }
 
     // The empty tail of a path in the title strip belongs to the caption. The path still
@@ -631,13 +788,18 @@ impl SurfaceWnd
         {
             let strip = .stripHeight()
             let pos   = .surfaceToLocal(surfacePos)
-            if pos.y < 0 or pos.y >= strip or .hitTestCaptionButton(surfacePos) do
+            if pos.y < 0 or pos.y >= strip or .hitTestCaptionButton(surfacePos)
+            {
                 return null
+            }
+
             if breadcrumb.parent?.parent is PathBar as path where
                 path.breadcrumb == breadcrumb and
                 path.surfaceRect().bottom() <= .surfaceRect().y + strip and
-                breadcrumb.isTrailingGround(surfacePos) do
+                breadcrumb.isTrailingGround(surfacePos)
+            {
                 return path
+            }
         }
 
         return null
@@ -675,8 +837,10 @@ impl SurfaceWnd
         if srfn and srfn.flags.has(.Sheet)
         {
             let target = .windowAt(surfacePos.x, surfacePos.y, true)
-            if not target do
+            if not target
+            {
                 return true
+            }
 
             // A sheet has no visible caption. Its whole ground can move it, while controls keep
             // pointer input. Walk ancestors too: a child of an interactive composite is part of
@@ -684,8 +848,11 @@ impl SurfaceWnd
             var wnd: *Wnd? = target
             while wnd and wnd != me and wnd != .view
             {
-                if wnd.focusPolicy != .None or wnd is Button do
+                if wnd.focusPolicy != .None or wnd is Button
+                {
                     return false
+                }
+
                 wnd = wnd.parent
             }
 
@@ -693,27 +860,44 @@ impl SurfaceWnd
         }
 
         let strip = .stripHeight()
-        if strip <= 0 do
+        if strip <= 0
+        {
             return false
+        }
 
-        if .hitTestCaptionButton(surfacePos) do
+        if .hitTestCaptionButton(surfacePos)
+        {
             return false
+        }
 
         let pos = .surfaceToLocal(surfacePos)
-        if pos.x < 0 or pos.x >= .position.width do
+        if pos.x < 0 or pos.x >= .position.width
+        {
             return false
-        if pos.y >= strip and .groundHitTest do
+        }
+
+        if pos.y >= strip and .groundHitTest
+        {
             return .groundHitTest(surfacePos)
-        if pos.y < 0 or pos.y >= strip do
+        }
+
+        if pos.y < 0 or pos.y >= strip
+        {
             return false
+        }
 
         // A window finds its children from a point in its parent's coordinates, the surface's
         // here: the local point would count the margin the shadow is cast into twice.
         let target = .windowAt(surfacePos.x, surfacePos.y, true)
-        if not target or target == me or .captionPathAt(surfacePos, target) do
+        if not target or target == me or .captionPathAt(surfacePos, target)
+        {
             return true
-        if target is MenuCtrl as menu where menu.bar do
+        }
+
+        if target is MenuCtrl as menu where menu.bar
+        {
             return menu.hitTestBar(surfacePos) == Swag.U32.Max
+        }
 
         // A window keeps the pointer when it, or a composite it belongs to, is a control set in
         // the strip. The view itself is the ground the strip floats over, so it never counts.
@@ -722,8 +906,11 @@ impl SurfaceWnd
         while wnd and wnd != me and wnd != .view
         {
             let isControl = wnd.focusPolicy != .None or wnd is Button
-            if isControl and wnd.surfaceRect().bottom() <= stripBottom do
+            if isControl and wnd.surfaceRect().bottom() <= stripBottom
+            {
                 return false
+            }
+
             wnd = wnd.parent
         }
 
@@ -787,10 +974,14 @@ impl SurfaceWnd
     func onMaximize(btn: *Button)
     {
         let srfn = unwrap btn.surface
-        if srfn.isMaximized do
+        if srfn.isMaximized
+        {
             srfn.requestRestore()
-        else do
+        }
+        else
+        {
             srfn.requestMaximize()
+        }
     }
 
     func onClose(btn: *Button)
@@ -805,8 +996,10 @@ impl SurfaceWnd
 
         let srfn  = unwrap .surface
         let theme = srfn.app.theme
-        if not theme.initialized do
+        if not theme.initialized
+        {
             return
+        }
 
         if srfn.flags.has(.MinimizeButton)
         {
@@ -821,7 +1014,7 @@ impl SurfaceWnd
                 }
             }
         }
-        elif .minimizeBtn
+        else if .minimizeBtn
         {
             .minimizeBtn.destroy()
             .minimizeBtn = null
@@ -840,7 +1033,7 @@ impl SurfaceWnd
                 }
             }
         }
-        elif .maximizeBtn
+        else if .maximizeBtn
         {
             .maximizeBtn.destroy()
             .maximizeBtn = null
@@ -859,14 +1052,16 @@ impl SurfaceWnd
                 }
             }
         }
-        elif .closeBtn
+        else if .closeBtn
         {
             .closeBtn.destroy()
             .closeBtn = null
         }
 
-        for button in [.minimizeBtn, .maximizeBtn, .closeBtn] where button do
+        for button in [.minimizeBtn, .maximizeBtn, .closeBtn] where button
+        {
             .styleChromeButton(button)
+        }
     }
 
     mtd create(userView: *Wnd?, hook: HookEvent?)
@@ -884,7 +1079,7 @@ impl SurfaceWnd
         }
         else
         {
-            .createView'Wnd(hook)
+            .createView!{Wnd}(hook)
         }
 
         .applySurfaceFlags()

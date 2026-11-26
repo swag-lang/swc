@@ -61,8 +61,11 @@ impl CaptureJourney
 
     mtd opDrop()
     {
-        if not .started do
+        if not .started
+        {
             return
+        }
+
         discard g_CaptureSaves.flush()
         .main.libWnd.requestClose()
         .surface.destroy()
@@ -86,8 +89,11 @@ impl CaptureJourney
         {
             .app.runFrame()
             Swag.require(.surface.renderFailure.isEmpty(), .surface.renderFailure.toString())
-            if ready() do
+            if ready()
+            {
                 return
+            }
+
             if .watch.elapsedMilliseconds() > 38_000
             {
                 Console.println("ready=", ready(), " animations=", .app.animator.activeCount(), " renderFailure=", .surface.renderFailure)
@@ -97,8 +103,11 @@ impl CaptureJourney
                                 .main.libWnd.view.allItems.count,
                                 " updating=",
                                 g_UpdatingLib)
-                for item in .main.libWnd.view.allItems do
+                for item in .main.libWnd.view.allItems
+                {
                     Console.println("item=", item!.fi.fullName, " loaded=", item.loaded)
+                }
+
                 Swag.require(false, Format.toString("Swag Capture journey timed out at %", stage))
             }
         }
@@ -111,10 +120,16 @@ impl CaptureJourney
         let ready = func|main, count|()->bool
         {
             let view = main.libWnd.view
-            if not main.libraryMode or view.allItems.count != count or g_UpdatingLib do
+            if not main.libraryMode or view.allItems.count != count or g_UpdatingLib
+            {
                 return false
-            for item in view.allItems where not item!.loaded do
+            }
+
+            for item in view.allItems where not item!.loaded
+            {
                 return false
+            }
+
             return true
         }
 
@@ -150,8 +165,11 @@ impl CaptureJourney
         defer app.sigFrame.clear()
         app.sigFrame += func|journey = me, cancel, command, &finished|(_)
         {
-            if finished do
+            if finished
+            {
                 return
+            }
+
             for surface in journey.app.surfaces
             {
                 if surface.view() is CaptureRectWnd as overlay
@@ -190,10 +208,15 @@ impl CaptureJourney
             }
         }
 
-        if hub do
+        if hub
+        {
             hub.choose(command)
-        else do
+        }
+        else
+        {
             .main.postCommandEvent(command)
+        }
+
         app.runFrame()
 
         Swag.require(finished, "the in-place editor did not handle the action")
@@ -211,8 +234,11 @@ impl CaptureJourney
         defer app.sigFrame.clear()
         app.sigFrame += func|journey = me, selected = &selected|(_)
         {
-            if selected[] do
+            if selected[]
+            {
                 return
+            }
+
             Swag.require(journey.watch.elapsedMilliseconds() < 38_000, "picture selector timed out")
             for surface in journey.app.surfaces
             {
@@ -254,7 +280,7 @@ impl CaptureJourney
                     }
                 }
             }
-            elif stage[] == 1
+            else if stage[] == 1
             {
                 for surface in journey.app.surfaces
                 {
@@ -331,14 +357,14 @@ impl CaptureJourney
                     hud.cancelButton.sigPressed.call(hud.cancelButton)
                     return
                 }
-                elif ending == .PauseThenStop and count >= 1
+                else if ending == .PauseThenStop and count >= 1
                 {
                     pausedCount[] = count
                     stage[]       = 3
                     hud.pauseButton.sigPressed.call(hud.pauseButton)
                     return
                 }
-                elif ending != .PauseThenStop and ending != .CancelCountdown and count >= 2
+                else if ending != .PauseThenStop and ending != .CancelCountdown and count >= 2
                 {
                     stage[] = 5
                     let button = ending == .Cancel ? hud.cancelButton : hud.stopButton
@@ -400,8 +426,11 @@ impl CaptureJourney
         let view         = .main.editWnd.editView
         let target: IWnd = view
         var pointer      = MouseEvent{kind: .Move, button: .Left, surfacePos: first}
-        if hover do
+        if hover
+        {
             target.onMouseEvent(&pointer)
+        }
+
         pointer.kind = .Pressed
         target.onMouseEvent(&pointer)
         pointer.kind       = .Move
@@ -428,8 +457,11 @@ impl CaptureJourney
         defer app.sigFrame.clear()
         app.sigFrame += func|app, width, height, answered = &answered|(_)
         {
-            if answered[] or app.surfaces.count < 2 do
+            if answered[] or app.surfaces.count < 2
+            {
                 return
+            }
+
             let dialog = assume cast(*FormDlg, app.surfaces.back().view())
             var foundWidth, foundHeight: bool
             for row in dialog.form.rows
@@ -441,7 +473,7 @@ impl CaptureJourney
                         edit.setText(Format.toString("%", width))
                         foundWidth = true
                     }
-                    elif row.label.name.text == appStrings().ui_Height
+                    else if row.label.name.text == appStrings().ui_Height
                     {
                         edit.setText(Format.toString("%", height))
                         foundHeight = true
@@ -465,8 +497,11 @@ impl CaptureJourney
         defer app.sigFrame.clear()
         app.sigFrame += func|app, answer, answered = &answered|(_)
         {
-            if answered[] or app.surfaces.count < 2 do
+            if answered[] or app.surfaces.count < 2
+            {
                 return
+            }
+
             let dialog = assume cast(*Dialog, app.surfaces.back().view())
             answered[] = true
             Swag.require(dialog.closeWithResult(answer))

@@ -62,21 +62,23 @@ func day4B()
     let dataPath = Path.combine(Path.directoryName(#curlocation.fileName), "4.txt")
     let lines    = expect File.readAllLines(dataPath)
 
-    var numbers: Array's32
-    for v in Tokenize.split(lines[0], ','u8) do
+    var numbers: Array!{s32}
+    for v in Tokenize.split(lines[0], ','_u8)
+    {
         numbers.add(expect StrConv.toS32(v))
+    }
 
     var bestScore: u64
-    var bestCard:  Array'u64
+    var bestCard:  Array!{u64}
     for cardIndex in (lines.count - 2 + 5) / 6
     {
         let line = 2 + cardIndex * 6
-        var card: Array'u64
+        var card: Array!{u64}
         var maxCol, maxLine: [5] u64
 
         for y in line to line + 4
         {
-            for v, x in Tokenize.split(lines[y], ' 'u8)
+            for v, x in Tokenize.split(lines[y], ' '_u8)
             {
                 let n = expect StrConv.toS32(v)
                 let i = Slice.findLinear(numbers.toSlice(), n)
@@ -88,8 +90,10 @@ func day4B()
         }
 
         var score = Swag.U64.Max
-        for i in 5 do
+        for i in 5
+        {
             score = Math.min(score, maxCol[i], maxLine[i])
+        }
 
         if score > bestScore
         {
@@ -98,10 +102,15 @@ func day4B()
         }
     }
 
-    var total = 0'u64
-    for v in bestCard do
-        if v > bestScore do
+    var total = 0_u64
+    for v in bestCard
+    {
+        if v > bestScore
+        {
             total += numbers[v]
+        }
+    }
+
     total *= numbers[bestScore]
 
     Swag.assert(total == 3178)

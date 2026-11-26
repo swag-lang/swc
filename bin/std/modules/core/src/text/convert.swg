@@ -18,9 +18,9 @@ struct ConvertFormatFloat
 {
     public
     {
-        precision: s8 = -1        // Digits after the decimal point, or -1 for as many as the value needs.
-        fmt:       u8 = 'f'u8     // Output format: 'e', 'E', 'f', 'g' or 'G'.
-        forceSign: bool           // Whether a positive number also gets a sign.
+        precision: s8 = -1         // Digits after the decimal point, or -1 for as many as the value needs.
+        fmt:       u8 = 'f'_u8     // Output format: 'e', 'E', 'f', 'g' or 'G'.
+        forceSign: bool            // Whether a positive number also gets a sign.
     }
 }
 
@@ -44,13 +44,15 @@ impl ConvertFormatFloat
     {
         let buffer  = strFormat.buffer
         let countof = strFormat.count
-        if buffer == null or countof == 0 do
+        if buffer == null or countof == 0
+        {
             return
+        }
 
-        var cpt = 0'u32
+        var cpt = 0_u32
 
         // Force sign for positive numbers
-        if buffer[cpt] == '+'u8
+        if buffer[cpt] == '+'_u8
         {
             .forceSign = true
             cpt        += 1
@@ -61,7 +63,7 @@ impl ConvertFormatFloat
         {
             switch buffer[cpt]
             {
-            case 'e'u8, 'E'u8, 'f'u8, 'g'u8, 'G'u8:
+            case 'e'_u8, 'E'_u8, 'f'_u8, 'g'_u8, 'G'_u8:
                 .fmt = buffer[cpt]
                 cpt  += 1
             }
@@ -72,8 +74,10 @@ impl ConvertFormatFloat
         {
             let {value: userWidth, eat: eatCount, ovf: _} = expect parseU64(Swag.makeString(buffer + cpt, cast(u64, (countof - cpt))))
             Swag.assert(userWidth <= cast(u64, Swag.S8.Max), "precision overflow")
-            if eatCount do
+            if eatCount
+            {
                 .precision = cast(s8, userWidth)
+            }
         }
     }
 }
@@ -110,49 +114,62 @@ impl ConvertFormatInt
     {
         let buffer  = strFormat.buffer
         let countof = strFormat.count
-        if buffer == null or countof == 0 do
+        if buffer == null or countof == 0
+        {
             return
+        }
 
-        var cpt = 0'u32
+        var cpt = 0_u32
 
         // Force sign for positive numbers
-        if buffer[cpt] == '+'u8
+        if buffer[cpt] == '+'_u8
         {
             .forceSign = true
             cpt        += 1
         }
 
         // Base
-        if cpt >= countof do
+        if cpt >= countof
+        {
             return
+        }
+
         switch buffer[cpt]
         {
-        case 'B'u8:
+        case 'B'_u8:
             .base = 2
             cpt   += 1
 
-        case 'D'u8:
+        case 'D'_u8:
             .base = 10
             cpt   += 1
 
-        case 'X'u8:
+        case 'X'_u8:
             .base = 16
             cpt   += 1
         }
 
         // Next comes the padding characters
-        if cpt >= countof do
+        if cpt >= countof
+        {
             return
+        }
+
         .padding = buffer[cpt]
         cpt      += 1
 
         // Next comes the padding width
-        if cpt >= countof do
+        if cpt >= countof
+        {
             return
+        }
+
         let {value: userWidth, eat: eatCount, ovf: _} = expect parseU64(Swag.makeString(buffer + cpt, cast(u64, countof) - cpt))
         Swag.assert(userWidth <= 255, "padding width overflow")
-        if eatCount do
+        if eatCount
+        {
             .width = cast(u8, userWidth)
+        }
     }
 }
 
@@ -180,10 +197,15 @@ func convertAny(buf: *ConcatBuffer, value: const any?, convFmt: ConvertFormat, s
     if Reflection.isType(type)
     {
         let ptrType = cast(const *(typeinfo?), unwrap valueData)[]
-        if ptrType do
+        if ptrType
+        {
             buf.addBytes(ptrType.fullname)
-        else do
+        }
+        else
+        {
             buf.addBytes("null")
+        }
+
         return
     }
 
@@ -201,7 +223,7 @@ func convertAny(buf: *ConcatBuffer, value: const any?, convFmt: ConvertFormat, s
         var fmt: ConvertFormatInt
         fmt.base    = 16
         fmt.width   = 16
-        fmt.padding = '0'u8
+        fmt.padding = '0'_u8
         fmt.setFormat(strFormat)
         convertInt(buf, cast(const *u64, unwrap valueData)[], fmt)
         return
@@ -211,10 +233,15 @@ func convertAny(buf: *ConcatBuffer, value: const any?, convFmt: ConvertFormat, s
     if Reflection.isEnum(type)
     {
         let enumName = Reflection.enumName(type, valueData)
-        if not enumName.isEmpty() do
+        if not enumName.isEmpty()
+        {
             buf.addBytes(enumName.toSlice())
-        else do
+        }
+        else
+        {
             buf.addBytes("?")
+        }
+
         return
     }
 
@@ -235,8 +262,11 @@ func convertAny(buf: *ConcatBuffer, value: const any?, convFmt: ConvertFormat, s
         var bufSlice = sl.buffer
         for index in sl.count
         {
-            if index do
+            if index
+            {
                 buf.addBytes(", ")
+            }
+
             let v = Swag.makeAny(bufSlice, ptrSlice.pointedType)
             convertAny(buf, v, convFmt, strFormat)
             bufSlice += ptrSlice.pointedType.sizeof
@@ -255,8 +285,11 @@ func convertAny(buf: *ConcatBuffer, value: const any?, convFmt: ConvertFormat, s
         buf.addBytes("[")
         for index in ptrArr.count
         {
-            if index do
+            if index
+            {
                 buf.addBytes(", ")
+            }
+
             let v = Swag.makeAny(bufArr, ptrArr.pointedType)
             convertAny(buf, v, convFmt, strFormat)
             bufArr += ptrArr.pointedType.sizeof
@@ -286,10 +319,15 @@ func convertAny(buf: *ConcatBuffer, value: const any?, convFmt: ConvertFormat, s
         let typeAny = Swag.kindOf(ptrAny[])
         convertAny(buf, typeAny, convFmt, strFormat)
         buf.addBytes(", value = ")
-        if (ptrAny[]).buffer do
+        if (ptrAny[]).buffer
+        {
             convertAny(buf, unwrap ptrAny[], convFmt, strFormat)
-        else do
+        }
+        else
+        {
             buf.addBytes("null")
+        }
+
         buf.addBytes("}")
         return
     }
@@ -350,8 +388,11 @@ func convertStruct(buf: *ConcatBuffer, value: const any?, convFmt: ConvertFormat
     buf.addBytes("{")
     for field, index in kindof.fields
     {
-        if index do
+        if index
+        {
             buf.addBytes(", ")
+        }
+
         buf.addBytes(field.name)
         buf.addBytes(" = ")
         let val = Swag.makeAny(ptr + field.offset, field.pointedType)
@@ -428,10 +469,14 @@ func convertInt(buf: *ConcatBuffer, value: const any?, fmt: ConvertFormatInt)
 
     case .S64:
         signedValue = cast(const *s64, unwrap dataof)[]
-        if signedValue == Swag.S64.Min do
+        if signedValue == Swag.S64.Min
+        {
             overflowS64 = true
-        else do
+        }
+        else
+        {
             value64 = cast(u64, Math.abs(signedValue))
+        }
 
     case .U8:
         value64 = cast(u64, cast(const *u8, unwrap dataof)[])
@@ -453,7 +498,7 @@ func convertInt(buf: *ConcatBuffer, value: const any?, fmt: ConvertFormatInt)
 
     // 255 is the maximum supported width. Leave index 0 available as a leading-sign slot.
     var tmp: [256] u8
-    var cpt = 255'u32
+    var cpt = 255_u32
 
     // Special case for the lower digit of Swag.S64.Min
     // We have 9_223_372_036_854_775_807, and we want -9_223_372_036_854_775_808
@@ -477,20 +522,25 @@ func convertInt(buf: *ConcatBuffer, value: const any?, fmt: ConvertFormatInt)
         tmp[cpt] = c
         cpt      -= 1
         value64  /= cast(u64, fmt.base)
-        if not value64 do
+        if not value64
+        {
             break
+        }
     }
 
     // Fill the remaining place with the padding character, so that the total result,
     // including an eventual sign, is 'fmt.width' long.
     if fmt.padding
     {
-        let signWidth = signedValue < 0 or fmt.forceSign ? 1'u32 : 0'u32
+        let signWidth = signedValue < 0 or fmt.forceSign ? 1_u32 : 0_u32
         var curWidth  = 255 - cpt
         while curWidth < fmt.width and cpt > signWidth
         {
-            if curWidth + signWidth >= fmt.width do
+            if curWidth + signWidth >= fmt.width
+            {
                 break
+            }
+
             tmp[cpt] = fmt.padding
             curWidth += 1
             cpt      -= 1
@@ -503,7 +553,7 @@ func convertInt(buf: *ConcatBuffer, value: const any?, fmt: ConvertFormatInt)
         tmp[cpt] = cast(u8, g_CultureInfo.numberFormat.negativeSign)
         cpt      -= 1
     }
-    elif fmt.forceSign
+    else if fmt.forceSign
     {
         tmp[cpt] = cast(u8, g_CultureInfo.numberFormat.positiveSign)
         cpt      -= 1
@@ -565,21 +615,21 @@ func(T) convert(buf: *ConcatBuffer, value: T, convFmt: ConvertFormat, strFormat:
         fmt.setFormat(strFormat)
         convertInt(buf, value, fmt)
     }
-    elif Reflection.isFloat(T)
+    else if Reflection.isFloat(T)
     {
         var fmt: ConvertFormatFloat
         fmt.setFormat(strFormat)
         convertFloat(buf, value, fmt)
     }
-    elif Reflection.isBool(T)
+    else if Reflection.isBool(T)
     {
         convertBool(buf, value)
     }
-    elif Reflection.isRune(T)
+    else if Reflection.isRune(T)
     {
         convertRune(buf, value)
     }
-    elif Reflection.isString(T)
+    else if Reflection.isString(T)
     {
         buf.addBytes(value)
     }

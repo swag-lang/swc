@@ -59,7 +59,7 @@ internal struct ThemeImages
     initialized:    bool
     widgetsSource:  string?         // Static stock source, parsed only for an uncached scale.
     widgets:        Svg.Drawing     // Vector widgets atlas, parsed once.
-    widgetsRasters: HashTable'(s32, *Image)     // Raster image addresses stay stable as scales are added.
+    widgetsRasters: HashTable!{s32, *Image}     // Raster image addresses stay stable as scales are added.
     icons:          IconAtlas       // Vector icon set, parsed once, with its own frames.
 }
 
@@ -69,8 +69,10 @@ impl ThemeImages
     mtd opDrop()
     {
         Sync.scopedLock(&.lock)
-        for _, image in .widgetsRasters do
+        for _, image in .widgetsRasters
+        {
             Memory.delete(image)
+        }
     }
 }
 
@@ -94,7 +96,7 @@ private const ResFontFsItalicName     = "theme/robotomono-italic.ttf"
 private const CjkFontCandidates: [5] string = ["YuGothR.ttc", "msgothic.ttc", "meiryo.ttc", "NotoSansCJK-Regular.ttc", "NotoSansJP-Regular.otf"]
 
 private var g_DefaultThemeImages:    ThemeImages
-private var g_EmbeddedFontFaces:     HashTable'(string, *TypeFace)
+private var g_EmbeddedFontFaces:     HashTable!{string, *TypeFace}
 private var g_EmbeddedFontFacesLock: Swag.Mutex
 
 // Registers the embedded theme art and fonts as the fallback providers of `bundle`.
@@ -135,8 +137,11 @@ private func themeTypeFace(res: const *Resources.Bundle, name: string)->*TypeFac
         {
             var overrideName: String = name
             overrideName += "#override"
-            for word in Hash.Sha256.compute(bytes.toSlice()) do
+            for word in Hash.Sha256.compute(bytes.toSlice())
+            {
                 overrideName += Format.toString("#%", word)
+            }
+
             catch { return try TypeFace.create(overrideName.toString(), bytes.toSlice()) }
         }
     }
@@ -144,8 +149,11 @@ private func themeTypeFace(res: const *Resources.Bundle, name: string)->*TypeFac
     for &entry in res.embedded where entry.name == name
     {
         let bytes = unwrap entry.bytes
-        if entry.zlibCompressed do
+        if entry.zlibCompressed
+        {
             return try embeddedFontTypeFace(name, bytes, entry.uncompressedSize)
+        }
+
         return try TypeFace.create(name, bytes)
     }
 
@@ -155,8 +163,10 @@ private func themeTypeFace(res: const *Resources.Bundle, name: string)->*TypeFac
 private func embeddedFontTypeFace(name: string, compressed: const [..] u8, uncompressedSize: u64)->*TypeFace fail
 {
     Sync.scopedLock(&g_EmbeddedFontFacesLock)
-    if let found = g_EmbeddedFontFaces.tryFind(name) do
+    if let found = g_EmbeddedFontFaces.tryFind(name)
+    {
         return found.value
+    }
 
     var zlib: Compress.ZLib
     let bytes = try zlib.decompress(compressed, uncompressedSize)
@@ -184,21 +194,39 @@ func embeddedTypeFace(fixedPitch: bool, style: FontFamilyStyle)->*TypeFace fail
     let italic = style == .Italic or style == .BoldItalic
     if fixedPitch
     {
-        if bold and italic do
+        if bold and italic
+        {
             return try embeddedFontTypeFace(ResFontFsBoldItalicName, DefaultFontFsBoldItalic, DefaultFontFsBoldItalicSize)
-        if bold do
+        }
+
+        if bold
+        {
             return try embeddedFontTypeFace(ResFontFsBoldName, DefaultFontFsBold, DefaultFontFsBoldSize)
-        if italic do
+        }
+
+        if italic
+        {
             return try embeddedFontTypeFace(ResFontFsItalicName, DefaultFontFsItalic, DefaultFontFsItalicSize)
+        }
+
         return try embeddedFontTypeFace(ResFontFsRegularName, DefaultFontFsRegular, DefaultFontFsRegularSize)
     }
 
-    if bold and italic do
+    if bold and italic
+    {
         return try embeddedFontTypeFace(ResFontBoldItalicName, DefaultFontBoldItalic, DefaultFontBoldItalicSize)
-    if bold do
+    }
+
+    if bold
+    {
         return try embeddedFontTypeFace(ResFontBoldName, DefaultFontBold, DefaultFontBoldSize)
-    if italic do
+    }
+
+    if italic
+    {
         return try embeddedFontTypeFace(ResFontItalicName, DefaultFontItalic, DefaultFontItalicSize)
+    }
+
     return try embeddedFontTypeFace(ResFontRegularName, DefaultFontRegular, DefaultFontRegularSize)
 }
 
@@ -206,8 +234,11 @@ private func systemCjkTypeFace()->*TypeFace? fail
 {
     for name in CjkFontCandidates
     {
-        if not TypeFace.exists(name) do
+        if not TypeFace.exists(name)
+        {
             continue
+        }
+
         return try TypeFace.load(name)
     }
 
@@ -248,15 +279,17 @@ internal func themeWidgetsImage(cache: *ThemeImages, scale: f32)->*Image
 
     let key   = cast(s32, scale)
     let found = cache.widgetsRasters.tryFind(key)
-    if found do
+    if found
+    {
         return found.value
+    }
 
     if cache == &g_DefaultThemeImages
     {
         let bytes = themeWidgetRaster(key)
         if bytes
         {
-            let image = Memory.new'Image()
+            let image = Memory.new!{Image}()
             image[] = decodeThemeRaster(bytes)
             cache.widgetsRasters.add(key, image)
             return image
@@ -274,11 +307,13 @@ internal func themeWidgetsImage(cache: *ThemeImages, scale: f32)->*Image
 
     // Rasterize with strong supersampling so tile edges carry exact coverage; cap
     // the internal buffer so a dense display keeps the one-time cost bounded.
-    var ss = 4'u8
-    while ss > 1 and w * cast(s32, ss) > 4096 do
+    var ss = 4_u8
+    while ss > 1 and w * cast(s32, ss) > 4096
+    {
         ss /= 2
+    }
 
-    let image = Memory.new'Image()
+    let image = Memory.new!{Image}()
     image[] = cache.widgets.rasterize(w, h, ss)
     cache.widgetsRasters.add(key, image)
     return image
@@ -300,8 +335,10 @@ private func themeDrawing(resources: const *Resources.Bundle, name: string, embe
             var drawing:         #decltype(expect Svg.Drawing.parse(Swag.makeString(bytes.storage(), bytes.count)))
             catch { drawing = try Svg.Drawing.parse(Swag.makeString(bytes.storage(), bytes.count)) } as parseErrOutcome
             let parseErr = parseErrOutcome.value()
-            if parseErr == null do
+            if parseErr == null
+            {
                 return drawing
+            }
         }
     }
 
@@ -413,21 +450,23 @@ impl Theme
         var scratchRects   = .rects
 
         var tokens: File.TweakFile
-        tokens.registerFolder'ThemePalette(&palette)
-        tokens.registerFolder'ThemeColors(&scratchColors)
-        tokens.registerFolder'ThemeMetrics(&scratchMetrics)
-        tokens.registerFolder'ThemeImageRects(&scratchRects)
+        tokens.registerFolder!{ThemePalette}(&palette)
+        tokens.registerFolder!{ThemeColors}(&scratchColors)
+        tokens.registerFolder!{ThemeMetrics}(&scratchMetrics)
+        tokens.registerFolder!{ThemeImageRects}(&scratchRects)
         try tokens.parse(sheet)
 
-        if palette != .palette do
+        if palette != .palette
+        {
             .setPalette(palette)
+        }
 
         var scratchPalette = .palette
         var parts: File.TweakFile
-        parts.registerFolder'ThemePalette(&scratchPalette)
-        parts.registerFolder'ThemeColors(&.colors)
-        parts.registerFolder'ThemeMetrics(&.metrics)
-        parts.registerFolder'ThemeImageRects(&.rects)
+        parts.registerFolder!{ThemePalette}(&scratchPalette)
+        parts.registerFolder!{ThemeColors}(&.colors)
+        parts.registerFolder!{ThemeMetrics}(&.metrics)
+        parts.registerFolder!{ThemeImageRects}(&.rects)
         try parts.parse(sheet)
     }
 
@@ -483,7 +522,7 @@ impl Theme
     // [[Gui.Theme.ensureAtlasScale]] cannot reuse a coarser atlas: building at 1 first would
     // throw that work away on every scaled display. Fonts and vector art resolve through
     // `resources`; an unreadable or malformed disk override falls back to its embedded source.
-    internal mtd setupDefault(renderer: IRenderer, resources: const *Resources.Bundle, dpiScale = 1.0'f32)
+    internal mtd setupDefault(renderer: IRenderer, resources: const *Resources.Bundle, dpiScale = 1.0_f32)
     {
         .initialized = true
         .fonts       = renderer.fontCache()
@@ -492,7 +531,7 @@ impl Theme
         .images = defaultThemeImages()
         if resources.isOverridden(ResImageName) or resources.isOverridden(ResIconsName)
         {
-            let images = Memory.new'ThemeImages()
+            let images = Memory.new!{ThemeImages}()
             .ownedImages         = images
             .images              = images
             images.widgets       = themeDrawing(resources, ResImageName, DefaultImage)
@@ -519,15 +558,23 @@ impl Theme
     mtd ensureAtlasScale(renderer: IRenderer, scale: f32)
     {
         let wanted = Math.max(Math.ceil(scale), 1.0)
-        if wanted <= .res.atlasScale do
+        if wanted <= .res.atlasScale
+        {
             return
+        }
 
         let image    = themeWidgetsImage(.images orelse defaultThemeImages(), wanted)
         let uploaded = renderer.addImage(image[])
-        if not uploaded.isValid() do
+        if not uploaded.isValid()
+        {
             return
-        if .res.atlasScale > 0 do
+        }
+
+        if .res.atlasScale > 0
+        {
             renderer.removeTexture(&.res.imgWidgets)
+        }
+
         .res.imgWidgets = uploaded
         .res.atlasScale = wanted
     }
@@ -557,8 +604,10 @@ impl Theme
     {
         with me.res
         {
-            if .defaultTypeFaceR != null do
+            if .defaultTypeFaceR != null
+            {
                 return
+            }
 
             .defaultTypeFaceR  = expect themeTypeFace(resources, ResFontRegularName)
             .defaultTypeFaceB  = expect themeTypeFace(resources, ResFontBoldName)
@@ -674,12 +723,16 @@ impl Theme
             var face: #decltype(expect systemCjkTypeFace())
             catch { face = try systemCjkTypeFace() } as loadErrorOutcome
             let loadError = loadErrorOutcome.value()
-            if loadError == null do
+            if loadError == null
+            {
                 .res.cjkTypeFace = face
+            }
         }
 
-        if not .res.cjkTypeFace do
+        if not .res.cjkTypeFace
+        {
             return .createDefaultFont(size, style)
+        }
 
         switch #complete style
         {

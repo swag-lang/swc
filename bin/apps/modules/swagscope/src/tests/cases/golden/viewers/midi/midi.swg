@@ -36,8 +36,11 @@ using Core, Pixel, Gui, Viewers
     Swag.require(not view.roll.showsPercussion())
 
     var drums = Swag.U32.Max
-    for lane in view.roll.lanes where lane.channel == 9 do
+    for lane in view.roll.lanes where lane.channel == 9
+    {
         drums = lane.track
+    }
+
     Swag.require(drums != Swag.U32.Max)
     view.roll.setTrack(drums)
     Swag.require(view.roll.showsPercussion())

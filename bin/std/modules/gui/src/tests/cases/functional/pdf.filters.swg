@@ -10,8 +10,10 @@ using Core, Pdf
     let decoded          = expect decodeLzw(encoded)
     let awaited: [10] u8 = [45, 45, 45, 45, 45, 65, 45, 45, 45, 66]
     Swag.require(decoded.count == 10)
-    for value, index in decoded do
+    for value, index in decoded
+    {
         Swag.require(value == awaited[index])
+    }
 }
 
 // A stream that ends inside a code is padding rather than a failure, and an undefined code is
@@ -35,8 +37,10 @@ using Core, Pdf
 {
     let ascii85 = expect decodeAscii85("z!!~>")
     Swag.require(ascii85.count == 5)
-    for value in ascii85 do
+    for value in ascii85
+    {
         Swag.require(value == 0)
+    }
 
     // A full group, and a short group whose missing digits are filled with the highest one.
     let group = expect decodeAscii85("!!!!\"~>")
@@ -90,7 +94,7 @@ using Core, Pdf
 #test
 {
     let encoded: [9] u8 = [0x80, 0x0B, 0x60, 0x50, 0x22, 0x0C, 0x0C, 0x85, 0x01]
-    var extra:   Array'u8
+    var extra:   Array!{u8}
     addStreamObject(&extra, 5, "/Type /XObject /Subtype /Image /Width 5 /Height 2 /ColorSpace /DeviceGray /BitsPerComponent 8 /Filter /LZWDecode", encoded)
 
     let content  = "q 5 0 0 2 0 0 cm /Im0 Do Q"
@@ -118,7 +122,7 @@ using Core, Pdf
     var zlib: Compress.ZLib
     let packed = expect zlib.compress(filtered)
 
-    var extra: Array'u8
+    var extra: Array!{u8}
     addStreamObject(&extra, 5, "/Type /XObject /Subtype /Image /Width 4 /Height 3 /ColorSpace /DeviceGray /BitsPerComponent 8 /Filter /FlateDecode /DecodeParms << /Predictor 15 /Colors 1 /Columns 4 >>", packed.toSlice())
 
     let content  = "q 4 0 0 3 0 0 cm /Im0 Do Q"
@@ -151,8 +155,10 @@ using Core, Pdf
     params.blackIs1 = true
     let inverted = expect decodeCcittFax(encoded.toSlice(), params)
     Swag.require(inverted.count == expected.count)
-    for value, index in inverted do
+    for value, index in inverted
+    {
         Swag.require(value == ~expected[index])
+    }
 }
 
 // A stream that ends early still describes an image of the height its dictionary declares, and a
@@ -165,8 +171,10 @@ using Core, Pdf
 
     let decoded = expect decodeCcittFax(encoded.toSlice(), params)
     Swag.require(decoded.count == 60 * 8)
-    for index in 48 * 8 until decoded.count do
+    for index in 48 * 8 until decoded.count
+    {
         Swag.require(decoded[index] == 0xFF)
+    }
 
     params.columns = 0
     var widthErrorOutcome: Swag.Error

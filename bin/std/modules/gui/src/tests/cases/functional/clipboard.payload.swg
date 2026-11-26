@@ -7,7 +7,7 @@ using Swag, Core
 #test
 {
     let type: typeinfo = s32
-    let source         = [1'u8, 2, 3]
+    let source         = [1_u8, 2, 3]
     let payload        = Clipboard.TypedPayload{crc: type.crc, data: source}
     var encoded        = payload.encode()
     let decoded        = expect Clipboard.TypedPayload.decode(encoded.toSlice())
@@ -24,8 +24,11 @@ using Swag, Core
         Swag.require(error != null)
     }
 
-    for i in 8 do
+    for i in 8
+    {
         encoded[4 + i] = 255
+    }
+
     var oversizedOutcome: Swag.Error
     discard catch Clipboard.TypedPayload.decode(encoded.toSlice()) as oversizedOutcome
     let oversized = oversizedOutcome.value()

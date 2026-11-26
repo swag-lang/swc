@@ -10,7 +10,7 @@ impl Items
 }
 struct Child { value: u64 }
 struct Cell { value: u64; child: Child; hook: (func||()->u64)? }
-struct Owner { cells: Items'(*Cell); value: u64 = 42 }
+struct Owner { cells: Items!{*Cell}; value: u64 = 42 }
 func setup(owner: *Owner)
 {
     for slot in 3
@@ -33,8 +33,10 @@ func setup(owner: *Owner)
     var pointers = [&cells[0], &cells[1], &cells[2]]
     var owner    = Owner{cells: {buffer: pointers.buffer}}
     setup(&owner)
-    for slot in 3 do
+    for slot in 3
+    {
         Swag.require(cells[slot].value == slot and
                      cells[slot].child.value == slot + 5 and
                      cells[slot].hook!() == 42)
+    }
 }

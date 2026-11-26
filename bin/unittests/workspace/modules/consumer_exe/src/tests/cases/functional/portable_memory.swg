@@ -35,7 +35,7 @@ func extendMemoryRow(row: [*] u8, width: u32, padding: u64)
 
 func extendMemoryPlane(base: [*] u8, width, height: u32)
 {
-    const Padding = 32'u64
+    const Padding = 32_u64
     const Stride  = Padding * 2 + 4
     var row = base + Padding
     for height
@@ -75,12 +75,18 @@ func extendMemoryPlane(base: [*] u8, width, height: u32)
     fields.before = 0x1122334455667788
     fields.after  = 0x8877665544332211
     prepareMemoryFields(&fields)
-    for value in fields.refIndex do
+    for value in fields.refIndex
+    {
         Swag.require(value == -1)
-    for value in fields.contextRef do
+    }
+    for value in fields.contextRef
+    {
         Swag.require(value == -1)
-    for value in fields.intraModes do
+    }
+    for value in fields.intraModes
+    {
         Swag.require(value == 2)
+    }
     Swag.require(fields.before == 0x1122334455667788)
     Swag.require(fields.after == 0x8877665544332211)
 
@@ -91,10 +97,14 @@ func extendMemoryPlane(base: [*] u8, width, height: u32)
     paddedRow[10] = 0x53
     paddedRow[11] = 0x64
     extendMemoryRow(&paddedRow[8], 4, 8)
-    for value in paddedRow[0 until 8] do
+    for value in paddedRow[0 until 8]
+    {
         Swag.require(value == 0x31)
-    for value in paddedRow[12 until 20] do
+    }
+    for value in paddedRow[12 until 20]
+    {
         Swag.require(value == 0x64)
+    }
     Swag.require(paddedRow[20] == 0xA5)
 
     var plane: [136] u8
@@ -107,12 +117,20 @@ func extendMemoryPlane(base: [*] u8, width, height: u32)
     plane[102] = 0x77
     plane[103] = 0x88
     extendMemoryPlane(&plane[0], 4, 2)
-    for value in plane[0 until 32] do
+    for value in plane[0 until 32]
+    {
         Swag.require(value == 0x11)
-    for value in plane[36 until 68] do
+    }
+    for value in plane[36 until 68]
+    {
         Swag.require(value == 0x44)
-    for value in plane[68 until 100] do
+    }
+    for value in plane[68 until 100]
+    {
         Swag.require(value == 0x55)
-    for value in plane[104 until 136] do
+    }
+    for value in plane[104 until 136]
+    {
         Swag.require(value == 0x88)
+    }
 }

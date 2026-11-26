@@ -8,8 +8,11 @@ using Core, Viewers
 #test
 {
     var source: String = "<cols>"
-    for 16385 do
+    for 16385
+    {
         source += "<col min='16384' max='16384' style='1'/>"
+    }
+
     source += "</cols>"
     var error: Swag.Error
     discard catch Xlsx.SheetStyleDefaults.parse(source) as error

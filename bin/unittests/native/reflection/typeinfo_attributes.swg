@@ -116,8 +116,10 @@ const REFLECTED_ENUM_INFO     = cast(const *Swag.TypeInfoEnum, #typeof(Reflected
     let parameters = unwrap REFLECTED_FUNCTION_INFO.parameters
     for attribute in parameters[0].attributes
     {
-        if attribute.type != #typeof(ParamReflectionAttr) do
+        if attribute.type != #typeof(ParamReflectionAttr)
+        {
             continue
+        }
 
         foundParamAttribute = true
         Swag.require(attribute.params.count == 1)
@@ -146,8 +148,10 @@ const REFLECTED_ENUM_INFO     = cast(const *Swag.TypeInfoEnum, #typeof(Reflected
     let fields = unwrap REFLECTED_STRUCT_INFO.fields
     for fieldAttribute in fields[0].attributes
     {
-        if fieldAttribute.type != #typeof(FieldReflectionAttr) do
+        if fieldAttribute.type != #typeof(FieldReflectionAttr)
+        {
             continue
+        }
 
         foundFieldAttribute = true
         Swag.require(fieldAttribute.params.count == 1)
@@ -177,8 +181,10 @@ const REFLECTED_ENUM_INFO     = cast(const *Swag.TypeInfoEnum, #typeof(Reflected
     {
         for enumValueAttribute in enumValue.attributes
         {
-            if enumValueAttribute.type != #typeof(EnumValueReflectionAttr) do
+            if enumValueAttribute.type != #typeof(EnumValueReflectionAttr)
+            {
                 continue
+            }
 
             Swag.require(enumValueAttribute.params.count == 1)
             let valueParams = unwrap enumValueAttribute.params

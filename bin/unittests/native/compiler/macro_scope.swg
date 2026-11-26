@@ -412,7 +412,7 @@ func(T) variadicSameName(values: [..] T, sumPtr: *T)
 #test
 {
     var sum: s32 = 0
-    let values   = [1's32, 2, 3]
+    let values   = [1_s32, 2, 3]
     variadicSameName(values, &sum)
     Swag.require(sum == 6)
 }

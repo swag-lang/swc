@@ -97,8 +97,11 @@ impl IActionUI for ActionSelection
         {
         case .SelectAll:
             capture.selection.clear()
-            for i in capture.forms.count do
+            for i in capture.forms.count
+            {
                 capture.selection.add(i)
+            }
+
             capture.selectionHasChanged()
 
         case .SelectSameAll:
@@ -106,8 +109,10 @@ impl IActionUI for ActionSelection
             capture.selection.clear()
             for form, i in capture.forms
             {
-                if Swag.kindOf(form) == firstType do
+                if Swag.kindOf(form) == firstType
+                {
                     capture.selection.add(i)
+                }
             }
 
             capture.selectionHasChanged()
@@ -117,9 +122,12 @@ impl IActionUI for ActionSelection
             capture.selectionHasChanged()
 
         case .InvertSelection:
-            var newSel: Array'u64
-            for i in capture.forms.count where not capture.selection.contains(i) do
+            var newSel: Array!{u64}
+            for i in capture.forms.count where not capture.selection.contains(i)
+            {
                 newSel.add(i)
+            }
+
             capture.selection = newSel
             capture.selectionHasChanged()
 

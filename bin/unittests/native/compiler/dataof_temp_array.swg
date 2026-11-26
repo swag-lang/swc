@@ -10,13 +10,15 @@ struct DataOfTempArrayHolder
     let holder = DataOfTempArrayHolder{
         cb: func(flag: bool)->[5] u8
     {
-        if flag do
-            return ['h'u8, 'e'u8, 'l'u8, 'l'u8, 'o'u8]
-        return ['w'u8, 'o'u8, 'r'u8, 'l'u8, 'd'u8]
+        if flag
+        {
+            return ['h'_u8, 'e'_u8, 'l'_u8, 'l'_u8, 'o'_u8]
+        }
+        return ['w'_u8, 'o'_u8, 'r'_u8, 'l'_u8, 'd'_u8]
     }
         }
 
     let p = (holder.cb(false)).buffer
-    Swag.require(p[0] == 'w'u8)
-    Swag.require(p[4] == 'd'u8)
+    Swag.require(p[0] == 'w'_u8)
+    Swag.require(p[4] == 'd'_u8)
 }

@@ -48,8 +48,10 @@ func trace(image: const *Image, options: TraceOptions = {})->Document
     func sample(image: const *Image, x, y: s32)->{ color: Color, alpha: u8 }
     {
         var result: #returntype
-        if x < 0 or y < 0 or x >= image.width or y >= image.height do
+        if x < 0 or y < 0 or x >= image.width or y >= image.height
+        {
             return result
+        }
 
         result.color = image.pixelColor(x, y)
         result.alpha = result.color.a
@@ -58,34 +60,46 @@ func trace(image: const *Image, options: TraceOptions = {})->Document
 
     // Collect the distinct colors of sufficiently opaque pixels, most frequent
     // first so large fills are written before the details drawn over them.
-    var colorCount: HashTable'(u32, u64)
+    var colorCount: HashTable!{u32, u64}
     for y in h
     {
         for x in w
         {
             let {color, alpha} = sample(image, x, y)
-            if alpha <= options.threshold do
+            if alpha <= options.threshold
+            {
                 continue
+            }
+
             let key  = color.argb & 0x00FFFFFF
             let here = colorCount.tryFind(key)
-            if here do
+            if here
+            {
                 here.value += 1
-            else do
+            }
+            else
+            {
                 colorCount.add(key, 1)
+            }
         }
     }
 
-    var colors: Array'{ key: u32, count: u64 }
-    for key, count in colorCount do
+    var colors: Array!{{ key: u32, count: u64 }}
+    for key, count in colorCount
+    {
         colors.add({key, count})
+    }
+
     colors.sort(func||(a, b) => b.count <=> a.count)
 
     // Trace each color class independently.
     for entry in colors
     {
         var paths = traceClass(image, entry.key, options)
-        if paths.paths.isEmpty() do
+        if paths.paths.isEmpty()
+        {
             continue
+        }
 
         // Average the class alpha so a uniformly translucent layer keeps its opacity.
         var alphaSum, alphaCount: u64
@@ -103,8 +117,11 @@ func trace(image: const *Image, options: TraceOptions = {})->Document
         }
 
         var color = Color.fromArgb(entry.key | 0xFF000000)
-        if alphaCount do
+        if alphaCount
+        {
             color.a = cast(u8, (alphaSum / alphaCount))
+        }
+
         result.addPath(paths, color, .NonZero)
     }
 
@@ -116,17 +133,23 @@ func trace(image: const *Image, options: TraceOptions = {})->Document
 // inverted neighborhood for the outer transparent boundary.
 private func coverage(image: const *Image, key: u32, threshold: u8, x, y: s32)->f32
 {
-    if x < 0 or y < 0 or x >= image.width or y >= image.height do
+    if x < 0 or y < 0 or x >= image.width or y >= image.height
+    {
         return 0
+    }
 
     let color = image.pixelColor(x, y)
     let a     = color.a
-    if a == 0 do
+    if a == 0
+    {
         return 0
+    }
 
     let pixKey = color.argb & 0x00FFFFFF
-    if a > threshold and pixKey != key do
+    if a > threshold and pixKey != key
+    {
         return 0
+    }
 
     // Matching or antialiased-boundary pixel: its alpha is the class coverage.
     return cast(f32, a) / 255.0
@@ -142,25 +165,27 @@ private func traceClass(image: const *Image, key: u32, options: TraceOptions)->L
 
     let w   = image.width
     let h   = image.height
-    let thr = 0.5'f32
+    let thr = 0.5_f32
 
     // Corner coverage grid, one sample per pixel center, padded by one so outer
     // boundaries close.
     let gw = w + 2
     let gh = h + 2
-    var grid: Array'f32
+    var grid: Array!{f32}
     grid.resize(cast(u64, gw) * cast(u64, gh))
     for y in gh
     {
-        for x in gw do
+        for x in gw
+        {
             grid[cast(u64, y) * cast(u64, gw) + cast(u64, x)] = coverage(image, key, options.threshold, x - 1, y - 1)
+        }
     }
 
-    func at(grid: *Array'f32, gw: s32, x, y: s32)->f32 => grid[][cast(u64, y) * cast(u64, gw) + cast(u64, x)]
+    func at(grid: *Array!{f32}, gw: s32, x, y: s32)->f32 => grid[][cast(u64, y) * cast(u64, gw) + cast(u64, x)]
 
     // One flag per cell edge crossing, so each contour is walked exactly once.
     // Index: cell (x, y) with 2 horizontal-crossing slots (top edge) per cell.
-    var visited: Array'bool
+    var visited: Array!{bool}
     visited.resize(cast(u64, gw) * cast(u64, gh))
 
     // Walk the segment grid: standard marching squares with linear interpolation.
@@ -172,10 +197,15 @@ private func traceClass(image: const *Image, key: u32, options: TraceOptions)->L
         {
             let a = at(&grid, gw, cx, cy)
             let b = at(&grid, gw, cx + 1, cy)
-            if (a >= thr) == (b >= thr) do
+            if (a >= thr) == (b >= thr)
+            {
                 continue
-            if visited[cast(u64, cy) * cast(u64, gw) + cast(u64, cx)] do
+            }
+
+            if visited[cast(u64, cy) * cast(u64, gw) + cast(u64, cx)]
+            {
                 continue
+            }
 
             // Trace one closed contour starting at this top-edge crossing.
             visited[cast(u64, cy) * cast(u64, gw) + cast(u64, cx)] = true
@@ -198,17 +228,30 @@ private func traceClass(image: const *Image, key: u32, options: TraceOptions)->L
                 let c11 = at(&grid, gw, x + 1, y + 1)
 
                 var config = 0
-                if c00 >= thr do
+                if c00 >= thr
+                {
                     config |= 1
-                if c10 >= thr do
-                    config |= 2
-                if c11 >= thr do
-                    config |= 4
-                if c01 >= thr do
-                    config |= 8
+                }
 
-                if config == 0 or config == 15 do
+                if c10 >= thr
+                {
+                    config |= 2
+                }
+
+                if c11 >= thr
+                {
+                    config |= 4
+                }
+
+                if c01 >= thr
+                {
+                    config |= 8
+                }
+
+                if config == 0 or config == 15
+                {
                     break
+                }
 
                 // Resolve the exit edge for the entry edge on this configuration.
                 // Saddles (5, 10) choose the turn that keeps the filled area on the
@@ -254,37 +297,58 @@ private func traceClass(image: const *Image, key: u32, options: TraceOptions)->L
 
                 case 5:
                     let center = (c00 + c10 + c01 + c11) * 0.25
-                    if entry == 0 do
+                    if entry == 0
+                    {
                         exitEdge = center >= thr ? 1 : 3
-                    elif entry == 2 do
+                    }
+                    else if entry == 2
+                    {
                         exitEdge = center >= thr ? 3 : 1
-                    elif entry == 1 do
+                    }
+                    else if entry == 1
+                    {
                         exitEdge = center >= thr ? 0 : 2
-                    else do
+                    }
+                    else
+                    {
                         exitEdge = center >= thr ? 2 : 0
+                    }
 
                 case 10:
                     let center = (c00 + c10 + c01 + c11) * 0.25
-                    if entry == 0 do
+                    if entry == 0
+                    {
                         exitEdge = center >= thr ? 3 : 1
-                    elif entry == 2 do
+                    }
+                    else if entry == 2
+                    {
                         exitEdge = center >= thr ? 1 : 3
-                    elif entry == 3 do
+                    }
+                    else if entry == 3
+                    {
                         exitEdge = center >= thr ? 0 : 2
-                    else do
+                    }
+                    else
+                    {
                         exitEdge = center >= thr ? 2 : 0
+                    }
                 }
 
-                if exitEdge < 0 do
+                if exitEdge < 0
+                {
                     break
+                }
 
                 // Sub-pixel crossing point on the exit edge. Grid corner (x, y) is
                 // source pixel center (x - 1 + 0.5, y - 1 + 0.5).
                 func crossing(va, vb: f32, thr: f32)->f32
                 {
                     let d = vb - va
-                    if Math.abs(d) < 0.0001 do
+                    if Math.abs(d) < 0.0001
+                    {
                         return 0.5
+                    }
+
                     return Math.saturate((thr - va) / d)
                 }
 
@@ -319,10 +383,14 @@ private func traceClass(image: const *Image, key: u32, options: TraceOptions)->L
                 }
 
                 // Mark consumed top-edge crossings so no contour is traced twice.
-                if exitEdge == 0 do
+                if exitEdge == 0
+                {
                     visited[cast(u64, y) * cast(u64, gw) + cast(u64, x)] = true
-                elif exitEdge == 2 do
+                }
+                else if exitEdge == 2
+                {
                     visited[cast(u64, (y + 1)) * cast(u64, gw) + cast(u64, x)] = true
+                }
 
                 // Step into the neighbouring cell.
                 switch exitEdge
@@ -344,12 +412,16 @@ private func traceClass(image: const *Image, key: u32, options: TraceOptions)->L
                     entry = 1
                 }
 
-                if x == startX and y == startY and entry == 0 do
+                if x == startX and y == startY and entry == 0
+                {
                     break
+                }
 
                 // A contour reaching the padded border must not walk off the grid.
-                if x < 0 or y < 0 or x >= gw - 1 or y >= gh - 1 do
+                if x < 0 or y < 0 or x >= gw - 1 or y >= gh - 1
+                {
                     break
+                }
             }
 
             if path
@@ -367,29 +439,38 @@ private func traceClass(image: const *Image, key: u32, options: TraceOptions)->L
 // Ramer-Douglas-Peucker simplification of an open polyline, in place.
 private func simplifyPath(path: *LinePath, tolerance: f32)
 {
-    if tolerance <= 0 do
+    if tolerance <= 0
+    {
         return
+    }
 
     // Collect the raw points.
-    var points: Array'Vector2
-    for elem in path.elements do
+    var points: Array!{Vector2}
+    for elem in path.elements
+    {
         points.add(elem.position)
-    if points.count < 3 do
-        return
+    }
 
-    var keep: Array'bool
+    if points.count < 3
+    {
+        return
+    }
+
+    var keep: Array!{bool}
     keep.resize(points.count)
     keep[0], keep[points.count - 1] = true
 
     // Iterative stack instead of recursion.
-    var stack: Array'{ first: u64, last: u64 }
+    var stack: Array!{{ first: u64, last: u64 }}
     stack.add({first: 0, last: points.count - 1})
 
     while stack.count
     {
         let {first, last} = stack.popBack()
-        if last <= first + 1 do
+        if last <= first + 1
+        {
             continue
+        }
 
         let a      = points[first]
         let b      = points[last]
@@ -397,7 +478,7 @@ private func simplifyPath(path: *LinePath, tolerance: f32)
         let abLen2 = Math.max(ab.dot(ab), 0.000001)
 
         var far     = first
-        var farDist = 0.0'f32
+        var farDist = 0.0_f32
         for var i = first + 1; i < last; i += 1
         {
             let ap = points[i] - a
@@ -420,12 +501,16 @@ private func simplifyPath(path: *LinePath, tolerance: f32)
     }
 
     // Rebuild the path with the kept points.
-    var kept: Array'Vector2
-    for i in points.count where keep[i] do
+    var kept: Array!{Vector2}
+    for i in points.count where keep[i]
+    {
         kept.add(points[i])
+    }
 
     path.clear()
     path.start(kept[0].x, kept[0].y)
-    for var i = 1'u64; i < kept.count; i += 1 do
+    for var i = 1_u64; i < kept.count; i += 1
+    {
         path.lineTo(kept[i].x, kept[i].y)
+    }
 }

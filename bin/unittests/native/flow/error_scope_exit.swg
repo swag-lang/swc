@@ -6,7 +6,10 @@ var cleanups: u32
 #[Swag.NoInline]
 func load(name: string)->*s32 fail
 {
-    if name == "missing" do fail Swag.BaseError{"missing"}
+    if name == "missing"
+    {
+        fail Swag.BaseError{"missing"}
+    }
     return &value
 }
 
@@ -63,7 +66,10 @@ func loopExits()
         {
             defer { cleanups += 1 }
             discard try load("present")
-            if index == 0 do continue
+            if index == 0
+            {
+                continue
+            }
             break
         }
     }
@@ -74,7 +80,10 @@ func loopExits()
         {
             defer { cleanups += 1 }
             discard try load("present")
-            if index == 0 do continue
+            if index == 0
+            {
+                continue
+            }
             break
         }
     }

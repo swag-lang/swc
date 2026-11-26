@@ -15,12 +15,12 @@ struct TagBinEmptyFinal {}
 
 struct TagBinEmptyArray
 {
-    values: Array'TagBinEmptyFinal
+    values: Array!{TagBinEmptyFinal}
 }
 
 struct TagBinRawArrayPayload
 {
-    values: Array'u32
+    values: Array!{u32}
 }
 
 #[Serialization.Final]
@@ -32,8 +32,8 @@ struct TagBinFinalBoolean
 struct TagBinBooleanPayload
 {
     scalar:  bool
-    values:  Array'bool
-    records: Array'TagBinFinalBoolean
+    values:  Array!{bool}
+    records: Array!{TagBinFinalBoolean}
 }
 
 struct TagBinArrayReallocProbe
@@ -98,13 +98,13 @@ struct TagBinPayload
     id:         u32
     active:     bool
     name:       String
-    counts:     Array's32
+    counts:     Array!{s32}
     pair:       TagBinPair
     fixed:      [3] u8
     finalPoint: TagBinFinalPoint
 
     #[Serialization.Compress]
-    blob: Array'u8
+    blob: Array!{u8}
 
     #[Serialization.NoSerialize]
     transient: s32
@@ -162,10 +162,10 @@ struct TagBinConversionSource
     floating:       f32
     staticToStatic: [3] u8
     staticToArray:  [3] s16
-    arrayToStatic:  Array's8
+    arrayToStatic:  Array!{s8}
     singleToStatic: s16
     singleToArray:  u8
-    arrayToSingle:  Array's16
+    arrayToSingle:  Array!{s16}
     nested:         TagBinLegacyNested
 }
 
@@ -174,10 +174,10 @@ struct TagBinConversionTarget
     small:          s64
     floating:       f64
     staticToStatic: [5] u16
-    staticToArray:  Array's32
+    staticToArray:  Array!{s32}
     arrayToStatic:  [4] s32
     singleToStatic: [3] s32
-    singleToArray:  Array'u32
+    singleToArray:  Array!{u32}
     arrayToSingle:  s64
     nested:         TagBinCurrentNested
 }
@@ -225,9 +225,9 @@ struct TagBinEnumTarget
 struct TagBinEnumArrays
 {
     fixed:        [3] TagBinModeU8
-    values:       Array'TagBinModeU8
+    values:       Array!{TagBinModeU8}
     records:      [2] TagBinEnumRecord
-    recordValues: Array'TagBinEnumRecord
+    recordValues: Array!{TagBinEnumRecord}
 }
 
 struct TagBinLongText
@@ -345,7 +345,7 @@ public struct TagBinHookPayload
         direct:     s32
         remapped:   s32
         customEnum: TagBinModeU8
-        bytes:      Array'u8
+        bytes:      Array!{u8}
 
         #[Serialization.NoSerialize]
         postReadSeen: bool
@@ -361,21 +361,27 @@ public impl Serialization.ISerialize for TagBinHookPayload
     {
         if type.name == "customEnum"
         {
-            if not (try decoder.beginField(type)) do
+            if not (try decoder.beginField(type))
+            {
                 return true
+            }
+
             defer #nofail try decoder.endField(type)
 
             let value = try decoder.readU8()
 
             // Exercise the post-hook validation path with a forged closed enum.
-            cast(*u8, unwrap data)[] = value == cast(u8, TagBinModeU8.Precise) ? 0xFF'u8 : value
+            cast(*u8, unwrap data)[] = value == cast(u8, TagBinModeU8.Precise) ? 0xFF_u8 : value
             return true
         }
 
         if type.name == "remapped"
         {
-            if not (try decoder.beginField(type)) do
+            if not (try decoder.beginField(type))
+            {
                 return true
+            }
+
             defer #nofail try decoder.endField(type)
 
             cast(*s32, unwrap data)[] = try decoder.readS32() - 6
@@ -384,18 +390,24 @@ public impl Serialization.ISerialize for TagBinHookPayload
 
         if type.name == "bytes"
         {
-            if not (try decoder.beginField(type)) do
+            if not (try decoder.beginField(type))
+            {
                 return true
+            }
+
             defer #nofail try decoder.endField(type)
 
             let raw = try decoder.readBufferU8(4)
             defer Memory.free(raw, 4)
 
-            let values = cast(*Array'u8, unwrap data)
+            let values = cast(*Array!{u8}, unwrap data)
             let rawPtr = cast([*] u8, unwrap raw)
             values.clear()
-            for i in 4 do
+            for i in 4
+            {
                 values.add(rawPtr[3 - i])
+            }
+
             return true
         }
 
@@ -418,7 +430,7 @@ public impl Serialization.ISerialize for TagBinHookPayload
             try encoder.beginField(type)
             defer #nofail try encoder.endField(type)
 
-            let values = cast(const *Array'u8, unwrap data)
+            let values = cast(const *Array!{u8}, unwrap data)
             try encoder.writeBufferU8(values.buffer, values.count)
             return true
         }
@@ -489,7 +501,7 @@ func makeTagBinPayload()->TagBinPayload
 func(T) encodeTagBin(value: T)->String
 {
     var buffer:  ConcatBuffer
-    var encoder: Serialization.Encoder'Serialization.Write.TagBin
+    var encoder: Serialization.Encoder!{Serialization.Write.TagBin}
 
     expect encoder.writeAll(&buffer, value)
     return buffer.toString()
@@ -498,29 +510,29 @@ func(T) encodeTagBin(value: T)->String
 func(T) encodeCompressedTagBin(value: T)->String
 {
     var buffer:  ConcatBuffer
-    var encoder: Serialization.Encoder'Serialization.Write.TagBin
+    var encoder: Serialization.Encoder!{Serialization.Write.TagBin}
     encoder.serializer.compressStream = true
     expect encoder.writeAll(&buffer, value)
     return buffer.toString()
 }
 
-func insertTagBinBodyByteBeforeShapeDir(bytes: String)->Array'u8
+func insertTagBinBodyByteBeforeShapeDir(bytes: String)->Array!{u8}
 {
     let data   = bytes.toSlice()
     var reader = ByteStream.openRead(data)
-    discard expect reader.readNative'u32()
-    discard expect reader.readNative'u32()
+    discard expect reader.readNative!{u32}()
+    discard expect reader.readNative!{u32}()
     let schemaLength = expect reader.readVarint()
     reader.advance(schemaLength)
-    discard expect reader.readNative'u32()
+    discard expect reader.readNative!{u32}()
     let shapeOffsetSeek = reader.position()
-    let shapeDirOffset  = expect reader.readNative'u64()
+    let shapeDirOffset  = expect reader.readNative!{u64}()
     let bodyStart       = reader.position()
     let insertAt        = bodyStart + shapeDirOffset
 
-    var result: Array'u8
+    var result: Array!{u8}
     result.add(data[0 until insertAt])
-    result.add(0xEE'u8)
+    result.add(0xEE_u8)
     result.add(data[insertAt until data.count])
 
     var writer = ByteStream.openWrite(&result)
@@ -531,9 +543,9 @@ func insertTagBinBodyByteBeforeShapeDir(bytes: String)->Array'u8
 
 func requireTagBinRejected(input: const [..] u8)
 {
-    var decoder:      Serialization.Decoder'Serialization.Read.TagBin
+    var decoder:      Serialization.Decoder!{Serialization.Read.TagBin}
     var errorOutcome: Swag.Error
-    discard catch decoder.readAll'TagBinPayload(input) as errorOutcome
+    discard catch decoder.readAll!{TagBinPayload}(input) as errorOutcome
     Swag.require(errorOutcome.value() is Errors.SerializationError)
 }
 
@@ -555,27 +567,27 @@ func findTagBinV1Field(bytes: const [..] u8, fieldName: string)->TagBinV1Field
 {
     var result: #returntype
     var stream = ByteStream.openRead(bytes)
-    Swag.require((expect stream.readNative'u32()) == Serialization.Write.TagBinSignature.Root)
-    Swag.require((expect stream.readNative'u32()) == cast(u32, Serialization.Write.TagBinVersion1))
+    Swag.require((expect stream.readNative!{u32}()) == Serialization.Write.TagBinSignature.Root)
+    Swag.require((expect stream.readNative!{u32}()) == cast(u32, Serialization.Write.TagBinVersion1))
     let schemaLength = expect stream.readVarint()
     Swag.require(schemaLength == 0)
-    Swag.require((expect stream.readNative'u32()) == 0)
-    let shapeDirOffset = expect stream.readNative'u64()
+    Swag.require((expect stream.readNative!{u32}()) == 0)
+    let shapeDirOffset = expect stream.readNative!{u64}()
     let bodyStart      = stream.position()
 
     // Root struct section header.
-    Swag.require((expect stream.readNative'u32()) == Serialization.Write.TagBinSignature.Version)
-    discard expect stream.readNative'u32()
-    Swag.require((expect stream.readNative'u32()) == Serialization.Write.TagBinSignature.Fat)
-    let shapeId = expect stream.readNative'u32()
+    Swag.require((expect stream.readNative!{u32}()) == Serialization.Write.TagBinSignature.Version)
+    discard expect stream.readNative!{u32}()
+    Swag.require((expect stream.readNative!{u32}()) == Serialization.Write.TagBinSignature.Fat)
+    let shapeId = expect stream.readNative!{u32}()
     Swag.require(shapeId != Serialization.Write.TagBinAdHocShape)
-    let fatOffset    = expect stream.readNative'u64()
+    let fatOffset    = expect stream.readNative!{u64}()
     let payloadStart = stream.position() - bodyStart
     result.fatStartOffset = cast(u32, fatOffset - payloadStart)
 
     // Walk the shape directory up to the field entry.
     stream.setPosition(bodyStart + shapeDirOffset)
-    Swag.require((expect stream.readNative'u32()) == Serialization.Write.TagBinSignature.ShapeDir)
+    Swag.require((expect stream.readNative!{u32}()) == Serialization.Write.TagBinSignature.ShapeDir)
     let shapeCount = expect stream.readVarint()
     Swag.require(shapeId < shapeCount)
 
@@ -590,9 +602,9 @@ func findTagBinV1Field(bytes: const [..] u8, fieldName: string)->TagBinV1Field
             expect stream.readBytes(unwrap key.buffer, keyLength)
             key.length = keyLength
             let typeSeek = stream.position()
-            discard expect stream.readNative'u32()
+            discard expect stream.readNative!{u32}()
             let flagsSeek = stream.position()
-            let flags     = expect stream.readNative'u8()
+            let flags     = expect stream.readNative!{u8}()
             if s == shapeId and key == fieldName
             {
                 result.shapeFlags     = flags
@@ -602,7 +614,7 @@ func findTagBinV1Field(bytes: const [..] u8, fieldName: string)->TagBinV1Field
                 // The matching fat entry holds the payload offset of the field.
                 stream.setPosition(bodyStart + fatOffset + i * #sizeof(u32))
                 result.fatEntrySeek = stream.position()
-                let rel = expect stream.readNative'u32()
+                let rel = expect stream.readNative!{u32}()
                 result.seek = bodyStart + payloadStart + rel
                 return result
             }
@@ -613,7 +625,7 @@ func findTagBinV1Field(bytes: const [..] u8, fieldName: string)->TagBinV1Field
     return result
 }
 
-func corruptTagBinShapeFlags(bytes: String, fieldName: string, flags: u8)->Array'u8
+func corruptTagBinShapeFlags(bytes: String, fieldName: string, flags: u8)->Array!{u8}
 {
     var result: #returntype
     result.add(bytes.toSlice())
@@ -625,13 +637,13 @@ func corruptTagBinShapeFlags(bytes: String, fieldName: string, flags: u8)->Array
     return result
 }
 
-func corruptTagBinHeaderFlags(bytes: String, flags: u32)->Array'u8
+func corruptTagBinHeaderFlags(bytes: String, flags: u32)->Array!{u8}
 {
-    var result: Array'u8
+    var result: Array!{u8}
     result.add(bytes.toSlice())
     var reader = ByteStream.openRead(result.toSlice())
-    discard expect reader.readNative'u32()
-    discard expect reader.readNative'u32()
+    discard expect reader.readNative!{u32}()
+    discard expect reader.readNative!{u32}()
     let schemaLength = expect reader.readVarint()
     reader.advance(schemaLength)
     let flagsSeek = reader.position()
@@ -642,7 +654,7 @@ func corruptTagBinHeaderFlags(bytes: String, flags: u32)->Array'u8
     return result
 }
 
-func corruptTagBinFieldType(bytes: String, fieldName: string, typeCrc: u32)->Array'u8
+func corruptTagBinFieldType(bytes: String, fieldName: string, typeCrc: u32)->Array!{u8}
 {
     var result: #returntype
     result.add(bytes.toSlice())
@@ -655,7 +667,7 @@ func corruptTagBinFieldType(bytes: String, fieldName: string, typeCrc: u32)->Arr
 }
 
 // An interface payload is a raw section: its byte length, then the readable object key.
-func corruptTagBinInterfaceObjectKey(bytes: String, fieldName, replacement: string)->Array'u8
+func corruptTagBinInterfaceObjectKey(bytes: String, fieldName, replacement: string)->Array!{u8}
 {
     var result: #returntype
     result.add(bytes.toSlice())
@@ -673,7 +685,7 @@ func corruptTagBinInterfaceObjectKey(bytes: String, fieldName, replacement: stri
 }
 
 // A nested final struct is a raw signature followed by the raw byte length.
-func corruptTagBinRawLen(bytes: String, fieldName: string, newLen: u64)->Array'u8
+func corruptTagBinRawLen(bytes: String, fieldName: string, newLen: u64)->Array!{u8}
 {
     var result: #returntype
     result.add(bytes.toSlice())
@@ -685,22 +697,22 @@ func corruptTagBinRawLen(bytes: String, fieldName: string, newLen: u64)->Array'u
     return result
 }
 
-func corruptTagBinRootFatSeek(bytes: String, fatSeek: u64)->Array'u8
+func corruptTagBinRootFatSeek(bytes: String, fatSeek: u64)->Array!{u8}
 {
     var result: #returntype
     result.add(bytes.toSlice())
 
     var stream = ByteStream.openRead(result.toSlice())
-    discard expect stream.readNative'u32()
-    discard expect stream.readNative'u32()
+    discard expect stream.readNative!{u32}()
+    discard expect stream.readNative!{u32}()
     let schemaLength = expect stream.readVarint()
     stream.advance(schemaLength)
-    discard expect stream.readNative'u32()
-    discard expect stream.readNative'u64()
-    discard expect stream.readNative'u32()     // Root section version signature.
-    discard expect stream.readNative'u32()     // Struct version.
-    discard expect stream.readNative'u32()     // Fat signature.
-    discard expect stream.readNative'u32()     // Shape id.
+    discard expect stream.readNative!{u32}()
+    discard expect stream.readNative!{u64}()
+    discard expect stream.readNative!{u32}()     // Root section version signature.
+    discard expect stream.readNative!{u32}()     // Struct version.
+    discard expect stream.readNative!{u32}()     // Fat signature.
+    discard expect stream.readNative!{u32}()     // Shape id.
     let fatSeekPosition = stream.position()
 
     var writer = ByteStream.openWrite(&result)
@@ -709,7 +721,7 @@ func corruptTagBinRootFatSeek(bytes: String, fatSeek: u64)->Array'u8
     return result
 }
 
-func corruptTagBinFieldOffset(bytes: String, fieldName: string, offset: u32)->Array'u8
+func corruptTagBinFieldOffset(bytes: String, fieldName: string, offset: u32)->Array!{u8}
 {
     var result: #returntype
     result.add(bytes.toSlice())
@@ -721,7 +733,7 @@ func corruptTagBinFieldOffset(bytes: String, fieldName: string, offset: u32)->Ar
     return result
 }
 
-func corruptTagBinBoolean(bytes: String, fieldName: string)->Array'u8
+func corruptTagBinBoolean(bytes: String, fieldName: string)->Array!{u8}
 {
     var result: #returntype
     result.add(bytes.toSlice())
@@ -732,42 +744,42 @@ func corruptTagBinBoolean(bytes: String, fieldName: string)->Array'u8
     {
         var reader = ByteStream.openRead(result.toSlice())
         reader.setPosition(field.seek)
-        Swag.require((expect reader.readNative'u32()) == Serialization.Write.TagBinSignature.Sequence)
+        Swag.require((expect reader.readNative!{u32}()) == Serialization.Write.TagBinSignature.Sequence)
         discard expect reader.readVarint()
-        Swag.require((expect reader.readNative'u32()) == Serialization.Write.TagBinSignature.Raw)
+        Swag.require((expect reader.readNative!{u32}()) == Serialization.Write.TagBinSignature.Raw)
         discard expect reader.readVarint()
         valueSeek = reader.position()
     }
 
     var writer = ByteStream.openWrite(&result)
     writer.setPosition(valueSeek)
-    writer.writeNative(2'u8)
+    writer.writeNative(2_u8)
     return result
 }
 
-func corruptTagBinAdHocFlags(bytes: String, fieldName: string, flags: u8)->Array'u8
+func corruptTagBinAdHocFlags(bytes: String, fieldName: string, flags: u8)->Array!{u8}
 {
     var result: #returntype
     result.add(bytes.toSlice())
 
     var reader = ByteStream.openRead(result.toSlice())
-    discard expect reader.readNative'u32()
-    discard expect reader.readNative'u32()
+    discard expect reader.readNative!{u32}()
+    discard expect reader.readNative!{u32}()
     let schemaLength = expect reader.readVarint()
     reader.advance(schemaLength)
-    discard expect reader.readNative'u32()
-    discard expect reader.readNative'u64()
+    discard expect reader.readNative!{u32}()
+    discard expect reader.readNative!{u64}()
     let bodyStart = reader.position()
 
-    Swag.require((expect reader.readNative'u32()) == Serialization.Write.TagBinSignature.Version)
-    discard expect reader.readNative'u32()
-    Swag.require((expect reader.readNative'u32()) == Serialization.Write.TagBinSignature.Fat)
-    Swag.require((expect reader.readNative'u32()) == Serialization.Write.TagBinAdHocShape)
-    let fatSeek  = expect reader.readNative'u64()
-    let fatCount = expect reader.readNative'u64()
+    Swag.require((expect reader.readNative!{u32}()) == Serialization.Write.TagBinSignature.Version)
+    discard expect reader.readNative!{u32}()
+    Swag.require((expect reader.readNative!{u32}()) == Serialization.Write.TagBinSignature.Fat)
+    Swag.require((expect reader.readNative!{u32}()) == Serialization.Write.TagBinAdHocShape)
+    let fatSeek  = expect reader.readNative!{u64}()
+    let fatCount = expect reader.readNative!{u64}()
 
     reader.setPosition(bodyStart + fatSeek)
-    Swag.require((expect reader.readNative'u32()) == Serialization.Write.TagBinSignature.Fat)
+    Swag.require((expect reader.readNative!{u32}()) == Serialization.Write.TagBinSignature.Fat)
     var valueSeek: u64
     var found = false
     for fatCount
@@ -777,7 +789,7 @@ func corruptTagBinAdHocFlags(bytes: String, fieldName: string, flags: u8)->Array
         key.reserve(keyLength)
         expect reader.readBytes(unwrap key.buffer, keyLength)
         key.length = keyLength
-        let offset = expect reader.readNative'u64()
+        let offset = expect reader.readNative!{u64}()
         if key == fieldName
         {
             valueSeek = bodyStart + offset
@@ -790,7 +802,7 @@ func corruptTagBinAdHocFlags(bytes: String, fieldName: string, flags: u8)->Array
     reader.setPosition(valueSeek)
     let valueKeyLength = expect reader.readVarint()
     reader.advance(valueKeyLength)
-    discard expect reader.readNative'u32()
+    discard expect reader.readNative!{u32}()
     let flagsSeek = reader.position()
 
     var writer = ByteStream.openWrite(&result)
@@ -799,15 +811,19 @@ func corruptTagBinAdHocFlags(bytes: String, fieldName: string, flags: u8)->Array
     return result
 }
 
-func assertCompressedBlob(values: Array'u8)->bool
+func assertCompressedBlob(values: Array!{u8})->bool
 {
-    if values.count != 512 do
+    if values.count != 512
+    {
         return false
+    }
 
     for index in values.count
     {
-        if values[index] != cast(u8, (index % 4)) do
+        if values[index] != cast(u8, (index % 4))
+        {
             return false
+        }
     }
 
     return true
@@ -848,17 +864,17 @@ func releaseTagBinInterface(value: *(ITagBinScore?))
     let oldPoint = TagBinFieldWisePoint{x: -9, y: 12}
     let oldBytes = encodeTagBin(oldPoint)
 
-    var finalDecoder: Serialization.Decoder'Serialization.Read.TagBin
-    let finalPoint = expect finalDecoder.readAll'TagBinFinalMigrationPoint(oldBytes.toSlice())
+    var finalDecoder: Serialization.Decoder!{Serialization.Read.TagBin}
+    let finalPoint = expect finalDecoder.readAll!{TagBinFinalMigrationPoint}(oldBytes.toSlice())
     defer Memory.delete(finalPoint)
     Swag.require(finalPoint.x == -9)
     Swag.require(finalPoint.y == 12)
 
     let rawBytes = encodeTagBin(TagBinFinalMigrationPoint{x: 3, y: 4})
 
-    var fieldWiseDecoder: Serialization.Decoder'Serialization.Read.TagBin
+    var fieldWiseDecoder: Serialization.Decoder!{Serialization.Read.TagBin}
     var errfwOutcome:     Swag.Error
-    catch CoreTests.readAndDelete'(TagBinFieldWisePoint, Serialization.Read.TagBin)(&fieldWiseDecoder, rawBytes.toSlice()) as errfwOutcome
+    catch CoreTests.readAndDelete!{TagBinFieldWisePoint, Serialization.Read.TagBin}(&fieldWiseDecoder, rawBytes.toSlice()) as errfwOutcome
     let errfw = errfwOutcome.value()
     Swag.require(errfw != null)
 }
@@ -870,13 +886,13 @@ func releaseTagBinInterface(value: *(ITagBinScore?))
     Swag.require(payload.finalPoint.y == 5)
 
     var buffer:  ConcatBuffer
-    var encoder: Serialization.Encoder'Serialization.Write.TagBin
+    var encoder: Serialization.Encoder!{Serialization.Write.TagBin}
     expect encoder.writeAll(&buffer, payload)
     let bytes     = buffer.toString()
     let byteSlice = bytes.toSlice()
 
-    var decoder: Serialization.Decoder'Serialization.Read.TagBin
-    let decoded = expect decoder.readAll'TagBinPayload(byteSlice)
+    var decoder: Serialization.Decoder!{Serialization.Read.TagBin}
+    let decoded = expect decoder.readAll!{TagBinPayload}(byteSlice)
     defer Memory.delete(decoded)
     Swag.require(decoded.id == 17)
     Swag.require(decoded.active)
@@ -911,9 +927,9 @@ func releaseTagBinInterface(value: *(ITagBinScore?))
     let bytes = encodeTagBin(TagBinSchemaA{value: 42})
     Swag.require(bytes.contains("core.test.schema-a"))
 
-    var decoder:    Serialization.Decoder'Serialization.Read.TagBin
+    var decoder:    Serialization.Decoder!{Serialization.Read.TagBin}
     var errOutcome: Swag.Error
-    catch CoreTests.readAndDelete'(TagBinSchemaB, Serialization.Read.TagBin)(&decoder, bytes.toSlice()) as errOutcome
+    catch CoreTests.readAndDelete!{TagBinSchemaB, Serialization.Read.TagBin}(&decoder, bytes.toSlice()) as errOutcome
     let err = errOutcome.value()
     Swag.require(err != null)
     Swag.require(Utf8.contains(Errors.message(err), "document schema"))
@@ -958,15 +974,15 @@ func releaseTagBinInterface(value: *(ITagBinScore?))
     let bytes   = encodeTagBin(payload)
     let patched = corruptTagBinFieldType(bytes, "id", 0xDEADBEEF)
 
-    var strictDecoder: Serialization.Decoder'Serialization.Read.TagBin
+    var strictDecoder: Serialization.Decoder!{Serialization.Read.TagBin}
     var errstOutcome:  Swag.Error
-    catch CoreTests.readAndDelete'(TagBinPayload, Serialization.Read.TagBin)(&strictDecoder, patched.toSlice()) as errstOutcome
+    catch CoreTests.readAndDelete!{TagBinPayload, Serialization.Read.TagBin}(&strictDecoder, patched.toSlice()) as errstOutcome
     let errst = errstOutcome.value()
     Swag.require(errst != null)
 
-    var decoder: Serialization.Decoder'Serialization.Read.TagBin
+    var decoder: Serialization.Decoder!{Serialization.Read.TagBin}
     decoder.flags |= .IgnoreStructFieldError
-    let decoded = expect decoder.readAll'TagBinPayload(patched.toSlice())
+    let decoded = expect decoder.readAll!{TagBinPayload}(patched.toSlice())
     defer Memory.delete(decoded)
     Swag.require(decoded.id == 0)
     Swag.require(decoded.name == "tagbin")
@@ -980,9 +996,9 @@ func releaseTagBinInterface(value: *(ITagBinScore?))
     let payload = makeTagBinPayload()
     let bytes   = encodeTagBin(payload)
 
-    var decoder: Serialization.Decoder'Serialization.Read.TagBin
+    var decoder: Serialization.Decoder!{Serialization.Read.TagBin}
     decoder.serializer.ignoreElements.add("name")
-    let decoded = expect decoder.readAll'TagBinPayload(bytes.toSlice())
+    let decoded = expect decoder.readAll!{TagBinPayload}(bytes.toSlice())
     defer Memory.delete(decoded)
     Swag.require(decoded.id == 17)
     Swag.require(decoded.name.isNullOrEmpty())
@@ -999,8 +1015,8 @@ func releaseTagBinInterface(value: *(ITagBinScore?))
         single: 33}
     let bytes = encodeTagBin(legacy)
 
-    var decoder: Serialization.Decoder'Serialization.Read.TagBin
-    let decoded = expect decoder.readAll'TagBinCurrentPayload(bytes.toSlice())
+    var decoder: Serialization.Decoder!{Serialization.Read.TagBin}
+    let decoded = expect decoder.readAll!{TagBinCurrentPayload}(bytes.toSlice())
     defer Memory.delete(decoded)
     Swag.require(decoded.renamed == -6)
     Swag.require(decoded.value == 21)
@@ -1021,15 +1037,15 @@ func releaseTagBinInterface(value: *(ITagBinScore?))
     let future = TagBinFuturePayload{value: 44}
     let bytes  = encodeTagBin(future)
 
-    var strictDecoder: Serialization.Decoder'Serialization.Read.TagBin
+    var strictDecoder: Serialization.Decoder!{Serialization.Read.TagBin}
     var errsvOutcome:  Swag.Error
-    catch CoreTests.readAndDelete'(TagBinOlderPayload, Serialization.Read.TagBin)(&strictDecoder, bytes.toSlice()) as errsvOutcome
+    catch CoreTests.readAndDelete!{TagBinOlderPayload, Serialization.Read.TagBin}(&strictDecoder, bytes.toSlice()) as errsvOutcome
     let errsv = errsvOutcome.value()
     Swag.require(errsv != null)
 
-    var forwardDecoder: Serialization.Decoder'Serialization.Read.TagBin
+    var forwardDecoder: Serialization.Decoder!{Serialization.Read.TagBin}
     forwardDecoder.serializer.options.tryForward = true
-    let forwardValue = expect forwardDecoder.readAll'TagBinOlderPayload(bytes.toSlice())
+    let forwardValue = expect forwardDecoder.readAll!{TagBinOlderPayload}(bytes.toSlice())
     defer Memory.delete(forwardValue)
     Swag.require(forwardValue.value == 44)
 }
@@ -1045,8 +1061,8 @@ func releaseTagBinInterface(value: *(ITagBinScore?))
         payload: #typeof(TagBinPayload)}
     let bytes = encodeTagBin(payload)
 
-    var decoder: Serialization.Decoder'Serialization.Read.TagBin
-    let decoded = expect decoder.readAll'TagBinTypeInfoPayload(bytes.toSlice())
+    var decoder: Serialization.Decoder!{Serialization.Read.TagBin}
+    let decoded = expect decoder.readAll!{TagBinTypeInfoPayload}(bytes.toSlice())
     defer Memory.delete(decoded)
     Swag.require(decoded.primitive == s32)
     Swag.require(decoded.staticArray == #typeof(#type [3] u8))
@@ -1069,8 +1085,8 @@ func releaseTagBinInterface(value: *(ITagBinScore?))
 
     let bytes = encodeTagBin(payload)
 
-    var decoder: Serialization.Decoder'Serialization.Read.TagBin
-    let decoded = expect decoder.readAll'TagBinInterfacePayload(bytes.toSlice())
+    var decoder: Serialization.Decoder!{Serialization.Read.TagBin}
+    let decoded = expect decoder.readAll!{TagBinInterfacePayload}(bytes.toSlice())
     defer
     {
         releaseTagBinInterface(&decoded.score)
@@ -1094,9 +1110,9 @@ func releaseTagBinInterface(value: *(ITagBinScore?))
     let bytes = encodeTagBin(payload)
     g_TagBinFailedInterfaceDrops = 0
 
-    var decoder:    Serialization.Decoder'Serialization.Read.TagBin
+    var decoder:    Serialization.Decoder!{Serialization.Read.TagBin}
     var errOutcome: Swag.Error
-    discard catch decoder.readAll'TagBinFailingInterfacePayload(bytes.toSlice()) as errOutcome
+    discard catch decoder.readAll!{TagBinFailingInterfacePayload}(bytes.toSlice()) as errOutcome
     let err = errOutcome.value()
 
     Swag.require(err != null)
@@ -1118,9 +1134,9 @@ func releaseTagBinInterface(value: *(ITagBinScore?))
     let bytes = encodeTagBin(payload)
     g_TagBinFailedInterfaceDrops = 0
 
-    var decoder:    Serialization.Decoder'Serialization.Read.TagBin
+    var decoder:    Serialization.Decoder!{Serialization.Read.TagBin}
     var errOutcome: Swag.Error
-    discard catch decoder.readAll'TagBinLaterFailurePayload(bytes.toSlice()) as errOutcome
+    discard catch decoder.readAll!{TagBinLaterFailurePayload}(bytes.toSlice()) as errOutcome
     let err = errOutcome.value()
 
     Swag.require(err != null)
@@ -1139,9 +1155,9 @@ func releaseTagBinInterface(value: *(ITagBinScore?))
     let bytes   = encodeTagBin(payload)
     let patched = corruptTagBinInterfaceObjectKey(bytes, "score", "core.test.unknown-type")
 
-    var decoder:    Serialization.Decoder'Serialization.Read.TagBin
+    var decoder:    Serialization.Decoder!{Serialization.Read.TagBin}
     var errOutcome: Swag.Error
-    catch CoreTests.readAndDelete'(TagBinInterfacePayload, Serialization.Read.TagBin)(&decoder, patched.toSlice()) as errOutcome
+    catch CoreTests.readAndDelete!{TagBinInterfacePayload, Serialization.Read.TagBin}(&decoder, patched.toSlice()) as errOutcome
     let err = errOutcome.value()
     Swag.require(err != null)
     Swag.require(Utf8.contains(Errors.message(err), "cannot resolve interface object key"))
@@ -1152,8 +1168,8 @@ func releaseTagBinInterface(value: *(ITagBinScore?))
     let payload = TagBinInterfacePayload{other: 19}
     let bytes   = encodeTagBin(payload)
 
-    var decoder: Serialization.Decoder'Serialization.Read.TagBin
-    let decoded = expect decoder.readAll'TagBinInterfacePayload(bytes.toSlice())
+    var decoder: Serialization.Decoder!{Serialization.Read.TagBin}
+    let decoded = expect decoder.readAll!{TagBinInterfacePayload}(bytes.toSlice())
     defer Memory.delete(decoded)
     Swag.require(decoded.other == 19)
 
@@ -1178,8 +1194,8 @@ func releaseTagBinInterface(value: *(ITagBinScore?))
 
     let bytes = encodeTagBin(payload)
 
-    var decoder: Serialization.Decoder'Serialization.Read.TagBin
-    let decoded = expect decoder.readAll'TagBinHookPayload(bytes.toSlice())
+    var decoder: Serialization.Decoder!{Serialization.Read.TagBin}
+    let decoded = expect decoder.readAll!{TagBinHookPayload}(bytes.toSlice())
     defer Memory.delete(decoded)
     Swag.require(decoded.direct == 21)
     Swag.require(decoded.remapped == 34)
@@ -1200,9 +1216,9 @@ func releaseTagBinInterface(value: *(ITagBinScore?))
     Reflection.registerType(#typeof(TagBinHookPayload))
     let bytes = encodeTagBin(payload)
 
-    var decoder:    Serialization.Decoder'Serialization.Read.TagBin
+    var decoder:    Serialization.Decoder!{Serialization.Read.TagBin}
     var errOutcome: Swag.Error
-    discard catch decoder.readAll'TagBinHookPayload(bytes.toSlice()) as errOutcome
+    discard catch decoder.readAll!{TagBinHookPayload}(bytes.toSlice()) as errOutcome
     let err = errOutcome.value()
     Swag.require(err != null)
     Swag.require(Utf8.contains(Errors.message(err), "not a member of the requested enum"))
@@ -1230,8 +1246,8 @@ func releaseTagBinInterface(value: *(ITagBinScore?))
 
     let bytes = encodeTagBin(source)
 
-    var decoder: Serialization.Decoder'Serialization.Read.TagBin
-    let decoded = expect decoder.readAll'TagBinConversionTarget(bytes.toSlice())
+    var decoder: Serialization.Decoder!{Serialization.Read.TagBin}
+    let decoded = expect decoder.readAll!{TagBinConversionTarget}(bytes.toSlice())
     defer Memory.delete(decoded)
     Swag.require(decoded.small == -123)
     Swag.require(decoded.floating == 1.5)
@@ -1248,7 +1264,7 @@ func releaseTagBinInterface(value: *(ITagBinScore?))
     Swag.require(decoded.singleToStatic[0] == 42)
     Swag.require(decoded.singleToStatic[1] == 0)
     Swag.require(decoded.singleToStatic[2] == 0)
-    Swag.require(Slice.equals(decoded.singleToArray.toSlice(), [12'u32]))
+    Swag.require(Slice.equals(decoded.singleToArray.toSlice(), [12_u32]))
     Swag.require(decoded.arrayToSingle == 55)
     Swag.require(decoded.nested.left == -5)
     Swag.require(decoded.nested.right == 23)
@@ -1264,8 +1280,8 @@ func releaseTagBinInterface(value: *(ITagBinScore?))
 
     let bytes = encodeTagBin(source)
 
-    var decoder: Serialization.Decoder'Serialization.Read.TagBin
-    let decoded = expect decoder.readAll'TagBinEnumTarget(bytes.toSlice())
+    var decoder: Serialization.Decoder!{Serialization.Read.TagBin}
+    let decoded = expect decoder.readAll!{TagBinEnumTarget}(bytes.toSlice())
     defer Memory.delete(decoded)
     Swag.require(decoded.mode == .Precise)
     Swag.require(decoded.tail == -9)
@@ -1284,24 +1300,24 @@ func releaseTagBinInterface(value: *(ITagBinScore?))
 
     for fieldName in ["fixed", "values", "records", "recordValues"]
     {
-        var patched: Array'u8
+        var patched: Array!{u8}
         patched.add(bytes.toSlice())
         let field  = findTagBinV1Field(patched.toSlice(), fieldName)
         var reader = ByteStream.openRead(patched.toSlice())
         reader.setPosition(field.seek)
-        Swag.require((expect reader.readNative'u32()) == Serialization.Write.TagBinSignature.Sequence)
+        Swag.require((expect reader.readNative!{u32}()) == Serialization.Write.TagBinSignature.Sequence)
         discard expect reader.readVarint()
-        Swag.require((expect reader.readNative'u32()) == Serialization.Write.TagBinSignature.Raw)
+        Swag.require((expect reader.readNative!{u32}()) == Serialization.Write.TagBinSignature.Raw)
         discard expect reader.readVarint()
         let valuesSeek = reader.position()
 
         var writer = ByteStream.openWrite(&patched)
         writer.setPosition(valuesSeek + 1)
-        writer.writeNative(0x7F'u8)
+        writer.writeNative(0x7F_u8)
 
-        var decoder:      Serialization.Decoder'Serialization.Read.TagBin
+        var decoder:      Serialization.Decoder!{Serialization.Read.TagBin}
         var errorOutcome: Swag.Error
-        catch CoreTests.readAndDelete'(TagBinEnumArrays, Serialization.Read.TagBin)(&decoder, patched.toSlice()) as errorOutcome
+        catch CoreTests.readAndDelete!{TagBinEnumArrays, Serialization.Read.TagBin}(&decoder, patched.toSlice()) as errorOutcome
         Swag.require(errorOutcome.value() != null)
     }
 }
@@ -1318,9 +1334,9 @@ func releaseTagBinInterface(value: *(ITagBinScore?))
     for fieldName in ["scalar", "values", "records"]
     {
         let patched = corruptTagBinBoolean(bytes, fieldName)
-        var decoder: Serialization.Decoder'Serialization.Read.TagBin
+        var decoder: Serialization.Decoder!{Serialization.Read.TagBin}
         var error:   Swag.Error
-        discard catch decoder.readAll'TagBinBooleanPayload(patched.toSlice()) as error
+        discard catch decoder.readAll!{TagBinBooleanPayload}(patched.toSlice()) as error
         Swag.require(error.value() is Errors.SerializationError)
     }
 }
@@ -1334,8 +1350,8 @@ func releaseTagBinInterface(value: *(ITagBinScore?))
 
     let bytes = encodeTagBin(probe)
 
-    var decoder: Serialization.Decoder'Serialization.Read.TagBin
-    let decoded = expect decoder.readAll'TagBinVersionProbe(bytes.toSlice())
+    var decoder: Serialization.Decoder!{Serialization.Read.TagBin}
+    let decoded = expect decoder.readAll!{TagBinVersionProbe}(bytes.toSlice())
     defer Memory.delete(decoded)
     Swag.require(decoded.value == 3)
     Swag.require(decoded.seenVersion == 5)
@@ -1348,19 +1364,19 @@ func releaseTagBinInterface(value: *(ITagBinScore?))
     let payload = makeTagBinPayload()
 
     var buffer:  ConcatBuffer
-    var encoder: Serialization.Encoder'Serialization.Write.TagBin
+    var encoder: Serialization.Encoder!{Serialization.Write.TagBin}
     encoder.serializer.compressStream = true
     expect encoder.writeAll(&buffer, payload)
     let bytes = buffer.toString()
 
     var stream = ByteStream.openRead(bytes.toSlice())
-    discard expect stream.readNative'u32()
-    Swag.require((expect stream.readNative'u32()) == cast(u32, Serialization.Write.TagBinVersion1))
+    discard expect stream.readNative!{u32}()
+    Swag.require((expect stream.readNative!{u32}()) == cast(u32, Serialization.Write.TagBinVersion1))
     Swag.require((expect stream.readVarint()) == 0)
-    Swag.require((expect stream.readNative'u32()) == 1)
+    Swag.require((expect stream.readNative!{u32}()) == 1)
 
-    var decoder: Serialization.Decoder'Serialization.Read.TagBin
-    let decoded = expect decoder.readAll'TagBinPayload(bytes.toSlice())
+    var decoder: Serialization.Decoder!{Serialization.Read.TagBin}
+    let decoded = expect decoder.readAll!{TagBinPayload}(bytes.toSlice())
     defer Memory.delete(decoded)
     Swag.require(decoded.id == 17)
     Swag.require(decoded.name == "tagbin")
@@ -1391,9 +1407,9 @@ func releaseTagBinInterface(value: *(ITagBinScore?))
     let bytes   = encodeTagBin(makeTagBinPayload())
     let patched = corruptTagBinShapeFlags(bytes, "id", 2)
 
-    var decoder:      Serialization.Decoder'Serialization.Read.TagBin
+    var decoder:      Serialization.Decoder!{Serialization.Read.TagBin}
     var errorOutcome: Swag.Error
-    catch CoreTests.readAndDelete'(TagBinPayload, Serialization.Read.TagBin)(&decoder, patched.toSlice()) as errorOutcome
+    catch CoreTests.readAndDelete!{TagBinPayload, Serialization.Read.TagBin}(&decoder, patched.toSlice()) as errorOutcome
     Swag.require(errorOutcome.value() is Errors.SerializationError)
 }
 
@@ -1403,9 +1419,9 @@ func releaseTagBinInterface(value: *(ITagBinScore?))
     let bytes   = encodeTagBin(makeTagBinPayload())
     let patched = corruptTagBinHeaderFlags(bytes, 2)
 
-    var decoder:      Serialization.Decoder'Serialization.Read.TagBin
+    var decoder:      Serialization.Decoder!{Serialization.Read.TagBin}
     var errorOutcome: Swag.Error
-    catch CoreTests.readAndDelete'(TagBinPayload, Serialization.Read.TagBin)(&decoder, patched.toSlice()) as errorOutcome
+    catch CoreTests.readAndDelete!{TagBinPayload, Serialization.Read.TagBin}(&decoder, patched.toSlice()) as errorOutcome
     Swag.require(errorOutcome.value() is Errors.SerializationError)
 }
 
@@ -1415,18 +1431,18 @@ func releaseTagBinInterface(value: *(ITagBinScore?))
     let payload = makeTagBinPayload()
     let bytes   = encodeTagBin(payload)
 
-    var trailingInput: Array'u8
+    var trailingInput: Array!{u8}
     trailingInput.add(cast(const [..] u8, bytes))
-    trailingInput.add(0xEE'u8)
+    trailingInput.add(0xEE_u8)
     let bodyGap = insertTagBinBodyByteBeforeShapeDir(bytes)
 
     requireTagBinRejected(trailingInput.toSlice())
     requireTagBinRejected(bodyGap.toSlice())
 
     let compressed = encodeCompressedTagBin(payload)
-    var trailingCompressed: Array'u8
+    var trailingCompressed: Array!{u8}
     trailingCompressed.add(cast(const [..] u8, compressed))
-    trailingCompressed.add(0xEE'u8)
+    trailingCompressed.add(0xEE_u8)
     requireTagBinRejected(trailingCompressed.toSlice())
 }
 
@@ -1437,12 +1453,12 @@ func releaseTagBinInterface(value: *(ITagBinScore?))
     payload.direct = 42
     let bytes = encodeTagBin(payload)
 
-    for flags in [0'u8, 2, 4, 5]
+    for flags in [0_u8, 2, 4, 5]
     {
         let patched = corruptTagBinAdHocFlags(bytes, "direct", flags)
-        var decoder:      Serialization.Decoder'Serialization.Read.TagBin
+        var decoder:      Serialization.Decoder!{Serialization.Read.TagBin}
         var errorOutcome: Swag.Error
-        discard catch decoder.readAll'TagBinHookPayload(patched.toSlice()) as errorOutcome
+        discard catch decoder.readAll!{TagBinHookPayload}(patched.toSlice()) as errorOutcome
         Swag.require(errorOutcome.value() is Errors.SerializationError)
     }
 }
@@ -1451,16 +1467,16 @@ func releaseTagBinInterface(value: *(ITagBinScore?))
 #test
 {
     let bytes = encodeTagBin(makeTagBinPayload())
-    var patched: Array'u8
+    var patched: Array!{u8}
     patched.add(bytes.toSlice())
 
     var writer = ByteStream.openWrite(&patched)
     writer.setPosition(#sizeof(u32))
-    writer.writeNative(0xFAFAFAFA'u32)
+    writer.writeNative(0xFAFAFAFA_u32)
 
-    var decoder:    Serialization.Decoder'Serialization.Read.TagBin
+    var decoder:    Serialization.Decoder!{Serialization.Read.TagBin}
     var errOutcome: Swag.Error
-    catch CoreTests.readAndDelete'(TagBinPayload, Serialization.Read.TagBin)(&decoder, patched.toSlice()) as errOutcome
+    catch CoreTests.readAndDelete!{TagBinPayload, Serialization.Read.TagBin}(&decoder, patched.toSlice()) as errOutcome
     let err = errOutcome.value()
     Swag.require(err != null)
     Swag.require(Utf8.contains(Errors.message(err), "unsupported TagBin format version"))
@@ -1470,16 +1486,16 @@ func releaseTagBinInterface(value: *(ITagBinScore?))
 #test
 {
     let bytes = encodeTagBin(makeTagBinPayload())
-    var patched: Array'u8
+    var patched: Array!{u8}
     patched.add(bytes.toSlice())
 
     var writer = ByteStream.openWrite(&patched)
     writer.setPosition(0)
-    writer.writeNative(0'u32)
+    writer.writeNative(0_u32)
 
-    var decoder:      Serialization.Decoder'Serialization.Read.TagBin
+    var decoder:      Serialization.Decoder!{Serialization.Read.TagBin}
     var errorOutcome: Swag.Error
-    catch CoreTests.readAndDelete'(TagBinPayload, Serialization.Read.TagBin)(&decoder, patched.toSlice()) as errorOutcome
+    catch CoreTests.readAndDelete!{TagBinPayload, Serialization.Read.TagBin}(&decoder, patched.toSlice()) as errorOutcome
     let error = errorOutcome.value()
     Swag.require(error is Errors.SerializationError)
     Swag.require(Errors.message(error) == "invalid root signature")
@@ -1497,8 +1513,8 @@ func releaseTagBinInterface(value: *(ITagBinScore?))
     Swag.require(bytes.contains(FirstKey))
     Swag.require(bytes.contains(SecondKey))
 
-    var decoder: Serialization.Decoder'Serialization.Read.TagBin
-    let decoded = expect decoder.readAll'TagBinReadableKeyCollision(bytes.toSlice())
+    var decoder: Serialization.Decoder!{Serialization.Read.TagBin}
+    let decoded = expect decoder.readAll!{TagBinReadableKeyCollision}(bytes.toSlice())
     defer Memory.delete(decoded)
 
     Swag.require(decoded.first == 1130)
@@ -1512,19 +1528,19 @@ func releaseTagBinInterface(value: *(ITagBinScore?))
     let first  = findTagBinV1Field(bytes.toSlice(), "id")
     let second = findTagBinV1Field(bytes.toSlice(), "name")
 
-    var patched: Array'u8
+    var patched: Array!{u8}
     patched.add(bytes.toSlice())
     var reader = ByteStream.openRead(bytes.toSlice())
     reader.setPosition(first.fatEntrySeek)
-    let duplicateOffset = expect reader.readNative'u32()
+    let duplicateOffset = expect reader.readNative!{u32}()
     var writer = ByteStream.openWrite(&patched)
     writer.setPosition(second.fatEntrySeek)
     writer.writeNative(duplicateOffset)
 
-    var decoder: Serialization.Decoder'Serialization.Read.TagBin
+    var decoder: Serialization.Decoder!{Serialization.Read.TagBin}
     decoder.serializer.ignoreElements.add("doesNotExist")
     var errorOutcome: Swag.Error
-    catch CoreTests.readAndDelete'(TagBinPayload, Serialization.Read.TagBin)(
+    catch CoreTests.readAndDelete!{TagBinPayload, Serialization.Read.TagBin}(
         &decoder, patched.toSlice()) as errorOutcome
     Swag.require(errorOutcome.value() != null)
 }
@@ -1535,8 +1551,8 @@ func releaseTagBinInterface(value: *(ITagBinScore?))
     payload.values.resize(128)
 
     let bytes   = encodeTagBin(payload)
-    var decoder: Serialization.Decoder'Serialization.Read.TagBin
-    let decoded = expect decoder.readAll'TagBinEmptyArray(bytes.toSlice())
+    var decoder: Serialization.Decoder!{Serialization.Read.TagBin}
+    let decoded = expect decoder.readAll!{TagBinEmptyArray}(bytes.toSlice())
     defer Memory.delete(decoded)
 
     Swag.require(decoded.values.count == 128)
@@ -1549,12 +1565,12 @@ func readTagBinCompressedSizes(bytes: const [..] u8, fieldName: string)->{ uncom
     stream.setPosition(field.seek)
 
     var result: #returntype
-    result.uncompressed = expect stream.readNative'u64()
-    result.compressed   = expect stream.readNative'u64()
+    result.uncompressed = expect stream.readNative!{u64}()
+    result.compressed   = expect stream.readNative!{u64}()
     return result
 }
 
-func corruptTagBinCompressedSizes(bytes: String, fieldName: string, uncompressed, compressed: u64)->Array'u8
+func corruptTagBinCompressedSizes(bytes: String, fieldName: string, uncompressed, compressed: u64)->Array!{u8}
 {
     var result: #returntype
     result.add(bytes.toSlice())
@@ -1576,9 +1592,9 @@ func corruptTagBinCompressedSizes(bytes: String, fieldName: string, uncompressed
     let sizes   = readTagBinCompressedSizes(bytes.toSlice(), "blob")
     let patched = corruptTagBinCompressedSizes(bytes, "blob", sizes.uncompressed, bytes.length + 1)
 
-    var decoder:      Serialization.Decoder'Serialization.Read.TagBin
+    var decoder:      Serialization.Decoder!{Serialization.Read.TagBin}
     var err24Outcome: Swag.Error
-    catch CoreTests.readAndDelete'(TagBinPayload, Serialization.Read.TagBin)(&decoder, patched.toSlice()) as err24Outcome
+    catch CoreTests.readAndDelete!{TagBinPayload, Serialization.Read.TagBin}(&decoder, patched.toSlice()) as err24Outcome
     let err24 = err24Outcome.value()
     Swag.require(err24 != null)
 }
@@ -1592,9 +1608,9 @@ func corruptTagBinCompressedSizes(bytes: String, fieldName: string, uncompressed
     let sizes   = readTagBinCompressedSizes(bytes.toSlice(), "blob")
     let patched = corruptTagBinCompressedSizes(bytes, "blob", sizes.uncompressed + 1, sizes.compressed)
 
-    var decoder:      Serialization.Decoder'Serialization.Read.TagBin
+    var decoder:      Serialization.Decoder!{Serialization.Read.TagBin}
     var errszOutcome: Swag.Error
-    catch CoreTests.readAndDelete'(TagBinPayload, Serialization.Read.TagBin)(&decoder, patched.toSlice()) as errszOutcome
+    catch CoreTests.readAndDelete!{TagBinPayload, Serialization.Read.TagBin}(&decoder, patched.toSlice()) as errszOutcome
     let errsz = errszOutcome.value()
     Swag.require(errsz != null)
 }
@@ -1607,9 +1623,9 @@ func corruptTagBinCompressedSizes(bytes: String, fieldName: string, uncompressed
     let sizes   = readTagBinCompressedSizes(bytes.toSlice(), "blob")
     let patched = corruptTagBinCompressedSizes(bytes, "blob", Swag.U64.Max, sizes.compressed)
 
-    var decoder:      Serialization.Decoder'Serialization.Read.TagBin
+    var decoder:      Serialization.Decoder!{Serialization.Read.TagBin}
     var errorOutcome: Swag.Error
-    catch CoreTests.readAndDelete'(TagBinPayload, Serialization.Read.TagBin)(&decoder, patched.toSlice()) as errorOutcome
+    catch CoreTests.readAndDelete!{TagBinPayload, Serialization.Read.TagBin}(&decoder, patched.toSlice()) as errorOutcome
     Swag.require(errorOutcome.value() != null)
 }
 
@@ -1622,10 +1638,10 @@ func corruptTagBinCompressedSizes(bytes: String, fieldName: string, uncompressed
     let sizes   = readTagBinCompressedSizes(bytes.toSlice(), "blob")
     let patched = corruptTagBinCompressedSizes(bytes, "blob", sizes.uncompressed, bytes.length + 1)
 
-    var decoder: Serialization.Decoder'Serialization.Read.TagBin
+    var decoder: Serialization.Decoder!{Serialization.Read.TagBin}
     decoder.flags |= .IgnoreStructFieldError
 
-    let decoded = expect decoder.readAll'TagBinPayload(patched.toSlice())
+    let decoded = expect decoder.readAll!{TagBinPayload}(patched.toSlice())
     defer Memory.delete(decoded)
     Swag.require(decoded.id == 17)
     Swag.require(decoded.name == "tagbin")
@@ -1643,15 +1659,15 @@ func corruptTagBinCompressedSizes(bytes: String, fieldName: string, uncompressed
     let bytes   = encodeTagBin(payload)
     let patched = corruptTagBinRawLen(bytes, "finalPoint", 6)
 
-    var strictDecoder: Serialization.Decoder'Serialization.Read.TagBin
+    var strictDecoder: Serialization.Decoder!{Serialization.Read.TagBin}
     var errrlOutcome:  Swag.Error
-    catch CoreTests.readAndDelete'(TagBinPayload, Serialization.Read.TagBin)(&strictDecoder, patched.toSlice()) as errrlOutcome
+    catch CoreTests.readAndDelete!{TagBinPayload, Serialization.Read.TagBin}(&strictDecoder, patched.toSlice()) as errrlOutcome
     let errrl = errrlOutcome.value()
     Swag.require(errrl != null)
 
-    var decoder: Serialization.Decoder'Serialization.Read.TagBin
+    var decoder: Serialization.Decoder!{Serialization.Read.TagBin}
     decoder.flags |= .IgnoreStructFieldError
-    let decoded = expect decoder.readAll'TagBinPayload(patched.toSlice())
+    let decoded = expect decoder.readAll!{TagBinPayload}(patched.toSlice())
     defer Memory.delete(decoded)
     Swag.require(decoded.id == 17)
     Swag.require(decoded.name == "tagbin")
@@ -1666,16 +1682,16 @@ func corruptTagBinCompressedSizes(bytes: String, fieldName: string, uncompressed
     let payload = makeTagBinPayload()
     let bytes   = encodeTagBin(payload)
 
-    var patched: Array'u8
+    var patched: Array!{u8}
     patched.add(bytes.toSlice())
     let field  = findTagBinV1Field(patched.toSlice(), "counts")
     var writer = ByteStream.openWrite(&patched)
     writer.setPosition(field.seek + #sizeof(u32))
-    writer.writeNative(0x7F'u8)
+    writer.writeNative(0x7F_u8)
 
-    var decoder:      Serialization.Decoder'Serialization.Read.TagBin
+    var decoder:      Serialization.Decoder!{Serialization.Read.TagBin}
     var errsqOutcome: Swag.Error
-    catch CoreTests.readAndDelete'(TagBinPayload, Serialization.Read.TagBin)(&decoder, patched.toSlice()) as errsqOutcome
+    catch CoreTests.readAndDelete!{TagBinPayload, Serialization.Read.TagBin}(&decoder, patched.toSlice()) as errsqOutcome
     let errsq = errsqOutcome.value()
     Swag.require(errsq != null)
 }
@@ -1691,12 +1707,12 @@ func corruptTagBinCompressedSizes(bytes: String, fieldName: string, uncompressed
     var probe:  TagBinArrayReallocProbe
     var target: TagBinRawArrayPayload
     target.values.allocator = &probe
-    target.values.add([1'u32, 2, 3])
+    target.values.add([1_u32, 2, 3])
     let oldCount    = target.values.count
     let oldCapacity = target.values.capacity
     probe.rejectGrowth = true
 
-    var decoder: Serialization.Decoder'Serialization.Read.TagBin
+    var decoder: Serialization.Decoder!{Serialization.Read.TagBin}
     let reader:  Serialization.IDecoder = &decoder
     let failed = Swag.catchPanic(func|reader, &bytes, &target|()
     {
@@ -1715,22 +1731,24 @@ func corruptTagBinCompressedSizes(bytes: String, fieldName: string, uncompressed
 #test
 {
     var payload: TagBinLongText
-    for 200 do
+    for 200
+    {
         payload.name += "x"
+    }
 
     let bytes = encodeTagBin(payload)
 
-    var patched: Array'u8
+    var patched: Array!{u8}
     patched.add(bytes.toSlice())
     let field  = findTagBinV1Field(patched.toSlice(), "name")
     var writer = ByteStream.openWrite(&patched)
     writer.setPosition(field.seek)
-    writer.writeNative(0xFF'u8)
-    writer.writeNative(0x7F'u8)
+    writer.writeNative(0xFF_u8)
+    writer.writeNative(0x7F_u8)
 
-    var decoder:      Serialization.Decoder'Serialization.Read.TagBin
+    var decoder:      Serialization.Decoder!{Serialization.Read.TagBin}
     var errlnOutcome: Swag.Error
-    catch CoreTests.readAndDelete'(TagBinLongText, Serialization.Read.TagBin)(&decoder, patched.toSlice()) as errlnOutcome
+    catch CoreTests.readAndDelete!{TagBinLongText, Serialization.Read.TagBin}(&decoder, patched.toSlice()) as errlnOutcome
     let errln = errlnOutcome.value()
     Swag.require(errln != null)
 }
@@ -1742,12 +1760,14 @@ func corruptTagBinCompressedSizes(bytes: String, fieldName: string, uncompressed
     for length in Lengths
     {
         var payload: TagBinLongText
-        for length do
+        for length
+        {
             payload.name += "x"
+        }
 
         let bytes   = encodeTagBin(payload)
-        var decoder: Serialization.Decoder'Serialization.Read.TagBin
-        let decoded = expect decoder.readAll'TagBinLongText(bytes.toSlice())
+        var decoder: Serialization.Decoder!{Serialization.Read.TagBin}
+        let decoded = expect decoder.readAll!{TagBinLongText}(bytes.toSlice())
         defer Memory.delete(decoded)
         Swag.require(decoded.name.count == length)
         Swag.require(decoded.name == payload.name)
@@ -1774,9 +1794,9 @@ func corruptTagBinCompressedSizes(bytes: String, fieldName: string, uncompressed
     let bytes   = encodeTagBin(payload)
     let patched = corruptTagBinRootFatSeek(bytes, Swag.U64.Max)
 
-    var decoder:      Serialization.Decoder'Serialization.Read.TagBin
+    var decoder:      Serialization.Decoder!{Serialization.Read.TagBin}
     var errorOutcome: Swag.Error
-    catch CoreTests.readAndDelete'(TagBinPayload, Serialization.Read.TagBin)(&decoder, patched.toSlice()) as errorOutcome
+    catch CoreTests.readAndDelete!{TagBinPayload, Serialization.Read.TagBin}(&decoder, patched.toSlice()) as errorOutcome
     Swag.require(errorOutcome.value() != null)
 }
 
@@ -1788,9 +1808,9 @@ func corruptTagBinCompressedSizes(bytes: String, fieldName: string, uncompressed
     let field   = findTagBinV1Field(bytes.toSlice(), "id")
     let patched = corruptTagBinFieldOffset(bytes, "id", field.fatStartOffset)
 
-    var decoder: Serialization.Decoder'Serialization.Read.TagBin
+    var decoder: Serialization.Decoder!{Serialization.Read.TagBin}
     decoder.serializer.ignoreElements.add("name")
     var errorOutcome: Swag.Error
-    catch CoreTests.readAndDelete'(TagBinPayload, Serialization.Read.TagBin)(&decoder, patched.toSlice()) as errorOutcome
+    catch CoreTests.readAndDelete!{TagBinPayload, Serialization.Read.TagBin}(&decoder, patched.toSlice()) as errorOutcome
     Swag.require(errorOutcome.value() != null)
 }

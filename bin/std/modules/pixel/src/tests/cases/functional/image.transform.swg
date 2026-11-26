@@ -23,14 +23,19 @@ func sameImage(a, b: Image)->bool
     if a.width != b.width or
        a.height != b.height or
        a.pixelFormat != b.pixelFormat or
-       a.alphaMode != b.alphaMode do
+       a.alphaMode != b.alphaMode
+    {
         return false
+    }
+
     for y in a.height
     {
         for x in a.width
         {
-            if a.pixelColor(x, y) != b.pixelColor(x, y) do
+            if a.pixelColor(x, y) != b.pixelColor(x, y)
+            {
                 return false
+            }
         }
     }
 

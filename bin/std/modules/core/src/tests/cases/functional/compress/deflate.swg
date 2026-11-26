@@ -6,7 +6,7 @@ using Swag
 // Appending compressed data preserves input borrowed from the output allocation.
 #test
 {
-    var bytes: Array'u8
+    var bytes: Array!{u8}
     bytes.add("borrowed input survives output growth")
     let original = bytes
     let start    = bytes.count
@@ -15,7 +15,7 @@ using Swag
     expect deflater.compress(&bytes, bytes.toSlice())
 
     var inflater: Compress.Inflate
-    var decoded:  Array'u8
+    var decoded:  Array!{u8}
     expect inflater.decompress(&decoded, bytes[start to])
     Swag.require(Slice.equals(decoded.toSlice(), original.toSlice()))
 }
@@ -35,19 +35,21 @@ func fillRandom(buffer: [..] u8, seed: u32)
 func fillText(buffer: [..] u8)
 {
     const Words = "the quick brown fox jumps over the lazy dog while a swag compiler emits code "
-    for i in buffer.count do
+    for i in buffer.count
+    {
         buffer[i] = Words[(i * 7 + i / 97) % Words.count]
+    }
 }
 
 func roundTrip(input: const [..] u8, level: Compress.Deflate.CompressionLevel, strategy: Compress.Deflate.CompressionStrategy)->bool
 {
     var deflater: Compress.Deflate
     deflater.init(level, strategy)
-    var compressed: Array'u8
+    var compressed: Array!{u8}
     expect deflater.compress(&compressed, input)
 
     var inflater: Compress.Inflate
-    var decoded:  Array'u8
+    var decoded:  Array!{u8}
     expect inflater.decompress(&decoded, compressed.toSlice())
     return Slice.equals(decoded.toSlice(), input)
 }
@@ -154,7 +156,7 @@ func roundTrip(input: const [..] u8, level: Compress.Deflate.CompressionLevel, s
     let second: [9] u8 = [2, 4, 6, 8, 10, 12, 14, 16, 18]
 
     var deflater:   Compress.Deflate
-    var compressed: Array'u8
+    var compressed: Array!{u8}
     deflater.init(.NoCompression)
     expect deflater.compress(&compressed, first)
     let secondStart = compressed.count
@@ -163,11 +165,11 @@ func roundTrip(input: const [..] u8, level: Compress.Deflate.CompressionLevel, s
     expect deflater.compress(&compressed, second)
 
     var inflater:     Compress.Inflate
-    var decodedFirst: Array'u8
+    var decodedFirst: Array!{u8}
     expect inflater.decompress(&decodedFirst, compressed.toSlice()[until secondStart])
     Swag.require(Slice.equals(decodedFirst.toSlice(), first))
 
-    var decodedSecond: Array'u8
+    var decodedSecond: Array!{u8}
     expect inflater.decompress(&decodedSecond, compressed.toSlice()[secondStart to])
     Swag.require(Slice.equals(decodedSecond.toSlice(), second))
 }

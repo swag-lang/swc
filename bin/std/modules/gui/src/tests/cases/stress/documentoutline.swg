@@ -10,25 +10,30 @@ using Core, Pixel
     let fileName = Testing.tempFilePath("outline-heading-scroll-", ".md")
     defer discard catch File.delete(fileName)
     var source:  String
-    var offsets: Array'u64
+    var offsets: Array!{u64}
     for index in 4_000
     {
         offsets.add(source.length)
         source += Format.toString("## Section %\n\nA paragraph to retain while the document scrolls.\n\n", index)
     }
 
-    for 20 do
+    for 20
+    {
         source += "A closing paragraph after the last heading.\n\n"
+    }
+
     discard expect File.writeAllBytes(fileName, cast(const [..] u8, source.toString()))
     var host: Testing.HeadlessHost
     host.setup(720, 480)
     let view = Markdown.View.createFile(&host.root, fileName)
     view.resize(720, 480)
     view.applyLayout()
-    for 64 where view.isLoading() do
+    for 64 where view.isLoading()
+    {
         host.fireTimers()
+    }
 
-    for index in [2_000'u64, 2_002, 500, 502, 3_999, 0]
+    for index in [2_000_u64, 2_002, 500, 502, 3_999, 0]
     {
         host.setReducedMotion(false)
         host.mouseWheel({360, 240}, -1)
@@ -50,8 +55,11 @@ using Core, Pixel
         Swag.require(found)
         Swag.require(view.readingOffset() == offsets[index])
         let position = view.scroll.scrollPosition()
-        for 64 where view.isLoading() do
+        for 64 where view.isLoading()
+        {
             host.fireTimers()
+        }
+
         host.finishAnimations()
         host.paint(view)
         Swag.require(view.scroll.scrollPosition() == position)
@@ -88,8 +96,11 @@ using Core, Pixel
     for 4
     {
         var before: f32
-        for block in view.blocks where block.sourceOffset == offsets[2] do
+        for block in view.blocks where block.sourceOffset == offsets[2]
+        {
             before = block.wnd.surfaceRect().y
+        }
+
         host.mouseWheel({360, 240}, 1)
         host.paint(view)
         host.finishAnimations()

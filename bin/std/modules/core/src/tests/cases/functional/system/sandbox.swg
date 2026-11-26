@@ -102,8 +102,10 @@ func sandboxTestOutsidePath()->String
 // it is testing, so the sources this file lives in accept a write while the machine still does not.
 #test
 {
-    if not Env.isSandboxed() do
+    if not Env.isSandboxed()
+    {
         return
+    }
 
     let corpus = Env.corpusRoot()
     Swag.require(corpus.count != 0)
@@ -135,8 +137,10 @@ func sandboxTestOutsidePath()->String
 #test
 {
     let corpus = Env.corpusRoot()
-    if corpus.count == 0 do
+    if corpus.count == 0
+    {
         return
+    }
 
     expect Env.grantCorpus(corpus)
 
@@ -151,8 +155,10 @@ func sandboxTestOutsidePath()->String
 // distinct so an application that separates documents from settings still sees two places.
 #test
 {
-    if not Env.isSandboxed() do
+    if not Env.isSandboxed()
+    {
         return
+    }
 
     let docs    = Env.getSpecialDirectory(.UserDocuments)
     let appData = Env.getSpecialDirectory(.UserAppData)
@@ -172,8 +178,10 @@ func sandboxTestOutsidePath()->String
 // is rejected as a change of root and kills the whole run.
 #test
 {
-    if not Env.isSandboxed() do
+    if not Env.isSandboxed()
+    {
         return
+    }
 
     let standIn = Env.getSpecialDirectory(.Temp)
     let root    = Env.defaultSandboxRoot()
@@ -185,8 +193,10 @@ func sandboxTestOutsidePath()->String
 // the sandbox adopts its default name.
 #test
 {
-    if not Env.isSandboxed() do
+    if not Env.isSandboxed()
+    {
         return
+    }
 
     let root   = Path.combine(Env.getSpecialDirectory(.Temp).toString(), "leftover-run")
     let nested = Path.combine(root.toString(), "nested")
@@ -207,8 +217,10 @@ func sandboxTestOutsidePath()->String
 // descriptor usable while removing the name and its containing directory.
 #test
 {
-    if not Env.isSandboxed() do
+    if not Env.isSandboxed()
+    {
         return
+    }
 
     let root = Path.combine(Env.getSpecialDirectory(.Temp).toString(), "leftover-held")
     expect Directory.create(root.toString())
@@ -218,12 +230,14 @@ func sandboxTestOutsidePath()->String
     var errOutcome: Swag.Error
     catch Env.clearLeftoverDefaultRoot(root.toString()) as errOutcome
     let err = errOutcome.value()
-    #static if WINDOWS do
+    #static if WINDOWS
+    {
         Swag.require(err != null)
+    }
     else
     {
         Swag.require(err == null and not Directory.exists(root.toString()))
-        expect held.writeAll([17'u8, 19])
+        expect held.writeAll([17_u8, 19])
         let retainedSize = expect held.size()
         Swag.require(retainedSize == 2)
     }
@@ -249,8 +263,10 @@ func sandboxTestOutsidePath()->String
 // file API rather than the guard alone.
 #test
 {
-    if not Env.isSandboxed() do
+    if not Env.isSandboxed()
+    {
         return
+    }
 
     let path    = Path.combine(Env.getSpecialDirectory(.Temp).toString(), "sandbox-write.txt")
     let outside = sandboxTestOutsidePath()
@@ -270,8 +286,10 @@ func sandboxTestOutsidePath()->String
 // A directory link cannot redirect an allowed sandbox write into the granted corpus.
 #test
 {
-    if not Env.isSandboxed() do
+    if not Env.isSandboxed()
+    {
         return
+    }
 
     let holding    = Path.combine(Env.getSpecialDirectory(.Temp).toString(), Format.toString("sandbox-reparse-%", Guid64.random()))
     let target     = Path.combine(Env.corpusRoot(), Format.toString("sandbox-reparse-target-%", Guid64.random()))

@@ -101,8 +101,10 @@ struct NativeNonNullNested
 
 func nativeHasNonNullFlags(type: typeinfo)->bool
 {
-    if not (type.flags & Swag.TypeInfoFlags.RequiresExplicitInit) do
+    if not (type.flags & Swag.TypeInfoFlags.RequiresExplicitInit)
+    {
         return false
+    }
     return not (type.flags & Swag.TypeInfoFlags.Nullable)
 }
 
@@ -113,7 +115,7 @@ func nativeNonNullConstruction()->bool
     var first  = NativeNonNullItem{value: 11}
     var second = NativeNonNullItem{value: 22}
     var blockStorage:   [2] NativeNonNullItem = [NativeNonNullItem{value: 31}, NativeNonNullItem{value: 32}]
-    var cstringStorage: [4] u8 = ['a'u8, 'b'u8, 'c'u8, 0]
+    var cstringStorage: [4] u8 = ['a'_u8, 'b'_u8, 'c'_u8, 0]
 
     let direct:                    *NativeNonNullItem              = &first
     let block:                     [*] NativeNonNullItem           = cast([*] NativeNonNullItem, &blockStorage[0])
@@ -158,37 +160,55 @@ func nativeNonNullConstruction()->bool
        not nativeHasNonNullFlags(#typeof(text)) or
        not nativeHasNonNullFlags(#typeof(ctext)) or
        not nativeHasNonNullFlags(#typeof(boxed)) or
-       not nativeHasNonNullFlags(#typeof(reflectedType)) do
+       not nativeHasNonNullFlags(#typeof(reflectedType))
+    {
         return false
+    }
 
     let aliasReadOnlyType = #typeof(aliasReadOnly)
     let aliasRequiredType = #typeof(aliasRequired)
-    if not (aliasReadOnlyType.flags & Swag.TypeInfoFlags.Const) or not (aliasReadOnlyType.flags & Swag.TypeInfoFlags.RequiresExplicitInit) do
+    if not (aliasReadOnlyType.flags & Swag.TypeInfoFlags.Const) or not (aliasReadOnlyType.flags & Swag.TypeInfoFlags.RequiresExplicitInit)
+    {
         return false
-    if not (aliasRequiredType.flags & Swag.TypeInfoFlags.Const) or not (aliasRequiredType.flags & Swag.TypeInfoFlags.RequiresExplicitInit) do
+    }
+    if not (aliasRequiredType.flags & Swag.TypeInfoFlags.Const) or not (aliasRequiredType.flags & Swag.TypeInfoFlags.RequiresExplicitInit)
+    {
         return false
+    }
 
     let holderType           = cast(const *Swag.TypeInfoStruct, #typeof(NativeNonNullHolder))
     let nestedType           = #typeof(NativeNonNullNested)
     let holderArrayType      = #typeof([2] NativeNonNullHolder)
     let pointerArrayType     = #typeof([2] *NativeNonNullItem)
     let defaultContainerType = #typeof(NativeNonNullDefaultContainer)
-    let genericRequiredType  = cast(const *Swag.TypeInfoStruct, #typeof(NativeNonNullGenericBox'(*NativeNonNullItem)))
-    let genericDefaultType   = cast(const *Swag.TypeInfoStruct, #typeof(NativeNonNullGenericBox'NativeNonNullStringDefault))
-    if holderType.opInit != null or not (holderType.flags & Swag.TypeInfoFlags.RequiresExplicitInit) do
+    let genericRequiredType  = cast(const *Swag.TypeInfoStruct, #typeof(NativeNonNullGenericBox!{*NativeNonNullItem}))
+    let genericDefaultType   = cast(const *Swag.TypeInfoStruct, #typeof(NativeNonNullGenericBox!{NativeNonNullStringDefault}))
+    if holderType.opInit != null or not (holderType.flags & Swag.TypeInfoFlags.RequiresExplicitInit)
+    {
         return false
+    }
     if not (nestedType.flags & Swag.TypeInfoFlags.RequiresExplicitInit) or
        not (holderArrayType.flags & Swag.TypeInfoFlags.RequiresExplicitInit) or
-       not (pointerArrayType.flags & Swag.TypeInfoFlags.RequiresExplicitInit) do
+       not (pointerArrayType.flags & Swag.TypeInfoFlags.RequiresExplicitInit)
+    {
         return false
-    if not NATIVE_NONULL_FORWARD_ARRAY_REQUIRES_INIT do
+    }
+    if not NATIVE_NONULL_FORWARD_ARRAY_REQUIRES_INIT
+    {
         return false
-    if defaultContainerType.flags & Swag.TypeInfoFlags.RequiresExplicitInit do
+    }
+    if defaultContainerType.flags & Swag.TypeInfoFlags.RequiresExplicitInit
+    {
         return false
-    if genericRequiredType.opInit != null or not (genericRequiredType.flags & Swag.TypeInfoFlags.RequiresExplicitInit) do
+    }
+    if genericRequiredType.opInit != null or not (genericRequiredType.flags & Swag.TypeInfoFlags.RequiresExplicitInit)
+    {
         return false
-    if genericDefaultType.opInit == null or genericDefaultType.flags & Swag.TypeInfoFlags.RequiresExplicitInit do
+    }
+    if genericDefaultType.opInit == null or genericDefaultType.flags & Swag.TypeInfoFlags.RequiresExplicitInit
+    {
         return false
+    }
 
     let holder                              = NativeNonNullHolder{required: direct}
     var moveSource                          = NativeNonNullHolder{required: &first}
@@ -200,8 +220,8 @@ func nativeNonNullConstruction()->bool
         NativeNonNullHolder{required: &first},
         NativeNonNullHolder{required: &second, count: 8}
         ]
-    let genericRequired: NativeNonNullGenericBox'(*NativeNonNullItem) = {value: &first}
-    var genericDefault:  NativeNonNullGenericBox'NativeNonNullStringDefault
+    let genericRequired: NativeNonNullGenericBox!{*NativeNonNullItem} = {value: &first}
+    var genericDefault:  NativeNonNullGenericBox!{NativeNonNullStringDefault}
     let pointerArray:    [2] *NativeNonNullItem   = [&first, &second]
     let aliasedHolder:   NativeNonNullHolderAlias = {required: &first}
     let pointerDefault                            = NativeNonNullPointerDefault{}
@@ -231,74 +251,126 @@ func nativeNonNullConstruction()->bool
     #assert(#typeof(moveDefaultSource.required) == string)
     #assert(#typeof(moveDefaultTarget.required) == string)
 
-    if holder.required != &first or holder.required.value != 11 do
+    if holder.required != &first or holder.required.value != 11
+    {
         return false
-    if moveTarget.required != &first do
+    }
+    if moveTarget.required != &first
+    {
         return false
-    if holder.optional != null or holder.legacy != null or holder.count != 7 do
+    }
+    if holder.optional != null or holder.legacy != null or holder.count != 7
+    {
         return false
-    if blockHolder.required[0].value != 31 or blockHolder.required[1].value != 32 do
+    }
+    if blockHolder.required[0].value != 31 or blockHolder.required[1].value != 32
+    {
         return false
-    if contextual.required != &second or contextual.count != 9 do
+    }
+    if contextual.required != &second or contextual.count != 9
+    {
         return false
-    if nested.holder.required != &first or nested.holder.optional != null do
+    }
+    if nested.holder.required != &first or nested.holder.optional != null
+    {
         return false
-    if array[0].required != &first or array[0].count != 7 do
+    }
+    if array[0].required != &first or array[0].count != 7
+    {
         return false
-    if array[1].required != &second or array[1].count != 8 do
+    }
+    if array[1].required != &second or array[1].count != 8
+    {
         return false
-    if migrated != &first or widened != &first do
+    }
+    if migrated != &first or widened != &first
+    {
         return false
-    if genericRequired.value != &first or genericDefault.value.value != "fallback" do
+    }
+    if genericRequired.value != &first or genericDefault.value.value != "fallback"
+    {
         return false
-    if families.valuePointer != &first or families.blockPointer[1].value != 32 do
+    }
+    if families.valuePointer != &first or families.blockPointer[1].value != 32
+    {
         return false
-    if families.slice.count != 2 or families.slice[0].value != 31 do
+    }
+    if families.slice.count != 2 or families.slice[0].value != 31
+    {
         return false
-    if families.text != "nonull" or families.ctext[0] != 'a'u8 do
+    }
+    if families.text != "nonull" or families.ctext[0] != 'a'_u8
+    {
         return false
-    if assume cast(s32, families.boxed) != 123 or families.reflectedType.name != "NativeNonNullItem" do
+    }
+    if assume cast(s32, families.boxed) != 123 or families.reflectedType.name != "NativeNonNullItem"
+    {
         return false
+    }
     if boxedNullableValuePointer == null or
        boxedNullableBlockPointer == null or
        boxedNullableSlice == null or
        boxedNullableString == null or
        boxedNullableCString == null or
-       boxedNullableTypeInfo == null do
+       boxedNullableTypeInfo == null
+    {
         return false
-    if pointerArray[0] != &first or pointerArray[1] != &second or aliasedHolder.required != &first do
+    }
+    if pointerArray[0] != &first or pointerArray[1] != &second or aliasedHolder.required != &first
+    {
         return false
-    if pointerDefault.required != NATIVE_NONULL_POINTER_DEFAULT_TEXT.buffer or pointerDefault.required[0] != 'f'u8 do
+    }
+    if pointerDefault.required != NATIVE_NONULL_POINTER_DEFAULT_TEXT.buffer or pointerDefault.required[0] != 'f'_u8
+    {
         return false
-    if moveDefaultTarget.required != "explicit" or moveDefaultSource.required != "move-default" do
+    }
+    if moveDefaultTarget.required != "explicit" or moveDefaultSource.required != "move-default"
+    {
         return false
+    }
     var defaultItem:     NativeNonNullStringDefault
     var defaultArray:    [2] NativeNonNullStringDefault
     let omittedDefaults = NativeNonNullDefaultContainer{}
     let partialDefaults: [2] NativeNonNullStringDefault = [NativeNonNullStringDefault{value: "explicit"}]
 
-    if defaultItem.value != "fallback" do
+    if defaultItem.value != "fallback"
+    {
         return false
-    if defaultArray[0].value != "fallback" or defaultArray[1].value != "fallback" do
+    }
+    if defaultArray[0].value != "fallback" or defaultArray[1].value != "fallback"
+    {
         return false
-    if omittedDefaults.direct.value != "fallback" or omittedDefaults.array[0].value != "fallback" do
+    }
+    if omittedDefaults.direct.value != "fallback" or omittedDefaults.array[0].value != "fallback"
+    {
         return false
-    if omittedDefaults.array[1].value != "fallback" or omittedDefaults.aliased.value != "fallback" do
+    }
+    if omittedDefaults.array[1].value != "fallback" or omittedDefaults.aliased.value != "fallback"
+    {
         return false
-    if partialDefaults[0].value != "explicit" or partialDefaults[1].value != "fallback" do
+    }
+    if partialDefaults[0].value != "explicit" or partialDefaults[1].value != "fallback"
+    {
         return false
-    if NATIVE_NONULL_DEFAULT_CONTAINER.array[1].value != "fallback" do
+    }
+    if NATIVE_NONULL_DEFAULT_CONTAINER.array[1].value != "fallback"
+    {
         return false
-    if NATIVE_NONULL_PARTIAL_ARRAY[0].value != "explicit" or NATIVE_NONULL_PARTIAL_ARRAY[1].value != "fallback" do
+    }
+    if NATIVE_NONULL_PARTIAL_ARRAY[0].value != "explicit" or NATIVE_NONULL_PARTIAL_ARRAY[1].value != "fallback"
+    {
         return false
+    }
 
     var mutable = holder
     Swag.init(mutable)(&second)
     if mutable.required != &second or
        mutable.optional != null or
        mutable.legacy != null or
-       mutable.count != 7 do
+       mutable.count != 7
+    {
         return false
+    }
 
     // Non-null values are initialized explicitly; no uninitialized escape exists.
     var initializedPointer: *NativeNonNullItem = &second
@@ -310,8 +382,10 @@ func nativeNonNullConstruction()->bool
     var nullablePointer: *NativeNonNullItem?
     var legacyPointer:   *NativeNonNullItem?
     var legacyHolder:    struct {ptr: *NativeNonNullItem?}
-    if nullablePointer != null or legacyPointer != null or legacyHolder.ptr != null do
+    if nullablePointer != null or legacyPointer != null or legacyHolder.ptr != null
+    {
         return false
+    }
 
     return true
 }

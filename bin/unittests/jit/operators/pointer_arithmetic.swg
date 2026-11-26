@@ -19,7 +19,7 @@ impl PointerFieldHolder
         .len = 4
         .assignArrayFieldToPointer()
         var tail = cast([*] u16, unwrap .ptr + .len)
-        tail[] = 0x1234'u16
+        tail[] = 0x1234_u16
         return cast(u16, .buf[4]) | (cast(u16, .buf[5]) << 8)
     }
 }
@@ -67,13 +67,13 @@ impl PointerFieldHolder
     {
         var arr: [4] u8 = [0, 1, 2, 3]
         var ptr         = cast([*] u8, &arr[0])
-        ptr += 1'u8
+        ptr += 1_u8
         let c = ptr[0]
         return ptr[c]
     }
 
     const V = #run pointerIndexAfterTypedStep()
-    #assert(V == 2'u8)
+    #assert(V == 2_u8)
 }
 
 #test
@@ -99,5 +99,5 @@ impl PointerFieldHolder
     }
 
     const V = #run arrayFieldPointerDecay()
-    #assert(V == 0x1234'u16)
+    #assert(V == 0x1234_u16)
 }

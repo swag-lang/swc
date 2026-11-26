@@ -170,8 +170,11 @@ impl Guid64
     func parse(str: string)->Guid64 fail
     {
         var result: #returntype
-        if not tryParse(str, &result) do
+        if not tryParse(str, &result)
+        {
             fail InvalidFormatError{"invalid 64-bit identifier"}
+        }
+
         return result
     }
 
@@ -180,12 +183,17 @@ impl Guid64
     // `result` is unchanged on failure.
     func tryParse(str: string, result: *Guid64)->bool
     {
-        var startIndex = 0'u64
+        var startIndex = 0_u64
 
-        if str.count >= 2 and str[0] == '0' and (str[1] == 'x' or str[1] == 'X') do
+        if str.count >= 2 and str[0] == '0' and (str[1] == 'x' or str[1] == 'X')
+        {
             startIndex = 2
-        if str.count - startIndex != 16 do
+        }
+
+        if str.count - startIndex != 16
+        {
             return false
+        }
 
         var value: u64 = 0
         for i in 16
@@ -193,14 +201,22 @@ impl Guid64
             let c = str[startIndex + i]
             var digit: u64
 
-            if c >= '0' and c <= '9' do
+            if c >= '0' and c <= '9'
+            {
                 digit = cast(u64, (c - '0'))
-            elif c >= 'A' and c <= 'F' do
+            }
+            else if c >= 'A' and c <= 'F'
+            {
                 digit = cast(u64, (c - 'A' + 10))
-            elif c >= 'a' and c <= 'f' do
+            }
+            else if c >= 'a' and c <= 'f'
+            {
                 digit = cast(u64, (c - 'a' + 10))
-            else do
+            }
+            else
+            {
                 return false
+            }
 
             value = (value << 4) | digit
         }

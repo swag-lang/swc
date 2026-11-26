@@ -73,16 +73,22 @@ func variadicAnyStrictF32(values: ...)->bool
 
 func variadicAnyWideIntArray(values: ...)->bool
 {
-    if values.count != 1 do
+    if values.count != 1
+    {
         return false
-    if Swag.kindOf(values[0]) != [2] s64 do
+    }
+    if Swag.kindOf(values[0]) != [2] s64
+    {
         return false
+    }
 
     let arr = assume cast([2] s64, values[0])
-    var sum = 0's64
-    for v in arr do
+    var sum = 0_s64
+    for v in arr
+    {
         sum += v
-    return sum == 5_000_000_001's64
+    }
+    return sum == 5_000_000_001_s64
 }
 
 #test
@@ -95,11 +101,11 @@ func variadicAnyWideIntArray(values: ...)->bool
 
 #test
 {
-    Swag.require(variadicAnyS32(1's32, 2's32, 3's32, 4's32) == 10)
-    Swag.require(variadicAnyF64(10.0'f64, 0.5'f64, 1.25'f64) == 11.75'f64)
+    Swag.require(variadicAnyS32(1_s32, 2_s32, 3_s32, 4_s32) == 10)
+    Swag.require(variadicAnyF64(10.0_f64, 0.5_f64, 1.25_f64) == 11.75_f64)
     Swag.require(variadicAnyBool(false, true, true) == 2)
     Swag.require(variadicAnyRune('a', 'b', 'c') == 294)
-    Swag.require(variadicAnyString("ab", "cd", "ef") == 41'u8)
+    Swag.require(variadicAnyString("ab", "cd", "ef") == 41_u8)
     Swag.require(variadicAnyStrictFlag(cast(VariadicStrictFlagAlias, VariadicStrictFlag.B)))
     Swag.require(variadicAnyStrictF32(cast(VariadicStrictF32Alias, 1.5)))
     Swag.require(variadicAnyWideIntArray([1, 5_000_000_000]))

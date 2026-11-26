@@ -33,7 +33,7 @@ enum StreamRedirection
 // ```
 struct ProcessEnvironment
 {
-    internal variables: HashTable'(String, String)
+    internal variables: HashTable!{String, String}
 }
 
 impl ProcessEnvironment
@@ -50,8 +50,11 @@ impl ProcessEnvironment
     mtd const value(name: string)->string?
     {
         let entry = .variables.tryFind(ProcessEnvironment.storedName(name))
-        if not entry do
+        if not entry
+        {
             return null
+        }
+
         return entry.value.toString()
     }
 
@@ -83,8 +86,11 @@ impl ProcessEnvironment
 func setVariable(name: string, value: string) fail
 {
     try validateEnvironmentVariableName(name)
-    for byte in value where byte == 0 do
+    for byte in value where byte == 0
+    {
         fail Errors.BadParameterError{"environment variable values must not contain zero bytes"}
+    }
+
     try setVariableNative(name, value)
 }
 
@@ -100,16 +106,24 @@ func removeVariable(name: string) fail
 
 private func validateEnvironmentVariableName(name: string) fail
 {
-    if not validEnvironmentVariableName(name) do
+    if not validEnvironmentVariableName(name)
+    {
         fail Errors.BadParameterError{"environment variable names must not be empty or contain zero bytes or '='"}
+    }
 }
 
 private func validEnvironmentVariableName(name: string)->bool
 {
-    if not name.count do
+    if not name.count
+    {
         return false
-    for byte in name where byte == 0 or byte == '=' do
+    }
+
+    for byte in name where byte == 0 or byte == '='
+    {
         return false
+    }
+
     return true
 }
 
@@ -256,7 +270,7 @@ func startProcess(info: StartInfo)->Process fail
 //
 // ```swag
 // let process = try Env.runProcess("swc.exe", ["--help"])
-// if process.exitCode() != 0 do
+// if process.exitCode() != 0 { }
 //     fail Errors.BadParameterError{"the compiler refused to answer"}
 // Swag.print(process.standardOutput())
 // ```
@@ -323,8 +337,11 @@ impl Process
     // pipes to close. Linux reports normal exit codes 0..255, or 128 plus the terminating signal.
     mtd waitForExit()->s32 fail
     {
-        if .exited do
+        if .exited
+        {
             return .status
+        }
+
         Swag.assert(.handle != null, "invalid process handle")
         while not .exited
         {
@@ -344,10 +361,16 @@ impl Process
     {
         if not Math.isFinite(timeout.seconds) or
            timeout.seconds < 0 or
-           timeout.seconds >= 18_446_744_073_709_550.0 do
+           timeout.seconds >= 18_446_744_073_709_550.0
+        {
             fail BadParameterError{"process timeout is outside the supported range"}
-        if .exited do
+        }
+
+        if .exited
+        {
             return true
+        }
+
         Swag.assert(.handle != null, "invalid process handle")
         let duration = timeout.millisecondsCeiling()
         var clock: Time.Stopwatch
@@ -356,16 +379,18 @@ impl Process
         {
             .readAvailable()
             let elapsed   = clock.elapsedMilliseconds()
-            let remaining = elapsed >= duration ? 0'u64 : duration - elapsed
-            try .pollExitNative(cast(u32, Math.min(remaining, 5'u64)))
+            let remaining = elapsed >= duration ? 0_u64 : duration - elapsed
+            try .pollExitNative(cast(u32, Math.min(remaining, 5_u64)))
             if .exited
             {
                 .captureExitOutput()
                 return true
             }
 
-            if clock.elapsedMilliseconds() >= duration do
+            if clock.elapsedMilliseconds() >= duration
+            {
                 return false
+            }
         }
     }
 
@@ -418,27 +443,43 @@ internal func validateProcessStartInfo(info: StartInfo) fail
 {
     func rejectZero(value: string) fail
     {
-        for byte in value where byte == 0 do
+        for byte in value where byte == 0
+        {
             fail BadParameterError{"process strings must not contain zero bytes"}
+        }
     }
 
-    if not info.fileName.count do
+    if not info.fileName.count
+    {
         fail BadParameterError{"process filename must not be empty"}
+    }
+
     try rejectZero(info.fileName)
-    if info.arguments do
-        for argument in info.arguments do
+    if info.arguments
+    {
+        for argument in info.arguments
+        {
             try rejectZero(argument)
+        }
+    }
+
     if info.nativeArguments
     {
-        if info.arguments and info.arguments.count != 0 do
+        if info.arguments and info.arguments.count != 0
+        {
             fail BadParameterError{"argument values and native argument text cannot be combined"}
+        }
+
         try rejectZero(info.nativeArguments)
     }
 
     if info.workingDirectory
     {
-        if not info.workingDirectory.count do
+        if not info.workingDirectory.count
+        {
             fail BadParameterError{"process working directory must not be empty"}
+        }
+
         try rejectZero(info.workingDirectory)
     }
 
@@ -446,12 +487,17 @@ internal func validateProcessStartInfo(info: StartInfo) fail
     {
         for name, value in info.environment.variables
         {
-            if name.isEmpty() do
+            if name.isEmpty()
+            {
                 fail BadParameterError{"process environment names must not be empty"}
+            }
+
             try rejectZero(name.toString())
             try rejectZero(value.toString())
-            for byte in name.toString() where byte == '=' do
+            for byte in name.toString() where byte == '='
+            {
                 fail BadParameterError{"process environment names must not contain '='"}
+            }
         }
     }
 }

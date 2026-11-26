@@ -44,8 +44,10 @@ func requireNarrows(value: *s32?)->s32
 // mark it has just proved.
 #test
 {
-    if Swag.jit() do
+    if Swag.jit()
+    {
         return
+    }
 
     var reached = 0
     Swag.check(reached == 1, "expected failure: the test goes on after it")

@@ -6,8 +6,8 @@ using Swag, Core
 // Fourier amplitude in a steady 0.5-second window after the AAC priming packet.
 func decodedToneAmplitude(samples: const [..] s16, channel: u64, frequency: f64)->f64
 {
-    var sine   = 0.0'f64
-    var cosine = 0.0'f64
+    var sine   = 0.0_f64
+    var cosine = 0.0_f64
     for frame in 1_024 + 12_000 until 1_024 + 36_000
     {
         let phase  = Math.ConstF64.TwoPi * frequency * (frame - 1_024) / 48_000.0
@@ -37,13 +37,13 @@ func decodedToneAmplitude(samples: const [..] s16, channel: u64, frequency: f64)
         source[frame * 2 + 1] = cast(s16, Math.round(faint))
     }
 
-    var encoded: Array'u8
-    var packets: Array'SoundPacket
-    var packet:  Array'u8
-    var cursor = 0'u64
+    var encoded: Array!{u8}
+    var packets: Array!{SoundPacket}
+    var packet:  Array!{u8}
+    var cursor = 0_u64
     while cursor < 48_000
     {
-        let count = Math.min(1_024'u64, 48_000'u64 - cursor)
+        let count = Math.min(1_024_u64, 48_000_u64 - cursor)
         cursor += expect encoder.push(Swag.makeSlice(&source[cursor * 2], count * 2), &packet)
         if packet.count
         {
@@ -60,7 +60,7 @@ func decodedToneAmplitude(samples: const [..] s16, channel: u64, frequency: f64)
 
     discard expect File.writeAllBytes(path.toString(), encoded.toSlice())
     let sound = expect SoundFile.openPacketStream(path.toString(), .AacLc, 48_000, 2, packets.count * 1_024, packets.toSlice(), encoder.decoderConfig())
-    var decoded: Array's16
+    var decoded: Array!{s16}
     expect sound.decodePcm16(func|decoded = &decoded|(part: const [..] s16)->bool
     {
         decoded.add(part)

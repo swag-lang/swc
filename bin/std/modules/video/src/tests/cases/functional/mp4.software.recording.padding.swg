@@ -8,7 +8,7 @@ using Swag, Core, Audio, Pixel
 func snapshotSoftwareRecording(path: string)->String fail
 {
     var source = try ByteSource.openFile(path, .ReadWrite)
-    var bytes: Array'u8
+    var bytes: Array!{u8}
     bytes.resize(source.size())
     try source.readExact(bytes.toSlice())
     let snapshot = videoTempPath("software-prefix", "mp4")
@@ -18,24 +18,28 @@ func snapshotSoftwareRecording(path: string)->String fail
 
 func checkSoftwareAacTail(rate: u32, channels: u16) fail
 {
-    const Frames = 2_501'u64
+    const Frames = 2_501_u64
     let path = videoTempPath("mp4-software-aac-tail", "mp4")
     defer discard catch File.delete(path)
     let image    = videoGrayImage(16, 16, 100)
     var recorder = try Mp4.SoftwareRecording.create(path, 16, 16, 90_000, rate, channels)
     let pacer    = try FramePacer.create(try FrameRate.create(30, 1), rate, 90_000)
-    for frame in 4'u64 do
+    for frame in 4_u64
+    {
         try recorder.addFrame(&image, try pacer.slotAt(frame))
+    }
 
-    var source: Array's16
+    var source: Array!{s16}
     source.resize(Frames * channels)
     for frame in Frames
     {
         let value = cast(s16,
                          Math.round(8_000.0 * Math.sin(Math.ConstF64.TwoPi *
                                                        500.0 * frame / rate)))
-        for channel in channels do
+        for channel in channels
+        {
             source[frame * channels + channel] = value
+        }
     }
 
     try recorder.addAudioFrames(source.toSlice())
@@ -57,7 +61,7 @@ func checkSoftwareAacTail(rate: u32, channels: u16) fail
     let sound = unwrap reader.audioTrack(0)
     Swag.require(sound.sampleFrameCount() == Frames)
     Swag.require(Math.abs(sound.timelineStartSeconds()) < 0.000001)
-    var decoded: Array's16
+    var decoded: Array!{s16}
     try sound.decodePcm16(func|decoded = &decoded|(part: const [..] s16)->bool
     {
         decoded.add(part)
@@ -66,15 +70,17 @@ func checkSoftwareAacTail(rate: u32, channels: u16) fail
     Swag.require(decoded.count == Frames * channels)
 
     // Inspect the exact final edit: the media starts after one AAC priming packet.
-    var editCount = 0'u32
+    var editCount = 0_u32
     let raw       = try File.readAllBytes(path)
     for offset in raw.count - 3
     {
         if raw[offset] == 'e' and
            raw[offset + 1] == 'd' and
            raw[offset + 2] == 't' and
-           raw[offset + 3] == 's' do
+           raw[offset + 3] == 's'
+        {
             editCount += 1
+        }
     }
 
     Swag.require(editCount == 2)
@@ -88,7 +94,7 @@ func checkSoftwareAacBoundary(rate: u32, frames: u64) fail
     var recorder = try Mp4.SoftwareRecording.create(path, 16, 16, 90_000, rate, 1)
     let pacer    = try FramePacer.create(try FrameRate.create(30, 1), rate, 90_000)
     try recorder.addFrame(&image, try pacer.slotAt(0))
-    var samples: Array's16
+    var samples: Array!{s16}
     samples.resize(frames)
     try recorder.addAudioFrames(samples.toSlice())
     try recorder.flush()
@@ -107,7 +113,7 @@ func checkSoftwareAacBoundary(rate: u32, frames: u64) fail
     var reader = try Reader.open(path)
     let sound  = unwrap reader.audioTrack(0)
     Swag.require(sound.sampleFrameCount() == frames)
-    var decoded: Array's16
+    var decoded: Array!{s16}
     try sound.decodePcm16(func|decoded = &decoded|(part: const [..] s16)->bool
     {
         decoded.add(part)
@@ -128,9 +134,13 @@ func checkSoftwareAacBoundary(rate: u32, frames: u64) fail
 {
     const Rates:   [2] u32 = [44_100, 48_000]
     const Lengths: [3] u64 = [1, 1_024, 1_025]
-    for rate in Rates do
-        for frames in Lengths do
+    for rate in Rates
+    {
+        for frames in Lengths
+        {
             expect checkSoftwareAacBoundary(rate, frames)
+        }
+    }
 }
 
 // Independently drained microphone and system tracks keep their own final lengths.
@@ -142,13 +152,19 @@ func checkSoftwareAacBoundary(rate: u32, frames: u64) fail
     var recorder = expect Mp4.SoftwareRecording.createWithAudioTracks(path, 16, 16, 90_000, Swag.makeSlice(&configs[0], configs.count))
     let image    = videoGrayImage(16, 16, 96)
     let pacer    = expect FramePacer.create(expect FrameRate.create(30, 1), 48_000, 90_000)
-    for frame in 3'u64 do
+    for frame in 3_u64
+    {
         expect recorder.addFrame(&image, expect pacer.slotAt(frame))
+    }
+
     var mic:    [2_501] s16
     var system: [1_297 * 2] s16
-    for frame in mic.count do
+    for frame in mic.count
+    {
         mic[frame] = cast(s16, frame % 101)
-    for frame in 1_297'u64
+    }
+
+    for frame in 1_297_u64
     {
         system[frame * 2]     = cast(s16, frame % 71)
         system[frame * 2 + 1] = cast(s16, frame % 53)
@@ -161,11 +177,11 @@ func checkSoftwareAacBoundary(rate: u32, frames: u64) fail
     Swag.require(reader.audioTrackCount() == 2)
     const Expected: [2] u64 = [2_501, 1_297]
     const Channels: [2] u64 = [1, 2]
-    for index in 2'u64
+    for index in 2_u64
     {
         let sound = unwrap reader.audioTrack(cast(u32, index))
         Swag.require(sound.sampleFrameCount() == Expected[index])
-        var decoded: Array's16
+        var decoded: Array!{s16}
         expect sound.decodePcm16(func|decoded = &decoded|(part: const [..] s16)->bool
         {
             decoded.add(part)
@@ -211,7 +227,7 @@ func checkSoftwareAacBoundary(rate: u32, frames: u64) fail
     expect resumed.addPacket(expect video.encode(&nv12, videoTime, 3_000))
     var audio = expect Aac.StreamEncoder.create(48_000, 1)
     var silence: [1_024] s16
-    var packet:  Array'u8
+    var packet:  Array!{u8}
     Swag.require(expect audio.push(Swag.makeSlice(&silence[0], silence.count), &packet) == 1_024)
     expect resumed.addAudioPacket(EncodedPacket{packet.toSlice(), 4_096, 4_096, 1_024, true})
     expect resumed.end()

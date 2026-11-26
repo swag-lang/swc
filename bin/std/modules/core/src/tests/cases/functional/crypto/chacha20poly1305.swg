@@ -1,12 +1,15 @@
 #global if #command == Swag.CompilerCommand.Test
 #global private
 
-func rangeBytes(count: u64, first: u8)->Array'u8
+func rangeBytes(count: u64, first: u8)->Array!{u8}
 {
     var result: #returntype
     result.resize(count)
-    for i in count do
+    for i in count
+    {
         result[i] = cast(u8, ((first + i) & 0xFF))
+    }
+
     return result
 }
 
@@ -61,12 +64,12 @@ func rangeBytes(count: u64, first: u8)->Array'u8
     let key       = rangeBytes(32, 0x11)
     let nonce     = rangeBytes(12, 0x22)
     let plaintext = rangeBytes(2 * 65536 + 193, 0x44)
-    var ciphertext: Array'u8
+    var ciphertext: Array!{u8}
     ciphertext.resize(plaintext.count)
     var tag: Crypto.Poly1305Tag
     expect Crypto.chacha20Poly1305Seal(key.toSlice(), nonce.toSlice(), plaintext.toSlice(), "parallel record", ciphertext.toSlice(), tag)
 
-    var sealed: Array'u8
+    var sealed: Array!{u8}
     sealed.add(ciphertext.toSlice())
     tag[0] ^= 1
     let rejected = expect Crypto.chacha20Poly1305Open(key.toSlice(), nonce.toSlice(), ciphertext.toSlice(), tag, "parallel record", ciphertext.toSlice())
@@ -114,10 +117,10 @@ func rangeBytes(count: u64, first: u8)->Array'u8
     let oneShot = expect Crypto.Poly1305.compute(key.toSlice(), message.toSlice())
 
     var streamed = expect Crypto.Poly1305.create(key.toSlice())
-    var offset   = 0'u64
+    var offset   = 0_u64
     while offset < message.count
     {
-        let chunk = Math.min(message.count - offset, 5'u64)
+        let chunk = Math.min(message.count - offset, 5_u64)
         streamed.update(message.toSlice()[offset until offset + chunk])
         offset += chunk
     }
@@ -337,7 +340,7 @@ func rangeBytes(count: u64, first: u8)->Array'u8
     let associatedData: [12] u8 = [0x50, 0x51, 0x52, 0x53, 0xC0, 0xC1, 0xC2, 0xC3, 0xC4, 0xC5, 0xC6, 0xC7]
     let nonce: [12] u8 = [0x07, 0x00, 0x00, 0x00, 0x40, 0x41, 0x42, 0x43, 0x44, 0x45, 0x46, 0x47]
 
-    var ciphertext: Array'u8
+    var ciphertext: Array!{u8}
     ciphertext.resize(plaintext.count)
     var tag: [Crypto.ChaCha20Poly1305TagSize] u8
     expect Crypto.chacha20Poly1305Seal(key.toSlice(), nonce, plaintext, associatedData, ciphertext.toSlice(), tag)
@@ -352,7 +355,7 @@ func rangeBytes(count: u64, first: u8)->Array'u8
         0x7B, 0x86, 0xAF, 0xBC, 0x53, 0xEF, 0x7E, 0xC2]
     Swag.require(Crypto.constantTimeEqual(ciphertext.toSlice()[0 until 16], expectedHead))
 
-    var opened: Array'u8
+    var opened: Array!{u8}
     opened.resize(plaintext.count)
     Swag.require(expect Crypto.chacha20Poly1305Open(key.toSlice(), nonce, ciphertext.toSlice(), tag, associatedData, opened.toSlice()))
     Swag.require(Crypto.constantTimeEqual(opened.toSlice(), plaintext))
@@ -367,13 +370,13 @@ func rangeBytes(count: u64, first: u8)->Array'u8
     let associatedData = rangeBytes(9, 0x33)
     let plaintext      = rangeBytes(70, 0x44)
 
-    var ciphertext: Array'u8
+    var ciphertext: Array!{u8}
     ciphertext.resize(plaintext.count)
     var tag: [Crypto.ChaCha20Poly1305TagSize] u8
     expect Crypto.chacha20Poly1305Seal(key.toSlice(), nonce.toSlice(), plaintext.toSlice(), associatedData.toSlice(), ciphertext.toSlice(), tag)
     Swag.require(not Crypto.constantTimeEqual(ciphertext.toSlice(), plaintext.toSlice()))
 
-    var opened: Array'u8
+    var opened: Array!{u8}
     opened.resize(plaintext.count)
     Swag.require(expect Crypto.chacha20Poly1305Open(key.toSlice(), nonce.toSlice(), ciphertext.toSlice(), tag, associatedData.toSlice(), opened.toSlice()))
     Swag.require(Crypto.constantTimeEqual(opened.toSlice(), plaintext.toSlice()))
@@ -385,8 +388,11 @@ func rangeBytes(count: u64, first: u8)->Array'u8
     Memory.set(opened.storage(), 0xA5, opened.count)
     tag[0] ^= 1
     Swag.require(not (expect Crypto.chacha20Poly1305Open(key.toSlice(), nonce.toSlice(), ciphertext.toSlice(), tag, associatedData.toSlice(), opened.toSlice())))
-    for value in opened.toSlice() do
+    for value in opened.toSlice()
+    {
         Swag.require(value == 0xA5)
+    }
+
     tag[0] ^= 1
 
     let otherAssociated = rangeBytes(9, 0x34)
@@ -400,7 +406,7 @@ func rangeBytes(count: u64, first: u8)->Array'u8
 
     // An empty payload is still authenticated, which is what a metadata-only
     // record relies on.
-    var emptyPayload: Array'u8
+    var emptyPayload: Array!{u8}
     var emptyTag:     [Crypto.ChaCha20Poly1305TagSize] u8
     expect Crypto.chacha20Poly1305Seal(key.toSlice(), nonce.toSlice(), "", associatedData.toSlice(), emptyPayload.toSlice(), emptyTag)
     Swag.require(expect Crypto.chacha20Poly1305Open(key.toSlice(), nonce.toSlice(), "", emptyTag, associatedData.toSlice(), emptyPayload.toSlice()))

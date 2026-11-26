@@ -17,8 +17,11 @@ func buildListModes(host: *Testing.HeadlessHost)
     with let plain = ListCtrl.createSimple(root, {24, 20, 250, 220})
     {
         .updateFlags(.HotTrack)
-        for name in ["Sketches", "Captures", "Notes.md", "Report.pdf"] do
+        for name in ["Sketches", "Captures", "Notes.md", "Report.pdf"]
+        {
             .createLine(name, theme.fileGlyph(name, Utf8.indexOf(name, ".") == Swag.U64.Max))
+        }
+
         let rule = .createLine("")
         rule.separator = true
         .createLine("Archive.zip", theme.fileGlyph("Archive.zip", false))

@@ -8,8 +8,11 @@ func sourcePattern(index: u64)->u8 => cast(u8, ((index * 7 + 3) & 0xFF))
 
 func sourceMatches(bytes: const [..] u8, start: u64)->bool
 {
-    for value, index in bytes where value != sourcePattern(start + index) do
+    for value, index in bytes where value != sourcePattern(start + index)
+    {
         return false
+    }
+
     return true
 }
 
@@ -19,10 +22,12 @@ func checkPeek(source: *ByteSource, count: u64) fail { discard try source.peek(c
 // Writes a fixture of `count` pattern bytes and returns its path.
 func writeSourceFixture(name: string, count: u64)->String
 {
-    var bytes: Array'u8
+    var bytes: Array!{u8}
     bytes.resize(count)
-    for index in count do
+    for index in count
+    {
         bytes[index] = sourcePattern(index)
+    }
 
     let fileName = CoreTests.makeFilesystemTestPath(name)
     discard expect File.writeAllBytes(fileName, bytes.toSlice())
@@ -97,9 +102,9 @@ func writeSourceFixture(name: string, count: u64)->String
 
     const Bytes: [8] u8 = [0x34, 0x12, 0xAA, 0xBB, 0xCC, 0xDD, 7, 9]
     var source = ByteSource.openMemory(Bytes)
-    Swag.require(expect source.readLittleEndian'u16() == 0x1234)
-    Swag.require(expect source.readBigEndian'u32() == 0xAABBCCDD)
-    let header = expect source.readNative'Header()
+    Swag.require(expect source.readLittleEndian!{u16}() == 0x1234)
+    Swag.require(expect source.readBigEndian!{u32}() == 0xAABBCCDD)
+    let header = expect source.readNative!{Header}()
     Swag.require(header.tag == 7 and header.size == 9)
     Swag.require(source.isAtEnd())
 }
@@ -111,7 +116,7 @@ func writeSourceFixture(name: string, count: u64)->String
     var source = ByteSource.openMemory(bytes)
 
     var errorOutcome: Swag.Error
-    discard catch source.readNative'String() as errorOutcome
+    discard catch source.readNative!{String}() as errorOutcome
     Swag.require(errorOutcome.value() is BadParameterError)
     Swag.require(source.position() == 0 and source.remaining() == bytes.count)
 }
@@ -122,10 +127,10 @@ func writeSourceFixture(name: string, count: u64)->String
 {
     const Bytes: [9] u8 = [0x03, 0x20, 0xFC, 0xE0, 0xFF, 0xFE, 0xEE, 0x90, 0x9C]
     var source = ByteSource.openMemory(Bytes)
-    Swag.require(expect source.readBigEndian's16() == 800)
-    Swag.require(expect source.readBigEndian's16() == -800)
-    Swag.require(expect source.readBigEndian's32() == -70000)
-    Swag.require(expect source.readBigEndian's8() == -100)
+    Swag.require(expect source.readBigEndian!{s16}() == 800)
+    Swag.require(expect source.readBigEndian!{s16}() == -800)
+    Swag.require(expect source.readBigEndian!{s32}() == -70000)
+    Swag.require(expect source.readBigEndian!{s8}() == -100)
     Swag.require(source.isAtEnd())
 }
 
@@ -165,7 +170,7 @@ func writeSourceFixture(name: string, count: u64)->String
 
     // Small reads walk across the first window boundary one hundred bytes at a time.
     var small: [100] u8
-    var at = 0'u64
+    var at = 0_u64
     while at + 100 <= ByteSource.WindowSize + 500
     {
         expect source.readExact(small)
@@ -176,7 +181,7 @@ func writeSourceFixture(name: string, count: u64)->String
     Swag.require(source.position() == at)
 
     // A read larger than the window bypasses it and lands where the position says.
-    var large: Array'u8
+    var large: Array!{u8}
     large.resize(ByteSource.WindowSize + 77)
     expect source.readExact(large.toSlice())
     Swag.require(sourceMatches(large.toSlice(), at))
@@ -293,7 +298,7 @@ func writeSourceFixture(name: string, count: u64)->String
     var source = expect ByteSource.openFile(fileName.toString())
     Swag.require(expect source.readLine(32) == "HEADER 1")
     Swag.require(expect source.readLine(32) == "FRAME")
-    Swag.require(expect source.readBigEndian'u32() == 0x01020304)
+    Swag.require(expect source.readBigEndian!{u32}() == 0x01020304)
     Swag.require(source.isAtEnd())
 }
 

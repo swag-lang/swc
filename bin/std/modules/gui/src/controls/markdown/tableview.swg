@@ -23,10 +23,10 @@ struct TableView
     using wnd: Wnd
 
     late owner:   *View
-    cells:        Array'TableCell
-    alignments:   Array'TableAlignment
-    rowHeights:   Array'f32
-    columnWidths: Array'f32
+    cells:        Array!{TableCell}
+    alignments:   Array!{TableAlignment}
+    rowHeights:   Array!{f32}
+    columnWidths: Array!{f32}
     tableWidth:   f32
     columnCount:  u32
     rowCount:     u32
@@ -34,19 +34,24 @@ struct TableView
     layoutHeight: f32
 }
 
-private const MinColumnWidth = 48'f32
-private const CellPadding    = 20'f32
+private const MinColumnWidth = 48_f32
+private const CellPadding    = 20_f32
 
-internal func parseTableCells(line: string)->Array'String
+internal func parseTableCells(line: string)->Array!{String}
 {
     var result: #returntype
     let trimmed = Latin1.trim(line)
-    var start   = 0'u64
+    var start   = 0_u64
     var end     = trimmed.count
-    if start < end and trimmed[start] == '|' do
+    if start < end and trimmed[start] == '|'
+    {
         start += 1
-    if end > start and trimmed[end - 1] == '|' do
+    }
+
+    if end > start and trimmed[end - 1] == '|'
+    {
         end -= 1
+    }
 
     var cell: String
     var index = start
@@ -79,15 +84,20 @@ impl TableView
 {
     mtd clearSearchHighlight()
     {
-        for &cell in .cells do
+        for &cell in .cells
+        {
             cell.view.clearSearchHighlight()
+        }
     }
 
     mtd searchMatchCount(text: string)->u64
     {
         var result: u64
-        for &cell in .cells do
+        for &cell in .cells
+        {
             result += cell.view.searchMatchCount(text)
+        }
+
         return result
     }
 
@@ -98,8 +108,11 @@ impl TableView
         for &cell in .cells
         {
             let count = cell.view.searchMatchCount(text)
-            if remaining < count do
+            if remaining < count
+            {
                 return cell.view.highlightText(text, remaining)
+            }
+
             remaining -= count
         }
 
@@ -108,8 +121,11 @@ impl TableView
 
     mtd searchMatchRect(result: *Math.Rectangle)->bool
     {
-        for &cell in .cells where cell.view.searchMatchRect(result) do
+        for &cell in .cells where cell.view.searchMatchRect(result)
+        {
             return true
+        }
+
         return false
     }
 
@@ -120,11 +136,17 @@ impl TableView
             let source = column < cells.count ? cells[column].toString() : ""
             let markup = renderInline(source)
             var content: String
-            if header do
+            if header
+            {
                 content += "<b>"
+            }
+
             content += markup
-            if header do
+            if header
+            {
                 content += "</b>"
+            }
+
             let view = InlineView.create(.owner, parent, content.toString(), .Paragraph)
             view.backgroundStyle = .Transparent
             switch .alignments[column]
@@ -140,27 +162,37 @@ impl TableView
 
     mtd columnOffset(column: u32)->f32
     {
-        var result = 0'f32
-        for one in column do
+        var result = 0_f32
+        for one in column
+        {
             result += .columnWidths[one]
+        }
+
         return result
     }
 
     mtd layout(width: f32)->f32
     {
-        if width <= 0 or not .columnCount do
+        if width <= 0 or not .columnCount
+        {
             return 0
-        if .layoutWidth == width do
+        }
+
+        if .layoutWidth == width
+        {
             return .layoutHeight
+        }
 
         // Columns take their natural content width; only when the table would overflow the
         // document column do the wide columns shrink, and columns at the floor keep it.
         .columnWidths.clear()
         .columnWidths.resize(.columnCount)
-        for &cell in .cells do
+        for &cell in .cells
+        {
             .columnWidths[cell.column] = Math.max(.columnWidths[cell.column], cell.view.naturalWidth() + CellPadding)
+        }
 
-        var total = 0'f32
+        var total = 0_f32
         for &column in .columnWidths
         {
             column[] = Math.max(column[], MinColumnWidth)
@@ -169,32 +201,42 @@ impl TableView
 
         if total > width
         {
-            var flexible = 0'f32
-            for column in .columnWidths where column > MinColumnWidth do
+            var flexible = 0_f32
+            for column in .columnWidths where column > MinColumnWidth
+            {
                 flexible += column - MinColumnWidth
+            }
+
             if flexible > 0
             {
                 let excess = Math.min(total - width, flexible)
-                for &column in .columnWidths where column[] > MinColumnWidth do
+                for &column in .columnWidths where column[] > MinColumnWidth
+                {
                     column[] -= (column[] - MinColumnWidth) / flexible * excess
+                }
             }
 
             total = 0
-            for column in .columnWidths do
+            for column in .columnWidths
+            {
                 total += column
+            }
         }
 
         .tableWidth = Math.min(total, width)
         .rowHeights.clear()
         for row in .rowCount
         {
-            var height = 38'f32
-            for &cell in .cells where cell.row == row do
+            var height = 38_f32
+            for &cell in .cells where cell.row == row
+            {
                 height = Math.max(height, cell.view.preferredHeight(Math.max(.columnWidths[cell.column] - CellPadding, 1)) + 12)
+            }
+
             .rowHeights.add(height)
         }
 
-        var y = 0'f32
+        var y = 0_f32
         for row in .rowCount
         {
             for &cell in .cells where cell.row == row
@@ -215,12 +257,14 @@ impl TableView
 
     func create(owner: *View, parent: *Wnd, source: string)->*TableView
     {
-        let result = Wnd.create'TableView(parent, "gui.markdown.table")
+        let result = Wnd.create!{TableView}(parent, "gui.markdown.table")
         result.owner = owner
         result.backgroundStyle = .View
         let lines = Tokenize.splitLines(source)
-        if lines.count < 2 do
+        if lines.count < 2
+        {
             return result
+        }
 
         let headers    = parseTableCells(lines[0])
         let separators = parseTableCells(lines[1])
@@ -231,10 +275,15 @@ impl TableView
             let left      = separator.count and separator[0] == ':'
             let right     = separator.count and separator[separator.count - 1] == ':'
             var alignment = TableAlignment.Left
-            if left and right do
+            if left and right
+            {
                 alignment = .Center
-            elif right do
+            }
+            else if right
+            {
                 alignment = .Right
+            }
+
             result.alignments.add(alignment)
         }
 
@@ -242,8 +291,11 @@ impl TableView
         result.rowCount = 1
         for index in 2 until lines.count
         {
-            if not (Latin1.trim(lines[index])).count do
+            if not (Latin1.trim(lines[index])).count
+            {
                 continue
+            }
+
             let row = parseTableCells(lines[index])
             result.addRow(result, row.toSlice(), result.rowCount, false)
             result.rowCount += 1
@@ -264,20 +316,26 @@ impl IWnd for TableView
         // No box and no column rules: the columns are separated by air, the head by a firmer rule
         // under it, and each row from the next by a hairline.
         let colors = .themeColors()
-        var y      = 0'f32
+        var y      = 0_f32
         for height, row in .rowHeights
         {
             y += height
-            if row == .rowHeights.count - 1 do
+            if row == .rowHeights.count - 1
+            {
                 break
+            }
+
             painter.fillRect(Math.Rectangle{0, y - 1, .tableWidth, 1}, row == 0 ? colors.strongLine : colors.line)
         }
     }
 
     mtd impl onThemeEvent(_: *ThemeEvent)
     {
-        for &cell in .cells do
+        for &cell in .cells
+        {
             cell.view.layoutWidth = 0
+        }
+
         .layoutWidth = 0
         .invalidate()
     }

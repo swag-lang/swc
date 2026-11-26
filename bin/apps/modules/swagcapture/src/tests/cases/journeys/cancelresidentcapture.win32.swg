@@ -25,8 +25,11 @@ using Core, Gui, Pixel
     defer app.sigFrame.clear()
     app.sigFrame += func|main, canceled = &canceled|(_)
     {
-        if canceled[] do
+        if canceled[]
+        {
             return
+        }
+
         for candidate in g_App.surfaces
         {
             if candidate.view() is CaptureRectWnd as overlay

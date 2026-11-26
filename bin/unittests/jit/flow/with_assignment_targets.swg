@@ -55,8 +55,10 @@ func jitWithAssignMakePoint(x, y: s32)->JitWithAssignPoint
 
 func jitWithAssignColorScore(c: JitWithAssignColor)->s32
 {
-    if c == .Red do
+    if c == .Red
+    {
         return 3
+    }
     return 7
 }
 
@@ -144,8 +146,10 @@ func jitWithAssignmentsAndScopes()->s32
     let b = Blue
     total += jitWithAssignColorScore(a)
     total += jitWithAssignColorScore(.Blue)
-    if b == Blue do
+    if b == Blue
+    {
         total += 1
+    }
 
     total += JitWithAssignNs.bias(2)
     total += JitWithAssignNs.bias(0)

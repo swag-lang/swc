@@ -45,9 +45,9 @@ func multiShiftChain(x: u32, s1: u32, s2: u32, s3: u32)->u32
 // ---------------------------------------------------------------------------
 func shiftMixWidths(cnt: u32)->u64
 {
-    var a:  u32 = 0x80'u32      // 128
-    var b:  u32 = 0x200'u32     // 512
-    var c:  u64 = 0x800'u64     // 2048
+    var a:  u32 = 0x80_u32      // 128
+    var b:  u32 = 0x200_u32     // 512
+    var c:  u64 = 0x800_u64     // 2048
     var ra: u32 = a >> cnt      // 128  >> 2 = 32;   cnt → CL
     var rb: u32 = b >> cnt      // 512  >> 2 = 128;  cnt → CL
     var rc: u64 = c >> cnt      // 2048 >> 2 = 512;  cnt → CL (64-bit encoding)
@@ -133,11 +133,11 @@ func shiftSignedWidths(v: s32, cnt: s32)->s32
 func shiftInLoop(val: u32, cnt: u32, iters: u32)->u32
 {
     var acc: u32 = val     // 32
-    var i:   u32 = 0'u32
+    var i:   u32 = 0_u32
     while i < iters
     {
         acc += acc >> cnt     // cnt → CL on each iteration; acc grows each time
-        i   += 1'u32
+        i   += 1_u32
     }
     return acc
     // cnt=2, iters=3:
@@ -156,13 +156,13 @@ func twoCountsInLoop(a: u32, lcnt: u32, rcnt: u32, iters: u32)->u32
 {
     var acc:   u32 = a     // 1
     var extra: u32 = a     // 1  (kept live alongside acc across the back-edge)
-    var i:     u32 = 0'u32
+    var i:     u32 = 0_u32
     while i < iters
     {
         var shifted: u32 = acc << lcnt     // lcnt → CL
         extra += acc >> rcnt     // rcnt → CL (different value)
         acc   = shifted
-        i     += 1'u32
+        i     += 1_u32
     }
     return acc + extra
     // a=1, lcnt=3, rcnt=1, iters=2:
@@ -173,37 +173,37 @@ func twoCountsInLoop(a: u32, lcnt: u32, rcnt: u32, iters: u32)->u32
 
 #test
 {
-    Swag.require(shiftCountFromArith(1'u32, 4'u32, 5'u32, 2'u32, 3'u32) == 45'u32)
+    Swag.require(shiftCountFromArith(1_u32, 4_u32, 5_u32, 2_u32, 3_u32) == 45_u32)
 }
 
 #test
 {
-    Swag.require(multiShiftChain(1'u32, 3'u32, 2'u32, 4'u32) == 42'u32)
+    Swag.require(multiShiftChain(1_u32, 3_u32, 2_u32, 4_u32) == 42_u32)
 }
 
 #test
 {
-    Swag.require(shiftMixWidths(2'u32) == 672'u64)
+    Swag.require(shiftMixWidths(2_u32) == 672_u64)
 }
 
 #test
 {
-    Swag.require(shiftLiveAcrossCall(1'u32, 3'u32, 10'u32) == 57'u32)
+    Swag.require(shiftLiveAcrossCall(1_u32, 3_u32, 10_u32) == 57_u32)
 }
 
 #test
 {
-    Swag.require(nestedShiftCount(3'u32, 2'u32) == 36'u32)
+    Swag.require(nestedShiftCount(3_u32, 2_u32) == 36_u32)
 }
 
 #test
 {
-    Swag.require(shiftInsideDivExpr(12'u32, 4'u32, 5'u32) == 40'u32)
+    Swag.require(shiftInsideDivExpr(12_u32, 4_u32, 5_u32) == 40_u32)
 }
 
 #test
 {
-    Swag.require(manyLiveShift(1'u32, 2'u32, 3'u32, 4'u32, 5'u32, 6'u32, 3'u32, 4'u32) == 29'u32)
+    Swag.require(manyLiveShift(1_u32, 2_u32, 3_u32, 4_u32, 5_u32, 6_u32, 3_u32, 4_u32) == 29_u32)
 }
 
 #test
@@ -213,10 +213,10 @@ func twoCountsInLoop(a: u32, lcnt: u32, rcnt: u32, iters: u32)->u32
 
 #test
 {
-    Swag.require(shiftInLoop(32'u32, 2'u32, 3'u32) == 62'u32)
+    Swag.require(shiftInLoop(32_u32, 2_u32, 3_u32) == 62_u32)
 }
 
 #test
 {
-    Swag.require(twoCountsInLoop(1'u32, 3'u32, 1'u32, 2'u32) == 69'u32)
+    Swag.require(twoCountsInLoop(1_u32, 3_u32, 1_u32, 2_u32) == 69_u32)
 }

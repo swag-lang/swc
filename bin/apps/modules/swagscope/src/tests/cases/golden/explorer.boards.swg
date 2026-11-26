@@ -6,7 +6,7 @@ using Core, Pixel, Gui
 // A picture that runs from `top` to `bottom`, standing for a thumbnail the renderer would make.
 func boardPicture(width, height: s32, top, bottom: u32)->Image
 {
-    var bytes: Array'u8
+    var bytes: Array!{u8}
     bytes.resize(cast(u64, width * height * 3))
 
     // The rows of an image run from the bottom up.
@@ -30,7 +30,7 @@ func boardPicture(width, height: s32, top, bottom: u32)->Image
 }
 
 // Adds an entry with a picture already rendered for it.
-func addPictured(host: *Testing.HeadlessHost, explorer: *Explorer, name: string, picture: Image, size: u64, duration = 0'u64)
+func addPictured(host: *Testing.HeadlessHost, explorer: *Explorer, name: string, picture: Image, size: u64, duration = 0_u64)
 {
     with var entry: ExplorerEntry
     {
@@ -86,8 +86,11 @@ func addPictured(host: *Testing.HeadlessHost, explorer: *Explorer, name: string,
         let explorer = unwrap window.explorer
         expect host.app.setLanguage(language)
         host.notify(.LanguageChanged)
-        for name in ["Documents", "A file with a descriptive name.txt", "Project notes.md", "Archive.zip"] do
+        for name in ["Documents", "A file with a descriptive name.txt", "Project notes.md", "Archive.zip"]
+        {
             explorer.entries.add({name: name, path: name, attempted: true, directory: name == "Documents"})
+        }
+
         showBoard(&host, window, "Documents", "Project reference documents")
         window.resize(ViewerWindow.MinWidth, 680)
         explorer.selected = 1
@@ -124,9 +127,12 @@ func addPictured(host: *Testing.HeadlessHost, explorer: *Explorer, name: string,
     var host: Testing.HeadlessHost
     let window   = boardWindow(&host, light, films: false, width: ViewerWindow.MinWidth, height: 680)
     let explorer = unwrap window.explorer
-    for name in ["01 - First track.flac", "02 - Second track.flac"] do
+    for name in ["01 - First track.flac", "02 - Second track.flac"]
+    {
         explorer.entries.add({name: name, path: name, attempted: true, duration: 120,
                               music: {title: "Discovery", artist: "Daft Punk", date: "2001", source: "tags"}})
+    }
+
     showBoard(&host, window, "Music", "Discovery")
     window.resize(ViewerWindow.MinWidth, 680)
     expect host.app.setLanguage("fr")
@@ -167,8 +173,10 @@ func addPictured(host: *Testing.HeadlessHost, explorer: *Explorer, name: string,
     explorer.entries.add({name: "Exports", path: "Exports", directory: true, children: 6, attempted: true})
     addPictured(&host, explorer, "dune-poster.png", boardPicture(160, 100, 0x9A5F2E, 0xE0A266), 412 * 1024)
     addPictured(&host, explorer, "lens-demo.mp4", boardPicture(192, 108, 0x24456E, 0x3D6C9E), 24 * 1024 * 1024, 161)
-    for name, size in ["annual-report.pdf", "explorer.swg", "voice-over.flac", "design.silence.md"] do
+    for name, size in ["annual-report.pdf", "explorer.swg", "voice-over.flac", "design.silence.md"]
+    {
         explorer.entries.add({name: name, path: name, size: 2048 * (size + 1), attempted: true})
+    }
 
     // What the listing reads of each file, as it would of the real ones.
     let at = explorer.entries.count
@@ -176,7 +184,7 @@ func addPictured(host: *Testing.HeadlessHost, explorer: *Explorer, name: string,
     with let code = &explorer.entries[at - 3]
     {
         .lines   = 214
-        .excerpt = "impl Explorer\n{\n    mtd layout()\n    {\n        let cells = .cells\n        for c in cells do\n            c.fit()\n"
+        .excerpt = "impl Explorer\n{\n    mtd layout()\n    {\n        let cells = .cells\n        for c in cells\n        {\n            c.fit()\n"
     }
 
     with let markdown = &explorer.entries[at - 1]
@@ -186,8 +194,11 @@ func addPictured(host: *Testing.HeadlessHost, explorer: *Explorer, name: string,
     }
 
     addPictured(&host, explorer, "forest.jpg", boardPicture(160, 120, 0x2F4A32, 0x7FA36A), 3 * 1024 * 1024)
-    for name, size in ["vault.bin", "Inter-Light.ttf", "sources.zip"] do
+    for name, size in ["vault.bin", "Inter-Light.ttf", "sources.zip"]
+    {
         explorer.entries.add({name: name, path: name, size: 1024 * 1024 * (size + 1), attempted: true})
+    }
+
     explorer.entries[2].width    = 800
     explorer.entries[2].height   = 500
     explorer.entries[8].width    = 4032
@@ -268,8 +279,8 @@ func addPictured(host: *Testing.HeadlessHost, explorer: *Explorer, name: string,
     explorer.selected = 0
     showBoard(&host, window, "Videos", "Films")
     window.applyLayout()
-    let grid = explorer.grid
-    let columns = grid.columns
+    let grid       = explorer.grid
+    let columns    = grid.columns
     let scrollSize = explorer.scroll.scrollSize
     explorer.showInformation()
     window.applyLayout()
@@ -359,10 +370,15 @@ func addPictured(host: *Testing.HeadlessHost, explorer: *Explorer, name: string,
     for track, index in tracks
     {
         let file = Format.toString("%{02} - %.flac", index + 1, track)
-        if index == 0 do
+        if index == 0
+        {
             addPictured(&host, explorer, file, boardPicture(120, 120, 0x24184A, 0xD8508A), 30 * 1024 * 1024, lengths[index])
-        else do
+        }
+        else
+        {
             explorer.entries.add({name: file, path: file, size: 30 * 1024 * 1024, duration: lengths[index], attempted: true})
+        }
+
         let last = explorer.entries.count - 1
         explorer.entries[last].music = {title: "Discovery", artist: "Daft Punk", date: "2001-03-12"}
     }
@@ -454,8 +470,11 @@ func addPictured(host: *Testing.HeadlessHost, explorer: *Explorer, name: string,
     host.app.sigFrame += func|host = &host, rendered = &rendered, explorer|(_)
     {
         let sheet = host.capturedOptionSheet()
-        if not sheet or rendered[] == 3 do
+        if not sheet or rendered[] == 3
+        {
             return
+        }
+
         host.finishAnimations()
 
         if rendered[] == 0

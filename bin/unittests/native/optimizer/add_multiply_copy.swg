@@ -18,7 +18,10 @@ func preserve(a, b, c: u64)->u64
 func branch(a, b, c: u64)->u64
 {
     let value = (a + b) * c
-    if value == 0 do return a
+    if value == 0
+    {
+        return a
+    }
     return value
 }
 #[Swag.NoInline, Swag.Safety(.Overflow, false)]
@@ -27,7 +30,7 @@ func pressure(a, b, c, d, e, f: u64)->u64 => (a + b) * c + (d + e) * f
 #[Swag.Safety(.Overflow, false)]
 #test
 {
-    let values = [0'u64, 1, 7, 0xFFFFFFFF, 0x100000000, 0x8000000000000000, 0xFFFFFFFFFFFFFFFF]
+    let values = [0_u64, 1, 7, 0xFFFFFFFF, 0x100000000, 0x8000000000000000, 0xFFFFFFFFFFFFFFFF]
     for a in values
     {
         for b in values

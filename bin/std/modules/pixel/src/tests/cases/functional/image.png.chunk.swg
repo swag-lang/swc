@@ -6,7 +6,7 @@ using Swag, Core
 #test
 {
     var failed = false
-    catch Png.validateChunkLength(0x80000000'u64)
+    catch Png.validateChunkLength(0x80000000_u64)
     {
         failed = true
         Swag.require(Errors.message(Swag.err) == "PNG chunk exceeds the maximum supported size")

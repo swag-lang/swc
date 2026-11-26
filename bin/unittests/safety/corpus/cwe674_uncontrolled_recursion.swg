@@ -33,8 +33,10 @@ using Corpus
 // A bounded recursion is ordinary code and must stay silent.
 func sumDown(depth: s32)->s32
 {
-    if depth <= 0 do
+    if depth <= 0
+    {
         return 0
+    }
     return depth + sumDown(depth - 1)
 }
 

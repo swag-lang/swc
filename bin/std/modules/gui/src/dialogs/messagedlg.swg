@@ -67,13 +67,17 @@ public impl MessageDlg
     func create(from: *Surface, message: string, options: MessageDlgOptions = {})->*MessageDlg
     {
         Swag.assert(from != null)
-        let dlg = Wnd.create'MessageDlg()
+        let dlg = Wnd.create!{MessageDlg}()
 
         discard dlg.createSurface(from, 0, 0, cast(s32, MinMessageWidth), 300)
-        if options.markupTitle do
+        if options.markupTitle
+        {
             dlg.setTitleMarkup(options.title, options.failure)
-        else do
+        }
+        else
+        {
             dlg.setTitle(options.title, options.failure)
+        }
 
         if not options.failure
         {
@@ -100,16 +104,20 @@ public impl MessageDlg
             }
         }
 
-        let row = Wnd.create'Wnd(body)
+        let row = Wnd.create!{Wnd}(body)
         row.dockStyle = .Center
 
         with dlg.label = Label.create(row, null, {})
         {
             .dockStyle = .Center
-            if options.markupMessage do
+            if options.markupMessage
+            {
                 .setMarkup(message)
-            else do
+            }
+            else
+            {
                 .setText(message)
+            }
 
             // Ellipsis backs the wrap up: a run that wrapping cannot break — a path, a URL —
             // is cut at the box's maximum width instead of forcing the box as wide as itself.
@@ -117,8 +125,11 @@ public impl MessageDlg
             .setTextAlignment(options.textHorizontalAlignment, options.textVerticalAlignment)
         }
 
-        if options.onCreated do
+        if options.onCreated
+        {
             options.onCreated(dlg)
+        }
+
         dlg.sendResizeEvent()
         return dlg
     }
@@ -132,7 +143,7 @@ public impl MessageDlg
     }
 
     // Widest a message is allowed to run before it wraps.
-    private const MaxMessageWidth = 512.0'f32
+    private const MaxMessageWidth = 512.0_f32
 
     // Narrowest a message box is allowed to be, whatever it holds.
     //
@@ -140,10 +151,10 @@ public impl MessageDlg
     // actions: two buttons at the theme width then ran edge to edge under one short line, and the
     // box read as a pair of buttons with a title. Every box of the family opens at least this
     // wide, so a question and a prompt are one object on screen.
-    internal const MinMessageWidth = 440.0'f32
+    internal const MinMessageWidth = 440.0_f32
 
     // Tallest a message viewport grows; additional text remains available by scrolling.
-    private const MaxMessageHeight = 512.0'f32
+    private const MaxMessageHeight = 512.0_f32
 
     // Gives the surface the width its message wants and the height that width then calls for.
     internal mtd adaptSizeToMessage(maxSurfaceHeight = Swag.F32.Inf)
@@ -160,15 +171,23 @@ public impl MessageDlg
         // and at the density its glyphs are really drawn at, so the measurement is the layout
         // the paint will do. Ellipsis is what keeps it bounded: a run that wrapping cannot break
         // — a path, a URL — is cut at the maximum instead of widening the box to its own length.
-        var w = 0'f32
-        for btn in .buttons do
+        var w = 0_f32
+        for btn in .buttons
+        {
             w += btn.position.width
-        if .buttons.count > 1 do
+        }
+
+        if .buttons.count > 1
+        {
             w += cast(f32, ((.buttons.count - 1) * metrics.dialog_BtnPadding))
+        }
 
         w = Math.max(w, .label.itf.measureContent({MaxMessageWidth, 0}).x)
-        if .extension do
+        if .extension
+        {
             w = Math.max(w, .extension.position.width)
+        }
+
         w = Math.max(w + chrome, MinMessageWidth)
 
         // The width is committed before the height is measured, and the height then answers for
@@ -206,13 +225,13 @@ public impl MessageDlg
         {
             if not .messageScroll
             {
-                with let scroll = Wnd.create'ScrollWnd(unwrap .label.parent)
+                with let scroll = Wnd.create!{ScrollWnd}(unwrap .label.parent)
                 {
                     .dockStyle   = .Center
                     .padding     = 0
                     .focusPolicy = .Tab
                     .updateFlags(.DisableHorizontal | .TransparentBars)
-                    .createView'Wnd()
+                    .createView!{Wnd}()
                 }
 
                 .label.setParent(scroll.view)
@@ -221,8 +240,11 @@ public impl MessageDlg
                 scroll.hookOnEvent = func(wnd, evt)
                 {
                     let key = catch cast(*KeyEvent?, evt) orelse null
-                    if not key or key.kind != .Pressed or key.modifiers != .None do
+                    if not key or key.kind != .Pressed or key.modifiers != .None
+                    {
                         return false
+                    }
+
                     let scroll = assume cast (*ScrollWnd, wnd)
                     var y      = scroll.scrollPosition().y
                     switch key.key
@@ -272,10 +294,15 @@ public impl MessageDlg
         // Every box names itself, and a box left untitled read as one the application had
         // forgotten to finish.
         var opt = options
-        if not opt.title.count do
+        if not opt.title.count
+        {
             opt.title = strings().dlg_InfoTitle
-        if opt.mark == .None do
+        }
+
+        if opt.mark == .None
+        {
             opt.mark = .Information
+        }
 
         let dlg = create(from, message, opt)
         dlg.surface!.cancelButton = dlg.addButton(strings().dlg_Ok, Dialog.BtnOk, true)
@@ -289,10 +316,15 @@ public impl MessageDlg
     func okCancel(from: *Surface, message: string, defaultId = Dialog.BtnCancel, options: MessageDlgOptions = {})->WndId
     {
         var opt = options
-        if not opt.title.count do
+        if not opt.title.count
+        {
             opt.title = strings().dlg_ConfirmTitle
-        if opt.mark == .None do
+        }
+
+        if opt.mark == .None
+        {
             opt.mark = .Question
+        }
 
         with let dlg = create(from, message, opt)
         {
@@ -310,10 +342,15 @@ public impl MessageDlg
     func yesNo(from: *Surface, message: string, defaultId = Dialog.BtnNo, options: MessageDlgOptions = {})->WndId
     {
         var opt = options
-        if not opt.title.count do
+        if not opt.title.count
+        {
             opt.title = strings().dlg_ConfirmTitle
-        if opt.mark == .None do
+        }
+
+        if opt.mark == .None
+        {
             opt.mark = .Question
+        }
 
         with let dlg = create(from, message, opt)
         {
@@ -331,10 +368,15 @@ public impl MessageDlg
     func yesNoCancel(from: *Surface, message: string, defaultId = Dialog.BtnCancel, options: MessageDlgOptions = {})->WndId
     {
         var opt = options
-        if not opt.title.count do
+        if not opt.title.count
+        {
             opt.title = strings().dlg_ConfirmTitle
-        if opt.mark == .None do
+        }
+
+        if opt.mark == .None
+        {
             opt.mark = .Question
+        }
 
         with let dlg = create(from, message, opt)
         {
@@ -359,20 +401,32 @@ public impl MessageDlg
         func sentence(text: string, isMarkup: bool)->String => isMarkup ? String.from(text) : RichString.escape(text)
 
         var txt = sentence(message, options.markupMessage)
-        while not txt.isEmpty() and txt.back() == '\n' do
+        while not txt.isEmpty() and txt.back() == '\n'
+        {
             txt.removeBack()
+        }
+
         txt += "\n\n"
-        if question != null do
+        if question != null
+        {
             txt += sentence(question, options.markupMessage)
-        else do
+        }
+        else
+        {
             txt += Format.toString("<b>%</b>", RichString.escape(strings().dlg_ConfirmText))
+        }
 
         var opt = options
         opt.markupMessage = true
-        if not opt.title.count do
+        if not opt.title.count
+        {
             opt.title = strings().dlg_ConfirmTitle
-        if opt.mark == .None do
+        }
+
+        if opt.mark == .None
+        {
             opt.mark = .Warning
+        }
 
         return yesNo(from, txt.toString(), defaultId, opt)
     }
@@ -387,14 +441,18 @@ public impl MessageDlg
     {
         var opt = options
         opt.failure = true
-        if not opt.title.count do
+        if not opt.title.count
+        {
             opt.title = strings().dlg_ErrorTitle
+        }
 
         var detail = String.from(opt.detail)
         if detail.isEmpty()
         {
-            if err is Swag.SystemError as sysErr do
+            if err is Swag.SystemError as sysErr
+            {
                 detail = String.from(sysErr.message)
+            }
         }
 
         opt.detail = detail.toString()

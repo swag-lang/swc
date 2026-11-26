@@ -58,29 +58,39 @@ func reorderShortBlocks(lines: *Granule576, bands: const [..] u8, firstBand, fir
     var scratch: Granule576
     var source  = firstLine
     var band    = cast(u64, firstBand)
-    var written = 0'u64
+    var written = 0_u64
 
     while band < bands.count
     {
         let width = cast(u32, bands[band])
-        if not width do
+        if not width
+        {
             break
+        }
+
         band += 3
 
-        if source + width * 3 > 576 do
+        if source + width * 3 > 576
+        {
             break
+        }
+
         for index in width
         {
-            for window in 3'u32 do
+            for window in 3_u32
+            {
                 scratch[written + cast(u64, (index * 3 + window))] = lines[][source + window * width + index]
+            }
         }
 
         written += cast(u64, width) * 3
         source  += width * 3
     }
 
-    for index in written do
+    for index in written
+    {
         lines[][cast(u64, firstLine) + index] = scratch[index]
+    }
 }
 
 // Undoes the aliasing the encoder's polyphase analysis left between neighbouring subbands.
@@ -95,7 +105,7 @@ func reduceAlias(lines: *Granule576, subbandCount: u32)
     for subband in 1 until subbandCount
     {
         let boundary = cast(u64, subband) * 18
-        for group in 2'u64
+        for index in 8_u64
         {
             let i     = group * 4
             let below = &lines[][boundary - i - 4]
@@ -114,25 +124,33 @@ func reduceAlias(lines: *Granule576, subbandCount: u32)
 // and a DCT-IV reduces to a DCT-II with half that angle.
 private func(N: u64) buildCosineReciprocals(divisor: f64)->[N] f32
 {
-    var factors: #returntype
-    for i in N
+    let base = cast(u64, subband) * 18
+    var input: [18] f32
+    for index in 18_u64
     {
-        let angle = Math.ConstF64.Pi * (cast(f64, i) + 0.5) / divisor
-        factors[i] = cast(f32, (0.5 / Math.cos(angle)))
+        input[index] = lines[][base + index]
     }
 
-    return factors
-}
-
-private func buildDct9Matrix()->[9, 4] f32
-{
-    var matrix: #returntype
-    for k in 9'u64
+    var raw: [36] f32
+    if blockType == 2
     {
-        for i in 4'u64
+        for index in 36_u64
         {
-            let angle = Math.ConstF64.Pi * (cast(f64, i) + 0.5) * cast(f64, k) / 9.0
-            matrix[k, i] = cast(f32, Math.cos(angle))
+            raw[index] = 0
+        }
+
+        for window in 3_u64
+        {
+            for p in 12_u64
+            {
+                var sum = 0_f32
+                for m in 6_u64
+                {
+                    sum += input[window + 3 * m] * Imdct6[p, m]
+                }
+
+                raw[6 * window + p + 6] += sum * BlockWindow[2, p]
+            }
         }
     }
 
@@ -325,85 +343,21 @@ private func(N: u64, T) dct(input: [*] T, output: [*] T)
     }
     else
     {
-        const Half    = N / 2
-        const Factors = #run buildCosineReciprocals'Half(cast(f64, N))
-        for i in Half
+        for p in 36_u64
         {
-            let first = input[i]
-            let last  = input[N - 1 - i]
-            output[i]        = first + last
-            output[Half + i] = (first - last) * Factors[i]
-        }
+            var sum = 0_f32
+            for m in 18_u64
+            {
+                sum += input[m] * Imdct18[p, m]
+            }
 
-        dct'(Half, T)(output, input)
-        dct'(Half, T)(output + Half, input + Half)
-
-        mergeDctHalves'(N, T)(input, output)
-    }
-}
-
-// The inverse MDCT is a DCT-IV shifted by N/2 bins. The cosine sum identity gives each
-// DCT-IV bin by adding adjacent DCT-II bins of the scaled input, with bin N equal to zero.
-#[Swag.Inline]
-private func(N: u64, T) scaledCosineTransform(input: const [*] T, stride: u64, bins: [*] T)
-{
-    const Factors = #run buildCosineReciprocals'N(cast(f64, 2 * N))
-    #static if N == 18
-    {
-        // Apply the input scaling while forming the first DCT-II butterfly.
-        const Half = N / 2
-        const Pairs = #run buildCosineReciprocals'Half(cast(f64, N))
-        var work: [N] T
-        for i in Half
-        {
-            let first = input[i * stride] * Factors[i]
-            let j     = N - 1 - i
-            let last  = input[j * stride] * Factors[j]
-            bins[i]        = first + last
-            bins[Half + i] = (first - last) * Pairs[i]
-        }
-
-        dct'(Half, T)(bins, &work[0])
-        dct'(Half, T)(bins + Half, &work[Half])
-        mergeDctHalves'(N, T)(&work[0], bins)
-    }
-    else
-    {
-        var scaled: [N] T
-        for i in N do
-            scaled[i] = input[i * stride] * Factors[i]
-        dct'(N, T)(&scaled[0], bins)
-    }
-}
-
-// A short block combines three overlapping windows.
-private func(T) transformShort(input: const [*] T, raw: [*] T)
-{
-    for window in 3'u64
-    {
-        var bins: [7] T // Last bin is the zero sentinel.
-        scaledCosineTransform'(6, T)(input + window, 3, &bins[0])
-
-        let start = 6 * window + 6
-        for i in 3'u64
-        {
-            let first = bins[i + 3] + bins[i + 4]
-            let last  = -(bins[2 - i] + bins[3 - i])
-            raw[start + i]      += first * BlockWindow[2, i]
-            raw[start + 5 - i]  += -first * BlockWindow[2, 5 - i]
-            raw[start + 6 + i]  += last * BlockWindow[2, 6 + i]
-            raw[start + 11 - i] += last * BlockWindow[2, 11 - i]
+            raw[p] = sum * BlockWindow[blockType, p]
         }
     }
 }
 
-// Produce the current block and its saved overlap directly from the long transform's
-// symmetric bins. The short transform accumulates its three windows before adding overlap.
-private func(T) transformOverlap(input: [*] T, overlap: [*] T, blockType: u32)
-{
-    // Overlap stores a row of 32 subbands for each time slot.
-    const Stride = 32 * #sizeof(f32) / #sizeof(T)
-    if blockType == 2
+    // The first half leaves now, added to what the previous granule kept; the second half waits.
+    for index in 18_u64
     {
         var raw: [36] T
         transformShort'T(input, &raw[0])
@@ -551,11 +505,11 @@ func inverseTransformBands(lines: *Granule576, overlap: *SubbandOverlap, start, 
 // back in phase after the inverse transform.
 func invertFrequencies(lines: *Granule576, end: u32)
 {
-    var subband = 1'u64
-    while subband < end
+    var subband = 1_u64
+    while subband < 32
     {
         let base  = subband * 18
-        var index = 1'u64
+        var index = 1_u64
         while index < 18
         {
             lines[][base + index] = -lines[][base + index]
@@ -855,7 +809,9 @@ private func polyphaseHalves(lines: const *Granule576, start: u64, halves: [*] M
 // the previous group by two slots, so the widest read ends at the last sample.
 func synthesizeGranule(state: *ChannelState, lines: const *Granule576, destination: [*] f32)
 {
-    for group in 5'u64
+    var gathered: [512] f32
+
+    for block in 18_u64
     {
         let first = group * 4
         let start = Math.min(first, 14)
@@ -883,12 +839,17 @@ func synthesizeGranule(state: *ChannelState, lines: const *Granule576, destinati
             pcm[96] = starts[0]
             synthesizeBlockFour(state, at, pcm)
         }
-        else
+
+        for i in 32_u64
         {
-            pcm[0]  = starts[1]
-            pcm[32] = starts[0]
-            synthesizeBlock(state, (at + 1) & FilterMask, destination + first * 32)
-            synthesizeBlock(state, at, destination + (first + 1) * 32)
+            var sum = 0_f32
+            for j in 16_u64
+            {
+                let slot = j * 32 + i
+                sum += gathered[slot] * SynthesisWindow[slot]
+            }
+
+            destination[(block * 32 + i) * stride] = sum
         }
     }
 }

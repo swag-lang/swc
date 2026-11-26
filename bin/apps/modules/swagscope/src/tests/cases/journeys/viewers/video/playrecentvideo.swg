@@ -37,8 +37,11 @@ using Core, Gui, Pixel, Viewers
 
         let played = func|window|()->bool
         {
-            if window.currentView == null or window.activeChoiceIndex >= window.instances.count do
+            if window.currentView == null or window.activeChoiceIndex >= window.instances.count
+            {
                 return false
+            }
+
             let instance = &window.instances[window.activeChoiceIndex]
             Swag.require(instance.failureReason.isEmpty())
             Swag.require(window.choices[window.activeChoiceIndex].key == "video")

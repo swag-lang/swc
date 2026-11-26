@@ -26,8 +26,11 @@ using Swag, Core
         var draw: LayerDrawInfo
         draw.dstRect = transformed ? Math.Rectangle{20, 20, 64, 32} : Math.Rectangle{40, 60, 128, 96}
         draw.shadow  = {enabled: true, radius: 4, offsetX: 3, offsetY: 5}
-        if transformed do
+        if transformed
+        {
             painter.scaleTransform(2, 3)
+        }
+
         layer.draw(draw)
         painter.unbindRenderTarget()
         painter.end()
@@ -62,10 +65,16 @@ using Swag, Core
 
     var sawCopy:    bool
     var sawRelease: bool
-    for cmd in painter.commandBuffer where cmd.op is .SetBlendingMode and cmd.blendingMode.mode == .Copy do
+    for cmd in painter.commandBuffer where cmd.op is .SetBlendingMode and cmd.blendingMode.mode == .Copy
+    {
         sawCopy = true
-    for cmd in painter.commandBuffer where cmd.op is .ReleaseRenderTarget do
+    }
+
+    for cmd in painter.commandBuffer where cmd.op is .ReleaseRenderTarget
+    {
         sawRelease = true
+    }
+
     Swag.require(sawCopy and sawRelease and layer.contentTarget == null)
 }
 
@@ -227,12 +236,16 @@ using Swag, Core
     var sawReleaseAfterUnbind: bool
     for command in painter.commandBuffer
     {
-        if command.op is .UnbindRenderTarget do
+        if command.op is .UnbindRenderTarget
+        {
             sawUnbind = true
-        elif sawUnbind and
-             command.op is .ReleaseRenderTarget and
-             command.renderTgt.tgt == releasedTarget do
+        }
+        else if sawUnbind and
+                command.op is .ReleaseRenderTarget and
+                command.renderTgt.tgt == releasedTarget
+        {
             sawReleaseAfterUnbind = true
+        }
     }
 
     Swag.require(sawReleaseAfterUnbind)

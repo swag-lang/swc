@@ -72,10 +72,10 @@ public struct RegExp
         reverseDfa:         Regex.Dfa             // The automaton that finds where it starts.
         vm:                 Regex.PikeVm          // The engine that reports capture groups.
         backtracker:        Regex.Backtracker     // The engine that runs backreferences.
-        slots:              Array'u64             // Capture slots of the last match, when the pattern has groups.
+        slots:              Array!{u64}           // Capture slots of the last match, when the pattern has groups.
         matchStart:         u64                   // Span of the last match. A pattern without capture
         matchEnd:           u64                   // groups needs nothing else, and pays for nothing else.
-        captureNames:       Array'String          // Name of each capture group, empty when it has none.
+        captureNames:       Array!{String}        // Name of each capture group, empty when it has none.
         subject:            string = ""           // Subject of the last match; the captures point into it.
         matched:            bool                  // Whether the last match succeeded.
         automataAnswered:   bool                  // Whether the automata settled the last search on their own.
@@ -116,7 +116,7 @@ public impl RegExp
 
         // A hit that costs one anchored attempt is only worth it while hits are rare; past
         // that, reading forwards once and backwards once over the whole subject is cheaper.
-        const SelectiveScanRate = 50'u32
+        const SelectiveScanRate = 50_u32
         .anchorOnCandidates = .prefilter.isEnabled() and
                               not .program.anchoredStart and
                               .prefilter.candidatesPerThousand() <= SelectiveScanRate
@@ -176,8 +176,11 @@ public impl RegExp
         }
 
         let subject = str orelse ""
-        if not .search(subject, 0, true, false) do
+        if not .search(subject, 0, true, false)
+        {
             return null
+        }
+
         return .matchedText()
     }
 
@@ -193,8 +196,11 @@ public impl RegExp
         }
 
         let subject = str orelse ""
-        if not .search(subject, 0, false, false) do
+        if not .search(subject, 0, false, false)
+        {
             return null
+        }
+
         return .matchedText()
     }
 
@@ -211,18 +217,21 @@ public impl RegExp
     // empty occurrence is reported, and the next search then starts one scalar value further,
     // so a pattern that matches the empty string yields one occurrence per position rather
     // than looping. The returned strings point into `str`.
-    mtd grepAll(str: string?)->Array'(string)
+    mtd grepAll(str: string?)->Array!{string}
     {
         var result: #returntype
 
         let subject = str orelse ""
-        for &span in .findAll(str) do
+        for &span in .findAll(str)
+        {
             result.add(subject[span.start until span.end])
+        }
+
         return result
     }
 
     // Compiles the pattern, then returns every occurrence of it in the subject.
-    func grepAll(expr: string, str: string?)->Array'(string) fail
+    func grepAll(expr: string, str: string?)->Array!{string} fail
     {
         var expression = try create(expr)
         return expression.grepAll(str)
@@ -243,8 +252,10 @@ public impl RegExp
             return result
         }
 
-        if not .search(subject, start, false, false) do
+        if not .search(subject, start, false, false)
+        {
             return result
+        }
 
         result.found = true
         result.span  = .matchedSpan()
@@ -254,7 +265,7 @@ public impl RegExp
     // Returns where every occurrence of the pattern is in the subject, in order.
     //
     // The rule for empty occurrences is the one [[Core.Parser.RegExp.grepAll]] describes.
-    mtd findAll(str: string?)->Array'Span
+    mtd findAll(str: string?)->Array!{Span}
     {
         var result: #returntype
 
@@ -264,8 +275,11 @@ public impl RegExp
         while at <= subject.count
         {
             let step = .nextMatch(subject, at)
-            if not step.found do
+            if not step.found
+            {
                 break
+            }
+
             result.add(step.span)
             at = step.next
         }
@@ -284,8 +298,11 @@ public impl RegExp
     mtd getCapture(rank: u32)->string
     {
         let span = .captureSpan(rank)
-        if not span.found do
+        if not span.found
+        {
             return ""
+        }
+
         return .subject[span.span.start until span.span.end]
     }
 
@@ -294,8 +311,11 @@ public impl RegExp
     // The result is empty when there is no such group or it did not take part in the match.
     mtd getCapture(name: string)->string
     {
-        for captureName, rank in .captureNames where captureName.toString() == name do
+        for captureName, rank in .captureNames where captureName.toString() == name
+        {
             return .getCapture(cast(u32, rank))
+        }
+
         return ""
     }
 
@@ -303,8 +323,10 @@ public impl RegExp
     mtd captureSpan(rank: u32)->{ found: bool, span: Span }
     {
         var result: #returntype
-        if not .matched do
+        if not .matched
+        {
             return result
+        }
 
         // The whole match is always known, whether or not the pattern has capture groups.
         if rank == 0
@@ -316,13 +338,17 @@ public impl RegExp
         }
 
         let opening = 2 * cast(u64, rank)
-        if opening + 1 >= .slots.count do
+        if opening + 1 >= .slots.count
+        {
             return result
+        }
 
         let start = .slots[opening]
         let end   = .slots[opening + 1]
-        if start == Regex.NoSlot or end == Regex.NoSlot or end < start do
+        if start == Regex.NoSlot or end == Regex.NoSlot or end < start
+        {
             return result
+        }
 
         result.found = true
         result.span  = {start, end}
@@ -332,11 +358,14 @@ public impl RegExp
     // Returns what every capture group that took part in the last match matched, in order.
     //
     // A group that did not take part is left out, so the result is not indexed by group rank.
-    mtd captures()->Array'(string)
+    mtd captures()->Array!{string}
     {
         var result: #returntype
-        for rank in 1'u32 to .program.captureCount where .captureSpan(rank).found do
+        for rank in 1_u32 to .program.captureCount where .captureSpan(rank).found
+        {
             result.add(.getCapture(rank))
+        }
+
         return result
     }
 
@@ -357,16 +386,18 @@ public impl RegExp
         var result: #returntype
 
         let subject = str orelse ""
-        var at      = 0'u64
-        var copied  = 0'u64
+        var at      = 0_u64
+        var copied  = 0_u64
 
         // The replacement is expanded as each occurrence is found, because the group
         // references in it read the capture groups of that occurrence.
         while at <= subject.count
         {
             let step = .nextMatch(subject, at)
-            if not step.found do
+            if not step.found
+            {
                 break
+            }
 
             result.append(subject[copied until step.span.start])
             .appendReplacement(&result, replacement)
@@ -383,18 +414,21 @@ public impl RegExp
     // An occurrence of the pattern is the separator, so a subject with two occurrences yields
     // three parts, empty ones included. An occurrence that matches nothing separates nothing:
     // `a*` splits `baaac` into `b` and `c`. The returned strings point into `str`.
-    mtd split(str: string?)->Array'(string)
+    mtd split(str: string?)->Array!{string}
     {
         var result: #returntype
 
         let subject = str orelse ""
-        var at      = 0'u64
+        var at      = 0_u64
 
         for &span in .findAll(str)
         {
             // An empty separator would only cut the subject into its scalar values.
-            if span.end == span.start do
+            if span.end == span.start
+            {
                 continue
+            }
+
             result.add(subject[at until span.start])
             at = span.end
         }
@@ -423,20 +457,26 @@ private impl RegExp
     mtd prepareInnerLiteral(ast: *Regex.Ast) fail
     {
         .useInner = false
-        if .prefilter.complete or .program.anchoredStart do
+        if .prefilter.complete or .program.anchoredStart
+        {
             return
+        }
 
         let inner = ast.extractInnerLiteral()
-        if not inner.found do
+        if not inner.found
+        {
             return
+        }
 
         let scan = Regex.Prefilter.fromLiteral(inner.bytes.toSlice())
 
         // A hit on the inner literal costs a walk backwards and a second walk forwards, where
         // a hit on a starting byte costs one automaton step; the two are compared with that
         // difference in them.
-        if scan.estimatedCost(Regex.InnerCandidateCost) >= .prefilter.estimatedCost(Regex.CandidateCost) do
+        if scan.estimatedCost(Regex.InnerCandidateCost) >= .prefilter.estimatedCost(Regex.CandidateCost)
+        {
             return
+        }
 
         .innerScan   = scan
         .innerPrefix = try Regex.Program.compile(ast, true, inner.prefixRoot)
@@ -454,8 +494,10 @@ private impl RegExp
     {
         .clearMatchResult(subject)
 
-        if not .compiled do
+        if not .compiled
+        {
             return false
+        }
 
         let hay   = cast(const [..] u8, subject)
         let limit = subject.count
@@ -464,8 +506,11 @@ private impl RegExp
         // that no subject can make explode.
         if .program.hasBackref
         {
-            if not .backtracker.run(&.program, hay, start, limit, anchored, wholeSubject) do
+            if not .backtracker.run(&.program, hay, start, limit, anchored, wholeSubject)
+            {
                 return false
+            }
+
             .keepSlots(.backtracker.slots.buffer)
             return true
         }
@@ -477,12 +522,14 @@ private impl RegExp
         // the budget given here.
         if anchored or wholeSubject
         {
-            const AnchoredBudgetBase = 4096'u64
-            const AnchoredBudgetRate = 256'u64
+            const AnchoredBudgetBase = 4096_u64
+            const AnchoredBudgetRate = 256_u64
 
             var budget = AnchoredBudgetBase + AnchoredBudgetRate * limit
-            if budget > Regex.BacktrackBudget do
+            if budget > Regex.BacktrackBudget
+            {
                 budget = Regex.BacktrackBudget
+            }
 
             if .backtracker.run(&.program, hay, start, limit, true, wholeSubject, budget)
             {
@@ -490,20 +537,29 @@ private impl RegExp
                 return true
             }
 
-            if not .backtracker.exhausted do
+            if not .backtracker.exhausted
+            {
                 return false
+            }
         }
 
         if not wholeSubject
         {
-            if .searchWithAutomata(hay, start, limit, anchored) do
+            if .searchWithAutomata(hay, start, limit, anchored)
+            {
                 return true
-            if .automataAnswered do
+            }
+
+            if .automataAnswered
+            {
                 return false
+            }
         }
 
-        if not .vm.run(&.program, hay, start, limit, anchored, wholeSubject) do
+        if not .vm.run(&.program, hay, start, limit, anchored, wholeSubject)
+        {
             return false
+        }
 
         .keepSlots(.vm.matchSlots.buffer)
         return true
@@ -513,13 +569,17 @@ private impl RegExp
     mtd keepSlots(source: const [*] u64?)
     {
         let count = .program.slotCount
-        if count < 2 or source == null do
+        if count < 2 or source == null
+        {
             return
+        }
 
         let destination = .slots.storage()
         let filled      = source
-        for s in count do
+        for s in count
+        {
             destination[s] = filled[s]
+        }
 
         .matchStart = destination[0]
         .matchEnd   = destination[1]
@@ -541,8 +601,10 @@ private impl RegExp
             .automataAnswered = true
 
             let at = .prefilter.find(hay, start)
-            if at >= limit do
+            if at >= limit
+            {
                 return false
+            }
 
             .matchStart = at
             .matchEnd   = at + .prefilter.spanLength
@@ -550,27 +612,35 @@ private impl RegExp
             return true
         }
 
-        if .useInner and not anchored do
+        if .useInner and not anchored
+        {
             return .searchWithInnerLiteral(hay, start, limit)
+        }
 
         // A scan that names the offsets a match can begin at answers the question the reverse
         // automaton is there for, so the search is anchored at each of them and read forwards
         // only. It is worth it while the scan stops rarely enough that one anchored attempt per
         // hit costs less than the walk backwards it replaces.
-        if not anchored and .anchorOnCandidates do
+        if not anchored and .anchorOnCandidates
+        {
             return .searchFromCandidates(hay, start, limit)
+        }
 
         // A pattern that can only match at the start of the subject is searched there and
         // nowhere else, whatever the caller asked for.
         let anchoredSearch = anchored or .program.anchoredStart
 
         let forward = .forwardDfa.searchForward(&.program, &.prefilter, hay, start, limit, anchoredSearch)
-        if forward.quit do
+        if forward.quit
+        {
             return false
+        }
 
         .automataAnswered = true
-        if not forward.found do
+        if not forward.found
+        {
             return false
+        }
 
         var matchStart = start
         if not anchoredSearch
@@ -698,8 +768,8 @@ private impl RegExp
             // groups back, because it walks one path instead of every branch at once. It is
             // given a budget proportional to the span, and the simulation — which cannot
             // explode — answers the rare pattern that exhausts it.
-            const ShortSpanBudgetBase = 4096'u64
-            const ShortSpanBudgetRate = 64'u64
+            const ShortSpanBudgetBase = 4096_u64
+            const ShortSpanBudgetRate = 64_u64
 
             let span = matchEnd - matchStart
             if span <= ShortSpanBudgetBase
@@ -737,12 +807,17 @@ private impl RegExp
     // the two searches and nothing around them. Anything unusual — capture groups to fill, a
     // backreference, a scan that answers by itself, an automaton that gives up — is left to
     // the general path, which starts where this one stopped.
-    mtd findAllFast(subject: string, out: *Array'Span)->u64
+    mtd findAllFast(subject: string, out: *Array!{Span})->u64
     {
-        if not .compiled or .program.hasBackref or .program.captureCount != 0 do
+        if not .compiled or .program.hasBackref or .program.captureCount != 0
+        {
             return 0
-        if .prefilter.complete or .anchorOnCandidates or .program.anchoredStart do
+        }
+
+        if .prefilter.complete or .anchorOnCandidates or .program.anchoredStart
+        {
             return 0
+        }
 
         .clearMatchResult(subject)
 
@@ -752,24 +827,24 @@ private impl RegExp
         // Occurrences are collected in batches: appending one at a time would put a container
         // call between every two matches, which on a subject with two million of them is a
         // tenth of the whole search.
-        const BatchSize = 64'u64
+        const BatchSize = 64_u64
 
         // How many offsets in a row may be tried and refused before the loop goes back to
         // reading forwards once and backwards once per match.
-        const AnchoredMissBudget = 16'u32
+        const AnchoredMissBudget = 16_u32
 
         var batch: [BatchSize] Span
-        var held = 0'u64
-        var at   = 0'u64
+        var held = 0_u64
+        var at   = 0_u64
         var quit = false
 
         var tryAnchored = not .useInner and not .prefilter.isEnabled()
-        var misses      = 0'u32
+        var misses      = 0_u32
 
         while at <= limit
         {
-            var start = 0'u64
-            var end   = 0'u64
+            var start = 0_u64
+            var end   = 0_u64
 
             // The two ways to find one occurrence. The automata are asked here rather than
             // through a call, because this is the loop the cost per match is measured in.
@@ -782,12 +857,15 @@ private impl RegExp
                     break
                 }
 
-                if not step.found do
+                if not step.found
+                {
                     break
+                }
+
                 start = step.span.start
                 end   = step.span.end
             }
-            elif tryAnchored
+            else if tryAnchored
             {
                 // With no scan to skip ahead with, trying the pattern at the offset itself is
                 // the cheapest thing there is: a match found this way needs nothing read
@@ -806,11 +884,15 @@ private impl RegExp
                     // Nothing here. Past a few offsets in a row, this is the wrong way to look
                     // and reading forwards once over the rest of the subject is cheaper.
                     misses += 1
-                    if misses > AnchoredMissBudget do
+                    if misses > AnchoredMissBudget
+                    {
                         tryAnchored = false
+                    }
 
-                    if at >= limit do
+                    if at >= limit
+                    {
                         break
+                    }
 
                     // One byte, not one scalar value: a pattern that matches the empty string
                     // matches it at every offset, including inside the encoding of a scalar
@@ -832,8 +914,10 @@ private impl RegExp
                     break
                 }
 
-                if not forward.found do
+                if not forward.found
+                {
                     break
+                }
 
                 let backward = .reverseDfa.searchReverse(&.reverse, hay, at, forward.end)
                 if backward.quit or not backward.found
@@ -868,12 +952,17 @@ private impl RegExp
             // An empty occurrence must not be found again at the same place, and the next
             // offset is the next scalar value rather than the next byte.
             at = end + 1
-            while at < limit and (subject[at] & 0xC0) == 0x80 do
+            while at < limit and (subject[at] & 0xC0) == 0x80
+            {
                 at += 1
+            }
         }
 
-        if held != 0 do
+        if held != 0
+        {
             out.add(Swag.makeSlice(cast(const [*] Span, &batch[0]), held))
+        }
+
         return quit ? at : limit + 1
     }
 
@@ -887,8 +976,10 @@ private impl RegExp
         while scanAt <= limit
         {
             let candidate = .innerScan.find(hay, scanAt)
-            if candidate >= limit do
+            if candidate >= limit
+            {
                 return result
+            }
 
             let backward = .innerDfa.searchReverse(&.innerPrefix, hay, at, candidate)
             if backward.quit
@@ -931,8 +1022,10 @@ private impl RegExp
     {
         var result: #returntype
 
-        if not .search(subject, at, false, false) do
+        if not .search(subject, at, false, false)
+        {
             return result
+        }
 
         result.found = true
         result.span  = .matchedSpan()
@@ -944,8 +1037,11 @@ private impl RegExp
         }
 
         result.next = result.span.end + 1
-        while result.next < subject.count and (subject[result.next] & 0xC0) == 0x80 do
+        while result.next < subject.count and (subject[result.next] & 0xC0) == 0x80
+        {
             result.next += 1
+        }
+
         return result
     }
 
@@ -964,7 +1060,7 @@ private impl RegExp
     // Appends one replacement, expanding the group references it names.
     mtd appendReplacement(dest: *String, replacement: string)
     {
-        var i = 0'u64
+        var i = 0_u64
         while i < replacement.count
         {
             let c = replacement[i]
@@ -978,7 +1074,7 @@ private impl RegExp
             let next = replacement[i + 1]
             if next == '$'
             {
-                dest.append('$'u8)
+                dest.append('$'_u8)
                 i += 2
                 continue
             }
@@ -993,8 +1089,10 @@ private impl RegExp
             if next == '{'
             {
                 var j = i + 2
-                while j < replacement.count and replacement[j] != '}' do
+                while j < replacement.count and replacement[j] != '}'
+                {
                     j += 1
+                }
 
                 if j < replacement.count
                 {

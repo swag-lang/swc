@@ -23,7 +23,7 @@ Reinitialize a variable with a custom value instead of its default.
 */
 #test
 {
-    var x = 666'f32
+    var x = 666_f32
     Swag.init(x)(3.14)     // Initialize variable 'x' with 3.14 instead of 0
     Swag.require(x == 3.14)
 }

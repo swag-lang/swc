@@ -3,16 +3,21 @@
 
 using Swag
 
-func assertIntList(values: *List's32, expected: const [..] s32)->bool
+func assertIntList(values: *List!{s32}, expected: const [..] s32)->bool
 {
-    if values.count != expected.count do
+    if values.count != expected.count
+    {
         return false
+    }
 
     var idx: u64 = 0
     for value in values[]
     {
-        if value != expected[idx] do
+        if value != expected[idx]
+        {
             return false
+        }
+
         idx += 1
     }
 
@@ -24,44 +29,50 @@ struct ListStructProbe
     value: s32
 }
 
-func visitStructList(values: *List'ListStructProbe)->s32
+func visitStructList(values: *List!{ListStructProbe})->s32
 {
     var code = 0
     for value, node in values[]
     {
-        #assert(#typeof(node) == *ListEntry'ListStructProbe)
-        if value.value == 12 do
+        #assert(#typeof(node) == *ListEntry!{ListStructProbe})
+        if value.value == 12
+        {
             continue
+        }
 
         code = code * 10 + value.value
-        if value.value == 13 do
+        if value.value == 13
+        {
             return code
+        }
     }
 
     return code
 }
 
-func visitStructListReverse(values: *List'ListStructProbe)->s32
+func visitStructListReverse(values: *List!{ListStructProbe})->s32
 {
     var code = 0
     for value, node in values.reversed()
     {
-        #assert(#typeof(node) == *ListEntry'ListStructProbe)
+        #assert(#typeof(node) == *ListEntry!{ListStructProbe})
         code = code * 10 + value.value
-        if value.value == 12 do
+        if value.value == 12
+        {
             return code
+        }
     }
 
     return code
 }
 
-func assertConstReversedListBorrows(values: const *List's32)->s32
+func assertConstReversedListBorrows(values: const *List!{s32})->s32
 {
     var total = 0
     for &item, node, index in values[].reversed()
     {
         #assert(#typeof(item) == const *s32)
-        #assert(#typeof(node) == const *ListEntry's32)
+        #assert(#typeof(node) == const *ListEntry!{s32})
         Swag.require(node.value == item[])
         total += item[] + cast(s32, index)
     }
@@ -71,7 +82,7 @@ func assertConstReversedListBorrows(values: const *List's32)->s32
 
 #test
 {
-    var values: List's32
+    var values: List!{s32}
     values.addBack(2)
     values.addFront(1)
     values.addBack(4)
@@ -84,7 +95,7 @@ func assertConstReversedListBorrows(values: const *List's32)->s32
 
 #test
 {
-    var values: List's32
+    var values: List!{s32}
     let oldHead = values.addBack(2)
     let newHead = values.insertBefore(oldHead, 1)
 
@@ -97,7 +108,7 @@ func assertConstReversedListBorrows(values: const *List's32)->s32
 
 #test
 {
-    var values: List's32
+    var values: List!{s32}
     let first  = values.addBack(1)
     let middle = values.addBack(2)
     discard values.addBack(3)
@@ -117,7 +128,7 @@ func assertConstReversedListBorrows(values: const *List's32)->s32
 
 #test
 {
-    var values: List's32
+    var values: List!{s32}
     let one = values.addBack(1)
     let two = values.insertAfter(one, 2)
     discard values.insertAfter(two, 4)
@@ -128,7 +139,7 @@ func assertConstReversedListBorrows(values: const *List's32)->s32
     for value, node in values
     {
         #assert(#typeof(value) == s32)
-        #assert(#typeof(node) == *ListEntry's32)
+        #assert(#typeof(node) == *ListEntry!{s32})
         code = code * 10 + value
     }
 
@@ -137,7 +148,7 @@ func assertConstReversedListBorrows(values: const *List's32)->s32
 
 #test
 {
-    var values: List's32
+    var values: List!{s32}
     let one = values.addBack(1)
     let two = values.insertAfter(one, 2)
     discard values.insertAfter(two, 4)
@@ -148,7 +159,7 @@ func assertConstReversedListBorrows(values: const *List's32)->s32
     for value, node in values.reversed()
     {
         #assert(#typeof(value) == s32)
-        #assert(#typeof(node) == *ListEntry's32)
+        #assert(#typeof(node) == *ListEntry!{s32})
         code = code * 10 + value
     }
 
@@ -157,7 +168,7 @@ func assertConstReversedListBorrows(values: const *List's32)->s32
 
 #test
 {
-    var values: List's32
+    var values: List!{s32}
     values.addBack(1)
     values.addBack(2)
     values.addBack(3)
@@ -167,7 +178,7 @@ func assertConstReversedListBorrows(values: const *List's32)->s32
     for &value, node in values
     {
         #assert(#typeof(value) == *s32)
-        #assert(#typeof(node) == *ListEntry's32)
+        #assert(#typeof(node) == *ListEntry!{s32})
         value[] += 10
     }
 
@@ -177,13 +188,15 @@ func assertConstReversedListBorrows(values: const *List's32)->s32
 
 #test
 {
-    var values: List'ListStructProbe
+    var values: List!{ListStructProbe}
     values.addBack({value: 1})
     values.addBack({value: 2})
     values.addBack({value: 3})
 
-    for &value in values do
+    for &value in values
+    {
         value.value += 10
+    }
 
     let head = unwrap values.head
     Swag.require(head.value.value == 11)
@@ -195,7 +208,7 @@ func assertConstReversedListBorrows(values: const *List's32)->s32
 
 #test
 {
-    var original: List's32
+    var original: List!{s32}
     original.addBack(1)
     original.addBack(2)
     original.addBack(3)
@@ -211,11 +224,11 @@ func assertConstReversedListBorrows(values: const *List's32)->s32
 
 #test
 {
-    var source: List's32
+    var source: List!{s32}
     source.addBack(7)
     source.addBack(8)
 
-    var moved: List's32
+    var moved: List!{s32}
     moved = #move source
 
     let expected: [2] s32 = [7, 8]
@@ -227,7 +240,7 @@ func assertConstReversedListBorrows(values: const *List's32)->s32
 
 #test
 {
-    var values: List's32
+    var values: List!{s32}
     values.addBack(1)
     values.addBack(2)
     values.addBack(3)
@@ -238,10 +251,16 @@ func assertConstReversedListBorrows(values: const *List's32)->s32
     Swag.require(values.head == null and values.tail == null)
 
     var emptyVisits = 0
-    for _, _, _ in values do
+    for _, _, _ in values
+    {
         emptyVisits += 1
-    for _, _, _ in values.reversed() do
+    }
+
+    for _, _, _ in values.reversed()
+    {
         emptyVisits += 1
+    }
+
     Swag.require(emptyVisits == 0)
 
     values.addFront(4)

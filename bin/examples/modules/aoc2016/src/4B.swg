@@ -24,15 +24,20 @@ func day4B()
         var str: String
         while not Latin1.isDigit(l[idx])
         {
-            if l[idx] != '-' do
+            if l[idx] != '-'
+            {
                 str += l[idx] - 'a'
+            }
+
             idx += 1
         }
 
         let res = expect StrConv.parseS64(l[idx to])
 
-        for i in str.count do
+        for i in str.count
+        {
             str[i] = cast(u8, ((str[i] + res.value) % 26 + 'a'))
+        }
 
         if Utf8.contains(str, "north")
         {

@@ -38,7 +38,7 @@ func day7A()
     let dataPath = Path.combine(Path.directoryName(#curlocation.fileName), "7.txt")
     let lines    = expect File.readAllLines(dataPath)
 
-    var total = 0's64
+    var total = 0_s64
     for l in lines
     {
         let split0 = Tokenize.split(l[], ":")
@@ -49,21 +49,32 @@ func day7A()
         func checkMath(target: s64, resin: s64, operands: [..] s64, operator: u8)->bool
         {
             var result: s64
-            if operator == '+' do
+            if operator == '+'
+            {
                 result = resin + operands[0]
-            else do
+            }
+            else
+            {
                 result = resin * operands[0]
+            }
 
-            if result > target do
+            if result > target
+            {
                 return false
-            if operands.count == 1 do
+            }
+
+            if operands.count == 1
+            {
                 return target == result
+            }
 
             return checkMath(target, result, operands[1 to], '+') or checkMath(target, result, operands[1 to], '*')
         }
 
-        if checkMath(res, vals[0], vals[1 to], '+') or checkMath(res, vals[0], vals[1 to], '*') do
+        if checkMath(res, vals[0], vals[1 to], '+') or checkMath(res, vals[0], vals[1 to], '*')
+        {
             total += res
+        }
     }
 
     Swag.assert(total == 2437272016585)

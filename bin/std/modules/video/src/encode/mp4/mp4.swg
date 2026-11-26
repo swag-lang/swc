@@ -7,18 +7,18 @@
 
 using Core, Core.Errors, Pixel
 
-const MovieHeaderId            = fourCc('m'u32, 'v'u32, 'h'u32, 'd'u32)
-const VideoMediaHeaderId       = fourCc('v'u32, 'm'u32, 'h'u32, 'd'u32)
-const DataInfoId               = fourCc('d'u32, 'i'u32, 'n'u32, 'f'u32)
-const DataReferenceId          = fourCc('d'u32, 'r'u32, 'e'u32, 'f'u32)
-const DataEntryUrlId           = fourCc('u'u32, 'r'u32, 'l'u32, ' 'u32)
-const IsomBrandId              = fourCc('i'u32, 's'u32, 'o'u32, 'm'u32)
-const Iso2BrandId              = fourCc('i'u32, 's'u32, 'o'u32, '2'u32)
-const Mp41BrandId              = fourCc('m'u32, 'p'u32, '4'u32, '1'u32)
-const EncodePixelAspectRatioId = fourCc('p'u32, 'a'u32, 's'u32, 'p'u32)
+const MovieHeaderId            = fourCc('m'_u32, 'v'_u32, 'h'_u32, 'd'_u32)
+const VideoMediaHeaderId       = fourCc('v'_u32, 'm'_u32, 'h'_u32, 'd'_u32)
+const DataInfoId               = fourCc('d'_u32, 'i'_u32, 'n'_u32, 'f'_u32)
+const DataReferenceId          = fourCc('d'_u32, 'r'_u32, 'e'_u32, 'f'_u32)
+const DataEntryUrlId           = fourCc('u'_u32, 'r'_u32, 'l'_u32, ' '_u32)
+const IsomBrandId              = fourCc('i'_u32, 's'_u32, 'o'_u32, 'm'_u32)
+const Iso2BrandId              = fourCc('i'_u32, 's'_u32, 'o'_u32, '2'_u32)
+const Mp41BrandId              = fourCc('m'_u32, 'p'_u32, '4'_u32, '1'_u32)
+const EncodePixelAspectRatioId = fourCc('p'_u32, 'a'_u32, 's'_u32, 'p'_u32)
 
-private const MaxFrameSide = 65_535's32
-private const UndLanguage  = 0x55C4'u16
+private const MaxFrameSide = 65_535_s32
+private const UndLanguage  = 0x55C4_u16
 
 // One sample recorded while its payload is streamed into `mdat`.
 private struct EncodedFrame
@@ -67,8 +67,11 @@ private func beginBox(sink: *ByteSink, kind: u32)->u64 fail
 private func endBox(sink: *ByteSink, start: u64) fail
 {
     let size = sink.position() - start
-    if size > Swag.U32.Max do
+    if size > Swag.U32.Max
+    {
         fail UnsupportedFormatError{"MP4 metadata box exceeds the four gigabytes its compact size can describe"}
+    }
+
     try patchU32(sink, start, cast(u32, size))
 }
 
@@ -86,8 +89,10 @@ private func writeFullBox(sink: *ByteSink, version: u8, flags: u32) fail
 private func writeIdentityMatrix(sink: *ByteSink) fail
 {
     const Matrix: [9] u32 = [0x0001_0000, 0, 0, 0, 0x0001_0000, 0, 0, 0, 0x4000_0000]
-    for value in Matrix do
+    for value in Matrix
+    {
         try writeU32(sink, value)
+    }
 }
 
 // Writes MP4 files whose samples are independently encoded JPEG images.
@@ -101,7 +106,7 @@ struct Encoder
     {
         info:          StreamInfo
         options:       EncodeOptions
-        frames:        Array'EncodedFrame
+        frames:        Array!{EncodedFrame}
         mediaData:     u64
         mediaDataSize: u64
     }
@@ -113,8 +118,10 @@ impl IEncoder for Encoder
 
     mtd impl begin(sink: *ByteSink, info: StreamInfo, options: any?) fail
     {
-        if info.width > MaxFrameSide or info.height > MaxFrameSide do
+        if info.width > MaxFrameSide or info.height > MaxFrameSide
+        {
             fail UnsupportedFormatError{"MP4 frame dimensions exceed what the visual sample entry can describe"}
+        }
 
         .info = info
         if options.buffer != null
@@ -123,8 +130,10 @@ impl IEncoder for Encoder
             .options = cast(const *EncodeOptions, unwrap options.buffer)[]
         }
 
-        if (.options.pixelAspectWidth == 0) != (.options.pixelAspectHeight == 0) do
+        if (.options.pixelAspectWidth == 0) != (.options.pixelAspectHeight == 0)
+        {
             fail BadParameterError{"MP4 pixel aspect ratio needs both numerator and denominator"}
+        }
 
         try .writeFileType(sink)
         .mediaData = sink.position()
@@ -136,16 +145,20 @@ impl IEncoder for Encoder
 
     mtd impl addFrame(sink: *ByteSink, image: Image) fail
     {
-        if .frames.count >= Swag.U32.Max do
+        if .frames.count >= Swag.U32.Max
+        {
             fail UnsupportedFormatError{"MP4 stream exceeds the frame count its sample tables can describe"}
+        }
 
         var frameOptions: Jpg.EncodeOptions
         frameOptions.quality = .options.quality
         var encoded = try image.encode(JpegName, frameOptions)
         encoded.makeLinear()
         let payload = unwrap encoded.toSlice()
-        if payload.count > Swag.U32.Max do
+        if payload.count > Swag.U32.Max
+        {
             fail UnsupportedFormatError{"MP4 JPEG sample exceeds the four gigabytes its sample table can describe"}
+        }
 
         .frames.add(EncodedFrame{sink.position(), cast(u32, payload.count)})
         try sink.write(payload)
@@ -154,8 +167,11 @@ impl IEncoder for Encoder
     #[Swag.Propagate]
     mtd impl end(sink: *ByteSink) fail
     {
-        if .frames.isEmpty() do
+        if .frames.isEmpty()
+        {
             fail BadParameterError{"MP4 stream needs at least one frame"}
+        }
+
         patchU64(sink, .mediaDataSize, sink.position() - .mediaData)
         .writeMovie(sink)
     }
@@ -166,8 +182,11 @@ private impl Encoder
     mtd const duration()->u64 fail
     {
         let delta = cast(u64, .info.frameRate.denominator())
-        if .frames.count > Swag.U64.Max / delta do
+        if .frames.count > Swag.U64.Max / delta
+        {
             fail UnsupportedFormatError{"MP4 stream duration exceeds the 64-bit media timeline"}
+        }
+
         return .frames.count * delta
     }
 
@@ -207,8 +226,11 @@ private impl Encoder
         writeU32(sink, 0)
         writeU32(sink, 0)
         writeIdentityMatrix(sink)
-        for 6 do
+        for 6
+        {
             writeU32(sink, 0)
+        }
+
         writeU32(sink, 2)
         endBox(sink, box)
     }
@@ -356,13 +378,19 @@ private impl Encoder
         const Compressor = "Swag Motion JPEG"
         writeU8(sink, cast(u8, Compressor.count))
         sink.writeText(Compressor)
-        for 31 - Compressor.count do
+        for 31 - Compressor.count
+        {
             writeU8(sink, 0)
+        }
+
         writeU16(sink, 24)
         writeU16(sink, 0xFFFF)
         .writeElementaryStreamDescriptor(sink)
-        if .options.pixelAspectWidth do
+        if .options.pixelAspectWidth
+        {
             .writePixelAspectRatio(sink)
+        }
+
         endBox(sink, entry)
         endBox(sink, stsd)
     }
@@ -435,8 +463,11 @@ private impl Encoder
         writeFullBox(sink, 0, 0)
         writeU32(sink, 0)
         writeU32(sink, cast(u32, .frames.count))
-        for frame in .frames do
+        for frame in .frames
+        {
             writeU32(sink, frame.size)
+        }
+
         endBox(sink, box)
     }
 
@@ -446,8 +477,11 @@ private impl Encoder
         let box = beginBox(sink, ChunkOffset64Id)
         writeFullBox(sink, 0, 0)
         writeU32(sink, cast(u32, .frames.count))
-        for frame in .frames do
+        for frame in .frames
+        {
             writeU64(sink, frame.offset)
+        }
+
         endBox(sink, box)
     }
 }

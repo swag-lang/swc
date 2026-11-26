@@ -8,9 +8,9 @@
 // macros, mixins, #run compile-time, #returntype, defer, element iteration,
 // bitwise operators, 'switch #complete', function overloading.
 
-const MaxDim     = 142'u32
-const MaxNumbers = 1024'u32
-const MaxGears   = 256'u32
+const MaxDim     = 142_u32
+const MaxNumbers = 1024_u32
+const MaxGears   = 256_u32
 
 const SampleInput =
     """467..114..
@@ -69,11 +69,11 @@ func dirName(d: Dir)->string
 // Character classification
 // ---------------------------------------------------------------------------
 
-func isDigit(ch: u8)->bool   => ch >= '0'u8 and ch <= '9'u8
-func isDot(ch: u8)->bool     => ch == '.'u8
-func isNewline(ch: u8)->bool => ch == '\n'u8 or ch == '\r'u8
+func isDigit(ch: u8)->bool   => ch >= '0'_u8 and ch <= '9'_u8
+func isDot(ch: u8)->bool     => ch == '.'_u8
+func isNewline(ch: u8)->bool => ch == '\n'_u8 or ch == '\r'_u8
 func isSymbol(ch: u8)->bool  => not isDigit(ch) and not isDot(ch) and not isNewline(ch) and ch != 0
-func isGear(ch: u8)->bool    => ch == '*'u8
+func isGear(ch: u8)->bool    => ch == '*'_u8
 
 // ---------------------------------------------------------------------------
 // Grid
@@ -104,8 +104,10 @@ func parseGrid(bytes: const [..] u8)->Grid
         {
             if col > 0
             {
-                if result.height == 0 do
+                if result.height == 0
+                {
                     result.width = col
+                }
                 Swag.assert(col == result.width)
                 result.height += 1
                 col = 0
@@ -224,8 +226,10 @@ func checkAdjacentSymbol(grid: Grid, entry: NumberEntry)->bool
         {
             let nr = r + DirDR[index]
             let nc = c + DirDC[index]
-            if grid.inBounds(nr, nc) and isSymbol(grid.at(cast(u32, nr), cast(u32, nc))) do
+            if grid.inBounds(nr, nc) and isSymbol(grid.at(cast(u32, nr), cast(u32, nc)))
+            {
                 return true
+            }
         }
     }
 
@@ -238,15 +242,19 @@ func checkAdjacentSymbol(grid: Grid, entry: NumberEntry)->bool
 
 func(T) minOf(a, b: T)->T
 {
-    if a < b do
+    if a < b
+    {
         return a
+    }
     return b
 }
 
 func(T) maxOf(a, b: T)->T
 {
-    if a > b do
+    if a > b
+    {
         return a
+    }
     return b
 }
 
@@ -257,17 +265,19 @@ func(T) maxOf(a, b: T)->T
 #[Swag.Macro]
 func forEachNeighborCell(grid: Grid, entry: NumberEntry, stmt: #code(nr: u32, nc: u32))
 {
-    let rStart = maxOf's32(0, cast(s32, entry.row) - 1)
-    let rEnd   = minOf's32(cast(s32, grid.height) - 1, cast(s32, entry.row) + 1)
-    let cStart = maxOf's32(0, cast(s32, entry.col0) - 1)
-    let cEnd   = minOf's32(cast(s32, grid.width) - 1, cast(s32, entry.col1) + 1)
+    let rStart = maxOf!{s32}(0, cast(s32, entry.row) - 1)
+    let rEnd   = minOf!{s32}(cast(s32, grid.height) - 1, cast(s32, entry.row) + 1)
+    let cStart = maxOf!{s32}(0, cast(s32, entry.col0) - 1)
+    let cEnd   = minOf!{s32}(cast(s32, grid.width) - 1, cast(s32, entry.col1) + 1)
 
     for r in rStart to rEnd
     {
         for c in cStart to cEnd
         {
-            if cast(u32, r) == entry.row and cast(u32, c) >= entry.col0 and cast(u32, c) <= entry.col1 do
+            if cast(u32, r) == entry.row and cast(u32, c) >= entry.col0 and cast(u32, c) <= entry.col1
+            {
                 continue
+            }
             #inject(stmt, nr = cast(u32, r), nc = cast(u32, c))
         }
     }
@@ -305,7 +315,7 @@ func extractNumbers(grid: Grid)->NumberList
                 let col0 = col
                 while col < grid.width and isDigit(grid.at(row, col))
                 {
-                    value = value * 10 + cast(u32, (grid.at(row, col) - '0'u8))
+                    value = value * 10 + cast(u32, (grid.at(row, col) - '0'_u8))
                     col   += 1
                 }
 
@@ -347,8 +357,10 @@ func solveClean(grid: Grid)->EngineResult
     {
         for col in grid.width
         {
-            if not isGear(grid.at(row, col)) do
+            if not isGear(grid.at(row, col))
+            {
                 continue
+            }
 
             var adjCount: u32
             var prod:     u64 = 1
@@ -377,8 +389,10 @@ func solveClean(grid: Grid)->EngineResult
 func isAdjacentToCell(entry: NumberEntry, row, col: u32)->bool
 {
     let dr = cast(s32, entry.row) - cast(s32, row)
-    if dr < -1 or dr > 1 do
+    if dr < -1 or dr > 1
+    {
         return false
+    }
 
     let cStart = cast(s32, entry.col0) - 1
     let cEnd   = cast(s32, entry.col1) + 1
@@ -462,13 +476,13 @@ func solveWithLanguageFeatures(grid: Grid)->EngineResult
 // Compile-time character classification
 // ---------------------------------------------------------------------------
 
-#assert(#run isDigit('5'u8) == true)
-#assert(#run isDigit('.'u8) == false)
-#assert(#run isSymbol('*'u8) == true)
-#assert(#run isSymbol('.'u8) == false)
-#assert(#run isGear('*'u8) == true)
-#assert(#run minOf's32(3, 7) == 3)
-#assert(#run maxOf'u32(10, 5) == 10)
+#assert(#run isDigit('5'_u8) == true)
+#assert(#run isDigit('.'_u8) == false)
+#assert(#run isSymbol('*'_u8) == true)
+#assert(#run isSymbol('.'_u8) == false)
+#assert(#run isGear('*'_u8) == true)
+#assert(#run minOf!{s32}(3, 7) == 3)
+#assert(#run maxOf!{u32}(10, 5) == 10)
 
 // ---------------------------------------------------------------------------
 // Tests
@@ -477,14 +491,14 @@ func solveWithLanguageFeatures(grid: Grid)->EngineResult
 #test
 {
     let grid = parseGrid(cast(const [..] u8, SampleInput))
-    Swag.require(grid.width == 10'u32)
-    Swag.require(grid.height == 10'u32)
-    Swag.require(grid.at(0, 0) == '4'u8)
-    Swag.require(grid.at(1, 3) == '*'u8)
+    Swag.require(grid.width == 10_u32)
+    Swag.require(grid.height == 10_u32)
+    Swag.require(grid.at(0, 0) == '4'_u8)
+    Swag.require(grid.at(1, 3) == '*'_u8)
 
     let clean = solveClean(grid)
-    Swag.require(clean.partNumberSum == 4361'u64)
-    Swag.require(clean.gearRatioSum == 467835'u64)
+    Swag.require(clean.partNumberSum == 4361_u64)
+    Swag.require(clean.gearRatioSum == 467835_u64)
 
     let feat = solveWithLanguageFeatures(grid)
     Swag.require(feat.partNumberSum == clean.partNumberSum)
@@ -492,20 +506,20 @@ func solveWithLanguageFeatures(grid: Grid)->EngineResult
     Swag.require(feat.partCount == clean.partCount)
     Swag.require(feat.gearCount == clean.gearCount)
 
-    Swag.require(clean.gearCount == 2'u32)
+    Swag.require(clean.gearCount == 2_u32)
 }
 
 #test
 {
     let grid = parseGrid(cast(const [..] u8, TinyInput))
-    Swag.require(grid.width == 4'u32)
-    Swag.require(grid.height == 3'u32)
+    Swag.require(grid.width == 4_u32)
+    Swag.require(grid.height == 3_u32)
 
     let clean = solveClean(grid)
     // 12 adjacent to '*' via (0,1)→(1,2). 45 adjacent to '*' via (2,2)→(1,2).
-    Swag.require(clean.partNumberSum == 57'u64)
+    Swag.require(clean.partNumberSum == 57_u64)
     // '*' at (1,2) has exactly 2 neighbors: 12, 45 → gear ratio = 540
-    Swag.require(clean.gearRatioSum == 540'u64)
+    Swag.require(clean.gearRatioSum == 540_u64)
 
     let feat = solveWithLanguageFeatures(grid)
     Swag.require(feat.partNumberSum == clean.partNumberSum)
@@ -517,9 +531,9 @@ func solveWithLanguageFeatures(grid: Grid)->EngineResult
     let grid  = parseGrid(cast(const [..] u8, EdgeInput))
     let clean = solveClean(grid)
     // Both 100s are adjacent to '*'
-    Swag.require(clean.partNumberSum == 200'u64)
+    Swag.require(clean.partNumberSum == 200_u64)
     // '*' has exactly 2 adjacent numbers → gear ratio = 10000
-    Swag.require(clean.gearRatioSum == 10000'u64)
+    Swag.require(clean.gearRatioSum == 10000_u64)
 
     let feat = solveWithLanguageFeatures(grid)
     Swag.require(feat.partNumberSum == clean.partNumberSum)
@@ -531,9 +545,9 @@ func solveWithLanguageFeatures(grid: Grid)->EngineResult
     let grid  = parseGrid(cast(const [..] u8, SingleDigitInput))
     let clean = solveClean(grid)
     // 5 adjacent to '*', 3 adjacent to '*'
-    Swag.require(clean.partNumberSum == 8'u64)
+    Swag.require(clean.partNumberSum == 8_u64)
     // '*' touches 5 and 3 → gear ratio = 15
-    Swag.require(clean.gearRatioSum == 15'u64)
+    Swag.require(clean.gearRatioSum == 15_u64)
 
     let feat = solveWithLanguageFeatures(grid)
     Swag.require(feat.partNumberSum == clean.partNumberSum)
@@ -543,29 +557,29 @@ func solveWithLanguageFeatures(grid: Grid)->EngineResult
 #test
 {
     // Character classification coverage
-    Swag.require(isDigit('0'u8))
-    Swag.require(isDigit('9'u8))
-    Swag.require(not isDigit('a'u8))
-    Swag.require(isDot('.'u8))
-    Swag.require(not isDot('*'u8))
-    Swag.require(isSymbol('*'u8))
-    Swag.require(isSymbol('#'u8))
-    Swag.require(isSymbol('+'u8))
-    Swag.require(isSymbol('$'u8))
-    Swag.require(not isSymbol('.'u8))
-    Swag.require(not isSymbol('5'u8))
-    Swag.require(isGear('*'u8))
-    Swag.require(not isGear('#'u8))
+    Swag.require(isDigit('0'_u8))
+    Swag.require(isDigit('9'_u8))
+    Swag.require(not isDigit('a'_u8))
+    Swag.require(isDot('.'_u8))
+    Swag.require(not isDot('*'_u8))
+    Swag.require(isSymbol('*'_u8))
+    Swag.require(isSymbol('#'_u8))
+    Swag.require(isSymbol('+'_u8))
+    Swag.require(isSymbol('$'_u8))
+    Swag.require(not isSymbol('.'_u8))
+    Swag.require(not isSymbol('5'_u8))
+    Swag.require(isGear('*'_u8))
+    Swag.require(not isGear('#'_u8))
 
     // Direction name coverage
     Swag.require(dirName(Dir.N) == "N")
     Swag.require(dirName(Dir.SE) == "SE")
 
     // Generic min/max
-    Swag.require(minOf's32(3, 7) == 3)
-    Swag.require(maxOf's32(3, 7) == 7)
-    Swag.require(minOf'u32(10, 5) == 5)
-    Swag.require(maxOf'u32(10, 5) == 10)
+    Swag.require(minOf!{s32}(3, 7) == 3)
+    Swag.require(maxOf!{s32}(3, 7) == 7)
+    Swag.require(minOf!{u32}(10, 5) == 5)
+    Swag.require(maxOf!{u32}(10, 5) == 10)
 
     // Adjacency check
     var entry: NumberEntry

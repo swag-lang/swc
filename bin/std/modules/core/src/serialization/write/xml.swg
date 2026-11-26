@@ -7,20 +7,27 @@ using Swag, Core.Errors
 // Returns whether the reader consumes `type` as one undelimited text value.
 internal func xmlIsStringValue(type: typeinfo?)->bool
 {
-    if not type do
+    if not type
+    {
         return false
+    }
 
     var resolved = Reflection.resolveAliases(type)
-    if Reflection.isEnum(resolved) do
+    if Reflection.isEnum(resolved)
+    {
         resolved = Reflection.enumUnderlyingType(resolved)
+    }
+
     return Reflection.isString(resolved) or resolved == Core.String
 }
 
 // Returns whether the XML reader can consume values of `type` in its ordered element format.
 internal func xmlCanWrite(type: typeinfo?)->bool
 {
-    if not type do
+    if not type
+    {
         return false
+    }
 
     var resolved = Reflection.resolveAliases(type)
     if Reflection.isEnum(resolved)
@@ -37,12 +44,20 @@ internal func xmlCanWrite(type: typeinfo?)->bool
                Reflection.isRune(resolved)
     }
 
-    if resolved == Core.String do
+    if resolved == Core.String
+    {
         return true
-    if Reflection.isType(resolved) do
+    }
+
+    if Reflection.isType(resolved)
+    {
         return true
-    if Reflection.isInterface(resolved) do
+    }
+
+    if Reflection.isInterface(resolved)
+    {
         return false
+    }
 
     let elementType = Reflection.dynamicArrayElementType(resolved)
     if elementType
@@ -62,19 +77,29 @@ internal func xmlCanWrite(type: typeinfo?)->bool
                xmlCanWrite(arrayType.pointedType)
     }
 
-    if not Reflection.isStruct(resolved) or Reflection.isTuple(resolved) do
+    if not Reflection.isStruct(resolved) or Reflection.isTuple(resolved)
+    {
         return false
-    if Reflection.hasInterface(resolved, ISerialize) do
+    }
+
+    if Reflection.hasInterface(resolved, ISerialize)
+    {
         return true
+    }
 
     let typeStruct = assume cast(const *TypeInfoStruct, resolved)
     for &field in typeStruct.fields
     {
         if Reflection.hasAttribute(field, NoSerialize) or
-           Reflection.hasAttribute(field.pointedType, NoSerialize) do
+           Reflection.hasAttribute(field.pointedType, NoSerialize)
+        {
             continue
-        if not xmlCanWrite(field.pointedType) do
+        }
+
+        if not xmlCanWrite(field.pointedType)
+        {
             return false
+        }
     }
 
     return true
@@ -93,13 +118,13 @@ struct Xml
     internal
     {
         output:               *ConcatBuffer?
-        sequenceCounts:       Array'u64
-        sequenceStructDepths: Array'u64
+        sequenceCounts:       Array!{u64}
+        sequenceStructDepths: Array!{u64}
         structDepth:          u64
         invalidCharacters:    bool
         unsupportedValues:    bool
         fmtInt:               StrConv.ConvertFormatInt
-        fmtFloat:             StrConv.ConvertFormatFloat = {fmt: 'g'u8}
+        fmtFloat:             StrConv.ConvertFormatFloat = {fmt: 'g'_u8}
     }
 }
 
@@ -113,22 +138,29 @@ impl Xml
     // Returns the runtime CRC written when a value contains type information.
     mtd typeCrcOf(type: typeinfo?)->u32
     {
-        if not type do
+        if not type
+        {
             return 0
+        }
+
         return type.crc
     }
 
     #[Swag.NoDoc]
     mtd setRootType(type: typeinfo) fail
     {
-        if not xmlCanWrite(type) do
+        if not xmlCanWrite(type)
+        {
             fail UnsupportedFormatError{"XML does not support the serialized root type"}
+        }
     }
 
     internal mtd writeString(value: string?)
     {
-        if not value do
+        if not value
+        {
             return
+        }
 
         let bytes  = cast(const [..] u8, value)
         let output = .getOutput()
@@ -159,12 +191,15 @@ impl Xml
             return
         }
 
-        var offset = 0'u64
+        var offset = 0_u64
         while offset < bytes.count
         {
             let {c, eat} = Utf8.decodeRune(bytes[offset to])
-            if (c < 0x20 and c != '\t' and c != '\n' and c != '\r') or c == 0xFFFE or c == 0xFFFF do
+            if (c < 0x20 and c != '\t' and c != '\n' and c != '\r') or c == 0xFFFE or c == 0xFFFF
+            {
                 .invalidCharacters = true
+            }
+
             offset += eat
         }
     }
@@ -197,20 +232,28 @@ impl Xml
     {
         defer .output = null
         .getOutput().addBytes("</root>")
-        if .unsupportedValues do
+        if .unsupportedValues
+        {
             fail UnsupportedFormatError{"XML does not support the serialized value shape"}
-        if .invalidCharacters do
+        }
+
+        if .invalidCharacters
+        {
             fail SerializationError{"XML output contains a character forbidden by XML 1.0"}
+        }
     }
 
     // Opens the element named by the serialized field.
     mtd beginElement(val: TypeValue)
     {
-        if not xmlCanWrite(val.pointedType) do
+        if not xmlCanWrite(val.pointedType)
+        {
             .unsupportedValues = true
-        .getOutput().addNative('<'u8)
+        }
+
+        .getOutput().addNative('<'_u8)
         .getOutput().addBytes(val.name orelse "")
-        .getOutput().addNative('>'u8)
+        .getOutput().addNative('>'_u8)
     }
 
     // Closes the element named by the serialized field.
@@ -218,14 +261,17 @@ impl Xml
     {
         .getOutput().addBytes("</")
         .getOutput().addBytes(val.name orelse "")
-        .getOutput().addNative('>'u8)
+        .getOutput().addNative('>'_u8)
     }
 
     // Returns false, so the encoder writes the struct fields in declaration order.
     mtd beginStruct(type: typeinfo?, _: const *u8?)->bool
     {
-        if not xmlCanWrite(type) do
+        if not xmlCanWrite(type)
+        {
             .unsupportedValues = true
+        }
+
         .structDepth += 1
         return false
     }
@@ -279,8 +325,11 @@ impl Xml
         if not .sequenceCounts.isEmpty() and .sequenceStructDepths.back() == .structDepth
         {
             let count = .sequenceCounts.backPtr()
-            if count[] do
-                .getOutput().addNative(' 'u8)
+            if count[]
+            {
+                .getOutput().addNative(' '_u8)
+            }
+
             count[] += 1
         }
 
@@ -288,15 +337,15 @@ impl Xml
         {
             .getOutput().addBytes(value ? "true" : "false")
         }
-        elif Reflection.isFloat(NT)
+        else if Reflection.isFloat(NT)
         {
             StrConv.convertFloatInvariant(.getOutput(), value, .fmtFloat)
         }
-        elif Reflection.isInteger(NT)
+        else if Reflection.isInteger(NT)
         {
             StrConv.convertInt(.getOutput(), value, .fmtInt)
         }
-        elif Reflection.isString(NT)
+        else if Reflection.isString(NT)
         {
             .writeString(value)
         }

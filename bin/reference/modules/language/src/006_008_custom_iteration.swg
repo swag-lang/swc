@@ -53,14 +53,20 @@ only the last value discards the ones before it rather than naming them.
     let values = MyStruct{}
     var total: s32
 
-    for value, doubled, index in values do
+    for value, doubled, index in values
+    {
         total += value + doubled + cast(s32, index)
+    }
 
-    for _, doubled in values do
+    for _, doubled in values
+    {
         total += doubled
+    }
 
-    for _, _, index in values do
+    for _, _, index in values
+    {
         total += cast(s32, index)
+    }
 
     Swag.require(total == 306)
 }
@@ -77,9 +83,9 @@ impl ReversedMyStruct
     mtd(ptr: bool) const opVisit(stmt: #code(item: s32, index: u64))
         where not ptr
     {
-        #inject(stmt, item = me.source.z, index = 2'u64)
-        #inject(stmt, item = me.source.y, index = 1'u64)
-        #inject(stmt, item = me.source.x, index = 0'u64)
+        #inject(stmt, item = me.source.z, index = 2_u64)
+        #inject(stmt, item = me.source.y, index = 1_u64)
+        #inject(stmt, item = me.source.x, index = 0_u64)
     }
 }
 
@@ -105,8 +111,10 @@ does not copy the source or allocate memory. Since the view itself implements
     let values = MyStruct{}
     var code: s32
 
-    for value in values.reversed() do
+    for value in values.reversed()
+    {
         code = code * 100 + value
+    }
 
     Swag.require(code == 302010)
 }
@@ -123,10 +131,14 @@ impl SliceStruct
     {
         for index in me.buffer.count
         {
-            #static if ptr do
+            #static if ptr
+            {
                 #inject(stmt, item = cast(*s32, &me.buffer[index]), index = index)
-            else do
+            }
+            else
+            {
                 #inject(stmt, item = me.buffer[index], index = index)
+            }
         }
     }
 }
@@ -143,8 +155,10 @@ into the loop binding.
 {
     var values = SliceStruct{}
 
-    for &value, index in values do
+    for &value, index in values
+    {
         value[] += cast(s32, index)
+    }
 
     Swag.require(values.buffer[0] == 1)
     Swag.require(values.buffer[4] == 9)

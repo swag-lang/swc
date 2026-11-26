@@ -10,8 +10,10 @@ using Core, Gui, Pixel
     let window   = archivePage(&host, false)
     let explorer = unwrap window.explorer
     Swag.require(explorer.extractAll.isLocallyVisible() and explorer.extractAll.name.text == appStrings().cmd_ExtractAll)
-    for &entry in explorer.entries do
+    for &entry in explorer.entries
+    {
         Swag.require(entry.directory and entry.modified.length == 16)
+    }
 
     // The chosen member, its picture not asked for so the page holds still.
     explorer.navigate(explorer.listing.path, "docs/")
@@ -20,8 +22,11 @@ using Core, Gui, Pixel
     explorer.address.breadcrumb.addItem("viewer.archive.zip")
     explorer.address.breadcrumb.addItem("docs", hasArrow: false)
     explorer.address.refreshPath()
-    for &entry in explorer.entries do
+    for &entry in explorer.entries
+    {
         entry.attempted = true
+    }
+
     explorer.selected = 0
     explorer.fill()
     explorer.showInformation()

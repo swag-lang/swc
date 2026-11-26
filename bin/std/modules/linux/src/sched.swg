@@ -1,7 +1,7 @@
 #global if #os == Swag.TargetOs.Linux
 #global export
 
-const SCHED_OTHER = 0's32
+const SCHED_OTHER = 0_s32
 
 struct sched_param
 {

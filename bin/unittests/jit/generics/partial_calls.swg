@@ -2,7 +2,7 @@
 
 func(T, U) freeAccepts(first: T, second: U)->bool
 {
-    return #typeof(first) == T and #typeof(second) == U and first == true and second == 0.0'f32
+    return #typeof(first) == T and #typeof(second) == U and first == true and second == 0.0_f32
 }
 
 func concreteLocalStructPartialTypeAnnotation()->bool
@@ -14,7 +14,7 @@ func concreteLocalStructPartialTypeAnnotation()->bool
         third:  V
     }
 
-    var data: Local'bool
+    var data: Local!{bool}
     data.first  = true
     data.second = "ok"
     data.third  = 3.5
@@ -23,7 +23,7 @@ func concreteLocalStructPartialTypeAnnotation()->bool
            #typeof(data.third) == f32 and
            data.first and
            data.second == "ok" and
-           data.third == 3.5'f32
+           data.third == 3.5_f32
 }
 
 func(A, B) localStructPartialTypeAnnotation(value: A, tail: B)->bool
@@ -35,7 +35,7 @@ func(A, B) localStructPartialTypeAnnotation(value: A, tail: B)->bool
         third:  V
     }
 
-    var data: Local'A
+    var data: Local!{A}
     data.first  = value
     data.second = "ok"
     data.third  = tail
@@ -53,15 +53,15 @@ impl SimpleMethodProbe
 {
     mtd(T, U) accepts(first: T, second: U)->bool
     {
-        return #typeof(first) == T and #typeof(second) == U and first == true and second == 0.0'f32
+        return #typeof(first) == T and #typeof(second) == U and first == true and second == 0.0_f32
     }
 }
 
 #test
 {
     var simple   = SimpleMethodProbe{}
-    let freeOk   = freeAccepts'(bool)(true, 0.0'f32)
-    let methodOk = simple.accepts'(bool)(true, 0.0'f32)
+    let freeOk   = freeAccepts!{bool}(true, 0.0_f32)
+    let methodOk = simple.accepts!{bool}(true, 0.0_f32)
 
     #assert(#typeof(freeOk) == bool)
     #assert(#typeof(methodOk) == bool)
@@ -72,7 +72,7 @@ impl SimpleMethodProbe
 #test
 {
     let concrete = concreteLocalStructPartialTypeAnnotation()
-    let local    = localStructPartialTypeAnnotation'(bool, f32)(true, 1.5)
+    let local    = localStructPartialTypeAnnotation!{bool, f32}(true, 1.5)
 
     #assert(#typeof(concrete) == bool)
     #assert(#typeof(local) == bool)

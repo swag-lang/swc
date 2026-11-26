@@ -73,8 +73,10 @@ impl StaticInlineBuffer
     #[Swag.Inline]
     mtd clearFirst()
     {
-        if .buffer do
+        if .buffer
+        {
             .buffer[0] = 0
+        }
     }
 }
 

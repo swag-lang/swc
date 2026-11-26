@@ -765,12 +765,6 @@ Result AstIdentifier::codeGenPostNode(CodeGen& codeGen)
     const AstNodeRef   parentRef = codeGen.visit().parentNodeRef();
     if (!view.sym())
     {
-        if (codeGen.curNode().codeRef().isValid() &&
-            codeGen.token(codeGen.curNode().codeRef()).id == TokenId::SymSingleQuote &&
-            parentRef.isValid() &&
-            codeGen.node(parentRef).is(AstNodeId::CastExpr))
-            return Result::Continue;
-
         if (parentRef.isValid() &&
             (codeGen.node(parentRef).is(AstNodeId::NamedType) ||
              codeGen.node(parentRef).is(AstNodeId::IntrinsicCallExpr) ||
@@ -779,7 +773,7 @@ Result AstIdentifier::codeGenPostNode(CodeGen& codeGen)
              codeGen.node(parentRef).is(AstNodeId::StructInitializerList) ||
              codeGen.node(parentRef).is(AstNodeId::SuffixLiteral) ||
              codeGen.node(parentRef).is(AstNodeId::QuotedExpr) ||
-             codeGen.node(parentRef).is(AstNodeId::QuotedListExpr)))
+             codeGen.node(parentRef).is(AstNodeId::GenericArgListExpr)))
             return Result::Continue;
 
         // A generic enum type used as the source of a foreach has no runtime

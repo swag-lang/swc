@@ -7,11 +7,13 @@
 #[Swag.Optimize(true), Swag.NoInline]
 func countByte(data: const [*] u8, count: u64, value: u8)->u64
 {
-    var total = 0'u64
+    var total = 0_u64
     for i in count
     {
-        if data[i] == value do
+        if data[i] == value
+        {
             total += 1
+        }
     }
     return total
 }
@@ -19,11 +21,13 @@ func countByte(data: const [*] u8, count: u64, value: u8)->u64
 #[Swag.Optimize(true), Swag.NoInline]
 func countWord(data: const [*] u16, count: u64, value: u16)->u64
 {
-    var total = 0'u64
+    var total = 0_u64
     for i in count
     {
-        if data[i] == value do
+        if data[i] == value
+        {
             total += 1
+        }
     }
     return total
 }
@@ -34,8 +38,10 @@ func lastBelow(data: const [*] s32, count: u64, limit: s32)->s64
     var i = cast(s64, count) - 1
     while i >= 0
     {
-        if data[i] < limit do
+        if data[i] < limit
+        {
             return i
+        }
         i -= 1
     }
     return -1

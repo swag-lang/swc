@@ -151,7 +151,7 @@ struct HtmlRange
 }
 
 // Marks a run as addressing the built text rather than the source.
-const HtmlBuiltText = 0x8000_0000'u32
+const HtmlBuiltText = 0x8000_0000_u32
 
 // One node of the parsed tree.
 //
@@ -196,7 +196,7 @@ impl HtmlChildren
         where not ptr
     {
         var node  = .first
-        var visit = 0'u64
+        var visit = 0_u64
         while node != HtmlNoNode
         {
             // The cursor advances before the body runs, so a `continue` in the body reaches the
@@ -221,9 +221,9 @@ impl HtmlChildren
 // remember, and the tree costs two allocations instead of three per element.
 struct HtmlDocument
 {
-    nodes:         Array'HtmlNode
-    attributePool: Array'HtmlAttribute
-    classPool:     Array'HtmlRange
+    nodes:         Array!{HtmlNode}
+    attributePool: Array!{HtmlAttribute}
+    classPool:     Array!{HtmlRange}
     sourceText:    String
     builtText:     String
 }
@@ -601,8 +601,11 @@ impl HtmlDocument
         let result = .intern(text)
         let start  = result.start ^ HtmlBuiltText
         let buffer = .builtText.storage()
-        for index in result.count do
+        for index in result.count
+        {
             buffer[start + index] = Latin1.toLower(buffer[start + index])
+        }
+
         return result
     }
 
@@ -639,19 +642,23 @@ impl HtmlDocument
     // array that ends up tens of megabytes long.
     mtd reserveForSource(bytes: u64)
     {
-        const SourceBytesPerNode = 48'u64
-        const MaxReservedNodes   = 4_000_000'u64
-        const MaxReservedText    = 64 * 1024 * 1024'u64
+        const SourceBytesPerNode = 48_u64
+        const MaxReservedNodes   = 4_000_000_u64
+        const MaxReservedText    = 64 * 1024 * 1024_u64
 
         // Only ever grows: `reserve` empties an array when it is asked for nothing, and truncates
         // a string to what it is asked to hold.
         let nodes = Math.min(bytes / SourceBytesPerNode, MaxReservedNodes)
-        if nodes > .nodes.capacity do
+        if nodes > .nodes.capacity
+        {
             .nodes.reserve(nodes)
+        }
 
         let source = Math.min(bytes, MaxReservedText)
-        if source > .sourceText.capacity do
+        if source > .sourceText.capacity
+        {
             .sourceText.reserve(source)
+        }
     }
 
     // Returns the children of a node, in order.
@@ -661,17 +668,23 @@ impl HtmlDocument
     // `firstChild` instead, which costs nothing.
     mtd const childCount(node: u32)->u64
     {
-        var result = 0'u64
-        for _ in .children(node) do
+        var result = 0_u64
+        for _ in .children(node)
+        {
             result += 1
+        }
+
         return result
     }
 
     // Returns the nth child of a node, or `HtmlNoNode`.
     mtd const childAt(node: u32, wanted: u64)->u32
     {
-        for child, index in .children(node) where index == wanted do
+        for child, index in .children(node) where index == wanted
+        {
             return child
+        }
+
         return HtmlNoNode
     }
 
@@ -681,10 +694,15 @@ impl HtmlDocument
         let last = .nodes[parent].lastChild
         .nodes[child].parent      = parent
         .nodes[child].prevSibling = last
-        if last != HtmlNoNode do
+        if last != HtmlNoNode
+        {
             .nodes[last].nextSibling = child
-        else do
+        }
+        else
+        {
             .nodes[parent].firstChild = child
+        }
+
         .nodes[parent].lastChild = child
     }
 
@@ -697,10 +715,14 @@ impl HtmlDocument
         .nodes[child].prevSibling   = previous
         .nodes[child].nextSibling   = sibling
         .nodes[sibling].prevSibling = child
-        if previous != HtmlNoNode do
+        if previous != HtmlNoNode
+        {
             .nodes[previous].nextSibling = child
-        else do
+        }
+        else
+        {
             .nodes[parent].firstChild = child
+        }
     }
 
     mtd node(index: u32)->*HtmlNode => &.nodes[index]
@@ -846,16 +868,24 @@ impl HtmlDocument
             // A class is a run inside the value that is already interned, so the index costs no
             // text of its own.
             let text  = .text(value)
-            var start = 0'u64
+            var start = 0_u64
             while start < text.count
             {
-                while start < text.count and Latin1.isSpace(text[start]) do
+                while start < text.count and Latin1.isSpace(text[start])
+                {
                     start += 1
+                }
+
                 var end = start
-                while end < text.count and not Latin1.isSpace(text[end]) do
+                while end < text.count and not Latin1.isSpace(text[end])
+                {
                     end += 1
-                if end == start do
+                }
+
+                if end == start
+                {
                     break
+                }
 
                 .classPool.add(HtmlRange{value.start + cast(u32, start), cast(u32, (end - start))})
                 .nodes[element].classes.count += 1
@@ -875,8 +905,11 @@ impl HtmlDocument
     mtd const name(element: u32)->string
     {
         let node = &.nodes[element]
-        if node.kind != .Element do
+        if node.kind != .Element
+        {
             return ""
+        }
+
         return node.tag == .Unknown ? .text(node.text) : HtmlDocument.tagName(node.tag)
     }
 
@@ -900,24 +933,33 @@ impl HtmlDocument
     // Returns an attribute value, or an empty string when the element does not carry it.
     mtd const attribute(element: u32, name: string)->string
     {
-        for attribute in .attributes(element) where .text(attribute.name) == name do
+        for attribute in .attributes(element) where .text(attribute.name) == name
+        {
             return .text(attribute.value)
+        }
+
         return ""
     }
 
     // Reports whether an element carries an attribute, whatever its value.
     mtd const hasAttribute(element: u32, name: string)->bool
     {
-        for attribute in .attributes(element) where .text(attribute.name) == name do
+        for attribute in .attributes(element) where .text(attribute.name) == name
+        {
             return true
+        }
+
         return false
     }
 
     // Reports whether an element carries a class.
     mtd const hasClass(element: u32, name: string)->bool
     {
-        for value in .classes(element) where .text(value[]) == name do
+        for value in .classes(element) where .text(value[]) == name
+        {
             return true
+        }
+
         return false
     }
 
@@ -928,13 +970,18 @@ impl HtmlDocument
     {
         var result: #returntype
         let parent = .nodes[child].parent
-        if parent == HtmlNoNode do
+        if parent == HtmlNoNode
+        {
             return {index: 1, count: 1}
+        }
+
         for value in .children(parent) where .nodes[value].kind == .Element
         {
             result.count += 1
-            if value == child do
+            if value == child
+            {
                 result.index = result.count
+            }
         }
 
         return result
@@ -959,11 +1006,19 @@ impl HtmlDocument
             return
         }
 
-        if node.kind == .Element and HtmlDocument.isSkippedTag(node.tag) do
+        if node.kind == .Element and HtmlDocument.isSkippedTag(node.tag)
+        {
             return
-        if node.tag == .Style do
+        }
+
+        if node.tag == .Style
+        {
             return
-        for child in .children(index) do
+        }
+
+        for child in .children(index)
+        {
             .appendTextContent(output, child)
+        }
     }
 }

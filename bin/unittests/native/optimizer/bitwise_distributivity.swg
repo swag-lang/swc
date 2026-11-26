@@ -29,7 +29,7 @@ func changedOr(a, b, c: u64)->u64
 
 #test
 {
-    let values = [0'u64, 1, 0xFFFFFFFF, 0x100000000, 0xFFFFFFFFFFFFFFFF, 0x5555555555555555, 0xAAAAAAAAAAAAAAAA]
+    let values = [0_u64, 1, 0xFFFFFFFF, 0x100000000, 0xFFFFFFFFFFFFFFFF, 0x5555555555555555, 0xAAAAAAAAAAAAAAAA]
     for a in values
     {
         for b in values

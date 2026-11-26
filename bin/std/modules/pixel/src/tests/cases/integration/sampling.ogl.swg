@@ -14,9 +14,9 @@ func renderSamplingScene(renderer: IRenderer, scale: f32)->Image
         {
             let pixel  = source.pixels.storage() + cast(u64, ((source.height - y - 1) * source.rowStride + x * 4))
             let border = x == 0 or y == 0 or x == 7 or y == 7
-            pixel[0] = border ? 255'u8 : cast(u8, (x * 28))
-            pixel[1] = border ? 0'u8 : cast(u8, (y * 28))
-            pixel[2] = border ? 255'u8 : cast(u8, ((x + y) * 14))
+            pixel[0] = border ? 255_u8 : cast(u8, (x * 28))
+            pixel[1] = border ? 0_u8 : cast(u8, (y * 28))
+            pixel[2] = border ? 255_u8 : cast(u8, ((x + y) * 14))
             pixel[3] = cast(u8, (64 + x * 20))
         }
     }
@@ -41,9 +41,9 @@ func renderSamplingScene(renderer: IRenderer, scale: f32)->Image
     painter.drawTexture({4, 32, 31, 23}, {1.25, 1.25, 5.5, 5.5}, texture)
 
     // Texture state must not leak into a subsequent solid fill, including transparent RGB.
-    painter.fillRect({40, 32, 35, 23}, Color.fromArgb(0'u8, 80'u8, 120'u8, 160'u8))
+    painter.fillRect({40, 32, 35, 23}, Color.fromArgb(0_u8, 80_u8, 120_u8, 160_u8))
     painter.setBlendingMode(.Alpha)
-    painter.fillRect({4, 60, 31, 16}, Color.fromArgb(128'u8, 120'u8, 80'u8, 40'u8))
+    painter.fillRect({4, 60, 31, 16}, Color.fromArgb(128_u8, 120_u8, 80_u8, 40_u8))
     painter.drawTexture({40, 60, 35, 16}, {1, 1, 6, 6}, texture)
     painter.unbindRenderTarget()
     painter.end()
@@ -54,24 +54,27 @@ func renderSamplingScene(renderer: IRenderer, scale: f32)->Image
 // Reconstructs 4:2:0 chroma across a sharp color edge on an eight-pixel video frame.
 func renderPlanarSamplingScene(renderer: IRenderer, scale: f32)->Image
 {
-    const Width       = 8'u64
-    const Height      = 8'u64
-    const ChromaWidth = 4'u64
+    const Width       = 8_u64
+    const Height      = 8_u64
+    const ChromaWidth = 4_u64
     const PlaneSize   = ChromaWidth * 4
 
-    var storage: Array'u8
+    var storage: Array!{u8}
     storage.resize(Width * Height + PlaneSize * 2)
     let luma    = storage.storage()
     let chromaB = luma + Width * Height
     let chromaR = chromaB + PlaneSize
-    for pixel in Width * Height do
-        luma[pixel] = 126'u8
-    for y in 4'u64
+    for pixel in Width * Height
+    {
+        luma[pixel] = 126_u8
+    }
+
+    for y in 4_u64
     {
         for x in ChromaWidth
         {
-            chromaB[y * ChromaWidth + x] = x < 2 ? 88'u8 : 184'u8
-            chromaR[y * ChromaWidth + x] = y < 2 ? 96'u8 : 168'u8
+            chromaB[y * ChromaWidth + x] = x < 2 ? 88_u8 : 184_u8
+            chromaR[y * ChromaWidth + x] = y < 2 ? 96_u8 : 168_u8
         }
     }
 
@@ -117,7 +120,7 @@ func renderPlanarSamplingScene(renderer: IRenderer, scale: f32)->Image
     var cpu:       RenderCpu
     let reference: IRenderer = &cpu
     reference.init()
-    for scale in [1.0'f32, 1.25, 1.5, 2.0]
+    for scale in [1.0_f32, 1.25, 1.5, 2.0]
     {
         let expected = renderSamplingScene(reference, scale)
         let actual   = renderSamplingScene(gpu, scale)
@@ -127,7 +130,7 @@ func renderPlanarSamplingScene(renderer: IRenderer, scale: f32)->Image
         Testing.assertImagesNear(&expected, &actual, "sampling.ogl", {maxChannelDelta: 3})
     }
 
-    for scale in [1.0'f32, 2.0]
+    for scale in [1.0_f32, 2.0]
     {
         let planarExpected = renderPlanarSamplingScene(reference, scale)
         let planarActual   = renderPlanarSamplingScene(gpu, scale)

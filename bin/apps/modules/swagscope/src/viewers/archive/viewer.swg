@@ -10,13 +10,17 @@ private const TreeWidth = 380.0
 // Directory rows carry no entry payload, including empty explicit directories.
 func compareTreeLines(a, b: *ListLine?, column: u32, descending: bool)->s32
 {
-    if not a or not b do
+    if not a or not b
+    {
         return 0
+    }
 
     let aFolder = a.userData0 == null
     let bFolder = b.userData0 == null
-    if aFolder != bFolder do
+    if aFolder != bFolder
+    {
         return aFolder ? -1 : 1
+    }
 
     let sortColumn = column < a.items.count and column < b.items.count ? column : 0
     let aItem      = a.itemAt(sortColumn)
@@ -24,8 +28,11 @@ func compareTreeLines(a, b: *ListLine?, column: u32, descending: bool)->s32
     let aText      = aItem.sortKey.isEmpty() ? &aItem.name.text : &aItem.sortKey
     let bText      = bItem.sortKey.isEmpty() ? &bItem.name.text : &bItem.sortKey
     var result     = Text.compareNames(aText[], bText[])
-    if descending do
+    if descending
+    {
         result *= -1
+    }
+
     return result
 }
 
@@ -35,17 +42,26 @@ func compareTreeLines(a, b: *ListLine?, column: u32, descending: bool)->s32
 // its end record.
 private func pluginProbe(content: Viewer.ProbeContent)->bool
 {
-    if content.head.count >= 2 and content.head[0] == 0x1F and content.head[1] == 0x8B do
+    if content.head.count >= 2 and content.head[0] == 0x1F and content.head[1] == 0x8B
+    {
         return true
+    }
+
     if content.head.count >= 262 and
        content.head[257] == 'u' and
        content.head[258] == 's' and
        content.head[259] == 't' and
        content.head[260] == 'a' and
-       content.head[261] == 'r' do
+       content.head[261] == 'r'
+    {
         return true
-    if not content.startsWith("PK") or content.head.count < 4 do
+    }
+
+    if not content.startsWith("PK") or content.head.count < 4
+    {
         return false
+    }
+
     return (content.head[2] == 3 and content.head[3] == 4) or (content.head[2] == 5 and content.head[3] == 6)
 }
 
@@ -115,10 +131,16 @@ impl ZipEntryExtract
 
     mtd retire()->bool
     {
-        if not .started do
+        if not .started
+        {
             return true
-        if not .isDone() do
+        }
+
+        if not .isDone()
+        {
             return false
+        }
+
         .wait()
         return true
     }
@@ -151,8 +173,8 @@ struct Panel
 
     late embedded:      Viewer.Embedded
     archive:            Zip
-    entryLines:         Array'(*ListLine?)
-    load:               Viewer.BackgroundLoad'Zip
+    entryLines:         Array!{*ListLine?}
+    load:               Viewer.BackgroundLoad!{Zip}
     extract:            ZipEntryExtract
     previewTimer:       *Timer?
     pendingPreview:     u64 = Swag.U64.Max
@@ -212,8 +234,10 @@ private impl IWnd for Panel
         if evt.kind == .LanguageChanged
         {
             .retranslate()
-            if not .archive.entries.isEmpty() do
+            if not .archive.entries.isEmpty()
+            {
                 .publishArchiveDetails()
+            }
         }
 
         .wnd.IWnd.onNotifyEvent(evt)
@@ -240,8 +264,11 @@ private impl Panel
     mtd lineGlyph(path: string, isDirectory: bool)->Icon
     {
         var result = .theme().fileGlyph(path, isDirectory, themeRowIconSize(.themeMetrics()))
-        if result.color.a == 0 do
+        if result.color.a == 0
+        {
             result.color = .themeColors().softText
+        }
+
         return result
     }
 
@@ -256,16 +283,19 @@ private impl Panel
         .entryLines.clear()
         .entryLines.resize(.archive.entries.count)
 
-        var folders: HashTable'(String, *ListLine)
+        var folders: HashTable!{String, *ListLine}
         for &entry, entryIndex in .archive.entries
         {
-            let parts = Tokenize.split(entry.path, '/'rune)
+            let parts = Tokenize.split(entry.path, '/'_rune)
             var prefix: String
             var parent: *ListLine?
             for part, partIndex in parts where part.count
             {
-                if not prefix.isEmpty() do
-                    prefix += '/'u8
+                if not prefix.isEmpty()
+                {
+                    prefix += '/'_u8
+                }
+
                 prefix += part
                 let isLeaf = partIndex + 1 == parts.count
                 if not isLeaf or entry.isDirectory
@@ -280,8 +310,11 @@ private impl Panel
                     let line = .list.createLine(part, .lineGlyph(prefix, true), parent)
                     folders.add(prefix, line)
                     parent = line
-                    if isLeaf do
+                    if isLeaf
+                    {
                         .entryLines[entryIndex] = line
+                    }
+
                     continue
                 }
 
@@ -294,45 +327,63 @@ private impl Panel
             }
         }
 
-        var roots: Array'(*ListLine)
+        var roots: Array!{*ListLine}
         let rootCount = .list.lineCount()
         for index in rootCount
         {
             let line = .list.lineAt(index)
-            if line!.canExpand() do
+            if line!.canExpand()
+            {
                 roots.add(line)
+            }
         }
 
-        for line in roots do
+        for line in roots
+        {
             .list.expand(line)
+        }
+
         .list.sort(0, persistent: true)
         .list.computeLayout()
-        if .archive.entries.isEmpty() do
+        if .archive.entries.isEmpty()
+        {
             .showPreviewStatus(texts().ui_Empty)
-        else do
+        }
+        else
+        {
             .showPreviewStatus(texts().ui_Select)
+        }
+
         .publishArchiveDetails()
     }
 
     mtd selectedEntryIndex()->u64
     {
         let line = .list.selectedLine()
-        if not line or not line.userData0 do
+        if not line or not line.userData0
+        {
             return Swag.U64.Max
+        }
+
         return cast(u64, line.userData0) - 1
     }
 
     mtd previewSelectedEntry()
     {
         let index = .selectedEntryIndex()
-        if index != Swag.U64.Max do
+        if index != Swag.U64.Max
+        {
             .requestPreview(index)
+        }
     }
 
     internal mtd requestPreview(index: u64)
     {
-        if index >= .archive.entries.count or .archive.entries[index].isDirectory do
+        if index >= .archive.entries.count or .archive.entries[index].isDirectory
+        {
             return
+        }
+
         .splitter.setPaneVisible(0, false)
         .splitter.setPaneVisible(1, true)
         .splitter.applyLayout()
@@ -341,8 +392,11 @@ private impl Panel
         .entryName.setText(.archive.entries[index].path)
         .returnBar.show()
         .applyLayout()
-        if not .returningToEntries and (index == .pendingPreview or index == .activePreview) do
+        if not .returningToEntries and (index == .pendingPreview or index == .activePreview)
+        {
             return
+        }
+
         .returningToEntries = false
         .pendingPreview     = index
         .showPreviewStatus(texts().ui_Previewing)
@@ -354,17 +408,25 @@ private impl Panel
     // the next turn of the event loop.
     mtd retryPreview()
     {
-        if not .awaitingRetirement do
+        if not .awaitingRetirement
+        {
             return
+        }
+
         .awaitingRetirement = false
-        if not .previewTimer do
-            .previewTimer = .addTimer(1'ms)
+        if not .previewTimer
+        {
+            .previewTimer = .addTimer(1_ms)
+        }
     }
 
     mtd clearPreviewFile()
     {
-        if .previewFile.isEmpty() do
+        if .previewFile.isEmpty()
+        {
             return
+        }
+
         catch File.delete(.previewFile)
         .previewFile.clear()
         .activePreview = Swag.U64.Max
@@ -378,13 +440,18 @@ private impl Panel
     // that is still retiring ends its work with a task event below it.
     mtd continuePreview()
     {
-        if .retiring do
+        if .retiring
+        {
             return
+        }
 
         if .returningToEntries
         {
-            if not .extract.retire() do
+            if not .extract.retire()
+            {
                 return
+            }
+
             if not .embedded.retire()
             {
                 .awaitingRetirement = true
@@ -398,8 +465,11 @@ private impl Panel
 
         if .extract.started
         {
-            if not .extract.isDone() do
+            if not .extract.isDone()
+            {
                 return
+            }
+
             let error = .extract.finish()
             if not error.isEmpty()
             {
@@ -427,8 +497,10 @@ private impl Panel
             }
         }
 
-        if .pendingPreview == Swag.U64.Max do
+        if .pendingPreview == Swag.U64.Max
+        {
             return
+        }
 
         if not .embedded.retire()
         {
@@ -443,8 +515,11 @@ private impl Panel
         let entry     = &.archive.entries[index]
         var extension = String.from(Path.extension(entry.path) orelse ".bin")
         let safeName  = Format.toString("entry%", extension)
-        if extension.length > 24 or not Path.isValidFileName(safeName) do
+        if extension.length > 24 or not Path.isValidFileName(safeName)
+        {
             extension = ".bin"
+        }
+
         var tempName = Format.toString("swagscope-archive-%", Guid64.random())
         tempName     += extension
         .previewFile = Path.combine(Env.getSpecialDirectory(.Temp), tempName)
@@ -462,13 +537,18 @@ private impl Panel
     // entry has no line in the tree.
     internal mtd revealMatch(match: Viewer.SearchMatch, _: string)->bool
     {
-        if match.major >= .entryLines.count do
+        if match.major >= .entryLines.count
+        {
             return false
-        let line = .entryLines[match.major]
-        if not line do
-            return false
+        }
 
-        var chain: Array'(*ListLine)
+        let line = .entryLines[match.major]
+        if not line
+        {
+            return false
+        }
+
+        var chain: Array!{*ListLine}
         var parent = line.parent
         while parent
         {
@@ -476,8 +556,10 @@ private impl Panel
             parent = parent.parent
         }
 
-        for folder in chain.reversed() do
+        for folder in chain.reversed()
+        {
             .list.expand(folder)
+        }
 
         for index in .list.lineCount() where .list.lineAt(index) == line
         {
@@ -496,20 +578,28 @@ private impl Panel
     // name in the tree.
     internal mtd searchBounds(result: *Math.Rectangle)->bool
     {
-        if .list.focusIndex >= .list.lineCount() do
+        if .list.focusIndex >= .list.lineCount()
+        {
             return false
+        }
+
         let line = .list.lineAt(.list.focusIndex)
-        if not line or line.items.isEmpty() do
+        if not line or line.items.isEmpty()
+        {
             return false
+        }
+
         let name = line.items[0]!.name.text.toString()
         return Viewer.listCellMatchBounds(.list, .list.focusIndex, 0, name, 0, name.count, result)
     }
 
-    internal mtd collectMatches(text: string, options: Viewer.SearchOptions, result: *Array'Viewer.SearchMatch)
+    internal mtd collectMatches(text: string, options: Viewer.SearchOptions, result: *Array!{Viewer.SearchMatch})
     {
         var matcher = catch Viewer.createNameMatcher(text, options) { return; }
-        for &entry, index in .archive.entries do
+        for &entry, index in .archive.entries
+        {
             Viewer.collectTextMatches(entry.path, &matcher, index, 0, 0, result)
+        }
     }
 
     internal mtd clearSearch()
@@ -528,15 +618,20 @@ private impl Panel
         .list.header.itemAt(0).name = texts().ui_ColName
         .list.header.itemAt(1).name = texts().ui_ColSize
         .list.header.invalidate()
-        if .activePreview == Swag.U64.Max and not .extract.started do
+        if .activePreview == Swag.U64.Max and not .extract.started
+        {
             .showPreviewStatus(.archive.entries.isEmpty() and not .load.isPending() ? texts().ui_Empty : texts().ui_Select)
+        }
     }
 
     mtd retire()->bool
     {
         .retiring = true
-        if not .load.retire() or not .extract.retire() or not .embedded.retire() do
+        if not .load.retire() or not .extract.retire() or not .embedded.retire()
+        {
             return false
+        }
+
         .stopTimer(&.previewTimer)
 
         .clearPreviewFile()
@@ -549,7 +644,7 @@ private impl Panel
     {
         let services = host.services()
 
-        with let result = Wnd.create'Panel(host.contentParent(), "scope.archive")
+        with let result = Wnd.create!{Panel}(host.contentParent(), "scope.archive")
         {
             .backgroundStyle = .View
             .sourceFile      = host.fileName()
@@ -580,7 +675,7 @@ private impl Panel
         result.splitter.addPane(result.previewPane).minimumSize = 0
         result.splitter.setPaneVisible(1, false)
         result.splitter.flags = .HideDividers
-        with result.returnBar = Wnd.create'Wnd(result, {0, 0, 0, 36})
+        with result.returnBar = Wnd.create!{Wnd}(result, {0, 0, 0, 36})
         {
             .dockStyle       = .Top
             .backgroundStyle = .Transparent
@@ -618,8 +713,11 @@ private impl Panel
 
         result.hookOnChildEvent = func|viewer = result|(_, evt)
         {
-            if evt is TaskEvent do
+            if evt is TaskEvent
+            {
                 viewer.retryPreview()
+            }
+
             return false
         }
 
@@ -631,7 +729,7 @@ private impl Panel
     // Creates the entry tree. Double-click or Enter opens a file; selection only selects it.
     mtd createEntryTree()
     {
-        with .treePane = Wnd.create'Wnd(me.splitter)
+        with .treePane = Wnd.create!{Wnd}(me.splitter)
         {
             .backgroundStyle = .Transparent
             .padding         = {8, 8, 8, 8}
@@ -677,7 +775,7 @@ private impl Panel
     // Creates the preview pane, which hosts the embedded viewer under a status label.
     mtd createPreviewPane(host: Viewer.Host)
     {
-        with .previewPane = Wnd.create'Wnd(me.splitter)
+        with .previewPane = Wnd.create!{Wnd}(me.splitter)
         {
             .backgroundStyle = .View
         }

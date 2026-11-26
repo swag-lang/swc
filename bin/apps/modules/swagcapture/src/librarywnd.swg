@@ -6,7 +6,7 @@ const LibButtonGap = 12.0
 // The page of the library: a title over its folders as tabs and its tags as chips, the quiet menus
 // and the search beside the title, the captures under them on the window ground.
 const LibraryPageMargin  = 72.0       // Air between the page and the side edges of the window.
-const LibraryTitleSize   = 48'u32     // Size of the page title.
+const LibraryTitleSize   = 48_u32     // Size of the page title.
 const LibraryTitleRow    = 72.0       // Height of the row of the title, the menus and the search.
 const LibraryTabsRow     = 40.0       // Height of the row of the folder tabs and the tag chips.
 const LibraryHeaderGap   = 24.0       // Air between the header and the first row of captures.
@@ -129,22 +129,22 @@ struct LibraryWnd
 
     // The folder each tab opens, in the order of the tabs, and what the tabs of the sub-folders
     // counted last.
-    tabFolders:   Array'String
-    folderCounts: Array'LibraryFolderCount
+    tabFolders:   Array!{String}
+    folderCounts: Array!{LibraryFolderCount}
     updatingTabs: bool
 
     // The folders the lens offered last, which its rows open.
-    lensFolders: Array'String
+    lensFolders: Array!{String}
 
     // The applications and the tags the lens offered last, which its rows narrow the page to.
-    lensNames: Array'String
+    lensNames: Array!{String}
 
     // The applications and the tags the filter sheet offers, which its choices narrow the page to.
-    applicationChoices: Array'String
-    tagChoices:         Array'String
+    applicationChoices: Array!{String}
+    tagChoices:         Array!{String}
 
     // The dates the captures were taken on, newest first, offered by the lens.
-    dateFilters: Array'LibraryDateFilter
+    dateFilters: Array!{LibraryDateFilter}
 
     previewSize: PreviewSize
 
@@ -152,8 +152,8 @@ struct LibraryWnd
     trashMode:  bool
     curFolder:  String
 
-    sidebarApplications: Array'LibraryNamedFilter
-    sidebarTags:         Array'LibraryNamedFilter
+    sidebarApplications: Array!{LibraryNamedFilter}
+    sidebarTags:         Array!{LibraryNamedFilter}
 
     invertSort:               bool
     sortMethod:               SortMethod
@@ -172,7 +172,7 @@ struct LibraryWnd
     showRatingOverlay:        bool = true
     showLinkOverlay:          bool = true
 
-    exportFiles:  Array'String
+    exportFiles:  Array!{String}
     exportFolder: String
     exportIndex:  u64
     exportJob:    *CaptureLoadJob?
@@ -228,7 +228,7 @@ impl IWnd for LibraryWnd
         if capture.canCopyOriginalVideo()
         {
             let name = Format.toString("%.mp4", Path.fileNameWithoutExtension(file) orelse "capture")
-            let copy = Memory.new'CaptureVideoCopyJob()
+            let copy = Memory.new!{CaptureVideoCopyJob}()
             copy.source   = Capture.mediaPathOf(file, .Video)
             copy.target   = Library.uniqueName(.exportFolder, name)
             .videoCopyJob = copy
@@ -281,8 +281,11 @@ impl IWnd for LibraryWnd
             .exportJob = null
             job.task.cancel()
             job.task.wait()
-            if job.capture do
+            if job.capture
+            {
                 Memory.delete(job.capture)
+            }
+
             Memory.delete(job)
         }
     }
@@ -301,8 +304,10 @@ impl IWnd for LibraryWnd
     // driven by a command already refreshes itself through the command state.
     mtd impl onNotifyEvent(evt: *NotifyEvent)
     {
-        if evt.kind == .LanguageChanged do
+        if evt.kind == .LanguageChanged
+        {
             .applyLanguage()
+        }
     }
 }
 
@@ -313,8 +318,10 @@ impl LibraryWnd
 
     mtd applyLanguage()
     {
-        if .viewBtn == null do
+        if .viewBtn == null
+        {
             return
+        }
 
         .viewBtn.setQuietText(appStrings().ui_BarView)
         .filterBtn.setQuietText(appStrings().ui_BarFilter)
@@ -349,8 +356,11 @@ impl LibraryWnd
 
     mtd getCapture()->*Capture?
     {
-        if not .trashMode and .view.focusItem < .view.items.count do
+        if not .trashMode and .view.focusItem < .view.items.count
+        {
             return .view.items[.view.focusItem].capture
+        }
+
         return null
     }
 
@@ -365,12 +375,18 @@ impl LibraryWnd
     // the first time.
     mtd fill()
     {
-        if not g_Library.loaded do
+        if not g_Library.loaded
+        {
             g_Library.fill()
+        }
+
         .main.startVideoRecovery()
 
-        if .filledOnce and .filledRevision == g_Library.revision do
+        if .filledOnce and .filledRevision == g_Library.revision
+        {
             return
+        }
+
         .filledOnce = true
 
         if not .deleteObserverRegistered
@@ -398,11 +414,11 @@ impl LibraryWnd
     // Registers the command families of the library and its keyboard navigation.
     mtd registerActions()
     {
-        .registerAction'ActionLibSort()
-        .registerAction'ActionLibFilter()
-        .registerAction'ActionLibSel()
-        .registerAction'ActionLibTrash()
-        .registerAction'ActionLibView()
+        .registerAction!{ActionLibSort}()
+        .registerAction!{ActionLibFilter}()
+        .registerAction!{ActionLibSel}()
+        .registerAction!{ActionLibTrash}()
+        .registerAction!{ActionLibView}()
 
         .registerKeyShortcut(.None, .Left, ActionLibSel.Left)
         .registerKeyShortcut(.None, .Right, ActionLibSel.Right)
@@ -420,8 +436,10 @@ impl LibraryWnd
         .registerKeyShortcut(.None, .Oem2, ActionLibSel.Search)
         .registerKeyShortcut(.Control, .F, ActionLibSel.Search)
         .registerKeyShortcut(.None, .Divide, ActionLibSel.Search)
-        for id, rating in RatingCommandIds do
+        for id, rating in RatingCommandIds
+        {
             .registerKeyShortcut(.None, ratingKey(cast(u8, rating)), id)
+        }
     }
 
     // Teaches the keys of the page on its hint line: open, delete, rename, rate and search the
@@ -476,16 +494,23 @@ impl LibraryWnd
     // follows, since an empty page has no capture to open, delete or rate.
     mtd updateEmptyState()
     {
-        if .hintLine != null do
+        if .hintLine != null
+        {
             .fillHintLine()
+        }
+
         let button = .emptyCapture
-        if not button do
+        if not button
+        {
             return
+        }
 
         let shown = .view.allItems.isEmpty() and not .trashMode and .currentFolder() == Library.getFolder()
         button.show(shown)
-        if not shown do
+        if not shown
+        {
             return
+        }
 
         // Under the sentence that says the library is empty, against the same edge, a line of
         // air below it.
@@ -498,7 +523,7 @@ impl LibraryWnd
     // Builds the library page: the header over the thumbnail grid, on the ground of the window.
     func create(parent: *MainWnd)->*LibraryWnd
     {
-        with let result = Wnd.create'LibraryWnd(parent, "capture.librarywnd")
+        with let result = Wnd.create!{LibraryWnd}(parent, "capture.librarywnd")
         {
             .main            = parent
             .dockStyle       = .Center
@@ -533,7 +558,7 @@ impl LibraryWnd
 
         // The header stands on the page's edges; the grid under it reaches the ring's width past
         // them, so the thumbnails, not their rings, line up with the title.
-        with .header = Wnd.create'Wnd(me, {0, 0, 0, LibraryTopGap + LibraryTitleRow + LibraryTabsRow + LibraryHeaderGap})
+        with .header = Wnd.create!{Wnd}(me, {0, 0, 0, LibraryTopGap + LibraryTitleRow + LibraryTabsRow + LibraryHeaderGap})
         {
             .dockStyle       = .Top
             .backgroundStyle = .Transparent
@@ -542,7 +567,7 @@ impl LibraryWnd
             .margin.z        = LibraryCellRing
         }
 
-        with let titleRow = Wnd.create'Wnd(.header, {0, 0, 0, LibraryTitleRow})
+        with let titleRow = Wnd.create!{Wnd}(.header, {0, 0, 0, LibraryTitleRow})
         {
             .dockStyle       = .Top
             .backgroundStyle = .Transparent
@@ -573,7 +598,7 @@ impl LibraryWnd
             .updateFlags(.Ellipsis)
         }
 
-        with let tabsRow = Wnd.create'Wnd(.header, {0, 0, 0, LibraryTabsRow})
+        with let tabsRow = Wnd.create!{Wnd}(.header, {0, 0, 0, LibraryTabsRow})
         {
             .dockStyle       = .Top
             .backgroundStyle = .Transparent
@@ -607,14 +632,14 @@ impl LibraryWnd
     // The captures themselves, on the ground of the window.
     mtd createCaptureGrid()
     {
-        with .captureHost = Wnd.create'ScrollWnd(me)
+        with .captureHost = Wnd.create!{ScrollWnd}(me)
         {
             .dockStyle       = .Center
             .backgroundStyle = .Transparent
             .margin.w        = me.themeMetrics().hintLine_Bottom + me.themeMetrics().hintLine_Height
         }
 
-        with .view = Wnd.create'LibraryView(me.captureHost)
+        with .view = Wnd.create!{LibraryView}(me.captureHost)
         {
             .libWnd      = me
             .padding     = LibraryCellRing
@@ -681,16 +706,25 @@ impl LibraryWnd
     // Names the page after the folder it shows: the library, its recycle bin, or a browsed folder.
     mtd updateTitle()
     {
-        if .titleLabel == null do
+        if .titleLabel == null
+        {
             return
+        }
 
         let folder = .currentFolder()
-        if folder == Library.getFolder() do
+        if folder == Library.getFolder()
+        {
             .titleLabel.setText(appStrings().act_Library)
-        elif .trashMode do
+        }
+        else if .trashMode
+        {
             .titleLabel.setText(appStrings().act_RecycleBin)
-        else do
+        }
+        else
+        {
             .titleLabel.setText(Path.fileName(folder) orelse folder.toString())
+        }
+
         .fitTitleRow()
     }
 
@@ -699,23 +733,29 @@ impl LibraryWnd
     // does the title end with an ellipsis rather than run under the menus.
     mtd fitTitleRow()
     {
-        if .titleLabel == null or .searchEdit == null or .commandBar == null do
+        if .titleLabel == null or .searchEdit == null or .commandBar == null
+        {
             return
+        }
 
         let row   = .clientRect().width - .padding.x - .padding.z - 2 * LibraryCellRing
         let menus = .commandBar.itf.measureContent({}).x
         let title = Math.ceil(Painter.measureString(.titleLabel.text(), unwrap .titleLabel.font().regular).width)
         let width = Math.clamp(row - menus - title, LibrarySearchMin, LibrarySearchWidth)
-        if .searchEdit.position.width != width do
+        if .searchEdit.position.width != width
+        {
             .searchEdit.resize(width, .searchEdit.position.height)
+        }
     }
 
     // Lists the folders of the library as tabs, with the count of what each one holds: the whole
     // library first, then its sub-folders, the recycle bin among them.
     mtd updateFolderTabs()
     {
-        if .folderTabs == null do
+        if .folderTabs == null
+        {
             return
+        }
 
         .updatingTabs = true
         defer .updatingTabs = false
@@ -734,7 +774,7 @@ impl LibraryWnd
 
         // Counting a folder lists it and asks the decoders about every file, so a count is kept
         // until the folder is written to or the library changes.
-        var counts: Array'LibraryFolderCount
+        var counts: Array!{LibraryFolderCount}
         let dirs = catch Directory.enumerateDirectories(root) orelse {}
         for d in dirs
         {
@@ -753,10 +793,14 @@ impl LibraryWnd
 
             if count == Swag.U64.Max
             {
-                if isTrash do
+                if isTrash
+                {
                     count = catch Library.enumerateTrash().count orelse 0
-                else do
+                }
+                else
+                {
                     count = catch Library.enumerateSupportedFiles(d.fullName).count orelse 0
+                }
             }
 
             counts.add({d.fullName, d.lastWriteTime, g_Library.revision, count})
@@ -779,8 +823,10 @@ impl LibraryWnd
     // Opens the folder of the tab the reader chose.
     mtd openFolderTab()
     {
-        if .updatingTabs do
+        if .updatingTabs
+        {
             return
+        }
 
         // A copy: opening the folder lists the tabs again, which replaces the paths.
         let index = .folderTabs.selectedIndex
@@ -794,17 +840,23 @@ impl LibraryWnd
     // Offers the first six tags alphabetically as chips; the chip of the tag in force is chosen.
     mtd updateTagChips()
     {
-        if .tagChips == null do
+        if .tagChips == null
+        {
             return
+        }
 
-        for chip in .tagChips.children do
+        for chip in .tagChips.children
+        {
             chip.destroy()
+        }
 
         let metrics = .themeMetrics()
         for tag, i in .sidebarTags
         {
-            if i == LibraryMaxChips do
+            if i == LibraryMaxChips
+            {
                 break
+            }
 
             let name = tag.name.toString()
 
@@ -864,14 +916,20 @@ impl LibraryWnd
         options.title         = makeLibrary ? appStrings().dlg_TitleChooseLibrary : appStrings().dlg_TitleBrowseFolder
 
         let dialog = FileDlg.create(unwrap .main.surface, options)
-        if dialog.doModal() != Dialog.BtnOk do
+        if dialog.doModal() != Dialog.BtnOk
+        {
             return
+        }
 
         let folder = dialog.selectedPath()
-        if makeLibrary do
+        if makeLibrary
+        {
             .setLibraryFolder(folder)
-        else do
+        }
+        else
+        {
             .navigateFolder(folder)
+        }
     }
 
     // Makes `folder` the persistent library root, the default folder when it is empty, and
@@ -912,8 +970,11 @@ impl LibraryWnd
         }
 
         let result = menu.doModal(btn, autoDestroy: true)
-        if not result do
+        if not result
+        {
             return
+        }
+
         switch result
         {
         case "capture.library.root":    .navigateFolder(Library.getFolder())
@@ -934,8 +995,11 @@ impl LibraryWnd
     // default, its recycle bin, or any folder navigated to from a tab or the lens.
     mtd currentFolder()->String
     {
-        if .curFolder.isEmpty() do
+        if .curFolder.isEmpty()
+        {
             return Library.getFolder()
+        }
+
         return .curFolder
     }
 
@@ -944,8 +1008,10 @@ impl LibraryWnd
     // other folder are simply browsed by listing supported items.
     mtd navigateFolder(path: String)
     {
-        if .currentFolder() == path do
+        if .currentFolder() == path
+        {
             return
+        }
 
         .curFolder = path
         .trashMode = Library.getTrashFolder() == path
@@ -967,23 +1033,29 @@ impl LibraryWnd
         var failed: bool
         for name in .selectedCaptureFiles()
         {
-            if not g_Library.removeFile(name.toString()) do
+            if not g_Library.removeFile(name.toString())
+            {
                 failed = true
+            }
         }
 
-        if failed do
+        if failed
+        {
             MessageDlg.error(unwrap .main.surface, appStrings().msg_FailedMoveCaptures)
+        }
     }
 
     // Returns owned copies of the selected, visible file names, so a caller can act on them
     // while refilling the grid moves the items they came from.
-    mtd selectedFiles()->Array'String
+    mtd selectedFiles()->Array!{String}
     {
         var result: #returntype
         for it, i in .view.items where not it.filtered
         {
-            if .view.selModel.isSelected(cast(u32, i)) do
+            if .view.selModel.isSelected(cast(u32, i))
+            {
                 result.add(it.fi.fullName)
+            }
         }
 
         return result
@@ -997,17 +1069,23 @@ impl LibraryWnd
         for name in .selectedFiles()
         {
             let dst = Library.restoreFile(name)
-            if dst.isEmpty() do
+            if dst.isEmpty()
+            {
                 failed = true
-            else do
+            }
+            else
+            {
                 g_Library.addFile(dst)
+            }
         }
 
         catch .view.fill()
         .updateFolderTabs()
         .invalidate()
-        if failed do
+        if failed
+        {
             MessageDlg.error(unwrap .main.surface, appStrings().msg_FailedRestoreCaptures)
+        }
     }
 
     // Erases the selected captures from the recycle bin for good, and says when some of them
@@ -1017,78 +1095,114 @@ impl LibraryWnd
         var failed = false
         for name in .selectedFiles()
         {
-            catch Capture.deleteFiles(name[]) do
+            catch Capture.deleteFiles(name[])
+            {
                 failed = true
+            }
         }
 
         catch .view.fill()
         .updateFolderTabs()
         .invalidate()
-        if failed do
+        if failed
+        {
             MessageDlg.error(unwrap .main.surface, appStrings().msg_FailedDeleteCaptures)
+        }
     }
 
     mtd moveSelHome()
     {
-        if not .view.items.isEmpty() do
+        if not .view.items.isEmpty()
+        {
             .focusCell(0)
+        }
     }
 
     mtd moveSelEnd()
     {
-        if not .view.items.isEmpty() do
+        if not .view.items.isEmpty()
+        {
             .focusCell(cast(u32, .view.items.count) - 1)
+        }
     }
 
     // The arrows walk the grid from the focused cell. Without one, the first arrow starts the walk
     // on the first cell, so the keyboard reaches the grid before anything was clicked.
     mtd moveSelLeft()
     {
-        if .startWalk() do
+        if .startWalk()
+        {
             return
-        if .view.focusItem > 0 do
+        }
+
+        if .view.focusItem > 0
+        {
             .focusCell(.view.focusItem - 1)
+        }
     }
 
     mtd moveSelRight()
     {
-        if .startWalk() do
+        if .startWalk()
+        {
             return
-        if .view.focusItem + 1 < .view.items.count do
+        }
+
+        if .view.focusItem + 1 < .view.items.count
+        {
             .focusCell(.view.focusItem + 1)
+        }
     }
 
     mtd moveSelTop()
     {
-        if .startWalk() do
+        if .startWalk()
+        {
             return
+        }
+
         let n = .view.numImagesPerLine()
-        if .view.focusItem >= n do
+        if .view.focusItem >= n
+        {
             .focusCell(.view.focusItem - n)
+        }
     }
 
     // A shorter last row has no cell under the focused one: Down lands on its last cell, as the
     // nearest one below.
     mtd moveSelBottom()
     {
-        if .startWalk() do
+        if .startWalk()
+        {
             return
+        }
+
         let n    = .view.numImagesPerLine()
         let last = cast(u32, .view.items.count) - 1
-        if .view.focusItem + n <= last do
+        if .view.focusItem + n <= last
+        {
             .focusCell(.view.focusItem + n)
-        elif .view.focusItem / n < last / n do
+        }
+        else if .view.focusItem / n < last / n
+        {
             .focusCell(last)
+        }
     }
 
     // Focuses the first cell when none is focused, and returns whether it did; an empty grid or
     // a focus beyond it (for a moment, while the grid is rebuilt) leaves nothing to walk.
     private mtd startWalk()->bool
     {
-        if .view.items.isEmpty() do
+        if .view.items.isEmpty()
+        {
             return true
-        if .view.focusItem < .view.items.count do
+        }
+
+        if .view.focusItem < .view.items.count
+        {
             return false
+        }
+
         .focusCell(0)
         return true
     }
@@ -1099,37 +1213,56 @@ impl LibraryWnd
         .view.scrollToFocus()
     }
 
-    mtd selectedCaptureFiles()->Array'String
+    mtd selectedCaptureFiles()->Array!{String}
     {
         var result: #returntype
-        for item, i in .view.items where item.kind == .Capture and .view.selModel.isSelected(cast(u32, i)) do
+        for item, i in .view.items where item.kind == .Capture and .view.selModel.isSelected(cast(u32, i))
+        {
             result.add(item.fi.fullName)
+        }
+
         return result
     }
 
-    mtd refreshPreviewMetadata(file: String, tags: const *Array'String? = null, favorite: const *bool? = null, rating: const *u8? = null)
+    mtd refreshPreviewMetadata(file: String, tags: const *Array!{String}? = null, favorite: const *bool? = null, rating: const *u8? = null)
     {
         .view.mutexLoaded.lock()
         defer .view.mutexLoaded.unlock()
         for item in .view.allItems where item!.capture and item.fi.fullName == file
         {
-            if tags do
+            if tags
+            {
                 item.capture!.tags = tags[]
-            if favorite do
+            }
+
+            if favorite
+            {
                 item.capture!.favorite = favorite[]
-            if rating do
+            }
+
+            if rating
+            {
                 item.capture!.rating = rating[]
+            }
         }
 
         let active = .main.editWnd.getCapture()
         if active and active.file == file
         {
-            if tags do
+            if tags
+            {
                 active.tags = tags[]
-            if favorite do
+            }
+
+            if favorite
+            {
                 active.favorite = favorite[]
-            if rating do
+            }
+
+            if rating
+            {
                 active.rating = rating[]
+            }
         }
 
         g_DirtyList = true
@@ -1137,7 +1270,7 @@ impl LibraryWnd
     }
 
     // Queues a metadata edit in the file-writer lane, then updates the visible preview.
-    mtd updateMetadata(file: String, tags: const *Array'String? = null, favorite: const *bool? = null, rating: const *u8? = null)
+    mtd updateMetadata(file: String, tags: const *Array!{String}? = null, favorite: const *bool? = null, rating: const *u8? = null)
     {
         .main.queueCaptureMetadata(file, tags: tags, favorite: favorite, rating: rating)
         .refreshPreviewMetadata(file, tags, favorite, rating)
@@ -1148,8 +1281,10 @@ impl LibraryWnd
     mtd editSelectedTags()
     {
         let files = .selectedCaptureFiles()
-        if files.isEmpty() do
+        if files.isEmpty()
+        {
             return
+        }
 
         var text: String
         if files.count == 1
@@ -1158,8 +1293,11 @@ impl LibraryWnd
             {
                 for tag in item.capture.tags
                 {
-                    if not text.isEmpty() do
+                    if not text.isEmpty()
+                    {
                         text += ", "
+                    }
+
                     text += tag[]
                 }
             }
@@ -1170,25 +1308,37 @@ impl LibraryWnd
         options.message = appStrings().ui_CommaSeparatedTags
         options.text    = text
         let dialog = EditDlg.createSingleLine(unwrap .main.surface, options)
-        if dialog.doModal() != Dialog.BtnOk do
+        if dialog.doModal() != Dialog.BtnOk
+        {
             return
+        }
 
-        var tags: Array'String
-        for part in Tokenize.split(dialog.text(), ','u8, removeEmpty: true)
+        var tags: Array!{String}
+        for part in Tokenize.split(dialog.text(), ','_u8, removeEmpty: true)
         {
             var tag = String.from(part)
             tag.trim()
-            if tag.isEmpty() do
+            if tag.isEmpty()
+            {
                 continue
+            }
+
             var exists = false
-            for own in tags where Utf8.compare(own.toSlice(), tag, .Latin1NoCase) == 0 do
+            for own in tags where Utf8.compare(own.toSlice(), tag, .Latin1NoCase) == 0
+            {
                 exists = true
-            if not exists do
+            }
+
+            if not exists
+            {
                 tags.add(#move tag)
+            }
         }
 
-        for file in files do
+        for file in files
+        {
             .updateMetadata(file, tags: &tags)
+        }
     }
 
     mtd toggleSelectedFavorite()
@@ -1197,18 +1347,24 @@ impl LibraryWnd
         var favorite = false
         for item, i in .view.items
         {
-            if item.capture and .view.selModel.isSelected(cast(u32, i)) and not item.capture.favorite do
+            if item.capture and .view.selModel.isSelected(cast(u32, i)) and not item.capture.favorite
+            {
                 favorite = true
+            }
         }
 
-        for file in files do
+        for file in files
+        {
             .updateMetadata(file, favorite: &favorite)
+        }
     }
 
     mtd rateSelected(value: u8)
     {
-        for file in .selectedCaptureFiles() do
+        for file in .selectedCaptureFiles()
+        {
             .updateMetadata(file, rating: &value)
+        }
     }
 
     mtd exportCapture(file: String, folder: String) fail
@@ -1248,8 +1404,10 @@ impl LibraryWnd
     mtd moveSelected()
     {
         let files = .selectedFiles()
-        if files.isEmpty() do
+        if files.isEmpty()
+        {
             return
+        }
 
         let initialFolder = .currentFolder()
         var options: FileDlgOptions
@@ -1259,22 +1417,30 @@ impl LibraryWnd
         options.title             = appStrings().dlg_TitleMoveCaptures
         options.confirmButtonText = appStrings().dlg_BtnMove
         let dialog = FileDlg.create(unwrap .main.surface, options)
-        if dialog.doModal() != Dialog.BtnOk do
+        if dialog.doModal() != Dialog.BtnOk
+        {
             return
+        }
 
         let folder = dialog.selectedPath()
-        if folder == initialFolder do
+        if folder == initialFolder
+        {
             return
+        }
 
         Cursor.activateWait()
         var failed = false
-        for name in files where g_Library.moveTo(name, folder).isEmpty() do
+        for name in files where g_Library.moveTo(name, folder).isEmpty()
+        {
             failed = true
+        }
 
         catch .view.fill()
         .invalidate()
-        if failed do
+        if failed
+        {
             MessageDlg.error(.main.surface, appStrings().msg_FailedMoveCaptures)
+        }
     }
 
     // Asks for a folder and writes each selected capture in its media format.
@@ -1287,8 +1453,10 @@ impl LibraryWnd
         }
 
         let files = .selectedCaptureFiles()
-        if files.isEmpty() do
+        if files.isEmpty()
+        {
             return
+        }
 
         let initialFolder = .currentFolder()
         var options: FileDlgOptions
@@ -1298,17 +1466,22 @@ impl LibraryWnd
         options.title             = appStrings().dlg_TitleExportCaptures
         options.confirmButtonText = appStrings().dlg_BtnExport
         let dialog = FileDlg.create(unwrap .main.surface, options)
-        if dialog.doModal() != Dialog.BtnOk do
+        if dialog.doModal() != Dialog.BtnOk
+        {
             return
+        }
 
         .beginExport(files, dialog.selectedPath())
     }
 
     // Starts one ordered export from an owned selection and destination.
-    mtd beginExport(files: Array'String, folder: String)
+    mtd beginExport(files: Array!{String}, folder: String)
     {
-        if .exporting or files.isEmpty() do
+        if .exporting or files.isEmpty()
+        {
             return
+        }
+
         .exportFiles  = files
         .exportFolder = folder
         .exportIndex  = 0
@@ -1319,8 +1492,11 @@ impl LibraryWnd
 
     private mtd startNextExport()
     {
-        if not .exporting or .exportJob or .videoCopyJob do
+        if not .exporting or .exportJob or .videoCopyJob
+        {
             return
+        }
+
         if .exportIndex >= .exportFiles.count
         {
             .finishExport(completed: true)
@@ -1329,16 +1505,22 @@ impl LibraryWnd
 
         let file   = .exportFiles[.exportIndex]
         let failed = g_CaptureSaves.collect()
-        if not failed.isEmpty() do
+        if not failed.isEmpty()
+        {
             .main.reportFailure(Format.toString(appStrings().msg_FailedSaveCapture, failed))
+        }
+
         if g_CaptureSaves.writing(file)
         {
-            if not .exportTimer do
-                .exportTimer = .addTimer(16'ms)
+            if not .exportTimer
+            {
+                .exportTimer = .addTimer(16_ms)
+            }
+
             return
         }
 
-        let job = Memory.new'CaptureLoadJob()
+        let job = Memory.new!{CaptureLoadJob}()
         job.file   = file
         .exportJob = job
         job.task.submit(func|job|()
@@ -1355,8 +1537,10 @@ impl LibraryWnd
         .exportFolder.clear()
         .exportIndex = 0
         .exporting   = false
-        if completed do
+        if completed
+        {
             .main.confirm(appStrings().msg_ExportedCaptures)
+        }
     }
 }
 
@@ -1365,11 +1549,11 @@ impl LibraryWnd
 {
     // Counts the loaded captures per source application and per tag, in one pass over the
     // library, for the sidebar groups. Both lists are sorted by name.
-    mtd collectNamedFilters()->{applications: Array'LibraryNamedFilter, tags: Array'LibraryNamedFilter}
+    mtd collectNamedFilters()->{applications: Array!{LibraryNamedFilter}, tags: Array!{LibraryNamedFilter}}
     {
         // Counts one more capture under `name`, combining case variants through the lookup key.
-        func count(entries: *Array'LibraryNamedFilter,
-                   index: *HashSet'LibraryNamedFilterKey,
+        func count(entries: *Array!{LibraryNamedFilter},
+                   index: *HashSet!{LibraryNamedFilterKey},
                    name: string,
                    executable: string)
         {
@@ -1379,8 +1563,11 @@ impl LibraryWnd
             {
                 let entry = &entries[found.key.index]
                 entry.count += 1
-                if entry.executable.isEmpty() and executable.count != 0 do
+                if entry.executable.isEmpty() and executable.count != 0
+                {
                     entry.executable = executable
+                }
+
                 return
             }
 
@@ -1388,23 +1575,30 @@ impl LibraryWnd
         }
 
         var result:       #returntype
-        var applications: HashSet'LibraryNamedFilterKey
-        var tags:         HashSet'LibraryNamedFilterKey
+        var applications: HashSet!{LibraryNamedFilterKey}
+        var tags:         HashSet!{LibraryNamedFilterKey}
         for item in .view.allItems
         {
             .view.mutexLoaded.lock()
             let capture = item!.capture
             .view.mutexLoaded.unlock()
-            if not capture do
+            if not capture
+            {
                 continue
+            }
 
-            if not capture.sourceApplication.isEmpty() do
+            if not capture.sourceApplication.isEmpty()
+            {
                 count(&result.applications,
                       &applications,
                       capture.sourceApplication,
                       capture.sourceExecutable)
-            for tag in capture.tags do
+            }
+
+            for tag in capture.tags
+            {
                 count(&result.tags, &tags, tag[], "")
+            }
         }
 
         result.applications.sort(func(a, b) => Text.compareNames(a.name.toSlice(), b.name.toSlice()))
@@ -1416,11 +1610,17 @@ impl LibraryWnd
     // month and its year.
     func dateFilterLabel(filter: LibraryDateFilter)->String
     {
-        if filter.month == 0 do
+        if filter.month == 0
+        {
             return Format.toString("%", filter.year)
+        }
+
         let month = DateTime.monthName(cast(u8, filter.month))
-        if filter.day == 0 do
+        if filter.day == 0
+        {
             return Format.toString("% %", month, filter.year)
+        }
+
         return Format.toString("% % %", filter.day, month, filter.year)
     }
 
@@ -1478,17 +1678,25 @@ impl LibraryWnd
     mtd refreshAutomaticFilters(force = false)
     {
         var filters = .collectNamedFilters()
-        if not Slice.equals(.sidebarApplications.toSlice(), filters.applications.toSlice()) do
+        if not Slice.equals(.sidebarApplications.toSlice(), filters.applications.toSlice())
+        {
             .sidebarApplications = #move filters.applications
+        }
 
         let tagsChanged = not Slice.equals(.sidebarTags.toSlice(), filters.tags.toSlice())
-        if tagsChanged do
+        if tagsChanged
+        {
             .sidebarTags = #move filters.tags
+        }
 
-        if force do
+        if force
+        {
             .rebuildSidebar()
-        elif tagsChanged do
+        }
+        else if tagsChanged
+        {
             .updateTagChips()
+        }
     }
 
     // Narrows the library to the captures of a date, or shows every date with a zero year.
@@ -1510,10 +1718,15 @@ impl LibraryWnd
         // The commands of the page: those of the selection, how it is shown, what it filters and
         // which folder it reads. They route through the page, where the library registers them.
         .describeCommands(results, query, texts.act_Library, [ActionLibSel.Search])
-        if .trashMode do
+        if .trashMode
+        {
             .describeCommands(results, query, texts.act_Library, [ActionLibTrash.Restore, ActionLibTrash.DeleteForever])
-        else do
+        }
+        else
+        {
             .describeActions(results, query)
+        }
+
         .describeCommands(results, query, texts.ui_BarView, ThumbnailSizeIds)
         .describeCommands(results, query, texts.ui_BarView, SortIds)
         .describeCommands(results, query, texts.ui_BarView, OverlayIds)
@@ -1540,13 +1753,15 @@ impl LibraryWnd
         {
             .describeCommands(results, "", texts.lens_Selection, [ActionLibTrash.Restore, ActionLibTrash.DeleteForever])
         }
-        elif .hasSelected() and .view.focusItem < .view.items.count
+        else if .hasSelected() and .view.focusItem < .view.items.count
         {
             let family  = texts.lens_Selection
             let focused = .view.items[.view.focusItem]
             .describeItemActions(results, "", family, focused)
-            if focused.kind != .Image do
+            if focused.kind != .Image
+            {
                 .describeCommands(results, "", family, [ActionFile.DeleteCapture])
+            }
 
             // The rating is one choice among six, with each value drawn as its familiar star score.
             if focused.kind != .Image
@@ -1579,8 +1794,11 @@ impl LibraryWnd
     // Returns the section of `results` labelled `label`, adding it the first time.
     func sectionOf(results: *Lens.Results, label: string)->*Lens.Section
     {
-        for section in results.sections where section!.label == label do
+        for section in results.sections where section!.label == label
+        {
             return section
+        }
+
         return results.addSection(label)
     }
 
@@ -1590,11 +1808,16 @@ impl LibraryWnd
         for id in ids
         {
             let state = .sendComputeCommandStateEvent(id)
-            if state.updatedFields.has(.Hidden) and state.hidden do
+            if state.updatedFields.has(.Hidden) and state.hidden
+            {
                 continue
+            }
+
             let title = query.count != 0 and state.updatedFields.has(.LongName) ? state.longName.toString() : state.name.toString()
-            if not title.count or not Lens.match(query, title).matched do
+            if not title.count or not Lens.match(query, title).matched
+            {
                 continue
+            }
 
             with let entry = sectionOf(results, family).addEntry(title)
             {
@@ -1609,8 +1832,10 @@ impl LibraryWnd
 
                 .checked   = state.updatedFields.has(.Checked) and state.checked
                 .checkable = state.updatedFields.has(.Checked)
-                if state.updatedFields.has(.Icon) do
+                if state.updatedFields.has(.Icon)
+                {
                     .glyph = state.icon
+                }
             }
         }
     }
@@ -1618,8 +1843,11 @@ impl LibraryWnd
     // Adds one action the query names under `family`, with its glyph and optional key.
     func describeAction(results: *Lens.Results, query: string, family: string, title: string, glyph: Icon, action: func||(), shortcut: string = "")
     {
-        if not Lens.match(query, title).matched do
+        if not Lens.match(query, title).matched
+        {
             return
+        }
+
         with let entry = sectionOf(results, family).addEntry(title)
         {
             .glyph      = glyph
@@ -1633,21 +1861,27 @@ impl LibraryWnd
     // and rating, as the context menu of a capture offers them.
     mtd describeActions(results: *Lens.Results, query: string)
     {
-        if .trashMode or .view.focusItem >= .view.items.count do
+        if .trashMode or .view.focusItem >= .view.items.count
+        {
             return
+        }
 
         let family  = appStrings().act_Library
         let focused = .view.items[.view.focusItem]
         .describeItemActions(results, query, family, focused)
-        if focused.kind == .Image do
+        if focused.kind == .Image
+        {
             return
+        }
 
         .describeCommands(results, query, family, [ActionFile.CopyImage])
         for rating in 6
         {
             let stars = cast(u8, rating)
-            if Lens.match(query, ratingLabel(stars)).matched or Lens.match(query, appStrings().act_Rating).matched do
+            if Lens.match(query, ratingLabel(stars)).matched or Lens.match(query, appStrings().act_Rating).matched
+            {
                 discard .addRatingEntry(sectionOf(results, family), stars)
+            }
         }
     }
 
@@ -1655,11 +1889,15 @@ impl LibraryWnd
     // under `family`: open, then locate an image, or export, tag and favour the captures.
     mtd describeItemActions(results: *Lens.Results, query: string, family: string, focused: *LibraryItem)
     {
-        if focused.kind == .Image do
+        if focused.kind == .Image
+        {
             .describeCommands(results, query, family, [ActionLibSel.Open, ActionLibSel.RevealImage, ActionLibSel.Move])
-        else do
+        }
+        else
+        {
             .describeCommands(results, query, family, [ActionLibSel.Open, ActionLibSel.Export, ActionLibSel.EditTags,
                                                        ActionLibSel.Favorite, ActionLibSel.Move])
+        }
     }
 
     // Adds the rating `stars` to `section`: its star score, its key, and the rating of the
@@ -1703,22 +1941,34 @@ impl LibraryWnd
         // closed still names its folder.
         .lensFolders.clear()
         .lensFolders.add(Library.getFolder())
-        for folder in .tabFolders where not .lensFolders.contains(folder[]) do
+        for folder in .tabFolders where not .lensFolders.contains(folder[])
+        {
             .lensFolders.add(folder[])
+        }
+
         let dirs = catch Directory.enumerateDirectories(.currentFolder()) orelse {}
-        for d in dirs where not .lensFolders.contains(d.fullName) do
+        for d in dirs where not .lensFolders.contains(d.fullName)
+        {
             .lensFolders.add(d.fullName)
+        }
 
         for entryFolder, index in .lensFolders
         {
             let folder       = entryFolder[]
             var name: String = Path.fileName(folder) orelse folder.toString()
-            if folder == Library.getFolder() do
+            if folder == Library.getFolder()
+            {
                 name = appStrings().act_Library
-            elif folder == Library.getTrashFolder() do
+            }
+            else if folder == Library.getTrashFolder()
+            {
                 name = appStrings().act_RecycleBin
-            if not Lens.match(query, name).matched do
+            }
+
+            if not Lens.match(query, name).matched
+            {
                 continue
+            }
 
             with let entry = sectionOf(results, appStrings().ui_BarFolders).addEntry(name)
             {
@@ -1729,8 +1979,10 @@ impl LibraryWnd
                     libWnd.navigateFolder(path)
                 }
 
-                if folder == me.currentFolder() do
+                if folder == me.currentFolder()
+                {
                     .detail = LensCheck
+                }
             }
         }
     }
@@ -1746,24 +1998,31 @@ impl LibraryWnd
             {
                 .glyph = me.main.icon(.Calendar)
                 .run   = func|libWnd = me|() { libWnd.applyDateFilter({}) }
-                if me.view.filterYear == 0 do
+                if me.view.filterYear == 0
+                {
                     .detail = LensCheck
+                }
             }
         }
 
         for filter in .dateFilters
         {
             let label = dateFilterLabel(filter)
-            if not Lens.match(query, label).matched do
+            if not Lens.match(query, label).matched
+            {
                 continue
+            }
+
             with let entry = sectionOf(results, family).addEntry(label)
             {
                 .lead = Format.toString("%", filter.count)
                 .run  = func|libWnd = me, filter|() { libWnd.applyDateFilter(filter) }
                 if filter.year == me.view.filterYear and
                    filter.month == me.view.filterMonth and
-                   filter.day == me.view.filterDay do
+                   filter.day == me.view.filterDay
+                {
                     .detail = LensCheck
+                }
             }
         }
     }
@@ -1772,26 +2031,35 @@ impl LibraryWnd
     //
     // A row runs after a load may have replaced the sidebar lists, so it keeps its name in
     // `lensNames`, which lives until the lens asks again, and finds it there by index.
-    mtd describeNamed(results: *Lens.Results, query: string, family: string, values: *Array'LibraryNamedFilter, application: bool)
+    mtd describeNamed(results: *Lens.Results, query: string, family: string, values: *Array!{LibraryNamedFilter}, application: bool)
     {
         for value in values[]
         {
             let name = value.name.toString()
-            if not Lens.match(query, name).matched and not Lens.match(query, family).matched do
+            if not Lens.match(query, name).matched and not Lens.match(query, family).matched
+            {
                 continue
+            }
 
             let index = .lensNames.count
             .lensNames.add(value.name)
             with let entry = sectionOf(results, family).addEntry(name)
             {
                 .lead = Format.toString("%", value.count)
-                if application do
+                if application
+                {
                     .run = func|libWnd = me, index|() { libWnd.setApplicationFilter(String.from(libWnd.lensNames[index])) }
-                else do
+                }
+                else
+                {
                     .run = func|libWnd = me, index|() { libWnd.setTagFilter(String.from(libWnd.lensNames[index])) }
+                }
+
                 let active = application ? me.applicationFilter.toString() : me.tagFilter.toString()
-                if Utf8.compare(value.name.toSlice(), active, .Latin1NoCase) == 0 do
+                if Utf8.compare(value.name.toSlice(), active, .Latin1NoCase) == 0
+                {
                     .detail = LensCheck
+                }
             }
         }
     }
@@ -1799,13 +2067,16 @@ impl LibraryWnd
     // Returns the names of the applications, or of the tags, the loaded captures hold now. The
     // sidebar lists are brought up to date first; the filter sheet keeps a copy, since its
     // choices run after a load may have replaced them.
-    mtd currentFilterNames(applications: bool)->Array'String
+    mtd currentFilterNames(applications: bool)->Array!{String}
     {
         .refreshAutomaticFilters()
         let names = applications ? &.sidebarApplications : &.sidebarTags
         var result: #returntype
-        for value in names[] do
+        for value in names[]
+        {
             result.add(value.name)
+        }
+
         return result
     }
 
@@ -1876,8 +2147,10 @@ impl LibraryWnd
                      "",
                      func|libWnd = me|(links)
                      {
-                         for id in LinkFilterIds do
+                         for id in LinkFilterIds
+                         {
                              links.addCommand(id, libWnd)
+                         }
                      },
                      icon: .theme().icon(.Link))
 
@@ -1906,8 +2179,10 @@ impl LibraryWnd
         let color = .themeColors().arc
         let star  = .theme().icon(.StarFilled, size)
         let y     = Math.round(rect.vertCenter() - size * 0.5)
-        for i in rating do
+        for i in rating
+        {
             star.paint(painter, rect.x + i * (size + RatingStarGap), y, color)
+        }
     }
 }
 
@@ -1925,8 +2200,8 @@ func ratingKey(rating: u8)->Input.Key
     }
 }
 
-const RatingStarSize = 13'f32
-const RatingStarGap  = 2'f32
+const RatingStarSize = 13_f32
+const RatingStarGap  = 2_f32
 
 // The commands each group of the library options offers, in the order a page lists them. A page
 // borrows its identifiers, which these constants keep alive for as long as the program runs.

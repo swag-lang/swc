@@ -5,29 +5,31 @@
 using Swag, Core.Errors
 
 // Byte array that holds a decompressed payload.
-alias Buffer = Array'u8
+alias Buffer = Array!{u8}
 
 // Highest ratio deflate can reach, one stored bit per output byte plus block
 // overhead. A payload announcing more expansion than this is corrupt.
-private const DeflateMaxExpansion = 1032'u64
+private const DeflateMaxExpansion = 1032_u64
 
 // Checks the format's maximum Deflate expansion without overflowing a multiplication.
 private func deflateExpansionFits(uncompressedSize, compressedSize: u64)->bool
 {
     let requiredCompressed = uncompressedSize / DeflateMaxExpansion +
-                             (uncompressedSize % DeflateMaxExpansion != 0 ? 1'u64 : 0)
+                             (uncompressedSize % DeflateMaxExpansion != 0 ? 1_u64 : 0)
     return compressedSize >= requiredCompressed
 }
 
 // Shape index of a field reference coming from a stream without shapes.
-private const NoShapeIndex = 0xFFFFFFFF'u32
+private const NoShapeIndex = 0xFFFFFFFF_u32
 
 // Raw TagBin arrays bypass per-value decoding, so validate closed enums in place,
 // including enums nested in raw structs and fixed arrays.
 private func hasValidClosedEnumValues(type: typeinfo, values: const [*] u8?, count: u64)->bool
 {
-    if count == 0 do
+    if count == 0
+    {
         return true
+    }
 
     let valueData    = unwrap values
     let resolvedType = Reflection.resolveAliases(type)
@@ -36,14 +38,18 @@ private func hasValidClosedEnumValues(type: typeinfo, values: const [*] u8?, cou
     if Reflection.isEnum(resolvedType)
     {
         if Reflection.hasAttribute(resolvedType, EnumFlags) or
-           Reflection.hasAttribute(resolvedType, Incomplete) do
+           Reflection.hasAttribute(resolvedType, Incomplete)
+        {
             return true
+        }
 
         for index in count
         {
             let valueAddress = cast(const *void, valueData + index * valueSize)
-            if not Reflection.hasDeclaredValue(resolvedType, valueAddress) do
+            if not Reflection.hasDeclaredValue(resolvedType, valueAddress)
+            {
                 return false
+            }
         }
 
         return true
@@ -57,10 +63,15 @@ private func hasValidClosedEnumValues(type: typeinfo, values: const [*] u8?, cou
             let value = valueData + index * valueSize
             for &field in typeStruct.fields
             {
-                if not field.pointedType do
+                if not field.pointedType
+                {
                     return false
-                if not hasValidClosedEnumValues(field.pointedType, value + field.offset, 1) do
+                }
+
+                if not hasValidClosedEnumValues(field.pointedType, value + field.offset, 1)
+                {
                     return false
+                }
             }
         }
 
@@ -73,8 +84,10 @@ private func hasValidClosedEnumValues(type: typeinfo, values: const [*] u8?, cou
         for index in count
         {
             let value = valueData + index * valueSize
-            if not hasValidClosedEnumValues(typeArray.pointedType, value, typeArray.count) do
+            if not hasValidClosedEnumValues(typeArray.pointedType, value, typeArray.count)
+            {
                 return false
+            }
         }
     }
 
@@ -84,8 +97,10 @@ private func hasValidClosedEnumValues(type: typeinfo, values: const [*] u8?, cou
 // Raw TagBin payloads bypass typed reads, so validate Boolean representations in place.
 private func hasValidBooleanValues(type: typeinfo, values: const [*] u8?, count: u64)->bool
 {
-    if count == 0 do
+    if count == 0
+    {
         return true
+    }
 
     let valueData    = unwrap values
     let resolvedType = Reflection.resolveAliases(type)
@@ -95,8 +110,10 @@ private func hasValidBooleanValues(type: typeinfo, values: const [*] u8?, count:
     {
         for index in count
         {
-            if valueData[index * valueSize] > 1 do
+            if valueData[index * valueSize] > 1
+            {
                 return false
+            }
         }
 
         return true
@@ -110,10 +127,15 @@ private func hasValidBooleanValues(type: typeinfo, values: const [*] u8?, count:
             let value = valueData + index * valueSize
             for &field in typeStruct.fields
             {
-                if not field.pointedType do
+                if not field.pointedType
+                {
                     return false
-                if not hasValidBooleanValues(field.pointedType, value + field.offset, 1) do
+                }
+
+                if not hasValidBooleanValues(field.pointedType, value + field.offset, 1)
+                {
                     return false
+                }
             }
         }
 
@@ -126,8 +148,10 @@ private func hasValidBooleanValues(type: typeinfo, values: const [*] u8?, count:
         for index in count
         {
             let value = valueData + index * valueSize
-            if not hasValidBooleanValues(typeArray.pointedType, value, typeArray.count) do
+            if not hasValidBooleanValues(typeArray.pointedType, value, typeArray.count)
+            {
                 return false
+            }
         }
     }
 
@@ -170,7 +194,7 @@ struct TagBin
 {
     public
     {
-        ignoreElements: Array'String          // Element names skipped while decoding.
+        ignoreElements: Array!{String}        // Element names skipped while decoding.
         options:        TagBinOptions         // Compatibility behavior.
         diag:           TagBinDiagnostics     // What the decode had to tolerate. Inspect after reading.
 
@@ -183,9 +207,9 @@ struct TagBin
 
     stream:            ByteStream                      // Input cursor over the version 1 body.
     bodyBuffer:        Buffer                          // Owns the decompressed body of a compressed stream.
-    shapes:            Array'TagBinShape               // Shape directory of a version 1 stream.
-    freeSections:      ArrayPtr'TagBinSection          // Reusable section objects.
-    sections:          ArrayPtr'TagBinSection          // Active section stack.
+    shapes:            Array!{TagBinShape}             // Shape directory of a version 1 stream.
+    freeSections:      ArrayPtr!{TagBinSection}        // Reusable section objects.
+    sections:          ArrayPtr!{TagBinSection}        // Active section stack.
     convertNextNative: const *Swag.TypeInfoNative?     // Pending native conversion.
     convertValToArray: bool                            // Whether the next scalar becomes an array.
     convertArrayToVal: bool                            // Whether the next array becomes a scalar.
@@ -262,7 +286,7 @@ struct TagBinSection
 {
     public
     {
-        mapSeek:       HashTable'(String, TagBinFieldRef)     // Field index of the section, keyed by readable identity.
+        mapSeek:       HashTable!{String, TagBinFieldRef}     // Field index of the section, keyed by readable identity.
         afterFatSeek:  u64                     // Stream position right after the section and its fat.
         fatSeek:       u64                     // Stream position of the fat table.
         fatCount:      u64                     // Number of fat entries.
@@ -371,7 +395,8 @@ private impl TagBin
     {
         var result: #returntype
         let count = try .stream.readVarint()
-        if count > .remainingPayload() do
+        if count > .remainingPayload()
+        {
             fail SerializationError{"string runs past the end of its section"}
         result.reserve(count + 1)
         let buffer = unwrap result.buffer
@@ -384,33 +409,52 @@ private impl TagBin
     // Returns whether a value stored as `fromType` can be read as `toType`, arming the conversion it needs.
     mtd canConvertType(toType, fromType: typeinfo?)->bool
     {
-        if toType == fromType do
+        if toType == fromType
+        {
             return true
-        if not toType or not fromType do
+        }
+
+        if not toType or not fromType
+        {
             return false
+        }
 
         // An enum travels as its underlying type, so conversions consider that type: a
         // changed underlying width then reads as an ordinary native conversion.
         var dstType = toType
         var srcType = fromType
-        if Reflection.isEnum(dstType) do
+        if Reflection.isEnum(dstType)
+        {
             dstType = Reflection.enumUnderlyingType(dstType)
-        if Reflection.isEnum(srcType) do
+        }
+
+        if Reflection.isEnum(srcType)
+        {
             srcType = Reflection.enumUnderlyingType(srcType)
+        }
+
         if dstType == srcType
         {
-            if Reflection.isSimpleNative(dstType) do
+            if Reflection.isSimpleNative(dstType)
+            {
                 .convertNextNative = assume cast(const *Swag.TypeInfoNative?, srcType)
+            }
+
             return true
         }
 
         var fromStruct: const *Swag.TypeInfoStruct?
         var toStruct:   const *Swag.TypeInfoStruct?
 
-        if Reflection.isStruct(srcType) do
+        if Reflection.isStruct(srcType)
+        {
             fromStruct = assume cast(const *Swag.TypeInfoStruct?, srcType)
-        if Reflection.isStruct(dstType) do
+        }
+
+        if Reflection.isStruct(dstType)
+        {
             toStruct = assume cast(const *Swag.TypeInfoStruct?, dstType)
+        }
 
         // s64/float/bool/rune to s64/float/bool/rune
         if Reflection.isSimpleNative(dstType) and Reflection.isSimpleNative(srcType)
@@ -427,33 +471,37 @@ private impl TagBin
             if Reflection.isStaticArray(dstType)
             {
                 let toArr = assume cast(const *Swag.TypeInfoArray, dstType)
-                if .canConvertType(toArr.pointedType, fromArr.pointedType) do
+                if .canConvertType(toArr.pointedType, fromArr.pointedType)
+                {
                     return true
+                }
             }
 
-            elif toStruct
+            else if toStruct
             {
                 // Static array to dynamic array
                 if Reflection.isDynamicArray(toStruct)
                 {
-                    if .canConvertType(Reflection.dynamicArrayElementType(toStruct), fromArr.pointedType) do
+                    if .canConvertType(Reflection.dynamicArrayElementType(toStruct), fromArr.pointedType)
+                    {
                         return true
+                    }
                 }
                 // Static array to single struct value
-                elif .canConvertType(dstType, fromArr.pointedType)
+                else if .canConvertType(dstType, fromArr.pointedType)
                 {
                     .convertArrayToVal = true
                     return true
                 }
             }
             // Static array to single value
-            elif .canConvertType(dstType, fromArr.pointedType)
+            else if .canConvertType(dstType, fromArr.pointedType)
             {
                 .convertArrayToVal = true
                 return true
             }
         }
-        elif fromStruct
+        else if fromStruct
         {
             // Dynamic array to something...
             if Reflection.isDynamicArray(fromStruct)
@@ -462,17 +510,21 @@ private impl TagBin
                 if Reflection.isStaticArray(dstType)
                 {
                     let toArr = assume cast(const *Swag.TypeInfoArray, dstType)
-                    if .canConvertType(toArr.pointedType, Reflection.dynamicArrayElementType(fromStruct)) do
+                    if .canConvertType(toArr.pointedType, Reflection.dynamicArrayElementType(fromStruct))
+                    {
                         return true
+                    }
                 }
                 // Dynamic array to dynamic array
-                elif toStruct and Reflection.isDynamicArray(toStruct)
+                else if toStruct and Reflection.isDynamicArray(toStruct)
                 {
-                    if .canConvertType(Reflection.dynamicArrayElementType(toStruct), Reflection.dynamicArrayElementType(fromStruct)) do
+                    if .canConvertType(Reflection.dynamicArrayElementType(toStruct), Reflection.dynamicArrayElementType(fromStruct))
+                    {
                         return true
+                    }
                 }
                 // Dynamic array to single value
-                elif .canConvertType(dstType, Reflection.dynamicArrayElementType(fromStruct))
+                else if .canConvertType(dstType, Reflection.dynamicArrayElementType(fromStruct))
                 {
                     .convertArrayToVal = true
                     return true
@@ -491,7 +543,7 @@ private impl TagBin
                 return true
             }
         }
-        elif toStruct
+        else if toStruct
         {
             // To dynamic array...
             if Reflection.isDynamicArray(toStruct)
@@ -506,7 +558,7 @@ private impl TagBin
             }
             // A statically requested structured payload is self-framed. Its source type
             // name is not part of the compatibility contract.
-            elif fromStruct and not Reflection.isDynamicArray(fromStruct)
+            else if fromStruct and not Reflection.isDynamicArray(fromStruct)
             {
                 return true
             }
@@ -521,23 +573,31 @@ private impl TagBin
         let savedSeek = .stream.position()
         .stream.setPosition(sec.fatSeek)
 
-        if 4 > .remainingPayload() do
+        if 4 > .remainingPayload()
+        {
             fail SerializationError{"fat table runs past the end of its section"}
-        let sig = try .stream.readNative'u32()
-        if sig != Write.TagBinSignature.Fat do
+        }
+
+        let sig = try .stream.readNative!{u32}()
+        if sig != Write.TagBinSignature.Fat
+        {
             fail SerializationError{"invalid fat signature"}
+        }
 
         var fatCount = sec.fatCount
         while fatCount
         {
             var key = try .readWireString()
-            if 8 > .remainingPayload() do
+            if 8 > .remainingPayload()
+            {
                 fail SerializationError{"fat table runs past the end of its section"}
             let seek = try .stream.readNative'u64()
             if seek < sec.payloadStart or seek >= sec.fatSeek do
                 fail SerializationError{"field offset runs past the payload area"}
             if sec.mapSeek.contains(key) do
                 fail SerializationError{"serialized field key is duplicated"}
+            }
+
             sec.mapSeek.add(#move key, {seek: seek, shapeIndex: NoShapeIndex})
             fatCount -= 1
         }
@@ -564,6 +624,7 @@ private impl TagBin
             let rawLen = try .stream.readNative'u64()
             if rawLen > available - #sizeof(u64) do
                 fail SerializationError{"raw section runs past the end of the stream"}
+            }
 
             let sec = .newSection()
             sec.kind         = kind
@@ -590,8 +651,9 @@ private impl TagBin
         let sig = try .stream.readNative'u32()
         if sig != Write.TagBinSignature.Fat do
             fail SerializationError{"invalid fat signature"}
+        }
 
-        let shapeId = try .stream.readNative'u32()
+        let shapeId = try .stream.readNative!{u32}()
         if shapeId == Write.TagBinAdHocShape
         {
             if 2 * #sizeof(u32) + 2 * #sizeof(u64) > available do
@@ -601,10 +663,17 @@ private impl TagBin
             let payloadStart = .stream.position()
             if fatSeek < payloadStart or fatSeek > enclosingEnd do
                 fail SerializationError{"fat table runs past the end of its section"}
-            if enclosingEnd - fatSeek < #sizeof(u32) do
+            }
+
+            if enclosingEnd - fatSeek < #sizeof(u32)
+            {
                 fail SerializationError{"fat table runs past the end of its section"}
-            if fatCount > (enclosingEnd - fatSeek - #sizeof(u32)) / 9 do
+            }
+
+            if fatCount > (enclosingEnd - fatSeek - #sizeof(u32)) / 9
+            {
                 fail SerializationError{"fat table count runs past the end of its section"}
+            }
 
             let sec = .newSection()
             sec.kind         = kind
@@ -625,16 +694,24 @@ private impl TagBin
             return
         }
 
-        if shapeId >= .shapes.count do
+        if shapeId >= .shapes.count
+        {
             fail SerializationError{"invalid shape identifier"}
+        }
+
         let shape = .shapes.storage() + shapeId
 
-        let fatSeek      = try .stream.readNative'u64()
+        let fatSeek      = try .stream.readNative!{u64}()
         let payloadStart = .stream.position()
         if fatSeek < payloadStart or fatSeek > enclosingEnd do
             fail SerializationError{"fat table runs past the end of its section"}
-        if shape.fields.count > (enclosingEnd - fatSeek) / #sizeof(u32) do
+        }
+
+        if shape.fields.count > (enclosingEnd - fatSeek) / #sizeof(u32)
+        {
             fail SerializationError{"fat table runs past the end of its section"}
+        }
+
         let afterFatSeek = fatSeek + shape.fields.count * #sizeof(u32)
 
         let sec = .newSection()
@@ -679,20 +756,30 @@ private impl TagBin
         .stream.setPosition(sec.fatSeek)
         defer .stream.setPosition(savedSeek)
         let payloadSize = sec.fatSeek - sec.payloadStart
-        var fieldOffsets: HashSet'u32
+        var fieldOffsets: HashSet!{u32}
         defer fieldOffsets.free()
         for i in shape.fields.count
         {
-            if #sizeof(u32) > .remainingPayload() do
+            if #sizeof(u32) > .remainingPayload()
+            {
                 fail SerializationError{"fat table runs past the end of its section"}
-            let off = cast(u64, (try .stream.readNative'u32()))
-            if off >= payloadSize do
+            }
+
+            let off = cast(u64, (try .stream.readNative!{u32}()))
+            if off >= payloadSize
+            {
                 fail SerializationError{"field offset runs past the payload area"}
-            if fieldOffsets.contains(cast(u32, off)) do
+            }
+
+            if fieldOffsets.contains(cast(u32, off))
+            {
                 fail SerializationError{"field offsets are duplicated"}
+            }
+
             fieldOffsets.add(cast(u32, off))
             let sf = shape.fields[i]
-            if sec.mapSeek.contains(sf.key) do
+            if sec.mapSeek.contains(sf.key)
+            {
                 fail SerializationError{"serialized field key is duplicated"}
             sec.mapSeek.add(sf.key, TagBinFieldRef{sec.payloadStart + off, cast(u32, i), i < sec.posIndex})
         }
@@ -704,14 +791,22 @@ private impl TagBin
     // Returns true when a stream shape lists exactly the fields of a reader plan.
     mtd shapeMatchesPlan(shape: const *TagBinShape, plan: const *Plan)->bool
     {
-        if shape.fields.count != plan.fields.count do
+        if shape.fields.count != plan.fields.count
+        {
             return false
+        }
+
         for i in shape.fields.count
         {
-            if shape.fields[i].key != plan.fields[i].key do
+            if shape.fields[i].key != plan.fields[i].key
+            {
                 return false
-            if shape.fields[i].crcType != plan.fields[i].wireCrc do
+            }
+
+            if shape.fields[i].crcType != plan.fields[i].wireCrc
+            {
                 return false
+            }
         }
 
         return true
@@ -737,11 +832,15 @@ private impl TagBin
         // Both sizes come from the stream, so a truncated or foreign payload can
         // name any value at all. The compressed run must fit in what is left,
         // otherwise the element is not readable.
-        if compressedSize > .remainingPayload() do
+        if compressedSize > .remainingPayload()
+        {
             fail SerializationError{"compressed payload runs past the end of the stream", field: val}
+        }
 
-        if not deflateExpansionFits(uncompressedSize, compressedSize) do
+        if not deflateExpansionFits(uncompressedSize, compressedSize)
+        {
             fail SerializationError{"corrupted compressed payload", field: val}
+        }
 
         if uncompressedSize == compressedSize
         {
@@ -784,8 +883,10 @@ private impl TagBin
     mtd checkElementType(streamCrc: u32, val: TypeValue) fail
     {
         let wantedCrc = wireTypeCrc(val.pointedType)
-        if streamCrc == wantedCrc do
+        if streamCrc == wantedCrc
+        {
             return
+        }
 
         // We try to find a registered type with the crc from the stream.
         let streamType = Reflection.typeFromCrc(streamCrc)
@@ -795,8 +896,11 @@ private impl TagBin
             // another width would silently produce garbage.
             var requested = val.pointedType orelse #typeof(u8)
             requested = Reflection.resolveAliases(requested)
-            if Reflection.isEnum(requested) do
+            if Reflection.isEnum(requested)
+            {
                 requested = Reflection.enumUnderlyingType(requested)
+            }
+
             if Reflection.isSimpleNative(requested)
             {
                 .diag.unknownTypes += 1
@@ -810,24 +914,34 @@ private impl TagBin
 
         // The type exists, but we do not have a way to convert it to the requested
         // type.
-        if not .canConvertType(val.pointedType, streamType) do
+        if not .canConvertType(val.pointedType, streamType)
+        {
             fail SerializationError{"cannot convert field type", field: val}
+        }
 
         // It's an array in the stream, but now we want a single value.
         // Skip the sequence header
         if .convertArrayToVal
         {
             .convertArrayToVal = false
-            let sig = try .stream.readNative'u32()
-            if sig != Write.TagBinSignature.Sequence do
+            let sig = try .stream.readNative!{u32}()
+            if sig != Write.TagBinSignature.Sequence
+            {
                 fail SerializationError{"stream is corrupted", field: val}
+            }
+
             discard try .stream.readVarint()
 
-            let arraySig = try .stream.readNative'u32()
-            if arraySig != Write.TagBinSignature.Raw and arraySig != Write.TagBinSignature.UnRaw do
+            let arraySig = try .stream.readNative!{u32}()
+            if arraySig != Write.TagBinSignature.Raw and arraySig != Write.TagBinSignature.UnRaw
+            {
                 fail SerializationError{"stream is corrupted", field: val}
-            if arraySig == Write.TagBinSignature.Raw do
+            }
+
+            if arraySig == Write.TagBinSignature.Raw
+            {
                 discard try .stream.readVarint()
+            }
         }
     }
 
@@ -838,8 +952,10 @@ private impl TagBin
         let reqKey = wireFieldKey(val)
         var ent    = sec.mapSeek.tryFind(reqKey)
 
-        if not ent do
+        if not ent
+        {
             return {found: false, seek: 0, shapeIndex: 0}
+        }
 
         if not ent.value.consumed
         {
@@ -862,8 +978,9 @@ private impl TagBin
                     Errors.mkString(Format.toString("document schema is [[%]], but the requested type needs [[%]]",
                                                     streamSchema,
                                                     wantedSchema))}
+            }
         }
-        elif not .schema.isEmpty() and streamSchema != .schema
+        else if not .schema.isEmpty() and streamSchema != .schema
         {
             fail SerializationError{
                 Errors.mkString(Format.toString("document schema is [[%]], but the reader needs [[%]]",
@@ -871,23 +988,33 @@ private impl TagBin
                                                 .schema))}
         }
 
-        let flags = try .stream.readNative'Write.TagBinHeaderFlags()
-        if cast(u32, flags) > cast(u32, Write.TagBinHeaderFlags.StreamCompressed) do
+        let flags = try .stream.readNative!{Write.TagBinHeaderFlags}()
+        if cast(u32, flags) > cast(u32, Write.TagBinHeaderFlags.StreamCompressed)
+        {
             fail SerializationError{"invalid TagBin header flags"}
-        let shapeDirOffset = try .stream.readNative'u64()
+        }
+
+        let shapeDirOffset = try .stream.readNative!{u64}()
         .shapeDirOffset = shapeDirOffset
 
         if flags.has(.StreamCompressed)
         {
-            let uncompressedSize = try .stream.readNative'u64()
-            let compressedSize   = try .stream.readNative'u64()
-            if compressedSize > .remaining() do
+            let uncompressedSize = try .stream.readNative!{u64}()
+            let compressedSize   = try .stream.readNative!{u64}()
+            if compressedSize > .remaining()
+            {
                 fail SerializationError{"compressed body runs past the end of the stream"}
-            if compressedSize != .remaining() do
-                fail SerializationError{"compressed body does not fill the remaining stream"}
+            }
 
-            if not deflateExpansionFits(uncompressedSize, compressedSize) do
+            if compressedSize != .remaining()
+            {
+                fail SerializationError{"compressed body does not fill the remaining stream"}
+            }
+
+            if not deflateExpansionFits(uncompressedSize, compressedSize)
+            {
                 fail SerializationError{"corrupted compressed body"}
+            }
 
             let rem = .stream.remainingBytes()
             if uncompressedSize == compressedSize
@@ -904,8 +1031,10 @@ private impl TagBin
                                               Swag.makeSlice(rem.buffer, compressedSize),
                                               maxOutputSize: uncompressedSize) as errOutcome
                 let err = errOutcome.value()
-                if err != null or .bodyBuffer.count != uncompressedSize do
+                if err != null or .bodyBuffer.count != uncompressedSize
+                {
                     fail SerializationError{"corrupted compressed body"}
+                }
 
                 .stream = ByteStream.openRead(.bodyBuffer.toSlice())
             }
@@ -916,17 +1045,25 @@ private impl TagBin
         }
 
         // Load the shape directory, then rewind to the first section.
-        if shapeDirOffset > .stream.length() do
+        if shapeDirOffset > .stream.length()
+        {
             fail SerializationError{"shape directory runs past the end of the stream"}
+        }
+
         .stream.setPosition(shapeDirOffset)
 
-        let sig = try .stream.readNative'u32()
-        if sig != Write.TagBinSignature.ShapeDir do
+        let sig = try .stream.readNative!{u32}()
+        if sig != Write.TagBinSignature.ShapeDir
+        {
             fail SerializationError{"invalid shape directory signature"}
+        }
 
         var shapeCount = try .stream.readVarint()
-        if shapeCount > .remaining() do
+        if shapeCount > .remaining()
+        {
             fail SerializationError{"corrupted shape directory"}
+        }
+
         .shapes.reserve(shapeCount)
         while shapeCount
         {
@@ -936,15 +1073,20 @@ private impl TagBin
             // Even an empty key needs a length byte, an identity and flags.
             if fieldCount > .remaining() / (1 + #sizeof(u32) + #sizeof(Write.TagBinShapeFlags)) do
                 fail SerializationError{"corrupted shape directory"}
+            }
+
             shape.fields.reserve(fieldCount)
             while fieldCount
             {
                 var sf: TagBinShapeField
                 sf.key     = try .readWireString()
-                sf.crcType = try .stream.readNative'u32()
-                sf.flags   = try .stream.readNative'Write.TagBinShapeFlags()
-                if cast(u8, sf.flags) > cast(u8, Write.TagBinShapeFlags.Compressed) do
+                sf.crcType = try .stream.readNative!{u32}()
+                sf.flags   = try .stream.readNative!{Write.TagBinShapeFlags}()
+                if cast(u8, sf.flags) > cast(u8, Write.TagBinShapeFlags.Compressed)
+                {
                     fail SerializationError{"invalid shape field flags"}
+                }
+
                 shape.fields.add(sf)
                 fieldCount -= 1
             }
@@ -952,8 +1094,10 @@ private impl TagBin
             shapeCount -= 1
         }
 
-        if .stream.position() != .stream.length() do
+        if .stream.position() != .stream.length()
+        {
             fail SerializationError{"shape directory has trailing data"}
+        }
 
         .stream.setPosition(0)
     }
@@ -973,12 +1117,17 @@ impl TagBin
     mtd readInterfaceType()->typeinfo? fail
     {
         let key = try .readWireString()
-        if key == "" do
+        if key == ""
+        {
             return null
+        }
 
         let type = Reflection.typeFromKey(key)
-        if not type do
+        if not type
+        {
             fail SerializationError{Errors.mkString(Format.toString("cannot resolve interface object key [[%]]", key))}
+        }
+
         return type
     }
 
@@ -1011,9 +1160,11 @@ impl TagBin
         let sig = try .stream.readNative'u32()
         if sig != Write.TagBinSignature.Root do
             fail SerializationError{"invalid root signature"}
+        }
 
-        let mark = try .stream.readNative'u32()
-        if mark != Write.TagBinVersion1 do
+        let mark = try .stream.readNative!{u32}()
+        if mark != Write.TagBinVersion1
+        {
             fail SerializationError{"unsupported TagBin format version"}
         try .readShapedRoot(expectedRootType)
     }
@@ -1021,7 +1172,8 @@ impl TagBin
     // Finishes reading the document.
     mtd endRoot() fail
     {
-        if .stream.position() != .shapeDirOffset do
+        if .stream.position() != .shapeDirOffset
+        {
             fail SerializationError{"TagBin body does not end at its shape directory"}
     }
 
@@ -1046,12 +1198,14 @@ impl TagBin
                 .stream.setPosition(sec.afterFatSeek)
             }
         }
-        elif sec.kind == .Unordered
+        else if sec.kind == .Unordered
         {
             // Count the stream fields the decode never requested; they are data a
             // rewrite of the value would lose.
-            if sec.mapLoaded and sec.consumedCount < sec.mapSeek.count do
+            if sec.mapLoaded and sec.consumedCount < sec.mapSeek.count
+            {
                 .diag.droppedStreamFields += cast(u32, (sec.mapSeek.count - sec.consumedCount))
+            }
 
             // Fat is after the datas. We need to be sure to point
             // to what's next.
@@ -1067,37 +1221,48 @@ impl TagBin
     // struct and `options.tryForward` is not set.
     mtd beginStruct(structType: typeinfo?, _: [*] u8?)->bool fail
     {
-        var sig = try .stream.readNative'u32()
+        var sig = try .stream.readNative!{u32}()
         if sig == Write.TagBinSignature.Raw
         {
             // A raw representation can only be loaded in place into a type that is still final.
-            if not Reflection.hasAttribute(structType, Serialization.Final) do
+            if not Reflection.hasAttribute(structType, Serialization.Final)
+            {
                 fail SerializationError{"cannot convert a type from final to non final"}
+            }
 
             try .openSection(.Raw, null)
             return false
         }
 
         // Skip array in case of an array to value conversion
-        if sig == Write.TagBinSignature.UnRaw do
-            sig = try .stream.readNative'u32()
+        if sig == Write.TagBinSignature.UnRaw
+        {
+            sig = try .stream.readNative!{u32}()
+        }
 
         // Read struct version
-        if sig != Write.TagBinSignature.Version do
+        if sig != Write.TagBinSignature.Version
+        {
             fail SerializationError{"invalid version signature"}
-        let streamVersion = try .stream.readNative'u32()
+        }
+
+        let streamVersion = try .stream.readNative!{u32}()
 
         var plan: const *Plan?
-        if structType and Reflection.isStruct(structType) do
+        if structType and Reflection.isStruct(structType)
+        {
             plan = try planFor(assume cast(const *Swag.TypeInfoStruct, structType))
+        }
 
         // Deal with version
         if plan and plan.hasVersion
         {
             // The stream version is more recent than the code that tries to read it.
             // Specific error, except if we want to try forward compatibility
-            if not .options.tryForward and plan.version < streamVersion do
+            if not .options.tryForward and plan.version < streamVersion
+            {
                 fail InvalidVersion{wantedVersion: plan.version, foundVersion: streamVersion}
+            }
         }
 
         try .openSection(.Unordered, plan)
@@ -1161,8 +1326,10 @@ impl TagBin
             }
 
             // The offset comes from the stream, so it can name any position at all.
-            if ent.seek >= .stream.length() do
+            if ent.seek >= .stream.length()
+            {
                 fail SerializationError{"field offset runs past the end of the stream", field: val}
+            }
 
             .stream.setPosition(ent.seek)
             let sf = sec.shape.fields.storage() + ent.shapeIndex
@@ -1188,8 +1355,10 @@ impl TagBin
             }
 
             // The offset comes from the stream, so it can name any position at all.
-            if ent.seek >= .stream.length() do
+            if ent.seek >= .stream.length()
+            {
                 fail SerializationError{"field offset runs past the end of the stream", field: val}
+            }
 
             // Otherwise we seek to the field in the stream
             .stream.setPosition(ent.seek)
@@ -1197,17 +1366,21 @@ impl TagBin
 
         // Read the name signature.
         let fieldKey = try .readWireString()
-        if fieldKey != reqKey do
+        if fieldKey != reqKey
+        {
             fail SerializationError{"serialized field key does not match the requested field", field: val}
+        }
 
         // Read the type signature.
-        let crcType = try .stream.readNative'u32()
+        let crcType = try .stream.readNative!{u32}()
 
-        let flags      = try .stream.readNative'Write.TagBinValueFlags()
+        let flags      = try .stream.readNative!{Write.TagBinValueFlags}()
         let rawFlags   = cast(u8, flags)
         let knownFlags = cast(u8, Write.TagBinValueFlags.None | .Compressed)
-        if not flags.has(.None) or (rawFlags & ~knownFlags) do
+        if not flags.has(.None) or (rawFlags & ~knownFlags)
+        {
             fail SerializationError{"serialized value flags accept only 1 or 3", field: val}
+        }
 
         try .enterElementPayload(flags.has(.Compressed), val)
 
@@ -1248,8 +1421,10 @@ impl TagBin
 
         Swag.assert(not .elemStack.isEmpty())
         let ctx = .elemStack.popBack()
-        if not ctx.compressed do
+        if not ctx.compressed
+        {
             return
+        }
 
         // We must have a previous buffer to append into
         Swag.assert(not .outStack.isEmpty())
@@ -1278,9 +1453,11 @@ impl TagBin
         }
         else
         {
-            let sig = try .stream.readNative'u32()
-            if sig != Write.TagBinSignature.Sequence do
+            let sig = try .stream.readNative!{u32}()
+            if sig != Write.TagBinSignature.Sequence
+            {
                 fail SerializationError{"stream is corrupted"}
+            }
 
             // 0 for a dynamic array, > 0 for a static array
             countElem[] = try .stream.readVarint()
@@ -1288,8 +1465,10 @@ impl TagBin
             // Every element takes at least one byte, so a count beyond the remaining
             // bytes is corrupt. Checking here keeps a hostile count from driving the
             // allocations below.
-            if countElem[] > .remainingPayload() do
+            if countElem[] > .remainingPayload()
+            {
                 fail SerializationError{"sequence count runs past the end of the stream"}
+            }
         }
 
         // If we need a value conversion, we must read element by element
@@ -1302,11 +1481,16 @@ impl TagBin
         // If we need a type conversion, we must read element by element
         if .convertNextNative
         {
-            let sig = try .stream.readNative'u32()
-            if sig != Write.TagBinSignature.Raw and sig != Write.TagBinSignature.UnRaw do
+            let sig = try .stream.readNative!{u32}()
+            if sig != Write.TagBinSignature.Raw and sig != Write.TagBinSignature.UnRaw
+            {
                 fail SerializationError{"stream is corrupted"}
-            if sig == Write.TagBinSignature.Raw do
+            }
+
+            if sig == Write.TagBinSignature.Raw
+            {
                 discard try .stream.readVarint()
+            }
 
             return false
         }
@@ -1316,9 +1500,11 @@ impl TagBin
         {
             let valueType = Reflection.dynamicArrayElementType(typeElem)
 
-            let sig = try .stream.readNative'u32()
-            if sig != Write.TagBinSignature.Raw and sig != Write.TagBinSignature.UnRaw do
+            let sig = try .stream.readNative!{u32}()
+            if sig != Write.TagBinSignature.Raw and sig != Write.TagBinSignature.UnRaw
+            {
                 fail SerializationError{"stream is corrupted"}
+            }
 
             // The Raw/UnRaw signature records how the writer laid out the elements and is
             // authoritative. Honor it rather than re-deriving from this build's
@@ -1332,8 +1518,10 @@ impl TagBin
                 // POD (same property the writer required to emit Raw). This stays robust to a
                 // 'Serialization.Final' toggle on a POD type, and fails cleanly rather than
                 // corrupting memory if the type became non-POD.
-                if not Reflection.isPod(valueType) do
+                if not Reflection.isPod(valueType)
+                {
                     fail SerializationError{"cannot load a raw array into a non-pod element type"}
+                }
 
                 let vt       = unwrap valueType
                 let elemSize = vt.sizeof
@@ -1347,19 +1535,33 @@ impl TagBin
                 // The stream also records the written byte length: a different
                 // one means the raw element layout changed since the write.
                 let byteLen = try .stream.readVarint()
-                if byteLen != byteCount do
+                if byteLen != byteCount
+                {
                     fail SerializationError{"raw element layout changed"}
-                if byteCount > .remainingPayload() do
+                }
+
+                if byteCount > .remainingPayload()
+                {
                     fail SerializationError{"raw sequence runs past the end of its section"}
+                }
 
                 Reflection.reserveDynamicArray(data, valueType, countElem[])
-                let bufArr = cast(*Array'u8, unwrap data)
-                if byteCount do
+                let bufArr = cast(*Array!{u8}, unwrap data)
+                if byteCount
+                {
                     try .stream.readBytes(unwrap bufArr.buffer, byteCount)
-                if not hasValidClosedEnumValues(vt, bufArr.buffer, countElem[]) do
+                }
+
+                if not hasValidClosedEnumValues(vt, bufArr.buffer, countElem[])
+                {
                     fail SerializationError{"serialized value is not a member of the requested enum"}
-                if not hasValidBooleanValues(vt, bufArr.buffer, countElem[]) do
+                }
+
+                if not hasValidBooleanValues(vt, bufArr.buffer, countElem[])
+                {
                     fail SerializationError{"serialized boolean is not 0 or 1"}
+                }
+
                 bufArr.count = countElem[]
                 return true
             }
@@ -1370,37 +1572,59 @@ impl TagBin
             let streamCount = countElem[]
             countElem[] = Math.min(orgCount, streamCount)
 
-            let sig = try .stream.readNative'u32()
-            if sig != Write.TagBinSignature.Raw and sig != Write.TagBinSignature.UnRaw do
+            let sig = try .stream.readNative!{u32}()
+            if sig != Write.TagBinSignature.Raw and sig != Write.TagBinSignature.UnRaw
+            {
                 fail SerializationError{"stream is corrupted"}
+            }
 
             // Honor the stream's layout signature (see the dynamic-array case above).
             if sig == Write.TagBinSignature.Raw
             {
-                if not Reflection.isPod(typeElem) do
+                if not Reflection.isPod(typeElem)
+                {
                     fail SerializationError{"cannot load a raw array into a non-pod element type"}
+                }
 
                 let te = unwrap typeElem
-                if te.sizeof != 0 and streamCount > .remainingPayload() / te.sizeof do
+                if te.sizeof != 0 and streamCount > .remainingPayload() / te.sizeof
+                {
                     fail SerializationError{"raw sequence runs past the end of the stream"}
+                }
 
                 let byteLen = try .stream.readVarint()
-                if byteLen != streamCount * te.sizeof do
+                if byteLen != streamCount * te.sizeof
+                {
                     fail SerializationError{"raw element layout changed"}
-                if streamCount * te.sizeof > .remainingPayload() do
-                    fail SerializationError{"raw sequence runs past the end of its section"}
+                }
 
-                if countElem[] and te.sizeof do
+                if streamCount * te.sizeof > .remainingPayload()
+                {
+                    fail SerializationError{"raw sequence runs past the end of its section"}
+                }
+
+                if countElem[] and te.sizeof
+                {
                     try .stream.readBytes(unwrap data, countElem[] * te.sizeof)
-                if not hasValidClosedEnumValues(te, data, countElem[]) do
+                }
+
+                if not hasValidClosedEnumValues(te, data, countElem[])
+                {
                     fail SerializationError{"serialized value is not a member of the requested enum"}
-                if not hasValidBooleanValues(te, data, countElem[]) do
+                }
+
+                if not hasValidBooleanValues(te, data, countElem[])
+                {
                     fail SerializationError{"serialized boolean is not 0 or 1"}
+                }
 
                 // The stream can hold more elements than the array does now; skip them
                 // so the next value starts at the right position.
-                if streamCount > countElem[] do
+                if streamCount > countElem[]
+                {
                     .stream.advance((streamCount - countElem[]) * te.sizeof)
+                }
+
                 return true
             }
         }
@@ -1414,8 +1638,11 @@ impl TagBin
     // Returns whether another element remains, consuming one from `countElem`.
     mtd toNextSequenceElement(countElem: *u64)->bool
     {
-        if countElem[] == 0 do
+        if countElem[] == 0
+        {
             return false
+        }
+
         countElem[] -= 1
         return true
     }
@@ -1426,8 +1653,11 @@ impl TagBin
     // Returns the version stored for the innermost struct being read, or zero outside any struct.
     mtd version()->u32
     {
-        if .sections.isEmpty() do
+        if .sections.isEmpty()
+        {
             return 0
+        }
+
         return .sections.back()!.version
     }
 
@@ -1443,74 +1673,70 @@ impl TagBin
         else
         {
             let nativeSize = .convertNextNative ? .convertNextNative.sizeof : #sizeof(NT)
-            if nativeSize > .remainingPayload() do
+            if nativeSize > .remainingPayload()
+            {
                 fail Core.Errors.SerializationError{"value runs past the end of its section"}
+            }
 
             if .convertNextNative
             {
                 #[Swag.Safety(.All, false)]
                 switch .convertNextNative.nativeKind
                 {
-                case .Bool:
-                    let value = try .stream.readNative'u8()
-                    if value > 1 do
+                case .Bool: let value = try .stream.readNative!{u8}()
+                    if value > 1
+                    {
                         fail SerializationError{"serialized boolean is not 0 or 1"}
+                    }
+
                     return cast(NT, value != 0)
 
-                case .U8:
-                    let v = try .stream.readNative'u8()
+                case .U8: let v = try .stream.readNative!{u8}()
                     return cast(NT, v)
 
-                case .U16:
-                    let v = try .stream.readNative'u16()
+                case .U16: let v = try .stream.readNative!{u16}()
                     return cast(NT, v)
 
-                case .U32, .Rune:
-                    let v = try .stream.readNative'u32()
+                case .U32, .Rune: let v = try .stream.readNative!{u32}()
                     return cast(NT, v)
 
-                case .U64:
-                    let v = try .stream.readNative'u64()
+                case .U64: let v = try .stream.readNative!{u64}()
                     return cast(NT, v)
 
-                case .S8:
-                    let v = try .stream.readNative's8()
+                case .S8: let v = try .stream.readNative!{s8}()
                     return cast(NT, v)
 
-                case .S16:
-                    let v = try .stream.readNative's16()
+                case .S16: let v = try .stream.readNative!{s16}()
                     return cast(NT, v)
 
-                case .S32:
-                    let v = try .stream.readNative's32()
+                case .S32: let v = try .stream.readNative!{s32}()
                     return cast(NT, v)
 
-                case .S64:
-                    let v = try .stream.readNative's64()
+                case .S64: let v = try .stream.readNative!{s64}()
                     return cast(NT, v)
 
-                case .F32:
-                    let v = try .stream.readNative'f32()
+                case .F32: let v = try .stream.readNative!{f32}()
                     return cast(NT, v)
 
-                case .F64:
-                    let v = try .stream.readNative'f64()
+                case .F64: let v = try .stream.readNative!{f64}()
                     return cast(NT, v)
 
-                default:
-                    break
+                default: break
                 }
             }
 
             #static if NT == bool
             {
-                let value = try .stream.readNative'u8()
-                if value > 1 do
+                let value = try .stream.readNative!{u8}()
+                if value > 1
+                {
                     fail SerializationError{"serialized boolean is not 0 or 1"}
+                }
+
                 return value != 0
             }
 
-            return try .stream.readNative'NT()
+            return try .stream.readNative!{NT}()
         }
     }
 }

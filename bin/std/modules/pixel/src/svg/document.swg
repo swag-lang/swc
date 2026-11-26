@@ -80,8 +80,11 @@ impl Document
     mtd addPath(paths: LinePathList, color: Color, rule = FillRule.NonZero, quality = PaintQuality.Normal)
     {
         var data: String
-        for path in paths.paths do
+        for path in paths.paths
+        {
             appendContour(&data, path, quality)
+        }
+
         .addShape(data.toString(), color, rule)
     }
 
@@ -96,14 +99,22 @@ impl Document
     // Assembles one shape element from its already formatted commands.
     private mtd addShape(data: string, color: Color, rule: FillRule)
     {
-        if data.count == 0 do
+        if data.count == 0
+        {
             return
+        }
 
         .body.appendFormat("<path fill=\"%\"", hex(color))
-        if rule == .EvenOdd do
+        if rule == .EvenOdd
+        {
             .body += " fill-rule=\"evenodd\""
-        if color.a != 255 do
+        }
+
+        if color.a != 255
+        {
             .body.appendFormat(" fill-opacity=\"%{f3}\"", cast(f32, color.a) / 255.0)
+        }
+
         .body.appendFormat(" d=\"%\"/>\n", data)
     }
 
@@ -122,16 +133,23 @@ impl Document
     {
         var result: #returntype
         result.appendFormat("<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 % %\" width=\"%\" height=\"%\"", num(.width), num(.height), num(.width), num(.height))
-        if .title.isEmpty() do
+        if .title.isEmpty()
+        {
             result += " aria-hidden=\"true\">\n"
-        else do
+        }
+        else
+        {
             result.appendFormat(" role=\"img\" aria-label=\"%\">\n", escapeXml(.title.toString()))
+        }
 
         if .hasBackground
         {
             result.appendFormat("<rect width=\"%\" height=\"%\" fill=\"%\"", num(.width), num(.height), hex(.background))
-            if .background.a != 255 do
+            if .background.a != 255
+            {
                 result.appendFormat(" fill-opacity=\"%{f3}\"", cast(f32, .background.a) / 255.0)
+            }
+
             result += "/>\n"
         }
 
@@ -153,10 +171,14 @@ impl Document
 // Appends the SVG commands of one path.
 private func appendContour(data: *String, path: const *LinePath, quality: PaintQuality)
 {
-    if usesExactCommands(path) do
+    if usesExactCommands(path)
+    {
         appendExactContour(data, path)
-    else do
+    }
+    else
+    {
         appendFlattenedContour(data, path, quality)
+    }
 }
 
 // Reports whether every segment of the path has a direct SVG command.
@@ -164,8 +186,10 @@ private func usesExactCommands(path: const *LinePath)->bool
 {
     for &element in path.elements
     {
-        if element.type == .Arc or element.type == .Curve do
+        if element.type == .Arc or element.type == .Curve
+        {
             return false
+        }
     }
 
     return true
@@ -185,8 +209,10 @@ private func appendExactContour(data: *String, path: const *LinePath)
         }
     }
 
-    if path.isClosed do
+    if path.isClosed
+    {
         data[] += "Z"
+    }
 }
 
 private func appendFlattenedContour(data: *String, path: const *LinePath, quality: PaintQuality)
@@ -194,11 +220,16 @@ private func appendFlattenedContour(data: *String, path: const *LinePath, qualit
     var copy = path[]
     copy.flatten(quality)
     let polygon = copy.flattenedPolygon()
-    if polygon.points.count < 2 do
+    if polygon.points.count < 2
+    {
         return
+    }
 
-    for &point, i in polygon.points do
+    for &point, i in polygon.points
+    {
         data.appendFormat("%% %", i == 0 ? "M" : "L", num(point.x), num(point.y))
+    }
+
     data[] += "Z"
 }
 
@@ -214,10 +245,16 @@ private func num(value: f32)->String
     }
 
     result.appendFormat("%", value)
-    while result.endsWith("0") do
+    while result.endsWith("0")
+    {
         result.removeBack(1)
-    if result.endsWith(".") do
+    }
+
+    if result.endsWith(".")
+    {
         result.removeBack(1)
+    }
+
     return result
 }
 
@@ -230,12 +267,12 @@ private func escapeXml(value: string)->String
     {
         switch c
         {
-        case '&'u8:  result += "&amp;"
-        case '<'u8:  result += "&lt;"
-        case '>'u8:  result += "&gt;"
-        case '"'u8:  result += "&quot;"
-        case '\''u8: result += "&apos;"
-        default:     result += c
+        case '&'_u8:  result += "&amp;"
+        case '<'_u8:  result += "&lt;"
+        case '>'_u8:  result += "&gt;"
+        case '"'_u8:  result += "&quot;"
+        case '\''_u8: result += "&apos;"
+        default:      result += c
         }
     }
 

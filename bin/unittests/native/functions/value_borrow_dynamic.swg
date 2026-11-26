@@ -146,7 +146,7 @@ func byteMutation(value: Thing, destination: *void, operation: u32)->u64
 
 #test
 {
-    for operation in 5'u32
+    for operation in 5_u32
     {
         var value: Thing = Thing{value: 47}
         mustReject(func|&value, operation|() { discard byteMutation(value, &value, operation) })
@@ -322,7 +322,7 @@ func lifecycleMutation(value: Thing, target: *Thing, operation: u32)->u64
 }
 #test
 {
-    for operation in 3'u32
+    for operation in 3_u32
     {
         var value: Thing = Thing{value: 109}
         mustReject(func|&value, operation|() { discard lifecycleMutation(value, &value, operation) })
@@ -411,7 +411,7 @@ func exchangeIfEqual(value: Thing, target: *Thing, expected: u64)->u64
 #[Swag.NoInline]
 func destructure(value: Thing, target: *Thing)->u64
 {
-    (target.value, target.padding1) = (0'u64, 0'u64)
+    (target.value, target.padding1) = (0_u64, 0_u64)
     return value.value
 }
 #test
@@ -463,7 +463,7 @@ func initializeRange(value: Thing, target: [*] Thing, count: u64)->u64
     Swag.require(unchanged == 167)
     mustReject(func|&values|() { discard initializeRange(values[1], &values[0], 3) })
     // Multiplying this count by sizeof(Thing) wraps to zero without a guarded extent.
-    mustReject(func|&values|() { discard initializeRange(values[1], &values[0], 1'u64 << 61) })
+    mustReject(func|&values|() { discard initializeRange(values[1], &values[0], 1_u64 << 61) })
     Swag.require(values[1].value == 167)
 }
 

@@ -8,11 +8,11 @@ using Swag
 private const TargetHasWindowsPathSyntax = WINDOWS
 private const TargetPathCaseSensitive    = not WINDOWS
 private const ExtendedVolumeGuidPrefix = #raw "\\?\Volume{"
-private const ExtendedVolumeGuidLength = 36'u64
+private const ExtendedVolumeGuidLength = 36_u64
 
-const DirectorySeparator    = '/'u8     // Preferred directory separator.
-const AltDirectorySeparator = WINDOWS ? '\\'u8 : 0'u8     // Accepted alternate separator, or zero when none exists.
-const VolumeSeparator       = WINDOWS ? ':'u8 : 0'u8      // Volume separator, or zero when paths have no volume prefix.
+const DirectorySeparator    = '/'_u8     // Preferred directory separator.
+const AltDirectorySeparator = WINDOWS ? '\\'_u8 : 0_u8     // Accepted alternate separator, or zero when none exists.
+const VolumeSeparator       = WINDOWS ? ':'_u8 : 0_u8      // Volume separator, or zero when paths have no volume prefix.
 
 // Returns whether `c` is the preferred or the alternate directory separator.
 #[Inline, ConstExpr]
@@ -30,26 +30,33 @@ internal func extendedVolumeGuidRootLength(path: string)->u32
 {
     let prefixLength = ExtendedVolumeGuidPrefix.count
     let rootLength   = prefixLength + ExtendedVolumeGuidLength + 2
-    if path.count < rootLength or not Path.equals(path[until prefixLength], ExtendedVolumeGuidPrefix) do
+    if path.count < rootLength or not Path.equals(path[until prefixLength], ExtendedVolumeGuidPrefix)
+    {
         return 0
+    }
 
     for index in ExtendedVolumeGuidLength
     {
         let c = path[prefixLength + index]
         if index == 8 or index == 13 or index == 18 or index == 23
         {
-            if c != '-' do
+            if c != '-'
+            {
                 return 0
+            }
         }
-        elif not isHexDigit(c)
+        else if not isHexDigit(c)
         {
             return 0
         }
     }
 
     let suffix = prefixLength + ExtendedVolumeGuidLength
-    if path[suffix] != '}' or path[suffix + 1] != '\\' do
+    if path[suffix] != '}' or path[suffix + 1] != '\\'
+    {
         return 0
+    }
+
     return cast(u32, rootLength)
 }
 
@@ -67,8 +74,10 @@ private func endsDirectoryPart(c: u8)->bool
 // Verbatim `\\?\` paths preserve trailing dots and spaces.
 func isValidPathName(path: string)->bool
 {
-    if path.count == 0 do
+    if path.count == 0
+    {
         return false
+    }
 
     let extendedSyntax = TargetHasWindowsPathSyntax and
                          path.count >= 4 and
@@ -79,35 +88,53 @@ func isValidPathName(path: string)->bool
     if TargetHasWindowsPathSyntax and
        path.count >= ExtendedVolumeGuidPrefix.count and
        Path.equals(path[until ExtendedVolumeGuidPrefix.count], ExtendedVolumeGuidPrefix) and
-       not extendedVolumeGuidRootLength(path) do
+       not extendedVolumeGuidRootLength(path)
+    {
         return false
+    }
+
     for c, index in path
     {
-        if c == 0 do
+        if c == 0
+        {
             return false
-        if not TargetHasWindowsPathSyntax do
+        }
+
+        if not TargetHasWindowsPathSyntax
+        {
             continue
-        if c < 32 or c == '"' or c == '<' or c == '>' or c == '|' or c == '*' do
+        }
+
+        if c < 32 or c == '"' or c == '<' or c == '>' or c == '|' or c == '*'
+        {
             return false
-        if c == '?' and (not extendedSyntax or index != 2) do
+        }
+
+        if c == '?' and (not extendedSyntax or index != 2)
+        {
             return false
+        }
     }
 
     if TargetHasWindowsPathSyntax
     {
-        var segmentBegin = 0'u64
+        var segmentBegin = 0_u64
         for index in path.count
         {
-            if not isDirectorySeparator(path[index]) and index != path.count - 1 do
+            if not isDirectorySeparator(path[index]) and index != path.count - 1
+            {
                 continue
+            }
 
             let segmentEnd = isDirectorySeparator(path[index]) ? index : index + 1
             let segment    = path[segmentBegin until segmentEnd]
             if segment.count and segment != "." and segment != ".."
             {
                 let hasNormalizedSuffix = segment[segment.count - 1] == '.' or segment[segment.count - 1] == ' '
-                if (hasNormalizedSuffix and not extendedSyntax) or isReservedWindowsDeviceName(segment) do
+                if (hasNormalizedSuffix and not extendedSyntax) or isReservedWindowsDeviceName(segment)
+                {
                     return false
+                }
             }
 
             segmentBegin = index + 1
@@ -123,23 +150,39 @@ func isValidPathName(path: string)->bool
 // DOS device names are rejected because the host normalizes or redirects those names.
 func isValidFileName(path: string)->bool
 {
-    if path.count == 0 do
-        return false
-    if path == "." or path == ".." do
-        return false
-    for c in path
+    if path.count == 0
     {
-        if c == 0 or isDirectorySeparator(c) do
-            return false
-        if TargetHasWindowsPathSyntax and
-           (c < 32 or c == '"' or c == '<' or c == '>' or c == '|' or c == ':' or c == '*' or c == '?') do
-            return false
+        return false
     }
 
-    if TargetHasWindowsPathSyntax and (path[path.count - 1] == '.' or path[path.count - 1] == ' ') do
+    if path == "." or path == ".."
+    {
         return false
-    if TargetHasWindowsPathSyntax and isReservedWindowsDeviceName(path) do
+    }
+
+    for c in path
+    {
+        if c == 0 or isDirectorySeparator(c)
+        {
+            return false
+        }
+
+        if TargetHasWindowsPathSyntax and
+           (c < 32 or c == '"' or c == '<' or c == '>' or c == '|' or c == ':' or c == '*' or c == '?')
+        {
+            return false
+        }
+    }
+
+    if TargetHasWindowsPathSyntax and (path[path.count - 1] == '.' or path[path.count - 1] == ' ')
+    {
         return false
+    }
+
+    if TargetHasWindowsPathSyntax and isReservedWindowsDeviceName(path)
+    {
+        return false
+    }
 
     return true
 }
@@ -147,23 +190,34 @@ func isValidFileName(path: string)->bool
 // Returns the length of the root prefix under the selected target's lexical policy.
 func rootLength(path: string)->u32
 {
-    if path.count == 0 do
+    if path.count == 0
+    {
         return 0
-    if not TargetHasWindowsPathSyntax do
+    }
+
+    if not TargetHasWindowsPathSyntax
+    {
         return isDirectorySeparator(path[0]) ? 1 : 0
+    }
 
     func startsWithOrdinal(source, value: string)->bool
     {
-        if source.count < value.count do
+        if source.count < value.count
+        {
             return false
-        for i in value.count where value[i] != source[i] do
+        }
+
+        for i in value.count where value[i] != source[i]
+        {
             return false
+        }
+
         return true
     }
 
-    var index                 = 0'u32
-    var volumeSeparatorLength = 2'u32
-    var uncRootLength         = 2'u32
+    var index                 = 0_u32
+    var volumeSeparatorLength = 2_u32
+    var uncRootLength         = 2_u32
     let pathLength            = path.count
 
     const ExtendedPathPrefix = #raw "\\?\"
@@ -172,15 +226,21 @@ func rootLength(path: string)->u32
     let extendedSyntax     = startsWithOrdinal(path, ExtendedPathPrefix)
     let extendedUncSyntax  = startsWithOrdinal(path, UncExtendedPathPrefix)
     let extendedVolumeRoot = extendedSyntax and not extendedUncSyntax ? extendedVolumeGuidRootLength(path) : 0
-    if extendedVolumeRoot do
+    if extendedVolumeRoot
+    {
         return extendedVolumeRoot
+    }
 
     if extendedSyntax
     {
-        if extendedUncSyntax do
+        if extendedUncSyntax
+        {
             uncRootLength = UncExtendedPathPrefix.count
-        else do
+        }
+        else
+        {
             volumeSeparatorLength += ExtendedPathPrefix.count
+        }
     }
 
     // A UNC root includes the server and share names.
@@ -207,11 +267,13 @@ func rootLength(path: string)->u32
             }
         }
     }
-    elif pathLength >= volumeSeparatorLength and path[volumeSeparatorLength - 1] == VolumeSeparator
+    else if pathLength >= volumeSeparatorLength and path[volumeSeparatorLength - 1] == VolumeSeparator
     {
         index = volumeSeparatorLength
-        if pathLength >= volumeSeparatorLength + 1 and isDirectorySeparator(path[volumeSeparatorLength]) do
+        if pathLength >= volumeSeparatorLength + 1 and isDirectorySeparator(path[volumeSeparatorLength])
+        {
             index += 1
+        }
     }
 
     return index
@@ -221,13 +283,19 @@ func rootLength(path: string)->u32
 #[ConstExpr]
 func rootName(path: string?)->string?
 {
-    if path == null do
+    if path == null
+    {
         return null
+    }
+
     Swag.assert(isValidPathName(path))
 
     let length = rootLength(path)
-    if not length do
+    if not length
+    {
         return null
+    }
+
     return path[until length]
 }
 
@@ -235,12 +303,18 @@ func rootName(path: string?)->string?
 #[ConstExpr]
 func isRooted(path: string?)->bool
 {
-    if path == null do
+    if path == null
+    {
         return false
+    }
+
     Swag.assert(isValidPathName(path))
 
-    if path.count >= 1 and isDirectorySeparator(path[0]) do
+    if path.count >= 1 and isDirectorySeparator(path[0])
+    {
         return true
+    }
+
     return VolumeSeparator != 0 and path.count >= 2 and path[1] == VolumeSeparator
 }
 
@@ -252,13 +326,19 @@ func isRooted(path: string?)->bool
 #[ConstExpr]
 func directoryName(path: string?)->string?
 {
-    if path == null do
+    if path == null
+    {
         return null
+    }
+
     Swag.assert(isValidPathName(path))
 
     let root = rootLength(path)
-    for index in reversed(path.count) where index >= root and isDirectorySeparator(path[index]) do
+    for index in reversed(path.count) where index >= root and isDirectorySeparator(path[index])
+    {
         return path[until index]
+    }
+
     return root != 0 and root < path.count ? path[until root] : null
 }
 
@@ -266,14 +346,20 @@ func directoryName(path: string?)->string?
 #[ConstExpr]
 func fileName(path: string?)->string?
 {
-    if path == null do
+    if path == null
+    {
         return null
+    }
+
     Swag.assert(isValidPathName(path))
 
     for index in reversed(path.count) where endsDirectoryPart(path[index])
     {
-        if index == path.count - 1 do
+        if index == path.count - 1
+        {
             return null
+        }
+
         return path[index + 1 to]
     }
 
@@ -284,8 +370,11 @@ func fileName(path: string?)->string?
 #[ConstExpr]
 func fileNameWithoutExtension(path: string?)->string?
 {
-    if path == null do
+    if path == null
+    {
         return null
+    }
+
     Swag.assert(isValidPathName(path))
 
     var extensionStart = path.count
@@ -296,10 +385,13 @@ func fileNameWithoutExtension(path: string?)->string?
         {
             extensionStart = index
         }
-        elif endsDirectoryPart(c)
+        else if endsDirectoryPart(c)
         {
-            if index == path.count - 1 do
+            if index == path.count - 1
+            {
                 return null
+            }
+
             return path[index + 1 until extensionStart]
         }
     }
@@ -313,17 +405,25 @@ func fileNameWithoutExtension(path: string?)->string?
 #[ConstExpr]
 func extension(path: string?)->string?
 {
-    if path == null do
+    if path == null
+    {
         return null
+    }
+
     Swag.assert(isValidPathName(path))
 
     for index in reversed(path.count)
     {
         let c = path[index]
-        if c == '.' do
+        if c == '.'
+        {
             return path[index to]
-        if endsDirectoryPart(c) do
+        }
+
+        if endsDirectoryPart(c)
+        {
             break
+        }
     }
 
     return null
@@ -337,8 +437,11 @@ func lowercaseExtension(path: string?)->String => String.toLower(extension(path)
 // Returns whether the path has `expectedExtension` under the target's case policy.
 func hasExtension(path, expectedExtension: string)->bool
 {
-    if TargetPathCaseSensitive do
+    if TargetPathCaseSensitive
+    {
         return extension(path) == expectedExtension
+    }
+
     return equals(extension(path) orelse "", expectedExtension)
 }
 
@@ -355,11 +458,15 @@ func combine(parts: (string?)...)->String
     for one in parts
     {
         let part = one orelse ""
-        if part.count == 0 do
+        if part.count == 0
+        {
             continue
+        }
 
-        if not result.isEmpty() and not isDirectorySeparator(result.back()) do
+        if not result.isEmpty() and not isDirectorySeparator(result.back())
+        {
             result += DirectorySeparator
+        }
 
         result += part
     }
@@ -373,12 +480,17 @@ func combine(parts: (string?)...)->String
 // Malformed UTF-8 is compared byte-for-byte.
 func equals(path1, path2: string)->bool
 {
-    if TargetPathCaseSensitive do
+    if TargetPathCaseSensitive
+    {
         return path1 == path2
-    if path1 == path2 do
-        return true
+    }
 
-    var offset1, offset2 = 0'u64
+    if path1 == path2
+    {
+        return true
+    }
+
+    var offset1, offset2 = 0_u64
     while offset1 < path1.count and offset2 < path2.count
     {
         let first         = Utf8.decodeRune(Swag.makeSlice(path1.buffer + offset1, path1.count - offset1))
@@ -390,10 +502,12 @@ func equals(path1, path2: string)->bool
             // Invalid UTF-8 has no Unicode case mapping; compare those bytes exactly and
             // continue so valid characters on either side still use the target case policy.
             let sameByte = path1[offset1] == path2[offset2]
-            if not firstInvalid or not secondInvalid or not sameByte do
+            if not firstInvalid or not secondInvalid or not sameByte
+            {
                 return false
+            }
         }
-        elif first.c != second.c and Unicode.toUpper(first.c) != Unicode.toUpper(second.c)
+        else if first.c != second.c and Unicode.toUpper(first.c) != Unicode.toUpper(second.c)
         {
             return false
         }
@@ -413,10 +527,15 @@ func normalize(path: *String)
        path[0] == '\\' and
        path[1] == '\\' and
        path[2] == '?' and
-       path[3] == '\\' do
+       path[3] == '\\'
+    {
         return
-    if AltDirectorySeparator do
+    }
+
+    if AltDirectorySeparator
+    {
         path.replace(cast(rune, AltDirectorySeparator), "/")
+    }
 }
 
 // Returns whether a Windows path component aliases a reserved DOS device name.
@@ -429,8 +548,11 @@ private func isReservedWindowsDeviceName(name: string)->bool
         break
     }
 
-    while stemEnd and (name[stemEnd - 1] == '.' or name[stemEnd - 1] == ' ') do
+    while stemEnd and (name[stemEnd - 1] == '.' or name[stemEnd - 1] == ' ')
+    {
         stemEnd -= 1
+    }
+
     let stem = name[until stemEnd]
 
     if Path.equals(stem, "CON") or
@@ -439,8 +561,10 @@ private func isReservedWindowsDeviceName(name: string)->bool
        Path.equals(stem, "NUL") or
        Path.equals(stem, "CONIN$") or
        Path.equals(stem, "CONOUT$") or
-       Path.equals(stem, "CLOCK$") do
+       Path.equals(stem, "CLOCK$")
+    {
         return true
+    }
 
     if stem.count == 4
     {
@@ -448,8 +572,10 @@ private func isReservedWindowsDeviceName(name: string)->bool
         let digit  = stem[3]
         if (Path.equals(device, "COM") or Path.equals(device, "LPT")) and
            digit >= '1' and
-           digit <= '9' do
+           digit <= '9'
+        {
             return true
+        }
     }
 
     return Path.equals(stem, "COM\u00B9") or

@@ -294,8 +294,10 @@ public impl Poly1305
     // Fails with [[Core.Errors.BadParameterError]] when `key` does not hold 32 bytes.
     mtd reset(key: const [..] u8) fail
     {
-        if key.count != Poly1305KeySize do
+        if key.count != Poly1305KeySize
+        {
             fail Errors.BadParameterError{"Poly1305 needs a 32-byte key"}
+        }
 
         if .initialized do
             .clear()
@@ -313,8 +315,11 @@ public impl Poly1305
         .r[4] = (t3 >> 8) & 0x00F_FFFF
 
         // The second half is added once, at finalization.
-        for i in 4 do
+        for i in 4
+        {
             .pad[i] = load32Le(key.buffer + Poly1305BlockSize + i * 4)
+        }
+
         .initialized = true
     }
 
@@ -323,13 +328,8 @@ public impl Poly1305
     {
         Swag.assert(.initialized, "Poly1305 needs an initialized sequence")
 
-        if not data.count do
-            return
-
-        var offset = 0'u64
-
-        // Finish a block carried by a previous update before reading whole blocks in place.
-        if .bufferCount
+        var offset = 0_u64
+        while offset < data.count
         {
             offset = Math.min(data.count, Poly1305BlockSize - .bufferCount)
             Swag.memcpy(&.buffer[.bufferCount], data.buffer, offset)
@@ -404,54 +404,50 @@ public impl Poly1305
         {
             h, g: [5] u64
         }
-        scratch.h = .accumulator
-        var result: #returntype
-        with scratch
+
+        h[0]  += carry * 5
+        carry = h[0] >> 26
+        h[0]  &= LimbMask
+        h[1]  += carry
+
+        // Compute `h - p` and keep it only when it did not borrow, which is the
+        // branch-free way to reduce the last time.
+        var g: [5] u64
+        g[0]  = h[0] + 5
+        carry = g[0] >> 26
+        g[0]  &= LimbMask
+        for i in 1 to 3
         {
-            var carry = .h[1] >> 26
-            .h[1] &= LimbMask
-            for i in 2 to 4
+            g[i]  = h[i] + carry
+            carry = g[i] >> 26
+            g[i]  &= LimbMask
+        }
+
+        g[4] = h[4] + carry - (1 << 26)
+
+        let borrowed = (g[4] >> 63) & 1
+        let keepG    = borrowed - 1
+        let keepH    = ~keepG
+        for i in 5
+        {
+            h[i] = (h[i] & keepH) | (g[i] & keepG)
+        }
+
+        var packed: [4] u64
+        packed[0] = (h[0] | (h[1] << 26)) & 0xFFFF_FFFF
+        packed[1] = ((h[1] >> 6) | (h[2] << 20)) & 0xFFFF_FFFF
+        packed[2] = ((h[2] >> 12) | (h[3] << 14)) & 0xFFFF_FFFF
+        packed[3] = ((h[3] >> 18) | (h[4] << 8)) & 0xFFFF_FFFF
+
+        var result: #returntype
+        var sum = 0_u64
+        for i in 4
+        {
+            sum = packed[i] + .pad[i] + (sum >> 32)
+            for b in 4
             {
-                .h[i]  += carry
-                carry = .h[i] >> 26
-                .h[i]  &= LimbMask
+                result[i * 4 + b] = cast(u8, ((sum >> cast(u32, (b * 8))) & 0xFF))
             }
-
-            .h[0]  += carry * 5
-            carry = .h[0] >> 26
-            .h[0]  &= LimbMask
-            .h[1]  += carry
-
-            // Compute `h - p` and keep it only when it did not borrow, which is the
-            // branch-free way to reduce the last time.
-            .g[0]  = .h[0] + 5
-            carry = .g[0] >> 26
-            .g[0]  &= LimbMask
-            for i in 1 to 3
-            {
-                .g[i]  = .h[i] + carry
-                carry = .g[i] >> 26
-                .g[i]  &= LimbMask
-            }
-
-            .g[4] = .h[4] + carry - (1 << 26)
-
-            let borrowed = (.g[4] >> 63) & 1
-            let keepG    = borrowed - 1
-            let keepH    = ~keepG
-            for i in 5 do
-                .h[i] = (.h[i] & keepH) | (.g[i] & keepG)
-
-            // Store the low 128 bits in two words and propagate the pad carry once.
-            let low = .h[0] | (.h[1] << 26) | (.h[2] << 52)
-            let high = (.h[2] >> 12) | (.h[3] << 14) | (.h[4] << 40)
-            let padLow = me.pad[0] | (me.pad[1] << 32)
-            let padHigh = me.pad[2] | (me.pad[3] << 32)
-            let lowSum = low + padLow
-            let highSum = high + padHigh + cast(u64, lowSum < low)
-            let words = cast([*] u64, result.buffer)
-            words[0] = Math.nativeToLittleEndian(lowSum)
-            words[1] = Math.nativeToLittleEndian(highSum)
         }
 
         secureClear(Swag.makeSlice(&scratch, 1))

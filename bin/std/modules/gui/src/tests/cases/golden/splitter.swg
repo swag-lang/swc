@@ -14,9 +14,9 @@ using Swag, Core
     let splitter = SplitterCtrl.create(&host.root, {20, 20, 280, 180}, vertical: true)
     splitter.backgroundStyle = .ToolBar
 
-    let pane0 = Wnd.create'Wnd(splitter)
+    let pane0 = Wnd.create!{Wnd}(splitter)
     pane0.backgroundStyle = .Panel
-    let pane1 = Wnd.create'Wnd(splitter)
+    let pane1 = Wnd.create!{Wnd}(splitter)
     pane1.backgroundStyle = .Panel
     splitter.addPane(pane0, 88)
     splitter.addPane(pane1)

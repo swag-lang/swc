@@ -7,7 +7,7 @@ private struct ErrorTransportTestState
 {
     context:        Context
     owned:          Error
-    drops:          [16] AtomicValue'u32
+    drops:          [16] AtomicValue!{u32}
     generation:     u32
     producerThread: u64
     released:       bool
@@ -16,7 +16,7 @@ private struct ErrorTransportTestState
 private struct ErrorTransportTestPayload
 {
     using base: BaseError
-    drops:      [*] AtomicValue'u32
+    drops:      [*] AtomicValue!{u32}
     generation: u32
 }
 
@@ -38,7 +38,7 @@ private func copyTransportTestMessage(text: string)->string
     return Swag.makeString(bytes, text.count)
 }
 
-private func failTransportTestMessage(message: string, drops: [*] AtomicValue'u32) fail
+private func failTransportTestMessage(message: string, drops: [*] AtomicValue!{u32}) fail
 {
     fail ErrorTransportTestPayload{base: BaseError{message}, drops: drops}
 }
@@ -73,8 +73,11 @@ private func errorTransportTestThread(param: *void?)->u32
 #[Swag.NoDoc]
 public func testErrorTransportAfterThreadExit()->bool
 {
-    if Swag.jit() do
+    if Swag.jit()
+    {
         return true
+    }
+
     var allocator: Allocator
     allocator.setup()
     allocator.configure(false, false, false, false, false)
@@ -98,13 +101,19 @@ public func testErrorTransportAfterThreadExit()->bool
     let baseline     = allocator.stats().countAlloc
     let callerThread = __hostCurrentThreadId()
     let thread       = __hostThreadCreate(&errorTransportTestThread, &state)
-    if not thread do
+    if not thread
+    {
         return false
+    }
+
     __hostThreadJoin(thread)
 
     var valid = state.released and state.producerThread != callerThread and not state.owned.isEmpty()
-    if not valid do
+    if not valid
+    {
         return false
+    }
+
     let generation = state.generation
     valid = valid and state.drops[generation].load() == 1
     var copied = state.owned
@@ -116,12 +125,17 @@ public func testErrorTransportAfterThreadExit()->bool
         catch copied.raise() as errorOutcome
         let error = errorOutcome.value()
         copied.reset()
-        if error is ErrorTransportTestPayload as value do
+        if error is ErrorTransportTestPayload as value
+        {
             valid = valid and
                     value.message == "the joined producer's pending copied message" and
                     value.generation == generation + 2
-        else do
+        }
+        else
+        {
             valid = false
+        }
+
         valid = valid and
                 state.drops[generation + 1].load() == 1 and
                 state.drops[generation + 2].load() == 0

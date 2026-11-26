@@ -54,8 +54,10 @@ func variadicTypedPair(a: s32, values: TypedVariadicPair...)->s32
 func variadicTypedForwardInner(values: s32...)->s32
 {
     var acc: s32 = 0
-    for value in values do
+    for value in values
+    {
         acc += value
+    }
     return acc
 }
 
@@ -67,8 +69,10 @@ func variadicTypedForward(values: s32...)->s32
 func variadicTypedAliasForwardInner(values: s32...)->s32
 {
     var acc: s32 = 0
-    for value in values do
+    for value in values
+    {
         acc += value
+    }
     return acc
 }
 
@@ -80,8 +84,10 @@ func variadicTypedAliasForward(values: TypedVariadicAlias...)->s32
 func variadicTypedAliasInner(values: TypedVariadicAlias...)->s32
 {
     var acc: s32 = 0
-    for value in values do
+    for value in values
+    {
         acc += value
+    }
     return acc
 }
 
@@ -115,11 +121,11 @@ func variadicTypedStrictF32(values: TypedVariadicStrictF32...)->f32
 
 #test
 {
-    Swag.require(variadicTypedF64(1.0'f64, 2.0'f64, 3.0'f64, 4.0'f64) == 10.0'f64)
-    Swag.require(variadicTypedStrictF32(cast(TypedVariadicStrictF32, 1.5), cast(TypedVariadicStrictF32, 2.5)) == 4.0'f32)
+    Swag.require(variadicTypedF64(1.0_f64, 2.0_f64, 3.0_f64, 4.0_f64) == 10.0_f64)
+    Swag.require(variadicTypedStrictF32(cast(TypedVariadicStrictF32, 1.5), cast(TypedVariadicStrictF32, 2.5)) == 4.0_f32)
     Swag.require(variadicTypedBool(true, false, true, true) == 3)
     Swag.require(variadicTypedRune('a', 'b', 'c') == 294)
-    Swag.require(variadicTypedString("Az", "By", "Cx") == 198'u8)
+    Swag.require(variadicTypedString("Az", "By", "Cx") == 198_u8)
 }
 
 #test

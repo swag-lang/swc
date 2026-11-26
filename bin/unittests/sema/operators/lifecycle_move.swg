@@ -123,10 +123,14 @@ impl ForeachTrackedValues
     #[Macro]
     func(ptr: bool) opVisit(me, stmt: #code(item, index))
     {
-        #static if ptr do
+        #static if ptr
+        {
             #inject(stmt, item = &me.item, index = 0)
-        else do
+        }
+        else
+        {
             #inject(stmt, item = cast(*Tracked, &me.item), index = 0)
+        }
     }
 }
 
@@ -258,8 +262,10 @@ func foreachOverloadCopyInfo()->LifecycleInfo
     var dst: Tracked
     var values = ForeachTrackedValues{Tracked{9}}
     resetLifecycleHooks()
-    for value in values do
+    for value in values
+    {
         assignTracked(&dst, value)
+    }
     return LifecycleInfo{dst.value, values.item.value, DropCount, DropTrace, PostCopyCount, PostMoveCount}
 }
 
@@ -268,8 +274,10 @@ func foreachOverloadMoveInfo()->LifecycleInfo
     var dst: Tracked
     var values = ForeachTrackedValues{Tracked{9}}
     resetLifecycleHooks()
-    for value in values do
+    for value in values
+    {
         assignTracked(&dst, #move value[])
+    }
     return LifecycleInfo{dst.value, values.item.value, DropCount, DropTrace, PostCopyCount, PostMoveCount}
 }
 

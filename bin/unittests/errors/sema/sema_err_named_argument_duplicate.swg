@@ -2,12 +2,12 @@
 
 func(T) pair(first: T, second: T)->T => first + second
 
-#test { var r = pair(first: 1's32, first: 2) }     // swc-expected-error {{sema_err_named_argument_duplicate}}
-#test { var r = pair(1's32, first: 2) }            // swc-expected-error {{argument 'first' is already specified in call to 'pair'}}
+#test { var r = pair(first: 1_s32, first: 2) }     // swc-expected-error {{sema_err_named_argument_duplicate}}
+#test { var r = pair(1_s32, first: 2) }            // swc-expected-error {{argument 'first' is already specified in call to 'pair'}}
 // swc-expected-note@-1 {{previous argument for 'first' is here}}
 
 func(T) groupedPair(first, second: T)->T => first + second
-#test { var r = groupedPair(first: 1's32, first: 2) }     // swc-expected-error {{sema_err_named_argument_duplicate}}
+#test { var r = groupedPair(first: 1_s32, first: 2) }     // swc-expected-error {{sema_err_named_argument_duplicate}}
 
 // A named argument cannot be specified more than once in the same call.
 func Sum3(a: s32, b: s32, c: s32)->s32

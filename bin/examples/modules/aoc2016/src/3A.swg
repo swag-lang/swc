@@ -23,15 +23,18 @@ func day3A()
         var total = 0
         for l in lines
         {
-            let split = Tokenize.split(l[], ' 'u8)
+            let split = Tokenize.split(l[], ' '_u8)
             let v     = [
                 try StrConv.toS32(split[0]),
                 try StrConv.toS32(split[1]),
                 try StrConv.toS32(split[2])]
 
             var ok = 0
-            for i in 3 do
+            for i in 3
+            {
                 ok += cast(s32, (v[i] + v[(i + 1) % 3] > v[(i + 2) % 3]))
+            }
+
             total += cast(s32, (ok == 3))
         }
 

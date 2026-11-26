@@ -33,8 +33,8 @@ var g_Rings:    *CheckButton?
 var g_Sheet:    *SheetWnd?
 var g_Widgets:  *WidgetWall?
 
-var g_ThemeButtons: Array'(*PushButton)
-var g_PageButtons:  Array'(*PushButton)
+var g_ThemeButtons: Array!{*PushButton}
+var g_PageButtons:  Array!{*PushButton}
 
 var g_Variant:   ThemeVariant
 var g_Page:      s32
@@ -152,10 +152,15 @@ func readStartupSelection()
 {
     for arg in Env.arguments()
     {
-        for name, i in VariantArgs where arg == name do
+        for name, i in VariantArgs where arg == name
+        {
             g_Variant = ThemeVariantValues[i]
-        for name, i in PageArgs where arg == name do
+        }
+
+        for name, i in PageArgs where arg == name
+        {
             g_Page = cast(s32, i)
+        }
     }
 }
 
@@ -223,8 +228,11 @@ func applyTheme()
 
 func setVariant(variant: ThemeVariant)
 {
-    if g_Variant == variant do
+    if g_Variant == variant
+    {
         return
+    }
+
     g_Variant = variant
     applyTheme()
 }
@@ -238,8 +246,10 @@ func showPage(page: s32)
     let isSheet = page != 3
     widgets.show(not isSheet)
     sheet.show(isSheet)
-    if isSheet do
+    if isSheet
+    {
         sheet.view.setKind(sheetKindOfPage(page))
+    }
 
     updateSelectors()
     updateHeader()
@@ -253,8 +263,10 @@ func nextPage()
 
 func layoutRootView()
 {
-    if not g_View do
+    if not g_View
+    {
         return
+    }
 
     let view         = unwrap g_View
     let rect         = view.clientRect()
@@ -307,7 +319,7 @@ func onRootEvent(_: *Wnd, evt: IEvent)->bool
     {
         layoutRootView()
     }
-    elif evt is DestroyEvent
+    else if evt is DestroyEvent
     {
         app.sigFrame.disable()
         g_Surface  = null
@@ -328,12 +340,16 @@ func onRootEvent(_: *Wnd, evt: IEvent)->bool
 
 func updateTestMode()
 {
-    if not Env.isSmokeRun() or not g_Surface do
+    if not Env.isSmokeRun() or not g_Surface
+    {
         return
+    }
 
     g_TestFrame += 1
-    if g_TestFrame < TestFramesPerPage do
+    if g_TestFrame < TestFramesPerPage
+    {
         return
+    }
 
     g_TestFrame = 0
 
@@ -352,7 +368,25 @@ func updateTestMode()
     setVariant(nextThemeVariant(g_Variant))
 }
 
-func onFrame(_: *Application) => updateTestMode()
+func onFrame(app: *Application)
+{
+    if not g_Surface
+    {
+        return
+    }
+
+    if app.keyboard.isKeyJustPressed(.F1)
+    {
+        nextPage()
+    }
+
+    if app.keyboard.isKeyJustPressed(.F2)
+    {
+        setVariant(nextThemeVariant(g_Variant))
+    }
+
+    updateTestMode()
+}
 
 func createRootView()
 {
@@ -430,8 +464,12 @@ func createRootView()
     showPage(g_Page)
 
     app.sigFrame += &onFrame
-    if Env.isSmokeRun() do
+    if Env.isSmokeRun()
+    {
         app.maxRunFrame = cast(u32, (MaxPages * ThemeVariantCount * TestFramesPerPage + 10))
+    }
+
+    surface.show()
     applyTheme()
     surface.show()
     app.run()

@@ -27,36 +27,40 @@ func openHexSearchWindow(host: *Testing.HeadlessHost, fileName: string)->*Viewer
     let fileName = Testing.tempFilePath("scope-hex-search-range-", ".bin")
     defer discard catch File.delete(fileName)
 
-    let start = 17'u64
+    let start  = 17_u64
     let length = ViewerWindow.SearchChunkSize + 5
-    let end = start + length
-    var bytes: Array'u8
+    let end    = start + length
+    var bytes: Array!{u8}
     bytes.resize(end + 20)
+
     // Cross the lower boundary, match just inside it, cross a stream chunk, fit at the upper
     // boundary, and cross that boundary. Only the three complete in-range matches count.
-    bytes[start - 1] = 0xAA
-    bytes[start] = 0xBB
-    bytes[start + 2] = 0xAA
-    bytes[start + 3] = 0xBB
+    bytes[start - 1]                                = 0xAA
+    bytes[start]                                    = 0xBB
+    bytes[start + 2]                                = 0xAA
+    bytes[start + 3]                                = 0xBB
     bytes[start + ViewerWindow.SearchChunkSize - 1] = 0xAA
-    bytes[start + ViewerWindow.SearchChunkSize] = 0xBB
-    bytes[end - 3] = 0xAA
-    bytes[end - 2] = 0xBB
-    bytes[end - 1] = 0xAA
-    bytes[end] = 0xBB
+    bytes[start + ViewerWindow.SearchChunkSize]     = 0xBB
+    bytes[end - 3]                                  = 0xAA
+    bytes[end - 2]                                  = 0xBB
+    bytes[end - 1]                                  = 0xAA
+    bytes[end]                                      = 0xBB
     expect File.writeAllBytes(fileName, bytes.toSlice())
 
     var host: Testing.HeadlessHost
     let window = openHexSearchWindow(&host, fileName)
-    let view = assume cast(*Hex.Panel, window.instances[window.activeChoiceIndex].view)
+    let view   = assume cast(*Hex.Panel, window.instances[window.activeChoiceIndex].view)
     window.searchBox.setText("selection: hex: AA BB")
+
     // No selection is reported as a visible query error before reading the file.
     Swag.require(window.searchTimer == null and window.searchMatches.isEmpty())
     Swag.require(window.searchError == Hex.texts().ui_SearchSelectionRequired)
 
     window.searchBox.setText("")
     view.grid.selectRange(start, length)
-    Swag.require(view.grid.hasSelection() and view.grid.selectionStart() == start and view.grid.selectionLength() == length)
+    Swag.require(view.grid.hasSelection() and
+                 view.grid.selectionStart() == start and
+                 view.grid.selectionLength() == length)
     var plan: Viewer.SearchPlan
     let parseState = view.prepareSearch("selection: hex: AA BB", &plan)
     Swag.require(parseState == .Valid and plan.byteRange.offset == start and plan.byteRange.length == length)
@@ -71,12 +75,13 @@ func openHexSearchWindow(host: *Testing.HeadlessHost, fileName: string)->*Viewer
                                    StrConv.toDisplaySize(window.searchProcessed),
                                    StrConv.toDisplaySize(length))
     Swag.require(window.searchCountLabel.toolTip == progress)
-    var steps = 0'u32
+    var steps = 0_u32
     while window.searchTimer and steps < 8
     {
         host.fireTimer(window.searchTimer)
         steps += 1
     }
+
     Swag.require(window.searchComplete and window.searchProcessed == length)
     Swag.require(window.searchMatches.count == 3)
     Swag.require(window.searchMatches[0].offset == start + 2)
@@ -106,24 +111,24 @@ func openHexSearchWindow(host: *Testing.HeadlessHost, fileName: string)->*Viewer
     let fileName = Testing.tempFilePath("scope-hex-search-explicit-range-", ".bin")
     defer discard catch File.delete(fileName)
 
-    let start = 31'u64
+    let start  = 31_u64
     let length = ViewerWindow.SearchChunkSize + 5
-    let end = start + length
-    var bytes: Array'u8
+    let end    = start + length
+    var bytes: Array!{u8}
     bytes.resize(end + 20)
-    bytes[start - 1] = 0xAA
-    bytes[start] = 0xBB
-    bytes[start + 3] = 0xAA
-    bytes[start + 4] = 0xBB
+    bytes[start - 1]                                = 0xAA
+    bytes[start]                                    = 0xBB
+    bytes[start + 3]                                = 0xAA
+    bytes[start + 4]                                = 0xBB
     bytes[start + ViewerWindow.SearchChunkSize - 1] = 0xAA
-    bytes[start + ViewerWindow.SearchChunkSize] = 0xBB
-    bytes[end - 1] = 0xAA
-    bytes[end] = 0xBB
+    bytes[start + ViewerWindow.SearchChunkSize]     = 0xBB
+    bytes[end - 1]                                  = 0xAA
+    bytes[end]                                      = 0xBB
     expect File.writeAllBytes(fileName, bytes.toSlice())
 
     var host: Testing.HeadlessHost
     let window = openHexSearchWindow(&host, fileName)
-    let view = assume cast(*Hex.Panel, window.instances[window.activeChoiceIndex].view)
+    let view   = assume cast(*Hex.Panel, window.instances[window.activeChoiceIndex].view)
 
     window.searchBox.setText("range: 0x1F : 0x40005 : hex:AA BB")
     Swag.require(window.searchByteRange.offset == start and window.searchByteRange.length == length)
@@ -135,12 +140,13 @@ func openHexSearchWindow(host: *Testing.HeadlessHost, fileName: string)->*Viewer
                                    StrConv.toDisplaySize(window.searchProcessed),
                                    StrConv.toDisplaySize(length))
     Swag.require(window.searchCountLabel.toolTip == progress)
-    var steps = 0'u32
+    var steps = 0_u32
     while window.searchTimer and steps < 8
     {
         host.fireTimer(window.searchTimer)
         steps += 1
     }
+
     Swag.require(window.searchComplete and window.searchProcessed == length)
     Swag.require(window.searchMatches.count == 2)
     Swag.require(window.searchMatches[0].offset == start + 3)
@@ -177,7 +183,7 @@ func openHexSearchWindow(host: *Testing.HeadlessHost, fileName: string)->*Viewer
     let fileName = Testing.tempFilePath("scope-hex-search-live-", ".bin")
     defer discard catch File.delete(fileName)
 
-    var bytes: Array'u8
+    var bytes: Array!{u8}
     bytes.resize(ViewerWindow.SearchChunkSize * 3)
     bytes[10]  = 0xAA
     bytes[100] = 0xAA

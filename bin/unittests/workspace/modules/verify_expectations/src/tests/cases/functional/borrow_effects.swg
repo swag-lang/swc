@@ -9,7 +9,7 @@ func importedNonRetainingInterfaceKeepsInlineViewLocal()
     var writer:   DepBorrowNonRetainingWriter
     var callback: DepBorrowWriter = writer
     var bytes:    [8] u8
-    bytes[0] = 's'u8
+    bytes[0] = 's'_u8
     let text: string = cast(string, bytes)
 
     callback.print(text)
@@ -26,7 +26,7 @@ func importedRetainingInterfaceRejectsInlineView()
     var writer:   DepBorrowRetainingWriter
     var callback: DepBorrowWriter = writer
     var bytes:    [8] u8     // swc-expected-note {{sema_note_borrow_source_declared_here}}
-    bytes[0] = 's'u8
+    bytes[0] = 's'_u8
     let text: string = cast(string, bytes)
 
     callback.print(text)     // swc-expected-error {{sanity_err_borrow_escape}}

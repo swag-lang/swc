@@ -30,9 +30,13 @@ using Swag, Core
         for button, index in [unavailable, available]
         {
             let rect = button.surfaceRect()
-            for y in cast(s32, rect.y) until cast(s32, rect.bottom()) do
-                for x in cast(s32, rect.x) until cast(s32, rect.right()) do
+            for y in cast(s32, rect.y) until cast(s32, rect.bottom())
+            {
+                for x in cast(s32, rect.x) until cast(s32, rect.right())
+                {
                     peaks[index] = Math.max(peaks[index], image.pixelColor(x, y).contrastRatio(ground))
+                }
+            }
         }
 
         Swag.require(peaks[1] >= peaks[0] * 1.7)

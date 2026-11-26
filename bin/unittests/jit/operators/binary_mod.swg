@@ -11,9 +11,9 @@
 #test
 {
     func mod(a: u32, b: u32)->u32 { return a % b }
-    const V = #run mod(100'u32, 58'u32)
+    const V = #run mod(100_u32, 58_u32)
     #assert(#typeof(V) == u32)
-    #assert(V == 42'u32)
+    #assert(V == 42_u32)
 }
 
 #test
@@ -25,9 +25,9 @@
 #test
 {
     func mod(a: u64, b: u64)->u64 { return a % b }
-    const V = #run mod(1000'u64, 64'u64)
+    const V = #run mod(1000_u64, 64_u64)
     #assert(#typeof(V) == u64)
-    #assert(V == 40'u64)
+    #assert(V == 40_u64)
 }
 
 #test

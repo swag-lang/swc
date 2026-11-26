@@ -55,9 +55,14 @@ internal impl Properties
     mtd updateValidation()->bool
     {
         var changed = false
-        for it in .items do
-            if .updateItemValidation(unwrap it) do
+        for it in .items
+        {
+            if .updateItemValidation(unwrap it)
+            {
                 changed = true
+            }
+        }
+
         return changed
     }
 
@@ -83,15 +88,19 @@ internal impl Properties
             {
                 hasNtfy = true
                 let r = scan.ntfyItf.validateItem(me, item)
-                if cast(s32, r.state) > cast(s32, result.state) do
+                if cast(s32, r.state) > cast(s32, result.state)
+                {
                     result = r
+                }
             }
 
             scan = scan.parent
         }
 
-        if not hasNtfy do
+        if not hasNtfy
+        {
             return false
+        }
 
         return .applyItemValidation(item, result.state, result.message)
     }
@@ -115,19 +124,26 @@ internal impl Properties
             return
         }
 
-        if item.validation == .None or item.validationLabel == null do
+        if item.validation == .None or item.validationLabel == null
+        {
             return
+        }
+
         let lbl = item.validationLabel
-        if not lbl.isVisible() do
+        if not lbl.isVisible()
+        {
             return
+        }
 
         let metrics = .themeMetrics()
         let color   = .validationTextColor(item.validation)
         let font    = lbl.font().regular
         let size    = metrics.embInfo_DotSize
         var centerY = lbl.position.vertCenter()
-        if font do
+        if font
+        {
             centerY = lbl.position.y + lbl.textPadding.y + font.height * 0.5
+        }
 
         painter.setParams(.Antialiased)
         painter.fillCircle(lbl.position.x + size * 0.5, centerY, size * 0.5, color)
@@ -149,11 +165,16 @@ internal impl Properties
     {
         for child in parent.children
         {
-            if child.isLocallyVisible() and child.focusPolicy != .None and child.focusPolicy != .Inner do
+            if child.isLocallyVisible() and child.focusPolicy != .None and child.focusPolicy != .Inner
+            {
                 return child
+            }
+
             let inner = .valueEditor(child)
-            if inner do
+            if inner
+            {
                 return inner
+            }
         }
 
         return null
@@ -163,8 +184,11 @@ internal impl Properties
     // theme switch: a label's text colour is a plain field, not a style.
     mtd applyValidationVisual(item: *PropertiesItem)
     {
-        if item.validationLabel == null or item.validation == .None do
+        if item.validationLabel == null or item.validation == .None
+        {
             return
+        }
+
         let lbl = item.validationLabel
         lbl.setIcon({})
         lbl.setTextColor(.validationTextColor(item.validation))
@@ -176,8 +200,11 @@ internal impl Properties
     // switch (see onThemeEvent): a label's icon and text colour are plain fields, not styles.
     mtd applyNoteVisual(item: *PropertiesItem)
     {
-        if item.label == null do
+        if item.label == null
+        {
             return
+        }
+
         let lbl = item.label
         lbl.setIcon(.theme().icon(.Information, .valBarIconSize))
         lbl.setIconColor(.themeColors().info)
@@ -210,7 +237,7 @@ internal impl Properties
             // stay in the value cell), grow the row, and place the bar in the band by hand.
             // The bar spans the full row width (inset by the margins) and lives inside the row
             // border, so it reads as part of the row rather than floating over the value column.
-            var consume = 0'f32
+            var consume = 0_f32
             if visible
             {
                 .syncValidationTextOffset(lbl)
@@ -225,16 +252,21 @@ internal impl Properties
             }
 
             let h = item.valueCellHeight + consume
-            if item.line.position.height == h and item.line.padding.w == consume do
+            if item.line.position.height == h and item.line.padding.w == consume
+            {
                 return false
+            }
+
             item.line.padding.w       = consume
             item.line.position.height = h
             item.line.preferredSize.y = h
             return true
         }
 
-        if not visible do
+        if not visible
+        {
             return false
+        }
 
         // List rows use the same content width as labels and editors: the useful row width
         // minus its internal margins. Do not infer this from child widgets, since custom editors
@@ -254,15 +286,19 @@ private impl Properties
     // Returns true when the bar's presence or text changed (a relayout is then needed).
     mtd applyItemValidation(item: *PropertiesItem, state: PropValidation, message: string?)->bool
     {
-        if item.validation == state and item.validationMsg == message do
+        if item.validation == state and item.validationMsg == message
+        {
             return false
+        }
 
         item.assignValidation(state, message)
 
         if state == .None
         {
-            if item.validationLabel != null and item.validationLabel.isVisible() do
+            if item.validationLabel != null and item.validationLabel.isVisible()
+            {
                 item.validationLabel.show(false)
+            }
         }
         else
         {
@@ -272,16 +308,21 @@ private impl Properties
             item.validationLabel.show(not .marksInMargin(item))
         }
 
-        if item.line != null do
+        if item.line != null
+        {
             item.line.invalidate()
+        }
+
         return true
     }
 
     // Lazily create the message-bar label, stacked under the row editor.
     mtd ensureValidationLabel(item: *PropertiesItem)
     {
-        if item.validationLabel != null do
+        if item.validationLabel != null
+        {
             return
+        }
 
         // The message stands under the editor on the row's own ground, its dot painted by
         // paintValidationBar in the room the text padding leaves.
@@ -291,8 +332,10 @@ private impl Properties
             .setTextAlignment(.Left, .Top)
             .margin.y = me.valBarGap
             .margin.w = me.valBarGap
-            if me.isGridLike() do
+            if me.isGridLike()
+            {
                 .margin.z = me.rightMargin
+            }
         }
 
         .syncValidationTextOffset(lbl)

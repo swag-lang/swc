@@ -5,16 +5,19 @@ using Swag
 
 func kmacHexDigit(value: u8)->u8
 {
-    if value >= '0' and value <= '9' do
+    if value >= '0' and value <= '9'
+    {
         return value - '0'
+    }
+
     return (value - 'a') + 10
 }
 
-func kmacHexBytes(text: string)->Array'u8
+func kmacHexBytes(text: string)->Array!{u8}
 {
     var result: #returntype
     result.reserve(text.count / 2)
-    var index = 0'u64
+    var index = 0_u64
     while index + 1 < text.count
     {
         result.add(cast(u8, (kmacHexDigit(text[index]) << 4) | kmacHexDigit(text[index + 1])))
@@ -62,7 +65,7 @@ func kmacHexBytes(text: string)->Array'u8
 #test
 {
     var key:    [1] u8
-    var empty:  Array'u8
+    var empty:  Array!{u8}
     var output: [1] u8
     var error:  Swag.Error
     discard catch Crypto.kmac128(empty.toSlice(), "", "", output) as error
@@ -76,10 +79,13 @@ func kmacHexBytes(text: string)->Array'u8
     // KMACXOF128 streams long inputs and squeezes beyond one rate block.
     let key      = kmacHexBytes("404142434445464748494a4b4c4d4e4f505152535455565758595a5b5c5d5e5f")
     let expected = kmacHexBytes("73755e50086f4cd4e981caf3751ad5c516bd2661562925eac57f1121c1b53d8dbcb4e08f3de13cb99f0013e16a657505f9cbb7c8ef958fb4f5fa2058875d7951142344bb26443ec6dec1b96619420c93a119031046a479bd956e1d69d7e62a2866498bc13f85cf2a8877de109a04a160d8d8adbe3ba1ef5bb281e38470f1113136b18ed167879b0fa86c5a51df51dba6876f64baa543dec763fefe9bbbd3a334b124bef606c1c7b0770bece69eb7e662b00ef314d4e621c68565628ad5cb9d3ac60485ee6efa2c10")
-    var message: Array'u8
+    var message: Array!{u8}
     message.resize(200)
-    for index in message.count do
+    for index in message.count
+    {
         message[index] = cast(u8, index)
+    }
+
     var output: [200] u8
     expect Crypto.kmacXof128(key.toSlice(), message.toSlice(), "", output)
     Swag.require(Crypto.constantTimeEqual(output, expected.toSlice()))

@@ -23,13 +23,17 @@ impl Swag.IAllocator for RejectConcatBucketDataAllocator
             request.address = &.headers[cast(u64, .headerCount) * #sizeof(ConcatBufferBucket)]
             .headerCount    += 1
         }
-        elif request.size == 4
+        else if request.size == 4
         {
             .dataCount += 1
-            if .dataCount == 1 do
+            if .dataCount == 1
+            {
                 request.address = &.data[0]
-            else do
+            }
+            else
+            {
                 request.address = null
+            }
         }
         else
         {
@@ -41,8 +45,10 @@ impl Swag.IAllocator for RejectConcatBucketDataAllocator
 
     mtd impl free(request: *Swag.AllocatorRequest)
     {
-        if request.size == #sizeof(ConcatBufferBucket) do
+        if request.size == #sizeof(ConcatBufferBucket)
+        {
             .freedHeaders += 1
+        }
     }
 }
 
@@ -63,16 +69,20 @@ func buildConcatBuffer()->ConcatBuffer
 
 func frontBucketCount(buffer: ConcatBuffer)->u64
 {
-    for bucket in buffer do
+    for bucket in buffer
+    {
         return bucket.count
+    }
 
     return 0
 }
 
 func backBucketCount(buffer: ConcatBuffer)->u64
 {
-    for bucket in buffer.reversed() do
+    for bucket in buffer.reversed()
+    {
         return bucket.count
+    }
 
     return 0
 }
@@ -170,7 +180,7 @@ func inspectConcatBuffer(buffer: ConcatBuffer)->bool
     source.setPosition({})
     source.advance(2)
     var moved = #move source
-    moved.addNative('X'u8)
+    moved.addNative('X'_u8)
     Swag.require(moved.toString() == "abXdefgh")
     moved.setPosition({})
     moved.advance(8)
@@ -183,12 +193,16 @@ func inspectConcatBuffer(buffer: ConcatBuffer)->bool
     let buffer = buildConcatBuffer()
 
     var forwardCode: u64 = 0
-    for bucket in buffer do
+    for bucket in buffer
+    {
         forwardCode = forwardCode * 10 + bucket.count
+    }
 
     var reverseCode: u64 = 0
-    for bucket in buffer.reversed() do
+    for bucket in buffer.reversed()
+    {
         reverseCode = reverseCode * 10 + bucket.count
+    }
 
     Swag.require(forwardCode == 332)
     Swag.require(reverseCode == 233)
@@ -210,7 +224,7 @@ func inspectConcatBuffer(buffer: ConcatBuffer)->bool
     buffer.addBytes(cast(const [..] u8, "abc"))
 
     let text = buffer.moveToString()
-    storage[0] = 'z'u8
+    storage[0] = 'z'_u8
     Swag.require(text.toString() == "abc")
 }
 
@@ -290,7 +304,7 @@ func inspectConcatBuffer(buffer: ConcatBuffer)->bool
     Swag.require(restored.bucket == saved.bucket)
     Swag.require(restored.pointer == saved.pointer)
     Swag.require(ConcatBuffer.offsetOf(restored) == 2)
-    buffer.addNative('X'u8)
+    buffer.addNative('X'_u8)
     Swag.require(ConcatBuffer.offsetOf(buffer.position()) == 3)
     Swag.require(buffer.toString() == "abXdefgh")
 }
@@ -298,8 +312,8 @@ func inspectConcatBuffer(buffer: ConcatBuffer)->bool
 #test
 {
     var buffer: ConcatBuffer
-    buffer.addNative(0xAA'u8)
-    let value = 0x12345678'u32
+    buffer.addNative(0xAA_u8)
+    let value = 0x12345678_u32
     let unalignedPosition = buffer.position()
     Swag.require(cast(u64, unwrap unalignedPosition.pointer) % #alignof(u32) != 0)
     buffer.addNative(value)
@@ -403,8 +417,11 @@ func inspectConcatBuffer(buffer: ConcatBuffer)->bool
     {
         visits += 1
         Swag.require(visits <= 3)
-        if visits == 1 do
+        if visits == 1
+        {
             continue
+        }
+
         Swag.require(bucket.count > 0)
     }
 
@@ -414,8 +431,11 @@ func inspectConcatBuffer(buffer: ConcatBuffer)->bool
     {
         visits += 1
         Swag.require(visits <= 3)
-        if visits == 1 do
+        if visits == 1
+        {
             continue
+        }
+
         Swag.require(bucket.count > 0)
     }
 
@@ -427,7 +447,7 @@ func inspectConcatBuffer(buffer: ConcatBuffer)->bool
     var buffer: ConcatBuffer
     buffer.addBytes("a")
     buffer.setPosition({})
-    buffer.addNative('b'u8)
+    buffer.addNative('b'_u8)
     buffer.addBytes("c")
     Swag.require(buffer.toString() == "bc")
 }
@@ -514,7 +534,7 @@ func inspectConcatBuffer(buffer: ConcatBuffer)->bool
     buffer.addBytes("12345")
     Swag.require(buffer.toString() == "ab12345h")
     Swag.require(ConcatBuffer.offsetOf(buffer.position()) == 7)
-    buffer.addNative('X'u8)
+    buffer.addNative('X'_u8)
     buffer.addBytes("!")
     Swag.require(buffer.toString() == "ab12345X!")
 }

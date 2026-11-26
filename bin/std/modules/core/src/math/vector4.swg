@@ -165,16 +165,25 @@ impl Vector4
     #[Swag.Inline]
     mtd const length()->f32
     {
-        if Math.isNaN(.x) or Math.isNaN(.y) or Math.isNaN(.z) or Math.isNaN(.w) do
+        if Math.isNaN(.x) or Math.isNaN(.y) or Math.isNaN(.z) or Math.isNaN(.w)
+        {
             return Swag.F32.NaN
+        }
+
         if not Math.isFinite(.x) or
            not Math.isFinite(.y) or
            not Math.isFinite(.z) or
-           not Math.isFinite(.w) do
+           not Math.isFinite(.w)
+        {
             return Swag.F32.Inf
+        }
+
         let scale = Math.max(Math.abs(.x), Math.abs(.y), Math.abs(.z), Math.abs(.w))
-        if scale == 0 do
-            return 0'f32
+        if scale == 0
+        {
+            return 0_f32
+        }
+
         return scale * sqrt(((.x / scale) * (.x / scale)) +
                             ((.y / scale) * (.y / scale)) +
                             ((.z / scale) * (.z / scale)) +
@@ -305,8 +314,11 @@ impl Vector4
     // Returns this vector scaled to unit length, or the zero vector when its length is near zero.
     mtd const normalizedOrZero()->Vector4
     {
-        if Math.isZeroEpsilon(.length()) do
+        if Math.isZeroEpsilon(.length())
+        {
             return Zero
+        }
+
         return normalizedVector4(me)
     }
 
@@ -356,16 +368,24 @@ impl Vector4
     // The result is NaN when either vector is zero.
     mtd const angleCosineTo(other: Vector4)->f32
     {
-        if .isZero() or other.isZero() do
+        if .isZero() or other.isZero()
+        {
             return Swag.F32.NaN
+        }
 
         // Rounding can push the ratio for nearly parallel vectors just past 1 in magnitude,
         // outside the domain of acos. The comparisons leave a NaN untouched.
         let cosine = normalizedVector4(me).dot(normalizedVector4(other))
-        if cosine > 1 do
+        if cosine > 1
+        {
             return 1
-        if cosine < -1 do
+        }
+
+        if cosine < -1
+        {
             return -1
+        }
+
         return cosine
     }
 
@@ -374,8 +394,11 @@ impl Vector4
     // The result is NaN when either vector is zero.
     mtd const angleTo(other: Vector4)->f32
     {
-        if .isZero() or other.isZero() do
+        if .isZero() or other.isZero()
+        {
             return Swag.F32.NaN
+        }
+
         return Math.acos(.angleCosineTo(other))
     }
 
@@ -417,10 +440,14 @@ impl Vector4
     mtd clampLength(minLength, maxLength: f32)
     {
         let len = .length()
-        if len < minLength do
+        if len < minLength
+        {
             .setLength(minLength)
-        elif len > maxLength do
+        }
+        else if len > maxLength
+        {
             .setLength(maxLength)
+        }
     }
 
     // Returns this vector scaled so that its length lies between `minLength` and `maxLength`.
@@ -429,10 +456,15 @@ impl Vector4
     mtd const clampedLength(minLength, maxLength: f32)->Vector4
     {
         let len = .length()
-        if len < minLength do
+        if len < minLength
+        {
             return .normalized() * minLength
-        elif len > maxLength do
+        }
+        else if len > maxLength
+        {
             return .normalized() * maxLength
+        }
+
         return me
     }
 
@@ -454,8 +486,11 @@ impl Vector4
     mtd const projectedOnto(other: Vector4)->Vector4
     {
         let direction = other.normalizedOrZero()
-        if direction.isZero() do
+        if direction.isZero()
+        {
             return Zero
+        }
+
         return direction * .dot(direction)
     }
 
@@ -486,12 +521,19 @@ impl Vector4
     {
         let dir  = target - me
         let dist = dir.length()
-        if dist == 0 do
+        if dist == 0
+        {
             return
-        if dist <= maxDistance do
+        }
+
+        if dist <= maxDistance
+        {
             me[] = target
-        else do
+        }
+        else
+        {
             me[] += dir * (maxDistance / dist)
+        }
     }
 
     // Returns this vector moved toward `target` by at most `maxDistance`.
@@ -502,10 +544,16 @@ impl Vector4
     {
         let dir  = target - me
         let dist = dir.length()
-        if dist == 0 do
+        if dist == 0
+        {
             return me[]
-        if dist <= maxDistance do
+        }
+
+        if dist <= maxDistance
+        {
             return target
+        }
+
         return me[] + (dir * (maxDistance / dist))
     }
 
@@ -529,8 +577,11 @@ impl Vector4
     // Z are returned unchanged.
     mtd const toVector3()->Vector3
     {
-        if Math.isZeroEpsilon(.w) do
+        if Math.isZeroEpsilon(.w)
+        {
             return Vector3{.x, .y, .z}
+        }
+
         return Vector3{.x / .w, .y / .w, .z / .w}
     }
 

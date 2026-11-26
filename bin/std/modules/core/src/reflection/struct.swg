@@ -7,8 +7,10 @@ using Swag
 #[ConstExpr]
 func isNamedStruct(type: typeinfo?, name: string?)->bool
 {
-    if not isStruct(type) do
+    if not isStruct(type)
+    {
         return false
+    }
 
     let typeStruct = assume cast(const *TypeInfoStruct, type)
     return typeStruct.structName == name
@@ -18,12 +20,17 @@ func isNamedStruct(type: typeinfo?, name: string?)->bool
 #[ConstExpr]
 func findMethod(type: typeinfo?, name: string?)->const *TypeValue?
 {
-    if not isStruct(type) do
+    if not isStruct(type)
+    {
         return null
+    }
 
     let typeStruct = assume cast(const *TypeInfoStruct, type)
-    for &it in typeStruct.methods where it.name == name do
+    for &it in typeStruct.methods where it.name == name
+    {
         return it
+    }
+
     return null
 }
 
@@ -31,12 +38,17 @@ func findMethod(type: typeinfo?, name: string?)->const *TypeValue?
 #[ConstExpr]
 func findField(type: typeinfo?, name: string?)->const *TypeValue?
 {
-    if not isStruct(type) do
+    if not isStruct(type)
+    {
         return null
+    }
 
     let typeStruct = assume cast(const *TypeInfoStruct, type)
-    for &it in typeStruct.fields where it.name == name do
+    for &it in typeStruct.fields where it.name == name
+    {
         return it
+    }
+
     return null
 }
 
@@ -53,12 +65,17 @@ func fieldCrc(type: typeinfo, name: string)->u32 => findField(type, name)?.crc o
 #[ConstExpr]
 func readFieldValue(destination: *void?, field: const *TypeValue?, source: *void?)
 {
-    if not destination or not field or not source do
+    if not destination or not field or not source
+    {
         return
+    }
 
     let fieldType = field.pointedType
-    if not fieldType do
+    if not fieldType
+    {
         return
+    }
+
     Reflection.assign(destination, cast([*] u8, source) + field.offset, fieldType)
 }
 
@@ -68,12 +85,17 @@ func readFieldValue(destination: *void?, field: const *TypeValue?, source: *void
 #[ConstExpr]
 func writeFieldValue(destination: *void?, field: const *TypeValue?, source: const *void?)
 {
-    if not destination or not field or not source do
+    if not destination or not field or not source
+    {
         return
+    }
 
     let fieldType = field.pointedType
-    if not fieldType do
+    if not fieldType
+    {
         return
+    }
+
     Reflection.assign(cast([*] u8, destination) + field.offset, source, fieldType)
 }
 
@@ -85,8 +107,10 @@ func hasMethod(type: typeinfo?, name: string?)->bool => findMethod(type, name) !
 #[ConstExpr]
 func canCompare(type: typeinfo?)->bool
 {
-    if not type do
+    if not type
+    {
         return false
+    }
 
     switch type.kind
     {
@@ -142,8 +166,11 @@ func canCompare(type: typeinfo?)->bool
     // A plain-data type has no drop, post-move, or post-copy hook and no dynamic identity storage.
     func isPod(type: typeinfo?)->bool
     {
-        if not type do
+        if not type
+        {
             return false
+        }
+
         const NonPodFlags = TypeInfoFlags.HasDrop |
                             TypeInfoFlags.HasPostMove |
                             TypeInfoFlags.HasPostCopy |
@@ -156,8 +183,10 @@ func canCompare(type: typeinfo?)->bool
 #[ConstExpr]
 func hasInterface(type: typeinfo?, itf: typeinfo)->bool
 {
-    if not isStruct(type) do
+    if not isStruct(type)
+    {
         return false
+    }
 
     let typeStruct = assume cast(const *TypeInfoStruct, type)
     for it in typeStruct.interfaces
@@ -167,10 +196,12 @@ func hasInterface(type: typeinfo?, itf: typeinfo)->bool
         // nullability qualifier). Fall back to the name for entries without a pointed type.
         if it.pointedType
         {
-            if it.pointedType.crc == itf.crc do
+            if it.pointedType.crc == itf.crc
+            {
                 return true
+            }
         }
-        elif it.name == itf.fullname
+        else if it.name == itf.fullname
         {
             return true
         }

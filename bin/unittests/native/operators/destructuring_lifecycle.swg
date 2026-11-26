@@ -35,8 +35,10 @@ impl DestructuringOwner
     mtd opPostMove() { .ptr = &.storage }
     mtd opPostCopy()
     {
-        if .ptr do
+        if .ptr
+        {
             .storage = .ptr[]
+        }
         .ptr = &.storage
         DestructuringCopies += 1
     }
@@ -64,7 +66,7 @@ func(T) makeDestructuringValue(value: s32)->T
 func(T) makeDestructuringPair()->{ first: T, count: u32 }
 {
     var result: #returntype
-    result.first = makeDestructuringValue'T(5)
+    result.first = makeDestructuringValue!{T}(5)
     result.count = 9
     return result
 }
@@ -72,20 +74,20 @@ func(T) makeDestructuringPair()->{ first: T, count: u32 }
 func(T) makeDestructuringPairFail()->{ first: T, count: u32 } fail
 {
     var result: #returntype
-    result.first = makeDestructuringValue'T(6)
+    result.first = makeDestructuringValue!{T}(6)
     result.count = 9
     return result
 }
 
 #test
 {
-    let {first, count} = makeDestructuringPair'DestructuringSelfRef()
+    let {first, count} = makeDestructuringPair!{DestructuringSelfRef}()
     Swag.require(first.isValid() and count == 9)
 
-    let {first: caught} = catch makeDestructuringPairFail'DestructuringSelfRef() orelse {first: DestructuringSelfRef{}, count: 0'u32}
+    let {first: caught} = catch makeDestructuringPairFail!{DestructuringSelfRef}() orelse {first: DestructuringSelfRef{}, count: 0_u32}
     Swag.require(caught.isValid())
 
-    let {first: expected} = expect makeDestructuringPairFail'DestructuringSelfRef()
+    let {first: expected} = expect makeDestructuringPairFail!{DestructuringSelfRef}()
     Swag.require(expected.isValid())
 }
 
@@ -94,9 +96,9 @@ func(T) makeDestructuringPairFail()->{ first: T, count: u32 } fail
     DestructuringDrops = 0
     scope
     {
-        let {first: owned} = makeDestructuringPair'DestructuringOwner()
+        let {first: owned} = makeDestructuringPair!{DestructuringOwner}()
         Swag.require(owned.isValid())
-        let {first: caught} = catch makeDestructuringPairFail'DestructuringOwner() orelse {first: DestructuringOwner{}, count: 0'u32}
+        let {first: caught} = catch makeDestructuringPairFail!{DestructuringOwner}() orelse {first: DestructuringOwner{}, count: 0_u32}
         Swag.require(caught.isValid())
     }
 
@@ -108,7 +110,7 @@ func(T) makeDestructuringPairFail()->{ first: T, count: u32 } fail
     DestructuringDrops = 0
     scope
     {
-        let pair = makeDestructuringPair'DestructuringOwner()
+        let pair = makeDestructuringPair!{DestructuringOwner}()
         let {first, count} = pair
         Swag.require(first.isValid() and pair.first.isValid())
         Swag.require(count == 9)
@@ -121,8 +123,8 @@ func(T) makeDestructuringPairFail()->{ first: T, count: u32 } fail
 func makeDestructuringOwners()->{kept: DestructuringOwner, skipped: DestructuringOwner}
 {
     var result: #returntype
-    result.kept    = makeDestructuringValue'DestructuringOwner(7)
-    result.skipped = makeDestructuringValue'DestructuringOwner(8)
+    result.kept    = makeDestructuringValue!{DestructuringOwner}(7)
+    result.skipped = makeDestructuringValue!{DestructuringOwner}(8)
     return result
 }
 
@@ -148,8 +150,8 @@ func makeDestructuringOwners()->{kept: DestructuringOwner, skipped: Destructurin
 func makeReorderedDestructuringOwners()->{skipped: DestructuringOwner, kept: DestructuringOwner}
 {
     var result: #returntype
-    result.skipped = makeDestructuringValue'DestructuringOwner(70)
-    result.kept    = makeDestructuringValue'DestructuringOwner(80)
+    result.skipped = makeDestructuringValue!{DestructuringOwner}(70)
+    result.kept    = makeDestructuringValue!{DestructuringOwner}(80)
     return result
 }
 
@@ -170,7 +172,7 @@ func makeReorderedDestructuringOwners()->{skipped: DestructuringOwner, kept: Des
     DestructuringDropSum = 0
     scope
     {
-        var value = {kept: makeDestructuringValue'DestructuringOwner(1), skipped: makeDestructuringValue'DestructuringOwner(2)}
+        var value = {kept: makeDestructuringValue!{DestructuringOwner}(1), skipped: makeDestructuringValue!{DestructuringOwner}(2)}
         value = makeReorderedDestructuringOwners()
         Swag.require(value.kept.isValid() and value.skipped.isValid())
         Swag.require(DestructuringDropSum == 3)
@@ -204,8 +206,8 @@ impl DestructuringOwner
     DestructuringCopies = 0
     scope
     {
-        let left  = {first: makeDestructuringValue'DestructuringOwner(1), second: makeDestructuringValue'DestructuringOwner(2)}
-        let right = {second: makeDestructuringValue'DestructuringOwner(2), first: makeDestructuringValue'DestructuringOwner(1)}
+        let left  = {first: makeDestructuringValue!{DestructuringOwner}(1), second: makeDestructuringValue!{DestructuringOwner}(2)}
+        let right = {second: makeDestructuringValue!{DestructuringOwner}(2), first: makeDestructuringValue!{DestructuringOwner}(1)}
         Swag.require(left == right)
         Swag.require(DestructuringCopies == 0 and DestructuringDrops == 0)
     }

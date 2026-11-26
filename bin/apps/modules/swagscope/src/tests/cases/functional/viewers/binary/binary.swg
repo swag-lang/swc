@@ -8,33 +8,39 @@ func binaryFixturePath(name: string)->String => Path.combine(scopeTestDataDirect
 
 // Total size of the synthesized image. Two sections of one file-alignment unit each, behind a
 // header block of the same size.
-internal const FixtureSize = 0x800'u64
+internal const FixtureSize = 0x800_u64
 
 // Where the synthesized image puts each of its parts. A fixture whose offsets are named is a
 // fixture whose assertions can name them too.
-const FixturePeAt   = 0x80'u64
-internal const FixtureTextAt = 0x400'u64
-const FixtureDataAt = 0x600'u64
+const FixturePeAt   = 0x80_u64
+internal const FixtureTextAt = 0x400_u64
+const FixtureDataAt = 0x600_u64
 
 // Writes `value` as `size` little-endian bytes at `at`.
-func poke(bytes: *Array'u8, at, value, size: u64)
+func poke(bytes: *Array!{u8}, at, value, size: u64)
 {
-    for index in size do
+    for index in size
+    {
         bytes[at + index] = cast(u8, ((value >> (index * 8)) & 0xFF))
+    }
 }
 
 // Writes `value` as `size` big-endian bytes at `at`, for the formats written that way round.
-func pokeBig(bytes: *Array'u8, at, value, size: u64)
+func pokeBig(bytes: *Array!{u8}, at, value, size: u64)
 {
-    for index in size do
+    for index in size
+    {
         bytes[at + index] = cast(u8, ((value >> ((size - 1 - index) * 8)) & 0xFF))
+    }
 }
 
 // Writes `text` at `at`, leaving the byte after it as the zero the buffer already holds.
-func pokeText(bytes: *Array'u8, at: u64, text: string)
+func pokeText(bytes: *Array!{u8}, at: u64, text: string)
 {
-    for index in text.count do
+    for index in text.count
+    {
         bytes[at + index] = text[index]
+    }
 }
 
 // Builds a complete, self-consistent PE32+ library: two sections, one export, one import.
@@ -42,7 +48,7 @@ func pokeText(bytes: *Array'u8, at: u64, text: string)
 // A checked-in binary would say nothing about which byte an assertion is reading, and could not be
 // changed to probe one field. Every offset here is computed from the same constants the reader
 // walks, so a mistake in either shows up as a failing assertion rather than as a silent skip.
-internal func buildPeFixture()->Array'u8
+internal func buildPeFixture()->Array!{u8}
 {
     var bytes: #returntype
     bytes.resize(FixtureSize)
@@ -137,8 +143,11 @@ internal func buildPeFixture()->Array'u8
 
     let codeViewAt = FixtureDataAt + 0x1A0
     pokeText(&bytes, codeViewAt, "RSDS")
-    for index in 16 do
+    for index in 16
+    {
         bytes[codeViewAt + 4 + index] = cast(u8, index + 1)
+    }
+
     poke(&bytes, codeViewAt + 20, 1, 4)     // Age.
     pokeText(&bytes, codeViewAt + 24, "fixture.pdb")
 
@@ -157,8 +166,11 @@ internal func writeFixture(name: string, bytes: const [..] u8)->String
 // Returns the first row carrying `label`, or `null` when the report never wrote one.
 func findRow(report: const *Binary.Report, label: string)->const *Binary.Row?
 {
-    for row in report.rows where row.label == label do
+    for row in report.rows where row.label == label
+    {
         return row
+    }
+
     return null
 }
 
@@ -244,7 +256,7 @@ func fixtureGuid(text: string)->Guid128 => expect Guid128.parse(text)
 
     var host: Testing.HeadlessHost
     host.setup(860, 520)
-    let commands      = Wnd.create'Wnd(&host.root, {0, 0, 36, 36})
+    let commands      = Wnd.create!{Wnd}(&host.root, {0, 0, 36, 36})
     var viewerSession = openTestViewer(Binary.viewerPlugin(), &host.root, fileName, actionParent: commands)
     let view          = assume cast(*Binary.Panel, viewerSession.view)
     finishBinaryViewer(&host, view)
@@ -326,7 +338,7 @@ func fixtureGuid(text: string)->Guid128 => expect Guid128.parse(text)
 // An object file has no image header, and is recognized by the header it does have.
 #test
 {
-    var bytes: Array'u8
+    var bytes: Array!{u8}
     bytes.resize(0x100)
     poke(&bytes, 0, 0x8664, 2)     // Machine.
     poke(&bytes, 2, 1, 2)          // NumberOfSections.
@@ -356,7 +368,7 @@ func fixtureGuid(text: string)->Guid128 => expect Guid128.parse(text)
 // An archive is a directory of members before it is a container of objects.
 #test
 {
-    var bytes: Array'u8
+    var bytes: Array!{u8}
     bytes.resize(0x100)
     pokeText(&bytes, 0, "!<arch>\n")
 
@@ -394,7 +406,7 @@ func fixtureGuid(text: string)->Guid128 => expect Guid128.parse(text)
     writer.manifest().name = "fixture container"
     writer.manifest().tags.add("probe")
 
-    let payload = [1'u8, 2, 3, 4, 5, 6, 7, 8]
+    let payload = [1_u8, 2, 3, 4, 5, 6, 7, 8]
     discard expect writer.addChunk(payload, {})
     expect writer.saveAtomic(fileName)
 
@@ -413,11 +425,11 @@ func fixtureGuid(text: string)->Guid128 => expect Guid128.parse(text)
 // A Mach-O image is read down to the segment it maps and the library it needs.
 #test
 {
-    var bytes: Array'u8
+    var bytes: Array!{u8}
     bytes.resize(0x200)
 
-    let segmentSize = 72 + 80'u64
-    let dylibSize   = 56'u64
+    let segmentSize = 72 + 80_u64
+    let dylibSize   = 56_u64
     poke(&bytes, 0, 0xFEEDFACF, 4)      // MH_MAGIC_64.
     poke(&bytes, 4, 0x01000007, 4)      // cputype: x86-64.
     poke(&bytes, 12, 2, 4)              // filetype: MH_EXECUTE.
@@ -425,7 +437,7 @@ func fixtureGuid(text: string)->Guid128 => expect Guid128.parse(text)
     poke(&bytes, 20, segmentSize + dylibSize, 4)     // sizeofcmds.
     poke(&bytes, 24, 0x00200085, 4)     // NOUNDEFS | DYLDLINK | TWOLEVEL | PIE.
 
-    let segmentAt = 32'u64
+    let segmentAt = 32_u64
     poke(&bytes, segmentAt, 0x19, 4)     // LC_SEGMENT_64.
     poke(&bytes, segmentAt + 4, segmentSize, 4)
     pokeText(&bytes, segmentAt + 8, "__TEXT")
@@ -496,10 +508,10 @@ func fixtureGuid(text: string)->Guid128 => expect Guid128.parse(text)
 // A ZIP archive is read through the index it keeps of itself, without decompressing anything.
 #test
 {
-    let entryAt = 51'u64
-    let endAt   = 106'u64
+    let entryAt = 51_u64
+    let endAt   = 106_u64
 
-    var bytes: Array'u8
+    var bytes: Array!{u8}
     bytes.resize(128)
 
     pokeText(&bytes, 0, "PK\x03\x04")
@@ -543,7 +555,7 @@ func fixtureGuid(text: string)->Guid128 => expect Guid128.parse(text)
 // A WebAssembly module is a chain of sections, and the two that name things are decoded.
 #test
 {
-    var bytes: Array'u8
+    var bytes: Array!{u8}
     bytes.resize(64)
 
     pokeText(&bytes, 0, "\0asm")
@@ -592,7 +604,7 @@ func fixtureGuid(text: string)->Guid128 => expect Guid128.parse(text)
 // A RIFF container is one chunk chain, and the header chunks inside it are read as headers.
 #test
 {
-    var bytes: Array'u8
+    var bytes: Array!{u8}
     bytes.resize(52)
 
     pokeText(&bytes, 0, "RIFF")
@@ -632,7 +644,7 @@ func fixtureGuid(text: string)->Guid128 => expect Guid128.parse(text)
 // A short LIST payload must not borrow its form from the following chunk.
 #test
 {
-    var bytes: Array'u8
+    var bytes: Array!{u8}
     bytes.resize(32)
 
     pokeText(&bytes, 0, "RIFF")
@@ -658,7 +670,7 @@ func fixtureGuid(text: string)->Guid128 => expect Guid128.parse(text)
 // A Standard MIDI File exposes its timing, track metadata, and running-status channel events.
 #test
 {
-    var bytes: Array'u8
+    var bytes: Array!{u8}
     bytes.resize(22)
 
     pokeText(&bytes, 0, "MThd")
@@ -668,7 +680,7 @@ func fixtureGuid(text: string)->Guid128 => expect Guid128.parse(text)
     pokeBig(&bytes, 12, 480, 2)     // Ticks per quarter note.
     pokeText(&bytes, 14, "MTrk")
 
-    const Track = [0'u8, 0xFF, 0x03, 5, 'P'u8, 'i'u8, 'a'u8, 'n'u8, 'o'u8,
+    const Track = [0_u8, 0xFF, 0x03, 5, 'P'_u8, 'i'_u8, 'a'_u8, 'n'_u8, 'o'_u8,
                    0, 0xFF, 0x51, 3, 0x07, 0xA1, 0x20,
                    0, 0xFF, 0x58, 4, 4, 2, 24, 8,
                    0, 0xFF, 0x59, 2, 0xFD, 1,
@@ -705,10 +717,10 @@ func fixtureGuid(text: string)->Guid128 => expect Guid128.parse(text)
 // A font is read through the directory of tables it is assembled from.
 #test
 {
-    let headAt = 44'u64
-    let nameAt = 100'u64
+    let headAt = 44_u64
+    let nameAt = 100_u64
 
-    var bytes: Array'u8
+    var bytes: Array!{u8}
     bytes.resize(128)
 
     pokeBig(&bytes, 0, 0x00010000, 4)
@@ -750,7 +762,7 @@ func fixtureGuid(text: string)->Guid128 => expect Guid128.parse(text)
 // A file no reader claims is still named, measured, and weighed.
 #test
 {
-    var bytes: Array'u8
+    var bytes: Array!{u8}
     bytes.resize(64)
     pokeText(&bytes, 0, "GIF89a")
 
@@ -774,10 +786,12 @@ func fixtureGuid(text: string)->Guid128 => expect Guid128.parse(text)
 // A signature is compared byte for byte, those above 0x7F included.
 #test
 {
-    var bytes: Array'u8
+    var bytes: Array!{u8}
     bytes.resize(32)
-    for value, index in [0xFF'u8, 0xD8, 0xFF] do
+    for value, index in [0xFF_u8, 0xD8, 0xFF]
+    {
         bytes[index] = value
+    }
 
     let fileName = writeFixture("jpg", bytes.toSlice())
     defer discard catch File.delete(fileName)
@@ -827,8 +841,10 @@ internal func binaryCellText(line: *ListLine, column: Binary.Column)->String => 
 // What leaves through the clipboard is the report a reader is looking at.
 #test
 {
-    if not Clipboard.isFake() do
+    if not Clipboard.isFake()
+    {
         return
+    }
 
     let bytes    = buildPeFixture()
     let fileName = writeFixture("pe_copy", bytes.toSlice())
@@ -862,10 +878,16 @@ internal func binaryCellText(line: *ListLine, column: Binary.Column)->String => 
     var copies = 0
     for &entry in results.sections[0]!.entries
     {
-        if entry.title == Binary.texts().ui_MenuBack do
+        if entry.title == Binary.texts().ui_MenuBack
+        {
             Swag.require(entry.detail == Input.formatKeyShortcut(.Alt, .Left), "the lens teaches the key of the context menu")
-        if entry.title != Binary.texts().ui_MenuCopyAll do
+        }
+
+        if entry.title != Binary.texts().ui_MenuCopyAll
+        {
             continue
+        }
+
         entry.run!()
         copies += 1
     }
@@ -884,7 +906,7 @@ internal func binaryCellText(line: *ListLine, column: Binary.Column)->String => 
     host.setup(1100, 640)
 
     let view = binaryTestViewer(&host, fileName, 1100, 600)
-    var matches: Array'Viewer.SearchMatch
+    var matches: Array!{Viewer.SearchMatch}
     view.collectMatches("file offset of the PE signature", {}, &matches)
     Swag.require(matches.count == 1)
     Swag.require(matches[0].minor == cast(u64, Binary.Column.Detail))
@@ -919,25 +941,35 @@ internal func binaryCellText(line: *ListLine, column: Binary.Column)->String => 
 
     let view = binaryTestViewer(&host, fileName, 1100, 600)
     view.applyFilter("file offset of the PE signature", {})
-    while view.filterTimer do
+    while view.filterTimer
+    {
         host.pump()
+    }
 
     var matched = Swag.U64.Max
-    for row, index in view.doc.report.rows where row.label == "e_lfanew" do
+    for row, index in view.doc.report.rows where row.label == "e_lfanew"
+    {
         matched = index
+    }
+
     Swag.require(matched != Swag.U64.Max and view.rowLines[matched] != null)
     Swag.require(view.rowLines[matched]!.parent != null)
     Swag.require(view.list.lineCount() < view.doc.report.rows.count)
 
-    var matches: Array'Viewer.SearchMatch
+    var matches: Array!{Viewer.SearchMatch}
     view.collectMatches("e_lfanew", {}, &matches)
     Swag.require(matches.count == 1 and matches[0].major == matched)
 
     view.applyFilter("", {})
-    while view.filterTimer do
+    while view.filterTimer
+    {
         host.pump()
-    for line in view.rowLines do
+    }
+
+    for line in view.rowLines
+    {
         Swag.require(line != null)
+    }
 }
 
 // The report, its headings, and its controls all follow a live language change.

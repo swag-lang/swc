@@ -7,8 +7,11 @@ internal func startup() fail
 {
     var data: WSADATA
     let code = WSAStartup(0x0202, &data)
-    if code != 0 do
+    if code != 0
+    {
         fail NetworkError{code: code}
+    }
+
     if data.wVersion != 0x0202
     {
         discard WSACleanup()
@@ -41,48 +44,71 @@ impl TcpStream
     // Enables or disables Nagle's algorithm for this connection.
     mtd setNoDelay(enabled: bool) fail
     {
-        if not .open do
+        if not .open
+        {
             fail Errors.BadParameterError{"TCP stream is closed"}
-        let value = enabled ? 1's32 : 0's32
-        if setsockopt(.handle, IPPROTO_TCP, TCP_NODELAY, cast(const *u8, &value), #sizeof(s32)) == SOCKET_ERROR do
+        }
+
+        let value = enabled ? 1_s32 : 0_s32
+        if setsockopt(.handle, IPPROTO_TCP, TCP_NODELAY, cast(const *u8, &value), #sizeof(s32)) == SOCKET_ERROR
+        {
             fail NetworkError{code: WSAGetLastError()}
+        }
     }
 
     // Enables or disables operating-system TCP keepalive probes for this connection.
     mtd setKeepAlive(enabled: bool) fail
     {
-        if not .open do
+        if not .open
+        {
             fail Errors.BadParameterError{"TCP stream is closed"}
-        let value = enabled ? 1's32 : 0's32
-        if setsockopt(.handle, SOL_SOCKET, SO_KEEPALIVE, cast(const *u8, &value), #sizeof(s32)) == SOCKET_ERROR do
+        }
+
+        let value = enabled ? 1_s32 : 0_s32
+        if setsockopt(.handle, SOL_SOCKET, SO_KEEPALIVE, cast(const *u8, &value), #sizeof(s32)) == SOCKET_ERROR
+        {
             fail NetworkError{code: WSAGetLastError()}
+        }
     }
 
     // Sets the maximum blocking read time in milliseconds; zero disables the timeout.
     mtd setReadTimeout(timeoutMs: u32) fail
     {
-        if not .open do
+        if not .open
+        {
             fail Errors.BadParameterError{"TCP stream is closed"}
+        }
+
         var timeout = timeoutMs
-        if setsockopt(.handle, SOL_SOCKET, SO_RCVTIMEO, cast(const *u8, &timeout), #sizeof(u32)) == SOCKET_ERROR do
+        if setsockopt(.handle, SOL_SOCKET, SO_RCVTIMEO, cast(const *u8, &timeout), #sizeof(u32)) == SOCKET_ERROR
+        {
             fail NetworkError{code: WSAGetLastError()}
+        }
     }
 
     // Sets the maximum blocking write time in milliseconds; zero disables the timeout.
     mtd setWriteTimeout(timeoutMs: u32) fail
     {
-        if not .open do
+        if not .open
+        {
             fail Errors.BadParameterError{"TCP stream is closed"}
+        }
+
         var timeout = timeoutMs
-        if setsockopt(.handle, SOL_SOCKET, SO_SNDTIMEO, cast(const *u8, &timeout), #sizeof(u32)) == SOCKET_ERROR do
+        if setsockopt(.handle, SOL_SOCKET, SO_SNDTIMEO, cast(const *u8, &timeout), #sizeof(u32)) == SOCKET_ERROR
+        {
             fail NetworkError{code: WSAGetLastError()}
+        }
     }
 
     // Connects to an IPv4 or IPv6 endpoint, returning an owned blocking stream.
     func connect(endpoint: SocketEndpoint)->TcpStream fail
     {
-        if endpoint.address.family != .IPv4 and endpoint.address.family != .IPv6 do
+        if endpoint.address.family != .IPv4 and endpoint.address.family != .IPv6
+        {
             fail Errors.BadParameterError{}
+        }
+
         let family  = endpoint.address.family == .IPv4 ? AF_INET : AF_INET6
         let handle  = try newSocket(family)
         let address = nativeSocketAddress(endpoint)
@@ -106,10 +132,15 @@ impl TcpStream
     // Stops sending bytes while keeping the receive side open.
     mtd shutdownWrite() fail
     {
-        if not .open do
+        if not .open
+        {
             fail Errors.BadParameterError{"TCP stream is closed"}
-        if shutdown(.handle, SD_SEND) == SOCKET_ERROR do
+        }
+
+        if shutdown(.handle, SD_SEND) == SOCKET_ERROR
+        {
             fail NetworkError{code: WSAGetLastError()}
+        }
     }
 
     // Reads up to `buffer.count` bytes; zero indicates EOF or an empty buffer.
@@ -117,14 +148,23 @@ impl TcpStream
     // Fails with [[Core.Errors.BadParameterError]] when the stream is not open.
     mtd read(buffer: [..] u8)->u64 fail
     {
-        if not .open do
+        if not .open
+        {
             fail Errors.BadParameterError{"TCP stream is closed"}
-        if buffer.count == 0 do
+        }
+
+        if buffer.count == 0
+        {
             return 0
+        }
+
         let count  = cast(s32, Math.min(buffer.count, cast(u64, Swag.S32.Max)))
         let result = recv(.handle, buffer.buffer, count, 0)
-        if result == SOCKET_ERROR do
+        if result == SOCKET_ERROR
+        {
             fail NetworkError{code: WSAGetLastError()}
+        }
+
         return cast(u64, result)
     }
 
@@ -133,14 +173,23 @@ impl TcpStream
     // Fails with [[Core.Errors.BadParameterError]] when the stream is not open.
     mtd write(buffer: const [..] u8)->u64 fail
     {
-        if not .open do
+        if not .open
+        {
             fail Errors.BadParameterError{"TCP stream is closed"}
-        if buffer.count == 0 do
+        }
+
+        if buffer.count == 0
+        {
             return 0
+        }
+
         let count  = cast(s32, Math.min(buffer.count, cast(u64, Swag.S32.Max)))
         let result = send(.handle, buffer.buffer, count, 0)
-        if result == SOCKET_ERROR do
+        if result == SOCKET_ERROR
+        {
             fail NetworkError{code: WSAGetLastError()}
+        }
+
         return cast(u64, result)
     }
 }
@@ -152,10 +201,16 @@ impl TcpListener
     // Port zero selects an available port, which [[Net.TcpListener.localEndpoint]] returns.
     func listen(endpoint: SocketEndpoint, backlog = 16)->TcpListener fail
     {
-        if backlog <= 0 do
+        if backlog <= 0
+        {
             fail Errors.BadParameterError{}
-        if endpoint.address.family != .IPv4 and endpoint.address.family != .IPv6 do
+        }
+
+        if endpoint.address.family != .IPv4 and endpoint.address.family != .IPv6
+        {
             fail Errors.BadParameterError{}
+        }
+
         let family  = endpoint.address.family == .IPv4 ? AF_INET : AF_INET6
         let handle  = try newSocket(family)
         let address = nativeSocketAddress(endpoint)
@@ -182,26 +237,41 @@ impl TcpListener
     // Fails with [[Core.Errors.BadParameterError]] when the listener is not open.
     mtd localEndpoint()->Endpoint fail
     {
-        if not .open do
+        if not .open
+        {
             fail Errors.BadParameterError{"TCP listener is closed"}
+        }
+
         let endpoint = try .localAddress()
-        if endpoint.address.family != .IPv4 do
+        if endpoint.address.family != .IPv4
+        {
             fail Errors.BadParameterError{}
+        }
+
         var octets: [4] u8
-        for i in octets.count do
+        for i in octets.count
+        {
             octets[i] = endpoint.address.bytes[i]
+        }
+
         return {address: octets, port: endpoint.port}
     }
 
     // Returns the bound local IPv4 or IPv6 address and port.
     mtd localAddress()->SocketEndpoint fail
     {
-        if not .open do
+        if not .open
+        {
             fail Errors.BadParameterError{"TCP listener is closed"}
+        }
+
         var address: NativeSocketAddress
         var size = cast(s32, #sizeof(NativeSocketAddress))
-        if getsockname(.handle, cast(*SOCKADDR, cast(*void, &address)), &size) == SOCKET_ERROR do
+        if getsockname(.handle, cast(*SOCKADDR, cast(*void, &address)), &size) == SOCKET_ERROR
+        {
             fail NetworkError{code: WSAGetLastError()}
+        }
+
         return try portableSocketEndpoint(cast(const *SOCKADDR, cast(const *void, &address)))
     }
 
@@ -210,8 +280,11 @@ impl TcpListener
     // Fails with [[Core.Errors.BadParameterError]] when the listener is not open.
     mtd accept()->TcpStream fail
     {
-        if not .open do
+        if not .open
+        {
             fail Errors.BadParameterError{"TCP listener is closed"}
+        }
+
         try startup()
         let handle = Win32.accept(.handle, null, null)
         if handle == INVALID_SOCKET

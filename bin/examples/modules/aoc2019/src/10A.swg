@@ -104,13 +104,20 @@ func day10A()
     let dataPath = Path.combine(Path.directoryName(#file), "10.txt")
     let lines    = expect File.readAllLines(dataPath)
 
-    var arr: Array'Math.Vector2
-    var tot: Array's32
+    var arr: Array!{Math.Vector2}
+    var tot: Array!{s32}
 
-    for l, y in lines do
-        for c, x in l do
-            if c == '#' do
+    for l, y in lines
+    {
+        for c, x in l
+        {
+            if c == '#'
+            {
                 arr.add(Math.Vector2{cast(f32, x) + 0.5, cast(f32, y) + 0.5})
+            }
+        }
+    }
+
     tot.resize(arr.count)
 
     if arr.count > 1
@@ -124,8 +131,11 @@ func day10A()
                 var hit = false
                 for k in arr.count
                 {
-                    if k == i or k == j do
+                    if k == i or k == j
+                    {
                         continue
+                    }
+
                     let f = Math.Geometry.distanceFromPointToSegment(arr[k], v0, v1)
                     if Math.isZeroEpsilon(f)
                     {

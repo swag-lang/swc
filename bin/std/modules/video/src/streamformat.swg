@@ -38,14 +38,22 @@ impl StreamFormat
     // dialog asks this question while its name editor is still empty.
     mtd const matches(fileName: string)->bool
     {
-        if not fileName.count do
+        if not fileName.count
+        {
             return false
+        }
 
         let extension = Path.lowercaseExtension(fileName)
-        if extension.isEmpty() do
+        if extension.isEmpty()
+        {
             return false
-        for candidate in Tokenize.split(.extensions, ';'rune) where extension == candidate do
+        }
+
+        for candidate in Tokenize.split(.extensions, ';'_rune) where extension == candidate
+        {
             return true
+        }
+
         return false
     }
 }

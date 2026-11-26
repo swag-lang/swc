@@ -38,7 +38,7 @@ private
 
     // Coverage masks kept alive at once. A mask costs a full render-target plane, and only the
     // surface and the layers open over it are ever sampled together.
-    const MaxClipMasks = 4'u64
+    const MaxClipMasks = 4_u64
 }
 
 // Sets the glyph-coverage exponent used by the font shaders.
@@ -46,12 +46,12 @@ private
 // This approximates linear-space text compositing when framebuffer blending uses
 // nonlinear sRGB.
 // 1.0 = off; ~1.33 (= 1/0.75) is a mild, safe correction for dark-on-light text.
-const FontGamma = 1.0'f32 / 0.75
+const FontGamma = 1.0_f32 / 0.75
 
 // MSDF distance range in atlas texels mapped to the stored [0,1] range.
 //
 // The value must remain twice the font atlas spread.
-const MsdfRange = 16.0'f32
+const MsdfRange = 16.0_f32
 
 // Last mip level of a distance-field atlas.
 //
@@ -173,21 +173,21 @@ struct RenderOgl
         // The two chroma planes of every planar texture, keyed by the luma handle the caller
         // holds. A texture is one handle everywhere else in this module, and a planar picture is
         // three: keeping the other two here is what lets it travel as an ordinary texture.
-        chromaPlanes: HashTable'(TextureHandle, ChromaPlanes)
+        chromaPlanes: HashTable!{TextureHandle, ChromaPlanes}
 
         // The program a planar texture displaced, restored as soon as one stops being drawn.
         planarPrevShader: *ShaderBase?
 
         gradientTexture:         GLuint                    // Dynamically sized gradient-stop table.
         gradientTextureCapacity: u64                       // Stop slots allocated in `gradientTexture`.
-        gradientOffsetUpload:    Array'Vector4             // Reused first texture row.
-        gradientColorUpload:     Array'Vector4             // Reused second texture row.
+        gradientOffsetUpload:    Array!{Vector4}           // Reused first texture row.
+        gradientColorUpload:     Array!{Vector4}           // Reused second texture row.
         blendingMode:            BlendingMode = .Alpha     // Active OpenGL blending mode.
         colorMask:               ColorMask    = {true, true, true, false}     // Painter-requested channel mask.
         curRC:                   RenderContext             // Active drawable and viewport.
 
-        stackReleasedRT: Array'(*RenderTarget?)     // Targets queued for deferred release.
-        stackRT:         Array'(*RenderTarget?)     // Nested bound render targets.
+        stackReleasedRT: Array!{*RenderTarget?}     // Targets queued for deferred release.
+        stackRT:         Array!{*RenderTarget?}     // Nested bound render targets.
         curRT:           *RenderTarget?             // Active off-screen target, if any.
         shaderBackdrop:  ShaderBackdrop
         curShader:       *ShaderBase?     // Active shader, or the default shader.
@@ -198,22 +198,22 @@ struct RenderOgl
         // The clipping region, rendered as coverage into a texture the size of the target and read
         // by every fragment at its device position. The hardware stencil holds one bit per pixel,
         // and a region cut along a curve needs the fraction of each pixel its edge covers.
-        clipMasks:             Array'ClipMask              // One mask per target size a region was drawn for.
-        clipMaskClock:         u64                         // Counter stamping each mask request, for reuse order.
-        clipMaskIndex:         s32 = -1                    // Mask of the region in force, or none yet.
-        clipMaskOn:            bool                        // Whether fragments are cut by the region.
-        clipMaskWriting:       bool                        // Whether fragments are writing the region.
-        stackClipMaskOn:       Array'SuspendedClipMask     // Regions suspended by the render targets bound inside them.
-        nativeContext:         const *void?                // Shared native OpenGL context owned by interface-created drawables.
-        offscreen:             bool                        // Contexts own invisible drawables and never present to the desktop.
-        contextCount:          u32                         // Number of live interface-created drawables.
-        contexts:              Array'(*OglContext)         // The live interface-created drawables, which share `nativeContext`.
-        generation:            TextureGeneration           // Device generation stamped on every texture and target.
-        resetQuery:            u8                          // How the context reports a device reset, if it does.
-        rendererName:          String                      // Driver name copied while the context is healthy.
-        deviceLost:            bool                        // Whether a reported reset still waits for a replacement context.
-        advancedBlending:      u8                          // Advanced blend-equation family supplied by the current context.
-        advancedBarrierActive: bool                        // Whether this context must keep later framebuffer touches in separate passes.
+        clipMasks:             Array!{ClipMask}              // One mask per target size a region was drawn for.
+        clipMaskClock:         u64                           // Counter stamping each mask request, for reuse order.
+        clipMaskIndex:         s32 = -1                      // Mask of the region in force, or none yet.
+        clipMaskOn:            bool                          // Whether fragments are cut by the region.
+        clipMaskWriting:       bool                          // Whether fragments are writing the region.
+        stackClipMaskOn:       Array!{SuspendedClipMask}     // Regions suspended by the render targets bound inside them.
+        nativeContext:         const *void?                  // Shared native OpenGL context owned by interface-created drawables.
+        offscreen:             bool                          // Contexts own invisible drawables and never present to the desktop.
+        contextCount:          u32                           // Number of live interface-created drawables.
+        contexts:              Array!{*OglContext}           // The live interface-created drawables, which share `nativeContext`.
+        generation:            TextureGeneration             // Device generation stamped on every texture and target.
+        resetQuery:            u8                            // How the context reports a device reset, if it does.
+        rendererName:          String                        // Driver name copied while the context is healthy.
+        deviceLost:            bool                          // Whether a reported reset still waits for a replacement context.
+        advancedBlending:      u8                            // Advanced blend-equation family supplied by the current context.
+        advancedBarrierActive: bool                          // Whether this context must keep later framebuffer touches in separate passes.
     }
 }
 
@@ -232,8 +232,10 @@ private impl RenderOgl
         for idx in count
         {
             let value = glGetStringi(GL_EXTENSIONS, cast(GLuint, idx))
-            if value and cast(string, cast(const cstring, value)) == name do
+            if value and cast(string, cast(const cstring, value)) == name
+            {
                 return true
+            }
         }
 
         return false
@@ -271,8 +273,10 @@ private impl RenderOgl
     // standard draws and clears also count as touches in the extension contract.
     mtd prepareFramebufferTouch()
     {
-        if not .advancedBarrierActive do
+        if not .advancedBarrierActive
+        {
             return
+        }
 
         switch .advancedBlending
         {
@@ -296,8 +300,11 @@ private impl RenderOgl
     // fail to compile, which reaches the screen as a picture that simply never draws.
     internal func shaderSource(bytes: const [..] u8)->string
     {
-        if bytes.count >= 3 and bytes[0] == 0xEF and bytes[1] == 0xBB and bytes[2] == 0xBF do
+        if bytes.count >= 3 and bytes[0] == 0xEF and bytes[1] == 0xBB and bytes[2] == 0xBF
+        {
             return Swag.makeString(bytes.buffer + 3, bytes.count - 3)
+        }
+
         return Swag.makeString(bytes.buffer, bytes.count)
     }
 
@@ -308,8 +315,10 @@ private impl RenderOgl
     {
         var status: GLint
         glGetShaderiv(shaderID, GL_COMPILE_STATUS, &status)
-        if status do
+        if status
+        {
             return
+        }
 
         var logLength: GLint
         glGetShaderiv(shaderID, GL_INFO_LOG_LENGTH, &logLength)
@@ -326,8 +335,10 @@ private impl RenderOgl
     {
         var status: GLint
         glGetProgramiv(programID, GL_LINK_STATUS, &status)
-        if status do
+        if status
+        {
             return
+        }
 
         var logLength: GLint
         glGetProgramiv(programID, GL_INFO_LOG_LENGTH, &logLength)
@@ -365,8 +376,11 @@ private impl RenderOgl
         defer glDeleteShader(font)
 
         var baseBuilder: StringBuilder
-        if .usesKhrAdvancedBlending() do
+        if .usesKhrAdvancedBlending()
+        {
             baseBuilder.appendString(KhrAdvancedBlendShaderHeader)
+        }
+
         baseBuilder.appendString(shaderSource(BasePixelShader))
         let baseSource = baseBuilder.moveToString()
 
@@ -502,15 +516,20 @@ private impl RenderOgl
         var arr: [64] u32
         for y in h
         {
-            for x in w do
+            for x in w
+            {
                 arr[cast(u64, ((h - y - 1) * w + x))] = datas[cast(u64, (y * w + x))] ? 0xFFFFFFFF : 0
+            }
         }
 
         var result: GLuint
         glGenTextures(1, &result)
         let nameError = glGetError()
-        if not result or nameError != GL_NO_ERROR do
+        if not result or nameError != GL_NO_ERROR
+        {
             Swag.panic("OpenGL cannot allocate a built-in texture", #curlocation)
+        }
+
         glBindTexture(GL_TEXTURE_2D, result)
         glBindBuffer(GL_PIXEL_UNPACK_BUFFER, 0)
         glPixelStorei(GL_UNPACK_ALIGNMENT, 1)
@@ -518,8 +537,11 @@ private impl RenderOgl
         glPixelStorei(GL_UNPACK_SKIP_ROWS, 0)
         glPixelStorei(GL_UNPACK_SKIP_PIXELS, 0)
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, &arr[0])
-        if glGetError() != GL_NO_ERROR do
+        if glGetError() != GL_NO_ERROR
+        {
             Swag.panic("OpenGL cannot initialize a built-in texture", #curlocation)
+        }
+
         return result
     }
 
@@ -556,8 +578,10 @@ private impl RenderOgl
         // The painter stream is recorded in logical units; the content scale maps
         // them to device pixels. Applied last, it scales positions and translations
         // alike, so widget code never sees physical coordinates.
-        if .contentScale != 1 do
+        if .contentScale != 1
+        {
             tr.multiply(Transform2.createScale(.contentScale, .contentScale, 0, 0))
+        }
 
         // Vertices reach the screen through this, so a bound recorded in vertex space becomes a
         // device rectangle through the same transform.
@@ -584,8 +608,10 @@ private impl RenderOgl
     mtd setBlendingMode(bm: BlendingMode)
     {
         .blendingMode = bm
-        if bm.usesAdvancedBlending() and .requiresAdvancedBlendBarrier() do
+        if bm.usesAdvancedBlending() and .requiresAdvancedBlendBarrier()
+        {
             .advancedBarrierActive = true
+        }
 
         // The fragment shader must know when a zero-alpha fragment is meaningful: its
         // zero-coverage discard is an optimization under alpha compositing and a bug under
@@ -712,16 +738,20 @@ impl RenderOgl
     // tries again.
     mtd recoverLostDevice()->bool fail
     {
-        if .resetQuery == ResetQueryNone or .contexts.count == 0 do
+        if .resetQuery == ResetQueryNone or .contexts.count == 0
+        {
             return false
+        }
 
         let first = .contexts[0]
         if not .deviceLost
         {
             try .native.makeCurrent(first[])
             let status = .deviceResetStatus()
-            if status == GL_NO_ERROR do
+            if status == GL_NO_ERROR
+            {
                 return false
+            }
 
             // Retire everything at once, so nothing of the lost device is drawn or released
             // while the replacement is not there yet.
@@ -759,8 +789,11 @@ impl RenderOgl
         Debugger.log(message)
 
         let appData = Env.getSpecialDirectory(.UserAppData)
-        if appData.isEmpty() do
+        if appData.isEmpty()
+        {
             return
+        }
+
         let directory = Path.combine(appData, "Swag")
         catch Directory.create(directory, recurse: true)
         {
@@ -808,8 +841,11 @@ impl RenderOgl
         }
 
         // Pooled targets are this renderer's own; bound ones belong to their callers.
-        for rt in .stackReleasedRT do
+        for rt in .stackReleasedRT
+        {
             Memory.delete(rt)
+        }
+
         .stackReleasedRT.clear()
         .stackRT.clear()
         .curRT = null
@@ -833,10 +869,16 @@ impl RenderOgl
         Swag.assert(.contextCount == 0, "renderer contexts must be deleted before the renderer")
         .releaseFontTextures()
 
-        for rt in .stackReleasedRT do
+        for rt in .stackReleasedRT
+        {
             Memory.delete(rt)
-        for rt in .stackRT do
+        }
+
+        for rt in .stackRT
+        {
             Memory.delete(rt)
+        }
+
         Memory.delete(.curRT)
     }
 
@@ -875,8 +917,11 @@ impl RenderOgl
         .retireFrameScratch()
 
         // A window swap submits the drawing on this thread. Offscreen work needs its own flush.
-        if not context.hWnd or context.ownsWindow do
+        if not context.hWnd or context.ownsWindow
+        {
             glFlush()
+        }
+
         .native.swapBuffers(context[])
     }
 
@@ -924,8 +969,10 @@ impl RenderOgl
            width <= 0 or
            height <= 0 or
            width > target.colorBuffer.width or
-           height > target.colorBuffer.height do
+           height > target.colorBuffer.height
+        {
             return false
+        }
 
         try .native.resizeWindowBackBuffer(context, width, height)
 
@@ -937,8 +984,10 @@ impl RenderOgl
         {
             glBindFramebuffer(GL_READ_FRAMEBUFFER, cast(GLuint, previousRead))
             glBindFramebuffer(GL_DRAW_FRAMEBUFFER, cast(GLuint, previousDraw))
-            if scissorEnabled do
+            if scissorEnabled
+            {
                 glEnable(GL_SCISSOR_TEST)
+            }
         }
 
         glDisable(GL_SCISSOR_TEST)
@@ -975,8 +1024,11 @@ impl RenderOgl
     // Returns the active render-target size in pixels.
     internal mtd targetSizeImpl()->{ width, height: s32 }
     {
-        if .curRT do
+        if .curRT
+        {
             return {width: .curRT.colorBuffer.width, height: .curRT.colorBuffer.height}
+        }
+
         return {width: .curRC.width, height: .curRC.height}
     }
 
@@ -1043,18 +1095,22 @@ impl RenderOgl
 
         if narrowed
         {
-            if savedOn do
+            if savedOn
+            {
                 .applyScissor(savedBox)
-            else do
+            }
+            else
+            {
                 .clearScissor()
+            }
         }
     }
 
     // Adds one overlap-safe batch to the scratch-clear counters.
     private mtd countScratchClear(bounded: Math.Rectangle, unbounded: Math.Rectangle)
     {
-        .scratchClearedPixels += cast(u64, Math.max(bounded.width * bounded.height, 0.0'f32))
-        .scratchFullPixels    += cast(u64, Math.max(unbounded.width * unbounded.height, 0.0'f32))
+        .scratchClearedPixels += cast(u64, Math.max(bounded.width * bounded.height, 0.0_f32))
+        .scratchFullPixels    += cast(u64, Math.max(unbounded.width * unbounded.height, 0.0_f32))
     }
 
     // Narrows the scissor to what a batch bounded by `bbMin`/`bbMax` in vertex space can reach.
@@ -1065,8 +1121,10 @@ impl RenderOgl
     // an inverted rectangle would clip away geometry that must still be drawn.
     private mtd narrowScissorToBatch(bbMin, bbMax: Math.Vector2)->bool
     {
-        if bbMin.x > bbMax.x or bbMin.y > bbMax.y do
+        if bbMin.x > bbMax.x or bbMin.y > bbMax.y
+        {
             return false
+        }
 
         var box = .deviceTransform.transformBounds(Math.Rectangle{bbMin.x, bbMin.y, bbMax.x - bbMin.x, bbMax.y - bbMin.y})
 
@@ -1081,8 +1139,10 @@ impl RenderOgl
 
         let {width: w, height: h} = .targetSizeImpl()
         var clip = Math.Rectangle{0, 0, cast(f32, w), cast(f32, h)}
-        if .scissorOn do
+        if .scissorOn
+        {
             clip = .scissorBox
+        }
 
         let nx0 = Math.max(x0, clip.x)
         let ny0 = Math.max(y0, clip.y)
@@ -1092,13 +1152,17 @@ impl RenderOgl
         // Nothing of the batch survives the clip: keep the scissor as it is and let the two draw
         // passes produce no fragment, rather than installing an empty rectangle the clear would
         // read as the whole target on a backend that normalizes it.
-        if nx1 <= nx0 or ny1 <= ny0 do
+        if nx1 <= nx0 or ny1 <= ny0
+        {
             return false
+        }
 
         // Already at least as tight as what the bounds give: changing it would only cost two
         // calls per batch.
-        if nx0 <= clip.x and ny0 <= clip.y and nx1 >= clip.right() and ny1 >= clip.bottom() do
+        if nx0 <= clip.x and ny0 <= clip.y and nx1 >= clip.right() and ny1 >= clip.bottom()
+        {
             return false
+        }
 
         .applyScissor(Math.Rectangle{nx0, ny0, nx1 - nx0, ny1 - ny0})
         return true
@@ -1123,26 +1187,30 @@ impl RenderOgl
             var major, minor: GLint
             glGetIntegerv(GL_MAJOR_VERSION, &major)
             glGetIntegerv(GL_MINOR_VERSION, &minor)
-            if major > 4 or (major == 4 and minor >= 5) do
+            if major > 4 or (major == 4 and minor >= 5)
+            {
                 .resetQuery = ResetQueryCore
-            elif hasExtension("GL_ARB_robustness") do
+            }
+            else if hasExtension("GL_ARB_robustness")
+            {
                 .resetQuery = ResetQueryArb
+            }
         }
 
         if hasExtension("GL_KHR_blend_equation_advanced_coherent")
         {
             .advancedBlending = AdvancedBlendingKhrCoherent
         }
-        elif hasExtension("GL_NV_blend_equation_advanced_coherent")
+        else if hasExtension("GL_NV_blend_equation_advanced_coherent")
         {
             .advancedBlending = AdvancedBlendingNvCoherent
             glBlendParameteriNV(GL_BLEND_PREMULTIPLIED_SRC_NV, cast(GLint, GL_FALSE))
         }
-        elif hasExtension("GL_KHR_blend_equation_advanced")
+        else if hasExtension("GL_KHR_blend_equation_advanced")
         {
             .advancedBlending = AdvancedBlendingKhrBarrier
         }
-        elif hasExtension("GL_NV_blend_equation_advanced")
+        else if hasExtension("GL_NV_blend_equation_advanced")
         {
             .advancedBlending = AdvancedBlendingNvBarrier
             glBlendParameteriNV(GL_BLEND_PREMULTIPLIED_SRC_NV, cast(GLint, GL_FALSE))
@@ -1152,8 +1220,11 @@ impl RenderOgl
 
         glGenBuffers(1, &.vertexbuffer)
         let vertexBufferError = glGetError()
-        if not .vertexbuffer or vertexBufferError != GL_NO_ERROR do
+        if not .vertexbuffer or vertexBufferError != GL_NO_ERROR
+        {
             Swag.panic("OpenGL cannot allocate the vertex buffer", #curlocation)
+        }
+
         glBindBuffer(GL_ARRAY_BUFFER, .vertexbuffer)
 
         // Vertex buffer layout
@@ -1173,8 +1244,11 @@ impl RenderOgl
         .clearTexture = generateTexture([0], 1, 1)
         glGenTextures(1, &.gradientTexture)
         let gradientNameError = glGetError()
-        if not .gradientTexture or gradientNameError != GL_NO_ERROR do
+        if not .gradientTexture or gradientNameError != GL_NO_ERROR
+        {
             Swag.panic("OpenGL cannot allocate the gradient texture", #curlocation)
+        }
+
         glActiveTexture(GL_TEXTURE2)
         glBindTexture(GL_TEXTURE_2D, .gradientTexture)
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST)
@@ -1225,18 +1299,28 @@ impl RenderOgl
     internal mtd bindRenderTargetImpl(rt: *RenderTarget, vp: *Math.Rectangle? = null)
     {
         Swag.assert(rt != null)
-        if not rt.colorBuffer.isValid() do
+        if not rt.colorBuffer.isValid()
+        {
             return
-        if .curRT do
+        }
+
+        if .curRT
+        {
             .stackRT.add(.curRT)
+        }
+
         .curRT = rt
         .curRT.paintAlpha = false
 
         glBindFramebuffer(GL_FRAMEBUFFER, cast(GLuint, .curRT.handle))
-        if vp do
+        if vp
+        {
             glViewport(cast(GLint, vp.x), cast(GLint, vp.y), cast(GLsizei, vp.width), cast(GLsizei, vp.height))
-        else do
+        }
+        else
+        {
             glViewport(0, 0, .curRT.colorBuffer.width, .curRT.colorBuffer.height)
+        }
     }
 
     // Reads a rectangle of any render target back as an image.
@@ -1246,8 +1330,11 @@ impl RenderOgl
     // still be read afterwards.
     internal mtd readRenderTargetImpl(rt: const *RenderTarget, x, y, w, h: s32)->Image
     {
-        if not rt.colorBuffer.isValid() do
+        if not rt.colorBuffer.isValid()
+        {
             return {}
+        }
+
         var previousRead: GLint
         glGetIntegerv(GL_READ_FRAMEBUFFER_BINDING, &previousRead)
         defer glBindFramebuffer(GL_READ_FRAMEBUFFER, cast(GLuint, previousRead))
@@ -1298,8 +1385,11 @@ impl RenderOgl
         glPixelStorei(GL_PACK_SKIP_ROWS, 0)
         glPixelStorei(GL_PACK_SKIP_PIXELS, 0)
         glReadPixels(x, rt.colorBuffer.height - h - y, w, h, GL_BGRA, GL_UNSIGNED_BYTE, cast([*] u8, result.pixels.storage()))
-        if glGetError() != GL_NO_ERROR do
+        if glGetError() != GL_NO_ERROR
+        {
             return {}
+        }
+
         return result
     }
 
@@ -1344,8 +1434,11 @@ impl RenderOgl
         let textureNameError = glGetError()
         if not colorID or textureNameError != GL_NO_ERROR
         {
-            if colorID do
+            if colorID
+            {
                 glDeleteTextures(1, &colorID)
+            }
+
             return {}
         }
 
@@ -1363,8 +1456,11 @@ impl RenderOgl
         let framebufferNameError = glGetError()
         if not fbo or framebufferNameError != GL_NO_ERROR
         {
-            if fbo do
+            if fbo
+            {
                 glDeleteFramebuffers(1, &fbo)
+            }
+
             glDeleteTextures(1, &colorID)
             return {}
         }
@@ -1389,8 +1485,10 @@ impl RenderOgl
     // Releases an off-screen target and invalidates its descriptor.
     internal mtd deleteRenderTargetImpl(rt: *RenderTarget)
     {
-        if rt.handle == InvalidRenderTargetHandle do
+        if rt.handle == InvalidRenderTargetHandle
+        {
             return
+        }
 
         // A target of a lost device went with it; its names may already belong to new resources.
         if not rt.colorBuffer.isValid()
@@ -1430,8 +1528,11 @@ impl RenderOgl
         let nameError = glGetError()
         if not textureID or nameError != GL_NO_ERROR
         {
-            if textureID do
+            if textureID
+            {
                 glDeleteTextures(1, &textureID)
+            }
+
             return 0
         }
 
@@ -1491,8 +1592,10 @@ impl RenderOgl
         }
 
         let luma = .createPlaneTexture(view.width, view.height)
-        if not luma do
+        if not luma
+        {
             return {}
+        }
 
         var planes: ChromaPlanes
         planes.chromaB = .createPlaneTexture(view.chromaWidth(), view.chromaHeight())
@@ -1501,10 +1604,16 @@ impl RenderOgl
         {
             var lumaID = luma
             glDeleteTextures(1, &lumaID)
-            if planes.chromaB do
+            if planes.chromaB
+            {
                 glDeleteTextures(1, &planes.chromaB)
-            if planes.chromaR do
+            }
+
+            if planes.chromaR
+            {
                 glDeleteTextures(1, &planes.chromaR)
+            }
+
             return {}
         }
 
@@ -1528,20 +1637,31 @@ impl RenderOgl
         if not view.isValidLayout() or
            not texture.isValid() or
            view.width != texture.width or
-           view.height != texture.height do
+           view.height != texture.height
+        {
             return false
+        }
+
         if (texture.pixelFormat == .Yuv420 and view.chromaShift != 1) or
            (texture.pixelFormat == .Yuv444 and view.chromaShift != 0) or
-           (texture.pixelFormat != .Yuv420 and texture.pixelFormat != .Yuv444) do
+           (texture.pixelFormat != .Yuv420 and texture.pixelFormat != .Yuv444)
+        {
             return false
+        }
+
         let planes = .chromaPlanes.tryFind(texture.handle)
-        if not planes do
+        if not planes
+        {
             return false
+        }
 
         if not .uploadPlane(cast(GLuint, texture.handle), view.luma, view.lumaStride, texture.width, texture.height) or
            not .uploadPlane(planes.value.chromaB, view.chromaB, view.chromaStride, view.chromaWidth(), view.chromaHeight()) or
-           not .uploadPlane(planes.value.chromaR, view.chromaR, view.chromaStride, view.chromaWidth(), view.chromaHeight()) do
+           not .uploadPlane(planes.value.chromaR, view.chromaR, view.chromaStride, view.chromaWidth(), view.chromaHeight())
+        {
             return false
+        }
+
         planes.value.factors     = view.conversionFactors()
         planes.value.matrix      = view.matrix
         planes.value.studioRange = view.studioRange
@@ -1603,8 +1723,11 @@ impl RenderOgl
         let nameError = glGetError()
         if not textureID or nameError != GL_NO_ERROR
         {
-            if textureID do
+            if textureID
+            {
                 glDeleteTextures(1, &textureID)
+            }
+
             return {}
         }
 
@@ -1693,17 +1816,21 @@ impl RenderOgl
     // Replaces all bytes of a texture owned by this renderer.
     internal mtd updateTextureImpl(texture: Texture, pixels: const *u8)->bool
     {
-        if not texture.isValid() do
+        if not texture.isValid()
+        {
             return false
+        }
 
         if texture.pixelFormat == .Yuv420 or texture.pixelFormat == .Yuv444
         {
             let planes = .chromaPlanes.tryFind(texture.handle)
-            if not planes do
+            if not planes
+            {
                 return false
+            }
 
             let shift        = texture.pixelFormat == .Yuv420 ? 1 : 0
-            let divisor      = 1's32 << shift
+            let divisor      = 1_s32 << shift
             let chromaWidth  = texture.width / divisor + (texture.width % divisor != 0 ? 1 : 0)
             let chromaHeight = texture.height / divisor + (texture.height % divisor != 0 ? 1 : 0)
             let lumaSize     = cast(u64, texture.width) * cast(u64, texture.height)
@@ -1711,8 +1838,11 @@ impl RenderOgl
             let source       = cast(const [*] u8, pixels)
             if not .uploadPlane(cast(GLuint, texture.handle), source, cast(u64, texture.width), texture.width, texture.height) or
                not .uploadPlane(planes.value.chromaB, source + lumaSize, cast(u64, chromaWidth), chromaWidth, chromaHeight) or
-               not .uploadPlane(planes.value.chromaR, source + lumaSize + chromaSize, cast(u64, chromaWidth), chromaWidth, chromaHeight) do
+               not .uploadPlane(planes.value.chromaR, source + lumaSize + chromaSize, cast(u64, chromaWidth), chromaWidth, chromaHeight)
+            {
                 return false
+            }
+
             return true
         }
 
@@ -1746,14 +1876,19 @@ impl RenderOgl
     }
 
     // Reads a texture into owned CPU memory in `pixelFormat`.
-    internal mtd readTexturePixelsImpl(texture: Texture, pixelFormat: PixelFormat)->Array'u8
+    internal mtd readTexturePixelsImpl(texture: Texture, pixelFormat: PixelFormat)->Array!{u8}
     {
         var result: #returntype
-        if not texture.isValid() do
+        if not texture.isValid()
+        {
             return result
+        }
+
         Swag.assert(pixelFormat.isPacked(), "texture readback requires a packed format")
-        if texture.pixelFormat == .Yuv420 or texture.pixelFormat == .Yuv444 do
+        if texture.pixelFormat == .Yuv420 or texture.pixelFormat == .Yuv444
+        {
             return .readPlanarTexturePixelsImpl(texture, pixelFormat)
+        }
 
         var previousTexture, previousBuffer, alignment, rowLength, skipRows, skipPixels: GLint
         glGetIntegerv(GL_TEXTURE_BINDING_2D, &previousTexture)
@@ -1781,18 +1916,23 @@ impl RenderOgl
         result.resize(cast(u64, texture.width) * cast(u64, texture.height) * pixelFormat.bitsPerPixel() / 8)
         let fmt = pixelFormatToNative(pixelFormat)
         glGetTexImage(GL_TEXTURE_2D, 0, fmt, pixelFormatToNativeType(pixelFormat), result.buffer)
-        if glGetError() != GL_NO_ERROR do
+        if glGetError() != GL_NO_ERROR
+        {
             result.clear()
+        }
+
         return result
     }
 
     // Reads and converts every plane of a planar texture into the requested packed format.
-    internal mtd readPlanarTexturePixelsImpl(texture: Texture, pixelFormat: PixelFormat)->Array'u8
+    internal mtd readPlanarTexturePixelsImpl(texture: Texture, pixelFormat: PixelFormat)->Array!{u8}
     {
         var result: #returntype
         let planes = .chromaPlanes.tryFind(texture.handle)
-        if not planes do
+        if not planes
+        {
             return result
+        }
 
         var previousTexture, previousBuffer, alignment, rowLength, skipRows, skipPixels: GLint
         glGetIntegerv(GL_TEXTURE_BINDING_2D, &previousTexture)
@@ -1817,7 +1957,7 @@ impl RenderOgl
         glPixelStorei(GL_PACK_SKIP_ROWS, 0)
         glPixelStorei(GL_PACK_SKIP_PIXELS, 0)
 
-        func readPlane(handle: GLuint, width, height: s32)->Array'u8
+        func readPlane(handle: GLuint, width, height: s32)->Array!{u8}
         {
             var pixels: #returntype
             pixels.resize(cast(u64, width) * cast(u64, height))
@@ -1827,14 +1967,16 @@ impl RenderOgl
         }
 
         let shift        = texture.pixelFormat == .Yuv420 ? 1 : 0
-        let divisor      = 1's32 << shift
+        let divisor      = 1_s32 << shift
         let chromaWidth  = texture.width / divisor + (texture.width % divisor != 0 ? 1 : 0)
         let chromaHeight = texture.height / divisor + (texture.height % divisor != 0 ? 1 : 0)
         let luma         = readPlane(cast(GLuint, texture.handle), texture.width, texture.height)
         let chromaB      = readPlane(planes.value.chromaB, chromaWidth, chromaHeight)
         let chromaR      = readPlane(planes.value.chromaR, chromaWidth, chromaHeight)
-        if glGetError() != GL_NO_ERROR do
+        if glGetError() != GL_NO_ERROR
+        {
             return result
+        }
 
         let view = YuvPlanarView{
             luma: luma.storage(),
@@ -1983,12 +2125,18 @@ impl RenderOgl
             glBindFramebuffer(GL_FRAMEBUFFER, mask.framebuffer)
             glViewport(0, 0, width, height)
             glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE)
-            if .scissorOn do
+            if .scissorOn
+            {
                 glDisable(GL_SCISSOR_TEST)
+            }
+
             glClearColor(0, 0, 0, 0)
             glClear(GL_COLOR_BUFFER_BIT)
-            if .scissorOn do
+            if .scissorOn
+            {
                 glEnable(GL_SCISSOR_TEST)
+            }
+
             .applyClipMaskMode(cmd.clippingRegion.mode)
             .uploadClipMaskState()
 
@@ -2051,8 +2199,10 @@ impl RenderOgl
                 // a black shadow multiplied onto a page came out as an opaque black block. The
                 // stored colour is the backdrop, opaque by definition, so its alpha is set to one
                 // where this batch can reach before the equation reads it.
-                if .blendingMode.usesAdvancedBlending() and not .colorMask.a and not .alphaReplay do
+                if .blendingMode.usesAdvancedBlending() and not .colorMask.a and not .alphaReplay
+                {
                     .makeBackdropOpaque(params.bbMin, params.bbMax)
+                }
 
                 if .advancedBarrierActive
                 {
@@ -2113,10 +2263,14 @@ impl RenderOgl
 
                 if narrowed
                 {
-                    if savedOn do
+                    if savedOn
+                    {
                         .applyScissor(savedBox)
-                    else do
+                    }
+                    else
+                    {
                         .clearScissor()
+                    }
                 }
             }
 
@@ -2162,20 +2316,30 @@ impl RenderOgl
             let fmt = bpp == 1 ? GL_RED : (bpp == 4 ? GL_RGBA : GL_RGB)
             for &atlas in cache.atlases
             {
-                if not atlas.dirty do
+                if not atlas.dirty
+                {
                     continue
+                }
+
                 defer #fail .removeTextureImpl(&atlas.texture)
 
                 let isNew = atlas.texture.handle == InvalidTextureHandle
 
                 var textureID: GLuint
-                if isNew do
+                if isNew
+                {
                     glGenTextures(1, &textureID)
-                else do
+                }
+                else
+                {
                     textureID = cast(GLuint, atlas.texture.handle)
+                }
+
                 let textureNameError = glGetError()
-                if not textureID or textureNameError != GL_NO_ERROR do
+                if not textureID or textureNameError != GL_NO_ERROR
+                {
                     fail RenderResourceError{"OpenGL cannot allocate a glyph atlas"}
+                }
 
                 atlas.texture.attach(cast(TextureHandle, textureID), atlas.bytesPerPixel == 3 ? .RGB8 : .RGBA8, atlas.width / atlas.bytesPerPixel, atlas.height, .generation)
 
@@ -2193,11 +2357,16 @@ impl RenderOgl
                     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE)
                     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, magF)
                     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, minF)
-                    if isDF do
+                    if isDF
+                    {
                         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, FontAtlasMaxLevel)
+                    }
+
                     glTexImage2D(GL_TEXTURE_2D, 0, fmt, cast(GLsizei, atlas.texture.width), cast(GLsizei, atlas.texture.height), 0, fmt, GL_UNSIGNED_BYTE, atlas.data.buffer)
-                    if glGetError() != GL_NO_ERROR do
+                    if glGetError() != GL_NO_ERROR
+                    {
                         fail RenderResourceError{"OpenGL cannot initialize a glyph atlas"}
+                    }
                 }
                 else
                 {
@@ -2207,18 +2376,27 @@ impl RenderOgl
                     let pixels = atlas.data.buffer + cast(u64, atlas.dirtyMinY) * atlas.width + atlas.dirtyMinX * bpp
                     glPixelStorei(GL_UNPACK_ROW_LENGTH, cast(GLint, atlas.texture.width))
                     glTexSubImage2D(GL_TEXTURE_2D, 0, cast(GLint, atlas.dirtyMinX), cast(GLint, atlas.dirtyMinY), cast(GLsizei, (atlas.dirtyMaxX - atlas.dirtyMinX)), cast(GLsizei, (atlas.dirtyMaxY - atlas.dirtyMinY)), fmt, GL_UNSIGNED_BYTE, pixels)
-                    if glGetError() != GL_NO_ERROR do
+                    if glGetError() != GL_NO_ERROR
+                    {
                         fail RenderResourceError{"OpenGL cannot update a glyph atlas"}
+                    }
+
                     glPixelStorei(GL_UNPACK_ROW_LENGTH, 0)
                 }
 
                 // Build the mip chain for distance-field atlases. Each glyph keeps a
                 // 'spread'-texel margin and starts on a 'spread'-texel cell, and the chain stops
                 // at that size, so no level blends a neighbouring glyph into this one.
-                if isDF do
+                if isDF
+                {
                     glGenerateMipmap(GL_TEXTURE_2D)
-                if glGetError() != GL_NO_ERROR do
+                }
+
+                if glGetError() != GL_NO_ERROR
+                {
                     fail RenderResourceError{"OpenGL cannot build glyph atlas mipmaps"}
+                }
+
                 atlas.dirty = false
             }
 
@@ -2250,8 +2428,11 @@ impl RenderOgl
             let planarPlanes = textureCurrent and not params.texture.pixelFormat.isPacked() ? .chromaPlanes.tryFind(params.texture.handle) : null
             if planarPlanes
             {
-                if not .planarPrevShader do
+                if not .planarPrevShader
+                {
                     .planarPrevShader = .curShader
+                }
+
                 glActiveTexture(GL_TEXTURE3)
                 glBindTexture(GL_TEXTURE_2D, planarPlanes.value.chromaB)
                 glActiveTexture(GL_TEXTURE4)
@@ -2267,7 +2448,7 @@ impl RenderOgl
                             cast(GLfloat, factors.greenCb),
                             cast(GLfloat, factors.greenCr))
             }
-            elif .planarPrevShader
+            else if .planarPrevShader
             {
                 .setShader(.planarPrevShader)
                 .planarPrevShader = null
@@ -2283,8 +2464,11 @@ impl RenderOgl
             // bilinear shader path (uniform value 2): texel edges keep one device
             // pixel of smoothing instead of dropping texels or smearing borders.
             var interpol = cast(GLfloat, params.interpolationMode)
-            if params.interpolationMode == .Pixel and .contentScale != 1 do
+            if params.interpolationMode == .Pixel and .contentScale != 1
+            {
                 interpol = 2.0
+            }
+
             glUniform1f(cast(GLint, curShader.interpolationMode), interpol)
             glUniform1f(cast(GLint, curShader.paintType), cast(GLfloat, cast(u32, params.type)))
             glActiveTexture(GL_TEXTURE0)
@@ -2347,8 +2531,11 @@ impl RenderOgl
                         glActiveTexture(GL_TEXTURE2)
                         glBindTexture(GL_TEXTURE_2D, .gradientTexture)
                         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, cast(GLsizei, newCapacity), 2, 0, GL_RGBA, GL_FLOAT, null)
-                        if glGetError() != GL_NO_ERROR do
+                        if glGetError() != GL_NO_ERROR
+                        {
                             fail RenderResourceError{"OpenGL cannot allocate gradient stops"}
+                        }
+
                         .gradientTextureCapacity = newCapacity
                     }
                     else
@@ -2367,8 +2554,11 @@ impl RenderOgl
 
                     glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, cast(GLsizei, params.gradientStopCount), 1, GL_RGBA, GL_FLOAT, .gradientOffsetUpload.buffer)
                     glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 1, cast(GLsizei, params.gradientStopCount), 1, GL_RGBA, GL_FLOAT, .gradientColorUpload.buffer)
-                    if glGetError() != GL_NO_ERROR do
+                    if glGetError() != GL_NO_ERROR
+                    {
                         fail RenderResourceError{"OpenGL cannot upload gradient stops"}
+                    }
+
                     glActiveTexture(GL_TEXTURE0)
                 }
             }
@@ -2400,8 +2590,11 @@ impl RenderOgl
             me.removeTextureImpl(&texture)
 
         case .BindRenderTarget:
-            if not cmd.renderTgt.tgt.colorBuffer.isValid() do
+            if not cmd.renderTgt.tgt.colorBuffer.isValid()
+            {
                 fail RenderResourceError{"OpenGL cannot allocate a painter render target"}
+            }
+
             .bindRenderTargetImpl(cmd.renderTgt.tgt)
             let curRT = unwrap .curRT
             curRT.paintAlpha    = cmd.renderTgt.paintAlpha
@@ -2473,8 +2666,11 @@ impl RenderOgl
 
         case .CaptureBackdrop:
             let capture = &cmd.backdropCapture
-            if not capture.tgt.colorBuffer.isValid() do
+            if not capture.tgt.colorBuffer.isValid()
+            {
                 fail RenderResourceError{"OpenGL cannot allocate a backdrop render target"}
+            }
+
             let size = .targetSizeImpl()
             let rect = capture.rect
             .prepareFramebufferTouch()
@@ -2572,7 +2768,7 @@ impl RenderOgl
                 {
                     .releaseRenderTargetImpl(cmd.renderTgt.tgt)
                 }
-                elif Swag.kindOf(cmd.op) == .ReleaseTexture
+                else if Swag.kindOf(cmd.op) == .ReleaseTexture
                 {
                     var texture = cmd.texture0.texture
                     .removeTextureImpl(&texture)
@@ -2597,10 +2793,15 @@ impl RenderOgl
 
         // Attribute an earlier native error to the submission boundary, never to the next
         // allocation. It is reported to the caller, who must repaint before presenting.
-        if glGetError() != GL_NO_ERROR do
+        if glGetError() != GL_NO_ERROR
+        {
             fail RenderResourceError{"OpenGL has an error before painter submission"}
-        if .curRT and not .curRT.colorBuffer.isValid() do
+        }
+
+        if .curRT and not .curRT.colorBuffer.isValid()
+        {
             fail RenderResourceError{"OpenGL cannot allocate the submission render target"}
+        }
 
         var unpackBuffer, alignment, rowLength, skipRows, skipPixels: GLint
         glGetIntegerv(GL_PIXEL_UNPACK_BUFFER_BINDING, &unpackBuffer)
@@ -2615,8 +2816,10 @@ impl RenderOgl
             glPixelStorei(GL_UNPACK_ROW_LENGTH, rowLength)
             glPixelStorei(GL_UNPACK_SKIP_ROWS, skipRows)
             glPixelStorei(GL_UNPACK_SKIP_PIXELS, skipPixels)
-            for i in 4 do
+            for i in 4
+            {
                 glDisableVertexAttribArray(cast(GLuint, i))
+            }
         }
 
         glBindBuffer(GL_PIXEL_UNPACK_BUFFER, 0)
@@ -2635,7 +2838,7 @@ impl RenderOgl
                 {
                     .releaseRenderTargetImpl(cmd.renderTgt.tgt)
                 }
-                elif cmd.op is .ReleaseTexture
+                else if cmd.op is .ReleaseTexture
                 {
                     var texture = cmd.texture0.texture
                     .removeTextureImpl(&texture)
@@ -2655,8 +2858,10 @@ impl RenderOgl
         // GL_STREAM_DRAW describes its one-upload, one-draw lifetime.
         let byteSize = dc.vertexBuffer.count * #sizeof(VertexLayout)
         glBufferData(GL_ARRAY_BUFFER, byteSize, dc.vertexBuffer.buffer, GL_STREAM_DRAW)
-        if glGetError() != GL_NO_ERROR do
+        if glGetError() != GL_NO_ERROR
+        {
             fail RenderResourceError{"OpenGL cannot upload the vertex stream"}
+        }
 
         // Default shader; a planar picture drawn last in the previous submission no longer
         // holds a program to restore.
@@ -2683,16 +2888,22 @@ impl RenderOgl
         .setBlendingMode(BlendingMode.Alpha)
         .setColorMask({true, true, true, false})
 
-        for i in 4 do
+        for i in 4
+        {
             glEnableVertexAttribArray(cast(GLuint, i))
+        }
+
         for cmd, cmdIdx in dc.commandBuffer
         {
             try .executeCommand(dc, cmd, cmdIdx)
             nextCommand = cmdIdx + 1
         }
 
-        if glGetError() != GL_NO_ERROR do
+        if glGetError() != GL_NO_ERROR
+        {
             fail RenderResourceError{"OpenGL cannot complete the painter commands"}
+        }
+
         .finishAdvancedBlendPass()
     }
 
@@ -2747,7 +2958,7 @@ impl RenderOgl
             return cast(s32, index)
         }
 
-        var reuse = -1's32
+        var reuse = -1_s32
         if .clipMasks.count >= MaxClipMasks
         {
             var oldest = Swag.U64.Max
@@ -2759,8 +2970,10 @@ impl RenderOgl
                 reuse  = cast(s32, index)
             }
 
-            if reuse < 0 do
+            if reuse < 0
+            {
                 fail RenderResourceError{"OpenGL cannot allocate a clipping mask while all cached masks are in use"}
+            }
         }
 
         // The texture is created on the mask's own unit, so the paint texture bound on unit zero
@@ -2772,8 +2985,11 @@ impl RenderOgl
         glActiveTexture(GL_TEXTURE5)
         mask.texture = .createPlaneTexture(width, height)
         glActiveTexture(GL_TEXTURE0)
-        if not mask.texture do
+        if not mask.texture
+        {
             fail RenderResourceError{"OpenGL cannot allocate a clipping mask"}
+        }
+
         glGenFramebuffers(1, &mask.framebuffer)
         let framebufferNameError = glGetError()
         if not mask.framebuffer or framebufferNameError != GL_NO_ERROR
@@ -2805,8 +3021,11 @@ impl RenderOgl
 
     private mtd clipMaskIndexIsSuspended(index: s32)->bool
     {
-        for saved in .stackClipMaskOn where saved.index == index do
+        for saved in .stackClipMaskOn where saved.index == index
+        {
             return true
+        }
+
         return false
     }
 
@@ -2817,8 +3036,11 @@ impl RenderOgl
     // the drop of a renderer that no longer has one.
     internal mtd releaseClipMasks()
     {
-        for &mask in .clipMasks do
+        for &mask in .clipMasks
+        {
             .releaseClipMask(mask)
+        }
+
         .clipMasks.clear()
         .clipMaskIndex = -1
     }
@@ -2826,10 +3048,16 @@ impl RenderOgl
     // Hands one mask's framebuffer and texture back to the graphics context.
     private mtd releaseClipMask(mask: *ClipMask)
     {
-        if mask.framebuffer do
+        if mask.framebuffer
+        {
             glDeleteFramebuffers(1, &mask.framebuffer)
-        if mask.texture do
+        }
+
+        if mask.texture
+        {
             glDeleteTextures(1, &mask.texture)
+        }
+
         mask[] = {}
     }
 
@@ -2870,15 +3098,23 @@ impl RenderOgl
     // Uploads the region state to the active program, which holds it per program.
     private mtd uploadClipMaskState()
     {
-        if not .curShader do
+        if not .curShader
+        {
             return
+        }
+
         let curShader = .curShader
 
         var mode = 0
-        if .clipMaskWriting do
+        if .clipMaskWriting
+        {
             mode = 2
-        elif .clipMaskOn do
+        }
+        else if .clipMaskOn
+        {
             mode = 1
+        }
+
         glUniform1i(cast(GLint, curShader.clipMaskMode), cast(GLint, mode))
         if .clipMaskIndex >= 0
         {
@@ -2899,7 +3135,7 @@ impl RenderOgl
         let bucketHeight = RenderTarget.pooledExtent(height)
         if not bucketWidth or not bucketHeight
         {
-            let result = Memory.new'RenderTarget()
+            let result = Memory.new!{RenderTarget}()
             result.clear()
             return result
         }
@@ -2914,7 +3150,7 @@ impl RenderOgl
             }
         }
 
-        var rt = Memory.new'RenderTarget()
+        var rt = Memory.new!{RenderTarget}()
         rt[] = .createRenderTargetImpl(cast(s32, bucketWidth), cast(s32, bucketHeight))
         return rt
     }
@@ -2922,8 +3158,11 @@ impl RenderOgl
     // Returns a pooled target to this renderer; `null` is ignored.
     internal mtd releaseRenderTargetImpl(tgt: *RenderTarget?)
     {
-        if not tgt do
+        if not tgt
+        {
             return
+        }
+
         if not tgt.colorBuffer.isValid()
         {
             Memory.delete(tgt)

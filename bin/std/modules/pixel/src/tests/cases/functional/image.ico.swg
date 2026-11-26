@@ -42,7 +42,7 @@ struct IcoDib
 }
 
 // Build a single-image ICO from a DIB body (palette + XOR + AND, no BITMAPINFOHEADER).
-func buildIco(width, height: s32, bitCount: u16, clrUsed: u32, dibBody: const [..] u8)->Array'u8
+func buildIco(width, height: s32, bitCount: u16, clrUsed: u32, dibBody: const [..] u8)->Array!{u8}
 {
     var cb: ConcatBuffer
     let bodyLen = cast(u32, dibBody.count)
@@ -95,28 +95,30 @@ func decodeIco(bytes: const [..] u8, opt: DecodeOptions = {})->Image fail
     var body: ConcatBuffer
 
     // XOR row 0 (bottom)
-    body.addNative(10'u8)
-    body.addNative(20'u8)
-    body.addNative(30'u8)
-    body.addNative(40'u8)
-    body.addNative(50'u8)
-    body.addNative(60'u8)
-    body.addNative(70'u8)
-    body.addNative(80'u8)
+    body.addNative(10_u8)
+    body.addNative(20_u8)
+    body.addNative(30_u8)
+    body.addNative(40_u8)
+    body.addNative(50_u8)
+    body.addNative(60_u8)
+    body.addNative(70_u8)
+    body.addNative(80_u8)
 
     // XOR row 1 (top)
-    body.addNative(90'u8)
-    body.addNative(100'u8)
-    body.addNative(110'u8)
-    body.addNative(120'u8)
-    body.addNative(130'u8)
-    body.addNative(140'u8)
-    body.addNative(150'u8)
-    body.addNative(160'u8)
+    body.addNative(90_u8)
+    body.addNative(100_u8)
+    body.addNative(110_u8)
+    body.addNative(120_u8)
+    body.addNative(130_u8)
+    body.addNative(140_u8)
+    body.addNative(150_u8)
+    body.addNative(160_u8)
 
     // AND mask: 2 rows of 4 bytes, fully opaque
-    for 8 do
-        body.addNative(0'u8)
+    for 8
+    {
+        body.addNative(0_u8)
+    }
 
     let buf = buildIco(2, 2, 32, 0, nnBytes(body.toSlice()))
     let img = expect decodeIco(nnBytes(buf.toSlice()))
@@ -124,12 +126,12 @@ func decodeIco(bytes: const [..] u8, opt: DecodeOptions = {})->Image fail
     Swag.require(img.height == 2)
     Swag.require(img.pixelFormat == .BGRA8)
     Swag.require(img.pixels.buffer != null)
-    Swag.require(img.pixels.buffer[0] == 10'u8)
-    Swag.require(img.pixels.buffer[1] == 20'u8)
-    Swag.require(img.pixels.buffer[2] == 30'u8)
-    Swag.require(img.pixels.buffer[3] == 40'u8)
-    Swag.require(img.pixels.buffer[4] == 50'u8)
-    Swag.require(img.pixels.buffer[7] == 80'u8)
+    Swag.require(img.pixels.buffer[0] == 10_u8)
+    Swag.require(img.pixels.buffer[1] == 20_u8)
+    Swag.require(img.pixels.buffer[2] == 30_u8)
+    Swag.require(img.pixels.buffer[3] == 40_u8)
+    Swag.require(img.pixels.buffer[4] == 50_u8)
+    Swag.require(img.pixels.buffer[7] == 80_u8)
 }
 
 // Legacy 32-bit icons leave alpha at zero and use the AND mask instead.
@@ -137,26 +139,26 @@ func decodeIco(bytes: const [..] u8, opt: DecodeOptions = {})->Image fail
 {
     var body: ConcatBuffer
 
-    body.addNative(10'u8)
-    body.addNative(20'u8)
-    body.addNative(30'u8)
-    body.addNative(0'u8)
-    body.addNative(40'u8)
-    body.addNative(50'u8)
-    body.addNative(60'u8)
-    body.addNative(0'u8)
+    body.addNative(10_u8)
+    body.addNative(20_u8)
+    body.addNative(30_u8)
+    body.addNative(0_u8)
+    body.addNative(40_u8)
+    body.addNative(50_u8)
+    body.addNative(60_u8)
+    body.addNative(0_u8)
 
     // x=1 is transparent; the row is padded to four bytes.
-    body.addNative(0x40'u8)
-    body.addNative(0'u8)
-    body.addNative(0'u8)
-    body.addNative(0'u8)
+    body.addNative(0x40_u8)
+    body.addNative(0_u8)
+    body.addNative(0_u8)
+    body.addNative(0_u8)
 
     let buf = buildIco(2, 1, 32, 0, nnBytes(body.toSlice()))
     let img = expect decodeIco(nnBytes(buf.toSlice()))
     Swag.require(img.pixels.buffer != null)
-    Swag.require(img.pixels.buffer[3] == 255'u8)
-    Swag.require(img.pixels.buffer[7] == 0'u8)
+    Swag.require(img.pixels.buffer[3] == 255_u8)
+    Swag.require(img.pixels.buffer[7] == 0_u8)
 }
 
 // A non-zero 32-bit alpha channel takes precedence over the legacy AND mask.
@@ -164,26 +166,26 @@ func decodeIco(bytes: const [..] u8, opt: DecodeOptions = {})->Image fail
 {
     var body: ConcatBuffer
 
-    body.addNative(10'u8)
-    body.addNative(20'u8)
-    body.addNative(30'u8)
-    body.addNative(128'u8)
-    body.addNative(40'u8)
-    body.addNative(50'u8)
-    body.addNative(60'u8)
-    body.addNative(0'u8)
+    body.addNative(10_u8)
+    body.addNative(20_u8)
+    body.addNative(30_u8)
+    body.addNative(128_u8)
+    body.addNative(40_u8)
+    body.addNative(50_u8)
+    body.addNative(60_u8)
+    body.addNative(0_u8)
 
     // Mark x=0 transparent in the AND mask; modern alpha must still win.
-    body.addNative(0x80'u8)
-    body.addNative(0'u8)
-    body.addNative(0'u8)
-    body.addNative(0'u8)
+    body.addNative(0x80_u8)
+    body.addNative(0_u8)
+    body.addNative(0_u8)
+    body.addNative(0_u8)
 
     let buf = buildIco(2, 1, 32, 0, nnBytes(body.toSlice()))
     let img = expect decodeIco(nnBytes(buf.toSlice()))
     Swag.require(img.pixels.buffer != null)
-    Swag.require(img.pixels.buffer[3] == 128'u8)
-    Swag.require(img.pixels.buffer[7] == 0'u8)
+    Swag.require(img.pixels.buffer[3] == 128_u8)
+    Swag.require(img.pixels.buffer[7] == 0_u8)
 }
 
 // Decode a 2x2 24-bit icon, applying the AND mask as alpha.
@@ -192,41 +194,45 @@ func decodeIco(bytes: const [..] u8, opt: DecodeOptions = {})->Image fail
     var body: ConcatBuffer
 
     // XOR row 0 (bottom): 2 pixels BGR + 2 pad bytes (row stride = 8)
-    body.addNative(10'u8)
-    body.addNative(20'u8)
-    body.addNative(30'u8)
-    body.addNative(40'u8)
-    body.addNative(50'u8)
-    body.addNative(60'u8)
-    body.addNative(0'u8)
-    body.addNative(0'u8)
+    body.addNative(10_u8)
+    body.addNative(20_u8)
+    body.addNative(30_u8)
+    body.addNative(40_u8)
+    body.addNative(50_u8)
+    body.addNative(60_u8)
+    body.addNative(0_u8)
+    body.addNative(0_u8)
 
     // XOR row 1 (top)
-    for 8 do
-        body.addNative(0'u8)
+    for 8
+    {
+        body.addNative(0_u8)
+    }
 
     // AND row 0 (bottom): bit for x=1 set -> pixel (1,0) transparent
-    body.addNative(0x40'u8)
-    body.addNative(0'u8)
-    body.addNative(0'u8)
-    body.addNative(0'u8)
+    body.addNative(0x40_u8)
+    body.addNative(0_u8)
+    body.addNative(0_u8)
+    body.addNative(0_u8)
 
     // AND row 1 (top)
-    for 4 do
-        body.addNative(0'u8)
+    for 4
+    {
+        body.addNative(0_u8)
+    }
 
     let buf = buildIco(2, 2, 24, 0, nnBytes(body.toSlice()))
     let img = expect decodeIco(nnBytes(buf.toSlice()))
     Swag.require(img.pixelFormat == .BGRA8)
     Swag.require(img.pixels.buffer != null)
-    Swag.require(img.pixels.buffer[0] == 10'u8)
-    Swag.require(img.pixels.buffer[1] == 20'u8)
-    Swag.require(img.pixels.buffer[2] == 30'u8)
-    Swag.require(img.pixels.buffer[3] == 255'u8)     // opaque
-    Swag.require(img.pixels.buffer[4] == 40'u8)
-    Swag.require(img.pixels.buffer[5] == 50'u8)
-    Swag.require(img.pixels.buffer[6] == 60'u8)
-    Swag.require(img.pixels.buffer[7] == 0'u8)     // transparent via AND mask
+    Swag.require(img.pixels.buffer[0] == 10_u8)
+    Swag.require(img.pixels.buffer[1] == 20_u8)
+    Swag.require(img.pixels.buffer[2] == 30_u8)
+    Swag.require(img.pixels.buffer[3] == 255_u8)     // opaque
+    Swag.require(img.pixels.buffer[4] == 40_u8)
+    Swag.require(img.pixels.buffer[5] == 50_u8)
+    Swag.require(img.pixels.buffer[6] == 60_u8)
+    Swag.require(img.pixels.buffer[7] == 0_u8)     // transparent via AND mask
 }
 
 // Odd-width indexed, BGR and legacy BGRA rows apply the AND mask across vector blocks and pixel tails.
@@ -331,48 +337,50 @@ func decodeIco(bytes: const [..] u8, opt: DecodeOptions = {})->Image fail
     var body: ConcatBuffer
 
     // Palette (4 BGRA quads)
-    body.addNative(0'u8)
-    body.addNative(0'u8)
-    body.addNative(0'u8)
-    body.addNative(0'u8)     // idx 0
-    body.addNative(10'u8)
-    body.addNative(20'u8)
-    body.addNative(30'u8)
-    body.addNative(0'u8)     // idx 1
-    body.addNative(40'u8)
-    body.addNative(50'u8)
-    body.addNative(60'u8)
-    body.addNative(0'u8)     // idx 2
-    body.addNative(70'u8)
-    body.addNative(80'u8)
-    body.addNative(90'u8)
-    body.addNative(0'u8)     // idx 3
+    body.addNative(0_u8)
+    body.addNative(0_u8)
+    body.addNative(0_u8)
+    body.addNative(0_u8)     // idx 0
+    body.addNative(10_u8)
+    body.addNative(20_u8)
+    body.addNative(30_u8)
+    body.addNative(0_u8)     // idx 1
+    body.addNative(40_u8)
+    body.addNative(50_u8)
+    body.addNative(60_u8)
+    body.addNative(0_u8)     // idx 2
+    body.addNative(70_u8)
+    body.addNative(80_u8)
+    body.addNative(90_u8)
+    body.addNative(0_u8)     // idx 3
     // XOR row 0 (bottom): indices [1,2] + 2 pad (row stride = 4)
-    body.addNative(1'u8)
-    body.addNative(2'u8)
-    body.addNative(0'u8)
-    body.addNative(0'u8)
+    body.addNative(1_u8)
+    body.addNative(2_u8)
+    body.addNative(0_u8)
+    body.addNative(0_u8)
 
     // XOR row 1 (top)
-    body.addNative(3'u8)
-    body.addNative(0'u8)
-    body.addNative(0'u8)
-    body.addNative(0'u8)
+    body.addNative(3_u8)
+    body.addNative(0_u8)
+    body.addNative(0_u8)
+    body.addNative(0_u8)
 
     // AND mask: 2 rows of 4 bytes, opaque
-    for 8 do
-        body.addNative(0'u8)
+    for 8
+    {
+        body.addNative(0_u8)
+    }
 
     let buf = buildIco(2, 2, 8, 4, nnBytes(body.toSlice()))
     let img = expect decodeIco(nnBytes(buf.toSlice()))
     Swag.require(img.pixelFormat == .BGRA8)
     Swag.require(img.pixels.buffer != null)
-    Swag.require(img.pixels.buffer[0] == 10'u8)
-    Swag.require(img.pixels.buffer[1] == 20'u8)
-    Swag.require(img.pixels.buffer[2] == 30'u8)
-    Swag.require(img.pixels.buffer[3] == 255'u8)
-    Swag.require(img.pixels.buffer[4] == 40'u8)
-    Swag.require(img.pixels.buffer[6] == 60'u8)
+    Swag.require(img.pixels.buffer[0] == 10_u8)
+    Swag.require(img.pixels.buffer[1] == 20_u8)
+    Swag.require(img.pixels.buffer[2] == 30_u8)
+    Swag.require(img.pixels.buffer[3] == 255_u8)
+    Swag.require(img.pixels.buffer[4] == 40_u8)
+    Swag.require(img.pixels.buffer[6] == 60_u8)
 }
 
 // Decode a 2x1 1-bit indexed icon.
@@ -381,32 +389,34 @@ func decodeIco(bytes: const [..] u8, opt: DecodeOptions = {})->Image fail
     var body: ConcatBuffer
 
     // Palette (2 BGRA quads)
-    body.addNative(0'u8)
-    body.addNative(0'u8)
-    body.addNative(0'u8)
-    body.addNative(0'u8)     // idx 0
-    body.addNative(7'u8)
-    body.addNative(8'u8)
-    body.addNative(9'u8)
-    body.addNative(0'u8)     // idx 1
+    body.addNative(0_u8)
+    body.addNative(0_u8)
+    body.addNative(0_u8)
+    body.addNative(0_u8)     // idx 0
+    body.addNative(7_u8)
+    body.addNative(8_u8)
+    body.addNative(9_u8)
+    body.addNative(0_u8)     // idx 1
     // XOR row 0 (only row): x0=1, x1=0 -> 0b10000000, + 3 pad (row stride = 4)
-    body.addNative(0x80'u8)
-    body.addNative(0'u8)
-    body.addNative(0'u8)
-    body.addNative(0'u8)
+    body.addNative(0x80_u8)
+    body.addNative(0_u8)
+    body.addNative(0_u8)
+    body.addNative(0_u8)
 
     // AND mask: 1 row of 4 bytes
-    for 4 do
-        body.addNative(0'u8)
+    for 4
+    {
+        body.addNative(0_u8)
+    }
 
     let buf = buildIco(2, 1, 1, 2, nnBytes(body.toSlice()))
     let img = expect decodeIco(nnBytes(buf.toSlice()))
     Swag.require(img.pixels.buffer != null)
-    Swag.require(img.pixels.buffer[0] == 7'u8)
-    Swag.require(img.pixels.buffer[1] == 8'u8)
-    Swag.require(img.pixels.buffer[2] == 9'u8)
-    Swag.require(img.pixels.buffer[3] == 255'u8)
-    Swag.require(img.pixels.buffer[4] == 0'u8)     // idx 0 color
+    Swag.require(img.pixels.buffer[0] == 7_u8)
+    Swag.require(img.pixels.buffer[1] == 8_u8)
+    Swag.require(img.pixels.buffer[2] == 9_u8)
+    Swag.require(img.pixels.buffer[3] == 255_u8)
+    Swag.require(img.pixels.buffer[4] == 0_u8)     // idx 0 color
 }
 
 // With multiple entries, the decoder picks the largest image.
@@ -415,7 +425,7 @@ func decodeIco(bytes: const [..] u8, opt: DecodeOptions = {})->Image fail
     // Two 32-bit images: 1x1 and 2x2. Directory holds 2 entries.
     let body1Len = cast(u32, (40 + 4 + 4))      // 1x1: 4 XOR + 4 AND
     let body2Len = cast(u32, (40 + 16 + 8))     // 2x2: 16 XOR + 8 AND
-    let off1     = 6 + 32'u32     // after dir + 2 entries
+    let off1     = 6 + 32_u32     // after dir + 2 entries
     let off2     = off1 + body1Len
 
     var cb: ConcatBuffer
@@ -451,12 +461,14 @@ func decodeIco(bytes: const [..] u8, opt: DecodeOptions = {})->Image fail
     d1.planes   = 1
     d1.bitCount = 32
     cb.addStruct(d1)
-    cb.addNative(1'u8)
-    cb.addNative(2'u8)
-    cb.addNative(3'u8)
-    cb.addNative(4'u8)     // XOR
-    for 4 do
-        cb.addNative(0'u8)     // AND
+    cb.addNative(1_u8)
+    cb.addNative(2_u8)
+    cb.addNative(3_u8)
+    cb.addNative(4_u8)     // XOR
+    for 4
+    {
+        cb.addNative(0_u8)
+    }     // AND
 
     // Image 2 (2x2)
     var d2: IcoDib
@@ -466,21 +478,25 @@ func decodeIco(bytes: const [..] u8, opt: DecodeOptions = {})->Image fail
     d2.planes   = 1
     d2.bitCount = 32
     cb.addStruct(d2)
-    cb.addNative(200'u8)
-    cb.addNative(201'u8)
-    cb.addNative(202'u8)
-    cb.addNative(203'u8)
-    for 12 do
-        cb.addNative(0'u8)     // rest of XOR
-    for 8 do
-        cb.addNative(0'u8)     // AND
+    cb.addNative(200_u8)
+    cb.addNative(201_u8)
+    cb.addNative(202_u8)
+    cb.addNative(203_u8)
+    for 12
+    {
+        cb.addNative(0_u8)
+    }     // rest of XOR
+    for 8
+    {
+        cb.addNative(0_u8)
+    }     // AND
 
     let img = expect decodeIco(nnBytes(cb.toSlice()))
     Swag.require(img.width == 2)
     Swag.require(img.height == 2)
     Swag.require(img.pixels.buffer != null)
-    Swag.require(img.pixels.buffer[0] == 200'u8)
-    Swag.require(img.pixels.buffer[3] == 203'u8)
+    Swag.require(img.pixels.buffer[0] == 200_u8)
+    Swag.require(img.pixels.buffer[3] == 203_u8)
 }
 
 // A PNG-compressed icon entry is delegated to the PNG decoder.
@@ -489,10 +505,10 @@ func decodeIco(bytes: const [..] u8, opt: DecodeOptions = {})->Image fail
     var src = Image.create(3, 2, .RGBA8)
     src.clear()
     let srcBuf = src.pixels.storage()
-    srcBuf[0] = 11'u8
-    srcBuf[1] = 22'u8
-    srcBuf[2] = 33'u8
-    srcBuf[3] = 255'u8
+    srcBuf[0] = 11_u8
+    srcBuf[1] = 22_u8
+    srcBuf[2] = 33_u8
+    srcBuf[3] = 255_u8
 
     let png = expect src.encode("memory.png")
     png.makeLinear()
@@ -540,8 +556,10 @@ func decodeIco(bytes: const [..] u8, opt: DecodeOptions = {})->Image fail
 #test
 {
     var body: ConcatBuffer
-    for 24 do
-        body.addNative(0'u8)     // 16 XOR + 8 AND
+    for 24
+    {
+        body.addNative(0_u8)
+    }     // 16 XOR + 8 AND
 
     let buf = buildIco(2, 2, 32, 0, nnBytes(body.toSlice()))
 
@@ -558,8 +576,10 @@ func decodeIco(bytes: const [..] u8, opt: DecodeOptions = {})->Image fail
 #test
 {
     var body: ConcatBuffer
-    for 8 do
-        body.addNative(0'u8)     // 1x1 32-bit XOR and AND masks.
+    for 8
+    {
+        body.addNative(0_u8)
+    }     // 1x1 32-bit XOR and AND masks.
     var bytes = buildIco(1, 1, 32, 0, nnBytes(body.toSlice()))
     let entry = cast(*IcoEntry, bytes.storage() + #sizeof(IcoDir))
     entry[].width = 2
@@ -579,8 +599,10 @@ func decodeIco(bytes: const [..] u8, opt: DecodeOptions = {})->Image fail
 #test
 {
     var body: ConcatBuffer
-    for 8 do
-        body.addNative(0'u8)     // 1x1 32-bit XOR and AND masks.
+    for 8
+    {
+        body.addNative(0_u8)
+    }     // 1x1 32-bit XOR and AND masks.
     var bytes = buildIco(1, 1, 32, 0, nnBytes(body.toSlice()))
     let dib   = cast(*IcoDib, bytes.storage() + #sizeof(IcoDir) + #sizeof(IcoEntry))
     dib[].planes = 2
@@ -629,11 +651,11 @@ func decodeIco(bytes: const [..] u8, opt: DecodeOptions = {})->Image fail
     var src = Image.create(2, 2, .BGRA8)
     src.clear()
     let srcBuf = src.pixels.storage()
-    srcBuf[0]  = 10'u8
-    srcBuf[1]  = 20'u8
-    srcBuf[2]  = 30'u8
-    srcBuf[3]  = 128'u8
-    srcBuf[12] = 200'u8     // last pixel B
+    srcBuf[0]  = 10_u8
+    srcBuf[1]  = 20_u8
+    srcBuf[2]  = 30_u8
+    srcBuf[3]  = 128_u8
+    srcBuf[12] = 200_u8     // last pixel B
 
     let cb  = expect src.encode("memory.ico")
     let img = expect decodeIco(nnBytes(cb.toSlice()))
@@ -641,11 +663,11 @@ func decodeIco(bytes: const [..] u8, opt: DecodeOptions = {})->Image fail
     Swag.require(img.height == 2)
     Swag.require(img.pixelFormat == .BGRA8)
     Swag.require(img.pixels.buffer != null)
-    Swag.require(img.pixels.buffer[0] == 10'u8)
-    Swag.require(img.pixels.buffer[1] == 20'u8)
-    Swag.require(img.pixels.buffer[2] == 30'u8)
-    Swag.require(img.pixels.buffer[3] == 128'u8)
-    Swag.require(img.pixels.buffer[12] == 200'u8)
+    Swag.require(img.pixels.buffer[0] == 10_u8)
+    Swag.require(img.pixels.buffer[1] == 20_u8)
+    Swag.require(img.pixels.buffer[2] == 30_u8)
+    Swag.require(img.pixels.buffer[3] == 128_u8)
+    Swag.require(img.pixels.buffer[12] == 200_u8)
 }
 
 // Encode a BGR8 image: alpha is filled opaque.
@@ -653,18 +675,18 @@ func decodeIco(bytes: const [..] u8, opt: DecodeOptions = {})->Image fail
 {
     var src    = Image.create(1, 1, .BGR8)
     let srcBuf = src.pixels.storage()
-    srcBuf[0] = 10'u8
-    srcBuf[1] = 20'u8
-    srcBuf[2] = 30'u8
+    srcBuf[0] = 10_u8
+    srcBuf[1] = 20_u8
+    srcBuf[2] = 30_u8
 
     let cb  = expect src.encode("memory.ico")
     let img = expect decodeIco(nnBytes(cb.toSlice()))
     Swag.require(img.pixelFormat == .BGRA8)
     Swag.require(img.pixels.buffer != null)
-    Swag.require(img.pixels.buffer[0] == 10'u8)
-    Swag.require(img.pixels.buffer[1] == 20'u8)
-    Swag.require(img.pixels.buffer[2] == 30'u8)
-    Swag.require(img.pixels.buffer[3] == 255'u8)
+    Swag.require(img.pixels.buffer[0] == 10_u8)
+    Swag.require(img.pixels.buffer[1] == 20_u8)
+    Swag.require(img.pixels.buffer[2] == 30_u8)
+    Swag.require(img.pixels.buffer[3] == 255_u8)
 }
 
 // Encode an RGBA8 image: channels are swapped to BGRA on disk.
@@ -672,19 +694,19 @@ func decodeIco(bytes: const [..] u8, opt: DecodeOptions = {})->Image fail
 {
     var src    = Image.create(1, 1, .RGBA8)
     let srcBuf = src.pixels.storage()
-    srcBuf[0] = 30'u8     // R
-    srcBuf[1] = 20'u8     // G
-    srcBuf[2] = 10'u8     // B
-    srcBuf[3] = 99'u8     // A
+    srcBuf[0] = 30_u8     // R
+    srcBuf[1] = 20_u8     // G
+    srcBuf[2] = 10_u8     // B
+    srcBuf[3] = 99_u8     // A
 
     let cb  = expect src.encode("memory.ico")
     let img = expect decodeIco(nnBytes(cb.toSlice()))
     Swag.require(img.pixelFormat == .BGRA8)
     Swag.require(img.pixels.buffer != null)
-    Swag.require(img.pixels.buffer[0] == 10'u8)     // B
-    Swag.require(img.pixels.buffer[1] == 20'u8)     // G
-    Swag.require(img.pixels.buffer[2] == 30'u8)     // R
-    Swag.require(img.pixels.buffer[3] == 99'u8)     // A
+    Swag.require(img.pixels.buffer[0] == 10_u8)     // B
+    Swag.require(img.pixels.buffer[1] == 20_u8)     // G
+    Swag.require(img.pixels.buffer[2] == 30_u8)     // R
+    Swag.require(img.pixels.buffer[3] == 99_u8)     // A
 }
 
 // Mixed layouts and odd rows keep their exact DIB bytes in a multi-image icon.
@@ -764,10 +786,10 @@ func decodeIco(bytes: const [..] u8, opt: DecodeOptions = {})->Image fail
     var src = Image.create(4, 4, .BGRA8)
     src.clear()
     let srcBuf = src.pixels.storage()
-    srcBuf[0] = 77'u8
-    srcBuf[1] = 88'u8
-    srcBuf[2] = 99'u8
-    srcBuf[3] = 255'u8
+    srcBuf[0] = 77_u8
+    srcBuf[1] = 88_u8
+    srcBuf[2] = 99_u8
+    srcBuf[3] = 255_u8
 
     expect src.save(path.toString())
     let img = expect Image.load(path.toString())
@@ -775,9 +797,9 @@ func decodeIco(bytes: const [..] u8, opt: DecodeOptions = {})->Image fail
     Swag.require(img.height == 4)
     Swag.require(img.pixelFormat == .BGRA8)
     Swag.require(img.pixels.buffer != null)
-    Swag.require(img.pixels.buffer[0] == 77'u8)
-    Swag.require(img.pixels.buffer[1] == 88'u8)
-    Swag.require(img.pixels.buffer[2] == 99'u8)
+    Swag.require(img.pixels.buffer[0] == 77_u8)
+    Swag.require(img.pixels.buffer[1] == 88_u8)
+    Swag.require(img.pixels.buffer[2] == 99_u8)
 }
 
 // An icon can carry several sizes; the decoder picks the largest of them back.
@@ -785,11 +807,11 @@ func decodeIco(bytes: const [..] u8, opt: DecodeOptions = {})->Image fail
 {
     var small = Image.create(4, 4, .BGRA8)
     small.clear()
-    small.pixels.storage()[0] = 11'u8
+    small.pixels.storage()[0] = 11_u8
 
     var large = Image.create(8, 8, .BGRA8)
     large.clear()
-    large.pixels.storage()[0] = 22'u8
+    large.pixels.storage()[0] = 22_u8
 
     let entries: [2] Image = [small, large]
 
@@ -798,7 +820,7 @@ func decodeIco(bytes: const [..] u8, opt: DecodeOptions = {})->Image fail
     let img = expect decodeIco(nnBytes(cb.toSlice()))
     Swag.require(img.width == 8)
     Swag.require(img.height == 8)
-    Swag.require(img.pixels.storage()[0] == 22'u8)
+    Swag.require(img.pixels.storage()[0] == 22_u8)
 }
 
 // Every entry keeps its own offset, so a later one is still readable on its own.
@@ -814,13 +836,13 @@ func decodeIco(bytes: const [..] u8, opt: DecodeOptions = {})->Image fail
     let cb = expect Ico.encodeAll(entries)
 
     let bytes = nnBytes(cb.toSlice())
-    Swag.require(bytes[4] == 2'u8)     // ICONDIR.count
+    Swag.require(bytes[4] == 2_u8)     // ICONDIR.count
 }
 
 // An icon needs at least one image.
 #test
 {
-    var empty: Array'Image
+    var empty: Array!{Image}
     empty.reserve(1)
 
     var errNoneOutcome: Swag.Error
@@ -858,16 +880,16 @@ func decodeIco(bytes: const [..] u8, opt: DecodeOptions = {})->Image fail
 #test
 {
     var source = Image.create(1, 1, .RGBA8, alphaMode: .Premultiplied)
-    source.pixels.storage()[0] = 64'u8
-    source.pixels.storage()[1] = 0'u8
-    source.pixels.storage()[2] = 0'u8
-    source.pixels.storage()[3] = 128'u8
+    source.pixels.storage()[0] = 64_u8
+    source.pixels.storage()[1] = 0_u8
+    source.pixels.storage()[2] = 0_u8
+    source.pixels.storage()[3] = 128_u8
     let entries: [1] Image = [source]
 
     let encoded = expect Ico.encodeAll(entries)
     let bytes   = nnBytes(encoded.toSlice())
-    Swag.require(bytes[64] == 128'u8)     // Red, un-premultiplied.
-    Swag.require(bytes[65] == 128'u8)     // Alpha.
+    Swag.require(bytes[64] == 128_u8)     // Red, un-premultiplied.
+    Swag.require(bytes[65] == 128_u8)     // Alpha.
 }
 
 // Writing premultiplied ICO pixels matches the normal straight-alpha conversion.
@@ -917,11 +939,11 @@ func decodeIco(bytes: const [..] u8, opt: DecodeOptions = {})->Image fail
     small.clear()
     var large = Image.create(16, 16, .BGRA8)
     large.clear()
-    large.pixels.storage()[2] = 77'u8
+    large.pixels.storage()[2] = 77_u8
 
     let entries: [2] Image = [small, large]
     expect Ico.save(path.toString(), entries)
     let img = expect Image.load(path.toString())
     Swag.require(img.width == 16)
-    Swag.require(img.pixels.storage()[2] == 77'u8)
+    Swag.require(img.pixels.storage()[2] == 77_u8)
 }

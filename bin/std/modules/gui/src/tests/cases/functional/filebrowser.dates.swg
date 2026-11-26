@@ -7,15 +7,18 @@ using Core, Pixel
 #test
 {
     let root = Path.combine(Env.getSpecialDirectory(.Temp), Format.toString("folder-dates-%", Guid64.random()))
-    for name in ["chouette", "swag-lang"] do
+    for name in ["chouette", "swag-lang"]
+    {
         expect Directory.create(Path.combine(root, name), recurse: true)
+    }
+
     defer discard catch Directory.delete(root, recurse: true)
 
     var host: Testing.HeadlessHost
     host.setup(720, 260)
     let browser = FileBrowserCtrl.create(&host.root, {mode: .SelectFolder, initialFolder: root, showLocationsPane: false}, {0, 0, 700, 240})
     browser.listCtrl.selectLine(0)
-    for scale in [1.0'f32, 1.25, 1.5, 1.75, 2.0]
+    for scale in [1.0_f32, 1.25, 1.5, 1.75, 2.0]
     {
         host.surface.setDpiScaleRaw(scale)
         host.root.sendResizeEvent()
@@ -39,8 +42,10 @@ using Core, Pixel
                 for &chunk in item.name.chunks
                 {
                     Swag.require(chunk.visible)
-                    for glyph in chunk.shaped.glyphs do
+                    for glyph in chunk.shaped.glyphs
+                    {
                         Swag.require(glyph.glyphIndex != chunk.font.glyphIndex('…'), Format.toString("date was ellipsized at scale % for minute %", scale, minute))
+                    }
                 }
             }
         }

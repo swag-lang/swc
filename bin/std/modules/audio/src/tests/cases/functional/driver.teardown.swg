@@ -66,10 +66,16 @@ func requestVoiceDestroyOnce(thread: const *Threading.Thread)
     {
         let round = cast(u32, iteration + 1)
         Atomic.add(&probe.ready, 1)
-        while Atomic.get(&probe.start) != round do
+        while Atomic.get(&probe.start) != round
+        {
             Threading.Thread.yield()
-        if probe.voice.markPendingDestroy() do
+        }
+
+        if probe.voice.markPendingDestroy()
+        {
             Atomic.add(&probe.winners, 1)
+        }
+
         Atomic.add(&probe.done, 1)
     }
 }
@@ -81,16 +87,22 @@ impl IAllocator for AudioTeardownAllocator
 
     mtd impl free(request: *AllocatorRequest)
     {
-        if request.address == .nativeChild do
+        if request.address == .nativeChild
+        {
             .childFreed = true
+        }
+
         if request.address == .nativeParent
         {
             .parentBeforeChild = not .childFreed
             .parentFreed       = true
         }
 
-        if request.address == .nativeVoice do
+        if request.address == .nativeVoice
+        {
             .voiceFreed = true
+        }
+
         .upstream.free(request)
     }
 }
@@ -116,8 +128,11 @@ impl IAllocator for AudioTeardownAllocator
         let child     = expect Bus.create(1, parent)
         allocator.nativeParent = parent.handle
         allocator.nativeChild  = child.handle
-        if removeUnrelated do
+        if removeUnrelated
+        {
             unrelated.destroy()
+        }
+
         destroyEngine()
         Swag.require(allocator.childFreed and allocator.parentFreed)
         Swag.require(not allocator.parentBeforeChild, "audio parent was released before its child")
@@ -135,8 +150,11 @@ impl IAllocator for AudioTeardownAllocator
     // End processing without reaping the thread handle; destroyEngine owns that join.
     g_Driver.updateTh.safeForceEnd()
     g_Driver.wakeupUpdate.signal()
-    while not g_Driver.updateTh.isDone() do
+    while not g_Driver.updateTh.isDone()
+    {
         Threading.Thread.yield()
+    }
+
     var file  = expect SoundFile.load(audioGetTestDataPath("pcm16_stereo.wav"))
     let voice = expect Voice.create(&file)
     allocator.nativeVoice = voice.handle
@@ -148,8 +166,11 @@ impl IAllocator for AudioTeardownAllocator
 // Destruction waits for an in-flight transport operation before releasing voice resources.
 #test
 {
-    if Swag.jit() do
+    if Swag.jit()
+    {
         return
+    }
+
     discard expect createNoSoundEngine()
     defer destroyEngine()
 
@@ -170,9 +191,12 @@ impl IAllocator for AudioTeardownAllocator
             g_Driver.mutexVoicesToUpdate.lock()
             commandsPending = not g_Driver.voicesToUpdate.isEmpty()
             g_Driver.mutexVoicesToUpdate.unlock()
-            if not commandsPending do
+            if not commandsPending
+            {
                 break
-            Threading.Thread.sleep(1'ms)
+            }
+
+            Threading.Thread.sleep(1_ms)
         }
 
         Swag.require(not commandsPending, "audio update thread did not take the destroy command")
@@ -183,14 +207,21 @@ impl IAllocator for AudioTeardownAllocator
         {
             attempt += 1
             g_Driver.wakeupUpdate.signal()
-            Threading.Thread.sleep(1'ms)
+            Threading.Thread.sleep(1_ms)
             g_Driver.mutexRecycleVoices.lock()
-            for recycledVoice in g_Driver.toRecycleVoices do
-                if recycledVoice == voice do
+            for recycledVoice in g_Driver.toRecycleVoices
+            {
+                if recycledVoice == voice
+                {
                     recycledWhileLocked = true
+                }
+            }
+
             g_Driver.mutexRecycleVoices.unlock()
-            if recycledWhileLocked do
+            if recycledWhileLocked
+            {
                 break
+            }
         }
     }
 
@@ -202,14 +233,21 @@ impl IAllocator for AudioTeardownAllocator
     {
         attempt += 1
         g_Driver.wakeupUpdate.signal()
-        Threading.Thread.sleep(1'ms)
+        Threading.Thread.sleep(1_ms)
         g_Driver.mutexRecycleVoices.lock()
-        for recycledVoice in g_Driver.toRecycleVoices do
-            if recycledVoice == voice do
+        for recycledVoice in g_Driver.toRecycleVoices
+        {
+            if recycledVoice == voice
+            {
                 recycledAfterUnlock = true
+            }
+        }
+
         g_Driver.mutexRecycleVoices.unlock()
-        if recycledAfterUnlock do
+        if recycledAfterUnlock
+        {
             break
+        }
     }
 
     Swag.require(recycledAfterUnlock, "voice was not recycled after releasing its data mutex")
@@ -224,8 +262,10 @@ impl IAllocator for AudioTeardownAllocator
     // Keep the update queue stable while exercising repeated destroy requests.
     g_Driver.updateTh.safeForceEnd()
     g_Driver.wakeupUpdate.signal()
-    while not g_Driver.updateTh.isDone() do
+    while not g_Driver.updateTh.isDone()
+    {
         Threading.Thread.yield()
+    }
 
     var file  = expect SoundFile.load(audioGetTestDataPath("pcm16_stereo.wav"))
     let voice = expect Voice.create(&file)
@@ -233,9 +273,14 @@ impl IAllocator for AudioTeardownAllocator
     voice.destroy()
 
     var destroyCommands = 0
-    for command in g_Driver.voicesToUpdate do
-        if command.command == .Destroy do
+    for command in g_Driver.voicesToUpdate
+    {
+        if command.command == .Destroy
+        {
             destroyCommands += 1
+        }
+    }
+
     Swag.require(destroyCommands == 1)
 }
 
@@ -256,15 +301,23 @@ impl IAllocator for AudioTeardownAllocator
     {
         let round        = cast(u32, iteration + 1)
         let expectedDone = cast(u32, threads.count) * round
-        while Atomic.get(&probe.ready) != expectedDone do
+        while Atomic.get(&probe.ready) != expectedDone
+        {
             Threading.Thread.yield()
+        }
+
         Atomic.set(&probe.start, round)
-        while Atomic.get(&probe.done) != expectedDone do
+        while Atomic.get(&probe.done) != expectedDone
+        {
             Threading.Thread.yield()
+        }
+
         Swag.require(Atomic.get(&probe.winners) == round)
         voice.resetState(.PendingDestroy)
     }
 
-    for &thread in threads do
+    for &thread in threads
+    {
         thread.wait()
+    }
 }

@@ -49,8 +49,11 @@ using Core, Core.Math, Pixel, Gui.Print
     var previewed = false
     host.app.sigFrame += func|host = &host, &previewed|(app)
     {
-        if app.modalSurfaces.isEmpty() do
+        if app.modalSurfaces.isEmpty()
+        {
             return
+        }
+
         if app.modalSurfaces.back().view() is Dialog as dlg
         {
             let tr    = strings()
@@ -92,8 +95,11 @@ using Core, Core.Math, Pixel, Gui.Print
     var quiet = false
     host.app.sigFrame += func|host = &host, &entered, &quiet|(app)
     {
-        if entered.isRaised() do
+        if entered.isRaised()
+        {
             return
+        }
+
         quiet = app.modalSurfaces.isEmpty() and
                 host.surface.isDisabled and
                 not host.surface.hasDisabledTint()
@@ -105,9 +111,12 @@ using Core, Core.Math, Pixel, Gui.Print
     {
         for 2000
         {
-            if entered.isRaised() do
+            if entered.isRaised()
+            {
                 return true
-            Threading.Thread.sleep(1'ms)
+            }
+
+            Threading.Thread.sleep(1_ms)
         }
 
         return false
@@ -139,18 +148,25 @@ using Core, Core.Math, Pixel, Gui.Print
     {
         for 2000
         {
-            if Swag.isCancelled() do
+            if Swag.isCancelled()
+            {
                 return true
-            Threading.Thread.sleep(1'ms)
+            }
+
+            Threading.Thread.sleep(1_ms)
         }
 
         return false
     }) as failure
     Swag.require(clicked)
-    if failure.value() is PrintError as reason do
+    if failure.value() is PrintError as reason
+    {
         Swag.require(reason.kind == .Cancelled)
-    else do
+    }
+    else
+    {
         Swag.require(false)
+    }
 }
 
 #test
@@ -158,8 +174,10 @@ using Core, Core.Math, Pixel, Gui.Print
     var document: Document
     document.kind = .Text
     document.text = "First\trow\r\n\rSecond row\n"
-    for 40 do
+    for 40
+    {
         document.text += "Long ligne accentuée qui traverse la zone imprimable.\n"
+    }
 
     let size   = Point{180, 110}
     let layout = expect prepare(&document, {size, {0, 0, size.x, size.y}}, {margin: 12})
@@ -178,8 +196,11 @@ using Core, Core.Math, Pixel, Gui.Print
     var fileName = String.from("printed")
 
     // On Linux the target itself is valid. The old temporary name exceeded NAME_MAX.
-    for #os == Swag.TargetOs.Linux ? 232 : 0 do
+    for #os == Swag.TargetOs.Linux ? 232 : 0
+    {
         fileName += "x"
+    }
+
     fileName += ".pdf"
     let target = Path.combine(folder, fileName)
     expect savePdf(&layout, {first: range.first, end: range.end}, target)
@@ -191,8 +212,10 @@ using Core, Core.Math, Pixel, Gui.Print
     var hasInk = false
     for y in image.height
     {
-        for x in image.width where image.pixelColor(x, y).r < 100 do
+        for x in image.width where image.pixelColor(x, y).r < 100
+        {
             hasInk = true
+        }
     }
 
     Swag.require(hasInk)
@@ -219,8 +242,11 @@ using Core, Core.Math, Pixel, Gui.Print
         // The editor accepts this name, but the filesystem rejects the rename.
         let save = host.autoStages.backPtr()
         save.file = fileName
-        for 252 do
+        for 252
+        {
             save.file += "x"
+        }
+
         host.thenClickModalButton(Dialog.BtnOk)     // Dismiss the write error.
         host.thenClickModalButton(Dialog.BtnOk)
         host.autoStages.backPtr().file = fileName
@@ -229,9 +255,12 @@ using Core, Core.Math, Pixel, Gui.Print
     var document: Document
     document.kind = .Text
     document.name = name
-    for i in 75 do
+    for i in 75
+    {
         document.text.appendFormat("Report entry %.\n", i + 1)
-    let devices: Array'Printer
+    }
+
+    let devices: Array!{Printer}
     PrintDlg.showDocument(&host.surface, &document, "", devices.toSlice())
     host.pump()
     Swag.require(host.autoHandled, host.autoFailure)

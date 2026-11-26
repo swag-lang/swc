@@ -4,7 +4,7 @@ using Core, Pixel
 
 private const ThumbnailWidth      = 256
 private const ThumbnailHeight     = 320
-private const ThumbnailSourceSize = 16 * 1024'u64
+private const ThumbnailSourceSize = 16 * 1024_u64
 private const ThumbnailTextLines  = 18
 
 // Produces a compact source preview without constructing a viewer or a window.
@@ -81,8 +81,10 @@ impl ThumbnailRenderer
 
     private mtd drawText(source: string)
     {
-        if not source.count do
+        if not source.count
+        {
             return
+        }
 
         var content: RichString = String.from(source)
         var format:  RichStringFormat

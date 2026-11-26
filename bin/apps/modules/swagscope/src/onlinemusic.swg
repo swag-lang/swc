@@ -21,14 +21,14 @@ struct OnlineMusic
     #[Serialization.Key("first-release-date")]
     firstReleaseDate: String
     #[Serialization.Key("artist-credit")]
-    artists: Array'MusicCredit
+    artists: Array!{MusicCredit}
 }
 
 struct MusicSearch
 {
     count: u32
     #[Serialization.Key("release-groups")]
-    groups: Array'OnlineMusic
+    groups: Array!{OnlineMusic}
 }
 
 private const MusicBrainzHost = "musicbrainz.org"
@@ -84,7 +84,7 @@ struct MusicLookupCacheEntry
 }
 
 // Shared by preview workers in this process, protected by g_MusicLookupLock.
-private var g_MusicLookupCache: Array'MusicLookupCacheEntry
+private var g_MusicLookupCache: Array!{MusicLookupCacheEntry}
 
 struct MusicCoverCacheEntry
 {
@@ -93,11 +93,11 @@ struct MusicCoverCacheEntry
     secure:    bool
     id:        String
     fetchedAt: u64
-    bytes:     Array'u8
+    bytes:     Array!{u8}
 }
 
 private var g_MusicCoverLock:  Swag.Mutex
-private var g_MusicCoverCache: Array'MusicCoverCacheEntry
+private var g_MusicCoverCache: Array!{MusicCoverCacheEntry}
 
 func clearMusicCaches()
 {
@@ -130,13 +130,18 @@ private func cachedMusic(tags: const *SoundTags, source: MusicSource, chosenId: 
         if item.host != source.apiHost or
            item.port != source.apiPort or
            item.secure != source.secure or
-           item.chosenId != chosenId do
+           item.chosenId != chosenId
+        {
             continue
+        }
+
         if chosenId.count or
            (item.album == tags.album and
             item.artist == musicSearchArtist(tags) and
-            item.year == tags.year) do
+            item.year == tags.year)
+        {
             return item.music
+        }
     }
 
     return {}
@@ -144,10 +149,16 @@ private func cachedMusic(tags: const *SoundTags, source: MusicSource, chosenId: 
 
 private func rememberMusic(tags: const *SoundTags, source: MusicSource, chosenId: string, music: const *OnlineMusic)
 {
-    if music.id.isEmpty() do
+    if music.id.isEmpty()
+    {
         return
-    if g_MusicLookupCache.count >= 32 do
+    }
+
+    if g_MusicLookupCache.count >= 32
+    {
         g_MusicLookupCache.removeAtOrdered(0)
+    }
+
     g_MusicLookupCache.add({host: source.apiHost, port: source.apiPort, secure: source.secure,
                             chosenId: chosenId, album: tags.album, artist: musicSearchArtist(tags), year: tags.year,
                             fetchedAt: Time.monotonicMilliseconds(), music: music[]})
@@ -155,16 +166,21 @@ private func rememberMusic(tags: const *SoundTags, source: MusicSource, chosenId
 
 func validMusicId(id: string)->bool
 {
-    if id.count != 36 do
+    if id.count != 36
+    {
         return false
+    }
+
     for byte, index in id
     {
         if index == 8 or index == 13 or index == 18 or index == 23
         {
-            if byte != '-' do
+            if byte != '-'
+            {
                 return false
+            }
         }
-        elif not Latin1.isHexDigit(byte)
+        else if not Latin1.isHexDigit(byte)
         {
             return false
         }
@@ -179,8 +195,11 @@ func musicQueryLiteral(value: string)->String
     var result: #returntype
     for byte in value
     {
-        if Utf8.indexOf("+-&|!(){}[]^\"~*?:\\/", cast(rune, byte)) != Swag.U64.Max do
-            result.append('\\'u8)
+        if Utf8.indexOf("+-&|!(){}[]^\"~*?:\\/", cast(rune, byte)) != Swag.U64.Max
+        {
+            result.append('\\'_u8)
+        }
+
         result.append(byte)
     }
 
@@ -189,8 +208,11 @@ func musicQueryLiteral(value: string)->String
 
 private func musicTag(image: *Image, tag, value: string)
 {
-    if not value.count do
+    if not value.count
+    {
         return
+    }
+
     var record: ImageMetadata
     record.tag   = tag
     record.value = value
@@ -220,12 +242,18 @@ func labelLocalMusic(image: *Image, tags: const *SoundTags)
 // Cover Art Archive redirects to Internet Archive. Never follow a URL to an unrelated host.
 func coverRedirect(location: string, current: CoverTarget, source: MusicSource)->CoverTarget fail
 {
-    if location.count == 0 or location.count > 2048 do
+    if location.count == 0 or location.count > 2048
+    {
         fail Errors.InvalidFormatError{}
+    }
+
     if location[0] == '/'
     {
-        if location.count > 1 and location[1] == '/' do
+        if location.count > 1 and location[1] == '/'
+        {
             fail Errors.InvalidFormatError{}
+        }
+
         let absolute = Format.toString("https://local%", location)
         var target   = try Url.parseHttp(absolute)
         return {host: current.host, port: current.port, path: #move target.path}
@@ -234,11 +262,17 @@ func coverRedirect(location: string, current: CoverTarget, source: MusicSource)-
     var target     = try Url.parseHttp(location)
     let configured = String.toLower(source.artHost)
     let isArchive  = target.host == "archive.org" or Utf8.endsWith(target.host.toString(), ".archive.org")
-    if target.host != configured and not isArchive do
+    if target.host != configured and not isArchive
+    {
         fail Errors.InvalidFormatError{}
-    let port = target.host == configured ? source.artPort : 443'u16
-    if target.hasPort and target.port != port do
+    }
+
+    let port = target.host == configured ? source.artPort : 443_u16
+    if target.hasPort and target.port != port
+    {
         fail Errors.InvalidFormatError{}
+    }
+
     return {host: #move target.host, path: #move target.path, port: port}
 }
 
@@ -250,18 +284,30 @@ impl MusicSummary
         for &record in image.metadata
         {
             let value = cast(string, record.toSlice())
-            if record.isTag(cast(const [..] u8, MusicTrackTag)) do
+            if record.isTag(cast(const [..] u8, MusicTrackTag))
+            {
                 result.track = value
-            elif record.isTag(cast(const [..] u8, MusicAlbumArtistTag)) do
+            }
+            else if record.isTag(cast(const [..] u8, MusicAlbumArtistTag))
+            {
                 result.albumArtist = value
-            elif record.isTag(cast(const [..] u8, MusicTitleTag)) do
+            }
+            else if record.isTag(cast(const [..] u8, MusicTitleTag))
+            {
                 result.title = value
-            elif record.isTag(cast(const [..] u8, MusicArtistTag)) do
+            }
+            else if record.isTag(cast(const [..] u8, MusicArtistTag))
+            {
                 result.artist = value
-            elif record.isTag(cast(const [..] u8, MusicDateTag)) do
+            }
+            else if record.isTag(cast(const [..] u8, MusicDateTag))
+            {
                 result.date = value
-            elif record.isTag(cast(const [..] u8, MusicSourceTag)) do
+            }
+            else if record.isTag(cast(const [..] u8, MusicSourceTag))
+            {
                 result.source = value
+            }
         }
 
         return result
@@ -269,15 +315,24 @@ impl MusicSummary
 
     mtd text()->String
     {
-        if .title.isEmpty() do
+        if .title.isEmpty()
+        {
             return {}
+        }
+
         let origin  = .source == "tags" ? appStrings().explore_FileTags : "MusicBrainz"
         var result  = Format.toString("%  ·  %", safeMediaText(.title), origin)
         let strings = appStrings()
-        if not .artist.isEmpty() do
+        if not .artist.isEmpty()
+        {
             result += Format.toString("\n%", Format.toString(strings.explore_MusicArtist, safeMediaText(.artist)))
-        if not .date.isEmpty() do
+        }
+
+        if not .date.isEmpty()
+        {
             result += Format.toString("\n%", Format.toString(strings.explore_MusicDate, safeMediaText(.date)))
+        }
+
         return result
     }
 }
@@ -287,30 +342,47 @@ impl MusicSearch
     // A partial result list cannot establish that an exact match is unique.
     mtd choose(tags: const *SoundTags)->u64
     {
-        if .count > .groups.count do
+        if .count > .groups.count
+        {
             return Swag.U64.Max
+        }
+
         let album  = tags.album.toLower(.Unicode)
         let artist = String.from(musicSearchArtist(tags)).toLower(.Unicode)
         var chosen = Swag.U64.Max
         for &group, index in .groups
         {
-            if group.title.toLower(.Unicode) != album do
+            if group.title.toLower(.Unicode) != album
+            {
                 continue
+            }
+
             var artistMatches = group.artistText().toLower(.Unicode) == artist
             for credit in group.artists
             {
-                if credit.name.toLower(.Unicode) == artist or credit.artist.name.toLower(.Unicode) == artist do
+                if credit.name.toLower(.Unicode) == artist or credit.artist.name.toLower(.Unicode) == artist
+                {
                     artistMatches = true
+                }
             }
 
-            if not artistMatches do
+            if not artistMatches
+            {
                 continue
+            }
+
             if not tags.year.isEmpty() and
                tags.year.length >= 4 and
-               (group.firstReleaseDate.length < 4 or group.firstReleaseDate.toString()[0 until 4] != tags.year.toString()[0 until 4]) do
+               (group.firstReleaseDate.length < 4 or group.firstReleaseDate.toString()[0 until 4] != tags.year.toString()[0 until 4])
+            {
                 continue
-            if chosen != Swag.U64.Max and .groups[chosen].id != group.id do
+            }
+
+            if chosen != Swag.U64.Max and .groups[chosen].id != group.id
+            {
                 return Swag.U64.Max
+            }
+
             chosen = index
         }
 
@@ -338,8 +410,11 @@ impl OnlineMusic
         var path: String
         if chosenId.count
         {
-            if not validMusicId(chosenId) do
+            if not validMusicId(chosenId)
+            {
                 return {}
+            }
+
             path = Format.toString("/ws/2/release-group/%?inc=artist-credits&fmt=json", chosenId)
         }
         else
@@ -348,57 +423,84 @@ impl OnlineMusic
             if tags.album.isEmpty() or
                artist.count == 0 or
                tags.album.length > 256 or
-               artist.count > 256 do
+               artist.count > 256
+            {
                 return {}
+            }
+
             let expression = Format.toString("releasegroup:\"%\" AND artist:\"%\"", musicQueryLiteral(tags.album), musicQueryLiteral(artist))
             path = Format.toString("/ws/2/release-group/?query=%&fmt=json&limit=100", Url.encodeComponent(cast(const [..] u8, expression.toString())))
         }
 
         // Space this process's requests below MusicBrainz's per-IP limit; other clients may
         // still share the same IP, in which case the server can refuse a request.
-        if not lockMediaLookup(&g_MusicLookupLock) do
+        if not lockMediaLookup(&g_MusicLookupLock)
+        {
             return {}
+        }
+
         defer g_MusicLookupLock.unlock()
         let cached = cachedMusic(tags, source, chosenId)
-        if not cached.id.isEmpty() do
+        if not cached.id.isEmpty()
+        {
             return cached
+        }
+
         if source.apiHost == MusicBrainzHost
         {
             while g_LastMusicRequest and Time.monotonicMilliseconds() - g_LastMusicRequest < 1100
             {
-                if Swag.isCancelled() do
+                if Swag.isCancelled()
+                {
                     return {}
-                Threading.Thread.sleep(100'ms)
+                }
+
+                Threading.Thread.sleep(100_ms)
             }
         }
 
-        if Swag.isCancelled() do
+        if Swag.isCancelled()
+        {
             return {}
-        if source.apiHost == MusicBrainzHost do
+        }
+
+        if source.apiHost == MusicBrainzHost
+        {
             g_LastMusicRequest = Time.monotonicMilliseconds()
+        }
+
         var options: Http.GetOptions
         options.userAgent    = "Swag Scope (https://github.com/swag-lang/swc)"
         options.timeoutMs    = 5_000
         options.maxBodyBytes = 512 * 1024
         let response = try Http.get(source.apiHost, source.apiPort, path.toString(), source.secure, options)
-        if response.status != 200 do
+        if response.status != 200
+        {
             fail Errors.InvalidFormatError{}
-        var decoder: Serialization.Decoder'Serialization.Read.Json
+        }
+
+        var decoder: Serialization.Decoder!{Serialization.Read.Json}
         if chosenId.count
         {
-            let music = try decoder.readAll'OnlineMusic(response.body.toSlice())
+            let music = try decoder.readAll!{OnlineMusic}(response.body.toSlice())
             defer Memory.delete(music)
-            if music.id.toLower(.Latin1) != String.toLower(chosenId) do
+            if music.id.toLower(.Latin1) != String.toLower(chosenId)
+            {
                 fail Errors.InvalidFormatError{}
+            }
+
             rememberMusic(tags, source, chosenId, music)
             return music[]
         }
 
-        let search = try decoder.readAll'MusicSearch(response.body.toSlice())
+        let search = try decoder.readAll!{MusicSearch}(response.body.toSlice())
         defer Memory.delete(search)
         let index = search.choose(tags)
-        if index == Swag.U64.Max do
+        if index == Swag.U64.Max
+        {
             return {}
+        }
+
         rememberMusic(tags, source, chosenId, &search.groups[index])
         return search.groups[index]
     }
@@ -417,12 +519,18 @@ impl OnlineMusic
     }
 
     // Retrieve bounded cover bytes, following only the archive's known redirect hosts.
-    mtd coverBytes(source: MusicSource = {})->Array'u8 fail
+    mtd coverBytes(source: MusicSource = {})->Array!{u8} fail
     {
-        if not validMusicId(.id) do
+        if not validMusicId(.id)
+        {
             return {}
-        if not lockMediaLookup(&g_MusicCoverLock) do
+        }
+
+        if not lockMediaLookup(&g_MusicCoverLock)
+        {
             return {}
+        }
+
         defer g_MusicCoverLock.unlock()
         let now = Time.monotonicMilliseconds()
         for index in reversed(g_MusicCoverCache.count)
@@ -437,8 +545,10 @@ impl OnlineMusic
             if item.host == source.artHost and
                item.port == source.artPort and
                item.secure == source.secure and
-               item.id == .id do
+               item.id == .id
+            {
                 return item.bytes
+            }
         }
 
         var target = CoverTarget{host: source.artHost, port: source.artPort,
@@ -448,16 +558,22 @@ impl OnlineMusic
         options.timeoutMs = 5_000
         for 5
         {
-            if Swag.isCancelled() do
+            if Swag.isCancelled()
+            {
                 return {}
+            }
+
             var response = try Http.get(target.host, target.port, target.path, source.secure, options)
             if response.status == 200
             {
                 // Small covers are shared across tracks; large images stay bounded by HTTP's limit.
                 if response.body.count <= 512 * 1024
                 {
-                    if g_MusicCoverCache.count >= 16 do
+                    if g_MusicCoverCache.count >= 16
+                    {
                         g_MusicCoverCache.removeAtOrdered(0)
+                    }
+
                     g_MusicCoverCache.add({host: source.artHost, port: source.artPort, secure: source.secure,
                                            id: .id, fetchedAt: Time.monotonicMilliseconds(), bytes: response.body})
                 }
@@ -465,14 +581,20 @@ impl OnlineMusic
                 return #move response.body
             }
 
-            if response.status == 404 do
+            if response.status == 404
+            {
                 return {}
+            }
+
             if response.status != 301 and
                response.status != 302 and
                response.status != 303 and
                response.status != 307 and
-               response.status != 308 do
+               response.status != 308
+            {
                 fail Errors.InvalidFormatError{}
+            }
+
             target = try coverRedirect(response.location, target, source)
         }
 

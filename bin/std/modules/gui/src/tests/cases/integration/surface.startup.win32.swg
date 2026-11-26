@@ -30,13 +30,16 @@ impl IWnd for StartupProbeWnd
             .initializing    = true
             surface.setPosition({60, 50, 420, 260})
             surface.showNormalAt({70, 60, 480, 300})
-            if .maximize do
+            if .maximize
+            {
                 surface.showMaximized()
+            }
+
             .visibleDuringInit = IsWindowVisible(surface.win32Handle()) != 0
             .initializing      = false
             evt.accepted       = true
         }
-        elif evt.kind == .Show
+        else if evt.kind == .Show
         {
             .shows             += 1
             .showsWithoutFrame = .showsWithoutFrame or .paints == 0
@@ -47,10 +50,16 @@ impl IWnd for StartupProbeWnd
 
     mtd impl onPaint(_: *PaintEvent)
     {
-        if .initializing do
+        if .initializing
+        {
             .paintsDuringInit += 1
-        if .paints == 0 do
+        }
+
+        if .paints == 0
+        {
             .firstPaintVisible = IsWindowVisible(.surface!.win32Handle()) != 0
+        }
+
         .paints += 1
     }
 }
@@ -64,7 +73,7 @@ impl IWnd for StartupProbeWnd
     {
         var app: Application
         let surface = expect app.createSurface(40, 40, 320, 180, .StandardWindow, surfaceId: "gui-startup-placement-test")
-        let view    = Wnd.create'StartupProbeWnd(surface.wnd)
+        let view    = Wnd.create!{StartupProbeWnd}(surface.wnd)
         surface.setView(view)
         view.maximize = maximize
         surface.show()

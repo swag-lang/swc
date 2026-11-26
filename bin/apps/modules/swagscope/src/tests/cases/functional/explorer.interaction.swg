@@ -15,8 +15,10 @@ func assertExplorerRenderStable(host: *Testing.HeadlessHost, window: *ViewerWind
         {
             let px = cast(s32, rect.x) + x
             let py = cast(s32, rect.y) + y
-            if before.pixelColor(px, py) != after.pixelColor(px, py) do
+            if before.pixelColor(px, py) != after.pixelColor(px, py)
+            {
                 changed += 1
+            }
         }
     }
 
@@ -37,8 +39,11 @@ func assertExplorerRenderStable(host: *Testing.HeadlessHost, window: *ViewerWind
     let explorer = unwrap window.explorer
     for 16
     {
-        if not explorer.load.started do
+        if not explorer.load.started
+        {
             break
+        }
+
         explorer.load.task.wait()
         host.pump()
     }
@@ -46,8 +51,8 @@ func assertExplorerRenderStable(host: *Testing.HeadlessHost, window: *ViewerWind
     Swag.require(not explorer.load.started)
     window.applyLayout()
 
-    let grid      = explorer.grid.position
-    let viewport  = explorer.scroll.position
+    let grid     = explorer.grid.position
+    let viewport = explorer.scroll.position
     explorer.showInformation()
     Swag.require(explorer.grid.position == grid and explorer.scroll.position == viewport)
     Swag.require(window.informationCaptionButton.isChecked)
@@ -69,8 +74,11 @@ func assertExplorerRenderStable(host: *Testing.HeadlessHost, window: *ViewerWind
     let window   = ViewerWindow.create(&host.surfaceWnd, createViewerPluginRegistry())
     let explorer = Explorer.create(window.documentPanel, window)
     explorer.setMode(.Names)
-    for name in ["Alpha.txt", "Beta.md", "Alpine.png"] do
+    for name in ["Alpha.txt", "Beta.md", "Alpine.png"]
+    {
         explorer.entries.add({name: name, attempted: true})
+    }
+
     explorer.fill()
 
     explorer.filter.setText("AL")
@@ -102,8 +110,10 @@ func assertExplorerRenderStable(host: *Testing.HeadlessHost, window: *ViewerWind
         let previous = &listing.entries[index - 1]
         let current  = &listing.entries[index]
         Swag.require(previous.directory or not current.directory)
-        if previous.directory == current.directory do
+        if previous.directory == current.directory
+        {
             Swag.require(Text.compareNames(previous.name, current.name) <= 0)
+        }
     }
 
     load.start(dataDirectory, "", 2, false, &host.surfaceWnd)
@@ -113,8 +123,10 @@ func assertExplorerRenderStable(host: *Testing.HeadlessHost, window: *ViewerWind
         let previous = &listing.entries[index - 1]
         let current  = &listing.entries[index]
         Swag.require(previous.directory or not current.directory)
-        if not previous.directory and not current.directory do
+        if not previous.directory and not current.directory
+        {
             Swag.require(previous.size <= current.size)
+        }
     }
 
     load.start(dataDirectory, "", 2, true, &host.surfaceWnd)
@@ -124,8 +136,10 @@ func assertExplorerRenderStable(host: *Testing.HeadlessHost, window: *ViewerWind
         let previous = &listing.entries[index - 1]
         let current  = &listing.entries[index]
         Swag.require(previous.directory or not current.directory)
-        if not previous.directory and not current.directory do
+        if not previous.directory and not current.directory
+        {
             Swag.require(previous.size >= current.size)
+        }
     }
 }
 
@@ -151,8 +165,10 @@ func assertExplorerRenderStable(host: *Testing.HeadlessHost, window: *ViewerWind
                 let previous = &load.result.entries[index - 1]
                 let current  = &load.result.entries[index]
                 Swag.require(previous.directory or not current.directory)
-                if previous.directory or current.directory do
+                if previous.directory or current.directory
+                {
                     continue
+                }
 
                 var order: s32
                 switch column
@@ -165,8 +181,11 @@ func assertExplorerRenderStable(host: *Testing.HeadlessHost, window: *ViewerWind
                 default: order = Latin1.compareNatural(previous.name, current.name)
                 }
 
-                if order == 0 do
+                if order == 0
+                {
                     order = Latin1.compareNatural(previous.name, current.name)
+                }
+
                 Swag.require(descending ? order >= 0 : order <= 0)
             }
         }
@@ -192,8 +211,11 @@ func assertExplorerRenderStable(host: *Testing.HeadlessHost, window: *ViewerWind
     let explorer = unwrap window.explorer
     for 16
     {
-        if not explorer.load.started do
+        if not explorer.load.started
+        {
             break
+        }
+
         explorer.load.task.wait()
         host.pump()
     }
@@ -215,8 +237,11 @@ func assertExplorerRenderStable(host: *Testing.HeadlessHost, window: *ViewerWind
     host.doubleClick(rowPoint)
     for 16
     {
-        if not explorer.load.started do
+        if not explorer.load.started
+        {
             break
+        }
+
         explorer.load.task.wait()
         host.pump()
     }
@@ -256,8 +281,11 @@ func assertExplorerRenderStable(host: *Testing.HeadlessHost, window: *ViewerWind
     window.closeFile()
     Swag.drainWork()
     host.pump()
-    if window.startupTimer do
+    if window.startupTimer
+    {
         host.fireTimer(window.startupTimer)
+    }
+
     Swag.require(not window.explorerActive and window.home.isLocallyVisible())
 }
 
@@ -317,10 +345,15 @@ func assertExplorerRenderStable(host: *Testing.HeadlessHost, window: *ViewerWind
     {
         var host: Testing.HeadlessHost
         host.setup(960, 640)
-        if light do
+        if light
+        {
             host.theme.setLight()
-        else do
+        }
+        else
+        {
             host.theme.setDark()
+        }
+
         host.notify(.ThemeChanged)
 
         let window   = ViewerWindow.create(&host.surfaceWnd, createViewerPluginRegistry())
@@ -347,8 +380,10 @@ func assertExplorerRenderStable(host: *Testing.HeadlessHost, window: *ViewerWind
             {
                 let px = cast(s32, tilePoint.x) + x
                 let py = cast(s32, tilePoint.y) + y
-                if before.pixelColor(px, py) != after.pixelColor(px, py) do
+                if before.pixelColor(px, py) != after.pixelColor(px, py)
+                {
                     changed += 1
+                }
             }
         }
 
@@ -362,8 +397,10 @@ func assertExplorerRenderStable(host: *Testing.HeadlessHost, window: *ViewerWind
     let folder = Gui.Testing.tempFilePath("scope-shift-selection-", "")
     expect Directory.create(folder)
     defer catch Directory.delete(folder, recurse: true)
-    for name in ["Alpha.txt", "Beta.txt", "Gamma.txt", "Omega.txt"] do
+    for name in ["Alpha.txt", "Beta.txt", "Gamma.txt", "Omega.txt"]
+    {
         discard expect File.writeAllText(Path.combine(folder, name), name)
+    }
 
     var host: Gui.Testing.HeadlessHost
     let workspace = testWorkspace(&host)
@@ -376,8 +413,11 @@ func assertExplorerRenderStable(host: *Testing.HeadlessHost, window: *ViewerWind
     explorer.list.setFocusedIndex(0)
     explorer.list.selectLine(0)
     explorer.focusContent()
-    for 2 do
+    for 2
+    {
         host.keyPress(.Down, .Shift)
+    }
+
     Swag.require(explorer.selectionPaths().count == 3 and explorer.selected == explorer.shown[2])
     host.keyPress(.Up, .Shift)
     Swag.require(explorer.selectionPaths().count == 2 and explorer.selected == explorer.shown[1])
@@ -385,8 +425,11 @@ func assertExplorerRenderStable(host: *Testing.HeadlessHost, window: *ViewerWind
     explorer.setMode(.Medium)
     explorer.grid.select(0)
     explorer.focusContent()
-    for 2 do
+    for 2
+    {
         host.keyPress(.Right, .Shift)
+    }
+
     Swag.require(explorer.selectionPaths().count == 3 and explorer.selected == explorer.shown[2])
     host.keyPress(.Left, .Shift)
     Swag.require(explorer.selectionPaths().count == 2 and explorer.selected == explorer.shown[1])
@@ -399,8 +442,8 @@ func assertExplorerRenderStable(host: *Testing.HeadlessHost, window: *ViewerWind
     let workspace = testWorkspace(&host)
     defer host.shutdown()
     let button = IconButton.createQuiet(workspace.primary)
-    let sheet = OptionSheet.View.create(button, func(_) {}, owner: workspace.primary)
-    let menu = MenuCtrl.createPopup(button)
+    let sheet  = OptionSheet.View.create(button, func(_) {}, owner: workspace.primary)
+    let menu   = MenuCtrl.createPopup(button)
     Swag.require(sheet.parent == &host.surfaceWnd and sheet.owner == workspace.primary)
     Swag.require(menu.parent == &host.surfaceWnd and menu.owner == button)
 }

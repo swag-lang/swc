@@ -16,7 +16,7 @@ func combine64(a: f64, b: f64, c: f64, d: f64)->f64
 #[Swag.NoInline]
 func literals32(count: s32)->f32
 {
-    var total = 0.0'f32
+    var total = 0.0_f32
     for index in count
     {
         let x = cast(f32, index)
@@ -28,7 +28,7 @@ func literals32(count: s32)->f32
 #[Swag.NoInline]
 func literals64(count: s32)->f64
 {
-    var total = 0.0'f64
+    var total = 0.0_f64
     for index in count
     {
         let x = cast(f64, index)

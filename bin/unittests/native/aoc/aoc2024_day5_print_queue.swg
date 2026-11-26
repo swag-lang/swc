@@ -3,9 +3,9 @@
 // Advent of Code 2024 Day 5: validate page ordering rules and repair invalid
 // updates through mutable/const references only, on fixed storage.
 
-const MaxRules       = 21'u32
-const MaxUpdates     = 6'u32
-const MaxUpdatePages = 5'u32
+const MaxRules       = 21_u32
+const MaxUpdates     = 6_u32
+const MaxUpdatePages = 5_u32
 
 struct RulePair
 {
@@ -35,8 +35,8 @@ impl Update
 
     mtd const middle()->s32
     {
-        Swag.assert(.count & 1'u32 == 1'u32)
-        return .pages[.count / 2'u32]
+        Swag.assert(.count & 1_u32 == 1_u32)
+        return .pages[.count / 2_u32]
     }
 }
 
@@ -58,7 +58,7 @@ struct QueueAudit
 
 const SampleScenario: PrintQueueScenario =
     PrintQueueScenario{
-    ruleCount: 21'u32,
+    ruleCount: 21_u32,
     rules:
     [
         RulePair{before: 47, after: 53},
@@ -83,38 +83,38 @@ const SampleScenario: PrintQueueScenario =
         RulePair{before: 75, after: 13},
         RulePair{before: 53, after: 13}
     ],
-    updateCount: 6'u32,
+    updateCount: 6_u32,
     updates:
     [
-        Update{count: 5'u32, pages: [75, 47, 61, 53, 29]},
-        Update{count: 5'u32, pages: [97, 61, 53, 29, 13]},
-        Update{count: 3'u32, pages: [75, 29, 13, 0, 0]},
-        Update{count: 5'u32, pages: [75, 97, 47, 61, 53]},
-        Update{count: 3'u32, pages: [61, 13, 29, 0, 0]},
-        Update{count: 5'u32, pages: [97, 13, 75, 29, 47]}
+        Update{count: 5_u32, pages: [75, 47, 61, 53, 29]},
+        Update{count: 5_u32, pages: [97, 61, 53, 29, 13]},
+        Update{count: 3_u32, pages: [75, 29, 13, 0, 0]},
+        Update{count: 5_u32, pages: [75, 97, 47, 61, 53]},
+        Update{count: 3_u32, pages: [61, 13, 29, 0, 0]},
+        Update{count: 5_u32, pages: [97, 13, 75, 29, 47]}
     ]
     }
 
 const TieBreakScenario: PrintQueueScenario =
     PrintQueueScenario{
-    ruleCount: 2'u32,
+    ruleCount: 2_u32,
     rules:
     [
         RulePair{before: 10, after: 30},
         RulePair{before: 20, after: 30}
     ],
-    updateCount: 3'u32,
+    updateCount: 3_u32,
     updates:
     [
-        Update{count: 3'u32, pages: [10, 20, 30, 0, 0]},
-        Update{count: 3'u32, pages: [30, 20, 10, 0, 0]},
-        Update{count: 3'u32, pages: [30, 10, 20, 0, 0]}
+        Update{count: 3_u32, pages: [10, 20, 30, 0, 0]},
+        Update{count: 3_u32, pages: [30, 20, 10, 0, 0]},
+        Update{count: 3_u32, pages: [30, 10, 20, 0, 0]}
     ]
     }
 
 func clearUpdate(result: *Update)
 {
-    result.count = 0'u32
+    result.count = 0_u32
     for index in MaxUpdatePages
     {
         result.pages[cast(u32, index)] = 0
@@ -140,7 +140,7 @@ func copyUpdate(result: *Update, source: Update)
 
 func findPageIndex(result: *u32, update: Update, page: s32)->bool
 {
-    result[] = 0'u32
+    result[] = 0_u32
 
     for idx in update.count
     {
@@ -160,8 +160,10 @@ func hasRule(scenario: PrintQueueScenario, before, after: s32)->bool
     for index in scenario.ruleCount
     {
         let rule = &scenario.rules[cast(u32, index)]
-        if rule.before == before and rule.after == after do
+        if rule.before == before and rule.after == after
+        {
             return true
+        }
     }
 
     return false
@@ -178,8 +180,10 @@ func isOrderedUpdate(scenario: PrintQueueScenario, update: Update)->bool
         let hasBefore = findPageIndex(&beforeIndex, update, rule.before)
         let hasAfter  = findPageIndex(&afterIndex, update, rule.after)
 
-        if hasBefore and hasAfter and beforeIndex > afterIndex do
+        if hasBefore and hasAfter and beforeIndex > afterIndex
+        {
             return false
+        }
     }
 
     return true
@@ -192,12 +196,16 @@ func hasIncomingRule(scenario: PrintQueueScenario, source: Update, used: [MaxUpd
     for index in source.count
     {
         let otherIndex = cast(u32, index)
-        if used[otherIndex] or otherIndex == candidateIndex do
+        if used[otherIndex] or otherIndex == candidateIndex
+        {
             continue
+        }
 
         let otherPage = source[otherIndex]
-        if hasRule(scenario, otherPage, candidatePage) do
+        if hasRule(scenario, otherPage, candidatePage)
+        {
             return true
+        }
     }
 
     return false
@@ -217,14 +225,18 @@ func repairUpdate(result: *Update, scenario: PrintQueueScenario, source: Update)
 
         for candidateIndex in source.count
         {
-            if used[candidateIndex] do
+            if used[candidateIndex]
+            {
                 continue
-            if hasIncomingRule(scenario, source, used, candidateIndex) do
+            }
+            if hasIncomingRule(scenario, source, used, candidateIndex)
+            {
                 continue
+            }
 
             writePage(&result.pages[writeIndex], source[candidateIndex])
             used[candidateIndex] = true
-            writeIndex += 1'u32
+            writeIndex += 1_u32
             found      = true
             break
         }
@@ -235,14 +247,18 @@ func repairUpdate(result: *Update, scenario: PrintQueueScenario, source: Update)
 
 func sameUpdate(lhs, rhs: Update)->bool
 {
-    if lhs.count != rhs.count do
+    if lhs.count != rhs.count
+    {
         return false
+    }
 
     for idx in lhs.count
     {
         let index = cast(u32, idx)
-        if lhs[index] != rhs[index] do
+        if lhs[index] != rhs[index]
+        {
             return false
+        }
     }
 
     return true
@@ -259,7 +275,7 @@ func auditQueue(result: *QueueAudit, scenario: PrintQueueScenario)
         if isOrderedUpdate(scenario, update)
         {
             result.orderedMiddleSum += update.middle()
-            result.validUpdateCount += 1'u32
+            result.validUpdateCount += 1_u32
         }
         else
         {
@@ -272,7 +288,7 @@ func auditQueue(result: *QueueAudit, scenario: PrintQueueScenario)
 
 #test
 {
-    var update: Update = Update{count: 3'u32, pages: [75, 47, 61, 0, 0]}
+    var update: Update = Update{count: 3_u32, pages: [75, 47, 61, 0, 0]}
     let first = update[0]
     writePage(&update.pages[1], 53)
 
@@ -296,20 +312,20 @@ func auditQueue(result: *QueueAudit, scenario: PrintQueueScenario)
 
     var repaired0: Update
     repairUpdate(&repaired0, &sample, &sample.updates[3])
-    let expected0: Update = Update{count: 5'u32, pages: [97, 75, 47, 61, 53]}
+    let expected0: Update = Update{count: 5_u32, pages: [97, 75, 47, 61, 53]}
 
     var repaired1: Update
     repairUpdate(&repaired1, &sample, &sample.updates[4])
-    let expected1: Update = Update{count: 3'u32, pages: [61, 29, 13, 0, 0]}
+    let expected1: Update = Update{count: 3_u32, pages: [61, 29, 13, 0, 0]}
 
     var repaired2: Update
     repairUpdate(&repaired2, &sample, &sample.updates[5])
-    let expected2: Update = Update{count: 5'u32, pages: [97, 75, 47, 29, 13]}
+    let expected2: Update = Update{count: 5_u32, pages: [97, 75, 47, 29, 13]}
 
     Swag.require(isOrderedUpdate(&sample, &sample.updates[0]))
     Swag.require(not isOrderedUpdate(&sample, &sample.updates[3]))
-    Swag.require(sampleAudit.updateCount == 6'u32)
-    Swag.require(sampleAudit.validUpdateCount == 3'u32)
+    Swag.require(sampleAudit.updateCount == 6_u32)
+    Swag.require(sampleAudit.validUpdateCount == 3_u32)
     Swag.require(sampleAudit.orderedMiddleSum == 143)
     Swag.require(sampleAudit.correctedMiddleSum == 123)
     Swag.require(sameUpdate(&repaired0, &expected0))
@@ -325,14 +341,14 @@ func auditQueue(result: *QueueAudit, scenario: PrintQueueScenario)
 
     var repairedA: Update
     repairUpdate(&repairedA, &tieBreak, &tieBreak.updates[1])
-    let expectedA: Update = Update{count: 3'u32, pages: [20, 10, 30, 0, 0]}
+    let expectedA: Update = Update{count: 3_u32, pages: [20, 10, 30, 0, 0]}
 
     var repairedB: Update
     repairUpdate(&repairedB, &tieBreak, &tieBreak.updates[2])
-    let expectedB: Update = Update{count: 3'u32, pages: [10, 20, 30, 0, 0]}
+    let expectedB: Update = Update{count: 3_u32, pages: [10, 20, 30, 0, 0]}
 
-    Swag.require(tieBreakAudit.updateCount == 3'u32)
-    Swag.require(tieBreakAudit.validUpdateCount == 1'u32)
+    Swag.require(tieBreakAudit.updateCount == 3_u32)
+    Swag.require(tieBreakAudit.validUpdateCount == 1_u32)
     Swag.require(tieBreakAudit.orderedMiddleSum == 20)
     Swag.require(tieBreakAudit.correctedMiddleSum == 30)
     Swag.require(sameUpdate(&repairedA, &expectedA))

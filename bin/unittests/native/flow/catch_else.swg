@@ -12,8 +12,10 @@ struct CatchElseError
 
 func catchElseMayFail(ok: bool) fail
 {
-    if not ok do
+    if not ok
+    {
         fail CatchElseError{base: Swag.BaseError{"boom"}, code: 42}
+    }
 }
 
 var g_catchElseTrace = 0
@@ -35,8 +37,10 @@ func catchElseRun(ok: bool)->s32
 // Anonymous 'else' handler: diverts control flow on failure without inspecting the error.
 func catchElseEarlyReturn(ok: bool)->s32
 {
-    catch catchElseMayFail(ok) do
+    catch catchElseMayFail(ok)
+    {
         return -1
+    }
     return 100
 }
 
@@ -62,8 +66,14 @@ func catchElseBump() { g_catchElseHandlerRuns += 1 }
 #test
 {
     g_catchElseHandlerRuns = 0
-    catch catchElseMayFail(true) do catchElseBump()
+    catch catchElseMayFail(true)
+    {
+        catchElseBump()
+    }
     Swag.require(g_catchElseHandlerRuns == 0)
-    catch catchElseMayFail(false) do catchElseBump()
+    catch catchElseMayFail(false)
+    {
+        catchElseBump()
+    }
     Swag.require(g_catchElseHandlerRuns == 1)
 }

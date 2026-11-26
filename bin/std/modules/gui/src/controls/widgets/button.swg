@@ -16,8 +16,8 @@ struct Button
             iconHeight: f32      // Explicit icon height, or zero to preserve the icon height.
         }
 
-        sigPressed:      SigArray'func||(*Wnd)     // Emitted after a completed primary activation.
-        sigRightPressed: SigArray'func||(*Wnd)     // Emitted when the secondary button is pressed inside the control.
+        sigPressed:      SigArray!{func||(*Wnd)}     // Emitted after a completed primary activation.
+        sigRightPressed: SigArray!{func||(*Wnd)}     // Emitted when the secondary button is pressed inside the control.
     }
 
     // Hover and press state, moved by the mouse events the button receives. Connect to
@@ -33,14 +33,18 @@ impl IWnd for Button
 {
     mtd impl onStateEvent(evt: *StateEvent)
     {
-        if evt.kind == .Hide or evt.kind == .Disable do
+        if evt.kind == .Hide or evt.kind == .Disable
+        {
             .clearPointerState()
+        }
     }
 
     mtd impl onApplyStateEvent(evt: *CommandStateEvent)
     {
-        if evt.id != .id do
+        if evt.id != .id
+        {
             return
+        }
 
         if evt.updatedFields.has(.Icon) and .icon != evt.icon
         {
@@ -89,8 +93,11 @@ impl Button
     // Replaces the displayed icon and repaints the button.
     mtd setIcon(icon: Icon)
     {
-        if .icon == icon do
+        if .icon == icon
+        {
             return
+        }
+
         .icon = icon
         .invalidate()
         .invalidateLayout()
@@ -99,8 +106,11 @@ impl Button
     // Removes the displayed icon, repaints, and lets the next layout pass remeasure it.
     mtd clearIcon()
     {
-        if not .icon.isValid() do
+        if not .icon.isValid()
+        {
             return
+        }
+
         .icon.clear()
         .invalidate()
         .invalidateLayout()
@@ -110,8 +120,11 @@ impl Button
     mtd setIconSize(width, height: f32)
     {
         Swag.assert(width >= 0 and height >= 0, "icon size cannot be negative")
-        if .iconWidth == width and .iconHeight == height do
+        if .iconWidth == width and .iconHeight == height
+        {
             return
+        }
+
         .iconWidth  = width
         .iconHeight = height
         .invalidate()
@@ -127,10 +140,12 @@ impl Button
     {
         var format: RichStringFormat
         format.font = .font()
-        if bold do
+        if bold
+        {
             format.fontStyle = .Bold
+        }
 
-        var result = 0'f32
+        var result = 0_f32
         if not .name.isEmpty()
         {
             // Measured at the density the glyphs are really drawn at: laid out at a scale of
@@ -145,8 +160,10 @@ impl Button
         {
             let width = .iconWidth ? .iconWidth : .icon.sizeX
             result += width
-            if result != width do
+            if result != width
+            {
                 result += .themeMetrics().iconText_Margin
+            }
         }
 
         return result
@@ -165,8 +182,10 @@ impl Button
     internal mtd markerFocusRect(box: Math.Rectangle)->Math.Rectangle
     {
         var result: #returntype = box
-        if not .name.isEmpty() do
+        if not .name.isEmpty()
+        {
             result.combine(.name.boundRect)
+        }
 
         // [[Gui.Theme.drawFocusRing]] draws outside the rectangle it is handed, so the cell, less
         // the room the ring takes, is the ceiling: a mark reaching past it would collide with the
@@ -180,8 +199,11 @@ impl Button
 
     internal mtd clearPointerState()
     {
-        if not .isHot and not .isIn and not .isPressed and not .isPressing do
+        if not .isHot and not .isIn and not .isPressed and not .isPressing
+        {
             return
+        }
+
         .isHot, .isIn = false
         .isPressed, .isPressing = false
         .invalidate()
@@ -205,8 +227,11 @@ impl Button
             .invalidate()
 
         case .Move:
-            if not .isPressing do
+            if not .isPressing
+            {
                 break
+            }
+
             let rect = .clientRect()
             if not rect.contains(pos)
             {
@@ -234,12 +259,14 @@ impl Button
                 .captureMouse()
                 .invalidate()
             }
-            elif evt.button == .Right
+            else if evt.button == .Right
             {
                 // Like the primary press, the secondary press carries its own position and may
                 // arrive before a pointer-enter event has populated `.isIn`.
-                if .clientRect().contains(pos) do
+                if .clientRect().contains(pos)
+                {
                     .sigRightPressed.call(me)
+                }
             }
 
         case .Released:
@@ -256,8 +283,11 @@ impl Button
                 if .isPressed
                 {
                     .isPressed, .isPressing = false
-                    if notifyPressed do
+                    if notifyPressed
+                    {
                         .sigPressed.call(me)
+                    }
+
                     .invalidate()
                 }
 

@@ -10,7 +10,7 @@ using Swag
 // methods such as [[Core.Array.add]] copy pointer values without checking either condition.
 struct(T) ArrayPtr
 {
-    public using base: Array'(*T?)     // Embedded base state.
+    public using base: Array!{*T?}     // Embedded base state.
 }
 
 impl ArrayPtr
@@ -29,8 +29,11 @@ impl ArrayPtr
         // what it owns: the array then states none either, and is handed over with '#move'.
         mtd opPostCopy()
         {
-            if not .count do
+            if not .count
+            {
                 return
+            }
+
             let buffer = .storage()
             for i in .count
             {
@@ -41,7 +44,7 @@ impl ArrayPtr
                     continue
                 }
 
-                let newPtr = Memory.new'T(.allocator)
+                let newPtr = Memory.new!{T}(.allocator)
                 newPtr[]  = oldPtr[]
                 buffer[i] = newPtr
             }
@@ -56,8 +59,11 @@ impl ArrayPtr
     // The capacity is unchanged.
     mtd clear()
     {
-        for item in me do
+        for item in me
+        {
             Memory.delete(item, .allocator)
+        }
+
         .count = 0
     }
 
@@ -81,7 +87,7 @@ impl ArrayPtr
     }
 
     // Allocates a default-initialized object from the array's allocator, without adding it to the array.
-    mtd allocate()->*T => Memory.new'T(.allocator)
+    mtd allocate()->*T => Memory.new!{T}(.allocator)
 
     // Allocates a default-initialized object, appends its pointer, and returns it.
     mtd addNew()->*T
@@ -105,16 +111,22 @@ impl ArrayPtr
     // Returns the first pointer, or null when the array is empty.
     mtd const first()->*T?
     {
-        if .isEmpty() do
+        if .isEmpty()
+        {
             return null
+        }
+
         return .storage()[0]
     }
 
     // Returns the last pointer, or null when the array is empty.
     mtd const last()->*T?
     {
-        if .isEmpty() do
+        if .isEmpty()
+        {
             return null
+        }
+
         return .storage()[.count - 1]
     }
 
@@ -134,8 +146,11 @@ impl ArrayPtr
         // Check the range before deleting anything: a bad index must not free unrelated objects.
         Debug.safetyBoundCheck(isRangeInBounds(.count, index, num), "index out of range")
         let buffer = .storage()
-        for i in num do
+        for i in num
+        {
             Memory.delete(buffer[index + i], .allocator)
+        }
+
         .removeAtOrdered(index, num)
     }
 
@@ -157,8 +172,11 @@ impl ArrayPtr
     // to remove the pointer without deleting the object.
     mtd deleteBack()
     {
-        if .isEmpty() do
+        if .isEmpty()
+        {
             return
+        }
+
         let buffer = .storage()
         Memory.delete(buffer[.count - 1], .allocator)
         .removeBack()

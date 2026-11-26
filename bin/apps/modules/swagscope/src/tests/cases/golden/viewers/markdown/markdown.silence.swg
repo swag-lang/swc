@@ -17,12 +17,18 @@ func assertMarkdownSilence(light: bool, appearance: u32, golden: string)
     host.setup(1280, 560)
     shipFrame(&host)
     host.app.setAppIcon(expect Image.decode(".png", AppIcon))
-    if light do
+    if light
+    {
         host.theme.setLight()
+    }
+
     host.notify(.ThemeChanged)
     let window = ViewerWindow.create(&host.surfaceWnd, createViewerPluginRegistry())
-    if appearance != 0 do
+    if appearance != 0
+    {
         window.applyTheme(cast(u32, AppearanceTheme.Document))
+    }
+
     window.openFile(fileName, remember: false)
     completeQueuedViewerFile(&host, window)
     let zoom = assume cast(*MarkdownText.ZoomButton, window.currentInfo!.children[0])
@@ -83,8 +89,11 @@ func assertMarkdownPlanAppearance(light: bool, readerTheme: u32, title, source, 
     host.setup(1280, 720)
     shipFrame(&host)
     host.app.setAppIcon(expect Image.decode(".png", AppIcon))
-    if light do
+    if light
+    {
         host.theme.setLight()
+    }
+
     host.notify(.ThemeChanged)
 
     let window = ViewerWindow.create(&host.surfaceWnd, createViewerPluginRegistry())
@@ -112,10 +121,13 @@ func assertMarkdownPlanAppearance(light: bool, readerTheme: u32, title, source, 
     host.surface.setTitle(title)
 
     var image = host.renderSettled(window)
-    let body = window.documentPanel.position
-    let seam = window.documentHost.position.x
-    for offset in [-5, -3, -1, 0, 1] do
+    let body  = window.documentPanel.position
+    let seam  = window.documentHost.position.x
+    for offset in [-5, -3, -1, 0, 1]
+    {
         Swag.require(image.pixelColor(cast(s32, seam) + offset, cast(s32, body.vertCenter())) == colors.view_Bk)
+    }
+
     assertScopeImageGolden(&image, golden)
 }
 

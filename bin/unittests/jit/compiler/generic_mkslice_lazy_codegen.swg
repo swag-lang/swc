@@ -5,8 +5,10 @@ namespace GenericMkSliceLazyCodegen
 {
     func helperFree(buffer: [*] void?, size: u64, allocator: IAllocator? = null)
     {
-        if not buffer do
+        if not buffer
+        {
             return
+        }
 
         var req: AllocatorRequest
         req.size    = size
@@ -53,8 +55,10 @@ namespace GenericMkSliceLazyCodegen
     {
         mtd reserve(newCapacity: u64)
         {
-            if newCapacity <= .capacity do
+            if newCapacity <= .capacity
+            {
                 return
+            }
 
             .buffer   = cast([*] T?, helperRealloc(.buffer, newCapacity * #sizeof(T), .capacity * #sizeof(T), .allocator))
             .capacity = newCapacity
@@ -101,7 +105,7 @@ namespace GenericMkSliceLazyCodegen
 
     struct(T) Box
     {
-        values: BufferBox'T
+        values: BufferBox!{T}
     }
 
     impl Box
@@ -123,16 +127,18 @@ namespace GenericMkSliceLazyCodegen
         #[Swag.NoInline]
         mtd iteratedCount()->u64
         {
-            var total = 0'u64
-            for _item in .values.toSlice() do
+            var total = 0_u64
+            for _item in .values.toSlice()
+            {
                 total += 1
+            }
             return total
         }
     }
 
     struct(T) Nested
     {
-        box: Box'T
+        box: Box!{T}
     }
 
     impl Nested
@@ -147,10 +153,12 @@ namespace GenericMkSliceLazyCodegen
     #[Swag.NoInline]
     func(T, N: s32) directCount(items: [N] T)->u64
     {
-        var values: BufferBox'T
+        var values: BufferBox!{T}
         values.reserve(cast(u64, N))
-        for item in items do
+        for item in items
+        {
             values.add(item)
+        }
 
         let count = (values.toSlice()).count
         values.free()
@@ -160,10 +168,12 @@ namespace GenericMkSliceLazyCodegen
     #[Swag.NoInline]
     func(T, N: s32) nestedCount(items: [N] T)->u64
     {
-        var nested: Nested'T
+        var nested: Nested!{T}
         nested.box.values.reserve(cast(u64, N))
-        for item in items do
+        for item in items
+        {
             nested.box.values.add(item)
+        }
 
         let count = nested.totalCount()
         nested.box.values.free()
@@ -172,33 +182,33 @@ namespace GenericMkSliceLazyCodegen
 
     func runSuite()->bool
     {
-        return directCount'(s32, 4)([1, 2, 3, 4]) == 4 and
-               nestedCount'(s32, 4)([1, 2, 3, 4]) == 12 and
-               directCount'(u64, 3)([11'u64, 22'u64, 33'u64]) == 3 and
-               nestedCount'(u64, 3)([11'u64, 22'u64, 33'u64]) == 9 and
-               directCount'(bool, 2)([true, false]) == 2 and
-               nestedCount'(bool, 2)([true, false]) == 6 and
-               directCount'(Pair, 2)([{left: 1, right: 2}, {left: 3, right: 4}]) == 2 and
-               nestedCount'(Pair, 2)([{left: 1, right: 2}, {left: 3, right: 4}]) == 6 and
-               directCount'(Triple, 3)([{first: 1'u8, second: 2'u16, third: 3'u32}, {first: 4'u8, second: 5'u16, third: 6'u32}, {first: 7'u8, second: 8'u16, third: 9'u32}]) == 3 and
-               nestedCount'(Triple, 3)([{first: 1'u8, second: 2'u16, third: 3'u32}, {first: 4'u8, second: 5'u16, third: 6'u32}, {first: 7'u8, second: 8'u16, third: 9'u32}]) == 9 and
-               directCount'([2]u8, 2)([[1'u8, 2'u8], [3'u8, 4'u8]]) == 2 and
-               nestedCount'([2]u8, 2)([[1'u8, 2'u8], [3'u8, 4'u8]]) == 6
+        return directCount!{s32, 4}([1, 2, 3, 4]) == 4 and
+               nestedCount!{s32, 4}([1, 2, 3, 4]) == 12 and
+               directCount!{u64, 3}([11_u64, 22_u64, 33_u64]) == 3 and
+               nestedCount!{u64, 3}([11_u64, 22_u64, 33_u64]) == 9 and
+               directCount!{bool, 2}([true, false]) == 2 and
+               nestedCount!{bool, 2}([true, false]) == 6 and
+               directCount!{Pair, 2}([{left: 1, right: 2}, {left: 3, right: 4}]) == 2 and
+               nestedCount!{Pair, 2}([{left: 1, right: 2}, {left: 3, right: 4}]) == 6 and
+               directCount!{Triple, 3}([{first: 1_u8, second: 2_u16, third: 3_u32}, {first: 4_u8, second: 5_u16, third: 6_u32}, {first: 7_u8, second: 8_u16, third: 9_u32}]) == 3 and
+               nestedCount!{Triple, 3}([{first: 1_u8, second: 2_u16, third: 3_u32}, {first: 4_u8, second: 5_u16, third: 6_u32}, {first: 7_u8, second: 8_u16, third: 9_u32}]) == 9 and
+               directCount!{[2]u8, 2}([[1_u8, 2_u8], [3_u8, 4_u8]]) == 2 and
+               nestedCount!{[2]u8, 2}([[1_u8, 2_u8], [3_u8, 4_u8]]) == 6
     }
 }
 
-const DirectS32Ok    = #run GenericMkSliceLazyCodegen.directCount'(s32, 4)([1, 2, 3, 4]) == 4
-const NestedS32Ok    = #run GenericMkSliceLazyCodegen.nestedCount'(s32, 4)([1, 2, 3, 4]) == 12
-const DirectU64Ok    = #run GenericMkSliceLazyCodegen.directCount'(u64, 3)([11'u64, 22'u64, 33'u64]) == 3
-const NestedU64Ok    = #run GenericMkSliceLazyCodegen.nestedCount'(u64, 3)([11'u64, 22'u64, 33'u64]) == 9
-const DirectBoolOk   = #run GenericMkSliceLazyCodegen.directCount'(bool, 2)([true, false]) == 2
-const NestedBoolOk   = #run GenericMkSliceLazyCodegen.nestedCount'(bool, 2)([true, false]) == 6
-const DirectPairOk   = #run GenericMkSliceLazyCodegen.directCount'(GenericMkSliceLazyCodegen.Pair, 2)([{left: 1, right: 2}, {left: 3, right: 4}]) == 2
-const NestedPairOk   = #run GenericMkSliceLazyCodegen.nestedCount'(GenericMkSliceLazyCodegen.Pair, 2)([{left: 1, right: 2}, {left: 3, right: 4}]) == 6
-const DirectTripleOk = #run GenericMkSliceLazyCodegen.directCount'(GenericMkSliceLazyCodegen.Triple, 3)([{first: 1'u8, second: 2'u16, third: 3'u32}, {first: 4'u8, second: 5'u16, third: 6'u32}, {first: 7'u8, second: 8'u16, third: 9'u32}]) == 3
-const NestedTripleOk = #run GenericMkSliceLazyCodegen.nestedCount'(GenericMkSliceLazyCodegen.Triple, 3)([{first: 1'u8, second: 2'u16, third: 3'u32}, {first: 4'u8, second: 5'u16, third: 6'u32}, {first: 7'u8, second: 8'u16, third: 9'u32}]) == 9
-const DirectArrayOk  = #run GenericMkSliceLazyCodegen.directCount'([2]u8, 2)([[1'u8, 2'u8], [3'u8, 4'u8]]) == 2
-const NestedArrayOk  = #run GenericMkSliceLazyCodegen.nestedCount'([2]u8, 2)([[1'u8, 2'u8], [3'u8, 4'u8]]) == 6
+const DirectS32Ok    = #run GenericMkSliceLazyCodegen.directCount!{s32, 4}([1, 2, 3, 4]) == 4
+const NestedS32Ok    = #run GenericMkSliceLazyCodegen.nestedCount!{s32, 4}([1, 2, 3, 4]) == 12
+const DirectU64Ok    = #run GenericMkSliceLazyCodegen.directCount!{u64, 3}([11_u64, 22_u64, 33_u64]) == 3
+const NestedU64Ok    = #run GenericMkSliceLazyCodegen.nestedCount!{u64, 3}([11_u64, 22_u64, 33_u64]) == 9
+const DirectBoolOk   = #run GenericMkSliceLazyCodegen.directCount!{bool, 2}([true, false]) == 2
+const NestedBoolOk   = #run GenericMkSliceLazyCodegen.nestedCount!{bool, 2}([true, false]) == 6
+const DirectPairOk   = #run GenericMkSliceLazyCodegen.directCount!{GenericMkSliceLazyCodegen.Pair, 2}([{left: 1, right: 2}, {left: 3, right: 4}]) == 2
+const NestedPairOk   = #run GenericMkSliceLazyCodegen.nestedCount!{GenericMkSliceLazyCodegen.Pair, 2}([{left: 1, right: 2}, {left: 3, right: 4}]) == 6
+const DirectTripleOk = #run GenericMkSliceLazyCodegen.directCount!{GenericMkSliceLazyCodegen.Triple, 3}([{first: 1_u8, second: 2_u16, third: 3_u32}, {first: 4_u8, second: 5_u16, third: 6_u32}, {first: 7_u8, second: 8_u16, third: 9_u32}]) == 3
+const NestedTripleOk = #run GenericMkSliceLazyCodegen.nestedCount!{GenericMkSliceLazyCodegen.Triple, 3}([{first: 1_u8, second: 2_u16, third: 3_u32}, {first: 4_u8, second: 5_u16, third: 6_u32}, {first: 7_u8, second: 8_u16, third: 9_u32}]) == 9
+const DirectArrayOk  = #run GenericMkSliceLazyCodegen.directCount!{[2]u8, 2}([[1_u8, 2_u8], [3_u8, 4_u8]]) == 2
+const NestedArrayOk  = #run GenericMkSliceLazyCodegen.nestedCount!{[2]u8, 2}([[1_u8, 2_u8], [3_u8, 4_u8]]) == 6
 const SuiteOk        = #run GenericMkSliceLazyCodegen.runSuite()
 
 #test

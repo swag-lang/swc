@@ -31,8 +31,10 @@ impl IForwardSignature for ForwardReceiver
 {
     mtd impl score(flags: ForwardFlags, cxt: ForwardContext)->s32
     {
-        if flags.has(.Bonus) do
+        if flags.has(.Bonus)
+        {
             return .base + cxt.value + 5
+        }
         return .base + cxt.value
     }
 }

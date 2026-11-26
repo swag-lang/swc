@@ -25,8 +25,10 @@ impl RecentItem
 {
     mtd opDrop()
     {
-        if .ownerApp do
+        if .ownerApp
+        {
             .ownerApp.renderer.removeTexture(&.preview)
+        }
     }
 }
 
@@ -50,7 +52,7 @@ struct RecentView
 
     late main:      *MainWnd
     late recentWnd: *RecentWnd
-    items:          ArrayPtr'RecentItem
+    items:          ArrayPtr!{RecentItem}
     selected:       u64 = Swag.U64.Max
     hotItem:        u64 = Swag.U64.Max
 }
@@ -102,10 +104,15 @@ impl RecentView
         .selected = idx
         let outgoing = view.replaceCapture(capture)
         let item     = unwrap .items[idx]
-        if item.zoom == 0 do
+        if item.zoom == 0
+        {
             view.zoomToFit(false)
-        else do
+        }
+        else
+        {
             view.setZoom(item.zoom)
+        }
+
         view.main.freezeSelection(false)
         .invalidate()
         return outgoing
@@ -115,13 +122,19 @@ impl RecentView
     // decodes. The popup is shown only after the clicked capture becomes the active one.
     mtd requestSelect(idx: u64, contextMenu = false, pos: Math.Point = {})
     {
-        if idx >= .items.count do
+        if idx >= .items.count
+        {
             return
+        }
+
         if .selected == idx
         {
             .recentWnd.cancelRequestedSelection()
-            if contextMenu do
+            if contextMenu
+            {
                 .showContextMenu(pos)
+            }
+
             return
         }
 
@@ -136,13 +149,17 @@ impl RecentView
     // action's.
     func paintLinkBadge(parent: *Wnd, painter: *Painter, rect: Math.Rectangle, infos: RecentInfos, corner: f32)
     {
-        if not infos.showLinked or infos.linked.count == 0 do
+        if not infos.showLinked or infos.linked.count == 0
+        {
             return
+        }
 
         let colors = parent.themeColors()
         let gap    = parent.themeMetrics().fileTile_NameGap
-        if rect.width < LinkBadgeSize + 2 * gap or rect.height < LinkBadgeSize + 2 * gap do
+        if rect.width < LinkBadgeSize + 2 * gap or rect.height < LinkBadgeSize + 2 * gap
+        {
             return
+        }
 
         let chip = Math.Rectangle{rect.x + gap, rect.y + gap, LinkBadgeSize, LinkBadgeSize}
         let ink  = infos.linkedUpToDate ? colors.softText : colors.caution
@@ -159,8 +176,10 @@ impl RecentView
     // fixed-width family.
     func paintDurationBadge(parent: *Wnd, painter: *Painter, rect: Math.Rectangle, infos: RecentInfos, corner: f32)
     {
-        if not infos.duration do
+        if not infos.duration
+        {
             return
+        }
 
         let colors  = parent.themeColors()
         let metrics = parent.themeMetrics()
@@ -168,8 +187,10 @@ impl RecentView
         let font    = parent.theme().createDefaultFontFs(metrics.defaultFontSize - 2)
         let text    = Capture.clockText(infos.duration)
         let width   = LinkBadgeSize + Painter.measureString(text, font).width + gap
-        if rect.width < width + 2 * gap or rect.height < LinkBadgeSize + 2 * gap do
+        if rect.width < width + 2 * gap or rect.height < LinkBadgeSize + 2 * gap
+        {
             return
+        }
 
         let chip = Math.Rectangle{rect.right() - gap - width, rect.bottom() - gap - LinkBadgeSize, width, LinkBadgeSize}
         painter.fillRoundRect(chip, corner, corner, colors.surface)
@@ -191,8 +212,10 @@ impl RecentView
         var content: Gui.FileTile.Content
         content.texture = texture
         content.icon    = parent.theme().icon(.FileImage, parent.themeMetrics().menuPopup_IconSize)
-        if infos.loading do
+        if infos.loading
+        {
             content.badge = appStrings().ui_Loading
+        }
 
         var options: Gui.FileTile.Options
         options.fit         = .Contain
@@ -213,8 +236,10 @@ impl IWnd for RecentView
 {
     mtd impl onMouseEvent(evt: *MouseEvent)
     {
-        if evt.kind == .Wheel do
+        if evt.kind == .Wheel
+        {
             evt.accepted = false
+        }
 
         var pos = .surfaceToLocal(evt.surfacePos)
         pos += .recentWnd.scrollPosition()
@@ -299,7 +324,7 @@ struct RecentWnd
     returnToEditor:        bool
     startupSelection:      String
     initialSelectionTried: bool
-    pendingRecentFiles:    Array'String
+    pendingRecentFiles:    Array!{String}
     pendingRecentIndex:    u64
     loadDone:              bool
     prepareLoadRecent:     bool
@@ -312,8 +337,10 @@ impl IWnd for RecentWnd
         .stopTimer(&.timer)
         .stopTimer(&.loadTimer)
         .stopTimer(&.selectionTimer)
-        if .readyCapture do
+        if .readyCapture
+        {
             Memory.delete(.readyCapture)
+        }
 
         if .loadJob
         {
@@ -321,8 +348,11 @@ impl IWnd for RecentWnd
             .loadJob = null
             job.task.cancel()
             job.task.wait()
-            if job.capture do
+            if job.capture
+            {
                 Memory.delete(job.capture)
+            }
+
             Memory.delete(job)
         }
 
@@ -367,18 +397,25 @@ impl IWnd for RecentWnd
         // Keep the timer alive while a save is still writing, then surface its outcome
         // before scheduling the next one.
         let failedSave = g_CaptureSaves.collect()
-        if not failedSave.isEmpty() do
+        if not failedSave.isEmpty()
+        {
             MessageDlg.error(unwrap .main.surface, Format.toString(appStrings().msg_FailedSaveCapture, failedSave))
-        if g_CaptureSaves.busy() do
+        }
+
+        if g_CaptureSaves.busy()
+        {
             return
+        }
 
         let capture = .main.editWnd.getCapture()
         if capture and capture.changed
         {
             // The one-second arm can predate a drag; rebuilding the preview now
             // would freeze the gesture mid-move, so just try again on the next tick.
-            if capture.interactiveMove or capture.mouseMode != .None do
+            if capture.interactiveMove or capture.mouseMode != .None
+            {
                 return
+            }
 
             // The 1s save timer isn't cancelled when the selection is cleared
             // (e.g. onDeleteFile sets .selected to the Max sentinel), so only save
@@ -387,8 +424,11 @@ impl IWnd for RecentWnd
             {
                 capture.computePreview()
                 let item = unwrap .recentView.items[.recentView.selected]
-                if item.ownerApp do
+                if item.ownerApp
+                {
                     item.ownerApp.renderer.removeTexture(&item.preview)
+                }
+
                 item.ownerApp = .app()
                 item.preview  = .app().renderer.addImage(capture.preview)
                 .invalidate()
@@ -397,8 +437,11 @@ impl IWnd for RecentWnd
 
                 // The snapshot happens now; a worker produces the file and
                 // atomically replaces it, and the next tick collects the outcome.
-                catch capture.scheduleSave() do
+                catch capture.scheduleSave()
+                {
                     MessageDlg.error(unwrap .main.surface, Format.toString(appStrings().msg_FailedSaveCapture, capture.file))
+                }
+
                 return
             }
         }
@@ -426,8 +469,11 @@ impl IWnd for RecentWnd
         // result. The worker never touches the current editor or its selection.
         if .requestedFile != file
         {
-            if loaded do
+            if loaded
+            {
                 Memory.delete(loaded)
+            }
+
             .startRequestedSelection()
             return
         }
@@ -441,8 +487,11 @@ impl IWnd for RecentWnd
             return
         }
 
-        if .returnToEditor and .main.libraryMode and not g_UpdatingLib do
+        if .returnToEditor and .main.libraryMode and not g_UpdatingLib
+        {
             .main.libWnd.view.imgSpin.hide()
+        }
+
         .requestedFile.clear()
         .requestedMenu  = false
         .returnToEditor = false
@@ -460,8 +509,10 @@ impl IWnd for RecentWnd
                     return
                 }
 
-                if it!.file == file do
+                if it!.file == file
+                {
                     afterFailed = true
+                }
             }
 
             return
@@ -475,8 +526,11 @@ impl RecentWnd
 {
     private mtd discardReadyCapture()
     {
-        if .readyCapture do
+        if .readyCapture
+        {
             Memory.delete(.readyCapture)
+        }
+
         .readyCapture = null
         .readyFile.clear()
         .readyRevision = {}
@@ -486,10 +540,16 @@ impl RecentWnd
     {
         .loadJob?.task.cancel()
         .discardReadyCapture()
-        if .returnToEditor and .main.libraryMode and not g_UpdatingLib do
+        if .returnToEditor and .main.libraryMode and not g_UpdatingLib
+        {
             .main.libWnd.view.imgSpin.hide()
-        if not .startupSelection.isEmpty() do
+        }
+
+        if not .startupSelection.isEmpty()
+        {
             .initialSelectionTried = false
+        }
+
         .startupSelection.clear()
         .requestedFile.clear()
         .requestedMenu  = false
@@ -500,34 +560,48 @@ impl RecentWnd
 
     mtd requestSelection(file: string, contextMenu: bool, pos: Math.Point, startup = false, returnToEditor = false)
     {
-        if .loadJob and .loadJob.file != file do
+        if .loadJob and .loadJob.file != file
+        {
             .loadJob.task.cancel()
-        if .readyCapture and .readyFile != file do
+        }
+
+        if .readyCapture and .readyFile != file
+        {
             .discardReadyCapture()
+        }
+
         .initialSelectionTried = true
         .startupSelection      = startup ? file : ""
         .requestedFile         = file
         .requestedMenu         = contextMenu
         .requestedMenuPos      = pos
         .returnToEditor        = returnToEditor
-        if returnToEditor and .main.libraryMode do
+        if returnToEditor and .main.libraryMode
+        {
             .main.libWnd.view.imgSpin.show()
+        }
+
         .invalidate()
         .startRequestedSelection()
     }
 
     private mtd startRequestedSelection()
     {
-        if .requestedFile.isEmpty() do
+        if .requestedFile.isEmpty()
+        {
             return
+        }
+
         if .readyCapture
         {
             .finishRequestedSelection()
             return
         }
 
-        if .loadJob do
+        if .loadJob
+        {
             return
+        }
 
         let file  = String.from(.requestedFile)
         var found = false
@@ -549,8 +623,11 @@ impl RecentWnd
         {
             if g_CaptureSaves.busy()
             {
-                if not .selectionTimer do
-                    .selectionTimer = .addTimer(16'ms)
+                if not .selectionTimer
+                {
+                    .selectionTimer = .addTimer(16_ms)
+                }
+
                 return
             }
 
@@ -571,7 +648,7 @@ impl RecentWnd
             return
         }
 
-        let job = Memory.new'CaptureLoadJob()
+        let job = Memory.new!{CaptureLoadJob}()
         job.file = file
         .loadJob = job
         job.task.submit(func|job|()
@@ -579,8 +656,10 @@ impl RecentWnd
             let before = catch File.info(job.file) orelse {}
             catch { job.capture = try Capture.load(job.file) } as job.error
             let after = catch File.info(job.file) orelse {}
-            if RecentCaptureCache.sameRevision(before, after) do
+            if RecentCaptureCache.sameRevision(before, after)
+            {
                 job.revision = after
+            }
         },
                         .taskNotifier(&job.task))
     }
@@ -590,8 +669,11 @@ impl RecentWnd
     private mtd finishRequestedSelection()
     {
         let loaded = .readyCapture
-        if not loaded do
+        if not loaded
+        {
             return
+        }
+
         if .requestedFile != .readyFile
         {
             .discardReadyCapture()
@@ -625,14 +707,20 @@ impl RecentWnd
         {
             if g_CaptureSaves.busy()
             {
-                if not .selectionTimer do
-                    .selectionTimer = .addTimer(16'ms)
+                if not .selectionTimer
+                {
+                    .selectionTimer = .addTimer(16_ms)
+                }
+
                 return
             }
 
             let failed = g_CaptureSaves.collect()
-            if not failed.isEmpty() do
+            if not failed.isEmpty()
+            {
                 .main.reportFailure(Format.toString(appStrings().msg_FailedSaveCapture, failed))
+            }
+
             catch outgoing.scheduleSave()
             {
                 .main.reportFailure(Format.toString(appStrings().msg_FailedSaveCapture, outgoing.file))
@@ -657,10 +745,14 @@ impl RecentWnd
         let previous = .recentView.selectLoaded(idx, loaded)
         if previous
         {
-            if previous == .activeCapture do
+            if previous == .activeCapture
+            {
                 .captureCache.put(previous, .activeRevision)
-            else do
+            }
+            else
+            {
                 Memory.delete(previous)
+            }
         }
 
         .activeCapture  = loaded
@@ -671,19 +763,21 @@ impl RecentWnd
             .main.updateState()
         }
 
-        if openMenu do
+        if openMenu
+        {
             .recentView.showContextMenu(.requestedMenuPos)
+        }
     }
 
     // Builds the recent strip: a horizontal scroll of capture thumbnails.
     func create(parent: *Wnd, main: *MainWnd)->*RecentWnd
     {
-        with let recent = Wnd.create'RecentWnd(parent)
+        with let recent = Wnd.create!{RecentWnd}(parent)
         {
             .backgroundStyle = .Panel
             .main = main
 
-            .recentView           = recent.createView'RecentView()
+            .recentView           = recent.createView!{RecentView}()
             .recentView.padding   = RecentPadding
             .recentView.main      = main
             .recentView.recentWnd = recent
@@ -695,18 +789,24 @@ impl RecentWnd
 
     mtd scheduleLoadRecent()
     {
-        if .loadDone or .loadTimer do
+        if .loadDone or .loadTimer
+        {
             return
+        }
+
         .prepareLoadRecent = true
-        .loadTimer         = .addTimer(1'ms)
+        .loadTimer         = .addTimer(1_ms)
     }
 
     // Drops `file` from the recent strip once the library deleted it.
     mtd onLibraryFileDeleted(file: String)
     {
         .captureCache.invalidate(file)
-        if .requestedFile == file do
+        if .requestedFile == file
+        {
             .cancelRequestedSelection()
+        }
+
         for it, i in .recentView.items
         {
             if it!.file == file
@@ -719,12 +819,14 @@ impl RecentWnd
                 if .recentView.selected == i
                 {
                     .recentView.selected = Swag.U64.Max
-                    if not .recentView.items.isEmpty() do
+                    if not .recentView.items.isEmpty()
+                    {
                         .recentView.requestSelect(Math.min(i, .recentView.items.count - 1))
+                    }
                 }
                 // A removal before the selected item shifts everything after it
                 // down by one, so decrement the index to keep tracking the same item.
-                elif .recentView.selected != Swag.U64.Max and i < .recentView.selected
+                else if .recentView.selected != Swag.U64.Max and i < .recentView.selected
                 {
                     .recentView.selected -= 1
                 }
@@ -739,8 +841,11 @@ impl RecentWnd
     // at a time.
     mtd loadRecent()
     {
-        if .loadDone do
+        if .loadDone
+        {
             return
+        }
+
         .loadDone = true
 
         g_Library.onDeleteFile += func|recent = me|(file) { recent.onLibraryFileDeleted(file) }
@@ -753,8 +858,10 @@ impl RecentWnd
 
         // The application state is an SCC container too, but never a capture to open.
         let state = Library.getStatePath()
-        for r in result where Capture.isFileName(r.fullName) and not Path.equals(r.fullName, state) do
+        for r in result where Capture.isFileName(r.fullName) and not Path.equals(r.fullName, state)
+        {
             .pendingRecentFiles.add(r.fullName)
+        }
 
         // Enumeration already runs on the deferred startup turn. Show the first preview
         // now; another timer would allow a redundant empty-editor frame in between.
@@ -765,18 +872,23 @@ impl RecentWnd
     {
         if .loadTimer or
            .recentView.items.count >= MaxRecent or
-           .pendingRecentIndex >= .pendingRecentFiles.count do
+           .pendingRecentIndex >= .pendingRecentFiles.count
+        {
             return
+        }
+
         .prepareLoadRecent = false
-        .loadTimer         = .addTimer(1'ms)
+        .loadTimer         = .addTimer(1_ms)
     }
 
     // Loads the next preview into the strip, one per call; the first valid item starts a
     // separate full decode for the editor.
     mtd loadNextRecent()
     {
-        if .recentView.items.count >= MaxRecent or .pendingRecentIndex >= .pendingRecentFiles.count do
+        if .recentView.items.count >= MaxRecent or .pendingRecentIndex >= .pendingRecentFiles.count
+        {
             return
+        }
 
         let file = .pendingRecentFiles[.pendingRecentIndex]
         catch
@@ -786,8 +898,10 @@ impl RecentWnd
             .addRecent(capture.file, capture.preview, front: false, linkedUpToDate: capture.linkedUpToDate, linked: capture.linkedImage, duration: capture.keptDuration())
             g_Library.addFile(capture.file)
 
-            if not .initialSelectionTried and not .main.editWnd.editView.capture do
+            if not .initialSelectionTried and not .main.editWnd.editView.capture
+            {
                 .requestSelection(capture.file, false, {}, startup: true)
+            }
         }
 
         .pendingRecentIndex += 1
@@ -798,15 +912,19 @@ impl RecentWnd
     // timer that renews its thumbnail.
     mtd updateRecent()
     {
-        if .recentView.selected >= .recentView.items.count do
+        if .recentView.selected >= .recentView.items.count
+        {
             return
+        }
 
         .stopTimer(&.timer)
-        .timer = .addTimer(1's)
+        .timer = .addTimer(1_s)
 
         let capture = .main.editWnd.getCapture()
-        if not capture do
+        if not capture
+        {
             return
+        }
 
         with let item = unwrap .recentView.items[.recentView.selected]
         {
@@ -820,8 +938,10 @@ impl RecentWnd
 
     mtd removeRecent()
     {
-        if .recentView.selected >= .recentView.items.count do
+        if .recentView.selected >= .recentView.items.count
+        {
             return
+        }
 
         let item = unwrap .recentView.items[.recentView.selected]
         let file = String.from(item.file)
@@ -831,8 +951,10 @@ impl RecentWnd
         .timer = null
 
         // Delete file
-        if not g_Library.removeFile(file) do
+        if not g_Library.removeFile(file)
+        {
             MessageDlg.error(unwrap .main.surface, appStrings().msg_FailedMoveCaptures)
+        }
     }
 
     mtd addRecent(file: String, front = true, sel = false)->*Capture fail
@@ -869,17 +991,26 @@ impl RecentWnd
                     .recentView.items.insertAt(0, it)
                     idxSel = 0
 
-                    if oldSelected == i do
+                    if oldSelected == i
+                    {
                         .recentView.selected = 0
-                    elif oldSelected < i do
+                    }
+                    else if oldSelected < i
+                    {
                         .recentView.selected = oldSelected + 1
+                    }
                 }
 
-                if sel do
+                if sel
+                {
                     .recentView.requestSelect(idxSel)
+                }
 
-                if itn.ownerApp do
+                if itn.ownerApp
+                {
                     itn.ownerApp.renderer.removeTexture(&itn.preview)
+                }
+
                 itn.ownerApp       = .app()
                 itn.preview        = .app().renderer.addImage(preview)
                 itn.linked         = linked
@@ -902,8 +1033,11 @@ impl RecentWnd
 
         if front
         {
-            if .recentView.selected < .recentView.items.count do
+            if .recentView.selected < .recentView.items.count
+            {
                 .recentView.selected += 1
+            }
+
             .recentView.items.insertAt(0, item)
             if sel
             {
@@ -914,8 +1048,10 @@ impl RecentWnd
         else
         {
             .recentView.items.add(item)
-            if sel do
+            if sel
+            {
                 .recentView.requestSelect(.recentView.items.count - 1)
+            }
         }
 
         // Captures created from the clipboard reach this overload directly, without loading a
@@ -923,8 +1059,11 @@ impl RecentWnd
         // accumulate for the whole application lifetime.
         if front and .recentView.items.count > MaxRecent
         {
-            if .recentView.selected == .recentView.items.count - 1 do
+            if .recentView.selected == .recentView.items.count - 1
+            {
                 .recentView.selected = Swag.U64.Max
+            }
+
             let back = unwrap .recentView.items.back()
             .captureCache.invalidate(back.file)
             .recentView.items.destroy(back)

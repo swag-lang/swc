@@ -33,7 +33,7 @@ using Swag, Core
     painter.begin()
     painter.translateTransform(10, 20)
     painter.scaleTransform(2, 3)
-    painter.rotateTransform(90.0'deg)
+    painter.rotateTransform(90.0_deg)
     painter.fillRect(0, 0, 10, 10, Color.fromArgb(Argb.Red))
     painter.end()
     Testing.assertGolden(&painter, "state.transform.composed")

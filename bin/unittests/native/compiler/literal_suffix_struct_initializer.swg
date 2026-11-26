@@ -43,18 +43,18 @@ struct RotationCard
 }
 
 const RotationCards = [
-    RotationCard{angle: 10.0'deg},
-    RotationCard{angle: -12.0'deg}
+    RotationCard{angle: 10.0_deg},
+    RotationCard{angle: -12.0_deg}
     ]
 
-#assert(RotationCards[0].angle.radians == 10.0'f32 * DegreesToRadians)
-#assert(RotationCards[1].angle.radians == -12.0'f32 * DegreesToRadians)
+#assert(RotationCards[0].angle.radians == 10.0_f32 * DegreesToRadians)
+#assert(RotationCards[1].angle.radians == -12.0_f32 * DegreesToRadians)
 
 #test
 {
-    let positive = RotationCard{angle: 10.0'deg}
-    let negative = RotationCard{angle: -12.0'deg}
+    let positive = RotationCard{angle: 10.0_deg}
+    let negative = RotationCard{angle: -12.0_deg}
 
-    Swag.require(approxEqual(positive.angle.radians, 10.0'f32 * DegreesToRadians))
-    Swag.require(approxEqual(negative.angle.radians, -12.0'f32 * DegreesToRadians))
+    Swag.require(approxEqual(positive.angle.radians, 10.0_f32 * DegreesToRadians))
+    Swag.require(approxEqual(negative.angle.radians, -12.0_f32 * DegreesToRadians))
 }

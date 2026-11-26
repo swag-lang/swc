@@ -94,4 +94,4 @@ func nonzeroMask32(a, b, c: u32)->u32 => a != 0 ? 0xFFFFFFFF : 0
 func selectSeven32(a, b, c: u32)->u32 => a < b ? 7 : 0
 
 #[Swag.NoInline, Swag.Safety(.Overflow, false)]
-func subtractFlag32(a, b, c: u32)->u32 => a - (b < c ? 1'u32 : 0)
+func subtractFlag32(a, b, c: u32)->u32 => a - (b < c ? 1_u32 : 0)

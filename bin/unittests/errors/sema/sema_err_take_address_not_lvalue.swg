@@ -35,7 +35,7 @@ func captureDefaultByAddress(value: u32 = 17)
 
 #test
 {
-    var A  = 10's32
+    var A  = 10_s32
     var PA = &A
     var PB = &(A + 1)     // swc-expected-error {{sema_err_take_address_not_lvalue}}
 }
@@ -63,7 +63,7 @@ func captureDefaultByAddress(value: u32 = 17)
 #test
 {
     var a: [4] s32
-    var i = 1's32
+    var i = 1_s32
     var p = &(a[i] + 1)     // swc-expected-error {{sema_err_take_address_not_lvalue}}
 }
 
@@ -73,6 +73,6 @@ func captureDefaultByAddress(value: u32 = 17)
     struct DD { x: s32 }
     func takeMove(v: #move DD) { discard v }
     func makeDD(x: s32)->DD { return DD{x} }
-    var i = 1's32
+    var i = 1_s32
     takeMove(#move makeDD(i))     // swc-expected-error {{sema_err_take_address_not_lvalue}}
 }

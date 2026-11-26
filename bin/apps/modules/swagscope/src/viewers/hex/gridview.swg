@@ -23,19 +23,19 @@ const CellCorner = 4.0
 
 // Bytes one group of the hexadecimal column holds. The extra gap between groups is what lets an
 // eye count columns without reading the header.
-const DefaultGroupSize = 8'u64
+const DefaultGroupSize = 8_u64
 
 // Rows a wheel notch moves, and the range a row is allowed to hold. Automatic fitting aligns the
 // chosen count to the active scalar, so a row can use the last available columns without ending in
 // the middle of a value.
-const WheelRows      = 3'u64
-const MinBytesPerRow = 8'u64
-const MaxBytesPerRow = 64'u64
+const WheelRows      = 3_u64
+const MinBytesPerRow = 8_u64
+const MaxBytesPerRow = 64_u64
 
 // Zoom range of the grid font, and the pace of the autoscroll a drag outside the rows keeps up.
-const MinFontSize = 8'u32
-const MaxFontSize = 24'u32
-const DragScrollRate: Time.Duration = 50'ms
+const MinFontSize = 8_u32
+const MaxFontSize = 24_u32
+const DragScrollRate: Time.Duration = 50_ms
 
 // Largest pixel span the vertical scrollbar is given.
 //
@@ -46,7 +46,7 @@ const ScrollSpan = 4_194_304.0
 
 // A clipboard operation is the one place bytes are materialized, so it is the one place a bound is
 // needed: the grid itself never holds more than one window.
-const CopyLimit = 1024 * 1024'u64
+const CopyLimit = 1024 * 1024_u64
 
 // What a copy of the current selection produces.
 enum CopyForm
@@ -113,11 +113,17 @@ func groupingChars(grouping: Grouping)->u64
 func signedScalar(raw: u64, size: u64)->s64
 {
     let bits = size * 8
-    if bits >= 64 do
+    if bits >= 64
+    {
         return cast #bit (s64, raw)
-    let sign = 1'u64 << (bits - 1)
-    if raw & sign do
-        return cast #bit (s64, (raw | ~((1'u64 << bits) - 1)))
+    }
+
+    let sign = 1_u64 << (bits - 1)
+    if raw & sign
+    {
+        return cast #bit (s64, (raw | ~((1_u64 << bits) - 1)))
+    }
+
     return cast(s64, raw)
 }
 
@@ -138,20 +144,20 @@ func formatScalar(grouping: Grouping, raw: u64)->String
 }
 
 // Appends `value` as `digits` uppercase hexadecimal characters.
-func appendDigits(buffer: *Array'u8, value: u64, digits: u64)
+func appendDigits(buffer: *Array!{u8}, value: u64, digits: u64)
 {
     for index in digits
     {
         let shift  = (digits - 1 - index) * 4
         let nibble = cast(u8, ((value >> shift) & 0xF))
-        buffer.add(nibble < 10 ? '0'u8 + nibble : 'A'u8 + nibble - 10)
+        buffer.add(nibble < 10 ? '0'_u8 + nibble : 'A'_u8 + nibble - 10)
     }
 }
 
 // Returns `value` as `digits` uppercase hexadecimal characters.
 func formatDigits(value: u64, digits: u64)->String
 {
-    var bytes: Array'u8
+    var bytes: Array!{u8}
     appendDigits(&bytes, value, digits)
     return cast(string, bytes.toSlice())
 }
@@ -166,18 +172,21 @@ func isPrintable(value: u8)->bool => value >= 32 and value < 127
 func formatDump(bytes: const [..] u8, baseOffset: u64, bytesPerRow: u64, offsetDigits: u64, groupSize = DefaultGroupSize)->String
 {
     var result: #returntype
-    if not bytesPerRow do
+    if not bytesPerRow
+    {
         return result
+    }
+
     result.reserve(bytes.count * 5)
 
-    var line: Array'u8
-    var row = 0'u64
+    var line: Array!{u8}
+    var row = 0_u64
     while row < bytes.count
     {
         line.clear()
         appendDigits(&line, baseOffset + row, offsetDigits)
-        line.add(' 'u8)
-        line.add(' 'u8)
+        line.add(' '_u8)
+        line.add(' '_u8)
 
         for column in bytesPerRow
         {
@@ -188,23 +197,28 @@ func formatDump(bytes: const [..] u8, baseOffset: u64, bytesPerRow: u64, offsetD
             }
             else
             {
-                line.add(' 'u8)
-                line.add(' 'u8)
+                line.add(' '_u8)
+                line.add(' '_u8)
             }
 
-            line.add(' 'u8)
-            if column % groupSize == groupSize - 1 and column != bytesPerRow - 1 do
-                line.add(' 'u8)
+            line.add(' '_u8)
+            if column % groupSize == groupSize - 1 and column != bytesPerRow - 1
+            {
+                line.add(' '_u8)
+            }
         }
 
-        line.add(' 'u8)
+        line.add(' '_u8)
         for column in bytesPerRow
         {
             let index = row + column
-            if index >= bytes.count do
+            if index >= bytes.count
+            {
                 break
+            }
+
             let value = bytes[index]
-            line.add(isPrintable(value) ? value : '.'u8)
+            line.add(isPrintable(value) ? value : '.'_u8)
         }
 
         result += cast(string, line.toSlice())
@@ -226,17 +240,17 @@ struct GridView
 
     late scroll: *ScrollWnd
 
-    doc: Document
-    baseAddress: u64
+    doc:            Document
+    baseAddress:    u64
     bookmarkOffset: u64 = Swag.U64.Max
 
-    sigCaretChanged: SigArray'func||(*Wnd)          // Emitted after the caret or the selection moves.
-    sigGoToOffset:   SigArray'func||(*Wnd, u64)     // Emitted when Go To accepts an explicit destination.
+    sigCaretChanged: SigArray!{func||(*Wnd)}          // Emitted after the caret or the selection moves.
+    sigGoToOffset:   SigArray!{func||(*Wnd, u64)}     // Emitted when Go To accepts an explicit destination.
 
     topRow: u64     // First row the viewport shows.
-    caret:           u64     // Byte the caret stands on.
-    anchor:          u64     // Byte the current selection started from.
-    selectionActive: bool    // Distinguishes a selected byte from a caret with no selection.
+    caret:  u64     // Byte the caret stands on.
+    anchor: u64     // Byte the current selection started from.
+    selectionActive: bool     // Distinguishes a selected byte from a caret with no selection.
 
     // Range the host's search last revealed. It outlives the selection so the hit stays visible
     // once the reader has moved the caret away from it.
@@ -245,10 +259,10 @@ struct GridView
 
     // Accepted results in file order. Painting binary-searches this list for each visible row, so
     // marking a large result set never makes a scroll proportional to matches outside the screen.
-    searchHits: *Array'Viewer.SearchMatch?
+    searchHits: *Array!{Viewer.SearchMatch}?
 
-    bytesPerRow         = 16'u64
-    offsetDigits        = 8'u64
+    bytesPerRow         = 16_u64
+    offsetDigits        = 8_u64
     autoFitRow          = true
     grouping:  Grouping = .Bytes
     bigEndian: bool
@@ -263,15 +277,15 @@ struct GridView
     charWidth:      f32
     rowHeight:      f32
     fontSize:       u32
-    sigZoomChanged: SigArray'func||(*Wnd)     // Emitted after the font size changes.
+    sigZoomChanged: SigArray!{func||(*Wnd)}     // Emitted after the font size changes.
 
     // Row text is rebuilt in place every frame. Bytes that carry a value and bytes that do not are
     // drawn in two passes over the same columns, so one row costs a handful of draws instead of
     // one per byte, and the fixed-width font keeps both passes in their columns.
-    rowOffsetText: Array'u8
-    rowTextStrong: Array'u8
-    rowTextFaint:  Array'u8
-    cellText:      Array'u8
+    rowOffsetText: Array!{u8}
+    rowTextStrong: Array!{u8}
+    rowTextFaint:  Array!{u8}
+    cellText:      Array!{u8}
 }
 
 impl GridView
@@ -280,8 +294,11 @@ impl GridView
 
     mtd rowCount()->u64
     {
-        if not .doc.fileSize or not .bytesPerRow do
+        if not .doc.fileSize or not .bytesPerRow
+        {
             return 1
+        }
+
         return (.doc.fileSize + .bytesPerRow - 1) / .bytesPerRow
     }
 
@@ -291,8 +308,11 @@ impl GridView
     mtd visibleRows()->u64
     {
         let height = .clientRect().height - .headerHeight()
-        if height <= 0 or .rowHeight <= 0 do
+        if height <= 0 or .rowHeight <= 0
+        {
             return 1
+        }
+
         return Math.max(cast(u64, Math.floor(height / .rowHeight)), 1)
     }
 
@@ -323,8 +343,11 @@ impl GridView
 
     mtd hexColumnWidth(bytesPerRow: u64)->f32
     {
-        if not bytesPerRow do
+        if not bytesPerRow
+        {
             return 0
+        }
+
         let values = (bytesPerRow + .valueSize() - 1) / .valueSize()
         let groups = (bytesPerRow - 1) / DefaultGroupSize
         return cast(f32, values) * .cellPitch() - CellGap + cast(f32, groups) * GroupGap
@@ -338,8 +361,11 @@ impl GridView
     mtd setFontSize(size: u32)
     {
         let next = Math.clamp(size, MinFontSize, MaxFontSize)
-        if .fontSize == next do
+        if .fontSize == next
+        {
             return
+        }
+
         .fontSize = next
         .style.setFont(.theme().createDefaultFontFs(next), .Regular)
         .refreshLayout()
@@ -361,7 +387,7 @@ impl GridView
     mtd scalarAt(offset: u64)->u64
     {
         let size = .valueSize()
-        var raw  = 0'u64
+        var raw  = 0_u64
         for index in size
         {
             let position = .bigEndian ? index : size - 1 - index
@@ -388,14 +414,18 @@ impl GridView
     // uses the text lane so one occurrence still has one unmistakable visual anchor.
     mtd matchBounds(result: *Math.Rectangle)->bool
     {
-        if not .matchLength or not .doc.fileSize do
+        if not .matchLength or not .doc.fileSize
+        {
             return false
+        }
 
         let matchLast    = Math.min(.matchStart + .matchLength - 1, .lastOffset())
         let visibleFirst = .topRow * .bytesPerRow
         let visibleLast  = Math.min((.topRow + .visibleRows()) * .bytesPerRow - 1, .lastOffset())
-        if matchLast < visibleFirst or .matchStart > visibleLast do
+        if matchLast < visibleFirst or .matchStart > visibleLast
+        {
             return false
+        }
 
         let first    = Math.max(.matchStart, visibleFirst)
         let last     = Math.min(matchLast, visibleLast)
@@ -424,8 +454,10 @@ impl GridView
     mtd fitBytesPerRow()->u64
     {
         let available = .clientRect().width
-        if available <= 0 or .charWidth <= 0 do
+        if available <= 0 or .charWidth <= 0
+        {
             return MinBytesPerRow
+        }
 
         // A row ends on a group boundary, so offsets step by round values and every row shows the
         // same column groups as the header.
@@ -433,8 +465,11 @@ impl GridView
         var candidate = MaxBytesPerRow / step * step
         while candidate > MinBytesPerRow
         {
-            if .contentWidthFor(candidate) <= available do
+            if .contentWidthFor(candidate) <= available
+            {
                 return candidate
+            }
+
             candidate -= step
         }
 
@@ -444,8 +479,10 @@ impl GridView
     mtd computeMetrics()
     {
         let font = .font().regular
-        if not font do
+        if not font
+        {
             return
+        }
 
         // The advance a glyph is *drawn* with is snapped to the device pixel grid, and every column
         // here is placed by multiplying that advance. Measuring the unsnapped one instead drifts a
@@ -459,8 +496,11 @@ impl GridView
     // Recomputes everything the window size decides, and republishes the scrollbar.
     mtd refreshLayout()
     {
-        if .layouting do
+        if .layouting
+        {
             return
+        }
+
         .layouting = true
         defer .layouting = false
 
@@ -470,12 +510,17 @@ impl GridView
         {
             let oldClient = .clientRect()
             .computeMetrics()
-            if .autoFitRow do
+            if .autoFitRow
+            {
                 .bytesPerRow = .fitBytesPerRow()
+            }
+
             .topRow = Math.min(.topRow, .maxTopRow())
             .syncScrollBar()
-            if .clientRect() == oldClient do
+            if .clientRect() == oldClient
+            {
                 break
+            }
         }
 
         .invalidate()
@@ -484,8 +529,10 @@ impl GridView
     // Publishes the row range as a pixel span the scrollbar can drive, and places the thumb.
     mtd syncScrollBar()
     {
-        if .scroll == null do
+        if .scroll == null
+        {
             return
+        }
 
         let span   = Math.min(cast(f32, .rowCount()) * .rowHeight, ScrollSpan)
         let usable = Math.max(span - .clientRect().height, 0)
@@ -505,19 +552,32 @@ impl GridView
     // them.
     mtd adoptScrollPosition(position: f32)
     {
-        if .syncing or .scroll == null do
+        if .syncing or .scroll == null
+        {
             return
+        }
+
         let usable = Math.max(.scroll.scrollSize.y - .clientRect().height, 1)
         let maxTop = .maxTopRow()
         var row: u64
-        if position <= 0 do
+        if position <= 0
+        {
             row = 0
-        elif position >= usable do
+        }
+        else if position >= usable
+        {
             row = maxTop
-        else do
+        }
+        else
+        {
             row = Math.min(cast(u64, Math.round(position / usable * cast(f32, maxTop))), maxTop)
-        if row == .topRow do
+        }
+
+        if row == .topRow
+        {
             return
+        }
+
         .topRow = row
         .invalidate()
     }
@@ -525,8 +585,11 @@ impl GridView
     mtd setTopRow(row: u64)
     {
         let clamped = Math.min(row, .maxTopRow())
-        if clamped == .topRow do
+        if clamped == .topRow
+        {
             return
+        }
+
         .topRow = clamped
         .syncScrollBar()
         .invalidate()
@@ -542,8 +605,11 @@ impl GridView
     // is set.
     mtd ensureCaretVisible(center: bool)
     {
-        if not .bytesPerRow do
+        if not .bytesPerRow
+        {
             return
+        }
+
         let row     = .caret / .bytesPerRow
         let visible = .visibleRows()
 
@@ -553,17 +619,24 @@ impl GridView
             return
         }
 
-        if row < .topRow do
+        if row < .topRow
+        {
             .setTopRow(row)
-        elif row >= .topRow + visible do
+        }
+        else if row >= .topRow + visible
+        {
             .setTopRow(row - visible + 1)
+        }
     }
 
     // Moves the caret to `target`, extending the selection instead of replacing it when asked.
     mtd moveCaret(target: u64, extend: bool, center = false)
     {
-        if not .doc.fileSize do
+        if not .doc.fileSize
+        {
             return
+        }
+
         let clamped = Math.min(target, .lastOffset())
         .caret = clamped
         .selectionActive = extend
@@ -571,6 +644,7 @@ impl GridView
         {
             .anchor = clamped
         }
+
         .ensureCaretVisible(center)
         .sigCaretChanged.call(me)
         .invalidate()
@@ -578,19 +652,29 @@ impl GridView
 
     mtd moveCaretBy(delta: s64, extend: bool)
     {
-        if not .doc.fileSize do
+        if not .doc.fileSize
+        {
             return
+        }
+
         let target = cast(s64, .caret) + delta
-        if target < 0 do
+        if target < 0
+        {
             .moveCaret(0, extend)
-        else do
+        }
+        else
+        {
             .moveCaret(cast(u64, target), extend)
+        }
     }
 
     mtd selectAll()
     {
-        if not .doc.fileSize do
+        if not .doc.fileSize
+        {
             return
+        }
+
         .anchor = 0
         .caret  = .lastOffset()
         .selectionActive = true
@@ -601,29 +685,35 @@ impl GridView
     // Returns the byte under a point in view coordinates, or `Swag.U64.Max` outside the rows.
     mtd offsetAt(local: Math.Point)->u64
     {
-        if .rowHeight <= 0 or .charWidth <= 0 or not .doc.fileSize do
+        if .rowHeight <= 0 or .charWidth <= 0 or not .doc.fileSize
+        {
             return Swag.U64.Max
+        }
 
         let x = local.x + .scrollPos.x
         let y = local.y - .headerHeight()
-        if y < 0 do
+        if y < 0
+        {
             return Swag.U64.Max
+        }
 
         let row = .topRow + cast(u64, Math.floor(y / .rowHeight))
-        if row >= .rowCount() do
+        if row >= .rowCount()
+        {
             return Swag.U64.Max
+        }
 
-        var column = 0'u64
+        var column = 0_u64
         if x >= .textColumnLeft()
         {
             let cell = Math.floor((x - .textColumnLeft()) / .charWidth)
             column = cell <= 0 ? 0 : Math.min(cast(u64, cell), .bytesPerRow - 1)
         }
-        elif x >= ViewInset + .gutterWidth()
+        else if x >= ViewInset + .gutterWidth()
         {
             // A point in the air after a value still names that value, so the cells tile the row.
             column = .groupStart(.bytesPerRow - 1)
-            var candidate = 0'u64
+            var candidate = 0_u64
             while candidate < .bytesPerRow
             {
                 if x < .hexCellX(candidate) + .cellPitch()
@@ -644,8 +734,11 @@ impl GridView
     // The range stays marked once the caret moves on.
     mtd revealRange(offset, length: u64)->bool
     {
-        if offset >= .doc.fileSize do
+        if offset >= .doc.fileSize
+        {
             return false
+        }
+
         .matchStart  = offset
         .matchLength = Math.min(length, .doc.fileSize - offset)
         .selectRange(offset, .matchLength)
@@ -655,8 +748,11 @@ impl GridView
     // Selects `length` bytes at `offset`, the caret on the first one, and brings them into view.
     mtd selectRange(offset, length: u64)
     {
-        if offset >= .doc.fileSize do
+        if offset >= .doc.fileSize
+        {
             return
+        }
+
         let count = Math.min(length, .doc.fileSize - offset)
         .caret  = offset
         .anchor = count ? offset + count - 1 : offset
@@ -668,15 +764,15 @@ impl GridView
 
     mtd clearSearchMatch()
     {
-        .matchStart  = 0
-        .matchLength = 0
-        .searchHits  = null
-        .anchor      = .caret
+        .matchStart      = 0
+        .matchLength     = 0
+        .searchHits      = null
+        .anchor          = .caret
         .selectionActive = false
         .invalidate()
     }
 
-    mtd setSearchMatches(matches: *Array'Viewer.SearchMatch?)
+    mtd setSearchMatches(matches: *Array!{Viewer.SearchMatch}?)
     {
         .searchHits = matches
         .invalidate()
@@ -687,10 +783,13 @@ impl GridView
     // Search results arrive in file order, so the lookup is a binary search.
     mtd firstSearchHitAt(offset: u64)->u64
     {
-        if not .searchHits do
+        if not .searchHits
+        {
             return 0
+        }
+
         let hits  = .searchHits
-        var first = 0'u64
+        var first = 0_u64
         var count = hits.count
         while count
         {
@@ -715,8 +814,11 @@ impl GridView
     mtd setBytesPerRow(count: u64, auto: bool)
     {
         .autoFitRow = auto
-        if not auto do
+        if not auto
+        {
             .bytesPerRow = Math.clamp(count, MinBytesPerRow, MaxBytesPerRow)
+        }
+
         .refreshLayout()
         .ensureCaretVisible(false)
         .sigCaretChanged.call(me)
@@ -725,8 +827,11 @@ impl GridView
     // Changes the scalar represented by one visual group without moving the byte-exact caret.
     mtd setGrouping(grouping: Grouping)
     {
-        if .grouping == grouping do
+        if .grouping == grouping
+        {
             return
+        }
+
         .grouping = grouping
         .refreshLayout()
         .sigCaretChanged.call(me)
@@ -737,8 +842,10 @@ impl GridView
         .selecting = false
         .stopTimer(&.selectionTimer)
 
-        if .mouseCapture() == me do
+        if .mouseCapture() == me
+        {
             .releaseMouse()
+        }
     }
 
     // Extends a drag at `local`, scrolling one row immediately and then on a timer while the
@@ -750,25 +857,36 @@ impl GridView
         let above  = local.y < .headerHeight()
         let below  = local.y >= client.bottom()
 
-        if above do
+        if above
+        {
             .scrollByRows(-1)
-        elif below do
+        }
+        else if below
+        {
             .scrollByRows(1)
+        }
 
         var targetPoint = local
-        if above do
+        if above
+        {
             targetPoint.y = .headerHeight() + 1
-        elif below do
+        }
+        else if below
+        {
             targetPoint.y = client.bottom() - 1
+        }
+
         let offset = .offsetAt(targetPoint)
-        if offset != Swag.U64.Max do
+        if offset != Swag.U64.Max
+        {
             .moveCaret(offset, true)
+        }
 
         if (above or below) and not .selectionTimer
         {
             .selectionTimer = .addTimer(DragScrollRate)
         }
-        elif not above and not below and .selectionTimer
+        else if not above and not below and .selectionTimer
         {
             .stopTimer(&.selectionTimer)
         }
@@ -776,8 +894,11 @@ impl GridView
 
     mtd setBigEndian(value: bool)
     {
-        if .bigEndian == value do
+        if .bigEndian == value
+        {
             return
+        }
+
         .bigEndian = value
         .invalidate()
         .sigCaretChanged.call(me)
@@ -789,35 +910,43 @@ impl GridView
     // load it.
     mtd copySelection(form: CopyForm)
     {
-        if not .doc.fileSize do
+        if not .doc.fileSize
+        {
             return
+        }
+
         let start = .selectionStart()
         let bytes = .doc.read(start, Math.min(.selectionLength(), CopyLimit))
-        if bytes.isEmpty() do
+        if bytes.isEmpty()
+        {
             return
+        }
 
         switch form
         {
-        case .Dump:
-            Clipboard.setString(formatDump(bytes.toSlice(), start, .bytesPerRow, .offsetDigits, .displayGroupSize()))
+        case .Dump: Clipboard.setString(formatDump(bytes.toSlice(), start, .bytesPerRow, .offsetDigits, .displayGroupSize()))
 
-        case .Bytes:
-            var text: Array'u8
+        case .Bytes: var text: Array!{u8}
             text.reserve(bytes.count * 3)
             for value, index in bytes
             {
-                if index do
-                    text.add(' 'u8)
+                if index
+                {
+                    text.add(' '_u8)
+                }
+
                 appendDigits(&text, value, 2)
             }
 
             Clipboard.setString(cast(string, text.toSlice()))
 
-        case .Text:
-            var text: Array'u8
+        case .Text: var text: Array!{u8}
             text.reserve(bytes.count)
-            for value in bytes do
-                text.add(isPrintable(value) ? value : '.'u8)
+            for value in bytes
+            {
+                text.add(isPrintable(value) ? value : '.'_u8)
+            }
+
             Clipboard.setString(cast(string, text.toSlice()))
         }
     }
@@ -826,8 +955,10 @@ impl GridView
     mtd promptGoToOffset()
     {
         let surface = .surface
-        if not surface or not .doc.fileSize do
+        if not surface or not .doc.fileSize
+        {
             return
+        }
 
         let current = formatDigits(.caret, .offsetDigits)
 
@@ -839,8 +970,10 @@ impl GridView
         }
 
         let dialog = EditDlg.createSingleLine(surface, options)
-        if dialog.doModal() != Dialog.BtnOk do
+        if dialog.doModal() != Dialog.BtnOk
+        {
             return
+        }
 
         let typed = dialog.text()
         discard .goToTypedOffset(typed)
@@ -852,8 +985,11 @@ impl GridView
     mtd goToTypedOffset(text: string)->bool
     {
         let target = parseFileOffset(text, .caret, .doc.fileSize, .baseAddress, .bookmarkOffset, true)
-        if target == Swag.U64.Max do
+        if target == Swag.U64.Max
+        {
             return false
+        }
+
         .sigGoToOffset.call(me, target)
         .moveCaret(target, false, center: true)
         return true
@@ -882,7 +1018,7 @@ impl GridView
     //
     // Painting writes every visible value through one reused buffer, so a frame allocates nothing
     // for the bytes it draws.
-    mtd writeValueText(buffer: *Array'u8, offset: u64)
+    mtd writeValueText(buffer: *Array!{u8}, offset: u64)
     {
         buffer.clear()
         if .grouping == .Bytes
@@ -893,8 +1029,8 @@ impl GridView
 
         if offset + .valueSize() > .doc.fileSize
         {
-            buffer.add('-'u8)
-            buffer.add('-'u8)
+            buffer.add('-'_u8)
+            buffer.add('-'_u8)
             return
         }
 
@@ -916,26 +1052,32 @@ impl GridView
         for column in .bytesPerRow
         {
             let offset = rowOffset + column
-            if offset >= .doc.fileSize do
+            if offset >= .doc.fileSize
+            {
                 break
+            }
+
             let value = .doc.byteAt(offset)
             if isPrintable(value)
             {
                 .rowTextStrong.add(value)
-                .rowTextFaint.add(' 'u8)
+                .rowTextFaint.add(' '_u8)
             }
             else
             {
-                .rowTextStrong.add(' 'u8)
+                .rowTextStrong.add(' '_u8)
                 .rowTextFaint.add(cast(const [..] u8, "·"))
             }
         }
     }
 
-    mtd drawBuffer(painter: *Painter, buffer: *Array'u8, x, y: f32, font: *Font, color: Color)
+    mtd drawBuffer(painter: *Painter, buffer: *Array!{u8}, x, y: f32, font: *Font, color: Color)
     {
-        if buffer.isEmpty() do
+        if buffer.isEmpty()
+        {
             return
+        }
+
         painter.drawString(x, y, cast(string, buffer.toSlice()), font, color)
     }
 
@@ -1097,24 +1239,35 @@ impl IWnd for GridView
         switch evt.kind
         {
         case .Wheel where Viewer.isZoomWheel(evt):
-            if evt.delta.y > 0 do
+            if evt.delta.y > 0
+            {
                 .adjustFontSize(1)
-            elif evt.delta.y < 0 do
+            }
+            else if evt.delta.y < 0
+            {
                 .adjustFontSize(-1)
+            }
 
         case .Wheel where evt.modifiers.has(.Shift):
             evt.accepted = false
 
         case .Wheel:
-            if evt.delta.y > 0 do
+            if evt.delta.y > 0
+            {
                 .scrollByRows(-cast(s64, WheelRows))
-            elif evt.delta.y < 0 do
+            }
+            else if evt.delta.y < 0
+            {
                 .scrollByRows(cast(s64, WheelRows))
+            }
 
         case .Pressed where evt.button == .Right:
             let offset = .offsetAt(local)
-            if offset != Swag.U64.Max and not (offset >= .selectionStart() and offset <= .selectionEnd()) do
+            if offset != Swag.U64.Max and not (offset >= .selectionStart() and offset <= .selectionEnd())
+            {
                 .moveCaret(offset, false)
+            }
+
             .setFocus()
             .showContextMenu(evt.surfacePos)
 
@@ -1152,7 +1305,7 @@ impl IWnd for GridView
 
         let extend  = evt.modifiers.has(.Shift)
         let control = evt.modifiers.has(.Control)
-        let unit    = 1's64
+        let unit    = 1_s64
         let stride  = cast(s64, .bytesPerRow)
         let page    = cast(s64, (.visibleRows() * .bytesPerRow))
 
@@ -1177,16 +1330,24 @@ impl IWnd for GridView
             .moveCaretBy(page, extend)
 
         case .Home:
-            if control do
+            if control
+            {
                 .moveCaret(0, extend)
-            else do
+            }
+            else
+            {
                 .moveCaret(.caret - .caret % .bytesPerRow, extend)
+            }
 
         case .End:
-            if control do
+            if control
+            {
                 .moveCaret(.lastOffset(), extend)
-            else do
+            }
+            else
+            {
                 .moveCaret(Math.min(.caret - .caret % .bytesPerRow + .bytesPerRow - 1, .lastOffset()), extend)
+            }
 
         case .C where control:
             .sendCommandEvent(Action.CopyBytes)
@@ -1216,15 +1377,19 @@ impl IWnd for GridView
     {
         let painter = evt.paintContext.painter
         let font    = .font().regular
-        if not font or .rowHeight <= 0 do
+        if not font or .rowHeight <= 0
+        {
             return
+        }
 
         let colors  = .themeColors()
         let client  = .clientRect()
         let originX = -.scrollPos.x
 
-        if .doc.readFailed do
+        if .doc.readFailed
+        {
             return
+        }
 
         if not .doc.fileSize
         {
@@ -1263,8 +1428,11 @@ impl IWnd for GridView
         for row in visible
         {
             let rowOffset = (.topRow + row) * .bytesPerRow
-            if rowOffset >= .doc.fileSize do
+            if rowOffset >= .doc.fileSize
+            {
                 break
+            }
+
             let rowLast = Math.min(rowOffset + .bytesPerRow - 1, .lastOffset())
             let y       = .rowTop(.topRow + row)
             let textTop = font.opticalLineTop(y + .rowHeight * 0.5)
@@ -1279,17 +1447,22 @@ impl IWnd for GridView
                 hitIndex += 1
             }
 
-            if showMatch and .matchStart <= rowLast and matchLast >= rowOffset do
+            if showMatch and .matchStart <= rowLast and matchLast >= rowOffset
+            {
                 .fillRange(painter, Math.max(.matchStart, rowOffset), Math.min(matchLast, rowLast), originX, y, matchBk)
-            if .hasSelection() and selectFirst <= rowLast and selectLast >= rowOffset do
+            }
+
+            if .hasSelection() and selectFirst <= rowLast and selectLast >= rowOffset
+            {
                 .fillRange(painter, Math.max(selectFirst, rowOffset), Math.min(selectLast, rowLast), originX, y, selectBk)
+            }
 
             .buildRow(rowOffset)
             .drawBuffer(painter, &.rowOffsetText, originX + ViewInset, textTop, font, offsetInk)
 
             // One cell per value, each at its own place in the row.
             let size   = .valueSize()
-            var column = 0'u64
+            var column = 0_u64
             while column <= rowLast - rowOffset
             {
                 let offset   = rowOffset + column
@@ -1317,10 +1490,15 @@ impl IWnd for GridView
                 let textX = originX + .textCellX(.caret % .bytesPerRow)
                 painter.fillRoundRect(Math.Rectangle{textX, y + 1, .charWidth, .rowHeight - 2}, 2, 2, caretBk)
                 .cellText.clear()
-                if isPrintable(value) do
+                if isPrintable(value)
+                {
                     .cellText.add(value)
-                else do
+                }
+                else
+                {
                     .cellText.add(cast(const [..] u8, "·"))
+                }
+
                 .drawBuffer(painter, &.cellText, textX, textTop, font, caretInk)
             }
         }
@@ -1332,14 +1510,14 @@ impl GridView
     // Creates an empty grid inside a scroll frame.
     func create(parent: *Wnd)->*GridView
     {
-        let scroll = Wnd.create'ScrollWnd(parent, "", {})
+        let scroll = Wnd.create!{ScrollWnd}(parent, "", {})
         scroll.dockStyle = .Center
 
-        with let result = scroll.createView'GridView()
+        with let result = scroll.createView!{GridView}()
         {
             .scroll = scroll
             .backgroundStyle = .View
-            .registerAction'Action()
+            .registerAction!{Action}()
             .focusPolicy = .Tab
             .wndFlags    |= .NoScroll | .NoFocusRing | .ClipChildren
             .cursor      = Cursor.from(.IBeam)
@@ -1357,8 +1535,8 @@ impl GridView
     mtd exchangeDocument(document: *Document)
     {
         swap(&.doc, document)
-        .caret           = 0
-        .anchor          = 0
+        .caret  = 0
+        .anchor = 0
         .selectionActive = false
         .refreshLayout()
         .invalidate()

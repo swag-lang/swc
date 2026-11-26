@@ -2,8 +2,10 @@ using Swag, Core
 
 func assertRange(buffer: const [..] u8, offset, length: u64) fail
 {
-    if offset > buffer.count or length > buffer.count - offset do
+    if offset > buffer.count or length > buffer.count - offset
+    {
         try fault(0x03)
+    }
 }
 
 func getSlice(buffer: const [..] u8, offset, length: u64)->const [..] u8 fail
@@ -22,18 +24,27 @@ func getSlice(buffer: const [..] u8, offset, length: u64)->const [..] u8 fail
 // what FreeType and stb_truetype also do, instead of failing mid-outline.
 func peekU8(buffer: const [..] u8, offset: u64)->u8
 {
-    if offset >= buffer.count do
+    if offset >= buffer.count
+    {
         return 0
+    }
+
     let buf = buffer
     return buf[offset]
 }
 
 func peekU16(buffer: const [..] u8, offset: u64)->u16
 {
-    if offset > buffer.count do
+    if offset > buffer.count
+    {
         return 0
-    if buffer.count - offset < 2 do
+    }
+
+    if buffer.count - offset < 2
+    {
         return 0
+    }
+
     let buf = buffer
     return cast(u16, buf[offset]) << 8 | buf[offset + 1]
 }
@@ -41,27 +52,42 @@ func peekU16(buffer: const [..] u8, offset: u64)->u16
 func peekS16(buffer: const [..] u8, offset: u64)->s16
 {
     let value = peekU16(buffer, offset)
-    if value <= 0x7FFF do
+    if value <= 0x7FFF
+    {
         return cast(s16, value)
+    }
+
     return cast(s16, (cast(s32, value) - 0x1_0000))
 }
 
 func peekU24(buffer: const [..] u8, offset: u64)->u32
 {
-    if offset > buffer.count do
+    if offset > buffer.count
+    {
         return 0
-    if buffer.count - offset < 3 do
+    }
+
+    if buffer.count - offset < 3
+    {
         return 0
+    }
+
     let buf = buffer
     return cast(u32, buf[offset]) << 16 | cast(u32, buf[offset + 1]) << 8 | buf[offset + 2]
 }
 
 func peekU32(buffer: const [..] u8, offset: u64)->u32
 {
-    if offset > buffer.count do
+    if offset > buffer.count
+    {
         return 0
-    if buffer.count - offset < 4 do
+    }
+
+    if buffer.count - offset < 4
+    {
         return 0
+    }
+
     let buf = buffer
     return cast(u32, buf[offset]) << 24 |
            cast(u32, buf[offset + 1]) << 16 |
@@ -88,8 +114,11 @@ func readU16(buffer: const [..] u8, offset: u64)->u16 fail
 func readS16(buffer: const [..] u8, offset: u64)->s16 fail
 {
     let value = try readU16(buffer, offset)
-    if value <= 0x7FFF do
+    if value <= 0x7FFF
+    {
         return cast(s16, value)
+    }
+
     return cast(s16, (cast(s32, value) - 0x1_0000))
 }
 
@@ -114,8 +143,11 @@ func readU32(buffer: const [..] u8, offset: u64)->u32 fail
 func readS32(buffer: const [..] u8, offset: u64)->s32 fail
 {
     let value = try readU32(buffer, offset)
-    if value <= 0x7FFF_FFFF do
+    if value <= 0x7FFF_FFFF
+    {
         return cast(s32, value)
+    }
+
     return cast(s32, (cast(s64, value) - 0x1_0000_0000))
 }
 
@@ -123,27 +155,43 @@ func readF2Dot14(buffer: const [..] u8, offset: u64)->f64 fail => try readS16(bu
 
 func roundDiv(value, divisor: s64)->s32
 {
-    if not divisor do
+    if not divisor
+    {
         return 0
-    if value >= 0 do
+    }
+
+    if value >= 0
+    {
         return cast(s32, ((value + divisor / 2) / divisor))
+    }
+
     return cast(s32, -(((-value) + divisor / 2) / divisor))
 }
 
 func scale26_6(value: s32, ppem, unitsPerEm: u32)->s32 fail
 {
-    if not unitsPerEm do
+    if not unitsPerEm
+    {
         try fault(0x17)
+    }
 
     let scaled  = cast(s64, value) * cast(s64, ppem) * 64
     let divisor = cast(s64, unitsPerEm)
     var rounded: s64
-    if scaled >= 0 do
+    if scaled >= 0
+    {
         rounded = (scaled + divisor / 2) / divisor
-    else do
+    }
+    else
+    {
         rounded = -((-scaled + divisor / 2) / divisor)
-    if rounded < Swag.S32.Min or rounded > Swag.S32.Max do
+    }
+
+    if rounded < Swag.S32.Min or rounded > Swag.S32.Max
+    {
         try fault(0x17)
+    }
+
     return cast(s32, rounded)
 }
 

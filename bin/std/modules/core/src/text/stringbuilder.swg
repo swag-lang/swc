@@ -59,7 +59,7 @@ impl StringBuilder
     mtd zeroTerminate()
     {
         let count = .buffer.count()
-        .buffer.addNative(0'u8)
+        .buffer.addNative(0_u8)
         .buffer.makeLinear()
         .buffer.setPosition({})
         .buffer.advance(count)

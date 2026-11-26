@@ -21,8 +21,10 @@ func day1B()
     var currentCalories:  u64
     for l, index in lines
     {
-        if not l.isEmpty() do
+        if not l.isEmpty()
+        {
             currentCalories += expect StrConv.toU64(l[])
+        }
 
         if l.isEmpty() or index == lines.count - 1
         {

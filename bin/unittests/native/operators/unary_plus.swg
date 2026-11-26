@@ -48,12 +48,12 @@ func unaryPlusStrictF32(a: UnaryPlusStrictF32)->UnaryPlusStrictF32
 
 #test
 {
-    let v0 = unaryPlusU32(42'u32)
-    let v1 = unaryPlusF64(42.5'f64)
-    let v2 = unaryPlusU64(42'u64)
+    let v0 = unaryPlusU32(42_u32)
+    let v1 = unaryPlusF64(42.5_f64)
+    let v2 = unaryPlusU64(42_u64)
     let v3 = unaryPlusS32(-42)
-    let v4 = unaryPlusRune('A'rune)
-    let v5 = unaryPlusChain(42.5'f32)
+    let v4 = unaryPlusRune('A'_rune)
+    let v5 = unaryPlusChain(42.5_f32)
 
     #assert(#typeof(v0) == u32)
     #assert(#typeof(v1) == f64)
@@ -62,20 +62,20 @@ func unaryPlusStrictF32(a: UnaryPlusStrictF32)->UnaryPlusStrictF32
     #assert(#typeof(v4) == rune)
     #assert(#typeof(v5) == f32)
 
-    Swag.require(v0 == 42'u32)
-    Swag.require(v1 == 42.5'f64)
-    Swag.require(v2 == 42'u64)
+    Swag.require(v0 == 42_u32)
+    Swag.require(v1 == 42.5_f64)
+    Swag.require(v2 == 42_u64)
     Swag.require(v3 == -42)
-    Swag.require(v4 == 'A'rune)
-    Swag.require(v5 == 42.5'f32)
+    Swag.require(v4 == 'A'_rune)
+    Swag.require(v5 == 42.5_f32)
 }
 
 #test
 {
     let runtimeInt   = unaryPlusStrictS32(cast(UnaryPlusStrictS32, -42))
-    let runtimeFloat = unaryPlusStrictF32(cast(UnaryPlusStrictF32, 42.5'f32))
+    let runtimeFloat = unaryPlusStrictF32(cast(UnaryPlusStrictF32, 42.5_f32))
     const constantInt   = +cast(UnaryPlusStrictS32, -42)
-    const constantFloat = +cast(UnaryPlusStrictF32, 42.5'f32)
+    const constantFloat = +cast(UnaryPlusStrictF32, 42.5_f32)
 
     #assert(#typeof(runtimeInt) == UnaryPlusStrictS32)
     #assert(#typeof(runtimeFloat) == UnaryPlusStrictF32)
@@ -83,7 +83,7 @@ func unaryPlusStrictF32(a: UnaryPlusStrictF32)->UnaryPlusStrictF32
     #assert(#typeof(constantFloat) == UnaryPlusStrictF32)
 
     Swag.require(runtimeInt == cast(UnaryPlusStrictS32, -42))
-    Swag.require(runtimeFloat == cast(UnaryPlusStrictF32, 42.5'f32))
+    Swag.require(runtimeFloat == cast(UnaryPlusStrictF32, 42.5_f32))
     Swag.require(constantInt == cast(UnaryPlusStrictS32, -42))
-    Swag.require(constantFloat == cast(UnaryPlusStrictF32, 42.5'f32))
+    Swag.require(constantFloat == cast(UnaryPlusStrictF32, 42.5_f32))
 }

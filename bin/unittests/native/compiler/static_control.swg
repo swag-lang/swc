@@ -7,7 +7,7 @@ const UsePrimary = false
 {
     const SelectedIf = 1
 }
-elif true
+else if true
 {
     const SelectedIf = 2
 }
@@ -110,5 +110,5 @@ func(T) selectedFromType()->s32
     Swag.require(StaticValues.Value0 != StaticValues.Value1)
     Swag.require(selectedInFunction() == 42)
     Swag.require(selectedFromMultipleCases() == 42)
-    Swag.require(selectedFromType's32() == 42)
+    Swag.require(selectedFromType!{s32}() == 42)
 }

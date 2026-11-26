@@ -73,9 +73,9 @@ struct TinyCodeBytes
 
 #test
 {
-    var bytes: TinyCodeBytes = TinyCodeBytes{value: TinyCode.Three, x: 0x44'u8, y: 0x55'u8, z: 0x66'u8}
+    var bytes: TinyCodeBytes = TinyCodeBytes{value: TinyCode.Three, x: 0x44_u8, y: 0x55_u8, z: 0x66_u8}
 
-    Swag.require(cast(u32, bytes.value) == 3'u32)
+    Swag.require(cast(u32, bytes.value) == 3_u32)
     bytes.value = TinyCode.Zero
-    Swag.require(cast(u32, bytes.value) == 0'u32)
+    Swag.require(cast(u32, bytes.value) == 0_u32)
 }

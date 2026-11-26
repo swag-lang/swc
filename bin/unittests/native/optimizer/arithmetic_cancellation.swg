@@ -34,7 +34,7 @@ func checkedCancellation(a, b: u64)->u64 => (a + b) - a
 #[Swag.Safety(.Overflow, false)]
 #test
 {
-    let values = [0'u64, 1, 0xFFFFFFFF, 0x100000000, 0xFFFFFFFFFFFFFFFF, 0x7FFFFFFFFFFFFFFF, 0x8000000000000000]
+    let values = [0_u64, 1, 0xFFFFFFFF, 0x100000000, 0xFFFFFFFFFFFFFFFF, 0x7FFFFFFFFFFFFFFF, 0x8000000000000000]
     for a in values
     {
         for b in values

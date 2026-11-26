@@ -4,7 +4,7 @@ impl Capture
     // undo/redo step, mint a shared id with .undoMgr.newSerial() and pass it to pushUndo.
     mtd newUndo(kind: UndoKind)->*Undo
     {
-        let ptr = Memory.new'Undo()
+        let ptr = Memory.new!{Undo}()
         ptr.kind = kind
         return ptr
     }
@@ -18,16 +18,20 @@ impl Capture
 
         // During an interactive drag, apply() calls undo() every move to re-apply the
         // move from scratch; the per-form partial invalidate handles the repaint.
-        if not .interactiveMove do
+        if not .interactiveMove
+        {
             .editView?.invalidate()
+        }
     }
 
     mtd redo()
     {
         .undoMgr.redo()
 
-        if not .interactiveMove do
+        if not .interactiveMove
+        {
             .editView?.invalidate()
+        }
     }
 
     // Pushes a command onto the undo timeline. A non-zero `serial` groups this command with the

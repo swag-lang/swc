@@ -22,8 +22,11 @@ using Core, Viewers
 #test
 {
     var body: String = "<table:table table:name='Reading budget'><table:table-row table:number-rows-repeated='2048'><table:table-cell><text:p>"
-    for 32768 do
+    for 32768
+    {
         body += "x"
+    }
+
     body += "</text:p></table:table-cell></table:table-row></table:table>"
     let path = odsTestPackage(body)
     defer discard catch File.delete(path)

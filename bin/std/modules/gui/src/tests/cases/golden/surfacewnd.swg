@@ -18,7 +18,7 @@ using Swag, Core, Pixel
     }
 
     buildChromeWindow(&host)
-    let lines         = "impl Bar\n{\n    func create(parent: *Wnd)->*Bar\n    {\n        with let result = Wnd.create'Bar(parent)\n    }\n}"
+    let lines         = "impl Bar\n{\n    func create(parent: *Wnd)->*Bar\n    {\n        with let result = Wnd.create!{Bar}(parent)\n    }\n}"
     with let document = Label.create(&host.root, lines, {48, 16, 420, 140})
     {
         .style.setFont(host.theme.createDefaultFontFamilyFs(13))

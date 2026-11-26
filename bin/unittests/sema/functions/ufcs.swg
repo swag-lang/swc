@@ -112,7 +112,7 @@ func shadowedUfcsAdd(value: *u32, rhs: u32)
 
 func callShadowedUfcsAdd(shadowedUfcsAdd: u32)->u32
 {
-    var value = 1'u32
+    var value = 1_u32
     value.shadowedUfcsAdd(shadowedUfcsAdd)
     return value
 }

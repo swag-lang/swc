@@ -8,8 +8,10 @@ var g_Button: *PushButton?
 func centerButton(view: *Wnd)
 {
     let button = g_Button
-    if not button do
+    if not button
+    {
         return
+    }
 
     let clientRect = view.clientRect()
     let x = clientRect.horzCenter() - button.position.width * 0.5
@@ -19,8 +21,10 @@ func centerButton(view: *Wnd)
 
 func onEvent(view: *Wnd, evt: IEvent)->bool
 {
-    if evt is ResizeEvent do
+    if evt is ResizeEvent
+    {
         centerButton(view)
+    }
 
     return false
 }
@@ -39,8 +43,10 @@ func onEvent(view: *Wnd, evt: IEvent)->bool
 
     centerButton(view)
 
-    if Env.isSmokeRun() do
+    if Env.isSmokeRun()
+    {
         app.maxRunFrame = TestFrames
+    }
 
     surface.show()
 

@@ -37,8 +37,10 @@ func leakOnOnePath(release: bool)
 {
     let pointer = cast(*s32, heapAlloc(4))
     pointer[] = 1
-    if release do
+    if release
+    {
         heapFree(pointer, 4)
+    }
     // The other path leaks: no static diagnostic.
 }
 
@@ -150,8 +152,10 @@ impl TidyOwner
 {
     mtd opDrop()
     {
-        if .pointer != null do
+        if .pointer != null
+        {
             heapFree(.pointer, 4)
+        }
         .pointer = null
     }
 }

@@ -22,8 +22,10 @@ impl IWnd for EditCtrl
 {
     mtd impl onResizeEvent(_: *ResizeEvent)
     {
-        if .label == null do
+        if .label == null
+        {
             return
+        }
 
         let rect = .clientRect()
 
@@ -47,12 +49,17 @@ impl EditCtrl
         Swag.assert(parent != null)
         let metrics = parent.themeMetrics()
         var pos     = position
-        if pos.width == 0 do
+        if pos.width == 0
+        {
             pos.width = metrics.editBox_Width * 2
-        if pos.height == 0 do
-            pos.height = metrics.editBox_Height
+        }
 
-        with let ctrl = Wnd.create'EditCtrl(parent, pos, id)
+        if pos.height == 0
+        {
+            pos.height = metrics.editBox_Height
+        }
+
+        with let ctrl = Wnd.create!{EditCtrl}(parent, pos, id)
         {
             .label = Label.create(ctrl, name)
             .label.setTextHorizontalAlignment(.Right)
@@ -67,8 +74,11 @@ impl EditCtrl
     mtd setLayoutMetrics(labelWidth: f32 = 5, editWidth: f32 = 5, spacing: f32 = 5)
     {
         Swag.assert(labelWidth >= 0 and editWidth >= 0 and spacing >= 0, "layout metrics cannot be negative")
-        if .labelWidth == labelWidth and .editWidth == editWidth and .spacing == spacing do
+        if .labelWidth == labelWidth and .editWidth == editWidth and .spacing == spacing
+        {
             return
+        }
+
         .labelWidth = labelWidth
         .editWidth  = editWidth
         .spacing    = spacing

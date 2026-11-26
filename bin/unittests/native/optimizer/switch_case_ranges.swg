@@ -36,30 +36,46 @@ func bucket(v: u8)->s32
 
 func slowDayLength(m: u32)->u8
 {
-    if m == 2 do
+    if m == 2
+    {
         return 28
-    if m == 1 or m == 3 or m == 5 or m == 7 or m == 8 or m == 10 or m == 12 do
+    }
+    if m == 1 or m == 3 or m == 5 or m == 7 or m == 8 or m == 10 or m == 12
+    {
         return 31
+    }
     return 30
 }
 
 func slowBucket(v: u8)->s32
 {
-    if v <= 3 do
+    if v <= 3
+    {
         return -1
-    if v == 4 or v == 5 do
+    }
+    if v == 4 or v == 5
+    {
         return 7
-    if v == 9 do
+    }
+    if v == 9
+    {
         return 2
+    }
     return 0
 }
 
 #test
 {
-    for m in 0 until 40 do
+    for m in 0 until 40
+    {
         Swag.require(dayLength(cast(u32, m)) == slowDayLength(cast(u32, m)))
-    for m in [0xFFFFFFFF'u32, 0x80000001, 0x100, 0x107] do
+    }
+    for m in [0xFFFFFFFF_u32, 0x80000001, 0x100, 0x107]
+    {
         Swag.require(dayLength(m) == 30)
-    for v in 0 until 256 do
+    }
+    for v in 0 until 256
+    {
         Swag.require(bucket(cast(u8, v)) == slowBucket(cast(u8, v)))
+    }
 }

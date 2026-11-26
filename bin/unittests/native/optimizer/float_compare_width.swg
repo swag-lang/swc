@@ -27,11 +27,13 @@ func clampOf(x, lo, hi: f32)->f32 => x < lo ? lo : (x > hi ? hi : x)
 #[Swag.Optimize(true), Swag.NoInline]
 func countBelow(p: const [*] f32, n: u64, limit: f32)->u32
 {
-    var count = 0'u32
+    var count = 0_u32
     for i in n
     {
-        if p[i] < limit do
+        if p[i] < limit
+        {
             count += 1
+        }
     }
     return count
 }
@@ -55,11 +57,11 @@ func wideOrder(a, b: f32)->s32 => cast(f64, a) <=> cast(f64, b)
 #[Swag.Safety(.All, false)]
 #test
 {
-    let nan     = cast #bit (f32, 0x7FC00000'u32)
-    let negZero = cast #bit (f32, 0x80000000'u32)
-    let inf     = cast #bit (f32, 0x7F800000'u32)
-    let tiny    = cast #bit (f32, 0x00000001'u32)
-    let largest = cast #bit (f32, 0x7F7FFFFF'u32)
+    let nan     = cast #bit (f32, 0x7FC00000_u32)
+    let negZero = cast #bit (f32, 0x80000000_u32)
+    let inf     = cast #bit (f32, 0x7F800000_u32)
+    let tiny    = cast #bit (f32, 0x00000001_u32)
+    let largest = cast #bit (f32, 0x7F7FFFFF_u32)
     let values: [12] f32 = [0.0, negZero, 1.0, -1.0, 0.5, nan, inf, -inf, tiny, -tiny, largest, -largest]
 
     for a in values
@@ -77,7 +79,7 @@ func wideOrder(a, b: f32)->s32 => cast(f64, a) <=> cast(f64, b)
             let bigger = maxOf(a, b)
             Swag.require(cast #bit (u32, bigger) == cast #bit (u32, (wideLess(b, a) ? a : b)))
             let clamped = clampOf(a, -1.0, 1.0)
-            Swag.require(cast #bit (u32, clamped) == cast #bit (u32, (wideLess(a, -1.0) ? -1.0'f32 : (wideLess(1.0, a) ? 1.0'f32 : a))))
+            Swag.require(cast #bit (u32, clamped) == cast #bit (u32, (wideLess(a, -1.0) ? -1.0_f32 : (wideLess(1.0, a) ? 1.0_f32 : a))))
         }
     }
 

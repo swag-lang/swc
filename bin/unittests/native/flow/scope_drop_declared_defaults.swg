@@ -16,8 +16,10 @@ impl ScopeDropHandle
 {
     mtd opDrop()
     {
-        if .live do
+        if .live
+        {
             g_scopeDropCount += 1
+        }
         .live = false
     }
 }
@@ -87,7 +89,7 @@ struct ScopeRequiresInit
 
 #test
 {
-    var slot = 0's32
+    var slot = 0_s32
     g_scopeDropCount = 0
     scope
     {

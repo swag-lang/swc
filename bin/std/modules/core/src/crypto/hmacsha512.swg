@@ -71,7 +71,7 @@ public impl HmacSha512
             Swag.memcpy(&pad[0], &hashed[0], #sizeof(hashed))
             secureClear(hashed)
         }
-        elif key.count
+        else if key.count
         {
             Swag.memcpy(&pad[0], key.buffer, key.count)
         }
@@ -162,7 +162,7 @@ public impl HmacSha384
             Swag.memcpy(&pad[0], &hashed[0], #sizeof(hashed))
             secureClear(hashed)
         }
-        elif key.count
+        else if key.count
         {
             Swag.memcpy(&pad[0], key.buffer, key.count)
         }

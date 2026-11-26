@@ -146,10 +146,14 @@
 {
     func ifConstGuardTrue()->s32
     {
-        if const a = 1 where a > 0 do
+        if const a = 1 where a > 0
+        {
             return a
-        else do
+        }
+        else
+        {
             return -1
+        }
     }
 
     const V = #run ifConstGuardTrue()
@@ -160,10 +164,14 @@
 {
     func ifConstGuardFalse()->s32
     {
-        if const a = 0 where a > 0 do
+        if const a = 0 where a > 0
+        {
             return -1
-        else do
+        }
+        else
+        {
             return 42
+        }
     }
 
     const V = #run ifConstGuardFalse()

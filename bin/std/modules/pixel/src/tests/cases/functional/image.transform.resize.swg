@@ -25,18 +25,26 @@ private func serialFilteredResize(source: const *Image, width, height: s32, mode
     let legacy              = format == .RGB8 or format == .RGBA8 or format == .BGR8 or format == .BGRA8
     for row in source.height
     {
-        if legacy do
+        if legacy
+        {
             ResizeTools.scaleRow(&intermediate, workSource, row, &horizontal)
-        else do
+        }
+        else
+        {
             ResizeTools.scaleRowGeneric(&intermediate, workSource, row, &horizontal)
+        }
     }
 
     for column in width
     {
-        if legacy do
+        if legacy
+        {
             ResizeTools.scaleCol(&result, &intermediate, column, &vertical)
-        else do
+        }
+        else
+        {
             ResizeTools.scaleColGeneric(&result, &intermediate, column, &vertical)
+        }
     }
 
     if needsPremultiply
@@ -57,8 +65,11 @@ private func serialFilteredResize(source: const *Image, width, height: s32, mode
     let modes:      [7] Image.ResizeMode = [.Bilinear, .Bicubic, .Gaussian, .Quadratic, .Hermite, .Hamming, .CatmullRom]
     let dimensions: [6] [2] s32          = [[31, 33], [32, 32], [33, 33], [1, 1031], [1031, 1], [97, 71]]
     var pattern = Image.create(67, 69, .RGBA8)
-    for index in pattern.byteCount do
+    for index in pattern.byteCount
+    {
         pattern.pixels[index] = cast(u8, ((index * 47 + index / 13 + 29) & 0xFF))
+    }
+
     for format in formats
     {
         let source    = pattern.convertedTo(format)
@@ -88,8 +99,11 @@ private func serialFilteredResize(source: const *Image, width, height: s32, mode
     Swag.setWorkerCount(4)
     Swag.startWorkers()
     var source = Image.create(63, 65, .RGBA8)
-    for index in source.byteCount do
+    for index in source.byteCount
+    {
         source.pixels[index] = cast(u8, ((index * 31 + 7) & 0xFF))
+    }
+
     let expected  = serialFilteredResize(&source, 97, 71, .Bicubic)
     let reference = &expected
     parallel for |&source, reference| 7
@@ -135,37 +149,37 @@ private func serialFilteredResize(source: const *Image, width, height: s32, mode
 #test
 {
     const rawPixels = [
-        10'u8, 20'u8, 30'u8, 40'u8, 50'u8, 60'u8, 70'u8, 80'u8,
-        90'u8, 100'u8, 110'u8, 120'u8, 130'u8, 140'u8, 150'u8, 160'u8]
+        10_u8, 20_u8, 30_u8, 40_u8, 50_u8, 60_u8, 70_u8, 80_u8,
+        90_u8, 100_u8, 110_u8, 120_u8, 130_u8, 140_u8, 150_u8, 160_u8]
 
     let rawSrc = makeImage(2, 2, .RGBA8, rawPixels)
     let rawOut = rawSrc.resized(4, 0, .Nearest)
     assertImage(rawOut, 4, 4, .RGBA8)
 
-    assertPixel(rawOut, 0, 3, Color.fromArgb(40'u8, 10'u8, 20'u8, 30'u8))
-    assertPixel(rawOut, 1, 3, Color.fromArgb(40'u8, 10'u8, 20'u8, 30'u8))
-    assertPixel(rawOut, 2, 3, Color.fromArgb(80'u8, 50'u8, 60'u8, 70'u8))
-    assertPixel(rawOut, 3, 3, Color.fromArgb(80'u8, 50'u8, 60'u8, 70'u8))
-    assertPixel(rawOut, 0, 0, Color.fromArgb(120'u8, 90'u8, 100'u8, 110'u8))
-    assertPixel(rawOut, 1, 0, Color.fromArgb(120'u8, 90'u8, 100'u8, 110'u8))
-    assertPixel(rawOut, 2, 0, Color.fromArgb(160'u8, 130'u8, 140'u8, 150'u8))
-    assertPixel(rawOut, 3, 0, Color.fromArgb(160'u8, 130'u8, 140'u8, 150'u8))
+    assertPixel(rawOut, 0, 3, Color.fromArgb(40_u8, 10_u8, 20_u8, 30_u8))
+    assertPixel(rawOut, 1, 3, Color.fromArgb(40_u8, 10_u8, 20_u8, 30_u8))
+    assertPixel(rawOut, 2, 3, Color.fromArgb(80_u8, 50_u8, 60_u8, 70_u8))
+    assertPixel(rawOut, 3, 3, Color.fromArgb(80_u8, 50_u8, 60_u8, 70_u8))
+    assertPixel(rawOut, 0, 0, Color.fromArgb(120_u8, 90_u8, 100_u8, 110_u8))
+    assertPixel(rawOut, 1, 0, Color.fromArgb(120_u8, 90_u8, 100_u8, 110_u8))
+    assertPixel(rawOut, 2, 0, Color.fromArgb(160_u8, 130_u8, 140_u8, 150_u8))
+    assertPixel(rawOut, 3, 0, Color.fromArgb(160_u8, 130_u8, 140_u8, 150_u8))
 
     const filteredPixels = [
-        7'u8, 17'u8, 27'u8, 37'u8]
+        7_u8, 17_u8, 27_u8, 37_u8]
 
     let filteredSrc = makeImage(1, 1, .RGBA8, filteredPixels)
     let filteredOut = filteredSrc.resized(3, 2, .Bicubic)
     assertImage(filteredOut, 3, 2, .RGBA8)
-    assertPixel(filteredOut, 0, 1, Color.fromArgb(37'u8, 7'u8, 17'u8, 27'u8))
-    assertPixel(filteredOut, 2, 1, Color.fromArgb(37'u8, 7'u8, 17'u8, 27'u8))
-    assertPixel(filteredOut, 0, 0, Color.fromArgb(37'u8, 7'u8, 17'u8, 27'u8))
-    assertPixel(filteredOut, 2, 0, Color.fromArgb(37'u8, 7'u8, 17'u8, 27'u8))
+    assertPixel(filteredOut, 0, 1, Color.fromArgb(37_u8, 7_u8, 17_u8, 27_u8))
+    assertPixel(filteredOut, 2, 1, Color.fromArgb(37_u8, 7_u8, 17_u8, 27_u8))
+    assertPixel(filteredOut, 0, 0, Color.fromArgb(37_u8, 7_u8, 17_u8, 27_u8))
+    assertPixel(filteredOut, 2, 0, Color.fromArgb(37_u8, 7_u8, 17_u8, 27_u8))
 }
 
 #test
 {
-    const edgePixels = [17'u8, 91, 203, 0, 255, 0, 0, 255]
+    const edgePixels = [17_u8, 91, 203, 0, 255, 0, 0, 255]
     let straight      = Image.create(2, 1, .RGBA8, edgePixels)
     var premultiplied = Image.create(2, 1, .RGBA8, edgePixels)
     premultiplied.convertAlphaTo(.Premultiplied)
@@ -180,19 +194,22 @@ private func serialFilteredResize(source: const *Image, width, height: s32, mode
         Swag.require(premultResize.alphaMode == .Premultiplied)
         Swag.require(expected.r == 255 and expected.g == 0 and expected.b == 0)
         Swag.require(expected.a > 0 and expected.a < 255)
-        if mode == .Bilinear do
+        if mode == .Bilinear
+        {
             Swag.require(expected.a == 85)
+        }
+
         assertPixel(straightResize, 0, 0, expected)
     }
 
     let nearest = straight.resized(4, 1, .Nearest)
     Swag.require(nearest.alphaMode == .Straight)
     Swag.require(Memory.compare(nearest.pixels.storage(), edgePixels.buffer, 4) == 0)
-    assertPixel(nearest, 3, 0, Color.fromArgb(255'u8, 255, 0, 0))
+    assertPixel(nearest, 3, 0, Color.fromArgb(255_u8, 255, 0, 0))
     Swag.require(Memory.compare(straight.pixels.storage(), edgePixels.buffer, edgePixels.count) == 0)
 
-    let single = Image.create(1, 1, .RGBA8, [7'u8, 17, 27, 37]).resized(3, 2, .Bicubic)
-    assertPixel(single, 0, 1, Color.fromArgb(37'u8, 7, 17, 27))
+    let single = Image.create(1, 1, .RGBA8, [7_u8, 17, 27, 37]).resized(3, 2, .Bicubic)
+    assertPixel(single, 0, 1, Color.fromArgb(37_u8, 7, 17, 27))
 }
 
 // Resizing into a target matches the returned copy, keeps the target's storage across frames,
@@ -200,12 +217,15 @@ private func serialFilteredResize(source: const *Image, width, height: s32, mode
 #test
 {
     var source = Image.create(37, 29, .BGRA8)
-    for index in source.byteCount do
+    for index in source.byteCount
+    {
         source.pixels[index] = cast(u8, ((index * 53 + 11) & 0xFF))
+    }
+
     var metadata: ImageMetadata
     metadata.signature = 42
     metadata.tag       = "opaque"
-    metadata.value.add(0x5A'u8)
+    metadata.value.add(0x5A_u8)
     source.metadata.add(#move metadata)
 
     var target = Image.create(5, 7, .RGB8)

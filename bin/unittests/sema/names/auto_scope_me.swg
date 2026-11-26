@@ -47,7 +47,7 @@ struct(T) AutoScopeUnaryBox
 
 impl AutoScopeUnaryBox
 {
-    func(op: Swag.Operator) opUnary(const me)->AutoScopeUnaryBox'T
+    func(op: Swag.Operator) opUnary(const me)->AutoScopeUnaryBox!{T}
         where op == .BitNot
     {
         return {value: ~.value}
@@ -56,8 +56,8 @@ impl AutoScopeUnaryBox
 
 func semaTest002()
 {
-    var value: AutoScopeUnaryBox's32 = {value: 42}
+    var value: AutoScopeUnaryBox!{s32} = {value: 42}
     let inverted = ~value
-    #assert(#typeof(inverted) == AutoScopeUnaryBox's32)
+    #assert(#typeof(inverted) == AutoScopeUnaryBox!{s32})
     #assert(#typeof(inverted.value) == s32)
 }

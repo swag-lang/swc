@@ -42,8 +42,10 @@ impl ThemeStyle
     // released its reference no longer holds a pointer it could decrement a second time.
     private mtd free()
     {
-        if not .refr do
+        if not .refr
+        {
             return
+        }
 
         let refr = .refr
         .refr      = null
@@ -59,7 +61,7 @@ impl ThemeStyle
     mtd own(theme: *Theme)
     {
         .free()
-        .refr       = Memory.new'ThemeStyleRef()
+        .refr       = Memory.new!{ThemeStyleRef}()
         .refr.theme = theme
         .refr.count = 1
     }
@@ -71,8 +73,10 @@ impl ThemeStyle
     mtd share(other: *ThemeStyle)
     {
         let refr = unwrap other.refr
-        if .refr == refr do
+        if .refr == refr
+        {
             return
+        }
 
         .free()
         .refr      = refr
@@ -88,7 +92,7 @@ impl ThemeStyle
     mtd create(parent: *ThemeStyle)
     {
         .free()
-        let theme = Memory.new'Theme()
+        let theme = Memory.new!{Theme}()
         theme[] = parent.refr!.theme[]
         .set(theme)
     }
@@ -103,8 +107,11 @@ impl ThemeStyle
         }
 
         // Nothing to resolve unless this style or its parent changed.
-        if not .dirty and not parent.dirty do
+        if not .dirty and not parent.dirty
+        {
             return
+        }
+
         .dirty = true
 
         // By default, same as the parent
@@ -130,22 +137,24 @@ impl ThemeStyle
         }
 
         // Make a new tweak as a copy of the parent
-        if .refr == parent.refr do
+        if .refr == parent.refr
+        {
             .create(parent)
+        }
 
         // Then tweak it with the stylesheet
         let own = unwrap .refr
         if not .styleSheetColors.isEmpty()
         {
             var tf: File.TweakFile
-            tf.registerFolder'ThemeColors(&own.theme.colors)
+            tf.registerFolder!{ThemeColors}(&own.theme.colors)
             catch tf.parse(.styleSheetColors)
         }
 
         if not .styleSheetMetrics.isEmpty()
         {
             var tf: File.TweakFile
-            tf.registerFolder'ThemeMetrics(&own.theme.metrics)
+            tf.registerFolder!{ThemeMetrics}(&own.theme.metrics)
             catch tf.parse(.styleSheetMetrics)
         }
     }

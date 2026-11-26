@@ -19,7 +19,7 @@ impl CountedLoop
 
 impl FixedCountedLoop
 {
-    mtd opCount() => 4'u64
+    mtd opCount() => 4_u64
 }
 
 impl StringRefIndexBox
@@ -40,8 +40,10 @@ impl StringRefIndexBox
     func countedLoop()->s32
     {
         var acc: s32 = 0
-        for 10 do
+        for 10
+        {
             acc += 6
+        }
         return acc
     }
 
@@ -56,10 +58,14 @@ impl StringRefIndexBox
         var acc: s32 = 0
         for i in 0 to 10
         {
-            if i == 2 do
+            if i == 2
+            {
                 continue
-            if i == 7 do
+            }
+            if i == 7
+            {
                 break
+            }
             acc += cast(s32, i)
         }
 
@@ -133,8 +139,10 @@ impl StringRefIndexBox
     func structCountLoop(value: CountedLoop)->s32
     {
         var acc: s32 = 0
-        for value do
+        for value
+        {
             acc += 1
+        }
         return acc
     }
 
@@ -150,8 +158,10 @@ impl StringRefIndexBox
     {
         let value    = FixedCountedLoop{}
         var acc: s32 = 0
-        for value do
+        for value
+        {
             acc += 1
+        }
         return acc
     }
 
@@ -165,8 +175,10 @@ impl StringRefIndexBox
     {
         let value    = FixedCountedLoop{}
         var acc: s32 = 0
-        for i in value.count do
+        for i in value.count
+        {
             acc += cast(s32, i)
+        }
         return acc
     }
 
@@ -180,8 +192,10 @@ impl StringRefIndexBox
     {
         var box = StringRefIndexBox{rows: ["10110", "00100"]}
         var sum = 0
-        for i in box[0][].count do
+        for i in box[0][].count
+        {
             sum += cast(s32, i)
+        }
         return sum
     }
 

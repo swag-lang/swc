@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark" style="--swag-code-default: #222222">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Syntax</title>
+<link rel="stylesheet" type="text/css" href="css/style.css">
+</head>
+<body>
+<a class="skip-link" href="#content">Skip to content</a>
+<header class="site-header">
+<nav class="site-nav" aria-label="Main navigation">
+<a class="site-brand" href="index.html">SWAG</a>
+<div class="site-links">
+<a href="index.html">Home</a>
+<a href="language.html">Documentation</a>
+<a href="swag.runtime.html">Runtime</a>
+<a href="std.html">Std</a>
+<a href="https://www.youtube.com/channel/UC9dkBu1nNfJDxUML7r7QH1Q">YouTube</a>
+<a href="https://github.com/swag-lang/swc">GitHub</a>
+</div>
+</nav>
+</header>
+<main class="container single-page">
+<section class="right"><article class="right-page" id="content">
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Inline]</span>
+<span class="SKwd">func</span>(<span class="SCst">T</span>) <span class="SFct">clamp</span>(value, low, high: <span class="SCst">T</span>)-&gt;<span class="SCst">T</span> =&gt; value &lt; low ? low : value &gt; high ? high : value
+
+<span class="SCmt">// Mirrors a struct, turning every field into a 'bool' at compile time.</span>
+<span class="SKwd">struct</span>(<span class="SCst">T</span>) <span class="SCst">IsSet</span>
+{
+    <span class="SFct">#ast</span>
+    {
+        <span class="SKwd">var</span> code = <span class="SCst">StrConv</span>.<span class="SCst">StringBuilder</span>{}
+        <span class="SLgc">for</span> field <span class="SLgc">in</span> <span class="SItr">#typeof</span>(<span class="SCst">T</span>).fields
+        {
+            code.<span class="SFct">appendFormat</span>(<span class="SStr">"%: bool\n"</span>, field.name)
+        }
+        <span class="SLgc">return</span> code.<span class="SFct">toString</span>()
+    }
+}
+
+<span class="SFct">#test</span>
+{
+    <span class="SKwd">const</span> <span class="SCst">Powers</span>: [<span class="SNum">4</span>] <span class="STpe">s32</span> = <span class="SFct">#run</span>
+    {
+        <span class="SKwd">var</span> table: [<span class="SNum">4</span>] <span class="STpe">s32</span>
+        <span class="SLgc">for</span> i <span class="SLgc">in</span> table.count
+        {
+            table[i] = <span class="SNum">1</span> &lt;&lt; <span class="SKwd">cast</span>(<span class="STpe">u32</span>, i)
+        }
+        <span class="SLgc">return</span> table
+    }
+
+    <span class="SCmp">#assert</span> <span class="SCst">Powers</span>[<span class="SNum">3</span>] == <span class="SNum">8</span>
+    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SFct">clamp</span>(<span class="SNum">12</span>, <span class="SNum">0</span>, <span class="SNum">10</span>) == <span class="SNum">10</span>)
+}</span></div>
+</article>
+<footer class="site-footer">
+<div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.1180</div>
+</footer>
+</section>
+</main>
+</body>
+</html>

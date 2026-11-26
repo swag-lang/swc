@@ -21,7 +21,7 @@ namespace Swag
     // var saved: Swag.Error
     // scope
     // {
-    //     catch { fail 42's32 } do saved.capture(Swag.err)
+    //     catch { fail 42_s32 } { saved.capture(Swag.err) }
     // }
     // let error = saved.value()
     // Swag.assert(error is s32)
@@ -45,8 +45,10 @@ namespace Swag
         // Shares the retained payload with the copied owner.
         mtd opPostCopy()
         {
-            if .record do
+            if .record
+            {
                 .record.references.add(1)
+            }
         }
 
         // Replaces the retained error with a copy of a live caught value.
@@ -59,8 +61,11 @@ namespace Swag
         mtd capture(error: any?)
         {
             var record: *ErrorRecord?
-            if error do
+            if error
+            {
                 record = __copyErrRecord(error)
+            }
+
             let previous = .record
             .record = record
             __releaseErrRecord(previous)
@@ -88,8 +93,11 @@ namespace Swag
         #[BorrowSummary(1, returnsPayload: 1, observesExternal: false)]
         mtd const value()->any?
         {
-            if .record do
+            if .record
+            {
                 return .record.value
+            }
+
             return null
         }
 
@@ -100,8 +108,10 @@ namespace Swag
         // lexical capture; the new capture survives a reset or drop of this owner.
         mtd const raise() fail
         {
-            if .record do
+            if .record
+            {
                 __setOwnedErrRecord(.record)
+            }
         }
     }
 
@@ -110,7 +120,7 @@ namespace Swag
     #[NoDoc]
     struct ErrorMessageArena
     {
-        references: AtomicValue'u64
+        references: AtomicValue!{u64}
         allocator:  IAllocator
         storage:    ScratchAllocator
         retained:   *ErrorMessageLink?
@@ -119,7 +129,7 @@ namespace Swag
     #[NoDoc]
     struct ErrorMessageLink
     {
-        references:  AtomicValue'u64
+        references:  AtomicValue!{u64}
         allocator:   IAllocator
         arena:       *ErrorMessageArena
         next:        *ErrorMessageLink?
@@ -129,7 +139,7 @@ namespace Swag
     #[NoDoc]
     struct ErrorRecord
     {
-        references: AtomicValue'u64
+        references: AtomicValue!{u64}
         allocator:  IAllocator
         value:      any?
         messages:   *ErrorMessageLink?
@@ -154,25 +164,36 @@ namespace Swag
             let context = .context
             if context
             {
-                if .previous do
+                if .previous
+                {
                     .previous.next = .next
-                else do
+                }
+                else
+                {
                     context.errorCaptures = .next
-                if .next do
+                }
+
+                if .next
+                {
                     .next.previous = .previous
+                }
 
                 if .handler
                 {
-                    if record and context.curError.buffer == record.value.buffer do
+                    if record and context.curError.buffer == record.value.buffer
+                    {
                         context.curError = .previousError
+                    }
 
                     // Implicit drops run inside their own error-preservation frame. Do not
                     // let its later pop restore the just-dismissed handler's borrowed view.
                     for index in context.errorIndex
                     {
                         let saved = &__errorValue(context, index).pushCurError
-                        if record and saved[].buffer == record.value.buffer do
+                        if record and saved[].buffer == record.value.buffer
+                        {
                             saved[] = .previousError
+                        }
                     }
                 }
             }
@@ -319,20 +340,26 @@ private func catchPanicHook(message: string?, loc: SourceCodeLocation)
 
 private func __runtimeTypeAlignment(size: u32)->u32
 {
-    var result = 1'u32
-    while result < size and result <= Swag.U32.Max / 2 do
+    var result = 1_u32
+    while result < size and result <= Swag.U32.Max / 2
+    {
         result *= 2
+    }
+
     return result
 }
 
 private func __allocateErrMemory(allocator: IAllocator, size: u64, alignment: u32 = 0)->*void
 {
     var request: AllocatorRequest
-    request.size      = Swag.max(size, 1'u64)
+    request.size      = Swag.max(size, 1_u64)
     request.alignment = alignment
     allocator.alloc(&request)
-    if not request.address do
+    if not request.address
+    {
         Swag.panic("cannot allocate error storage", #curlocation)
+    }
+
     return request.address
 }
 
@@ -340,7 +367,7 @@ private func __freeErrMemory(allocator: IAllocator, data: *void, size: u64)
 {
     var request: AllocatorRequest
     request.address = data
-    request.size    = Swag.max(size, 1'u64)
+    request.size    = Swag.max(size, 1_u64)
     allocator.free(&request)
 }
 
@@ -355,8 +382,11 @@ private func __destroyErrArena(arena: *ErrorMessageArena)->*ErrorMessageLink?
 
 private func __releaseErrArena(arena: *ErrorMessageArena)
 {
-    if arena.references.sub(1) != 1 do
+    if arena.references.sub(1) != 1
+    {
         return
+    }
+
     __releaseErrMessages(__destroyErrArena(arena))
 }
 
@@ -377,10 +407,15 @@ private func __detachErrMessages(storage: *ScratchAllocator)
 
 private func __errMessages(storage: *ScratchAllocator)->*ErrorMessageArena?
 {
-    if storage.releaseOwner do
+    if storage.releaseOwner
+    {
         return cast(*ErrorMessageArena, storage.releaseOwner)
-    if not storage.block and not storage.firstLeak do
+    }
+
+    if not storage.block and not storage.firstLeak
+    {
         return null
+    }
 
     let allocator = unwrap storage.allocator
     let arena     = cast(*ErrorMessageArena, __allocateErrMemory(allocator, #sizeof(ErrorMessageArena)))
@@ -428,8 +463,11 @@ private func __releaseErrMessages(first: *ErrorMessageLink?)
             }
         }
 
-        if not pending do
+        if not pending
+        {
             return
+        }
+
         let resume = pending
         pending = resume.releaseNext
         link    = resume.next
@@ -444,8 +482,11 @@ private func __prependErrArena(messages: *ErrorMessageLink?, arena: *ErrorMessag
     var known = messages
     while known
     {
-        if known.arena == arena do
+        if known.arena == arena
+        {
             return unwrap messages
+        }
+
         known = known.next
     }
 
@@ -460,23 +501,30 @@ private func __retainErrFrameMessages(record: *ErrorRecord)
 {
     let context = Swag.getContext()
     let current = __errMessages(&context.errorAllocator)
-    if current do
+    if current
+    {
         record.messages = __prependErrArena(record.messages, current, record.allocator)
+    }
 
     // A failure can refer to copied text made before its catch/expect operand began. Keep
     // those ancestor arenas too; their own context lease still protects unraised plain views.
     for index in context.errorIndex
     {
         let parent = __errMessages(&__errorValue(context, index).pushErrorAllocator)
-        if parent do
+        if parent
+        {
             record.messages = __prependErrArena(record.messages, parent, record.allocator)
+        }
     }
 }
 
 private func __finishErrStorage(context: *Context, failed: bool)
 {
-    if not context.errorIndex do
+    if not context.errorIndex
+    {
         return
+    }
+
     let current = &context.errorAllocator
     let parent  = &__errorValue(context, context.errorIndex - 1).pushErrorAllocator
     if failed or (not current.block and not current.firstLeak and not current.releaseOwner)
@@ -504,8 +552,11 @@ private func __finishErrStorage(context: *Context, failed: bool)
 
 func __releaseErrRecord(record: *ErrorRecord?)
 {
-    if not record or record.references.sub(1) != 1 do
+    if not record or record.references.sub(1) != 1
+    {
         return
+    }
+
     let allocator = record.allocator
     let value     = record.value
     let size      = cast(u64, Swag.kindOf(value).sizeof)
@@ -520,8 +571,10 @@ private func __findErrRecord(data: *void)->*ErrorRecord?
     let context = Swag.getContext()
     for &slot in context.errorLevels
     {
-        if slot.record and slot.value.buffer == data do
+        if slot.record and slot.value.buffer == data
+        {
             return slot.record
+        }
     }
 
     var block = context.errorBlocks
@@ -529,8 +582,10 @@ private func __findErrRecord(data: *void)->*ErrorRecord?
     {
         for &slot in block.values
         {
-            if slot.record and slot.value.buffer == data do
+            if slot.record and slot.value.buffer == data
+            {
                 return slot.record
+            }
         }
 
         block = block.next
@@ -539,8 +594,11 @@ private func __findErrRecord(data: *void)->*ErrorRecord?
     var capture = context.errorCaptures
     while capture
     {
-        if capture.record and capture.record.value.buffer == data do
+        if capture.record and capture.record.value.buffer == data
+        {
             return capture.record
+        }
+
         capture = capture.next
     }
 
@@ -550,8 +608,11 @@ private func __findErrRecord(data: *void)->*ErrorRecord?
 private func __copyErrRaw(data: *void, type: typeinfo, source: *ErrorRecord?)->*ErrorRecord
 {
     let context = Swag.getContext()
-    if not context.errorAllocator.capacity do
+    if not context.errorAllocator.capacity
+    {
         context.errorAllocator.setCapacity(cast(u64, __buildCfg.errorAllocatorCapacity), __runtimeAllocator())
+    }
+
     let allocator = unwrap context.errorAllocator.allocator
     let record    = cast(*ErrorRecord, __allocateErrMemory(allocator, #sizeof(ErrorRecord)))
     record[] = ErrorRecord{allocator: allocator}
@@ -567,8 +628,10 @@ private func __copyErrRaw(data: *void, type: typeinfo, source: *ErrorRecord?)->*
     Swag.memcpy(ptr, data, cast(u64, type.sizeof))
     if type is Swag.TypeInfoStruct as info
     {
-        if info.opPostCopy do
+        if info.opPostCopy
+        {
             info.opPostCopy(ptr)
+        }
     }
 
     record.value = Swag.makeAny(ptr, type)
@@ -604,13 +667,18 @@ func __setOwnedErrRecord(source: *ErrorRecord)
 
 func __dropErr(err: any?)
 {
-    if err == null do
+    if err == null
+    {
         return
+    }
+
     let data = err.buffer
     if Swag.kindOf(err) is Swag.TypeInfoStruct as type
     {
-        if type.opDrop do
+        if type.opDrop
+        {
             type.opDrop(data)
+        }
     }
 }
 
@@ -640,8 +708,10 @@ func __hasErr()->bool => Swag.getContext().hasError != 0
 func __isErrContext()->bool
 {
     let cxt = Swag.getContext()
-    if cxt.hasError != 0 or cxt.curError != null do
+    if cxt.hasError != 0 or cxt.curError != null
+    {
         return true
+    }
 
     // Cleanup that unwinds a failure runs with that failure parked one frame below. The flag
     // every fallible call is tested against has to be down for the duration, so the cleanup can
@@ -705,8 +775,11 @@ func __bindErr(dst: *(any?), owner: *ErrorCapture)
     let context = Swag.getContext()
     let handler = context.errorCaptures
     dst[] = null
-    if not handler or not handler.handler or not handler.record do
+    if not handler or not handler.handler or not handler.record
+    {
         return
+    }
+
     let record = handler.record
     owner.record = record
     dst[]        = record.value
@@ -720,10 +793,16 @@ func __storeErr(owner: *Error)
 {
     let handler = Swag.getContext().errorCaptures
     var record: *ErrorRecord?
-    if handler and handler.handler and handler.record do
+    if handler and handler.handler and handler.record
+    {
         record = handler.record
-    if record do
+    }
+
+    if record
+    {
         record.references.add(1)
+    }
+
     owner.reset()
     owner.record = record
 }
@@ -739,8 +818,11 @@ private func __registerErrCapture(owner: *ErrorCapture, context: *Context)
 {
     owner.context = context
     owner.next    = context.errorCaptures
-    if owner.next do
+    if owner.next
+    {
         owner.next.previous = owner
+    }
+
     context.errorCaptures = owner
 }
 
@@ -748,8 +830,11 @@ func __catchErr(owner: *ErrorCapture)
 {
     let context = Swag.getContext()
     owner.handler = context.hasError != 0
-    if context.errorIndex do
+    if context.errorIndex
+    {
         owner.previousError = __errorValue(context, context.errorIndex - 1).pushCurError
+    }
+
     let slot = __errorValue(context, context.errorIndex)
     if context.hasError
     {
@@ -786,13 +871,19 @@ func __catchErr(owner: *ErrorCapture)
 // any explicitly transported record alive independently of this context.
 func __releaseErrContext(context: *Context)
 {
-    for &slot in context.errorLevels do
+    for &slot in context.errorLevels
+    {
         __releaseErrLevel(slot)
+    }
+
     var block = context.errorBlocks
     while block
     {
-        for &slot in block.values do
+        for &slot in block.values
+        {
             __releaseErrLevel(slot)
+        }
+
         block = block.next
     }
 
@@ -800,14 +891,20 @@ func __releaseErrContext(context: *Context)
     context.hasError   = 0
     context.errorIndex = 0
 
-    for &slot in context.errorLevels do
+    for &slot in context.errorLevels
+    {
         slot.pushErrorAllocator.release()
+    }
+
     block = context.errorBlocks
     context.errorBlocks = null
     while block
     {
-        for &slot in block.values do
+        for &slot in block.values
+        {
             slot.pushErrorAllocator.release()
+        }
+
         let next = block.next
         __freeErrMemory(#copy block.allocator, block, #sizeof(ErrorBlock))
         block = next
@@ -829,18 +926,26 @@ private func __releaseErrLevel(slot: *ErrorValue)
 // The level of the error stack at `index`, allocating the blocks that lead to it on first use.
 func __errorValue(context: *Context, index: u32)->*ErrorValue
 {
-    if index < ErrorInlineCount do
+    if index < ErrorInlineCount
+    {
         return &context.errorLevels[index]
+    }
 
     var link  = &context.errorBlocks
     var first = ErrorInlineCount
     for
     {
-        if not link[] do
+        if not link[]
+        {
             link[] = __allocateErrorBlock()
+        }
+
         let block = unwrap link[]
-        if index - first < ErrorBlockCount do
+        if index - first < ErrorBlockCount
+        {
             return &block.values[index - first]
+        }
+
         first += ErrorBlockCount
         link  = &block.next
     }
@@ -893,8 +998,11 @@ func __failedExpect(loc: SourceCodeLocation)
     len      += 1
     str[len] = '['
     len      += 1
-    if maxLen do
+    if maxLen
+    {
         Swag.memcpy(&str[len], type.fullname!.buffer, maxLen)
+    }
+
     len      += maxLen
     str[len] = ']'
     len      += 1
@@ -933,8 +1041,11 @@ func __failedExpect(loc: SourceCodeLocation)
 func __stackTrace(loc: SourceCodeLocation)
 {
     let cxt = Swag.getContext()
-    if cxt.traceIndex >= MaxTraces do
+    if cxt.traceIndex >= MaxTraces
+    {
         return
+    }
+
     cxt.traces[cxt.traceIndex] = loc
     cxt.traceIndex += 1
 }
@@ -1027,8 +1138,10 @@ func panic(message: string?, loc: SourceCodeLocation)
     // 'catchPanic' do. It cannot resume the caller: a panic reports a broken invariant, and the
     // code after it is written for a program that never gets there. A hook that returns hands
     // the panic back to the path below.
-    if cxt.panic do
+    if cxt.panic
+    {
         cxt.panic(message, loc)
+    }
 
     // Under the compiler, let it report the panic: it knows more about the code that raised it,
     // and it abandons the run instead of continuing it.
@@ -1123,14 +1236,22 @@ func __sliceBoundsPanic(start, endExclusive, length: u64, flags: SlicePanicFlags
     }
 
     var reason: string?
-    if signedStart and cast #bit (s64, start) < 0 do
+    if signedStart and cast #bit (s64, start) < 0
+    {
         reason = " has a negative start"
-    elif signedEnd and cast #bit (s64, end) < 0 do
+    }
+    else if signedEnd and cast #bit (s64, end) < 0
+    {
         reason = " has a negative end"
-    elif inclusive and endExclusive == 0 do
+    }
+    else if inclusive and endExclusive == 0
+    {
         reason = " wraps its exclusive end"
-    elif start > endExclusive do
+    }
+    else if start > endExclusive
+    {
         reason = " starts after its exclusive end"
+    }
 
     if reason
     {

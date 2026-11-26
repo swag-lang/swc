@@ -46,7 +46,7 @@ func logicalFloatProbe(value: f32, delta: s32)->f32
 #test
 {
     LogCounter = 0
-    let value = logicalFloatProbe(0.0'f32, 1) or sideEffect(true, 10)
+    let value = logicalFloatProbe(0.0_f32, 1) or sideEffect(true, 10)
     Swag.require(value)
     Swag.require(LogCounter == 11)
 }
@@ -54,7 +54,7 @@ func logicalFloatProbe(value: f32, delta: s32)->f32
 #test
 {
     LogCounter = 0
-    let value = logicalFloatProbe(2.0'f32, 1) or sideEffect(true, 10)
+    let value = logicalFloatProbe(2.0_f32, 1) or sideEffect(true, 10)
     Swag.require(value)
     Swag.require(LogCounter == 1)
 }

@@ -141,6 +141,14 @@ namespace
             const FormatPiece&   prev = model_->piece(prevIndex);
             const FormatPiece&   cur  = model_->piece(curIndex);
 
+            if (cur.is(TokenId::SymLiteralSuffixStart) || prev.is(TokenId::SymLiteralSuffixStart))
+                return 0u;
+            if ((prev.is(TokenId::SymBang) && cur.is(TokenId::SymLeftCurly)) ||
+                (cur.is(TokenId::SymBang) && prev.is(TokenId::Identifier)))
+                return 0u;
+            if (prev.hasRole(FormatRoleE::GenericArgsOpen) || cur.hasRole(FormatRoleE::GenericArgsClose))
+                return 0u;
+
             // Empty bracket pairs.
             if (prev.is(TokenId::SymLeftParen) && cur.is(TokenId::SymRightParen))
                 return fromBool(opt.spaceInEmptyParentheses);

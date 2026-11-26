@@ -12,7 +12,7 @@ const LensCapture  = "test.lens.capture"
 const LensArrow    = "test.lens.arrow"
 
 // The lines of a small document a source answers from.
-const LensLines: [5] string = ["if not .centerGroup do", "let group = .centerGroup", "return", "elif .fillCenterGroup do", "var width: f32"]
+const LensLines: [5] string = ["if not .centerGroup {", "let group = .centerGroup", "return", "else if .fillCenterGroup {", "var width: f32"]
 
 // Answers the command state of the test commands the way an application's actions do.
 func lensCommandState(_: *Wnd, evt: IEvent)->bool
@@ -80,10 +80,16 @@ func lensSetup(host: *Testing.HeadlessHost)->*Lens.View
             for line, index in LensLines
             {
                 var found = Lens.match(results.folded, line)
-                if not found.matched do
+                if not found.matched
+                {
                     continue
-                if not section do
+                }
+
+                if not section
+                {
                     section = results.addSection("In this file")
+                }
+
                 with let entry = section.addEntry(line, #move found)
                 {
                     .lead      = Format.toString("%", index + 37)
@@ -91,8 +97,10 @@ func lensSetup(host: *Testing.HeadlessHost)->*Lens.View
                 }
             }
 
-            if section do
+            if section
+            {
                 section.count = cast(u32, section.entries.count)
+            }
         })
     }
 

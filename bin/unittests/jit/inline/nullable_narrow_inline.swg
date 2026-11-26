@@ -14,16 +14,20 @@ func opaqueNode(node: *Node?)->*Node? => node
 #[Swag.Inline]
 func narrowedByTest(node: *Node?)->s32
 {
-    if node == null do
+    if node == null
+    {
         return -1
+    }
     return node.value
 }
 
 #[Swag.Inline]
 func narrowedIndex(values: [..] s32?)->s32
 {
-    if values == null do
+    if values == null
+    {
         return -1
+    }
     return values[0]
 }
 
@@ -35,8 +39,10 @@ func doubleIt(value: s32)->s32 => value * 2
 #[Swag.Inline]
 func narrowedCall(compute: Compute?, value: s32)->s32
 {
-    if compute == null do
+    if compute == null
+    {
         return -1
+    }
     return compute(value)
 }
 

@@ -24,7 +24,7 @@ struct Stepper
     {
         using wnd: Wnd     // Embedded window behavior and presentation.
 
-        sigChanged: SigArray'func||(*Wnd)     // Emitted after the reader changes the value.
+        sigChanged: SigArray!{func||(*Wnd)}     // Emitted after the reader changes the value.
 
         readonly
         {
@@ -49,8 +49,10 @@ impl IWnd for Stepper
     mtd impl onResizeEvent(_: *ResizeEvent)
     {
         // The window is sized once before its buttons exist; `create` lays them out then.
-        if .decreaseBtn == null do
+        if .decreaseBtn == null
+        {
             return
+        }
 
         // Each button is a square cell standing inside the field's frame, one at each end.
         let rect  = .clientRect()
@@ -126,8 +128,10 @@ impl IWnd for Stepper
     mtd impl onKeyEvent(evt: *KeyEvent)
     {
         evt.accepted = false
-        if evt.kind != .Pressed do
+        if evt.kind != .Pressed
+        {
             return
+        }
 
         switch evt.key
         {
@@ -147,7 +151,7 @@ impl IWnd for Stepper
 impl Stepper
 {
     // Steps `Page Up` and `Page Down` take at once.
-    const PageSteps = 10's64
+    const PageSteps = 10_s64
 
     // Creates a stepper holding zero, with no bounds and a step of one.
     //
@@ -160,10 +164,12 @@ impl Stepper
         let metrics = parent.themeMetrics()
         var pos     = position
         pos.height = Math.max(pos.height, metrics.editBox_Height)
-        if pos.width == 0 do
+        if pos.width == 0
+        {
             pos.width = metrics.stepper_Width
+        }
 
-        with let result = Wnd.create'Stepper(parent, null, pos, id)
+        with let result = Wnd.create!{Stepper}(parent, null, pos, id)
         {
             .focusPolicy = .Tab
             .wndFlags    |= .FocusRing
@@ -206,8 +212,10 @@ impl Stepper
         .value = clamped
         .updateButtons()
         .invalidate()
-        if notify do
+        if notify
+        {
             .sigChanged.call(me)
+        }
     }
 
     // Adds `count` steps to the value, as the reader does, and emits [[Gui.Stepper.sigChanged]] when it moved.
@@ -215,8 +223,10 @@ impl Stepper
     // The sum saturates at the bounds instead of wrapping.
     mtd stepBy(count: s64)
     {
-        if count == 0 do
+        if count == 0
+        {
             return
+        }
 
         let magnitude = .unsignedMagnitude(count)
         let step      = cast(u64, .step)
@@ -229,17 +239,25 @@ impl Stepper
         let amount = magnitude * step
         if count > 0
         {
-            if amount > .distanceToMax() do
+            if amount > .distanceToMax()
+            {
                 .changeValue(.maxValue)
-            else do
+            }
+            else
+            {
                 .changeValue(.addStepAmount(.value, amount))
+            }
         }
         else
         {
-            if amount > .distanceToMin() do
+            if amount > .distanceToMin()
+            {
                 .changeValue(.minValue)
-            else do
+            }
+            else
+            {
                 .changeValue(.subtractStepAmount(.value, amount))
+            }
         }
     }
 }
@@ -251,26 +269,38 @@ private impl Stepper
     // Returns the magnitude without negating S64.Min.
     mtd unsignedMagnitude(value: s64)->u64
     {
-        if value >= 0 do
+        if value >= 0
+        {
             return cast(u64, value)
+        }
+
         return cast(u64, -(value + 1)) + 1
     }
 
     // Returns the inclusive distance from the current value to the upper bound.
     mtd distanceToMax()->u64
     {
-        if .value >= 0 or .maxValue < 0 do
+        if .value >= 0 or .maxValue < 0
+        {
             return cast(u64, .maxValue - .value)
+        }
+
         return .unsignedMagnitude(.value) + cast(u64, .maxValue)
     }
 
     // Returns the inclusive distance from the current value to the lower bound.
     mtd distanceToMin()->u64
     {
-        if .value <= 0 do
+        if .value <= 0
+        {
             return .unsignedMagnitude(.minValue) - .unsignedMagnitude(.value)
-        if .minValue >= 0 do
+        }
+
+        if .minValue >= 0
+        {
             return cast(u64, .value - .minValue)
+        }
+
         return cast(u64, .value) + .unsignedMagnitude(.minValue)
     }
 

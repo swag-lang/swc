@@ -14,7 +14,7 @@ impl CastLimits
     const MinSize = 16
     const MaxSize = 4096
 
-    mtd setRange(min = 0'u64, max = Swag.U64.Max)
+    mtd setRange(min = 0_u64, max = Swag.U64.Max)
     {
         .lo  = min
         .hi  = max
@@ -40,7 +40,7 @@ var CastLimitsStorage: CastLimits
     let address  = cast(u64, base)
     let restored = cast([*] u8, address)
     Swag.require(restored == base)
-    Swag.require(cast(*void, 16'u8) == cast(*void, 16'u64))
+    Swag.require(cast(*void, 16_u8) == cast(*void, 16_u64))
 
     var wide: u64 = 0
     wide = cast(u64, CastLimits.MinSize)

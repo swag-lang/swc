@@ -14,7 +14,7 @@ struct(T, N: s32) Buffer
     values: [N] T
 }
 
-func(T, N: s32) bufferCount(buffer: Buffer'(T, N))->s32 => N
+func(T, N: s32) bufferCount(buffer: Buffer!{T, N})->s32 => N
 
 func genericFunctionMakeS32()->s32 => 42
 func genericFunctionConsumeS32(_: s32) {}
@@ -55,17 +55,17 @@ func(T) genericDefaultArgument(value: T = 42)->T
     return value
 }
 
-func(T) genericDefaultArray(values: [2] T = [1'u16, 2'u16])->T
+func(T) genericDefaultArray(values: [2] T = [1_u16, 2_u16])->T
 {
     return values[0]
 }
 
-func(T) genericDefaultMatrix(values: [2, 2] T = [[1'u8, 2'u8], [3'u8, 4'u8]])->T
+func(T) genericDefaultMatrix(values: [2, 2] T = [[1_u8, 2_u8], [3_u8, 4_u8]])->T
 {
     return values[1][0]
 }
 
-func(T) genericDefaultSlice(values: const [..] T = [1'u16, 2'u16])->T
+func(T) genericDefaultSlice(values: const [..] T = [1_u16, 2_u16])->T
 {
     return values[0]
 }
@@ -80,12 +80,12 @@ func(T) genericSliceFirst(values: const [..] T)->T
     return values[0]
 }
 
-func(T, N: s32) genericDefaultBuffer(buffer: Buffer'(T, N) = {values: [1'u16, 2'u16, 3'u16]})->s32
+func(T, N: s32) genericDefaultBuffer(buffer: Buffer!{T, N} = {values: [1_u16, 2_u16, 3_u16]})->s32
 {
     return N
 }
 
-func(U, M: s32) genericDefaultRenamedBuffer(buffer: Buffer'(U, M) = {values: [1'u8, 2'u8]})->U
+func(U, M: s32) genericDefaultRenamedBuffer(buffer: Buffer!{U, M} = {values: [1_u8, 2_u8]})->U
 {
     return buffer.values[0]
 }
@@ -95,19 +95,19 @@ func(T) genericAnonymousField(value: struct { field: T })->T
     return value.field
 }
 
-func(T) genericDefaultAnonymousField(value: struct { field: T } = {field: 12'u16})->T
+func(T) genericDefaultAnonymousField(value: struct { field: T } = {field: 12_u16})->T
 {
     return value.field
 }
 
 func semaTest001()
 {
-    #assert(identity'(s32)(42) == 42)
-    #assert(identity'(bool)(true) == true)
-    #assert(identity(12'u16) == 12'u16)
-    #assert(doubleLeftLiteral'(s32)(21) == 42)
-    #assert(doubleLeftLiteral(2.5'f32) == 5.0'f32)
-    let mixed = mixedMultiply(1's32, 2'f32)
+    #assert(identity!{s32}(42) == 42)
+    #assert(identity!{bool}(true) == true)
+    #assert(identity(12_u16) == 12_u16)
+    #assert(doubleLeftLiteral!{s32}(21) == 42)
+    #assert(doubleLeftLiteral(2.5_f32) == 5.0_f32)
+    let mixed = mixedMultiply(1_s32, 2_f32)
     #assert(#typeof(mixed) == f32)
 }
 
@@ -115,24 +115,24 @@ func semaTest002()
 {
     #assert(#typeof(defaultTypeValue()) == s32)
     #assert(defaultTypeValue() == 42)
-    #assert(#typeof(defaultTypeValue'(f64)()) == f64)
-    #assert(defaultTypeValue'(f64)() == 42.0)
+    #assert(#typeof(defaultTypeValue!{f64}()) == f64)
+    #assert(defaultTypeValue!{f64}() == 42.0)
 }
 
 func semaTest003()
 {
     #assert(defaultConstValue() == 3)
-    #assert(defaultConstValue'(10)() == 10)
+    #assert(defaultConstValue!{10}() == 10)
 }
 
 func semaTest004()
 {
-    let values: [4] u16 = [10'u16, 20, 30, 40]
+    let values: [4] u16 = [10_u16, 20, 30, 40]
     let pair:   [2] s32 = [1, 2]
 
-    #assert(arrayCount'(u16, 4)(values) == 4)
+    #assert(arrayCount!{u16, 4}(values) == 4)
     #assert(arrayCount(values) == 4)
-    #assert(partialCount'(s32)(pair) == 2)
+    #assert(partialCount!{s32}(pair) == 2)
 }
 
 func semaTest005()
@@ -140,18 +140,18 @@ func semaTest005()
     func(T) localDouble(value: T) => 2 * value
     func(T = s32, V = s32) localMixedMultiply(a: T, b: V) => a * b
 
-    #assert(localDouble'(s32)(21) == 42)
-    #assert(localDouble(2.5'f32) == 5.0'f32)
-    let localMixed = localMixedMultiply(1's32, 2'f32)
+    #assert(localDouble!{s32}(21) == 42)
+    #assert(localDouble(2.5_f32) == 5.0_f32)
+    let localMixed = localMixedMultiply(1_s32, 2_f32)
     #assert(#typeof(localMixed) == f32)
 }
 
 func semaTest006()
 {
-    let buffer: Buffer'(u16, 4)
+    let buffer: Buffer!{u16, 4}
 
     #assert(#typeof(buffer.values) == #type [4] u16)
-    #assert(bufferCount'(u16, 4)(buffer) == 4)
+    #assert(bufferCount!{u16, 4}(buffer) == 4)
 }
 
 func semaTest007()
@@ -167,13 +167,13 @@ func semaTest007()
 
 func semaTest008()
 {
-    let first = genericVariadicFirst(1'u16, 2'u16)
+    let first = genericVariadicFirst(1_u16, 2_u16)
     #assert(#typeof(first) == u16)
 
-    let tail = genericVariadicAfterHead(10, 3'u8, 4'u8)
+    let tail = genericVariadicAfterHead(10, 3_u8, 4_u8)
     #assert(#typeof(tail) == u8)
 
-    let forwarded = genericVariadicForward(5's64, 6's64)
+    let forwarded = genericVariadicForward(5_s64, 6_s64)
     #assert(#typeof(forwarded) == s64)
 }
 
@@ -226,7 +226,7 @@ func semaTest016()
 
 func semaTest017()
 {
-    let value = genericAnonymousField(struct { field: u16 }{field: 12'u16})
+    let value = genericAnonymousField(struct { field: u16 }{field: 12_u16})
     #assert(#typeof(value) == u16)
 }
 

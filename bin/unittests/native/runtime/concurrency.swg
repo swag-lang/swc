@@ -8,7 +8,7 @@
 #test
 {
     var mutex: Swag.Mutex
-    var count = 0'u64
+    var count = 0_u64
 
     parallel for |&mutex, &count| 500
     {
@@ -23,8 +23,8 @@
 #test
 {
     var lock:    Swag.RWLock
-    var value = 0'u64
-    var readSum: Swag.AtomicValue'u64
+    var value = 0_u64
+    var readSum: Swag.AtomicValue!{u64}
 
     lock.lock()
     value = 7
@@ -93,8 +93,8 @@
 #test
 {
     var permits:  Swag.Semaphore
-    var inFlight: Swag.AtomicValue'u32
-    var peak:     Swag.AtomicValue'u32
+    var inFlight: Swag.AtomicValue!{u32}
+    var peak:     Swag.AtomicValue!{u32}
     permits.setPermits(2)
 
     parallel for |&permits, &inFlight, &peak| 64
@@ -103,8 +103,10 @@
         let now = inFlight.add(1) + 1
 
         var seen = peak.load()
-        while now > seen and peak.compareExchange(seen, now) != seen do
+        while now > seen and peak.compareExchange(seen, now) != seen
+        {
             seen = peak.load()
+        }
 
         inFlight.sub(1)
         permits.release()
@@ -122,13 +124,15 @@
 #test
 {
     var barrier: Swag.Barrier
-    var phases = 0'u32
+    var phases = 0_u32
     barrier.setParticipants(1)
 
     for 3
     {
-        if barrier.arrive() do
+        if barrier.arrive()
+        {
             phases += 1
+        }
     }
 
     Swag.require(phases == 3)
@@ -138,18 +142,20 @@
 // children read.
 #test
 {
-    var done: Swag.AtomicValue'u32
+    var done: Swag.AtomicValue!{u32}
 
     scope
     {
         var group: Swag.TaskGroup
-        for 40 do
+        for 40
+        {
             group.spawn(func|&done|() { done.add(1) })
+        }
     }
 
     Swag.require(done.load() == 40)
 
-    var started: Swag.AtomicValue'u32
+    var started: Swag.AtomicValue!{u32}
     scope
     {
         var group: Swag.TaskGroup
@@ -159,8 +165,10 @@
         {
             group.spawn(func|&group, &started|()
             {
-                if group.isCancelled() do
+                if group.isCancelled()
+                {
                     return
+                }
                 started.add(1)
             })
         }
@@ -172,7 +180,7 @@
 // A task reports its own completion, and can be submitted again once it finished.
 #test
 {
-    var runs: Swag.AtomicValue'u32
+    var runs: Swag.AtomicValue!{u32}
     var task: Swag.Task
 
     Swag.require(not task.isPending() and not task.isDone())
@@ -190,16 +198,20 @@
 // A drain covers submitted work nobody is waiting on.
 #test
 {
-    var done:  Swag.AtomicValue'u32
+    var done:  Swag.AtomicValue!{u32}
     var tasks: [24] Swag.Task
 
-    for index in 24 do
+    for index in 24
+    {
         tasks[index].submit(func|&done|() { done.add(1) })
+    }
 
     Swag.drainWork()
 
-    for index in 24 do
+    for index in 24
+    {
         Swag.require(tasks[index].isDone())
+    }
     Swag.require(done.load() == 24)
 }
 

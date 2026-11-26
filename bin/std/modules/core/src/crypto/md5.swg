@@ -5,8 +5,11 @@ internal func addInputLength(count: *[2] u32, length: u64)
 {
     let lowBits = cast(u32, length << 3)
     count[][0] += lowBits
-    if count[][0] < lowBits do
+    if count[][0] < lowBits
+    {
         count[][1] += 1
+    }
+
     count[][1] += cast(u32, length >> 29)
 }
 
@@ -73,7 +76,7 @@ public impl Md5
         var index = (.count[0] >> 3) & 0x3F
         addInputLength(&.count, inputLen)
 
-        var i       = 0'u64
+        var i       = 0_u64
         let partLen = 64 - index
         if index and inputLen >= partLen
         {
@@ -103,8 +106,10 @@ public impl Md5
             var state: [4] u32 = [0x67452301, 0xEFCDAB89, 0x98BADCFE, 0x10325476]
             var block: [64] u8
 
-            if bufferLen do
+            if bufferLen
+            {
                 Memory.copy(&block[0], buffer.buffer, bufferLen)
+            }
 
             block[bufferLen] = 0x80
 

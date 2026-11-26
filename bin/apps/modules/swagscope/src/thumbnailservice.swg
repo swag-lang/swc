@@ -46,13 +46,18 @@ func renderThumbnail(registry: const *ViewerPluginRegistry,
     if knownPlugin and registry.plugins[pluginIndex].thumbnail
     {
         let image = try registry.plugins[pluginIndex].thumbnail!(path, ThumbnailMaxSize)
-        if image.isValid() do
+        if image.isValid()
+        {
             return image
+        }
     }
 
     let viewerName = knownPlugin ? registry.plugins[pluginIndex].staticName : "File"
     let textual    = knownPlugin and registry.plugins[pluginIndex].textual
-    if not renderer.bodyFont do
+    if not renderer.bodyFont
+    {
         renderer[] = try ThumbnailRenderer.create()
+    }
+
     return try renderer.render(path, viewerName, textual)
 }

@@ -26,11 +26,17 @@ namespace WinFsp
     // Views a zero-terminated UTF-8 string as a `string`, without copying.
     func cString(value: const [*] u8?)->string
     {
-        if not value do
+        if not value
+        {
             return ""
-        var length = 0'u64
-        while value[length] do
+        }
+
+        var length = 0_u64
+        while value[length]
+        {
             length += 1
+        }
+
         return Swag.makeString(value, length)
     }
 
@@ -48,15 +54,22 @@ namespace WinFsp
     func fillInfo(volume: *Volume, nodeId: u64, output: *FileInfo)->s32
     {
         let node = volume.nodeById(nodeId)
-        if not node do
+        if not node
+        {
             return StatusObjectNameNotFound
+        }
+
         var allocationSize = node.size / BlockSize * BlockSize
         if node.size % BlockSize
         {
-            if allocationSize > Swag.U64.Max - BlockSize do
+            if allocationSize > Swag.U64.Max - BlockSize
+            {
                 allocationSize = Swag.U64.Max
-            else do
+            }
+            else
+            {
                 allocationSize += BlockSize
+            }
         }
 
         with output
@@ -79,8 +92,11 @@ namespace WinFsp
     // Reports the size, the free space, and the label of the volume, cut to `labelCapacity`.
     func callbackGetVolumeInfo(context: *void?, total, free: *u64, label: [*] u8, labelCapacity: u32)->s32
     {
-        if not labelCapacity do
+        if not labelCapacity
+        {
             return StatusInvalidParameter
+        }
+
         let volume = cast(*Volume, unwrap context)
         volume.accessLock.lockShared()
         defer volume.accessLock.unlockShared()
@@ -88,10 +104,16 @@ namespace WinFsp
         free[]  = volume.freeBytes()
         let bytes = volume.label.toSlice()
         var count = Math.min(bytes.count, cast(u64, labelCapacity) - 1)
-        while count and count < bytes.count and (bytes[count] & 0xC0) == 0x80 do
+        while count and count < bytes.count and (bytes[count] & 0xC0) == 0x80
+        {
             count -= 1
-        if count do
+        }
+
+        if count
+        {
             Swag.memcpy(label, &bytes[0], count)
+        }
+
         label[count] = 0
         return StatusSuccess
     }
@@ -103,20 +125,29 @@ namespace WinFsp
         volume.accessLock.lock()
         defer volume.accessLock.unlock()
         let writableStatus = writableVolume(volume)
-        if writableStatus != StatusSuccess do
+        if writableStatus != StatusSuccess
+        {
             return writableStatus
+        }
+
         let value = cString(label)
-        if value.count > 32 * 4 or not Utf8.isValid(value) do
+        if value.count > 32 * 4 or not Utf8.isValid(value)
+        {
             return StatusInvalidParameter
+        }
+
         let bytes  = cast(const [..] u8, value)
-        var offset = 0'u64
-        var units  = 0'u32
+        var offset = 0_u64
+        var units  = 0_u32
         while offset < bytes.count
         {
             let {c, eat} = Utf8.decodeRune(bytes[offset to])
             units += c > 0xFFFF ? 2 : 1
-            if units > 32 do
+            if units > 32
+            {
                 return StatusInvalidParameter
+            }
+
             offset += eat
         }
 
@@ -131,7 +162,7 @@ namespace WinFsp
     // Builds a Windows path from the stored names while the caller holds the volume lock.
     private func storedPath(volume: *Volume, node: *Node)->String
     {
-        var parts: Array'string
+        var parts: Array!{string}
         var current = node
         while current.id != RootNodeId
         {
@@ -139,8 +170,10 @@ namespace WinFsp
             current = unwrap volume.nodeById(current.parentId)
         }
 
-        if not parts.count do
+        if not parts.count
+        {
             return "\\"
+        }
 
         var result: String
         for index in reversed(parts.count)
@@ -158,11 +191,17 @@ namespace WinFsp
         volume.accessLock.lockShared()
         defer volume.accessLock.unlockShared()
         let node = volume.resolve(cString(path))
-        if not node do
+        if not node
+        {
             return StatusObjectNameNotFound
+        }
+
         nodeId[] = node.id
-        if normalizedPath do
+        if normalizedPath
+        {
             normalizedPath[] = storedPath(volume, node)
+        }
+
         return fillInfo(volume, nodeId[], info)
     }
 
@@ -170,20 +209,32 @@ namespace WinFsp
     // data and times are journaled with it.
     func callbackCreate(context: *void?, path: const [*] u8?, directory: u8, attributes: u32, allocationSize: u64, security: const *void?, securitySize: u32, nodeId: *u64, info: *FileInfo, normalizedPath: *String? = null)->s32
     {
-        if securitySize and not security do
+        if securitySize and not security
+        {
             return StatusInvalidParameter
+        }
+
         let volume = cast(*Volume, unwrap context)
         volume.accessLock.lock()
         defer volume.accessLock.unlock()
         let name = cString(path)
-        if volume.resolve(name) do
+        if volume.resolve(name)
+        {
             return StatusObjectNameCollision
+        }
+
         let parent = volume.resolveParent(name).parent
-        if not parent do
+        if not parent
+        {
             return StatusObjectNameNotFound
+        }
+
         var securityBytes = cast(const [..] u8, "")
-        if securitySize do
+        if securitySize
+        {
             securityBytes = Swag.makeSlice(cast(const [*] u8, unwrap security), securitySize)
+        }
+
         let id = catch volume.createNodePending(name, directory != 0, attributes, securityBytes) { return statusFromError(Swag.err) }
         nodeId[] = id
         if not directory and allocationSize
@@ -191,8 +242,11 @@ namespace WinFsp
             discard catch volume.resizeNode(id, 0) { return statusFromError(Swag.err) }
         }
 
-        if normalizedPath do
+        if normalizedPath
+        {
             normalizedPath[] = storedPath(volume, unwrap volume.nodeById(id))
+        }
+
         return fillInfo(volume, id, info)
     }
 
@@ -203,21 +257,38 @@ namespace WinFsp
         volume.accessLock.lock()
         defer volume.accessLock.unlock()
         let node = volume.nodeById(nodeId)
-        if not node do
+        if not node
+        {
             return StatusObjectNameNotFound
-        if node.isDirectory() do
+        }
+
+        if node.isDirectory()
+        {
             return StatusFileIsDirectory
+        }
+
         let writableStatus = writableVolume(volume)
-        if writableStatus != StatusSuccess do
+        if writableStatus != StatusSuccess
+        {
             return writableStatus
-        if (node.attributes & FileAttributeReadOnly) != 0 do
+        }
+
+        if (node.attributes & FileAttributeReadOnly) != 0
+        {
             return StatusAccessDenied
+        }
+
         volume.freeNodeBlocks(node)
         node.size = 0
-        if replaceAttributes do
+        if replaceAttributes
+        {
             node.attributes = attributes ? attributes : FileAttributeNormal
-        else do
+        }
+        else
+        {
             node.attributes |= attributes
+        }
+
         node.attributes    &= ~FileAttributeDirectory
         node.changeTime    = volumeTimeNow()
         node.lastWriteTime = node.changeTime
@@ -235,8 +306,11 @@ namespace WinFsp
         let volume = cast(*Volume, unwrap context)
         volume.accessLock.lock()
         defer volume.accessLock.unlock()
-        if writableVolume(volume) != StatusSuccess do
+        if writableVolume(volume) != StatusSuccess
+        {
             return
+        }
+
         if (flags & CleanupDelete) != 0
         {
             discard catch volume.deleteNode(nodeId)
@@ -244,30 +318,49 @@ namespace WinFsp
         }
 
         let node = volume.nodeById(nodeId)
-        if not node do
+        if not node
+        {
             return
+        }
+
         let now = volumeTimeNow()
-        if (flags & CleanupSetArchiveBit) != 0 do
+        if (flags & CleanupSetArchiveBit) != 0
+        {
             node.attributes |= FileAttributeArchive
-        if (flags & CleanupSetLastAccessTime) != 0 do
+        }
+
+        if (flags & CleanupSetLastAccessTime) != 0
+        {
             node.lastAccessTime = now
-        if (flags & CleanupSetLastWriteTime) != 0 do
+        }
+
+        if (flags & CleanupSetLastWriteTime) != 0
+        {
             node.lastWriteTime = now
-        if (flags & CleanupSetChangeTime) != 0 do
+        }
+
+        if (flags & CleanupSetChangeTime) != 0
+        {
             node.changeTime = now
+        }
+
         if (flags & (CleanupSetAllocationSize |
                      CleanupSetArchiveBit |
                      CleanupSetLastAccessTime |
                      CleanupSetLastWriteTime |
-                     CleanupSetChangeTime)) != 0 do
+                     CleanupSetChangeTime)) != 0
+        {
             volume.touchMetadata(nodeId)
+        }
 
         // A create is intentionally pending until cleanup so its initial data
         // and timestamps share one journal record. Cleanup has no result
         // channel, just as before, so an explicit Flush remains the path that
         // reports a durability failure to Windows.
-        if volume.hasPendingChanges() do
+        if volume.hasPendingChanges()
+        {
             discard catch volume.commit()
+        }
     }
 
     // Reads up to `length` bytes of a file at `offset` into `buffer`, and reports how many it
@@ -281,17 +374,29 @@ namespace WinFsp
         }
 
         let volume = cast(*Volume, unwrap context)
-        #static if #hastag("vault.integration") do
+        #static if #hastag("vault.integration")
+        {
             let started = Time.monotonicMicroseconds()
-        #static if #hastag("vault.integration") do
+        }
+
+        #static if #hastag("vault.integration")
+        {
             defer Atomic.add(&Integration.g_ReadCallbackMicroseconds, Time.monotonicMicroseconds() - started)
+        }
+
         volume.accessLock.lockShared()
         defer volume.accessLock.unlockShared()
         let node = volume.nodeById(nodeId)
-        if not node do
+        if not node
+        {
             return StatusObjectNameNotFound
-        if node.isDirectory() do
+        }
+
+        if node.isDirectory()
+        {
             return StatusFileIsDirectory
+        }
+
         let count = catch volume.readNode(nodeId, offset, Swag.makeSlice(cast([*] u8, unwrap buffer), length)) { return statusFromError(Swag.err) }
         transferred[] = count
         return StatusSuccess
@@ -311,39 +416,63 @@ namespace WinFsp
         volume.accessLock.lock()
         defer volume.accessLock.unlock()
         let node = volume.nodeById(nodeId)
-        if not node do
+        if not node
+        {
             return StatusObjectNameNotFound
-        if node.isDirectory() do
+        }
+
+        if node.isDirectory()
+        {
             return StatusFileIsDirectory
+        }
+
         let writableStatus = writableVolume(volume)
-        if writableStatus != StatusSuccess do
+        if writableStatus != StatusSuccess
+        {
             return writableStatus
-        if (node.attributes & FileAttributeReadOnly) != 0 do
+        }
+
+        if (node.attributes & FileAttributeReadOnly) != 0
+        {
             return StatusAccessDenied
+        }
+
         var writeOffset = writeToEnd ? node.size : offset
         var writeLength = cast(u64, length)
         if constrained
         {
-            if writeOffset >= node.size do
+            if writeOffset >= node.size
+            {
                 writeLength = 0
-            else do
+            }
+            else
+            {
                 writeLength = Math.min(writeLength, node.size - writeOffset)
+            }
         }
 
         if writeLength
         {
-            if writeOffset > Swag.U64.Max - writeLength do
+            if writeOffset > Swag.U64.Max - writeLength
+            {
                 return StatusInvalidParameter
+            }
+
             let firstBlock = writeOffset / BlockSize
             let lastBlock  = (writeOffset + writeLength - 1) / BlockSize
             var needed     = lastBlock - firstBlock + 1
             if not constrained and
                writeOffset + writeLength > node.size and
                node.size % BlockSize != 0 and
-               node.blockSearch(node.size / BlockSize).found do
+               node.blockSearch(node.size / BlockSize).found
+            {
                 needed += 1
-            if volume.freeBlockCount() < needed do
+            }
+
+            if volume.freeBlockCount() < needed
+            {
                 return StatusDiskFull
+            }
         }
 
         let count = catch volume.writeNode(nodeId, offset, Swag.makeSlice(cast(const [*] u8, unwrap buffer), length), writeToEnd != 0, constrained != 0) { return statusFromError(Swag.err, volume.freeBlockCount() ? StatusIoDeviceError : StatusDiskFull) }
@@ -358,8 +487,11 @@ namespace WinFsp
         volume.accessLock.lock()
         defer volume.accessLock.unlock()
         discard catch volume.commit() { return statusFromError(Swag.err) }
-        if nodeId do
+        if nodeId
+        {
             return fillInfo(volume, nodeId, info)
+        }
+
         return StatusSuccess
     }
 
@@ -379,29 +511,51 @@ namespace WinFsp
         volume.accessLock.lock()
         defer volume.accessLock.unlock()
         let node = volume.nodeById(nodeId)
-        if not node do
+        if not node
+        {
             return StatusObjectNameNotFound
+        }
+
         let writableStatus = writableVolume(volume)
-        if writableStatus != StatusSuccess do
+        if writableStatus != StatusSuccess
+        {
             return writableStatus
+        }
+
         if attributes != Swag.U32.Max
         {
             let isDirectory = node.isDirectory()
             node.attributes = attributes ? attributes : FileAttributeNormal
-            if isDirectory do
+            if isDirectory
+            {
                 node.attributes |= FileAttributeDirectory
-            else do
+            }
+            else
+            {
                 node.attributes &= ~FileAttributeDirectory
+            }
         }
 
-        if creationTime do
+        if creationTime
+        {
             node.creationTime = creationTime
-        if lastAccessTime do
+        }
+
+        if lastAccessTime
+        {
             node.lastAccessTime = lastAccessTime
-        if lastWriteTime do
+        }
+
+        if lastWriteTime
+        {
             node.lastWriteTime = lastWriteTime
-        if changeTime do
+        }
+
+        if changeTime
+        {
             node.changeTime = changeTime
+        }
+
         volume.touchMetadata(nodeId)
         return fillInfo(volume, nodeId, info)
     }
@@ -414,23 +568,37 @@ namespace WinFsp
         volume.accessLock.lock()
         defer volume.accessLock.unlock()
         let node = volume.nodeById(nodeId)
-        if not node do
+        if not node
+        {
             return StatusObjectNameNotFound
-        if node.isDirectory() do
+        }
+
+        if node.isDirectory()
+        {
             return StatusFileIsDirectory
+        }
+
         let writableStatus = writableVolume(volume)
-        if writableStatus != StatusSuccess do
+        if writableStatus != StatusSuccess
+        {
             return writableStatus
-        if (node.attributes & FileAttributeReadOnly) != 0 do
+        }
+
+        if (node.attributes & FileAttributeReadOnly) != 0
+        {
             return StatusAccessDenied
+        }
 
         // Setting the allocation size can only shrink the node down to what it already holds.
         let targetSize = setAllocationSize ? Math.min(newSize, node.size) : newSize
         if targetSize > node.size and
            node.size % BlockSize != 0 and
            node.blockSearch(node.size / BlockSize).found and
-           not volume.freeBlockCount() do
+           not volume.freeBlockCount()
+        {
             return StatusDiskFull
+        }
+
         discard catch volume.resizeNode(nodeId, targetSize) { return statusFromError(Swag.err) }
         return fillInfo(volume, nodeId, info)
     }
@@ -442,17 +610,32 @@ namespace WinFsp
         volume.accessLock.lockShared()
         defer volume.accessLock.unlockShared()
         let node = volume.nodeById(nodeId)
-        if not node do
+        if not node
+        {
             return StatusObjectNameNotFound
-        if nodeId == 1 do
+        }
+
+        if nodeId == 1
+        {
             return StatusAccessDenied
+        }
+
         let writableStatus = writableVolume(volume)
-        if writableStatus != StatusSuccess do
+        if writableStatus != StatusSuccess
+        {
             return writableStatus
-        if (node.attributes & FileAttributeReadOnly) != 0 do
+        }
+
+        if (node.attributes & FileAttributeReadOnly) != 0
+        {
             return StatusAccessDenied
-        if node.isDirectory() and volume.hasChildren(nodeId) do
+        }
+
+        if node.isDirectory() and volume.hasChildren(nodeId)
+        {
             return StatusDirectoryNotEmpty
+        }
+
         return StatusSuccess
     }
 
@@ -475,35 +658,56 @@ namespace WinFsp
         volume.accessLock.lockShared()
         defer volume.accessLock.unlockShared()
         let node = volume.nodeById(nodeId)
-        if not node do
+        if not node
+        {
             return StatusObjectNameNotFound
+        }
+
         let stored    = node.security.toSlice()
         let available = securitySize[]
         securitySize[] = cast(u32, stored.count)
-        if not stored.count do
+        if not stored.count
+        {
             return StatusSuccess
-        if not security or available < stored.count do
+        }
+
+        if not security or available < stored.count
+        {
             return security ? StatusBufferOverflow : StatusSuccess
+        }
+
         Swag.memcpy(security, stored.buffer, stored.count)
         return StatusSuccess
     }
 
     func callbackSetSecurity(context: *void?, nodeId: u64, security: const *void?, securitySize: u32)->s32
     {
-        if securitySize > MaximumSecuritySize or (securitySize and not security) do
+        if securitySize > MaximumSecuritySize or (securitySize and not security)
+        {
             return StatusInvalidParameter
+        }
+
         let volume = cast(*Volume, unwrap context)
         volume.accessLock.lock()
         defer volume.accessLock.unlock()
         let node = volume.nodeById(nodeId)
-        if not node do
+        if not node
+        {
             return StatusObjectNameNotFound
+        }
+
         let writableStatus = writableVolume(volume)
-        if writableStatus != StatusSuccess do
+        if writableStatus != StatusSuccess
+        {
             return writableStatus
+        }
+
         node.security.resize(securitySize)
-        if securitySize do
+        if securitySize
+        {
             Swag.memcpy(node.security.storage(), unwrap security, securitySize)
+        }
+
         node.changeTime = volumeTimeNow()
         volume.touch(nodeId)
         return StatusSuccess
@@ -520,10 +724,15 @@ namespace WinFsp
         volume.accessLock.lockShared()
         defer volume.accessLock.unlockShared()
         let directory = volume.nodeById(nodeId)
-        if not directory do
+        if not directory
+        {
             return StatusObjectNameNotFound
-        if not directory.isDirectory() do
+        }
+
+        if not directory.isDirectory()
+        {
             return StatusNotADirectory
+        }
 
         let markerName = cString(marker)
         var info:  FileInfo
@@ -533,42 +742,54 @@ namespace WinFsp
             if nodeId != 1
             {
                 discard fillInfo(volume, nodeId, &info)
-                if not emit(emitContext, (".").buffer, &info) do
+                if not emit(emitContext, (".").buffer, &info)
+                {
                     return StatusSuccess
+                }
 
                 let parentId = directory.parentId
                 discard fillInfo(volume, parentId, &info)
-                if not emit(emitContext, ("..").buffer, &info) do
+                if not emit(emitContext, ("..").buffer, &info)
+                {
                     return StatusSuccess
+                }
             }
 
             child = volume.firstChild(nodeId)
         }
-        elif nodeId != 1 and sameName(markerName, ".")
+        else if nodeId != 1 and sameName(markerName, ".")
         {
             let parentId = directory.parentId
             discard fillInfo(volume, parentId, &info)
-            if not emit(emitContext, ("..").buffer, &info) do
+            if not emit(emitContext, ("..").buffer, &info)
+            {
                 return StatusSuccess
+            }
+
             child = volume.firstChild(nodeId)
         }
-        elif nodeId != 1 and sameName(markerName, "..")
+        else if nodeId != 1 and sameName(markerName, "..")
         {
             child = volume.firstChild(nodeId)
         }
         else
         {
             let markerNode = volume.findChild(nodeId, markerName)
-            if markerNode do
+            if markerNode
+            {
                 child = volume.nextSibling(markerNode.id)
+            }
         }
 
         while child
         {
             let current = child
             discard fillInfo(volume, current.id, &info)
-            if not emit(emitContext, current.name.buffer, &info) do
+            if not emit(emitContext, current.name.buffer, &info)
+            {
                 return StatusSuccess
+            }
+
             child = volume.nextSibling(current.id)
         }
 
@@ -583,10 +804,16 @@ namespace WinFsp
         volume.accessLock.lockShared()
         defer volume.accessLock.unlockShared()
         let directory = volume.nodeById(directoryId)
-        if not directory do
+        if not directory
+        {
             return StatusObjectNameNotFound
-        if not directory.isDirectory() do
+        }
+
+        if not directory.isDirectory()
+        {
             return StatusNotADirectory
+        }
+
         let value = cString(name)
         if value == "." or value == ".."
         {
@@ -595,8 +822,11 @@ namespace WinFsp
         }
 
         let child = volume.findChild(directoryId, value)
-        if not child do
+        if not child
+        {
             return StatusObjectNameNotFound
+        }
+
         storedName[] = child.name
         return fillInfo(volume, child.id, info)
     }

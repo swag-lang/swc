@@ -129,7 +129,7 @@ private func assertInvalidMonitor(monitor: Env.Monitor)
 #test
 {
     var source: Source
-    let native = Memory.new'NativeSource()
+    let native = Memory.new!{NativeSource}()
     native[].metrics = SourceMetrics{acquiredFrames: 1,
                                      unchangedFrames: 1,
                                      coalescedUpdates: 1,

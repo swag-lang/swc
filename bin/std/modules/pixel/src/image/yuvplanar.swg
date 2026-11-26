@@ -56,10 +56,12 @@ impl YuvPlanarView
     // Plane pointers must still refer to readable storage for the described rows.
     public mtd const isValidLayout()->bool
     {
-        if .width <= 0 or .height <= 0 or (.chromaShift != 0 and .chromaShift != 1) do
+        if .width <= 0 or .height <= 0 or (.chromaShift != 0 and .chromaShift != 1)
+        {
             return false
+        }
 
-        let divisor     = 1's32 << .chromaShift
+        let divisor     = 1_s32 << .chromaShift
         let chromaWidth = .width / divisor + (.width % divisor != 0 ? 1 : 0)
         return .lumaStride >= cast(u64, .width) and .chromaStride >= cast(u64, chromaWidth)
     }
@@ -69,7 +71,7 @@ impl YuvPlanarView
     mtd const chromaWidth()->s32
     {
         Swag.assert(.isValidLayout(), "YUV planar view has an invalid layout")
-        let divisor = 1's32 << .chromaShift
+        let divisor = 1_s32 << .chromaShift
         return .width / divisor + (.width % divisor != 0 ? 1 : 0)
     }
 
@@ -78,7 +80,7 @@ impl YuvPlanarView
     mtd const chromaHeight()->s32
     {
         Swag.assert(.isValidLayout(), "YUV planar view has an invalid layout")
-        let divisor = 1's32 << .chromaShift
+        let divisor = 1_s32 << .chromaShift
         return .height / divisor + (.height % divisor != 0 ? 1 : 0)
     }
 
@@ -92,14 +94,16 @@ impl YuvPlanarView
     mtd const convertToRgb(target: *Image)
     {
         Swag.assert(.isValidLayout(), "YUV planar view has an invalid layout")
-        if target.width != .width or target.height != .height or target.pixelFormat != .RGB8 do
+        if target.width != .width or target.height != .height or target.pixelFormat != .RGB8
+        {
             target[] = Image.create(.width, .height, .RGB8)
+        }
 
         // The luma rows sharing one chroma row are one group: two of them in 4:2:0, one in
         // 4:4:4. The runtime groups these independent bands by measured cost and keeps small
         // conversions on the caller without starting workers.
         let view  = me
-        let band  = 1's32 << .chromaShift
+        let band  = 1_s32 << .chromaShift
         let count = (cast(u64, .height) + cast(u64, band) - 1) / cast(u64, band)
         parallel for |view, target, band| group in count
         {
@@ -114,22 +118,33 @@ impl YuvPlanarView
     // rows, so they run concurrently on one target.
     mtd const convertRowsToRgb(target: *Image, firstY, endY: s32)
     {
-        if not .isValidLayout() do
+        if not .isValidLayout()
+        {
             Swag.panic("YUV planar view has an invalid layout", #curlocation)
+        }
+
         if not target.isValid() or
            target.pixelFormat != .RGB8 or
            target.width != .width or
-           target.height != .height do
+           target.height != .height
+        {
             Swag.panic("YUV conversion target must be a matching RGB8 image", #curlocation)
+        }
+
         let targetRowBytes = cast(u64, target.width) * 3
         if targetRowBytes > Swag.S32.Max or
            target.bytesPerPixel != 3 or
            target.rowStride != cast(s32, targetRowBytes) or
            target.byteCount != targetRowBytes * cast(u64, target.height) or
-           target.pixels.count != target.byteCount do
+           target.pixels.count != target.byteCount
+        {
             Swag.panic("YUV conversion target has invalid pixel storage", #curlocation)
-        if firstY < 0 or endY < firstY or endY > .height do
+        }
+
+        if firstY < 0 or endY < firstY or endY > .height
+        {
             Swag.panic("YUV conversion row range is outside the image", #curlocation)
+        }
 
         let factors = .conversionFactors()
         for y in firstY until endY
@@ -139,9 +154,12 @@ impl YuvPlanarView
             let chromaRow   = cast(u64, (y >> .chromaShift)) * .chromaStride
             let cbRow       = .chromaB + chromaRow
             let crRow       = .chromaR + chromaRow
-            if .chromaShift == 0 do
+            if .chromaShift == 0
+            {
                 convertRowFullChroma(destination, luma, cbRow, crRow, .width, &factors)
-            else do
+            }
+            else
+            {
                 convertRowHalfChroma(destination,
                                      luma,
                                      .chromaB,
@@ -153,6 +171,7 @@ impl YuvPlanarView
                                      .chromaStride,
                                      y,
                                      &factors)
+            }
         }
     }
 
@@ -166,7 +185,7 @@ private func convertRowFullChroma(destination: [*] u8, luma, cb, cr: const [*] u
 {
     var out       = destination
     var y         = luma
-    var at        = 0'u64
+    var at        = 0_u64
     var remaining = width
     while remaining >= 16
     {
@@ -208,13 +227,13 @@ private func weightChromaRows(row, adjacent: const [*] u8)->Simd.U16x8
 #[Swag.Inline]
 private func quarterChroma(row, adjacent: const [*] u8, first, last: bool)->Simd.U8x16
 {
-    const RepeatLeft  = cast(Simd.U8x16, [0'u8, 1, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13])
-    const RepeatRight = cast(Simd.U8x16, [2'u8, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 14, 15])
+    const RepeatLeft  = cast(Simd.U8x16, [0_u8, 1, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13])
+    const RepeatRight = cast(Simd.U8x16, [2_u8, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 14, 15])
     let middle = weightChromaRows(row, adjacent)
     let bytes  = cast #bit(Simd.U8x16, middle)
     let left   = first ? cast #bit(Simd.U16x8, Simd.shuffle(bytes, RepeatLeft)) : weightChromaRows(row - 1, adjacent - 1)
     let right  = last ? cast #bit(Simd.U16x8, Simd.shuffle(bytes, RepeatRight)) : weightChromaRows(row + 1, adjacent + 1)
-    let base   = (middle << 1) + middle + 8'u16
+    let base   = (middle << 1) + middle + 8_u16
     let even   = (base + left) >> 4
     let odd    = (base + right) >> 4
     let low    = cast #bit(Simd.S16x8, Simd.interleaveLow(even, odd))
@@ -235,7 +254,7 @@ private func convertRowHalfChroma(destination: [*] u8,
                                   y: s32,
                                   factors: const *YuvConversionFactors)
 {
-    var x = 0's32
+    var x = 0_s32
     if not (width & 1) and not (height & 1)
     {
         let row        = y / 2
@@ -256,8 +275,10 @@ private func convertRowHalfChroma(destination: [*] u8,
         }
     }
 
-    if x == width do
+    if x == width
+    {
         return
+    }
 
     // The two chroma planes share the same coordinates and every pixel shares this row.
     let weights = chromaRowWeights(width, height, chromaHeight, chromaStride, y)
@@ -389,7 +410,7 @@ private func storeYuvRgbPixel(destination: [*] u8, c298, rTerm, gTerm, bTerm: s3
 private func convertYuvRgb16(destination: [*] u8, luma, cb, cr: const [*] u8, factors: const *YuvConversionFactors)
 {
     // Each chroma byte serves a pair of pixels.
-    const DupPairs = cast(Simd.U8x16, [0'u8, 0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6, 7, 7])
+    const DupPairs = cast(Simd.U8x16, [0_u8, 0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6, 7, 7])
 
     let y16 = Simd.subSaturating(Simd.load(luma), Simd.splat(cast(u8, factors.lumaOffset)))
     let yLo = Simd.widenLow(y16)
@@ -436,15 +457,15 @@ private func convertYuvRgb16(destination: [*] u8, luma, cb, cr: const [*] u8, fa
 #[Swag.Inline]
 private func storeYuvRgb48(destination: [*] u8, r8, g8, b8: Simd.U8x16)
 {
-    const PermR0 = cast(Simd.U8x16, [0'u8, 128, 128, 1, 128, 128, 2, 128, 128, 3, 128, 128, 4, 128, 128, 5])
-    const PermG0 = cast(Simd.U8x16, [128'u8, 0, 128, 128, 1, 128, 128, 2, 128, 128, 3, 128, 128, 4, 128, 128])
-    const PermB0 = cast(Simd.U8x16, [128'u8, 128, 0, 128, 128, 1, 128, 128, 2, 128, 128, 3, 128, 128, 4, 128])
-    const PermR1 = cast(Simd.U8x16, [128'u8, 128, 6, 128, 128, 7, 128, 128, 8, 128, 128, 9, 128, 128, 10, 128])
-    const PermG1 = cast(Simd.U8x16, [5'u8, 128, 128, 6, 128, 128, 7, 128, 128, 8, 128, 128, 9, 128, 128, 10])
-    const PermB1 = cast(Simd.U8x16, [128'u8, 5, 128, 128, 6, 128, 128, 7, 128, 128, 8, 128, 128, 9, 128, 128])
-    const PermR2 = cast(Simd.U8x16, [128'u8, 11, 128, 128, 12, 128, 128, 13, 128, 128, 14, 128, 128, 15, 128, 128])
-    const PermG2 = cast(Simd.U8x16, [128'u8, 128, 11, 128, 128, 12, 128, 128, 13, 128, 128, 14, 128, 128, 15, 128])
-    const PermB2 = cast(Simd.U8x16, [10'u8, 128, 128, 11, 128, 128, 12, 128, 128, 13, 128, 128, 14, 128, 128, 15])
+    const PermR0 = cast(Simd.U8x16, [0_u8, 128, 128, 1, 128, 128, 2, 128, 128, 3, 128, 128, 4, 128, 128, 5])
+    const PermG0 = cast(Simd.U8x16, [128_u8, 0, 128, 128, 1, 128, 128, 2, 128, 128, 3, 128, 128, 4, 128, 128])
+    const PermB0 = cast(Simd.U8x16, [128_u8, 128, 0, 128, 128, 1, 128, 128, 2, 128, 128, 3, 128, 128, 4, 128])
+    const PermR1 = cast(Simd.U8x16, [128_u8, 128, 6, 128, 128, 7, 128, 128, 8, 128, 128, 9, 128, 128, 10, 128])
+    const PermG1 = cast(Simd.U8x16, [5_u8, 128, 128, 6, 128, 128, 7, 128, 128, 8, 128, 128, 9, 128, 128, 10])
+    const PermB1 = cast(Simd.U8x16, [128_u8, 5, 128, 128, 6, 128, 128, 7, 128, 128, 8, 128, 128, 9, 128, 128])
+    const PermR2 = cast(Simd.U8x16, [128_u8, 11, 128, 128, 12, 128, 128, 13, 128, 128, 14, 128, 128, 15, 128, 128])
+    const PermG2 = cast(Simd.U8x16, [128_u8, 128, 11, 128, 128, 12, 128, 128, 13, 128, 128, 14, 128, 128, 15, 128])
+    const PermB2 = cast(Simd.U8x16, [10_u8, 128, 128, 11, 128, 128, 12, 128, 128, 13, 128, 128, 14, 128, 128, 15])
 
     Simd.store(destination, Simd.shuffle(r8, PermR0) | Simd.shuffle(g8, PermG0) | Simd.shuffle(b8, PermB0))
     Simd.store(destination + 16, Simd.shuffle(r8, PermR1) | Simd.shuffle(g8, PermG1) | Simd.shuffle(b8, PermB1))

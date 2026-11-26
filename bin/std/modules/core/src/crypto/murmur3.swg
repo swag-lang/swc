@@ -62,7 +62,7 @@ public func murmur3(a, b: u64)->u64
 #[Safety(.All, false)]
 public func murmur3(key: const [*] u8, len: u64, seed: u64)->u64
 {
-    const m = 0xC6A4A7935BD1E995'u64
+    const m = 0xC6A4A7935BD1E995_u64
     const r = 47
 
     var h = seed ^ (len * m)

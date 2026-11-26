@@ -13,7 +13,7 @@ struct Scale
 #[Swag.Optimize(true), Swag.NoInline]
 func fillScaled(out: [*] s64, count: u64, scale: Scale, text: string)->s64
 {
-    var total = 0's64
+    var total = 0_s64
     for i in count
     {
         out[i] = cast(s64, i) * scale.factor
@@ -29,8 +29,10 @@ func fillScaled(out: [*] s64, count: u64, scale: Scale, text: string)->s64
     var values: [8] s64
     let total = fillScaled(&values[0], 8, Scale{3, 5}, "four")
     Swag.require(total == 8 * (5 + 4))
-    for i in 8 do
+    for i in 8
+    {
         Swag.require(values[i] == cast(s64, i) * 3)
+    }
 
     Swag.require(fillScaled(&values[0], 0, Scale{3, 5}, "four") == 0)
 }

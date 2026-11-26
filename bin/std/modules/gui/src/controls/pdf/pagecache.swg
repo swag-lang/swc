@@ -15,7 +15,7 @@ struct PdfResidentPage
 
     // Textures of the page's image items, uploaded to the application renderer once per page and
     // reused by every subsequent paint, in item order.
-    textures:    Array'Texture
+    textures:    Array!{Texture}
     hasTextures: bool
 
     fonts: Pdf.RenderFontCache     // Typefaces resolved once per page rather than once per paint.
@@ -36,21 +36,34 @@ impl PdfResidentPage
     // subsequent paint reuses, whatever the zoom.
     mtd ensureTextures(renderer: Pixel.IRenderer)
     {
-        if .hasTextures do
+        if .hasTextures
+        {
             return
+        }
+
         for item in .page.items
         {
             var uploaded: Pixel.Texture
-            if item.kind == .Image do
-                uploaded = renderer.addImage(item.imageValue()![])
-            elif item.hasMask do
+            if item.kind == .Image
+            {
+                uploaded = renderer.addImage(item.image)
+            }
+            else if item.hasMask
+            {
                 uploaded = renderer.addImage(item.maskImage)
-            else do
+            }
+            else
+            {
                 continue
+            }
+
             if not uploaded.isValid()
             {
-                for &texture in .textures do
+                for &texture in .textures
+                {
                     renderer.removeTexture(texture)
+                }
+
                 .textures.clear()
                 return
             }
@@ -65,8 +78,10 @@ impl PdfResidentPage
     {
         if .hasTextures
         {
-            for &texture in .textures do
+            for &texture in .textures
+            {
                 renderer.removeTexture(texture)
+            }
         }
 
         .textures.clear()
@@ -76,8 +91,11 @@ impl PdfResidentPage
     // Indexes the page's text, once per page and only when selection or search asks for it.
     mtd ensureTextIndex()
     {
-        if .hasTextIndex do
+        if .hasTextIndex
+        {
             return
+        }
+
         .textIndex    = Pdf.TextIndex.build(&.page)
         .hasTextIndex = true
     }
@@ -110,7 +128,7 @@ struct PdfPageCache
 {
     // Resident pages, in no particular order. Entries are allocated one by one, so a page
     // borrowed for a frame stays where it is while another one is adopted or evicted.
-    pages: ArrayPtr'PdfResidentPage
+    pages: ArrayPtr!{PdfResidentPage}
 
     fileName: String
     clock:    u64     // Stamps `PdfResidentPage.used`, so the oldest page outside the band goes first.
@@ -140,8 +158,11 @@ impl PdfPageCache
     mtd close(renderer: Pixel.IRenderer)
     {
         .abandonLoad()
-        for page in .pages do
+        for page in .pages
+        {
             page!.releaseTextures(renderer)
+        }
+
         .pages.clear()
         .fileName.clear()
         .readerError.clear()
@@ -175,8 +196,11 @@ impl PdfPageCache
     // Reports whether `index` is decoded, without marking it as used.
     mtd const isResident(index: u64)->bool
     {
-        for page in .pages where page!.index == index do
+        for page in .pages where page!.index == index
+        {
             return true
+        }
+
         return false
     }
 
@@ -193,10 +217,15 @@ impl PdfPageCache
     // Reports whether a page is being decoded when it returns.
     mtd request(index: u64, scale: f32)->bool
     {
-        if .loading do
+        if .loading
+        {
             return true
-        if .fileName.isEmpty() or .isResident(index) do
+        }
+
+        if .fileName.isEmpty() or .isResident(index)
+        {
             return false
+        }
 
         .loadIndex = index
         .loadScale = scale
@@ -214,8 +243,10 @@ impl PdfPageCache
     // stops the view from asking for it again on every frame.
     mtd adopt()->*PdfResidentPage?
     {
-        if not .loading or not .task.isDone() do
+        if not .loading or not .task.isDone()
+        {
             return null
+        }
 
         .task.wait()
         .loading = false
@@ -251,9 +282,12 @@ impl PdfPageCache
     // Returns what every resident page holds in memory, in bytes.
     mtd const memoryUsage()->u64
     {
-        var result = 0'u64
-        for page in .pages do
+        var result = 0_u64
+        for page in .pages
+        {
             result += page!.bytes
+        }
+
         return result
     }
 
@@ -273,8 +307,11 @@ impl PdfPageCache
             var oldest = Swag.U64.Max
             for page, index in .pages
             {
-                if page!.index >= keepFrom and page.index <= keepTo do
+                if page!.index >= keepFrom and page.index <= keepTo
+                {
                     continue
+                }
+
                 if page.used < oldest
                 {
                     oldest = page.used
@@ -282,8 +319,10 @@ impl PdfPageCache
                 }
             }
 
-            if victim == Swag.U64.Max do
+            if victim == Swag.U64.Max
+            {
                 return
+            }
 
             .pages[victim]!.releaseTextures(renderer)
             .pages.deleteAt(victim)
@@ -296,8 +335,11 @@ impl PdfPageCache
     // caller pays what remains of one page rather than of the document.
     mtd abandonLoad()
     {
-        if not .loading do
+        if not .loading
+        {
             return
+        }
+
         .task.wait()
         .loading = false
         .loadFailure.clear()

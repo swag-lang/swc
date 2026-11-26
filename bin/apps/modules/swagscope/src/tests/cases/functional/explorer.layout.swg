@@ -50,7 +50,7 @@ using Core, Gui, Pixel
         explorer.fill()
         explorer.show()
         explorer.showInformation()
-        for width in [960.0'f32, ViewerWindow.MinWidth]
+        for width in [960.0_f32, ViewerWindow.MinWidth]
         {
             window.resize(width, 680)
             window.applyLayout()
@@ -76,7 +76,7 @@ using Core, Gui, Pixel
     var host: Testing.HeadlessHost
     let workspace = testWorkspace(&host)
     defer host.shutdown()
-    let left = scopeTestDataPath("comprehensive.txt")
+    let left  = scopeTestDataPath("comprehensive.txt")
     let right = scopeTestDataPath("sample.cpp")
     workspace.openScene([left, right], .SideBySide)
     openViews(&host, workspace)
@@ -148,7 +148,7 @@ using Core, Gui, Pixel
     let file = scopeTestDataPath("sample.cpp")
     workspace.openScene([file, scopeTestDataPath("viewer.png")], .SideBySide)
     openViews(&host, workspace)
-    let scene = unwrap workspace.scene()
+    let scene    = unwrap workspace.scene()
     let document = workspace.activeDocument()
     document.openExplorer(unwrap Path.directoryName(file))
     let explorer = unwrap document.explorer
@@ -176,7 +176,7 @@ using Core, Gui, Pixel
     host.keyPress(.F6)
     Swag.require(not scene.maximized and document.searchBox.hasFocus())
     host.keyPress(.F)
-    host.sendRune(.F, 'f'rune)
+    host.sendRune(.F, 'f'_rune)
     Swag.require(not scene.maximized and document.searchBox.hasFocus() and document.searchBox.text() == "f")
     document.searchBox.setText("")
     let sheet = OptionSheet.View.create(explorer.modeMenu, func|explorer|(page) { explorer.describeViewOptions(page) }, owner: explorer)
@@ -186,7 +186,9 @@ using Core, Gui, Pixel
     Swag.require(explorer.kindFilter == .Images)
     sheet.destroy()
     workspace.closeView(1)
-    Swag.require(explorer.kindMenu.isVisible() and explorer.sortMenu.isVisible() and document.searchOptionsButton.isVisible())
+    Swag.require(explorer.kindMenu.isVisible() and
+                 explorer.sortMenu.isVisible() and
+                 document.searchOptionsButton.isVisible())
 }
 
 // With two scenes the folder address belongs to the page, leaving each tab clickable.

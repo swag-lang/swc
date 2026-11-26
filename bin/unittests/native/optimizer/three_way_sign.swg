@@ -30,16 +30,20 @@ func orderMirrorU(x, y: u64)->s64 => x < y ? -1 : (x > y ? 1 : 0)
 
 func reference(less, greater: bool)->s64
 {
-    if less do
+    if less
+    {
         return -1
-    if greater do
+    }
+    if greater
+    {
         return 1
+    }
     return 0
 }
 
 #test
 {
-    let values = [0's64, 1, -1, 2, -2, 0x7FFFFFFF, -0x80000000, 0x80000000, 0x7FFFFFFFFFFFFFFF, -0x7FFFFFFFFFFFFFFF - 1]
+    let values = [0_s64, 1, -1, 2, -2, 0x7FFFFFFF, -0x80000000, 0x80000000, 0x7FFFFFFFFFFFFFFF, -0x7FFFFFFFFFFFFFFF - 1]
     for x in values
     {
         let x32 = cast #wrap (s32, x)

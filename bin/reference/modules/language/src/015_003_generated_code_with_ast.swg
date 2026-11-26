@@ -80,12 +80,12 @@ You can use '#ast' inside struct or enum definitions to generate members dynamic
         z: string?
     }
 
-    let v: MyStruct'bool
+    let v: MyStruct!{bool}
     #assert(#typeof(v.x) == bool)
     #assert(#typeof(v.y) == bool)
     #assert(#typeof(v.z) == string?)
 
-    let v1: MyStruct'f64
+    let v1: MyStruct!{f64}
     #assert(#typeof(v1.x) == f64)
     #assert(#typeof(v1.y) == f64)
     #assert(#typeof(v1.z) == string?)

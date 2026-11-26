@@ -14,8 +14,10 @@ func awaitExecutorFlag(flag: *Swag.AtomicFlag)->bool
 {
     for 1_000_000
     {
-        if flag.isRaised() do
+        if flag.isRaised()
+        {
             return true
+        }
     }
     return flag.isRaised()
 }
@@ -26,12 +28,16 @@ func awaitExecutorStopping(executor: *Swag.Executor)->bool
     {
         executor.mutex.lock()
         let stopping = executor.stopping
-        if not stopping do
+        if not stopping
+        {
             discard executor.ready.waitFor(&executor.mutex, 1)
+        }
         let stopped = executor.stopping
         executor.mutex.unlock()
-        if stopped do
+        if stopped
+        {
             return true
+        }
     }
     return false
 }
@@ -39,13 +45,15 @@ func awaitExecutorStopping(executor: *Swag.Executor)->bool
 // Tasks run in the order they were submitted, and each hands its value over.
 #test
 {
-    var next:     Swag.AtomicValue'u32
-    var tasks:    [8] Swag.Task'u32
+    var next:     Swag.AtomicValue!{u32}
+    var tasks:    [8] Swag.Task!{u32}
     var executor: Swag.Executor
     executor.start()
 
-    for &task in tasks do
+    for &task in tasks
+    {
         task.submit(func|&next|()->u32 => next.add(1), executor: &executor)
+    }
 
     for &task, index in tasks
     {
@@ -60,8 +68,8 @@ func awaitExecutorStopping(executor: *Swag.Executor)->bool
 // A failing task hands its error over; a cancelled one sees the request; joins never run it.
 #test
 {
-    var failing:  Swag.Task'u32
-    var watched:  Swag.Task'bool
+    var failing:  Swag.Task!{u32}
+    var watched:  Swag.Task!{bool}
     var executor: Swag.Executor
     executor.start(.Background)
 
@@ -87,19 +95,23 @@ func awaitExecutorStopping(executor: *Swag.Executor)->bool
 // Closing runs every task already submitted before the thread stops.
 #test
 {
-    var finished: Swag.AtomicValue'u32
+    var finished: Swag.AtomicValue!{u32}
     var tasks:    [4] Swag.Task
     scope
     {
         var executor: Swag.Executor
         executor.start()
-        for &task in tasks do
+        for &task in tasks
+        {
             task.submit(func|&finished|() { finished.add(1) }, executor: &executor)
+        }
     }
 
     Swag.require(finished.load() == 4)
-    for &task in tasks do
+    for &task in tasks
+    {
         Swag.require(task.isDone())
+    }
 }
 
 // Closing from the executor's own thread is rejected instead of joining itself.
@@ -117,8 +129,10 @@ struct ExecutorCloseProbe
     probe.task.submit(func|&probe|()
     {
         let result = Swag.catchPanic(func|&probe|() { probe.executor.close() })
-        if result.raised do
+        if result.raised
+        {
             discard probe.caught.raise()
+        }
     }, executor: &probe.executor)
     expect probe.task.take()
     Swag.require(probe.caught.isRaised() == (not Swag.jit()))
@@ -128,8 +142,10 @@ struct ExecutorCloseProbe
 // A submission during close is rejected while a task holds the executor thread open.
 #test
 {
-    if Swag.jit() do
+    if Swag.jit()
+    {
         return
+    }
 
     Swag.setWorkerCount(2)
     var started, release, closeStarted: Swag.AtomicFlag

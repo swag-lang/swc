@@ -77,8 +77,14 @@ impl RuntimeFloatCmpBox
     #[Swag.NoInline]
     mtd const opCompare(other: f32)->s32
     {
-        if .value < other do return -1
-        if .value > other do return 1
+        if .value < other
+        {
+            return -1
+        }
+        if .value > other
+        {
+            return 1
+        }
         return 0
     }
 }
@@ -88,8 +94,8 @@ impl RuntimeFloatCmpBox
 {
     var box = RuntimeFloatCmpBox{value: 3.14}
 
-    Swag.require(box == 3.14'f32)
-    Swag.require(box != 2.71'f32)
+    Swag.require(box == 3.14_f32)
+    Swag.require(box != 2.71_f32)
 }
 
 // Test: opCompare with f32 - less than
@@ -97,9 +103,9 @@ impl RuntimeFloatCmpBox
 {
     var box = RuntimeFloatCmpBox{value: 1.0}
 
-    Swag.require(box < 2.0'f32)
-    Swag.require(box <= 1.0'f32)
-    Swag.require(box <= 2.0'f32)
+    Swag.require(box < 2.0_f32)
+    Swag.require(box <= 1.0_f32)
+    Swag.require(box <= 2.0_f32)
 }
 
 // Test: opCompare with f32 - greater than
@@ -107,9 +113,9 @@ impl RuntimeFloatCmpBox
 {
     var box = RuntimeFloatCmpBox{value: 5.0}
 
-    Swag.require(box > 3.0'f32)
-    Swag.require(box >= 5.0'f32)
-    Swag.require(box >= 3.0'f32)
+    Swag.require(box > 3.0_f32)
+    Swag.require(box >= 5.0_f32)
+    Swag.require(box >= 3.0_f32)
 }
 
 // Test: opCompare spaceship with f32
@@ -117,9 +123,9 @@ impl RuntimeFloatCmpBox
 {
     var box = RuntimeFloatCmpBox{value: 2.0}
 
-    Swag.require((box <=> 2.0'f32) == 0)
-    Swag.require((box <=> 3.0'f32) == -1)
-    Swag.require((box <=> 1.0'f32) == 1)
+    Swag.require((box <=> 2.0_f32) == 0)
+    Swag.require((box <=> 3.0_f32) == -1)
+    Swag.require((box <=> 1.0_f32) == 1)
 }
 
 // ============================================================================
@@ -168,8 +174,8 @@ impl RuntimeTripleEqBox
 {
     var box = RuntimeTripleEqBox{value: 42}
 
-    Swag.require(box == 42's32)
-    Swag.require(box != 0's32)
+    Swag.require(box == 42_s32)
+    Swag.require(box != 0_s32)
 }
 
 // Test: struct-u64 equality
@@ -177,8 +183,8 @@ impl RuntimeTripleEqBox
 {
     var box = RuntimeTripleEqBox{value: 100}
 
-    Swag.require(box == 100'u64)
-    Swag.require(box != 200'u64)
+    Swag.require(box == 100_u64)
+    Swag.require(box != 200_u64)
 }
 
 // ============================================================================
@@ -195,16 +201,28 @@ impl RuntimeTripleCmpBox
     #[Swag.NoInline]
     mtd const opCompare(other: RuntimeTripleCmpBox)->s32
     {
-        if .value < other.value do return -1
-        if .value > other.value do return 1
+        if .value < other.value
+        {
+            return -1
+        }
+        if .value > other.value
+        {
+            return 1
+        }
         return 0
     }
 
     #[Swag.NoInline]
     mtd const opCompare(other: s32)->s32
     {
-        if .value < other do return -1
-        if .value > other do return 1
+        if .value < other
+        {
+            return -1
+        }
+        if .value > other
+        {
+            return 1
+        }
         return 0
     }
 
@@ -212,8 +230,14 @@ impl RuntimeTripleCmpBox
     mtd const opCompare(other: u64)->s32
     {
         let self64 = cast(u64, .value)
-        if self64 < other do return -1
-        if self64 > other do return 1
+        if self64 < other
+        {
+            return -1
+        }
+        if self64 > other
+        {
+            return 1
+        }
         return 0
     }
 }
@@ -236,10 +260,10 @@ impl RuntimeTripleCmpBox
 {
     var box = RuntimeTripleCmpBox{value: 7}
 
-    Swag.require(box < 10's32)
-    Swag.require(box > 3's32)
-    Swag.require(box >= 7's32)
-    Swag.require(box <= 7's32)
+    Swag.require(box < 10_s32)
+    Swag.require(box > 3_s32)
+    Swag.require(box >= 7_s32)
+    Swag.require(box <= 7_s32)
 }
 
 // Test: struct-u64 comparison
@@ -247,7 +271,7 @@ impl RuntimeTripleCmpBox
 {
     var box = RuntimeTripleCmpBox{value: 50}
 
-    Swag.require(box < 100'u64)
-    Swag.require(box > 10'u64)
-    Swag.require((box <=> 50'u64) == 0)
+    Swag.require(box < 100_u64)
+    Swag.require(box > 10_u64)
+    Swag.require((box <=> 50_u64) == 0)
 }

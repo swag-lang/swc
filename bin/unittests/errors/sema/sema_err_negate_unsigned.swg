@@ -11,9 +11,9 @@
 #test
 {
     func unaryMinusF64(a: f64)->f64 { return -a }
-    const V = #run unaryMinusF64(42.5'f64)
+    const V = #run unaryMinusF64(42.5_f64)
     #assert(#typeof(V) == f64)
-    #assert(V == -42.5'f64)
+    #assert(V == -42.5_f64)
 }
 
 #test
@@ -24,9 +24,9 @@
 #test
 {
     func unaryMinusS64(a: s64)->s64 { return -a }
-    const V = #run unaryMinusS64(42's64)
+    const V = #run unaryMinusS64(42_s64)
     #assert(#typeof(V) == s64)
-    #assert(V == -42's64)
+    #assert(V == -42_s64)
 }
 
 #test

@@ -13,11 +13,11 @@
 
 using Core
 
-const Elements     = 1'u64 << 20
-const Samples      = 5'u32
-const StreamLength = 20_000'u64
-const MaxOccupancy = 64'u64
-const PerPartition = 512'u64
+const Elements     = 1_u64 << 20
+const Samples      = 5_u32
+const StreamLength = 20_000_u64
+const MaxOccupancy = 64_u64
+const PerPartition = 512_u64
 
 // Cut-offs sweep the grain of one fork/join leaf. The crossover between them is the size below
 // which submitting a task costs more than running its work on the spot.
@@ -56,9 +56,12 @@ func report(name: string, workers: u32, detail: string, value: u64, samples: [..
 // one iteration cost a few nanoseconds, so the grain sweep spans the interesting range.
 func leafSum(values: const [..] u64, begin, end: u64)->u64
 {
-    var total = 0'u64
-    for index in begin until end do
+    var total = 0_u64
+    for index in begin until end
+    {
         total += values[index] * 2654435761 + index
+    }
+
     return total
 }
 
@@ -67,11 +70,13 @@ func leafSum(values: const [..] u64, begin, end: u64)->u64
 // descendant, and the caller has useful work while that descendant runs.
 func forkJoinSum(values: const [..] u64, begin, end, cutoff: u64)->u64
 {
-    if end - begin <= cutoff do
+    if end - begin <= cutoff
+    {
         return leafSum(values, begin, end)
+    }
 
     let middle = begin + (end - begin) / 2
-    var right  = 0'u64
+    var right  = 0_u64
     var task: Swag.Task
 
     task.submit(func|values, middle, end, cutoff, &right|()
@@ -139,15 +144,17 @@ func spawnWithTasks(values: [..] u64, partitions: u64)
             })
         }
 
-        for child in PerPartition do
+        for child in PerPartition
+        {
             tasks[child].wait()
+        }
     }
 }
 
 func measureSpawn(name: string, values: [..] u64, grouped: bool)
 {
     let workers    = Swag.workerCount()
-    let partitions = cast(u64, (workers < 1 ? 1'u32 : workers))
+    let partitions = cast(u64, (workers < 1 ? 1_u32 : workers))
 
     var samples: [Samples] u64
     for sample in Samples
@@ -156,14 +163,22 @@ func measureSpawn(name: string, values: [..] u64, grouped: bool)
 
         var watch: Time.Stopwatch
         watch.start()
-        if grouped do
+        if grouped
+        {
             spawnWithGroup(values, partitions)
-        else do
+        }
+        else
+        {
             spawnWithTasks(values, partitions)
+        }
+
         watch.stop()
 
-        for slot in partitions * PerPartition do
+        for slot in partitions * PerPartition
+        {
             Swag.assert(values[slot] == slot * 2654435761 + 1, "every spawned child must have written its slot")
+        }
+
         samples[sample] = watch.elapsedMicroseconds()
     }
 
@@ -175,8 +190,11 @@ func measureSpawn(name: string, values: [..] u64, grouped: bool)
 func stirred(slot, rounds: u64)->u64
 {
     var value = slot
-    for rounds do
+    for rounds
+    {
         value = value * 6364136223846793005 + 1442695040888963407
+    }
+
     return value
 }
 
@@ -187,23 +205,27 @@ func nestedWork(values: [..] u64, outer, inner, rounds: u64)
 {
     parallel for |values, inner, rounds| first in outer
     {
-        parallel for |values, inner, rounds, first| second in inner do
+        parallel for |values, inner, rounds, first| second in inner
+        {
             values[first * inner + second] = stirred(first * inner + second, rounds)
+        }
     }
 }
 
 func flatWork(values: [..] u64, outer, inner, rounds: u64)
 {
-    parallel for |values, rounds| slot in outer * inner do
+    parallel for |values, rounds| slot in outer * inner
+    {
         values[slot] = stirred(slot, rounds)
+    }
 }
 
 func measureNesting(name: string, values: [..] u64, nested: bool)
 {
     let workers = Swag.workerCount()
-    let outer   = cast(u64, (workers < 1 ? 1'u32 : workers))
-    let inner   = 8'u64
-    let rounds  = 20_000'u64
+    let outer   = cast(u64, (workers < 1 ? 1_u32 : workers))
+    let inner   = 8_u64
+    let rounds  = 20_000_u64
 
     var samples: [Samples] u64
     for sample in Samples
@@ -212,14 +234,22 @@ func measureNesting(name: string, values: [..] u64, nested: bool)
 
         var watch: Time.Stopwatch
         watch.start()
-        if nested do
+        if nested
+        {
             nestedWork(values, outer, inner, rounds)
-        else do
+        }
+        else
+        {
             flatWork(values, outer, inner, rounds)
+        }
+
         watch.stop()
 
-        for slot in outer * inner do
+        for slot in outer * inner
+        {
             Swag.assert(values[slot] == stirred(slot, rounds), "both shapes must produce the same values")
+        }
+
         samples[sample] = watch.elapsedMicroseconds()
     }
 
@@ -243,7 +273,7 @@ func observerEntry(th: const *Threading.Thread)
 // straight count of submit, run, and publish-completion cycles.
 func streamShortTasks(count: u64)->u64
 {
-    var total = 0'u64
+    var total = 0_u64
     var task: Swag.Task
 
     for index in count
@@ -269,13 +299,18 @@ func measureHerd(observed: bool)
 {
     let workers  = Swag.workerCount()
     var occupied = cast(u64, workers)
-    if occupied > MaxOccupancy do
+    if occupied > MaxOccupancy
+    {
         occupied = MaxOccupancy
-    if occupied == 0 do
+    }
+
+    if occupied == 0
+    {
         occupied = 1
+    }
 
     var stop:     Swag.AtomicFlag
-    var running:  Swag.AtomicValue'u32
+    var running:  Swag.AtomicValue!{u32}
     var sleepers: [MaxOccupancy] Swag.Task
     var payloads: [MaxOccupancy] ObserverPayload
     var threads:  [MaxOccupancy] Threading.Thread
@@ -285,15 +320,19 @@ func measureHerd(observed: bool)
         sleepers[index].submit(func|&stop, &running|()
         {
             discard running.add(1)
-            while not stop.isRaised() do
-                Threading.Thread.sleep(1'ms)
+            while not stop.isRaised()
+            {
+                Threading.Thread.sleep(1_ms)
+            }
         })
     }
 
     // Every sleeper must be running before an observer joins it, otherwise the observer claims the
     // queued node and runs the sleep itself instead of parking.
-    while running.load() != cast(u32, occupied) do
-        Threading.Thread.sleep(1'ms)
+    while running.load() != cast(u32, occupied)
+    {
+        Threading.Thread.sleep(1_ms)
+    }
 
     if observed
     {
@@ -305,7 +344,7 @@ func measureHerd(observed: bool)
         }
 
         // Give every observer time to exhaust its spin and park on the scheduler condition.
-        Threading.Thread.sleep(50'ms)
+        Threading.Thread.sleep(50_ms)
     }
 
     var samples: [Samples] u64
@@ -326,20 +365,26 @@ func measureHerd(observed: bool)
 
     if observed
     {
-        for index in occupied do
+        for index in occupied
+        {
             threads[index].wait()
+        }
     }
 
-    for index in occupied do
+    for index in occupied
+    {
         sleepers[index].wait()
+    }
 }
 
 #main
 {
-    var values: Array'u64
+    var values: Array!{u64}
     values.reserve(Elements)
-    for index in Elements do
+    for index in Elements
+    {
         values.add(index * 31 + 7)
+    }
 
     let slice    = values.toSlice()
     let expected = leafSum(slice, 0, Elements)

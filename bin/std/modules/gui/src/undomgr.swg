@@ -40,7 +40,7 @@ internal struct UndoStep
 // Owns a linear undo/redo timeline with optional command grouping.
 struct UndoManager
 {
-    steps:     Array'UndoStep     // Owned timeline, including its redo tail.
+    steps:     Array!{UndoStep}     // Owned timeline, including its redo tail.
     next:      u64     // Index immediately after the last applied command.
     serialGen: u64     // Last allocated command-group identifier.
 }
@@ -56,8 +56,11 @@ impl UndoManager
     // Drops every owned command and resets the timeline.
     mtd clear()
     {
-        for &s in .steps do
+        for &s in .steps
+        {
             Memory.delete(s.cmd.buffer, Swag.kindOf(s.cmd))
+        }
+
         .steps.clear()
         .next      = 0
         .serialGen = 0
@@ -102,8 +105,10 @@ impl UndoManager
         .steps.add(UndoStep{s, cmd})
         .next = .steps.count
 
-        if apply do
+        if apply
+        {
             cmd.redo()
+        }
     }
 
     // Pushes a heap copy of `cmd` as a group of its own and applies it.
@@ -112,7 +117,7 @@ impl UndoManager
     // [[Gui.UndoManager.pushCmd]].
     mtd(T) push(cmd: T)
     {
-        let p = Memory.new'T()
+        let p = Memory.new!{T}()
         p[] = cmd
         .pushCmd(p, 0, true)
     }
@@ -120,8 +125,10 @@ impl UndoManager
     // Reverts the previous command group, if any.
     mtd undo()
     {
-        if not .canUndo() do
+        if not .canUndo()
+        {
             return
+        }
 
         let serial = .steps[.next - 1].serial
         while .next and .steps[.next - 1].serial == serial
@@ -134,8 +141,10 @@ impl UndoManager
     // Reapplies the next command group, if any.
     mtd redo()
     {
-        if not .canRedo() do
+        if not .canRedo()
+        {
             return
+        }
 
         let serial = .steps[.next].serial
         while .next != .steps.count and .steps[.next].serial == serial

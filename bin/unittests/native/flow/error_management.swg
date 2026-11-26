@@ -108,10 +108,14 @@ func mayFailVoid() fail {}
 func tryIfElse(condition: bool) fail
 {
     resetErrorTrace()
-    if condition do
+    if condition
+    {
         try mayFailVoid()
-    else do
+    }
+    else
+    {
         appendErrorTrace(1)
+    }
 }
 
 func alwaysFailValue(code: s32)->s32 fail
@@ -136,8 +140,10 @@ func alwaysFailStrictEnum(code: s32)->FailStrictEnumAlias fail
 
 func currentErrCode(err: any?)->s32
 {
-    if err == null do
+    if err == null
+    {
         return 0
+    }
 
     return assume cast (ErrValue, err).code
 }
@@ -289,8 +295,10 @@ func nestedTryHandled()->s32
     } as errOutcome
     let err = errOutcome.value()
 
-    if err == null do
+    if err == null
+    {
         return -1
+    }
 
     return assume cast (ErrValue, err).code
 }
@@ -607,10 +615,14 @@ func errIsAsFailureInfo()->ErrCastInfo
     result.exactCastOk   = exactErr != null
     result.baseCastOk    = baseErr != null
     result.wrongCastNull = otherErr == null
-    if exactErr != null do
+    if exactErr != null
+    {
         result.code = exactErr.code
-    if baseErr != null do
+    }
+    if baseErr != null
+    {
         result.messageOk = baseErr.message == "typed error"
+    }
     return result
 }
 

@@ -29,8 +29,11 @@ using Core, Gui, Pixel
     app.sigFrame += func|app = &app, &stage, &watch, &chosen|(_)
     {
         Swag.require(watch.elapsedMilliseconds() < 15_000, "folder-history journey exceeded its deadline")
-        if stage == 2 do
+        if stage == 2
+        {
             return
+        }
+
         var dialog: *FileDlg?
         for surface in app.surfaces
         {
@@ -41,12 +44,18 @@ using Core, Gui, Pixel
             }
         }
 
-        if not dialog do
+        if not dialog
+        {
             return
+        }
+
         if stage == 0
         {
-            if not (expect Testing.verifyNativePresentation(unwrap dialog.surface)) do
+            if not (expect Testing.verifyNativePresentation(unwrap dialog.surface))
+            {
                 return
+            }
+
             Swag.require(dialog.browser.choiceLabel.text().count == 0)
             Swag.require(dialog.browser.pathBar.breadcrumb.toolTip.isEmpty())
             for 2
@@ -58,12 +67,15 @@ using Core, Gui, Pixel
 
             discard dialog.closeWithResult(Dialog.BtnOk)
         }
-        elif app.mouseCapture() is MenuCtrl as menu
+        else if app.mouseCapture() is MenuCtrl as menu
         {
             Swag.require(menu.items.count == 2)
             Swag.require(menu.items[0]!.icon.color == app.theme.colors.arc)
-            if not (expect Testing.verifyNativePresentation(unwrap dialog.surface)) do
+            if not (expect Testing.verifyNativePresentation(unwrap dialog.surface))
+            {
                 return
+            }
+
             stage = 2
             let item  = unwrap menu.items[0]
             var click = MouseEvent{kind: .Pressed, button: .Left,
@@ -76,8 +88,11 @@ using Core, Gui, Pixel
 
     window.sendCommandEvent(ViewerCommands.Explore)
     Swag.require(stage == 2 and window.isExploring())
-    while window.explorer!.load.started and watch.elapsedMilliseconds() < 20_000 do
+    while window.explorer!.load.started and watch.elapsedMilliseconds() < 20_000
+    {
         app.runFrame()
+    }
+
     Swag.require(not window.explorer.load.started and window.explorer.listing.path == chosen)
     Swag.require(surface.renderFailure.isEmpty())
 }

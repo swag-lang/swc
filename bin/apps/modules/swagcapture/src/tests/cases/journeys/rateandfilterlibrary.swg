@@ -22,8 +22,11 @@ using Core, Gui, Pixel
     journey.openLibrary(3)
     let library = main.libWnd
     var chosen  = Swag.U32.Max
-    for item, index in library.view.items where item.capture and item.capture.title == "Review" do
+    for item, index in library.view.items where item.capture and item.capture.title == "Review"
+    {
         chosen = cast(u32, index)
+    }
+
     Swag.require(chosen != Swag.U32.Max)
     let markedFile = library.view.items[chosen].fi.fullName
     library.view.setFocusItem(chosen)

@@ -34,7 +34,7 @@ func semaTest004()
 {
     const A: u64 = 255
     const B: u8  = A
-    #assert(B == 255'u8)
+    #assert(B == 255_u8)
 }
 
 func semaTest005()
@@ -49,5 +49,5 @@ func semaTest006()
 {
     const A: s32 = 42
     const B: u8  = A
-    #assert(B == 42'u8)
+    #assert(B == 42_u8)
 }

@@ -57,8 +57,8 @@ using Core, Gui, Audio
 // Ctrl+O replaces the selected pane, including the sole visible pane of a maximized layout.
 #test
 {
-    let first = expect Path.absolute(scopeTestDataPath("comprehensive.txt"))
-    let other = expect Path.absolute(scopeTestDataPath("sample.cpp"))
+    let first       = expect Path.absolute(scopeTestDataPath("comprehensive.txt"))
+    let other       = expect Path.absolute(scopeTestDataPath("sample.cpp"))
     let replacement = expect Path.absolute(scopeTestDataPath("viewer.srt"))
     for layout in [SceneLayout.Auto, .SideBySide, .Stacked, .Grid2, .Grid3, .Grid4]
     {
@@ -71,8 +71,8 @@ using Core, Gui, Audio
         for index in 2
         {
             workspace.selectView(index)
-            let pane = workspace.activeDocument()
-            let peer = unwrap scene.views[1 - index].document
+            let pane     = workspace.activeDocument()
+            let peer     = unwrap scene.views[1 - index].document
             let peerPath = String.from(peer.currentFile)
             host.acceptModalFileDialog(replacement)
             host.shortcut(.O, .Control)
@@ -101,8 +101,8 @@ using Core, Gui, Audio
     var host: Testing.HeadlessHost
     let workspace = testWorkspace(&host)
     defer host.shutdown()
-    let text = expect Path.absolute(scopeTestDataPath("comprehensive.txt"))
-    let code = expect Path.absolute(scopeTestDataPath("sample.cpp"))
+    let text  = expect Path.absolute(scopeTestDataPath("comprehensive.txt"))
+    let code  = expect Path.absolute(scopeTestDataPath("sample.cpp"))
     let image = expect Path.absolute(scopeTestDataPath("viewer.png"))
     workspace.openScene([text, code], .SideBySide, compare: true)
     openViews(&host, workspace)
@@ -126,22 +126,22 @@ using Core, Gui, Audio
 // until the drop, and replaces only the file in the cell it lands on.
 #test
 {
-    let first  = expect Path.absolute(scopeTestDataPath("comprehensive.txt"))
-    let second = expect Path.absolute(scopeTestDataPath("sample.cpp"))
-    let third  = expect Path.absolute(scopeTestDataPath("viewer.srt"))
+    let first       = expect Path.absolute(scopeTestDataPath("comprehensive.txt"))
+    let second      = expect Path.absolute(scopeTestDataPath("sample.cpp"))
+    let third       = expect Path.absolute(scopeTestDataPath("viewer.srt"))
     let replacement = expect Path.absolute(scopeTestDataPath("viewer.txt"))
-    let path = replacement.toString()
+    let path        = replacement.toString()
 
     var host: Testing.HeadlessHost
     let workspace = testWorkspace(&host)
     defer host.shutdown()
     workspace.openScene([first, second, third], .Grid2)
     openViews(&host, workspace)
-    let scene = unwrap workspace.scene()
+    let scene    = unwrap workspace.scene()
     let original = workspace.activeDocument()
     let target   = scene.views[1].document
 
-    var left = workspace.localToSurface(workspace.viewRect(scene, 0).center())
+    var left  = workspace.localToSurface(workspace.viewRect(scene, 0).center())
     var right = workspace.localToSurface(workspace.viewRect(scene, 1).center())
     var empty = workspace.localToSurface(workspace.viewRect(scene, 3).center())
     host.surface.surfaceToScreen(&left)
@@ -181,9 +181,9 @@ using Core, Gui, Audio
     Swag.require(workspace.scenes.count == 3 and workspace.activeDocument().currentFile == replacement)
     Swag.require(not workspace.activeDocument().cellCaption.isVisible())
     Swag.require(not workspace.activeDocument().readingLine.close.isVisible())
-    let tabs = workspace.tabs
+    let tabs   = workspace.tabs
     let button = tabs.closeRect(tabs.items[workspace.active])
-    var close = tabs.localToSurface(button.center())
+    var close  = tabs.localToSurface(button.center())
     host.surface.surfaceToScreen(&close)
     Swag.require(tabs.showsClose(workspace.active))
     var above = tabs.localToSurface(Math.Point{button.horzCenter(), 1})
@@ -205,17 +205,17 @@ using Core, Gui, Audio
     let other = expect Path.absolute(scopeTestDataPath("sample.cpp"))
     workspace.openScene([first, other], .Grid3)
     openViews(&host, workspace)
-    let scene = unwrap workspace.scene()
+    let scene    = unwrap workspace.scene()
     let original = workspace.activeDocument()
-    var corner = workspace.localToSurface(workspace.gridCellRect(scene, 8).center())
+    var corner   = workspace.localToSurface(workspace.gridCellRect(scene, 8).center())
     host.surface.surfaceToScreen(&corner)
     host.click(corner)
     Swag.require(workspace.vacancy and workspace.activeDocument() == workspace.vacancy)
     Swag.require(workspace.vacantCell == 8 and scene.views.count == 2)
     let image = host.renderSettled(&host.surfaceWnd)
     let cell  = workspace.vacancy.surfaceRect()
-    let mark = workspace.paneFocusRect(cell)
-    let arc = workspace.themeColors().arc
+    let mark  = workspace.paneFocusRect(cell)
+    let arc   = workspace.themeColors().arc
     Swag.require(mark.bottom() <= cell.y and mark.width > cell.width * 0.75)
     Swag.require(image.pixelColor(cast(s32, mark.horzCenter()), cast(s32, mark.y + 1)) == arc)
     Swag.require(image.pixelColor(cast(s32, cell.horzCenter()), cast(s32, cell.y)) != arc)
@@ -249,7 +249,9 @@ using Core, Gui, Audio
     host.acceptModalFileDialog(folder)
     host.shortcut(.E, .Control)
     host.pump()
-    Swag.require(host.autoHandled and workspace.activeDocument().isExploring() and scene.cellOf(scene.active) == 8)
+    Swag.require(host.autoHandled and
+                 workspace.activeDocument().isExploring() and
+                 scene.cellOf(scene.active) == 8)
     let saved = saveViewerState(workspace.primary)
     host.keyPress(.W, .Control)
     Swag.require(scene.cellOf(scene.active) == 3)
@@ -275,8 +277,8 @@ using Core, Gui, Audio
     let workspace = testWorkspace(&host)
     defer host.shutdown()
 
-    let first = expect Path.absolute(scopeTestDataPath("sample.cpp"))
-    let video = scopeTestDataPath("viewer.avi")
+    let first     = expect Path.absolute(scopeTestDataPath("sample.cpp"))
+    let video     = scopeTestDataPath("viewer.avi")
     let subtitles = expect Path.absolute(scopeTestDataPath("viewer.srt"))
     workspace.openScene([first, video], .SideBySide)
     openViews(&host, workspace)
@@ -294,12 +296,12 @@ using Core, Gui, Audio
     var host: Testing.HeadlessHost
     let workspace = testWorkspace(&host)
     defer host.shutdown()
-    let left = expect Path.absolute(scopeTestDataPath("viewer.png"))
-    let right = expect Path.absolute(scopeTestDataPath("viewer.progressive.jpg"))
+    let left        = expect Path.absolute(scopeTestDataPath("viewer.png"))
+    let right       = expect Path.absolute(scopeTestDataPath("viewer.progressive.jpg"))
     let replacement = expect Path.absolute(scopeTestDataPath("title.png"))
     workspace.openScene([left, right], .SideBySide, compare: true)
     openViews(&host, workspace)
-    let scene = unwrap workspace.scene()
+    let scene      = unwrap workspace.scene()
     let comparison = unwrap workspace.comparison
     comparison.setPictureMode(.Curtain)
     comparison.separator = 0.72
@@ -322,11 +324,11 @@ using Core, Gui, Audio
     let files = [scopeTestDataPath("comprehensive.txt"), scopeTestDataPath("sample.cpp"), scopeTestDataPath("viewer.srt")]
     workspace.openScene(files, .Grid2)
     openViews(&host, workspace)
-    let scene = unwrap workspace.scene()
-    let original = workspace.activeDocument()
-    let last = unwrap scene.views[2].document
+    let scene     = unwrap workspace.scene()
+    let original  = workspace.activeDocument()
+    let last      = unwrap scene.views[2].document
     let closeFile = original.readingLine.close
-    let middle = unwrap scene.views[1].document
+    let middle    = unwrap scene.views[1].document
     Swag.require(middle.cellCaption.isVisible() and middle.cellCaption.parent == middle.readingLine)
     var pointer = workspace.localToSurface(workspace.viewRect(scene, 1).center())
     host.surface.surfaceToScreen(&pointer)
@@ -334,11 +336,14 @@ using Core, Gui, Audio
     Swag.require(middle.cellCaption.isLocallyVisible())
     let closeMiddle = middle.readingLine.close
     let closePoint  = closeMiddle.surfaceRect().center()
-    let target = host.surfaceWnd.windowAt(closePoint.x, closePoint.y)
+    let target      = host.surfaceWnd.windowAt(closePoint.x, closePoint.y)
     Swag.require(target == closeMiddle, Format.toString("hit '%' at % in %", target?.id orelse "", closePoint, middle.readingLine.position))
     Swag.require(closeMiddle.position.right() == middle.readingLine.clientRect().right())
-    for contribution in middle.readingLine.contributions() do
+    for contribution in middle.readingLine.contributions()
+    {
         Swag.require(contribution.position.right() <= closeMiddle.position.x)
+    }
+
     host.clickWnd(closeMiddle)
     Swag.require(scene.views.count == 2 and scene.views[1].document == last)
     Swag.require(workspace.activeDocument() == original)
@@ -351,7 +356,7 @@ using Core, Gui, Audio
     Swag.require(original.position == workspace.clientRect())
     Swag.require(closeFile.isVisible() and original.cellCaption.parent == original)
     let filename = original.cellCaption.title.surfaceRect()
-    let close = closeFile.surfaceRect()
+    let close    = closeFile.surfaceRect()
     Swag.require(filename.width > 0 and filename.bottom() <= close.y)
     Swag.require(close.right() == original.readingLine.surfaceRect().right())
     Swag.require(host.surfaceWnd.windowAt(close.horzCenter(), close.vertCenter()) == closeFile)
@@ -397,12 +402,17 @@ using Core, Gui, Audio
 
     workspace.selectView(1)
     pdf.applyOnlineMedia(false, false)
-    Swag.require(not picture.onlineMovies and not picture.onlineMusic and not pdf.onlineMovies and not pdf.onlineMusic)
+    Swag.require(not picture.onlineMovies and
+                 not picture.onlineMusic and
+                 not pdf.onlineMovies and
+                 not pdf.onlineMusic)
     host.keyPress(.F11)
     Swag.require(picture.fullScreen and pdf.fullScreen)
     workspace.selectView(0)
     host.keyPress(.F11)
-    Swag.require(not picture.fullScreen and not pdf.fullScreen and picture.fullScreenCaptionButton.isLocallyVisible())
+    Swag.require(not picture.fullScreen and
+                 not pdf.fullScreen and
+                 picture.fullScreenCaptionButton.isLocallyVisible())
 }
 
 #test
@@ -420,8 +430,11 @@ using Core, Gui, Audio
         openViews(&host, workspace)
         workspace.selectView(0)
         let window = workspace.activeDocument()
-        for choice, index in window.choices where choice.key == "hex" do
+        for choice, index in window.choices where choice.key == "hex"
+        {
             window.selectViewer(cast(u32, index))
+        }
+
         completeQueuedViewerFile(&host, window)
         Swag.require(window.choices[window.activeChoiceIndex].key == "hex")
         let hex = assume cast(*Viewers.Hex.Panel, window.currentView)
@@ -532,12 +545,15 @@ using Core, Gui, Audio
     openViews(&host, workspace)
     workspace.openScene([scopeTestDataPath("viewer.png"), scopeTestDataPath("sample.cpp")], .SideBySide)
     openViews(&host, workspace)
-    let scene = unwrap workspace.scene()
+    let scene    = unwrap workspace.scene()
     let document = workspace.activeDocument()
     document.lens.open("grid")
     host.keyPress(.Tab, .Control)
     host.keyPress(.W, .Control)
-    Swag.require(document.lens.isOpen() and workspace.scene() == scene and workspace.documentCount() == 2 and not workspace.switcher)
+    Swag.require(document.lens.isOpen() and
+                 workspace.scene() == scene and
+                 workspace.documentCount() == 2 and
+                 not workspace.switcher)
     host.keyPress(.Escape)
     Swag.require(document.lens.isOpen())
     host.keyPress(.Escape)
@@ -567,8 +583,8 @@ using Core, Gui, Audio
     defer catch Directory.delete(folder, recurse: true)
     workspace.openScene([scopeTestDataPath("sample.cpp"), folder], .Grid2)
     openViews(&host, workspace)
-    let scene = unwrap workspace.scene()
-    let code = unwrap scene.views[0].document
+    let scene   = unwrap workspace.scene()
+    let code    = unwrap scene.views[0].document
     let listing = unwrap scene.views[1].document
     completeExplorer(&host, unwrap listing.explorer)
     workspace.selectView(1)

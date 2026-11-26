@@ -307,8 +307,11 @@ You can loop over the number of enum values with `for`, or iterate the values th
 {
     enum RGB { R, G, B }
     var cpt = 0
-    for RGB do
+    for RGB
+    {
         cpt += 1
+    }
+
     Swag.require(cpt == 3)
 }
 

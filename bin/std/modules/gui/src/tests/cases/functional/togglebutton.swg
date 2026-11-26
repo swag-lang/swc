@@ -103,9 +103,9 @@ func toggleButtonHeadlessChanged(_: *ToggleButton)
     let toggle = ToggleButton.create(&host.root, {20, 20, 60, 30})
     toggle.isHot              = true
     toggle.isPressed          = true
-    toggle.aniBk.themeCrc     = 42'u32
-    toggle.aniBorder.themeCrc = 43'u32
-    toggle.aniMark.themeCrc   = 44'u32
+    toggle.aniBk.themeCrc     = 42_u32
+    toggle.aniBorder.themeCrc = 43_u32
+    toggle.aniMark.themeCrc   = 44_u32
 
     toggle.hide()
 

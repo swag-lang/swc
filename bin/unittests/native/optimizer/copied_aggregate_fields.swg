@@ -38,9 +38,11 @@ func callThrough(holder: *Holder, value: u64)->u64
 func sumWords(holder: const *Holder)->u64
 {
     let words = holder.words
-    var sum   = 0'u64
-    for w in words do
+    var sum   = 0_u64
+    for w in words
+    {
         sum += w
+    }
     return sum
 }
 
@@ -61,16 +63,18 @@ func sumBeforeReplace(holder: *Holder, other: const [..] u64, otherName: string)
     holder.words = other
     holder.name  = otherName
     var sum = name.count
-    for w in words do
+    for w in words
+    {
         sum += w
+    }
     return sum
 }
 
 #test
 {
     var counter = Counter{5}
-    let first   = [1'u64, 2, 3]
-    let second  = [10'u64, 20]
+    let first   = [1_u64, 2, 3]
+    let second  = [10_u64, 20]
     var holder  = Holder{counter: &counter, words: first, name: "abc"}
 
     Swag.require(callThrough(&holder, 7) == 12)

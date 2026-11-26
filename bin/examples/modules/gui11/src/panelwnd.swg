@@ -19,7 +19,7 @@ impl PanelWnd
 {
     func create(parent: *Wnd, title: string)->*PanelWnd
     {
-        let result = Wnd.create'PanelWnd(parent, {})
+        let result = Wnd.create!{PanelWnd}(parent, {})
         result.backgroundStyle = .Transparent
         result.title = title
         return result
@@ -46,8 +46,11 @@ impl IWnd for PanelWnd
         painter.fillRoundRect(rect, PanelRadius, PanelRadius, colors.wnd_Bk)
         painter.drawRoundRect(rect, PanelRadius, PanelRadius, colors.line, 1)
 
-        if not (.title).count do
+        if not (.title).count
+        {
             return
+        }
+
         let font = .theme().createDefaultFont(13, .Bold)
         painter.drawString(rect.x + PanelPadding,
                            font.opticalTop(rect.y + PanelPadding + 9, 13),

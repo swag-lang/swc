@@ -92,7 +92,10 @@ func returnConditionallyClearedSelfStorage(clear: bool)->SelfStorage
 {
     var source = SelfStorage{}
     source.cursor = &source.values[0]
-    if clear do source.cursor = null
+    if clear
+    {
+        source.cursor = null
+    }
     return source     // swc-expected-error {{sanity_err_borrow_escape}}
 }
 
@@ -100,8 +103,14 @@ func returnFullyReboundSelfStorage(pointer: *s32, clear: bool)->SelfStorage
 {
     var source = SelfStorage{}
     source.cursor = &source.values[0]
-    if clear do source.cursor = null
-    else do source.cursor = pointer
+    if clear
+    {
+        source.cursor = null
+    }
+    else
+    {
+        source.cursor = pointer
+    }
     return source
 }
 

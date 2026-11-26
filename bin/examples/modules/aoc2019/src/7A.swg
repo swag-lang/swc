@@ -42,7 +42,7 @@ Try every combination of phase settings on the amplifiers. What is the highest s
 
 using Core
 
-internal func run(prg: Array's32, input: const [2] s32)->s32
+internal func run(prg: Array!{s32}, input: const [2] s32)->s32
 {
     var op = prg
     var ip, output, incpt = 0
@@ -53,10 +53,15 @@ internal func run(prg: Array's32, input: const [2] s32)->s32
         let inst = op[ip] % 10
 
         var param0, param1 = 0
-        if inst != 3 do
+        if inst != 3
+        {
             param0 = imm0 ? op[ip + 1] : op[op[ip + 1]]
-        if inst != 3 and inst != 4 do
+        }
+
+        if inst != 3 and inst != 4
+        {
             param1 = imm1 ? op[ip + 2] : op[op[ip + 2]]
+        }
 
         switch inst
         {
@@ -101,9 +106,11 @@ func day7A()
     let dataPath = Path.combine(Path.directoryName(#file), "7.txt")
     let lines    = expect File.readAllLines(dataPath)
 
-    var op: Array's32
-    for v in Tokenize.split(lines[0], ','u8) do
+    var op: Array!{s32}
+    for v in Tokenize.split(lines[0], ','_u8)
+    {
         op.add(expect StrConv.toS32(v))
+    }
 
     var phase = [0, 1, 2, 3, 4]
     var total = 0
@@ -117,8 +124,10 @@ func day7A()
         }
 
         total = Math.max(total, input)
-        if not Slice.nextPermutation(phase[to]) do
+        if not Slice.nextPermutation(phase[to])
+        {
             break
+        }
     }
 
     Swag.assert(total == 34852)

@@ -73,17 +73,25 @@ func fillStatic67(target: [*] u8, value: u8) { Swag.memset(target, value, 67) }
     for position in 64
     {
         let saved = right[position]
-        right[position] = saved ^ 0x80'u8
+        right[position] = saved ^ 0x80_u8
 
         Swag.require(compareStatic64(&left[0], &right[0]) == compareDynamic(&left[0], &right[0], 64))
-        if position < 17 do
+        if position < 17
+        {
             Swag.require(compareStatic17(&left[0], &right[0]) == compareDynamic(&left[0], &right[0], 17))
-        if position < 16 do
+        }
+        if position < 16
+        {
             Swag.require(compareStatic16(&left[0], &right[0]) == compareDynamic(&left[0], &right[0], 16))
-        if position < 7 do
+        }
+        if position < 7
+        {
             Swag.require(compareStatic7(&left[0], &right[0]) == compareDynamic(&left[0], &right[0], 7))
-        if position < 1 do
+        }
+        if position < 1
+        {
             Swag.require(compareStatic1(&left[0], &right[0]) == compareDynamic(&left[0], &right[0], 1))
+        }
 
         right[position] = saved
     }

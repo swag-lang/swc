@@ -26,29 +26,37 @@ var g_fallbackEvals = 0
 
 func fallbackCount(ok: bool)->s32 fail
 {
-    if not ok do
+    if not ok
+    {
         fail FallbackError{base: Swag.BaseError{"no count"}, code: 11}
+    }
     return 4
 }
 
 func fallbackPoint(ok: bool)->FallbackPoint fail
 {
-    if not ok do
+    if not ok
+    {
         fail FallbackError{base: Swag.BaseError{"no point"}, code: 12}
+    }
     return {x: 1, y: 2}
 }
 
 func fallbackItem(ok: bool)->*FallbackItem fail
 {
-    if not ok do
+    if not ok
+    {
         fail FallbackError{base: Swag.BaseError{"no item"}, code: 13}
+    }
     return &g_fallbackItem
 }
 
 func fallbackTuple(ok: bool)->{value: s32, valid: bool} fail
 {
-    if not ok do
+    if not ok
+    {
         fail FallbackError{base: Swag.BaseError{"no tuple"}, code: 14}
+    }
     return {value: 8, valid: true}
 }
 
@@ -114,8 +122,10 @@ func fallbackCode(err: any?)->s32 => err == null ? 0 : assume cast(FallbackError
 
 func(T) fallbackProduce(ok: bool, value: T)->T fail
 {
-    if not ok do
+    if not ok
+    {
         fail FallbackError{base: Swag.BaseError{"no value"}, code: 15}
+    }
     return value
 }
 
@@ -142,8 +152,10 @@ impl FallbackOwned
 
 func fallbackOwned(ok: bool)->FallbackOwned fail
 {
-    if not ok do
+    if not ok
+    {
         fail FallbackError{base: Swag.BaseError{"no owned"}, code: 16}
+    }
     return {id: 1}
 }
 

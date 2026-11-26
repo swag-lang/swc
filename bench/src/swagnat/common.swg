@@ -10,16 +10,20 @@ struct BenchAllocationHeader
 
 func benchAlloc(size: u64)->[*] void?
 {
-    if size > Swag.U64.Max - #sizeof(BenchAllocationHeader) do
+    if size > Swag.U64.Max - #sizeof(BenchAllocationHeader)
+    {
         return null
+    }
 
     var request: Swag.AllocatorRequest
     request.size      = size + #sizeof(BenchAllocationHeader)
     request.alignment = 16
     let allocator = unwrap Swag.getContext().allocator
     allocator.alloc(&request)
-    if not request.address do
+    if not request.address
+    {
         return null
+    }
 
     let header = cast(*BenchAllocationHeader, request.address)
     header.totalSize = request.size
@@ -29,8 +33,10 @@ func benchAlloc(size: u64)->[*] void?
 
 func benchFree(ptr: [*] void?)
 {
-    if not ptr do
+    if not ptr
+    {
         return
+    }
 
     let header = cast(*BenchAllocationHeader, (cast([*] u8, ptr) - #sizeof(BenchAllocationHeader)))
     var request: Swag.AllocatorRequest
@@ -48,7 +54,7 @@ func now()->f64
     return cast(f64, c) / cast(f64, f)
 }
 
-var g_Seed = 12345'u64
+var g_Seed = 12345_u64
 
 func rnd()->u64
 {
@@ -58,5 +64,5 @@ func rnd()->u64
 
 func report(check: u64, t0, t1: f64)
 {
-    Swag.print("CHECK=", check, " MS=", (t1 - t0) * 1000.0'f64, "\n")
+    Swag.print("CHECK=", check, " MS=", (t1 - t0) * 1000.0_f64, "\n")
 }

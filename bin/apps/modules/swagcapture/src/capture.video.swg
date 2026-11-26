@@ -5,8 +5,10 @@ internal func exportOriginalVideo(source: string, path: string) fail
 {
     let targetPath = try Path.absolute(path)
     let sourcePath = try Path.absolute(source)
-    if Path.equals(targetPath, sourcePath) do
+    if Path.equals(targetPath, sourcePath)
+    {
         fail BadParameterError{"choose another file for the exported video"}
+    }
 
     let temporary = Format.toString("%.swag-export-%.tmp", path, Guid128.random())
     defer #fail discard catch File.delete(temporary)
@@ -18,8 +20,11 @@ impl Capture
 {
     mtd const canCopyOriginalVideo()->bool
     {
-        if .media != .Video or .mediaMissing or not .frames do
+        if .media != .Video or .mediaMissing or not .frames
+        {
             return false
+        }
+
         let frames = .frames
         return .forms.isEmpty() and
                not .isTrimmed() and
@@ -39,7 +44,7 @@ impl Capture
         let path = Path.combine(folder, name)
         try .exportVideo(path)
 
-        var files: Array'String
+        var files: Array!{String}
         files.add(path)
         Clipboard.setFiles(files.toSlice())
     }
@@ -48,20 +53,26 @@ impl Capture
     // The MP4 beside the capture document remains the unmodified recording.
     mtd exportVideo(path: string) fail
     {
-        if .media != .Video or .mediaMissing or not .frames do
+        if .media != .Video or .mediaMissing or not .frames
+        {
             fail InvalidFormatError{"the capture has no video to export"}
+        }
 
         let source     = mediaPathOf(.file, .Video)
         let targetPath = try Path.absolute(path)
         let sourcePath = try Path.absolute(source)
-        if Path.equals(targetPath, sourcePath) do
+        if Path.equals(targetPath, sourcePath)
+        {
             fail BadParameterError{"choose another file for the exported video"}
+        }
 
         let frames = .frames
         let start  = .trimStart()
         let finish = .trimEnd()
-        if finish <= start do
+        if finish <= start
+        {
             fail BadParameterError{"the kept video span is empty"}
+        }
 
         // A capture without edits keeps the original encoded picture and sound bytes.
         if .canCopyOriginalVideo()
@@ -83,37 +94,53 @@ impl Capture
             if frames.timeOf(first) == start and
                (finish == frames.endTime or frames.timeOf(after) == finish)
             {
-                var ranges: Array'Mp4.SoftwareRenderRange
+                var ranges: Array!{Mp4.SoftwareRenderRange}
                 for form in .forms
                 {
                     let begins = Math.max(start, form.timeStart)
                     let ends   = Math.min(finish, form.timeEnd ? form.timeEnd : frames.endTime)
-                    if begins >= ends do
+                    if begins >= ends
+                    {
                         continue
+                    }
+
                     var left = frames.frameAt(begins)
-                    if frames.timeOf(left) < begins do
+                    if frames.timeOf(left) < begins
+                    {
                         left += 1
+                    }
+
                     var right = ends >= frames.endTime ? frames.frameCount() : frames.frameAt(ends)
-                    if right < frames.frameCount() and frames.timeOf(right) < ends do
+                    if right < frames.frameCount() and frames.timeOf(right) < ends
+                    {
                         right += 1
-                    if left < right do
+                    }
+
+                    if left < right
+                    {
                         ranges.add({left, right})
+                    }
                 }
 
                 let renderer: Mp4.SoftwareFrameRenderer = func|capture = me|(frameIndex: u64, image: *Image) fail
                 {
                     try capture.showFrame(frameIndex)
                     var edited = capture.toImage()
-                    if not edited.isValid() do
+                    if not edited.isValid()
+                    {
                         fail InvalidFormatError{"the video frame could not be rendered"}
+                    }
+
                     image[] = #move edited
                 }
 
                 let playhead = .playhead
                 defer
                 {
-                    if ranges.count do
+                    if ranges.count
+                    {
                         catch .showFrame(playhead)
+                    }
                 }
 
                 var copied = false
@@ -123,8 +150,10 @@ impl Capture
                     copied = true
                 }
                 {
-                    if not (Swag.err is UnsupportedFormatError) do
+                    if not (Swag.err is UnsupportedFormatError)
+                    {
                         fail Swag.err
+                    }
                 }
 
                 if copied
@@ -137,7 +166,7 @@ impl Capture
 
         var input = try Reader.open(source)
         defer input.close()
-        var audioConfigs: Array'Mp4.SoftwareAudioConfig
+        var audioConfigs: Array!{Mp4.SoftwareAudioConfig}
         for index in cast(u64, input.audioTrackCount())
         {
             let sound     = unwrap input.audioTrack(cast(u32, index))
@@ -159,19 +188,30 @@ impl Capture
         for frame in frames.frameAt(start) until frames.frameCount()
         {
             let shown = Math.max(frames.timeOf(frame), start)
-            if shown >= finish do
+            if shown >= finish
+            {
                 break
+            }
+
             let next = frame + 1 < frames.frameCount() ? frames.timeOf(frame + 1) : frames.endTime
-            if next <= shown do
+            if next <= shown
+            {
                 continue
+            }
+
             var remaining = Math.min(next, finish) - shown
-            if not remaining do
+            if not remaining
+            {
                 continue
+            }
 
             try .showFrame(frame)
             var image = .toImage()
-            if not image.isValid() do
+            if not image.isValid()
+            {
                 fail InvalidFormatError{"the video frame could not be rendered"}
+            }
+
             var picture = &image
             if image.width != width or image.height != height
             {
@@ -201,8 +241,11 @@ impl Capture
             }
         }
 
-        if not outputFrame do
+        if not outputFrame
+        {
             fail InvalidFormatError{"the kept video span has no frame"}
+        }
+
         for index in cast(u64, input.audioTrackCount())
         {
             let trackIndex = cast(u32, index)
@@ -234,7 +277,7 @@ private func exportVideoSound(recording: *Mp4.SoftwareRecording, sound: const *S
         var remaining = count
         while remaining
         {
-            let frames = Math.min(remaining, 1_024'u64)
+            let frames = Math.min(remaining, 1_024_u64)
             try recording.addAudioFrames(Swag.makeSlice(&zeros[0], frames * channels), track)
             remaining -= frames
         }
@@ -258,8 +301,10 @@ private func exportVideoSound(recording: *Mp4.SoftwareRecording, sound: const *S
         }
 
         try sound.decodePcm16(from, count, append)
-        if failure.value() do
+        if failure.value()
+        {
             try failure.raise()
+        }
     }
 
     try writeSilence(recording, trackIndex, channels, wanted - written)

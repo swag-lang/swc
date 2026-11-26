@@ -27,9 +27,9 @@ const SampleInput =
 // Grid
 // ---------------------------------------------------------------------------
 
-const MaxDim    = 150'u32
+const MaxDim    = 150_u32
 const MaxCells  = MaxDim * MaxDim
-const Unvisited = 0xFFFFFFFF'u32
+const Unvisited = 0xFFFFFFFF_u32
 
 struct Grid
 {
@@ -61,8 +61,14 @@ func gridInit()->Grid
 
 func gridFree(g: *Grid)
 {
-    if g.cells do testFree(g.cells)
-    if g.dist do testFree(g.dist)
+    if g.cells
+    {
+        testFree(g.cells)
+    }
+    if g.dist
+    {
+        testFree(g.dist)
+    }
 }
 
 impl Grid
@@ -84,7 +90,10 @@ impl Grid
     #[Swag.Inline]
     mtd inBounds(r: s32, c: s32)->bool
     {
-        if r < 0 or c < 0 do return false
+        if r < 0 or c < 0
+        {
+            return false
+        }
         return cast(u32, r) < me.h and cast(u32, c) < me.w
     }
 }
@@ -137,7 +146,10 @@ func parseGrid(text: string)->Grid
         {
             if col > 0
             {
-                if g.h == 0 do g.w = col
+                if g.h == 0
+                {
+                    g.w = col
+                }
                 g.h += 1
                 row += 1
                 col = 0
@@ -176,17 +188,29 @@ func tracePath(g: *Grid)
 
     for MaxCells
     {
-        if cr == g.er and cc == g.ec do break
+        if cr == g.er and cc == g.ec
+        {
+            break
+        }
         var moved = false
         for dir in 4
         {
             let nr = cast(s32, cr) + DR[dir]
             let nc = cast(s32, cc) + DC[dir]
-            if not g.inBounds(nr, nc) do continue
+            if not g.inBounds(nr, nc)
+            {
+                continue
+            }
             let ur = cast(u32, nr)
             let uc = cast(u32, nc)
-            if not g.isOpen(ur, uc) do continue
-            if g.distAt(ur, uc) != Unvisited do continue
+            if not g.isOpen(ur, uc)
+            {
+                continue
+            }
+            if g.distAt(ur, uc) != Unvisited
+            {
+                continue
+            }
             d += 1
             g.setDist(ur, uc, d)
             cr    = ur
@@ -194,7 +218,10 @@ func tracePath(g: *Grid)
             moved = true
             break
         }
-        if not moved do break
+        if not moved
+        {
+            break
+        }
     }
 
     g.pathLen = d
@@ -233,13 +260,19 @@ func countCheats(g: *Grid, maxCheat: u32, minSaving: u32)->u64
         let pi = pathBuf[i]
         // Only check cells further along the path that could save time
         let minJ = i + minSaving
-        if minJ >= pathSize do continue
+        if minJ >= pathSize
+        {
+            continue
+        }
 
         for j in minJ until pathSize
         {
             let pj = pathBuf[j]
             let md = manhattan(pi, pj)
-            if md > maxCheat do continue
+            if md > maxCheat
+            {
+                continue
+            }
 
             // Saving = path distance difference - manhattan distance
             let pathDist = j - i
@@ -288,12 +321,12 @@ func solve(text: string, minSaving: u32)->SolveResult
 {
     var g = parseGrid(SampleInput)
     defer gridFree(&g)
-    Swag.require(g.w == 15'u32)
-    Swag.require(g.h == 15'u32)
-    Swag.require(g.sr == 3'u32)
-    Swag.require(g.sc == 1'u32)
-    Swag.require(g.er == 7'u32)
-    Swag.require(g.ec == 5'u32)
+    Swag.require(g.w == 15_u32)
+    Swag.require(g.h == 15_u32)
+    Swag.require(g.sr == 3_u32)
+    Swag.require(g.sc == 1_u32)
+    Swag.require(g.er == 7_u32)
+    Swag.require(g.ec == 5_u32)
 }
 
 // Grid inline methods: nested inline (isOpen → cell → idx)
@@ -311,8 +344,8 @@ func solve(text: string, minSaving: u32)->SolveResult
 #test
 {
     let p = makePos(3, 7)
-    Swag.require(p.r == 3'u32)
-    Swag.require(p.c == 7'u32)
+    Swag.require(p.r == 3_u32)
+    Swag.require(p.c == 7_u32)
 }
 
 // Manhattan distance with Swag.abs on s32
@@ -320,13 +353,13 @@ func solve(text: string, minSaving: u32)->SolveResult
 {
     let a = makePos(1, 5)
     let b = makePos(4, 2)
-    Swag.require(manhattan(a, b) == 6'u32)
+    Swag.require(manhattan(a, b) == 6_u32)
 
     // Same point
-    Swag.require(manhattan(a, a) == 0'u32)
+    Swag.require(manhattan(a, a) == 0_u32)
 
     // Reversed order
-    Swag.require(manhattan(b, a) == 6'u32)
+    Swag.require(manhattan(b, a) == 6_u32)
 }
 
 // Trace path
@@ -335,23 +368,23 @@ func solve(text: string, minSaving: u32)->SolveResult
     var g = parseGrid(SampleInput)
     defer gridFree(&g)
     tracePath(&g)
-    Swag.require(g.pathLen == 84'u32)
-    Swag.require(g.distAt(g.sr, g.sc) == 0'u32)
-    Swag.require(g.distAt(g.er, g.ec) == 84'u32)
+    Swag.require(g.pathLen == 84_u32)
+    Swag.require(g.distAt(g.sr, g.sc) == 0_u32)
+    Swag.require(g.distAt(g.er, g.ec) == 84_u32)
 }
 
 // Part 1: cheats of length 2, saving >= 2 → 44
 #test
 {
     let result = solve(SampleInput, 2)
-    Swag.require(result.part1 == 44'u64)
+    Swag.require(result.part1 == 44_u64)
 }
 
 // Part 2: cheats of length 20, saving >= 50 → 285
 #test
 {
     let result = solve(SampleInput, 50)
-    Swag.require(result.part2 == 285'u64)
+    Swag.require(result.part2 == 285_u64)
 }
 
 // Edge: single-cell path (S == E)
@@ -369,7 +402,7 @@ func solve(text: string, minSaving: u32)->SolveResult
     cells[2 * MaxDim + 0] = '#'; cells[2 * MaxDim + 1] = '#'; cells[2 * MaxDim + 2] = '#'
     g.sr = 1; g.sc = 1; g.er = 1; g.ec = 1
     tracePath(&g)
-    Swag.require(g.pathLen == 0'u32)
+    Swag.require(g.pathLen == 0_u32)
 }
 
 // Manhattan distance edge: large coordinates
@@ -377,7 +410,7 @@ func solve(text: string, minSaving: u32)->SolveResult
 {
     let a = makePos(0, 0)
     let b = makePos(100, 100)
-    Swag.require(manhattan(a, b) == 200'u32)
+    Swag.require(manhattan(a, b) == 200_u32)
 }
 
 // inBounds inline with signed args

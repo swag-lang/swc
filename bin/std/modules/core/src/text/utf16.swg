@@ -81,7 +81,7 @@ func encodeRune(dest: [..] u16, src: rune)->u32
 // written as `RuneError`.
 func fromUtf8(dest: [..] u16, src: const [..] u8)->u64
 {
-    var count      = 0'u64
+    var count      = 0_u64
     var srcPtr     = src.buffer
     var destPtr    = dest.buffer
     var srcLength  = src.count
@@ -118,7 +118,7 @@ func fromUtf8(dest: [..] u16, src: const [..] u8)->u64
 }
 
 // Returns the UTF-16 conversion of the UTF-8 bytes of `src`.
-func fromUtf8(src: const [..] u8)->Array'u16
+func fromUtf8(src: const [..] u8)->Array!{u16}
 {
     var result: #returntype
     result.reserve(2 * src.count)
@@ -146,7 +146,7 @@ func fromUnicode(dest: [..] u16, src: const [..] rune)->u64
 }
 
 // Returns the UTF-16 encoding of the runes of `src`.
-func fromUnicode(src: const [..] rune)->Array'u16
+func fromUnicode(src: const [..] rune)->Array!{u16}
 {
     var result: #returntype
     result.reserve(2 * src.count)
@@ -155,7 +155,7 @@ func fromUnicode(src: const [..] rune)->Array'u16
 }
 
 // Returns the UTF-16 conversion of `src` followed by a zero unit, which `count` includes.
-func toZeroTerminated(src: string)->Array'u16
+func toZeroTerminated(src: string)->Array!{u16}
 {
     var result: #returntype
     result.reserve(2 * src.count + 1)
@@ -171,10 +171,10 @@ func toZeroTerminated(src: string)->Array'u16
 func lengthUntilZero(buf: const [..] u16)->u64
 {
     const VectorCount = #sizeof(Math.Simd.U16x8) / #sizeof(u16)
-    let zero   = Math.Simd.splat(0'u16)
+    let zero   = Math.Simd.splat(0_u16)
     let data   = buf.buffer
     let count  = buf.count
-    var offset = 0'u64
+    var offset = 0_u64
 
     while offset + VectorCount <= count
     {
@@ -183,8 +183,10 @@ func lengthUntilZero(buf: const [..] u16)->u64
         {
             for lane in VectorCount
             {
-                if data[offset + lane] == 0 do
+                if data[offset + lane] == 0
+                {
                     return offset + lane
+                }
             }
         }
 
@@ -193,8 +195,11 @@ func lengthUntilZero(buf: const [..] u16)->u64
 
     while offset < count
     {
-        if data[offset] == 0 do
+        if data[offset] == 0
+        {
             return offset
+        }
+
         offset += 1
     }
 
@@ -208,11 +213,17 @@ func lengthUntilZero(buf: const [..] u16)->u64
 // remains bounded.
 func lengthZeroTerminated(buf: const [*] u16?)->u64
 {
-    if buf == null do
+    if buf == null
+    {
         return 0
+    }
+
     var ptr   = buf
-    var count = 0'u64
-    while ptr[] do
+    var count = 0_u64
+    while ptr[]
+    {
         ptr, count += 1
+    }
+
     return count
 }

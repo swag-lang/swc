@@ -9,10 +9,10 @@ private struct WatcherNative
     directory:     HANDLE
     event:         HANDLE
     overlapped:    OVERLAPPED
-    buffer:        Array'u8
+    buffer:        Array!{u8}
     pendingRename: String
     pending:       bool
-    cancelled:     Swag.AtomicValue'u32
+    cancelled:     Swag.AtomicValue!{u32}
 }
 
 private func watcherNative(value: *void?)->*WatcherNative => cast(*WatcherNative, unwrap value)
@@ -20,33 +20,59 @@ private func watcherNative(value: *void?)->*WatcherNative => cast(*WatcherNative
 private func watchFilterNative(filter: WatchFilter)->DWORD
 {
     var result: DWORD
-    if filter.has(.FileName) do
+    if filter.has(.FileName)
+    {
         result |= FILE_NOTIFY_CHANGE_FILE_NAME
-    if filter.has(.DirectoryName) do
+    }
+
+    if filter.has(.DirectoryName)
+    {
         result |= FILE_NOTIFY_CHANGE_DIR_NAME
-    if filter.has(.Attributes) do
+    }
+
+    if filter.has(.Attributes)
+    {
         result |= FILE_NOTIFY_CHANGE_ATTRIBUTES
-    if filter.has(.Size) do
+    }
+
+    if filter.has(.Size)
+    {
         result |= FILE_NOTIFY_CHANGE_SIZE
-    if filter.has(.LastWrite) do
+    }
+
+    if filter.has(.LastWrite)
+    {
         result |= FILE_NOTIFY_CHANGE_LAST_WRITE
-    if filter.has(.LastAccess) do
+    }
+
+    if filter.has(.LastAccess)
+    {
         result |= FILE_NOTIFY_CHANGE_LAST_ACCESS
-    if filter.has(.Creation) do
+    }
+
+    if filter.has(.Creation)
+    {
         result |= FILE_NOTIFY_CHANGE_CREATION
-    if filter.has(.Security) do
+    }
+
+    if filter.has(.Security)
+    {
         result |= FILE_NOTIFY_CHANGE_SECURITY
+    }
+
     return result
 }
 
-private func appendChange(changes: *Array'Change, kind: ChangeKind, root, relative: string, oldPath: string? = null)
+private func appendChange(changes: *Array!{Change}, kind: ChangeKind, root, relative: string, oldPath: string? = null)
 {
     with var change: Change
     {
         .kind = kind
         .path = Path.combine(root, relative)
-        if oldPath do
+        if oldPath
+        {
             .oldPath = oldPath
+        }
     }
 
     changes.add(#move change)
@@ -73,12 +99,16 @@ internal impl Watcher
                                           OPEN_EXISTING,
                                           FILE_FLAG_BACKUP_SEMANTICS | FILE_FLAG_OVERLAPPED,
                                           null)
-        defer if not .native and state.directory do
+        defer if not .native and state.directory
+        {
             CloseHandle(state.directory)
+        }
 
         state.event = try CreateEventW(null, TRUE, FALSE, null)
-        defer if not .native and state.event do
+        defer if not .native and state.event
+        {
             CloseHandle(state.event)
+        }
 
         state.buffer.reserve(.options.bufferSize)
         state.buffer.count      = .options.bufferSize
@@ -89,8 +119,10 @@ internal impl Watcher
 
     mtd closeNative()
     {
-        if not .native do
+        if not .native
+        {
             return
+        }
 
         let state = watcherNative(.native)
         .cancelNative()
@@ -112,16 +144,20 @@ internal impl Watcher
     mtd cancelNative()
     {
         let state = watcherNative(.native)
-        if state.cancelled.exchange(1) do
+        if state.cancelled.exchange(1)
+        {
             return
+        }
 
         discard catch CancelIoEx(state.directory, &state.overlapped)
     }
 
     private mtd issueRead(state: *WatcherNative) fail
     {
-        if state.pending do
+        if state.pending
+        {
             return
+        }
 
         with state.overlapped
         {
@@ -144,8 +180,10 @@ internal impl Watcher
 
         // Cancellation can race the interval between the caller's state check and submission.
         // Rechecking after publication closes that gap without serializing the common path.
-        if state.cancelled.load() do
+        if state.cancelled.load()
+        {
             discard catch CancelIoEx(state.directory, &state.overlapped)
+        }
     }
 
     private mtd parseChanges(state: *WatcherNative, transferred: u32)->WatchBatch
@@ -153,7 +191,7 @@ internal impl Watcher
         var result: #returntype
         result.status = .Changes
 
-        var offset = 0'u32
+        var offset = 0_u32
         for
         {
             let info      = cast(const *FILE_NOTIFY_INFORMATION, (state.buffer.storage() + offset))
@@ -182,8 +220,11 @@ internal impl Watcher
                 appendChange(&result.changes, .Modified, .root.toString(), relative)
 
             case FILE_ACTION_RENAMED_OLD_NAME:
-                if not state.pendingRename.isEmpty() do
+                if not state.pendingRename.isEmpty()
+                {
                     appendChange(&result.changes, .Removed, .root.toString(), state.pendingRename.toString())
+                }
+
                 state.pendingRename = #move name
 
             case FILE_ACTION_RENAMED_NEW_NAME:
@@ -202,10 +243,16 @@ internal impl Watcher
                 appendChange(&result.changes, .Modified, .root.toString(), relative)
             }
 
-            if not info.NextEntryOffset do
+            if not info.NextEntryOffset
+            {
                 break
-            if info.NextEntryOffset > transferred - offset do
+            }
+
+            if info.NextEntryOffset > transferred - offset
+            {
                 break
+            }
+
             offset += info.NextEntryOffset
         }
 

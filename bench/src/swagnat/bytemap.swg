@@ -21,7 +21,7 @@ func mapInit(m: *ByteMap, capacity: u64, base: [*] u8)
     m.keyLen = cast([*] u64, unwrap benchAlloc(capacity * #sizeof(u64)))
     m.val    = cast([*] u64, unwrap benchAlloc(capacity * #sizeof(u64)))
     m.used   = cast([*] u8, unwrap benchAlloc(capacity))
-    Swag.memset(m.used, 0'u8, capacity)
+    Swag.memset(m.used, 0_u8, capacity)
     m.base  = base
     m.mask  = capacity - 1
     m.count = 0
@@ -38,7 +38,7 @@ func mapFree(m: *ByteMap)
 // Returns the table index holding the key, or the free slot it should occupy.
 func mapProbe(m: *ByteMap, off, len: u64)->u64
 {
-    var h = 2166136261'u64
+    var h = 2166136261_u64
     for i in len
     {
         h ^= cast(u64, m.base[off + i])
@@ -48,8 +48,11 @@ func mapProbe(m: *ByteMap, off, len: u64)->u64
     var idx = h & m.mask
     while m.used[idx] != 0
     {
-        if m.keyLen[idx] == len and Swag.memcmp(&m.base[m.keyOff[idx]], &m.base[off], len) == 0 do
+        if m.keyLen[idx] == len and Swag.memcmp(&m.base[m.keyOff[idx]], &m.base[off], len) == 0
+        {
             return idx
+        }
+
         idx = (idx + 1) & m.mask
     }
 

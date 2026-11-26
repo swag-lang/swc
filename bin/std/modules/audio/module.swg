@@ -64,8 +64,10 @@ encodings fail instead of being guessed.
 */
 
 #import("core")
-#static if #os == Swag.TargetOs.Windows do
+#static if #os == Swag.TargetOs.Windows
+{
     #import("win32")
+}
 
 #run
 {

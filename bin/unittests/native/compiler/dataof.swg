@@ -44,7 +44,7 @@ impl ConstDataOfSpecBuffer
     var d         = c.buffer
     #assert(#typeof(d) == const [*] u8)
 
-    var ebuf: [2] u8  = ['x'u8, 0]
+    var ebuf: [2] u8  = ['x'_u8, 0]
     var e:    cstring = cast(cstring, &ebuf[0])
     var f = e.buffer
     #assert(#typeof(f) == const [*] u8)
@@ -53,7 +53,7 @@ impl ConstDataOfSpecBuffer
     var h = g.buffer
     #assert(#typeof(h) == [*] s32)
 
-    var i: any = 0's32
+    var i: any = 0_s32
     var j      = i.buffer
     #assert(#typeof(j) == [*] void)
     Swag.require(#typeof(b) == [*] s32)
@@ -78,9 +78,9 @@ impl ConstDataOfSpecBuffer
 {
     var arr: [3] u8 = [1, 2, 3]
     var p = arr.buffer
-    Swag.require(p[0] == 1'u8)
-    Swag.require(p[1] == 2'u8)
-    Swag.require(p[2] == 3'u8)
+    Swag.require(p[0] == 1_u8)
+    Swag.require(p[1] == 2_u8)
+    Swag.require(p[2] == 3_u8)
 }
 
 // .buffer on null string returns null
@@ -107,9 +107,9 @@ impl ConstDataOfSpecBuffer
     const s: string = "abc"
     const p         = s.buffer
     #assert(p != null)
-    #assert(p[] == 'a'u8)
+    #assert(p[] == 'a'_u8)
     Swag.require(p != null)
-    Swag.require(p[] == 'a'u8)
+    Swag.require(p[] == 'a'_u8)
 }
 
 // .buffer on const slice at compile time
@@ -118,9 +118,9 @@ impl ConstDataOfSpecBuffer
     const s: const [..] u8 = cast(const [..] u8, "abc")
     const p = s.buffer
     #assert(p != null)
-    #assert(p[] == 'a'u8)
+    #assert(p[] == 'a'_u8)
     Swag.require(p != null)
-    Swag.require(p[] == 'a'u8)
+    Swag.require(p[] == 'a'_u8)
 }
 
 // .buffer on const fixed array at compile time
@@ -147,11 +147,11 @@ impl ConstDataOfSpecBuffer
 
 #test
 {
-    const value: ConstDataOfSpecBuffer = ConstDataOfSpecBuffer{data: [7'u8, 9'u8]}
+    const value: ConstDataOfSpecBuffer = ConstDataOfSpecBuffer{data: [7_u8, 9_u8]}
     let p = value.buffer
     #assert(#typeof(p) == const [*] u8)
-    Swag.require(p[] == 7'u8)
-    Swag.require(p[1] == 9'u8)
+    Swag.require(p[] == 7_u8)
+    Swag.require(p[1] == 9_u8)
 }
 
 #test

@@ -31,12 +31,19 @@ impl MainWindow
         let notice = .list.notice
         let failed = not .statusHeadline.isEmpty()
         let detail = .statusDetail.text()
-        if failed do
+        if failed
+        {
             notice.set(.statusHeadline.text(), detail, .Stopped)
-        elif .statusMessage == .Ready and not detail.isEmpty() do
+        }
+        else if .statusMessage == .Ready and not detail.isEmpty()
+        {
             notice.set(detail, "", .Idle)
-        else do
+        }
+        else
+        {
             notice.set(.statusText(), detail, .statusTone())
+        }
+
         .list.showNotice(failed or .statusMessage != .Ready or not detail.isEmpty() or notice.busy.isLocallyVisible())
     }
 
@@ -147,13 +154,19 @@ impl MainWindow
             return texts.msg_AutoUnmountStopped
 
         case .AutoUnmountBusy:
-            if .statusDrive == "1" do
+            if .statusDrive == "1"
+            {
                 return texts.msg_AutoUnmountBusyOne
+            }
+
             return Format.toString(texts.msg_AutoUnmountBusy, .statusDrive)
 
         case .UnmountStopped:
-            if .statusDrive == "1" do
+            if .statusDrive == "1"
+            {
                 return texts.msg_UnmountStoppedOne
+            }
+
             return Format.toString(texts.msg_UnmountStopped, .statusDrive)
 
         case .UnmountSyncStopped:
@@ -183,7 +196,7 @@ impl MainWindow
     }
 
     // Opens an error box and keeps its summary and cause on the notice line.
-    mtd showError(key: const *string, err: any? = null, shortTitle = false, number = 0'u64)
+    mtd showError(key: const *string, err: any? = null, shortTitle = false, number = 0_u64)
     {
         .statusHeadline = {key, number}
         let failure = describeFailure(err)

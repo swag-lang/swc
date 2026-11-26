@@ -60,16 +60,22 @@ impl IActionUI for ActionGlobal
         switch cxt.id
         {
         case .ShowEditor:
-            if main.libraryMode do
+            if main.libraryMode
+            {
                 main.swapLibraryMode()
+            }
+
             main.showWindow()
 
         case .ShowHub:
             main.showHub()
 
         case .ShowLibrary:
-            if main.workspace == .Editor or not main.libraryMode do
+            if main.workspace == .Editor or not main.libraryMode
+            {
                 main.swapLibraryMode()
+            }
+
             main.showWindow()
 
         case .Exit:
@@ -80,12 +86,18 @@ impl IActionUI for ActionGlobal
             // A deferred save that hasn't fired yet, and a background save still
             // writing, must both land before the process goes away.
             let capture = main.editWnd.getCapture()
-            if capture and capture.changed do
+            if capture and capture.changed
+            {
                 main.saveCapture(capture)
+            }
+
             main.flushCaptureSave()
 
-            if main.libWnd != null do
+            if main.libWnd != null
+            {
                 main.libWnd.requestClose()
+            }
+
             main.postQuitEvent()
 
         case .Minimize:
@@ -101,8 +113,11 @@ impl MainWnd
     // Switches between the editor and the library.
     mtd swapLibraryMode()
     {
-        if .libraryMode and .recentWnd.returnToEditor do
+        if .libraryMode and .recentWnd.returnToEditor
+        {
             .recentWnd.cancelRequestedSelection()
+        }
+
         .libraryMode = not .libraryMode
 
         // The work area carries the dock, the inspector, the mini-bar and the hint line of the
@@ -111,8 +126,11 @@ impl MainWnd
         .recentBar.show(.showRecent and not .libraryMode)
         if .libraryMode
         {
-            if g_UpdatingLib do
+            if g_UpdatingLib
+            {
                 .libWnd.view.imgSpin.show()
+            }
+
             .libWnd.fill()
         }
         else
@@ -146,10 +164,15 @@ impl MainWnd
         }
 
         .applyLayout()
-        if .libraryMode do
+        if .libraryMode
+        {
             .libWnd.view.setFocus()
-        else do
+        }
+        else
+        {
             .editWnd.editView.setFocus()
+        }
+
         .updateReading()
         .updateState()
     }

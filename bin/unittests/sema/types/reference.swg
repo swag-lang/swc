@@ -113,7 +113,7 @@ func semaTest006()
     var value:    f32        = 1.5
     let valueRef: const *f32 = &value
     let copied               = cast(f32, valueRef[])
-    let sum                  = valueRef[] + 2.5'f32
+    let sum                  = valueRef[] + 2.5_f32
 
     #assert(#typeof(copied) == f32)
     #assert(#typeof(sum) == f32)
@@ -122,7 +122,7 @@ func semaTest006()
 func semaTest007()
 {
     var value: f32 = 1.5
-    let sum        = addRefValue(&value, 2.5'f32)
+    let sum        = addRefValue(&value, 2.5_f32)
 
     #assert(#typeof(sum) == f32)
 }
@@ -130,7 +130,7 @@ func semaTest007()
 func semaTest008()
 {
     var value: f32 = 1.5
-    let temp       = dampRefValue(&value, 2.0'f32, 3.0'f32, 0.5'f32)
+    let temp       = dampRefValue(&value, 2.0_f32, 3.0_f32, 0.5_f32)
 
     #assert(#typeof(temp) == f32)
 }
@@ -138,8 +138,8 @@ func semaTest008()
 func semaTest009()
 {
     var box: RefFloatBox = RefFloatBox{value: 1.5}
-    let sum  = addRefValue(&box.value, 2.5'f32)
-    let temp = dampRefValue(&box.value, 2.0'f32, 3.0'f32, 0.5'f32)
+    let sum  = addRefValue(&box.value, 2.5_f32)
+    let temp = dampRefValue(&box.value, 2.0_f32, 3.0_f32, 0.5_f32)
 
     #assert(#typeof(sum) == f32)
     #assert(#typeof(temp) == f32)
@@ -148,7 +148,7 @@ func semaTest009()
 func semaTest010()
 {
     var value: f32 = 1.5
-    let temp       = dampRefValueWithLiterals(4.0'f32, 1.0'f32, &value, 0.5'f32, 0.25'f32)
+    let temp       = dampRefValueWithLiterals(4.0_f32, 1.0_f32, &value, 0.5_f32, 0.25_f32)
 
     #assert(#typeof(temp) == f32)
 }
@@ -157,7 +157,7 @@ func semaTest011()
 {
     var grid:     [2, 3] u32
     var valueRef: *u32 = &grid[1, 2]
-    valueRef[] += 1'u32
+    valueRef[] += 1_u32
 
     #assert(#typeof(valueRef) == #type *u32)
 }
@@ -170,15 +170,15 @@ func semaTest012()
     for c, i in text
     {
         var valueRef: *u32 = &freq[i, c - 'a']
-        valueRef[] += 1'u32
+        valueRef[] += 1_u32
     }
 }
 
 func semaTest013()
 {
     var values: RefIndexBuffer = RefIndexBuffer{values: [12]}
-    var total = 1's32
-    var index = 0's64
+    var total = 1_s32
+    var index = 0_s64
 
     let valueRef: *s32 = values.ref1(index)
     total      += valueRef[]

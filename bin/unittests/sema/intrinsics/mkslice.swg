@@ -8,7 +8,7 @@ func semaTest001()
 
     let str1 = Swag.makeSlice(&buf[0], 10)
     #assert(#typeof(str1) == [..] u8)
-    let str2 = Swag.makeSlice(&buf[0], 10's16)
+    let str2 = Swag.makeSlice(&buf[0], 10_s16)
     #assert(#typeof(str2) == [..] u8)
 
     var xv:  s32

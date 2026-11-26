@@ -3,16 +3,19 @@
 
 func blake2sHexDigit(value: u8)->u8
 {
-    if value >= '0' and value <= '9' do
+    if value >= '0' and value <= '9'
+    {
         return value - '0'
+    }
+
     return (value - 'a') + 10
 }
 
-func blake2sHexBytes(text: string)->Array'u8
+func blake2sHexBytes(text: string)->Array!{u8}
 {
     var result: #returntype
     result.reserve(text.count / 2)
-    var index = 0'u64
+    var index = 0_u64
     while index + 1 < text.count
     {
         result.add(cast(u8, ((blake2sHexDigit(text[index]) << 4) | blake2sHexDigit(text[index + 1]))))
@@ -25,18 +28,18 @@ func blake2sHexBytes(text: string)->Array'u8
 func assertBlake2s(data: const [..] u8, expected: string)
 {
     let reference = blake2sHexBytes(expected)
-    var oneShot: Array'u8
+    var oneShot: Array!{u8}
     oneShot.resize(reference.count)
     expect Hash.Blake2s.compute(data, oneShot.toSlice())
     Swag.require(Crypto.constantTimeEqual(oneShot.toSlice(), reference.toSlice()))
 
-    var streamed: Array'u8
+    var streamed: Array!{u8}
     streamed.resize(reference.count)
     var hash   = expect Hash.Blake2s.create(reference.count)
-    var offset = 0'u64
+    var offset = 0_u64
     while offset < data.count
     {
-        let count = Math.min(data.count - offset, 7'u64)
+        let count = Math.min(data.count - offset, 7_u64)
         hash.update(data[offset until offset + count])
         offset += count
     }
@@ -56,23 +59,28 @@ func assertBlake2s(data: const [..] u8, expected: string)
 {
     var key:   [32] u8
     var input: [64] u8
-    for index in 32 do
+    for index in 32
+    {
         key[index] = cast(u8, index)
-    for index in 64 do
+    }
+
+    for index in 64
+    {
         input[index] = cast(u8, index)
+    }
 
     var actual: [32] u8
     expect Hash.Blake2s.computeKeyed(key, input, actual)
     let expected = blake2sHexBytes("8975b0577fd35566d750b362b0897a26c399136df07bababbde6203ff2954ed4")
     Swag.require(Crypto.constantTimeEqual(actual, expected.toSlice()))
 
-    for digestSize in [1'u64, 16, 32]
+    for digestSize in [1_u64, 16, 32]
     {
-        var oneShot: Array'u8
+        var oneShot: Array!{u8}
         oneShot.resize(digestSize)
         expect Hash.Blake2s.compute(input, oneShot.toSlice())
 
-        var incremental: Array'u8
+        var incremental: Array!{u8}
         incremental.resize(digestSize)
         var hash = expect Hash.Blake2s.create(digestSize)
         hash.update(input[until 63])

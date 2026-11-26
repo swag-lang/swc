@@ -15,10 +15,10 @@ namespace FormatSiblings
         uint32_t last  = FormatPiece::INVALID_INDEX; // last piece of the body content
 
         bool valid       = false; // located, and editable from end to end
-        bool braced      = false; // `{ ... }` rather than `do` or `=>`
+        bool braced      = false; // `{ ... }` rather than `=>`
         bool oneLine     = false; // the whole body sits on one line
         bool compact     = false; // a single statement that reads on one line
-        bool unbraceable = false; // compact, and safe to write after `do` or `=>`
+        bool unbraceable = false; // compact, and safe to write after `=>`
         bool braceable   = false; // safe to wrap in braces
     };
 

@@ -43,26 +43,34 @@ const PHOTO_PALETTE       = 3
 internal struct Decoder
 {
     bytes:       const [..] u8?
-    directories: Array'u32
+    directories: Array!{u32}
 }
 
 func checkBuffer(ptr, last: const [*] u8, size: u64) fail
 {
-    if ptr + size > last do
+    if ptr + size > last
+    {
         fail InvalidFormatError{"invalid source buffer"}
+    }
 }
 
 func rd16(p: const [*] u8, le: bool)->u32
 {
-    if le do
+    if le
+    {
         return cast(u32, p[0]) | (cast(u32, p[1]) << 8)
+    }
+
     return (cast(u32, p[0]) << 8) | cast(u32, p[1])
 }
 
 func rd32(p: const [*] u8, le: bool)->u32
 {
-    if le do
+    if le
+    {
         return cast(u32, p[0]) | (cast(u32, p[1]) << 8) | (cast(u32, p[2]) << 16) | (cast(u32, p[3]) << 24)
+    }
+
     return (cast(u32, p[0]) << 24) | (cast(u32, p[1]) << 16) | (cast(u32, p[2]) << 8) | cast(u32, p[3])
 }
 
@@ -160,9 +168,12 @@ private func(REVERSE_ROWS: bool, SHORT_RUNS: bool) unpackBitsRows(dst: [*] u8, e
     var p            = src
     while remaining
     {
-        if p >= last do
+        if p >= last
+        {
             fail InvalidFormatError{"invalid source buffer"}
-        let header = cast(s32, cast #bit(s8, p[0]))
+        }
+
+        let header = cast(s32, cast #bit (s8, p[0]))
         p += 1
         if header == -128 do
             continue
@@ -175,8 +186,8 @@ private func(REVERSE_ROWS: bool, SHORT_RUNS: bool) unpackBitsRows(dst: [*] u8, e
 
         #static if REVERSE_ROWS
         {
-            var copied = 0'u64
-            while copied < count
+            let count = cast(u64, (header + 1))
+            if out + count > expected
             {
                 let size   = Math.min(count - copied, rowRemaining)
                 let target = row + (rowBytes - rowRemaining)
@@ -359,62 +370,30 @@ private impl StripReader
             try checkBuffer(srcPtr, .last, srcCount)
             if .compression == COMPRESSION_NONE and srcCount < stripBytes do
                 fail InvalidFormatError{"invalid source buffer"}
-
-            // True-color PackBits can write directly to the bottom-up output rows.
-            if .compression == COMPRESSION_PACKBITS and samples != 1 and .predictor == 1
-            {
-                let firstRow = .destination + cast(u64, .height - rowStart - 1) * .rowStride
-                try unpackBits(firstRow, stripBytes, srcPtr, srcPtr + srcCount, rowBytes)
-                rowStart += rowsInStrip
-                continue
             }
 
-            var strip = srcPtr
-            if .compression != COMPRESSION_NONE or (.predictor == 2 and palette)
+            try checkBuffer(p, last, count)
+            Memory.copy(dst + out, p, count)
+            p   += count
+            out += count
+        }
+        else if header != -128
+        {
+            let count = cast(u64, (1 - header))
+            if out + count > expected
             {
-                decoded.reserve(stripBytes)
-                let scratch = decoded.storage()
-                switch .compression
-                {
-                case COMPRESSION_LZW:      try unpackLzw(scratch, stripBytes, srcPtr, srcCount, &lzwDictionary)
-                case COMPRESSION_PACKBITS: try unpackBits(scratch, stripBytes, srcPtr, srcPtr + srcCount)
-                default: Memory.copy(scratch, srcPtr, stripBytes)
-                }
-
-                strip = scratch
+                fail InvalidFormatError{"invalid source buffer"}
             }
 
-            // Convert file order to the bottom-up image layout while the strip is current.
-            for y in rowsInStrip
+            try checkBuffer(p, last, 1)
+            let value = p[0]
+            p += 1
+            for index in count
             {
-                let offset = cast(u64, y) * rowBytes
-                if .predictor == 2 and palette
-                {
-                    let row = decoded.storage() + offset
-                    PackedPixel.restoreHorizontalDeltas(row, row, rowBytes, 1)
-                }
-
-                let source = strip + offset
-                let dstY   = .height - rowStart - y - 1
-                var dst    = .destination + cast(u64, dstY) * .rowStride
-                if samples != 1
-                {
-                    if .predictor == 2 do
-                        PackedPixel.restoreHorizontalDeltas(source, dst, rowBytes, samples)
-                    else do
-                        Memory.copy(dst, source, rowBytes)
-                }
-                elif palette
-                {
-                    try expandPaletteRow(source, dst, rowBytes, .palette)
-                }
-                else
-                {
-                    expandGrayRow(source, dst, rowBytes, grayMask, .predictor == 2)
-                }
+                dst[out + index] = value
             }
 
-            rowStart += rowsInStrip
+            out += count
         }
     }
 }
@@ -427,24 +406,36 @@ impl Decoder
         let countof = buffer.count
         let last    = base + countof
 
-        if countof < 8 do
+        if countof < 8
+        {
             fail InvalidFormatError{"invalid source buffer"}
+        }
 
         // Byte order
         var le: bool
-        if base[0] == 0x49 and base[1] == 0x49 do
+        if base[0] == 0x49 and base[1] == 0x49
+        {
             le = true
-        elif base[0] == 0x4D and base[1] == 0x4D do
+        }
+        else if base[0] == 0x4D and base[1] == 0x4D
+        {
             le = false
-        else do
+        }
+        else
+        {
             fail InvalidFormatError{"not a tiff"}
+        }
 
-        if rd16(base + 2, le) != 42 do
+        if rd16(base + 2, le) != 42
+        {
             fail InvalidFormatError{"not a tiff"}
+        }
 
         let ifdOffset = directory ? directory : rd32(base + 4, le)
-        if cast(u64, ifdOffset) + 2 > countof do
+        if cast(u64, ifdOffset) + 2 > countof
+        {
             fail InvalidFormatError{"invalid source buffer"}
+        }
 
         // Index the field addresses in one pass. Keep the first value of a
         // duplicate tag, including in files with unordered directories.
@@ -467,23 +458,33 @@ impl Decoder
 
         let width  = try readScalar(base, last, le, &ifd, TAG_IMAGE_WIDTH, 0)
         let height = try readScalar(base, last, le, &ifd, TAG_IMAGE_LENGTH, 0)
-        if width == 0 or height == 0 do
+        if width == 0 or height == 0
+        {
             fail InvalidFormatError{"invalid dimensions"}
-        if width > Swag.S32.Max or height > Swag.S32.Max do
+        }
+
+        if width > Swag.S32.Max or height > Swag.S32.Max
+        {
             fail UnsupportedFormatError{"image is too big"}
+        }
 
         let compression      = try readScalar(base, last, le, &ifd, TAG_COMPRESSION, COMPRESSION_NONE)
         let photometric      = try readScalar(base, last, le, &ifd, TAG_PHOTOMETRIC, PHOTO_BLACK_IS_ZERO)
-        var orientation      = 1'u32
+        var orientation      = 1_u32
         let orientationEntry = ifd.find(TAG_ORIENTATION)
         if orientationEntry
         {
             let entry = readEntry(orientationEntry, le)
             if entry.type != TYPE_SHORT or entry.count != 1 do
                 fail InvalidFormatError{"TIFF orientation entry is invalid"}
-            orientation = rd16(entry.fieldAt, le)
-            if orientation < 1 or orientation > 8 do
+            }
+
+            let values = try readValues(base, last, le, entry)
+            orientation = values[0]
+            if orientation < 1 or orientation > 8
+            {
                 fail InvalidFormatError{"TIFF orientation value is out of range"}
+            }
         }
 
         let samples      = try readScalar(base, last, le, &ifd, TAG_SAMPLES_PER_PIXEL, 1)
@@ -493,20 +494,35 @@ impl Decoder
 
         if compression != COMPRESSION_NONE and
            compression != COMPRESSION_LZW and
-           compression != COMPRESSION_PACKBITS do
+           compression != COMPRESSION_PACKBITS
+        {
             fail UnsupportedFormatError{"unsupported compression"}
-        if planar != 1 do
+        }
+
+        if planar != 1
+        {
             fail UnsupportedFormatError{"unsupported planar configuration"}
-        if predictor != 1 and predictor != 2 do
+        }
+
+        if predictor != 1 and predictor != 2
+        {
             fail UnsupportedFormatError{"unsupported predictor"}
-        if samples != 1 and samples != 3 and samples != 4 do
+        }
+
+        if samples != 1 and samples != 3 and samples != 4
+        {
             fail UnsupportedFormatError{"unsupported samples per pixel"}
-        if rowsPerStrip == 0 do
+        }
+
+        if rowsPerStrip == 0
+        {
             rowsPerStrip = height
+        }
 
         // Bits per sample - baseline 8-bit only
         let bpsEntry = ifd.find(TAG_BITS_PER_SAMPLE)
-        if not bpsEntry do
+        if not bpsEntry
+        {
             fail UnsupportedFormatError{"TIFF default bit depth is not supported"}
         let bps = try readValues(base, last, bpsEntry, le)
         if bps.count != samples do
@@ -520,23 +536,31 @@ impl Decoder
         {
             if photometric != PHOTO_WHITE_IS_ZERO and
                photometric != PHOTO_BLACK_IS_ZERO and
-               photometric != PHOTO_PALETTE do
+               photometric != PHOTO_PALETTE
+            {
                 fail UnsupportedFormatError{"unsupported photometric"}
+            }
 
             // Palette images carry real colors (RGB8); grayscale replicates a
             // single channel and is tagged BGR8 like the other decoders.
             pf = photometric == PHOTO_PALETTE ? PixelFormat.RGB8 : PixelFormat.BGR8
         }
-        elif samples == 3
+        else if samples == 3
         {
-            if photometric != PHOTO_RGB do
+            if photometric != PHOTO_RGB
+            {
                 fail UnsupportedFormatError{"unsupported photometric for RGB image"}
+            }
+
             pf = .RGB8
         }
         else
         {
-            if photometric != PHOTO_RGB do
+            if photometric != PHOTO_RGB
+            {
                 fail UnsupportedFormatError{"unsupported photometric for RGBA image"}
+            }
+
             pf = .RGBA8
         }
 
@@ -549,7 +573,10 @@ impl Decoder
                 let entry = readEntry(extraSamples, le)
                 if entry.type != TYPE_SHORT or entry.count != 1 do
                     fail InvalidFormatError{"TIFF extra samples entry is invalid"}
-                switch rd16(entry.fieldAt, le)
+                }
+
+                let association = try readValues(base, last, le, entry)
+                switch association[0]
                 {
                 case 1:  alphaMode = .Premultiplied
                 case 2:  break
@@ -559,28 +586,37 @@ impl Decoder
         }
 
         let bytesPerPixel = pf.bitsPerPixel() / 8
-        if width > cast(u32, Swag.S32.Max) / bytesPerPixel do
+        if width > cast(u32, Swag.S32.Max) / bytesPerPixel
+        {
             fail UnsupportedFormatError{"TIFF image row exceeds the image limits"}
+        }
+
         try options.checkImage(cast(s32, width), cast(s32, height), pf)
 
         var result: #returntype
         if not options.decodePixels
         {
-            if orientation >= 5 do
+            if orientation >= 5
+            {
                 result.init(cast(s32, height), cast(s32, width), pf, alphaMode)
-            else do
+            }
+            else
+            {
                 result.init(cast(s32, width), cast(s32, height), pf, alphaMode)
+            }
+
             return result
         }
 
         result.init(cast(s32, width), cast(s32, height), pf, alphaMode)
 
         // Palette (for photometric=palette)
-        var palette: Array'u32     // packed RGB byte order
+        var palette: Array!{u32}     // packed 0x00RRGGBB
         if samples == 1 and photometric == PHOTO_PALETTE
         {
             let cmEntry = ifd.find(TAG_COLOR_MAP)
-            if not cmEntry do
+            if not cmEntry
+            {
                 fail InvalidFormatError{"missing color map"}
             let cm      = try readValues(base, last, cmEntry, le)
             let entries = cm.count / 3
@@ -597,13 +633,83 @@ impl Decoder
         // Strips
         let stripOffEntry = ifd.find(TAG_STRIP_OFFSETS)
         let stripCntEntry = ifd.find(TAG_STRIP_BYTE_COUNTS)
-        if not stripOffEntry or not stripCntEntry do
+        if not stripOffEntry or not stripCntEntry
+        {
             fail InvalidFormatError{"missing strip data"}
         let stripOffsets = try readValues(base, last, stripOffEntry, le)
         let stripCounts  = try readValues(base, last, stripCntEntry, le)
         let stripCount   = cast(u64, (height - 1) / rowsPerStrip + 1)
         if stripOffsets.count != stripCounts.count or stripOffsets.count < stripCount do
             fail InvalidFormatError{"invalid strip data"}
+        }
+
+        let rowBytes  = cast(u64, width) * samples
+        let totalRows = height
+
+        // Decode all strips into a top-down byte buffer
+        var decoded: Array!{u8}
+        decoded.resize(rowBytes * cast(u64, totalRows))
+
+        var rowStart: u32
+        for s in stripOffsets.count
+        {
+            if rowStart >= totalRows
+            {
+                break
+            }
+
+            var rowsInStrip = rowsPerStrip
+            if rowStart + rowsInStrip > totalRows
+            {
+                rowsInStrip = totalRows - rowStart
+            }
+
+            let stripBytes = rowBytes * cast(u64, rowsInStrip)
+            let srcOff     = stripOffsets[s]
+            let srcCount   = cast(u64, stripCounts[s])
+            let srcPtr     = base + srcOff
+            try checkBuffer(srcPtr, last, srcCount)
+
+            let dstPtr = decoded.storage() + cast(u64, rowStart) * rowBytes
+
+            if compression == COMPRESSION_LZW
+            {
+                try unpackLzw(dstPtr, stripBytes, srcPtr, srcCount)
+            }
+            else if compression == COMPRESSION_PACKBITS
+            {
+                try unpackBits(dstPtr, stripBytes, srcPtr, srcPtr + srcCount)
+            }
+            else
+            {
+                if srcCount < stripBytes
+                {
+                    fail InvalidFormatError{"invalid source buffer"}
+                }
+
+                Memory.copy(dstPtr, srcPtr, stripBytes)
+            }
+
+            rowStart += rowsInStrip
+        }
+
+        if rowStart != totalRows
+        {
+            fail InvalidFormatError{"invalid strip data"}
+        }
+
+        if predictor == 2
+        {
+            for y in totalRows
+            {
+                let row = decoded.storage() + cast(u64, y) * rowBytes
+                for i in rowBytes - samples
+                {
+                    let offset = cast(u64, samples) + i
+                    row[offset] += #wrap row[offset - samples]
+                }
+            }
+        }
 
         result.allocPixels()
         with var strips: StripReader
@@ -639,9 +745,53 @@ impl Decoder
             let reader = &strips
             for lane in 1 until lanes
             {
-                let first = stripCount * lane / lanes
-                let end   = stripCount * (lane + 1) / lanes
-                group.spawn(func|reader, first, end|() fail { try reader.decodeRange(first, end) })
+                if samples == 1
+                {
+                    if photometric == PHOTO_PALETTE
+                    {
+                        let index = cast(u32, srcRow[x])
+                        if index >= palette.count
+                        {
+                            fail InvalidFormatError{"invalid palette index"}
+                        }
+
+                        let argb = palette[index]
+                        dst[0] = cast(u8, ((argb >> 16) & 0xFF))
+                        dst[1] = cast(u8, ((argb >> 8) & 0xFF))
+                        dst[2] = cast(u8, (argb & 0xFF))
+                    }
+                    else
+                    {
+                        var v = srcRow[x]
+                        if photometric == PHOTO_WHITE_IS_ZERO
+                        {
+                            v = 255 - v
+                        }
+
+                        dst[0] = v
+                        dst[1] = v
+                        dst[2] = v
+                    }
+
+                    dst += 3
+                }
+                else if samples == 3
+                {
+                    let pix = srcRow + cast(u64, x) * 3
+                    dst[0] = pix[0]
+                    dst[1] = pix[1]
+                    dst[2] = pix[2]
+                    dst    += 3
+                }
+                else
+                {
+                    let pix = srcRow + cast(u64, x) * 4
+                    dst[0] = pix[0]
+                    dst[1] = pix[1]
+                    dst[2] = pix[2]
+                    dst[3] = pix[3]
+                    dst    += 4
+                }
             }
 
             try strips.decodeRange(0, stripCount / lanes)
@@ -680,35 +830,24 @@ impl IImageSetDecoder for Decoder
         while offset
         {
             try options.checkFrameCount(.directories.count + 1)
-            if visited.count or offset <= largestOffset
+            for prior in .directories where prior == offset
             {
-                // Increasing offsets are unique. Index the prior offsets only when
-                // the directory chain visits a lower address for the first time.
-                if not visited.count
-                {
-                    visited.reserve(.directories.count + 1)
-                    for prior in .directories do
-                        discard visited.add(prior)
-                }
-
-                let count = visited.count
-                discard visited.add(offset)
-                if visited.count == count do
-                    fail InvalidFormatError{"TIFF directory chain contains a cycle"}
-            }
-            else
-            {
-                largestOffset = offset
+                fail InvalidFormatError{"TIFF directory chain contains a cycle"}
             }
 
-            if cast(u64, offset) + 2 > buffer.count do
+            if cast(u64, offset) + 2 > buffer.count
+            {
                 fail InvalidFormatError{"TIFF directory offset is outside the input"}
+            }
+
             let count = rd16(buffer.buffer + offset, le)
             let next  = cast(u64, offset) + 2 + cast(u64, count) * 12
-            if next + 4 > buffer.count do
+            if next + 4 > buffer.count
+            {
                 fail InvalidFormatError{"TIFF directory chain is truncated"}
-            if .directories.count do
-                probe = try .decodePage(buffer, probeOptions, offset)
+            }
+
+            let probe = try .decodePage(buffer, probeOptions, offset)
             result.frames.add({kind: ImageFrameKind.Page, width: probe.width, height: probe.height, pixelFormat: probe.pixelFormat})
             .directories.add(offset)
             offset = rd32(buffer.buffer + next, le)
@@ -719,8 +858,11 @@ impl IImageSetDecoder for Decoder
 
     mtd impl readFrame(index: u32, options: DecodeOptions)->Image fail
     {
-        if index >= .directories.count do
+        if index >= .directories.count
+        {
             fail InvalidFormatError{"TIFF page index is out of range"}
+        }
+
         return try .decodePage(unwrap .bytes, options, .directories[index])
     }
 }

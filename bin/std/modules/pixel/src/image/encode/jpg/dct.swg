@@ -34,10 +34,7 @@ impl Encoder
         let blue   = cast([*] s16, &.duCb[0])
         let red    = cast([*] s16, &.duCr[0])
 
-        let redLanes   = .redLanes
-        let greenLanes = .greenLanes
-        let blueLanes  = .blueLanes
-        let levelShift = Math.Simd.splat(128's32)
+        let levelShift = Math.Simd.splat(128_s32)
         var pos        = 0
 
         for line in 8
@@ -177,8 +174,13 @@ impl Encoder
     func quantization(data: [*] s16, fdtbl: [*] f32, outData: [*] s16)->u64
     {
         var dataFloat: [64] f32
-        let coefficients = cast([*] f32, &dataFloat[0])
-        for group in 2
+        for i in 64
+        {
+            dataFloat[i] = data[i]
+        }
+
+        var dataptr = cast([*] f32, &dataFloat[0])
+        for _ in rangeTo(0, 7).reversed()
         {
             var lanes: [8] Math.Simd.F32x4
             let block = cast([*] Math.Simd.F32x4, lanes)

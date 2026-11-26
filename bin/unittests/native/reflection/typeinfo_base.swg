@@ -43,10 +43,14 @@ namespace Scoped
 #[Swag.ConstExpr]
 func getDeclaredType(useString: bool)->typeinfo
 {
-    if useString do
+    if useString
+    {
         return string
-    else do
+    }
+    else
+    {
         return s32
+    }
 }
 
 #test
@@ -72,10 +76,10 @@ const PA = cast(const *Swag.TypeInfoStruct, #typeof(A))
 #assert(PA.fields[2].offset == 8)
 
 const PScopedBox     = cast(const *Swag.TypeInfo, #typeof(Scoped.Box))
-const PScopedWrapper = cast(const *Swag.TypeInfo, #typeof(Scoped.Wrapper'(Scoped.Box)))
+const PScopedWrapper = cast(const *Swag.TypeInfo, #typeof(Scoped.Wrapper!{Scoped.Box}))
 #assert(PScopedBox.name == "Box")
 #assert(PScopedBox.fullname == "Scoped.Box")
-#assert(PScopedWrapper.fullname == "Scoped.Wrapper'(Scoped.Box)")
+#assert(PScopedWrapper.fullname == "Scoped.Wrapper!{Scoped.Box}")
 
 #test
 {
@@ -147,9 +151,9 @@ const PScopedWrapper = cast(const *Swag.TypeInfo, #typeof(Scoped.Wrapper'(Scoped
 #test
 {
     const boxType     = #typeof(Scoped.Box)
-    const wrapperType = #typeof(Scoped.Wrapper'(Scoped.Box))
+    const wrapperType = #typeof(Scoped.Wrapper!{Scoped.Box})
     #assert(cast(const *Swag.TypeInfo, boxType).fullname == "Scoped.Box")
-    #assert(cast(const *Swag.TypeInfo, wrapperType).fullname == "Scoped.Wrapper'(Scoped.Box)")
+    #assert(cast(const *Swag.TypeInfo, wrapperType).fullname == "Scoped.Wrapper!{Scoped.Box}")
     Swag.require(cast(const *Swag.TypeInfo, boxType).fullname == "Scoped.Box")
-    Swag.require(cast(const *Swag.TypeInfo, wrapperType).fullname == "Scoped.Wrapper'(Scoped.Box)")
+    Swag.require(cast(const *Swag.TypeInfo, wrapperType).fullname == "Scoped.Wrapper!{Scoped.Box}")
 }

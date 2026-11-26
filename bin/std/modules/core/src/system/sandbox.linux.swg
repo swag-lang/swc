@@ -14,35 +14,56 @@ internal func absolutePath(path: string)->String
     var end      = full.count
     for
     {
-        while end > 1 and full[end - 1] == '/' do
+        while end > 1 and full[end - 1] == '/'
+        {
             end -= 1
+        }
+
         let candidate = String.from(full[until end])
         let resolved  = Linux.realpath(candidate.storage(), null)
         if resolved
         {
             defer Linux.free(resolved)
             var result = String.from(cast(string, cast(cstring, resolved)))
-            for part in Tokenize.split(full[end to], '/'u8)
+            for part in Tokenize.split(full[end to], '/'_u8)
             {
-                if part == "." do
+                if part == "."
+                {
                     continue
-                if part == ".." do
+                }
+
+                if part == ".."
+                {
                     result = Path.directoryName(result) orelse "/"
-                else do
+                }
+                else
+                {
                     result = Path.combine(result, part)
+                }
             }
 
             return result
         }
 
         let error = Linux.errno()
-        if error == Linux.EINTR do
+        if error == Linux.EINTR
+        {
             continue
-        if error != Linux.ENOENT or end == 1 do
+        }
+
+        if error != Linux.ENOENT or end == 1
+        {
             return ""
-        while end > 1 and full[end - 1] != '/' do
+        }
+
+        while end > 1 and full[end - 1] != '/'
+        {
             end -= 1
-        if end > 1 do
+        }
+
+        if end > 1
+        {
             end -= 1
+        }
     }
 }

@@ -9,32 +9,30 @@
 #include "Unittest/Unittest.h"
 
 SWC_BEGIN_NAMESPACE();
-SWC_TEST_BEGIN(FormatFile_InlineBodyOwnsNestedBraceIndent)
+SWC_TEST_BEGIN(FormatFile_NestedControlBlocksIndent)
 {
     static constexpr std::string_view SOURCE =
         "func run(flag: bool)\n"
         "{\n"
-        " for y in 2 do\n"
-        "  for x in 2\n"
-        " {\n"
-        "  if flag\n"
-        "  {\n"
-        "   break\n"
-        "}\n"
-        "}\n"
+        " for y in 2 {\n"
+        "  for x in 2 {\n"
+        "   if flag {\n"
+        "    break\n"
+        "   }\n"
+        "  }\n"
+        " }\n"
         "}\n";
 
     static constexpr std::string_view EXPECTED =
         "func run(flag: bool)\n"
         "{\n"
-        "    for y in 2 do\n"
-        "        for x in 2\n"
-        "        {\n"
-        "            if flag\n"
-        "            {\n"
+        "    for y in 2 {\n"
+        "        for x in 2 {\n"
+        "            if flag {\n"
         "                break\n"
         "            }\n"
         "        }\n"
+        "    }\n"
         "}\n";
 
     FormatOptions options;
@@ -44,25 +42,33 @@ SWC_TEST_BEGIN(FormatFile_InlineBodyOwnsNestedBraceIndent)
 }
 SWC_TEST_END()
 
-SWC_TEST_BEGIN(FormatFile_InlineIfBranchStopsBeforeElse)
+SWC_TEST_BEGIN(FormatFile_IfBranchStopsBeforeElse)
 {
     static constexpr std::string_view SOURCE =
         "func run(flag: bool)\n"
         "{\n"
-        " if flag do\n"
-        " signal += func|value = 1|(arg) { use(value, arg) }\n"
-        " else do\n"
-        " signal += func|value = 2|(arg) { use(value, arg) }\n"
+        " if flag\n"
+        " {\n"
+        "  signal += func|value = 1|(arg) { use(value, arg) }\n"
+        " }\n"
+        " else\n"
+        " {\n"
+        "  signal += func|value = 2|(arg) { use(value, arg) }\n"
+        " }\n"
         " finish()\n"
         "}\n";
 
     static constexpr std::string_view EXPECTED =
         "func run(flag: bool)\n"
         "{\n"
-        "    if flag do\n"
+        "    if flag\n"
+        "    {\n"
         "        signal += func|value = 1|(arg) { use(value, arg) }\n"
-        "    else do\n"
+        "    }\n"
+        "    else\n"
+        "    {\n"
         "        signal += func|value = 2|(arg) { use(value, arg) }\n"
+        "    }\n"
         "    finish()\n"
         "}\n";
 
@@ -76,20 +82,26 @@ SWC_TEST_END()
 SWC_TEST_BEGIN(FormatFile_CatchHandlerAlignsAndIndents)
 {
     static constexpr std::string_view SOURCE =
+        
         "func run(flag: bool)\n"
         "{\n"
-        " if flag do\n"
-        "  catch work() do\n"
+        " if flag {\n"
+        "  catch work() {\n"
         "   recover()\n"
+        "  }\n"
+        " }\n"
         " finish()\n"
         "}\n";
 
     static constexpr std::string_view EXPECTED =
+        
         "func run(flag: bool)\n"
         "{\n"
-        "    if flag do\n"
-        "        catch work() do\n"
+        "    if flag {\n"
+        "        catch work() {\n"
         "            recover()\n"
+        "        }\n"
+        "    }\n"
         "    finish()\n"
         "}\n";
 
@@ -103,30 +115,36 @@ SWC_TEST_END()
 SWC_TEST_BEGIN(FormatFile_InlineDestructuringIsNotABlock)
 {
     static constexpr std::string_view SOURCE =
+        
         "func run(point: {x, y: s32})\n"
         "{\n"
         " var first: s32\n"
         " var second: s32\n"
-        " if true do\n"
-        " {x: first, y: second} = point\n"
-        " if false do\n"
-        " {\n"
-        "     x: first, y: second\n"
-        " } = point\n"
+        " if true {\n"
+        "  {x: first, y: second} = point\n"
+        " }\n"
+        " if false {\n"
+        "  {\n"
+        "      x: first, y: second\n"
+        "  } = point\n"
+        " }\n"
         " use(first)\n"
         "}\n";
 
     static constexpr std::string_view EXPECTED =
+        
         "func run(point: {x, y: s32})\n"
         "{\n"
         "    var first: s32\n"
         "    var second: s32\n"
-        "    if true do\n"
+        "    if true {\n"
         "        {x: first, y: second} = point\n"
-        "    if false do\n"
+        "    }\n"
+        "    if false {\n"
         "        {\n"
         "            x: first, y: second\n"
         "        } = point\n"
+        "    }\n"
         "    use(first)\n"
         "}\n";
 
@@ -220,19 +238,23 @@ SWC_TEST_END()
 SWC_TEST_BEGIN(FormatFile_AlignOperandsOnWrappedCondition)
 {
     static constexpr std::string_view SOURCE =
+        
         "func foo(a, b: bool)\n"
         "{\n"
         "    if a and\n"
-        "            b do\n"
+        "            b {\n"
         "        return\n"
+        "       }\n"
         "}\n";
 
     static constexpr std::string_view EXPECTED =
+        
         "func foo(a, b: bool)\n"
         "{\n"
         "    if a and\n"
-        "       b do\n"
+        "       b {\n"
         "        return\n"
+        "    }\n"
         "}\n";
 
     FormatOptions options;
@@ -470,23 +492,27 @@ SWC_TEST_END()
 SWC_TEST_BEGIN(FormatFile_ElseBeforeNestedIfAligns)
 {
     static constexpr std::string_view SOURCE =
+        
         "func foo(a: s32)\n"
         "{\n"
-        "    if a == 1 do\n"
+        "    if a == 1 {\n"
         "        bar()\n"
-        "        else do\n"
-        "        if a == 2 do\n"
-        "            bar()\n"
+        "    }\n"
+        "    else if a == 2 {\n"
+        "        bar()\n"
+        "    }\n"
         "}\n";
 
     static constexpr std::string_view EXPECTED =
+        
         "func foo(a: s32)\n"
         "{\n"
-        "    if a == 1 do\n"
+        "    if a == 1 {\n"
         "        bar()\n"
-        "    else do\n"
-        "        if a == 2 do\n"
-        "            bar()\n"
+        "    }\n"
+        "    else if a == 2 {\n"
+        "        bar()\n"
+        "    }\n"
         "}\n";
 
     FormatOptions options;

@@ -41,7 +41,7 @@ Result AstSuffixLiteral::semaPostNode(Sema& sema) const
 
     ConstantRef cstRef = nodeLiteralView.cstRef();
 
-    // Special case for negation: we need to negate before casting, in order for -128's8 to compile, for example.
+    // Special case for negation: we need to negate before casting, in order for -128_s8 to compile, for example.
     // Swag.minusLiteralSuffix
     // A detached inline argument can be analyzed as the root of its own visit.
     const auto* parentNode = sema.visit().parentNode();

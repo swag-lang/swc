@@ -21,8 +21,11 @@ using Swag, Core, File
 
         host.app.sigFrame += func|host = &host, dlg, folder = &folder, checked = &checked|(_)
         {
-            if checked[] do
+            if checked[]
+            {
                 return
+            }
+
             checked[] = true
 
             let list  = dlg.browser.listCtrl

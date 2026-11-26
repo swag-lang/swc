@@ -6,7 +6,7 @@ using Swag
 // needs a real OS thread: a value written on one thread must be invisible to the other, and each
 // thread must see the initializer rather than whatever the previous one left behind.
 
-tls var g_Counter = 0'u64
+tls var g_Counter = 0_u64
 
 tls var g_Zero: u64
 
@@ -28,7 +28,7 @@ tls var g_Point: TlsPoint
         #[Swag.CallingConvention(.C)]
         alias LPTHREAD_START_ROUTINE = func(*void)->DWORD
 
-        const INFINITE = 0xFFFF_FFFF'u32
+        const INFINITE = 0xFFFF_FFFF_u32
 
         #[Swag.Foreign("kernel32", callconv: Swag.CallConv.C)]
         {
@@ -79,8 +79,10 @@ tls var g_Point: TlsPoint
     {
         // Compile-time execution has no thread-exit boundary of its own, so the per-thread copies
         // this proves belong to the produced program.
-        if Swag.jit() do
+        if Swag.jit()
+        {
             return
+        }
 
         g_Counter = 0xAAAA
         g_Zero    = 3

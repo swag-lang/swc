@@ -1,14 +1,14 @@
 #global if #os == Swag.TargetOs.Linux
 #global export
 
-const SIGKILL     = 9's32
-const SIGUSR1     = 10's32
-const SIGPIPE     = 13's32
-const SIGTERM     = 15's32
-const SIGCHLD     = 17's32
-const SIG_BLOCK   = 0's32
-const SIG_UNBLOCK = 1's32
-const SIG_SETMASK = 2's32
+const SIGKILL     = 9_s32
+const SIGUSR1     = 10_s32
+const SIGPIPE     = 13_s32
+const SIGTERM     = 15_s32
+const SIGCHLD     = 17_s32
+const SIG_BLOCK   = 0_s32
+const SIG_UNBLOCK = 1_s32
+const SIG_SETMASK = 2_s32
 
 // Opaque glibc x86-64 signal set; manipulate it through the native sigset functions.
 struct sigset_t

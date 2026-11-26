@@ -11,13 +11,13 @@ using Swag, Core
     info.scale = 0.8
     let first  = Painter.advanceTextX(8.099998474, 0, 9, info)
     let second = Painter.advanceTextX(first.rightX, 0, 9, info)
-    Swag.require(first.glyphX == 8.099998474'f32)
-    Swag.require(first.rightX == 15.299999237'f32)
-    Swag.require(second.rightX == 22.5'f32)
+    Swag.require(first.glyphX == 8.099998474_f32)
+    Swag.require(first.rightX == 15.299999237_f32)
+    Swag.require(second.rightX == 22.5_f32)
 
     let offset = Painter.advanceTextX(-8.099998474, -9, -9, info)
-    Swag.require(offset.glyphX == -15.299999237'f32)
-    Swag.require(offset.rightX == -22.5'f32)
+    Swag.require(offset.glyphX == -15.299999237_f32)
+    Swag.require(offset.rightX == -22.5_f32)
 }
 
 func assertSnappedGlyphPhase(left, origin: f32, phase: u32)

@@ -11,8 +11,10 @@ func itoaCopyForFtoa(result: [*] u8, value: s64)->[*] u8
         orgValue /= 10
         ptr[]    = conv[35 + (tmpValue - (orgValue * 10))]
         ptr      += 1
-        if not orgValue do
+        if not orgValue
+        {
             break
+        }
     }
 
     if value < 0
@@ -55,28 +57,36 @@ func ftoaCopy(result: [*] u8, value: f64)
         n[0] = '0'
         n    += 1
     }
-    else do
+    else
+    {
         n = itoaCopyForFtoa(result, ipart)
+    }
 
     n[0] = '.'
     n    += 1
 
     const AfterFracN = 8
     var afterPoint = AfterFracN
-    if fpart < 0 do
+    if fpart < 0
+    {
         fpart = -fpart
+    }
 
     var leadingZeros = 0
     while afterPoint
     {
         fpart *= 10
-        if fpart < 1 do
+        if fpart < 1
+        {
             leadingZeros += 1
+        }
         afterPoint -= 1
     }
 
-    if leadingZeros == AfterFracN do
+    if leadingZeros == AfterFracN
+    {
         leadingZeros = 0
+    }
     while leadingZeros
     {
         n[0]         = '0'
@@ -85,8 +95,10 @@ func ftoaCopy(result: [*] u8, value: f64)
     }
 
     ipart = cast(s64, fpart)
-    if fpart - ipart > 0.5 do
+    if fpart - ipart > 0.5
+    {
         ipart += 1
+    }
     discard itoaCopyForFtoa(n, ipart)
 }
 

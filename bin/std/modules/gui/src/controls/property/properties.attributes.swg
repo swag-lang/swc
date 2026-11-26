@@ -139,8 +139,10 @@ impl Properties
         let resolver = g_TextResolver
         if resolver
         {
-            if let resolved = resolver(text) do
+            if let resolved = resolver(text)
+            {
                 return resolved
+            }
         }
 
         return moduleText(text)

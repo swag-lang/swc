@@ -21,7 +21,10 @@ func allocate(size: u64)->*void
 #[Swag.Inline]
 func release(address: *void?, size: u64)
 {
-    if not address do return
+    if not address
+    {
+        return
+    }
     var request: AllocatorRequest
     request.address = address
     request.size    = size
@@ -140,10 +143,14 @@ func releaseAndReplace(holder: *Holder, replacement: *void, indirect: bool)
     var request: AllocatorRequest
     request.address = holder.buffer
     request.size    = 4
-    if indirect do
+    if indirect
+    {
         replaceBuffer(&holder.buffer, replacement)
-    else do
+    }
+    else
+    {
         holder.buffer = replacement
+    }
     Swag.getContext().allocator!.free(&request)
 }
 

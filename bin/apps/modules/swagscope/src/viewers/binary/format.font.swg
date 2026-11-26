@@ -4,7 +4,7 @@
 using Core
 
 // Size of one record of the table directory.
-private const FontRecordSize = 16'u64
+private const FontRecordSize = 16_u64
 
 // Returns whether the file is an sfnt font or a collection of them.
 //
@@ -13,8 +13,11 @@ private const FontRecordSize = 16'u64
 func isSfntFont(image: *BinaryImage)->bool
 {
     image.bigEndian = true
-    if image.matches(0, "OTTO") or image.matches(0, "true") or image.matches(0, "ttcf") do
+    if image.matches(0, "OTTO") or image.matches(0, "true") or image.matches(0, "ttcf")
+    {
         return true
+    }
+
     return image.u32At(0) == 0x00010000
 }
 
@@ -85,12 +88,18 @@ private func reportFontTables(image: *BinaryImage, report: *Report, at: u64, ope
         let size    = cast(u64, image.u32At(entryAt + 12))
         let stored  = StrConv.toDisplaySize(size)
 
-        if tag == "head" do
+        if tag == "head"
+        {
             headAt = tableAt
-        elif tag == "maxp" do
+        }
+        else if tag == "maxp"
+        {
             maxpAt = tableAt
-        elif tag == "name" do
+        }
+        else if tag == "name"
+        {
             nameAt = tableAt
+        }
 
         report.beginGroup(tag, stored, "", offset: tableAt, length: size)
         report.hexField(entryAt + 4, 4, "checkSum", cast(u64, image.u32At(entryAt + 4)))
@@ -108,11 +117,16 @@ private func reportFontTables(image: *BinaryImage, report: *Report, at: u64, ope
         report.hexField(headAt + 44, 2, "macStyle", cast(u64, image.u16At(headAt + 44)))
     }
 
-    if maxpAt != Swag.U64.Max and image.has(maxpAt, 6) do
+    if maxpAt != Swag.U64.Max and image.has(maxpAt, 6)
+    {
         report.numField(maxpAt + 4, 2, texts.font_Glyphs, cast(u64, image.u16At(maxpAt + 4)))
+    }
 
-    if nameAt == Swag.U64.Max do
+    if nameAt == Swag.U64.Max
+    {
         return {}
+    }
+
     return reportFontNames(image, report, nameAt, open)
 }
 
@@ -138,19 +152,25 @@ private func reportFontNames(image: *BinaryImage, report: *Report, at: u64, open
         let valueAt  = stringsAt + cast(u64, image.u16At(entryAt + 10))
 
         let label = fontNameLabel(nameId)
-        if not label.count do
+        if not label.count
+        {
             continue
+        }
 
         // The Unicode and Windows platforms record every name in big-endian UTF-16, and the
         // Macintosh one in single bytes; the platform identifier is the only thing that says which.
         let wide = platform == 0 or platform == 3
         let text = wide ? image.wideTextAt(valueAt, length / 2) : image.fixedTextAt(valueAt, length)
-        if text.isEmpty() do
+        if text.isEmpty()
+        {
             continue
+        }
 
         report.field(valueAt, length, label, text)
-        if nameId == 1 and result.isEmpty() do
+        if nameId == 1 and result.isEmpty()
+        {
             result = text
+        }
     }
 
     report.listCut(shown, count)

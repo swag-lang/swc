@@ -3,26 +3,32 @@
 
 using Core
 
-const DeblockTestStride = 16'u64
+const DeblockTestStride = 16_u64
 
 func referenceFilterLumaHorizontal(pix: [*] u8, strengths: const *H264.EdgeStrength, indexA, alpha, beta: s32)
 {
-    for lane in 16'u64
+    for lane in 16_u64
     {
         let bs = strengths.bs[lane / 4]
-        if bs == 0 do
+        if bs == 0
+        {
             continue
+        }
+
         H264.filterLuma(pix + lane, DeblockTestStride, 1, bs, indexA, alpha, beta)
     }
 }
 
 func referenceFilterChromaHorizontal(pix: [*] u8, strengths: const *H264.EdgeStrength, indexA, alpha, beta: s32)
 {
-    for lane in 8'u64
+    for lane in 8_u64
     {
         let bs = strengths.bs[lane / 2]
-        if bs == 0 do
+        if bs == 0
+        {
             continue
+        }
+
         H264.filterChroma(pix + lane, DeblockTestStride, 1, bs, indexA, alpha, beta)
     }
 }
@@ -41,35 +47,45 @@ func assertDeblockHorizontalCase(seed: u64, indexA: s32, strengths: const *H264.
     let alpha = cast(s32, H264.DeblockAlpha[cast(u64, indexA)])
     let beta  = cast(s32, H264.DeblockBeta[cast(u64, indexA)])
     referenceFilterLumaHorizontal(expected.buffer + 4 * DeblockTestStride, strengths, indexA, alpha, beta)
-    if strengths.bs[0] == 4 or strengths.bs[1] == 4 or strengths.bs[2] == 4 or strengths.bs[3] == 4 do
+    if strengths.bs[0] == 4 or strengths.bs[1] == 4 or strengths.bs[2] == 4 or strengths.bs[3] == 4
+    {
         H264.filterLumaStrongHorizontal(actual.buffer + 4 * DeblockTestStride, DeblockTestStride, strengths, indexA, alpha, beta)
-    else do
+    }
+    else
+    {
         H264.filterLumaWeakHorizontal(actual.buffer + 4 * DeblockTestStride, DeblockTestStride, strengths, indexA, alpha, beta)
+    }
+
     Swag.require(Slice.equals(expected, actual))
 
     referenceFilterChromaHorizontal(expected.buffer + 4 * DeblockTestStride, strengths, indexA, alpha, beta)
-    if strengths.bs[0] == 4 or strengths.bs[1] == 4 or strengths.bs[2] == 4 or strengths.bs[3] == 4 do
+    if strengths.bs[0] == 4 or strengths.bs[1] == 4 or strengths.bs[2] == 4 or strengths.bs[3] == 4
+    {
         H264.filterChromaStrongHorizontal(actual.buffer + 4 * DeblockTestStride, DeblockTestStride, strengths, indexA, alpha, beta)
-    else do
+    }
+    else
+    {
         H264.filterChromaWeakHorizontal(actual.buffer + 4 * DeblockTestStride, DeblockTestStride, strengths, indexA, alpha, beta)
+    }
+
     Swag.require(Slice.equals(expected, actual))
 }
 
 #test
 {
-    const Indices = [16's32, 24, 32, 40, 51]
+    const Indices = [16_s32, 24, 32, 40, 51]
     var strengths: H264.EdgeStrength
-    for seed in 16'u64
+    for seed in 16_u64
     {
         for indexA in Indices
         {
-            for bs0 in 5'u32
+            for bs0 in 5_u32
             {
-                for bs1 in 5'u32
+                for bs1 in 5_u32
                 {
-                    for bs2 in 5'u32
+                    for bs2 in 5_u32
                     {
-                        for bs3 in 5'u32
+                        for bs3 in 5_u32
                         {
                             strengths.bs = [bs0, bs1, bs2, bs3]
                             assertDeblockHorizontalCase(seed, indexA, &strengths)
@@ -86,8 +102,8 @@ func assertDeblockHorizontalCase(seed: u64, indexA: s32, strengths: const *H264.
 // sixteen lines of the test stride, the edge sitting in the middle of each line.
 func assertDeblockVerticalCase(seed: u64, indexA: s32, strengths: const *H264.EdgeStrength)
 {
-    const Lines  = 16'u64
-    const Stride = 32'u64
+    const Lines  = 16_u64
+    const Stride = 32_u64
     var expected: [Lines * Stride] u8
     var actual:   [Lines * Stride] u8
     for index in Lines * Stride
@@ -102,13 +118,16 @@ func assertDeblockVerticalCase(seed: u64, indexA: s32, strengths: const *H264.Ed
 
     // Luma: four strengths, four lines each.
     var reference = expected.buffer + 8
-    for segment in 4'u64
+    for segment in 4_u64
     {
         let bs = strengths.bs[segment]
         for 4
         {
-            if bs != 0 do
+            if bs != 0
+            {
                 H264.filterLuma(reference, 1, Stride, bs, indexA, alpha, beta)
+            }
+
             reference += Stride
         }
     }
@@ -118,13 +137,16 @@ func assertDeblockVerticalCase(seed: u64, indexA: s32, strengths: const *H264.Ed
 
     // Chroma: four strengths, two lines each, on the same samples.
     reference = expected.buffer + 8
-    for segment in 4'u64
+    for segment in 4_u64
     {
         let bs = strengths.bs[segment]
         for 2
         {
-            if bs != 0 do
+            if bs != 0
+            {
                 H264.filterChroma(reference, 1, Stride, bs, indexA, alpha, beta)
+            }
+
             reference += Stride
         }
     }
@@ -138,19 +160,19 @@ func assertDeblockVerticalCase(seed: u64, indexA: s32, strengths: const *H264.Ed
 
 #test
 {
-    const Indices = [16's32, 24, 32, 40, 51]
+    const Indices = [16_s32, 24, 32, 40, 51]
     var strengths: H264.EdgeStrength
-    for seed in 16'u64
+    for seed in 16_u64
     {
         for indexA in Indices
         {
-            for bs0 in 5'u32
+            for bs0 in 5_u32
             {
-                for bs1 in 5'u32
+                for bs1 in 5_u32
                 {
-                    for bs2 in 5'u32
+                    for bs2 in 5_u32
                     {
-                        for bs3 in 5'u32
+                        for bs3 in 5_u32
                         {
                             strengths.bs = [bs0, bs1, bs2, bs3]
                             assertDeblockVerticalCase(seed, indexA, &strengths)

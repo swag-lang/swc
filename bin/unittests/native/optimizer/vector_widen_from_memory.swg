@@ -77,8 +77,10 @@ func widenLocalPastStore(dst: [*] u16, value: u8)
     // The vector lives in the frame and a frame store follows its load:
     // the widening must see the bytes as they were loaded.
     var bytes: [16] u8
-    for i in 16 do
+    for i in 16
+    {
         bytes[i] = cast(u8, i)
+    }
     let loaded = cast(const [*] #simd [16] u8, &bytes[0])[0]
     bytes[0] = value
     cast([*] #simd [8] u16, dst)[0] = Swag.vecWidenLo(loaded) + Swag.vecWidenHi(loaded) + cast(u16, bytes[0])
@@ -88,8 +90,10 @@ func widenLocalPastStore(dst: [*] u16, value: u8)
 {
     var plane: [4 * 64] u8
     var out:   [4 * 8] u16
-    for i in 4 * 64 do
+    for i in 4 * 64
+    {
         plane[i] = cast(u8, (i & 0xFF))
+    }
     sumRows(&out[0], &plane[0], 64, 4)
     Swag.require(out[0] == 0 + 8 and out[7] == 7 + 15)
     Swag.require(out[8] == 64 + 72 and out[31] == (3 * 64 + 7) + (3 * 64 + 15))
@@ -113,8 +117,10 @@ func widenLocalPastStore(dst: [*] u16, value: u8)
                  gathered[23] == 199 + 207)
 
     var buffer: [16] u8
-    for i in 16 do
+    for i in 16
+    {
         buffer[i] = cast(u8, i)
+    }
     var seen: [8] u16
     widenAfterStore(&seen[0], &buffer[0])
     Swag.require(seen[0] == 0 and seen[1] == 1 and buffer[0] == 200)

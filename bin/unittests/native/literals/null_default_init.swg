@@ -53,15 +53,15 @@
 #test
 {
     var a: u64
-    a = 0xDEAD_BEEF'u64
-    Swag.require(a == 0xDEAD_BEEF'u64)
+    a = 0xDEAD_BEEF_u64
+    Swag.require(a == 0xDEAD_BEEF_u64)
 }
 
 #test
 {
     var a: f64
-    a = 3.14'f64
-    Swag.require(a > 3.13'f64 and a < 3.15'f64)
+    a = 3.14_f64
+    Swag.require(a > 3.13_f64 and a < 3.15_f64)
 }
 
 // Default-initialized pointer: assign before use.
@@ -81,10 +81,10 @@ struct Point { x: s32, y: s32 }
     struct Vec2 { x: f32, y: f32 }
 
     var v: Vec2
-    v.x = 1.0'f32
-    v.y = 2.0'f32
-    Swag.require(v.x == 1.0'f32)
-    Swag.require(v.y == 2.0'f32)
+    v.x = 1.0_f32
+    v.y = 2.0_f32
+    Swag.require(v.x == 1.0_f32)
+    Swag.require(v.y == 2.0_f32)
 }
 
 // Array elements can be set before reading.

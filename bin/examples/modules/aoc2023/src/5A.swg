@@ -114,8 +114,8 @@ private struct Range
     sourceStart, destinationStart, length: u64
 }
 
-private var seeds:   Array'u64
-private var convert: [7] Array'Range
+private var seeds:   Array!{u64}
+private var convert: [7] Array!{Range}
 
 func day5A()
 {
@@ -125,8 +125,10 @@ func day5A()
     var mode = Mode.Invalid
     for l in lines
     {
-        if l.isEmpty() do
+        if l.isEmpty()
+        {
             continue
+        }
 
         var isHeader = false
         switch l.toString()
@@ -160,19 +162,24 @@ func day5A()
             isHeader = true
         }
 
-        if isHeader do
-            continue
-
-        if mode == .Invalid
+        if isHeader
         {
-            let seedField  = Tokenize.split(l[], ':'u8)
-            let seedTokens = Tokenize.split(seedField[1], ' 'u8)
-            for seed in seedTokens do
-                seeds.add(expect StrConv.toU64(seed))
             continue
         }
 
-        let mappingValues = Tokenize.split(l[], ' 'u8)
+        if mode == .Invalid
+        {
+            let seedField  = Tokenize.split(l[], ':'_u8)
+            let seedTokens = Tokenize.split(seedField[1], ' '_u8)
+            for seed in seedTokens
+            {
+                seeds.add(expect StrConv.toU64(seed))
+            }
+
+            continue
+        }
+
+        let mappingValues = Tokenize.split(l[], ' '_u8)
         var mapping: Range
         mapping.destinationStart = expect StrConv.toU64(mappingValues[0])
         mapping.sourceStart      = expect StrConv.toU64(mappingValues[1])

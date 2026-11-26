@@ -113,8 +113,10 @@
         for j in 10
         {
             innerTotal += 1
-            if j == 2 do
+            if j == 2
+            {
                 break
+            }
         }
     }
     Swag.require(outerCount == 4)
@@ -140,8 +142,10 @@ func forEarlyReturn()->s32
 {
     for i in 10
     {
-        if i == 3 do
+        if i == 3
+        {
             return cast(s32, i)
+        }
     }
     return -1
 }
@@ -174,8 +178,10 @@ func forEarlyReturn()->s32
     var count = 0
     for i in 5
     {
-        if i == 3 do
+        if i == 3
+        {
             break
+        }
         count += 1
     }
     Swag.require(count == 3)
@@ -215,10 +221,14 @@ func forEarlyReturn()->s32
     var sum = 0
     for i in 20
     {
-        if i % 2 == 0 do
+        if i % 2 == 0
+        {
             continue
-        if i % 5 == 0 do
+        }
+        if i % 5 == 0
+        {
             continue
+        }
         sum += cast(s32, i)
     }
     // odd numbers not divisible by 5: 1,3,7,9,11,13,17,19 = 80

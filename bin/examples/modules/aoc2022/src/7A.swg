@@ -82,9 +82,13 @@ func day7A()
     let folders  = readDirectorySizes(dataPath)
 
     var total: u64
-    for _, val in folders do
-        if val <= 100_000 do
+    for _, val in folders
+    {
+        if val <= 100_000
+        {
             total += val
+        }
+    }
 
     Swag.assert(total == 1443806)
 }

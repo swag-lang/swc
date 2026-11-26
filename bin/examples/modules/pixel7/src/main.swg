@@ -67,8 +67,10 @@ func loadFonts() fail
 func normalizeSource(image: Image)->Image
 {
     let maxSide = cast(f32, Math.max(image.width, image.height))
-    if maxSide <= MaxSourceSide do
+    if maxSide <= MaxSourceSide
+    {
         return Image.create(image.width, image.height, image.pixelFormat, image.pixels.toSlice())
+    }
 
     let scale     = MaxSourceSide / maxSide
     let newWidth  = Math.max(cast(s32, Math.round(cast(f32, image.width) * scale)), 1)
@@ -86,8 +88,10 @@ func sourceVariant(source: Image, pixelFormat: PixelFormat, withAlphaBorder = fa
 {
     let converted = source.convertedTo(pixelFormat)
     var result    = Image.create(converted.width, converted.height, converted.pixelFormat, converted.pixels.toSlice())
-    if not withAlphaBorder do
+    if not withAlphaBorder
+    {
         return result
+    }
 
     Swag.assert(pixelFormat.hasAlpha())
     var pixel = result.pixels.storage()
@@ -120,8 +124,10 @@ func paletteVariant(source: Image, withAlpha: bool)->Image
             if withAlpha
             {
                 let edgeDistance = Math.min(x, result.width - x - 1, y, result.height - y - 1)
-                if edgeDistance < borderWidth do
+                if edgeDistance < borderWidth
+                {
                     pixel[3] = 0
+                }
             }
 
             pixel += result.bytesPerPixel
@@ -300,8 +306,10 @@ func drawScene(painter: *Pixel.Painter)
     painter.drawString(28, 22, pageTitle(g_Page), g_TitleFont, Argb.MidnightBlue)
     drawWrappedText(painter, {30, 64, W - 60, 42}, pageDescription(g_Page), g_HelpFont, Argb.DimGray)
 
-    for i in CardsPerPage do
+    for i in CardsPerPage
+    {
         drawCard(painter, getCardRect(i), g_Cards[g_Page][i])
+    }
 
     drawFooter(painter)
 }
@@ -367,10 +375,32 @@ func onPointer(_: *Env.Window, event: Env.WindowPointerEvent)
 func updateShortcuts()
 {
     g_Keyboard.update()
-    if g_Keyboard.isKeyJustPressed(.F1) do
-        changePage(1)
-    elif g_Keyboard.isKeyJustPressed(.F2) do
-        changePage(-1)
+    if g_Keyboard.isKeyJustPressed(Input.Key.F1)
+    {
+        nextPage()
+    }
+}
+
+func updateTestMode()
+{
+    if not Env.isSmokeRun()
+    {
+        return
+    }
+
+    g_TestFrame += 1
+    if g_TestFrame < TestFramesPerPage
+    {
+        return
+    }
+
+    g_TestFrame = 0
+    if g_Page + 1 >= PageCount
+    {
+        Env.exit(0)
+    }
+
+    nextPage()
 }
 
 #main
@@ -400,8 +430,10 @@ func updateShortcuts()
 
     let smoke = Env.isSmokeRun()
     var loop: Env.WindowLoop
-    if smoke do
-        loop.smokeFrames = PageCount
+    if Env.isSmokeRun()
+    {
+        loop.smokeFrames = cast(u32, PageCount) * cast(u32, TestFramesPerPage)
+    }
 
     while loop.next()
     {

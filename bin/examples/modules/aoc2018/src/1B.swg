@@ -29,12 +29,14 @@ func day1B()
     let dataPath = Path.combine(Path.directoryName(#file), "1.txt")
     let lines    = expect File.readAllLines(dataPath)
 
-    var values: Array's64
-    for l in lines do
+    var values: Array!{s64}
+    for l in lines
+    {
         values.add(expect StrConv.toS64(l[1 to ]) * (l[0] == '-' ? -1 : 1))
+    }
 
-    var total = 0's64
-    var done: HashSet's64
+    var total = 0_s64
+    var done: HashSet!{s64}
     for
     {
         for v in values

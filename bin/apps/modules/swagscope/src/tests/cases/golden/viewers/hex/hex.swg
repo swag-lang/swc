@@ -9,17 +9,25 @@ func writePreviewFile()->String
 {
     let fileName = Gui.Testing.tempFilePath("viewer-hex-preview-", ".bin")
 
-    var payload: Array'u8
+    var payload: Array!{u8}
     let header = "Swag Scope hex preview"
     payload.add(cast(const [..] u8, header))
-    for 42 do
+    for 42
+    {
         payload.add(0)
-    for index in 64 do
+    }
+
+    for index in 64
+    {
         payload.add(cast(u8, 0xC0 + index % 0x40))
+    }
+
     let text = "name=value; the text column stays readable"
     payload.add(cast(const [..] u8, text))
-    for index in 128 do
-        payload.add(index % 3 == 0 ? 0'u8 : cast(u8, ((index * 7) & 0xFF)))
+    for index in 128
+    {
+        payload.add(index % 3 == 0 ? 0_u8 : cast(u8, ((index * 7) & 0xFF)))
+    }
 
     discard expect File.writeAllBytes(fileName, payload.toSlice())
     return fileName
@@ -27,7 +35,7 @@ func writePreviewFile()->String
 
 func completeHexViewerSearch(host: *Testing.HeadlessHost, window: *ViewerWindow)
 {
-    var steps = 0'u32
+    var steps = 0_u32
     while window.searchTimer and steps < 128
     {
         host.fireTimer(window.searchTimer)
@@ -40,13 +48,16 @@ func completeHexViewerSearch(host: *Testing.HeadlessHost, window: *ViewerWindow)
 func completeHexViewerOpen(host: *Testing.HeadlessHost, window: *ViewerWindow)
 {
     completeViewerWindowClassification(host, window)
-    var steps = 0'u32
+    var steps = 0_u32
     while window.activeChoiceIndex < window.instances.count and steps < 4_096
     {
         let instance = &window.instances[window.activeChoiceIndex]
-        if not instance.view or not instance.isLoading or not instance.isLoading() do
+        if not instance.view or not instance.isLoading or not instance.isLoading()
+        {
             break
-        Threading.Thread.sleep(1'ms)
+        }
+
+        Threading.Thread.sleep(1_ms)
         host.fireTimers()
         steps += 1
     }
@@ -56,8 +67,11 @@ func completeHexViewerOpen(host: *Testing.HeadlessHost, window: *ViewerWindow)
 func selectHexViewer(host: *Testing.HeadlessHost, window: *ViewerWindow)->*Hex.Panel
 {
     var hexIndex = Swag.U32.Max
-    for choice, index in window.choices where choice.key == "hex" do
+    for choice, index in window.choices where choice.key == "hex"
+    {
         hexIndex = cast(u32, index)
+    }
+
     Swag.require(hexIndex != Swag.U32.Max)
     window.selectViewer(hexIndex)
     completeHexViewerOpen(host, window)
@@ -76,10 +90,13 @@ func completeHexViewerAnalysis(host: *Testing.HeadlessHost, view: *Hex.Panel)
 {
     let fileName = Gui.Testing.tempFilePath("viewer-hex-inspector-", ".bin")
     defer discard catch File.delete(fileName)
-    var payload: Array'u8
+    var payload: Array!{u8}
     payload.resize(512)
-    for index in payload.count do
+    for index in payload.count
+    {
         payload[index] = cast(u8, index)
+    }
+
     payload[0] = 0x00
     payload[1] = 0x3C
     payload[2] = 0x00
@@ -109,7 +126,7 @@ func completeHexViewerAnalysis(host: *Testing.HeadlessHost, view: *Hex.Panel)
     let fileName = Gui.Testing.tempFilePath("scope-hex-search-", ".bin")
     defer discard catch File.delete(fileName)
 
-    var payload: Array'u8
+    var payload: Array!{u8}
     payload.resize(ViewerWindow.SearchChunkSize + 256)
     let first  = ViewerWindow.SearchChunkSize - 2
     let second = ViewerWindow.SearchChunkSize + 80
@@ -264,20 +281,21 @@ func completeHexViewerAnalysis(host: *Testing.HeadlessHost, view: *Hex.Panel)
 #[Swag.TestTag("golden")]
 #test
 {
-    const BlockSize = 64 * 1024'u64
+    const BlockSize = 64 * 1024_u64
     let fileName = Gui.Testing.tempFilePath("viewer-hex-repeated-blocks-", ".bin")
     defer discard catch File.delete(fileName)
 
-    var payload: Array'u8
+    var payload: Array!{u8}
     payload.resize(BlockSize * 4)
     for index in BlockSize
     {
         let value = cast(u8, index % 251)
         payload[index] = value
         payload[BlockSize * 2 + index] = value
-        payload[BlockSize + index] = 0x5A
+        payload[BlockSize + index]     = 0x5A
         payload[BlockSize * 3 + index] = value
     }
+
     payload[BlockSize * 3 + 123] ^= 1
     expect File.writeAllBytes(fileName, payload.toSlice())
 
@@ -286,7 +304,7 @@ func completeHexViewerAnalysis(host: *Testing.HeadlessHost, view: *Hex.Panel)
     host.theme.setDark()
     shipFrame(&host)
     var registry = createViewerPluginRegistry()
-    let window = ViewerWindow.create(&host.surfaceWnd, #move registry)
+    let window   = ViewerWindow.create(&host.surfaceWnd, #move registry)
     window.openFile(fileName)
     completeHexViewerOpen(&host, window)
     let view = selectHexViewer(&host, window)
@@ -360,7 +378,7 @@ func completeHexViewerAnalysis(host: *Testing.HeadlessHost, view: *Hex.Panel)
         .grid.moveCaret(0x89, true)
     }
 
-    var searchHits: Array'Viewer.SearchMatch
+    var searchHits: Array!{Viewer.SearchMatch}
     searchHits.add({offset: 0x15, length: 4})
     searchHits.add({offset: 0x78, length: 6})
     view.grid.setSearchMatches(&searchHits)

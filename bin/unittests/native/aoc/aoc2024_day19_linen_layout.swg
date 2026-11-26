@@ -22,10 +22,10 @@ bbrgwb"""
 // Pattern storage
 // ---------------------------------------------------------------------------
 
-const MaxPatterns  = 512'u32
-const MaxPatLen    = 16'u32
-const MaxDesignLen = 128'u32
-const MaxDesigns   = 512'u32
+const MaxPatterns  = 512_u32
+const MaxPatLen    = 16_u32
+const MaxDesignLen = 128_u32
+const MaxDesigns   = 512_u32
 
 struct Pattern
 {
@@ -48,12 +48,16 @@ impl Pattern
     #[Swag.Inline]
     mtd matchAt(design: const [..] u8, pos: u32)->bool
     {
-        if pos + me.len > design.count do
+        if pos + me.len > design.count
+        {
             return false
+        }
         for i in me.len
         {
-            if me.byteAt(i) != design[pos + i] do
+            if me.byteAt(i) != design[pos + i]
+            {
                 return false
+            }
         }
         return true
     }
@@ -97,25 +101,43 @@ func parseInput(text: string)->{ patterns: PatternList, designs: DesignList }
     // Parse patterns (comma-separated first line)
     for
     {
-        if pos >= bytes.count do break
+        if pos >= bytes.count
+        {
+            break
+        }
 
         // skip whitespace
         for
         {
-            if pos >= bytes.count do break
+            if pos >= bytes.count
+            {
+                break
+            }
             let ch = bytes[pos]
-            if ch != ' ' and ch != ',' and ch != '\r' do break
+            if ch != ' ' and ch != ',' and ch != '\r'
+            {
+                break
+            }
             pos += 1
         }
-        if pos >= bytes.count or bytes[pos] == '\n' or bytes[pos] == '\r' do break
+        if pos >= bytes.count or bytes[pos] == '\n' or bytes[pos] == '\r'
+        {
+            break
+        }
 
         // read pattern
         var pat: Pattern
         for
         {
-            if pos >= bytes.count do break
+            if pos >= bytes.count
+            {
+                break
+            }
             let ch = bytes[pos]
-            if ch == ',' or ch == '\n' or ch == '\r' or ch == ' ' do break
+            if ch == ',' or ch == '\n' or ch == '\r' or ch == ' '
+            {
+                break
+            }
             if pat.len < MaxPatLen
             {
                 pat.bytes[pat.len] = ch
@@ -134,32 +156,56 @@ func parseInput(text: string)->{ patterns: PatternList, designs: DesignList }
     // Skip past blank line(s)
     for
     {
-        if pos >= bytes.count do break
+        if pos >= bytes.count
+        {
+            break
+        }
         let ch = bytes[pos]
-        if ch != '\n' and ch != '\r' do break
+        if ch != '\n' and ch != '\r'
+        {
+            break
+        }
         pos += 1
     }
 
     // Parse designs (one per line)
     for
     {
-        if pos >= bytes.count do break
+        if pos >= bytes.count
+        {
+            break
+        }
 
         // skip newlines
         for
         {
-            if pos >= bytes.count do break
-            if bytes[pos] != '\n' and bytes[pos] != '\r' do break
+            if pos >= bytes.count
+            {
+                break
+            }
+            if bytes[pos] != '\n' and bytes[pos] != '\r'
+            {
+                break
+            }
             pos += 1
         }
-        if pos >= bytes.count do break
+        if pos >= bytes.count
+        {
+            break
+        }
 
         var des: Design
         for
         {
-            if pos >= bytes.count do break
+            if pos >= bytes.count
+            {
+                break
+            }
             let ch = bytes[pos]
-            if ch == '\n' or ch == '\r' do break
+            if ch == '\n' or ch == '\r'
+            {
+                break
+            }
             if des.len < MaxDesignLen
             {
                 des.bytes[des.len] = ch
@@ -193,7 +239,10 @@ func countWays(design: const [..] u8, designLen: u32, pats: *PatternList)->u64
         for p in pats.count
         {
             let pat = &pats.items[p]
-            if pat.len > i do continue
+            if pat.len > i
+            {
+                continue
+            }
             let start = i - pat.len
             if pat.matchAt(design, start)
             {
@@ -243,10 +292,10 @@ func solve(text: string)->SolveResult
 #test
 {
     let input = parseInput(SampleInput)
-    Swag.require(input.patterns.count == 8'u32)
-    Swag.require(input.patterns.items[0].len == 1'u32)
+    Swag.require(input.patterns.count == 8_u32)
+    Swag.require(input.patterns.items[0].len == 1_u32)
     Swag.require(input.patterns.items[0].bytes[0] == 'r')
-    Swag.require(input.patterns.items[1].len == 2'u32)
+    Swag.require(input.patterns.items[1].len == 2_u32)
     Swag.require(input.patterns.items[1].bytes[0] == 'w')
     Swag.require(input.patterns.items[1].bytes[1] == 'r')
 }
@@ -255,8 +304,8 @@ func solve(text: string)->SolveResult
 #test
 {
     let input = parseInput(SampleInput)
-    Swag.require(input.designs.count == 8'u32)
-    Swag.require(input.designs.items[0].len == 5'u32)
+    Swag.require(input.designs.count == 8_u32)
+    Swag.require(input.designs.items[0].len == 5_u32)
     Swag.require(input.designs.items[0].bytes[0] == 'b')
 }
 
@@ -281,7 +330,7 @@ func solve(text: string)->SolveResult
 
     var buf: [5] u8
     buf[0] = 'b'; buf[1] = 'r'; buf[2] = 'w'; buf[3] = 'r'; buf[4] = 'r'
-    let sl = Swag.makeSlice(&buf[0], 5'u64)
+    let sl = Swag.makeSlice(&buf[0], 5_u64)
 
     Swag.require(pat.matchAt(sl, 0))
     Swag.require(not pat.matchAt(sl, 1))
@@ -300,9 +349,9 @@ func solve(text: string)->SolveResult
 
     var buf: [1] u8
     buf[0] = 'a'
-    let sl = Swag.makeSlice(&buf[0], 1'u64)
+    let sl = Swag.makeSlice(&buf[0], 1_u64)
 
-    Swag.require(pat.len == 1'u32)
+    Swag.require(pat.len == 1_u32)
     Swag.require(pat.byteAt(0) == 'a')
     Swag.require(pat.matchAt(sl, 0))
 }
@@ -330,8 +379,8 @@ func solve(text: string)->SolveResult
 
     var buf: [3] u8
     buf[0] = 'a'; buf[1] = 'a'; buf[2] = 'a'
-    let sl = Swag.makeSlice(&buf[0], 3'u64)
-    Swag.require(countWays(sl, 3, &pats) == 1'u64)
+    let sl = Swag.makeSlice(&buf[0], 3_u64)
+    Swag.require(countWays(sl, 3, &pats) == 1_u64)
 }
 
 // DP: two patterns, multiple ways
@@ -347,9 +396,9 @@ func solve(text: string)->SolveResult
 
     var buf: [3] u8
     buf[0] = 'a'; buf[1] = 'a'; buf[2] = 'a'
-    let sl = Swag.makeSlice(&buf[0], 3'u64)
+    let sl = Swag.makeSlice(&buf[0], 3_u64)
     // "aaa" = a+a+a, a+aa, aa+a → 3 ways
-    Swag.require(countWays(sl, 3, &pats) == 3'u64)
+    Swag.require(countWays(sl, 3, &pats) == 3_u64)
 }
 
 // DP: impossible design
@@ -362,38 +411,38 @@ func solve(text: string)->SolveResult
 
     var buf: [2] u8
     buf[0] = 'a'; buf[1] = 'b'
-    let sl = Swag.makeSlice(&buf[0], 2'u64)
-    Swag.require(countWays(sl, 2, &pats) == 0'u64)
+    let sl = Swag.makeSlice(&buf[0], 2_u64)
+    Swag.require(countWays(sl, 2, &pats) == 0_u64)
 }
 
 // Full sample: Part 1 = 6 possible designs
 #test
 {
     let result = solve(SampleInput)
-    Swag.require(result.possible == 6'u32)
+    Swag.require(result.possible == 6_u32)
 }
 
 // Full sample: Part 2 = 16 total ways
 #test
 {
     let result = solve(SampleInput)
-    Swag.require(result.totalWays == 16'u64)
+    Swag.require(result.totalWays == 16_u64)
 }
 
 // CRLF input should parse the last pattern correctly.
 #test
 {
     let result = solve("r, wr, b, g, bwu, rb, gb, br\r\n\r\nbrwrr\r\n")
-    Swag.require(result.possible == 1'u32)
-    Swag.require(result.totalWays == 2'u64)
+    Swag.require(result.possible == 1_u32)
+    Swag.require(result.totalWays == 2_u64)
 }
 
 // Edge: empty design list
 #test
 {
     let result = solve("r, b\n\n")
-    Swag.require(result.possible == 0'u32)
-    Swag.require(result.totalWays == 0'u64)
+    Swag.require(result.possible == 0_u32)
+    Swag.require(result.totalWays == 0_u64)
 }
 
 // matchAt boundary: pattern longer than remaining design
@@ -407,6 +456,6 @@ func solve(text: string)->SolveResult
 
     var buf: [2] u8
     buf[0] = 'a'; buf[1] = 'b'
-    let sl = Swag.makeSlice(&buf[0], 2'u64)
+    let sl = Swag.makeSlice(&buf[0], 2_u64)
     Swag.require(not pat.matchAt(sl, 0))
 }

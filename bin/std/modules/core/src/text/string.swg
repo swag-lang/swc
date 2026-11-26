@@ -3,7 +3,7 @@
 using Swag
 
 // The largest capacity, in bytes, that a [[Core.String]] stores inline without allocating.
-const StringSmallSize = 16'u64
+const StringSmallSize = 16_u64
 #assert(#sizeof(String) == 56)
 
 // Selects which letters a case conversion maps.
@@ -94,8 +94,11 @@ impl String
         if value.buffer == null
         {
             .length = 0
-            if .buffer do
+            if .buffer
+            {
                 .buffer[0] = 0
+            }
+
             return
         }
 
@@ -135,12 +138,21 @@ impl String
     // Returns whether the string holds the same bytes as `other`.
     mtd const opEquals(other: string?)->bool
     {
-        if .length != other.count do
+        if .length != other.count
+        {
             return false
-        if .buffer == other.buffer do
+        }
+
+        if .buffer == other.buffer
+        {
             return true
-        if not .length do
+        }
+
+        if not .length
+        {
             return true
+        }
+
         return Memory.compare(unwrap .buffer, other!.buffer, .length) == 0
     }
 
@@ -171,22 +183,28 @@ impl String
     mtd(op: Swag.Operator) opAssign(value: const [..] string)
         where op == .AddAssign
     {
-        for v in value do
+        for v in value
+        {
             .append(v)
+        }
     }
 
     mtd(op: Swag.Operator) opAssign(value: const [..] rune)
         where op == .AddAssign
     {
-        for v in value do
+        for v in value
+        {
             .append(v)
+        }
     }
 
     mtd(op: Swag.Operator) opAssign(value: const [..] u8)
         where op == .AddAssign
     {
-        for v in value do
+        for v in value
+        {
             .append(v)
+        }
     }
 
     mtd(op: Swag.Operator) opAssign(value: string?)
@@ -210,15 +228,19 @@ impl String
     // Points a moved small string back at its own inline storage.
     mtd opPostMove()
     {
-        if .buffer and .capacity <= StringSmallSize do
+        if .buffer and .capacity <= StringSmallSize
+        {
             .buffer = cast([*] u8?, &.padding[0])
+        }
     }
 
     // Gives a copied string storage of its own.
     mtd opPostCopy()
     {
-        if not .buffer do
+        if not .buffer
+        {
             return
+        }
 
         if .capacity <= StringSmallSize
         {
@@ -237,11 +259,15 @@ impl String
     // Releases the allocated storage, if any.
     mtd opDrop()
     {
-        if not .buffer do
+        if not .buffer
+        {
             return
+        }
 
-        if .buffer != cast(*u8?, &.padding[0]) do
+        if .buffer != cast(*u8?, &.padding[0])
+        {
             Memory.free(.buffer, .capacity, .allocator)
+        }
     }
 
     // Returns the byte at `index`.
@@ -265,24 +291,31 @@ impl String
     mtd const runes()->StringRunes => {bytes: .toSlice()}
 
     // Returns a zero-allocation view that traverses the UTF-8 bytes from last to first.
-    mtd reversed()->ReversedSlice'u8 => reverseSlice(.toSlice())
+    mtd reversed()->ReversedSlice!{u8} => reverseSlice(.toSlice())
 
     // Returns an immutable zero-allocation view that traverses the UTF-8 bytes from last to first.
-    mtd const reversed()->ConstReversedSlice'u8 => reverseSlice(.toSlice())
+    mtd const reversed()->ConstReversedSlice!{u8} => reverseSlice(.toSlice())
 
     // Visits each byte with its index, in storage order.
     #[Macro]
     mtd(ptr: bool) opVisit(stmt: #code(var item, var index: u64))
     {
-        if not .length do
+        if not .length
+        {
             return
+        }
+
         let buffer = unwrap .buffer
         for index in .length
         {
-            #static if ptr do
+            #static if ptr
+            {
                 #inject(stmt, item = cast(*u8, (buffer + index)), index = index)
-            else do
+            }
+            else
+            {
                 #inject(stmt, item = buffer[index], index = index)
+            }
         }
     }
 
@@ -290,15 +323,22 @@ impl String
     #[Macro]
     mtd(ptr: bool) const opVisit(stmt: #code(var item, var index: u64))
     {
-        if not .length do
+        if not .length
+        {
             return
+        }
+
         let buffer = cast(const [*] u8, unwrap .buffer)
         for index in .length
         {
-            #static if ptr do
+            #static if ptr
+            {
                 #inject(stmt, item = cast(const *u8, buffer + index), index = index)
-            else do
+            }
+            else
+            {
                 #inject(stmt, item = buffer[index], index = index)
+            }
         }
     }
 
@@ -312,8 +352,10 @@ impl String
         // re-analyzed at the call site, where the receiver may be an expression that narrowing
         // cannot follow, such as an array element.
         let buffer = .buffer
-        if buffer do
+        if buffer
+        {
             buffer[0] = 0
+        }
     }
 
     // Returns whether the length is zero.
@@ -331,16 +373,22 @@ impl String
     // Makes a null string empty, pointing it at its inline storage.
     mtd ensureNotNull()
     {
-        if .buffer do
+        if .buffer
+        {
             return
+        }
+
         .buffer = cast([*] u8?, &.padding[0])
     }
 
     // Replaces every occurrence of the rune `what` with `by`.
     mtd replace(what: rune, by: string)
     {
-        if not .length do
+        if not .length
+        {
             return
+        }
+
         if .aliasesContent(by)
         {
             let copy = String.from(by)
@@ -361,8 +409,11 @@ impl String
             Memory.copy(buffer + idx, by.buffer, byLength)
             .length = .length - whatLength + byLength
             idx     += byLength
-            if idx == .length do
+            if idx == .length
+            {
                 break
+            }
+
             idx = Utf8.indexOf(.toString(), what, idx)
         }
 
@@ -376,8 +427,11 @@ impl String
     mtd replace(what: string, by: string?, comparisonType = Utf8.ComparisonType.Latin1)
     {
         let whatLength = what.count
-        if not whatLength or (comparisonType != .UnicodeNoCase and whatLength > .length) do
+        if not whatLength or (comparisonType != .UnicodeNoCase and whatLength > .length)
+        {
             return
+        }
+
         if .aliasesContent(what)
         {
             let copy = String.from(what)
@@ -401,13 +455,19 @@ impl String
             let matchLength = match.length
             .reserve(.length + byLength + 1)
             Memory.copyOverlapping(unwrap .buffer + idx + byLength, .buffer + idx + matchLength, .length - (idx + matchLength) + 1)
-            if byLength do
+            if byLength
+            {
                 Memory.copy(.buffer + idx, by!.buffer, byLength)
+            }
+
             .length -= matchLength
             .length += byLength
             idx     += byLength
-            if idx == .length do
+            if idx == .length
+            {
                 break
+            }
+
             match = Utf8.indexOfMatch(.toSlice(), what, idx, comparisonType)
         }
 
@@ -418,16 +478,22 @@ impl String
     // Returns the last byte, or 0 when the string is empty.
     mtd back()->u8
     {
-        if not .length do
+        if not .length
+        {
             return 0
+        }
+
         return .buffer![.length - 1]
     }
 
     // Removes `byteCount` bytes starting at `byteIndex`.
     mtd remove(byteIndex: u64, byteCount: u64 = 1)
     {
-        if not byteCount do
+        if not byteCount
+        {
             return
+        }
+
         Debug.safetyBoundCheck(isRangeInBounds(.length, byteIndex, byteCount), "index out of range")
         let buffer = unwrap .buffer
         Memory.copyOverlapping(buffer + byteIndex, buffer + byteIndex + byteCount, .length - (byteIndex + byteCount))
@@ -438,8 +504,11 @@ impl String
     // Removes the last `byteCount` bytes.
     mtd removeBack(byteCount: u64 = 1)
     {
-        if not byteCount do
+        if not byteCount
+        {
             return
+        }
+
         Debug.safetyBoundCheck(byteCount <= .length, "index out of range")
         .length -= byteCount
         .buffer![.length] = 0
@@ -479,8 +548,11 @@ impl String
 
         Debug.safetyBoundCheck(byteIndex < .length, "index out of range")
         let insertedBytes = value.count
-        if not insertedBytes do
+        if not insertedBytes
+        {
             return
+        }
+
         if .aliasesContent(value)
         {
             let copy = String.from(value)
@@ -520,8 +592,11 @@ impl String
         let encodedBytes = Utf8.encodeRune(encoded, value)
         .grow(.length + encodedBytes + 1)
         let buffer = unwrap .buffer
-        for i in encodedBytes do
+        for i in encodedBytes
+        {
             buffer[.length + i] = encoded[i]
+        }
+
         .length         += encodedBytes
         buffer[.length] = 0
     }
@@ -530,8 +605,11 @@ impl String
     mtd append(value: string?)
     {
         let concatLength = value.count
-        if concatLength == 0 do
+        if concatLength == 0
+        {
             return
+        }
+
         if .aliasesContent(value)
         {
             let copy = String.from(value)
@@ -551,8 +629,11 @@ impl String
     func join(values: string...)->String
     {
         var result: #returntype
-        for v in values do
+        for v in values
+        {
             result += v
+        }
+
         return result
     }
 
@@ -562,8 +643,11 @@ impl String
         var result: #returntype
         for v, index in values
         {
-            if separator.count and index do
+            if separator.count and index
+            {
                 result += separator
+            }
+
             result += v
         }
 
@@ -574,8 +658,11 @@ impl String
     #[Inline]
     mtd grow(wantedCapacity: u64)
     {
-        if wantedCapacity <= .capacity do
+        if wantedCapacity <= .capacity
+        {
             return
+        }
+
         .reserve(Math.max(.capacity * 2, wantedCapacity))
     }
 
@@ -586,8 +673,10 @@ impl String
     {
         // Capacity includes the trailing zero byte.
         .length = Math.min(.length, newCapacity ? newCapacity - 1 : 0)
-        if .allocator == null do
+        if .allocator == null
+        {
             .allocator = Swag.getContext().allocator
+        }
 
         // A small capacity always uses the inline storage.
         if newCapacity <= StringSmallSize
@@ -606,7 +695,7 @@ impl String
             .buffer   = cast([*] u8?, &.padding[0])
         }
         // Grow from inline storage into an allocation.
-        elif .buffer == cast(*u8?, &.padding[0])
+        else if .buffer == cast(*u8?, &.padding[0])
         {
             let oldBuffer = unwrap .buffer
             .buffer = cast([*] u8, Memory.alloc(newCapacity, .allocator))
@@ -614,7 +703,7 @@ impl String
             .capacity = newCapacity
         }
         // Allocate directly when no previous storage exists.
-        elif not .buffer
+        else if not .buffer
         {
             .buffer    = cast([*] u8, Memory.alloc(newCapacity, .allocator))
             .capacity  = newCapacity
@@ -633,8 +722,10 @@ impl String
     // Removes the white space at the start of the string, as judged by [[Core.Unicode.isSpace]].
     mtd trimStart()
     {
-        if not .length do
+        if not .length
+        {
             return
+        }
 
         let buffer     = unwrap .buffer
         let asciiBytes = Latin1.firstNonSpace(.toSlice(), includeLatin1: false)
@@ -643,8 +734,11 @@ impl String
         for
         {
             let {c, eat} = Utf8.decodeRune(Swag.makeSlice(ptr, .length))
-            if not Unicode.isSpace(c) do
+            if not Unicode.isSpace(c)
+            {
                 break
+            }
+
             .length -= eat
             ptr     += eat
         }
@@ -656,16 +750,21 @@ impl String
     // Removes the white space at the end of the string, as judged by [[Core.Unicode.isSpace]].
     mtd trimEnd()
     {
-        if not .length do
+        if not .length
+        {
             return
+        }
 
         let buffer = unwrap .buffer
         .length = Latin1.lastNonSpace(.toSlice(), includeLatin1: false)
         for
         {
             let {c, eat} = Utf8.decodeLastRune(Swag.makeSlice(buffer, .length))
-            if not Unicode.isSpace(c) do
+            if not Unicode.isSpace(c)
+            {
                 break
+            }
+
             .length -= eat
         }
 
@@ -680,7 +779,7 @@ impl String
     }
 
     // Returns the runes of the string, decoded from UTF-8.
-    mtd const toRuneArray()->Array'rune => Unicode.fromUtf8(.toSlice())
+    mtd const toRuneArray()->Array!{rune} => Unicode.fromUtf8(.toSlice())
 
     // Returns a new string holding a copy of `value`.
     func from(value: string?)->String
@@ -801,12 +900,12 @@ impl String
         }
 
         // Returns the byte index of the first `what` at or after `startByteIndex`, or `Swag.U64.Max` when it is absent.
-        mtd const indexOf(what: string, startByteIndex = 0'u64, comparisonType = Utf8.ComparisonType.Latin1)->u64
+        mtd const indexOf(what: string, startByteIndex = 0_u64, comparisonType = Utf8.ComparisonType.Latin1)->u64
         {
             return Utf8.indexOf(.toSlice(), what, startByteIndex, comparisonType)
         }
 
-        mtd const indexOf(what: rune, startByteIndex = 0'u64)->u64 => Utf8.indexOf(.toSlice(), what, startByteIndex)
+        mtd const indexOf(what: rune, startByteIndex = 0_u64)->u64 => Utf8.indexOf(.toSlice(), what, startByteIndex)
     }
 }
 

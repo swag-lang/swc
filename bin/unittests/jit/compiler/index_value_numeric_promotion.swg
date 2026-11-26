@@ -31,21 +31,21 @@ func boxShift0(values: *ByteBox, shift: s64)->s64
 #test
 {
     var values: [2] u8 = [0, 1]
-    let shift = 482's64
+    let shift = 482_s64
 
-    Swag.require(values[0] == 0'u8)
-    Swag.require(values[1] == 1'u8)
-    Swag.require(arrayShift0(&values, shift) == 482's64)
+    Swag.require(values[0] == 0_u8)
+    Swag.require(values[1] == 1_u8)
+    Swag.require(arrayShift0(&values, shift) == 482_s64)
     Swag.require(cast(u8, ((values[0] + shift) % 26 + 'a')) == 'o')
 }
 
 #test
 {
     var values = ByteBox{values: [0, 1]}
-    let shift  = 482's64
+    let shift  = 482_s64
 
-    Swag.require(values[0] == 0'u8)
-    Swag.require(values[1] == 1'u8)
-    Swag.require(boxShift0(&values, shift) == 482's64)
+    Swag.require(values[0] == 0_u8)
+    Swag.require(values[1] == 1_u8)
+    Swag.require(boxShift0(&values, shift) == 482_s64)
     Swag.require(cast(u8, ((values[0] + shift) % 26 + 'a')) == 'o')
 }

@@ -3,18 +3,20 @@
 
 using Swag
 
-func expectNumericArray4(values: Math.NumericArray'(s32, 4'u32), expected: const [..] s32)
+func expectNumericArray4(values: Math.NumericArray!{s32, 4_u32}, expected: const [..] s32)
 {
     Swag.require(expected.count == 4)
-    for i in 4 do
+    for i in 4
+    {
         Swag.require(values[i] == expected[i])
+    }
 }
 
 #test
 {
     let seed: [4] s32 = [1, 2, 3, 4]
 
-    var values: Math.NumericArray'(s32, 4'u32)
+    var values: Math.NumericArray!{s32, 4_u32}
     values = 7
     expectNumericArray4(values, [7, 7, 7, 7])
 
@@ -24,16 +26,16 @@ func expectNumericArray4(values: Math.NumericArray'(s32, 4'u32), expected: const
     values.set(10, 20, 30, 40)
     expectNumericArray4(values, [10, 20, 30, 40])
 
-    let created = Math.NumericArray'(s32, 4'u32).from(-1, -2, -3, -4)
+    let created = Math.NumericArray!{s32, 4_u32}.from(-1, -2, -3, -4)
     expectNumericArray4(created, [-1, -2, -3, -4])
 }
 
 #test
 {
-    var values: Math.NumericArray'(s32, 4'u32)
+    var values: Math.NumericArray!{s32, 4_u32}
     values.set(1, 2, 3, 4)
 
-    let fromError = Swag.catchPanic(func||() { discard Math.NumericArray'(s32, 4'u32).from(1, 2, 3) })
+    let fromError = Swag.catchPanic(func||() { discard Math.NumericArray!{s32, 4_u32}.from(1, 2, 3) })
     Swag.require(fromError.raised)
 
     let setError = Swag.catchPanic(func|&values|() { values.set(5, 6, 7) })
@@ -48,8 +50,8 @@ func expectNumericArray4(values: Math.NumericArray'(s32, 4'u32), expected: const
 
 #test
 {
-    var left:  Math.NumericArray'(s32, 4'u32)
-    var right: Math.NumericArray'(s32, 4'u32)
+    var left:  Math.NumericArray!{s32, 4_u32}
+    var right: Math.NumericArray!{s32, 4_u32}
     left.set(10, 20, 30, 40)
     right.set(1, 2, 5, 8)
 
@@ -64,7 +66,7 @@ func expectNumericArray4(values: Math.NumericArray'(s32, 4'u32), expected: const
 
 #test
 {
-    var values: Math.NumericArray'(s32, 4'u32)
+    var values: Math.NumericArray!{s32, 4_u32}
     values = 3
 
     values += 2
@@ -82,8 +84,8 @@ func expectNumericArray4(values: Math.NumericArray'(s32, 4'u32), expected: const
 
 #test
 {
-    var values: Math.NumericArray'(s32, 4'u32)
-    var other:  Math.NumericArray'(s32, 4'u32)
+    var values: Math.NumericArray!{s32, 4_u32}
+    var other:  Math.NumericArray!{s32, 4_u32}
 
     values.set(10, 20, 30, 40)
     other.set(1, 2, 3, 4)
@@ -103,13 +105,13 @@ func expectNumericArray4(values: Math.NumericArray'(s32, 4'u32), expected: const
 
 #test
 {
-    var values: Math.NumericArray'(s32, 4'u32)
+    var values: Math.NumericArray!{s32, 4_u32}
     values.set(1, 2, 3, 4)
     values.mulAdd(10, 1)
     expectNumericArray4(values, [11, 21, 31, 41])
 
-    var factor: Math.NumericArray'(s32, 4'u32)
-    var add:    Math.NumericArray'(s32, 4'u32)
+    var factor: Math.NumericArray!{s32, 4_u32}
+    var add:    Math.NumericArray!{s32, 4_u32}
     values.set(2, 3, 4, 5)
     factor.set(1, 2, 3, 4)
     add.set(10, 20, 30, 40)

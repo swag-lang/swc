@@ -41,10 +41,39 @@ private func aesNibbleMap(value, lowTable, highTable: U8x16)->U8x16
 #[Swag.Inline]
 private func aesTowerEncode(value: U8x16)->U8x16
 {
-    // The subfield uses t^4 + t + 1. Its generator is 0x5C and z is 0x12 in AES coordinates.
-    const Low  = cast(U8x16, [0x00, 0x01, 0x2B, 0x2A, 0x43, 0x42, 0x68, 0x69, 0x49, 0x48, 0x62, 0x63, 0x0A, 0x0B, 0x21, 0x20])
-    const High = cast(U8x16, [0x00, 0x3B, 0xD6, 0xED, 0x33, 0x08, 0xE5, 0xDE, 0xE1, 0xDA, 0x37, 0x0C, 0xD2, 0xE9, 0x04, 0x3F])
-    return aesNibbleMap(value, Low, High)
+    var a         = left
+    var b         = right
+    var result    = 0_u8
+    var iteration = 0_u32
+    while iteration < 8
+    {
+        let selected = cast(u8, 0_u8 - (b & 1))
+        result ^= a & selected
+        let highBit = cast(u8, 0_u8 - (a >> 7))
+        a         = cast(u8, (a << 1) ^ (0x1B_u8 & highBit))
+        b         >>= 1
+        iteration += 1
+    }
+
+    return result
+}
+
+private func aesInverse(value: u8)->u8
+{
+    let square2   = aesMultiply(value, value)
+    let square4   = aesMultiply(square2, square2)
+    let square8   = aesMultiply(square4, square4)
+    let square16  = aesMultiply(square8, square8)
+    let square32  = aesMultiply(square16, square16)
+    let square64  = aesMultiply(square32, square32)
+    let square128 = aesMultiply(square64, square64)
+    var result    = aesMultiply(square128, square64)
+    result = aesMultiply(result, square32)
+    result = aesMultiply(result, square16)
+    result = aesMultiply(result, square8)
+    result = aesMultiply(result, square4)
+    result = aesMultiply(result, square2)
+    return result
 }
 
 #[Swag.Inline]
@@ -75,11 +104,14 @@ private func aesGf16PowerIndex(leftLog, rightLog: U8x16)->U8x16
 #[Swag.Inline]
 private func aesInvertTower(value: U8x16)->U8x16
 {
-    const Logs           = cast(U8x16, [0xC0, 0x00, 0x01, 0x04, 0x02, 0x08, 0x05, 0x0A, 0x03, 0x0E, 0x09, 0x07, 0x06, 0x0D, 0x0B, 0x0C])
-    const Powers         = cast(U8x16, [0x01, 0x02, 0x04, 0x08, 0x03, 0x06, 0x0C, 0x0B, 0x05, 0x0A, 0x07, 0x0E, 0x0F, 0x0D, 0x09, 0x01])
-    const HighPowers     = cast(U8x16, [0x10, 0x20, 0x40, 0x80, 0x30, 0x60, 0xC0, 0xB0, 0x50, 0xA0, 0x70, 0xE0, 0xF0, 0xD0, 0x90, 0x10])
-    const ReciprocalLogs = cast(U8x16, [0xC0, 0x00, 0x0E, 0x0B, 0x0D, 0x07, 0x0A, 0x05, 0x0C, 0x01, 0x06, 0x08, 0x09, 0x02, 0x04, 0x03])
-    const ScaledSquare   = cast(U8x16, [0x00, 0x0B, 0x0A, 0x01, 0x0E, 0x05, 0x04, 0x0F, 0x0D, 0x06, 0x07, 0x0C, 0x03, 0x08, 0x09, 0x02])
+    var value = 1_u8
+    var round = 0_u32
+    while round < index
+    {
+        let highMask = cast(u8, 0_u8 - (value >> 7))
+        value = cast(u8, (value << 1) ^ (0x1B_u8 & highMask))
+        round += 1
+    }
 
     // In the tower basis a*z + b, z^2 + z is the subfield element 0x0B.
     // The norm is b*(a+b) + 0x0B*a^2. The conjugate has coefficients a and a+b.
@@ -144,8 +176,10 @@ public impl Aes
     // Fails with [[Core.Errors.BadParameterError]] when the key length is not 16, 24, or 32 bytes.
     mtd reset(key: const [..] u8) fail
     {
-        if key.count != 16 and key.count != 24 and key.count != 32 do
+        if key.count != 16 and key.count != 24 and key.count != 32
+        {
             fail Errors.BadParameterError{"AES key must contain 16, 24, or 32 bytes"}
+        }
 
         let keyWords    = key.count / 4
         let rounds      = cast(u32, keyWords + 6)
@@ -173,22 +207,18 @@ public impl Aes
         var previousWord  = expanded[keyWords - 1]
         for index in keyWords until wordCount
         {
-            var temp = previousWord
-            if column == 0
+            var temp = expanded[index - 1]
+            if index % keyWords == 0
             {
-                temp = aesSubWord(Swag.ror(temp, 8'u8), useHardware) ^ roundConstant
-                roundConstant = aesDouble(roundConstant)
+                temp = aesSubWord(Swag.rol(temp, 8_u8)) ^
+                       (cast(u32, aesRoundConstant(cast(u32, index / keyWords - 1))) << 24)
             }
-            elif keyWords > 6 and column == 4
+            else if keyWords > 6 and index % keyWords == 4
             {
-                temp = aesSubWord(temp, useHardware)
+                temp = aesSubWord(temp)
             }
 
-            previousWord   = expanded[index - keyWords] ^ temp
-            expanded[index] = previousWord
-            column += 1
-            if column == keyWords do
-                column = 0
+            expanded[index] = expanded[index - keyWords] ^ temp
         }
 
         .clear()
@@ -227,16 +257,24 @@ public impl Aes
         try .validateBlockRanges(source, destination)
         if .useHardware
         {
-            store(destination.buffer, .encryptBlockHardware(load(source.buffer)))
-            return
+            for index in AesBlockSize
+            {
+                state[index] = aesSubstitute(state[index])
+            }
+
+            .shiftRows(&state)
+            .mixColumns(&state)
+            .addRoundKey(&state, round)
         }
 
-        var state: [1] U8x16
-        state[0] = aesTowerEncode(load(source.buffer)) ^ .roundKey(0)
-        for round in 1 until .rounds do
-            state[0] = .encryptSoftwareRound(state[0], .roundKey(round))
+        for index in AesBlockSize
+        {
+            state[index] = aesSubstitute(state[index])
+        }
 
-        store(destination.buffer, aesTowerDecode(shuffle(aesTowerSubstitute(state[0]), AesSoftwareShiftRows) ^ .roundKey(.rounds)))
+        .shiftRows(&state)
+        .addRoundKey(&state, .rounds)
+        Swag.memcpy(destination.buffer, &state[0], AesBlockSize)
         Crypto.secureClear(state)
     }
 
@@ -248,20 +286,24 @@ public impl Aes
         try .validateBlockRanges(source, destination)
         if .useHardware
         {
-            store(destination.buffer, .decryptBlockHardware'false(load(source.buffer)))
-            return
+            .inverseShiftRows(&state)
+            for index in AesBlockSize
+            {
+                state[index] = aesInverseSubstitute(state[index])
+            }
+
+            .addRoundKey(&state, .rounds - round)
+            .inverseMixColumns(&state)
         }
 
-        const ShiftRows = cast(U8x16, [0'u8, 13, 10, 7, 4, 1, 14, 11, 8, 5, 2, 15, 12, 9, 6, 3])
-        var state: [1] U8x16
-        state[0] = aesTowerEncode(load(source.buffer)) ^ .roundKey(.rounds)
-        for round in 1 until .rounds
+        .inverseShiftRows(&state)
+        for index in AesBlockSize
         {
-            let substituted = aesTowerInverseSubstitute(shuffle(state[0], ShiftRows))
-            state[0] = .inverseMixColumns(substituted ^ .roundKey(.rounds - round))
+            state[index] = aesInverseSubstitute(state[index])
         }
 
-        store(destination.buffer, aesTowerDecode(aesTowerInverseSubstitute(shuffle(state[0], ShiftRows)) ^ .roundKey(0)))
+        .addRoundKey(&state, 0)
+        Swag.memcpy(destination.buffer, &state[0], AesBlockSize)
         Crypto.secureClear(state)
     }
 
@@ -276,10 +318,15 @@ public impl Aes
 
     private mtd validateBlockRanges(source: const [..] u8, destination: [..] u8) fail
     {
-        if not .ready do
+        if not .ready
+        {
             fail Errors.BadParameterError{"AES needs an initialized key"}
-        if source.count != AesBlockSize or destination.count != AesBlockSize do
+        }
+
+        if source.count != AesBlockSize or destination.count != AesBlockSize
+        {
             fail Errors.BadParameterError{"AES block operations need exactly 16 input and output bytes"}
+        }
     }
 
     private mtd expandHardwareKey(key: const [..] u8)
@@ -292,59 +339,42 @@ public impl Aes
         #[Swag.Inline]
         func nextKey(current, substituted: U8x16)->U8x16
         {
-            let pairs = current ^ align(Zero, current, 12)
-            return pairs ^ align(Zero, pairs, 8) ^ substituted
-        }
-
-        var left = load(key.buffer)
-        let output = cast([*] u8, &.roundKeys[0])
-        if key.count == 16
-        {
-            .clear()
-            store(output, left)
-            for round in 1 until 11
+            let word = .roundKeys[round * 4 + column]
+            for row in 4
             {
-                let roundConstant = cast #bit (U8x16, splat(RoundConstants[round - 1]))
-                let substituted = Swag.vecAesEncryptLastRound(shuffle(left, RotatedWord), roundConstant)
-                left = nextKey(left, substituted)
-                store(output + round * AesBlockSize, left)
+                state[][column * 4 + row] ^= Math.byteAt(word, 3 - row)
             }
-
-            return
-        }
-
-        var right = load(key.buffer + AesBlockSize)
-        .clear()
-        store(output, left)
-        store(output + AesBlockSize, right)
-        for pair in 1 until 8
-        {
-            let round = pair * 2
-            let roundConstant = cast #bit (U8x16, splat(RoundConstants[pair - 1]))
-            let substituted = Swag.vecAesEncryptLastRound(shuffle(right, RotatedWord), roundConstant)
-            left = nextKey(left, substituted)
-            store(output + round * AesBlockSize, left)
-            if pair == 7 do
-                break
-
-            right = nextKey(right, Swag.vecAesEncryptLastRound(shuffle(left, LastWord), Zero))
-            store(output + (round + 1) * AesBlockSize, right)
         }
     }
 
     #[Swag.Inline]
     internal mtd roundKey(round: u32)->U8x16
     {
-        return load(cast(const [*] u8, &.roundKeys[round * 4]))
+        var shifted: [AesBlockSize] u8
+        for column in 4
+        {
+            for row in 4
+            {
+                shifted[column * 4 + row] = state[][((column + row) % 4) * 4 + row]
+            }
+        }
+
+        state[] = shifted
     }
 
     #[Swag.Inline]
     internal mtd encryptBlockHardware(value: U8x16)->U8x16
     {
-        var state = value ^ .roundKey(0)
-        for round in 1 until .rounds do
-            state = Swag.vecAesEncryptRound(state, .roundKey(round))
-        return Swag.vecAesEncryptLastRound(state, .roundKey(.rounds))
+        var shifted: [AesBlockSize] u8
+        for column in 4
+        {
+            for row in 4
+            {
+                shifted[column * 4 + row] = state[][((column + 4 - row) % 4) * 4 + row]
+            }
+        }
+
+        state[] = shifted
     }
 
     #[Swag.Inline]

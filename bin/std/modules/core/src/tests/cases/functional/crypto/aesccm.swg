@@ -5,16 +5,19 @@ using Swag
 
 func aesCcmHexDigit(value: u8)->u8
 {
-    if value >= '0' and value <= '9' do
+    if value >= '0' and value <= '9'
+    {
         return value - '0'
+    }
+
     return (value - 'a') + 10
 }
 
-func aesCcmHexBytes(text: string)->Array'u8
+func aesCcmHexBytes(text: string)->Array!{u8}
 {
     var result: #returntype
     result.reserve(text.count / 2)
-    var index = 0'u64
+    var index = 0_u64
     while index + 1 < text.count
     {
         result.add(cast(u8, (aesCcmHexDigit(text[index]) << 4) | aesCcmHexDigit(text[index + 1])))
@@ -72,8 +75,8 @@ func aesCcmHexBytes(text: string)->Array'u8
     // Four-byte tags are supported, while invalid parameters and bad tags fail cleanly.
     var key:         [16] u8
     var nonce:       [7] u8
-    var empty:       Array'u8
-    var emptyOutput: Array'u8
+    var empty:       Array!{u8}
+    var emptyOutput: Array!{u8}
     var tag:         [4] u8
     let expectedTag = aesCcmHexBytes("5863e479")
     expect Crypto.aesCcmEncrypt(key, nonce, "", empty.toSlice(), emptyOutput.toSlice(), tag)
@@ -84,21 +87,23 @@ func aesCcmHexBytes(text: string)->Array'u8
     var largeTag:   [16] u8
     expect Crypto.aesCcmEncrypt(key, nonce, "", plaintext, ciphertext, largeTag)
     largeTag[0] ^= 1
-    Memory.set(plaintext.buffer, 0xA5'u8, plaintext.count)
+    Memory.set(plaintext.buffer, 0xA5_u8, plaintext.count)
     var error: Swag.Error
     discard catch Crypto.aesCcmDecrypt(key, nonce, "", ciphertext, largeTag, plaintext) as error
     Swag.require(error.value() is Errors.BadParameterError)
-    for byte in plaintext do
+    for byte in plaintext
+    {
         Swag.require(byte == 0xA5)
+    }
 
     var invalidNonce: [6] u8
     discard catch Crypto.aesCcmEncrypt(key, invalidNonce, "", plaintext, ciphertext, largeTag) as error
     Swag.require(error.value() is Errors.BadParameterError)
 
     var longNonce: [13] u8
-    var oversized: Array'u8
+    var oversized: Array!{u8}
     oversized.resize(65536)
-    var oversizedCiphertext: Array'u8
+    var oversizedCiphertext: Array!{u8}
     oversizedCiphertext.resize(oversized.count)
     discard catch Crypto.aesCcmEncrypt(key, longNonce, "", oversized.toSlice(), oversizedCiphertext.toSlice(), largeTag) as error
     Swag.require(error.value() is Errors.BadParameterError)

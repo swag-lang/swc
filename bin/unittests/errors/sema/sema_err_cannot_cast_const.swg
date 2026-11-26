@@ -39,7 +39,7 @@ impl ICannotCastConst for CannotCastConstBox {}
 
 #test
 {
-    var value = 1's32
+    var value = 1_s32
     let ptr: const *s32 = &value
     let boxed = Swag.makeAny(ptr, s32)
     let data  = cast(*s32, boxed.buffer)     // swc-expected-error {{sema_err_cannot_cast_const}}
@@ -47,7 +47,7 @@ impl ICannotCastConst for CannotCastConstBox {}
 
 #test
 {
-    var value = 1's32
+    var value = 1_s32
     let ptr: const *s32 = &value
     let boxed = Swag.makeAny(ptr, s32)
     let data  = assume cast(*s32, boxed)     // swc-expected-error {{sema_err_cannot_cast_const}}
@@ -63,14 +63,14 @@ impl ICannotCastConst for CannotCastConstBox {}
 
 #test
 {
-    var value             = 1's32
+    var value             = 1_s32
     let ptr:   const *s32 = &value
     var boxed: any        = Swag.makeAny(ptr, s32)     // swc-expected-error {{sema_err_cannot_cast_const}}
 }
 
 #test
 {
-    var value = 1's32
+    var value = 1_s32
     let ptr: const *s32 = &value
     let raw   = cast(*void, ptr)     // swc-expected-error {{sema_err_cannot_cast_const}}
 }
@@ -95,13 +95,13 @@ impl ICannotCastConst for CannotCastConstBox {}
 
 #test
 {
-    const data: [3] u8 = ['a'u8, 'b'u8, 0]
+    const data: [3] u8 = ['a'_u8, 'b'_u8, 0]
     let text = cast(cstring, data)     // swc-expected-error {{sema_err_cannot_cast_const}}
 }
 
 #test
 {
-    var data: [3] u8       = ['a'u8, 'b'u8, 0]
+    var data: [3] u8       = ['a'_u8, 'b'_u8, 0]
     let ptr:  const [*] u8 = cast(const [*] u8, &data[0])
     let text               = cast(cstring, ptr)     // swc-expected-error {{sema_err_cannot_cast_const}}
 }
@@ -116,7 +116,7 @@ impl ICannotCastConst for CannotCastConstBox {}
 
 #test
 {
-    var data: [3] u8        = ['a'u8, 'b'u8, 0]
+    var data: [3] u8        = ['a'_u8, 'b'_u8, 0]
     let text: const cstring = cast(const cstring, &data[0])
     let boxed               = Swag.makeAny(&text, const cstring)
     let mutable             = assume cast(cstring, boxed)     // swc-expected-error {{sema_err_cannot_cast_const}}
@@ -133,7 +133,7 @@ impl ICannotCastConst for CannotCastConstBox {}
 
 #test
 {
-    var data:  [3] u8        = ['a'u8, 'b'u8, 0]
+    var data:  [3] u8        = ['a'_u8, 'b'_u8, 0]
     let text:  const cstring = cast(const cstring, &data[0])
     var boxed: any           = text     // swc-expected-error {{sema_err_cannot_cast_const}}
 }

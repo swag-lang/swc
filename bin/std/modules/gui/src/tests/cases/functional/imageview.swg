@@ -209,12 +209,14 @@ using Swag, Core, Pixel
 // picture, which is how wide the edges crossing that row are drawn.
 private func edgeSpread(image: *Image, row: s32)->s32
 {
-    var result = 0's32
+    var result = 0_s32
     for x in image.width
     {
         let green = cast(s32, image.pixelColor(x, row).g)
-        if green > 8 and green < 247 do
+        if green > 8 and green < 247
+        {
             result += 1
+        }
     }
 
     return result
@@ -246,7 +248,7 @@ private func edgeSpread(image: *Image, row: s32)->s32
 
     // A row crossing the disc where its edge is slanted, so the edge covers more than one column
     // and its width is what the measure reports.
-    const SlantedRow = 52's32
+    const SlantedRow = 52_s32
     var vectorRender = host.render(&host.root)
     let vectorEdge   = edgeSpread(&vectorRender, SlantedRow)
 
@@ -272,7 +274,7 @@ private func edgeSpread(image: *Image, row: s32)->s32
 
     let view = ImageView.create(&host.root, {0, 0, 300, 200})
 
-    var planes: Array'u8
+    var planes: Array!{u8}
     planes.resize(100 * 50 + 50 * 25 * 2)
     Memory.set(planes.storage(), 235, 100 * 50)
     Memory.set(planes.storage() + 100 * 50, 128, 50 * 25 * 2)
@@ -368,10 +370,15 @@ private func edgeSpread(image: *Image, row: s32)->s32
     for turn in 8
     {
         view.resetTransform()
-        for turn % 4 do
+        for turn % 4
+        {
             view.rotateClockwise()
-        if turn >= 4 do
+        }
+
+        if turn >= 4
+        {
             view.mirrorHorizontally()
+        }
 
         let frame = host.render(view)
         var found = 0
@@ -382,8 +389,11 @@ private func edgeSpread(image: *Image, row: s32)->s32
                 // Sample in the middle of the 20-unit cells around the view's centre.
                 let point = Math.Point{150 + (cast(f32, px) - 3) * 20 + 10, 100 + (cast(f32, py) - 2) * 20 + 10}
                 let pixel = view.pixelAt(point)
-                if not pixel.inside do
+                if not pixel.inside
+                {
                     continue
+                }
+
                 let drawn  = frame.pixelColor(cast(s32, point.x), cast(s32, point.y))
                 let stored = image.pixelColor(pixel.x, pixel.y)
                 Swag.require(drawn.r == stored.r and drawn.g == stored.g, Format.toString("turn % at %,% names %,%", turn, px, py, pixel.x, pixel.y))

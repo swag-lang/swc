@@ -36,10 +36,16 @@ impl ThumbnailSettings
             settings.movieLanguage = window.app().language()
             var token = tmdbStoredCredential("tmdb.token")
             var key   = tmdbStoredCredential("tmdb.key")
-            if token.isEmpty() do
+            if token.isEmpty()
+            {
                 token = Env.variable("SWAG_SCOPE_TMDB_TOKEN")
-            if key.isEmpty() do
+            }
+
+            if key.isEmpty()
+            {
                 key = Env.variable("SWAG_SCOPE_TMDB_KEY")
+            }
+
             settings.movieProviderStamp = Hash.hash64(Format.toString("%:%", token, key))
         }
 
@@ -55,17 +61,20 @@ impl ThumbnailSettings
         }
 
         var output:  ConcatBuffer
-        var encoder: Serialization.Encoder'Serialization.Write.TagBin
+        var encoder: Serialization.Encoder!{Serialization.Write.TagBin}
         expect encoder.writeAll(&output, settings)
         return output.toString()
     }
 
     func decode(bytes: string)->ThumbnailSettings fail
     {
-        if not bytes.count do
+        if not bytes.count
+        {
             return {}
-        var decoder: Serialization.Decoder'Serialization.Read.TagBin
-        let settings = try decoder.readAll'ThumbnailSettings(cast(const [..] u8, bytes))
+        }
+
+        var decoder: Serialization.Decoder!{Serialization.Read.TagBin}
+        let settings = try decoder.readAll!{ThumbnailSettings}(cast(const [..] u8, bytes))
         defer Memory.delete(settings)
         return settings[]
     }

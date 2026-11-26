@@ -11,14 +11,18 @@ struct CatchAsErrError
 
 func catchAsErrMayFail(ok: bool) fail
 {
-    if not ok do
+    if not ok
+    {
         fail CatchAsErrError{base: Swag.BaseError{"boom"}, code: 7}
+    }
 }
 
 func catchAsErrCount(ok: bool)->s32 fail
 {
-    if not ok do
+    if not ok
+    {
         fail CatchAsErrError{base: Swag.BaseError{"boom"}, code: 7}
+    }
     return 42
 }
 
@@ -102,8 +106,10 @@ func catchAsErrReraise(ok: bool)->s32 fail
 {
     var errOutcome: Swag.Error
     catch catchAsErrMayFail(ok) as errOutcome
-    if not errOutcome.isEmpty() and ok == false do
+    if not errOutcome.isEmpty() and ok == false
+    {
         try errOutcome.raise()
+    }
     return 5
 }
 

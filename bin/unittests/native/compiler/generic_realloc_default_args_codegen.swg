@@ -5,8 +5,8 @@ namespace GenericReallocDefaultArgsCodegen
 {
     var gLastCaller: SourceCodeLocation
     var gLastHintWasNull  = false
-    var gLastAlignment    = 1'u32
-    var gReallocCallCount = 0'u64
+    var gLastAlignment    = 1_u32
+    var gReallocCallCount = 0_u64
 
     func resetTracker()
     {
@@ -28,14 +28,22 @@ namespace GenericReallocDefaultArgsCodegen
 
     func expectedCapacity(firstGrowth, count: u64)->u64
     {
-        if count == 0 do
+        if count == 0
+        {
             return 0
-        if count <= firstGrowth do
+        }
+        if count <= firstGrowth
+        {
             return firstGrowth
-        if count <= firstGrowth * 2 do
+        }
+        if count <= firstGrowth * 2
+        {
             return firstGrowth * 2
-        if count <= firstGrowth * 4 do
+        }
+        if count <= firstGrowth * 4
+        {
             return firstGrowth * 4
+        }
         return firstGrowth * 8
     }
 
@@ -48,8 +56,10 @@ namespace GenericReallocDefaultArgsCodegen
     {
         func free(buffer: [*] void?, size: u64, allocator: IAllocator? = null, hint: string? = null, loc = #callerlocation)
         {
-            if not buffer do
+            if not buffer
+            {
                 return
+            }
 
             var req: AllocatorRequest
             req.callerLoc = loc
@@ -100,8 +110,10 @@ namespace GenericReallocDefaultArgsCodegen
     {
         mtd realloc(newCapacity: u64)
         {
-            if .allocator == null do
+            if .allocator == null
+            {
                 .allocator = Swag.getContext().allocator
+            }
 
             if newCapacity == 0
             {
@@ -117,18 +129,24 @@ namespace GenericReallocDefaultArgsCodegen
 
         mtd reserve(newCapacity: u64)
         {
-            if newCapacity <= .capacity do
+            if newCapacity <= .capacity
+            {
                 return
+            }
             .realloc(newCapacity)
         }
 
         mtd reserveNamed(newCapacity: u64)
         {
-            if newCapacity <= .capacity do
+            if newCapacity <= .capacity
+            {
                 return
+            }
 
-            if .allocator == null do
+            if .allocator == null
+            {
                 .allocator = Swag.getContext().allocator
+            }
 
             .buffer   = cast([*] T?, LocalMemory.realloc(buffer: .buffer, newSize: newCapacity * #sizeof(T), oldSize: .capacity * #sizeof(T), allocator: .allocator))
             .capacity = newCapacity
@@ -136,8 +154,10 @@ namespace GenericReallocDefaultArgsCodegen
 
         mtd append(value: T)
         {
-            if .count == .capacity do
+            if .count == .capacity
+            {
                 .reserve(.capacity ? .capacity * 2 : 2)
+            }
             let buf = unwrap .buffer
             buf[.count] = value
             .count      += 1
@@ -145,8 +165,10 @@ namespace GenericReallocDefaultArgsCodegen
 
         mtd appendNamed(value: T)
         {
-            if .count == .capacity do
+            if .count == .capacity
+            {
                 .reserveNamed(.capacity ? .capacity * 2 : 3)
+            }
             let buf = unwrap .buffer
             buf[.count] = value
             .count      += 1
@@ -162,8 +184,10 @@ namespace GenericReallocDefaultArgsCodegen
         mtd stableCode()->u64
         {
             var total = .capacity * 10 + .count
-            for _, index in .toSlice() do
+            for _, index in .toSlice()
+            {
                 total += index + 1
+            }
             return total
         }
 
@@ -177,7 +201,7 @@ namespace GenericReallocDefaultArgsCodegen
 
     struct(T) Nested
     {
-        values: Buffer'T
+        values: Buffer!{T}
     }
 
     impl Nested
@@ -206,9 +230,11 @@ namespace GenericReallocDefaultArgsCodegen
     {
         resetTracker()
 
-        var values: Buffer'T
-        for item in items do
+        var values: Buffer!{T}
+        for item in items
+        {
             values.append(item)
+        }
 
         let count = cast(u64, N)
         let ok    = values.count == count and
@@ -225,9 +251,11 @@ namespace GenericReallocDefaultArgsCodegen
     {
         resetTracker()
 
-        var values: Buffer'T
-        for item in items do
+        var values: Buffer!{T}
+        for item in items
+        {
             values.appendNamed(item)
+        }
 
         let count = cast(u64, N)
         let ok    = values.count == count and
@@ -242,7 +270,7 @@ namespace GenericReallocDefaultArgsCodegen
 
     func(T) runNested(a, b, c: T)->bool
     {
-        var nested: Nested'T
+        var nested: Nested!{T}
         let ok = nested.runMixed(a, b, c)
         nested.free()
         return ok
@@ -250,29 +278,29 @@ namespace GenericReallocDefaultArgsCodegen
 
     func runSuite()->bool
     {
-        return runPositional'(s32, 4)([1, 2, 3, 4]) and
-               runNamed'(s32, 4)([1, 2, 3, 4]) and
-               runPositional'(bool, 2)([true, false]) and
-               runNamed'(bool, 3)([true, false, true]) and
-               runPositional'(Pair, 3)([{left: 1, right: 2}, {left: 3, right: 4}, {left: 5, right: 6}]) and
-               runNamed'(Pair, 4)([{left: 1, right: 2}, {left: 3, right: 4}, {left: 5, right: 6}, {left: 7, right: 8}]) and
-               runPositional'([2]u8, 3)([[1'u8, 2'u8], [3'u8, 4'u8], [5'u8, 6'u8]]) and
-               runNamed'([2]u8, 4)([[1'u8, 2'u8], [3'u8, 4'u8], [5'u8, 6'u8], [7'u8, 8'u8]]) and
-               runNested'(s32)(1, 2, 3) and
-               runNested'(Pair)({left: 10, right: 11}, {left: 12, right: 13}, {left: 14, right: 15})
+        return runPositional!{s32, 4}([1, 2, 3, 4]) and
+               runNamed!{s32, 4}([1, 2, 3, 4]) and
+               runPositional!{bool, 2}([true, false]) and
+               runNamed!{bool, 3}([true, false, true]) and
+               runPositional!{Pair, 3}([{left: 1, right: 2}, {left: 3, right: 4}, {left: 5, right: 6}]) and
+               runNamed!{Pair, 4}([{left: 1, right: 2}, {left: 3, right: 4}, {left: 5, right: 6}, {left: 7, right: 8}]) and
+               runPositional!{[2]u8, 3}([[1_u8, 2_u8], [3_u8, 4_u8], [5_u8, 6_u8]]) and
+               runNamed!{[2]u8, 4}([[1_u8, 2_u8], [3_u8, 4_u8], [5_u8, 6_u8], [7_u8, 8_u8]]) and
+               runNested!{s32}(1, 2, 3) and
+               runNested!{Pair}({left: 10, right: 11}, {left: 12, right: 13}, {left: 14, right: 15})
     }
 }
 
-const ReallocPositionalS32Ok   = #run GenericReallocDefaultArgsCodegen.runPositional'(s32, 4)([1, 2, 3, 4])
-const ReallocNamedS32Ok        = #run GenericReallocDefaultArgsCodegen.runNamed'(s32, 4)([1, 2, 3, 4])
-const ReallocPositionalBoolOk  = #run GenericReallocDefaultArgsCodegen.runPositional'(bool, 2)([true, false])
-const ReallocNamedBoolOk       = #run GenericReallocDefaultArgsCodegen.runNamed'(bool, 3)([true, false, true])
-const ReallocPositionalPairOk  = #run GenericReallocDefaultArgsCodegen.runPositional'(GenericReallocDefaultArgsCodegen.Pair, 3)([{left: 1, right: 2}, {left: 3, right: 4}, {left: 5, right: 6}])
-const ReallocNamedPairOk       = #run GenericReallocDefaultArgsCodegen.runNamed'(GenericReallocDefaultArgsCodegen.Pair, 4)([{left: 1, right: 2}, {left: 3, right: 4}, {left: 5, right: 6}, {left: 7, right: 8}])
-const ReallocPositionalArrayOk = #run GenericReallocDefaultArgsCodegen.runPositional'([2]u8, 3)([[1'u8, 2'u8], [3'u8, 4'u8], [5'u8, 6'u8]])
-const ReallocNamedArrayOk      = #run GenericReallocDefaultArgsCodegen.runNamed'([2]u8, 4)([[1'u8, 2'u8], [3'u8, 4'u8], [5'u8, 6'u8], [7'u8, 8'u8]])
-const ReallocNestedS32Ok       = #run GenericReallocDefaultArgsCodegen.runNested'(s32)(1, 2, 3)
-const ReallocNestedPairOk      = #run GenericReallocDefaultArgsCodegen.runNested'(GenericReallocDefaultArgsCodegen.Pair)({left: 10, right: 11}, {left: 12, right: 13}, {left: 14, right: 15})
+const ReallocPositionalS32Ok   = #run GenericReallocDefaultArgsCodegen.runPositional!{s32, 4}([1, 2, 3, 4])
+const ReallocNamedS32Ok        = #run GenericReallocDefaultArgsCodegen.runNamed!{s32, 4}([1, 2, 3, 4])
+const ReallocPositionalBoolOk  = #run GenericReallocDefaultArgsCodegen.runPositional!{bool, 2}([true, false])
+const ReallocNamedBoolOk       = #run GenericReallocDefaultArgsCodegen.runNamed!{bool, 3}([true, false, true])
+const ReallocPositionalPairOk  = #run GenericReallocDefaultArgsCodegen.runPositional!{GenericReallocDefaultArgsCodegen.Pair, 3}([{left: 1, right: 2}, {left: 3, right: 4}, {left: 5, right: 6}])
+const ReallocNamedPairOk       = #run GenericReallocDefaultArgsCodegen.runNamed!{GenericReallocDefaultArgsCodegen.Pair, 4}([{left: 1, right: 2}, {left: 3, right: 4}, {left: 5, right: 6}, {left: 7, right: 8}])
+const ReallocPositionalArrayOk = #run GenericReallocDefaultArgsCodegen.runPositional!{[2]u8, 3}([[1_u8, 2_u8], [3_u8, 4_u8], [5_u8, 6_u8]])
+const ReallocNamedArrayOk      = #run GenericReallocDefaultArgsCodegen.runNamed!{[2]u8, 4}([[1_u8, 2_u8], [3_u8, 4_u8], [5_u8, 6_u8], [7_u8, 8_u8]])
+const ReallocNestedS32Ok       = #run GenericReallocDefaultArgsCodegen.runNested!{s32}(1, 2, 3)
+const ReallocNestedPairOk      = #run GenericReallocDefaultArgsCodegen.runNested!{GenericReallocDefaultArgsCodegen.Pair}({left: 10, right: 11}, {left: 12, right: 13}, {left: 14, right: 15})
 const ReallocRunSuiteOk        = #run GenericReallocDefaultArgsCodegen.runSuite()
 
 #test

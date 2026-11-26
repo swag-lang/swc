@@ -50,7 +50,7 @@ impl FileStream
     }
 
     // Returns whether the stream is open; a live stream's path is checked by its next operation.
-    func isOpen(const me)->bool => .handle != null or .liveRead
+    mtd const isOpen()->bool => .handle != null or .liveRead
 
     // Reads at most `length` bytes into `buffer` and returns the number of bytes read.
     //
@@ -65,8 +65,10 @@ impl FileStream
     {
         Swag.assert(.isOpen())
         Swag.assert(.canRead)
-        if not length do
+        if not length
+        {
             return 0
+        }
 
         if .liveRead
         {
@@ -77,7 +79,7 @@ impl FileStream
             return count
         }
 
-        var total = 0'u64
+        var total = 0_u64
         let bytes = cast([*] u8, buffer)
         while total < length
         {
@@ -86,6 +88,7 @@ impl FileStream
             total += read
             if not read or (read < chunk and not exact) do
                 break
+            }
         }
 
         return total
@@ -99,18 +102,22 @@ impl FileStream
     {
         Swag.assert(.isOpen())
         Swag.assert(.canWrite)
-        if not length do
+        if not length
+        {
             return 0
+        }
 
-        var total = 0'u64
+        var total = 0_u64
         let bytes = cast(const [*] u8, buffer)
         while total < length
         {
             let chunk   = cast(u32, Math.min(length - total, cast(u64, Swag.U32.Max)))
             let written = try .writeNative(bytes + total, chunk)
             total += written
-            if not written do
+            if not written
+            {
                 break
+            }
         }
 
         return total
@@ -121,8 +128,11 @@ impl FileStream
     {
         .liveRead     = false
         .livePosition = 0
-        if not .handle do
+        if not .handle
+        {
             return
+        }
+
         .closeNative()
         .handle = null
     }
@@ -167,13 +177,16 @@ impl FileStream
     {
         Swag.assert(.isOpen())
         Swag.assert(.canSeek)
-        if .liveRead do
+        if .liveRead
+        {
             return .livePosition
+        }
+
         return try .positionNative()
     }
 
     // Moves by the signed 64-bit interpretation of `offset` from `origin`.
-    // Encode a negative offset as `cast #bit (u64, -n's64)` to seek backward from `.Current` or `.End`.
+    // Encode a negative offset as `cast #bit (u64, -n!{s64})` to seek backward from `.Current` or `.End`.
     // A seek before the start of the file fails.
     //
     // Fails with [[Core.Errors.BadParameterError]] when `origin` is not a supported seek origin.
@@ -181,8 +194,11 @@ impl FileStream
     {
         Swag.assert(.isOpen())
         Swag.assert(.canSeek)
-        if origin != .Begin and origin != .Current and origin != .End do
+        if origin != .Begin and origin != .Current and origin != .End
+        {
             fail Errors.BadParameterError{"invalid file seek origin"}
+        }
+
         if .liveRead
         {
             var stream = try File.open(.name, .Open, .Read, .ReadWrite | .Delete)
@@ -200,8 +216,11 @@ impl FileStream
     // Fails when `count` cannot be represented as a positive signed file offset.
     mtd skip(count: u64) fail
     {
-        if count > (Swag.U64.Max >> 1) do
+        if count > (Swag.U64.Max >> 1)
+        {
             fail Errors.BadParameterError{"file skip distance exceeds the supported range"}
+        }
+
         try .seek(.Current, count)
     }
 
@@ -219,28 +238,37 @@ impl FileStream
     // result means end of file.
     mtd readUtf8Chunk(maxBytes: u64)->String fail
     {
-        if maxBytes < 4 do
+        if maxBytes < 4
+        {
             fail Errors.BadParameterError{"UTF-8 chunk size needs at least four bytes"}
+        }
 
         let start    = try .position()
         let fileSize = try .size()
-        if start >= fileSize do
+        if start >= fileSize
+        {
             return {}
+        }
+
         let remaining = fileSize - start
 
         let target = Math.min(maxBytes, remaining)
         let probe  = target <= Swag.U64.Max - 3 ? Math.min(target + 3, remaining) : remaining
-        var bytes: Array'u8
+        var bytes: Array!{u8}
         bytes.resize(probe)
         let count = try .read(bytes.toSlice())
         bytes.resize(count)
-        if not count do
+        if not count
+        {
             return {}
+        }
 
         var accepted = Math.min(target, count)
         let shortest = accepted > 3 ? accepted - 3 : 0
-        while accepted > shortest and not Utf8.isValid(bytes.toSlice()[until accepted]) do
+        while accepted > shortest and not Utf8.isValid(bytes.toSlice()[until accepted])
+        {
             accepted -= 1
+        }
 
         if not accepted or not Utf8.isValid(bytes.toSlice()[until accepted])
         {
@@ -248,8 +276,11 @@ impl FileStream
             fail Errors.InvalidFormatError{"file content is not valid UTF-8"}
         }
 
-        if accepted != count do
+        if accepted != count
+        {
             try .seek(.Begin, start + accepted)
+        }
+
         return Swag.makeString(bytes.storage(), accepted)
     }
 
@@ -266,23 +297,32 @@ impl FileStream
     // [[Core.File.FileStream.readUtf8Chunk]] answers and keeps its stricter contract.
     mtd readTextChunk(maxBytes: u64, encoding: Text.Encoding)->String fail
     {
-        if encoding == .Utf8 do
+        if encoding == .Utf8
+        {
             return try .readUtf8Chunk(maxBytes)
-        if maxBytes < 4 do
+        }
+
+        if maxBytes < 4
+        {
             fail Errors.BadParameterError{"text chunk size needs at least four bytes"}
+        }
 
         let start    = try .position()
         let fileSize = try .size()
-        if start >= fileSize do
+        if start >= fileSize
+        {
             return {}
+        }
 
         let unit   = Text.unitSize(encoding)
         var target = Math.min(maxBytes, fileSize - start)
         target -= target % unit
-        if not target do
+        if not target
+        {
             target = fileSize - start
+        }
 
-        var bytes: Array'u8
+        var bytes: Array!{u8}
         bytes.resize(target)
         let count         = try .read(bytes.toSlice())
         let completeCount = count - count % unit
@@ -301,8 +341,10 @@ impl FileStream
         {
             let littleEndian = Math.make16(bytes[bytes.count - 1], bytes[bytes.count - 2])
             let lastUnit     = cast(u32, encoding == .Utf16Le ? littleEndian : Math.byteSwap(littleEndian))
-            if lastUnit >= Utf16.Surr1 and lastUnit < Utf16.Surr2 and bytes.count > 2 do
+            if lastUnit >= Utf16.Surr1 and lastUnit < Utf16.Surr2 and bytes.count > 2
+            {
                 bytes.resize(bytes.count - 2)
+            }
         }
 
         let decoded = Text.decode(bytes.toSlice(), encoding)
@@ -339,8 +381,10 @@ impl FileStream
     // Writes the complete `buffer` or fails if the stream stops accepting bytes.
     mtd writeAll(buffer: const [..] u8) fail
     {
-        if try .write(buffer) != buffer.count do
+        if try .write(buffer) != buffer.count
+        {
             fail Swag.SystemError{"file write stopped before all bytes were written"}
+        }
     }
 
     // Moves to `offset` and writes the complete `buffer`.

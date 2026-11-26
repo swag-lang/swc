@@ -70,8 +70,10 @@ guide below covers the motion and presentation contract.
 */
 
 #import("pixel")
-#static if #os == Swag.TargetOs.Windows do
+#static if #os == Swag.TargetOs.Windows
+{
     #import("win32")
+}
 
 #run
 {

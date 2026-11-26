@@ -4,7 +4,7 @@
 using Core, Pixel, Gui, Viewers
 
 // The fixed afternoon the home writes its times against, so the pictures do not age.
-internal const HomeNow = 17'u64 * Time.TicksPerHour + 50 * Time.TicksPerMinute + 739_000'u64 * Time.TicksPerDay
+internal const HomeNow = 17_u64 * Time.TicksPerHour + 50 * Time.TicksPerMinute + 739_000_u64 * Time.TicksPerDay
 
 func homeFixture(name: string)->String => scopeTestDataPath(name, #curlocation)
 
@@ -15,17 +15,24 @@ internal func homeWindow(host: *Testing.HeadlessHost, light: bool, height = 640,
     var fixedVideoPreviewKey: String
     defer
     {
-        if fixedVideoPreviewKey.count do
+        if fixedVideoPreviewKey.count
+        {
             catch File.delete(fixedVideoPreviewKey)
+        }
     }
 
     host.setup(960, height)
     shipFrame(host)
     host.app.setAppIcon(expect Image.decode(".png", AppIcon))
-    if light do
+    if light
+    {
         host.theme.setLight()
-    else do
+    }
+    else
+    {
         host.theme.setDark()
+    }
+
     host.theme.metrics.surfaceWnd_ShadowSize   = 0
     host.theme.metrics.surfaceWnd_CornerRadius = 0
     host.notify(.ThemeChanged)
@@ -126,8 +133,11 @@ internal func completeHomePreviews(host: *Testing.HeadlessHost, home: *ViewerHom
     let window = ViewerWindow.create(&host.surfaceWnd, createViewerPluginRegistry())
     let home   = window.home
     completeHomeFolders(&host, home)
-    if not home.folders.executor.isStarted() do
+    if not home.folders.executor.isStarted()
+    {
         home.folders.executor.start()
+    }
+
     held.submit(func|gate = &release|() { gate.wait() }, executor: &home.folders.executor)
     defer release.signal()
 
@@ -169,8 +179,11 @@ internal func completeHomePreviews(host: *Testing.HeadlessHost, home: *ViewerHom
     host.app.sigFrame += func|host = &host, home = window.home, sawMenu = &sawMenu|(_)
     {
         let menu = host.capturedPopupMenu()
-        if not menu do
+        if not menu
+        {
             return
+        }
+
         sawMenu[] = true
         Swag.require(home.clearButton.isLocallyVisible())
         var point = menu.surfaceRect().center()

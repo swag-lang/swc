@@ -5,7 +5,7 @@ using Swag
 
 func assertConstStringByteBorrows(value: const *String)->u64
 {
-    var count = 0'u64
+    var count = 0_u64
     for &byte, index in value[]
     {
         #assert(#typeof(byte) == const *u8)
@@ -33,7 +33,7 @@ func makePatternString(count: u64)->String
     for i in count
     {
         let offset = cast(u8, (i % 26))
-        result.append('a'u8 + offset)
+        result.append('a'_u8 + offset)
     }
 
     return result
@@ -41,8 +41,11 @@ func makePatternString(count: u64)->String
 
 func reverseIndexOfByteAtLeast(value: String, minByte: u8)->u64
 {
-    for byte, index in value.reversed() where byte >= minByte do
+    for byte, index in value.reversed() where byte >= minByte
+    {
         return index
+    }
+
     return Swag.U64.Max
 }
 
@@ -70,10 +73,10 @@ func reverseIndexOfByteAtLeast(value: String, minByte: u8)->u64
 #test
 {
     let text = String.from("A\u00E9\U0001F642")
-    let expectedRunes:       [3] rune = ['A'rune, '\u00E9'rune, '\U0001F642'rune]
+    let expectedRunes:       [3] rune = ['A'_rune, '\u00E9'_rune, '\U0001F642'_rune]
     let expectedByteIndices: [3] u64  = [0, 1, 3]
 
-    var nextCharIndex = 0'u64
+    var nextCharIndex = 0_u64
     for value, charIndex, byteIndex in text.runes()
     {
         Swag.require(charIndex == nextCharIndex)
@@ -85,7 +88,7 @@ func reverseIndexOfByteAtLeast(value: String, minByte: u8)->u64
     Swag.require(nextCharIndex == expectedRunes.count)
 
     var empty: String
-    var emptyCount = 0'u64
+    var emptyCount = 0_u64
     for value, charIndex, byteIndex in empty.runes()
     {
         Swag.require(value == 0 and charIndex == emptyCount and byteIndex == 0)
@@ -152,8 +155,8 @@ func reverseIndexOfByteAtLeast(value: String, minByte: u8)->u64
     var value: String = "abcdef"
     Swag.require(assertString(value, "abcdef"))
 
-    Swag.require(value[0] == 'a'u8)
-    Swag.require(value.back() == 'f'u8)
+    Swag.require(value[0] == 'a'_u8)
+    Swag.require(value.back() == 'f'_u8)
     Swag.require(value[1 to 3] == "bcd")
     Swag.require(not (value == value[0 to 2]))
     Swag.require(value == value[0 to 5])
@@ -161,13 +164,13 @@ func reverseIndexOfByteAtLeast(value: String, minByte: u8)->u64
     Swag.require(value > "abcdee")
     Swag.require((value <=> "abcdef") == 0)
 
-    value[1] = 'Z'u8
-    value[2] += 1'u8
-    value[2] -= 1'u8
+    value[1] = 'Z'_u8
+    value[2] += 1_u8
+    value[2] -= 1_u8
     let expectedText: string = "aZcdef"
     Swag.require(assertString(value, expectedText))
 
-    var visitedCount = 0'u64
+    var visitedCount = 0_u64
     for byte, index in value
     {
         Swag.require(index < expectedText.count)
@@ -178,36 +181,38 @@ func reverseIndexOfByteAtLeast(value: String, minByte: u8)->u64
     Swag.require(visitedCount == expectedText.count)
     Swag.require(assertConstStringByteBorrows(&value) == expectedText.count)
 
-    for &byte in value do
-        byte[] += 1'u8
+    for &byte in value
+    {
+        byte[] += 1_u8
+    }
 
     Swag.require(assertString(value, "b[defg"))
 
-    Swag.require(reverseIndexOfByteAtLeast(value, 'd'u8) == 5)
+    Swag.require(reverseIndexOfByteAtLeast(value, 'd'_u8) == 5)
 }
 
 #test
 {
     var value: String
-    value.append('A'u8)
-    value.append('B'rune)
+    value.append('A'_u8)
+    value.append('B'_rune)
     value.append("\u00E9")
     Swag.require(assertString(value, "AB\u00E9"))
 
     value += "!"
-    value += '?'rune
-    value += '#'u8
+    value += '?'_rune
+    value += '#'_u8
     Swag.require(assertString(value, "AB\u00E9!?#"))
 
     let strings: [3] string = ["-", "xy", "-"]
     value += strings
     Swag.require(assertString(value, "AB\u00E9!?#-xy-"))
 
-    let runes: [2] rune = ['\u00E9'rune, '!'rune]
+    let runes: [2] rune = ['\u00E9'_rune, '!'_rune]
     value += runes
     Swag.require(assertString(value, "AB\u00E9!?#-xy-\u00E9!"))
 
-    let bytes: [3] u8 = ['1'u8, '2'u8, '3'u8]
+    let bytes: [3] u8 = ['1'_u8, '2'_u8, '3'_u8]
     value += bytes
     Swag.require(assertString(value, "AB\u00E9!?#-xy-\u00E9!123"))
 
@@ -219,8 +224,8 @@ func reverseIndexOfByteAtLeast(value: String, minByte: u8)->u64
 #test
 {
     var value: String
-    value.append('a'u8)
-    value.append('b'u8)
+    value.append('a'_u8)
+    value.append('b'_u8)
 
     Swag.require(value == "ab")
     Swag.require(value.length == 2)
@@ -231,9 +236,9 @@ func reverseIndexOfByteAtLeast(value: String, minByte: u8)->u64
 {
     var value: String = "core"
 
-    value.insert(0, '['u8)
+    value.insert(0, '['_u8)
     value.insert(1, "std:")
-    value.insert(value.count, ']'u8)
+    value.insert(value.count, ']'_u8)
     value.insert(value.count, "")
     Swag.require(assertString(value, "[std:core]"))
 
@@ -308,10 +313,10 @@ func reverseIndexOfByteAtLeast(value: String, minByte: u8)->u64
     Swag.require(assertString(value, "xxx"))
 
     value = "a,b,,c"
-    value.replace(','rune, "|")
+    value.replace(','_rune, "|")
     Swag.require(assertString(value, "a|b||c"))
 
-    value.replace('|'rune, "")
+    value.replace('|'_rune, "")
     Swag.require(assertString(value, "abc"))
 }
 
@@ -328,11 +333,11 @@ func reverseIndexOfByteAtLeast(value: String, minByte: u8)->u64
 {
     var value: String = "Core Caf\u00E9"
 
-    Swag.require(value.contains('C'u8))
-    Swag.require(value.contains('\u00E9'rune))
+    Swag.require(value.contains('C'_u8))
+    Swag.require(value.contains('\u00E9'_rune))
     Swag.require(value.contains(cast(string, "Caf")))
 
-    let needle: [3] u8 = ['a'u8, 'f'u8, 0xC3]
+    let needle: [3] u8 = ['a'_u8, 'f'_u8, 0xC3]
     Swag.require(value.contains(cast(const [..] u8, needle)))
 
     Swag.require(value.startsWith("Core"))
@@ -347,13 +352,13 @@ func reverseIndexOfByteAtLeast(value: String, minByte: u8)->u64
     Swag.require(value.indexOf("Caf") == 5)
     Swag.require(value.indexOf("core", comparisonType: Utf8.ComparisonType.Latin1NoCase) == 0)
     Swag.require(value.indexOf("missing") == Swag.U64.Max)
-    Swag.require(value.indexOf('\u00E9'rune) == 8)
-    Swag.require(value.indexOf('\u00E9'rune, 10) == Swag.U64.Max)
+    Swag.require(value.indexOf('\u00E9'_rune) == 8)
+    Swag.require(value.indexOf('\u00E9'_rune, 10) == Swag.U64.Max)
 
     let runes = value.toRuneArray()
     Swag.require(runes.count == 9)
-    Swag.require(runes[0] == 'C'rune)
-    Swag.require(runes[8] == '\u00E9'rune)
+    Swag.require(runes[0] == 'C'_rune)
+    Swag.require(runes[8] == '\u00E9'_rune)
 }
 
 // Empty needles have the documented string and byte-slice containment behavior.
@@ -416,7 +421,7 @@ func reverseIndexOfByteAtLeast(value: String, minByte: u8)->u64
     var small:     String = "small"
     var smallCopy: String
     smallCopy = small
-    small[0]  = 'S'u8
+    small[0]  = 'S'_u8
     Swag.require(assertString(small, "Small"))
     Swag.require(assertString(smallCopy, "small"))
 
@@ -430,9 +435,9 @@ func reverseIndexOfByteAtLeast(value: String, minByte: u8)->u64
 
     var bigCopy: String
     bigCopy = big
-    big[0]  = 'Z'u8
-    Swag.require(big[0] == 'Z'u8)
-    Swag.require(expectedBig[0] == 'a'u8)
+    big[0]  = 'Z'_u8
+    Swag.require(big[0] == 'Z'_u8)
+    Swag.require(expectedBig[0] == 'a'_u8)
     Swag.require(assertString(bigCopy, expectedBig.toString()))
 
     var movedBig: String
@@ -503,8 +508,8 @@ func reverseIndexOfByteAtLeast(value: String, minByte: u8)->u64
 #test
 {
     var value: String = "caf\u00E9"
-    Swag.require(value.contains('\u00E9'rune))
-    Swag.require(value.indexOf('\u00E9'rune) == 3)
+    Swag.require(value.contains('\u00E9'_rune))
+    Swag.require(value.indexOf('\u00E9'_rune) == 3)
 }
 
 // Appending 'String' rvalues must accumulate intact content: the temporary's buffer has
@@ -512,8 +517,10 @@ func reverseIndexOfByteAtLeast(value: String, minByte: u8)->u64
 #test
 {
     var accumulator: String
-    for i in 32 do
+    for i in 32
+    {
         accumulator += Format.toString("fragment-%-padded-beyond-the-small-string-size;", i)
+    }
 
     // 32 fragments of 46 bytes plus the decimal digits of 0..31.
     Swag.require(accumulator.length == 32 * 46 + 10 + 22 * 2)
@@ -607,7 +614,7 @@ func reverseIndexOfByteAtLeast(value: String, minByte: u8)->u64
 
         var replacement: String = sample.source
         let by = replacement[until 3]
-        replacement.replace('1'rune, by)
+        replacement.replace('1'_rune, by)
         Swag.require(assertString(replacement, sample.valueReplaced))
     }
 }

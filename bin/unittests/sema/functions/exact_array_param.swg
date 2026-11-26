@@ -12,8 +12,10 @@ func exactArrayParamSum(values: [4] s32)->s32
 func exactArrayParamFill(digest: ExactArrayParamDigest, seed: u8)
 {
     #assert(#typeof(digest) == ExactArrayParamDigest)
-    for i in digest.count do
+    for i in digest.count
+    {
         digest[i] = seed + cast(u8, i)
+    }
 }
 
 func exactGridParamRead(grid: [2, 3] s16)->s16
@@ -37,7 +39,7 @@ func(T) exactArrayParamTail(values: [4] T)->T
     #assert(#typeof(totalPlus) == s32)
 
     var digest: ExactArrayParamDigest
-    exactArrayParamFill(digest, 10'u8)
+    exactArrayParamFill(digest, 10_u8)
     let firstByte = digest[0]
     let lastByte  = digest[15]
     #assert(#typeof(firstByte) == u8)
@@ -45,7 +47,7 @@ func(T) exactArrayParamTail(values: [4] T)->T
 
     var grid: [2, 3] s16 = [[1, 2, 3], [4, 5, 6]]
     let tail             = exactGridParamRead(grid)
-    let tailPlus         = tail + 1's16
+    let tailPlus         = tail + 1_s16
     #assert(#typeof(tailPlus) == s16)
 }
 
@@ -60,7 +62,7 @@ func(T) exactArrayParamTail(values: [4] T)->T
 
     var values: [4] s32 = [5, 6, 7, 8]
     let combined        = reader(values)
-    let exactTail       = exactArrayParamTail([9'u16, 10'u16, 11'u16, 12'u16])
+    let exactTail       = exactArrayParamTail([9_u16, 10_u16, 11_u16, 12_u16])
     #assert(#typeof(combined) == s32)
     #assert(#typeof(exactTail) == u16)
 }

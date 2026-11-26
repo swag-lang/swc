@@ -33,28 +33,28 @@ func expectDateTime(value: Time.DateTime, year, month, day, hour, minute, second
 
 #test
 {
-    Swag.require(Time.TicksPerMillisecond == 10_000'u64)
-    Swag.require(Time.TicksPerSecond == 10_000_000'u64)
-    Swag.require(Time.TicksPerMinute == 600_000_000'u64)
-    Swag.require(Time.TicksPerHour == 36_000_000_000'u64)
-    Swag.require(Time.TicksPerDay == 864_000_000_000'u64)
+    Swag.require(Time.TicksPerMillisecond == 10_000_u64)
+    Swag.require(Time.TicksPerSecond == 10_000_000_u64)
+    Swag.require(Time.TicksPerMinute == 600_000_000_u64)
+    Swag.require(Time.TicksPerHour == 36_000_000_000_u64)
+    Swag.require(Time.TicksPerDay == 864_000_000_000_u64)
 
-    Swag.require(Time.timeToTicks(0, 0, 0, 0) == 0'u64)
+    Swag.require(Time.timeToTicks(0, 0, 0, 0) == 0_u64)
     Swag.require(Time.timeToTicks(0, 0, 0, 1) == Time.TicksPerMillisecond)
     Swag.require(Time.timeToTicks(0, 0, 1, 0) == Time.TicksPerSecond)
     Swag.require(Time.timeToTicks(0, 1, 0, 0) == Time.TicksPerMinute)
     Swag.require(Time.timeToTicks(1, 0, 0, 0) == Time.TicksPerHour)
-    Swag.require(Time.timeToTicks(1, 2, 3, 4) == 37_230_040_000'u64)
-    Swag.require(Time.timeToTicks(23, 59, 59, 999) == 863_999_990_000'u64)
+    Swag.require(Time.timeToTicks(1, 2, 3, 4) == 37_230_040_000_u64)
+    Swag.require(Time.timeToTicks(23, 59, 59, 999) == 863_999_990_000_u64)
 
     expectTime(0, 0, 0, 0, 0)
     expectTime(Time.TicksPerMillisecond, 0, 0, 0, 1)
     expectTime(Time.TicksPerSecond, 0, 0, 1, 0)
     expectTime(Time.TicksPerMinute, 0, 1, 0, 0)
     expectTime(Time.TicksPerHour, 1, 0, 0, 0)
-    expectTime(37_230_040_000'u64, 1, 2, 3, 4)
-    expectTime(863_999_990_000'u64, 23, 59, 59, 999)
-    expectTime(Time.TicksPerDay + 37_230_040_000'u64, 1, 2, 3, 4)
+    expectTime(37_230_040_000_u64, 1, 2, 3, 4)
+    expectTime(863_999_990_000_u64, 23, 59, 59, 999)
+    expectTime(Time.TicksPerDay + 37_230_040_000_u64, 1, 2, 3, 4)
 }
 
 #test
@@ -97,21 +97,21 @@ func expectDateTime(value: Time.DateTime, year, month, day, hour, minute, second
 
 #test
 {
-    Swag.require(Time.dateToTicks(1, 1, 1) == 0'u64)
-    Swag.require(Time.dateToTicks(1, 1, 2) == 864_000_000_000'u64)
-    Swag.require(Time.dateToTicks(4, 2, 29) == 997_056_000_000_000'u64)
-    Swag.require(Time.dateToTicks(1970, 1, 1) == 621_355_968_000_000_000'u64)
-    Swag.require(Time.dateToTicks(2000, 3, 1) == 630_874_656_000_000_000'u64)
-    Swag.require(Time.dateToTicks(2024, 2, 29) == 638_447_616_000_000_000'u64)
-    Swag.require(Time.dateToTicks(9999, 12, 31) == 3_155_378_112_000_000_000'u64)
+    Swag.require(Time.dateToTicks(1, 1, 1) == 0_u64)
+    Swag.require(Time.dateToTicks(1, 1, 2) == 864_000_000_000_u64)
+    Swag.require(Time.dateToTicks(4, 2, 29) == 997_056_000_000_000_u64)
+    Swag.require(Time.dateToTicks(1970, 1, 1) == 621_355_968_000_000_000_u64)
+    Swag.require(Time.dateToTicks(2000, 3, 1) == 630_874_656_000_000_000_u64)
+    Swag.require(Time.dateToTicks(2024, 2, 29) == 638_447_616_000_000_000_u64)
+    Swag.require(Time.dateToTicks(9999, 12, 31) == 3_155_378_112_000_000_000_u64)
 
     expectDate(0, 1, 1, 1)
-    expectDate(864_000_000_000'u64, 1, 1, 2)
-    expectDate(997_056_000_000_000'u64, 4, 2, 29)
-    expectDate(621_355_968_000_000_000'u64, 1970, 1, 1)
-    expectDate(630_874_656_000_000_000'u64, 2000, 3, 1)
-    expectDate(638_447_616_000_000_000'u64, 2024, 2, 29)
-    expectDate(3_155_378_112_000_000_000'u64, 9999, 12, 31)
+    expectDate(864_000_000_000_u64, 1, 1, 2)
+    expectDate(997_056_000_000_000_u64, 4, 2, 29)
+    expectDate(621_355_968_000_000_000_u64, 1970, 1, 1)
+    expectDate(630_874_656_000_000_000_u64, 2000, 3, 1)
+    expectDate(638_447_616_000_000_000_u64, 2024, 2, 29)
+    expectDate(3_155_378_112_000_000_000_u64, 9999, 12, 31)
 }
 
 #test

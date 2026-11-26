@@ -34,7 +34,7 @@ using Swag, Core
     Swag.require(main.surface == &gui.surface and main.editWnd.editView.surface == &gui.surface)
     Swag.require(not main.appearanceButton.sigAboutRequested.isEmpty())
     gui.clickModalButtonWhenShown(Dialog.BtnCancel)
-    let actionExecuted = Gui.Testing.actionExecute'ActionAbout(main, ActionAbout.About)
+    let actionExecuted = Gui.Testing.actionExecute!{ActionAbout}(main, ActionAbout.About)
     Swag.require(actionExecuted)
     gui.pump()
     Swag.require(gui.autoHandled)

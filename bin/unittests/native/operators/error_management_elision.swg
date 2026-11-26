@@ -43,8 +43,10 @@ impl ManagedResult
 #[Swag.NoInline]
 func makeManagedResult(succeed: bool)->ManagedResult fail
 {
-    if not succeed do
+    if not succeed
+    {
         fail Swag.BaseError{"expected failure"}
+    }
 
     var result: #returntype
     result.value = g_seed
@@ -174,8 +176,10 @@ func returnInlineCatchResult()->ManagedResult
 #[Swag.NoInline]
 func makeManagedLocal(succeed: bool)->ManagedResult fail
 {
-    if not succeed do
+    if not succeed
+    {
         fail Swag.BaseError{"expected failure"}
+    }
 
     var result: ManagedResult
     result.value = g_seed

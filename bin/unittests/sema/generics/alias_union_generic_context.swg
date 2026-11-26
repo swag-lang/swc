@@ -30,8 +30,8 @@ func(T) localAliasUnionValue()->ValueOrPtrAlias2
 
 func semaTest001()
 {
-    var wrapped: WrapperAliasUnion's32
+    var wrapped: WrapperAliasUnion!{s32}
 
     #assert(#typeof(wrapped.item.value) == s32)
-    #assert(#typeof(localAliasUnionValue'u16().value) == u16)
+    #assert(#typeof(localAliasUnionValue!{u16}().value) == u16)
 }

@@ -15,7 +15,7 @@ public struct Xml
     internal
     {
         stream:    ByteStream         // Input cursor.
-        stackTags: Array'(string)     // Borrowed open element names.
+        stackTags: Array!{string}     // Borrowed open element names.
     }
 }
 
@@ -54,15 +54,20 @@ private func isXmlNameChar(c: rune)->bool
 
 private func isXmlName(value: string)->bool
 {
-    if value.count == 0 do
+    if value.count == 0
+    {
         return false
+    }
 
-    var offset = 0'u64
+    var offset = 0_u64
     while offset < value.count
     {
         let {c, eat} = Utf8.decodeRune(value[offset to])
-        if not eat or (offset == 0 ? not isXmlNameStartChar(c) : not isXmlNameChar(c)) do
+        if not eat or (offset == 0 ? not isXmlNameStartChar(c) : not isXmlNameChar(c))
+        {
             return false
+        }
+
         offset += eat
     }
 
@@ -82,25 +87,37 @@ public impl Xml
         .zapBlanks()
 
         var c = .stream.readU8()
-        if c != '<' do
+        if c != '<'
+        {
             fail .getError("malformed tag, missing opening [[<]]")
+        }
 
         let start = .stream.position()
         c = .stream.readU8()
-        while c and c != '>' do
+        while c and c != '>'
+        {
             c = .stream.readU8()
-        if c != '>' do
+        }
+
+        if c != '>'
+        {
             fail .getError("malformed tag, missing closing [[>]]")
+        }
 
         let end    = .stream.position() - 1
         let rawTag = cast(string, .stream.readBuffer![start until end])
         let tag    = Latin1.trim(rawTag)
-        if rawTag != tag do
+        if rawTag != tag
+        {
             fail .getError("XML tag cannot contain surrounding whitespace")
+        }
 
         let name = Utf8.startsWith(tag, "/") ? tag[1 to] : tag
-        if not isXmlName(name) do
+        if not isXmlName(name)
+        {
             fail .getError("XML tag name needs to match the XML 1.0 Name production")
+        }
+
         return tag
     }
 
@@ -115,8 +132,10 @@ public impl Xml
     {
         let tag   = try .readTag()
         let start = .stackTags.popBack()
-        if not Utf8.startsWith(tag, "/") or tag[1 to ] != start do
+        if not Utf8.startsWith(tag, "/") or tag[1 to ] != start
+        {
             fail .getError(Format.toString("invalid end tag [[%]] for [[%]]", tag, start))
+        }
     }
 
     // Reads a predefined entity or XML character reference after an '&'.
@@ -134,35 +153,40 @@ public impl Xml
             }
         }
 
-        if .stream.peekU8() != '#' do
+        if .stream.peekU8() != '#'
+        {
             fail .getError("unknown XML entity")
+        }
+
         .stream.advance()
 
-        var radix = 10'u32
+        var radix = 10_u32
         if .stream.peekU8() == 'x'
         {
             radix = 16
             .stream.advance()
         }
 
-        var value  = 0'u32
-        var digits = 0'u32
+        var value  = 0_u32
+        var digits = 0_u32
         while true
         {
             let c = .stream.peekU8()
-            if c == ';' do
+            if c == ';'
+            {
                 break
+            }
 
             var digit: u32
             if '0' <= c and c <= '9'
             {
                 digit = cast(u32, c - '0')
             }
-            elif radix == 16 and 'a' <= c and c <= 'f'
+            else if radix == 16 and 'a' <= c and c <= 'f'
             {
                 digit = cast(u32, c - 'a' + 10)
             }
-            elif radix == 16 and 'A' <= c and c <= 'F'
+            else if radix == 16 and 'A' <= c and c <= 'F'
             {
                 digit = cast(u32, c - 'A' + 10)
             }
@@ -171,15 +195,21 @@ public impl Xml
                 fail .getError("malformed XML character reference")
             }
 
-            if digit >= radix or value > (0x10FFFF - digit) / radix do
+            if digit >= radix or value > (0x10FFFF - digit) / radix
+            {
                 fail .getError("XML character reference is outside the Unicode range")
+            }
+
             value  = value * radix + digit
             digits += 1
             .stream.advance()
         }
 
-        if not digits do
+        if not digits
+        {
             fail .getError("empty XML character reference")
+        }
+
         .stream.advance()     // semicolon
 
         // XML 1.0 Char: #x9 | #xA | #xD | [#x20-#xD7FF] |
@@ -240,10 +270,12 @@ public impl Xml
     {
         .stream = ByteStream.openRead(input)
         .stackTags.clear()
-        if not Utf8.isValid(input) do
+        if not Utf8.isValid(input)
+        {
             fail .getError("XML document is not valid UTF-8")
+        }
 
-        var offset = 0'u64
+        var offset = 0_u64
         while offset < input.count
         {
             let {c, eat} = Utf8.decodeRune(input[offset to])
@@ -259,8 +291,10 @@ public impl Xml
         }
 
         let bytes = .stream.remainingBytes()
-        if bytes.count >= 3 and bytes[0] == 0xEF and bytes[1] == 0xBB and bytes[2] == 0xBF do
+        if bytes.count >= 3 and bytes[0] == 0xEF and bytes[1] == 0xBB and bytes[2] == 0xBF
+        {
             .stream.advance(3)
+        }
     }
 
     // Returns whether another sequence element follows, that is, whether the next non-blank byte does not start a tag.
@@ -290,8 +324,11 @@ public impl Xml
         if Utf8.startsWith(rest, "<?")
         {
             let end = Utf8.indexOf(rest, "?>")
-            if end == Swag.U64.Max do
+            if end == Swag.U64.Max
+            {
                 fail .getError("malformed XML declaration, missing closing [[?>]]")
+            }
+
             .stream.advance(end + 2)
         }
 
@@ -303,16 +340,21 @@ public impl Xml
     {
         try .readEndTag()
         .zapBlanks()
-        if .stream.position() != .stream.length() do
+        if .stream.position() != .stream.length()
+        {
             fail .getError("XML document has trailing data")
+        }
     }
 
     // Reads the start tag of the element `val` and fails when it names another element.
     mtd beginElement(val: TypeValue)->bool fail
     {
         let tag = try .readStartTag()
-        if tag != val.name do
+        if tag != val.name
+        {
             fail .getError("invalid property name")
+        }
+
         return true
     }
 
@@ -369,6 +411,7 @@ public impl Xml
                 {
                     if bytes[length + 1] == ']' and bytes[length + 2] == '>' do
                         fail .getError("XML text contains the forbidden CDATA terminator")
+                    }
                 }
 
                 .stream.advance()
@@ -376,10 +419,12 @@ public impl Xml
                 {
                     // XML normalizes CR and CRLF line endings to LF before parsing text.
                     result += '\n'
-                    if .stream.peekU8() == '\n' do
+                    if .stream.peekU8() == '\n'
+                    {
                         .stream.advance()
+                    }
                 }
-                elif c == '&'
+                else if c == '&'
                 {
                     result.append(try .readEntity())
                 }
@@ -407,8 +452,10 @@ public impl Xml
             default:  #error("invalid type")
             }
 
-            if parsed.ovf do
+            if parsed.ovf
+            {
                 fail .getError("XML number is outside the range of its type")
+            }
 
             .stream.advance(parsed.eat)
             return parsed.value

@@ -97,7 +97,7 @@ func semaTest001()
     acceptConstAny(widenedConstAny)
     #assert(#typeof(constAny) == const any)
 
-    var cstrData:           [4] u8   = ['a'u8, 'b'u8, 'c'u8, 0]
+    var cstrData:           [4] u8   = ['a'_u8, 'b'_u8, 'c'_u8, 0]
     let cstr:               cstring  = cast(cstring, &cstrData[0])
     var nullableCstr:       cstring? = cstr
     var nullableStrictCstr: QualifiedStrictCString? = cast(QualifiedStrictCString, cstr)

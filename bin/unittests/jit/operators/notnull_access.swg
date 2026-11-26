@@ -78,8 +78,10 @@ func notNullInterface(itf: INotNullAccess?)->s32 => itf!.get()
 // Tolerated on an already proven value: the flow got there first.
 func notNullRedundant(node: *NotNullNode?)->s32
 {
-    if node == null do
+    if node == null
+    {
         return -1
+    }
     return node.value
 }
 
@@ -150,8 +152,10 @@ func notNullCastOperand(raw: *void?)->s32
 // 'unwrap' asserts the successful result after error management.
 func notNullFallible(fails: bool)->*NotNullNode? fail
 {
-    if fails do
+    if fails
+    {
         fail Swag.BaseError{"no node"}
+    }
     return &g_notNullNode
 }
 
@@ -201,10 +205,10 @@ func notNullAssign(newValue: s32)
     Swag.require(notNullAfterExpect() == 42)
     Swag.require(notNullCastOperand(&g_notNullNode) == 42)
 
-    var values = [7's32, 8, 9]
+    var values = [7_s32, 8, 9]
     Swag.require(notNullIndex(values.buffer) == 8)
 
-    var single = 11's32
+    var single = 11_s32
     Swag.require(notNullDeref(&single) == 11)
 
     var box = NotNullBox{slot: &g_notNullNode}

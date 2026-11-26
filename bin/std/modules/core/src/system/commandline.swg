@@ -29,8 +29,11 @@ struct(T) IsSet
         {
             var builder: StrConv.StringBuilder
             let typeInfo = #typeof(T)
-            for field in typeInfo.fields do
+            for field in typeInfo.fields
+            {
                 builder.appendFormat("%: bool\n", field.name)
+            }
+
             let generated = builder.moveToString()
             return generated.toString()
         }
@@ -42,9 +45,9 @@ struct(T) Result
 {
     public
     {
-        isSet:       IsSet'T          // Which fields of `T` the command line assigned.
-        positionals: Array'String     // The leading non-option tokens, in order, when 'capturePositionals' is set.
-        unknown:     Array'String     // The tokens that named no field, verbatim and in order, when 'captureUnknown' is set.
+        isSet:       IsSet!{T}          // Which fields of `T` the command line assigned.
+        positionals: Array!{String}     // The leading non-option tokens, in order, when 'capturePositionals' is set.
+        unknown:     Array!{String}     // The tokens that named no field, verbatim and in order, when 'captureUnknown' is set.
     }
 }
 
@@ -57,22 +60,34 @@ func isOption(oneArg: string, _: ParseOptions)->bool => oneArg.count != 0 and on
 // for a numeric field, when it spells a negative number.
 func isValue(oneArg: string, typeField: typeinfo, options: ParseOptions)->bool
 {
-    if not isOption(oneArg, options) do
+    if not isOption(oneArg, options)
+    {
         return true
+    }
 
     let concreteType = Reflection.resolveAliases(typeField)
 
-    if not Reflection.isInteger(concreteType) and not Reflection.isFloat(concreteType) do
+    if not Reflection.isInteger(concreteType) and not Reflection.isFloat(concreteType)
+    {
         return false
+    }
 
-    if oneArg.count < 2 do
+    if oneArg.count < 2
+    {
         return false
+    }
+
     if not Latin1.isDigit(oneArg[1])
     {
-        if not Reflection.isFloat(concreteType) do
+        if not Reflection.isFloat(concreteType)
+        {
             return false
-        if oneArg[1] != '.'u8 or oneArg.count < 3 or not Latin1.isDigit(oneArg[2]) do
+        }
+
+        if oneArg[1] != '.'_u8 or oneArg.count < 3 or not Latin1.isDigit(oneArg[2])
+        {
             return false
+        }
     }
 
     return true
@@ -85,15 +100,17 @@ private struct SplitArgument
     attachedValue: bool
 }
 
-private func splitArgumentsEx(args: const [..] string, options: ParseOptions)->Array'SplitArgument
+private func splitArgumentsEx(args: const [..] string, options: ParseOptions)->Array!{SplitArgument}
 {
     var result: #returntype
 
     for rawArgument in args
     {
         let argument = Latin1.trim(rawArgument)
-        if not argument.count do
+        if not argument.count
+        {
             continue
+        }
 
         if not isOption(argument, options)
         {
@@ -101,7 +118,7 @@ private func splitArgumentsEx(args: const [..] string, options: ParseOptions)->A
             continue
         }
 
-        let split = Tokenize.splitAny(argument, [':'rune, '='rune], 1, false)
+        let split = Tokenize.splitAny(argument, [':'_rune, '='_rune], 1, false)
         if split.count == 2
         {
             let name = Latin1.trim(split[0])
@@ -121,13 +138,15 @@ private func splitArgumentsEx(args: const [..] string, options: ParseOptions)->A
 // Returns `args` trimmed, without empty tokens, and with every `-option:value` or `-option=value` token split in two.
 //
 // The returned strings borrow from `args`.
-func splitArguments(args: const [..] string, options: ParseOptions)->Array'(string)
+func splitArguments(args: const [..] string, options: ParseOptions)->Array!{string}
 {
     var result: #returntype
     for it in splitArgumentsEx(args, options)
     {
-        if it.value.count do
+        if it.value.count
+        {
             result.add(it.value)
+        }
     }
 
     return result
@@ -152,18 +171,30 @@ func isSameName(candidate: string, name: string)->bool
     let countCandidate = candidate.count
     let countName      = name.count
 
-    var atCandidate = 0'u64
-    var atName      = 0'u64
+    var atCandidate = 0_u64
+    var atName      = 0_u64
     for
     {
-        while atCandidate < countCandidate and (candidate[atCandidate] == '-'u8 or candidate[atCandidate] == '_'u8) do
+        while atCandidate < countCandidate and (candidate[atCandidate] == '-'_u8 or candidate[atCandidate] == '_'_u8)
+        {
             atCandidate += 1
-        while atName < countName and (name[atName] == '-'u8 or name[atName] == '_'u8) do
+        }
+
+        while atName < countName and (name[atName] == '-'_u8 or name[atName] == '_'_u8)
+        {
             atName += 1
-        if atCandidate == countCandidate or atName == countName do
+        }
+
+        if atCandidate == countCandidate or atName == countName
+        {
             break
-        if Latin1.toLower(candidate[atCandidate]) != Latin1.toLower(name[atName]) do
+        }
+
+        if Latin1.toLower(candidate[atCandidate]) != Latin1.toLower(name[atName])
+        {
             return false
+        }
+
         atCandidate += 1
         atName      += 1
     }
@@ -215,12 +246,16 @@ func(T) parse(st: *T, args: const [..] string, options = ParseOptions{})->Result
     #[Swag.Mixin]
     func requireNextValue(typeField: typeinfo) fail
     {
-        if argumentIndex + 1 == argumentCount do
+        if argumentIndex + 1 == argumentCount
+        {
             fail SyntaxError{Errors.mkString(Format.toString("missing value for option [[%]]", argument))}
+        }
 
         let nextArg = tokens[argumentIndex + 1]
-        if not nextArg.attachedValue and not isValue(nextArg.value, typeField, options) do
+        if not nextArg.attachedValue and not isValue(nextArg.value, typeField, options)
+        {
             fail SyntaxError{Errors.mkString(Format.toString("missing value for option [[%]]", argument))}
+        }
     }
 
     var result: #returntype
@@ -255,8 +290,10 @@ func(T) parse(st: *T, args: const [..] string, options = ParseOptions{})->Result
 
         // One leading dash or two spell the same option, so '--name' and '-name' both reach 'name'.
         argument = Tokenize.eatCount(argument, 1)
-        if argument.count and argument[0] == '-' do
+        if argument.count and argument[0] == '-'
+        {
             argument = Tokenize.eatCount(argument, 1)
+        }
 
         let fieldResult = getField(typeInfo, argument)
         let field       = fieldResult.field
@@ -266,8 +303,11 @@ func(T) parse(st: *T, args: const [..] string, options = ParseOptions{})->Result
             {
                 // The raw spelling already carries an attached value, so its split half is dropped.
                 result.unknown.add(String.from(tokens[argumentIndex].raw))
-                if argumentIndex + 1 < argumentCount and tokens[argumentIndex + 1].attachedValue do
+                if argumentIndex + 1 < argumentCount and tokens[argumentIndex + 1].attachedValue
+                {
                     argumentIndex += 1
+                }
+
                 continue
             }
 
@@ -284,12 +324,12 @@ func(T) parse(st: *T, args: const [..] string, options = ParseOptions{})->Result
             cast(*bool, destination)[] = true
         }
         // Parse scalar values through the same reflected storage contract.
-        elif typeField == #typeof(Core.String) or
-             Reflection.isInteger(typeField) or
-             Reflection.isFloat(typeField) or
-             Reflection.isBool(typeField) or
-             Reflection.isRune(typeField) or
-             Reflection.isEnum(typeField)
+        else if typeField == #typeof(Core.String) or
+                Reflection.isInteger(typeField) or
+                Reflection.isFloat(typeField) or
+                Reflection.isBool(typeField) or
+                Reflection.isRune(typeField) or
+                Reflection.isEnum(typeField)
         {
             try requireNextValue(typeField)
             var value     = tokens[argumentIndex + 1].value
@@ -297,8 +337,11 @@ func(T) parse(st: *T, args: const [..] string, options = ParseOptions{})->Result
             var errOutcome: Swag.Error
             if tokens[argumentIndex + 1].attachedValue and
                not value.count and
-               typeField == #typeof(Core.String) do
+               typeField == #typeof(Core.String)
+            {
                 value = "\"\""
+            }
+
             catch {
                 remaining = try StrConv.parseValue(destination, typeField, value)
             } as errOutcome
@@ -306,11 +349,13 @@ func(T) parse(st: *T, args: const [..] string, options = ParseOptions{})->Result
             let err = errOutcome.value()
             argumentIndex += 1
 
-            if err != null or remaining.count do
+            if err != null or remaining.count
+            {
                 fail SyntaxError{Errors.mkString(Format.toString("invalid value for option [[%]]", argument))}
+            }
         }
         // Dynamic array of values
-        elif Reflection.isDynamicArray(typeField)
+        else if Reflection.isDynamicArray(typeField)
         {
             let elementType = Reflection.dynamicArrayElementType(typeField) orelse #typeof(u8)
             try requireNextValue(elementType)
@@ -322,8 +367,10 @@ func(T) parse(st: *T, args: const [..] string, options = ParseOptions{})->Result
             while argumentIndex + 1 != argumentCount
             {
                 let nextArg = tokens[argumentIndex + 1]
-                if not nextArg.attachedValue and not isValue(nextArg.value, elementType, options) do
+                if not nextArg.attachedValue and not isValue(nextArg.value, elementType, options)
+                {
                     break
+                }
 
                 var value = nextArg.value
                 if isStringElement
@@ -334,8 +381,10 @@ func(T) parse(st: *T, args: const [..] string, options = ParseOptions{})->Result
 
                 collectedValues.append(value)
 
-                if isStringElement do
+                if isStringElement
+                {
                     collectedValues.append("\"")
+                }
 
                 collectedValues.append(" ")
                 argumentIndex += 1

@@ -10,18 +10,22 @@
 #[Swag.Optimize(true), Swag.NoInline]
 func hashBytes(a: const [*] u8, n: u64)->u64
 {
-    var h = 0'u64
-    for i in n do
+    var h = 0_u64
+    for i in n
+    {
         h = (h * 31 + a[i]) % 1000003
+    }
     return h
 }
 
 #[Swag.Optimize(true), Swag.NoInline]
 func hashQuotient(a: const [*] u8, n: u64)->u64
 {
-    var h = 0'u64
-    for i in n do
+    var h = 0_u64
+    for i in n
+    {
         h = (h * 3 + a[i]) / 7
+    }
     return h
 }
 
@@ -46,18 +50,22 @@ func div64(x, d: u64)->u64 => x / d
 #[Swag.NoInline]
 func hashBytesByVariable(a: const [*] u8, n: u64, d: u64)->u64
 {
-    var h = 0'u64
-    for i in n do
+    var h = 0_u64
+    for i in n
+    {
         h = rem64(h * 31 + a[i], d)
+    }
     return h
 }
 
 #[Swag.NoInline]
 func hashQuotientByVariable(a: const [*] u8, n: u64, d: u64)->u64
 {
-    var h = 0'u64
-    for i in n do
+    var h = 0_u64
+    for i in n
+    {
         h = div64(h * 3 + a[i], d)
+    }
     return h
 }
 
@@ -81,9 +89,9 @@ func hashQuotientByVariable(a: const [*] u8, n: u64, d: u64)->u64
         Swag.require(wordProductRemainder(a, b) == rem64(cast(u64, a) * cast(u64, b), 1000003))
         Swag.require(wordProductRemainder(a, a) == rem64(cast(u64, a) * cast(u64, a), 1000003))
     }
-    Swag.require(wordProductRemainder(65535, 65535) == 4294836225'u64 % 1000003)
+    Swag.require(wordProductRemainder(65535, 65535) == 4294836225_u64 % 1000003)
 
-    for x in [0'u32, 1, 999, 1000, 0xFFFFFF, 0xFFFFFE, 0x1000000, 0xFFFFFFFF, 0x7FFFFFFF, 0x12345678, 4294967295 - 1000]
+    for x in [0_u32, 1, 999, 1000, 0xFFFFFF, 0xFFFFFE, 0x1000000, 0xFFFFFFFF, 0x7FFFFFFF, 0x12345678, 4294967295 - 1000]
     {
         Swag.require(maskedRemainder(x) == rem32(x & 0xFFFFFF, 1000))
         Swag.require(quotientRemainder(x) == rem32(x / 1000, 100))
@@ -91,13 +99,17 @@ func hashQuotientByVariable(a: const [*] u8, n: u64, d: u64)->u64
 
     // Bytes that drive the hash to its largest sums, then a spread of values.
     var bytes: [512] u8
-    for i in 512 do
+    for i in 512
+    {
         bytes[i] = 255
+    }
     Swag.require(hashBytes(&bytes[0], 512) == hashBytesByVariable(&bytes[0], 512, 1000003))
     Swag.require(hashQuotient(&bytes[0], 512) == hashQuotientByVariable(&bytes[0], 512, 7))
-    for i in 512 do
+    for i in 512
+    {
         bytes[i] = cast(u8, ((i * 131 + 7) % 256))
-    for n in [0'u64, 1, 2, 3, 17, 255, 511, 512]
+    }
+    for n in [0_u64, 1, 2, 3, 17, 255, 511, 512]
     {
         Swag.require(hashBytes(&bytes[0], n) == hashBytesByVariable(&bytes[0], n, 1000003))
         Swag.require(hashQuotient(&bytes[0], n) == hashQuotientByVariable(&bytes[0], n, 7))

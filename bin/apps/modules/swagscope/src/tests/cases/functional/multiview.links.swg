@@ -13,8 +13,11 @@ using Core, Gui, Pixel, Audio
     for index in 80
     {
         source.append(Format.toString("Line % ", index + 1))
-        for 6 do
+        for 6
+        {
             source.append("The left side wraps its paragraph into a number of rows. ")
+        }
+
         source.append("\n")
     }
 
@@ -29,10 +32,16 @@ using Core, Gui, Pixel, Audio
     let scene = unwrap workspace.scene()
     let left  = assume cast(*Viewers.PlainText.Panel, scene.views[0].document!.currentView)
     let right = assume cast(*Viewers.PlainText.Panel, scene.views[1].document!.currentView)
-    if not left.wrapping do
+    if not left.wrapping
+    {
         left.toggleWrap()
-    if right.wrapping do
+    }
+
+    if right.wrapping
+    {
         right.toggleWrap()
+    }
+
     left.setZoom(145, remember: false)
     host.paint(&host.surfaceWnd)
     Swag.require(left.editor.scrollToLogicalLine(15))
@@ -148,24 +157,27 @@ using Core, Gui, Pixel, Audio
 
 func scopedAlignmentWave(path: string, delay: u32)
 {
-    const Rate = 8000'u32
+    const Rate = 8000_u32
     let frames = Rate * 3 + delay
-    var bytes: Array'u8
+    var bytes: Array!{u8}
     var writer = ByteStream.openWrite(&bytes)
     writer.writeBytes(cast(const [..] u8, "RIFF"))
     writer.writeLittleEndian(36 + frames * 2)
     writer.writeBytes(cast(const [..] u8, "WAVEfmt "))
-    writer.writeLittleEndian(16'u32)
-    writer.writeLittleEndian(1'u16)
-    writer.writeLittleEndian(1'u16)
+    writer.writeLittleEndian(16_u32)
+    writer.writeLittleEndian(1_u16)
+    writer.writeLittleEndian(1_u16)
     writer.writeLittleEndian(Rate)
     writer.writeLittleEndian(Rate * 2)
-    writer.writeLittleEndian(2'u16)
-    writer.writeLittleEndian(16'u16)
+    writer.writeLittleEndian(2_u16)
+    writer.writeLittleEndian(16_u16)
     writer.writeBytes(cast(const [..] u8, "data"))
     writer.writeLittleEndian(frames * 2)
-    for delay do
-        writer.writeLittleEndian(0's16)
+    for delay
+    {
+        writer.writeLittleEndian(0_s16)
+    }
+
     for index in Rate * 3
     {
         let t         = cast(f64, index) / 8
@@ -351,7 +363,9 @@ func scopedAlignmentWave(path: string, delay: u32)
     clickLinkedExplorerFile(&host, point)
     completeQueuedViewerFile(&host, content)
     Swag.require(content.currentFile == first and scene.views[1].document == content)
-    Swag.require(scene.views.count == 2 and workspace.scenes.count == 1 and workspace.activeDocument() == workspace.primary)
+    Swag.require(scene.views.count == 2 and
+                 workspace.scenes.count == 1 and
+                 workspace.activeDocument() == workspace.primary)
 }
 
 // Polled pointer input sends a move with the new button state before it sends the release.

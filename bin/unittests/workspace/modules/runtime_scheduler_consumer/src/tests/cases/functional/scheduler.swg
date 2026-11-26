@@ -7,15 +7,19 @@ private func sleep(milliseconds: u32)
 // waiter count, even though each artifact compiles its own runtime implementation.
 #test
 {
-    if Swag.jit() do
+    if Swag.jit()
+    {
         return
+    }
     Swag.setWorkerCount(4)
     Swag.startWorkers()
     let scheduler = Swag.schedulerInstance()
     Swag.require(SchedulerDll.schedulerAddress() == cast(u64, scheduler))
     let limit = scheduler.threadLimit
-    if limit != 0 do
+    if limit != 0
+    {
         Swag.require(Swag.workerCount() <= limit)
+    }
     var started: Swag.AtomicFlag
     var parked = false
     var task:    Swag.Task
@@ -27,14 +31,18 @@ private func sleep(milliseconds: u32)
                                     priority: round % 2 == 0 ? Swag.TaskPriority.Background : Swag.TaskPriority.Normal)
         for 1000
         {
-            if started.isRaised() do
+            if started.isRaised()
+            {
                 break
+            }
             sleep(1)
         }
         task.wait()
         Swag.require(started.isRaised() and parked and task.isDone())
-        if limit != 0 do
+        if limit != 0
+        {
             Swag.require(Swag.workerCount() <= limit)
+        }
         Swag.require(scheduler.joining.load() == 0)
         scheduler.mutex.lock()
         let backgroundRunning = scheduler.backgroundRunning

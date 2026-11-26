@@ -5,14 +5,14 @@ using Swag, Core, Core.Errors, Pixel
 
 func sliceTestFrame(width, height: s32, mode: u32)->Nv12Frame fail
 {
-    var rgb: Array'u8
+    var rgb: Array!{u8}
     rgb.resize(cast(u64, width) * cast(u64, height) * 3)
     for y in cast(u64, height)
     {
         for x in cast(u64, width)
         {
             let at    = (y * cast(u64, width) + x) * 3
-            let value = mode != 0 ? cast(u8, 30 + (x / 4 * 17 + y / 4 * 31) % 160 + mode - 1) : 72'u8
+            let value = mode != 0 ? cast(u8, 30 + (x / 4 * 17 + y / 4 * 31) % 160 + mode - 1) : 72_u8
             rgb[at]     = value
             rgb[at + 1] = value
             rgb[at + 2] = value
@@ -27,11 +27,11 @@ func sliceTestFrame(width, height: s32, mode: u32)->Nv12Frame fail
 
 func sliceTestScrolledFrame(shift: u64)->Nv12Frame fail
 {
-    var rgb: Array'u8
+    var rgb: Array!{u8}
     rgb.resize(64 * 64 * 3)
-    for y in 64'u64
+    for y in 64_u64
     {
-        for x in 64'u64
+        for x in 64_u64
         {
             let sampleX = (x + shift) % 64
             let at      = (y * 64 + x) * 3
@@ -50,20 +50,23 @@ func sliceTestScrolledFrame(shift: u64)->Nv12Frame fail
 func sliceTestFirstMb(nal: const [..] u8)->u32
 {
     Swag.require(nal.count >= 2)
-    var bitPosition = 0'u64
-    var zeroCount   = 0'u32
+    var bitPosition = 0_u64
+    var zeroCount   = 0_u32
     while true
     {
         Swag.require(1 + bitPosition / 8 < nal.count)
         let bit = (nal[1 + bitPosition / 8] >> cast(u8, 7 - bitPosition % 8)) & 1
         bitPosition += 1
-        if bit do
+        if bit
+        {
             break
+        }
+
         zeroCount += 1
         Swag.require(zeroCount < 32)
     }
 
-    var result = 0'u32
+    var result = 0_u32
     for zeroCount
     {
         Swag.require(1 + bitPosition / 8 < nal.count)
@@ -71,12 +74,12 @@ func sliceTestFirstMb(nal: const [..] u8)->u32
         bitPosition += 1
     }
 
-    return result + (1'u32 << zeroCount) - 1
+    return result + (1_u32 << zeroCount) - 1
 }
 
 func sliceTestPacket(packet: const [..] u8, count, mbWidth, mbHeight: u32, key: bool)
 {
-    var offset = 0'u64
+    var offset = 0_u64
     for index in count
     {
         Swag.require(offset + 5 <= packet.count)
@@ -87,7 +90,7 @@ func sliceTestPacket(packet: const [..] u8, count, mbWidth, mbHeight: u32, key: 
         offset += 4
         Swag.require(size > 1 and size <= packet.count - offset)
         let nal = packet[offset until offset + size]
-        Swag.require(nal[0] == (key ? 0x65'u8 : 0x41'u8))
+        Swag.require(nal[0] == (key ? 0x65_u8 : 0x41_u8))
         Swag.require(sliceTestFirstMb(nal) == (index * mbHeight / count) * mbWidth)
         offset += size
     }
@@ -119,7 +122,7 @@ func sliceTestSameDecoded(left, right: const *PlanarFrame)
 // Separate slices preserve exact pixels across flat boundaries, P-skip runs and a new IDR.
 #test
 {
-    for count in [1'u32, 2, 4]
+    for count in [1_u32, 2, 4]
     {
         let path = videoTempPath("h264-encoder-slices", "mp4")
         defer discard catch File.delete(path)
@@ -130,18 +133,24 @@ func sliceTestSameDecoded(left, right: const *PlanarFrame)
         var duplicate    = expect H264.Encoder.create(66, 70, keyInterval: 4, sliceCount: count)
         var writer       = expect Mp4.FragmentedWriter.create(path, 66, 70, 90_000, encoder.decoderConfig())
         let frames: [5] const *Nv12Frame = [&flat, &patterned, &shifted, &shifted, &flat]
-        var previousSize = 0'u64
-        for index in 5'u64
+        var previousSize = 0_u64
+        for index in 5_u64
         {
             let packet   = expect encoder.encode(frames[index], index * 3_000, 3_000)
             let matching = expect duplicate.encode(frames[index], index * 3_000, 3_000)
             Swag.require(packet.bytes.count == matching.bytes.count)
             Swag.require(Memory.compare(packet.bytes.buffer, matching.bytes.buffer, packet.bytes.count) == 0)
             sliceTestPacket(packet.bytes, count, 5, 5, index == 0 or index == 4)
-            if index == 1 do
+            if index == 1
+            {
                 previousSize = packet.bytes.count
-            if index == 2 do
+            }
+
+            if index == 2
+            {
                 Swag.require(packet.bytes.count < previousSize)
+            }
+
             expect writer.addPacket(packet)
         }
 
@@ -149,7 +158,7 @@ func sliceTestSameDecoded(left, right: const *PlanarFrame)
         var reader = expect Reader.open(path)
         Swag.require(reader.frameCount() == 5)
         var decoded: PlanarFrame
-        for index in 5'u64
+        for index in 5_u64
         {
             expect reader.decodeFramePlanesInto(&decoded, index)
             sliceTestExact(frames[index], &decoded)
@@ -160,7 +169,7 @@ func sliceTestSameDecoded(left, right: const *PlanarFrame)
 // Quantized IDR and P slices reconstruct one reference and retain it across repeated raw input.
 #test
 {
-    for count in [1'u32, 2, 4]
+    for count in [1_u32, 2, 4]
     {
         let path = videoTempPath("h264-encoder-slices-qp", "mp4")
         defer discard catch File.delete(path)
@@ -170,7 +179,7 @@ func sliceTestSameDecoded(left, right: const *PlanarFrame)
         var duplicate = expect H264.Encoder.create(64, 64, quantizationQp: 28, sliceCount: count)
         var writer    = expect Mp4.FragmentedWriter.create(path, 64, 64, 90_000, encoder.decoderConfig())
         let frames: [3] const *Nv12Frame = [&first, &changed, &changed]
-        for index in 3'u64
+        for index in 3_u64
         {
             let packet   = expect encoder.encode(frames[index], index * 3_000, 3_000)
             let matching = expect duplicate.encode(frames[index], index * 3_000, 3_000)

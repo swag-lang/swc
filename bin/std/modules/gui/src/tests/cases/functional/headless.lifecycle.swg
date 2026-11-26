@@ -16,16 +16,19 @@ using Swag, Core
 {
     for explicitShutdown in [false, true]
     {
-        var destroyed = 0'u32
+        var destroyed = 0_u32
         scope
         {
             var host: Testing.HeadlessHost
             host.setup(160, 80)
-            let child = Wnd.create'Wnd(&host.root)
+            let child = Wnd.create!{Wnd}(&host.root)
             child.hookOnEvent = func|count = &destroyed|(_, evt)->bool
             {
-                if evt is DestroyEvent do
+                if evt is DestroyEvent
+                {
                     count[] += 1
+                }
+
                 return false
             }
 
@@ -49,18 +52,21 @@ using Swag, Core
     {
         var host: Testing.HeadlessHost
         host.setup(160, 80)
-        let child = Wnd.create'Wnd(&host.root)
+        let child = Wnd.create!{Wnd}(&host.root)
         child.hookOnEvent = func|destroyed|(_, evt)->bool
         {
-            if evt is DestroyEvent do
+            if evt is DestroyEvent
+            {
                 destroyed[] += 1
+            }
+
             return false
         }
 
         return
     }
 
-    var destroyed = 0'u32
+    var destroyed = 0_u32
     leaveHost(&destroyed)
     Swag.require(destroyed == 1)
 }
@@ -70,23 +76,26 @@ using Swag, Core
 {
     for explicitShutdown in [false, true]
     {
-        var destroyed = 0'u32
+        var destroyed = 0_u32
         scope
         {
             var host: Testing.HeadlessHost
             host.setup(160, 80)
-            let view = Wnd.create'Wnd(&host.surfaceWnd)
+            let view = Wnd.create!{Wnd}(&host.surfaceWnd)
             host.surface.setView(view)
-            let child    = Wnd.create'Wnd(view)
-            let floating = Wnd.create'Wnd(&host.surfaceWnd)
+            let child    = Wnd.create!{Wnd}(view)
+            let floating = Wnd.create!{Wnd}(&host.surfaceWnd)
             let caption  = CaptionButton.createLeading(&host.surface, .ParentFolder)
             let windows: [4] *Wnd = [view, child, floating, caption]
             for wnd in windows
             {
                 wnd.hookOnEvent = func|count = &destroyed|(_, evt)->bool
                 {
-                    if evt is DestroyEvent do
+                    if evt is DestroyEvent
+                    {
                         count[] += 1
+                    }
+
                     return false
                 }
             }
@@ -124,18 +133,23 @@ using Swag, Core
         var ticks, notifications: u32
         var host: Testing.HeadlessHost
         host.setup(160, 80)
-        let child = Wnd.create'Wnd(&host.root)
+        let child = Wnd.create!{Wnd}(&host.root)
         child.hookOnEvent = func|ticks = &ticks, notifications = &notifications|(_, evt)->bool
         {
-            if evt is TimerEvent do
+            if evt is TimerEvent
+            {
                 ticks[] += 1
-            elif evt is NotifyEvent as notify where notify.kind == .KeyboardLayoutChanged do
+            }
+            else if evt is NotifyEvent as notify where notify.kind == .KeyboardLayoutChanged
+            {
                 notifications[] += 1
+            }
+
             return false
         }
 
-        let timer  = child.addTimer(10'ms)
-        let queued = Event.create'NotifyEvent()
+        let timer  = child.addTimer(10_ms)
+        let queued = Event.create!{NotifyEvent}()
         queued.kind = .KeyboardLayoutChanged
         child.postEvent(queued)
         child.hide(keepActivities: keep)

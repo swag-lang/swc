@@ -34,8 +34,11 @@ func failWinError(errorMessageID: u32) fail
             // Trim right, remove trailing dots, remove trailing non printable characters
             for var idx = len - 1; idx >= 0; idx -= 1
             {
-                if errorMsg[idx] > 32 and errorMsg[idx] != '.' do
+                if errorMsg[idx] > 32 and errorMsg[idx] != '.'
+                {
                     break
+                }
+
                 len -= 1
             }
 

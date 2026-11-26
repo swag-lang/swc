@@ -5,7 +5,7 @@ using Swag, Core, Core.Errors, Pixel
 
 private func quantizedScrolledFrame(width, height, shiftX, shiftY: s32)->Nv12Frame fail
 {
-    var rgb: Array'u8
+    var rgb: Array!{u8}
     rgb.resize(cast(u64, width) * cast(u64, height) * 3)
     for y in cast(u64, height)
     {
@@ -61,8 +61,10 @@ private func requireQuantizedFrameNear(expected: const *Nv12Frame, actual: const
 {
     Swag.require(expected.width == actual.width and expected.height == actual.height)
     let luma = expected.luma()
-    for pixel in actual.luma.count do
+    for pixel in actual.luma.count
+    {
         Swag.require(Math.abs(cast(s32, luma[pixel]) - cast(s32, actual.luma[pixel])) <= tolerance)
+    }
 }
 
 // A lossy P picture becomes the exact reference of the next P. Feeding its decoded
@@ -102,15 +104,15 @@ private func requireQuantizedFrameNear(expected: const *Nv12Frame, actual: const
     var moved = repeated
 
     // Copy one complete tile leftward from the decoded reference, including its UV samples.
-    for row in 16'u64
+    for row in 16_u64
     {
         Memory.copy(moved.bytes.storage() + (16 + row) * 64 + 16,
                     repeated.bytes.storage() + (16 + row) * 64 + 32,
                     16)
     }
 
-    let uvStart = 64'u64 * 64
-    for row in 8'u64
+    let uvStart = 64_u64 * 64
+    for row in 8_u64
     {
         Memory.copy(moved.bytes.storage() + uvStart + (8 + row) * 64 + 16,
                     repeated.bytes.storage() + uvStart + (8 + row) * 64 + 32,
@@ -145,7 +147,7 @@ private func requireQuantizedFrameNear(expected: const *Nv12Frame, actual: const
     var writer  = expect Mp4.FragmentedWriter.create(path, 64, 64, 90_000, encoder.decoderConfig())
     expect writer.addPacket(expect encoder.encode(&first, 0, 3_000))
     expect writer.addPacket(expect encoder.encode(&changed, 3_000, 3_000))
-    for frame in 2'u64 until 5
+    for frame in 2_u64 until 5
     {
         let held = expect encoder.encode(&changed, frame * 3_000, 3_000)
         Swag.require(held.bytes.count <= 20)
@@ -159,7 +161,7 @@ private func requireQuantizedFrameNear(expected: const *Nv12Frame, actual: const
     var held: Nv12Frame
     held.encoderSetDecoded(&decoded)
     Swag.require(Memory.compare(held.bytes.storage(), changed.bytes.storage(), changed.bytes.count) != 0)
-    for frame in 2'u64 until 5
+    for frame in 2_u64 until 5
     {
         expect reader.decodeFramePlanesInto(&decoded, frame)
         requireQuantizedFrame(&held, &decoded)
@@ -206,14 +208,17 @@ private func requireQuantizedFrameNear(expected: const *Nv12Frame, actual: const
         let path = videoTempPath("h264-encoder-quantized-chroma", "mp4")
         defer discard catch File.delete(path)
         var base    = expect quantizedScrolledFrame(32, 32, 0, 0)
-        let uvStart = 32'u64 * 32
-        for sample in 32'u64 * 16 do
+        let uvStart = 32_u64 * 32
+        for sample in 32_u64 * 16
+        {
             base.bytes[uvStart + sample] = 128
+        }
+
         var phaseA = base
         var phaseB = base
-        for row in 16'u64
+        for row in 16_u64
         {
-            for column in 16'u64
+            for column in 16_u64
             {
                 let at   = uvStart + row * 32 + column * 2
                 let high = (row + column) % 2 == 0
@@ -227,7 +232,7 @@ private func requireQuantizedFrameNear(expected: const *Nv12Frame, actual: const
         var encoder = expect H264.Encoder.create(32, 32, quantizationQp: qp)
         var writer  = expect Mp4.FragmentedWriter.create(path, 32, 32, 90_000, encoder.decoderConfig())
         expect writer.addPacket(expect encoder.encode(&base, 0, 3_000))
-        for index in 4'u64
+        for index in 4_u64
         {
             let next = index % 2 == 0 ? &phaseA : &phaseB
             expect writer.addPacket(expect encoder.encode(next, (index + 1) * 3_000, 3_000))

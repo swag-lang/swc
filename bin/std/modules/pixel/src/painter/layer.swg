@@ -145,8 +145,10 @@ impl Layer
     mtd resolve()
     {
         Swag.assert(not .active)
-        if .resolved do
+        if .resolved
+        {
             return
+        }
 
         let renderer       = unwrap .renderer
         let painter        = unwrap .painter
@@ -184,8 +186,10 @@ impl Layer
     mtd blur(radius: f32)
     {
         Swag.assert(not .active)
-        if radius <= 0 do
+        if radius <= 0
+        {
             return
+        }
 
         if .shadowTarget
         {
@@ -229,8 +233,11 @@ impl Layer
             .releaseRenderTarget(target1)
         }
 
-        if .paintTarget == content do
+        if .paintTarget == content
+        {
             .paintTarget = null
+        }
+
         .contentTarget = target2
     }
 
@@ -240,8 +247,10 @@ impl Layer
     mtd buildShadow(info: LayerShadowInfo)
     {
         Swag.assert(not .active)
-        if not info.enabled do
+        if not info.enabled
+        {
             return
+        }
 
         .resolve()
         let margin = Math.max(info.margin, 0)
@@ -252,8 +261,10 @@ impl Layer
                .shadowCacheRadius == info.radius and
                .shadowCacheOffsetX == info.offsetX and
                .shadowCacheOffsetY == info.offsetY and
-               .shadowCacheColor == info.color do
+               .shadowCacheColor == info.color
+            {
                 return
+            }
 
             .painter!.releaseRenderTarget(.shadowTarget)
             .shadowTarget     = null
@@ -378,8 +389,10 @@ impl Layer
             .popState()
         }
 
-        if info.releaseAfterDraw do
+        if info.releaseAfterDraw
+        {
             .release()
+        }
     }
 
     // Returns the resolved layer texture.
@@ -416,15 +429,21 @@ impl Layer
         if painter
         {
             painter.releaseRenderTarget(paintTarget)
-            if contentTarget != paintTarget do
+            if contentTarget != paintTarget
+            {
                 painter.releaseRenderTarget(contentTarget)
+            }
+
             painter.releaseRenderTarget(shadowTarget)
         }
-        elif renderer
+        else if renderer
         {
             renderer.releaseRenderTarget(paintTarget)
-            if contentTarget != paintTarget do
+            if contentTarget != paintTarget
+            {
                 renderer.releaseRenderTarget(contentTarget)
+            }
+
             renderer.releaseRenderTarget(shadowTarget)
         }
 

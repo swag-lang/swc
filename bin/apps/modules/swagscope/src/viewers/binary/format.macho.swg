@@ -7,12 +7,12 @@ private
 {
     // Header signatures a Mach-O file can begin with. The `CIGAM` spellings are the same words read by
     // a machine of the other byte order, which is how a file says its own order without a flag.
-    const MachMagic32    = 0xFEEDFACE'u32
-    const MachMagic64    = 0xFEEDFACF'u32
-    const MachCigam32    = 0xCEFAEDFE'u32
-    const MachCigam64    = 0xCFFAEDFE'u32
-    const MachFatMagic   = 0xCAFEBABE'u32
-    const MachFatMagic64 = 0xCAFEBABF'u32
+    const MachMagic32    = 0xFEEDFACE_u32
+    const MachMagic64    = 0xFEEDFACF_u32
+    const MachCigam32    = 0xCEFAEDFE_u32
+    const MachCigam64    = 0xCFFAEDFE_u32
+    const MachFatMagic   = 0xCAFEBABE_u32
+    const MachFatMagic64 = 0xCAFEBABF_u32
 }
 
 // Returns the processor a Mach-O CPU type names.
@@ -95,8 +95,11 @@ func isMachO(image: *BinaryImage)->bool
 {
     image.bigEndian = false
     let magic = image.u32At(0)
-    if magic == MachMagic32 or magic == MachMagic64 or magic == MachCigam32 or magic == MachCigam64 do
+    if magic == MachMagic32 or magic == MachMagic64 or magic == MachCigam32 or magic == MachCigam64
+    {
         return true
+    }
+
     return isMachFat(image)
 }
 
@@ -110,13 +113,18 @@ private func isMachFat(image: *BinaryImage)->bool
 {
     image.bigEndian = false
     let magic = image.u32At(0)
-    if magic != MachFatMagic and magic != MachFatMagic64 do
+    if magic != MachFatMagic and magic != MachFatMagic64
+    {
         return false
+    }
 
     image.bigEndian = true
     let count = image.u32At(4)
-    if not count or count > 32 do
+    if not count or count > 32
+    {
         return false
+    }
+
     return machCpuName(image.u32At(8)) != "?"
 }
 
@@ -153,7 +161,7 @@ private func reportMachFat(image: *BinaryImage, report: *Report, wide: bool)
 
     let texts = texts()
     let count = cast(u64, image.u32At(4))
-    let step  = wide ? 32'u64 : 20
+    let step  = wide ? 32_u64 : 20
     let shown = Math.min(count, ListLimit)
     let total = countText(count, texts.word_Entry, texts.word_Entries)
 
@@ -169,8 +177,11 @@ private func reportMachFat(image: *BinaryImage, report: *Report, wide: bool)
         let label   = Format.toString(texts.mo_Slice, index)
         let stored  = StrConv.toDisplaySize(size)
 
-        if not names.isEmpty() do
+        if not names.isEmpty()
+        {
             names += ", "
+        }
+
         names += machCpuName(cpu)
 
         report.beginGroup(label, machCpuName(cpu), stored, offset: sliceAt, length: size, open: true)
@@ -224,7 +235,7 @@ private func reportMachImage(image: *BinaryImage, report: *Report, at: u64, open
     report.hexField(headerAt + 24, 4, "flags", cast(u64, flags), names)
     report.endGroup()
 
-    reportMachCommands(image, report, at, headerAt + (result.wide ? 32'u64 : 28), count, cmdSize, result.wide, open)
+    reportMachCommands(image, report, at, headerAt + (result.wide ? 32_u64 : 28), count, cmdSize, result.wide, open)
     return result
 }
 
@@ -238,17 +249,21 @@ private func reportMachCommands(image: *BinaryImage, report: *Report, imageAt, a
 
     report.beginGroup(texts.mo_Commands, total, texts.mo_CommandsDesc, offset: at, length: totalSize, open: open)
 
-    var libraries: Array'String
+    var libraries: Array!{String}
     var scan = at
     for shown
     {
-        if not image.has(scan, 8) do
+        if not image.has(scan, 8)
+        {
             break
+        }
 
         let command = image.u32At(scan)
         let size    = cast(u64, image.u32At(scan + 4))
-        if size < 8 do
+        if size < 8
+        {
             break
+        }
 
         report.beginGroup(machCommandName(command), "", "", offset: scan, length: size)
         report.hexField(scan, 4, "cmd", cast(u64, command), machCommandName(command))
@@ -265,14 +280,17 @@ private func reportMachCommands(image: *BinaryImage, report: *Report, imageAt, a
     {
         let counted = countText(libraries.count, texts.word_Library, texts.word_Libraries)
         report.beginGroup(texts.shr_Libraries, counted, "", open: open)
-        for one in libraries do
+        for one in libraries
+        {
             report.derived(one.toString(), "")
+        }
+
         report.endGroup()
     }
 }
 
 // Adds the payload of one load command, for the commands that carry something a reader wants.
-private func reportMachCommandBody(image: *BinaryImage, report: *Report, imageAt, at, size: u64, command: u32, wide: bool, libraries: *Array'String)
+private func reportMachCommandBody(image: *BinaryImage, report: *Report, imageAt, at, size: u64, command: u32, wide: bool, libraries: *Array!{String})
 {
     let texts = texts()
     let kind  = command & 0x7FFFFFFF
@@ -285,7 +303,7 @@ private func reportMachCommandBody(image: *BinaryImage, report: *Report, imageAt
         // divided that run. Both are worth naming, so both are.
         let name     = image.fixedTextAt(at + 8, 16)
         let valueAt  = at + 24
-        let step     = wide ? 8'u64 : 4
+        let step     = wide ? 8_u64 : 4
         let fileAt   = image.scalarAt(valueAt + step * 2, step)
         let fileLen  = image.scalarAt(valueAt + step * 3, step)
         let maxProt  = image.u32At(valueAt + step * 4)
@@ -301,7 +319,7 @@ private func reportMachCommandBody(image: *BinaryImage, report: *Report, imageAt
         report.hexField(valueAt + step * 2, step, "fileoff", fileAt)
         report.sizeField(valueAt + step * 3, step, "filesize", fileLen)
         report.numField(valueAt + step * 4 + 8, 4, "nsects", sections)
-        reportMachSections(image, report, imageAt, at + (wide ? 72'u64 : 56), sections, wide)
+        reportMachSections(image, report, imageAt, at + (wide ? 72_u64 : 56), sections, wide)
 
     case 0x0C, 0x0D, 0x18, 0x1F:
         let offset  = cast(u64, image.u32At(at + 8))
@@ -309,8 +327,10 @@ private func reportMachCommandBody(image: *BinaryImage, report: *Report, imageAt
         let current = machVersionText(image.u32At(at + 16))
         report.field(at + offset, path.length, "name", path)
         report.field(at + 16, 4, "current_version", current)
-        if kind == 0x0C or kind == 0x18 do
+        if kind == 0x0C or kind == 0x18
+        {
             libraries.add(path)
+        }
 
     case 0x0E, 0x0F, 0x1C:
         let offset    = cast(u64, image.u32At(at + 8))
@@ -352,11 +372,13 @@ private func reportMachCommandBody(image: *BinaryImage, report: *Report, imageAt
 // at `imageAt`, which is not the file start inside a universal binary.
 private func reportMachSections(image: *BinaryImage, report: *Report, imageAt, at, count: u64, wide: bool)
 {
-    if not count do
+    if not count
+    {
         return
+    }
 
     let texts = texts()
-    let step  = wide ? 80'u64 : 68
+    let step  = wide ? 80_u64 : 68
     let shown = Math.min(count, ListLimit)
     let total = countText(count, texts.word_Section, texts.word_Sections)
 
@@ -368,7 +390,7 @@ private func reportMachSections(image: *BinaryImage, report: *Report, imageAt, a
         let name     = image.fixedTextAt(entryAt, 16)
         let segment  = image.fixedTextAt(entryAt + 16, 16)
         let valueAt  = entryAt + 32
-        let wideStep = wide ? 8'u64 : 4
+        let wideStep = wide ? 8_u64 : 4
         let size     = image.scalarAt(valueAt + wideStep, wideStep)
         let fileAt   = cast(u64, image.u32At(valueAt + wideStep * 2))
         let stored   = StrConv.toDisplaySize(size)

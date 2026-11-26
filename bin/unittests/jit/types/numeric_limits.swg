@@ -19,7 +19,9 @@
 #test
 {
     var highest = Swag.F32.Min
-    for value in [-5.0'f32, -2.5, -9.0] do
+    for value in [-5.0_f32, -2.5, -9.0]
+    {
         highest = Swag.max(highest, value)
+    }
     Swag.require(highest == -2.5)
 }

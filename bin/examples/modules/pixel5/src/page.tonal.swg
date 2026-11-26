@@ -51,7 +51,9 @@ func drawTonalPage(painter: *Pixel.Painter)
 {
     drawPageHeader(painter,
                    "Pixel tonal filters",
-                   "Grayscale, contrast, lightness, gamma and inversion on the same bundled JPEG.")
-    for i in CardsPerPage do
+                   "Page 1 : grayscale, contrast, lightness, gamma and inversion on the same local JPG.")
+    for i in CardsPerPage
+    {
         drawCard(painter, getCardRect(i), g_TonalCards[i])
+    }
 }

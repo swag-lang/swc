@@ -68,18 +68,27 @@ private struct InlineTextBatch
 // the mathematical source for a formula.
 private func atomTextLength(atom: const *InlineAtom)->u64
 {
-    if atom.isBreak or atom.isSpace do
+    if atom.isBreak or atom.isSpace
+    {
         return 1
+    }
+
     return atom.text.count
 }
 
 // Returns the text one atom contributes to the view's text.
 private func atomText(atom: const *InlineAtom)->string
 {
-    if atom.isBreak do
+    if atom.isBreak
+    {
         return "\n"
-    if atom.isSpace do
+    }
+
+    if atom.isSpace
+    {
         return " "
+    }
+
     return atom.text.toString()
 }
 
@@ -118,30 +127,66 @@ private impl InlineState
     mtd const flags()->InlineFlags
     {
         var result = InlineFlags.None
-        if .bold do
+        if .bold
+        {
             result.add(.Bold)
-        if .italic do
+        }
+
+        if .italic
+        {
             result.add(.Italic)
-        if .strikeout do
+        }
+
+        if .strikeout
+        {
             result.add(.Strikeout)
-        if .code do
+        }
+
+        if .code
+        {
             result.add(.Code)
-        if .highlight do
+        }
+
+        if .highlight
+        {
             result.add(.Highlight)
-        if .link do
+        }
+
+        if .link
+        {
             result.add(.Link)
-        if .subscript do
+        }
+
+        if .subscript
+        {
             result.add(.Subscript)
-        if .superscript do
+        }
+
+        if .superscript
+        {
             result.add(.Superscript)
-        if .listMarker do
+        }
+
+        if .listMarker
+        {
             result.add(.ListMarker)
-        if .listBullet do
+        }
+
+        if .listBullet
+        {
             result.add(.ListBullet)
-        if .listUnchecked do
+        }
+
+        if .listUnchecked
+        {
             result.add(.ListUnchecked)
-        if .listChecked do
+        }
+
+        if .listChecked
+        {
             result.add(.ListChecked)
+        }
+
         return result
     }
 }
@@ -153,10 +198,10 @@ struct InlineView
 
     late owner:       *View
     kind:             BlockKind
-    atoms:            Array'InlineAtom
-    lines:            Array'InlineLine
+    atoms:            Array!{InlineAtom}
+    lines:            Array!{InlineLine}
     images:           HtmlImageCache
-    textBatches:      Array'InlineTextBatch
+    textBatches:      Array!{InlineTextBatch}
     textBatchScale:   f32
     renderLayer:      Layer
     renderCachePhase: Math.Point
@@ -221,8 +266,10 @@ impl InlineView
             changed        = true
         }
 
-        if changed do
+        if changed
+        {
             .invalidateRenderCache()
+        }
     }
 
     // Returns the whole text of the view: what a search matches against, and what a selection
@@ -230,8 +277,11 @@ impl InlineView
     mtd text()->String
     {
         var result: #returntype
-        for &atom in .atoms do
+        for &atom in .atoms
+        {
             result += atomText(atom)
+        }
+
         return result
     }
 
@@ -242,18 +292,27 @@ impl InlineView
         for &atom in .atoms
         {
             let atomEnd = atom.textStart + atomTextLength(atom)
-            if atomEnd <= start do
+            if atomEnd <= start
+            {
                 continue
-            if atom.textStart >= end do
+            }
+
+            if atom.textStart >= end
+            {
                 break
+            }
 
             let source = atomText(atom)
             let low    = Math.max(start, atom.textStart) - atom.textStart
             let high   = Math.min(end, atomEnd) - atom.textStart
-            if low == 0 and high >= source.count do
+            if low == 0 and high >= source.count
+            {
                 result += source
-            elif low < source.count do
+            }
+            else if low < source.count
+            {
                 result += source[low until Math.min(high, source.count)]
+            }
         }
 
         return result
@@ -261,8 +320,10 @@ impl InlineView
 
     mtd searchMatchCount(text: string)->u64
     {
-        if not text.count do
+        if not text.count
+        {
             return 0
+        }
 
         let source = .text()
         var count: u64
@@ -270,8 +331,11 @@ impl InlineView
         while true
         {
             let match = Utf8.indexOf(source.toString(), text, from, .Latin1NoCase)
-            if match == Swag.U64.Max do
+            if match == Swag.U64.Max
+            {
                 return count
+            }
+
             count += 1
             from  = match + text.count
         }
@@ -281,8 +345,10 @@ impl InlineView
     mtd highlightText(text: string, occurrence: u64 = 0)->bool
     {
         .clearSearchHighlight()
-        if not text.count do
+        if not text.count
+        {
             return false
+        }
 
         let source = .text()
         var match: u64
@@ -290,15 +356,21 @@ impl InlineView
         for occurrence + 1
         {
             match = Utf8.indexOf(source.toString(), text, from, .Latin1NoCase)
-            if match == Swag.U64.Max do
+            if match == Swag.U64.Max
+            {
                 return false
+            }
+
             from = match + text.count
         }
 
         .searchStart = match
         .searchEnd   = match + text.count
-        for &atom in .atoms where atom.textStart < .searchEnd and atom.textStart + atomTextLength(atom) > .searchStart do
+        for &atom in .atoms where atom.textStart < .searchEnd and atom.textStart + atomTextLength(atom) > .searchStart
+        {
             atom.searchHit = true
+        }
+
         .invalidateRenderCache()
         return true
     }
@@ -316,23 +388,27 @@ impl InlineView
 
     mtd appendWord(text: string, state: InlineState)
     {
-        var start = 0'u64
-        var index = 0'u64
-        var runes = 0'u32
+        var start = 0_u64
+        var index = 0_u64
+        var runes = 0_u32
         while index < text.count
         {
             let {c: _, eat} = Utf8.decodeRune(text[index to])
             index += eat
             runes += 1
-            if runes < 24 do
+            if runes < 24
+            {
                 continue
+            }
 
             // Keep a closing mark attached even at an emergency word split.
             if index < text.count
             {
                 let {c: _, eat: nextSize} = Utf8.decodeRune(text[index to])
-                if Utf8.indexOf(".,;:!?)]}»”’…、。，；：！？）】》", text[index until index + nextSize]) != Swag.U64.Max do
+                if Utf8.indexOf(".,;:!?)]}»”’…、。，；：！？）】》", text[index until index + nextSize]) != Swag.U64.Max
+                {
                     continue
+                }
             }
 
             .appendTextAtom(text[start until index], state)
@@ -350,8 +426,8 @@ impl InlineView
 
     mtd appendText(text: string, state: InlineState)
     {
-        var start = 0'u64
-        var index = 0'u64
+        var start = 0_u64
+        var index = 0_u64
         while index <= text.count
         {
             let atEnd = index == text.count
@@ -362,15 +438,21 @@ impl InlineView
                 continue
             }
 
-            if index > start do
+            if index > start
+            {
                 .appendWord(text[start until index], state)
+            }
 
-            if atEnd do
+            if atEnd
+            {
                 break
+            }
 
             var whitespaceEnd = index + 1
-            if text[index] == '\r' and whitespaceEnd < text.count and text[whitespaceEnd] == '\n' do
+            if text[index] == '\r' and whitespaceEnd < text.count and text[whitespaceEnd] == '\n'
+            {
                 whitespaceEnd += 1
+            }
 
             let isBreak = text[index] == '\n' or text[index] == '\r'
             .appendTextAtom(text[index until whitespaceEnd], state, not isBreak, isBreak)
@@ -430,8 +512,8 @@ impl InlineView
         .releaseRenderCache()
         .atoms.clear()
         var state: InlineState
-        var index     = 0'u64
-        var textStart = 0'u64
+        var index     = 0_u64
+        var textStart = 0_u64
         var linkStart = Swag.U64.Max
 
         while index < text.count
@@ -442,11 +524,13 @@ impl InlineView
                 continue
             }
 
-            if index > textStart do
+            if index > textStart
+            {
                 .appendText(text[textStart until index], state)
+            }
 
             let remaining = text[index to]
-            var eaten     = 0'u64
+            var eaten     = 0_u64
             switch
             {
             // The protocol escape for a literal '<' in document text.
@@ -577,8 +661,11 @@ impl InlineView
                 let end = Utf8.indexOf(text, "</t>", index + 3)
                 if end != Swag.U64.Max
                 {
-                    if linkStart != Swag.U64.Max do
+                    if linkStart != Swag.U64.Max
+                    {
                         .assignLinkTarget(linkStart, text[index + 3 until end])
+                    }
+
                     linkStart = Swag.U64.Max
                     eaten     = end - index + 4
                 }
@@ -610,22 +697,28 @@ impl InlineView
             textStart = index
         }
 
-        if textStart < text.count do
+        if textStart < text.count
+        {
             .appendText(text[textStart to], state)
+        }
 
         // Every atom takes its place in the view's text now, once, so a search, a hit test, a
         // selection and a copy all address the same coordinate without walking the atoms again.
         .textLength = 0
-        var imageCount = 0'u32
+        var imageCount = 0_u32
         var hasText: bool
         for &atom in .atoms
         {
             atom.textStart = .textLength
             .textLength    += atomTextLength(atom)
-            if atom.isImage do
+            if atom.isImage
+            {
                 imageCount += 1
-            elif not atom.isSpace and not atom.isBreak do
+            }
+            else if not atom.isSpace and not atom.isBreak
+            {
                 hasText = true
+            }
         }
 
         .standaloneImage = .kind == .Paragraph and imageCount == 1 and not hasText
@@ -638,8 +731,11 @@ impl InlineView
         {
         case .Heading1, .Heading2, .Heading3, .Heading4, .Heading5, .Heading6:
             let index = cast(u32, .kind) - cast(u32, BlockKind.Heading1)
-            if .owner.documentStyle.blockMargins.x >= 0 and .owner.documentStyle.blockMargins.y >= 0 do
+            if .owner.documentStyle.blockMargins.x >= 0 and .owner.documentStyle.blockMargins.y >= 0
+            {
                 return Math.Vector4{0, 0, 0, .owner.documentStyle.headingRulePadding[index]}
+            }
+
             return Math.Vector4{0, .owner.documentStyle.headingTopSpacing[index], 0, .owner.documentStyle.headingBottomSpacing[index]}
 
         case .Code:
@@ -667,8 +763,11 @@ impl InlineView
             return {0, 4, 0, 4}
 
         default:
-            if .owner.documentStyle.blockMargins.x >= 0 and .owner.documentStyle.blockMargins.y >= 0 do
+            if .owner.documentStyle.blockMargins.x >= 0 and .owner.documentStyle.blockMargins.y >= 0
+            {
                 return {}
+            }
+
             return {0, 2, 0, 2}
         }
     }
@@ -693,16 +792,28 @@ impl InlineView
     mtd fontStyle(flags: InlineFlags)->FontFamilyStyle
     {
         var base = .kind == .Quote ? .owner.documentStyle.quoteFontStyle : FontFamilyStyle.Regular
-        if .kind >= .Heading1 and .kind <= .Heading6 do
+        if .kind >= .Heading1 and .kind <= .Heading6
+        {
             base = .owner.documentStyle.headingFontStyles[cast(u32, .kind) - cast(u32, BlockKind.Heading1)]
+        }
+
         let bold   = flags.has(.Bold) or base == .Bold or base == .BoldItalic
         let italic = flags.has(.Italic) or base == .Italic or base == .BoldItalic
-        if bold and italic do
+        if bold and italic
+        {
             return .BoldItalic
-        if bold do
+        }
+
+        if bold
+        {
             return .Bold
-        if italic do
+        }
+
+        if italic
+        {
             return .Italic
+        }
+
         return .Regular
     }
 
@@ -710,12 +821,15 @@ impl InlineView
     {
         let style = .fontStyle(atom.flags)
         let size  = atom.flags.has(.Subscript) or atom.flags.has(.Superscript) ? Math.max(.fontSize() * 3 / 4, 8) : .fontSize()
-        if atom.flags.has(.Code) or .kind == .Code or .kind == .Metadata do
+        if atom.flags.has(.Code) or .kind == .Code or .kind == .Metadata
+        {
             return .owner.documentFont(.Code, size, style)
+        }
+
         return .owner.documentFont(.kind, size, style)
     }
 
-    mtd measureAtom(atom: *InlineAtom, availableWidth = 0'f32)
+    mtd measureAtom(atom: *InlineAtom, availableWidth = 0_f32)
     {
         if atom.isImage
         {
@@ -781,12 +895,20 @@ impl InlineView
     {
         let style  = &.owner.documentStyle
         var height = style.bodyLineHeight
-        if .kind >= .Heading1 and .kind <= .Heading6 do
+        if .kind >= .Heading1 and .kind <= .Heading6
+        {
             height = style.headingLineHeights[cast(u32, .kind) - cast(u32, BlockKind.Heading1)]
-        elif .kind == .Code or .kind == .Metadata do
+        }
+        else if .kind == .Code or .kind == .Metadata
+        {
             height = style.codeLineHeight
-        if height > 0 do
+        }
+
+        if height > 0
+        {
             return height
+        }
+
         return .owner.documentFont(.kind, .fontSize()).height * style.lineHeight
     }
 
@@ -813,8 +935,10 @@ impl InlineView
     // their natural width.
     mtd finishLine(first, last: u64, top, left, right: f32, wrapped: bool)->f32
     {
-        if first >= last do
+        if first >= last
+        {
             return .lineHeight()
+        }
 
         var ascent:  f32
         var descent: f32
@@ -828,14 +952,21 @@ impl InlineView
         let line      = Math.max(natural, .lineHeight())
         let offset    = (line - natural) * 0.5
         var lineRight = left
-        for index in first until last where .atoms[index].visible do
+        for index in first until last where .atoms[index].visible
+        {
             lineRight = Math.max(lineRight, .atoms[index].position.right())
+        }
+
         var shift: f32
         let alignment = .standaloneImage ? .owner.documentStyle.imageAlignment : .horizontalAlignment
-        if alignment == .Center do
+        if alignment == .Center
+        {
             shift = Math.max(right - lineRight, 0) * 0.5
-        elif alignment == .Right do
+        }
+        else if alignment == .Right
+        {
             shift = Math.max(right - lineRight, 0)
+        }
 
         let stretch = .measureJustification(first, last, right, line, wrapped)
         var advance = shift
@@ -843,12 +974,19 @@ impl InlineView
         {
             .atoms[index].position.x += advance
             .atoms[index].position.y = top + offset + ascent - .atoms[index].ascent
-            if .atoms[index].flags.has(.Superscript) do
+            if .atoms[index].flags.has(.Superscript)
+            {
                 .atoms[index].position.y -= ascent * 0.28
-            elif .atoms[index].flags.has(.Subscript) do
+            }
+            else if .atoms[index].flags.has(.Subscript)
+            {
                 .atoms[index].position.y += descent * 0.55
-            if .atoms[index].isSpace and index > stretch.firstInk and index < stretch.lastInk do
+            }
+
+            if .atoms[index].isSpace and index > stretch.firstInk and index < stretch.lastInk
+            {
                 advance += stretch.step
+            }
         }
 
         .lines.add(InlineLine{top, line, first, last})
@@ -865,20 +1003,25 @@ impl InlineView
     {
         var result: #returntype
         result.firstInk = Swag.U64.Max
-        if not wrapped or .horizontalAlignment != .Justify do
+        if not wrapped or .horizontalAlignment != .Justify
+        {
             return result
+        }
 
-        var gaps     = 0'u64
-        var gapWidth = 0'f32
-        var inkEnd   = 0'f32
+        var gaps     = 0_u64
+        var gapWidth = 0_f32
+        var inkEnd   = 0_f32
         var spaceAt  = Swag.U64.Max
 
         for index in first until last where .atoms[index].visible
         {
             if .atoms[index].isSpace
             {
-                if result.firstInk != Swag.U64.Max and spaceAt == Swag.U64.Max do
+                if result.firstInk != Swag.U64.Max and spaceAt == Swag.U64.Max
+                {
                     spaceAt = index
+                }
+
                 continue
             }
 
@@ -886,7 +1029,7 @@ impl InlineView
             {
                 result.firstInk = index
             }
-            elif spaceAt != Swag.U64.Max
+            else if spaceAt != Swag.U64.Max
             {
                 gaps     += 1
                 gapWidth = Math.max(gapWidth, .atoms[spaceAt].position.width)
@@ -897,21 +1040,31 @@ impl InlineView
             inkEnd         = .atoms[index].position.right()
         }
 
-        if not gaps do
+        if not gaps
+        {
             return result
+        }
 
         let step = Math.max(right - inkEnd, 0) / cast(f32, gaps)
-        if gapWidth + step < line * JustifyLimit do
+        if gapWidth + step < line * JustifyLimit
+        {
             result.step = step
+        }
+
         return result
     }
 
     mtd layout(width: f32)->f32
     {
-        if width <= 0 do
+        if width <= 0
+        {
             return 0
-        if .layoutWidth == width do
+        }
+
+        if .layoutWidth == width
+        {
             return .layoutHeight
+        }
 
         if .kind == .Rule
         {
@@ -927,13 +1080,13 @@ impl InlineView
         let right            = Math.max(width - inset.z, left + 1)
         var x                = left
         var y                = inset.y
-        var first            = 0'u64
+        var first            = 0_u64
         var lineLeft         = left
         var continuationLeft = left
         var explicitStart    = true
         var afterMarker: bool
-        var groupEnd         = 0'u64
-        var groupWidth       = 0'f32
+        var groupEnd         = 0_u64
+        var groupWidth       = 0_f32
 
         for &atom, index in .atoms
         {
@@ -954,8 +1107,11 @@ impl InlineView
                         atom.isBreak or
                         next.isSpace or
                         next.isBreak or
-                        next.emergencyWrap) do
+                        next.emergencyWrap)
+                    {
                         break
+                    }
+
                     .measureAtom(next, right - continuationLeft)
                     groupWidth += next.position.width
                     groupEnd   += 1
@@ -976,8 +1132,11 @@ impl InlineView
 
             // Whitespace the author wrote at the start of a line — code indentation, a nested
             // list level — is layout, so it renders; only the space a wrap left behind is dropped.
-            if atom.isSpace and x == lineLeft and not explicitStart do
+            if atom.isSpace and x == lineLeft and not explicitStart
+            {
                 continue
+            }
+
             if groupStart and not atom.isSpace and x > lineLeft and x + groupWidth > right
             {
                 y        += .finishLine(first, index, y, lineLeft, right, wrapped: true)
@@ -990,18 +1149,30 @@ impl InlineView
             atom.position.x = x
             x += atom.position.width
             groupWidth      -= atom.position.width
-            if not atom.isSpace do
+            if not atom.isSpace
+            {
                 explicitStart = false
-            if atom.flags.has(.ListMarker) do
+            }
+
+            if atom.flags.has(.ListMarker)
+            {
                 afterMarker = true
-            elif afterMarker and atom.isSpace do
+            }
+            else if afterMarker and atom.isSpace
+            {
                 continuationLeft = x
-            elif not atom.isSpace do
+            }
+            else if not atom.isSpace
+            {
                 afterMarker = false
+            }
         }
 
-        if first < .atoms.count or .atoms.isEmpty() do
+        if first < .atoms.count or .atoms.isEmpty()
+        {
             y += .finishLine(first, .atoms.count, y, lineLeft, right, wrapped: false)
+        }
+
         .layoutWidth    = width
         .layoutHeight   = y + inset.w
         .textBatchScale = 0
@@ -1016,8 +1187,11 @@ impl InlineView
     mtd prepareTextBatches(painter: *Painter)
     {
         let scale = painter.textTransformScale()
-        if .textBatchScale == scale do
+        if .textBatchScale == scale
+        {
             return
+        }
+
         .textBatchScale = scale
         .textBatches.clear()
         var scratch: ShapedRun
@@ -1026,8 +1200,11 @@ impl InlineView
         for &atom, index in .atoms
         {
             atom.textBatch = Swag.U32.Max
-            if not atom.visible do
+            if not atom.visible
+            {
                 continue
+            }
+
             if atom.isMath or
                atom.isImage or
                atom.flags.has(.Link | .Strikeout | .ListBullet | .ListUnchecked | .ListChecked)
@@ -1076,14 +1253,23 @@ impl InlineView
     mtd color(atom: const *InlineAtom)->Color
     {
         let colors = .themeColors()
-        if atom.flags.has(.Link) do
+        if atom.flags.has(.Link)
+        {
             return atom == .hotAtom ? colors.url_HotText : colors.url_Text
+        }
+
         if atom.colorIndex == 1 and .kind >= .AlertNote and .kind <= .AlertCaution
         {
-            if .kind == .AlertWarning do
+            if .kind == .AlertWarning
+            {
                 return colors.embInfo_MessageText
-            if .kind == .AlertCaution do
+            }
+
+            if .kind == .AlertCaution
+            {
                 return colors.embInfo_CriticalText
+            }
+
             return colors.embInfo_InformationText
         }
 
@@ -1098,8 +1284,11 @@ impl InlineView
 
     mtd atomAt(point: Math.Point)->*InlineAtom?
     {
-        for &atom in .atoms where atom.visible and atom.flags.has(.Link) and atom.position.contains(point) do
+        for &atom in .atoms where atom.visible and atom.flags.has(.Link) and atom.position.contains(point)
+        {
             return atom
+        }
+
         return null
     }
 
@@ -1117,12 +1306,21 @@ impl InlineView
     private mtd prefixWidth(atom: const *InlineAtom, bytes: u64)->f32
     {
         let length = atomTextLength(atom)
-        if bytes >= length do
+        if bytes >= length
+        {
             return atom.position.width
-        if not bytes do
+        }
+
+        if not bytes
+        {
             return 0
-        if atom.isBreak or atom.isSpace or isAtomOpaque(atom) do
+        }
+
+        if atom.isBreak or atom.isSpace or isAtomOpaque(atom)
+        {
             return atom.position.width
+        }
+
         return Painter.measureStringSnapped(atom.text.toString()[0 until bytes], .font(atom), deviceScale: .deviceScale())
     }
 
@@ -1130,21 +1328,26 @@ impl InlineView
     private mtd byteAtWidth(atom: const *InlineAtom, x: f32)->u64
     {
         let length = atomTextLength(atom)
-        if atom.isBreak or atom.isSpace or isAtomOpaque(atom) do
+        if atom.isBreak or atom.isSpace or isAtomOpaque(atom)
+        {
             return x < atom.position.width * 0.5 ? 0 : length
+        }
 
         // The boundary the pointer is closest to wins, so a click on the left half of a glyph
         // puts the caret before it and one on the right half puts it after.
         let source = atom.text.toString()
         let font   = .font(atom)
-        var scan   = 0'u64
-        var before = 0'f32
+        var scan   = 0_u64
+        var before = 0_f32
         while scan < source.count
         {
             let {c: _, eat} = Utf8.decodeRune(source[scan to])
             let after       = Painter.measureStringSnapped(source[0 until scan + eat], font, deviceScale: .deviceScale())
-            if x < (before + after) * 0.5 do
+            if x < (before + after) * 0.5
+            {
                 return scan
+            }
+
             before = after
             scan   += eat
         }
@@ -1161,8 +1364,10 @@ impl InlineView
     private mtd paintSelection(painter: *Painter)
     {
         let selection = .owner.selectionInInline(.orderIndex)
-        if not selection.has do
+        if not selection.has
+        {
             return
+        }
 
         for &line in .lines
         {
@@ -1173,23 +1378,29 @@ impl InlineView
             {
                 let atom    = &.atoms[index]
                 let atomEnd = atom.textStart + atomTextLength(atom)
-                if selection.end <= atom.textStart or selection.start >= atomEnd do
+                if selection.end <= atom.textStart or selection.start >= atomEnd
+                {
                     continue
+                }
 
                 left  = Math.min(left, atom.position.x + .prefixWidth(atom, Math.max(selection.start, atom.textStart) - atom.textStart))
                 right = Math.max(right, atom.position.x + .prefixWidth(atom, Math.min(selection.end, atomEnd) - atom.textStart))
             }
 
-            if right > left do
+            if right > left
+            {
                 painter.fillRect(Math.Rectangle{left, line.top, right - left, line.height}, .themeColors().edit_SelectedBk)
+            }
         }
     }
 
     // Fills one exact search band and optionally reports its geometry in local coordinates.
     private mtd searchMatchRectLocal(result: *Math.Rectangle)->bool
     {
-        if .searchStart == Swag.U64.Max or .searchEnd <= .searchStart do
+        if .searchStart == Swag.U64.Max or .searchEnd <= .searchStart
+        {
             return false
+        }
 
         var found: bool
         for &line in .lines
@@ -1200,14 +1411,19 @@ impl InlineView
             {
                 let atom    = &.atoms[index]
                 let atomEnd = atom.textStart + atomTextLength(atom)
-                if .searchEnd <= atom.textStart or .searchStart >= atomEnd do
+                if .searchEnd <= atom.textStart or .searchStart >= atomEnd
+                {
                     continue
+                }
+
                 left  = Math.min(left, atom.position.x + .prefixWidth(atom, Math.max(.searchStart, atom.textStart) - atom.textStart))
                 right = Math.max(right, atom.position.x + .prefixWidth(atom, Math.min(.searchEnd, atomEnd) - atom.textStart))
             }
 
-            if right <= left do
+            if right <= left
+            {
                 continue
+            }
 
             let rect = Math.Rectangle{left, line.top, right - left, line.height}
             if not found
@@ -1231,8 +1447,11 @@ impl InlineView
     mtd searchMatchRect(result: *Math.Rectangle)->bool
     {
         var local: Math.Rectangle
-        if not .searchMatchRectLocal(&local) do
+        if not .searchMatchRectLocal(&local)
+        {
             return false
+        }
+
         result[] = .localToSurface(local)
         return true
     }
@@ -1240,8 +1459,10 @@ impl InlineView
     private mtd paintSearchHighlight(painter: *Painter)
     {
         var rect: Math.Rectangle
-        if .searchMatchRectLocal(&rect) do
+        if .searchMatchRectLocal(&rect)
+        {
             painter.fillRect(rect, .themeColors().edit_SelectedBk)
+        }
     }
 
     // Returns the text offset nearest to a point in this view's coordinates.
@@ -1264,28 +1485,42 @@ impl InlineView
                 return result
             }
 
-            var dx = 0'f32
-            if point.x < frame.x do
+            var dx = 0_f32
+            if point.x < frame.x
+            {
                 dx = frame.x - point.x
-            elif point.x > frame.right() do
+            }
+            else if point.x > frame.right()
+            {
                 dx = point.x - frame.right()
+            }
 
-            var dy = 0'f32
-            if point.y < frame.y do
+            var dy = 0_f32
+            if point.y < frame.y
+            {
                 dy = frame.y - point.y
-            elif point.y > frame.bottom() do
+            }
+            else if point.y > frame.bottom()
+            {
                 dy = point.y - frame.bottom()
+            }
 
             // An atom on the pointed line beats every atom of another line, however close.
             let score = dy * 4096 + dx
-            if score >= result.distance do
+            if score >= result.distance
+            {
                 continue
+            }
+
             result.distance = score
             result.offset   = point.x <= frame.x ? atom.textStart : atom.textStart + atomTextLength(atom)
         }
 
-        if result.distance == Swag.F32.Max do
+        if result.distance == Swag.F32.Max
+        {
             result.distance = 0
+        }
+
         return result
     }
 
@@ -1295,36 +1530,45 @@ impl InlineView
         var result: #returntype
         let source = .text()
         let length = source.length
-        if not length do
+        if not length
+        {
             return result
+        }
 
         // One pass records where each rune starts and whether it belongs to a word; the word is
         // then the run of word runes around the rune holding the offset, or that rune alone.
-        var starts: Array'u64
-        var words:  Array'bool
-        var scan = 0'u64
+        var starts: Array!{u64}
+        var words:  Array!{bool}
+        var scan = 0_u64
         while scan < length
         {
             let {c: value, eat} = Utf8.decodeRune(source.toString()[scan to])
             starts.add(scan)
-            words.add(Unicode.isLetterOrDigit(value) or value == '_'rune)
+            words.add(Unicode.isLetterOrDigit(value) or value == '_'_rune)
             scan += eat
         }
 
         starts.add(scan)
         let position  = Math.min(offset, length - 1)
-        var runeIndex = 0'u64
-        for i in words.count where starts[i] <= position do
+        var runeIndex = 0_u64
+        for i in words.count where starts[i] <= position
+        {
             runeIndex = i
+        }
 
         var lo = runeIndex
         var hi = runeIndex
         if words[runeIndex]
         {
-            while lo and words[lo - 1] do
+            while lo and words[lo - 1]
+            {
                 lo -= 1
-            while hi + 1 < words.count and words[hi + 1] do
+            }
+
+            while hi + 1 < words.count and words[hi + 1]
+            {
                 hi += 1
+            }
         }
 
         result.start = starts[lo]
@@ -1337,8 +1581,8 @@ impl InlineView
     // Width of the longest line when nothing wraps, used by tables to size columns from content.
     mtd naturalWidth()->f32
     {
-        var widest = 0'f32
-        var x      = 0'f32
+        var widest = 0_f32
+        var x      = 0_f32
         for &atom in .atoms
         {
             if atom.isBreak
@@ -1357,7 +1601,7 @@ impl InlineView
 
     func create(owner: *View, parent: *Wnd, source: string, kind: BlockKind)->*InlineView
     {
-        let result = Wnd.create'InlineView(parent, "gui.markdown.inline")
+        let result = Wnd.create!{InlineView}(parent, "gui.markdown.inline")
         result.owner               = owner
         result.images.basePath     = owner.fileName.isEmpty() ? "" : (Path.directoryName(owner.fileName.toString()) orelse "")
         result.images.asynchronous = not owner.app().deterministicStreaming
@@ -1368,10 +1612,15 @@ impl InlineView
         // after the cell to its left — so registering here is what puts the document in order.
         result.orderIndex = owner.registerInline(result)
 
-        if kind >= .Heading1 and kind <= .Heading6 do
+        if kind >= .Heading1 and kind <= .Heading6
+        {
             result.horizontalAlignment = result.headingAlignment()
-        elif kind == .Paragraph do
+        }
+        else if kind == .Paragraph
+        {
             result.horizontalAlignment = owner.documentStyle.paragraphAlignment
+        }
+
         result.parse(source)
         return result
     }
@@ -1450,7 +1699,7 @@ impl IWnd for InlineView
             painter.fillRect(rect, .themeColors().edit_Bk)
             painter.drawRect(rect, .themeColors().edit_Border, 1)
         }
-        elif .kind == .Metadata or .kind == .TableOfContents
+        else if .kind == .Metadata or .kind == .TableOfContents
         {
             painter.fillRect(rect, .themeColors().edit_Bk)
         }
@@ -1463,12 +1712,12 @@ impl IWnd for InlineView
                 accent = .themeColors().embInfo_InformationText
                 painter.fillRect(rect, .themeColors().embInfo_InformationBk)
             }
-            elif .kind == .AlertWarning
+            else if .kind == .AlertWarning
             {
                 accent = .themeColors().embInfo_MessageText
                 painter.fillRect(rect, .themeColors().embInfo_MessageBk)
             }
-            elif .kind == .AlertCaution
+            else if .kind == .AlertCaution
             {
                 accent = .themeColors().embInfo_CriticalText
                 painter.fillRect(rect, .themeColors().embInfo_CriticalBk)
@@ -1521,8 +1770,11 @@ impl IWnd for InlineView
             if atom.textBatch != Swag.U32.Max
             {
                 let batch = &.textBatches[atom.textBatch]
-                if batch.firstAtom == index do
+                if batch.firstAtom == index
+                {
                     painter.drawShapedRun(batch.origin.x, batch.origin.y, &batch.shaped, batch.font, Brush.createSolid(color))
+                }
+
                 continue
             }
 
@@ -1537,7 +1789,7 @@ impl IWnd for InlineView
                     defer painter.setInterpolationMode(interpolation)
                     painter.drawTexture(atom.position, texture[], Color.fromArgb(Argb.White))
                 }
-                elif .images.asynchronous and .images.fetch(atom.imageSource.toString()) != null
+                else if .images.asynchronous and .images.fetch(atom.imageSource.toString()) != null
                 {
                     .images.paintLoading(me, painter, atom.position)
                 }
@@ -1546,7 +1798,7 @@ impl IWnd for InlineView
                     painter.drawRect(atom.position, .themeColors().edit_Border, 1)
                 }
             }
-            elif atom.isMath
+            else if atom.isMath
             {
                 var options: MathLayoutOptions
                 options.style = .Text
@@ -1609,10 +1861,14 @@ impl IWnd for InlineView
                 .invalidateRenderCache()
             }
 
-            if atom do
+            if atom
+            {
                 .app().setFrameCursor(Cursor.from(.Hand))
-            else do
+            }
+            else
+            {
                 .app().setFrameCursor(Cursor.from(.IBeam))
+            }
 
         case .Leave:
             if .hotAtom
@@ -1641,8 +1897,10 @@ impl IWnd for InlineView
             }
 
             .owner.endSelection()
-            if .mouseCapture() == cast(*Wnd, me) do
+            if .mouseCapture() == cast(*Wnd, me)
+            {
                 .releaseMouse()
+            }
 
         case .DoubleClick where evt.button == .Left:
             .owner.selectWordAt(me, .textPositionAt(.surfaceToLocal(evt.surfacePos)).offset)

@@ -24,10 +24,10 @@ struct Node
     real:      f64
     boolean:   bool
     text:      String
-    values:    Array'u32
-    entries:   HashTable'(String, u32)
+    values:    Array!{u32}
+    entries:   HashTable!{String, u32}
     reference: u32
-    stream:    Array'u8
+    stream:    Array!{u8}
 
     // Generation of an indirect reference. Two objects may carry the same number with
     // different generations, and only the pair names one of them.
@@ -57,9 +57,9 @@ struct XrefEntry
 // object can pull another stream in, so these live in an ArrayPtr rather than in the table.
 struct ObjectStream
 {
-    data:    Array'u8
-    numbers: Array'u32
-    offsets: Array'u64
+    data:    Array!{u8}
+    numbers: Array!{u32}
+    offsets: Array!{u64}
     first:   u64
 }
 
@@ -67,8 +67,8 @@ struct PdfParser
 {
     bytes:   const [..] u8 = cast(const [..] u8, "")
     pos:     u64
-    nodes:   Array'Node
-    objects: HashTable'(u32, u32)
+    nodes:   Array!{Node}
+    objects: HashTable!{u32, u32}
 
     // Filled by the trailer scan: the catalog and metadata dictionaries the file itself
     // names, and whether it declares a security handler.
@@ -80,12 +80,12 @@ struct PdfParser
     // Where each object lives, from the file's own cross-reference chain, and how deep the
     // lazy parse currently is. An object is parsed the first time something asks for it, and
     // `objects` is where the parsed node is remembered.
-    xref:        HashTable'(u32, XrefEntry)
+    xref:        HashTable!{u32, XrefEntry}
     objectDepth: u32
     hasScanned:  bool
 
-    objectStreams:     ArrayPtr'ObjectStream
-    objectStreamIndex: HashTable'(u32, u32)
+    objectStreams:     ArrayPtr!{ObjectStream}
+    objectStreamIndex: HashTable!{u32, u32}
 
     // Images already decoded from this document, keyed by the image object together with the
     // resource dictionary that resolved its color space.
@@ -95,9 +95,7 @@ struct PdfParser
     // single largest cost of walking such a document, and the result is byte-identical every
     // time. The pair is the key because a named color space is defined by the resources in
     // force, so the same object under different resources is not the same image.
-    retainImageStreams:      bool
-    imageCache:       HashTable'(u64, ImageReference)
-    deviceImageCache: HashTable'(u32, ImageReference)
+    imageCache:      HashTable!{u64, Image}
     imageCacheBytes: u64
 
     // Fonts already decoded from this document, keyed by the font object.
@@ -106,15 +104,15 @@ struct PdfParser
     // embedded program, rebuilds the same encoding and width tables, and leaves each page
     // holding its own copy of the bytes: a hundred-page thesis with a four-hundred-kilobyte
     // family carries forty megabytes of duplicated font data.
-    fontCache: HashTable'(u32, FontResource)
+    fontCache: HashTable!{u32, FontResource}
 
     // Soft mask groups already decoded, keyed by the group object and the transform it was
     // established under.
     //
     // A drop shadow is one mask group per shadowed object, and a template repeating a shadowed
-    // element can reuse the decoded group. The key includes the transform that remains after
-    // extracting any integral translation, along with the coverage mode and backdrop.
-    softMaskCache: HashTable'(SoftMaskKey, SoftMaskGroup)
+    // element pays the group's content parse once per page that shows it otherwise. The transform
+    // is part of the key because the same group placed twice is two different coverages.
+    softMaskCache: HashTable!{u64, SoftMaskGroup}
 }
 
 // How much decoded image data one document keeps.
@@ -122,7 +120,7 @@ struct PdfParser
 // The cache exists to stop a repeated image being decoded once per page, not to hold a whole
 // document's rasters: past this, a document with many distinct large images would trade an
 // unbounded amount of memory for pages it has already left behind.
-const ImageCacheBudget = 64 * 1024 * 1024'u64
+const ImageCacheBudget = 64 * 1024 * 1024_u64
 
 // Returns the cache key of one decoded image.
 func imageCacheKey(imageId, resourcesId: u32)->u64 => (cast(u64, imageId) << 32) | cast(u64, resourcesId)

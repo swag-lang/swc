@@ -90,7 +90,7 @@ struct BaseForm
     // Grouping prepends a fresh id shared by every member; ungrouping pops the front,
     // so nested groups collapse one level at a time. Ids are minted by Capture and
     // remapped on paste; the field is style-agnostic (copyBase/isSameBase ignore it).
-    groups: Array'u64
+    groups: Array!{u64}
 
     // When the form shows in a timed capture, in microseconds from its start: from `timeStart`,
     // until `timeEnd` excluded, or to the end when `timeEnd` is zero. A picture ignores both, and
@@ -110,8 +110,11 @@ impl BaseForm
 {
     internal mtd const ownerApp()->*Application
     {
-        if .capture and .capture.editView do
+        if .capture and .capture.editView
+        {
             return .capture.editView.app()
+        }
+
         return &g_App
     }
 
@@ -131,8 +134,10 @@ impl BaseForm
     // joins, caps, and the antialiasing fringe of the form itself.
     func paintOverdraw(itf: IForm, quickMode: bool)->f32
     {
-        if quickMode do
+        if quickMode
+        {
             return QuickPaintOverdraw
+        }
 
         let base: *BaseForm = itf
         let type   = Swag.kindOf(itf)
@@ -154,7 +159,7 @@ impl BaseForm
             let end    = Painter.capStyleRadius(line.endCap, stroke, line.endSize)
             extent = Math.max(stroke * 1.5, beg, end) + line.outlineSize
         }
-        elif type == FormDraw
+        else if type == FormDraw
         {
             let draw = assume cast(*FormDraw, base)
             extent = base.borderSize * 1.5 + draw.outlineSize
@@ -176,8 +181,11 @@ impl BaseForm
 
     func adaptSize(size: f32, minSize, maxSize: f32, cxt: FormPaintContext, dstMin: f32 = 2, dstMax: f32 = 5)->f32
     {
-        if not cxt.quickMode do
+        if not cxt.quickMode
+        {
             return size * cxt.z
+        }
+
         return Math.map(size * cxt.z, minSize, maxSize, dstMin, dstMax)
     }
 
@@ -186,8 +194,11 @@ impl BaseForm
     // FormImage opts out of the backColor comparison for its processed kinds.
     mtd isSameBase(other: *BaseForm, compareBackColor = true)->bool
     {
-        if compareBackColor and .backColor != other.backColor do
+        if compareBackColor and .backColor != other.backColor
+        {
             return false
+        }
+
         return .borderColor == other.borderColor and
                .borderSize == other.borderSize and
                .alpha == other.alpha and
@@ -300,8 +311,10 @@ impl BaseForm
         // beyond the form's actual stroke/cap extent around the bound.
         var bound = formBound * z
         bound.inflate(BaseForm.paintOverdraw(itf, false) * z)
-        if not bound.contains(pos.x, pos.y) do
+        if not bound.contains(pos.x, pos.y)
+        {
             return false
+        }
 
         var painter: Painter
         painter.begin(layoutOnly: true)
@@ -321,8 +334,10 @@ impl BaseForm
                 let xx0 = painter.vertexBuffer[tri].pos
                 let xx1 = painter.vertexBuffer[tri + 1].pos
                 let xx2 = painter.vertexBuffer[tri + 2].pos
-                if Math.Geometry.triangleContainsPoint(pos, xx0, xx1, xx2) do
+                if Math.Geometry.triangleContainsPoint(pos, xx0, xx1, xx2)
+                {
                     return true
+                }
             }
         }
 
@@ -331,7 +346,7 @@ impl BaseForm
 }
 
 // Shared geometry of the forms defined by a cloud of points (FormDraw & FormPolygon)
-func offsetPoints(points: *Array'Math.Vector2, newPosX, newPosY: s32)
+func offsetPoints(points: *Array!{Math.Vector2}, newPosX, newPosY: s32)
 {
     for &pt in points[]
     {
@@ -340,19 +355,21 @@ func offsetPoints(points: *Array'Math.Vector2, newPosX, newPosY: s32)
     }
 }
 
-func scalePointsBy(points: *Array'Math.Vector2, scale: f32)
+func scalePointsBy(points: *Array!{Math.Vector2}, scale: f32)
 {
-    for &pt in points[] do
+    for &pt in points[]
+    {
         pt.x, pt.y *= scale
+    }
 }
 
 // Rescale all the points from the given bound to the given box.
 // Guard against a near-zero divisor (colinear/degenerate shapes): a zero width
 // or height would yield inf/NaN and destroy every point, so keep scale at 1.
-func scalePointsTo(points: *Array'Math.Vector2, bound: Math.Rectangle, newPosX, newPosY, newSizeX, newSizeY: s32)
+func scalePointsTo(points: *Array!{Math.Vector2}, bound: Math.Rectangle, newPosX, newPosY, newSizeX, newSizeY: s32)
 {
-    let fx = Math.isZeroEpsilon(bound.width) ? 1'f32 : newSizeX / bound.width
-    let fy = Math.isZeroEpsilon(bound.height) ? 1'f32 : newSizeY / bound.height
+    let fx = Math.isZeroEpsilon(bound.width) ? 1_f32 : newSizeX / bound.width
+    let fy = Math.isZeroEpsilon(bound.height) ? 1_f32 : newSizeY / bound.height
 
     for &pt in points[]
     {
@@ -362,7 +379,7 @@ func scalePointsTo(points: *Array'Math.Vector2, bound: Math.Rectangle, newPosX, 
 }
 
 // Bounding rectangle of the points, optionally padded (half border size)
-func boundOfPoints(points: *Array'Math.Vector2, pad: f32 = 0)->Math.Rectangle
+func boundOfPoints(points: *Array!{Math.Vector2}, pad: f32 = 0)->Math.Rectangle
 {
     var result: #returntype
 

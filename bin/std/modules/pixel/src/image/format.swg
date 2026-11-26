@@ -60,8 +60,10 @@ impl ImageFormat
     // an error: a file dialog asks this question while its name editor is still empty.
     mtd const matches(fileName: string)->bool
     {
-        if fileName.count == 0 do
+        if fileName.count == 0
+        {
             return false
+        }
 
         var storage: String
         let ext = normalizedImageExtension(fileName, &storage)

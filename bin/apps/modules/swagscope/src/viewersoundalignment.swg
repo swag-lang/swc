@@ -12,16 +12,16 @@ private struct AlignmentInput
 struct SceneSoundAlignment
 {
     using work:      Viewer.BackgroundOperation
-    inputs:          Array'AlignmentInput
-    offsets:         Array'f64
+    inputs:          Array!{AlignmentInput}
+    offsets:         Array!{f64}
     sceneActivation: u64
     leader:          u64
 }
 
 impl SceneSoundAlignment
 {
-    const SampleRate    = 1000'u64
-    const SearchSamples = 4000's32
+    const SampleRate    = 1000_u64
+    const SearchSamples = 4000_s32
     const SampleCount   = 12 * SampleRate
 
     mtd start(workspace: *ViewerWorkspace, scene: *ViewerScene)
@@ -40,7 +40,7 @@ impl SceneSoundAlignment
             {
                 input.sound = player.film.audio[]
             }
-            elif player.sound
+            else if player.sound
             {
                 input.sound = player.sound.sound
             }
@@ -65,8 +65,11 @@ impl SceneSoundAlignment
     {
         let active = &.inputs[.leader]
         let left   = try .envelope(active)
-        if left.count < SampleRate do
+        if left.count < SampleRate
+        {
             return
+        }
+
         .offsets.resize(.inputs.count)
         for &input, index in .inputs where index != .leader
         {
@@ -88,15 +91,18 @@ impl SceneSoundAlignment
         }
     }
 
-    private mtd envelope(input: const *AlignmentInput)->Array'f32 fail
+    private mtd envelope(input: const *AlignmentInput)->Array!{f32} fail
     {
         var result: #returntype
         let sound    = &input.sound
         let rate     = cast(u64, sound.sampleRateHz())
         let channels = sound.numChannels()
         let first    = cast(u64, Math.max(0, input.position - sound.timelineStartSeconds()) * cast(f64, rate))
-        if not channels or rate < SampleRate or first >= sound.sampleFrameCount() do
+        if not channels or rate < SampleRate or first >= sound.sampleFrameCount()
+        {
             return result
+        }
+
         let count = Math.min(SampleCount * rate / SampleRate, sound.sampleFrameCount() - first)
         var accumulator: f64
         var next:        u64
@@ -129,7 +135,7 @@ impl SceneSoundAlignment
 func estimateSoundOffset(first, second: const [..] f32, maximumLag: s32)->{samples: s32, reliable: bool}
 {
     var best: f64 = -2.0
-    var lag       = 0's32
+    var lag       = 0_s32
     var candidate = -maximumLag
     while candidate <= maximumLag
     {
@@ -145,11 +151,14 @@ func estimateSoundOffset(first, second: const [..] f32, maximumLag: s32)->{sampl
 
     let coarse = lag
     best = -2
-    for delta in -6's32 to 6's32
+    for delta in -6_s32 to 6_s32
     {
         let shift = coarse + delta
-        if Math.abs(shift) > maximumLag do
+        if Math.abs(shift) > maximumLag
+        {
             continue
+        }
+
         let score = normalizedSoundCorrelation(first, second, shift, 2)
         if score > best
         {
@@ -165,11 +174,17 @@ private func normalizedSoundCorrelation(first, second: const [..] f32, lag: s32,
 {
     let a = lag < 0 ? cast(u64, -lag) : 0
     let b = lag > 0 ? cast(u64, lag) : 0
-    if a >= first.count or b >= second.count do
+    if a >= first.count or b >= second.count
+    {
         return -2
+    }
+
     let count = Math.min(first.count - a, second.count - b)
-    if count < 1500 do
+    if count < 1500
+    {
         return -2
+    }
+
     var x, y, xx, yy, xy: f64
     var n:      f64
     var offset: u64
@@ -187,8 +202,11 @@ private func normalizedSoundCorrelation(first, second: const [..] f32, lag: s32,
     }
 
     let variance = (xx - x * x / n) * (yy - y * y / n)
-    if variance <= 0.000_001 do
+    if variance <= 0.000_001
+    {
         return -2
+    }
+
     return (xy - x * y / n) / Math.sqrt(variance)
 }
 
@@ -197,31 +215,48 @@ impl ViewerWorkspace
     mtd alignSceneSound()
     {
         let scene = .scene()
-        if not scene or not .isMediaScene() or .alignSound.started do
+        if not scene or not .isMediaScene() or .alignSound.started
+        {
             return
+        }
+
         SceneSoundAlignment.start(&.alignSound, me, scene)
-        if not .alignSound.started do
+        if not .alignSound.started
+        {
             .reportAlignmentFailure()
+        }
     }
 
     mtd finishSoundAlignment(evt: *TaskEvent)->bool
     {
-        if not .alignSound.claim(evt) do
+        if not .alignSound.claim(evt)
+        {
             return false
+        }
+
         .alignSound.wait()
         let scene = .scene()
-        if not scene or scene.recent != .alignSound.sceneActivation do
+        if not scene or scene.recent != .alignSound.sceneActivation
+        {
             return true
+        }
+
         if .alignSound.offsets.count != scene.views.count
         {
             .reportAlignmentFailure()
             return true
         }
 
-        for view, index in scene.views where view.path != .alignSound.inputs[index].path do
+        for view, index in scene.views where view.path != .alignSound.inputs[index].path
+        {
             return true
-        for &view, index in scene.views do
+        }
+
+        for &view, index in scene.views
+        {
             view.offset = .alignSound.offsets[index]
+        }
+
         scene.links.mode = .Relative
         scene.links.time = true
         scene.linked     = true

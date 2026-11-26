@@ -11,8 +11,10 @@ var Out:   [4 * 64] u8
 
 func fillPlane()
 {
-    for i in 8 * 64 do
+    for i in 8 * 64
+    {
         Plane[i] = cast(u8, ((i * 5 + 1) & 0x7F))
+    }
 }
 
 // Six rows spaced by a runtime stride, summed lane by lane.
@@ -32,8 +34,10 @@ func sumSixRows(line: const [*] u8, stride: u64)->#simd [16] u8
 #[Swag.Optimize(true)]
 func spreadRows(dst: [*] u8, stride: u64, value: #simd [16] u8, rows: u64)
 {
-    for row in rows do
+    for row in rows
+    {
         cast([*] #simd [16] u8, (dst + row * stride))[0] = value + cast(u8, row)
+    }
 }
 
 #test
@@ -44,16 +48,20 @@ func spreadRows(dst: [*] u8, stride: u64, value: #simd [16] u8, rows: u64)
     for lane in 16
     {
         var expected: u32
-        for k in 6 do
+        for k in 6
+        {
             expected += cast(u32, Plane[64 + k * 64 + lane])
+        }
         Swag.require(sums[lane] == cast(u8, (expected & 0xFF)))
     }
 
-    let seed = cast(#simd [16] u8, [1'u8, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16])
+    let seed = cast(#simd [16] u8, [1_u8, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16])
     spreadRows(&Out[0], 64, seed, 4)
-    for row in 4'u64
+    for row in 4_u64
     {
-        for lane in 16'u64 do
+        for lane in 16_u64
+        {
             Swag.require(Out[row * 64 + lane] == cast(u8, (lane + 1 + row)))
+        }
     }
 }

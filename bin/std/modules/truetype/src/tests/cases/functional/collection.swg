@@ -17,9 +17,9 @@ using Swag, Core
 // Counting faces rejects empty collections and validates every declared offset.
 #test
 {
-    var truncated: Array'u8
+    var truncated: Array!{u8}
     truncated.resize(12)
-    writeBigU32(&truncated, 0, imageTag('t'u32, 't'u32, 'c'u32, 'f'u32))
+    writeBigU32(&truncated, 0, imageTag('t'_u32, 't'_u32, 'c'_u32, 'f'_u32))
 
     var emptyOutcome: Swag.Error
     discard catch Face.countFaces(truncated.toSlice()) as emptyOutcome

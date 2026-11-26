@@ -21,8 +21,8 @@ struct ViewerResumePoint
 impl ViewerResumePoint
 {
     // Below this share the reader barely started; above it the file was read through.
-    const StartedShare  = 0.01'f32
-    const FinishedShare = 0.97'f32
+    const StartedShare  = 0.01_f32
+    const FinishedShare = 0.97_f32
 
     // Measures how far into its file `session` stands, and reports whether there is something to
     // take up again.
@@ -35,21 +35,27 @@ impl ViewerResumePoint
         case Viewers.Film.Panel as view:
             .length  = view.video.durationInSeconds()
             .seconds = Math.clamp(view.currentSeconds(), 0, .length)
-            if .length > 0 do
+            if .length > 0
+            {
                 .progress = cast(f32, .seconds / .length)
+            }
 
         case Viewers.Sound.Panel as view:
             .length  = cast(f64, view.duration)
             .seconds = view.voice ? view.voice.playbackPositionSeconds() : cast(f64, view.elapsed)
             .seconds = Math.clamp(.seconds, 0, .length)
-            if .length > 0 do
+            if .length > 0
+            {
                 .progress = cast(f32, .seconds / .length)
+            }
 
         case Viewers.PdfDocument.Panel as view:
             .pages = view.pdfView.pageCount()
             .page  = view.pdfView.pageIndex
-            if .pages > 1 do
+            if .pages > 1
+            {
                 .progress = cast(f32, .page) / cast(f32, .pages - 1)
+            }
 
         default:
             .progress = ViewerResumePoint.scrolledShare(unwrap session.view)
@@ -65,16 +71,21 @@ impl ViewerResumePoint
         if wnd is ScrollWnd as scroll
         {
             let room = scroll.scrollSize.y - scroll.view.clientRect().height
-            if room <= 1 do
+            if room <= 1
+            {
                 return 0
+            }
+
             return Math.clamp(scroll.scrollPosition().y / room, 0, 1)
         }
 
         for child in wnd.children
         {
             let share = ViewerResumePoint.scrolledShare(child[])
-            if share > 0 do
+            if share > 0
+            {
                 return share
+            }
         }
 
         return 0
@@ -85,20 +96,32 @@ impl ViewerResumePoint
     mtd const positionText()->String
     {
         let texts = appStrings()
-        if .length > 0 do
+        if .length > 0
+        {
             return Format.toString(texts.home_ResumeAt, Viewer.timeText(.seconds))
-        if .pages > 0 do
+        }
+
+        if .pages > 0
+        {
             return Format.toString(texts.home_ResumePage, .page + 1, .pages)
+        }
+
         return Format.toString(texts.home_ResumeShare, cast(u32, Math.round(.progress * 100)))
     }
 
     // Writes the position the way a tile's facts line carries it, in mono and short.
     mtd const shortText()->String
     {
-        if .length > 0 do
+        if .length > 0
+        {
             return Format.toString("% / %", Viewer.timeText(.seconds), Viewer.durationText(.length))
-        if .pages > 0 do
+        }
+
+        if .pages > 0
+        {
             return Format.toString(appStrings().home_PageShort, .page + 1, .pages)
+        }
+
         return Format.toString("% %%", cast(u32, Math.round(.progress * 100)))
     }
 }
@@ -112,33 +135,48 @@ impl ViewerWindow
     // through. Only a file of the history keeps one: the home is the only place that offers it.
     mtd captureResume()
     {
-        if .thumbnailMode or .currentFile.isEmpty() or .activeChoiceIndex >= .instances.count do
+        if .thumbnailMode or .currentFile.isEmpty() or .activeChoiceIndex >= .instances.count
+        {
             return
-        if not .privacy.mayRemember(.currentFile) do
+        }
+
+        if not .privacy.mayRemember(.currentFile)
+        {
             return
+        }
+
         let session = &.instances[.activeChoiceIndex]
-        if not session.view or not .recent.contains(.currentFile) do
+        if not session.view or not .recent.contains(.currentFile)
+        {
             return
+        }
 
         var point: ViewerResumePoint
         let keep = point.measure(session)
         .forgetResume(.currentFile)
-        if not keep do
+        if not keep
+        {
             return
+        }
 
         point.file = .currentFile
         point.reading.capture(session, .choices[.activeChoiceIndex].key, "")
         point.reading.restoring = false
         .resumePoints.insertAt(0, #move point)
-        while .resumePoints.count > ResumeCount do
+        while .resumePoints.count > ResumeCount
+        {
             .resumePoints.removeBack()
+        }
     }
 
     // Returns where `fileName` was left, or null when there is nothing to take up again.
     mtd resumePoint(fileName: string)->const *ViewerResumePoint?
     {
-        for &point in .resumePoints where Path.equals(point.file, fileName) do
+        for &point in .resumePoints where Path.equals(point.file, fileName)
+        {
             return point
+        }
+
         return null
     }
 
@@ -155,10 +193,15 @@ impl ViewerWindow
     // Keeps the points of the files still in the history, and only those.
     mtd pruneResume()
     {
-        for i in reversed(.resumePoints.count) where not .recent.contains(.resumePoints[i].file) do
+        for i in reversed(.resumePoints.count) where not .recent.contains(.resumePoints[i].file)
+        {
             .resumePoints.removeAtOrdered(i)
-        while .resumePoints.count > ResumeCount do
+        }
+
+        while .resumePoints.count > ResumeCount
+        {
             .resumePoints.removeBack()
+        }
     }
 
     // Opens `fileName` where the reader left it, or from its start when it has no point.

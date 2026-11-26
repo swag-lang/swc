@@ -5,8 +5,10 @@ using Core, Pixel
 
 func writePdf(layout: const *Layout, options: JobOptions, fileName: string) fail
 {
-    if options.first >= options.end or options.end > layout.pageCount do
+    if options.first >= options.end or options.end > layout.pageCount
+    {
         fail PrintError{.InvalidRange}
+    }
 
     var output = try File.open(fileName, .CreateNew, .Write, .Delete)
     try Pdf.writeGeneratedDocument(&output, options.end - options.first, func|layout, first = options.first|(index)->Pdf.Page fail

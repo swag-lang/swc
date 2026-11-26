@@ -13,9 +13,9 @@ using Core, Pixel
     host.notify(.ThemeChanged)
     host.root.backgroundStyle = .View
     host.root.style.setStyleSheetColors("view_Bk 0xFFFBF8F1")
-    let scroll = Wnd.create'ScrollWnd(&host.root, "", {0, 0, 520, 300})
+    let scroll = Wnd.create!{ScrollWnd}(&host.root, "", {0, 0, 520, 300})
     scroll.updateFlags(.DisableHorizontal)
-    let view  = scroll.createView'Wnd()
+    let view  = scroll.createView!{Wnd}()
     let title = Label.create(view, "A page keeps its own ground", {24, 24, 440, 40})
     title.style.setStyleSheetColors("label_Text 0xFF222222")
     scroll.setScrollSize(0, 100_000)
@@ -41,8 +41,8 @@ using Core, Pixel
     host.notify(.ThemeChanged)
     host.root.backgroundStyle = .View
     host.root.style.setStyleSheetColors("view_Bk 0xFF17181C")
-    let scroll = Wnd.create'ScrollWnd(&host.root, "", {0, 0, 520, 220})
-    let view   = scroll.createView'Wnd()
+    let scroll = Wnd.create!{ScrollWnd}(&host.root, "", {0, 0, 520, 220})
+    let view   = scroll.createView!{Wnd}()
     let title  = Label.create(view, "The thumb carries the gesture", {24, 24, 440, 40})
     title.style.setStyleSheetColors("label_Text 0xFFECEDF0")
     scroll.setScrollSize(100_000, 0)

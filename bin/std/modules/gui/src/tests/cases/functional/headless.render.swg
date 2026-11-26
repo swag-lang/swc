@@ -15,8 +15,11 @@ impl IWnd for SettledPaintWnd
 {
     mtd impl onPaint(evt: *PaintEvent)
     {
-        if evt.kind != .Content do
+        if evt.kind != .Content
+        {
             return
+        }
+
         .paints += 1
         if .animate and .paints == 1
         {
@@ -29,7 +32,7 @@ impl IWnd for SettledPaintWnd
                                                    let target = assume cast(*SettledPaintWnd, wnd)
                                                    target.value = value
                                                },
-                                               {duration: 100'ms})
+                                               {duration: 100_ms})
         }
 
         evt.paintContext.painter.fillRect(.clientRect(), .value == 1 ? Argb.White : Argb.Black)
@@ -45,7 +48,7 @@ impl IWnd for SettledPaintWnd
         host.setup(48, 32)
         Swag.require(host.app.renderer is RenderCpu and not host.app.renderer.needsNativeWindow())
         host.setReducedMotion(false)
-        let view = Wnd.create'SettledPaintWnd(&host.root, {0, 0, 48, 32})
+        let view = Wnd.create!{SettledPaintWnd}(&host.root, {0, 0, 48, 32})
 
         // The first paint resolves style and can invalidate layout. Measure an idle tree
         // after that initialization, rather than requiring initialization to be paint-free.
@@ -85,16 +88,18 @@ impl IWnd for SettledPaintWnd
 // commands for the painter to clip away afterwards.
 #test
 {
-    const Columns = 8's32
-    const Rows    = 8's32
+    const Columns = 8_s32
+    const Rows    = 8_s32
 
     var host: Testing.HeadlessHost
     host.setup(640, 400)
 
     for row in Rows
     {
-        for column in Columns do
+        for column in Columns
+        {
             discard PushButton.create(&host.root, "grid", Math.Rectangle{cast(f32, (column * 78 + 4)), cast(f32, (row * 46 + 4)), 70, 38})
+        }
     }
 
     host.pump()

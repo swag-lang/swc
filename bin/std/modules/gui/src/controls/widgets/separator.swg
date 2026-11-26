@@ -62,12 +62,16 @@ impl Separator
 
         let size = parent.themeMetrics().separator_HairlineSize
         var position: Math.Rectangle
-        if dock == .Top or dock == .Bottom do
+        if dock == .Top or dock == .Bottom
+        {
             position.height = size
-        else do
+        }
+        else
+        {
             position.width = size
+        }
 
-        let result = Wnd.create'Separator(parent, null, position, id)
+        let result = Wnd.create!{Separator}(parent, null, position, id)
         result.dockStyle = dock
         return result
     }

@@ -77,10 +77,15 @@ func chacha20Poly1305Authenticate(key, nonce, associatedData, ciphertext: const 
 // ```
 public func chacha20Poly1305Seal(key, nonce, plaintext, associatedData: const [..] u8, ciphertext: [..] u8, tag: [..] u8) fail
 {
-    if tag.count != ChaCha20Poly1305TagSize do
+    if tag.count != ChaCha20Poly1305TagSize
+    {
         fail Errors.BadParameterError{"ChaCha20-Poly1305 needs a 16-byte tag"}
-    if ciphertext.count != plaintext.count do
+    }
+
+    if ciphertext.count != plaintext.count
+    {
         fail Errors.BadParameterError{"ChaCha20-Poly1305 needs matching plaintext and ciphertext lengths"}
+    }
 
     var computed: Poly1305Tag
     if plaintext.count and plaintext.count <= ChaCha20BlockSize
@@ -110,13 +115,17 @@ public func chacha20Poly1305Seal(key, nonce, plaintext, associatedData: const [.
 // [[Core.Errors.BadParameterError]] when `key` does not hold 32 bytes or `nonce` 12.
 public func chacha20Poly1305Open(key, nonce, ciphertext, tag, associatedData: const [..] u8, plaintext: [..] u8)->bool fail
 {
-    if tag.count != ChaCha20Poly1305TagSize or ciphertext.count != plaintext.count do
+    if tag.count != ChaCha20Poly1305TagSize or ciphertext.count != plaintext.count
+    {
         return false
+    }
 
     var computed = try chacha20Poly1305Authenticate(key, nonce, associatedData, ciphertext)
     defer secureClear(computed)
-    if not constantTimeEqual(computed, tag) do
+    if not constantTimeEqual(computed, tag)
+    {
         return false
+    }
 
     try chacha20Xor(key, nonce, ciphertext, plaintext, 1)
     return true

@@ -36,8 +36,10 @@ impl Image
             .rotate(.Clockwise270)
         }
 
-        if orientation >= 2 and orientation <= 8 do
+        if orientation >= 2 and orientation <= 8
+        {
             Exif.resetOrientation(&.metadata)
+        }
     }
 
     // Returns an upright copy of the image for an EXIF `Orientation` value.

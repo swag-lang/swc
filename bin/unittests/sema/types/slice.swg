@@ -47,10 +47,10 @@ func semaTest005()
 
 func semaTest006()
 {
-    const s: const [..] u16 = [1'u8, 2'u16, 3]
+    const s: const [..] u16 = [1_u8, 2_u16, 3]
     Swag.assert(s.count == 3)
-    Swag.assert(s[0] == 1'u16)
-    Swag.assert(s[2] == 3'u16)
+    Swag.assert(s[0] == 1_u16)
+    Swag.assert(s[2] == 3_u16)
 }
 
 func semaTest007()

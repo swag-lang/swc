@@ -25,8 +25,11 @@ func day1B()
         for
         {
             fuel = (fuel / 3) - 2
-            if fuel <= 0 do
+            if fuel <= 0
+            {
                 break
+            }
+
             total += fuel
         }
     }

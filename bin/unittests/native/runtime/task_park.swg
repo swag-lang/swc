@@ -13,8 +13,10 @@ func awaitFlag(flag: *Swag.AtomicFlag)->bool
 {
     for 1000
     {
-        if flag.isRaised() do
+        if flag.isRaised()
+        {
             return true
+        }
         Sleep(1)
     }
     return false
@@ -25,8 +27,10 @@ func awaitParked(count: u32)->bool
     let scheduler = Swag.schedulerInstance()
     for 1000
     {
-        if scheduler.joining.load() >= count do
+        if scheduler.joining.load() >= count
+        {
             return true
+        }
         Sleep(1)
     }
     return false
@@ -36,8 +40,10 @@ func awaitParked(count: u32)->bool
 // The child has a bounded observation window so the old busy waiter fails without hanging.
 #test
 {
-    if Swag.jit() do
+    if Swag.jit()
+    {
         return
+    }
     Swag.setWorkerCount(4)
     var release, blocked, started: Swag.AtomicFlag
     var parked = false
@@ -50,8 +56,10 @@ func awaitParked(count: u32)->bool
     blocker.submit(func|&blocked, &release|()
     {
         blocked.raise()
-        while not release.isRaised() do
+        while not release.isRaised()
+        {
             Sleep(1)
+        }
     })
     target.submit(func|&started, &parked|()
     {
@@ -96,8 +104,10 @@ func observe(param: *void?)->u32
 // observers join, and reuses it only after every previous observer has returned.
 #test
 {
-    if Swag.jit() do
+    if Swag.jit()
+    {
         return
+    }
     Swag.setWorkerCount(4)
     var started: Swag.AtomicFlag
     var parked = false

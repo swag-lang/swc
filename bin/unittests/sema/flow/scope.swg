@@ -40,8 +40,10 @@ func semaTest004()
     {
         scope(Grouped)
         {
-            if index == 3 do
+            if index == 3
+            {
                 continue
+            }
             break
         }
     }

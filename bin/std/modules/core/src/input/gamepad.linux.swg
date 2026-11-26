@@ -17,11 +17,16 @@ private func evdevIoctl(fd: s32, request: u64, destination: *void)->s32 fail
     for
     {
         let result = Linux.ioctl(fd, request, destination)
-        if result >= 0 do
+        if result >= 0
+        {
             return result
+        }
+
         let error = Linux.errno()
-        if error != Linux.EINTR do
+        if error != Linux.EINTR
+        {
             try Errors.failLinuxError(error)
+        }
     }
 }
 
@@ -29,37 +34,54 @@ private func evdevIoctl(fd: s32, request: u64, destination: *void)->s32 fail
 private func openEvdevGamepad(padIndex: u32, writable: bool = false)->EvdevDevice fail
 {
     let directory = Linux.opendir("/dev/input".buffer)
-    if not directory do
+    if not directory
+    {
         try Errors.failLinuxError(Linux.errno(), "/dev/input")
+    }
+
     let opened = unwrap directory
     defer discard Linux.closedir(opened)
-    var previous = -1's64
+    var previous = -1_s64
     for index in cast(u64, padIndex) + 1
     {
         var candidate = Swag.S64.Max
-        var selected  = -1's32
-        defer if selected >= 0 do
+        var selected  = -1_s32
+        defer if selected >= 0
+        {
             discard Linux.close(selected)
+        }
+
         Linux.rewinddir(opened)
         for
         {
             let entry = Linux.readdir(opened)
-            if not entry do
+            if not entry
+            {
                 break
+            }
+
             let name = entry.d_name
-            if name[0] != 'e' or name[1] != 'v' or name[2] != 'e' or name[3] != 'n' or name[4] != 't' do
+            if name[0] != 'e' or name[1] != 'v' or name[2] != 'e' or name[3] != 'n' or name[4] != 't'
+            {
                 continue
-            var number = 0's64
-            var digits = 0'u32
-            for position in 5'u32 until name.count
+            }
+
+            var number = 0_s64
+            var digits = 0_u32
+            for position in 5_u32 until name.count
             {
                 let digit = name[position]
-                if digit < '0' or digit > '9' do
+                if digit < '0' or digit > '9'
+                {
                     break
+                }
+
                 number = number * 10 + cast(s64, digit - '0')
                 digits += 1
-                if digits > 10 do
+                if digits > 10
+                {
                     break
+                }
             }
 
             if not digits or
@@ -67,14 +89,23 @@ private func openEvdevGamepad(padIndex: u32, writable: bool = false)->EvdevDevic
                number > Swag.U32.Max or
                name[5 + digits] or
                number <= previous or
-               number >= candidate do
+               number >= candidate
+            {
                 continue
+            }
+
             let fd = Linux.openat(Linux.dirfd(opened), &entry.d_name[0], Linux.O_RDONLY | Linux.O_NONBLOCK | Linux.O_CLOEXEC)
-            if fd < 0 do
+            if fd < 0
+            {
                 continue
+            }
+
             var keep = false
-            defer if not keep do
+            defer if not keep
+            {
                 discard Linux.close(fd)
+            }
+
             var keys: [96] u8
             var axes: [8] u8
             let keyResult  = catch evdevIoctl(fd, Linux.EVIOCGBIT(Linux.EV_KEY, keys.count), &keys) { continue }
@@ -83,35 +114,56 @@ private func openEvdevGamepad(padIndex: u32, writable: bool = false)->EvdevDevic
                axisResult == 0 or
                not evdevHasBit(keys, Linux.BTN_GAMEPAD) or
                not evdevHasBit(axes, Linux.ABS_X) or
-               not evdevHasBit(axes, Linux.ABS_Y) do
+               not evdevHasBit(axes, Linux.ABS_Y)
+            {
                 continue
-            if selected >= 0 do
+            }
+
+            if selected >= 0
+            {
                 discard Linux.close(selected)
+            }
+
             selected  = fd
             candidate = number
             keep      = true
         }
 
-        if selected < 0 do
+        if selected < 0
+        {
             try Errors.failLinuxError(Linux.ENODEV)
+        }
+
         if index == padIndex
         {
             if writable
             {
                 let name = Format.toString("event%", candidate)
                 let fd   = Linux.openat(Linux.dirfd(opened), name.storage(), Linux.O_RDWR | Linux.O_NONBLOCK | Linux.O_CLOEXEC)
-                if fd < 0 do
+                if fd < 0
+                {
                     try Errors.failLinuxError(Linux.errno())
+                }
+
                 var keep = false
-                defer if not keep do
+                defer if not keep
+                {
                     discard Linux.close(fd)
+                }
+
                 var original, replacement: Linux.stat
-                if Linux.fstat(selected, &original) != 0 or Linux.fstat(fd, &replacement) != 0 do
+                if Linux.fstat(selected, &original) != 0 or Linux.fstat(fd, &replacement) != 0
+                {
                     try Errors.failLinuxError(Linux.errno())
+                }
+
                 if original.st_dev != replacement.st_dev or
                    original.st_ino != replacement.st_ino or
-                   original.st_rdev != replacement.st_rdev do
+                   original.st_rdev != replacement.st_rdev
+                {
                     try Errors.failLinuxError(Linux.ENODEV)
+                }
+
                 keep = true
                 return {fd, cast(u32, candidate)}
             }
@@ -145,8 +197,11 @@ public impl Gamepad
 // Convert the advertised native range without overflowing for full signed 32-bit axis ranges.
 internal func normalizeEvdevAxis(info: Linux.input_absinfo, maximum: u16, invert: bool = false)->u32
 {
-    if info.maximum <= info.minimum do
+    if info.maximum <= info.minimum
+    {
         return 0
+    }
+
     let low      = cast(s64, info.minimum)
     let high     = cast(s64, info.maximum)
     let value    = Math.clamp(cast(s64, info.value), low, high)
@@ -170,21 +225,29 @@ internal func readRawGamepadState(padIndex: u32)->RawGamepadState fail
                     Linux.BTN_DPAD_LEFT, Linux.BTN_DPAD_RIGHT]
     let buttons: [14] RawGamepadButtons = [.A, .B, .X, .Y, .LeftStick, .RightStick, .Start, .Back,
                                            .LeftShoulder, .RightShoulder, .DPadUp, .DPadDown, .DPadLeft, .DPadRight]
-    for code, index in mappings where evdevHasBit(keys, code) do
+    for code, index in mappings where evdevHasBit(keys, code)
+    {
         result.buttons |= buttons[index]
+    }
 
     func axis(fd: s32, axes: const [..] u8, code: u32)->Linux.input_absinfo fail
     {
         var info: #returntype
-        if evdevHasBit(axes, code) do
+        if evdevHasBit(axes, code)
+        {
             discard try evdevIoctl(fd, Linux.EVIOCGABS(code), &info)
+        }
+
         return info
     }
 
     func stick(info: Linux.input_absinfo, invert: bool = false)->s16
     {
-        if info.maximum <= info.minimum do
+        if info.maximum <= info.minimum
+        {
             return 0
+        }
+
         return cast(s16, cast(s32, normalizeEvdevAxis(info, 65535, invert)) - 32768)
     }
 
@@ -196,13 +259,25 @@ internal func readRawGamepadState(padIndex: u32)->RawGamepadState fail
     result.rightTrigger = cast(u8, normalizeEvdevAxis(try axis(fd, axes, Linux.ABS_RZ), 255))
     let hatX = try axis(fd, axes, Linux.ABS_HAT0X)
     let hatY = try axis(fd, axes, Linux.ABS_HAT0Y)
-    if hatX.value < 0 do
+    if hatX.value < 0
+    {
         result.buttons |= .DPadLeft
-    if hatX.value > 0 do
+    }
+
+    if hatX.value > 0
+    {
         result.buttons |= .DPadRight
-    if hatY.value < 0 do
+    }
+
+    if hatY.value < 0
+    {
         result.buttons |= .DPadUp
-    if hatY.value > 0 do
+    }
+
+    if hatY.value > 0
+    {
         result.buttons |= .DPadDown
+    }
+
     return result
 }

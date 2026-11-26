@@ -14,7 +14,7 @@ alias MksliceStrictConstS32Ptr = const *s32
 
     let str1 = Swag.makeSlice(&buf[0], 10)
     #assert(#typeof(str1) == [..] u8)
-    let str2 = Swag.makeSlice(&buf[0], 10's16)
+    let str2 = Swag.makeSlice(&buf[0], 10_s16)
     #assert(#typeof(str2) == [..] u8)
 
     var backing: [20] s32
@@ -44,19 +44,19 @@ alias MksliceStrictConstS32Ptr = const *s32
     #assert(#typeof(bytes) == const [..] u8)
     #assert(#typeof(text) == string)
     Swag.require(bytes.count == 5)
-    Swag.require(bytes[1] == 'e'u8)
+    Swag.require(bytes[1] == 'e'_u8)
     Swag.require(text == "hello")
 }
 
 #test
 {
-    var data: [6] u8  = ['h'u8, 'e'u8, 'l'u8, 'l'u8, 'o'u8, 0]
+    var data: [6] u8  = ['h'_u8, 'e'_u8, 'l'_u8, 'l'_u8, 'o'_u8, 0]
     var cstr: cstring = cast(cstring, &data[0])
     let bytes         = Swag.makeSlice(cstr, cstr.count)
 
     #assert(#typeof(bytes) == const [..] u8)
     Swag.require(bytes.count == 5)
-    Swag.require(bytes[4] == 'o'u8)
+    Swag.require(bytes[4] == 'o'_u8)
 }
 
 #test

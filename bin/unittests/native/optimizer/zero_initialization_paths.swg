@@ -4,29 +4,38 @@
 #[Swag.NoInline]
 func sum(p: [*]u64, count: u64)->u64
 {
-    var result = 0'u64
-    for i in 0 until count do result += p[i]
+    var result = 0_u64
+    for i in 0 until count
+    {
+        result += p[i]
+    }
     return result
 }
 #[Swag.NoInline]
 func countNonzero(p: [*]u64, count: u64)->u64
 {
-    var result = 0'u64
+    var result = 0_u64
     for i in 0 until count
     {
-        if p[i] != 0 do result += 1
+        if p[i] != 0
+        {
+            result += 1
+        }
     }
     return result
 }
 #[Swag.NoInline]
 func nested(p: [*]u64, count: u64, gate: bool)->u64
 {
-    var result = 0'u64
+    var result = 0_u64
     if gate
     {
         for i in 0 until count
         {
-            if p[i] == 0 do break
+            if p[i] == 0
+            {
+                break
+            }
             result += p[i]
         }
     }
@@ -37,7 +46,7 @@ func selected(a, b: u64)->u64 => a < b ? a : 0
 
 #test
 {
-    var values = [1'u64, 2, 0, 4, 0xFFFFFFFFFFFFFFFF]
+    var values = [1_u64, 2, 0, 4, 0xFFFFFFFFFFFFFFFF]
     Swag.require(sum(&values[0], 0) == 0)
     Swag.require(sum(&values[0], 5) == 6)
     Swag.require(countNonzero(&values[0], 0) == 0)

@@ -13,5 +13,5 @@ struct EncodeOptions
     //
     // The default sits below the one a single photograph deserves: a video is a long sequence of
     // similar pictures, so the last few percent of detail costs proportionally far more here.
-    public quality = 90'u8
+    public quality = 90_u8
 }

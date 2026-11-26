@@ -145,7 +145,7 @@ func hiddenTestPath()->String => Path.combine(Env.getSpecialDirectory(.Temp), Fo
     Swag.require(normal.freeBytes() == freeBefore)
     Swag.require(normal.file.protectedEnd == 0)
     let file = expect normal.createNode("\\ordinary.bin", false, FileAttributeNormal, "")
-    var data: Array'u8
+    var data: Array!{u8}
     data.resize(180 * BlockSize)
     let bytesWritten = expect normal.writeNode(file, 0, data.toSlice(), false, false)
     Swag.require(bytesWritten == data.count)
@@ -169,7 +169,7 @@ func hiddenTestPath()->String => Path.combine(Env.getSpecialDirectory(.Temp), Fo
     defer discard catch File.delete(path)
     defer discard catch File.delete(keyPath)
     expect File.writeAllBytes(keyPath, "key-file bytes")
-    var files: Array'String
+    var files: Array!{String}
     files.add(keyPath)
     var access: VaultAccess
     access.setInputs("hidden password", files.toSlice())
@@ -191,9 +191,9 @@ func hiddenTestPath()->String => Path.combine(Env.getSpecialDirectory(.Temp), Fo
     Swag.require(missingKey != null)
     var protected = expect Volume.open(path, "outer", protectionPassword: credential.toSlice())
     let ordinary  = expect protected.createNode("\\ordinary", false, FileAttributeNormal, "")
-    var data: Array'u8
+    var data: Array!{u8}
     data.resize(16 * BlockSize)
-    var offset    = 0'u64
+    var offset    = 0_u64
     var collision = false
     for 32
     {

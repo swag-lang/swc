@@ -5,7 +5,7 @@ using Swag, Core
 #test
 {
     const pixels = [
-        240'u8, 200'u8, 200'u8, 77'u8, 10'u8, 30'u8, 50'u8, 88'u8]
+        240_u8, 200_u8, 200_u8, 77_u8, 10_u8, 30_u8, 50_u8, 88_u8]
 
     var img = makeImage(2, 1, .RGBA8, pixels)
     img.colorize(0.3, 0.0, 1.0)

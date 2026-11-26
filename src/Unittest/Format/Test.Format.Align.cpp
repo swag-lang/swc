@@ -80,19 +80,23 @@ SWC_TEST_END()
 SWC_TEST_BEGIN(FormatAlign_AssignmentsBreakOnIndentation)
 {
     static constexpr std::string_view SOURCE =
+        
         "func foo(index: s32)\n"
         "{\n"
-        "    if index != 0 do\n"
+        "    if index != 0 {\n"
         "        len = append(len, 1)\n"
+        "    }\n"
         "    len     = append(len, 2)\n"
         "    len     = append(len, 3)\n"
         "}\n";
 
     static constexpr std::string_view EXPECTED =
+        
         "func foo(index: s32)\n"
         "{\n"
-        "    if index != 0 do\n"
+        "    if index != 0 {\n"
         "        len = append(len, 1)\n"
+        "    }\n"
         "    len = append(len, 2)\n"
         "    len = append(len, 3)\n"
         "}\n";
@@ -330,19 +334,23 @@ SWC_TEST_END()
 SWC_TEST_BEGIN(FormatAlign_TrailingCommentsBreakOnIndentation)
 {
     static constexpr std::string_view SOURCE =
+        
         "func foo(x: bool)\n"
         "{\n"
-        "    if x do\n"
+        "    if x {\n"
         "        a = 1 // nested\n"
+        "    }\n"
         "    longer = 2 // outer one\n"
         "    b = 3 // outer two\n"
         "}\n";
 
     static constexpr std::string_view EXPECTED =
+        
         "func foo(x: bool)\n"
         "{\n"
-        "    if x do\n"
+        "    if x {\n"
         "        a = 1     // nested\n"
+        "    }\n"
         "    longer = 2     // outer one\n"
         "    b = 3          // outer two\n"
         "}\n";

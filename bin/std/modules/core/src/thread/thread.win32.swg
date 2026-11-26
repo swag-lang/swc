@@ -53,10 +53,16 @@ func waitForNative(handle: ThreadHandle, milliseconds: u64)->bool fail
     if not milliseconds
     {
         let status = waitForSingleObjectStatus(handle, 0)
-        if status.result == WAIT_OBJECT_0 do
+        if status.result == WAIT_OBJECT_0
+        {
             return true
-        if status.result == WAIT_TIMEOUT do
+        }
+
+        if status.result == WAIT_TIMEOUT
+        {
             return false
+        }
+
         try Win32.failWinError(status.errorCode)
     }
 
@@ -65,18 +71,28 @@ func waitForNative(handle: ThreadHandle, milliseconds: u64)->bool fail
     for
     {
         let elapsed = stopwatch.elapsedMilliseconds()
-        if elapsed >= milliseconds do
+        if elapsed >= milliseconds
+        {
             return false
+        }
 
         let remaining = milliseconds - elapsed
         let chunk     = Math.min(remaining, cast(u64, Swag.U32.Max - 1))
         let status    = waitForSingleObjectStatus(handle, cast(DWORD, chunk))
-        if status.result == WAIT_OBJECT_0 do
+        if status.result == WAIT_OBJECT_0
+        {
             return true
-        if status.result == WAIT_FAILED do
+        }
+
+        if status.result == WAIT_FAILED
+        {
             try Win32.failWinError(status.errorCode)
-        if status.result != WAIT_TIMEOUT do
+        }
+
+        if status.result != WAIT_TIMEOUT
+        {
             try Win32.failWinError(0)
+        }
     }
 }
 

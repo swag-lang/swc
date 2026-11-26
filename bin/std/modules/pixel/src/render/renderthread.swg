@@ -46,7 +46,7 @@ struct RenderThread
         completed:           Sync.Event
         callback:            (func||())?
         requestSerial:       u64
-        completedSerial:     Swag.AtomicValue'u64
+        completedSerial:     Swag.AtomicValue!{u64}
         completionStatus:    Sync.EventStatus
         stopping:            bool
         nativeWindow:        bool
@@ -92,8 +92,11 @@ impl RenderThread
     // When both fail, the wait failure takes precedence.
     mtd wait()
     {
-        if not .isStarted() do
+        if not .isStarted()
+        {
             return
+        }
+
         var status: Sync.EventStatus
         if .completedSerial.load() != .requestSerial
         {
@@ -113,8 +116,11 @@ impl RenderThread
     // the previous ready read; it does not measure input-to-display latency.
     mtd takePresentMicroseconds()->u64
     {
-        if not .isReady() do
+        if not .isReady()
+        {
             return 0
+        }
+
         let result = .presentMicroseconds
         .presentMicroseconds = 0
         return result
@@ -125,8 +131,11 @@ impl RenderThread
     // Repeated calls do nothing. The adapter may subsequently be started with another backend.
     mtd close()
     {
-        if not .isStarted() do
+        if not .isStarted()
+        {
             return
+        }
+
         .wait()
         .stopping = true
         .requested.signal()
@@ -147,8 +156,11 @@ private impl RenderThread
         while true
         {
             owner.requested.wait()
-            if owner.stopping do
+            if owner.stopping
+            {
                 return
+            }
+
             let serial = owner.requestSerial
             if owner.callback
             {
@@ -185,10 +197,14 @@ private impl RenderThread
         .completionStatus = {}
 
         // Consume before reporting so the panic hook observes the retired request.
-        if not waitStatus.isSuccess() do
+        if not waitStatus.isSuccess()
+        {
             expect waitStatus.raise()
-        else do
+        }
+        else
+        {
             expect signalStatus.raise()
+        }
     }
 
     mtd execute(callback: func||())
@@ -240,8 +256,10 @@ private impl RenderThread
                 failed  = true
             }
         })
-        if failed do
+        if failed
+        {
             fail RenderThreadError{Errors.mkString(message.toString())}
+        }
     }
 }
 
@@ -361,7 +379,7 @@ impl IRenderer for RenderThread
         return result
     }
 
-    mtd impl readTexturePixels(texture: Texture, pixelFormat: PixelFormat)->Array'u8
+    mtd impl readTexturePixels(texture: Texture, pixelFormat: PixelFormat)->Array!{u8}
     {
         var result: #returntype
         .execute(func|me, &texture, pixelFormat, &result|() { result = me.backend.readTexturePixels(texture, pixelFormat) })

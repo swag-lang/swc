@@ -13,16 +13,16 @@ using Core, Core.Errors, Core.Math
 // The luma interpolator reads three samples before a block and four after it, so a motion vector
 // pointing just outside the picture still lands inside the padded storage once the edges are
 // replicated. Longer excursions clamp through the bounded fallback of the interpolator.
-const FramePadding = 80'u32
+const FramePadding = 80_u32
 
 // The granularity the standard stores collocated motion at, clause 8.5.3.2.8.
 //
 // Temporal prediction rounds the collocated position down to a sixteen-sample grid, so a picture
 // only has to keep one motion record per sixteen samples rather than one per prediction block.
-const ColMotionLog2 = 4'u32
+const ColMotionLog2 = 4_u32
 
 // Published when a picture will never finish, so nothing waits on it forever.
-const FrameProgressFailed = -1's32
+const FrameProgressFailed = -1_s32
 
 // The motion one 16x16 region of a reference picture exports to temporal prediction.
 //
@@ -52,9 +52,9 @@ enum FrameMarking
 // and ten bit streams in one layout keeps the reconstruction free of a second set of paths.
 struct Frame
 {
-    luma:          Array'u16     // Padded luma plane.
-    chromaB:       Array'u16     // Padded blue-difference plane.
-    chromaR:       Array'u16     // Padded red-difference plane.
+    luma:          Array!{u16}     // Padded luma plane.
+    chromaB:       Array!{u16}     // Padded blue-difference plane.
+    chromaR:       Array!{u16}     // Padded red-difference plane.
     strideLuma:    u64
     strideChroma:  u64
     width:         u32     // Coded luma width, before the conformance window.
@@ -87,7 +87,7 @@ struct Frame
     progressLock:    Swag.Mutex
     progressEvent:   Sync.Event
 
-    colMotion: Array'ColMotion
+    colMotion: Array!{ColMotion}
     colWidth:  u32     // Collocated motion records per row.
     colHeight: u32
 }
@@ -132,13 +132,18 @@ impl Frame
         .colWidth  = (.width + (1 << ColMotionLog2) - 1) >> ColMotionLog2
         .colHeight = (.height + (1 << ColMotionLog2) - 1) >> ColMotionLog2
         let records = cast(u64, .colWidth) * cast(u64, .colHeight)
-        if .colMotion.count != records do
+        if .colMotion.count != records
+        {
             .colMotion.resize(records)
+        }
 
         .marking      = .Unused
         .outputNeeded = false
-        if not .progressEvent.isValid() do
+        if not .progressEvent.isValid()
+        {
             .progressEvent.init(manual: true)
+        }
+
         Atomic.exchange(&.heldByCaller, 0)
         Atomic.exchange(&.reconstructionHolds, 0)
         Atomic.exchange(&.progressRows, 0)
@@ -178,8 +183,11 @@ impl Frame
 
         // Only pay for the wake-up when a waiter registered itself: a picture nobody predicts
         // from would otherwise signal on every row.
-        if .progressWaiters do
+        if .progressWaiters
+        {
             .progressEvent.signal()
+        }
+
         .progressLock.unlock()
     }
 
@@ -188,16 +196,21 @@ impl Frame
     mtd waitProgress(rows: s32)->s32
     {
         var observed = Atomic.get(&.progressRows)
-        if observed >= rows or observed == FrameProgressFailed do
+        if observed >= rows or observed == FrameProgressFailed
+        {
             return observed
+        }
 
         .progressLock.lock()
         .progressWaiters += 1
         for
         {
             observed = Atomic.get(&.progressRows)
-            if observed >= rows or observed == FrameProgressFailed do
+            if observed >= rows or observed == FrameProgressFailed
+            {
                 break
+            }
+
             .progressEvent.reset()
             .progressLock.unlock()
             .progressEvent.wait()
@@ -246,7 +259,7 @@ impl Frame
             let right   = Simd.splat(line[width - 1])
 
             // The padding is a multiple of eight samples wide, so both sides fill in whole vectors.
-            var offset = 0'u32
+            var offset = 0_u32
             while offset < FramePadding
             {
                 Simd.store(rowBase + cast(u64, offset), left)
@@ -260,12 +273,16 @@ impl Frame
     {
         let rowBytes = stride * #sizeof(u16)
         let top      = plane + cast(u64, FramePadding) * stride
-        for offset in FramePadding do
+        for offset in FramePadding
+        {
             Memory.copy(plane + cast(u64, offset) * stride, top, rowBytes)
+        }
 
         let bottom = plane + cast(u64, (height + FramePadding - 1)) * stride
-        for offset in FramePadding do
+        for offset in FramePadding
+        {
             Memory.copy(bottom + cast(u64, (offset + 1)) * stride, bottom, rowBytes)
+        }
     }
 
     // Copies the visible picture into `target` as eight-bit planes.
@@ -303,7 +320,7 @@ impl Frame
             {
                 let line   = origin + cast(u64, row) * sourceStride
                 let out    = destination + cast(u64, row) * destinationStride
-                var column = 0's32
+                var column = 0_s32
                 while column + 16 <= width
                 {
                     let low  = cast #bit(Simd.S16x8, Simd.load(line + column))
@@ -322,15 +339,15 @@ impl Frame
             return
         }
 
-        let rounding       = 1'u32 << (shift - 1)
-        let maximum        = cast(u32, ((1'u32 << .bitDepth) - 1))
+        let rounding       = 1_u32 << (shift - 1)
+        let maximum        = cast(u32, ((1_u32 << .bitDepth) - 1))
         let packedRounding = Simd.splat(cast(u16, rounding))
         let packedMaximum  = Simd.splat(cast(u16, maximum))
         for row in height
         {
             let line   = origin + cast(u64, row) * sourceStride
             let out    = destination + cast(u64, row) * destinationStride
-            var column = 0's32
+            var column = 0_s32
             while column + 16 <= width
             {
                 let low  = cast #bit(Simd.S16x8, (Math.min(Simd.load(line + column) + packedRounding, packedMaximum) >> shift))

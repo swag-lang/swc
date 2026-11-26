@@ -6,8 +6,8 @@ using Swag, Core
 // Exercises the filter and its final phase carry at the end of a four-hour input.
 func checkPhaseEndurance(driftPpm: s32, referenceClockParts: u64)
 {
-    const Rate         = 48_000'u64
-    const FractionUnit = 4_294_967_296'u64
+    const Rate         = 48_000_u64
+    const FractionUnit = 4_294_967_296_u64
     const InputFrames  = 4 * 60 * 60 * Rate
     let referenceFrames = (InputFrames * 1_000_000 + referenceClockParts - 1) / referenceClockParts
 
@@ -29,7 +29,7 @@ func checkPhaseEndurance(driftPpm: s32, referenceClockParts: u64)
     Swag.require(resampler.receivedFrames < InputFrames)
     let tailCount = InputFrames - resampler.receivedFrames
     Swag.require(tailCount <= tail.count)
-    var output: Array'f32
+    var output: Array!{f32}
     expect resampler.addFrames(Swag.makeSlice(&tail[0], tailCount), &output)
     expect resampler.end(&output)
 
@@ -41,8 +41,11 @@ func checkPhaseEndurance(driftPpm: s32, referenceClockParts: u64)
     Swag.require(resampler.positionFrame >= InputFrames)
     Swag.require(accumulated - InputFrames * FractionUnit < resampler.step)
     Swag.require(output.count == actualFrames - prefixFrames)
-    for sample in output do
+    for sample in output
+    {
         Swag.require(sample == 0)
+    }
+
     Swag.require(resampler.history.count == historyCount and resampler.history.capacity == historyCapacity)
     Swag.require(resampler.coefficients.count == coefficientCount and resampler.coefficients.capacity == coefficientCapacity)
 }

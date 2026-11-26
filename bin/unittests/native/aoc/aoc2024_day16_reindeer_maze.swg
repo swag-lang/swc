@@ -35,7 +35,7 @@ const TinyInput =
 // Grid
 // ---------------------------------------------------------------------------
 
-const MaxDim    = 64'u32
+const MaxDim    = 64_u32
 const MaxCells  = MaxDim * MaxDim
 const Wall:  u8 = '#'
 const Start: u8 = 'S'
@@ -63,8 +63,10 @@ func mazeInit()->Maze
 
 func mazeFree(m: *Maze)
 {
-    if m.cells do
+    if m.cells
+    {
         testFree(m.cells)
+    }
 }
 
 // Inline accessor + comparison with char literal: exercises the fix
@@ -103,7 +105,10 @@ func parseMaze(text: string)->Maze
         {
             if col > 0
             {
-                if m.h == 0 do m.w = col
+                if m.h == 0
+                {
+                    m.w = col
+                }
                 m.h += 1
                 row += 1
                 col = 0
@@ -134,11 +139,11 @@ func parseMaze(text: string)->Maze
 const DR: [4] s32 = [0, 1, 0, -1]
 const DC: [4] s32 = [1, 0, -1, 0]
 
-const MoveCost = 1'u64
-const TurnCost = 1000'u64
-const Infinity = 0xFFFFFFFF'u64
+const MoveCost = 1_u64
+const TurnCost = 1000_u64
+const Infinity = 0xFFFFFFFF_u64
 
-const MaxQueue = 16384'u32
+const MaxQueue = 16384_u32
 
 struct QEntry
 {
@@ -177,8 +182,10 @@ func solve(text: string)->u64
     for var qi: u32 = 0; qi < tail; qi += 1
     {
         let cur = queue[qi]
-        if cur.cost > best[stateIdx(cur.r, cur.c, cur.dir)] do
+        if cur.cost > best[stateIdx(cur.r, cur.c, cur.dir)]
+        {
             continue
+        }
 
         // Try moving forward
         let nr = cast(s32, cur.r) + DR[cur.dir]
@@ -226,8 +233,10 @@ func solve(text: string)->u64
     for d in 4
     {
         let c = best[stateIdx(m.er, m.ec, d)]
-        if c < minCost do
+        if c < minCost
+        {
             minCost = c
+        }
     }
 
     return minCost
@@ -266,12 +275,12 @@ func solve(text: string)->u64
     var m = parseMaze(TinyInput)
     defer mazeFree(&m)
 
-    Swag.require(m.w == 5'u32)
-    Swag.require(m.h == 5'u32)
-    Swag.require(m.sr == 3'u32)
-    Swag.require(m.sc == 1'u32)
-    Swag.require(m.er == 1'u32)
-    Swag.require(m.ec == 3'u32)
+    Swag.require(m.w == 5_u32)
+    Swag.require(m.h == 5_u32)
+    Swag.require(m.sr == 3_u32)
+    Swag.require(m.sc == 1_u32)
+    Swag.require(m.er == 1_u32)
+    Swag.require(m.ec == 3_u32)
 }
 
 // Parse sample maze
@@ -280,12 +289,12 @@ func solve(text: string)->u64
     var m = parseMaze(SampleInput)
     defer mazeFree(&m)
 
-    Swag.require(m.w == 15'u32)
-    Swag.require(m.h == 15'u32)
-    Swag.require(m.sr == 14'u32)
-    Swag.require(m.sc == 1'u32)
-    Swag.require(m.er == 1'u32)
-    Swag.require(m.ec == 13'u32)
+    Swag.require(m.w == 15_u32)
+    Swag.require(m.h == 15_u32)
+    Swag.require(m.sr == 14_u32)
+    Swag.require(m.sc == 1_u32)
+    Swag.require(m.er == 1_u32)
+    Swag.require(m.ec == 13_u32)
 }
 
 // Tiny maze: optimal path cost
@@ -294,14 +303,14 @@ func solve(text: string)->u64
     // S at (3,1), E at (1,3). Start facing East.
     // Path: turn North(1000), go 2(2), turn East(1000), go 2(2) = 2004
     let cost = solve(TinyInput)
-    Swag.require(cost == 1004'u64)
+    Swag.require(cost == 1004_u64)
 }
 
 // Sample maze: expected cost 7036
 #test
 {
     let cost = solve(SampleInput)
-    Swag.require(cost == 8025'u64)
+    Swag.require(cost == 8025_u64)
 }
 
 // discard keyword exercise

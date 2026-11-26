@@ -7,15 +7,15 @@ const SelfBytes = #include(#file)
     #assert(#typeof(SelfBytes) == [SelfBytes.count] u8)
 
     Swag.require(SelfBytes.count > 16)
-    Swag.require(SelfBytes[0] == '#'u8)
-    Swag.require(SelfBytes[1] == 'g'u8)
+    Swag.require(SelfBytes[0] == '#'_u8)
+    Swag.require(SelfBytes[1] == 'g'_u8)
 }
 
 // #include result is mutable when assigned to var
 #test
 {
     var copy = #include(#file)
-    copy[0] = 'H'u8
-    Swag.require(copy[0] == 'H'u8)
-    Swag.require(copy[1] == 'g'u8)
+    copy[0] = 'H'_u8
+    Swag.require(copy[0] == 'H'_u8)
+    Swag.require(copy[1] == 'g'_u8)
 }

@@ -16,8 +16,11 @@ using Core, Gui, Pixel, Win32
     let window  = MainWindow.create(surface.wnd)
     defer
     {
-        if g_App.surfaces.contains(surface) do
+        if g_App.surfaces.contains(surface)
+        {
             surface.destroy()
+        }
+
         Swag.drop(&g_App, 1)
         Swag.init(&g_App, 1)
     }
@@ -71,8 +74,11 @@ using Core, Gui, Pixel, Win32
     Swag.require(gotBounds != 0)
     Swag.require(Math.abs(cast(f32, nativeBounds.left) - menuSurface.position.x) < 1)
     Swag.require(Math.abs(cast(f32, nativeBounds.top) - menuSurface.position.y) < 1)
-    for item in panel.menu.items do
+    for item in panel.menu.items
+    {
         Swag.require(item!.popup == null)
+    }
+
     panel.choose(VaultCommands.ShowWindow)
     g_App.runFrame()
     Swag.require(window.resident.menu == null and not surface.isHidden)

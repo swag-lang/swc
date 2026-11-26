@@ -23,46 +23,46 @@ struct Strings
         dlg_InfoTitle:     string = "Information"        // Title of an informational dialog.
         dlg_MultiLineHint: string = "Press Shift+Enter to add a new line"     // Keyboard hint above a multi-line dialog editor.
 
-        print_Command:             string = "Print…"    // Command that opens the print workflow.
-        print_Title:               string = "Print"    // Title of the print settings dialog.
-        print_Print:               string = "Print"    // Action that submits the job.
-        print_SavePdf:             string = "Save as PDF"    // PDF destination and save action.
-        print_Preview:             string = "Print Preview"    // Title of the preview and action that opens it.
-        print_AdjustedPreview:     string = "Review the preview adjusted to the printer’s printable area."    // Notice shown before confirming updated printer geometry.
-        print_Settings:            string = "Settings…"    // Action returning from preview to the settings.
-        print_Destination:         string = "Destination"    // Printer or PDF choice.
-        print_Paper:               string = "Paper"    // Paper-size field.
-        print_A4:                  string = "A4"    // ISO A4 paper.
-        print_Letter:              string = "Letter"    // US Letter paper.
-        print_Legal:               string = "Legal"    // US Legal paper.
-        print_Orientation:         string = "Orientation"    // Page-orientation field.
-        print_Portrait:            string = "Portrait"    // Portrait orientation.
-        print_Landscape:           string = "Landscape"    // Landscape orientation.
-        print_Margins:             string = "Margins"    // Margin field, in millimeters.
-        print_Placement:           string = "Placement"    // Content-placement field.
-        print_Fit:                 string = "Fit to Page"    // Scales the content to fit the printable area.
-        print_Center:              string = "Center"    // Centers and shrinks oversized content to fit.
-        print_Actual:              string = "Actual Size"    // Centers the content at its physical size.
-        print_Copies:              string = "Copies"    // Number of printed copies.
-        print_PreviewPage:         string = "Page % of %"    // Current preview page and total page count.
-        print_PreviousPage:        string = "Previous Page"    // Tooltip for the previous preview page.
-        print_NextPage:            string = "Next Page"    // Tooltip for the next preview page.
-        print_Range:               string = "Pages to Print"    // Range field in the preview.
-        print_AllPages:            string = "All Pages"    // Placeholder for the complete document.
-        print_RangeHelp:           string = "Enter a page number or a range such as 2-5."    // Explains the page-range syntax.
-        print_Clipping:            string = "Part of the content falls outside the printable area."    // Warning before printing clipped content.
-        print_FindingPrinters:     string = "Finding Printers"    // Activity while discovering printers.
-        print_Preparing:           string = "Preparing Pages"    // Activity while preparing or rendering pages.
-        print_Sending:             string = "Sending to Printer"    // Activity while submitting the print job.
-        print_SavingPdf:           string = "Saving PDF"    // Activity while creating the PDF file.
-        print_PdfSaveFailed:       string = "The PDF could not be saved."    // Error shown after a PDF write fails.
-        print_Failed:              string = "The print operation could not be completed."    // Fallback print error.
-        print_InvalidPage:         string = "The page could not be rendered."    // Invalid page or failed rendering.
-        print_InvalidRange:        string = "The page range is outside this document."    // Invalid page-range error.
-        print_UnsupportedPaper:    string = "The selected paper or margins are unavailable."    // Unsupported sheet geometry.
-        print_PrinterUnavailable:  string = "The printer is unavailable."    // Printer discovery or connection failure.
-        print_PrinterFailed:       string = "The printer did not complete the job submission."    // Print submission failure.
-        print_SameFile:            string = "Choose a different file to keep the source document."    // Error when choosing the input file as the destination.
+        print_Command:            string = "Print…"                                                           // Command that opens the print workflow.
+        print_Title:              string = "Print"                                                            // Title of the print settings dialog.
+        print_Print:              string = "Print"                                                            // Action that submits the job.
+        print_SavePdf:            string = "Save as PDF"                                                      // PDF destination and save action.
+        print_Preview:            string = "Print Preview"                                                    // Title of the preview and action that opens it.
+        print_AdjustedPreview:    string = "Review the preview adjusted to the printer’s printable area."     // Notice shown before confirming updated printer geometry.
+        print_Settings:           string = "Settings…"                                                        // Action returning from preview to the settings.
+        print_Destination:        string = "Destination"                                                      // Printer or PDF choice.
+        print_Paper:              string = "Paper"                                                            // Paper-size field.
+        print_A4:                 string = "A4"                                                               // ISO A4 paper.
+        print_Letter:             string = "Letter"                                                           // US Letter paper.
+        print_Legal:              string = "Legal"                                                            // US Legal paper.
+        print_Orientation:        string = "Orientation"                                                      // Page-orientation field.
+        print_Portrait:           string = "Portrait"                                                         // Portrait orientation.
+        print_Landscape:          string = "Landscape"                                                        // Landscape orientation.
+        print_Margins:            string = "Margins"                                                          // Margin field, in millimeters.
+        print_Placement:          string = "Placement"                                                        // Content-placement field.
+        print_Fit:                string = "Fit to Page"                                                      // Scales the content to fit the printable area.
+        print_Center:             string = "Center"                                                           // Centers and shrinks oversized content to fit.
+        print_Actual:             string = "Actual Size"                                                      // Centers the content at its physical size.
+        print_Copies:             string = "Copies"                                                           // Number of printed copies.
+        print_PreviewPage:        string = "Page % of %"                                                      // Current preview page and total page count.
+        print_PreviousPage:       string = "Previous Page"                                                    // Tooltip for the previous preview page.
+        print_NextPage:           string = "Next Page"                                                        // Tooltip for the next preview page.
+        print_Range:              string = "Pages to Print"                                                   // Range field in the preview.
+        print_AllPages:           string = "All Pages"                                                        // Placeholder for the complete document.
+        print_RangeHelp:          string = "Enter a page number or a range such as 2-5."                      // Explains the page-range syntax.
+        print_Clipping:           string = "Part of the content falls outside the printable area."            // Warning before printing clipped content.
+        print_FindingPrinters:    string = "Finding Printers"                                                 // Activity while discovering printers.
+        print_Preparing:          string = "Preparing Pages"                                                  // Activity while preparing or rendering pages.
+        print_Sending:            string = "Sending to Printer"                                               // Activity while submitting the print job.
+        print_SavingPdf:          string = "Saving PDF"                                                       // Activity while creating the PDF file.
+        print_PdfSaveFailed:      string = "The PDF could not be saved."                                      // Error shown after a PDF write fails.
+        print_Failed:             string = "The print operation could not be completed."                      // Fallback print error.
+        print_InvalidPage:        string = "The page could not be rendered."                                  // Invalid page or failed rendering.
+        print_InvalidRange:       string = "The page range is outside this document."                         // Invalid page-range error.
+        print_UnsupportedPaper:   string = "The selected paper or margins are unavailable."                   // Unsupported sheet geometry.
+        print_PrinterUnavailable: string = "The printer is unavailable."                                      // Printer discovery or connection failure.
+        print_PrinterFailed:      string = "The printer did not complete the job submission."                 // Print submission failure.
+        print_SameFile:           string = "Choose a different file to keep the source document."             // Error when choosing the input file as the destination.
 
         appearance_ToolTip:        string = "Appearance and Application Information"     // Tooltip of the application appearance caption button.
         appearance_Theme:          string = "Theme"               // Theme submenu label.
@@ -263,14 +263,14 @@ private struct StringTable
 
     // Decoded translation values. The table fields are views into these heap strings,
     // so the pool is only released after the table was reset to its reference values.
-    pool: Array'(*String)
+    pool: Array!{*String}
 }
 
 private struct LocalizationState
 {
-    tables:    Array'StringTable     // Registered tables, applied in registration order.
-    languages: Array'Language        // Presentable languages, `ReferenceLanguage` first.
-    language:  String                // Active tag; empty means the reference `"en"`.
+    tables:    Array!{StringTable}     // Registered tables, applied in registration order.
+    languages: Array!{Language}        // Presentable languages, `ReferenceLanguage` first.
+    language:  String     // Active tag; empty means the reference `"en"`.
 
     // Bundle the active language was applied from, borrowed for as long as it stays active.
     // A table registered after the switch is translated from it, which is what makes a
@@ -292,8 +292,11 @@ private var g_Localization: LocalizationState
 // than waiting for the next switch. Add its resource to the bundle first. GUI thread only.
 func(T) registerStrings(table: *T, file: string)
 {
-    #static if not Reflection.isStruct(T) do
+    #static if not Reflection.isStruct(T)
+    {
         #error("a string table must be a struct of 'string' fields")
+    }
+
     registerStrings(#typeof(T), table, file)
 }
 
@@ -303,15 +306,21 @@ func registerStrings(type: typeinfo, table: *void, file: string)
     Swag.assert(Reflection.isStruct(type), "a string table must be a struct of 'string' fields")
 
     let state = &g_Localization
-    for &existing in state.tables where existing.data == table do
+    for &existing in state.tables where existing.data == table
+    {
         return
+    }
+
     state.tables.add(StringTable{type, table, file})
 
     // A table joining an already-translated program takes the active language now. A file it
     // has no translation for, or one a disk override left malformed, leaves it on its
     // reference wording — the same outcome [[Gui.applyLanguage]] gives an untranslated table.
-    if state.language.isEmpty() or not state.resources do
+    if state.language.isEmpty() or not state.resources
+    {
         return
+    }
+
     discard catch applyTableLanguage(state.tables.backPtr(), state.resources, state.language.toString())
 }
 
@@ -331,8 +340,10 @@ const ReferenceLanguage = "en"
 private func ensureReferenceLanguage()
 {
     let registry = &g_Localization.languages
-    if registry.isEmpty() do
+    if registry.isEmpty()
+    {
         registry.add(Language{String.from(ReferenceLanguage), String.from("English"), true})
+    }
 }
 
 // Registers a language the interface can present.
@@ -369,8 +380,11 @@ func languages()->const [..] Language
 func findLanguage(tag: string)->const *Language?
 {
     ensureReferenceLanguage()
-    for &one in g_Localization.languages where one.tag == tag do
+    for &one in g_Localization.languages where one.tag == tag
+    {
         return one
+    }
+
     return null
 }
 
@@ -407,20 +421,29 @@ func applyLanguage(resources: const *Resources.Bundle, tag: string) fail
     Swag.assert(tag.count != 0, "empty language tag")
 
     let state = &g_Localization
-    if not findLanguage(tag) do
+    if not findLanguage(tag)
+    {
         fail BadParameterError{Errors.mkString(Format.toString("language [[%]] is not registered", tag))}
+    }
 
     if tag != ReferenceLanguage
     {
         var anyFound = false
-        for &table in state.tables where resources.has(langResourceName(tag, table.file).toString()) do
+        for &table in state.tables where resources.has(langResourceName(tag, table.file).toString())
+        {
             anyFound = true
-        if not anyFound do
+        }
+
+        if not anyFound
+        {
             fail FileNotFoundError{fileName: Errors.mkString(tag)}
+        }
     }
 
-    for &table in state.tables do
+    for &table in state.tables
+    {
         try applyTableLanguage(table, resources, tag)
+    }
 
     state.language  = tag
     state.resources = resources
@@ -431,12 +454,16 @@ func applyLanguage(resources: const *Resources.Bundle, tag: string) fail
 private func applyTableLanguage(table: *StringTable, resources: const *Resources.Bundle, tag: string) fail
 {
     resetTable(table)
-    if tag == ReferenceLanguage do
+    if tag == ReferenceLanguage
+    {
         return
+    }
 
     let resName = langResourceName(tag, table.file)
-    if not resources.has(resName.toString()) do
+    if not resources.has(resName.toString())
+    {
         return
+    }
 
     let bytes = try resources.load(resName.toString())
     try parseStringsContent(table.type, cast([*] u8, unwrap table.data), cast(string, bytes.toSlice()), &table.pool)
@@ -460,10 +487,14 @@ func validateStrings(type: typeinfo, content: string) fail
     let structType = assume cast(const *Swag.TypeInfoStruct, type)
     let probe      = Memory.alloc(cast(u64, structType.sizeof))
     defer Memory.free(probe, cast(u64, structType.sizeof))
-    if structType.opInit != null do
+    if structType.opInit != null
+    {
         structType.opInit(probe)
-    else do
+    }
+    else
+    {
         Memory.clear(probe, cast(u64, structType.sizeof))
+    }
 
     try parseStringsContent(type, cast([*] u8, probe), content, null)
 }
@@ -472,7 +503,7 @@ func validateStrings(type: typeinfo, content: string) fail
 internal func registerDefaultStrings(bundle: *Resources.Bundle)
 {
     registerLanguage("fr", "Français")
-    registerStrings'Strings(&g_Strings, "gui")
+    registerStrings!{Strings}(&g_Strings, "gui")
     bundle.addEmbedded(FrenchStringsName, FrenchStrings)
 }
 
@@ -487,15 +518,25 @@ private func resetTable(table: *StringTable)
 {
     let structType = assume cast(const *Swag.TypeInfoStruct, table.type)
     let data       = unwrap table.data
-    if structType.opDrop != null do
+    if structType.opDrop != null
+    {
         structType.opDrop(data)
-    if structType.opInit != null do
-        structType.opInit(data)
-    else do
-        Memory.clear(data, cast(u64, structType.sizeof))
+    }
 
-    for entry in table.pool do
+    if structType.opInit != null
+    {
+        structType.opInit(data)
+    }
+    else
+    {
+        Memory.clear(data, cast(u64, structType.sizeof))
+    }
+
+    for entry in table.pool
+    {
         Memory.delete(entry)
+    }
+
     table.pool.clear()
 }
 
@@ -507,42 +548,58 @@ private func resetTable(table: *StringTable)
 // starting with `#` is a comment; there are no inline comments, since prose owns the
 // rest of the line. With a pool, decoded values are copied there and the table fields
 // are pointed at them; without one, the content is only validated.
-private func parseStringsContent(type: typeinfo, data: [*] u8, content: string, pool: *Array'(*String)?) fail
+private func parseStringsContent(type: typeinfo, data: [*] u8, content: string, pool: *Array!{*String}?) fail
 {
     let lines = Tokenize.splitLines(content)
     for oneit, idx in lines
     {
         var one = Tokenize.eatSpaces(oneit)
-        if one.count == 0 do
+        if one.count == 0
+        {
             continue
-        if one[0] == '#' do
+        }
+
+        if one[0] == '#'
+        {
             continue
+        }
 
         var id = ""
         catch { id = try StrConv.parseIdentifier(one) } { fail SyntaxError{"invalid string key", line: idx + 1} }
 
         let field = Reflection.findField(type, id)
-        if not field do
+        if not field
+        {
             fail SyntaxError{Errors.mkString(Format.toString("string key [[%]] not found in [[%]]", id, type.name)), line: idx + 1}
+        }
+
         let safeField = field
-        if safeField.pointedType != string do
+        if safeField.pointedType != string
+        {
             fail SyntaxError{Errors.mkString(Format.toString("string key [[%]] does not target a [[string]] field", id)), line: idx + 1}
+        }
 
         one = Tokenize.eatCount(one, id.count)
         one = Tokenize.eatSpaces(one)
 
         var value: String
-        if one.count and one[0] == '"' do
+        if one.count and one[0] == '"'
+        {
             discard try StrConv.parseString(&value, one)
-        else do
+        }
+        else
+        {
             value = one
+        }
 
-        if pool == null do
+        if pool == null
+        {
             continue
+        }
 
         // The table field becomes a view into a heap string the pool keeps alive; the
         // string never moves, so the view survives pool growth.
-        let owned = Memory.new'String()
+        let owned = Memory.new!{String}()
         owned[] = value
         pool.add(owned)
         cast(*string, (data + safeField.offset))[] = owned.toString()
@@ -553,5 +610,5 @@ private func parseStringsContent(type: typeinfo, data: [*] u8, content: string, 
 // file is a compile error with its line number, not a runtime fallback.
 #run
 {
-    expect validateStrings'Strings(cast(string, FrenchStrings))
+    expect validateStrings!{Strings}(cast(string, FrenchStrings))
 }

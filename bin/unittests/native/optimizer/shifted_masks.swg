@@ -28,14 +28,16 @@ func reusedShift(a: u64)->u64
 #[Swag.NoInline]
 func maskedBranch(a: u64)->s32
 {
-    if ((a << 8) & 0xFFFF00) == 0 do
+    if ((a << 8) & 0xFFFF00) == 0
+    {
         return 11
+    }
     return 27
 }
 
 #test
 {
-    let values = [0'u64, 1, 255, 256, 65535, 0xFFFFFFFF, 0x100000000, 0xFFFFFFFFFFFFFFFF, 0x0123456789ABCDEF]
+    let values = [0_u64, 1, 255, 256, 65535, 0xFFFFFFFF, 0x100000000, 0xFFFFFFFFFFFFFFFF, 0x0123456789ABCDEF]
     for a in values
     {
         Swag.require(byteShift(a) == ((a & 255) << 8))

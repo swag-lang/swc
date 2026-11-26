@@ -6,14 +6,14 @@ using Swag, Core
 // Realistic 10 ms 96/44.1 kHz stereo packets retain music bands and impulse timing at 48 kHz.
 #test
 {
-    for sourceRate in [96_000'u32, 44_100]
+    for sourceRate in [96_000_u32, 44_100]
     {
         var queue        = expect CaptureQueue.create(48_000, 2, 0, 10_000_000, blockFrames: 1_024, slots: 64, tolerance: 0)
         var feeder       = expect CaptureResampledFeeder.create(&queue, sourceRate)
         let packetFrames = sourceRate / 100
         var packet: [960 * 2] f32
-        const LeftImpulseTime  = 0.18'f64
-        const RightImpulseTime = 0.21'f64
+        const LeftImpulseTime  = 0.18_f64
+        const RightImpulseTime = 0.21_f64
         let leftImpulse  = cast(u64, Math.round(LeftImpulseTime * sourceRate))
         let rightImpulse = cast(u64, Math.round(RightImpulseTime * sourceRate))
         for packetIndex in 25
@@ -22,8 +22,8 @@ using Swag, Core
             {
                 let sourceFrame = packetIndex * packetFrames + frame
                 let time        = cast(f64, sourceFrame) / sourceRate
-                var left        = 0.0'f64
-                var right       = 0.0'f64
+                var left        = 0.0_f64
+                var right       = 0.0_f64
                 if time < 0.15
                 {
                     left = 0.20 * Math.sin(Math.ConstF64.TwoPi * 1_000.0 * time) +
@@ -34,10 +34,16 @@ using Swag, Core
                             0.07 * Math.sin(Math.ConstF64.TwoPi * 16_000.0 * time)
                 }
 
-                if sourceFrame == leftImpulse do
+                if sourceFrame == leftImpulse
+                {
                     left = 0.7
-                if sourceFrame == rightImpulse do
+                }
+
+                if sourceFrame == rightImpulse
+                {
                     right = -0.65
+                }
+
                 packet[frame * 2]     = cast(f32, left)
                 packet[frame * 2 + 1] = cast(f32, right)
             }
@@ -48,10 +54,10 @@ using Swag, Core
         }
 
         expect feeder.finish()
-        var pcm:   Array's16
-        var block: Array's16
+        var pcm:   Array!{s16}
+        var block: Array!{s16}
         var info:  CaptureBlock
-        var nextSample = 0'u64
+        var nextSample = 0_u64
         while queue.pop(&block, &info)
         {
             Swag.require(info.startSample == nextSample and info.gapFrames == 0)
@@ -62,10 +68,10 @@ using Swag, Core
         Swag.require(nextSample >= 12_000 and nextSample <= 12_001 and pcm.count == nextSample * 2)
         for channel in 2
         {
-            var sourcePower = 0.0'f64
-            var outputPower = 0.0'f64
-            var cross       = 0.0'f64
-            var error       = 0.0'f64
+            var sourcePower = 0.0_f64
+            var outputPower = 0.0_f64
+            var cross       = 0.0_f64
+            var error       = 0.0_f64
             for frame in 1_000 until 5_000
             {
                 let time     = frame / 48_000.0
@@ -91,8 +97,8 @@ using Swag, Core
         for channel in 2
         {
             let expected = channel == 0 ? 8_640 : 10_080
-            var peak     = 0's32
-            var peakAt   = 0'u64
+            var peak     = 0_s32
+            var peakAt   = 0_u64
             for frame in expected - 128 until expected + 128
             {
                 let magnitude = Math.abs(cast(s32, pcm[frame * 2 + channel]))
@@ -114,16 +120,22 @@ using Swag, Core
     var queue = expect CaptureQueue.create(48_000, 2, 0, 10_000_000, blockFrames: 1_024, slots: 64, tolerance: 0)
     var first = expect CaptureResampledFeeder.create(&queue, 96_000)
     var firstPacket: [960 * 2] f32
-    for sample in firstPacket.count do
+    for sample in firstPacket.count
+    {
         firstPacket[sample] = 0.25
-    for packet in 10 do
+    }
+
+    for packet in 10
+    {
         expect first.pushFloat32(Swag.makeSlice(&firstPacket[0], firstPacket.count),
                                  packet * 100_000,
                                  packet * 960)
+    }
+
     expect first.finish()
-    var samples: Array's16
+    var samples: Array!{s16}
     var info:    CaptureBlock
-    var end = 0'u64
+    var end = 0_u64
     while queue.pop(&samples, &info)
     {
         Swag.require(info.startSample == end and info.gapFrames == 0)
@@ -136,15 +148,21 @@ using Swag, Core
     expect queue.markRestored(1_500_000)
     var second = expect CaptureResampledFeeder.create(&queue, 44_100)
     var secondPacket: [441 * 2] f32
-    for sample in secondPacket.count do
+    for sample in secondPacket.count
+    {
         secondPacket[sample] = -0.25
-    for packet in 10 do
+    }
+
+    for packet in 10
+    {
         expect second.pushFloat32(Swag.makeSlice(&secondPacket[0], secondPacket.count),
                                   1_500_000 + packet * 100_000,
                                   packet * 441)
+    }
+
     expect second.finish()
     var restored      = false
-    var resumeSamples = 0'u64
+    var resumeSamples = 0_u64
     while queue.pop(&samples, &info)
     {
         if not restored

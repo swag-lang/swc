@@ -18,6 +18,8 @@ impl Values
 #test
 {
     var values: Values
-    for item in values do     // swc-expected-note {{sema_note_expansion_invoked_here}}
+    for item in values     // swc-expected-note {{sema_note_expansion_invoked_here}}
+    {
         discard item
+    }
 }

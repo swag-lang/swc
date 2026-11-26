@@ -3,20 +3,20 @@ using Core, Gui, Pixel
 // One location's presentation, including an archive's internal folder.
 struct ExplorerFolderState
 {
-    path:       String
-    folder:     String
-    mode:       ExplorerMode          = .Medium
-    forced:     bool
-    board:      ExplorerBoard
-    artwork:    ExplorerArtworkSource = .Online
-    crop:       Image.SmartCropMode   = .Attention
-    kind:       ExplorerKindFilter
-    sortColumn: u32
-    descending: bool
+    path:            String
+    folder:          String
+    mode:            ExplorerMode          = .Medium
+    forced:          bool
+    board:           ExplorerBoard
+    artwork:         ExplorerArtworkSource = .Online
+    crop:            Image.SmartCropMode   = .Attention
+    kind:            ExplorerKindFilter
+    sortColumn:      u32
+    descending:      bool
     showTileCaption: bool                  = true
-    query:      String
-    selected:   String
-    scroll:     Math.Point
+    query:           String
+    selected:        String
+    scroll:          Math.Point
 }
 
 impl ExplorerFolderState
@@ -27,22 +27,24 @@ impl ExplorerFolderState
     {
         with var result: #returntype
         {
-            .path       = explorer.listing.path
-            .folder     = explorer.folder
-            .mode       = explorer.mode
-            .forced     = explorer.forced
-            .board      = explorer.forcedBoard
-            .artwork    = explorer.artworkSource
-            .crop       = explorer.thumbnailCrop
-            .kind       = explorer.kindFilter
-            .sortColumn = explorer.sortColumn
-            .descending = explorer.descending
+            .path            = explorer.listing.path
+            .folder          = explorer.folder
+            .mode            = explorer.mode
+            .forced          = explorer.forced
+            .board           = explorer.forcedBoard
+            .artwork         = explorer.artworkSource
+            .crop            = explorer.thumbnailCrop
+            .kind            = explorer.kindFilter
+            .sortColumn      = explorer.sortColumn
+            .descending      = explorer.descending
             .showTileCaption = explorer.showTileCaption
-            .query      = explorer.filter.text()
+            .query           = explorer.filter.text()
             let scroll = explorer.isThumbnailView() ? explorer.scroll : explorer.list.scrollWnd
             .scroll = scroll.scrollPosition()
-            if explorer.selected < explorer.entries.count do
+            if explorer.selected < explorer.entries.count
+            {
                 .selected = explorer.entries[explorer.selected].path
+            }
         }
 
         return result
@@ -50,18 +52,20 @@ impl ExplorerFolderState
 
     mtd const apply(explorer: *Explorer)
     {
-        explorer.mode          = cast(u32, .mode) < ExplorerModeValues.count ? .mode : .Medium
-        explorer.forced        = .forced
-        explorer.forcedBoard   = cast(u32, .board) < ExplorerBoardValues.count ? .board : .Grid
-        explorer.artworkSource = cast(u32, .artwork) < ExplorerArtworkSourceValues.count ? .artwork : .Online
-        explorer.thumbnailCrop = cast(u32, .crop) < ThumbnailCropModes.count ? .crop : .Attention
-        explorer.kindFilter    = cast(u32, .kind) < ExplorerKindFilterValues.count ? .kind : .All
-        explorer.sortColumn    = Math.min(.sortColumn, 3)
-        explorer.descending    = .descending
+        explorer.mode            = cast(u32, .mode) < ExplorerModeValues.count ? .mode : .Medium
+        explorer.forced          = .forced
+        explorer.forcedBoard     = cast(u32, .board) < ExplorerBoardValues.count ? .board : .Grid
+        explorer.artworkSource   = cast(u32, .artwork) < ExplorerArtworkSourceValues.count ? .artwork : .Online
+        explorer.thumbnailCrop   = cast(u32, .crop) < ThumbnailCropModes.count ? .crop : .Attention
+        explorer.kindFilter      = cast(u32, .kind) < ExplorerKindFilterValues.count ? .kind : .All
+        explorer.sortColumn      = Math.min(.sortColumn, 3)
+        explorer.descending      = .descending
         explorer.showTileCaption = .showTileCaption
         explorer.filter.setText(.query, notify: false)
-        if explorer.window.isExploring() do
+        if explorer.window.isExploring()
+        {
             explorer.window.searchBox.setText(.query, notify: false)
+        }
     }
 
     // Selection is restored only if it still belongs to the filtered listing.

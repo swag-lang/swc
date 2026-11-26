@@ -14,8 +14,11 @@ func testSchemaOf(type: typeinfo)->String fail
 
     for &pf in plan.fields
     {
-        if not result.isEmpty() do
+        if not result.isEmpty()
+        {
             result += ","
+        }
+
         result += pf.key
         result += ":"
         result += pf.value.pointedType!.name
@@ -40,11 +43,11 @@ func testAssertSchema(type: typeinfo, expected: string) fail
 #test
 {
     expect testAssertSchema(#typeof(CaptureLibraryMetadata), "width:s32,height:s32,linkedImage:String,linkedUpToDate:bool,sourceKind:CaptureSourceKind,capturedAt:DateTime,sourceApplication:String,sourceExecutable:String,sourceWindowTitle:String,sourceWindowClass:String,favorite:bool,rating:u8,media:CaptureMedia,duration:u64")
-    expect testAssertSchema(#typeof(CaptureFileModel), "width:s32,height:s32,widthOrg:s32,heightOrg:s32,backImagePos:Point,forms:Array'(IForm),nextStepIndex:u32,nextGroupId:u64,linkedImage:String,linkedUpToDate:bool,title:String,sourceKind:CaptureSourceKind,capturedAt:DateTime,sourceApplication:String,sourceExecutable:String,sourceWindowTitle:String,sourceWindowClass:String,tags:Array'(String),favorite:bool,rating:u8,media:CaptureMedia,timeline:CaptureTimeline")
+    expect testAssertSchema(#typeof(CaptureFileModel), "width:s32,height:s32,widthOrg:s32,heightOrg:s32,backImagePos:Point,forms:Array!{IForm},nextStepIndex:u32,nextGroupId:u64,linkedImage:String,linkedUpToDate:bool,title:String,sourceKind:CaptureSourceKind,capturedAt:DateTime,sourceApplication:String,sourceExecutable:String,sourceWindowTitle:String,sourceWindowClass:String,tags:Array!{String},favorite:bool,rating:u8,media:CaptureMedia,timeline:CaptureTimeline")
     expect testAssertSchema(#typeof(CaptureTimeline), "frameCount:u64,duration:u64,mediaSize:u64,inPoint:u64,outPoint:u64")
-    expect testAssertSchema(#typeof(Capture), "width:s32,height:s32,backImg:Image,widthOrg:s32,heightOrg:s32,backImgOriginal:Image,backImagePos:Point,preview:Image,file:String,forms:Array'(IForm),nextStepIndex:u32,nextGroupId:u64,linkedImage:String,linkedUpToDate:bool,title:String,sourceKind:CaptureSourceKind,capturedAt:DateTime,sourceApplication:String,sourceExecutable:String,sourceWindowTitle:String,sourceWindowClass:String,tags:Array'(String),favorite:bool,rating:u8,media:CaptureMedia,timeline:CaptureTimeline")
-    expect testAssertSchema(#typeof(BaseForm), "x:s32,y:s32,w:s32,h:s32,borderSize:f32,joinStyle:JoinStyle,bezier:bool,scale:f32,rotate:f32,alpha:u8,paintShadow:bool,shadowOffsetX:f32,shadowOffsetY:f32,borderColor:Color,backColor:Color,dashStyle:DashStyle,subKind:FormSubKind,groups:Array'(u64),timeStart:u64,timeEnd:u64")
-    expect testAssertSchema(#typeof(QuickStyle), "forms:Array'(IForm),names:Array'(String),uses:Array'(u32)")
+    expect testAssertSchema(#typeof(Capture), "width:s32,height:s32,backImg:Image,widthOrg:s32,heightOrg:s32,backImgOriginal:Image,backImagePos:Point,preview:Image,file:String,forms:Array!{IForm},nextStepIndex:u32,nextGroupId:u64,linkedImage:String,linkedUpToDate:bool,title:String,sourceKind:CaptureSourceKind,capturedAt:DateTime,sourceApplication:String,sourceExecutable:String,sourceWindowTitle:String,sourceWindowClass:String,tags:Array!{String},favorite:bool,rating:u8,media:CaptureMedia,timeline:CaptureTimeline")
+    expect testAssertSchema(#typeof(BaseForm), "x:s32,y:s32,w:s32,h:s32,borderSize:f32,joinStyle:JoinStyle,bezier:bool,scale:f32,rotate:f32,alpha:u8,paintShadow:bool,shadowOffsetX:f32,shadowOffsetY:f32,borderColor:Color,backColor:Color,dashStyle:DashStyle,subKind:FormSubKind,groups:Array!{u64},timeStart:u64,timeEnd:u64")
+    expect testAssertSchema(#typeof(QuickStyle), "forms:Array!{IForm},names:Array!{String},uses:Array!{u32}")
 }
 
 #test
@@ -55,7 +58,7 @@ func testAssertSchema(type: typeinfo, expected: string) fail
     expect testAssertSchema(#typeof(FormStep), "base:BaseForm,kind:FormShapeKind,index:u32,typeIndex:FormStepType")
     expect testAssertSchema(#typeof(FormText), "base:BaseForm,text:String,fontName:String,fontSize:f32,fontStyle:FontFamilyStyle,alignHorz:FormTextAlign,alignVert:FormTextAlign,boldSize:f32,lineSpacing:f32")
     expect testAssertSchema(#typeof(FormImage), "base:BaseForm,image:Image,kind:FormImageKind,strength:s32,place:FormImagePlacement,freePos:Rectangle")
-    expect testAssertSchema(#typeof(FormPolygon), "base:BaseForm,points:Array'(Vector2)")
-    expect testAssertSchema(#typeof(FormDraw), "base:BaseForm,outlineSize:f32,outlineColor:Color,points:Array'(Vector2),anchorSize:f32")
+    expect testAssertSchema(#typeof(FormPolygon), "base:BaseForm,points:Array!{Vector2}")
+    expect testAssertSchema(#typeof(FormDraw), "base:BaseForm,outlineSize:f32,outlineColor:Color,points:Array!{Vector2},anchorSize:f32")
     expect testAssertSchema(#typeof(FormCallout), "base:BaseForm,text:String,fontName:String,fontSize:f32,fontStyle:FontFamilyStyle,alignHorz:FormTextAlign,alignVert:FormTextAlign,lineSpacing:f32,roundSize:f32,tailX:f32,tailY:f32,boldSize:f32,textColor:Color")
 }

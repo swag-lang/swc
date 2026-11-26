@@ -37,7 +37,7 @@ struct RecordHud
     shownTargetPause:  bool
     hasShownState:     bool
     hasCommands:       bool                    // The commands exist; the window is resized before they do.
-    prepOptions:       Array'(*IconButton)     // Choices shown only before a video starts.
+    prepOptions:       Array!{*IconButton}     // Choices shown only before a video starts.
     qualityButton:     *IconButton?            // Video quality, chosen before a video starts.
 }
 
@@ -60,8 +60,11 @@ impl IWnd for RecordHud
     mtd impl onThemeEvent(evt: *ThemeEvent)
     {
         .wnd.IWnd.onThemeEvent(evt)
-        if not .hasCommands do
+        if not .hasCommands
+        {
             return
+        }
+
         .droppedLabel.setTextColor(.themeColors().critical)
         .hasShownState = false
         .refresh()
@@ -71,8 +74,10 @@ impl IWnd for RecordHud
     mtd impl onResizeEvent(evt: *ResizeEvent)
     {
         .wnd.IWnd.onResizeEvent(evt)
-        if not .hasCommands do
+        if not .hasCommands
+        {
             return
+        }
 
         let client    = .clientRect()
         let preparing = .recorder.state == .Preparing
@@ -182,14 +187,20 @@ impl RecordHud
                 let neededHeight = Math.ceil(logicalHeight * candidateScale) +
                                    2 * margin + Math.ceil(RecordHudGap * candidateScale)
                 if candidate.physicalWorkArea.width < neededWidth or
-                   candidate.physicalWorkArea.height < neededHeight do
+                   candidate.physicalWorkArea.height < neededHeight
+                {
                     continue
+                }
+
                 let work     = candidate.physicalWorkArea
                 let dx       = frame.horzCenter() - Math.clamp(frame.horzCenter(), work.x, work.right())
                 let dy       = frame.vertCenter() - Math.clamp(frame.vertCenter(), work.y, work.bottom())
                 let distance = dx * dx + dy * dy
-                if distance >= nearest do
+                if distance >= nearest
+                {
                     continue
+                }
+
                 nearest     = distance
                 monitor     = candidate
                 otherScreen = true
@@ -224,16 +235,21 @@ impl RecordHud
         }
 
         var place = Math.Rectangle{frame.right() - width, frame.bottom() + gap, width, height}
-        if place.bottom() > workArea.bottom() do
+        if place.bottom() > workArea.bottom()
+        {
             place.y = frame.y - gap - height
+        }
+
         if place.y < workArea.y
         {
             // A nearly full-height area has no vertical room. Try either side, keeping the
             // controls clear of the recorded pixels even on an X11 root capture.
             place.y = Math.clamp(frame.bottom() - height, workArea.y, workArea.bottom() - height)
             place.x = frame.right() + gap
-            if place.right() > workArea.right() do
+            if place.right() > workArea.right()
+            {
                 place.x = frame.x - gap - width
+            }
         }
         else
         {
@@ -258,7 +274,7 @@ impl RecordHud
     // Creates the pill of `recorder` in `parent`, with the recording backend's sound capability.
     func create(parent: *Wnd, recorder: *Recorder, soundCaptureAvailable: bool = #os == Swag.TargetOs.Windows)->*RecordHud
     {
-        with let result = Wnd.create'RecordHud(parent)
+        with let result = Wnd.create!{RecordHud}(parent)
         {
             .recorder        = recorder
             .toolTip         = g_CaptureWindow.title
@@ -267,8 +283,11 @@ impl RecordHud
             .createReadout()
             if recorder.state == .Preparing
             {
-                if recorder.screenSelection do
+                if recorder.screenSelection
+                {
                     .createScreenChoice()
+                }
+
                 .createPrepOptions(soundCaptureAvailable)
             }
 
@@ -306,8 +325,10 @@ impl RecordHud
                            Painter.measureString(widest, font).width
         let normalWidth = RecordHudLeft + RecordHudMark + 3 * RecordHudTextMargin + contentWidth +
                           targetWidth + commands + RecordHudRight
-        if not preparing do
+        if not preparing
+        {
             return Math.ceil(normalWidth)
+        }
 
         let texts        = appStrings()
         let labels       = [texts.ui_AimCursor, texts.ui_AimCountdown, texts.ui_AimMicrophone, texts.ui_AimSystemSound]
@@ -328,8 +349,11 @@ impl RecordHud
         let metrics = main.themeMetrics()
         let font    = main.theme().createDefaultFont(metrics.defaultFontSize)
         var widest  = Painter.measureString(appStrings().ui_AimAllScreens, font).width
-        for index in main.monitors.count do
+        for index in main.monitors.count
+        {
             widest = Math.max(widest, Painter.measureString(Format.toString(appStrings().ui_AimScreen, index + 1), font).width)
+        }
+
         return Math.ceil(2 * metrics.btnIcon_Padding + metrics.menuPopup_IconSize +
                          metrics.btnIcon_SpacingTextH + widest + metrics.btnIcon_ArrowSize +
                          metrics.btnIcon_SpacingArrowH)
@@ -392,12 +416,19 @@ impl RecordHud
         .pauseButton = command(me, .theme().icon(.Pause), appStrings().tip_PauseRecording)
         .pauseButton.sigPressed += func|hud = me|(_)
         {
-            if hud.recorder.pausedForTarget do
+            if hud.recorder.pausedForTarget
+            {
                 return
-            if hud.recorder.state == .Paused do
+            }
+
+            if hud.recorder.state == .Paused
+            {
                 hud.recorder.resume()
-            else do
+            }
+            else
+            {
                 hud.recorder.pause()
+            }
         }
     }
 
@@ -490,8 +521,11 @@ impl RecordHud
         }
 
         var droppedText: String
-        if .recorder.dropped and not counting do
+        if .recorder.dropped and not counting
+        {
             droppedText = Format.toString(appStrings().ui_DroppedCount, .recorder.dropped)
+        }
+
         let targetText  = .recorder.readoutLabel()
         let needsLayout = .timeLabel.text() != shown or
                           .limitLabel.text() != limitText or
@@ -520,12 +554,16 @@ impl RecordHud
             .pauseButton.enable(not .recorder.pausedForTarget and not .recorder.videoMode)
             .pauseButton.show(not preparing)
             .stopButton.show(not preparing)
-            if .recorder.videoMode and not preparing do
+            if .recorder.videoMode and not preparing
+            {
                 .pauseButton.toolTip = appStrings().tip_VideoPauseUnavailable
+            }
         }
 
-        if needsLayout do
+        if needsLayout
+        {
             .layoutReadout()
+        }
     }
 
     // Keeps capture inputs beside the live target until the recording is started.
@@ -589,21 +627,25 @@ impl IWnd for RecordScreenChoices
 {
     mtd impl onTimerEvent(_: *TimerEvent)
     {
-        if PopupMenuSurface.shouldDismiss(me, .menu, &.wasActive, &.armed) do
+        if PopupMenuSurface.shouldDismiss(me, .menu, &.wasActive, &.armed)
+        {
             .close()
+        }
     }
 
     mtd impl onKeyEvent(evt: *KeyEvent)
     {
         .menu.handleKeyboard(evt)
-        if .menu.isModalEnded() do
+        if .menu.isModalEnded()
+        {
             .close()
+        }
     }
 }
 
 impl RecordScreenChoices
 {
-    const WatchPeriod: Time.Duration = 30'ms
+    const WatchPeriod: Time.Duration = 30_ms
 
     func open(hud: *RecordHud, button: *IconButton)->*RecordScreenChoices?
     {
@@ -616,16 +658,18 @@ impl RecordScreenChoices
                                     buttonRect.width * anchorSurface.dpiScale,
                                     buttonRect.height * anchorSurface.dpiScale}
         let surface = PopupMenuSurface.create(anchorSurface.app, {anchor.x, anchor.bottom()})
-        if not surface do
+        if not surface
+        {
             return null
+        }
 
-        with let choices = Wnd.create'RecordScreenChoices(surface.wnd)
+        with let choices = Wnd.create!{RecordScreenChoices}(surface.wnd)
         {
             .dockStyle       = .Center
             .backgroundStyle = .Window
             .focusPolicy     = .Click
             .hud             = hud
-            .menu            = Wnd.create'MenuCtrl(choices)
+            .menu            = Wnd.create!{MenuCtrl}(choices)
         }
 
         let selected = hud.recorder.screenIndex
@@ -662,8 +706,10 @@ impl RecordScreenChoices
             return
         }
 
-        for index in recorder.main.monitors.count where id == Format.toString("record.screen.%", index) do
+        for index in recorder.main.monitors.count where id == Format.toString("record.screen.%", index)
+        {
             recorder.selectScreen(index)
+        }
     }
 
     mtd close()

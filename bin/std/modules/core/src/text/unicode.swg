@@ -25,48 +25,66 @@ public
     // Above U+00FF this means a Unicode decimal digit; below, it follows [[Core.Latin1.isDigit]].
     func isDigit(c: rune)->bool
     {
-        if isLatin1(c) do
+        if isLatin1(c)
+        {
             return Latin1.isDigit(cast(u8, c))
+        }
+
         return isInTable(TableDigit, c)
     }
 
     // Returns whether `c` is a Unicode number: a digit, a letter number or another numeric character.
     func isNumber(c: rune)->bool
     {
-        if isLatin1(c) do
+        if isLatin1(c)
+        {
             return Latin1.isNumber(cast(u8, c))
+        }
+
         return isInTable(TableNumber, c)
     }
 
     // Returns whether `c` is a control character, all of which are in Latin-1.
     func isControl(c: rune)->bool
     {
-        if isLatin1(c) do
+        if isLatin1(c)
+        {
             return Latin1.isControl(cast(u8, c))
+        }
+
         return false
     }
 
     // Returns whether `c` is Unicode white space.
     func isSpace(c: rune)->bool
     {
-        if isLatin1(c) do
+        if isLatin1(c)
+        {
             return Latin1.isSpace(cast(u8, c))
+        }
+
         return isInTable(TableWhiteSpace, c)
     }
 
     // Returns whether `c` is a Unicode letter.
     func isLetter(c: rune)->bool
     {
-        if isLatin1(c) do
+        if isLatin1(c)
+        {
             return Latin1.isLetter(cast(u8, c))
+        }
+
         return isInTable(TableLetter, c)
     }
 
     // Returns whether `c` is a Unicode symbol.
     func isSymbol(c: rune)->bool
     {
-        if isLatin1(c) do
+        if isLatin1(c)
+        {
             return Latin1.isSymbol(cast #bit (u8, c))
+        }
+
         return isInTable(TableSymbol, c)
     }
 
@@ -76,32 +94,44 @@ public
     // Returns whether `c` is a Unicode letter or a digit.
     func isLetterOrDigit(c: rune)->bool
     {
-        if isLatin1(c) do
+        if isLatin1(c)
+        {
             return Latin1.isLetterOrDigit(cast(u8, c))
+        }
+
         return isDigit(c) or isLetter(c)
     }
 
     // Returns whether `c` is a Unicode title-case letter.
     func isTitle(c: rune)->bool
     {
-        if isLatin1(c) do
+        if isLatin1(c)
+        {
             return false
+        }
+
         return isInTable(TableTitle, c)
     }
 
     // Returns whether `c` is a Unicode lower-case letter.
     func isLower(c: rune)->bool
     {
-        if isLatin1(c) do
+        if isLatin1(c)
+        {
             return Latin1.isLower(cast(u8, c))
+        }
+
         return isInTable(TableLower, c)
     }
 
     // Returns whether `c` is a Unicode upper-case letter.
     func isUpper(c: rune)->bool
     {
-        if isLatin1(c) do
+        if isLatin1(c)
+        {
             return Latin1.isUpper(cast(u8, c))
+        }
+
         return isInTable(TableUpper, c)
     }
 
@@ -111,30 +141,45 @@ public
     // Returns the Unicode simple lowercase mapping of one code point.
     func toLower(c: rune)->rune
     {
-        if isLatin1(c) do
+        if isLatin1(c)
+        {
             return cast(rune, Latin1.toLower(cast(u8, c)))
+        }
 
         var res = caseChangeTo(WantedCase.LowerCase, c, TableSpecialCaseRanges)
-        if res.foundMapping do
+        if res.foundMapping
+        {
             return res.mappedRune
+        }
+
         res = caseChangeTo(WantedCase.LowerCase, c, TableCaseRanges)
-        if not res.foundMapping do
+        if not res.foundMapping
+        {
             return c
+        }
+
         return res.mappedRune
     }
 
     // Returns the Unicode simple uppercase mapping of one code point.
     func toUpper(c: rune)->rune
     {
-        if isAscii(c) do
+        if isAscii(c)
+        {
             return cast(rune, Latin1.toUpper(cast(u8, c)))
+        }
 
         var res = caseChangeTo(WantedCase.UpperCase, c, TableSpecialCaseRanges)
-        if res.foundMapping do
+        if res.foundMapping
+        {
             return res.mappedRune
+        }
+
         res = caseChangeTo(WantedCase.UpperCase, c, TableCaseRanges)
-        if not res.foundMapping do
+        if not res.foundMapping
+        {
             return c
+        }
 
         return res.mappedRune
     }
@@ -142,15 +187,22 @@ public
     // Returns the Unicode simple titlecase mapping of one code point.
     func toTitle(c: rune)->rune
     {
-        if isAscii(c) do
+        if isAscii(c)
+        {
             return cast(rune, Latin1.toUpper(cast(u8, c)))
+        }
 
         var res = caseChangeTo(WantedCase.TitleCase, c, TableSpecialCaseRanges)
-        if res.foundMapping do
+        if res.foundMapping
+        {
             return res.mappedRune
+        }
+
         res = caseChangeTo(WantedCase.TitleCase, c, TableCaseRanges)
-        if not res.foundMapping do
+        if not res.foundMapping
+        {
             return c
+        }
 
         return res.mappedRune
     }
@@ -162,7 +214,7 @@ public
 // byte of an invalid sequence decodes to [[Core.Utf8.RuneError]].
 public func fromUtf8(dest: [..] rune, src: const [..] u8)->u32
 {
-    var count     = 0'u32
+    var count     = 0_u32
     var srcPtr    = src.buffer
     var destPtr   = dest.buffer
     var srcLength = src.count
@@ -184,7 +236,7 @@ public func fromUtf8(dest: [..] rune, src: const [..] u8)->u32
 }
 
 // Returns the runes decoded from the UTF-8 bytes of `src`.
-public func fromUtf8(src: const [..] u8)->Array'rune
+public func fromUtf8(src: const [..] u8)->Array!{rune}
 {
     var result: #returntype
     result.reserve(src.count)
@@ -195,15 +247,19 @@ public func fromUtf8(src: const [..] u8)->Array'rune
 // Replaces each rune of `buffer` with its [[Core.Unicode.toUpper]] mapping.
 public func makeUpper(buffer: [..] rune)
 {
-    for &c in buffer do
+    for &c in buffer
+    {
         c[] = toUpper(c[])
+    }
 }
 
 // Replaces each rune of `buffer` with its [[Core.Unicode.toLower]] mapping.
 public func makeLower(buffer: [..] rune)
 {
-    for &c in buffer do
+    for &c in buffer
+    {
         c[] = toLower(c[])
+    }
 }
 
 // Compares two rune sequences, returning -1, 0 or 1.
@@ -216,8 +272,10 @@ func compare(src, dst: const [..] rune, ignoreCase = false, len: u64 = 0)->s32
     let otherLength = dst.count
 
     var minLen = Math.min(length, otherLength)
-    if len do
+    if len
+    {
         minLen = Math.min(minLen, len)
+    }
 
     var result: s32
     if ignoreCase
@@ -227,8 +285,10 @@ func compare(src, dst: const [..] rune, ignoreCase = false, len: u64 = 0)->s32
         {
             let c1 = toLower(src[i])
             let c2 = toLower(dst[i])
-            if c1 != c2 do
+            if c1 != c2
+            {
                 return c1 < c2 ? -1 : 1
+            }
         }
     }
     else
@@ -236,10 +296,16 @@ func compare(src, dst: const [..] rune, ignoreCase = false, len: u64 = 0)->s32
         result = Memory.compare(src.buffer, dst.buffer, minLen * #sizeof(rune))
     }
 
-    if result != 0 do
+    if result != 0
+    {
         return Math.sign(result)
-    if len and length >= len and otherLength >= len do
+    }
+
+    if len and length >= len and otherLength >= len
+    {
         return 0
+    }
+
     return length <=> otherLength
 }
 
@@ -286,17 +352,22 @@ func isInTable(ranges: const [..] Range, r: rune)->bool
     {
         for &range in ranges
         {
-            if r < range.lo do
+            if r < range.lo
+            {
                 return false
-            if r <= range.hi do
+            }
+
+            if r <= range.hi
+            {
                 return range.stride == 1 or (r - range.lo) % range.stride == 0
+            }
         }
 
         return false
     }
 
     // binary search over ranges
-    var lo = 0'u64
+    var lo = 0_u64
     var hi = ranges.count
     while lo < hi
     {
@@ -307,10 +378,14 @@ func isInTable(ranges: const [..] Range, r: rune)->bool
             return range.stride == 1 or (r - range.lo) % range.stride == 0
         }
 
-        if r < range.lo do
+        if r < range.lo
+        {
             hi = m
-        else do
+        }
+        else
+        {
             lo = m + 1
+        }
     }
 
     return false
@@ -321,7 +396,7 @@ func caseChangeTo(wCase: WantedCase, r: rune, caseRange: const [..] CaseRange)->
     var result: #returntype
 
     // binary search over ranges
-    var lo = 0'u64
+    var lo = 0_u64
     var hi = caseRange.count
     while lo < hi
     {
@@ -334,7 +409,7 @@ func caseChangeTo(wCase: WantedCase, r: rune, caseRange: const [..] CaseRange)->
             {
                 // Alternating ranges start with uppercase: even offsets are upper/title,
                 // odd offsets are lower. The low bit of WantedCase selects the pair member.
-                let pairOffset = (r - cr.lo) & ~1'u32
+                let pairOffset = (r - cr.lo) & ~1_u32
                 let caseOffset = cast(rune, wCase) & 1
                 result.mappedRune   = cr.lo + #wrap (pairOffset | caseOffset)
                 result.foundMapping = true
@@ -346,10 +421,14 @@ func caseChangeTo(wCase: WantedCase, r: rune, caseRange: const [..] CaseRange)->
             return result
         }
 
-        if r < cr.lo do
+        if r < cr.lo
+        {
             hi = m
-        else do
+        }
+        else
+        {
             lo = m + 1
+        }
     }
 
     return result
@@ -358,7 +437,7 @@ func caseChangeTo(wCase: WantedCase, r: rune, caseRange: const [..] CaseRange)->
 internal func appendCaseFold(result: *String, value: rune, turkic: bool)
 {
     let table = cast(const [..] CaseFoldMapping, TableCaseFold)
-    var lo    = 0'u64
+    var lo    = 0_u64
     var hi    = cast(u64, table.count)
     while lo < hi
     {
@@ -368,22 +447,30 @@ internal func appendCaseFold(result: *String, value: rune, turkic: bool)
         {
             if turkic
             {
-                for i in entry.turkicCount do
+                for i in entry.turkicCount
+                {
                     result.append(entry.turkic[i])
+                }
             }
             else
             {
-                for i in entry.count do
+                for i in entry.count
+                {
                     result.append(entry.mapping[i])
+                }
             }
 
             return
         }
 
-        if value < entry.source do
+        if value < entry.source
+        {
             hi = middle
-        else do
+        }
+        else
+        {
             lo = middle + 1
+        }
     }
 
     result.append(value)

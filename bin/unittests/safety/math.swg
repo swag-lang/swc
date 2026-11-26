@@ -31,25 +31,25 @@ func opaqueF32(v: f32)->f32
 #[Swag.Safety(.Math, true)]
 func invalidConstantSqrt()->f64
 {
-    return Swag.sqrt(-1.0'f64)     // swc-expected-error {{safety_err_invalid_argument}}
+    return Swag.sqrt(-1.0_f64)     // swc-expected-error {{safety_err_invalid_argument}}
 }
 
 #[Swag.Safety(.Math, true)]
 func invalidConstantAsin()->f64
 {
-    return Swag.asin(1.5'f64)     // swc-expected-error {{safety_err_invalid_argument}}
+    return Swag.asin(1.5_f64)     // swc-expected-error {{safety_err_invalid_argument}}
 }
 
 #[Swag.Safety(.Math, true)]
 func invalidConstantLog()->f64
 {
-    return Swag.log(0.0'f64)     // swc-expected-error {{safety_err_invalid_argument}}
+    return Swag.log(0.0_f64)     // swc-expected-error {{safety_err_invalid_argument}}
 }
 
 #[Swag.Safety(.Math, true)]
 func invalidConstantPow()->f64
 {
-    return Swag.pow(-1.0'f64, 0.5'f64)     // swc-expected-error {{safety_err_invalid_argument}}
+    return Swag.pow(-1.0_f64, 0.5_f64)     // swc-expected-error {{safety_err_invalid_argument}}
 }
 
 #test
@@ -160,7 +160,7 @@ func invalidConstantPow()->f64
     #[Swag.Safety(.Math, true)]
     func validMath(a, b: f64)->f64
     {
-        return Swag.sqrt(a) + Swag.log(b) + Swag.asin(0.0'f64) + Swag.acos(1.0'f64) + Swag.pow(2.0'f64, 3.0'f64)
+        return Swag.sqrt(a) + Swag.log(b) + Swag.asin(0.0_f64) + Swag.acos(1.0_f64) + Swag.pow(2.0_f64, 3.0_f64)
     }
 
     const value = #run validMath(9.0, 1.0)
@@ -215,7 +215,7 @@ func invalidConstantPow()->f64
         return Swag.sqrt(v)     // swc-expected-error {{safety_err_runtime}}
     }
 
-    const value = #run invalidSqrtF32(opaqueF32(-1.0'f32))
+    const value = #run invalidSqrtF32(opaqueF32(-1.0_f32))
 }
 
 #test
@@ -226,7 +226,7 @@ func invalidConstantPow()->f64
         return Swag.asin(v)     // swc-expected-error {{safety_err_runtime}}
     }
 
-    const value = #run invalidAsinF32(opaqueF32(2.0'f32))
+    const value = #run invalidAsinF32(opaqueF32(2.0_f32))
 }
 
 #test
@@ -237,7 +237,7 @@ func invalidConstantPow()->f64
         return Swag.acos(v)     // swc-expected-error {{safety_err_runtime}}
     }
 
-    const value = #run invalidAcosF32(opaqueF32(-2.0'f32))
+    const value = #run invalidAcosF32(opaqueF32(-2.0_f32))
 }
 
 #test
@@ -248,7 +248,7 @@ func invalidConstantPow()->f64
         return Swag.log(v)     // swc-expected-error {{safety_err_runtime}}
     }
 
-    const value = #run invalidLogF32(opaqueF32(-1.0'f32))
+    const value = #run invalidLogF32(opaqueF32(-1.0_f32))
 }
 
 #test
@@ -259,7 +259,7 @@ func invalidConstantPow()->f64
         return Swag.log2(v)     // swc-expected-error {{safety_err_runtime}}
     }
 
-    const value = #run invalidLog2F32(opaqueF32(-1.0'f32))
+    const value = #run invalidLog2F32(opaqueF32(-1.0_f32))
 }
 
 #test
@@ -270,7 +270,7 @@ func invalidConstantPow()->f64
         return Swag.log10(v)     // swc-expected-error {{safety_err_runtime}}
     }
 
-    const value = #run invalidLog10F32(opaqueF32(-1.0'f32))
+    const value = #run invalidLog10F32(opaqueF32(-1.0_f32))
 }
 
 #test
@@ -281,7 +281,7 @@ func invalidConstantPow()->f64
         return Swag.pow(a, b)     // swc-expected-error {{safety_err_runtime}}
     }
 
-    const value = #run invalidPowF32(opaqueF32(-1.0'f32), opaqueF32(0.5'f32))
+    const value = #run invalidPowF32(opaqueF32(-1.0_f32), opaqueF32(0.5_f32))
 }
 
 // =============================================
@@ -318,7 +318,7 @@ func invalidConstantPow()->f64
     #[Swag.Safety(.Math, true)]
     func validAsinBoundary()->f64
     {
-        return Swag.asin(-1.0'f64) + Swag.asin(1.0'f64)
+        return Swag.asin(-1.0_f64) + Swag.asin(1.0_f64)
     }
 
     const value = #run validAsinBoundary()
@@ -329,7 +329,7 @@ func invalidConstantPow()->f64
     #[Swag.Safety(.Math, true)]
     func validAcosBoundary()->f64
     {
-        return Swag.acos(-1.0'f64) + Swag.acos(1.0'f64)
+        return Swag.acos(-1.0_f64) + Swag.acos(1.0_f64)
     }
 
     const value = #run validAcosBoundary()
@@ -341,7 +341,7 @@ func invalidConstantPow()->f64
     #[Swag.Safety(.Math, true)]
     func validSqrtZero()->f64
     {
-        return Swag.sqrt(0.0'f64)
+        return Swag.sqrt(0.0_f64)
     }
 
     const value = #run validSqrtZero()

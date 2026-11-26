@@ -31,7 +31,7 @@ func unaryBangBang(a: s32)->bool
     Swag.require(unaryBangInt(0))
     Swag.require(not unaryBangInt(1))
     Swag.require(unaryBangPointer(null))
-    Swag.require(not unaryBangPointer(cast(*void, 0x1000'u64)))
+    Swag.require(not unaryBangPointer(cast(*void, 0x1000_u64)))
     Swag.require(not unaryBangBang(0))
     Swag.require(unaryBangBang(12))
 }

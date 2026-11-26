@@ -15,8 +15,11 @@ func pageText(index, count: u64)->String => Format.toString("% / %", index < cou
 // Returns the page direction requested by Ctrl Page Up/Down, or zero for another key.
 func pageKeyDirection(key: const *KeyEvent)->s32
 {
-    if key.kind != .Pressed or key.modifiers != .Control do
+    if key.kind != .Pressed or key.modifiers != .Control
+    {
         return 0
+    }
+
     switch key.key
     {
     case .PageUp:   return -1
@@ -56,11 +59,17 @@ private func pageCommand(unit: PageUnit)->string
 func numberedPage(text: string, count: u64)->u64
 {
     let typed = Latin1.trim(text)
-    for character in typed where not Latin1.isDigit(character) do
+    for character in typed where not Latin1.isDigit(character)
+    {
         return Swag.U64.Max
+    }
+
     let number = catch StrConv.parseU64(typed) { return Swag.U64.Max }
-    if number.eat != typed.count or number.ovf or not number.value or number.value > count do
+    if number.eat != typed.count or number.ovf or not number.value or number.value > count
+    {
         return Swag.U64.Max
+    }
+
     return number.value - 1
 }
 
@@ -70,17 +79,17 @@ struct PageSteps
 {
     late
     {
-        previousButton: *IconButton
-        nextButton:     *IconButton
-        counter:        *IconButton
+        previousButton:     *IconButton
+        nextButton:         *IconButton
+        counter:            *IconButton
         private turnPage:   func||(s32)
         private selectPage: func||(u64)
     }
 
-    unit: PageUnit
+    unit:                PageUnit
     ordinal, totalSteps: u64
-    labelAt: (func||(u64)->string)?
-    resolveLabel: (func||(string)->u64)?
+    labelAt:             (func||(u64)->string)?
+    resolveLabel:        (func||(string)->u64)?
 }
 
 impl PageSteps
@@ -99,7 +108,7 @@ impl PageSteps
         .turnPage       = turn
         .selectPage     = select
         .previousButton = .step(parent, -1)
-        let height      = themeActionButtonSize(parent.themeMetrics())
+        let height = themeActionButtonSize(parent.themeMetrics())
         with .counter = IconButton.create(parent, {}, {0, 0, PageReadoutWidth, height}, id, .CenterContent)
         {
             .dockStyle = .Left
@@ -108,6 +117,7 @@ impl PageSteps
             .style.setFont(parent.theme().createDefaultFontFs(12), .Regular)
             .sigPressed += func|steps = me|(_) { steps.promptGoToPage() }
         }
+
         .nextButton = .step(parent, 1)
         return .counter
     }
@@ -115,8 +125,8 @@ impl PageSteps
     // Keeps the counter and the address dialog on the same range. Readers may supply a labelled readout.
     mtd setPageRange(index, count: u64)
     {
-        .ordinal    = index
-        .totalSteps = count
+        .ordinal         = index
+        .totalSteps      = count
         .counter.toolTip = pageCommand(.unit)
         .counter.setText(index < count ? pageText(index, count) : "")
     }
@@ -125,11 +135,17 @@ impl PageSteps
     mtd typedPageIndex(text: string)->u64
     {
         let index = numberedPage(text, .totalSteps)
-        if index < .totalSteps or not .resolveLabel do
+        if index < .totalSteps or not .resolveLabel
+        {
             return index
+        }
+
         let typed = Latin1.trim(text)
-        for character in typed where not Latin1.isDigit(character) do
+        for character in typed where not Latin1.isDigit(character)
+        {
             return .resolveLabel(typed)
+        }
+
         return Swag.U64.Max
     }
 
@@ -137,8 +153,11 @@ impl PageSteps
     mtd goToTypedPage(text: string)->bool
     {
         let index = .typedPageIndex(text)
-        if index >= .totalSteps do
+        if index >= .totalSteps
+        {
             return false
+        }
+
         .selectPage(index)
         return true
     }
@@ -148,11 +167,11 @@ impl PageSteps
     {
         var options: EditDlgOptions
         options.title = pageCommand(.unit)
-        let label = .labelAt and .ordinal < .totalSteps ? .labelAt(.ordinal) : ""
+        let label   = .labelAt and .ordinal < .totalSteps ? .labelAt(.ordinal) : ""
         let initial = label.count ? String.from(label) : Format.toString("%", .ordinal + 1)
-        let help = label.count ? Format.toString(appStrings().ui_PageNumberOrLabel, .totalSteps, label) :
-                                 Format.toString(appStrings().ui_PageNumberRange, .totalSteps)
-        options.text = initial
+        let help    = label.count ? Format.toString(appStrings().ui_PageNumberOrLabel, .totalSteps, label) :
+                      Format.toString(appStrings().ui_PageNumberRange, .totalSteps)
+        options.text    = initial
         options.message = help
         let dialog = EditDlg.createSingleLine(unwrap .counter.surface, options)
         dialog.edit!.setValidator(func|steps = me|(field)->EditBoxCheckResult
@@ -163,28 +182,35 @@ impl PageSteps
         {
             return result != Dialog.BtnOk or steps.goToTypedPage(dialog.text())
         }
+
         return dialog
     }
 
     // Presents the address sheet only while the reader has a destination.
     mtd promptGoToPage()
     {
-        if .counter.surface and .totalSteps do
+        if .counter.surface and .totalSteps
+        {
             discard .createPageDialog().doModal()
+        }
     }
 
     // Publishes direct navigation with the same wording as the counter.
     mtd addPageJump(entries: *LensEntries, id: string)
     {
-        entries.add(pageCommand(.unit), .GoTo, func|steps = me|() { steps.promptGoToPage() },
-                    disabled: .totalSteps <= 1, bindId: id)
+        entries.add(pageCommand(.unit), .GoTo, func|steps = me|() { steps.promptGoToPage() }, disabled: .totalSteps <= 1, bindId: id)
     }
 
     // Shows or hides the three controls together. Returns whether their layout changed.
     mtd showSteps(visible: bool)->bool
     {
-        if .counter.isLocallyVisible() == visible and .previousButton.isLocallyVisible() == visible and .nextButton.isLocallyVisible() == visible do
+        if .counter.isLocallyVisible() == visible and
+           .previousButton.isLocallyVisible() == visible and
+           .nextButton.isLocallyVisible() == visible
+        {
             return false
+        }
+
         .previousButton.show(visible)
         .counter.show(visible)
         .nextButton.show(visible)

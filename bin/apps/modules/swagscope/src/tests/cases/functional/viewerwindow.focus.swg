@@ -14,8 +14,11 @@ using Swag, Gui, Viewers
     Swag.require(window.outlineCaptionButton.focusPolicy == .None)
     Swag.require(window.informationCaptionButton.focusPolicy == .None)
     Swag.require(window.fullScreenCaptionButton.focusPolicy == .None)
-    for child in window.infoSheet.children where child is IconButton do
+    for child in window.infoSheet.children where child is IconButton
+    {
         Swag.require(child.focusPolicy == .None)
+    }
+
     var launchers: u32
     for child in host.surfaceWnd.children
     {

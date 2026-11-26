@@ -26,7 +26,7 @@ impl ITagBinArrayThing for TagBinArrayThing
 #[Serialization.Schema("core.test.tagbin-array-holder")]
 struct TagBinArrayHolder
 {
-    things: Array'ITagBinArrayThing
+    things: Array!{ITagBinArrayThing}
 }
 
 struct TagBinUnkeyedThing
@@ -75,8 +75,11 @@ struct TagBinDuplicateHolder
 
 func releaseTagBinArrayHolder(holder: *TagBinArrayHolder)
 {
-    for it in holder.things do
+    for it in holder.things
+    {
         Memory.delete(cast(*TagBinArrayThing, it.buffer))
+    }
+
     holder.things.clear()
 }
 
@@ -87,7 +90,7 @@ func releaseTagBinArrayHolder(holder: *TagBinArrayHolder)
     var holder: TagBinArrayHolder
     for i in 3
     {
-        let t = Memory.new'TagBinArrayThing()
+        let t = Memory.new!{TagBinArrayThing}()
         t.v = cast(s32, (10 + i))
         holder.things.add(t)
     }
@@ -95,30 +98,32 @@ func releaseTagBinArrayHolder(holder: *TagBinArrayHolder)
     defer releaseTagBinArrayHolder(&holder)
 
     var buffer:  ConcatBuffer
-    var encoder: Serialization.Encoder'Serialization.Write.TagBin
+    var encoder: Serialization.Encoder!{Serialization.Write.TagBin}
     expect encoder.writeAll(&buffer, holder)
     buffer.makeLinear()
     Swag.require(buffer.toString().contains("core.test.tagbin-array-thing"))
-    var decoder: Serialization.Decoder'Serialization.Read.TagBin
-    let loaded = expect decoder.readAll'TagBinArrayHolder(unwrap buffer.toSlice())
+    var decoder: Serialization.Decoder!{Serialization.Read.TagBin}
+    let loaded = expect decoder.readAll!{TagBinArrayHolder}(unwrap buffer.toSlice())
     defer releaseTagBinArrayHolder(loaded)
 
     Swag.require(loaded.things.count == 3)
-    for it, i in loaded.things do
+    for it, i in loaded.things
+    {
         Swag.require(it.value() == cast(s32, (10 + i)))
+    }
 }
 
 // A dynamic object cannot fall back to its Swag type name.
 #test
 {
-    let thing = Memory.new'TagBinUnkeyedThing()
+    let thing = Memory.new!{TagBinUnkeyedThing}()
     defer Memory.delete(thing)
 
     Reflection.registerType(#typeof(TagBinUnkeyedThing))
     var holder = TagBinUnkeyedHolder{thing: cast(ITagBinArrayThing, thing[])}
 
     var buffer:     ConcatBuffer
-    var encoder:    Serialization.Encoder'Serialization.Write.TagBin
+    var encoder:    Serialization.Encoder!{Serialization.Write.TagBin}
     var errOutcome: Swag.Error
     catch encoder.writeAll(&buffer, holder) as errOutcome
     let err = errOutcome.value()
@@ -129,7 +134,7 @@ func releaseTagBinArrayHolder(holder: *TagBinArrayHolder)
 // A key shared by two concrete types is ambiguous and cannot reach the wire.
 #test
 {
-    let thing = Memory.new'TagBinDuplicateThingA()
+    let thing = Memory.new!{TagBinDuplicateThingA}()
     defer Memory.delete(thing)
 
     Reflection.registerType(#typeof(TagBinDuplicateThingA))
@@ -137,7 +142,7 @@ func releaseTagBinArrayHolder(holder: *TagBinArrayHolder)
     var holder = TagBinDuplicateHolder{thing: cast(ITagBinArrayThing, thing[])}
 
     var buffer:     ConcatBuffer
-    var encoder:    Serialization.Encoder'Serialization.Write.TagBin
+    var encoder:    Serialization.Encoder!{Serialization.Write.TagBin}
     var errOutcome: Swag.Error
     catch encoder.writeAll(&buffer, holder) as errOutcome
     let err = errOutcome.value()

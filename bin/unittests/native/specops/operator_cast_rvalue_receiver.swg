@@ -47,17 +47,17 @@ var g_CastSink: CastSink
 {
     // The decoy locals give a by-name symbol recovery something wrong to grab.
     let decoyPtr = "0123456789ABCDEF"
-    var decoyLen = 999'u64
+    var decoyLen = 999_u64
     decoyLen += 1
 
     var sink: CastSink
     sink = makeCastFat("hello")
     Swag.require(sink.total == 5)
-    Swag.require(sink.first == 'h'u8)
+    Swag.require(sink.first == 'h'_u8)
     Swag.require(decoyPtr.count == 16)
 
     // Same shape through a GLOBAL assignment target, like g_StoreArgs.
     g_CastSink = makeCastFat("worldly")
     Swag.require(g_CastSink.total == 7)
-    Swag.require(g_CastSink.first == 'w'u8)
+    Swag.require(g_CastSink.first == 'w'_u8)
 }

@@ -6,16 +6,22 @@ impl ViewerWindow
 {
     mtd printView()->*Wnd?
     {
-        if .isExploring() or .currentFile.isEmpty() or .activeChoiceIndex >= .instances.count do
+        if .isExploring() or .currentFile.isEmpty() or .activeChoiceIndex >= .instances.count
+        {
             return null
+        }
+
         let session = &.instances[.activeChoiceIndex]
         let view    = session.view
         if not view or
            view != .currentView or
            not view.isVisible() or
            view.isPendingDestroy or
-           not session.failureReason.isEmpty() do
+           not session.failureReason.isEmpty()
+        {
             return null
+        }
+
         return view
     }
 
@@ -23,8 +29,10 @@ impl ViewerWindow
     {
         let view  = .printView()
         let owner = .surface
-        if not view or not owner do
+        if not view or not owner
+        {
             return
+        }
 
         let path = String.from(.currentFile)
         if view is Viewers.PdfDocument.Panel
@@ -52,8 +60,11 @@ impl ViewerWindow
             if let pixels = display.picture()
             {
                 var image = pixels[]
-                if display.isMirrored do
+                if display.isMirrored
+                {
                     image.mirror()
+                }
+
                 switch display.rotationQuarterTurns
                 {
                 case 1: image.rotate(.Clockwise90)
@@ -83,22 +94,31 @@ func renderViewerForPrint(view: *Wnd, surface: *Surface)->Image fail
     let rect   = view.position
     let width  = cast(s32, Math.ceil(rect.width * scale))
     let height = cast(s32, Math.ceil(rect.height * scale))
-    if width <= 0 or height <= 0 do
+    if width <= 0 or height <= 0
+    {
         fail Errors.BadParameterError{}
+    }
 
     let renderer = surface.app.renderer
     renderer.begin(surface.renderingContext())
     defer
     {
-        if renderer is RenderOgl as ogl do
+        if renderer is RenderOgl as ogl
+        {
             ogl.finishFrameWithoutPresent()
-        else do
+        }
+        else
+        {
             renderer.end()
+        }
     }
 
     var target = renderer.createRenderTarget(width, height)
-    if not target.colorBuffer.isValid() do
+    if not target.colorBuffer.isValid()
+    {
         fail RenderResourceError{"The renderer could not allocate the viewer print target."}
+    }
+
     defer renderer.deleteRenderTarget(&target)
 
     var painter = Painter.create(renderer)
@@ -118,7 +138,10 @@ func renderViewerForPrint(view: *Wnd, surface: *Surface)->Image fail
     try painter.render()
 
     let image = #move renderer.readRenderTarget(&target, 0, 0, width, height)
-    if not image.isValid() do
+    if not image.isValid()
+    {
         fail Errors.InvalidFormatError{}
+    }
+
     return #move image
 }

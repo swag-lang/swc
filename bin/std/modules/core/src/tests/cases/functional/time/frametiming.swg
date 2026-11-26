@@ -19,7 +19,7 @@ using Swag
     var timing = Time.FrameTiming{minimumDeltaSeconds: 0.00001, maximumDeltaSeconds: 0.001}
 
     timing.update()
-    Threading.Thread.sleep(10'ms)
+    Threading.Thread.sleep(10_ms)
     timing.update()
 
     Swag.require(timing.frameCount == 2)

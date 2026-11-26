@@ -8,8 +8,11 @@ internal impl SessionInstance
     mtd acquireNative(id: string)->bool fail
     {
         let user = getSpecialDirectory(.UserAppData)
-        if not Path.isRooted(user) do
+        if not Path.isRooted(user)
+        {
             fail Errors.BadParameterError{}
+        }
+
         let name   = Utf16.toZeroTerminated(Format.toString("Local\\Swag.%.%", id, Hash.hash64(user)))
         let handle = try CreateMutexW(null, FALSE, name.buffer)
         if GetLastError() == ERROR_ALREADY_EXISTS

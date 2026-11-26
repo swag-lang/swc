@@ -44,7 +44,7 @@ using Swag, Core, Pixel
     Swag.require(back.isValid())
     Swag.require(back.width == 3 and back.height == 2)
 
-    var v = 42's32
+    var v = 42_s32
     Clipboard.addTypedValue(&v, s32)
     var got: s32
     Swag.require(Clipboard.hasTypedValue(s32))
@@ -76,7 +76,7 @@ using Swag, Core, Pixel
     var img = Image.create(3, 2, .BGRA8)
     img.clear()
     Clipboard.addImage(img)
-    var value = 42's32
+    var value = 42_s32
     Clipboard.addTypedValue(&value, s32)
     Clipboard.addString("old text")
     Swag.require(Clipboard.hasImage() and Clipboard.hasTypedValue(s32))
@@ -101,7 +101,7 @@ using Swag, Core, Pixel
     defer Clipboard.clear()
 
     Clipboard.addString("before")
-    var paths: Array'String
+    var paths: Array!{String}
     paths.add("C:/captures/demo réglages.gif")
     paths.add("C:/captures/second.gif")
     Clipboard.setFiles(paths.toSlice())

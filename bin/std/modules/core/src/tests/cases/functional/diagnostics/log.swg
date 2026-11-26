@@ -152,7 +152,7 @@ func currentLocation(loc = #callerlocation)->Swag.SourceCodeLocation => loc
 // Writers receive each message in the order they were registered.
 #test
 {
-    var order   = 0'u32
+    var order   = 0_u32
     var writerA = OrderedLogWriter{order: &order, marker: 1}
     var writerB = OrderedLogWriter{order: &order, marker: 2}
 

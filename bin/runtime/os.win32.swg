@@ -24,7 +24,7 @@ namespace __Win32RT
     #[Swag.CallingConvention(.C)]
     alias RtlDecompressBufferFn  = func(USHORT, [*] u8, ULONG, const [*] u8, ULONG, *ULONG)->s32
 
-    const STD_OUTPUT_HANDLE       = 0xFFFF_FFF5'u32
+    const STD_OUTPUT_HANDLE       = 0xFFFF_FFF5_u32
     const MB_CANCELTRYCONTINUE    = 0x00000006
     const MB_ICONERROR            = 0x00000010
     const IDCANCEL                = 2
@@ -34,21 +34,21 @@ namespace __Win32RT
     const TRUE:  BOOL             = 1
     const SRWLOCK_INIT            = cast(SRWLOCK, null)
     const CONDITION_VARIABLE_INIT = cast(CONDITION_VARIABLE, null)
-    const INFINITE                = 0xFFFF_FFFF'u32
-    const WAIT_TIMEOUT            = 0x0000_0102'u32
-    const ALL_PROCESSOR_GROUPS    = 0x0000_FFFF'u16
-    const PAGE_READWRITE_MAP      = 0x0000_0004'u32
-    const FILE_MAP_ALL_ACCESS     = 0x000F_001F'u32
+    const INFINITE                = 0xFFFF_FFFF_u32
+    const WAIT_TIMEOUT            = 0x0000_0102_u32
+    const ALL_PROCESSOR_GROUPS    = 0x0000_FFFF_u16
+    const PAGE_READWRITE_MAP      = 0x0000_0004_u32
+    const FILE_MAP_ALL_ACCESS     = 0x000F_001F_u32
     const INVALID_HANDLE          = cast(HANDLE, -1)
-    const ERROR_ALREADY_EXISTS    = 183'u32
-    const MEM_COMMIT              = 0x0000_1000'u32
-    const MEM_RESERVE             = 0x0000_2000'u32
-    const MEM_DECOMMIT            = 0x0000_4000'u32
-    const MEM_RELEASE             = 0x0000_8000'u32
-    const MEM_FREE                = 0x0001_0000'u32
-    const PAGE_READWRITE          = 0x0000_0004'u32
-    const PAGE_NOACCESS           = 0x0000_0001'u32
-    const PAGE_GUARD              = 0x0000_0100'u32
+    const ERROR_ALREADY_EXISTS    = 183_u32
+    const MEM_COMMIT              = 0x0000_1000_u32
+    const MEM_RESERVE             = 0x0000_2000_u32
+    const MEM_DECOMMIT            = 0x0000_4000_u32
+    const MEM_RELEASE             = 0x0000_8000_u32
+    const MEM_FREE                = 0x0001_0000_u32
+    const PAGE_READWRITE          = 0x0000_0004_u32
+    const PAGE_NOACCESS           = 0x0000_0001_u32
+    const PAGE_GUARD              = 0x0000_0100_u32
 
     struct MEMORY_BASIC_INFORMATION
     {
@@ -75,8 +75,8 @@ namespace __Win32RT
         ullAvailExtendedVirtual: u64
     }
 
-    const PF_AVX2_INSTRUCTIONS_AVAILABLE = 40'u32
-    const CP_UTF8 = 65001'u32
+    const PF_AVX2_INSTRUCTIONS_AVAILABLE = 40_u32
+    const CP_UTF8 = 65001_u32
 
     #[Swag.Foreign("shell32", callconv: Swag.CallConv.C)]
     func CommandLineToArgvW(commandLine: const [*] u16, count: *s32)->[*] ([*] u16)?
@@ -155,7 +155,7 @@ namespace __Win32RT
 }
 
 // Windows implementation of the host primitives used by common allocator and TLS policy.
-const AllocatorHostCommitGranularity = 4096'u64
+const AllocatorHostCommitGranularity = 4096_u64
 
 // Returns 'Swag.U64.Max' when the process has no thread-local slot left.
 func __hostTlsAlloc()->u64
@@ -181,8 +181,10 @@ func __hostThreadStorageAlloc(cleanup: __Win32RT.PFLS_CALLBACK_FUNCTION?)->u64
 
 func __hostThreadStorageFree(id: u64)
 {
-    if id do
+    if id
+    {
         discard __Win32RT.FlsFree(cast(u32, (id - 1)))
+    }
 }
 
 func __hostThreadStorageGet(id: u64)->*void? => id ? __Win32RT.FlsGetValue(cast(u32, (id - 1))) : null
@@ -199,8 +201,11 @@ func __hostThreadCreate(entry: __Win32RT.THREAD_START_ROUTINE, param: *void?)->*
 // Waits for a host thread to finish and releases the handle this runtime owns for it.
 func __hostThreadJoin(handle: *void?)
 {
-    if not handle do
+    if not handle
+    {
         return
+    }
+
     discard __Win32RT.WaitForSingleObject(handle, __Win32RT.INFINITE)
     discard __Win32RT.CloseHandle(handle)
 }
@@ -248,8 +253,10 @@ func __hostRuntimeThreadLimit()->u32
     {
         let value = cast(string, Swag.makeSlice(&buffer[0], cast(u64, length)))
         let (limit, valid) = Swag.parseRuntimeThreadLimit(value)
-        if valid do
+        if valid
+        {
             return limit
+        }
     }
 
     Swag.panic("SWAG_RUNTIME_THREADS accepts 1 to 10 decimal digits with a value from 0 through 4294967295", #curlocation)
@@ -327,7 +334,7 @@ func __hostProcessStorage(key: u32, size: u32)->*void?
     // "Local\Swag.Rt.<pid>.<key>", built without any allocation or string formatting.
     const Prefix = "Local\\Swag.Rt."
     var name: [64] __Win32RT.WCHAR
-    var length = 0'u64
+    var length = 0_u64
 
     for c in Prefix
     {
@@ -342,15 +349,20 @@ func __hostProcessStorage(key: u32, size: u32)->*void?
     name[length] = 0
 
     let mapping = __Win32RT.CreateFileMappingW(__Win32RT.INVALID_HANDLE, null, __Win32RT.PAGE_READWRITE_MAP, 0, size, &name[0])
-    if not mapping do
+    if not mapping
+    {
         return null
+    }
 
     // Keep the handle as well as the view for the process lifetime. Closing the last
     // handle removes the name even while a view remains, so another artifact would
     // create an independent registry instead of joining this one.
     let view = __Win32RT.MapViewOfFile(mapping, __Win32RT.FILE_MAP_ALL_ACCESS, 0, 0, size)
-    if not view do
+    if not view
+    {
         discard __Win32RT.CloseHandle(mapping)
+    }
+
     return view
 }
 
@@ -367,8 +379,11 @@ func __hostProcessStorage(key: u32, size: u32)->*void?
 func __hostProcessSingleton(key: u32, candidate: *void)->*void
 {
     let view = __hostProcessStorage(key, 8)
-    if not view do
+    if not view
+    {
         return candidate
+    }
+
     let slot     = cast(*u64, view)
     let previous = Swag.atomicCompareExchange(slot, 0, cast(u64, candidate))
     return previous == 0 ? candidate : cast(*void, previous)
@@ -378,7 +393,7 @@ func __hostProcessSingleton(key: u32, candidate: *void)->*void
 private func __hostAppendHex(name: *[64] __Win32RT.WCHAR, length: *u64, value: u32)
 {
     const Digits = "0123456789abcdef"
-    var shift = 28's32
+    var shift = 28_s32
     var seen  = false
 
     while shift >= 0
@@ -450,14 +465,22 @@ func __hostPageAllocationBase(address: u64)->u64
 {
     using __Win32RT
     var info: MEMORY_BASIC_INFORMATION
-    if VirtualQuery(cast(const *void, address), &info, #sizeof(info)) == 0 or info.State == MEM_FREE do
+    if VirtualQuery(cast(const *void, address), &info, #sizeof(info)) == 0 or info.State == MEM_FREE
+    {
         return 0
+    }
 
     let base = info.AllocationBase
-    if VirtualQuery(base, &info, #sizeof(info)) == 0 or info.State != MEM_COMMIT do
+    if VirtualQuery(base, &info, #sizeof(info)) == 0 or info.State != MEM_COMMIT
+    {
         return 0
-    if info.Protect & (PAGE_NOACCESS | PAGE_GUARD) do
+    }
+
+    if info.Protect & (PAGE_NOACCESS | PAGE_GUARD)
+    {
         return 0
+    }
+
     return cast(u64, base)
 }
 
@@ -578,26 +601,38 @@ func __hostSetupProcessArguments()->bool
     Swag.processInfo().args = __osCommandLine()
 
     let wide = GetCommandLineW()
-    if not wide do
+    if not wide
+    {
         return false
+    }
+
     var count: s32
     let values = CommandLineToArgvW(wide, &count)
-    if not values do
+    if not values
+    {
         return false
+    }
+
     defer discard LocalFree(values)
 
     var size = cast(u64, count) * #sizeof(string)
     for index in count
     {
         let bytes = WideCharToMultiByte(CP_UTF8, 0, values[index], -1, null, 0, null, null)
-        if bytes <= 0 do
+        if bytes <= 0
+        {
             return false
+        }
+
         size += cast(u64, bytes)
     }
 
     let memory = VirtualAlloc(null, size, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE)
-    if not memory do
+    if not memory
+    {
         return false
+    }
+
     let arguments = cast([*] string, memory)
     var buffer    = cast([*] u8, memory) + cast(u64, count) * #sizeof(string)
     var remaining = size - cast(u64, count) * #sizeof(string)
@@ -635,14 +670,19 @@ func __osCommandLine()->string?
         if bytes > 1
         {
             let buffer = cast([*] u8?, VirtualAlloc(null, cast(u64, bytes), MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE))
-            if buffer and WideCharToMultiByte(CP_UTF8, 0, wide, -1, buffer, bytes, null, null) == bytes do
+            if buffer and WideCharToMultiByte(CP_UTF8, 0, wide, -1, buffer, bytes, null, null) == bytes
+            {
                 return Swag.makeString(buffer, cast(u64, (bytes - 1)))
+            }
         }
     }
 
     let cmdLine = GetCommandLineA()
-    if not cmdLine do
+    if not cmdLine
+    {
         return null
+    }
+
     return Swag.makeString(cmdLine, cast(const cstring, cmdLine).count)
 }
 
@@ -652,18 +692,24 @@ func __hostHasAvx2()->bool => __Win32RT.IsProcessorFeaturePresent(__Win32RT.PF_A
 
 func __printString(message: string?)
 {
-    if not message or not message.count do
+    if not message or not message.count
+    {
         return
+    }
+
     using __Win32RT
     let handle = GetStdHandle(STD_OUTPUT_HANDLE)
-    var offset = 0'u64
+    var offset = 0_u64
     while offset < message.count
     {
         let remaining = message.count - offset
         let length    = remaining > Swag.U32.Max ? Swag.U32.Max : cast(u32, remaining)
         var written: u32
-        if not WriteFile(handle, message.buffer + offset, length, &written, null) or not written do
+        if not WriteFile(handle, message.buffer + offset, length, &written, null) or not written
+        {
             break
+        }
+
         offset += written
     }
 }
@@ -674,13 +720,17 @@ func __raiseException666(message: string?, loc: Swag.SourceCodeLocation, kind: S
     // JIT assertions normally raise an exception for the compiler to report. An active panic
     // catcher owns the assertion, so route it through the same hook as a native assertion.
     let cxt = Swag.getContext()
-    if kind == .Assert and cxt.panicCatch do
+    if kind == .Assert and cxt.panicCatch
+    {
         Swag.panic(message, loc)
+    }
 
     // A failed check belongs to the running test, which goes on. The compiler running a JIT
     // test records it the same way when the exception below returns.
-    if kind == .Check and not Swag.jit() and __testCheckFailed(message, loc) do
+    if kind == .Check and not Swag.jit() and __testCheckFailed(message, loc)
+    {
         return
+    }
 
     // In a native binary there is no compiler above us to catch the exception:
     // route the failure through the panic path (which the native #test runner
@@ -710,8 +760,11 @@ func __raiseException666(message: string?, loc: Swag.SourceCodeLocation, kind: S
     cxt.exceptionParams[3] = cast(const *void, cast(u64, kind))
 
     // A check resumes where it failed, with every borrow still live.
-    if kind != .Check do
+    if kind != .Check
+    {
         Swag.__valueBorrowReset()
+    }
+
     __Win32RT.RaiseException(666, 0, 4, &cxt.exceptionParams[0])
 }
 
@@ -753,8 +806,10 @@ func __hostTestAbort()
     // ExitProcess runs DLL detach hooks, which can wait for the very tasks whose owning frames
     // recovery would abandon. Stop all threads without callbacks or runtime shutdown instead.
     discard __Win32RT.TerminateProcess(__Win32RT.GetCurrentProcess(), cast #bit (u32, -666))
-    for do
+    for
+    {
         __Win32RT.Sleep(__Win32RT.INFINITE)
+    }
 }
 
 // A resume point for 'catchPanic', in storage the caller keeps alive.
@@ -772,8 +827,11 @@ private func __hostAlignResume(storage: *u8)->*void => cast(*void, (cast(u64, st
 func __hostCatchCall(storage: *u8, resumed: *bool, fn: func||())
 {
     __Win32RT.RtlCaptureContext(__hostAlignResume(storage))
-    if resumed[] do
+    if resumed[]
+    {
         return
+    }
+
     fn()
 }
 
@@ -789,8 +847,10 @@ func __hostResume(storage: *u8)
 func __hostTestCall(fn: *void)
 {
     __Win32RT.RtlCaptureContext(__hostTestResumeContext())
-    if g_TestFailed do
+    if g_TestFailed
+    {
         return
+    }
 
     let call = cast(func(), fn)
     call()
@@ -816,8 +876,10 @@ private struct __HostExceptionPointers
 #[Swag.CallingConvention(.C)]
 private func __hostTestUnhandledFilter(exceptionPointers: *void)->s32
 {
-    if not g_TestRunning or __hostCurrentThreadId() != g_TestThreadId do
-        return 0     // EXCEPTION_CONTINUE_SEARCH
+    if not g_TestRunning or __hostCurrentThreadId() != g_TestThreadId
+    {
+        return 0
+    }     // EXCEPTION_CONTINUE_SEARCH
 
     let pointers = cast(const *__HostExceptionPointers, exceptionPointers)
     let record   = pointers.record
@@ -849,8 +911,11 @@ func __captureStack(skip: u32, wh: [..] (*void?))->u32
 func __hostImageBaseForAddress(address: *void)->*void?
 {
     var result: *void?
-    if __Win32RT.GetModuleHandleExA(6, cast(const *u8, address), &result) == 0 do
+    if __Win32RT.GetModuleHandleExA(6, cast(const *u8, address), &result) == 0
+    {
         return null
+    }
+
     return result
 }
 
@@ -867,15 +932,23 @@ func __hostDebugSection(base: *void, size: *u64)->[*] u8?
 {
     size[] = 0
     let image = cast([*] u8, base)
-    if image[0] != 'M'u8 or image[1] != 'Z'u8 do
+    if image[0] != 'M'_u8 or image[1] != 'Z'_u8
+    {
         return null
+    }
+
     let ntOff = cast(u64, __peU32(image, 0x3C))
-    if ntOff < 64 or __peU32(image, ntOff) != 0x0000_4550 do
+    if ntOff < 64 or __peU32(image, ntOff) != 0x0000_4550
+    {
         return null
+    }
+
     let count   = __peU16(image, ntOff + 6)
     let optSize = __peU16(image, ntOff + 20)
-    if optSize < 64 do
+    if optSize < 64
+    {
         return null
+    }
 
     let optionalHeader = ntOff + 24
     let imageSize      = cast(u64, __peU32(image, optionalHeader + 56))
@@ -884,8 +957,10 @@ func __hostDebugSection(base: *void, size: *u64)->[*] u8?
     if imageSize < 64 or
        headerSize > imageSize or
        sectionTable > headerSize or
-       cast(u64, count) > (headerSize - sectionTable) / 40 do
+       cast(u64, count) > (headerSize - sectionTable) / 40
+    {
         return null
+    }
 
     var sectionOffset = sectionTable
 
@@ -903,8 +978,11 @@ func __hostDebugSection(base: *void, size: *u64)->[*] u8?
         {
             let rva         = __peU32(image, sectionOffset + 12)
             let sectionSize = cast(u64, (__peU32(image, sectionOffset + 8) ? __peU32(image, sectionOffset + 8) : __peU32(image, sectionOffset + 16)))
-            if cast(u64, rva) > imageSize or sectionSize > imageSize - cast(u64, rva) do
+            if cast(u64, rva) > imageSize or sectionSize > imageSize - cast(u64, rva)
+            {
                 return null
+            }
+
             size[] = sectionSize
             return cast([*] u8, &image[cast(u64, rva)])
         }
@@ -921,11 +999,17 @@ func __hostDecodeDebugSection(section: [*] u8, sectionSize: u64, decodedSizeOut:
     func decodeLznt1(source: const [*] u8, sourceSize: u32, target: [*] u8, targetSize: u32)->bool
     {
         let ntdll = __Win32RT.GetModuleHandleA(("ntdll.dll").buffer)
-        if not ntdll do
+        if not ntdll
+        {
             return false
+        }
+
         let address = __Win32RT.GetProcAddress(ntdll, ("RtlDecompressBuffer").buffer)
-        if not address do
+        if not address
+        {
             return false
+        }
+
         let decompress = cast(__Win32RT.RtlDecompressBufferFn, address)
         var finalSize: u32
         let status     = decompress(2, target, targetSize, source, sourceSize, &finalSize)
@@ -939,29 +1023,41 @@ func __hostDecodeDebugSection(section: [*] u8, sectionSize: u64, decodedSizeOut:
     }
 
     decodedSizeOut[] = 0
-    if sectionSize < 16 or __peU32(section, 0) != 0x4244_5753 do
+    if sectionSize < 16 or __peU32(section, 0) != 0x4244_5753
+    {
         return null
+    }
 
     let version = __peU32(section, 4)
     if version == 1
     {
         let decoded = allocate(sectionSize)
-        if not decoded do
+        if not decoded
+        {
             return null
+        }
+
         Swag.memcpy(decoded, section, sectionSize)
         decodedSizeOut[] = sectionSize
         return decoded
     }
 
-    if version == 4 and not __peU32(section, 12) do
+    if version == 4 and not __peU32(section, 12)
+    {
         return null
+    }
 
     let packed = Swag.readCompressedDebugTable(section, sectionSize)
-    if not packed.decodedSize do
+    if not packed.decodedSize
+    {
         return null
+    }
+
     let decoded = allocate(packed.decodedSize)
-    if not decoded do
+    if not decoded
+    {
         return null
+    }
 
     let ok = packed.format == 2 ? decodeLznt1(&section[packed.payloadOffset],
                                               cast(u32, packed.payloadSize),
@@ -980,6 +1076,8 @@ func __hostDecodeDebugSection(section: [*] u8, sectionSize: u64, decodedSizeOut:
 
 func __hostReleaseDecodedDebugSection(section: [*] u8?)
 {
-    if section do
+    if section
+    {
         discard __Win32RT.VirtualFree(section, 0, __Win32RT.MEM_RELEASE)
+    }
 }

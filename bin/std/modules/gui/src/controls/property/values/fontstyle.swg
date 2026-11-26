@@ -20,8 +20,11 @@ internal impl IPropertyEditor for FontStyleEditor
         var combo: *ComboBox?
         if list.kind == .Panel
         {
-            if item.label != null do
+            if item.label != null
+            {
                 item.label.hide()
+            }
+
             with let ctrl = ComboCtrl.create(item.line, itemDisplayName(value).toString())
             {
                 .anchorStyle = .Right
@@ -35,10 +38,14 @@ internal impl IPropertyEditor for FontStyleEditor
             with combo = ComboBox.create(item.line)
             {
                 .maxSize.x = list.editorWidth
-                if list.isGridLike() do
+                if list.isGridLike()
+                {
                     .dockStyle = .CenterKeepSizeVert
-                else do
+                }
+                else
+                {
                     .preferredSize.x = list.editorWidth
+                }
             }
         }
 
@@ -46,13 +53,18 @@ internal impl IPropertyEditor for FontStyleEditor
         combon.updateFlags(.Segmented)
         list.adaptCondensedCombo(item, combon)
         item.assignComboBox(combon)
-        for s in [FontFamilyStyle.Regular, FontFamilyStyle.Bold, FontFamilyStyle.Italic, FontFamilyStyle.BoldItalic] do
+        for s in [FontFamilyStyle.Regular, FontFamilyStyle.Bold, FontFamilyStyle.Italic, FontFamilyStyle.BoldItalic]
+        {
             combon.addItem(FontStyleSample).fontStyle = s
+        }
 
         combon.sigChanged += func|prop = list, item, style|(_, index)
         {
-            if not style or index > cast(u32, FontFamilyStyle.BoldItalic) do
+            if not style or index > cast(u32, FontFamilyStyle.BoldItalic)
+            {
                 return
+            }
+
             switch index
             {
             case 0: style[] = .Regular
@@ -66,8 +78,10 @@ internal impl IPropertyEditor for FontStyleEditor
 
         item.sigRefresh += func|style, combon|(_)
         {
-            if style do
+            if style
+            {
                 combon.setSelectedIndex(cast(u32, style[]), notify: false)
+            }
         }
 
         item.sigRefresh.call(item)
@@ -77,5 +91,5 @@ internal impl IPropertyEditor for FontStyleEditor
 
 #init
 {
-    Properties.registerEditor'(FontStyleEditor)()
+    Properties.registerEditor!{FontStyleEditor}()
 }

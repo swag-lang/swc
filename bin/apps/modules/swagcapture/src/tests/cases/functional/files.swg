@@ -29,8 +29,10 @@ func testHasCaptureFileMetadata(img: Image, captureFile: String)->bool
     {
         if md.isTag(CaptureFileMetadataTag)
         {
-            if testSamePath(cast(string, md.toSlice()), captureFile) do
+            if testSamePath(cast(string, md.toSlice()), captureFile)
+            {
                 return true
+            }
         }
     }
 
@@ -106,7 +108,7 @@ func testHasCaptureFileMetadata(img: Image, captureFile: String)->bool
     f.gui.withModalEdit("Width", "48")
     f.gui.withModalEdit("Height", "32")
 
-    let actionExecuted = Gui.Testing.actionExecute'ActionFile(f.main, ActionFile.NewImage)
+    let actionExecuted = Gui.Testing.actionExecute!{ActionFile}(f.main, ActionFile.NewImage)
     Swag.require(actionExecuted)
     f.gui.pump()
 
@@ -142,7 +144,7 @@ func testHasCaptureFileMetadata(img: Image, captureFile: String)->bool
 
     Clipboard.addImage(Gui.Testing.indexedImage(19, 11))
 
-    let actionExecuted = Gui.Testing.actionExecute'ActionFile(f.main, ActionFile.NewFromClipboard)
+    let actionExecuted = Gui.Testing.actionExecute!{ActionFile}(f.main, ActionFile.NewFromClipboard)
     Swag.require(actionExecuted)
     f.gui.pump()
 
@@ -178,7 +180,7 @@ func testHasCaptureFileMetadata(img: Image, captureFile: String)->bool
     expect source.save(sourcePath)
     f.gui.acceptModalFileDialog(sourcePath)
 
-    let actionExecuted = Gui.Testing.actionExecute'ActionFile(f.main, ActionFile.OpenImage)
+    let actionExecuted = Gui.Testing.actionExecute!{ActionFile}(f.main, ActionFile.OpenImage)
     Swag.require(actionExecuted)
     f.gui.pump()
 
@@ -600,7 +602,7 @@ func testHasCaptureFileMetadata(img: Image, captureFile: String)->bool
     discard testAddShape(f.capture, 4, 5, 12, 13)
     let originalPath = testPrepareSavedCapture(f.capture)
     defer discard catch File.delete(originalPath)
-    let actionExecuted = Gui.Testing.actionExecute'ActionFile(f.main, ActionFile.DupCapture)
+    let actionExecuted = Gui.Testing.actionExecute!{ActionFile}(f.main, ActionFile.DupCapture)
     Swag.require(actionExecuted)
     Swag.require(f.main.duplicateJob != null)
     f.main.duplicateJob.task.wait()
@@ -656,7 +658,7 @@ func testHasCaptureFileMetadata(img: Image, captureFile: String)->bool
 
     f.gui.clickModalButtonWhenShown(Dialog.BtnYes)
 
-    let actionExecuted = Gui.Testing.actionExecute'ActionFile(f.main, ActionFile.DeleteCapture)
+    let actionExecuted = Gui.Testing.actionExecute!{ActionFile}(f.main, ActionFile.DeleteCapture)
     Swag.require(actionExecuted)
     f.gui.pump()
 
@@ -704,7 +706,7 @@ func testHasCaptureFileMetadata(img: Image, captureFile: String)->bool
     f.capture.title   = "Unsaved editor title"
     f.capture.changed = true
 
-    let other = Memory.new'Capture()
+    let other = Memory.new!{Capture}()
     other.width, other.widthOrg   = 37
     other.height, other.heightOrg = 23
     other.backImg                 = Gui.Testing.indexedImage(37, 23)
@@ -741,7 +743,7 @@ func testHasCaptureFileMetadata(img: Image, captureFile: String)->bool
     defer f.shutdown()
     testPrepareRecentLibrary(f.main)
 
-    let first = Memory.new'Capture()
+    let first = Memory.new!{Capture}()
     first.width, first.widthOrg   = 41
     first.height, first.heightOrg = 29
     first.backImg                 = Gui.Testing.indexedImage(41, 29)
@@ -753,7 +755,7 @@ func testHasCaptureFileMetadata(img: Image, captureFile: String)->bool
         Memory.delete(first)
     }
 
-    let second = Memory.new'Capture()
+    let second = Memory.new!{Capture}()
     second.width, second.widthOrg   = 43
     second.height, second.heightOrg = 31
     second.backImg                  = Gui.Testing.indexedImage(43, 31)
@@ -818,7 +820,7 @@ func testHasCaptureFileMetadata(img: Image, captureFile: String)->bool
     defer f.shutdown()
     testPrepareRecentLibrary(f.main)
 
-    let first = Memory.new'Capture()
+    let first = Memory.new!{Capture}()
     first.width, first.widthOrg   = 41
     first.height, first.heightOrg = 29
     first.backImg                 = Gui.Testing.indexedImage(41, 29)
@@ -830,7 +832,7 @@ func testHasCaptureFileMetadata(img: Image, captureFile: String)->bool
         Memory.delete(first)
     }
 
-    let second = Memory.new'Capture()
+    let second = Memory.new!{Capture}()
     second.width, second.widthOrg   = 43
     second.height, second.heightOrg = 31
     second.backImg                  = Gui.Testing.indexedImage(43, 31)
@@ -886,7 +888,7 @@ func testHasCaptureFileMetadata(img: Image, captureFile: String)->bool
     f.capture.title   = "Final edit"
     f.capture.changed = true
 
-    let next = Memory.new'Capture()
+    let next = Memory.new!{Capture}()
     next.width, next.widthOrg   = 43
     next.height, next.heightOrg = 31
     next.backImg                = Gui.Testing.indexedImage(43, 31)
@@ -930,7 +932,7 @@ func testHasCaptureFileMetadata(img: Image, captureFile: String)->bool
     defer f.shutdown()
     testPrepareRecentLibrary(f.main)
 
-    let capture = Memory.new'Capture()
+    let capture = Memory.new!{Capture}()
     capture.width, capture.widthOrg   = 41
     capture.height, capture.heightOrg = 29
     capture.backImg                   = Gui.Testing.indexedImage(41, 29)
@@ -962,7 +964,7 @@ func testHasCaptureFileMetadata(img: Image, captureFile: String)->bool
     defer f.shutdown()
     testPrepareRecentLibrary(f.main)
 
-    let first = Memory.new'Capture()
+    let first = Memory.new!{Capture}()
     first.width, first.widthOrg   = 41
     first.height, first.heightOrg = 29
     first.backImg                 = Gui.Testing.indexedImage(41, 29)
@@ -974,7 +976,7 @@ func testHasCaptureFileMetadata(img: Image, captureFile: String)->bool
         Memory.delete(first)
     }
 
-    let second = Memory.new'Capture()
+    let second = Memory.new!{Capture}()
     second.width, second.widthOrg   = 43
     second.height, second.heightOrg = 31
     second.backImg                  = Gui.Testing.indexedImage(43, 31)
@@ -1081,8 +1083,10 @@ func testHasCaptureFileMetadata(img: Image, captureFile: String)->bool
     testPrepareRecentLibrary(f.main)
 
     let preview = Gui.Testing.indexedImage(32, 20)
-    for i in 16 do
+    for i in 16
+    {
         f.main.recentWnd.addRecent(Format.toString("capture-%", i), preview, front: true)
+    }
 
     Swag.require(f.main.recentWnd.recentView.items.count == 15)
     Swag.require(f.main.recentWnd.recentView.items[0]!.file == "capture-15")
@@ -1120,22 +1124,28 @@ func testHasCaptureFileMetadata(img: Image, captureFile: String)->bool
 
 // The chunk identifiers stored in a capture file. A copied chunk keeps its identifier and an
 // encoded one gets a new one, so two saves share exactly the chunks the second one copied.
-func testStoredChunkIds(path: String)->Array'Guid128
+func testStoredChunkIds(path: String)->Array!{Guid128}
 {
     var reader: Scc.Reader
     expect reader.initialize(path)
     defer reader.close()
     var result: #returntype
-    for chunk in reader.chunks() do
+    for chunk in reader.chunks()
+    {
         result.add(chunk.id)
+    }
+
     return result
 }
 
-func testSharedChunks(first, second: Array'Guid128)->u32
+func testSharedChunks(first, second: Array!{Guid128})->u32
 {
     var result: u32
-    for id in first where second.contains(id) do
+    for id in first where second.contains(id)
+    {
         result += 1
+    }
+
     return result
 }
 
@@ -1143,7 +1153,7 @@ func testSharedChunks(first, second: Array'Guid128)->u32
 // background and original instead of encoding the pixels again.
 #test
 {
-    let capture = Memory.new'Capture()
+    let capture = Memory.new!{Capture}()
     defer Memory.delete(capture)
     capture.width, capture.widthOrg   = 40
     capture.height, capture.heightOrg = 30
@@ -1202,7 +1212,7 @@ func testSharedChunks(first, second: Array'Guid128)->u32
 // save encodes the live background instead of copying someone else's.
 #test
 {
-    let capture = Memory.new'Capture()
+    let capture = Memory.new!{Capture}()
     defer Memory.delete(capture)
     capture.width, capture.widthOrg   = 36
     capture.height, capture.heightOrg = 24
@@ -1210,7 +1220,7 @@ func testSharedChunks(first, second: Array'Guid128)->u32
     let path = testPrepareSavedCapture(capture)
     defer discard catch File.delete(path)
 
-    let other = Memory.new'Capture()
+    let other = Memory.new!{Capture}()
     defer Memory.delete(other)
     other.width, other.widthOrg   = 24
     other.height, other.heightOrg = 36
@@ -1231,7 +1241,7 @@ func testSharedChunks(first, second: Array'Guid128)->u32
 // A capture opened from its file copies the stored background on its first save.
 #test
 {
-    let capture = Memory.new'Capture()
+    let capture = Memory.new!{Capture}()
     defer Memory.delete(capture)
     capture.width, capture.widthOrg   = 28
     capture.height, capture.heightOrg = 18
@@ -1257,8 +1267,11 @@ func testOpensCapture(path: String)->bool
     var loaded:  *Capture? = null
     var outcome: Swag.Error
     catch { loaded = try Capture.load(path) } as outcome
-    if loaded do
+    if loaded
+    {
         Memory.delete(loaded)
+    }
+
     return outcome.value() == null
 }
 
@@ -1266,7 +1279,7 @@ func testOpensCapture(path: String)->bool
 // missing or wrong picture.
 #test
 {
-    let capture = Memory.new'Capture()
+    let capture = Memory.new!{Capture}()
     defer Memory.delete(capture)
     capture.width, capture.widthOrg   = 40
     capture.height, capture.heightOrg = 30
@@ -1278,7 +1291,7 @@ func testOpensCapture(path: String)->bool
     let bytes   = expect File.readAllBytes(path)
     let damaged = testTempCapturePath()
     defer discard catch File.delete(damaged)
-    for cut in [0'u64, 16, bytes.count / 4, bytes.count / 2, bytes.count - 1]
+    for cut in [0_u64, 16, bytes.count / 4, bytes.count / 2, bytes.count - 1]
     {
         discard expect File.writeAllBytes(damaged, Swag.makeSlice(bytes.buffer, cut))
         Swag.require(not testOpensCapture(damaged))
@@ -1289,7 +1302,7 @@ func testOpensCapture(path: String)->bool
 // showing a wrong picture.
 #test
 {
-    let capture = Memory.new'Capture()
+    let capture = Memory.new!{Capture}()
     defer Memory.delete(capture)
     capture.width, capture.widthOrg   = 40
     capture.height, capture.heightOrg = 30
@@ -1326,7 +1339,7 @@ func testOpensCapture(path: String)->bool
     defer f.shutdown()
     testPrepareRecentLibrary(f.main)
 
-    let capture = Memory.new'Capture()
+    let capture = Memory.new!{Capture}()
     capture.width, capture.widthOrg   = 41
     capture.height, capture.heightOrg = 29
     capture.backImg                   = Gui.Testing.indexedImage(41, 29)
@@ -1364,7 +1377,7 @@ func testOpensCapture(path: String)->bool
     testPrepareRecentLibrary(f.main)
     let lib = f.setupLibraryWnd()
 
-    let capture = Memory.new'Capture()
+    let capture = Memory.new!{Capture}()
     defer Memory.delete(capture)
     capture.width, capture.widthOrg   = 40
     capture.height, capture.heightOrg = 30
@@ -1402,7 +1415,7 @@ func testOpensCapture(path: String)->bool
     testPrepareRecentLibrary(f.main)
     let lib = f.setupLibraryWnd()
 
-    let capture = Memory.new'Capture()
+    let capture = Memory.new!{Capture}()
     defer Memory.delete(capture)
     capture.width, capture.widthOrg   = 40
     capture.height, capture.heightOrg = 30

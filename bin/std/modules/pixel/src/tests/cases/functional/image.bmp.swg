@@ -7,9 +7,9 @@ private func checkBmp16Masks(masks: Bmp.Masks)
     // Every source word, unaligned pointers, the SIMD/tail boundary, and
     // untouched sentinels match the generic mask normalization exactly.
     const Pixels = 65536 + 1
-    var source:   Array'u8
-    var actual:   Array'u8
-    var expected: Array'u8
+    var source:   Array!{u8}
+    var actual:   Array!{u8}
+    var expected: Array!{u8}
     source.resize(1 + Pixels * 2)
     actual.resize(3 + Pixels * 3 + 1)
     expected.resize(actual.count)
@@ -29,10 +29,11 @@ private func checkBmp16Masks(masks: Bmp.Masks)
         expected[3 + 3 * i + 2] = Bmp.maskToByte(value, masks.r)
     }
 
-    let decoder = Bmp.prepareRowDecoder16(masks)
-    Bmp.decode16Row(source.storage() + 1, actual.storage() + 3, Pixels, &decoder)
-    for i in actual.count do
+    Bmp.decode16Row(source.storage() + 1, actual.storage() + 3, Pixels, masks)
+    for i in actual.count
+    {
         Swag.require(actual[i] == expected[i])
+    }
 }
 
 #test
@@ -153,9 +154,9 @@ private func checkBmp16Masks(masks: Bmp.Masks)
     Swag.require(rgb.pixelFormat == .BGR8)
     Swag.require(rgb.pixels.count == 873180)
     Swag.require(rgb.pixels.buffer != null)
-    Swag.require(rgb.pixels.buffer[0] == 201'u8)
-    Swag.require(rgb.pixels.buffer[1] == 205'u8)
-    Swag.require(rgb.pixels.buffer[2] == 194'u8)
+    Swag.require(rgb.pixels.buffer[0] == 201_u8)
+    Swag.require(rgb.pixels.buffer[1] == 205_u8)
+    Swag.require(rgb.pixels.buffer[2] == 194_u8)
 
     let rgba = expect Image.load(getTestDataPath("rgba.bmp"))
     Swag.require(rgba.isValid())
@@ -164,10 +165,10 @@ private func checkBmp16Masks(masks: Bmp.Masks)
     Swag.require(rgba.pixelFormat == .BGRA8)
     Swag.require(rgba.pixels.count == 1164240)
     Swag.require(rgba.pixels.buffer != null)
-    Swag.require(rgba.pixels.buffer[0] == 201'u8)
-    Swag.require(rgba.pixels.buffer[1] == 205'u8)
-    Swag.require(rgba.pixels.buffer[2] == 194'u8)
-    Swag.require(rgba.pixels.buffer[3] == 255'u8)
+    Swag.require(rgba.pixels.buffer[0] == 201_u8)
+    Swag.require(rgba.pixels.buffer[1] == 205_u8)
+    Swag.require(rgba.pixels.buffer[2] == 194_u8)
+    Swag.require(rgba.pixels.buffer[3] == 255_u8)
 }
 
 // Decode tests - various BMP formats.
@@ -200,7 +201,7 @@ func addBmpPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
     cb.addNative(b)
     cb.addNative(g)
     cb.addNative(r)
-    cb.addNative(0'u8)
+    cb.addNative(0_u8)
 }
 
 private func requireBmpDecodeFails(bytes: const [..] u8)
@@ -218,37 +219,37 @@ private func requireBmpDecodeFails(bytes: const [..] u8)
     defer discard catch File.delete(path.toString())
     var cb: ConcatBuffer
     var fh: BmpFH
-    fh.bfType    = 0x4D42'u16
-    fh.bfSize    = 70'u32     // 14+40+16
-    fh.bfOffBits = 54'u32
+    fh.bfType    = 0x4D42_u16
+    fh.bfSize    = 70_u32     // 14+40+16
+    fh.bfOffBits = 54_u32
     cb.addStruct(fh)
 
     var bh: Bmp.Header
-    bh.biSize      = 40'u32
+    bh.biSize      = 40_u32
     bh.biWidth     = 2
     bh.biHeight    = 2
-    bh.biPlanes    = 1'u16
-    bh.biBitCount  = 32'u16
-    bh.biSizeImage = 16'u32
+    bh.biPlanes    = 1_u16
+    bh.biBitCount  = 32_u16
+    bh.biSizeImage = 16_u32
     cb.addStruct(bh)
 
     // 2x2 BGRA - 4 bytes per pixel, no padding needed
-    cb.addNative(10'u8)
-    cb.addNative(20'u8)
-    cb.addNative(30'u8)
-    cb.addNative(255'u8)
-    cb.addNative(40'u8)
-    cb.addNative(50'u8)
-    cb.addNative(60'u8)
-    cb.addNative(200'u8)
-    cb.addNative(70'u8)
-    cb.addNative(80'u8)
-    cb.addNative(90'u8)
-    cb.addNative(128'u8)
-    cb.addNative(100'u8)
-    cb.addNative(110'u8)
-    cb.addNative(120'u8)
-    cb.addNative(64'u8)
+    cb.addNative(10_u8)
+    cb.addNative(20_u8)
+    cb.addNative(30_u8)
+    cb.addNative(255_u8)
+    cb.addNative(40_u8)
+    cb.addNative(50_u8)
+    cb.addNative(60_u8)
+    cb.addNative(200_u8)
+    cb.addNative(70_u8)
+    cb.addNative(80_u8)
+    cb.addNative(90_u8)
+    cb.addNative(128_u8)
+    cb.addNative(100_u8)
+    cb.addNative(110_u8)
+    cb.addNative(120_u8)
+    cb.addNative(64_u8)
 
     discard expect File.writeAllBytes(path.toString(), cb)
     let img = expect Image.load(path.toString())
@@ -259,10 +260,10 @@ private func requireBmpDecodeFails(bytes: const [..] u8)
     Swag.require(img.bytesPerPixel == 4)
     Swag.require(img.pixels.count == 16)
     Swag.require(img.pixels.buffer != null)
-    Swag.require(img.pixels.buffer[0] == 10'u8)
-    Swag.require(img.pixels.buffer[1] == 20'u8)
-    Swag.require(img.pixels.buffer[2] == 30'u8)
-    Swag.require(img.pixels.buffer[3] == 255'u8)
+    Swag.require(img.pixels.buffer[0] == 10_u8)
+    Swag.require(img.pixels.buffer[1] == 20_u8)
+    Swag.require(img.pixels.buffer[2] == 30_u8)
+    Swag.require(img.pixels.buffer[3] == 255_u8)
 }
 
 // Decode a 5x5 24-bit BGR8 BMP where each row has 1 byte of alignment padding on disk.
@@ -273,30 +274,34 @@ private func requireBmpDecodeFails(bytes: const [..] u8)
     defer discard catch File.delete(path.toString())
     var cb: ConcatBuffer
     var fh: BmpFH
-    fh.bfType    = 0x4D42'u16
-    fh.bfSize    = 134'u32     // 14+40+80
-    fh.bfOffBits = 54'u32
+    fh.bfType    = 0x4D42_u16
+    fh.bfSize    = 134_u32     // 14+40+80
+    fh.bfOffBits = 54_u32
     cb.addStruct(fh)
 
     var bh: Bmp.Header
-    bh.biSize      = 40'u32
+    bh.biSize      = 40_u32
     bh.biWidth     = 5
     bh.biHeight    = 5
-    bh.biPlanes    = 1'u16
-    bh.biBitCount  = 24'u16
-    bh.biSizeImage = 80'u32
+    bh.biPlanes    = 1_u16
+    bh.biBitCount  = 24_u16
+    bh.biSizeImage = 80_u32
     cb.addStruct(bh)
 
     // Row 0: pixel(0,0)=B100 G150 R200, pixels 1-4 zero, 1 pad byte
-    cb.addNative(100'u8)
-    cb.addNative(150'u8)
-    cb.addNative(200'u8)
-    for 12 do
-        cb.addNative(0'u8)     // pixels 1-4
-    cb.addNative(0'u8)     // pad
+    cb.addNative(100_u8)
+    cb.addNative(150_u8)
+    cb.addNative(200_u8)
+    for 12
+    {
+        cb.addNative(0_u8)
+    }     // pixels 1-4
+    cb.addNative(0_u8)     // pad
     // Rows 1-4 all zeros (4 rows x 16 bytes)
-    for 64 do
-        cb.addNative(0'u8)
+    for 64
+    {
+        cb.addNative(0_u8)
+    }
 
     discard expect File.writeAllBytes(path.toString(), cb)
     let img = expect Image.load(path.toString())
@@ -306,9 +311,9 @@ private func requireBmpDecodeFails(bytes: const [..] u8)
     Swag.require(img.bitsPerPixel == 24)
     Swag.require(img.pixels.count == 75)     // 5x5x3 = 75, no padding in decoded result
     Swag.require(img.pixels.buffer != null)
-    Swag.require(img.pixels.buffer[0] == 100'u8)
-    Swag.require(img.pixels.buffer[1] == 150'u8)
-    Swag.require(img.pixels.buffer[2] == 200'u8)
+    Swag.require(img.pixels.buffer[0] == 100_u8)
+    Swag.require(img.pixels.buffer[1] == 150_u8)
+    Swag.require(img.pixels.buffer[2] == 200_u8)
 }
 
 // Decode a 2x2 24-bit BMP written with the legacy 12-byte BITMAPCOREHEADER.
@@ -319,36 +324,36 @@ private func requireBmpDecodeFails(bytes: const [..] u8)
     defer discard catch File.delete(path.toString())
     var cb: ConcatBuffer
     var fh: BmpFH
-    fh.bfType    = 0x4D42'u16
-    fh.bfSize    = 42'u32     // 14+12+16
-    fh.bfOffBits = 26'u32     // 14+12
+    fh.bfType    = 0x4D42_u16
+    fh.bfSize    = 42_u32     // 14+12+16
+    fh.bfOffBits = 26_u32     // 14+12
     cb.addStruct(fh)
 
     var ch: BmpCH
-    ch.bcSize     = 12'u32
-    ch.bcWidth    = 2'u16
-    ch.bcHeight   = 2'u16
-    ch.bcPlanes   = 1'u16
-    ch.bcBitCount = 24'u16
+    ch.bcSize     = 12_u32
+    ch.bcWidth    = 2_u16
+    ch.bcHeight   = 2_u16
+    ch.bcPlanes   = 1_u16
+    ch.bcBitCount = 24_u16
     cb.addStruct(ch)
 
     // 2x2 BGR8: row stride = 8 bytes (6 pixel bytes + 2 pad)
-    cb.addNative(10'u8)
-    cb.addNative(20'u8)
-    cb.addNative(30'u8)     // row0 pix0
-    cb.addNative(40'u8)
-    cb.addNative(50'u8)
-    cb.addNative(60'u8)     // row0 pix1
-    cb.addNative(0'u8)
-    cb.addNative(0'u8)     // row0 pad
-    cb.addNative(70'u8)
-    cb.addNative(80'u8)
-    cb.addNative(90'u8)     // row1 pix0
-    cb.addNative(100'u8)
-    cb.addNative(110'u8)
-    cb.addNative(120'u8)     // row1 pix1
-    cb.addNative(0'u8)
-    cb.addNative(0'u8)     // row1 pad
+    cb.addNative(10_u8)
+    cb.addNative(20_u8)
+    cb.addNative(30_u8)     // row0 pix0
+    cb.addNative(40_u8)
+    cb.addNative(50_u8)
+    cb.addNative(60_u8)     // row0 pix1
+    cb.addNative(0_u8)
+    cb.addNative(0_u8)     // row0 pad
+    cb.addNative(70_u8)
+    cb.addNative(80_u8)
+    cb.addNative(90_u8)     // row1 pix0
+    cb.addNative(100_u8)
+    cb.addNative(110_u8)
+    cb.addNative(120_u8)     // row1 pix1
+    cb.addNative(0_u8)
+    cb.addNative(0_u8)     // row1 pad
 
     discard expect File.writeAllBytes(path.toString(), cb)
     let img = expect Image.load(path.toString())
@@ -357,9 +362,9 @@ private func requireBmpDecodeFails(bytes: const [..] u8)
     Swag.require(img.pixelFormat == .BGR8)
     Swag.require(img.pixels.count == 12)
     Swag.require(img.pixels.buffer != null)
-    Swag.require(img.pixels.buffer[0] == 10'u8)
-    Swag.require(img.pixels.buffer[1] == 20'u8)
-    Swag.require(img.pixels.buffer[2] == 30'u8)
+    Swag.require(img.pixels.buffer[0] == 10_u8)
+    Swag.require(img.pixels.buffer[1] == 20_u8)
+    Swag.require(img.pixels.buffer[2] == 30_u8)
 }
 
 // Decode a 2x2 24-bit BMP with biCompression=BI_BITFIELDS (value 3).
@@ -370,37 +375,37 @@ private func requireBmpDecodeFails(bytes: const [..] u8)
     defer discard catch File.delete(path.toString())
     var cb: ConcatBuffer
     var fh: BmpFH
-    fh.bfType    = 0x4D42'u16
-    fh.bfSize    = 70'u32     // 14+40+16
-    fh.bfOffBits = 54'u32
+    fh.bfType    = 0x4D42_u16
+    fh.bfSize    = 70_u32     // 14+40+16
+    fh.bfOffBits = 54_u32
     cb.addStruct(fh)
 
     var bh: Bmp.Header
-    bh.biSize        = 40'u32
+    bh.biSize        = 40_u32
     bh.biWidth       = 2
     bh.biHeight      = 2
-    bh.biPlanes      = 1'u16
-    bh.biBitCount    = 24'u16
+    bh.biPlanes      = 1_u16
+    bh.biBitCount    = 24_u16
     bh.biCompression = Bmp.BI_BITFIELDS
-    bh.biSizeImage   = 16'u32
+    bh.biSizeImage   = 16_u32
     cb.addStruct(bh)
 
-    cb.addNative(55'u8)
-    cb.addNative(66'u8)
-    cb.addNative(77'u8)     // row0 pix0
-    cb.addNative(88'u8)
-    cb.addNative(99'u8)
-    cb.addNative(110'u8)     // row0 pix1
-    cb.addNative(0'u8)
-    cb.addNative(0'u8)     // row0 pad
-    cb.addNative(11'u8)
-    cb.addNative(22'u8)
-    cb.addNative(33'u8)     // row1 pix0
-    cb.addNative(44'u8)
-    cb.addNative(55'u8)
-    cb.addNative(66'u8)     // row1 pix1
-    cb.addNative(0'u8)
-    cb.addNative(0'u8)     // row1 pad
+    cb.addNative(55_u8)
+    cb.addNative(66_u8)
+    cb.addNative(77_u8)     // row0 pix0
+    cb.addNative(88_u8)
+    cb.addNative(99_u8)
+    cb.addNative(110_u8)     // row0 pix1
+    cb.addNative(0_u8)
+    cb.addNative(0_u8)     // row0 pad
+    cb.addNative(11_u8)
+    cb.addNative(22_u8)
+    cb.addNative(33_u8)     // row1 pix0
+    cb.addNative(44_u8)
+    cb.addNative(55_u8)
+    cb.addNative(66_u8)     // row1 pix1
+    cb.addNative(0_u8)
+    cb.addNative(0_u8)     // row1 pad
 
     discard expect File.writeAllBytes(path.toString(), cb)
     let img = expect Image.load(path.toString())
@@ -408,9 +413,9 @@ private func requireBmpDecodeFails(bytes: const [..] u8)
     Swag.require(img.height == 2)
     Swag.require(img.pixelFormat == .BGR8)
     Swag.require(img.pixels.buffer != null)
-    Swag.require(img.pixels.buffer[0] == 55'u8)
-    Swag.require(img.pixels.buffer[1] == 66'u8)
-    Swag.require(img.pixels.buffer[2] == 77'u8)
+    Swag.require(img.pixels.buffer[0] == 55_u8)
+    Swag.require(img.pixels.buffer[1] == 66_u8)
+    Swag.require(img.pixels.buffer[2] == 77_u8)
 }
 
 // Decode a top-down 2x2 24-bit BMP. The decoder stores pixels in the
@@ -421,48 +426,48 @@ private func requireBmpDecodeFails(bytes: const [..] u8)
     defer discard catch File.delete(path.toString())
     var cb: ConcatBuffer
     var fh: BmpFH
-    fh.bfType    = 0x4D42'u16
-    fh.bfSize    = 70'u32
-    fh.bfOffBits = 54'u32
+    fh.bfType    = 0x4D42_u16
+    fh.bfSize    = 70_u32
+    fh.bfOffBits = 54_u32
     cb.addStruct(fh)
 
     var bh: Bmp.Header
-    bh.biSize      = 40'u32
+    bh.biSize      = 40_u32
     bh.biWidth     = 2
     bh.biHeight    = -2
-    bh.biPlanes    = 1'u16
-    bh.biBitCount  = 24'u16
-    bh.biSizeImage = 16'u32
+    bh.biPlanes    = 1_u16
+    bh.biBitCount  = 24_u16
+    bh.biSizeImage = 16_u32
     cb.addStruct(bh)
 
-    cb.addNative(1'u8)
-    cb.addNative(2'u8)
-    cb.addNative(3'u8)
-    cb.addNative(4'u8)
-    cb.addNative(5'u8)
-    cb.addNative(6'u8)
-    cb.addNative(0'u8)
-    cb.addNative(0'u8)
-    cb.addNative(7'u8)
-    cb.addNative(8'u8)
-    cb.addNative(9'u8)
-    cb.addNative(10'u8)
-    cb.addNative(11'u8)
-    cb.addNative(12'u8)
-    cb.addNative(0'u8)
-    cb.addNative(0'u8)
+    cb.addNative(1_u8)
+    cb.addNative(2_u8)
+    cb.addNative(3_u8)
+    cb.addNative(4_u8)
+    cb.addNative(5_u8)
+    cb.addNative(6_u8)
+    cb.addNative(0_u8)
+    cb.addNative(0_u8)
+    cb.addNative(7_u8)
+    cb.addNative(8_u8)
+    cb.addNative(9_u8)
+    cb.addNative(10_u8)
+    cb.addNative(11_u8)
+    cb.addNative(12_u8)
+    cb.addNative(0_u8)
+    cb.addNative(0_u8)
 
     discard expect File.writeAllBytes(path.toString(), cb)
     let img = expect Image.load(path.toString())
     Swag.require(img.width == 2)
     Swag.require(img.height == 2)
     Swag.require(img.pixels.buffer != null)
-    Swag.require(img.pixels.buffer[0] == 7'u8)
-    Swag.require(img.pixels.buffer[1] == 8'u8)
-    Swag.require(img.pixels.buffer[2] == 9'u8)
-    Swag.require(img.pixels.buffer[6] == 1'u8)
-    Swag.require(img.pixels.buffer[7] == 2'u8)
-    Swag.require(img.pixels.buffer[8] == 3'u8)
+    Swag.require(img.pixels.buffer[0] == 7_u8)
+    Swag.require(img.pixels.buffer[1] == 8_u8)
+    Swag.require(img.pixels.buffer[2] == 9_u8)
+    Swag.require(img.pixels.buffer[6] == 1_u8)
+    Swag.require(img.pixels.buffer[7] == 2_u8)
+    Swag.require(img.pixels.buffer[8] == 3_u8)
 }
 
 // Decode an 8-bit indexed BMP through its palette.
@@ -472,39 +477,39 @@ private func requireBmpDecodeFails(bytes: const [..] u8)
     defer discard catch File.delete(path.toString())
     var cb: ConcatBuffer
     var fh: BmpFH
-    fh.bfType    = 0x4D42'u16
-    fh.bfSize    = 74'u32
-    fh.bfOffBits = 70'u32
+    fh.bfType    = 0x4D42_u16
+    fh.bfSize    = 74_u32
+    fh.bfOffBits = 70_u32
     cb.addStruct(fh)
 
     var bh: Bmp.Header
-    bh.biSize      = 40'u32
+    bh.biSize      = 40_u32
     bh.biWidth     = 4
     bh.biHeight    = 1
-    bh.biPlanes    = 1'u16
-    bh.biBitCount  = 8'u16
-    bh.biClrUsed   = 4'u32
-    bh.biSizeImage = 4'u32
+    bh.biPlanes    = 1_u16
+    bh.biBitCount  = 8_u16
+    bh.biClrUsed   = 4_u32
+    bh.biSizeImage = 4_u32
     cb.addStruct(bh)
     addBmpPaletteColor(&cb, 0, 0, 0)
     addBmpPaletteColor(&cb, 10, 20, 30)
     addBmpPaletteColor(&cb, 40, 50, 60)
     addBmpPaletteColor(&cb, 70, 80, 90)
-    cb.addNative(0'u8)
-    cb.addNative(1'u8)
-    cb.addNative(2'u8)
-    cb.addNative(3'u8)
+    cb.addNative(0_u8)
+    cb.addNative(1_u8)
+    cb.addNative(2_u8)
+    cb.addNative(3_u8)
 
     discard expect File.writeAllBytes(path.toString(), cb)
     let img = expect Image.load(path.toString())
     Swag.require(img.pixelFormat == .BGR8)
     Swag.require(img.pixels.buffer != null)
-    Swag.require(img.pixels.buffer[3] == 10'u8)
-    Swag.require(img.pixels.buffer[4] == 20'u8)
-    Swag.require(img.pixels.buffer[5] == 30'u8)
-    Swag.require(img.pixels.buffer[9] == 70'u8)
-    Swag.require(img.pixels.buffer[10] == 80'u8)
-    Swag.require(img.pixels.buffer[11] == 90'u8)
+    Swag.require(img.pixels.buffer[3] == 10_u8)
+    Swag.require(img.pixels.buffer[4] == 20_u8)
+    Swag.require(img.pixels.buffer[5] == 30_u8)
+    Swag.require(img.pixels.buffer[9] == 70_u8)
+    Swag.require(img.pixels.buffer[10] == 80_u8)
+    Swag.require(img.pixels.buffer[11] == 90_u8)
 }
 
 // Decode packed 1-bit indexed BMP rows.
@@ -514,35 +519,35 @@ private func requireBmpDecodeFails(bytes: const [..] u8)
     defer discard catch File.delete(path.toString())
     var cb: ConcatBuffer
     var fh: BmpFH
-    fh.bfType    = 0x4D42'u16
-    fh.bfSize    = 66'u32
-    fh.bfOffBits = 62'u32
+    fh.bfType    = 0x4D42_u16
+    fh.bfSize    = 66_u32
+    fh.bfOffBits = 62_u32
     cb.addStruct(fh)
 
     var bh: Bmp.Header
-    bh.biSize      = 40'u32
+    bh.biSize      = 40_u32
     bh.biWidth     = 8
     bh.biHeight    = 1
-    bh.biPlanes    = 1'u16
-    bh.biBitCount  = 1'u16
-    bh.biClrUsed   = 2'u32
-    bh.biSizeImage = 4'u32
+    bh.biPlanes    = 1_u16
+    bh.biBitCount  = 1_u16
+    bh.biClrUsed   = 2_u32
+    bh.biSizeImage = 4_u32
     cb.addStruct(bh)
     addBmpPaletteColor(&cb, 0, 0, 0)
     addBmpPaletteColor(&cb, 9, 8, 7)
-    cb.addNative(0b10100000'u8)
-    cb.addNative(0'u8)
-    cb.addNative(0'u8)
-    cb.addNative(0'u8)
+    cb.addNative(0b10100000_u8)
+    cb.addNative(0_u8)
+    cb.addNative(0_u8)
+    cb.addNative(0_u8)
 
     discard expect File.writeAllBytes(path.toString(), cb)
     let img = expect Image.load(path.toString())
     Swag.require(img.pixels.buffer != null)
-    Swag.require(img.pixels.buffer[0] == 9'u8)
-    Swag.require(img.pixels.buffer[1] == 8'u8)
-    Swag.require(img.pixels.buffer[2] == 7'u8)
-    Swag.require(img.pixels.buffer[3] == 0'u8)
-    Swag.require(img.pixels.buffer[6] == 9'u8)
+    Swag.require(img.pixels.buffer[0] == 9_u8)
+    Swag.require(img.pixels.buffer[1] == 8_u8)
+    Swag.require(img.pixels.buffer[2] == 7_u8)
+    Swag.require(img.pixels.buffer[3] == 0_u8)
+    Swag.require(img.pixels.buffer[6] == 9_u8)
 }
 
 // Decode packed 4-bit indexed BMP rows.
@@ -552,37 +557,37 @@ private func requireBmpDecodeFails(bytes: const [..] u8)
     defer discard catch File.delete(path.toString())
     var cb: ConcatBuffer
     var fh: BmpFH
-    fh.bfType    = 0x4D42'u16
-    fh.bfSize    = 70'u32
-    fh.bfOffBits = 66'u32
+    fh.bfType    = 0x4D42_u16
+    fh.bfSize    = 70_u32
+    fh.bfOffBits = 66_u32
     cb.addStruct(fh)
 
     var bh: Bmp.Header
-    bh.biSize      = 40'u32
+    bh.biSize      = 40_u32
     bh.biWidth     = 4
     bh.biHeight    = 1
-    bh.biPlanes    = 1'u16
-    bh.biBitCount  = 4'u16
-    bh.biClrUsed   = 3'u32
-    bh.biSizeImage = 4'u32
+    bh.biPlanes    = 1_u16
+    bh.biBitCount  = 4_u16
+    bh.biClrUsed   = 3_u32
+    bh.biSizeImage = 4_u32
     cb.addStruct(bh)
     addBmpPaletteColor(&cb, 0, 0, 0)
     addBmpPaletteColor(&cb, 11, 12, 13)
     addBmpPaletteColor(&cb, 21, 22, 23)
-    cb.addNative(0x12'u8)
-    cb.addNative(0x10'u8)
-    cb.addNative(0'u8)
-    cb.addNative(0'u8)
+    cb.addNative(0x12_u8)
+    cb.addNative(0x10_u8)
+    cb.addNative(0_u8)
+    cb.addNative(0_u8)
 
     discard expect File.writeAllBytes(path.toString(), cb)
     let img = expect Image.load(path.toString())
     Swag.require(img.pixels.buffer != null)
-    Swag.require(img.pixels.buffer[0] == 11'u8)
-    Swag.require(img.pixels.buffer[1] == 12'u8)
-    Swag.require(img.pixels.buffer[2] == 13'u8)
-    Swag.require(img.pixels.buffer[3] == 21'u8)
-    Swag.require(img.pixels.buffer[4] == 22'u8)
-    Swag.require(img.pixels.buffer[5] == 23'u8)
+    Swag.require(img.pixels.buffer[0] == 11_u8)
+    Swag.require(img.pixels.buffer[1] == 12_u8)
+    Swag.require(img.pixels.buffer[2] == 13_u8)
+    Swag.require(img.pixels.buffer[3] == 21_u8)
+    Swag.require(img.pixels.buffer[4] == 22_u8)
+    Swag.require(img.pixels.buffer[5] == 23_u8)
 }
 
 // Decode 16-bit BI_RGB pixels using the default 5-5-5 masks.
@@ -592,31 +597,31 @@ private func requireBmpDecodeFails(bytes: const [..] u8)
     defer discard catch File.delete(path.toString())
     var cb: ConcatBuffer
     var fh: BmpFH
-    fh.bfType    = 0x4D42'u16
-    fh.bfSize    = 58'u32
-    fh.bfOffBits = 54'u32
+    fh.bfType    = 0x4D42_u16
+    fh.bfSize    = 58_u32
+    fh.bfOffBits = 54_u32
     cb.addStruct(fh)
 
     var bh: Bmp.Header
-    bh.biSize      = 40'u32
+    bh.biSize      = 40_u32
     bh.biWidth     = 2
     bh.biHeight    = 1
-    bh.biPlanes    = 1'u16
-    bh.biBitCount  = 16'u16
-    bh.biSizeImage = 4'u32
+    bh.biPlanes    = 1_u16
+    bh.biBitCount  = 16_u16
+    bh.biSizeImage = 4_u32
     cb.addStruct(bh)
-    cb.addNative(0x7C00'u16)
-    cb.addNative(0x03E0'u16)
+    cb.addNative(0x7C00_u16)
+    cb.addNative(0x03E0_u16)
 
     discard expect File.writeAllBytes(path.toString(), cb)
     let img = expect Image.load(path.toString())
     Swag.require(img.pixels.buffer != null)
-    Swag.require(img.pixels.buffer[0] == 0'u8)
-    Swag.require(img.pixels.buffer[1] == 0'u8)
-    Swag.require(img.pixels.buffer[2] == 255'u8)
-    Swag.require(img.pixels.buffer[3] == 0'u8)
-    Swag.require(img.pixels.buffer[4] == 255'u8)
-    Swag.require(img.pixels.buffer[5] == 0'u8)
+    Swag.require(img.pixels.buffer[0] == 0_u8)
+    Swag.require(img.pixels.buffer[1] == 0_u8)
+    Swag.require(img.pixels.buffer[2] == 255_u8)
+    Swag.require(img.pixels.buffer[3] == 0_u8)
+    Swag.require(img.pixels.buffer[4] == 255_u8)
+    Swag.require(img.pixels.buffer[5] == 0_u8)
 }
 
 // Decode 16-bit BI_BITFIELDS pixels using explicit 5-6-5 masks.
@@ -626,35 +631,35 @@ private func requireBmpDecodeFails(bytes: const [..] u8)
     defer discard catch File.delete(path.toString())
     var cb: ConcatBuffer
     var fh: BmpFH
-    fh.bfType    = 0x4D42'u16
-    fh.bfSize    = 70'u32
-    fh.bfOffBits = 66'u32
+    fh.bfType    = 0x4D42_u16
+    fh.bfSize    = 70_u32
+    fh.bfOffBits = 66_u32
     cb.addStruct(fh)
 
     var bh: Bmp.Header
-    bh.biSize        = 40'u32
+    bh.biSize        = 40_u32
     bh.biWidth       = 2
     bh.biHeight      = 1
-    bh.biPlanes      = 1'u16
-    bh.biBitCount    = 16'u16
+    bh.biPlanes      = 1_u16
+    bh.biBitCount    = 16_u16
     bh.biCompression = Bmp.BI_BITFIELDS
-    bh.biSizeImage   = 4'u32
+    bh.biSizeImage   = 4_u32
     cb.addStruct(bh)
-    cb.addNative(0xF800'u32)
-    cb.addNative(0x07E0'u32)
-    cb.addNative(0x001F'u32)
-    cb.addNative(0x001F'u16)
-    cb.addNative(0x07E0'u16)
+    cb.addNative(0xF800_u32)
+    cb.addNative(0x07E0_u32)
+    cb.addNative(0x001F_u32)
+    cb.addNative(0x001F_u16)
+    cb.addNative(0x07E0_u16)
 
     discard expect File.writeAllBytes(path.toString(), cb)
     let img = expect Image.load(path.toString())
     Swag.require(img.pixels.buffer != null)
-    Swag.require(img.pixels.buffer[0] == 255'u8)
-    Swag.require(img.pixels.buffer[1] == 0'u8)
-    Swag.require(img.pixels.buffer[2] == 0'u8)
-    Swag.require(img.pixels.buffer[3] == 0'u8)
-    Swag.require(img.pixels.buffer[4] == 255'u8)
-    Swag.require(img.pixels.buffer[5] == 0'u8)
+    Swag.require(img.pixels.buffer[0] == 255_u8)
+    Swag.require(img.pixels.buffer[1] == 0_u8)
+    Swag.require(img.pixels.buffer[2] == 0_u8)
+    Swag.require(img.pixels.buffer[3] == 0_u8)
+    Swag.require(img.pixels.buffer[4] == 255_u8)
+    Swag.require(img.pixels.buffer[5] == 0_u8)
 }
 
 // Decode 32-bit BI_BITFIELDS pixels using explicit masks and opaque alpha when absent.
@@ -662,62 +667,65 @@ private func requireBmpDecodeFails(bytes: const [..] u8)
 {
     var cb: ConcatBuffer
     var fh: BmpFH
-    fh.bfType    = 0x4D42'u16
-    fh.bfSize    = 126'u32
-    fh.bfOffBits = 122'u32
+    fh.bfType    = 0x4D42_u16
+    fh.bfSize    = 126_u32
+    fh.bfOffBits = 122_u32
     cb.addStruct(fh)
 
     var bh: Bmp.Header
-    bh.biSize        = 108'u32
+    bh.biSize        = 108_u32
     bh.biWidth       = 1
     bh.biHeight      = 1
-    bh.biPlanes      = 1'u16
-    bh.biBitCount    = 32'u16
+    bh.biPlanes      = 1_u16
+    bh.biBitCount    = 32_u16
     bh.biCompression = Bmp.BI_BITFIELDS
-    bh.biSizeImage   = 4'u32
+    bh.biSizeImage   = 4_u32
     cb.addStruct(bh)
-    cb.addNative(0x000000FF'u32)
-    cb.addNative(0x0000FF00'u32)
-    cb.addNative(0x00FF0000'u32)
-    cb.addNative(0'u32)
+    cb.addNative(0x000000FF_u32)
+    cb.addNative(0x0000FF00_u32)
+    cb.addNative(0x00FF0000_u32)
+    cb.addNative(0_u32)
     var extension: [52] u8
-    for index in 0 until extension.count do
+    for index in 0 until extension.count
+    {
         extension[index] = 0
+    }
+
     cb.addBytes(extension)
-    cb.addNative(0x000000FF'u32)
+    cb.addNative(0x000000FF_u32)
 
     let img = expect Image.decode("masked32.bmp", nnBytes(cb.toSlice()))
     Swag.require(img.pixelFormat == .BGRA8)
     Swag.require(img.pixels.buffer != null)
-    Swag.require(img.pixels.buffer[0] == 0'u8)
-    Swag.require(img.pixels.buffer[1] == 0'u8)
-    Swag.require(img.pixels.buffer[2] == 255'u8)
-    Swag.require(img.pixels.buffer[3] == 255'u8)
+    Swag.require(img.pixels.buffer[0] == 0_u8)
+    Swag.require(img.pixels.buffer[1] == 0_u8)
+    Swag.require(img.pixels.buffer[2] == 255_u8)
+    Swag.require(img.pixels.buffer[3] == 255_u8)
 }
 
 #test
 {
     var cb: ConcatBuffer
     var fh: BmpFH
-    fh.bfType    = 0x4D42'u16
-    fh.bfSize    = 70'u32
-    fh.bfOffBits = 66'u32
+    fh.bfType    = 0x4D42_u16
+    fh.bfSize    = 70_u32
+    fh.bfOffBits = 66_u32
     cb.addStruct(fh)
 
     var bh: Bmp.Header
-    bh.biSize        = 40'u32
+    bh.biSize        = 40_u32
     bh.biWidth       = 1
     bh.biHeight      = 1
-    bh.biPlanes      = 1'u16
-    bh.biBitCount    = 16'u16
+    bh.biPlanes      = 1_u16
+    bh.biBitCount    = 16_u16
     bh.biCompression = Bmp.BI_BITFIELDS
-    bh.biSizeImage   = 4'u32
+    bh.biSizeImage   = 4_u32
     cb.addStruct(bh)
-    cb.addNative(0x5000'u32)     // Red mask has separated bit runs.
-    cb.addNative(0x03E0'u32)
-    cb.addNative(0x001F'u32)
-    cb.addNative(0x5000'u16)
-    cb.addNative(0'u16)
+    cb.addNative(0x5000_u32)     // Red mask has separated bit runs.
+    cb.addNative(0x03E0_u32)
+    cb.addNative(0x001F_u32)
+    cb.addNative(0x5000_u16)
+    cb.addNative(0_u16)
 
     var image:        Image
     var errorOutcome: Swag.Error
@@ -894,25 +902,25 @@ private func requireBmpDecodeFails(bytes: const [..] u8)
     defer discard catch File.delete(path.toString())
     var cb: ConcatBuffer
     var fh: BmpFH
-    fh.bfType    = 0x4D42'u16
-    fh.bfSize    = 64'u32
-    fh.bfOffBits = 62'u32
+    fh.bfType    = 0x4D42_u16
+    fh.bfSize    = 64_u32
+    fh.bfOffBits = 62_u32
     cb.addStruct(fh)
 
     var bh: Bmp.Header
-    bh.biSize        = 40'u32
+    bh.biSize        = 40_u32
     bh.biWidth       = 1
     bh.biHeight      = 1
-    bh.biPlanes      = 1'u16
-    bh.biBitCount    = 8'u16
+    bh.biPlanes      = 1_u16
+    bh.biBitCount    = 8_u16
     bh.biCompression = Bmp.BI_RLE8
-    bh.biClrUsed     = 2'u32
-    bh.biSizeImage   = 2'u32
+    bh.biClrUsed     = 2_u32
+    bh.biSizeImage   = 2_u32
     cb.addStruct(bh)
     addBmpPaletteColor(&cb, 0, 0, 0)
     addBmpPaletteColor(&cb, 10, 20, 30)
-    cb.addNative(1'u8)
-    cb.addNative(1'u8)
+    cb.addNative(1_u8)
+    cb.addNative(1_u8)
 
     discard expect File.writeAllBytes(path.toString(), cb)
     var img: Image
@@ -928,27 +936,27 @@ private func requireBmpDecodeFails(bytes: const [..] u8)
     defer discard catch File.delete(path.toString())
     var cb: ConcatBuffer
     var fh: BmpFH
-    fh.bfType    = 0x4D42'u16
-    fh.bfSize    = 66'u32
-    fh.bfOffBits = 62'u32
+    fh.bfType    = 0x4D42_u16
+    fh.bfSize    = 66_u32
+    fh.bfOffBits = 62_u32
     cb.addStruct(fh)
 
     var bh: Bmp.Header
-    bh.biSize        = 40'u32
+    bh.biSize        = 40_u32
     bh.biWidth       = 1
     bh.biHeight      = 1
-    bh.biPlanes      = 1'u16
-    bh.biBitCount    = 4'u16
+    bh.biPlanes      = 1_u16
+    bh.biBitCount    = 4_u16
     bh.biCompression = Bmp.BI_RLE4
-    bh.biClrUsed     = 2'u32
-    bh.biSizeImage   = 4'u32
+    bh.biClrUsed     = 2_u32
+    bh.biSizeImage   = 4_u32
     cb.addStruct(bh)
     addBmpPaletteColor(&cb, 0, 0, 0)
     addBmpPaletteColor(&cb, 40, 50, 60)
-    cb.addNative(1'u8)
-    cb.addNative(0x10'u8)
-    cb.addNative(0'u8)
-    cb.addNative(0'u8)
+    cb.addNative(1_u8)
+    cb.addNative(0x10_u8)
+    cb.addNative(0_u8)
+    cb.addNative(0_u8)
 
     discard expect File.writeAllBytes(path.toString(), cb)
     var img: Image
@@ -994,47 +1002,47 @@ private func requireBmpDecodeFails(bytes: const [..] u8)
     defer discard catch File.delete(path.toString())
     var cb: ConcatBuffer
     var fh: BmpFH
-    fh.bfType    = 0x4D42'u16
-    fh.bfSize    = 82'u32
-    fh.bfOffBits = 70'u32
+    fh.bfType    = 0x4D42_u16
+    fh.bfSize    = 82_u32
+    fh.bfOffBits = 70_u32
     cb.addStruct(fh)
 
     var bh: Bmp.Header
-    bh.biSize        = 40'u32
+    bh.biSize        = 40_u32
     bh.biWidth       = 4
     bh.biHeight      = 2
-    bh.biPlanes      = 1'u16
-    bh.biBitCount    = 8'u16
+    bh.biPlanes      = 1_u16
+    bh.biBitCount    = 8_u16
     bh.biCompression = Bmp.BI_RLE8
-    bh.biClrUsed     = 4'u32
-    bh.biSizeImage   = 12'u32
+    bh.biClrUsed     = 4_u32
+    bh.biSizeImage   = 12_u32
     cb.addStruct(bh)
     addBmpPaletteColor(&cb, 0, 0, 0)
     addBmpPaletteColor(&cb, 10, 0, 0)
     addBmpPaletteColor(&cb, 0, 20, 0)
     addBmpPaletteColor(&cb, 0, 0, 30)
-    cb.addNative(4'u8)
-    cb.addNative(1'u8)
-    cb.addNative(0'u8)
-    cb.addNative(0'u8)
-    cb.addNative(0'u8)
-    cb.addNative(4'u8)
-    cb.addNative(2'u8)
-    cb.addNative(3'u8)
-    cb.addNative(0'u8)
-    cb.addNative(1'u8)
-    cb.addNative(0'u8)
-    cb.addNative(1'u8)
+    cb.addNative(4_u8)
+    cb.addNative(1_u8)
+    cb.addNative(0_u8)
+    cb.addNative(0_u8)
+    cb.addNative(0_u8)
+    cb.addNative(4_u8)
+    cb.addNative(2_u8)
+    cb.addNative(3_u8)
+    cb.addNative(0_u8)
+    cb.addNative(1_u8)
+    cb.addNative(0_u8)
+    cb.addNative(1_u8)
 
     discard expect File.writeAllBytes(path.toString(), cb)
     let img = expect Image.load(path.toString())
     Swag.require(img.pixels.buffer != null)
-    Swag.require(img.pixels.buffer[0] == 10'u8)
-    Swag.require(img.pixels.buffer[12] == 0'u8)
-    Swag.require(img.pixels.buffer[13] == 20'u8)
-    Swag.require(img.pixels.buffer[15] == 0'u8)
-    Swag.require(img.pixels.buffer[16] == 0'u8)
-    Swag.require(img.pixels.buffer[17] == 30'u8)
+    Swag.require(img.pixels.buffer[0] == 10_u8)
+    Swag.require(img.pixels.buffer[12] == 0_u8)
+    Swag.require(img.pixels.buffer[13] == 20_u8)
+    Swag.require(img.pixels.buffer[15] == 0_u8)
+    Swag.require(img.pixels.buffer[16] == 0_u8)
+    Swag.require(img.pixels.buffer[17] == 30_u8)
 }
 
 // Short RLE8 runs follow vertical deltas and keep skipped pixels clear.
@@ -1069,39 +1077,39 @@ private func requireBmpDecodeFails(bytes: const [..] u8)
     defer discard catch File.delete(path.toString())
     var cb: ConcatBuffer
     var fh: BmpFH
-    fh.bfType    = 0x4D42'u16
-    fh.bfSize    = 74'u32
-    fh.bfOffBits = 70'u32
+    fh.bfType    = 0x4D42_u16
+    fh.bfSize    = 74_u32
+    fh.bfOffBits = 70_u32
     cb.addStruct(fh)
 
     var bh: Bmp.Header
-    bh.biSize        = 40'u32
+    bh.biSize        = 40_u32
     bh.biWidth       = 4
     bh.biHeight      = 1
-    bh.biPlanes      = 1'u16
-    bh.biBitCount    = 4'u16
+    bh.biPlanes      = 1_u16
+    bh.biBitCount    = 4_u16
     bh.biCompression = Bmp.BI_RLE4
-    bh.biClrUsed     = 4'u32
-    bh.biSizeImage   = 4'u32
+    bh.biClrUsed     = 4_u32
+    bh.biSizeImage   = 4_u32
     cb.addStruct(bh)
     addBmpPaletteColor(&cb, 0, 0, 0)
     addBmpPaletteColor(&cb, 11, 12, 13)
     addBmpPaletteColor(&cb, 21, 22, 23)
     addBmpPaletteColor(&cb, 31, 32, 33)
-    cb.addNative(4'u8)
-    cb.addNative(0x12'u8)
-    cb.addNative(0'u8)
-    cb.addNative(1'u8)
+    cb.addNative(4_u8)
+    cb.addNative(0x12_u8)
+    cb.addNative(0_u8)
+    cb.addNative(1_u8)
 
     discard expect File.writeAllBytes(path.toString(), cb)
     let img = expect Image.load(path.toString())
     Swag.require(img.pixels.buffer != null)
-    Swag.require(img.pixels.buffer[0] == 11'u8)
-    Swag.require(img.pixels.buffer[1] == 12'u8)
-    Swag.require(img.pixels.buffer[2] == 13'u8)
-    Swag.require(img.pixels.buffer[3] == 21'u8)
-    Swag.require(img.pixels.buffer[4] == 22'u8)
-    Swag.require(img.pixels.buffer[5] == 23'u8)
+    Swag.require(img.pixels.buffer[0] == 11_u8)
+    Swag.require(img.pixels.buffer[1] == 12_u8)
+    Swag.require(img.pixels.buffer[2] == 13_u8)
+    Swag.require(img.pixels.buffer[3] == 21_u8)
+    Swag.require(img.pixels.buffer[4] == 22_u8)
+    Swag.require(img.pixels.buffer[5] == 23_u8)
 }
 
 // Decode with decodePixels=false: metadata fields are populated but no pixel buffer is allocated.
@@ -1126,20 +1134,22 @@ private func requireBmpDecodeFails(bytes: const [..] u8)
     defer discard catch File.delete(path.toString())
     var cb: ConcatBuffer
     var fh: BmpFH
-    fh.bfType    = 0x4D42'u16
-    fh.bfSize    = 58'u32
-    fh.bfOffBits = 54'u32
+    fh.bfType    = 0x4D42_u16
+    fh.bfSize    = 58_u32
+    fh.bfOffBits = 54_u32
     cb.addStruct(fh)
 
     var bh: Bmp.Header
-    bh.biSize     = 40'u32
+    bh.biSize     = 40_u32
     bh.biWidth    = 2
     bh.biHeight   = 1
-    bh.biPlanes   = 1'u16
-    bh.biBitCount = 8'u16
+    bh.biPlanes   = 1_u16
+    bh.biBitCount = 8_u16
     cb.addStruct(bh)
-    for 4 do
-        cb.addNative(0'u8)
+    for 4
+    {
+        cb.addNative(0_u8)
+    }
 
     discard expect File.writeAllBytes(path.toString(), cb)
     var img: Image
@@ -1154,85 +1164,85 @@ private func requireBmpDecodeFails(bytes: const [..] u8)
 {
     var packed: ConcatBuffer
     var file:   BmpFH
-    file.bfType    = 0x4D42'u16
-    file.bfSize    = 62'u32
-    file.bfOffBits = 58'u32
+    file.bfType    = 0x4D42_u16
+    file.bfSize    = 62_u32
+    file.bfOffBits = 58_u32
     packed.addStruct(file)
 
     var header: Bmp.Header
-    header.biSize     = 40'u32
+    header.biSize     = 40_u32
     header.biWidth    = 1
     header.biHeight   = 1
-    header.biPlanes   = 1'u16
-    header.biBitCount = 1'u16
-    header.biClrUsed  = 1'u32
+    header.biPlanes   = 1_u16
+    header.biBitCount = 1_u16
+    header.biClrUsed  = 1_u32
     packed.addStruct(header)
     addBmpPaletteColor(&packed, 3, 2, 1)
-    packed.addNative(0x80'u8)     // The first pixel indexes palette entry 1.
-    packed.addNative(0'u8)
-    packed.addNative(0'u8)
-    packed.addNative(0'u8)
+    packed.addNative(0x80_u8)     // The first pixel indexes palette entry 1.
+    packed.addNative(0_u8)
+    packed.addNative(0_u8)
+    packed.addNative(0_u8)
     requireBmpDecodeFails(nnBytes(packed.toSlice()))
 
     var rle8: ConcatBuffer
-    file.bfSize = 62'u32
+    file.bfSize = 62_u32
     rle8.addStruct(file)
-    header.biBitCount    = 8'u16
+    header.biBitCount    = 8_u16
     header.biCompression = Bmp.BI_RLE8
-    header.biSizeImage   = 4'u32
+    header.biSizeImage   = 4_u32
     rle8.addStruct(header)
     addBmpPaletteColor(&rle8, 3, 2, 1)
-    rle8.addNative(1'u8)     // One pixel using undeclared index 1.
-    rle8.addNative(1'u8)
-    rle8.addNative(0'u8)     // End of bitmap.
-    rle8.addNative(1'u8)
+    rle8.addNative(1_u8)     // One pixel using undeclared index 1.
+    rle8.addNative(1_u8)
+    rle8.addNative(0_u8)     // End of bitmap.
+    rle8.addNative(1_u8)
     requireBmpDecodeFails(nnBytes(rle8.toSlice()))
 
     var rle4: ConcatBuffer
     rle4.addStruct(file)
-    header.biBitCount    = 4'u16
+    header.biBitCount    = 4_u16
     header.biCompression = Bmp.BI_RLE4
     rle4.addStruct(header)
     addBmpPaletteColor(&rle4, 3, 2, 1)
-    rle4.addNative(1'u8)     // The high nibble indexes undeclared entry 1.
-    rle4.addNative(0x10'u8)
-    rle4.addNative(0'u8)
-    rle4.addNative(1'u8)
+    rle4.addNative(1_u8)     // The high nibble indexes undeclared entry 1.
+    rle4.addNative(0x10_u8)
+    rle4.addNative(0_u8)
+    rle4.addNative(1_u8)
     requireBmpDecodeFails(nnBytes(rle4.toSlice()))
 
     var rle8Absolute: ConcatBuffer
-    file.bfSize = 66'u32
+    file.bfSize = 66_u32
     rle8Absolute.addStruct(file)
     header.biWidth       = 3
-    header.biBitCount    = 8'u16
+    header.biBitCount    = 8_u16
     header.biCompression = Bmp.BI_RLE8
-    header.biSizeImage   = 8'u32
+    header.biSizeImage   = 8_u32
     rle8Absolute.addStruct(header)
     addBmpPaletteColor(&rle8Absolute, 3, 2, 1)
-    rle8Absolute.addNative(0'u8)     // Absolute packet of three indices.
-    rle8Absolute.addNative(3'u8)
-    rle8Absolute.addNative(0'u8)
-    rle8Absolute.addNative(1'u8)
-    rle8Absolute.addNative(0'u8)
-    rle8Absolute.addNative(0'u8)     // Word padding.
-    rle8Absolute.addNative(0'u8)     // End of bitmap.
-    rle8Absolute.addNative(1'u8)
+    rle8Absolute.addNative(0_u8)     // Absolute packet of three indices.
+    rle8Absolute.addNative(3_u8)
+    rle8Absolute.addNative(0_u8)
+    rle8Absolute.addNative(1_u8)
+    rle8Absolute.addNative(0_u8)
+    rle8Absolute.addNative(0_u8)     // Word padding.
+    rle8Absolute.addNative(0_u8)     // End of bitmap.
+    rle8Absolute.addNative(1_u8)
     requireBmpDecodeFails(nnBytes(rle8Absolute.toSlice()))
 
     var rle4Absolute: ConcatBuffer
-    file.bfSize = 64'u32
+    file.bfSize = 64_u32
     rle4Absolute.addStruct(file)
-    header.biBitCount    = 4'u16
+    header.biBitCount    = 4_u16
     header.biCompression = Bmp.BI_RLE4
-    header.biSizeImage   = 6'u32
+    header.biSizeImage   = 6_u32
     rle4Absolute.addStruct(header)
     addBmpPaletteColor(&rle4Absolute, 3, 2, 1)
-    rle4Absolute.addNative(0'u8)     // Absolute packet of three indices.
-    rle4Absolute.addNative(3'u8)
-    rle4Absolute.addNative(0x10'u8)     // Includes undeclared palette entry 1.
-    rle4Absolute.addNative(0'u8)
-    rle4Absolute.addNative(0'u8)     // End of bitmap.
-    rle4Absolute.addNative(1'u8)
+    rle4Absolute.addNative(0_u8)     // Absolute packet of three indices.
+    rle4Absolute.addNative(3_u8)
+    rle4Absolute.addNative(0x10_u8)     // Includes undeclared palette entry 1.
+    rle4Absolute.addNative(0_u8)
+    rle4Absolute.addNative(0_u8)     // End of bitmap.
+    rle4Absolute.addNative(1_u8)
     requireBmpDecodeFails(nnBytes(rle4Absolute.toSlice()))
 }
 
@@ -1246,11 +1256,11 @@ private func requireBmpDecodeFails(bytes: const [..] u8)
     // The decoder will see size=40 != 12 and then check dataof+sizeof(Header) > last, then fail.
     var cb: ConcatBuffer
     var fh: BmpFH
-    fh.bfType    = 0x4D42'u16
-    fh.bfSize    = 18'u32
-    fh.bfOffBits = 54'u32
+    fh.bfType    = 0x4D42_u16
+    fh.bfSize    = 18_u32
+    fh.bfOffBits = 54_u32
     cb.addStruct(fh)
-    cb.addNative(40'u32)     // biSize only - rest of DIB header missing
+    cb.addNative(40_u32)     // biSize only - rest of DIB header missing
 
     discard expect File.writeAllBytes(path.toString(), cb)
     var img: Image
@@ -1267,21 +1277,23 @@ private func requireBmpDecodeFails(bytes: const [..] u8)
     defer discard catch File.delete(path.toString())
     var cb: ConcatBuffer
     var fh: BmpFH
-    fh.bfType    = 0x4D42'u16
-    fh.bfSize    = 58'u32
-    fh.bfOffBits = 54'u32
+    fh.bfType    = 0x4D42_u16
+    fh.bfSize    = 58_u32
+    fh.bfOffBits = 54_u32
     cb.addStruct(fh)
 
     var bh: Bmp.Header
-    bh.biSize        = 40'u32
+    bh.biSize        = 40_u32
     bh.biWidth       = 2
     bh.biHeight      = 1
-    bh.biPlanes      = 1'u16
-    bh.biBitCount    = 24'u16
-    bh.biCompression = 4'u32     // value 4 is not a recognised compression type
+    bh.biPlanes      = 1_u16
+    bh.biBitCount    = 24_u16
+    bh.biCompression = 4_u32     // value 4 is not a recognised compression type
     cb.addStruct(bh)
-    for 4 do
-        cb.addNative(0'u8)
+    for 4
+    {
+        cb.addNative(0_u8)
+    }
 
     discard expect File.writeAllBytes(path.toString(), cb)
     var img: Image
@@ -1304,8 +1316,10 @@ private func requireBmpDecodeFails(bytes: const [..] u8)
     for pixelFormat in [PixelFormat.RGB8, PixelFormat.RGBA8]
     {
         var src = Image.create(Width, Height, pixelFormat)
-        for i in src.pixels.count do
+        for i in src.pixels.count
+        {
             src.pixels.storage()[i] = cast(u8, ((i * 37 + 19) & 0xFF))
+        }
 
         var cb       = expect src.encode("memory.bmp")
         let rowBytes = cast(u64, Width) * src.bytesPerPixel
@@ -1317,8 +1331,10 @@ private func requireBmpDecodeFails(bytes: const [..] u8)
         {
             for y in Height
             {
-                for offset in rowBytes until stride do
+                for offset in rowBytes until stride
+                {
                     Swag.require(bytes[#sizeof(BmpFH) + #sizeof(Bmp.Header) + cast(u64, y) * stride + offset] == 0)
+                }
             }
         }
 
@@ -1331,8 +1347,10 @@ private func requireBmpDecodeFails(bytes: const [..] u8)
             Swag.require(img.pixels.storage()[offset] == src.pixels.storage()[offset + 2])
             Swag.require(img.pixels.storage()[offset + 1] == src.pixels.storage()[offset + 1])
             Swag.require(img.pixels.storage()[offset + 2] == src.pixels.storage()[offset])
-            if bytesPerPixel == 4 do
+            if bytesPerPixel == 4
+            {
                 Swag.require(img.pixels.storage()[offset + 3] == src.pixels.storage()[offset + 3])
+            }
         }
     }
 }
@@ -1382,19 +1400,19 @@ private func requireBmpDecodeFails(bytes: const [..] u8)
     var src = Image.create(4, 4, .BGR8)
     src.clear()
     let srcBuf = src.pixels.storage()
-    srcBuf[0]  = 200'u8     // pixel(0,0) B
-    srcBuf[1]  = 128'u8     //             G
-    srcBuf[2]  = 64'u8      //             R
-    srcBuf[45] = 33'u8      // last row, pixel 3, B channel
+    srcBuf[0]  = 200_u8     // pixel(0,0) B
+    srcBuf[1]  = 128_u8     //             G
+    srcBuf[2]  = 64_u8      //             R
+    srcBuf[45] = 33_u8      // last row, pixel 3, B channel
 
     let cb = expect src.encode("memory.bmp")
     discard expect File.writeAllBytes(path.toString(), cb)
     let img = expect Image.load(path.toString())
     Swag.require(img.pixels.buffer != null)
-    Swag.require(img.pixels.buffer[0] == 200'u8)
-    Swag.require(img.pixels.buffer[1] == 128'u8)
-    Swag.require(img.pixels.buffer[2] == 64'u8)
-    Swag.require(img.pixels.buffer[45] == 33'u8)
+    Swag.require(img.pixels.buffer[0] == 200_u8)
+    Swag.require(img.pixels.buffer[1] == 128_u8)
+    Swag.require(img.pixels.buffer[2] == 64_u8)
+    Swag.require(img.pixels.buffer[45] == 33_u8)
 }
 
 // Encode a BGRA8 2x2 image: raw 32-bit bytes are copied directly by the encoder.
@@ -1424,23 +1442,23 @@ private func requireBmpDecodeFails(bytes: const [..] u8)
     var src = Image.create(2, 2, .BGRA8)
     src.clear()
     let srcBuf = src.pixels.storage()
-    srcBuf[0] = 10'u8      // pixel(0,0) B
-    srcBuf[1] = 20'u8      //             G
-    srcBuf[2] = 30'u8      //             R
-    srcBuf[3] = 200'u8     //             A
-    srcBuf[4] = 50'u8      // pixel(1,0) B
-    srcBuf[7] = 128'u8     // pixel(1,0) A
+    srcBuf[0] = 10_u8      // pixel(0,0) B
+    srcBuf[1] = 20_u8      //             G
+    srcBuf[2] = 30_u8      //             R
+    srcBuf[3] = 200_u8     //             A
+    srcBuf[4] = 50_u8      // pixel(1,0) B
+    srcBuf[7] = 128_u8     // pixel(1,0) A
 
     let cb = expect src.encode("memory.bmp")
     discard expect File.writeAllBytes(path.toString(), cb)
     let img = expect Image.load(path.toString())
     Swag.require(img.pixels.buffer != null)
-    Swag.require(img.pixels.buffer[0] == 10'u8)
-    Swag.require(img.pixels.buffer[1] == 20'u8)
-    Swag.require(img.pixels.buffer[2] == 30'u8)
-    Swag.require(img.pixels.buffer[3] == 200'u8)
-    Swag.require(img.pixels.buffer[4] == 50'u8)
-    Swag.require(img.pixels.buffer[7] == 128'u8)
+    Swag.require(img.pixels.buffer[0] == 10_u8)
+    Swag.require(img.pixels.buffer[1] == 20_u8)
+    Swag.require(img.pixels.buffer[2] == 30_u8)
+    Swag.require(img.pixels.buffer[3] == 200_u8)
+    Swag.require(img.pixels.buffer[4] == 50_u8)
+    Swag.require(img.pixels.buffer[7] == 128_u8)
 }
 
 // Encode an RGB8 4x4 image: encoder swaps R/B to write BGR bytes into the BMP file,
@@ -1452,9 +1470,9 @@ private func requireBmpDecodeFails(bytes: const [..] u8)
     var src = Image.create(4, 4, .RGB8)
     src.clear()
     let srcBuf = src.pixels.storage()
-    srcBuf[0] = 100'u8     // pixel(0,0) R
-    srcBuf[1] = 150'u8     //             G
-    srcBuf[2] = 200'u8     //             B
+    srcBuf[0] = 100_u8     // pixel(0,0) R
+    srcBuf[1] = 150_u8     //             G
+    srcBuf[2] = 200_u8     //             B
 
     let cb = expect src.encode("memory.bmp")
     discard expect File.writeAllBytes(path.toString(), cb)
@@ -1464,9 +1482,9 @@ private func requireBmpDecodeFails(bytes: const [..] u8)
     Swag.require(img.pixelFormat == .BGR8)     // RGB8 saved as 24-bit BGR, loads as BGR8
     // Encoder writes [B=200, G=150, R=100]; decoder stores as BGR8 bytes verbatim
     Swag.require(img.pixels.buffer != null)
-    Swag.require(img.pixels.buffer[0] == 200'u8)     // B
-    Swag.require(img.pixels.buffer[1] == 150'u8)     // G
-    Swag.require(img.pixels.buffer[2] == 100'u8)     // R
+    Swag.require(img.pixels.buffer[0] == 200_u8)     // B
+    Swag.require(img.pixels.buffer[1] == 150_u8)     // G
+    Swag.require(img.pixels.buffer[2] == 100_u8)     // R
 }
 
 // Encode an RGBA8 2x2 image: encoder swaps R/B to write BGRA bytes,
@@ -1478,10 +1496,10 @@ private func requireBmpDecodeFails(bytes: const [..] u8)
     var src = Image.create(2, 2, .RGBA8)
     src.clear()
     let srcBuf = src.pixels.storage()
-    srcBuf[0] = 10'u8      // pixel(0,0) R
-    srcBuf[1] = 20'u8      //             G
-    srcBuf[2] = 30'u8      //             B
-    srcBuf[3] = 255'u8     //             A
+    srcBuf[0] = 10_u8      // pixel(0,0) R
+    srcBuf[1] = 20_u8      //             G
+    srcBuf[2] = 30_u8      //             B
+    srcBuf[3] = 255_u8     //             A
 
     let cb = expect src.encode("memory.bmp")
     discard expect File.writeAllBytes(path.toString(), cb)
@@ -1491,10 +1509,10 @@ private func requireBmpDecodeFails(bytes: const [..] u8)
     Swag.require(img.pixelFormat == .BGRA8)     // RGBA8 saved as 32-bit BGRA, loads as BGRA8
     // Encoder writes [B=30, G=20, R=10, A=255]; decoder stores as BGRA8 bytes verbatim
     Swag.require(img.pixels.buffer != null)
-    Swag.require(img.pixels.buffer[0] == 30'u8)      // B
-    Swag.require(img.pixels.buffer[1] == 20'u8)      // G
-    Swag.require(img.pixels.buffer[2] == 10'u8)      // R
-    Swag.require(img.pixels.buffer[3] == 255'u8)     // A
+    Swag.require(img.pixels.buffer[0] == 30_u8)      // B
+    Swag.require(img.pixels.buffer[1] == 20_u8)      // G
+    Swag.require(img.pixels.buffer[2] == 10_u8)      // R
+    Swag.require(img.pixels.buffer[3] == 255_u8)     // A
 }
 
 // Encode BGR8 5x5 with row padding: pixel values survive despite the on-disk stride difference.
@@ -1506,10 +1524,10 @@ private func requireBmpDecodeFails(bytes: const [..] u8)
     var src = Image.create(5, 5, .BGR8)
     src.clear()
     let srcBuf = src.pixels.storage()
-    srcBuf[0]  = 77'u8     // pixel(0,0) B
-    srcBuf[1]  = 88'u8     //             G
-    srcBuf[2]  = 99'u8     //             R
-    srcBuf[72] = 42'u8     // row4 pixel(0) B
+    srcBuf[0]  = 77_u8     // pixel(0,0) B
+    srcBuf[1]  = 88_u8     //             G
+    srcBuf[2]  = 99_u8     //             R
+    srcBuf[72] = 42_u8     // row4 pixel(0) B
 
     let cb = expect src.encode("memory.bmp")
 
@@ -1521,17 +1539,17 @@ private func requireBmpDecodeFails(bytes: const [..] u8)
     let fh = cast(const *BmpFH, bytes.buffer)
     let bh = cast(const *Bmp.Header, (bytes.buffer + #sizeof(BmpFH)))
     Swag.require(fh.bfSize == cast(u32, cb.count()))
-    Swag.require(fh.bfOffBits == 54'u32)
-    Swag.require(bh.biSizeImage == 80'u32)
+    Swag.require(fh.bfOffBits == 54_u32)
+    Swag.require(bh.biSizeImage == 80_u32)
 
     discard expect File.writeAllBytes(path.toString(), cb)
     let img = expect Image.load(path.toString())
     Swag.require(img.pixels.count == 75)
     Swag.require(img.pixels.buffer != null)
-    Swag.require(img.pixels.buffer[0] == 77'u8)
-    Swag.require(img.pixels.buffer[1] == 88'u8)
-    Swag.require(img.pixels.buffer[2] == 99'u8)
-    Swag.require(img.pixels.buffer[72] == 42'u8)
+    Swag.require(img.pixels.buffer[0] == 77_u8)
+    Swag.require(img.pixels.buffer[1] == 88_u8)
+    Swag.require(img.pixels.buffer[2] == 99_u8)
+    Swag.require(img.pixels.buffer[72] == 42_u8)
 }
 
 // Packed DIB output shares the file encoder's channel conversion and odd-width row padding.
@@ -1541,12 +1559,17 @@ private func requireBmpDecodeFails(bytes: const [..] u8)
     for format in formats
     {
         var source = Image.create(3, 2, format)
-        for i in source.pixels.count do
+        for i in source.pixels.count
+        {
             source.pixels[i] = cast(u8, (17 + i * 3))
+        }
+
         if source.bytesPerPixel == 4
         {
-            for i in 6 do
+            for i in 6
+            {
                 source.pixels[i * 4 + 3] = 255
+            }
         }
 
         let bmp = expect source.encodeToBytes("image.bmp")
@@ -1558,8 +1581,10 @@ private func requireBmpDecodeFails(bytes: const [..] u8)
         let decoded = expect Image.decode("image.DIB", dib.toSlice())
         for y in source.height
         {
-            for x in source.width do
+            for x in source.width
+            {
                 Swag.require(decoded.pixelColor(x, y) == source.pixelColor(x, y))
+            }
         }
     }
 }

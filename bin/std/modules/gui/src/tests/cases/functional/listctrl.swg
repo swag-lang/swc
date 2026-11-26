@@ -18,8 +18,11 @@ using Swag, Core
     for count in [0, 2, 30, 0]
     {
         list.clear()
-        for count do
+        for count
+        {
             discard list.createLine("Folder")
+        }
+
         for width in [600.0, 420.0, 660.0]
         {
             list.resize(width, 300)
@@ -263,8 +266,10 @@ func listCtrlHeadlessSel(_: *ListCtrl)
     let list = ListCtrl.createSimple(&host.root, {0, 0, 400, 300})
     list.onFillVirtualLine = func(_, line, index)
     {
-        if line do
+        if line
+        {
             discard line.setItem(0, Format.toString("row %", index).toString())
+        }
     }
 
     list.setVirtualCount(4)

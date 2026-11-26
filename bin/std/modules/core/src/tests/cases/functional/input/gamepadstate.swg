@@ -48,7 +48,7 @@ using Swag
     Swag.require(state.pressed[LeftTrigger])
     Swag.require(state.pressed[RightTrigger])
     Swag.require(state.position[LeftTrigger].y == 1)
-    Swag.require(state.position[RightTrigger].y == 230 / 255.0'f32)
+    Swag.require(state.position[RightTrigger].y == 230 / 255.0_f32)
 
     raw.leftStickX   = cast(s16, (0.95 * 32767))
     raw.leftStickY   = 0

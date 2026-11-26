@@ -54,7 +54,7 @@ func unpackCol(p: u32)->u32  => p & 0xFFFF
 // Grid with impl block and mtd arrow expressions
 // ---------------------------------------------------------------------------
 
-const MaxDim = 64'u32
+const MaxDim = 64_u32
 
 struct Grid
 {
@@ -89,8 +89,10 @@ func parseGrid(text: string)->Grid
         {
             if col > 0
             {
-                if g.height == 0 do
+                if g.height == 0
+                {
                     g.width = col
+                }
                 g.height += 1
                 col      = 0
             }
@@ -112,8 +114,10 @@ func parseGrid(text: string)->Grid
 
 func freeGrid(g: *Grid)
 {
-    if g.cells do
+    if g.cells
+    {
         testFree(g.cells)
+    }
 }
 
 // ---------------------------------------------------------------------------
@@ -137,8 +141,10 @@ func getNeighbors(g: *Grid, r, c: u32)->Neighbors
     {
         let nr = cast(s32, r) + DR[d]
         let nc = cast(s32, c) + DC[d]
-        if g.inBounds(nr, nc) and g.at(cast(u32, nr), cast(u32, nc)) == plant do
+        if g.inBounds(nr, nc) and g.at(cast(u32, nr), cast(u32, nc)) == plant
+        {
             nb.card[d] = true
+        }
     }
 
     // Diagonals
@@ -146,8 +152,10 @@ func getNeighbors(g: *Grid, r, c: u32)->Neighbors
     {
         let nr = cast(s32, r) + DiagDR[d]
         let nc = cast(s32, c) + DiagDC[d]
-        if g.inBounds(nr, nc) and g.at(cast(u32, nr), cast(u32, nc)) == plant do
+        if g.inBounds(nr, nc) and g.at(cast(u32, nr), cast(u32, nc)) == plant
+        {
             nb.diag[d] = true
+        }
     }
 
     return nb
@@ -159,8 +167,10 @@ func perimeterOf(nb: Neighbors)->u32
     var adj: u32
     for d in 4
     {
-        if nb.card[d] do
+        if nb.card[d]
+        {
             adj += 1
+        }
     }
     return 4 - adj
 }
@@ -177,10 +187,14 @@ func cornersOf(nb: Neighbors)->u32
         let a1 = nb.card[k]
         let a2 = nb.card[(k + 1) % 4]
         let dg = nb.diag[k]
-        if not a1 and not a2 do
+        if not a1 and not a2
+        {
             n += 1
-        if a1 and a2 and not dg do
+        }
+        if a1 and a2 and not dg
+        {
             n += 1
+        }
     }
     return n
 }
@@ -192,7 +206,7 @@ func popcount8(v: u8)->u32 => cast(u32, Swag.countOnes(v))
 // BFS flood-fill — defer, scope/break-to-label
 // ---------------------------------------------------------------------------
 
-const MaxQueue = 4096'u32
+const MaxQueue = 4096_u32
 
 struct Region
 {
@@ -218,8 +232,10 @@ func floodFill(g: *Grid, startR, startC: u32, visited: [*] bool)->Region
 
     for MaxQueue
     {
-        if head >= tail do
+        if head >= tail
+        {
             break
+        }
 
         let pos = queue[head]
         head += 1
@@ -236,13 +252,17 @@ func floodFill(g: *Grid, startR, startC: u32, visited: [*] bool)->Region
         {
             let nr = cast(s32, r) + DR[d]
             let nc = cast(s32, c) + DC[d]
-            if not g.inBounds(nr, nc) do
+            if not g.inBounds(nr, nc)
+            {
                 continue
+            }
             let ur  = cast(u32, nr)
             let uc  = cast(u32, nc)
             let idx = ur * MaxDim + uc
-            if visited[idx] or g.at(ur, uc) != plant do
+            if visited[idx] or g.at(ur, uc) != plant
+            {
                 continue
+            }
             visited[idx] = true
             queue[tail]  = packPos(ur, uc)
             tail         += 1
@@ -277,8 +297,10 @@ func solveGrid(g: *Grid)->FenceCost
     {
         for c in g.width
         {
-            if visited[r * MaxDim + c] do
+            if visited[r * MaxDim + c]
+            {
                 continue
+            }
             let region = floodFill(g, r, c, visited)
             result.part1 += cast(u64, region.area) * cast(u64, region.perimeter)
             result.part2 += cast(u64, region.area) * cast(u64, region.sides)
@@ -313,11 +335,11 @@ func solve(text: string)->FenceCost
 #test
 {
     let p = packPos(12, 34)
-    Swag.require(unpackRow(p) == 12'u32)
-    Swag.require(unpackCol(p) == 34'u32)
+    Swag.require(unpackRow(p) == 12_u32)
+    Swag.require(unpackCol(p) == 34_u32)
     let p2 = packPos(0, 0)
-    Swag.require(unpackRow(p2) == 0'u32)
-    Swag.require(unpackCol(p2) == 0'u32)
+    Swag.require(unpackRow(p2) == 0_u32)
+    Swag.require(unpackCol(p2) == 0_u32)
 }
 
 // Grid parsing and impl methods
@@ -325,9 +347,9 @@ func solve(text: string)->FenceCost
 {
     var g = parseGrid(SmallInput)
     defer freeGrid(&g)
-    Swag.require(g.width == 4'u32)
-    Swag.require(g.height == 4'u32)
-    Swag.require(g.cellCount() == 16'u32)
+    Swag.require(g.width == 4_u32)
+    Swag.require(g.height == 4_u32)
+    Swag.require(g.cellCount() == 16_u32)
     Swag.require(g.at(0, 0) == cast(u8, 'A'))
     Swag.require(g.at(1, 2) == cast(u8, 'C'))
     Swag.require(g.at(3, 3) == cast(u8, 'C'))
@@ -345,12 +367,12 @@ func solve(text: string)->FenceCost
 
     // Top-left A: has A to the east only
     let nbA = getNeighbors(&g, 0, 0)
-    Swag.require(perimeterOf(nbA) == 3'u32)
-    Swag.require(cornersOf(nbA) == 2'u32)
+    Swag.require(perimeterOf(nbA) == 3_u32)
+    Swag.require(cornersOf(nbA) == 2_u32)
 
     // Interior B at (1,0): B east and B south
     let nbB = getNeighbors(&g, 1, 0)
-    Swag.require(perimeterOf(nbB) == 2'u32)
+    Swag.require(perimeterOf(nbB) == 2_u32)
 }
 
 // Corner counting for extremes
@@ -358,36 +380,36 @@ func solve(text: string)->FenceCost
 {
     // Isolated cell: no same-plant neighbours → 4 convex corners
     var isolated: Neighbors
-    Swag.require(cornersOf(isolated) == 4'u32)
+    Swag.require(cornersOf(isolated) == 4_u32)
 
     // Horizontal strip interior: E and W same → 0 corners
     var strip: Neighbors
     strip.card[cast(u32, Dir.E)] = true
     strip.card[cast(u32, Dir.W)] = true
-    Swag.require(cornersOf(strip) == 0'u32)
+    Swag.require(cornersOf(strip) == 0_u32)
 }
 
 // Swag.countOnes exercise
 #test
 {
-    Swag.require(popcount8(0) == 0'u32)
-    Swag.require(popcount8(0xFF) == 8'u32)
-    Swag.require(popcount8(0x0A) == 2'u32)
-    Swag.require(popcount8(0x55) == 4'u32)
+    Swag.require(popcount8(0) == 0_u32)
+    Swag.require(popcount8(0xFF) == 8_u32)
+    Swag.require(popcount8(0x0A) == 2_u32)
+    Swag.require(popcount8(0x55) == 4_u32)
 }
 
 // 2x2 all different: 4 regions, each 1*4=4
 #test
 {
     let r = solve("AB\nCD")
-    Swag.require(r.part1 == 16'u64)
+    Swag.require(r.part1 == 16_u64)
 }
 
 // 2x2 all same: 1 region, 4*8=32
 #test
 {
     let r = solve("AA\nAA")
-    Swag.require(r.part1 == 32'u64)
+    Swag.require(r.part1 == 32_u64)
 }
 
 // 3x3 with E region (L-shape): test 3x3
@@ -395,21 +417,21 @@ func solve(text: string)->FenceCost
 {
     var g = parseGrid("AAA\nABA\nAAA")
     defer freeGrid(&g)
-    Swag.require(g.width == 3'u32)
-    Swag.require(g.height == 3'u32)
+    Swag.require(g.width == 3_u32)
+    Swag.require(g.height == 3_u32)
     // A region: 8 cells surrounding B; B: 1 cell
     let r = solveGrid(&g)
     // A: area=8, perimeter=16 → 128
     // B: area=1, perimeter=4 → 4
-    Swag.require(r.part1 == 132'u64)
+    Swag.require(r.part1 == 132_u64)
 }
 
 // Small sample: Part1=140, Part2=80
 #test
 {
     let result = solve(SmallInput)
-    Swag.require(result.part1 == 140'u64)
-    Swag.require(result.part2 == 80'u64)
+    Swag.require(result.part1 == 140_u64)
+    Swag.require(result.part2 == 80_u64)
 }
 
 // Large sample dimensions
@@ -417,8 +439,8 @@ func solve(text: string)->FenceCost
 {
     var g = parseGrid(LargeInput)
     defer freeGrid(&g)
-    Swag.require(g.width == 10'u32)
-    Swag.require(g.height == 10'u32)
+    Swag.require(g.width == 10_u32)
+    Swag.require(g.height == 10_u32)
     Swag.require(g.at(0, 0) == cast(u8, 'R'))
     Swag.require(g.at(9, 9) == cast(u8, 'E'))
 }
@@ -427,24 +449,24 @@ func solve(text: string)->FenceCost
 #test
 {
     let result = solve(LargeInput)
-    Swag.require(result.part1 == 1782'u64)
-    Swag.require(result.part2 == 1104'u64)
+    Swag.require(result.part1 == 1782_u64)
+    Swag.require(result.part2 == 1104_u64)
 }
 
 // Island sample: Part1=772, Part2=436
 #test
 {
     let result = solve(IslandInput)
-    Swag.require(result.part1 == 772'u64)
-    Swag.require(result.part2 == 436'u64)
+    Swag.require(result.part1 == 772_u64)
+    Swag.require(result.part2 == 436_u64)
 }
 
 // Single cell grid
 #test
 {
     let result = solve("A")
-    Swag.require(result.part1 == 4'u64)
-    Swag.require(result.part2 == 4'u64)
+    Swag.require(result.part1 == 4_u64)
+    Swag.require(result.part2 == 4_u64)
 }
 
 // Overloaded solve: grid pointer variant

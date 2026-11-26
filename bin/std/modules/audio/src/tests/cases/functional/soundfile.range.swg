@@ -10,11 +10,11 @@ using Swag, Core
     let path = Path.combine(Env.getSpecialDirectory(.Temp),
                             Format.toString("speaker-mask-%.bin", Guid128.random()))
     defer discard catch File.delete(path)
-    expect File.writeAllBytes(path, [0x00'u8])
+    expect File.writeAllBytes(path, [0x00_u8])
 
-    var packets: Array'SoundPacket
+    var packets: Array!{SoundPacket}
     packets.add({0, 1, 1})
-    for mask in [0x0003'u32, 0x0004_0000'u32]
+    for mask in [0x0003_u32, 0x0004_0000_u32]
     {
         var outcome: Swag.Error
         discard catch SoundFile.openPacketStream(path, .AacLc, 48_000, 1, 1, packets.toSlice(), Config, PacketStreamOptions{speakerMask: mask}) as outcome
@@ -30,11 +30,11 @@ using Swag, Core
     const Mp3Packet:  [1] SoundPacket = [SoundPacket{0, 0, 1_152}]
     const AacConfig:  [2] u8          = [0x11, 0x90]
     const AacPacket:  [1] SoundPacket = [SoundPacket{0, 0, 1_024}]
-    var mp3Config: Array'u8
+    var mp3Config: Array!{u8}
     let path = Path.combine(Env.getSpecialDirectory(.Temp),
                             Format.toString("packet-channels-%.bin", Guid128.random()))
     defer discard catch File.delete(path)
-    expect File.writeAllBytes(path, [0x00'u8])
+    expect File.writeAllBytes(path, [0x00_u8])
 
     var outcome: Swag.Error
     discard catch SoundFile.openPacketStream(path, .Opus, 48_000, 3, 960, OpusPacket, OpusConfig) as outcome
@@ -76,11 +76,11 @@ using Swag, Core
 // duration divided in single precision lands a step beyond, where no position ever reaches.
 #test
 {
-    const Frames = 16_779_519'u64
-    Swag.require(cast(f32, Frames) / 44_100'f32 > cast(f32, cast(f64, Frames) / 44_100))
+    const Frames = 16_779_519_u64
+    Swag.require(cast(f32, Frames) / 44_100_f32 > cast(f32, cast(f64, Frames) / 44_100))
 
     let silence: [1] SoundPacket = [SoundPacket{0, 0, cast(u32, Frames)}]
-    var config:  Array'u8
+    var config:  Array!{u8}
     var sound = expect SoundFile.openPacketStream(audioGetTestDataPath("pcm16_stereo.wav"), .Mp3, 44_100, 1, Frames, silence, config.toSlice())
 
     discard expect createNoSoundEngine()
@@ -100,7 +100,7 @@ using Swag, Core
 #test
 {
     let sound = expect SoundFile.load(audioGetTestDataPath("pcm16_stereo.wav"))
-    var whole, selected: Array's16
+    var whole, selected: Array!{s16}
     expect sound.decodePcm16(func|&whole|(part: const [..] s16)->bool
     {
         whole.add(part)
@@ -168,11 +168,14 @@ using Swag, Core
     let path = Path.combine(Env.getSpecialDirectory(.Temp), Format.toString("aac-range-%.bin", Guid128.random()))
     defer discard catch File.delete(path)
     var encoder = expect Aac.StreamEncoder.create(48_000, 1)
-    var bytes, packet: Array'u8
-    var packets:       Array'SoundPacket
+    var bytes, packet: Array!{u8}
+    var packets:       Array!{SoundPacket}
     var signal:        [1_024] s16
-    for sample in signal.count do
+    for sample in signal.count
+    {
         signal[sample] = cast(s16, Math.round(6_000.0 * Math.sin(Math.ConstF64.TwoPi * 16 * sample / 1024)))
+    }
+
     for 16
     {
         discard expect encoder.push(signal, &packet)
@@ -188,14 +191,17 @@ using Swag, Core
 
     discard expect File.writeAllBytes(path, bytes.toSlice())
     let sound = expect SoundFile.openPacketStream(path, .AacLc, 48_000, 1, packets.count * 1_024, packets.toSlice(), encoder.decoderConfig(), PacketStreamOptions{leadingTrimFrames: 1_024})
-    var whole, selected: Array's16
+    var whole, selected: Array!{s16}
     expect sound.decodePcm16(func|&whole|(part: const [..] s16)->bool
     {
         whole.add(part)
         return true
     })
-    for index in packets[0].byteSize do
+    for index in packets[0].byteSize
+    {
         bytes[index] = 0xFF
+    }
+
     discard expect File.writeAllBytes(path, bytes.toSlice())
     expect sound.decodePcm16(12_345, 2_345, func|&selected|(part: const [..] s16)->bool
     {
@@ -205,22 +211,25 @@ using Swag, Core
     Swag.require(selected.count == 2_345)
     Swag.require(Slice.equals(selected.toSlice(), whole.toSlice()[12_345 until 14_690]))
 
-    let decodedStart   = 1_024'u64 + 12_345
+    let decodedStart   = 1_024_u64 + 12_345
     let decodedEnd     = decodedStart + 2_345
-    var packetStart    = 0'u64
-    var touchedPackets = 0'u32
+    var packetStart    = 0_u64
+    var touchedPackets = 0_u32
     for index in sound.packetCount()
     {
         let packet    = expect sound.packet(index)
         let packetEnd = packetStart + packet.sampleFrameCount
-        if packetStart < decodedEnd and packetEnd > decodedStart do
+        if packetStart < decodedEnd and packetEnd > decodedStart
+        {
             touchedPackets += 1
+        }
+
         packetStart = packetEnd
     }
 
     Swag.require(touchedPackets > 1)
 
-    var cancellationCalls = 0'u32
+    var cancellationCalls = 0_u32
     expect sound.decodePcm16(12_345, 2_345, func|&cancellationCalls|(_: const [..] s16)->bool
     {
         cancellationCalls += 1

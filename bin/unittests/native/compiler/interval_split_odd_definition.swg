@@ -27,7 +27,10 @@ func collectInterlacedSamples(width, height: s32, samples: const [..] u16)->Inte
 
     for pass in 7
     {
-        if startX[pass] >= width or startY[pass] >= height do continue
+        if startX[pass] >= width or startY[pass] >= height
+        {
+            continue
+        }
         for var y = startY[pass]; y < height; y += stepY[pass]
         {
             raw.add(0)

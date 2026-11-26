@@ -38,8 +38,10 @@ var g_AllocatorOsFailures: AllocatorOsFailures
 // Takes one step of a countdown and reports whether this call is one that fails.
 func allocatorInjectOsFailure(failure: *AllocatorOsFailure)->bool
 {
-    if failure.countdown < 0 or __hostCurrentThreadId() != g_AllocatorOsFailures.threadId do
+    if failure.countdown < 0 or __hostCurrentThreadId() != g_AllocatorOsFailures.threadId
+    {
         return false
+    }
 
     if failure.countdown > 0
     {
@@ -47,8 +49,11 @@ func allocatorInjectOsFailure(failure: *AllocatorOsFailure)->bool
         return false
     }
 
-    if not failure.sticky do
+    if not failure.sticky
+    {
         failure.countdown = -1
+    }
+
     failure.failures += 1
     return true
 }
@@ -86,12 +91,15 @@ func allocatorPooledSegmentCount(unitShift: u32)->u32
     g_AllocatorArenaMutex.lock()
     defer g_AllocatorArenaMutex.unlock()
 
-    var count = 0'u32
+    var count = 0_u32
     var scan  = g_AllocatorFreeSegment
     while scan
     {
-        if scan.unitShift == unitShift do
+        if scan.unitShift == unitShift
+        {
             count += 1
+        }
+
         scan = scan.nextSegment
     }
 

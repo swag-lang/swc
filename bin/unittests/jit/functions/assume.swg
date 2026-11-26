@@ -3,14 +3,20 @@
 #[Swag.NoInline]
 func assumedOperation(value: s32)->s32 fail
 {
-    if value < 0 do fail Swag.BaseError{"negative input"}
+    if value < 0
+    {
+        fail Swag.BaseError{"negative input"}
+    }
     return value + 1
 }
 
 #[Swag.NoInline]
 func assumedPointer(value: *s32)->*s32 fail
 {
-    if value[] < 0 do fail Swag.BaseError{"negative input"}
+    if value[] < 0
+    {
+        fail Swag.BaseError{"negative input"}
+    }
     return value
 }
 

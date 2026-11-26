@@ -45,7 +45,7 @@ using Swag, Core
 {
     func newTextStyle(border: Color)->IForm
     {
-        with let form = Memory.new'FormText()
+        with let form = Memory.new!{FormText}()
         {
             .borderSize  = 4
             .fontSize    = 48
@@ -70,8 +70,11 @@ using Swag, Core
             for x in image.width
             {
                 let color = image.pixelColor(cast(s32, x), cast(s32, y))
-                if color.r < 128 or color.g < 128 or color.b < 128 do
+                if color.r < 128 or color.g < 128 or color.b < 128
+                {
                     continue
+                }
+
                 x0 = Math.min(x0, cast(s32, x))
                 y0 = Math.min(y0, cast(s32, y))
                 x1 = Math.max(x1, cast(s32, x))
@@ -151,8 +154,10 @@ using Swag, Core
 
     f.gui.app.sigFrame += func|host = &f.gui, dismissed = &didDismiss|(_)
     {
-        if dismissed[] do
+        if dismissed[]
+        {
             return
+        }
 
         let menuDismissed = host.dismissPopupMenu()
         Swag.require(menuDismissed)
@@ -209,7 +214,7 @@ using Swag, Core
     }
 
     // Every image-form kind must be present in the default image styles.
-    var imageKinds: Array'FormImageKind
+    var imageKinds: Array!{FormImageKind}
     for it in quick.qsImage.forms
     {
         Swag.require(Swag.kindOf(it) == FormImage)
@@ -241,10 +246,15 @@ using Swag, Core
         for c in quick.layout.children
         {
             let button = assume cast(*QuickButton, c)
-            if button.isModel or not button.formItf do
+            if button.isModel or not button.formItf
+            {
                 continue
-            if button.formItf is FormImage as image where image.kind == .Blur do
+            }
+
+            if button.formItf is FormImage as image where image.kind == .Blur
+            {
                 return button.toolTip
+            }
         }
 
         return result
@@ -286,7 +296,7 @@ using Swag, Core
     quick.setDefault()
     let defaultCount = quick.qsShape.forms.count
 
-    let extra = Memory.new'FormShape()
+    let extra = Memory.new!{FormShape}()
     extra.IForm.setup(f.capture)
     quick.qsShape.forms.add(extra)
     quick.updateQuickStyles(forceRebuild: true)
@@ -321,7 +331,7 @@ using Swag, Core
     quick.setDefault()
     let defaultCount = quick.qsShape.forms.count
 
-    let extra = Memory.new'FormShape()
+    let extra = Memory.new!{FormShape}()
     extra.IForm.setup(f.capture)
     quick.qsShape.forms.add(extra)
     quick.updateQuickStyles(forceRebuild: true)
@@ -347,7 +357,7 @@ using Swag, Core
     f.setup()
     defer f.shutdown()
     var quickStyle: QuickStyle
-    let shape = Memory.new'FormShape()
+    let shape = Memory.new!{FormShape}()
     shape.IForm.setup(f.capture)
     quickStyle.forms.add(shape)
 
@@ -379,14 +389,22 @@ using Swag, Core
     for c in quick.layout.children where not c.isPendingDestroy
     {
         let button = assume cast(*QuickButton, c)
-        if button.isMore do
+        if button.isMore
+        {
             moreShown = button.isVisible()
-        elif button.isModel do
+        }
+        else if button.isModel
+        {
             addShown = button.isVisible()
-        elif button.isVisible() do
+        }
+        else if button.isVisible()
+        {
             shown += 1
-        else do
+        }
+        else
+        {
             hidden += 1
+        }
     }
 
     Swag.require(shown == 4 and hidden > 0 and moreShown and addShown)
@@ -425,8 +443,11 @@ using Swag, Core
     Swag.require(quick.canAddCurrentStyle() and quick.qsImage.forms.count == 5)
     let cells = quick.rowCells()
     Swag.require(cells.count == 6 and cells[0].isTransient and cells[4].isMore and cells.back().isModel)
-    for cell in cells do
+    for cell in cells
+    {
         Swag.require(cell.position.y == 0)
+    }
+
     Swag.require(quick.position.height == QuickChipHeight + quick.themeMetrics().inspector_RowGap)
 
     quick.openAllPresets(unwrap quick.moreButton)
@@ -444,8 +465,11 @@ using Swag, Core
     quick.setDefault()
     f.main.editMode = .Text
     quick.setPosition(Math.Rectangle{0, 0, 6 * QuickChipWidth, QuickChipHeight})
-    for i in 8 do
+    for i in 8
+    {
         quick.qsText.add(assume cast(IForm, MainWnd.newFormFromForm(quick.qsText.forms[i % 6])))
+    }
+
     quick.updateQuickStyles(forceRebuild: true)
 
     let cells = quick.rowCells()
@@ -520,8 +544,11 @@ using Swag, Core
     quick.addCurrentStyle()
     cells = quick.rowCells()
     Swag.require(not quick.canAddCurrentStyle())
-    for cell in cells do
+    for cell in cells
+    {
         Swag.require(not cell.isTransient and not cell.isModel)
+    }
+
     Swag.require(quick.qsShape.forms.back().borderColor == Argb.Magenta)
 }
 
@@ -638,9 +665,12 @@ using Swag, Core
 
     func checkedCount(quick: *QuickWnd)->u64
     {
-        var result = 0'u64
-        for cell in quick.rowCells() where cell.isChecked do
+        var result = 0_u64
+        for cell in quick.rowCells() where cell.isChecked
+        {
             result += 1
+        }
+
         return result
     }
 

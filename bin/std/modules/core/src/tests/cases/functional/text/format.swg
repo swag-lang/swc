@@ -55,8 +55,10 @@ func formatReferencedString(value: String)->String => Format.toString("%", value
     Swag.require(minimumBinary.count == 65)
     Swag.require(minimumBinary.storage()[0] == '-')
     Swag.require(minimumBinary.storage()[1] == '1')
-    for index in 2 until minimumBinary.count do
+    for index in 2 until minimumBinary.count
+    {
         Swag.require(minimumBinary.storage()[index] == '0')
+    }
 
     let wide = Format.toString("%{D0255}", 7)
     Swag.require(wide.count == 255)
@@ -161,7 +163,7 @@ func formatReferencedString(value: String)->String => Format.toString("%", value
     Swag.require(Format.byteSize(1024 * 1024) == "1.00 MB")
     Swag.require(Format.byteSize(14_050_000) == "13.4 MB")
     Swag.require(Format.byteSize(650 * 1024 * 1024) == "650 MB")
-    Swag.require(Format.byteSize(1024'u64 * 1024 * 1024 * 1024) == "1.00 TB")
+    Swag.require(Format.byteSize(1024_u64 * 1024 * 1024 * 1024) == "1.00 TB")
 }
 
 #test
@@ -170,9 +172,9 @@ func formatReferencedString(value: String)->String => Format.toString("%", value
     Swag.require(StrConv.toDisplaySize(1) == "1 byte")
     Swag.require(StrConv.toDisplaySize(1023) == "1023 bytes")
     Swag.require(StrConv.toDisplaySize(1536) == "1 KB")
-    Swag.require(StrConv.toDisplaySize(1024'u64 * 1024) == "1 MB")
-    Swag.require(StrConv.toDisplaySize(1024'u64 * 1024 * 1024) == "1 GB")
-    Swag.require(StrConv.toDisplaySize(1024'u64 * 1024 * 1024 * 1024) == "1 TB")
+    Swag.require(StrConv.toDisplaySize(1024_u64 * 1024) == "1 MB")
+    Swag.require(StrConv.toDisplaySize(1024_u64 * 1024 * 1024) == "1 GB")
+    Swag.require(StrConv.toDisplaySize(1024_u64 * 1024 * 1024 * 1024) == "1 TB")
 }
 
 #test

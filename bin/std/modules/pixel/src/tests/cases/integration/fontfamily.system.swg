@@ -22,9 +22,14 @@ using Core
         let face = unwrap expect FontFamily.createTypeFace(Name, style)
         Swag.require((expect FontFamily.createTypeFace(ownedName.toString(), style)) == face)
         Swag.require((expect face.renderGlyph('A', 20)).width > 0)
-        if style == .Bold or style == .BoldItalic do
+        if style == .Bold or style == .BoldItalic
+        {
             Swag.require(face.isBold() or face.forceBold)
-        if style == .Italic or style == .BoldItalic do
+        }
+
+        if style == .Italic or style == .BoldItalic
+        {
             Swag.require(face.isItalic() or face.forceItalic)
+        }
     }
 }

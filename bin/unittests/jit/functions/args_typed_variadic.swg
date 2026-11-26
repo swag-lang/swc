@@ -49,65 +49,65 @@ alias TypedVariadicAlias = s32
 #test
 {
     func variadicTyped(values: s64...)->s64 { return values[0] + values[1] + values[2] + values[3] }
-    const V0 = #run variadicTyped(10's64, 20's64, 30's64, 40's64)
+    const V0 = #run variadicTyped(10_s64, 20_s64, 30_s64, 40_s64)
     #assert(#typeof(V0) == s64)
-    #assert(V0 == 100's64)
+    #assert(V0 == 100_s64)
 }
 
 #test
 {
     func variadicTypedWithHead(a: s64, values: s64...)->s64 { return a + values[0] + values[1] }
-    const V0 = #run variadicTypedWithHead(100's64, 7's64, 8's64)
+    const V0 = #run variadicTypedWithHead(100_s64, 7_s64, 8_s64)
     #assert(#typeof(V0) == s64)
-    #assert(V0 == 115's64)
+    #assert(V0 == 115_s64)
 }
 
 #test
 {
     func variadicTyped(values: u32...)->u32 { return values[0] + values[1] + values[2] + values[3] }
-    const V0 = #run variadicTyped(1'u32, 2'u32, 3'u32, 4'u32)
+    const V0 = #run variadicTyped(1_u32, 2_u32, 3_u32, 4_u32)
     #assert(#typeof(V0) == u32)
-    #assert(V0 == 10'u32)
+    #assert(V0 == 10_u32)
 }
 
 #test
 {
     func variadicTypedWithHead(a: u32, values: u32...)->u32 { return a + values[0] + values[1] }
-    const V0 = #run variadicTypedWithHead(50'u32, 60'u32, 70'u32)
+    const V0 = #run variadicTypedWithHead(50_u32, 60_u32, 70_u32)
     #assert(#typeof(V0) == u32)
-    #assert(V0 == 180'u32)
+    #assert(V0 == 180_u32)
 }
 
 #test
 {
     func variadicTyped(values: f32...)->f32 { return values[0] + values[1] + values[2] }
-    const V0 = #run variadicTyped(1.5'f32, 2.0'f32, 3.25'f32)
+    const V0 = #run variadicTyped(1.5_f32, 2.0_f32, 3.25_f32)
     #assert(#typeof(V0) == f32)
-    #assert(V0 == 6.75'f32)
+    #assert(V0 == 6.75_f32)
 }
 
 #test
 {
     func variadicTypedWithHead(a: f32, values: f32...)->f32 { return a + values[0] + values[1] }
-    const V0 = #run variadicTypedWithHead(4.0'f32, 0.25'f32, 1.75'f32)
+    const V0 = #run variadicTypedWithHead(4.0_f32, 0.25_f32, 1.75_f32)
     #assert(#typeof(V0) == f32)
-    #assert(V0 == 6.0'f32)
+    #assert(V0 == 6.0_f32)
 }
 
 #test
 {
     func variadicTyped(values: f64...)->f64 { return values[0] + values[1] + values[2] + values[3] }
-    const V0 = #run variadicTyped(1.0'f64, 2.0'f64, 3.0'f64, 4.0'f64)
+    const V0 = #run variadicTyped(1.0_f64, 2.0_f64, 3.0_f64, 4.0_f64)
     #assert(#typeof(V0) == f64)
-    #assert(V0 == 10.0'f64)
+    #assert(V0 == 10.0_f64)
 }
 
 #test
 {
     func variadicTypedWithHead(a: f64, values: f64...)->f64 { return a + values[0] + values[1] }
-    const V0 = #run variadicTypedWithHead(10.0'f64, 0.5'f64, 1.25'f64)
+    const V0 = #run variadicTypedWithHead(10.0_f64, 0.5_f64, 1.25_f64)
     #assert(#typeof(V0) == f64)
-    #assert(V0 == 11.75'f64)
+    #assert(V0 == 11.75_f64)
 }
 
 #test
@@ -157,7 +157,7 @@ alias TypedVariadicAlias = s32
     func variadicTyped(values: string...)->u8 { return cast #wrap(u8, (cast(u16, values[0][0]) + cast(u16, values[1][0]) + cast(u16, values[2][0]))) }
     const V0 = #run variadicTyped("ab", "cd", "ef")
     #assert(#typeof(V0) == u8)
-    #assert(V0 == 41'u8)
+    #assert(V0 == 41_u8)
 }
 
 #test
@@ -165,7 +165,7 @@ alias TypedVariadicAlias = s32
     func variadicTypedWithHead(a: string, values: string...)->u8 { return a[0] + values[0][0] + values[1][0] }
     const V0 = #run variadicTypedWithHead("Az", "By", "Cx")
     #assert(#typeof(V0) == u8)
-    #assert(V0 == 198'u8)
+    #assert(V0 == 198_u8)
 }
 
 #test
@@ -238,7 +238,7 @@ alias TypedVariadicAlias = s32
 
     const V0 = #run variadicTyped(TypedVariadicKind.A, TypedVariadicKind.B)
     #assert(#typeof(V0) == u16)
-    #assert(V0 == 40'u16)
+    #assert(V0 == 40_u16)
 }
 
 #test
@@ -248,21 +248,21 @@ alias TypedVariadicAlias = s32
         return cast(u64, values[0].arr[1]) + cast(u64, values[0].flag) + cast(u64, values[0].tag) + cast(u64, values[1].arr[0]) + cast(u64, values[1].tag)
     }
 
-    const v0: TypedVariadicPayload = TypedVariadicPayload{arr: [9, 8, 7], flag: true, tag: 5'u8}
-    const v1: TypedVariadicPayload = TypedVariadicPayload{arr: [3, 2, 1], flag: false, tag: 4'u8}
+    const v0: TypedVariadicPayload = TypedVariadicPayload{arr: [9, 8, 7], flag: true, tag: 5_u8}
+    const v1: TypedVariadicPayload = TypedVariadicPayload{arr: [3, 2, 1], flag: false, tag: 4_u8}
     const V0 = #run variadicTyped(v0, v1)
     #assert(#typeof(V0) == u64)
-    #assert(V0 == 21'u64)
+    #assert(V0 == 21_u64)
 }
 
 #test
 {
     func variadicTyped(values: (*void?)...)->bool
     {
-        return values[0] == cast(*void, 0x1234'u64) and values[1] == null
+        return values[0] == cast(*void, 0x1234_u64) and values[1] == null
     }
 
-    const V0 = #run variadicTyped(cast(*void, 0x1234'u64), null)
+    const V0 = #run variadicTyped(cast(*void, 0x1234_u64), null)
     #assert(V0)
 }
 
@@ -299,15 +299,21 @@ alias TypedVariadicAlias = s32
 {
     func variadicTypedStressKind(values: TypedVariadicKind...)->bool
     {
-        if values.count != 6 do
+        if values.count != 6
+        {
             return false
+        }
 
         for v, i in values
         {
-            if (i & 1) == 0 and v != TypedVariadicKind.A do
+            if (i & 1) == 0 and v != TypedVariadicKind.A
+            {
                 return false
-            if (i & 1) == 1 and v != TypedVariadicKind.B do
+            }
+            if (i & 1) == 1 and v != TypedVariadicKind.B
+            {
                 return false
+            }
         }
 
         return true
@@ -332,11 +338,11 @@ alias TypedVariadicAlias = s32
         return acc
     }
 
-    const p0: TypedVariadicPayload = TypedVariadicPayload{arr: [1, 2, 3], flag: true, tag: 4'u8}
-    const p1: TypedVariadicPayload = TypedVariadicPayload{arr: [5, 6, 7], flag: false, tag: 8'u8}
-    const p2: TypedVariadicPayload = TypedVariadicPayload{arr: [9, 10, 11], flag: true, tag: 12'u8}
+    const p0: TypedVariadicPayload = TypedVariadicPayload{arr: [1, 2, 3], flag: true, tag: 4_u8}
+    const p1: TypedVariadicPayload = TypedVariadicPayload{arr: [5, 6, 7], flag: false, tag: 8_u8}
+    const p2: TypedVariadicPayload = TypedVariadicPayload{arr: [9, 10, 11], flag: true, tag: 12_u8}
     const V0 = #run variadicTypedStressPayload(p0, p1, p2)
-    #assert(V0 == 83'u64)
+    #assert(V0 == 83_u64)
 }
 
 #test
@@ -344,8 +350,10 @@ alias TypedVariadicAlias = s32
     func variadicTypedInner(values: s32...)->s32
     {
         var acc: s32 = 0
-        for value in values do
+        for value in values
+        {
             acc += value
+        }
         return acc
     }
 

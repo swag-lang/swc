@@ -30,7 +30,7 @@ public func addTypedValue(value: *void, type: typeinfo)
     }
 
     var buf:    ConcatBuffer
-    var encode: Encoder'Write.TagBin
+    var encode: Encoder!{Write.TagBin}
     catch
     {
         try encode.start(&buf, type)
@@ -65,8 +65,10 @@ public func hasTypedValue(type: typeinfo)->bool
 // is not supported and answers `false`.
 public func getTypedValue(value: *void, type: typeinfo)->bool
 {
-    if not hasTypedValue(type) do
+    if not hasTypedValue(type)
+    {
         return false
+    }
 
     switch type
     {
@@ -81,7 +83,7 @@ public func getTypedValue(value: *void, type: typeinfo)->bool
 
     let data = getTypedData(g_ValueFormat, type)
 
-    var decoder: Decoder'Read.TagBin
+    var decoder: Decoder!{Read.TagBin}
     catch
     {
         try decoder.start(data.toSlice(), type)

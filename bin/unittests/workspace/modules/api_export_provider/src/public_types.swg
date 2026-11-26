@@ -159,17 +159,21 @@ namespace DepTools
     {
         mtd const impl compute()->u32
         {
-            return cast(u32, .value) + 0x100'u32
+            return cast(u32, .value) + 0x100_u32
         }
     }
 
     #[Swag.ConstExpr]
     func(T) hash32WithGeneratedFullName(value: T)->u32
     {
-        #static if #defined(T.IHash32) do
+        #static if #defined(T.IHash32)
+        {
             #ast("return ", #typeof(T).fullname, ".IHash32.compute(value)")
-        else do
+        }
+        else
+        {
             return 0
+        }
     }
 
     #[Swag.Mixin]
@@ -207,7 +211,7 @@ namespace DepSharedRng
     impl Rng
     {
         #[Inline]
-        func(TA) makeScratch()->Rng'TA
+        func(TA) makeScratch()->Rng!{TA}
         {
             var result: #returntype
             return result
@@ -216,5 +220,5 @@ namespace DepSharedRng
         mtd nextU32()->u32 => 0x12345678
     }
 
-    public func shared(rng: *Rng'MWC)->*Rng'MWC => rng
+    public func shared(rng: *Rng!{MWC})->*Rng!{MWC} => rng
 }

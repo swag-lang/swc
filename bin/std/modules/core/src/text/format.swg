@@ -25,16 +25,22 @@ func checkFormat(fct: string, fmt: string, values: ...)
 #[ConstExpr]
 func countPercent(fmt: string)->u32
 {
-    var placeholderCount = 0'u32
+    var placeholderCount = 0_u32
     for var byteIndex = 0; byteIndex < fmt.count; byteIndex += 1
     {
-        if fmt[byteIndex] != '%'u8 do
+        if fmt[byteIndex] != '%'_u8
+        {
             continue
+        }
 
-        if byteIndex == fmt.count - 1 or fmt[byteIndex + 1] != '%'u8 do
+        if byteIndex == fmt.count - 1 or fmt[byteIndex + 1] != '%'_u8
+        {
             placeholderCount += 1
-        else do
+        }
+        else
+        {
             byteIndex += 1
+        }
     }
 
     return placeholderCount
@@ -52,8 +58,11 @@ func replaceString(dest: *String, fmt: string, values: ...)
 
     dest.clear()
     dest.grow(buf.count() + 1)
-    for bucket in buf do
+    for bucket in buf
+    {
         dest.append(Swag.makeString(bucket.data, bucket.count))
+    }
+
     dest.storage()[dest.length] = 0
 }
 
@@ -88,16 +97,16 @@ func append(buf: *ConcatBuffer, fmt: string, values: ...)
     let bytes     = fmt.buffer
     let byteCount = fmt.count
 
-    var literalStart  = 0'u32
-    var cursor        = 0'u32
-    var nextArgument  = 0'u32
+    var literalStart  = 0_u32
+    var cursor        = 0_u32
+    var nextArgument  = 0_u32
     let argumentCount = values.count
 
     let defaultFormat: StrConv.ConvertFormat
 
     while cursor < byteCount
     {
-        if bytes[cursor] != '%'u8
+        if bytes[cursor] != '%'_u8
         {
             cursor += 1
             continue
@@ -110,9 +119,9 @@ func append(buf: *ConcatBuffer, fmt: string, values: ...)
 
         // An escaped percent consumes no argument. This view has no guaranteed terminator;
         // check the end before reading beyond a percent or a format delimiter.
-        if cursor < byteCount and bytes[cursor] == '%'u8
+        if cursor < byteCount and bytes[cursor] == '%'_u8
         {
-            buf.addNative('%'u8)
+            buf.addNative('%'_u8)
             cursor       += 1
             literalStart += 1
             continue
@@ -120,19 +129,22 @@ func append(buf: *ConcatBuffer, fmt: string, values: ...)
 
         // Optional string format, like '%{whatever}'
         var formatOptions: const [..] u8?
-        if cursor < byteCount and bytes[cursor] == '{'u8
+        if cursor < byteCount and bytes[cursor] == '{'_u8
         {
             cursor += 1
             let optionStart  = bytes + cursor
-            var optionLength = 0'u32
-            while cursor < byteCount and bytes[cursor] != '}'u8
+            var optionLength = 0_u32
+            while cursor < byteCount and bytes[cursor] != '}'_u8
             {
                 optionLength += 1
                 cursor       += 1
             }
 
-            if cursor < byteCount do
+            if cursor < byteCount
+            {
                 cursor += 1
+            }
+
             literalStart  = cursor
             formatOptions = Swag.makeSlice(optionStart, cast(u64, optionLength))
         }
@@ -141,7 +153,7 @@ func append(buf: *ConcatBuffer, fmt: string, values: ...)
         // its arguments. It targets one placeholder only and leaves the running
         // position of the plain '%' placeholders untouched.
         var argumentIndex = nextArgument
-        if formatOptions != null and formatOptions.count and formatOptions[0] == '#'u8
+        if formatOptions != null and formatOptions.count and formatOptions[0] == '#'_u8
         {
             let indexSpec = cast(string, Swag.makeSlice(formatOptions.buffer + 1, formatOptions.count - 1))
             let {value: parsedIndex, eat: consumedBytes, ovf} = expect StrConv.parseU64(indexSpec)
@@ -151,9 +163,11 @@ func append(buf: *ConcatBuffer, fmt: string, values: ...)
 
             // An optional conversion format follows ':'.
             formatOptions = null
-            if consumedBytes < indexSpec.count and indexSpec[consumedBytes] == ':'u8 do
+            if consumedBytes < indexSpec.count and indexSpec[consumedBytes] == ':'_u8
+            {
                 formatOptions = Swag.makeSlice(indexSpec.buffer + consumedBytes + 1,
                                                indexSpec.count - consumedBytes - 1)
+            }
         }
         else
         {
@@ -166,8 +180,10 @@ func append(buf: *ConcatBuffer, fmt: string, values: ...)
     }
 
     // Add the remaining text.
-    if literalStart < cursor do
+    if literalStart < cursor
+    {
         buf.addBytes(fmt[literalStart until cursor])
+    }
 }
 
 // Appends `exp` to `buf`, with each `{expr}` or `{expr:format}` replaced by the value of `expr`.
@@ -182,7 +198,7 @@ func toInterp(buf: *ConcatBuffer, exp: string)
         var sb: StrConv.StringBuilder
         sb.appendString("var #uniq1: StrConv.ConvertFormat\n")
 
-        var idx = 0'u64
+        var idx = 0_u64
         while idx != exp.count
         {
             // To the interpolated string if it exists
@@ -193,8 +209,10 @@ func toInterp(buf: *ConcatBuffer, exp: string)
                 break
             }
 
-            if idx != idxE do
+            if idx != idxE
+            {
                 sb.appendFormat("buf.addBytes(\"%\")\n", exp[idx until idxE])
+            }
 
             // Find the end of the interpolated string, or the start of the format
             idx  = idxE + 1
@@ -210,7 +228,7 @@ func toInterp(buf: *ConcatBuffer, exp: string)
 
             // Format
             var format: string
-            if exp[idxE] == ':'u8
+            if exp[idxE] == ':'_u8
             {
                 idxE = Utf8.indexOf(exp, "}", startByteIndex: idx)
                 if idxE != Swag.U64.Max
@@ -243,8 +261,10 @@ func toInterp(exp: string)->String
 // three significant digits; exact byte counts below 1 KB are printed unscaled.
 func byteSize(bytes: u64)->String
 {
-    if bytes < 1024 do
+    if bytes < 1024
+    {
         return toString("% B", bytes)
+    }
 
     var value = cast(f64, bytes) / 1024.0
     var unit  = "KB"
@@ -266,9 +286,15 @@ func byteSize(bytes: u64)->String
         unit  = "TB"
     }
 
-    if value >= 100 do
+    if value >= 100
+    {
         return toString("%{f0} %", value, unit)
-    if value >= 10 do
+    }
+
+    if value >= 10
+    {
         return toString("%{f1} %", value, unit)
+    }
+
     return toString("%{f2} %", value, unit)
 }

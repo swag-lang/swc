@@ -29,15 +29,19 @@ func handlerDefaults()->HandlerDefaults fail
 
 func handlerValue(succeeds: bool)->s32 fail
 {
-    if not succeeds do
+    if not succeeds
+    {
         fail HandlerError{code: 7}
+    }
     return 42
 }
 
 func requiredResult(succeeds: bool)->RequiredResult fail
 {
-    if not succeeds do
+    if not succeeds
+    {
         fail HandlerError{code: 8}
+    }
     return {text: "ready"}
 }
 
@@ -136,7 +140,10 @@ func handlerOwnedFailure() fail
 #test
 {
     var saved: Swag.Error
-    catch handlerRethrow() do saved.capture(Swag.err)
+    catch handlerRethrow()
+    {
+        saved.capture(Swag.err)
+    }
     let error = saved.value()
     Swag.require(error is HandlerError)
     Swag.require(assume cast(HandlerError, error).code == 7)
@@ -236,7 +243,7 @@ func handlerOwnerIndex()->u64
 {
     var owner: Swag.Error
     catch {
-        catch { fail 19's32 } { fail Swag.err }
+        catch { fail 19_s32 } { fail Swag.err }
     } as owner
     Swag.require(assume cast(s32, owner.value()) == 19)
 }

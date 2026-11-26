@@ -14,7 +14,10 @@
     {
         Swag.require(cast(u64, &value) % 32 == 0)
         var result: u64
-        for entry in value.values do result += entry
+        for entry in value.values
+        {
+            result += entry
+        }
         return result
     }
 
@@ -23,7 +26,10 @@
     {
         Swag.require(cast(u64, &value) % 64 == 0)
         var result: u64
-        for entry in value.values do result += entry
+        for entry in value.values
+        {
+            result += entry
+        }
         return result
     }
 
@@ -32,7 +38,10 @@
     {
         Swag.require(cast(u64, &value) % 128 == 0)
         var result: u64
-        for entry in value.values do result += entry
+        for entry in value.values
+        {
+            result += entry
+        }
         return result
     }
 
@@ -40,10 +49,16 @@
     {
         Swag.require(sum32(Aligned32{[11, 23, 37, 53]}) == 124)
         var medium: Aligned64
-        for &entry, index in medium.values do entry[] = index + 1
+        for &entry, index in medium.values
+        {
+            entry[] = index + 1
+        }
         Swag.require(sum64(medium) == 36)
         var large: Aligned128
-        for &entry, index in large.values do entry[] = index + 1
+        for &entry, index in large.values
+        {
+            entry[] = index + 1
+        }
         Swag.require(sum128(large) == 136)
     }
 
@@ -73,7 +88,10 @@
     #test
     {
         var large: Aligned128
-        for &entry, index in large.values do entry[] = index + 1
+        for &entry, index in large.values
+        {
+            entry[] = index + 1
+        }
         let result = mixAligned(1, 2, 3, 4, 5, 6, 7, Aligned32{[11, 23, 37, 53]}, 0.5, large, 41)
         Swag.require(result == 329.5)
     }
@@ -83,7 +101,10 @@
     {
         Swag.require(cast(u64, &value) % 32 == 0)
         var result: Aligned128
-        for &entry, index in result.values do entry[] = value.values[index % 4] + index
+        for &entry, index in result.values
+        {
+            entry[] = value.values[index % 4] + index
+        }
         return result
     }
 
@@ -91,8 +112,10 @@
     {
         let source = Aligned32{[11, 23, 37, 53]}
         let result = returnedAligned(source)
-        for entry, index in result.values do
+        for entry, index in result.values
+        {
             Swag.require(entry == source.values[index % 4] + index)
+        }
     }
 
     #[Swag.Align(32)]

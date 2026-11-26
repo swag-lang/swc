@@ -28,7 +28,7 @@ private struct Frame
     width:       u32
     height:      u32
     description: String
-    paths:       Array'String
+    paths:       Array!{String}
 }
 
 private struct Repeated
@@ -49,16 +49,16 @@ private struct Reader
     paragraph:    String
     tag:          String
     specialText:  String
-    specialDepth: u64 = Swag.U64.Max
+    specialDepth: u64    = Swag.U64.Max
     specialLabel: String
     runText:      String
     run:          Docx.RunFormat
-    inlines:      Array'Inline
-    frames:       Array'Frame
-    cells:        Array'Repeated
-    rows:         Array'Repeated
-    lists:        Array'bool
-    listNames:    Array'String
+    inlines:      Array!{Inline}
+    frames:       Array!{Frame}
+    cells:        Array!{Repeated}
+    rows:         Array!{Repeated}
+    lists:        Array!{bool}
+    listNames:    Array!{String}
     titleDepth:   u64    = Swag.U64.Max
     encodedBytes: u64
 }
@@ -68,14 +68,26 @@ impl Document
     mtd const details()->String
     {
         var result = .paragraphs == 1 ? String.from(texts().ui_OneParagraph) : Format.toString(texts().ui_Details, .paragraphs)
-        if .tables do
+        if .tables
+        {
             result += .tables == 1 ? String.from(texts().ui_OneTable) : Format.toString(texts().ui_Tables, .tables)
-        if .images do
+        }
+
+        if .images
+        {
             result += .images == 1 ? String.from(texts().ui_OneImage) : Format.toString(texts().ui_Images, .images)
-        if .omitted do
+        }
+
+        if .omitted
+        {
             result += .omitted == 1 ? String.from(texts().ui_OneOmitted) : Format.toString(texts().ui_Omitted, .omitted)
-        if .simplified do
+        }
+
+        if .simplified
+        {
             result += texts().ui_LayoutSimplified
+        }
+
         return result
     }
 
@@ -100,14 +112,19 @@ private impl Reader
 {
     mtd checkSize() fail
     {
-        if .document.html.count + .paragraph.count + .runText.count + .specialText.count > 32 * 1024 * 1024 or .document.paragraphs > 100_000 do
+        if .document.html.count + .paragraph.count + .runText.count + .specialText.count > 32 * 1024 * 1024 or .document.paragraphs > 100_000
+        {
             fail Errors.UnsupportedFormatError{texts().err_TooLarge}
+        }
     }
 
     mtd ensureParagraph()
     {
-        if not .tag.isEmpty() do
+        if not .tag.isEmpty()
+        {
             return
+        }
+
         .tag                 = "p"
         .document.html       += "<p>"
         .run                 = {}
@@ -117,8 +134,11 @@ private impl Reader
 
     mtd flushRun()
     {
-        if .runText.isEmpty() do
+        if .runText.isEmpty()
+        {
             return
+        }
+
         var escaped: String
         Package.appendHtmlEscaped(&escaped, .runText)
         .run.appendHtml(&.paragraph, escaped)
@@ -153,10 +173,16 @@ private impl Reader
 
     mtd finishParagraph()
     {
-        if .tag.isEmpty() and (not .paragraph.isEmpty() or not .runText.isEmpty()) do
+        if .tag.isEmpty() and (not .paragraph.isEmpty() or not .runText.isEmpty())
+        {
             .ensureParagraph()
-        if .tag.isEmpty() do
+        }
+
+        if .tag.isEmpty()
+        {
             return
+        }
+
         .flushRun()
         .document.html       += .paragraph.isEmpty() ? "<br>" : .paragraph.toString()
         .document.html       += Format.toString("</%>", .tag)
@@ -182,14 +208,23 @@ private impl Reader
         }
 
         .tag = level ? Format.toString("h%", level) : String.from("p")
-        if properties.paragraph.pageBefore == .On and .document.paragraphs do
+        if properties.paragraph.pageBefore == .On and .document.paragraphs
+        {
             .document.html += "<hr>"
+        }
+
         var css = properties.paragraph.css()
         css += .run.css()
-        if .run.bold == .On do
+        if .run.bold == .On
+        {
             css += "font-weight:bold;"
-        if .run.italic == .On do
+        }
+
+        if .run.italic == .On
+        {
             css += "font-style:italic;"
+        }
+
         .document.html += Format.toString("<% style=\"", .tag)
         Package.appendHtmlEscaped(&.document.html, css)
         .document.html += "\">"
@@ -203,17 +238,26 @@ private impl Reader
         result.images     = .document.images
         result.omitted    = .document.omitted
         result.count      = catch StrConv.toU32(token.attribute(attribute) orelse "1") orelse 0
-        if not result.count do
+        if not result.count
+        {
             fail Errors.InvalidFormatError{texts().err_Invalid}
-        if result.count > 512 do
+        }
+
+        if result.count > 512
+        {
             fail Errors.UnsupportedFormatError{texts().err_TooLarge}
+        }
+
         return result
     }
 
     mtd repeatContent(item: Repeated) fail
     {
-        if item.count <= 1 do
+        if item.count <= 1
+        {
             return
+        }
+
         let content = String.from(.document.html.toString()[item.start to])
         for item.count - 1
         {
@@ -233,15 +277,21 @@ private impl Reader
 
     mtd finishFrame()
     {
-        if .frames.isEmpty() do
+        if .frames.isEmpty()
+        {
             return
+        }
+
         let frame       = .frames.popBack()
         let description = frame.description.isEmpty() ? String.from(texts().ui_ImageDescription) : frame.description
         for path in frame.paths
         {
             let html = .image(path.toString(), frame.width, frame.height, description)
-            if html.isEmpty() do
+            if html.isEmpty()
+            {
                 continue
+            }
+
             .appendTrusted(html)
             .document.images += 1
             return
@@ -259,7 +309,7 @@ private impl Reader
         .document.html = ""
         var scan    = Package.Scanner.create(source)
         var token: Package.Token
-        var depth   = 0'u64
+        var depth   = 0_u64
         var body    = Swag.U64.Max
         var skip    = Swag.U64.Max
         var sawBody = false
@@ -273,7 +323,7 @@ private impl Reader
                     body    = depth
                     sawBody = true
                 }
-                elif skip == Swag.U64.Max and body != Swag.U64.Max
+                else if skip == Swag.U64.Max and body != Swag.U64.Max
                 {
                     if token.isElement("scripts") or
                        token.isElement("script") or
@@ -284,27 +334,27 @@ private impl Reader
                     {
                         skip = depth
                     }
-                    elif token.isElement("note") or token.isElement("annotation")
+                    else if token.isElement("note") or token.isElement("annotation")
                     {
                         .flushRun()
                         .specialDepth = depth
                         .specialLabel = token.isElement("note") ? String.from(texts().ui_Footnote) : String.from(texts().ui_Comment)
                         skip = depth
                     }
-                    elif token.isElement("object") or
-                         token.isElement("object-ole") or
-                         token.isElement("plugin") or
-                         token.isElement("applet")
+                    else if token.isElement("object") or
+                            token.isElement("object-ole") or
+                            token.isElement("plugin") or
+                            token.isElement("applet")
                     {
                         .runText += texts().ui_ObjectOmitted
                         .document.omitted += 1
                         skip     = depth
                     }
-                    elif token.isElement("p") or token.isElement("h")
+                    else if token.isElement("p") or token.isElement("h")
                     {
                         .startParagraph(&token)
                     }
-                    elif token.isElement("span") or token.isElement("a")
+                    else if token.isElement("span") or token.isElement("a")
                     {
                         .flushRun()
                         var item       = Inline{name: token.name, run: .run}
@@ -314,7 +364,7 @@ private impl Reader
                         if token.isElement("a")
                         {
                             let href = token.attribute("href") orelse ""
-                            item.link = href.count > 0 and href[0] == '#'u8
+                            item.link = href.count > 0 and href[0] == '#'_u8
                             if item.link
                             {
                                 .paragraph += "<a href=\""
@@ -325,34 +375,42 @@ private impl Reader
 
                         .inlines.add(item)
                     }
-                    elif token.isElement("line-break")
+                    else if token.isElement("line-break")
                     {
                         .appendTrusted("<br>")
                     }
-                    elif token.isElement("tab")
+                    else if token.isElement("tab")
                     {
                         .appendTrusted("&emsp;")
                     }
-                    elif token.isElement("s")
+                    else if token.isElement("s")
                     {
                         let count = catch StrConv.toU32(token.attribute("c") orelse "1") orelse 0
-                        if count > 8192 do
+                        if count > 8192
+                        {
                             fail Errors.UnsupportedFormatError{texts().err_TooLarge}
-                        for count do
+                        }
+
+                        for count
+                        {
                             .runText += "\u00A0"
+                        }
                     }
-                    elif token.isElement("bookmark") or token.isElement("bookmark-start")
+                    else if token.isElement("bookmark") or token.isElement("bookmark-start")
                     {
                         .flushRun()
                         .paragraph += "<a id=\""
                         Package.appendHtmlEscaped(&.paragraph, token.attribute("name") orelse "")
                         .paragraph += "\"></a>"
                     }
-                    elif token.isElement("frame")
+                    else if token.isElement("frame")
                     {
                         var frame: Frame
-                        if (token.attribute("anchor-type") orelse "as-char") != "as-char" do
+                        if (token.attribute("anchor-type") orelse "as-char") != "as-char"
+                        {
                             .document.simplified = true
+                        }
+
                         let width  = Odf.points(token.attribute("width") orelse "")
                         let height = Odf.points(token.attribute("height") orelse "")
                         if width.valid and height.valid and width.value > 0 and height.value > 0
@@ -363,7 +421,7 @@ private impl Reader
 
                         .frames.add(frame)
                     }
-                    elif token.isElement("image")
+                    else if token.isElement("image")
                     {
                         let href = String.from(token.attribute("href") orelse "")
                         if .frames.isEmpty()
@@ -382,17 +440,22 @@ private impl Reader
                         }
                         else
                         {
-                            if .frames.backPtr().paths.count >= 8 do
+                            if .frames.backPtr().paths.count >= 8
+                            {
                                 fail Errors.UnsupportedFormatError{texts().err_TooLarge}
+                            }
+
                             .frames.backPtr().paths.add(href)
                         }
                     }
-                    elif token.isElement("title") or token.isElement("desc")
+                    else if token.isElement("title") or token.isElement("desc")
                     {
-                        if not .frames.isEmpty() do
+                        if not .frames.isEmpty()
+                        {
                             .titleDepth = depth
+                        }
                     }
-                    elif token.isElement("table")
+                    else if token.isElement("table")
                     {
                         .finishParagraph()
                         let properties = .styles.lookup(token.attribute("style-name") orelse "", .Table)
@@ -402,13 +465,13 @@ private impl Reader
                         .document.tables     += 1
                         .document.simplified = .document.simplified or properties.limited
                     }
-                    elif token.isElement("table-row")
+                    else if token.isElement("table-row")
                     {
                         .finishParagraph()
                         .rows.add(try .repeated(&token, "number-rows-repeated"))
                         .document.html += "<tr>"
                     }
-                    elif token.isElement("table-cell")
+                    else if token.isElement("table-cell")
                     {
                         .finishParagraph()
                         .cells.add(try .repeated(&token, "number-columns-repeated"))
@@ -421,42 +484,51 @@ private impl Reader
                                                (token.attribute("number-columns-spanned") orelse "1") != "1" or
                                                (token.attribute("number-rows-spanned") orelse "1") != "1"
                     }
-                    elif token.isElement("list")
+                    else if token.isElement("list")
                     {
                         .finishParagraph()
                         var name = String.from(token.attribute("style-name") orelse "")
-                        if name.isEmpty() and not .listNames.isEmpty() do
+                        if name.isEmpty() and not .listNames.isEmpty()
+                        {
                             name = .listNames.back()
+                        }
+
                         let kind     = .styles.lists.tryFind(name)
                         let numbered = kind and kind.value
                         .lists.add(numbered)
                         .listNames.add(name)
                         .document.html += numbered ? "<ol>" : "<ul>"
-                        if token.attribute("continue-list") != null or token.attribute("continue-numbering") == "true" do
+                        if token.attribute("continue-list") != null or token.attribute("continue-numbering") == "true"
+                        {
                             .document.simplified = true
+                        }
                     }
-                    elif token.isElement("list-item")
+                    else if token.isElement("list-item")
                     {
                         .finishParagraph()
                         .document.html += "<li>"
                     }
                 }
             }
-            elif token.kind == .Text and .specialDepth != Swag.U64.Max
+            else if token.kind == .Text and .specialDepth != Swag.U64.Max
             {
                 .specialText += token.text
-                if .specialText.count > 8192 do
+                if .specialText.count > 8192
+                {
                     fail Errors.UnsupportedFormatError{texts().err_TooLarge}
+                }
             }
-            elif token.kind == .Text and body != Swag.U64.Max and skip == Swag.U64.Max
+            else if token.kind == .Text and body != Swag.U64.Max and skip == Swag.U64.Max
             {
                 if .titleDepth != Swag.U64.Max and not .frames.isEmpty()
                 {
                     .frames.backPtr().description += token.text
-                    if .frames.backPtr().description.count > 1024 do
+                    if .frames.backPtr().description.count > 1024
+                    {
                         fail Errors.UnsupportedFormatError{texts().err_TooLarge}
+                    }
                 }
-                elif not .tag.isEmpty()
+                else if not .tag.isEmpty()
                 {
                     .runText += token.text
                 }
@@ -466,51 +538,57 @@ private impl Reader
             {
                 if skip == depth
                 {
-                    if .specialDepth == depth do
+                    if .specialDepth == depth
+                    {
                         .finishSpecial()
+                    }
+
                     skip = Swag.U64.Max
                 }
-                elif skip == Swag.U64.Max and body != Swag.U64.Max
+                else if skip == Swag.U64.Max and body != Swag.U64.Max
                 {
                     if token.isElement("p") or token.isElement("h")
                     {
                         .finishParagraph()
                     }
-                    elif (token.isElement("span") or token.isElement("a")) and not .inlines.isEmpty()
+                    else if (token.isElement("span") or token.isElement("a")) and not .inlines.isEmpty()
                     {
                         .flushRun()
                         let item = .inlines.popBack()
-                        if item.link do
+                        if item.link
+                        {
                             .paragraph += "</a>"
+                        }
+
                         .run = item.run
                     }
-                    elif token.isElement("frame")
+                    else if token.isElement("frame")
                     {
                         .finishFrame()
                     }
-                    elif token.isElement("table-cell") and not .cells.isEmpty()
+                    else if token.isElement("table-cell") and not .cells.isEmpty()
                     {
                         .finishParagraph()
                         .document.html += "</td>"
                         try .repeatContent(.cells.popBack())
                     }
-                    elif token.isElement("table-row") and not .rows.isEmpty()
+                    else if token.isElement("table-row") and not .rows.isEmpty()
                     {
                         .finishParagraph()
                         .document.html += "</tr>"
                         try .repeatContent(.rows.popBack())
                     }
-                    elif token.isElement("table")
+                    else if token.isElement("table")
                     {
                         .finishParagraph()
                         .document.html += "</table>"
                     }
-                    elif token.isElement("list-item")
+                    else if token.isElement("list-item")
                     {
                         .finishParagraph()
                         .document.html += "</li>"
                     }
-                    elif token.isElement("list") and not .lists.isEmpty()
+                    else if token.isElement("list") and not .lists.isEmpty()
                     {
                         .finishParagraph()
                         .document.html += .lists.popBack() ? "</ol>" : "</ul>"
@@ -518,10 +596,16 @@ private impl Reader
                     }
                 }
 
-                if .titleDepth == depth do
+                if .titleDepth == depth
+                {
                     .titleDepth = Swag.U64.Max
-                if body == depth do
+                }
+
+                if body == depth
+                {
                     body = Swag.U64.Max
+                }
+
                 depth -= 1
             }
 
@@ -535,8 +619,11 @@ private impl Reader
            not .frames.isEmpty() or
            not .rows.isEmpty() or
            not .cells.isEmpty() or
-           not .lists.isEmpty() do
+           not .lists.isEmpty()
+        {
             fail Errors.InvalidFormatError{texts().err_Invalid}
+        }
+
         .document.readingWidth = .styles.page.pageWidthCssPixels()
         .document.simplified   = .document.simplified or .styles.page.limited
         let background   = .styles.pageColor.isEmpty() ? String.from("FFFFFF") : .styles.pageColor
@@ -544,7 +631,7 @@ private impl Reader
         var html: String = "<html><head><style>p,h1,h2,h3,h4,h5,h6{margin:0;font-size:inherit;font-weight:normal}table{border-collapse:collapse}td{vertical-align:top}</style></head><body style=\"padding:"
         html += insets.toString()
         html += ";box-sizing:border-box;"
-        let rgb  = catch StrConv.toU32(Format.toString("0x%", background)) orelse 0xFFFFFF'u32
+        let rgb  = catch StrConv.toU32(Format.toString("0x%", background)) orelse 0xFFFFFF_u32
         let luma = ((rgb >> 16) & 255) * 299 + ((rgb >> 8) & 255) * 587 + (rgb & 255) * 114
         html += Format.toString("background-color:#%;color:#%\">", background, luma < 128000 ? "FFFFFF" : "202024")
         html += .document.html

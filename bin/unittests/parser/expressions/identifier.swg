@@ -152,9 +152,9 @@
 #assert(main() and true)
 #assert(main1() or true)
 
-#assert(main'A())
-#assert(main'(A)())
-#assert(main'(A, B)())
+#assert(main!{A}())
+#assert(main!{A}())
+#assert(main!{A, B}())
 
 #assert(A(name: 1+2+3+4))
 #assert(A(name: 1+2+3+4, a: A()))

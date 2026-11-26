@@ -9,16 +9,22 @@ early or to leave a switch case.
 #test
 {
     // Immediately exits the loop body
-    for 10 do
+    for 10
+    {
         break
+    }
 
     // Exits after the first iteration
-    for var i = 0; i < 10; i += 1 do
+    for var i = 0; i < 10; i += 1
+    {
         break
+    }
 
     // Not reached because the condition is false
-    while false do
+    while false
+    {
         break
+    }
 }
 
 /**
@@ -146,8 +152,10 @@ after that labeled statement.
     {
         for index in 10
         {
-            if index == 5 do
-                break to Up     // Exit to after the labeled 'for'
+            if index == 5
+            {
+                break to Up
+            }     // Exit to after the labeled 'for'
         }
 
         Swag.require(false)     // Unreachable

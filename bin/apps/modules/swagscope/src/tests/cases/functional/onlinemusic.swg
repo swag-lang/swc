@@ -26,7 +26,7 @@ struct MusicServerFixture
 {
     late listener: *TcpListener
     port:          u16
-    poster:        Array'u8
+    poster:        Array!{u8}
     requests:      [3] String
 }
 
@@ -38,8 +38,11 @@ func serveChosenMusic(thread: const *Threading.Thread)
     while Utf8.indexOf(fixture.requests[0].toString(), "\r\n\r\n") == Swag.U64.Max
     {
         let count = expect stream.read(bytes)
-        if count == 0 do
+        if count == 0
+        {
             return
+        }
+
         fixture.requests[0] += cast(string, bytes[0 until count])
     }
 
@@ -58,8 +61,11 @@ func serveMusicRetry(thread: const *Threading.Thread)
         while Utf8.indexOf(fixture.requests[index].toString(), "\r\n\r\n") == Swag.U64.Max
         {
             let count = expect stream.read(bytes)
-            if count == 0 do
+            if count == 0
+            {
                 return
+            }
+
             fixture.requests[index] += cast(string, bytes[0 until count])
         }
 
@@ -98,7 +104,7 @@ func serveMusicRetry(thread: const *Threading.Thread)
 {
     let id = "48140466-cff6-3222-bd55-63c27e43190d"
     Swag.require(validMusicId(id) and not validMusicId("bad-id"))
-    var choices: Array'MusicChoice
+    var choices: Array!{MusicChoice}
     var entry = ExplorerEntry{path: "C:/music/test.mp3", size: 10, creationStamp: 1, modifiedStamp: 2}
     setMusicChoice(&choices, &entry, id)
     Swag.require(musicChoiceId(choices.toSlice(), &entry) == id)
@@ -123,12 +129,15 @@ func serveMusicRetry(thread: const *Threading.Thread)
 
 func sendMusicBytes(stream: *TcpStream, bytes: const [..] u8)
 {
-    var offset = 0'u64
+    var offset = 0_u64
     while offset < bytes.count
     {
         let count = expect stream.write(bytes[offset to])
-        if count == 0 do
+        if count == 0
+        {
             return
+        }
+
         offset += count
     }
 }
@@ -143,8 +152,11 @@ func serveMusic(thread: const *Threading.Thread)
         while Utf8.indexOf(fixture.requests[index].toString(), "\r\n\r\n") == Swag.U64.Max
         {
             let count = expect stream.read(bytes)
-            if count == 0 do
+            if count == 0
+            {
                 return
+            }
+
             fixture.requests[index] += cast(string, bytes[0 until count])
         }
 

@@ -28,20 +28,26 @@ struct VideoRecordingAudio
 
 impl VideoRecordingAudio
 {
-    func configs(microphone, system: bool)->Array'Mp4.SoftwareAudioConfig
+    func configs(microphone, system: bool)->Array!{Mp4.SoftwareAudioConfig}
     {
         var result: #returntype
-        if microphone do
+        if microphone
+        {
             result.add(Mp4.SoftwareAudioConfig{48_000, 1, .Full})
-        if system do
+        }
+
+        if system
+        {
             result.add(Mp4.SoftwareAudioConfig{48_000, 2, .Full})
+        }
+
         return result
     }
 
     mtd start(session: *VideoCaptureSession, microphone, system: bool) fail
     {
         let origin = try session.captureOrigin100ns()
-        var track  = 0'u32
+        var track  = 0_u32
         if microphone
         {
             .wantsMicrophone    = true
@@ -74,8 +80,11 @@ impl VideoRecordingAudio
     private mtd runWorker(thread: const *Threading.Thread)
     {
         var signaled = false
-        defer if not signaled do
+        defer if not signaled
+        {
             .ready.signal()
+        }
+
         defer .closeSources()
         catch
         {
@@ -85,17 +94,25 @@ impl VideoRecordingAudio
             let task     = try AvSetMmThreadCharacteristicsW(taskName.buffer, &taskIndex)
             defer discard catch AvRevertMmThreadCharacteristics(task)
             let tick = Time.monotonicMicroseconds() * 10
-            if .wantsMicrophone and not .tryOpenMicrophone() do
+            if .wantsMicrophone and not .tryOpenMicrophone()
+            {
                 try .microphoneRecovery.deviceLost(tick)
-            if .wantsSystem and not .tryOpenSystem() do
+            }
+
+            if .wantsSystem and not .tryOpenSystem()
+            {
                 try .systemRecovery.deviceLost(tick)
+            }
+
             .ready.signal()
             signaled = true
             while not thread.requestEnd.isRaised()
             {
                 try .pumpSources()
-                if not .hasMicrophone and not .hasSystem do
-                    Threading.Thread.sleep(2'ms)
+                if not .hasMicrophone and not .hasSystem
+                {
+                    Threading.Thread.sleep(2_ms)
+                }
             }
         }
         {
@@ -116,7 +133,7 @@ impl VideoRecordingAudio
                     try .drainQueues()
                 }
 
-                Threading.Thread.sleep(2'ms)
+                Threading.Thread.sleep(2_ms)
             }
 
             .encoderMutex.lock()
@@ -132,8 +149,10 @@ impl VideoRecordingAudio
     {
         .stateMutex.lock()
         defer .stateMutex.unlock()
-        if .workerError.isEmpty() do
+        if .workerError.isEmpty()
+        {
             .workerError.capture(error)
+        }
     }
 
     private mtd drainQueues() fail
@@ -205,15 +224,19 @@ impl VideoRecordingAudio
                 try .microphoneRecovery.deviceLost(tick)
             }
         }
-        elif .wantsMicrophone
+        else if .wantsMicrophone
         {
             try .microphoneRecovery.deviceLost(tick)
             if .microphoneRecovery.retryDue(tick)
             {
-                if .tryOpenMicrophone() do
+                if .tryOpenMicrophone()
+                {
                     try .microphoneRecovery.deviceRestored(tick)
-                else do
+                }
+                else
+                {
                     try .microphoneRecovery.retryFailed(tick)
+                }
             }
         }
 
@@ -226,15 +249,19 @@ impl VideoRecordingAudio
                 try .systemRecovery.deviceLost(tick)
             }
         }
-        elif .wantsSystem
+        else if .wantsSystem
         {
             try .systemRecovery.deviceLost(tick)
             if .systemRecovery.retryDue(tick)
             {
-                if .tryOpenSystem() do
+                if .tryOpenSystem()
+                {
                     try .systemRecovery.deviceRestored(tick)
-                else do
+                }
+                else
+                {
                     try .systemRecovery.retryFailed(tick)
+                }
             }
         }
     }
@@ -258,7 +285,10 @@ impl VideoRecordingAudio
         }
         else
         {
-            catch .drainQueues() do .rememberError(Swag.err)
+            catch .drainQueues()
+            {
+                .rememberError(Swag.err)
+            }
         }
 
         .wantsMicrophone, .wantsSystem = false

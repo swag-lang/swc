@@ -26,9 +26,15 @@ func sourceWarningError(release: bool)->s32
 {
     let pointer = allocateWarningProbe()
     pointer[] = 42
-    if release do releaseWarningProbe(pointer)
+    if release
+    {
+        releaseWarningProbe(pointer)
+    }
     let result = pointer[]     // swc-expected-error {{sanity_warn_possible_use_after_free}}
-    if not release do releaseWarningProbe(pointer)
+    if not release
+    {
+        releaseWarningProbe(pointer)
+    }
     return result
 }
 
@@ -37,9 +43,15 @@ func sourceWarningDisable(release: bool)->s32
 {
     let pointer = allocateWarningProbe()
     pointer[] = 42
-    if release do releaseWarningProbe(pointer)
+    if release
+    {
+        releaseWarningProbe(pointer)
+    }
     let result = pointer[]
-    if not release do releaseWarningProbe(pointer)
+    if not release
+    {
+        releaseWarningProbe(pointer)
+    }
     return result
 }
 
@@ -48,9 +60,15 @@ func sourceWarningDefault(release: bool)->s32
 {
     let pointer = allocateWarningProbe()
     pointer[] = 42
-    if release do releaseWarningProbe(pointer)
+    if release
+    {
+        releaseWarningProbe(pointer)
+    }
     let result = pointer[]     // swc-expected-warning {{sanity_warn_possible_use_after_free}}
-    if not release do releaseWarningProbe(pointer)
+    if not release
+    {
+        releaseWarningProbe(pointer)
+    }
     return result
 }
 
@@ -59,13 +77,19 @@ func sourceBlockError(release: bool)->s32
 {
     let pointer = allocateWarningProbe()
     pointer[] = 42
-    if release do releaseWarningProbe(pointer)
+    if release
+    {
+        releaseWarningProbe(pointer)
+    }
     var result: s32
     #[Swag.Warning("sanity_warn_possible_use_after_free", .Error)]
     {
         result = pointer[]     // swc-expected-error {{sanity_warn_possible_use_after_free}}
     }
-    if not release do releaseWarningProbe(pointer)
+    if not release
+    {
+        releaseWarningProbe(pointer)
+    }
     return result
 }
 
@@ -74,13 +98,19 @@ func sourceBlockDisable(release: bool)->s32
 {
     let pointer = allocateWarningProbe()
     pointer[] = 42
-    if release do releaseWarningProbe(pointer)
+    if release
+    {
+        releaseWarningProbe(pointer)
+    }
     var result: s32
     #[Swag.Warning("sanity_warn_possible_use_after_free", .Disable)]
     {
         result = pointer[]
     }
-    if not release do releaseWarningProbe(pointer)
+    if not release
+    {
+        releaseWarningProbe(pointer)
+    }
     return result
 }
 
@@ -89,13 +119,19 @@ func sourceBlockWarning(release: bool)->s32
 {
     let pointer = allocateWarningProbe()
     pointer[] = 42
-    if release do releaseWarningProbe(pointer)
+    if release
+    {
+        releaseWarningProbe(pointer)
+    }
     var result: s32
     #[Swag.Warning("sanity_warn_possible_use_after_free", .Warning)]
     {
         result = pointer[]     // swc-expected-warning {{sanity_warn_possible_use_after_free}}
     }
-    if not release do releaseWarningProbe(pointer)
+    if not release
+    {
+        releaseWarningProbe(pointer)
+    }
     return result
 }
 
@@ -105,13 +141,19 @@ func sourceBlockRestore(release: bool)->s32
 {
     let pointer = allocateWarningProbe()
     pointer[] = 42
-    if release do releaseWarningProbe(pointer)
+    if release
+    {
+        releaseWarningProbe(pointer)
+    }
     #[Swag.Warning("sanity_warn_possible_use_after_free", .Disable)]
     {
         discard pointer[]
     }
     let result = pointer[]     // swc-expected-error {{sanity_warn_possible_use_after_free}}
-    if not release do releaseWarningProbe(pointer)
+    if not release
+    {
+        releaseWarningProbe(pointer)
+    }
     return result
 }
 
@@ -121,11 +163,17 @@ func sourceDeferredError(release: bool)
 {
     let pointer = allocateWarningProbe()
     pointer[] = 42
-    if release do releaseWarningProbe(pointer)
+    if release
+    {
+        releaseWarningProbe(pointer)
+    }
     defer
     {
         Swag.assert(pointer[] == 42)     // swc-expected-error {{sanity_warn_possible_use_after_free}}
-        if not release do releaseWarningProbe(pointer)
+        if not release
+        {
+            releaseWarningProbe(pointer)
+        }
     }
     #[Swag.Warning("sanity_warn_possible_use_after_free", .Disable)]
     {

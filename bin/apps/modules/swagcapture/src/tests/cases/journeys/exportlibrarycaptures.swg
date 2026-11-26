@@ -21,8 +21,11 @@ using Core, Gui, Pixel
     defer app.sigFrame.clear()
     app.sigFrame += func|app, &accepted|(_)
     {
-        if accepted do
+        if accepted
+        {
             return
+        }
+
         for surface in app.surfaces
         {
             if surface.view() is FileDlg as dialog where dialog.browser.hasValidSelection()

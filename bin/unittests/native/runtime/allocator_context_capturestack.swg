@@ -29,8 +29,10 @@ func contextCaptureFree(req: *AllocatorRequest)
 
 #test
 {
-    if Swag.jit() do
+    if Swag.jit()
+    {
         return
+    }
 
     let alloc       = defaultAllocator()
     let beforeCount = alloc.stats().countAlloc
@@ -40,8 +42,10 @@ func contextCaptureFree(req: *AllocatorRequest)
     Swag.require(req.address != null)
 
     let ptr = cast([*] u8, req.address)
-    for i in 80 do
+    for i in 80
+    {
         ptr[i] = cast(u8, (i + 9))
+    }
 
     req.oldSize = 80
     req.size    = 4096
@@ -50,8 +54,10 @@ func contextCaptureFree(req: *AllocatorRequest)
     Swag.require(req.address != null)
 
     let grown = cast([*] u8, req.address)
-    for i in 80 do
+    for i in 80
+    {
         Swag.require(grown[i] == cast(u8, (i + 9)))
+    }
 
     contextCaptureFree(&req)
     Swag.require(alloc.stats().countAlloc == beforeCount)
@@ -60,8 +66,10 @@ func contextCaptureFree(req: *AllocatorRequest)
 
 #test
 {
-    if Swag.jit() do
+    if Swag.jit()
+    {
         return
+    }
 
     let alloc       = defaultAllocator()
     let beforeCount = alloc.stats().countAlloc
@@ -75,8 +83,10 @@ func contextCaptureFree(req: *AllocatorRequest)
 
     Swag.require(alloc.stats().countAlloc == beforeCount + 8)
 
-    for i in 8 do
+    for i in 8
+    {
         contextCaptureFree(&reqs[i])
+    }
 
     Swag.require(alloc.stats().countAlloc == beforeCount)
 }

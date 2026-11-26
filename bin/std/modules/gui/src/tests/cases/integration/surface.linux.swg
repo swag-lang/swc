@@ -15,8 +15,11 @@ using Core, Pixel
     surface.setTitle("Native GUI — é")
     discard PushButton.create(surface.wnd.view, "Native button", {24, 72, 160, 36})
     surface.show()
-    for 8 do
+    for 8
+    {
         app.runFrame()
+    }
+
     Swag.require(not surface.isHidden and surface.presentedFrame)
     let drawable = expect surface.xcbDrawable()
     Swag.require(drawable.window != 0 and drawable.visual != 0)
@@ -71,9 +74,12 @@ using Core, Pixel
     Memory.copy(unwrap saved.pixels.buffer, context.xcb_get_image_data(snapshot), saved.byteCount)
     saved.flip()
     let reference = app.renderer.readRenderTarget(&surface.rt, 0, 0, surface.rc.width, surface.rc.height)
-    for index in saved.byteCount do
+    for index in saved.byteCount
+    {
         Swag.require(Math.abs(cast(s32, saved.pixels[index]) - reference.pixels[index]) <= 1,
                      "native presentation differs from its render target")
+    }
+
     Swag.require(expect Testing.verifyNativePresentation(surface))
     if Env.variable("SWAG_GUI_NATIVE_CAPTURE") == "1"
     {
@@ -97,14 +103,20 @@ using Core, Pixel
 
     let sent = Surface.sendCustomMessage("linux-native-gui", 71, 0x12345678ABCDEF01)
     Swag.require(sent)
-    for 8 do
+    for 8
+    {
         app.runFrame()
+    }
+
     Swag.require(message == 0x12345678ABCDEF01)
     surface.wnd.view.hookOnEvent = null
 
     surface.hide()
-    for 4 do
+    for 4
+    {
         app.runFrame()
+    }
+
     Swag.require(surface.isHidden)
     surface.show()
     let width  = Math.round(400 * surface.dpiScale)
@@ -112,8 +124,11 @@ using Core, Pixel
     surface.setPosition({90, 80, width, height})
     Swag.require(not surface.presentedFrame)
     Swag.require(not (expect Testing.verifyNativePresentation(surface)))
-    for 8 do
+    for 8
+    {
         app.runFrame()
+    }
+
     Swag.require(surface.rc.width == cast(s32, width) and surface.rc.height == cast(s32, height))
     Swag.require(expect Testing.verifyNativePresentation(surface))
     var point = Math.Point{20, 30}
@@ -124,11 +139,17 @@ using Core, Pixel
     Cursor.activate(Cursor.from(.Arrow))
     let second = expect app.createSurface(500, 80, 180, 160, surfaceId: "linux-native-secondary")
     second.show()
-    for 4 do
+    for 4
+    {
         app.runFrame()
+    }
+
     second.destroy()
-    for 4 do
+    for 4
+    {
         app.runFrame()
+    }
+
     Swag.require(app.surfaces.count == 1 and not app.mustQuit)
     surface.destroy()
     app.runFrame()
@@ -152,8 +173,11 @@ struct NativeInputProbe
     app.setMotionPreference(.Reduced)
     let surface = expect app.createSurface(60, 50, 320, 240, surfaceId: "linux-native-input")
     surface.show()
-    for 4 do
+    for 4
+    {
         app.runFrame()
+    }
+
     surface.wnd.view.focusPolicy = .Click
     surface.wnd.view.setFocus()
     var probe: NativeInputProbe
@@ -164,40 +188,48 @@ struct NativeInputProbe
             probe.screenshot += 1
             return true
         }
-        elif event is MouseEvent as mouse
+        else if event is MouseEvent as mouse
         {
-            if mouse.kind == .Pressed and mouse.button == .Left do
+            if mouse.kind == .Pressed and mouse.button == .Left
+            {
                 probe.pressed += 1
-            elif mouse.kind == .Released and mouse.button == .Left do
+            }
+            else if mouse.kind == .Released and mouse.button == .Left
+            {
                 probe.released += 1
-            elif mouse.kind == .Pressed and mouse.button == .XButton1 do
+            }
+            else if mouse.kind == .Pressed and mouse.button == .XButton1
+            {
                 probe.extra += 1
-            elif mouse.kind == .Wheel do
+            }
+            else if mouse.kind == .Wheel
+            {
                 probe.wheel += 1
+            }
         }
-        elif event is KeyEvent as key
+        else if event is KeyEvent as key
         {
             if key.kind == .Pressed and key.key == .A and key.modifiers.has(.Shift)
             {
                 probe.shiftA += 1
             }
-            elif key.kind == .Pressed and key.key == .A and key.modifiers.has(.Control)
+            else if key.kind == .Pressed and key.key == .A and key.modifiers.has(.Control)
             {
                 probe.controlA += 1
             }
-            elif key.kind == .Pressed and key.key == .Return
+            else if key.kind == .Pressed and key.key == .Return
             {
                 probe.returns += 1
             }
-            elif key.kind == .Pressed and key.key == .PageDown
+            else if key.kind == .Pressed and key.key == .PageDown
             {
                 probe.pageDown += 1
             }
-            elif key.kind == .Pressed and key.key == .CapsLock
+            else if key.kind == .Pressed and key.key == .CapsLock
             {
                 probe.capsLock += 1
             }
-            elif key.kind == .Character
+            else if key.kind == .Character
             {
                 probe.characters += 1
                 probe.character  = key.character
@@ -221,11 +253,14 @@ struct NativeInputProbe
     while peer.isRunning() and Time.monotonicMilliseconds() < deadline
     {
         app.runFrame()
-        discard expect peer.tryWaitForExit(5'ms)
+        discard expect peer.tryWaitForExit(5_ms)
     }
 
-    for 8 do
+    for 8
+    {
         app.runFrame()
+    }
+
     Swag.require(not peer.isRunning() and peer.exitCode() == 0, peer.standardError())
     Swag.require(probe.pressed == 1 and probe.released == 1 and probe.extra == 1 and probe.wheel == 1)
     Swag.require(probe.returns == 1 and probe.pageDown == 1 and probe.capsLock == 2)
@@ -256,10 +291,12 @@ struct NativeInputProbe
     Swag.require(Env.variable("SWAG_TEST_ISOLATED_X11") == "1", "native GUI integration requires an isolated X11 server")
     var app: Application
     let surface = expect app.createSurface(40, 40, 200, 120, surfaceId: "linux-native-grab-lifecycle")
-    let target  = Wnd.create'Wnd(surface.wnd.view, {12, 12, 100, 50})
+    let target  = Wnd.create!{Wnd}(surface.wnd.view, {12, 12, 100, 50})
     surface.show()
-    for 3 do
+    for 3
+    {
         app.runFrame()
+    }
 
     let context = expect LinuxDesktop.ensure()
     target.captureMouse()

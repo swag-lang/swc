@@ -6,10 +6,16 @@ using Core
 private func repeatCount(token: const *Package.Token, name: string, maximum: u32)->u32 fail
 {
     let count = catch StrConv.toU32(token.attribute(name) orelse "1") orelse 0
-    if not count do
+    if not count
+    {
         fail Errors.InvalidFormatError{texts().err_Invalid}
-    if count > maximum do
+    }
+
+    if count > maximum
+    {
         fail Errors.UnsupportedFormatError{texts().err_TooLarge}
+    }
+
     return count
 }
 
@@ -43,7 +49,7 @@ private struct Reader
     inheritColumns:   bool
     cellPresent:      bool
     readingBytes:     u64
-    emptyRows:        Array'EmptyRows
+    emptyRows:        Array!{EmptyRows}
     rowOmitted:       u64
     rowBytes:         u64
 }
@@ -55,23 +61,32 @@ private impl Reader
         .sheet = {}
         .emptyRows.clear()
         .sheet.name = token.attribute("name") orelse ""
-        if .sheet.name.isEmpty() or .sheet.name.count > 1024 do
+        if .sheet.name.isEmpty() or .sheet.name.count > 1024
+        {
             fail Errors.InvalidFormatError{texts().err_Invalid}
+        }
+
         let geometry = .styles.geometry(token.attribute("style-name") orelse "", "table")
         .sheet.hidden           = geometry.display == .Off or token.attribute("display") == "false"
         .sheet.simplifiedStyles = geometry.look.limited
         .rowIndex               = 0
         .columnDefinition       = 0
-        for index in 512 do
+        for index in 512
+        {
             .columnDefaults[index] = 0
+        }
+
         .sheet.columns.resize(512)
     }
 
     mtd column(token: const *Package.Token) fail
     {
         let count = try repeatCount(token, "number-columns-repeated", 16384)
-        if .columnDefinition > 16384 - count do
+        if .columnDefinition > 16384 - count
+        {
             fail Errors.InvalidFormatError{texts().err_Invalid}
+        }
+
         let geometry  = .styles.geometry(token.attribute("style-name") orelse "", "table-column")
         let cellStyle = .styles.cellId(token.attribute("default-cell-style-name") orelse "")
         let next      = .columnDefinition + count
@@ -99,8 +114,11 @@ private impl Reader
     mtd beginRow(token: const *Package.Token) fail
     {
         .rowRepeat = try repeatCount(token, "number-rows-repeated", 1_048_576)
-        if .rowIndex > 1_048_576 - .rowRepeat do
+        if .rowIndex > 1_048_576 - .rowRepeat
+        {
             fail Errors.InvalidFormatError{texts().err_Invalid}
+        }
+
         .row        = {}
         .rowOmitted = 0
         .rowBytes   = 0
@@ -111,8 +129,11 @@ private impl Reader
                       token.attribute("visibility") == "filter" or
                       .row.height == 0
         .rowDefault = .styles.cellId(token.attribute("default-cell-style-name") orelse "")
-        if token.attribute("default-cell-style-name") == null do
+        if token.attribute("default-cell-style-name") == null
+        {
             .rowDefault = Swag.U32.Max
+        }
+
         .columnIndex = 0
         .sheet.simplifiedStyles = .sheet.simplifiedStyles or geometry.look.limited
     }
@@ -120,16 +141,22 @@ private impl Reader
     mtd beginCell(token: const *Package.Token) fail
     {
         .cellRepeat = try repeatCount(token, "number-columns-repeated", 16384)
-        if .columnIndex > 16384 - .cellRepeat do
+        if .columnIndex > 16384 - .cellRepeat
+        {
             fail Errors.InvalidFormatError{texts().err_Invalid}
+        }
+
         .covered     = token.isElement("covered-table-cell")
         .cell        = {}
         .cell.column = .columnIndex
         let styleName = token.attribute("style-name")
         .inheritColumns = not styleName and .rowDefault == Swag.U32.Max
         .cell.style     = styleName ? .styles.cellId(styleName) : .rowDefault
-        if not styleName and .cell.style == Swag.U32.Max do
+        if not styleName and .cell.style == Swag.U32.Max
+        {
             .cell.style = .columnIndex < 512 ? .columnDefaults[.columnIndex] : 0
+        }
+
         .cell.formula = token.attribute("formula") orelse ""
         .kind         = token.attribute("value-type") orelse ""
         .value        = token.attribute("string-value") orelse token.attribute("value") orelse token.attribute("date-value") orelse token.attribute("time-value") orelse token.attribute("boolean-value") orelse ""
@@ -150,14 +177,22 @@ private impl Reader
         if not .paragraphs
         {
             .cell.text = .value
-            if .kind == "boolean" do
+            if .kind == "boolean"
+            {
                 .cell.text = .value == "true" or .value == "1" ? Xlsx.texts().ui_True : Xlsx.texts().ui_False
+            }
         }
 
-        if .cell.text.isEmpty() and not .cell.formula.isEmpty() do
+        if .cell.text.isEmpty() and not .cell.formula.isEmpty()
+        {
             .cell.text = .cell.formula
-        if .cell.text.count > 1024 * 1024 or .cell.formula.count > 64 * 1024 do
+        }
+
+        if .cell.text.count > 1024 * 1024 or .cell.formula.count > 64 * 1024
+        {
             fail Errors.UnsupportedFormatError{texts().err_TooLarge}
+        }
+
         let look    = .styles.cells.look(.cell.style)
         let content = not .cell.text.isEmpty() or not .cell.formula.isEmpty() or .spanColumns > 1 or .spanRows > 1
         let paint   = look.fill != 0 or look.hasBorder()
@@ -166,28 +201,42 @@ private impl Reader
             if (content or (paint and not .inheritColumns)) and
                (.columnIndex + .cellRepeat > 512 or
                 .spanColumns > 512 - .columnIndex or
-                .spanRows > 1_048_576 - .rowIndex) do
+                .spanRows > 1_048_576 - .rowIndex)
+            {
                 fail Errors.UnsupportedFormatError{texts().err_TooLarge}
-            if (.spanColumns > 1 or .spanRows > 1) and (.cellRepeat > 1 or .rowRepeat > 1) do
+            }
+
+            if (.spanColumns > 1 or .spanRows > 1) and (.cellRepeat > 1 or .rowRepeat > 1)
+            {
                 fail Errors.UnsupportedFormatError{texts().err_TooLarge}
+            }
+
             let count = .columnIndex < 512 ? Math.min(.cellRepeat, 512 - .columnIndex) : 0
             for offset in count
             {
                 var item = .cell
                 item.column += offset
-                if .inheritColumns do
+                if .inheritColumns
+                {
                     item.style = .columnDefaults[item.column]
+                }
+
                 let itemLook = .styles.cells.look(item.style)
                 .sheet.simplifiedStyles = .sheet.simplifiedStyles or itemLook.limited
                 if content or itemLook.fill != 0 or itemLook.hasBorder()
                 {
                     let cost = item.text.count * 6 + item.formula.count + 80
-                    if cost > 32 * 1024 * 1024 - .readingBytes - .sheet.readingBytes - .rowBytes do
+                    if cost > 32 * 1024 * 1024 - .readingBytes - .sheet.readingBytes - .rowBytes
+                    {
                         fail Errors.UnsupportedFormatError{texts().err_TooLarge}
+                    }
+
                     .rowBytes += cost
                     .row.cells.add(item)
-                    if not .paragraphs and .cell.numeric and not .value.isEmpty() do
+                    if not .paragraphs and .cell.numeric and not .value.isEmpty()
+                    {
                         .rowOmitted += 1
+                    }
                 }
             }
 
@@ -198,11 +247,17 @@ private impl Reader
                 for range in .sheet.merges where first.column <= range.last.column and
                                                  last.column >= range.first.column and
                                                  first.row <= range.last.row and
-                                                 last.row >= range.first.row do
+                                                 last.row >= range.first.row
+                {
                     fail Errors.InvalidFormatError{texts().err_Invalid}
+                }
+
                 .sheet.merges.add(Xlsx.MergedCells{first, last})
-                if .sheet.merges.count > 2048 do
+                if .sheet.merges.count > 2048
+                {
                     fail Errors.UnsupportedFormatError{texts().err_TooLarge}
+                }
+
                 .sheet.rowCount = Math.max(.sheet.rowCount, last.row + 1)
             }
         }
@@ -216,14 +271,19 @@ private impl Reader
         // Producers append vast empty repeated tails. Advance their address without allocating them.
         if not .row.cells.isEmpty()
         {
-            if .rowBytes * .rowRepeat > 32 * 1024 * 1024 - .readingBytes - .sheet.readingBytes do
+            if .rowBytes * .rowRepeat > 32 * 1024 * 1024 - .readingBytes - .sheet.readingBytes
+            {
                 fail Errors.UnsupportedFormatError{texts().err_TooLarge}
+            }
 
             // Interior empty geometry matters; a producer's unused trailing rows do not.
             for run in .emptyRows
             {
-                if run.count > 100_000 - .sheet.rows.count do
+                if run.count > 100_000 - .sheet.rows.count
+                {
                     fail Errors.UnsupportedFormatError{texts().err_TooLarge}
+                }
+
                 for offset in run.count
                 {
                     var item = run.row
@@ -235,8 +295,11 @@ private impl Reader
             }
 
             .emptyRows.clear()
-            if .row.cells.count * .rowRepeat > 100_000 - .workbook.cells - .sheet.cells do
+            if .row.cells.count * .rowRepeat > 100_000 - .workbook.cells - .sheet.cells
+            {
                 fail Errors.UnsupportedFormatError{texts().err_TooLarge}
+            }
+
             for offset in .rowRepeat
             {
                 var row = .row
@@ -247,18 +310,23 @@ private impl Reader
                 for cell in row.cells
                 {
                     .sheet.readingBytes += cell.text.count * 6 + cell.formula.count + 80
-                    if .sheet.readingBytes + .readingBytes > 32 * 1024 * 1024 do
+                    if .sheet.readingBytes + .readingBytes > 32 * 1024 * 1024
+                    {
                         fail Errors.UnsupportedFormatError{texts().err_TooLarge}
+                    }
                 }
             }
 
             .sheet.rowCount       = Math.max(.sheet.rowCount, .rowIndex + .rowRepeat)
             .sheet.omittedFormats += .rowOmitted * .rowRepeat
         }
-        elif .row.hidden or Math.abs(.row.height - .sheet.defaultRowHeight) > 0.05
+        else if .row.hidden or Math.abs(.row.height - .sheet.defaultRowHeight) > 0.05
         {
-            if .emptyRows.count >= 100_000 do
+            if .emptyRows.count >= 100_000
+            {
                 fail Errors.UnsupportedFormatError{texts().err_TooLarge}
+            }
+
             .emptyRows.add(EmptyRows{.row, .rowRepeat})
         }
 
@@ -267,20 +335,31 @@ private impl Reader
 
     mtd finishSheet() fail
     {
-        var columns = 1'u32
-        for row in .sheet.rows do
-            for cell in row.cells do
+        var columns = 1_u32
+        for row in .sheet.rows
+        {
+            for cell in row.cells
+            {
                 columns = Math.max(columns, cell.column + 1)
-        for range in .sheet.merges do
+            }
+        }
+
+        for range in .sheet.merges
+        {
             columns = Math.max(columns, range.last.column + 1)
+        }
+
         .sheet.columns.resize(columns)
-        for column in .sheet.columns do
+        for column in .sheet.columns
+        {
             .sheet.hiddenRanges = .sheet.hiddenRanges or column.hidden
+        }
+
         for row in .sheet.rows
         {
             for cell in row.cells where not .sheet.columns[cell.column].authored
             {
-                var characters = 0'u64
+                var characters = 0_u64
                 Utf8.visitRunes(cell.text.toString())
                 { characters += 1 }
                 .sheet.columns[cell.column].width = Math.max(.sheet.columns[cell.column].width, Math.min(cast(f32, characters) * 8 + 16, 360))
@@ -306,18 +385,23 @@ private impl Reader
         .workbook.cells += .sheet.cells
         .workbook.omittedFormats += .sheet.omittedFormats
         .readingBytes   += .sheet.readingBytes
-        if .sheet.hidden do
+        if .sheet.hidden
+        {
             .workbook.hiddenSheets += 1
+        }
+
         .workbook.sheets.add(#move .sheet)
-        if .workbook.sheets.count > 200 do
+        if .workbook.sheets.count > 200
+        {
             fail Errors.UnsupportedFormatError{texts().err_TooLarge}
+        }
     }
 
     mtd read(source: string)->Xlsx.Workbook fail
     {
         var scan        = Package.Scanner.create(source)
         var token: Package.Token
-        var depth       = 0'u64
+        var depth       = 0_u64
         var spreadsheet = Swag.U64.Max
         var table       = Swag.U64.Max
         var row         = Swag.U64.Max
@@ -331,7 +415,7 @@ private impl Reader
                 {
                     spreadsheet = depth
                 }
-                elif skip == Swag.U64.Max and spreadsheet != Swag.U64.Max
+                else if skip == Swag.U64.Max and spreadsheet != Swag.U64.Max
                 {
                     if token.isElement("annotation") or
                        token.isElement("scripts") or
@@ -341,104 +425,123 @@ private impl Reader
                        token.isElement("shapes")
                     {
                         skip = depth
-                        if table != Swag.U64.Max do
+                        if table != Swag.U64.Max
+                        {
                             .sheet.simplifiedStyles = true
+                        }
                     }
-                    elif token.isElement("table")
+                    else if token.isElement("table")
                     {
-                        if table != Swag.U64.Max do
+                        if table != Swag.U64.Max
+                        {
                             fail Errors.UnsupportedFormatError{texts().err_Invalid}
+                        }
+
                         table = depth
                         try .beginSheet(&token)
                     }
-                    elif table != Swag.U64.Max
+                    else if table != Swag.U64.Max
                     {
                         if token.isElement("table-column")
                         {
                             try .column(&token)
                         }
-                        elif token.isElement("table-row")
+                        else if token.isElement("table-row")
                         {
                             row = depth
                             try .beginRow(&token)
                         }
-                        elif row != Swag.U64.Max
+                        else if row != Swag.U64.Max
                         {
                             if token.isElement("table-cell") or token.isElement("covered-table-cell")
                             {
                                 try .beginCell(&token)
                             }
-                            elif .cellPresent
+                            else if .cellPresent
                             {
                                 if token.isElement("p")
                                 {
-                                    if .paragraphs do
+                                    if .paragraphs
+                                    {
                                         .cell.text += "\n"
+                                    }
+
                                     .paragraphs  += 1
                                     .inParagraph = true
                                 }
-                                elif token.isElement("line-break")
+                                else if token.isElement("line-break")
                                 {
                                     .cell.text += "\n"
                                 }
-                                elif token.isElement("tab")
+                                else if token.isElement("tab")
                                 {
                                     .cell.text += "\t"
                                 }
-                                elif token.isElement("s")
+                                else if token.isElement("s")
                                 {
                                     let count = try repeatCount(&token, "c", 8192)
-                                    for count do
+                                    for count
+                                    {
                                         .cell.text += " "
+                                    }
                                 }
                             }
                         }
                     }
                 }
             }
-            elif token.kind == .Text and .cellPresent and .inParagraph and skip == Swag.U64.Max
+            else if token.kind == .Text and .cellPresent and .inParagraph and skip == Swag.U64.Max
             {
                 .cell.text += token.text
             }
 
-            if .cell.text.count > 1024 * 1024 do
+            if .cell.text.count > 1024 * 1024
+            {
                 fail Errors.UnsupportedFormatError{texts().err_TooLarge}
+            }
+
             if token.kind == .End or token.empty
             {
                 if skip == depth
                 {
                     skip = Swag.U64.Max
                 }
-                elif skip == Swag.U64.Max and table != Swag.U64.Max
+                else if skip == Swag.U64.Max and table != Swag.U64.Max
                 {
                     if token.isElement("p")
                     {
                         .inParagraph = false
                     }
-                    elif token.isElement("table-cell") or token.isElement("covered-table-cell")
+                    else if token.isElement("table-cell") or token.isElement("covered-table-cell")
                     {
                         try .finishCell()
                     }
-                    elif token.isElement("table-row")
+                    else if token.isElement("table-row")
                     {
                         try .finishRow()
                         row = Swag.U64.Max
                     }
-                    elif token.isElement("table")
+                    else if token.isElement("table")
                     {
                         try .finishSheet()
                         table = Swag.U64.Max
                     }
                 }
 
-                if spreadsheet == depth do
+                if spreadsheet == depth
+                {
                     spreadsheet = Swag.U64.Max
+                }
+
                 depth -= 1
             }
         }
 
-        if scan.damaged or .workbook.sheets.isEmpty() do
+        if scan.damaged or .workbook.sheets.isEmpty()
+        {
             fail Errors.InvalidFormatError{texts().err_Invalid}
+        }
+
         return #move .workbook
     }
 }
@@ -469,19 +572,29 @@ func load(fileName: string)->Xlsx.Workbook fail
             item = token.attribute("name") orelse ""
             value.clear()
         }
-        elif token.kind == .Text and not item.isEmpty()
+        else if token.kind == .Text and not item.isEmpty()
         {
             value += token.text
         }
 
         if (token.kind == .End or token.empty) and token.isElement("config-item")
         {
-            if item == "ActiveTable" do
-                for sheet, index in result.sheets where sheet.name == value do
+            if item == "ActiveTable"
+            {
+                for sheet, index in result.sheets where sheet.name == value
+                {
                     result.activeSheet = index
-            if item == "ShowGrid" do
-                for &sheet in result.sheets do
+                }
+            }
+
+            if item == "ShowGrid"
+            {
+                for &sheet in result.sheets
+                {
                     sheet.showGridLines = value != "false"
+                }
+            }
+
             item.clear()
         }
     }

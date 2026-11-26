@@ -77,7 +77,7 @@ impl RuntimeMultiKeyBox
 #test
 {
     var box = RuntimeMultiKeyBox{data: [1, 2, 3, 4]}
-    let v   = box[1's32]
+    let v   = box[1_s32]
 
     Swag.require(v == 2)
     Swag.require(box.s32Reads == 1)
@@ -88,7 +88,7 @@ impl RuntimeMultiKeyBox
 #test
 {
     var box = RuntimeMultiKeyBox{data: [1, 2, 3, 4]}
-    let v   = box[2'u64]
+    let v   = box[2_u64]
 
     Swag.require(v == 30)
     Swag.require(box.s32Reads == 0)
@@ -99,8 +99,8 @@ impl RuntimeMultiKeyBox
 #test
 {
     var box = RuntimeMultiKeyBox{data: [10, 20, 30, 40]}
-    let a   = box[0's32]
-    let b   = box[3'u64]
+    let a   = box[0_s32]
+    let b   = box[3_u64]
 
     Swag.require(a == 10)
     Swag.require(b == 400)
@@ -141,7 +141,7 @@ impl RuntimeMultiValueBox
 #test
 {
     var box = RuntimeMultiValueBox{}
-    box[3] = 100's32
+    box[3] = 100_s32
 
     Swag.require(box.intVal == 103)
     Swag.require(box.intWrites == 1)
@@ -152,7 +152,7 @@ impl RuntimeMultiValueBox
 #test
 {
     var box = RuntimeMultiValueBox{}
-    box[2] = 1.5'f32
+    box[2] = 1.5_f32
 
     Swag.require(box.floatVal == 3.5)
     Swag.require(box.intWrites == 0)
@@ -163,8 +163,8 @@ impl RuntimeMultiValueBox
 #test
 {
     var box = RuntimeMultiValueBox{}
-    box[0] = 42's32
-    box[1] = 2.5'f32
+    box[0] = 42_s32
+    box[1] = 2.5_f32
 
     Swag.require(box.intVal == 42)
     Swag.require(box.floatVal == 3.5)

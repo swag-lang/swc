@@ -10,15 +10,23 @@ internal func mountPrivacyProtectedRootNative(path: string)->String
     var result: String
     for line in Tokenize.splitLines(mounts)
     {
-        let fields = Tokenize.split(line, ' 'u8)
+        let fields = Tokenize.split(line, ' '_u8)
         var vault  = false
-        for index in 6'u64 until fields.count where fields[index] == "-" and index + 1 < fields.count do
+        for index in 6_u64 until fields.count where fields[index] == "-" and index + 1 < fields.count
+        {
             vault = fields[index + 1] == "fuse.swagvault"
-        if not vault do
+        }
+
+        if not vault
+        {
             continue
+        }
+
         let root = catch Directory.mountPointNative(line) { continue }
-        if (path == root or Utf8.startsWith(path, Format.toString("%/", root))) and root.count > result.count do
+        if (path == root or Utf8.startsWith(path, Format.toString("%/", root))) and root.count > result.count
+        {
             result = root
+        }
     }
 
     return result
@@ -32,25 +40,45 @@ internal impl MountPrivacyPublisher
     {
         let name       = privacySharedName(.channel)
         let descriptor = Linux.shm_open(name.storage(), Linux.O_RDWR | Linux.O_CREAT | Linux.O_CLOEXEC, 0x180)
-        if descriptor < 0 do
+        if descriptor < 0
+        {
             try Errors.failLinuxError(Linux.errno())
-        defer if not .handle do
+        }
+
+        defer if not .handle
+        {
             discard Linux.close(descriptor)
+        }
+
         var info: Linux.stat
-        if Linux.fstat(descriptor, &info) != 0 do
+        if Linux.fstat(descriptor, &info) != 0
+        {
             try Errors.failLinuxError(Linux.errno())
-        if info.st_uid != Linux.getuid() or (info.st_mode & 0x3F) != 0 do
+        }
+
+        if info.st_uid != Linux.getuid() or (info.st_mode & 0x3F) != 0
+        {
             fail Errors.BadParameterError{}
+        }
 
         // The kernel releases ownership after a crash. A new owner can safely reinitialize
         // an abandoned object, including a crash before its first snapshot was committed.
-        if Linux.flock(descriptor, Linux.LOCK_EX | Linux.LOCK_NB) != 0 do
+        if Linux.flock(descriptor, Linux.LOCK_EX | Linux.LOCK_NB) != 0
+        {
             try Errors.failLinuxError(Linux.errno())
-        if Linux.ftruncate(descriptor, #sizeof(MountPrivacyData)) != 0 do
+        }
+
+        if Linux.ftruncate(descriptor, #sizeof(MountPrivacyData)) != 0
+        {
             try Errors.failLinuxError(Linux.errno())
+        }
+
         let view = Linux.mmap(null, #sizeof(MountPrivacyData), Linux.PROT_READ | Linux.PROT_WRITE, Linux.MAP_SHARED, descriptor, 0)
-        if not view or cast(s64, view) == -1 do
+        if not view or cast(s64, view) == -1
+        {
             try Errors.failLinuxError(Linux.errno())
+        }
+
         .data   = assume cast(*MountPrivacyData, view)
         .handle = cast(*void, cast(u64, descriptor) + 1)
         Atomic.exchange(&.data.sequence, 0)
@@ -71,32 +99,56 @@ internal func readMountPrivacyNative(channel: string, result: *MountPrivacy)->bo
 {
     let name       = privacySharedName(channel)
     let descriptor = Linux.shm_open(name.storage(), Linux.O_RDONLY | Linux.O_CLOEXEC, 0)
-    if descriptor < 0 do
+    if descriptor < 0
+    {
         return false
+    }
+
     var attached = false
-    defer if not attached do
+    defer if not attached
+    {
         discard Linux.close(descriptor)
+    }
+
     var info: Linux.stat
     if Linux.fstat(descriptor, &info) != 0 or
        info.st_size != #sizeof(MountPrivacyData) or
        info.st_uid != Linux.getuid() or
-       (info.st_mode & 0x3F) != 0 do
+       (info.st_mode & 0x3F) != 0
+    {
         return false
+    }
+
     let view = Linux.mmap(null, #sizeof(MountPrivacyData), Linux.PROT_READ, Linux.MAP_SHARED, descriptor, 0)
-    if not view or cast(s64, view) == -1 do
+    if not view or cast(s64, view) == -1
+    {
         return false
-    defer if not attached do
+    }
+
+    defer if not attached
+    {
         discard Linux.munmap(view, #sizeof(MountPrivacyData))
+    }
+
     let data = assume cast(*MountPrivacyData, view)
 
     // An unlocked object has no live publisher, even if its last committed flags were public.
-    if Linux.flock(descriptor, Linux.LOCK_SH | Linux.LOCK_NB) == 0 do
+    if Linux.flock(descriptor, Linux.LOCK_SH | Linux.LOCK_NB) == 0
+    {
         return false
-    if Linux.errno() != Linux.EAGAIN do
+    }
+
+    if Linux.errno() != Linux.EAGAIN
+    {
         return false
-    if (Atomic.get(&data.flags) & 2) == 0 or not readMountPrivacyData(data, result) do
+    }
+
+    if (Atomic.get(&data.flags) & 2) == 0 or not readMountPrivacyData(data, result)
+    {
         return false
-    let reader = Memory.new'MountPrivacyReader()
+    }
+
+    let reader = Memory.new!{MountPrivacyReader}()
     reader.handle = cast(*void, cast(u64, descriptor) + 1)
     reader.data   = data
     result.reader = reader

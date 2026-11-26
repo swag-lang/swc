@@ -20,7 +20,7 @@ struct ByteSink
         buffer:       *ConcatBuffer?           // Borrowed destination, when the sink writes to memory.
         origin:       ConcatBufferPosition     // Cursor the borrowed buffer held when the sink took it.
         fileName:     String                   // File the sink writes, empty for a memory sink.
-        pending:      Array'u8                 // Write window holding bytes not yet handed to the file.
+        pending:      Array!{u8}               // Write window holding bytes not yet handed to the file.
         pendingCount: u64                      // Number of valid bytes in the write window.
         written:      u64                      // Total number of bytes accepted by this sink.
         isFile:       bool                     // Whether the sink writes to `stream`.
@@ -34,7 +34,7 @@ impl ByteSink
     //
     // Markers and headers are a few bytes each and would otherwise be one write call apiece; a
     // piece of at least this size goes straight to the file instead.
-    const WindowSize = 64 * 1024'u64
+    const WindowSize = 64 * 1024_u64
 
     // Creates `fileName`, replacing any existing file.
     //
@@ -106,11 +106,15 @@ impl ByteSink
         try .requireOpen()
 
         let count = bytes.count
-        if not count do
+        if not count
+        {
             return
+        }
 
-        if count > Swag.U64.Max - .written do
+        if count > Swag.U64.Max - .written
+        {
             fail OverflowError{"byte sink write exceeds the stream position limit"}
+        }
 
         if not .isFile
         {
@@ -129,10 +133,16 @@ impl ByteSink
             return
         }
 
-        if .pendingCount + count > WindowSize do
+        if .pendingCount + count > WindowSize
+        {
             try .flush()
-        if .pending.count != WindowSize do
+        }
+
+        if .pending.count != WindowSize
+        {
             .pending.resize(WindowSize)
+        }
+
         Memory.copy(unwrap .pending.buffer + .pendingCount, bytes.buffer, count)
         .pendingCount += count
         .written      += count
@@ -158,8 +168,10 @@ impl ByteSink
     // [[Core.ByteSink.writeBigEndian]] for a persisted or transmitted integer.
     mtd(T) writeNative(value: T) fail
     {
-        if not Reflection.isPod(#typeof(T)) do
+        if not Reflection.isPod(#typeof(T))
+        {
             fail BadParameterError{"byte sink native writes require a POD type"}
+        }
 
         var stored = value
         try .write(Swag.makeSlice(cast(const [*] u8, &stored), #sizeof(T)))
@@ -193,10 +205,15 @@ impl ByteSink
         try .requireOpen()
 
         let count = bytes.count
-        if not count do
+        if not count
+        {
             return
-        if offset > .written or count > .written - offset do
+        }
+
+        if offset > .written or count > .written - offset
+        {
             fail BadParameterError{"byte sink patch runs past the end of the written stream"}
+        }
 
         if not .isFile
         {
@@ -233,8 +250,11 @@ impl ByteSink
     {
         try .requireOpen()
 
-        if not .pendingCount do
+        if not .pendingCount
+        {
             return
+        }
+
         try .writeFileAll(.pending.toSlice()[until .pendingCount])
         .pendingCount = 0
     }
@@ -243,8 +263,10 @@ impl ByteSink
     {
         var failure: Swag.Error
         catch .stream.writeAll(bytes) as failure
-        if not failure.isEmpty() do
+        if not failure.isEmpty()
+        {
             try .failFileIo(&failure)
+        }
     }
 
     private mtd writeFileAllAt(offset: u64, bytes: const [..] u8, resume: u64) fail
@@ -253,6 +275,7 @@ impl ByteSink
         catch .stream.writeAllAtKeepingPosition(offset, bytes, resume) as failure
         if not failure.isEmpty() do
             try .failFileIo(&failure)
+        }
     }
 
     // Closes an unusable stream without replacing the error that made it unusable.
@@ -267,12 +290,17 @@ impl ByteSink
     {
         if .isFile
         {
-            if .failed do
+            if .failed
+            {
                 fail BadParameterError{"byte sink cannot be used after a file I/O failure"}
-            if not .stream.isOpen() do
+            }
+
+            if not .stream.isOpen()
+            {
                 fail BadParameterError{"byte sink is closed"}
+            }
         }
-        elif not .buffer
+        else if not .buffer
         {
             fail BadParameterError{"byte sink is closed"}
         }
@@ -292,20 +320,29 @@ impl ByteSink
         {
             if .failed
             {
-                if .stream.isOpen() do
+                if .stream.isOpen()
+                {
                     .stream.close()
+                }
+
                 return
             }
 
-            if not .stream.isOpen() do
+            if not .stream.isOpen()
+            {
                 return
+            }
+
             try .flush()
             .stream.close()
         }
         else
         {
-            if not .buffer do
+            if not .buffer
+            {
                 return
+            }
+
             .buffer = null
         }
     }

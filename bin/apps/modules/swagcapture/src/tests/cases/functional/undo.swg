@@ -156,7 +156,7 @@ using Swag, Core
     f.capture.selection.add(0)
     f.capture.selection.add(1)
 
-    let angle = 90.0'f32
+    let angle = 90.0_f32
     var u     = f.capture.newUndo(.SetTypedValue)
     u.valU32 = cast #bit (u32, angle)
     u.valRef = unwrap Reflection.findField(BaseForm, #nameof(BaseForm.rotate))
@@ -200,7 +200,7 @@ using Swag, Core
     // SetTypedValue restricted to FormText over [shape, text]
     shape.rotate = 33
     text.rotate  = 15
-    let angle  = 90.0'f32
+    let angle  = 90.0_f32
     var setVal = f.capture.newUndo(.SetTypedValue)
     setVal.valU32  = cast #bit (u32, angle)
     setVal.valRef  = unwrap Reflection.findField(BaseForm, #nameof(BaseForm.rotate))
@@ -219,7 +219,7 @@ using Swag, Core
     f.capture.selection.add(1)
     f.capture.selection.add(0)
 
-    let model = Memory.new'FormShape()
+    let model = Memory.new!{FormShape}()
     model.borderSize = 9
     var style = f.capture.newUndo(.SetFormFromModel)
     style.mdlType  = FormShape
@@ -290,7 +290,7 @@ struct UndoFuzzForm
     late kind: typeinfo
     rect:      Math.Rectangle
     rotate:    f32
-    points:    Array'Math.Vector2
+    points:    Array!{Math.Vector2}
 }
 
 struct UndoFuzzState
@@ -298,7 +298,7 @@ struct UndoFuzzState
     width:    s32
     height:   s32
     imagePos: Math.Point
-    forms:    Array'UndoFuzzForm
+    forms:    Array!{UndoFuzzForm}
 }
 
 func testUndoFuzzFormOf(itf: IForm)->UndoFuzzForm
@@ -316,12 +316,16 @@ func testUndoFuzzFormOf(itf: IForm)->UndoFuzzForm
         result.points.add(Math.Vector2{cast(f32, line.xb), cast(f32, line.yb)})
 
     case FormPolygon as poly:
-        for pt in poly.points do
+        for pt in poly.points
+        {
             result.points.add(pt)
+        }
 
     case FormDraw as draw:
-        for pt in draw.points do
+        for pt in draw.points
+        {
             result.points.add(pt)
+        }
     }
 
     return result
@@ -333,8 +337,11 @@ func testUndoFuzzSnapshot(capture: *Capture)->UndoFuzzState
     result.width    = capture.width
     result.height   = capture.height
     result.imagePos = capture.backImagePos
-    for it in capture.forms do
+    for it in capture.forms
+    {
         result.forms.add(testUndoFuzzFormOf(it))
+    }
+
     return result
 }
 
@@ -374,8 +381,10 @@ func testUndoFuzzSelect(capture: *Capture, rng: *Random.Generator, count: u32)
     while capture.selection.count < want
     {
         let idx = cast(u64, rng.nextU32(0, total))
-        if not capture.selection.contains(idx) do
+        if not capture.selection.contains(idx)
+        {
             capture.selection.add(idx)
+        }
     }
 }
 
@@ -397,7 +406,7 @@ func testUndoFuzzSelect(capture: *Capture, rng: *Random.Generator, count: u32)
     discard testAddArrow(f.capture, 120, 80, 180, 130)
     discard testAddStep(f.capture, 200, 40, 30, 30)
 
-    var points: Array'Math.Vector2
+    var points: Array!{Math.Vector2}
     points.add({30, 150})
     points.add({80, 150})
     points.add({60, 200})
@@ -430,17 +439,17 @@ func testUndoFuzzSelect(capture: *Capture, rng: *Random.Generator, count: u32)
 
             f.capture.pushUndo(u)
         }
-        elif op == 1
+        else if op == 1
         {
             testUndoFuzzSelect(f.capture, &rng, 2)
             f.capture.pushUndo(f.capture.newUndo(alignKinds[rng.nextU32(0, 6)]))
         }
-        elif op == 2
+        else if op == 2
         {
             testUndoFuzzSelect(f.capture, &rng, 1)
             f.capture.pushUndo(f.capture.newUndo(arrangeKinds[rng.nextU32(0, 4)]))
         }
-        elif op == 3
+        else if op == 3
         {
             if f.capture.forms.count > 4
             {
@@ -448,12 +457,12 @@ func testUndoFuzzSelect(capture: *Capture, rng: *Random.Generator, count: u32)
                 f.capture.pushUndo(f.capture.newUndo(.DeleteSelection))
             }
         }
-        elif op == 4
+        else if op == 4
         {
             let u = f.capture.newUndo(.CreateForm)
             if rng.nextBool()
             {
-                with let form = Memory.new'FormShape()
+                with let form = Memory.new!{FormShape}()
                 {
                     .IForm.setup(f.capture)
                     .IForm.setBaseForm(rng.nextS32(0, 350), rng.nextS32(0, 250), rng.nextS32(5, 60), rng.nextS32(5, 60))
@@ -463,7 +472,7 @@ func testUndoFuzzSelect(capture: *Capture, rng: *Random.Generator, count: u32)
             }
             else
             {
-                with let form = Memory.new'FormText()
+                with let form = Memory.new!{FormText}()
                 {
                     .IForm.setup(f.capture)
                     .IForm.setBaseForm(rng.nextS32(0, 350), rng.nextS32(0, 250), rng.nextS32(10, 80), rng.nextS32(10, 40))
@@ -474,12 +483,12 @@ func testUndoFuzzSelect(capture: *Capture, rng: *Random.Generator, count: u32)
 
             f.capture.pushUndo(u)
         }
-        elif op == 5
+        else if op == 5
         {
             testUndoFuzzSelect(f.capture, &rng, rng.nextU32(1, 4))
             f.capture.pushUndo(f.capture.newUndo(.ResetRotation))
         }
-        elif op == 6
+        else if op == 6
         {
             testUndoFuzzSelect(f.capture, &rng, rng.nextU32(1, 3))
             let angle = cast(f32, rng.nextS32(0, 360))
@@ -492,7 +501,7 @@ func testUndoFuzzSelect(capture: *Capture, rng: *Random.Generator, count: u32)
 
             f.capture.pushUndo(u)
         }
-        elif op == 7
+        else if op == 7
         {
             let idx = cast(u64, rng.nextU32(0, cast(u32, f.capture.forms.count)))
             let itf = f.capture.forms[idx]
@@ -515,14 +524,16 @@ func testUndoFuzzSelect(capture: *Capture, rng: *Random.Generator, count: u32)
 
             f.capture.pushUndo(u)
         }
-        elif op == 8
+        else if op == 8
         {
-            var candidates: Array'u64
+            var candidates: Array!{u64}
             for it, idx in f.capture.forms
             {
                 let kind = Swag.kindOf(it)
-                if kind == FormLine or kind == FormArrow do
+                if kind == FormLine or kind == FormArrow
+                {
                     candidates.add(idx)
+                }
             }
 
             if candidates.count > 0
@@ -547,10 +558,16 @@ func testUndoFuzzSelect(capture: *Capture, rng: *Random.Generator, count: u32)
             u.newPosY  = rng.nextS32(-3, 4)
             u.newSizeX = rng.nextS32(-2, 5)
             u.newSizeY = rng.nextS32(-2, 5)
-            if f.capture.width + u.newSizeX < 100 do
+            if f.capture.width + u.newSizeX < 100
+            {
                 u.newSizeX = 2
-            if f.capture.height + u.newSizeY < 100 do
+            }
+
+            if f.capture.height + u.newSizeY < 100
+            {
                 u.newSizeY = 2
+            }
+
             f.capture.pushUndo(u)
         }
     }
@@ -558,17 +575,26 @@ func testUndoFuzzSelect(capture: *Capture, rng: *Random.Generator, count: u32)
     Swag.require(f.capture.canUndo())
     var snapFinal = testUndoFuzzSnapshot(f.capture)
 
-    while f.capture.canUndo() do
+    while f.capture.canUndo()
+    {
         f.capture.undo()
+    }
+
     Swag.require(not f.capture.canUndo())
     testUndoFuzzAssertState(f.capture, &snapInitial)
 
-    while f.capture.canRedo() do
+    while f.capture.canRedo()
+    {
         f.capture.redo()
+    }
+
     Swag.require(not f.capture.canRedo())
     testUndoFuzzAssertState(f.capture, &snapFinal)
 
-    while f.capture.canUndo() do
+    while f.capture.canUndo()
+    {
         f.capture.undo()
+    }
+
     testUndoFuzzAssertState(f.capture, &snapInitial)
 }

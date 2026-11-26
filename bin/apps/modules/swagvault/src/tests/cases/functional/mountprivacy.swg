@@ -11,7 +11,7 @@ using Core, Gui
     defer catch Directory.delete(root, recurse: true)
     var host: Testing.HeadlessHost
     let window = testSetupMainWindow(&host)
-    let mount  = Memory.new'MountedVault()
+    let mount  = Memory.new!{MountedVault}()
     expect mount.privacy.open(root)
     window.mountedDrives.drives.add({volume: mount, path: "test-vault", drive: root})
     var reader = File.MountPrivacy.query(root)

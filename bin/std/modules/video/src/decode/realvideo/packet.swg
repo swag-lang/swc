@@ -10,7 +10,7 @@ using Core, Core.Errors
 struct Packet
 {
     bytes:   const [..] u8
-    offsets: Array'u32
+    offsets: Array!{u32}
     payload: u64
 }
 
@@ -19,8 +19,8 @@ impl Packet
     // Reads one little- or big-endian directory word.
     private func word(bytes: const [..] u8, offset: u64, little: bool)->u32
     {
-        var value = 0'u32
-        for index in 4'u64
+        var value = 0_u32
+        for index in 4_u64
         {
             let position = little ? 3 - index : index
             value = (value << 8) | cast(u32, bytes[offset + position])
@@ -32,25 +32,36 @@ impl Packet
     // Validates the complete directory before any slice is exposed.
     func open(bytes: const [..] u8)->Packet fail
     {
-        if not bytes.count do
+        if not bytes.count
+        {
             fail InvalidFormatError{"RealVideo packet has no slice directory"}
+        }
+
         let count   = cast(u64, bytes[0]) + 1
         let payload = 1 + count * 8
-        if payload >= bytes.count do
+        if payload >= bytes.count
+        {
             fail InvalidFormatError{"RealVideo slice directory is truncated"}
+        }
 
         var result = Packet{bytes, {}, payload}
         for index in count
         {
             let entry  = 1 + index * 8
             let little = word(bytes, entry, true) == 1
-            if not little and word(bytes, entry, false) != 1 do
+            if not little and word(bytes, entry, false) != 1
+            {
                 fail InvalidFormatError{"RealVideo slice directory has an invalid marker"}
+            }
+
             let offset = word(bytes, entry + 4, little)
             if cast(u64, offset) >= bytes.count - payload or
                (index == 0 and offset != 0) or
-               (index > 0 and offset <= result.offsets[index - 1]) do
+               (index > 0 and offset <= result.offsets[index - 1])
+            {
                 fail InvalidFormatError{"RealVideo slice offset is invalid"}
+            }
+
             result.offsets.add(offset)
         }
 

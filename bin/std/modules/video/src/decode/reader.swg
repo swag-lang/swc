@@ -177,7 +177,7 @@ struct Reader
 
 impl Reader
 {
-    internal var decoders: Array'DecoderDesc
+    internal var decoders: Array!{DecoderDesc}
 
     // Registers a decoder type unless it is already present.
     //
@@ -195,8 +195,11 @@ impl Reader
     #[Swag.NoDoc]
     func registerDecoderImplementation(type: const *Swag.TypeInfoStruct, itf: IDecoder)
     {
-        for decoder in decoders where decoder.type == type do
+        for decoder in decoders where decoder.type == type
+        {
             return
+        }
+
         decoders.add(DecoderDesc{itf.format(), type})
     }
 
@@ -204,12 +207,15 @@ impl Reader
     //
     // The result is owned by the caller and is a snapshot: registering another decoder
     // afterwards does not change it. Use it to build the format list of an open dialog.
-    func decodableFormats()->Array'StreamFormat
+    func decodableFormats()->Array!{StreamFormat}
     {
         var result: #returntype
         result.reserve(decoders.count)
-        for decoder in decoders do
+        for decoder in decoders
+        {
             result.add(decoder.format)
+        }
+
         return result
     }
 
@@ -219,8 +225,11 @@ impl Reader
     // Returns the registered decoder claiming `fileName`, or `null` when none does.
     internal func findDecoder(fileName: string)->const *DecoderDesc?
     {
-        for decoder in decoders where decoder.format.matches(fileName) do
+        for decoder in decoders where decoder.format.matches(fileName)
+        {
             return decoder
+        }
+
         return null
     }
 
@@ -240,7 +249,7 @@ impl Reader
     // ```swag
     // var reader = try Video.Reader.open("clip.avi")
     // var frame: Pixel.Image
-    // for index in reader.frameCount() do
+    // for index in reader.frameCount() { }
     //     try reader.decodeFrameInto(&frame, index)
     // ```
     func open(fileName: string, pictureOnly: bool = false)->Reader fail
@@ -268,8 +277,10 @@ impl Reader
     private mtd start(fileName: string, pictureOnly: bool) fail
     {
         let selected = findDecoder(fileName)
-        if not selected do
+        if not selected
+        {
             fail UnsupportedFormatError{"no video decoder accepts this file extension"}
+        }
 
         .format      = selected.format
         .decoderType = selected.type
@@ -308,8 +319,11 @@ impl Reader
         {
             let type     = unwrap .decoderType
             let instance = (.decoder).buffer
-            if type.opDrop do
+            if type.opDrop
+            {
                 type.opDrop(instance)
+            }
+
             Memory.free(instance, cast(u64, type.sizeof))
             .decoder           = null
             .audioDecoder      = null
@@ -393,8 +407,11 @@ impl Reader
     // Formats without timestamp metadata fall back to their declared frame rate.
     mtd const frameTimestamp(index: u64)->f64
     {
-        if .timedDecoder do
+        if .timedDecoder
+        {
             return .timedDecoder.frameTimestamp(index)
+        }
+
         let rate = .frameRate()
         return cast(f64, index) * cast(f64, rate.denominator()) / cast(f64, rate.numerator())
     }
@@ -406,8 +423,10 @@ impl Reader
     // Unknown-count streams saturate when the time maps beyond the largest representable index.
     mtd const frameAtTime(seconds: f64)->u64
     {
-        if seconds != seconds or seconds < 0 do
+        if seconds != seconds or seconds < 0
+        {
             return 0
+        }
 
         let count = .frameCount()
         let rate  = .frameRate()
@@ -416,28 +435,42 @@ impl Reader
             if not count and rate.isValid()
             {
                 let frame = seconds * cast(f64, rate.numerator()) / cast(f64, rate.denominator())
-                if not Math.isFinite(frame) or frame >= cast(f64, Swag.U64.Max) do
+                if not Math.isFinite(frame) or frame >= cast(f64, Swag.U64.Max)
+                {
                     return Swag.U64.Max
+                }
             }
 
             return .timedDecoder.frameAtTime(seconds)
         }
 
-        if count and seconds >= .durationInSeconds() do
+        if count and seconds >= .durationInSeconds()
+        {
             return count
-        if not Math.isFinite(seconds) or not rate.isValid() do
+        }
+
+        if not Math.isFinite(seconds) or not rate.isValid()
+        {
             return count ? count : Swag.U64.Max
+        }
 
         let frame = seconds * cast(f64, rate.numerator()) / cast(f64, rate.denominator())
-        if not Math.isFinite(frame) or frame >= cast(f64, Swag.U64.Max) do
+        if not Math.isFinite(frame) or frame >= cast(f64, Swag.U64.Max)
+        {
             return count ? count : Swag.U64.Max
+        }
 
         // Round-trip exact frame timestamps back to their index after floating-point division.
         var index = cast(u64, frame)
-        if index and seconds < .frameTimestamp(index) do
+        if index and seconds < .frameTimestamp(index)
+        {
             index -= 1
-        elif index < Swag.U64.Max and seconds >= .frameTimestamp(index + 1) do
+        }
+        else if index < Swag.U64.Max and seconds >= .frameTimestamp(index + 1)
+        {
             index += 1
+        }
+
         return count ? Math.min(index, count) : index
     }
 
@@ -458,13 +491,21 @@ impl Reader
     // [[Video.Reader.hasPlanarFrames]] first.
     mtd decodeFramePlanesInto(target: *PlanarFrame, index: u64) fail
     {
-        if not .decoder do
+        if not .decoder
+        {
             fail BadParameterError{"video reader has no open stream"}
-        if not .planarDecoder do
+        }
+
+        if not .planarDecoder
+        {
             fail UnsupportedFormatError{"video stream does not decode to planar pictures"}
+        }
+
         let count = .frameCount()
-        if count and index >= count do
+        if count and index >= count
+        {
             fail BadParameterError{"video frame index exceeds the stream frame count"}
+        }
 
         try .decoder.seekFrame(&.source, index)
         .refreshDeferredInfo()
@@ -480,8 +521,10 @@ impl Reader
     // frame at that time. This is the picture a thumbnail or a chapter mark wants.
     mtd decodeKeyPicture(seconds: f64)->Image fail
     {
-        if not .decoder do
+        if not .decoder
+        {
             fail BadParameterError{"video reader has no open stream"}
+        }
 
         var result: #returntype
         if .keyPictureDecoder and (try .keyPictureDecoder.seekKeyPicture(&.source, seconds))
@@ -493,14 +536,20 @@ impl Reader
 
         let count = .frameCount()
         var index = .frameAtTime(seconds)
-        if count do
+        if count
+        {
             index = Math.min(index, count - 1)
+        }
+
         let sync = .syncFrameAt(index)
         if sync >= index and (not count or sync < count)
         {
             let indexed = Swag.makeInterface((.decoder).buffer, unwrap .decoderType, ISyncPictureDecoder)
-            if indexed and (try indexed.decodeSyncPicture(&.source, sync, &result)) do
+            if indexed and (try indexed.decodeSyncPicture(&.source, sync, &result))
+            {
                 return result
+            }
+
             index = sync
         }
 
@@ -516,11 +565,17 @@ impl Reader
     // Returns the stream duration in seconds, or zero when the format cannot report it.
     mtd const durationInSeconds()->f64
     {
-        if .deferred do
+        if .deferred
+        {
             return .deferred.durationInSeconds()
+        }
+
         let rate = .frameRate()
-        if not rate.isValid() do
+        if not rate.isValid()
+        {
             return 0
+        }
+
         return cast(f64, .frameCount()) * cast(f64, rate.denominator()) / cast(f64, rate.numerator())
     }
 
@@ -544,11 +599,16 @@ impl Reader
     // a matching destination partially written.
     mtd decodeFrameInto(target: *Image, index: u64) fail
     {
-        if not .decoder do
+        if not .decoder
+        {
             fail BadParameterError{"video reader has no open stream"}
+        }
+
         let count = .frameCount()
-        if count and index >= count do
+        if count and index >= count
+        {
             fail BadParameterError{"video frame index exceeds the stream frame count"}
+        }
 
         try .decoder.seekFrame(&.source, index)
         .refreshDeferredInfo()
@@ -557,8 +617,11 @@ impl Reader
 
     private mtd refreshDeferredInfo()
     {
-        if not .deferred do
+        if not .deferred
+        {
             return
+        }
+
         .info.frameCount = .deferred.frameCount()
         .info.frameRate  = .deferred.frameRate()
     }
@@ -567,8 +630,8 @@ impl Reader
 // Registers the built-in decoders.
 #init
 {
-    Reader.registerDecoder'(Y4m.Decoder)()
-    Reader.registerDecoder'(Avi.Decoder)()
-    Reader.registerDecoder'(Mp4.Decoder)()
-    Reader.registerDecoder'(Matroska.Decoder)()
+    Reader.registerDecoder!{Y4m.Decoder}()
+    Reader.registerDecoder!{Avi.Decoder}()
+    Reader.registerDecoder!{Mp4.Decoder}()
+    Reader.registerDecoder!{Matroska.Decoder}()
 }

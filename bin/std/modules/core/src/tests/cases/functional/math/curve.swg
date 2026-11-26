@@ -69,17 +69,17 @@ func capturedCubicPoint(start, end, ctrl1, ctrl2: Math.Vector2, t: f32)->Math.Ve
 
 #test
 {
-    let start = Math.Vector2{cast #bit (f32, 0x42480000'u32), cast #bit (f32, 0x42A8004F'u32)}
-    let end   = Math.Vector2{cast #bit (f32, 0x427001A4'u32), cast #bit (f32, 0x4293FF80'u32)}
-    let ctrl1 = Math.Vector2{cast #bit (f32, 0x42480000'u32), cast #bit (f32, 0x429CF428'u32)}
-    let ctrl2 = Math.Vector2{cast #bit (f32, 0x4259E952'u32), cast #bit (f32, 0x4293FF80'u32)}
+    let start = Math.Vector2{cast #bit (f32, 0x42480000_u32), cast #bit (f32, 0x42A8004F_u32)}
+    let end   = Math.Vector2{cast #bit (f32, 0x427001A4_u32), cast #bit (f32, 0x4293FF80_u32)}
+    let ctrl1 = Math.Vector2{cast #bit (f32, 0x42480000_u32), cast #bit (f32, 0x429CF428_u32)}
+    let ctrl2 = Math.Vector2{cast #bit (f32, 0x4259E952_u32), cast #bit (f32, 0x4293FF80_u32)}
 
     // The third and eighth of nine samples, with each product and sum rounded to f32.
-    let third = capturedCubicPoint(start, end, ctrl1, ctrl2, cast #bit (f32, 0x3EAAAAAB'u32))
+    let third = capturedCubicPoint(start, end, ctrl1, ctrl2, cast #bit (f32, 0x3EAAAAAB_u32))
     Swag.require(cast #bit (u32, third.x) == 0x424D7647)
     Swag.require(cast #bit (u32, third.y) == 0x429DE7BC)
 
-    let eighth = capturedCubicPoint(start, end, ctrl1, ctrl2, cast #bit (f32, 0x3F638E39'u32))
+    let eighth = capturedCubicPoint(start, end, ctrl1, ctrl2, cast #bit (f32, 0x3F638E39_u32))
     Swag.require(cast #bit (u32, eighth.x) == 0x4268D0B0)
     Swag.require(cast #bit (u32, eighth.y) == 0x42945200)
 }
@@ -89,11 +89,11 @@ func capturedCubicPoint(start, end, ctrl1, ctrl2: Math.Vector2, t: f32)->Math.Ve
 // preset that drifts from its published shape fails this file rather than a screen.
 func referencePreset(preset: Math.CurvePreset, p: f32)->f32
 {
-    const Back      = 1.70158'f32
+    const Back      = 1.70158_f32
     const BackInOut = Back * 1.525
 
-    const BounceSteepness = 7.5625'f32
-    const BounceSegment   = 1 / 2.75'f32
+    const BounceSteepness = 7.5625_f32
+    const BounceSegment   = 1 / 2.75_f32
 
     switch #complete preset
     {
@@ -128,13 +128,19 @@ func referencePreset(preset: Math.CurvePreset, p: f32)->f32
         return (q * q * ((BackInOut + 1) * q + BackInOut) + 2) * 0.5
 
     case .EaseOutElastic:
-        if p <= 0 or p >= 1 do
+        if p <= 0 or p >= 1
+        {
             return p
-        return Math.pow(2'f32, -10 * p) * Math.sin((10 * p - 0.75) * Math.ConstF32.TwoPi / 3) + 1
+        }
+
+        return Math.pow(2_f32, -10 * p) * Math.sin((10 * p - 0.75) * Math.ConstF32.TwoPi / 3) + 1
 
     case .EaseOutBounce:
-        if p < BounceSegment do
+        if p < BounceSegment
+        {
             return BounceSteepness * p * p
+        }
+
         if p < 2 * BounceSegment
         {
             let q = p - 1.5 * BounceSegment
@@ -154,7 +160,7 @@ func referencePreset(preset: Math.CurvePreset, p: f32)->f32
 
 // Every preset but the spring is piecewise polynomial of degree three or less, so the key form
 // reproduces it exactly; the spring is sampled and only has to stay under a thousandth.
-func presetTolerance(preset: Math.CurvePreset)->f32 => preset == .EaseOutElastic ? 0.001'f32 : 0.0001'f32
+func presetTolerance(preset: Math.CurvePreset)->f32 => preset == .EaseOutElastic ? 0.001_f32 : 0.0001_f32
 
 // Each preset draws the shape it is named for, all the way along.
 #test
@@ -313,8 +319,11 @@ func presetTolerance(preset: Math.CurvePreset)->f32 => preset == .EaseOutElastic
 {
     var stepped: Math.Curve
     discard stepped.addKey(0, -1, .Constant)
-    for value in 11 do
+    for value in 11
+    {
         discard stepped.addKey(0.5, cast(f32, value), .Constant)
+    }
+
     discard stepped.addKey(1, 11, .Constant)
     stepped.keys[12].x = 0.5
 
@@ -373,7 +382,7 @@ func presetTolerance(preset: Math.CurvePreset)->f32 => preset == .EaseOutElastic
     Swag.require(Math.isEqualEpsilon(ease.evaluateNormalized(1), 1, 0.001))
     Swag.require(ease.evaluateNormalized(0.5) > 0.5)
 
-    var previous = 0'f32
+    var previous = 0_f32
     for step in 65
     {
         let value = ease.evaluateNormalized(cast(f32, step) / 64)
@@ -421,12 +430,12 @@ func presetTolerance(preset: Math.CurvePreset)->f32 => preset == .EaseOutElastic
     curve.setRange(-1, 3, 5, -5)
 
     var buffer:  ConcatBuffer
-    var encoder: Serialization.Encoder'Serialization.Write.TagBin
+    var encoder: Serialization.Encoder!{Serialization.Write.TagBin}
     expect encoder.writeAll(&buffer, curve)
     let bytes = buffer.toString()
 
-    var decoder: Serialization.Decoder'Serialization.Read.TagBin
-    let decoded = expect decoder.readAll'Math.Curve(bytes.toSlice())
+    var decoder: Serialization.Decoder!{Serialization.Read.TagBin}
+    let decoded = expect decoder.readAll!{Math.Curve}(bytes.toSlice())
     defer Memory.delete(decoded)
 
     Swag.require(decoded.keys.count == curve.keys.count)

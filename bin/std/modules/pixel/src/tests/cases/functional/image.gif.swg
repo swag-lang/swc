@@ -8,8 +8,10 @@ func assertGifPixelAt(img: Image, x, yFromBottom: s32, r, g, b, a: u8)
     Swag.require(img.pixels.storage()[idx] == r)
     Swag.require(img.pixels.storage()[idx + 1] == g)
     Swag.require(img.pixels.storage()[idx + 2] == b)
-    if img.bytesPerPixel == 4 do
+    if img.bytesPerPixel == 4
+    {
         Swag.require(img.pixels.storage()[idx + 3] == a)
+    }
 }
 
 func assertAdaptiveGif(pixelFormat: PixelFormat, withTransparency: bool) fail
@@ -23,12 +25,15 @@ func assertAdaptiveGif(pixelFormat: PixelFormat, withTransparency: bool) fail
         let r = cast(u8, (i & 0xFF))
         let g = cast(u8, ((i * 37 + 11) & 0xFF))
         let b = cast(u8, ((i * 73 + 19) & 0xFF))
-        let a = withTransparency ? cast(u8, ((i * 53 + 7) & 0xFF)) : 255'u8
+        let a = withTransparency ? cast(u8, ((i * 53 + 7) & 0xFF)) : 255_u8
         pix[0] = blueFirst ? b : r
         pix[1] = g
         pix[2] = blueFirst ? r : b
-        if source.bytesPerPixel == 4 do
+        if source.bytesPerPixel == 4
+        {
             pix[3] = a
+        }
+
         pix += source.bytesPerPixel
     }
 
@@ -36,13 +41,13 @@ func assertAdaptiveGif(pixelFormat: PixelFormat, withTransparency: bool) fail
     encoded.makeLinear()
     let decoded = expect Image.decode("quantized.gif", nnBytes(encoded.toSlice()), {})
     Swag.require(decoded.pixelFormat == (withTransparency ? .RGBA8 : .RGB8))
-    var error = 0'u64
+    var error = 0_u64
     for i in Width
     {
         let r = cast(u8, (i & 0xFF))
         let g = cast(u8, ((i * 37 + 11) & 0xFF))
         let b = cast(u8, ((i * 73 + 19) & 0xFF))
-        let a = withTransparency ? cast(u8, ((i * 53 + 7) & 0xFF)) : 255'u8
+        let a = withTransparency ? cast(u8, ((i * 53 + 7) & 0xFF)) : 255_u8
         if withTransparency and a < 128
         {
             assertGifPixelAt(decoded, i, 0, 0, 0, 0, 0)
@@ -68,7 +73,7 @@ func assertGifHeader(bytes: const [..] u8, width, height: u16)
     Swag.require(bytes[7] == cast(u8, (width >> 8)))
     Swag.require(bytes[8] == cast(u8, (height & 0xFF)))
     Swag.require(bytes[9] == cast(u8, (height >> 8)))
-    Swag.require(bytes[bytes.count - 1] == 0x3B'u8)
+    Swag.require(bytes[bytes.count - 1] == 0x3B_u8)
 }
 
 func assertEncodedGifRoundtrip(src: Image, expectedPf: PixelFormat)
@@ -99,14 +104,14 @@ func assertEncodedGifRoundtrip(src: Image, expectedPf: PixelFormat)
     Swag.require(rgb.width == 439)
     Swag.require(rgb.height == 341)
     Swag.require(rgb.pixelFormat == .RGBA8)
-    assertGifPixelAt(rgb, 0, 0, 183'u8, 107'u8, 3'u8, 255'u8)
+    assertGifPixelAt(rgb, 0, 0, 183_u8, 107_u8, 3_u8, 255_u8)
 
     let rgba = expect Image.load(getTestDataPath("testa.gif"))
     Swag.require(rgba.isValid())
     Swag.require(rgba.width == 250)
     Swag.require(rgba.height == 261)
     Swag.require(rgba.pixelFormat == .RGBA8)
-    assertGifPixelAt(rgba, 0, 0, 0'u8, 0'u8, 0'u8, 0'u8)
+    assertGifPixelAt(rgba, 0, 0, 0_u8, 0_u8, 0_u8, 0_u8)
 }
 
 // Loading the first GIF image still applies limits and validates the full container.
@@ -138,8 +143,11 @@ func assertEncodedGifRoundtrip(src: Image, expectedPf: PixelFormat)
     for
     {
         let next = expect dec.nextFrame(&frame)
-        if not next do
+        if not next
+        {
             break
+        }
+
         count += 1
     }
 
@@ -461,18 +469,18 @@ func wideGifPaletteFixture(withTransparency, invalidIndex: bool)->Array'u8
 {
     var src    = Image.create(2, 2, .RGB8)
     let srcBuf = src.pixels.storage()
-    srcBuf[0]  = 10'u8
-    srcBuf[1]  = 20'u8
-    srcBuf[2]  = 30'u8
-    srcBuf[3]  = 40'u8
-    srcBuf[4]  = 50'u8
-    srcBuf[5]  = 60'u8
-    srcBuf[6]  = 70'u8
-    srcBuf[7]  = 80'u8
-    srcBuf[8]  = 90'u8
-    srcBuf[9]  = 100'u8
-    srcBuf[10] = 110'u8
-    srcBuf[11] = 120'u8
+    srcBuf[0]  = 10_u8
+    srcBuf[1]  = 20_u8
+    srcBuf[2]  = 30_u8
+    srcBuf[3]  = 40_u8
+    srcBuf[4]  = 50_u8
+    srcBuf[5]  = 60_u8
+    srcBuf[6]  = 70_u8
+    srcBuf[7]  = 80_u8
+    srcBuf[8]  = 90_u8
+    srcBuf[9]  = 100_u8
+    srcBuf[10] = 110_u8
+    srcBuf[11] = 120_u8
 
     let cb  = expect src.encode("memory.gif")
     let img = expect Image.decode("rgb.gif", nnBytes(cb.toSlice()), {})
@@ -523,23 +531,23 @@ func wideGifPaletteFixture(withTransparency, invalidIndex: bool)->Array'u8
 {
     var gray    = Image.create(2, 1, .Gray8)
     let grayBuf = gray.pixels.storage()
-    grayBuf[0] = 37'u8
-    grayBuf[1] = 219'u8
+    grayBuf[0] = 37_u8
+    grayBuf[1] = 219_u8
     let grayBytes   = expect gray.encodeToBytes("gray.gif")
     let grayDecoded = expect Image.decode("gray.gif", grayBytes.toSlice())
-    assertGifPixelAt(grayDecoded, 0, 0, 37'u8, 37'u8, 37'u8, 255'u8)
-    assertGifPixelAt(grayDecoded, 1, 0, 219'u8, 219'u8, 219'u8, 255'u8)
+    assertGifPixelAt(grayDecoded, 0, 0, 37_u8, 37_u8, 37_u8, 255_u8)
+    assertGifPixelAt(grayDecoded, 1, 0, 219_u8, 219_u8, 219_u8, 255_u8)
 
     var grayAlpha = Image.create(2, 1, .GrayAlpha8)
     let alphaBuf  = grayAlpha.pixels.storage()
-    alphaBuf[0] = 80'u8
-    alphaBuf[1] = 0'u8
-    alphaBuf[2] = 180'u8
-    alphaBuf[3] = 255'u8
+    alphaBuf[0] = 80_u8
+    alphaBuf[1] = 0_u8
+    alphaBuf[2] = 180_u8
+    alphaBuf[3] = 255_u8
     let alphaBytes   = expect grayAlpha.encodeToBytes("gray-alpha.gif")
     let alphaDecoded = expect Image.decode("gray-alpha.gif", alphaBytes.toSlice())
-    assertGifPixelAt(alphaDecoded, 0, 0, 0'u8, 0'u8, 0'u8, 0'u8)
-    assertGifPixelAt(alphaDecoded, 1, 0, 180'u8, 180'u8, 180'u8, 255'u8)
+    assertGifPixelAt(alphaDecoded, 0, 0, 0_u8, 0_u8, 0_u8, 0_u8)
+    assertGifPixelAt(alphaDecoded, 1, 0, 180_u8, 180_u8, 180_u8, 255_u8)
 }
 
 // A full grayscale ramp in the first row fixes the palette order across dictionary resets.
@@ -589,21 +597,21 @@ func wideGifPaletteFixture(withTransparency, invalidIndex: bool)->Array'u8
 {
     var src    = Image.create(2, 1, .RGBA8)
     let srcBuf = src.pixels.storage()
-    srcBuf[0] = 1'u8
-    srcBuf[1] = 2'u8
-    srcBuf[2] = 3'u8
-    srcBuf[3] = 0'u8
-    srcBuf[4] = 40'u8
-    srcBuf[5] = 50'u8
-    srcBuf[6] = 60'u8
-    srcBuf[7] = 255'u8
+    srcBuf[0] = 1_u8
+    srcBuf[1] = 2_u8
+    srcBuf[2] = 3_u8
+    srcBuf[3] = 0_u8
+    srcBuf[4] = 40_u8
+    srcBuf[5] = 50_u8
+    srcBuf[6] = 60_u8
+    srcBuf[7] = 255_u8
 
     assertEncodedGifRoundtrip(src, .RGBA8)
 
     let cb  = expect src.encode("memory.gif")
     let img = expect Image.decode("rgba.gif", nnBytes(cb.toSlice()), {})
-    assertGifPixelAt(img, 0, 0, 0'u8, 0'u8, 0'u8, 0'u8)
-    assertGifPixelAt(img, 1, 0, 40'u8, 50'u8, 60'u8, 255'u8)
+    assertGifPixelAt(img, 0, 0, 0_u8, 0_u8, 0_u8, 0_u8)
+    assertGifPixelAt(img, 1, 0, 40_u8, 50_u8, 60_u8, 255_u8)
 }
 
 // Encode BGR/BGRA source images by reading their channel layout correctly.
@@ -611,24 +619,24 @@ func wideGifPaletteFixture(withTransparency, invalidIndex: bool)->Array'u8
 {
     var bgr    = Image.create(1, 1, .BGR8)
     let bgrBuf = bgr.pixels.storage()
-    bgrBuf[0] = 30'u8
-    bgrBuf[1] = 20'u8
-    bgrBuf[2] = 10'u8
+    bgrBuf[0] = 30_u8
+    bgrBuf[1] = 20_u8
+    bgrBuf[2] = 10_u8
 
     let bgrEncoded = expect bgr.encode("memory.gif")
     let bgrDecoded = expect Image.decode("bgr.gif", nnBytes(bgrEncoded.toSlice()), {})
-    assertGifPixelAt(bgrDecoded, 0, 0, 10'u8, 20'u8, 30'u8, 255'u8)
+    assertGifPixelAt(bgrDecoded, 0, 0, 10_u8, 20_u8, 30_u8, 255_u8)
 
     var bgra    = Image.create(1, 1, .BGRA8)
     let bgraBuf = bgra.pixels.storage()
-    bgraBuf[0] = 7'u8
-    bgraBuf[1] = 8'u8
-    bgraBuf[2] = 9'u8
-    bgraBuf[3] = 10'u8
+    bgraBuf[0] = 7_u8
+    bgraBuf[1] = 8_u8
+    bgraBuf[2] = 9_u8
+    bgraBuf[3] = 10_u8
 
     let bgraEncoded = expect bgra.encode("memory.gif")
     let bgraDecoded = expect Image.decode("bgra.gif", nnBytes(bgraEncoded.toSlice()), {})
-    assertGifPixelAt(bgraDecoded, 0, 0, 0'u8, 0'u8, 0'u8, 0'u8)
+    assertGifPixelAt(bgraDecoded, 0, 0, 0_u8, 0_u8, 0_u8, 0_u8)
 }
 
 // Encode images with more than 256 colors by falling back to deterministic quantization.
@@ -672,14 +680,14 @@ func wideGifPaletteFixture(withTransparency, invalidIndex: bool)->Array'u8
     defer discard catch File.delete(path.toString())
     var src    = Image.create(1, 1, .RGB8)
     let srcBuf = src.pixels.storage()
-    srcBuf[0] = 12'u8
-    srcBuf[1] = 34'u8
-    srcBuf[2] = 56'u8
+    srcBuf[0] = 12_u8
+    srcBuf[1] = 34_u8
+    srcBuf[2] = 56_u8
 
     let cb = expect src.encode("memory.gif")
     discard expect File.writeAllBytes(path.toString(), cb)
     let img = expect Image.load(path.toString())
-    assertGifPixelAt(img, 0, 0, 12'u8, 34'u8, 56'u8, 255'u8)
+    assertGifPixelAt(img, 0, 0, 12_u8, 34_u8, 56_u8, 255_u8)
 }
 
 // A uniform palette's LZW run codes cross several code widths and clear the dictionary.

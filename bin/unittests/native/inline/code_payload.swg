@@ -4,7 +4,7 @@
 struct Host
 {
     count: u32
-    cells: InlineCodePayload.Store'u8
+    cells: InlineCodePayload.Store!{u8}
 }
 
 // The parameter order is chosen so that a callee 'index' leaking onto this frame lands on a
@@ -12,7 +12,7 @@ struct Host
 #[Swag.NoInline]
 func fill(host: *Host, shift: u64, marker: u8, n: u64)
 {
-    var i = 0'u64
+    var i = 0_u64
     for n
     {
         host.cells[i] = cast(u8, (i + shift))
@@ -24,7 +24,7 @@ func fill(host: *Host, shift: u64, marker: u8, n: u64)
 struct Table
 {
     n:       u32
-    entries: InlineCodePayload.Store'InlineCodePayload.Entry
+    entries: InlineCodePayload.Store!{InlineCodePayload.Entry}
 }
 
 impl Table
@@ -43,8 +43,10 @@ func fillTable(table: *Table)
 {
     // Unsized constants and a runtime field must all use the concrete element layout
     // when the implicit aggregate conversion is cloned into the indexed write.
-    for i in 4 do
+    for i in 4
+    {
         table.entries[i] = InlineCodePayload.Entry{1, 0xFFF, cast(u8, i)}
+    }
 }
 
 #test
@@ -52,15 +54,17 @@ func fillTable(table: *Table)
     var raw: [8] u8
     // A zero 'count' on the host: a receiver member resolved against the host instead of the
     // container makes every bound check fail.
-    var host = Host{0, InlineCodePayload.Store'u8{&raw[0], 8}}
+    var host = Host{0, InlineCodePayload.Store!{u8}{&raw[0], 8}}
     fill(&host, 100, 0xEE, 8)
 
     // Read back through the raw buffer, so a wrong store is not masked by an equally wrong read.
-    for i in 8 do
+    for i in 8
+    {
         Swag.require(raw[i] == cast(u8, (i + 100)))
+    }
 
     var ents: [4] InlineCodePayload.Entry
-    var table = Table{0, InlineCodePayload.Store'InlineCodePayload.Entry{&ents[0], 4}}
+    var table = Table{0, InlineCodePayload.Store!{InlineCodePayload.Entry}{&ents[0], 4}}
     table.add(1, 0xFFF, 7)
     table.add(2, 0, 9)
     Swag.require(ents[0].length == 1 and ents[0].prefix == 0xFFF and ents[0].suffix == 7)

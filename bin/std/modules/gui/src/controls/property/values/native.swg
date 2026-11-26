@@ -17,22 +17,22 @@ internal impl Properties
             item.sliderBox.invalidate()
             switch typeNative.nativeKind
             {
-            case .U8:  setEd'u8()
-            case .U16: setEd'u16()
-            case .U32: setEd'u32()
-            case .U64: setEd'u64()
-            case .S8:  setEd's8()
-            case .S16: setEd's16()
-            case .S32: setEd's32()
-            case .S64: setEd's64()
-            case .F32: setEd'f32()
-            case .F64: setEd'f64()
+            case .U8:  setEd!{u8}()
+            case .U16: setEd!{u16}()
+            case .U32: setEd!{u32}()
+            case .U64: setEd!{u64}()
+            case .S8:  setEd!{s8}()
+            case .S16: setEd!{s16}()
+            case .S32: setEd!{s32}()
+            case .S64: setEd!{s64}()
+            case .F32: setEd!{f32}()
+            case .F64: setEd!{f64}()
             default:   break
             }
 
             .setEditMixed(item, item.sliderBox.edit, short: true)
         }
-        elif item.editBox != null
+        else if item.editBox != null
         {
             #[Swag.Mixin]
             func(T) setEd()
@@ -44,16 +44,16 @@ internal impl Properties
             item.editBox.invalidate()
             switch typeNative.nativeKind
             {
-            case .U8:  setEd'u8()
-            case .U16: setEd'u16()
-            case .U32: setEd'u32()
-            case .U64: setEd'u64()
-            case .S8:  setEd's8()
-            case .S16: setEd's16()
-            case .S32: setEd's32()
-            case .S64: setEd's64()
-            case .F32: setEd'f32()
-            case .F64: setEd'f64()
+            case .U8:  setEd!{u8}()
+            case .U16: setEd!{u16}()
+            case .U32: setEd!{u32}()
+            case .U64: setEd!{u64}()
+            case .S8:  setEd!{s8}()
+            case .S16: setEd!{s16}()
+            case .S32: setEd!{s32}()
+            case .S64: setEd!{s64}()
+            case .F32: setEd!{f32}()
+            case .F64: setEd!{f64}()
             default:   break
             }
 
@@ -77,41 +77,41 @@ internal impl Properties
 
             switch typeNative.nativeKind
             {
-            case .U8:  setEd'u8()
-            case .U16: setEd'u16()
-            case .U32: setEd'u32()
-            case .U64: setEd'u64()
-            case .S8:  setEd's8()
-            case .S16: setEd's16()
-            case .S32: setEd's32()
-            case .S64: setEd's64()
-            case .F32: setEd'f32()
-            case .F64: setEd'f64()
+            case .U8:  setEd!{u8}()
+            case .U16: setEd!{u16}()
+            case .U32: setEd!{u32}()
+            case .U64: setEd!{u64}()
+            case .S8:  setEd!{s8}()
+            case .S16: setEd!{s16}()
+            case .S32: setEd!{s32}()
+            case .S64: setEd!{s64}()
+            case .F32: setEd!{f32}()
+            case .F64: setEd!{f64}()
             default:   break
             }
         }
-        elif item.editBox != null
+        else if item.editBox != null
         {
             #[Swag.Mixin]
             func(T) setEd()
             {
                 var p = cast(*T, unwrap data)
-                p[] = catch StrConv.toNum'T(txt) orelse 0
+                p[] = catch StrConv.toNum!{T}(txt) orelse 0
             }
 
             let txt = item.editBox.text()
             switch typeNative.nativeKind
             {
-            case .U8:  setEd'u8()
-            case .U16: setEd'u16()
-            case .U32: setEd'u32()
-            case .U64: setEd'u64()
-            case .S8:  setEd's8()
-            case .S16: setEd's16()
-            case .S32: setEd's32()
-            case .S64: setEd's64()
-            case .F32: setEd'f32()
-            case .F64: setEd'f64()
+            case .U8:  setEd!{u8}()
+            case .U16: setEd!{u16}()
+            case .U32: setEd!{u32}()
+            case .U64: setEd!{u64}()
+            case .S8:  setEd!{s8}()
+            case .S16: setEd!{s16}()
+            case .S32: setEd!{s32}()
+            case .S64: setEd!{s64}()
+            case .F32: setEd!{f32}()
+            case .F64: setEd!{f64}()
             default:   break
             }
         }
@@ -141,8 +141,10 @@ internal impl Properties
             item.assignSliderBox(slider)
 
             let unit = Reflection.attributeValue(value, .Unit, "value")
-            if unit != null do
+            if unit != null
+            {
                 slider.edit.setUnit(attributeText(unit))
+            }
 
             let minV = assume cast (f32, unwrap Reflection.attributeValue(value, .SliderMinMax, "min"))
             let maxV = assume cast (f32, unwrap Reflection.attributeValue(value, .SliderMinMax, "max"))
@@ -162,10 +164,14 @@ internal impl Properties
                 slider.setSignedBounds(cast(s64, minV), cast(s64, maxV))
 
             case .F32, .F64:
-                if whole do
+                if whole
+                {
                     slider.setSignedBounds(cast(s64, minV), cast(s64, maxV))
-                else do
+                }
+                else
+                {
                     slider.setFloatBounds(minV, maxV)
+                }
 
             default:
                 break
@@ -182,8 +188,10 @@ internal impl Properties
         }
 
         let unit = Reflection.attributeValue(value, .Unit, "value")
-        if unit != null do
+        if unit != null
+        {
             ctrl.edit.setUnit(attributeText(unit))
+        }
 
         item.assignEditBox(ctrl.edit)
 
@@ -199,22 +207,34 @@ internal impl Properties
         switch typeNative.nativeKind
         {
         case .U8, .U16, .U32, .U64:
-            if not hasMinMax do
+            if not hasMinMax
+            {
                 ctrl.edit.setUnsignedIntegerRange()
-            else do
+            }
+            else
+            {
                 ctrl.edit.setUnsignedIntegerRange(cast(u64, minV), cast(u64, maxV))
+            }
 
         case .S8, .S16, .S32, .S64:
-            if not hasMinMax do
+            if not hasMinMax
+            {
                 ctrl.edit.setSignedIntegerRange()
-            else do
+            }
+            else
+            {
                 ctrl.edit.setSignedIntegerRange(cast(s64, minV), cast(s64, maxV))
+            }
 
         case .F32, .F64:
-            if not hasMinMax do
+            if not hasMinMax
+            {
                 ctrl.edit.setFloatingPointRange()
-            else do
+            }
+            else
+            {
                 ctrl.edit.setFloatingPointRange(cast(f64, minV), cast(f64, maxV))
+            }
 
         default:
             break
@@ -227,25 +247,35 @@ internal impl Properties
 
         if .kind == .Panel
         {
-            if item.label != null do
+            if item.label != null
+            {
                 item.label.hide()
+            }
+
             .constructNativePanel(item, value, typeNative)
         }
-        elif Reflection.hasAttribute(value, .SliderMinMax)
+        else if Reflection.hasAttribute(value, .SliderMinMax)
         {
             var editWidth = cast(f32, Reflection.attributeValue(value, me.EditSize, "size", me.editorWidth))
-            if not me.isGridLike() do
+            if not me.isGridLike()
+            {
                 editWidth = me.listContentWidthFromUseful(editWidth)
+            }
+
             with let slider = SliderCtrl.create(item.line, null)
             {
                 .setLayoutMetrics(0, .valueWidth, .spacing)
                 .maxSize.x = editWidth
-                if me.isGridLike() do
+                if me.isGridLike()
+                {
                     .dockStyle = .CenterKeepSizeVert
-                else do
+                }
+                else
+                {
                     // Fixed edit width: an anchored width would drift with the resize
                     // history and break the right-edge alignment across editors
                     .preferredSize.x = editWidth
+                }
             }
 
             me.adaptCondensedControl(slider)
@@ -253,8 +283,10 @@ internal impl Properties
             item.assignSliderBox(slider)
 
             let unit = Reflection.attributeValue(value, .Unit, "value")
-            if unit != null do
+            if unit != null
+            {
                 slider.edit.setUnit(attributeText(unit))
+            }
 
             let minV = assume cast (f32, unwrap Reflection.attributeValue(value, .SliderMinMax, "min"))
             let maxV = assume cast (f32, unwrap Reflection.attributeValue(value, .SliderMinMax, "max"))
@@ -271,18 +303,27 @@ internal impl Properties
         {
             let unit      = Reflection.attributeValue(value, .Unit, "value")
             var editWidth = cast(f32, Reflection.attributeValue(value, me.EditSize, "size", me.editorWidth))
-            if not me.isGridLike() do
+            if not me.isGridLike()
+            {
                 editWidth = me.listContentWidthFromUseful(editWidth)
+            }
 
             with let ed = EditBox.create(item.line, value.name)
             {
-                if unit != null do
+                if unit != null
+                {
                     .setUnit(attributeText(unit))
+                }
+
                 .maxSize.x = editWidth
-                if me.isGridLike() do
+                if me.isGridLike()
+                {
                     .dockStyle = .CenterKeepSizeVert
-                else do
+                }
+                else
+                {
                     .preferredSize.x = editWidth
+                }
             }
 
             me.adaptCondensedControl(ed)
@@ -301,58 +342,94 @@ internal impl Properties
             switch typeNative.nativeKind
             {
             case .U8:
-                if not hasMinMax do
+                if not hasMinMax
+                {
                     ed.setUnsignedIntegerRange(Swag.U8.Min, Swag.U8.Max)
-                else do
+                }
+                else
+                {
                     ed.setUnsignedIntegerRange(cast(u64, minV), cast(u64, maxV))
+                }
 
             case .U16:
-                if not hasMinMax do
+                if not hasMinMax
+                {
                     ed.setUnsignedIntegerRange(Swag.U16.Min, Swag.U16.Max)
-                else do
+                }
+                else
+                {
                     ed.setUnsignedIntegerRange(cast(u64, minV), cast(u64, maxV))
+                }
 
             case .U32:
-                if not hasMinMax do
+                if not hasMinMax
+                {
                     ed.setUnsignedIntegerRange(Swag.U32.Min, Swag.U32.Max)
-                else do
+                }
+                else
+                {
                     ed.setUnsignedIntegerRange(cast(u64, minV), cast(u64, maxV))
+                }
 
             case .U64:
-                if not hasMinMax do
+                if not hasMinMax
+                {
                     ed.setUnsignedIntegerRange(Swag.U64.Min, Swag.U64.Max)
-                else do
+                }
+                else
+                {
                     ed.setUnsignedIntegerRange(cast(u64, minV), cast(u64, maxV))
+                }
 
             case .S8:
-                if not hasMinMax do
+                if not hasMinMax
+                {
                     ed.setSignedIntegerRange(Swag.S8.Min, Swag.S8.Max)
-                else do
+                }
+                else
+                {
                     ed.setSignedIntegerRange(cast(s64, minV), cast(s64, maxV))
+                }
 
             case .S16:
-                if not hasMinMax do
+                if not hasMinMax
+                {
                     ed.setSignedIntegerRange(Swag.S16.Min, Swag.S16.Max)
-                else do
+                }
+                else
+                {
                     ed.setSignedIntegerRange(cast(s64, minV), cast(s64, maxV))
+                }
 
             case .S32:
-                if not hasMinMax do
+                if not hasMinMax
+                {
                     ed.setSignedIntegerRange(Swag.S32.Min, Swag.S32.Max)
-                else do
+                }
+                else
+                {
                     ed.setSignedIntegerRange(cast(s64, minV), cast(s64, maxV))
+                }
 
             case .S64:
-                if not hasMinMax do
+                if not hasMinMax
+                {
                     ed.setSignedIntegerRange(Swag.S64.Min, Swag.S64.Max)
-                else do
+                }
+                else
+                {
                     ed.setSignedIntegerRange(cast(s64, minV), cast(s64, maxV))
+                }
 
             case .F32, .F64:
-                if not hasMinMax do
+                if not hasMinMax
+                {
                     ed.setFloatingPointRange()
-                else do
+                }
+                else
+                {
                     ed.setFloatingPointRange(cast(f64, minV), cast(f64, maxV))
+                }
 
             default:
                 break
@@ -369,14 +446,18 @@ internal impl Properties
             item.sliderBox.slider.sigStartChange += func|prop = me, item|(_) { prop.beginItemDrag(item) }
             item.sliderBox.slider.sigEndChange   += func|prop = me|(_) { prop.endItemDrag() }
         }
-        elif item.editBox != null
+        else if item.editBox != null
         {
             item.editBox.sigCommitted += func|prop = me, item|(ed)
             {
-                if ed.isValid() do
+                if ed.isValid()
+                {
                     prop.validateNative(item)
-                else do
+                }
+                else
+                {
                     ed.restoreOriginalText()
+                }
             }
         }
     }

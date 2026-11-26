@@ -3,7 +3,7 @@
 using Core, Core.Errors
 
 // Decodes a sound to interleaved PCM16 through the device-independent path.
-private func opusDecodeAll(sound: const *SoundFile)->Array's16 fail
+private func opusDecodeAll(sound: const *SoundFile)->Array!{s16} fail
 {
     var result: #returntype
     try sound.decodePcm16(func|result = &result|(samples: const [..] s16)->bool
@@ -32,9 +32,9 @@ private func opusAssertCloseTo(name: string, channels: u32, tolerance: f64)
     Swag.require(decoded.count * #sizeof(s16) == wanted.count)
 
     let wantedAt = cast(const [*] s16, wanted.storage())
-    var energy   = 0.0'f64
-    var worst    = 0.0'f64
-    var worstAt  = 0'u64
+    var energy   = 0.0_f64
+    var worst    = 0.0_f64
+    var worstAt  = 0_u64
     for index in decoded.count
     {
         let difference = cast(f64, decoded[index]) - cast(f64, wantedAt[index])
@@ -46,9 +46,12 @@ private func opusAssertCloseTo(name: string, channels: u32, tolerance: f64)
         }
     }
 
-    let rms = Math.sqrt(energy / cast(f64, decoded.count)) / 32768.0'f64
-    if rms > tolerance do
+    let rms = Math.sqrt(energy / cast(f64, decoded.count)) / 32768.0_f64
+    if rms > tolerance
+    {
         Swag.print("opus ", name, ": rms ", rms, " over ", decoded.count, " samples, worst ", worst, " at ", worstAt, "\n")
+    }
+
     Swag.require(rms <= tolerance)
 }
 
@@ -115,27 +118,27 @@ private func opusAssertCloseTo(name: string, channels: u32, tolerance: f64)
 // coding, at the fullband the music application selects.
 #test
 {
-    opusAssertCloseTo("opus-stereo-48000", 2, 0.00001'f64)
+    opusAssertCloseTo("opus-stereo-48000", 2, 0.00001_f64)
 }
 
 // A mono tone at a voice bitrate: SILK alone, in its integer arithmetic, through the resampler.
 #test
 {
-    opusAssertCloseTo("opus-mono-silk", 1, 0.0'f64)
+    opusAssertCloseTo("opus-mono-silk", 1, 0.0_f64)
 }
 
 // Stereo voice at a middle bitrate: hybrid frames, the mid/side coding of SILK, the CELT bands
 // above it, and the switches to CELT and back with their redundant frames.
 #test
 {
-    opusAssertCloseTo("opus-stereo-hybrid", 2, 0.00001'f64)
+    opusAssertCloseTo("opus-stereo-hybrid", 2, 0.00001_f64)
 }
 
 // Clicks over noise in 10 ms frames, which make the encoder use short blocks and transient
 // shaping.
 #test
 {
-    opusAssertCloseTo("opus-transient-48000", 2, 0.00001'f64)
+    opusAssertCloseTo("opus-transient-48000", 2, 0.00001_f64)
 }
 
 // The reader indexes runs of pages, the header's pre-skip becomes the leading trim, and the last
@@ -146,9 +149,12 @@ private func opusAssertCloseTo(name: string, channels: u32, tolerance: f64)
     Swag.require(sound.sampleFrameCount() == 48_000)
     Swag.require(sound.leadingTrim == 312)
     Swag.require(sound.speakerChannelMask() == 0x0003)
-    var total = 0'u64
-    for index in sound.packetCount() do
+    var total = 0_u64
+    for index in sound.packetCount()
+    {
         total += (expect sound.packet(index)).sampleFrameCount
+    }
+
     Swag.require(total == 48_000 + 312)
 }
 
@@ -160,8 +166,8 @@ private func opusAssertCloseTo(name: string, channels: u32, tolerance: f64)
                                    Format.toString("audio-opus-frame-codes-%.bin", Guid64.random()).toString())
     defer discard catch File.delete(path.toString())
 
-    var bytes:   Array'u8
-    var packets: Array'SoundPacket
+    var bytes:   Array!{u8}
+    var packets: Array!{SoundPacket}
     const Frames: [4] u32    = [960, 1920, 1920, 1920]
     const Codes:  [4] [2] u8 = [[0x08, 0], [0x09, 0], [0x0A, 0], [0x0B, 2]]
     const Sizes:  [4] u32    = [1, 1, 2, 2]
@@ -174,17 +180,19 @@ private func opusAssertCloseTo(name: string, channels: u32, tolerance: f64)
 
     expect File.writeAllBytes(path.toString(), bytes.toSlice())
 
-    const TotalFrames = 6_720'u64
+    const TotalFrames = 6_720_u64
     let sound = expect SoundFile.openPacketStream(path.toString(), .Opus, 48_000, 1, TotalFrames, packets.toSlice(), configSound.decoderConfig.toSlice())
-    var decoded: Array's16
+    var decoded: Array!{s16}
     expect sound.decodePcm16(func|decoded = &decoded|(part: const [..] s16)->bool
     {
         decoded.add(part)
         return true
     })
     Swag.require(decoded.count == TotalFrames)
-    for sample in decoded do
+    for sample in decoded
+    {
         Swag.require(sample == 0)
+    }
 }
 
 // A one-byte DTX frame keeps CELT's overlap history available to the following mode change.
@@ -197,13 +205,13 @@ private func opusAssertCloseTo(name: string, channels: u32, tolerance: f64)
     defer discard catch File.delete(path.toString())
 
     let raw           = expect File.readAllBytes(sourcePath)
-    var bytes:   Array'u8
-    var packets: Array'SoundPacket
-    var current: Array'u8
-    var offset        = 0'u64
-    var packetIndex   = 0'u64
-    var headerPackets = 2'u32
-    var frameCount    = 0'u64
+    var bytes:   Array!{u8}
+    var packets: Array!{SoundPacket}
+    var current: Array!{u8}
+    var offset        = 0_u64
+    var packetIndex   = 0_u64
+    var headerPackets = 2_u32
+    var frameCount    = 0_u64
     while offset < raw.count
     {
         let segmentCount = cast(u64, raw[offset + 26])
@@ -253,7 +261,7 @@ private func opusAssertCloseTo(name: string, channels: u32, tolerance: f64)
                                                   source.decoderConfig.toSlice(),
                                                   PacketStreamOptions{leadingTrimFrames: source.leadingTrim,
                                                                       trailingTrimFrames: source.trailingTrim})
-    var decoded: Array's16
+    var decoded: Array!{s16}
     expect sound.decodePcm16(func|decoded = &decoded|(samples: const [..] s16)->bool
     {
         decoded.add(samples)
@@ -283,13 +291,15 @@ private func opusAssertCloseTo(name: string, channels: u32, tolerance: f64)
     let voice  = expect Voice.create(&sound)
     defer voice.destroy()
 
-    const Target = 30_000'u64
+    const Target = 30_000_u64
     expect voice.seekSampleFrame(Target)
     let decoded = expect voice.readBuffer()
     Swag.require(decoded.buffer != null and decoded.size >= 32 * 2 * #sizeof(s16))
     let samples = cast(const [*] s16, decoded.buffer)
-    for index in 32 * 2 do
+    for index in 32 * 2
+    {
         Swag.require(samples[index] == wanted[Target * 2 + index])
+    }
 }
 
 // A stream whose header announces a channel mapping the decoder does not implement fails on its
@@ -308,9 +318,13 @@ private func opusAssertCloseTo(name: string, channels: u32, tolerance: f64)
     Swag.require(bytes[28 + 18] == 0)
     bytes[28 + 18] = 1
     let firstPage = expect Ogg.readPageHeader(bytes.toSlice(), 0)
-    let checksum  = Ogg.pageChecksum(bytes.toSlice()[0 until firstPage.totalBytes()])
-    for i in 4 do
+    let table     = Ogg.buildChecksumTable()
+    let checksum  = Ogg.pageChecksum(bytes.toSlice()[0 until firstPage.totalBytes()], table)
+    for i in 4
+    {
         bytes[22 + i] = cast(u8, ((checksum >> cast(u32, (8 * i))) & 0xFF))
+    }
+
     expect File.writeAllBytes(path.toString(), bytes.toSlice())
     var errOutcome: Swag.Error
     discard catch SoundFile.load(path.toString()) as errOutcome

@@ -4,7 +4,7 @@ using Core
 
 namespace Integration
 {
-    const PreviewContainerSize = 512'u64 * 1024 * 1024
+    const PreviewContainerSize = 512_u64 * 1024 * 1024
 
     #[Swag.Propagate]
     func runPreviewMount() fail
@@ -21,8 +21,10 @@ namespace Integration
 
         // The external stop file releases the test drive when its owner is done inspecting it.
         let stopPath = Path.combine(box.root, "stop")
-        while not File.exists(stopPath) do
-            Threading.Thread.sleep(250'ms)
+        while not File.exists(stopPath)
+        {
+            Threading.Thread.sleep(250_ms)
+        }
 
         box.closeSandbox()
     }

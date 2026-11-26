@@ -57,7 +57,7 @@ using Core
 
 var sink = try ByteSink.createFile("clip.avi")
 let sizeField = sink.position()
-try sink.writeLittleEndian(0'u32)
+try sink.writeLittleEndian(0_u32)
 // ... frames ...
 try sink.patch(sizeField, sizeBytes)
 try sink.close()
@@ -109,10 +109,12 @@ for
         // Rescan the complete tree because native records were lost.
         continue
     }
-    if batch.status == .Cancelled do
+    if batch.status == .Cancelled {
         break
-    for change in batch.changes do
+    }
+    for change in batch.changes {
         Console.println(change.path)
+    }
 }
 ```
 
@@ -146,7 +148,7 @@ struct Status
 }
 
 var output: ConcatBuffer
-var encoder: Serialization.Encoder'Serialization.Write.Xml
+var encoder: Serialization.Encoder!{Serialization}.Write.Xml
 try encoder.writeAll(&output, Status{true, 3})
 let xml = output.toString()
 ```

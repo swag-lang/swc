@@ -11,8 +11,14 @@ impl JitReverseBox
 
     mtd const opCompare(other: s32)->s32
     {
-        if .value < other do return -1
-        if .value > other do return 1
+        if .value < other
+        {
+            return -1
+        }
+        if .value > other
+        {
+            return 1
+        }
         return 0
     }
 }

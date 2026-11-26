@@ -13,13 +13,13 @@ alias Builder = func||(*Page)
 // Identifies what a row of an option sheet shows and does.
 enum RowKind
 {
-    Link        // Names a setting with its current value, and opens the page of its choices.
-    Choice      // One value of a setting, checked when it is the value in force.
-    Toggle      // A setting that is on or off, switched in place.
-    Stepper     // A value stepped down or up in place.
-    Segments    // An exclusive choice presented side by side.
-    Action      // A command run at once, such as resetting a setting.
-    Heading     // Title of the group of rows that follows; never focused.
+    Link         // Names a setting with its current value, and opens the page of its choices.
+    Choice       // One value of a setting, checked when it is the value in force.
+    Toggle       // A setting that is on or off, switched in place.
+    Stepper      // A value stepped down or up in place.
+    Segments     // An exclusive choice presented side by side.
+    Action       // A command run at once, such as resetting a setting.
+    Heading      // Title of the group of rows that follows; never focused.
 }
 
 // One row of an option sheet page, as its builder described it.
@@ -27,19 +27,19 @@ struct Row
 {
     public readonly
     {
-        kind:        RowKind        // What the row shows and does.
-        label:       RichString     // Wording of the row.
-        value:       RichString     // Current value of a link or a stepper, written after the label.
-        detail:      RichString     // Second line under the wording of a choice, or empty.
-        icon:        Icon           // Glyph before a link, action or toggle, or after a choice; invalid for none.
-        checked:     bool           // Whether a choice is the value in force, or a toggle is on.
-        critical:    bool           // Whether an enabled command uses the theme critical ink for content removal.
-        disabled:    bool           // Whether the row cannot be activated.
-        canDecrease: bool           // Whether a stepper can step down.
-        canIncrease: bool           // Whether a stepper can step up.
-        closesSheet: bool           // Whether an action closes the sheet and runs once it is gone.
-        segments:    Array'String   // Values of a segmented choice, in display order.
-        selected:    u32            // Index of the value in force in a segmented choice.
+        kind:        RowKind            // What the row shows and does.
+        label:       RichString         // Wording of the row.
+        value:       RichString         // Current value of a link or a stepper, written after the label.
+        detail:      RichString         // Second line under the wording of a choice, or empty.
+        icon:        Icon               // Glyph before a link, action or toggle, or after a choice; invalid for none.
+        checked:     bool               // Whether a choice is the value in force, or a toggle is on.
+        critical:    bool               // Whether an enabled command uses the theme critical ink for content removal.
+        disabled:    bool               // Whether the row cannot be activated.
+        canDecrease: bool               // Whether a stepper can step down.
+        canIncrease: bool               // Whether a stepper can step up.
+        closesSheet: bool               // Whether an action closes the sheet and runs once it is gone.
+        segments:    Array!{String}     // Values of a segmented choice, in display order.
+        selected:    u32                // Index of the value in force in a segmented choice.
     }
 
     open:   Builder?
@@ -82,7 +82,7 @@ struct Page
         // elsewhere unless its builder names it.
         title: String
 
-        readonly rows: Array'Row     // Rows added by the builder, in display order.
+        readonly rows: Array!{Row}     // Rows added by the builder, in display order.
     }
 }
 
@@ -93,17 +93,24 @@ impl Page
     // calls `choose` with its index and leaves the sheet open. Empty `labels` add no row.
     mtd addSegments(label: string, labels: const [..] string, selected: u32, choose: func||(u32))
     {
-        if not labels.count do
+        if not labels.count
+        {
             return
+        }
+
         with var row: Row
         {
             .kind = .Segments
             .label.set(label)
-            for name in labels do
+            for name in labels
+            {
                 .segments.add(name)
+            }
+
             .selected = selected < labels.count ? selected : Swag.U32.Max
-            .select = choose
+            .select   = choose
         }
+
         .rows.add(#move row)
     }
 
@@ -216,23 +223,33 @@ impl Page
     mtd addCommand(id: WndId, target: *Wnd)
     {
         let state = target.sendComputeCommandStateEvent(id)
-        if state.updatedFields.has(.Hidden) and state.hidden do
+        if state.updatedFields.has(.Hidden) and state.hidden
+        {
             return
+        }
 
         let label    = commandLabel(&state)
         let disabled = state.updatedFields.has(.Disabled) and state.disabled
         let checked  = state.updatedFields.has(.Checked) and state.checked
-        if state.updatedFields.has(.RenderingHint) and state.renderingHint.has(.ExclusiveGroup) do
+        if state.updatedFields.has(.RenderingHint) and state.renderingHint.has(.ExclusiveGroup)
+        {
             .addChoice(label, checked, func|target, id|() { target.sendCommandEvent(id) }, disabled: disabled)
-        elif state.updatedFields.has(.Checked) do
+        }
+        else if state.updatedFields.has(.Checked)
+        {
             .addToggle(label, checked, func|target, id|(_) { target.sendCommandEvent(id) }, disabled: disabled)
-        else do
+        }
+        else
+        {
             .addAction(label, func|target, id|() { target.sendCommandEvent(id) }, disabled: disabled)
+        }
 
         let row = .rows.backPtr()
         row.critical = state.updatedFields.has(.RenderingHint) and state.renderingHint.has(.Critical)
-        if state.updatedFields.has(.Icon) do
+        if state.updatedFields.has(.Icon)
+        {
             row.icon = state.icon
+        }
     }
 
     // Adds a link worded `label` to a page holding the commands `ids` of `target`.
@@ -257,8 +274,10 @@ impl Page
                  value,
                  func|ids, target|(page)
                  {
-                     for id in ids do
+                     for id in ids
+                     {
                          page.addCommand(id, target)
+                     }
                  },
                  icon)
     }
@@ -299,7 +318,10 @@ impl Page
 // Returns the wording a command state gives its command, preferring its long form like a menu does.
 private func commandLabel(state: const *CommandStateEvent)->string
 {
-    if state.updatedFields.has(.LongName) do
+    if state.updatedFields.has(.LongName)
+    {
         return state.longName
+    }
+
     return state.name
 }

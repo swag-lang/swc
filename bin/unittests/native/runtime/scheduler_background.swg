@@ -2,7 +2,7 @@
 
 func roomySample()->Swag.WorkPressure
 {
-    const GiB = 1024'u64 * 1024 * 1024
+    const GiB = 1024_u64 * 1024 * 1024
     return {cpuValid: true, memoryValid: true, totalTicks: 1000, idleTicks: 900,
             physicalBytes: 32 * GiB, availableBytes: 24 * GiB,
             commitBytes: 48 * GiB, availableCommitBytes: 32 * GiB}
@@ -92,12 +92,14 @@ func pauseObserver()
     discard condition.waitFor(&mutex, 1)
 }
 
-func awaitValue(value: *Swag.AtomicValue'u32, expected: u32)->bool
+func awaitValue(value: *Swag.AtomicValue!{u32}, expected: u32)->bool
 {
     for 3000
     {
-        if value.load() == expected do
+        if value.load() == expected
+        {
             return true
+        }
         pauseObserver()
     }
     return false
@@ -107,14 +109,14 @@ func awaitValue(value: *Swag.AtomicValue'u32, expected: u32)->bool
 #test
 {
     Swag.setWorkerCount(4)
-    var tasks: [16] Swag.Task'u32
+    var tasks: [16] Swag.Task!{u32}
     for round in 32
     {
         for index in 16
         {
             tasks[index].submit(func|index|()->u32
             {
-                var child: Swag.Task'u32
+                var child: Swag.Task!{u32}
                 child.submit(func|index|()->u32 => cast(u32, index) + 1, priority: .Background)
                 return expect child.take()
             }, priority: round % 2 == 0 ? Swag.TaskPriority.Background : Swag.TaskPriority.Normal)
@@ -138,8 +140,10 @@ func awaitValue(value: *Swag.AtomicValue'u32, expected: u32)->bool
 // pass older ones. Targeted joins still help their child while the shared budget is full.
 #test
 {
-    if Swag.jit() do
+    if Swag.jit()
+    {
         return
+    }
     Swag.setWorkerCount(4)
     Swag.startWorkers()
     Swag.drainWork()
@@ -159,7 +163,7 @@ func awaitValue(value: *Swag.AtomicValue'u32, expected: u32)->bool
     }
 
     var release: Swag.AtomicFlag
-    var running, foreground, completed: Swag.AtomicValue'u32
+    var running, foreground, completed: Swag.AtomicValue!{u32}
     var order:   [8] u32
     var first, normal, helped: Swag.Task
     var queued:  [8] Swag.Task
@@ -169,15 +173,19 @@ func awaitValue(value: *Swag.AtomicValue'u32, expected: u32)->bool
         first.wait()
         normal.wait()
         helped.wait()
-        for &task in queued do
+        for &task in queued
+        {
             task.wait()
+        }
     }
 
     first.submit(func|&running, &release|()
     {
         running.store(1)
-        while not release.isRaised() do
+        while not release.isRaised()
+        {
             pauseObserver()
+        }
     }, priority: .Background)
     let started = awaitValue(&running, 1)
     for index in 8
@@ -201,32 +209,42 @@ func awaitValue(value: *Swag.AtomicValue'u32, expected: u32)->bool
     let waited = helped.waitUnlessCancelled()
     Swag.require(waited and foreground.load() == 3 and completed.load() == 0)
 
-    var demanded: [2] Swag.Task'u32
-    for index in 2 do
+    var demanded: [2] Swag.Task!{u32}
+    for index in 2
+    {
         demanded[index].submit(func|index|()->u32 => cast(u32, index), priority: .Background)
+    }
     expect Swag.whenAll(demanded)
     for index in 2
     {
         let value = expect demanded[index].take()
         Swag.require(value == index)
     }
-    for index in 2 do
+    for index in 2
+    {
         demanded[index].submit(func|index|()->u32 => cast(u32, index), priority: .Background)
+    }
     let winner = expect Swag.whenAny(demanded)
     Swag.require(winner < 2)
-    for &task in demanded do
+    for &task in demanded
+    {
         task.wait()
+    }
     Swag.require(completed.load() == 0)
 
     release.raise()
     // Observe completion without claiming queued nodes, so the worker admission path is tested.
     let drained = awaitValue(&completed, 8)
     Swag.require(drained)
-    for index in 8 do
+    for index in 8
+    {
         Swag.require(order[index] == index)
+    }
     first.wait()
-    for &task in queued do
+    for &task in queued
+    {
         task.wait()
+    }
     scheduler.mutex.lock()
     let remaining = scheduler.backgroundRunning
     scheduler.mutex.unlock()

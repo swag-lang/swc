@@ -19,11 +19,13 @@ func isLow(c: u8)->bool => c <= 31
 #[Swag.Optimize(true), Swag.NoInline]
 func countUpper(text: const [..] u8)->u32
 {
-    var count = 0'u32
+    var count = 0_u32
     for c in text
     {
-        if c >= 'A' and c <= 'Z' do
+        if c >= 'A' and c <= 'Z'
+        {
             count += 1
+        }
     }
     return count
 }

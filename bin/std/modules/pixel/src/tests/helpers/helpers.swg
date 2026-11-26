@@ -89,10 +89,12 @@ func assertPixel(img: Image, x, y: s32, argb: u32)
 func contourArea(contour: Pixel.Clipper.ClipperPath)->f64
 {
     let count = contour.count
-    if count < 3 do
+    if count < 3
+    {
         return 0
+    }
 
-    var total = 0.0'f64
+    var total = 0.0_f64
     var prev  = count - 1
     for i in count
     {
@@ -106,9 +108,12 @@ func contourArea(contour: Pixel.Clipper.ClipperPath)->f64
 // Area of the region a clipping solution covers, whatever orientation the solver gave its contours.
 func solutionArea(paths: Pixel.Clipper.ClipperPaths)->f64
 {
-    var total = 0.0'f64
-    for path in paths do
+    var total = 0.0_f64
+    for path in paths
+    {
         total += contourArea(path)
+    }
+
     return Math.abs(total)
 }
 
@@ -128,41 +133,43 @@ func assertSvgMaskRaster(renderer: IRenderer, sampleTileSide: s32, ink: string)
     let referenceSource = Format.toString("<svg width='91' height='75'>%<rect x='160' width='1' height='1' fill='red'/></svg>", content)
     let drawing         = expect Svg.Drawing.parse(source.toString())
     let reference       = expect Svg.Drawing.parse(referenceSource.toString())
-    for samples in [1'u8, 2'u8, 4'u8, 8'u8]
+    for samples in [1_u8, 2_u8, 4_u8, 8_u8]
     {
         let image    = drawing.rasterizeWithSampleTileSide(renderer, 91, 75, samples, sampleTileSide)
         let expected = reference.rasterizeWithSampleTileSide(renderer, 91, 75, samples, sampleTileSide)
-        Swag.require(image.isValid() and expected.isValid())
-        Swag.require(image.pixels.count == expected.pixels.count)
-        for value, index in image.pixels do
-            Swag.require(value == expected.pixels[index], Format.toString("SVG % mask differs at sample count %, byte %. Got %, expected %.", ink, samples, index, value, expected.pixels[index]))
+        for value, index in image.pixels
+        {
+            Swag.require(value == expected.pixels[index], Format.toString("SVG white mask differs at sample count %, byte %: got %, expected %", samples, index, value, expected.pixels[index]))
+        }
     }
 }
 
 // Reuse the existing font fixture. The second copy declares style traits in head.macStyle;
 // its weight and italic trait make selection observable without adding another font binary.
-func makeTypeFaceCollection(secondWeight: u16 = 400, secondItalic: bool = false)->Array'u8
+func makeTypeFaceCollection(secondWeight: u16 = 400, secondItalic: bool = false)->Array!{u8}
 {
-    func read32(bytes: *Array'u8, offset: u64)->u32 => cast(u32, bytes[offset]) << 24 |
-                                                       cast(u32, bytes[offset + 1]) << 16 |
-                                                       cast(u32, bytes[offset + 2]) << 8 |
-                                                       bytes[offset + 3]
+    func read32(bytes: *Array!{u8}, offset: u64)->u32 => cast(u32, bytes[offset]) << 24 |
+                                                         cast(u32, bytes[offset + 1]) << 16 |
+                                                         cast(u32, bytes[offset + 2]) << 8 |
+                                                         bytes[offset + 3]
 
-    func write32(bytes: *Array'u8, offset: u64, value: u32)
+    func write32(bytes: *Array!{u8}, offset: u64, value: u32)
     {
-        for index in 4 do
+        for index in 4
+        {
             bytes[offset + index] = cast(u8, (value >> ((3 - index) * 8)) & 255)
+        }
     }
 
     let source = expect File.readAllBytes(getTestDataPath("segoeui.ttf"))
-    var bytes: Array'u8
+    var bytes: Array!{u8}
     bytes.resize(20)
     write32(&bytes, 0, 0x74746366)
     write32(&bytes, 4, 0x00010000)
     write32(&bytes, 8, 2)
     for index in 2
     {
-        bytes.resize((bytes.count + 3) & ~3'u64)
+        bytes.resize((bytes.count + 3) & ~3_u64)
         let offset = cast(u32, bytes.count)
         write32(&bytes, 12 + index * 4, offset)
         bytes.add(source.toSlice())
@@ -177,11 +184,14 @@ func makeTypeFaceCollection(secondWeight: u16 = 400, secondItalic: bool = false)
             {
                 bytes[target + 44] = 0
                 bytes[target + 45] = cast(u8, index)
-                if index == 1 and secondItalic do
+                if index == 1 and secondItalic
+                {
                     bytes[target + 45] |= 2
+                }
+
                 foundHead = true
             }
-            elif index == 1 and read32(&bytes, record) == 0x4F532F32
+            else if index == 1 and read32(&bytes, record) == 0x4F532F32
             {
                 bytes[target + 4] = cast(u8, secondWeight >> 8)
                 bytes[target + 5] = cast(u8, secondWeight & 255)
@@ -197,28 +207,28 @@ func makeTypeFaceCollection(secondWeight: u16 = 400, secondItalic: bool = false)
 // Reuse our own fixture's outlines with a deliberately small Unicode map. No test depends
 // on an optional installed font. The supplementary rune deliberately maps to V so a mistaken
 // cross-face A/V kerning lookup is observable, independently of any system font's coverage.
-func makeFallbackTestBytes(symbols: bool)->Array'u8 fail
+func makeFallbackTestBytes(symbols: bool)->Array!{u8} fail
 {
     let original = try TypeFace.load(getTestDataPath("segoeui.ttf"))
     var bytes    = try File.readAllBytes(getTestDataPath("segoeui.ttf"))
     var reader   = ByteStream.openRead(bytes.toSlice())
     reader.setPosition(4)
-    let tables            = try reader.readBigEndian'u16()
-    var directory         = 0'u64
-    var horizontalMetrics = 0'u32
+    let tables            = try reader.readBigEndian!{u16}()
+    var directory         = 0_u64
+    var horizontalMetrics = 0_u32
     for index in tables
     {
         let offset = 12 + cast(u64, index) * 16
         reader.setPosition(offset)
-        let tag = try reader.readBigEndian'u32()
+        let tag = try reader.readBigEndian!{u32}()
         if tag == 0x636D6170
         {
             directory = offset
         }
-        elif tag == 0x68686561
+        else if tag == 0x68686561
         {
             reader.setPosition(offset + 8)
-            horizontalMetrics = try reader.readBigEndian'u32()
+            horizontalMetrics = try reader.readBigEndian!{u32}()
         }
     }
 
@@ -227,22 +237,22 @@ func makeFallbackTestBytes(symbols: bool)->Array'u8 fail
     let offset = bytes.count
     var writer = ByteStream.openWrite(&bytes)
     writer.setPosition(offset)
-    writer.writeBigEndian(0'u16)
-    writer.writeBigEndian(1'u16)
-    writer.writeBigEndian(3'u16)
-    writer.writeBigEndian(10'u16)
-    writer.writeBigEndian(12'u32)
-    writer.writeBigEndian(12'u16)
-    writer.writeBigEndian(0'u16)
-    let count = symbols ? 5'u32 : 3'u32
-    writer.writeBigEndian(16'u32 + count * 12)
-    writer.writeBigEndian(0'u32)
+    writer.writeBigEndian(0_u16)
+    writer.writeBigEndian(1_u16)
+    writer.writeBigEndian(3_u16)
+    writer.writeBigEndian(10_u16)
+    writer.writeBigEndian(12_u32)
+    writer.writeBigEndian(12_u16)
+    writer.writeBigEndian(0_u16)
+    let count = symbols ? 5_u32 : 3_u32
+    writer.writeBigEndian(16_u32 + count * 12)
+    writer.writeBigEndian(0_u32)
     writer.writeBigEndian(count)
-    const codes = [' 'rune, 'A'rune, 'V'rune, '\u2192'rune, '\U0001F680'rune]
+    const codes = [' '_rune, 'A'_rune, 'V'_rune, '\u2192'_rune, '\U0001F680'_rune]
     for index in count
     {
         let code  = codes[index]
-        let glyph = original.face.glyphIndex(code == '\U0001F680'rune ? 'V'rune : code)
+        let glyph = original.face.glyphIndex(code == '\U0001F680'_rune ? 'V'_rune : code)
         Swag.require(glyph != 0)
         writer.writeBigEndian(cast(u32, code))
         writer.writeBigEndian(cast(u32, code))
@@ -259,8 +269,8 @@ func makeFallbackTestBytes(symbols: bool)->Array'u8 fail
         // face explicitly needs a different top coordinate to retain the primary baseline.
         Swag.require(horizontalMetrics != 0)
         writer.setPosition(horizontalMetrics + 4)
-        writer.writeBigEndian(800'u16)
-        writer.writeBigEndian(0xFF9C'u16)     // Signed descender: -100 font units.
+        writer.writeBigEndian(800_u16)
+        writer.writeBigEndian(0xFF9C_u16)     // Signed descender: -100 font units.
     }
 
     return bytes
@@ -278,8 +288,11 @@ func testSourceRoot(loc: Swag.SourceCodeLocation = #callerlocation)->String
     var directory = Path.directoryName(loc.fileName)
     while directory != null
     {
-        if Path.fileName(directory) == "cases" or Path.fileName(directory) == "helpers" do
+        if Path.fileName(directory) == "cases" or Path.fileName(directory) == "helpers"
+        {
             return unwrap Path.directoryName(directory)
+        }
+
         directory = Path.directoryName(directory)
     }
 

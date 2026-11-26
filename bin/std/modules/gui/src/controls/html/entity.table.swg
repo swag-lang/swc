@@ -2255,4 +2255,4 @@ const HtmlLegacyRefs: [106] HtmlNamedRef = [
     HtmlNamedRef{"yuml", 0x00FF, 0x0000}]
 
 // The longest name either table holds, which bounds every scan for a reference.
-const HtmlMaxRefName = 31'u64
+const HtmlMaxRefName = 31_u64

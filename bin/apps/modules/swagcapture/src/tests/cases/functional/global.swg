@@ -5,7 +5,7 @@ using Swag, Core
 
 func testSetupGlobalMain(main: *MainWnd)
 {
-    with main.editArea = Wnd.create'Wnd(main)
+    with main.editArea = Wnd.create!{Wnd}(main)
     {
         .dockStyle = .Center
     }
@@ -86,20 +86,20 @@ func testSetupGlobalMain(main: *MainWnd)
     Swag.require(lineCell.id == ActionToolMode.Arrow and f.main.editMode == .Arrow)
 
     var evt = Gui.Testing.commandState(ActionGlobal.ShowLibrary)
-    Swag.require(Gui.Testing.actionUpdate'ActionGlobal(f.main, ActionGlobal.ShowLibrary, &evt))
+    Swag.require(Gui.Testing.actionUpdate!{ActionGlobal}(f.main, ActionGlobal.ShowLibrary, &evt))
     Swag.require(not evt.name.isEmpty())
     Swag.require(evt.updatedFields.has(.Icon) and evt.icon.isValid())
     Swag.require(not evt.checked)
     Swag.require(f.main.icon(.RatingStar, RatingGlyphSize).isValid())
 
     var copyImage = Gui.Testing.commandState(ActionCopyPaste.CopyAsImage)
-    Swag.require(Gui.Testing.actionUpdate'ActionCopyPaste(f.main, ActionCopyPaste.CopyAsImage, &copyImage))
+    Swag.require(Gui.Testing.actionUpdate!{ActionCopyPaste}(f.main, ActionCopyPaste.CopyAsImage, &copyImage))
     Swag.require(copyImage.updatedFields.has(.Icon) and copyImage.icon.isValid())
 
     // The library is a lens entry: the work area, with the dock and the inspector it carries,
     // leaves while the library is on screen.
     f.gui.surface.show()
-    Swag.require(Gui.Testing.actionExecute'ActionGlobal(f.main, ActionGlobal.ShowLibrary))
+    Swag.require(Gui.Testing.actionExecute!{ActionGlobal}(f.main, ActionGlobal.ShowLibrary))
     Swag.require(f.main.libraryMode)
     Swag.require(not f.main.editArea.isLocallyVisible())
     Swag.require(f.main.libWnd.isLocallyVisible())
@@ -115,36 +115,36 @@ func testSetupGlobalMain(main: *MainWnd)
     Swag.require(f.main.libWnd.presentationOpacity == 1 and f.main.libWnd.presentationOffset == Math.Point{})
 
     evt = Gui.Testing.commandState(ActionGlobal.ShowLibrary)
-    Swag.require(Gui.Testing.actionUpdate'ActionGlobal(f.main, ActionGlobal.ShowLibrary, &evt))
+    Swag.require(Gui.Testing.actionUpdate!{ActionGlobal}(f.main, ActionGlobal.ShowLibrary, &evt))
     Swag.require(evt.checked)
 
     // The tool letters belong to the editor, which the library hides.
     var tool = Gui.Testing.commandState(ActionToolMode.Shape)
-    Swag.require(Gui.Testing.actionUpdate'ActionToolMode(f.main, ActionToolMode.Shape, &tool))
+    Swag.require(Gui.Testing.actionUpdate!{ActionToolMode}(f.main, ActionToolMode.Shape, &tool))
     Swag.require(tool.disabled)
 
     let loading = g_UpdatingLib
     let spinner = f.main.libWnd.view.imgSpin
     g_UpdatingLib = true
     spinner.show()
-    Swag.require(Gui.Testing.actionExecute'ActionGlobal(f.main, ActionGlobal.ShowLibrary))
+    Swag.require(Gui.Testing.actionExecute!{ActionGlobal}(f.main, ActionGlobal.ShowLibrary))
     Swag.require(not f.main.libraryMode)
     Swag.require(not spinner.isLocallyVisible())
     g_UpdatingLib = loading
     Swag.require(f.main.editArea.isLocallyVisible())
     tool = Gui.Testing.commandState(ActionToolMode.Shape)
-    Swag.require(Gui.Testing.actionUpdate'ActionToolMode(f.main, ActionToolMode.Shape, &tool))
+    Swag.require(Gui.Testing.actionUpdate!{ActionToolMode}(f.main, ActionToolMode.Shape, &tool))
     Swag.require(not tool.disabled)
     Swag.require(not f.main.libWnd.isLocallyVisible())
     f.main.app().animator.finishAll()
     Swag.require(f.main.editArea.presentationOpacity == 1 and f.main.editArea.presentationOffset == Math.Point{})
 
     evt = Gui.Testing.commandState(ActionGlobal.Minimize)
-    Swag.require(Gui.Testing.actionUpdate'ActionGlobal(f.main, ActionGlobal.Minimize, &evt))
+    Swag.require(Gui.Testing.actionUpdate!{ActionGlobal}(f.main, ActionGlobal.Minimize, &evt))
     Swag.require(evt.name == appStrings().act_Minimize)
 
     evt = Gui.Testing.commandState(ActionGlobal.Exit)
-    Swag.require(Gui.Testing.actionUpdate'ActionGlobal(f.main, ActionGlobal.Exit, &evt))
+    Swag.require(Gui.Testing.actionUpdate!{ActionGlobal}(f.main, ActionGlobal.Exit, &evt))
     Swag.require(not evt.name.isEmpty())
 }
 
@@ -156,11 +156,11 @@ func testSetupGlobalMain(main: *MainWnd)
     f.setup()
     defer f.shutdown()
 
-    f.main.editorOptions.editBackColor = 0xFF2E2E2E'u32
+    f.main.editorOptions.editBackColor = 0xFF2E2E2E_u32
     f.main.migrateStoredOptions()
     Swag.require(f.main.editorOptions.editBackColor == 0)
 
-    f.main.editorOptions.editBackColor = 0xFF123456'u32
+    f.main.editorOptions.editBackColor = 0xFF123456_u32
     f.main.migrateStoredOptions()
-    Swag.require(f.main.editorOptions.editBackColor == 0xFF123456'u32)
+    Swag.require(f.main.editorOptions.editBackColor == 0xFF123456_u32)
 }

@@ -23,7 +23,7 @@ private func(SampleBytes: s32, SourceEncoding: SoundFileEncoding) convertSamples
     #static switch SourceEncoding
     {
     case .Pcm8:
-        let bias = Simd.splat(128's16)
+        let bias = Simd.splat(128_s16)
         while remainingSamples >= 16
         {
             let bytes = Simd.load(sourceBytes)
@@ -35,7 +35,7 @@ private func(SampleBytes: s32, SourceEncoding: SoundFileEncoding) convertSamples
         }
 
     case .Pcm24:
-        const KeepHighBytes = cast(Simd.U8x16, [1'u8, 2, 4, 5, 7, 8, 10, 11, 128, 128, 128, 128, 128, 128, 128, 128])
+        const KeepHighBytes = cast(Simd.U8x16, [1_u8, 2, 4, 5, 7, 8, 10, 11, 128, 128, 128, 128, 128, 128, 128, 128])
 
         // A 16-byte load needs six available samples; the shuffle converts four.
         while remainingSamples >= 6
@@ -58,11 +58,11 @@ private func(SampleBytes: s32, SourceEncoding: SoundFileEncoding) convertSamples
         }
 
     case .Float32:
-        let scale = Simd.splat(32768.0'f32)
+        let scale = Simd.splat(32768.0_f32)
         while remainingSamples >= 8
         {
-            let minValue    = Simd.splat(-32768.0'f32)
-            let maxValue    = Simd.splat(32767.0'f32)
+            let minValue    = Simd.splat(-32768.0_f32)
+            let maxValue    = Simd.splat(32767.0_f32)
             let lowSamples  = Math.min(Math.max(Simd.load(cast(const [*] f32, sourceBytes)) * scale, minValue), maxValue)
             let highSamples = Math.min(Math.max(Simd.load(cast(const [*] f32, sourceBytes) + 4) * scale, minValue), maxValue)
             let low         = Simd.truncateToS32(lowSamples)
@@ -87,8 +87,11 @@ private func(SampleBytes: s32, SourceEncoding: SoundFileEncoding) convertSamples
             let middle = sourceBytes[1]
             let high   = sourceBytes[2]
             var sample = Math.make32(0, high, middle, low)
-            if sample & 0x00800000 do
+            if sample & 0x00800000
+            {
                 sample |= 0xFF000000
+            }
+
             outputSamples[0] = cast(s16, (cast #wrap (s32, sample) >> 8))
 
         case .Pcm32:
@@ -141,10 +144,10 @@ impl ICodec for CodecPcmToPcm16
 
         switch .sourceEncoding
         {
-        case .Pcm8:    return convertSamples'(1, Pcm8)(destination, destinationSize, source, sourceSize)
-        case .Pcm24:   return convertSamples'(3, Pcm24)(destination, destinationSize, source, sourceSize)
-        case .Pcm32:   return convertSamples'(4, Pcm32)(destination, destinationSize, source, sourceSize)
-        case .Float32: return convertSamples'(4, Float32)(destination, destinationSize, source, sourceSize)
+        case .Pcm8:    return convertSamples!{1, Pcm8}(destination, destinationSize, source, sourceSize)
+        case .Pcm24:   return convertSamples!{3, Pcm24}(destination, destinationSize, source, sourceSize)
+        case .Pcm32:   return convertSamples!{4, Pcm32}(destination, destinationSize, source, sourceSize)
+        case .Float32: return convertSamples!{4, Float32}(destination, destinationSize, source, sourceSize)
         default:       fail UnsupportedFormatError{"invalid encoding"}
         }
     }

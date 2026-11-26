@@ -28,42 +28,42 @@ struct AppStrings
 
     // The list of vaults, and what a row says about the vault it names. The state words are
     // joined with " · " on the mono line under the name.
-    ui_VaultsTitle:    string = "Vaults"
-    ui_NewVault:       string = "New Vault"
-    ui_OpenFile:       string = "Open a File…"
-    ui_BackToVaults:   string = "← Vaults"
-    ui_OptionsLink:    string = "Options →"
-    ui_StateMounted:   string = "mounted on %"     // '%' is the drive the vault is mounted on.
-    ui_StateLocked:    string = "locked"
-    ui_StateReadWrite: string = "read and write"
-    ui_StateReadOnly:  string = "read only"
-    ui_StateAtStartup: string = "at startup"
-    ui_StateProtected: string = "hidden volume protected"
-    ui_OpenDrive:      string = "Open %"          // '%' is the drive the vault is mounted on.
-    ui_Unlock:         string = "Unlock"          // What choosing a locked vault does, at the end of its row.
-    ui_DriveFree:      string = "% free of %"     // Under a mounted vault's thread: the room left, then its capacity.
-    ui_SectionMounted: string = "Mounted"
-    ui_SectionLocked:  string = "Locked"
-    ui_Mount:          string = "Mount"
-    ui_Unmount:        string = "Unmount"
-    ui_Drive:          string = "Drive"
-    ui_KeyFilesLink:   string = "Key Files"
-    ui_KeyFilesCount:  string = "Key Files (%)…"     // '%' is how many key files are chosen.
-    ui_UnlockKeyFilesCount: string = "Key Files (%)"  // '%' is how many files the unlock card uses.
-    ui_ReadOnly:       string = "Read Only"
-    ui_ProtectHidden:  string = "Protect Hidden Volume"
-    ui_MountAtStartup: string = "Mount at Startup"
-    ui_Forget:         string = "Remove from List"
-    ui_ModifyVault:     string = "Modify…"
-    ui_ChangePassword: string = "Change Password…"
-    ui_ChangeKeyFiles: string = "Change Key Files…"
-    ui_Resize:         string = "Change Vault Size…"
-    ui_CreateHidden:   string = "Create Hidden Volume…"
-    ui_StopCreating:   string = "Stop Creating"
-    ui_StopResizing:   string = "Stop Resizing"
-    ui_HintList:       string = "search commands"
-    ui_HintNewVault:   string = "new vault"
-    ui_HintOpenFile:   string = "open a file"
+    ui_VaultsTitle:         string = "Vaults"
+    ui_NewVault:            string = "New Vault"
+    ui_OpenFile:            string = "Open a File…"
+    ui_BackToVaults:        string = "← Vaults"
+    ui_OptionsLink:         string = "Options →"
+    ui_StateMounted:        string = "mounted on %"     // '%' is the drive the vault is mounted on.
+    ui_StateLocked:         string = "locked"
+    ui_StateReadWrite:      string = "read and write"
+    ui_StateReadOnly:       string = "read only"
+    ui_StateAtStartup:      string = "at startup"
+    ui_StateProtected:      string = "hidden volume protected"
+    ui_OpenDrive:           string = "Open %"          // '%' is the drive the vault is mounted on.
+    ui_Unlock:              string = "Unlock"          // What choosing a locked vault does, at the end of its row.
+    ui_DriveFree:           string = "% free of %"     // Under a mounted vault's thread: the room left, then its capacity.
+    ui_SectionMounted:      string = "Mounted"
+    ui_SectionLocked:       string = "Locked"
+    ui_Mount:               string = "Mount"
+    ui_Unmount:             string = "Unmount"
+    ui_Drive:               string = "Drive"
+    ui_KeyFilesLink:        string = "Key Files"
+    ui_KeyFilesCount:       string = "Key Files (%)…"     // '%' is how many key files are chosen.
+    ui_UnlockKeyFilesCount: string = "Key Files (%)"      // '%' is how many files the unlock card uses.
+    ui_ReadOnly:            string = "Read Only"
+    ui_ProtectHidden:       string = "Protect Hidden Volume"
+    ui_MountAtStartup:      string = "Mount at Startup"
+    ui_Forget:              string = "Remove from List"
+    ui_ModifyVault:         string = "Modify…"
+    ui_ChangePassword:      string = "Change Password…"
+    ui_ChangeKeyFiles:      string = "Change Key Files…"
+    ui_Resize:              string = "Change Vault Size…"
+    ui_CreateHidden:        string = "Create Hidden Volume…"
+    ui_StopCreating:        string = "Stop Creating"
+    ui_StopResizing:        string = "Stop Resizing"
+    ui_HintList:            string = "search commands"
+    ui_HintNewVault:        string = "new vault"
+    ui_HintOpenFile:        string = "open a file"
 
     // The home: the window without a vault and the hint for opening one by dropping a file.
     ui_HomeTitle:   string = "No vault open"
@@ -265,7 +265,7 @@ func appStrings()->const *AppStrings => &g_AppStrings
 // Registers the Swag Vault string table and its embedded translations.
 func registerAppStrings(bundle: *Core.Resources.Bundle)
 {
-    Gui.registerStrings'AppStrings(&g_AppStrings, "vault")
+    Gui.registerStrings!{AppStrings}(&g_AppStrings, "vault")
     bundle.addEmbedded(FrenchStringsName, FrenchStrings)
 }
 
@@ -273,5 +273,5 @@ func registerAppStrings(bundle: *Core.Resources.Bundle)
 // file is a compile error with its line number, not a runtime fallback.
 #run
 {
-    expect Gui.validateStrings'AppStrings(cast(string, FrenchStrings))
+    expect Gui.validateStrings!{AppStrings}(cast(string, FrenchStrings))
 }

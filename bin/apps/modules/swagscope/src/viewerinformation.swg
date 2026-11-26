@@ -16,7 +16,7 @@ struct ViewerInformation
     subjectLocation:     String
     archivePath:         String
     extracted:           String
-    retiredExtractions:  Array'String
+    retiredExtractions:  Array!{String}
     onlinePending:       bool
     extractionAttempted: bool
     extractionFailure:   String
@@ -43,14 +43,17 @@ impl ViewerInformation
 {
     func create(parent: *Wnd, window: *ViewerWindow)->*ViewerInformation
     {
-        let result = Wnd.create'ViewerInformation(parent, "scope.information.source")
+        let result = Wnd.create!{ViewerInformation}(parent, "scope.information.source")
         result.window    = window
         result.dockStyle = .None
         result.hide()
         result.hookOnChildEvent = func|source = result|(_, evt)
         {
-            if evt is TaskEvent do
+            if evt is TaskEvent
+            {
                 source.postRefresh()
+            }
+
             return false
         }
 
@@ -59,8 +62,11 @@ impl ViewerInformation
 
     mtd selectExplorer(explorer: *Explorer)
     {
-        if explorer.listing.isArchive and .archivePath != explorer.listing.path do
+        if explorer.listing.isArchive and .archivePath != explorer.listing.path
+        {
             .hasSubject = false
+        }
+
         if explorer.selected < explorer.entries.count
         {
             let entry = &explorer.entries[explorer.selected]
@@ -112,8 +118,11 @@ impl ViewerInformation
                                (selection.size != info.size or
                                 (selection.modifiedStamp != 0 and selection.modifiedStamp != modified) or
                                 (selection.creationStamp != 0 and selection.creationStamp != created))
-                if changed do
+                if changed
+                {
                     subject = {name: selection.name, path: selection.path}
+                }
+
                 subject.size          = info.size
                 subject.creationStamp = created
                 subject.modifiedStamp = modified
@@ -146,14 +155,16 @@ impl ViewerInformation
             .hasSubject = true
             .kind.clear()
             let choices = .window.index.choices(entry.path.isEmpty() ? entry.name.toString() : entry.path.toString())
-            if not choices.isEmpty() do
+            if not choices.isEmpty()
+            {
                 .kind = choices[0].key
+            }
         }
-        elif not .picture.isValid() and
-             (entry.path.isEmpty() or
-              not entry.movie.title.isEmpty() or
-              not entry.music.title.isEmpty() or
-              not entry.music.track.isEmpty())
+        else if not .picture.isValid() and
+                (entry.path.isEmpty() or
+                 not entry.movie.title.isEmpty() or
+                 not entry.music.title.isEmpty() or
+                 not entry.music.track.isEmpty())
         {
             // Reuse already published artwork, without taking its texture ownership.
             .entry = entry[]
@@ -162,23 +173,35 @@ impl ViewerInformation
 
     mtd request()
     {
-        if .refreshing do
+        if .refreshing
+        {
             return
+        }
+
         .refreshing = true
         defer .refreshing = false
         if .needsRetirement and .viewer
         {
             let viewer: Viewer.Embedded = .viewer
-            if not viewer.retire() do
+            if not viewer.retire()
+            {
                 return
+            }
+
             .needsRetirement = false
         }
 
-        for file in .retiredExtractions do
+        for file in .retiredExtractions
+        {
             discard catch File.delete(file[])
+        }
+
         .retiredExtractions.clear()
-        if not .window.infoSheet.isLocallyVisible() or not .hasSubject or .entry.directory do
+        if not .window.infoSheet.isLocallyVisible() or not .hasSubject or .entry.directory
+        {
             return
+        }
+
         if .isArchive and .extracted.isEmpty() and not .matchesCurrentFile()
         {
             if not .preview.started and
@@ -201,8 +224,11 @@ impl ViewerInformation
 
         let file    = .isArchive ? .extracted.toString() : .entry.path.toString()
         let showing = .matchesCurrentFile() and .window.activeChoiceIndex < .window.instances.count
-        if not showing and not File.exists(file) do
+        if not showing and not File.exists(file)
+        {
             return
+        }
+
         if not showing and not .viewer
         {
             .viewer = EmbeddedViewer.create(me, .window)
@@ -213,8 +239,11 @@ impl ViewerInformation
         if not showing and .viewer and .viewer.fileName != file
         {
             let viewer: Viewer.Embedded = .viewer
-            if not viewer.retire() do
+            if not viewer.retire()
+            {
                 return
+            }
+
             catch viewer.open(file, .entry.name)
         }
 
@@ -227,30 +256,44 @@ impl ViewerInformation
             }
         }
 
-        if .isArchive or not .hasMediaSelection() do
+        if .isArchive or not .hasMediaSelection()
+        {
             return
+        }
+
         let settings = ThumbnailSettings.capture(.window, &.entry)
         if not .settings.isEmpty() and settings != .settings
         {
             .onlinePending = false
             let previous = catch ThumbnailSettings.decode(.settings) orelse {}
             let current  = catch ThumbnailSettings.decode(settings) orelse {}
-            if previous.onlineMovies and not current.onlineMovies do
+            if previous.onlineMovies and not current.onlineMovies
+            {
                 .entry.movie = {}
-            if previous.onlineMusic and not current.onlineMusic do
+            }
+
+            if previous.onlineMusic and not current.onlineMusic
+            {
                 .entry.music = {}
+            }
         }
 
         .settings = settings
         if .preview.started
         {
-            if .preview.path != .entry.path or .preview.settings != .settings do
+            if .preview.path != .entry.path or .preview.settings != .settings
+            {
                 .preview.task.cancel()
+            }
+
             return
         }
 
-        if .loadedPath == .entry.path and .loadedSettings == .settings do
+        if .loadedPath == .entry.path and .loadedSettings == .settings
+        {
             return
+        }
+
         .preview.path = .entry.path
         .preview.archivePath.clear()
         .preview.opening      = false
@@ -272,8 +315,11 @@ impl ViewerInformation
     // destroy a viewer while one of its own callbacks is still on the stack.
     mtd postRefresh()
     {
-        if .refreshPosted do
+        if .refreshPosted
+        {
             return
+        }
+
         .refreshPosted = true
         .postCommandEvent("scope.information.ready")
     }
@@ -284,14 +330,21 @@ impl ViewerInformation
         .includeAction    = includeAction
         .includeTechnical = includeTechnical
         .includeFile      = includeFile
-        if .matchesCurrentFile() and .window.activeChoiceIndex < .window.choices.count do
+        if .matchesCurrentFile() and .window.activeChoiceIndex < .window.choices.count
+        {
             .kind = .window.choices[.window.activeChoiceIndex].key
+        }
+
         .request()
         let instance = .session()
-        if instance and instance.describeInformation do
+        if instance and instance.describeInformation
+        {
             instance.describeInformation(sheet)
-        else do
+        }
+        else
+        {
             .present(sheet)
+        }
     }
 
     // Completes a viewer's information callback with its media identity, artwork and file readings.
@@ -300,8 +353,11 @@ impl ViewerInformation
         let page = sheet.pageIndex
         sheet.clear()
         let media = .hasMediaSelection()
-        if media do
+        if media
+        {
             sheet.beginPage(MediaInfoRow{field: .Media}.label())
+        }
+
         .describeContent(sheet, .includeAction, includeTechnical: .includeTechnical and not media, includeFile: .includeFile and not media)
         if media and .includeTechnical
         {
@@ -314,10 +370,16 @@ impl ViewerInformation
 
     private mtd matchesCurrentFile()->bool
     {
-        if .window.currentFile.isEmpty() do
+        if .window.currentFile.isEmpty()
+        {
             return false
-        if Path.equals(.window.currentFile, .entry.path) do
+        }
+
+        if Path.equals(.window.currentFile, .entry.path)
+        {
             return true
+        }
+
         if .isArchive and .window.explorer
         {
             let logical = Format.toString("%/%", .window.explorer.logicalPath(.archivePath), .entry.path)
@@ -329,12 +391,18 @@ impl ViewerInformation
 
     private mtd session()->*ViewerSession?
     {
-        if .matchesCurrentFile() and .window.activeChoiceIndex < .window.instances.count do
+        if .matchesCurrentFile() and .window.activeChoiceIndex < .window.instances.count
+        {
             return &.window.instances[.window.activeChoiceIndex]
+        }
+
         if .viewer and
            (.viewer.fileName == .entry.path or (.isArchive and .viewer.fileName == .extracted)) and
-           .viewer.activeIndex < .viewer.instances.count do
+           .viewer.activeIndex < .viewer.instances.count
+        {
             return &.viewer.instances[.viewer.activeIndex]
+        }
+
         return null
     }
 
@@ -379,22 +447,37 @@ impl ViewerInformation
             {
                 var rating = safeMediaText(entry.movie.imdbRating)
                 let slash  = Utf8.indexOf(rating, "/")
-                if slash != Swag.U64.Max do
+                if slash != Swag.U64.Max
+                {
                     rating = String.from(rating.toString()[0 until slash])
+                }
+
                 sheet.addFact(rating, entry.movie.ratingSource == "TMDB" ? "TMDB" : "IMDb")
             }
 
-            if includeAction do
+            if includeAction
+            {
                 sheet.setAction(.openActionName(), ViewerCommands.OpenChosen)
-            if entry.movie.overview.length do
+            }
+
+            if entry.movie.overview.length
+            {
                 sheet.addText(safeMediaText(entry.movie.overview))
+            }
+
             addSheetReading(sheet, strings.explore_MovieGenre, entry.movie.genre)
             addSheetReading(sheet, strings.explore_Director, entry.movie.director)
             addSheetReading(sheet, strings.explore_Cast, entry.movie.actors)
-            if includeTechnical do
+            if includeTechnical
+            {
                 .describeSelectedTechnical(sheet, includeFile: includeFile)
-            if not entry.movie.sources.isEmpty() do
+            }
+
+            if not entry.movie.sources.isEmpty()
+            {
                 sheet.addFootnote(Format.toString("% %", strings.explore_Sources, safeMediaText(entry.movie.sources)))
+            }
+
             return
         }
 
@@ -402,34 +485,61 @@ impl ViewerInformation
         // of, and at its foot where these readings came from.
         if not entry.music.track.isEmpty() or not entry.music.title.isEmpty()
         {
-            if entry.texture.isValid() and entry.texture.width > 1 do
+            if entry.texture.isValid() and entry.texture.width > 1
+            {
                 sheet.setPictureBeside(true)
-            if entry.duration do
+            }
+
+            if entry.duration
+            {
                 sheet.addFact(formatDuration(entry.duration))
+            }
 
             // The album page already offers Play in Voltage: its sheet keeps the quiet form.
-            if includeAction do
+            if includeAction
+            {
                 sheet.setAction(.openActionName(), ViewerCommands.OpenChosen, quiet: .album)
-            if not entry.directory and not entry.music.track.isEmpty() do
+            }
+
+            if not entry.directory and not entry.music.track.isEmpty()
+            {
                 addSheetReading(sheet, strings.explore_Album, entry.music.title)
+            }
+
             addSheetReading(sheet, strings.explore_Artist, entry.music.artist)
-            if entry.music.albumArtist != entry.music.artist do
+            if entry.music.albumArtist != entry.music.artist
+            {
                 addSheetReading(sheet, strings.explore_AlbumArtist, entry.music.albumArtist)
+            }
+
             addSheetReading(sheet, strings.explore_FirstRelease, entry.music.date, mono: true)
-            if includeTechnical do
+            if includeTechnical
+            {
                 .describeSelectedTechnical(sheet, includeFile: includeFile)
-            if entry.music.source == "tags" do
+            }
+
+            if entry.music.source == "tags"
+            {
                 sheet.addFootnote(Format.toString("% %", strings.explore_Source, strings.explore_FileTags))
-            elif not entry.music.source.isEmpty() do
+            }
+            else if not entry.music.source.isEmpty()
+            {
                 sheet.addFootnote(Format.toString("% %", strings.explore_Source, "MusicBrainz"))
+            }
+
             return
         }
 
         // A rating is the figure a reader of a film comes for, with its source as its unit.
-        if not entry.movie.imdbRating.isEmpty() do
+        if not entry.movie.imdbRating.isEmpty()
+        {
             sheet.addFact(safeMediaText(entry.movie.imdbRating), entry.movie.ratingSource == "TMDB" ? "TMDB" : "IMDb")
-        if entry.duration do
+        }
+
+        if entry.duration
+        {
             addFigure(sheet, sheetDuration(entry.duration))
+        }
 
         if .isArchive and entry.archiveIndex < .archive.entries.count
         {
@@ -439,48 +549,66 @@ impl ViewerInformation
                 sheet.setSecondaryAction(strings.cmd_Extract, ViewerCommands.ExtractChosen)
             }
 
-            if includeTechnical do
+            if includeTechnical
+            {
                 .describeSelectedTechnical(sheet, includeFile: includeFile)
+            }
+
             return
         }
 
         if includeAction
         {
             sheet.setAction(.openActionName(), ViewerCommands.OpenChosen)
-            if .isArchive do
+            if .isArchive
+            {
                 sheet.setSecondaryAction(strings.cmd_Extract, ViewerCommands.ExtractChosen)
+            }
         }
 
         if includeTechnical
         {
             .describeSelectedTechnical(sheet, includeFile: includeFile)
         }
-        elif includeFile
+        else if includeFile
         {
             sheet.addSection(strings.explore_FileProperties)
             .describeSelectedFile(sheet)
         }
 
         // A film without online details says how to get them.
-        if isFilmFile(entry) and not .window.onlineMovies do
+        if isFilmFile(entry) and not .window.onlineMovies
+        {
             sheet.addFootnote(strings.explore_OnlineOff, strings.explore_TurnOn, ViewerCommands.OnlineMovies)
+        }
     }
 
     // Returns the title the sheet gives `entry`: what a film or a recording is called, the title
     // a film's own file name gives, or its name.
     private mtd selectionTitle(entry: const *ExplorerEntry)->String
     {
-        if not entry.movie.title.isEmpty() do
+        if not entry.movie.title.isEmpty()
+        {
             return String.from(entry.movie.title)
-        if not entry.directory and not entry.music.track.isEmpty() do
+        }
+
+        if not entry.directory and not entry.music.track.isEmpty()
+        {
             return String.from(entry.music.track)
-        if not entry.music.title.isEmpty() do
+        }
+
+        if not entry.music.title.isEmpty()
+        {
             return String.from(entry.music.title)
+        }
+
         if isFilmFile(entry)
         {
             let query = MovieQuery.fromFile(entry.name)
-            if not query.title.isEmpty() do
+            if not query.title.isEmpty()
+            {
                 return query.title
+            }
         }
 
         return String.from(entry.name)
@@ -493,9 +621,12 @@ impl ViewerInformation
         let strings = appStrings()
         if not entry.movie.title.isEmpty()
         {
-            var parts: Array'String
-            if entry.movie.date.length >= 4 do
+            var parts: Array!{String}
+            if entry.movie.date.length >= 4
+            {
                 parts.add(String.from(entry.movie.date.toString()[0 until 4]))
+            }
+
             if entry.duration >= 60
             {
                 let minutes = Format.toString("%{02}", (entry.duration / 60) % 60)
@@ -507,23 +638,34 @@ impl ViewerInformation
 
         if not entry.music.track.isEmpty() or not entry.music.title.isEmpty()
         {
-            var parts: Array'String
+            var parts: Array!{String}
             parts.add(safeMediaText(entry.music.artist))
-            if not entry.directory and not entry.music.track.isEmpty() do
+            if not entry.directory and not entry.music.track.isEmpty()
+            {
                 parts.add(safeMediaText(entry.music.title))
-            elif entry.music.date.length do
+            }
+            else if entry.music.date.length
+            {
                 parts.add(safeMediaText(entry.music.date))
+            }
+
             let identity = joinMeasures(parts.toSlice())
             return identity.isEmpty() ? String.from(entry.name) : identity
         }
 
         // A file is placed by its kind and by the folder, or the archive folder, it stands in.
         var place = String.from(.location)
-        if place.length and place.back() == '/' do
+        if place.length and place.back() == '/'
+        {
             place.removeBack()
+        }
+
         let kind = String.toUpper(Path.extension(entry.name) orelse "", .Unicode)
-        if entry.directory or kind.length <= 1 do
+        if entry.directory or kind.length <= 1
+        {
             return place
+        }
+
         let identity = Format.toString("% · %", kind.toString()[1 to], place)
         let year     = isFilmFile(entry) ? MovieQuery.fromFile(entry.name).year : String.from("")
         return year.isEmpty() ? identity : Format.toString("% · %", year, identity)
@@ -534,22 +676,46 @@ impl ViewerInformation
     private mtd describeTechnical(sheet: *InfoSheet, entry: const *ExplorerEntry, labelled = true)
     {
         var data = MediaInfoData{}
-        if labelled do
+        if labelled
+        {
             data.add(.Technical, group: true)
-        for row in entry.technical.rows do
+        }
+
+        for row in entry.technical.rows
+        {
             data.rows.add(row)
-        if entry.width and entry.height do
+        }
+
+        if entry.width and entry.height
+        {
             data.add(.Dimensions, Format.toString("% × % px", entry.width, entry.height))
-        if entry.pages do
+        }
+
+        if entry.pages
+        {
             data.add(.Pages, Format.toString("%", entry.pages))
-        if entry.lines do
+        }
+
+        if entry.lines
+        {
             data.add(.Lines, Format.toString("%", entry.lines))
-        if entry.sections do
+        }
+
+        if entry.sections
+        {
             data.add(.Sections, Format.toString("%", entry.sections))
-        if entry.members do
+        }
+
+        if entry.members
+        {
             data.add(.Members, Format.toString("%", entry.members))
-        if not entry.face.isEmpty() do
+        }
+
+        if not entry.face.isEmpty()
+        {
             data.add(.Typeface, entry.face)
+        }
+
         data.describe(sheet)
     }
 
@@ -557,12 +723,18 @@ impl ViewerInformation
     // what it holds, and when it changed.
     mtd describeSelectedFile(sheet: *InfoSheet)
     {
-        if not .hasSubject do
+        if not .hasSubject
+        {
             return
+        }
+
         let entry   = &.entry
         let strings = appStrings()
-        if .selectionTitle(entry) != entry.name do
+        if .selectionTitle(entry) != entry.name
+        {
             sheet.addReading(strings.explore_Name, entry.name)
+        }
+
         addSheetReading(sheet, strings.explore_Modified, entry.modified, mono: true)
     }
 
@@ -575,30 +747,52 @@ impl ViewerInformation
     // On its own page the readings need no section label: the page is named for them.
     mtd describeSelectedTechnical(sheet: *InfoSheet, includePreview = true, includeFile = true, labelled = true)
     {
-        if not .hasSubject do
+        if not .hasSubject
+        {
             return
+        }
+
         let entry = &.entry
         if includePreview
         {
             let instance = .session()
-            if instance and instance.localInformation do
+            if instance and instance.localInformation
+            {
                 instance.localInformation(sheet)
-            elif instance and not instance.details.isEmpty() do
+            }
+            else if instance and not instance.details.isEmpty()
+            {
                 sheet.addText(instance.details)
-            else do
+            }
+            else
+            {
                 .describeTechnical(sheet, entry, labelled)
-            if instance and not instance.failureReason.isEmpty() do
+            }
+
+            if instance and not instance.failureReason.isEmpty()
+            {
                 sheet.addNote(instance.failureReason)
-            elif not .extractionFailure.isEmpty() do
+            }
+            else if not .extractionFailure.isEmpty()
+            {
                 sheet.addNote(.extractionFailure)
+            }
         }
 
-        if not includeFile do
+        if not includeFile
+        {
             return
-        if entry.directory and entry.children != Swag.U64.Max do
+        }
+
+        if entry.directory and entry.children != Swag.U64.Max
+        {
             addFigure(sheet, entry.children == 1 ? appStrings().explore_OneItem : Format.toString(appStrings().explore_Count, entry.children))
-        elif not entry.directory do
+        }
+        else if not entry.directory
+        {
             addFigure(sheet, StrConv.toDisplaySize(entry.size))
+        }
+
         if .isArchive and entry.archiveIndex < .archive.entries.count
         {
             let strings = appStrings()
@@ -641,8 +835,10 @@ impl IWnd for ViewerInformation
                     .extractionFailure = .preview.error
                     .extracted         = .preview.temporary
                     .preview.temporary.clear()
-                    if not .extracted.isEmpty() do
+                    if not .extracted.isEmpty()
+                    {
                         .window.privacy.inherit(.extracted, .archivePath)
+                    }
                 }
 
                 .onlinePending  = .preview.needsOnline
@@ -657,10 +853,15 @@ impl IWnd for ViewerInformation
                     .entry.duration = thumbnailDuration(&.preview.image)
                     let movie = MovieSummary.fromImage(&.preview.image)
                     let music = MusicSummary.fromImage(&.preview.image)
-                    if not movie.title.isEmpty() do
+                    if not movie.title.isEmpty()
+                    {
                         .entry.movie = movie
-                    if not music.title.isEmpty() or not music.track.isEmpty() do
+                    }
+
+                    if not music.title.isEmpty() or not music.track.isEmpty()
+                    {
                         .entry.music = music
+                    }
                 }
 
                 if .preview.needsOnline
@@ -682,8 +883,10 @@ impl IWnd for ViewerInformation
         }
 
         .request()
-        if .window.infoSheet.isLocallyVisible() do
+        if .window.infoSheet.isLocallyVisible()
+        {
             .window.refreshInformation()
+        }
     }
 
     mtd impl onCommandEvent(evt: *CommandEvent)
@@ -696,8 +899,10 @@ impl IWnd for ViewerInformation
 
         .refreshPosted = false
         .request()
-        if .window.infoSheet.isLocallyVisible() do
+        if .window.infoSheet.isLocallyVisible()
+        {
             .window.refreshInformation()
+        }
     }
 
     mtd impl onDestroyEvent(_: *DestroyEvent)
@@ -705,10 +910,15 @@ impl IWnd for ViewerInformation
         .preview.task.cancel()
         .preview.wait()
         .app().renderer.removeTexture(&.picture)
-        if not .extracted.isEmpty() do
+        if not .extracted.isEmpty()
+        {
             discard catch File.delete(.extracted)
-        for file in .retiredExtractions do
+        }
+
+        for file in .retiredExtractions
+        {
             discard catch File.delete(file[])
+        }
     }
 }
 
@@ -717,6 +927,8 @@ private func isFilmFile(entry: const *ExplorerEntry)->bool => not entry.director
 // Adds a reading of `value` under `label` to the sheet, unless nothing is known of it.
 private func addSheetReading(sheet: *InfoSheet, label, value: string, mono = false)
 {
-    if value.count do
+    if value.count
+    {
         sheet.addReading(label, safeMediaText(value), mono: mono)
+    }
 }

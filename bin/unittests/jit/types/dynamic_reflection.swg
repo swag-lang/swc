@@ -9,8 +9,10 @@ namespace Reflection
     #[Swag.ConstExpr]
     func isPod(type: typeinfo?)->bool
     {
-        if not type do
+        if not type
+        {
             return false
+        }
         return type.flags & (Swag.TypeInfoFlags.HasDrop |
                              Swag.TypeInfoFlags.HasPostMove |
                              Swag.TypeInfoFlags.HasPostCopy |

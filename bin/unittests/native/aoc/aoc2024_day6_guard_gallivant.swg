@@ -3,7 +3,7 @@
 // Advent of Code 2024 Day 6: simulate the guard path with heap-allocated
 // storage and explicit cleanup through defer.
 
-const InitialTraceCapacity = 2'u32
+const InitialTraceCapacity = 2_u32
 
 const SampleInput =
     """....#.....
@@ -59,7 +59,7 @@ struct PatrolReport
 
 func isLineBreak(ch: u8)->bool
 {
-    return ch == '\n'u8 or ch == '\r'u8
+    return ch == '\n'_u8 or ch == '\r'_u8
 }
 
 func cellIndex(x, y, width: u32)->u32
@@ -78,20 +78,24 @@ func zeroBytes(ptr: [*] u8, count: u32)
 {
     for index in count
     {
-        ptr[cast(u32, index)] = 0'u8
+        ptr[cast(u32, index)] = 0_u8
     }
 }
 
 func freeGrid(grid: GridMap)
 {
-    if grid.cells do
+    if grid.cells
+    {
         testFree(grid.cells)
+    }
 }
 
 func freeIndexBuffer(buffer: IndexBuffer)
 {
-    if buffer.data do
+    if buffer.data
+    {
         testFree(buffer.data)
+    }
 }
 
 func initIndexBuffer(initialCapacity: u32)->IndexBuffer
@@ -109,16 +113,16 @@ func appendIndex(buffer: IndexBuffer, value: u32)->IndexBuffer
 
     if result.count == result.capacity
     {
-        let newCapacity = result.capacity * 2'u32
+        let newCapacity = result.capacity * 2_u32
         result.data = cast([*] u32?, testRealloc(result.data, cast(u64, newCapacity) * cast(u64, #sizeof(u32))))
         Swag.assert(result.data != null)
         result.capacity  = newCapacity
-        result.growCount += 1'u32
+        result.growCount += 1_u32
     }
 
     let data = unwrap result.data
     data[result.count] = value
-    result.count       += 1'u32
+    result.count       += 1_u32
     return result
 }
 
@@ -184,20 +188,20 @@ func parseGrid(outGrid: *GridMap, text: string)
             if lineWidth != 0
             {
                 Swag.assert(lineWidth == width)
-                height    += 1'u32
+                height    += 1_u32
                 lineWidth = 0
             }
 
             continue
         }
 
-        lineWidth += 1'u32
+        lineWidth += 1_u32
     }
 
     if lineWidth != 0
     {
         Swag.assert(lineWidth == width)
-        height += 1'u32
+        height += 1_u32
     }
 
     var result: GridMap
@@ -210,26 +214,28 @@ func parseGrid(outGrid: *GridMap, text: string)
     for index in bytes.count
     {
         let ch = bytes[index]
-        if isLineBreak(ch) do
+        if isLineBreak(ch)
+        {
             continue
+        }
 
         let writeIndex = cellIndex(x, y, width)
-        if ch == '^'u8
+        if ch == '^'_u8
         {
             result.startX = x
             result.startY = y
-            result.cells[writeIndex] = '.'u8
+            result.cells[writeIndex] = '.'_u8
         }
         else
         {
             result.cells[writeIndex] = ch
         }
 
-        x += 1'u32
+        x += 1_u32
         if x == width
         {
             x = 0
-            y += 1'u32
+            y += 1_u32
         }
     }
 
@@ -243,9 +249,9 @@ func collectVisitedTrace(outVisitedCount: *u32, outTrace: *IndexBuffer, grid: Gr
     defer testFree(visited)
     zeroBytes(visited, cellCount)
 
-    let seenStates = allocBytes(cellCount * 4'u32)
+    let seenStates = allocBytes(cellCount * 4_u32)
     defer testFree(seenStates)
-    zeroBytes(seenStates, cellCount * 4'u32)
+    zeroBytes(seenStates, cellCount * 4_u32)
 
     var trace = initIndexBuffer(InitialTraceCapacity)
 
@@ -254,27 +260,29 @@ func collectVisitedTrace(outVisitedCount: *u32, outTrace: *IndexBuffer, grid: Gr
     var dir = Direction.Up
 
     let startIndex = cellIndex(grid.startX, grid.startY, grid.width)
-    visited[startIndex] = 1'u8
-    outVisitedCount[]   = 1'u32
+    visited[startIndex] = 1_u8
+    outVisitedCount[]   = 1_u32
     trace = appendIndex(trace, startIndex)
 
     while true
     {
-        let stateIndex = cellIndex(cast(u32, x), cast(u32, y), grid.width) * 4'u32 + cast(u32, dir)
-        Swag.assert(seenStates[stateIndex] == 0'u8)
-        seenStates[stateIndex] = 1'u8
+        let stateIndex = cellIndex(cast(u32, x), cast(u32, y), grid.width) * 4_u32 + cast(u32, dir)
+        Swag.assert(seenStates[stateIndex] == 0_u8)
+        seenStates[stateIndex] = 1_u8
 
         var dx, dy: s32
         directionDelta(&dx, &dy, dir)
 
         let nextX = x + dx
         let nextY = y + dy
-        if not inBounds(nextX, nextY, grid) do
+        if not inBounds(nextX, nextY, grid)
+        {
             break
+        }
 
         let nextIndex = cellIndex(cast(u32, nextX), cast(u32, nextY), grid.width)
         let cells     = unwrap grid.cells
-        if cells[nextIndex] == '#'u8
+        if cells[nextIndex] == '#'_u8
         {
             dir = turnRight(dir)
             continue
@@ -282,10 +290,10 @@ func collectVisitedTrace(outVisitedCount: *u32, outTrace: *IndexBuffer, grid: Gr
 
         x = nextX
         y = nextY
-        if visited[nextIndex] == 0'u8
+        if visited[nextIndex] == 0_u8
         {
-            visited[nextIndex] = 1'u8
-            outVisitedCount[]  += 1'u32
+            visited[nextIndex] = 1_u8
+            outVisitedCount[]  += 1_u32
             trace = appendIndex(trace, nextIndex)
         }
     }
@@ -296,9 +304,9 @@ func collectVisitedTrace(outVisitedCount: *u32, outTrace: *IndexBuffer, grid: Gr
 func doesObstacleCauseLoop(grid: GridMap, obstacleIndex: u32)->bool
 {
     let cellCount  = grid.width * grid.height
-    let seenStates = allocBytes(cellCount * 4'u32)
+    let seenStates = allocBytes(cellCount * 4_u32)
     defer testFree(seenStates)
-    zeroBytes(seenStates, cellCount * 4'u32)
+    zeroBytes(seenStates, cellCount * 4_u32)
 
     var x   = cast(s32, grid.startX)
     var y   = cast(s32, grid.startY)
@@ -306,23 +314,27 @@ func doesObstacleCauseLoop(grid: GridMap, obstacleIndex: u32)->bool
 
     while true
     {
-        let stateIndex = cellIndex(cast(u32, x), cast(u32, y), grid.width) * 4'u32 + cast(u32, dir)
-        if seenStates[stateIndex] != 0'u8 do
+        let stateIndex = cellIndex(cast(u32, x), cast(u32, y), grid.width) * 4_u32 + cast(u32, dir)
+        if seenStates[stateIndex] != 0_u8
+        {
             return true
+        }
 
-        seenStates[stateIndex] = 1'u8
+        seenStates[stateIndex] = 1_u8
 
         var dx, dy: s32
         directionDelta(&dx, &dy, dir)
 
         let nextX = x + dx
         let nextY = y + dy
-        if not inBounds(nextX, nextY, grid) do
+        if not inBounds(nextX, nextY, grid)
+        {
             return false
+        }
 
         let nextIndex = cellIndex(cast(u32, nextX), cast(u32, nextY), grid.width)
         let cells     = unwrap grid.cells
-        if nextIndex == obstacleIndex or cells[nextIndex] == '#'u8
+        if nextIndex == obstacleIndex or cells[nextIndex] == '#'_u8
         {
             dir = turnRight(dir)
             continue
@@ -344,11 +356,15 @@ func countLoopObstacles(grid: GridMap, trace: IndexBuffer)->u32
     for index in trace.count
     {
         let obstacleIndex = data[cast(u32, index)]
-        if obstacleIndex == startIndex do
+        if obstacleIndex == startIndex
+        {
             continue
+        }
 
-        if doesObstacleCauseLoop(grid, obstacleIndex) do
-            result += 1'u32
+        if doesObstacleCauseLoop(grid, obstacleIndex)
+        {
+            result += 1_u32
+        }
     }
 
     return result
@@ -377,18 +393,18 @@ func auditPatrol(text: string)->PatrolReport
 {
     let sample = auditPatrol(SampleInput)
 
-    Swag.require(sample.visitedCount == 41'u32)
-    Swag.require(sample.loopObstacleCount == 6'u32)
-    Swag.require(sample.traceCapacity == 64'u32)
-    Swag.require(sample.reallocCount == 5'u32)
+    Swag.require(sample.visitedCount == 41_u32)
+    Swag.require(sample.loopObstacleCount == 6_u32)
+    Swag.require(sample.traceCapacity == 64_u32)
+    Swag.require(sample.reallocCount == 5_u32)
 }
 
 #test
 {
     let coverage = auditPatrol(CoverageInput)
 
-    Swag.require(coverage.visitedCount == 3'u32)
-    Swag.require(coverage.loopObstacleCount == 0'u32)
-    Swag.require(coverage.traceCapacity == 4'u32)
-    Swag.require(coverage.reallocCount == 1'u32)
+    Swag.require(coverage.visitedCount == 3_u32)
+    Swag.require(coverage.loopObstacleCount == 0_u32)
+    Swag.require(coverage.traceCapacity == 4_u32)
+    Swag.require(coverage.reallocCount == 1_u32)
 }

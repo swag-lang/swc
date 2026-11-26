@@ -24,6 +24,8 @@ late var g_Render: Pixel.IRenderer
 var g_Painter:     Pixel.Painter
 var g_RC:          Pixel.RenderContext
 
+var g_FontPath:        String
+var g_FontBytes:       Array!{u8}
 late var g_TypeFace:   *Pixel.TypeFace
 late var g_HeaderFont: *Pixel.Font
 late var g_TitleFont:  *Pixel.Font

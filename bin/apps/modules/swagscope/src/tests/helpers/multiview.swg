@@ -3,8 +3,7 @@
 
 using Gui, Pixel
 
-func testWorkspace(host: *Testing.HeadlessHost, light = false, width = 1080, height = 640,
-                   dpiScale = 1.0'f32)->*ViewerWorkspace
+func testWorkspace(host: *Testing.HeadlessHost, light = false, width = 1080, height = 640, dpiScale = 1.0_f32)->*ViewerWorkspace
 {
     host.setup(width, height, dpiScale)
     shipFrame(host)
@@ -17,6 +16,8 @@ func testWorkspace(host: *Testing.HeadlessHost, light = false, width = 1080, hei
 func openViews(host: *Testing.HeadlessHost, workspace: *ViewerWorkspace)
 {
     let scene = unwrap workspace.scene()
-    for &view in scene.views do
+    for &view in scene.views
+    {
         completeQueuedViewerFile(host, unwrap view.document)
+    }
 }

@@ -1,9 +1,9 @@
 using Core
 
-private const DropKeep   = [0'u8, 1, 2, 4, 5, 6, 8, 9, 10, 12, 13, 14, 128, 128, 128, 128]
-private const DropSwap   = [2'u8, 1, 0, 6, 5, 4, 10, 9, 8, 14, 13, 12, 128, 128, 128, 128]
-private const ExpandKeep = [0'u8, 1, 2, 128, 3, 4, 5, 128, 6, 7, 8, 128, 9, 10, 11, 128]
-private const ExpandSwap = [2'u8, 1, 0, 128, 5, 4, 3, 128, 8, 7, 6, 128, 11, 10, 9, 128]
+private const DropKeep   = [0_u8, 1, 2, 4, 5, 6, 8, 9, 10, 12, 13, 14, 128, 128, 128, 128]
+private const DropSwap   = [2_u8, 1, 0, 6, 5, 4, 10, 9, 8, 14, 13, 12, 128, 128, 128, 128]
+private const ExpandKeep = [0_u8, 1, 2, 128, 3, 4, 5, 128, 6, 7, 8, 128, 9, 10, 11, 128]
+private const ExpandSwap = [2_u8, 1, 0, 128, 5, 4, 3, 128, 8, 7, 6, 128, 11, 10, 9, 128]
 
 internal func expandRgb8Alpha(source: const [*] u8, target: [*] u8, count: u64, swapColors: bool)
 {
@@ -169,7 +169,7 @@ impl Image
                 PackedPixel.swapRedBlue32Row(srcRow, dstRow, src.width)
                 x = src.width
             }
-            elif src.bytesPerPixel == 4
+            else if src.bytesPerPixel == 4
             {
                 let table   = swapColors ? DropSwap.buffer : DropKeep.buffer
                 let shuffle = Math.Simd.load(table)
@@ -181,10 +181,18 @@ impl Image
                     x += 4
                 }
             }
-            elif dst.bytesPerPixel == 4
+            else if dst.bytesPerPixel == 4
             {
-                expandRgb8Alpha(srcRow, dstRow, cast(u64, src.width), swapColors)
-                x = src.width
+                let table     = swapColors ? ExpandSwap.buffer : ExpandKeep.buffer
+                let shuffle   = Math.Simd.load(table)
+                let alphaMask = cast(Math.Simd.U8x16, [0_u8, 0, 0, 255, 0, 0, 0, 255, 0, 0, 0, 255, 0, 0, 0, 255])
+                while src.width - x >= 6
+                {
+                    let source = srcRow + cast(u64, x) * 3
+                    let target = dstRow + cast(u64, x) * 4
+                    Math.Simd.store(target, Math.Simd.shuffle(Math.Simd.load(source), shuffle) | alphaMask)
+                    x += 4
+                }
             }
             else
             {
@@ -212,8 +220,11 @@ impl Image
                     target[2] = blue
                 }
 
-                if dst.bytesPerPixel == 4 do
+                if dst.bytesPerPixel == 4
+                {
                     target[3] = src.bytesPerPixel == 4 ? source[3] : 255
+                }
+
                 x += 1
             }
         }
@@ -228,8 +239,10 @@ impl Image
     {
         Swag.assert(.pixels.buffer != null)
 
-        if newPf == .pixelFormat do
+        if newPf == .pixelFormat
+        {
             return
+        }
 
         let targetAlphaMode = newPf.hasAlpha() and .pixelFormat.hasAlpha() ? .alphaMode : AlphaMode.Straight
         .allocWorkingBuffer(.width, .height, newPf, targetAlphaMode)
@@ -244,8 +257,10 @@ impl Image
     {
         Swag.assert(.pixels.buffer != null)
 
-        if newPf == .pixelFormat do
+        if newPf == .pixelFormat
+        {
             return me
+        }
 
         let targetAlphaMode     = newPf.hasAlpha() and .pixelFormat.hasAlpha() ? .alphaMode : AlphaMode.Straight
         var result: #returntype = create(.width, .height, newPf, alphaMode: targetAlphaMode)

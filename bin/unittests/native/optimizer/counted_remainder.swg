@@ -3,75 +3,89 @@
 #[Swag.NoInline]
 func positive32(values: [*] s32)->s64
 {
-    var result = 0's64
-    for i in 0's32 until 57 do
+    var result = 0_s64
+    for i in 0_s32 until 57
+    {
         result += cast(s64, values[i + 7]) * (i % 7)
+    }
     return result
 }
 
 #[Swag.NoInline]
 func positive64(values: [*] s32)->s64
 {
-    var result = 0's64
-    for i in 0's64 until 57 do
+    var result = 0_s64
+    for i in 0_s64 until 57
+    {
         result += cast(s64, values[i + 7]) * (i % 7)
+    }
     return result
 }
 
 #[Swag.NoInline]
 func negative32(values: [*] s32)->s64
 {
-    var result = 0's64
-    for i in -7's32 until 57 do
+    var result = 0_s64
+    for i in -7_s32 until 57
+    {
         result += cast(s64, values[i + 7]) * (i % 7)
+    }
     return result
 }
 
 #[Swag.NoInline]
 func negative64(values: [*] s32)->s64
 {
-    var result = 0's64
-    for i in -7's64 until 57 do
+    var result = 0_s64
+    for i in -7_s64 until 57
+    {
         result += cast(s64, values[i + 7]) * (i % 7)
+    }
     return result
 }
 
 #[Swag.NoInline]
 func unsigned32Boundary(values: [*] s32)->s64
 {
-    var result  = 0's64
-    let first   = 0xFFFFFFFF's64 - 96
-    let divisor = 0xFFFFFFFF's64 - 64
-    for i in first until first + 64 do
+    var result  = 0_s64
+    let first   = 0xFFFFFFFF_s64 - 96
+    let divisor = 0xFFFFFFFF_s64 - 64
+    for i in first until first + 64
+    {
         result += cast(s64, values[i - first]) * (i % divisor) + i / divisor
+    }
     return result
 }
 
 #[Swag.NoInline, Swag.Optimize(false)]
 func referenceUnsigned32Boundary(values: [*] s32)->s64
 {
-    var result  = 0's64
-    let first   = 0xFFFFFFFF's64 - 96
-    let divisor = 0xFFFFFFFF's64 - 64
-    for i in first until first + 64 do
+    var result  = 0_s64
+    let first   = 0xFFFFFFFF_s64 - 96
+    let divisor = 0xFFFFFFFF_s64 - 64
+    for i in first until first + 64
+    {
         result += cast(s64, values[i - first]) * (i % divisor) + i / divisor
+    }
     return result
 }
 
 #[Swag.NoInline, Swag.Optimize(false)]
 func reference(values: [*] s32, start: s64)->s64
 {
-    var result = 0's64
-    for i in start until 57 do
+    var result = 0_s64
+    for i in start until 57
+    {
         result += cast(s64, values[i + 7]) * (i % 7)
+    }
     return result
 }
 
 #[Swag.NoInline, Swag.Safety(.Overflow, false)]
 func boundary32()->s32
 {
-    var value  = 0x7FFFFFFD's32
-    var result = 0's32
+    var value  = 0x7FFFFFFD_s32
+    var result = 0_s32
     for 8
     {
         result += value % 7
@@ -83,8 +97,8 @@ func boundary32()->s32
 #[Swag.NoInline, Swag.Safety(.Overflow, false)]
 func boundary64()->s64
 {
-    var value  = 0x7FFFFFFFFFFFFFFD's64
-    var result = 0's64
+    var value  = 0x7FFFFFFFFFFFFFFD_s64
+    var result = 0_s64
     for 8
     {
         result += value % 7
@@ -96,8 +110,8 @@ func boundary64()->s64
 #[Swag.NoInline, Swag.Optimize(false), Swag.Safety(.Overflow, false)]
 func referenceBoundary32()->s32
 {
-    var value  = 0x7FFFFFFD's32
-    var result = 0's32
+    var value  = 0x7FFFFFFD_s32
+    var result = 0_s32
     for 8
     {
         result += value % 7
@@ -109,8 +123,8 @@ func referenceBoundary32()->s32
 #[Swag.NoInline, Swag.Optimize(false), Swag.Safety(.Overflow, false)]
 func referenceBoundary64()->s64
 {
-    var value  = 0x7FFFFFFFFFFFFFFD's64
-    var result = 0's64
+    var value  = 0x7FFFFFFFFFFFFFFD_s64
+    var result = 0_s64
     for 8
     {
         result += value % 7
@@ -122,8 +136,10 @@ func referenceBoundary64()->s64
 #test
 {
     var values: [64] s32
-    for i in 64 do
+    for i in 64
+    {
         values[i] = cast(s32, (i * 17) % 43) - 21
+    }
 
     Swag.require(positive32(&values[0]) == reference(&values[0], 0))
     Swag.require(positive64(&values[0]) == reference(&values[0], 0))
@@ -137,23 +153,23 @@ func referenceBoundary64()->s64
 #[Swag.NoInline]
 func furtherPrecision(values: [*] s32, output: [*] s64)
 {
-    var low         = 0's64
-    var wideDivisor = 0's64
-    for i in 0's64 until 57
+    var low         = 0_s64
+    var wideDivisor = 0_s64
+    for i in 0_s64 until 57
     {
         let weight = cast(s64, values[i])
         low         += weight * (i % 1000) + i / 1000
-        wideDivisor += weight * (i % 0x100000001's64) + i / 0x100000001's64
+        wideDivisor += weight * (i % 0x100000001_s64) + i / 0x100000001_s64
     }
 
-    var wideCounter = 0's64
-    var wideBoth    = 0's64
-    let first       = 0x100000001's64
+    var wideCounter = 0_s64
+    var wideBoth    = 0_s64
+    let first       = 0x100000001_s64
     for i in first until first + 64
     {
         let weight = cast(s64, values[i - first])
         wideCounter += weight * (i % 7) + i / 7
-        wideBoth    += weight * (i % 0x100000003's64) + i / 0x100000003's64
+        wideBoth    += weight * (i % 0x100000003_s64) + i / 0x100000003_s64
     }
 
     output[0] = low
@@ -165,17 +181,21 @@ func furtherPrecision(values: [*] s32, output: [*] s64)
 #[Swag.NoInline, Swag.Optimize(false)]
 func referenceBound(values: [*] s32, first, count, divisor: s64)->s64
 {
-    var result = 0's64
-    for i in first until first + count do
+    var result = 0_s64
+    for i in first until first + count
+    {
         result += cast(s64, values[i - first]) * (i % divisor) + i / divisor
+    }
     return result
 }
 
 #test
 {
     var values: [64] s32
-    for i in 64 do
+    for i in 64
+    {
         values[i] = cast(s32, (i * 19) % 47) - 23
+    }
 
     var actual: [4] s64
     furtherPrecision(&values[0], &actual[0])

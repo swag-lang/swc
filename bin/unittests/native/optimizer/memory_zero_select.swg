@@ -19,14 +19,14 @@ func bit(a, value: u64)->u64 => (a & 7) != 0 ? value : 0
 
 #test
 {
-    let values = [0'u64, 1, 7, 17, 0xFFFFFFFF, 0x8000000000000000, 0xFFFFFFFFFFFFFFFF]
+    let values = [0_u64, 1, 7, 17, 0xFFFFFFFF, 0x8000000000000000, 0xFFFFFFFFFFFFFFFF]
     for a in values
     {
         var stored = a
         var narrow = cast(u32, (a & 0xFFFFFFFF))
         for b in values
         {
-            let expected = a < b ? 91'u64 : 0
+            let expected = a < b ? 91_u64 : 0
             Swag.require(below(&stored, b, 91) == expected)
             Swag.require(equal(&stored, b, 91) == (a == b ? 91 : 0))
             Swag.require(live(&stored, b, 91) == (expected ^ 91 ^ a))

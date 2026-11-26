@@ -7,10 +7,13 @@ using Core, Gui, Viewers
 func writeStreamedFile(size: u64)->String
 {
     let fileName = Testing.tempFilePath("viewer-hex-stream-", ".bin")
-    var payload: Array'u8
+    var payload: Array!{u8}
     payload.resize(size)
-    for index in size do
+    for index in size
+    {
         payload[index] = cast(u8, index & 0xFF)
+    }
+
     expect File.writeAllBytes(fileName, payload.toSlice())
     return fileName
 }
@@ -19,7 +22,7 @@ func writeStreamedFile(size: u64)->String
 func hexTestViewer(host: *Testing.HeadlessHost, fileName: string, width, height: f32)->*Hex.Panel
 {
     Hex.registerTexts(&host.app)
-    let commands = Wnd.create'Wnd(&host.root, {0, 0, 640, 36})
+    let commands = Wnd.create!{Wnd}(&host.root, {0, 0, 640, 36})
     var session  = openTestViewer(Hex.viewerPlugin(), &host.root, fileName, commandParent: commands, infoParent: commands)
     let view     = assume cast(*Hex.Panel, session.view)
     completeViewerBackgroundLoad(host, &view.load)

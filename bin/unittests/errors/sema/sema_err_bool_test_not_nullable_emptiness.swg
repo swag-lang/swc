@@ -7,8 +7,10 @@
 
 func boolTestEmptinessNullableString(text: string?)->s32
 {
-    if text do
+    if text
+    {
         return cast(s32, (text).count)
+    }
     return 0
 }
 
@@ -25,8 +27,10 @@ func boolTestEmptinessNullableSlice(values: const [..] s32?)->s32
 // A count answers emptiness, which is what the rejected spelling reads like.
 func boolTestEmptinessCount(text: string)->s32
 {
-    if text.count do
+    if text.count
+    {
         return 1
+    }
     return 0
 }
 
@@ -36,22 +40,28 @@ func boolTestEmptinessCount(text: string)->s32
 
 func boolTestEmptinessErrString(text: string)->s32
 {
-    if text do     // swc-expected-error {{sema_err_bool_test_not_nullable_emptiness}}
+    if text     // swc-expected-error {{sema_err_bool_test_not_nullable_emptiness}}
+    {
         return 1
+    }
     return 0
 }
 
 func boolTestEmptinessErrSlice(values: const [..] s32)->s32
 {
-    if values do     // swc-expected-error {{sema_err_bool_test_not_nullable_emptiness}}
+    if values     // swc-expected-error {{sema_err_bool_test_not_nullable_emptiness}}
+    {
         return 1
+    }
     return 0
 }
 
 func boolTestEmptinessErrNot(text: string)->s32
 {
-    if not text do     // swc-expected-error {{sema_err_bool_test_not_nullable_emptiness}}
+    if not text     // swc-expected-error {{sema_err_bool_test_not_nullable_emptiness}}
+    {
         return 0
+    }
     return 1
 }
 

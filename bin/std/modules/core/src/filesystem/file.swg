@@ -82,24 +82,41 @@ func touch(fullName: string) fail
 // `Append` moves the initial cursor to the end but permits later explicit seeks.
 func open(fullName: string, mode: FileMode, access: FileAccess, share: FileShare)->FileStream fail
 {
-    if not access.has(.Read) and not access.has(.Write) do
+    if not access.has(.Read) and not access.has(.Write)
+    {
         fail BadParameterError{"file access must request reading, writing, or both"}
-    if (access & ~FileAccess.ReadWrite) != cast(FileAccess, 0) do
+    }
+
+    if (access & ~FileAccess.ReadWrite) != cast(FileAccess, 0)
+    {
         fail BadParameterError{"file access contains an unknown flag"}
+    }
+
     let validShare = FileShare.ReadWrite | .Delete | .Inheritable
-    if (share & ~validShare) != .Zero do
+    if (share & ~validShare) != .Zero
+    {
         fail BadParameterError{"file sharing contains an unknown flag"}
+    }
+
     if mode != .Append and
        mode != .Create and
        mode != .CreateNew and
        mode != .Open and
        mode != .OpenOrCreate and
-       mode != .Truncate do
+       mode != .Truncate
+    {
         fail BadParameterError{"file mode is invalid"}
-    if mode != .Open or access.has(.Write) do
+    }
+
+    if mode != .Open or access.has(.Write)
+    {
         try Env.guardWrite(fullName)
-    if (mode == .Create or mode == .Truncate) and not access.has(.Write) do
+    }
+
+    if (mode == .Create or mode == .Truncate) and not access.has(.Write)
+    {
         fail BadParameterError{"creating or truncating a file requires write access"}
+    }
 
     let canRead  = access.has(.Read)
     let canWrite = access.has(.Write)
@@ -107,8 +124,11 @@ func open(fullName: string, mode: FileMode, access: FileAccess, share: FileShare
 
     var result: #returntype
     result.open(fullName, handle, canRead, canWrite, true)
-    if mode == .Append do
+    if mode == .Append
+    {
         try result.seek(.End, 0)
+    }
+
     return result
 }
 
@@ -143,15 +163,17 @@ func readAllText(fullName: string, normalizeEol = false)->String fail
 {
     var reader: TextReader
     try reader.open(fullName)
-    if not normalizeEol do
+    if not normalizeEol
+    {
         return try reader.readToEnd()
+    }
 
     var result: #returntype
     var line:   String
     while try reader.readLine(&line)
     {
         result += line
-        result += '\n'u8
+        result += '\n'_u8
     }
 
     return result
@@ -165,8 +187,11 @@ func readAllText(fullName: string, encoding: Text.Encoding)->String fail
 {
     let bytes   = try readAllBytes(fullName)
     let content = bytes.toSlice()
-    if Text.hasBom(content, encoding) do
+    if Text.hasBom(content, encoding)
+    {
         return Text.decode(content[Text.bomLength(encoding) until content.count], encoding)
+    }
+
     return Text.decode(content, encoding)
 }
 
@@ -174,15 +199,18 @@ func readAllText(fullName: string, encoding: Text.Encoding)->String fail
 //
 // A leading byte-order mark is skipped. Invalid UTF-8 fails with
 // [[Core.Errors.InvalidFormatError]].
-func readAllLines(fullName: string)->Array'String fail
+func readAllLines(fullName: string)->Array!{String} fail
 {
     var reader: TextReader
     try reader.open(fullName)
 
     var result: #returntype
     var line:   String
-    while try reader.readLine(&line) do
+    while try reader.readLine(&line)
+    {
         result.add(#move line)
+    }
+
     return result
 }
 
@@ -198,19 +226,24 @@ func readEachLine(fullName: string, stmt: #code(var line: *String)) fail
     try reader.open(fullName)
 
     var buffer: String
-    while try reader.readLine(&buffer) do
+    while try reader.readLine(&buffer)
+    {
         #inject(stmt, line = &buffer)
+    }
 }
 
 // Reads a whole file and returns its bytes.
-func readAllBytes(fullName: string)->Array'u8 fail
+func readAllBytes(fullName: string)->Array!{u8} fail
 {
     var stream = try openRead(fullName)
 
     var result: #returntype
     let length = try stream.size()
-    if not length do
+    if not length
+    {
         return result
+    }
+
     result.reserve(length)
     result.count = try stream.read(unwrap result.buffer, length)
     return result
@@ -230,9 +263,12 @@ func writeAllBytes(fullName: string, buffer: ConcatBuffer)->u64 fail
 {
     var stream = try openWrite(fullName)
 
-    var total = 0'u64
-    for chunk in buffer where chunk.count do
+    var total = 0_u64
+    for chunk in buffer where chunk.count
+    {
         total += try stream.write(unwrap chunk.data, chunk.count)
+    }
+
     return total
 }
 
@@ -253,11 +289,11 @@ func writeAllText(fullName: string, text: string, encoding: Text.Encoding, inclu
 
 // Creates or replaces a file with `lines`, each followed by `\n`, and returns the number of bytes written.
 #[Swag.Discardable]
-func writeAllLines(fullName: string, lines: Array'(string))->u64 fail
+func writeAllLines(fullName: string, lines: Array!{string})->u64 fail
 {
     var stream = try openWrite(fullName)
 
-    var total = 0'u64
+    var total = 0_u64
     for line in lines
     {
         total += try stream.write(cast(const [..] u8, line))

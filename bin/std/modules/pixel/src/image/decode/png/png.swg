@@ -19,27 +19,27 @@ private
         ACTL = 0x4C546361
         FCTL = 0x4C546366
         FDAT = 0x54416466
-        IHDR = Swag.byteSwap('I'u32 << 24 | 'H'u32 << 16 | 'D'u32 << 8 | 'R'u32)
-        PLTE = Swag.byteSwap('P'u32 << 24 | 'L'u32 << 16 | 'T'u32 << 8 | 'E'u32)
-        BKGD = Swag.byteSwap('b'u32 << 24 | 'K'u32 << 16 | 'G'u32 << 8 | 'D'u32)
-        TRNS = Swag.byteSwap('t'u32 << 24 | 'R'u32 << 16 | 'N'u32 << 8 | 'S'u32)
-        IDAT = Swag.byteSwap('I'u32 << 24 | 'D'u32 << 16 | 'A'u32 << 8 | 'T'u32)
-        ITXt = Swag.byteSwap('i'u32 << 24 | 'T'u32 << 16 | 'X'u32 << 8 | 't'u32)
-        TEXt = Swag.byteSwap('t'u32 << 24 | 'E'u32 << 16 | 'X'u32 << 8 | 't'u32)
-        ZTXt = Swag.byteSwap('z'u32 << 24 | 'T'u32 << 16 | 'X'u32 << 8 | 't'u32)
-        ICCP = Swag.byteSwap('i'u32 << 24 | 'C'u32 << 16 | 'C'u32 << 8 | 'P'u32)
-        PHYs = Swag.byteSwap('p'u32 << 24 | 'H'u32 << 16 | 'Y'u32 << 8 | 's'u32)
-        GAMA = Swag.byteSwap('g'u32 << 24 | 'A'u32 << 16 | 'M'u32 << 8 | 'A'u32)
-        TIME = Swag.byteSwap('t'u32 << 24 | 'I'u32 << 16 | 'M'u32 << 8 | 'E'u32)
-        SPLT = Swag.byteSwap('s'u32 << 24 | 'P'u32 << 16 | 'L'u32 << 8 | 'T'u32)
-        SRGB = Swag.byteSwap('s'u32 << 24 | 'R'u32 << 16 | 'G'u32 << 8 | 'B'u32)
-        HIST = Swag.byteSwap('h'u32 << 24 | 'I'u32 << 16 | 'S'u32 << 8 | 'T'u32)
-        CHRM = Swag.byteSwap('c'u32 << 24 | 'H'u32 << 16 | 'R'u32 << 8 | 'M'u32)
-        SBIT = Swag.byteSwap('s'u32 << 24 | 'B'u32 << 16 | 'I'u32 << 8 | 'T'u32)
-        EXIf = Swag.byteSwap('e'u32 << 24 | 'X'u32 << 16 | 'I'u32 << 8 | 'f'u32)
-        IEND = Swag.byteSwap('I'u32 << 24 | 'E'u32 << 16 | 'N'u32 << 8 | 'D'u32)
-        IDOT = Swag.byteSwap('i'u32 << 24 | 'D'u32 << 16 | 'O'u32 << 8 | 'T'u32)
-        CbGI = Swag.byteSwap('C'u32 << 24 | 'b'u32 << 16 | 'H'u32 << 8 | 'I'u32)
+        IHDR = Swag.byteSwap('I'_u32 << 24 | 'H'_u32 << 16 | 'D'_u32 << 8 | 'R'_u32)
+        PLTE = Swag.byteSwap('P'_u32 << 24 | 'L'_u32 << 16 | 'T'_u32 << 8 | 'E'_u32)
+        BKGD = Swag.byteSwap('b'_u32 << 24 | 'K'_u32 << 16 | 'G'_u32 << 8 | 'D'_u32)
+        TRNS = Swag.byteSwap('t'_u32 << 24 | 'R'_u32 << 16 | 'N'_u32 << 8 | 'S'_u32)
+        IDAT = Swag.byteSwap('I'_u32 << 24 | 'D'_u32 << 16 | 'A'_u32 << 8 | 'T'_u32)
+        ITXt = Swag.byteSwap('i'_u32 << 24 | 'T'_u32 << 16 | 'X'_u32 << 8 | 't'_u32)
+        TEXt = Swag.byteSwap('t'_u32 << 24 | 'E'_u32 << 16 | 'X'_u32 << 8 | 't'_u32)
+        ZTXt = Swag.byteSwap('z'_u32 << 24 | 'T'_u32 << 16 | 'X'_u32 << 8 | 't'_u32)
+        ICCP = Swag.byteSwap('i'_u32 << 24 | 'C'_u32 << 16 | 'C'_u32 << 8 | 'P'_u32)
+        PHYs = Swag.byteSwap('p'_u32 << 24 | 'H'_u32 << 16 | 'Y'_u32 << 8 | 's'_u32)
+        GAMA = Swag.byteSwap('g'_u32 << 24 | 'A'_u32 << 16 | 'M'_u32 << 8 | 'A'_u32)
+        TIME = Swag.byteSwap('t'_u32 << 24 | 'I'_u32 << 16 | 'M'_u32 << 8 | 'E'_u32)
+        SPLT = Swag.byteSwap('s'_u32 << 24 | 'P'_u32 << 16 | 'L'_u32 << 8 | 'T'_u32)
+        SRGB = Swag.byteSwap('s'_u32 << 24 | 'R'_u32 << 16 | 'G'_u32 << 8 | 'B'_u32)
+        HIST = Swag.byteSwap('h'_u32 << 24 | 'I'_u32 << 16 | 'S'_u32 << 8 | 'T'_u32)
+        CHRM = Swag.byteSwap('c'_u32 << 24 | 'H'_u32 << 16 | 'R'_u32 << 8 | 'M'_u32)
+        SBIT = Swag.byteSwap('s'_u32 << 24 | 'B'_u32 << 16 | 'I'_u32 << 8 | 'T'_u32)
+        EXIf = Swag.byteSwap('e'_u32 << 24 | 'X'_u32 << 16 | 'I'_u32 << 8 | 'f'_u32)
+        IEND = Swag.byteSwap('I'_u32 << 24 | 'E'_u32 << 16 | 'N'_u32 << 8 | 'D'_u32)
+        IDOT = Swag.byteSwap('i'_u32 << 24 | 'D'_u32 << 16 | 'O'_u32 << 8 | 'T'_u32)
+        CbGI = Swag.byteSwap('C'_u32 << 24 | 'b'_u32 << 16 | 'H'_u32 << 8 | 'I'_u32)
     }
 
     const Adam7OrigX:    [?] s64 = [0, 4, 0, 2, 0, 1, 0]
@@ -104,7 +104,7 @@ internal struct Decoder
         header:        Header                 // Image header of the stream.
         inChannels:    s32                    // Channels present in the source.
         outChannels:   s32                    // Channels written to the destination.
-        dcmpBuf:       Array'u8               // Decompressed scanlines before defiltering.
+        dcmpBuf:       Array!{u8}             // Decompressed scanlines before defiltering.
         dstPixels:     [*] u8?                // Destination pixel buffer.
         dstPixelsSize: u64                    // Size of the destination buffer, in bytes.
         chunkTRNS:     DecodeChunk            // Transparency chunk, when the stream carries one.
@@ -130,16 +130,20 @@ impl Decoder
 
     mtd getExpectedDecompressedSize()->u64
     {
-        if .header.interlaceMethod == .None do
+        if .header.interlaceMethod == .None
+        {
             return (.getStrideIn(.header.width) + 1) * .header.height
+        }
 
         var result: u64
         for pass in 7
         {
             let originX = cast(u64, Adam7OrigX[pass])
             let originY = cast(u64, Adam7OrigY[pass])
-            if .header.width <= originX or .header.height <= originY do
+            if .header.width <= originX or .header.height <= originY
+            {
                 continue
+            }
 
             let spacingX = cast(u64, Adam7SpacingX[pass])
             let spacingY = cast(u64, Adam7SpacingY[pass])
@@ -164,10 +168,12 @@ impl Decoder
         // Revert the bit reader's lookahead to reach the encoded chunk payload.
         .stream.revert()
 
-        if .stream.bytePosition() + ch.length > .stream.size() do
+        if .stream.bytePosition() + ch.length > .stream.size()
+        {
             fail InvalidFormatError{"invalid chunk"}
-        let payload = unwrap .stream.currentPointer()
-        result.datas = Swag.makeSlice(payload, ch.length)
+        }
+
+        result.datas = Swag.makeSlice(.stream.currentPointer(), ch.length)
         .stream.advanceBytes(ch.length)
 
         // The four bytes immediately before the payload are its type in wire order.
@@ -175,18 +181,25 @@ impl Decoder
 
         var vcrc: u32
         .stream.read32Be(cast([*] u8, &vcrc))
-        if .stream.isEof() do
+        if .stream.isEof()
+        {
             fail InvalidFormatError{"PNG data ends before the chunk checksum"}
-        if vcrc != crc do
+        }
+
+        if vcrc != crc.value()
+        {
             fail InvalidFormatError{"invalid checksum"}
+        }
 
         return result
     }
 
     mtd readHeader(ch: ChunkHeader) fail
     {
-        if ch.length != 13 do
+        if ch.length != 13
+        {
             fail InvalidFormatError{"PNG IHDR chunk size is not 13 bytes"}
+        }
 
         let chunk = try .readChunk(ch)
         .header        = cast(const *Header, (Decoder.safeDatas(chunk)).buffer)[]
@@ -195,16 +208,30 @@ impl Decoder
 
         with me.header
         {
-            if .width == 0 or .height == 0 do
+            if .width == 0 or .height == 0
+            {
                 fail InvalidFormatError{"invalid dimensions"}
-            if cast(u64, .width) * .height > 0x1FFFFFFF do
+            }
+
+            if cast(u64, .width) * .height > 0x1FFFFFFF
+            {
                 fail UnsupportedFormatError{"PNG image needs more than 2 GiB of decoded pixel memory"}
-            if .compressionMethod != 0 do
+            }
+
+            if .compressionMethod != 0
+            {
                 fail InvalidFormatError{"invalid compression mtd"}
-            if .filterMethod != 0 do
+            }
+
+            if .filterMethod != 0
+            {
                 fail InvalidFormatError{"invalid filter mtd"}
-            if .interlaceMethod != .None and .interlaceMethod != .Adam7 do
+            }
+
+            if .interlaceMethod != .None and .interlaceMethod != .Adam7
+            {
                 fail InvalidFormatError{"invalid interlace mtd"}
+            }
 
             switch cast(u8, .colorType)
             {
@@ -213,31 +240,45 @@ impl Decoder
                    .bitDepth != 2 and
                    .bitDepth != 4 and
                    .bitDepth != 8 and
-                   .bitDepth != 16 do
+                   .bitDepth != 16
+                {
                     fail UnsupportedFormatError{"unsupported bit depth"}
+                }
 
             case 2:
-                if .bitDepth != 8 and .bitDepth != 16 do
+                if .bitDepth != 8 and .bitDepth != 16
+                {
                     fail UnsupportedFormatError{"unsupported bit depth"}
+                }
 
             case 3:
-                if .bitDepth != 1 and .bitDepth != 2 and .bitDepth != 4 and .bitDepth != 8 do
+                if .bitDepth != 1 and .bitDepth != 2 and .bitDepth != 4 and .bitDepth != 8
+                {
                     fail UnsupportedFormatError{"unsupported bit depth"}
+                }
 
             case 4, 6:
-                if .bitDepth != 8 and .bitDepth != 16 do
+                if .bitDepth != 8 and .bitDepth != 16
+                {
                     fail UnsupportedFormatError{"unsupported bit depth"}
+                }
 
             default:
                 fail InvalidFormatError{"invalid color type"}
             }
 
-            if me.header.colorType & .Paletted do
+            if me.header.colorType & .Paletted
+            {
                 me.inChannels = 1
-            elif me.header.colorType & .Color do
+            }
+            else if me.header.colorType & .Color
+            {
                 me.inChannels = 3
-            else do
+            }
+            else
+            {
                 me.inChannels = 1
+            }
 
             if me.header.colorType & .Alpha
             {
@@ -245,8 +286,10 @@ impl Decoder
             }
 
             let inputBytesPerPixel = cast(u64, me.inChannels) * (.bitDepth == 16 ? 2 : 1)
-            if cast(u64, .width) * .height * inputBytesPerPixel > 0x7FFFFFFF do
+            if cast(u64, .width) * .height * inputBytesPerPixel > 0x7FFFFFFF
+            {
                 fail UnsupportedFormatError{"PNG image needs more than 2 GiB of decoded pixel memory"}
+            }
         }
     }
 
@@ -258,13 +301,13 @@ impl Decoder
 
         var signature: u64
         .stream.readBytes(#sizeof(signature), cast([*] u8, &signature))
-        if signature != 0x0A1A0A0D474E5089 do
+        if signature != 0x0A1A0A0D474E5089
+        {
             fail InvalidFormatError{"not a png"}
+        }
 
-        var result:    #returntype
-        var frameData: Array'u8
-        var firstIdat: const [..] u8?
-        var idatSize:  u64
+        var result:   #returntype
+        var iDataBuf: Array!{u8}
 
         // Zero-initialized: on iterations where 'chIsHere' skips the peek, the header
         // was already loaded by the look-ahead; the flow analysis cannot prove it.
@@ -289,43 +332,66 @@ impl Decoder
             }
 
             chIsHere = false
-            if .stream.isEof() do
+            if .stream.isEof()
+            {
                 fail InvalidFormatError{"invalid chunk"}
-            if firstChunk and ch.type != .IHDR do
+            }
+
+            if firstChunk and ch.type != .IHDR
+            {
                 fail InvalidFormatError{"PNG data does not start with an IHDR chunk"}
+            }
 
             switch ch.type
             {
             case .IHDR:
-                if not firstChunk do
+                if not firstChunk
+                {
                     fail InvalidFormatError{"PNG data contains more than one IHDR chunk"}
+                }
+
                 try .readHeader(ch)
                 .animation.canvasWidth  = cast(s32, .header.width)
                 .animation.canvasHeight = cast(s32, .header.height)
 
             case .ACTL:
-                if declaredFrames or seenIDAT or ch.length != 8 do
+                if declaredFrames or seenIDAT or ch.length != 8
+                {
                     fail InvalidFormatError{"PNG animation control chunk is invalid or misplaced"}
+                }
+
                 let chunk = try .readChunk(ch)
                 let data  = Decoder.safeDatas(chunk).buffer
                 declaredFrames = .read32Be(data)
-                if not declaredFrames do
+                if not declaredFrames
+                {
                     fail InvalidFormatError{"PNG animation declares no frames"}
+                }
+
                 try .decOptions.checkFrameCount(declaredFrames)
                 .animation.loopCount = .read32Be(data + 4)
 
             case .FCTL:
-                if not declaredFrames or ch.length != 26 or (currentFrame >= 0 and not frameHasData) do
+                if not declaredFrames or ch.length != 26 or (currentFrame >= 0 and not frameHasData)
+                {
                     fail InvalidFormatError{"PNG animation frame control is invalid or misplaced"}
+                }
+
                 let chunk = try .readChunk(ch)
                 let data  = Decoder.safeDatas(chunk).buffer
-                if .read32Be(data) != sequence do
+                if .read32Be(data) != sequence
+                {
                     fail InvalidFormatError{"PNG animation sequence number is invalid"}
+                }
+
                 sequence     += 1
                 currentFrame += 1
                 frameHasData = false
-                if cast(u32, currentFrame) >= declaredFrames do
+                if cast(u32, currentFrame) >= declaredFrames
+                {
                     fail InvalidFormatError{"PNG animation has too many frames"}
+                }
+
                 let width       = .read32Be(data + 4)
                 let height      = .read32Be(data + 8)
                 let x           = .read32Be(data + 12)
@@ -339,10 +405,16 @@ impl Decoder
                    x > .header.width - width or
                    y > .header.height - height or
                    data[24] > 2 or
-                   data[25] > 1 do
+                   data[25] > 1
+                {
                     fail InvalidFormatError{"PNG animation frame rectangle or operation is invalid"}
-                if not seenIDAT and (x or y or width != .header.width or height != .header.height) do
+                }
+
+                if not seenIDAT and (x or y or width != .header.width or height != .header.height)
+                {
                     fail InvalidFormatError{"PNG default animation frame does not fill the canvas"}
+                }
+
                 let durationSeconds = cast(f64, numerator) / (denominator ? denominator : 100)
                 var disposal: ImageDisposal
                 if data[24] == 2
@@ -367,147 +439,230 @@ impl Decoder
                 .animation.frames.add(frame)
 
             case .FDAT:
-                if not seenIDAT or currentFrame < 0 or ch.length < 4 do
+                if not seenIDAT or currentFrame < 0 or ch.length < 4
+                {
                     fail InvalidFormatError{"PNG animation frame data is invalid or misplaced"}
+                }
+
                 let chunk = try .readChunk(ch)
                 let data  = Decoder.safeDatas(chunk)
-                if .read32Be(data.buffer) != sequence do
+                if .read32Be(data.buffer) != sequence
+                {
                     fail InvalidFormatError{"PNG animation sequence number is invalid"}
+                }
+
                 sequence     += 1
                 frameHasData = true
-                if .decOptions.decodePixels and selected == currentFrame do
-                    frameData.add(data[4 to])
+                if selected == currentFrame
+                {
+                    iDataBuf.add(data[4 to])
+                }
 
             case .TRNS:
-                if .seenTRSN do
+                if .seenTRSN
+                {
                     fail InvalidFormatError{"PNG data contains more than one tRNS chunk"}
-                if seenIDAT do
+                }
+
+                if seenIDAT
+                {
                     fail InvalidFormatError{"PNG tRNS chunk appears after image data"}
-                if .header.colorType & .Paletted and not .seenPLTE do
+                }
+
+                if .header.colorType & .Paletted and not .seenPLTE
+                {
                     fail InvalidFormatError{"PNG indexed-color tRNS chunk appears before PLTE"}
-                if .header.colorType & .Alpha do
+                }
+
+                if .header.colorType & .Alpha
+                {
                     fail InvalidFormatError{"PNG image with alpha contains a tRNS chunk"}
+                }
 
                 .seenTRSN    = true
                 .outChannels += 1     // transparency mask, add an alpha channel
                 .chunkTRNS   = try .readChunk(ch)
 
                 let transparencySize = (.safeTRNSData()).count
-                if cast(u8, .header.colorType) == 0 and transparencySize != 2 do
+                if cast(u8, .header.colorType) == 0 and transparencySize != 2
+                {
                     fail InvalidFormatError{"PNG grayscale tRNS chunk size is not 2 bytes"}
-                if cast(u8, .header.colorType) == 2 and transparencySize != 6 do
+                }
+
+                if cast(u8, .header.colorType) == 2 and transparencySize != 6
+                {
                     fail InvalidFormatError{"PNG true-color tRNS chunk size is not 6 bytes"}
-                if .header.colorType & .Paletted and (transparencySize == 0 or transparencySize > .paletteCount) do
+                }
+
+                if .header.colorType & .Paletted and (transparencySize == 0 or transparencySize > .paletteCount)
+                {
                     fail InvalidFormatError{"PNG indexed-color tRNS chunk exceeds the palette"}
+                }
 
                 if .header.bitDepth < 16
                 {
-                    let maxSample = (1'u32 << cast(u32, .header.bitDepth)) - 1
+                    let maxSample = (1_u32 << cast(u32, .header.bitDepth)) - 1
                     let data      = (.safeTRNSData()).buffer
-                    if cast(u8, .header.colorType) == 0 and cast(u32, .read16(data)) > maxSample do
+                    if cast(u8, .header.colorType) == 0 and cast(u32, .read16(data)) > maxSample
+                    {
                         fail InvalidFormatError{"PNG grayscale tRNS key exceeds the bit depth"}
+                    }
+
                     if cast(u8, .header.colorType) == 2
                     {
                         for component in 3
                         {
-                            if cast(u32, .read16(data + cast(u64, component) * 2)) > maxSample do
+                            if cast(u32, .read16(data + cast(u64, component) * 2)) > maxSample
+                            {
                                 fail InvalidFormatError{"PNG true-color tRNS key exceeds the bit depth"}
+                            }
                         }
                     }
                 }
 
             case .BKGD:
-                if .seenBKGD do
+                if .seenBKGD
+                {
                     fail InvalidFormatError{"PNG data contains more than one bKGD chunk"}
-                if seenIDAT do
+                }
+
+                if seenIDAT
+                {
                     fail InvalidFormatError{"PNG bKGD chunk appears after image data"}
-                if .header.colorType & .Paletted and not .seenPLTE do
+                }
+
+                if .header.colorType & .Paletted and not .seenPLTE
+                {
                     fail InvalidFormatError{"PNG indexed-color bKGD chunk appears before PLTE"}
+                }
 
                 let chunk = try .readChunk(ch)
                 let data  = Decoder.safeDatas(chunk)
                 switch cast(u8, .header.colorType)
                 {
                 case 0, 4:
-                    if data.count != 2 do
+                    if data.count != 2
+                    {
                         fail InvalidFormatError{"PNG grayscale bKGD chunk size is not 2 bytes"}
+                    }
+
                     if .header.bitDepth < 16
                     {
-                        let maxSample = (1'u32 << cast(u32, .header.bitDepth)) - 1
-                        if cast(u32, .read16(data.buffer)) > maxSample do
+                        let maxSample = (1_u32 << cast(u32, .header.bitDepth)) - 1
+                        if cast(u32, .read16(data.buffer)) > maxSample
+                        {
                             fail InvalidFormatError{"PNG grayscale bKGD sample exceeds the bit depth"}
+                        }
                     }
 
                 case 2, 6:
-                    if data.count != 6 do
+                    if data.count != 6
+                    {
                         fail InvalidFormatError{"PNG true-color bKGD chunk size is not 6 bytes"}
+                    }
+
                     if .header.bitDepth < 16
                     {
-                        let maxSample = (1'u32 << cast(u32, .header.bitDepth)) - 1
+                        let maxSample = (1_u32 << cast(u32, .header.bitDepth)) - 1
                         for component in 3
                         {
-                            if cast(u32, .read16(data.buffer + cast(u64, component) * 2)) > maxSample do
+                            if cast(u32, .read16(data.buffer + cast(u64, component) * 2)) > maxSample
+                            {
                                 fail InvalidFormatError{"PNG true-color bKGD sample exceeds the bit depth"}
+                            }
                         }
                     }
 
                 case 3:
-                    if data.count != 1 do
+                    if data.count != 1
+                    {
                         fail InvalidFormatError{"PNG indexed-color bKGD chunk size is not 1 byte"}
-                    if data[0] >= .paletteCount do
+                    }
+
+                    if data[0] >= .paletteCount
+                    {
                         fail InvalidFormatError{"PNG bKGD palette index exceeds the palette"}
+                    }
                 }
 
                 .seenBKGD = true
 
             case .IEND:
-                if ch.length do
+                if ch.length
+                {
                     fail InvalidFormatError{"PNG IEND chunk is not empty"}
+                }
+
                 seenIEND = true
                 discard try .readChunk(ch)
 
             case .IDAT:
-                if seenIDAT do
+                if seenIDAT
+                {
                     fail InvalidFormatError{"invalid IDAT chunk"}
+                }
+
                 while ch.type == IDAT
                 {
                     let chunk = try .readChunk(ch)
-                    if .decOptions.decodePixels and
-                       (selected < 0 or selected == currentFrame) and
-                       ch.length
+                    if selected < 0 or selected == currentFrame
                     {
-                        if not firstIdat do
-                            firstIdat = Decoder.safeDatas(chunk)
-                        idatSize += ch.length
+                        iDataBuf.add(Decoder.safeDatas(chunk))
                     }
 
-                    if currentFrame >= 0 do
+                    if currentFrame >= 0
+                    {
                         frameHasData = true
+                    }
+
                     .stream.read32Be(cast([*] u8, &ch.length))
                     .stream.read32(cast([*] u8, &ch.type))
-                    if .stream.isEof() do
+                    if .stream.isEof()
+                    {
                         fail InvalidFormatError{"invalid chunk"}
+                    }
                 }
 
                 chIsHere, seenIDAT = true
 
             case .PLTE:
-                if .seenPLTE do
+                if .seenPLTE
+                {
                     fail InvalidFormatError{"PNG data contains more than one PLTE chunk"}
-                if seenIDAT do
+                }
+
+                if seenIDAT
+                {
                     fail InvalidFormatError{"PNG PLTE chunk appears after image data"}
-                if .seenTRSN do
+                }
+
+                if .seenTRSN
+                {
                     fail InvalidFormatError{"PNG PLTE chunk appears after tRNS"}
-                if .seenBKGD do
+                }
+
+                if .seenBKGD
+                {
                     fail InvalidFormatError{"PNG PLTE chunk appears after bKGD"}
-                if cast(u8, .header.colorType) == 0 or cast(u8, .header.colorType) == 4 do
+                }
+
+                if cast(u8, .header.colorType) == 0 or cast(u8, .header.colorType) == 4
+                {
                     fail InvalidFormatError{"PNG grayscale image contains a PLTE chunk"}
+                }
+
                 let chunk = try .readChunk(ch)
                 let len   = (Decoder.safeDatas(chunk)).count
-                if len == 0 or len % 3 != 0 or len > 768 do
+                if len == 0 or len % 3 != 0 or len > 768
+                {
                     fail InvalidFormatError{"PNG PLTE chunk has no complete palette entries"}
-                if .header.colorType & .Paletted and len / 3 > 1 << .header.bitDepth do
+                }
+
+                if .header.colorType & .Paletted and len / 3 > 1 << .header.bitDepth
+                {
                     fail InvalidFormatError{"PNG palette has more entries than its bit depth can address"}
+                }
+
                 .seenPLTE = true
                 for var i = 0; i < len; i += 3
                 {
@@ -526,14 +681,19 @@ impl Decoder
                     let len = (Decoder.safeDatas(chunk)).count
                     if len > 1
                     {
-                        var sep = 0'u64
-                        while sep < len and Decoder.safeDatas(chunk)[sep] != 0 do
+                        var sep = 0_u64
+                        while sep < len and Decoder.safeDatas(chunk)[sep] != 0
+                        {
                             sep += 1
+                        }
 
                         var md: ImageMetadata
                         md.tag = cast(string, Decoder.safeDatas(chunk)[until sep])
-                        if sep + 1 < len do
+                        if sep + 1 < len
+                        {
                             md.value = cast(string, Decoder.safeDatas(chunk)[sep + 1 to])
+                        }
+
                         result.metadata.add(md)
                     }
                 }
@@ -551,24 +711,39 @@ impl Decoder
 
             default:
                 let typeBytes = cast(const [*] u8, &ch.type)
-                if typeBytes[0] & 0x20 == 0 do
+                if typeBytes[0] & 0x20 == 0
+                {
                     fail UnsupportedFormatError{"PNG decoder does not support an unknown critical chunk"}
+                }
+
                 discard try .readChunk(ch)
             }
 
             firstChunk = false
         }
 
-        if not seenIDAT do
+        if not seenIDAT
+        {
             fail InvalidFormatError{"missing IDAT chunk"}
-        if .header.colorType & .Paletted and not .seenPLTE do
+        }
+
+        if .header.colorType & .Paletted and not .seenPLTE
+        {
             fail InvalidFormatError{"missing PLTE chunk"}
-        if declaredFrames and (.animation.frames.count != declaredFrames or not frameHasData) do
+        }
+
+        if declaredFrames and (.animation.frames.count != declaredFrames or not frameHasData)
+        {
             fail InvalidFormatError{"PNG animation frame count or data is incomplete"}
+        }
+
         if selected >= 0
         {
-            if selected >= .animation.frames.count do
+            if selected >= .animation.frames.count
+            {
                 fail InvalidFormatError{"PNG animation frame index is out of range"}
+            }
+
             .header.width  = cast(u32, .animation.frames[selected].width)
             .header.height = cast(u32, .animation.frames[selected].height)
         }
@@ -582,16 +757,24 @@ impl Decoder
         switch colorType
         {
         case 0:
-            if is16Bit do
+            if is16Bit
+            {
                 outputFormat = .seenTRSN ? .GrayAlpha16 : .Gray16
-            else do
+            }
+            else
+            {
                 outputFormat = .seenTRSN ? .GrayAlpha8 : .Gray8
+            }
 
         case 2:
-            if is16Bit do
+            if is16Bit
+            {
                 outputFormat = .seenTRSN ? .RGBA16 : .RGB16
-            else do
+            }
+            else
+            {
                 outputFormat = .seenTRSN ? .RGBA8 : .RGB8
+            }
 
         case 3:
             outputFormat = .seenTRSN ? .RGBA8 : .RGB8
@@ -608,21 +791,27 @@ impl Decoder
         let imageHeight = cast(s32, .header.height)
         try .decOptions.checkImage(imageWidth, imageHeight, outputFormat)
         let decodedBytes = cast(u64, .header.width) * .header.height * cast(u64, outputFormat.bitsPerPixel() / 8)
-        if decodedBytes > 0x7FFFFFFF do
+        if decodedBytes > 0x7FFFFFFF
+        {
             fail UnsupportedFormatError{"PNG image needs more than 2 GiB of decoded pixel memory"}
+        }
 
         result.init(imageWidth, imageHeight, outputFormat)
         result.metadata = #move metadata
-        for &frame in .animation.frames do
+        for &frame in .animation.frames
+        {
             frame.pixelFormat = outputFormat
+        }
 
         // We are done if user does not want pixels
-        if not .decOptions.decodePixels do
+        if not .decOptions.decodePixels
+        {
             return result
+        }
 
-        // Native-depth rows can be defiltered in the final pixel buffer. For 16-bit samples,
-        // swap byte order once the filters no longer need the encoded byte order.
-        let bytesPerSample = .header.bitDepth == 16 ? 2'u64 : 1'u64
+        // Allocate destination: defilter directly into result pixels when channels match
+        // to avoid an extra full-image allocation and memcpy
+        let bytesPerSample = .header.bitDepth == 16 ? 2_u64 : 1_u64
         .dstPixelsSize = cast(u64, .header.width) * .header.height * .inChannels * bytesPerSample
         var ownsDestination = false
         defer if ownsDestination
@@ -677,30 +866,32 @@ impl Decoder
 
         var dec: Compress.ZLib
         let hintSize = .getExpectedDecompressedSize()
-        .dcmpBuf = try dec.decompress(compressed, hintSize)
-        if .dcmpBuf.count != hintSize do
+        .dcmpBuf = try dec.decompress(iDataBuf.toSlice(), hintSize)
+        if .dcmpBuf.count != hintSize
+        {
             fail InvalidFormatError{"invalid PNG decompressed scanline size"}
+        }
 
         // defilter content
-        if not .defilter(intoResult ? cast([*] u8, result.pixels.storage()) : .safeDstPixels()) do
+        if not .defilter(intoResult ? cast([*] u8, result.pixels.storage()) : .safeDstPixels())
+        {
             fail InvalidFormatError{"invalid PNG row filter"}
+        }
 
         // A complete palette covers every index representable by the source samples.
         if .header.colorType & .Paletted and .paletteCount < (1 << .header.bitDepth)
         {
             let pixelCount = cast(u64, .header.width) * .header.height
-            if hasInvalidPaletteIndex(.safeDstPixels(), pixelCount, cast(u8, .paletteCount)) do
+            let indices    = .safeDstPixels()
+            for pixel in pixelCount where indices[pixel] >= .paletteCount
+            {
                 fail InvalidFormatError{"PNG pixel index exceeds the palette"}
+            }
         }
 
+        // Channels match: result.pixels was already populated directly by defilter
         if intoResult
         {
-            if is16Bit
-            {
-                let pixels = result.pixels.storage()
-                convert16Samples(pixels, pixels, .dstPixelsSize / 2)
-            }
-
             return result
         }
 
@@ -729,15 +920,21 @@ impl IImageSetDecoder for Decoder
         .decOptions = options
         .decOptions.decodePixels = false
         let probe = try .doIt(buffer)
-        if not .animation.frames.count do
+        if not .animation.frames.count
+        {
             .animation.frames.add({width: probe.width, height: probe.height, pixelFormat: probe.pixelFormat})
+        }
+
         return .animation
     }
 
     mtd impl readFrame(index: u32, options: DecodeOptions)->Image fail
     {
-        if index >= .animation.frames.count do
+        if index >= .animation.frames.count
+        {
             fail InvalidFormatError{"PNG image index is out of range"}
+        }
+
         var decoder: Decoder
         decoder.decOptions = options
         return try decoder.doIt(unwrap .input, .animation.frames[index].kind == .Animation ? cast(s32, index) : -1)

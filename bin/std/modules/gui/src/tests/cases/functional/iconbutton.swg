@@ -245,8 +245,10 @@ func iconButtonColorCount(image: const *Image, color: Color)->s32
     {
         for x in cast(s32, image.width)
         {
-            if image.pixelColor(x, y).argb == color.argb do
+            if image.pixelColor(x, y).argb == color.argb
+            {
                 result += 1
+            }
         }
     }
 
@@ -317,10 +319,15 @@ func iconButtonColorCount(image: const *Image, color: Color)->s32
 
     for light in [false, true]
     {
-        if light do
+        if light
+        {
             host.theme.setLight()
-        else do
+        }
+        else
+        {
             host.theme.setDark()
+        }
+
         host.notify(.ThemeChanged)
 
         for form in [IconButtonForm.RoundedRectangle, .Rectangle]
@@ -345,10 +352,15 @@ func iconButtonColorCount(image: const *Image, color: Color)->s32
 
     for light in [false, true]
     {
-        if light do
+        if light
+        {
             host.theme.setLight()
-        else do
+        }
+        else
+        {
             host.theme.setDark()
+        }
+
         host.notify(.ThemeChanged)
 
         for indicator in [IconButtonCheckIndicator.Full, .Frame]
@@ -395,7 +407,7 @@ func iconButtonColorCount(image: const *Image, color: Color)->s32
     let btn = IconButton.create(&host.root, {}, {20, 20, 40, 40})
     btn.isHot          = true
     btn.isPressed      = true
-    btn.aniBk.themeCrc = 42'u32
+    btn.aniBk.themeCrc = 42_u32
 
     btn.hide()
 
@@ -414,7 +426,7 @@ func iconButtonColorCount(image: const *Image, color: Color)->s32
     btn.isIn               = true
     btn.isPressed          = true
     btn.isPressing         = true
-    btn.aniBk.themeCrc     = 42'u32
+    btn.aniBk.themeCrc     = 42_u32
     host.app.mouseEnterWnd = btn
     host.app.setMouseCaptureRaw(btn)
 

@@ -23,7 +23,7 @@ impl City32
     mtd len0to4(data: const [..] u8)
     {
         var b = .currentValue
-        var c = 9'u32
+        var c = 9_u32
         for v in data
         {
             b = b * C1 + v
@@ -40,7 +40,7 @@ impl City32
         let len = data.count
         var a   = cast(u32, len) + .currentValue
         var b   = cast(u32, len) * 5
-        var c   = 9'u32
+        var c   = 9_u32
         let d   = b
         a += fetch(s)
         b += fetch(s + len - 4)

@@ -16,8 +16,8 @@ const WallCurves = [
 //
 // It is the same on every card so the curves can be compared, and it is wider than the unit
 // interval because the back, elastic, and bounce curves leave it on purpose.
-const PlotLow  = -0.42'f32
-const PlotHigh = 1.42'f32
+const PlotLow  = -0.42_f32
+const PlotHigh = 1.42_f32
 
 const CardGap      = 12.0
 const CardPadding  = 12.0
@@ -44,7 +44,7 @@ impl CurveWall
 {
     func create(parent: *Wnd)->*CurveWall
     {
-        let result = Wnd.create'CurveWall(parent, {})
+        let result = Wnd.create!{CurveWall}(parent, {})
         result.backgroundStyle = .Transparent
         return result
     }
@@ -57,7 +57,7 @@ impl CurveWall
     {
         with var options: AnimationOptions
         {
-            .duration    = 1500'ms
+            .duration    = 1500_ms
             .easing      = .Linear
             .repeatCount = 0
             .autoReverse = true
@@ -96,8 +96,10 @@ impl CurveWall
 
         var plot = card
         plot.applyPadding({CardPadding, CardPadding + NameHeight, CardPadding, CardPadding + RailHeight + RailGap})
-        if plot.width < 24 or plot.height < 24 do
+        if plot.width < 24 or plot.height < 24
+        {
             return
+        }
 
         // The two rules are the endpoints of the track: everything a curve draws outside them is
         // the overshoot it was chosen for.
@@ -108,8 +110,10 @@ impl CurveWall
 
         // The straight line is the same motion with no curve at all, kept faint behind each card
         // as the reference every other shape is read against.
-        if easing != .Linear do
+        if easing != .Linear
+        {
             painter.drawLine(plot.x, startY, plot.right(), restY, colors.label_TextFaint.withAlphaF32(0.5), 1)
+        }
 
         var path: LinePath
         path.start(plot.x, plotY(plot, easing.evaluate(0)))
@@ -155,8 +159,10 @@ impl IWnd for CurveWall
         let rows    = (count + columns - 1) / columns
         let cardW   = (rect.width - cast(f32, (columns - 1)) * CardGap) / cast(f32, columns)
         let cardH   = (rect.height - cast(f32, (rows - 1)) * CardGap) / cast(f32, rows)
-        if cardW < 60 or cardH < 60 do
+        if cardW < 60 or cardH < 60
+        {
             return
+        }
 
         for index in count
         {

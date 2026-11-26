@@ -15,12 +15,14 @@ impl PriorityItem
 {
     mtd opDrop()
     {
-        if .id do
+        if .id
+        {
             g_PriorityItemDrops += 1
+        }
     }
 }
 
-func borrowedPriority(queue: PriorityQueue'PriorityItem)->s32
+func borrowedPriority(queue: PriorityQueue!{PriorityItem})->s32
 {
     let item = queue.peekPtr()
     #assert(#typeof(item) == const *PriorityItem)
@@ -30,11 +32,11 @@ func borrowedPriority(queue: PriorityQueue'PriorityItem)->s32
 // Empty queues reject every operation that needs a top element.
 #test
 {
-    var queue: PriorityQueue's32
+    var queue: PriorityQueue!{s32}
     let peekFailed         = Swag.catchPanic(func|&queue|() { discard queue.peek() })
     let popFailed          = Swag.catchPanic(func|&queue|() { discard queue.pop() })
     let pointerFailed      = Swag.catchPanic(func|&queue|() { discard queue.peekPtr() })
-    let constQueue         = cast(const *PriorityQueue's32, &queue)
+    let constQueue         = cast(const *PriorityQueue!{s32}, &queue)
     let constPointerFailed = Swag.catchPanic(func|constQueue|() { discard constQueue[].peekPtr() })
 
     Swag.require(peekFailed.raised and popFailed.raised and pointerFailed.raised and constPointerFailed.raised)
@@ -43,7 +45,7 @@ func borrowedPriority(queue: PriorityQueue'PriorityItem)->s32
 
 #test
 {
-    var queue: PriorityQueue's32
+    var queue: PriorityQueue!{s32}
     queue.initialize(func(left, right: const *s32)->s32 => left[] <=> right[])
     queue.push(5)
     queue.push(1)
@@ -60,7 +62,7 @@ func borrowedPriority(queue: PriorityQueue'PriorityItem)->s32
 
 #test
 {
-    var queue: PriorityQueue's32
+    var queue: PriorityQueue!{s32}
     queue.initialize(func(left, right: const *s32)->s32 => right[] <=> left[])
     queue.reserve(8)
     queue.push(2)
@@ -78,7 +80,7 @@ func borrowedPriority(queue: PriorityQueue'PriorityItem)->s32
     g_PriorityItemDrops = 0
     scope
     {
-        var queue: PriorityQueue'PriorityItem
+        var queue: PriorityQueue!{PriorityItem}
         queue.initialize(func(left, right: const *PriorityItem)->s32 => left.priority <=> right.priority)
         var later  = PriorityItem{priority: 4, id: 4}
         var first  = PriorityItem{priority: 1, id: 1}
@@ -102,7 +104,7 @@ func borrowedPriority(queue: PriorityQueue'PriorityItem)->s32
 // Reserving less storage preserves the elements and their existing capacity.
 #test
 {
-    var queue = PriorityQueue's32.create(func(left, right: const *s32)->s32 => left[] <=> right[])
+    var queue = PriorityQueue!{s32}.create(func(left, right: const *s32)->s32 => left[] <=> right[])
     queue.push(42)
     let capacity = queue.capacity()
     queue.reserve(0)
@@ -113,7 +115,7 @@ func borrowedPriority(queue: PriorityQueue'PriorityItem)->s32
 // Clearing retains storage and its comparator so the queue can be reused.
 #test
 {
-    var queue = PriorityQueue's32.create(func(left, right: const *s32)->s32 => left[] <=> right[])
+    var queue = PriorityQueue!{s32}.create(func(left, right: const *s32)->s32 => left[] <=> right[])
     queue.reserve(8)
     queue.push(4)
     queue.push(1)
@@ -131,7 +133,7 @@ func borrowedPriority(queue: PriorityQueue'PriorityItem)->s32
 // Growing an existing heap keeps every value in priority order.
 #test
 {
-    var queue = PriorityQueue's32.create(func(left, right: const *s32)->s32 => left[] <=> right[])
+    var queue = PriorityQueue!{s32}.create(func(left, right: const *s32)->s32 => left[] <=> right[])
     queue.push(7)
     queue.push(1)
     queue.push(5)
@@ -153,7 +155,7 @@ func borrowedPriority(queue: PriorityQueue'PriorityItem)->s32
 // Freeing releases the heap storage but preserves the comparator for later pushes.
 #test
 {
-    var queue = PriorityQueue's32.create(func(left, right: const *s32)->s32 => left[] <=> right[])
+    var queue = PriorityQueue!{s32}.create(func(left, right: const *s32)->s32 => left[] <=> right[])
     queue.push(4)
     queue.push(1)
     queue.free()

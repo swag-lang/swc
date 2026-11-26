@@ -31,8 +31,10 @@ impl Image
     {
         Swag.assert(.isValid(), "image is invalid")
         Swag.assert(.pixelFormat.hasAlpha(), "alpha association requires an alpha channel")
-        if newMode == .alphaMode do
+        if newMode == .alphaMode
+        {
             return
+        }
 
         if .alphaMode == .Premultiplied and
            newMode == .Straight and

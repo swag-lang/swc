@@ -22,15 +22,21 @@ func psdHeader(channels: u16, width, height: u32, depth, colorMode: u16)->Concat
     var result: #returntype
     result.addBytes("8BPS")
     psdAddU16(&result, 1)
-    for 6 do
-        result.addNative(0'u8)
+    for 6
+    {
+        result.addNative(0_u8)
+    }
+
     psdAddU16(&result, channels)
     psdAddU32(&result, height)
     psdAddU32(&result, width)
     psdAddU16(&result, depth)
     psdAddU16(&result, colorMode)
-    for 3 do
+    for 3
+    {
         psdAddU32(&result, 0)
+    }
+
     return result
 }
 

@@ -26,10 +26,10 @@ func day3B()
         for group in lines.count / 3
         {
             let l = group * 3
-            var split: [3] Array'(string)
-            split[0] = Tokenize.split(lines[l], ' 'u8)
-            split[1] = Tokenize.split(lines[l + 1], ' 'u8)
-            split[2] = Tokenize.split(lines[l + 2], ' 'u8)
+            var split: [3] Array!{string}
+            split[0] = Tokenize.split(lines[l], ' '_u8)
+            split[1] = Tokenize.split(lines[l + 1], ' '_u8)
+            split[2] = Tokenize.split(lines[l + 2], ' '_u8)
 
             for i in 3
             {
@@ -38,8 +38,11 @@ func day3B()
                     try StrConv.toS32(split[1][i]),
                     try StrConv.toS32(split[2][i])]
                 var ok = 0
-                for j in 3 do
+                for j in 3
+                {
                     ok += cast(s32, (v[j] + v[(j + 1) % 3] > v[(j + 2) % 3]))
+                }
+
                 total += cast(s32, (ok == 3))
             }
         }

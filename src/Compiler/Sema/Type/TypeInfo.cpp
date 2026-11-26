@@ -26,7 +26,7 @@ namespace
         if (!instance.tryGetGenericInstanceArgs(args))
             return;
 
-        out += "'(";
+        out += "!{";
 
         for (size_t i = 0; i < args.size(); ++i)
         {
@@ -48,7 +48,7 @@ namespace
             }
         }
 
-        out += ")";
+        out += "}";
     }
 
     Symbol* typeBlockingSymbol(TaskContext& ctx, TypeRef tr)

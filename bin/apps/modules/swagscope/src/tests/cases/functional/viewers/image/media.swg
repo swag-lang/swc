@@ -3,7 +3,7 @@
 
 using Core, Pixel, Gui, Viewers
 
-private func putU32(bytes: *Array'u8, offset: u64, value: u32)
+private func putU32(bytes: *Array!{u8}, offset: u64, value: u32)
 {
     bytes[offset]     = cast(u8, value >> 24)
     bytes[offset + 1] = cast(u8, value >> 16)
@@ -11,10 +11,12 @@ private func putU32(bytes: *Array'u8, offset: u64, value: u32)
     bytes[offset + 3] = cast(u8, value)
 }
 
-private func putAscii(bytes: *Array'u8, offset: u64, value: string)
+private func putAscii(bytes: *Array!{u8}, offset: u64, value: string)
 {
-    for character, index in value do
+    for character, index in value
+    {
         bytes[offset + index] = cast(u8, character)
+    }
 }
 
 // Both image containers preserve their original metadata record, then expose a bounded set of
@@ -27,8 +29,10 @@ private func putAscii(bytes: *Array'u8, offset: u64, value: string)
         var packetFound = false
         for metadata in image.metadata where metadata.isTag("XMP") or
                                              cast(string, metadata.tag.toSlice()) == "http://ns.adobe.com/xap/1.0/"
-            do
+        {
             packetFound = true
+        }
+
         Swag.require(packetFound, name)
 
         var data: MediaInfoData
@@ -39,14 +43,25 @@ private func putAscii(bytes: *Array'u8, offset: u64, value: string)
         var date    = false
         for row in data.rows
         {
-            if row.name == "XMP dc:title" and row.value == "Watershed field study" do
+            if row.name == "XMP dc:title" and row.value == "Watershed field study"
+            {
                 title = true
-            if row.name == "XMP dc:creator" and row.value == "Generated Field Team" do
+            }
+
+            if row.name == "XMP dc:creator" and row.value == "Generated Field Team"
+            {
                 creator = true
-            if row.name == "XMP dc:subject" and row.value == "watershed; field notes" do
+            }
+
+            if row.name == "XMP dc:subject" and row.value == "watershed; field notes"
+            {
                 subject = true
-            if row.name == "XMP xmp:CreateDate" and row.value == "2026-06-14T10:30:00Z" do
+            }
+
+            if row.name == "XMP xmp:CreateDate" and row.value == "2026-06-14T10:30:00Z"
+            {
                 date = true
+            }
         }
 
         Swag.require(title and creator and subject and date, name)
@@ -60,7 +75,7 @@ private func putAscii(bytes: *Array'u8, offset: u64, value: string)
     var xmp: ImageMetadata
     xmp.tag   = "XMP"
     xmp.value = "<x:xmpmeta xmlns:x=\"adobe:ns:meta/\"><rdf:RDF xmlns:rdf=\"http://www.w3.org/1999/02/22-rdf-syntax-ns#\"><rdf:Description xmlns:dc=\"http://purl.org/dc/elements/1.1/\" dc:title=\"Current\"/></rdf:RDF></x:xmpmeta>"
-    var records: Array'ImageMetadata
+    var records: Array!{ImageMetadata}
     records.add(#move exif)
     records.add(#move xmp)
     var conflict: MediaInfoData
@@ -69,10 +84,15 @@ private func putAscii(bytes: *Array'u8, offset: u64, value: string)
     var xmpValue  = false
     for row in conflict.rows
     {
-        if row.name == "ImageDescription" and row.value == "Legacy" do
+        if row.name == "ImageDescription" and row.value == "Legacy"
+        {
             exifValue = true
-        if row.name == "XMP dc:title" and row.value == "Current" do
+        }
+
+        if row.name == "XMP dc:title" and row.value == "Current"
+        {
             xmpValue = true
+        }
     }
 
     Swag.require(exifValue and xmpValue)
@@ -80,7 +100,7 @@ private func putAscii(bytes: *Array'u8, offset: u64, value: string)
     var malformedRecord: ImageMetadata
     malformedRecord.tag   = "XMP"
     malformedRecord.value = "<x:xmpmeta><rdf:RDF></x:xmpmeta>"
-    var malformedRecords: Array'ImageMetadata
+    var malformedRecords: Array!{ImageMetadata}
     malformedRecords.add(#move malformedRecord)
     var malformed: MediaInfoData
     malformed.addImageMetadata(malformedRecords.toSlice())
@@ -90,8 +110,8 @@ private func putAscii(bytes: *Array'u8, offset: u64, value: string)
 
     var oversizedRecord: ImageMetadata
     oversizedRecord.tag = "XMP"
-    oversizedRecord.value.resize(1024'u64 * 1024 + 1)
-    var oversizedRecords: Array'ImageMetadata
+    oversizedRecord.value.resize(1024_u64 * 1024 + 1)
+    var oversizedRecords: Array!{ImageMetadata}
     oversizedRecords.add(#move oversizedRecord)
     var oversized: MediaInfoData
     oversized.addImageMetadata(oversizedRecords.toSlice())
@@ -117,8 +137,11 @@ private func putAscii(bytes: *Array'u8, offset: u64, value: string)
     var data: MediaInfoData
     data.addImageMetadata(decoded.metadata.toSlice())
     var found = false
-    for row in data.rows where row.name == "Make" and row.value == "Camera" do
+    for row in data.rows where row.name == "Make" and row.value == "Camera"
+    {
         found = true
+    }
+
     Swag.require(found)
 
     var file       = expect File.MappedFile.open(fileName)
@@ -136,9 +159,9 @@ private func putAscii(bytes: *Array'u8, offset: u64, value: string)
 #test
 {
     let description = "Swag generated sRGB"
-    let descOffset  = 144'u64
+    let descOffset  = 144_u64
     let descLength  = 12 + description.count + 1
-    var profile: Array'u8
+    var profile: Array!{u8}
     profile.resize(descOffset + descLength)
     putU32(&profile, 0, cast(u32, profile.count))
     putAscii(&profile, 12, "mntr")
@@ -156,7 +179,7 @@ private func putAscii(bytes: *Array'u8, offset: u64, value: string)
     var record: ImageMetadata
     record.tag   = "ICC"
     record.value = #move profile
-    var records: Array'ImageMetadata
+    var records: Array!{ImageMetadata}
     records.add(#move record)
 
     var data: MediaInfoData
@@ -167,15 +190,20 @@ private func putAscii(bytes: *Array'u8, offset: u64, value: string)
                                Utf8.contains(row.value, "XYZ ") and
                                Utf8.contains(row.value, "inspection only") and
                                Utf8.contains(row.value, description)
-        do
+    {
         found = true
+    }
+
     Swag.require(found)
 
     // The same identity survives the real decoder path from the generated WebP ICC chunk.
     let webp       = expect Image.load(scopeTestDataPath("viewer.icc-profile.webp"))
     var decodedIcc = false
-    for metadata in webp.metadata where metadata.isTag("ICC") do
+    for metadata in webp.metadata where metadata.isTag("ICC")
+    {
         decodedIcc = true
+    }
+
     Swag.require(decodedIcc)
     var decodedInfo: MediaInfoData
     decodedInfo.addImageMetadata(webp.metadata.toSlice())
@@ -183,16 +211,21 @@ private func putAscii(bytes: *Array'u8, offset: u64, value: string)
     for row in decodedInfo.rows where row.name == mediaInfoStrings().iccProfile and
                                       Utf8.contains(row.value, "RGB ") and
                                       Utf8.contains(row.value, description)
-        do
+    {
         decodedName = true
+    }
+
     Swag.require(decodedName)
 
     // JPEG uses sequenced APP2 records; the generated fixture reaches the same identity through
     // the ordinary decoder, including the marker's sequence/count bytes.
     let jpeg = expect Image.load(scopeTestDataPath("viewer.icc-profile.jpg"))
-    var jpegChunks: Array'ImageMetadata
-    for metadata in jpeg.metadata where metadata.signature == 2 and metadata.isTag("ICC_PROFILE") do
+    var jpegChunks: Array!{ImageMetadata}
+    for metadata in jpeg.metadata where metadata.signature == 2 and metadata.isTag("ICC_PROFILE")
+    {
         jpegChunks.add(metadata)
+    }
+
     Swag.require(jpegChunks.count == 1 and jpegChunks[0].value.count > 2)
     var jpegInfo: MediaInfoData
     jpegInfo.addImageMetadata(jpeg.metadata.toSlice())
@@ -200,8 +233,10 @@ private func putAscii(bytes: *Array'u8, offset: u64, value: string)
     for row in jpegInfo.rows where row.name == mediaInfoStrings().iccProfile and
                                    Utf8.contains(row.value, "RGB ") and
                                    Utf8.contains(row.value, description)
-        do
+    {
         jpegName = true
+    }
+
     Swag.require(jpegName)
 
     // A real generated WebP carries two `mluc` locales, with French first; the reader prefers
@@ -213,8 +248,10 @@ private func putAscii(bytes: *Array'u8, offset: u64, value: string)
     for row in mlucInfo.rows where row.name == mediaInfoStrings().iccProfile and
                                    Utf8.contains(row.value, "Swag generated sRGB mluc") and
                                    not Utf8.contains(row.value, "Profil ICC français")
-        do
+    {
         selectedEnglish = true
+    }
+
     Swag.require(selectedEnglish)
 
     // Exercise out-of-order multi-segment assembly independently of the encoder's one-segment
@@ -233,7 +270,7 @@ private func putAscii(bytes: *Array'u8, offset: u64, value: string)
     firstChunk.value.add(1)
     firstChunk.value.add(2)
     firstChunk.value.add(jpegProfile[until split])
-    var splitRecords: Array'ImageMetadata
+    var splitRecords: Array!{ImageMetadata}
     splitRecords.add(#move secondChunk)
     splitRecords.add(#move firstChunk)
     var splitInfo: MediaInfoData
@@ -241,11 +278,13 @@ private func putAscii(bytes: *Array'u8, offset: u64, value: string)
     var splitName = false
     for row in splitInfo.rows where row.name == mediaInfoStrings().iccProfile and
                                     Utf8.contains(row.value, description)
-        do
+    {
         splitName = true
+    }
+
     Swag.require(splitName)
 
-    var missingRecords: Array'ImageMetadata
+    var missingRecords: Array!{ImageMetadata}
     missingRecords.add(splitRecords[1])
     var missingInfo: MediaInfoData
     missingInfo.addImageMetadata(missingRecords.toSlice())
@@ -253,7 +292,7 @@ private func putAscii(bytes: *Array'u8, offset: u64, value: string)
                  missingInfo.rows[1].field == .Unavailable and
                  Utf8.contains(missingInfo.rows[1].value, "missing one or more segments"))
 
-    var duplicateRecords: Array'ImageMetadata
+    var duplicateRecords: Array!{ImageMetadata}
     duplicateRecords.add(splitRecords[1])
     duplicateRecords.add(splitRecords[1])
     var duplicateInfo: MediaInfoData
@@ -265,9 +304,9 @@ private func putAscii(bytes: *Array'u8, offset: u64, value: string)
     // Without English, the first valid locale is shown. Construct the same small ICC profile
     // shape with only one French `mluc` record to exercise the fallback choice.
     let fallbackName       = "Profil ICC francais"
-    let fallbackTextOffset = 172'u64
+    let fallbackTextOffset = 172_u64
     let fallbackTextLength = fallbackName.count * 2
-    var fallbackProfile: Array'u8
+    var fallbackProfile: Array!{u8}
     fallbackProfile.resize(fallbackTextOffset + fallbackTextLength)
     putU32(&fallbackProfile, 0, cast(u32, fallbackProfile.count))
     putAscii(&fallbackProfile, 12, "mntr")
@@ -293,29 +332,34 @@ private func putAscii(bytes: *Array'u8, offset: u64, value: string)
     var fallbackRecord: ImageMetadata
     fallbackRecord.tag   = "ICC"
     fallbackRecord.value = #move fallbackProfile
-    var fallbackRecords: Array'ImageMetadata
+    var fallbackRecords: Array!{ImageMetadata}
     fallbackRecords.add(#move fallbackRecord)
     var fallbackInfo: MediaInfoData
     fallbackInfo.addImageMetadata(fallbackRecords.toSlice())
     var selectedFallback = false
     for row in fallbackInfo.rows where row.name == mediaInfoStrings().iccProfile and
                                        Utf8.contains(row.value, fallbackName)
-        do
+    {
         selectedFallback = true
+    }
+
     Swag.require(selectedFallback)
 
     var malformedMluc: ImageMetadata
     malformedMluc.tag = "ICC"
-    var mlucProfileBytes: Array'u8
-    for metadata in mlucWebp.metadata where metadata.isTag("ICC") do
+    var mlucProfileBytes: Array!{u8}
+    for metadata in mlucWebp.metadata where metadata.isTag("ICC")
+    {
         mlucProfileBytes = metadata.value
+    }
+
     Swag.require(mlucProfileBytes.count > 173)
     malformedMluc.value = #move mlucProfileBytes
 
     // The first UTF-16 code unit becomes an unpaired high surrogate.
     malformedMluc.value[184] = 0xD8
     malformedMluc.value[185] = 0x00
-    var malformedMlucRecords: Array'ImageMetadata
+    var malformedMlucRecords: Array!{ImageMetadata}
     malformedMlucRecords.add(#move malformedMluc)
     var malformedMlucInfo: MediaInfoData
     malformedMlucInfo.addImageMetadata(malformedMlucRecords.toSlice())
@@ -325,10 +369,13 @@ private func putAscii(bytes: *Array'u8, offset: u64, value: string)
 
     var malformedMlucTable: ImageMetadata
     malformedMlucTable.tag = "ICC"
-    for metadata in mlucWebp.metadata where metadata.isTag("ICC") do
+    for metadata in mlucWebp.metadata where metadata.isTag("ICC")
+    {
         malformedMlucTable.value = metadata.value
+    }
+
     putU32(&malformedMlucTable.value, 152, 65)     // More locale records than the inspection limit.
-    var malformedMlucTableRecords: Array'ImageMetadata
+    var malformedMlucTableRecords: Array!{ImageMetadata}
     malformedMlucTableRecords.add(#move malformedMlucTable)
     var malformedMlucTableInfo: MediaInfoData
     malformedMlucTableInfo.addImageMetadata(malformedMlucTableRecords.toSlice())
@@ -339,7 +386,7 @@ private func putAscii(bytes: *Array'u8, offset: u64, value: string)
     var damaged: ImageMetadata
     damaged.tag   = "ICC"
     damaged.value = "invalid profile"
-    var damagedRecords: Array'ImageMetadata
+    var damagedRecords: Array!{ImageMetadata}
     damagedRecords.add(#move damaged)
     var malformed: MediaInfoData
     malformed.addImageMetadata(damagedRecords.toSlice())
@@ -347,7 +394,7 @@ private func putAscii(bytes: *Array'u8, offset: u64, value: string)
                  malformed.rows[1].field == .Unavailable and
                  Utf8.contains(malformed.rows[1].value, "shorter than 128"))
 
-    var badTableBytes: Array'u8
+    var badTableBytes: Array!{u8}
     badTableBytes.resize(132)
     putU32(&badTableBytes, 0, 132)
     putAscii(&badTableBytes, 36, "acsp")
@@ -355,7 +402,7 @@ private func putAscii(bytes: *Array'u8, offset: u64, value: string)
     var badTableRecord: ImageMetadata
     badTableRecord.tag   = "ICC"
     badTableRecord.value = #move badTableBytes
-    var badTableRecords: Array'ImageMetadata
+    var badTableRecords: Array!{ImageMetadata}
     badTableRecords.add(#move badTableRecord)
     var badTable: MediaInfoData
     badTable.addImageMetadata(badTableRecords.toSlice())
@@ -365,8 +412,8 @@ private func putAscii(bytes: *Array'u8, offset: u64, value: string)
 
     var oversizedRecord: ImageMetadata
     oversizedRecord.tag = "ICC"
-    oversizedRecord.value.resize(1024'u64 * 1024 + 1)
-    var oversizedRecords: Array'ImageMetadata
+    oversizedRecord.value.resize(1024_u64 * 1024 + 1)
+    var oversizedRecords: Array!{ImageMetadata}
     oversizedRecords.add(#move oversizedRecord)
     var oversized: MediaInfoData
     oversized.addImageMetadata(oversizedRecords.toSlice())

@@ -16,7 +16,7 @@ using Swag, Core
     assertPixel(hue, 1, 0, cyan)
 
     var redGreen = Image.create(2, 2, .BGRA8)
-    redGreen.fillHsl(.RedGreen, Color.fromArgb(255'u8, 0'u8, 0'u8, 0'u8))
+    redGreen.fillHsl(.RedGreen, Color.fromArgb(255_u8, 0_u8, 0_u8, 0_u8))
     assertImage(redGreen, 2, 2, .BGRA8)
 
     assertPixel(redGreen, 0, 1, Color.fromRgbF32(0.0, 1.0, 0.0).withAlpha(255))
@@ -48,7 +48,7 @@ using Swag, Core
 {
     // RedGreen keeps blue fixed (here full blue).
     var redGreen = Image.create(2, 2, .RGBA8)
-    redGreen.fillHsl(.RedGreen, Color.fromArgb(255'u8, 0'u8, 0'u8, 255'u8))
+    redGreen.fillHsl(.RedGreen, Color.fromArgb(255_u8, 0_u8, 0_u8, 255_u8))
     assertPixel(redGreen, 0, 1, Color.fromRgbF32(0.0, 1.0, 1.0).withAlpha(255))
     assertPixel(redGreen, 1, 1, Color.fromRgbF32(0.5, 1.0, 1.0).withAlpha(255))
     assertPixel(redGreen, 0, 0, Color.fromRgbF32(0.0, 0.5, 1.0).withAlpha(255))
@@ -56,7 +56,7 @@ using Swag, Core
 
     // RedBlue keeps green fixed.
     var redBlue = Image.create(2, 2, .RGBA8)
-    redBlue.fillHsl(.RedBlue, Color.fromArgb(255'u8, 0'u8, 255'u8, 0'u8))
+    redBlue.fillHsl(.RedBlue, Color.fromArgb(255_u8, 0_u8, 255_u8, 0_u8))
     assertPixel(redBlue, 0, 1, Color.fromRgbF32(0.0, 1.0, 1.0).withAlpha(255))
     assertPixel(redBlue, 1, 1, Color.fromRgbF32(0.5, 1.0, 1.0).withAlpha(255))
     assertPixel(redBlue, 0, 0, Color.fromRgbF32(0.0, 1.0, 0.5).withAlpha(255))
@@ -64,7 +64,7 @@ using Swag, Core
 
     // GreenBlue keeps red fixed.
     var greenBlue = Image.create(2, 2, .RGBA8)
-    greenBlue.fillHsl(.GreenBlue, Color.fromArgb(255'u8, 255'u8, 0'u8, 0'u8))
+    greenBlue.fillHsl(.GreenBlue, Color.fromArgb(255_u8, 255_u8, 0_u8, 0_u8))
     assertPixel(greenBlue, 0, 1, Color.fromRgbF32(1.0, 0.0, 1.0).withAlpha(255))
     assertPixel(greenBlue, 1, 1, Color.fromRgbF32(1.0, 0.5, 1.0).withAlpha(255))
     assertPixel(greenBlue, 0, 0, Color.fromRgbF32(1.0, 0.0, 0.5).withAlpha(255))
@@ -76,13 +76,13 @@ using Swag, Core
 // opaque, colorful and a true 2D gradient.
 //
 // This is a regression guard for a compiler codegen bug: `parallelVisit` does
-// `if not range.count do return`, and `not slice.count` was compiled as an 8-bit
+// `if not range.count { return }`, and `not slice.count` was compiled as an 8-bit
 // compare, so any byte count that is a multiple of 256 (e.g. 128*96*4 = 49152) was
 // wrongly seen as zero and the visit returned without writing anything.
 #test
 {
     var big = Image.create(128, 96, .RGBA8)
-    big.fillHsl(.RedGreen, Color.fromArgb(255'u8, 0'u8, 0'u8, 200'u8))
+    big.fillHsl(.RedGreen, Color.fromArgb(255_u8, 0_u8, 0_u8, 200_u8))
     assertImage(big, 128, 96, .RGBA8)
 
     let topLeft     = big.pixelColor(1, 1)

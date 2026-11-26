@@ -22,16 +22,28 @@ impl CompareSpecBox
     #[Swag.NoInline]
     mtd const opCompare(other: CompareSpecBox)->s32
     {
-        if .value < other.value do return -7
-        if .value > other.value do return 9
+        if .value < other.value
+        {
+            return -7
+        }
+        if .value > other.value
+        {
+            return 9
+        }
         return 0
     }
 
     #[Swag.NoInline]
     mtd const opCompare(value: s32)->s32
     {
-        if .value < value do return -3
-        if .value > value do return 4
+        if .value < value
+        {
+            return -3
+        }
+        if .value > value
+        {
+            return 4
+        }
         return 0
     }
 }

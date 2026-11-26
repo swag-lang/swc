@@ -23,15 +23,17 @@ internal func day4InitBuffer(buffer: [..] u8)
 internal func day4BuildInput(buffer: [..] u8, value: u64)->const [..] u8
 {
     var digits: [20] u8
-    var digitCount = 0'u64
+    var digitCount = 0_u64
     var remaining  = value
     for
     {
         digits[digitCount] = cast(u8, (remaining % 10)) + '0'
         digitCount         += 1
         remaining          /= 10
-        if not remaining do
+        if not remaining
+        {
             break
+        }
     }
 
     var writeIndex = DAY4_SECRET.count
@@ -49,7 +51,7 @@ func day4A()
 {
     var buffer: [16] u8
     day4InitBuffer(buffer)
-    var index = 0'u64
+    var index = 0_u64
     for
     {
         let v = Hash.Md5.compute(day4BuildInput(buffer, index))

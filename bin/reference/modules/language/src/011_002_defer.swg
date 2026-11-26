@@ -53,8 +53,10 @@ control flow paths.
     {
         defer G += 1     // Increment G at end of each iteration, even if broken.
 
-        if G == 2 do
-            break     // Exiting early still triggers the defer expression.
+        if G == 2
+        {
+            break
+        }     // Exiting early still triggers the defer expression.
     }
 
     Swag.require(G == 3)
@@ -76,8 +78,10 @@ flow: a deferred 'fail' makes the scope fail, or replaces its error.
         {
             for 10
             {
-                if drained == 4 do
-                    break     // Leaves the loop inside the defer, not the defer.
+                if drained == 4
+                {
+                    break
+                }     // Leaves the loop inside the defer, not the defer.
                 drained += 1
             }
         }
@@ -123,8 +127,10 @@ release logic stay close together and cleanup always happens.
             releaseResource(&resource)
         }
 
-        if index == 2 do
-            break     // Defer ensures cleanup even on early exit.
+        if index == 2
+        {
+            break
+        }     // Defer ensures cleanup even on early exit.
     }
 
     Swag.require(not resource.isResourceCreated())

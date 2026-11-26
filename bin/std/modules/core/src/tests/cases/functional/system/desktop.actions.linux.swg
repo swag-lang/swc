@@ -13,7 +13,7 @@
 
     let emptyFile     = Env.openFile("")
     let zeroFile      = Env.openFile("/tmp/value\0suffix")
-    let malformed     = [0xFF'u8]
+    let malformed     = [0xFF_u8]
     let malformedFile = Env.openFile(cast(string, malformed))
     Swag.require(not emptyFile and not zeroFile and not malformedFile)
     let emptyReveal     = Env.showInFileExplorer("")

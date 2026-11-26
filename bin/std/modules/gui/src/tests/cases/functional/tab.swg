@@ -38,8 +38,11 @@ var TabHeadlessSelChangedCount: u32
 
         let tab = Tab.create(&host.root, {0, 0, 320, 120})
         tab.setForms(.Flat, .Flat, .None)
-        for name in ["Create", "Open", "Mounted", "Options"] do
+        for name in ["Create", "Open", "Mounted", "Options"]
+        {
             tab.addItem(name)
+        }
+
         host.settleAnimations()
 
         let colors = tab.themeColors()
@@ -105,8 +108,8 @@ var TabHeadlessSelChangedCount: u32
     var host: Testing.HeadlessHost
     host.setup(320, 200)
     let tab   = Tab.create(&host.root, {10, 10, 300, 180})
-    let viewA = Wnd.create'Wnd(tab, null, {0, 0, 100, 100})
-    let viewB = Wnd.create'Wnd(tab, null, {0, 0, 100, 100})
+    let viewA = Wnd.create!{Wnd}(tab, null, {0, 0, 100, 100})
+    let viewB = Wnd.create!{Wnd}(tab, null, {0, 0, 100, 100})
 
     tab.addItem("A", {}, viewA)
     tab.addItem("B", {}, viewB)
@@ -127,8 +130,8 @@ var TabHeadlessSelChangedCount: u32
     host.setup(320, 200)
     host.setReducedMotion(false)
     let tab   = Tab.create(&host.root, {10, 10, 300, 180})
-    let viewA = Wnd.create'Wnd(tab)
-    let viewB = Wnd.create'Wnd(tab)
+    let viewA = Wnd.create!{Wnd}(tab)
+    let viewB = Wnd.create!{Wnd}(tab)
     tab.setForms(.Transparent, .Transparent, .None)
     viewA.backgroundStyle = .View
     viewB.backgroundStyle = .Window
@@ -176,9 +179,9 @@ var TabHeadlessSelChangedCount: u32
     TabHeadlessSelChangedCount = 0
 
     let tab   = Tab.create(&host.root, {10, 10, 300, 180})
-    let viewA = Wnd.create'Wnd(tab)
-    let viewB = Wnd.create'Wnd(tab)
-    let viewC = Wnd.create'Wnd(tab)
+    let viewA = Wnd.create!{Wnd}(tab)
+    let viewB = Wnd.create!{Wnd}(tab)
+    let viewC = Wnd.create!{Wnd}(tab)
     tab.addItem("A", view: viewA)
     tab.addItem("B", view: viewB)
     tab.addItem("C", view: viewC)
@@ -248,9 +251,9 @@ var TabHeadlessSelChangedCount: u32
     TabHeadlessSelChangedCount = 0
     let tab = Tab.create(&host.root, {0, 0, 320, 150})
     tab.sigSelectionChanged += func(_) { TabHeadlessSelChangedCount += 1 }
-    let first  = Wnd.create'Wnd(tab)
-    let second = Wnd.create'Wnd(tab)
-    let third  = Wnd.create'Wnd(tab)
+    let first  = Wnd.create!{Wnd}(tab)
+    let second = Wnd.create!{Wnd}(tab)
+    let third  = Wnd.create!{Wnd}(tab)
     tab.addItem("First", view: first)
     tab.addItem("Second", view: second)
     tab.addItem("Third", view: third)

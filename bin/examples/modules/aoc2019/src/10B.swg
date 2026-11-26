@@ -77,16 +77,23 @@ func day10B()
 
     struct DirectionGroup
     {
-        asteroids: Array'Pos
+        asteroids: Array!{Pos}
     }
 
-    var arr: Array'Pos
-    var tot: Array's32
+    var arr: Array!{Pos}
+    var tot: Array!{s32}
 
-    for l, y in lines do
-        for c, x in l do
-            if c == '#' do
+    for l, y in lines
+    {
+        for c, x in l
+        {
+            if c == '#'
+            {
                 arr.add(Pos{Math.Vector2{cast(f32, x), cast(f32, y)}})
+            }
+        }
+    }
+
     tot.resize(arr.count)
 
     if arr.count > 1
@@ -100,8 +107,11 @@ func day10B()
                 var hit = false
                 for k in arr.count
                 {
-                    if k == i or k == j do
+                    if k == i or k == j
+                    {
                         continue
+                    }
+
                     let f = Math.Geometry.distanceFromPointToSegment(arr[k].pos, v0, v1)
                     if Math.isZeroEpsilon(f)
                     {
@@ -134,21 +144,26 @@ func day10B()
         it.dirY  = dy / gcd
         it.dist2 = (dx * dx) + (dy * dy)
         it.angle = Math.atan2(cast(f32, it.dirX), cast(f32, -it.dirY))
-        if it.angle < 0 do
+        if it.angle < 0
+        {
             it.angle += Math.ConstF32.TwoPi
+        }
     }
 
     // Sort clockwise from the up vector. Asteroids sharing a direction stay together, closest first.
     arr.sort(func(x, y)
     {
-        if x.dirX == y.dirX and x.dirY == y.dirY do
+        if x.dirX == y.dirX and x.dirY == y.dirY
+        {
             return x.dist2 <=> y.dist2
+        }
+
         return x.angle <=> y.angle
     })
 
-    var groups: Array'DirectionGroup
+    var groups: Array!{DirectionGroup}
     var haveGroup = false
-    var lastDirX, lastDirY = 0's64
+    var lastDirX, lastDirY = 0_s64
     for it in arr
     {
         if not haveGroup or it.dirX != lastDirX or it.dirY != lastDirY
@@ -166,14 +181,16 @@ func day10B()
         }
     }
 
-    var total = 0'u64
+    var total = 0_u64
     for
     {
         var vaporizedOne = false
         for gi in groups.count
         {
-            if not groups[gi].asteroids.count do
+            if not groups[gi].asteroids.count
+            {
                 continue
+            }
 
             vaporizedOne = true
             let vaporized = groups[gi].asteroids[0]
@@ -189,7 +206,9 @@ func day10B()
             }
         }
 
-        if not vaporizedOne do
+        if not vaporizedOne
+        {
             break
+        }
     }
 }

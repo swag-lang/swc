@@ -9,17 +9,21 @@ const ApplicationId = "swagscope"
 const SurfaceId     = "swag.scope"
 
 // Selects a path without touching its drive; classification happens after the first frame.
-func viewerStartupFiles(arguments: const [..] string)->Array'String
+func viewerStartupFiles(arguments: const [..] string)->Array!{String}
 {
     var result: #returntype
-    if arguments.count <= 1 do
+    if arguments.count <= 1
+    {
         return result
+    }
 
     for argument in arguments[1 to]
     {
         let runtimeSetting = argument == "swag.sandbox" or argument == "swag.test" or Utf8.startsWith(argument, "swag.") and Utf8.contains(argument, "=")
-        if not runtimeSetting and not Utf8.startsWith(argument, "--") and Path.isValidPathName(argument) do
+        if not runtimeSetting and not Utf8.startsWith(argument, "--") and Path.isValidPathName(argument)
+        {
             result.add(String.from(argument))
+        }
     }
 
     return result
@@ -38,11 +42,16 @@ const ViewerSmokeArgument = "--review-viewers="
 // Returns the fixture directory named by the smoke-review argument, or an empty string.
 func viewerSmokeDirectory(arguments: const [..] string)->String
 {
-    if arguments.count <= 1 do
+    if arguments.count <= 1
+    {
         return {}
+    }
 
-    for argument in arguments[1 to] where Utf8.startsWith(argument, ViewerSmokeArgument) do
+    for argument in arguments[1 to] where Utf8.startsWith(argument, ViewerSmokeArgument)
+    {
         return argument[ViewerSmokeArgument.count to]
+    }
+
     return {}
 }
 
@@ -51,8 +60,10 @@ private func registerViewerFileTypes(registry: const *ViewerPluginRegistry)
     Env.registerApplication(ApplicationId, ProductName)
     for plugin in registry.plugins where plugin.matchNames
     {
-        for extension in plugin.selectors where extension[] != "*" and extension[].toString()[0] == '.' do
+        for extension in plugin.selectors where extension[] != "*" and extension[].toString()[0] == '.'
+        {
             Env.associateFileExtension(extension[], ApplicationId, Env.executablePath())
+        }
     }
 }
 
@@ -106,6 +117,8 @@ private func registerViewerFileTypes(registry: const *ViewerPluginRegistry)
     surface.show()
 
     let exitCode = g_App.run()
-    if exitCode do
+    if exitCode
+    {
         Env.exit(exitCode)
+    }
 }

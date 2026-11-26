@@ -31,9 +31,12 @@ func waitForPlaybackBuffer(timeline: *TimelineBar)
     picture.fill(Argb.White)
     let configs: [1] Mp4.SoftwareAudioConfig = [{48_000, 1, .Voice}]
     var recording = expect Mp4.SoftwareRecording.createWithAudioTracks(source, 64, 48, 1_000_000, configs)
-    for frame in 10'u64 do
+    for frame in 10_u64
+    {
         expect recording.addFrame(&picture, FrameSlot{frame, frame * 100_000, 100_000, 0})
-    var samples: Array's16
+    }
+
+    var samples: Array!{s16}
     samples.resize(4_800)
     expect recording.addAudioFrames(samples.toSlice())
     expect recording.end()
@@ -145,8 +148,11 @@ func waitForPlaybackBuffer(timeline: *TimelineBar)
     let picture = Image.create(64, 48, .BGRA8)
     picture.fill(Argb.White)
     var recording = expect Mp4.SoftwareRecording.createVideoOnly(source, 64, 48, 1_000_000)
-    for frame in 10'u64 do
+    for frame in 10_u64
+    {
         expect recording.addFrame(&picture, FrameSlot{frame, frame * 100_000, 100_000, 0})
+    }
+
     expect recording.end()
 
     f.capture.file = document
@@ -190,7 +196,7 @@ func waitForPlaybackBuffer(timeline: *TimelineBar)
     timeline.audioPath  = "former.mp4"
     timeline.silentPath = "former.mp4"
 
-    let current = Memory.new'Capture()
+    let current = Memory.new!{Capture}()
     f.editView.setCapture(current)
     f.capture = current
     discard timeline.capture()

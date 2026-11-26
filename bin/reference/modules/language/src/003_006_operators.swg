@@ -37,7 +37,7 @@ bitwise AND, OR, XOR, and bit shifting.
     var x: s32 = 10
 
     x = x ^ 2                     // XOR
-    x = x & 0b0000_0001's32       // AND
+    x = x & 0b0000_0001_s32       // AND
     x = x | cast(s32, 0b0001)     // OR
     x = x << 1                    // Shift left
     x = x >> 1                    // Shift right
@@ -67,11 +67,11 @@ already truncates discarded bits.
 {
     let count: u64 = 7
 
-    Swag.require(0x81'u8 << 1 == 0x02'u8)
-    Swag.require(0x81'u8 << count == 0x80'u8)
-    Swag.require(0x81'u8 >> count == 0x01'u8)
-    Swag.require(-128's8 >> count == -1's8)
-    #assert(#typeof(1'u8 << count) == u8)
+    Swag.require(0x81_u8 << 1 == 0x02_u8)
+    Swag.require(0x81_u8 << count == 0x80_u8)
+    Swag.require(0x81_u8 >> count == 0x01_u8)
+    Swag.require(-128_s8 >> count == -1_s8)
+    #assert(#typeof(1_u8 << count) == u8)
 }
 
 /**
@@ -107,7 +107,7 @@ postfix asserted access such as 'value!.field', 'buffer![index]', or 'handler!()
 #test
 {
     var x = true
-    var y = 0b0000_0001'u8
+    var y = 0b0000_0001_u8
     var z = 1
 
     x = not x     // Logical NOT
@@ -372,17 +372,17 @@ type wins.
 */
 #test
 {
-    #assert(#typeof(0'u8 + 1'u8) == u8)
-    #assert(#typeof(0'u8 + 1'u16) == u16)
-    #assert(#typeof(0'u8 + 1'u32) == u32)
-    #assert(#typeof(0'u8 + 1'u64) == u64)
-    #assert(#typeof(0'u8 + 1's8) == u8)
-    #assert(#typeof(0'u8 + 1's16) == s16)
-    #assert(#typeof(0'u8 + 1's32) == s32)
-    #assert(#typeof(0'u8 + 1's64) == s64)
-    #assert(#typeof(0'u8 + 1'f32) == f32)
-    #assert(#typeof(0'u8 + 1'f64) == f64)
-    #assert(#typeof(0's8 + 1'u16) == u16)
+    #assert(#typeof(0_u8 + 1_u8) == u8)
+    #assert(#typeof(0_u8 + 1_u16) == u16)
+    #assert(#typeof(0_u8 + 1_u32) == u32)
+    #assert(#typeof(0_u8 + 1_u64) == u64)
+    #assert(#typeof(0_u8 + 1_s8) == u8)
+    #assert(#typeof(0_u8 + 1_s16) == s16)
+    #assert(#typeof(0_u8 + 1_s32) == s32)
+    #assert(#typeof(0_u8 + 1_s64) == s64)
+    #assert(#typeof(0_u8 + 1_f32) == f32)
+    #assert(#typeof(0_u8 + 1_f64) == f64)
+    #assert(#typeof(0_s8 + 1_u16) == u16)
 }
 
 /**
@@ -391,8 +391,8 @@ modifier to promote operands to at least 32 bits before the operation.
 */
 #test
 {
-    #assert(#typeof(255'u8 + #prom 1'u8) == u32)
-    #assert(255'u8 + #prom 1'u8 == 256)
+    #assert(#typeof(255_u8 + #prom 1_u8) == u32)
+    #assert(255_u8 + #prom 1_u8 == 256)
 }
 
 /**
@@ -456,7 +456,7 @@ operators '== !=', so 'a < b == c' parses as '(a < b) == c'.
     // Prefix operators bind tighter than any binary operator.
     Swag.require((not false == true) == true)
     Swag.require(-2 * 3 == -6)
-    Swag.require(~0'u8 == 255)
+    Swag.require(~0_u8 == 255)
 
     // 'orelse' and the ternary sit at the loosest level and group to the right.
     let a: string? = null

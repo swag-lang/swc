@@ -144,57 +144,24 @@ internal func(CounterBits: u32) aesXorCounterPairsSoftware(aes: *Aes, prefix: U6
 
 private func aesCtrCryptBlocks(aes: *Aes, initialCounter: [AesCtrCounterSize] u8, source: const [..] u8, destination: [..] u8, firstBlock, blockCount: u64) fail
 {
-    if aes[].usesHardwareRounds()
-    {
-        if blockCount == 0 do
-            return
-        let prefix = cast #bit (U64x2, load(&initialCounter[0]))
-        let low    = Swag.byteSwap(prefix[1])
-        if firstBlock + blockCount - 1 > Swag.U64.Max - low do
-            aesXorCounterBlocksHardware'128(aes, prefix, source, destination, firstBlock, blockCount)
-        else do
-            aesXorCounterBlocksHardware'64(aes, prefix, source, destination, firstBlock, blockCount)
-        return
-    }
-
-    // The public operation has already checked the final 128-bit counter.
-    let prefix       = cast #bit (U64x2, load(&initialCounter[0]))
-    let initialLow   = aesCtrNetworkWord(prefix[1])
-    let initialHigh  = aesCtrNetworkWord(prefix[0])
-    let fullBlockEnd = Math.min(firstBlock + blockCount, source.count / AesBlockSize)
-    var block        = firstBlock
-    while block + 2 <= fullBlockEnd
-    {
-        let firstLow  = initialLow + block
-        let secondLow = firstLow + 1
-        var first     = prefix
-        var second    = prefix
-        first[0]  = aesCtrNetworkWord(initialHigh + cast(u64, firstLow < initialLow))
-        second[0] = aesCtrNetworkWord(initialHigh + cast(u64, secondLow < initialLow))
-        first[1]  = aesCtrNetworkWord(firstLow)
-        second[1] = aesCtrNetworkWord(secondLow)
-        let offset = block * AesBlockSize
-        aes[].xorTwoCountersSoftware(cast #bit (U8x16, first), cast #bit (U8x16, second),
-                                     source.buffer + offset, destination.buffer + offset)
-        block += 2
-    }
-
-    while block < firstBlock + blockCount
+    var block = 0_u64
+    while block < blockCount
     {
         var counter = initialCounter
-        if not aesCtrAddCounter(&counter, block) do
+        if not aesCtrAddCounter(&counter, firstBlock + block)
+        {
             fail Errors.BadParameterError{"AES-CTR counter range overflows 128 bits"}
+        }
+
         var keyStream: [AesCtrCounterSize] u8
         try aes[].encryptBlock(counter, keyStream)
         let offset = block * AesCtrCounterSize
         let count  = Math.min(source.count - offset, AesCtrCounterSize)
-        if count == AesBlockSize do
-            store(destination.buffer + offset, load(source.buffer + offset) ^ load(&keyStream[0]))
-        else
+        for index in count
         {
-            for index in count do
-                destination[offset + index] = source[offset + index] ^ keyStream[index]
+            destination[offset + index] = source[offset + index] ^ keyStream[index]
         }
+
         Crypto.secureClear(counter)
         Crypto.secureClear(keyStream)
         block += 1
@@ -225,15 +192,20 @@ private func aesCtrCryptBlocksParallel(aes: *Aes, initialCounter: [AesCtrCounter
 // with a separate construction before trusting decrypted plaintext.
 func aesCtrCrypt(key, initialCounter, input: const [..] u8, output: [..] u8) fail
 {
-    if initialCounter.count != AesCtrCounterSize or output.count != input.count do
+    if initialCounter.count != AesCtrCounterSize or output.count != input.count
+    {
         fail Errors.BadParameterError{"AES-CTR needs a 16-byte counter and matching output length"}
+    }
 
     const BlockSize = cast(u64, AesCtrCounterSize)
     let blockCount = input.count / BlockSize + cast(u64, (input.count % BlockSize) != 0)
     var counter: [AesCtrCounterSize] u8
     Swag.memcpy(&counter[0], initialCounter.buffer, AesCtrCounterSize)
-    if blockCount and not aesCtrAddCounter(&counter, blockCount - 1) do
+    if blockCount and not aesCtrAddCounter(&counter, blockCount - 1)
+    {
         fail Errors.BadParameterError{"AES-CTR counter range overflows 128 bits"}
+    }
+
     Swag.memcpy(&counter[0], initialCounter.buffer, AesCtrCounterSize)
 
     var aes = try Aes.create(key)

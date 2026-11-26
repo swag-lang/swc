@@ -43,7 +43,7 @@ func takeStringValue(value: string)->u64
     let textValue        = cast(string, textRef[])
 
     Swag.require(textValue == "seed")
-    Swag.require(takeStringValue(textRef[]) == 4'u64)
+    Swag.require(takeStringValue(textRef[]) == 4_u64)
 }
 
 #test

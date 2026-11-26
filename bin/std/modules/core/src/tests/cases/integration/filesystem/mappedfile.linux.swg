@@ -11,14 +11,18 @@
     Swag.require(cast(s64, memory) != -1 and memory != null)
     defer discard Linux.munmap(memory, size)
     let bytes = Swag.makeSlice(cast([*] u8, memory), size)
-    for &value, index in bytes do
+    for &value, index in bytes
+    {
         value[] = cast(u8, (index % 239))
+    }
 
     File.MappedRegion.releasePages(bytes[until 0])
     File.MappedRegion.releasePages(bytes[17 until size - 23])
     File.MappedRegion.releasePages(bytes)
-    for value, index in bytes do
+    for value, index in bytes
+    {
         Swag.require(value == cast(u8, (index % 239)))
+    }
 
     var stack: [512] u8
     stack[0]   = 19

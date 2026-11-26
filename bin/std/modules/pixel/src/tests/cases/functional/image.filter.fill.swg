@@ -5,11 +5,11 @@ using Swag, Core
 #test
 {
     const pixels = [
-        1'u8, 2'u8, 3'u8, 4'u8, 5'u8, 6'u8, 7'u8, 8'u8,
-        9'u8, 10'u8, 11'u8, 12'u8, 13'u8, 14'u8, 15'u8, 16'u8]
+        1_u8, 2_u8, 3_u8, 4_u8, 5_u8, 6_u8, 7_u8, 8_u8,
+        9_u8, 10_u8, 11_u8, 12_u8, 13_u8, 14_u8, 15_u8, 16_u8]
 
     var img       = makeImage(2, 2, .RGBA8, pixels)
-    let fillColor = Color.fromArgb(66'u8, 11'u8, 22'u8, 33'u8)
+    let fillColor = Color.fromArgb(66_u8, 11_u8, 22_u8, 33_u8)
     img.fill(fillColor)
     assertImage(img, 2, 2, .RGBA8)
 
@@ -21,25 +21,25 @@ using Swag, Core
 
 #test
 {
-    const pixels = [255'u8, 64, 32, 128]
+    const pixels = [255_u8, 64, 32, 128]
     let source    = makeImage(1, 1, .RGBA8, pixels)
     let converted = source.convertedTo(.RGBAF32)
-    assertPixel(converted, 0, 0, Color.fromArgb(128'u8, 255'u8, 64'u8, 32'u8))
+    assertPixel(converted, 0, 0, Color.fromArgb(128_u8, 255_u8, 64_u8, 32_u8))
 }
 
 #test
 {
-    const pixels = [255'u8, 64, 32, 128]
+    const pixels = [255_u8, 64, 32, 128]
     let source      = makeImage(1, 1, .RGBA8, pixels)
     var transformed = source.convertedTo(.RGBAF32)
     transformed.invert()
-    assertPixel(transformed, 0, 0, Color.fromArgb(128'u8, 0'u8, 191'u8, 223'u8))
+    assertPixel(transformed, 0, 0, Color.fromArgb(128_u8, 0_u8, 191_u8, 223_u8))
 }
 
 #test
 {
     var image = Image.create(1, 1, .RGBAF32)
-    let color = Color.fromArgb(128'u8, 255'u8, 64'u8, 32'u8)
+    let color = Color.fromArgb(128_u8, 255_u8, 64_u8, 32_u8)
     image.fill(color)
 
     assertImage(image, 1, 1, .RGBAF32)

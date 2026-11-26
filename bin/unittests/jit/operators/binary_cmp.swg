@@ -18,8 +18,8 @@ enum CmpEnum: u16
 #test
 {
     func neS64(a: s64, b: s64)->bool { return a != b }
-    const V0 = #run neS64(5000000000's64, 5000000001's64)
-    const V1 = #run neS64(5000000000's64, 5000000000's64)
+    const V0 = #run neS64(5000000000_s64, 5000000001_s64)
+    const V1 = #run neS64(5000000000_s64, 5000000000_s64)
     #assert(V0)
     #assert(not V1)
 }
@@ -45,8 +45,8 @@ enum CmpEnum: u16
 #test
 {
     func gtU64(a: u64, b: u64)->bool { return a > b }
-    const V0 = #run gtU64(0xFFFF_FFFF_FFFF_FFFF'u64, 1'u64)
-    const V1 = #run gtU64(1'u64, 0xFFFF_FFFF_FFFF_FFFF'u64)
+    const V0 = #run gtU64(0xFFFF_FFFF_FFFF_FFFF_u64, 1_u64)
+    const V1 = #run gtU64(1_u64, 0xFFFF_FFFF_FFFF_FFFF_u64)
     #assert(V0)
     #assert(not V1)
 }
@@ -54,8 +54,8 @@ enum CmpEnum: u16
 #test
 {
     func geU64(a: u64, b: u64)->bool { return a >= b }
-    const V0 = #run geU64(9'u64, 9'u64)
-    const V1 = #run geU64(8'u64, 9'u64)
+    const V0 = #run geU64(9_u64, 9_u64)
+    const V1 = #run geU64(8_u64, 9_u64)
     #assert(V0)
     #assert(not V1)
 }
@@ -90,9 +90,9 @@ enum CmpEnum: u16
 #test
 {
     func cmpPointer(a: *void?, b: *void?)->bool { return a != b }
-    const V0 = #run cmpPointer(cast(*void, 0x1234'u64), cast(*void, 0x5678'u64))
-    const V1 = #run cmpPointer(cast(*void, 0x1234'u64), cast(*void, 0x1234'u64))
-    const V2 = #run cmpPointer(null, cast(*void, 0x1'u64))
+    const V0 = #run cmpPointer(cast(*void, 0x1234_u64), cast(*void, 0x5678_u64))
+    const V1 = #run cmpPointer(cast(*void, 0x1234_u64), cast(*void, 0x1234_u64))
+    const V2 = #run cmpPointer(null, cast(*void, 0x1_u64))
     #assert(V0)
     #assert(not V1)
     #assert(V2)
@@ -101,8 +101,8 @@ enum CmpEnum: u16
 #test
 {
     func cmpMixedFloat(a: f32, b: f64)->bool { return a < b }
-    const V0 = #run cmpMixedFloat(1.25'f32, 2.0'f64)
-    const V1 = #run cmpMixedFloat(3.5'f32, 2.0'f64)
+    const V0 = #run cmpMixedFloat(1.25_f32, 2.0_f64)
+    const V1 = #run cmpMixedFloat(3.5_f32, 2.0_f64)
     #assert(V0)
     #assert(not V1)
 }
@@ -110,9 +110,9 @@ enum CmpEnum: u16
 #test
 {
     func cmpFloat3Way(a: f64, b: f64)->s32 { return a <=> b }
-    const V0 = #run cmpFloat3Way(1.5'f64, 2.5'f64)
-    const V1 = #run cmpFloat3Way(2.5'f64, 1.5'f64)
-    const V2 = #run cmpFloat3Way(3.25'f64, 3.25'f64)
+    const V0 = #run cmpFloat3Way(1.5_f64, 2.5_f64)
+    const V1 = #run cmpFloat3Way(2.5_f64, 1.5_f64)
+    const V2 = #run cmpFloat3Way(3.25_f64, 3.25_f64)
     #assert(V0 == -1)
     #assert(V1 == 1)
     #assert(V2 == 0)
@@ -140,14 +140,14 @@ enum CmpEnum: u16
     }
 
     const V0 = #run cmpAbiMix(
-        -3's8, 10'u16, 'A', true,
-        2.5'f32, 3.0'f64, 20's64, 30'u64,
-        cast(*void, 0x1111'u64), CmpEnum.B)
+        -3_s8, 10_u16, 'A', true,
+        2.5_f32, 3.0_f64, 20_s64, 30_u64,
+        cast(*void, 0x1111_u64), CmpEnum.B)
 
     const V1 = #run cmpAbiMix(
-        10's8, 10'u16, 'A', true,
-        2.5'f32, 3.0'f64, 20's64, 30'u64,
-        cast(*void, 0x1111'u64), CmpEnum.B)
+        10_s8, 10_u16, 'A', true,
+        2.5_f32, 3.0_f64, 20_s64, 30_u64,
+        cast(*void, 0x1111_u64), CmpEnum.B)
 
     #assert(V0)
     #assert(not V1)
@@ -205,9 +205,9 @@ enum CmpEnum: u16
         return p and flag
     }
 
-    const V0 = #run cmpLogicalPointer(cast(*void, 0x1'u64), true)
-    const V1 = #run cmpLogicalPointer(cast(*void?, 0'u64), true)
-    const V2 = #run cmpLogicalPointer(cast(*void, 0x1'u64), false)
+    const V0 = #run cmpLogicalPointer(cast(*void, 0x1_u64), true)
+    const V1 = #run cmpLogicalPointer(cast(*void?, 0_u64), true)
+    const V2 = #run cmpLogicalPointer(cast(*void, 0x1_u64), false)
     #assert(V0)
     #assert(not V1)
     #assert(not V2)
@@ -233,14 +233,22 @@ enum CmpEnum: u16
     func cmpLogicalStressInts(a: s32, b: s32, c: s32, d: s32, e: s32)->s32
     {
         var acc: s32 = 0
-        if a and b and c and d and e do
+        if a and b and c and d and e
+        {
             acc += 1
-        if a or b or c or d or e do
+        }
+        if a or b or c or d or e
+        {
             acc += 2
-        if (a and b) or (c and d) or e do
+        }
+        if (a and b) or (c and d) or e
+        {
             acc += 4
-        if (a or b) and (c or d) and e do
+        }
+        if (a or b) and (c or d) and e
+        {
             acc += 8
+        }
         return acc
     }
 
@@ -257,19 +265,27 @@ enum CmpEnum: u16
     func cmpLogicalStressPtr(p: *void?, q: *void?, x: s32, y: s32, flag: bool)->s32
     {
         var acc: s32 = 0
-        if p and (x < y or flag) do
+        if p and (x < y or flag)
+        {
             acc += 1
-        if q or (x > y and flag) do
+        }
+        if q or (x > y and flag)
+        {
             acc += 2
-        if (p and q) or (x == y) do
+        }
+        if (p and q) or (x == y)
+        {
             acc += 4
-        if p and q and flag do
+        }
+        if p and q and flag
+        {
             acc += 8
+        }
         return acc
     }
 
-    const V0 = #run cmpLogicalStressPtr(cast(*void, 0x10'u64), null, 1, 2, false)
-    const V1 = #run cmpLogicalStressPtr(cast(*void, 0x10'u64), cast(*void, 0x20'u64), 3, 1, true)
+    const V0 = #run cmpLogicalStressPtr(cast(*void, 0x10_u64), null, 1, 2, false)
+    const V1 = #run cmpLogicalStressPtr(cast(*void, 0x10_u64), cast(*void, 0x20_u64), 3, 1, true)
     const V2 = #run cmpLogicalStressPtr(null, null, 3, 1, true)
     #assert(V0 == 1)
     #assert(V1 == 15)
@@ -298,8 +314,10 @@ enum CmpEnum: u16
         var acc: s32 = 0
         for v, i in values
         {
-            if (v > 0 and (i & 1) == 0) or (v < 0 and (i & 1) == 1) do
+            if (v > 0 and (i & 1) == 0) or (v < 0 and (i & 1) == 1)
+            {
                 acc += v
+            }
         }
 
         return acc
@@ -352,8 +370,10 @@ impl CompareAllocatorHolder
 func cmpInterfaceFieldNullChecks()->bool
 {
     var holder = CompareAllocatorHolder{}
-    if not holder.needsAllocator() or not holder.needsAllocatorLeft() or holder.hasAllocator() do
+    if not holder.needsAllocator() or not holder.needsAllocatorLeft() or holder.hasAllocator()
+    {
         return false
+    }
 
     var alloc = CompareAllocator{id: 55}
     holder.allocator = alloc

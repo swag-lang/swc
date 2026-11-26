@@ -10,8 +10,10 @@ func waitForNativeTheme(app: *Application, ack, wanted: string, light: bool)->bo
     {
         app.runFrame()
         let response = catch File.readAllText(ack) orelse String.from("")
-        if response == wanted and app.usesLightTheme() == light do
+        if response == wanted and app.usesLightTheme() == light
+        {
             return true
+        }
     }
 
     return false
@@ -24,8 +26,10 @@ func waitForNativeMotion(app: *Application, ack, wanted: string, reduced: bool)-
     {
         app.runFrame()
         let response = catch File.readAllText(ack) orelse String.from("")
-        if response == wanted and app.isReducedMotion() == reduced do
+        if response == wanted and app.isReducedMotion() == reduced
+        {
             return true
+        }
     }
 
     return false
@@ -46,8 +50,11 @@ func waitForNativeMotion(app: *Application, ack, wanted: string, reduced: bool)-
     defer { discard catch peer.kill(); discard catch peer.waitForExit(); }
     let ready    = Path.combine(temporary, "ready")
     let deadline = Time.monotonicMilliseconds() + 3000
-    while not File.exists(ready) and Time.monotonicMilliseconds() < deadline do
-        Threading.Thread.sleep(1'ms)
+    while not File.exists(ready) and Time.monotonicMilliseconds() < deadline
+    {
+        Threading.Thread.sleep(1_ms)
+    }
+
     Swag.require(File.exists(ready), peer.standardError())
 
     var app: Application
@@ -56,14 +63,20 @@ func waitForNativeMotion(app: *Application, ack, wanted: string, reduced: bool)-
     surface.show()
     app.refreshSystemAppearance()
     app.setAppearance(.System)
-    for 8 do
+    for 8
+    {
         app.runFrame()
+    }
+
     Swag.require(app.usesLightTheme())
     var themeChanges: u32
     surface.wnd.view.hookOnEvent = func|&themeChanges|(_, event)->bool
     {
-        if event is NotifyEvent as notice where notice.kind == .ThemeChanged do
+        if event is NotifyEvent as notice where notice.kind == .ThemeChanged
+        {
             themeChanges += 1
+        }
+
         return false
     }
 
@@ -74,8 +87,11 @@ func waitForNativeMotion(app: *Application, ack, wanted: string, reduced: bool)-
     let ack     = Path.combine(temporary, "ack")
     discard expect File.writeAllText(command, "dark")
     Swag.require(waitForNativeTheme(&app, ack.toString(), "dark", false))
-    for 4 do
+    for 4
+    {
         app.runFrame()
+    }
+
     let darkPixel = app.renderer.readRenderTarget(&surface.rt, 200, 150, 1, 1).pixelColor(0, 0)
     Swag.require(lightPixel != darkPixel, "native surface did not repaint with the dark theme")
     Swag.require(themeChanges > 0, "dark theme did not emit a portable notification")
@@ -83,8 +99,11 @@ func waitForNativeMotion(app: *Application, ack, wanted: string, reduced: bool)-
 
     discard expect File.writeAllText(command, "light")
     Swag.require(waitForNativeTheme(&app, ack.toString(), "light", true))
-    for 4 do
+    for 4
+    {
         app.runFrame()
+    }
+
     let restoredPixel = app.renderer.readRenderTarget(&surface.rt, 200, 150, 1, 1).pixelColor(0, 0)
     Swag.require(restoredPixel == lightPixel, "native surface did not restore the light theme")
     Swag.require(themeChanges > changesAfterDark, "light theme did not emit a portable notification")
@@ -94,7 +113,7 @@ func waitForNativeMotion(app: *Application, ack, wanted: string, reduced: bool)-
     app.setMotionPreference(.System)
     Swag.require(not app.isReducedMotion())
     var options: AnimationOptions
-    options.duration = 10000'ms
+    options.duration = 10000_ms
     let first = app.animator.animateF32(surface.wnd.view,
                                         AnimationChannel.from("linux.native.motion.first"),
                                         0,
@@ -125,12 +144,18 @@ func waitForNativeMotion(app: *Application, ack, wanted: string, reduced: bool)-
     discard expect peer.kill()
     discard expect peer.waitForExit()
     let fallbackDeadline = Time.monotonicMilliseconds() + 4000
-    while (not app.usesLightTheme() or app.isReducedMotion()) and Time.monotonicMilliseconds() < fallbackDeadline do
+    while (not app.usesLightTheme() or app.isReducedMotion()) and Time.monotonicMilliseconds() < fallbackDeadline
+    {
         app.runFrame()
+    }
+
     Swag.require(app.usesLightTheme() and not app.isReducedMotion(), "XSettings owner loss did not restore defaults")
     Swag.require(themeChanges > changesBeforeExit, "XSettings owner loss did not notify the theme change")
-    for 4 do
+    for 4
+    {
         app.runFrame()
+    }
+
     let fallbackPixel = app.renderer.readRenderTarget(&surface.rt, 200, 150, 1, 1).pixelColor(0, 0)
     Swag.require(fallbackPixel == lightPixel, "XSettings owner loss did not repaint the native surface")
 
@@ -141,12 +166,18 @@ func waitForNativeMotion(app: *Application, ack, wanted: string, reduced: bool)-
                                                  arguments: [script.toString(), temporary.toString(), "dark", "reduce"],
                                                  standardOutput: .Pipe, standardError: .Pipe})
     let handoffDeadline = Time.monotonicMilliseconds() + 4000
-    while (app.usesLightTheme() or not app.isReducedMotion()) and Time.monotonicMilliseconds() < handoffDeadline do
+    while (app.usesLightTheme() or not app.isReducedMotion()) and Time.monotonicMilliseconds() < handoffDeadline
+    {
         app.runFrame()
+    }
+
     Swag.require(not app.usesLightTheme() and app.isReducedMotion(), peer.standardError())
     Swag.require(themeChanges > changesBeforeHandoff, "new XSettings owner did not notify the theme change")
-    for 4 do
+    for 4
+    {
         app.runFrame()
+    }
+
     let handoffPixel = app.renderer.readRenderTarget(&surface.rt, 200, 150, 1, 1).pixelColor(0, 0)
     Swag.require(handoffPixel == darkPixel, "new XSettings owner did not repaint the native surface")
 }

@@ -20,7 +20,7 @@ func audioPcmPacketSound()->SoundFile fail
     Swag.require(file.isPacketStream() and file.packetCount() == 2 and not file.isDataPreloaded())
 
     let payload = expect file.readPayload(0, 8)
-    Swag.require(Slice.equals(payload.toSlice(), [0x00'u8, 0x00, 0xFF, 0x7F, 0x00, 0x80, 0xFF, 0xFF]))
+    Swag.require(Slice.equals(payload.toSlice(), [0x00_u8, 0x00, 0xFF, 0x7F, 0x00, 0x80, 0xFF, 0xFF]))
 
     var voice: Voice
     voice.file = &file
@@ -47,7 +47,7 @@ func audioPcmPacketSound()->SoundFile fail
 
     discard expect voice.seekSampleFrame(1)
     let decoded = expect voice.readBuffer()
-    audioAssertBufferBytes(decoded.buffer, decoded.size, [0x00'u8, 0x80, 0xFF, 0xFF])
+    audioAssertBufferBytes(decoded.buffer, decoded.size, [0x00_u8, 0x80, 0xFF, 0xFF])
     Swag.require(voice.streamCurSeek == file.payloadSize())
 }
 
@@ -82,7 +82,7 @@ func audioPcmPacketSound()->SoundFile fail
     let size = expect voice.decodeData(&decoded[0], decoded.count)
     Swag.require(size == decoded.count)
     Swag.require(voice.streamCurSeek == file.dataSize)
-    audioAssertSamples(decoded, [-32768's16, 0's16, 32512's16])
+    audioAssertSamples(decoded, [-32768_s16, 0_s16, 32512_s16])
 
     let empty = expect voice.decodeData(&decoded[0], decoded.count)
     Swag.require(empty == 0)
@@ -165,19 +165,19 @@ func audioPcmPacketSound()->SoundFile fail
 // A complete PCM frame larger than the normal read window is still delivered to the consumer.
 #test
 {
-    const ChannelCount = 131_073'u32
+    const ChannelCount = 131_073_u32
     const FrameBytes   = ChannelCount * 2
     let path = Path.combine(Env.getSpecialDirectory(.Temp), Format.toString("audio-pcm-large-frame-%.bin", Guid128.random()))
     defer discard catch File.delete(path)
 
-    var bytes: Array'u8
+    var bytes: Array!{u8}
     bytes.resize(FrameBytes)
     bytes.fill(0)
     expect File.writeAllBytes(path.toString(), bytes.toSlice())
 
     const Packet: [1] SoundPacket = [SoundPacket{0, FrameBytes, 1}]
     let sound = expect SoundFile.openPcmPacketStream(path.toString(), .Pcm16, 48_000, ChannelCount, Packet)
-    var decodedSamples = 0'u64
+    var decodedSamples = 0_u64
     expect sound.decodePcm16(func|&decodedSamples|(samples: const [..] s16)->bool
     {
         decodedSamples += samples.count

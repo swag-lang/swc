@@ -12,8 +12,10 @@ func ownedIntegerEquals(owner: const *Error, expected: s64)->bool
     var errorOutcome: Swag.Error
     catch owner.raise() as errorOutcome
     let error = errorOutcome.value()
-    if error is s64 as value do
+    if error is s64 as value
+    {
         return value[] == expected
+    }
     return false
 }
 

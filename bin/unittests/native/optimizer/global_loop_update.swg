@@ -15,29 +15,37 @@ var g_Words:     [4] u32
 #[Swag.Optimize(true), Swag.NoInline]
 func addInto(values: const [*] u32, count: u64)
 {
-    for i in count do
+    for i in count
+    {
         g_Total += values[i]
+    }
 }
 
 #[Swag.Optimize(true), Swag.NoInline]
 func xorInto(values: const [*] u64, count: u64)
 {
-    for i in count do
+    for i in count
+    {
         g_Wide ^= values[i]
+    }
 }
 
 #[Swag.Optimize(true), Swag.NoInline]
 func countAbove(values: const [*] u32, count: u64, limit: u32)
 {
-    for i in count where values[i] > limit do
+    for i in count where values[i] > limit
+    {
         g_Hits += 1
+    }
 }
 
 #[Swag.Optimize(true), Swag.NoInline]
 func tally(values: const [*] u8, count: u64)
 {
-    for i in count do
+    for i in count
+    {
         g_Histogram[values[i] & 15] += 1
+    }
 }
 
 // Four adjacent words updated in one trip: a packed group when the build

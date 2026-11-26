@@ -8,15 +8,15 @@ using Swag, Core
     assertImage(image, RenderSvgWidth, RenderSvgHeight, .BGRA8)
 
     // Outside every shape, and inside the hole of the last path: transparent, and white.
-    let white = Color.fromArgb(0'u8, 255'u8, 255'u8, 255'u8)
+    let white = Color.fromArgb(0_u8, 255_u8, 255_u8, 255_u8)
     assertPixel(image, 2, 2, white)
     assertPixel(image, 27, 48, white)
 
     // Flat interiors: the rounded rect, the ring around the hole, and the stroke of the
     // path that has no fill at all.
-    assertSvgPixel(&image, 16, 16, Color.fromArgb(255'u8, 0x2E'u8, 0x86'u8, 0xDE'u8))
-    assertSvgPixel(&image, 14, 41, Color.fromArgb(255'u8, 0x06'u8, 0xD6'u8, 0xA0'u8))
-    assertSvgPixel(&image, 70, 8, Color.fromArgb(255'u8, 0xFF'u8, 0xD1'u8, 0x66'u8))
+    assertSvgPixel(&image, 16, 16, Color.fromArgb(255_u8, 0x2E_u8, 0x86_u8, 0xDE_u8))
+    assertSvgPixel(&image, 14, 41, Color.fromArgb(255_u8, 0x06_u8, 0xD6_u8, 0xA0_u8))
+    assertSvgPixel(&image, 70, 8, Color.fromArgb(255_u8, 0xFF_u8, 0xD1_u8, 0x66_u8))
 
     // The half-transparent circle over the rounded rect resolves to a blend of the two,
     // opaque because the rect below it is.
@@ -42,7 +42,7 @@ using Swag, Core
 
 #test
 {
-    var storage: Array'u8
+    var storage: Array!{u8}
     let picture = makeRenderPlanarPicture(&storage)
     let image   = renderCpu(&renderPlanarParityScene)
     assertPlanarCornersUpright(&image, &picture)
@@ -86,7 +86,7 @@ using Swag, Core
 
     var effect: TextEffect
     effect.outlineColor = Color.fromArgb(Argb.Zero)
-    effect.glowColor    = Color.fromArgb(150'u8, Argb.Gold)
+    effect.glowColor    = Color.fromArgb(150_u8, Argb.Gold)
     effect.glowInner    = 0.04
     effect.glowOuter    = 0.42
     effect.glowPower    = 1.4
@@ -108,14 +108,19 @@ using Swag, Core
         for x in image.width
         {
             let color = image.pixelColor(x, y)
-            if color.a == 0 do
+            if color.a == 0
+            {
                 continue
+            }
+
             Swag.require(color.r == effect.glowColor.r and
                          color.g == effect.glowColor.g and
                          color.b == effect.glowColor.b)
             Swag.require(color.a <= effect.glowColor.a)
-            if color.a < effect.glowColor.a do
+            if color.a < effect.glowColor.a
+            {
                 fractional += 1
+            }
         }
     }
 

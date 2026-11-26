@@ -28,13 +28,14 @@ impl HmacSha3
     // Replaces previous keyed state and starts a new sequence for `key` and `digestSize`.
     mtd reset(key: const [..] u8, digestSize: u64) fail
     {
-        if digestSize != 28 and digestSize != 32 and digestSize != 48 and digestSize != 64 do
+        if digestSize != 28 and digestSize != 32 and digestSize != 48 and digestSize != 64
+        {
             fail Errors.BadParameterError{"HMAC-SHA-3 digest size must be 28, 32, 48, or 64 bytes"}
-        .initialized = false
-        .digestSize  = digestSize
-        .blockSize   = 200 - 2 * digestSize
-        try .inner.reset(digestSize)
-        try .outer.reset(digestSize)
+        }
+
+        .clear()
+        .digestSize = digestSize
+        .blockSize  = 200 - 2 * digestSize
 
         var pad: [Hash.Sha3MaxRate / 8] u64
         defer Crypto.secureClear(pad)
@@ -44,7 +45,7 @@ impl HmacSha3
             let normalized = Swag.makeSlice(bytes, digestSize)
             try Hash.Sha3.compute(key, normalized)
         }
-        elif key.count
+        else if key.count
         {
             Swag.memcpy(bytes, key.buffer, key.count)
         }
@@ -78,10 +79,15 @@ impl HmacSha3
     // Clears keyed state; call [[reset]] before reusing this value.
     mtd finalize(destination: [..] u8) fail
     {
-        if not .initialized do
+        if not .initialized
+        {
             fail Errors.BadParameterError{"HMAC-SHA-3 needs an initialized sequence"}
-        if destination.count != .digestSize do
+        }
+
+        if destination.count != .digestSize
+        {
             fail Errors.BadParameterError{"HMAC-SHA-3 destination must match the configured digest size"}
+        }
 
         var innerHash: [HmacSha3MaxDigestSize] u8
         defer Crypto.secureClear(innerHash)

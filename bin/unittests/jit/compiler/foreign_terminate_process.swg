@@ -55,16 +55,16 @@ func MultiByteToWideChar(codePage: u32, flags: u32, src: const *u8, srcCount: s3
 
 #test
 {
-    const CreateSuspended = 0x00000004'u32
-    const DetachedProcess = 0x00000008'u32
-    const WaitObject0     = 0'u32
-    const CodePageUtf8    = 65001'u32
+    const CreateSuspended = 0x00000004_u32
+    const DetachedProcess = 0x00000008_u32
+    const WaitObject0     = 0_u32
+    const CodePageUtf8    = 65001_u32
 
     // The child is created suspended and never runs, so the termination cannot race with a
     // process that was about to exit on its own. It is also detached from the console, so a
     // failure here leaves nothing behind that could hold the output of the suite open.
     var commandLine: [32] u16
-    let converted = MultiByteToWideChar(CodePageUtf8, 0'u32, ("cmd.exe").buffer, 7, &commandLine[0], 32)
+    let converted = MultiByteToWideChar(CodePageUtf8, 0_u32, ("cmd.exe").buffer, 7, &commandLine[0], 32)
     Swag.require(converted == 7)
     commandLine[converted] = 0
 
@@ -74,12 +74,12 @@ func MultiByteToWideChar(codePage: u32, flags: u32, src: const *u8, srcCount: s3
     var information: ProcessInformation
     Swag.require(CreateProcessW(null, &commandLine[0], null, null, 0, CreateSuspended | DetachedProcess, null, null, &startup, &information) != 0)
 
-    Swag.require(TerminateProcess(information.hProcess, 3'u32) != 0)
-    Swag.require(WaitForSingleObject(information.hProcess, 5000'u32) == WaitObject0)
+    Swag.require(TerminateProcess(information.hProcess, 3_u32) != 0)
+    Swag.require(WaitForSingleObject(information.hProcess, 5000_u32) == WaitObject0)
 
     var exitCode: u32
     Swag.require(GetExitCodeProcess(information.hProcess, &exitCode) != 0)
-    Swag.require(exitCode == 3'u32)
+    Swag.require(exitCode == 3_u32)
 
     discard CloseHandle(information.hThread)
     discard CloseHandle(information.hProcess)

@@ -31,8 +31,8 @@ public struct ScrollWnd
             flags = ScrollWndFlags.None     // Active scrollbar options.
         }
 
-        sigScrollPositionChanged: SigArray'func||(*Wnd, Math.Point, Math.Point)     // Emitted with old and new scroll positions.
-        sigScrollSizeChanged:     SigArray'func||(*Wnd, Math.Point, Math.Point)     // Emitted with old and new virtual sizes.
+        sigScrollPositionChanged: SigArray!{func||(*Wnd, Math.Point, Math.Point)}     // Emitted with old and new scroll positions.
+        sigScrollSizeChanged:     SigArray!{func||(*Wnd, Math.Point, Math.Point)}     // Emitted with old and new virtual sizes.
     }
 
     // Scrollbar geometry, hover and drag state, and the color animations that follow them.
@@ -96,8 +96,11 @@ public impl IWnd for ScrollWnd
 
     mtd impl onTimerEvent(evt: *TimerEvent)
     {
-        if evt.timer != .restTimer do
+        if evt.timer != .restTimer
+        {
             return
+        }
+
         .stopTimer(&.restTimer)
 
         var options: AnimationOptions
@@ -115,13 +118,18 @@ public impl IWnd for ScrollWnd
 
     mtd impl onResizeEvent(_: *ResizeEvent)
     {
-        if .layingView do
+        if .layingView
+        {
             return
+        }
 
         .layingView = true
         defer .layingView = false
-        if .view == null do
+        if .view == null
+        {
             return
+        }
+
         .computeLayout()
     }
 
@@ -132,18 +140,28 @@ public impl IWnd for ScrollWnd
         switch evt.kind
         {
         case .Wheel:
-            if evt.modifiers & .Shift or not .needV do
+            if evt.modifiers & .Shift or not .needV
+            {
                 .setScrollPos(.view.scrollPos.x - (evt.delta.y * .horizontalScrollStep), .view.scrollPos.y)
-            else do
+            }
+            else
+            {
                 .setScrollPos(.view.scrollPos.x, .view.scrollPos.y - (evt.delta.y * .verticalScrollStep))
+            }
 
         case .Leave:
-            if .isMoving do
+            if .isMoving
+            {
                 break
+            }
+
             let wasHotV = .isHotBarV
             let wasHotH = .isHotBarH
-            if not wasHotV and not wasHotH do
+            if not wasHotV and not wasHotH
+            {
                 break
+            }
+
             .isHotV, .isHotH, .isHotBarV, .isHotBarH = false
             .animateBarExpansion(wasHotV, wasHotH)
             .invalidate()
@@ -155,8 +173,11 @@ public impl IWnd for ScrollWnd
                 break
             }
 
-            if evt.delta == Math.Point{} do
+            if evt.delta == Math.Point{}
+            {
                 break
+            }
+
             if .isGrabbing
             {
                 .hitTest(evt.surfacePos)
@@ -187,7 +208,7 @@ public impl IWnd for ScrollWnd
                              Math.max(.scrollSize.y - .view.position.height, 0)
                 .setScrollPos(.view.scrollPos.x, f)
             }
-            elif .isPressedH
+            else if .isPressedH
             {
                 let travel = Math.max(.view.position.width - .sizeBoxH, 1)
                 let f      = (pos.x - .correcMoving - .view.position.x) / travel *
@@ -207,7 +228,7 @@ public impl IWnd for ScrollWnd
                 .captureMouse()
                 .invalidate()
             }
-            elif evt.button == .Left and (.isHotV or .isHotH or .isHotBarV or .isHotBarH)
+            else if evt.button == .Left and (.isHotV or .isHotH or .isHotBarV or .isHotBarH)
             {
                 .isMoving = true
                 if .isHotV
@@ -215,12 +236,12 @@ public impl IWnd for ScrollWnd
                     .isPressedV   = true
                     .correcMoving = pos.y - .posBoxV
                 }
-                elif .isHotH
+                else if .isHotH
                 {
                     .isPressedH   = true
                     .correcMoving = pos.x - .posBoxH
                 }
-                elif .isHotBarV
+                else if .isHotBarV
                 {
                     .correcMoving = 0
                     .isPressedV   = true
@@ -229,7 +250,7 @@ public impl IWnd for ScrollWnd
                                  Math.max(.scrollSize.y - .view.position.height, 0)
                     .setScrollPos(.view.scrollPos.x, f)
                 }
-                elif .isHotBarH
+                else if .isHotBarH
                 {
                     .correcMoving = 0
                     .isPressedH   = true
@@ -253,7 +274,7 @@ public impl IWnd for ScrollWnd
                 .invalidate()
                 .isGrabbing = false
             }
-            elif .isMoving and evt.button == .Left
+            else if .isMoving and evt.button == .Left
             {
                 .releaseMouse()
                 .oldMouseCapture?.captureMouse()
@@ -290,7 +311,7 @@ public impl IWnd for ScrollWnd
         // Vertical bar
         if .showBarV
         {
-            let presence = rest + (1 - rest) * .barExpansionV
+            let presence   = rest + (1 - rest) * .barExpansionV
             var clientRect = .barClientRect()
             let edge       = clientRect.right() - metrics.scrollBar_EdgeInset
             clientRect.width = metrics.scrollBar_Size +
@@ -301,8 +322,11 @@ public impl IWnd for ScrollWnd
             theme.drawSubRect(bc.painter, clientRect, &rects.scrollBar_BkV, fadeColor(colorBk, presence))
 
             var colBk = colors.scrollBar_HotBk
-            if not .isHotBarV do
+            if not .isHotBarV
+            {
                 colBk.a = 0
+            }
+
             .aniBkBarV.apply(me, colBk)
             theme.drawSubRect(bc.painter, clientRect, &rects.scrollBar_BkV, fadeColor(.aniBkBarV.cur(), presence))
 
@@ -312,12 +336,19 @@ public impl IWnd for ScrollWnd
                 clientRect.height = .sizeBoxV
 
                 var colorBox: Color
-                if .isHotV and .isPressedV do
+                if .isHotV and .isPressedV
+                {
                     colorBox = colors.scrollBar_PressedBox
-                elif .isHotV do
+                }
+                else if .isHotV
+                {
                     colorBox = colors.scrollBar_HotBox
-                else do
+                }
+                else
+                {
                     colorBox = colors.scrollBar_Box
+                }
+
                 clientRect.inflate(-metrics.scrollBar_BoxPadding)
                 .aniBoxV.apply(me, colorBox)
                 theme.drawSubRect(bc.painter, clientRect, &rects.scrollBar_BoxV, fadeColor(.aniBoxV.cur(), presence))
@@ -327,7 +358,7 @@ public impl IWnd for ScrollWnd
         // Horizontal bar
         if .showBarH
         {
-            let presence = rest + (1 - rest) * .barExpansionH
+            let presence   = rest + (1 - rest) * .barExpansionH
             var clientRect = .barClientRect()
             let edge       = clientRect.bottom() - metrics.scrollBar_EdgeInset
             clientRect.height = metrics.scrollBar_Size +
@@ -338,8 +369,11 @@ public impl IWnd for ScrollWnd
             theme.drawSubRect(bc.painter, clientRect, &rects.scrollBar_BkH, fadeColor(colorBk, presence))
 
             var colBk = colors.scrollBar_HotBk
-            if not .isHotBarH do
+            if not .isHotBarH
+            {
                 colBk.a = 0
+            }
+
             .aniBkBarH.apply(me, colBk)
             theme.drawSubRect(bc.painter, clientRect, &rects.scrollBar_BkH, fadeColor(.aniBkBarH.cur(), presence))
 
@@ -349,12 +383,19 @@ public impl IWnd for ScrollWnd
                 clientRect.width = .sizeBoxH
 
                 var colorBox: Color
-                if .isHotH and .isPressedH do
+                if .isHotH and .isPressedH
+                {
                     colorBox = colors.scrollBar_PressedBox
-                elif .isHotH do
+                }
+                else if .isHotH
+                {
                     colorBox = colors.scrollBar_HotBox
-                else do
+                }
+                else
+                {
                     colorBox = colors.scrollBar_Box
+                }
+
                 clientRect.inflate(-metrics.scrollBar_BoxPadding)
                 .aniBoxH.apply(me, colorBox)
                 theme.drawSubRect(bc.painter, clientRect, &rects.scrollBar_BoxH, fadeColor(.aniBoxH.cur(), presence))
@@ -394,8 +435,11 @@ impl ScrollWnd
                 scroll.hitTest(mouse.surfacePos)
                 if scroll.isHotV or scroll.isHotH or scroll.isHotBarV or scroll.isHotBarH
                 {
-                    if mouse.kind == .Pressed do
+                    if mouse.kind == .Pressed
+                    {
                         scroll.IWnd.onMouseEvent(mouse)
+                    }
+
                     return true
                 }
             }
@@ -520,8 +564,11 @@ impl ScrollWnd
 
     mtd computeLayout()
     {
-        if .position.width == 0 or .position.height == 0 do
+        if .position.width == 0 or .position.height == 0
+        {
             return
+        }
+
         let wasLaying = .layingView
         .layingView = true
         defer .layingView = wasLaying
@@ -537,8 +584,11 @@ impl ScrollWnd
         var clientRect = .barClientRect()
         clientRect.width  = Math.max(clientRect.width - .balanceX, 1)
         clientRect.height = Math.max(clientRect.height - .balanceY, 1)
-        if .view.position != clientRect do
+        if .view.position != clientRect
+        {
             .view.setPosition(clientRect)
+        }
+
         var needV = .scrollSize.y > clientRect.height
         var needH = not .flags.has(.DisableHorizontal) and .scrollSize.x > clientRect.width
 
@@ -561,8 +611,10 @@ impl ScrollWnd
                 .margin.w += .balanceY - borrowY
                 .balanceX = borrowX
                 .balanceY = borrowY
-                if .parent do
+                if .parent
+                {
                     .parent.applyLayout()
+                }
             }
 
             clientRect = .barClientRect()
@@ -570,13 +622,18 @@ impl ScrollWnd
             var viewport = clientRect
             viewport.width  = Math.max(viewport.width - .barWidthV, 1)
             viewport.height = Math.max(viewport.height - .barHeightH, 1)
-            if viewport != .view.position do
+            if viewport != .view.position
+            {
                 .view.setPosition(viewport)
+            }
 
             let nextV = needV or .scrollSize.y > viewport.height
             let nextH = needH or (not .flags.has(.DisableHorizontal) and .scrollSize.x > viewport.width)
-            if nextV == needV and nextH == needH do
+            if nextV == needV and nextH == needH
+            {
                 break
+            }
+
             needV = nextV
             needH = nextH
         }
@@ -694,14 +751,23 @@ public impl ScrollWnd
         let clientRect = .view.clientRect()
         newSP.x = .flags.has(.DisableHorizontal) ? 0 : Math.max(x, 0)
         newSP.y = Math.max(y, 0)
-        if not .flags.has(.DisableHorizontal) do
+        if not .flags.has(.DisableHorizontal)
+        {
             newSP.x = Math.min(newSP.x, .scrollSize.x - clientRect.width)
+        }
+
         newSP.y = Math.min(newSP.y, .scrollSize.y - clientRect.height)
-        if not .flags.has(.DisableHorizontal) do
+        if not .flags.has(.DisableHorizontal)
+        {
             newSP.x = Math.max(newSP.x, 0)
+        }
+
         newSP.y = Math.max(newSP.y, 0)
-        if not .flags.has(.DisableHorizontal) do
+        if not .flags.has(.DisableHorizontal)
+        {
             newSP.x = Math.round(newSP.x)
+        }
+
         newSP.y = Math.round(newSP.y)
 
         return newSP
@@ -714,8 +780,10 @@ public impl ScrollWnd
     mtd revealScrollBars()
     {
         // A view not yet on a surface has no bars to show and no clock to count stillness on.
-        if not .surface do
+        if not .surface
+        {
             return
+        }
 
         if .barPresence < 1
         {
@@ -725,8 +793,11 @@ public impl ScrollWnd
             discard .app().animator.animateF32(me, AnimationChannel.from("Gui.Scroll.Bars"), .barPresence, 1, func(wnd, value) { wnd.barPresence = value }, options)
         }
 
-        if .restTimer do
+        if .restTimer
+        {
             .app().removeTimer(.restTimer)
+        }
+
         .restTimer = .addTimer(Time.Duration.fromSeconds(.themeMetrics().motion_ScrollRest))
     }
 
@@ -734,8 +805,11 @@ public impl ScrollWnd
     private mtd applyScrollPos(x, y: f32)->Math.Point
     {
         let newSP = .clampedScrollPos(x, y)
-        if newSP == .view.scrollPos do
+        if newSP == .view.scrollPos
+        {
             return newSP
+        }
+
         let oldPos = .view.scrollPos
         .view.scrollPos = newSP
         .sigScrollPositionChanged.call(me, oldPos, newSP)
@@ -760,8 +834,10 @@ public impl ScrollWnd
     mtd setScrollSize(x, y: f32)
     {
         let newSize = Math.Point{Math.max(x, 0), Math.max(y, 0)}
-        if .scrollSize == newSize do
+        if .scrollSize == newSize
+        {
             return
+        }
 
         let oldScrollSize = .scrollSize
         .scrollSize = newSize
@@ -772,8 +848,11 @@ public impl ScrollWnd
         let target   = .clampedScrollPos(.scrollRequestPos.x, .scrollRequestPos.y)
         if not .app().animator.isActive(.scrollAnimation) or
            position != .view.scrollPos or
-           target != .scrollRequestPos do
+           target != .scrollRequestPos
+        {
             .setScrollPos(position)
+        }
+
         .sigScrollSizeChanged.call(me, oldScrollSize, .scrollSize)
         .sendResizeEvent()
     }
@@ -785,8 +864,11 @@ public impl ScrollWnd
         .flags.remove(remove)
         if .flags.has(.DisableHorizontal) and
            .view != null and
-           (.view.scrollPos.x != 0 or .scrollRequestPos.x != 0) do
+           (.view.scrollPos.x != 0 or .scrollRequestPos.x != 0)
+        {
             .setScrollPos(0, .view.scrollPos.y)
+        }
+
         .sendResizeEvent()
     }
 

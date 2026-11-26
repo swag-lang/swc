@@ -13,7 +13,10 @@ func indexedXor4(values: [*] u32, index: u64, mask: u32)
 #[Swag.Optimize(true), Swag.NoInline]
 func indexedXor16(values: [*] u32, index: u64, mask: u32)
 {
-    for i in 16 do values[index + i] ^= mask
+    for i in 16
+    {
+        values[index + i] ^= mask
+    }
 }
 
 #[Swag.Optimize(true), Swag.NoInline]
@@ -56,57 +59,96 @@ func indexedMixedWidth4(values: [*] u32, index: u64, mask: u32)
 
 #test
 {
-    for offset in 5'u64
+    for offset in 5_u64
     {
-        for mask in [0'u32, 1, 0x8000_0000, 0xFFFF_FFFF]
+        for mask in [0_u32, 1, 0x8000_0000, 0xFFFF_FFFF]
         {
             var actual: [12] u32
-            for i in 12 do actual[i] = cast(u32, (i * 0x10001 + 17))
+            for i in 12
+            {
+                actual[i] = cast(u32, (i * 0x10001 + 17))
+            }
             var expected = actual
             indexedXor4(&actual[0], offset, mask)
-            for i in 4 do expected[offset + i] ^= mask
-            for i in 12 do Swag.require(actual[i] == expected[i])
+            for i in 4
+            {
+                expected[offset + i] ^= mask
+            }
+            for i in 12
+            {
+                Swag.require(actual[i] == expected[i])
+            }
 
             indexedChain4(&actual[0], offset)
             expected[offset]     += #wrap expected[offset + 1]
             expected[offset + 1] ^= expected[offset + 2]
             expected[offset + 2] += #wrap expected[offset + 3]
             expected[offset + 3] ^= expected[offset]
-            for i in 12 do Swag.require(actual[i] == expected[i])
+            for i in 12
+            {
+                Swag.require(actual[i] == expected[i])
+            }
 
             indexedMixedWidth4(&actual[0], offset, mask)
             expected[offset]     ^= mask
             expected[offset + 1] = (expected[offset + 1] & 0xFFFF_FF00) | 0xA7
-            for i in 3 do expected[offset + i + 1] ^= mask
-            for i in 12 do Swag.require(actual[i] == expected[i])
+            for i in 3
+            {
+                expected[offset + i + 1] ^= mask
+            }
+            for i in 12
+            {
+                Swag.require(actual[i] == expected[i])
+            }
         }
     }
 
-    for displacement in 5'u64
+    for displacement in 5_u64
     {
         var actual: [12] u32
-        for i in 12 do actual[i] = cast(u32, (i * 0x10001 + 17))
+        for i in 12
+        {
+            actual[i] = cast(u32, (i * 0x10001 + 17))
+        }
         var expected = actual
         indexedAlias4(&actual[0], &actual[displacement], 2)
-        for i in 4 do expected[2 + i] ^= expected[displacement + i]
-        for i in 12 do Swag.require(actual[i] == expected[i])
+        for i in 4
+        {
+            expected[2 + i] ^= expected[displacement + i]
+        }
+        for i in 12
+        {
+            Swag.require(actual[i] == expected[i])
+        }
     }
 }
 
 #test
 {
-    for offset in 5'u64
+    for offset in 5_u64
     {
-        for mask in [0'u32, 1, 0x8000_0000, 0xFFFF_FFFF]
+        for mask in [0_u32, 1, 0x8000_0000, 0xFFFF_FFFF]
         {
             var actual: [24] u32
-            for i in 24 do actual[i] = cast(u32, (i * 0x10001 + 17))
+            for i in 24
+            {
+                actual[i] = cast(u32, (i * 0x10001 + 17))
+            }
             var expected = actual
             indexedXor16(&actual[0], offset, mask)
-            for i in 16 do expected[offset + i] ^= mask
+            for i in 16
+            {
+                expected[offset + i] ^= mask
+            }
             indexedAddImmediate4(&actual[0], offset)
-            for i in 4 do expected[offset + i] += #wrap 3
-            for i in 24 do Swag.require(actual[i] == expected[i])
+            for i in 4
+            {
+                expected[offset + i] += #wrap 3
+            }
+            for i in 24
+            {
+                Swag.require(actual[i] == expected[i])
+            }
         }
     }
 }
@@ -114,10 +156,13 @@ func indexedMixedWidth4(values: [*] u32, index: u64, mask: u32)
 #[Swag.Optimize(true), Swag.NoInline]
 func indexedXorBlocks(values: [*] u32, count: u64, mask: u32)
 {
-    var index = 0'u64
+    var index = 0_u64
     while index < count
     {
-        for i in 16 do values[index + i] ^= mask
+        for i in 16
+        {
+            values[index + i] ^= mask
+        }
         index += 16
     }
 }
@@ -125,12 +170,15 @@ func indexedXorBlocks(values: [*] u32, count: u64, mask: u32)
 #[Swag.Optimize(true), Swag.NoInline]
 func indexedCapturedBlocks(values: [*] u32, count: u64, mask: u32)
 {
-    var index = 0'u64
+    var index = 0_u64
     while index < count
     {
         let saved = index
         index += 16
-        for i in 16 do values[saved + i] ^= mask
+        for i in 16
+        {
+            values[saved + i] ^= mask
+        }
     }
 }
 
@@ -141,7 +189,10 @@ func indexedBorrow(values: [*] u32)->[*] u32 => values
 func indexedEscapedFrame(source: [*] u32, seed: u32)->[8] u32
 {
     var local: [8] u32
-    for i in 8 do local[i] = seed + cast(u32, i)
+    for i in 8
+    {
+        local[i] = seed + cast(u32, i)
+    }
     var values = source
     for 2
     {
@@ -156,37 +207,70 @@ func indexedEscapedFrame(source: [*] u32, seed: u32)->[8] u32
 
 #test
 {
-    for count in [0'u64, 16, 48]
+    for count in [0_u64, 16, 48]
     {
         var actual: [64] u32
-        for i in 64 do actual[i] = cast(u32, (i * 0x10001 + 17))
+        for i in 64
+        {
+            actual[i] = cast(u32, (i * 0x10001 + 17))
+        }
         var expected = actual
         indexedXorBlocks(&actual[1], count, 0xAABB_CCDD)
-        for i in count do expected[i + 1] ^= 0xAABB_CCDD
-        for i in 64 do Swag.require(actual[i] == expected[i])
+        for i in count
+        {
+            expected[i + 1] ^= 0xAABB_CCDD
+        }
+        for i in 64
+        {
+            Swag.require(actual[i] == expected[i])
+        }
         indexedCapturedBlocks(&actual[1], count, 0x1122_3344)
-        for i in count do expected[i + 1] ^= 0x1122_3344
-        for i in 64 do Swag.require(actual[i] == expected[i])
+        for i in count
+        {
+            expected[i + 1] ^= 0x1122_3344
+        }
+        for i in 64
+        {
+            Swag.require(actual[i] == expected[i])
+        }
     }
-    for seed in [0'u32, 17, 0x8000_0000]
+    for seed in [0_u32, 17, 0x8000_0000]
     {
         var source:   [4] u32 = [3, 9, 27, 81]
         var expectedSource    = source
         var expected: [8] u32
-        for i in 8 do expected[i] = seed + cast(u32, i)
-        for i in 4 do expectedSource[i] ^= expected[i]
-        for i in 4 do expected[i + 1] ^= expected[i]
+        for i in 8
+        {
+            expected[i] = seed + cast(u32, i)
+        }
+        for i in 4
+        {
+            expectedSource[i] ^= expected[i]
+        }
+        for i in 4
+        {
+            expected[i + 1] ^= expected[i]
+        }
         let actual = indexedEscapedFrame(&source[0], seed)
-        for i in 8 do Swag.require(actual[i] == expected[i])
-        for i in 4 do Swag.require(source[i] == expectedSource[i])
+        for i in 8
+        {
+            Swag.require(actual[i] == expected[i])
+        }
+        for i in 4
+        {
+            Swag.require(source[i] == expectedSource[i])
+        }
     }
 }
 
 #[Swag.NoInline]
 func indexedSummary(values: u32...)->u32
 {
-    var result = 0'u32
-    for value in values do result += value
+    var result = 0_u32
+    for value in values
+    {
+        result += value
+    }
     return result
 }
 
@@ -196,16 +280,27 @@ func indexedCopiedState(input: [*] u32, count: u64, seed: u32)->u32
     Swag.assert(count % 16 == 0)
     let values = indexedBorrow(input)
     var initial: [16] u32
-    for i in 16 do initial[i] = seed + cast(u32, i)
-    var offset  = 0'u64
-    var counter = 1'u32
+    for i in 16
+    {
+        initial[i] = seed + cast(u32, i)
+    }
+    var offset  = 0_u64
+    var counter = 1_u32
     while offset < count
     {
         initial[12] = counter
         var state = initial
-        for 10 do
-            for i in 16 do state[i] = (state[i] + 1) ^ 0x10203
-        for i in 16 do values[offset + i] ^= state[i] + initial[i]
+        for 10
+        {
+            for i in 16
+            {
+                state[i] = (state[i] + 1) ^ 0x10203
+            }
+        }
+        for i in 16
+        {
+            values[offset + i] ^= state[i] + initial[i]
+        }
         offset  += 16
         counter += 1
     }
@@ -215,7 +310,10 @@ func indexedCopiedState(input: [*] u32, count: u64, seed: u32)->u32
 #test
 {
     var actual: [64] u32
-    for i in 64 do actual[i] = cast(u32, (i * 0x10001 + 17))
+    for i in 64
+    {
+        actual[i] = cast(u32, (i * 0x10001 + 17))
+    }
     var expected = actual
     Swag.require(indexedCopiedState(&actual[0], 64, 37) == 101)
     for block in 4
@@ -224,9 +322,15 @@ func indexedCopiedState(input: [*] u32, count: u64, seed: u32)->u32
         {
             let initial = lane == 12 ? cast(u32, (block + 1)) : 37 + cast(u32, lane)
             var state   = initial
-            for 10 do state = (state + 1) ^ 0x10203
+            for 10
+            {
+                state = (state + 1) ^ 0x10203
+            }
             expected[block * 16 + lane] ^= state + initial
         }
     }
-    for i in 64 do Swag.require(actual[i] == expected[i])
+    for i in 64
+    {
+        Swag.require(actual[i] == expected[i])
+    }
 }

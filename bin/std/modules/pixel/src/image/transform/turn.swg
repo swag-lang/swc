@@ -35,16 +35,20 @@ impl Image
             }
 
             let pixSrc = srcImage.pixels.storage() + cast(u64, nx) * srcImage.bytesPerPixel + cast(u64, ny) * srcImage.rowStride
-            if srcImage.bytesPerPixel == 4 do
+            if srcImage.bytesPerPixel == 4
+            {
                 cast(*u32, pix)[] = cast(const *u32, pixSrc)[]
-            elif srcImage.bytesPerPixel == 3
+            }
+            else if srcImage.bytesPerPixel == 3
             {
                 pix[0] = pixSrc[0]
                 pix[1] = pixSrc[1]
                 pix[2] = pixSrc[2]
             }
-            else do
+            else
+            {
                 Memory.copy(pix, pixSrc, srcImage.bytesPerPixel)
+            }
         }
     }
 
@@ -52,10 +56,15 @@ impl Image
     public mtd rotate(angle: Rotation)
     {
         Swag.assert(.pixels.buffer != null)
-        if angle == .HalfTurn do
+        if angle == .HalfTurn
+        {
             .allocWorkingBuffer()
-        else do
+        }
+        else
+        {
             .allocWorkingBuffer(.height, .width, .pixelFormat)
+        }
+
         .doTurn(.safeWorkingBuffer(), angle)
         .applyWorkingBuffer()
     }
@@ -66,10 +75,15 @@ impl Image
         Swag.assert(.pixels.buffer != null)
 
         var result: #returntype
-        if angle == .HalfTurn do
+        if angle == .HalfTurn
+        {
             result = create(.width, .height, .pixelFormat, alphaMode: me.alphaMode)
-        else do
+        }
+        else
+        {
             result = create(.height, .width, .pixelFormat, alphaMode: me.alphaMode)
+        }
+
         .doTurn(&result, angle)
         result.metadata = .metadata
         return result

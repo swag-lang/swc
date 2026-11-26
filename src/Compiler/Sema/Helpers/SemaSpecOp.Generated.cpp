@@ -554,9 +554,12 @@ namespace
             source += "\n";
             source += "        if ";
             source += tempName;
-            source += " != 0 do return ";
+            source += " != 0\n";
+            source += "        {\n";
+            source += "            return ";
             source += tempName;
             source += "\n";
+            source += "        }\n";
         }
 
         source += "        return 0\n";
@@ -875,8 +878,10 @@ namespace
         source += selfTypeName;
         source += ")->bool\n";
         source += "    {\n";
-        source += "        if Swag.kindOf(me) != Swag.kindOf(other) do\n";
+        source += "        if Swag.kindOf(me) != Swag.kindOf(other)\n";
+        source += "        {\n";
         source += "            return false\n";
+        source += "        }\n";
         source += "        switch Swag.kindOf(me)\n";
         source += "        {\n";
         for (const SymbolStructTaggedCase& taggedCase : tagged.taggedCases())

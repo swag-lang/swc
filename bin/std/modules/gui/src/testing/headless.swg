@@ -36,7 +36,7 @@ struct AutoStage
         file:   String                 // File name a file-dialog stage types; empty for any other modal.
         label:  String                 // Label of the submenu a `PopupSubMenu` stage opens, or of the row an `OptionRow` stage activates.
         step:   s32                    // Direction an `OptionRow` stage steps a stepper row in.
-        edits:  Array'AutoEdit         // Edit boxes a `ModalButton` stage fills before its click.
+        edits:  Array!{AutoEdit}       // Edit boxes a `ModalButton` stage fills before its click.
         button: WndId         = ""     // Modal button a `ModalButton` stage clicks, or item a `PopupItem` stage activates.
     }
 }
@@ -69,7 +69,7 @@ struct HeadlessHost
         autoHookInstalled:    bool       // Whether the driver runs on every application frame.
         autoFrames:           u32        // Frames the current stage has waited so far.
         autoMaxFrames:        u32        // Frames a stage may wait before the driver gives up.
-        autoStages:           Array'AutoStage     // Armed stages, in the order they run.
+        autoStages:           Array!{AutoStage}     // Armed stages, in the order they run.
         autoStage:            u32        // Index of the stage the driver runs next.
         readonly autoFailure: String     // Timeout explanation, empty until an armed stage fails.
 
@@ -83,7 +83,7 @@ struct HeadlessHost
     modalWaitedOn:      *Surface?     // Surface `modalWaited` counts for.
     autoSawModal:       bool
     autoSawButton:      bool
-    autoButtonIds:      Array'String
+    autoButtonIds:      Array!{String}
     lastCommandStorage: String
 }
 
@@ -104,7 +104,7 @@ impl HeadlessHost
     // faces compiled into this module, covering the Japanese word and the emoji the shared
     // fixtures use, and any other one draws the missing glyph. A test needing more gives the
     // cache its own faces with [[Pixel.FontCache.setFallbackTypeFaces]] after this call.
-    mtd setup(width, height: f32, dpiScale = 1.0'f32)
+    mtd setup(width, height: f32, dpiScale = 1.0_f32)
     {
         // The clipboard is already faked by the sandbox; start each host from an empty one so
         // a previous test cannot leak content into this one.
@@ -136,7 +136,7 @@ impl HeadlessHost
         // painted frame — bands itself across a pool that does not exist and stays serial.
         Swag.startWorkers()
 
-        .theme = Memory.new'Theme()
+        .theme = Memory.new!{Theme}()
         .theme.colors.setDark()
         registerDefaultThemeResources(&.app.resources)
         registerDefaultStrings(&.app.resources)
@@ -192,8 +192,10 @@ impl HeadlessHost
         // meanwhile is skipped rather than sent to.
         func send(wnd: *Wnd, kind: NotifyEvent.Kind)
         {
-            if not wnd.surface do
+            if not wnd.surface
+            {
                 return
+            }
 
             // A theme change is not only an event: a style that carries a font or a sheet keeps a
             // private copy of the theme it was computed against, and only a recompute replaces it.
@@ -207,13 +209,17 @@ impl HeadlessHost
 
             wnd.invalidate()
 
-            var children: Array'(*Wnd)
+            var children: Array!{*Wnd}
             children.add(wnd.children.toSlice())
-            for c in children do
+            for c in children
+            {
                 send(c, kind)
+            }
 
-            if not wnd.surface do
+            if not wnd.surface
+            {
                 return
+            }
 
             wnd.surface.app.sendBroadcastNotifyEvent(wnd, kind)
         }
@@ -222,8 +228,10 @@ impl HeadlessHost
         // `Surface.setView` is reparented under it and is no longer a child of the host's root.
         // The root is still walked when nothing adopted it, which is the plain-tree case.
         send(&.surfaceWnd, kind)
-        if not .root.parent do
+        if not .root.parent
+        {
             send(&.root, kind)
+        }
     }
 
     // Returns the number of surfaces open besides the host's own.
@@ -233,9 +241,12 @@ impl HeadlessHost
     // never returns to zero while the host is alive.
     mtd openedSurfaceCount()->u64
     {
-        var result = 0'u64
-        for s in .app.surfaces where s != &.surface do
+        var result = 0_u64
+        for s in .app.surfaces where s != &.surface
+        {
             result += 1
+        }
+
         return result
     }
 
@@ -244,8 +255,11 @@ impl HeadlessHost
     // Called automatically when the host is dropped. Does nothing before setup or after shutdown.
     mtd shutdown()
     {
-        if not .initialized do
+        if not .initialized
+        {
             return
+        }
+
         .initialized = false
 
         // Work a test started may still be running, and it reports its end by posting to this
@@ -264,8 +278,10 @@ impl HeadlessHost
 
         // Dialogs and popups own additional contexts. Close them while the renderer and
         // main drawable are still alive, even when a layout-only test never showed them.
-        for surface in .app.surfaces do
+        for surface in .app.surfaces
+        {
             surface.destroy()
+        }
 
         // Applications replace the standalone root with their own view, and floating controls
         // can be siblings of that view. Retire every hosted child before releasing the renderer.
@@ -273,10 +289,16 @@ impl HeadlessHost
         // out a view already destroyed by an earlier child event. Its native destroy handler
         // cannot run here because the host, rather than the application heap, owns the surface.
         discard .surfaceWnd.beginDestruction()
-        for child in .surfaceWnd.children do
+        for child in .surfaceWnd.children
+        {
             child.destroy()
-        if not .root.isPendingDestroy do
+        }
+
+        if not .root.isPendingDestroy
+        {
             .root.destroy()
+        }
+
         .pump()
         .app.releaseRenderResources()
         .surface.destroyRendering()
@@ -312,7 +334,7 @@ impl HeadlessHost
         }
 
         // The driver hooks the frames too: a hook beyond its own is the test answering by hand.
-        let ownHooks = .autoHookInstalled ? 1'u64 : 0
+        let ownHooks = .autoHookInstalled ? 1_u64 : 0
         if .autoArmed or .app.sigFrame.count() > ownHooks
         {
             .modalWaitedOn = null
@@ -327,23 +349,32 @@ impl HeadlessHost
 
         // One frame lays the box out; the second one it still stands, nobody is coming.
         .modalWaited += 1
-        if .modalWaited < 2 do
+        if .modalWaited < 2
+        {
             return result
+        }
 
         .modalWaitedOn = null
         let dialog = assume cast(*Dialog, view)
         result = "a dialog opened with nothing to answer it; arm clickModalButtonWhenShown or a sibling first"
-        if not dialog.title.text.isEmpty() do
+        if not dialog.title.text.isEmpty()
+        {
             result += Format.toString(". Title: '%'", dialog.title.text)
+        }
 
         // The words of the box are its labels: the message, and the detail under it.
         func addWords(wnd: *Wnd, result: *String)
         {
             let label = catch cast(*Label?, wnd) orelse null
-            if label and label.text().count != 0 do
+            if label and label.text().count != 0
+            {
                 result[] += Format.toString(". Message: '%'", label.text())
-            for child in wnd.children do
+            }
+
+            for child in wnd.children
+            {
                 addWords(child, result)
+            }
         }
 
         addWords(view, &result)
@@ -352,8 +383,11 @@ impl HeadlessHost
 
     private mtd installAutoHook()
     {
-        if .autoHookInstalled do
+        if .autoHookInstalled
+        {
             return
+        }
+
         .autoHookInstalled = true
 
         .app.sigFrame += func|host = me|(app) { host.driveAutoStages(app) }
@@ -371,14 +405,18 @@ impl HeadlessHost
 
         if not stage.file.isEmpty()
         {
-            if not .setModalFileSelection(stage.folder.toString(), stage.file.toString()) do
+            if not .setModalFileSelection(stage.folder.toString(), stage.file.toString())
+            {
                 return false
+            }
         }
 
         for &edit in stage.edits
         {
-            if not .setModalEditText(edit.label.toString(), edit.text.toString()) do
+            if not .setModalEditText(edit.label.toString(), edit.text.toString())
+            {
                 return false
+            }
         }
 
         return .clickModalButton(stage.button)
@@ -386,27 +424,36 @@ impl HeadlessHost
 
     internal mtd driveAutoStages(app: *Application)
     {
-        if not .autoArmed do
+        if not .autoArmed
+        {
             return
+        }
 
         .autoFrames += 1
 
         let stage = .autoStages.storage() + .autoStage
         if stage.kind == .ModalButton
         {
-            func collectButtons(wnd: *Wnd, ids: *Array'String)
+            func collectButtons(wnd: *Wnd, ids: *Array!{String})
             {
-                if not wnd.isVisible() do
+                if not wnd.isVisible()
+                {
                     return
+                }
+
                 if wnd is PushButton and wnd.id
                 {
                     let id = String.from(wnd.id)
-                    if not ids.contains(id) do
+                    if not ids.contains(id)
+                    {
                         ids.add(id)
+                    }
                 }
 
-                for child in wnd.children do
+                for child in wnd.children
+                {
                     collectButtons(child, ids)
+                }
             }
 
             for surface in app.modalSurfaces
@@ -436,17 +483,23 @@ impl HeadlessHost
 
                 // A sheet stays open after a row like a reader would leave it, so the last staged
                 // row closes it and hands control back to the code under test.
-                if stage.kind == .OptionRow do
+                if stage.kind == .OptionRow
+                {
                     .capturedOptionSheet()?.close()
+                }
             }
         }
         else
         {
-            if .autoStage == stageIndex + 1 do
+            if .autoStage == stageIndex + 1
+            {
                 .autoStage = stageIndex
+            }
 
-            if .autoFrames <= .autoMaxFrames do
+            if .autoFrames <= .autoMaxFrames
+            {
                 return
+            }
 
             if stage.kind == .ModalButton
             {
@@ -454,17 +507,22 @@ impl HeadlessHost
                 {
                     .autoFailure = Format.toString("modal did not appear while waiting for button '%'", stage.button)
                 }
-                elif .autoSawButton
+                else if .autoSawButton
                 {
                     .autoFailure = Format.toString("modal preparation did not complete for button '%'", stage.button)
                 }
                 else
                 {
                     .autoFailure = Format.toString("modal appeared without button '%'; observed button identifiers:", stage.button)
-                    if .autoButtonIds.isEmpty() do
+                    if .autoButtonIds.isEmpty()
+                    {
                         .autoFailure += " none"
-                    for id in .autoButtonIds do
+                    }
+
+                    for id in .autoButtonIds
+                    {
                         .autoFailure += Format.toString(" '%'", id)
+                    }
                 }
             }
             else
@@ -480,12 +538,18 @@ impl HeadlessHost
             // the test, not keep the sheet running forever.
             .autoArmed = false
             let sheet = .capturedOptionSheet()
-            if sheet do
+            if sheet
+            {
                 sheet.close()
-            elif stage.kind == .ModalButton do
+            }
+            else if stage.kind == .ModalButton
+            {
                 app.exitModal(Dialog.BtnCancel)
-            else do
+            }
+            else
+            {
                 discard .dismissPopupMenu()
+            }
         }
     }
 
@@ -666,8 +730,11 @@ impl HeadlessHost
         {
             var surfacePt = pt
             surface.screenToSurface(&surfacePt)
-            if not surface.isMaximized and surface.wnd.hitTestBorders(surfacePt) != SizingBorder.None do
+            if not surface.isMaximized and surface.wnd.hitTestBorders(surfacePt) != SizingBorder.None
+            {
                 return surface.wnd
+            }
+
             return surface.wnd.windowAt(surfacePt.x, surfacePt.y, true)
         }
 
@@ -678,8 +745,10 @@ impl HeadlessHost
         var hostedPoint = pt
         .surface.screenToSurface(&hostedPoint)
         let hosted = .surfaceWnd.windowAt(hostedPoint.x, hostedPoint.y, true)
-        if hosted and hosted != cast(*Wnd, &.surfaceWnd) do
+        if hosted and hosted != cast(*Wnd, &.surfaceWnd)
+        {
             return hosted
+        }
 
         return .root.windowAt(hostedPoint.x, hostedPoint.y, true)
     }
@@ -828,10 +897,15 @@ impl HeadlessHost
         // A preceding callback may have destroyed this timer's target and flushed the timer
         // before a test reaches it in a snapshot. Establish ownership without dereferencing the
         // possibly stale pointer, just as Application.removeTimer does.
-        if not timer or not .app.ownsTimer(timer) do
+        if not timer or not .app.ownsTimer(timer)
+        {
             return
-        if timer.isPendingRemoval do
+        }
+
+        if timer.isPendingRemoval
+        {
             return
+        }
 
         .app.duringTimerEvents = true
         var evt = TimerEvent{}
@@ -846,8 +920,10 @@ impl HeadlessHost
     mtd fireTimers()
     {
         let timers = .app.timers
-        for timer in timers do
+        for timer in timers
+        {
             .fireTimer(timer)
+        }
     }
 
     // Sets whether `key` reads as pressed in the simulated keyboard state.
@@ -888,15 +964,24 @@ impl HeadlessHost
 
         if target != .app.mouseEnterWnd
         {
-            if target do
+            if target
+            {
                 .sendMouseEvent(target, .Enter, pt, Input.MouseButton.Left, modifiers)
-            if .app.mouseEnterWnd do
+            }
+
+            if .app.mouseEnterWnd
+            {
                 .sendMouseEvent(.app.mouseEnterWnd, .Leave, pt, Input.MouseButton.Left, modifiers)
+            }
+
             .app.mouseEnterWnd = target
         }
 
-        if target do
+        if target
+        {
             .sendMouseEvent(target, .Move, pt, Input.MouseButton.Left, modifiers)
+        }
+
         .mousePos = pt
     }
 
@@ -907,8 +992,10 @@ impl HeadlessHost
 
         .app.mouse.setCurrentButtonState(button, true)
         let target = .mouseTargetAt(pt)
-        if target do
+        if target
+        {
             .sendMouseEvent(target, .Pressed, pt, button, modifiers)
+        }
     }
 
     // Releases a simulated mouse button at a screen position.
@@ -916,8 +1003,11 @@ impl HeadlessHost
     {
         .app.mouse.setCurrentButtonState(button, false)
         let target = .mouseTargetAt(pt)
-        if target do
+        if target
+        {
             .sendMouseEvent(target, .Released, pt, button, modifiers)
+        }
+
         .pump()
     }
 
@@ -941,20 +1031,27 @@ impl HeadlessHost
     // Activates a visible modal button by identifier and reports whether it was found.
     mtd clickModalButton(id: WndId)->bool
     {
-        if .app.modalSurfaces.isEmpty() do
+        if .app.modalSurfaces.isEmpty()
+        {
             return false
+        }
 
         var wnd: *Wnd?
         for surface in .app.modalSurfaces.reversed()
         {
             let view = surface.view()
             wnd = view.childById(id)
-            if wnd do
+            if wnd
+            {
                 break
+            }
         }
 
-        if not wnd do
+        if not wnd
+        {
             return false
+        }
+
         .clickWnd(wnd)
         return .app.endModal
     }
@@ -967,24 +1064,30 @@ impl HeadlessHost
     {
         if wnd is EditCtrl as ctrl
         {
-            if ctrl.label != null and ctrl.label.name.text == label do
+            if ctrl.label != null and ctrl.label.name.text == label
+            {
                 return ctrl.edit
+            }
         }
 
         if wnd is FormLayoutCtrl as form
         {
             for row in form.rows where row.label.name.text == label
             {
-                if row.field is EditBox as edit do
+                if row.field is EditBox as edit
+                {
                     return edit
+                }
             }
         }
 
         for child in wnd.children
         {
             let edit = .findEditByLabel(child, label)
-            if edit do
+            if edit
+            {
                 return edit
+            }
         }
 
         return null
@@ -993,12 +1096,16 @@ impl HeadlessHost
     // Types `text` into the edit box labelled `label` of the topmost modal, and reports whether it was found.
     mtd setModalEditText(label: string, text: string)->bool
     {
-        if .app.modalSurfaces.isEmpty() do
+        if .app.modalSurfaces.isEmpty()
+        {
             return false
+        }
 
         let edit = .findEditByLabel(.app.modalSurfaces.back().wnd.view, label)
-        if not edit do
+        if not edit
+        {
             return false
+        }
 
         edit.setText(text)
         .pump()
@@ -1008,14 +1115,18 @@ impl HeadlessHost
     // Returns the first [[Gui.FileBrowserCtrl]] under `wnd`, or `null`.
     mtd findFileBrowserCtrl(wnd: *Wnd)->*FileBrowserCtrl?
     {
-        if wnd is FileBrowserCtrl as ctrl do
+        if wnd is FileBrowserCtrl as ctrl
+        {
             return ctrl
+        }
 
         for child in wnd.children
         {
             let ctrl = .findFileBrowserCtrl(child)
-            if ctrl do
+            if ctrl
+            {
                 return ctrl
+            }
         }
 
         return null
@@ -1026,24 +1137,34 @@ impl HeadlessHost
     // An empty `folder` keeps the folder the browser shows; a folder that does not exist fails.
     mtd setModalFileSelection(folder: string, fileName: string)->bool
     {
-        if .app.modalSurfaces.isEmpty() do
+        if .app.modalSurfaces.isEmpty()
+        {
             return false
+        }
 
         var browser: *FileBrowserCtrl?
         for surface in .app.modalSurfaces
         {
             let view = surface.view()
             browser = .findFileBrowserCtrl(view)
-            if browser do
+            if browser
+            {
                 break
+            }
         }
 
-        if not browser or browser.editFile == null do
+        if not browser or browser.editFile == null
+        {
             return false
+        }
+
         if folder.count
         {
-            if not Directory.exists(folder) do
+            if not Directory.exists(folder)
+            {
                 return false
+            }
+
             browser.setCurrentFolder(folder)
         }
 
@@ -1056,10 +1177,15 @@ impl HeadlessHost
     mtd capturedPopupMenu()->*MenuCtrl?
     {
         let menu = catch cast(*MenuCtrl?, .app.mouseCaptureWnd) orelse null
-        if not menu do
+        if not menu
+        {
             return null
-        if menu.bar do
+        }
+
+        if menu.bar
+        {
             return null
+        }
 
         return menu
     }
@@ -1077,13 +1203,22 @@ impl HeadlessHost
     mtd activateOptionRow(label: string, step: s32 = 0)->bool
     {
         let sheet = .capturedOptionSheet()
-        if not sheet do
+        if not sheet
+        {
             return false
-        if sheet.pendingTimer do
+        }
+
+        if sheet.pendingTimer
+        {
             .fireTimer(sheet.pendingTimer)
+        }
+
         .finishAnimations()
-        if not sheet.activateRow(label, step) do
+        if not sheet.activateRow(label, step)
+        {
             return false
+        }
+
         .finishAnimations()
         return true
     }
@@ -1092,16 +1227,23 @@ impl HeadlessHost
     mtd clickPopupMenuItem(id: WndId)->bool
     {
         let menu = .capturedPopupMenu()
-        if not menu do
+        if not menu
+        {
             return false
+        }
 
         for itemIt in menu.items
         {
             let item = unwrap itemIt
-            if item.id != id do
+            if item.id != id
+            {
                 continue
-            if item.hidden or item.separator or item.disabled do
+            }
+
+            if item.hidden or item.separator or item.disabled
+            {
                 return false
+            }
 
             let clientRect = menu.clientRect()
             var pt         = Math.Point{clientRect.x + clientRect.width * 0.5, item.pos + item.size * 0.5}
@@ -1118,16 +1260,23 @@ impl HeadlessHost
     mtd moveToPopupMenuItem(label: string)->bool
     {
         let menu = .capturedPopupMenu()
-        if not menu do
+        if not menu
+        {
             return false
+        }
 
         for itemIt in menu.items
         {
             let item = unwrap itemIt
-            if item.name.text != label do
+            if item.name.text != label
+            {
                 continue
-            if item.hidden or item.separator or item.disabled do
+            }
+
+            if item.hidden or item.separator or item.disabled
+            {
                 return false
+            }
 
             let clientRect = menu.clientRect()
             var pt         = Math.Point{clientRect.x + clientRect.width * 0.5, item.pos + item.size * 0.5}
@@ -1144,16 +1293,22 @@ impl HeadlessHost
     mtd openPopupSubMenu(label: string)->bool
     {
         let menu = .capturedPopupMenu()
-        if not menu do
+        if not menu
+        {
             return false
+        }
 
-        if not .moveToPopupMenuItem(label) do
+        if not .moveToPopupMenuItem(label)
+        {
             return false
+        }
 
         .pumpTimerQueues()
         let timer = menu.timer
-        if timer do
+        if timer
+        {
             .fireTimer(timer)
+        }
 
         let subMenu = .capturedPopupMenu()
         return subMenu and subMenu != menu
@@ -1163,8 +1318,10 @@ impl HeadlessHost
     mtd dismissPopupMenu()->bool
     {
         let menu = .capturedPopupMenu()
-        if not menu do
+        if not menu
+        {
             return false
+        }
 
         let rect = menu.surfaceRect()
         var pt   = Math.Point{rect.right() + 4, rect.bottom() + 4}
@@ -1179,8 +1336,11 @@ impl HeadlessHost
         .moveMouse(pt, modifiers)
 
         let target = .mouseTargetAt(pt)
-        if target do
+        if target
+        {
             .sendMouseEvent(target, .DoubleClick, pt, button, modifiers)
+        }
+
         .pump()
     }
 
@@ -1199,8 +1359,11 @@ impl HeadlessHost
     mtd dragFilesOver(pt: Math.Point, files: const [..] string, allowed = DropEffect.Copy, modifiers: Input.KeyModifiers = None)->DropEffect
     {
         .dragData.clear()
-        for f in files do
+        for f in files
+        {
             .dragData.addFile(f)
+        }
+
         return .app.dragUpdateTo(.mouseTargetAt(pt), pt, &.dragData, allowed, modifiers)
     }
 
@@ -1208,8 +1371,11 @@ impl HeadlessHost
     mtd dropFiles(pt: Math.Point, files: const [..] string, allowed = DropEffect.Copy, modifiers: Input.KeyModifiers = None)->DropEffect
     {
         .dragData.clear()
-        for f in files do
+        for f in files
+        {
             .dragData.addFile(f)
+        }
+
         let effect = .app.dragDropTo(.mouseTargetAt(pt), pt, &.dragData, allowed, modifiers)
         .pump()
         return effect
@@ -1236,8 +1402,10 @@ impl HeadlessHost
         Swag.require(wnd != null)
 
         .dragData.clear()
-        for f in files do
+        for f in files
+        {
             .dragData.addFile(f)
+        }
 
         var pt = wnd.surfaceRect().center()
         wnd.surface!.surfaceToScreen(&pt)
@@ -1260,8 +1428,10 @@ impl HeadlessHost
         .moveMouse(pt, modifiers)
 
         let target = .mouseTargetAt(pt)
-        if not target do
+        if not target
+        {
             return
+        }
 
         .setModifierKeys(modifiers, true)
         defer me.setModifierKeys(modifiers, false)
@@ -1286,8 +1456,10 @@ impl HeadlessHost
         // The run loop seeds the focus on the first key when nothing holds it, so a test that
         // types into a fresh tree behaves like a user typing into a fresh window.
         let target = .app.keyboardTarget(seed: true)
-        if not target do
+        if not target
+        {
             return
+        }
 
         .setModifierKeys(modifiers, true)
         .setKeyState(key, true)
@@ -1300,8 +1472,10 @@ impl HeadlessHost
 
         // A key nobody claimed goes exactly where the run loop sends it, so a test drives the
         // real shortcut and navigation policy instead of a copy of it.
-        if not evt.accepted do
+        if not evt.accepted
+        {
             .app.routeUnhandledKey(target, key, modifiers)
+        }
 
         .setKeyState(key, false)
         .app.updateAccessKeyVisibility(key, false)
@@ -1336,8 +1510,10 @@ impl HeadlessHost
     // gesture to the nearest enabled ancestor, the way the application routes one.
     mtd mouseTargetAt(pt: Math.Point)->*Wnd?
     {
-        if .app.mouseCaptureWnd do
+        if .app.mouseCaptureWnd
+        {
             return .app.mouseCaptureWnd
+        }
 
         // A viewer's drop overlay is disabled precisely so it never takes the pointer: walking
         // up to the enabled ancestor is what stops it from swallowing the gesture.
@@ -1345,8 +1521,10 @@ impl HeadlessHost
         if target
         {
             let frame = target.surface!.wnd
-            if frame.captionPathAt(target.screenToSurface(pt), target) do
+            if frame.captionPathAt(target.screenToSurface(pt), target)
+            {
                 return frame
+            }
         }
 
         return target
@@ -1389,19 +1567,27 @@ impl HeadlessHost
         for it in copy
         {
             let evt = assume cast (*Event, it)
-            if it is InvalidateEvent do
+            if it is InvalidateEvent
+            {
                 evt.target?.invalidate()
-            else do
+            }
+            else
+            {
                 .app.sendEvent(it)
+            }
 
-            if it is CommandEvent do
+            if it is CommandEvent
+            {
                 needUpdateState = true
+            }
 
             Memory.delete(it.buffer, Swag.kindOf(it))
         }
 
-        if needUpdateState and not .root.isPendingDestroy do
+        if needUpdateState and not .root.isPendingDestroy
+        {
             .root.updateCommandState()
+        }
     }
 
     // Drains pending window-destruction events.
@@ -1410,15 +1596,20 @@ impl HeadlessHost
         let copy = .app.postDestroy
         .app.postDestroy.clear()
 
-        for wnd in copy do
+        for wnd in copy
+        {
             .app.destroyWnd(wnd)
+        }
     }
 
     // Applies deferred timer additions and removals.
     mtd pumpTimerQueues()
     {
-        for timer in .app.timersToAdd do
+        for timer in .app.timersToAdd
+        {
             .app.timers.add(timer)
+        }
+
         .app.timersToAdd.clear()
 
         for timer in .app.timersToDelete
@@ -1433,8 +1624,11 @@ impl HeadlessHost
     // Releases objects queued for deferred deletion.
     mtd deleteQueuedObjects()
     {
-        for item in .app.toDelete do
+        for item in .app.toDelete
+        {
             Memory.delete(item.ptr, item.type)
+        }
+
         .app.toDelete.clear()
     }
 }

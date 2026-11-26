@@ -1,6 +1,6 @@
-const VOCAB = 5000'u64
-const WORDS = 2000000'u64
-const CAP   = 16384'u64
+const VOCAB = 5000_u64
+const WORDS = 2000000_u64
+const CAP   = 16384_u64
 
 late var g_Text: [*] u8
 late var g_Cnt:  [*] u64
@@ -11,15 +11,18 @@ late var g_Idx:  [*] u64
 // count descending, then key bytes ascending
 func less(a, b: u64)->bool
 {
-    if g_Cnt[a] != g_Cnt[b] do
+    if g_Cnt[a] != g_Cnt[b] {
         return g_Cnt[a] > g_Cnt[b]
 
+    }
     var n = g_Len[a]
-    if g_Len[b] < n do
+    if g_Len[b] < n {
         n = g_Len[b]
+    }
     let c = Swag.memcmp(&g_Text[g_Off[a]], &g_Text[g_Off[b]], n)
-    if c != 0 do
+    if c != 0 {
         return c < 0
+    }
     return g_Len[a] < g_Len[b]
 }
 
@@ -36,10 +39,12 @@ func qsort(lowIn, highIn: s64)
 
         while i <= j
         {
-            while less(g_Idx[cast(u64, i)], p) do
+            while less(g_Idx[cast(u64, i)], p) {
                 i += 1
-            while less(p, g_Idx[cast(u64, j)]) do
+            }
+            while less(p, g_Idx[cast(u64, j)]) {
                 j -= 1
+            }
             if i <= j
             {
                 let t = g_Idx[cast(u64, i)]
@@ -62,7 +67,7 @@ func qsort(lowIn, highIn: s64)
     let vocabOff   = cast([*] u64, unwrap benchAlloc(VOCAB * #sizeof(u64)))
     let vocabLen   = cast([*] u64, unwrap benchAlloc(VOCAB * #sizeof(u64)))
 
-    var vp = 0'u64
+    var vp = 0_u64
     for i in VOCAB
     {
         var nn = i + 1
@@ -78,7 +83,7 @@ func qsort(lowIn, highIn: s64)
     }
 
     g_Text = cast([*] u8, unwrap benchAlloc(WORDS * 12))
-    var n = 0'u64
+    var n = 0_u64
     for j in WORDS
     {
         let idx = rnd() % VOCAB
@@ -90,10 +95,12 @@ func qsort(lowIn, highIn: s64)
             n         += 1
         }
 
-        if (j + 1) % 12 == 0 do
+        if (j + 1) % 12 == 0 {
             g_Text[n] = '\n'
-        else do
+        }
+        else {
             g_Text[n] = ' '
+        }
         n += 1
     }
 
@@ -103,9 +110,9 @@ func qsort(lowIn, highIn: s64)
     var counts: ByteMap
     mapInit(&counts, CAP, g_Text)
 
-    var start = 0'u64
+    var start = 0_u64
     var open  = false
-    var i     = 0'u64
+    var i     = 0_u64
 
     while i < n
     {
@@ -121,10 +128,12 @@ func qsort(lowIn, highIn: s64)
         elif open
         {
             let idx = mapProbe(&counts, start, i - start)
-            if counts.used[idx] == 0 do
+            if counts.used[idx] == 0 {
                 mapClaim(&counts, idx, start, i - start, 1)
-            else do
+            }
+            else {
                 counts.val[idx] += 1
+            }
             open = false
         }
 
@@ -134,10 +143,12 @@ func qsort(lowIn, highIn: s64)
     if open
     {
         let idx = mapProbe(&counts, start, n - start)
-        if counts.used[idx] == 0 do
+        if counts.used[idx] == 0 {
             mapClaim(&counts, idx, start, n - start, 1)
-        else do
+        }
+        else {
             counts.val[idx] += 1
+        }
     }
 
     let distinct = counts.count
@@ -146,11 +157,12 @@ func qsort(lowIn, highIn: s64)
     g_Len = cast([*] u64, unwrap benchAlloc(distinct * #sizeof(u64)))
     g_Idx = cast([*] u64, unwrap benchAlloc(distinct * #sizeof(u64)))
 
-    var ni = 0'u64
+    var ni = 0_u64
     for s in CAP
     {
-        if counts.used[s] == 0 do
+        if counts.used[s] == 0 {
             continue
+        }
         g_Cnt[ni] = counts.val[s]
         g_Off[ni] = counts.keyOff[s]
         g_Len[ni] = counts.keyLen[s]
@@ -161,9 +173,10 @@ func qsort(lowIn, highIn: s64)
     qsort(0, cast(s64, distinct) - 1)
 
     var check = distinct * 7
-    for k in 20'u64 do
+    for k in 20_u64 {
         check += (k + 1) * g_Cnt[g_Idx[k]]
 
+    }
     let t1 = now()
     report(check, t0, t1)
 }

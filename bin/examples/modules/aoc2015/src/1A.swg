@@ -30,8 +30,10 @@ func day1A()
     let lines    = expect File.readAllText(dataPath)
 
     var total = 0
-    for c in lines.bytes() do
+    for c in lines.bytes()
+    {
         total += c == '(' ? 1 : -1
+    }
 
     Swag.assert(total == 232)
 }

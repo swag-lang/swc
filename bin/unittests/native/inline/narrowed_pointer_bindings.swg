@@ -36,8 +36,10 @@ func narrowedFind(counters: [*] NarrowedCounter, count: s32, wanted: s32)->*Narr
 {
     for i in count
     {
-        if counters[i].value == wanted do
+        if counters[i].value == wanted
+        {
             return &counters[i]
+        }
     }
 
     return null
@@ -47,8 +49,10 @@ func narrowedFind(counters: [*] NarrowedCounter, count: s32, wanted: s32)->*Narr
 func narrowedReceiverAfterReturn(counters: [*] NarrowedCounter)->s32
 {
     let counter = narrowedFind(counters, 3, 20)
-    if not counter do
+    if not counter
+    {
         return -1
+    }
     return counter.bump(5) + counter.bump(1)
 }
 
@@ -56,16 +60,20 @@ func narrowedReceiverAfterReturn(counters: [*] NarrowedCounter)->s32
 func narrowedArgumentInBranch(counters: [*] NarrowedCounter, wanted: s32)->s32
 {
     let counter = narrowedFind(counters, 3, wanted)
-    if counter do
+    if counter
+    {
         return narrowedAdd(counter, 7)
+    }
     return -1
 }
 
 #[Swag.NoInline]
 func narrowedMemberReceiver(holder: *NarrowedHolder)->s32
 {
-    if not holder.counter do
+    if not holder.counter
+    {
         return -1
+    }
     discard holder.counter.bump(2)
     return narrowedAdd(holder.counter, 3)
 }

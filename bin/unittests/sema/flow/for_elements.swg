@@ -67,7 +67,7 @@ func semaTest003()
 
 func semaTest004()
 {
-    var arr: [2] u32 = [10'u32, 20]
+    var arr: [2] u32 = [10_u32, 20]
     for &v in arr
     {
         var x = v
@@ -174,13 +174,13 @@ func semaTest010()
 
 func semaTest011()
 {
-    let text: ForeachAliasBuffer = ForeachAliasBuffer{data: ['a'u8, 'b'u8, 'c'u8]}
+    let text: ForeachAliasBuffer = ForeachAliasBuffer{data: ['a'_u8, 'b'_u8, 'c'_u8]}
     var freq: [3, 26] u32
 
     for c, i in text
     {
         var cell: *u32 = &freq[i, c - 'a']
-        cell[] += 1'u32
+        cell[] += 1_u32
     }
 }
 
@@ -213,7 +213,7 @@ func semaTest012()
 
 func semaTest013()
 {
-    let values: ForeachAliasBuffer = ForeachAliasBuffer{data: ['a'u8, 'b'u8, 'c'u8]}
+    let values: ForeachAliasBuffer = ForeachAliasBuffer{data: ['a'_u8, 'b'_u8, 'c'_u8]}
 
     for _, index in values
     {

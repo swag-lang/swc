@@ -11,7 +11,7 @@ using Swag, ExportApi
     let r = cast([4] s32, depAddVectors(a, b))
     Swag.require(r[0] == 11 and r[1] == 22 and r[2] == 33 and r[3] == 44)
 
-    let x = Swag.vecSplat(200'u8)
+    let x = Swag.vecSplat(200_u8)
     let s = cast([16] u8, depSatAddVectors(x, x))
     Swag.require(s[0] == 255 and s[15] == 255)
 

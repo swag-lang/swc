@@ -7,42 +7,64 @@ using Core
 func resolvePath(baseDirectory: string, reference: string)->String
 {
     if not reference.count or
-       reference[0] == '/'u8 or
+       reference[0] == '/'_u8 or
        Utf8.contains(reference, "\\") or
-       Utf8.contains(reference, "://") do
-        return {}
-
-    var parts: Array'String
-    for part in Tokenize.split(baseDirectory, '/'rune) where part.count do
-        parts.add(part)
-
-    var end = 0'u64
-    while end < reference.count and reference[end] != '#'u8 and reference[end] != '?'u8 do
-        end += 1
-    for part in Tokenize.split(reference[0 until end], '/'rune)
+       Utf8.contains(reference, "://")
     {
-        if not part.count or part == "." do
+        return {}
+    }
+
+    var parts: Array!{String}
+    for part in Tokenize.split(baseDirectory, '/'_rune) where part.count
+    {
+        parts.add(part)
+    }
+
+    var end = 0_u64
+    while end < reference.count and reference[end] != '#'_u8 and reference[end] != '?'_u8
+    {
+        end += 1
+    }
+
+    for part in Tokenize.split(reference[0 until end], '/'_rune)
+    {
+        if not part.count or part == "."
+        {
             continue
+        }
+
         if part == ".."
         {
-            if parts.isEmpty() do
+            if parts.isEmpty()
+            {
                 return {}
+            }
+
             discard parts.popBack()
             continue
         }
 
-        if not Path.isValidFileName(part) do
+        if not Path.isValidFileName(part)
+        {
             return {}
+        }
+
         parts.add(part)
     }
 
-    if parts.isEmpty() do
+    if parts.isEmpty()
+    {
         return {}
+    }
+
     var result: String
     for part in parts
     {
-        if not result.isEmpty() do
-            result += '/'u8
+        if not result.isEmpty()
+        {
+            result += '/'_u8
+        }
+
         result += part[]
     }
 
@@ -52,8 +74,11 @@ func resolvePath(baseDirectory: string, reference: string)->String
 // Relationship targets may be package-absolute; both forms stay inside the ZIP root.
 func resolveRelationshipTarget(baseDirectory: string, target: string)->String
 {
-    if target.count and target[0] == '/'u8 do
+    if target.count and target[0] == '/'_u8
+    {
         return resolvePath("", target[1 to])
+    }
+
     return resolvePath(baseDirectory, target)
 }
 
@@ -61,7 +86,10 @@ func resolveRelationshipTarget(baseDirectory: string, target: string)->String
 func parentPath(path: string)->String
 {
     var last = Swag.U64.Max
-    for value, index in path where value == '/'u8 do
+    for value, index in path where value == '/'_u8
+    {
         last = index
+    }
+
     return last == Swag.U64.Max ? String{} : String.from(path[0 until last])
 }

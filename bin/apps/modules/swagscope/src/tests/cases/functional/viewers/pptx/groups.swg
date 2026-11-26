@@ -8,7 +8,7 @@ using Core, Viewers
 {
     var theme = Pptx.SlideTheme.defaults()
     var images: Package.ImageCatalog
-    let page = expect Pptx.SlidePage.parse("""
+    let page  = expect Pptx.SlidePage.parse("""
         <p:sld><p:spTree><p:grpSp>
           <p:nvGrpSpPr><p:cNvPr id="1" name="Group"/></p:nvGrpSpPr>
           <p:grpSpPr><a:xfrm><a:off x="952500" y="1905000"/><a:ext cx="3810000" cy="1905000"/><a:chOff x="95250" y="190500"/><a:chExt cx="1905000" cy="952500"/></a:xfrm></p:grpSpPr>
@@ -29,14 +29,14 @@ using Core, Viewers
 
 #test
 {
-    var theme = Pptx.SlideTheme.defaults()
+    var theme   = Pptx.SlideTheme.defaults()
     var images: Package.ImageCatalog
     let rotated = expect Pptx.SlidePage.parse("""
         <p:sld><p:spTree><p:grpSp><p:grpSpPr>
           <a:xfrm rot="5400000"><a:off x="0" y="0"/><a:ext cx="952500" cy="952500"/><a:chOff x="0" y="0"/><a:chExt cx="952500" cy="952500"/></a:xfrm>
         </p:grpSpPr><p:sp><p:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="952500" cy="952500"/></a:xfrm><a:prstGeom prst="rect"/></p:spPr><p:txBody><a:p><a:r><a:t>Rotated text stays readable</a:t></a:r></a:p></p:txBody></p:sp></p:grpSp></p:spTree></p:sld>
         """, &theme, &images)
-    let nested = expect Pptx.SlidePage.parse("""
+    let nested  = expect Pptx.SlidePage.parse("""
         <p:sld><p:spTree><p:grpSp><p:grpSpPr>
           <a:xfrm><a:off x="0" y="0"/><a:ext cx="952500" cy="952500"/><a:chOff x="0" y="0"/><a:chExt cx="952500" cy="952500"/></a:xfrm>
         </p:grpSpPr><p:grpSp><p:grpSpPr>

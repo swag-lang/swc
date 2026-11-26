@@ -12,6 +12,6 @@ impl AutoArrayBag
 
 #test
 {
-    var bag: AutoArrayBag'AutoArrayMode
+    var bag: AutoArrayBag!{AutoArrayMode}
     bag.add([.Off, .Fast])     // swc-expected-error {{sema_err_cannot_compute_auto_scope}}
 }

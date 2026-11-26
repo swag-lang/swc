@@ -14,7 +14,7 @@ struct JsonPayload
     id:     u32
     active: bool
     name:   String
-    counts: Array's32
+    counts: Array!{s32}
     pair:   JsonPair
     fixed:  [3] u8
 
@@ -103,7 +103,7 @@ func assertJsonPayload(value: JsonPayload)->bool
 {
     let payload = makeJsonPayload()
 
-    var encoder: Serialization.Encoder'Serialization.Write.Json
+    var encoder: Serialization.Encoder!{Serialization.Write.Json}
     encoder.serializer.options.saveBlanks = false
 
     var buffer: ConcatBuffer
@@ -112,8 +112,8 @@ func assertJsonPayload(value: JsonPayload)->bool
     Swag.require(json == "{\"id\":7,\"active\":true,\"name\":\"core\",\"counts\":[-1,0,4],\"pair\":{\"x\":3,\"y\":-2},\"fixed\":[1,2,3]}")
     Swag.require(json.indexOf("transient") == Swag.U64.Max)
 
-    var decoder: Serialization.Decoder'Serialization.Read.Json
-    let decoded = expect decoder.readAll'JsonPayload(json.toSlice())
+    var decoder: Serialization.Decoder!{Serialization.Read.Json}
+    let decoded = expect decoder.readAll!{JsonPayload}(json.toSlice())
     #assert(#typeof(decoded) == *JsonPayload)
     defer Memory.delete(decoded)
     Swag.require(assertJsonPayload(decoded[]))
@@ -123,30 +123,30 @@ func assertJsonPayload(value: JsonPayload)->bool
 #test
 {
     let validInput:   string = "{\"state\":[4,5,6]}"
-    var validDecoder: Serialization.Decoder'Serialization.Read.Json
-    let decoded = expect validDecoder.readAll'JsonArrayEnumPayload(cast(const [..] u8, validInput))
+    var validDecoder: Serialization.Decoder!{Serialization.Read.Json}
+    let decoded = expect validDecoder.readAll!{JsonArrayEnumPayload}(cast(const [..] u8, validInput))
     defer Memory.delete(decoded)
     Swag.require(decoded.state == .Busy)
 
     let invalidInput:   string = "{\"state\":[4,5,7]}"
-    var invalidDecoder: Serialization.Decoder'Serialization.Read.Json
+    var invalidDecoder: Serialization.Decoder!{Serialization.Read.Json}
     var errorOutcome:   Swag.Error
-    catch CoreTests.readAndDelete'(JsonArrayEnumPayload, Serialization.Read.Json)(&invalidDecoder, cast(const [..] u8, invalidInput)) as errorOutcome
+    catch CoreTests.readAndDelete!{JsonArrayEnumPayload, Serialization.Read.Json}(&invalidDecoder, cast(const [..] u8, invalidInput)) as errorOutcome
     Swag.require(errorOutcome.value() != null)
 }
 
 #test
 {
     let validInput:   string = "{\"state\":\"busy\"}"
-    var validDecoder: Serialization.Decoder'Serialization.Read.Json
-    let decoded = expect validDecoder.readAll'JsonStringEnumPayload(cast(const [..] u8, validInput))
+    var validDecoder: Serialization.Decoder!{Serialization.Read.Json}
+    let decoded = expect validDecoder.readAll!{JsonStringEnumPayload}(cast(const [..] u8, validInput))
     defer Memory.delete(decoded)
     Swag.require(decoded.state == .Busy)
 
     let input = "{\"state\":\"missing\"}"
-    var decoder:      Serialization.Decoder'Serialization.Read.Json
+    var decoder:      Serialization.Decoder!{Serialization.Read.Json}
     var errorOutcome: Swag.Error
-    catch CoreTests.readAndDelete'(JsonStringEnumPayload, Serialization.Read.Json)(&decoder, cast(const [..] u8, input)) as errorOutcome
+    catch CoreTests.readAndDelete!{JsonStringEnumPayload, Serialization.Read.Json}(&decoder, cast(const [..] u8, input)) as errorOutcome
     Swag.require(errorOutcome.value() != null)
 }
 
@@ -163,7 +163,7 @@ func assertJsonPayload(value: JsonPayload)->bool
 {
     let payload = makeJsonPayload()
 
-    var encoder: Serialization.Encoder'Serialization.Write.Json
+    var encoder: Serialization.Encoder!{Serialization.Write.Json}
     encoder.serializer.options.saveBlanks  = true
     encoder.serializer.options.indentLevel = 2
 
@@ -177,8 +177,8 @@ func assertJsonPayload(value: JsonPayload)->bool
 {
     let json: String = "{\n  \"id\": 8,\n  \"active\": false,\n  \"name\": null,\n  \"counts\": [9, 8],\n  \"pair\": {\"x\": -1, \"y\": 2},\n  \"fixed\": [5, 6, 7]\n}"
 
-    var decoder: Serialization.Decoder'Serialization.Read.Json
-    let decoded = expect decoder.readAll'JsonPayload(json.toSlice())
+    var decoder: Serialization.Decoder!{Serialization.Read.Json}
+    let decoded = expect decoder.readAll!{JsonPayload}(json.toSlice())
     defer Memory.delete(decoded)
     Swag.require(decoded.id == 8)
     Swag.require(not decoded.active)
@@ -196,13 +196,13 @@ func assertJsonPayload(value: JsonPayload)->bool
 {
     let interoperable: String = "{\"unknown\":{\"nested\":[true,null,{\"x\":1}]},\"fixed\":[1,2,3],\"name\":\"core\",\"pair\":{\"y\":-2,\"ignored\":9,\"x\":3},\"id\":7,\"active\":true,\"counts\":[-1,0,4]}"
 
-    var decoder: Serialization.Decoder'Serialization.Read.Json
-    let decoded = expect decoder.readAll'JsonPayload(interoperable.toSlice())
+    var decoder: Serialization.Decoder!{Serialization.Read.Json}
+    let decoded = expect decoder.readAll!{JsonPayload}(interoperable.toSlice())
     defer Memory.delete(decoded)
     Swag.require(assertJsonPayload(decoded[]))
 
     let missing: String = "{\"id\":12}"
-    let partial         = expect decoder.readAll'JsonPayload(missing.toSlice())
+    let partial         = expect decoder.readAll!{JsonPayload}(missing.toSlice())
     defer Memory.delete(partial)
     Swag.require(partial.id == 12)
     Swag.require(not partial.active)
@@ -212,8 +212,8 @@ func assertJsonPayload(value: JsonPayload)->bool
 
 #test
 {
-    var payload = JsonFloatPayload{value: cast #bit (f64, 0x7FF8000000000000'u64)}
-    var encoder: Serialization.Encoder'Serialization.Write.Json
+    var payload = JsonFloatPayload{value: cast #bit (f64, 0x7FF8000000000000_u64)}
+    var encoder: Serialization.Encoder!{Serialization.Write.Json}
     var buffer:  ConcatBuffer
     expect encoder.writeAll(&buffer, payload)
     Swag.require(buffer.toString() == "{\"value\":null}")
@@ -227,17 +227,17 @@ func assertJsonPayload(value: JsonPayload)->bool
     culture.numberFormat = Globalization.CultureInfo.fromName("fr-FR").numberFormat
 
     let payload = JsonInvariantFloatPayload{value32: 1.25, value64: 1.25}
-    var encoder: Serialization.Encoder'Serialization.Write.Json
+    var encoder: Serialization.Encoder!{Serialization.Write.Json}
     var buffer:  ConcatBuffer
     expect encoder.writeAll(&buffer, payload)
     let json = buffer.toString()
     Swag.require(json == "{\"value32\":1.25,\"value64\":1.25}")
 
-    var decoder: Serialization.Decoder'Serialization.Read.Json
-    let decoded = expect decoder.readAll'JsonInvariantFloatPayload(json.toSlice())
+    var decoder: Serialization.Decoder!{Serialization.Read.Json}
+    let decoded = expect decoder.readAll!{JsonInvariantFloatPayload}(json.toSlice())
     defer Memory.delete(decoded)
-    Swag.require(decoded.value32 == 1.25'f32)
-    Swag.require(decoded.value64 == 1.25'f64)
+    Swag.require(decoded.value32 == 1.25_f32)
+    Swag.require(decoded.value64 == 1.25_f64)
     Swag.require(culture.numberFormat.decimalSeparator == ',')
 }
 
@@ -248,18 +248,18 @@ func assertJsonPayload(value: JsonPayload)->bool
         "{\"value\":-1e39}"]
     for input in InvalidFloats
     {
-        var decoder:    Serialization.Decoder'Serialization.Read.Json
+        var decoder:    Serialization.Decoder!{Serialization.Read.Json}
         var errOutcome: Swag.Error
-        catch CoreTests.readAndDelete'(JsonF32Payload, Serialization.Read.Json)(&decoder, cast(const [..] u8, input)) as errOutcome
+        catch CoreTests.readAndDelete!{JsonF32Payload, Serialization.Read.Json}(&decoder, cast(const [..] u8, input)) as errOutcome
         Swag.require(errOutcome.value() != null)
     }
 
     const InvalidF64 = ["{\"value\":1e309}", "{\"value\":-1e309}"]
     for input in InvalidF64
     {
-        var decoder:    Serialization.Decoder'Serialization.Read.Json
+        var decoder:    Serialization.Decoder!{Serialization.Read.Json}
         var errOutcome: Swag.Error
-        catch CoreTests.readAndDelete'(JsonFloatPayload, Serialization.Read.Json)(&decoder, cast(const [..] u8, input)) as errOutcome
+        catch CoreTests.readAndDelete!{JsonFloatPayload, Serialization.Read.Json}(&decoder, cast(const [..] u8, input)) as errOutcome
         Swag.require(errOutcome.value() != null)
     }
 }
@@ -269,24 +269,24 @@ func assertJsonPayload(value: JsonPayload)->bool
     var payload: JsonStringPayload
     payload.text = "quote=\" slash=\\ controls=\b\f\n\r\t caf\u00E9 \U0001F642"
 
-    var encoder: Serialization.Encoder'Serialization.Write.Json
+    var encoder: Serialization.Encoder!{Serialization.Write.Json}
     var buffer:  ConcatBuffer
     expect encoder.writeAll(&buffer, payload)
     Swag.require(buffer.toString() == "{\"text\":\"quote=\\\" slash=\\\\ controls=\\b\\f\\n\\r\\t caf\u00E9 \U0001F642\"}")
 
-    var decoder: Serialization.Decoder'Serialization.Read.Json
-    let decoded = expect decoder.readAll'JsonStringPayload(unwrap buffer.toSlice())
+    var decoder: Serialization.Decoder!{Serialization.Read.Json}
+    let decoded = expect decoder.readAll!{JsonStringPayload}(unwrap buffer.toSlice())
     defer Memory.delete(decoded)
     Swag.require(decoded.text == payload.text)
 
     let escaped: String = #raw """{"text":"A\u00E9\uD83D\uDE42"}"""
-    let unicode = expect decoder.readAll'JsonStringPayload(escaped.toSlice())
+    let unicode = expect decoder.readAll!{JsonStringPayload}(escaped.toSlice())
     defer Memory.delete(unicode)
     Swag.require(unicode.text == "A\u00E9\U0001F642")
 
     let invalidEscape: String = #raw """{"text":"\q"}"""
     var errInvalidEscapeOutcome: Swag.Error
-    catch CoreTests.readAndDelete'(JsonStringPayload, Serialization.Read.Json)(&decoder, invalidEscape.toSlice()) as errInvalidEscapeOutcome
+    catch CoreTests.readAndDelete!{JsonStringPayload, Serialization.Read.Json}(&decoder, invalidEscape.toSlice()) as errInvalidEscapeOutcome
     let errInvalidEscape = errInvalidEscapeOutcome.value()
     Swag.require(errInvalidEscape != null)
 
@@ -298,7 +298,7 @@ func assertJsonPayload(value: JsonPayload)->bool
     for input in InvalidUnicodeEscapes
     {
         var errorOutcome: Swag.Error
-        catch CoreTests.readAndDelete'(JsonStringPayload, Serialization.Read.Json)(&decoder, cast(const [..] u8, input)) as errorOutcome
+        catch CoreTests.readAndDelete!{JsonStringPayload, Serialization.Read.Json}(&decoder, cast(const [..] u8, input)) as errorOutcome
         Swag.require(errorOutcome.value() is Errors.SyntaxError)
     }
 }
@@ -307,19 +307,19 @@ func assertJsonPayload(value: JsonPayload)->bool
 #test
 {
     let payload = JsonStringPayload{text: "\x00\x01\x0B\x1F"}
-    var encoder: Serialization.Encoder'Serialization.Write.Json
+    var encoder: Serialization.Encoder!{Serialization.Write.Json}
     var buffer:  ConcatBuffer
     expect encoder.writeAll(&buffer, payload)
     Swag.require(buffer.toString() == "{\"text\":\"\\u0000\\u0001\\u000B\\u001F\"}")
 
-    var decoder: Serialization.Decoder'Serialization.Read.Json
-    let decoded = expect decoder.readAll'JsonStringPayload(unwrap buffer.toSlice())
+    var decoder: Serialization.Decoder!{Serialization.Read.Json}
+    let decoded = expect decoder.readAll!{JsonStringPayload}(unwrap buffer.toSlice())
     defer Memory.delete(decoded)
     Swag.require(decoded.text == payload.text)
 
     let rawControl = "{\"text\":\"before\x01after\"}"
     var errorOutcome: Swag.Error
-    catch CoreTests.readAndDelete'(JsonStringPayload, Serialization.Read.Json)(&decoder, cast(const [..] u8, rawControl)) as errorOutcome
+    catch CoreTests.readAndDelete!{JsonStringPayload, Serialization.Read.Json}(&decoder, cast(const [..] u8, rawControl)) as errorOutcome
     Swag.require(errorOutcome.value() is Errors.SyntaxError)
 }
 
@@ -347,9 +347,9 @@ func assertJsonPayload(value: JsonPayload)->bool
 
     for input in InvalidJson
     {
-        var decoder:    Serialization.Decoder'Serialization.Read.Json
+        var decoder:    Serialization.Decoder!{Serialization.Read.Json}
         var errOutcome: Swag.Error
-        catch CoreTests.readAndDelete'(JsonPayload, Serialization.Read.Json)(&decoder, cast(const [..] u8, input)) as errOutcome
+        catch CoreTests.readAndDelete!{JsonPayload, Serialization.Read.Json}(&decoder, cast(const [..] u8, input)) as errOutcome
         let err = errOutcome.value()
         Swag.require(err != null)
     }
@@ -358,9 +358,9 @@ func assertJsonPayload(value: JsonPayload)->bool
 #test
 {
     const InvalidUtf8: [12] u8 = [0x7B, 0x22, 0x74, 0x65, 0x78, 0x74, 0x22, 0x3A, 0x22, 0xFF, 0x22, 0x7D]
-    var decoder:      Serialization.Decoder'Serialization.Read.Json
+    var decoder:      Serialization.Decoder!{Serialization.Read.Json}
     var errorOutcome: Swag.Error
-    catch CoreTests.readAndDelete'(JsonStringPayload, Serialization.Read.Json)(&decoder, InvalidUtf8) as errorOutcome
+    catch CoreTests.readAndDelete!{JsonStringPayload, Serialization.Read.Json}(&decoder, InvalidUtf8) as errorOutcome
     Swag.require(errorOutcome.value() is Errors.SyntaxError)
 }
 

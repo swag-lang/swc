@@ -26,7 +26,7 @@ struct IntraReference
 
 // Keep the reference and the later filtered/angular workspace disjoint within
 // Decoder.residual, which is no longer live while an intra block is predicted.
-const IntraScratchOffset = 128'u32
+const IntraScratchOffset = 128_u32
 #assert(#sizeof(IntraReference) <= IntraScratchOffset * #sizeof(s32))
 
 impl IntraReference
@@ -56,11 +56,11 @@ impl IntraReference
 func predictPlanar4(reference: const *IntraReference, destination: [*] u16)
 {
     let top          = Simd.load(&reference.samples[9])
-    let leftWeights  = cast(Simd.U16x8, [3'u16, 2, 1, 0, 0, 0, 0, 0])
-    let rightWeights = cast(Simd.U16x8, [1'u16, 2, 3, 4, 0, 0, 0, 0])
+    let leftWeights  = cast(Simd.U16x8, [3_u16, 2, 1, 0, 0, 0, 0, 0])
+    let rightWeights = cast(Simd.U16x8, [1_u16, 2, 3, 4, 0, 0, 0, 0])
     let right        = Simd.splat(reference.top(4))
     let bottom       = cast(u32, reference.left(4))
-    for y in 4'u32
+    for y in 4_u32
     {
         let left      = Simd.splat(reference.left(y))
         let topWeight = Simd.splat(cast(u16, (3 - y)))
@@ -75,17 +75,17 @@ func predictPlanar4(reference: const *IntraReference, destination: [*] u16)
 #[Swag.NoInline]
 func predictPlanarPacked(reference: const *IntraReference, destination: [*] u16, size, log2Size: u32)
 {
-    let indices = cast(Simd.U16x8, [0'u16, 1, 2, 3, 4, 5, 6, 7])
+    let indices = cast(Simd.U16x8, [0_u16, 1, 2, 3, 4, 5, 6, 7])
     let right   = Simd.splat(reference.top(size))
     let bottom  = cast(u32, reference.left(size))
     let size8   = Simd.splat(cast(u16, size))
-    let one     = Simd.splat(1'u16)
+    let one     = Simd.splat(1_u16)
     for y in size
     {
         let left      = Simd.splat(reference.left(y))
         let topWeight = Simd.splat(cast(u16, (size - 1 - y)))
         let bias      = Simd.splat(cast(u16, ((y + 1) * bottom + size)))
-        var x         = 0'u32
+        var x         = 0_u32
         while x < size
         {
             let rightWeight = indices + Simd.splat(cast(u16, x)) + one
@@ -113,11 +113,13 @@ func predictAngularVertical(main: const [*] u16, destination: [*] u16, size: u32
         let out    = destination + row * size
         if blend == 0
         {
-            if size == 4 do
+            if size == 4
+            {
                 cast([*] u64, out)[0] = cast(const [*] u64, source)[0]
+            }
             else
             {
-                var x = 0'u32
+                var x = 0_u32
                 while x < size
                 {
                     Simd.store(out + x, Simd.load(source + x))
@@ -130,7 +132,7 @@ func predictAngularVertical(main: const [*] u16, destination: [*] u16, size: u32
 
         let firstWeight  = Simd.splat(cast(u16, (32 - blend)))
         let secondWeight = Simd.splat(cast(u16, blend))
-        let rounding     = Simd.splat(16'u16)
+        let rounding     = Simd.splat(16_u16)
         if size == 4
         {
             let values = (Simd.load(source) * firstWeight + Simd.load(source + 1) * secondWeight + rounding) >> 5
@@ -138,7 +140,7 @@ func predictAngularVertical(main: const [*] u16, destination: [*] u16, size: u32
         }
         else
         {
-            var x = 0'u32
+            var x = 0_u32
             while x < size
             {
                 let values = (Simd.load(source + x) * firstWeight + Simd.load(source + x + 1) * secondWeight + rounding) >> 5
@@ -159,7 +161,7 @@ private func angularColumn(main: const [*] u16, position: u32, angle: s32)->Simd
     let source       = main + cast(s64, ((step >> 5) + 1))
     let firstWeight  = Simd.splat(cast(u16, (32 - blend)))
     let secondWeight = Simd.splat(cast(u16, blend))
-    return (Simd.load(source) * firstWeight + Simd.load(source + 1) * secondWeight + Simd.splat(16'u16)) >> 5
+    return (Simd.load(source) * firstWeight + Simd.load(source + 1) * secondWeight + Simd.splat(16_u16)) >> 5
 }
 
 // Transpose four predicted columns into four consecutive four-sample rows.
@@ -190,7 +192,7 @@ func predictAngularHorizontalZero(main: const [*] u16, destination: [*] u16, siz
         }
         else
         {
-            var x = 0'u32
+            var x = 0_u32
             while x < size
             {
                 Simd.store(out + x, values)
@@ -205,10 +207,10 @@ func predictAngularHorizontalZero(main: const [*] u16, destination: [*] u16, siz
 #[Swag.NoInline]
 func predictAngularHorizontalPacked(main: const [*] u16, destination: [*] u16, size: u32, angle: s32)
 {
-    var y = 0'u32
+    var y = 0_u32
     while y < size
     {
-        var x = 0'u32
+        var x = 0_u32
         while x < size
         {
             let ref = main + y
@@ -256,14 +258,14 @@ func predictAngularHorizontalPacked(main: const [*] u16, destination: [*] u16, s
 #[Swag.NoInline]
 func smoothStrongReference(reference: *IntraReference, corner, lastTop, lastLeft: u16)
 {
-    let ascending  = cast(Simd.U16x8, [1'u16, 2, 3, 4, 5, 6, 7, 8])
-    let descending = cast(Simd.U16x8, [8'u16, 7, 6, 5, 4, 3, 2, 1])
-    let full       = Simd.splat(64'u16)
+    let ascending  = cast(Simd.U16x8, [1_u16, 2, 3, 4, 5, 6, 7, 8])
+    let descending = cast(Simd.U16x8, [8_u16, 7, 6, 5, 4, 3, 2, 1])
+    let full       = Simd.splat(64_u16)
     let corner8    = Simd.splat(corner)
     let top8       = Simd.splat(lastTop)
     let left8      = Simd.splat(lastLeft)
-    let rounding   = Simd.splat(32'u16)
-    var index      = 0'u32
+    let rounding   = Simd.splat(32_u16)
+    var index      = 0_u32
     while index + 8 <= 63
     {
         let base       = Simd.splat(cast(u16, index))
@@ -285,8 +287,8 @@ func smoothStrongReference(reference: *IntraReference, corner, lastTop, lastLeft
     }
 }
 
-const ReverseIntraWords = cast(Simd.U8x16, [14'u8, 15, 12, 13, 10, 11, 8, 9, 6, 7, 4, 5, 2, 3, 0, 1])
-const ReverseIntraFour  = cast(Simd.U8x16, [6'u8, 7, 4, 5, 2, 3, 0, 1, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80])
+const ReverseIntraWords = cast(Simd.U8x16, [14_u8, 15, 12, 13, 10, 11, 8, 9, 6, 7, 4, 5, 2, 3, 0, 1])
+const ReverseIntraFour  = cast(Simd.U8x16, [6_u8, 7, 4, 5, 2, 3, 0, 1, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80])
 
 // Copy the main angular reference in prediction order; the left reference is
 // stored in reverse, so reverse eight words per step. The only shorter case
@@ -298,8 +300,10 @@ func prepareAngularMain(reference: const *IntraReference, main: [*] u16, size: u
     let count = extended ? 2 * size : size
     if count == 4
     {
-        if vertical do
+        if vertical
+        {
             cast([*] u64, (main + 1))[0] = cast(const [*] u64, &reference.samples[2 * size + 1])[0]
+        }
         else
         {
             let input    = cast #bit(Simd.U8x16, Simd.splat(cast(const [*] u64, &reference.samples[2 * size - 4])[0]))
@@ -310,7 +314,7 @@ func prepareAngularMain(reference: const *IntraReference, main: [*] u16, size: u
         return
     }
 
-    var index = 0'u32
+    var index = 0_u32
     while index < count
     {
         if vertical
@@ -334,7 +338,7 @@ func blendAngularLeftEdge(reference: const *IntraReference, destination: [*] u16
 {
     let top    = Simd.splat(cast(s16, reference.top(0)))
     let corner = Simd.splat(cast(s16, reference.corner()))
-    let zero   = Simd.splat(0's16)
+    let zero   = Simd.splat(0_s16)
     let max    = Simd.splat(cast(s16, maximum))
     if size == 4
     {
@@ -349,7 +353,7 @@ func blendAngularLeftEdge(reference: const *IntraReference, destination: [*] u16
         return
     }
 
-    var y = 0'u32
+    var y = 0_u32
     while y < size
     {
         let input  = cast #bit(Simd.U8x16, Simd.load(&reference.samples[2 * size - y - 8]))
@@ -378,7 +382,7 @@ func blendAngularTopEdge(reference: const *IntraReference, destination: [*] u16,
 {
     let left   = Simd.splat(cast(s16, reference.left(0)))
     let corner = Simd.splat(cast(s16, reference.corner()))
-    let zero   = Simd.splat(0's16)
+    let zero   = Simd.splat(0_s16)
     let max    = Simd.splat(cast(s16, maximum))
     let source = cast(const [*] u16, &reference.samples[2 * size + 1])
     if size == 4
@@ -389,7 +393,7 @@ func blendAngularTopEdge(reference: const *IntraReference, destination: [*] u16,
         return
     }
 
-    var x = 0'u32
+    var x = 0_u32
     while x < size
     {
         let top    = cast #bit(Simd.S16x8, Simd.load(source + x))
@@ -408,7 +412,7 @@ impl Decoder
     mtd intraPredict(x, y, xLuma, yLuma: s32, log2Size, component, mode: u32)
     {
         let sps      = unwrap .activeSps
-        let size     = 1'u32 << log2Size
+        let size     = 1_u32 << log2Size
         let bitDepth = component == 0 ? sps.bitDepthLuma : sps.bitDepthChroma
 
         let reference = cast(*IntraReference, &.residual[0])
@@ -418,10 +422,14 @@ impl Decoder
         switch
         {
         case mode == IntraPlanar:
-            if size >= 8 do
+            if size >= 8
+            {
                 predictPlanarPacked(reference, &.predSamples[0], size, log2Size)
-            else do
+            }
+            else
+            {
                 predictPlanar4(reference, &.predSamples[0])
+            }
 
         case mode == IntraDc:
             .predictDc(reference, size, log2Size, component)
@@ -437,23 +445,25 @@ impl Decoder
     {
         let pps   = unwrap .activePps
         let total = size * 2
-        let scale = component == 0 ? 1's32 : 2's32
+        let scale = component == 0 ? 1_s32 : 2_s32
 
         reference.size  = size
         reference.count = total * 2 + 1
 
         // Availability is uniform inside a four-sample luma block, so it is answered once per
         // group rather than once per sample.
-        let step = component == 0 ? 4'u32 : 2'u32
+        let step = component == 0 ? 4_u32 : 2_u32
 
         // The corner.
         let cornerAvailable = .isIntraNeighbourAvailable(xLuma, yLuma, xLuma - 1, yLuma - 1, pps.constrainedIntraPred)
         reference.available[size * 2] = cornerAvailable
-        if cornerAvailable do
+        if cornerAvailable
+        {
             reference.setCorner(.reconstructedSample(component, x - 1, y - 1))
+        }
 
         // The left column, downward.
-        var offset = 0'u32
+        var offset = 0_u32
         while offset < total
         {
             let sampleY   = y + cast(s32, offset)
@@ -463,7 +473,7 @@ impl Decoder
             let index = size * 2 - offset - step
             if component == 0
             {
-                cast([*] u32, &reference.available[index])[0] = available ? 0x01010101'u32 : 0'u32
+                cast([*] u32, &reference.available[index])[0] = available ? 0x01010101_u32 : 0_u32
                 if available
                 {
                     let frame   = unwrap .current
@@ -476,7 +486,7 @@ impl Decoder
             }
             else
             {
-                cast([*] u16, &reference.available[index])[0] = available ? 0x0101'u16 : 0'u16
+                cast([*] u16, &reference.available[index])[0] = available ? 0x0101_u16 : 0_u16
                 if available
                 {
                     let frame   = unwrap .current
@@ -501,7 +511,7 @@ impl Decoder
             let index = size * 2 + 1 + offset
             if component == 0
             {
-                cast([*] u32, &reference.available[index])[0] = available ? 0x01010101'u32 : 0'u32
+                cast([*] u32, &reference.available[index])[0] = available ? 0x01010101_u32 : 0_u32
                 if available
                 {
                     let frame   = unwrap .current
@@ -511,7 +521,7 @@ impl Decoder
             }
             else
             {
-                cast([*] u16, &reference.available[index])[0] = available ? 0x0101'u16 : 0'u16
+                cast([*] u16, &reference.available[index])[0] = available ? 0x0101_u16 : 0_u16
                 if available
                 {
                     let frame   = unwrap .current
@@ -529,13 +539,18 @@ impl Decoder
     // Reports whether a neighbouring sample may be used for intra prediction, clause 8.4.4.2.1.
     private mtd const isIntraNeighbourAvailable(xCurr, yCurr, xNb, yNb: s32, constrained: bool)->bool
     {
-        if not .isAvailable(xCurr, yCurr, xNb, yNb) do
+        if not .isAvailable(xCurr, yCurr, xNb, yNb)
+        {
             return false
+        }
 
         // Constrained intra prediction refuses everything an inter block reconstructed, so a
         // picture stays decodable when the pictures it predicted from were lost.
-        if constrained and .predMode[.blockIndex(xNb, yNb)] != ModeIntra do
+        if constrained and .predMode[.blockIndex(xNb, yNb)] != ModeIntra
+        {
             return false
+        }
+
         return true
     }
 
@@ -555,20 +570,28 @@ impl Decoder
         {
             // Nothing around the block was decoded: the whole reference is the midpoint of the
             // sample range.
-            let midpoint = cast(u16, (1'u32 << (bitDepth - 1)))
-            for index in count do
+            let midpoint = cast(u16, (1_u32 << (bitDepth - 1)))
+            for index in count
+            {
                 reference.samples[index] = midpoint
+            }
+
             return
         }
 
         // The search runs from the bottom of the left column upward and then along the top row,
         // which is exactly the order the array is laid out in.
-        for index in firstAvailable do
+        for index in firstAvailable
+        {
             reference.samples[index] = reference.samples[firstAvailable]
+        }
+
         for index in firstAvailable + 1 until count
         {
-            if not reference.available[index] do
+            if not reference.available[index]
+            {
                 reference.samples[index] = reference.samples[index - 1]
+            }
         }
     }
 
@@ -576,12 +599,16 @@ impl Decoder
     mtd filterReference(reference: *IntraReference, size, log2Size, component, mode, bitDepth: u32)
     {
         let sps = unwrap .activeSps
-        if component != 0 or size == 4 or mode == IntraDc or sps.intraSmoothingDisabled do
+        if component != 0 or size == 4 or mode == IntraDc or sps.intraSmoothingDisabled
+        {
             return
+        }
 
         let distance = Math.min(Math.abs(cast(s32, mode) - 26), Math.abs(cast(s32, mode) - 10))
-        if distance <= cast(s32, IntraSmoothingThreshold[log2Size - 2]) do
+        if distance <= cast(s32, IntraSmoothingThreshold[log2Size - 2])
+        {
             return
+        }
 
         let total = size * 2
 
@@ -589,7 +616,7 @@ impl Decoder
         // what keeps a gradient from banding, clause 8-37.
         if sps.strongIntraSmoothing and size == 32
         {
-            let limit    = 1's32 << (bitDepth - 5)
+            let limit    = 1_s32 << (bitDepth - 5)
             let corner   = cast(s32, reference.corner())
             let flatTop  = Math.abs(corner + cast(s32, reference.top(total - 1)) - 2 * cast(s32, reference.top(size - 1))) < limit
             let flatLeft = Math.abs(corner + cast(s32, reference.left(total - 1)) - 2 * cast(s32, reference.left(size - 1))) < limit
@@ -605,9 +632,9 @@ impl Decoder
         // order, but the three-tap kernel is symmetric on the whole sequence.
         let filtered = cast([*] u16, &.residual[IntraScratchOffset])
         filtered[0] = reference.samples[0]
-        var index    = 1'u32
+        var index    = 1_u32
         let end      = reference.count - 1
-        let rounding = Simd.splat(2'u16)
+        let rounding = Simd.splat(2_u16)
         while index + 8 <= end
         {
             let previous = Simd.load(&reference.samples[index - 1])
@@ -634,7 +661,7 @@ impl Decoder
         // The left samples run in reverse order, but their sum is unchanged.
         // Eight 10-bit top/left pairs accumulated over a 32-wide block sum
         // to at most 65472, which fits in unsigned 16-bit lanes.
-        var sums = Simd.splat(0'u16)
+        var sums = Simd.splat(0_u16)
         if size == 4
         {
             let top  = cast #bit(Simd.U16x8, Simd.splat(cast(const [*] u64, &reference.samples[2 * size + 1])[0]))
@@ -643,7 +670,7 @@ impl Decoder
         }
         else
         {
-            var index = 0'u32
+            var index = 0_u32
             while index < size
             {
                 sums  += Simd.load(&reference.samples[2 * size + 1 + index]) + Simd.load(&reference.samples[size + index])
@@ -656,7 +683,7 @@ impl Decoder
         let dc    = sum >> (log2Size + 1)
 
         let values = Simd.splat(cast(u16, dc))
-        var index  = 0'u32
+        var index  = 0_u32
         while index < size * size
         {
             Simd.store(&.predSamples[index], values)
@@ -665,11 +692,13 @@ impl Decoder
 
         // The edges of a small luma block are blended with their neighbours, which is what keeps
         // a flat prediction from showing its own boundary.
-        if component != 0 or size >= 32 do
+        if component != 0 or size >= 32
+        {
             return
+        }
 
         .predSamples[0] = cast(u16, ((cast(u32, reference.left(0)) + 2 * dc + cast(u32, reference.top(0)) + 2) >> 2))
-        var x = 1'u32
+        var x = 1_u32
         if size == 16
         {
             let bias = Simd.splat(cast(u16, (3 * dc + 2)))
@@ -684,8 +713,10 @@ impl Decoder
             x += 1
         }
 
-        for y in 1 until size do
+        for y in 1 until size
+        {
             .predSamples[y * size] = cast(u16, ((cast(u32, reference.left(y)) + 3 * dc + 2) >> 2))
+        }
     }
 
     // Predicts a directional block, clause 8.4.4.2.6.
@@ -693,7 +724,7 @@ impl Decoder
     {
         let angle    = cast(s32, IntraPredAngle[mode])
         let vertical = mode >= 18
-        let maximum  = cast(s32, ((1'u32 << bitDepth) - 1))
+        let maximum  = cast(s32, ((1_u32 << bitDepth) - 1))
 
         // The main reference runs along the direction the prediction comes from, and is extended
         // backwards through the other edge when the angle is negative.
@@ -701,7 +732,7 @@ impl Decoder
         // reconstructed again afterwards. Reuse their storage for this reference
         // rather than clearing a fresh 160-sample temporary for every block.
         let main   = cast([*] u16, &.residual[IntraScratchOffset])
-        let origin = 64'u32     // Index of ref[0] inside the array, leaving room for ref[-32..-1].
+        let origin = 64_u32     // Index of ref[0] inside the array, leaving room for ref[-32..-1].
 
         prepareAngularMain(reference, &main[origin], size, vertical, angle >= 0)
 
@@ -711,15 +742,20 @@ impl Decoder
             if limit < -1
             {
                 let inverse = cast(s32, IntraInvAngle[mode])
-                var index   = -1's32
+                var index   = -1_s32
                 while index >= limit
                 {
                     let position = -1 + ((index * inverse + 128) >> 8)
                     var value: u16
-                    if position < 0 do
+                    if position < 0
+                    {
                         value = reference.corner()
-                    else do
+                    }
+                    else
+                    {
                         value = vertical ? reference.left(cast(u32, position)) : reference.top(cast(u32, position))
+                    }
+
                     main[cast(u32, (cast(s32, origin) + index))] = value
                     index -= 1
                 }
@@ -730,11 +766,11 @@ impl Decoder
         {
             predictAngularVertical(&main[origin], &.predSamples[0], size, angle)
         }
-        elif angle == 0
+        else if angle == 0
         {
             predictAngularHorizontalZero(&main[origin], &.predSamples[0], size)
         }
-        elif size == 4
+        else if size == 4
         {
             predictAngularHorizontal4(&main[origin], &.predSamples[0], angle)
         }
@@ -745,14 +781,16 @@ impl Decoder
 
         // The edge next to the reference the prediction did not read is blended with it, which is
         // what keeps a purely horizontal or vertical prediction from showing a step.
-        if component != 0 or size >= 32 do
+        if component != 0 or size >= 32
+        {
             return
+        }
 
         if mode == IntraAngular26
         {
             blendAngularLeftEdge(reference, &.predSamples[0], size, maximum)
         }
-        elif mode == IntraAngular10
+        else if mode == IntraAngular10
         {
             blendAngularTopEdge(reference, &.predSamples[0], size, maximum)
         }

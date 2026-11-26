@@ -15,8 +15,11 @@ internal impl Properties
     // a row through the bar.
     mtd isOverRows(target: *Wnd?)->bool
     {
-        if not target or .edView == null do
+        if not target or .edView == null
+        {
             return false
+        }
+
         let view = cast(*Wnd, .edView)
         return target == view or view.isAncestorOf(target)
     }
@@ -27,10 +30,15 @@ internal impl Properties
         for itemIt in .items
         {
             let item = unwrap itemIt
-            if not item.line.isVisible() do
+            if not item.line.isVisible()
+            {
                 continue
-            if item.line.position.contains(pt) do
+            }
+
+            if item.line.position.contains(pt)
+            {
                 return item
+            }
         }
 
         return null
@@ -50,8 +58,10 @@ internal impl Properties
             if evt is MouseEvent as mouseEvt where mouseEvt.kind == .Wheel
             {
                 let target = mouseEvt.target
-                if not (target and (target == prop.editPopup or prop.editPopup.isAncestorOf(target))) do
+                if not (target and (target == prop.editPopup or prop.editPopup.isAncestorOf(target)))
+                {
                     return true
+                }
             }
 
             return false
@@ -73,29 +83,37 @@ internal impl Properties
         switch evt
         {
         case FocusEvent as focusEvt where focusEvt.kind == .CanGain:
-            if prop.cursorSet do
+            if prop.cursorSet
+            {
                 focusEvt.canChangeFocus = false
+            }
 
         // While a row editor has the focus, intercept the navigation/mode keys
         // before the editor sees them so the grid is always keyboard-drivable.
         case KeyEvent as keyEvt where keyEvt.kind == .Pressed:
-            if prop.editKeyEvent(keyEvt) do
+            if prop.editKeyEvent(keyEvt)
+            {
                 return true
+            }
 
         case MouseEvent as mouseEvt where mouseEvt.kind == .Pressed:
 
             // A press outside the row area (on the scroll bar, typically) must not touch the
             // selection: scrolling and selecting are separate gestures.
-            if not prop.isOverRows(mouseEvt.target) do
+            if not prop.isOverRows(mouseEvt.target)
+            {
                 break
+            }
 
             let pt = prop.surfaceToLocal(mouseEvt.surfacePos)
 
             prop.selItem = prop.hitTest(pt)
             wnd.invalidate()
 
-            if mouseEvt.button != .Left do
+            if mouseEvt.button != .Left
+            {
                 break
+            }
 
             // On column bar
             if prop.cursorSet
@@ -118,12 +136,16 @@ internal impl Properties
             // grid in navigation mode, so the arrows work right after a click. A miss
             // (the gap between two rows) must not select-and-reveal the first row —
             // that would jump the scroll back to the top.
-            if not prop.isEditorWnd(mouseEvt.target) do
+            if not prop.isEditorWnd(mouseEvt.target)
+            {
                 prop.focusNavigation(fallbackToFirst: false)
+            }
 
         case MouseEvent as mouseEvt where mouseEvt.kind == .DoubleClick and mouseEvt.button == .Left:
-            if not prop.isOverRows(mouseEvt.target) do
+            if not prop.isOverRows(mouseEvt.target)
+            {
                 break
+            }
 
             // Toggle/Expand
             if prop.isGridLike() and
@@ -134,7 +156,7 @@ internal impl Properties
                 prop.updateStates()
             }
             // Toggle checkbox
-            elif prop.selItem and prop.selItem.checkBox != null
+            else if prop.selItem and prop.selItem.checkBox != null
             {
                 prop.selItem.checkBox.toggle()
             }
@@ -143,8 +165,11 @@ internal impl Properties
             prop.resizingColumn = false
 
         case MouseEvent as mouseEvt where mouseEvt.kind == .Leave:
-            if prop.hotItem and prop.isGridLike() do
+            if prop.hotItem and prop.isGridLike()
+            {
                 ToolTip.hide(prop.hotItem.line)
+            }
+
             prop.hotItem = null
 
         case MouseEvent as mouseEvt where (mouseEvt.kind == .Move or mouseEvt.kind == .SetCursor):
@@ -163,8 +188,11 @@ internal impl Properties
             if hit != prop.hotItem
             {
                 // Leaving a row: drop its tooltip so it does not linger over the next row.
-                if prop.hotItem do
+                if prop.hotItem
+                {
                     ToolTip.hide(prop.hotItem.line)
+                }
+
                 prop.hotItem = hit
 
                 // A notice marked in the margin says its words over the whole row.
@@ -172,11 +200,13 @@ internal impl Properties
                 {
                     ToolTip.show(hit.line, mouseEvt.surfacePos, hit.validationMsg)
                 }
-                elif hit and hit.label != null and prop.isGridLike()
+                else if hit and hit.label != null and prop.isGridLike()
                 {
                     pt = hit.label.surfaceToLocal(mouseEvt.surfacePos)
-                    if hit.label.clientRect().contains(pt) do
+                    if hit.label.clientRect().contains(pt)
+                    {
                         ToolTip.show(hit.line, mouseEvt.surfacePos, hit.description)
+                    }
                 }
 
                 wnd.invalidate()
@@ -192,7 +222,7 @@ internal impl Properties
                     prop.cursorSet = true
                     prop.invalidate()
                 }
-                elif prop.cursorSet
+                else if prop.cursorSet
                 {
                     prop.cursorSet = false
                     prop.invalidate()
@@ -205,8 +235,10 @@ internal impl Properties
 
     mtd onItemEvent(item: *PropertiesItem, wndItem: *Wnd, evt: IEvent)->bool
     {
-        if wndItem.children.isEmpty() do
+        if wndItem.children.isEmpty()
+        {
             return false
+        }
 
         switch evt
         {

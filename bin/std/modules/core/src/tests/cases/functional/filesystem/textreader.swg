@@ -9,7 +9,7 @@ using Swag
     let fileName = CoreTests.makeFilesystemTestPath("core_textreader_utf8_bom.tmp")
     defer discard catch File.delete(fileName)
 
-    let payload: [7] u8 = [0xEF, 0xBB, 0xBF, 'c'u8, 'o'u8, 'r'u8, 'e'u8]
+    let payload: [7] u8 = [0xEF, 0xBB, 0xBF, 'c'_u8, 'o'_u8, 'r'_u8, 'e'_u8]
     discard expect File.writeAllBytes(fileName, payload)
 
     var reader: File.TextReader
@@ -26,7 +26,7 @@ using Swag
     let fileName = CoreTests.makeFilesystemTestPath("core_textreader_lines.tmp")
     defer discard catch File.delete(fileName)
 
-    let payload: [21] u8 = [0xEF, 0xBB, 0xBF, 'a'u8, 'l'u8, 'p'u8, 'h'u8, 'a'u8, '\r'u8, '\n'u8, 'b'u8, 'e'u8, 't'u8, 'a'u8, '\n'u8, '\n'u8, 'g'u8, 'a'u8, 'm'u8, 'm'u8, 'a'u8]
+    let payload: [21] u8 = [0xEF, 0xBB, 0xBF, 'a'_u8, 'l'_u8, 'p'_u8, 'h'_u8, 'a'_u8, '\r'_u8, '\n'_u8, 'b'_u8, 'e'_u8, 't'_u8, 'a'_u8, '\n'_u8, '\n'_u8, 'g'_u8, 'a'_u8, 'm'_u8, 'm'_u8, 'a'_u8]
     discard expect File.writeAllBytes(fileName, payload)
 
     let lines = expect File.readAllLines(fileName)
@@ -44,15 +44,18 @@ using Swag
     defer discard catch File.delete(fileName)
 
     var content: String
-    for 40 do
+    for 40
+    {
         content += "2x3x4\n"
+    }
+
     Swag.require(expect File.writeAllText(fileName, content) == 240)
 
     let text = expect File.readAllText(fileName)
     Swag.require(text == content)
 
     var lineCount = 0
-    var totalSize = 0'u64
+    var totalSize = 0_u64
     expect File.readEachLine(fileName)
     {
         lineCount += 1
@@ -69,14 +72,14 @@ using Swag
     let fileName = CoreTests.makeFilesystemTestPath("core_textwriter_lines.tmp")
     defer discard catch File.delete(fileName)
 
-    var lines: Array'(string)
+    var lines: Array!{string}
     lines.add("first")
     lines.add("")
     lines.add("third")
     Swag.require(expect File.writeAllLines(fileName, lines) == 13)
     Swag.require(expect File.readAllText(fileName) == "first\n\nthird\n")
 
-    var empty: Array'(string)
+    var empty: Array!{string}
     Swag.require(expect File.writeAllLines(fileName, empty) == 0)
     Swag.require(expect File.readAllText(fileName).isEmpty())
 }
@@ -121,7 +124,7 @@ using Swag
     let fileName = CoreTests.makeFilesystemTestPath("core_textreader_invalid_utf8.tmp")
     defer discard catch File.delete(fileName)
 
-    discard expect File.writeAllBytes(fileName, ['a'u8, 0xFF, '\n'u8])
+    discard expect File.writeAllBytes(fileName, ['a'_u8, 0xFF, '\n'_u8])
     var reader: File.TextReader
     expect reader.open(fileName)
     defer reader.close()
@@ -132,7 +135,7 @@ using Swag
     Swag.require(lineError.value() is Errors.InvalidFormatError)
 
     reader.close()
-    discard expect File.writeAllBytes(fileName, ['a'u8, 0xC3])
+    discard expect File.writeAllBytes(fileName, ['a'_u8, 0xC3])
     expect reader.open(fileName)
 
     var textError: Swag.Error
@@ -180,10 +183,13 @@ using Swag
     defer discard catch File.delete(fileName)
 
     var payload: [64 * 1024 + 5] u8
-    for index in 64 * 1024 - 1 do
-        payload[index] = 'a'u8
-    payload[64 * 1024 - 1] = '\r'u8
-    payload[64 * 1024]     = '\n'u8
+    for index in 64 * 1024 - 1
+    {
+        payload[index] = 'a'_u8
+    }
+
+    payload[64 * 1024 - 1] = '\r'_u8
+    payload[64 * 1024]     = '\n'_u8
     Memory.copy(payload.buffer + 64 * 1024 + 1, "tail".buffer, 4)
     discard expect File.writeAllBytes(fileName, payload)
 

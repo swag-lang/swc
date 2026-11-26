@@ -8,8 +8,10 @@ func patternBorrowIf()->*PatternBorrow?
 {
     var local: PatternBorrow
     let view:  IPatternBorrow = &local
-    if view is PatternBorrow as borrowed do
+    if view is PatternBorrow as borrowed
+    {
         return borrowed     // swc-expected-error {{sanity_err_borrow_escape}}
+    }
     return null
 }
 

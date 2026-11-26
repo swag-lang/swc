@@ -10,7 +10,7 @@ const NoValue = "--"
 //
 // An import table with twelve thousand symbols is a scroll bar, not information. Every list stops
 // here and records the remainder, so a report stays readable whatever the file's size.
-const ListLimit = 512'u64
+const ListLimit = 512_u64
 
 // Kinds of row a report is read in.
 enum RowKind
@@ -44,7 +44,7 @@ struct OverviewSection
 struct OverviewLibrary
 {
     name:    String
-    symbols: Array'String
+    symbols: Array!{String}
     count:   u64
 }
 
@@ -55,17 +55,17 @@ struct OverviewLibrary
 // shows only what is there.
 struct Overview
 {
-    identity:  Array'String     // Format, machine, kind, signature: the words of the identity line.
-    sections:  Array'OverviewSection
-    libraries: Array'OverviewLibrary
+    identity:  Array!{String}     // Format, machine, kind, signature: the words of the identity line.
+    sections:  Array!{OverviewSection}
+    libraries: Array!{OverviewLibrary}
     imports:   u64     // Symbols imported from every library.
     entropy:   f32     // Bits per byte over the beginning of the file.
     strings:   u64     // Runs of readable text long enough to be words.
 }
 
 // Libraries the overview keeps with their names, and names it keeps per library.
-const OverviewLibraryLimit = 64'u64
-const OverviewSymbolLimit  = 3'u64
+const OverviewLibraryLimit = 64_u64
+const OverviewSymbolLimit  = 3_u64
 
 // Everything one file was made to say, as a flat sequence of levelled rows.
 //
@@ -76,7 +76,7 @@ struct Report
 {
     formatName: String     // Short name of the format that was recognized.
     summary:    String     // One line for the host's information bar.
-    rows:       Array'Row
+    rows:       Array!{Row}
     overview:   Overview
     level:      u32     // Depth the next row is written at.
 }
@@ -84,7 +84,7 @@ struct Report
 impl Report
 {
     // Opens a structure that every row added until the matching [[Report.endGroup]] sits under.
-    mtd beginGroup(label: string, value: string = "", detail: string = "", offset = Swag.U64.Max, length = 0'u64, open = false)
+    mtd beginGroup(label: string, value: string = "", detail: string = "", offset = Swag.U64.Max, length = 0_u64, open = false)
     {
         with var row: Row
         {
@@ -137,7 +137,7 @@ impl Report
             .kind   = .Field
             .level  = me.level
             .label  = label
-            .value  = hexText(value, Math.clamp(length, 1'u64, 8) * 2)
+            .value  = hexText(value, Math.clamp(length, 1_u64, 8) * 2)
             .detail = detail
             .offset = offset
             .length = length
@@ -171,7 +171,7 @@ impl Report
             .kind   = .Field
             .level  = me.level
             .label  = label
-            .value  = hexAndDecimalText(value, Math.clamp(length, 1'u64, 8) * 2)
+            .value  = hexAndDecimalText(value, Math.clamp(length, 1_u64, 8) * 2)
             .detail = detail
             .offset = offset
             .length = length
@@ -211,8 +211,11 @@ impl Report
     // Records that a list was cut, so a short report is never mistaken for a short file.
     mtd listCut(shown, total: u64)
     {
-        if total <= shown do
+        if total <= shown
+        {
             return
+        }
+
         let text = Format.toString(texts().rep_NotListed, total - shown)
         .note(text)
     }
@@ -225,17 +228,26 @@ impl Report
     mtd const rowAt(offset: u64)->u64
     {
         var best      = Swag.U64.Max
-        var bestLevel = 0'u32
+        var bestLevel = 0_u32
         var bestSpan  = Swag.U64.Max
 
         for row, index in .rows where row.offset != Swag.U64.Max and row.length
         {
-            if offset < row.offset or offset - row.offset >= row.length do
+            if offset < row.offset or offset - row.offset >= row.length
+            {
                 continue
-            if best != Swag.U64.Max and row.level < bestLevel do
+            }
+
+            if best != Swag.U64.Max and row.level < bestLevel
+            {
                 continue
-            if best != Swag.U64.Max and row.level == bestLevel and row.length >= bestSpan do
+            }
+
+            if best != Swag.U64.Max and row.level == bestLevel and row.length >= bestSpan
+            {
                 continue
+            }
+
             best      = index
             bestLevel = row.level
             bestSpan  = row.length
@@ -252,8 +264,10 @@ impl Report
 
         for row in .rows
         {
-            for row.level do
+            for row.level
+            {
                 result += "    "
+            }
 
             result += row.label
             if not row.value.isEmpty()
@@ -291,14 +305,14 @@ struct FlagName
 // Returns `value` as a fixed-width hexadecimal number, in the `0x` form every offset is read in.
 func hexText(value: u64, digits: u64)->String
 {
-    var text: Array'u8
+    var text: Array!{u8}
     text.reserve(digits + 2)
-    text.add('0'u8)
-    text.add('x'u8)
+    text.add('0'_u8)
+    text.add('x'_u8)
     for index in digits
     {
         let nibble = cast(u8, ((value >> ((digits - 1 - index) * 4)) & 0xF))
-        text.add(nibble < 10 ? '0'u8 + nibble : 'A'u8 + nibble - 10)
+        text.add(nibble < 10 ? '0'_u8 + nibble : 'A'_u8 + nibble - 10)
     }
 
     return cast(string, text.toSlice())
@@ -315,16 +329,22 @@ func flagsText(value: u64, names: const [..] FlagName)->String
 
     for name in names where value & name.bit
     {
-        if not result.isEmpty() do
+        if not result.isEmpty()
+        {
             result += " | "
+        }
+
         result += name.name
         rest   &= ~name.bit
     }
 
     if rest
     {
-        if not result.isEmpty() do
+        if not result.isEmpty()
+        {
             result += " | "
+        }
+
         result += hexText(rest, 8)
     }
 
@@ -334,13 +354,17 @@ func flagsText(value: u64, names: const [..] FlagName)->String
 // Returns the calendar time a 32-bit seconds-since-1970 stamp names.
 func epochText(seconds: u64)->String
 {
-    if not seconds do
+    if not seconds
+    {
         return texts().ui_NotSet
+    }
 
     // A stamp beyond the calendar the runtime spells is a reproducible-build cookie or a corrupt
     // field. Either way it is a number, and saying so beats printing a year in the far future.
-    if seconds > 253_370_764_800 do
+    if seconds > 253_370_764_800
+    {
         return texts().ui_NotDate
+    }
 
     let epoch = Time.Timestamp.fromDateTime({1970, 1, 1})
     let stamp = Time.Timestamp.fromTicks(epoch.ticks + seconds * Time.TicksPerSecond)

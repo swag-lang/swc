@@ -389,7 +389,7 @@ func exposed()->s32 => Hidden
          "static-library",
          "discard exposed()"},
         {"FoldedQualifiedConstant", R"(#global public
-namespace Inner { private const Hidden = 42'u8 }
+namespace Inner { private const Hidden = 42_u8 }
 #[Swag.Inline]
 func exposed(value: s32)->s32 => value + Inner.Hidden
 )",
@@ -613,8 +613,9 @@ impl Value
     #[Swag.Implicit]
     mtd opSet(amount: s32)
     {{
-        if .positive() do
+        if .positive() {{
             .amount = 0
+        }}
         .amount = amount
     }}
 }}
@@ -705,7 +706,7 @@ impl Reader
     }
 }
 )",
-         "var reader: Reader\n    discard reader.read's32()",
+         "var reader: Reader\n    discard reader.read!{s32}()",
          {"internal mtd bump() { .value += 1 }"}},
         {"PrivateTypeAndConstant", R"(#global public
 private const Scale = 3
@@ -796,7 +797,7 @@ struct Holder { public slot: Slot }
          {"cannot export public struct 'Holder' because field 'slot' uses non-public type"}},
         {"PublicFieldForeignGenericOfInternalType", R"(#global public
 private struct Slot { a: s32 }
-struct Holder { public slot: Swag.AtomicValue'Slot }
+struct Holder { public slot: Swag.AtomicValue!{Slot} }
 )",
          "",
          {},

@@ -13,8 +13,10 @@ using Swag
     var funcType:  typeinfo? = #type func()->s32
 
     var count = 0
-    if intType do
+    if intType
+    {
         count += 1
+    }
 
     while floatType
     {
@@ -22,8 +24,10 @@ using Swag
         break
     }
 
-    for 4 where arrayType do
+    for 4 where arrayType
+    {
         count += 1
+    }
 
     var switchHit = 0
     switch 1

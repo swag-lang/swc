@@ -263,8 +263,10 @@ func deferReturnDropInfo()->DeferDropInfo
     func deferIfSingleStmtExecutesImmediately(takeIf: bool)->s64
     {
         resetDeferTrace()
-        if takeIf do
+        if takeIf
+        {
             defer appendDeferTrace(1)
+        }
 
         appendDeferTrace(2)
         return DeferTrace
@@ -288,10 +290,14 @@ func deferReturnDropInfo()->DeferDropInfo
             i += 1
             defer appendDeferTrace(cast(s64, i))
 
-            if i == 2 do
+            if i == 2
+            {
                 continue
-            if i == 3 do
+            }
+            if i == 3
+            {
                 break
+            }
 
             appendDeferTrace(9)
         }
@@ -377,10 +383,14 @@ func deferReturnDropInfo()->DeferDropInfo
         {
             defer appendDeferTrace(cast(s64, i) + 1)
 
-            if i == 1 do
+            if i == 1
+            {
                 continue
-            if i == 2 do
+            }
+            if i == 2
+            {
                 break
+            }
 
             appendDeferTrace(8)
         }
@@ -401,10 +411,14 @@ func deferReturnDropInfo()->DeferDropInfo
         {
             defer appendDeferTrace(cast(s64, i))
 
-            if i == 2 do
+            if i == 2
+            {
                 continue
-            if i == 3 do
+            }
+            if i == 3
+            {
                 break
+            }
 
             appendDeferTrace(6)
         }
@@ -427,10 +441,14 @@ func deferReturnDropInfo()->DeferDropInfo
         {
             defer appendDeferTrace(cast(s64, v))
 
-            if v == 2 do
+            if v == 2
+            {
                 continue
-            if v == 3 do
+            }
+            if v == 3
+            {
                 break
+            }
 
             appendDeferTrace(7)
         }
@@ -691,17 +709,19 @@ func deferReturnDropInfo()->DeferDropInfo
 {
     func deferStackAddressAfterSkippedBranch()->*u8
     {
-        var value = cast(*u8, 0x1234'u64)
+        var value = cast(*u8, 0x1234_u64)
         defer
         {
-            if deferSkippedAddressBranch() do
+            if deferSkippedAddressBranch()
+            {
                 consumePointerForDefer(value)
-            Swag.assert(value == cast(*u8, 0x1234'u64))
+            }
+            Swag.assert(value == cast(*u8, 0x1234_u64))
         }
 
         return value
     }
 
     const V = #run deferStackAddressAfterSkippedBranch()
-    #assert(V == cast(*u8, 0x1234'u64))
+    #assert(V == cast(*u8, 0x1234_u64))
 }

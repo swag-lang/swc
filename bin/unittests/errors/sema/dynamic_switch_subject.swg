@@ -2,7 +2,7 @@
 
 #test
 {
-    let value      = 42's32
+    let value      = 42_s32
     let boxed: any = value
     switch value
     {

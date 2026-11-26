@@ -6,7 +6,7 @@ using Swag, Core
 #test
 {
     var source = Image.create(2, 1, .RGBA8)
-    source.fill(Color.fromArgb(200'u8, 10'u8, 20'u8, 30'u8))
+    source.fill(Color.fromArgb(200_u8, 10_u8, 20_u8, 30_u8))
 
     var encoded = expect source.encode("memory.png")
     encoded.makeLinear()
@@ -56,11 +56,13 @@ func assertLoadedPng(fileName: string, width, height: s32, pf: PixelFormat, r, g
 
 func assertPngHasChunk(bytes: const [..] u8, c0, c1, c2, c3: u8)
 {
-    var i = 8'u64
+    var i = 8_u64
     while i + 12 <= bytes.count
     {
-        if bytes[i + 4] == c0 and bytes[i + 5] == c1 and bytes[i + 6] == c2 and bytes[i + 7] == c3 do
+        if bytes[i + 4] == c0 and bytes[i + 5] == c1 and bytes[i + 6] == c2 and bytes[i + 7] == c3
+        {
             return
+        }
 
         let length = (cast(u64, bytes[i]) << 24) |
                      (cast(u64, bytes[i + 1]) << 16) |
@@ -77,10 +79,10 @@ func assertEncodedPngRoundtrip(src: Image, expectedPf: PixelFormat, options: any
     let cb    = expect src.encode("memory.png", options)
     let bytes = nnBytes(cb.toSlice())
     Swag.require(bytes.count > 33)
-    Swag.require(bytes[0] == 137'u8 and bytes[1] == 80'u8 and bytes[2] == 78'u8 and bytes[3] == 71'u8)
-    assertPngHasChunk(bytes, 73'u8, 72'u8, 68'u8, 82'u8)
-    assertPngHasChunk(bytes, 73'u8, 68'u8, 65'u8, 84'u8)
-    assertPngHasChunk(bytes, 73'u8, 69'u8, 78'u8, 68'u8)
+    Swag.require(bytes[0] == 137_u8 and bytes[1] == 80_u8 and bytes[2] == 78_u8 and bytes[3] == 71_u8)
+    assertPngHasChunk(bytes, 73_u8, 72_u8, 68_u8, 82_u8)
+    assertPngHasChunk(bytes, 73_u8, 68_u8, 65_u8, 84_u8)
+    assertPngHasChunk(bytes, 73_u8, 69_u8, 78_u8, 68_u8)
 
     let img = expect Image.decode("encoded.png", bytes, {})
     Swag.require(img.width == src.width)
@@ -150,14 +152,16 @@ func fillSolidPngImage(img: *Image, r, g, b, a: u8)
             source[1] = 255
             for i in count
             {
-                let left  = i >= bytesPerPixel ? expected[3 + i - bytesPerPixel] : 0'u8
+                let left  = i >= bytesPerPixel ? expected[3 + i - bytesPerPixel] : 0_u8
                 let value = cast(u16, source[1 + i]) + left
                 expected[3 + i] = cast(u8, (value & 0xFF))
             }
 
-            PackedPixel.restoreHorizontalDeltas(&source[1], &actual[3], count, bytesPerPixel)
-            for i in Capacity do
+            Png.defilterSubRow(&source[1], &actual[3], count, bytesPerPixel)
+            for i in Capacity
+            {
                 Swag.require(actual[i] == expected[i])
+            }
         }
     }
 }
@@ -190,14 +194,16 @@ func fillSolidPngImage(img: *Image, r, g, b, a: u8)
 
             for i in count
             {
-                let left    = i >= bytesPerPixel ? expected[3 + i - bytesPerPixel] : 0'u8
+                let left    = i >= bytesPerPixel ? expected[3 + i - bytesPerPixel] : 0_u8
                 let average = cast(u8, ((cast(u16, previous[2 + i]) + left) >> 1))
                 expected[3 + i] = cast(u8, ((cast(u16, source[1 + i]) + average) & 0xFF))
             }
 
             Png.defilterAverageRow(&source[1], &previous[2], &actual[3], count, bytesPerPixel)
-            for i in Capacity do
+            for i in Capacity
+            {
                 Swag.require(actual[i] == expected[i])
+            }
         }
     }
 }
@@ -232,15 +238,17 @@ func fillSolidPngImage(img: *Image, r, g, b, a: u8)
 
             for i in count
             {
-                let left      = i >= bytesPerPixel ? expected[3 + i - bytesPerPixel] : 0'u8
-                let upLeft    = i >= bytesPerPixel ? previous[2 + i - bytesPerPixel] : 0'u8
+                let left      = i >= bytesPerPixel ? expected[3 + i - bytesPerPixel] : 0_u8
+                let upLeft    = i >= bytesPerPixel ? previous[2 + i - bytesPerPixel] : 0_u8
                 let predictor = Png.filterPaeth(left, previous[2 + i], upLeft)
                 expected[3 + i] = cast(u8, ((cast(u16, source[1 + i]) + predictor) & 0xFF))
             }
 
             Png.defilterPaethRow(&source[1], &previous[2], &actual[3], count, bytesPerPixel)
-            for i in Capacity do
+            for i in Capacity
+            {
                 Swag.require(actual[i] == expected[i])
+            }
         }
     }
 }
@@ -274,11 +282,11 @@ func fillSolidPngImage(img: *Image, r, g, b, a: u8)
             source[1 + bytesPerPixel]   = 255
             previous[2]                 = 255
             previous[2 + bytesPerPixel] = 0
-            var expectedScore = 0's32
+            var expectedScore = 0_s32
             for i in count
             {
-                let left      = i >= bytesPerPixel ? source[1 + i - bytesPerPixel] : 0'u8
-                let upLeft    = i >= bytesPerPixel ? previous[2 + i - bytesPerPixel] : 0'u8
+                let left      = i >= bytesPerPixel ? source[1 + i - bytesPerPixel] : 0_u8
+                let upLeft    = i >= bytesPerPixel ? previous[2 + i - bytesPerPixel] : 0_u8
                 let predictor = Png.paethScalar(left, previous[2 + i], upLeft)
                 let value     = cast #bit(u8, (cast(s32, source[1 + i]) - predictor))
                 expected[3 + i] = value
@@ -286,8 +294,11 @@ func fillSolidPngImage(img: *Image, r, g, b, a: u8)
             }
 
             Png.filterPaethRow(&source[1], &previous[2], &actual[3], count, bytesPerPixel)
-            for i in Capacity do
+            for i in Capacity
+            {
                 Swag.require(actual[i] == expected[i])
+            }
+
             Swag.require(Png.filterSumPaeth(&source[1], &previous[2], count, bytesPerPixel) == expectedScore)
         }
     }
@@ -315,10 +326,10 @@ func fillSolidPngImage(img: *Image, r, g, b, a: u8)
                 expected[i] = 0xA5
             }
 
-            var expectedScore = 0's32
+            var expectedScore = 0_s32
             for i in count
             {
-                let left    = i >= bytesPerPixel ? source[1 + i - bytesPerPixel] : 0'u8
+                let left    = i >= bytesPerPixel ? source[1 + i - bytesPerPixel] : 0_u8
                 let average = (cast(s32, left) + previous[2 + i]) / 2
                 let value   = cast #bit(u8, (cast(s32, source[1 + i]) - average))
                 expected[3 + i] = value
@@ -326,8 +337,11 @@ func fillSolidPngImage(img: *Image, r, g, b, a: u8)
             }
 
             Png.filterAverageRow(&source[1], &previous[2], &actual[3], count, bytesPerPixel)
-            for i in Capacity do
+            for i in Capacity
+            {
                 Swag.require(actual[i] == expected[i])
+            }
+
             Swag.require(Png.filterSumAverage(&source[1], &previous[2], count, bytesPerPixel) == expectedScore)
         }
     }
@@ -355,18 +369,21 @@ func fillSolidPngImage(img: *Image, r, g, b, a: u8)
 
             source[1] = 0
             source[1 + bytesPerPixel] = 255
-            var expectedScore = 0's32
+            var expectedScore = 0_s32
             for i in count
             {
-                let left  = i >= bytesPerPixel ? source[1 + i - bytesPerPixel] : 0'u8
+                let left  = i >= bytesPerPixel ? source[1 + i - bytesPerPixel] : 0_u8
                 let value = cast #bit(u8, (cast(s32, source[1 + i]) - left))
                 expected[3 + i] = value
                 expectedScore   += 128 - Math.abs(cast(s32, value) - 128)
             }
 
             Png.filterSubRow(&source[1], &actual[3], count, bytesPerPixel)
-            for i in Capacity do
+            for i in Capacity
+            {
                 Swag.require(actual[i] == expected[i])
+            }
+
             Swag.require(Png.filterSumSub(&source[1], count, bytesPerPixel) == expectedScore)
         }
     }
@@ -411,7 +428,7 @@ func assertPackedPngExpansion(bitDepth, multiplier: u8, sampleCount: u64)
     const Capacity = 160
     let samplesPerByte = 8 / bitDepth
     let packedCount    = (sampleCount + samplesPerByte - 1) / samplesPerByte
-    let sampleMask     = cast(u8, ((1'u32 << bitDepth) - 1))
+    let sampleMask     = cast(u8, ((1_u32 << bitDepth) - 1))
     var packed:   [Capacity] u8
     var actual:   [Capacity] u8
     var expected: [Capacity] u8
@@ -436,8 +453,10 @@ func assertPackedPngExpansion(bitDepth, multiplier: u8, sampleCount: u64)
     default: unreachable
     }
 
-    for i in Capacity do
+    for i in Capacity
+    {
         Swag.require(actual[i] == expected[i])
+    }
 
     for i in Capacity
     {
@@ -466,8 +485,10 @@ func assertPackedPngExpansion(bitDepth, multiplier: u8, sampleCount: u64)
     default: unreachable
     }
 
-    for i in Capacity do
+    for i in Capacity
+    {
         Swag.require(actual[i] == expected[i])
+    }
 }
 
 #test
@@ -478,10 +499,15 @@ func assertPackedPngExpansion(bitDepth, multiplier: u8, sampleCount: u64)
     let multipliers2: [2] u8 = [1, 85]
     for sampleCount in 130
     {
-        for multiplier in multipliers1 do
+        for multiplier in multipliers1
+        {
             assertPackedPngExpansion(1, multiplier, sampleCount)
-        for multiplier in multipliers2 do
+        }
+
+        for multiplier in multipliers2
+        {
             assertPackedPngExpansion(2, multiplier, sampleCount)
+        }
     }
 }
 
@@ -507,11 +533,16 @@ func assertPackedPngExpansion(bitDepth, multiplier: u8, sampleCount: u64)
         source[1]   = 255
         previous[2] = 255
 
-        for i in count do
+        for i in count
+        {
             expected[3 + i] = cast(u8, ((cast(u16, source[1 + i]) + previous[2 + i]) & 0xFF))
+        }
+
         Png.defilterUpRow(&source[1], &previous[2], &actual[3], count)
-        for i in Capacity do
+        for i in Capacity
+        {
             Swag.require(actual[i] == expected[i])
+        }
     }
 }
 
@@ -543,8 +574,10 @@ func assertPackedPngExpansion(bitDepth, multiplier: u8, sampleCount: u64)
             }
 
             Png.expand4Row(&packed[1], &actual[3], sampleCount, multiplier)
-            for i in Capacity do
+            for i in Capacity
+            {
                 Swag.require(actual[i] == expected[i])
+            }
 
             for i in Capacity
             {
@@ -566,8 +599,10 @@ func assertPackedPngExpansion(bitDepth, multiplier: u8, sampleCount: u64)
             }
 
             Png.expand4Row(&actual[sourceOffset], &actual[3], sampleCount, multiplier)
-            for i in Capacity do
+            for i in Capacity
+            {
                 Swag.require(actual[i] == expected[i])
+            }
         }
     }
 }
@@ -578,9 +613,9 @@ func assertPackedPngExpansion(bitDepth, multiplier: u8, sampleCount: u64)
     // Offsets and sentinels also exercise unaligned loads and the bounded store.
     const ValueCount = 65536
     const Pixels     = ValueCount / 4 + 1
-    var source:   Array'u8
-    var actual:   Array'u8
-    var expected: Array'u8
+    var source:   Array!{u8}
+    var actual:   Array!{u8}
+    var expected: Array!{u8}
     source.resize(1 + Pixels * 8)
     actual.resize(3 + Pixels * 4 + 1)
     expected.resize(actual.count)
@@ -599,8 +634,10 @@ func assertPackedPngExpansion(bitDepth, multiplier: u8, sampleCount: u64)
     }
 
     Png.reduce16Samples(source.storage() + 1, actual.storage() + 3, Pixels * 4)
-    for i in actual.count do
+    for i in actual.count
+    {
         Swag.require(actual[i] == expected[i])
+    }
 }
 
 #test
@@ -625,11 +662,16 @@ func assertPackedPngExpansion(bitDepth, multiplier: u8, sampleCount: u64)
         source[1]   = 0
         previous[2] = 255
 
-        for i in count do
+        for i in count
+        {
             expected[3 + i] = cast #bit(u8, (source[1 + i] - #wrap previous[2 + i]))
+        }
+
         Png.filterUpRow(&source[1], &previous[2], &actual[3], count)
-        for i in Capacity do
+        for i in Capacity
+        {
             Swag.require(actual[i] == expected[i])
+        }
     }
 }
 
@@ -673,9 +715,9 @@ func addPngHeader(result: *ConcatBuffer, width, height: u32, bitDepth, colorType
     addPngU32Be(&ihdr, height)
     ihdr.addNative(bitDepth)
     ihdr.addNative(colorType)
-    ihdr.addNative(0'u8)
-    ihdr.addNative(0'u8)
-    ihdr.addNative(interlaced ? 1'u8 : 0'u8)
+    ihdr.addNative(0_u8)
+    ihdr.addNative(0_u8)
+    ihdr.addNative(interlaced ? 1_u8 : 0_u8)
     addPngChunk(result, "IHDR", nnBytes(ihdr.toSlice()))
 }
 
@@ -686,33 +728,41 @@ func addPngImageData(result: *ConcatBuffer, raw: const [..] u8)
     addPngChunk(result, "IDAT", nnBytes(compressed.toSlice()))
 }
 
-func buildPalettedPng(width: u32, transparency = true)->Array'u8
+func buildPalettedPng(width: u32, transparency = true)->Array!{u8}
 {
     const palette: [9] u8 = [1, 2, 3, 10, 20, 30, 200, 150, 100]
     const alpha:   [2] u8 = [4, 40]
 
     var raw: ConcatBuffer
-    raw.addNative(0'u8)
-    for i in width do
+    raw.addNative(0_u8)
+    for i in width
+    {
         raw.addNative(cast(u8, (i % 3)))
+    }
 
     var result: ConcatBuffer
     addPngSignature(&result)
     addPngHeader(&result, width, 1, 8, 3)
     addPngChunk(&result, "PLTE", palette)
-    if transparency do
+    if transparency
+    {
         addPngChunk(&result, "tRNS", alpha)
+    }
+
     addPngImageData(&result, nnBytes(raw.toSlice()))
     addPngChunk(&result, "IEND", "")
     return result.toArray()
 }
 
-func buildGrayscalePng(width: u32)->Array'u8
+func buildGrayscalePng(width: u32)->Array!{u8}
 {
     var raw: ConcatBuffer
-    raw.addNative(0'u8)
-    for i in width do
+    raw.addNative(0_u8)
+    for i in width
+    {
         raw.addNative(cast(u8, (i & 0xFF)))
+    }
+
     raw.makeLinear()
 
     var result: ConcatBuffer
@@ -723,12 +773,15 @@ func buildGrayscalePng(width: u32)->Array'u8
     return result.toArray()
 }
 
-func buildGrayscaleTransparencyPng(width: u32, key: u8)->Array'u8
+func buildGrayscaleTransparencyPng(width: u32, key: u8)->Array!{u8}
 {
     var raw: ConcatBuffer
-    raw.addNative(0'u8)
-    for i in width do
+    raw.addNative(0_u8)
+    for i in width
+    {
         raw.addNative(cast(u8, (i & 0xFF)))
+    }
+
     raw.makeLinear()
 
     let transparency: [2] u8 = [0, key]
@@ -741,10 +794,10 @@ func buildGrayscaleTransparencyPng(width: u32, key: u8)->Array'u8
     return result.toArray()
 }
 
-func buildGrayscaleAlphaPng(width: u32)->Array'u8
+func buildGrayscaleAlphaPng(width: u32)->Array!{u8}
 {
     var raw: ConcatBuffer
-    raw.addNative(0'u8)
+    raw.addNative(0_u8)
     for i in width
     {
         raw.addNative(cast(u8, (i & 0xFF)))
@@ -761,19 +814,19 @@ func buildGrayscaleAlphaPng(width: u32)->Array'u8
     return result.toArray()
 }
 
-func buildRgbTransparencyPng(width: u32)->Array'u8
+func buildRgbTransparencyPng(width: u32)->Array!{u8}
 {
-    const KeyR = 37'u8
-    const KeyG = 91'u8
-    const KeyB = 173'u8
+    const KeyR = 37_u8
+    const KeyG = 91_u8
+    const KeyB = 173_u8
     var raw: ConcatBuffer
-    raw.addNative(0'u8)
+    raw.addNative(0_u8)
     for i in width
     {
         let matches = i == 17 or i + 1 == width
-        raw.addNative(matches ? KeyR : 1'u8)
-        raw.addNative(matches ? KeyG : 2'u8)
-        raw.addNative(matches ? KeyB : 3'u8)
+        raw.addNative(matches ? KeyR : 1_u8)
+        raw.addNative(matches ? KeyG : 2_u8)
+        raw.addNative(matches ? KeyB : 3_u8)
     }
 
     raw.makeLinear()
@@ -828,8 +881,8 @@ func buildRgbTransparencyPng(width: u32)->Array'u8
     addPngU32Be(&frameControl, 0)      // y
     addPngU16Be(&frameControl, 1)      // delay numerator
     addPngU16Be(&frameControl, 10)     // delay denominator
-    frameControl.addNative(0'u8)       // dispose
-    frameControl.addNative(0'u8)       // blend
+    frameControl.addNative(0_u8)       // dispose
+    frameControl.addNative(0_u8)       // blend
 
     const rawRgbRow: [4] u8 = [0, 17, 34, 51]
     var encoded: ConcatBuffer
@@ -856,7 +909,7 @@ func assertPngDecodeFails(fileName: string, encoded: *ConcatBuffer)
     Swag.require(decodeError != null)
 }
 
-func buildPng16(width, height: s32, colorType: u8, interlace: bool, samples: const [..] u16, transparency: const [..] u16? = null)->Array'u8
+func buildPng16(width, height: s32, colorType: u8, interlace: bool, samples: const [..] u16, transparency: const [..] u16? = null)->Array!{u8}
 {
     var channels: s32
     switch colorType
@@ -875,12 +928,14 @@ func buildPng16(width, height: s32, colorType: u8, interlace: bool, samples: con
     {
         for y in height
         {
-            raw.addNative(0'u8)
+            raw.addNative(0_u8)
             for x in width
             {
                 let pixel = cast(u64, (y * width + x)) * cast(u64, channels)
-                for c in channels do
+                for c in channels
+                {
                     addPngU16Be(&raw, samples[pixel + c])
+                }
             }
         }
     }
@@ -893,17 +948,21 @@ func buildPng16(width, height: s32, colorType: u8, interlace: bool, samples: con
 
         for pass in 7
         {
-            if startX[pass] >= width or startY[pass] >= height do
+            if startX[pass] >= width or startY[pass] >= height
+            {
                 continue
+            }
 
             for var y = startY[pass]; y < height; y += stepY[pass]
             {
-                raw.addNative(0'u8)
+                raw.addNative(0_u8)
                 for var x = startX[pass]; x < width; x += stepX[pass]
                 {
                     let pixel = cast(u64, (y * width + x)) * cast(u64, channels)
-                    for c in channels do
+                    for c in channels
+                    {
                         addPngU16Be(&raw, samples[pixel + c])
+                    }
                 }
             }
         }
@@ -917,18 +976,21 @@ func buildPng16(width, height: s32, colorType: u8, interlace: bool, samples: con
     var ihdr: ConcatBuffer
     addPngU32Be(&ihdr, cast(u32, width))
     addPngU32Be(&ihdr, cast(u32, height))
-    ihdr.addNative(16'u8)
+    ihdr.addNative(16_u8)
     ihdr.addNative(colorType)
-    ihdr.addNative(0'u8)
-    ihdr.addNative(0'u8)
-    ihdr.addNative(interlace ? 1'u8 : 0'u8)
+    ihdr.addNative(0_u8)
+    ihdr.addNative(0_u8)
+    ihdr.addNative(interlace ? 1_u8 : 0_u8)
     addPngChunk(&result, "IHDR", nnBytes(ihdr.toSlice()))
 
     if transparency != null
     {
         var trns: ConcatBuffer
-        for value in transparency do
+        for value in transparency
+        {
             addPngU16Be(&trns, value)
+        }
+
         addPngChunk(&result, "tRNS", nnBytes(trns.toSlice()))
     }
 
@@ -1003,7 +1065,7 @@ func buildPng16(width, height: s32, colorType: u8, interlace: bool, samples: con
     addPngHeader(&truncatedChecksum, 1, 1, 8, 2)
     addPngU32Be(&truncatedChecksum, 1)
     truncatedChecksum.addBytes("IDAT")
-    truncatedChecksum.addNative(0'u8)
+    truncatedChecksum.addNative(0_u8)
     assertPngDecodeFails("truncated-checksum.png", &truncatedChecksum)
 
     var shortScanline: ConcatBuffer
@@ -1176,17 +1238,17 @@ func buildPng16(width, height: s32, colorType: u8, interlace: bool, samples: con
 // Load real 24-bit and 32-bit PNG fixtures.
 #test
 {
-    assertLoadedPng("rgb.png", 660, 441, .RGB8, 194'u8, 205'u8, 201'u8, 255'u8)
-    assertLoadedPng("rgba.png", 660, 441, .RGBA8, 194'u8, 205'u8, 201'u8, 255'u8)
+    assertLoadedPng("rgb.png", 660, 441, .RGB8, 194_u8, 205_u8, 201_u8, 255_u8)
+    assertLoadedPng("rgba.png", 660, 441, .RGBA8, 194_u8, 205_u8, 201_u8, 255_u8)
 }
 
 // Decode non-interlaced grayscale PNGs with packed bit depths.
 #test
 {
-    assertLoadedPng("basn0g01.png", 32, 32, .Gray8, 0'u8, 0'u8, 0'u8, 255'u8)
-    assertLoadedPng("basn0g02.png", 32, 32, .Gray8, 255'u8, 255'u8, 255'u8, 255'u8)
-    assertLoadedPng("basn0g04.png", 32, 32, .Gray8, 119'u8, 119'u8, 119'u8, 255'u8)
-    assertLoadedPng("basn4a08.png", 32, 32, .GrayAlpha8, 0'u8, 0'u8, 0'u8, 0'u8)
+    assertLoadedPng("basn0g01.png", 32, 32, .Gray8, 0_u8, 0_u8, 0_u8, 255_u8)
+    assertLoadedPng("basn0g02.png", 32, 32, .Gray8, 255_u8, 255_u8, 255_u8, 255_u8)
+    assertLoadedPng("basn0g04.png", 32, 32, .Gray8, 119_u8, 119_u8, 119_u8, 255_u8)
+    assertLoadedPng("basn4a08.png", 32, 32, .GrayAlpha8, 0_u8, 0_u8, 0_u8, 0_u8)
 }
 
 // Grayscale RGB expansion preserves the final pixel on both sides of its packed-store threshold.
@@ -1194,15 +1256,15 @@ func buildPng16(width, height: s32, colorType: u8, interlace: bool, samples: con
 {
     let scalarBytes = buildGrayscalePng(4095)
     let scalarImage = expect Image.decode("gray-rgb-scalar.png", nnBytes(scalarBytes.toSlice()), {})
-    assertPngPixelAt(scalarImage, 0, 0, 0'u8, 0'u8, 0'u8, 255'u8)
-    assertPngPixelAt(scalarImage, 4094, 0, 254'u8, 254'u8, 254'u8, 255'u8)
+    assertPngPixelAt(scalarImage, 0, 0, 0_u8, 0_u8, 0_u8, 255_u8)
+    assertPngPixelAt(scalarImage, 4094, 0, 254_u8, 254_u8, 254_u8, 255_u8)
 
     let packedBytes = buildGrayscalePng(4096)
     let packedImage = expect Image.decode("gray-rgb-packed.png", nnBytes(packedBytes.toSlice()), {})
-    assertPngPixelAt(packedImage, 0, 0, 0'u8, 0'u8, 0'u8, 255'u8)
-    assertPngPixelAt(packedImage, 255, 0, 255'u8, 255'u8, 255'u8, 255'u8)
-    assertPngPixelAt(packedImage, 256, 0, 0'u8, 0'u8, 0'u8, 255'u8)
-    assertPngPixelAt(packedImage, 4095, 0, 255'u8, 255'u8, 255'u8, 255'u8)
+    assertPngPixelAt(packedImage, 0, 0, 0_u8, 0_u8, 0_u8, 255_u8)
+    assertPngPixelAt(packedImage, 255, 0, 255_u8, 255_u8, 255_u8, 255_u8)
+    assertPngPixelAt(packedImage, 256, 0, 0_u8, 0_u8, 0_u8, 255_u8)
+    assertPngPixelAt(packedImage, 4095, 0, 255_u8, 255_u8, 255_u8, 255_u8)
 }
 
 // Grayscale transparency uses the unscaled 8-bit key and matches around its packed-table threshold.
@@ -1210,14 +1272,14 @@ func buildPng16(width, height: s32, colorType: u8, interlace: bool, samples: con
 {
     let scalarBytes = buildGrayscaleTransparencyPng(511, 119)
     let scalarImage = expect Image.decode("gray-trns-scalar.png", nnBytes(scalarBytes.toSlice()), {})
-    assertPngPixelAt(scalarImage, 119, 0, 119'u8, 119'u8, 119'u8, 0'u8)
-    assertPngPixelAt(scalarImage, 120, 0, 120'u8, 120'u8, 120'u8, 255'u8)
+    assertPngPixelAt(scalarImage, 119, 0, 119_u8, 119_u8, 119_u8, 0_u8)
+    assertPngPixelAt(scalarImage, 120, 0, 120_u8, 120_u8, 120_u8, 255_u8)
 
     let packedBytes = buildGrayscaleTransparencyPng(512, 119)
     let packedImage = expect Image.decode("gray-trns-packed.png", nnBytes(packedBytes.toSlice()), {})
-    assertPngPixelAt(packedImage, 119, 0, 119'u8, 119'u8, 119'u8, 0'u8)
-    assertPngPixelAt(packedImage, 120, 0, 120'u8, 120'u8, 120'u8, 255'u8)
-    assertPngPixelAt(packedImage, 511, 0, 255'u8, 255'u8, 255'u8, 255'u8)
+    assertPngPixelAt(packedImage, 119, 0, 119_u8, 119_u8, 119_u8, 0_u8)
+    assertPngPixelAt(packedImage, 120, 0, 120_u8, 120_u8, 120_u8, 255_u8)
+    assertPngPixelAt(packedImage, 511, 0, 255_u8, 255_u8, 255_u8, 255_u8)
 }
 
 // Grayscale-plus-alpha packing preserves both channels around its direct-store threshold.
@@ -1225,14 +1287,14 @@ func buildPng16(width, height: s32, colorType: u8, interlace: bool, samples: con
 {
     let scalarBytes = buildGrayscaleAlphaPng(255)
     let scalarImage = expect Image.decode("gray-alpha-scalar.png", nnBytes(scalarBytes.toSlice()), {})
-    assertPngPixelAt(scalarImage, 0, 0, 0'u8, 0'u8, 0'u8, 255'u8)
-    assertPngPixelAt(scalarImage, 254, 0, 254'u8, 254'u8, 254'u8, 1'u8)
+    assertPngPixelAt(scalarImage, 0, 0, 0_u8, 0_u8, 0_u8, 255_u8)
+    assertPngPixelAt(scalarImage, 254, 0, 254_u8, 254_u8, 254_u8, 1_u8)
 
     let packedBytes = buildGrayscaleAlphaPng(256)
     let packedImage = expect Image.decode("gray-alpha-packed.png", nnBytes(packedBytes.toSlice()), {})
-    assertPngPixelAt(packedImage, 0, 0, 0'u8, 0'u8, 0'u8, 255'u8)
-    assertPngPixelAt(packedImage, 119, 0, 119'u8, 119'u8, 119'u8, 136'u8)
-    assertPngPixelAt(packedImage, 255, 0, 255'u8, 255'u8, 255'u8, 0'u8)
+    assertPngPixelAt(packedImage, 0, 0, 0_u8, 0_u8, 0_u8, 255_u8)
+    assertPngPixelAt(packedImage, 119, 0, 119_u8, 119_u8, 119_u8, 136_u8)
+    assertPngPixelAt(packedImage, 255, 0, 255_u8, 255_u8, 255_u8, 0_u8)
 }
 
 // RGB transparency expansion preserves scalar and SIMD boundary pixels, including the tail.
@@ -1240,15 +1302,15 @@ func buildPng16(width, height: s32, colorType: u8, interlace: bool, samples: con
 {
     let scalarBytes = buildRgbTransparencyPng(4095)
     let scalarImage = expect Image.decode("rgb-trns-scalar.png", nnBytes(scalarBytes.toSlice()), {})
-    assertPngPixelAt(scalarImage, 0, 0, 1'u8, 2'u8, 3'u8, 255'u8)
-    assertPngPixelAt(scalarImage, 17, 0, 37'u8, 91'u8, 173'u8, 0'u8)
-    assertPngPixelAt(scalarImage, 4094, 0, 37'u8, 91'u8, 173'u8, 0'u8)
+    assertPngPixelAt(scalarImage, 0, 0, 1_u8, 2_u8, 3_u8, 255_u8)
+    assertPngPixelAt(scalarImage, 17, 0, 37_u8, 91_u8, 173_u8, 0_u8)
+    assertPngPixelAt(scalarImage, 4094, 0, 37_u8, 91_u8, 173_u8, 0_u8)
 
     let simdBytes = buildRgbTransparencyPng(4096)
     let simdImage = expect Image.decode("rgb-trns-simd.png", nnBytes(simdBytes.toSlice()), {})
-    assertPngPixelAt(simdImage, 0, 0, 1'u8, 2'u8, 3'u8, 255'u8)
-    assertPngPixelAt(simdImage, 17, 0, 37'u8, 91'u8, 173'u8, 0'u8)
-    assertPngPixelAt(simdImage, 4095, 0, 37'u8, 91'u8, 173'u8, 0'u8)
+    assertPngPixelAt(simdImage, 0, 0, 1_u8, 2_u8, 3_u8, 255_u8)
+    assertPngPixelAt(simdImage, 17, 0, 37_u8, 91_u8, 173_u8, 0_u8)
+    assertPngPixelAt(simdImage, 4095, 0, 37_u8, 91_u8, 173_u8, 0_u8)
 }
 
 // Consecutive Paeth rows preserve all RGB8 bytes across the paired path,
@@ -1298,10 +1360,10 @@ func buildPng16(width, height: s32, colorType: u8, interlace: bool, samples: con
 // Decode Adam7-interlaced grayscale, true-color, and alpha PNGs.
 #test
 {
-    assertLoadedPng("basi0g08.png", 32, 32, .Gray8, 28'u8, 28'u8, 28'u8, 255'u8)
-    assertLoadedPng("basi2c08.png", 32, 32, .RGB8, 31'u8, 31'u8, 31'u8, 255'u8)
-    assertLoadedPng("basi4a08.png", 32, 32, .GrayAlpha8, 0'u8, 0'u8, 0'u8, 0'u8)
-    assertLoadedPng("basi6a08.png", 32, 32, .RGBA8, 0'u8, 32'u8, 255'u8, 0'u8)
+    assertLoadedPng("basi0g08.png", 32, 32, .Gray8, 28_u8, 28_u8, 28_u8, 255_u8)
+    assertLoadedPng("basi2c08.png", 32, 32, .RGB8, 31_u8, 31_u8, 31_u8, 255_u8)
+    assertLoadedPng("basi4a08.png", 32, 32, .GrayAlpha8, 0_u8, 0_u8, 0_u8, 0_u8)
+    assertLoadedPng("basi6a08.png", 32, 32, .RGBA8, 0_u8, 32_u8, 255_u8, 0_u8)
 }
 
 // The last Adam7 pass reconstructs packed rows against the previous row in that pass.
@@ -1344,7 +1406,7 @@ func buildPng16(width, height: s32, colorType: u8, interlace: bool, samples: con
     var source:   [Capacity] u8
     var actual:   [Capacity] u8
     var expected: [Capacity] u8
-    for count in 65'u64
+    for count in 65_u64
     {
         for i in Capacity
         {
@@ -1367,7 +1429,7 @@ func buildPng16(width, height: s32, colorType: u8, interlace: bool, samples: con
 // Preserve high-depth color samples, while grayscale remains in its compact native channel count.
 #test
 {
-    var gray: Array'u16
+    var gray: Array!{u16}
     gray.add(0x0000)
     gray.add(0x8080)
     gray.add(0xFFFF)
@@ -1375,11 +1437,11 @@ func buildPng16(width, height: s32, colorType: u8, interlace: bool, samples: con
     let grayPng = buildPng16(3, 1, 0, false, gray.toSlice())
     let grayImg = expect Image.decode("gray16.png", nnBytes(grayPng.toSlice()), {})
     Swag.require(grayImg.pixelFormat == .Gray16)
-    assertPngPixelAt(grayImg, 0, 0, 0'u8, 0'u8, 0'u8, 255'u8)
-    assertPngPixelAt(grayImg, 1, 0, 128'u8, 128'u8, 128'u8, 255'u8)
-    assertPngPixelAt(grayImg, 2, 0, 255'u8, 255'u8, 255'u8, 255'u8)
+    assertPngPixelAt(grayImg, 0, 0, 0_u8, 0_u8, 0_u8, 255_u8)
+    assertPngPixelAt(grayImg, 1, 0, 128_u8, 128_u8, 128_u8, 255_u8)
+    assertPngPixelAt(grayImg, 2, 0, 255_u8, 255_u8, 255_u8, 255_u8)
 
-    var rgba: Array'u16
+    var rgba: Array!{u16}
     rgba.add(0x1234)
     rgba.add(0x8080)
     rgba.add(0xFFFF)
@@ -1388,7 +1450,7 @@ func buildPng16(width, height: s32, colorType: u8, interlace: bool, samples: con
     let rgbaPng = buildPng16(1, 1, 6, false, rgba.toSlice())
     let rgbaImg = expect Image.decode("rgba16.png", nnBytes(rgbaPng.toSlice()), {})
     Swag.require(rgbaImg.pixelFormat == .RGBA16)
-    assertPngPixelAt(rgbaImg, 0, 0, 18'u8, 128'u8, 255'u8, 1'u8)
+    assertPngPixelAt(rgbaImg, 0, 0, 18_u8, 128_u8, 255_u8, 1_u8)
     let rgbaRaw = cast(const [*] u16, rgbaImg.pixels.storage())
     Swag.require(rgbaRaw[0] == 0x1234 and rgbaRaw[1] == 0x8080 and rgbaRaw[2] == 0xFFFF and rgbaRaw[3] == 0x0101)
 }
@@ -1400,7 +1462,7 @@ func buildPng16(width, height: s32, colorType: u8, interlace: bool, samples: con
     var source:   [Capacity] u8
     var actual:   [Capacity] u8
     var expected: [Capacity] u8
-    for count in 65'u64
+    for count in 65_u64
     {
         for i in Capacity
         {
@@ -1437,7 +1499,7 @@ func buildPng16(width, height: s32, colorType: u8, interlace: bool, samples: con
     var source:   [Capacity] u8
     var actual:   [Capacity] u8
     var expected: [Capacity] u8
-    for count in 35'u64
+    for count in 35_u64
     {
         for i in Capacity
         {
@@ -1464,7 +1526,7 @@ func buildPng16(width, height: s32, colorType: u8, interlace: bool, samples: con
                         source[4 + 6 * i] == 0x01 and
                         source[5 + 6 * i] == 0xFF and
                         source[6 + 6 * i] == 0xFF
-            for component in 3'u64
+            for component in 3_u64
             {
                 expected[3 + 8 * i + 2 * component] = source[2 + 6 * i + 2 * component]
                 expected[4 + 8 * i + 2 * component] = source[1 + 6 * i + 2 * component]
@@ -1483,20 +1545,25 @@ func buildPng16(width, height: s32, colorType: u8, interlace: bool, samples: con
 // compares the complete 16-bit value before creating the alpha channel.
 #test
 {
-    var alphaSamples: Array'u16
-    for i in 18 do
+    var alphaSamples: Array!{u16}
+    for i in 18
+    {
         alphaSamples.add(cast(u16, (0x1000 + i * 257)))
+    }
+
     let alphaPng   = buildPng16(9, 1, 4, false, alphaSamples.toSlice())
     let alphaImage = expect Image.decode("gray-alpha16.png", nnBytes(alphaPng.toSlice()), {})
     Swag.require(alphaImage.pixelFormat == .GrayAlpha16)
     let alphaRaw = cast(const [*] u16, alphaImage.pixels.storage())
-    for i in 18 do
+    for i in 18
+    {
         Swag.require(alphaRaw[i] == alphaSamples[i])
+    }
 
-    var graySamples: Array'u16
+    var graySamples: Array!{u16}
     graySamples.add(0x1234)
     graySamples.add(0x1235)
-    var key: Array'u16
+    var key: Array!{u16}
     key.add(0x1234)
     let grayPng   = buildPng16(2, 1, 0, false, graySamples.toSlice(), key.toSlice())
     let grayImage = expect Image.decode("gray16-trns.png", nnBytes(grayPng.toSlice()), {})
@@ -1509,7 +1576,7 @@ func buildPng16(width, height: s32, colorType: u8, interlace: bool, samples: con
 // A 16-bit tRNS key compares the original samples before reduction to 8 bits.
 #test
 {
-    var samples: Array'u16
+    var samples: Array!{u16}
     samples.add(0x1234)
     samples.add(0x5678)
     samples.add(0x9ABC)
@@ -1517,7 +1584,7 @@ func buildPng16(width, height: s32, colorType: u8, interlace: bool, samples: con
     samples.add(0x5678)
     samples.add(0x9ABC)
 
-    var key: Array'u16
+    var key: Array!{u16}
     key.add(0x1234)
     key.add(0x5678)
     key.add(0x9ABC)
@@ -1527,22 +1594,22 @@ func buildPng16(width, height: s32, colorType: u8, interlace: bool, samples: con
     Swag.require(img.pixelFormat == .RGBA16)
     Swag.require(img.pixels.buffer != null)
     let raw = cast(const [*] u16, img.pixels.storage())
-    Swag.require(raw[3] == 0'u16)
-    Swag.require(raw[7] == 0xFFFF'u16)
+    Swag.require(raw[3] == 0_u16)
+    Swag.require(raw[7] == 0xFFFF_u16)
 }
 
 // The RGB16 transparency path carries complete colors through vector and tail pixels.
 #test
 {
-    var samples: Array'u16
+    var samples: Array!{u16}
     for i in 7
     {
         samples.add(0x1234)
         samples.add(0x8001)
-        samples.add(i % 2 == 0 ? 0xFFFF'u16 : 0xFFFE'u16)
+        samples.add(i % 2 == 0 ? 0xFFFF_u16 : 0xFFFE_u16)
     }
 
-    var key: Array'u16
+    var key: Array!{u16}
     key.add(0x1234)
     key.add(0x8001)
     key.add(0xFFFF)
@@ -1555,7 +1622,7 @@ func buildPng16(width, height: s32, colorType: u8, interlace: bool, samples: con
         Swag.require(raw[4 * i] == samples[3 * i])
         Swag.require(raw[4 * i + 1] == samples[3 * i + 1])
         Swag.require(raw[4 * i + 2] == samples[3 * i + 2])
-        Swag.require(raw[4 * i + 3] == (i % 2 == 0 ? 0'u16 : 0xFFFF'u16))
+        Swag.require(raw[4 * i + 3] == (i % 2 == 0 ? 0_u16 : 0xFFFF_u16))
     }
 }
 
@@ -1565,7 +1632,7 @@ func buildPng16(width, height: s32, colorType: u8, interlace: bool, samples: con
     const Width  = 5
     const Height = 5
 
-    var samples: Array'u16
+    var samples: Array!{u16}
     for y in Height
     {
         for x in Width
@@ -1584,7 +1651,7 @@ func buildPng16(width, height: s32, colorType: u8, interlace: bool, samples: con
     {
         for x in Width
         {
-            assertPngPixelAt(img, x, Height - y - 1, cast(u8, (10 + x + y * Width)), cast(u8, (50 + x * 2 + y)), cast(u8, (100 + x + y * 3)), 255'u8)
+            assertPngPixelAt(img, x, Height - y - 1, cast(u8, (10 + x + y * Width)), cast(u8, (50 + x * 2 + y)), cast(u8, (100 + x + y * 3)), 255_u8)
         }
     }
 }
@@ -1633,15 +1700,15 @@ func buildPng16(width, height: s32, colorType: u8, interlace: bool, samples: con
     Swag.require(pal.width == 34)
     Swag.require(pal.height == 24)
     Swag.require(pal.pixelFormat == .RGBA8)
-    assertPngPixelAt(pal, 10, 0, 83'u8, 56'u8, 70'u8, 255'u8)
+    assertPngPixelAt(pal, 10, 0, 83_u8, 56_u8, 70_u8, 255_u8)
 
     let grayKey = expect Image.load(getTestDataPath("tbbn0g04.png"))
     Swag.require(grayKey.pixelFormat == .GrayAlpha8)
-    assertPngPixelAt(grayKey, 15, 1, 238'u8, 238'u8, 238'u8, 255'u8)
+    assertPngPixelAt(grayKey, 15, 1, 238_u8, 238_u8, 238_u8, 255_u8)
 
     let rgbKey = expect Image.load(getTestDataPath("tbrn2c08.png"))
     Swag.require(rgbKey.pixelFormat == .RGBA8)
-    assertPngPixelAt(rgbKey, 0, 0, 255'u8, 255'u8, 255'u8, 0'u8)
+    assertPngPixelAt(rgbKey, 0, 0, 255_u8, 255_u8, 255_u8, 0_u8)
 }
 
 // Palette RGBA expansion preserves byte order and implicit opaque alpha on both sides of its packed-table threshold.
@@ -1649,16 +1716,16 @@ func buildPng16(width, height: s32, colorType: u8, interlace: bool, samples: con
 {
     let scalarBytes = buildPalettedPng(511)
     let scalarImage = expect Image.decode("palette-scalar.png", nnBytes(scalarBytes.toSlice()), {})
-    assertPngPixelAt(scalarImage, 0, 0, 1'u8, 2'u8, 3'u8, 4'u8)
-    assertPngPixelAt(scalarImage, 1, 0, 10'u8, 20'u8, 30'u8, 40'u8)
-    assertPngPixelAt(scalarImage, 2, 0, 200'u8, 150'u8, 100'u8, 255'u8)
+    assertPngPixelAt(scalarImage, 0, 0, 1_u8, 2_u8, 3_u8, 4_u8)
+    assertPngPixelAt(scalarImage, 1, 0, 10_u8, 20_u8, 30_u8, 40_u8)
+    assertPngPixelAt(scalarImage, 2, 0, 200_u8, 150_u8, 100_u8, 255_u8)
 
     let packedBytes = buildPalettedPng(512)
     let packedImage = expect Image.decode("palette-packed.png", nnBytes(packedBytes.toSlice()), {})
-    assertPngPixelAt(packedImage, 0, 0, 1'u8, 2'u8, 3'u8, 4'u8)
-    assertPngPixelAt(packedImage, 1, 0, 10'u8, 20'u8, 30'u8, 40'u8)
-    assertPngPixelAt(packedImage, 2, 0, 200'u8, 150'u8, 100'u8, 255'u8)
-    assertPngPixelAt(packedImage, 511, 0, 10'u8, 20'u8, 30'u8, 40'u8)
+    assertPngPixelAt(packedImage, 0, 0, 1_u8, 2_u8, 3_u8, 4_u8)
+    assertPngPixelAt(packedImage, 1, 0, 10_u8, 20_u8, 30_u8, 40_u8)
+    assertPngPixelAt(packedImage, 2, 0, 200_u8, 150_u8, 100_u8, 255_u8)
+    assertPngPixelAt(packedImage, 511, 0, 10_u8, 20_u8, 30_u8, 40_u8)
 }
 
 // Opaque RGB palette expansion preserves three-byte packing around the overlapping-store threshold.
@@ -1667,17 +1734,17 @@ func buildPng16(width, height: s32, colorType: u8, interlace: bool, samples: con
     let scalarBytes = buildPalettedPng(511, false)
     let scalarImage = expect Image.decode("palette-rgb-scalar.png", nnBytes(scalarBytes.toSlice()), {})
     Swag.require(scalarImage.pixelFormat == .RGB8)
-    assertPngPixelAt(scalarImage, 0, 0, 1'u8, 2'u8, 3'u8, 255'u8)
-    assertPngPixelAt(scalarImage, 1, 0, 10'u8, 20'u8, 30'u8, 255'u8)
-    assertPngPixelAt(scalarImage, 2, 0, 200'u8, 150'u8, 100'u8, 255'u8)
+    assertPngPixelAt(scalarImage, 0, 0, 1_u8, 2_u8, 3_u8, 255_u8)
+    assertPngPixelAt(scalarImage, 1, 0, 10_u8, 20_u8, 30_u8, 255_u8)
+    assertPngPixelAt(scalarImage, 2, 0, 200_u8, 150_u8, 100_u8, 255_u8)
 
     let packedBytes = buildPalettedPng(512, false)
     let packedImage = expect Image.decode("palette-rgb-packed.png", nnBytes(packedBytes.toSlice()), {})
     Swag.require(packedImage.pixelFormat == .RGB8)
-    assertPngPixelAt(packedImage, 0, 0, 1'u8, 2'u8, 3'u8, 255'u8)
-    assertPngPixelAt(packedImage, 1, 0, 10'u8, 20'u8, 30'u8, 255'u8)
-    assertPngPixelAt(packedImage, 2, 0, 200'u8, 150'u8, 100'u8, 255'u8)
-    assertPngPixelAt(packedImage, 511, 0, 10'u8, 20'u8, 30'u8, 255'u8)
+    assertPngPixelAt(packedImage, 0, 0, 1_u8, 2_u8, 3_u8, 255_u8)
+    assertPngPixelAt(packedImage, 1, 0, 10_u8, 20_u8, 30_u8, 255_u8)
+    assertPngPixelAt(packedImage, 2, 0, 200_u8, 150_u8, 100_u8, 255_u8)
+    assertPngPixelAt(packedImage, 511, 0, 10_u8, 20_u8, 30_u8, 255_u8)
 }
 
 // Decode with decodePixels=false: metadata fields are populated but no pixel buffer is allocated.
@@ -1700,7 +1767,7 @@ func buildPng16(width, height: s32, colorType: u8, interlace: bool, samples: con
     let path = makeTempPngPath()
     defer discard catch File.delete(path.toString())
     var src = Image.create(2, 1, .RGB8)
-    fillSolidPngImage(&src, 1'u8, 2'u8, 3'u8, 255'u8)
+    fillSolidPngImage(&src, 1_u8, 2_u8, 3_u8, 255_u8)
 
     var md: ImageMetadata
     md.tag   = "Editor.SourceFile"
@@ -1722,8 +1789,11 @@ func buildPng16(width, height: s32, colorType: u8, interlace: bool, samples: con
     var image = Image.create(1, 1, .RGB8)
     var longTag: ImageMetadata
     longTag.tag.resize(80)
-    for index in longTag.tag.count do
+    for index in longTag.tag.count
+    {
         longTag.tag[index] = 'a'
+    }
+
     longTag.value = "value"
     image.metadata.add(longTag)
     var encoded:      ConcatBuffer
@@ -1763,8 +1833,11 @@ func buildPng16(width, height: s32, colorType: u8, interlace: bool, samples: con
 
     var boundaryTag: ImageMetadata
     boundaryTag.tag.resize(79)
-    for index in boundaryTag.tag.count do
+    for index in boundaryTag.tag.count
+    {
         boundaryTag.tag[index] = 'a'
+    }
+
     boundaryTag.value = "boundary"
     image.metadata.clear()
     image.metadata.add(boundaryTag)
@@ -1809,59 +1882,77 @@ func buildPng16(width, height: s32, colorType: u8, interlace: bool, samples: con
 #test
 {
     var gray = Image.create(3, 2, .Gray8)
-    for i in gray.byteCount do
+    for i in gray.byteCount
+    {
         gray.pixels.storage()[i] = cast(u8, (i * 41))
+    }
+
     assertEncodedPngRoundtrip(gray, .Gray8)
 
     var grayAlpha = Image.create(3, 2, .GrayAlpha8)
-    for i in grayAlpha.byteCount do
+    for i in grayAlpha.byteCount
+    {
         grayAlpha.pixels.storage()[i] = cast(u8, (i * 19))
+    }
+
     assertEncodedPngRoundtrip(grayAlpha, .GrayAlpha8)
 
     var gray16 = Image.create(3, 2, .Gray16)
-    for i in gray16.byteCount do
+    for i in gray16.byteCount
+    {
         gray16.pixels.storage()[i] = cast(u8, (i * 23))
+    }
+
     assertEncodedPngRoundtrip(gray16, .Gray16)
 
     var grayAlpha16 = Image.create(3, 2, .GrayAlpha16)
-    for i in grayAlpha16.byteCount do
+    for i in grayAlpha16.byteCount
+    {
         grayAlpha16.pixels.storage()[i] = cast(u8, (i * 11))
+    }
+
     assertEncodedPngRoundtrip(grayAlpha16, .GrayAlpha16)
 
     var rgb = Image.create(2, 2, .RGB8)
     rgb.clear()
     let rgbBuf = rgb.pixels.storage()
-    rgbBuf[0]  = 10'u8
-    rgbBuf[1]  = 20'u8
-    rgbBuf[2]  = 30'u8
-    rgbBuf[9]  = 100'u8
-    rgbBuf[10] = 110'u8
-    rgbBuf[11] = 120'u8
+    rgbBuf[0]  = 10_u8
+    rgbBuf[1]  = 20_u8
+    rgbBuf[2]  = 30_u8
+    rgbBuf[9]  = 100_u8
+    rgbBuf[10] = 110_u8
+    rgbBuf[11] = 120_u8
     assertEncodedPngRoundtrip(rgb, .RGB8)
 
     var rgba = Image.create(2, 2, .RGBA8)
     rgba.clear()
     let rgbaBuf = rgba.pixels.storage()
-    rgbaBuf[0]  = 1'u8
-    rgbaBuf[1]  = 2'u8
-    rgbaBuf[2]  = 3'u8
-    rgbaBuf[3]  = 4'u8
-    rgbaBuf[12] = 200'u8
-    rgbaBuf[13] = 201'u8
-    rgbaBuf[14] = 202'u8
-    rgbaBuf[15] = 203'u8
+    rgbaBuf[0]  = 1_u8
+    rgbaBuf[1]  = 2_u8
+    rgbaBuf[2]  = 3_u8
+    rgbaBuf[3]  = 4_u8
+    rgbaBuf[12] = 200_u8
+    rgbaBuf[13] = 201_u8
+    rgbaBuf[14] = 202_u8
+    rgbaBuf[15] = 203_u8
     assertEncodedPngRoundtrip(rgba, .RGBA8)
 
     var rgb16    = Image.create(2, 2, .RGB16)
     let rgb16Buf = cast([*] u16, rgb16.pixels.storage())
-    for i in 12 do
+    for i in 12
+    {
         rgb16Buf[i] = cast(u16, (i * 5003))
+    }
+
     assertEncodedPngRoundtrip(rgb16, .RGB16)
 
     var rgba16    = Image.create(2, 2, .RGBA16)
     let rgba16Buf = cast([*] u16, rgba16.pixels.storage())
-    for i in 16 do
+    for i in 16
+    {
         rgba16Buf[i] = cast(u16, (i * 4001))
+    }
+
     assertEncodedPngRoundtrip(rgba16, .RGBA16)
 }
 
@@ -1870,26 +1961,26 @@ func buildPng16(width, height: s32, colorType: u8, interlace: bool, samples: con
 {
     var bgr    = Image.create(1, 1, .BGR8)
     let bgrBuf = bgr.pixels.storage()
-    bgrBuf[0] = 30'u8
-    bgrBuf[1] = 20'u8
-    bgrBuf[2] = 10'u8
+    bgrBuf[0] = 30_u8
+    bgrBuf[1] = 20_u8
+    bgrBuf[2] = 10_u8
 
     let bgrEncoded = expect bgr.encode("memory.png")
     let bgrDecoded = expect Image.decode("bgr.png", nnBytes(bgrEncoded.toSlice()), {})
     Swag.require(bgrDecoded.pixelFormat == .RGB8)
-    assertPngPixelAt(bgrDecoded, 0, 0, 10'u8, 20'u8, 30'u8, 255'u8)
+    assertPngPixelAt(bgrDecoded, 0, 0, 10_u8, 20_u8, 30_u8, 255_u8)
 
     var bgra    = Image.create(1, 1, .BGRA8)
     let bgraBuf = bgra.pixels.storage()
-    bgraBuf[0] = 7'u8
-    bgraBuf[1] = 8'u8
-    bgraBuf[2] = 9'u8
-    bgraBuf[3] = 10'u8
+    bgraBuf[0] = 7_u8
+    bgraBuf[1] = 8_u8
+    bgraBuf[2] = 9_u8
+    bgraBuf[3] = 10_u8
 
     let bgraEncoded = expect bgra.encode("memory.png")
     let bgraDecoded = expect Image.decode("bgra.png", nnBytes(bgraEncoded.toSlice()), {})
     Swag.require(bgraDecoded.pixelFormat == .RGBA8)
-    assertPngPixelAt(bgraDecoded, 0, 0, 9'u8, 8'u8, 7'u8, 10'u8)
+    assertPngPixelAt(bgraDecoded, 0, 0, 9_u8, 8_u8, 7_u8, 10_u8)
 }
 
 // Encode with explicit PNG options and round-trip the written bytes through the decoder.
@@ -1898,7 +1989,7 @@ func buildPng16(width, height: s32, colorType: u8, interlace: bool, samples: con
     let path = makeTempPngPath()
     defer discard catch File.delete(path.toString())
     var src = Image.create(3, 2, .RGB8)
-    fillSolidPngImage(&src, 24'u8, 48'u8, 96'u8, 255'u8)
+    fillSolidPngImage(&src, 24_u8, 48_u8, 96_u8, 255_u8)
 
     var opts: Png.EncodeOptions
     opts.filtering        = false
@@ -1918,7 +2009,7 @@ func buildPng16(width, height: s32, colorType: u8, interlace: bool, samples: con
 #test
 {
     var src = Image.create(64, 64, .RGB8)
-    fillSolidPngImage(&src, 24'u8, 48'u8, 96'u8, 255'u8)
+    fillSolidPngImage(&src, 24_u8, 48_u8, 96_u8, 255_u8)
 
     let sourceChecksum = Hash.Crc64.compute(src.pixels.toSlice())
     let compressed     = expect src.encode("memory.png")
@@ -1957,7 +2048,7 @@ func buildPng16(width, height: s32, colorType: u8, interlace: bool, samples: con
 
     let cb       = expect rgb.encode("memory.png", options)
     let rgbBytes = nnBytes(cb.toSlice())
-    Swag.require(rgbBytes[28] == 1'u8)
+    Swag.require(rgbBytes[28] == 1_u8)
 
     let decoded = expect Image.decode("adam7-rgb.png", rgbBytes, {})
     Swag.require(decoded.pixelFormat == .RGB8)
@@ -1979,7 +2070,7 @@ func buildPng16(width, height: s32, colorType: u8, interlace: bool, samples: con
 
     let bgraEncoded = expect bgra.encode("memory.png", options)
     let bgraBytes   = nnBytes(bgraEncoded.toSlice())
-    Swag.require(bgraBytes[28] == 1'u8)
+    Swag.require(bgraBytes[28] == 1_u8)
 
     let bgraDecoded = expect Image.decode("adam7-bgra.png", bgraBytes, {})
     Swag.require(bgraDecoded.pixelFormat == .RGBA8)

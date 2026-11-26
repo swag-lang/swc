@@ -137,8 +137,11 @@ impl Matrix4x4
             for column in 4
             {
                 var value: f32
-                for inner in 4 do
+                for inner in 4
+                {
                     value += .m[row, inner] * other.m[inner, column]
+                }
+
                 result.m[row, column] = value
             }
         }
@@ -169,8 +172,10 @@ impl Matrix4x4
         var result: #returntype
         for row in 4
         {
-            for column in 4 do
+            for column in 4
+            {
                 result.m[row, column] = .m[column, row]
+            }
         }
 
         return result
@@ -259,8 +264,10 @@ impl Matrix4x4
         Swag.assert(det != 0)
         for row in 4
         {
-            for column in 4 do
+            for column in 4
+            {
                 result.m[row, column] /= det
+            }
         }
 
         return result

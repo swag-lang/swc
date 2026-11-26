@@ -34,7 +34,7 @@ private
 {
     const OffsetWidth    = 116.0
     const DetailMinWidth = 200.0
-    const FillRows       = 128'u64
+    const FillRows       = 128_u64
     const CommandWidth   = 80.0
 }
 
@@ -84,14 +84,14 @@ struct Panel
     previewBand:             *StackLayoutCtrl?
     doc:                     Document
     pendingDoc:              Document
-    rowLines:                Array'(*ListLine?)     // Line created for each report row, in row order.
-    fillParents:             Array'(*ListLine?)
+    rowLines:                Array!{*ListLine?}     // Line created for each report row, in row order.
+    fillParents:             Array!{*ListLine?}
     fillIndex:               u64
     details:                 String
     failureReason:           String
     loadFileName:            String
     loadTexts:               Texts
-    loadTask:                Swag.Task'bool     // Reads the image into `pendingDoc`; true when it opened.
+    loadTask:                Swag.Task!{bool}     // Reads the image into `pendingDoc`; true when it opened.
     loadTimer:               *Timer?
     filterTimer:             *Timer?
     loadPublished:           bool
@@ -99,9 +99,9 @@ struct Panel
     retireRequested:         bool
     retired:                 bool
     reloadLanguageRequested: bool
-    restoreExpanded:         Array'bool
+    restoreExpanded:         Array!{bool}
     restoreSelected:         u64 = Swag.U64.Max
-    history:                 Array'u64
+    history:                 Array!{u64}
     historyIndex:            u64 = Swag.U64.Max
     historyNavigating:       bool
     searchRow:               u64 = Swag.U64.Max
@@ -111,7 +111,7 @@ struct Panel
     searchVisibleIndex:      u32 = Swag.U32.Max
     filterQuery:             String
     filterOptions:           Viewer.SearchOptions
-    filterIncluded:          Array'bool
+    filterIncluded:          Array!{bool}
 }
 
 impl Panel
@@ -142,8 +142,10 @@ impl Panel
         line.itemAt(cast(u32, Column.Offset)).colorFg = colors.label_TextFaint
         line.itemAt(cast(u32, Column.Detail)).colorFg = colors.label_TextLight
 
-        if row.kind == .Group do
+        if row.kind == .Group
+        {
             line.itemAt(cast(u32, Column.Field)).name.set(row.label, {bold: true})
+        }
     }
 
     // Empties the tree so that [[Panel.fillListStep]] rebuilds it from the first report row.
@@ -169,8 +171,10 @@ impl Panel
             let row   = &.doc.report.rows[index]
             let depth = cast(u64, row.level)
             var parent: *ListLine? = null
-            if depth and depth <= .fillParents.count do
+            if depth and depth <= .fillParents.count
+            {
                 parent = .fillParents[depth - 1]
+            }
 
             with let line = .list.createLine(parent)
             {
@@ -197,8 +201,11 @@ impl Panel
         }
 
         .fillIndex = end
-        if end != .doc.report.rows.count do
+        if end != .doc.report.rows.count
+        {
             return false
+        }
+
         .applyExpansion()
         .restoreSelection()
         .list.computeLayout()
@@ -220,15 +227,19 @@ impl Panel
         for row, index in .doc.report.rows
         {
             let open = index < .restoreExpanded.count ? .restoreExpanded[index] : row.open
-            if open and row.level and .rowLines[index] do
+            if open and row.level and .rowLines[index]
+            {
                 .rowLines[index]!.expanded = true
+            }
         }
 
         for row, index in .doc.report.rows
         {
             let open = index < .restoreExpanded.count ? .restoreExpanded[index] : row.open
-            if open and not row.level and .rowLines[index] do
+            if open and not row.level and .rowLines[index]
+            {
                 .list.expand(unwrap .rowLines[index])
+            }
         }
 
         .restoreExpanded.clear()
@@ -239,10 +250,15 @@ impl Panel
     // Deeper groups are only marked; expanding each root then inserts its marked subtree in one pass.
     private mtd expandEveryGroup()
     {
-        for row, index in .doc.report.rows where row.level and .rowLines[index] do
+        for row, index in .doc.report.rows where row.level and .rowLines[index]
+        {
             .rowLines[index]!.expanded = true
-        for row, index in .doc.report.rows where not row.level and .rowLines[index] do
+        }
+
+        for row, index in .doc.report.rows where not row.level and .rowLines[index]
+        {
             .list.expand(unwrap .rowLines[index])
+        }
     }
 
     // Selects again the row that was selected before the tree was rebuilt.
@@ -250,8 +266,11 @@ impl Panel
     {
         if .restoreSelected >= .rowLines.count or not .rowLines[.restoreSelected]
         {
-            if .filterQuery.isEmpty() do
+            if .filterQuery.isEmpty()
+            {
                 .restoreSelected = Swag.U64.Max
+            }
+
             return
         }
 
@@ -263,8 +282,10 @@ impl Panel
     mtd setExpandedAll(expand: bool)
     {
         .list.collapseAll()
-        if expand do
+        if expand
+        {
             .expandEveryGroup()
+        }
 
         .list.computeLayout()
         .invalidate()
@@ -277,8 +298,11 @@ impl Panel
     mtd revealOffset(offset: u64)->bool
     {
         let index = .doc.report.rowAt(offset)
-        if index == Swag.U64.Max do
+        if index == Swag.U64.Max
+        {
             return false
+        }
+
         return .selectReportRow(index)
     }
 
@@ -297,35 +321,54 @@ impl Panel
     // Selects report row `index` after opening its ancestors, and returns whether it could be selected.
     private mtd selectReportRow(index: u64, recordHistory = true)->bool
     {
-        if index >= .rowLines.count do
+        if index >= .rowLines.count
+        {
             return false
-        if .page.isLocallyVisible() do
+        }
+
+        if .page.isLocallyVisible()
+        {
             .showPage(false)
+        }
+
         let line = .rowLines[index]
-        if not line do
+        if not line
+        {
             return false
+        }
 
         .expandTo(line)
         let visible = .visibleIndexOf(line)
-        if visible == Swag.U32.Max do
+        if visible == Swag.U32.Max
+        {
             return false
+        }
 
         .list.unselectAll()
         .list.selectLine(visible)
         .list.setFocusedIndex(visible)
         .list.setFocus()
         .searchVisibleIndex = visible
-        if recordHistory do
+        if recordHistory
+        {
             .recordHistory(index)
+        }
+
         return true
     }
 
     private mtd reportIndexOf(line: *ListLine?)->u64
     {
-        if not line do
+        if not line
+        {
             return Swag.U64.Max
-        for rowLine, index in .rowLines where rowLine == line do
+        }
+
+        for rowLine, index in .rowLines where rowLine == line
+        {
             return index
+        }
+
         return Swag.U64.Max
     }
 
@@ -333,12 +376,21 @@ impl Panel
 
     private mtd recordHistory(index: u64)
     {
-        if .historyNavigating or index >= .doc.report.rows.count do
+        if .historyNavigating or index >= .doc.report.rows.count
+        {
             return
-        if .historyIndex < .history.count and .history[.historyIndex] == index do
+        }
+
+        if .historyIndex < .history.count and .history[.historyIndex] == index
+        {
             return
-        if .historyIndex != Swag.U64.Max and .historyIndex + 1 < .history.count do
+        }
+
+        if .historyIndex != Swag.U64.Max and .historyIndex + 1 < .history.count
+        {
             .history.resize(.historyIndex + 1)
+        }
+
         .history.add(index)
         .historyIndex = .history.count - 1
         .refreshHistoryCommands()
@@ -360,16 +412,24 @@ impl Panel
     // Moves `direction` steps through the rows selected so far, and returns whether a row was selected.
     mtd navigateHistory(direction: s32)->bool
     {
-        if .historyIndex == Swag.U64.Max do
+        if .historyIndex == Swag.U64.Max
+        {
             return false
+        }
+
         let next = cast(s64, .historyIndex) + direction
-        if next < 0 or next >= cast(s64, .history.count) do
+        if next < 0 or next >= cast(s64, .history.count)
+        {
             return false
+        }
 
         .historyNavigating = true
         defer .historyNavigating = false
-        if not .selectReportRow(.history[cast(u64, next)], recordHistory: false) do
+        if not .selectReportRow(.history[cast(u64, next)], recordHistory: false)
+        {
             return false
+        }
+
         .historyIndex = cast(u64, next)
         .refreshHistoryCommands()
         return true
@@ -379,7 +439,7 @@ impl Panel
     //
     // The decoded report is searched rather than the raw bytes, so every match is text the reader can
     // see.
-    mtd collectMatches(text: string, options: Viewer.SearchOptions, result: *Array'Viewer.SearchMatch)
+    mtd collectMatches(text: string, options: Viewer.SearchOptions, result: *Array!{Viewer.SearchMatch})
     {
         var matcher = catch Viewer.createNameMatcher(text, options) { return; }
         for row, rowIndex in .doc.report.rows where .filterIncluded.isEmpty() or .filterIncluded[rowIndex]
@@ -399,15 +459,22 @@ impl Panel
     // Selects the row of `match` and outlines its text, and returns whether it could be revealed.
     mtd revealMatch(match: Viewer.SearchMatch, _: string)->bool
     {
-        if match.major >= .doc.report.rows.count or match.minor > cast(u64, Column.Detail) do
+        if match.major >= .doc.report.rows.count or match.minor > cast(u64, Column.Detail)
+        {
             return false
+        }
+
         .clearSearchHighlight()
-        if not .selectReportRow(match.major) do
+        if not .selectReportRow(match.major)
+        {
             return false
+        }
 
         let source = .cellText(match.major, match.minor)
-        if match.offset + match.length > source.length do
+        if match.offset + match.length > source.length
+        {
             return false
+        }
 
         .searchRow    = match.major
         .searchColumn = match.minor
@@ -422,8 +489,11 @@ impl Panel
     {
         if .searchVisibleIndex == Swag.U32.Max or
            .searchRow >= .rowLines.count or
-           not .rowLines[.searchRow] do
+           not .rowLines[.searchRow]
+        {
             return false
+        }
+
         let source = .cellText(.searchRow, .searchColumn)
         return Viewer.listCellMatchBounds(.list, .searchVisibleIndex, cast(u32, .searchColumn), source, .searchOffset, .searchLength, result)
     }
@@ -450,7 +520,7 @@ impl Panel
     private mtd rowMatchesFilter(rowIndex: u64, matcher: *Text.NameMatcher)->bool
     {
         let row = &.doc.report.rows[rowIndex]
-        var matches: Array'Viewer.SearchMatch
+        var matches: Array!{Viewer.SearchMatch}
         Viewer.collectTextMatches(row.label, matcher, 0, 0, 0, &matches)
         Viewer.collectTextMatches(row.value, matcher, 0, 0, 0, &matches)
         Viewer.collectTextMatches(row.detail, matcher, 0, 0, 0, &matches)
@@ -470,16 +540,22 @@ impl Panel
     private mtd rebuildFilterIndex()
     {
         .filterIncluded.clear()
-        if .filterQuery.isEmpty() do
+        if .filterQuery.isEmpty()
+        {
             return
+        }
 
-        if not Viewer.patternIsValid(.filterQuery, .filterOptions) do
+        if not Viewer.patternIsValid(.filterQuery, .filterOptions)
+        {
             return
+        }
 
         var matcher = assume Viewer.createNameMatcher(.filterQuery, .filterOptions)
         .filterIncluded.resize(.doc.report.rows.count)
-        for index in .doc.report.rows.count do
+        for index in .doc.report.rows.count
+        {
             .filterIncluded[index] = .rowMatchesFilter(index, &matcher)
+        }
 
         // Rows are stored in preorder, so walking backward from a direct match finds each parent
         // at the first preceding shallower level. Mark that chain without leaking a match into an
@@ -492,8 +568,11 @@ impl Panel
             {
                 parent -= 1
                 let candidateDepth = cast(u64, .doc.report.rows[parent].level)
-                if candidateDepth >= depth do
+                if candidateDepth >= depth
+                {
                     continue
+                }
+
                 .filterIncluded[parent] = true
                 depth = candidateDepth
             }
@@ -504,15 +583,23 @@ impl Panel
     mtd applyFilter(query: string, options: Viewer.SearchOptions)
     {
         let enteringFilter = .filterQuery.isEmpty() and query.count
-        if enteringFilter and .loadPublished do
+        if enteringFilter and .loadPublished
+        {
             .captureViewState()
+        }
+
         .filterQuery   = query
         .filterOptions = options
         .filterOptions.expression = null
-        if not .loadPublished do
+        if not .loadPublished
+        {
             return
-        if query.count and .page.isLocallyVisible() do
+        }
+
+        if query.count and .page.isLocallyVisible()
+        {
             .showPage(false)
+        }
 
         .rebuildFilterIndex()
         .stopTimer(&.filterTimer)
@@ -523,16 +610,16 @@ impl Panel
             .layoutColumns()
             .invalidate()
         }
-        elif not .loadTimer
+        else if not .loadTimer
         {
-            .filterTimer = .addTimer(1'ms)
+            .filterTimer = .addTimer(1_ms)
         }
     }
 
     // Opens every group between the root and `line`, outermost first.
     private mtd expandTo(line: *ListLine)
     {
-        var chain: Array'(*ListLine)
+        var chain: Array!{*ListLine}
         var walk = line.parent
         while walk
         {
@@ -540,15 +627,20 @@ impl Panel
             walk = walk.parent
         }
 
-        for ancestor in chain.reversed() do
+        for ancestor in chain.reversed()
+        {
             .list.expand(ancestor)
+        }
     }
 
     // Returns where `line` currently sits among the visible rows, or `Swag.U32.Max`.
     private mtd visibleIndexOf(line: *ListLine)->u32
     {
-        for index in .list.lineCount() where .list.lineAt(index) == line do
+        for index in .list.lineCount() where .list.lineAt(index) == line
+        {
             return index
+        }
+
         return Swag.U32.Max
     }
 
@@ -563,17 +655,25 @@ impl Panel
     mtd copySelectedLine()
     {
         let line = .list.selectedLine()
-        if not line do
+        if not line
+        {
             return
+        }
 
         var text: String
         for column in 4
         {
             let item = line.itemAt(cast(u32, column))
-            if item.name.text.isEmpty() do
+            if item.name.text.isEmpty()
+            {
                 continue
-            if not text.isEmpty() do
+            }
+
+            if not text.isEmpty()
+            {
                 text += "  "
+            }
+
             text += item.name.text
         }
 
@@ -584,8 +684,11 @@ impl Panel
     private mtd selectedOffset()->u64
     {
         let selected = .selectedReportIndex()
-        if selected < .doc.report.rows.count and .doc.report.rows[selected].offset != Swag.U64.Max do
+        if selected < .doc.report.rows.count and .doc.report.rows[selected].offset != Swag.U64.Max
+        {
             return .doc.report.rows[selected].offset
+        }
+
         return 0
     }
 
@@ -596,8 +699,11 @@ impl Panel
     mtd goToTypedOffset(text: string)->bool
     {
         let target = parseFileOffset(text, .selectedOffset(), .doc.image.fileSize)
-        if target == Swag.U64.Max do
+        if target == Swag.U64.Max
+        {
             return false
+        }
+
         return .revealOffset(target)
     }
 
@@ -605,8 +711,10 @@ impl Panel
     mtd promptGoToOffset()
     {
         let surface = .surface
-        if not surface or not .doc.image.fileSize do
+        if not surface or not .doc.image.fileSize
+        {
             return
+        }
 
         let currentText = hexText(.selectedOffset(), 8)
 
@@ -618,8 +726,11 @@ impl Panel
         }
 
         let dialog = EditDlg.createSingleLine(surface, options)
-        if dialog.doModal() != Dialog.BtnOk do
+        if dialog.doModal() != Dialog.BtnOk
+        {
             return
+        }
+
         let typed = dialog.text()
         discard .goToTypedOffset(typed)
     }
@@ -656,8 +767,10 @@ impl Panel
     // has no natural width: a flag list is as long as the flags that are set.
     mtd layoutColumns()
     {
-        if .list == null do
+        if .list == null
+        {
             return
+        }
 
         let room  = Math.max(.list.listView.paddedClientRect().width, 480.0)
         let field = Math.max(room * 0.28, 180.0)
@@ -681,8 +794,10 @@ impl Panel
     // Shows a card above the report for every image the document extracted.
     mtd fillPreviews()
     {
-        if .doc.previews.isEmpty() do
+        if .doc.previews.isEmpty()
+        {
             return
+        }
 
         with let band = StackLayoutCtrl.create(me, .HorizontalCenter, {0, 0, 0, 152})
         {
@@ -717,12 +832,18 @@ impl Panel
     // into the document.
     mtd layoutPreviews()
     {
-        if not .previewBand do
+        if not .previewBand
+        {
             return
+        }
+
         let band  = .previewBand
         let count = band.children.count
-        if not count do
+        if not count
+        {
             return
+        }
+
         let room = Math.max(band.paddedClientRect().width - cast(f32, count - 1) * band.spacing, 1)
 
         // Leave one logical pixel per card for device-pixel rounding at fractional DPI scales.
@@ -730,8 +851,10 @@ impl Panel
         for child in band.children
         {
             child.resize(width, 132)
-            for item in child.children do
+            for item in child.children
+            {
                 item.resize(width, item.position.height)
+            }
         }
 
         band.computeLayout()
@@ -838,8 +961,11 @@ impl IWnd for Panel
             .requestLanguageReload()
 
         case .ThemeChanged:
-            for line, index in .rowLines where line do
+            for line, index in .rowLines where line
+            {
                 .styleLine(index, line)
+            }
+
             .list.invalidate()
 
         default:
@@ -851,8 +977,11 @@ impl IWnd for Panel
     {
         if evt.timer == .filterTimer
         {
-            if not .fillListStep() do
+            if not .fillListStep()
+            {
                 return
+            }
+
             .stopTimer(&.filterTimer)
             .layoutColumns()
             .invalidate()
@@ -877,8 +1006,10 @@ impl IWnd for Panel
         }
 
         let opened = assume .loadTask.take()
-        if .retireRequested do
+        if .retireRequested
+        {
             return
+        }
 
         if .reloadLanguageRequested
         {
@@ -916,7 +1047,7 @@ impl IWnd for Panel
         .showPage(true)
 
         // The report fills the list a slice per frame, so a large one never stalls the window.
-        .loadTimer = .addTimer(1'ms)
+        .loadTimer = .addTimer(1_ms)
         .continueFill()
     }
 
@@ -972,16 +1103,22 @@ impl Panel
     {
         .restoreExpanded.clear()
         .restoreExpanded.resize(.rowLines.count)
-        for line, index in .rowLines where line do
+        for line, index in .rowLines where line
+        {
             .restoreExpanded[index] = line.expanded
+        }
+
         .restoreSelected = .selectedReportIndex()
     }
 
     // Fills one more slice of the list, and finishes the load once the whole report is shown.
     private mtd continueFill()
     {
-        if not .fillListStep() do
+        if not .fillListStep()
+        {
             return
+        }
+
         .fillPreviews()
         .applyLayout()
         .layoutPreviews()
@@ -996,8 +1133,11 @@ impl Panel
     // in progress is asked to reload once it finishes.
     private mtd requestLanguageReload()
     {
-        if .retireRequested do
+        if .retireRequested
+        {
             return
+        }
+
         .captureViewState()
         if .loadTask.isPending() or .loadTask.isDone()
         {
@@ -1027,8 +1167,10 @@ impl Panel
                          .taskNotifier(&.loadTask),
                          .Background)
 
-        if notify do
+        if notify
+        {
             .services.loadingChanged(me)
+        }
     }
 
     private mtd publishLoadFailure(reason: string)
@@ -1050,8 +1192,11 @@ impl Panel
     // Asks the background read to stop, and returns whether it has ended so the viewer can be released.
     mtd retire()->bool
     {
-        if .retired do
+        if .retired
+        {
             return true
+        }
+
         if not .retireRequested
         {
             .retireRequested = true
@@ -1059,8 +1204,11 @@ impl Panel
             .loadTask.cancel()
         }
 
-        if .loadTask.isPending() do
+        if .loadTask.isPending()
+        {
             return false
+        }
+
         .retired = true
         return true
     }
@@ -1098,8 +1246,10 @@ impl Panel
                         func|view = me, page|()
                         {
                             view.showPage(not page)
-                            if page do
+                            if page
+                            {
                                 view.list.setFocus()
+                            }
                         },
                         bindId: "scope.binary.toggleStructure")
         }
@@ -1168,10 +1318,10 @@ impl Panel
     {
         let services = host.services()
 
-        with let result = Wnd.create'Panel(host.contentParent(), "scope.binary")
+        with let result = Wnd.create!{Panel}(host.contentParent(), "scope.binary")
         {
             .backgroundStyle = .View
-            .registerAction'Action()
+            .registerAction!{Action}()
             .services = services
         }
 
@@ -1196,8 +1346,11 @@ impl Panel
     // Describes the binary in the information sheet: the structure its report recognized.
     mtd describeInformation(sheet: *InfoSheet)
     {
-        if .doc.report.summary.isEmpty() do
+        if .doc.report.summary.isEmpty()
+        {
             return
+        }
+
         var data: MediaInfoData
         data.add(.Binary, group: true)
         data.add(.Format, .doc.report.summary)

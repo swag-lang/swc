@@ -10,14 +10,19 @@ private impl Nv12Frame
         .width  = 64
         .height = 32
         .bytes.resize(64 * 32 * 3 / 2)
-        for index in .bytes.count do
+        for index in .bytes.count
+        {
             .bytes[index] = not changed and index < 64 * 32 ? 80 : 128
+        }
+
         if changed
         {
-            for y in 32'u64
+            for y in 32_u64
             {
-                for x in 12'u64 until 15 do
+                for x in 12_u64 until 15
+                {
                     .bytes[y * 64 + x] = 128 + amplitude
+                }
             }
         }
     }
@@ -26,7 +31,7 @@ private impl Nv12Frame
 // Flat intra blocks in P pictures inherit CAVLC contexts from adjacent inter residuals.
 #test
 {
-    for amplitude in [8'u8, 16'u8, 32'u8]
+    for amplitude in [8_u8, 16_u8, 32_u8]
     {
         let path = videoTempPath("h264-flat-inter-context", "mp4")
         defer discard catch File.delete(path)

@@ -139,7 +139,7 @@ func switchSafetyEnabled()->bool
     func invalidColor()->Color
     {
         var color = Color.Red
-        var bits  = 9's32
+        var bits  = 9_s32
         Swag.memcpy(&color, &bits, #sizeof(Color))
         return color
     }

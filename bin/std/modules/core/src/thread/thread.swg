@@ -128,10 +128,15 @@ impl Thread
         }
 
         let allocator = unwrap .context.allocator
-        if tempAllocSize < 0 do
+        if tempAllocSize < 0
+        {
             .context.tempAllocator.setCapacity(inheritedCapacity, allocator)
-        elif tempAllocSize != 0 do
+        }
+        else if tempAllocSize != 0
+        {
             .context.tempAllocator.setCapacity(cast(u64, tempAllocSize), allocator)
+        }
+
         .handle     = try createSuspendedNative(&threadEntry, me, &.id)
         .userLambda = lambda
         .userParam  = userParam
@@ -144,8 +149,11 @@ impl Thread
     mtd start() fail
     {
         Swag.assert(.isValid())
-        if .started do
+        if .started
+        {
             fail BadParameterError{"thread already started"}
+        }
+
         try startNative(.handle)
         .started = true
     }
@@ -180,12 +188,16 @@ impl Thread
         Swag.assert(.isValid())
         if not Math.isFinite(timeout.seconds) or
            timeout.seconds < 0 or
-           timeout.seconds >= 18_446_744_073_709_550.0 do
+           timeout.seconds >= 18_446_744_073_709_550.0
+        {
             fail BadParameterError{"thread timeout is outside the supported range"}
+        }
 
         let milliseconds = timeout.millisecondsCeiling()
-        if not (try waitForNative(.handle, milliseconds)) do
+        if not (try waitForNative(.handle, milliseconds))
+        {
             return false
+        }
 
         closeNative(.handle)
         .handle = null
@@ -206,8 +218,10 @@ private func threadEntry(param: *void?)->u32
     let thread = cast(*Thread, unwrap param)
     Swag.setContext(thread.context)
     let lambda = thread.userLambda
-    if lambda do
+    if lambda
+    {
         lambda(thread)
+    }
 
     thread.context.tempAllocator.release()
     thread.context.releaseErrorStorage()
@@ -219,7 +233,7 @@ private func threadEntry(param: *void?)->u32
 func wait(threads: *Thread...)
 {
     var handles: [MaxThreadWaitCount] ThreadHandle
-    var start = 0'u64
+    var start = 0_u64
     while start < threads.count
     {
         let count = Math.min(MaxThreadWaitCount, cast(u32, (threads.count - start)))

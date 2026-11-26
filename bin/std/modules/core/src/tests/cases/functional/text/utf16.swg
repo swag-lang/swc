@@ -3,11 +3,11 @@
 
 using Swag
 
-func assertUtf16(values: Array'u16, expected: const [..] u16)->bool => Slice.equals(values.toSlice(), expected)
+func assertUtf16(values: Array!{u16}, expected: const [..] u16)->bool => Slice.equals(values.toSlice(), expected)
 
 func scalarUtf16FromUtf8(dest: [..] u16, src: const [..] u8)->u64
 {
-    var count      = 0'u64
+    var count      = 0_u64
     var srcPtr     = src.buffer
     var destPtr    = dest.buffer
     var srcLength  = src.count
@@ -30,17 +30,17 @@ func scalarUtf16FromUtf8(dest: [..] u16, src: const [..] u8)->u64
 {
     var buffer: [2] u16
 
-    Swag.require(Utf16.encodeRune(buffer, 'A'rune) == 1)
+    Swag.require(Utf16.encodeRune(buffer, 'A'_rune) == 1)
     Swag.require(buffer[0] == 0x0041)
 
-    Swag.require(Utf16.encodeRune(buffer, '\u20AC'rune) == 1)
+    Swag.require(Utf16.encodeRune(buffer, '\u20AC'_rune) == 1)
     Swag.require(buffer[0] == 0x20AC)
 
-    Swag.require(Utf16.encodeRune(buffer, '\U0001F642'rune) == 2)
+    Swag.require(Utf16.encodeRune(buffer, '\U0001F642'_rune) == 2)
     Swag.require(buffer[0] == 0xD83D)
     Swag.require(buffer[1] == 0xDE42)
 
-    Swag.require(Utf16.encodeRune(buffer, 0xD800'rune) == 1)
+    Swag.require(Utf16.encodeRune(buffer, 0xD800_rune) == 1)
     Swag.require(buffer[0] == 0xFFFD)
 }
 
@@ -49,15 +49,15 @@ func scalarUtf16FromUtf8(dest: [..] u16, src: const [..] u8)->u64
     let values: [4] u16 = [0x0041, 0x20AC, 0xD83D, 0xDE42]
 
     var {c, eat} = Utf16.decodeRune(values)
-    Swag.require(c == 'A'rune)
+    Swag.require(c == 'A'_rune)
     Swag.require(eat == 1)
 
     {c, eat} = Utf16.decodeRune(values[1 until values.count])
-    Swag.require(c == '\u20AC'rune)
+    Swag.require(c == '\u20AC'_rune)
     Swag.require(eat == 1)
 
     {c, eat} = Utf16.decodeRune(values[2 until values.count])
-    Swag.require(c == '\U0001F642'rune)
+    Swag.require(c == '\U0001F642'_rune)
     Swag.require(eat == 2)
 
     let loneHigh: [1] u16 = [0xD83D]
@@ -83,8 +83,10 @@ func scalarUtf16FromUtf8(dest: [..] u16, src: const [..] u8)->u64
     var dest: [8] u16
     let count = Utf16.fromUtf8(dest, text)
     Swag.require(count == 4)
-    for i in count do
+    for i in count
+    {
         Swag.require(dest[i] == expected[i])
+    }
 
     let result = Utf16.fromUtf8(text)
     Swag.require(assertUtf16(result, expected))
@@ -92,14 +94,16 @@ func scalarUtf16FromUtf8(dest: [..] u16, src: const [..] u8)->u64
 
 #test
 {
-    let runes:    [3] rune = ['A'rune, '\u20AC'rune, '\U0001F642'rune]
+    let runes:    [3] rune = ['A'_rune, '\u20AC'_rune, '\U0001F642'_rune]
     let expected: [4] u16  = [0x0041, 0x20AC, 0xD83D, 0xDE42]
 
     var dest: [8] u16
     let count = Utf16.fromUnicode(dest, runes)
     Swag.require(count == 4)
-    for i in count do
+    for i in count
+    {
         Swag.require(dest[i] == expected[i])
+    }
 
     let result = Utf16.fromUnicode(runes)
     Swag.require(assertUtf16(result, expected))
@@ -111,8 +115,11 @@ func scalarUtf16FromUtf8(dest: [..] u16, src: const [..] u8)->u64
     let zero = Utf16.toZeroTerminated("Caf\u00E9\U0001F642")
 
     Swag.require(zero.count == 7)
-    for i in expected.count do
+    for i in expected.count
+    {
         Swag.require(zero[i] == expected[i])
+    }
+
     Swag.require(zero[6] == 0)
     Swag.require(Utf16.lengthZeroTerminated(zero.buffer) == 6)
     Swag.require(Utf16.lengthZeroTerminated(null) == 0)
@@ -124,8 +131,10 @@ func scalarUtf16FromUtf8(dest: [..] u16, src: const [..] u8)->u64
 #test
 {
     var values: [25] u16
-    for i in values.count do
+    for i in values.count
+    {
         values[i] = cast(u16, (i + 1))
+    }
 
     for count in values.count + 1
     {
@@ -148,8 +157,10 @@ func scalarUtf16FromUtf8(dest: [..] u16, src: const [..] u8)->u64
     var source:   [80] u8
     var actual:   [160] u16
     var expected: [160] u16
-    for index in source.count do
+    for index in source.count
+    {
         source[index] = cast(u8, ('a' + index % 26))
+    }
 
     for idx in 66
     {
@@ -168,8 +179,11 @@ func scalarUtf16FromUtf8(dest: [..] u16, src: const [..] u8)->u64
 
     for index in 48
     {
-        for idx in source.count do
+        for idx in source.count
+        {
             source[idx] = cast(u8, ('a' + idx % 26))
+        }
+
         source[index]     = 0xC3
         source[index + 1] = 0xA9
         for idx in actual.count
@@ -196,8 +210,11 @@ func scalarUtf16FromUtf8(dest: [..] u16, src: const [..] u8)->u64
 
     for prefix in prefixes
     {
-        for index in prefix do
+        for index in prefix
+        {
             source[index] = cast(u8, (97 + index % 26))
+        }
+
         source[prefix] = 0x80
 
         for index in actual.count
@@ -212,8 +229,11 @@ func scalarUtf16FromUtf8(dest: [..] u16, src: const [..] u8)->u64
         Swag.require(continuationActual == continuationExpected)
         Swag.require(Memory.compare(actual.buffer, expected.buffer, #sizeof(actual)) == 0)
 
-        for index in prefix do
+        for index in prefix
+        {
             source[index] = cast(u8, (97 + index % 26))
+        }
+
         source[prefix]     = 0xE2
         source[prefix + 1] = 0x82
 
@@ -229,8 +249,11 @@ func scalarUtf16FromUtf8(dest: [..] u16, src: const [..] u8)->u64
         Swag.require(truncatedActual == truncatedExpected)
         Swag.require(Memory.compare(actual.buffer, expected.buffer, #sizeof(actual)) == 0)
 
-        for index in prefix do
+        for index in prefix
+        {
             source[index] = cast(u8, (97 + index % 26))
+        }
+
         source[prefix]     = 0xC0
         source[prefix + 1] = 0xAF
 

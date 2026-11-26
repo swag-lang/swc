@@ -52,11 +52,11 @@ func createHelpText(parent: *Wnd, text: string, rect: Math.Rectangle)->*Label
 
 func createPanel(parent: *Wnd, title, subtitle: string, rect: Math.Rectangle)->*Wnd
 {
-    let frame = Wnd.create'FrameWnd(parent, rect)
+    let frame = Wnd.create!{FrameWnd}(parent, rect)
     frame.setFrameForm(.Round)
     frame.setFrameFlags(.Borders)
 
-    let view = frame.createView'Wnd()
+    let view = frame.createView!{Wnd}()
     discard createText(view, title, Math.Rectangle{16, 10, rect.width - 32, 24})
     discard createHelpText(view, subtitle, Math.Rectangle{16, 36, rect.width - 32, 42})
     return view
@@ -132,22 +132,33 @@ func updateHeader()
 func updateThemeButton()
 {
     let btn = g_ThemeButton
-    if not btn do
+    if not btn
+    {
         return
+    }
 
-    if g_DarkTheme do
+    if g_DarkTheme
+    {
         btn.name = "Switch to Papier"
-    else do
+    }
+    else
+    {
         btn.name = "Switch to Encre"
+    }
+
     btn.invalidate()
 }
 
 func applyTheme()
 {
-    if g_DarkTheme do
+    if g_DarkTheme
+    {
         app.theme.colors.setDark()
-    else do
+    }
+    else
+    {
         app.theme.colors.setLight()
+    }
 
     updateThemeButton()
     app.notifyThemeChanged()
@@ -192,8 +203,10 @@ func buildPage()
 
 func layoutRootView()
 {
-    if not g_View or not g_PageView do
+    if not g_View or not g_PageView
+    {
         return
+    }
 
     let view     = unwrap g_View
     let pageView = unwrap g_PageView
@@ -237,7 +250,7 @@ func onRootEvent(_: *Wnd, evt: IEvent)->bool
         layoutRootView()
         buildPage()
     }
-    elif evt is DestroyEvent
+    else if evt is DestroyEvent
     {
         app.sigFrame.disable()
         g_Surface     = null
@@ -263,19 +276,26 @@ func nextPage()
 func previousPage()
 {
     g_Page -= 1
-    if g_Page < 0 do
+    if g_Page < 0
+    {
         g_Page = MaxPages - 1
+    }
+
     buildPage()
 }
 
 func updateTestMode()
 {
-    if not Env.isSmokeRun() or not g_Surface do
+    if not Env.isSmokeRun() or not g_Surface
+    {
         return
+    }
 
     g_TestFrame += 1
-    if g_TestFrame < TestFramesPerPage do
+    if g_TestFrame < TestFramesPerPage
+    {
         return
+    }
 
     g_TestFrame = 0
     if g_Page + 1 >= MaxPages
@@ -286,10 +306,36 @@ func updateTestMode()
     nextPage()
 }
 
+func canUsePageArrows()->bool
+{
+    if not g_View or not g_PageView
+    {
+        return false
+    }
+
+    let view     = unwrap g_View
+    let pageView = unwrap g_PageView
+
+    let focus = view.focusedWindow()
+    if not focus or focus == g_View
+    {
+        return true
+    }
+
+    return not pageView.isAncestorOf(focus)
+}
+
 func onFrame(app: *Application)
 {
-    if not g_Surface or not g_View or not g_PageView do
+    if not g_Surface or not g_View or not g_PageView
+    {
         return
+    }
+
+    if app.keyboard.isKeyJustPressed(.F1)
+    {
+        nextPage()
+    }
 
     let progress = g_Progress
     if progress
@@ -322,7 +368,7 @@ func createRootView()
     themeButton.setIcon(app.theme.icon(ThemeIcons.Picker, 18))
     themeButton.sigPressed += &toggleTheme
 
-    let pageView = Wnd.create'Wnd(view, {})
+    let pageView = Wnd.create!{Wnd}(view, {})
     g_PageView = pageView
     pageView.backgroundStyle = .Transparent
 
@@ -345,10 +391,14 @@ func createRootView()
 {
     for arg in Env.arguments()
     {
-        if arg == "--dark" do
+        if arg == "--dark"
+        {
             g_DarkTheme = true
-        elif arg == "--light" do
+        }
+        else if arg == "--light"
+        {
             g_DarkTheme = false
+        }
     }
 
     let flags = SurfaceFlags.SmallCaption |
@@ -364,8 +414,10 @@ func createRootView()
     buildPage()
 
     app.sigFrame += &onFrame
-    if Env.isSmokeRun() do
+    if Env.isSmokeRun()
+    {
         app.maxRunFrame = cast(u32, MaxPages) * cast(u32, TestFramesPerPage) + 10
+    }
 
     applyTheme()
     surface.show()

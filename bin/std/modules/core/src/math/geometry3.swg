@@ -19,9 +19,12 @@ impl Ray3
     mtd const closestPoint(point: Vector3)->Vector3
     {
         let lengthSquared = .direction.lengthSquared()
-        if lengthSquared == 0 do
+        if lengthSquared == 0
+        {
             return .origin
-        let parameter = Math.max(0'f32, (point - .origin).dot(.direction) / lengthSquared)
+        }
+
+        let parameter = Math.max(0_f32, (point - .origin).dot(.direction) / lengthSquared)
         return .pointAt(parameter)
     }
 
@@ -45,8 +48,11 @@ impl Plane3
     func fromPointNormal(point, normal: Vector3)->Plane3
     {
         let unitNormal = normal.normalizedOrZero()
-        if unitNormal.isZero() do
+        if unitNormal.isZero()
+        {
             return Plane3{Vector3.UnitX, point.x}
+        }
+
         return Plane3{unitNormal, unitNormal.dot(point)}
     }
 
@@ -70,11 +76,17 @@ impl Plane3
     mtd const intersect(ray: Ray3)->{ intersects: bool, distance: f32, point: Vector3 }
     {
         let denominator = .normal.dot(ray.direction)
-        if denominator == 0 do
+        if denominator == 0
+        {
             return {intersects: false, distance: 0, point: ray.origin}
+        }
+
         let distance = (.distance - .normal.dot(ray.origin)) / denominator
-        if distance < 0 do
+        if distance < 0
+        {
             return {intersects: false, distance: distance, point: ray.pointAt(distance)}
+        }
+
         return {intersects: true, distance: distance, point: ray.pointAt(distance)}
     }
 }
@@ -103,8 +115,11 @@ impl Sphere3
         Swag.assert(.radius >= 0)
         let offset = point - .center
         let distanceSquared = offset.lengthSquared()
-        if distanceSquared <= .radius * .radius or distanceSquared == 0 do
+        if distanceSquared <= .radius * .radius or distanceSquared == 0
+        {
             return point
+        }
+
         return .center + offset * (.radius / sqrt(distanceSquared))
     }
 
@@ -127,8 +142,11 @@ impl Sphere3
     mtd const intersects(bounds: Bounds3)->bool
     {
         Swag.assert(.radius >= 0)
-        if not bounds.isValid() do
+        if not bounds.isValid()
+        {
             return false
+        }
+
         return .center.distanceSquaredTo(bounds.closestPoint(.center)) <= .radius * .radius
     }
 
@@ -159,16 +177,21 @@ impl Bounds3
     // Returns the side lengths, or zero for an invalid box.
     mtd const size()->Vector3
     {
-        if not .isValid() do
+        if not .isValid()
+        {
             return Vector3.Zero
+        }
+
         return .max - .min
     }
 
     // Returns the midpoint, or zero for an invalid box.
     mtd const center()->Vector3
     {
-        if not .isValid() do
+        if not .isValid()
+        {
             return Vector3.Zero
+        }
 
         // Halving before addition keeps a representable midpoint from overflowing.
         return .min * 0.5 + .max * 0.5
@@ -177,8 +200,10 @@ impl Bounds3
     // Returns half of each side length, or zero for an invalid box.
     mtd const extents()->Vector3
     {
-        if not .isValid() do
+        if not .isValid()
+        {
             return Vector3.Zero
+        }
 
         // Halving before subtraction keeps representable extents finite when the full size is not.
         return .max * 0.5 - .min * 0.5
@@ -229,8 +254,11 @@ impl Bounds3
     // Returns whether this box touches or crosses `plane`.
     mtd const intersects(plane: Plane3)->bool
     {
-        if not .isValid() do
+        if not .isValid()
+        {
             return false
+        }
+
         let center          = .center()
         let extents         = .extents()
         let projectedRadius = Math.abs(plane.normal.x) * extents.x +
@@ -242,8 +270,11 @@ impl Bounds3
     // Returns the nearest point in this box to `point`; an invalid box returns `point` unchanged.
     mtd const closestPoint(point: Vector3)->Vector3
     {
-        if not .isValid() do
+        if not .isValid()
+        {
             return point
+        }
+
         return Vector3{
             Math.clamp(point.x, .min.x, .max.x),
             Math.clamp(point.y, .min.y, .max.y),
@@ -260,10 +291,16 @@ impl Bounds3
     // Returns the smallest box containing both this box and `other`.
     mtd const merged(other: Bounds3)->Bounds3
     {
-        if not .isValid() do
+        if not .isValid()
+        {
             return other
-        if not other.isValid() do
+        }
+
+        if not other.isValid()
+        {
             return me
+        }
+
         return Bounds3{Vector3.min(.min, other.min), Vector3.max(.max, other.max)}
     }
 
@@ -273,8 +310,11 @@ impl Bounds3
     // A miss returns false.
     mtd const intersect(ray: Ray3)->{ intersects: bool, distance: f32, point: Vector3 }
     {
-        if not .isValid() do
+        if not .isValid()
+        {
             return {intersects: false, distance: 0, point: ray.origin}
+        }
+
         if ray.direction.isZero()
         {
             let containsOrigin = .contains(ray.origin)
@@ -285,8 +325,10 @@ impl Bounds3
         var far  = Swag.F32.Max
         if ray.direction.x == 0
         {
-            if ray.origin.x < .min.x or ray.origin.x > .max.x do
+            if ray.origin.x < .min.x or ray.origin.x > .max.x
+            {
                 return {intersects: false, distance: 0, point: ray.origin}
+            }
         }
         else
         {
@@ -299,8 +341,10 @@ impl Bounds3
 
         if ray.direction.y == 0
         {
-            if ray.origin.y < .min.y or ray.origin.y > .max.y do
+            if ray.origin.y < .min.y or ray.origin.y > .max.y
+            {
                 return {intersects: false, distance: 0, point: ray.origin}
+            }
         }
         else
         {
@@ -313,8 +357,10 @@ impl Bounds3
 
         if ray.direction.z == 0
         {
-            if ray.origin.z < .min.z or ray.origin.z > .max.z do
+            if ray.origin.z < .min.z or ray.origin.z > .max.z
+            {
                 return {intersects: false, distance: 0, point: ray.origin}
+            }
         }
         else
         {
@@ -325,11 +371,17 @@ impl Bounds3
             far  = Math.min(far, Math.max(a, b))
         }
 
-        if near > far or far < 0 do
+        if near > far or far < 0
+        {
             return {intersects: false, distance: 0, point: ray.origin}
+        }
+
         var distance = near
-        if distance < 0 do
+        if distance < 0
+        {
             distance = far
+        }
+
         return {intersects: true, distance: distance, point: ray.pointAt(distance)}
     }
 }
@@ -395,8 +447,11 @@ impl Frustum3
     // This conservative plane test can keep boxes that miss only at a frustum corner.
     mtd const intersects(bounds: Bounds3)->bool
     {
-        if not bounds.isValid() do
+        if not bounds.isValid()
+        {
             return false
+        }
+
         return boundsIntersectsPlane(bounds, .left) and
                boundsIntersectsPlane(bounds, .right) and
                boundsIntersectsPlane(bounds, .bottom) and
@@ -424,19 +479,31 @@ func intersectRaySphere(ray: Ray3, center: Vector3, radius: f32)->{ intersects: 
     Swag.assert(radius >= 0)
     let offset = ray.origin - center
     let a      = ray.direction.dot(ray.direction)
-    if a == 0 do
+    if a == 0
+    {
         return {intersects: false, distance: 0, point: ray.origin}
+    }
+
     let b = offset.dot(ray.direction)
     let c = offset.dot(offset) - radius * radius
     let discriminant = b * b - a * c
-    if discriminant < 0 do
+    if discriminant < 0
+    {
         return {intersects: false, distance: 0, point: ray.origin}
+    }
+
     let root     = sqrt(discriminant)
     var distance = (-b - root) / a
-    if distance < 0 do
+    if distance < 0
+    {
         distance = (-b + root) / a
-    if distance < 0 do
+    }
+
+    if distance < 0
+    {
         return {intersects: false, distance: distance, point: ray.origin}
+    }
+
     return {intersects: true, distance: distance, point: ray.pointAt(distance)}
 }
 
@@ -447,19 +514,31 @@ func intersectRayTriangle(ray: Ray3, a, b, c: Vector3)->{ intersects: bool, dist
     let edge2       = c - a
     let p           = ray.direction.cross(edge2)
     let determinant = edge1.dot(p)
-    if Math.isZeroEpsilon(determinant) do
+    if Math.isZeroEpsilon(determinant)
+    {
         return {intersects: false, distance: 0, barycentric: Vector3.Zero, point: ray.origin}
+    }
+
     let inverse = 1 / determinant
     let offset  = ray.origin - a
     let u       = offset.dot(p) * inverse
-    if u < 0 or u > 1 do
+    if u < 0 or u > 1
+    {
         return {intersects: false, distance: 0, barycentric: Vector3.Zero, point: ray.origin}
+    }
+
     let q = offset.cross(edge1)
     let v = ray.direction.dot(q) * inverse
-    if v < 0 or u + v > 1 do
+    if v < 0 or u + v > 1
+    {
         return {intersects: false, distance: 0, barycentric: Vector3.Zero, point: ray.origin}
+    }
+
     let distance = edge2.dot(q) * inverse
-    if distance < 0 do
+    if distance < 0
+    {
         return {intersects: false, distance: distance, barycentric: Vector3{1 - u - v, u, v}, point: ray.origin}
+    }
+
     return {intersects: true, distance: distance, barycentric: Vector3{1 - u - v, u, v}, point: ray.pointAt(distance)}
 }

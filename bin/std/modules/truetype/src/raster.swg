@@ -1,6 +1,6 @@
 using Swag, Core
 
-const OVERSAMPLE = 4'u32
+const OVERSAMPLE = 4_u32
 
 struct Edge
 {
@@ -19,10 +19,12 @@ func quadraticFlatEnough(p0x, p0y, p1x, p1y, p2x, p2y: f64, tolerance: f64)->boo
     return dx * dx + dy * dy <= tolerance * tolerance
 }
 
-func addEdge(edges: *Array'Edge, x0, y0, x1, y1: f64)
+func addEdge(edges: *Array!{Edge}, x0, y0, x1, y1: f64)
 {
-    if Math.isEqualEpsilon(x0, x1, 0.000001) and Math.isEqualEpsilon(y0, y1, 0.000001) do
+    if Math.isEqualEpsilon(x0, x1, 0.000001) and Math.isEqualEpsilon(y0, y1, 0.000001)
+    {
         return
+    }
 
     var edge: Edge
     edge.x0   = x0
@@ -34,7 +36,7 @@ func addEdge(edges: *Array'Edge, x0, y0, x1, y1: f64)
     edges.add(edge)
 }
 
-func flattenQuadratic(edges: *Array'Edge, x0, y0, x1, y1, x2, y2, tolerance: f64, depth: u32 = 0)
+func flattenQuadratic(edges: *Array!{Edge}, x0, y0, x1, y1, x2, y2, tolerance: f64, depth: u32 = 0)
 {
     if depth >= 12 or quadraticFlatEnough(x0, y0, x1, y1, x2, y2, tolerance)
     {
@@ -66,7 +68,7 @@ func cubicFlatEnough(p0x, p0y, p1x, p1y, p2x, p2y, p3x, p3y: f64, tolerance: f64
     return dx + dy <= 16.0 * tolerance * tolerance
 }
 
-func flattenCubic(edges: *Array'Edge, x0, y0, x1, y1, x2, y2, x3, y3, tolerance: f64, depth: u32 = 0)
+func flattenCubic(edges: *Array!{Edge}, x0, y0, x1, y1, x2, y2, x3, y3, tolerance: f64, depth: u32 = 0)
 {
     if depth >= 16 or cubicFlatEnough(x0, y0, x1, y1, x2, y2, x3, y3, tolerance)
     {
@@ -91,9 +93,9 @@ func flattenCubic(edges: *Array'Edge, x0, y0, x1, y1, x2, y2, x3, y3, tolerance:
     flattenCubic(edges, x0123, y0123, x123, y123, x23, y23, x3, y3, tolerance, depth + 1)
 }
 
-func buildEdges(outline: const *Outline)->Array'Edge
+func buildEdges(outline: const *Outline)->Array!{Edge}
 {
-    var edges: Array'Edge
+    var edges: Array!{Edge}
     let commands = buildOutlineCommands(outline)
 
     var currentX  = 0.0
@@ -151,6 +153,36 @@ func buildEdges(outline: const *Outline)->Array'Edge
     return edges
 }
 
+func isInside(edges: const [..] Edge, x, y: f64)->bool
+{
+    var winding = 0
+    for edge in edges
+    {
+        if y < edge.minY or y >= edge.maxY
+        {
+            continue
+        }
+
+        let cross = (edge.x1 - edge.x0) * (y - edge.y0) - (x - edge.x0) * (edge.y1 - edge.y0)
+        if edge.y0 <= y and edge.y1 > y
+        {
+            if cross > 0
+            {
+                winding += 1
+            }
+        }
+        else if edge.y1 <= y and edge.y0 > y
+        {
+            if cross < 0
+            {
+                winding -= 1
+            }
+        }
+    }
+
+    return winding != 0
+}
+
 // Accumulate the exact coverage contribution of one edge piece, already clipped to
 // a single scanline band, into the per-column 'area' and 'cover' buffers.
 //   - cover[x] : signed vertical extent of the edge inside column x (0..1 of the band)
@@ -161,22 +193,35 @@ func buildEdges(outline: const *Outline)->Array'Edge
 func accumulateSpan(area, cover: [*] f64, width: s32, xa, ya, xb, yb, s: f64)
 {
     let dyTotal = yb - ya
-    if dyTotal <= 0.0 do
+    if dyTotal <= 0.0
+    {
         return
+    }
 
     // Vertical sub-segment: a single column.
     if Math.abs(xb - xa) < 1e-9
     {
         var cx = Math.floorS32(xa)
-        if cx < 0 do
+        if cx < 0
+        {
             cx = 0
-        if cx > width - 1 do
+        }
+
+        if cx > width - 1
+        {
             cx = width - 1
+        }
+
         var xf = xa - cast(f64, cx)
-        if xf < 0.0 do
+        if xf < 0.0
+        {
             xf = 0.0
-        elif xf > 1.0 do
+        }
+        else if xf > 1.0
+        {
             xf = 1.0
+        }
+
         cover[cx] += s * dyTotal
         area[cx]  += s * dyTotal * xf
         return
@@ -186,12 +231,20 @@ func accumulateSpan(area, cover: [*] f64, width: s32, xa, ya, xb, yb, s: f64)
     let xR      = Math.max(xa, xb)
     var cxStart = Math.floorS32(xL)
     var cxEnd   = Math.floorS32(xR)
-    if cxEnd < 0 or cxStart > width - 1 do
+    if cxEnd < 0 or cxStart > width - 1
+    {
         return
-    if cxStart < 0 do
+    }
+
+    if cxStart < 0
+    {
         cxStart = 0
-    if cxEnd > width - 1 do
+    }
+
+    if cxEnd > width - 1
+    {
         cxEnd = width - 1
+    }
 
     // x varies linearly with y along the segment, so y at a given x is exact.
     let invDx = 1.0 / (xb - xa)
@@ -201,20 +254,28 @@ func accumulateSpan(area, cover: [*] f64, width: s32, xa, ya, xb, yb, s: f64)
         let cxf = cast(f64, cx)
         let sx0 = Math.max(xL, cxf)
         let sx1 = Math.min(xR, cxf + 1.0)
-        if sx1 <= sx0 do
+        if sx1 <= sx0
+        {
             continue
+        }
 
         let ys0 = ya + (yb - ya) * (sx0 - xa) * invDx
         let ys1 = ya + (yb - ya) * (sx1 - xa) * invDx
         let dh  = Math.abs(ys1 - ys0)
-        if dh <= 0.0 do
+        if dh <= 0.0
+        {
             continue
+        }
 
         var xf = (sx0 + sx1) * 0.5 - cxf
-        if xf < 0.0 do
+        if xf < 0.0
+        {
             xf = 0.0
-        elif xf > 1.0 do
+        }
+        else if xf > 1.0
+        {
             xf = 1.0
+        }
 
         cover[cx] += s * dh
         area[cx]  += s * dh * xf
@@ -227,11 +288,15 @@ func renderCurrentOutline(slot: *GlyphSlot) fail
     let safeSlot = slot
     clearBitmap(safeSlot)
 
-    if safeSlot.format != .Outline do
+    if safeSlot.format != .Outline
+    {
         try fault(0x13)
+    }
 
-    if safeSlot.outline.pointCount <= 0 do
+    if safeSlot.outline.pointCount <= 0
+    {
         return
+    }
 
     let bounds = computeOutlineBounds(&safeSlot.outline)
     let left   = Math.floorS32(bounds.minX / 64.0)
@@ -240,20 +305,24 @@ func renderCurrentOutline(slot: *GlyphSlot) fail
     let top    = Math.ceilS32(bounds.maxY / 64.0)
     let width  = Math.max(0, right - left)
     let rows   = Math.max(0, top - bottom)
-    if not width or not rows do
+    if not width or not rows
+    {
         return
+    }
 
     let edges = buildEdges(&safeSlot.outline)
-    if not edges.count do
+    if not edges.count
+    {
         return
+    }
 
     faceData.bitmapPixels.resize(cast(u64, width) * rows)
     let bitmapBuffer = faceData.bitmapPixels.storage()
     var dst = bitmapBuffer
 
     // Per-row signed-area accumulation buffers (analytic anti-aliasing).
-    var area:  Array'f64
-    var cover: Array'f64
+    var area:  Array!{f64}
+    var cover: Array!{f64}
     area.resize(cast(u64, width))
     cover.resize(cast(u64, width))
     let areaBuffer  = area.storage()
@@ -275,10 +344,30 @@ func renderCurrentOutline(slot: *GlyphSlot) fail
         var bandEdges = edges.toSlice()
         if rowsPerBand < rows
         {
-            active.clear()
-            for edge in edges where edge.maxY > bandLo and edge.minY < bandHi and edge.y0 != edge.y1 do
-                active.add(edge)
-            bandEdges = active.toSlice()
+            // Horizontal edges carry no winding; skip non-overlapping ones.
+            if edge.y0 == edge.y1
+            {
+                continue
+            }
+
+            if edge.maxY <= bandLo or edge.minY >= bandHi
+            {
+                continue
+            }
+
+            let s   = edge.y1 > edge.y0 ? 1.0 : -1.0
+            let elo = Math.max(edge.minY, bandLo)
+            let ehi = Math.min(edge.maxY, bandHi)
+            if ehi <= elo
+            {
+                continue
+            }
+
+            let inv   = 1.0 / (edge.y1 - edge.y0)
+            let xAtLo = edge.x0 + (edge.x1 - edge.x0) * (elo - edge.y0) * inv
+            let xAtHi = edge.x0 + (edge.x1 - edge.x0) * (ehi - edge.y0) * inv
+
+            accumulateSpan(areaBuffer, coverBuffer, width, xAtLo - leftF, elo, xAtHi - leftF, ehi, s)
         }
 
         for py in bandStart until bandEnd
@@ -286,43 +375,14 @@ func renderCurrentOutline(slot: *GlyphSlot) fail
             Memory.clear(areaBuffer, area.count * #sizeof(f64))
             Memory.clear(coverBuffer, cover.count * #sizeof(f64))
 
-            // Glyph-space y band for this row (y points up; row 0 is the top).
-            let bandHi = topF - cast(f64, py)
-            let bandLo = bandHi - 1.0
-
-            for edge in bandEdges
+            var c = Math.abs(val)
+            if c > 1.0
             {
-                // Horizontal edges carry no winding; skip non-overlapping ones.
-                if edge.y0 == edge.y1 do
-                    continue
-                if edge.maxY <= bandLo or edge.minY >= bandHi do
-                    continue
-
-                let s   = edge.y1 > edge.y0 ? 1.0 : -1.0
-                let elo = Math.max(edge.minY, bandLo)
-                let ehi = Math.min(edge.maxY, bandHi)
-                if ehi <= elo do
-                    continue
-
-                let inv   = 1.0 / (edge.y1 - edge.y0)
-                let xAtLo = edge.x0 + (edge.x1 - edge.x0) * (elo - edge.y0) * inv
-                let xAtHi = edge.x0 + (edge.x1 - edge.x0) * (ehi - edge.y0) * inv
-
-                accumulateSpan(areaBuffer, coverBuffer, width, xAtLo - leftF, elo, xAtHi - leftF, ehi, s)
+                c = 1.0
             }
 
-            var running: f64 = 0.0
-            for px in width
-            {
-                let val = running + coverBuffer[px] - areaBuffer[px]
-                running += coverBuffer[px]
-
-                var c = Math.abs(val)
-                if c > 1.0 do
-                    c = 1.0
-                dst[] = cast(u8, (c * 255.0 + 0.5))
-                dst   += 1
-            }
+            dst[] = cast(u8, (c * 255.0 + 0.5))
+            dst   += 1
         }
 
         bandStart = bandEnd

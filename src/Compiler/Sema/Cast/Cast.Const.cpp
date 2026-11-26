@@ -78,7 +78,7 @@ namespace
         return sema.typeMgr().get(elemTypeRef).isScalarNumeric() ? elemTypeRef : TypeRef::invalid();
     }
 
-    // Retarget untyped elements together: [1'u8, 2, 3] must stay u8 rather than
+    // Retarget untyped elements together: [1_u8, 2, 3] must stay u8 rather than
     // defaulting its untyped siblings to s32 and widening the whole array.
     // castAllowed records failures silently, letting unsuitable targets fall
     // back to ordinary concretization without emitting an error.
@@ -306,7 +306,7 @@ bool Cast::foldConstantIntLikeToIntLike(Sema& sema, CastRequest& castRequest, Ty
     {
         // Explicit casts wrap negative bit patterns just like runtime casts,
         // including when inlining makes a previously runtime operand constant.
-        // Negative unsigned suffixes (-1'u32) remain errors: LiteralSuffix is
+        // Negative unsigned suffixes (-1_u32) remain errors: LiteralSuffix is
         // distinct from FromExplicitNode. Promotion also retains overflow checks
         // so folding cannot change behavior compared with runtime operands.
         const bool explicitWrap = castRequest.flags.has(CastFlagsE::FromExplicitNode);

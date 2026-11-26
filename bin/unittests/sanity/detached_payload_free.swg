@@ -43,15 +43,19 @@ impl DetachedTable
     #[Swag.Sanity(.Lifecycle, true)]
     mtd reserve(newCapacity: u64)
     {
-        if newCapacity <= .capacity do
+        if newCapacity <= .capacity
+        {
             return
+        }
 
         let old      = .table
         let oldBytes = .capacity * #sizeof(u64)
         .table    = cast([*] u64, myAlloc(newCapacity * #sizeof(u64)))
         .capacity = newCapacity
-        if old != null do
+        if old != null
+        {
             myFree(cast(*void, old), oldBytes)
+        }
     }
 
     #[Swag.Sanity(.Lifecycle, true)]
@@ -77,8 +81,10 @@ impl DetachedTable
 
     mtd opDrop()
     {
-        if .table != null do
+        if .table != null
+        {
             myFree(cast(*void, .table), .capacity * #sizeof(u64))
+        }
     }
 }
 

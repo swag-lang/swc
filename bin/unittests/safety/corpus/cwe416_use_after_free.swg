@@ -314,8 +314,10 @@ func conditionalFree(release: bool)->s32
 {
     let pointer = cast(*s32, heapAlloc(4))
     pointer[] = 3
-    if release do
+    if release
+    {
         heapFree(pointer, 4)
+    }
     return pointer[]     // swc-expected-warning {{sanity_warn_possible_use_after_free}}
 }
 
@@ -340,8 +342,10 @@ func readOnlyOnKeptPath(release: bool)->s32
 func readAfterConditionalRebind(release: bool)->s32
 {
     var pointer = cast(*s32, heapAlloc(4))
-    if release do
+    if release
+    {
         heapFree(pointer, 4)
+    }
     pointer   = cast(*s32, heapAlloc(4))
     pointer[] = 7
     return pointer[]

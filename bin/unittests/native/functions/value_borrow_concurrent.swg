@@ -85,10 +85,13 @@ func holdAcrossThreads(small: Small, large: Large, state: *SharedBorrow)->u64
 #test
 {
     // The JIT runs tasks inline, so it cannot rendezvous with its submitting thread.
-    if Swag.jit() do return
+    if Swag.jit()
+    {
+        return
+    }
     Swag.startWorkers()
     var state: SharedBorrow
-    var task:  Swag.Task'u64
+    var task:  Swag.Task!{u64}
     task.submit(func|&state|() => holdAcrossThreads(state.small, state.large, &state))
     state.ready.acquire()
     let small = Swag.catchPanic(func|&state|() { state.small.bytes[95] = 7 })

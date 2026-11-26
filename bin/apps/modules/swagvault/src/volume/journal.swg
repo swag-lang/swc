@@ -31,16 +31,16 @@ struct JournalRecord
     sequence:   u64     // Position in the single sequence shared with checkpoints.
     nextNodeId: u64
     label:      String
-    removed:    Array'u64      // Nodes this change deleted.
-    upserted:   Array'Node     // Nodes this change created or modified, in full.
-    metadata:   Array'NodeMetadataPatch     // Namespace and timestamp-only changes.
+    removed:    Array!{u64}      // Nodes this change deleted.
+    upserted:   Array!{Node}     // Nodes this change created or modified, in full.
+    metadata:   Array!{NodeMetadataPatch}     // Namespace and timestamp-only changes.
 }
 
 impl JournalRecord
 {
     // Encodes one change. `upserted` borrows the live nodes, so a record costs
     // no copy of a block map on the way out.
-    func encode(sequence, nextNodeId: u64, label: string, removed: const [..] u64, upserted, metadata: const [..] *Node)->Array'u8
+    func encode(sequence, nextNodeId: u64, label: string, removed: const [..] u64, upserted, metadata: const [..] *Node)->Array!{u8}
     {
         var result: #returntype
         var writer = ByteStream.openWrite(&result)
@@ -50,12 +50,16 @@ impl JournalRecord
         writer.writeSizedString(label)
 
         writer.writeLittleEndian(removed.count)
-        for id in removed do
+        for id in removed
+        {
             writer.writeLittleEndian(id)
+        }
 
         writer.writeLittleEndian(upserted.count)
-        for node in upserted do
+        for node in upserted
+        {
             node.serialize(&writer)
+        }
 
         writer.writeLittleEndian(metadata.count)
         for node in metadata
@@ -81,20 +85,28 @@ impl JournalRecord
         var result: #returntype
         var reader = ByteStream.openRead(plain)
 
-        result.sequence   = try reader.readLittleEndian'u64()
-        result.nextNodeId = try reader.readLittleEndian'u64()
+        result.sequence   = try reader.readLittleEndian!{u64}()
+        result.nextNodeId = try reader.readLittleEndian!{u64}()
         result.label      = try reader.readSizedString(MaximumLabelSize)
 
-        let removedCount = try reader.readLittleEndian'u64()
-        if removedCount > MaximumNodeCount do
+        let removedCount = try reader.readLittleEndian!{u64}()
+        if removedCount > MaximumNodeCount
+        {
             fail volumeError(.Corrupted)
-        result.removed.reserve(removedCount)
-        for removedCount do
-            result.removed.add(try reader.readLittleEndian'u64())
+        }
 
-        let upsertCount = try reader.readLittleEndian'u64()
-        if upsertCount > MaximumNodeCount do
+        result.removed.reserve(removedCount)
+        for removedCount
+        {
+            result.removed.add(try reader.readLittleEndian!{u64}())
+        }
+
+        let upsertCount = try reader.readLittleEndian!{u64}()
+        if upsertCount > MaximumNodeCount
+        {
             fail volumeError(.Corrupted)
+        }
+
         result.upserted.reserve(upsertCount)
         for upsertCount
         {
@@ -106,30 +118,36 @@ impl JournalRecord
         // Keeping that form readable preserves every existing container.
         if reader.remainingBytes().count
         {
-            let metadataCount = try reader.readLittleEndian'u64()
-            if metadataCount > MaximumNodeCount do
+            let metadataCount = try reader.readLittleEndian!{u64}()
+            if metadataCount > MaximumNodeCount
+            {
                 fail volumeError(.Corrupted)
+            }
+
             result.metadata.reserve(metadataCount)
             for metadataCount
             {
                 with var patch: NodeMetadataPatch
                 {
-                    .id             = try reader.readLittleEndian'u64()
-                    .parentId       = try reader.readLittleEndian'u64()
+                    .id             = try reader.readLittleEndian!{u64}()
+                    .parentId       = try reader.readLittleEndian!{u64}()
                     .name           = try reader.readSizedString(MaximumNameSize)
-                    .attributes     = try reader.readLittleEndian'u32()
-                    .creationTime   = try reader.readLittleEndian'u64()
-                    .lastAccessTime = try reader.readLittleEndian'u64()
-                    .lastWriteTime  = try reader.readLittleEndian'u64()
-                    .changeTime     = try reader.readLittleEndian'u64()
+                    .attributes     = try reader.readLittleEndian!{u32}()
+                    .creationTime   = try reader.readLittleEndian!{u64}()
+                    .lastAccessTime = try reader.readLittleEndian!{u64}()
+                    .lastWriteTime  = try reader.readLittleEndian!{u64}()
+                    .changeTime     = try reader.readLittleEndian!{u64}()
                 }
 
                 result.metadata.add(#move patch)
             }
         }
 
-        if reader.isEof() do
+        if reader.isEof()
+        {
             fail volumeError(.Corrupted)
+        }
+
         return result
     }
 }

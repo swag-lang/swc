@@ -94,7 +94,7 @@ func expectNear(actual, expected: f32)
     let separated = Math.Geometry.closestPointsBetweenSegments({0, 0}, {10, 0}, {12, 3}, {12, 8})
     expectVec2(separated.first, {10, 0})
     expectVec2(separated.second, {12, 3})
-    expectNear(separated.distance, Math.sqrt(13'f32))
+    expectNear(separated.distance, Math.sqrt(13_f32))
 
     let sideBySide = Math.Geometry.closestPointsBetweenSegments({0, 0}, {10, 0}, {2, 3}, {8, 3})
     expectVec2(sideBySide.first, {2, 0})
@@ -195,7 +195,7 @@ func expectNear(actual, expected: f32)
 // Horizontal edges do not divide by zero, and winding does not change inside/outside.
 #test
 {
-    var polygon: Array'Math.Vector2
+    var polygon: Array!{Math.Vector2}
     Swag.require(not Math.Geometry.polygonContainsPoint(polygon, {5, 5}))
 
     polygon.add({0, 0})
@@ -213,7 +213,7 @@ func expectNear(actual, expected: f32)
 
 #test
 {
-    var bowTie: Array'Math.Vector2
+    var bowTie: Array!{Math.Vector2}
     bowTie.add({0, 0})
     bowTie.add({10, 10})
     bowTie.add({0, 10})

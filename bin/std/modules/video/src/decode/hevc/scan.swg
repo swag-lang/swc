@@ -9,9 +9,9 @@
 using Core
 
 // The three scan orders residual coding uses, clause 7.4.9.11.
-const ScanDiagonal   = 0'u32
-const ScanHorizontal = 1'u32
-const ScanVertical   = 2'u32
+const ScanDiagonal   = 0_u32
+const ScanHorizontal = 1_u32
+const ScanVertical   = 2_u32
 
 // The scan orders of clauses 6.5.3 to 6.5.5, for blocks of one to eight units on a side.
 //
@@ -38,13 +38,13 @@ var DiagScan8x8Index: [64] u8
 // Fills the scan order tables, clauses 6.5.3 to 6.5.5.
 private func buildScanOrders()
 {
-    for log2Size in 4'u32
+    for log2Size in 4_u32
     {
-        let size = 1'u32 << log2Size
+        let size = 1_u32 << log2Size
 
         // Up-right diagonal, clause 6.5.3.
-        var position = 0'u32
-        var x, y     = 0's32
+        var position = 0_u32
+        var x, y     = 0_s32
         while position < size * size
         {
             while y >= 0
@@ -89,10 +89,10 @@ private func buildScanOrders()
         }
     }
 
-    for log2Size in 4'u32
+    for log2Size in 4_u32
     {
-        let size = 1'u32 << log2Size
-        for order in 3'u32
+        let size = 1_u32 << log2Size
+        for order in 3_u32
         {
             for position in size * size
             {
@@ -103,14 +103,14 @@ private func buildScanOrders()
         }
     }
 
-    for position in 16'u32
+    for position in 16_u32
     {
         let x = cast(u32, ScanX[2, ScanDiagonal, position])
         let y = cast(u32, ScanY[2, ScanDiagonal, position])
         DiagScan4x4Index[y * 4 + x] = cast(u8, position)
     }
 
-    for position in 64'u32
+    for position in 64_u32
     {
         let x = cast(u32, ScanX[3, ScanDiagonal, position])
         let y = cast(u32, ScanY[3, ScanDiagonal, position])

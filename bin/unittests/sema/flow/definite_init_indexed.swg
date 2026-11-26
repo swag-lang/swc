@@ -13,17 +13,23 @@ func indexedWriteThroughAssignedPointer(source: [*] s32, count: u64)
 {
     var destination: [*] s32
     destination = source
-    for i in count do
+    for i in count
+    {
         destination[i] = 1
+    }
 }
 
 func indexedWriteAfterBranchMerge(condition: bool, first, second: [*] s32)
 {
     var destination: [*] s32
-    if condition do
+    if condition
+    {
         destination = first
-    else do
+    }
+    else
+    {
         destination = second
+    }
     destination[0] = 1
 }
 

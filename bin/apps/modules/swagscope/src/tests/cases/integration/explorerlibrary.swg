@@ -22,10 +22,16 @@ using Core, Gui, Pixel
     watch.start()
     for stage in 8
     {
-        if stage > 0 do
+        if stage > 0
+        {
             explorer.setArtworkSource(stage % 2 ? .Local : .Online)
-        if stage % 4 == 3 do
+        }
+
+        if stage % 4 == 3
+        {
             explorer.forceRefresh()
+        }
+
         var elapsed: Time.Stopwatch
         elapsed.start()
         var checked  = false
@@ -35,18 +41,23 @@ using Core, Gui, Pixel
             app.runFrame()
             if not explorer.load.started and explorer.shown.count
             {
-                if expect Testing.verifyNativePresentation(surface) do
+                if expect Testing.verifyNativePresentation(surface)
+                {
                     checked = true
-                if stage == 0 and elapsed.elapsedMilliseconds() > 3000 do
+                }
+
+                if stage == 0 and elapsed.elapsedMilliseconds() > 3000
+                {
                     explorer.scroll.setScrollPos(0, explorer.grid.position.height * 0.8)
+                }
             }
 
-            Threading.Thread.sleep(10'ms)
+            Threading.Thread.sleep(10_ms)
         }
 
         Swag.require(checked, "the library produced no completed native frame")
-        var visible = 0'u64
-        var cached  = 0'u64
+        var visible = 0_u64
+        var cached  = 0_u64
         let range   = explorer.grid.visibleRange()
         for row in range.first until Math.min(range.end, explorer.shown.count) where
             explorer.entries[explorer.shown[row]].texture.isValid()
@@ -75,8 +86,11 @@ using Core, Gui, Pixel
         if visible == 0
         {
             Console.println("Preview workers: ", explorer.previews.count)
-            for preview in explorer.previews do
+            for preview in explorer.previews
+            {
                 Console.println("preview running=", preview.started, " path=", preview.path, " error=", preview.error)
+            }
+
             for row in range.first until Math.min(range.end, explorer.shown.count)
             {
                 let entry = &explorer.entries[explorer.shown[row]]

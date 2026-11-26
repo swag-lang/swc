@@ -34,7 +34,7 @@ struct ColorPicker
     {
         using wnd: Wnd     // Embedded window behavior and presentation.
 
-        sigColorChanged: SigArray'func||(*Wnd)     // Emitted after the selected color changes.
+        sigColorChanged: SigArray!{func||(*Wnd)}     // Emitted after the selected color changes.
 
         readonly
         {
@@ -55,8 +55,10 @@ impl IWnd for ColorPicker
 {
     mtd impl onDestroyEvent(_: *DestroyEvent)
     {
-        if .texture.isValid() do
+        if .texture.isValid()
+        {
             .app().renderer.removeTexture(&.texture)
+        }
     }
 
     mtd impl onResizeEvent(_: *ResizeEvent)
@@ -109,7 +111,7 @@ impl IWnd for ColorPicker
                 c2.a = 255
                 .image.fillGradient(c1, c2)
             }
-            elif .mode == .AlphaVertical
+            else if .mode == .AlphaVertical
             {
                 let c  = Color.fromHsl(.hue, .saturation, .lightness)
                 var c1 = c
@@ -118,7 +120,7 @@ impl IWnd for ColorPicker
                 c2.a = 0
                 .image.fillGradient(c1, c1, c2, c2)
             }
-            elif .mode == .RedHorizontal
+            else if .mode == .RedHorizontal
             {
                 let c  = Color.fromRgbF32(.red, .green, .blue)
                 var c1 = c
@@ -127,7 +129,7 @@ impl IWnd for ColorPicker
                 c2.r = 255
                 .image.fillGradient(c1, c2)
             }
-            elif .mode == .RedVertical
+            else if .mode == .RedVertical
             {
                 let c  = Color.fromRgbF32(.red, .green, .blue)
                 var c1 = c
@@ -136,7 +138,7 @@ impl IWnd for ColorPicker
                 c2.r = 0
                 .image.fillGradient(c1, c1, c2, c2)
             }
-            elif .mode == .GreenHorizontal
+            else if .mode == .GreenHorizontal
             {
                 let c  = Color.fromRgbF32(.red, .green, .blue)
                 var c1 = c
@@ -145,7 +147,7 @@ impl IWnd for ColorPicker
                 c2.g = 255
                 .image.fillGradient(c1, c2)
             }
-            elif .mode == .GreenVertical
+            else if .mode == .GreenVertical
             {
                 let c  = Color.fromRgbF32(.red, .green, .blue)
                 var c1 = c
@@ -154,7 +156,7 @@ impl IWnd for ColorPicker
                 c2.g = 0
                 .image.fillGradient(c1, c1, c2, c2)
             }
-            elif .mode == .BlueHorizontal
+            else if .mode == .BlueHorizontal
             {
                 let c  = Color.fromRgbF32(.red, .green, .blue)
                 var c1 = c
@@ -163,7 +165,7 @@ impl IWnd for ColorPicker
                 c2.b = 255
                 .image.fillGradient(c1, c2)
             }
-            elif .mode == .BlueVertical
+            else if .mode == .BlueVertical
             {
                 let c  = Color.fromRgbF32(.red, .green, .blue)
                 var c1 = c
@@ -223,8 +225,10 @@ impl IWnd for ColorPicker
 
             if .texture.isValid()
             {
-                if not .app().renderer.updateTexture(.texture, nnPixels(.image.pixels.buffer)) do
+                if not .app().renderer.updateTexture(.texture, nnPixels(.image.pixels.buffer))
+                {
                     .app().renderer.removeTexture(&.texture)
+                }
             }
             else
             {
@@ -240,8 +244,11 @@ impl IWnd for ColorPicker
         painter.endClippingRegion()
 
         // Image
-        if .mode == .AlphaHorizontal or .mode == .AlphaVertical do
+        if .mode == .AlphaHorizontal or .mode == .AlphaVertical
+        {
             painter.fillRect(clientRect, Brush.createHatch(.CheckBoardLarge, colors.colorPicker_BackAlpha))
+        }
+
         painter.drawTexture(clientRect, .texture)
         painter.resetClippingRegion()
 
@@ -414,28 +421,38 @@ impl IWnd for ColorPicker
     mtd impl onKeyEvent(evt: *KeyEvent)
     {
         evt.accepted = false
-        if evt.kind != .Pressed or evt.modifiers != .None do
+        if evt.kind != .Pressed or evt.modifiers != .None
+        {
             return
+        }
 
         let oldColor = .color()
         let step     = 1.0 / 255
         switch evt.key
         {
         case .Left:
-            if not .nudgeHorizontal(-step) do
+            if not .nudgeHorizontal(-step)
+            {
                 return
+            }
 
         case .Right:
-            if not .nudgeHorizontal(step) do
+            if not .nudgeHorizontal(step)
+            {
                 return
+            }
 
         case .Up:
-            if not .nudgeVertical(-step) do
+            if not .nudgeVertical(-step)
+            {
                 return
+            }
 
         case .Down:
-            if not .nudgeVertical(step) do
+            if not .nudgeVertical(step)
+            {
                 return
+            }
 
         default:
             return
@@ -444,8 +461,11 @@ impl IWnd for ColorPicker
         .dirty = true
         .computeXY()
         .invalidate()
-        if .color() != oldColor do
+        if .color() != oldColor
+        {
             .sigColorChanged.call(me)
+        }
+
         evt.accepted = true
     }
 }
@@ -671,7 +691,7 @@ impl ColorPicker
     func create(parent: *Wnd, position: Math.Rectangle = {}, id: WndId? = null)->*ColorPicker
     {
         Swag.assert(parent != null)
-        let result = Wnd.create'ColorPicker(parent, null, position, id)
+        let result = Wnd.create!{ColorPicker}(parent, null, position, id)
         result.focusPolicy = .Tab
         result.wndFlags    |= .FocusRing
         result.wndFlags    |= .AfterChildrenPaint
@@ -692,8 +712,10 @@ impl ColorPicker
         if .hue == newHue and
            .saturation == newSaturation and
            .lightness == newLightness and
-           .alpha == newAlpha do
+           .alpha == newAlpha
+        {
             return
+        }
 
         .hue        = newHue
         .saturation = newSaturation
@@ -703,8 +725,10 @@ impl ColorPicker
         .dirty = true
         .computeXY()
         .invalidate()
-        if notify do
+        if notify
+        {
             .sigColorChanged.call(me)
+        }
     }
 
     // Replaces the HSL components while preserving alpha.
@@ -717,16 +741,20 @@ impl ColorPicker
     mtd setColor(color: Color, notify = true)
     {
         let {a: newAlpha, r: newRed, g: newGreen, b: newBlue} = color.toArgbF32()
-        if .alpha == newAlpha and .red == newRed and .green == newGreen and .blue == newBlue do
+        if .alpha == newAlpha and .red == newRed and .green == newGreen and .blue == newBlue
+        {
             return
+        }
 
         {newAlpha: .alpha, newRed: .red, newGreen: .green, newBlue: .blue} = {newAlpha, newRed, newGreen, newBlue}
         .computeHsl()
         .dirty = true
         .computeXY()
         .invalidate()
-        if notify do
+        if notify
+        {
             .sigColorChanged.call(me)
+        }
     }
 
     // Returns the selected color.
@@ -735,8 +763,11 @@ impl ColorPicker
     // Changes the component mapping without changing the selected color.
     mtd setMode(mode: ColorPickerMode)
     {
-        if .mode == mode do
+        if .mode == mode
+        {
             return
+        }
+
         .mode  = mode
         .dirty = true
         .computeXY()

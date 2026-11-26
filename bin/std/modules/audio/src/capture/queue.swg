@@ -31,20 +31,26 @@ internal func captureTickAt(firstTick: u64, frameOffset: u64, sampleRate: u32, c
 {
     let whole     = frameOffset / sampleRate
     let remainder = frameOffset % sampleRate
-    if whole > (Swag.U64.Max - firstTick) / clockFrequency do
+    if whole > (Swag.U64.Max - firstTick) / clockFrequency
+    {
         fail OverflowError{"capture packet timestamp overflows"}
+    }
+
     let base     = firstTick + whole * clockFrequency
     let scaled   = remainder * clockFrequency
     let fraction = scaled / sampleRate +
                    cast(u64, scaled % sampleRate >= sampleRate / 2 + sampleRate % 2)
-    if fraction > Swag.U64.Max - base do
+    if fraction > Swag.U64.Max - base
+    {
         fail OverflowError{"capture packet timestamp overflows"}
+    }
+
     return base + fraction
 }
 
 private func capturePlacement(timeline: *SampleTimeline, idleSilent: bool, frameCount: u64, firstTick: u64)->SamplePlacement fail
 {
-    var lateFrames = 0'u64
+    var lateFrames = 0_u64
     if idleSilent and firstTick < timeline.previousTick
     {
         let delta        = timeline.previousTick - firstTick
@@ -70,8 +76,10 @@ private func capturePlacement(timeline: *SampleTimeline, idleSilent: bool, frame
             }
         }
 
-        if lateFrames == frameCount do
+        if lateFrames == frameCount
+        {
             return SamplePlacement{timeline.sampleEnd(), 0, lateFrames, 0}
+        }
     }
 
     var placement: SamplePlacement
@@ -104,8 +112,8 @@ struct CaptureQueue
     {
         mutex:               Swag.Mutex
         timeline:            SampleTimeline
-        slots:               Array'CaptureSlot
-        storage:             Array's16
+        slots:               Array!{CaptureSlot}
+        storage:             Array!{s16}
         channels:            u16
         blockFrames:         u32
         slotCount:           u32
@@ -137,8 +145,11 @@ impl CaptureQueue
            blockFrames > 4_096 or
            not slots or
            slots > 256 or
-           tolerance > blockFrames do
+           tolerance > blockFrames
+        {
             fail BadParameterError{"capture queue needs one to eight channels, 1-4096 frames per block, and 1-256 slots"}
+        }
+
         var result: #returntype
         result.timeline    = try SampleTimeline.createWithOrigin(sampleRate, clockFrequency, originTick, tolerance)
         result.channels    = channels
@@ -170,17 +181,26 @@ impl CaptureQueue
     {
         if not samples.count or
            samples.count % .channels or
-           samples.count / .channels > .blockFrames do
+           samples.count / .channels > .blockFrames
+        {
             fail BadParameterError{"capture queue needs one complete nonempty block within its frame limit"}
+        }
+
         .mutex.lock()
         defer .mutex.unlock()
-        if .lost do
+        if .lost
+        {
             fail BadParameterError{"capture source is lost; mark it restored before submitting samples"}
+        }
+
         let frames    = samples.count / .channels
         let placement = try capturePlacement(&.timeline, .idleSilent, frames, firstTick)
 
-        if not placement.acceptedFrames do
+        if not placement.acceptedFrames
+        {
             return placement
+        }
+
         if .count == .slotCount
         {
             .droppedBlocks += 1
@@ -209,14 +229,17 @@ impl CaptureQueue
         defer .mutex.unlock()
         var timeline    = .timeline
         var idleSilent  = .idleSilent
-        var frameOffset = 0'u64
+        var frameOffset = 0_u64
         while frameOffset < frameCount
         {
             let chunkFrames = Math.min(frameCount - frameOffset, .blockFrames)
             let tick        = try captureTickAt(firstTick, frameOffset, timeline.sampleRate, timeline.clockFrequency)
             let placement   = try capturePlacement(&timeline, idleSilent, chunkFrames, tick)
-            if placement.acceptedFrames do
+            if placement.acceptedFrames
+            {
                 idleSilent = false
+            }
+
             frameOffset += chunkFrames
         }
     }
@@ -226,7 +249,7 @@ impl CaptureQueue
     // Both outputs are reset when the queue is empty. On success `samples` contains exactly
     // `info.frameCount * channelCount` interleaved samples. `gapFrames` covers missing source
     // samples and blocks dropped because the queue filled. The caller may reuse both outputs.
-    mtd pop(samples: *Array's16, info: *CaptureBlock)->bool
+    mtd pop(samples: *Array!{s16}, info: *CaptureBlock)->bool
     {
         .mutex.lock()
         defer .mutex.unlock()
@@ -288,8 +311,11 @@ impl CaptureQueue
     {
         .mutex.lock()
         defer .mutex.unlock()
-        if .lost or tick <= .timeline.previousTick do
+        if .lost or tick <= .timeline.previousTick
+        {
             return 0
+        }
+
         let silence = try .timeline.advanceTo(tick)
         .idleSilent = true
         return silence

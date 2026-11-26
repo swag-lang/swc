@@ -29,15 +29,15 @@ struct Driver
     updateTh:            Threading.Thread
     wakeupUpdate:        Sync.Event
     mutexVoicesToUpdate: Swag.Mutex
-    voicesToUpdate:      Array'{ voice: *Voice, command: UpdateCommand }
+    voicesToUpdate:      Array!{{ voice: *Voice, command: UpdateCommand }}
 
     mutexRecycleVoices:   Swag.Mutex
-    activeVoices:         Array'(*Voice)
-    pendingRecycleVoices: Array'(*Voice)
-    toRecycleVoices:      Array'(*Voice)
+    activeVoices:         Array!{*Voice}
+    pendingRecycleVoices: Array!{*Voice}
+    toRecycleVoices:      Array!{*Voice}
 
     mutexBuses: Swag.Mutex
-    buses:      Array'(*Bus)
+    buses:      Array!{*Bus}
 
     driverIsClosing: bool
 }
@@ -49,13 +49,18 @@ internal func updateThreadProc(th: const *Threading.Thread)
     {
         // Wait for an update to be requested
         driver.wakeupUpdate.wait()
-        if th.requestEnd.isRaised() do
+        if th.requestEnd.isRaised()
+        {
             break
+        }
 
         // All pending recycles to actual recycle list
         driver.mutexRecycleVoices.lock()
-        for voice in driver.pendingRecycleVoices do
+        for voice in driver.pendingRecycleVoices
+        {
             driver.toRecycleVoices.add(voice)
+        }
+
         driver.mutexRecycleVoices.unlock()
         driver.pendingRecycleVoices.clear()
 
@@ -78,8 +83,11 @@ internal func updateThreadProc(th: const *Threading.Thread)
             {
                 // The local batch owns these registrations even after shutdown starts.
                 // Keep their native resources visible to Driver.destroy.
-                if cmd.command == .Register do
+                if cmd.command == .Register
+                {
                     driver.activeVoices.add(voice)
+                }
+
                 continue
             }
 
@@ -102,16 +110,21 @@ internal func updateThreadProc(th: const *Threading.Thread)
 
                 let idx = voice.idxInList
                 driver.activeVoices.removeAt(idx)
-                if idx != driver.activeVoices.count do
+                if idx != driver.activeVoices.count
+                {
                     driver.activeVoices[idx].idxInList = idx
+                }
+
                 driver.pendingRecycleVoices.add(voice)
 
             case .UpdateBuffers:
 
                 // A flush can deliver a late OnBufferEnd callback. Do not let that stale
                 // notification repopulate a voice that pause/stop has already taken offline.
-                if not voice.hasState(.Playing) do
+                if not voice.hasState(.Playing)
+                {
                     continue
+                }
 
                 // Update buffer of voice, and stop it if nothing has been updated (end reached)
                 if not (catch voice.updateNative() orelse false)
@@ -121,8 +134,10 @@ internal func updateThreadProc(th: const *Threading.Thread)
                 }
 
                 // If the voice is no more playing, register it for destruction if necessary
-                if not voice.isPlaying() and voice.playFlags.has(.DestroyOnStop) do
+                if not voice.isPlaying() and voice.playFlags.has(.DestroyOnStop)
+                {
                     voice.destroy()
+                }
             }
         }
     }
@@ -151,16 +166,20 @@ impl Driver
 
         #static if #command == Swag.CompilerCommand.Test
         {
-            if g_DriverCreateFailure == .AfterEventInit do
+            if g_DriverCreateFailure == .AfterEventInit
+            {
                 fail BadParameterError{"injected audio driver creation failure"}
+            }
         }
 
         try .updateTh.init(&updateThreadProc)
 
         #static if #command == Swag.CompilerCommand.Test
         {
-            if g_DriverCreateFailure == .AfterThreadInit do
+            if g_DriverCreateFailure == .AfterThreadInit
+            {
                 fail BadParameterError{"injected audio driver creation failure"}
+            }
         }
 
         try .updateTh.start()
@@ -179,8 +198,11 @@ impl Driver
             .updateTh.wait()
         }
 
-        if .wakeupUpdate.isValid() do
+        if .wakeupUpdate.isValid()
+        {
             .wakeupUpdate.release()
+        }
+
         .destroyNative()
         Swag.drop(me, 1)
         Swag.init(me, 1)
@@ -188,8 +210,11 @@ impl Driver
 
     mtd destroy()
     {
-        if not .isCreated do
+        if not .isCreated
+        {
             return
+        }
+
         .driverIsClosing = true
 
         // Halt the backend's audio processing thread first: from here on no mixer
@@ -209,8 +234,10 @@ impl Driver
         .mutexVoicesToUpdate.lock()
         for cmd in .voicesToUpdate
         {
-            if cmd.command == .Register do
+            if cmd.command == .Register
+            {
                 .activeVoices.add(cmd.voice)
+            }
         }
 
         .voicesToUpdate.clear()
@@ -266,13 +293,18 @@ impl Driver
         // background thread feed its buffers would consume the whole stream instantly and
         // race those checks (e.g. flip isPlaying to false right after play()). Registration
         // and destruction still go through the thread.
-        if .kind == .NoSound and cmd == .UpdateBuffers do
+        if .kind == .NoSound and cmd == .UpdateBuffers
+        {
             return
+        }
 
         .mutexVoicesToUpdate.lock()
         defer .mutexVoicesToUpdate.unlock()
-        if .driverIsClosing do
+        if .driverIsClosing
+        {
             return
+        }
+
         .voicesToUpdate.add({voice, command: cmd})
         .wakeupUpdate.signal()
     }
@@ -281,8 +313,11 @@ impl Driver
     {
         var back: *Voice?
         .mutexRecycleVoices.lock()
-        if not .toRecycleVoices.isEmpty() do
+        if not .toRecycleVoices.isEmpty()
+        {
             back = .toRecycleVoices.popBack()
+        }
+
         .mutexRecycleVoices.unlock()
         if back
         {
@@ -290,13 +325,15 @@ impl Driver
         }
         else
         {
-            back = Memory.new'Voice(.allocationAllocator)
+            back = Memory.new!{Voice}(.allocationAllocator)
             back.allocationAllocator     = .allocationAllocator
             back.streamBuffer.allocator  = .allocationAllocator
             back.packetBuffer.allocator  = .allocationAllocator
             back.packetScratch.allocator = .allocationAllocator
-            for &buffer in back.decodedBuffers do
+            for &buffer in back.decodedBuffers
+            {
                 buffer.allocator = .allocationAllocator
+            }
         }
 
         return back

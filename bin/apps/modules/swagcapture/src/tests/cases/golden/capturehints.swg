@@ -27,7 +27,7 @@ using Swag, Core, Gui, Pixel
     g_DesktopTexture = f.gui.app.renderer.addImage(desktop)
     defer f.gui.app.renderer.removeTexture(&g_DesktopTexture)
 
-    with let overlay = Wnd.create'CaptureRectWnd(&f.gui.root, {0, 0, 1200, 540})
+    with let overlay = Wnd.create!{CaptureRectWnd}(&f.gui.root, {0, 0, 1200, 540})
     {
         .main = f.main
     }

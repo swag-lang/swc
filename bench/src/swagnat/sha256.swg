@@ -1,5 +1,5 @@
-const SIZE = 8388608'u64
-const M32  = 0xFFFFFFFF'u64
+const SIZE = 8388608_u64
+const M32  = 0xFFFFFFFF_u64
 
 const KTAB: [64] u64 = [
     0x428A2F98, 0x71374491, 0xB5C0FBCF, 0xE9B5DBA5, 0x3956C25B, 0x59F111F1, 0x923F82A4, 0xAB1C5ED5,
@@ -17,10 +17,13 @@ func rotr(x, k: u64)->u64 => ((x >> k) | (x << (32 - k))) & M32
 {
     // ---- data generation (not timed) ----
     let msg = cast([*] u8, unwrap benchAlloc(SIZE))
-    for i in SIZE do
+    for i in SIZE
+    {
         msg[i] = cast(u8, (rnd() % 256))
 
-    // ---- timed work ----
+        // ---- timed work ----
+    }
+
     let t0 = now()
 
     let totalBits = SIZE * 8
@@ -35,20 +38,20 @@ func rotr(x, k: u64)->u64 => ((x >> k) | (x << (32 - k))) & M32
         nb      += 1
     }
 
-    for s in 8'u64
+    for s in 8_u64
     {
         buf[nb] = cast(u8, ((totalBits >> (56 - 8 * s)) & 0xFF))
         nb      += 1
     }
 
-    var h0 = 0x6A09E667'u64
-    var h1 = 0xBB67AE85'u64
-    var h2 = 0x3C6EF372'u64
-    var h3 = 0xA54FF53A'u64
-    var h4 = 0x510E527F'u64
-    var h5 = 0x9B05688C'u64
-    var h6 = 0x1F83D9AB'u64
-    var h7 = 0x5BE0CD19'u64
+    var h0 = 0x6A09E667_u64
+    var h1 = 0xBB67AE85_u64
+    var h2 = 0x3C6EF372_u64
+    var h3 = 0xA54FF53A_u64
+    var h4 = 0x510E527F_u64
+    var h5 = 0x9B05688C_u64
+    var h6 = 0x1F83D9AB_u64
+    var h7 = 0x5BE0CD19_u64
 
     var w: [64] u64
     let nblocks = nb / 64
@@ -56,7 +59,7 @@ func rotr(x, k: u64)->u64 => ((x >> k) | (x << (32 - k))) & M32
     for b in nblocks
     {
         let o = b * 64
-        for t in 16'u64
+        for t in 16_u64
         {
             let p = o + t * 4
             w[t] = (cast(u64, buf[p]) << 24) |
@@ -65,7 +68,7 @@ func rotr(x, k: u64)->u64 => ((x >> k) | (x << (32 - k))) & M32
                    cast(u64, buf[p + 3])
         }
 
-        var t = 16'u64
+        var t = 16_u64
         while t < 64
         {
             let x  = w[t - 15]
@@ -85,7 +88,7 @@ func rotr(x, k: u64)->u64 => ((x >> k) | (x << (32 - k))) & M32
         var g  = h6
         var h  = h7
 
-        for i in 64'u64
+        for i in 64_u64
         {
             let s1  = rotr(e, 6) ^ rotr(e, 11) ^ rotr(e, 25)
             let ch  = (e & f) ^ ((~e & M32) & g)

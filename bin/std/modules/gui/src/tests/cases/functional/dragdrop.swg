@@ -9,7 +9,7 @@ internal struct DropCatcher
     using wnd: Wnd
 
     enters, leaves, overs, drops: u32
-    lastFiles: Array'String
+    lastFiles: Array!{String}
     lastText:  String
     claim = true
 }
@@ -47,7 +47,7 @@ impl IWnd for DropCatcher
 }
 
 // Creates a claiming `DropCatcher` inside `parent`, at `rect`.
-internal func makeCatcher(parent: *Wnd, rect: Math.Rectangle)->*DropCatcher => Wnd.create'DropCatcher(parent, rect)
+internal func makeCatcher(parent: *Wnd, rect: Math.Rectangle)->*DropCatcher => Wnd.create!{DropCatcher}(parent, rect)
 
 // The outline follows the full target and the painted invitation keeps its contrast in both palettes.
 #test
@@ -82,9 +82,14 @@ internal func makeCatcher(parent: *Wnd, rect: Math.Rectangle)->*DropCatcher => W
 
         prompt.applyPadding(highlight.prompt.padding)
         var contrast: f32
-        for y in cast(s32, prompt.y) until cast(s32, prompt.bottom()) do
-            for x in cast(s32, prompt.x) until cast(s32, prompt.right()) do
+        for y in cast(s32, prompt.y) until cast(s32, prompt.bottom())
+        {
+            for x in cast(s32, prompt.x) until cast(s32, prompt.right())
+            {
                 contrast = Math.max(contrast, image.pixelColor(x, y).contrastRatio(fill))
+            }
+        }
+
         Swag.require(contrast >= 4.5)
 
         parent.resize(280, 180)
@@ -237,7 +242,7 @@ internal func makeCatcher(parent: *Wnd, rect: Math.Rectangle)->*DropCatcher => W
 // A file the payload carries itself is produced when it is read, and only then.
 #test
 {
-    var runs = 0'u32
+    var runs = 0_u32
 
     var data: DragData
     data.addContent("late.txt", func|&runs|()
@@ -268,12 +273,12 @@ internal func makeCatcher(parent: *Wnd, rect: Math.Rectangle)->*DropCatcher => W
 #test
 {
     var data: DragData
-    data.addContent("now.bin", [1'u8, 2, 3])
+    data.addContent("now.bin", [1_u8, 2, 3])
 
     Swag.require(data.contents.count == 1)
     Swag.require(data.contents[0].isReady())
 
-    Swag.require(Slice.equals(data.contentData(0), [1'u8, 2, 3]))
+    Swag.require(Slice.equals(data.contentData(0), [1_u8, 2, 3]))
 }
 
 // A picture handed to a payload is not encoded until something asks for the encoded form.
@@ -343,7 +348,7 @@ internal func makeCatcher(parent: *Wnd, rect: Math.Rectangle)->*DropCatcher => W
     host.setup(240, 60)
 
     let edit    = EditBox.create(&host.root, "AC", {0, 0, 240, 26})
-    var changed = 0'u32
+    var changed = 0_u32
     edit.sigTextChanged += func|&changed|(_)
     {
         changed += 1
@@ -426,7 +431,7 @@ internal func makeCatcher(parent: *Wnd, rect: Math.Rectangle)->*DropCatcher => W
     host.setup(200, 200)
 
     let catcher = makeCatcher(&host.root, {10, 10, 100, 100})
-    let overlay = Wnd.create'Wnd(catcher, {0, 0, 100, 100})
+    let overlay = Wnd.create!{Wnd}(catcher, {0, 0, 100, 100})
     overlay.disable()
 
     let effect = host.dropFiles({50, 50}, ["c:/tmp/one.txt"])

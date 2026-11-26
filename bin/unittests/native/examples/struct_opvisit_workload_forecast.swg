@@ -39,11 +39,11 @@ impl WorkloadForecast
     {
         #static if ptr
         {
-            #inject(stmt, item = cast(*s32, &(me.monday)), index = 0'u64)
-            #inject(stmt, item = cast(*s32, &(me.tuesday)), index = 1'u64)
-            #inject(stmt, item = cast(*s32, &(me.wednesday)), index = 2'u64)
-            #inject(stmt, item = cast(*s32, &(me.thursday)), index = 3'u64)
-            #inject(stmt, item = cast(*s32, &(me.friday)), index = 4'u64)
+            #inject(stmt, item = cast(*s32, &(me.monday)), index = 0_u64)
+            #inject(stmt, item = cast(*s32, &(me.tuesday)), index = 1_u64)
+            #inject(stmt, item = cast(*s32, &(me.wednesday)), index = 2_u64)
+            #inject(stmt, item = cast(*s32, &(me.thursday)), index = 3_u64)
+            #inject(stmt, item = cast(*s32, &(me.friday)), index = 4_u64)
         }
         else
         {
@@ -93,16 +93,20 @@ impl WorkloadForecast
 func totalStops(forecast: WorkloadForecast)->s32
 {
     var total: s32
-    for stops in forecast do
+    for stops in forecast
+    {
         total += stops
+    }
     return total
 }
 
 func adjacentSignature(forecast: WorkloadForecast)->s32
 {
     var signature: s32
-    for today, nextDay in forecast.pairs() do
+    for today, nextDay in forecast.pairs()
+    {
         signature = signature * 100 + (nextDay - today + 50)
+    }
     return signature
 }
 
@@ -112,8 +116,10 @@ func maxAdjacentRise(forecast: WorkloadForecast)->s32
     for today, nextDay in forecast.pairs()
     {
         let delta = nextDay - today
-        if delta > best do
+        if delta > best
+        {
             best = delta
+        }
     }
     return best
 }
@@ -136,16 +142,22 @@ func maxAdjacentRise(forecast: WorkloadForecast)->s32
 
     for &stops, day in forecast
     {
-        if day == 2'u64 do
+        if day == 2_u64
+        {
             stops[] -= 3
+        }
         else
         {
-            if day == 4'u64 do
+            if day == 4_u64
+            {
                 stops[] -= 5
+            }
             else
             {
-                if day < 2'u64 do
+                if day < 2_u64
+                {
                     stops[] += 2
+                }
             }
         }
     }

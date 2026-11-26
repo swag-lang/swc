@@ -14,7 +14,7 @@
 #test
 {
     var options: Directory.WatchOptions
-    options.filter = cast(Directory.WatchFilter, 0x80000000'u32)
+    options.filter = cast(Directory.WatchFilter, 0x80000000_u32)
 
     var errOutcome: Swag.Error
     discard catch Directory.watch(".", options) as errOutcome

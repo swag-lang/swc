@@ -98,17 +98,17 @@ struct Layout
     sheet:         Sheet
     content:       Rectangle
     placement:     Placement
-    rows:          Array'TextRow
+    rows:          Array!{TextRow}
     face:          *TypeFace?
     rowHeight:     f32
     rowsPerPage:   u64
     pageCount:     u64
 }
 
-const PointsPerInch      = 72.0'f32
-const MillimetersPerInch = 25.4'f32
-const OutputDpi          = 300.0'f32
-const TextSize           = 10'u32
+const PointsPerInch      = 72.0_f32
+const MillimetersPerInch = 25.4_f32
+const OutputDpi          = 300.0_f32
+const TextSize           = 10_u32
 
 func paperSize(paper: Paper)->Point
 {
@@ -123,15 +123,20 @@ func paperSize(paper: Paper)->Point
 func pdfSheet(setup: PageSetup)->Sheet
 {
     var size = paperSize(setup.paper)
-    if setup.landscape do
+    if setup.landscape
+    {
         size = {size.y, size.x}
+    }
+
     return {size, {0, 0, size.x, size.y}}
 }
 
 func checkCancelled() fail
 {
-    if Swag.isCancelled() do
+    if Swag.isCancelled()
+    {
         fail PrintError{.Cancelled}
+    }
 }
 
 func prepare(document: *Document, sheet: Sheet, setup: PageSetup)->Layout fail
@@ -141,8 +146,10 @@ func prepare(document: *Document, sheet: Sheet, setup: PageSetup)->Layout fail
     if not Math.isFinite(content.width) or
        not Math.isFinite(content.height) or
        content.width <= 0 or
-       content.height <= 0 do
+       content.height <= 0
+    {
         fail PrintError{.UnsupportedPaper}
+    }
 
     var result: #returntype
     result.document  = document
@@ -155,8 +162,11 @@ func prepare(document: *Document, sheet: Sheet, setup: PageSetup)->Layout fail
     case .Image:
         if not document.image.isValid() or
            document.imageDpi <= 0 or
-           not Math.isFinite(document.imageDpi) do
+           not Math.isFinite(document.imageDpi)
+        {
             fail PrintError{.InvalidPage}
+        }
+
         result.pageCount = 1
 
     case .Pdf:
@@ -166,8 +176,11 @@ func prepare(document: *Document, sheet: Sheet, setup: PageSetup)->Layout fail
         try result.paginateText()
     }
 
-    if not result.pageCount do
+    if not result.pageCount
+    {
         fail PrintError{.InvalidPage}
+    }
+
     return result
 }
 
@@ -177,7 +190,7 @@ impl Layout
     // paper when the hardware can draw the preview's entire content rectangle.
     mtd const fitsPrinter(sheet: Sheet)->bool
     {
-        const PaperTolerance = 1.0'f32     // Points.
+        const PaperTolerance = 1.0_f32     // Points.
         return .sheet == sheet or
                (Math.abs(.sheet.size.x - sheet.size.x) <= PaperTolerance and
                 Math.abs(.sheet.size.y - sheet.size.y) <= PaperTolerance and
@@ -186,10 +199,16 @@ impl Layout
 
     mtd const sourceSize(index: u64)->Point fail
     {
-        if index >= .pageCount do
+        if index >= .pageCount
+        {
             fail PrintError{.InvalidRange}
-        if .document.kind == .Pdf do
+        }
+
+        if .document.kind == .Pdf
+        {
             return try .document.pdf.pageSize(index)
+        }
+
         let scale = PointsPerInch / .document.imageDpi
         return {.document.image.width * scale, .document.image.height * scale}
     }
@@ -211,13 +230,18 @@ impl Layout
 
     mtd const clips(first, end: u64)->bool fail
     {
-        if .document.kind == .Text or .placement != .Actual do
+        if .document.kind == .Text or .placement != .Actual
+        {
             return false
+        }
+
         for index in first until end
         {
             let size = try .sourceSize(index)
-            if size.x > .content.width or size.y > .content.height do
+            if size.x > .content.width or size.y > .content.height
+            {
                 return true
+            }
         }
 
         return false
@@ -230,26 +254,34 @@ impl Layout
         let font = cache.createFont(.face, TextSize, .Msdf)
         .rowHeight   = Math.ceil(font.height * 1.2)
         .rowsPerPage = cast(u64, Math.floor(.content.height / .rowHeight))
-        if not .rowsPerPage do
+        if not .rowsPerPage
+        {
             fail PrintError{.UnsupportedPaper}
+        }
 
         let text    = .document.text.toSlice()
         let tab     = font.getGlyphDesc(' ').advanceX * font.scale() * cast(f32, .document.tabWidth)
-        var start   = 0'u64
-        var offset  = 0'u64
-        var breakAt = 0'u64
-        var width   = 0.0'f32
+        var start   = 0_u64
+        var offset  = 0_u64
+        var breakAt = 0_u64
+        var width   = 0.0_f32
         while offset < text.count
         {
             let {c, eat} = Utf8.decodeRune(text[offset until text.count])
-            if not eat do
+            if not eat
+            {
                 fail PrintError{.InvalidPage}
+            }
+
             if c == '\r' or c == '\n'
             {
                 .rows.add({start, offset})
                 offset += eat
-                if c == '\r' and offset < text.count and text[offset] == '\n' do
+                if c == '\r' and offset < text.count and text[offset] == '\n'
+                {
                     offset += 1
+                }
+
                 start   = offset
                 breakAt = offset
                 width   = 0
@@ -272,12 +304,17 @@ impl Layout
 
             offset += eat
             width  += glyphAdvance
-            if c == ' ' or c == '\t' do
+            if c == ' ' or c == '\t'
+            {
                 breakAt = offset
+            }
         }
 
-        if start < offset or .rows.isEmpty() do
+        if start < offset or .rows.isEmpty()
+        {
             .rows.add({start, offset})
+        }
+
         .pageCount = (.rows.count - 1) / .rowsPerPage + 1
     }
 
@@ -300,8 +337,11 @@ impl Layout
 
     mtd const render(index: u64, dpi: f32)->Image fail
     {
-        if index >= .pageCount or dpi <= 0 or not Math.isFinite(dpi) do
+        if index >= .pageCount or dpi <= 0 or not Math.isFinite(dpi)
+        {
             fail PrintError{.InvalidPage}
+        }
+
         try checkCancelled()
 
         let scale  = dpi / PointsPerInch
@@ -312,8 +352,11 @@ impl Layout
         if .document.kind != .Text
         {
             let size = try .sourceSize(index)
-            if size.x <= 0 or size.y <= 0 do
+            if size.x <= 0 or size.y <= 0
+            {
                 fail PrintError{.InvalidPage}
+            }
+
             place = .pagePlacement(size)
             if .document.kind == .Pdf
             {
@@ -339,20 +382,33 @@ impl Layout
         defer renderer.end()
         renderer.init()
         var target = renderer.createRenderTarget(width, height)
-        if not target.colorBuffer.isValid() do
+        if not target.colorBuffer.isValid()
+        {
             fail PrintError{.InvalidPage}
+        }
+
         defer renderer.deleteRenderTarget(&target)
 
         var texture: Texture
-        if .document.kind == .Image do
+        if .document.kind == .Image
+        {
             texture = renderer.addImage(.document.image)
-        elif .document.kind == .Pdf do
+        }
+        else if .document.kind == .Pdf
+        {
             texture = renderer.addImage(picture)
-        defer if texture.isValid() do
-            renderer.removeTexture(&texture)
+        }
 
-        if .document.kind != .Text and not texture.isValid() do
+        defer if texture.isValid()
+        {
+            renderer.removeTexture(&texture)
+        }
+
+        if .document.kind != .Text and not texture.isValid()
+        {
             fail PrintError{.InvalidPage}
+        }
+
         try checkCancelled()
 
         var painter = Painter.create(renderer)
@@ -363,10 +419,15 @@ impl Layout
         painter.clear(Color.fromArgb(Argb.White))
         painter.setColorMaskColor()
         painter.pushClippingRect(.content)
-        if .document.kind == .Text do
+        if .document.kind == .Text
+        {
             try .drawText(&painter, index)
-        elif texture.isValid() do
+        }
+        else if texture.isValid()
+        {
             painter.drawTexture(place, texture)
+        }
+
         painter.popClippingRect()
         painter.unbindRenderTarget()
         painter.end()
@@ -374,8 +435,11 @@ impl Layout
         try painter.render()
         try checkCancelled()
         var result: #returntype = renderer.readRenderTarget(&target, 0, 0, width, height)
-        if not result.isValid() do
+        if not result.isValid()
+        {
             fail PrintError{.InvalidPage}
+        }
+
         return result
     }
 }

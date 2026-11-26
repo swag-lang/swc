@@ -45,8 +45,10 @@ impl ScenarioFixture
 
     mtd settleLibrary()
     {
-        if .main.libWnd.view.thread.isValid() do
+        if .main.libWnd.view.thread.isValid()
+        {
             .main.libWnd.view.thread.wait()
+        }
 
         .gui.pump()
         .main.applyLayout()
@@ -56,16 +58,21 @@ impl ScenarioFixture
 
     mtd toggleLibrary()
     {
-        discard Gui.Testing.actionExecute'ActionGlobal(.main, ActionGlobal.ShowLibrary)
+        discard Gui.Testing.actionExecute!{ActionGlobal}(.main, ActionGlobal.ShowLibrary)
         .gui.pump()
-        if .main.libraryMode do
+        if .main.libraryMode
+        {
             .settleLibrary()
+        }
     }
 
     mtd finishRecentSelection()
     {
-        if .main.recentWnd.loadJob do
+        if .main.recentWnd.loadJob
+        {
             .main.recentWnd.loadJob.task.wait()
+        }
+
         .gui.pump()
     }
 }
@@ -110,8 +117,11 @@ func scenarioDeleteCaptureFiles(path: String)
     var answered = false
     f.gui.app.sigFrame += func|host = &f.gui, answered = &answered|(_)
     {
-        if answered[] do
+        if answered[]
+        {
             return
+        }
+
         answered[] = true
         host.keyPress(.Return)
     }
@@ -160,9 +170,12 @@ func scenarioDeleteCaptureFiles(path: String)
 {
     func countWindows(wnd: *Wnd)->u64
     {
-        var count = 1'u64
-        for child in wnd.children do
+        var count = 1_u64
+        for child in wnd.children
+        {
             count += countWindows(child)
+        }
+
         return count
     }
 
@@ -263,7 +276,7 @@ func scenarioDeleteCaptureFiles(path: String)
     Swag.require(f.main.recentWnd.recentView.selected == 0)
 
     f.gui.clickModalButtonWhenShown(Dialog.BtnYes)
-    let actionExecuted = Gui.Testing.actionExecute'ActionFile(f.main, ActionFile.DeleteCapture)
+    let actionExecuted = Gui.Testing.actionExecute!{ActionFile}(f.main, ActionFile.DeleteCapture)
     Swag.require(actionExecuted)
     f.gui.pump()
 
@@ -291,7 +304,7 @@ func scenarioDeleteCaptureFiles(path: String)
     f.main.libWnd.view.focusItem = 0
     f.main.libWnd.view.selModel.select(0)
     f.gui.clickModalButtonWhenShown(Dialog.BtnYes)
-    var actionExecuted = Gui.Testing.actionExecute'ActionFile(f.main, ActionFile.DeleteCapture)
+    var actionExecuted = Gui.Testing.actionExecute!{ActionFile}(f.main, ActionFile.DeleteCapture)
     Swag.require(actionExecuted)
     f.gui.pump()
 
@@ -303,7 +316,7 @@ func scenarioDeleteCaptureFiles(path: String)
     Swag.require(f.main.libWnd.view.items.count == 1)
     f.main.libWnd.view.focusItem = 0
     f.main.libWnd.view.selModel.select(0)
-    actionExecuted = Gui.Testing.actionExecute'ActionLibTrash(f.main.libWnd, ActionLibTrash.Restore)
+    actionExecuted = Gui.Testing.actionExecute!{ActionLibTrash}(f.main.libWnd, ActionLibTrash.Restore)
     Swag.require(actionExecuted)
 
     Swag.require(File.exists(path))
@@ -334,8 +347,11 @@ func scenarioDeleteCaptureFiles(path: String)
 
     f.toggleLibrary()
     var firstItem: *LibraryItem?
-    for item in f.main.libWnd.view.items where item.fi.fullName == firstPath do
+    for item in f.main.libWnd.view.items where item.fi.fullName == firstPath
+    {
         firstItem = item
+    }
+
     Swag.require(firstItem != null)
     f.main.libWnd.view.openItem(firstItem)
     Swag.require(f.main.libraryMode)
@@ -369,7 +385,7 @@ func scenarioDeleteCaptureFiles(path: String)
     Swag.require(f.main.editWnd.getCapture()!.file == firstPath)
 
     f.gui.clickModalButtonWhenShown(Dialog.BtnYes)
-    let actionExecuted = Gui.Testing.actionExecute'ActionFile(f.main, ActionFile.DeleteCapture)
+    let actionExecuted = Gui.Testing.actionExecute!{ActionFile}(f.main, ActionFile.DeleteCapture)
     Swag.require(actionExecuted)
     f.finishRecentSelection()
 

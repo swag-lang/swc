@@ -141,8 +141,10 @@ func nextText()->string
 func convertedTotal(values: const [..] Converted)->u64
 {
     var total: u64
-    for value in values do
+    for value in values
+    {
         total += value.length + value.first
+    }
     return total
 }
 

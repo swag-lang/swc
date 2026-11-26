@@ -21,7 +21,7 @@ using Swag, Core, Core.Errors
     Swag.require(not recovery.isLost() and not queue.sourceIsLost())
     discard expect queue.push(Swag.makeSlice(&Second[0], Second.count), 2_500)
 
-    var samples: Array's16
+    var samples: Array!{s16}
     var info:    CaptureBlock
     Swag.require(queue.pop(&samples, &info) and not info.sourceInterrupted)
     Swag.require(queue.pop(&samples, &info))
@@ -80,9 +80,9 @@ using Swag, Core, Core.Errors
         expect recovery.retryFailed(tick)
     }
 
-    expect recovery.deviceRestored(4'u64 * 60 * 60 * 1_000)
-    discard expect queue.push(Swag.makeSlice(&Sample[0], 1), 4'u64 * 60 * 60 * 1_000)
-    var samples: Array's16
+    expect recovery.deviceRestored(4_u64 * 60 * 60 * 1_000)
+    discard expect queue.push(Swag.makeSlice(&Sample[0], 1), 4_u64 * 60 * 60 * 1_000)
+    var samples: Array!{s16}
     var info:    CaptureBlock
     Swag.require(queue.pop(&samples, &info) and info.gapFrames == 0)
     Swag.require(queue.pop(&samples, &info))

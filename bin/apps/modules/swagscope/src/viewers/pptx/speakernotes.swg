@@ -10,16 +10,22 @@ func readSpeakerNotes(source: string, theme: const *SlideTheme)->String fail
     var scan   = Package.Scanner.create(source)
     var token:  Package.Token
     var start  = Swag.U64.Max
-    var shapes = 0'u32
+    var shapes = 0_u32
     while true
     {
         let at = scan.offset
-        if not scan.next(&token) do
+        if not scan.next(&token)
+        {
             break
+        }
+
         if token.kind == .Start and token.isElement("sp")
         {
-            if start != Swag.U64.Max do
+            if start != Swag.U64.Max
+            {
                 fail Errors.InvalidFormatError{texts().err_Invalid}
+            }
+
             start = at
         }
 
@@ -33,18 +39,25 @@ func readSpeakerNotes(source: string, theme: const *SlideTheme)->String fail
                 let text  = try SlideText.parse(shapeSource, &images, theme, 960, readerStyle: true)
                 var plain = text.plainText
                 plain.trim()
-                if not plain.isEmpty() do
+                if not plain.isEmpty()
+                {
                     result += text.html
+                }
             }
 
             start  = Swag.U64.Max
             shapes += 1
-            if shapes > 2048 or result.count > 1024 * 1024 do
+            if shapes > 2048 or result.count > 1024 * 1024
+            {
                 fail Errors.UnsupportedFormatError{texts().err_TooLarge}
+            }
         }
     }
 
-    if scan.damaged or start != Swag.U64.Max do
+    if scan.damaged or start != Swag.U64.Max
+    {
         fail Errors.InvalidFormatError{texts().err_Invalid}
+    }
+
     return result
 }

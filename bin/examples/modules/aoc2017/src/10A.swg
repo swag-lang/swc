@@ -44,19 +44,27 @@ func day10A()
     let slice    = Tokenize.split(expect File.readAllText(dataPath), ",")
     let nums     = Slice.map(slice[to], func(x) => expect StrConv.toS32(x))
 
-    var arr, tmp: Array's32
-    for i in 256 do
+    var arr, tmp: Array!{s32}
+    for i in 256
+    {
         arr.add(i)
+    }
 
     var cur, skip = 0
     for n in nums
     {
         tmp.clear()
-        for i in n do
+        for i in n
+        {
             tmp.add(arr[(cur + i) % 256])
+        }
+
         Slice.reverse(tmp.toSlice())
-        for v, i in tmp do
+        for v, i in tmp
+        {
             arr[(cur + i) % 256] = v
+        }
+
         cur  = (cur + n + skip) % 256
         skip += 1
     }

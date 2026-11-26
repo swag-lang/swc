@@ -18,9 +18,12 @@ using Core
 
 let text = try File.readAllText("settings.txt")
 
-var lines: Array'String
-for line in Tokenize.splitLines(text.toString()) do
+var lines: Array!{String}
+for line in Tokenize.splitLines(text.toString())
+{
     lines.add(line)
+}
+
 ```
 
 Owned containers release their storage automatically. Slices and string views

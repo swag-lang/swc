@@ -14,10 +14,10 @@ func select8(values: [*] u8, condition: u64)->u8 => condition != 0 ? values[0] :
 
 #test
 {
-    var values64 = [11'u64, 22]
-    var values32 = [1'u32, 2, 3, 4, 55, 66]
-    var values8  = [77'u8, 88]
-    for condition in [0'u64, 1, 7, 0xFFFFFFFFFFFFFFFF]
+    var values64 = [11_u64, 22]
+    var values32 = [1_u32, 2, 3, 4, 55, 66]
+    var values8  = [77_u8, 88]
+    for condition in [0_u64, 1, 7, 0xFFFFFFFFFFFFFFFF]
     {
         Swag.require(select64(&values64[0], condition) == (condition != 0 ? 11 : 22))
         Swag.require(select64Reverse(&values64[0], condition) == (condition != 0 ? 22 : 11))

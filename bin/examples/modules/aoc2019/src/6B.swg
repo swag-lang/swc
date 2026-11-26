@@ -53,16 +53,16 @@ func day6B()
     let dataPath = Path.combine(Path.directoryName(#curlocation.fileName), "6.txt")
     let lines    = expect File.readAllLines(dataPath)
 
-    var map: HashTable'(string, string)
+    var map: HashTable!{string, string}
     for l in lines
     {
-        let split = Tokenize.split(l[], ')'u8)
+        let split = Tokenize.split(l[], ')'_u8)
         map.add(split[1], split[0])
     }
 
-    var you, san: Array'(string)
-    var ity:      const *HashTableEntry'(string, string)? = map.find("YOU")
-    var its:      const *HashTableEntry'(string, string)? = map.tryFind("SAN")
+    var you, san: Array!{string}
+    var ity:      const *HashTableEntry!{string, string}? = map.find("YOU")
+    var its:      const *HashTableEntry!{string, string}? = map.tryFind("SAN")
 
     while ity
     {

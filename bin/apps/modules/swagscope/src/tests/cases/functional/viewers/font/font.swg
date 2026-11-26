@@ -8,8 +8,11 @@ internal func openTypeFixturePath()->String => scopeTestDataPath("font-fixture-c
 
 func containsCharacter(characters: const [..] rune, expected: rune)->bool
 {
-    for character in characters where character == expected do
+    for character in characters where character == expected
+    {
         return true
+    }
+
     return false
 }
 
@@ -266,8 +269,10 @@ func containsCharacter(characters: const [..] rune, expected: rune)->bool
         host.finishAnimations()
         for section in window.lens.results.sections
         {
-            for &entry in section!.entries where Utf8.startsWith(entry.title.toSlice(), "Show U+") do
+            for &entry in section!.entries where Utf8.startsWith(entry.title.toSlice(), "Show U+")
+            {
                 return entry
+            }
         }
 
         Swag.require(false, query)
@@ -293,7 +298,7 @@ func containsCharacter(characters: const [..] rune, expected: rune)->bool
     Swag.require(view.document.shown == 'ع')
 
     // A block-row destination records the same logical page position and can be undone.
-    var otherBlockPage = 0'u32
+    var otherBlockPage = 0_u32
     for pageStart in view.document.pageStarts where pageStart != view.document.pageStart
     {
         otherBlockPage = pageStart
@@ -332,8 +337,10 @@ func containsCharacter(characters: const [..] rune, expected: rune)->bool
     var namedGlyph: *Lens.Entry?
     for section in window.lens.results.sections
     {
-        for &entry in section!.entries where Utf8.contains(entry.title.toSlice(), glyphName) do
+        for &entry in section!.entries where Utf8.contains(entry.title.toSlice(), glyphName)
+        {
             namedGlyph = entry
+        }
     }
 
     Swag.require(namedGlyph != null)
@@ -350,8 +357,10 @@ func containsCharacter(characters: const [..] rune, expected: rune)->bool
     var glyphRow: *Lens.Entry?
     for section in window.lens.results.sections
     {
-        for &entry in section!.entries where Utf8.contains(entry.title.toSlice(), glyphQuery.toString()) do
+        for &entry in section!.entries where Utf8.contains(entry.title.toSlice(), glyphQuery.toString())
+        {
             glyphRow = entry
+        }
     }
 
     Swag.require(glyphRow != null)
@@ -368,8 +377,10 @@ func containsCharacter(characters: const [..] rune, expected: rune)->bool
     var missingCharacter: *Lens.Entry?
     for section in window.lens.results.sections
     {
-        for &entry in section!.entries where Utf8.contains(entry.title.toSlice(), "#0") do
+        for &entry in section!.entries where Utf8.contains(entry.title.toSlice(), "#0")
+        {
             missingCharacter = entry
+        }
     }
 
     Swag.require(missingCharacter != null)
@@ -383,8 +394,10 @@ func containsCharacter(characters: const [..] rune, expected: rune)->bool
     var absentGlyph: *Lens.Entry?
     for section in window.lens.results.sections
     {
-        for &entry in section!.entries where Utf8.contains(entry.title.toSlice(), absentQuery.toString()) do
+        for &entry in section!.entries where Utf8.contains(entry.title.toSlice(), absentQuery.toString())
+        {
             absentGlyph = entry
+        }
     }
 
     Swag.require(absentGlyph != null)
@@ -410,8 +423,10 @@ func containsCharacter(characters: const [..] rune, expected: rune)->bool
     let text = sheet.text()
     Swag.require(Utf8.contains(text, Format.toString("Version\n%", face.version).toString()), text)
     Swag.require(Utf8.contains(text, Format.toString("Copyright\n%", face.copyright).toString()), text)
-    if not face.designer.isEmpty() do
+    if not face.designer.isEmpty()
+    {
         Swag.require(Utf8.contains(text, Format.toString("Designer\n%", face.designer).toString()), text)
+    }
 
     // The sheet counts what the face maps of each block the character map jumps to.
     Swag.require(Utf8.contains(text, "Coverage\nBasic Latin\n14 characters"), text)
@@ -437,8 +452,11 @@ func containsCharacter(characters: const [..] rune, expected: rune)->bool
 
     // The Arabic fixture cell is found back from a point inside it, as a click reads it.
     var index = Swag.U64.Max
-    for cell, at in doc.cells where cell.character == 'ع' do
+    for cell, at in doc.cells where cell.character == 'ع'
+    {
         index = at
+    }
+
     Swag.require(index != Swag.U64.Max)
     let pitch = doc.layout.cellHeight + Typeface.CellGap
     let point = Math.Point{doc.layout.gridLeft + cast(f32, index % doc.layout.columns) * (Typeface.CellWidth + Typeface.CellGap) + 10,
@@ -455,7 +473,10 @@ func containsCharacter(characters: const [..] rune, expected: rune)->bool
     var entries = Viewer.LensEntries.create(&results, "Font", host.theme)
     view.describeLens(&entries)
     var found = false
-    for &entry in results.sections[0]!.entries where entry.title == Format.toString(Typeface.texts().ui_CopyCharacter, "ع") do
+    for &entry in results.sections[0]!.entries where entry.title == Format.toString(Typeface.texts().ui_CopyCharacter, "ع")
+    {
         found = true
+    }
+
     Swag.require(found)
 }

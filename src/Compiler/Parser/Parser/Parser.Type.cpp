@@ -330,7 +330,7 @@ AstNodeRef Parser::parseSubTypeNoQualifiers()
 
 AstNodeRef Parser::parseType()
 {
-    // Quoted generic arguments are parsed through the expression grammar. Keep the
+    // Explicit generic arguments are parsed through the expression grammar. Keep the
     // enclosing type context so a suffix '?' attaches to the complete type rather
     // than accidentally to that generic argument.
     const PushContextFlags context(this, ParserContextFlagsE::InType);

@@ -4,7 +4,7 @@
 using Core, Gui
 
 // How often a viewer polls a background operation that does not tell it when it ends.
-const BackgroundPollInterval: Time.Duration = 16'ms
+const BackgroundPollInterval: Time.Duration = 16_ms
 
 // Reports whether a view is still doing work whose result has not reached the screen.
 alias IsLoading = func||()->bool
@@ -91,8 +91,11 @@ impl BackgroundOperation
     // nothing to do until the result exists, such as teardown or a test.
     mtd wait()
     {
-        if not .started do
+        if not .started
+        {
             return
+        }
+
         .task.wait()
         .started = false
     }
@@ -104,8 +107,11 @@ impl BackgroundOperation
     // Returns whether `evt` reports the end of this operation; the owner then stops waiting for it.
     mtd claim(evt: *TaskEvent)->bool
     {
-        if evt.task != &.task or .owner == null or not .isDone() do
+        if evt.task != &.task or .owner == null or not .isDone()
+        {
             return false
+        }
+
         .owner = null
         return true
     }
@@ -125,9 +131,9 @@ impl BackgroundOperation
 // thread is not guaranteed.
 struct(T) BackgroundLoad
 {
-    task:      Swag.Task'T     // The scheduled work and its outcome.
-    started:   bool            // Whether the runtime owns this load, or its result is not collected yet.
-    owner:     *Wnd?           // The window waiting for the end of the load; null when nobody waits for it.
+    task:      Swag.Task!{T}     // The scheduled work and its outcome.
+    started:   bool              // Whether the runtime owns this load, or its result is not collected yet.
+    owner:     *Wnd?             // The window waiting for the end of the load; null when nobody waits for it.
     fileName:  String
     late load: func(string)->T fail
 }
@@ -160,8 +166,11 @@ impl BackgroundLoad
     // Returns whether `evt` reports the end of this load; the owner then stops waiting for it.
     mtd claim(evt: *TaskEvent)->bool
     {
-        if evt.task != &.task or .owner == null or not .isDone() do
+        if evt.task != &.task or .owner == null or not .isDone()
+        {
             return false
+        }
+
         .owner = null
         return true
     }
@@ -187,8 +196,11 @@ impl BackgroundLoad
     mtd retire()->bool
     {
         .task.cancel()
-        if .task.isPending() do
+        if .task.isPending()
+        {
             return false
+        }
+
         .started = false
         .owner   = null
         return true
@@ -210,5 +222,6 @@ func createLoadingLabel(parent: *Wnd, message: string)->*Label
         .backgroundStyle = .View
         .setTextAlignment(.Center, .Center)
     }
+
     return label
 }

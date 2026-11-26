@@ -28,14 +28,21 @@ func day5B()
         var dbl0, dbl1 = 0
         for i in l.length - 2
         {
-            if Utf8.indexOf(l[i + 2 to], l[i to i + 1]) != Swag.U64.Max do
+            if Utf8.indexOf(l[i + 2 to], l[i to i + 1]) != Swag.U64.Max
+            {
                 dbl0 += 1
-            if l[i] == l[i + 2] do
+            }
+
+            if l[i] == l[i + 2]
+            {
                 dbl1 += 1
+            }
         }
 
-        if dbl0 and dbl1 do
+        if dbl0 and dbl1
+        {
             total += 1
+        }
     }
 
     Swag.assert(total == 53)

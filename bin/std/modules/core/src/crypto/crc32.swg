@@ -109,10 +109,12 @@ private
     // @ORIGIN: Chromium zlib, https://github.com/chromium/chromium/blob/main/third_party/zlib/crc32_simd.c
     // @MODIFIED: Ported to Swag vector intrinsics.
     // @NOTICE: /bin/THIRDPARTY.md#zlib
-    const FoldK1K2       = cast(Math.Simd.U64x2, [0x0154442BD4'u64, 0x01C6E41596])
-    const FoldK3K4       = cast(Math.Simd.U64x2, [0x01751997D0'u64, 0x00CCAA009E])
-    const FoldZero       = cast(Math.Simd.U64x2, [0'u64, 0])
-    const CrcPolynomial  = 0x04C1_1DB7'u32
+    const FoldK1K2 = cast(Math.Simd.U64x2, [0x0154442BD4_u64, 0x01C6E41596])
+    const FoldK3K4 = cast(Math.Simd.U64x2, [0x01751997D0_u64, 0x00CCAA009E])
+    const FoldK5   = cast(Math.Simd.U64x2, [0x0163CD6124_u64, 0x0000000000])
+    const FoldPoly = cast(Math.Simd.U64x2, [0x01DB710641_u64, 0x01F7011641])
+    const FoldZero = cast(Math.Simd.U64x2, [0_u64, 0])
+    const FoldMask = cast(Math.Simd.U64x2, [0x0000_0000_FFFF_FFFF_u64, 0x0000_0000_FFFF_FFFF])
 
     // The full-width Barrett reduction and fractional fold follow libdeflate's technique.
     // @LICENCE: MIT
@@ -494,7 +496,85 @@ public impl Crc32
     // Includes `data` in the running checksum.
     mtd update(data: const [..] u8?)
     {
-        .currentValue = updateValue(data, .currentValue)
+        var length = data.count
+        if not length
+        {
+            return
+        }
+
+        var current = cast(const [*] u32, unwrap data.buffer)
+
+        var cur = ~.currentValue
+
+        // The carry-less folding path wants at least sixty-four bytes and works in
+        // sixteen-byte steps; the table path finishes whatever remains.
+        #static if not BIG_ENDIAN
+        {
+            if length >= 64
+            {
+                let folded = length & ~15_u64
+                cur     = foldClmul(cur, cast(const [*] u8, current), folded)
+                current = cast(const [*] u32, (cast(const [*] u8, current) + folded))
+                length  -= folded
+            }
+        }
+
+        const unroll      = 4
+        const bytesAtOnce = 16 * unroll
+        while length >= bytesAtOnce
+        {
+            for unroll
+            {
+                #static if BIG_ENDIAN
+                {
+                    let one   = current[0] ^ Swag.byteSwap(cur)
+                    let two   = current[1]
+                    let three = current[2]
+                    let four  = current[3]
+                    current += 4
+
+                    #[Swag.Safety(.Overflow, false)]
+                    cur = LookupTable[0, four & 0xFF] ^ LookupTable[1, (four >> 8) & 0xFF] ^
+                          LookupTable[2, (four >> 16) & 0xFF] ^ LookupTable[3, (four >> 24) & 0xFF] ^
+                          LookupTable[4, three & 0xFF] ^ LookupTable[5, (three >> 8) & 0xFF] ^
+                          LookupTable[6, (three >> 16) & 0xFF] ^ LookupTable[7, (three >> 24) & 0xFF] ^
+                          LookupTable[8, two & 0xFF] ^ LookupTable[9, (two >> 8) & 0xFF] ^
+                          LookupTable[10, (two >> 16) & 0xFF] ^ LookupTable[11, (two >> 24) & 0xFF] ^
+                          LookupTable[12, one & 0xFF] ^ LookupTable[13, (one >> 8) & 0xFF] ^
+                          LookupTable[14, (one >> 16) & 0xFF] ^ LookupTable[15, (one >> 24) & 0xFF]
+                }
+                else
+                {
+                    let one   = current[0] ^ cur
+                    let two   = current[1]
+                    let three = current[2]
+                    let four  = current[3]
+                    current += 4
+
+                    #[Swag.Safety(.Overflow, false)]
+                    cur = LookupTable[0, (four >> 24) & 0xFF] ^ LookupTable[1, (four >> 16) & 0xFF] ^
+                          LookupTable[2, (four >> 8) & 0xFF] ^ LookupTable[3, four & 0xFF] ^
+                          LookupTable[4, (three >> 24) & 0xFF] ^ LookupTable[5, (three >> 16) & 0xFF] ^
+                          LookupTable[6, (three >> 8) & 0xFF] ^ LookupTable[7, three & 0xFF] ^
+                          LookupTable[8, (two >> 24) & 0xFF] ^ LookupTable[9, (two >> 16) & 0xFF] ^
+                          LookupTable[10, (two >> 8) & 0xFF] ^ LookupTable[11, two & 0xFF] ^
+                          LookupTable[12, (one >> 24) & 0xFF] ^ LookupTable[13, (one >> 16) & 0xFF] ^
+                          LookupTable[14, (one >> 8) & 0xFF] ^ LookupTable[15, one & 0xFF]
+                }
+            }
+
+            length -= bytesAtOnce
+        }
+
+        var currentChar = cast(const [*] u8, current)
+        while length
+        {
+            cur         = (cur >> 8) ^ LookupTable[0, (cur & 0xFF) ^ currentChar[0]]
+            currentChar += 1
+            length      -= 1
+        }
+
+        .currentValue = ~cur
     }
 
     // Returns the checksum accumulated since construction or the latest [[reset]].

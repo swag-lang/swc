@@ -6,9 +6,9 @@ using Core, Pixel, Gui.Print
 private const BackButton:   WndId = "gui.print.settings"
 const PreviewButton:        WndId = "gui.print.preview"
 private const WorkFinished: WndId = "gui.print.finished"
-private const ProgressDelayMs     = 160'u64
-private const PreviewDpi          = 96.0'f32
-private const PreviewHeight       = 336.0'f32
+private const ProgressDelayMs     = 160_u64
+private const PreviewDpi          = 96.0_f32
+private const PreviewHeight       = 336.0_f32
 private const Papers              = [Paper.A4, Paper.Letter, Paper.Legal]
 private const Placements          = [Placement.Fit, Placement.Center, Placement.Actual]
 
@@ -45,8 +45,11 @@ impl PreviewPages
     mtd showPage(requested: s64)
     {
         let target = Math.clamp(requested, 0, .last)
-        if target == .page do
+        if target == .page
+        {
             return
+        }
+
         let owner  = unwrap .view.surface
         let layout = .layout
         let image  = #move catch runWork(owner, strings().print_Preparing, func|layout, target|()->Image fail
@@ -79,24 +82,32 @@ func createWorkDialog(from: *Surface, title: string)->*Dialog
 
 internal func(T) runWork(from: *Surface, title: string, work: func||()->T fail)->T fail
 {
-    var task: Swag.Task'T
+    var task: Swag.Task!{T}
     task.submit(work)
     if not task.isDone()
     {
         let deadline = Time.monotonicMilliseconds() + ProgressDelayMs
         let poll: FrameCallback = func|&task, from, deadline|(app)
         {
-            if not app.surfaces.contains(from) or from.wnd.isPendingDestroy do
+            if not app.surfaces.contains(from) or from.wnd.isPendingDestroy
+            {
                 app.exitModal()
-            elif task.isDone() or Time.monotonicMilliseconds() >= deadline do
+            }
+            else if task.isDone() or Time.monotonicMilliseconds() >= deadline
+            {
                 app.exitModal(WorkFinished)
-            elif not app.renderer.needsNativeWindow() do
-                Threading.Thread.sleep(1'ms)
+            }
+            else if not app.renderer.needsNativeWindow()
+            {
+                Threading.Thread.sleep(1_ms)
+            }
         }
 
         let result = from.app.runModalLoop(null, poll, from, dim: false)
-        if result != WorkFinished do
+        if result != WorkFinished
+        {
             fail PrintError{.Cancelled}
+        }
     }
 
     if not task.isDone()
@@ -113,8 +124,11 @@ internal func(T) runWork(from: *Surface, title: string, work: func||()->T fail)-
         // Only the worker may close the box while it owns document or spooler state.
         dlg.validateResult = func|&task, cancel|(_, result)
         {
-            if result == WorkFinished do
+            if result == WorkFinished
+            {
                 return true
+            }
+
             task.cancel()
             cancel.enable(false)
             return false
@@ -122,8 +136,10 @@ internal func(T) runWork(from: *Surface, title: string, work: func||()->T fail)-
 
         if dlg.runModal(func|&task, dlg|(_)
         {
-            if task.isDone() do
+            if task.isDone()
+            {
                 dlg.closeWithResult(WorkFinished)
+            }
         }) != WorkFinished
         {
             task.cancel()
@@ -133,8 +149,11 @@ internal func(T) runWork(from: *Surface, title: string, work: func||()->T fail)-
     }
 
     // A worker may finish an uninterruptible operation after the user asks to stop.
-    if task.isCancelled() and not task.hasFailed() do
+    if task.isCancelled() and not task.hasFailed()
+    {
         fail PrintError{.Cancelled}
+    }
+
     return try task.take()
 }
 
@@ -160,7 +179,7 @@ internal func reportError(from: *Surface, error: any?)
 
 internal func show(from: *Surface, document: *Document, sourcePath: string)
 {
-    let devices = #move catch runWork(from, strings().print_FindingPrinters, func()->Array'Printer fail
+    let devices = #move catch runWork(from, strings().print_FindingPrinters, func()->Array!{Printer} fail
     {
         return printers()
     })
@@ -184,14 +203,21 @@ internal func showDocument(from: *Surface, document: *Document, sourcePath: stri
     while true
     {
         let action = settings(from, document.kind, devices, &selected)
-        if action != Dialog.BtnOk and action != PreviewButton do
+        if action != Dialog.BtnOk and action != PreviewButton
+        {
             return
-        var printer: const *Printer?
-        if selected.destination do
-            printer = &devices[selected.destination - 1]
+        }
 
-        if not runJob(from, document, sourcePath, printer, &selected, action == PreviewButton) do
+        var printer: const *Printer?
+        if selected.destination
+        {
+            printer = &devices[selected.destination - 1]
+        }
+
+        if not runJob(from, document, sourcePath, printer, &selected, action == PreviewButton)
+        {
             return
+        }
     }
 }
 
@@ -222,13 +248,19 @@ private func runJob(from: *Surface, document: *Document, sourcePath: string, pri
         {
             var result: PreparedPreview
             result.layout = #move try prepare(document, sheet, setup)
-            if showPreview do
+            if showPreview
+            {
                 result.image = #move try result.layout.render(0, PreviewDpi)
+            }
+
             return #move result
         })
         {
-            if Swag.err is PrintError as failure where failure.kind == .Cancelled do
+            if Swag.err is PrintError as failure where failure.kind == .Cancelled
+            {
                 return false
+            }
+
             reportError(from, Swag.err)
             return true
         }
@@ -237,10 +269,12 @@ private func runJob(from: *Surface, document: *Document, sourcePath: string, pri
         if showPreview
         {
             let answer = preview(from, &prepared, options, &selected.pageRange, printer != null, sheet != localSheet)
-            if answer != Dialog.BtnOk do
+            if answer != Dialog.BtnOk
+            {
                 return answer == BackButton
+            }
         }
-        elif not selectPages(from, plan, options, selected.pageRange)
+        else if not selectPages(from, plan, options, selected.pageRange)
         {
             return true
         }
@@ -257,8 +291,11 @@ private func runJob(from: *Surface, document: *Document, sourcePath: string, pri
                 return false
             }
 
-            if submission.submitted do
+            if submission.submitted
+            {
                 return false
+            }
+
             sheet = submission.sheet
             continue
         }
@@ -278,8 +315,11 @@ private func settings(from: *Surface, kind: ContentKind, devices: const [..] Pri
 
     let destinations = dlg.form.addChoiceField(tr.print_Destination)
     destinations.addItem(tr.print_SavePdf)
-    for &device in devices do
+    for &device in devices
+    {
         destinations.addItem(device.name)
+    }
+
     destinations.setSelectedIndex(selected.destination, notify: false)
     destinations.sigChanged += func|dlg, primary|(_, index)
     {
@@ -305,7 +345,7 @@ private func settings(from: *Surface, kind: ContentKind, devices: const [..] Pri
     // The trailing choice is measured at its natural width, so each segment needs its own share.
     let face = unwrap orientation.font().regular
     let pad  = 2 * orientation.themeMetrics().comboBox_Padding
-    var widths: Array'f32
+    var widths: Array!{f32}
     widths.add(Math.ceil(Painter.measureString(tr.print_Portrait, face).width + pad))
     widths.add(Math.ceil(Painter.measureString(tr.print_Landscape, face).width + pad))
     orientation.setSegmentWidths(widths)
@@ -327,8 +367,10 @@ private func settings(from: *Surface, kind: ContentKind, devices: const [..] Pri
     }
 
     var range: *EditBox?
-    if kind != .Image do
+    if kind != .Image
+    {
         range = dlg.form.addTextField(tr.print_Range, selected.pageRange, placeholder: tr.print_AllPages, help: tr.print_RangeHelp)
+    }
 
     var copies: *EditBox?
     if devices.count
@@ -342,18 +384,27 @@ private func settings(from: *Surface, kind: ContentKind, devices: const [..] Pri
 
     dlg.validateResult = func|destinations, paper, orientation, margin, placement, copies, range, selected|(_, id)
     {
-        if id != Dialog.BtnOk and id != PreviewButton do
+        if id != Dialog.BtnOk and id != PreviewButton
+        {
             return true
-        if not margin.isValid() or (destinations.selectedIndex and copies and not copies.isValid()) do
+        }
+
+        if not margin.isValid() or (destinations.selectedIndex and copies and not copies.isValid())
+        {
             return false
+        }
+
         let options = &selected.options
         selected.destination    = destinations.selectedIndex
         options.setup.paper     = Papers[paper.selectedIndex]
         options.setup.landscape = orientation.selectedIndex != 0
-        options.setup.margin    = cast(f32, expect StrConv.toNum'u32(margin.text())) * PointsPerInch / MillimetersPerInch
-        if placement do
+        options.setup.margin    = cast(f32, expect StrConv.toNum!{u32}(margin.text())) * PointsPerInch / MillimetersPerInch
+        if placement
+        {
             options.setup.placement = Placements[placement.selectedIndex]
-        options.copies     = selected.destination and copies ? expect StrConv.toNum'u32(copies.text()) : 1
+        }
+
+        options.copies     = selected.destination and copies ? expect StrConv.toNum!{u32}(copies.text()) : 1
         selected.pageRange = range ? range.text() : ""
         return true
     }
@@ -363,17 +414,24 @@ private func settings(from: *Surface, kind: ContentKind, devices: const [..] Pri
 
 internal func parseRange(value: string, pageCount: u64)->{first: u64, end: u64} fail
 {
-    if not value.count do
+    if not value.count
+    {
         return {0, pageCount}
+    }
 
-    let parts = Tokenize.split(value, '-'u8, removeEmpty: false)
-    if not parts.count or parts.count > 2 do
+    let parts = Tokenize.split(value, '-'_u8, removeEmpty: false)
+    if not parts.count or parts.count > 2
+    {
         fail PrintError{.InvalidRange}
+    }
 
-    let first = catch StrConv.toNum'u64(Latin1.trim(parts[0])) orelse 0
-    let last  = parts.count == 2 ? catch StrConv.toNum'u64(Latin1.trim(parts[1])) orelse 0 : first
-    if not first or first > last or last > pageCount do
+    let first = catch StrConv.toNum!{u64}(Latin1.trim(parts[0])) orelse 0
+    let last  = parts.count == 2 ? catch StrConv.toNum!{u64}(Latin1.trim(parts[1])) orelse 0 : first
+    if not first or first > last or last > pageCount
+    {
         fail PrintError{.InvalidRange}
+    }
+
     return {first - 1, last}
 }
 
@@ -391,8 +449,11 @@ private func selectPages(owner: *Surface, layout: const *Layout, options: *JobOp
         return false
     }
 
-    if clips and MessageDlg.confirm(owner, strings().print_Clipping) != Dialog.BtnYes do
+    if clips and MessageDlg.confirm(owner, strings().print_Clipping) != Dialog.BtnYes
+    {
         return false
+    }
+
     options.first = pages.first
     options.end   = pages.end
     return true
@@ -430,12 +491,21 @@ private func preview(from: *Surface, prepared: *PreparedPreview, options: *JobOp
 
     dlg.validateResult = func|dlg, layout, options, range, pageRange|(_, id)
     {
-        if id != Dialog.BtnOk and id != BackButton do
+        if id != Dialog.BtnOk and id != BackButton
+        {
             return true
-        if range do
+        }
+
+        if range
+        {
             pageRange[] = range.text()
-        if id == BackButton do
+        }
+
+        if id == BackButton
+        {
             return true
+        }
+
         if not selectPages(unwrap dlg.surface, layout, options, pageRange[])
         {
             range?.setFocus()
@@ -489,8 +559,10 @@ private func addPageNavigation(dlg: *FormDlg, view: *ImageView, layout: *Layout,
     nav.hookOnEvent = func|pages|(_, evt)
     {
         let key = catch cast(*KeyEvent?, evt) orelse null
-        if not key or key.kind != .Pressed or key.modifiers != .None do
+        if not key or key.kind != .Pressed or key.modifiers != .None
+        {
             return false
+        }
 
         switch key.key
         {
@@ -517,18 +589,26 @@ private func exportPdf(from: *Surface, layout: const *Layout, job: const *JobOpt
     let name     = layout.document.name.toString()
     let stem     = Path.fileNameWithoutExtension(name) orelse name
     var proposed = Format.toString("%.pdf", stem.count ? stem : tr.print_Title)
-    if sourcePath.count and Path.equals(proposed, Path.fileName(sourcePath) orelse "") do
+    if sourcePath.count and Path.equals(proposed, Path.fileName(sourcePath) orelse "")
+    {
         proposed = Format.toString("% (2).pdf", stem)
+    }
+
     var folder = Env.getSpecialDirectory(.UserDocuments)
-    if not Directory.exists(folder) do
+    if not Directory.exists(folder)
+    {
         folder = Path.directoryName(folder) orelse ""
+    }
+
     while true
     {
         var options = FileDlgOptions{title: tr.print_SavePdf, mode: .CreateFile, initialFolder: folder, initialName: proposed}
         options.filters.add({name: "PDF", extensions: ".pdf"})
         let picker = FileDlg.create(from, options)
-        if picker.doModal() != Dialog.BtnOk do
+        if picker.doModal() != Dialog.BtnOk
+        {
             return false
+        }
 
         let target = picker.selectedPath()
         folder = Path.directoryName(target) orelse ""
@@ -546,8 +626,11 @@ private func exportPdf(from: *Surface, layout: const *Layout, job: const *JobOpt
             return true
         })
         {
-            if Swag.err is PrintError as error where error.kind == .Cancelled do
+            if Swag.err is PrintError as error where error.kind == .Cancelled
+            {
                 return false
+            }
+
             MessageDlg.error(from, tr.print_PdfSaveFailed, Swag.err)
             proposed = Path.fileName(target) orelse ""
             continue

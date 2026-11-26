@@ -18,10 +18,10 @@ struct ImageMetadata
         signature: u32     // Codec-defined signature or namespace identifier.
 
         #[Core.Serialization.Key("tag")]
-        tag: Array'u8     // Owned byte tag that identifies the record within `signature`.
+        tag: Array!{u8}     // Owned byte tag that identifies the record within `signature`.
 
         #[Core.Serialization.Key("value")]
-        value: Array'u8     // Owned, codec-defined payload bytes.
+        value: Array!{u8}     // Owned, codec-defined payload bytes.
     }
 }
 
@@ -31,27 +31,35 @@ impl ImageMetadata
     mtd const opCompare(other: ImageMetadata)->s32
     {
         let sigCmp = .signature <=> other.signature
-        if sigCmp do
+        if sigCmp
+        {
             return sigCmp
+        }
 
         let tagCount = Math.min(.tag.count, other.tag.count)
         if tagCount
         {
             let tagCmp = Memory.compare(.tag.storage(), other.tag.storage(), tagCount)
-            if tagCmp do
+            if tagCmp
+            {
                 return tagCmp
+            }
         }
 
         let tagLenCmp = .tag.count <=> other.tag.count
-        if tagLenCmp do
+        if tagLenCmp
+        {
             return tagLenCmp
+        }
 
         let valueCount = Math.min(.value.count, other.value.count)
         if valueCount
         {
             let valueCmp = Memory.compare(.value.storage(), other.value.storage(), valueCount)
-            if valueCmp do
+            if valueCmp
+            {
                 return valueCmp
+            }
         }
 
         return .value.count <=> other.value.count

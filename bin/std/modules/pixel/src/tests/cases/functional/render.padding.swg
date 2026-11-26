@@ -85,14 +85,18 @@ func assertResolvePaddingScene(image: Image)
 {
     for y in 40
     {
-        for x in 40 do
-            assertPixel(image, x, y, Color.fromArgb(255'u8, cast(u8, (x & 1) * 255), cast(u8, (y & 1) * 255), 64'u8))
+        for x in 40
+        {
+            assertPixel(image, x, y, Color.fromArgb(255_u8, cast(u8, (x & 1) * 255), cast(u8, (y & 1) * 255), 64_u8))
+        }
     }
 }
 
 #test
 {
     var cpu: RenderCpu
-    for factor in [2, 3] do
+    for factor in [2, 3]
+    {
         assertResolvePaddingScene(renderResolvePaddingScene(&cpu, factor))
+    }
 }

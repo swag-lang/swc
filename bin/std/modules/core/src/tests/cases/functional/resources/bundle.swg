@@ -3,8 +3,8 @@
 
 using Swag
 
-const EmbeddedHello = [104'u8, 101, 108, 108, 111]
-const EmbeddedOther = [111'u8, 107]
+const EmbeddedHello = [104_u8, 101, 108, 108, 111]
+const EmbeddedOther = [111_u8, 107]
 
 // Compressed embedded resources retain the ordinary owned-byte load contract.
 #test
@@ -33,7 +33,7 @@ const EmbeddedOther = [111'u8, 107]
 
     let bytes = expect bundle.load("lang/fr/app.tweak")
     Swag.require(bytes.count == 5)
-    Swag.require(bytes[0] == 'h'u8)
+    Swag.require(bytes[0] == 'h'_u8)
 
     var errOutcome: Swag.Error
     discard catch bundle.load("lang/de/app.tweak") as errOutcome
@@ -53,7 +53,7 @@ const EmbeddedOther = [111'u8, 107]
 
     let bytes = expect bundle.load("data.bin")
     Swag.require(bytes.count == 2)
-    Swag.require(bytes[0] == 'o'u8)
+    Swag.require(bytes[0] == 'o'_u8)
 }
 
 // A disk folder overrides embedded bytes, and a missing folder never matches.
@@ -65,7 +65,7 @@ const EmbeddedOther = [111'u8, 107]
 
     let sub = Path.combine(root.toString(), "lang")
     expect Directory.create(sub)
-    discard expect File.writeAllBytes(Path.combine(sub.toString(), "fr.tweak"), [49'u8, 50, 51])
+    discard expect File.writeAllBytes(Path.combine(sub.toString(), "fr.tweak"), [49_u8, 50, 51])
 
     var bundle: Resources.Bundle
     bundle.addFolder("missing_bundle_folder_that_does_not_exist")
@@ -77,7 +77,7 @@ const EmbeddedOther = [111'u8, 107]
     Swag.require(bundle.isOverridden("lang/fr.tweak"))
     let bytes = expect bundle.load("lang/fr.tweak")
     Swag.require(bytes.count == 3)
-    Swag.require(bytes[0] == '1'u8)
+    Swag.require(bytes[0] == '1'_u8)
 
     // A name only the embedded table knows still resolves through it.
     bundle.addEmbedded("only/embedded.bin", EmbeddedOther)
@@ -95,13 +95,13 @@ const EmbeddedOther = [111'u8, 107]
     defer discard catch Directory.delete(firstRoot, recurse: true)
     defer discard catch Directory.delete(secondRoot, recurse: true)
 
-    discard expect File.writeAllBytes(Path.combine(firstRoot.toString(), "shared.bin"), [1'u8])
-    discard expect File.writeAllBytes(Path.combine(secondRoot.toString(), "shared.bin"), [2'u8])
+    discard expect File.writeAllBytes(Path.combine(firstRoot.toString(), "shared.bin"), [1_u8])
+    discard expect File.writeAllBytes(Path.combine(secondRoot.toString(), "shared.bin"), [2_u8])
 
     var bundle: Resources.Bundle
     bundle.addFolder(firstRoot.toString())
     bundle.addFolder(secondRoot.toString())
-    bundle.addEmbedded("shared.bin", [3'u8])
+    bundle.addEmbedded("shared.bin", [3_u8])
 
     let bytes = expect bundle.load("shared.bin")
     Swag.require(bytes.count == 1 and bytes[0] == 1)
@@ -119,8 +119,8 @@ const EmbeddedOther = [111'u8, 107]
 
     let sub = Path.combine(root.toString(), "lang")
     expect Directory.create(sub)
-    discard expect File.writeAllBytes(Path.combine(sub.toString(), "fr.tweak"), [102'u8])
-    discard expect File.writeAllBytes(Path.combine(sub.toString(), "de.tweak"), [100'u8])
+    discard expect File.writeAllBytes(Path.combine(sub.toString(), "fr.tweak"), [102_u8])
+    discard expect File.writeAllBytes(Path.combine(sub.toString(), "de.tweak"), [100_u8])
 
     var bundle: Resources.Bundle
     bundle.addFolder(root.toString())
@@ -143,7 +143,7 @@ const EmbeddedOther = [111'u8, 107]
 {
     let root = CoreTests.makeFilesystemTestPath("core_directory_delete")
     expect Directory.create(root)
-    discard expect File.writeAllBytes(Path.combine(root.toString(), "keep.bin"), [1'u8])
+    discard expect File.writeAllBytes(Path.combine(root.toString(), "keep.bin"), [1_u8])
 
     var errOutcome: Swag.Error
     discard catch Directory.delete(root) as errOutcome
@@ -164,7 +164,7 @@ const EmbeddedOther = [111'u8, 107]
 
     let sub = Path.combine(root.toString(), "lang")
     expect Directory.create(sub)
-    discard expect File.writeAllBytes(Path.combine(sub.toString(), "fr.tweak"), [102'u8])
+    discard expect File.writeAllBytes(Path.combine(sub.toString(), "fr.tweak"), [102_u8])
 
     var folder = String.from(root.toString())
     folder += '/'
@@ -204,8 +204,9 @@ const EmbeddedOther = [111'u8, 107]
     Swag.require(not bundle.has(name.toString()) and not bundle.isOverridden(name.toString()))
 
     for invalidName in ["", ".", "../outside.txt", "nested/../outside.txt", "nested//file.txt", "nested/", "nested\\file.txt"]
-        do
+    {
         Swag.require(not bundle.isOverridden(invalidName))
+    }
 
     var errorOutcome: Swag.Error
     discard catch bundle.load(name.toString()) as errorOutcome

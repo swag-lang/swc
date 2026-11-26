@@ -18,17 +18,17 @@ using Core
 // percentiles are reported. Every run ends with the reservations, commits and decommits the
 // runtime allocator asked the system for.
 
-const ChurnSlots        = 50_000'u64
-const LargeSlots        = 32'u64
-const MediumSlots       = 256'u64
-const XferCount         = 2_000_000'u64
-const XferRing          = 4096'u64
-const SpreadSizes       = [16'u64, 48, 100, 200, 500, 1000, 3000, 6000, 12000, 20000, 40000, 60000]
-const HugeBytes         = 32'u64 * 1024 * 1024
-const HugeRounds        = 200'u64
-const SpreadRepRounds   = 10_000'u64
-const LatencyMaxSamples = 4_000_000'u64
-const LatencyBatch      = 64'u64
+const ChurnSlots        = 50_000_u64
+const LargeSlots        = 32_u64
+const MediumSlots       = 256_u64
+const XferCount         = 2_000_000_u64
+const XferRing          = 4096_u64
+const SpreadSizes       = [16_u64, 48, 100, 200, 500, 1000, 3000, 6000, 12000, 20000, 40000, 60000]
+const HugeBytes         = 32_u64 * 1024 * 1024
+const HugeRounds        = 200_u64
+const SpreadRepRounds   = 10_000_u64
+const LatencyMaxSamples = 4_000_000_u64
+const LatencyBatch      = 64_u64
 
 enum Workload
 {
@@ -100,8 +100,9 @@ impl Latency
     // The sample at 'rank' per thousand, in nanoseconds.
     mtd percentile(rank: u64)->f64
     {
-        if .count == 0 do
+        if .count == 0 {
             return 0
+        }
         let sorted = Swag.makeSlice(unwrap .samples, .count)
         Slice.sort(sorted)
         let index = Math.min((.count * rank) / 1000, .count - 1)
@@ -142,8 +143,9 @@ func churn(random: *Xorshift, slots: u64, operations: u64, nextSize: func(*Xorsh
     let sizes     = cast([*] u64, Memory.alloc(slots * #sizeof(u64)))
     defer
     {
-        for i in slots do
+        for i in slots {
             Memory.free(cast([*] void, addresses[i]), sizes[i])
+        }
         Memory.free(addresses, slots * #sizeof(u64))
         Memory.free(sizes, slots * #sizeof(u64))
     }
@@ -155,9 +157,10 @@ func churn(random: *Xorshift, slots: u64, operations: u64, nextSize: func(*Xorsh
     }
 
     let unit = perOperation ? 1 : LatencyBatch
-    if latency do
+    if latency {
         latency.unit = unit
 
+    }
     var start = latency ? Time.monotonicTicks() : 0
     for n in operations
     {
@@ -169,8 +172,9 @@ func churn(random: *Xorshift, slots: u64, operations: u64, nextSize: func(*Xorsh
         block[sizes[i] - 1] = 1
         if touchEveryPage
         {
-            for page in sizes[i] / 4096 do
+            for page in sizes[i] / 4096 {
                 block[page * 4096] = 1
+            }
         }
 
         addresses[i] = cast(u64, block)
@@ -194,15 +198,16 @@ func alignedBatches(random: *Xorshift, latency: *Latency?)->u64
 {
     var blocks: [1024] ([*] u8?)
     var sizes:  [1024] u64
-    if latency do
+    if latency {
         latency.unit = blocks.count
+    }
     for 10_000
     {
         let start = latency ? Time.monotonicTicks() : 0
         for i in blocks.count
         {
             let size      = 1 + (random.next() & 4095)
-            let alignment = (i & 1) == 0 ? 32'u32 : 64'u32
+            let alignment = (i & 1) == 0 ? 32_u32 : 64_u32
             let block     = cast([*] u8, Memory.alloc(size, alignment: alignment))
             block[0]        = 1
             block[size - 1] = 1
@@ -210,10 +215,12 @@ func alignedBatches(random: *Xorshift, latency: *Latency?)->u64
             sizes[i]        = size
         }
 
-        for block, i in blocks do
+        for block, i in blocks {
             Memory.free(block, sizes[i])
-        if latency do
+        }
+        if latency {
             latency.record(Time.monotonicTicks() - start)
+        }
     }
 
     return 10_000 * blocks.count
@@ -231,8 +238,9 @@ func spreadBody()->u64
         addresses[i] = cast(u64, block)
     }
 
-    for i in addresses.count do
+    for i in addresses.count {
         Memory.free(cast([*] void, addresses[i]), SpreadSizes[i / 10])
+    }
     return addresses.count
 }
 
@@ -255,7 +263,7 @@ struct Retained
 // check, and after trim().
 func retain(random: *Xorshift)->Retained
 {
-    const Small = 50_000'u64
+    const Small = 50_000_u64
     let small      = cast([*] u64, Memory.alloc(Small * #sizeof(u64)))
     let smallSizes = cast([*] u64, Memory.alloc(Small * #sizeof(u64)))
     var medium:      [MediumSlots] u64
@@ -274,8 +282,9 @@ func retain(random: *Xorshift)->Retained
     {
         mediumSizes[i] = mediumSize(random)
         let block = cast([*] u8, Memory.alloc(mediumSizes[i]))
-        for page in mediumSizes[i] / 4096 do
+        for page in mediumSizes[i] / 4096 {
             block[page * 4096] = 1
+        }
         medium[i] = cast(u64, block)
     }
 
@@ -283,23 +292,27 @@ func retain(random: *Xorshift)->Retained
     {
         largeSizes[i] = largeSize(random)
         let block = cast([*] u8, Memory.alloc(largeSizes[i]))
-        for page in largeSizes[i] / 4096 do
+        for page in largeSizes[i] / 4096 {
             block[page * 4096] = 1
+        }
         large[i] = cast(u64, block)
     }
 
-    for i in Small do
+    for i in Small {
         Memory.free(cast([*] void, small[i]), smallSizes[i])
-    for i in MediumSlots do
+    }
+    for i in MediumSlots {
         Memory.free(cast([*] void, medium[i]), mediumSizes[i])
-    for i in LargeSlots do
+    }
+    for i in LargeSlots {
         Memory.free(cast([*] void, large[i]), largeSizes[i])
+    }
     Memory.free(small, Small * #sizeof(u64))
     Memory.free(smallSizes, Small * #sizeof(u64))
 
     var result: #returntype
     result.idle = workingSet()
-    Threading.Thread.sleep(700'ms)
+    Threading.Thread.sleep(700_ms)
     Memory.free(Memory.alloc(1024 * 1024), 1024 * 1024)
     result.purged = workingSet()
     Swag.defaultAllocator().trim()
@@ -314,8 +327,9 @@ func run(workload: Workload, seed: u64, latency: *Latency?)->u64
     switch workload
     {
     case .Pair:
-        if latency do
+        if latency {
             latency.unit = LatencyBatch
+        }
         var start = latency ? Time.monotonicTicks() : 0
         for n in 20_000_000
         {
@@ -333,25 +347,29 @@ func run(workload: Workload, seed: u64, latency: *Latency?)->u64
         return 20_000_000
 
     case .Trees:
-        for 40 do
+        for 40 {
             freeTree(buildTree(14))
+        }
         return 40 * (1 << 15)
 
     case .Aligned:
         return alignedBatches(&random, latency)
 
     case .Huge:
-        if latency do
+        if latency {
             latency.unit = 1
+        }
         for HugeRounds
         {
             let start = latency ? Time.monotonicTicks() : 0
             let block = cast([*] u8, Memory.alloc(HugeBytes))
-            for page in HugeBytes / 4096 do
+            for page in HugeBytes / 4096 {
                 block[page * 4096] = 1
+            }
             Memory.free(block, HugeBytes)
-            if latency do
+            if latency {
                 latency.record(Time.monotonicTicks() - start)
+            }
         }
 
         return HugeRounds
@@ -369,12 +387,13 @@ func run(workload: Workload, seed: u64, latency: *Latency?)->u64
         return 200_000
 
     case .Realloc:
-        var operations = 0'u64
-        if latency do
+        var operations = 0_u64
+        if latency {
             latency.unit = 1
+        }
         for 2000
         {
-            var size  = 16'u64
+            var size  = 16_u64
             var block = cast([*] u8, Memory.alloc(size))
             while size < 4 * 1024 * 1024
             {
@@ -383,8 +402,9 @@ func run(workload: Workload, seed: u64, latency: *Latency?)->u64
                 size            *= 2
                 block[size - 1] = 1
                 operations      += 1
-                if latency do
+                if latency {
                     latency.record(Time.monotonicTicks() - start)
+                }
             }
 
             Memory.free(block, size)
@@ -393,7 +413,7 @@ func run(workload: Workload, seed: u64, latency: *Latency?)->u64
         return operations
 
     case .Grow:
-        const Count = 4_000_000'u64
+        const Count = 4_000_000_u64
         let addresses = cast([*] u64, Memory.alloc(Count * #sizeof(u64)))
         for i in Count
         {
@@ -402,8 +422,9 @@ func run(workload: Workload, seed: u64, latency: *Latency?)->u64
             addresses[i] = cast(u64, block)
         }
 
-        for i in Count do
+        for i in Count {
             Memory.free(cast([*] void, addresses[i]), 32)
+        }
         Memory.free(addresses, Count * #sizeof(u64))
         return Count * 2
 
@@ -411,9 +432,10 @@ func run(workload: Workload, seed: u64, latency: *Latency?)->u64
         return spreadBody()
 
     case .SpreadRep:
-        var operations = 0'u64
-        for SpreadRepRounds do
+        var operations = 0_u64
+        for SpreadRepRounds {
             operations += spreadBody()
+        }
         return operations
 
     case .Xfer, .Retain:
@@ -466,9 +488,10 @@ func produce(ring: *Ring, seed: u64)
 // recorder, every batch of its remote frees is timed, waiting for the producer excluded.
 func consume(ring: *Ring, latency: *Latency?)
 {
-    if latency do
+    if latency {
         latency.unit = LatencyBatch
-    var spent = 0'u64
+    }
+    var spent = 0_u64
     for n in XferCount
     {
         while Swag.atomicLoad(&ring.head) == ring.tail {}
@@ -566,8 +589,9 @@ func parseWorkload(name: string)->Workload fail
     var pool:     [32] Threading.Thread
     var gate:     Gate
     var recorder: Latency
-    if latency do
+    if latency {
         recorder.samples = cast([*] u32, Memory.alloc(LatencyMaxSamples * #sizeof(u32)))
+    }
     let count = workload == .Xfer ? threads * 2 : threads
     let gated = workload == .SpreadRep
 
@@ -586,7 +610,7 @@ func parseWorkload(name: string)->Workload fail
     }
 
     // The phase clock of a gated workload starts once every worker has arrived.
-    var phaseStart = 0'u64
+    var phaseStart = 0_u64
     if gated
     {
         while Swag.atomicLoad(&gate.arrived) < count {}
@@ -594,7 +618,7 @@ func parseWorkload(name: string)->Workload fail
         discard Swag.atomicExchange(&gate.open, 1)
     }
 
-    var operations = 0'u64
+    var operations = 0_u64
     var slowest    = 0.0
     for i in count
     {
@@ -613,10 +637,12 @@ func parseWorkload(name: string)->Workload fail
     watch.stop()
     let ns = cast(f64, watch.elapsedMicroseconds()) * 1000.0 / cast(f64, operations)
     Console.print("allocbench workload=", args[1], " threads=", threads, " operations=", operations, " ns/op=", ns, " worker_ns/op=", slowest)
-    if gated do
+    if gated {
         Console.print(" phase_ns/op=", cast(f64, phaseTicks) * 1.0e9 / cast(f64, Time.monotonicFrequency()) / cast(f64, operations))
-    if latency do
+    }
+    if latency {
         Console.print(" p50_ns=", recorder.percentile(500), " p99_ns=", recorder.percentile(990), " per_ops=", recorder.unit)
+    }
     printOsCalls()
     Console.println()
 }

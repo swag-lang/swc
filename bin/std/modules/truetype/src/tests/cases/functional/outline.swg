@@ -5,7 +5,7 @@ using Swag, Core
 #test
 {
     // A repeated point flag cannot write more flags than the contour declares.
-    var glyphData: Array'u8
+    var glyphData: Array!{u8}
     glyphData.add([
         0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
         0x00, 0x00, 0x00, 0x00, 0x09, 0x01])
@@ -20,7 +20,7 @@ using Swag, Core
 {
     // Contour endpoints must increase; otherwise later outline walks can index past
     // the point array using an endpoint from an earlier contour.
-    var glyphData: Array'u8
+    var glyphData: Array!{u8}
     glyphData.add([
         0x00, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
         0x00, 0x01, 0x00, 0x00])

@@ -78,7 +78,7 @@ namespace
                 const FormatPiece& piece = model_->piece(i);
                 if (piece.isNot(TokenId::SymLeftCurly) || piece.match == INVALID_PIECE)
                     continue;
-                if (piece.hasRole(FormatRoleE::LiteralOpen) || registered.contains(i))
+                if (piece.hasRole(FormatRoleE::LiteralOpen) || piece.hasRole(FormatRoleE::GenericArgsOpen) || registered.contains(i))
                     continue;
 
                 FormatBlock block;
@@ -437,55 +437,6 @@ namespace
             addRole(open.match, FormatRoleE::BlockClose);
         }
 
-        void registerInlineControl(const uint32_t headPiece, const uint32_t doPiece, const NodeSpan& bodySpan, const uint32_t maxPiece = INVALID_PIECE) const
-        {
-            if (doPiece == INVALID_PIECE || !bodySpan.valid())
-                return;
-
-            for (const FormatInlineBody& body : model_->inlineBodies())
-            {
-                if (body.doPiece == doPiece)
-                    return;
-            }
-
-            uint32_t lastPiece = maxPiece == INVALID_PIECE ? bodySpan.maxPiece : std::min(bodySpan.maxPiece, maxPiece);
-            for (;;)
-            {
-                const uint32_t next = nextCode(lastPiece);
-                if (next == INVALID_PIECE)
-                    break;
-
-                const FormatPiece& close = model_->piece(next);
-                if (close.match == INVALID_PIECE || close.match < bodySpan.minPiece ||
-                    (close.isNot(TokenId::SymRightParen) && close.isNot(TokenId::SymRightBracket) && close.isNot(TokenId::SymRightCurly)))
-                    break;
-
-                lastPiece = next;
-            }
-
-            model_->inlineBodies().push_back({headPiece, doPiece, lastPiece});
-        }
-
-        uint32_t pieceBeforeElseBranch(const AstNodeRef elseRef)
-        {
-            const NodeSpan elseSpan = spanOf(elseRef);
-            if (!elseSpan.valid())
-                return INVALID_PIECE;
-
-            uint32_t keyword = elseSpan.minPiece;
-            if (model_->piece(keyword).isNot(TokenId::KwdElseIf))
-            {
-                keyword = prevCode(keyword);
-                if (keyword != INVALID_PIECE && model_->piece(keyword).is(TokenId::KwdDo))
-                    keyword = prevCode(keyword);
-            }
-
-            if (keyword == INVALID_PIECE || (model_->piece(keyword).isNot(TokenId::KwdElse) && model_->piece(keyword).isNot(TokenId::KwdElseIf)))
-                return INVALID_PIECE;
-
-            return prevCode(keyword);
-        }
-
         // Locates the `{` that opens a body node: either the body's first
         // piece, or the code piece right before it.
         uint32_t bodyOpenBrace(const NodeSpan& bodySpan) const
@@ -534,28 +485,7 @@ namespace
             }
         }
 
-        void markTrailingDo(const NodeSpan& bodySpan) const
-        {
-            if (!bodySpan.valid())
-                return;
-
-            addRole(prevCodeIf(bodySpan.minPiece, TokenId::KwdDo), FormatRoleE::TrailingDo);
-        }
-
-        uint32_t inlineBodyLimit(const AstNodeRef ownerRef, const AstNodeRef elseRef = AstNodeRef::invalid())
-        {
-            uint32_t result = INVALID_PIECE;
-            if (const auto it = statementLimits_.find(ownerRef.get()); it != statementLimits_.end())
-                result = it->second;
-
-            const uint32_t beforeElse = pieceBeforeElseBranch(elseRef);
-            if (beforeElse != INVALID_PIECE)
-                result = result == INVALID_PIECE ? beforeElse : std::min(result, beforeElse);
-
-            return result;
-        }
-
-        void markControlBody(const AstNodeRef bodyRef, const uint32_t headPiece, const AstNodeRef ownerRef, const AstNodeRef elseRef = AstNodeRef::invalid())
+        void markControlBody(const AstNodeRef bodyRef, const uint32_t headPiece)
         {
             const NodeSpan bodySpan = spanOf(bodyRef);
             if (!bodySpan.valid())
@@ -566,15 +496,13 @@ namespace
                 registerBlock(open, FormatBlockKind::Control, headPiece);
             else
             {
-                markTrailingDo(bodySpan);
                 addRole(bodySpan.minPiece, FormatRoleE::StmtStart);
-                registerInlineControl(headPiece, prevCodeIf(bodySpan.minPiece, TokenId::KwdDo), bodySpan, inlineBodyLimit(ownerRef, elseRef));
             }
         }
 
-        // Marks the `else` keyword (and optional trailing `do`) that introduces
-        // an else body which is not an `elif` chain.
-        void classifyElseBody(const AstNodeRef elseRef, const uint32_t headPiece, const AstNodeRef ownerRef)
+        // Marks the `else` keyword unless the
+        // branch continues as an `else if` chain.
+        void classifyElseBody(const AstNodeRef elseRef, const uint32_t headPiece)
         {
             if (!shouldVisit(elseRef))
                 return;
@@ -582,15 +510,14 @@ namespace
             const NodeSpan elseSpan = spanOf(elseRef);
             if (!elseSpan.valid())
                 return;
-            if (model_->piece(elseSpan.minPiece).is(TokenId::KwdElseIf))
-                return; // An `elif` chain carries its keyword on the nested if.
-
-            uint32_t before = prevCode(elseSpan.minPiece);
-            if (before != INVALID_PIECE && model_->piece(before).is(TokenId::KwdDo))
+            if (model_->piece(elseSpan.minPiece).is(TokenId::KwdIf))
             {
-                addRole(before, FormatRoleE::TrailingDo);
-                before = prevCode(before);
+                const uint32_t beforeIf = prevCode(elseSpan.minPiece);
+                if (beforeIf != INVALID_PIECE && model_->piece(beforeIf).is(TokenId::KwdElse))
+                    return;
             }
+
+            const uint32_t before = prevCode(elseSpan.minPiece);
 
             if (before != INVALID_PIECE && model_->piece(before).is(TokenId::KwdElse))
                 addRole(before, FormatRoleE::ElseKeyword);
@@ -601,12 +528,11 @@ namespace
             else
             {
                 addRole(elseSpan.minPiece, FormatRoleE::StmtStart);
-                registerInlineControl(headPiece, prevCodeIf(elseSpan.minPiece, TokenId::KwdDo), elseSpan, inlineBodyLimit(ownerRef));
             }
         }
 
-        // Classified control bodies are braced or follow `do`. Missing spans
-        // leave lastPiece invalid, preventing layout changes to the chain.
+        // Control bodies use braces. Missing spans leave lastPiece invalid,
+        // preventing layout changes to the chain.
         FormatBranch branchOf(const uint32_t keyword, const AstNodeRef bodyRef)
         {
             FormatBranch branch;
@@ -624,39 +550,43 @@ namespace
                 return branch;
             }
 
-            branch.doPiece = prevCodeIf(bodySpan.minPiece, TokenId::KwdDo);
-            for (const FormatInlineBody& body : model_->inlineBodies())
-            {
-                if (body.doPiece == branch.doPiece)
-                    branch.lastPiece = body.lastPiece;
-            }
-
             return branch;
         }
 
         // The keyword of an 'if', an 'if var' or a '#if', its body, and its 'else'.
-        void classifyIfHead(const NodeSpan& span, const AstNodeRef nodeRef, const AstNodeRef ifBlockRef, const AstNodeRef elseBlockRef)
+        void classifyIfHead(const NodeSpan& span, const AstNodeRef ifBlockRef, const AstNodeRef elseBlockRef)
         {
             addRole(span.minPiece, FormatRoleE::ControlKeyword);
-            if (span.valid() && model_->piece(span.minPiece).is(TokenId::KwdElseIf))
-                addRole(span.minPiece, FormatRoleE::ElseKeyword);
+            if (span.valid() && model_->piece(span.minPiece).is(TokenId::KwdIf))
+            {
+                const uint32_t beforeIf = prevCode(span.minPiece);
+                if (beforeIf != INVALID_PIECE && model_->piece(beforeIf).is(TokenId::KwdElse))
+                    addRole(beforeIf, FormatRoleE::ElseKeyword);
+            }
 
-            markControlBody(ifBlockRef, span.minPiece, nodeRef, elseBlockRef);
-            classifyElseBody(elseBlockRef, span.minPiece, nodeRef);
+            markControlBody(ifBlockRef, span.minPiece);
+            classifyElseBody(elseBlockRef, span.minPiece);
         }
 
-        // Records the branches of an `if` statement. An `elif` is the `else`
-        // of the statement before it and is classified after it, so its
-        // branches join the chain that statement started.
+        // Records the branches of an `if` statement. An `else if` belongs to
+        // the chain started by the preceding branch.
         void recordBranches(const AstNodeRef nodeRef, const uint32_t keyword, const AstNodeRef bodyRef, const AstNodeRef elseRef)
         {
+            uint32_t branchKeyword = keyword;
+            if (model_->piece(keyword).is(TokenId::KwdIf))
+            {
+                const uint32_t beforeIf = prevCode(keyword);
+                if (beforeIf != INVALID_PIECE && model_->piece(beforeIf).is(TokenId::KwdElse))
+                    branchKeyword = beforeIf;
+            }
+
             size_t chainIndex = model_->branchChains().size();
-            if (const auto it = pendingElifs_.find(nodeRef.get()); it != pendingElifs_.end())
+            if (const auto it = pendingElseIfs_.find(nodeRef.get()); it != pendingElseIfs_.end())
                 chainIndex = it->second;
             else
-                model_->branchChains().push_back({.stmtPiece = keyword});
+                model_->branchChains().push_back({.stmtPiece = branchKeyword});
 
-            model_->branchChains()[chainIndex].branches.push_back(branchOf(keyword, bodyRef));
+            model_->branchChains()[chainIndex].branches.push_back(branchOf(branchKeyword, bodyRef));
 
             if (!shouldVisit(elseRef))
                 return;
@@ -664,15 +594,17 @@ namespace
             const NodeSpan elseSpan = spanOf(elseRef);
             if (!elseSpan.valid())
                 return;
-            if (model_->piece(elseSpan.minPiece).is(TokenId::KwdElseIf))
+            if (model_->piece(elseSpan.minPiece).is(TokenId::KwdIf))
             {
-                pendingElifs_[elseRef.get()] = static_cast<uint32_t>(chainIndex);
-                return;
+                const uint32_t beforeIf = prevCode(elseSpan.minPiece);
+                if (beforeIf != INVALID_PIECE && model_->piece(beforeIf).is(TokenId::KwdElse))
+                {
+                    pendingElseIfs_[elseRef.get()] = static_cast<uint32_t>(chainIndex);
+                    return;
+                }
             }
 
             uint32_t elseKeyword = prevCode(elseSpan.minPiece);
-            if (elseKeyword != INVALID_PIECE && model_->piece(elseKeyword).is(TokenId::KwdDo))
-                elseKeyword = prevCode(elseKeyword);
             if (elseKeyword != INVALID_PIECE && model_->piece(elseKeyword).isNot(TokenId::KwdElse))
                 elseKeyword = INVALID_PIECE;
 
@@ -777,8 +709,6 @@ namespace
             }
 
             std::ranges::sort(statements, [](const auto& a, const auto& b) { return a.first < b.first; });
-            for (size_t i = 1; i < statements.size(); ++i)
-                statementLimits_[statements[i - 1].second.get()] = prevCode(statements[i].first);
         }
 
         // First piece of the first compound child (statements span only).
@@ -1209,7 +1139,7 @@ namespace
                 case AstNodeId::IfStmt:
                 {
                     const auto& stmt = node.cast<AstIfStmt>();
-                    classifyIfHead(span, nodeRef, stmt.nodeIfBlockRef, stmt.nodeElseBlockRef);
+                    classifyIfHead(span, stmt.nodeIfBlockRef, stmt.nodeElseBlockRef);
                     if (span.valid())
                         recordBranches(nodeRef, span.minPiece, stmt.nodeIfBlockRef, stmt.nodeElseBlockRef);
                     break;
@@ -1218,7 +1148,7 @@ namespace
                 case AstNodeId::IfVarDecl:
                 {
                     const auto& stmt = node.cast<AstIfVarDecl>();
-                    classifyIfHead(span, nodeRef, stmt.nodeIfBlockRef, stmt.nodeElseBlockRef);
+                    classifyIfHead(span, stmt.nodeIfBlockRef, stmt.nodeElseBlockRef);
                     if (span.valid())
                         recordBranches(nodeRef, span.minPiece, stmt.nodeIfBlockRef, stmt.nodeElseBlockRef);
                     break;
@@ -1227,7 +1157,7 @@ namespace
                 case AstNodeId::CompilerIf:
                 {
                     const auto& stmt = node.cast<AstCompilerIf>();
-                    classifyIfHead(span, nodeRef, stmt.nodeIfBlockRef, stmt.nodeElseBlockRef);
+                    classifyIfHead(span, stmt.nodeIfBlockRef, stmt.nodeElseBlockRef);
                     break;
                 }
 
@@ -1296,7 +1226,7 @@ namespace
                 {
                     const auto& stmt = node.cast<AstWhileStmt>();
                     addRole(span.minPiece, FormatRoleE::ControlKeyword);
-                    markControlBody(stmt.nodeBodyRef, span.minPiece, nodeRef);
+                    markControlBody(stmt.nodeBodyRef, span.minPiece);
                     break;
                 }
 
@@ -1304,7 +1234,7 @@ namespace
                 {
                     const auto& stmt = node.cast<AstForeachStmt>();
                     addRole(span.minPiece, FormatRoleE::ControlKeyword);
-                    markControlBody(stmt.nodeBodyRef, span.minPiece, nodeRef);
+                    markControlBody(stmt.nodeBodyRef, span.minPiece);
                     break;
                 }
 
@@ -1313,7 +1243,7 @@ namespace
                     const auto& stmt = node.cast<AstParallelForStmt>();
                     addRole(span.minPiece, FormatRoleE::ControlKeyword);
                     addRole(nextCodeIf(span.minPiece, TokenId::KwdFor), FormatRoleE::ControlKeyword);
-                    markControlBody(parallelForBody(stmt), span.minPiece, nodeRef);
+                    markControlBody(parallelForBody(stmt), span.minPiece);
                     break;
                 }
 
@@ -1321,7 +1251,7 @@ namespace
                 {
                     const auto& stmt = node.cast<AstForStmt>();
                     addRole(span.minPiece, FormatRoleE::ControlKeyword);
-                    markControlBody(stmt.nodeBodyRef, span.minPiece, nodeRef);
+                    markControlBody(stmt.nodeBodyRef, span.minPiece);
                     break;
                 }
 
@@ -1329,7 +1259,7 @@ namespace
                 {
                     const auto& stmt = node.cast<AstForCStyleStmt>();
                     addRole(span.minPiece, FormatRoleE::ControlKeyword);
-                    markControlBody(stmt.nodeBodyRef, span.minPiece, nodeRef);
+                    markControlBody(stmt.nodeBodyRef, span.minPiece);
                     break;
                 }
 
@@ -1337,7 +1267,7 @@ namespace
                 {
                     const auto& stmt = node.cast<AstInfiniteLoopStmt>();
                     addRole(span.minPiece, FormatRoleE::ControlKeyword);
-                    markControlBody(stmt.nodeBodyRef, span.minPiece, nodeRef);
+                    markControlBody(stmt.nodeBodyRef, span.minPiece);
                     break;
                 }
 
@@ -1345,7 +1275,7 @@ namespace
                 {
                     const auto& stmt = node.cast<AstWithStmt>();
                     addRole(span.minPiece, FormatRoleE::ControlKeyword);
-                    markControlBody(stmt.nodeBodyRef, span.minPiece, nodeRef);
+                    markControlBody(stmt.nodeBodyRef, span.minPiece);
                     break;
                 }
 
@@ -1353,7 +1283,7 @@ namespace
                 {
                     const auto& stmt = node.cast<AstDeferStmt>();
                     addRole(span.minPiece, FormatRoleE::ControlKeyword);
-                    markControlBody(stmt.nodeBodyRef, span.minPiece, nodeRef);
+                    markControlBody(stmt.nodeBodyRef, span.minPiece);
                     break;
                 }
 
@@ -1378,7 +1308,7 @@ namespace
                     // Only a handler block is a body; an 'orelse' value is an operand.
                     const AstNodeRef fallbackRef = node.cast<AstErrorManagementExpr>().nodeFallbackRef;
                     if (fallbackRef.isValid() && ast_->node(fallbackRef).is(AstNodeId::EmbeddedBlock))
-                        classifyElseBody(fallbackRef, span.minPiece, nodeRef);
+                        classifyElseBody(fallbackRef, span.minPiece);
                     break;
                 }
 
@@ -1386,7 +1316,7 @@ namespace
                 {
                     const auto& stmt = node.cast<AstErrorManagementStmt>();
                     addRole(span.minPiece, FormatRoleE::ControlKeyword);
-                    classifyElseBody(stmt.nodeHandlerRef, span.minPiece, nodeRef);
+                    classifyElseBody(stmt.nodeHandlerRef, span.minPiece);
                     break;
                 }
 
@@ -1531,6 +1461,20 @@ namespace
                     break;
                 }
 
+                case AstNodeId::GenericArgListExpr:
+                {
+                    if (span.valid())
+                    {
+                        const uint32_t open = nextCodeIf(span.minPiece, TokenId::SymLeftCurly);
+                        if (open != INVALID_PIECE && model_->piece(open).match != INVALID_PIECE)
+                        {
+                            addRole(open, FormatRoleE::GenericArgsOpen);
+                            addRole(model_->piece(open).match, FormatRoleE::GenericArgsClose);
+                        }
+                    }
+                    break;
+                }
+
                 case AstNodeId::IntrinsicCall:
                 case AstNodeId::IntrinsicCallVariadic:
                 {
@@ -1542,7 +1486,7 @@ namespace
                 case AstNodeId::StructInitializerList:
                 {
                     // The `{` may sit after the closing `)` / `}` of the type
-                    // expression (`Type'(args){...}`, `struct { ... }{...}`),
+                    // expression (`Type!{args}{...}`, `struct { ... }{...}`),
                     // which the span excludes.
                     const auto&    init     = node.cast<AstStructInitializerList>();
                     const NodeSpan whatSpan = spanOf(init.nodeWhatRef);
@@ -1634,8 +1578,7 @@ namespace
         const Ast*   ast_;
 
         std::unordered_map<uint32_t, NodeSpan> spans_;
-        std::unordered_map<uint32_t, uint32_t> statementLimits_;
-        std::unordered_map<uint32_t, uint32_t> pendingElifs_; // `elif` statement node -> chain it continues
+        std::unordered_map<uint32_t, uint32_t> pendingElseIfs_; // nested `if` node -> chain it continues
     };
 }
 

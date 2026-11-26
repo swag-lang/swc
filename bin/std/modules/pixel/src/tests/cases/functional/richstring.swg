@@ -11,8 +11,10 @@ using Swag, Core
 
     text.compute()
     Swag.require(not text.hasUrl)
-    for &chunk in text.chunks do
+    for &chunk in text.chunks
+    {
         Swag.require(not chunk.hasFontStyle and not chunk.isUrl)
+    }
 
     text.set("<i>x</i>", {bold: true})
     text.append("<u>y</u>")
@@ -33,8 +35,11 @@ using Swag, Core
     text.compute()
 
     var eolCount = 0
-    for &chunk in text.chunks where chunk.isEol do
+    for &chunk in text.chunks where chunk.isEol
+    {
         eolCount += 1
+    }
+
     Swag.require(eolCount == 1)
 }
 

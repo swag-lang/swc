@@ -39,20 +39,26 @@ internal var metadataTotal = 0
 func day8A()
 {
     let dataPath = Path.combine(Path.directoryName(#file), "8.txt")
-    let values   = Tokenize.split(expect File.readAllText(dataPath), ' 'u8)
+    let values   = Tokenize.split(expect File.readAllText(dataPath), ' '_u8)
     let nums     = Slice.map(values.toSlice(), func(v) => expect StrConv.toS32(v))
 
-    func read(n: Array's32, s: u32)->u32
+    func read(n: Array!{s32}, s: u32)->u32
     {
         var start = s
         let nc    = n[start]
         let nm    = n[start + 1]
         start += 2
 
-        for nc do
+        for nc
+        {
             start = read(n, start)
-        for i in nm do
+        }
+
+        for i in nm
+        {
             metadataTotal += n[start + i]
+        }
+
         return start + nm
     }
 

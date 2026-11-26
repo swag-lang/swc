@@ -14,7 +14,7 @@ using Core, Gui, Viewers
     let beforeChapter  = panel.chapter
     let beforeProgress = panel.view.readingProgress()
 
-    var matches: Array'Viewer.SearchMatch
+    var matches: Array!{Viewer.SearchMatch}
     collectViewerMatches(unwrap session.collectMatches, "chapter: Paragraph 0.", &matches)
     Swag.require(matches.count == 1 and panel.revealSearchMatch(matches[0], "Paragraph 0."))
     Swag.require(panel.history.backVisits.count == 1 and panel.history.backVisits[0].position.isValid())
@@ -37,8 +37,11 @@ using Core, Gui, Viewers
     var setEntries = Viewer.LensEntries.create(&setResults, "EPUB", host.theme)
     panel.describeLens(&setEntries)
     var setBookmark: *Lens.Entry?
-    for &entry in setResults.sections[0]!.entries where entry.title == Epub.texts().ui_SetBookmark do
+    for &entry in setResults.sections[0]!.entries where entry.title == Epub.texts().ui_SetBookmark
+    {
         setBookmark = entry
+    }
+
     Swag.require(setBookmark != null and not setBookmark.disabled)
     setBookmark.run!()
     Swag.require(panel.hasBookmark and panel.bookmark.chapter == 0 and panel.bookmark.position.isValid())
@@ -52,8 +55,11 @@ using Core, Gui, Viewers
     panel.describeLens(&goEntries)
     let title = Format.toString(Epub.texts().ui_GoToBookmark, 1)
     var goBookmark: *Lens.Entry?
-    for &entry in goResults.sections[0]!.entries where entry.title == title do
+    for &entry in goResults.sections[0]!.entries where entry.title == title
+    {
         goBookmark = entry
+    }
+
     Swag.require(goBookmark != null and not goBookmark.disabled)
     goBookmark.run!()
     completeQueuedViewerFile(&host, window)
@@ -80,8 +86,11 @@ using Core, Gui, Viewers
     Swag.require(panel.history.backVisits.isEmpty() and panel.history.forwardVisits.isEmpty())
 
     // Blocked or missing destinations leave the history empty.
-    for target in ["https://example.invalid", "../../private.html", "missing.xhtml"] do
+    for target in ["https://example.invalid", "../../private.html", "missing.xhtml"]
+    {
         panel.followLink(target)
+    }
+
     Swag.require(panel.history.backVisits.isEmpty() and panel.history.forwardVisits.isEmpty())
 
     Swag.require(panel.view != null and panel.view.findText("Paragraph 15."))

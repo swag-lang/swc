@@ -26,17 +26,20 @@ func stored(p: [*]s16, i: u64)->s64
 #[Swag.NoInline]
 func sum(p: [*]s8, count: u64)->s64
 {
-    var result = 0's64
-    for i in 0 until count do result += p[i]
+    var result = 0_s64
+    for i in 0 until count
+    {
+        result += p[i]
+    }
     return result
 }
 
 #test
 {
-    var bytes = [-128's8, -1, 0, 1, 127]
-    var words = [-32768's16, -1, 0, 1, 32767]
+    var bytes = [-128_s8, -1, 0, 1, 127]
+    var words = [-32768_s16, -1, 0, 1, 32767]
     var displaced: [70]s16
-    for i in 5'u64
+    for i in 5_u64
     {
         Swag.require(byte64(&bytes[0], i) == bytes[i])
         Swag.require(byte32(&bytes[0], i) == bytes[i])

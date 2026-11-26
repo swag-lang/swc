@@ -8,11 +8,17 @@ using Core, Viewers
 #test
 {
     var pages: String
-    for 201 do
+    for 201
+    {
         pages += "<draw:page draw:name='Page'/>"
+    }
+
     var shapes: String = "<draw:page draw:name='Shapes'>"
-    for 2049 do
+    for 2049
+    {
         shapes += "<draw:rect svg:x='0in' svg:y='0in' svg:width='1in' svg:height='1in'/>"
+    }
+
     shapes += "</draw:page>"
     for body in [pages, shapes]
     {

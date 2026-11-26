@@ -25,8 +25,10 @@ public impl Image
     // supports every packed image format. Existing alpha is replaced with full opacity.
     mtd fillHsl(fillType: FillHslType, color: Color = Color.fromArgb(Argb.White))
     {
-        if not .pixelFormat.isPacked() do
+        if not .pixelFormat.isPacked()
+        {
             return
+        }
 
         let hsl = color.toHsl()
         if not .hasStraightByteColors()
@@ -109,8 +111,10 @@ public impl Image
                     pix[2] = col.r
                 }
 
-                if image.pixelFormat.hasAlpha() do
+                if image.pixelFormat.hasAlpha()
+                {
                     pix[3] = 255
+                }
             }
 
         case .HueHorz:
@@ -132,8 +136,11 @@ public impl Image
                     pix[2] = col.r
                 }
 
-                if .pixelFormat.hasAlpha() do
+                if .pixelFormat.hasAlpha()
+                {
                     pix[3] = 255
+                }
+
                 pix += .bytesPerPixel
             }
 
@@ -163,8 +170,10 @@ public impl Image
                     pix[2] = col.r
                 }
 
-                if image.pixelFormat.hasAlpha() do
+                if image.pixelFormat.hasAlpha()
+                {
                     pix[3] = 255
+                }
             }
 
         case .SaturationHorz:
@@ -186,8 +195,11 @@ public impl Image
                     pix[2] = col.r
                 }
 
-                if .pixelFormat.hasAlpha() do
+                if .pixelFormat.hasAlpha()
+                {
                     pix[3] = 255
+                }
+
                 pix += .bytesPerPixel
             }
 
@@ -217,8 +229,10 @@ public impl Image
                     pix[2] = col.r
                 }
 
-                if image.pixelFormat.hasAlpha() do
+                if image.pixelFormat.hasAlpha()
+                {
                     pix[3] = 255
+                }
             }
 
         case .LightnessHorz:
@@ -240,8 +254,11 @@ public impl Image
                     pix[2] = col.r
                 }
 
-                if .pixelFormat.hasAlpha() do
+                if .pixelFormat.hasAlpha()
+                {
                     pix[3] = 255
+                }
+
                 pix += .bytesPerPixel
             }
 
@@ -271,8 +288,10 @@ public impl Image
                     pix[2] = col.r
                 }
 
-                if image.pixelFormat.hasAlpha() do
+                if image.pixelFormat.hasAlpha()
+                {
                     pix[3] = 255
+                }
             }
 
         case .HueLightness:
@@ -296,8 +315,10 @@ public impl Image
                     pix[2] = col.r
                 }
 
-                if image.pixelFormat.hasAlpha() do
+                if image.pixelFormat.hasAlpha()
+                {
                     pix[3] = 255
+                }
             }
 
         case .SaturationLightness:
@@ -323,8 +344,10 @@ public impl Image
                     pix[2] = col.r
                 }
 
-                if image.pixelFormat.hasAlpha() do
+                if image.pixelFormat.hasAlpha()
+                {
                     pix[3] = 255
+                }
             }
 
         case .GreenBlue:
@@ -348,8 +371,10 @@ public impl Image
                     pix[2] = col.r
                 }
 
-                if image.pixelFormat.hasAlpha() do
+                if image.pixelFormat.hasAlpha()
+                {
                     pix[3] = 255
+                }
             }
 
         case .RedBlue:
@@ -373,8 +398,10 @@ public impl Image
                     pix[2] = col.r
                 }
 
-                if image.pixelFormat.hasAlpha() do
+                if image.pixelFormat.hasAlpha()
+                {
                     pix[3] = 255
+                }
             }
 
         case .RedGreen:
@@ -398,8 +425,10 @@ public impl Image
                     pix[2] = col.r
                 }
 
-                if image.pixelFormat.hasAlpha() do
+                if image.pixelFormat.hasAlpha()
+                {
                     pix[3] = 255
+                }
             }
         }
     }

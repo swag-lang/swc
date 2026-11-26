@@ -3,7 +3,7 @@
 
 using Core
 
-func exifNumber(bytes: *Array'u8, at, value, size: u64, little: bool)
+func exifNumber(bytes: *Array!{u8}, at, value, size: u64, little: bool)
 {
     for index in size
     {
@@ -12,7 +12,7 @@ func exifNumber(bytes: *Array'u8, at, value, size: u64, little: bool)
     }
 }
 
-func exifEntry(bytes: *Array'u8, at: u64, tag, kind, count, value: u64, little: bool)
+func exifEntry(bytes: *Array!{u8}, at: u64, tag, kind, count, value: u64, little: bool)
 {
     exifNumber(bytes, at, tag, 2, little)
     exifNumber(bytes, at + 2, kind, 2, little)
@@ -20,11 +20,11 @@ func exifEntry(bytes: *Array'u8, at: u64, tag, kind, count, value: u64, little: 
     exifNumber(bytes, at + 8, value, kind == 3 and count == 1 ? 2 : 4, little)
 }
 
-func exifFixture(little: bool)->Array'u8
+func exifFixture(little: bool)->Array!{u8}
 {
     var result: #returntype
     result.resize(124)
-    result[0] = little ? 'I'u8 : 'M'u8
+    result[0] = little ? 'I'_u8 : 'M'_u8
     result[1] = result[0]
     exifNumber(&result, 2, 42, 2, little)
     exifNumber(&result, 4, 8, 4, little)
@@ -32,8 +32,11 @@ func exifFixture(little: bool)->Array'u8
     exifEntry(&result, 10, 0x010F, 2, 6, 50, little)
     exifEntry(&result, 22, 0x0112, 3, 1, 6, little)
     exifEntry(&result, 34, 0x8769, 4, 1, 64, little)
-    for byte, index in "Camera" do
+    for byte, index in "Camera"
+    {
         result[50 + index] = byte
+    }
+
     exifNumber(&result, 64, 3, 2, little)
     exifEntry(&result, 66, 0x829A, 5, 1, 108, little)
     exifEntry(&result, 78, 0x9204, 10, 1, 116, little)

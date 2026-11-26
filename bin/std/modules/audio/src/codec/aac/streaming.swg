@@ -116,27 +116,36 @@ impl StreamEncoder
     // `packet` contains one access unit. Keep calling with the unconsumed suffix until all
     // input is accepted. No input is accepted after [[Audio.Aac.StreamEncoder.finish]] begins.
     // Invalid input leaves the stream and the caller's packet unchanged.
-    mtd push(samples: const [..] s16, packet: *Array'u8)->u64 fail
+    mtd push(samples: const [..] s16, packet: *Array!{u8})->u64 fail
     {
-        if .finalizing do
+        if .finalizing
+        {
             fail BadParameterError{"cannot append to an AAC stream after finish has begun"}
-        if samples.count % .channels do
+        }
+
+        if samples.count % .channels
+        {
             fail BadParameterError{"AAC stream input must contain complete frames"}
-        let frames = Math.min(samples.count / .channels, 1_024'u64 - .pendingFrames)
-        if frames > Swag.U64.Max - .inputFrames do
+        }
+
+        let frames = Math.min(samples.count / .channels, 1_024_u64 - .pendingFrames)
+        if frames > Swag.U64.Max - .inputFrames
+        {
             fail OverflowError{"AAC stream input frame count overflows"}
+        }
+
         packet.clear()
-        if not frames do
+        if not frames
+        {
             return 0
+        }
+
         Memory.copy(&.pending[cast(u64, .pendingFrames) * .channels], samples.buffer, frames * .channels * #sizeof(s16))
         .pendingFrames += cast(u32, frames)
         .inputFrames   += frames
         if .pendingFrames == 1_024
         {
-            if .buffered.count do
-                try .bufferPacket(packet)
-            else do
-                try .emit(packet, 1_024)
+            try .emit(packet, 1_024)
         }
 
         return frames
@@ -146,27 +155,36 @@ impl StreamEncoder
     //
     // Returns true while a packet was produced. Call until false before closing the recording;
     // repeated calls after completion return false and clear `packet`. An empty stream emits none.
-    mtd finish(packet: *Array'u8)->bool fail
+    mtd finish(packet: *Array!{u8})->bool fail
     {
         packet.clear()
-        if .ended do
+        if .ended
+        {
             return false
+        }
+
         .finalizing = true
         if .buffered.count do
             return try .finishWindowed(packet)
         if .pendingFrames
         {
             let valid = .pendingFrames
-            for index in cast(u64, .pendingFrames) * .channels until 1_024'u64 * .channels do
+            for index in cast(u64, .pendingFrames) * .channels until 1_024_u64 * .channels
+            {
                 .pending[index] = 0
+            }
+
             try .emit(packet, valid)
             return true
         }
 
         if .emittedPackets and not .drained
         {
-            for index in 1_024'u64 * .channels do
+            for index in 1_024_u64 * .channels
+            {
                 .pending[index] = 0
+            }
+
             try .emit(packet, 0)
             .drained = true
             .ended   = true
@@ -180,118 +198,9 @@ impl StreamEncoder
 
 private impl StreamEncoder
 {
-    mtd bufferPacket(packet: *Array'u8) fail
+    mtd emit(packet: *Array!{u8}, validFrames: u32) fail
     {
-        let pending = Swag.makeSlice(&.pending[0], 1_024'u64 * .channels)
-        if .bufferedFrames do
-            try .emitWindowed(.buffered.toSlice(), pending, packet, .bufferedFrames)
-        Memory.copy(.buffered.storage(), pending.buffer, pending.count * #sizeof(s16))
-        .bufferedFrames = .pendingFrames
-        .pendingFrames  = 0
-    }
-
-    mtd finishWindowed(packet: *Array'u8)->bool fail
-    {
-        let samples = 1_024'u64 * .channels
-        if .pendingFrames
-        {
-            for index in cast(u64, .pendingFrames) * .channels until samples do
-                .pending[index] = 0
-            try .bufferPacket(packet)
-            if packet.count do
-                return true
-        }
-
-        Memory.clear(&.pending, #sizeof(.pending))
-        let silence = Swag.makeSlice(&.pending[0], samples)
-        if .bufferedFrames
-        {
-            try .emitWindowed(.buffered.toSlice(), silence, packet, .bufferedFrames)
-            .bufferedFrames = 0
-            return true
-        }
-
-        if .emittedPackets and not .drained
-        {
-            try .emitWindowed(silence, silence, packet, 0)
-            .drained = true
-            .ended   = true
-            return true
-        }
-
-        .ended = true
-        return false
-    }
-
-    mtd const hasAttack(samples: const [..] s16, begin, end: u64)->bool
-    {
-        for channel in .channels
-        {
-            var previousEnergy = 0'f64
-            var previous       = cast(s32, samples[(begin ? begin - 1 : 0) * .channels + channel])
-            var lower          = begin
-            while lower < end
-            {
-                var peak   = 0'f64
-                var energy = 0'f64
-                let upper  = Math.min(end, lower + 128'u64)
-                for index in lower until upper
-                {
-                    let value = cast(s32, samples[index * .channels + channel])
-                    let delta = cast(f64, value - previous)
-                    let power = delta * delta
-                    peak     = Math.max(peak, power)
-                    energy   += power
-                    previous = value
-                }
-
-                if peak >= 36_000_000 and
-                   (8.0 * peak >= energy or
-                    (previousEnergy > 0.0 and energy > 8.0 * previousEnergy)) do
-                    return true
-                previousEnergy = energy
-                lower = upper
-            }
-        }
-
-        return false
-    }
-
-    mtd emitWindowed(input, lookahead: const [..] s16, packet: *Array'u8, valid: u32) fail
-    {
-        // The next short transform covers the late part of this block and the early part
-        // of lookahead. Detect at both edges of the long-to-short overlap.
-        let following = .hasAttack(input, 448, 1_024) or .hasAttack(lookahead, 0, 576)
-        var sequence  = EncodeWindow.Long
-        switch .window
-        {
-        case .Long, .Stop: sequence = following ? .Start : .Long
-        case .Start:       sequence = .Short
-        case .Short:       sequence = .nextShort or following ? .Short : .Stop
-        }
-
-        try .encoder.encodeWindowed'(true, false)(input, packet, sequence)
-        .window         = sequence
-        .nextShort      = following
-        .lastStart      = .emittedPackets * 1_024
-        .lastValid      = valid
-        .emittedPackets += 1
-    }
-
-    mtd emit(packet: *Array'u8, validFrames: u32) fail
-    {
-        let samples = Swag.makeSlice(&.pending[0], 1_024'u64 * .channels)
-        if .packetBudget
-        {
-            let available = .packetBudget + .packetCredit
-            try .encoder.encodeLimited(samples, packet, available)
-            .packetCredit = Math.min(3 * .packetBudget, available - packet.count)
-        }
-        else
-        {
-            try .encoder.encode(samples, packet)
-        }
-
+        try .encoder.encode(Swag.makeSlice(&.pending[0], 1_024_u64 * .channels), packet)
         .lastStart      = .emittedPackets * 1_024
         .lastValid      = validFrames
         .emittedPackets += 1

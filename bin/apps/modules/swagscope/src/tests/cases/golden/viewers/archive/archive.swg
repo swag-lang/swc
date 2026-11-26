@@ -50,8 +50,11 @@ func archiveViewerFixturePath()->String => scopeTestDataPath("viewer.archive.zip
 
     let line         = unwrap viewer.entryLines[1]
     var visibleIndex = Swag.U32.Max
-    for index in viewer.list.lineCount() where viewer.list.lineAt(index) == line do
+    for index in viewer.list.lineCount() where viewer.list.lineAt(index) == line
+    {
         visibleIndex = index
+    }
+
     Swag.require(visibleIndex != Swag.U32.Max)
     viewer.list.selectLine(visibleIndex)
     Swag.require(viewer.treePane.isLocallyVisible() and not viewer.previewPane.isLocallyVisible())
@@ -77,7 +80,7 @@ func archiveViewerFixturePath()->String => scopeTestDataPath("viewer.archive.zip
     assertScopeImageGolden(&image, "viewer.archive.document")
     assertScopeAnchoredMenu(&host, window, embedded.viewerMenu, "menus.archive.viewer")
 
-    var matches: Array'Viewer.SearchMatch
+    var matches: Array!{Viewer.SearchMatch}
     let session = &window.instances[window.activeChoiceIndex]
     collectViewerMatches(unwrap session.collectMatches, "readme", &matches)
     Swag.require(matches.count == 1 and matches[0].major == 1)

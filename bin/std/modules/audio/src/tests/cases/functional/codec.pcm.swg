@@ -11,8 +11,11 @@ private func audioPcmReferenceSample(encoding: SoundFileEncoding, source: const 
 
     case .Pcm24:
         var sample = cast(u32, source[0]) | (cast(u32, source[1]) << 8) | (cast(u32, source[2]) << 16)
-        if sample & 0x00800000 do
+        if sample & 0x00800000
+        {
             sample |= 0xFF000000
+        }
+
         return cast(s16, (cast #wrap (s32, sample) >> 8))
 
     case .Pcm32:
@@ -30,13 +33,15 @@ private func audioPcmReferenceSample(encoding: SoundFileEncoding, source: const 
 
 private func audioCheckPcmTails(encoding: SoundFileEncoding, sampleSize: u64) fail
 {
-    const MaxSamples = 40'u64
-    const Sentinel   = 0xA5'u8
+    const MaxSamples = 40_u64
+    const Sentinel   = 0xA5_u8
 
-    var source: Array'u8
+    var source: Array!{u8}
     source.resize((MaxSamples + 4) * sampleSize)
-    for index in source.count do
+    for index in source.count
+    {
         source[index] = cast(u8, ((index * 73 + 19) & 255))
+    }
 
     if encoding == .Float32
     {
@@ -47,7 +52,7 @@ private func audioCheckPcmTails(encoding: SoundFileEncoding, sampleSize: u64) fa
         }
     }
 
-    var destination: Array'u8
+    var destination: Array!{u8}
     destination.resize((MaxSamples + 2) * #sizeof(s16))
 
     var codec: CodecPcmToPcm16
@@ -60,8 +65,10 @@ private func audioCheckPcmTails(encoding: SoundFileEncoding, sampleSize: u64) fa
     {
         for destinationBytes in (MaxSamples + 1) * #sizeof(s16)
         {
-            for index in destination.count do
+            for index in destination.count
+            {
                 destination[index] = Sentinel
+            }
 
             let progress = try decoder.decode(destination.storage(),
                                               destinationBytes,
@@ -77,8 +84,10 @@ private func audioCheckPcmTails(encoding: SoundFileEncoding, sampleSize: u64) fa
                 Swag.require(cast([*] s16, destination.storage())[index] == expected)
             }
 
-            for index in expectedCount * #sizeof(s16) until destination.count do
+            for index in expectedCount * #sizeof(s16) until destination.count
+            {
                 Swag.require(destination[index] == Sentinel)
+            }
         }
     }
 }
@@ -118,11 +127,11 @@ private func audioCheckPcmTails(encoding: SoundFileEncoding, sampleSize: u64) fa
 
 #test
 {
-    var src: [3] u8 = [0'u8, 128'u8, 255'u8]
+    var src: [3] u8 = [0_u8, 128_u8, 255_u8]
     let decoded     = expect audioDecodePcmToPcm16(.Pcm8, src, 6)
     Swag.require(decoded.progress.bytesWritten == 6)
     Swag.require(decoded.progress.bytesRead == 3)
-    audioAssertSamples(decoded.destination.toSlice(), [-32768's16, 0's16, 32512's16])
+    audioAssertSamples(decoded.destination.toSlice(), [-32768_s16, 0_s16, 32512_s16])
 }
 
 #test
@@ -131,7 +140,7 @@ private func audioCheckPcmTails(encoding: SoundFileEncoding, sampleSize: u64) fa
     let decoded     = expect audioDecodePcmToPcm16(.Pcm24, src, 6)
     Swag.require(decoded.progress.bytesWritten == 6)
     Swag.require(decoded.progress.bytesRead == 9)
-    audioAssertSamples(decoded.destination.toSlice(), [-32768's16, 0's16, 32767's16])
+    audioAssertSamples(decoded.destination.toSlice(), [-32768_s16, 0_s16, 32767_s16])
 }
 
 #test
@@ -140,7 +149,7 @@ private func audioCheckPcmTails(encoding: SoundFileEncoding, sampleSize: u64) fa
     let decoded     = expect audioDecodePcmToPcm16(.Pcm32, src, 4)
     Swag.require(decoded.progress.bytesWritten == 4)
     Swag.require(decoded.progress.bytesRead == 8)
-    audioAssertSamples(decoded.destination.toSlice(), [-32768's16, 32767's16])
+    audioAssertSamples(decoded.destination.toSlice(), [-32768_s16, 32767_s16])
 }
 
 #test
@@ -150,9 +159,9 @@ private func audioCheckPcmTails(encoding: SoundFileEncoding, sampleSize: u64) fa
     Swag.require(decoded.progress.bytesWritten == src.count * #sizeof(s16))
     Swag.require(decoded.progress.bytesRead == src.count * #sizeof(f32))
     audioAssertSamples(decoded.destination.toSlice(), [
-        -32768's16, 0's16, 16384's16, 32767's16,
-        32767's16, -32768's16, 8192's16, -8192's16,
-        32764's16, -32764's16, 3's16, -3's16])
+        -32768_s16, 0_s16, 16384_s16, 32767_s16,
+        32767_s16, -32768_s16, 8192_s16, -8192_s16,
+        32764_s16, -32764_s16, 3_s16, -3_s16])
 }
 
 #test
@@ -163,7 +172,7 @@ private func audioCheckPcmTails(encoding: SoundFileEncoding, sampleSize: u64) fa
     Swag.require(decoded.progress.bytesWritten == src.count * #sizeof(s16))
     Swag.require(decoded.progress.bytesRead == src.count * #sizeof(f32))
     audioAssertSamples(decoded.destination.toSlice(), [
-        32767's16, 32767, 32767, 32767, 32767, 32767, 32767, 32767, 32767])
+        32767_s16, 32767, 32767, 32767, 32767, 32767, 32767, 32767, 32767])
 }
 
 #test

@@ -29,8 +29,10 @@ func(T) onlyFloat(value: T)->T
 func(T) onlyIntegersBlock(value: T)->T
     where
     {
-        if T == s32 or T == s64 do
+        if T == s32 or T == s64
+        {
             return true
+        }
         return false
     }
 {
@@ -65,8 +67,10 @@ func(T, U = T) sameTypePair(left: T, right: U)->U
 func(T, U = T) sameTypeBlock(left: T, right: U)->bool
     where
     {
-        if T == U do
+        if T == U
+        {
             return true
+        }
         return false
     }
 {
@@ -80,7 +84,7 @@ func(T, U = T) interpolateWithWhere(left: T, right: U, ratio: T)->T
     return left + (right - left) * ratio
 }
 
-func(T, U) secondIfLeftIsSigned(pair: Pair'(T, U))->U
+func(T, U) secondIfLeftIsSigned(pair: Pair!{T, U})->U
     where T == s32 or T == s64
 {
     return pair.second
@@ -159,51 +163,51 @@ impl InterpolationWindow
     func midpoint(const me)->T
         where Count >= 3
     {
-        return interpolateWithWhere'(T)(me.values[0], me.values[Count - 1], cast(T, 0.5))
+        return interpolateWithWhere!{T}(me.values[0], me.values[Count - 1], cast(T, 0.5))
     }
 }
 
 #test
 {
     let values: [3] s32 = [5, 6, 7]
-    let fixed:  [4] u8  = [1'u8, 2, 3, 4]
+    let fixed:  [4] u8  = [1_u8, 2, 3, 4]
 
-    Swag.require(kind(1.0'f32) == 1)
-    Swag.require(kind(1's64) == 2)
-    Swag.require(onlyFloat(1.0'f64) == 1.0'f64)
-    Swag.require(onlyIntegersBlock(12's32) == 12)
+    Swag.require(kind(1.0_f32) == 1)
+    Swag.require(kind(1_s64) == 2)
+    Swag.require(onlyFloat(1.0_f64) == 1.0_f64)
+    Swag.require(onlyIntegersBlock(12_s32) == 12)
     Swag.require(head(values) == 5)
-    Swag.require(mustBePositive'3() == 3)
-    Swag.require(defaultFloatValue() == 2.0'f32)
-    Swag.require(defaultFloatValue'(f64)() == 2.0'f64)
-    Swag.require(fixedTail(fixed) == 4'u8)
+    Swag.require(mustBePositive!{3}() == 3)
+    Swag.require(defaultFloatValue() == 2.0_f32)
+    Swag.require(defaultFloatValue!{f64}() == 2.0_f64)
+    Swag.require(fixedTail(fixed) == 4_u8)
 }
 
 #test
 {
-    let signedPair: Pair'(s32, string) = {first: 7, second: "ok"}
-    let floatBox:   Wrapper'f32        = {value: 1.5}
+    let signedPair: Pair!{s32, string} = {first: 7, second: "ok"}
+    let floatBox:   Wrapper!{f32}      = {value: 1.5}
 
-    Swag.require(sameTypePair(1's32, 2's32) == 2)
-    Swag.require(sameTypePair'(f64)(1.0'f64, 2.0'f64) == 2.0'f64)
-    Swag.require(sameTypeBlock(1.5'f32, 2.5'f32))
-    Swag.require(interpolateWithWhere(10.0'f32, 20.0'f32, 0.25'f32) == 12.5'f32)
+    Swag.require(sameTypePair(1_s32, 2_s32) == 2)
+    Swag.require(sameTypePair!{f64}(1.0_f64, 2.0_f64) == 2.0_f64)
+    Swag.require(sameTypeBlock(1.5_f32, 2.5_f32))
+    Swag.require(interpolateWithWhere(10.0_f32, 20.0_f32, 0.25_f32) == 12.5_f32)
     Swag.require(secondIfLeftIsSigned(signedPair) == "ok")
-    Swag.require(floatBox.pairValue's32(99) == 99)
-    Swag.require(floatBox.mirrorType(2.5'f32) == 2.5'f32)
-    Swag.require(floatBox.copyIfFloat() == 1.5'f32)
+    Swag.require(floatBox.pairValue!{s32}(99) == 99)
+    Swag.require(floatBox.mirrorType(2.5_f32) == 2.5_f32)
+    Swag.require(floatBox.copyIfFloat() == 1.5_f32)
 }
 
 #test
 {
-    let floatWindow:  Window'(f32, 3) = {values: [10.0'f32, 20.0, 30.0]}
-    let intWindow:    Window'(s32, 3) = {values: [1, 2, 3]}
-    let interpolated: InterpolationWindow'(f64, 3) = {values: [10.0'f64, 20.0, 30.0]}
+    let floatWindow:  Window!{f32, 3} = {values: [10.0_f32, 20.0, 30.0]}
+    let intWindow:    Window!{s32, 3} = {values: [1, 2, 3]}
+    let interpolated: InterpolationWindow!{f64, 3} = {values: [10.0_f64, 20.0, 30.0]}
 
-    Swag.require(floatWindow.at'1() == 20.0'f32)
-    Swag.require(intWindow.at'2() == 3)
-    Swag.require(floatWindow.sameSample(77.0'f32) == 77.0'f32)
-    Swag.require(intWindow.sameSample(9's32) == 9)
-    Swag.require(floatWindow.firstIfFloat() == 10.0'f32)
-    Swag.require(interpolated.midpoint() == 20.0'f64)
+    Swag.require(floatWindow.at!{1}() == 20.0_f32)
+    Swag.require(intWindow.at!{2}() == 3)
+    Swag.require(floatWindow.sameSample(77.0_f32) == 77.0_f32)
+    Swag.require(intWindow.sameSample(9_s32) == 9)
+    Swag.require(floatWindow.firstIfFloat() == 10.0_f32)
+    Swag.require(interpolated.midpoint() == 20.0_f64)
 }

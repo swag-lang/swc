@@ -14,7 +14,7 @@
 // ordering for those forms. Read-modify-write operations are sequentially consistent.
 //
 // ```swag
-// var counter: Swag.AtomicValue'u32
+// var counter: Swag.AtomicValue!{u32}
 // counter.add(1)
 // Swag.assert(counter.load() == 1)
 // ```
@@ -94,7 +94,7 @@ impl AtomicValue
 struct AtomicFlag
 {
     // Raised state, reached only through the flag operations.
-    state: AtomicValue'u32
+    state: AtomicValue!{u32}
 }
 
 impl AtomicFlag

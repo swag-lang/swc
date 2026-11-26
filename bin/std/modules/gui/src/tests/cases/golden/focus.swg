@@ -9,7 +9,7 @@ using Swag, Core, Pixel
     var host: Testing.HeadlessHost
     host.setup(160, 100)
 
-    let panel  = Wnd.create'Wnd(&host.root, {20, 20, 80, 40})
+    let panel  = Wnd.create!{Wnd}(&host.root, {20, 20, 80, 40})
     let button = PushButton.create(panel, "Go", {0, 4, 80, 32})
     let idle   = host.render()
 
@@ -28,8 +28,8 @@ using Swag, Core, Pixel
     host.setup(240, 160)
     host.app.theme.setLight()
 
-    let panel = Wnd.create'Wnd(&host.root, {20, 20, 200, 120})
-    let view  = Wnd.create'Wnd(panel, {12, 12, 176, 96})
+    let panel = Wnd.create!{Wnd}(&host.root, {20, 20, 200, 120})
+    let view  = Wnd.create!{Wnd}(panel, {12, 12, 176, 96})
     view.focusPolicy = .Tab
     let idle = host.render()
 
@@ -82,7 +82,7 @@ using Swag, Core, Pixel
     var host: Testing.HeadlessHost
     host.setup(240, 64)
 
-    let bar = Wnd.create'Wnd(&host.root, {0, 0, 240, 64})
+    let bar = Wnd.create!{Wnd}(&host.root, {0, 0, 240, 64})
     bar.arrowNavigation = true
     let ok     = PushButton.create(bar, "Ok", {20, 16, 90, 32}, form: .Default)
     let cancel = PushButton.create(bar, "Cancel", {130, 16, 90, 32})

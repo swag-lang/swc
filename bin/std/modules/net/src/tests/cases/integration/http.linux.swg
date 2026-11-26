@@ -100,8 +100,10 @@ func expectHttpOverflow(port: u16, path: string, limit: u64)
     Swag.require(error.value() is NetworkError)
     discard catch Http.get("localhost", port, "/slow", false, {timeoutMs: 100}) as error
     Swag.require(error.value() is NetworkError)
-    if error.value() is NetworkError as networkError do
+    if error.value() is NetworkError as networkError
+    {
         Swag.require(networkError.code == Curl.CURLE_OPERATION_TIMEDOUT)
+    }
 }
 
 #[Swag.TestTag("integration.network.http")]
@@ -120,12 +122,17 @@ func expectHttpOverflow(port: u16, path: string, limit: u64)
     // The trusted certificate names localhost, not the numeric address.
     discard catch Http.get("127.0.0.1", port, "/body") as error
     Swag.require(error.value() is NetworkError)
-    if error.value() is NetworkError as networkError do
+    if error.value() is NetworkError as networkError
+    {
         Swag.require(networkError.code == Curl.CURLE_PEER_FAILED_VERIFICATION)
+    }
+
     discard catch Http.get("localhost", httpFixturePort("SWAG_TEST_UNTRUSTED_HTTPS_PORT"), "/body") as error
     Swag.require(error.value() is NetworkError)
-    if error.value() is NetworkError as networkError do
+    if error.value() is NetworkError as networkError
+    {
         Swag.require(networkError.code == Curl.CURLE_PEER_FAILED_VERIFICATION)
+    }
 }
 
 #[Swag.TestTag("integration.network.http")]
@@ -165,8 +172,10 @@ func expectHttpOverflow(port: u16, path: string, limit: u64)
         var error: Swag.Error
         discard catch Http.get("proxy-target.invalid", port, "/body", secure) as error
         Swag.require(error.value() is NetworkError)
-        if error.value() is NetworkError as networkError do
+        if error.value() is NetworkError as networkError
+        {
             Swag.require(networkError.code == Curl.CURLE_PEER_FAILED_VERIFICATION)
+        }
     }
 }
 
@@ -192,8 +201,10 @@ func expectHttpOverflow(port: u16, path: string, limit: u64)
 
             var buffer: [256]u8
             let count = Linux.readlinkat(descriptor, &entry.d_name[0], &buffer[0], buffer.count)
-            if count >= 8 and Utf8.startsWith(cast(string, buffer[until cast(u64, count)]), "socket:[") do
+            if count >= 8 and Utf8.startsWith(cast(string, buffer[until cast(u64, count)]), "socket:[")
+            {
                 result += 1
+            }
         }
 
         return result

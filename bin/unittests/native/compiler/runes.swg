@@ -16,10 +16,10 @@ func secondRune(text: const [..] rune)->rune
 {
     #assert(#typeof(Token) == const [..] rune)
     Swag.require(Token.count == 3)
-    Swag.require(Token[0] == 'A'rune)
-    Swag.require(Token[1] == '😀'rune)
-    Swag.require(Token[2] == 'B'rune)
+    Swag.require(Token[0] == 'A'_rune)
+    Swag.require(Token[1] == '😀'_rune)
+    Swag.require(Token[2] == 'B'_rune)
 
     Swag.require(runeCount(#runes("hé")) == 2)
-    Swag.require(secondRune(#runes("hé")) == 'é'rune)
+    Swag.require(secondRune(#runes("hé")) == 'é'_rune)
 }

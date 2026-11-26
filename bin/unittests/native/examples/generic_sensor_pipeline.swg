@@ -15,13 +15,17 @@ struct(T) SafeBand
     high: T
 }
 
-func(T) clampToBand(value: T, band: SafeBand'T)->T
+func(T) clampToBand(value: T, band: SafeBand!{T})->T
     where T == f32 or T == f64
 {
-    if value < band.low do
+    if value < band.low
+    {
         return band.low
-    if value > band.high do
+    }
+    if value > band.high
+    {
         return band.high
+    }
     return value
 }
 
@@ -39,7 +43,7 @@ struct(Unit, T, Count: s32) TelemetrySeries
     name:    string
     scale:   T
     offset:  T
-    band:    SafeBand'T
+    band:    SafeBand!{T}
     samples: [Count] T
     next:    s32
     filled:  s32
@@ -52,8 +56,10 @@ impl TelemetrySeries
         let calibrated = clampToBand(raw * .scale + .offset, .band)
         .samples[.next] = calibrated
         .next = (.next + 1) % Count
-        if .filled < Count do
+        if .filled < Count
+        {
             .filled += 1
+        }
         return calibrated
     }
 
@@ -68,8 +74,10 @@ impl TelemetrySeries
         where Count >= 2
     {
         var total: T = 0
-        for var i = 0; i < .filled; i += 1 do
+        for var i = 0; i < .filled; i += 1
+        {
             total += .samples[i]
+        }
         return total / cast(T, .filled)
     }
 
@@ -78,7 +86,7 @@ impl TelemetrySeries
     {
         let oldestIndex = .next % Count
         let newestIndex = (.next + Count - 1) % Count
-        return interpolate'(T)(.samples[oldestIndex], .samples[newestIndex], cast(T, 0.5))
+        return interpolate!{T}(.samples[oldestIndex], .samples[newestIndex], cast(T, 0.5))
     }
 
     func(U = Unit) sameUnit(const me, other: U)->bool
@@ -96,92 +104,92 @@ impl TelemetrySeries
     func(U = T) midpoint(const me, left: U, right: U)->T
         where T == U
     {
-        return interpolate'(T)(left, right, cast(T, 0.5))
+        return interpolate!{T}(left, right, cast(T, 0.5))
     }
 }
 
 #test
 {
-    var temperature: TelemetrySeries'(Celsius, f32, 3) =
+    var temperature: TelemetrySeries!{Celsius, f32, 3} =
         {
         name: "temperature",
         scale: 1.0,
         offset: 0.0,
         band: {low: -40.0, high: 120.0},
-        samples: [0.0'f32, 0.0, 0.0],
+        samples: [0.0_f32, 0.0, 0.0],
         next: 0,
         filled: 0
         }
 
-    Swag.require(temperature.ingest(18.0'f32) == 18.0'f32)
-    Swag.require(temperature.ingest(21.0'f32) == 21.0'f32)
-    Swag.require(temperature.ingest(24.0'f32) == 24.0'f32)
+    Swag.require(temperature.ingest(18.0_f32) == 18.0_f32)
+    Swag.require(temperature.ingest(21.0_f32) == 21.0_f32)
+    Swag.require(temperature.ingest(24.0_f32) == 24.0_f32)
 
-    Swag.require(temperature.sample'0() == 18.0'f32)
-    Swag.require(temperature.average() == 21.0'f32)
-    Swag.require(temperature.movingMidpoint() == 21.0'f32)
+    Swag.require(temperature.sample!{0}() == 18.0_f32)
+    Swag.require(temperature.average() == 21.0_f32)
+    Swag.require(temperature.movingMidpoint() == 21.0_f32)
     Swag.require(temperature.sameUnit(Celsius{}))
-    Swag.require(temperature.drift(20.0'f32) == 1.0'f32)
-    Swag.require(temperature.midpoint(12.0'f32, 16.0'f32) == 14.0'f32)
+    Swag.require(temperature.drift(20.0_f32) == 1.0_f32)
+    Swag.require(temperature.midpoint(12.0_f32, 16.0_f32) == 14.0_f32)
 }
 
 #test
 {
-    var temperature: TelemetrySeries'(Celsius, f32, 3) =
+    var temperature: TelemetrySeries!{Celsius, f32, 3} =
         {
         name: "temperature",
         scale: 1.0,
         offset: 0.0,
         band: {low: -40.0, high: 120.0},
-        samples: [18.0'f32, 21.0, 24.0],
+        samples: [18.0_f32, 21.0, 24.0],
         next: 0,
         filled: 3
         }
 
-    Swag.require(temperature.ingest(30.0'f32) == 30.0'f32)
-    Swag.require(temperature.sample'0() == 30.0'f32)
-    Swag.require(temperature.average() == 25.0'f32)
-    Swag.require(temperature.movingMidpoint() == 25.5'f32)
+    Swag.require(temperature.ingest(30.0_f32) == 30.0_f32)
+    Swag.require(temperature.sample!{0}() == 30.0_f32)
+    Swag.require(temperature.average() == 25.0_f32)
+    Swag.require(temperature.movingMidpoint() == 25.5_f32)
 }
 
 #test
 {
-    var humidity: TelemetrySeries'(PercentHumidity, f64, 4) =
+    var humidity: TelemetrySeries!{PercentHumidity, f64, 4} =
         {
         name: "humidity",
         scale: 1.0,
         offset: 0.0,
         band: {low: 0.0, high: 100.0},
-        samples: [0.0'f64, 0.0, 0.0, 0.0],
+        samples: [0.0_f64, 0.0, 0.0, 0.0],
         next: 0,
         filled: 0
         }
 
-    Swag.require(humidity.ingest(40.0'f64) == 40.0'f64)
-    Swag.require(humidity.ingest(55.0'f64) == 55.0'f64)
-    Swag.require(humidity.ingest(72.0'f64) == 72.0'f64)
-    Swag.require(humidity.ingest(88.0'f64) == 88.0'f64)
+    Swag.require(humidity.ingest(40.0_f64) == 40.0_f64)
+    Swag.require(humidity.ingest(55.0_f64) == 55.0_f64)
+    Swag.require(humidity.ingest(72.0_f64) == 72.0_f64)
+    Swag.require(humidity.ingest(88.0_f64) == 88.0_f64)
 
-    Swag.require(humidity.average() == 63.75'f64)
-    Swag.require(humidity.midpoint(50.0'f64, 90.0'f64) == 70.0'f64)
+    Swag.require(humidity.average() == 63.75_f64)
+    Swag.require(humidity.midpoint(50.0_f64, 90.0_f64) == 70.0_f64)
 }
 
 #test
 {
-    var pressure: TelemetrySeries'(Kilopascal, f64, 3) =
+    var pressure: TelemetrySeries!{Kilopascal, f64, 3} =
         {
         name: "pressure",
         scale: 0.1,
         offset: 90.0,
         band: {low: 90.0, high: 110.0},
-        samples: [0.0'f64, 0.0, 0.0],
+        samples: [0.0_f64, 0.0, 0.0],
         next: 0,
         filled: 0
         }
 
-    Swag.require(pressure.ingest(40.0'f64) == 94.0'f64)
-    Swag.require(pressure.ingest(100.0'f64) == 100.0'f64)
-    Swag.require(pressure.ingest(160.0'f64) == 106.0'f64)
-    Swag.require(pressure.average() == 100.0'f64)
-    Swag.require(pressure.movingMidpoint() == 100.0'f64)
+    Swag.require(pressure.ingest(40.0_f64) == 94.0_f64)
+    Swag.require(pressure.ingest(100.0_f64) == 100.0_f64)
+    Swag.require(pressure.ingest(160.0_f64) == 106.0_f64)
+    Swag.require(pressure.average() == 100.0_f64)
+    Swag.require(pressure.movingMidpoint() == 100.0_f64)
 }

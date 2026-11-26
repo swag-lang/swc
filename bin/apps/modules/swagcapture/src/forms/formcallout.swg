@@ -62,7 +62,7 @@ impl FormCallout
     mtd textRect()->Math.Rectangle
     {
         var result = .rectFormBound()
-        let pad    = Math.max(.roundSize * 0.5, 6'f32) + .borderSize
+        let pad    = Math.max(.roundSize * 0.5, 6_f32) + .borderSize
         result.inflate(-pad, -pad)
         result.width  = Math.max(result.width, 1)
         result.height = Math.max(result.height, 1)
@@ -79,12 +79,12 @@ impl FormCallout
     {
         var result: #returntype
 
-        var hb = Math.max(Math.min(18.0, minWH * 0.3), 2'f32)
-        hb = Math.max(Math.min(hb, tailLen * 0.6), 2'f32)
+        var hb = Math.max(Math.min(18.0, minWH * 0.3), 2_f32)
+        hb = Math.max(Math.min(hb, tailLen * 0.6), 2_f32)
 
         let sLo = edgeLo + cr
         let sHi = edgeHi - cr
-        hb = Math.max(Math.min(hb, (sHi - sLo) * 0.5), 2'f32)
+        hb = Math.max(Math.min(hb, (sHi - sLo) * 0.5), 2_f32)
 
         let lo = sLo + hb
         let hi = sHi - hb
@@ -158,26 +158,37 @@ impl FormCallout
     {
         // Top edge, left → right.
         path.start(b.x + r, b.y)
-        if edge == .Top do
+        if edge == .Top
+        {
             spliceTail(path, p0, tip, p1)
+        }
+
         path.lineTo(b.right() - r, b.y)
         addArc(path, b.right() - r, b.y + r, r, 270, 360)
 
         // Right edge, top → bottom.
-        if edge == .Right do
+        if edge == .Right
+        {
             spliceTail(path, p0, tip, p1)
+        }
+
         path.lineTo(b.right(), b.bottom() - r)
         addArc(path, b.right() - r, b.bottom() - r, r, 0, 90)
 
         // Bottom edge, right → left (p1 is the right base point, so it comes first).
-        if edge == .Bottom do
+        if edge == .Bottom
+        {
             spliceTail(path, p1, tip, p0)
+        }
+
         path.lineTo(b.x + r, b.bottom())
         addArc(path, b.x + r, b.bottom() - r, r, 90, 180)
 
         // Left edge, bottom → top (p1 is the lower base point, so it comes first).
-        if edge == .Left do
+        if edge == .Left
+        {
             spliceTail(path, p1, tip, p0)
+        }
 
         path.lineTo(b.x, b.y + r)
         addArc(path, b.x + r, b.y + r, r, 180, 270)
@@ -197,8 +208,11 @@ impl IForm for FormCallout
     mtd impl isSame(ptr: *BaseForm)->bool
     {
         let other = catch cast(*FormCallout?, ptr) orelse null
-        if not other do
+        if not other
+        {
             return false
+        }
+
         return .isSameBase(ptr) and
                .roundSize == other.roundSize and
                .fontSize == other.fontSize and
@@ -286,8 +300,11 @@ impl IForm for FormCallout
     mtd impl mouse(view: *EditView, pos: Math.Point, evt: *MouseEvent)->bool
     {
         // The tail tip takes precedence; it only reports handled when hot/moving.
-        if .gizmoTail.mouse(view, pos, evt) do
+        if .gizmoTail.mouse(view, pos, evt)
+        {
             return true
+        }
+
         return .gizmoRect.mouse(view, pos, evt)
     }
 
@@ -345,8 +362,10 @@ impl IForm for FormCallout
             .tailPath.setRoundRect(body.x, body.y, body.width, body.height, r, r)
         }
 
-        if bk.a do
+        if bk.a
+        {
             painter.fillPath(&.tailPath, bk)
+        }
 
         if .borderColor.a and bSize > 0
         {
@@ -369,7 +388,7 @@ impl IForm for FormCallout
             if cxt.quickMode
             {
                 inner = .rectFormBound()
-                let pad = Math.max(rSize * 0.5, 2'f32) + bSize
+                let pad = Math.max(rSize * 0.5, 2_f32) + bSize
                 inner.inflate(-pad, -pad)
                 inner.width  = Math.max(inner.width, 1)
                 inner.height = Math.max(inner.height, 1)

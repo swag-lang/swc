@@ -28,10 +28,14 @@ func nativeOrelseNonNullBranches()->bool
     #assert(#typeof(selectedPointerPrimary) == *NativeOrelseNonNullItem)
     #assert(#typeof(selectedAliasFallback) == *NativeOrelseNonNullItem)
     #assert(#typeof(selectedAliasPrimary) == *NativeOrelseNonNullItem)
-    if selectedPointerFallback != &fallbackItem or selectedPointerPrimary != &primaryItem do
+    if selectedPointerFallback != &fallbackItem or selectedPointerPrimary != &primaryItem
+    {
         return false
-    if selectedAliasFallback != &fallbackItem or selectedAliasPrimary != &primaryItem do
+    }
+    if selectedAliasFallback != &fallbackItem or selectedAliasPrimary != &primaryItem
+    {
         return false
+    }
 
     var primaryValues:  [2] u32   = [31, 32]
     var fallbackValues: [2] u32   = [41, 42]
@@ -45,23 +49,29 @@ func nativeOrelseNonNullBranches()->bool
     #assert(#typeof(selectedSlicePrimary) == [..] u32)
     if selectedSliceFallback.count != 2 or
        selectedSliceFallback[0] != 41 or
-       selectedSliceFallback[1] != 42 do
+       selectedSliceFallback[1] != 42
+    {
         return false
+    }
     if selectedSlicePrimary.count != 2 or
        selectedSlicePrimary[0] != 31 or
-       selectedSlicePrimary[1] != 32 do
+       selectedSlicePrimary[1] != 32
+    {
         return false
+    }
 
     var nullAny:     any?   = null
-    var presentAny:  any?   = 51'u32
-    let fallbackAny: any    = 61'u32
+    var presentAny:  any?   = 51_u32
+    let fallbackAny: any    = 61_u32
     let selectedAnyFallback = nullAny orelse fallbackAny
     let selectedAnyPrimary  = presentAny orelse fallbackAny
 
     #assert(#typeof(selectedAnyFallback) == any)
     #assert(#typeof(selectedAnyPrimary) == any)
-    if assume cast(u32, selectedAnyFallback) != 61 or assume cast(u32, selectedAnyPrimary) != 51 do
+    if assume cast(u32, selectedAnyFallback) != 61 or assume cast(u32, selectedAnyPrimary) != 51
+    {
         return false
+    }
 
     var nullType:     typeinfo? = null
     var presentType:  typeinfo? = s32

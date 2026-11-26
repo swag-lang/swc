@@ -12,7 +12,10 @@ impl Owner
 {
     mtd opDrop()
     {
-        if failDuringDrop do catch failCleanup()
+        if failDuringDrop
+        {
+            catch failCleanup()
+        }
         trace = trace * 10 + .value
     }
 }
@@ -132,7 +135,10 @@ func failureResult() fail
     var errorOutcome: Swag.Error
     catch failureResult() as errorOutcome
     let error = errorOutcome.value()
-    if error do trace = trace * 10 + 9
+    if error
+    {
+        trace = trace * 10 + 9
+    }
     Swag.require(trace == 69)
 }
 
@@ -147,6 +153,12 @@ func failureResult() fail
     failDuringDrop = false
     Swag.require(trace == 6)
     Swag.require(error != null)
-    if error is Failure as failure do Swag.require(failure.code == 6)
-    else do Swag.require(false)
+    if error is Failure as failure
+    {
+        Swag.require(failure.code == 6)
+    }
+    else
+    {
+        Swag.require(false)
+    }
 }

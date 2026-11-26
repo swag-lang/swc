@@ -23,7 +23,7 @@ else {}
 {
     const MODE = 1
 }
-elif DISABLED
+else if DISABLED
 {
     const MODE = 2
 }

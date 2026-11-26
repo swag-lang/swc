@@ -30,15 +30,23 @@ public impl Bus
     // must outlive this bus. Success returns a non-null pointer.
     func create(channelCount: u32, parent: *Bus? = null)->*Bus fail
     {
-        if not g_Driver.isCreated do
+        if not g_Driver.isCreated
+        {
             fail BadParameterError{"audio engine is not created"}
-        if channelCount == 0 do
+        }
+
+        if channelCount == 0
+        {
             fail BadParameterError{"bus channel count must be greater than zero"}
-        if parent and not parent.handle do
+        }
+
+        if parent and not parent.handle
+        {
             fail BadParameterError{"parent bus is not valid"}
+        }
 
         let allocator = g_Driver.allocationAllocator
-        let bus       = Memory.new'Bus(allocator)
+        let bus       = Memory.new!{Bus}(allocator)
         bus.allocationAllocator = allocator
         defer #fail Memory.delete(bus, allocator)
         try createNative(bus, channelCount, parent)
@@ -62,8 +70,11 @@ public impl Bus
 
         // Preserve creation order: shutdown releases children before their parents.
         let index = Slice.findLinear(g_Driver.buses.toSlice(), me)
-        if index != Swag.U64.Max do
+        if index != Swag.U64.Max
+        {
             g_Driver.buses.removeAtOrdered(index)
+        }
+
         let allocator = .allocationAllocator
         Memory.delete(me, allocator)
     }

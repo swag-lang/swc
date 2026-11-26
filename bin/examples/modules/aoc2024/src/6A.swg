@@ -96,7 +96,7 @@ func day6A()
     let dataPath = Path.combine(Path.directoryName(#curlocation.fileName), "6.txt")
     let lines    = expect File.readAllLines(dataPath)
 
-    var arr:    Array'u8
+    var arr:    Array!{u8}
     var sx, sy: s32
     let w = lines[0].length
     let h = lines.count
@@ -106,10 +106,14 @@ func day6A()
         if not sx
         {
             let f = l.indexOf("^")
-            if f != Swag.U64.Max do
+            if f != Swag.U64.Max
+            {
                 sx = cast(s32, f)
-            else do
+            }
+            else
+            {
                 sy += 1
+            }
         }
 
         arr.add(l.toSlice())
@@ -120,8 +124,10 @@ func day6A()
     var total = 1
     for
     {
-        if sx + dx < 0 or sx + dx >= w or sy + dy < 0 or sy + dy >= h do
+        if sx + dx < 0 or sx + dx >= w or sy + dy < 0 or sy + dy >= h
+        {
             break
+        }
 
         if arr.ptr2(sx + dx, sy + dy, w)[] == '#'
         {
@@ -130,12 +136,12 @@ func day6A()
                 dx = 1
                 dy = 0
             }
-            elif dx == 1 and dy == 0
+            else if dx == 1 and dy == 0
             {
                 dx = 0
                 dy = 1
             }
-            elif dx == 0 and dy == 1
+            else if dx == 0 and dy == 1
             {
                 dx = -1
                 dy = 0

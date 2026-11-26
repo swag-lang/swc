@@ -11,8 +11,14 @@ func different32(a, b, c, d: u32)->u32 => (a < b) != (c < d) ? 1 : 0
 
 #test
 {
-    let values = [0'u64, 1, 7, 0xFFFFFFFF, 0x100000000, 0x8000000000000000, 0xFFFFFFFFFFFFFFFF]
-    for a in values do for b in values do for c in values do for d in values
+    let values = [0_u64, 1, 7, 0xFFFFFFFF, 0x100000000, 0x8000000000000000, 0xFFFFFFFFFFFFFFFF]
+    for a in values
+    {
+        for b in values
+        {
+            for c in values
+            {
+                for d in values
                 {
                     Swag.require(either64(a, b, c, d) == (a == b or c > d ? 1 : 0))
 
@@ -24,4 +30,7 @@ func different32(a, b, c, d: u32)->u32 => (a < b) != (c < d) ? 1 : 0
                     Swag.require(both32(a32, b32, c32, d32) == (a32 < b32 and c32 != d32 ? 1 : 0))
                     Swag.require(different32(a32, b32, c32, d32) == ((a32 < b32) != (c32 < d32) ? 1 : 0))
                 }
+            }
+        }
+    }
 }

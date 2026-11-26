@@ -44,44 +44,80 @@ impl FontFamily
         switch style
         {
         case .Regular:
-            if .regular do
+            if .regular
+            {
                 return .regular
+            }
 
         case .Bold:
-            if .bold do
+            if .bold
+            {
                 return .bold
-            if .regular do
+            }
+
+            if .regular
+            {
                 return .regular
+            }
 
         case .Italic:
-            if .italic do
+            if .italic
+            {
                 return .italic
-            if .regular do
+            }
+
+            if .regular
+            {
                 return .regular
+            }
 
         case .BoldItalic:
-            if .boldItalic do
+            if .boldItalic
+            {
                 return .boldItalic
-            if .italic do
+            }
+
+            if .italic
+            {
                 return .italic
-            if .bold do
+            }
+
+            if .bold
+            {
                 return .bold
-            if .regular do
+            }
+
+            if .regular
+            {
                 return .regular
+            }
 
         case .Light:
-            if .light do
+            if .light
+            {
                 return .light
-            if .regular do
+            }
+
+            if .regular
+            {
                 return .regular
+            }
 
         case .SemiBold:
-            if .semiBold do
+            if .semiBold
+            {
                 return .semiBold
-            if .bold do
+            }
+
+            if .bold
+            {
                 return .bold
-            if .regular do
+            }
+
+            if .regular
+            {
                 return .regular
+            }
         }
 
         return null

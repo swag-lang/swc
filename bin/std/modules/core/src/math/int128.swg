@@ -12,9 +12,26 @@ using Swag
 #[Swag.Inline]
 func mulU64(x, y: u64)->{ hi: u64, lo: u64 }
 {
-    var high: u64
-    let low = Swag.mulWide(x, y, &high)
-    return {hi: high, lo: low}
+    const Low32Mask = (1_u64 << 32) - 1
+    let xLow  = x & Low32Mask
+    let xHigh = x >> 32
+    let yLow  = y & Low32Mask
+    let yHigh = y >> 32
+
+    // Carry each partial product into the next 32-bit column.
+    let lowProduct    = xLow * yLow
+    let middleProduct = (xHigh * yLow) + (lowProduct >> 32)
+    var middleLow     = middleProduct & Low32Mask
+    let middleHigh    = middleProduct >> 32
+    middleLow += xLow * yHigh
+
+    with var result: #returntype
+    {
+        .hi = (xHigh * yHigh) + middleHigh + (middleLow >> 32)
+        .lo = x * y
+    }
+
+    return result
 }
 
 // Stores a signed 128-bit integer in two's complement, as two 64-bit halves.
@@ -32,8 +49,11 @@ impl Int128
     // Returns a negative value, zero, or a positive value as this value is less than, equal to, or greater than `other`.
     mtd const opCompare(other: Int128)->s32
     {
-        if .hi != other.hi do
+        if .hi != other.hi
+        {
             return .hi <=> other.hi
+        }
+
         return .lo <=> other.lo
     }
 
@@ -45,8 +65,10 @@ impl Int128
         const Shift64: f64 = cast #bit (f64, 0x43F0000000000000)     // 2^64
         if .hi < 0
         {
-            if .lo == 0 do
+            if .lo == 0
+            {
                 return cast(f64, (.hi * Shift64))
+            }
 
             let lo = cast(f64, (~.lo + 1))
             let hi = cast(f64, ~.hi) * Shift64
@@ -67,13 +89,19 @@ impl Int128
         var result: #returntype
         let negate = (lhs < 0) != (rhs < 0)
 
-        if lhs < 0 do
+        if lhs < 0
+        {
             lhs = -lhs
+        }
+
         let lhsHigh = cast(u64, lhs) >> 32
         let lhsLow  = cast(u64, (lhs & 0xFFFFFFFF))
 
-        if rhs < 0 do
+        if rhs < 0
+        {
             rhs = -rhs
+        }
+
         let rhsHigh = cast(u64, rhs) >> 32
         let rhsLow  = cast(u64, (rhs & 0xFFFFFFFF))
 
@@ -85,8 +113,10 @@ impl Int128
         result.hi = cast(s64, (highProduct + (crossProduct >> 32)))
         result.lo = crossProduct << 32
         result.lo += lowProduct
-        if result.lo < lowProduct do
+        if result.lo < lowProduct
+        {
             result.hi += 1
+        }
 
         // Restore the sign in two's complement.
         if negate

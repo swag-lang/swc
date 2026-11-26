@@ -1,4 +1,4 @@
-const N = 9's64
+const N = 9_s64
 
 #main
 {
@@ -10,12 +10,14 @@ const N = 9's64
     // ---- timed work ----
     let t0 = now()
 
-    for i in N do
+    for i in N
+    {
         perm1[i] = i
+    }
 
-    var checksum  = 0's64
-    var maxFlips  = 0's64
-    var permCount = 0's64
+    var checksum  = 0_s64
+    var maxFlips  = 0_s64
+    var permCount = 0_s64
     var r         = N
 
     while true
@@ -26,14 +28,16 @@ const N = 9's64
             r -= 1
         }
 
-        for i in N do
+        for i in N
+        {
             perm[i] = perm1[i]
+        }
 
-        var flips = 0's64
+        var flips = 0_s64
         var k     = perm[0]
         while k != 0
         {
-            var i = 0's64
+            var i = 0_s64
             var j = k
             while i < j
             {
@@ -48,14 +52,22 @@ const N = 9's64
             k     = perm[0]
         }
 
-        if flips > maxFlips do
+        if flips > maxFlips
+        {
             maxFlips = flips
-        if permCount % 2 == 0 do
+        }
+
+        if permCount % 2 == 0
+        {
             checksum += flips
-        else do
+        }
+        else
+        {
             checksum -= flips
 
-        // Rotate the prefix to reach the next permutation.
+            // Rotate the prefix to reach the next permutation.
+        }
+
         var done = false
         while true
         {
@@ -66,17 +78,26 @@ const N = 9's64
             }
 
             let perm0 = perm1[0]
-            for i in r do
+            for i in r
+            {
                 perm1[i] = perm1[i + 1]
+            }
+
             perm1[r] = perm0
             count[r] -= 1
-            if count[r] > 0 do
+            if count[r] > 0
+            {
                 break
+            }
+
             r += 1
         }
 
-        if done do
+        if done
+        {
             break
+        }
+
         permCount += 1
     }
 

@@ -16,17 +16,30 @@ internal func testEndRecordingAfter(frames: u32, cancel: bool)
     g_TestCancelAtEnd = cancel
     g_App.sigFrame    += func(_)
     {
-        if g_TestFramesLeft == 0 do
+        if g_TestFramesLeft == 0
+        {
             return
-        if g_Recorder and g_Recorder!.videoMode and not g_Recorder!.videoProducer.hasOrigin() do
+        }
+
+        if g_Recorder and g_Recorder!.videoMode and not g_Recorder!.videoProducer.hasOrigin()
+        {
             return
+        }
+
         g_TestFramesLeft -= 1
-        if g_TestFramesLeft != 0 or not g_Recorder do
+        if g_TestFramesLeft != 0 or not g_Recorder
+        {
             return
-        if g_TestCancelAtEnd do
+        }
+
+        if g_TestCancelAtEnd
+        {
             g_Recorder!.cancel()
-        else do
+        }
+        else
+        {
             g_Recorder!.stop()
+        }
     }
 }
 
@@ -37,8 +50,11 @@ internal func testStartAndEndVideoAfter(frames: u32)
     g_TestSawPreparation = false
     g_App.sigFrame       += func(_)
     {
-        if not g_Recorder do
+        if not g_Recorder
+        {
             return
+        }
+
         if g_Recorder!.state == .Preparing
         {
             g_TestSawPreparation        = true
@@ -46,12 +62,20 @@ internal func testStartAndEndVideoAfter(frames: u32)
             return
         }
 
-        if not g_Recorder!.videoProducer.hasOrigin() do
+        if not g_Recorder!.videoProducer.hasOrigin()
+        {
             return
-        if g_TestFramesLeft do
+        }
+
+        if g_TestFramesLeft
+        {
             g_TestFramesLeft -= 1
-        if not g_TestFramesLeft do
+        }
+
+        if not g_TestFramesLeft
+        {
             g_Recorder!.stop()
+        }
     }
 }
 
@@ -165,21 +189,21 @@ internal func testEndRecording()
     f.capture.file  = String.from(document)
     expect f.capture.adoptVideo()
     var state = Gui.Testing.commandState(ActionFile.SaveAsImage)
-    Swag.require(Gui.Testing.actionUpdate'ActionFile(f.main, ActionFile.SaveAsImage, &state))
+    Swag.require(Gui.Testing.actionUpdate!{ActionFile}(f.main, ActionFile.SaveAsImage, &state))
     Swag.require(state.longName == appStrings().act_SaveAsVideo)
     state = Gui.Testing.commandState(ActionFile.SaveAsLinkedImage)
-    Swag.require(Gui.Testing.actionUpdate'ActionFile(f.main, ActionFile.SaveAsLinkedImage, &state))
+    Swag.require(Gui.Testing.actionUpdate!{ActionFile}(f.main, ActionFile.SaveAsLinkedImage, &state))
     Swag.require(state.disabled)
 
     // A video is linked to the MP4 beside its document, and the location command goes there.
     Swag.require(f.capture.linkedImage.isEmpty())
     Swag.require(f.capture.linkedFile() == Capture.mediaPathOf(document, .Video))
     state = Gui.Testing.commandState(ActionFile.LinkedFileLocation)
-    Swag.require(Gui.Testing.actionUpdate'ActionFile(f.main, ActionFile.LinkedFileLocation, &state))
+    Swag.require(Gui.Testing.actionUpdate!{ActionFile}(f.main, ActionFile.LinkedFileLocation, &state))
     Swag.require(not state.disabled and state.name == appStrings().act_LocateLinkedVideo)
     f.capture.mediaMissing = true
     state = Gui.Testing.commandState(ActionFile.LinkedFileLocation)
-    Swag.require(Gui.Testing.actionUpdate'ActionFile(f.main, ActionFile.LinkedFileLocation, &state))
+    Swag.require(Gui.Testing.actionUpdate!{ActionFile}(f.main, ActionFile.LinkedFileLocation, &state))
     Swag.require(state.disabled and f.capture.linkedFile().isEmpty())
     f.capture.mediaMissing = false
     let exported = Gui.Testing.tempFilePath("capture-video-", ".mp4")
@@ -213,7 +237,7 @@ internal func testEndRecording()
     expect Directory.create(folder)
     defer discard catch Directory.delete(folder, recurse: true)
     let library = f.setupLibraryWnd()
-    var selected: Array'String
+    var selected: Array!{String}
     selected.add(document)
     library.beginExport(#move selected, folder)
     Swag.require(library.exportJob != null)
@@ -256,8 +280,10 @@ internal func testEndRecording()
     testEndRecordingAfter(20, cancel: false)
     g_App.sigFrame += func(_)
     {
-        if g_Recorder and g_Recorder!.state == .Stopped do
+        if g_Recorder and g_Recorder!.state == .Stopped
+        {
             g_Recorder!.writeFailed = true
+        }
     }
 
     let capture = expect Recorder.recordVideo(f.main, CaptureTarget.create({0, 0, 64, 48}, 0))
@@ -355,7 +381,7 @@ internal func testEndRecording()
 // A recording keeps the identity of the window it was taken from, as a screenshot does.
 #test
 {
-    let capture = Memory.new'Capture()
+    let capture = Memory.new!{Capture}()
     defer Memory.delete(capture)
 
     with var window: CaptureWindowInfo

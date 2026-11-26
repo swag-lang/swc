@@ -1,7 +1,7 @@
 //! DTS Core Huffman codebooks from FFmpeg. See THIRDPARTY.md.
 #global namespace Dts
 
-const QuantBookBias: [10] s32 = [1, 2, 3, 4, 6, 8, 12, 16, 32, 64]
+const QuantBookBias:  [10] s32    = [1, 2, 3, 4, 6, 8, 12, 16, 32, 64]
 const QuantBookRoots: [10, 7] u32 = [
     [0, 0, 0, 0, 0, 0, 0],
     [2, 6, 10, 0, 0, 0, 0],
@@ -12,10 +12,9 @@ const QuantBookRoots: [10, 7] u32 = [
     [204, 228, 252, 276, 300, 324, 348],
     [372, 404, 436, 468, 500, 532, 564],
     [596, 660, 724, 788, 852, 916, 980],
-    [1044, 1172, 1300, 1428, 1556, 1684, 1812],
-]
+    [1044, 1172, 1300, 1428, 1556, 1684, 1812]]
 const AllocationBookRoots: [5] u32 = [1940, 1951, 1962, 1973, 1984]
-const ScaleBookRoots: [5] u32 = [1995, 2123, 2251, 2379, 2507]
+const ScaleBookRoots:      [5] u32 = [1995, 2123, 2251, 2379, 2507]
 
 // A nonnegative child is another node. A negative child encodes the leaf as -1 - symbol.
 const HuffmanNodes: [2635, 2] s16 = [
@@ -458,57 +457,4 @@ const HuffmanNodes: [2635, 2] s16 = [
     [-9, -121], [-10, -120], [2619, 2622], [2620, 2621], [-11, -119], [-12, -118],
     [2623, 2624], [-13, -117], [-14, -116], [2626, -33], [2627, 2631], [2628, -24],
     [2629, 2630], [-15, -115], [-16, -114], [-106, 2632], [-20, -110], [-65, 2634],
-    [-61, -69],
-]
-
-// Short codes finish in a single lookup. Longer prefixes retain their tree node.
-const HuffmanPrefixBits        = 6
-private const HuffmanBookCount = 48 + AllocationBookRoots.count + ScaleBookRoots.count
-
-struct HuffmanLookup
-{
-    rows:     [HuffmanNodes.count] u8     // Root node to one-based book row.
-    prefixes: [HuffmanBookCount, 1 << HuffmanPrefixBits] s16     // Terminal symbol and width, or -1 - continuation node.
-}
-
-const HuffmanCodes = #run buildHuffmanLookup()
-
-private func buildHuffmanLookup()->HuffmanLookup
-{
-    func addBook(table: *HuffmanLookup, root: u32, nextRow: *u32)
-    {
-        if table.rows[root] do
-            return
-        let row = nextRow[]
-        nextRow[]        += 1
-        table.rows[root] = cast(u8, (row + 1))
-        for prefix in 1 << HuffmanPrefixBits
-        {
-            var node     = cast(s32, root)
-            var consumed = 0'u32
-            while consumed < HuffmanPrefixBits and node >= 0
-            {
-                let bit = (prefix >> (HuffmanPrefixBits - consumed - 1)) & 1
-                node     = HuffmanNodes[node, bit]
-                consumed += 1
-            }
-
-            let entry = -1 - node
-            table.prefixes[row, prefix] = cast(s16, (node < 0 ? (entry << 3) | cast(s32, consumed) : entry))
-        }
-    }
-
-    var result:  #returntype
-    var nextRow: u32
-    for group in 10
-    {
-        for book in 7 do
-            addBook(&result, QuantBookRoots[group, book], &nextRow)
-    }
-
-    for root in AllocationBookRoots do
-        addBook(&result, root, &nextRow)
-    for root in ScaleBookRoots do
-        addBook(&result, root, &nextRow)
-    return result
-}
+    [-61, -69]]

@@ -23,14 +23,14 @@ const firstPowerOfTen = -348
 const stepPowerOfTen  = 8
 
 var SmallPowersOfTen: [?] FloatExt = [
-    FloatExt{1'u64 << 63, -63, false},           // 1
-    FloatExt{0xA'u64 << 60, -60, false},         // 1e1
-    FloatExt{0x64'u64 << 57, -57, false},        // 1e2
-    FloatExt{0x3E8'u64 << 54, -54, false},       // 1e3
-    FloatExt{0x2710'u64 << 50, -50, false},      // 1e4
-    FloatExt{0x186A0'u64 << 47, -47, false},     // 1e5
-    FloatExt{0xF4240'u64 << 44, -44, false},     // 1e6
-    FloatExt{0x989680'u64 << 40, -40, false}]
+    FloatExt{1_u64 << 63, -63, false},           // 1
+    FloatExt{0xA_u64 << 60, -60, false},         // 1e1
+    FloatExt{0x64_u64 << 57, -57, false},        // 1e2
+    FloatExt{0x3E8_u64 << 54, -54, false},       // 1e3
+    FloatExt{0x2710_u64 << 50, -50, false},      // 1e4
+    FloatExt{0x186A0_u64 << 47, -47, false},     // 1e5
+    FloatExt{0xF4240_u64 << 44, -44, false},     // 1e6
+    FloatExt{0x989680_u64 << 40, -40, false}]
 
 var powersOfTen: [?] FloatExt = [
     FloatExt{0xFA8FD5A0081C0288, -1220, false},     // 10^-348
@@ -147,10 +147,15 @@ impl FloatExt
         let expBiased = .exp - Swag.F64.Bias
 
         result.upper = FloatExt{2 * .mant + 1, .exp - 1, .neg}
-        if .mant != 1'u64 << Swag.F64.MantBits or expBiased == 1 do
+        if .mant != 1_u64 << Swag.F64.MantBits or expBiased == 1
+        {
             result.lower = FloatExt{2 * .mant - 1, .exp - 1, .neg}
-        else do
+        }
+        else
+        {
             result.lower = FloatExt{4 * .mant - 1, .exp - 2, .neg}
+        }
+
         return result
     }
 
@@ -158,8 +163,11 @@ impl FloatExt
     // set, and returns the number by which the mantissa was left-shifted.
     mtd normalize()
     {
-        if .mant == 0 do
+        if .mant == 0
+        {
             return
+        }
+
         let shift = Swag.leadingZeros(.mant)
         .mant <<= cast(u32, shift)
         .exp  -= cast(s64, shift)
@@ -266,14 +274,14 @@ impl FloatExt
         let shift    = cast(u32, -.exp)
         var integer  = cast(u32, (.mant >> shift))
         var fraction = .mant - (cast(u64, integer) << shift)
-        var e        = 1'u64     // e is the uncertainty we have on the mantissa of f.
+        var e        = 1_u64     // e is the uncertainty we have on the mantissa of f.
 
         // Write exactly n digits to d.
         var needed        = n         // how many digits are left to write.
         var integerDigits = 0         // the number of decimal digits of integer.
-        var pow10         = 1'u64     // the power of ten by which f was scaled.
+        var pow10         = 1_u64     // the power of ten by which f was scaled.
 
-        var pow = 1'u64
+        var pow = 1_u64
         for i in 20
         {
             if pow > cast(u64, integer)
@@ -312,8 +320,10 @@ impl FloatExt
             v        = v1
         }
 
-        for var i = pos; i < buf.count; i += 1 do
+        for var i = pos; i < buf.count; i += 1
+        {
             d.d[i - pos] = buf[i]
+        }
 
         var nd = cast(s64, (buf.count - pos))
         d.nd   = nd
@@ -360,8 +370,10 @@ impl FloatExt
         // We pass this information to the rounding routine for adjustment.
 
         let ok = adjustLastDigitFixed(d, (cast(u64, rest) << shift) | fraction, pow10, shift, e)
-        if not ok do
+        if not ok
+        {
             return false
+        }
 
         // Trim trailing zeros.
         for var i = d.nd - 1; i >= 0; i -= 1
@@ -386,8 +398,10 @@ impl FloatExt
     // that no correct answer can be given.
     func adjustLastDigitFixed(d: *DecimalSlice, num, den: u64, shift: u32, e: u64)->bool
     {
-        if 2 * (num + e) < (den << shift) do
+        if 2 * (num + e) < (den << shift)
+        {
             return true
+        }
 
         if 2 * (num - e) > (den << shift)
         {
@@ -395,10 +409,15 @@ impl FloatExt
             var i = d.nd - 1
             while i >= 0
             {
-                if d.d[i] == '9' do
+                if d.d[i] == '9'
+                {
                     d.nd -= 1
-                else do
+                }
+                else
+                {
                     break
+                }
+
                 i -= 1
             }
 
@@ -449,16 +468,23 @@ impl FloatExt
             }
 
             let nd = cast(s64, (buf.count - n - 1))
-            for var i = 0; i < nd; i += 1 do
+            for var i = 0; i < nd; i += 1
+            {
                 d.d[i] = buf[n + 1 + i]
+            }
 
             d.nd = nd
             d.dp = nd
-            while d.nd > 0 and d.d[d.nd - 1] == '0' do
+            while d.nd > 0 and d.d[d.nd - 1] == '0'
+            {
                 d.nd -= 1
+            }
 
-            if d.nd == 0 do
+            if d.nd == 0
+            {
                 d.dp = 0
+            }
+
             d.neg = .neg
             return true
         }
@@ -498,7 +524,7 @@ impl FloatExt
 
         // Count integral digits: there are at most 10.
         var integerDigits: s64
-        var pow = 1'u64
+        var pow = 1_u64
         for i in 20
         {
             if pow > cast(u64, integer)
@@ -538,7 +564,7 @@ impl FloatExt
         // Compute digits of the fractional part. At each step fraction does not
         // overflow. The choice of minExp implies that fraction is less than 2^60.
         var digit: s64
-        var multiplier = 1'u64
+        var multiplier = 1_u64
         for
         {
             fraction   *= 10
@@ -552,7 +578,7 @@ impl FloatExt
                 // We are in the admissible range. Note that if allowance is about to
                 // overflow, that is, allowance > 2^64/10, the condition is automatically
                 // true due to the limited range of fraction.
-                return adjustLastDigit(d, fraction, targetDiff * multiplier, allowance * multiplier, 1'u64 << shift, multiplier * 2)
+                return adjustLastDigit(d, fraction, targetDiff * multiplier, allowance * multiplier, 1_u64 << shift, multiplier * 2)
             }
         }
 
@@ -568,8 +594,10 @@ impl FloatExt
         var currentDiff = cdiff
 
         // Approximation is too wide.
-        if ulpDecimal < 2 * ulpBinary do
+        if ulpDecimal < 2 * ulpBinary
+        {
             return false
+        }
 
         while currentDiff + (ulpDecimal / 2) + ulpBinary < targetDiff
         {
@@ -578,12 +606,16 @@ impl FloatExt
         }
 
         // we have two choices, and don't know what to:.
-        if currentDiff + ulpDecimal <= targetDiff + (ulpDecimal / 2) + ulpBinary do
+        if currentDiff + ulpDecimal <= targetDiff + (ulpDecimal / 2) + ulpBinary
+        {
             return false
+        }
 
         // we went too far
-        if currentDiff < ulpBinary or currentDiff > maxDiff - ulpBinary do
+        if currentDiff < ulpBinary or currentDiff > maxDiff - ulpBinary
+        {
             return false
+        }
 
         // the number has actually reached zero.
         if d.nd == 1 and d.d[0] == '0'

@@ -4,17 +4,17 @@ var GNullOrelse: s32 = 56
 
 func zeroFallbackU32(x: u32)->u32
 {
-    return x != 0 ? x : 7'u32
+    return x != 0 ? x : 7_u32
 }
 
 func zeroFallbackRune(x: rune)->rune
 {
-    return x != cast(rune, 0'u32) ? x : 'A'rune
+    return x != cast(rune, 0_u32) ? x : 'A'_rune
 }
 
 func zeroFallbackF32(x: f32)->f32
 {
-    return x != 0.0'f32 ? x : 3.5'f32
+    return x != 0.0_f32 ? x : 3.5_f32
 }
 
 func nullStringFallback(value: string?)->string
@@ -41,12 +41,12 @@ func nonNullPointerWins()->bool
 
 #test
 {
-    Swag.require(zeroFallbackU32(0'u32) == 7'u32)
-    Swag.require(zeroFallbackU32(9'u32) == 9'u32)
-    Swag.require(zeroFallbackRune(cast(rune, 0'u32)) == 'A'rune)
-    Swag.require(zeroFallbackRune('B'rune) == 'B'rune)
-    Swag.require(zeroFallbackF32(0.0'f32) == 3.5'f32)
-    Swag.require(zeroFallbackF32(2.25'f32) == 2.25'f32)
+    Swag.require(zeroFallbackU32(0_u32) == 7_u32)
+    Swag.require(zeroFallbackU32(9_u32) == 9_u32)
+    Swag.require(zeroFallbackRune(cast(rune, 0_u32)) == 'A'_rune)
+    Swag.require(zeroFallbackRune('B'_rune) == 'B'_rune)
+    Swag.require(zeroFallbackF32(0.0_f32) == 3.5_f32)
+    Swag.require(zeroFallbackF32(2.25_f32) == 2.25_f32)
 }
 
 #test

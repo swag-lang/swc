@@ -211,7 +211,7 @@ func editHeadlessEscape(_: *EditBox)
     Swag.require(edit.selEnd == 0)
 
     // Sweeping rightwards yields monotonically non-decreasing caret indices.
-    var prev = 0'u64
+    var prev = 0_u64
     var x    = rect.x + 2
     while x < rect.right() - 2
     {
@@ -461,8 +461,11 @@ func editHeadlessEscape(_: *EditBox)
 
     host.sendRune(Input.Key.X, 'x')
     Swag.require(edit.text() == "255")
-    for digit in ['1', '2', '3', '4'] do
+    for digit in ['1', '2', '3', '4']
+    {
         host.sendRune(Input.Key.A, digit)
+    }
+
     Swag.require(edit.text() == "123")
 }
 

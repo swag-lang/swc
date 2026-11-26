@@ -40,7 +40,7 @@ func checked(p: *u64, a: u64)->u64 => p[] * a + p[]
 
 #test
 {
-    let values = [0'u64, 1, 7, 0xFFFFFFFF, 0x100000000, 0x8000000000000000, 0xFFFFFFFFFFFFFFFF]
+    let values = [0_u64, 1, 7, 0xFFFFFFFF, 0x100000000, 0x8000000000000000, 0xFFFFFFFFFFFFFFFF]
     var cells: [18]u64
     for value in values
     {
@@ -55,7 +55,7 @@ func checked(p: *u64, a: u64)->u64 => p[] * a + p[]
             Swag.require(sharedFactor(&cell, factor) == ((product + value) ^ factor))
             Swag.require(offset(&cells[0], factor) == product + value)
             Swag.require(sharedProduct(&cell, factor) == ((product + value) ^ product))
-            var other = 29'u64
+            var other = 29_u64
             Swag.require(distinct(&cell, &other, factor) == product + 29)
             Swag.require(distinct(&cell, &cell, factor) == product + value)
             Swag.require(overwrite(&cell, &other, factor) == product + value)
@@ -67,7 +67,7 @@ func checked(p: *u64, a: u64)->u64 => p[] * a + p[]
             Swag.require(cell == value + 7)
         }
     }
-    var safe = 7'u64
+    var safe = 7_u64
     Swag.require(checked(&safe, 9) == 70)
     safe = 0xFFFFFFFFFFFFFFFF
     Swag.require(checked(&safe, 0) == safe)

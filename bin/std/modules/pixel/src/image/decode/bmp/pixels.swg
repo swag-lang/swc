@@ -33,10 +33,14 @@ func writeMaskedPixel(dst: [*] u8, pixel: u32, masks: Masks, hasAlpha: bool)
     let b = maskToByte(pixel, masks.b)
     let g = maskToByte(pixel, masks.g)
     let r = maskToByte(pixel, masks.r)
-    if hasAlpha do
+    if hasAlpha
+    {
         writeBgraPixel(dst, b, g, r, masks.a.value ? maskToByte(pixel, masks.a) : 255)
-    else do
+    }
+    else
+    {
         writeBgrPixel(dst, b, g, r)
+    }
 }
 
 func packedIndex(src: const [*] u8, bitCount: u16, x: s32)->u32
@@ -265,7 +269,7 @@ func decodePackedPalette(result: *Image, src, last: const [*] u8, palette: const
     // A full palette covers every value representable by the packed pixel, so it
     // needs no validation pass. A shorter declared palette must contain every
     // referenced index before decoding starts.
-    if paletteCount < (1'u32 << cast(u32, bitCount))
+    if paletteCount < (1_u32 << cast(u32, bitCount))
     {
         for y in result.height
         {
@@ -274,41 +278,10 @@ func decodePackedPalette(result: *Image, src, last: const [*] u8, palette: const
             var valid: bool
             switch bitCount
             {
-            case 1:  valid = palette1RowFits(srcRow, width)
-            case 4:  valid = palette4RowFits(srcRow, width, paletteCount)
-            default: valid = palette8RowFits(srcRow, width, paletteCount)
-            }
-
-            if not valid do
-                fail InvalidFormatError{"BMP pixel index exceeds its palette"}
-        }
-    }
-
-    if cast(u64, result.width) * cast(u64, result.height) >= 512
-    {
-        let entries = makePackedPalette(palette, paletteEntrySize, paletteCount)
-        let colors  = cast(const [*] u32, &entries[0])
-        var patterns: [16] Math.Simd.U8x16
-        var pairs:    [256] u64
-        var channels: [3] Math.Simd.U8x16
-        if bitCount == 1 do
-            patterns = makeBinaryPatterns(colors)
-        elif bitCount == 4
-        {
-            pairs = makePalettePairs(colors)
-            channels = makePaletteChannels(colors)
-        }
-        for y in result.height
-        {
-            let dstY   = topDown ? result.height - y - 1 : y
-            let srcRow = src + stride * cast(u64, y)
-            let dst    = result.pixels.storage() + cast(u64, dstY) * result.rowStride
-            let width  = cast(u64, result.width)
-            switch bitCount
-            {
-            case 1:  decodePalette1Row(srcRow, dst, width, colors, cast(const [*] Math.Simd.U8x16, &patterns[0]))
-            case 4:  decodePalette4Wide(srcRow, dst, width, colors, cast(const [*] u64, &pairs[0]), channels.buffer)
-            default: decodePalette8Row(srcRow, dst, width, colors)
+                if packedIndex(srcRow, bitCount, x) >= paletteCount
+                {
+                    fail InvalidFormatError{"BMP pixel index exceeds its palette"}
+                }
             }
         }
 
@@ -391,25 +364,22 @@ func decode16Row(source: const [*] u8, destination: [*] u8, pixelCount: u64, dec
     case .Bgr565:
         PackedPixel.decodeBgr565Row(source, destination, pixelCount)
 
-    case .Masked:
-        var src   = source
-        var dst   = destination
-        var count = pixelCount
-        let blue  = decoder.blue
-        let green = decoder.green
-        let red   = decoder.red
-        while count >= 16
-        {
-            let first  = Math.Simd.load(cast(const [*] u16, src))
-            let second = Math.Simd.load(cast(const [*] u16, (src + 16)))
-            let b      = packField16(first, second, blue)
-            let g      = packField16(first, second, green)
-            let r      = packField16(first, second, red)
-            PackedPixel.storeTriplets16(dst, b, g, r)
-            src   += 32
-            dst   += 48
-            count -= 16
-        }
+    let rExpected = masks.r.bits and masks.r.bits <= 8 ? ((1_u32 << masks.r.bits) - 1) << masks.r.shift : 0
+    let gExpected = masks.g.bits and masks.g.bits <= 8 ? ((1_u32 << masks.g.bits) - 1) << masks.g.shift : 0
+    let bExpected = masks.b.bits and masks.b.bits <= 8 ? ((1_u32 << masks.b.bits) - 1) << masks.b.shift : 0
+    if rExpected and
+       gExpected and
+       bExpected and
+       masks.r.value == rExpected and
+       masks.g.value == gExpected and
+       masks.b.value == bExpected and
+       masks.r.shift + masks.r.bits <= 16 and
+       masks.g.shift + masks.g.bits <= 16 and
+       masks.b.shift + masks.b.bits <= 16
+    {
+        PackedPixel.decodeBgrMasked16Row(source, destination, pixelCount, cast(u16, masks.b.value), masks.b.shift, masks.b.bits, cast(u16, masks.g.value), masks.g.shift, masks.g.bits, cast(u16, masks.r.value), masks.r.shift, masks.r.bits)
+        return
+    }
 
         for count
         {

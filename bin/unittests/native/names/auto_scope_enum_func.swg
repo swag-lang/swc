@@ -12,8 +12,10 @@ func overloadStrictAlias(_: s32, _: OverA)->s32 { return 30 }
 func overloadStrictAlias(_: f32, _: StrictOverB)->f32 { return 40.0 }
 func strictAliasEnumArg(e: StrictOverB)->s32
 {
-    if e == cast(StrictOverB, OverB.A) do
+    if e == cast(StrictOverB, OverB.A)
+    {
         return 1
+    }
     return 2
 }
 
@@ -38,7 +40,7 @@ impl Vec2
     func set_axis(axis: OverA, _: f32)
     {
         if axis == .A {}
-        elif axis == .B {}
+        else if axis == .B {}
     }
 
     mtd toto() {}
@@ -53,7 +55,7 @@ impl Vec2
 // Explicit enum qualification in overload call
 #test
 {
-    let r2 = overload(1's32, OverA.A)
+    let r2 = overload(1_s32, OverA.A)
     #assert(#typeof(r2) == s32)
     Swag.require(r2 == 10)
 }

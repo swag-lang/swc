@@ -85,22 +85,28 @@ impl OpaqueLifecycleOrdered
     #[Swag.NoInline]
     mtd opDrop()
     {
-        if .armed do
+        if .armed
+        {
             opaqueTrace = opaqueTrace * 10 + 3
+        }
     }
 
     #[Swag.NoInline]
     mtd opPostCopy()
     {
-        if .armed do
+        if .armed
+        {
             opaqueTrace = opaqueTrace * 10 + 4
+        }
     }
 
     #[Swag.NoInline]
     mtd opPostMove()
     {
-        if .armed do
+        if .armed
+        {
             opaqueTrace = opaqueTrace * 10 + 5
+        }
     }
 }
 

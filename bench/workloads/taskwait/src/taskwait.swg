@@ -16,7 +16,7 @@ func cpuMicroseconds()->u64
 #[Swag.Safety(.Assert, true)]
 func measure(sleeping: bool, repeats: u32)
 {
-    var completed: Swag.AtomicValue'u32
+    var completed: Swag.AtomicValue!{u32}
     var started:   Swag.AtomicFlag
     var task:      Swag.Task
     for sample in 3
@@ -30,8 +30,11 @@ func measure(sleeping: bool, repeats: u32)
             task.submit(func|&completed, &started, sleeping|()
             {
                 started.raise()
-                if sleeping do
+                if sleeping
+                {
                     Sleep(50)
+                }
+
                 completed.add(1)
             })
 
@@ -39,8 +42,10 @@ func measure(sleeping: bool, repeats: u32)
             // tasks keep the normal race between worker execution and caller assistance.
             if sleeping
             {
-                while not started.isRaised() do
+                while not started.isRaised()
+                {
                     Sleep(1)
+                }
             }
 
             task.wait()

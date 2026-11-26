@@ -10,7 +10,7 @@ using Swag
 
     Swag.require(Guid64.tryParse("0123456789ABCDEF", &guid))
     Swag.require(not guid.isNull())
-    Swag.require(guid.value == 0x0123456789ABCDEF'u64)
+    Swag.require(guid.value == 0x0123456789ABCDEF_u64)
     Swag.require(guid.toString() == "0123456789ABCDEF")
     Swag.require((expect Guid64.parse("0123456789ABCDEF")) == guid)
     Swag.require((expect Guid64.parse("0x0123456789ABCDEF")) == guid)
@@ -60,8 +60,11 @@ using Swag
     {
         let key = Core.nextTimestampedGuidKey(1234, &lastMilliseconds, &counter, &initialized)
         Swag.require(key > previous)
-        if index == 4096 do
+        if index == 4096
+        {
             Swag.require(key >> 12 == 1235)
+        }
+
         previous = key
     }
 }
@@ -86,8 +89,11 @@ func guid128RaceWorker(thread: const *Threading.Thread)
 {
     let race = cast(*Guid128Race, unwrap thread.userParam)
     discard Swag.atomicAdd(&race.ready, 1)
-    while Swag.atomicLoad(&race.start) == 0 do
+    while Swag.atomicLoad(&race.start) == 0
+    {
         Threading.Thread.yield()
+    }
+
     let slot = Swag.atomicAdd(&race.next, 1)
     race.drawn[slot] = Guid128.random()
 }
@@ -96,8 +102,11 @@ func guidRaceWorker(thread: const *Threading.Thread)
 {
     let race = cast(*GuidRace, unwrap thread.userParam)
     discard Swag.atomicAdd(&race.ready, 1)
-    while Swag.atomicLoad(&race.start) == 0 do
+    while Swag.atomicLoad(&race.start) == 0
+    {
         Threading.Thread.yield()
+    }
+
     let slot = Swag.atomicAdd(&race.next, 1)
     race.drawn[slot] = Guid64.random().value
 }
@@ -114,16 +123,23 @@ func guidRaceWorker(thread: const *Threading.Thread)
         discard expect thread.start()
     }
 
-    while Swag.atomicLoad(&race.ready) != threads.count do
+    while Swag.atomicLoad(&race.ready) != threads.count
+    {
         Threading.Thread.yield()
+    }
+
     discard Swag.atomicExchange(&race.start, 1)
-    for &thread in threads do
+    for &thread in threads
+    {
         thread.wait()
+    }
 
     for i in race.drawn.count
     {
-        for j in i + 1 until race.drawn.count do
+        for j in i + 1 until race.drawn.count
+        {
             Swag.require(race.drawn[i] != race.drawn[j])
+        }
     }
 }
 
@@ -138,17 +154,24 @@ func guidRaceWorker(thread: const *Threading.Thread)
         discard expect thread.start()
     }
 
-    while Swag.atomicLoad(&race.ready) != threads.count do
+    while Swag.atomicLoad(&race.ready) != threads.count
+    {
         Threading.Thread.yield()
+    }
+
     discard Swag.atomicExchange(&race.start, 1)
-    for &thread in threads do
+    for &thread in threads
+    {
         thread.wait()
+    }
 
     for i in race.drawn.count
     {
         Swag.require((race.drawn[i].bytes[6] & 0xF0) == 0x40)
         Swag.require((race.drawn[i].bytes[8] & 0xC0) == 0x80)
-        for j in i + 1 until race.drawn.count do
+        for j in i + 1 until race.drawn.count
+        {
             Swag.require(race.drawn[i] != race.drawn[j])
+        }
     }
 }

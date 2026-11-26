@@ -38,8 +38,10 @@ private func truncate32(value: u64)->u64 => value & 0xFFFF_FFFF
 #[Swag.Inline]
 private func store32Le(data: [*] u8, value: u32)
 {
-    for i in 4 do
+    for i in 4
+    {
         data[i] = cast(u8, ((value >> cast(u32, (i * 8))) & 0xFF))
+    }
 }
 
 private alias Argon2Pair = Math.Simd.U64x2
@@ -48,17 +50,24 @@ private const Argon2Pairs = Argon2Words / 2
 #[Swag.Inline]
 private func blamka(a, b: Argon2Pair)->Argon2Pair
 {
-    const LowHalf: Argon2Pair = [0xFFFF_FFFF, 0xFFFF_FFFF]
-    let product = (a & LowHalf) * (b & LowHalf)
-    return (a + b) + (product + product)
+    block[a] += block[b] + 2 * truncate32(block[a]) * truncate32(block[b])
+    block[d] = Swag.ror(block[d] ^ block[a], 32_u8)
+    block[c] += block[d] + 2 * truncate32(block[c]) * truncate32(block[d])
+    block[b] = Swag.ror(block[b] ^ block[c], 24_u8)
+    block[a] += block[b] + 2 * truncate32(block[a]) * truncate32(block[b])
+    block[d] = Swag.ror(block[d] ^ block[a], 16_u8)
+    block[c] += block[d] + 2 * truncate32(block[c]) * truncate32(block[d])
+    block[b] = Swag.ror(block[b] ^ block[c], 63_u8)
 }
 
 #[Swag.Inline]
 private func mixPairs(a, b, c, d: *Argon2Pair)
 {
-    const Rotate32: Math.Simd.U32x4 = [1, 0, 3, 2]
-    const Rotate24: Math.Simd.U8x16 = [3, 4, 5, 6, 7, 0, 1, 2, 11, 12, 13, 14, 15, 8, 9, 10]
-    const Rotate16: Math.Simd.U8x16 = [2, 3, 4, 5, 6, 7, 0, 1, 10, 11, 12, 13, 14, 15, 8, 9]
+    var index: [16] u64
+    for i in 16
+    {
+        index[i] = base + (i / 2) * stride + (i % 2)
+    }
 
     a[] = blamka(a[], b[])
     d[] = cast #bit (Argon2Pair, Swag.vecShuffle(cast #bit (Math.Simd.U32x4, d[] ^ a[]), Rotate32))
@@ -116,10 +125,15 @@ private func compress(destination: [*] u64, x, y: const [*] u64, scratch: [*] Ar
     for i in Argon2Pairs do
         scratch[i] = left[i] ^ right[i]
 
-    for i in 8 do
-        permute'1(&scratch[i * 8])
-    for i in 8 do
-        permute'8(&scratch[i])
+    for i in 8
+    {
+        permute(&result[0], i * 16, 2)
+    }
+
+    for i in 8
+    {
+        permute(&result[0], i * 2, 16)
+    }
 
     // Address generation can overwrite its right operand. Read each pair's
     // inputs before publishing the corresponding output.
@@ -163,13 +177,15 @@ private func variableHash(input: const [..] u8, destination: [..] u8) fail
     // exact length rather than truncated, because BLAKE2b binds the digest
     // length into its state and the two do not agree.
     const strideSize = Hash.Blake2bMaxDigestSize / 2
-    var written = 0'u64
+    var written = 0_u64
     while destination.count - written > Hash.Blake2bMaxDigestSize
     {
         Swag.memcpy(destination.buffer + written, &current[0], strideSize)
         written += strideSize
-        if destination.count - written > Hash.Blake2bMaxDigestSize do
+        if destination.count - written > Hash.Blake2bMaxDigestSize
+        {
             try Hash.Blake2b.compute(current, current)
+        }
     }
 
     let remaining = destination.count - written
@@ -193,6 +209,51 @@ private func nextAddresses(addresses, input: [*] u64, zero: const [*] u64, scrat
 // reach completed slices, so joining each slice makes those reads safe.
 private func fillSegment(blocks: [*] u64, lanes, passes, segmentLength, laneLength, blockCount, pass, slice, lane: u64)
 {
+    // Maps a pseudo-random value onto a block that is already final, following the RFC 9106
+    // indexing rules. `index` counts from the current segment's start. `sameLane` selects the
+    // larger reference window, whose most recent blocks are already final.
+    func referenceIndex(random: u64, pass, slice, index, segmentLength, laneLength: u64, sameLane: bool)->u64
+    {
+        var areaSize: u64
+        if not pass
+        {
+            if not slice
+            {
+                areaSize = index - 1
+            }
+            else if sameLane
+            {
+                areaSize = slice * segmentLength + index - 1
+            }
+            else
+            {
+                areaSize = slice * segmentLength - (index ? 0 : 1)
+            }
+        }
+        else if sameLane
+        {
+            areaSize = laneLength - segmentLength + index - 1
+        }
+        else
+        {
+            areaSize = laneLength - segmentLength - (index ? 0 : 1)
+        }
+
+        // Squared scaling biases the choice towards recent blocks, which makes low-memory
+        // attackers recompute more often.
+        let low      = truncate32(random)
+        let scaled   = (low * low) >> 32
+        let relative = areaSize - 1 - ((areaSize * scaled) >> 32)
+
+        var start = 0_u64
+        if pass and slice != Argon2SyncPoints - 1
+        {
+            start = (slice + 1) * segmentLength
+        }
+
+        return (start + relative) % laneLength
+    }
+
     var zero:      [Argon2Words] u64
     var input:     [Argon2Words] u64
     var addresses: [Argon2Words] u64
@@ -215,12 +276,15 @@ private func fillSegment(blocks: [*] u64, lanes, passes, segmentLength, laneLeng
         input[5] = Argon2TypeId
     }
 
-    let firstSlice = not pass and not slice
-    let sliceStart = slice * segmentLength
-    let laneStart  = lane * laneLength
-    let firstStep  = firstSlice ? 2 : 0
-    if firstSlice do
-        nextAddresses(addresses.buffer, input.buffer, zero.buffer, scratch.buffer)
+    var start = 0_u64
+    if not pass and not slice
+    {
+        start = 2
+        if independent
+        {
+            nextAddresses(&addresses[0], &input[0], &zero[0])
+        }
+    }
 
     // During the first pass only earlier slices are visible in other lanes.
     // Later passes have all three previous slices available.
@@ -237,21 +301,24 @@ private func fillSegment(blocks: [*] u64, lanes, passes, segmentLength, laneLeng
         var random: u64
         if independent
         {
-            let address = step % Argon2AddressCount
-            if address == 0 do
-                nextAddresses(addresses.buffer, input.buffer, zero.buffer, scratch.buffer)
-            random = addresses[address]
+            if step % Argon2AddressCount == 0
+            {
+                nextAddresses(&addresses[0], &input[0], &zero[0])
+            }
+
+            random = addresses[step % Argon2AddressCount]
         }
         else
         {
             random = previous[0]
         }
 
-        var referenceLane = lane
-        if not firstSlice
+        // The first slice of the first pass has nothing to reference
+        // in another lane yet.
+        var referenceLane = (random >> 32) % lanes
+        if not pass and not slice
         {
-            let laneNumber = random >> 32
-            referenceLane = powerOfTwo ? laneNumber & laneMask : laneNumber % lanes
+            referenceLane = lane
         }
 
         // The RFC 9106 mapping squares the low word to bias references towards
@@ -311,21 +378,40 @@ public func argon2id(password, salt, secret, associatedData: const [..] u8, para
     if password.count > Swag.U32.Max or
        salt.count > Swag.U32.Max or
        associatedData.count > Swag.U32.Max or
-       destination.count > Swag.U32.Max do
+       destination.count > Swag.U32.Max
+    {
         fail Errors.BadParameterError{"Argon2 byte lengths exceed the 32-bit limit"}
+    }
 
-    if destination.count < Argon2MinTagSize do
+    if destination.count < Argon2MinTagSize
+    {
         fail Errors.BadParameterError{"Argon2 needs a tag of at least 4 bytes"}
-    if salt.count < Argon2MinSaltSize do
+    }
+
+    if salt.count < Argon2MinSaltSize
+    {
         fail Errors.BadParameterError{"Argon2 needs a salt of at least 8 bytes"}
-    if not parameters.parallelism or parameters.parallelism > 0xFF_FFFF do
+    }
+
+    if not parameters.parallelism or parameters.parallelism > 0xFF_FFFF
+    {
         fail Errors.BadParameterError{"Argon2 needs 1 to 16777215 lanes"}
-    if not parameters.iterations do
+    }
+
+    if not parameters.iterations
+    {
         fail Errors.BadParameterError{"Argon2 needs at least one pass"}
-    if parameters.memoryKib < 8 * parameters.parallelism do
+    }
+
+    if parameters.memoryKib < 8 * parameters.parallelism
+    {
         fail Errors.BadParameterError{"Argon2 needs at least eight kibibytes of memory per lane"}
-    if secret.count > Hash.Blake2bMaxKeySize do
+    }
+
+    if secret.count > Hash.Blake2bMaxKeySize
+    {
         fail Errors.BadParameterError{"Argon2 accepts a secret of at most 64 bytes"}
+    }
 
     let lanes         = cast(u64, parameters.parallelism)
     let passes        = cast(u64, parameters.iterations)
@@ -366,14 +452,10 @@ public func argon2id(password, salt, secret, associatedData: const [..] u8, para
     initial.update(associatedData)
     try initial.finalize(seed)
 
-    // Each block is written before it can be referenced in the first pass.
-    let memorySize = blockCount * Argon2BlockSize
-    let blocks     = cast([*] u64, Memory.alloc(memorySize))
-    defer
-    {
-        secureClear(Swag.makeSlice(blocks, blockCount * Argon2Words))
-        Memory.free(blocks, memorySize)
-    }
+    var memory: Array!{u64}
+    memory.resize(blockCount * Argon2Words)
+    defer secureClear(memory.toSlice())
+    let blocks = memory.storage()
 
     // The first two blocks of every lane come straight from the seed; everything
     // else is produced by the compression function.
@@ -397,21 +479,28 @@ public func argon2id(password, salt, secret, associatedData: const [..] u8, para
         {
             // The structured join is Argon2's slice boundary. No worker waits on a
             // sibling, and the owning memory stays alive until every lane is finished.
-            parallel for |blocks, lanes, passes, segmentLength, laneLength, blockCount, pass, slice| lane in lanes do
+            parallel for |blocks, lanes, passes, segmentLength, laneLength, blockCount, pass, slice| lane in lanes
+            {
                 fillSegment(blocks, lanes, passes, segmentLength, laneLength, blockCount, pass, slice, lane)
+            }
         }
     }
 
     // The tag folds the last block of every lane together.
     var final: [Argon2Words] u64
     defer secureClear(final)
-    for i in Argon2Words do
+    for i in Argon2Words
+    {
         final[i] = blocks[((lanes - 1) * laneLength + laneLength - 1) * Argon2Words + i]
+    }
+
     for lane in lanes - 1
     {
         let last = (lane * laneLength + laneLength - 1) * Argon2Words
-        for i in Argon2Words do
+        for i in Argon2Words
+        {
             final[i] ^= blocks[last + i]
+        }
     }
 
     try variableHash(Swag.makeSlice(cast(const [*] u8, &final[0]), Argon2BlockSize), destination)

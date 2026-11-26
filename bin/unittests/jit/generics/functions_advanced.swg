@@ -5,15 +5,19 @@ func(T) double(value: T)->T   => value + value
 
 func(T) minVal(a: T, b: T)->T
 {
-    if a < b do
+    if a < b
+    {
         return a
+    }
     return b
 }
 
 func(T) maxVal(a: T, b: T)->T
 {
-    if a > b do
+    if a > b
+    {
         return a
+    }
     return b
 }
 
@@ -24,8 +28,10 @@ func(T) clamp(value: T, lo: T, hi: T)->T
 
 func(T) absValue(value: T)->T
 {
-    if value < 0 do
+    if value < 0
+    {
         return -value
+    }
     return value
 }
 
@@ -45,23 +51,23 @@ struct(T) Box
     value: T
 }
 
-func(T) makeBox(value: T)->Box'T
+func(T) makeBox(value: T)->Box!{T}
 {
     return {value: value}
 }
 
-func(T) unbox(box: Box'T)->T => box.value
+func(T) unbox(box: Box!{T})->T => box.value
 
 // Compile-time type assertions
 #assert(#typeof(identity(42)) == s32)
 #assert(#typeof(identity(true)) == bool)
 #assert(#typeof(identity(3.14)) == f64)
 #assert(#typeof(double(5)) == s32)
-#assert(#typeof(double(1.0'f64)) == f64)
-#assert(#typeof(castTo'(s32, f64)(1)) == f64)
-#assert(#typeof(castTo'(bool, s32)(true)) == s32)
-#assert(#typeof(makeBox(42)) == Box's32)
-#assert(#typeof(makeBox("hi")) == Box'(string))
+#assert(#typeof(double(1.0_f64)) == f64)
+#assert(#typeof(castTo!{s32, f64}(1)) == f64)
+#assert(#typeof(castTo!{bool, s32}(true)) == s32)
+#assert(#typeof(makeBox(42)) == Box!{s32})
+#assert(#typeof(makeBox("hi")) == Box!{string})
 #assert(#typeof(makeBox(true).value) == bool)
 
 #test
@@ -90,16 +96,16 @@ func(T) unbox(box: Box'T)->T => box.value
 
 #test
 {
-    Swag.require(castTo'(s32, f64)(42) == 42.0)
-    Swag.require(castTo'(bool, s32)(true) == 1)
-    Swag.require(castTo'(f64, s32)(3.7) == 3)
+    Swag.require(castTo!{s32, f64}(42) == 42.0)
+    Swag.require(castTo!{bool, s32}(true) == 1)
+    Swag.require(castTo!{f64, s32}(3.7) == 3)
 }
 
 #test
 {
-    Swag.require(constProduct'(3, 4)() == 12)
-    Swag.require(constProduct'(0, 100)() == 0)
-    Swag.require(constDoubled'(7)() == 14)
+    Swag.require(constProduct!{3, 4}() == 12)
+    Swag.require(constProduct!{0, 100}() == 0)
+    Swag.require(constDoubled!{7}() == 14)
 }
 
 #test

@@ -8,11 +8,11 @@ using Core, Gui
 {
     var host: Testing.HeadlessHost
     host.setup(360, 260)
-    let outer = Wnd.create'ScrollWnd(&host.root, "", {0, 0, 300, 200})
-    outer.createView'Wnd()
+    let outer = Wnd.create!{ScrollWnd}(&host.root, "", {0, 0, 300, 200})
+    outer.createView!{Wnd}()
     outer.setScrollSize(900, 900)
-    let inner = Wnd.create'ScrollWnd(outer.view, "", {500, 500, 200, 140})
-    inner.createView'Wnd()
+    let inner = Wnd.create!{ScrollWnd}(outer.view, "", {500, 500, 200, 140})
+    inner.createView!{Wnd}()
     inner.setScrollSize(800, 800)
     host.pump()
     outer.setScrollPos(0, 120)
@@ -31,7 +31,7 @@ using Core, Gui
 // A history returns the places in the order they were left, and comes back through them.
 #test
 {
-    var history: Viewer.History's32
+    var history: Viewer.History!{s32}
     Swag.require(not history.canGoBack() and not history.canGoForward())
 
     history.visit(1)
@@ -49,7 +49,7 @@ using Core, Gui
 // A jump made after a return starts a new branch, and a new document starts a new history.
 #test
 {
-    var history: Viewer.History's32
+    var history: Viewer.History!{s32}
     history.visit(1)
     history.visit(2)
     Swag.require(history.back(3) == 2 and history.canGoForward())
@@ -66,26 +66,35 @@ using Core, Gui
 #test
 {
     const Limit = cast(s32, Viewer.HistoryLimit)
-    var history: Viewer.History's32
-    for place in Limit + 10 do
+    var history: Viewer.History!{s32}
+    for place in Limit + 10
+    {
         history.visit(place)
+    }
+
     Swag.require(history.backVisits.count == Limit)
     Swag.require(history.backVisits.front() == 10 and history.backVisits.back() == Limit + 9)
 
     // Walking all the way back fills the other direction with exactly as many places.
     var current = Limit + 10
-    while history.canGoBack() do
+    while history.canGoBack()
+    {
         current = history.back(current)
+    }
+
     Swag.require(current == 10 and history.forwardVisits.count == Limit)
-    while history.canGoForward() do
+    while history.canGoForward()
+    {
         current = history.forward(current)
+    }
+
     Swag.require(current == Limit + 10 and history.backVisits.count == Limit)
 }
 
 // A place may own storage: the history keeps its own copy of what it is given.
 #test
 {
-    var history: Viewer.History'String
+    var history: Viewer.History!{String}
     scope
     {
         var chapter: String = "chapter-one#arrival"
@@ -112,8 +121,10 @@ using Core, Gui
     var chord   = pressed(.Left, Input.KeyModifiers.Alt | .Shift)
     var other   = pressed(.Up, .Alt)
     var release = KeyEvent{kind: .Released, key: .Left, modifiers: .Alt}
-    for evt in [&plain, &chord, &other, &release] do
+    for evt in [&plain, &chord, &other, &release]
+    {
         Swag.require(Viewer.historyKeyDirection(evt) == 0)
+    }
 
     var previous = pressed(.PageUp, .Control)
     var next     = pressed(.PageDown, .Control)
@@ -122,8 +133,10 @@ using Core, Gui
     var bare   = pressed(.PageDown, .None)
     var arrow  = pressed(.Down, .Control)
     var lifted = KeyEvent{kind: .Released, key: .PageDown, modifiers: .Control}
-    for evt in [&bare, &arrow, &lifted] do
+    for evt in [&bare, &arrow, &lifted]
+    {
         Swag.require(Viewer.pageKeyDirection(evt) == 0)
+    }
 }
 
 // The zoom keys step by one notch inside the range and Ctrl 0 returns to the actual size.
@@ -154,8 +167,10 @@ using Core, Gui
     var bare     = KeyEvent{kind: .Pressed, key: .Add}
     var released = KeyEvent{kind: .Released, key: .Add, modifiers: .Control}
     var shifted  = KeyEvent{kind: .Pressed, key: .Add, modifiers: .Control | .Shift}
-    for evt in [&unbound, &bare, &released, &shifted] do
+    for evt in [&unbound, &bare, &released, &shifted]
+    {
         Swag.require(not Viewer.isZoomKey(evt))
+    }
 
     // The wheel zooms under the same chord as the keys, one notch per turn of the wheel.
     var wheelUp   = MouseEvent{kind: .Wheel, delta: Math.Point{0, 120}, modifiers: .Control}
@@ -168,8 +183,10 @@ using Core, Gui
     var shiftedWheel = MouseEvent{kind: .Wheel, delta: Math.Point{0, 120}, modifiers: .Control | .Shift}
     var altWheel     = MouseEvent{kind: .Wheel, delta: Math.Point{0, 120}, modifiers: .Control | .Alt}
     var click        = MouseEvent{kind: .Pressed, button: .Left, modifiers: .Control}
-    for evt in [&plainWheel, &shiftedWheel, &altWheel, &click] do
+    for evt in [&plainWheel, &shiftedWheel, &altWheel, &click]
+    {
         Swag.require(not Viewer.isZoomWheel(evt))
+    }
 
     // The lens asks for the same levels as the keys, and never leaves the range.
     Swag.require(Viewer.zoomTarget(.In, 100) == 125 and Viewer.zoomTarget(.Out, 100) == 75)
@@ -200,6 +217,8 @@ using Core, Gui
         {.Utf32Le,     "UTF-32 LE"},
         {.Utf32Be,     "UTF-32 BE"},
         {.Windows1252, "Windows-1252"}]
-    for row in Names do
+    for row in Names
+    {
         Swag.require(Viewer.encodingName(row.encoding) == row.name)
+    }
 }

@@ -107,7 +107,7 @@ using Core, Pixel
     var host: Testing.HeadlessHost
     host.setup(340, 180)
     let first = EditBox.create(&host.root, "", {200, 80, 100, 24})
-    let panel = Wnd.create'Wnd(&host.root, {12, 56, 140, 100})
+    let panel = Wnd.create!{Wnd}(&host.root, {12, 56, 140, 100})
     let inner = PasswordEdit.create(panel, {4, 5, 120, 24})
     let last  = PushButton.create(&host.root, "Finish", {12, 12, 100, 24})
     first.tabIndex = 0
@@ -248,8 +248,10 @@ using Core, Pixel
             return
         }
 
-        if stage != 0 do
+        if stage != 0
+        {
             return
+        }
 
         stage = 1
         Swag.require(cancel.hasFocus() and not cancel.hasVisibleFocus())
@@ -272,7 +274,7 @@ using Core, Pixel
 {
     var host: Testing.HeadlessHost
     host.setup(200, 120)
-    let field = EditBox.create(&host.root, "", {20, 20, 145, 32})
+    let field   = EditBox.create(&host.root, "", {20, 20, 145, 32})
     let resting = host.renderSettled()
     field.setFocus()
     host.sendRune(.A, 'a')
@@ -301,7 +303,7 @@ using Core, Pixel
 {
     var host: Testing.HeadlessHost
     host.setup(240, 150)
-    let frame = Wnd.create'FrameWnd(&host.root, {20, 20, 180, 108})
+    let frame = Wnd.create!{FrameWnd}(&host.root, {20, 20, 180, 108})
     frame.setFrameForm(.Square)
     frame.setFrameFlags(.FocusBorder)
     let field = EditBox.create(frame, "", {24, 28, 100, 24})
@@ -335,8 +337,11 @@ using Core, Pixel
     let last   = EditBox.create(&host.root, "", {18, 86, 100, 24})
     vetoed.hookOnEvent = func(_, event)
     {
-        if event is FocusEvent as focus where focus.kind == .CanGain do
+        if event is FocusEvent as focus where focus.kind == .CanGain
+        {
             focus.canChangeFocus = false
+        }
+
         return false
     }
 
@@ -357,8 +362,11 @@ using Core, Pixel
     discard PushButton.create(&host.root, "Third", {18, 86, 100, 24})
     first.hookOnEvent = func(_, event)
     {
-        if event is FocusEvent as focus where focus.kind == .CanLose do
+        if event is FocusEvent as focus where focus.kind == .CanLose
+        {
             focus.canChangeFocus = false
+        }
+
         return false
     }
 
@@ -374,14 +382,17 @@ using Core, Pixel
     host.setup(340, 180)
     let first = EditBox.create(&host.root, "", {18, 18, 100, 24})
     let next  = PushButton.create(&host.root, "Next", {18, 56, 100, 24})
-    let blank = Wnd.create'Wnd(&host.root, {150, 20, 140, 100})
+    let blank = Wnd.create!{Wnd}(&host.root, {150, 20, 140, 100})
     host.keyPress(.Tab)
     Swag.require(first.hasVisibleFocus())
 
     next.hookOnEvent = func|blank|(_, event)
     {
-        if event is FocusEvent as focus where focus.kind == .CanGain do
+        if event is FocusEvent as focus where focus.kind == .CanGain
+        {
             blank.app().focusPointerTarget(blank)
+        }
+
         return false
     }
 
@@ -397,8 +408,11 @@ using Core, Pixel
     let caller = EditBox.create(&host.root, "", {20, 20, 160, 26})
     caller.hookOnEvent = func(_, event)
     {
-        if event is FocusEvent as focus where focus.kind == .CanLose do
+        if event is FocusEvent as focus where focus.kind == .CanLose
+        {
             focus.canChangeFocus = false
+        }
+
         return false
     }
 
@@ -409,8 +423,11 @@ using Core, Pixel
     var checked: bool
     host.app.sigFrame += func|&host, caller, cancel, &checked|(_)
     {
-        if checked do
+        if checked
+        {
             return
+        }
+
         checked = true
         Swag.require(not caller.hasFocus())
         host.keyPress(.Tab)

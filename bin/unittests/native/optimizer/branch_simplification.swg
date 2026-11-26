@@ -4,8 +4,10 @@
 func branchSimplifyKnownTrue()->s32
 {
     var value = 0
-    if value == 0 do
+    if value == 0
+    {
         return 11
+    }
 
     return 22
 }
@@ -14,8 +16,10 @@ func branchSimplifyKnownTrue()->s32
 func branchSimplifyKnownFalse()->s32
 {
     var value = 5
-    if value == 0 do
+    if value == 0
+    {
         return 11
+    }
 
     return 22
 }
@@ -29,10 +33,14 @@ func branchSimplifyLoop()->s32
     {
         defer i += 1
 
-        if i == 2 do
+        if i == 2
+        {
             continue
-        if i == 6 do
+        }
+        if i == 6
+        {
             break
+        }
 
         total += i
     }

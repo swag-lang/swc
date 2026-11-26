@@ -12,9 +12,12 @@ using Core, Pixel, Gui, Viewers
     let window = picturedWindowAs(&host, picturedFixture("title.png"), "hex", false)
     let view   = assume cast(*Viewers.Hex.Panel, window.currentView)
 
-    var labels: Array'String
-    for tab in view.structure.tabs do
+    var labels: Array!{String}
+    for tab in view.structure.tabs
+    {
         labels.add(tab.label)
+    }
+
     Swag.require(view.structure.formatName == "PNG" and labels.count == 6)
     Swag.require(labels[0] == "Signature" and
                  labels[1] == "IHDR" and

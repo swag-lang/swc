@@ -17,10 +17,10 @@ func isZero(a: u64)->bool => a == 0
 
 #test
 {
-    let values = [0'u64, 1, 127, 128, 0xFFFFFFFF, 0x100000000, 0x8000000000000000, 0xFFFFFFFFFFFFFFFF]
+    let values = [0_u64, 1, 127, 128, 0xFFFFFFFF, 0x100000000, 0x8000000000000000, 0xFFFFFFFFFFFFFFFF]
     for a in values
     {
-        var mask = 0'u64
+        var mask = 0_u64
         if isZero(a)
         {
             mask = 0xFFFFFFFFFFFFFFFF

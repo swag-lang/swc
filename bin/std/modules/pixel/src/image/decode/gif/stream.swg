@@ -16,16 +16,22 @@ impl Decoder
 {
     mtd seek(len: u64) fail
     {
-        if len > .streamLen do
+        if len > .streamLen
+        {
             fail InvalidFormatError{"read error"}
+        }
+
         .stream    += len
         .streamLen -= len
     }
 
     mtd read(dest: *u8, len: u64) fail
     {
-        if len > .streamLen do
+        if len > .streamLen
+        {
             fail InvalidFormatError{"read error"}
+        }
+
         Memory.copy(dest, .safeStream(), len)
         .stream    += len
         .streamLen -= len
@@ -34,8 +40,11 @@ impl Decoder
     #[Swag.Inline]
     mtd readU8()->u8 fail
     {
-        if .streamLen < 1 do
+        if .streamLen < 1
+        {
             fail InvalidFormatError{"read error"}
+        }
+
         let res = .safeStream()[0]
         .stream    += 1
         .streamLen -= 1
@@ -44,8 +53,11 @@ impl Decoder
 
     mtd readU16()->u16 fail
     {
-        if .streamLen < 2 do
+        if .streamLen < 2
+        {
             fail InvalidFormatError{"read error"}
+        }
+
         let stream = .safeStream()
         let res    = cast(u16, (stream[0] + (cast(u16, stream[1]) << 8)))
         .stream    += 2
@@ -58,8 +70,11 @@ impl Decoder
         for
         {
             let size = try .readU8()
-            if not size do
+            if not size
+            {
                 break
+            }
+
             try .seek(cast(u64, size))
         }
     }
@@ -81,20 +96,28 @@ impl Decoder
     #[Swag.Propagate]
     mtd readGraphicControlExt() fail
     {
-        if .readU8() != 4 do
+        if .readU8() != 4
+        {
             fail InvalidFormatError{"GIF graphic control extension needs a four-byte payload"}
+        }
+
         let rdit     = .readU8()
         let disposal = (rdit >> 2) & 7
-        if disposal > 3 do
+        if disposal > 3
+        {
             fail InvalidFormatError{"GIF graphic control extension has a reserved disposal method"}
+        }
+
         .gce.disposal     = disposal
         .gce.input        = rdit & 2
         .gce.transparency = rdit & 1
         .gce.delay        = .readU16()
         .gce.tindex       = .readU8()
 
-        if .readU8() != 0 do
+        if .readU8() != 0
+        {
             fail InvalidFormatError{"GIF graphic control extension needs a zero terminator"}
+        }
     }
 
     mtd readCommentExt() fail

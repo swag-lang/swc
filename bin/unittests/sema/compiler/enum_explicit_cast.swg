@@ -14,10 +14,10 @@ func takesKey(key: TestKey)->u32
 
 func semaTest001()
 {
-    let a = cast(TestKey, 1'u8)
-    let b = cast(TestKey, 2'u32)
+    let a = cast(TestKey, 1_u8)
+    let b = cast(TestKey, 2_u32)
 
     Swag.assert(a == TestKey.A)
     Swag.assert(b == TestKey.B)
-    Swag.assert(takesKey(cast(TestKey, 0'u32)) == 0'u32)
+    Swag.assert(takesKey(cast(TestKey, 0_u32)) == 0_u32)
 }

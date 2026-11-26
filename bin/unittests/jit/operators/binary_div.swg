@@ -11,17 +11,17 @@
 #test
 {
     func div(a: u32, b: u32)->u32 { return a / b }
-    const V = #run div(126'u32, 3'u32)
+    const V = #run div(126_u32, 3_u32)
     #assert(#typeof(V) == u32)
-    #assert(V == 42'u32)
+    #assert(V == 42_u32)
 }
 
 #test
 {
     func div(a: f64, b: f64)->f64 { return a / b }
-    const V = #run div(84.0'f64, 2.0'f64)
+    const V = #run div(84.0_f64, 2.0_f64)
     #assert(#typeof(V) == f64)
-    #assert(V == 42.0'f64)
+    #assert(V == 42.0_f64)
 }
 
 #test
@@ -33,9 +33,9 @@
 #test
 {
     func div(a: s64, b: s64)->s64 { return a / b }
-    const V = #run div(-84's64, 2's64)
+    const V = #run div(-84_s64, 2_s64)
     #assert(#typeof(V) == s64)
-    #assert(V == -42's64)
+    #assert(V == -42_s64)
 }
 
 #test

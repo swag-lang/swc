@@ -13,13 +13,13 @@ struct NavigationEntry
     chapter:  u64 = Swag.U64.Max
 }
 
-private const NavigationLimit      = 4096'u64
-private const NavigationDepthLimit = 64'u64
+private const NavigationLimit      = 4096_u64
+private const NavigationDepthLimit = 64_u64
 
 // Keeps XML parsing local and bounded; no DTD or entity is ever resolved.
 struct Navigation
 {
-    entries: Array'NavigationEntry
+    entries: Array!{NavigationEntry}
     failure: String
 }
 
@@ -29,30 +29,40 @@ impl NavigationEntry
     func resolve(basePath, reference: string)->NavigationEntry
     {
         var result: #returntype
-        if not reference.count do
+        if not reference.count
+        {
             return result
+        }
 
-        let hash     = Utf8.indexOf(reference, '#'rune)
+        let hash     = Utf8.indexOf(reference, '#'_rune)
         let path     = hash == Swag.U64.Max ? reference : reference[0 until hash]
-        let query    = Utf8.indexOf(path, '?'rune)
+        let query    = Utf8.indexOf(path, '?'_rune)
         let resource = query == Swag.U64.Max ? path : path[0 until query]
-        if Utf8.contains(resource, ':'rune) or
+        if Utf8.contains(resource, ':'_rune) or
            Utf8.startsWith(resource, "/") or
-           Utf8.contains(resource, "\\") do
+           Utf8.contains(resource, "\\")
+        {
             return result
+        }
 
         let decoded = catch Url.decodeComponent(resource) { return result; }
         let local   = cast(string, decoded.toSlice())
-        if Utf8.contains(local, ':'rune) or
+        if Utf8.contains(local, ':'_rune) or
            Utf8.contains(local, "\\") or
-           (local.count and local[0] == '/'u8) do
+           (local.count and local[0] == '/'_u8)
+        {
             return result
+        }
+
         result.path = local.count ? Package.resolvePath(Package.parentPath(basePath), local) : String.from(basePath)
         if hash != Swag.U64.Max
         {
             let fragment = catch Url.decodeComponent(reference[hash + 1 to]) { return NavigationEntry{}; }
-            if not Utf8.isValid(fragment.toSlice()) do
+            if not Utf8.isValid(fragment.toSlice())
+            {
                 return NavigationEntry{}
+            }
+
             result.fragment = cast(string, fragment.toSlice())
         }
 
@@ -63,8 +73,8 @@ impl NavigationEntry
 private struct NavigationReader
 {
     navigation:      Navigation
-    stack:           Array'u64
-    elements:        Array'String
+    stack:           Array!{u64}
+    elements:        Array!{String}
     basePath:        string
     ncx:             bool
     inNavigation:    bool
@@ -79,18 +89,24 @@ private impl NavigationReader
 {
     mtd add(reference: string, level: u32)->u64 fail
     {
-        if .navigation.entries.count >= NavigationLimit do
+        if .navigation.entries.count >= NavigationLimit
+        {
             fail Errors.UnsupportedFormatError{texts().err_ContentsTooLarge}
+        }
+
         var entry = NavigationEntry.resolve(.basePath, reference)
-        entry.level = Math.max(level, 1'u32)
+        entry.level = Math.max(level, 1_u32)
         .navigation.entries.add(#move entry)
         return .navigation.entries.count - 1
     }
 
     mtd start(token: const *Package.Token) fail
     {
-        if .depth >= NavigationDepthLimit do
+        if .depth >= NavigationDepthLimit
+        {
             fail Errors.UnsupportedFormatError{texts().err_ContentsTooLarge}
+        }
+
         .depth += 1
         .elements.add(token.name)
         if not .inNavigation
@@ -98,9 +114,11 @@ private impl NavigationReader
             var selected = .ncx and token.isElement("navMap")
             if not .ncx and token.isElement("nav")
             {
-                for word in Tokenize.split(token.attribute("epub:type") orelse "", ' 'u8)
-                    where word == "toc" do
+                for word in Tokenize.split(token.attribute("epub:type") orelse "", ' '_u8)
+                    where word == "toc"
+                {
                     selected = true
+                }
             }
 
             if selected
@@ -119,11 +137,11 @@ private impl NavigationReader
                 let index = try .add("", cast(u32, .stack.count + 1))
                 .stack.add(index)
             }
-            elif not .stack.isEmpty() and token.isElement("navLabel")
+            else if not .stack.isEmpty() and token.isElement("navLabel")
             {
                 .labelDepth = .depth
             }
-            elif not .stack.isEmpty() and token.isElement("content")
+            else if not .stack.isEmpty() and token.isElement("content")
             {
                 let target = NavigationEntry.resolve(.basePath, token.attribute("src") orelse "")
                 .navigation.entries[.stack.back()].path     = target.path
@@ -136,7 +154,7 @@ private impl NavigationReader
             {
                 .listDepth += 1
             }
-            elif token.isElement("a")
+            else if token.isElement("a")
             {
                 .anchor     = try .add(token.attribute("href") orelse "", .listDepth)
                 .labelDepth = .depth
@@ -146,8 +164,11 @@ private impl NavigationReader
 
     mtd end(token: const *Package.Token) fail
     {
-        if not .depth or .elements.back() != token.name do
+        if not .depth or .elements.back() != token.name
+        {
             fail Errors.InvalidFormatError{texts().err_ContentsInvalid}
+        }
+
         discard .elements.popBack()
         if .inNavigation
         {
@@ -157,12 +178,20 @@ private impl NavigationReader
                 .anchor     = Swag.U64.Max
             }
 
-            if .ncx and token.isElement("navPoint") and not .stack.isEmpty() do
+            if .ncx and token.isElement("navPoint") and not .stack.isEmpty()
+            {
                 discard .stack.popBack()
-            if not .ncx and (token.isElement("ol") or token.isElement("ul")) and .listDepth do
+            }
+
+            if not .ncx and (token.isElement("ol") or token.isElement("ul")) and .listDepth
+            {
                 .listDepth -= 1
-            if .depth == .navigationDepth do
+            }
+
+            if .depth == .navigationDepth
+            {
                 .inNavigation = false
+            }
         }
 
         .depth -= 1
@@ -170,13 +199,22 @@ private impl NavigationReader
 
     mtd text(text: string) fail
     {
-        if not .inNavigation or not .labelDepth do
+        if not .inNavigation or not .labelDepth
+        {
             return
+        }
+
         let index = .ncx and not .stack.isEmpty() ? .stack.back() : .anchor
-        if index == Swag.U64.Max do
+        if index == Swag.U64.Max
+        {
             return
-        if .navigation.entries[index].title.count + text.count > 4096 do
+        }
+
+        if .navigation.entries[index].title.count + text.count > 4096
+        {
             fail Errors.UnsupportedFormatError{texts().err_ContentsTooLarge}
+        }
+
         .navigation.entries[index].title += text
     }
 }
@@ -196,8 +234,10 @@ impl Navigation
             {
             case .Start:
                 try reader.start(&token)
-                if token.empty do
+                if token.empty
+                {
                     try reader.end(&token)
+                }
 
             case .End:
                 try reader.end(&token)
@@ -207,8 +247,11 @@ impl Navigation
             }
         }
 
-        if scan.damaged or reader.depth do
+        if scan.damaged or reader.depth
+        {
             fail Errors.InvalidFormatError{texts().err_ContentsInvalid}
+        }
+
         return #move reader.navigation
     }
 
@@ -218,8 +261,11 @@ impl Navigation
         for &entry in .entries
         {
             entry.title.trim()
-            if entry.title.isEmpty() or entry.path.isEmpty() do
+            if entry.title.isEmpty() or entry.path.isEmpty()
+            {
                 continue
+            }
+
             for chapter, index in chapters where chapter.path == entry.path
             {
                 entry.chapter = index

@@ -6,25 +6,37 @@ func measure(width, height: s32, repeats: u32)
     let lumaSize    = cast(u64, width) * cast(u64, height)
     let chromaWidth = cast(u64, ((width + 1) / 2))
     let chromaSize  = chromaWidth * cast(u64, ((height + 1) / 2))
-    var storage: Array'u8
+    var storage: Array!{u8}
     storage.resize(lumaSize + chromaSize * 2 + 16)
-    for index in storage.count do
+    for index in storage.count
+    {
         storage[index] = cast(u8, ((index * 37 + index / 97) & 255))
+    }
+
     let view     = YuvPlanarView{luma: storage.storage(), chromaB: storage.storage() + lumaSize, chromaR: storage.storage() + lumaSize + chromaSize, lumaStride: cast(u64, width), chromaStride: chromaWidth, width: width, height: height}
     var expected = Image.create(width, height, .RGB8)
     view.convertRowsToRgb(&expected, 0, height)
     var image = Image.create(width, height, .RGB8)
-    for 32 do
+    for 32
+    {
         view.convertToRgb(&image)
+    }
+
     for sample in 3
     {
         var watch: Time.Stopwatch
         watch.start()
-        for repeats do
+        for repeats
+        {
             view.convertToRgb(&image)
+        }
+
         watch.stop()
-        for index in image.byteCount do
+        for index in image.byteCount
+        {
             Swag.assert(image.pixels[index] == expected.pixels[index])
+        }
+
         Console.println(width, "x", height, " workers=", Swag.workerCount(), " sample=", sample, " repeats=", repeats, " us=", watch.elapsedMicroseconds())
     }
 }

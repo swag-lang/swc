@@ -186,9 +186,60 @@ private func vp8LoadVerticalBytes(top, bottom: const [*] u8, stride: s32, sample
     var upper, lower: [4] U8x16
     for pair in 4
     {
-        let offset = pair * 2 * stride
-        upper[pair] = vp8LoadByteRows(top + offset, stride)
-        lower[pair] = vp8LoadByteRows(bottom + offset, stride)
+        let p3 = cast(s32, pixels[offset - 4 * jStep])
+        let p2 = cast(s32, pixels[offset - 3 * jStep])
+        let p1 = cast(s32, pixels[offset - 2 * jStep])
+        let p0 = cast(s32, pixels[offset - 1 * jStep])
+        let q0 = cast(s32, pixels[offset])
+        let q1 = cast(s32, pixels[offset + 1 * jStep])
+        let q2 = cast(s32, pixels[offset + 2 * jStep])
+        let q3 = cast(s32, pixels[offset + 3 * jStep])
+        if 2 * vp8Abs(p0 - q0) + vp8Abs(p1 - q1) / 2 > level or
+           vp8Abs(p3 - p2) > iLevel or
+           vp8Abs(p2 - p1) > iLevel or
+           vp8Abs(p1 - p0) > iLevel or
+           vp8Abs(q1 - q0) > iLevel or
+           vp8Abs(q2 - q1) > iLevel or
+           vp8Abs(q3 - q2) > iLevel
+        {
+            offset += iStep
+            continue
+        }
+
+        if vp8Abs(p1 - p0) > hLevel or vp8Abs(q1 - q0) > hLevel
+        {
+            let a  = 3 * (q0 - p0) + vp8Clamp127(p1 - q1)
+            let a1 = vp8Clamp15((a + 4) >> 3)
+            let a2 = vp8Clamp15((a + 3) >> 3)
+            pixels[offset - jStep] = vp8Clip8(p0 + a2)
+            pixels[offset]         = vp8Clip8(q0 - a1)
+        }
+        else if fourNotSix
+        {
+            let a  = 3 * (q0 - p0)
+            let a1 = vp8Clamp15((a + 4) >> 3)
+            let a2 = vp8Clamp15((a + 3) >> 3)
+            let a3 = (a1 + 1) >> 1
+            pixels[offset - 2 * jStep] = vp8Clip8(p1 + a3)
+            pixels[offset - jStep]     = vp8Clip8(p0 + a2)
+            pixels[offset]             = vp8Clip8(q0 - a1)
+            pixels[offset + jStep]     = vp8Clip8(q1 - a3)
+        }
+        else
+        {
+            let a  = vp8Clamp127(3 * (q0 - p0) + vp8Clamp127(p1 - q1))
+            let a1 = (27 * a + 63) >> 7
+            let a2 = (18 * a + 63) >> 7
+            let a3 = (9 * a + 63) >> 7
+            pixels[offset - 3 * jStep] = vp8Clip8(p2 + a3)
+            pixels[offset - 2 * jStep] = vp8Clip8(p1 + a2)
+            pixels[offset - jStep]     = vp8Clip8(p0 + a1)
+            pixels[offset]             = vp8Clip8(q0 - a1)
+            pixels[offset + jStep]     = vp8Clip8(q1 - a2)
+            pixels[offset + 2 * jStep] = vp8Clip8(q2 - a3)
+        }
+
+        offset += iStep
     }
 
     vp8TransposeByteTile(&upper)
@@ -264,8 +315,10 @@ func vp8ComputeFilterParams(decoder: *Vp8Decoder)
         if decoder.segmentHeader.useSegment
         {
             baseLevel = decoder.segmentHeader.filterStrength[segment]
-            if decoder.segmentHeader.relativeDelta do
+            if decoder.segmentHeader.relativeDelta
+            {
                 baseLevel += decoder.filterHeader.level
+            }
         }
 
         for mode in 2
@@ -276,8 +329,10 @@ func vp8ComputeFilterParams(decoder: *Vp8Decoder)
             if decoder.filterHeader.useDelta
             {
                 level += decoder.filterHeader.referenceDelta[0]
-                if mode do
+                if mode
+                {
                     level += decoder.filterHeader.modeDelta[0]
+                }
             }
 
             if level <= 0
@@ -373,24 +428,39 @@ func vp8SimpleFilter(decoder: *Vp8Decoder, mbY: s32)
     let yData = cast([*] u8, decoder.y.storage())
     for mbX in decoder.mbWidth
     {
-        let parameter = decoder.perMbFilterParams[decoder.mbWidth * mbY + mbX]
-        if not parameter.level do
-            continue
-        let level  = cast(s32, parameter.level)
-        let stride = decoder.yStride
-        let edge   = yData + (mbY * stride + mbX) * 16
-        if mbX do
-            vp8SimpleVerticalBoundary(edge, stride, level + 4)
-        if parameter.inner do
-            vp8SimpleVerticalInner(edge, stride, level)
-
-        if mbY do
-            vp8SimpleHorizontal(edge, stride, level + 4)
-        if parameter.inner
+        for mbX in decoder.mbWidth
         {
-            vp8SimpleHorizontal(edge + 4 * stride, stride, level)
-            vp8SimpleHorizontal(edge + 8 * stride, stride, level)
-            vp8SimpleHorizontal(edge + 12 * stride, stride, level)
+            let parameter = decoder.perMbFilterParams[decoder.mbWidth * mbY + mbX]
+            if not parameter.level
+            {
+                continue
+            }
+
+            let level  = cast(s32, parameter.level)
+            let offset = (mbY * decoder.yStride + mbX) * 16
+            if mbX
+            {
+                vp8Filter2(yData, level + 4, offset, decoder.yStride, 1)
+            }
+
+            if parameter.inner
+            {
+                vp8Filter2(yData, level, offset + 4, decoder.yStride, 1)
+                vp8Filter2(yData, level, offset + 8, decoder.yStride, 1)
+                vp8Filter2(yData, level, offset + 12, decoder.yStride, 1)
+            }
+
+            if mbY
+            {
+                vp8Filter2(yData, level + 4, offset, 1, decoder.yStride)
+            }
+
+            if parameter.inner
+            {
+                vp8Filter2(yData, level, offset + 4 * decoder.yStride, 1, decoder.yStride)
+                vp8Filter2(yData, level, offset + 8 * decoder.yStride, 1, decoder.yStride)
+                vp8Filter2(yData, level, offset + 12 * decoder.yStride, 1, decoder.yStride)
+            }
         }
     }
 }
@@ -412,10 +482,23 @@ func vp8NormalFilter(decoder: *Vp8Decoder, mbY: s32)
         let cOffset = (mbY * decoder.cStride + mbX) * 8
         if mbX
         {
-            let edge = yData + yOffset
-            vp8FilterVerticalPair'false(edge, edge + 8 * decoder.yStride, decoder.yStride, level + 4, iLevel, hLevel)
-            vp8FilterVerticalPair'false(cbData + cOffset, crData + cOffset, decoder.cStride, level + 4, iLevel, hLevel)
-        }
+            let parameter = decoder.perMbFilterParams[decoder.mbWidth * mbY + mbX]
+            if not parameter.level
+            {
+                continue
+            }
+
+            let level   = cast(s32, parameter.level)
+            let iLevel  = cast(s32, parameter.iLevel)
+            let hLevel  = cast(s32, parameter.hLevel)
+            let yOffset = (mbY * decoder.yStride + mbX) * 16
+            let cOffset = (mbY * decoder.cStride + mbX) * 8
+            if mbX
+            {
+                vp8Filter246(yData, 16, level + 4, iLevel, hLevel, yOffset, decoder.yStride, 1, false)
+                vp8Filter246(cbData, 8, level + 4, iLevel, hLevel, cOffset, decoder.cStride, 1, false)
+                vp8Filter246(crData, 8, level + 4, iLevel, hLevel, cOffset, decoder.cStride, 1, false)
+            }
 
         if parameter.inner
         {
@@ -441,10 +524,17 @@ func vp8NormalFilter(decoder: *Vp8Decoder, mbY: s32)
 
 func vp8ApplyFilter(decoder: *Vp8Decoder, mbY: s32)
 {
-    if not decoder.filterHeader.level do
+    if not decoder.filterHeader.level
+    {
         return
-    if decoder.filterHeader.simple do
-        vp8SimpleFilter(decoder, mbY)
-    else do
-        vp8NormalFilter(decoder, mbY)
+    }
+
+    if decoder.filterHeader.simple
+    {
+        vp8SimpleFilter(decoder)
+    }
+    else
+    {
+        vp8NormalFilter(decoder)
+    }
 }

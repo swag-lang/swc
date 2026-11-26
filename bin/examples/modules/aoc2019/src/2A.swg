@@ -53,9 +53,11 @@ func day2A()
     let dataPath = Path.combine(Path.directoryName(#curlocation.fileName), "2.txt")
     let lines    = expect File.readAllLines(dataPath)
 
-    var op: Array's32
-    for v in Tokenize.split(lines[0], ','u8) do
+    var op: Array!{s32}
+    for v in Tokenize.split(lines[0], ','_u8)
+    {
         op.add(expect StrConv.toS32(v))
+    }
 
     op[1] = 12
     op[2] = 2
@@ -63,10 +65,15 @@ func day2A()
     var ip = 0
     while op[ip] != 99
     {
-        if op[ip] == 1 do
+        if op[ip] == 1
+        {
             op[op[ip + 3]] = op[op[ip + 1]] + op[op[ip + 2]]
-        else do
+        }
+        else
+        {
             op[op[ip + 3]] = op[op[ip + 1]] * op[op[ip + 2]]
+        }
+
         ip += 4
     }
 

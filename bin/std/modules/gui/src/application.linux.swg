@@ -17,31 +17,44 @@ impl Application
 {
     internal mtd releaseNativeApplication()
     {
-        if .mouseCaptureWnd do
+        if .mouseCaptureWnd
+        {
             .releaseMouse()
+        }
     }
 
     internal mtd nativeFrameWaitMicroseconds(elapsed: u64)->u64
     {
-        if .frameTrace.busyLoop do
+        if .frameTrace.busyLoop
+        {
             return 0
+        }
+
         for surface in .surfaces where not surface.isHidden and not surface.isMinimized
         {
-            if surface.isDirty do
+            if surface.isDirty
+            {
                 return 0
+            }
         }
 
         let active   = .mouseCaptureWnd or .animator.activeCount() != 0
-        let interval = active ? 1000'u64 : 16000'u64
-        if elapsed >= interval do
+        let interval = active ? 1000_u64 : 16000_u64
+        if elapsed >= interval
+        {
             return 0
+        }
+
         var wait = interval - elapsed
         for timer in .timers where not timer.isPendingRemoval
         {
             let period = timer.periodMilliseconds * 1000
             let passed = timer.stopwatch.isRunning() ? timer.stopwatch.elapsedMicroseconds() : 0
-            if passed >= period do
+            if passed >= period
+            {
                 return 0
+            }
+
             wait = Math.min(wait, period - passed)
         }
 
@@ -51,44 +64,70 @@ impl Application
     internal mtd waitForNativeFrame(startedAt: u64)
     {
         let wait = .nativeFrameWaitMicroseconds(Time.monotonicMicroseconds() - startedAt)
-        if wait == 0 do
+        if wait == 0
+        {
             return
+        }
+
         let context    = expect LinuxDesktop.ensure()
         let connection = unwrap context.connection
-        if context.pendingEvent do
+        if context.pendingEvent
+        {
             return
+        }
+
         context.pendingEvent = context.xcb_poll_for_event(connection)
-        if context.pendingEvent do
+        if context.pendingEvent
+        {
             return
+        }
+
         discard context.xcb_flush(connection)
         var descriptor = Linux.pollfd{context.xcb_get_file_descriptor(connection), Linux.POLLIN, 0}
         let result     = Linux.poll(&descriptor, 1, cast(s32, (wait + 999) / 1000))
-        if result < 0 and Linux.errno() != Linux.EINTR do
+        if result < 0 and Linux.errno() != Linux.EINTR
+        {
             expect LinuxDesktop.failNative(Linux.errno())
-        if descriptor.revents & (Linux.POLLERR | Linux.POLLHUP | Linux.POLLNVAL) do
+        }
+
+        if descriptor.revents & (Linux.POLLERR | Linux.POLLHUP | Linux.POLLNVAL)
+        {
             .mustQuit = true
+        }
     }
 
     internal mtd refreshSystemMotionPreference()
     {
-        if .renderer != null and not .renderer.needsNativeWindow() do
+        if .renderer != null and not .renderer.needsNativeWindow()
+        {
             return
+        }
+
         let preference = LinuxDesktop.preferences(expect LinuxDesktop.ensure())
         let previous   = .isReducedMotion()
         .systemReducedMotion = preference.reducedMotion
-        if not previous and .isReducedMotion() do
+        if not previous and .isReducedMotion()
+        {
             .animator.finishDecorative()
+        }
     }
 
     internal mtd refreshSystemAppearance()
     {
-        if .renderer != null and not .renderer.needsNativeWindow() do
+        if .renderer != null and not .renderer.needsNativeWindow()
+        {
             return
+        }
+
         let preference = LinuxDesktop.preferences(expect LinuxDesktop.ensure())
-        if .theme != null do
+        if .theme != null
+        {
             .setSystemPrefersLight(preference.prefersLight)
-        else do
+        }
+        else
+        {
             .systemPrefersLight = preference.prefersLight
+        }
     }
 
     internal mtd captureMouse(window: *Wnd)
@@ -122,8 +161,11 @@ impl Application
         // the events outside the application, never the application itself.
         if reply
         {
-            if reply.status == 0 do
+            if reply.status == 0
+            {
                 context.pointerCapture = surface
+            }
+
             Linux.free(reply)
         }
 
@@ -149,12 +191,21 @@ impl Application
     private func nativeModifiers(modifiers: Input.KeyModifiers)->u16
     {
         var result: u16
-        if modifiers & .Shift do
+        if modifiers & .Shift
+        {
             result |= 1
-        if modifiers & .Control do
+        }
+
+        if modifiers & .Control
+        {
             result |= 4
-        if modifiers & .Alt do
+        }
+
+        if modifiers & .Alt
+        {
             result |= 8
+        }
+
         return result
     }
 
@@ -163,13 +214,19 @@ impl Application
         let connection = unwrap context.connection
         let setup      = context.xcb_get_setup(connection)
         let count      = cast(u16, setup.max_keycode) - setup.min_keycode + 1
-        if count > 255 do
+        if count > 255
+        {
             fail Swag.SystemError{"X11 keyboard map is too large"}
+        }
+
         let mapping = context.xcb_get_keyboard_mapping_reply(connection,
                                                              context.xcb_get_keyboard_mapping(connection, setup.min_keycode, cast(u8, count)),
                                                              null)
-        if not mapping do
+        if not mapping
+        {
             fail Swag.SystemError{"cannot read the X11 keyboard map"}
+        }
+
         defer Linux.free(mapping)
         let symbols = context.xcb_get_keyboard_mapping_keysyms(mapping)
         let wanted  = Input.Keyboard.keyToVirtualKey(key)
@@ -177,8 +234,10 @@ impl Application
         {
             for column in mapping.keysyms_per_keycode
             {
-                if symbols[index * mapping.keysyms_per_keycode + column] == wanted do
+                if symbols[index * mapping.keysyms_per_keycode + column] == wanted
+                {
                     return cast(u8, setup.min_keycode + index)
+                }
             }
         }
 
@@ -196,8 +255,10 @@ impl Application
         var registered: u32
         defer #fail
         {
-            for index in registered do
+            for index in registered
+            {
                 discard catch LinuxDesktop.check(context, context.xcb_ungrab_key_checked(connection, code, context.screen.root, mask | locks[index]))
+            }
         }
 
         for lock in locks
@@ -214,14 +275,19 @@ impl Application
         let code          = catch nativeKeyCode(context, key) { return; }
         let mask          = nativeModifiers(modifiers)
         let locks: [4]u16 = [0, 2, 16, 18]
-        for lock in locks do
+        for lock in locks
+        {
             discard catch LinuxDesktop.check(context, context.xcb_ungrab_key_checked(connection, code, context.screen.root, mask | lock))
+        }
     }
 
     internal mtd sendSystemEvents()
     {
-        if not .renderer.needsNativeWindow() do
+        if not .renderer.needsNativeWindow()
+        {
             return
+        }
+
         .nativeKeyboardEvents = true
         .nativeMouseButtons   = true
         let context    = expect LinuxDesktop.ensure()
@@ -230,8 +296,11 @@ impl Application
         {
             let event = context.pendingEvent orelse context.xcb_poll_for_event(connection)
             context.pendingEvent = null
-            if not event do
+            if not event
+            {
                 break
+            }
+
             defer Linux.free(event)
             let kind = event.response_type & 0x7F
             if kind == 34 or (context.xkbEventBase != 0 and kind == context.xkbEventBase and event.pad0 <= 2)
@@ -249,8 +318,10 @@ impl Application
 
                 if changed
                 {
-                    for owned in context.surfaces do
+                    for owned in context.surfaces
+                    {
                         owned.app.notifyKeyboardLayoutChanged(owned.wnd)
+                    }
                 }
 
                 continue
@@ -274,7 +345,7 @@ impl Application
             {
                 refreshPreferences = cast(*Linux.xcb_property_notify_event_t, cast(*void, event)).atom == expect LinuxDesktop.atom(context, "RESOURCE_MANAGER")
             }
-            elif id == context.screen.root and kind == 33
+            else if id == context.screen.root and kind == 33
             {
                 let notice = cast(*Linux.xcb_client_message_event_t, cast(*void, event))
                 refreshPreferences = notice.type == expect LinuxDesktop.atom(context, "MANAGER") and
@@ -297,30 +368,42 @@ impl Application
                 let packet = cast(*Linux.xcb_key_press_event_t, cast(*void, event))
                 let key    = LinuxDesktop.portableKey(context, packet.detail, packet.state)
                 var modifiers: Input.KeyModifiers
-                if packet.state & 1 do
+                if packet.state & 1
+                {
                     modifiers |= .Shift
-                if packet.state & 4 do
+                }
+
+                if packet.state & 4
+                {
                     modifiers |= .Control
-                if packet.state & 8 do
+                }
+
+                if packet.state & 8
+                {
                     modifiers |= .Alt
+                }
+
                 .dispatchHotKey(modifiers, key)
                 continue
             }
 
             let surface = LinuxDesktop.surface(id)
-            if not surface do
+            if not surface
+            {
                 continue
+            }
+
             if id == surface.trayWindow
             {
                 if kind == 12 or kind == 22
                 {
                     surface.paintTrayIcon()
                 }
-                elif kind == 17
+                else if kind == 17
                 {
                     surface.trayWindow = 0
                 }
-                elif kind == 4
+                else if kind == 4
                 {
                     let packet = cast(*Linux.xcb_button_press_event_t, cast(*void, event))
                     if packet.detail == 1 or packet.detail == 3
@@ -335,8 +418,11 @@ impl Application
                 continue
             }
 
-            if dispatchDragNativeEvent(surface, event) do
+            if dispatchDragNativeEvent(surface, event)
+            {
                 continue
+            }
+
             switch kind
             {
             case 2, 3:
@@ -352,8 +438,10 @@ impl Application
                 {
                     if packet.detail == 4 or packet.detail == 5
                     {
-                        if kind == 4 do
+                        if kind == 4
+                        {
                             surface.app.sendMouseWheelEvent(surface, {packet.root_x, packet.root_y}, packet.detail == 4 ? 1 : -1)
+                        }
                     }
                     else
                     {
@@ -381,15 +469,18 @@ impl Application
 
             case 33:
                 let message = cast(*Linux.xcb_client_message_event_t, cast(*void, event))
-                if message.format != 32 do
+                if message.format != 32
+                {
                     continue
+                }
+
                 if message.type == expect LinuxDesktop.atom(context, "WM_PROTOCOLS")
                 {
                     if message.data[0] == expect LinuxDesktop.atom(context, "WM_DELETE_WINDOW")
                     {
                         postLinuxSurfaceCommand(surface, .Close)
                     }
-                    elif message.data[0] == expect LinuxDesktop.atom(context, "_NET_WM_PING")
+                    else if message.data[0] == expect LinuxDesktop.atom(context, "_NET_WM_PING")
                     {
                         message.window = context.screen.root
                         expect LinuxDesktop.check(context,
@@ -400,7 +491,7 @@ impl Application
                                                                                  cast(const [*]u8, message)))
                     }
                 }
-                elif message.type == expect LinuxDesktop.atom(context, "_SWAG_GUI_MESSAGE")
+                else if message.type == expect LinuxDesktop.atom(context, "_SWAG_GUI_MESSAGE")
                 {
                     var notice = SysUserEvent{}
                     notice.kind      = .CustomMessage
@@ -412,8 +503,10 @@ impl Application
         }
 
         // A queue of ConfigureNotify events needs one layout at the latest size.
-        for surface in context.surfaces do
+        for surface in context.surfaces
+        {
             surface.applyPendingNativeGeometry()
+        }
 
         if context.xcb_connection_has_error(connection) != 0
         {
@@ -432,19 +525,31 @@ impl Application
             let reply = context.xcb_translate_coordinates_reply(connection,
                                                                 context.xcb_translate_coordinates(connection, context.screen.root, parent, cast(s16, x), cast(s16, y)),
                                                                 null)
-            if not reply do
+            if not reply
+            {
                 return null
+            }
+
             let child = reply.child
             Linux.free(reply)
-            if child == 0 do
+            if child == 0
+            {
                 return null
+            }
+
             let surface = LinuxDesktop.surface(child)
             if surface
             {
-                if surface.app != me or surface.isDisabled do
+                if surface.app != me or surface.isDisabled
+                {
                     return null
-                if not .modalSurfaces.isEmpty() and surface != .modalSurfaces.back() do
+                }
+
+                if not .modalSurfaces.isEmpty() and surface != .modalSurfaces.back()
+                {
                     return null
+                }
+
                 return surface
             }
 
@@ -471,8 +576,11 @@ namespace LinuxDesktop
     {
         var symbols: const [*]u32?
         let count = context.xkb_keymap_key_get_syms_by_level(unwrap context.keyboardMap, code, 0, 0, &symbols)
-        if count <= 0 or not symbols do
+        if count <= 0 or not symbols
+        {
             return .None
+        }
+
         var symbol = symbols[0]
 
         // Keypad commands follow NumLock and Shift. Other shortcuts keep their base symbol.
@@ -489,11 +597,17 @@ namespace LinuxDesktop
     internal func dispatchKey(context: *Context, surface: *Surface, packet: *Linux.xcb_key_press_event_t, pressed: bool)
     {
         let app = surface.app
-        if not app.acceptsNativeKeyboard(surface) do
+        if not app.acceptsNativeKeyboard(surface)
+        {
             return
+        }
+
         let wasPressed = app.nativeKeyDown[packet.detail]
-        if not pressed and not wasPressed do
+        if not pressed and not wasPressed
+        {
             return
+        }
+
         let key = wasPressed ? app.nativeKeyPresses[packet.detail] : portableKey(context, packet.detail, packet.state)
 
         // Preserve the key across layout changes, including physical keys with no portable name.
@@ -502,15 +616,26 @@ namespace LinuxDesktop
         app.keyboard.setCurrentKeyState(key, pressed)
         let target = app.keyboardTarget(surface, seed: pressed)
         app.updateAccessKeyVisibility(key, pressed)
-        if not target do
+        if not target
+        {
             return
+        }
+
         var modifiers: Input.KeyModifiers
-        if packet.state & 1 do
+        if packet.state & 1
+        {
             modifiers |= .Shift
-        if packet.state & 4 do
+        }
+
+        if packet.state & 4
+        {
             modifiers |= .Control
-        if packet.state & 8 do
+        }
+
+        if packet.state & 8
+        {
             modifiers |= .Alt
+        }
 
         // X11 can deliver another KeyPress while the key remains held. Keep the physical
         // transition single, while still delivering the repeated text below.
@@ -518,12 +643,17 @@ namespace LinuxDesktop
         {
             var event = KeyEvent{kind: pressed ? .Pressed : .Released, key: key, modifiers: modifiers}
             target.sendEvent(&event)
-            if pressed and not event.accepted do
+            if pressed and not event.accepted
+            {
                 app.routeUnhandledKey(target, key, event.modifiers)
+            }
         }
 
-        if not pressed or not app.acceptsNativeKeyboard(surface) do
+        if not pressed or not app.acceptsNativeKeyboard(surface)
+        {
             return
+        }
+
         let keyboardState = unwrap context.keyboardState
         discard context.xkb_state_update_mask(keyboardState, packet.state & 255, 0, 0, 0, 0, (packet.state >> 13) & 3)
         var symbol = context.xkb_state_key_get_one_sym(keyboardState, packet.detail)
@@ -531,22 +661,27 @@ namespace LinuxDesktop
         {
             discard context.xkb_compose_state_feed(surface.compose, symbol)
             let status = context.xkb_compose_state_get_status(surface.compose)
-            if status == 1 do
+            if status == 1
+            {
                 return
+            }
+
             if status == 2
             {
                 // A compose result can contain several Unicode scalars and have no keysym.
                 let size = context.xkb_compose_state_get_utf8(surface.compose, null, 0)
                 if size > 0 and not (packet.state & 4)
                 {
-                    var bytes: Array'u8
+                    var bytes: Array!{u8}
                     bytes.resize(cast(u64, size) + 1)
                     let count = context.xkb_compose_state_get_utf8(surface.compose, bytes.buffer, bytes.count)
                     if count > 0 and count <= size
                     {
                         let runes = Unicode.fromUtf8(Swag.makeSlice(bytes.buffer, cast(u64, count)))
-                        for r in runes do
+                        for r in runes
+                        {
                             app.sendRuneEvent(key, r, modifiers, surface)
+                        }
                     }
                 }
 
@@ -554,15 +689,22 @@ namespace LinuxDesktop
                 return
             }
 
-            if status == 3 do
+            if status == 3
+            {
                 context.xkb_compose_state_reset(surface.compose)
-            if status == 3 do
+            }
+
+            if status == 3
+            {
                 return
+            }
         }
 
         let character = context.xkb_keysym_to_utf32(symbol)
-        if character >= 32 and character != 127 and not (packet.state & 4) do
+        if character >= 32 and character != 127 and not (packet.state & 4)
+        {
             app.sendRuneEvent(key, cast(rune, character), modifiers, surface)
+        }
     }
 }
 
@@ -610,15 +752,24 @@ impl Application
             context.xcb_format_next(&formats)
         }
 
-        if bits != 16 and bits != 24 and bits != 32 do
+        if bits != 16 and bits != 24 and bits != 32
+        {
             expect LinuxDesktop.failNative(Linux.ENOTSUP)
+        }
+
         let count = bits / 8
-        if context.xcb_get_image_data_length(reply) < count do
+        if context.xcb_get_image_data_length(reply) < count
+        {
             expect LinuxDesktop.failNative(Linux.EIO)
+        }
+
         let bytes = context.xcb_get_image_data(reply)
         var pixel: u32
-        for index in count do
+        for index in count
+        {
             pixel |= cast(u32, bytes[index]) << (setup.image_byte_order == 0 ? index * 8 : (count - 1 - index) * 8)
+        }
+
         var depths = context.xcb_screen_allowed_depths_iterator(unwrap context.screenPtr)
         while depths.rem > 0
         {
@@ -629,13 +780,18 @@ impl Application
                 let visual = unwrap visuals.data
                 if visual.visual_id == context.screen.root_visual
                 {
-                    if visual._class != 4 do
+                    if visual._class != 4
+                    {
                         expect LinuxDesktop.failNative(Linux.ENOTSUP)
+                    }
 
                     func channel(value, mask: u32)->u8
                     {
-                        if mask == 0 do
+                        if mask == 0
+                        {
                             return 0
+                        }
+
                         var shifted = mask
                         var result  = value
                         while shifted & 1 == 0
@@ -676,25 +832,43 @@ impl Application
         let position = Math.Point{packet.root_x, packet.root_y}
         .mouse.setCurrentButtonState(button, pressed)
         .mouse.setPositions(.mouse.position(), position)
-        if .dragEnterWnd do
+        if .dragEnterWnd
+        {
             return
+        }
+
         var target = .mouseCaptureWnd orelse .windowAt(position) orelse surface.windowAt(position)
         target = skipDisabled(target)
-        if not target do
+        if not target
+        {
             return
+        }
+
         var event = MouseEvent{kind: .Accept, surfacePos: target.screenToSurface(position)}
         event.target = target
         .sendEventPrivate(&event, .mouseEnterWnd)
         target = event.target
-        if not target do
+        if not target
+        {
             return
+        }
+
         event.button = button
-        if packet.state & 1 do
+        if packet.state & 1
+        {
             event.modifiers |= .Shift
-        if packet.state & 4 do
+        }
+
+        if packet.state & 4
+        {
             event.modifiers |= .Control
-        if packet.state & 8 do
+        }
+
+        if packet.state & 8
+        {
             event.modifiers |= .Alt
+        }
+
         event.kind = pressed ? .Pressed : .Released
         if pressed
         {

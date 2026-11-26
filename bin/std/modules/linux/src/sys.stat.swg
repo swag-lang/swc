@@ -1,18 +1,18 @@
 #global if #os == Swag.TargetOs.Linux
 #global export
 
-const UTIME_NOW  = 1_073_741_823's64
-const UTIME_OMIT = 1_073_741_822's64
+const UTIME_NOW  = 1_073_741_823_s64
+const UTIME_OMIT = 1_073_741_822_s64
 
-const S_IFMT  = 0xF000'u32
-const S_IFREG = 0x8000'u32
-const S_IFDIR = 0x4000'u32
-const S_IFLNK = 0xA000'u32
-const S_IFBLK = 0x6000'u32
-const S_IFCHR = 0x2000'u32
-const S_IWUSR = 0x80'u32
-const S_IWGRP = 0x10'u32
-const S_IWOTH = 0x2'u32
+const S_IFMT  = 0xF000_u32
+const S_IFREG = 0x8000_u32
+const S_IFDIR = 0x4000_u32
+const S_IFLNK = 0xA000_u32
+const S_IFBLK = 0x6000_u32
+const S_IFCHR = 0x2000_u32
+const S_IWUSR = 0x80_u32
+const S_IWGRP = 0x10_u32
+const S_IWOTH = 0x2_u32
 
 struct stat
 {

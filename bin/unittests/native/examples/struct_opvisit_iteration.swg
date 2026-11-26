@@ -23,10 +23,10 @@ impl ReversedShelfBins
     mtd(ptr: bool) const opVisit(stmt: #code(item: s32, index: u64))
         where not ptr
     {
-        #inject(stmt, item = .source.evening, index = 3'u64)
-        #inject(stmt, item = .source.afternoon, index = 2'u64)
-        #inject(stmt, item = .source.lunch, index = 1'u64)
-        #inject(stmt, item = .source.morning, index = 0'u64)
+        #inject(stmt, item = .source.evening, index = 3_u64)
+        #inject(stmt, item = .source.afternoon, index = 2_u64)
+        #inject(stmt, item = .source.lunch, index = 1_u64)
+        #inject(stmt, item = .source.morning, index = 0_u64)
     }
 }
 
@@ -43,10 +43,10 @@ impl ShelfBins
         #static if ptr
         {
 
-            #inject(stmt, item = cast(*s32, &(me.morning)), index = 0'u64)
-            #inject(stmt, item = cast(*s32, &(me.lunch)), index = 1'u64)
-            #inject(stmt, item = cast(*s32, &(me.afternoon)), index = 2'u64)
-            #inject(stmt, item = cast(*s32, &(me.evening)), index = 3'u64)
+            #inject(stmt, item = cast(*s32, &(me.morning)), index = 0_u64)
+            #inject(stmt, item = cast(*s32, &(me.lunch)), index = 1_u64)
+            #inject(stmt, item = cast(*s32, &(me.afternoon)), index = 2_u64)
+            #inject(stmt, item = cast(*s32, &(me.evening)), index = 3_u64)
         }
         else
         {
@@ -91,16 +91,20 @@ impl ShelfBins
 func countUnits(bins: ShelfBins)->s32
 {
     var total: s32
-    for readUnits in bins do
+    for readUnits in bins
+    {
         total += readUnits
+    }
     return total
 }
 
 func reverseCode(bins: ShelfBins)->s32
 {
     var code: s32
-    for reverseUnits in (bins).reversed() do
+    for reverseUnits in (bins).reversed()
+    {
         code = code * 10 + reverseUnits
+    }
     return code
 }
 
@@ -114,8 +118,10 @@ func reverseCode(bins: ShelfBins)->s32
 
     for &writeUnits, slot in bins
     {
-        if slot != 1'u64 do
+        if slot != 1_u64
+        {
             writeUnits[] += 3 + cast(s32, slot)
+        }
     }
 
     Swag.require(bins.morning == 5)

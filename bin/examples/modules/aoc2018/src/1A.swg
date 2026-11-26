@@ -34,8 +34,10 @@ func day1A()
     let lines    = expect File.readAllLines(dataPath)
 
     var total = 0
-    for l in lines do
+    for l in lines
+    {
         total += expect StrConv.toS32(l[1 to ]) * (l[0] == '-' ? -1 : 1)
+    }
 
     Swag.assert(total == 420)
 }

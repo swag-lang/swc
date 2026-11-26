@@ -24,19 +24,23 @@ func median(a, b, c: s32)->s32 => Math.max(Math.min(a, b), Math.min(Math.max(a, 
 // that step the vector sits. A code of zero carries no residual whatever the step.
 func readVectorDelta(reader: *BitReader, fcode: u32, result: *Vector)->bool
 {
-    let step = 1's32 << (fcode - 1)
+    let step = 1_s32 << (fcode - 1)
     let bits = fcode - 1
 
-    for component in 2'u32
+    for component in 2_u32
     {
         let entry = reader.decode(MvdTree)
-        if entry < 0 do
+        if entry < 0
+        {
             return false
+        }
 
         let coded    = cast(s32, MvdDelta[cast(u64, entry)])
-        var residual = 0's32
-        if step != 1 and coded != 0 do
+        var residual = 0_s32
+        if step != 1 and coded != 0
+        {
             residual = cast(s32, reader.read(bits))
+        }
 
         var value = coded
         if step != 1 and coded != 0
@@ -45,10 +49,14 @@ func readVectorDelta(reader: *BitReader, fcode: u32, result: *Vector)->bool
             value = coded < 0 ? -magnitude : magnitude
         }
 
-        if not component do
+        if not component
+        {
             result.x = value
-        else do
+        }
+        else
+        {
             result.y = value
+        }
     }
 
     return true
@@ -57,16 +65,22 @@ func readVectorDelta(reader: *BitReader, fcode: u32, result: *Vector)->bool
 // Folds a predicted vector back into the range the code allows, clause 7.6.3.
 func wrapVector(value: s32, fcode: u32)->s32
 {
-    let step  = 1's32 << (fcode - 1)
+    let step  = 1_s32 << (fcode - 1)
     let low   = -32 * step
     let high  = 32 * step - 1
     let range = 64 * step
 
     var result = value
-    if result < low do
+    if result < low
+    {
         result += range
-    if result > high do
+    }
+
+    if result > high
+    {
         result -= range
+    }
+
     return result
 }
 
@@ -88,7 +102,7 @@ func chromaVector(vectors: const [..] Vector)->Vector
     let table: const [..] u8 = count == 4 ? ChromaRoundFourBlocks
                                : (count == 3 ? ChromaRoundThreeBlocks
                                   : (count == 2 ? ChromaRoundTwoBlocks : ChromaRoundOneBlock))
-    let span = 4's32 * cast(s32, count)
+    let span = 4_s32 * cast(s32, count)
 
     var result: #returntype
     result.x = reduceChroma(sum.x, span, table)
@@ -114,7 +128,7 @@ private func reduceChroma(sum, span: s32, table: const [..] u8)->s32
 }
 
 // A prediction covers one 8x8 block of the padded reference plane.
-private const BlockSize = 8'u64
+private const BlockSize = 8_u64
 
 #[Swag.Inline]
 func loadPixels(source: const [*] u8)->Math.Simd.U8x16
@@ -128,7 +142,7 @@ private func interpolatePair(a, b: Math.Simd.U8x16, rounding: u32)->Math.Simd.U8
     let average = Math.Simd.average(a, b)
 
     // The hardware rounds up. Rounding control removes that increment from odd sums.
-    return rounding ? average - ((a ^ b) & Math.Simd.splat(1'u8)) : average
+    return rounding ? average - ((a ^ b) & Math.Simd.splat(1_u8)) : average
 }
 
 // Copies one block out of a reference plane, interpolating where the vector points between
@@ -150,14 +164,17 @@ func compensate(destination: [*] u8, destinationStride: u64, source: const [*] u
 
     if not halfX and not halfY
     {
-        for row in BlockSize do
+        for row in BlockSize
+        {
             cast([*] u64, destination + row * destinationStride)[0] = cast(const [*] u64, first + row * sourceStride)[0]
+        }
+
         return
     }
 
     if halfX != halfY
     {
-        let step = halfX ? 1'u64 : sourceStride
+        let step = halfX ? 1_u64 : sourceStride
         for row in BlockSize
         {
             let line   = first + row * sourceStride

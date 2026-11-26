@@ -201,7 +201,7 @@ struct LocalVarKeyEvent
     }
 
     const V = #run bigStructLiteralInit()
-    #assert(V == 19'u64)
+    #assert(V == 19_u64)
 }
 
 #test
@@ -213,7 +213,7 @@ struct LocalVarKeyEvent
     }
 
     const V = #run bigStructNoInitVar()
-    #assert(V == 0'u64)
+    #assert(V == 0_u64)
 }
 
 #test
@@ -225,7 +225,7 @@ struct LocalVarKeyEvent
     }
 
     const V = #run bigStructDefaultsAll()
-    #assert(V == 31'u64)
+    #assert(V == 31_u64)
 }
 
 #test
@@ -237,7 +237,7 @@ struct LocalVarKeyEvent
     }
 
     const V = #run bigStructDefaultsPartial()
-    #assert(V == 320'u64)
+    #assert(V == 320_u64)
 }
 
 #test

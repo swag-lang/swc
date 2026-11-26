@@ -23,8 +23,10 @@ func cellIndex(x, y, width: u32)->u32
 
 func absDiff(a, b: u32)->u32
 {
-    if a > b do
+    if a > b
+    {
         return a - b
+    }
     return b - a
 }
 
@@ -53,13 +55,17 @@ func countCheats(layout: const [..] string, maxCheatLength, minSaving: u32)->u32
             let index = cellIndex(x, cast(u32, rowIndex), width)
             let cell  = row[x]
 
-            walkable[index]      = cell != '#'u8
+            walkable[index]      = cell != '#'_u8
             distFromStart[index] = Swag.U32.Max
             distFromEnd[index]   = Swag.U32.Max
-            if cell == 'S'u8 do
+            if cell == 'S'_u8
+            {
                 startCell = index
-            if cell == 'E'u8 do
+            }
+            if cell == 'E'_u8
+            {
                 endCell = index
+            }
         }
     }
 
@@ -190,8 +196,10 @@ func countCheats(layout: const [..] string, maxCheatLength, minSaving: u32)->u32
     for idx in totalCells
     {
         let fromCell = cast(u32, idx)
-        if not walkable[fromCell] or distFromStart[fromCell] == Swag.U32.Max do
+        if not walkable[fromCell] or distFromStart[fromCell] == Swag.U32.Max
+        {
             continue
+        }
 
         let fromX = fromCell % width
         let fromY = fromCell / width
@@ -199,16 +207,22 @@ func countCheats(layout: const [..] string, maxCheatLength, minSaving: u32)->u32
         for ordinal in totalCells
         {
             let toCell = cast(u32, ordinal)
-            if not walkable[toCell] or distFromEnd[toCell] == Swag.U32.Max do
+            if not walkable[toCell] or distFromEnd[toCell] == Swag.U32.Max
+            {
                 continue
+            }
 
             let cheatLength = absDiff(fromX, toCell % width) + absDiff(fromY, toCell / width)
-            if cheatLength == 0 or cheatLength > maxCheatLength do
+            if cheatLength == 0 or cheatLength > maxCheatLength
+            {
                 continue
+            }
 
             let cheatedDistance = distFromStart[fromCell] + cheatLength + distFromEnd[toCell]
-            if cheatedDistance + minSaving <= baseDistance do
+            if cheatedDistance + minSaving <= baseDistance
+            {
                 result += 1
+            }
         }
     }
 

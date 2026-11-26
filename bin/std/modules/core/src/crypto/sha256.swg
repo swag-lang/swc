@@ -171,9 +171,16 @@ impl Sha256
     {
         var m: [64] u32
 
-        let input = cast(const [*] u32, buf)
-        for index in 16 do
-            m[index] = Math.bigEndianToNative(input[index])
+        var i, j = 0_u32
+        while i < 16
+        {
+            m[i] = (cast(u32, buf[j]) << 24) |
+                   (cast(u32, buf[j + 1]) << 16) |
+                   (cast(u32, buf[j + 2]) << 8) |
+                   buf[j + 3]
+            i += 1
+            j += 4
+        }
 
         var i = 16'u32
         while i < 64
@@ -324,8 +331,11 @@ public impl Sha224
     // Includes `buffer` in the running digest.
     mtd update(buffer: const [..] u8)
     {
-        if not .initialized do
+        if not .initialized
+        {
             .reset()
+        }
+
         .core.update(buffer)
     }
 
@@ -338,12 +348,18 @@ public impl Sha224
     // Finalizes the current sequence and returns its 224-bit digest.
     mtd finalize()->Digest
     {
-        if not .initialized do
+        if not .initialized
+        {
             .reset()
+        }
+
         let fullDigest = .core.finalize()
         var result: #returntype
-        for index in result.count do
+        for index in result.count
+        {
             result[index] = fullDigest[index]
+        }
+
         return result
     }
 

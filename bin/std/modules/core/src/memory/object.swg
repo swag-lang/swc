@@ -5,8 +5,11 @@ using Swag
 
 private func checkedArraySize(elementSize, count: u64, loc: Swag.SourceCodeLocation)->u64
 {
-    if elementSize and count > Swag.U64.Max / elementSize do
+    if elementSize and count > Swag.U64.Max / elementSize
+    {
         Swag.panic("memory region size exceeds addressable range", loc)
+    }
+
     return elementSize * count
 }
 
@@ -17,8 +20,10 @@ private func checkedArraySize(elementSize, count: u64, loc: Swag.SourceCodeLocat
 func new(type: typeinfo, allocator: IAllocator? = null, alignment: u32 = 0, hint: string? = null, loc = #callerlocation)->*u8
 {
     let userHint = hint orelse type.fullname
-    if not canDefaultInit(type) do
+    if not canDefaultInit(type)
+    {
         Swag.panic("Memory.new cannot default-initialize this type", loc)
+    }
 
     let ptr = alloc(cast(u64, type.sizeof), allocator, alignment, userHint, loc)
     defaultInit(ptr, type)
@@ -41,8 +46,11 @@ func(T) new(allocator: IAllocator? = null, alignment: u32 = 0, hint: string? = n
 // `ptr` does nothing.
 func(T) delete(ptr: *T?, allocator: IAllocator? = null, hint: string? = null, loc = #callerlocation)
 {
-    if not ptr do
+    if not ptr
+    {
         return
+    }
+
     let userHint = hint orelse #stringof(T)
     assertIsAllocated(ptr, #sizeof(T), allocator, userHint, loc)
     Swag.drop(ptr)
@@ -54,8 +62,10 @@ func(T) delete(ptr: *T?, allocator: IAllocator? = null, hint: string? = null, lo
 // A null `ptr` does nothing.
 func delete(ptr: *void?, type: typeinfo, allocator: IAllocator? = null, hint: string? = null, loc = #callerlocation)
 {
-    if not ptr do
+    if not ptr
+    {
         return
+    }
 
     Swag.assert(type != null)
     let userHint = hint orelse type.name
@@ -86,8 +96,11 @@ func(T) new(num: u64, allocator: IAllocator? = null, alignment: u32 = 0, hint: s
 // A null `ptr` does nothing. Panics if the total byte size exceeds the addressable range.
 func(T) delete(ptr: [*] T?, num: u64, allocator: IAllocator? = null, hint: string? = null, loc = #callerlocation)
 {
-    if not ptr do
+    if not ptr
+    {
         return
+    }
+
     Swag.assert(num > 0)
 
     let userHint  = hint orelse #stringof(T)

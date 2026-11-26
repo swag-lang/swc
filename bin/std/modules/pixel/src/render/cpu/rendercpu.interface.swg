@@ -91,7 +91,7 @@ impl IRenderer for RenderCpu
 
     mtd impl updateTexture(texture: Texture, pixels: const *u8)->bool => .updateTextureImpl(texture, pixels)
 
-    mtd impl readTexturePixels(texture: Texture, pixelFormat: PixelFormat)->Array'u8 => .readTexturePixelsImpl(texture, pixelFormat)
+    mtd impl readTexturePixels(texture: Texture, pixelFormat: PixelFormat)->Array!{u8} => .readTexturePixelsImpl(texture, pixelFormat)
 
     mtd impl removeTexture(texture: *Texture)
     {

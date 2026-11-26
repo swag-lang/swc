@@ -19,11 +19,11 @@ impl GenericSizeBox
     #[Swag.NoInline]
     mtd byteCount(count: u64)->u64
     {
-        #assert(#sizeof(GenericSizeEntry'(T)) == #sizeof(GenericSizeEntry's32))
-        #assert(#alignof(GenericSizeEntry'(T)) == #alignof(GenericSizeEntry's32))
-        #assert(#sizeof(GenericSizeEntryAlias'(T)) == #sizeof(GenericSizeEntry's32))
-        #assert(#alignof(GenericSizeEntryAlias'(T)) == #alignof(GenericSizeEntry's32))
-        return count * #sizeof(GenericSizeEntry'(T)) + #alignof(GenericSizeEntry'(T))
+        #assert(#sizeof(GenericSizeEntry!{T}) == #sizeof(GenericSizeEntry!{s32}))
+        #assert(#alignof(GenericSizeEntry!{T}) == #alignof(GenericSizeEntry!{s32}))
+        #assert(#sizeof(GenericSizeEntryAlias!{T}) == #sizeof(GenericSizeEntry!{s32}))
+        #assert(#alignof(GenericSizeEntryAlias!{T}) == #alignof(GenericSizeEntry!{s32}))
+        return count * #sizeof(GenericSizeEntry!{T}) + #alignof(GenericSizeEntry!{T})
     }
 
     #[Swag.NoInline]
@@ -41,7 +41,7 @@ impl GenericSizeBox
 
 #test
 {
-    var box: GenericSizeBox's32
+    var box: GenericSizeBox!{s32}
     let entry      = box.makeEntry(7)
     let aliasEntry = box.makeAliasedEntry(9)
 
@@ -51,8 +51,8 @@ impl GenericSizeBox
     #assert(#offsetof(aliasEntry.hash) == 0)
     #assert(#offsetof(aliasEntry.first) == 4)
     #assert(#offsetof(aliasEntry.second) == 8)
-    #assert(#typeof(entry) == GenericSizeEntry's32)
-    #assert(#typeof(aliasEntry) == GenericSizeEntry's32)
+    #assert(#typeof(entry) == GenericSizeEntry!{s32})
+    #assert(#typeof(aliasEntry) == GenericSizeEntry!{s32})
     Swag.require(box.byteCount(4) == 52)
     Swag.require(entry.hash == 1)
     Swag.require(entry.first == 7)

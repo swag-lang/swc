@@ -26,8 +26,11 @@ impl Window
     // follows [[Core.Env.XcbDrawable]]'s lifetime; moving the owner does not change the drawable.
     public mtd xcbDrawable()->XcbDrawable fail
     {
-        if not .isOpen() do
+        if not .isOpen()
+        {
             fail Errors.BadParameterError{"an XCB drawable needs an open window"}
+        }
+
         let window  = cast(const *LinuxDesktop.WindowState, unwrap .nativeHandle)
         let context = unwrap window.context
         try LinuxDesktop.requireUiThread(context)

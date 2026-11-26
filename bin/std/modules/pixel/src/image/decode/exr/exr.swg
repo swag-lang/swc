@@ -9,8 +9,7 @@
 
 using Core, Core.Errors, Core.Math
 
-const Magic            = 20000630'u32
-const ParallelZipBytes = 512'u64 * 1024
+const Magic = 20000630_u32
 
 struct Channel
 {
@@ -18,7 +17,7 @@ struct Channel
     pixelType: u32
 }
 
-internal struct Decoder { bytes: const [..] u8?; parts: Array'Part; multipart: bool }
+internal struct Decoder { bytes: const [..] u8?; parts: Array!{Part}; multipart: bool }
 
 #[Swag.Inline]
 func readU16(source: const [*] u8)->u16 => cast(u16, source[0]) | (cast(u16, source[1]) << 8)
@@ -35,39 +34,52 @@ func readF32(source: const [*] u8)->f32 => cast #bit (f32, readU32(source))
 func readText(buffer: const [..] u8, offset: *u64)->string fail
 {
     let start = offset[]
-    if start >= buffer.count do
+    while offset[] < buffer.count and buffer[offset[]] and offset[] - start <= maxLength
+    {
+        offset[] += 1
+    }
+
+    if offset[] >= buffer.count or offset[] - start > maxLength
+    {
         fail InvalidFormatError{"OpenEXR header string is not terminated"}
-    let source = buffer.buffer + start
-    let limit  = Math.min(buffer.count - start, 256'u64)
-    var length: u64
-    while length < limit and source[length] do
-        length += 1
-    if length == limit do
-        fail InvalidFormatError{"OpenEXR header string is not terminated"}
-    offset[] = start + length + 1
-    return cast(string, Swag.makeSlice(source, length))
+    }
+
+    let result = String.from(cast(string, Swag.makeSlice(buffer.buffer + start, offset[] - start)))
+    offset[] += 1
+    return result
 }
 
-func parseChannels(payload: const [..] u8)->Array'Channel fail
+func parseChannels(payload: const [..] u8)->Array!{Channel} fail
 {
     var result: #returntype
-    var offset = 0'u64
+    var offset = 0_u64
     while offset < payload.count and payload[offset]
     {
-        let name = try readText(payload, &offset)
-        if offset + 16 > payload.count do
+        let name = #move try readText(payload, &offset, 255)
+        if offset + 16 > payload.count
+        {
             fail InvalidFormatError{"OpenEXR channel entry is truncated"}
+        }
+
         let pixelType = readU32(payload.buffer + offset)
         let xSampling = readU32(payload.buffer + offset + 8)
         let ySampling = readU32(payload.buffer + offset + 12)
-        if pixelType != 1 and pixelType != 2 do
+        if pixelType != 1 and pixelType != 2
+        {
             fail UnsupportedFormatError{"OpenEXR UINT channels are not supported"}
-        if xSampling != 1 or ySampling != 1 do
+        }
+
+        if xSampling != 1 or ySampling != 1
+        {
             fail UnsupportedFormatError{"OpenEXR subsampled channels are not supported"}
+        }
+
         for &channel in result
         {
-            if channel.name == name do
+            if channel.name.toString() == name.toString()
+            {
                 fail InvalidFormatError{"OpenEXR channel name is duplicated"}
+            }
         }
 
         var channel: Channel
@@ -77,8 +89,11 @@ func parseChannels(payload: const [..] u8)->Array'Channel fail
         offset += 16
     }
 
-    if offset >= payload.count or payload[offset] != 0 do
+    if offset >= payload.count or payload[offset] != 0
+    {
         fail InvalidFormatError{"OpenEXR channel list is not terminated"}
+    }
+
     return result
 }
 
@@ -144,46 +159,12 @@ func restoreZipPlanes(data: [..] u8)
         offset += 16
     }
 
-    var tail = carry[0]
-    while offset < data.count
+    for i in rangeTo(1_u64, data.count - 1)
     {
-        tail         += #wrap data[offset]
-        data[offset] = tail ^ (offset & 1 ? 128 : 0)
-        offset       += 1
-    }
-}
-
-func undoZipPredictor(data: [..] u8, reordered: *Array'u8)
-{
-    reordered.grow(data.count)
-    reordered.count = data.count
-    if not data.count do
-        return
-    restoreZipPlanes(data)
-
-    // Interleave the restored byte planes without reading beyond the last complete pair.
-    let pairs  = data.count / 2
-    let high   = data.buffer + data.count - pairs
-    var offset = 0'u64
-    while pairs - offset >= 16
-    {
-        let lowBytes  = Simd.load(data.buffer + offset)
-        let highBytes = Simd.load(high + offset)
-        let target    = reordered.storage() + offset * 2
-        Simd.store(target, Simd.interleaveLow(lowBytes, highBytes))
-        Simd.store(target + 16, Simd.interleaveHigh(lowBytes, highBytes))
-        offset += 16
+        reordered[i] = cast(u8, ((cast(u32, reordered[i - 1]) + reordered[i] + 128) & 0xFF))
     }
 
-    while offset < pairs
-    {
-        reordered[offset * 2]     = data[offset]
-        reordered[offset * 2 + 1] = high[offset]
-        offset += 1
-    }
-
-    if data.count & 1 do
-        reordered[offset * 2] = data[offset]
+    Memory.copy(data.buffer, reordered.storage(), data.count)
 }
 
 func channelComponent(name: string)->s32
@@ -529,20 +510,26 @@ func writeGrayFloatChunk(image: *Image, source: const [..] u8, firstRow, rows: s
 
 func writeGrayscaleChunk(image: *Image, channels: const [..] Channel, source: const [..] u8, firstY, rowCount, yMin: s32) fail
 {
-    var offset = 0'u64
+    var offset = 0_u64
     for row in rowCount
     {
         let fileY   = firstY + row
         let targetY = image.height - (fileY - yMin) - 1
-        if targetY < 0 or targetY >= image.height do
+        if targetY < 0 or targetY >= image.height
+        {
             fail InvalidFormatError{"OpenEXR scanline lies outside the data window"}
+        }
+
         for &channel in channels
         {
-            let bytes        = channel.pixelType == 1 ? 2'u64 : 4'u64
+            let bytes        = channel.pixelType == 1 ? 2_u64 : 4_u64
             let channelBytes = cast(u64, image.width) * bytes
-            if channelBytes > source.count - offset do
+            if channelBytes > source.count - offset
+            {
                 fail InvalidFormatError{"OpenEXR channel pixels are truncated"}
-            let component = channelComponent(channel.name)
+            }
+
+            let component = channelComponent(channel.name.toString())
             if component >= 0
             {
                 for x in image.width
@@ -579,8 +566,10 @@ func writeGrayscaleChunk(image: *Image, channels: const [..] Channel, source: co
         }
     }
 
-    if offset != source.count do
+    if offset != source.count
+    {
         fail InvalidFormatError{"OpenEXR chunk has bytes after its channel data"}
+    }
 }
 
 struct ScanlineLayout
@@ -620,7 +609,7 @@ struct ScanlineScratch
 
 struct Part
 {
-    channels:    Array'Channel
+    channels:    Array!{Channel}
     compression: u8
     info:        ImageFrameInfo
     yMin:        s32
@@ -642,47 +631,62 @@ impl Part
         var partType      = ""
         while offset[] < buffer.count and buffer[offset[]]
         {
-            let name = try readText(buffer, offset)
-            let type = try readText(buffer, offset)
-            if offset[] + 4 > buffer.count do
+            let name = try readText(buffer, offset, 255)
+            let type = try readText(buffer, offset, 255)
+            if offset[] + 4 > buffer.count
+            {
                 fail InvalidFormatError{"OpenEXR attribute size is truncated"}
+            }
+
             let size = cast(u64, readU32(buffer.buffer + offset[]))
             offset[] += 4
-            if size > buffer.count - offset[] do
+            if size > buffer.count - offset[]
+            {
                 fail InvalidFormatError{"OpenEXR attribute exceeds the file"}
+            }
+
             let payload = buffer[offset[] until offset[] + size]
             if name == "channels" and type == "chlist"
             {
                 result.channels = try parseChannels(payload)
             }
-            elif name == "compression" and type == "compression"
+            else if name.toString() == "compression" and type.toString() == "compression"
             {
-                if size != 1 do
+                if size != 1
+                {
                     fail InvalidFormatError{"OpenEXR compression attribute has an invalid size"}
+                }
+
                 result.compression = payload[0]
             }
-            elif name == "dataWindow" and type == "box2i"
+            else if name.toString() == "dataWindow" and type.toString() == "box2i"
             {
-                if size != 16 do
+                if size != 16
+                {
                     fail InvalidFormatError{"OpenEXR data window has an invalid size"}
+                }
+
                 xMin = cast #bit(s32, readU32(payload.buffer))
                 yMin = cast #bit(s32, readU32(payload.buffer + 4))
                 xMax = cast #bit(s32, readU32(payload.buffer + 8))
                 yMax = cast #bit(s32, readU32(payload.buffer + 12))
                 hasDataWindow = true
             }
-            elif name == "chunkCount" and type == "int"
+            else if name.toString() == "chunkCount" and type.toString() == "int"
             {
-                if size != 4 do
+                if size != 4
+                {
                     fail InvalidFormatError{"OpenEXR chunk count has an invalid size"}
+                }
+
                 declaredChunks = readU32(payload.buffer)
                 hasChunkCount  = true
             }
-            elif name == "name" and type == "string"
+            else if name.toString() == "name" and type.toString() == "string"
             {
                 result.info.name = cast(string, payload)
             }
-            elif name == "type" and type == "string"
+            else if name.toString() == "type" and type.toString() == "string"
             {
                 partType = cast(string, payload)
             }
@@ -690,19 +694,34 @@ impl Part
             offset[] += size
         }
 
-        if offset[] >= buffer.count do
+        if offset[] >= buffer.count
+        {
             fail InvalidFormatError{"OpenEXR header is not terminated"}
+        }
+
         offset[] += 1
-        if not result.channels.count or not hasDataWindow or result.compression == 255 do
+        if not result.channels.count or not hasDataWindow or result.compression == 255
+        {
             fail InvalidFormatError{"OpenEXR required attributes are missing"}
-        if multipart and (not hasChunkCount or not result.info.name.count or partType != "scanlineimage") do
+        }
+
+        if multipart and (not hasChunkCount or not result.info.name.count or partType.toString() != "scanlineimage")
+        {
             fail UnsupportedFormatError{"OpenEXR parts require a name, chunk count, and scanline image type"}
-        if result.compression != 0 and result.compression != 2 and result.compression != 3 do
+        }
+
+        if result.compression != 0 and result.compression != 2 and result.compression != 3
+        {
             fail UnsupportedFormatError{"OpenEXR compression is not NONE, ZIPS, or ZIP"}
+        }
+
         let width  = cast(s64, xMax) - xMin + 1
         let height = cast(s64, yMax) - yMin + 1
-        if width <= 0 or height <= 0 or width > Swag.S32.Max or height > Swag.S32.Max do
+        if width <= 0 or height <= 0 or width > Swag.S32.Max or height > Swag.S32.Max
+        {
             fail InvalidFormatError{"OpenEXR data window dimensions are invalid"}
+        }
+
         var hasR, hasG, hasB, hasY, hasAlpha, hasFloat: bool
         for channel in result.channels
         {
@@ -720,10 +739,16 @@ impl Part
             result.rowBytes += cast(u64, width) * (channel.pixelType == 1 ? 2 : 4)
         }
 
-        if not (hasY or (hasR and hasG and hasB)) do
+        if not (hasY or (hasR and hasG and hasB))
+        {
             fail UnsupportedFormatError{"OpenEXR image has neither Y nor RGB color channels"}
-        if hasY and hasR and hasG and hasB do
+        }
+
+        if hasY and hasR and hasG and hasB
+        {
             fail UnsupportedFormatError{"OpenEXR images with both Y and RGB channels are not supported"}
+        }
+
         let grayscale = hasY and not (hasR and hasG and hasB)
         var format: PixelFormat
         if hasFloat
@@ -757,10 +782,13 @@ impl Part
         result.info.pixelFormat = format
         result.yMin             = yMin
         try options.checkImage(result.info.width, result.info.height, format)
-        let linesPerChunk = result.compression == 3 ? 16'u64 : 1'u64
+        let linesPerChunk = result.compression == 3 ? 16_u64 : 1_u64
         result.chunkCount = (cast(u64, height) + linesPerChunk - 1) / linesPerChunk
-        if hasChunkCount and declaredChunks != result.chunkCount do
+        if hasChunkCount and declaredChunks != result.chunkCount
+        {
             fail InvalidFormatError{"OpenEXR chunk count disagrees with the data window"}
+        }
+
         return result
     }
 
@@ -1017,52 +1045,15 @@ impl Part
     {
         var result: #returntype
         result.init(.info.width, .info.height, .info.pixelFormat)
-        if not options.decodePixels do
+        if not options.decodePixels
+        {
             return result
+        }
+
         result.allocPixels()
-        let grayscale  = result.pixelFormat.isGrayscale()
-        let halfColor  = result.pixelFormat == .RGBF16 or result.pixelFormat == .RGBAF16
-        let packedGray = grayscale and .channels.count == result.pixelFormat.channels()
-        let grayHalf   = packedGray and result.pixelFormat.bitDepth() == 16
-        let alphaFirst = packedGray and .channels[0].name == "A"
-        var grayBytes, alphaBytes: u8
-        if packedGray and not grayHalf
-        {
-            grayBytes = .channels[alphaFirst ? 1 : 0].pixelType == 1 ? 2 : 4
-            if .channels.count == 2 do
-                alphaBytes = .channels[alphaFirst ? 0 : 1].pixelType == 1 ? 2 : 4
-        }
-
-        // The packed paths write all channels of each validated row.
-        if grayscale and not packedGray do
-            result.fill(Argb.Black)
-
-        // Each scanline repeats the same channel planes in file order.
-        var channelOffsets: [4] u64
-        var halfChannels:   u8
-        let floatColor = not grayscale and not halfColor and .rowBytes == cast(u64, result.rowStride)
-        if halfColor or floatColor
-        {
-            let planeBytes = cast(u64, result.width) * (halfColor ? 2 : 4)
-            for channel, position in .channels do
-                channelOffsets[cast(u64, channelComponent(channel.name))] = position * planeBytes
-        }
-        elif not grayscale
-        {
-            var offset: u64
-            for channel in .channels
-            {
-                let component = cast(u64, channelComponent(channel.name))
-                let bytes     = channel.pixelType == 1 ? 2'u64 : 4'u64
-                channelOffsets[component] = offset
-                if bytes == 2 do
-                    halfChannels |= 1'u8 << component
-                offset += cast(u64, result.width) * bytes
-            }
-        }
-
-        let linesPerChunk = .compression == 3 ? 16'u64 : 1'u64
-        var seenRows: Array'bool
+        result.fill(Argb.Black)
+        let linesPerChunk = .compression == 3 ? 16_u64 : 1_u64
+        var seenRows: Array!{bool}
         seenRows.resize(cast(u64, .info.height))
         var layout: ScanlineLayout = {channelOffsets, grayBytes, alphaBytes, halfChannels, grayscale, grayHalf, halfColor, floatColor, alphaFirst}
 
@@ -1088,8 +1079,75 @@ impl Part
         var scratch: ScanlineScratch = {}
         for chunkIndex in .chunkCount
         {
-            let chunk = try .readScanlineChunk(buffer, chunkIndex, index, multipart, linesPerChunk, seenRows.toSlice(), options.maxDecodedBytes)
-            try .decodeScanlineChunk(&result, chunk, layout, &scratch)
+            var chunkOffset = readU64(buffer.buffer + .tableOffset + chunkIndex * 8)
+            let headerSize  = multipart ? 12_u64 : 8_u64
+            if chunkOffset > buffer.count or headerSize > buffer.count - chunkOffset
+            {
+                fail InvalidFormatError{"OpenEXR chunk offset points outside the file"}
+            }
+
+            if multipart
+            {
+                if readU32(buffer.buffer + chunkOffset) != index
+                {
+                    fail InvalidFormatError{"OpenEXR chunk belongs to another part"}
+                }
+
+                chunkOffset += 4
+            }
+
+            let firstY     = cast #bit(s32, readU32(buffer.buffer + chunkOffset))
+            let packedSize = cast(u64, readU32(buffer.buffer + chunkOffset + 4))
+            if packedSize > buffer.count - chunkOffset - 8
+            {
+                fail InvalidFormatError{"OpenEXR chunk is truncated"}
+            }
+
+            let relativeY = cast(s64, firstY) - .yMin
+            if relativeY < 0 or relativeY >= .info.height or cast(u64, relativeY) % linesPerChunk
+            {
+                fail InvalidFormatError{"OpenEXR chunk starts outside its scanline block"}
+            }
+
+            let rows = Math.min(cast(s32, linesPerChunk), .info.height - cast(s32, relativeY))
+            for row in rows
+            {
+                let y = cast(u64, relativeY) + cast(u64, row)
+                if seenRows[y]
+                {
+                    fail InvalidFormatError{"OpenEXR scanline occurs more than once"}
+                }
+
+                seenRows[y] = true
+            }
+
+            let expected = .rowBytes * cast(u64, rows)
+            if options.maxDecodedBytes and expected > options.maxDecodedBytes
+            {
+                fail UnsupportedFormatError{"OpenEXR chunk exceeds the decoded byte limit"}
+            }
+
+            var unpacked: Array!{u8}
+            var pixels = buffer[chunkOffset + 8 until chunkOffset + 8 + packedSize]
+            if .compression
+            {
+                var zlib: Compress.ZLib
+                unpacked = try zlib.decompress(pixels, expected)
+                if unpacked.count != expected
+                {
+                    fail InvalidFormatError{"OpenEXR ZIP chunk has an invalid decoded size"}
+                }
+
+                undoZipPredictor(unpacked.toSlice())
+                pixels = unpacked.toSlice()
+            }
+
+            if pixels.count != expected
+            {
+                fail InvalidFormatError{"OpenEXR scanline chunk has an invalid size"}
+            }
+
+            try writeChunk(&result, .channels.toSlice(), pixels, firstY, rows, .yMin)
         }
 
         return result
@@ -1112,11 +1170,26 @@ impl IImageSetDecoder for Decoder
 {
     mtd impl open(buffer: const [..] u8, options: DecodeOptions)->ImageSetInfo fail
     {
-        let version = try readVersion(buffer)
+        if buffer.count < 9 or readU32(buffer.buffer) != Magic
+        {
+            fail InvalidFormatError{"OpenEXR signature or header is truncated"}
+        }
+
+        let version = readU32(buffer.buffer + 4)
+        if (version & 0xFF) != 2
+        {
+            fail UnsupportedFormatError{"OpenEXR file version is not 2"}
+        }
+
+        if version & 0xA00
+        {
+            fail UnsupportedFormatError{"tiled and deep OpenEXR images are not supported"}
+        }
+
         .multipart = (version & 0x1000) != 0
         .bytes     = buffer
         .parts.clear()
-        var offset = 8'u64
+        var offset = 8_u64
         var result: #returntype
         for
         {
@@ -1124,10 +1197,16 @@ impl IImageSetDecoder for Decoder
             var part = try Part.parse(buffer, &offset, .multipart, options)
             result.frames.add(part.info)
             .parts.add(#move part)
-            if not .multipart do
+            if not .multipart
+            {
                 break
-            if offset >= buffer.count do
+            }
+
+            if offset >= buffer.count
+            {
                 fail InvalidFormatError{"OpenEXR part headers are not terminated"}
+            }
+
             if not buffer[offset]
             {
                 offset += 1
@@ -1135,16 +1214,27 @@ impl IImageSetDecoder for Decoder
             }
         }
 
-        for &part in .parts do
-            offset = try part.readChunkTable(buffer.count, offset)
+        for &part in .parts
+        {
+            if part.chunkCount > (buffer.count - offset) / 8
+            {
+                fail InvalidFormatError{"OpenEXR chunk offset table is truncated"}
+            }
+
+            part.tableOffset = offset
+            offset += part.chunkCount * 8
+        }
 
         return result
     }
 
     mtd impl readFrame(index: u32, options: DecodeOptions)->Image fail
     {
-        if index >= .parts.count do
+        if index >= .parts.count
+        {
             fail InvalidFormatError{"OpenEXR part index is out of range"}
+        }
+
         return try .parts[index].decode(unwrap .bytes, index, .multipart, options)
     }
 }

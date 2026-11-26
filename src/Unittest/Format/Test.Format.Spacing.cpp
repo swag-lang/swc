@@ -359,15 +359,17 @@ SWC_TEST_END()
 SWC_TEST_BEGIN(FormatSpacing_AfterKeyword)
 {
     static constexpr std::string_view SOURCE =
+        
         "func bar(x: bool)\n"
         "{\n"
-        "    if(x) do return\n"
+        "    if(x) { return; }\n"
         "}\n";
 
     static constexpr std::string_view EXPECTED =
+        
         "func bar(x: bool)\n"
         "{\n"
-        "    if (x) do return\n"
+        "    if (x) { return; }\n"
         "}\n";
 
     FormatOptions options;
@@ -455,15 +457,17 @@ SWC_TEST_BEGIN(FormatSpacing_BeforeParenthesesControl)
     // Swag forbids a blank before call / declaration parentheses, so the
     // option only drives the parenthesized condition of control statements.
     static constexpr std::string_view SOURCE =
+        
         "func bar(x: bool)\n"
         "{\n"
-        "    if (x) do return\n"
+        "    if (x) { return; }\n"
         "}\n";
 
     static constexpr std::string_view EXPECTED =
+        
         "func bar(x: bool)\n"
         "{\n"
-        "    if(x) do return\n"
+        "    if(x) { return; }\n"
         "}\n";
 
     FormatOptions options;

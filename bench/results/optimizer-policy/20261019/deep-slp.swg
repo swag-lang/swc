@@ -4,101 +4,101 @@ func deep(values: *[8] f64)
     var x = values[][0]
     var y = values[][1]
 
-    x = Swag.sqrt(x) + 1.0'f64
-    y = Swag.sqrt(y) + 1.0'f64
+    x = Swag.sqrt(x) + 1.0_f64
+    y = Swag.sqrt(y) + 1.0_f64
 
-    x = Swag.sqrt(x) + 1.0'f64
-    y = Swag.sqrt(y) + 1.0'f64
+    x = Swag.sqrt(x) + 1.0_f64
+    y = Swag.sqrt(y) + 1.0_f64
 
-    x = Swag.sqrt(x) + 1.0'f64
-    y = Swag.sqrt(y) + 1.0'f64
+    x = Swag.sqrt(x) + 1.0_f64
+    y = Swag.sqrt(y) + 1.0_f64
 
-    x = Swag.sqrt(x) + 1.0'f64
-    y = Swag.sqrt(y) + 1.0'f64
+    x = Swag.sqrt(x) + 1.0_f64
+    y = Swag.sqrt(y) + 1.0_f64
 
-    x = Swag.sqrt(x) + 1.0'f64
-    y = Swag.sqrt(y) + 1.0'f64
+    x = Swag.sqrt(x) + 1.0_f64
+    y = Swag.sqrt(y) + 1.0_f64
 
-    x = Swag.sqrt(x) + 1.0'f64
-    y = Swag.sqrt(y) + 1.0'f64
+    x = Swag.sqrt(x) + 1.0_f64
+    y = Swag.sqrt(y) + 1.0_f64
 
-    x = Swag.sqrt(x) + 1.0'f64
-    y = Swag.sqrt(y) + 1.0'f64
+    x = Swag.sqrt(x) + 1.0_f64
+    y = Swag.sqrt(y) + 1.0_f64
 
-    x = Swag.sqrt(x) + 1.0'f64
-    y = Swag.sqrt(y) + 1.0'f64
+    x = Swag.sqrt(x) + 1.0_f64
+    y = Swag.sqrt(y) + 1.0_f64
 
-    x = Swag.sqrt(x) + 1.0'f64
-    y = Swag.sqrt(y) + 1.0'f64
+    x = Swag.sqrt(x) + 1.0_f64
+    y = Swag.sqrt(y) + 1.0_f64
 
-    x = Swag.sqrt(x) + 1.0'f64
-    y = Swag.sqrt(y) + 1.0'f64
+    x = Swag.sqrt(x) + 1.0_f64
+    y = Swag.sqrt(y) + 1.0_f64
 
-    x = Swag.sqrt(x) + 1.0'f64
-    y = Swag.sqrt(y) + 1.0'f64
+    x = Swag.sqrt(x) + 1.0_f64
+    y = Swag.sqrt(y) + 1.0_f64
 
-    x = Swag.sqrt(x) + 1.0'f64
-    y = Swag.sqrt(y) + 1.0'f64
+    x = Swag.sqrt(x) + 1.0_f64
+    y = Swag.sqrt(y) + 1.0_f64
 
-    x = Swag.sqrt(x) + 1.0'f64
-    y = Swag.sqrt(y) + 1.0'f64
+    x = Swag.sqrt(x) + 1.0_f64
+    y = Swag.sqrt(y) + 1.0_f64
 
-    x = Swag.sqrt(x) + 1.0'f64
-    y = Swag.sqrt(y) + 1.0'f64
+    x = Swag.sqrt(x) + 1.0_f64
+    y = Swag.sqrt(y) + 1.0_f64
 
-    x = Swag.sqrt(x) + 1.0'f64
-    y = Swag.sqrt(y) + 1.0'f64
+    x = Swag.sqrt(x) + 1.0_f64
+    y = Swag.sqrt(y) + 1.0_f64
 
-    x = Swag.sqrt(x) + 1.0'f64
-    y = Swag.sqrt(y) + 1.0'f64
+    x = Swag.sqrt(x) + 1.0_f64
+    y = Swag.sqrt(y) + 1.0_f64
 
-    x = Swag.sqrt(x) + 1.0'f64
-    y = Swag.sqrt(y) + 1.0'f64
+    x = Swag.sqrt(x) + 1.0_f64
+    y = Swag.sqrt(y) + 1.0_f64
 
-    x = Swag.sqrt(x) + 1.0'f64
-    y = Swag.sqrt(y) + 1.0'f64
+    x = Swag.sqrt(x) + 1.0_f64
+    y = Swag.sqrt(y) + 1.0_f64
 
-    x = Swag.sqrt(x) + 1.0'f64
-    y = Swag.sqrt(y) + 1.0'f64
+    x = Swag.sqrt(x) + 1.0_f64
+    y = Swag.sqrt(y) + 1.0_f64
 
-    x = Swag.sqrt(x) + 1.0'f64
-    y = Swag.sqrt(y) + 1.0'f64
+    x = Swag.sqrt(x) + 1.0_f64
+    y = Swag.sqrt(y) + 1.0_f64
 
-    x = Swag.sqrt(x) + 1.0'f64
-    y = Swag.sqrt(y) + 1.0'f64
+    x = Swag.sqrt(x) + 1.0_f64
+    y = Swag.sqrt(y) + 1.0_f64
 
-    x = Swag.sqrt(x) + 1.0'f64
-    y = Swag.sqrt(y) + 1.0'f64
+    x = Swag.sqrt(x) + 1.0_f64
+    y = Swag.sqrt(y) + 1.0_f64
 
-    x = Swag.sqrt(x) + 1.0'f64
-    y = Swag.sqrt(y) + 1.0'f64
+    x = Swag.sqrt(x) + 1.0_f64
+    y = Swag.sqrt(y) + 1.0_f64
 
-    x = Swag.sqrt(x) + 1.0'f64
-    y = Swag.sqrt(y) + 1.0'f64
+    x = Swag.sqrt(x) + 1.0_f64
+    y = Swag.sqrt(y) + 1.0_f64
 
-    x = Swag.sqrt(x) + 1.0'f64
-    y = Swag.sqrt(y) + 1.0'f64
+    x = Swag.sqrt(x) + 1.0_f64
+    y = Swag.sqrt(y) + 1.0_f64
 
-    x = Swag.sqrt(x) + 1.0'f64
-    y = Swag.sqrt(y) + 1.0'f64
+    x = Swag.sqrt(x) + 1.0_f64
+    y = Swag.sqrt(y) + 1.0_f64
 
-    x = Swag.sqrt(x) + 1.0'f64
-    y = Swag.sqrt(y) + 1.0'f64
+    x = Swag.sqrt(x) + 1.0_f64
+    y = Swag.sqrt(y) + 1.0_f64
 
-    x = Swag.sqrt(x) + 1.0'f64
-    y = Swag.sqrt(y) + 1.0'f64
+    x = Swag.sqrt(x) + 1.0_f64
+    y = Swag.sqrt(y) + 1.0_f64
 
-    x = Swag.sqrt(x) + 1.0'f64
-    y = Swag.sqrt(y) + 1.0'f64
+    x = Swag.sqrt(x) + 1.0_f64
+    y = Swag.sqrt(y) + 1.0_f64
 
-    x = Swag.sqrt(x) + 1.0'f64
-    y = Swag.sqrt(y) + 1.0'f64
+    x = Swag.sqrt(x) + 1.0_f64
+    y = Swag.sqrt(y) + 1.0_f64
 
-    x = Swag.sqrt(x) + 1.0'f64
-    y = Swag.sqrt(y) + 1.0'f64
+    x = Swag.sqrt(x) + 1.0_f64
+    y = Swag.sqrt(y) + 1.0_f64
 
-    x = Swag.sqrt(x) + 1.0'f64
-    y = Swag.sqrt(y) + 1.0'f64
+    x = Swag.sqrt(x) + 1.0_f64
+    y = Swag.sqrt(y) + 1.0_f64
 
     values[][4] = x
     values[][5] = y

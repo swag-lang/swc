@@ -3,16 +3,19 @@
 
 func ed25519HexDigit(value: u8)->u8
 {
-    if value >= '0' and value <= '9' do
+    if value >= '0' and value <= '9'
+    {
         return value - '0'
+    }
+
     return (value - 'a') + 10
 }
 
-func ed25519HexBytes(text: string)->Array'u8
+func ed25519HexBytes(text: string)->Array!{u8}
 {
     var result: #returntype
     result.reserve(text.count / 2)
-    var index = 0'u64
+    var index = 0_u64
     while index + 1 < text.count
     {
         result.add(cast(u8, (ed25519HexDigit(text[index]) << 4) | ed25519HexDigit(text[index + 1])))
@@ -40,8 +43,11 @@ func ed25519HexBytes(text: string)->Array'u8
 
     var noncanonicalPublic: [32] u8
     noncanonicalPublic[0] = 0xED
-    for index in 1 until 31 do
+    for index in 1 until 31
+    {
         noncanonicalPublic[index] = 0xFF
+    }
+
     noncanonicalPublic[31] = 0x7F
     Swag.require(not (expect Crypto.ed25519Verify(noncanonicalPublic, "", signature)))
 
@@ -51,8 +57,11 @@ func ed25519HexBytes(text: string)->Array'u8
 
     var noncanonicalR = signature
     noncanonicalR[0] = 0xED
-    for index in 1 until 31 do
+    for index in 1 until 31
+    {
         noncanonicalR[index] = 0xFF
+    }
+
     noncanonicalR[31] = 0x7F
     Swag.require(not (expect Crypto.ed25519Verify(publicKey, "", noncanonicalR)))
 
@@ -77,8 +86,11 @@ func ed25519HexBytes(text: string)->Array'u8
     Swag.require(expect Crypto.ed25519Verify(publicKey, message.toSlice(), signature))
 
     var invalidSignature = signature
-    for index in 32 until invalidSignature.count do
+    for index in 32 until 64
+    {
         invalidSignature[index] = 0xFF
+    }
+
     Swag.require(not (expect Crypto.ed25519Verify(publicKey, message.toSlice(), invalidSignature)))
     // The order itself is outside the canonical range for S.
     let order = ed25519HexBytes("edd3f55c1a631258d69cf7a2def9de1400000000000000000000000000000010")
@@ -105,11 +117,16 @@ func ed25519HexBytes(text: string)->Array'u8
 {
     // Independent OpenSSL-compatible vector for a multi-block SHA-512 message.
     var seed: [32] u8
-    for index in 32 do
+    for index in 32
+    {
         seed[index] = cast(u8, index)
-    var message: Array'u8
-    for index in 512 do
-        message.add(cast(u8, index & 255))
+    }
+
+    var message: Array!{u8}
+    for index in 512
+    {
+        message.add(cast(u8, index & 0xFF))
+    }
 
     let expectedPublic    = ed25519HexBytes("03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8")
     let expectedSignature = ed25519HexBytes("2635e190571f5dd9181726441e24f22ade35c30a2dff36626183d1e87cd2b99b3618d46fb5929246962762e392efbef8ef566b3270dc5a10b5435caddd70fc04")

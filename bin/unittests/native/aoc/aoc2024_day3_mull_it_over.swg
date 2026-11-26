@@ -50,12 +50,16 @@ func isDigit(ch: u8)->bool
 func matchLiteral(bytes: const [..] u8, pos: u64, lit: string)->bool
 {
     let litBytes = cast(const [..] u8, lit)
-    if pos + litBytes.count > bytes.count do
+    if pos + litBytes.count > bytes.count
+    {
         return false
+    }
     for index in litBytes.count
     {
-        if bytes[pos + index] != litBytes[index] do
+        if bytes[pos + index] != litBytes[index]
+        {
             return false
+        }
     }
     return true
 }
@@ -73,8 +77,10 @@ func parseNumber(bytes: const [..] u8, pos: u64, outVal: *s32, outEnd: *u64)->bo
         i      += 1
     }
 
-    if digits == 0 or digits > 3 do
+    if digits == 0 or digits > 3
+    {
         return false
+    }
 
     outVal[] = value
     outEnd[] = i
@@ -161,8 +167,10 @@ func evaluateClean(stream: TokenStream)->MulResult
         case TokenKind.Mul:
             let product = cast(s64, tok.lhs) * cast(s64, tok.rhs)
             result.sumAll += product
-            if enabled do
+            if enabled
+            {
                 result.sumEnabled += product
+            }
         }
     }
 
@@ -198,8 +206,10 @@ func accumulateMul(lhs: s32, rhs: s32)
 {
     let product = cast(s64, lhs) * cast(s64, rhs)
     scanSumAll += product
-    if scanEnabled do
+    if scanEnabled
+    {
         scanSumEnabled += product
+    }
 }
 
 #[Swag.Macro]
@@ -295,7 +305,7 @@ func evaluateWithLanguageFeatures(stream: TokenStream)->MulResult
     let sampleStreamA = tokenizeClean(cast(const [..] u8, SampleInputA))
     let sampleCleanA  = evaluateClean(sampleStreamA)
 
-    Swag.require(sampleStreamA.count == 4'u32)
+    Swag.require(sampleStreamA.count == 4_u32)
     Swag.require(sampleCleanA.sumAll == 161)
     Swag.require(sampleCleanA.sumEnabled == 161)
 
@@ -322,7 +332,7 @@ func evaluateWithLanguageFeatures(stream: TokenStream)->MulResult
     let edgeStream = tokenizeClean(cast(const [..] u8, EdgeInput))
     let edgeClean  = evaluateClean(edgeStream)
 
-    Swag.require(edgeStream.count == 5'u32)
+    Swag.require(edgeStream.count == 5_u32)
     Swag.require(edgeClean.sumAll == 14)
     Swag.require(edgeClean.sumEnabled == 10)
 
@@ -336,7 +346,7 @@ func evaluateWithLanguageFeatures(stream: TokenStream)->MulResult
     let emptyStream = tokenizeClean(cast(const [..] u8, EmptyInput))
     let emptyClean  = evaluateClean(emptyStream)
 
-    Swag.require(emptyStream.count == 0'u32)
+    Swag.require(emptyStream.count == 0_u32)
     Swag.require(emptyClean.sumAll == 0)
     Swag.require(emptyClean.sumEnabled == 0)
 
@@ -350,7 +360,7 @@ func evaluateWithLanguageFeatures(stream: TokenStream)->MulResult
     let coverageStream = tokenizeClean(cast(const [..] u8, CoverageInput))
     let coverageClean  = evaluateClean(coverageStream)
 
-    Swag.require(coverageStream.count == 9'u32)
+    Swag.require(coverageStream.count == 9_u32)
     Swag.require(coverageClean.sumAll == 81)
     Swag.require(coverageClean.sumEnabled == 60)
 

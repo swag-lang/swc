@@ -10,12 +10,15 @@ const Input = """2-4,6-8
 func num(b: const [..] u8, p: *u64)->u32
 {
     var n: u32
-    while p[] < b.count and b[p[]] >= '0'u8 and b[p[]] <= '9'u8
+    while p[] < b.count and b[p[]] >= '0'_u8 and b[p[]] <= '9'_u8
     {
-        n   = n * 10 + (b[p[]] - '0'u8)
+        n   = n * 10 + (b[p[]] - '0'_u8)
         p[] += 1
     }
-    if p[] < b.count do p[] += 1
+    if p[] < b.count
+    {
+        p[] += 1
+    }
     return n
 }
 
@@ -25,15 +28,21 @@ func solve(b: const [..] u8)->[2] u32
     var i: u64
     while i < b.count
     {
-        if b[i] < '0'u8 or b[i] > '9'u8
+        if b[i] < '0'_u8 or b[i] > '9'_u8
         {
             i += 1
             continue
         }
 
         let a = num(b, &i), b2 = num(b, &i), c = num(b, &i), d = num(b, &i)
-        if (a <= c and b2 >= d) or (c <= a and d >= b2) do r[0] += 1
-        if a <= d and c <= b2 do r[1] += 1
+        if (a <= c and b2 >= d) or (c <= a and d >= b2)
+        {
+            r[0] += 1
+        }
+        if a <= d and c <= b2
+        {
+            r[1] += 1
+        }
     }
     return r
 }

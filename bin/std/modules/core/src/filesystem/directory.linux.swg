@@ -8,11 +8,16 @@ internal func createNative(dirName: string) fail
     for
     {
         // The process umask removes permissions from the usual directory creation mode.
-        if Linux.mkdirat(Linux.AT_FDCWD, native.storage(), 0x1FF) == 0 do
+        if Linux.mkdirat(Linux.AT_FDCWD, native.storage(), 0x1FF) == 0
+        {
             return
+        }
+
         let error = Linux.errno()
-        if error != Linux.EINTR do
+        if error != Linux.EINTR
+        {
             try Errors.failLinuxError(error, dirName)
+        }
     }
 }
 
@@ -21,8 +26,11 @@ internal func deleteEmptyNative(dirName: string) fail
     let native = try Path.nativePath(dirName)
     for
     {
-        if Linux.unlinkat(Linux.AT_FDCWD, native.storage(), Linux.AT_REMOVEDIR) == 0 do
+        if Linux.unlinkat(Linux.AT_FDCWD, native.storage(), Linux.AT_REMOVEDIR) == 0
+        {
             return
+        }
+
         let error = Linux.errno()
         if error == Linux.ENOTDIR
         {
@@ -34,8 +42,10 @@ internal func deleteEmptyNative(dirName: string) fail
             }
         }
 
-        if error != Linux.EINTR do
+        if error != Linux.EINTR
+        {
             try Errors.failLinuxError(error, dirName)
+        }
     }
 }
 
@@ -53,19 +63,31 @@ func exists(dirName: string)->bool
 // Fails when the current directory has been removed or cannot be represented by the host.
 func currentPath()->String fail
 {
-    var buffer: Array'u8
+    var buffer: Array!{u8}
     buffer.reserve(256)
     for
     {
-        if Linux.getcwd(buffer.storage(), buffer.capacity) do
+        if Linux.getcwd(buffer.storage(), buffer.capacity)
+        {
             return String.from(cast(string, cast(cstring, buffer.storage())))
+        }
+
         let error = Linux.errno()
-        if error == Linux.EINTR do
+        if error == Linux.EINTR
+        {
             continue
-        if error != Linux.ERANGE do
+        }
+
+        if error != Linux.ERANGE
+        {
             try Errors.failLinuxError(error)
-        if buffer.capacity > Swag.U64.Max / 2 do
+        }
+
+        if buffer.capacity > Swag.U64.Max / 2
+        {
             fail Errors.OverflowError{}
+        }
+
         buffer.reserve(buffer.capacity * 2)
     }
 }
@@ -76,33 +98,46 @@ func setCurrentPath(dirName: string) fail
     let native = try Path.nativePath(dirName)
     for
     {
-        if Linux.chdir(native.storage()) == 0 do
+        if Linux.chdir(native.storage()) == 0
+        {
             return
+        }
+
         let error = Linux.errno()
-        if error != Linux.EINTR do
+        if error != Linux.EINTR
+        {
             try Errors.failLinuxError(error, dirName)
+        }
     }
 }
 
-internal func enumerateOneNative(dirName: string)->Array'(File.FileInfo) fail
+internal func enumerateOneNative(dirName: string)->Array!{File.FileInfo} fail
 {
     let native = try Path.nativePath(dirName)
     var directory: *void?
     for
     {
         directory = Linux.opendir(native.storage())
-        if directory do
+        if directory
+        {
             break
+        }
+
         let error = Linux.errno()
-        if error != Linux.EINTR do
+        if error != Linux.EINTR
+        {
             try Errors.failLinuxError(error, dirName)
+        }
     }
 
     let opened = unwrap directory
     defer discard Linux.closedir(opened)
     let descriptor = Linux.dirfd(opened)
-    if descriptor < 0 do
+    if descriptor < 0
+    {
         try Errors.failLinuxError(Linux.errno(), dirName)
+    }
+
     var result: #returntype
     for
     {
@@ -112,10 +147,16 @@ internal func enumerateOneNative(dirName: string)->Array'(File.FileInfo) fail
         if not entry
         {
             let error = Linux.errno()
-            if error == Linux.EINTR do
+            if error == Linux.EINTR
+            {
                 continue
-            if error != 0 do
+            }
+
+            if error != 0
+            {
                 try Errors.failLinuxError(error, dirName)
+            }
+
             return result
         }
 
@@ -131,22 +172,33 @@ internal func enumerateOneNative(dirName: string)->Array'(File.FileInfo) fail
 // Each path is absolute and ends in `/`; the root is `/`. Duplicate mount points and
 // mounts on individual files are omitted. This includes virtual filesystems and bind mounts,
 // not only physical disks. Fails when `/proc/self/mountinfo` cannot be read or decoded.
-func drives()->Array'String fail
+func drives()->Array!{String} fail
 {
     let mounts = try File.readAllText("/proc/self/mountinfo")
     var result: #returntype
     for line in Tokenize.splitLines(mounts)
     {
         var path = try mountPointNative(line)
-        if not exists(path) do
+        if not exists(path)
+        {
             continue
-        if path[path.length - 1] != '/' do
-            path += '/'u8
+        }
+
+        if path[path.length - 1] != '/'
+        {
+            path += '/'_u8
+        }
+
         var duplicate = false
-        for &previous in result where previous[] == path do
+        for &previous in result where previous[] == path
+        {
             duplicate = true
-        if not duplicate do
+        }
+
+        if not duplicate
+        {
             result.add(#move path)
+        }
     }
 
     return result
@@ -154,12 +206,15 @@ func drives()->Array'String fail
 
 internal func mountPointNative(line: string)->String fail
 {
-    let fields = Tokenize.split(line, ' 'u8)
-    if fields.count < 10 or fields[4].count == 0 or fields[4][0] != '/' do
+    let fields = Tokenize.split(line, ' '_u8)
+    if fields.count < 10 or fields[4].count == 0 or fields[4][0] != '/'
+    {
         fail Errors.InvalidFormatError{"invalid Linux mount information"}
+    }
+
     let encoded = fields[4]
     var result: #returntype
-    var index   = 0'u64
+    var index   = 0_u64
     while index < encoded.count
     {
         if encoded[index] != '\\'
@@ -169,15 +224,18 @@ internal func mountPointNative(line: string)->String fail
             continue
         }
 
-        if encoded.count - index < 4 do
+        if encoded.count - index < 4
+        {
             fail Errors.InvalidFormatError{"incomplete Linux mount path escape"}
+        }
+
         let escape = encoded[index + 1 until index + 4]
         switch escape
         {
-        case "040": result += ' 'u8
-        case "011": result += '\t'u8
-        case "012": result += '\n'u8
-        case "134": result += '\\'u8
+        case "040": result += ' '_u8
+        case "011": result += '\t'_u8
+        case "012": result += '\n'_u8
+        case "134": result += '\\'_u8
         default:    fail Errors.InvalidFormatError{"invalid Linux mount path escape"}
         }
 
@@ -201,31 +259,46 @@ func isRemote(path: string)->bool
     for
     {
         descriptor = Linux.openat(Linux.AT_FDCWD, candidate.storage(), Linux.O_PATH | Linux.O_CLOEXEC)
-        if descriptor >= 0 do
+        if descriptor >= 0
+        {
             break
+        }
+
         let error = Linux.errno()
-        if error == Linux.EINTR do
+        if error == Linux.EINTR
+        {
             continue
-        if error != Linux.ENOENT do
+        }
+
+        if error != Linux.ENOENT
+        {
             return false
+        }
+
         let parent = Path.directoryName(candidate)
-        if not parent do
+        if not parent
+        {
             return false
+        }
+
         candidate = String.from(parent)
     }
 
     defer discard Linux.close(descriptor)
     let infoPath = Format.toString("/proc/self/fdinfo/%", descriptor)
     let info     = catch File.readAllText(infoPath) { return false }
-    var mountId  = 0'u64
+    var mountId  = 0_u64
     for line in Tokenize.splitLines(info) where Utf8.startsWith(line, "mnt_id:")
     {
         mountId = catch StrConv.toU64(Latin1.trim(line[7 to])) { return false }
         break
     }
 
-    if mountId == 0 do
+    if mountId == 0
+    {
         return false
+    }
+
     let mounts = catch File.readAllText("/proc/self/mountinfo") { return false }
     return remoteMountNative(mounts, mountId)
 }
@@ -234,16 +307,25 @@ internal func remoteMountNative(mounts: string, mountId: u64)->bool
 {
     for line in Tokenize.splitLines(mounts)
     {
-        let fields = Tokenize.split(line, ' 'u8)
-        if fields.count < 10 do
-            continue
-        let id = catch StrConv.toU64(fields[0]) { continue }
-        if id != mountId do
-            continue
-        for index in 6'u64 until fields.count where fields[index] == "-"
+        let fields = Tokenize.split(line, ' '_u8)
+        if fields.count < 10
         {
-            if index + 3 >= fields.count do
+            continue
+        }
+
+        let id = catch StrConv.toU64(fields[0]) { continue }
+        if id != mountId
+        {
+            continue
+        }
+
+        for index in 6_u64 until fields.count where fields[index] == "-"
+        {
+            if index + 3 >= fields.count
+            {
                 return false
+            }
+
             let kind = fields[index + 1]
             switch kind
             {
@@ -275,27 +357,43 @@ func freeSpace(dirName: string)->u64 fail
     for
     {
         descriptor = Linux.openat(Linux.AT_FDCWD, native.storage(), Linux.O_PATH | Linux.O_DIRECTORY | Linux.O_CLOEXEC)
-        if descriptor >= 0 do
+        if descriptor >= 0
+        {
             break
+        }
+
         let error = Linux.errno()
-        if error != Linux.EINTR do
+        if error != Linux.EINTR
+        {
             try Errors.failLinuxError(error, dirName)
+        }
     }
 
     defer discard Linux.close(descriptor)
     var space: Linux.statvfs
     for
     {
-        if Linux.fstatvfs(descriptor, &space) == 0 do
+        if Linux.fstatvfs(descriptor, &space) == 0
+        {
             break
+        }
+
         let error = Linux.errno()
-        if error != Linux.EINTR do
+        if error != Linux.EINTR
+        {
             try Errors.failLinuxError(error, dirName)
+        }
     }
 
-    if space.f_frsize == 0 do
+    if space.f_frsize == 0
+    {
         try Errors.failLinuxError(Linux.EIO, dirName)
-    if space.f_bavail > Swag.U64.Max / space.f_frsize do
+    }
+
+    if space.f_bavail > Swag.U64.Max / space.f_frsize
+    {
         fail Errors.OverflowError{}
+    }
+
     return space.f_bavail * space.f_frsize
 }

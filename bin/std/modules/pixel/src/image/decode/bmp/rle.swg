@@ -29,11 +29,15 @@ func decodeRle8(result: *Image, src, last: const [*] u8, palette: const [*] u8, 
 
         if count
         {
-            let runBytes = cast(u64, count) * 3
-            if runBytes > rowEnd - offset do
+            if x + count > result.width
+            {
                 fail InvalidFormatError{"invalid source buffer"}
-            if value >= paletteCount do
+            }
+
+            if value >= paletteCount
+            {
                 fail InvalidFormatError{"BMP RLE8 index exceeds its palette"}
+            }
 
             let dst = pixels + offset
             if count < 4
@@ -64,38 +68,52 @@ func decodeRle8(result: *Image, src, last: const [*] u8, palette: const [*] u8, 
 
         case FILL_RLE_DELTA:
             try checkBuffer(p, last, 2)
-            let horizontal = cast(u64, p[0]) * 3
-            let dy         = p[1]
-            if horizontal > rowEnd - offset or dy > height - y do
+            x += p[0]
+            y += p[1]
+            p += 2
+            if x > result.width or y > result.height
+            {
                 fail InvalidFormatError{"invalid source buffer"}
-            let vertical = cast(u64, dy) * stride
-            offset += horizontal + vertical
-            y      += dy
-            rowEnd += vertical
-            p      += 2
+            }
 
         default:
             let absoluteCount = cast(u32, value)
             let padding       = absoluteCount & 1
             try checkBuffer(p, last, absoluteCount + padding)
-            let runBytes = cast(u64, absoluteCount) * 3
-            if runBytes > rowEnd - offset do
+            if x + absoluteCount > result.width
+            {
                 fail InvalidFormatError{"invalid source buffer"}
+            }
 
-            if paletteCount < 256 and not palette8RowFits(p, absoluteCount, paletteCount) do
+            for i in absoluteCount where p[i] >= paletteCount
+            {
                 fail InvalidFormatError{"BMP RLE8 index exceeds its palette"}
+            }
 
             let dst = pixels + offset
             decodePalette8Row(p, dst, absoluteCount, colors)
 
-            p      += absoluteCount + padding
-            offset += runBytes
+            p += absoluteCount
+            if padding
+            {
+                p += 1
+            }
+
+            x += absoluteCount
         }
     }
 
     // The compressed bitmap is not complete until its explicit end marker is present.
-    if p >= commandEnd or p[0] != 0 or p[1] != FILL_RLE_ENDOFBITMAP do
+    if p >= last
+    {
         fail InvalidFormatError{"invalid source buffer"}
+    }
+
+    try checkBuffer(p, last, 2)
+    if p[0] != 0 or p[1] != FILL_RLE_ENDOFBITMAP
+    {
+        fail InvalidFormatError{"invalid source buffer"}
+    }
 }
 
 func rle4Index(value: u8, index: u32)->u32 => cast(u32, ((index & 1) ? (value & 0x0F) : (value >> 4)))
@@ -141,12 +159,16 @@ func decodeRle4(result: *Image, src, last: const [*] u8, palette: const [*] u8, 
 
         if count
         {
-            let runBytes = cast(u64, count) * 3
-            if runBytes > rowEnd - offset do
+            if x + count > result.width
+            {
                 fail InvalidFormatError{"invalid source buffer"}
+            }
+
             if rle4Index(value, 0) >= paletteCount or
-               (count > 1 and rle4Index(value, 1) >= paletteCount) do
+               (count > 1 and rle4Index(value, 1) >= paletteCount)
+            {
                 fail InvalidFormatError{"BMP RLE4 index exceeds its palette"}
+            }
 
             let dst = pixels + offset
             fillPalettePair(dst, count, pairs[value])
@@ -167,37 +189,51 @@ func decodeRle4(result: *Image, src, last: const [*] u8, palette: const [*] u8, 
 
         case FILL_RLE_DELTA:
             try checkBuffer(p, last, 2)
-            let horizontal = cast(u64, p[0]) * 3
-            let dy         = p[1]
-            if horizontal > rowEnd - offset or dy > height - y do
+            x += p[0]
+            y += p[1]
+            p += 2
+            if x > result.width or y > result.height
+            {
                 fail InvalidFormatError{"invalid source buffer"}
-            let vertical = cast(u64, dy) * stride
-            offset += horizontal + vertical
-            y      += dy
-            rowEnd += vertical
-            p      += 2
+            }
 
         default:
             let pixelCount = cast(u32, value)
             let byteCount  = (pixelCount + 1) / 2
             let padding    = byteCount & 1
             try checkBuffer(p, last, byteCount + padding)
-            let runBytes = cast(u64, pixelCount) * 3
-            if runBytes > rowEnd - offset do
+            if x + pixelCount > result.width
+            {
                 fail InvalidFormatError{"invalid source buffer"}
+            }
 
-            if paletteCount < 16 and not palette4RowFits(p, pixelCount, paletteCount) do
+            for i in pixelCount where rle4Index(p[i / 2], i) >= paletteCount
+            {
                 fail InvalidFormatError{"BMP RLE4 index exceeds its palette"}
+            }
 
             let dst = pixels + offset
             decodePalette4Row(p, dst, pixelCount, colors, cast(const [*] u64, &pairs[0]))
 
-            p      += byteCount + padding
-            offset += runBytes
+            p += byteCount
+            if padding
+            {
+                p += 1
+            }
+
+            x += pixelCount
         }
     }
 
     // The compressed bitmap is not complete until its explicit end marker is present.
-    if p >= commandEnd or p[0] != 0 or p[1] != FILL_RLE_ENDOFBITMAP do
+    if p >= last
+    {
         fail InvalidFormatError{"invalid source buffer"}
+    }
+
+    try checkBuffer(p, last, 2)
+    if p[0] != 0 or p[1] != FILL_RLE_ENDOFBITMAP
+    {
+        fail InvalidFormatError{"invalid source buffer"}
+    }
 }

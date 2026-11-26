@@ -1,11 +1,12 @@
 #global private
 
 // A lifecycle intrinsic needs the pointed-to struct's completed operator registrations.
-// swc-expected-error@(+1,+13) {{sema_err_cyclic_dependency}}
 func repair(value: *Item?)
 {
-    if value do
+    if value
+    {
         Swag.postCopy(value)
+    }
 }
 
 func initialValue()->s64
@@ -14,7 +15,7 @@ func initialValue()->s64
     return 17
 }
 
-struct Item
+struct Item     // swc-expected-error {{sema_err_cyclic_dependency}}
 {
     value: s64 = #run initialValue()
 }

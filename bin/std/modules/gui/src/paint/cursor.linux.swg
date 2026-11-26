@@ -11,8 +11,10 @@ private var g_CursorShapes: [CursorShape]CursorShape
 
 #init
 {
-    for shape in CursorShape do
+    for shape in CursorShape
+    {
         g_CursorShapes[shape] = shape
+    }
 }
 
 public impl Cursor
@@ -33,13 +35,19 @@ public impl Cursor
     // Shared cursor resources are released when the GUI connection closes.
     func activate(cursor: Cursor)
     {
-        if LinuxDesktop.current() == null do
+        if LinuxDesktop.current() == null
+        {
             return
+        }
+
         let context    = expect LinuxDesktop.ensure()
         let connection = unwrap context.connection
         let shape      = cursor.isHidden() ? CursorShape.Hidden : cursor.cursor ? cursor.cursor[] : CursorShape.Arrow
-        if context.currentCursor == shape and context.cursors[shape] != 0 do
+        if context.currentCursor == shape and context.cursors[shape] != 0
+        {
             return
+        }
+
         if context.cursors[shape] == 0
         {
             if shape == .Hidden
@@ -47,14 +55,18 @@ public impl Cursor
                 let bitmap = context.xcb_generate_id(connection)
                 expect LinuxDesktop.check(context, context.xcb_create_pixmap_checked(connection, 1, bitmap, context.screen.root, 1, 1))
                 var bitmapOwned = true
-                defer if bitmapOwned do
+                defer if bitmapOwned
+                {
                     discard catch LinuxDesktop.check(context, context.xcb_free_pixmap_checked(connection, bitmap))
+                }
 
                 let gc = context.xcb_generate_id(connection)
                 expect LinuxDesktop.check(context, context.xcb_create_gc_checked(connection, gc, bitmap, 0, null))
                 var gcOwned = true
-                defer if gcOwned do
+                defer if gcOwned
+                {
                     discard catch LinuxDesktop.check(context, context.xcb_free_gc_checked(connection, gc))
+                }
 
                 // A zero ZPixmap pixel leaves every bit of the cursor mask transparent.
                 var pixel: [4]u8
@@ -119,8 +131,11 @@ public impl Cursor
         }
 
         let id = context.cursors[shape]
-        for surface in context.surfaces do
+        for surface in context.surfaces
+        {
             expect LinuxDesktop.check(context, context.xcb_change_window_attributes_checked(connection, surface.windowId, 1 << 14, &id))
+        }
+
         context.currentCursor = shape
     }
 }

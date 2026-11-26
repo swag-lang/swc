@@ -26,17 +26,17 @@ struct HashTableNonCopyKey
 
 #test
 {
-    #assert(not Reflection.canCopy(HashTable'(s32, HashTableNonCopyValue)))
-    #assert(not Reflection.canCopy(HashTable'(HashTableNonCopyKey, s32)))
+    #assert(not Reflection.canCopy(HashTable!{s32, HashTableNonCopyValue}))
+    #assert(not Reflection.canCopy(HashTable!{HashTableNonCopyKey, s32}))
 
-    var table: HashTable'(s32, HashTableNonCopyValue)
+    var table: HashTable!{s32, HashTableNonCopyValue}
     var value = HashTableNonCopyValue{value: 42}
     table.add(1, #move value)
 
     Swag.require(table.find(1).value.value == 42)
 }
 
-func assertHashTableBorrowTypes(table: *HashTable'(s32, s32))
+func assertHashTableBorrowTypes(table: *HashTable!{s32, s32})
 {
     for &key, value in table[]
     {
@@ -51,7 +51,7 @@ func assertHashTableBorrowTypes(table: *HashTable'(s32, s32))
     }
 }
 
-func assertConstHashTableBorrowTypes(table: const *HashTable'(s32, s32))
+func assertConstHashTableBorrowTypes(table: const *HashTable!{s32, s32})
 {
     Swag.require(table[].tryFind(1) != null)
     Swag.require(table[].tryFind(99) == null)
@@ -80,34 +80,41 @@ impl Swag.IAllocator for RejectHashTableGrowthAllocator
     mtd impl free(_: *Swag.AllocatorRequest) {}
 }
 
-func assertReverseIntTableIteration(table: HashTable'(s32, s32))->bool
+func assertReverseIntTableIteration(table: HashTable!{s32, s32})->bool
 {
-    var forwardKeys:   Array's32
-    var forwardValues: Array's32
+    var forwardKeys:   Array!{s32}
+    var forwardValues: Array!{s32}
     for key, value in table
     {
         forwardKeys.add(key)
         forwardValues.add(value)
     }
 
-    var reverseKeys:   Array's32
-    var reverseValues: Array's32
+    var reverseKeys:   Array!{s32}
+    var reverseValues: Array!{s32}
     for key, value in table.reversed()
     {
         reverseKeys.add(key)
         reverseValues.add(value)
     }
 
-    if forwardKeys.count != reverseKeys.count do
+    if forwardKeys.count != reverseKeys.count
+    {
         return false
+    }
 
     for i in forwardKeys.count
     {
         let reverseIndex = reverseKeys.count - i - 1
-        if forwardKeys[i] != reverseKeys[reverseIndex] do
+        if forwardKeys[i] != reverseKeys[reverseIndex]
+        {
             return false
-        if forwardValues[i] != reverseValues[reverseIndex] do
+        }
+
+        if forwardValues[i] != reverseValues[reverseIndex]
+        {
             return false
+        }
     }
 
     return true
@@ -115,14 +122,17 @@ func assertReverseIntTableIteration(table: HashTable'(s32, s32))->bool
 
 #test
 {
-    var table: HashTable'(s32, s32)
+    var table: HashTable!{s32, s32}
     Swag.require(table.isEmpty())
     Swag.require(not table.contains(1))
     Swag.require(table.tryFind(1) == null)
 
     var emptyVisits = 0
-    for _, _ in table do
+    for _, _ in table
+    {
         emptyVisits += 1
+    }
+
     Swag.require(emptyVisits == 0)
 
     table.add(1, 10)
@@ -143,7 +153,7 @@ func assertReverseIntTableIteration(table: HashTable'(s32, s32))->bool
 // Colliding keys preserve their values across tombstones and rehashing.
 #test
 {
-    var table: HashTable'(HashTableCollisionKey, s32)
+    var table: HashTable!{HashTableCollisionKey, s32}
     table.add({value: 1}, 10)
     table.add({value: 2}, 20)
     table.add({value: 3}, 30)
@@ -173,7 +183,7 @@ func assertReverseIntTableIteration(table: HashTable'(s32, s32))->bool
 
 #test
 {
-    var table: HashTable'(s32, s32)
+    var table: HashTable!{s32, s32}
 
     var movedValue: s32 = 20
     table.add(2, #move movedValue)
@@ -191,7 +201,7 @@ func assertReverseIntTableIteration(table: HashTable'(s32, s32))->bool
 
 #test
 {
-    var table: HashTable'(s32, s32)
+    var table: HashTable!{s32, s32}
     table.add(1, 11)
     table.add(2, 22)
     table.add(3, 30)
@@ -213,7 +223,7 @@ func assertReverseIntTableIteration(table: HashTable'(s32, s32))->bool
 
 #test
 {
-    var table: HashTable'(s32, s32)
+    var table: HashTable!{s32, s32}
     table.add(1, 11)
     table.add(2, 22)
     table.add(3, 30)
@@ -224,7 +234,7 @@ func assertReverseIntTableIteration(table: HashTable'(s32, s32))->bool
 
 #test
 {
-    var table: HashTable'(s32, s32)
+    var table: HashTable!{s32, s32}
     table.add(1, 11)
     table.add(2, 22)
     table.add(3, 30)
@@ -255,7 +265,7 @@ func assertReverseIntTableIteration(table: HashTable'(s32, s32))->bool
 // Clearing after a removal resets tombstones and leaves the table reusable.
 #test
 {
-    var table: HashTable'(s32, s32)
+    var table: HashTable!{s32, s32}
     table.add(1, 10)
     table.add(2, 20)
     table.add(3, 30)
@@ -273,7 +283,7 @@ func assertReverseIntTableIteration(table: HashTable'(s32, s32))->bool
 // Free drops active and deleted owned entries, releases capacity, and permits reuse.
 #test
 {
-    var table: HashTable'(String, String)
+    var table: HashTable!{String, String}
     table.add("keep", "active value")
     table.add("deleted", "deleted value")
     table.remove("deleted")
@@ -287,7 +297,7 @@ func assertReverseIntTableIteration(table: HashTable'(s32, s32))->bool
     Swag.require(table.isEmpty() and table.capacity == 0)
 }
 
-func assertTableStringValue(table: HashTable'(string, String), key: string, expected: string)->bool
+func assertTableStringValue(table: HashTable!{string, String}, key: string, expected: string)->bool
 {
     let entry = table.tryFind(key)
     return entry != null and entry.value == expected and entry.value.count == expected.count
@@ -295,7 +305,7 @@ func assertTableStringValue(table: HashTable'(string, String), key: string, expe
 
 #test
 {
-    var original: HashTable'(string, s32)
+    var original: HashTable!{string, s32}
     original.add("alpha", 1)
 
     let entry = unwrap original.tryFind("alpha")
@@ -304,13 +314,13 @@ func assertTableStringValue(table: HashTable'(string, String), key: string, expe
 
 #test
 {
-    var original: HashTable'(s32, String)
+    var original: HashTable!{s32, String}
     original.add(1, "one")
 }
 
 #test
 {
-    var original: HashTable'(string, String)
+    var original: HashTable!{string, String}
     original.add("alpha", "one")
 
     Swag.require(assertTableStringValue(original, "alpha", "one"))
@@ -318,7 +328,7 @@ func assertTableStringValue(table: HashTable'(string, String), key: string, expe
 
 #test
 {
-    var original: HashTable'(string, String)
+    var original: HashTable!{string, String}
     original.add("alpha", "one")
     original.add("beta", "two")
 
@@ -329,7 +339,7 @@ func assertTableStringValue(table: HashTable'(string, String), key: string, expe
 
 #test
 {
-    var original: HashTable'(string, String)
+    var original: HashTable!{string, String}
     original.add("alpha", "one")
     original.add("beta", "two")
 
@@ -348,7 +358,7 @@ func assertTableStringValue(table: HashTable'(string, String), key: string, expe
 
 #test
 {
-    var original: HashTable'(string, String)
+    var original: HashTable!{string, String}
     original.add("alpha", "one")
     original.add("beta", "two")
     original.remove("alpha")
@@ -365,7 +375,7 @@ func assertTableStringValue(table: HashTable'(string, String), key: string, expe
 
 #test
 {
-    var table: HashTable'(s32, s32)
+    var table: HashTable!{s32, s32}
     table.add(1, 10)
     table.add(2, 20)
 
@@ -382,7 +392,7 @@ func assertTableStringValue(table: HashTable'(string, String), key: string, expe
 #test
 {
     var reject: RejectHashTableGrowthAllocator
-    var table:  HashTable'(s32, s32)
+    var table:  HashTable!{s32, s32}
     table.add(-1, -10)
 
     let oldAllocator = table.allocator
@@ -416,7 +426,7 @@ func assertTableStringValue(table: HashTable'(string, String), key: string, expe
 
 #test
 {
-    var table: HashTable'(s32, s32)
+    var table: HashTable!{s32, s32}
     table.reserve(33)
 
     table.add(10, 100)
@@ -434,7 +444,7 @@ func assertTableStringValue(table: HashTable'(string, String), key: string, expe
 
 #test
 {
-    var table: HashTable'(s32, s32)
+    var table: HashTable!{s32, s32}
     let result = Swag.catchPanic(func|&table|() { table.reserve(Swag.U64.Max) })
     Swag.require(result.raised)
     Swag.require(result.message() == "HashTable capacity exceeds addressable memory")
@@ -443,7 +453,7 @@ func assertTableStringValue(table: HashTable'(string, String), key: string, expe
 #test
 {
     var reject: RejectHashTableGrowthAllocator
-    var table:  HashTable'(s32, s32)
+    var table:  HashTable!{s32, s32}
     table.add(42, 420)
 
     let oldCapacity  = table.capacity
@@ -460,9 +470,11 @@ func assertTableStringValue(table: HashTable'(string, String), key: string, expe
 #test
 {
     var reject: RejectHashTableGrowthAllocator
-    var table:  HashTable'(s32, s32)
-    for key in 16 do
+    var table:  HashTable!{s32, s32}
+    for key in 16
+    {
         table.add(cast(s32, key), cast(s32, key + 100))
+    }
 
     let oldCapacity  = table.capacity
     let oldAllocator = table.allocator
@@ -493,7 +505,7 @@ func assertTableStringValue(table: HashTable'(string, String), key: string, expe
 // they live in, so they are taken out first.
 #test
 {
-    var h: HashTable'(String, String)
+    var h: HashTable!{String, String}
     discard h.add("seed", "a value long enough to live outside the inline storage")
     for i in 200
     {
@@ -502,10 +514,12 @@ func assertTableStringValue(table: HashTable'(string, String), key: string, expe
     }
 
     Swag.require(h.count == 201)
-    for _, v in h do
+    for _, v in h
+    {
         Swag.require(v[] == "a value long enough to live outside the inline storage")
+    }
 
-    var keys: HashTable'(String, s32)
+    var keys: HashTable!{String, s32}
     discard keys.add("first key that is long enough to allocate", 1)
     for i in 100
     {

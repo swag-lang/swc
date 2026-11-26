@@ -1,7 +1,7 @@
 #global namespace Swag
 
 // Waits without a deadline.
-const InfiniteWait = 0xFFFF_FFFF'u32
+const InfiniteWait = 0xFFFF_FFFF_u32
 
 // Mutual exclusion over the state a program keeps beside it.
 //
@@ -67,7 +67,7 @@ impl RWLock
 //
 // ```swag
 // mutex.lock()
-// while not ready do
+// while not ready { waitForSignal() }
 //     condition.wait(&mutex)
 // mutex.unlock()
 // ```
@@ -133,8 +133,11 @@ impl Semaphore
     mtd acquire()
     {
         .mutex.lock()
-        while .permits == 0 do
+        while .permits == 0
+        {
             .available.wait(&.mutex)
+        }
+
         .permits -= 1
         .mutex.unlock()
     }
@@ -144,8 +147,11 @@ impl Semaphore
     {
         .mutex.lock()
         defer .mutex.unlock()
-        if .permits == 0 do
+        if .permits == 0
+        {
             return false
+        }
+
         .permits -= 1
         return true
     }
@@ -153,8 +159,10 @@ impl Semaphore
     // Returns `count` permits and wakes that many waiters. Panics if the permit count would overflow.
     mtd release(count: u32 = 1)
     {
-        if count == 0 do
+        if count == 0
+        {
             return
+        }
 
         .mutex.lock()
         if .permits > Swag.U32.Max - count
@@ -166,10 +174,14 @@ impl Semaphore
         .permits += count
         .mutex.unlock()
 
-        if count == 1 do
+        if count == 1
+        {
             .available.wake()
-        else do
+        }
+        else
+        {
             .available.wakeAll()
+        }
     }
 }
 
@@ -236,8 +248,11 @@ impl Barrier
             return true
         }
 
-        while .phase == current do
+        while .phase == current
+        {
             .released.wait(&.mutex)
+        }
+
         .mutex.unlock()
         return false
     }

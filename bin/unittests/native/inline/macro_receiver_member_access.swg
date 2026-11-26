@@ -25,8 +25,10 @@ impl VisitBag
     #[Swag.Macro]
     func(ptr: bool) opVisit(const me, stmt: #code(item, index: u64))
     {
-        if not .count do
+        if not .count
+        {
             return
+        }
         let buffer = unwrap .buffer
 
         var scan = buffer - 1
@@ -35,10 +37,14 @@ impl VisitBag
             scan += 1
             let visitIdx = idx
 
-            #static if ptr do
+            #static if ptr
+            {
                 #inject(stmt, item = cast(*T, scan), index = visitIdx)
-            else do
+            }
+            else
+            {
                 #inject(stmt, item = scan[0], index = visitIdx)
+            }
         }
     }
 }
@@ -46,7 +52,7 @@ impl VisitBag
 struct VisitHeader
 {
     headerPad: u64 = 0xAAAA
-    bag:       VisitBag'u64
+    bag:       VisitBag!{u64}
 }
 
 struct VisitKeeper
@@ -60,22 +66,28 @@ impl VisitKeeper
     mtd const total()->u64
     {
         var sum: u64
-        for v in .header.bag do
+        for v in .header.bag
+        {
             sum += v
+        }
         return sum
     }
 
     mtd const firstAbove(limit: u64)->u64
     {
-        for v in .header.bag where v > limit do
+        for v in .header.bag where v > limit
+        {
             return v
+        }
         return 0
     }
 
     mtd scale(k: u64)
     {
-        for &v in .header.bag do
+        for &v in .header.bag
+        {
             v[] *= k
+        }
     }
 }
 

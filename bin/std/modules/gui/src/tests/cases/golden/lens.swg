@@ -41,7 +41,7 @@ using Swag, Core, Pixel
         host.notify(.ThemeChanged)
     }
 
-    with let document = Label.create(&host.root, "impl ViewerActionBar\n{\n    func create(parent: *Wnd)->*ViewerActionBar\n    {\n        with let result = Wnd.create'ViewerActionBar(parent)\n    }\n}", {120, 60, 600, 400})
+    with let document = Label.create(&host.root, "impl ViewerActionBar\n{\n    func create(parent: *Wnd)->*ViewerActionBar\n    {\n        with let result = Wnd.create!{ViewerActionBar}(parent)\n    }\n}", {120, 60, 600, 400})
     {
         .style.setFont(host.theme.createDefaultFontFamilyFs(14))
         .setTextAlignment(.Left, .Top)
@@ -70,7 +70,7 @@ using Swag, Core, Pixel
         host.notify(.ThemeChanged)
     }
 
-    with let document = Label.create(&host.root, "impl ViewerActionBar\n{\n    func create(parent: *Wnd)->*ViewerActionBar\n    {\n        with let result = Wnd.create'ViewerActionBar(parent)\n    }\n}", {120, 60, 600, 400})
+    with let document = Label.create(&host.root, "impl ViewerActionBar\n{\n    func create(parent: *Wnd)->*ViewerActionBar\n    {\n        with let result = Wnd.create!{ViewerActionBar}(parent)\n    }\n}", {120, 60, 600, 400})
     {
         .style.setFont(host.theme.createDefaultFontFamilyFs(14))
         .setTextAlignment(.Left, .Top)
@@ -79,8 +79,11 @@ using Swag, Core, Pixel
     let lens = lensSetup(&host)
     lens.addSource(.None, func|chosen = &chosen|(results) { addViewAsSection(results, chosen) })
     lens.open("center")
-    for 3 do
+    for 3
+    {
         host.keyPress(.Down)
+    }
+
     host.keyPress(.Left)
 
     var image = host.render()
@@ -102,8 +105,10 @@ using Swag, Core, Pixel
 
     let lens = lensSetup(&host)
     lens.open(">")
-    for 2 do
+    for 2
+    {
         host.keyPress(.Down)
+    }
 
     var image = host.render()
     Pixel.Testing.assertImageGolden(&image, light ? "lens.stay.paper" : "lens.stay.ink")
@@ -128,11 +133,16 @@ using Swag, Core, Pixel
     host.notify(.LanguageChanged)
     lens.addSource(.Action, func(results)
     {
-        if results.query.count != 0 do
+        if results.query.count != 0
+        {
             return
+        }
+
         let section = results.addSection("Results")
-        for index in 20 do
+        for index in 20
+        {
             section.addEntry(Format.toString("Result %", index + 1))
+        }
     })
     lens.open(">")
     Swag.require(lens.input.name.text == strings().lens_Placeholder)
@@ -142,8 +152,11 @@ using Swag, Core, Pixel
     Pixel.Testing.assertImageGolden(&image, light ? "lens.overflow.paper" : "lens.overflow.ink")
     for 10
     {
-        if not lens.nextPage.isEnabled() do
+        if not lens.nextPage.isEnabled()
+        {
             break
+        }
+
         host.clickWnd(lens.nextPage)
     }
 
@@ -151,8 +164,11 @@ using Swag, Core, Pixel
 
     // At its end, the list still opens on a whole row: its top is the start of one.
     var whole = false
-    for row in lens.rows where Math.abs(row.top - lens.themeMetrics().lens_RowInset - lens.scroll) < 0.5 do
+    for row in lens.rows where Math.abs(row.top - lens.themeMetrics().lens_RowInset - lens.scroll) < 0.5
+    {
         whole = true
+    }
+
     Swag.require(whole)
     Swag.require(host.app.keyboardFocusWnd == &lens.input.wnd)
     host.clickWnd(lens.previousPage)

@@ -14,23 +14,35 @@ interface IHash64
 #[ConstExpr, Safety(.All, false)]
 func(T) generatedHash32(value: T)->u32
 {
-    #static if #defined(T.IHash32) do
+    #static if #defined(T.IHash32)
+    {
         #ast("return ", #typeof(T).fullname, ".IHash32.compute(value)")
-    elif #defined(T.IHash64) do
+    }
+    else if #defined(T.IHash64)
+    {
         #ast("return cast(u32, ", #typeof(T).fullname, ".IHash64.compute(value))")
-    else do
+    }
+    else
+    {
         return 0
+    }
 }
 
 #[ConstExpr, Safety(.All, false)]
 func(T) generatedHash64(value: T)->u64
 {
-    #static if #defined(T.IHash64) do
+    #static if #defined(T.IHash64)
+    {
         #ast("return ", #typeof(T).fullname, ".IHash64.compute(value)")
-    elif #defined(T.IHash32) do
+    }
+    else if #defined(T.IHash32)
+    {
         #ast("return cast(u64, ", #typeof(T).fullname, ".IHash32.compute(value))")
-    else do
+    }
+    else
+    {
         return 0
+    }
 }
 
 namespace Types
@@ -44,7 +56,7 @@ namespace Types
     {
         mtd const impl compute()->u32
         {
-            return 0x1234_5678'u32 + .value
+            return 0x1234_5678_u32 + .value
         }
     }
 
@@ -57,7 +69,7 @@ namespace Types
     {
         mtd const impl compute()->u64
         {
-            return 0x0123_4567_89AB_CDEF'u64 + .value
+            return 0x0123_4567_89AB_CDEF_u64 + .value
         }
     }
 
@@ -70,7 +82,7 @@ namespace Types
     {
         mtd const impl compute()->u32
         {
-            return 0x0BAD_F00D'u32 + .value
+            return 0x0BAD_F00D_u32 + .value
         }
     }
 
@@ -78,7 +90,7 @@ namespace Types
     {
         mtd const impl compute()->u64
         {
-            return 0x0123_4567_DEAD_BEEF'u64 + .value
+            return 0x0123_4567_DEAD_BEEF_u64 + .value
         }
     }
 }
@@ -91,12 +103,12 @@ const ONLY_HASH32 = Types.OnlyHash32{value: 3}
 const ONLY_HASH64 = Types.OnlyHash64{value: 5}
 const BOTH_HASH   = Types.BothHash{value: 7}
 
-const EXPECTED_ONLY_HASH32_32 = 0x1234_567B'u32
-const EXPECTED_ONLY_HASH32_64 = 0x1234_567B'u64
-const EXPECTED_ONLY_HASH64_32 = 0x89AB_CDF4'u32
-const EXPECTED_ONLY_HASH64_64 = 0x0123_4567_89AB_CDF4'u64
-const EXPECTED_BOTH_HASH32    = 0x0BAD_F014'u32
-const EXPECTED_BOTH_HASH64    = 0x0123_4567_DEAD_BEF6'u64
+const EXPECTED_ONLY_HASH32_32 = 0x1234_567B_u32
+const EXPECTED_ONLY_HASH32_64 = 0x1234_567B_u64
+const EXPECTED_ONLY_HASH64_32 = 0x89AB_CDF4_u32
+const EXPECTED_ONLY_HASH64_64 = 0x0123_4567_89AB_CDF4_u64
+const EXPECTED_BOTH_HASH32    = 0x0BAD_F014_u32
+const EXPECTED_BOTH_HASH64    = 0x0123_4567_DEAD_BEF6_u64
 
 #assert(generatedHash32(ONLY_HASH32) == EXPECTED_ONLY_HASH32_32)
 #assert(generatedHash64(ONLY_HASH32) == EXPECTED_ONLY_HASH32_64)

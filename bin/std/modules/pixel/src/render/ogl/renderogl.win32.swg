@@ -18,12 +18,17 @@ internal impl NativeRenderOgl
             let className = Utf16.toZeroTerminated("STATIC")
             let hostName  = Utf16.toZeroTerminated("Swag OpenGL context")
             nativeWindow = CreateWindowExW(0, className.buffer, hostName.buffer, WS_POPUP, 0, 0, 1, 1, null, null, GetModuleHandleW(null), null)
-            if not nativeWindow do
+            if not nativeWindow
+            {
                 try failWinError(GetLastError())
+            }
         }
 
-        defer #fail if ownsWindow do
+        defer #fail if ownsWindow
+        {
             catch DestroyWindow(nativeWindow)
+        }
+
         let dc = GetDC(nativeWindow)
         defer #fail ReleaseDC(nativeWindow, dc)
         var result = try .createContextForDeviceContext(cast(const *void?, dc), width, height, mainRC)
@@ -93,15 +98,21 @@ internal impl NativeRenderOgl
 
         .notifiesReset = false
         let names = Ogl.wglGetExtensionsStringARB(hdc)
-        if not names do
+        if not names
+        {
             return legacy
-        for name in Tokenize.split(names, ' 'u8) where name == "WGL_ARB_create_context_robustness"
+        }
+
+        for name in Tokenize.split(names, ' '_u8) where name == "WGL_ARB_create_context_robustness"
         {
             const Attributes: [5] s32 = [WGL_CONTEXT_FLAGS_ARB, WGL_CONTEXT_ROBUST_ACCESS_BIT_ARB,
                                          WGL_CONTEXT_RESET_NOTIFICATION_STRATEGY_ARB, WGL_LOSE_CONTEXT_ON_RESET_ARB, 0]
             let robust = Ogl.wglCreateContextAttribsARB(hdc, null, Attributes)
-            if not robust do
+            if not robust
+            {
                 break
+            }
+
             catch Ogl.wglMakeCurrent(null, null)
             catch Ogl.wglDeleteContext(legacy)
             .notifiesReset = true
@@ -123,8 +134,11 @@ internal impl NativeRenderOgl
         defer #fail catch Ogl.wglDeleteContext(replacement)
         try Ogl.wglMakeCurrent(dc, replacement)
         catch Ogl.wglDeleteContext(cast(HGLRC, lost))
-        for index in contexts.count do
+        for index in contexts.count
+        {
             contexts[index].hRC = cast(const *void?, replacement)
+        }
+
         return cast(const *void?, replacement)
     }
 
@@ -132,12 +146,20 @@ internal impl NativeRenderOgl
     mtd dropContext(rc: OglContext)
     {
         catch wglMakeCurrent(null, null)
-        if rc.ownsRC do
+        if rc.ownsRC
+        {
             catch wglDeleteContext(cast(HGLRC, rc.hRC))
-        if rc.ownsDC do
+        }
+
+        if rc.ownsDC
+        {
             ReleaseDC(cast(HWND, rc.hWnd), cast(HDC, rc.hDC))
-        if rc.ownsWindow do
+        }
+
+        if rc.ownsWindow
+        {
             catch DestroyWindow(cast(HWND, rc.hWnd))
+        }
     }
 
     // Deletes a renderer-owned shared OpenGL context after its last drawable is gone.
@@ -151,16 +173,22 @@ internal impl NativeRenderOgl
     {
         let dc      = cast(HDC, rc.hDC)
         let context = cast(HGLRC, rc.hRC)
-        if wglGetCurrentContext() == context and wglGetCurrentDC() == dc do
+        if wglGetCurrentContext() == context and wglGetCurrentDC() == dc
+        {
             return
+        }
+
         try wglMakeCurrent(dc, context)
     }
 
     // Presents the current back buffer for `rc`.
     mtd swapBuffers(rc: OglContext)
     {
-        if rc.ownsWindow do
+        if rc.ownsWindow
+        {
             return
+        }
+
         expect SwapBuffers(cast(HDC, rc.hDC))
     }
 

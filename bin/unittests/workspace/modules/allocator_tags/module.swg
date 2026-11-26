@@ -11,8 +11,10 @@
     Swag.assert(hasDiagnostics == #gettag("test.allocatorDiagnostics", bool, #cfg == "devmode"))
 
     cfg.safetyGuards = .None
-    #static if #hastag("Swag.AllocatorDiagnostics") do
+    #static if #hastag("Swag.AllocatorDiagnostics")
+    {
         cfg.allocatorLeaks = false
+    }
 
     var allocator: Swag.Allocator
     allocator.setup()

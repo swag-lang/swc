@@ -17,11 +17,11 @@ func(var T) genericTwice(value: T)->T
 
 #test
 {
-    Swag.require(genericTwice(21's32) == 42)
-    Swag.require(genericTwice(1.5'f32) == 3.0'f32)
+    Swag.require(genericTwice(21_s32) == 42)
+    Swag.require(genericTwice(1.5_f32) == 3.0_f32)
 
     // An apostrophe supplies generic arguments explicitly.
-    Swag.require(genericTwice's64(12) == 24)
+    Swag.require(genericTwice!{s64}(12) == 24)
 }
 
 /**
@@ -39,8 +39,8 @@ func(var Key, var Value) genericSelect(key: Key, value: Value)->Value
 
 #test
 {
-    Swag.require(genericSelect(7'u32, "seven") == "seven")
-    Swag.require(genericSelect'(u32, bool)(7, true))
+    Swag.require(genericSelect(7_u32, "seven") == "seven")
+    Swag.require(genericSelect!{u32, bool}(7, true))
 }
 
 /**
@@ -58,8 +58,8 @@ func(var T = s32) genericZero()->T
 #test
 {
     #assert(#typeof(genericZero()) == s32)
-    #assert(#typeof(genericZero'f64()) == f64)
-    Swag.require(genericZero'f64() == 0.0'f64)
+    #assert(#typeof(genericZero!{f64}()) == f64)
+    Swag.require(genericZero!{f64}() == 0.0_f64)
 }
 
 /**
@@ -73,14 +73,17 @@ func(var T, const Count: s32) genericRepeat(value: T)->[Count] T
     where Count >= 0
 {
     var result: [Count] T
-    for index in Count do
+    for index in Count
+    {
         result[index] = value
+    }
+
     return result
 }
 
 #test
 {
-    let values = genericRepeat'(s32, 3)(9)
+    let values = genericRepeat!{s32, 3}(9)
     #assert(#typeof(values) == #type [3] s32)
     Swag.require(values[0] == 9 and values[1] == 9 and values[2] == 9)
 }
@@ -96,7 +99,7 @@ states a contract, and the short form in introductory examples.
 An alias can capture some or all generic arguments:
 */
 
-alias RepeatFourBytes = genericRepeat'(u8, 4)
+alias RepeatFourBytes = genericRepeat!{u8, 4}
 
 #test
 {

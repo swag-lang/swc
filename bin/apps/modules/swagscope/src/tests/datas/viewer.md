@@ -63,8 +63,9 @@ and UTF-8 such as café, 日本語, and 🙂.
 // A fenced code block with a language identifier.
 func fibonacci(value: u32)->u32
 {
-    if value < 2 do
+    if value < 2 {
         return value
+    }
     return fibonacci(value - 1) + fibonacci(value - 2)
 }
 ```

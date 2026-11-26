@@ -55,20 +55,29 @@ impl XAudio2DriverNative
         if initCOM
         {
             result = CoInitializeEx(null, COINIT_MULTITHREADED)
-            if not comApartmentIsUsable(result) do
+            if not comApartmentIsUsable(result)
+            {
                 fail SystemError{"failed to initialize COM", errorID: hresultErrorId(result)}
+            }
+
             .hasInitCOM = comOwnsInitialization(result)
         }
 
         result = XAudio2Create(&.xAudio2, 0)
-        if result != S_OK do
+        if result != S_OK
+        {
             fail SystemError{"cannot create xaudio2 device", errorID: hresultErrorId(result)}
+        }
+
         let safeXAudio2 = unwrap .xAudio2
 
         let createMasteringVoice = safeXAudio2.vtbl.createMasteringVoice
         result = createMasteringVoice(safeXAudio2, &.masteringVoice)
-        if result != S_OK do
+        if result != S_OK
+        {
             fail SystemError{"cannot create xaudio2 mastering voice", errorID: hresultErrorId(result)}
+        }
+
         let safeMasteringVoice = unwrap .masteringVoice
 
         var debug: XAUDIO2_DEBUG_CONFIGURATION
@@ -79,8 +88,10 @@ impl XAudio2DriverNative
 
         let getChannelMask = safeMasteringVoice.vtbl.getChannelMask
         result = getChannelMask(safeMasteringVoice, &.speakerMask)
-        if result != S_OK do
+        if result != S_OK
+        {
             fail SystemError{"cannot get xaudio2 channel mask", errorID: hresultErrorId(result)}
+        }
 
         X3DAudioInitialize(.speakerMask, X3DAUDIO_SPEED_OF_SOUND, .x3DInstance)
 
@@ -146,19 +157,27 @@ impl XAudio2DriverNative
 {
     mtd setOutputVolumeXAudio2(volume: f32) fail
     {
-        if not .masteringVoice do
+        if not .masteringVoice
+        {
             return
+        }
+
         let safeMasteringVoice = .masteringVoice
         let setVolume = safeMasteringVoice.vtbl.setVolume
         let hr        = setVolume(cast(*IXAudio2Voice, cast(*void, safeMasteringVoice)), volume, 0)
-        if hr != S_OK do
+        if hr != S_OK
+        {
             fail SystemError{"setOutputVolume", errorID: hresultErrorId(hr)}
+        }
     }
 
     mtd outputVolumeXAudio2()->f32
     {
-        if not .masteringVoice do
+        if not .masteringVoice
+        {
             return 0
+        }
+
         var volume: f32
         let safeMasteringVoice = .masteringVoice
         safeMasteringVoice.vtbl.getVolume(cast(*IXAudio2Voice, cast(*void, safeMasteringVoice)), &volume)
@@ -177,8 +196,10 @@ internal
         // XAudio2 invokes these functions on native worker threads. Install the
         // application context before touching any Swag service.
         let cxt = Swag.getContext()
-        if cxt == null or cxt.allocator.buffer == null do
+        if cxt == null or cxt.allocator.buffer == null
+        {
             Swag.setContext(&g_ThreadCxt)
+        }
     }
 
     #[Swag.CallingConvention(.C)]
@@ -193,11 +214,16 @@ internal
         func onBufferEnd(_: *IXAudio2VoiceCallback, pBufferContext: *void?)
         {
             let voice = cast(*Voice?, pBufferContext)
-            if not voice do
+            if not voice
+            {
                 return
+            }
+
             let safeVoice = voice
-            if safeVoice.hasState(.PendingDestroy) do
+            if safeVoice.hasState(.PendingDestroy)
+            {
                 return
+            }
 
             enterXAudio2CallbackContext()
 
@@ -255,8 +281,11 @@ impl Voice
         wfx.samples.wValidBitsPerSample = wfx.format.wBitsPerSample
 
         var flags: DWORD
-        if not createFlags.has(.PitchControl) do
+        if not createFlags.has(.PitchControl)
+        {
             flags |= XAUDIO2_VOICE_NOPITCH
+        }
+
         var handle: *IXAudio2SourceVoice?
         let safeXAudio2       = unwrap g_Driver.xAudio2.xAudio2
         let createSourceVoice = safeXAudio2.vtbl.createSourceVoice
@@ -268,15 +297,21 @@ impl Voice
                                    &g_Cb,
                                    null,
                                    null)
-        if hr != S_OK do
+        if hr != S_OK
+        {
             fail SystemError{"createSourceVoice", errorID: hresultErrorId(hr)}
+        }
+
         voice.handle = cast(*void?, handle)
     }
 
     mtd destroyXAudio2()
     {
-        if not .handle do
+        if not .handle
+        {
             return
+        }
+
         let safeHandle = .handle
         let handle     = cast(*IXAudio2SourceVoice, safeHandle)
         handle.vtbl.destroyVoice(cast(*IXAudio2Voice, cast(*void, handle)))
@@ -285,8 +320,10 @@ impl Voice
 
     mtd updateXAudio2()->bool fail
     {
-        if not .handle do
+        if not .handle
+        {
             return false
+        }
 
         let safeHandle = .handle
         let handle     = cast(*IXAudio2SourceVoice, safeHandle)
@@ -296,15 +333,20 @@ impl Voice
         while voiceState.buffersQueued < NumDecodedBuffers - 1
         {
             let {buffer: ptrBuffer, size: sizeBuffer} = try .readBuffer()
-            if not sizeBuffer do
+            if not sizeBuffer
+            {
                 break
+            }
 
             let safePtrBuffer      = unwrap ptrBuffer
             let buffer             = makeXAudio2Buffer(cast(const *BYTE, safePtrBuffer), cast(u32, sizeBuffer), me)
             let submitSourceBuffer = handle.vtbl.submitSourceBuffer
             let hr                 = submitSourceBuffer(handle, &buffer, null)
-            if hr != S_OK do
+            if hr != S_OK
+            {
                 fail SystemError{"submitSourceBuffer", errorID: hresultErrorId(hr)}
+            }
+
             getState(handle, &voiceState, 0)
         }
 
@@ -313,42 +355,60 @@ impl Voice
 
     mtd playXAudio2(batchId: u32 = 0) fail
     {
-        if not .handle do
+        if not .handle
+        {
             return
+        }
+
         let safeHandle = .handle
         let handle     = cast(*IXAudio2SourceVoice, safeHandle)
         let start      = handle.vtbl.start
         let hr         = start(handle, 0, batchId)
-        if hr != S_OK do
+        if hr != S_OK
+        {
             fail SystemError{"start", errorID: hresultErrorId(hr)}
+        }
     }
 
     mtd stopXAudio2(batchId: u32 = 0) fail
     {
-        if not .handle do
+        if not .handle
+        {
             return
+        }
+
         let safeHandle = .handle
         let handle     = cast(*IXAudio2SourceVoice, safeHandle)
         let stop       = handle.vtbl.stop
         let hr         = stop(handle, 0, batchId)
-        if hr != S_OK do
+        if hr != S_OK
+        {
             fail SystemError{"stop", errorID: hresultErrorId(hr)}
+        }
     }
 
     mtd resetXAudio2() fail
     {
-        if not .handle do
+        if not .handle
+        {
             return
+        }
+
         let handle = cast(*IXAudio2SourceVoice, .handle)
         let hr     = handle.vtbl.flushSourceBuffers(handle)
-        if hr != S_OK do
+        if hr != S_OK
+        {
             fail SystemError{"cannot flush XAudio2 source buffers", errorID: hresultErrorId(hr)}
+        }
     }
 
     mtd playedFramesXAudio2()->u64
     {
-        if not .handle do
+        if not .handle
+        {
             return 0
+        }
+
         let handle = cast(*IXAudio2SourceVoice, .handle)
         var voiceState: XAUDIO2_VOICE_STATE
         handle.vtbl.getState(handle, &voiceState, 0)
@@ -363,20 +423,30 @@ internal impl Voice
         let destination = cast(*IXAudio2Voice, cast(*void, unwrap g_Driver.xAudio2.masteringVoice))
         var details: XAUDIO2_VOICE_DETAILS
         destination.vtbl.getVoiceDetails(destination, &details)
-        if details.inputChannels != 2 do
+        if details.inputChannels != 2
+        {
             fail BadParameterError{"stereo pan requires a stereo output route"}
+        }
     }
 
     mtd setPanXAudio2(pan: f32, batchId: u32 = 0) fail
     {
-        if not .handle do
+        if not .handle
+        {
             return
-        if pan == 0 and .panValue == 0 do
+        }
+
+        if pan == 0 and .panValue == 0
+        {
             return
+        }
+
         let file = unwrap .file
         let sourceChannels = file.numChannels()
-        if sourceChannels == 0 or sourceChannels > 2 do
+        if sourceChannels == 0 or sourceChannels > 2
+        {
             fail BadParameterError{"stereo pan supports mono and stereo sources"}
+        }
 
         let matrix = try voicePanMatrix(sourceChannels, pan)
 
@@ -389,8 +459,10 @@ internal impl Voice
                 let destination = cast(*IXAudio2Voice, unwrap bus.handle)
                 let setMatrix   = source.vtbl.setOutputMatrix
                 let hr          = setMatrix(cast(*IXAudio2Voice, cast(*void, source)), destination, sourceChannels, bus.channelCount, &matrix[0], batchId)
-                if hr != S_OK do
+                if hr != S_OK
+                {
                     fail SystemError{"setOutputMatrix", errorID: hresultErrorId(hr)}
+                }
             }
         }
         else
@@ -400,30 +472,40 @@ internal impl Voice
             destination.vtbl.getVoiceDetails(destination, &details)
             let setMatrix = source.vtbl.setOutputMatrix
             let hr        = setMatrix(cast(*IXAudio2Voice, cast(*void, source)), destination, sourceChannels, details.inputChannels, &matrix[0], batchId)
-            if hr != S_OK do
+            if hr != S_OK
+            {
                 fail SystemError{"setOutputMatrix", errorID: hresultErrorId(hr)}
+            }
         }
     }
 
     // Sets this voice's XAudio2 gain as a linear value from `0` through `1`.
     mtd setVolumeXAudio2(volume: f32, batchId: u32 = 0) fail
     {
-        if not .handle do
+        if not .handle
+        {
             return
+        }
+
         let safeHandle = .handle
         let handle     = cast(*IXAudio2SourceVoice, safeHandle)
         let v          = Math.clamp(volume, 0, 1)
         let setVolume  = handle.vtbl.setVolume
         let hr         = setVolume(cast(*IXAudio2Voice, cast(*void, handle)), v, batchId)
-        if hr != S_OK do
+        if hr != S_OK
+        {
             fail SystemError{"setVolume", errorID: hresultErrorId(hr)}
+        }
     }
 
     // Returns this voice's current XAudio2 linear gain.
     mtd volumeXAudio2()->f32 fail
     {
-        if not .handle do
+        if not .handle
+        {
             return 0
+        }
+
         let safeHandle = .handle
         let handle     = cast(*IXAudio2SourceVoice, safeHandle)
         var volume: f32
@@ -438,21 +520,29 @@ internal impl Voice
     // [[Audio.Voice.setFrequencyRatio]] in backend-independent code.
     mtd setFrequencyRatioXAudio2(ratio: f32, batchId: u32 = 0) fail
     {
-        if not .handle do
+        if not .handle
+        {
             return
+        }
+
         let safeHandle        = .handle
         let handle            = cast(*IXAudio2SourceVoice, safeHandle)
         let setFrequencyRatio = handle.vtbl.setFrequencyRatio
         let hr                = setFrequencyRatio(handle, ratio, batchId)
-        if hr != S_OK do
+        if hr != S_OK
+        {
             fail SystemError{"setFrequencyRatio", errorID: hresultErrorId(hr)}
+        }
     }
 
     // Returns this voice's XAudio2 playback frequency ratio.
     mtd frequencyRatioXAudio2()->f32 fail
     {
-        if not .handle do
+        if not .handle
+        {
             return 0
+        }
+
         let handle = cast(*IXAudio2SourceVoice, .handle)
         var ratio: f32
         handle.vtbl.getFrequencyRatio(handle, &ratio)
@@ -471,8 +561,10 @@ internal impl Voice
         var pSFXSEndList: *XAUDIO2_VOICE_SENDS?
 
         let count = buses.count
-        if count > MaxBus do
+        if count > MaxBus
+        {
             fail SystemError{"too many buses", errorID: count}
+        }
 
         if count
         {
@@ -492,8 +584,10 @@ internal impl Voice
         let handle          = cast(*IXAudio2SourceVoice, safeHandle)
         let setOutputVoices = handle.vtbl.setOutputVoices
         let hr              = setOutputVoices(cast(*IXAudio2Voice, cast(*void, handle)), pSFXSEndList)
-        if hr != S_OK do
+        if hr != S_OK
+        {
             fail SystemError{"setOutputVoices", errorID: hresultErrorId(hr)}
+        }
     }
 }
 
@@ -507,8 +601,10 @@ impl Bus
 
         if parent
         {
-            if not parent.handle do
+            if not parent.handle
+            {
                 fail BadParameterError{"parent bus invalid"}
+            }
 
             let safeParentHandle = parent.handle
             sfxSend.pOutputVoice  = cast(*IXAudio2Voice, cast(*void, safeParentHandle))
@@ -529,15 +625,21 @@ impl Bus
                                                   stage,
                                                   pSFXSEndList,
                                                   null)
-        if hr != S_OK do
+        if hr != S_OK
+        {
             fail SystemError{"createSubmixVoice", errorID: hresultErrorId(hr)}
+        }
+
         bus.handle = cast(*void?, handle)
     }
 
     mtd destroyXAudio2()
     {
-        if not .handle do
+        if not .handle
+        {
             return
+        }
+
         let safeHandle = .handle
         let handle     = cast(*IXAudio2SubmixVoice, safeHandle)
         handle.vtbl.destroyVoice(cast(*IXAudio2Voice, cast(*void, handle)))
@@ -550,22 +652,30 @@ internal impl Bus
     // Sets this XAudio2 submix gain as a linear value from `0` through `1`.
     mtd setVolumeXAudio2(volume: f32, batchId: u32 = 0) fail
     {
-        if not .handle do
+        if not .handle
+        {
             return
+        }
+
         let safeHandle = .handle
         let handle     = cast(*IXAudio2SubmixVoice, safeHandle)
         let v          = Math.clamp(volume, 0, 1)
         let setVolume  = handle.vtbl.setVolume
         let hr         = setVolume(cast(*IXAudio2Voice, cast(*void, handle)), v, batchId)
-        if hr != S_OK do
+        if hr != S_OK
+        {
             fail SystemError{"setVolume", errorID: hresultErrorId(hr)}
+        }
     }
 
     // Returns this XAudio2 submix's current linear gain.
     mtd volumeXAudio2()->f32 fail
     {
-        if not .handle do
+        if not .handle
+        {
             return 0
+        }
+
         let safeHandle = .handle
         let handle     = cast(*IXAudio2SubmixVoice, safeHandle)
         var volume: f32

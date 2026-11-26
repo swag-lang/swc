@@ -20,7 +20,7 @@ struct Macroblock
 
 struct Plane
 {
-    pixels: Array'u8
+    pixels: Array!{u8}
     width:  s32
     height: s32
     stride: s32
@@ -50,7 +50,7 @@ impl Plane
 struct Frame
 {
     planes:    [3] Plane
-    blocks:    Array'Macroblock
+    blocks:    Array!{Macroblock}
     columns:   s32
     rows:      s32
     timestamp: s32
@@ -74,12 +74,14 @@ impl Frame
     mtd write(target: *PlanarFrame)
     {
         target.resize(.planes[0].width, .planes[0].height)
-        for channel in 3'u32
+        for channel in 3_u32
         {
             let plane  = &.planes[channel]
             let output = channel == 0 ? target.luma.storage() : (channel == 1 ? target.chromaB.storage() : target.chromaR.storage())
-            for row in plane.height do
+            for row in plane.height
+            {
                 Memory.copy(output + cast(s64, (row * plane.width)), plane.at(0, cast(s32, row)), cast(u64, plane.width))
+            }
         }
     }
 }

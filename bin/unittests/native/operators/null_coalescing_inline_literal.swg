@@ -3,10 +3,10 @@
 #[Swag.Inline]
 func inlineZeroLiteralOrelseReturn(value: u8)->u8
 {
-    return 0'u8 != 0 ? 0'u8 : value
+    return 0_u8 != 0 ? 0_u8 : value
 }
 
 #test
 {
-    Swag.require(inlineZeroLiteralOrelseReturn(9'u8) == 9'u8)
+    Swag.require(inlineZeroLiteralOrelseReturn(9_u8) == 9_u8)
 }

@@ -25,7 +25,7 @@ alias StrictAddressArray = [3] s32
 
 #test
 {
-    var A  = 10's32
+    var A  = 10_s32
     var PA = &A
     #assert(#typeof(PA) == *s32)
     Swag.require(PA[] == 10)
@@ -121,8 +121,8 @@ alias StrictAddressArray = [3] s32
 
 #test
 {
-    var A  = 10's32
-    var B  = 20's32
+    var A  = 10_s32
+    var B  = 20_s32
     var PA = &A
     var PB = &B
     #assert(#typeof(PA) == *s32)
@@ -202,7 +202,7 @@ alias StrictAddressArray = [3] s32
 #test
 {
     var a: [4] s32
-    var i = 1's32
+    var i = 1_s32
     var p = &a[i]
     #assert(#typeof(p) == *s32)
     Swag.require(p == &a[1])

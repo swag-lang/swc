@@ -28,7 +28,7 @@ impl IWnd for IconTintProbe
     var icons: IconSet
     icons.setup(host.app.renderer, &atlas)
     defer icons.free()
-    let probe = Wnd.create'IconTintProbe(&host.root, {0, 0, 24, 24})
+    let probe = Wnd.create!{IconTintProbe}(&host.root, {0, 0, 24, 24})
     probe.icon       = icons.icon(0, 24, 1)
     probe.icon.color = host.theme.colors.fileKind_Video
     probe.fallback   = host.theme.colors.softText

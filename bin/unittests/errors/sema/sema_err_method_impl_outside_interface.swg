@@ -21,7 +21,7 @@ impl MarkedDerived
 }
 
 struct(T) MarkedGeneric { item: T }
-var generic: MarkedGeneric's32
+var generic: MarkedGeneric!{s32}
 
 impl MarkedGeneric
 {

@@ -7,7 +7,7 @@ using Core, Viewers
 #test
 {
     var theme = Pptx.SlideTheme.defaults()
-    let page = expect Pptx.SlidePage.parse("""
+    let page  = expect Pptx.SlidePage.parse("""
         <p:sld><p:spTree>
           <p:cxnSp><p:nvCxnSpPr><p:cNvPr id="1" name="Horizontal"/></p:nvCxnSpPr><p:spPr>
             <a:xfrm><a:off x="95250" y="190500"/><a:ext cx="952500" cy="0"/></a:xfrm>
@@ -35,7 +35,7 @@ using Core, Viewers
 #test
 {
     var theme = Pptx.SlideTheme.defaults()
-    let page = expect Pptx.SlidePage.parse("""
+    let page  = expect Pptx.SlidePage.parse("""
         <p:sld><p:spTree><p:cxnSp><p:nvCxnSpPr><p:cNvPr id="1" name="Diagonal"/></p:nvCxnSpPr><p:spPr>
           <a:xfrm><a:off x="0" y="0"/><a:ext cx="952500" cy="476250"/></a:xfrm>
           <a:prstGeom prst="line"><a:avLst/></a:prstGeom>

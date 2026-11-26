@@ -20,7 +20,7 @@ struct SceneLayout
 
 struct CardOptions
 {
-    angle:         Math.Angle        = 0.0'deg
+    angle:         Math.Angle        = 0.0_deg
     scale:         f32               = 1.0
     interpolation: InterpolationMode = .Linear
     sourceRect:    Math.Rectangle
@@ -43,6 +43,9 @@ var g_Painter:     Pixel.Painter
 var g_RC:          Pixel.RenderContext
 var g_Keyboard:    Input.Keyboard
 
+var g_FontPath:          String
+var g_FontBytes:         Array!{u8}
+late var g_TypeFace:     *Pixel.TypeFace
 late var g_TitleFont:    *Pixel.Font
 late var g_SubTitleFont: *Pixel.Font
 late var g_LabelFont:    *Pixel.Font
@@ -210,8 +213,10 @@ func fitTextureRect(bounds: Math.Rectangle, sourceWidth, sourceHeight: f32, angl
 
 func drawCardTexture(painter: *Pixel.Painter, rect: Math.Rectangle, card: TextureCard)
 {
-    if not card.texture.isValid() do
+    if not card.texture.isValid()
+    {
         return
+    }
 
     let srcRect      = card.options.sourceRect
     let sourceWidth  = srcRect.isEmpty() ? cast(f32, card.texture.width) : srcRect.width
@@ -230,18 +235,27 @@ func drawCardTexture(painter: *Pixel.Painter, rect: Math.Rectangle, card: Textur
     {
         painter.pushTransform()
         painter.rotateTransform(card.options.angle, textureRect.horzCenter(), textureRect.vertCenter())
-        if srcRect.isEmpty() do
+        if srcRect.isEmpty()
+        {
             painter.drawTexture(textureRect, card.texture)
-        else do
+        }
+        else
+        {
             painter.drawTexture(textureRect, srcRect, card.texture)
+        }
+
         painter.popTransform()
     }
     else
     {
-        if srcRect.isEmpty() do
+        if srcRect.isEmpty()
+        {
             painter.drawTexture(textureRect, card.texture)
-        else do
+        }
+        else
+        {
             painter.drawTexture(textureRect, srcRect, card.texture)
+        }
     }
 
     painter.setInterpolationMode(.Linear)
@@ -339,10 +353,32 @@ func onPointer(_: *Env.Window, event: Env.WindowPointerEvent)
 func updateShortcuts()
 {
     g_Keyboard.update()
-    if g_Keyboard.isKeyJustPressed(.F1) do
-        changePage(1)
-    elif g_Keyboard.isKeyJustPressed(.F2) do
-        changePage(-1)
+    if g_Keyboard.isKeyJustPressed(Input.Key.F1)
+    {
+        nextPage()
+    }
+}
+
+func updateTestMode()
+{
+    if not Env.isSmokeRun()
+    {
+        return
+    }
+
+    g_TestFrame += 1
+    if g_TestFrame < TestFramesPerPage
+    {
+        return
+    }
+
+    g_TestFrame = 0
+    if g_Page + 1 >= MaxPages
+    {
+        Env.exit(0)
+    }
+
+    nextPage()
 }
 
 #main
@@ -372,8 +408,10 @@ func updateShortcuts()
 
     let smoke = Env.isSmokeRun()
     var loop: Env.WindowLoop
-    if smoke do
-        loop.smokeFrames = MaxPages
+    if Env.isSmokeRun()
+    {
+        loop.smokeFrames = cast(u32, MaxPages) * cast(u32, TestFramesPerPage)
+    }
 
     while loop.next()
     {

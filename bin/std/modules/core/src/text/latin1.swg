@@ -57,14 +57,17 @@ using Swag
     func isWord(c: u8) => isLetter(c) or isDigit(c) or c == '_'
 
     // Returns the lowercase Latin-1 byte, preserving bytes with no lowercase mapping.
-    func toLower(c: u8) => isUpper(c) ? (c | 0x20'u8) : c
+    func toLower(c: u8) => isUpper(c) ? (c | 0x20_u8) : c
 
     // Returns the uppercase Latin-1 byte, preserving bytes with no uppercase mapping.
     func toUpper(c: u8)->u8
     {
         if (c >= 0x61 and c <= 0x7A) or
-           (c >= 0xE0 and c <= 0xFE and c != 0xF7) do
-            return c & ~0x20'u8
+           (c >= 0xE0 and c <= 0xFE and c != 0xF7)
+        {
+            return c & ~0x20_u8
+        }
+
         return c
     }
 }
@@ -72,8 +75,8 @@ using Swag
 private func spaceMaskAt(data: const [*] u8)->u32
 {
     let value    = Math.Simd.load(data)
-    let controls = (value >= Math.Simd.splat(9'u8)) & (value <= Math.Simd.splat(13'u8))
-    return Math.Simd.bitmask(controls | (value == Math.Simd.splat(32'u8)))
+    let controls = (value >= Math.Simd.splat(9_u8)) & (value <= Math.Simd.splat(13_u8))
+    return Math.Simd.bitmask(controls | (value == Math.Simd.splat(32_u8)))
 }
 
 private func isAsciiSpace(value: u8)->bool => (value >= 9 and value <= 13) or value == 32
@@ -87,7 +90,7 @@ internal func firstNonSpace(buffer: const [..] u8, includeLatin1 = true)->u64
     const VectorSize = #sizeof(Math.Simd.U8x16)
     let data   = buffer.buffer
     let count  = buffer.count
-    var offset = 0'u64
+    var offset = 0_u64
     while count - offset >= VectorSize
     {
         let mask = spaceMaskAt(data + offset)
@@ -102,12 +105,18 @@ internal func firstNonSpace(buffer: const [..] u8, includeLatin1 = true)->u64
 
     while offset < count
     {
-        if isAsciiSpace(data[offset]) do
+        if isAsciiSpace(data[offset])
+        {
             offset += 1
-        elif includeLatin1 and count - offset >= 2 and isEncodedSpace(data[offset], data[offset + 1]) do
+        }
+        else if includeLatin1 and count - offset >= 2 and isEncodedSpace(data[offset], data[offset + 1])
+        {
             offset += 2
-        else do
+        }
+        else
+        {
             break
+        }
     }
 
     return offset
@@ -134,12 +143,18 @@ internal func lastNonSpace(buffer: const [..] u8, includeLatin1 = true)->u64
 
     while offset
     {
-        if isAsciiSpace(data[offset - 1]) do
+        if isAsciiSpace(data[offset - 1])
+        {
             offset -= 1
-        elif includeLatin1 and offset >= 2 and isEncodedSpace(data[offset - 2], data[offset - 1]) do
+        }
+        else if includeLatin1 and offset >= 2 and isEncodedSpace(data[offset - 2], data[offset - 1])
+        {
             offset -= 2
-        else do
+        }
+        else
+        {
             break
+        }
     }
 
     return offset
@@ -152,29 +167,34 @@ internal func lastNonSpace(buffer: const [..] u8, includeLatin1 = true)->u64
 func makeUpper(buffer: [..] u8)
 {
     const VectorSize = #sizeof(Math.Simd.U8x16)
-    let asciiFirst = Math.Simd.splat(0x61'u8)
-    let asciiLast  = Math.Simd.splat(0x7A'u8)
-    let caseBit    = Math.Simd.splat(0x20'u8)
-    var offset     = 0'u64
+    let asciiFirst = Math.Simd.splat(0x61_u8)
+    let asciiLast  = Math.Simd.splat(0x7A_u8)
+    let caseBit    = Math.Simd.splat(0x20_u8)
+    var offset     = 0_u64
     while buffer.count - offset >= VectorSize
     {
         let value = Math.Simd.load(buffer.buffer + offset)
-        if Math.Simd.anyTrue(value >= Math.Simd.splat(0x80'u8)) do
+        if Math.Simd.anyTrue(value >= Math.Simd.splat(0x80_u8))
+        {
             break
+        }
+
         let mask = (value >= asciiFirst) & (value <= asciiLast)
         Math.Simd.store(buffer.buffer + offset, value - (mask & caseBit))
         offset += VectorSize
     }
 
-    for i in offset until buffer.count do
+    for i in offset until buffer.count
+    {
         buffer[i] = upperUtf8Byte(buffer, i)
+    }
 }
 
 #[Inline]
 private func toLowerUtf8(value: Math.Simd.U8x16)->Math.Simd.U8x16
 {
-    let asciiMask = (value >= Math.Simd.splat(0x41'u8)) & (value <= Math.Simd.splat(0x5A'u8))
-    return value + (asciiMask & Math.Simd.splat(0x20'u8))
+    let asciiMask = (value >= Math.Simd.splat(0x41_u8)) & (value <= Math.Simd.splat(0x5A_u8))
+    return value + (asciiMask & Math.Simd.splat(0x20_u8))
 }
 
 // Lowercases ASCII and Latin-1 letters in UTF-8, preserving all other encoded characters.
@@ -184,18 +204,23 @@ private func toLowerUtf8(value: Math.Simd.U8x16)->Math.Simd.U8x16
 func makeLower(buffer: [..] u8)
 {
     const VectorSize = #sizeof(Math.Simd.U8x16)
-    var offset = 0'u64
+    var offset = 0_u64
     while buffer.count - offset >= VectorSize
     {
         let value = Math.Simd.load(buffer.buffer + offset)
-        if Math.Simd.anyTrue(value >= Math.Simd.splat(0x80'u8)) do
+        if Math.Simd.anyTrue(value >= Math.Simd.splat(0x80_u8))
+        {
             break
+        }
+
         Math.Simd.store(buffer.buffer + offset, toLowerUtf8(value))
         offset += VectorSize
     }
 
-    for i in offset until buffer.count do
+    for i in offset until buffer.count
+    {
         buffer[i] = lowerUtf8Byte(buffer, i)
+    }
 }
 
 #[Inline]
@@ -204,16 +229,25 @@ private func upperUtf8Byte(buffer: const [..] u8, index: u64)->u8
     #[Inline, ConstExpr]
     func isLowerUtf8(c: u8)->bool
     {
-        if isAscii(c) and isLower(c) do
+        if isAscii(c) and isLower(c)
+        {
             return true
+        }
+
         return cast(bool, (CharProperties[c] & .LowerUtf8))
     }
 
     let value = buffer[index]
-    if isAscii(value) do
+    if isAscii(value)
+    {
         return toUpper(value)
-    if index and buffer[index - 1] == 0xC3 and isLowerUtf8(value) do
+    }
+
+    if index and buffer[index - 1] == 0xC3 and isLowerUtf8(value)
+    {
         return value - 0x20
+    }
+
     return value
 }
 
@@ -224,16 +258,25 @@ private func lowerUtf8Byte(buffer: const [..] u8, index: u64)->u8
     #[Inline, ConstExpr]
     func isUpperUtf8(c: u8)->bool
     {
-        if isAscii(c) and isUpper(c) do
+        if isAscii(c) and isUpper(c)
+        {
             return true
+        }
+
         return cast(bool, (CharProperties[c] & .UpperUtf8))
     }
 
     let value = buffer[index]
-    if isAscii(value) do
+    if isAscii(value)
+    {
         return toLower(value)
-    if index and buffer[index - 1] == 0xC3 and isUpperUtf8(value) do
+    }
+
+    if index and buffer[index - 1] == 0xC3 and isUpperUtf8(value)
+    {
         return value + 0x20
+    }
+
     return value
 }
 
@@ -252,7 +295,7 @@ func compare(src, dst: const [..] u8, ignoreCase = false)->s32
     if ignoreCase
     {
         const VectorSize = #sizeof(Math.Simd.U8x16)
-        var offset = 0'u64
+        var offset = 0_u64
         while minLen - offset >= VectorSize
         {
             let raw1 = Math.Simd.load(src.buffer + offset)
@@ -265,8 +308,10 @@ func compare(src, dst: const [..] u8, ignoreCase = false)->s32
 
             // A non-ASCII block needs the preceding UTF-8 lead byte, including at
             // a block boundary. Keep the packed path for ASCII and fold the rest below.
-            if Math.Simd.anyTrue((raw1 | raw2) >= Math.Simd.splat(0x80'u8)) do
+            if Math.Simd.anyTrue((raw1 | raw2) >= Math.Simd.splat(0x80_u8))
+            {
                 break
+            }
 
             let c1        = toLowerUtf8(raw1)
             let c2        = toLowerUtf8(raw2)
@@ -286,8 +331,10 @@ func compare(src, dst: const [..] u8, ignoreCase = false)->s32
             let c1 = lowerUtf8Byte(src, i)
             let c2 = lowerUtf8Byte(dst, i)
             result = cast(s32, c1) - cast(s32, c2)
-            if result != 0 do
+            if result != 0
+            {
                 return Math.sign(result)
+            }
         }
     }
     else
@@ -295,8 +342,11 @@ func compare(src, dst: const [..] u8, ignoreCase = false)->s32
         result = Memory.compare(src.buffer, dst.buffer, minLen)
     }
 
-    if result != 0 do
+    if result != 0
+    {
         return Math.sign(result)
+    }
+
     return length <=> otherLength
 }
 
@@ -323,19 +373,33 @@ func compareNatural(src, dst: const [..] u8, ignoreCase = false)->s32
             let ca = not csrc ? 0 : src[ai]
             let cb = not cdst ? 0 : dst[bi]
 
-            let dga = ca >= '0'u8 and ca <= '9'u8
-            let dgb = cb >= '0'u8 and cb <= '9'u8
+            let dga = ca >= '0'_u8 and ca <= '9'_u8
+            let dgb = cb >= '0'_u8 and cb <= '9'_u8
 
-            if not dga and not dgb do
+            if not dga and not dgb
+            {
                 return 0
-            if not dga do
+            }
+
+            if not dga
+            {
                 return -1
-            if not dgb do
+            }
+
+            if not dgb
+            {
                 return 1
-            if ca < cb do
+            }
+
+            if ca < cb
+            {
                 return -1
-            if ca > cb do
+            }
+
+            if ca > cb
+            {
                 return 1
+            }
 
             ai, bi     += 1
             csrc, cdst -= 1
@@ -355,27 +419,39 @@ func compareNatural(src, dst: const [..] u8, ignoreCase = false)->s32
             let ca = not csrc ? 0 : src[ai]
             let cb = not cdst ? 0 : dst[bi]
 
-            let dga = ca >= '0'u8 and ca <= '9'u8
-            let dgb = cb >= '0'u8 and cb <= '9'u8
+            let dga = ca >= '0'_u8 and ca <= '9'_u8
+            let dgb = cb >= '0'_u8 and cb <= '9'_u8
 
-            if not dga and not dgb do
+            if not dga and not dgb
+            {
                 return bias
-            if not dga do
+            }
+
+            if not dga
+            {
                 return -1
-            if not dgb do
+            }
+
+            if not dgb
+            {
                 return 1
+            }
 
             if ca < cb
             {
-                if not bias do
+                if not bias
+                {
                     bias = -1
+                }
             }
-            elif ca > cb
+            else if ca > cb
             {
-                if not bias do
+                if not bias
+                {
                     bias = 1
+                }
             }
-            elif not ca and not cb
+            else if not ca and not cb
             {
                 return bias
             }
@@ -387,34 +463,43 @@ func compareNatural(src, dst: const [..] u8, ignoreCase = false)->s32
         return 0
     }
 
-    var ai, bi = 0'u64
+    var ai, bi = 0_u64
     for
     {
         if ai < src.count and
            (isAsciiSpace(src[ai]) or
             src.count - ai >= 2 and
-            isEncodedSpace(src[ai], src[ai + 1])) do
+            isEncodedSpace(src[ai], src[ai + 1]))
+        {
             ai += firstNonSpace(src[ai to])
+        }
+
         if bi < dst.count and
            (isAsciiSpace(dst[bi]) or
             dst.count - bi >= 2 and
-            isEncodedSpace(dst[bi], dst[bi + 1])) do
+            isEncodedSpace(dst[bi], dst[bi + 1]))
+        {
             bi += firstNonSpace(dst[bi to])
+        }
 
-        if ai == src.count or bi == dst.count do
+        if ai == src.count or bi == dst.count
+        {
             return (src.count - ai) <=> (dst.count - bi)
+        }
 
         var ca = src[ai]
         var cb = dst[bi]
 
         // A UTF-8 continuation byte is never part of an ASCII decimal run.
-        if ca >= '0'u8 and ca <= '9'u8 and cb >= '0'u8 and cb <= '9'u8
+        if ca >= '0'_u8 and ca <= '9'_u8 and cb >= '0'_u8 and cb <= '9'_u8
         {
             let left   = src[ai to]
             let right  = dst[bi to]
-            let result = ca == '0'u8 or cb == '0'u8 ? compareLeft(left, right) : compareRight(left, right)
-            if result do
+            let result = ca == '0'_u8 or cb == '0'_u8 ? compareLeft(left, right) : compareRight(left, right)
+            if result
+            {
                 return result
+            }
         }
 
         if ignoreCase
@@ -423,10 +508,16 @@ func compareNatural(src, dst: const [..] u8, ignoreCase = false)->s32
             cb = upperUtf8Byte(dst, bi)
         }
 
-        if ca < cb do
+        if ca < cb
+        {
             return -1
-        if ca > cb do
+        }
+
+        if ca > cb
+        {
             return 1
+        }
+
         ai, bi += 1
     }
 }
@@ -439,8 +530,11 @@ func trim(str: string)->string
 {
     let bytes = cast(const [..] u8, str)
     let first = firstNonSpace(bytes)
-    if first == str.count do
+    if first == str.count
+    {
         return ""
+    }
+
     let last = first + lastNonSpace(bytes[first to])
     return str[first until last]
 }

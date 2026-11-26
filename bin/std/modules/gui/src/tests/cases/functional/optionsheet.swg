@@ -551,7 +551,7 @@ impl IWnd for SheetCommandTarget
         switch evt.id
         {
         case "Test.Sheet.ModeA", "Test.Sheet.ModeB":
-            let mode = evt.id == SheetModeIds[0] ? 0'u32 : 1
+            let mode = evt.id == SheetModeIds[0] ? 0_u32 : 1
             evt.updatedFields.add(.Name | .Checked | .RenderingHint)
             evt.name          = mode ? "Mode B" : "Mode A"
             evt.checked       = .mode == mode
@@ -592,7 +592,7 @@ impl IWnd for SheetCommandTarget
 {
     var host: Testing.HeadlessHost
     host.setup(320, 200)
-    let target = Wnd.create'SheetCommandTarget(&host.root, {0, 0, 100, 100})
+    let target = Wnd.create!{SheetCommandTarget}(&host.root, {0, 0, 100, 100})
     target.mode = 1
 
     var page: OptionSheet.Page
@@ -623,17 +623,20 @@ impl IWnd for SheetCommandTarget
 {
     var host: Testing.HeadlessHost
     host.setup(480, 520)
-    let button = IconButton.create(&host.root, host.theme.icon(.Settings, 20), {300, 440, 40, 36})
-    var selected = 1'u32
-    let sheet = OptionSheet.View.create(button, func|selected = &selected|(page)
+    let button   = IconButton.create(&host.root, host.theme.icon(.Settings, 20), {300, 440, 40, 36})
+    var selected = 1_u32
+    let sheet    = OptionSheet.View.create(button, func|selected = &selected|(page)
     {
         page.addSegments("Time", ["Absolute", "Relative", "Leader"], selected[], func|selected|(index) { selected[] = index })
     })
     var driven: bool
     host.app.sigFrame += func|sheet, selected = &selected, driven = &driven|(_)
     {
-        if driven[] do
+        if driven[]
+        {
             return
+        }
+
         driven[] = true
         Swag.require(sheet.page.rows[0].selected == 1)
         var event = KeyEvent{kind: .Pressed, key: .Right}
@@ -644,6 +647,7 @@ impl IWnd for SheetCommandTarget
         Swag.require(event.accepted and selected[] == 1)
         sheet.close()
     }
+
     sheet.doModal(button, autoDestroy: true)
     host.app.sigFrame.clear()
     Swag.require(driven)

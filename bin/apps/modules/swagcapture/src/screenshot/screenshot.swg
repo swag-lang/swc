@@ -51,11 +51,17 @@ impl CaptureTarget
     // Returns the current area and whether an attached window is visible or gone.
     mtd const resolve()->{area: Math.Rectangle, visible: bool, exists: bool}
     {
-        if not .window do
+        if not .window
+        {
             return {area: .area, visible: true, exists: true}
+        }
+
         let bounds = getCaptureWindowBounds(.window)
-        if not bounds.exists do
+        if not bounds.exists
+        {
             return {area: .area, visible: false, exists: false}
+        }
+
         return {area: {bounds.rect.x + .offset.x, bounds.rect.y + .offset.y,
                        .area.width, .area.height}, visible: bounds.visible, exists: true}
     }
@@ -78,8 +84,11 @@ var g_CaptureAnchored: bool
 // Names the application the selected zone follows, with its window title as fallback.
 func captureTargetLabel()->String
 {
-    if not g_CaptureAnchored do
+    if not g_CaptureAnchored
+    {
         return String.from(appStrings().ui_AimDetached)
+    }
+
     let name   = g_CaptureWindow.title.isEmpty() ? g_CaptureWindow.application : g_CaptureWindow.title
     let font   = g_App.theme.createDefaultFontFs(g_App.theme.metrics.defaultFontSize - 1)
     let fitted = Painter.elideString(name, font, 180)
@@ -89,8 +98,8 @@ func captureTargetLabel()->String
 // The cursor as it stood when the desktop was grabbed: a patch of the desktop with the cursor
 // drawn in, laid over the grabbed picture when the capture keeps the cursor, and the same pixels
 // without it, which take it out again. The overlay shows it or not as the option changes.
-const CursorPatchSide = 192's32     // Side of the patch, in physical pixels.
-const CursorPatchLead = 64's32      // Part of the patch above and left of the pointer.
+const CursorPatchSide = 192_s32     // Side of the patch, in physical pixels.
+const CursorPatchLead = 64_s32      // Part of the patch above and left of the pointer.
 
 var g_CursorPatch:     Image
 var g_CursorPatchRect: Math.Rectangle     // In physical virtual-desktop pixels.
@@ -171,8 +180,10 @@ func clearCursorPatch()
 // Puts the cursor in `img`, a grab of the whole virtual desktop, or takes it out again.
 func setCursorIn(img: *Image, shown: bool)
 {
-    if not g_CursorPatch.width or not g_CursorBare.width do
+    if not g_CursorPatch.width or not g_CursorBare.width
+    {
         return
+    }
 
     // An image counts its rows from the bottom.
     if shown
@@ -193,8 +204,11 @@ func waitForCapture()->bool
 {
     g_Exit     = false
     g_GrabDone = false
-    while not g_Exit do
+    while not g_Exit
+    {
         g_App.runFrame()
+    }
+
     return g_GrabDone
 }
 
@@ -224,18 +238,23 @@ func performScreenCapture(main: *MainWnd)->{ img: Image, sf: *Surface?, target: 
     grabCursorPatch(result.img)
     g_DesktopTexture = g_App.renderer.addImage(result.img)
     defer g_App.renderer.removeTexture(&g_DesktopTexture)
-    if g_CursorPatch.width do
+    if g_CursorPatch.width
+    {
         g_CursorTexture = g_App.renderer.addImage(g_CursorPatch)
+    }
+
     defer
     {
-        if g_CursorTexture.isValid() do
+        if g_CursorTexture.isValid()
+        {
             g_App.renderer.removeTexture(&g_CursorTexture)
+        }
     }
 
     result.sf = try createCaptureOverlay()
     let sf = result.sf
 
-    with let captureWnd = Wnd.create'CaptureRectWnd(sf.wnd)
+    with let captureWnd = Wnd.create!{CaptureRectWnd}(sf.wnd)
     {
         .main        = main
         .cursor      = Cursor.from(CursorShape.Cross)
@@ -280,7 +299,7 @@ struct CaptureResult
 // The in-place editor positions the capture over the frozen virtual desktop.
 func createCaptureDraft(img: Image, grabRect: Math.Rectangle)->*Capture
 {
-    with let capture = Memory.new'Capture()
+    with let capture = Memory.new!{Capture}()
     {
         .width          = cast(s32, grabRect.width)
         .height         = cast(s32, grabRect.height)
@@ -318,8 +337,11 @@ func performInPlaceEdit(capture: *Capture, surface: *Surface, main: *MainWnd, ta
     main.fileDlgStateInPlace = inPlaceWnd.newMain.fileDlgState
     let copied = inPlaceWnd.copied
     inPlaceWnd.editWnd.editView.capture = null
-    if capture.backTexture.isValid() do
+    if capture.backTexture.isValid()
+    {
         inPlaceWnd.app().renderer.removeTexture(&capture.backTexture)
+    }
+
     surface.destroy()
     if not accepted
     {
@@ -327,8 +349,11 @@ func performInPlaceEdit(capture: *Capture, surface: *Surface, main: *MainWnd, ta
         return {copied: copied}
     }
 
-    if g_CaptureMedia != .Picture do
+    if g_CaptureMedia != .Picture
+    {
         return {capture: try recordZone(main, capture, target)}
+    }
+
     return {capture: capture}
 }
 
@@ -347,15 +372,25 @@ func recordZone(main: *MainWnd, zone: *Capture, chosen: CaptureTarget)->*Capture
     target.area     = screenArea
 
     // The preparation bar can change the attachment after the rectangle was selected.
-    if g_CaptureWindow.nativeWindow do
+    if g_CaptureWindow.nativeWindow
+    {
         target = CaptureTarget.create(screenArea, g_CaptureAnchored ? g_CaptureWindow.nativeWindow : 0)
+    }
+
     var result: *Capture?
-    if g_CaptureMedia == .Video do
+    if g_CaptureMedia == .Video
+    {
         result = try Recorder.recordVideo(main, target, prepare: true)
-    else do
+    }
+    else
+    {
         result = try Recorder.record(main, target)
-    if not result do
+    }
+
+    if not result
+    {
         return null
+    }
 
     // The picture draft stays intact while choosing a medium, but its annotations are not
     // part of a screen recording. The zone owns and releases them after recording ends.
@@ -366,8 +401,10 @@ func captureRect(main: *MainWnd, destination: PictureDestination)->CaptureResult
 {
     defer clearCursorPatch()
     let {img, sf, target} = try performScreenCapture(main)
-    if not sf do
+    if not sf
+    {
         return {}
+    }
 
     if g_CaptureMedia == .Video
     {
@@ -376,8 +413,10 @@ func captureRect(main: *MainWnd, destination: PictureDestination)->CaptureResult
     }
 
     let capture = createCaptureDraft(img, getGrabRect())
-    if main.captureOptions.captureCursor do
+    if main.captureOptions.captureCursor
+    {
         setCursorIn(&capture.backImg, true)
+    }
 
     if g_CaptureMedia == .Picture and destination != .InPlace
     {
@@ -393,8 +432,10 @@ func captureFixedPicture(main: *MainWnd, target: CaptureTarget, destination: Pic
 {
     let desktopBounds = Math.Rectangle{g_DesktopX, g_DesktopY, g_ScreenWidth, g_ScreenHeight}
     let area = Math.Rectangle.intersect(target.resolve().area, desktopBounds)
-    if area.isEmpty() do
+    if area.isEmpty()
+    {
         return try captureRect(main, destination)
+    }
 
     let drawCursor = main.captureOptions.captureCursor
     if destination == .InPlace
@@ -408,7 +449,7 @@ func captureFixedPicture(main: *MainWnd, target: CaptureTarget, destination: Pic
     // Direct destinations only need the requested pixels. The in-place view above keeps the
     // surrounding desktop visible to put the capture in context.
     let img = try getScreenRectImage(drawCursor, cast(s32, area.x), cast(s32, area.y), cast(s32, area.width), cast(s32, area.height))
-    with let capture = Memory.new'Capture()
+    with let capture = Memory.new!{Capture}()
     {
         .width, .widthOrg   = img.width
         .height, .heightOrg = img.height
@@ -435,8 +476,11 @@ func setGrabBounds(main: *MainWnd, captureMode: CaptureMode, monitorIndex: u64)-
     case .ActiveWindow:
         let window = getBackgroundWindow()
         let r      = screenToDesktopRect(window.rect)
-        if r.isEmpty() do
+        if r.isEmpty()
+        {
             return false
+        }
+
         g_CaptureWindow   = window.info
         g_CaptureAnchored = window.info.nativeWindow != 0
         g_StartGrabX      = r.x
@@ -445,8 +489,11 @@ func setGrabBounds(main: *MainWnd, captureMode: CaptureMode, monitorIndex: u64)-
         g_EndGrabY        = r.bottom()
 
     case .Monitor:
-        if monitorIndex >= main.monitors.count do
+        if monitorIndex >= main.monitors.count
+        {
             return false
+        }
+
         let rect = screenToDesktopRect(main.monitors[monitorIndex].physicalBounds)
         g_StartGrabX = rect.x
         g_StartGrabY = rect.y
@@ -454,8 +501,11 @@ func setGrabBounds(main: *MainWnd, captureMode: CaptureMode, monitorIndex: u64)-
         g_EndGrabY   = rect.y + rect.height
 
     case .LastArea:
-        if g_EndGrabX == g_StartGrabX or g_EndGrabY == g_StartGrabY do
+        if g_EndGrabX == g_StartGrabX or g_EndGrabY == g_StartGrabY
+        {
             return false
+        }
+
         let rect       = getGrabRect()
         let screenRect = Math.Rectangle{g_DesktopX + rect.x, g_DesktopY + rect.y, rect.width, rect.height}
         g_CaptureWindow   = getCaptureWindowForRect(unwrap main.surface, screenRect)
@@ -481,8 +531,10 @@ func screenShot(main: *MainWnd, captureMode: CaptureMode, monitorIndex: u64 = 0)
     // Keep the editor out of the desktop pixels unless the option says otherwise.
     let surface       = unwrap main.surface
     let restoreEditor = main.captureOptions.hideEditorBefore and not surface.isHidden and not surface.isMinimized
-    if restoreEditor do
+    if restoreEditor
+    {
         surface.hide()
+    }
 
     defer #fail
     {
@@ -490,8 +542,10 @@ func screenShot(main: *MainWnd, captureMode: CaptureMode, monitorIndex: u64 = 0)
     }
 
     // Let the configured capture delay elapse before reading the desktop.
-    if main.captureOptions.delay do
+    if main.captureOptions.delay
+    {
         Threading.Thread.sleep(Time.Duration.fromSeconds(main.captureOptions.delay))
+    }
 
     g_DesktopX        = Env.getSystemMetric(.DesktopX)
     g_DesktopY        = Env.getSystemMetric(.DesktopY)
@@ -522,7 +576,7 @@ func screenShot(main: *MainWnd, captureMode: CaptureMode, monitorIndex: u64 = 0)
             let screenIndex     = captureMode == .FullScreen ? Swag.U64.Max : monitorIndex
             result.capture = try Recorder.recordVideo(main, target, prepare: true, screenSelection: screenSelection, screenIndex: screenIndex)
         }
-        elif g_CaptureMedia == .Animation
+        else if g_CaptureMedia == .Animation
         {
             result.capture = try Recorder.record(main, target)
         }
@@ -557,17 +611,25 @@ func screenShot(main: *MainWnd, captureMode: CaptureMode, monitorIndex: u64 = 0)
     if result.copied
     {
         let texts = appStrings()
-        if main.workspace == .Resident do
+        if main.workspace == .Resident
+        {
             main.showResidentNotice(texts.msg_Copied, texts.msg_ResidentCopyText)
-        elif main.workspace == .Editor do
+        }
+        else if main.workspace == .Editor
+        {
             main.confirm(texts.msg_Copied)
+        }
     }
 }
 
 func restoreCaptureWorkspace(main: *MainWnd, restoreEditor: bool)
 {
-    if main.workspace == .Hub do
+    if main.workspace == .Hub
+    {
         main.showHub()
-    elif main.workspace == .Editor and restoreEditor do
+    }
+    else if main.workspace == .Editor and restoreEditor
+    {
         main.surface?.show()
+    }
 }

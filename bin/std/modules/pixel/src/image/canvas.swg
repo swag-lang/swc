@@ -84,10 +84,10 @@ impl ImageCanvas
 
         canvas.width      = width
         canvas.height     = height
-        canvas.background = Color.fromArgb(0'u8, 0'u8, 0'u8, 0'u8)
+        canvas.background = Color.fromArgb(0_u8, 0_u8, 0_u8, 0_u8)
 
-        canvas.renderer = Memory.new'RenderCpu()
-        canvas.target   = Memory.new'RenderTarget()
+        canvas.renderer = Memory.new!{RenderCpu}()
+        canvas.target   = Memory.new!{RenderTarget}()
 
         let renderer = canvas.renderer
         canvas.isOpen = true
@@ -138,8 +138,10 @@ impl ImageCanvas
     // ```
     func create(image: Image)->ImageCanvas fail
     {
-        if not image.isValid() do
+        if not image.isValid()
+        {
             fail InvalidFormatError{"invalid image"}
+        }
 
         var result: #returntype
         try open(&result, image.width, image.height)
@@ -175,8 +177,10 @@ impl ImageCanvas
     // images without being opened again.
     mtd toImage()->Image fail
     {
-        if not .isOpen do
+        if not .isOpen
+        {
             fail InvalidFormatError{"the canvas is closed"}
+        }
 
         .painter.unbindRenderTarget()
 
@@ -205,8 +209,11 @@ impl ImageCanvas
     // Releases the graphics resources when the canvas leaves scope.
     mtd opDrop()
     {
-        if not .isOpen do
+        if not .isOpen
+        {
             return
+        }
+
         .isOpen = false
 
         let renderer = unwrap .renderer

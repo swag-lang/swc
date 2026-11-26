@@ -20,16 +20,21 @@ impl SessionInstance
     // an already acquired owner or native resource errors. Serialize calls on the same owner.
     mtd acquire(id: string)->bool fail
     {
-        if .handle or not validSessionApplicationId(id) do
+        if .handle or not validSessionApplicationId(id)
+        {
             fail Errors.BadParameterError{}
+        }
+
         return try .acquireNative(id)
     }
 
     // Releases this presence. Repeated calls are safe; reacquisition is allowed.
     mtd close()
     {
-        if .handle do
+        if .handle
+        {
             .closeNative()
+        }
     }
 
     // Releases the application's presence when its owner leaves scope.
@@ -38,16 +43,21 @@ impl SessionInstance
 
 internal func validSessionApplicationId(id: string)->bool
 {
-    if id.count == 0 or id.count > 128 do
+    if id.count == 0 or id.count > 128
+    {
         return false
+    }
+
     for byte in id
     {
         if not ((byte >= 'a' and byte <= 'z') or
                 (byte >= 'A' and byte <= 'Z') or
                 (byte >= '0' and byte <= '9') or
                 byte == '.' or
-                byte == '-') do
+                byte == '-')
+        {
             return false
+        }
     }
 
     return true

@@ -226,11 +226,11 @@ func makeDefaultRequiredRet()->DefaultRequiredRet
 #test
 {
     let big = makeDefaultBigRet()
-    Swag.require(big.a == 3'u64)
-    Swag.require(big.b == 5'u64)
-    Swag.require(big.c == 70'u64)
-    Swag.require(big.d == 11'u64)
-    Swag.require(big.e == 13'u64)
+    Swag.require(big.a == 3_u64)
+    Swag.require(big.b == 5_u64)
+    Swag.require(big.c == 70_u64)
+    Swag.require(big.d == 11_u64)
+    Swag.require(big.e == 13_u64)
 }
 
 #test

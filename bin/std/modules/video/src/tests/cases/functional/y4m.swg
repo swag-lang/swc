@@ -15,7 +15,7 @@ using Core, Core.Errors, Pixel
     Swag.require((emptyOutcome.value() is BadParameterError))
 }
 
-func y4mAspectBytes(aspect: string)->Array'u8
+func y4mAspectBytes(aspect: string)->Array!{u8}
 {
     var result: #returntype
     result.add(cast(const [..] u8, Format.toString("YUV4MPEG2 W8 H4 F1:1 Ip A% C444\nFRAME\n", aspect).toString()))
@@ -81,7 +81,7 @@ func y4mAspectBytes(aspect: string)->Array'u8
         Swag.require(reader.frameCount() == 3)
 
         var frame: Image
-        for index in 3'u64
+        for index in 3_u64
         {
             expect reader.decodeFrameInto(&frame, index)
             videoAssertFixtureFrame(frame, index, tolerance: 4)
@@ -96,8 +96,10 @@ func y4mAspectBytes(aspect: string)->Array'u8
     // carries the full-range tag, which is the other conversion the decoder implements.
     var mono = expect Reader.open(videoFixturePath("ffmpeg-mono.y4m"))
     Swag.require(mono.width() == 32 and mono.height() == 24 and mono.frameCount() == 3)
-    for index in 3'u64 do
+    for index in 3_u64
+    {
         videoAssertFixtureLumaFrame(expect mono.decodeFrame(index), index, tolerance: 4)
+    }
 }
 
 // Two sequences of the standard research corpus, which are what this format is used for.
@@ -140,9 +142,9 @@ func y4mAspectBytes(aspect: string)->Array'u8
     const Modes = ["", " C420", " C420mpeg2", " C420paldv"]
     for mode in Modes
     {
-        var bytes: Array'u8
+        var bytes: Array!{u8}
         bytes.add(cast(const [..] u8, Format.toString("YUV4MPEG2 W2 H2 F1:1 Ip%\nFRAME\n", mode).toString()))
-        bytes.add([81'u8, 81, 81, 81, 90, 240])
+        bytes.add([81_u8, 81, 81, 81, 90, 240])
         var reader = expect Reader.openMemory("subsampled.y4m", bytes.toSlice())
         let frame  = expect reader.decodeFrame(0)
         videoAssertColor(frame.pixelColor(1, 1), 255, 0, 0, tolerance: 0)
@@ -169,9 +171,9 @@ func y4mAspectBytes(aspect: string)->Array'u8
 #test
 {
     const FullRangeRed = "YUV4MPEG2 W1 H1 F1:1 Ip A0:0 C444 XYSCSS=444 XCOLORRANGE=FULL\nFRAME\n"
-    var bytes: Array'u8
+    var bytes: Array!{u8}
     bytes.add(cast(const [..] u8, FullRangeRed))
-    bytes.add([76'u8, 85, 255])
+    bytes.add([76_u8, 85, 255])
     var reader = expect Reader.openMemory("full-range.y4m", bytes.toSlice())
     let frame  = expect reader.decodeFrame(0)
     videoAssertColor(frame.pixelColor(0, 0), 255, 0, 0)
@@ -180,9 +182,9 @@ func y4mAspectBytes(aspect: string)->Array'u8
 // C411 stores one chroma pair for each four horizontal luma samples.
 #test
 {
-    var bytes: Array'u8
+    var bytes: Array!{u8}
     bytes.add(cast(const [..] u8, "YUV4MPEG2 W8 H1 F1:1 Ip C411\nFRAME\n"))
-    bytes.add([81'u8, 81, 81, 81, 41, 41, 41, 41, 90, 240, 240, 110])
+    bytes.add([81_u8, 81, 81, 81, 41, 41, 41, 41, 90, 240, 240, 110])
     var reader = expect Reader.openMemory("4:1:1.y4m", bytes.toSlice())
     let frame  = expect reader.decodeFrame(0)
     videoAssertColor(frame.pixelColor(1, 0), 255, 0, 0, tolerance: 0)
@@ -220,12 +222,12 @@ func y4mAspectBytes(aspect: string)->Array'u8
 // stream is walked instead of being addressed, and its frame count is reported as unknown.
 #test
 {
-    var bytes: Array'u8
+    var bytes: Array!{u8}
     bytes.add(cast(const [..] u8, "YUV4MPEG2 W1 H1 F1:1 Ip C444\n"))
     bytes.add(cast(const [..] u8, "FRAME Xsomething\n"))
-    bytes.add([81'u8, 90, 240])
+    bytes.add([81_u8, 90, 240])
     bytes.add(cast(const [..] u8, "FRAME\n"))
-    bytes.add([145'u8, 54, 34])
+    bytes.add([145_u8, 54, 34])
 
     var reader = expect Reader.openMemory("parameters.y4m", bytes.toSlice())
     Swag.require(not reader.frameCount())
@@ -252,17 +254,17 @@ func y4mAspectBytes(aspect: string)->Array'u8
 // does not prove that every frame has the first marker's stride.
 #test
 {
-    var bytes: Array'u8
+    var bytes: Array!{u8}
     bytes.add(cast(const [..] u8, "YUV4MPEG2 W1 H1 F1:1 Ip C444\n"))
 
     bytes.add(cast(const [..] u8, "FRAME \n"))
-    bytes.add([81'u8, 90, 240])
+    bytes.add([81_u8, 90, 240])
     bytes.add(cast(const [..] u8, "FRAME X\n"))
-    bytes.add([145'u8, 54, 34])
+    bytes.add([145_u8, 54, 34])
     bytes.add(cast(const [..] u8, "FRAME\n"))
-    bytes.add([41'u8, 255, 107])
+    bytes.add([41_u8, 255, 107])
     bytes.add(cast(const [..] u8, "FRAME \n"))
-    bytes.add([210'u8, 16, 146])
+    bytes.add([210_u8, 16, 146])
 
     var reader = expect Reader.openMemory("compensating-markers.y4m", bytes.toSlice())
     Swag.require(not reader.frameCount())
@@ -285,12 +287,12 @@ func y4mAspectBytes(aspect: string)->Array'u8
 // failed or for another one.
 #test
 {
-    var bytes: Array'u8
+    var bytes: Array!{u8}
     bytes.add(cast(const [..] u8, "YUV4MPEG2 W1 H1 F1:1 Ip C444\n"))
     bytes.add(cast(const [..] u8, "FRAME\n"))
-    bytes.add([81'u8, 90, 240])
+    bytes.add([81_u8, 90, 240])
     bytes.add(cast(const [..] u8, "FRAME\n"))
-    bytes.add([145'u8, 54])
+    bytes.add([145_u8, 54])
 
     // The truncated tail is not a frame, and the stream no longer tiles, so it is walked.
     var reader = expect Reader.openMemory("truncated.y4m", bytes.toSlice())
@@ -317,7 +319,7 @@ func y4mAspectBytes(aspect: string)->Array'u8
 {
     let rate  = expect FrameRate.create(25, 1)
     var clip  = expect Clip.create(2, 1, rate)
-    let frame = videoTestImage(2, 1, [0'u8, 0, 0, 255, 255, 255])
+    let frame = videoTestImage(2, 1, [0_u8, 0, 0, 255, 255, 255])
     expect clip.addFrame(frame)
 
     let encoded = expect clip.encodeToBytes("sample.y4m")
@@ -326,8 +328,10 @@ func y4mAspectBytes(aspect: string)->Array'u8
     Swag.require(Swag.makeString(encoded.buffer, header.count) == header)
     let payload = encoded.toSlice()[header.count until encoded.count]
     const ExpectedPayload: [6] u8 = [16, 235, 128, 128, 128, 128]
-    for value, index in ExpectedPayload do
+    for value, index in ExpectedPayload
+    {
         Swag.require(payload[index] == value)
+    }
 }
 
 #test
@@ -337,9 +341,9 @@ func y4mAspectBytes(aspect: string)->Array'u8
 
     // Pixel storage is bottom-up. The two rows differ so the codec also proves Y4M's top-down
     // scan order instead of only preserving a flat color.
-    let first = videoTestImage(2, 2, [0'u8, 0, 255, 255, 255, 255,
+    let first = videoTestImage(2, 2, [0_u8, 0, 255, 255, 255, 255,
                                       255, 0, 0, 0, 255, 0])
-    let second = videoTestImage(2, 2, [255'u8, 255, 0, 0, 255, 255,
+    let second = videoTestImage(2, 2, [255_u8, 255, 0, 0, 255, 255,
                                        255, 0, 255, 16, 24, 32])
     expect source.addFrame(first)
     expect source.addFrame(second)
@@ -367,7 +371,7 @@ func y4mAspectBytes(aspect: string)->Array'u8
 {
     let rate   = expect FrameRate.create(25, 1)
     var source = expect Clip.create(2, 2, rate)
-    expect source.addFrame(videoTestImage(2, 2, [255'u8, 0, 0, 0, 255, 0,
+    expect source.addFrame(videoTestImage(2, 2, [255_u8, 0, 0, 0, 255, 0,
                                                  0, 0, 255, 255, 255, 255]))
 
     let full       = expect source.encodeToBytes("full.y4m")
@@ -381,8 +385,11 @@ func y4mAspectBytes(aspect: string)->Array'u8
     Swag.require(Swag.makeString(subsampled420.buffer, header420.count) == header420)
     Swag.require(subsampled420.count == header420.count + 6)
     let payload420 = subsampled420.toSlice()[header420.count until subsampled420.count]
-    for index in 4'u64 do
+    for index in 4_u64
+    {
         Swag.require(payload420[index] == fullPayload[index])
+    }
+
     let meanU = (cast(u32, fullPayload[4]) + fullPayload[5] + fullPayload[6] + fullPayload[7] + 2) / 4
     let meanV = (cast(u32, fullPayload[8]) + fullPayload[9] + fullPayload[10] + fullPayload[11] + 2) / 4
     Swag.require(payload420[4] == meanU and payload420[5] == meanV)
@@ -395,7 +402,7 @@ func y4mAspectBytes(aspect: string)->Array'u8
     Swag.require(Swag.makeString(subsampled422.buffer, header422.count) == header422)
     Swag.require(subsampled422.count == header422.count + 8)
     let payload422 = subsampled422.toSlice()[header422.count until subsampled422.count]
-    for row in 2'u64
+    for row in 2_u64
     {
         let fullChroma    = row * 2
         let reducedChroma = 4 + row
@@ -409,7 +416,7 @@ func y4mAspectBytes(aspect: string)->Array'u8
     Swag.require(reader422.frameCount() == 1 and expect reader422.decodeFrame(0).isValid())
 
     var source411 = expect Clip.create(8, 1, rate)
-    expect source411.addFrame(videoTestImage(8, 1, [255'u8, 0, 0, 255, 0, 0, 255, 0, 0,
+    expect source411.addFrame(videoTestImage(8, 1, [255_u8, 0, 0, 255, 0, 0, 255, 0, 0,
                                                     255, 0, 0, 0, 0, 255, 0, 0, 255,
                                                     0, 0, 255, 0, 0, 255]))
     let options411    = Y4m.EncodeOptions{chroma: .Yuv411}
@@ -427,13 +434,13 @@ func y4mAspectBytes(aspect: string)->Array'u8
     videoAssertColor(decoded411.pixelColor(6, 0), 0, 0, 255, tolerance: 0)
 
     var oddWidth = expect Clip.create(1, 2, rate)
-    expect oddWidth.addFrame(videoTestImage(1, 2, [0'u8, 0, 0, 255, 255, 255]))
+    expect oddWidth.addFrame(videoTestImage(1, 2, [0_u8, 0, 0, 255, 255, 255]))
     var invalidOutcome: Swag.Error
     discard catch oddWidth.encodeToBytes("invalid.y4m", options422) as invalidOutcome
     Swag.require((invalidOutcome.value() is BadParameterError))
 
     var invalid411Width = expect Clip.create(6, 1, rate)
-    expect invalid411Width.addFrame(videoTestImage(6, 1, [0'u8, 0, 0, 255, 255, 255,
+    expect invalid411Width.addFrame(videoTestImage(6, 1, [0_u8, 0, 0, 255, 255, 255,
                                                           0, 0, 0, 255, 255, 255,
                                                           0, 0, 0, 255, 255, 255]))
     var invalid411Outcome: Swag.Error
@@ -485,7 +492,7 @@ func y4mAspectBytes(aspect: string)->Array'u8
 
     let rate   = expect FrameRate.create(12, 1)
     var source = expect Clip.create(1, 1, rate)
-    expect source.addFrame(videoTestImage(1, 1, [40'u8, 120, 220]))
+    expect source.addFrame(videoTestImage(1, 1, [40_u8, 120, 220]))
     expect source.save(fileName)
 
     var loaded = expect Reader.open(fileName)
@@ -504,9 +511,9 @@ func y4mAspectBytes(aspect: string)->Array'u8
     var missingHeaderOutcome: Swag.Error
     discard catch Reader.openMemory("bad.y4m", "not video") as missingHeaderOutcome
     let missingHeader = missingHeaderOutcome.value()
-    var malformedHeader: Array'u8
+    var malformedHeader: Array!{u8}
     malformedHeader.add(cast(const [..] u8, "YUV4MPEG2 W1 H1 F1:1 Ip A0:0 C444 W\nFRAME\n"))
-    malformedHeader.add([81'u8, 90, 240])
+    malformedHeader.add([81_u8, 90, 240])
     var missingWidthValueOutcome: Swag.Error
     discard catch Reader.openMemory("bad.y4m", malformedHeader.toSlice()) as missingWidthValueOutcome
     let missingWidthValue = missingWidthValueOutcome.value()
@@ -532,7 +539,7 @@ func y4mAspectBytes(aspect: string)->Array'u8
     let rate = expect FrameRate.create(30, 1)
     var clip = expect Clip.create(2, 2, rate)
     var dimensionsOutcome: Swag.Error
-    discard catch clip.addFrame(videoTestImage(1, 1, [0'u8, 0, 0])) as dimensionsOutcome
+    discard catch clip.addFrame(videoTestImage(1, 1, [0_u8, 0, 0])) as dimensionsOutcome
     let dimensions = dimensionsOutcome.value()
     var emptyOutcome: Swag.Error
     discard catch clip.encode("empty.y4m") as emptyOutcome
@@ -566,8 +573,11 @@ func y4mAspectBytes(aspect: string)->Array'u8
     let decodable = Reader.decodableFormats()
     let encodable = Writer.encodableFormats()
     Swag.require(decodable.count == 4 and encodable.count == 3)
-    for index in encodable.count do
+    for index in encodable.count
+    {
         Swag.require(decodable[index].name == encodable[index].name)
+    }
+
     Swag.require(decodable[0].matches("a.y4m") and
                  decodable[1].matches("a.avi") and
                  decodable[2].matches("a.mp4") and

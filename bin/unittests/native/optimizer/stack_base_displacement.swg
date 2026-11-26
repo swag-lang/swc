@@ -32,6 +32,8 @@ func sumLocals(v: u64)->u64
 
 #test
 {
-    for v in [0'u64, 1, 7, 1000]
-        do Swag.require(sumLocals(v) == v + (v + 1) * 2 + v * 2 + (v + 1))
+    for v in [0_u64, 1, 7, 1000]
+    {
+        Swag.require(sumLocals(v) == v + (v + 1) * 2 + v * 2 + (v + 1))
+    }
 }

@@ -13,8 +13,10 @@ private impl Nv12Frame
         .bytes.resize(count + count / 2)
         for y in cast(u64, height)
         {
-            for x in cast(u64, width) do
+            for x in cast(u64, width)
+            {
                 .bytes[y * cast(u64, width) + x] = cast(u8, (x * 7 + y * 13 + x * y) & 255)
+            }
         }
 
         for y in cast(u64, height) / 2
@@ -34,8 +36,11 @@ private impl Nv12Frame
         .height = height
         let count = cast(u64, width) * cast(u64, height)
         .bytes.resize(count + count / 2)
-        for index in count do
+        for index in count
+        {
             .bytes[index] = valueY
+        }
+
         for index in count / 4
         {
             .bytes[count + index * 2]     = valueU
@@ -152,7 +157,7 @@ private func samePIntraPicture(a, b: const *PlanarFrame)->bool
     expect reader.decodeFramePlanesInto(&p3, 3)
     Swag.require(samePIntraPicture(&p1, &p2))
     Swag.require(samePIntraPicture(&p1, &p3))
-    var squaredError = 0'u64
+    var squaredError = 0_u64
     for index in p1.luma.count
     {
         let delta = cast(s32, p1.luma[index]) - cast(s32, flat.luma()[index])

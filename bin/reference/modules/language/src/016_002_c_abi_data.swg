@@ -14,14 +14,14 @@ trailing zero; take its data pointer before casting that pointer to 'cstring'.
     let literal = "Swag"
     let text    = cast(const cstring, literal.buffer)
     Swag.require(text.count == 4)
-    Swag.require(text[0] == 'S'u8)
-    Swag.require(text[3] == 'g'u8)
+    Swag.require(text[0] == 'S'_u8)
+    Swag.require(text[3] == 'g'_u8)
 }
 
 /**
 For other data:
 
-- Prefer 's8' through 's64' and 'u8' through 'u64' over platform-dependent C
+- Prefer 's8' through 's64' and '_u8' through '_u64' over platform-dependent C
   spellings.
 - Represent optional C pointers with `*T?` or `const *T?`.
 - Match aggregate packing and alignment with '#[Swag.Pack]' and

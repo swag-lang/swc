@@ -126,7 +126,7 @@ of simplicity when every useful helper needs an unchecked contract.
 
 ### language.parallelism.002 — Nothing suspends
 
-- Evidence: [Swag.Task'T](../bin/runtime/task.swg) hands its value or its error to one observer
+- Evidence: [Swag.Task!{T}](../bin/runtime/task.swg) hands its value or its error to one observer
   through `take`, and its destruction asks the body to stop before joining it. Cancellation is a
   request the body reads, not an outcome: it returns a partial value or fails, and
   `Task.waitUnlessCancelled` lets a waiting task give up as soon as it is asked to stop. But a task

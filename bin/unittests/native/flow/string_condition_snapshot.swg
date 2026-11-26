@@ -30,7 +30,7 @@ func capture(value: string, state: State)->State
     var inner      = state
     let isGroup    = name(value) == "Transparency"
     var outerMask: Mask
-    var outerAlpha = 1.0'f32
+    var outerAlpha = 1.0_f32
     if isGroup
     {
         outerMask   = inner.mask

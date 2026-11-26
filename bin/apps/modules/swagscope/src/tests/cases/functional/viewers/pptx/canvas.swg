@@ -11,8 +11,8 @@ using Core, Gui, Gui.Testing, Viewers
     let page = &deck.slides[0]
     Swag.require(not page.simplified and page.background == "FAF7F0")
     Swag.require(page.title == "A quieter reading room")
-    var titles   = 0'u32
-    var pictures = 0'u32
+    var titles   = 0_u32
+    var pictures = 0_u32
     for shape in page.shapes
     {
         if shape.isTitle()
@@ -83,7 +83,9 @@ using Core, Gui, Gui.Testing, Viewers
     Swag.require(child.positioned and child.bounds == Math.Rectangle{0, 0, 200, 100})
     Swag.require(child.fill.isEmpty() and parent.fill == "4F81BD")
     let transformed = expect Pptx.SlidePage.parse("""<p:sld><p:spTree><p:sp><p:spPr><a:xfrm rot="5400000" flipH="true"><a:off x="952500" y="952500"/><a:ext cx="1905000" cy="952500"/></a:xfrm><a:prstGeom prst="rect"/></p:spPr></p:sp></p:spTree></p:sld>""", &theme)
-    Swag.require(not transformed.simplified and transformed.shapes[0].rotation == 90 and transformed.shapes[0].flipHorizontal)
+    Swag.require(not transformed.simplified and
+                 transformed.shapes[0].rotation == 90 and
+                 transformed.shapes[0].flipHorizontal)
     Swag.require(Utf8.contains(transformed.canvasHtml(960, 720), "rotate(90.00deg) scaleX(-1)"))
     let oversizedRotation = expect Pptx.SlideShape.parse("""<p:sp><p:spPr><a:xfrm rot="21600001"/></p:spPr></p:sp>""", &theme)
     Swag.require(oversizedRotation.unsupported)
@@ -106,7 +108,7 @@ using Core, Gui, Gui.Testing, Viewers
 // DrawingML bullet glyphs remain visible in both the slide text and its reading projection.
 #test
 {
-    var theme = Pptx.SlideTheme.defaults()
+    var theme  = Pptx.SlideTheme.defaults()
     var images: Package.ImageCatalog
     let bullet = expect Pptx.SlideText.parse("""<p:sp><p:txBody><a:p><a:pPr><a:buChar char="•"/></a:pPr><a:r><a:t>First point</a:t></a:r></a:p></p:txBody></p:sp>""", &images, &theme, 960)
     Swag.require(Utf8.contains(bullet.html, "• First point"))
@@ -116,7 +118,7 @@ using Core, Gui, Gui.Testing, Viewers
 // Automatic Arabic numbering preserves starts, sequence continuation, and common suffix styles.
 #test
 {
-    var theme = Pptx.SlideTheme.defaults()
+    var theme    = Pptx.SlideTheme.defaults()
     var images: Package.ImageCatalog
     let numbered = expect Pptx.SlideText.parse("""
         <p:sp><p:txBody>
@@ -138,7 +140,7 @@ using Core, Gui, Gui.Testing, Viewers
 #test
 {
     var theme = Pptx.SlideTheme.defaults()
-    let page = expect Pptx.SlidePage.parse("""<p:sld><p:cSld><p:spTree><p:sp><p:spPr><a:xfrm><a:off x="952500" y="952500"/><a:ext cx="1905000" cy="952500"/></a:xfrm><a:prstGeom prst="ellipse"/><a:solidFill><a:srgbClr val="204060"/></a:solidFill></p:spPr></p:sp></p:spTree></p:cSld></p:sld>""", &theme)
+    let page  = expect Pptx.SlidePage.parse("""<p:sld><p:cSld><p:spTree><p:sp><p:spPr><a:xfrm><a:off x="952500" y="952500"/><a:ext cx="1905000" cy="952500"/></a:xfrm><a:prstGeom prst="ellipse"/><a:solidFill><a:srgbClr val="204060"/></a:solidFill></p:spPr></p:sp></p:spTree></p:cSld></p:sld>""", &theme)
     Swag.require(not page.simplified and page.shapes.count == 1)
     Swag.require(page.shapes[0].positioned and page.shapes[0].ellipse)
     Swag.require(Utf8.contains(page.canvasHtml(960, 720), "border-radius:50%;"))
@@ -158,7 +160,7 @@ using Core, Gui, Gui.Testing, Viewers
 #test
 {
     let presentation = expect Pptx.Presentation.load(scopeTestDataPath("viewer.chart.pptx"))
-    let page = &presentation.slides[0]
+    let page         = &presentation.slides[0]
     Swag.require(page.shapes.count == 2, Format.toString("shape count %", page.shapes.count))
     Swag.require(page.shapes[1].positioned, "chart bounds missing")
     Swag.require(not page.shapes[1].unsupported, "chart marked unsupported")
@@ -184,8 +186,8 @@ using Core, Gui, Gui.Testing, Viewers
 #test
 {
     let presentation = expect Pptx.Presentation.load(scopeTestDataPath("viewer.column-chart.pptx"))
-    let page = &presentation.slides[0]
-    let html = page.canvasHtml(presentation.width, presentation.height)
+    let page         = &presentation.slides[0]
+    let html         = page.canvasHtml(presentation.width, presentation.height)
     Swag.require(not page.simplified and page.title == "Regional sales")
     Swag.require(Utf8.contains(html, "flex-direction:column") and Utf8.contains(html, "height:6em"))
     let reading = page.readingHtml()
@@ -197,7 +199,7 @@ using Core, Gui, Gui.Testing, Viewers
 #test
 {
     let presentation = expect Pptx.Presentation.load(scopeTestDataPath("viewer.table.pptx"))
-    let page = &presentation.slides[0]
+    let page         = &presentation.slides[0]
     Swag.require(not page.simplified and page.shapes.count == 2)
     Swag.require(page.shapes[1].positioned and not page.shapes[1].unsupported)
     Swag.require(Utf8.contains(page.shapes[1].html, "<tr>") and Utf8.contains(page.shapes[1].html, "<td"))
@@ -217,10 +219,13 @@ using Core, Gui, Gui.Testing, Viewers
 #test
 {
     var cells: String
-    for 33 do
+    for 33
+    {
         cells += "<a:tc/>"
+    }
+
     let source = Format.toString("<p:sld><p:spTree><p:graphicFrame><p:xfrm><a:off x=\"0\" y=\"0\"/><a:ext cx=\"100000\" cy=\"100000\"/></p:xfrm><a:graphic><a:graphicData><a:tbl><a:tr>%</a:tr></a:tbl></a:graphicData></a:graphic></p:graphicFrame></p:spTree></p:sld>", cells)
-    var theme = Pptx.SlideTheme.defaults()
+    var theme  = Pptx.SlideTheme.defaults()
     var error: Swag.Error
     discard catch Pptx.SlidePage.parse(source, &theme) as error
     Swag.require(error.value() is Errors.UnsupportedFormatError)
@@ -230,8 +235,8 @@ using Core, Gui, Gui.Testing, Viewers
 #test
 {
     let source = """<p:sld><p:spTree><p:graphicFrame><p:xfrm><a:off x="0" y="0"/><a:ext cx="100000" cy="100000"/></p:xfrm><a:graphic><a:graphicData><a:tbl><a:tblGrid><a:gridCol w="50000"/><a:gridCol w="50000"/></a:tblGrid><a:tr><a:tc><a:tcPr><a:gridSpan val="2"/></a:tcPr><a:txBody><a:p><a:r><a:t>Wide cell</a:t></a:r></a:p></a:txBody></a:tc></a:tr><a:tr><a:tc/><a:tc/></a:tr></a:tbl></a:graphicData></a:graphic></p:graphicFrame></p:spTree></p:sld>"""
-    var theme = Pptx.SlideTheme.defaults()
-    let page = expect Pptx.SlidePage.parse(source, &theme)
+    var theme  = Pptx.SlideTheme.defaults()
+    let page   = expect Pptx.SlidePage.parse(source, &theme)
     Swag.require(not page.simplified and page.shapes.count == 1)
     Swag.require(Utf8.contains(page.shapes[0].plainText, "Wide cell"))
     Swag.require(Utf8.contains(page.shapes[0].html, "colspan=\"2\""))
@@ -241,8 +246,8 @@ using Core, Gui, Gui.Testing, Viewers
 #test
 {
     let source = """<p:sld><p:spTree><p:graphicFrame><p:xfrm><a:off x="0" y="0"/><a:ext cx="100000" cy="100000"/></p:xfrm><a:graphic><a:graphicData><a:tbl><a:tr><a:tc><a:txBody><a:p><a:r><a:t>First</a:t></a:r></a:p></a:txBody><a:tcPr/></a:tc></a:tr><a:tr><a:tc><a:txBody><a:p><a:r><a:t>Keep text</a:t></a:r></a:p></a:txBody><a:tcPr><a:vMerge val="1"/></a:tcPr></a:tc></a:tr></a:tbl></a:graphicData></a:graphic></p:graphicFrame></p:spTree></p:sld>"""
-    var theme = Pptx.SlideTheme.defaults()
-    let page = expect Pptx.SlidePage.parse(source, &theme)
+    var theme  = Pptx.SlideTheme.defaults()
+    let page   = expect Pptx.SlidePage.parse(source, &theme)
     Swag.require(page.simplified and page.shapes.count == 1)
     Swag.require(Utf8.contains(page.shapes[0].plainText, "Keep text"))
     Swag.require(Utf8.contains(page.shapes[0].html, "Keep text"))
@@ -252,8 +257,11 @@ using Core, Gui, Gui.Testing, Viewers
 #test
 {
     var deep: String
-    for 129 do
+    for 129
+    {
         deep += "<a>"
+    }
+
     for source in ["<a>", "<a></b>", "<a/><b/>", "<!DOCTYPE a [<!ENTITY x SYSTEM 'file:///tmp/x'>]><a/>", deep.toString()]
     {
         var entry: ZipFixtureEntry
@@ -277,7 +285,7 @@ using Core, Gui, Gui.Testing, Viewers
 {
     var entries: [2] ZipFixtureEntry
     entries[0].name = "ppt/slide.xml"
-    entries[0].plain.add([0xEF'u8, 0xBB, 0xBF])
+    entries[0].plain.add([0xEF_u8, 0xBB, 0xBF])
     entries[0].plain.add("<p:sld/>")
     entries[0].packed = entries[0].plain
     entries[1].name   = "ppt/_rels/slide.xml.rels"

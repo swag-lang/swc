@@ -240,8 +240,8 @@ const TcoefInterTree: [206] s16 = [
     -92, -91, 99, 98, -94, -93, -96, -95, -98, -97, -99, -100, -101, -102]
 
 // The escape event both coefficient tables share, clause 7.4.1.3.
-const TcoefEscapeCod = 0b0000011'u32
-const TcoefEscapeLen = 7'u32
+const TcoefEscapeCod = 0b0000011_u32
+const TcoefEscapeLen = 7_u32
 
 // Where the n-th coded coefficient lands in an 8 by 8 block, figure 7-2 and 7-3.
 //

@@ -8,10 +8,10 @@ using Swag, Core
 #[Serialization.Schema("pixel.image")]
 struct LegacyImage
 {
-    pixels: Array'u8
+    pixels: Array!{u8}
 
     #[Serialization.Key("metadata")]
-    metaDatas: Array'LegacyImageMetaData
+    metaDatas: Array!{LegacyImageMetaData}
 
     #[Serialization.Key("byteCount")]
     size:   u64
@@ -35,8 +35,8 @@ struct LegacyImageMetaData
 {
     #[Serialization.Key("signature")]
     sig:   u32
-    tag:   Array'u8
-    value: Array'u8
+    tag:   Array!{u8}
+    value: Array!{u8}
 }
 
 func makeLegacyImage()->LegacyImage
@@ -52,13 +52,15 @@ func makeLegacyImage()->LegacyImage
 
     // A recognizable ramp, so a stride or format mistake shows up as wrong bytes rather
     // than as a plausible-looking image.
-    for i in result.size do
+    for i in result.size
+    {
         result.pixels.add(cast(u8, (i * 7)))
+    }
 
     var meta: LegacyImageMetaData
     meta.sig = 0xCAFE
-    meta.tag.add(1'u8)
-    meta.value.add(2'u8)
+    meta.tag.add(1_u8)
+    meta.value.add(2_u8)
     result.metaDatas.add(meta)
     return result
 }
@@ -69,11 +71,11 @@ func makeLegacyImage()->LegacyImage
     let legacy = makeLegacyImage()
 
     var buffer:  ConcatBuffer
-    var encoder: Serialization.Encoder'Serialization.Write.TagBin
+    var encoder: Serialization.Encoder!{Serialization.Write.TagBin}
     expect encoder.writeAll(&buffer, legacy)
 
-    var decoder: Serialization.Decoder'Serialization.Read.TagBin
-    let decoded = expect decoder.readAll'Image(buffer.toString().toSlice())
+    var decoder: Serialization.Decoder!{Serialization.Read.TagBin}
+    let decoded = expect decoder.readAll!{Image}(buffer.toString().toSlice())
     defer Memory.delete(decoded)
 
     Swag.require(decoded.width == 3)
@@ -85,8 +87,10 @@ func makeLegacyImage()->LegacyImage
     Swag.require(decoded.byteCount == 24)
     Swag.require(decoded.isValid())
 
-    for i in decoded.byteCount do
+    for i in decoded.byteCount
+    {
         Swag.require(decoded.pixels.storage()[i] == cast(u8, (i * 7)))
+    }
 
     Swag.require(decoded.metadata.count == 1)
     Swag.require(decoded.metadata[0].signature == 0xCAFE)

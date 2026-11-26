@@ -26,7 +26,7 @@ using Swag, Core
         f.capture.backImg = Image.create(2332, 1875, .BGRA8)
         f.capture.backImg.fill(Argb.White)
 
-        var points: Array'Math.Vector2
+        var points: Array!{Math.Vector2}
         points.add({410, -221})
         points.add({2487, -221})
         points.add({2487, 2057})
@@ -61,7 +61,7 @@ using Swag, Core
     let secondShadow = f.capture.formCaches[1]!.shadow.contentTarget!.colorBuffer.handle
     f.gui.moveMouse({1600, 1300})
 
-    for zoom in [0.86'f32, 1.0, 4.0]
+    for zoom in [0.86_f32, 1.0, 4.0]
     {
         let first      = unwrap f.capture.formCaches[0]
         let second     = unwrap f.capture.formCaches[1]

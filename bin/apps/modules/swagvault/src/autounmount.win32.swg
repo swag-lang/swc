@@ -2,17 +2,22 @@
 
 using Core, Gui, Win32
 
-private const AutoUnmountSubclassId = 0x7353_4372'u64
+private const AutoUnmountSubclassId = 0x7353_4372_u64
 
 // Receives the two notifications that must be handled before the window's ordinary event queue.
 #[Swag.CallingConvention(.C)]
 private func autoUnmountSubclass(hwnd: HWND, message: u32, wParam: u64, lParam: s64, _, data: u64)->s64
 {
     let window = cast(*MainWindow, cast #bit (u64, data))
-    if message == WM_WTSSESSION_CHANGE and wParam == WTS_SESSION_LOCK do
+    if message == WM_WTSSESSION_CHANGE and wParam == WTS_SESSION_LOCK
+    {
         window.handleAutoUnmount(.SessionLock)
-    elif message == WM_POWERBROADCAST and wParam == PBT_APMSUSPEND do
+    }
+    else if message == WM_POWERBROADCAST and wParam == PBT_APMSUSPEND
+    {
         window.handleAutoUnmount(.Suspend)
+    }
+
     return DefSubclassProc(hwnd, message, wParam, lParam)
 }
 
@@ -27,21 +32,33 @@ impl AutoUnmountMonitor
     // Watches the messages of `window` for a session lock or a suspend.
     mtd start(window: *MainWindow)
     {
-        if .hwnd do
+        if .hwnd
+        {
             return
+        }
+
         let hwnd = window.surface!.win32Handle()
-        if not hwnd do
+        if not hwnd
+        {
             return
-        if not SetWindowSubclass(hwnd, cast(SUBCLASSPROC, &autoUnmountSubclass), AutoUnmountSubclassId, cast(u64, window)) do
+        }
+
+        if not SetWindowSubclass(hwnd, cast(SUBCLASSPROC, &autoUnmountSubclass), AutoUnmountSubclassId, cast(u64, window))
+        {
             return
+        }
+
         .hwnd = hwnd
         discard WTSRegisterSessionNotification(hwnd, NOTIFY_FOR_THIS_SESSION)
     }
 
     mtd stop()
     {
-        if not .hwnd do
+        if not .hwnd
+        {
             return
+        }
+
         discard WTSUnRegisterSessionNotification(.hwnd)
         discard RemoveWindowSubclass(.hwnd, cast(SUBCLASSPROC, &autoUnmountSubclass), AutoUnmountSubclassId)
         .hwnd = null
@@ -53,11 +70,16 @@ func autoUnmountIdleMilliseconds()->u64
 {
     var info: LASTINPUTINFO
     info.cbSize = #sizeof(LASTINPUTINFO)
-    if not GetLastInputInfo(&info) do
+    if not GetLastInputInfo(&info)
+    {
         return 0
+    }
 
     let now = GetTickCount()
-    if now >= info.dwTime do
+    if now >= info.dwTime
+    {
         return now - info.dwTime
+    }
+
     return cast(u64, Swag.U32.Max) - info.dwTime + now + 1
 }

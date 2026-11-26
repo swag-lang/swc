@@ -4,7 +4,7 @@
 // whose complement is masked to 32 bits inside a 64-bit word, and a complement whose
 // source stays live after it.
 
-const M32 = 0xFFFFFFFF'u64
+const M32 = 0xFFFFFFFF_u64
 
 #[Swag.Optimize(true), Swag.NoInline]
 func clearBits(flags, mask: u64)->u64 => flags & ~mask
@@ -20,9 +20,9 @@ func keepSource(a, b: u64)->u64 => (~a & b) ^ a
 
 #test
 {
-    for value in [0'u64, 1, 0x8000000000000000, 0xFFFFFFFFFFFFFFFF, 0x0123456789ABCDEF]
+    for value in [0_u64, 1, 0x8000000000000000, 0xFFFFFFFFFFFFFFFF, 0x0123456789ABCDEF]
     {
-        for mask in [0'u64, 0xFF, 0xF0F0F0F0F0F0F0F0, 0xFFFFFFFFFFFFFFFF]
+        for mask in [0_u64, 0xFF, 0xF0F0F0F0F0F0F0F0, 0xFFFFFFFFFFFFFFFF]
         {
             Swag.require(clearBits(value, mask) == (value & (mask ^ 0xFFFFFFFFFFFFFFFF)))
             Swag.require(keepSource(mask, value) == (((mask ^ 0xFFFFFFFFFFFFFFFF) & value) ^ mask))
@@ -32,8 +32,8 @@ func keepSource(a, b: u64)->u64 => (~a & b) ^ a
         }
     }
 
-    let e = 0x510E527F'u64
-    let f = 0x9B05688C'u64
-    let g = 0xFFFFFFFF1F83D9AB'u64
+    let e = 0x510E527F_u64
+    let f = 0x9B05688C_u64
+    let g = 0xFFFFFFFF1F83D9AB_u64
     Swag.require(choose(e, f, g) == ((e & f) ^ ((e ^ M32) & g & M32)))
 }

@@ -6,8 +6,10 @@ using Core, Gui, Viewers
 func assertClassificationFolder(result: const *ViewerClassifiedFile, names: const [..] String)
 {
     Swag.require(result.folderFiles.count == names.count)
-    for name, index in names do
+    for name, index in names
+    {
         Swag.require(result.folderFiles[index] == name[])
+    }
 }
 
 // Reusing the asynchronous classifier replaces its previous folder snapshot. It must never append
@@ -22,8 +24,8 @@ func assertClassificationFolder(result: const *ViewerClassifiedFile, names: cons
     var host: Testing.HeadlessHost
     host.setup(64, 64)
 
-    var names: Array'String
-    for i in 3'u32
+    var names: Array!{String}
+    for i in 3_u32
     {
         let fileName = Path.combine(folder, Format.toString("file%.txt", i))
         discard expect File.writeAllText(fileName, "a readable line\n")

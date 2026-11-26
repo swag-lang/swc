@@ -2,15 +2,15 @@
 
 private struct ParallelProfile
 {
-    entry:        AtomicValue'u64
-    grain:        AtomicValue'u64
-    observations: AtomicValue'u32
+    entry:        AtomicValue!{u64}
+    grain:        AtomicValue!{u64}
+    observations: AtomicValue!{u32}
 }
 
 // Bounded hints, local to each runtime artifact. Entries never change owner; when nearby slots
 // are occupied, the caller measures its own work without retaining a hint in the table.
 private var g_ParallelProfiles:   [256] ParallelProfile
-private var g_ParallelTickBudget: AtomicValue'u64
+private var g_ParallelTickBudget: AtomicValue!{u64}
 
 private func parallelProfile(entry: u64)->*ParallelProfile?
 {
@@ -19,13 +19,18 @@ private func parallelProfile(entry: u64)->*ParallelProfile?
     {
         let profile = &g_ParallelProfiles[(first + offset) & 255]
         var known   = profile.entry.load()
-        if known == entry do
+        if known == entry
+        {
             return profile
+        }
+
         if known == 0
         {
             known = profile.entry.compareExchange(0, entry)
-            if known == 0 or known == entry do
+            if known == 0 or known == entry
+            {
                 return profile
+            }
         }
     }
 
@@ -41,17 +46,23 @@ private func recordParallelCost(profile: *ParallelProfile?, count, elapsed: u64)
         // excludes queue publication and joining; those costs must not make cheap work
         // look expensive and perpetuate its dispatch overhead.
         budget = __hostMonotonicFrequency() / 125000
-        if budget == 0 do
+        if budget == 0
+        {
             budget = 1
+        }
+
         g_ParallelTickBudget.store(budget)
     }
 
-    let duration = elapsed == 0 ? 1'u64 : elapsed
+    let duration = elapsed == 0 ? 1_u64 : elapsed
     let estimate = cast(f64, count) * cast(f64, budget) / cast(f64, duration)
-    let grain    = estimate >= cast(f64, 0xFFFF_FFFF_FFFF_FFFF'u64) ? 0xFFFF_FFFF_FFFF_FFFF'u64 : cast(u64, estimate)
-    let result   = grain == 0 ? 1'u64 : grain
-    if profile do
+    let grain    = estimate >= cast(f64, 0xFFFF_FFFF_FFFF_FFFF_u64) ? 0xFFFF_FFFF_FFFF_FFFF_u64 : cast(u64, estimate)
+    let result   = grain == 0 ? 1_u64 : grain
+    if profile
+    {
         profile.grain.store(result)
+    }
+
     return result
 }
 
@@ -59,7 +70,7 @@ private func recordParallelCost(profile: *ParallelProfile?, count, elapsed: u64)
 // accepted nodes stay bounded by the worker count rather than by the number of blocks.
 private struct ParallelDispatch
 {
-    next:        AtomicValue'u64
+    next:        AtomicValue!{u64}
     end:         u64
     step:        u64
     body:        (func||(u64, u64))?
@@ -115,8 +126,11 @@ impl ParallelFailure
     {
         .mutex.lock()
         defer .mutex.unlock()
-        if .ownedError != null do
+        if .ownedError != null
+        {
             return
+        }
+
         .ownedError = __copyErrRecord(error)
     }
 
@@ -142,14 +156,18 @@ internal func __parallelRangeFallible(begin, end: u64, body: func||(u64, u64) fa
 
     parallelRange(begin, end, partition, entry)
 
-    if failure.ownedError != null do
+    if failure.ownedError != null
+    {
         __setOwnedErrRecord(failure.ownedError)
+    }
 }
 
 private func parallelRange(begin, end: u64, body: func||(u64, u64), entry: u64)
 {
-    if end <= begin do
+    if end <= begin
+    {
         return
+    }
 
     var count = end - begin
     if count == 1 or Swag.jit() or hasSerialWorkerPool()
@@ -159,7 +177,7 @@ private func parallelRange(begin, end: u64, body: func||(u64, u64), entry: u64)
     }
 
     let profile = parallelProfile(entry)
-    var grain   = profile ? profile.grain.load() : 0'u64
+    var grain   = profile ? profile.grain.load() : 0_u64
     var first   = begin
     if grain == 0
     {
@@ -177,26 +195,37 @@ private func parallelRange(begin, end: u64, body: func||(u64, u64), entry: u64)
     let measure = profile and (profile.observations.add(1) & 15) == 0
     if count / grain < 2
     {
-        let started = measure ? __hostMonotonicTicks() : 0'u64
+        let started = measure ? __hostMonotonicTicks() : 0_u64
         body(first, end)
-        if measure do
+        if measure
+        {
             discard recordParallelCost(profile, count, __hostMonotonicTicks() - started)
+        }
+
         return
     }
 
     let workers = workerCount()
     var chunks  = cast(u64, workers)
-    if chunks > count do
+    if chunks > count
+    {
         chunks = count
-    if chunks > count / grain do
+    }
+
+    if chunks > count / grain
+    {
         chunks = count / grain
+    }
 
     if chunks <= 1
     {
-        let started = measure ? __hostMonotonicTicks() : 0'u64
+        let started = measure ? __hostMonotonicTicks() : 0_u64
         body(first, end)
-        if measure do
+        if measure
+        {
             discard recordParallelCost(profile, count, __hostMonotonicTicks() - started)
+        }
+
         return
     }
 
@@ -232,18 +261,24 @@ private func dispatchParallelRange(begin, end, chunks, grain: u64, body: func||(
         slice.node.entry = &parallelChunkEntry
 
         // The caller participates directly, so its runner is never queued.
-        if index != 0 do
+        if index != 0
+        {
             submitWork(&slice.node)
+        }
     }
 
-    let started = measure ? __hostMonotonicTicks() : 0'u64
+    let started = measure ? __hostMonotonicTicks() : 0_u64
     body(begin, firstEnd)
     let completed = dispatch.step + runParallelChunk(&slices[0])
-    if measure do
+    if measure
+    {
         discard recordParallelCost(profile, completed, __hostMonotonicTicks() - started)
+    }
 
-    for index in 1 until chunks do
+    for index in 1 until chunks
+    {
         waitWork(&slices[index].node)
+    }
 }
 
 // Runs one queued runner, on a worker or on a joining thread, under the caller's cancellation state.
@@ -252,8 +287,10 @@ private func parallelChunkEntry(node: *WorkNode)
     let chunk    = assume cast (*ParallelChunk, node)
     let context  = Swag.getContext()
     let previous = context.cancelScope
-    if let dispatch = chunk.dispatch do
+    if let dispatch = chunk.dispatch
+    {
         context.cancelScope = dispatch.cancelScope
+    }
 
     discard runParallelChunk(chunk)
     context.cancelScope = previous
@@ -262,14 +299,19 @@ private func parallelChunkEntry(node: *WorkNode)
 private func runParallelChunk(chunk: *ParallelChunk)->u64
 {
     let dispatch = chunk.dispatch
-    if not dispatch do
+    if not dispatch
+    {
         return 0
+    }
+
     let body = dispatch.body
-    if not body do
+    if not body
+    {
         return 0
+    }
 
     let safeBody  = body orelse func(begin, end: u64) {}
-    var completed = 0'u64
+    var completed = 0_u64
     var first     = dispatch.next.load()
     while first < dispatch.end
     {

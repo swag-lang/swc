@@ -49,8 +49,10 @@ func runReassignment()->bool
     var m: Multi
     var o: Other
     var f: IFoo = cast(IFoo, m)
-    if f.foo() != 5 do
+    if f.foo() != 5
+    {
         return false
+    }
     f = cast(IFoo, o)
     return f.foo() == 99
 }

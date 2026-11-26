@@ -40,8 +40,10 @@ using Core, Gui
         let text = item.name.text.toString()
         Swag.require(not Utf8.contains(text, "papiers"))
         Swag.require(not Utf8.contains(text, "Users"))
-        if text == "P:" do
+        if text == "P:"
+        {
             hasExpectedDriveLabel = true
+        }
     }
 
     Swag.require(hasExpectedDriveLabel)
@@ -49,8 +51,11 @@ using Core, Gui
     for action in ["open", "unmount", "force"]
     {
         var found = false
-        for item in panel.menu.items where item!.id == Format.toString("vault.resident.%.0", action) do
+        for item in panel.menu.items where item!.id == Format.toString("vault.resident.%.0", action)
+        {
             found = true
+        }
+
         Swag.require(found)
     }
 

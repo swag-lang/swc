@@ -11,8 +11,8 @@ using Swag, Core
 
     let stack = StackLayoutCtrl.create(&host.root, .HorizontalFit, {0, 0, 100, 40})
     stack.spacing = 0
-    let first  = Wnd.create'Wnd(stack, null, {0, 0, 0, 20})
-    let second = Wnd.create'Wnd(stack, null, {0, 0, 0, 20})
+    let first  = Wnd.create!{Wnd}(stack, null, {0, 0, 0, 20})
+    let second = Wnd.create!{Wnd}(stack, null, {0, 0, 0, 20})
     first.minSize.x  = 80
     second.minSize.x = 20
     stack.computeLayout()
@@ -30,8 +30,8 @@ using Swag, Core
 
     let stack = StackLayoutCtrl.create(&host.root, .HorizontalFit, {0, 0, 100, 40})
     stack.spacing = 0
-    let capped = Wnd.create'Wnd(stack, null, {0, 0, 0, 20})
-    let flex   = Wnd.create'Wnd(stack, null, {0, 0, 0, 20})
+    let capped = Wnd.create!{Wnd}(stack, null, {0, 0, 0, 20})
+    let flex   = Wnd.create!{Wnd}(stack, null, {0, 0, 0, 20})
     capped.maxSize.x = 20
     stack.computeLayout()
 
@@ -47,9 +47,9 @@ using Swag, Core
     host.setup(220, 320)
     let stack = StackLayoutCtrl.create(&host.root, .Top, {0, 0, 200, 300})
     stack.spacing = 5
-    let c0 = Wnd.create'Wnd(stack, null, {0, 0, 200, 40})
-    let c1 = Wnd.create'Wnd(stack, null, {0, 0, 200, 40})
-    let c2 = Wnd.create'Wnd(stack, null, {0, 0, 200, 40})
+    let c0 = Wnd.create!{Wnd}(stack, null, {0, 0, 200, 40})
+    let c1 = Wnd.create!{Wnd}(stack, null, {0, 0, 200, 40})
+    let c2 = Wnd.create!{Wnd}(stack, null, {0, 0, 200, 40})
     stack.computeLayout()
 
     Swag.require(c0.position.y == 0)
@@ -74,8 +74,11 @@ using Swag, Core
     let bounds = stack.position
     host.root.hookOnEvent = func|count = &rootResizeCount|(_, evt)
     {
-        if evt is ResizeEvent do
+        if evt is ResizeEvent
+        {
             count[] += 1
+        }
+
         return false
     }
 
@@ -124,9 +127,9 @@ using Swag, Core
     host.setup(320, 120)
     let stack = StackLayoutCtrl.create(&host.root, .Left, {0, 0, 300, 100})
     stack.spacing = 5
-    let c0 = Wnd.create'Wnd(stack, null, {0, 0, 30, 100})
-    let c1 = Wnd.create'Wnd(stack, null, {0, 0, 30, 100})
-    let c2 = Wnd.create'Wnd(stack, null, {0, 0, 30, 100})
+    let c0 = Wnd.create!{Wnd}(stack, null, {0, 0, 30, 100})
+    let c1 = Wnd.create!{Wnd}(stack, null, {0, 0, 30, 100})
+    let c2 = Wnd.create!{Wnd}(stack, null, {0, 0, 30, 100})
     stack.computeLayout()
 
     Swag.require(c0.position.x == 0)
@@ -143,9 +146,9 @@ using Swag, Core
     host.setup(220, 120)
     let stack = StackLayoutCtrl.create(&host.root, .HorizontalCenter, {0, 0, 200, 100})
     stack.spacing = 5
-    let c0 = Wnd.create'Wnd(stack, null, {0, 0, 40, 30})
-    let c1 = Wnd.create'Wnd(stack, null, {0, 0, 40, 30})
-    let c2 = Wnd.create'Wnd(stack, null, {0, 0, 40, 30})
+    let c0 = Wnd.create!{Wnd}(stack, null, {0, 0, 40, 30})
+    let c1 = Wnd.create!{Wnd}(stack, null, {0, 0, 40, 30})
+    let c2 = Wnd.create!{Wnd}(stack, null, {0, 0, 40, 30})
     stack.computeLayout()
 
     // total = 3*40 + 2*5 = 130; start x = 200/2 - 130/2 = 35.
@@ -161,9 +164,9 @@ using Swag, Core
     host.setup(220, 120)
     let stack = StackLayoutCtrl.create(&host.root, .HorizontalEnd, {0, 0, 200, 100})
     stack.spacing = 5
-    let c0 = Wnd.create'Wnd(stack, null, {0, 0, 40, 30})
-    let c1 = Wnd.create'Wnd(stack, null, {0, 0, 40, 30})
-    let c2 = Wnd.create'Wnd(stack, null, {0, 0, 40, 30})
+    let c0 = Wnd.create!{Wnd}(stack, null, {0, 0, 40, 30})
+    let c1 = Wnd.create!{Wnd}(stack, null, {0, 0, 40, 30})
+    let c2 = Wnd.create!{Wnd}(stack, null, {0, 0, 40, 30})
     stack.computeLayout()
 
     Swag.require(c0.position.x == 70)
@@ -178,9 +181,9 @@ using Swag, Core
     host.setup(120, 220)
     let stack = StackLayoutCtrl.create(&host.root, .VerticalCenter, {0, 0, 100, 200})
     stack.spacing = 5
-    let c0 = Wnd.create'Wnd(stack, null, {0, 0, 40, 30})
-    let c1 = Wnd.create'Wnd(stack, null, {0, 0, 40, 30})
-    let c2 = Wnd.create'Wnd(stack, null, {0, 0, 40, 30})
+    let c0 = Wnd.create!{Wnd}(stack, null, {0, 0, 40, 30})
+    let c1 = Wnd.create!{Wnd}(stack, null, {0, 0, 40, 30})
+    let c2 = Wnd.create!{Wnd}(stack, null, {0, 0, 40, 30})
     stack.computeLayout()
 
     // total = 3*30 + 2*5 = 100; start y = 200/2 - 100/2 = 50.
@@ -208,8 +211,8 @@ using Swag, Core
     host.setup(220, 240)
     let stack = StackLayoutCtrl.create(&host.root, .Top, {0, 0, 200, 200})
     stack.spacing = 0
-    let fixed = Wnd.create'Wnd(stack, null, {0, 0, 200, 40})
-    let grow  = Wnd.create'Wnd(stack, null, {0, 0, 200, 20})
+    let fixed = Wnd.create!{Wnd}(stack, null, {0, 0, 200, 40})
+    let grow  = Wnd.create!{Wnd}(stack, null, {0, 0, 200, 20})
     grow.layoutSpec.policyY = SizePolicy.Expand
     grow.layoutSpec.weightY = 1
     stack.computeLayout()
@@ -227,7 +230,7 @@ using Swag, Core
     host.setup(120, 120)
     let stack = StackLayoutCtrl.create(&host.root, .Top, {0, 0, 100, 50})
     stack.spacing = 0
-    let child = Wnd.create'Wnd(stack, null, {0, 0, 100, 10})
+    let child = Wnd.create!{Wnd}(stack, null, {0, 0, 100, 10})
     child.minSize.y = 60
     stack.computeLayout()
 
@@ -242,8 +245,8 @@ using Swag, Core
     host.setup(160, 160)
     let stack = StackLayoutCtrl.create(&host.root, .Top, {0, 0, 120, 120})
     stack.spacing = 0
-    let line = Wnd.create'Wnd(stack, null, {0, 0, 120, 35})
-    let fill = Wnd.create'Wnd(line, null, {0, 0, 0, 0})
+    let line = Wnd.create!{Wnd}(stack, null, {0, 0, 120, 35})
+    let fill = Wnd.create!{Wnd}(line, null, {0, 0, 0, 0})
     fill.dockStyle = .Center
     stack.computeLayout()
 
@@ -265,9 +268,9 @@ using Swag, Core
     wrap.itemWidth  = 64
     wrap.itemHeight = 64
     wrap.spacing    = 5
-    let c0 = Wnd.create'Wnd(wrap, null, {0, 0, 0, 0})
-    let c1 = Wnd.create'Wnd(wrap, null, {0, 0, 0, 0})
-    let c2 = Wnd.create'Wnd(wrap, null, {0, 0, 0, 0})
+    let c0 = Wnd.create!{Wnd}(wrap, null, {0, 0, 0, 0})
+    let c1 = Wnd.create!{Wnd}(wrap, null, {0, 0, 0, 0})
+    let c2 = Wnd.create!{Wnd}(wrap, null, {0, 0, 0, 0})
     wrap.computeLayout()
 
     Swag.require(c0.position == {0, 0, 64, 64})
@@ -288,9 +291,9 @@ using Swag, Core
     grid.setColumnTrack(1, GridTrackKind.Fraction, 1)
     grid.setColumnTrack(2, GridTrackKind.Fraction, 2)
 
-    let c0 = Wnd.create'Wnd(grid, null, {0, 0, 60, 30})
-    let c1 = Wnd.create'Wnd(grid, null, {0, 0, 0, 30})
-    let c2 = Wnd.create'Wnd(grid, null, {0, 0, 0, 30})
+    let c0 = Wnd.create!{Wnd}(grid, null, {0, 0, 60, 30})
+    let c1 = Wnd.create!{Wnd}(grid, null, {0, 0, 0, 30})
+    let c2 = Wnd.create!{Wnd}(grid, null, {0, 0, 0, 30})
     grid.setCell(c0, 0, 0)
     grid.setCell(c1, 1, 0)
     grid.setCell(c2, 2, 0)
@@ -313,10 +316,10 @@ using Swag, Core
 
     // Default colSizes = 100, rowSizes = 30.
 
-    let c00 = Wnd.create'Wnd(grid, null, {0, 0, 0, 0})
-    let c10 = Wnd.create'Wnd(grid, null, {0, 0, 0, 0})
-    let c01 = Wnd.create'Wnd(grid, null, {0, 0, 0, 0})
-    let c11 = Wnd.create'Wnd(grid, null, {0, 0, 0, 0})
+    let c00 = Wnd.create!{Wnd}(grid, null, {0, 0, 0, 0})
+    let c10 = Wnd.create!{Wnd}(grid, null, {0, 0, 0, 0})
+    let c01 = Wnd.create!{Wnd}(grid, null, {0, 0, 0, 0})
+    let c11 = Wnd.create!{Wnd}(grid, null, {0, 0, 0, 0})
 
     grid.setCell(c00, 0, 0)
     grid.setCell(c10, 1, 0)
@@ -336,8 +339,8 @@ using Swag, Core
     var host: Testing.HeadlessHost
     host.setup(260, 120)
     let grid  = GridLayoutCtrl.create(&host.root, 2, 1, {0, 0, 250, 80})
-    let left  = Wnd.create'Wnd(grid)
-    let right = Wnd.create'Wnd(grid)
+    let left  = Wnd.create!{Wnd}(grid)
+    let right = Wnd.create!{Wnd}(grid)
     grid.setCell(left, 0, 0)
     grid.setCell(right, 1, 0)
     host.pump()
@@ -357,8 +360,8 @@ using Swag, Core
     host.setup(260, 120)
 
     let columns = GridLayoutCtrl.create(&host.root, 2, 1, {0, 0, 250, 80})
-    let left    = Wnd.create'Wnd(columns)
-    let right   = Wnd.create'Wnd(columns)
+    let left    = Wnd.create!{Wnd}(columns)
+    let right   = Wnd.create!{Wnd}(columns)
     columns.setCell(left, 0, 0)
     columns.setCell(right, 1, 0)
     host.pump()
@@ -369,8 +372,8 @@ using Swag, Core
     Swag.require(right.position.x == left.position.right() + columns.horizontalSpacing)
 
     let rows   = GridLayoutCtrl.create(&host.root, 1, 2, {0, 0, 250, 80})
-    let top    = Wnd.create'Wnd(rows)
-    let bottom = Wnd.create'Wnd(rows)
+    let top    = Wnd.create!{Wnd}(rows)
+    let bottom = Wnd.create!{Wnd}(rows)
     rows.setCell(top, 0, 0)
     rows.setCell(bottom, 0, 1)
     host.pump()
@@ -387,7 +390,7 @@ using Swag, Core
     var host: Testing.HeadlessHost
     host.setup(260, 120)
     let grid  = GridLayoutCtrl.create(&host.root, 2, 1, {0, 0, 250, 80})
-    let child = Wnd.create'Wnd(grid)
+    let child = Wnd.create!{Wnd}(grid)
     grid.setCell(child, 0, 0)
     host.pump()
     Swag.require(child.position.x == 0)
@@ -407,7 +410,7 @@ using Swag, Core
     grid.horizontalSpacing = 5
     grid.verticalSpacing   = 5
 
-    let wide = Wnd.create'Wnd(grid, null, {0, 0, 0, 0})
+    let wide = Wnd.create!{Wnd}(grid, null, {0, 0, 0, 0})
     grid.setCell(wide, 0, 0, 2, 1)
     grid.computeLayout()
 
@@ -424,8 +427,8 @@ using Swag, Core
     grid.horizontalSpacing = 0
     grid.setColumnTrack(0, .Fraction, 1, maximum: 50)
     grid.setColumnTrack(1, .Fraction, 1)
-    let left  = Wnd.create'Wnd(grid)
-    let right = Wnd.create'Wnd(grid)
+    let left  = Wnd.create!{Wnd}(grid)
+    let right = Wnd.create!{Wnd}(grid)
     grid.setCell(left, 0, 0)
     grid.setCell(right, 1, 0)
     grid.computeLayout()
@@ -440,7 +443,7 @@ using Swag, Core
     var host: Testing.HeadlessHost
     host.setup(240, 100)
     let grid  = GridLayoutCtrl.create(&host.root, 2, 1, {0, 0, 205, 80})
-    let child = Wnd.create'Wnd(grid)
+    let child = Wnd.create!{Wnd}(grid)
     grid.setCell(child, 0, 0)
     grid.computeLayout()
     Swag.require(child.position.x == 0)
@@ -457,9 +460,9 @@ using Swag, Core
     host.setup(160, 180)
     let wrap = WrapLayoutCtrl.create(&host.root, {0, 0, 130, 160})
     wrap.spacing = 5
-    discard Wnd.create'Wnd(wrap, {0, 0, 80, 20})
-    discard Wnd.create'Wnd(wrap, {0, 0, 40, 60})
-    let nextRow = Wnd.create'Wnd(wrap, {0, 0, 60, 10})
+    discard Wnd.create!{Wnd}(wrap, {0, 0, 80, 20})
+    discard Wnd.create!{Wnd}(wrap, {0, 0, 40, 60})
+    let nextRow = Wnd.create!{Wnd}(wrap, {0, 0, 60, 10})
     wrap.computeLayout()
 
     Swag.require(nextRow.position.y == 65)

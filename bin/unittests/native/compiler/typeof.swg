@@ -7,12 +7,12 @@ const TypedValue: s32 = 10
 #assert(#typeof(0xFF) == u32)
 #assert(#typeof(0x1_0000) == u32)
 #assert(#typeof(1.0) == f32)
-#assert(#typeof(1.0'f64) == f64)
-#assert(#typeof(10'u8 + 20'u16) == u16)
-#assert(#typeof(10'u8 + 20's16) == s16)
-#assert(#typeof(10's16 + 20's64) == s64)
-#assert(#typeof(1 + 1'u32) == u32)
-#assert(#typeof(1 + 1's64) == s64)
+#assert(#typeof(1.0_f64) == f64)
+#assert(#typeof(10_u8 + 20_u16) == u16)
+#assert(#typeof(10_u8 + 20_s16) == s16)
+#assert(#typeof(10_s16 + 20_s64) == s64)
+#assert(#typeof(1 + 1_u32) == u32)
+#assert(#typeof(1 + 1_s64) == s64)
 #assert(#typeof(cast(*u8?, null)) == *u8?)
 #assert(#typeof(true) == bool)
 #assert(#typeof("x") == string)
@@ -40,13 +40,13 @@ const TYPEOF_FUNC = cast(const *Swag.TypeInfoFunc, #typeof(#type func(s32)->bool
 // #typeof on local vars matches expected types
 #test
 {
-    var local = 1 + 1'u16
+    var local = 1 + 1_u16
     var ptr   = cast(*u8?, null)
 
     #assert(#typeof(local) == u32)
     #assert(#typeof(ptr) == *u8?)
 
-    Swag.require(local == 2'u16)
+    Swag.require(local == 2_u16)
     Swag.require(ptr == null)
 }
 

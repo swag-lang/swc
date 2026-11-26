@@ -3,7 +3,7 @@
 
 using Core, Pixel
 
-private const NameScrollPauseTicks = 20'u64
+private const NameScrollPauseTicks = 20_u64
 
 // How a file preview fits its image area without changing the source texture.
 enum Fit
@@ -72,8 +72,11 @@ func captionHeight(host: *Wnd)->f32
 // steps to [[Gui.FileTile.Options.nameTick]] and stop at the returned count to leave the name at rest.
 func nameScrollTicks(host: *Wnd, name: string, width: f32, captionIcon: Icon = {})->u64
 {
-    if width <= 0 do
+    if width <= 0
+    {
         return 0
+    }
+
     let overflow = Painter.measureStringSnapped(name, nnFont(host.font().regular), deviceScale: host.deviceScale()) -
                    (width - captionLead(host, captionIcon, width))
     return overflow > 0 ? nameScrollCycle(cast(u64, Math.ceil(overflow))) : 0
@@ -96,8 +99,11 @@ private func captionLead(host: *Wnd, icon: Icon, width: f32)->f32
 #[Swag.Discardable]
 func paint(host: *Wnd, painter: *Painter, imageRect: Math.Rectangle, content: const *Content, options: Options = {})->bool
 {
-    if imageRect.width <= 0 or imageRect.height <= 0 do
+    if imageRect.width <= 0 or imageRect.height <= 0
+    {
         return false
+    }
+
     let colors  = host.themeColors()
     let metrics = host.themeMetrics()
     let radius  = metrics.corner_Control
@@ -144,13 +150,16 @@ func paint(host: *Wnd, painter: *Painter, imageRect: Math.Rectangle, content: co
         ring.inflate(outset)
         painter.drawRoundRect(ring, radius + outset, radius + outset, colors.arc, metrics.fileTile_RingWidth)
     }
-    elif options.hovered
+    else if options.hovered
     {
         painter.drawRoundRect(imageRect, radius, radius, colors.strongLine, metrics.fileTile_RingWidth)
     }
 
-    if options.showCaption do
+    if options.showCaption
+    {
         return paintCaption(host, painter, imageRect, content, options)
+    }
+
     return false
 }
 
@@ -159,8 +168,11 @@ private func paintImage(host: *Wnd, painter: *Painter, rect: Math.Rectangle, tex
     let radius = host.themeMetrics().corner_Control
     let tw     = cast(f32, texture.width)
     let th     = cast(f32, texture.height)
-    if tw <= 0 or th <= 0 do
+    if tw <= 0 or th <= 0
+    {
         return
+    }
+
     let scale = Math.max(rect.width / tw, rect.height / th)
     let sw    = rect.width / scale
     let sh    = rect.height / scale
@@ -177,7 +189,7 @@ private func paintImage(host: *Wnd, painter: *Painter, rect: Math.Rectangle, tex
         let frame  = Math.Rectangle{Math.round(rect.horzCenter() - width * 0.5), Math.round(rect.vertCenter() - height * 0.5), width, height}
         painter.fillRoundRect(frame, radius, radius, Brush.createTexture(texture))
     }
-    elif fit == .Contain
+    else if fit == .Contain
     {
         var room = rect
         room.inflate(-Math.min(host.themeMetrics().fileTile_Inset, Math.min(rect.width, rect.height) * 0.5))
@@ -205,9 +217,9 @@ private func paintCaption(host: *Wnd, painter: *Painter, tile: Math.Rectangle, c
         rect.moveLeft(lead)
     }
 
-    let font    = nnFont(host.font().regular)
-    let width   = Painter.measureStringSnapped(content.name, font, deviceScale: host.deviceScale())
-    let active  = options.hovered or options.selected
+    let font   = nnFont(host.font().regular)
+    let width  = Painter.measureStringSnapped(content.name, font, deviceScale: host.deviceScale())
+    let active = options.hovered or options.selected
     painter.pushClippingRect(rect)
     if active and width > rect.width
     {
@@ -215,12 +227,19 @@ private func paintCaption(host: *Wnd, painter: *Painter, tile: Math.Rectangle, c
         let phase    = options.nameTick % nameScrollCycle(distance)
         let end      = distance + NameScrollPauseTicks
         var offset: u64
-        if phase > NameScrollPauseTicks and phase <= end do
+        if phase > NameScrollPauseTicks and phase <= end
+        {
             offset = phase - NameScrollPauseTicks
-        elif phase > end and phase <= end + NameScrollPauseTicks do
+        }
+        else if phase > end and phase <= end + NameScrollPauseTicks
+        {
             offset = distance
-        elif phase > end + NameScrollPauseTicks do
+        }
+        else if phase > end + NameScrollPauseTicks
+        {
             offset = nameScrollCycle(distance) - phase
+        }
+
         painter.drawString(rect.x - cast(f32, offset), font.opticalLineTop(rect.vertCenter()), content.name, font, colors.text)
     }
     else
@@ -251,7 +270,7 @@ private func paintCaption(host: *Wnd, painter: *Painter, tile: Math.Rectangle, c
         options.factsPainter(host, painter, leading)
         painter.popClippingRect()
     }
-    elif not options.factsPainter
+    else if not options.factsPainter
     {
         let label = Painter.elideString(content.facts, mono, leading.width, host.deviceScale())
         painter.drawString(facts.x, y, label, mono, colors.faintText)

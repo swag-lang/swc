@@ -23,12 +23,18 @@ impl AutoUnmountMonitor
     // stays held until the synchronous suspension handler has finished committing and unmounting.
     mtd poll()
     {
-        if not .window do
+        if not .window
+        {
             return
+        }
+
         let snapshot = .session.poll()
         g_IdleMilliseconds = snapshot.idleMilliseconds
-        if snapshot.locked do
+        if snapshot.locked
+        {
             .window.handleAutoUnmount(.SessionLock)
+        }
+
         if snapshot.suspending
         {
             .window.handleAutoUnmount(.Suspend)

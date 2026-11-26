@@ -260,10 +260,12 @@ AstNodeRef Parser::parseIf()
 {
     // What fills the else slot: a block, another if node for 'else if', or nothing.
     const auto parseElseBranch = [&]() -> AstNodeRef {
-        if (is(TokenId::KwdElseIf))
-            return parseIf();
         if (consumeIf(TokenId::KwdElse).isValid())
-            return parseDoCurlyBlock();
+        {
+            if (is(TokenId::KwdIf))
+                return parseIf();
+            return parseControlBlock();
+        }
         return AstNodeRef::invalid();
     };
 
@@ -284,7 +286,7 @@ AstNodeRef Parser::parseIf()
         // 'else if' is represented by nesting another if node in the else slot.
         // Later passes can therefore treat chained and manually nested conditionals
         // with the same traversal code.
-        nodePtr->nodeIfBlockRef   = parseDoCurlyBlock();
+        nodePtr->nodeIfBlockRef   = parseControlBlock();
         nodePtr->nodeElseBlockRef = parseElseBranch();
 
         return nodeRef;
@@ -295,7 +297,7 @@ AstNodeRef Parser::parseIf()
     // Parse the condition expression
     nodePtr->nodeConditionRef = parseBlockHeaderExpression();
     if (nodePtr->nodeConditionRef.isInvalid())
-        skipTo({TokenId::KwdDo, TokenId::SymLeftCurly});
+        skipTo({TokenId::SymLeftCurly});
 
     if (nodePtr->nodeConditionRef.isValid() && ast_->node(nodePtr->nodeConditionRef).is(AstNodeId::IsTypeExpr) && consumeIf(TokenId::KwdAs).isValid())
     {
@@ -310,13 +312,13 @@ AstNodeRef Parser::parseIf()
         auto [bindingRef, binding] = ast_->makeNode<AstNodeId::IfVarDecl>(nodePtr->tokRef());
         binding->nodeVarRef        = declRef;
         binding->nodeWhereRef      = consumeIf(TokenId::KwdWhere).isValid() ? parseBlockHeaderExpression() : AstNodeRef::invalid();
-        binding->nodeIfBlockRef    = parseDoCurlyBlock();
+        binding->nodeIfBlockRef    = parseControlBlock();
         binding->nodeElseBlockRef  = parseElseBranch();
         return bindingRef;
     }
 
     skipMisplacedTypePatternBinding();
-    nodePtr->nodeIfBlockRef = parseDoCurlyBlock();
+    nodePtr->nodeIfBlockRef = parseControlBlock();
     // Same chained-conditional shape as 'if var': the else branch either owns a
     // block or another IfStmt node.
     nodePtr->nodeElseBlockRef = parseElseBranch();
@@ -388,7 +390,7 @@ AstNodeRef Parser::parseWhile()
 {
     auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::WhileStmt>(consume());
     nodePtr->nodeExprRef    = parseBlockHeaderExpression();
-    nodePtr->nodeBodyRef    = parseDoCurlyBlock();
+    nodePtr->nodeBodyRef    = parseControlBlock();
     return nodeRef;
 }
 
@@ -402,14 +404,14 @@ AstNodeRef Parser::parseForCpp()
     expectAndConsume(TokenId::SymSemiColon, DiagnosticId::parser_err_expected_token_before);
 
     nodePtr->nodePostStmtRef = parseEmbeddedStmt();
-    nodePtr->nodeBodyRef     = parseDoCurlyBlock();
+    nodePtr->nodeBodyRef     = parseControlBlock();
     return nodeRef;
 }
 
 AstNodeRef Parser::parseForInfinite()
 {
     auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::InfiniteLoopStmt>(consume());
-    nodePtr->nodeBodyRef    = parseDoCurlyBlock();
+    nodePtr->nodeBodyRef    = parseControlBlock();
     return nodeRef;
 }
 
@@ -487,7 +489,7 @@ AstNodeRef Parser::parseForLoop()
             nodePtr->nodeWhereRef.setInvalid();
     }
 
-    nodePtr->nodeBodyRef = parseDoCurlyBlock();
+    nodePtr->nodeBodyRef = parseControlBlock();
     return nodeRef;
 }
 
@@ -495,7 +497,7 @@ AstNodeRef Parser::parseFor()
 {
     if (nextIs(TokenId::KwdVar))
         return parseForCpp();
-    if (nextIsAny(TokenId::SymLeftCurly, TokenId::KwdDo))
+    if (nextIs(TokenId::SymLeftCurly))
         return parseForInfinite();
     return parseForLoop();
 }
@@ -542,7 +544,7 @@ AstNodeRef Parser::parseParallelFor(bool fallible)
         const PushBlockHeader header(this);
         rangeRef = parseRangeExpression();
     }
-    const AstNodeRef bodyRef = parseDoCurlyBlock();
+    const AstNodeRef bodyRef = parseControlBlock();
 
     auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::ParallelForStmt>(tokParallel);
     if (fallible)
@@ -603,7 +605,7 @@ AstNodeRef Parser::parseParallelFor(bool fallible)
     return nodeRef;
 }
 
-// One partition bound of a lowered 'parallel for', named by `tokName` and typed 'u64'.
+// One partition bound of a lowered 'parallel for', named by `tokName` and typed '_u64'.
 AstNodeRef Parser::makeParallelBoundParam(TokenRef tokName)
 {
     auto [typeRef, typePtr] = ast_->makeNode<AstNodeId::BuiltinType>(tokName);
@@ -872,24 +874,12 @@ AstNodeRef Parser::parseNamespace()
     return nodeRef;
 }
 
-AstNodeRef Parser::parseDoCurlyBlock()
+AstNodeRef Parser::parseControlBlock()
 {
-    if (consumeIf(TokenId::KwdDo).isValid())
-    {
-        if (is(TokenId::SymLeftCurly) && !isDestructuringAssignmentAhead())
-        {
-            const Diagnostic diag = reportUnexpectedDoBlock(ref().offset(-1));
-            diag.report(*ctx_);
-            return parseCompound<AstNodeId::EmbeddedBlock>(TokenId::SymLeftCurly);
-        }
-
-        return parseEmbeddedStmt();
-    }
-
     if (is(TokenId::SymLeftCurly))
         return parseCompound<AstNodeId::EmbeddedBlock>(TokenId::SymLeftCurly);
 
-    const Diagnostic diag = reportExpectedDoBlock(ref().offset(-1));
+    const Diagnostic diag = reportExpectedControlBlock(ref().offset(-1));
     diag.report(*ctx_);
 
     // 'if x = 1 do ...' is reported once at the '='; reading past the compared value lets the
@@ -898,8 +888,8 @@ AstNodeRef Parser::parseDoCurlyBlock()
     {
         consume();
         parseExpression();
-        if (is(TokenId::KwdDo) || is(TokenId::SymLeftCurly))
-            return parseDoCurlyBlock();
+        if (is(TokenId::SymLeftCurly))
+            return parseControlBlock();
     }
 
     return AstNodeRef::invalid();

@@ -32,7 +32,7 @@ struct CheckButton
             flags = CheckButtonFlags.None     // Active interaction and placement options.
         }
 
-        sigChanged: SigArray'func||(*Wnd)     // Emitted after a user action changes the state.
+        sigChanged: SigArray!{func||(*Wnd)}     // Emitted after a user action changes the state.
     }
 
     // The chosen look is laid over the resting one at `markPresence`, which eases when the state
@@ -93,12 +93,14 @@ impl IWnd for CheckButton
             chosenBk     = engaged ? colors.btnCheck_CheckedHotBk : colors.btnCheck_CheckedBk
             chosenBorder = engaged ? colors.btnCheck_CheckedHotBk : colors.btnCheck_CheckedBorder
             colorMark    = colors.btnCheck_CheckedMark
-            if checked do
+            if checked
+            {
                 colorText = colors.btnCheck_CheckedText
+            }
         }
 
         // A disabled box shows its state as it is; an enabled one at the share its mark has reached.
-        let presence                       = bc.isDisabled ? (checked ? 1'f32 : 0) : .markPresence
+        let presence                       = bc.isDisabled ? (checked ? 1_f32 : 0) : .markPresence
         let shown                          = checked ? .state : .markState
         var subRectBk:     *ThemeImageRect = &rects.btnCheck_Checked
         var subRectBorder: *ThemeImageRect = &rects.btnCheck_CheckedBorder
@@ -119,8 +121,11 @@ impl IWnd for CheckButton
         // sitting under the label it belongs to.
         posBox.y     = .name.isEmpty() ? clientRect.vertCenter() - posBox.height * 0.5 : opticalTop(.font(), clientRect.vertCenter(), posBox.height)
         posBox.width = posBox.height
-        if .flags.has(.RightAligned) do
+        if .flags.has(.RightAligned)
+        {
             posBox.x = clientRect.right() - posBox.width
+        }
+
         let markerInset = metrics.btnCheck_Size * metrics.btnCheck_AtlasInsetRatio
         var focusBox    = posBox
 
@@ -157,24 +162,34 @@ impl IWnd for CheckButton
         // Content
         var format: RichStringFormat
         theme.setTextColors(&format, colorText)
-        if .flags.has(.RightAligned) do
+        if .flags.has(.RightAligned)
+        {
             format.horzAlignment = .Right
-        else do
+        }
+        else
+        {
             format.horzAlignment = .Left
+        }
+
         format.vertAlignment = .Center
         format.flags         = .Clip
         format.font          = .font()
         var labelPos     = clientRect
         let markerAndGap = .captionInset()
-        if not .flags.has(.RightAligned) do
+        if not .flags.has(.RightAligned)
+        {
             labelPos.x += markerAndGap
+        }
+
         labelPos.width -= markerAndGap
         Theme.drawIconText(painter, labelPos, .icon, &.name, format, metrics.iconText_Margin, accessKey: me.accessKey, showAccessKey: .surface?.accessKeysVisible orelse false)
 
         // The box and the wording are one target, and the ring is drawn around that rather than
         // around the cell the layout gave the control. See [[Gui.Button.markerFocusRect]].
-        if not bc.isDisabled and .showsFocusRing() do
+        if not bc.isDisabled and .showsFocusRing()
+        {
             theme.drawFocusRing(painter, .markerFocusRect(focusBox))
+        }
     }
 
     // Reports the room the check box, its padding, and the caption need.
@@ -190,8 +205,10 @@ impl IWnd for CheckButton
 
     mtd impl onMouseEvent(evt: *MouseEvent)
     {
-        if .processMouseEvent(evt) do
+        if .processMouseEvent(evt)
+        {
             .toggle()
+        }
     }
 
     // Space or Enter toggles the focused check button.
@@ -200,8 +217,10 @@ impl IWnd for CheckButton
         evt.accepted = false
         if evt.kind != .Pressed or
            evt.modifiers != .None or
-           (evt.key == .Space and not .hasVisibleFocus()) do
+           (evt.key == .Space and not .hasVisibleFocus())
+        {
             return
+        }
 
         switch evt.key
         {
@@ -229,11 +248,17 @@ impl CheckButton
     {
         Swag.assert(parent != null)
         var pos = position
-        if pos.height == 0 do
+        if pos.height == 0
+        {
             pos.height = parent.themeMetrics().btnPush_Height
-        if pos.width == 0 do
+        }
+
+        if pos.width == 0
+        {
             pos.width = parent.themeMetrics().btnPush_Width
-        let result = Wnd.create'CheckButton(parent, name, pos, id)
+        }
+
+        let result = Wnd.create!{CheckButton}(parent, name, pos, id)
         result.flags       = flags
         result.focusPolicy = .Tab
         result.wndFlags    |= .ActivatesOnKey
@@ -243,8 +268,11 @@ impl CheckButton
         result.wndFlags |= .NoFocusRing
 
         // An unstated width belongs to the caption; the theme width above stays its floor.
-        if position.width == 0 do
+        if position.width == 0
+        {
             result.preferredSize.x = 0
+        }
+
         return result
     }
 
@@ -266,8 +294,11 @@ impl CheckButton
     // Changes the displayed state without emitting a change signal or command.
     mtd setState(newState: CheckState)
     {
-        if .state == newState do
+        if .state == newState
+        {
             return
+        }
+
         .state = newState
         .easeMark()
     }
@@ -292,15 +323,21 @@ private impl CheckButton
     // Eases the chosen look toward the current state; a control nobody can see takes it at once.
     mtd easeMark()
     {
-        if .state != .Unchecked do
+        if .state != .Unchecked
+        {
             .markState = .state
+        }
+
         .invalidate()
 
-        let destination = .state != .Unchecked ? 1'f32 : 0
+        let destination = .state != .Unchecked ? 1_f32 : 0
         if not .surface or not .isVisible() or .app().isReducedMotion()
         {
-            if .surface do
+            if .surface
+            {
                 .app().animator.cancel(me, AnimationChannel.from("Gui.Check.Mark"))
+            }
+
             .markPresence = destination
             return
         }

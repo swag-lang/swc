@@ -23,7 +23,7 @@ struct Request
 // destroy a window whose surface has already gone.
 public struct State
 {
-    public sigLinkActivated: SigArray'func||(*Wnd, string)     // Emitted when the reader activates a link inside the visible tip.
+    public sigLinkActivated: SigArray!{func||(*Wnd, string)}     // Emitted when the reader activates a link inside the visible tip.
 
     pending:       *Request?      // Request still counting down.
     current:       *FrameWnd?     // Tip on screen.
@@ -46,8 +46,10 @@ impl State
     mtd update(dt: f32)
     {
         let pending = .pending
-        if not pending do
+        if not pending
+        {
             return
+        }
 
         pending.delay -= dt
         if pending.delay < 0
@@ -56,7 +58,7 @@ impl State
             // tip has read it: `show` starts by hiding, which is what frees `pending`.
             .pending = null
             defer Memory.delete(pending)
-            .present(pending.owner, pending.surfacePos, pending.str, pending.isMarkup, 0's)
+            .present(pending.owner, pending.surfacePos, pending.str, pending.isMarkup, 0_s)
         }
     }
 
@@ -77,10 +79,14 @@ impl State
     mtd hideOwnedBy(owner: *Wnd)
     {
         let pending = .pending
-        if pending and pending.owner == owner do
+        if pending and pending.owner == owner
+        {
             .hide()
-        elif owner == .currentOwner do
+        }
+        else if owner == .currentOwner
+        {
             .hide()
+        }
     }
 
     // Lets go of `wnd` as it is destroyed: a request it made never becomes a tip, and the tip it
@@ -96,8 +102,10 @@ impl State
         }
 
         let owner = .currentOwner
-        if owner and (wnd == owner or wnd.isOwnerOf(owner)) do
+        if owner and (wnd == owner or wnd.isOwnerOf(owner))
+        {
             .hide()
+        }
 
         let pending = .pending
         if pending and (wnd == pending.owner or wnd.isOwnerOf(pending.owner))
@@ -111,8 +119,11 @@ impl State
     public mtd contains(wnd: *Wnd?)->bool
     {
         let current = .current
-        if not current or not wnd do
+        if not current or not wnd
+        {
             return false
+        }
+
         return current == wnd or current.isAncestorOf(wnd)
     }
 
@@ -120,8 +131,11 @@ impl State
     private mtd isInteractive()->bool
     {
         let current = .current
-        if not current or current.view == null do
+        if not current or current.view == null
+        {
             return false
+        }
+
         let label = assume cast (*Label, current.view)
         return label.name.hasUrl
     }
@@ -145,14 +159,16 @@ impl State
                 return
             }
         }
-        elif .pointerInside
+        else if .pointerInside
         {
             .hide()
             return
         }
 
-        if from do
+        if from
+        {
             .hideOwnedBy(from)
+        }
     }
 
     // Restarts the delay of the pending request from a new pointer position.
@@ -173,7 +189,7 @@ impl State
     // with an ellipsis rather than grow, and it never scrolls — so a caller can hand it any length
     // knowing the reader is shown a box, not a viewport onto something longer. Keep a tip to what
     // fits: text the height cap truncates is text nobody reads.
-    public mtd show(owner: *Wnd, surfacePos: Math.Point, str: string?, delay: Time.Duration = 500'ms)
+    public mtd show(owner: *Wnd, surfacePos: Math.Point, str: string?, delay: Time.Duration = 500_ms)
     {
         .present(owner, surfacePos, str, false, delay)
     }
@@ -186,20 +202,25 @@ impl State
     // reports the activation through [[Gui.ToolTip.State.sigLinkActivated]]; one holding none is
     // passive and goes as soon as the pointer reaches it. Size and wrapping are those of
     // [[Gui.ToolTip.State.show]].
-    public mtd showMarkup(owner: *Wnd, surfacePos: Math.Point, markup: string?, delay: Time.Duration = 500'ms)
+    public mtd showMarkup(owner: *Wnd, surfacePos: Math.Point, markup: string?, delay: Time.Duration = 500_ms)
     {
         .present(owner, surfacePos, markup, true, delay)
     }
 
     mtd present(owner: *Wnd, surfacePos: Math.Point, str: string?, isMarkup: bool, delay: Time.Duration)
     {
-        if str == null or str.count == 0 do
+        if str == null or str.count == 0
+        {
             return
+        }
 
         if not .current and delay.seconds > 0
         {
-            if not .pending do
-                .pending = Memory.new'Request()
+            if not .pending
+            {
+                .pending = Memory.new!{Request}()
+            }
+
             let pending = .pending
             pending.owner      = owner
             pending.surfacePos = surfacePos
@@ -227,7 +248,7 @@ impl State
         // A tip is a passive annotation, so it is a frame and a label and nothing else: no editor,
         // no viewport, no scroll bar, and nothing the keyboard or the wheel can reach. The frame
         // opens at its cap and `fitToText` cuts it down before anything paints.
-        let cur = Wnd.create'FrameWnd(top, Math.Rectangle{pos.x, pos.y, room.x, room.y})
+        let cur = Wnd.create!{FrameWnd}(top, Math.Rectangle{pos.x, pos.y, room.x, room.y})
         .current      = cur
         .currentOwner = owner
         cur.setFrameForm(.Square)
@@ -236,7 +257,7 @@ impl State
         cur.style.addStyleSheetColors("frameWnd_Border $toolTip_Border")
         cur.setAllPaddings(metrics.toolTip_Padding)
 
-        let label = cur.createView'Label()
+        let label = cur.createView!{Label}()
         label.updateFlags(.WordWrap | .Ellipsis)
         label.setTextAlignment(.Left, .Center)
         label.style.setFont(cur.theme().createDefaultFontFamily(metrics.toolTip_FontSize))
@@ -255,10 +276,14 @@ impl State
         // placed before anything paints, and a caller reading its colors in between would read the
         // colors of the surface underneath.
         label.computeStyle()
-        if isMarkup do
+        if isMarkup
+        {
             label.setMarkup(copy.toString())
-        else do
+        }
+        else
+        {
             label.setText(copy.toString())
+        }
 
         // The label reports the link; the tip reports which annotation it came from, because the
         // owner is what a handler can act on and the label is gone a moment later.
@@ -280,7 +305,7 @@ impl State
 // Shows a tip for `owner`, in the application `owner` belongs to.
 //
 // `str` is literal text. See [[Gui.ToolTip.State.show]] for how large a tip may become.
-public func show(owner: *Wnd, surfacePos: Math.Point, str: string?, delay: Time.Duration = 500'ms)
+public func show(owner: *Wnd, surfacePos: Math.Point, str: string?, delay: Time.Duration = 500_ms)
 {
     owner.app().toolTip.show(owner, surfacePos, str, delay)
 }
@@ -288,7 +313,7 @@ public func show(owner: *Wnd, surfacePos: Math.Point, str: string?, delay: Time.
 // Shows a tip written in inline markup for `owner`, in the application `owner` belongs to.
 //
 // See [[Gui.ToolTip.State.showMarkup]] for what the sentence may contain.
-public func showMarkup(owner: *Wnd, surfacePos: Math.Point, markup: string?, delay: Time.Duration = 500'ms)
+public func showMarkup(owner: *Wnd, surfacePos: Math.Point, markup: string?, delay: Time.Duration = 500_ms)
 {
     owner.app().toolTip.showMarkup(owner, surfacePos, markup, delay)
 }

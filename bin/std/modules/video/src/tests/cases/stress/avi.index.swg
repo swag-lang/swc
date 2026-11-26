@@ -16,8 +16,11 @@ using Core, Pixel
     var writer = expect Writer.create(path, 8, 8, rate)
     let dark   = videoGrayImage(8, 8, 40)
     let light  = videoGrayImage(8, 8, 200)
-    for index in Frames do
+    for index in Frames
+    {
         expect writer.addFrame(index < WindowFrames ? dark : light)
+    }
+
     expect writer.end()
 
     var reader = expect Reader.open(path)

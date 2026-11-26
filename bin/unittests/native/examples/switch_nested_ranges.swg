@@ -217,8 +217,10 @@ func computeEscalationLevel(ticket: SupportTicket)->s32
     level += subjectEscalationBonus(ticket.subjectTag)
 
     var overdueMinutes = ticket.waitedMinutes - computeResponseTargetMinutes(ticket)
-    if overdueMinutes < 0 do
+    if overdueMinutes < 0
+    {
         overdueMinutes = 0
+    }
 
     switch overdueMinutes
     {

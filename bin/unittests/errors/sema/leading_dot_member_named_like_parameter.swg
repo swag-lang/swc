@@ -11,8 +11,10 @@ impl LeadingDotGroup
 {
     mtd addTrack(kind: u32)->u32
     {
-        if .kind == 1 do     // swc-expected-error {{sema_err_auto_scope_missing_struct_member}}
+        if .kind == 1     // swc-expected-error {{sema_err_auto_scope_missing_struct_member}}
+        {
             return kind
+        }
         return .count
     }
 }

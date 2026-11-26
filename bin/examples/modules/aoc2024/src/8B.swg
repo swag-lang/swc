@@ -46,8 +46,8 @@ func day8B()
     let h        = lines.count
     let w        = lines[0].length
 
-    var antennas:  Array'{ f: u8, x, y: s64 }
-    var antinodes: HashSet'{ x, y: u32 }
+    var antennas:  Array!{{ f: u8, x, y: s64 }}
+    var antinodes: HashSet!{{ x, y: u32 }}
 
     for l in lines.count
     {

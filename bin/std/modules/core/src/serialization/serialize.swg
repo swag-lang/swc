@@ -116,28 +116,40 @@ impl Serializer
     // Finishes the write or the read.
     mtd end() fail
     {
-        if .isWrite do
+        if .isWrite
+        {
             try .encode!.end()
-        else do
+        }
+        else
+        {
             try .decode!.end()
+        }
     }
 
     // Opens a section of kind `kind`.
     mtd beginSection(kind = SectionKind.Unordered) fail
     {
-        if .isWrite do
+        if .isWrite
+        {
             try .encode!.beginSection(kind)
-        else do
+        }
+        else
+        {
             try .decode!.beginSection(kind)
+        }
     }
 
     // Closes the current section.
     mtd endSection() fail
     {
-        if .isWrite do
+        if .isWrite
+        {
             try .encode!.endSection()
-        else do
+        }
+        else
+        {
             try .decode!.endSection()
+        }
     }
 
     // Writes `res` as the field `name`, or reads that field into `res`.
@@ -179,8 +191,11 @@ impl Serializer
         else
         {
             let decode = unwrap .decode
-            if not (try decode.beginField(value)) do
+            if not (try decode.beginField(value))
+            {
                 return
+            }
+
             defer #nofail try decode.endField(value)
 
             #static switch MT

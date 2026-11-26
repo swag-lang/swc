@@ -4,14 +4,19 @@ internal impl Properties
     // consulted on the host notify and along the item's parent chain, at build time.
     mtd isEnumValueShown(item: *PropertiesItem, enumValue: Swag.TypeValue)->bool
     {
-        if .hostNtfy and not .hostNtfy.isEnumValueVisible(me, item, enumValue) do
+        if .hostNtfy and not .hostNtfy.isEnumValueVisible(me, item, enumValue)
+        {
             return false
+        }
 
         var scan = cast(*PropertiesItem?, item)
         while scan
         {
-            if scan.ntfyItf and not scan.ntfyItf.isEnumValueVisible(me, item, enumValue) do
+            if scan.ntfyItf and not scan.ntfyItf.isEnumValueVisible(me, item, enumValue)
+            {
                 return false
+            }
+
             scan = scan.parent
         }
 
@@ -43,10 +48,15 @@ internal impl Properties
             }
 
             // Multi-selection: a flag whose bit disagrees across instances is indeterminate.
-            if .flagBitIsMixed(item, val2) do
+            if .flagBitIsMixed(item, val2)
+            {
                 item.checkBox.setState(.Indeterminate)
-            else do
+            }
+            else
+            {
                 item.checkBox.setState(val1 & val2 ? .Checked : .Unchecked)
+            }
+
             item.checkBox.invalidate()
         }
     }
@@ -80,8 +90,10 @@ internal impl Properties
                 case 16: val2s = cast(const *string, unwrap v.value)[]
                 }
 
-                if val1 == val2 and val1s == val2s do
+                if val1 == val2 and val1s == val2s
+                {
                     idxSel = idx
+                }
             }
 
             // The combo may hide values (isEnumValueVisible): each combo entry carries its
@@ -98,10 +110,14 @@ internal impl Properties
             }
 
             // Multi-selection: clear the selection when the instances disagree.
-            if .fieldIsMixed(item) or idxCombo == Swag.U32.Max do
+            if .fieldIsMixed(item) or idxCombo == Swag.U32.Max
+            {
                 item.comboBox.clearSelection(notify: false)
-            else do
+            }
+            else
+            {
                 item.comboBox.setSelectedIndex(idxCombo, notify: false)
+            }
         }
     }
 
@@ -136,19 +152,21 @@ internal impl Properties
 
             // A deselected combo means "mixed" was just shown (multi-selection); there is
             // no concrete value to write, so don't touch the instances.
-            if sel >= item.comboBox.items.count do
+            if sel >= item.comboBox.items.count
+            {
                 return
+            }
 
             // Combo slot -> enum value index (the combo may hide values, see constructEnum)
             let idxEnum = cast(u64, item.comboBox.items[sel]!.userData0)
 
             switch typeEnum.rawType!.sizeof
             {
-            case 1:  setEd'u8()
-            case 2:  setEd'u16()
-            case 4:  setEd'u32()
-            case 8:  setEd'u64()
-            case 16: setEd'string()
+            case 1:  setEd!{u8}()
+            case 2:  setEd!{u16}()
+            case 4:  setEd!{u32}()
+            case 8:  setEd!{u64}()
+            case 16: setEd!{string}()
             }
         }
 
@@ -164,10 +182,12 @@ internal impl Properties
         for v in typeEnum.values
         {
             // The host can hide values (isEnumValueVisible): skip their row entirely
-            if not .isEnumValueShown(item, v) do
+            if not .isEnumValueShown(item, v)
+            {
                 continue
+            }
 
-            with let line = Wnd.create'Wnd(me.edView)
+            with let line = Wnd.create!{Wnd}(me.edView)
             {
                 .wndFlags.set(.BeforeChildrenPaint)
                 .focusPolicy = .None     // navigation lives on edView, edition on the checkbox
@@ -202,8 +222,11 @@ internal impl Properties
             let checkWidth  = me.kind == .List ? metrics.btnCheck_Size + metrics.btnCheck_Padding : checkHeight
             with let ed     = CheckButton.create(line, "", Math.Rectangle{0, 0, checkWidth, checkHeight})
             {
-                if me.isGridLike() do
+                if me.isGridLike()
+                {
                     .margin.x = me.leftMargin
+                }
+
                 .dockStyle = .Left
                 .userData  = cast #unconst (*void?, v.value)
             }
@@ -215,13 +238,19 @@ internal impl Properties
             itemB.filter += dispDescStr
 
             var labelWidth = me.position.width - checkWidth
-            if not me.isGridLike() do
+            if not me.isGridLike()
+            {
                 labelWidth = me.listContentWidth() - checkWidth
+            }
+
             with let label1 = Label.create(line, "", Math.Rectangle{checkWidth, 0, Math.max(labelWidth, 1.0)})
             {
                 .dockStyle = .Center
-                if me.kind == .Condensed do
+                if me.kind == .Condensed
+                {
                     .margin.x = PropCondensedCheckTextGap
+                }
+
                 .updateFlags(.WordWrap | .AutoHeight)
                 .setTextAlignment(.Left, .OpticalCenter)
                 .setText(dispDescStr)
@@ -257,8 +286,11 @@ internal impl Properties
         // Panel row: a full-width labeled combo, right edge aligned with the other editors
         if .kind == .Panel
         {
-            if item.label != null do
+            if item.label != null
+            {
                 item.label.hide()
+            }
+
             with let ctrl = ComboCtrl.create(item.line, itemDisplayName(value).toString())
             {
                 .anchorStyle = .Right
@@ -271,15 +303,22 @@ internal impl Properties
         else
         {
             var editWidth = cast(f32, Reflection.attributeValue(value, me.EditSize, "size", me.editorWidth))
-            if not me.isGridLike() do
+            if not me.isGridLike()
+            {
                 editWidth = me.listContentWidthFromUseful(editWidth)
+            }
+
             with let ed = ComboBox.create(item.line)
             {
                 .maxSize.x = editWidth
-                if me.isGridLike() do
+                if me.isGridLike()
+                {
                     .dockStyle = .CenterKeepSizeVert
-                else do
+                }
+                else
+                {
                     .preferredSize.x = editWidth
+                }
             }
 
             me.adaptCondensedCombo(item, ed)
@@ -291,8 +330,11 @@ internal impl Properties
         // value index in userData0 so refresh/validate stay index-agnostic.
         for v, idx in typeEnum.values
         {
-            if not .isEnumValueShown(item, v) do
+            if not .isEnumValueShown(item, v)
+            {
                 continue
+            }
+
             let dn = Reflection.attributeValue(v, Properties.Name, "name")
             item.comboBox.addItem(dn == null ? resolveText(v.name orelse "") : attributeText(dn), userData0: cast(*void?, idx))
         }

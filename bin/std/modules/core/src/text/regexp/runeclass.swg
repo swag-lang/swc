@@ -15,7 +15,7 @@ struct RuneRange
 // and the UTF-8 automaton are each written once.
 struct RuneClass
 {
-    ranges: Array'RuneRange     // Sorted, disjoint, non-adjacent once normalized.
+    ranges: Array!{RuneRange}     // Sorted, disjoint, non-adjacent once normalized.
 }
 
 impl RuneClass
@@ -23,8 +23,11 @@ impl RuneClass
     // Adds one interval; the class stays unnormalized until 'normalize' runs.
     mtd add(lo, hi: rune)
     {
-        if lo > hi do
+        if lo > hi
+        {
             return
+        }
+
         .ranges.add({lo, hi})
     }
 
@@ -37,8 +40,10 @@ impl RuneClass
     // Adds every interval of another class.
     mtd addClass(other: RuneClass)
     {
-        for range in other.ranges do
+        for range in other.ranges
+        {
             .ranges.add(range)
+        }
     }
 
     // Adds a Unicode table, expanding the strided entries the tables use for scattered blocks.
@@ -66,19 +71,24 @@ impl RuneClass
     // Sorts the intervals and merges the ones that touch, which every other operation assumes.
     mtd normalize()
     {
-        if .ranges.count <= 1 do
+        if .ranges.count <= 1
+        {
             return
+        }
 
         .ranges.sort(func||(left, right) { return left.lo <=> right.lo })
 
-        var writeIndex = 0'u64
-        for var readIndex = 1'u64; readIndex < .ranges.count; readIndex += 1
+        var writeIndex = 0_u64
+        for var readIndex = 1_u64; readIndex < .ranges.count; readIndex += 1
         {
             let currentRange = .ranges[readIndex]
             if currentRange.lo <= .ranges[writeIndex].hi + 1
             {
-                if currentRange.hi > .ranges[writeIndex].hi do
+                if currentRange.hi > .ranges[writeIndex].hi
+                {
                     .ranges[writeIndex].hi = currentRange.hi
+                }
+
                 continue
             }
 
@@ -94,12 +104,15 @@ impl RuneClass
     {
         .normalize()
 
-        var result: Array'RuneRange
-        var nextScalar = 0'rune
+        var result: Array!{RuneRange}
+        var nextScalar = 0_rune
         for &range in .ranges
         {
-            if range.lo > nextScalar do
+            if range.lo > nextScalar
+            {
                 result.add(RuneRange{nextScalar, range.lo - 1})
+            }
+
             if range.hi >= Utf8.MaxRune
             {
                 .ranges = #move result
@@ -122,7 +135,7 @@ impl RuneClass
     {
         .normalize()
 
-        const WidestFoldedRange = 4096'rune
+        const WidestFoldedRange = 4096_rune
 
         var folded: RuneClass
         for &range in .ranges
@@ -135,22 +148,36 @@ impl RuneClass
                 {
                     var start = range.lo
                     var end   = range.hi
-                    if start < caseRange.lo do
+                    if start < caseRange.lo
+                    {
                         start = caseRange.lo
-                    if end > caseRange.hi do
+                    }
+
+                    if end > caseRange.hi
+                    {
                         end = caseRange.hi
-                    if start > end do
+                    }
+
+                    if start > end
+                    {
                         continue
+                    }
 
                     var scalar = start
                     while scalar <= end
                     {
                         let upper = Unicode.toUpper(scalar)
                         let lower = Unicode.toLower(scalar)
-                        if upper != scalar do
+                        if upper != scalar
+                        {
                             folded.addRune(upper)
-                        if lower != scalar do
+                        }
+
+                        if lower != scalar
+                        {
                             folded.addRune(lower)
+                        }
+
                         scalar += 1
                     }
                 }
@@ -163,16 +190,24 @@ impl RuneClass
             {
                 let upper = Unicode.toUpper(scalar)
                 let lower = Unicode.toLower(scalar)
-                if upper != scalar do
+                if upper != scalar
+                {
                     folded.addRune(upper)
-                if lower != scalar do
+                }
+
+                if lower != scalar
+                {
                     folded.addRune(lower)
+                }
+
                 scalar += 1
             }
         }
 
-        if folded.isEmpty() do
+        if folded.isEmpty()
+        {
             return
+        }
 
         .addClass(folded)
         .normalize()
@@ -181,18 +216,24 @@ impl RuneClass
     // Returns whether one scalar value belongs to the class.
     mtd const contains(value: rune)->bool
     {
-        var low  = 0'u64
+        var low  = 0_u64
         var high = .ranges.count
         while low < high
         {
             let middle = (low + high) / 2
             let range  = .ranges[middle]
-            if value < range.lo do
+            if value < range.lo
+            {
                 high = middle
-            elif value > range.hi do
+            }
+            else if value > range.hi
+            {
                 low = middle + 1
-            else do
+            }
+            else
+            {
                 return true
+            }
         }
 
         return false
@@ -202,8 +243,11 @@ impl RuneClass
     // class become a plain byte range instead of a UTF-8 automaton.
     mtd const isAscii()->bool
     {
-        if .ranges.isEmpty() do
+        if .ranges.isEmpty()
+        {
             return true
+        }
+
         return .ranges.back().hi < 0x80
     }
 }

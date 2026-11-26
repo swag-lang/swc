@@ -44,11 +44,11 @@ impl ConstDataOfSpecBuffer
 {
     func readConstThroughSpecOp()->u32
     {
-        const value: ConstDataOfSpecBuffer = ConstDataOfSpecBuffer{data: [3'u8, 5'u8]}
+        const value: ConstDataOfSpecBuffer = ConstDataOfSpecBuffer{data: [3_u8, 5_u8]}
         let p = value.buffer
         return cast(u32, p[0]) + cast(u32, p[1])
     }
 
     const V0 = #run readConstThroughSpecOp()
-    #assert(V0 == 8'u32)
+    #assert(V0 == 8_u32)
 }

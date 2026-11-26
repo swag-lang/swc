@@ -37,19 +37,28 @@ public impl Bitmap
     // Invalid rows or inconsistent bitmap layouts fail with an invalid-argument error.
     mtd const row(y: u32)->const [..] u8 fail
     {
-        if y >= .rows do
+        if y >= .rows
+        {
             try fault(0x06)
+        }
 
         let rowBytes = cast(u64, .width) * .pixelMode.bytesPerPixel()
-        if .pitch < 0 do
+        if .pitch < 0
+        {
             try fault(0x06)
-        if rowBytes > cast(u64, .pitch) do
+        }
+
+        if rowBytes > cast(u64, .pitch)
+        {
             try fault(0x06)
+        }
 
         if rowBytes
         {
-            if not .buffer do
+            if not .buffer
+            {
                 try fault(0x06)
+            }
 
             return Swag.makeSlice(cast(const [*] u8, unwrap .buffer) + cast(u64, y) * cast(u64, .pitch), rowBytes)
         }

@@ -23,8 +23,10 @@ func edgeDistanceSquared(edge: Edge, x, y: f64)->f64
 func closestEdgeDistance(edges: const [..] Edge, x, y: f64)->f64
 {
     var distSquared = Swag.F64.Max
-    for edge in edges do
+    for edge in edges
+    {
         distSquared = Math.min(distSquared, edgeDistanceSquared(edge, x, y))
+    }
 
     return Math.sqrt(distSquared)
 }
@@ -53,9 +55,9 @@ private func closestRowDistances(edges: const [..] SdfRowEdge, x: Math.Simd.F64x
         }
         else
         {
-            let t  = Math.max(Math.Simd.splat(0.0'f64), Math.min(Math.Simd.splat(1.0'f64), ((x - edge.x0) * edge.vx + edge.dotY) / edge.lenSquared))
-            let dx = x - (edge.x0 + edge.vx * t)
-            let dy = y - (edge.y0 + edge.vy * t)
+            let t  = Math.max(Math.Simd.splat(0.0_f64), Math.min(Math.Simd.splat(1.0_f64), ((x - edge.x0) * vx + (y - edge.y0) * vy) / lenSquared))
+            let dx = x - (edge.x0 + vx * t)
+            let dy = y - (edge.y0 + vy * t)
             distance = dx * dx + dy * dy
         }
 
@@ -76,22 +78,39 @@ private func buildSdfRow(edges: const [..] Edge, geometry: *Array'SdfRowEdge, ch
     Memory.clear(changes.buffer, changes.count * #sizeof(s32))
     for edge in edges where edge.maxY >= lowY and edge.minY <= highY
     {
-        let vx = edge.x1 - edge.x0
-        let vy = edge.y1 - edge.y0
-        let dy = y - edge.y0
-        geometry.add({edge.x0, edge.y0, vx, vy, vx * vx + vy * vy, dy * vy})
+        if y < edge.minY or y >= edge.maxY
+        {
+            continue
+        }
 
-        if y < edge.minY or y >= edge.maxY do
-            continue
-        let x    = edge.x0 + vx * dy / vy
-        let stop = cast(s32, Math.ceil(x - left - 0.5))
-        if stop <= 0 do
-            continue
-        let winding = vy > 0.0 ? 1 : -1
-        changes[0] += winding
-        if stop < width do
-            changes[stop] -= winding
+        let cross = (edge.x1 - edge.x0) * (y - edge.y0) - (x - edge.x0) * (edge.y1 - edge.y0)
+        var mask  = 0_u32
+        if edge.y0 <= y and edge.y1 > y
+        {
+            mask     = Math.Simd.bitmask(cross > Math.Simd.splat(0.0_f64))
+            winding0 += mask & 1
+            winding1 += (mask >> 1) & 1
+        }
+        else if edge.y1 <= y and edge.y0 > y
+        {
+            mask     = Math.Simd.bitmask(cross < Math.Simd.splat(0.0_f64))
+            winding0 -= mask & 1
+            winding1 -= (mask >> 1) & 1
+        }
     }
+
+    var result = 0_u32
+    if winding0
+    {
+        result |= 1
+    }
+
+    if winding1
+    {
+        result |= 2
+    }
+
+    return result
 }
 
 func renderCurrentOutlineSdf(slot: *GlyphSlot, spread: u32) fail
@@ -100,15 +119,22 @@ func renderCurrentOutlineSdf(slot: *GlyphSlot, spread: u32) fail
     let safeSlot = slot
     clearBitmap(safeSlot)
 
-    if safeSlot.format != .Outline do
+    if safeSlot.format != .Outline
+    {
         try fault(0x13)
+    }
 
-    if safeSlot.outline.pointCount <= 0 do
+    if safeSlot.outline.pointCount <= 0
+    {
         return
+    }
 
     var safeSpread = spread
-    if not safeSpread do
+    if not safeSpread
+    {
         safeSpread = 1
+    }
+
     safeSpread = Math.min(safeSpread, 64)
 
     let padding = cast(s32, safeSpread)
@@ -119,12 +145,16 @@ func renderCurrentOutlineSdf(slot: *GlyphSlot, spread: u32) fail
     let top     = Math.ceilS32(bounds.maxY / 64.0) + padding
     let width   = Math.max(0, right - left)
     let rows    = Math.max(0, top - bottom)
-    if not width or not rows do
+    if not width or not rows
+    {
         return
+    }
 
     let edges = buildEdges(&safeSlot.outline)
-    if not edges.count do
+    if not edges.count
+    {
         return
+    }
 
     faceData.bitmapPixels.resize(cast(u64, width) * rows)
     let bitmapBuffer = faceData.bitmapPixels.storage()

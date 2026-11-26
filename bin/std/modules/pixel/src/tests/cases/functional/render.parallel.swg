@@ -31,9 +31,9 @@ using Swag, Core
     painter.begin()
     painter.setColorMaskFull()
     painter.clear(Color.fromArgb(Argb.Black))
-    painter.fillRect(0, 7, 1024.0, 508.0, Color.fromArgb(128'u8, 255'u8, 0'u8, 0'u8))
-    painter.fillRoundRect(0, 13, 960.0, 500.0, 24, 24, Color.fromArgb(128'u8, 0'u8, 255'u8, 0'u8))
-    painter.fillRoundRect(0, 21, 900.0, 493.0, 40, 40, Color.fromArgb(96'u8, 0'u8, 0'u8, 255'u8))
+    painter.fillRect(0, 7, 1024.0, 508.0, Color.fromArgb(128_u8, 255_u8, 0_u8, 0_u8))
+    painter.fillRoundRect(0, 13, 960.0, 500.0, 24, 24, Color.fromArgb(128_u8, 0_u8, 255_u8, 0_u8))
+    painter.fillRoundRect(0, 21, 900.0, 493.0, 40, 40, Color.fromArgb(96_u8, 0_u8, 0_u8, 255_u8))
     painter.end()
 
     let serial = renderCpu(Narrow, Height, &painter)
@@ -42,8 +42,10 @@ using Swag, Core
         let image = renderCpu(Wide, Height, &painter)
         for y in Height
         {
-            for x in Narrow do
+            for x in Narrow
+            {
                 Swag.require(serial.pixelColor(x, y) == image.pixelColor(x, y))
+            }
         }
     }
 }

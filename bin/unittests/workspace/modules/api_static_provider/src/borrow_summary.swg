@@ -116,8 +116,10 @@ func depBorrowSetObservedOwner(owner: *DepBorrowContainer)
 func depBorrowAnnotatedObserve()
 {
     let owner = depBorrowObservedOwner
-    if owner do
+    if owner
+    {
         depBorrowGlobalStash = owner.slot
+    }
 }
 
 // An older annotation that omits the external-observation promise stays conservative.

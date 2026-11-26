@@ -9,9 +9,9 @@
     #[Swag.NoInline]
     func bswapU64(v: u64)->u64 => Swag.byteSwap(v)
 
-    const A = #run bswapU16(0x1234'u16)
-    const B = #run bswapU32(0x12345678'u32)
-    const C = #run bswapU64(0x01234567_89ABCDEF'u64)
+    const A = #run bswapU16(0x1234_u16)
+    const B = #run bswapU32(0x12345678_u32)
+    const C = #run bswapU64(0x01234567_89ABCDEF_u64)
 
     #assert(A == 0x3412)
     #assert(B == 0x78563412)

@@ -55,22 +55,31 @@ internal struct MountPrivacyData
 internal func mountPrivacyChannel(root: string)->String
 {
     var identity = String.from(root)
-    while identity.count > 1 and Path.isDirectorySeparator(identity[identity.count - 1]) do
+    while identity.count > 1 and Path.isDirectorySeparator(identity[identity.count - 1])
+    {
         identity.remove(identity.count - 1, 1)
-    if WINDOWS do
+    }
+
+    if WINDOWS
+    {
         identity.makeLower(.Unicode)
-    identity += 0'u8
+    }
+
+    identity += 0_u8
     identity += Env.isSandboxed() ? "sandbox" : "host"
     if Env.isSandboxed()
     {
-        identity += 0'u8
+        identity += 0_u8
         identity += Env.sandboxRoot()
     }
 
     let digest = Hash.Sha256.compute(cast(const [..] u8, identity.toString()))
     var result = String.from("Swag.MountPrivacy.1.")
-    for word in digest do
+    for word in digest
+    {
         result += Format.toString("%{X08}", word)
+    }
+
     return result
 }
 
@@ -84,8 +93,11 @@ impl MountPrivacy
     {
         var result: #returntype
         var candidate = mountPrivacyPathNative(path)
-        if candidate.isEmpty() do
+        if candidate.isEmpty()
+        {
             return result
+        }
+
         let protectedRoot = mountPrivacyProtectedRootNative(candidate)
         for
         {
@@ -97,8 +109,11 @@ impl MountPrivacy
             }
 
             let parent = Path.directoryName(candidate)
-            if not parent or Path.equals(parent, candidate) do
+            if not parent or Path.equals(parent, candidate)
+            {
                 break
+            }
+
             candidate = String.from(parent)
         }
 
@@ -118,14 +133,20 @@ impl MountPrivacy
     // Retains the final state after unmount, preventing late saves from losing provenance.
     mtd refresh()->bool
     {
-        if .root.isEmpty() do
+        if .root.isEmpty()
+        {
             return false
+        }
+
         let previousInstance   = .instance
         let previousActivation = .activation
         let previousPrivate    = .privateMode
         let readable           = .reader ? readMountPrivacyData(unwrap .reader.data, me) : readMountPrivacyNative(.channel, me)
-        if not readable do
+        if not readable
+        {
             .privateMode = true
+        }
+
         return .instance != previousInstance or
                .activation != previousActivation or
                .privateMode != previousPrivate
@@ -134,8 +155,10 @@ impl MountPrivacy
     // Shares the live read view, so copies retain terminal state without retaining source files.
     mtd opPostCopy()
     {
-        if .reader do
+        if .reader
+        {
             Atomic.add(&.reader.references, 1)
+        }
     }
 
     // Releases this snapshot's shared view.
@@ -160,14 +183,17 @@ impl MountPrivacyPublisher
     {
         Swag.assert(.data == null)
         let resolved = mountPrivacyPathNative(root)
-        if resolved.isEmpty() do
+        if resolved.isEmpty()
+        {
             fail Errors.BadParameterError{}
+        }
+
         .channel = mountPrivacyChannel(resolved)
         try .openNative()
         let data = unwrap .data
         Atomic.exchange(&data.instance, Hash.hash64(Guid64.random()) | 1)
         Atomic.exchange(&data.activation, 1)
-        Atomic.exchange(&data.flags, privateMode ? 3'u64 : 2'u64)
+        Atomic.exchange(&data.flags, privateMode ? 3_u64 : 2_u64)
         Atomic.exchange(&data.sequence, 2)
     }
 
@@ -176,16 +202,25 @@ impl MountPrivacyPublisher
     {
         .mutex.lock()
         defer .mutex.unlock()
-        if not .data do
+        if not .data
+        {
             return
+        }
+
         let data  = .data
         let flags = Atomic.get(&data.flags)
-        if ((flags & 1) != 0) == privateMode do
+        if ((flags & 1) != 0) == privateMode
+        {
             return
+        }
+
         Atomic.add(&data.sequence, 1)
-        if privateMode do
+        if privateMode
+        {
             Atomic.add(&data.activation, 1)
-        Atomic.exchange(&data.flags, privateMode ? 3'u64 : 2'u64)
+        }
+
+        Atomic.exchange(&data.flags, privateMode ? 3_u64 : 2_u64)
         Atomic.add(&data.sequence, 1)
     }
 
@@ -194,8 +229,11 @@ impl MountPrivacyPublisher
     {
         .mutex.lock()
         defer .mutex.unlock()
-        if not .data do
+        if not .data
+        {
             return
+        }
+
         Atomic.exchange(&.data.flags, Atomic.get(&.data.flags) & 1)
         .closeNative()
     }
@@ -209,13 +247,19 @@ internal func readMountPrivacyData(data: *MountPrivacyData, result: *MountPrivac
     for 8
     {
         let sequence = Atomic.get(&data.sequence)
-        if not sequence or sequence & 1 do
+        if not sequence or sequence & 1
+        {
             continue
+        }
+
         let instance   = Atomic.get(&data.instance)
         let activation = Atomic.get(&data.activation)
         let flags      = Atomic.get(&data.flags)
-        if sequence != Atomic.get(&data.sequence) do
+        if sequence != Atomic.get(&data.sequence)
+        {
             continue
+        }
+
         result.instance    = instance
         result.activation  = activation
         result.privateMode = (flags & 1) != 0

@@ -6,19 +6,30 @@ using Core
 // Shared bounded ODF package identity and encryption check before any content is read.
 func openPackage(fileName, mediaType, invalid, tooLarge, encrypted: string)->Archive.Zip fail
 {
-    if (try File.info(fileName)).size > 64 * 1024 * 1024 do
+    if (try File.info(fileName)).size > 64 * 1024 * 1024
+    {
         fail Errors.UnsupportedFormatError{tooLarge}
+    }
+
     let archive = try Archive.Zip.load(fileName)
-    if archive.entries.count > 4096 do
+    if archive.entries.count > 4096
+    {
         fail Errors.UnsupportedFormatError{tooLarge}
+    }
+
     let mime = archive.tryFindEntry("mimetype")
     if mime
     {
-        if mime.uncompressedSize > 256 do
+        if mime.uncompressedSize > 256
+        {
             fail Errors.InvalidFormatError{invalid}
+        }
+
         let mimeBytes = try Archive.Zip.loadEntry(fileName, mime)
-        if cast(string, mimeBytes.toSlice()) != mediaType do
+        if cast(string, mimeBytes.toSlice()) != mediaType
+        {
             fail Errors.InvalidFormatError{invalid}
+        }
     }
 
     let parts    = Package.PartReader{fileName, &archive, invalid, tooLarge}
@@ -27,34 +38,51 @@ func openPackage(fileName, mediaType, invalid, tooLarge, encrypted: string)->Arc
     scan.allowDocumentType = true
     var rootType: String
     var rootEntry = false
-    var depth = 0'u32
-    var token: Package.Token
+    var depth     = 0_u32
+    var token:    Package.Token
     while scan.next(&token)
     {
         if token.kind == .Start
         {
-            if not depth and not token.isElement("manifest") do
-                fail Errors.InvalidFormatError{invalid}
-            if token.isElement("encryption-data") do
-                fail Errors.UnsupportedFormatError{encrypted}
-            if depth == 1 and token.isElement("file-entry") and (token.attribute("full-path") orelse "") == "/"
+            if not depth and not token.isElement("manifest")
             {
-                if rootEntry do
-                    fail Errors.InvalidFormatError{invalid}
-                rootEntry = true
-                rootType = token.attribute("media-type") orelse ""
+                fail Errors.InvalidFormatError{invalid}
             }
 
-            if not token.empty do
+            if token.isElement("encryption-data")
+            {
+                fail Errors.UnsupportedFormatError{encrypted}
+            }
+
+            if depth == 1 and
+               token.isElement("file-entry") and
+               (token.attribute("full-path") orelse "") == "/"
+            {
+                if rootEntry
+                {
+                    fail Errors.InvalidFormatError{invalid}
+                }
+
+                rootEntry = true
+                rootType  = token.attribute("media-type") orelse ""
+            }
+
+            if not token.empty
+            {
                 depth += 1
+            }
         }
-        elif token.kind == .End do
+        else if token.kind == .End
+        {
             depth -= 1
+        }
     }
 
     // Some producers leave the package type only in the manifest's root entry.
-    if (rootEntry and rootType != mediaType) or (not mime and not rootEntry) do
+    if (rootEntry and rootType != mediaType) or (not mime and not rootEntry)
+    {
         fail Errors.InvalidFormatError{invalid}
+    }
 
     return archive
 }
@@ -65,11 +93,17 @@ func imageHtml(fileName: string, archive: const *Archive.Zip, path: string, widt
     // ODF image URLs may be escaped, but every decoded component still stays inside the ZIP.
     let bytesPath = catch Net.Url.decodeComponent(path) { return {}; }
     let decoded   = cast(string, bytesPath.toSlice())
-    if Utf8.contains(decoded, ":") do
+    if Utf8.contains(decoded, ":")
+    {
         return {}
+    }
+
     let resolved = Package.resolvePath("", decoded)
-    if resolved.isEmpty() do
+    if resolved.isEmpty()
+    {
         return {}
+    }
+
     let extension     = Path.lowercaseExtension(resolved)
     var media: string = ""
     switch extension.toString()
@@ -84,11 +118,17 @@ func imageHtml(fileName: string, archive: const *Archive.Zip, path: string, widt
     let entry = archive.tryFindEntry(resolved)
     if not entry or
        entry.uncompressedSize > 2 * 1024 * 1024 or
-       encodedBytes[] + entry.uncompressedSize > 8 * 1024 * 1024 do
+       encodedBytes[] + entry.uncompressedSize > 8 * 1024 * 1024
+    {
         return {}
+    }
+
     let bytes = catch Archive.Zip.loadEntry(fileName, entry) { return {}; }
     let html  = Package.embeddedImageHtml(bytes.toSlice(), media, width, height, description)
-    if not html.isEmpty() do
+    if not html.isEmpty()
+    {
         encodedBytes[] += bytes.count
+    }
+
     return html
 }

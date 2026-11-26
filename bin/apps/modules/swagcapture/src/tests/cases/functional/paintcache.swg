@@ -23,11 +23,13 @@ const CrossBakeTolerance = Pixel.Testing.ImageGoldenOptions{maxChannelDelta: 2}
     let cache    = unwrap f.capture.findFormCache(arrow)
     let target   = unwrap cache.shadow.contentTarget
     var mask     = f.editView.app().renderer.readRenderTarget(target, 0, 0, target.colorBuffer.width, target.colorBuffer.height)
-    var maxAlpha = 0'u8
+    var maxAlpha = 0_u8
     for y in 0 until mask.height
     {
-        for x in 0 until mask.width do
+        for x in 0 until mask.width
+        {
             maxAlpha = Math.max(maxAlpha, mask.pixelColor(x, y).a)
+        }
     }
 
     Swag.require(maxAlpha > 40)
@@ -63,14 +65,14 @@ func testPopulate(capture: *Capture)
     text.fontSize = 24
     discard testAddStep(capture, 150, 75, 20, 20)
 
-    var polyPoints: Array'Math.Vector2
+    var polyPoints: Array!{Math.Vector2}
     polyPoints.add({15, 110})
     polyPoints.add({45, 102.5})
     polyPoints.add({55, 130})
     polyPoints.add({25, 137.5})
     discard testAddPolygon(capture, polyPoints.toSlice())
 
-    var drawPoints: Array'Math.Vector2
+    var drawPoints: Array!{Math.Vector2}
     drawPoints.add({75, 110})
     drawPoints.add({95, 120})
     drawPoints.add({115, 112.5})
@@ -142,8 +144,10 @@ func testPopulate(capture: *Capture)
     for 12
     {
         settled = f.gui.render(f.main)
-        if not f.capture.cacheNeedsRefine do
+        if not f.capture.cacheNeedsRefine
+        {
             break
+        }
     }
 
     Swag.require(not f.capture.cacheNeedsRefine)
@@ -161,7 +165,7 @@ func testPopulate(capture: *Capture)
     f.setup(520, 380)
     defer f.shutdown()
 
-    var points: Array'Math.Vector2
+    var points: Array!{Math.Vector2}
     points.add({-1000, -1000})
     points.add({1300, -1000})
     points.add({-1000, 1300})

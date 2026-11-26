@@ -40,23 +40,23 @@ alias BinaryStrictS32Ptr = [*] s32
 // Float arithmetic and type promotion
 #test
 {
-    let a = 40 + 2.5'f64
-    let b = 84.0'f32 / 2.0'f32
-    let c = 10.5'f64 - 2
+    let a = 40 + 2.5_f64
+    let b = 84.0_f32 / 2.0_f32
+    let c = 10.5_f64 - 2
 
     #assert(#typeof(a) == f64)
     #assert(#typeof(b) == f32)
     #assert(#typeof(c) == f64)
 
-    Swag.require(a == 42.5'f64)
-    Swag.require(b == 42.0'f32)
-    Swag.require(c == 8.5'f64)
+    Swag.require(a == 42.5_f64)
+    Swag.require(b == 42.0_f32)
+    Swag.require(c == 8.5_f64)
 }
 
 #[Swag.Optimize(false)]
 func binaryPromotedFloatAdd(v: f32)->f64
 {
-    return v + 1.25'f64
+    return v + 1.25_f64
 }
 
 #[Swag.Optimize(false)]
@@ -68,61 +68,61 @@ func binaryNarrowedFloatLiteralMul(v: f32)->f32
 #[Swag.Optimize(false)]
 func binaryPromotedFloatSource(v: f32)->f32
 {
-    return v * 0.5'f32
+    return v * 0.5_f32
 }
 
 #[Swag.Optimize(false)]
 func binaryPromotedFloatCallMul(v: f32)->f64
 {
-    return binaryPromotedFloatSource(v) * 1.4247691104677813'f64
+    return binaryPromotedFloatSource(v) * 1.4247691104677813_f64
 }
 
 #test
 {
-    let value = binaryPromotedFloatAdd(42.5'f32)
+    let value = binaryPromotedFloatAdd(42.5_f32)
 
     #assert(#typeof(value) == f64)
-    Swag.require(value == 43.75'f64)
+    Swag.require(value == 43.75_f64)
 }
 
 #test
 {
-    let value = binaryNarrowedFloatLiteralMul(2.0'f32)
+    let value = binaryNarrowedFloatLiteralMul(2.0_f32)
 
     #assert(#typeof(value) == f32)
-    Swag.require(value == 2.0'f32 * 1.4247691104677813'f32)
+    Swag.require(value == 2.0_f32 * 1.4247691104677813_f32)
 }
 
 #test
 {
-    let value = binaryPromotedFloatCallMul(2.5'f32)
+    let value = binaryPromotedFloatCallMul(2.5_f32)
 
     #assert(#typeof(value) == f64)
-    Swag.require(value == 1.25'f64 * 1.4247691104677813'f64)
+    Swag.require(value == 1.25_f64 * 1.4247691104677813_f64)
 }
 
 // Bitwise AND, OR, XOR on u32
 #test
 {
-    let a = 0x3F'u32 & 0x2A'u32
-    let b = 0x20'u32 | 0x0A'u32
-    let c = 0x7F'u32 ^ 0x55'u32
+    let a = 0x3F_u32 & 0x2A_u32
+    let b = 0x20_u32 | 0x0A_u32
+    let c = 0x7F_u32 ^ 0x55_u32
 
     #assert(#typeof(a) == u32)
     #assert(#typeof(b) == u32)
     #assert(#typeof(c) == u32)
 
-    Swag.require(a == 42'u32)
-    Swag.require(b == 42'u32)
-    Swag.require(c == 42'u32)
+    Swag.require(a == 42_u32)
+    Swag.require(b == 42_u32)
+    Swag.require(c == 42_u32)
 }
 
 // Shift left and right on u32 and u64
 #test
 {
-    let a = 21'u32 << 1
-    let b = 84'u32 >> 1
-    let c = 1'u64 << 40
+    let a = 21_u32 << 1
+    let b = 84_u32 >> 1
+    let c = 1_u64 << 40
     let d = c >> 20
 
     #assert(#typeof(a) == u32)
@@ -130,10 +130,10 @@ func binaryPromotedFloatCallMul(v: f32)->f64
     #assert(#typeof(c) == u64)
     #assert(#typeof(d) == u64)
 
-    Swag.require(a == 42'u32)
-    Swag.require(b == 42'u32)
-    Swag.require(c == 0x0000_0100_0000_0000'u64)
-    Swag.require(d == 0x0000_0000_0010_0000'u64)
+    Swag.require(a == 42_u32)
+    Swag.require(b == 42_u32)
+    Swag.require(c == 0x0000_0100_0000_0000_u64)
+    Swag.require(d == 0x0000_0000_0010_0000_u64)
 }
 
 // The largest valid amount is one below the width, whatever the width of the amount itself.
@@ -157,11 +157,11 @@ func shiftRightS32(value: s32, count: s8)->s32
 
 #test
 {
-    Swag.require(wrappedShiftLeftU32(1'u32, 31'u32) == 0x8000_0000'u32)
-    Swag.require(wrappedShiftLeftU32(3'u32, 31'u32) == 0x8000_0000'u32)
-    Swag.require(shiftRightU32(0x8000_0000'u32, 31'u64) == 1'u32)
-    Swag.require(shiftRightS32(-16, 31's8) == -1)
-    Swag.require(shiftRightS32(16, 4's8) == 1)
+    Swag.require(wrappedShiftLeftU32(1_u32, 31_u32) == 0x8000_0000_u32)
+    Swag.require(wrappedShiftLeftU32(3_u32, 31_u32) == 0x8000_0000_u32)
+    Swag.require(shiftRightU32(0x8000_0000_u32, 31_u64) == 1_u32)
+    Swag.require(shiftRightS32(-16, 31_s8) == -1)
+    Swag.require(shiftRightS32(16, 4_s8) == 1)
 }
 
 // Operator precedence and parentheses
@@ -177,20 +177,20 @@ func shiftRightS32(value: s32, count: s8)->s32
 // 64-bit integer arithmetic
 #test
 {
-    let a = 10000000000's64 + 42's64
-    let b = 7'u64 * 6'u64
+    let a = 10000000000_s64 + 42_s64
+    let b = 7_u64 * 6_u64
 
     #assert(#typeof(a) == s64)
     #assert(#typeof(b) == u64)
 
-    Swag.require(a == 10000000042's64)
-    Swag.require(b == 42'u64)
+    Swag.require(a == 10000000042_s64)
+    Swag.require(b == 42_u64)
 }
 
 // Rune bitwise and shift operators behave like int-like unsigned values
 #test
 {
-    let r = 'A'rune
+    let r = 'A'_rune
     let a = r & 0x7F
     let b = r | 0x20
     let c = r << 1
@@ -201,21 +201,21 @@ func shiftRightS32(value: s32, count: s8)->s32
     #assert(#typeof(c) == rune)
     #assert(#typeof(d) == rune)
 
-    Swag.require(a == 'A'rune)
-    Swag.require(b == 'a'rune)
-    Swag.require(c == cast(rune, 130'u32))
-    Swag.require(d == 'A'rune)
+    Swag.require(a == 'A'_rune)
+    Swag.require(b == 'a'_rune)
+    Swag.require(c == cast(rune, 130_u32))
+    Swag.require(d == 'A'_rune)
 }
 
 #test
 {
-    var r    = 'A'rune
+    var r    = 'A'_rune
     let next = r + #wrap 1
     r += #wrap 1
 
     #assert(#typeof(next) == rune)
-    Swag.require(next == 'B'rune)
-    Swag.require(r == 'B'rune)
+    Swag.require(next == 'B'_rune)
+    Swag.require(r == 'B'_rune)
 }
 
 func binaryStrictAdd(a, b: BinaryStrictS32)->BinaryStrictS32
@@ -292,8 +292,8 @@ func binaryStrictPointerDiff(left, right: BinaryStrictS32Ptr)->s64
 {
     let a  = cast(BinaryStrictS32, 40)
     let b  = cast(BinaryStrictS32, 2)
-    let u0 = cast(BinaryStrictU32, 0x3F'u32)
-    let u1 = cast(BinaryStrictU32, 0x2A'u32)
+    let u0 = cast(BinaryStrictU32, 0x3F_u32)
+    let u1 = cast(BinaryStrictU32, 0x2A_u32)
 
     let add  = binaryStrictAdd(a, b)
     let sub  = binaryStrictSub(cast(BinaryStrictS32, 84), cast(BinaryStrictS32, 42))
@@ -302,10 +302,10 @@ func binaryStrictPointerDiff(left, right: BinaryStrictS32Ptr)->s64
     let mod  = binaryStrictMod(cast(BinaryStrictS32, 212), cast(BinaryStrictS32, 85))
     let fadd = binaryStrictFloatAdd(cast(BinaryStrictF32, 1.5), cast(BinaryStrictF32, 2.5))
     let band = binaryStrictBitAnd(u0, u1)
-    let bor  = binaryStrictBitOr(cast(BinaryStrictU32, 0x20'u32), cast(BinaryStrictU32, 0x0A'u32))
-    let bxor = binaryStrictBitXor(cast(BinaryStrictU32, 0x7F'u32), cast(BinaryStrictU32, 0x55'u32))
-    let shl  = binaryStrictShiftLeft(cast(BinaryStrictU32, 21'u32), cast(BinaryStrictS32, 1))
-    let shr  = binaryStrictShiftRight(cast(BinaryStrictU32, 84'u32), cast(BinaryStrictS32, 1))
+    let bor  = binaryStrictBitOr(cast(BinaryStrictU32, 0x20_u32), cast(BinaryStrictU32, 0x0A_u32))
+    let bxor = binaryStrictBitXor(cast(BinaryStrictU32, 0x7F_u32), cast(BinaryStrictU32, 0x55_u32))
+    let shl  = binaryStrictShiftLeft(cast(BinaryStrictU32, 21_u32), cast(BinaryStrictS32, 1))
+    let shr  = binaryStrictShiftRight(cast(BinaryStrictU32, 84_u32), cast(BinaryStrictS32, 1))
 
     #assert(#typeof(add) == BinaryStrictS32)
     #assert(#typeof(sub) == BinaryStrictS32)
@@ -325,19 +325,19 @@ func binaryStrictPointerDiff(left, right: BinaryStrictS32Ptr)->s64
     Swag.require(div == cast(BinaryStrictS32, 42))
     Swag.require(mod == cast(BinaryStrictS32, 42))
     Swag.require(fadd == cast(BinaryStrictF32, 4.0))
-    Swag.require(band == cast(BinaryStrictU32, 42'u32))
-    Swag.require(bor == cast(BinaryStrictU32, 42'u32))
-    Swag.require(bxor == cast(BinaryStrictU32, 42'u32))
-    Swag.require(shl == cast(BinaryStrictU32, 42'u32))
-    Swag.require(shr == cast(BinaryStrictU32, 42'u32))
+    Swag.require(band == cast(BinaryStrictU32, 42_u32))
+    Swag.require(bor == cast(BinaryStrictU32, 42_u32))
+    Swag.require(bxor == cast(BinaryStrictU32, 42_u32))
+    Swag.require(shl == cast(BinaryStrictU32, 42_u32))
+    Swag.require(shr == cast(BinaryStrictU32, 42_u32))
 }
 
 #test
 {
     const add  = cast(BinaryStrictS32, 40) + cast(BinaryStrictS32, 2)
     const fadd = cast(BinaryStrictF32, 1.5) + cast(BinaryStrictF32, 2.5)
-    const band = cast(BinaryStrictU32, 0x3F'u32) & cast(BinaryStrictU32, 0x2A'u32)
-    const shl  = cast(BinaryStrictU32, 21'u32) << cast(BinaryStrictS32, 1)
+    const band = cast(BinaryStrictU32, 0x3F_u32) & cast(BinaryStrictU32, 0x2A_u32)
+    const shl  = cast(BinaryStrictU32, 21_u32) << cast(BinaryStrictS32, 1)
 
     #assert(#typeof(add) == BinaryStrictS32)
     #assert(#typeof(fadd) == BinaryStrictF32)
@@ -346,20 +346,20 @@ func binaryStrictPointerDiff(left, right: BinaryStrictS32Ptr)->s64
 
     Swag.require(add == cast(BinaryStrictS32, 42))
     Swag.require(fadd == cast(BinaryStrictF32, 4.0))
-    Swag.require(band == cast(BinaryStrictU32, 42'u32))
-    Swag.require(shl == cast(BinaryStrictU32, 42'u32))
+    Swag.require(band == cast(BinaryStrictU32, 42_u32))
+    Swag.require(shl == cast(BinaryStrictU32, 42_u32))
 }
 
 #test
 {
     let wrapped = binaryStrictWrapAdd(cast(BinaryStrictS32, 0x7FFF_FFFF), cast(BinaryStrictS32, 1))
-    let r       = cast(BinaryStrictRune, 'A'rune)
+    let r       = cast(BinaryStrictRune, 'A'_rune)
     let next    = r + #wrap cast(BinaryStrictRune, 1)
 
     #assert(#typeof(wrapped) == BinaryStrictS32)
     #assert(#typeof(next) == BinaryStrictRune)
     Swag.require(wrapped == cast(BinaryStrictS32, -2147483648))
-    Swag.require(next == cast(BinaryStrictRune, 'B'rune))
+    Swag.require(next == cast(BinaryStrictRune, 'B'_rune))
 }
 
 #test

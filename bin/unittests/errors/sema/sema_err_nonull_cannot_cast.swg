@@ -126,7 +126,7 @@ func clearGuardBinding(slot: *(*s32?))->bool
 #test
 {
     // The cast result, not just the source literal, must satisfy the contract.
-    let value = cast(*NonNullCannotCastItem, 0'u64)     // swc-expected-error {{sema_err_cannot_cast}}
+    let value = cast(*NonNullCannotCastItem, 0_u64)     // swc-expected-error {{sema_err_cannot_cast}}
 }
 
 #test

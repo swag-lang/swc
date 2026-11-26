@@ -37,11 +37,11 @@ func moveScalarInRegister(value: #move u64, _, _, _, _: u64)
 // The move reference must denote the caller's variable, whichever ABI slot carried it.
 #test
 {
-    var v = 77'u64
+    var v = 77_u64
     moveScalarOnStack(1, 2, 3, 4, #move v)
     Swag.require(g_out == 77)
 
-    var w = 88'u64
+    var w = 88_u64
     moveScalarInRegister(#move w, 1, 2, 3, 4)
     Swag.require(g_out == 88)
 }
@@ -54,11 +54,11 @@ func fwdScalarOnStack(_, _, _, _: u64, value: #fwd u64)
 // '#fwd' selects the move variant here, and the copy variant on a plain argument.
 #test
 {
-    var v = 11'u64
+    var v = 11_u64
     fwdScalarOnStack(1, 2, 3, 4, #move v)
     Swag.require(g_out == 11)
 
-    let plain = 22'u64
+    let plain = 22_u64
     fwdScalarOnStack(1, 2, 3, 4, plain)
     Swag.require(g_out == 22)
 }
@@ -105,7 +105,7 @@ impl Table
 #test
 {
     var table: Table
-    table.store(0, 1, 10, 30'u64)
+    table.store(0, 1, 10, 30_u64)
     Swag.require(table.slots[0] == 41)
 
     table.storeDefault(1)

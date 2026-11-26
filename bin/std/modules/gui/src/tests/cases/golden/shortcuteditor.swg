@@ -40,8 +40,11 @@ using Core
     lens.addCommands("Fichier", ["test.open", "test.inspect", "test.capture"])
     host.app.sigFrame += func|host = &host, &captured|(_)
     {
-        if captured or host.app.modalSurfaces.isEmpty() do
+        if captured or host.app.modalSurfaces.isEmpty()
+        {
             return
+        }
+
         captured = true
         let image = host.renderSurface(host.app.modalSurfaces.back())
         Pixel.Testing.assertImageGolden(&image, "shortcuts.editor.paper")

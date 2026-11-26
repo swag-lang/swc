@@ -14,10 +14,10 @@ struct(var T) GenericBox
 
 #test
 {
-    let integer = GenericBox's32{value: 42}
-    let text    = GenericBox'string{value: "answer"}
+    let integer = GenericBox!{s32}{value: 42}
+    let text    = GenericBox!{string}{value: "answer"}
 
-    #assert(#typeof(integer) == GenericBox's32)
+    #assert(#typeof(integer) == GenericBox!{s32})
     #assert(#typeof(integer.value) == s32)
     #assert(#typeof(text.value) == string)
     Swag.require(integer.value == 42)
@@ -38,7 +38,7 @@ struct(var T, const Count: s32) GenericBuffer
 
 #test
 {
-    let flags: GenericBuffer'(bool, 3) = {values: [true, false, true]}
+    let flags: GenericBuffer!{bool, 3} = {values: [true, false, true]}
 
     #assert(#typeof(flags.values) == #type [3] bool)
     Swag.require(flags.values[0] and not flags.values[1] and flags.values[2])
@@ -66,7 +66,7 @@ impl GenericBox
 
 #test
 {
-    let box  = GenericBox'u16{value: 12}
+    let box  = GenericBox!{u16}{value: 12}
     let pair = box.pair("items")
 
     Swag.require(box.get() == 12)
@@ -86,8 +86,8 @@ struct(var T = s32) GenericCounter
 
 #test
 {
-    let defaultCounter: GenericCounter     = {value: 1}
-    let wideCounter:    GenericCounter'u64 = {value: 2}
+    let defaultCounter: GenericCounter       = {value: 1}
+    let wideCounter:    GenericCounter!{u64} = {value: 2}
 
     #assert(#typeof(defaultCounter.value) == s32)
     #assert(#typeof(wideCounter.value) == u64)

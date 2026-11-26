@@ -26,10 +26,14 @@ struct SafetyCaseHolder
     func readNumber(holdsNumber: bool)->s32
     {
         var holder: SafetyCaseHolder
-        if holdsNumber do
+        if holdsNumber
+        {
             holder.value = .Number{3}
-        else do
+        }
+        else
+        {
             holder.value = .Text{"three"}
+        }
         return unwrap holder.number     // swc-expected-error {{safety_err_runtime}}
     }
 
@@ -46,10 +50,14 @@ struct SafetyCaseHolder
     func readNumber(holdsNumber: bool)->s32
     {
         var holder: SafetyCaseHolder
-        if holdsNumber do
+        if holdsNumber
+        {
             holder.value = .Number{3}
-        else do
+        }
+        else
+        {
             holder.value = .Text{"three"}
+        }
         return unwrap holder.number
     }
 

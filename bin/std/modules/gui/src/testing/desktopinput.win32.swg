@@ -29,8 +29,10 @@ private func AttachThreadInput(attachThread, otherThread: u32, attach: BOOL)->BO
 func isTrayIconInOverflow(surface: *Surface)->bool
 {
     var bounds: RECT
-    if not surface.trayIconScreenRect(&bounds) do
+    if not surface.trayIconScreenRect(&bounds)
+    {
         return false
+    }
 
     let point  = POINT{(bounds.left + bounds.right) / 2, (bounds.top + bounds.bottom) / 2}
     let window = GetAncestor(WindowFromPoint(point), GA_ROOT)
@@ -43,7 +45,7 @@ func isTrayIconInOverflow(surface: *Surface)->bool
 // Clicks a notification-area icon through Windows input, restoring the pointer after the gesture.
 // An icon in the closed overflow area first yields the chevron's bounds: click once to open the
 // overflow, let it settle, then call again. Run only on an interactive desktop.
-func clickTrayIcon(app: *Application, surface: *Surface, button: Input.MouseButton, count = 1'u32)
+func clickTrayIcon(app: *Application, surface: *Surface, button: Input.MouseButton, count = 1_u32)
 {
     Swag.require(count > 0 and (button == .Left or button == .Right))
     var bounds: RECT
@@ -54,8 +56,8 @@ func clickTrayIcon(app: *Application, surface: *Surface, button: Input.MouseButt
     Input.setMousePosition((bounds.left + bounds.right) / 2, (bounds.top + bounds.bottom) / 2)
     app.runFrame()
 
-    let down = button == .Right ? 0x0008'u32 : 0x0002'u32
-    let up   = button == .Right ? 0x0010'u32 : 0x0004'u32
+    let down = button == .Right ? 0x0008_u32 : 0x0002_u32
+    let up   = button == .Right ? 0x0010_u32 : 0x0004_u32
     for count
     {
         var press = DesktopInputPacket{kind: 0, flags: down}
@@ -95,14 +97,26 @@ impl DesktopInput
 
     internal mtd closeNative()
     {
-        if .pressedKey != 0 do
+        if .pressedKey != 0
+        {
             .releaseRawKey(.pressedKey)
-        if .heldAlt do
+        }
+
+        if .heldAlt
+        {
             .releaseRawKey(0x12)
-        if .heldShift do
+        }
+
+        if .heldShift
+        {
             .releaseRawKey(0x10)
-        if .heldControl do
+        }
+
+        if .heldControl
+        {
             .releaseRawKey(0x11)
+        }
+
         if .mousePressed
         {
             var mouseUp = DesktopInputPacket{kind: 0, flags: 0x0004}

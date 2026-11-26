@@ -4,14 +4,14 @@
 using Swag, Core, Pixel
 
 const SampleText   = "Manuscript figure"
-const SampleWidth  = 640's32
-const SampleHeight = 200's32
+const SampleWidth  = 640_s32
+const SampleHeight = 200_s32
 
 // Draws one line of text at a small bitmap size and at two sizes past the distance-field threshold.
 struct DrawingOrderWnd
 {
     using wnd: Wnd
-    fonts:     Array'(*Font)
+    fonts:     Array!{*Font}
     text:      string = SampleText
 }
 
@@ -19,15 +19,17 @@ impl IWnd for DrawingOrderWnd
 {
     mtd impl onPaint(evt: *PaintEvent)
     {
-        if evt.kind != .Content do
+        if evt.kind != .Content
+        {
             return
+        }
 
         let painter = evt.paintContext.painter
         painter.fillRect(.clientRect(), Argb.White)
 
         // Fractional pens keep the glyph quads off the texel grid, so every edge pixel is shaded
         // from an interpolated atlas position rather than a texel center.
-        var top = 4.35'f32
+        var top = 4.35_f32
         for font in .fonts
         {
             painter.drawString(6.4, top, .text, font, Argb.Black)
@@ -42,10 +44,12 @@ func renderAfter(warm: string)->Image
     var host: Testing.HeadlessHost
     host.setup(cast(f32, SampleWidth), cast(f32, SampleHeight))
 
-    let wnd   = Wnd.create'DrawingOrderWnd(&host.root, {0, 0, cast(f32, SampleWidth), cast(f32, SampleHeight)})
+    let wnd   = Wnd.create!{DrawingOrderWnd}(&host.root, {0, 0, cast(f32, SampleWidth), cast(f32, SampleHeight)})
     let cache = host.app.renderer.fontCache()
-    for size in [14'u32, 41, 67] do
+    for size in [14_u32, 41, 67]
+    {
         wnd.fonts.add(cache.createFont(host.theme.res.defaultTypeFaceR, size))
+    }
 
     if warm.count
     {

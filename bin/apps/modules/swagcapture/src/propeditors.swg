@@ -18,8 +18,11 @@ impl IPropertyEditor for AlignEditor
         var combo: *ComboBox?
         if list.kind == .Panel
         {
-            if item.label != null do
+            if item.label != null
+            {
                 item.label.hide()
+            }
+
             with let ctrl = ComboCtrl.create(item.line, Properties.itemDisplayName(value).toString())
             {
                 .anchorStyle = .Right
@@ -47,16 +50,21 @@ impl IPropertyEditor for AlignEditor
 
         combon.sigChanged += func|list, item, align|(_, index)
         {
-            if index >= 3 do
+            if index >= 3
+            {
                 return
+            }
+
             align[] = Values[index]
             list.commitItemChange(item)
         }
 
         item.sigRefresh += func|align, combon|(_)
         {
-            for v, i in Values where align[] == v do
+            for v, i in Values where align[] == v
+            {
                 combon.setSelectedIndex(cast(u32, i), notify: false)
+            }
         }
 
         item.sigRefresh.call(item)
@@ -66,5 +74,5 @@ impl IPropertyEditor for AlignEditor
 
 #init
 {
-    Properties.registerEditor'(AlignEditor)()
+    Properties.registerEditor!{AlignEditor}()
 }

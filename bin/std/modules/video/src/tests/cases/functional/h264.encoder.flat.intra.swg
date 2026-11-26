@@ -24,9 +24,11 @@ private impl Nv12Frame
         .bytes.resize(lumaCount + lumaCount / 2)
         for y in cast(u64, .height)
         {
-            for x in cast(u64, .width) do
+            for x in cast(u64, .width)
+            {
                 .bytes[y * cast(u64, .width) + x] =
-                    textured and x % 2 == 1 ? 96'u8 : 80'u8
+                    textured and x % 2 == 1 ? 96_u8 : 80_u8
+            }
         }
 
         for pixel in lumaCount / 4
@@ -45,16 +47,18 @@ private impl Nv12Frame
     flat.fillFlatFixture(3840, 2160, false)
     textured.fillFlatFixture(3840, 2160, true)
     var encoder = expect H264.Encoder.create(3840, 2160, 60, 28, 4)
-    for mode in 2'u64
+    for mode in 2_u64
     {
         let frame   = mode == 0 ? &flat : &textured
-        var matches = 0'u64
-        for mbY in 135'u32
+        var matches = 0_u64
+        for mbY in 135_u32
         {
-            for mbX in 240'u32
+            for mbX in 240_u32
             {
-                if encoder.testFlatIntra(frame, mbX, mbY, 0) do
+                if encoder.testFlatIntra(frame, mbX, mbY, 0)
+                {
                     matches += 1
+                }
             }
         }
 

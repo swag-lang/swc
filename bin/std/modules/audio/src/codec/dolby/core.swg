@@ -48,28 +48,52 @@ private func dolbySourceChannel(destination, acmod, nfchans: u32, lfeon: bool)->
     switch acmod
     {
     case 3, 5, 7:
-        if destination == 0 do
+        if destination == 0
+        {
             return 0
-        if destination == 1 do
+        }
+
+        if destination == 1
+        {
             return 2
-        if destination == 2 do
+        }
+
+        if destination == 2
+        {
             return 1
-        if lfeon and destination == 3 do
+        }
+
+        if lfeon and destination == 3
+        {
             return nfchans
-        if destination >= (lfeon ? 4 : 3) do
+        }
+
+        if destination >= (lfeon ? 4 : 3)
+        {
             return destination - (lfeon ? 1 : 0)
+        }
 
     case 4:
-        if lfeon and destination == 2 do
+        if lfeon and destination == 2
+        {
             return nfchans
-        if lfeon and destination == 3 do
+        }
+
+        if lfeon and destination == 3
+        {
             return 2
+        }
 
     case 6:
-        if lfeon and destination == 2 do
+        if lfeon and destination == 2
+        {
             return nfchans
-        if lfeon and destination >= 3 do
+        }
+
+        if lfeon and destination >= 3
+        {
             return destination - 1
+        }
     }
 
     return destination
@@ -138,9 +162,19 @@ private impl BitReader
     #[Swag.Inline]
     internal mtd readSigned(count: u32)->s32
     {
-        if not count do
+        let raw = .read(count)
+        if not count
+        {
             return 0
-        return cast(s32, (cast #bit(s32, .readAligned'true(count)) >> (32 - count)))
+        }
+
+        let sign = 1_u32 << (count - 1)
+        if raw & sign
+        {
+            return cast #bit (s32, (raw | (~0_u32 << count)))
+        }
+
+        return cast(s32, raw)
     }
 
     #[Swag.Inline]
@@ -169,8 +203,10 @@ private impl BitReader
     internal mtd skip(count: u64)
     {
         .bitPos += count
-        if .bitPos > .size * 8 do
+        if .bitPos > .bitSize
+        {
             .overrun = true
+        }
     }
 }
 
@@ -193,8 +229,13 @@ private var g_FftTwiddleImag: [128] f64
 #[Swag.Inline]
 private func(Size: u64, Half: u64) inverseFftStage(real, imaginary: [*] f64)
 {
-    const Width = Half * 2
-    for group in Size / Width
+    var bits = 0_s32
+    while (1 << bits) < size
+    {
+        bits += 1
+    }
+
+    for index in cast(u64, size)
     {
         let base = group * Width
         for pair in Half / 2
@@ -215,6 +256,51 @@ private func(Size: u64, Half: u64) inverseFftStage(real, imaginary: [*] f64)
             Simd.store(real + left, leftReal + productReal)
             Simd.store(imaginary + left, leftImag + productImag)
         }
+
+        if reversed > index
+        {
+            let savedReal = real[index]
+            let savedImag = imaginary[index]
+            real[index]         = real[reversed]
+            imaginary[index]    = imaginary[reversed]
+            real[reversed]      = savedReal
+            imaginary[reversed] = savedImag
+        }
+    }
+
+    var half = 1_s32
+    while half < size
+    {
+        let step     = half * 2
+        let angle    = Math.ConstF64.Pi / cast(f64, half)
+        let stepReal = Math.cos(angle)
+        let stepImag = Math.sin(angle)
+        var base     = 0_s32
+        while base < size
+        {
+            var twiddleReal = 1_f64
+            var twiddleImag: f64
+            for offset in cast(u64, half)
+            {
+                let left        = cast(u64, base) + offset
+                let right       = left + cast(u64, half)
+                let productReal = twiddleReal * real[right] - twiddleImag * imaginary[right]
+                let productImag = twiddleReal * imaginary[right] + twiddleImag * real[right]
+                let leftReal    = real[left]
+                let leftImag    = imaginary[left]
+                real[right]      = leftReal - productReal
+                imaginary[right] = leftImag - productImag
+                real[left]       = leftReal + productReal
+                imaginary[left]  = leftImag + productImag
+                let nextReal = twiddleReal * stepReal - twiddleImag * stepImag
+                twiddleImag = twiddleReal * stepImag + twiddleImag * stepReal
+                twiddleReal = nextReal
+            }
+
+            base += step
+        }
+
+        half = step
     }
 }
 
@@ -657,7 +743,15 @@ impl Imdct
         }
 
         var time: [512] f64
-        imdctShort(coefficients, &time)
+        if shortBlocks
+        {
+            imdctShort(coefficients, &time)
+        }
+        else
+        {
+            imdctLong(coefficients, &time)
+        }
+
         for index in 256
         {
             time[index]       *= WINDOW[index]
@@ -689,19 +783,31 @@ private func lowCompensation(value, first, second, bin: s32)->s32
 {
     if bin < 7
     {
-        if first + 256 == second do
+        if first + 256 == second
+        {
             return 384
-        if first > second do
+        }
+
+        if first > second
+        {
             return Math.max(0, value - 64)
+        }
+
         return value
     }
 
     if bin < 20
     {
-        if first + 256 == second do
+        if first + 256 == second
+        {
             return 320
-        if first > second do
+        }
+
+        if first > second
+        {
             return Math.max(0, value - 64)
+        }
+
         return value
     }
 
@@ -860,16 +966,21 @@ private func psychoacousticMask(psd, excitation, knee, hearingThreshold: s32)->s
 
 private func bitAllocation(fscod: u32, start, end: s32, exponents: const [*] s32, fastGain, slowGain, fastDecay, slowDecay, dbKnee, floor, snrOffset, fastLeak, slowLeak: s32, delta: const *DeltaAllocation?, result: [*] s32, gains: [*] f64) fail
 {
-    if start < 0 or end <= start or end > 253 do
+    if start < 0 or end <= start or end > 253
+    {
         fail InvalidFormatError{"Dolby bit-allocation range is invalid"}
+    }
 
     var currentFastLeak = fastLeak
     var currentSlowLeak = slowLeak
     let bandStart       = MASKTAB[start]
     let bandEnd         = MASKTAB[end - 1] + 1
-    var bandPsd, mask: [50] s32
-    if bandStart < 0 or bandEnd <= bandStart or bandEnd > mask.count do
+    var psd: [256] s32
+    var bandPsd, excitation, mask: [50] s32
+    if bandStart < 0 or bandEnd <= bandStart or bandEnd > mask.count
+    {
         fail InvalidFormatError{"Dolby bit-allocation bands exceed the core limit"}
+    }
 
     var source = start
     var band   = bandStart
@@ -888,22 +999,25 @@ private func bitAllocation(fscod: u32, start, end: s32, exponents: const [*] s32
     }
 
     var begin   = bandStart
-    var lowComp = 0's32
+    var lowComp = 0_s32
     if not bandStart
     {
-        lowComp = lowCompensation(lowComp, bandPsd[0], bandPsd[1], 0)
-        mask[0] = psychoacousticMask(bandPsd[0], bandPsd[0] - fastGain - lowComp, dbKnee, HTH[fscod, 0])
-        lowComp = lowCompensation(lowComp, bandPsd[1], bandPsd[2], 1)
-        mask[1] = psychoacousticMask(bandPsd[1], bandPsd[1] - fastGain - lowComp, dbKnee, HTH[fscod, 1])
-        begin   = 7
-        var current = 2's32
+        lowComp       = lowCompensation(lowComp, bandPsd[0], bandPsd[1], 0)
+        excitation[0] = bandPsd[0] - fastGain - lowComp
+        lowComp       = lowCompensation(lowComp, bandPsd[1], bandPsd[2], 1)
+        excitation[1] = bandPsd[1] - fastGain - lowComp
+        begin         = 7
+        var current = 2_s32
         while current < 7
         {
-            if bandEnd != 7 or current != 6 do
+            if bandEnd != 7 or current != 6
+            {
                 lowComp = lowCompensation(lowComp, bandPsd[current], bandPsd[current + 1], current)
-            currentFastLeak = bandPsd[current] - fastGain
-            currentSlowLeak = bandPsd[current] - slowGain
-            mask[current]   = psychoacousticMask(bandPsd[current], currentFastLeak - lowComp, dbKnee, HTH[fscod, current])
+            }
+
+            currentFastLeak     = bandPsd[current] - fastGain
+            currentSlowLeak     = bandPsd[current] - slowGain
+            excitation[current] = currentFastLeak - lowComp
             if (bandEnd != 7 or current != 6) and bandPsd[current] <= bandPsd[current + 1]
             {
                 begin = current + 1
@@ -916,12 +1030,15 @@ private func bitAllocation(fscod: u32, start, end: s32, exponents: const [*] s32
         current = begin
         while current < Math.min(bandEnd, 22)
         {
-            if bandEnd != 7 or current != 6 do
+            if bandEnd != 7 or current != 6
+            {
                 lowComp = lowCompensation(lowComp, bandPsd[current], bandPsd[current + 1], current)
-            currentFastLeak = Math.max(currentFastLeak - fastDecay, bandPsd[current] - fastGain)
-            currentSlowLeak = Math.max(currentSlowLeak - slowDecay, bandPsd[current] - slowGain)
-            mask[current]   = psychoacousticMask(bandPsd[current], Math.max(currentFastLeak - lowComp, currentSlowLeak), dbKnee, HTH[fscod, current])
-            current         += 1
+            }
+
+            currentFastLeak     = Math.max(currentFastLeak - fastDecay, bandPsd[current] - fastGain)
+            currentSlowLeak     = Math.max(currentSlowLeak - slowDecay, bandPsd[current] - slowGain)
+            excitation[current] = Math.max(currentFastLeak - lowComp, currentSlowLeak)
+            current             += 1
         }
 
         begin = 22
@@ -930,24 +1047,40 @@ private func bitAllocation(fscod: u32, start, end: s32, exponents: const [*] s32
     var current = begin
     while current < bandEnd
     {
-        currentFastLeak = Math.max(currentFastLeak - fastDecay, bandPsd[current] - fastGain)
-        currentSlowLeak = Math.max(currentSlowLeak - slowDecay, bandPsd[current] - slowGain)
-        mask[current]   = psychoacousticMask(bandPsd[current], Math.max(currentFastLeak, currentSlowLeak), dbKnee, HTH[fscod, current])
-        current         += 1
+        currentFastLeak     = Math.max(currentFastLeak - fastDecay, bandPsd[current] - fastGain)
+        currentSlowLeak     = Math.max(currentSlowLeak - slowDecay, bandPsd[current] - slowGain)
+        excitation[current] = Math.max(currentFastLeak, currentSlowLeak)
+        current             += 1
+    }
+
+    current = bandStart
+    while current < bandEnd
+    {
+        if bandPsd[current] < dbKnee
+        {
+            excitation[current] += (dbKnee - bandPsd[current]) >> 2
+        }
+
+        mask[current] = Math.max(excitation[current], HTH[fscod, current])
+        current       += 1
     }
 
     if delta and (delta.mode == 0 or delta.mode == 1)
     {
-        if delta.count > delta.offset.count do
+        if delta.count > delta.offset.count
+        {
             fail InvalidFormatError{"Dolby delta allocation has too many segments"}
+        }
 
         band = 0
         for segment in cast(u64, delta.count)
         {
             band += cast(s32, delta.offset[segment])
             let segmentEnd = band + cast(s32, delta.length[segment])
-            if band < 0 or segmentEnd > bandEnd or segmentEnd > mask.count do
+            if band < 0 or segmentEnd > bandEnd or segmentEnd > mask.count
+            {
                 fail InvalidFormatError{"Dolby delta allocation segment exceeds the channel bands"}
+            }
 
             let code   = cast(s32, delta.value[segment])
             let amount = (code >= 4 ? code - 3 : code - 4) << 7
@@ -965,8 +1098,11 @@ private func bitAllocation(fscod: u32, start, end: s32, exponents: const [*] s32
     {
         let last   = Math.min(BNDTAB[band] + BNDSZ[band], end)
         var masked = mask[band] - snrOffset - floor
-        if masked < 0 do
+        if masked < 0
+        {
             masked = 0
+        }
+
         masked = (masked & 0x1FE0) + floor
 
         // One exponent step removes 128 PSD units, or four address units.

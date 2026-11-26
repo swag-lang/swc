@@ -3,8 +3,10 @@
 func sumValues(values: [..] s32)->s32
 {
     var result = 0
-    for value in values do
+    for value in values
+    {
         result += value
+    }
     return result
 }
 

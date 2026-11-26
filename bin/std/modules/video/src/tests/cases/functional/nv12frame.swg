@@ -64,8 +64,8 @@ using Swag, Core, Core.Errors, Core.Serialization, Pixel
     Swag.require(rejected.value() is BadParameterError)
 
     const InvalidRgba: string = "{\"pixels\":[0,0,0,0],\"metadata\":[],\"byteCount\":4,\"width\":2,\"height\":2,\"rowStride\":2,\"pixelFormat\":3,\"alphaMode\":0,\"bitsPerPixel\":32,\"bytesPerPixel\":1}"
-    var decoder: Serialization.Decoder'Serialization.Read.Json
-    let invalid = expect decoder.readAll'Image(cast(const [..] u8, InvalidRgba))
+    var decoder: Serialization.Decoder!{Serialization.Read.Json}
+    let invalid = expect decoder.readAll!{Image}(cast(const [..] u8, InvalidRgba))
     defer Memory.delete(invalid)
     discard catch frame.convertFrom(invalid) as rejected
     Swag.require(rejected.value() is BadParameterError)

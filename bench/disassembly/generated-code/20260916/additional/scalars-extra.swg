@@ -74,4 +74,3 @@ func signedNegative(a, b, c: s64)->s64 => a < 0 ? 1 : 0
 
 #[Swag.NoInline]
 func signedSelect(a, b, c: s64)->s64 => a < b ? -3 : 5
-

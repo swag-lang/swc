@@ -40,8 +40,8 @@ namespace
         }
     }
 
-    // Comments before `else` or `elif` belong to that branch. Keep the
-    // chain together as one statement.
+    // Comments before `else` belong to that branch. Keep the chain together
+    // as one statement.
     bool introducesElse(const FormatModel& model, const uint32_t pieceIndex)
     {
         uint32_t next = pieceIndex;
@@ -238,7 +238,7 @@ namespace
 
             // Only the first line of a comment block, after real code.
             const FormatPiece& prevPiece = model.piece(prev);
-            if (prevPiece.isComment || prevPiece.is(TokenId::SymLeftCurly) || prevPiece.hasRole(FormatRoleE::TrailingDo))
+            if (prevPiece.isComment || prevPiece.is(TokenId::SymLeftCurly))
                 continue;
             if (model.piece(model.lineStartOf(prev)).hasRole(FormatRoleE::AttrOpen))
                 continue; // between an attribute and its declaration
@@ -350,20 +350,6 @@ namespace
         }
     }
 
-    void applyBlankLinesAtInlineBodyStarts(FormatModel& model)
-    {
-        const FormatBlankLineStyle style = model.options().blankLineAfterOpeningBrace;
-        if (style == FormatBlankLineStyle::Preserve)
-            return;
-
-        for (const FormatInlineBody& body : model.inlineBodies())
-        {
-            const uint32_t first = model.nextPiece(body.doPiece);
-            if (first != INVALID_PIECE && first <= body.lastPiece)
-                applyBlankLineStyle(model, first, style);
-        }
-    }
-
     // A standalone closing brace ends a structural paragraph. Braces followed
     // by `else`, `case`, or another closing brace stay attached.
     void applyBlankLineAfterStandaloneClosingBraces(FormatModel& model)
@@ -437,7 +423,6 @@ namespace FormatPass
         applyBlankLinesBeforeComments(model);
 
         applyBlankLinesAtBlockEdges(model);
-        applyBlankLinesAtInlineBodyStarts(model);
         applyBlankLinesAroundAccessBlocks(model);
     }
 

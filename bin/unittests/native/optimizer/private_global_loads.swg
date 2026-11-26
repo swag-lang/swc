@@ -24,12 +24,14 @@ func bumpCalledCount() { g_CalledCount += 1 }
 #[Swag.NoInline]
 func fillPrivateTable()->u64
 {
-    var sum = 0'u64
+    var sum = 0_u64
     for i in 64
     {
         g_PrivateTable![i] = cast(u64, i) * 3
-        if i < g_PrivateCount do
+        if i < g_PrivateCount
+        {
             sum += g_PrivateTable![i]
+        }
     }
     return sum
 }
@@ -38,7 +40,7 @@ func fillPrivateTable()->u64
 #[Swag.NoInline]
 func countThroughEscapedAddress(slots: [*] u64, target: *u64)->u64
 {
-    var seen = 0'u64
+    var seen = 0_u64
     for i in 8
     {
         target[] = cast(u64, i) + 100
@@ -52,7 +54,7 @@ func countThroughEscapedAddress(slots: [*] u64, target: *u64)->u64
 #[Swag.NoInline]
 func countDirectWrites(slots: [*] u64)->u64
 {
-    var seen = 0'u64
+    var seen = 0_u64
     for i in 8
     {
         slots[i]      = g_DirectCount
@@ -66,7 +68,7 @@ func countDirectWrites(slots: [*] u64)->u64
 #[Swag.NoInline]
 func countAcrossCalls(slots: [*] u64)->u64
 {
-    var seen = 0'u64
+    var seen = 0_u64
     for i in 8
     {
         slots[i] = g_CalledCount
@@ -97,7 +99,7 @@ func countAcrossCalls(slots: [*] u64)->u64
     Swag.require(slots[7] == 7)
 
     g_PrivateCount = 13
-    var target = 0'u64
+    var target = 0_u64
     Swag.require(readPrivateAroundStores(&target, false) == 26)
     Swag.require(target == 20 and g_DirectCount == 99)
     Swag.require(readPrivateAroundStores(&target, true) == 26)
@@ -116,7 +118,10 @@ func readPrivateAroundStores(target: *u64, alternate: bool)->u64
     let before = g_PrivateCount
     target[]      = before + 7
     g_DirectCount = 99
-    if alternate do target[] = before + 11
+    if alternate
+    {
+        target[] = before + 11
+    }
     return before + g_PrivateCount
 }
 
@@ -124,7 +129,7 @@ func readPrivateAroundStores(target: *u64, alternate: bool)->u64
 #[Swag.NoInline]
 func readBeforeLaterCall(slots: [*] u64)->u64
 {
-    var sum = 0'u64
+    var sum = 0_u64
     for i in 4
     {
         slots[i] = g_CalledCount

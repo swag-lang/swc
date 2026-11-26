@@ -5,9 +5,9 @@ using Swag
 
 func adler32Reference(buffer: const [..] u8)->u32
 {
-    const Base = 65521'u32
-    var s1 = 1'u32
-    var s2 = 0'u32
+    const Base = 65521_u32
+    var s1 = 1_u32
+    var s2 = 0_u32
 
     for value in buffer
     {
@@ -37,7 +37,7 @@ func assertAdler32(buffer: const [..] u8)
 
 func fillAdlerPattern(buffer: [..] u8)
 {
-    var i = 0'u64
+    var i = 0_u64
     while i < buffer.count
     {
         buffer[i] = cast(u8, ((i * 37 + 11) & 0xFF))
@@ -47,10 +47,10 @@ func fillAdlerPattern(buffer: [..] u8)
 
 #test
 {
-    Swag.require(Hash.Adler32.compute("") == 1'u32)
-    Swag.require(Hash.Adler32.compute("a") == 0x00620062'u32)
-    Swag.require(Hash.Adler32.compute("abc") == 0x024D0127'u32)
-    Swag.require(Hash.Adler32.compute("Wikipedia") == 0x11E60398'u32)
+    Swag.require(Hash.Adler32.compute("") == 1_u32)
+    Swag.require(Hash.Adler32.compute("a") == 0x00620062_u32)
+    Swag.require(Hash.Adler32.compute("abc") == 0x024D0127_u32)
+    Swag.require(Hash.Adler32.compute("Wikipedia") == 0x11E60398_u32)
 
     assertAdler32("")
     assertAdler32("a")
@@ -61,7 +61,7 @@ func fillAdlerPattern(buffer: [..] u8)
     var adler: Hash.Adler32
     adler.update("dirty")
     adler.reset()
-    Swag.require(adler.value() == 1'u32)
+    Swag.require(adler.value() == 1_u32)
 
     var data: [11121] u8
     fillAdlerPattern(data)

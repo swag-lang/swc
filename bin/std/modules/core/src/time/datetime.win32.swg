@@ -38,7 +38,10 @@ internal func localWallClock(utc: WallClockFields)->WallClockFields
     universal.wMilliseconds = utc.millisecond
 
     var local: SYSTEMTIME
-    if not SystemTimeToTzSpecificLocalTime(null, &universal, &local) do
+    if not SystemTimeToTzSpecificLocalTime(null, &universal, &local)
+    {
         return utc
+    }
+
     return wallClockFields(local)
 }

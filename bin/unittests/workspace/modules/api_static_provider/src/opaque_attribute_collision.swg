@@ -16,8 +16,10 @@ namespace OpaqueAttributeCollision
     {
         private mtd opDrop()
         {
-            if .armed do
+            if .armed
+            {
                 dropCount += 1
+            }
         }
     }
 

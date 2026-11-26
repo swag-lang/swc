@@ -53,15 +53,18 @@ func day9A()
     let dataPath = Path.combine(Path.directoryName(#file), "9.txt")
     let lines    = expect File.readAllLines(dataPath)
 
-    var sum, val: Array's32
+    var sum, val: Array!{s32}
     const N = 25
     for l, index in lines
     {
         let v1 = expect StrConv.toS32(l[])
         if index < N
         {
-            for v0 in val do
+            for v0 in val
+            {
                 sum.add(v0 + v1)
+            }
+
             val.add(v1)
             continue
         }

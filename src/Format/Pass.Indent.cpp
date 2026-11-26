@@ -52,8 +52,6 @@ namespace
             sortedBlocks_ = model_->blocks();
             std::ranges::sort(sortedBlocks_, [](const FormatBlock& a, const FormatBlock& b) { return a.openPiece < b.openPiece; });
 
-            sortedInlineBodies_ = model_->inlineBodies();
-            std::ranges::sort(sortedInlineBodies_, [](const FormatInlineBody& a, const FormatInlineBody& b) { return a.doPiece < b.doPiece; });
 
             std::vector<uint32_t> lineStarts;
             model_->collectLineStarts(lineStarts);
@@ -101,10 +99,6 @@ namespace
             while (!blockStack_.empty() && blockStack_.back().block.closePiece < lineStart)
                 blockStack_.pop_back();
 
-            while (nextInlineBody_ < sortedInlineBodies_.size() && sortedInlineBodies_[nextInlineBody_].doPiece < lineStart)
-                inlineBodyStack_.push_back(sortedInlineBodies_[nextInlineBody_++]);
-            while (!inlineBodyStack_.empty() && inlineBodyStack_.back().lastPiece < lineStart)
-                inlineBodyStack_.pop_back();
         }
 
         // `where` clauses and the braces of their block bodies sit
@@ -284,7 +278,6 @@ namespace
                 depth += blockContribution(block);
             }
 
-            depth += static_cast<uint32_t>(inlineBodyStack_.size());
 
             // A case label opens the body region of its owning switch.
             if (piece.hasRole(FormatRoleE::CaseLabel))
@@ -428,13 +421,10 @@ namespace
 
         std::vector<FormatBlock>      sortedBlocks_;
         std::vector<StackEntry>       blockStack_;
-        std::vector<FormatInlineBody> sortedInlineBodies_;
-        std::vector<FormatInlineBody> inlineBodyStack_;
         std::vector<OpenBracket>      parenStack_;
         std::vector<PendingComment>   pendingComments_;
 
         size_t nextBlock_      = 0;
-        size_t nextInlineBody_ = 0;
 
         uint32_t lastStmtOldCols_      = 0;
         uint32_t lastStmtNewCols_      = 0;

@@ -12,13 +12,13 @@ struct(T, N: s32) Buffer
 
 struct(T) Wrapper
 {
-    item: Box'T
+    item: Box!{T}
 }
 
 struct(T, N: s32) DoubleBuffer
 {
-    first:  Buffer'(T, N)
-    second: Buffer'(T, N)
+    first:  Buffer!{T, N}
+    second: Buffer!{T, N}
 }
 
 struct(T, N: s32 = 2) DefaultBuffer
@@ -28,11 +28,11 @@ struct(T, N: s32 = 2) DefaultBuffer
 
 func semaTest001()
 {
-    let box:     Box'bool
-    let buffer:  Buffer'(s32, 3)
-    var wrapped: Wrapper'string
-    let doubled: DoubleBuffer'(u8, 4)
-    let partial: DefaultBuffer'u16
+    let box:     Box!{bool}
+    let buffer:  Buffer!{s32, 3}
+    var wrapped: Wrapper!{string}
+    let doubled: DoubleBuffer!{u8, 4}
+    let partial: DefaultBuffer!{u16}
 
     #assert(#typeof(box.value) == bool)
     #assert(#typeof(buffer.values) == #type [3] s32)
@@ -51,8 +51,8 @@ func semaTest002()
             value: T
         }
 
-        let intBox:  LocalBox's32
-        let boolBox: LocalBox'bool
+        let intBox:  LocalBox!{s32}
+        let boolBox: LocalBox!{bool}
 
         #assert(#typeof(intBox.value) == s32)
         #assert(#typeof(boolBox.value) == bool)
@@ -64,7 +64,7 @@ func semaTest002()
             values: [N] T
         }
 
-        let buffer: LocalBuffer'(u16, 3)
+        let buffer: LocalBuffer!{u16, 3}
         #assert(#typeof(buffer.values) == #type [3] u16)
     }
 }
@@ -109,5 +109,5 @@ func semaTest003()
 {
     #assert(#typeof(clonedLocalUnion(1)) == s32)
     #assert(#typeof(clonedAnonymousStruct(true)) == bool)
-    #assert(#typeof(clonedAnonymousUnion(1'u16)) == u16)
+    #assert(#typeof(clonedAnonymousUnion(1_u16)) == u16)
 }

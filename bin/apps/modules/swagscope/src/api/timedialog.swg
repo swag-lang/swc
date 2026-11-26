@@ -10,9 +10,9 @@ func(T) createTimeDialog(view: *T, origin, duration: f64, title, help, error, co
     let initial = timeText(origin)
     with var options: EditDlgOptions
     {
-        .title             = title
-        .message           = help
-        .text              = initial
+        .title   = title
+        .message = help
+        .text    = initial
         .confirmButtonText = confirm
     }
 
@@ -25,8 +25,11 @@ func(T) createTimeDialog(view: *T, origin, duration: f64, title, help, error, co
     })
     dialog.validateResult = func|view, dialog, origin, duration, seek|(_, result)->bool
     {
-        if result != Dialog.BtnOk do
+        if result != Dialog.BtnOk
+        {
             return true
+        }
+
         let target = parseTimeAddress(dialog.text(), origin, duration)
         if target < 0
         {
@@ -37,5 +40,6 @@ func(T) createTimeDialog(view: *T, origin, duration: f64, title, help, error, co
         seek(view, target)
         return true
     }
+
     return dialog
 }

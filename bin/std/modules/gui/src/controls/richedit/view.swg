@@ -1,7 +1,7 @@
 using Core, Pixel
 
 // Air kept past the caret after the longest line, so typing there does not scroll at every rune.
-private const CaretAir = 32'f32
+private const CaretAir = 32_f32
 
 // Paints a [[Gui.RichEditCtrl]] document and handles its direct input gestures.
 #[Swag.Opaque]
@@ -35,8 +35,10 @@ impl IWnd for RichEditView
         if .selMode
         {
             .selMode = false
-            if .mouseCapture() == me do
+            if .mouseCapture() == me
+            {
                 .releaseMouse()
+            }
         }
 
         .ed = null
@@ -45,8 +47,10 @@ impl IWnd for RichEditView
     mtd impl onResizeEvent(_: *ResizeEvent)
     {
         let ed = .ed
-        if ed and ed.flags.has(.WordWrap) do
+        if ed and ed.flags.has(.WordWrap)
+        {
             ed.recomputeScroll = true
+        }
     }
 
     mtd impl onMouseEvent(evt: *MouseEvent)
@@ -70,14 +74,17 @@ impl IWnd for RichEditView
                 let cp = edn.cursorAt(pt)
                 .firstLineSelMode = cp.lineIndex
                 edn.setCursorPos(cp)
-                if not evt.modifiers.has(.Shift) do
+                if not evt.modifiers.has(.Shift)
+                {
                     edn.selBeg = cp
+                }
+
                 .selMode = true
                 edn.setRectangularSelection(evt.modifiers.has(.Alt))
                 edn.ensureCaretIsVisible()
                 .captureMouse()
             }
-            elif evt.button == .Right
+            else if evt.button == .Right
             {
                 evt.accepted = true
                 edn.setFocus()
@@ -148,7 +155,7 @@ impl IWnd for RichEditView
             edn.keyPressed(evt.key, evt.modifiers)
             .forceVisibleCaret()
         }
-        elif evt.kind == .Character
+        else if evt.kind == .Character
         {
             evt.accepted = true
             edn.charPressed(evt.key, evt.character, evt.modifiers)
@@ -161,7 +168,7 @@ impl IWnd for RichEditView
         switch evt.kind
         {
         case .Gained:
-            .timerCaret   = .surface!.app.addTimer(500'ms, me)
+            .timerCaret   = .surface!.app.addTimer(500_ms, me)
             .visibleCaret = true
             .invalidate()
 
@@ -189,7 +196,7 @@ impl IWnd for RichEditView
         let colors  = .themeColors()
 
         let marginLeft = edn.leftMargin()
-        var x          = 0'f32
+        var x          = 0_f32
         var y          = edn.residentContentOffset
         let size       = edn.xGlyphSize()
         var clientRect = .clientRect()
@@ -201,21 +208,29 @@ impl IWnd for RichEditView
         // file on each frame of a border drag, which no large document can keep up with.
         let sizing       = .surface?.isSizing orelse false
         let widthChanged = .lastClientRect.width != clientRect.width
-        if widthChanged and edn.flags.has(.WordWrap) and not sizing do
+        if widthChanged and edn.flags.has(.WordWrap) and not sizing
+        {
             edn.recomputeWrap = true
+        }
 
         // The recorded rectangle is deliberately left behind for the duration of a border drag,
         // so the comparison above still holds on the first frame after it. That frame is where a
         // wrapped document reflows, once, instead of at every size the pointer passes through.
-        if not sizing do
+        if not sizing
+        {
             .lastClientRect = clientRect
+        }
 
-        if edn.recomputeWrap do
+        if edn.recomputeWrap
+        {
             edn.recomputeScroll = true
+        }
 
         // Force visible caret
-        if edn.forceCaretVisible do
+        if edn.forceCaretVisible
+        {
             edn.ensureCaretIsVisibleInternal(edn.forceCaretVisibleCenter)
+        }
 
         // Start to the first visible line, if known
         var i: u64
@@ -224,7 +239,7 @@ impl IWnd for RichEditView
             i = 0
             edn.firstVisibleLineView = Swag.U64.Max
         }
-        elif edn.firstVisibleLineView < edn.lines.count
+        else if edn.firstVisibleLineView < edn.lines.count
         {
             i = edn.firstVisibleLineView
             y = edn.lines[i]!.drawingRect.y
@@ -237,48 +252,64 @@ impl IWnd for RichEditView
             i = 0
         }
 
-        if edn.recomputeScroll do
+        if edn.recomputeScroll
+        {
             edn.countVisibleLines = 0
+        }
+
         edn.dirtyFirstLineView = false
 
         let firstHidden = true
-        var maxx        = 0'f32
+        var maxx        = 0_f32
 
         // An append can dirty a wrapped continuation. Reflow its authored line without
         // rebuilding the thousands of unchanged lines before it on every streamed chunk.
         if edn.recomputeScroll
         {
-            var authored = 0'u64
+            var authored = 0_u64
             for line, index in edn.lines
             {
-                if not line!.wordWrap do
+                if not line!.wordWrap
+                {
                     authored = index
-                elif line.dirtyStyle do
+                }
+                else if line.dirtyStyle
+                {
                     edn.lines[authored]!.dirtyStyle = true
+                }
             }
         }
 
         // The text scrolls sideways under the line numbers, never over them.
         let gutterWidth = edn.gutterWidth()
-        if gutterWidth > 0 do
+        if gutterWidth > 0
+        {
             painter.pushClippingRect({clientRect.x + marginLeft, clientRect.y, Math.max(clientRect.width - marginLeft, 0), clientRect.height})
+        }
 
         // All lines
         while i < edn.lines.count
         {
             // Is the line visible ?
             var bvis = true
-            if y + size.y < .scrollPos.y or y - .scrollPos.y > clientRect.bottom() do
+            if y + size.y < .scrollPos.y or y - .scrollPos.y > clientRect.bottom()
+            {
                 bvis = false
+            }
 
             // Store the first visible line index
             if bvis and
                edn.firstVisibleLineView == Swag.U64.Max and
-               (edn.lines[i]!.isVisible() or firstHidden) do
+               (edn.lines[i]!.isVisible() or firstHidden)
+            {
                 edn.firstVisibleLineView = i
+            }
 
-            if edn.recomputeScroll do
+            if edn.recomputeScroll
+            {
                 edn.countVisibleLines += 1
+            }
+
             edn.lastVisibleLineView = i
 
             let l = unwrap edn.lines[i]
@@ -330,8 +361,10 @@ impl IWnd for RichEditView
             maxx = Math.max(maxx, x)
             y    += size.y
             i    += 1
-            if not edn.recomputeScroll and y >= .scrollPos.y + clientRect.bottom() do
+            if not edn.recomputeScroll and y >= .scrollPos.y + clientRect.bottom()
+            {
                 break
+            }
         }
 
         // Caret
@@ -346,8 +379,11 @@ impl IWnd for RichEditView
                 {
                     var cp = edn.cursorPos
                     cp.lineIndex = caretI
-                    if cp.charPosInLine > edn.lines[cp.lineIndex]!.length() do
+                    if cp.charPosInLine > edn.lines[cp.lineIndex]!.length()
+                    {
                         continue
+                    }
+
                     var posCaret = edn.caretRect(cp)
                     posCaret.x -= .scrollPos.x
                     posCaret.y -= .scrollPos.y
@@ -376,7 +412,7 @@ impl IWnd for RichEditView
         {
             maxx = 0
         }
-        elif not edn.recomputeScroll
+        else if not edn.recomputeScroll
         {
             maxx = edn.scrollWnd.scrollSize.x
         }
@@ -421,11 +457,16 @@ impl RichEditView
     mtd paintLineNumbers(painter: *Painter)
     {
         let edn = unwrap .ed
-        if edn.firstVisibleLineView >= edn.lines.count do
+        if edn.firstVisibleLineView >= edn.lines.count
+        {
             return
+        }
+
         let fontR = edn.font().getFont(edn.styles[0].fontMode)
-        if not fontR do
+        if not fontR
+        {
             return
+        }
 
         let font   = nnFont(fontR)
         let colors = .themeColors()
@@ -433,15 +474,19 @@ impl RichEditView
         let bottom = .scrollPos.y + .clientRect().height
 
         var number = edn.firstLineNumber
-        for before in edn.firstVisibleLineView where not edn.lines[before]!.wordWrap do
+        for before in edn.firstVisibleLineView where not edn.lines[before]!.wordWrap
+        {
             number += 1
+        }
 
         var index = edn.firstVisibleLineView
         while index < edn.lines.count
         {
             let line = unwrap edn.lines[index]
-            if line.drawingRect.y > bottom do
+            if line.drawingRect.y > bottom
+            {
                 break
+            }
 
             if not line.wordWrap
             {
@@ -466,8 +511,11 @@ impl RichEditView
         let painter = bc.painter
 
         let fontR = edn.font().getFont(strStyle.fontMode)
-        if not fontR or str.isEmpty() do
+        if not fontR or str.isEmpty()
+        {
             return x
+        }
+
         let font = nnFont(fontR)
 
         var shaped     = Painter.shapeRun(str, font)
@@ -484,8 +532,10 @@ impl RichEditView
         }
 
         var right = x
-        for glyph in runToDraw.glyphs do
+        for glyph in runToDraw.glyphs
+        {
             right = Painter.advanceTextX(right, glyph.offsetX, glyph.advanceX, info).rightX
+        }
 
         // Background rectangle. Its edges land on whole device pixels, so the backgrounds of two
         // adjacent runs meet without a seam; the run itself ends at its exact pen position.
@@ -501,8 +551,11 @@ impl RichEditView
             painter.fillRect(rect, strStyle.colBk)
         }
 
-        if visible do
+        if visible
+        {
             painter.drawShapedRun(x, y, &shaped, font, Brush.createSolid(strStyle.colFg), strStyle.underline)
+        }
+
         return right
     }
 
@@ -513,8 +566,8 @@ impl RichEditView
         let y    = py
 
         // Dummy character for empty lines, so that a selected line display something
-        var dummyChar  = ' 'rune
-        var dummyStyle = 0'u8
+        var dummyChar  = ' '_rune
+        var dummyStyle = 0_u8
         var count      = line.length()
         var pChar      = cast([*] rune, &dummyChar)
         var pStyle     = cast([*] u8, &dummyStyle)
@@ -562,8 +615,10 @@ impl RichEditView
                 cp1.lineIndex     = lineIndex
                 var charPos = edn.cursorDisplayPosition(cp1)
                 charPos.y -= size.y * 0.5
-                if edn.selRectangle.contains(charPos) do
+                if edn.selRectangle.contains(charPos)
+                {
                     selected = true
+                }
             }
             else
             {
@@ -578,12 +633,20 @@ impl RichEditView
 
             if selected
             {
-                if .hasFocus() do
+                if .hasFocus()
+                {
                     newStyle = edn.stylesSelect[0]
-                elif edn.flags.has(.ShowFocusSel) do
+                }
+                else if edn.flags.has(.ShowFocusSel)
+                {
                     newStyle = edn.stylesSelect[1]
-                if not newStyle.colFg.a do
+                }
+
+                if not newStyle.colFg.a
+                {
                     newStyle.colFg = edn.styles[pStyle[]].colFg
+                }
+
                 newStyle.fontMode  = edn.styles[pStyle[]].fontMode
                 newStyle.underline = edn.styles[pStyle[]].underline
             }
@@ -607,8 +670,10 @@ impl RichEditView
                 x += edn.tabAdvance(cast(s32, x))
 
                 // Background color for tabulations
-                if visible and oldStyle.colBk.a do
+                if visible and oldStyle.colBk.a
+                {
                     bc.painter.fillRect(Math.Rectangle{x1, y, x - x1, size.y}, oldStyle.colBk)
+                }
 
                 // A tabulation is a line across its whole advance, ended by a bar at the stop.
                 if visible and edn.flags.has(.DrawBlanks)
@@ -624,14 +689,16 @@ impl RichEditView
                     }
                 }
             }
-            elif markBlank
+            else if markBlank
             {
                 let x1 = x
                 str += cr
                 x   = .paintString(bc, x, y, str, newStyle, visible)
                 str.clear()
-                if visible do
+                if visible
+                {
                     bc.painter.fillCircle((x1 + x) * 0.5, y + size.y * 0.5, Math.max(size.x * 0.1, 1), .themeColors().richEdit_TextSpecial)
+                }
             }
             else
             {

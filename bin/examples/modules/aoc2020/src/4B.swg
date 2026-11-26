@@ -81,65 +81,93 @@ func day4BWithExplicitChecks()
     var validPassportCount, validFields: u32
     for line, lineIndex in lines
     {
-        for field in Tokenize.split(line[], ' 'u8)
+        for field in Tokenize.split(line[], ' '_u8)
         {
-            let fieldParts = Tokenize.split(field, ':'u8)
+            let fieldParts = Tokenize.split(field, ':'_u8)
             let fieldValue = fieldParts[1]
             switch fieldParts[0]
             {
             case "byr":
                 let year = catch StrConv.toS32(fieldValue) { break }
-                if year >= 1920 and year <= 2002 do
+                if year >= 1920 and year <= 2002
+                {
                     validFields |= 1
+                }
 
             case "iyr":
                 let year = catch StrConv.toS32(fieldValue) { break }
-                if year >= 2010 and year <= 2020 do
+                if year >= 2010 and year <= 2020
+                {
                     validFields |= 2
+                }
 
             case "eyr":
                 let year = catch StrConv.toS32(fieldValue) { break }
-                if year >= 2020 and year <= 2030 do
+                if year >= 2020 and year <= 2030
+                {
                     validFields |= 4
+                }
 
             case "hgt":
                 let height = catch StrConv.parseS32(fieldValue) { break }
-                if height.eat == fieldValue.count do
+                if height.eat == fieldValue.count
+                {
                     break
+                }
+
                 let unit = fieldValue[height.eat to]
-                if unit != "cm" and unit != "in" do
+                if unit != "cm" and unit != "in"
+                {
                     break
-                if unit == "cm" and height.value >= 150 and height.value <= 193 do
+                }
+
+                if unit == "cm" and height.value >= 150 and height.value <= 193
+                {
                     validFields |= 8
-                elif unit == "in" and height.value >= 59 and height.value <= 76 do
+                }
+                else if unit == "in" and height.value >= 59 and height.value <= 76
+                {
                     validFields |= 8
+                }
 
             case "hcl":
-                if fieldValue.count != 7 or fieldValue[0] != '#' do
+                if fieldValue.count != 7 or fieldValue[0] != '#'
+                {
                     break
+                }
+
                 var errOutcome: Swag.Error
                 discard catch StrConv.parseX64(fieldValue[1 to]) as errOutcome
                 let err = errOutcome.value()
-                if err == null do
+                if err == null
+                {
                     validFields |= 16
+                }
 
             case "ecl":
-                if Slice.contains(["amb", "blu", "brn", "gry", "grn", "hzl", "oth"], fieldValue) do
+                if Slice.contains(["amb", "blu", "brn", "gry", "grn", "hzl", "oth"], fieldValue)
+                {
                     validFields |= 32
+                }
 
             case "pid":
                 var errOutcome: Swag.Error
                 discard catch StrConv.toS32(fieldValue) as errOutcome
                 let err = errOutcome.value()
-                if err == null and fieldValue.count == 9 do
+                if err == null and fieldValue.count == 9
+                {
                     validFields |= 64
+                }
             }
         }
 
         if lineIndex == lines.count - 1 or lines[lineIndex + 1].isEmpty()
         {
-            if validFields & 0b1111111 == 0b1111111 do
+            if validFields & 0b1111111 == 0b1111111
+            {
                 validPassportCount += 1
+            }
+
             validFields = 0
         }
     }
@@ -161,7 +189,7 @@ func day4BWithRegexRules()
 
     // A compiled expression owns its program, so a rule states no copy: build it in a local
     // and hand it over with '#move'.
-    var rulesByField: HashTable'(string, Day4Rule)
+    var rulesByField: HashTable!{string, Day4Rule}
     var rule:         Day4Rule
 
     rule = Day4Rule{expect Parser.RegExp.create("19[2-9][0-9]|200[0-2]"), 1}
@@ -182,12 +210,14 @@ func day4BWithRegexRules()
     var validPassportCount, validFields: u32
     for line, lineIndex in lines
     {
-        for field in Tokenize.split(line[], ' 'u8)
+        for field in Tokenize.split(line[], ' '_u8)
         {
-            let fieldParts = Tokenize.split(field, ':'u8)
+            let fieldParts = Tokenize.split(field, ':'_u8)
             let fieldRule  = rulesByField.tryFind(fieldParts[0])
-            if fieldRule and fieldRule.value.expression.match(fieldParts[1]) do
+            if fieldRule and fieldRule.value.expression.match(fieldParts[1])
+            {
                 validFields |= fieldRule.value.fieldMask
+            }
         }
 
         if lineIndex == lines.count - 1 or lines[lineIndex + 1].isEmpty()

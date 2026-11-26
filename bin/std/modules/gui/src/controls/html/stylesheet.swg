@@ -69,8 +69,8 @@ struct HtmlSelectorPart
 {
     tag:           String
     id:            String
-    classes:       Array'String
-    attributes:    Array'HtmlAttributeSelector
+    classes:       Array!{String}
+    attributes:    Array!{HtmlAttributeSelector}
     pseudo = HtmlPseudoClass.None
     pseudoElement: HtmlPseudoElement
 
@@ -99,13 +99,13 @@ struct HtmlDeclaration
 // The declarations one `{ ... }` block holds, shared by every selector of its group.
 struct HtmlDeclarationBlock
 {
-    declarations: Array'HtmlDeclaration
+    declarations: Array!{HtmlDeclaration}
 }
 
 // One selector with the block it applies.
 struct HtmlRule
 {
-    parts:       Array'HtmlSelectorPart
+    parts:       Array!{HtmlSelectorPart}
     block:       u32
     media = HtmlNoNode
     specificity: u32
@@ -127,14 +127,14 @@ struct HtmlMediaState
 // costs a handful of comparisons per element instead of a thousand.
 struct HtmlStyleSheet
 {
-    blocks:     Array'HtmlDeclarationBlock
-    rules:      Array'HtmlRule
-    subParts:   Array'HtmlSelectorPart
-    media:      Array'String
-    idIndex:    HashTable'(String, Array'u32)
-    classIndex: HashTable'(String, Array'u32)
-    tagIndex:   HashTable'(String, Array'u32)
-    universal:  Array'u32
+    blocks:     Array!{HtmlDeclarationBlock}
+    rules:      Array!{HtmlRule}
+    subParts:   Array!{HtmlSelectorPart}
+    media:      Array!{String}
+    idIndex:    HashTable!{String, Array!{u32}}
+    classIndex: HashTable!{String, Array!{u32}}
+    tagIndex:   HashTable!{String, Array!{u32}}
+    universal:  Array!{u32}
     order:      u32
 
     // Lifetime count used to verify that cached source sheets are not parsed again.
@@ -147,13 +147,13 @@ struct HtmlMatchContext
     late document: *HtmlDocument
 
     target:  String
-    mediaOn: Array'bool
+    mediaOn: Array!{bool}
 
-    elementIndex:    Array'u32
-    elementCount:    Array'u32
-    typeIndex:       Array'u32
-    typeCount:       Array'u32
-    previousElement: Array'u32
+    elementIndex:    Array!{u32}
+    elementCount:    Array!{u32}
+    typeIndex:       Array!{u32}
+    typeCount:       Array!{u32}
+    previousElement: Array!{u32}
     numElements:     u64
 }
 
@@ -177,22 +177,26 @@ impl HtmlMatchContext
         .typeCount.resize(document.nodes.count)
         .previousElement.resize(document.nodes.count)
 
-        var totals:  HashTable'(String, u32)
-        var indices: HashTable'(String, u32)
+        var totals:  HashTable!{String, u32}
+        var indices: HashTable!{String, u32}
         for parentIndex in document.nodes.count
         {
             let children = document.children(cast(u32, parentIndex))
-            if children.first == HtmlNoNode do
+            if children.first == HtmlNoNode
+            {
                 continue
+            }
 
             totals.clear()
-            var count    = 0'u32
+            var count    = 0_u32
             var previous = HtmlNoNode
             for child in children
             {
                 let node = document.constNode(child)
-                if node.kind != .Element do
+                if node.kind != .Element
+                {
                     continue
+                }
 
                 count                   += 1
                 .numElements            += 1
@@ -206,8 +210,10 @@ impl HtmlMatchContext
             for child in children
             {
                 let node = document.constNode(child)
-                if node.kind != .Element do
+                if node.kind != .Element
+                {
                     continue
+                }
 
                 .elementCount[child] = count
                 let name  = document.name(child)
@@ -221,22 +227,31 @@ impl HtmlMatchContext
 
     mtd const elementPosition(element: u32)->{ index: u32, count: u32 }
     {
-        if element >= (.elementIndex).count or not .elementIndex[element] do
+        if element >= (.elementIndex).count or not .elementIndex[element]
+        {
             return {index: 1, count: 1}
+        }
+
         return {index: .elementIndex[element], count: .elementCount[element]}
     }
 
     mtd const typePosition(element: u32)->{ index: u32, count: u32 }
     {
-        if element >= (.typeIndex).count or not .typeIndex[element] do
+        if element >= (.typeIndex).count or not .typeIndex[element]
+        {
             return {index: 1, count: 1}
+        }
+
         return {index: .typeIndex[element], count: .typeCount[element]}
     }
 
     mtd const previous(element: u32)->u32
     {
-        if element >= (.previousElement).count or not .previousElement[element] do
+        if element >= (.previousElement).count or not .previousElement[element]
+        {
             return HtmlNoNode
+        }
+
         return .previousElement[element] - 1
     }
 }
@@ -246,16 +261,27 @@ impl HtmlSelectorPart
     // Adds the weight this compound selector contributes, in the usual three CSS categories.
     mtd const addSpecificity(specificity: *u32)
     {
-        if not .id.isEmpty() do
+        if not .id.isEmpty()
+        {
             specificity[] += 1 << 20
+        }
+
         specificity[] += cast(u32, .classes.count) << 10
         specificity[] += cast(u32, .attributes.count) << 10
-        if .pseudo != .None do
+        if .pseudo != .None
+        {
             specificity[] += 1 << 10
-        if not .tag.isEmpty() do
+        }
+
+        if not .tag.isEmpty()
+        {
             specificity[] += 1
-        if .pseudoElement != .None do
+        }
+
+        if .pseudoElement != .None
+        {
             specificity[] += 1
+        }
     }
 }
 
@@ -300,27 +326,34 @@ impl HtmlStyleSheet
     }
 
     // Collects every rule that can apply to an element, in source order.
-    mtd const candidates(document: const *HtmlDocument, element: u32, output: *Array'u32)
+    mtd const candidates(document: const *HtmlDocument, element: u32, output: *Array!{u32})
     {
         output.clear()
         let id = document.id(element)
         if id.count
         {
             let found = .idIndex.tryFind(id)
-            if found do
+            if found
+            {
                 output.add(found.value.toSlice())
+            }
         }
 
         for value in document.classes(element)
         {
             let found = .classIndex.tryFind(document.text(value[]))
-            if found do
+            if found
+            {
                 output.add(found.value.toSlice())
+            }
         }
 
         let byTag = .tagIndex.tryFind(document.name(element))
-        if byTag do
+        if byTag
+        {
             output.add(byTag.value.toSlice())
+        }
+
         output.add(.universal.toSlice())
         output.sort()
     }
@@ -330,24 +363,40 @@ impl HtmlStyleSheet
     {
         let document = context.document
         let node     = document.constNode(element)
-        if node.kind != .Element do
+        if node.kind != .Element
+        {
             return false
-        if not part.tag.isEmpty() and part.tag != document.name(element) do
-            return false
-        if not part.id.isEmpty() and part.id != document.id(element) do
-            return false
+        }
 
-        for value in part.classes where not document.hasClass(element, value.toString()) do
+        if not part.tag.isEmpty() and part.tag != document.name(element)
+        {
             return false
+        }
 
-        for attribute in part.attributes where not .matchesAttribute(attribute, element, document) do
+        if not part.id.isEmpty() and part.id != document.id(element)
+        {
             return false
+        }
 
-        if part.pseudo != .None and not .matchesPseudo(part, element, context) do
+        for value in part.classes where not document.hasClass(element, value.toString())
+        {
             return false
+        }
 
-        for index in part.rejectCount where .matchesPart(&.subParts[part.rejectFirst + index], element, context) do
+        for attribute in part.attributes where not .matchesAttribute(attribute, element, document)
+        {
             return false
+        }
+
+        if part.pseudo != .None and not .matchesPseudo(part, element, context)
+        {
+            return false
+        }
+
+        for index in part.rejectCount where .matchesPart(&.subParts[part.rejectFirst + index], element, context)
+        {
+            return false
+        }
 
         if part.acceptCount
         {
@@ -358,8 +407,10 @@ impl HtmlStyleSheet
                 break
             }
 
-            if not accepted do
+            if not accepted
+            {
                 return false
+            }
         }
 
         return true
@@ -367,8 +418,10 @@ impl HtmlStyleSheet
 
     private mtd const matchesAttribute(attribute: const *HtmlAttributeSelector, element: u32, document: const *HtmlDocument)->bool
     {
-        if not document.hasAttribute(element, attribute.name.toString()) do
+        if not document.hasAttribute(element, attribute.name.toString())
+        {
             return false
+        }
 
         let value    = document.attribute(element, attribute.name.toString())
         let expected = attribute.value.toString()
@@ -381,8 +434,11 @@ impl HtmlStyleSheet
             return value == expected
 
         case .Includes:
-            for part in Tokenize.split(value, ' 'u8) where part == expected do
+            for part in Tokenize.split(value, ' '_u8) where part == expected
+            {
                 return true
+            }
+
             return false
 
         case .DashMatch:
@@ -406,19 +462,35 @@ impl HtmlStyleSheet
     {
         let document = context.document
         let pseudo   = part.pseudo
-        if pseudo.has(.Never) do
+        if pseudo.has(.Never)
+        {
             return false
-        if pseudo.has(.Root) and document.constNode(element).parent != 0 do
-            return false
+        }
 
-        if pseudo.has(.Target) and (context.target.isEmpty() or document.id(element) != context.target.toString()) do
+        if pseudo.has(.Root) and document.constNode(element).parent != 0
+        {
             return false
-        if pseudo.has(.Checked) and not document.hasAttribute(element, "checked") do
+        }
+
+        if pseudo.has(.Target) and (context.target.isEmpty() or document.id(element) != context.target.toString())
+        {
             return false
-        if pseudo.has(.Disabled) and not document.hasAttribute(element, "disabled") do
+        }
+
+        if pseudo.has(.Checked) and not document.hasAttribute(element, "checked")
+        {
             return false
-        if pseudo.has(.Empty) and document.constNode(element).firstChild != HtmlNoNode do
+        }
+
+        if pseudo.has(.Disabled) and not document.hasAttribute(element, "disabled")
+        {
             return false
+        }
+
+        if pseudo.has(.Empty) and document.constNode(element).firstChild != HtmlNoNode
+        {
+            return false
+        }
 
         let structural = HtmlPseudoClass.FirstChild |
                          .LastChild |
@@ -427,28 +499,49 @@ impl HtmlStyleSheet
                          .LastOfType |
                          .Nth |
                          .NthOfType
-        if (pseudo & structural) == .None do
+        if (pseudo & structural) == .None
+        {
             return true
+        }
 
         let position = context.elementPosition(element)
-        if pseudo.has(.FirstChild) and position.index != 1 do
+        if pseudo.has(.FirstChild) and position.index != 1
+        {
             return false
-        if pseudo.has(.LastChild) and position.index != position.count do
+        }
+
+        if pseudo.has(.LastChild) and position.index != position.count
+        {
             return false
-        if pseudo.has(.OnlyChild) and position.count != 1 do
+        }
+
+        if pseudo.has(.OnlyChild) and position.count != 1
+        {
             return false
-        if pseudo.has(.Nth) and not HtmlStyleSheet.matchesNthForm(part.nthA, part.nthB, position.index) do
+        }
+
+        if pseudo.has(.Nth) and not HtmlStyleSheet.matchesNthForm(part.nthA, part.nthB, position.index)
+        {
             return false
+        }
 
         if pseudo.has(.FirstOfType) or pseudo.has(.LastOfType) or pseudo.has(.NthOfType)
         {
             let ofType = context.typePosition(element)
-            if pseudo.has(.FirstOfType) and ofType.index != 1 do
+            if pseudo.has(.FirstOfType) and ofType.index != 1
+            {
                 return false
-            if pseudo.has(.LastOfType) and ofType.index != ofType.count do
+            }
+
+            if pseudo.has(.LastOfType) and ofType.index != ofType.count
+            {
                 return false
-            if pseudo.has(.NthOfType) and not HtmlStyleSheet.matchesNthForm(part.nthA, part.nthB, ofType.index) do
+            }
+
+            if pseudo.has(.NthOfType) and not HtmlStyleSheet.matchesNthForm(part.nthA, part.nthB, ofType.index)
+            {
                 return false
+            }
         }
 
         return true
@@ -458,12 +551,17 @@ impl HtmlStyleSheet
     private func matchesNthForm(a, b: s32, index: u32)->bool
     {
         let position = cast(s32, index)
-        if a == 0 do
+        if a == 0
+        {
             return position == b
+        }
 
         let delta = position - b
-        if a > 0 do
+        if a > 0
+        {
             return delta >= 0 and delta % a == 0
+        }
+
         return delta <= 0 and delta % a == 0
     }
 
@@ -473,20 +571,30 @@ impl HtmlStyleSheet
     // failing compound selector rejects the rule immediately.
     mtd const matches(rule: const *HtmlRule, element: u32, context: const *HtmlMatchContext)->bool
     {
-        if rule.media != HtmlNoNode and (rule.media >= context.mediaOn.count or not context.mediaOn[rule.media]) do
+        if rule.media != HtmlNoNode and (rule.media >= context.mediaOn.count or not context.mediaOn[rule.media])
+        {
             return false
-        if not .matchesPart(&rule.parts[rule.parts.count - 1], element, context) do
+        }
+
+        if not .matchesPart(&rule.parts[rule.parts.count - 1], element, context)
+        {
             return false
-        if rule.parts.count == 1 do
+        }
+
+        if rule.parts.count == 1
+        {
             return true
+        }
 
         return .matchesAncestors(rule, cast(u32, rule.parts.count) - 1, element, context)
     }
 
     private mtd const matchesAncestors(rule: const *HtmlRule, partIndex: u32, element: u32, context: const *HtmlMatchContext)->bool
     {
-        if not partIndex do
+        if not partIndex
+        {
             return true
+        }
 
         let document = context.document
         let part     = &rule.parts[partIndex]
@@ -495,16 +603,22 @@ impl HtmlStyleSheet
         {
         case .Child:
             let parent = document.constNode(element).parent
-            if parent == HtmlNoNode or not .matchesPart(previous, parent, context) do
+            if parent == HtmlNoNode or not .matchesPart(previous, parent, context)
+            {
                 return false
+            }
+
             return .matchesAncestors(rule, partIndex - 1, parent, context)
 
         case .Descendant:
             var walk = document.constNode(element).parent
             while walk != HtmlNoNode
             {
-                if .matchesPart(previous, walk, context) and .matchesAncestors(rule, partIndex - 1, walk, context) do
+                if .matchesPart(previous, walk, context) and .matchesAncestors(rule, partIndex - 1, walk, context)
+                {
                     return true
+                }
+
                 walk = document.constNode(walk).parent
             }
 
@@ -512,16 +626,22 @@ impl HtmlStyleSheet
 
         case .NextSibling:
             let sibling = context.previous(element)
-            if sibling == HtmlNoNode or not .matchesPart(previous, sibling, context) do
+            if sibling == HtmlNoNode or not .matchesPart(previous, sibling, context)
+            {
                 return false
+            }
+
             return .matchesAncestors(rule, partIndex - 1, sibling, context)
 
         case .LaterSibling:
             var sibling = context.previous(element)
             while sibling != HtmlNoNode
             {
-                if .matchesPart(previous, sibling, context) and .matchesAncestors(rule, partIndex - 1, sibling, context) do
+                if .matchesPart(previous, sibling, context) and .matchesAncestors(rule, partIndex - 1, sibling, context)
+                {
                     return true
+                }
+
                 sibling = context.previous(sibling)
             }
 
@@ -530,18 +650,24 @@ impl HtmlStyleSheet
     }
 
     // Answers every media query the sheet carries, in rule-index order.
-    mtd const evaluateMedia(state: HtmlMediaState)->Array'bool
+    mtd const evaluateMedia(state: HtmlMediaState)->Array!{bool}
     {
         var result: #returntype
-        for query in .media do
+        for query in .media
+        {
             result.add(HtmlStyleSheet.evaluateMediaQuery(query.toString(), state))
+        }
+
         return result
     }
 
     private func evaluateMediaQuery(query: string, state: HtmlMediaState)->bool
     {
-        for alternative in Tokenize.split(query, ','u8) where HtmlStyleSheet.evaluateMediaAlternative(Latin1.trim(alternative), state) do
+        for alternative in Tokenize.split(query, ','_u8) where HtmlStyleSheet.evaluateMediaAlternative(Latin1.trim(alternative), state)
+        {
             return true
+        }
+
         return false
     }
 
@@ -554,38 +680,51 @@ impl HtmlStyleSheet
             negated = true
             text    = Latin1.trim(text[4 to])
         }
-        elif Utf8.startsWith(text, "only ")
+        else if Utf8.startsWith(text, "only ")
         {
             text = Latin1.trim(text[5 to])
         }
 
         var matched = true
-        var index   = 0'u64
+        var index   = 0_u64
         while index < text.count
         {
-            while index < text.count and Latin1.isSpace(text[index]) do
+            while index < text.count and Latin1.isSpace(text[index])
+            {
                 index += 1
-            if index >= text.count do
+            }
+
+            if index >= text.count
+            {
                 break
+            }
 
             if text[index] == '('
             {
                 var scan  = index
                 let inner = htmlReadBalanced(text, &scan)
-                if not HtmlStyleSheet.evaluateMediaFeature(inner, state) do
+                if not HtmlStyleSheet.evaluateMediaFeature(inner, state)
+                {
                     matched = false
+                }
+
                 index = scan
                 continue
             }
 
             var wordEnd = index
-            while wordEnd < text.count and not Latin1.isSpace(text[wordEnd]) and text[wordEnd] != '(' do
+            while wordEnd < text.count and not Latin1.isSpace(text[wordEnd]) and text[wordEnd] != '('
+            {
                 wordEnd += 1
+            }
 
             // The only media types a document window can answer for are the screen ones.
             let word = String.from(text[index until wordEnd]).toLower()
-            if word == "print" or word == "speech" do
+            if word == "print" or word == "speech"
+            {
                 matched = false
+            }
+
             index = wordEnd
         }
 
@@ -594,7 +733,7 @@ impl HtmlStyleSheet
 
     private func evaluateMediaFeature(feature: string, state: HtmlMediaState)->bool
     {
-        let colon = Utf8.indexOf(feature, ':'rune)
+        let colon = Utf8.indexOf(feature, ':'_rune)
         let name  = String.from(Latin1.trim(colon == Swag.U64.Max ? feature : feature[0 until colon])).toLower()
         let value = String.from(Latin1.trim(colon == Swag.U64.Max ? "" : feature[colon + 1 to])).toLower()
 
@@ -630,19 +769,24 @@ impl HtmlStyleSheet
 private func htmlStripCssComments(source: string)->String
 {
     var result: #returntype
-    var index  = 0'u64
-    var quote  = 0'u8
-    var copied = 0'u64
+    var index  = 0_u64
+    var quote  = 0_u8
+    var copied = 0_u64
 
     while index < source.count
     {
         let character = source[index]
         if quote
         {
-            if character == '\\' do
+            if character == '\\'
+            {
                 index += 1
-            elif character == quote do
+            }
+            else if character == quote
+            {
                 quote = 0
+            }
+
             index += 1
             continue
         }
@@ -666,8 +810,11 @@ private func htmlStripCssComments(source: string)->String
         index += 1
     }
 
-    if not copied do
+    if not copied
+    {
         return String.from(source)
+    }
+
     result += source[copied to]
     return result
 }
@@ -684,13 +831,18 @@ impl HtmlStyleSheet
 
     private mtd parseRules(source: string, media: u32)
     {
-        var index = 0'u64
+        var index = 0_u64
         while index < source.count
         {
-            while index < source.count and Latin1.isSpace(source[index]) do
+            while index < source.count and Latin1.isSpace(source[index])
+            {
                 index += 1
-            if index >= source.count do
+            }
+
+            if index >= source.count
+            {
                 return
+            }
 
             if source[index] == '@'
             {
@@ -699,8 +851,10 @@ impl HtmlStyleSheet
             }
 
             let brace = HtmlStyleSheet.findBlockStart(source, index)
-            if brace == Swag.U64.Max do
+            if brace == Swag.U64.Max
+            {
                 return
+            }
 
             var scan = brace
             let body = htmlReadBalancedBrace(source, &scan)
@@ -713,15 +867,18 @@ impl HtmlStyleSheet
     private func findBlockStart(source: string, from: u64)->u64
     {
         var index = from
-        var depth = 0'u32
-        var quote = 0'u8
+        var depth = 0_u32
+        var quote = 0_u8
         while index < source.count
         {
             let character = source[index]
             if quote
             {
-                if character == quote do
+                if character == quote
+                {
                     quote = 0
+                }
+
                 index += 1
                 continue
             }
@@ -735,16 +892,22 @@ impl HtmlStyleSheet
                 depth += 1
 
             case ')':
-                if depth do
+                if depth
+                {
                     depth -= 1
+                }
 
             case '{':
-                if not depth do
+                if not depth
+                {
                     return index
+                }
 
             case ';', '}':
-                if not depth do
+                if not depth
+                {
                     return Swag.U64.Max
+                }
             }
 
             index += 1
@@ -756,12 +919,14 @@ impl HtmlStyleSheet
     private mtd parseAtRule(source: string, from: u64, media: u32)->u64
     {
         var nameEnd = from + 1
-        while nameEnd < source.count and (Latin1.isLetter(source[nameEnd]) or source[nameEnd] == '-') do
+        while nameEnd < source.count and (Latin1.isLetter(source[nameEnd]) or source[nameEnd] == '-')
+        {
             nameEnd += 1
+        }
 
         let name      = String.from(source[from + 1 until nameEnd]).toLower()
         let brace     = HtmlStyleSheet.findBlockStart(source, nameEnd)
-        let semicolon = Utf8.indexOf(source, ';'rune, nameEnd)
+        let semicolon = Utf8.indexOf(source, ';'_rune, nameEnd)
         if brace == Swag.U64.Max
         {
             return semicolon == Swag.U64.Max ? source.count : semicolon + 1
@@ -788,28 +953,36 @@ impl HtmlStyleSheet
     private mtd addRules(prelude: string, body: string, media: u32)
     {
         let declarations = HtmlStyleSheet.parseDeclarations(body)
-        if declarations.declarations.isEmpty() do
+        if declarations.declarations.isEmpty()
+        {
             return
+        }
 
         let block     = cast(u32, .blocks.count)
-        let selectors = htmlSplitValue(prelude, ','u8)
+        let selectors = htmlSplitValue(prelude, ','_u8)
         var added: bool
         for selector in selectors
         {
             var rule = .parseSelector(selector.toString())
-            if rule.parts.isEmpty() do
+            if rule.parts.isEmpty()
+            {
                 continue
+            }
 
             let subject = rule.parts.backPtr()
-            if subject.pseudoElement == .Unsupported do
+            if subject.pseudoElement == .Unsupported
+            {
                 continue
+            }
 
             rule.block = block
             rule.media = media
             rule.order = .order
             .order     += 1
-            for &part in rule.parts do
+            for &part in rule.parts
+            {
                 part.addSpecificity(&rule.specificity)
+            }
 
             let index = cast(u32, .rules.count)
             .rules.add(#move rule)
@@ -817,29 +990,35 @@ impl HtmlStyleSheet
             added = true
         }
 
-        if added do
+        if added
+        {
             .blocks.add(#move declarations)
+        }
     }
 
     // Splits a declaration body into its `name: value` pairs.
     func parseDeclarations(body: string)->HtmlDeclarationBlock
     {
         var result: #returntype
-        let statements = htmlSplitValue(body, ';'u8)
+        let statements = htmlSplitValue(body, ';'_u8)
         for statement in statements
         {
             let text  = statement.toString()
-            let colon = Utf8.indexOf(text, ':'rune)
-            if colon == Swag.U64.Max do
+            let colon = Utf8.indexOf(text, ':'_rune)
+            if colon == Swag.U64.Max
+            {
                 continue
+            }
 
             let property = Latin1.trim(text[0 until colon])
             var value    = Latin1.trim(text[colon + 1 to])
-            if not property.count or not value.count do
+            if not property.count or not value.count
+            {
                 continue
+            }
 
             var declaration: HtmlDeclaration
-            let bang = Utf8.indexOf(value, '!'rune)
+            let bang = Utf8.indexOf(value, '!'_rune)
             if bang != Swag.U64.Max and Utf8.compare(Latin1.trim(value[bang + 1 to]), "important", .Latin1NoCase) == 0
             {
                 declaration.important = true
@@ -856,8 +1035,11 @@ impl HtmlStyleSheet
             {
                 let lower = String.from(property).toLower()
                 declaration.property = htmlPropertyFromName(lower.toString())
-                if declaration.property == .Unknown do
+                if declaration.property == .Unknown
+                {
                     continue
+                }
+
                 declaration.name = #move lower
             }
 
@@ -872,7 +1054,7 @@ impl HtmlStyleSheet
     private mtd parseSelector(selector: string)->HtmlRule
     {
         var result: #returntype
-        var index = 0'u64
+        var index = 0_u64
 
         // Whitespace only separates compound selectors; the descendant relation is what stands
         // when no explicit combinator was written between two of them.
@@ -930,8 +1112,10 @@ impl HtmlStyleSheet
         while index[] < selector.count
         {
             let character = selector[index[]]
-            if Latin1.isSpace(character) or character == '>' or character == '+' or character == '~' do
+            if Latin1.isSpace(character) or character == '>' or character == '+' or character == '~'
+            {
                 break
+            }
 
             switch character
             {
@@ -950,18 +1134,27 @@ impl HtmlStyleSheet
                 read = true
 
             case '[':
-                if not .readAttributeSelector(&result.part, selector, index) do
+                if not .readAttributeSelector(&result.part, selector, index)
+                {
                     return result
+                }
+
                 read = true
 
             case ':':
-                if not .readPseudo(&result.part, selector, index) do
+                if not .readPseudo(&result.part, selector, index)
+                {
                     return result
+                }
+
                 read = true
 
             default:
-                if not Latin1.isLetterOrDigit(character) and character != '-' and character != '_' do
+                if not Latin1.isLetterOrDigit(character) and character != '-' and character != '_'
+                {
                     return result
+                }
+
                 var name = HtmlStyleSheet.readIdentifier(selector, index)
                 result.part.tag = name.toLower()
                 read = true
@@ -982,8 +1175,11 @@ impl HtmlStyleSheet
             if not Latin1.isLetterOrDigit(character) and
                character != '-' and
                character != '_' and
-               character != '\\' do
+               character != '\\'
+            {
                 break
+            }
+
             index[] += 1
         }
 
@@ -993,19 +1189,26 @@ impl HtmlStyleSheet
 
     private mtd readAttributeSelector(part: *HtmlSelectorPart, selector: string, index: *u64)->bool
     {
-        let close = Utf8.indexOf(selector, ']'rune, index[])
-        if close == Swag.U64.Max do
+        let close = Utf8.indexOf(selector, ']'_rune, index[])
+        if close == Swag.U64.Max
+        {
             return false
+        }
 
         let body = Latin1.trim(selector[index[] + 1 until close])
         index[] = close + 1
 
         var attribute: HtmlAttributeSelector
-        var nameEnd = 0'u64
-        while nameEnd < body.count and (Latin1.isLetterOrDigit(body[nameEnd]) or body[nameEnd] == '-' or body[nameEnd] == '_') do
+        var nameEnd = 0_u64
+        while nameEnd < body.count and (Latin1.isLetterOrDigit(body[nameEnd]) or body[nameEnd] == '-' or body[nameEnd] == '_')
+        {
             nameEnd += 1
-        if not nameEnd do
+        }
+
+        if not nameEnd
+        {
             return false
+        }
 
         attribute.name = String.from(body[0 until nameEnd]).toLower()
         var rest = Latin1.trim(body[nameEnd to])
@@ -1015,7 +1218,7 @@ impl HtmlStyleSheet
             return true
         }
 
-        var valueStart = 1'u64
+        var valueStart = 1_u64
         switch rest[0]
         {
         case '=': attribute.match = .Equals
@@ -1029,8 +1232,11 @@ impl HtmlStyleSheet
 
         if attribute.match != .Equals
         {
-            if rest.count < 2 or rest[1] != '=' do
+            if rest.count < 2 or rest[1] != '='
+            {
                 return false
+            }
+
             valueStart = 2
         }
 
@@ -1038,12 +1244,17 @@ impl HtmlStyleSheet
 
         // A case-insensitivity flag is accepted and ignored, because a document that carries one
         // still selects the same element in practice.
-        if value.count >= 2 and (Utf8.endsWith(value, " i") or Utf8.endsWith(value, " I")) do
+        if value.count >= 2 and (Utf8.endsWith(value, " i") or Utf8.endsWith(value, " I"))
+        {
             value = Latin1.trim(value[0 until value.count - 2])
+        }
+
         if value.count >= 2 and
            (value[0] == '"' or value[0] == '\'') and
-           value[value.count - 1] == value[0] do
+           value[value.count - 1] == value[0]
+        {
             value = value[1 until value.count - 1]
+        }
 
         attribute.value = value
         part.attributes.add(#move attribute)
@@ -1136,15 +1347,21 @@ impl HtmlStyleSheet
 
         case "not":
             let first = cast(u32, .subParts.count)
-            if not .addSubSelectors(argument.toString()) do
+            if not .addSubSelectors(argument.toString())
+            {
                 return false
+            }
+
             part.rejectFirst = first
             part.rejectCount = cast(u32, .subParts.count) - first
 
         case "is", "where", "matches", "any":
             let first = cast(u32, .subParts.count)
-            if not .addSubSelectors(argument.toString()) do
+            if not .addSubSelectors(argument.toString())
+            {
                 return false
+            }
+
             part.acceptFirst = first
             part.acceptCount = cast(u32, .subParts.count) - first
 
@@ -1173,15 +1390,21 @@ impl HtmlStyleSheet
     {
         var added: bool
         let first        = .subParts.count
-        let alternatives = htmlSplitValue(argument, ','u8)
+        let alternatives = htmlSplitValue(argument, ','_u8)
         for alternative in alternatives
         {
-            var scan     = 0'u64
+            var scan     = 0_u64
             let compound = .parseCompound(alternative.toString(), &scan)
-            if not compound.matched do
+            if not compound.matched
+            {
                 continue
-            while scan < alternative.count and Latin1.isSpace(alternative[scan]) do
+            }
+
+            while scan < alternative.count and Latin1.isSpace(alternative[scan])
+            {
                 scan += 1
+            }
+
             if scan != alternative.count
             {
                 // The pool represents compounds only. Reject a complex argument instead of
@@ -1204,8 +1427,10 @@ impl HtmlStyleSheet
     private func applyNth(part: *HtmlSelectorPart, argument: string, ofType: bool)
     {
         var compact: String
-        for character in Latin1.trim(argument) where not Latin1.isSpace(character) do
+        for character in Latin1.trim(argument) where not Latin1.isSpace(character)
+        {
             compact.append(Latin1.toLower(character))
+        }
 
         var a, b:    s32
         var matched: bool
@@ -1222,7 +1447,7 @@ impl HtmlStyleSheet
 
         default:
             let text = compact.toString()
-            let n    = Utf8.indexOf(text, 'n'rune)
+            let n    = Utf8.indexOf(text, 'n'_rune)
             if n == Swag.U64.Max
             {
                 let number = htmlParseNumber(text)
@@ -1240,27 +1465,35 @@ impl HtmlStyleSheet
                 {
                     a = 1
                 }
-                elif aPart == "-"
+                else if aPart == "-"
                 {
                     a = -1
                 }
                 else
                 {
                     let number = htmlParseNumber(aPart)
-                    if number.eat == aPart.count do
+                    if number.eat == aPart.count
+                    {
                         a = cast(s32, number.value)
-                    else do
+                    }
+                    else
+                    {
                         matched = false
+                    }
                 }
 
                 let bPart = text[n + 1 to]
                 if bPart.count and matched
                 {
                     let number = htmlParseNumber(bPart)
-                    if number.eat == bPart.count do
+                    if number.eat == bPart.count
+                    {
                         b = cast(s32, number.value)
-                    else do
+                    }
+                    else
+                    {
                         matched = false
+                    }
                 }
             }
         }
@@ -1282,17 +1515,20 @@ impl HtmlStyleSheet
 private func htmlReadBalancedBrace(source: string, scan: *u64)->string
 {
     let start = scan[] + 1
-    var depth = 1'u32
+    var depth = 1_u32
     var index = start
-    var quote = 0'u8
+    var quote = 0_u8
 
     while index < source.count and depth
     {
         let character = source[index]
         if quote
         {
-            if character == quote do
+            if character == quote
+            {
                 quote = 0
+            }
+
             index += 1
             continue
         }
@@ -1304,8 +1540,10 @@ private func htmlReadBalancedBrace(source: string, scan: *u64)->string
         case '}':       depth -= 1
         }
 
-        if depth do
+        if depth
+        {
             index += 1
+        }
     }
 
     scan[] = Math.min(index + 1, source.count)

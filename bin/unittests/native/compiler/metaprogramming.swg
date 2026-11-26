@@ -8,10 +8,14 @@ namespace compiler1064
     //#[Swag.ConstExpr]
     func fibonacci(num: s32)->s32
     {
-        if num < 2 do
+        if num < 2
+        {
             return num
-        else do
+        }
+        else
+        {
             return fibonacci(num - 1) + fibonacci(num - 2)
+        }
     }
 
     var fibonacciOfAge: s32 = #run fibonacci(16)
@@ -211,7 +215,7 @@ namespace compiler1888
 
     func titi()
     {
-        const x = 666's64
+        const x = 666_s64
         #run toto(x)
     }
 }
@@ -228,7 +232,7 @@ namespace compiler1893
     {
         #run
         {
-            let x = 666's64
+            let x = 666_s64
             toto(x)
         }
     }
@@ -328,8 +332,10 @@ namespace compiler2634
     #[Compiler]
     func toto()->s32
     {
-        for 10 do
+        for 10
+        {
             G += 1
+        }
 
         return G
     }
@@ -399,11 +405,11 @@ namespace compiler296
     #test
     {
         Swag.require(#sizeof(*bool) == 8)
-        Swag.require(#sizeof(1's32) == 4)
-        Swag.require(#sizeof(1'u64) == 8)
-        Swag.require(#sizeof(1.0'f32) == 4)
-        Swag.require(#sizeof(1.0'f64) == 8)
-        Swag.require(#sizeof(5 * 4's32) == 4)
+        Swag.require(#sizeof(1_s32) == 4)
+        Swag.require(#sizeof(1_u64) == 8)
+        Swag.require(#sizeof(1.0_f32) == 4)
+        Swag.require(#sizeof(1.0_f64) == 8)
+        Swag.require(#sizeof(5 * 4_s32) == 4)
     }
 }
 
@@ -453,8 +459,10 @@ namespace compiler3100
     {
         var x = 1
         discard x
-        #static if false do
+        #static if false
+        {
             #error(#run msg())
+        }
     }
 }
 
@@ -492,9 +500,11 @@ namespace compiler3324
     {
         let a = #run
         {
-            var ret = 0's32
-            for 10 do
+            var ret = 0_s32
+            for 10
+            {
                 ret += 66
+            }
             return ret
         }
 
@@ -510,7 +520,7 @@ namespace compiler3325
         #[Swag.Compiler]
         func init()->u64
         {
-            var sum = 0'u64
+            var sum = 0_u64
             for i in 3
             {
                 var T: typeinfo
@@ -630,8 +640,10 @@ namespace compiler4844
         const PowerOfTwo: [N] s32 = #run
         {
             var arr: [N] s32
-            for i in arr.count do
+            for i in arr.count
+            {
                 arr[i] = 1 << cast(u32, i)
+            }
             return arr
         }
 

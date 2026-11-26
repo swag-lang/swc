@@ -672,21 +672,14 @@ void Parser::setReportSymbol(Diagnostic& diag, TokenRef tokRef) const
     diag.addArgument(Diagnostic::ARG_SYM, Diagnostic::tokenErrorString(*ctx_, {ast_->srcView().ref(), tokRef}));
 }
 
-Diagnostic Parser::reportExpectedDoBlock(TokenRef tknRefAfterHeader)
+Diagnostic Parser::reportExpectedControlBlock(TokenRef tknRefAfterHeader)
 {
     // 'if x = 1' is a comparison written with the assignment operator, not a missing block.
     if (id() == TokenId::SymEqual)
         return reportError(DiagnosticId::parser_err_assign_in_condition, ref());
 
-    Diagnostic diag = reportError(DiagnosticId::parser_err_expected_do_block, tknRefAfterHeader);
+    Diagnostic diag = reportError(DiagnosticId::parser_err_expected_control_block, tknRefAfterHeader);
     diag.last().addSpan(ast_->srcView().tokenCodeRange(*ctx_, ref()), DiagnosticId::parser_note_controlled_statement, DiagnosticSeverity::Note);
-    return diag;
-}
-
-Diagnostic Parser::reportUnexpectedDoBlock(TokenRef doTokRef)
-{
-    Diagnostic diag = reportError(DiagnosticId::parser_err_unexpected_do_block, doTokRef);
-    diag.last().addSpan(ast_->srcView().tokenCodeRange(*ctx_, ref()), DiagnosticId::parser_note_block_starts_here, DiagnosticSeverity::Note);
     return diag;
 }
 

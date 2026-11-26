@@ -20,10 +20,14 @@ func jitCallCanBeStored()->bool
 func jitCallCanDriveBranch()->bool
 {
     var value = 10
-    if Swag.jit() do
+    if Swag.jit()
+    {
         value += 1
-    else do
+    }
+    else
+    {
         value += 2
+    }
 
     return value == (contextSaysJit() ? 11 : 12)
 }

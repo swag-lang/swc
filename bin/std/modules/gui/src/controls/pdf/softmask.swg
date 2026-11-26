@@ -23,10 +23,10 @@ enum SoftMaskKind
 // it carries far less detail than the marks it covers. Two samples per point keeps a shadow
 // smooth at the scales a page is read at, and keeps the rasterization small enough to pay once
 // per mark the mask covers.
-const SoftMaskSamplesPerPoint = 2.0'f32
+const SoftMaskSamplesPerPoint = 2.0_f32
 
 // Largest coverage raster produced for one mark.
-const SoftMaskMaxDimension = 2048's32
+const SoftMaskMaxDimension = 2048_s32
 
 // Keeps at most 8 MiB of reusable coverage samples in the parser.
 const SoftMaskCoverageCacheGroupLimit = 16
@@ -120,12 +120,16 @@ internal func readSoftMask(parser: *PdfParser, entry: u32, ctm: Transform2)->Sof
 {
     var result: #returntype
     let maskId = parser.dict(entry, "SMask")
-    if maskId == InvalidNode or parser.nodes[maskId].kind != .Dictionary do
+    if maskId == InvalidNode or parser.nodes[maskId].kind != .Dictionary
+    {
         return result
+    }
 
     let groupId = parser.resolve(parser.dictRaw(maskId, "G"))
-    if groupId == InvalidNode do
+    if groupId == InvalidNode
+    {
         return result
+    }
 
     result.groupId = groupId
     result.ctm     = ctm
@@ -136,14 +140,16 @@ internal func readSoftMask(parser: *PdfParser, entry: u32, ctm: Transform2)->Sof
     // alpha mask has no backdrop colour: nothing painted is nothing covered.
     if result.kind == .Alpha
     {
-        result.backdrop = Color.fromArgb(0'u32)
+        result.backdrop = Color.fromArgb(0_u32)
         return result
     }
 
     result.backdrop = Color.fromArgb(Argb.Black)
     let backdropId = parser.dict(maskId, "BC")
-    if backdropId == InvalidNode or parser.nodes[backdropId].kind != .Array do
+    if backdropId == InvalidNode or parser.nodes[backdropId].kind != .Array
+    {
         return result
+    }
 
     // The backdrop is stated in the group's own colour space, so it is reduced the same way a
     // colour operator's operands are.
@@ -153,13 +159,21 @@ internal func readSoftMask(parser: *PdfParser, entry: u32, ctm: Transform2)->Sof
     catch { space = try resolveImageSpace(parser, parser.dictRaw(group, "CS"), parser.dict(groupId, "Resources"), 0) } as spaceErrorOutcome
     let spaceError = spaceErrorOutcome.value()
     var values: [8] f32
-    let count      = Math.min(parser.nodes[backdropId].values.count, 8'u64)
-    for i in count do
+    let count      = Math.min(parser.nodes[backdropId].values.count, 8_u64)
+    for i in count
+    {
         values[i] = cast(f32, parser.number(parser.nodes[backdropId].values[i]))
-    if spaceError == null do
+    }
+
+    if spaceError == null
+    {
         result.backdrop = spaceColor(&space, values[0 until count])
-    elif count >= 1 do
+    }
+    else if count >= 1
+    {
         result.backdrop = grayColor(values[0])
+    }
+
     return result
 }
 
@@ -175,8 +189,10 @@ internal func softMaskCoverage(group: *SoftMaskGroup, region: Math.Rectangle)->I
     if region.width <= 0 or
        region.height <= 0 or
        not Math.isFinite(region.width) or
-       not Math.isFinite(region.height) do
+       not Math.isFinite(region.height)
+    {
         return result
+    }
 
     with var options: RenderOptions
     {
@@ -190,8 +206,10 @@ internal func softMaskCoverage(group: *SoftMaskGroup, region: Math.Rectangle)->I
     // that at full density would cost more than the mark itself, so the density drops until the
     // raster fits.
     let longest = Math.max(region.width, region.height)
-    if longest * options.scale > cast(f32, SoftMaskMaxDimension) do
+    if longest * options.scale > cast(f32, SoftMaskMaxDimension)
+    {
         options.scale = cast(f32, SoftMaskMaxDimension) / longest
+    }
 
     let rendered = #move try renderPage(&group.page, options)
     result = #move coverageImage(&rendered, group.kind)
@@ -217,10 +235,15 @@ private func coverageImage(rendered: const *Image, kind: SoftMaskKind)->Image
 
             // Luminosity is the brightness of the composited group, weighted the way the format
             // states it; an alpha mask reads the coverage the group itself accumulated.
-            if kind == .Luminosity do
+            if kind == .Luminosity
+            {
                 out[3] = cast(u8, ((cast(u32, source[0]) * 77 + cast(u32, source[1]) * 151 + cast(u32, source[2]) * 28) >> 8))
-            else do
+            }
+            else
+            {
                 out[3] = step >= 4 ? source[3] : 0xFF
+            }
+
             out    += 4
             source += step
         }

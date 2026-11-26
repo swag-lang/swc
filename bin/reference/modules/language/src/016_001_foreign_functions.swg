@@ -95,7 +95,7 @@ their declared types. Function-pointer aliases for these calls also need '.C'.
 func snprintf(buffer: [*] u8, size: u64, format: const [*] u8, args: ...)->s32
 
 var text: [64] u8
-let count = snprintf(&text[0], text.count, "%.2f".buffer, 1.25'f32)
+let count = snprintf(&text[0], text.count, "%.2f".buffer, 1.25_f32)
 Swag.assert(count == 4)
 ```
 

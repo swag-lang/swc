@@ -20,15 +20,19 @@ func succeeds(ok: bool)->bool => ok
 #[Swag.Inline]
 func checkedVoid(ok: bool) fail
 {
-    if not succeeds(ok) do
+    if not succeeds(ok)
+    {
         try raiseError()
+    }
 }
 
 #[Swag.Inline]
 func checkedValue(ok: bool)->s32 fail
 {
-    if not succeeds(ok) do
+    if not succeeds(ok)
+    {
         try raiseError()
+    }
     return 42
 }
 

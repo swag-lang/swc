@@ -5,15 +5,18 @@
 // to every other path. Keeping it inside a name would store an entry Windows can neither list
 // under its directory nor open, which is how a container came to hold hundreds of unreachable
 // files under names such as `vid/clip.mp4`.
-private func splitPath(path: string)->Array'string
+private func splitPath(path: string)->Array!{string}
 {
     var result: #returntype
     let bytes = cast(const [..] u8, path)
-    var start = 0'u64
+    var start = 0_u64
     for i in bytes.count + 1
     {
-        if i < bytes.count and bytes[i] != cast(u8, '\\') and bytes[i] != cast(u8, '/') do
+        if i < bytes.count and bytes[i] != cast(u8, '\\') and bytes[i] != cast(u8, '/')
+        {
             continue
+        }
+
         if i > start
         {
             let name: string = cast(string, Swag.makeSlice(bytes.buffer + start, i - start))
@@ -57,13 +60,18 @@ impl Volume
     {
         let parts   = splitPath(path)
         var current = .nodeById(RootNodeId)
-        if not current do
+        if not current
+        {
             return null
+        }
+
         for part in parts
         {
             current = .findChild(current.id, part)
-            if not current do
+            if not current
+            {
                 return null
+            }
         }
 
         return current
@@ -74,16 +82,24 @@ impl Volume
     mtd resolveParent(path: string)->{parent: *Node?, name: string}
     {
         let parts = splitPath(path)
-        if parts.isEmpty() do
+        if parts.isEmpty()
+        {
             return {parent: null, name: ""}
+        }
+
         var parent = .nodeById(RootNodeId)
-        if not parent do
+        if not parent
+        {
             return {parent: null, name: parts[parts.count - 1]}
+        }
+
         for i in 0 until parts.count - 1
         {
             parent = .findChild(parent.id, parts[i])
-            if not parent or not parent.isDirectory() do
+            if not parent or not parent.isDirectory()
+            {
                 return {parent: null, name: parts[parts.count - 1]}
+            }
         }
 
         return {parent: parent, name: parts[parts.count - 1]}
@@ -95,19 +111,36 @@ impl Volume
     mtd createNodePending(path: string, directory: bool, attributes: u32, security: const [..] u8)->u64 fail
     {
         try .requireWritable()
-        if not .nextNodeId do
+        if not .nextNodeId
+        {
             fail volumeError(.Corrupted)
-        if .nodes.count >= MaximumNodeCount or .nextNodeId == Swag.U64.Max do
+        }
+
+        if .nodes.count >= MaximumNodeCount or .nextNodeId == Swag.U64.Max
+        {
             fail volumeError(.DiskFull)
+        }
+
         let {parent, name} = .resolveParent(path)
-        if parent == null or not parent.isDirectory() do
+        if parent == null or not parent.isDirectory()
+        {
             fail volumeError(.NotFound)
-        if not name.count or name == "." or name == ".." do
+        }
+
+        if not name.count or name == "." or name == ".."
+        {
             fail volumeError(.InvalidInput)
-        if name.count > MaximumNameSize or security.count > MaximumSecuritySize do
+        }
+
+        if name.count > MaximumNameSize or security.count > MaximumSecuritySize
+        {
             fail volumeError(.InvalidInput)
-        if .findChild(parent.id, name) do
+        }
+
+        if .findChild(parent.id, name)
+        {
             fail volumeError(.AlreadyExists)
+        }
 
         let now = volumeTimeNow()
         var node: Node
@@ -115,12 +148,20 @@ impl Volume
         node.parentId   = parent.id
         node.name       = name
         node.attributes = attributes
-        if directory do
+        if directory
+        {
             node.attributes |= FileAttributeDirectory
-        else do
+        }
+        else
+        {
             node.attributes &= ~FileAttributeDirectory
-        if not node.attributes do
+        }
+
+        if not node.attributes
+        {
             node.attributes = FileAttributeNormal
+        }
+
         node.creationTime   = now
         node.lastAccessTime = now
         node.lastWriteTime  = now
@@ -151,8 +192,10 @@ impl Volume
         Swag.assert(index < .nodes.count)
         .nodeLookup.remove(&.nodes[index])
         .nodes.removeAt(index)
-        if index < .nodes.count do
+        if index < .nodes.count
+        {
             .nodeLookup.updateNodePosition(.nodes[index].id, index)
+        }
     }
 
     mtd hasChildren(id: u64)->bool => .nodeLookup.hasChildren(id)
@@ -161,13 +204,22 @@ impl Volume
     mtd deleteNode(id: u64) fail
     {
         try .requireWritable()
-        if id == RootNodeId do
+        if id == RootNodeId
+        {
             fail volumeError(.AccessDenied)
+        }
+
         let index = .nodeIndex(id)
-        if index == Swag.U64.Max do
+        if index == Swag.U64.Max
+        {
             return
-        if .nodes[index].isDirectory() and .hasChildren(id) do
+        }
+
+        if .nodes[index].isDirectory() and .hasChildren(id)
+        {
             fail volumeError(.DirectoryNotEmpty)
+        }
+
         .freeNodeBlocks(&.nodes[index])
         .removeNodeAt(index)
 
@@ -182,16 +234,28 @@ impl Volume
     mtd renameNode(id: u64, newPath: string, replace: bool) fail
     {
         try .requireWritable()
-        if id == RootNodeId do
+        if id == RootNodeId
+        {
             fail volumeError(.AccessDenied)
+        }
+
         let {parent, name} = .resolveParent(newPath)
-        if parent == null or not parent.isDirectory() do
+        if parent == null or not parent.isDirectory()
+        {
             fail volumeError(.NotFound)
-        if not name.count or name == "." or name == ".." or name.count > MaximumNameSize do
+        }
+
+        if not name.count or name == "." or name == ".." or name.count > MaximumNameSize
+        {
             fail volumeError(.InvalidInput)
+        }
+
         let source = .nodeById(id)
-        if not source do
+        if not source
+        {
             fail volumeError(.NotFound)
+        }
+
         let destinationParentId = parent.id
         let sourceIsDirectory   = source.isDirectory()
 
@@ -202,14 +266,23 @@ impl Volume
             var remaining = .nodes.count
             while ancestor != RootNodeId
             {
-                if ancestor == id do
+                if ancestor == id
+                {
                     fail volumeError(.InvalidInput)
-                if not remaining do
+                }
+
+                if not remaining
+                {
                     fail volumeError(.Corrupted)
+                }
+
                 remaining -= 1
                 let ancestorNode = .nodeById(ancestor)
-                if not ancestorNode do
+                if not ancestorNode
+                {
                     fail volumeError(.Corrupted)
+                }
+
                 ancestor = ancestorNode.parentId
             }
         }
@@ -217,12 +290,21 @@ impl Volume
         let existing = .findChild(parent.id, name)
         if existing and existing.id != id
         {
-            if not replace do
+            if not replace
+            {
                 fail volumeError(.AlreadyExists)
-            if existing.isDirectory() != sourceIsDirectory do
+            }
+
+            if existing.isDirectory() != sourceIsDirectory
+            {
                 fail volumeError(.InvalidInput)
-            if existing.isDirectory() and .hasChildren(existing.id) do
+            }
+
+            if existing.isDirectory() and .hasChildren(existing.id)
+            {
                 fail volumeError(.DirectoryNotEmpty)
+            }
+
             let existingId    = existing.id
             let existingIndex = .nodeIndex(existingId)
             .freeNodeBlocks(&.nodes[existingIndex])

@@ -62,7 +62,7 @@ impl IRenderer for RenderOgl
             ogl.ownsRC     = false
         }
 
-        let storage = Memory.new'OglContext()
+        let storage = Memory.new!{OglContext}()
         storage[]     = ogl
         .contextCount += 1
         .contexts.add(storage)
@@ -187,7 +187,7 @@ impl IRenderer for RenderOgl
 
     mtd impl updateTexture(texture: Texture, pixels: const *u8)->bool => .updateTextureImpl(texture, pixels)
 
-    mtd impl readTexturePixels(texture: Texture, pixelFormat: PixelFormat)->Array'u8 => .readTexturePixelsImpl(texture, pixelFormat)
+    mtd impl readTexturePixels(texture: Texture, pixelFormat: PixelFormat)->Array!{u8} => .readTexturePixelsImpl(texture, pixelFormat)
 
     mtd impl removeTexture(texture: *Texture)
     {

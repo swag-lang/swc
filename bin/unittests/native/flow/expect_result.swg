@@ -20,7 +20,10 @@ func requiredPointer()->*s32 fail => &storage
 #[Swag.NoInline]
 func requiredResult(succeed: bool)->RequiredResult fail
 {
-    if not succeed do fail Swag.BaseError{"no result"}
+    if not succeed
+    {
+        fail Swag.BaseError{"no result"}
+    }
     return RequiredResult{pointer: &storage}
 }
 

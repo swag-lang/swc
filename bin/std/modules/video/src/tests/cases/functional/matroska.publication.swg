@@ -8,8 +8,8 @@ using Core, Audio
 #test
 {
     var index:     Matroska.FileIndex
-    var tracks:    Array'SoundFile
-    var subtitles: Array'Subtitle.Track
+    var tracks:    Array!{SoundFile}
+    var subtitles: Array!{Subtitle.Track}
     Matroska.selectSoundWindow(&index, 0)
     Matroska.selectSoundWindow(&index, 480_000_000_000)
     Matroska.publishSeekSound(&index, &tracks, &subtitles, 480_000_000_000, 540_000_000_000)
@@ -26,8 +26,8 @@ using Core, Audio
 #test
 {
     var index:     Matroska.FileIndex
-    var tracks:    Array'SoundFile
-    var subtitles: Array'Subtitle.Track
+    var tracks:    Array!{SoundFile}
+    var subtitles: Array!{Subtitle.Track}
     Matroska.selectSoundWindow(&index, 0)
     Matroska.publishFullSound(&index, &tracks, &subtitles)
     Matroska.publishSeekSound(&index, &tracks, &subtitles, 0, 60_000_000_000)
@@ -40,8 +40,8 @@ using Core, Audio
 #test
 {
     var index:     Matroska.FileIndex
-    var tracks:    Array'SoundFile
-    var subtitles: Array'Subtitle.Track
+    var tracks:    Array!{SoundFile}
+    var subtitles: Array!{Subtitle.Track}
     Atomic.exchange(&index.soundPause, 1)
     Matroska.selectSoundWindow(&index, 480_000_000_000)
     Matroska.publishSeekSound(&index, &tracks, &subtitles, 480_000_000_000, 540_000_000_000)

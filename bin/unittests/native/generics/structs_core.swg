@@ -10,27 +10,27 @@ struct(T, N: s32) Buffer
     values: [N] T
 }
 
-func(T, N: s32) bufferCount(buffer: Buffer'(T, N))->s32 => N
-func(T) unbox(box: Box'T)->T => box.value
+func(T, N: s32) bufferCount(buffer: Buffer!{T, N})->s32 => N
+func(T) unbox(box: Box!{T})->T => box.value
 
-func sumFour(buffer: Buffer'(s32, 4))->s32
+func sumFour(buffer: Buffer!{s32, 4})->s32
 {
     return buffer.values[0] + buffer.values[1] + buffer.values[2] + buffer.values[3]
 }
 
-func(T) makeBox(value: T)->Box'T
+func(T) makeBox(value: T)->Box!{T}
 {
     return {value: value}
 }
 
-func(T) boxValue(box: Box'T)->T => box.value
+func(T) boxValue(box: Box!{T})->T => box.value
 
 #test
 {
-    let stringBox: Box'string = {value: "swag"}
-    let intBox:    Box's32    = {value: 42}
-    let boolBox:   Box'bool   = {value: true}
-    let floatBox:  Box'f64    = {value: 3.14}
+    let stringBox: Box!{string} = {value: "swag"}
+    let intBox:    Box!{s32}    = {value: 42}
+    let boolBox:   Box!{bool}   = {value: true}
+    let floatBox:  Box!{f64}    = {value: 3.14}
 
     Swag.require(stringBox.value == "swag")
     Swag.require(intBox.value == 42)
@@ -40,15 +40,15 @@ func(T) boxValue(box: Box'T)->T => box.value
 
 #test
 {
-    let buffer: Buffer'(s32, 4) = {values: [1, 2, 3, 4]}
+    let buffer: Buffer!{s32, 4} = {values: [1, 2, 3, 4]}
     Swag.require(buffer.values[0] == 1)
     Swag.require(buffer.values[3] == 4)
-    Swag.require(bufferCount'(s32, 4)(buffer) == 4)
+    Swag.require(bufferCount!{s32, 4}(buffer) == 4)
     Swag.require(sumFour(buffer) == 10)
 
-    let small: Buffer'(u8, 2) = {values: [10'u8, 20]}
-    Swag.require(small.values[0] == 10'u8)
-    Swag.require(small.values[1] == 20'u8)
+    let small: Buffer!{u8, 2} = {values: [10_u8, 20]}
+    Swag.require(small.values[0] == 10_u8)
+    Swag.require(small.values[1] == 20_u8)
 }
 
 #test
@@ -68,11 +68,11 @@ func(T) boxValue(box: Box'T)->T => box.value
 
 #test
 {
-    let b: Box's32 = {value: 99}
+    let b: Box!{s32} = {value: 99}
     Swag.require(unbox(b) == 99)
     Swag.require(boxValue(b) == 99)
 
-    let s: Box'string = {value: "works"}
+    let s: Box!{string} = {value: "works"}
     Swag.require(unbox(s) == "works")
     Swag.require(boxValue(s) == "works")
 }
@@ -86,8 +86,8 @@ func(T) boxValue(box: Box'T)->T => box.value
             value: T
         }
 
-        let intBox:  LocalBox's32  = {value: 11}
-        let boolBox: LocalBox'bool = {value: false}
+        let intBox:  LocalBox!{s32}  = {value: 11}
+        let boolBox: LocalBox!{bool} = {value: false}
 
         Swag.require(intBox.value == 11)
         Swag.require(boolBox.value == false)
@@ -99,8 +99,8 @@ func(T) boxValue(box: Box'T)->T => box.value
             values: [N] T
         }
 
-        let buffer: LocalBuffer'(u16, 2) = {values: [5'u16, 9]}
-        Swag.require(buffer.values[0] == 5'u16)
-        Swag.require(buffer.values[1] == 9'u16)
+        let buffer: LocalBuffer!{u16, 2} = {values: [5_u16, 9]}
+        Swag.require(buffer.values[0] == 5_u16)
+        Swag.require(buffer.values[1] == 9_u16)
     }
 }

@@ -98,8 +98,10 @@ func semaWithMakePoint()->SemaWithPoint
 
 func semaWithColorScore(c: SemaWithColor)->s32
 {
-    if c == .Red do
+    if c == .Red
+    {
         return 4
+    }
     return 9
 }
 
@@ -206,8 +208,10 @@ func semaTest006()
     let b = Blue
     sum += semaWithColorScore(a)
     sum += semaWithColorScore(.Blue)
-    if b == Blue do
+    if b == Blue
+    {
         sum += 1
+    }
 
     sum += SemaWithNs.bias(1)
     sum += SemaWithNs.bias(2)

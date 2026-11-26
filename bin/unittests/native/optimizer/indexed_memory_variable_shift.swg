@@ -33,7 +33,7 @@ func shiftArithmetic64(values: [*] s64, index: u64, amount: u32)
     shiftRight32(&right[0], 2, 4)
     Swag.require(right[0] == 1 and right[1] == 1 and right[2] == 0x0FFFFFFF and right[3] == 7)
 
-    var arithmetic: [4] s64 = [1, -1, -9223372036854775808's64, 7]
+    var arithmetic: [4] s64 = [1, -1, -9223372036854775808_s64, 7]
     shiftArithmetic64(&arithmetic[0], 1, 63)
     shiftArithmetic64(&arithmetic[0], 2, 4)
     Swag.require(arithmetic[0] == 1 and

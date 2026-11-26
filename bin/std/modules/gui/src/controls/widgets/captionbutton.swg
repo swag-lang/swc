@@ -18,10 +18,15 @@ impl IWnd for CaptionButton
     mtd impl onDestroyEvent(evt: *DestroyEvent)
     {
         let surface = assume cast(*SurfaceWnd, .parent)
-        if .leading do
+        if .leading
+        {
             surface.unregisterLeadingCaptionButton(me)
-        else do
+        }
+        else
+        {
             surface.unregisterCaptionButton(me)
+        }
+
         .button.IWnd.onDestroyEvent(evt)
     }
 }
@@ -31,8 +36,11 @@ impl CaptionButton
     // Shows or hides this action and rearranges the caption before its next paint.
     mtd show(visible = true)
     {
-        if .isLocallyVisible() == visible do
+        if .isLocallyVisible() == visible
+        {
             return
+        }
+
         .button.wnd.show(visible)
         .parent!.sendResizeEvent()
     }
@@ -64,7 +72,7 @@ impl CaptionButton
     {
         Swag.assert(surface != null)
         let parent      = assume cast(*SurfaceWnd, surface.wnd)
-        with let result = Wnd.create'CaptionButton(parent, null, {}, id)
+        with let result = Wnd.create!{CaptionButton}(parent, null, {}, id)
         {
             .leading = leading
             .button.setIcon(surface.app.theme.icon(icon, surface.app.theme.metrics.wnd_CaptionButtonGlyph))
@@ -72,10 +80,15 @@ impl CaptionButton
             .focusPolicy = .None
         }
 
-        if leading do
+        if leading
+        {
             parent.registerLeadingCaptionButton(result)
-        else do
+        }
+        else
+        {
             parent.registerCaptionButton(result)
+        }
+
         return result
     }
 }

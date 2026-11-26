@@ -48,7 +48,7 @@ enum HeaderSortDirection
 }
 
 // Height of the faint line a column's detail takes under its title.
-private const DetailBand = 16.0'f32
+private const DetailBand = 16.0_f32
 
 // Displays named, optionally sortable and resizable columns.
 struct Header
@@ -57,11 +57,11 @@ struct Header
     {
         using wnd: Wnd     // Embedded window behavior and presentation.
 
-        form = HeaderForm.Flat                           // Background and border presentation.
-        itemPadding:      f32 = 5                        // Horizontal inset applied to each item label.
-        ruleInset:        f32                            // Inset of the rule under the header from each side, so it spans what the rows under it span.
-        sigLayoutChanged: SigArray'func||(*Wnd)          // Emitted after an effective column width changes.
-        sigColumnClicked: SigArray'func||(*Wnd, u32)     // Emitted after the user clicks a column.
+        form = HeaderForm.Flat                             // Background and border presentation.
+        itemPadding:      f32 = 5                          // Horizontal inset applied to each item label.
+        ruleInset:        f32                              // Inset of the rule under the header from each side, so it spans what the rows under it span.
+        sigLayoutChanged: SigArray!{func||(*Wnd)}          // Emitted after an effective column width changes.
+        sigColumnClicked: SigArray!{func||(*Wnd, u32)}     // Emitted after the user clicks a column.
 
         // The columns the header shows, and which one it sorts on. Add columns through the methods
         // so the layout and the owning list stay in step.
@@ -69,7 +69,7 @@ struct Header
         readonly
         {
             flags         = HeaderFlags.Clickable | .Separators     // Active interaction and separator options.
-            items: ArrayPtr'HeaderItem       // Columns in display order.
+            items: ArrayPtr!{HeaderItem}     // Columns in display order.
             sortColumn    = Swag.U32.Max     // Logical column carrying the sort marker.
             sortDirection = HeaderSortDirection.None     // Direction of the sort marker.
         }
@@ -119,8 +119,10 @@ impl IWnd for Header
         }
 
         labelPos.moveLeft(.itemPadding)
-        if item.horzAlign != .Left do
+        if item.horzAlign != .Left
+        {
             labelPos.width = Math.max(labelPos.width - .itemPadding, 0)
+        }
 
         var colorText: Color
         switch
@@ -153,8 +155,11 @@ impl IWnd for Header
                 else
                 {
                     var words = Painter.measureString(item.name.text, nnFont(.font().regular)).width
-                    if item.icon.isValid() do
+                    if item.icon.isValid()
+                    {
                         words += item.icon.sizeX + metrics.iconText_Margin
+                    }
+
                     markX = Math.min(labelPos.x + words + gap, labelPos.right() - icon.sizeX)
                     labelPos.width -= icon.sizeX
                 }
@@ -173,10 +178,15 @@ impl IWnd for Header
                 let mono  = theme.createDefaultFontFs(metrics.defaultFontSize - 3)
                 let width = Painter.measureString(item.detail, mono).width
                 var left  = labelPos.x
-                if item.horzAlign == .Right do
+                if item.horzAlign == .Right
+                {
                     left = labelPos.right() - width
-                elif item.horzAlign == .Center do
+                }
+                else if item.horzAlign == .Center
+                {
                     left = labelPos.horzCenter() - width * 0.5
+                }
+
                 painter.drawString(Math.round(left), mono.opticalLineTop(labelPos.bottom() + band * 0.5 - 4), item.detail, mono, colors.faintText)
             }
         }
@@ -249,8 +259,10 @@ impl IWnd for Header
             if .clicked and not .sigColumnClicked.isEmpty()
             {
                 let {idx: hit, sep: _} = .hitTest(evt.surfacePos)
-                if hit == .hotIdx do
+                if hit == .hotIdx
+                {
                     .sigColumnClicked.call(me, .items[.hotIdx]!.column)
+                }
             }
 
             if .moving or .clicked
@@ -269,10 +281,14 @@ impl IWnd for Header
             // Hot, if not a separator, is disabled if item is not clickable
             if hit != Swag.U32.Max
             {
-                if not .flags.has(.Clickable) and not sep do
+                if not .flags.has(.Clickable) and not sep
+                {
                     hit = Swag.U32.Max
-                elif not .items[hit]!.isClickable do
+                }
+                else if not .items[hit]!.isClickable
+                {
                     hit = Swag.U32.Max
+                }
             }
 
             if hit != .hotIdx
@@ -287,10 +303,14 @@ impl IWnd for Header
                 .invalidate()
             }
 
-            if .hotSeparator do
+            if .hotSeparator
+            {
                 .cursor = Cursor.from(CursorShape.ResizeHorizontal)
-            else do
+            }
+            else
+            {
                 .cursor.clear()
+            }
         }
 
         if .hotIdx == Swag.U32.Max
@@ -330,7 +350,7 @@ impl IWnd for Header
                     .correctMoving -= .itemWidthAt(.hotIdx)
                     .captureMouse()
                 }
-                elif .items[.hotIdx]!.isClickable
+                else if .items[.hotIdx]!.isClickable
                 {
                     .clicked = true
                     .captureMouse()
@@ -355,14 +375,20 @@ private impl Header
         for itemIt, idx in .items
         {
             let item = unwrap itemIt
-            if pos.x >= x and pos.x < x + item.width do
+            if pos.x >= x and pos.x < x + item.width
+            {
                 return {idx: cast(u32, idx), sep: false}
+            }
+
             x += item.width
             if .flags.has(.Separators) and
                pos.x >= x and
                pos.x <= x + metrics.header_Separator and
-               item.isResizable do
+               item.isResizable
+            {
                 return {idx: cast(u32, idx), sep: true}
+            }
+
             x += metrics.header_Separator
         }
 
@@ -375,8 +401,11 @@ impl Header
     // Returns the height reserved under titles when any column has a detail, or zero otherwise.
     mtd const detailBand()->f32
     {
-        for item in .items where item and not item.detail.isEmpty() do
+        for item in .items where item and not item.detail.isEmpty()
+        {
             return DetailBand
+        }
+
         return 0
     }
 
@@ -384,8 +413,11 @@ impl Header
     mtd fitHeight()
     {
         let height = .themeMetrics().header_Height + .detailBand()
-        if .position.height == height do
+        if .position.height == height
+        {
             return
+        }
+
         .position.height = height
         .parent?.applyLayout()
     }
@@ -407,8 +439,11 @@ impl Header
     // Removes the current sort marker.
     mtd clearSortIndicator()
     {
-        if .sortDirection == .None do
+        if .sortDirection == .None
+        {
             return
+        }
+
         .sortColumn    = Swag.U32.Max
         .sortDirection = .None
         .invalidate()
@@ -422,9 +457,12 @@ impl Header
 
         let metrics = parent.themeMetrics()
         var pos     = position
-        if pos.height == 0 do
+        if pos.height == 0
+        {
             pos.height = metrics.header_Height
-        let result = Wnd.create'Header(parent, null, pos, id)
+        }
+
+        let result = Wnd.create!{Header}(parent, null, pos, id)
         result.padding = metrics.header_Padding
         return result
     }
@@ -433,7 +471,7 @@ impl Header
     //
     // A negative `width` is clamped to zero.
     #[Swag.Discardable]
-    mtd addColumn(name: string, width = 100'f32, icon: Icon = {}, align = StringHorzAlignment.Left)->*HeaderItem
+    mtd addColumn(name: string, width = 100_f32, icon: Icon = {}, align = StringHorzAlignment.Left)->*HeaderItem
     {
         let item = .items.allocate()
         item.name      = name
@@ -461,8 +499,10 @@ impl Header
 
         for item in .items
         {
-            if item!.column == column do
+            if item!.column == column
+            {
                 return item
+            }
         }
 
         unreachable
@@ -483,8 +523,10 @@ impl Header
         for itemIt in .items
         {
             let item = unwrap itemIt
-            if item.column == column do
+            if item.column == column
+            {
                 return item.width
+            }
         }
 
         return 0
@@ -507,8 +549,11 @@ impl Header
         for itemIt in .items
         {
             let item = unwrap itemIt
-            if item.column == column do
+            if item.column == column
+            {
                 return x
+            }
+
             x += item.width + m
         }
 
@@ -518,8 +563,10 @@ impl Header
     // Returns the complete width occupied by columns, separators, and leading padding.
     mtd contentWidth()->f32
     {
-        if .items.isEmpty() do
+        if .items.isEmpty()
+        {
             return .padding.x
+        }
 
         var w = .itemPositionAt(cast(u32, .items.count) - 1)
         w += .items.back()!.width
@@ -541,10 +588,16 @@ impl Header
 
         let item = .itemForColumn(column)
         var move = Math.max(width, item.minimumWidth)
-        if item.maximumWidth > 0 do
+        if item.maximumWidth > 0
+        {
             move = Math.min(move, item.maximumWidth)
-        if item.width == move do
+        }
+
+        if item.width == move
+        {
             return
+        }
+
         item.width = move
         .sigLayoutChanged.call(me)
         .invalidate()
@@ -582,8 +635,11 @@ impl Header
             .cursor.clear()
         }
 
-        if not .flags.has(.Clickable) and not .hotSeparator do
+        if not .flags.has(.Clickable) and not .hotSeparator
+        {
             .hotIdx = Swag.U32.Max
+        }
+
         .invalidate()
     }
 }

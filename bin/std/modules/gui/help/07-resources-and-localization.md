@@ -76,7 +76,7 @@ var g_AppStrings: AppStrings
 
 #main
 {
-    Gui.registerStrings'AppStrings(&g_AppStrings, "myapp")
+    Gui.registerStrings!{AppStrings}(&g_AppStrings, "myapp")
     // ...
 }
 ```
@@ -129,7 +129,7 @@ const FrenchStrings = #include("lang/fr/myapp.tweak")
 
 #run
 {
-    expect Gui.validateStrings'AppStrings(cast(string, FrenchStrings))
+    expect Gui.validateStrings!{AppStrings}(cast(string, FrenchStrings))
 }
 ```
 

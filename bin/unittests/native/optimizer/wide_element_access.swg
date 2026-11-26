@@ -20,15 +20,21 @@ struct Wide
 #[Swag.Optimize(true), Swag.NoInline]
 func sumPrices(p: const [*] Pair, n: u64)->s64
 {
-    var t = 0's64
-    for i in n do t += p[i].price
+    var t = 0_s64
+    for i in n
+    {
+        t += p[i].price
+    }
     return t
 }
 #[Swag.Optimize(false), Swag.NoInline]
 func sumPricesRef(p: const [*] Pair, n: u64)->s64
 {
-    var t = 0's64
-    for i in n do t += p[i].price
+    var t = 0_s64
+    for i in n
+    {
+        t += p[i].price
+    }
     return t
 }
 
@@ -40,15 +46,21 @@ func yAt(p: const [*] Wide, i: u64)->f64 => p[i].y
 #[Swag.Optimize(true), Swag.NoInline]
 func sumX(p: const [*] Wide, n: u64)->f64
 {
-    var t = 0.0'f64
-    for i in n do t += p[i].x
+    var t = 0.0_f64
+    for i in n
+    {
+        t += p[i].x
+    }
     return t
 }
 #[Swag.Optimize(false), Swag.NoInline]
 func sumXRef(p: const [*] Wide, n: u64)->f64
 {
-    var t = 0.0'f64
-    for i in n do t += p[i].x
+    var t = 0.0_f64
+    for i in n
+    {
+        t += p[i].x
+    }
     return t
 }
 
@@ -56,11 +68,15 @@ func sumXRef(p: const [*] Wide, n: u64)->f64
 {
     let pairs: [4] Pair = [Pair{1, -2, 30}, Pair{2, 5, -12}, Pair{3, 7, 100}, Pair{4, -9, 5}]
     Swag.require(sumPrices(&pairs[0], 4) == sumPricesRef(&pairs[0], 4))
-    for i in 4 do
+    for i in 4
+    {
         Swag.require(weightAt(&pairs[0], i) == pairs[i].w)
+    }
 
     let wides: [3] Wide = [Wide{1, 2, 0.5, -1.5}, Wide{3, 4, 2.25, 8}, Wide{5, 6, -4, 0.125}]
     Swag.require(sumX(&wides[0], 3) == sumXRef(&wides[0], 3))
-    for i in 3 do
+    for i in 3
+    {
         Swag.require(yAt(&wides[0], i) == wides[i].y)
+    }
 }

@@ -19,8 +19,11 @@ using Core, Gui, Pixel
     input.shortcut(.F, .Control)
     journey.waitFor("native find shortcut", func|window|()->bool => window.searchBar.isLocallyVisible() and
                                                                     window.searchBox.hasFocus())
-    for key in [Input.Key.A, .L, .P, .H, .A] do
+    for key in [Input.Key.A, .L, .P, .H, .A]
+    {
         input.shortcut(key, .None)
+    }
+
     journey.waitFor("native search text", func|window|()->bool => window.searchBox.text() == "alpha" and
                                                                   window.searchComplete and
                                                                   window.searchMatches.count == 3)

@@ -36,7 +36,7 @@ impl Hash.IHash32 for TypeFaceCacheKey
     mtd const impl compute()->u32 => Hash.hash32(.name) ^ Hash.hash32(.index) ^ Hash.hash32(.style)
 }
 
-var g_HashTypeFace: HashTable'(TypeFaceCacheKey, *TypeFace)
+var g_HashTypeFace: HashTable!{TypeFaceCacheKey, *TypeFace}
 
 #drop
 {
@@ -113,8 +113,11 @@ public impl TypeFace
     // Destroys the native face associated with this value.
     mtd opDrop()
     {
-        if .faceLoaded do
+        if .faceLoaded
+        {
             .face.destroy()
+        }
+
         .fullName.opDrop()
         Swag.init(&.fullName, 1)
     }
@@ -143,14 +146,24 @@ public impl TypeFace
     func createAt(fullName: string, bytes: const [..] u8, faceIndex: u32)->*TypeFace fail =>
         try createCached(fullName, faceIndex, bytes)
 
-    // Returns the cached typeface for a zero-based face of an immutable font source.
-    //
-    // The first successful call for (`fullName`, `faceIndex`) loads a complete face through
-    // [[TrueType.FontSource.loadFace]]. The face retains the source bytes until Pixel shuts down,
-    // so the source allocator must live that long. Later calls with the same key reuse the face.
-    // Invalid input fails without creating a cache entry.
-    func createFromSource(fullName: string, source: const *FontSource, faceIndex: u32 = 0)->*TypeFace fail =>
-        try createCached(fullName, faceIndex, "", source)
+        let key = TypeFaceCacheKey{String.from(fullName), faceIndex}
+        if let here = g_HashTypeFace.tryFind(key)
+        {
+            return here.value
+        }
+
+        let allocator = unwrap (Swag.getContext().defaultAllocator orelse Swag.getContext().allocator)
+        let tf        = Memory.new!{TypeFace}(allocator)
+        tf.allocationAllocator = allocator
+        defer #fail Memory.delete(tf, allocator)
+        tf.fullName = fullName
+
+        tf.face       = faceIndex == 0 ? try Face.loadSubset(bytes, fullName, allocator) : try Face.loadAt(bytes, faceIndex, allocator)
+        tf.faceLoaded = true
+
+        g_HashTypeFace.add(key, tf)
+        return tf
+    }
 
     // Reports whether [[Pixel.TypeFace.load]] has a font to load for `fullName`.
     //
@@ -163,12 +176,17 @@ public impl TypeFace
         scope
         {
             Sync.scopedLock(&lock)
-            if g_HashTypeFace.tryFind(TypeFaceCacheKey{String.from(fullName), 0}) do
+            if g_HashTypeFace.tryFind(TypeFaceCacheKey{String.from(fullName), 0})
+            {
                 return true
+            }
         }
 
-        if File.exists(fullName) do
+        if File.exists(fullName)
+        {
             return true
+        }
+
         return FontFamily.hasSystemFontAccess() and File.exists(Path.combine(Env.realSpecialDirectory(.Font), fullName))
     }
 
@@ -197,11 +215,13 @@ public impl TypeFace
         Sync.scopedLock(&lock)
 
         let fullName = key.name.toString()
-        if let here = g_HashTypeFace.tryFind(key) do
+        if let here = g_HashTypeFace.tryFind(key)
+        {
             return here.value
+        }
 
         let allocator = unwrap (Swag.getContext().defaultAllocator orelse Swag.getContext().allocator)
-        let tf        = Memory.new'TypeFace(allocator)
+        let tf        = Memory.new!{TypeFace}(allocator)
         tf.allocationAllocator = allocator
         defer #fail Memory.delete(tf, allocator)
         tf.fullName = fullName
@@ -211,6 +231,7 @@ public impl TypeFace
         // The installed fonts belong to the machine, not to the program, so this looks past
         // any sandbox: a sandboxed run has no fonts of its own and would find nothing.
         // A name that is no file is an installed font, where the machine's fonts may answer.
+        var buffer: Array!{u8}
         if not File.exists(fullName) and FontFamily.hasSystemFontAccess()
         {
             let path = Path.combine(Env.realSpecialDirectory(.Font), fullName)
@@ -238,20 +259,28 @@ public impl TypeFace
     {
         var emb = .forceBold or forceBold ? Math.max(1, size / .forceBoldDiv) : 0
         emb += embolden
-        if emb do
+        if emb
+        {
             try .face.glyph.outline.embolden(cast(s32, emb) * 64)
-        if .forceItalic or forceItalic do
+        }
+
+        if .forceItalic or forceItalic
+        {
             .face.glyph.oblique()
+        }
     }
 
     // Sub-pixel outline dilation that offsets the anti-aliasing thinning of small
     // text (stem darkening). Per-side strength in 26.6, fading out as the size grows.
     private func stemDarkenStrength(size: u32)->s32
     {
-        const FadePx = 24.0'f32     // no darkening at or above this size
-        const MaxPx  = 0.12'f32     // per-side dilation in pixels at the smallest sizes
-        if cast(f32, size) >= FadePx do
+        const FadePx = 24.0_f32     // no darkening at or above this size
+        const MaxPx  = 0.12_f32     // per-side dilation in pixels at the smallest sizes
+        if cast(f32, size) >= FadePx
+        {
             return 0
+        }
+
         let t = (FadePx - cast(f32, size)) / FadePx
         return cast(s32, Math.round(MaxPx * t * 64.0))
     }
@@ -270,7 +299,7 @@ public impl TypeFace
     // glyph drawn from a fractional pen position keeps its exact ink while its bitmap stays
     // aligned to whole pixels. The bitmap's left edge accounts for the offset.
     #[Swag.Propagate]
-    mtd renderGlyphByIndex(glyphIndex: u32, size: u32, forceBold = false, forceItalic = false, penOffsetX = 0.0'f32)->const *Bitmap fail
+    mtd renderGlyphByIndex(glyphIndex: u32, size: u32, forceBold = false, forceItalic = false, penOffsetX = 0.0_f32)->const *Bitmap fail
     {
         Sync.scopedLock(&.glyphMutex)
         return .renderGlyphByIndexLocked(glyphIndex, size, forceBold, forceItalic, penOffsetX)
@@ -347,8 +376,12 @@ public impl TypeFace
         var result: #returntype
         let commands = .face.glyph.outline.decompose()
         addOutlineToPathList(&result.outline, commands.toSlice())
-        for path in result.outline.paths do
-            path.assumeClosed()
+
+        for i in prevIdx until result.outline.paths.count
+        {
+            result.outline.paths[i].assumeClosed()
+        }
+
         result.advance = embolden + (.face.glyph.advance.x / 64.0)
         return result
     }

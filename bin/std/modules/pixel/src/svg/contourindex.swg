@@ -36,10 +36,10 @@ struct ContourIndex
 {
     private
     {
-        bounds:    Array'ContourBounds
-        order:     Array'u64
-        nodes:     Array'ContourNode
-        matches:   Array'u64
+        bounds:  Array!{ContourBounds}
+        order:   Array!{u64}
+        nodes:   Array!{ContourNode}
+        matches: Array!{u64}
     }
 }
 
@@ -49,18 +49,22 @@ impl ContourIndex
     {
         let count = paths.paths.count
         .order.reserve(count)
-        for i in count do
+        for i in count
+        {
             .order.add(i)
+        }
 
         // The exact ray test interpolates x in f32. Keep a margin for rounding and use the
         // original search when coordinates or edge differences make this bound unreliable.
-        const Limit = 1e30'f32
+        const Limit = 1e30_f32
         .bounds.resize(count)
         for path, index in paths.paths
         {
             let points = &path.polygon.points
-            if points.isEmpty() do
+            if points.isEmpty()
+            {
                 continue
+            }
 
             var box   = ContourBounds{points[0], points[0]}
             var prevY = points.back().y
@@ -70,10 +74,16 @@ impl ContourIndex
                 if not Math.isFinite(point.x) or
                    not Math.isFinite(point.y) or
                    Math.abs(point.x) > Limit or
-                   Math.abs(point.y) > Limit do
+                   Math.abs(point.y) > Limit
+                {
                     return
-                if point.y != prevY and Math.abs(point.y - prevY) < Swag.F32.MinNormal do
+                }
+
+                if point.y != prevY and Math.abs(point.y - prevY) < Swag.F32.MinNormal
+                {
                     return
+                }
+
                 prevY   = point.y
                 box.min = Vector2.min(box.min, point)
                 box.max = Vector2.max(box.max, point)
@@ -87,8 +97,10 @@ impl ContourIndex
         }
 
         var total = .bounds[0]
-        for i in 1 until count do
+        for i in 1 until count
+        {
             total = total.combined(.bounds[i])
+        }
 
         let bounds = .bounds.toSlice()
         let sortX  = total.max.x - total.min.x >= total.max.y - total.min.y
@@ -97,8 +109,11 @@ impl ContourIndex
             let amin       = bounds[a].min
             let bmin       = bounds[b].min
             let comparison = sortX ? amin.x <=> bmin.x : amin.y <=> bmin.y
-            if comparison do
+            if comparison
+            {
                 return comparison
+            }
+
             return sortX ? amin.y <=> bmin.y : amin.x <=> bmin.x
         })
         discard .buildNode(0, count)
@@ -112,8 +127,11 @@ impl ContourIndex
         if count <= 12
         {
             var box = .bounds[.order[first]]
-            for offset in 1 until count do
+            for offset in 1 until count
+            {
                 box = box.combined(.bounds[.order[first + offset]])
+            }
+
             .nodes[index].bounds = box
             return index
         }
@@ -129,8 +147,11 @@ impl ContourIndex
     private mtd appendOverlaps(index: u64, query: ContourBounds)
     {
         let node = &.nodes[index]
-        if not node.bounds.overlaps(query) do
+        if not node.bounds.overlaps(query)
+        {
             return
+        }
+
         if node.right
         {
             // The left child is stored immediately after its parent.
@@ -142,16 +163,21 @@ impl ContourIndex
         for offset in node.count
         {
             let pathIndex = .order[node.first + offset]
-            if .bounds[pathIndex].overlaps(query) do
+            if .bounds[pathIndex].overlaps(query)
+            {
                 .matches.add(pathIndex)
+            }
         }
     }
 
     #[Swag.Inline]
     mtd candidateContainers(point: Vector2)->const [..] u64
     {
-        if .nodes.isEmpty() do
+        if .nodes.isEmpty()
+        {
             return .order.toSlice()
+        }
+
         .matches.clear()
         .appendOverlaps(0, {min: point, max: point})
         return .matches.toSlice()
@@ -160,8 +186,11 @@ impl ContourIndex
     #[Swag.Inline]
     mtd candidateHoles(pathIndex: u64)->const [..] u64
     {
-        if .nodes.isEmpty() do
+        if .nodes.isEmpty()
+        {
             return .order.toSlice()
+        }
+
         .matches.clear()
         .appendOverlaps(0, .bounds[pathIndex])
         .matches.sort()

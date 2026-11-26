@@ -83,7 +83,7 @@ func parseReports(bytes: const [..] u8)->ReportBatch
             continue
         }
 
-        if ch == ' 'u8 or ch == '\r'u8 or ch == '\n'u8
+        if ch == ' '_u8 or ch == '\r'_u8 or ch == '\n'_u8
         {
             if readingNumber
             {
@@ -94,7 +94,7 @@ func parseReports(bytes: const [..] u8)->ReportBatch
                 readingNumber = false
             }
 
-            if ch == '\n'u8 and current.count != 0
+            if ch == '\n'_u8 and current.count != 0
             {
                 Swag.assert(result.count < MaxReports)
                 result.reports[result.count] = current
@@ -134,8 +134,10 @@ func isSafeReport(report: Report, skippedIndex: s32)->bool
     for index in report.count
     {
         let rawIndex = cast(u32, index)
-        if cast(s32, rawIndex) == skippedIndex do
+        if cast(s32, rawIndex) == skippedIndex
+        {
             continue
+        }
 
         let level = report.levels[rawIndex]
         if not havePrevious
@@ -146,12 +148,16 @@ func isSafeReport(report: Report, skippedIndex: s32)->bool
         }
 
         let delta = level - previous
-        if not isValidDelta(delta) do
+        if not isValidDelta(delta)
+        {
             return false
+        }
 
         let currentTrend = deltaTrend(delta)
-        if trend != Trend.Unknown and currentTrend != trend do
+        if trend != Trend.Unknown and currentTrend != trend
+        {
             return false
+        }
 
         trend    = currentTrend
         previous = level
@@ -162,14 +168,18 @@ func isSafeReport(report: Report, skippedIndex: s32)->bool
 
 func isSafeWithProblemDampener(report: Report)->bool
 {
-    if isSafeReport(report, -1) do
+    if isSafeReport(report, -1)
+    {
         return true
+    }
 
     for index in report.count
     {
         let skippedIndex = cast(s32, index)
-        if isSafeReport(report, skippedIndex) do
+        if isSafeReport(report, skippedIndex)
+        {
             return true
+        }
     }
 
     return false
@@ -185,11 +195,15 @@ func auditReportsClean(batch: ReportBatch)->SafetyAudit
         let index      = cast(u32, idx)
         let report     = batch.reports[index]
         let strictSafe = isSafeReport(report, -1)
-        if strictSafe do
+        if strictSafe
+        {
             result.safeWithoutDampener += 1
+        }
 
-        if strictSafe or isSafeWithProblemDampener(report) do
+        if strictSafe or isSafeWithProblemDampener(report)
+        {
             result.safeWithDampener += 1
+        }
     }
 
     return result
@@ -250,8 +264,10 @@ func visitReportLevels(report: Report, skippedIndex: s32, stmt: #code(level, raw
 {
     for index in report.count
     {
-        if cast(s32, index) == skippedIndex do
+        if cast(s32, index) == skippedIndex
+        {
             continue
+        }
 
         #inject(stmt, level = report.levels[cast(u32, index)], rawIndex = cast(u32, index))
     }
@@ -273,14 +289,18 @@ func isSafeReportWithLanguageFeatures(report: Report, skippedIndex: s32)->bool
 
 func isSafeWithProblemDampenerLanguageFeatures(report: Report)->bool
 {
-    if isSafeReportWithLanguageFeatures(report, -1) do
+    if isSafeReportWithLanguageFeatures(report, -1)
+    {
         return true
+    }
 
     for index in report.count
     {
         let skippedIndex = cast(s32, index)
-        if isSafeReportWithLanguageFeatures(report, skippedIndex) do
+        if isSafeReportWithLanguageFeatures(report, skippedIndex)
+        {
             return true
+        }
     }
 
     return false
@@ -296,11 +316,15 @@ func auditReportsWithLanguageFeatures(batch: ReportBatch)->SafetyAudit
         let index      = cast(u32, idx)
         let report     = batch.reports[index]
         let strictSafe = isSafeReportWithLanguageFeatures(report, -1)
-        if strictSafe do
+        if strictSafe
+        {
             result.safeWithoutDampener += 1
+        }
 
-        if strictSafe or isSafeWithProblemDampenerLanguageFeatures(report) do
+        if strictSafe or isSafeWithProblemDampenerLanguageFeatures(report)
+        {
             result.safeWithDampener += 1
+        }
     }
 
     return result
@@ -312,7 +336,7 @@ func auditReportsWithLanguageFeatures(batch: ReportBatch)->SafetyAudit
     let sampleClean    = auditReportsClean(sampleBatch)
     let sampleFeatures = auditReportsWithLanguageFeatures(sampleBatch)
 
-    Swag.require(sampleBatch.count == 6'u32)
+    Swag.require(sampleBatch.count == 6_u32)
     Swag.require(isSafeReport(sampleBatch.reports[0], -1))
     Swag.require(not isSafeReport(sampleBatch.reports[1], -1))
     Swag.require(not isSafeWithProblemDampener(sampleBatch.reports[2]))
@@ -321,9 +345,9 @@ func auditReportsWithLanguageFeatures(batch: ReportBatch)->SafetyAudit
     Swag.require(isSafeReportWithLanguageFeatures(sampleBatch.reports[0], -1))
     Swag.require(not isSafeReportWithLanguageFeatures(sampleBatch.reports[1], -1))
     Swag.require(not isSafeWithProblemDampenerLanguageFeatures(sampleBatch.reports[2]))
-    Swag.require(sampleClean.reportCount == 6'u32)
-    Swag.require(sampleClean.safeWithoutDampener == 2'u32)
-    Swag.require(sampleClean.safeWithDampener == 4'u32)
+    Swag.require(sampleClean.reportCount == 6_u32)
+    Swag.require(sampleClean.safeWithoutDampener == 2_u32)
+    Swag.require(sampleClean.safeWithDampener == 4_u32)
     Swag.require(sampleFeatures.reportCount == sampleClean.reportCount)
     Swag.require(sampleFeatures.safeWithoutDampener == sampleClean.safeWithoutDampener)
     Swag.require(sampleFeatures.safeWithDampener == sampleClean.safeWithDampener)
@@ -335,9 +359,9 @@ func auditReportsWithLanguageFeatures(batch: ReportBatch)->SafetyAudit
     let edgeClean    = auditReportsClean(edgeBatch)
     let edgeFeatures = auditReportsWithLanguageFeatures(edgeBatch)
 
-    Swag.require(edgeBatch.count == 4'u32)
-    Swag.require(edgeClean.safeWithoutDampener == 1'u32)
-    Swag.require(edgeClean.safeWithDampener == 3'u32)
+    Swag.require(edgeBatch.count == 4_u32)
+    Swag.require(edgeClean.safeWithoutDampener == 1_u32)
+    Swag.require(edgeClean.safeWithDampener == 3_u32)
     Swag.require(edgeFeatures.reportCount == edgeClean.reportCount)
     Swag.require(edgeFeatures.safeWithoutDampener == edgeClean.safeWithoutDampener)
     Swag.require(edgeFeatures.safeWithDampener == edgeClean.safeWithDampener)
@@ -349,9 +373,9 @@ func auditReportsWithLanguageFeatures(batch: ReportBatch)->SafetyAudit
     let coverageClean    = auditReportsClean(coverageBatch)
     let coverageFeatures = auditReportsWithLanguageFeatures(coverageBatch)
 
-    Swag.require(coverageClean.reportCount == 8'u32)
-    Swag.require(coverageClean.safeWithoutDampener == 3'u32)
-    Swag.require(coverageClean.safeWithDampener == 6'u32)
+    Swag.require(coverageClean.reportCount == 8_u32)
+    Swag.require(coverageClean.safeWithoutDampener == 3_u32)
+    Swag.require(coverageClean.safeWithDampener == 6_u32)
     Swag.require(coverageFeatures.reportCount == coverageClean.reportCount)
     Swag.require(coverageFeatures.safeWithoutDampener == coverageClean.safeWithoutDampener)
     Swag.require(coverageFeatures.safeWithDampener == coverageClean.safeWithDampener)

@@ -11,7 +11,7 @@ private func renderFallbackText(mode: FontRenderMode, explicitFaces: bool)->Imag
     let cache = renderer.fontCache()
     cache.setFallbackTypeFaces([try fallbackTestFace(true)], false)
     let font     = cache.createFont(try fallbackTestFace(false), 24, mode)
-    let fallback = font.resolveRune('\u2192'rune)
+    let fallback = font.resolveRune('\u2192'_rune)
     var target   = renderer.createRenderTarget(160, 64)
     defer renderer.deleteRenderTarget(&target)
     var painter = Painter.create(renderer)
@@ -46,7 +46,9 @@ private func renderFallbackText(mode: FontRenderMode, explicitFaces: bool)->Imag
         var actual   = expect renderFallbackText(mode, false)
         let expected = expect renderFallbackText(mode, true)
         Testing.assertImagesNear(&expected, &actual, "text.fallback.explicit")
-        if mode == .Bitmap do
+        if mode == .Bitmap
+        {
             Testing.assertImageGolden(&actual, "text.fallback")
+        }
     }
 }

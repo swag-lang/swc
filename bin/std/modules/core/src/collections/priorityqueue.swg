@@ -11,7 +11,7 @@ struct(T) PriorityQueue
 {
     private
     {
-        items:      Array'T
+        items:      Array!{T}
         comparator: *void?
     }
 
@@ -55,15 +55,20 @@ impl PriorityQueue
     // Requests at or below the current capacity, including zero, do nothing.
     mtd reserve(newCapacity: u64)
     {
-        if newCapacity <= .capacity() do
+        if newCapacity <= .capacity()
+        {
             return
+        }
+
         .items.reserve(newCapacity)
     }
 
     private mtd const compareItems(left, right: T)->s32
     {
-        if .comparator do
+        if .comparator
+        {
             return cast(func(const *T, const *T)->s32, unwrap .comparator)(&left, &right)
+        }
 
         Swag.assert(false, "priority queue has not been initialized with a comparator")
         return 0
@@ -81,8 +86,11 @@ impl PriorityQueue
         while child
         {
             let parent = (child - 1) / 2
-            if .compareItems(.items[parent], .items[child]) <= 0 do
+            if .compareItems(.items[parent], .items[child]) <= 0
+            {
                 break
+            }
+
             .items.swap(parent, child)
             child = parent
         }
@@ -122,19 +130,27 @@ impl PriorityQueue
         var result: #returntype = .items.popBack()
         .count -= 1
 
-        var parent = 0'u64
+        var parent = 0_u64
         for
         {
             let left = parent * 2 + 1
-            if left >= .count do
+            if left >= .count
+            {
                 break
+            }
 
             let right = left + 1
             var child = left
-            if right < .count and .compareItems(.items[right], .items[left]) < 0 do
+            if right < .count and .compareItems(.items[right], .items[left]) < 0
+            {
                 child = right
-            if .compareItems(.items[parent], .items[child]) <= 0 do
+            }
+
+            if .compareItems(.items[parent], .items[child]) <= 0
+            {
                 break
+            }
+
             .items.swap(parent, child)
             parent = child
         }

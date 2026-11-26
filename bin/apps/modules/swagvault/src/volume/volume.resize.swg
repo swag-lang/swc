@@ -15,16 +15,26 @@ impl Volume
     mtd grow(requestedSize: u64, progress: *VolumeProgress? = null) fail
     {
         try .requireWritable()
-        if .file.base or .file.protectedEnd do
+        if .file.base or .file.protectedEnd
+        {
             fail volumeError(.HiddenProtected)
-        if progress and progress.isCanceled() do
+        }
+
+        if progress and progress.isCanceled()
+        {
             fail volumeError(.Canceled)
-        if requestedSize <= .containerSize do
+        }
+
+        if requestedSize <= .containerSize
+        {
             fail volumeError(.InvalidInput)
+        }
 
         let newBlockCount = (requestedSize - DataOffset) / BlockRecordSize
-        if newBlockCount <= .blockCount do
+        if newBlockCount <= .blockCount
+        {
             fail volumeError(.InvalidInput)
+        }
 
         // Everything below is undone by putting the file back to the length the durable header
         // already claims. `committed` is set on the last line, so every failure — including the
@@ -33,7 +43,7 @@ impl Volume
         let previousPhysical   = .physicalSize
         let previousBlockCount = .blockCount
         let targetPhysical     = try camouflageSize(requestedSize)
-        var previousFree: Array'FreeExtent
+        var previousFree: Array!{FreeExtent}
         previousFree.add(.blocks.free.toSlice())
 
         var committed = false
@@ -80,8 +90,11 @@ impl Volume
     mtd reapplyCamouflage(progress: *VolumeProgress? = null) fail
     {
         try .requireWritable()
-        if .file.base or .file.protectedEnd do
+        if .file.base or .file.protectedEnd
+        {
             fail volumeError(.HiddenProtected)
+        }
+
         let previousPhysical = .physicalSize
         let targetPhysical   = try camouflageSize(.containerSize, previousPhysical)
         let addedPhysical    = targetPhysical > previousPhysical ? targetPhysical - previousPhysical : 0
@@ -103,7 +116,7 @@ impl Volume
             try .randomizeRange(previousPhysical, targetPhysical, progress, 0)
             try .file.flush()
         }
-        elif progress and progress.isCanceled()
+        else if progress and progress.isCanceled()
         {
             fail volumeError(.Canceled)
         }
@@ -136,15 +149,19 @@ impl Volume
     // How many stored blocks lie at or past `limit`: the ones a shrink to `limit` blocks moves.
     mtd const blocksPast(limit: u64)->u64
     {
-        var result = 0'u64
+        var result = 0_u64
         for node in .nodes
         {
             for mapping in node.blocks
             {
-                if mapping.physical >= limit do
+                if mapping.physical >= limit
+                {
                     result += mapping.count
-                elif mapping.physical + mapping.count > limit do
+                }
+                else if mapping.physical + mapping.count > limit
+                {
                     result += mapping.physical + mapping.count - limit
+                }
             }
         }
 
@@ -156,7 +173,7 @@ impl Volume
     mtd relocateBelow(node: *Node, limit: u64, plain: [..] u8, progress: *VolumeProgress?, moved: u64)->u64 fail
     {
         var result = moved
-        var updated: Array'BlockMapping
+        var updated: Array!{BlockMapping}
         updated.reserve(node.blocks.count + 2)
         for mapping in node.blocks
         {
@@ -175,8 +192,10 @@ impl Volume
 
             while count
             {
-                if progress and progress.isCanceled() do
+                if progress and progress.isCanceled()
+                {
                     fail volumeError(.Canceled)
+                }
 
                 let destination = try .blocks.allocateRunBelow(limit, Math.min(count, MaximumIoBatchBlocks))
                 let bytes       = destination.count * BlockSize
@@ -193,8 +212,11 @@ impl Volume
         }
 
         node.blocks.clear()
-        for mapping in updated do
+        for mapping in updated
+        {
             node.appendMapping(mapping[])
+        }
+
         return result
     }
 
@@ -205,24 +227,37 @@ impl Volume
     mtd shrink(requestedSize: u64, progress: *VolumeProgress? = null) fail
     {
         try .requireWritable()
-        if .file.base or .file.protectedEnd do
+        if .file.base or .file.protectedEnd
+        {
             fail volumeError(.HiddenProtected)
-        if progress and progress.isCanceled() do
+        }
+
+        if progress and progress.isCanceled()
+        {
             fail volumeError(.Canceled)
-        if requestedSize < MinimumSize do
+        }
+
+        if requestedSize < MinimumSize
+        {
             fail volumeError(.SizeTooSmall)
-        if requestedSize >= .containerSize do
+        }
+
+        if requestedSize >= .containerSize
+        {
             fail volumeError(.InvalidInput)
+        }
 
         let newBlockCount = (requestedSize - DataOffset) / BlockRecordSize
-        if newBlockCount >= .blockCount do
+        if newBlockCount >= .blockCount
+        {
             fail volumeError(.InvalidInput)
+        }
 
         // Start from one durable image. The relocation itself writes only into free blocks and
         // therefore changes nothing the active header can reach until the final checkpoint.
         try .checkpoint()
 
-        var previousMaps: Array'BlockMapBackup
+        var previousMaps: Array!{BlockMapBackup}
         previousMaps.reserve(.nodes.count)
         for node in .nodes
         {
@@ -231,7 +266,7 @@ impl Volume
             previousMaps.add(#move backup)
         }
 
-        var previousFree: Array'FreeExtent
+        var previousFree: Array!{FreeExtent}
         previousFree.add(.blocks.free.toSlice())
         let previousFreeBlocksCount = .blocks.freeBlocksCount
         let previousSize            = .containerSize
@@ -244,8 +279,11 @@ impl Volume
         {
             if not committed
             {
-                for &node, index in .nodes do
+                for &node, index in .nodes
+                {
                     node.blocks = #move previousMaps[index].blocks
+                }
+
                 .blocks.free   = #move previousFree
                 .blocks.freeBlocksCount = previousFreeBlocksCount
                 .containerSize = previousSize
@@ -268,12 +306,14 @@ impl Volume
         }
 
         var moved = addedPhysical
-        var plain: Array'u8
+        var plain: Array!{u8}
         plain.resize(MaximumIoBatchBlocks * BlockSize)
         defer Core.Crypto.secureClear(plain.toSlice())
 
-        for &node in .nodes do
+        for &node in .nodes
+        {
             moved = try .relocateBelow(node, newBlockCount, plain.toSlice(), progress, moved)
+        }
 
         .containerSize = requestedSize
         .physicalSize  = targetPhysical

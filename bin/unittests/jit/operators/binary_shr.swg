@@ -3,9 +3,9 @@
 #test
 {
     func shiftRight(a: u32, b: u32)->u32 { return a >> b }
-    const V = #run shiftRight(168'u32, 2'u32)
+    const V = #run shiftRight(168_u32, 2_u32)
     #assert(#typeof(V) == u32)
-    #assert(V == 42'u32)
+    #assert(V == 42_u32)
 }
 
 #test
@@ -19,15 +19,15 @@
 #test
 {
     func shiftRightStrict(a: u32, b: u32)->u32 { return a >> b }
-    const V = #run shiftRightStrict(168'u32, 2'u32, 1'u32)     // swc-expected-error {{sema_err_too_many_arguments}}
+    const V = #run shiftRightStrict(168_u32, 2_u32, 1_u32)     // swc-expected-error {{sema_err_too_many_arguments}}
 }
 
 #test
 {
     func shiftRightWide(a: u64, b: u32)->u64 { return a >> b }
-    const V = #run shiftRightWide(0x0001_0000_0000_0000'u64, 40'u32)
+    const V = #run shiftRightWide(0x0001_0000_0000_0000_u64, 40_u32)
     #assert(#typeof(V) == u64)
-    #assert(V == 0x100'u64)
+    #assert(V == 0x100_u64)
 }
 
 #test
@@ -36,12 +36,12 @@
     func shiftRightMixedUnsigned(a: u8, b: u64)->u8 { return a >> b }
     func shiftRightMixedSigned(a: s8, b: u64)->s8 { return a >> b }
 
-    const V0 = #run shiftRightMixedUnsigned(0x80'u8, 7'u64)
-    const V1 = #run shiftRightMixedSigned(-128's8, 7'u64)
-    const V2 = #run shiftRightMixedSigned(-128's8, 3'u64)
-    #assert(V0 == 1'u8)
-    #assert(V1 == -1's8)
-    #assert(V2 == -16's8)
+    const V0 = #run shiftRightMixedUnsigned(0x80_u8, 7_u64)
+    const V1 = #run shiftRightMixedSigned(-128_s8, 7_u64)
+    const V2 = #run shiftRightMixedSigned(-128_s8, 3_u64)
+    #assert(V0 == 1_u8)
+    #assert(V1 == -1_s8)
+    #assert(V2 == -16_s8)
 }
 
 #test
@@ -53,11 +53,11 @@
         return a >> b     // swc-expected-error {{safety_err_runtime}}
     }
 
-    const V = #run shiftRightLargeAmount(-128's8, 0x1_0000_0000'u64)
+    const V = #run shiftRightLargeAmount(-128_s8, 0x1_0000_0000_u64)
 }
 
 #test
 {
     func shiftRightTooFew(a: u32, b: u32)->u32 { return a >> b }
-    const V = #run shiftRightTooFew(168'u32)     // swc-expected-error {{sema_err_too_few_arguments}}
+    const V = #run shiftRightTooFew(168_u32)     // swc-expected-error {{sema_err_too_few_arguments}}
 }

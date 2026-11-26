@@ -17,8 +17,11 @@ func ktx2Roundtrip(source: Image)->Image
     for format in Formats
     {
         var source = Image.create(5, 3, format)
-        for i in source.byteCount do
+        for i in source.byteCount
+        {
             source.pixels.storage()[i] = cast(u8, ((i * 37 + 11) & 0xFF))
+        }
+
         let decoded = ktx2Roundtrip(source)
         assertImage(decoded, source.width, source.height, format)
         Swag.require(Memory.compare(source.pixels.storage(), decoded.pixels.storage(), source.byteCount) == 0)
@@ -96,9 +99,9 @@ func ktx2Roundtrip(source: Image)->Image
 
     var fixture: ConcatBuffer
     fixture.addBytes(bytes)
-    fixture.addNative(16'u32)     // key plus NUL and one value byte
+    fixture.addNative(16_u32)     // key plus NUL and one value byte
     fixture.addBytes("KTXorientation")
-    fixture.addNative(0'u8)
+    fixture.addNative(0_u8)
     fixture.addNative('r')
 
     var image:        Image

@@ -5,16 +5,19 @@ using Swag
 
 func scryptHexDigit(value: u8)->u8
 {
-    if value >= '0' and value <= '9' do
+    if value >= '0' and value <= '9'
+    {
         return value - '0'
+    }
+
     return (value - 'a') + 10
 }
 
-func scryptHexBytes(text: string)->Array'u8
+func scryptHexBytes(text: string)->Array!{u8}
 {
     var result: #returntype
     result.reserve(text.count / 2)
-    var index = 0'u64
+    var index = 0_u64
     while index + 1 < text.count
     {
         result.add(cast(u8, ((scryptHexDigit(text[index]) << 4) | scryptHexDigit(text[index + 1]))))

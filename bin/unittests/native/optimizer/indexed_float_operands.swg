@@ -7,38 +7,56 @@
 #[Swag.Optimize(true), Swag.NoInline]
 func dotF(a, b: const [*] f32, n: u64)->f32
 {
-    var s = 0.0'f32
-    for i in n do s += a[i] * b[i]
+    var s = 0.0_f32
+    for i in n
+    {
+        s += a[i] * b[i]
+    }
     return s
 }
 #[Swag.Optimize(false), Swag.NoInline]
 func dotFRef(a, b: const [*] f32, n: u64)->f32
 {
-    var s = 0.0'f32
-    for i in n do s += a[i] * b[i]
+    var s = 0.0_f32
+    for i in n
+    {
+        s += a[i] * b[i]
+    }
     return s
 }
 
 #[Swag.Optimize(true), Swag.NoInline]
 func diffNext(d: [*] f64, a: const [*] f64, n: u64)
 {
-    for i in n do d[i] = a[i] - a[i + 1]
+    for i in n
+    {
+        d[i] = a[i] - a[i + 1]
+    }
 }
 #[Swag.Optimize(false), Swag.NoInline]
 func diffNextRef(d: [*] f64, a: const [*] f64, n: u64)
 {
-    for i in n do d[i] = a[i] - a[i + 1]
+    for i in n
+    {
+        d[i] = a[i] - a[i + 1]
+    }
 }
 
 #[Swag.Optimize(true), Swag.NoInline]
 func ratios(d: [*] f32, a, b: const [*] f32, n: u64)
 {
-    for i in n do d[i] = a[i] / b[i] + b[i]
+    for i in n
+    {
+        d[i] = a[i] / b[i] + b[i]
+    }
 }
 #[Swag.Optimize(false), Swag.NoInline]
 func ratiosRef(d: [*] f32, a, b: const [*] f32, n: u64)
 {
-    for i in n do d[i] = a[i] / b[i] + b[i]
+    for i in n
+    {
+        d[i] = a[i] / b[i] + b[i]
+    }
 }
 
 #test
@@ -52,13 +70,17 @@ func ratiosRef(d: [*] f32, a, b: const [*] f32, n: u64)
     var d2: [5] f64
     diffNext(&d1[0], &w[0], 5)
     diffNextRef(&d2[0], &w[0], 5)
-    for i in 5 do
+    for i in 5
+    {
         Swag.require(d1[i] == d2[i])
+    }
 
     var r1: [6] f32
     var r2: [6] f32
     ratios(&r1[0], &a[0], &b[0], 6)
     ratiosRef(&r2[0], &a[0], &b[0], 6)
-    for i in 6 do
+    for i in 6
+    {
         Swag.require(r1[i] == r2[i])
+    }
 }

@@ -62,8 +62,11 @@ func nestedSquares()->LinePathList
     let moved = list.normalizedFill(.EvenOdd, byDirection: false)
     Swag.require(moved.count() == 2)
     var holeBounds: Math.Rectangle
-    for p in moved.paths where not p.polygon.isClockwise do
+    for p in moved.paths where not p.polygon.isClockwise
+    {
         holeBounds = Math.Rectangle{p.minBounds.x, p.minBounds.y, p.maxBounds.x - p.minBounds.x, p.maxBounds.y - p.minBounds.y}
+    }
+
     Swag.require(Math.isEqualEpsilon(holeBounds.x, 10, 0.01) and Math.isEqualEpsilon(holeBounds.width, 10, 0.01))
 }
 
@@ -155,18 +158,24 @@ func nestedSquares()->LinePathList
     painter.end()
 
     let cache         = unwrap list.fillCache
-    var triangleCount = 0'u64
-    for p in cache.paths do
+    var triangleCount = 0_u64
+    for p in cache.paths
+    {
         triangleCount += p.triangles.vertices.count
+    }
+
     Swag.require(triangleCount > 0)
 
     painter.begin()
     painter.fillPath(&list, Color.fromArgb(Argb.Black), .EvenOdd)
     painter.end()
     Swag.require(list.fillCache == cache)
-    var again = 0'u64
-    for p in cache.paths do
+    var again = 0_u64
+    for p in cache.paths
+    {
         again += p.triangles.vertices.count
+    }
+
     Swag.require(again == triangleCount)
 }
 
@@ -204,7 +213,7 @@ func nestedSquares()->LinePathList
     painter.setFlattenScale(0.5)
     Swag.require(painter.flattenScale() == 0.5)
     painter.setFlattenScale(0.0001)
-    Swag.require(painter.flattenScale() == 1.0'f32 / 64)
+    Swag.require(painter.flattenScale() == 1.0_f32 / 64)
 }
 
 // A minified pass never coarsens the flattening itself: a contour keeps the finest
@@ -262,7 +271,7 @@ func square(x, y, size: f32)->LinePathList
     with let path = arc.newPath()
     {
         .start(10, 0)
-        .arcTo(10, 10, 10, 10, 0.0'deg, 180.0'deg)
+        .arcTo(10, 10, 10, 10, 0.0_deg, 180.0_deg)
     }
 
     Swag.require(arc.controlBounds() == {0, 0, 20, 20})
@@ -373,9 +382,12 @@ const TouchingCells: [5] Cell = [
 
     let cache     = unwrap list.fillCache
     let revision  = list.paths[0].revision
-    var triangles = 0'u64
-    for p in cache.paths do
+    var triangles = 0_u64
+    for p in cache.paths
+    {
         triangles += p.triangles.vertices.count
+    }
+
     Swag.require(triangles > 0)
 
     // A frame at eight times the scale asks for a tolerance eight times finer.
@@ -386,9 +398,12 @@ const TouchingCells: [5] Cell = [
 
     Swag.require(list.paths[0].revision == revision)
     Swag.require(list.fillCache == cache)
-    var again = 0'u64
-    for p in cache.paths do
+    var again = 0_u64
+    for p in cache.paths
+    {
         again += p.triangles.vertices.count
+    }
+
     Swag.require(again == triangles)
 }
 
@@ -414,13 +429,15 @@ const TouchingCells: [5] Cell = [
     path.setEllipseRaw(50, 50, 40, 40)
     path.flatten(.Normal)
 
-    var expected: Array'Vector2
+    var expected: Array!{Vector2}
     path.polygon.fillOffsetDirections(&expected)
 
     let dirs = path.offsetDirections()
     Swag.require(dirs.count == expected.count)
-    for i in dirs.count do
+    for i in dirs.count
+    {
         Swag.require(dirs[i] == expected[i])
+    }
 
     // Editing the contour in place is announced through its revision, and the directions follow.
     path.polygon.points[0] += {10, 10}
@@ -428,8 +445,10 @@ const TouchingCells: [5] Cell = [
     path.polygon.fillOffsetDirections(&expected)
     let moved = path.offsetDirections()
     Swag.require(moved.count == expected.count)
-    for i in moved.count do
+    for i in moved.count
+    {
         Swag.require(moved[i] == expected[i])
+    }
 }
 
 // Preparing a shape builds exactly what a fill of it looks for, so the first fill after it
@@ -442,9 +461,12 @@ const TouchingCells: [5] Cell = [
     preparer.prepare(&list, 1, .EvenOdd)
 
     let cache     = unwrap list.fillCache
-    var triangles = 0'u64
-    for p in cache.paths do
+    var triangles = 0_u64
+    for p in cache.paths
+    {
         triangles += p.triangles.vertices.count
+    }
+
     Swag.require(triangles > 0)
 
     var painter: Painter
@@ -453,9 +475,12 @@ const TouchingCells: [5] Cell = [
     painter.end()
 
     Swag.require(list.fillCache == cache)
-    var again = 0'u64
-    for p in cache.paths do
+    var again = 0_u64
+    for p in cache.paths
+    {
         again += p.triangles.vertices.count
+    }
+
     Swag.require(again == triangles)
 
     // A preparation quantizes its scale the way the painter does, so preparing for a scale

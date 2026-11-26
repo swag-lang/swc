@@ -1,6 +1,6 @@
-const N   = 800'u64
+const N   = 800_u64
 const NN  = N * N
-const INF = 0x0FFFFFFFFFFFFFFF'u64
+const INF = 0x0FFFFFFFFFFFFFFF_u64
 
 late var g_HeapD: [*] u64
 late var g_HeapN: [*] u64
@@ -19,8 +19,11 @@ func push(d, node: u64)
     while i > 0
     {
         let p = (i - 1) >> 1
-        if g_HeapD[p] <= g_HeapD[i] do
+        if g_HeapD[p] <= g_HeapD[i]
+        {
             break
+        }
+
         let td = g_HeapD[p]
         g_HeapD[p] = g_HeapD[i]
         g_HeapD[i] = td
@@ -39,18 +42,27 @@ func pop()
     g_HeapD[0] = g_HeapD[g_HeapSize]
     g_HeapN[0] = g_HeapN[g_HeapSize]
 
-    var i = 0'u64
+    var i = 0_u64
     while true
     {
         let l = 2 * i + 1
-        if l >= g_HeapSize do
+        if l >= g_HeapSize
+        {
             break
+        }
+
         let r = l + 1
         var m = l
-        if r < g_HeapSize and g_HeapD[r] < g_HeapD[l] do
+        if r < g_HeapSize and g_HeapD[r] < g_HeapD[l]
+        {
             m = r
-        if g_HeapD[i] <= g_HeapD[m] do
+        }
+
+        if g_HeapD[i] <= g_HeapD[m]
+        {
             break
+        }
+
         let td = g_HeapD[m]
         g_HeapD[m] = g_HeapD[i]
         g_HeapD[i] = td
@@ -65,15 +77,20 @@ func pop()
 {
     // ---- data generation (not timed) ----
     let weight = cast([*] u64, unwrap benchAlloc(NN * #sizeof(u64)))
-    for i in NN do
+    for i in NN
+    {
         weight[i] = 1 + (rnd() % 9)
 
-    // ---- timed work ----
+        // ---- timed work ----
+    }
+
     let t0 = now()
 
     let dist = cast([*] u64, unwrap benchAlloc(NN * #sizeof(u64)))
-    for i in NN do
+    for i in NN
+    {
         dist[i] = INF
+    }
 
     g_HeapD    = cast([*] u64, unwrap benchAlloc(NN * 4 * #sizeof(u64)))
     g_HeapN    = cast([*] u64, unwrap benchAlloc(NN * 4 * #sizeof(u64)))
@@ -82,7 +99,7 @@ func pop()
     dist[0] = 0
     push(0, 0)
 
-    var pops = 0'u64
+    var pops = 0_u64
     const Target = NN - 1
 
     while g_HeapSize > 0
@@ -91,10 +108,15 @@ func pop()
         let d = g_PopD
         let u = g_PopN
         pops += 1
-        if d > dist[u] do
+        if d > dist[u]
+        {
             continue
-        if u == Target do
+        }
+
+        if u == Target
+        {
             break
+        }
 
         let x = u % N
         let y = u / N

@@ -9,14 +9,16 @@ using Core
     let workers:  [2] u32 = [1, 4]
     var key:      [Crypto.ChaCha20KeySize] u8
     var nonce:    [Crypto.ChaCha20NonceSize] u8
-    var source:   Array'u8
-    var output:   Array'u8
-    var expected: Array'u8
+    var source:   Array!{u8}
+    var output:   Array!{u8}
+    var expected: Array!{u8}
     source.resize(sizes[4])
     output.resize(source.count)
     expected.resize(source.count)
-    for index in source.count do
+    for index in source.count
+    {
         source[index] = cast(u8, ((index * 47 + 13) & 0xFF))
+    }
 
     Swag.setWorkerCount(1)
     Swag.startWorkers()
@@ -38,8 +40,11 @@ using Core
             {
                 var watch: Time.Stopwatch
                 watch.start()
-                for iterations do
+                for iterations
+                {
                     expect Crypto.chacha20Xor(key, nonce, input, destination, 7)
+                }
+
                 watch.stop()
                 Swag.assert(Crypto.constantTimeEqual(destination, reference))
                 Console.println("chacha20 bytes=", size, " workers=", count, " iterations=", iterations, " sample=", sample, " us=", watch.elapsedMicroseconds())

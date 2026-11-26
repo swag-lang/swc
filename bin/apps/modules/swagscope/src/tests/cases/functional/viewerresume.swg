@@ -25,8 +25,10 @@ func completeHome(host: *Testing.HeadlessHost, window: *ViewerWindow)
     {
         Swag.drainWork()
         host.pump()
-        if window.startupTimer do
+        if window.startupTimer
+        {
             host.fireTimer(window.startupTimer)
+        }
     }
 
     Swag.require(window.home.isLocallyVisible())
@@ -60,8 +62,11 @@ func completeHome(host: *Testing.HeadlessHost, window: *ViewerWindow)
     // The card's action opens the document at the page it was left at.
     window.home.openRow(0)
     completeQueuedViewerFile(&host, window)
-    for 64 where window.readingState.restoring do
+    for 64 where window.readingState.restoring
+    {
         host.fireTimer(window.fileWatchTimer)
+    }
+
     let view = assume cast(*PdfDocument.Panel, window.currentView).pdfView
     Swag.require(view.pageIndex == 2)
 
@@ -187,8 +192,11 @@ func completeHome(host: *Testing.HeadlessHost, window: *ViewerWindow)
     let explorer = unwrap window.explorer
     completeExplorer(&host, explorer)
     var index = Swag.U64.Max
-    for &entry, i in explorer.entries where entry.name == "left.pdf" do
+    for &entry, i in explorer.entries where entry.name == "left.pdf"
+    {
         index = i
+    }
+
     Swag.require(index < explorer.entries.count)
     explorer.selected = index
     let point = window.resumePoint(explorer.entries[index].path)
@@ -198,7 +206,10 @@ func completeHome(host: *Testing.HeadlessHost, window: *ViewerWindow)
 
     explorer.activate(index)
     completeQueuedViewerFile(&host, window)
-    for 64 where window.readingState.restoring do
+    for 64 where window.readingState.restoring
+    {
         host.fireTimer(window.fileWatchTimer)
+    }
+
     Swag.require(assume cast(*PdfDocument.Panel, window.currentView).pdfView.pageIndex == 3)
 }

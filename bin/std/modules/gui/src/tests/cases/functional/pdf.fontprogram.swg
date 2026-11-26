@@ -18,7 +18,7 @@ private func reportPage(name: string, pageIndex: u64)->ProgramReport
     var reader = expect Reader.open(guiTestDataPath(name))
     var page   = expect reader.loadPage(pageIndex)
 
-    var faces: Array'(*TypeFace?)
+    var faces: Array!{*TypeFace?}
     result.fonts = page.fonts.count
     for font in page.fonts
     {
@@ -41,16 +41,23 @@ private func reportPage(name: string, pageIndex: u64)->ProgramReport
     for item in page.items where item.kind == .Text and item.fontIndex < page.fonts.count
     {
         let face = faces[item.fontIndex]
-        if not face do
+        if not face
+        {
             continue
+        }
 
         result.drawn += 1
         let font  = cache.createFont(face, 16)
         var whole = not item.textCodes.isEmpty()
-        for code in item.textCodes where not page.fonts[item.fontIndex].glyphFor(font, code).found do
+        for code in item.textCodes where not page.fonts[item.fontIndex].glyphFor(font, code).found
+        {
             whole = false
-        if whole do
+        }
+
+        if whole
+        {
             result.resolved += 1
+        }
     }
 
     return result

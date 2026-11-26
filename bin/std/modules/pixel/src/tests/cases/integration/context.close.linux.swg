@@ -47,8 +47,8 @@ func waitForViewable(window: *Env.Window)
     let library = Linux.dlopen("libxcb.so.1".buffer, Linux.RTLD_NOW | Linux.RTLD_LOCAL)
     Swag.require(library != null)
     defer discard Linux.dlclose(unwrap library)
-    let getAttributes = managedCloseSymbol'Linux.xcb_get_window_attributes_fn(library, "xcb_get_window_attributes")
-    let getReply      = managedCloseSymbol'Linux.xcb_get_window_attributes_reply_fn(library, "xcb_get_window_attributes_reply")
+    let getAttributes = managedCloseSymbol!{Linux.xcb_get_window_attributes_fn}(library, "xcb_get_window_attributes")
+    let getReply      = managedCloseSymbol!{Linux.xcb_get_window_attributes_reply_fn}(library, "xcb_get_window_attributes_reply")
     let drawable      = expect window.xcbDrawable()
     let connection    = unwrap drawable.connection
 
@@ -59,11 +59,13 @@ func waitForViewable(window: *Env.Window)
         let attributes = getReply(connection, getAttributes(connection, drawable.window), null)
         Swag.require(attributes != null)
         defer Linux.free(attributes)
-        if attributes.map_state == Linux.XCB_MAP_STATE_VIEWABLE do
+        if attributes.map_state == Linux.XCB_MAP_STATE_VIEWABLE
+        {
             return
+        }
 
         Swag.require(watch.elapsedMilliseconds() < 2000)
-        Threading.Thread.sleep(1'ms)
+        Threading.Thread.sleep(1_ms)
     }
 }
 
@@ -74,10 +76,10 @@ func sendManagedClose(window: *Env.Window)
     let library = Linux.dlopen("libxcb.so.1".buffer, Linux.RTLD_NOW | Linux.RTLD_LOCAL)
     Swag.require(library != null)
     defer discard Linux.dlclose(unwrap library)
-    let intern     = managedCloseSymbol'Linux.xcb_intern_atom_fn(library, "xcb_intern_atom")
-    let reply      = managedCloseSymbol'Linux.xcb_intern_atom_reply_fn(library, "xcb_intern_atom_reply")
-    let send       = managedCloseSymbol'Linux.xcb_send_event_checked_fn(library, "xcb_send_event_checked")
-    let check      = managedCloseSymbol'Linux.xcb_request_check_fn(library, "xcb_request_check")
+    let intern     = managedCloseSymbol!{Linux.xcb_intern_atom_fn}(library, "xcb_intern_atom")
+    let reply      = managedCloseSymbol!{Linux.xcb_intern_atom_reply_fn}(library, "xcb_intern_atom_reply")
+    let send       = managedCloseSymbol!{Linux.xcb_send_event_checked_fn}(library, "xcb_send_event_checked")
+    let check      = managedCloseSymbol!{Linux.xcb_request_check_fn}(library, "xcb_request_check")
     let drawable   = expect window.xcbDrawable()
     let connection = unwrap drawable.connection
     let protocols  = reply(connection, intern(connection, 0, 12, "WM_PROTOCOLS".buffer), null)
@@ -174,11 +176,13 @@ func sendManagedClose(window: *Env.Window)
         while true
         {
             Swag.require(Env.processWindowMessages())
-            if g_ManagedClose.focused and g_ManagedClose.width == 48 and g_ManagedClose.height == 40 do
+            if g_ManagedClose.focused and g_ManagedClose.width == 48 and g_ManagedClose.height == 40
+            {
                 break
+            }
 
             Swag.require(watch.elapsedMilliseconds() < 2000)
-            Threading.Thread.sleep(1'ms)
+            Threading.Thread.sleep(1_ms)
         }
 
         second.width  = g_ManagedClose.width

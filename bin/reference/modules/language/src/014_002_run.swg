@@ -25,9 +25,12 @@ at compile time using '#run'.
 // Example: sum without 'ConstExpr'
 func sum(values: s32...)->s32
 {
-    var result = 0's32
-    for v in values do
+    var result = 0_s32
+    for v in values
+    {
         result += v
+    }
+
     return result
 }
 
@@ -54,7 +57,7 @@ var G: [5] f32
 
 #run
 {
-    var value = 1'f32
+    var value = 1_f32
     for i in G.count
     {
         G[i]  = value
@@ -88,8 +91,11 @@ from the 'return' statement inside the block.
     const Value = #run
     {
         var result: f32
-        for 10 do
+        for 10
+        {
             result += 1
+        }
+
         return result
     }
 
@@ -105,8 +111,11 @@ Example: initializing a static array at compile time.
     const PowerOfTwo: [N] s32 = #run
     {
         var arr: [N] s32
-        for i in arr.count do
+        for i in arr.count
+        {
             arr[i] = 1 << cast(u32, i)
+        }
+
         return arr
     }
 

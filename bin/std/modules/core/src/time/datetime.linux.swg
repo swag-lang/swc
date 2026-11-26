@@ -15,21 +15,28 @@ private func wallClockFields(value: Linux.tm, millisecond: u16)->WallClockFields
 internal func readWallClock(kind: WallClockKind)->WallClockFields
 {
     var now: Linux.timespec
-    if Linux.clock_gettime(Linux.CLOCK_REALTIME, &now) != 0 do
+    if Linux.clock_gettime(Linux.CLOCK_REALTIME, &now) != 0
+    {
         Swag.panic("cannot read the wall clock", #curlocation)
+    }
 
     var calendar: Linux.tm
     let converted = kind == .Utc ? Linux.gmtime_r(&now.tv_sec, &calendar) : Linux.localtime_r(&now.tv_sec, &calendar)
-    if not converted or calendar.tm_year < -1899 or calendar.tm_year > 8099 or calendar.tm_sec > 59 do
+    if not converted or calendar.tm_year < -1899 or calendar.tm_year > 8099 or calendar.tm_sec > 59
+    {
         Swag.panic("wall clock is outside the supported calendar range", #curlocation)
+    }
+
     return wallClockFields(calendar, cast(u16, now.tv_nsec / 1_000_000))
 }
 
 internal func localWallClock(utc: WallClockFields)->WallClockFields
 {
     let value = DateTime{utc.year, utc.month, utc.day, utc.hour, utc.minute, utc.second, utc.millisecond}
-    if not value.isValid() do
+    if not value.isValid()
+    {
         return utc
+    }
 
     var universal: Linux.tm
     universal.tm_year = cast(s32, utc.year) - 1900
@@ -43,8 +50,11 @@ internal func localWallClock(utc: WallClockFields)->WallClockFields
     let seconds   = Linux.timegm(&universal)
     var local: Linux.tm
     let converted = Linux.localtime_r(&seconds, &local)
-    if not converted or local.tm_year < -1899 or local.tm_year > 8099 or local.tm_sec > 59 do
+    if not converted or local.tm_year < -1899 or local.tm_year > 8099 or local.tm_sec > 59
+    {
         return utc
+    }
+
     return wallClockFields(local, utc.millisecond)
 }
 
@@ -55,8 +65,11 @@ internal func dateTimeFromUnix(seconds: s64, nanoseconds: u32)->DateTime
     if not Linux.gmtime_r(&seconds, &calendar) or
        calendar.tm_year < -1899 or
        calendar.tm_year > 8099 or
-       calendar.tm_sec > 59 do
+       calendar.tm_sec > 59
+    {
         return result
+    }
+
     result.setWallClock(wallClockFields(calendar, cast(u16, nanoseconds / 1_000_000)))
     return result
 }

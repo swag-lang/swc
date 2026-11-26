@@ -9,7 +9,7 @@ using Swag
 #[Swag.Optimize(true), Swag.NoInline]
 func fnv(p: const [*] u8, n: u64)->u32
 {
-    var h = 2166136261'u32
+    var h = 2166136261_u32
     for i in n
     {
         h ^= cast(u32, p[i])
@@ -22,7 +22,10 @@ func fnv(p: const [*] u8, n: u64)->u32
 func pick(big: u64, flag: bool)->u64
 {
     var v = big
-    if flag do v = cast(u64, cast(u32, (big * 3)))
+    if flag
+    {
+        v = cast(u64, cast(u32, (big * 3)))
+    }
     return cast(u64, cast(u32, v))
 }
 

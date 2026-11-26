@@ -5,28 +5,30 @@ using Core
 
 func makeNamedFontFile(family, style, typographicFamily, typographicStyle: string, weight: u16)->String
 {
-    func read32(bytes: *Array'u8, offset: u64)->u32 => cast(u32, bytes[offset]) << 24 |
-                                                       cast(u32, bytes[offset + 1]) << 16 |
-                                                       cast(u32, bytes[offset + 2]) << 8 |
-                                                       bytes[offset + 3]
+    func read32(bytes: *Array!{u8}, offset: u64)->u32 => cast(u32, bytes[offset]) << 24 |
+                                                         cast(u32, bytes[offset + 1]) << 16 |
+                                                         cast(u32, bytes[offset + 2]) << 8 |
+                                                         bytes[offset + 3]
 
-    func write16(bytes: *Array'u8, offset: u64, value: u16)
+    func write16(bytes: *Array!{u8}, offset: u64, value: u16)
     {
         bytes[offset]     = cast(u8, value >> 8)
         bytes[offset + 1] = cast(u8, value & 255)
     }
 
-    func write32(bytes: *Array'u8, offset: u64, value: u32)
+    func write32(bytes: *Array!{u8}, offset: u64, value: u32)
     {
-        for index in 4 do
+        for index in 4
+        {
             bytes[offset + index] = cast(u8, (value >> ((3 - index) * 8)) & 255)
+        }
     }
 
-    var names: Array'u8
+    var names: Array!{u8}
     names.resize(54)
     write16(&names, 2, 4)
     write16(&names, 4, 54)
-    const Ids = [1'u16, 2, 16, 17]
+    const Ids = [1_u16, 2, 16, 17]
     for text, index in [family, style, typographicFamily, typographicStyle]
     {
         let record = 6 + index * 12
@@ -38,7 +40,7 @@ func makeNamedFontFile(family, style, typographicFamily, typographicStyle: strin
         write16(&names, record + 10, cast(u16, names.count - 54))
         for byte in text
         {
-            names.add(0'u8)
+            names.add(0_u8)
             names.add(byte)
         }
     }
@@ -48,7 +50,7 @@ func makeNamedFontFile(family, style, typographicFamily, typographicStyle: strin
     var foundNames, foundWeight: bool
     for table in tableCount
     {
-        let record = 12'u64 + table * 16
+        let record = 12_u64 + table * 16
         let offset = read32(&bytes, record + 8)
         let tag    = read32(&bytes, record)
         if tag == 0x6E616D65
@@ -58,7 +60,7 @@ func makeNamedFontFile(family, style, typographicFamily, typographicStyle: strin
             bytes.add(names.toSlice())
             foundNames = true
         }
-        elif tag == 0x4F532F32
+        else if tag == 0x4F532F32
         {
             write16(&bytes, offset + 4, weight)
             foundWeight = true
@@ -82,8 +84,11 @@ func makeNamedFontFile(family, style, typographicFamily, typographicStyle: strin
     let unrelated = makeNamedFontFile("Catalog Sans", "Bold", "Another Family", "Bold", 700)
     defer discard catch File.delete(unrelated)
     var catalog: FontCatalog
-    for path in [semibold, unrelated, light, regular] do
+    for path in [semibold, unrelated, light, regular]
+    {
         discard expect catalog.addFile(path.toString())
+    }
+
     let names = catalog.familyNames()
     Swag.require(names.count == 2 and names[0] == "Another Family" and names[1] == "Catalog Sans")
     Swag.require((unwrap catalog.findFace("catalog sans")).path == regular)

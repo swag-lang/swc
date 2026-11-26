@@ -14,13 +14,17 @@ impl Swag.IAllocator for RejectBitArrayGrowthAllocator
 
 func assertBitArray(values: BitArray, expected: const [..] bool)->bool
 {
-    if values.count != expected.count do
+    if values.count != expected.count
+    {
         return false
+    }
 
     for i in values.count
     {
-        if values.get(i) != expected[i] do
+        if values.get(i) != expected[i]
+        {
             return false
+        }
     }
 
     return true
@@ -29,8 +33,10 @@ func assertBitArray(values: BitArray, expected: const [..] bool)->bool
 #test
 {
     var seed: [32] bool
-    for i in 32 do
+    for i in 32
+    {
         seed[i] = (i & 1) == 0
+    }
 
     var values: BitArray
     values = seed
@@ -46,10 +52,12 @@ func assertBitArray(values: BitArray, expected: const [..] bool)->bool
     {
         var values: BitArray
         values.resize(length)
-        for index in length do
+        for index in length
+        {
             values[index] = index % 3 == 0
+        }
 
-        var nextOrdinal = 0'u64
+        var nextOrdinal = 0_u64
         for value, ordinal in values
         {
             Swag.require(ordinal == nextOrdinal)
@@ -66,21 +74,27 @@ func assertBitArray(values: BitArray, expected: const [..] bool)->bool
 {
     var values: BitArray
     values.resize(40)
-    for index in values.count do
+    for index in values.count
+    {
         values[index] = index % 2 != 0
+    }
 
-    var visited  = 0'u64
-    var indexSum = 0'u64
+    var visited  = 0_u64
+    var indexSum = 0_u64
     for value, index in values
     {
-        if index % 2 == 0 do
+        if index % 2 == 0
+        {
             continue
+        }
 
         Swag.require(value)
         visited  += 1
         indexSum += index
-        if index == 35 do
+        if index == 35
+        {
             break
+        }
     }
 
     Swag.require(visited == 18 and indexSum == 324)
@@ -93,8 +107,10 @@ func assertBitArray(values: BitArray, expected: const [..] bool)->bool
     values.invert()
 
     var expected: [33] bool
-    for i in 33 do
+    for i in 33
+    {
         expected[i] = true
+    }
 
     var compare: BitArray
     compare = expected
@@ -151,12 +167,16 @@ func assertBitArray(values: BitArray, expected: const [..] bool)->bool
 
     values.resize(33)
     values.setAll(true)
-    for index in values.count do
+    for index in values.count
+    {
         Swag.require(values[index])
+    }
 
     values.setAll(false)
-    for index in values.count do
+    for index in values.count
+    {
         Swag.require(not values[index])
+    }
 }
 
 // A failed growth preserves the old bit count and the bits it owned.
@@ -191,13 +211,15 @@ func assertBitArray(values: BitArray, expected: const [..] bool)->bool
         Swag.require(values.countSetBits() == length)
 
         values.setAll(false)
-        var expected = 0'u64
+        var expected = 0_u64
         for index in length
         {
             let isSet = index % 3 == 0
             values[index] = isSet
-            if isSet do
+            if isSet
+            {
                 expected += 1
+            }
         }
 
         Swag.require(values.countSetBits() == expected)
@@ -223,25 +245,34 @@ func assertBitArray(values: BitArray, expected: const [..] bool)->bool
 
         let original = left
         left.invert()
-        for i in length do
+        for i in length
+        {
             Swag.require(left[i] == (i % 3 != 0))
+        }
+
         left.invert()
         Swag.require(left == original)
 
         var value = original
         value.orWith(right)
-        for i in length do
+        for i in length
+        {
             Swag.require(value[i] == (i % 3 == 0 or i % 5 == 0))
+        }
 
         value = original
         value.andWith(right)
-        for i in length do
+        for i in length
+        {
             Swag.require(value[i] == (i % 3 == 0 and i % 5 == 0))
+        }
 
         value = original
         value.xorWith(right)
-        for i in length do
+        for i in length
+        {
             Swag.require(value[i] == ((i % 3 == 0) != (i % 5 == 0)))
+        }
     }
 }
 

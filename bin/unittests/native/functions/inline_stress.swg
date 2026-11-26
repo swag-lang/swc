@@ -5,7 +5,10 @@ func hasAnyAbove(arr: [*] u8, count: u32, limit: u8)->bool
 {
     for i in count
     {
-        if arr[i] > limit do return true
+        if arr[i] > limit
+        {
+            return true
+        }
     }
 
     return false
@@ -16,7 +19,10 @@ func firstAboveIndex(arr: [*] u8, count: u32, limit: u8)->s32
 {
     for i in count
     {
-        if arr[i] > limit do return cast(s32, i)
+        if arr[i] > limit
+        {
+            return cast(s32, i)
+        }
     }
 
     return -1
@@ -30,11 +36,15 @@ func runInlineScanStress(arr: [*] u8, count: u32)->u32
     for i in 4
     {
         if hasAnyAbove(arr, count, limits[i])
-            do total += 1
+        {
+            total += 1
+        }
 
         let index = firstAboveIndex(arr, count, limits[i])
         if index >= 0
-            do total += cast(u32, index)
+        {
+            total += cast(u32, index)
+        }
     }
 
     return total

@@ -48,15 +48,21 @@ impl PageGeometry
 {
     mtd const pageWidthCssPixels()->f32
     {
-        if not .valid or .width <= .left + .right or .width > 1584 do
+        if not .valid or .width <= .left + .right or .width > 1584
+        {
             return 680
+        }
+
         return cast(f32, Math.clamp(.width * 4 / 3, 320, 1200))
     }
 
     mtd const cssInsets()->String
     {
-        if not .valid or .width <= .left + .right or .width > 1584 do
+        if not .valid or .width <= .left + .right or .width > 1584
+        {
             return String.from("24px")
+        }
+
         return Format.toString("%px %px %px %px",
                                cast(u32, Math.round(.top * 4 / 3)),
                                cast(u32, Math.round(.right * 4 / 3)),
@@ -89,11 +95,11 @@ impl PageGeometry
 // Common and automatic ODF styles share bounded names and an acyclic reading projection.
 struct StyleCatalog
 {
-    fonts:     HashTable'(String, String)
-    styles:    Array'NamedStyle
-    index:     HashTable'(String, u64)
+    fonts:     HashTable!{String, String}
+    styles:    Array!{NamedStyle}
+    index:     HashTable!{String, u64}
     defaults:  [7] Properties
-    lists:     HashTable'(String, bool)
+    lists:     HashTable!{String, bool}
     pageColor: String
     page:      PageGeometry
 }
@@ -106,18 +112,28 @@ impl StyleCatalog
         var token: Package.Token
         while scan.next(&token)
         {
-            if token.kind != .Start or not token.isElement("font-face") do
+            if token.kind != .Start or not token.isElement("font-face")
+            {
                 continue
+            }
+
             let name   = String.from(token.attribute("name") orelse "")
             let family = fontFamily(token.attribute("font-family") orelse "")
-            if name.count > 256 or .fonts.count >= 1024 do
+            if name.count > 256 or .fonts.count >= 1024
+            {
                 fail Errors.UnsupportedFormatError{Odt.texts().err_TooLarge}
+            }
+
             if not name.isEmpty() and not family.isEmpty()
             {
-                if let entry = .fonts.tryFind(name) do
+                if let entry = .fonts.tryFind(name)
+                {
                     entry.value = family
-                else do
+                }
+                else
+                {
                     .fonts.add(name, family)
+                }
             }
         }
 
@@ -136,26 +152,40 @@ impl StyleCatalog
                     current.name   = token.attribute("name") orelse ""
                     current.parent = token.attribute("parent-style-name") orelse ""
                     current.family = familyOf(token.attribute("family") orelse "")
-                    if current.name.count > 256 or current.parent.count > 256 do
+                    if current.name.count > 256 or current.parent.count > 256
+                    {
                         fail Errors.UnsupportedFormatError{Odt.texts().err_TooLarge}
+                    }
+
                     let outline = catch StrConv.toS32(token.attribute("default-outline-level") orelse "0") orelse 0
-                    if outline > 0 and outline <= 10 do
+                    if outline > 0 and outline <= 10
+                    {
                         current.properties.paragraph.outline = outline - 1
+                    }
+
                     inStyle   = current.family != .Other
                     isDefault = token.isElement("default-style")
                 }
-                elif inStyle
+                else if inStyle
                 {
-                    if token.isElement("text-properties") do
+                    if token.isElement("text-properties")
+                    {
                         current.properties.readText(&token, &.fonts)
-                    elif token.isElement("paragraph-properties") do
+                    }
+                    else if token.isElement("paragraph-properties")
+                    {
                         current.properties.readParagraph(&token)
-                    elif token.isElement("table-cell-properties") or token.isElement("table-properties") do
+                    }
+                    else if token.isElement("table-cell-properties") or token.isElement("table-properties")
+                    {
                         current.properties.readCell(&token)
-                    elif token.isElement("map") do
+                    }
+                    else if token.isElement("map")
+                    {
                         current.properties.limited = true
+                    }
                 }
-                elif token.isElement("page-layout-properties")
+                else if token.isElement("page-layout-properties")
                 {
                     if .page.valid
                     {
@@ -173,30 +203,38 @@ impl StyleCatalog
                             .page.readMargin(&token, "margin-left", .Left)
                             .page.readMargin(&token, "margin-right", .Right)
 
-                            if .page.width <= .page.left + .page.right or .page.width > 1584 do
+                            if .page.width <= .page.left + .page.right or .page.width > 1584
+                            {
                                 .page.limited = true
+                            }
                         }
-                        elif token.attribute("page-width") != null
+                        else if token.attribute("page-width") != null
                         {
                             .page.limited = true
                         }
                     }
 
                     let color = rgb(token.attribute("background-color") orelse "")
-                    if not color.isEmpty() do
+                    if not color.isEmpty()
+                    {
                         .pageColor = color
+                    }
                 }
 
                 if token.isElement("list-style")
                 {
                     listName = token.attribute("name") orelse ""
                 }
-                elif not listName.isEmpty() and token.isElement("list-level-style-number")
+                else if not listName.isEmpty() and token.isElement("list-level-style-number")
                 {
-                    if let entry = .lists.tryFind(listName) do
+                    if let entry = .lists.tryFind(listName)
+                    {
                         entry.value = true
-                    else do
+                    }
+                    else
+                    {
                         .lists.add(listName, true)
+                    }
                 }
             }
 
@@ -208,7 +246,7 @@ impl StyleCatalog
                     {
                         .defaults[cast(u32, current.family)].overlay(&current.properties)
                     }
-                    elif not current.name.isEmpty()
+                    else if not current.name.isEmpty()
                     {
                         let key = styleKey(current.name, current.family)
                         if let item = .index.tryFind(key)
@@ -225,16 +263,22 @@ impl StyleCatalog
                     inStyle = false
                 }
 
-                if token.isElement("list-style") do
+                if token.isElement("list-style")
+                {
                     listName.clear()
+                }
             }
 
-            if .styles.count > 4096 or .lists.count > 1024 do
+            if .styles.count > 4096 or .lists.count > 1024
+            {
                 fail Errors.UnsupportedFormatError{Odt.texts().err_TooLarge}
+            }
         }
 
-        if scan.damaged do
+        if scan.damaged
+        {
             fail Errors.InvalidFormatError{Odt.texts().err_Invalid}
+        }
     }
 
     mtd finish()
@@ -250,13 +294,16 @@ impl StyleCatalog
     {
         let family  = .styles[index].family
         var result  = .defaults[cast(u32, family)]
-        var chain: Array'u64
+        var chain: Array!{u64}
         var current = index
         while true
         {
             var repeated = false
-            for previous in chain where previous == current do
+            for previous in chain where previous == current
+            {
                 repeated = true
+            }
+
             if repeated or chain.count >= 64
             {
                 result.limited = true
@@ -265,8 +312,11 @@ impl StyleCatalog
 
             chain.add(current)
             let style = &.styles[current]
-            if style.parent.isEmpty() do
+            if style.parent.isEmpty()
+            {
                 break
+            }
+
             let parent = .index.tryFind(styleKey(style.parent, family))
             if not parent
             {
@@ -277,18 +327,27 @@ impl StyleCatalog
             current = parent.value
         }
 
-        for offset in chain.count do
+        for offset in chain.count
+        {
             result.overlay(&.styles[chain[chain.count - offset - 1]].properties)
+        }
+
         return result
     }
 
     mtd const lookup(name: string, family: StyleFamily)->Properties
     {
-        if not name.count do
+        if not name.count
+        {
             return .defaults[cast(u32, family)]
+        }
+
         let item = .index.tryFind(styleKey(name, family))
-        if item do
+        if item
+        {
             return .styles[item.value].resolved
+        }
+
         var result = .defaults[cast(u32, family)]
         result.limited = true
         return result

@@ -117,8 +117,10 @@ impl Owner
 {
     mtd opDrop()
     {
-        if .data do
+        if .data
+        {
             release(.data, #sizeof(s32))
+        }
     }
 
     #[Swag.NoInline]

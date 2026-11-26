@@ -8,7 +8,7 @@ using Swag
 {
     var zlib: Compress.ZLib
     let compressed = expect zlib.compress("checksum boundary")
-    for missing in [1'u64, 2, 3, 4]
+    for missing in [1_u64, 2, 3, 4]
     {
         var reader: Compress.ZLib
         var error:  Swag.Error
@@ -76,19 +76,19 @@ func assertDeflateRoundTrip(input: const [..] u8, level: Compress.Deflate.Compre
     var deflater: Compress.Deflate
     deflater.init(level, strategy)
 
-    var compressed: Array'u8
+    var compressed: Array!{u8}
     expect deflater.compress(&compressed, input)
     Swag.require(not compressed.isEmpty())
 
     var inflater: Compress.Inflate
-    var decoded:  Array'u8
+    var decoded:  Array!{u8}
     expect inflater.decompress(&decoded, compressed.toSlice())
     Swag.require(Slice.equals(decoded.toSlice(), input))
 }
 
 #test
 {
-    var empty:     Array'u8
+    var empty:     Array!{u8}
     let small:     [13] u8 = [0, 1, 1, 2, 3, 5, 8, 13, 21, 34, 55, 89, 144]
     var patterned: [4097] u8
     fillCompressPattern(patterned)
@@ -102,8 +102,10 @@ func assertDeflateRoundTrip(input: const [..] u8, level: Compress.Deflate.Compre
 #test
 {
     var repeated: [2048] u8
-    for i in repeated.count do
+    for i in repeated.count
+    {
         repeated[i] = cast(u8, ((i / 8) & 7))
+    }
 
     assertDeflateRoundTrip(repeated, .NoCompression, .Default)
     assertDeflateRoundTrip(repeated, .BestSpeed, .Fixed)
@@ -188,7 +190,7 @@ func assertDeflateRoundTrip(input: const [..] u8, level: Compress.Deflate.Compre
     let firstDecoded    = expect zlib.decompress(firstCompressed.toSlice())
     Swag.require(Slice.equals(firstDecoded.toSlice(), first))
 
-    var empty: Array'u8
+    var empty: Array!{u8}
     let emptyCompressed = expect zlib.compress(empty.toSlice())
     let emptyDecoded    = expect zlib.decompress(emptyCompressed.toSlice(), 8)
     Swag.require(emptyDecoded.isEmpty())

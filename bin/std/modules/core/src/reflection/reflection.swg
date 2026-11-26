@@ -59,8 +59,10 @@ using Swag
     // Returns whether `t` is a native type other than `any` and `string`.
     func isSimpleNative(t: typeinfo?)->bool
     {
-        if not Reflection.isNative(t) do
+        if not Reflection.isNative(t)
+        {
             return false
+        }
 
         let tt = assume cast(const *TypeInfoNative, t)
         return tt.nativeKind != .Any and tt.nativeKind != .String
@@ -69,8 +71,10 @@ using Swag
     // Returns whether `t` is the native `rune` type.
     func isRune(t: typeinfo?)->bool
     {
-        if not Reflection.isNative(t) do
+        if not Reflection.isNative(t)
+        {
             return false
+        }
 
         let tt = assume cast(const *TypeInfoNative, t)
         return tt.nativeKind == .Rune
@@ -79,8 +83,10 @@ using Swag
     // Returns whether `t` is the native `any` type.
     func isAny(t: typeinfo?)->bool
     {
-        if not Reflection.isNative(t) do
+        if not Reflection.isNative(t)
+        {
             return false
+        }
 
         let tt = assume cast(const *TypeInfoNative, t)
         return tt.nativeKind == .Any
@@ -89,8 +95,10 @@ using Swag
     // Returns whether `t` is the native `bool` type.
     func isBool(t: typeinfo?)->bool
     {
-        if not Reflection.isNative(t) do
+        if not Reflection.isNative(t)
+        {
             return false
+        }
 
         let tt = assume cast(const *TypeInfoNative, t)
         return tt.nativeKind == .Bool
@@ -99,8 +107,10 @@ using Swag
     // Returns whether `t` is the native `string` type.
     func isString(t: typeinfo?)->bool
     {
-        if not Reflection.isNative(t) do
+        if not Reflection.isNative(t)
+        {
             return false
+        }
 
         let tt = assume cast(const *TypeInfoNative, t)
         return tt.nativeKind == .String
@@ -112,8 +122,11 @@ using Swag
 // Returns false when `type` is null. This is a query only; it does not modify a value.
 func canDefaultInit(type: typeinfo?)->bool
 {
-    if not type do
+    if not type
+    {
         return false
+    }
+
     return Memory.canDefaultInit(type)
 }
 
@@ -135,9 +148,12 @@ func canDefaultInit(type: typeinfo?)->bool
     // Returns the largest size among the supplied types.
     func maximumSize(types: const [..] typeinfo)->u64
     {
-        var result = 0'u64
-        for type in types do
+        var result = 0_u64
+        for type in types
+        {
             result = Swag.max(result, cast(u64, type.sizeof))
+        }
+
         return result
     }
 
@@ -145,8 +161,11 @@ func canDefaultInit(type: typeinfo?)->bool
     func combinedFlags(types: const [..] typeinfo)->Swag.TypeInfoFlags
     {
         var result: Swag.TypeInfoFlags = .Zero
-        for type in types do
+        for type in types
+        {
             result |= type.flags
+        }
+
         return result
     }
 
@@ -157,11 +176,15 @@ func canDefaultInit(type: typeinfo?)->bool
     // `source` are the same address. Panics when values of `type` cannot be copied.
     func assign(destination: *void?, source: const *void?, type: typeinfo?)
     {
-        if not destination or not source or not type or destination == source do
+        if not destination or not source or not type or destination == source
+        {
             return
+        }
 
-        if not canCopy(type) do
+        if not canCopy(type)
+        {
             Swag.panic("Reflection.assign cannot copy this type", #curlocation)
+        }
 
         Memory.dropType(destination, type)
         Memory.copyValueStorage(destination, source, type)
@@ -173,25 +196,32 @@ func canDefaultInit(type: typeinfo?)->bool
     // Panics when `destination` or `type` is null, or when `type` has no default initialization.
     func reset(destination: *void?, type: typeinfo?)
     {
-        if not destination or not type do
+        if not destination or not type
+        {
             Swag.panic("Reflection.reset cannot reset a null type", #curlocation)
-        if not Memory.canDefaultInit(type) do
+        }
+
+        if not Memory.canDefaultInit(type)
+        {
             Swag.panic("Reflection.reset cannot default-initialize this type", #curlocation)
+        }
 
         Memory.resetValueStorage(destination, type)
     }
 }
 
-private var g_HashCrcToType:  HashTable'(u32, typeinfo)
-private var g_HashNameToType: HashTable'(string, typeinfo)
-private var g_AmbiguousCrcs:  HashSet'u32
-private var g_HashKeyToType:  HashTable'(string, typeinfo?)
+private var g_HashCrcToType:  HashTable!{u32, typeinfo}
+private var g_HashNameToType: HashTable!{string, typeinfo}
+private var g_AmbiguousCrcs:  HashSet!{u32}
+private var g_HashKeyToType:  HashTable!{string, typeinfo?}
 private var g_HashLock:       Swag.RWLock
 
 private func addCrcTypeIdentity(crc: u32, type: typeinfo?)
 {
-    if not crc or not type do
+    if not crc or not type
+    {
         return
+    }
 
     let existing = g_HashCrcToType.tryFind(crc)
     if existing
@@ -222,8 +252,10 @@ private func addCrcTypeIdentity(crc: u32, type: typeinfo?)
 // already names a type through its full name keeps it.
 private func addBareNameCrcTypeIdentity(crc: u32, type: typeinfo?)
 {
-    if not crc or not type or g_AmbiguousCrcs.contains(crc) do
+    if not crc or not type or g_AmbiguousCrcs.contains(crc)
+    {
         return
+    }
 
     let existing = g_HashCrcToType.tryFind(crc)
     if not existing
@@ -233,10 +265,15 @@ private func addBareNameCrcTypeIdentity(crc: u32, type: typeinfo?)
     }
 
     let other = existing.value
-    if other.fullname == type.fullname do
+    if other.fullname == type.fullname
+    {
         return
-    if other.fullname != null and Hash.Crc32.compute(other.fullname) == crc do
+    }
+
+    if other.fullname != null and Hash.Crc32.compute(other.fullname) == crc
+    {
         return
+    }
 
     g_HashCrcToType.remove(crc)
     g_AmbiguousCrcs.add(crc)
@@ -246,12 +283,16 @@ private func registerTypeNoLock(type: typeinfo?)->bool
 {
     func registerStableTypeKeyNoLock(type: typeinfo)
     {
-        if type.kind != .Struct do
+        if type.kind != .Struct
+        {
             return
+        }
 
         let key = attributeValue(type, Serialization.TypeKey, "name")
-        if key == null do
+        if key == null
+        {
             return
+        }
 
         let stableKey = assume cast (string, key)
         let existing  = g_HashKeyToType.tryFind(stableKey)
@@ -274,50 +315,73 @@ private func registerTypeNoLock(type: typeinfo?)->bool
         g_HashKeyToType.add(stableKey, null)
     }
 
-    if not type do
+    if not type
+    {
         return false
+    }
 
     // Do this before the graph's visited check. A type can first be reached through an
     // imported descriptor without attributes, then explicitly registered through its
     // defining module where TypeKey is available.
     registerStableTypeKeyNoLock(type)
 
-    if type.crc and g_HashCrcToType.contains(type.crc) do
+    if type.crc and g_HashCrcToType.contains(type.crc)
+    {
         return false
+    }
+
     if not type.crc
     {
-        if type.fullname != null and type.fullname != "" and g_HashNameToType.contains(type.fullname) do
+        if type.fullname != null and type.fullname != "" and g_HashNameToType.contains(type.fullname)
+        {
             return false
+        }
+
         if (type.fullname == null or type.fullname == "") and
            type.name != null and
            type.name != "" and
-           g_HashNameToType.contains(type.name) do
+           g_HashNameToType.contains(type.name)
+        {
             return false
+        }
     }
 
-    if type.crc do
+    if type.crc
+    {
         g_HashCrcToType.add(type.crc, type)
+    }
 
-    if type.fullname != null and type.fullname != "" and not g_HashNameToType.contains(type.fullname) do
+    if type.fullname != null and type.fullname != "" and not g_HashNameToType.contains(type.fullname)
+    {
         g_HashNameToType.add(type.fullname, type)
-    elif (type.fullname == null or type.fullname == "") and
-         type.name != null and
-         type.name != "" and
-         not g_HashNameToType.contains(type.name) do
+    }
+    else if (type.fullname == null or type.fullname == "") and
+            type.name != null and
+            type.name != "" and
+            not g_HashNameToType.contains(type.name)
+    {
         g_HashNameToType.add(type.name, type)
+    }
 
-    if type.fullname != null and type.fullname != "" do
+    if type.fullname != null and type.fullname != ""
+    {
         addCrcTypeIdentity(Hash.Crc32.compute(type.fullname), type)
-    if type.name != null and type.name != "" do
+    }
+
+    if type.name != null and type.name != ""
+    {
         addBareNameCrcTypeIdentity(Hash.Crc32.compute(type.name), type)
+    }
 
     return true
 }
 
 private func registerTypeGraphNoLock(type: typeinfo?)
 {
-    if not registerTypeNoLock(type) do
+    if not registerTypeNoLock(type)
+    {
         return
+    }
 
     let nnType = unwrap type
     switch nnType.kind
@@ -344,10 +408,15 @@ private func registerTypeGraphNoLock(type: typeinfo?)
 
     case .Struct:
         let typeStruct = assume cast(const *TypeInfoStruct, nnType)
-        for &field in typeStruct.fields do
+        for &field in typeStruct.fields
+        {
             registerTypeGraphNoLock(field.pointedType)
-        for &generic in typeStruct.generics do
+        }
+
+        for &generic in typeStruct.generics
+        {
             registerTypeGraphNoLock(generic.pointedType)
+        }
 
     default:
         break

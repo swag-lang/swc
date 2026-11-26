@@ -47,9 +47,9 @@ else
 {
     Swag.require(Cfg.registeredConfigs == "devmode|release|release-safe")
     Swag.require(Cfg.backendKind != Swag.Build.BackendKind.None)
-    Swag.require(Cfg.moduleVersion >= 0'u32)
-    Swag.require(Cfg.moduleRevision >= 0'u32)
-    Swag.require(Cfg.moduleBuildNum >= 0'u32)
+    Swag.require(Cfg.moduleVersion >= 0_u32)
+    Swag.require(Cfg.moduleRevision >= 0_u32)
+    Swag.require(Cfg.moduleBuildNum >= 0_u32)
 }
 
 #static if #cfg == "release-safe"
@@ -61,7 +61,10 @@ else
     {
         var slot:  GuardedLateSlot
         var value: s32 = 42
-        if shouldInitialize do slot.value = &value
+        if shouldInitialize
+        {
+            slot.value = &value
+        }
         return slot.value[]
     }
 

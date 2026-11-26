@@ -24,14 +24,19 @@ impl ReversedCount
 
 // Returns a zero-allocation view that visits the indices of `count` in descending order.
 #[Swag.Inline]
-func(T) reversed(count: T)->ReversedCount'T
+func(T) reversed(count: T)->ReversedCount!{T}
     where
     {
         var rawType: const *Swag.TypeInfo = #typeof(#type T)
-        while rawType.kind == .Alias do
+        while rawType.kind == .Alias
+        {
             rawType = (assume cast(const *Swag.TypeInfoAlias, rawType)).rawType
-        if rawType.kind != .Native do
+        }
+
+        if rawType.kind != .Native
+        {
             return false
+        }
 
         let native = assume cast(const *Swag.TypeInfoNative, rawType)
         return native.nativeKind >= .S8 and native.nativeKind <= .U64
@@ -50,14 +55,19 @@ struct(T) IterationRange
 
 // Returns a zero-allocation half-open interval `[lower, upper)` with integer bounds.
 #[Swag.Inline]
-func(T) range(lower, upper: T)->IterationRange'T
+func(T) range(lower, upper: T)->IterationRange!{T}
     where
     {
         var rawType: const *Swag.TypeInfo = #typeof(#type T)
-        while rawType.kind == .Alias do
+        while rawType.kind == .Alias
+        {
             rawType = (assume cast(const *Swag.TypeInfoAlias, rawType)).rawType
-        if rawType.kind != .Native do
+        }
+
+        if rawType.kind != .Native
+        {
             return false
+        }
 
         let native = assume cast(const *Swag.TypeInfoNative, rawType)
         return native.nativeKind >= .S8 and native.nativeKind <= .U64
@@ -68,14 +78,19 @@ func(T) range(lower, upper: T)->IterationRange'T
 
 // Returns a zero-allocation closed interval `[lower, upper]` with integer bounds.
 #[Swag.Inline]
-func(T) rangeTo(lower, upper: T)->IterationRange'T
+func(T) rangeTo(lower, upper: T)->IterationRange!{T}
     where
     {
         var rawType: const *Swag.TypeInfo = #typeof(#type T)
-        while rawType.kind == .Alias do
+        while rawType.kind == .Alias
+        {
             rawType = (assume cast(const *Swag.TypeInfoAlias, rawType)).rawType
-        if rawType.kind != .Native do
+        }
+
+        if rawType.kind != .Native
+        {
             return false
+        }
 
         let native = assume cast(const *Swag.TypeInfoNative, rawType)
         return native.nativeKind >= .S8 and native.nativeKind <= .U64
@@ -106,8 +121,11 @@ impl IterationRange
             {
                 scope(Down)
                 #inject(stmt, item = item, break = break to Up, continue = break to Down)
-                if item == .upper do
+                if item == .upper
+                {
                     break
+                }
+
                 item += cast(T, 1)
             }
         }
@@ -116,7 +134,7 @@ impl IterationRange
 
 // Returns the same integer interval with descending traversal.
 #[Swag.Inline]
-func(T) reversed(value: IterationRange'T)->ReversedRange'T
+func(T) reversed(value: IterationRange!{T})->ReversedRange!{T}
     =>
 {lower: value.lower, upper: value.upper, inclusive: value.inclusive}
 
@@ -129,16 +147,21 @@ impl ReversedRange
         if .lower <= .upper and (.inclusive or .upper != .lower)
         {
             var item = .upper
-            if not .inclusive do
+            if not .inclusive
+            {
                 item -= cast(T, 1)
+            }
 
             scope(Up)
             while true
             {
                 scope(Down)
                 #inject(stmt, item = item, break = break to Up, continue = break to Down)
-                if item == .lower do
+                if item == .lower
+                {
                     break
+                }
+
                 item -= cast(T, 1)
             }
         }
@@ -161,12 +184,18 @@ impl ReversedSlice
         {
             scan -= 1
             let index = (.values).count - offset - 1
-            #static if ptr do
+            #static if ptr
+            {
                 #inject(stmt, item = cast(*T, scan), index = index)
-            elif #typeof(#type T).kind == .Struct do
+            }
+            else if #typeof(#type T).kind == .Struct
+            {
                 #inject(stmt, item = cast(const *T, scan), index = index)
-            else do
+            }
+            else
+            {
                 #inject(stmt, item = scan[0], index = index)
+            }
         }
     }
 }
@@ -188,29 +217,33 @@ impl ConstReversedSlice
         {
             scan -= 1
             let index = (.values).count - offset - 1
-            #static if #typeof(#type T).kind == .Struct do
+            #static if #typeof(#type T).kind == .Struct
+            {
                 #inject(stmt, item = cast(const *T, scan), index = index)
-            else do
+            }
+            else
+            {
                 #inject(stmt, item = scan[0], index = index)
+            }
         }
     }
 }
 
 // Returns a mutable zero-allocation view that traverses `values` in reverse order.
 #[Swag.Inline]
-func(T) reversed(values: [..] T)->ReversedSlice'T
+func(T) reversed(values: [..] T)->ReversedSlice!{T}
     => reverseSlice(values)
 
 // Returns an immutable zero-allocation view that traverses `values` in reverse order.
 #[Swag.Inline]
-func(T) reversed(values: const [..] T)->ConstReversedSlice'T
+func(T) reversed(values: const [..] T)->ConstReversedSlice!{T}
     => reverseSlice(values)
 
 #[Swag.NoDoc, Swag.Inline]
-func(T) reverseSlice(values: [..] T)->ReversedSlice'T => {values: values}
+func(T) reverseSlice(values: [..] T)->ReversedSlice!{T} => {values: values}
 
 #[Swag.NoDoc, Swag.Inline]
-func(T) reverseSlice(values: const [..] T)->ConstReversedSlice'T => {values: values}
+func(T) reverseSlice(values: const [..] T)->ConstReversedSlice!{T} => {values: values}
 
 // Iterates adjacent elements of an immutable slice without allocating pairs.
 //
@@ -228,26 +261,32 @@ impl Pairs
         where not ptr
     {
         let count = (.values).count
-        if count < 2 do
+        if count < 2
+        {
             return
+        }
 
         let data = (.values).buffer
         for index in count - 1
         {
-            #static if #typeof(#type T).kind == .Struct do
+            #static if #typeof(#type T).kind == .Struct
+            {
                 #inject(stmt, left = cast(const *T, (data + index)), right = cast(const *T, (data + index + 1)), index = index)
-            else do
+            }
+            else
+            {
                 #inject(stmt, left = data[index], right = data[index + 1], index = index)
+            }
         }
     }
 }
 
 #[Swag.NoDoc, Swag.Inline]
-func(T) pairsView(values: const [..] T)->Pairs'T => {values: values}
+func(T) pairsView(values: const [..] T)->Pairs!{T} => {values: values}
 
 // Returns a zero-allocation view over adjacent elements of `values`.
 #[Swag.Inline]
-func(T) pairs(values: const [..] T)->Pairs'T
+func(T) pairs(values: const [..] T)->Pairs!{T}
     => pairsView(values)
 
 #[Swag.Opaque]

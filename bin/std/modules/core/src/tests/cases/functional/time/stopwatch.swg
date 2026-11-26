@@ -11,7 +11,7 @@ using Swag
 
     stopwatch.start()
     Swag.require(stopwatch.isRunning())
-    Threading.Thread.sleep(2'ms)
+    Threading.Thread.sleep(2_ms)
     Swag.require(stopwatch.elapsedTicks() > 0)
     Swag.require(stopwatch.elapsedMicroseconds() > 0)
     Swag.require(stopwatch.elapsedMilliseconds() > 0)
@@ -19,7 +19,7 @@ using Swag
     stopwatch.stop()
     Swag.require(not stopwatch.isRunning())
     let stoppedTicks = stopwatch.elapsedTicks()
-    Threading.Thread.sleep(1'ms)
+    Threading.Thread.sleep(1_ms)
     Swag.require(stopwatch.elapsedTicks() == stoppedTicks)
 
     stopwatch.restart()
@@ -62,18 +62,18 @@ using Swag
     var stopwatch: Time.Stopwatch
 
     stopwatch.start()
-    Threading.Thread.sleep(2'ms)
+    Threading.Thread.sleep(2_ms)
     let firstElapsed = stopwatch.elapsedTicks()
     Swag.require(firstElapsed > 0)
 
     stopwatch.start()
     Swag.require(stopwatch.elapsedTicks() >= firstElapsed)
-    Threading.Thread.sleep(2'ms)
+    Threading.Thread.sleep(2_ms)
     stopwatch.stop()
     let stoppedElapsed = stopwatch.elapsedTicks()
     Swag.require(stoppedElapsed >= firstElapsed)
 
-    Threading.Thread.sleep(1'ms)
+    Threading.Thread.sleep(1_ms)
     stopwatch.stop()
     Swag.require(stopwatch.elapsedTicks() == stoppedElapsed)
 }

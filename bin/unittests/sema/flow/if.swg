@@ -8,7 +8,7 @@ func semaTest001()
     else {}
 
     if false {}
-    elif true {}
+    else if true {}
     else {}
 }
 

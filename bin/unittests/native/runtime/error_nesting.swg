@@ -3,19 +3,25 @@
 // Every level holds one error stack level of the context for as long as its 'catch' runs.
 func nestedCatches(levels: u32)->u32 fail
 {
-    if levels == 0 do
+    if levels == 0
+    {
         return 0
+    }
     return (catch nestedCatches(levels - 1) orelse 0) + 1
 }
 
 // Every level fails, so each one hands an error to the level that catches it.
 func nestedFailures(levels: u32)->u32 fail
 {
-    if levels == 0 do
+    if levels == 0
+    {
         fail Swag.BaseError{"deepest"}
+    }
     let below = catch nestedFailures(levels - 1) orelse 0
-    if below == 0 do
+    if below == 0
+    {
         fail Swag.BaseError{"failed below"}
+    }
     return below
 }
 

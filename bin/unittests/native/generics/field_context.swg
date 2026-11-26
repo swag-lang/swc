@@ -35,12 +35,12 @@ struct(U, M: s32) RenamedDoubleBufferImplicit
 
 struct(A, B) PartialMiddleDefaultHolder
 {
-    item: MiddleDefaultBox'A
+    item: MiddleDefaultBox!{A}
 }
 
 struct(A) ExplicitPrefixValueHolder
 {
-    item: PrefixDefaultBuffer'3
+    item: PrefixDefaultBuffer!{3}
 }
 
 struct(U, M: s32) MethodBufferContext {}
@@ -85,7 +85,7 @@ func(T, V) functionLocalPartialBox(value: T, tail: V)->V
 {
     struct Local
     {
-        item: MiddleDefaultBox'T
+        item: MiddleDefaultBox!{T}
     }
 
     var data = Local{item: {first: value, second: "ok", third: tail}}
@@ -94,51 +94,51 @@ func(T, V) functionLocalPartialBox(value: T, tail: V)->V
 
 #test
 {
-    var wrapped: WrapperImplicit'u16
+    var wrapped: WrapperImplicit!{u16}
     wrapped.item.value = 7
     Swag.require(wrapped.item.value == 7)
     #assert(#typeof(wrapped.item.value) == u16)
 
-    var renamed: RenamedDoubleBufferImplicit'(u16, 3)
+    var renamed: RenamedDoubleBufferImplicit!{u16, 3}
     renamed.first.values[0]  = 1
     renamed.second.values[2] = 9
-    Swag.require(renamed.first.values[0] == 1'u16)
-    Swag.require(renamed.second.values[2] == 9'u16)
+    Swag.require(renamed.first.values[0] == 1_u16)
+    Swag.require(renamed.second.values[2] == 9_u16)
     #assert(#typeof(renamed.first.values) == #type [3] u16)
 
-    var partial = PartialMiddleDefaultHolder'(u32, f64){item: {first: 11, second: "value", third: 2.5}}
-    Swag.require(partial.item.first == 11'u32)
+    var partial = PartialMiddleDefaultHolder!{u32, f64}{item: {first: 11, second: "value", third: 2.5}}
+    Swag.require(partial.item.first == 11_u32)
     Swag.require(partial.item.second == "value")
     Swag.require(partial.item.third == 2.5)
     #assert(#typeof(partial.item.second) == string)
 
-    var explicitPrefix: ExplicitPrefixValueHolder'u8
+    var explicitPrefix: ExplicitPrefixValueHolder!{u8}
     explicitPrefix.item.values[0] = 3
     explicitPrefix.item.values[2] = 5
-    Swag.require(explicitPrefix.item.values[0] == 3'u8)
-    Swag.require(explicitPrefix.item.values[2] == 5'u8)
+    Swag.require(explicitPrefix.item.values[0] == 3_u8)
+    Swag.require(explicitPrefix.item.values[2] == 5_u8)
     #assert(#typeof(explicitPrefix.item.values) == #type [3] u8)
 }
 
 #test
 {
-    let methodBufferContext: MethodBufferContext'(u16, 9)
-    let distinctMethodBuffer = methodBufferContext.makeWithDistinctName'f32()
+    let methodBufferContext: MethodBufferContext!{u16, 9}
+    let distinctMethodBuffer = methodBufferContext.makeWithDistinctName!{f32}()
 
     Swag.require(methodBufferContext.localStructInferenceWorks())
     Swag.require(methodBufferContext.defaultCount() == 9)
-    Swag.require(methodBufferContext.defaultTyped() == 9'u16)
-    Swag.require(distinctMethodBuffer.values[0] == 42'u16)
+    Swag.require(methodBufferContext.defaultTyped() == 9_u16)
+    Swag.require(distinctMethodBuffer.values[0] == 42_u16)
     #assert(#typeof(distinctMethodBuffer.values) == #type [9] u16)
 }
 
 #test
 {
-    let value = functionLocalImplicitBox'u16(12)
-    let tail  = functionLocalPartialBox'(bool, f32)(true, 4.5)
+    let value = functionLocalImplicitBox!{u16}(12)
+    let tail  = functionLocalPartialBox!{bool, f32}(true, 4.5)
 
-    Swag.require(value == 12'u16)
-    Swag.require(tail == 4.5'f32)
+    Swag.require(value == 12_u16)
+    Swag.require(tail == 4.5_f32)
     #assert(#typeof(value) == u16)
     #assert(#typeof(tail) == f32)
 }

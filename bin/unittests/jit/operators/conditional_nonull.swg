@@ -25,7 +25,7 @@ func jitConditionalNonNullBranches(flag: bool)->bool
 {
     var first   = JitConditionalNonNullItem{value: 11}
     var second  = JitConditionalNonNullItem{value: 22}
-    var indexed = JitConditionalIndex'(*JitConditionalNonNullItem){values: [&first]}
+    var indexed = JitConditionalIndex!{*JitConditionalNonNullItem}{values: [&first]}
 
     let legacy:   *JitConditionalNonNullItem  = &first
     let nullable: *JitConditionalNonNullItem? = jitConditionalMaybe(&first)

@@ -32,7 +32,7 @@ struct MiniBar
 
         readonly
         {
-            items: Array'MiniBarItem     // Items and separators, from the leading edge.
+            items: Array!{MiniBarItem}     // Items and separators, from the leading edge.
         }
     }
 }
@@ -76,8 +76,10 @@ impl IWnd for MiniBar
                 x += metrics.separator_HairlineSize + metrics.miniBar_SeparatorGap
             }
 
-            if index + 1 < .items.count and item.wnd and .items[index + 1].wnd do
+            if index + 1 < .items.count and item.wnd and .items[index + 1].wnd
+            {
                 x += metrics.miniBar_Gap
+            }
         }
     }
 }
@@ -88,7 +90,7 @@ impl MiniBar
     #[Swag.Discardable]
     func create(parent: *Wnd, id: WndId? = null)->*MiniBar
     {
-        with let result = Wnd.create'MiniBar(parent, null, {}, id)
+        with let result = Wnd.create!{MiniBar}(parent, null, {}, id)
         {
             .backgroundStyle = .Transparent
             .wndFlags.add(.Hidden)
@@ -137,8 +139,11 @@ impl MiniBar
     // The bar adopts `control`, gives it the height of a button and places it in the row.
     mtd addItem(control: *Wnd)
     {
-        if control.parent != me do
+        if control.parent != me
+        {
             control.setParent(&.wnd)
+        }
+
         control.resize(control.position.width, .themeMetrics().miniBar_ButtonSize)
         .items.add(MiniBarItem{control})
         .arrange()
@@ -147,8 +152,11 @@ impl MiniBar
     // Removes every item, destroying the controls, so the bar can be filled for another selection.
     mtd clear()
     {
-        for item in .items where item.wnd do
+        for item in .items where item.wnd
+        {
             item.wnd.destroy()
+        }
+
         .items.clear()
         .arrange()
     }
@@ -167,12 +175,19 @@ impl MiniBar
         var width   = 2 * metrics.miniBar_Padding
         for item, index in .items
         {
-            if item.wnd do
+            if item.wnd
+            {
                 width += item.wnd.position.width
-            else do
+            }
+            else
+            {
                 width += 2 * metrics.miniBar_SeparatorGap + metrics.separator_HairlineSize
-            if index + 1 < .items.count and item.wnd and .items[index + 1].wnd do
+            }
+
+            if index + 1 < .items.count and item.wnd and .items[index + 1].wnd
+            {
                 width += metrics.miniBar_Gap
+            }
         }
 
         return {width, metrics.miniBar_ButtonSize + 2 * metrics.miniBar_Padding}
@@ -193,8 +208,11 @@ impl MiniBar
         let metrics = .themeMetrics()
         let body    = .bodySize()
         var bounds  = parent.clientRect()
-        if room.width > 0 and room.height > 0 do
+        if room.width > 0 and room.height > 0
+        {
             bounds = room
+        }
+
         let gap = metrics.miniBar_Distance
 
         var x = selection.horzCenter() - body.x * 0.5
@@ -205,10 +223,12 @@ impl MiniBar
         if below
         {
             y = selection.bottom() + gap
-            if not fitsBelow do
+            if not fitsBelow
+            {
                 y = selection.y - gap - body.y
+            }
         }
-        elif not fitsAbove
+        else if not fitsAbove
         {
             y = selection.bottom() + gap
         }
@@ -216,10 +236,14 @@ impl MiniBar
         if not fitsAbove and not fitsBelow
         {
             y = selection.bottom() - gap - body.y
-            if selection.right() + gap + body.x <= bounds.right() - gap do
+            if selection.right() + gap + body.x <= bounds.right() - gap
+            {
                 x = selection.right() + gap
-            elif selection.x - gap - body.x >= bounds.x + gap do
+            }
+            else if selection.x - gap - body.x >= bounds.x + gap
+            {
                 x = selection.x - gap - body.x
+            }
         }
 
         y = Math.clamp(y, bounds.y + gap, Math.max(bounds.y + gap, bounds.bottom() - gap - body.y))
@@ -228,8 +252,11 @@ impl MiniBar
         .bringToFront()
 
         // A bar already up follows its selection; a new one leaves it, rising when it stands above.
-        if .isLocallyVisible() do
+        if .isLocallyVisible()
+        {
             return
+        }
+
         let travel = .themeMetrics().motion_AnchorTravel
         discard .app().animator.arrive(me, {0, y < selection.y ? travel : -travel})
     }
@@ -256,8 +283,10 @@ impl MiniBar
                 x += 2 * metrics.miniBar_SeparatorGap + metrics.separator_HairlineSize
             }
 
-            if index + 1 < .items.count and item.wnd and .items[index + 1].wnd do
+            if index + 1 < .items.count and item.wnd and .items[index + 1].wnd
+            {
                 x += metrics.miniBar_Gap
+            }
         }
 
         .invalidate()

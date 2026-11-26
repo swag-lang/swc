@@ -19,7 +19,7 @@ func day5B()
     let dataPath = Path.combine(Path.directoryName(#curlocation.fileName), "5.txt")
     let lines    = expect File.readAllLines(dataPath)
 
-    var pagesAfter: HashTable'(s32, Array's32)
+    var pagesAfter: HashTable!{s32, Array!{s32}}
     var readingRules = true
     var total        = 0
 
@@ -33,7 +33,7 @@ func day5B()
 
         if readingRules
         {
-            let rulePages = Tokenize.split(line[], '|'u8)
+            let rulePages = Tokenize.split(line[], '|'_u8)
             Swag.assert(rulePages.count == 2)
 
             let beforePage = expect StrConv.toS32(rulePages[0])
@@ -42,7 +42,7 @@ func day5B()
         }
         else
         {
-            var update = Slice.map(Tokenize.split(line[], ','u8).toSlice(),
+            var update = Slice.map(Tokenize.split(line[], ','_u8).toSlice(),
                                    func(x) => expect StrConv.toS32(x))
             Swag.assert(not update.isEmpty())
 
@@ -50,8 +50,10 @@ func day5B()
             for beforeIndex in update.count
             {
                 let beforePage = update[beforeIndex]
-                if beforeIndex + 1 >= update.count do
+                if beforeIndex + 1 >= update.count
+                {
                     continue
+                }
 
                 for afterIndex in beforeIndex + 1 to update.count - 1
                 {
@@ -69,29 +71,34 @@ func day5B()
 
             if not isOrdered
             {
-                var repaired: Array's32
+                var repaired: Array!{s32}
                 repaired.resize(update.count)
 
-                var used: Array'bool
+                var used: Array!{bool}
                 used.resize(update.count)
 
-                var writeIndex = 0'u64
+                var writeIndex = 0_u64
                 while writeIndex < update.count
                 {
                     var found = false
 
                     for candidateIndex in update.count
                     {
-                        if used[candidateIndex] do
+                        if used[candidateIndex]
+                        {
                             continue
+                        }
 
                         let candidatePage = update[candidateIndex]
                         var hasUnplacedPredecessor = false
 
                         for otherIndex in update.count
                         {
-                            if used[otherIndex] or otherIndex == candidateIndex do
+                            if used[otherIndex] or otherIndex == candidateIndex
+                            {
                                 continue
+                            }
+
                             let otherPage = update[otherIndex]
                             if let requiredAfter = pagesAfter.tryFind(otherPage)
                                 where requiredAfter.value.contains(candidatePage)
@@ -101,8 +108,10 @@ func day5B()
                             }
                         }
 
-                        if hasUnplacedPredecessor do
+                        if hasUnplacedPredecessor
+                        {
                             continue
+                        }
 
                         repaired[writeIndex] = candidatePage
                         used[candidateIndex] = true

@@ -80,8 +80,11 @@ using Swag, Core.Errors
 
     var invalidMode:  File.FileMode
     var invalidBytes: [#sizeof(File.FileMode)] u8
-    for index in invalidBytes.count do
+    for index in invalidBytes.count
+    {
         invalidBytes[index] = 0xFF
+    }
+
     Memory.copy(&invalidMode, invalidBytes.buffer, invalidBytes.count)
 
     var error: Swag.Error
@@ -146,7 +149,7 @@ using Swag, Core.Errors
     discard expect File.writeAllText(fileName, "other replacement\n")
     let next = expect stream.readUtf8Chunk(11)
     Swag.require(next == "replacement")
-    expect stream.seek(.End, cast #bit (u64, -1's64))
+    expect stream.seek(.End, cast #bit (u64, -1_s64))
     let ending = expect stream.readUtf8Chunk(4)
     Swag.require(ending == "\n")
 
@@ -172,7 +175,7 @@ using Swag, Core.Errors
 {
     let fileName = CoreTests.makeFilesystemTestPath("core_file_append_existing.tmp")
 
-    discard expect File.writeAllBytes(fileName, ['a'u8, 'b'u8])
+    discard expect File.writeAllBytes(fileName, ['a'_u8, 'b'_u8])
     scope
     {
         var stream = expect File.open(fileName, File.FileMode.Append, File.FileAccess.Write, File.FileShare.Zero)
@@ -183,7 +186,7 @@ using Swag, Core.Errors
     scope
     {
         let content = expect File.readAllBytes(fileName)
-        Swag.require(Slice.equals(content.toSlice(), ['a'u8, 'b'u8, 'c'u8, 'd'u8]))
+        Swag.require(Slice.equals(content.toSlice(), ['a'_u8, 'b'_u8, 'c'_u8, 'd'_u8]))
     }
 
     discard expect File.delete(fileName)
@@ -235,8 +238,11 @@ using Swag, Core.Errors
     while true
     {
         let chunk = expect stream.readUtf8Chunk(4)
-        if chunk.isEmpty() do
+        if chunk.isEmpty()
+        {
             break
+        }
+
         Swag.require(chunk.count <= 4)
         Swag.require(Utf8.isValid(chunk.toSlice()))
         recovered += chunk
@@ -250,7 +256,7 @@ using Swag, Core.Errors
     let fileName = CoreTests.makeFilesystemTestPath("core_file_invalid_utf8_chunk.tmp")
     defer discard catch File.delete(fileName)
 
-    discard expect File.writeAllBytes(fileName, ['a'u8, 0xFF'u8, 'b'u8])
+    discard expect File.writeAllBytes(fileName, ['a'_u8, 0xFF_u8, 'b'_u8])
     var stream = expect File.openRead(fileName)
 
     Swag.require((expect stream.readUtf8Chunk(16)) == "a")
@@ -318,7 +324,7 @@ using Swag, Core.Errors
     stream.close()
 
     let content = expect File.readAllBytes(fileName)
-    Swag.require(Slice.equals(content.toSlice(), ['x'u8, 'y'u8]))
+    Swag.require(Slice.equals(content.toSlice(), ['x'_u8, 'y'_u8]))
 
     discard expect File.delete(fileName)
 }
@@ -368,10 +374,15 @@ using Swag, Core.Errors
 
     defer
     {
-        if File.exists(source.toString()) do
+        if File.exists(source.toString())
+        {
             discard catch File.delete(source.toString())
-        if File.exists(target.toString()) do
+        }
+
+        if File.exists(target.toString())
+        {
             discard catch File.delete(target.toString())
+        }
     }
 
     discard expect File.writeAllText(source.toString(), "moved")
@@ -392,7 +403,7 @@ using Swag, Core.Errors
 {
     let fileName = CoreTests.makeFilesystemTestPath("core_file_empty.tmp")
     defer discard catch File.delete(fileName)
-    var empty: Array'u8
+    var empty: Array!{u8}
     let written = expect File.writeAllBytes(fileName, empty.toSlice())
     Swag.require(written == 0)
     let bytes = expect File.readAllBytes(fileName)
@@ -409,8 +420,10 @@ using Swag, Core.Errors
 // Creation modes enforce the write sandbox even when the requested handle is read-only.
 #test
 {
-    if not Env.isSandboxed() do
+    if not Env.isSandboxed()
+    {
         return
+    }
 
     let directory = Path.combine(Env.realSpecialDirectory(.Temp).toString(), Format.toString("swag-open-mode-%", Guid64.random()))
     let fileName  = Path.combine(directory.toString(), "read-only-create.tmp")
@@ -430,11 +443,11 @@ using Swag, Core.Errors
     defer discard catch File.delete(source)
     defer discard catch File.delete(target)
 
-    discard expect File.writeAllBytes(source, ['s'u8, 0, 'r'u8, 'c'u8])
+    discard expect File.writeAllBytes(source, ['s'_u8, 0, 'r'_u8, 'c'_u8])
     discard expect File.writeAllText(target, "old destination")
 
     expect File.duplicate(target, source)
 
     let content = expect File.readAllBytes(target)
-    Swag.require(Slice.equals(content.toSlice(), ['s'u8, 0, 'r'u8, 'c'u8]))
+    Swag.require(Slice.equals(content.toSlice(), ['s'_u8, 0, 'r'_u8, 'c'_u8]))
 }

@@ -15,8 +15,11 @@ impl IWnd for Launcher
 {
     mtd impl onNotifyEvent(evt: *NotifyEvent)
     {
-        if evt.kind == .ThemeChanged or evt.kind == .LanguageChanged do
+        if evt.kind == .ThemeChanged or evt.kind == .LanguageChanged
+        {
             .refreshLabel()
+        }
+
         evt.accepted = false
     }
 }
@@ -41,7 +44,7 @@ impl Launcher
     {
         let surface     = unwrap owner.surface
         let parent      = assume cast(*SurfaceWnd, surface.wnd)
-        with let result = Wnd.create'Launcher(parent)
+        with let result = Wnd.create!{Launcher}(parent)
         {
             .owner    = owner
             .command  = command
@@ -51,19 +54,28 @@ impl Launcher
             .focusPolicy = .None
             .sigPressed  += func|result|(_)
             {
-                if result.menuLens do
+                if result.menuLens
+                {
                     result.menuLens.openCommandMenu(&result.captionButton.button)
-                else do
+                }
+                else
+                {
                     result.owner!.postCommandEvent(result.command)
+                }
             }
 
             .refreshLabel()
         }
 
-        if menuLens do
+        if menuLens
+        {
             parent.registerLeadingCaptionButton(result)
-        else do
+        }
+        else
+        {
             parent.registerCaptionButton(result)
+        }
+
         return result
     }
 
@@ -72,8 +84,11 @@ impl Launcher
         let metrics = .themeMetrics()
         .captionButton.button.setIcon(.theme().icon(.menuLens ? ThemeIcons.MainMenu : .More, metrics.wnd_CaptionButtonGlyph))
         .setText(.menuLens ? "" : strings().lens_Commands)
-        if not .menuLens do
+        if not .menuLens
+        {
             .setTextPosition(.Right)
+        }
+
         .padding         = metrics.btnIcon_Padding
         .toolTip         = .menuLens ? strings().lens_Commands : Format.toString("% (Ctrl Space)", strings().lens_Commands)
         .preferredSize.x = Math.ceil(.itf.measureContent({}).x)

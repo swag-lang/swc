@@ -54,7 +54,7 @@ func day9A()
     let dataPath = Path.combine(Path.directoryName(#curlocation.fileName), "9.txt")
     let line     = expect File.readAllText(dataPath)
 
-    var map: Array'{ what, num: s64 }
+    var map: Array!{{ what, num: s64 }}
     var cpt: s64
     for t, index in line
     {
@@ -73,12 +73,20 @@ func day9A()
     var last = map.count - #wrap 1
     for i in map.count
     {
-        if map[i].what != -1 do
+        if map[i].what != -1
+        {
             continue
-        while map[last].what == -1 do
+        }
+
+        while map[last].what == -1
+        {
             last -= 1
-        if i >= last do
+        }
+
+        if i >= last
+        {
             break
+        }
 
         map[i].what = map[last].what
 
@@ -87,14 +95,14 @@ func day9A()
             map[last].what = -1
             last -= 1
         }
-        elif map[i].num > map[last].num
+        else if map[i].num > map[last].num
         {
             let n = map[i].num - map[last].num
             map[i].num     = map[last].num
             map[last].what = -1
             map.insertAt(i + 1, {what: -1, num: n})
         }
-        elif map[i].num < map[last].num
+        else if map[i].num < map[last].num
         {
             map[last].num -= map[i].num
         }
@@ -103,8 +111,11 @@ func day9A()
     var idx, total: u64
     for v in map
     {
-        if v.what == -1 do
+        if v.what == -1
+        {
             break
+        }
+
         for v.num
         {
             total += idx * v.what

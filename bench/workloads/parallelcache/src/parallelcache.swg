@@ -6,13 +6,15 @@ func(First: u64, Count: u64) visitBodies(values: *[512][3] u64)
 {
     #static if Count == 1
     {
-        parallel for |values| index in 3 do
+        parallel for |values| index in 3
+        {
             values[][First][index] += First + index + 1
+        }
     }
     else
     {
-        visitBodies'(First, Count / 2)(values)
-        visitBodies'(First + Count / 2, Count - Count / 2)(values)
+        visitBodies!{First, Count / 2}(values)
+        visitBodies!{First + Count / 2, Count - Count / 2}(values)
     }
 }
 
@@ -28,16 +30,21 @@ func(First: u64, Count: u64) visitBodies(values: *[512][3] u64)
         for sample in 3
         {
             var values: [512][3] u64
-            visitBodies'(0, 512)(&values)
+            visitBodies!{0, 512}(&values)
             var watch: Time.Stopwatch
             watch.start()
-            for 32 do
-                visitBodies'(0, 512)(&values)
+            for 32
+            {
+                visitBodies!{0, 512}(&values)
+            }
+
             watch.stop()
             for leaf in 512
             {
-                for index in 3 do
+                for index in 3
+                {
                     Swag.assert(values[leaf][index] == 33 * (leaf + index + 1))
+                }
             }
 
             Console.println("parallel-cache bodies=512 iterations=3 calls=16384 workers=", count, " sample=", sample, " us=", watch.elapsedMicroseconds())

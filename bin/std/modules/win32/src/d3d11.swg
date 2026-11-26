@@ -5,13 +5,13 @@
 using Swag
 
 // Direct3D 11 declarations from d3d11.h. Vtable gaps retain the SDK method offsets.
-const D3D_DRIVER_TYPE_HARDWARE         = 1'u32
-const D3D11_CREATE_DEVICE_BGRA_SUPPORT = 0x20'u32
-const D3D11_SDK_VERSION                = 7'u32
-const D3D11_USAGE_STAGING              = 3'u32
-const D3D11_CPU_ACCESS_READ            = 0x20000'u32
-const D3D11_MAP_READ                   = 1'u32
-const D3D11_MAP_FLAG_DO_NOT_WAIT       = 0x100000'u32
+const D3D_DRIVER_TYPE_HARDWARE         = 1_u32
+const D3D11_CREATE_DEVICE_BGRA_SUPPORT = 0x20_u32
+const D3D11_SDK_VERSION                = 7_u32
+const D3D11_USAGE_STAGING              = 3_u32
+const D3D11_CPU_ACCESS_READ            = 0x20000_u32
+const D3D11_MAP_READ                   = 1_u32
+const D3D11_MAP_FLAG_DO_NOT_WAIT       = 0x100000_u32
 
 struct DXGI_SAMPLE_DESC
 {

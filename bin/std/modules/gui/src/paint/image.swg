@@ -21,13 +21,17 @@ impl PaintImage
 {
     private func onEvent(wnd: *Wnd, evt: IEvent)->bool
     {
-        if not (evt is PaintEvent) do
+        if not (evt is PaintEvent)
+        {
             return false
+        }
 
         let pt    = cast(*PaintImage, unwrap wnd.surface!.userData)
         let paint = pt.paint
-        if not paint do
+        if not paint
+        {
             return false
+        }
 
         let painter = &pt.painter
         painter.begin()
@@ -65,8 +69,10 @@ impl PaintImage
     // Destroys the offscreen surface.
     public mtd opDrop()
     {
-        if .surface != null do
+        if .surface != null
+        {
             .surface.destroy()
+        }
     }
 
     // Initializes an offscreen target of `w` by `h` pixels.

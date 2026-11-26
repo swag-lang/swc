@@ -19,7 +19,7 @@ func semaTest002()
 func semaTest003()
 {
     var a: f32
-    a += 1's16
+    a += 1_s16
 }
 
 func semaTest004()

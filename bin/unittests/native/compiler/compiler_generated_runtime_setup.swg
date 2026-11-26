@@ -21,8 +21,10 @@ const PrefixValueAgain = #run
 struct(T, Count: s32) GuardedVector
     where
     {
-        if PrefixValueAgain == 42 and Count >= 2 and (T == s32 or T == s64) do
+        if PrefixValueAgain == 42 and Count >= 2 and (T == s32 or T == s64)
+        {
             return true
+        }
         return false
     }
 {
@@ -31,7 +33,7 @@ struct(T, Count: s32) GuardedVector
 
 #test
 {
-    let values: GuardedVector'(s32, 3) = {values: [1, 2, 3]}
+    let values: GuardedVector!{s32, 3} = {values: [1, 2, 3]}
     Swag.require(#typeof(values.values) == [3] s32)
     Swag.require(values.values[0] == 1)
     Swag.require(values.values[2] == 3)

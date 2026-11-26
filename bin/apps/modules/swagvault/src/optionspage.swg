@@ -19,14 +19,14 @@ struct OptionRow
 
 impl OptionRow
 {
-    const TitleHeight = 24'f32     // Height of the title's line, which the switch is centred on.
-    const HelpGap     = 4'f32      // Air between the title and its paragraph.
-    const ToggleGap   = 32'f32     // Least air between the words and the switch.
+    const TitleHeight = 24_f32     // Height of the title's line, which the switch is centred on.
+    const HelpGap     = 4_f32      // Air between the title and its paragraph.
+    const ToggleGap   = 32_f32     // Least air between the words and the switch.
 
     // Creates the row of the option `title` in `parent`.
     func create(parent: *Wnd, title, help: string)->*OptionRow
     {
-        with let result = Wnd.create'OptionRow(parent)
+        with let result = Wnd.create!{OptionRow}(parent)
         {
             .backgroundStyle = .Transparent
         }
@@ -62,8 +62,10 @@ impl OptionRow
     mtd arrange()
     {
         // A window is laid out as soon as it is made, before its parts exist.
-        if .toggle == null do
+        if .toggle == null
+        {
             return
+        }
 
         let room   = .clientRect()
         let words  = .wordsWidth(room.width)
@@ -80,8 +82,11 @@ impl IWnd for OptionRow
 {
     mtd impl measureContent(available: Math.Point)->Math.Point
     {
-        if .toggle == null do
+        if .toggle == null
+        {
             return {}
+        }
+
         let words = .wordsWidth(available.x)
         let help  = .help.measure(Math.Point{words, 0}).preferred.y
         return Math.Point{0, Math.ceil(TitleHeight + HelpGap + help)}
@@ -125,7 +130,7 @@ struct OptionsPage
 
 impl OptionsPage
 {
-    const RowPadding = 16'f32     // Air above and below the words of a row, on each side of its hairline.
+    const RowPadding = 16_f32     // Air above and below the words of a row, on each side of its hairline.
 
     // Commands of the delay's menu, one per entry of `MainWindow.IdleChoices`.
     const TimeoutIds = ["vault.idle.5", "vault.idle.15", "vault.idle.30", "vault.idle.60"]
@@ -133,7 +138,7 @@ impl OptionsPage
     // Creates the page in `window`, hidden.
     func create(window: *MainWindow)->*OptionsPage
     {
-        with let result = Wnd.create'OptionsPage(window, "vault.options")
+        with let result = Wnd.create!{OptionsPage}(window, "vault.options")
         {
             .window          = window
             .dockStyle       = .Center
@@ -144,19 +149,22 @@ impl OptionsPage
         let texts = appStrings()
         result.headColumn = createPageColumn(result)
         result.head       = PageHead.create(result.headColumn, texts.ui_PrivacyTitle, texts.ui_OptionsHelp)
-        with result.scroll = Wnd.create'ScrollWnd(result)
+        with result.scroll = Wnd.create!{ScrollWnd}(result)
         {
             .dockStyle  = .None
             .frameFlags = .None
             .updateFlags(.DisableHorizontal | .TransparentBars)
-            .createView'Wnd()
+            .createView!{Wnd}()
         }
 
         result.column = createPageColumn(result.scroll.view)
         result.scroll.view.hookOnEvent = func|page = result|(_, event)->bool
         {
-            if event is ResizeEvent do
+            if event is ResizeEvent
+            {
                 page.arrange()
+            }
+
             return false
         }
 
@@ -201,8 +209,11 @@ impl OptionsPage
         result.timeout.sigLinkActivated += func|page = result|(_, _) { page.chooseTimeout() }
 
         result.privacy.toggle.sigChanged += func|window|(_) { window.readPrivacyControl() }
-        for row in [result.lock, result.suspend, result.idle] do
+        for row in [result.lock, result.suspend, result.idle]
+        {
             row.toggle.sigChanged += func|window|(_) { window.readAutoUnmountControls() }
+        }
+
         return result
     }
 
@@ -247,19 +258,21 @@ impl OptionsPage
     mtd refreshDriverAction()
     {
         let action = .driverAction
-        if not action do
+        if not action
+        {
             return
+        }
 
         let texts = appStrings()
         if .window.operation.kind == .InstallDriver
         {
             action.setText(texts.msg_InstallingDriver)
         }
-        elif hasInstalledWinFsp()
+        else if hasInstalledWinFsp()
         {
             action.setText(texts.msg_DriverInstalled)
         }
-        elif not .window.mountedDrives.drives.isEmpty()
+        else if not .window.mountedDrives.drives.isEmpty()
         {
             action.setText(texts.ui_WinFspUnmountFirst)
         }
@@ -288,8 +301,10 @@ impl OptionsPage
     mtd chooseTimeout()
     {
         let menu = MenuCtrl.createPopup(me, owner: me)
-        for id, index in TimeoutIds do
+        for id, index in TimeoutIds
+        {
             menu.addRadioItem(Format.toString(appStrings().ui_Minutes, MainWindow.IdleChoices[index]), id, checked: index == .timeoutIndex)
+        }
 
         let link   = .timeout.firstLinkRect()
         let bounds = .timeout.surfaceRect()
@@ -304,8 +319,11 @@ impl OptionsPage
     // The title and return stay visible; only the option rows scroll above the hint line.
     mtd arrange()
     {
-        if .timeout == null or .arranging do
+        if .timeout == null or .arranging
+        {
             return
+        }
+
         .arranging = true
         defer .arranging = false
         placePageColumn(me, .headColumn)
@@ -317,8 +335,10 @@ impl OptionsPage
         .column.arrange({.headColumn.position.x, 0, width, height})
         .column.applyLayout()
         .scroll.setScrollSize(.scroll.view.position.width, .column.position.bottom() + PageGutter)
-        for row in [.privacy, .lock, .suspend, .idle, .resident, .startup] do
+        for row in [.privacy, .lock, .suspend, .idle, .resident, .startup]
+        {
             row.arrange()
+        }
     }
 }
 

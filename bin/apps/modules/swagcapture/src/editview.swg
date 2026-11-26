@@ -1,5 +1,5 @@
 // How much the desktop around the zone of the in-place editor is darkened, out of 255.
-const InPlaceDimAlpha = 110'u8
+const InPlaceDimAlpha = 110_u8
 
 // The editor surface: the capture at its zoom, inside a margin, and the mouse edits on its forms.
 // Air around the picture where a press still reaches its edges and their handles, not the ground.
@@ -11,7 +11,7 @@ const GroundPictureMargin = 12.0
 const CaptureEdgeReach = 28.0
 
 // Let a wheel gesture settle before rebuilding form layers at its final zoom.
-const ZoomRefineDelay: Time.Duration = 180'ms
+const ZoomRefineDelay: Time.Duration = 180_ms
 
 // The chip above the zone of the in-place editor, which holds the kind control and writes the
 // size of the capture (see [[EditView.inPlaceSizeChip]]).
@@ -40,7 +40,7 @@ struct EditView
 
     // The words of a form typed in place (see inlinetext.swg): a field per line over the form,
     // the form, what it gives the fields, their font, and the angle the form turns back to.
-    textLines:  Array'(*EditBox)
+    textLines:  Array!{*EditBox}
     textForm:   *BaseForm?
     textSpec:   InlineText
     textFont:   FontFamily
@@ -54,8 +54,11 @@ impl IWnd for EditView
 {
     mtd impl onTimerEvent(evt: *TimerEvent)
     {
-        if evt.timer != .zoomTimer do
+        if evt.timer != .zoomTimer
+        {
             return
+        }
+
         .stopTimer(&.zoomTimer)
         .invalidate()
     }
@@ -68,11 +71,15 @@ impl IWnd for EditView
     mtd impl onMouseEvent(evt: *MouseEvent)
     {
         evt.accepted = false
-        if not .capture do
+        if not .capture
+        {
             return
+        }
 
-        if evt.button == .Left and (evt.kind == .Pressed or evt.kind == .DoubleClick) do
+        if evt.button == .Left and (evt.kind == .Pressed or evt.kind == .DoubleClick)
+        {
             .main.timeline?.stop()
+        }
 
         .followPointerNearEdges(evt)
 
@@ -97,8 +104,11 @@ impl IWnd for EditView
             // (Capture.invalidateMovedRegion): a full repaint here would draw every form on
             // each move of the pointer.
             let mode = .capture.mouseMode
-            if evt.kind != .Move or (mode != .Moving and mode != .Creating) do
+            if evt.kind != .Move or (mode != .Moving and mode != .Creating)
+            {
                 .invalidate()
+            }
+
             evt.accepted = true
             .setFocus()
 
@@ -129,14 +139,23 @@ impl IWnd for EditView
         if evt.kind != .Pressed or
            evt.key != .Return or
            not evt.modifiers.equals(.None) or
-           .inPlaceEdit do
+           .inPlaceEdit
+        {
             return
+        }
+
         let capture = .capture
-        if not capture or capture.selection.count != 1 do
+        if not capture or capture.selection.count != 1
+        {
             return
+        }
+
         let form = capture.forms[capture.selection[0]]
-        if not inlineTextOf(form).found do
+        if not inlineTextOf(form).found
+        {
             return
+        }
+
         .beginTextEdit(form)
         evt.accepted = true
     }
@@ -158,8 +177,10 @@ impl IWnd for EditView
         var rect = .clientRect()
         rect.offset(.scrollPos)
         painter.fillRect(rect, matte)
-        if not .capture do
+        if not .capture
+        {
             return
+        }
 
         // Dim the matte, then paint the opaque capture back over its center: what a form draws
         // outside the capture shows through the dim, or not at all when the view clips to it.
@@ -174,8 +195,10 @@ impl IWnd for EditView
 
         // In place, the desktop stays dimmed around the zone, which keeps a white hairline and
         // says its size in a mono chip.
-        if .inPlaceEdit do
+        if .inPlaceEdit
+        {
             .paintInPlaceZone(painter, captureRect)
+        }
 
         painter.pushTransform()
         painter.translateTransform(captureRect.x, captureRect.y)
@@ -191,10 +214,15 @@ impl IWnd for EditView
         // The handles that resize the capture take the selection ink, like those of a form. They
         // stand where they serve: near the pointer at the edges, during their own drag, and all
         // the time in place, where the zone is what the reader adjusts.
-        if .showsCaptureHandles() do
+        if .showsCaptureHandles()
+        {
             .capture.gizmo.paint(painter, false, selectionInk())
-        else do
+        }
+        else
+        {
             .capture.gizmo.placeAnchors()
+        }
+
         painter.popTransform()
     }
 }
@@ -205,8 +233,11 @@ impl EditView
     mtd showsCaptureHandles()->bool
     {
         let capture = .capture
-        if not capture do
+        if not capture
+        {
             return false
+        }
+
         return .inPlaceEdit or
                .pointerNearEdges or
                capture.gizmo.moving or
@@ -228,8 +259,11 @@ impl EditView
             near = outer.contains(pos) and (inner.width <= 0 or inner.height <= 0 or not inner.contains(pos))
         }
 
-        if near == .pointerNearEdges do
+        if near == .pointerNearEdges
+        {
             return
+        }
+
         .pointerNearEdges = near
         .invalidate()
     }
@@ -242,22 +276,35 @@ impl EditView
     // selection tool keeps the ground for its lasso. Without a picture, the whole view is ground.
     mtd isWindowGround(surfacePos: Math.Point)->bool
     {
-        if .inPlaceEdit or .textForm or not .isVisible() do
+        if .inPlaceEdit or .textForm or not .isVisible()
+        {
             return false
+        }
+
         let root = .surface?.wnd
-        if not root or root.windowAt(surfacePos.x, surfacePos.y, true) != me do
+        if not root or root.windowAt(surfacePos.x, surfacePos.y, true) != me
+        {
             return false
-        if not .capture do
+        }
+
+        if not .capture
+        {
             return true
-        if .main.editMode == .Selection or .capture.mouseMode != .None do
+        }
+
+        if .main.editMode == .Selection or .capture.mouseMode != .None
+        {
             return false
+        }
 
         // The handles that resize the picture stand across its edges.
         var pos     = .surfaceToLocal(surfacePos) + .scrollPos
         var picture = .capture.paintRect
         picture.inflate(GroundPictureMargin)
-        if picture.contains(pos) do
+        if picture.contains(pos)
+        {
             return false
+        }
 
         pos.x -= .capture.paintRect.x
         pos.y -= .capture.paintRect.y
@@ -294,8 +341,11 @@ impl EditView
     mtd inPlaceChipLeading(pad: f32)->f32
     {
         let buttonWidth = .inPlaceKindButton ? .inPlaceKindButton.position.width : 0.0
-        if buttonWidth <= 0 do
+        if buttonWidth <= 0
+        {
             return 0
+        }
+
         return buttonWidth + .themeMetrics().menuPopup_IconTextMargin + pad * 0.5
     }
 
@@ -362,16 +412,21 @@ impl EditView
     {
         if up
         {
-            for stop in ZoomStops where stop > zoom * 1.001 do
+            for stop in ZoomStops where stop > zoom * 1.001
+            {
                 return stop
+            }
+
             return cast(f32, MaxZoom)
         }
 
         for i in ZoomStops.count
         {
             let stop = ZoomStops[ZoomStops.count - 1 - i]
-            if stop < zoom * 0.999 do
+            if stop < zoom * 0.999
+            {
                 return stop
+            }
         }
 
         return cast(f32, MinZoom)
@@ -390,8 +445,11 @@ impl EditView
 
     mtd setZoom(z: f32, mouseCenter = false)
     {
-        if .inPlaceEdit do
+        if .inPlaceEdit
+        {
             return
+        }
+
         .applyZoom(z, mouseCenter)
     }
 
@@ -421,8 +479,11 @@ impl EditView
         .zoom = Math.clamp(z, MinZoom, MaxZoom)
         let captureRect = .getCaptureRect()
         var insets: FloatingInsets
-        if not .inPlaceEdit do
+        if not .inPlaceEdit
+        {
             insets = .main.floatingInsets()
+        }
+
         .scroll.setScrollSize(captureRect.width + (2 * .viewMargin) + insets.left + insets.right, captureRect.height + (2 * .viewMargin))
 
         if mouseCenter
@@ -464,12 +525,17 @@ impl EditView
     // Zooms so the whole capture fits in the view, never past 100% unless `canZoom`.
     mtd zoomToFit(canZoom = true)
     {
-        if .inPlaceEdit or not .capture do
+        if .inPlaceEdit or not .capture
+        {
             return
+        }
 
         // A degenerate (zero-sized) capture would divide by zero below.
-        if .capture.width == 0 or .capture.height == 0 do
+        if .capture.width == 0 or .capture.height == 0
+        {
             return
+        }
+
         let insets = .main.floatingInsets()
         var rect   = .clientRect()
         rect.inflate(-.viewMargin * 2)
@@ -490,8 +556,11 @@ impl EditView
     mtd setCapture(c: *Capture)
     {
         .stopTimer(&.zoomTimer)
-        if .capture do
+        if .capture
+        {
             Memory.delete(.capture)
+        }
+
         .capture = c
         .capture?.setup(me)
         if .main != null
@@ -500,9 +569,11 @@ impl EditView
             .main.updateState()
 
             // A timed capture whose media is gone opens empty: say why.
-            if c.isTimed() and c.mediaMissing do
+            if c.isTimed() and c.mediaMissing
+            {
                 .main.reportFailure(appStrings().msg_MissingFrames,
                                     Path.fileName(Capture.mediaPathOf(c.file, c.media)) orelse "")
+            }
         }
 
         .invalidate()

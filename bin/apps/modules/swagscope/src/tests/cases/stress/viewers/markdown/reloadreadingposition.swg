@@ -10,8 +10,11 @@ using Core, Gui, Viewers
     defer MarkdownText.g_ViewerSettings = previous
     MarkdownText.g_ViewerSettings = {}
     var source: String
-    for 12_000 do
+    for 12_000
+    {
         source += "A paragraph of the manuscript remains at the same reading position.\n\n"
+    }
+
     let fileName = Path.combine(Env.getSpecialDirectory(.Temp), Format.toString("scope-reload-%.md", Guid64.random()))
     writeReloadFile(fileName, source)
     defer discard catch File.delete(fileName)
@@ -22,16 +25,25 @@ using Core, Gui, Viewers
     window.openFile(fileName, remember: false)
     completeQueuedViewerFile(&host, window)
     window.searchBox.setText("manuscript")
-    for 64 where window.searchTimer != null do
+    for 64 where window.searchTimer != null
+    {
         host.fireTimer(window.searchTimer)
+    }
+
     let zoom = assume cast(*MarkdownText.ZoomButton, window.currentInfo!.children[0])
     zoom.applyZoom(150)
     let view = assume cast(*Markdown.View, window.currentView)
-    for 64 where view.isLoading() do
+    for 64 where view.isLoading()
+    {
         host.fireTimers()
+    }
+
     assume cast(*ScrollWnd, view.children[0]).setScrollPos(0, 700)
-    for 64 where view.isLoading() do
+    for 64 where view.isLoading()
+    {
         host.fireTimers()
+    }
+
     let position = assume cast(*ScrollWnd, view.children[0]).scrollPosition()
     Swag.require(position.y > 0)
 
@@ -39,8 +51,11 @@ using Core, Gui, Viewers
     writeReloadFile(fileName, source)
     pollFileWatch(&host, window)
     Swag.require(window.pendingFile.isEmpty())
-    for 8 where window.pendingFile.isEmpty() do
+    for 8 where window.pendingFile.isEmpty()
+    {
         pollFileWatch(&host, window)
+    }
+
     Swag.require(not window.pendingFile.isEmpty())
     completeQueuedViewerFile(&host, window)
     for 64 where window.readingState.restoring
@@ -62,13 +77,20 @@ using Core, Gui, Viewers
     pollFileWatch(&host, window)
     Swag.require(window.currentView != null and window.pendingFile.isEmpty())
     writeReloadFile(fileName, "Short document.\n")
-    for 8 where window.pendingFile.isEmpty() do
+    for 8 where window.pendingFile.isEmpty()
+    {
         pollFileWatch(&host, window)
+    }
+
     Swag.require(not window.pendingFile.isEmpty())
     completeQueuedViewerFile(&host, window)
+
     // Advance the loading poll so the assertion reads the replacement view.
-    if window.loadingTimer do
+    if window.loadingTimer
+    {
         host.fireTimer(window.loadingTimer)
+    }
+
     host.fireTimer(window.fileWatchTimer)
     Swag.require(window.outgoingView == null and not window.readingState.restoring)
     let scroll = assume cast(*ScrollWnd, window.currentView.children[0])

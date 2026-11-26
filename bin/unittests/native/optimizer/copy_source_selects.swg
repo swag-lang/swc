@@ -28,7 +28,7 @@ func retainOriginal(a, b: u64)->u64
 
 #test
 {
-    let values = [0'u64, 1, 0xFFFFFFFF, 0x100000000, 0x7FFFFFFFFFFFFFFF, 0x8000000000000000, 0xFFFFFFFFFFFFFFFF]
+    let values = [0_u64, 1, 0xFFFFFFFF, 0x100000000, 0x7FFFFFFFFFFFFFFF, 0x8000000000000000, 0xFFFFFFFFFFFFFFFF]
     for a in values
     {
         for b in values
@@ -44,8 +44,10 @@ func retainOriginal(a, b: u64)->u64
             Swag.require(maximum(a, b) == hi)
             let changed = b ^ 0xABCD
             Swag.require(retainOriginal(a, b) == ((a < changed ? a : b) ^ changed))
-            for c in values do
+            for c in values
+            {
                 Swag.require(twoSelections(a, b, c) == (lo ^ (b > c ? b : c) ^ b))
+            }
         }
     }
     Swag.require(signedMinimum(-0x7FFFFFFF - 1, 0x7FFFFFFF) == -0x7FFFFFFF - 1)

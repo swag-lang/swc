@@ -21,12 +21,18 @@ private impl Reader
         var result: Pptx.SlideShape
         var scan = Package.Scanner.create(source)
         var root:   Package.Token
-        if not scan.next(&root) or root.kind != .Start do
+        if not scan.next(&root) or root.kind != .Start
+        {
             fail Errors.InvalidFormatError{texts().err_Invalid}
+        }
+
         result.hidden = root.attribute("placeholder") == "true" or root.attribute("visibility") == "hidden"
         result.placeholderKind = root.attribute("class") orelse ""
-        if root.attribute("transform") != null do
+        if root.attribute("transform") != null
+        {
             result.unsupported = true
+        }
+
         let x      = Odf.points(root.attribute("x") orelse "0pt")
         let y      = Odf.points(root.attribute("y") orelse "0pt")
         let width  = Odf.points(root.attribute("width") orelse "")
@@ -43,10 +49,14 @@ private impl Reader
         if not drawStyle.count and not presentationStyle.count
         {
             let local = root.attribute("style-name") orelse ""
-            if root.attribute("class") != null do
+            if root.attribute("class") != null
+            {
                 presentationStyle = local
-            else do
+            }
+            else
+            {
                 drawStyle = local
+            }
         }
 
         var paint = .styles.paint(drawStyle, "graphic")
@@ -77,14 +87,21 @@ private impl Reader
         {
             var kind:  String
             var token: Package.Token
-            while scan.next(&token) do
-                if token.kind == .Start and token.isElement("enhanced-geometry") do
+            while scan.next(&token)
+            {
+                if token.kind == .Start and token.isElement("enhanced-geometry")
+                {
                     kind = token.attribute("type") orelse ""
+                }
+            }
+
             result.round = kind == "round-rectangle" or kind == "round-rect"
-            if kind != "rectangle" and kind != "rect" and not result.round do
+            if kind != "rectangle" and kind != "rect" and not result.round
+            {
                 result.unsupported = true
+            }
         }
-        elif not root.isElement("frame") and not root.isElement("rect")
+        else if not root.isElement("frame") and not root.isElement("rect")
         {
             result.unsupported = true
         }
@@ -96,9 +113,12 @@ private impl Reader
         if not root.isElement("frame") and
            not root.isElement("rect") and
            not root.isElement("custom-shape") and
-           result.html.isEmpty() do
+           result.html.isEmpty()
+        {
             result.html = texts().ui_ObjectOmitted
-        var paths:       Array'String
+        }
+
+        var paths:       Array!{String}
         var description: String
         scan = Package.Scanner.create(source)
         var token: Package.Token
@@ -110,12 +130,17 @@ private impl Reader
                 if token.isElement("image")
                 {
                     paths.add(String.from(token.attribute("href") orelse ""))
-                    if paths.count > 8 do
+                    if paths.count > 8
+                    {
                         fail Errors.UnsupportedFormatError{texts().err_TooLarge}
+                    }
                 }
 
-                if token.isElement("title") or token.isElement("desc") do
+                if token.isElement("title") or token.isElement("desc")
+                {
                     inDescription = true
+                }
+
                 if token.isElement("object") or
                    token.isElement("object-ole") or
                    token.isElement("plugin") or
@@ -125,15 +150,20 @@ private impl Reader
                     result.unsupported = true
                 }
             }
-            elif token.kind == .Text and inDescription
+            else if token.kind == .Text and inDescription
             {
                 description += token.text
             }
 
-            if token.kind == .End and (token.isElement("title") or token.isElement("desc")) do
+            if token.kind == .End and (token.isElement("title") or token.isElement("desc"))
+            {
                 inDescription = false
-            if description.count > 1024 do
+            }
+
+            if description.count > 1024
+            {
                 fail Errors.UnsupportedFormatError{texts().err_TooLarge}
+            }
         }
 
         if not paths.isEmpty()
@@ -143,8 +173,11 @@ private impl Reader
             for path in paths
             {
                 let image = Odf.imageHtml(.fileName, .archive, path.toString(), 0, 0, description, &.encodedBytes)
-                if image.isEmpty() do
+                if image.isEmpty()
+                {
                     continue
+                }
+
                 result.html = image
                 break
             }
@@ -158,8 +191,11 @@ private impl Reader
         }
 
         .textBytes += result.html.count
-        if .textBytes > 32 * 1024 * 1024 do
+        if .textBytes > 32 * 1024 * 1024
+        {
             fail Errors.UnsupportedFormatError{texts().err_TooLarge}
+        }
+
         return result
     }
 
@@ -169,7 +205,7 @@ private impl Reader
         result.background = "FFFFFF"
         var scan       = Package.Scanner.create(source)
         var token: Package.Token
-        var depth      = 0'u64
+        var depth      = 0_u64
         var skip       = Swag.U64.Max
         var shapeAt    = Swag.U64.Max
         var shapeDepth = Swag.U64.Max
@@ -177,15 +213,21 @@ private impl Reader
         while true
         {
             let at = scan.offset
-            if not scan.next(&token) do
+            if not scan.next(&token)
+            {
                 break
+            }
+
             if token.kind == .Start
             {
                 depth += 1
                 if skip == Swag.U64.Max
                 {
-                    if token.isElement("notes") and not masterMode do
+                    if token.isElement("notes") and not masterMode
+                    {
                         notesAt = at
+                    }
+
                     if token.isElement("notes") or
                        token.isElement("annotation") or
                        token.isElement("animations") or
@@ -194,19 +236,19 @@ private impl Reader
                     {
                         skip = depth
                     }
-                    elif shapeAt == Swag.U64.Max
+                    else if shapeAt == Swag.U64.Max
                     {
                         if token.isElement("g")
                         {
                             result.simplified = true
                         }
-                        elif token.isElement("frame") or
-                             token.isElement("rect") or
-                             token.isElement("custom-shape") or
-                             token.isElement("ellipse") or
-                             token.isElement("path") or
-                             token.isElement("line") or
-                             token.isElement("connector")
+                        else if token.isElement("frame") or
+                                token.isElement("rect") or
+                                token.isElement("custom-shape") or
+                                token.isElement("ellipse") or
+                                token.isElement("path") or
+                                token.isElement("line") or
+                                token.isElement("connector")
                         {
                             if masterMode and (token.attribute("placeholder") == "true" or token.attribute("class") != null)
                             {
@@ -230,14 +272,17 @@ private impl Reader
                     {
                         result.notesHtml += try readSpeakerNotes(source[notesAt until scan.offset], &.styles.typography)
                         .textBytes       += result.notesHtml.count
-                        if .textBytes > 32 * 1024 * 1024 do
+                        if .textBytes > 32 * 1024 * 1024
+                        {
                             fail Errors.UnsupportedFormatError{texts().err_TooLarge}
+                        }
+
                         notesAt = Swag.U64.Max
                     }
 
                     skip = Swag.U64.Max
                 }
-                elif skip == Swag.U64.Max and shapeDepth == depth
+                else if skip == Swag.U64.Max and shapeDepth == depth
                 {
                     let shape = try .shape(source[shapeAt until scan.offset])
                     if not shape.hidden
@@ -245,8 +290,10 @@ private impl Reader
                         result.shapes.add(shape)
                         result.simplified    = result.simplified or shape.unsupported or not shape.positioned
                         result.omittedImages += shape.omittedImages
-                        if result.shapes.count > 2048 do
+                        if result.shapes.count > 2048
+                        {
                             fail Errors.UnsupportedFormatError{texts().err_TooLarge}
+                        }
                     }
 
                     shapeAt    = Swag.U64.Max
@@ -257,8 +304,11 @@ private impl Reader
             }
         }
 
-        if scan.damaged do
+        if scan.damaged
+        {
             fail Errors.InvalidFormatError{texts().err_Invalid}
+        }
+
         return result
     }
 }
@@ -280,7 +330,7 @@ func load(fileName: string)->Pptx.Presentation fail
     var result:     Pptx.Presentation
     var scan         = Package.Scanner.create(content)
     var token:      Package.Token
-    var depth        = 0'u64
+    var depth        = 0_u64
     var presentation = Swag.U64.Max
     var pageAt       = Swag.U64.Max
     var pageDepth    = Swag.U64.Max
@@ -291,8 +341,11 @@ func load(fileName: string)->Pptx.Presentation fail
     while true
     {
         let at = scan.offset
-        if not scan.next(&token) do
+        if not scan.next(&token)
+        {
             break
+        }
+
         if token.kind == .Start
         {
             depth += 1
@@ -300,7 +353,7 @@ func load(fileName: string)->Pptx.Presentation fail
             {
                 presentation = depth
             }
-            elif presentation != Swag.U64.Max and depth == presentation + 1 and token.isElement("page")
+            else if presentation != Swag.U64.Max and depth == presentation + 1 and token.isElement("page")
             {
                 pageAt     = at
                 pageDepth  = depth
@@ -342,27 +395,46 @@ func load(fileName: string)->Pptx.Presentation fail
                     }
 
                     let masterPaint = styles.paint(master.value.style, "drawing-page")
-                    if masterPaint.fillEnabled != .Off do
+                    if masterPaint.fillEnabled != .Off
+                    {
                         background = masterPaint.fill
-                    if let layout = styles.layouts.tryFind(master.value.layout) do
-                        if Math.abs(layout.value.x - reader.width) > 0.1 or Math.abs(layout.value.y - reader.height) > 0.1 do
+                    }
+
+                    if let layout = styles.layouts.tryFind(master.value.layout)
+                    {
+                        if Math.abs(layout.value.x - reader.width) > 0.1 or Math.abs(layout.value.y - reader.height) > 0.1
+                        {
                             page.simplified = true
+                        }
+                    }
                 }
 
-                if paint.fillEnabled == .Off do
+                if paint.fillEnabled == .Off
+                {
                     background.clear()
-                elif paint.mask & 1 do
+                }
+                else if paint.mask & 1
+                {
                     background = paint.fill
-                if paint.showBackground != .Off and not background.isEmpty() do
+                }
+
+                if paint.showBackground != .Off and not background.isEmpty()
+                {
                     page.background = background
+                }
+
                 page.simplified = page.simplified or paint.limited
                 if not masterName.isEmpty()
                 {
                     let master = styles.masters.tryFind(masterName)
-                    if not master do
+                    if not master
+                    {
                         page.simplified = true
-                    elif not styles.layouts.tryFind(master.value.layout) do
+                    }
+                    else if not styles.layouts.tryFind(master.value.layout)
+                    {
                         page.simplified = true
+                    }
                 }
 
                 page.title = title
@@ -376,26 +448,41 @@ func load(fileName: string)->Pptx.Presentation fail
                     }
                 }
 
-                if hidden do
+                if hidden
+                {
                     page.title = Format.toString(texts().ui_Hidden, page.title)
-                if page.shapes.count > 2048 or page.title.count > 4096 do
+                }
+
+                if page.shapes.count > 2048 or page.title.count > 4096
+                {
                     fail Errors.UnsupportedFormatError{texts().err_TooLarge}
+                }
+
                 result.omittedImages += page.omittedImages
                 result.slides.add(page)
-                if result.slides.count > 200 do
+                if result.slides.count > 200
+                {
                     fail Errors.UnsupportedFormatError{texts().err_TooLarge}
+                }
+
                 pageAt    = Swag.U64.Max
                 pageDepth = Swag.U64.Max
             }
 
-            if presentation == depth do
+            if presentation == depth
+            {
                 presentation = Swag.U64.Max
+            }
+
             depth -= 1
         }
     }
 
-    if scan.damaged or result.slides.isEmpty() do
+    if scan.damaged or result.slides.isEmpty()
+    {
         fail Errors.InvalidFormatError{texts().err_Invalid}
+    }
+
     result.properties = Package.DocumentProperties.read(fileName, &archive)
     return result
 }

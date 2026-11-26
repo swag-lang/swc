@@ -9,7 +9,7 @@ func accessTestPath(tag: string)->String => Path.combine(Env.getSpecialDirectory
 // Password-only access uses the password bytes directly.
 #test
 {
-    var files:  Array'String
+    var files:  Array!{String}
     var access: VaultAccess
     access.setInputs(accessTestPassword(), files.toSlice())
 
@@ -27,18 +27,18 @@ func accessTestPath(tag: string)->String => Path.combine(Env.getSpecialDirectory
     let secondPath = accessTestPath("second")
     defer discard catch File.delete(secondPath)
 
-    discard expect File.writeAllBytes(firstPath, [1'u8, 2, 3, 4])
-    discard expect File.writeAllBytes(movedPath, [1'u8, 2, 3, 4])
-    discard expect File.writeAllBytes(secondPath, [5'u8, 6, 7])
+    discard expect File.writeAllBytes(firstPath, [1_u8, 2, 3, 4])
+    discard expect File.writeAllBytes(movedPath, [1_u8, 2, 3, 4])
+    discard expect File.writeAllBytes(secondPath, [5_u8, 6, 7])
 
-    var firstFiles: Array'String
+    var firstFiles: Array!{String}
     firstFiles.add(firstPath)
     firstFiles.add(secondPath)
     var first: VaultAccess
     first.setInputs(accessTestPassword(), firstFiles.toSlice())
     var firstCredential = expect first.derive()
 
-    var movedFiles: Array'String
+    var movedFiles: Array!{String}
     movedFiles.add(movedPath)
     movedFiles.add(secondPath)
     var moved: VaultAccess
@@ -46,7 +46,7 @@ func accessTestPath(tag: string)->String => Path.combine(Env.getSpecialDirectory
     var movedCredential = expect moved.derive()
     Swag.require(Slice.equals(firstCredential.toSlice(), movedCredential.toSlice()))
 
-    var reversedFiles: Array'String
+    var reversedFiles: Array!{String}
     reversedFiles.add(secondPath)
     reversedFiles.add(firstPath)
     var reversed: VaultAccess
@@ -68,7 +68,7 @@ func accessTestPath(tag: string)->String => Path.combine(Env.getSpecialDirectory
     let emptyPath = accessTestPath("empty")
     defer discard catch File.delete(emptyPath)
 
-    var bytes: Array'u8
+    var bytes: Array!{u8}
     bytes.resize(8 * 1024 * 1024 + 3)
     bytes[0] = 42
     bytes[1024 * 1024]     = 17
@@ -76,7 +76,7 @@ func accessTestPath(tag: string)->String => Path.combine(Env.getSpecialDirectory
     discard expect File.writeAllBytes(keyPath, bytes.toSlice())
     discard expect File.writeAllBytes(emptyPath, "")
 
-    var files: Array'String
+    var files: Array!{String}
     files.add(keyPath)
     files.add(emptyPath)
     var access: VaultAccess
@@ -102,16 +102,16 @@ func accessTestPath(tag: string)->String => Path.combine(Env.getSpecialDirectory
     let vault = accessTestPath("vault")
     defer discard catch File.delete(vault)
 
-    discard expect File.writeAllBytes(oldKey, [10'u8, 11, 12])
-    discard expect File.writeAllBytes(newKey, [20'u8, 21, 22])
+    discard expect File.writeAllBytes(oldKey, [10_u8, 11, 12])
+    discard expect File.writeAllBytes(newKey, [20_u8, 21, 22])
 
-    var oldFiles: Array'String
+    var oldFiles: Array!{String}
     oldFiles.add(oldKey)
     var oldAccess: VaultAccess
     oldAccess.setInputs(accessTestPassword(), oldFiles.toSlice())
     var oldCredential = expect oldAccess.derive()
 
-    var newFiles: Array'String
+    var newFiles: Array!{String}
     newFiles.add(newKey)
     var newAccess: VaultAccess
     newAccess.setInputs(accessTestPassword(), newFiles.toSlice())

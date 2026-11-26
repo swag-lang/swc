@@ -21,7 +21,7 @@
 // renderer.start()
 // defer renderer.close()
 //
-// var task: Swag.Task'u32
+// var task: Swag.Task!{u32}
 // task.submit(func()->u32 => 42, executor: &renderer)
 // let value = try task.take()
 // ```
@@ -69,13 +69,17 @@ impl Executor
         Swag.assert(not .isStarted(), "the executor is already running")
         .priority = priority
         .stopping = false
-        if Swag.jit() do
+        if Swag.jit()
+        {
             return
+        }
 
         prepareWorkerContext(&.context)
         .handle = __hostThreadCreate(&executorEntry, me)
-        if not .handle do
+        if not .handle
+        {
             Swag.panic("cannot start the executor thread", #curlocation)
+        }
     }
 
     // Returns whether the executor runs its own thread.
@@ -87,10 +91,15 @@ impl Executor
     // is in progress; that submission panics rather than being queued after the thread exits.
     mtd close()
     {
-        if not .isStarted() do
+        if not .isStarted()
+        {
             return
-        if Swag.getContext() == &.context do
+        }
+
+        if Swag.getContext() == &.context
+        {
             Swag.panic("an executor cannot close itself from its own thread", #curlocation)
+        }
 
         .mutex.lock()
         .stopping = true
@@ -129,10 +138,15 @@ impl Executor
 
         // A dedicated node is never claimed by a join: it is not in the pool's ready list.
         node.state.store(WorkStateDedicated)
-        if .tail do
+        if .tail
+        {
             .tail.next = node
-        else do
+        }
+        else
+        {
             .head = node
+        }
+
         .tail = node
         .mutex.unlock()
         .ready.wake()
@@ -145,16 +159,23 @@ impl Executor
         .mutex.lock()
         defer .mutex.unlock()
 
-        while not .head and not .stopping do
+        while not .head and not .stopping
+        {
             .ready.wait(&.mutex)
+        }
 
         let node = .head
-        if not node do
+        if not node
+        {
             return null
+        }
 
         .head = node.next
-        if not .head do
+        if not .head
+        {
             .tail = null
+        }
+
         node.next = null
         node.state.store(WorkStateRunning)
         return node
@@ -166,15 +187,20 @@ private func executorEntry(param: *void?)->u32
 {
     let executor = cast(*Executor, unwrap param)
     enterWorkerContext(&executor.context)
-    if executor.priority == .Background do
+    if executor.priority == .Background
+    {
         discard __hostThreadEnterBackground()
+    }
 
     let sched = schedulerInstance()
     for
     {
         let node = executor.nextWork()
-        if not node do
+        if not node
+        {
             break
+        }
+
         runWork(sched, node, false)
     }
 

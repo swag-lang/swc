@@ -19,11 +19,11 @@ struct HtmlLayout
     images: *HtmlImageCache?
 
     defaults:     HtmlStyleDefaults
-    styles:       Array'HtmlComputedStyle
-    nodeStyles:   Array'u32
-    boxes:        Array'HtmlBox
-    pseudoStyles: HashTable'(u64, u32)
-    nodeBox:      HashTable'(u32, u32)
+    styles:       Array!{HtmlComputedStyle}
+    nodeStyles:   Array!{u32}
+    boxes:        Array!{HtmlBox}
+    pseudoStyles: HashTable!{u64, u32}
+    nodeBox:      HashTable!{u32, u32}
     root = HtmlNoNode
 
     viewport:       Math.Point
@@ -33,7 +33,7 @@ struct HtmlLayout
     // Measured run widths, keyed by text and by what the measurement really depends on — the
     // resolved face, the tracking and the device grid — so entries survive the repeated rebuilds
     // of a streaming load instead of re-shaping every word of the document each time.
-    widthCache: HashTable'(u64, f32)
+    widthCache: HashTable!{u64, f32}
 
     // All inline text of one box build shares this reusable arena. Items keep offsets, so
     // growing the arena never invalidates text already emitted during the build.
@@ -41,22 +41,22 @@ struct HtmlLayout
 
     // The face each style resolves to, filled lazily; painting asks once per drawn run and the
     // theme lookup is not free at that rate.
-    fontCache: Array'(*Font?)
+    fontCache: Array!{*Font?}
 
     // The next ordinal of each list being built, so a ten-thousand-item list does not walk its
     // siblings once per item.
-    listOrdinals: HashTable'(u32, u32)
+    listOrdinals: HashTable!{u32, u32}
 
     // The floats currently narrowing the flow, in document coordinates. A box that establishes
     // its own formatting context truncates the list back on exit, so a float never reaches
     // outside the context that owns it.
-    floats: Array'HtmlFloatBand
+    floats: Array!{HtmlFloatBand}
 
     // The boxes the flow stepped over, in the order it met them. They are placed once the
     // in-flow pass is over, because an absolute box resolves against the padding box of its
     // nearest positioned ancestor, and that ancestor's own height is not settled while it is
     // still stacking its children.
-    outOfFlow: Array'u32
+    outOfFlow: Array!{u32}
 }
 
 // The size a box resolves its percentages against.
@@ -76,12 +76,12 @@ struct HtmlIntrinsicWidths
 
 struct HtmlTableCellPlacement
 {
-    box:                  u32
-    row:                  u64
-    column:               u64
-    columnSpan:           u64
-    rowSpan:              u64
-    overflowed:           bool
+    box:        u32
+    row:        u64
+    column:     u64
+    columnSpan: u64
+    rowSpan:    u64
+    overflowed: bool
     overflowColumnOffset: u64
 }
 
@@ -109,35 +109,52 @@ impl HtmlLayout
     mtd const styleOfNode(node: u32)->const *HtmlComputedStyle
     {
         var walk = node
-        while walk != HtmlNoNode and .document.constNode(walk).kind != .Element do
+        while walk != HtmlNoNode and .document.constNode(walk).kind != .Element
+        {
             walk = .document.constNode(walk).parent
+        }
+
         return &.styles[walk == HtmlNoNode ? 0 : .nodeStyles[walk]]
     }
 
     // Returns the font a style asks for, mapped onto the faces the theme actually carries.
     mtd font(styleIndex: u32)->*Font
     {
-        if styleIndex < .fontCache.count and .fontCache[styleIndex] != null do
+        if styleIndex < .fontCache.count and .fontCache[styleIndex] != null
+        {
             return unwrap .fontCache[styleIndex]
+        }
 
         let style = &.styles[styleIndex]
         let size  = cast(u32, Math.clamp(Math.round(style.fontSize), 6, 300))
         let bold  = style.fontWeight >= 600
         var face  = FontFamilyStyle.Regular
-        if bold and style.italic do
+        if bold and style.italic
+        {
             face = .BoldItalic
-        elif bold do
+        }
+        else if bold
+        {
             face = .Bold
-        elif style.italic do
+        }
+        else if style.italic
+        {
             face = .Italic
+        }
 
         let result = style.fontFamily == .Mono ? .theme.createDefaultFontFs(size, face) :
                      style.fontFamily == .Cjk ? .theme.createCjkFont(size, face) :
                      .theme.createDefaultFont(size, face)
-        if .fontCache.count < .styles.count do
+        if .fontCache.count < .styles.count
+        {
             .fontCache.resize(.styles.count)
-        if styleIndex < .fontCache.count do
+        }
+
+        if styleIndex < .fontCache.count
+        {
             .fontCache[styleIndex] = result
+        }
+
         return result
     }
 
@@ -151,8 +168,10 @@ impl HtmlLayout
     // two entries, which costs a little memory and never a wrong width.
     mtd measure(styleIndex: u32, text: string)->f32
     {
-        if not text.count do
+        if not text.count
+        {
             return 0
+        }
 
         // The key carries the face, the tracking and the device grid rather than the style
         // index: a style index means something else after each streaming rebuild, while the
@@ -165,8 +184,10 @@ impl HtmlLayout
                       cast(u64, cast(const *u32, &scale)[])
         let key   = Hash.murmur3(Hash.hash64(text), salt)
         let found = .widthCache.tryFind(key)
-        if found do
+        if found
+        {
             return found.value
+        }
 
         // CSS puts the tracking after every character, the shaper only between two of them, so
         // one more gap closes the run. Without it every word of a tracked line is a gap short and
@@ -189,7 +210,7 @@ impl HtmlLayout
         return result
     }
 
-    mtd const resolveLength(length: HtmlLength, styleIndex: u32, basis: f32, fallback = 0.0'f32)->f32 => length.resolve(.pool, .lengthContext(styleIndex, basis, true), fallback)
+    mtd const resolveLength(length: HtmlLength, styleIndex: u32, basis: f32, fallback = 0.0_f32)->f32 => length.resolve(.pool, .lengthContext(styleIndex, basis, true), fallback)
 }
 
 // Box tree construction.
@@ -204,8 +225,11 @@ impl HtmlLayout
 
         let index = cast(u32, .boxes.count)
         .boxes.add(#move box)
-        if node != HtmlNoNode do
+        if node != HtmlNoNode
+        {
             .nodeBox.add(node, index)
+        }
+
         return index
     }
 
@@ -259,9 +283,12 @@ impl HtmlLayout
         rootStyle.display = .Block
         .root = .newBox(HtmlNoNode, .addStyle(rootStyle), .Block)
 
-        var pending: Array'HtmlInlineItem
-        for child in document.children(0) do
+        var pending: Array!{HtmlInlineItem}
+        for child in document.children(0)
+        {
             .buildChild(.root, child, &pending)
+        }
+
         .flushInline(.root, &pending, true)
 
         // Positioned stacking levels are rare. Recording which boxes actually have one lets the
@@ -281,7 +308,7 @@ impl HtmlLayout
     }
 
     // Emits one DOM child into the box that contains it.
-    private mtd buildChild(parentBox: u32, node: u32, pending: *Array'HtmlInlineItem)
+    private mtd buildChild(parentBox: u32, node: u32, pending: *Array!{HtmlInlineItem})
     {
         let child = .document.constNode(node)
         if child.kind == .Text
@@ -290,13 +317,17 @@ impl HtmlLayout
             return
         }
 
-        if child.kind != .Element do
+        if child.kind != .Element
+        {
             return
+        }
 
         let styleIndex = .styleIndexOf(node)
         let style      = &.styles[styleIndex]
-        if style.display == .None do
+        if style.display == .None
+        {
             return
+        }
 
         if style.display == .Contents
         {
@@ -370,7 +401,7 @@ impl HtmlLayout
     }
 
     // Emits an inline element as a run of items framed by its open and close markers.
-    private mtd buildInlineBox(parentBox: u32, node: u32, pending: *Array'HtmlInlineItem)
+    private mtd buildInlineBox(parentBox: u32, node: u32, pending: *Array!{HtmlInlineItem})
     {
         // The two edge widths are read before anything else runs, because building the content of
         // this element can append generated styles and move the table they were read from.
@@ -398,18 +429,22 @@ impl HtmlLayout
         pending.add(#move close)
     }
 
-    private mtd buildInlineChildren(parentBox: u32, node: u32, pending: *Array'HtmlInlineItem)
+    private mtd buildInlineChildren(parentBox: u32, node: u32, pending: *Array!{HtmlInlineItem})
     {
-        for child in .document.children(node) do
+        for child in .document.children(node)
+        {
             .buildChild(parentBox, child, pending)
+        }
     }
 
     // Emits the text a `::before` or `::after` rule generates.
-    private mtd emitPseudo(parentBox: u32, node: u32, which: HtmlPseudoElement, pending: *Array'HtmlInlineItem)
+    private mtd emitPseudo(parentBox: u32, node: u32, which: HtmlPseudoElement, pending: *Array!{HtmlInlineItem})
     {
         let style = .pseudoStyleIndex(node, which)
-        if style == HtmlNoNode do
+        if style == HtmlNoNode
+        {
             return
+        }
 
         if .styles[style].isOutOfFlow()
         {
@@ -448,8 +483,10 @@ impl HtmlLayout
             return
         }
 
-        if .styles[style].hasContent do
+        if .styles[style].hasContent
+        {
             .appendText(pending, node, style, .pool.text(.styles[style].content))
+        }
     }
 
     // Records the style a pseudo-element selector produced, copying it into the layout's own
@@ -475,35 +512,50 @@ impl HtmlLayout
             return box
         }
 
-        var pending: Array'HtmlInlineItem
+        var pending: Array!{HtmlInlineItem}
         .emitPseudo(box, node, .Before, &pending)
 
-        for child in .document.children(node) do
+        for child in .document.children(node)
+        {
             .buildChild(box, child, &pending)
+        }
 
         .emitPseudo(box, node, .After, &pending)
         .flushInline(box, &pending, true)
 
-        if display == .ListItem do
+        if display == .ListItem
+        {
             .buildMarker(box, node)
-        if .document.constNode(node).tag == .Summary do
+        }
+
+        if .document.constNode(node).tag == .Summary
+        {
             .buildDisclosureMarker(box, node)
+        }
 
         // A ticked box is drawn inside its own border rather than beside it, so it takes no
         // marker width.
-        if .document.constNode(node).tag == .Input and .document.hasAttribute(node, "checked") do
+        if .document.constNode(node).tag == .Input and .document.hasAttribute(node, "checked")
+        {
             .boxes[box].markerKind = .Checked
-        if .boxes[box].kind == .Table do
+        }
+
+        if .boxes[box].kind == .Table
+        {
             .flattenTable(box)
+        }
+
         return box
     }
 
     // Moves the accumulated inline items into the box, wrapping them in an anonymous block when
     // the box already holds block children and the two would otherwise fight over the same flow.
-    private mtd flushInline(box: u32, pending: *Array'HtmlInlineItem, final: bool)
+    private mtd flushInline(box: u32, pending: *Array!{HtmlInlineItem}, final: bool)
     {
-        if pending.isEmpty() do
+        if pending.isEmpty()
+        {
             return
+        }
 
         if not HtmlLayout.hasVisibleItem(pending)
         {
@@ -534,7 +586,7 @@ impl HtmlLayout
 
     // Reports whether a run of items would draw anything, so a document's indentation whitespace
     // never becomes an empty anonymous line.
-    private func hasVisibleItem(pending: const *Array'HtmlInlineItem)->bool
+    private func hasVisibleItem(pending: const *Array!{HtmlInlineItem})->bool
     {
         for item in pending
         {
@@ -554,7 +606,7 @@ impl HtmlLayout
         // Items of one list reach here in document order, so each list only needs its running
         // count; walking every sibling per item made a long list quadratic. An item whose marker
         // is suppressed still takes its ordinal, exactly as the sibling walk counted it.
-        var ordinal = 1'u32
+        var ordinal = 1_u32
         let parent  = .document.constNode(node).parent
         if parent != HtmlNoNode
         {
@@ -564,8 +616,10 @@ impl HtmlLayout
         }
 
         let style = &.styles[.styleIndexOf(node)]
-        if style.listStyleType == .None do
+        if style.listStyleType == .None
+        {
             return
+        }
 
         .boxes[box].marker      = HtmlLayout.markerText(style.listStyleType, ordinal)
         .boxes[box].markerKind  = .Text
@@ -576,12 +630,16 @@ impl HtmlLayout
     private mtd buildDisclosureMarker(box: u32, node: u32)
     {
         let parent = .document.constNode(node).parent
-        if parent == HtmlNoNode or .document.constNode(parent).tag != .Details do
+        if parent == HtmlNoNode or .document.constNode(parent).tag != .Details
+        {
             return
+        }
 
         // `list-style: none` is how a document says it draws the disclosure arrow itself.
-        if .styles[.boxes[box].style].listStyleType == .None do
+        if .styles[.boxes[box].style].listStyleType == .None
+        {
             return
+        }
 
         // The triangle is drawn rather than set in text: a theme typeface carries no guarantee
         // about the geometric shapes, and a missing glyph would put a box where the arrow goes.
@@ -612,7 +670,7 @@ impl HtmlLayout
             while value
             {
                 let digit = cast(u8, ((value - 1) % 26))
-                result = Format.toString("%%", cast(rune, ((kind == .LowerAlpha ? 'a'u8 : 'A'u8) + digit)), result)
+                result = Format.toString("%%", cast(rune, ((kind == .LowerAlpha ? 'a'_u8 : 'A'_u8) + digit)), result)
                 value  = (value - 1) / 26
             }
 
@@ -621,8 +679,11 @@ impl HtmlLayout
 
         case .LowerRoman, .UpperRoman:
             var result = HtmlLayout.romanNumeral(ordinal)
-            if kind == .LowerRoman do
+            if kind == .LowerRoman
+            {
                 result = result.toLower()
+            }
+
             result += "."
             return result
 
@@ -633,7 +694,7 @@ impl HtmlLayout
 
     private func romanNumeral(value: u32)->String
     {
-        const Values = [1000'u32, 900, 500, 400, 100, 90, 50, 40, 10, 9, 5, 4, 1]
+        const Values = [1000_u32, 900, 500, 400, 100, 90, 50, 40, 10, 9, 5, 4, 1]
         const Signs  = ["M", "CM", "D", "CD", "C", "XC", "L", "XL", "X", "IX", "V", "IV", "I"]
 
         var result: #returntype
@@ -654,7 +715,7 @@ impl HtmlLayout
     // rows and cells.
     private mtd flattenTable(box: u32)
     {
-        var rows: Array'u32
+        var rows: Array!{u32}
         let children = .boxes[box].children
         for child in children
         {
@@ -679,8 +740,11 @@ impl HtmlLayout
     private mtd styleIndexOf(node: u32)->u32
     {
         var walk = node
-        while walk != HtmlNoNode and .document.constNode(walk).kind != .Element do
+        while walk != HtmlNoNode and .document.constNode(walk).kind != .Element
+        {
             walk = .document.constNode(walk).parent
+        }
+
         return walk == HtmlNoNode ? 0 : .nodeStyles[walk]
     }
 }
@@ -700,16 +764,22 @@ private impl HtmlLayout
         switch kind
         {
         case .Uppercase:
-            for index in result.count do
+            for index in result.count
+            {
                 buffer[result.start + index] = Latin1.toUpper(buffer[result.start + index])
+            }
 
         case .Lowercase:
-            for index in result.count do
+            for index in result.count
+            {
                 buffer[result.start + index] = Latin1.toLower(buffer[result.start + index])
+            }
 
         case .Capitalize:
-            if result.count do
+            if result.count
+            {
                 buffer[result.start] = Latin1.toUpper(buffer[result.start])
+            }
 
         case .None:
             break
@@ -735,21 +805,28 @@ private impl HtmlLayout
         var result    = start
         while result < directEnd
         {
-            if HtmlLayout.isTextSpace(text[result]) do
+            if HtmlLayout.isTextSpace(text[result])
+            {
                 return result
+            }
+
             result += 1
         }
 
-        if result >= length do
+        if result >= length
+        {
             return result
+        }
 
         var tail: [16] u8
         let tailCount = length - result
         Swag.memcpy(&tail[0], text.buffer + result, tailCount)
         for index in tailCount
         {
-            if HtmlLayout.isTextSpace(tail[index]) do
+            if HtmlLayout.isTextSpace(tail[index])
+            {
                 return result + index
+            }
         }
 
         return length
@@ -760,7 +837,7 @@ private impl HtmlLayout
     // White space is where the two rendering modes differ: normal text collapses every run of
     // spaces into one break opportunity, while preformatted text keeps what the source wrote and
     // turns each newline into a forced break.
-    mtd appendText(pending: *Array'HtmlInlineItem, node: u32, styleIndex: u32, text: string)
+    mtd appendText(pending: *Array!{HtmlInlineItem}, node: u32, styleIndex: u32, text: string)
     {
         let style      = &.styles[styleIndex]
         let font       = .font(styleIndex)
@@ -768,15 +845,18 @@ private impl HtmlLayout
         let keepBreaks = style.whiteSpace == .Pre or style.whiteSpace == .PreWrap or style.whiteSpace == .PreLine
         let keepSpaces = style.whiteSpace == .Pre or style.whiteSpace == .PreWrap
 
-        var index = 0'u64
+        var index = 0_u64
         while index < text.count
         {
             let character = text[index]
             if character == '\n' or character == '\r' or character == 0x0C
             {
-                var eat = 1'u64
-                if character == '\r' and index + 1 < text.count and text[index + 1] == '\n' do
+                var eat = 1_u64
+                if character == '\r' and index + 1 < text.count and text[index + 1] == '\n'
+                {
                     eat = 2
+                }
+
                 if keepBreaks
                 {
                     var item: HtmlInlineItem
@@ -806,11 +886,14 @@ private impl HtmlLayout
                 }
 
                 var end    = index
-                var spaces = 0'u32
+                var spaces = 0_u32
                 while end < text.count and (text[end] == ' ' or text[end] == '\t')
                 {
-                    if text[end] == ' ' do
+                    if text[end] == ' '
+                    {
                         spaces += 1
+                    }
+
                     end += 1
                 }
 
@@ -841,7 +924,7 @@ private impl HtmlLayout
             while fragStart < end
             {
                 var fragEnd = fragStart
-                var shyEat  = 0'u64
+                var shyEat  = 0_u64
                 while fragEnd < end
                 {
                     let character = text[fragEnd]
@@ -868,16 +951,21 @@ private impl HtmlLayout
                     let {c, eat} = Utf8.decodeRune(text[fragEnd until end])
                     if style.wordBreak != .KeepAll and HtmlLayout.isCjkBreakable(c)
                     {
-                        if fragEnd == fragStart do
+                        if fragEnd == fragStart
+                        {
                             fragEnd += eat
+                        }
+
                         break
                     }
 
                     fragEnd += eat
                 }
 
-                if fragEnd <= fragStart do
+                if fragEnd <= fragStart
+                {
                     break
+                }
 
                 var item: HtmlInlineItem
                 let stored = .storeText(text[fragStart until fragEnd], style.textTransform)
@@ -904,35 +992,55 @@ private impl HtmlLayout
     // where every character is therefore a break opportunity.
     func isCjkBreakable(value: rune)->bool
     {
-        if value >= 0x2E80 and value <= 0x9FFF do
+        if value >= 0x2E80 and value <= 0x9FFF
+        {
             return true
-        if value >= 0xAC00 and value <= 0xD7A3 do
+        }
+
+        if value >= 0xAC00 and value <= 0xD7A3
+        {
             return true
-        if value >= 0xF900 and value <= 0xFAFF do
+        }
+
+        if value >= 0xF900 and value <= 0xFAFF
+        {
             return true
-        if value >= 0xFE30 and value <= 0xFE4F do
+        }
+
+        if value >= 0xFE30 and value <= 0xFE4F
+        {
             return true
-        if value >= 0xFF00 and value <= 0xFFEF do
+        }
+
+        if value >= 0xFF00 and value <= 0xFFEF
+        {
             return true
+        }
+
         return value >= 0x20000 and value <= 0x3FFFD
     }
 
     // Adds one collapsible space, unless the previous item already opened one.
-    mtd appendSpace(pending: *Array'HtmlInlineItem, node: u32, styleIndex: u32, font: *Font, collapse: bool, sourceStart, sourceEnd: u64)
+    mtd appendSpace(pending: *Array!{HtmlInlineItem}, node: u32, styleIndex: u32, font: *Font, collapse: bool, sourceStart, sourceEnd: u64)
     {
         if collapse and pending.count
         {
             let previous = pending.backPtr()
             if previous.kind == .Space or previous.kind == .Break
             {
-                if previous.node == node do
+                if previous.node == node
+                {
                     previous.sourceEnd = sourceEnd
+                }
+
                 return
             }
         }
 
-        if collapse and pending.isEmpty() do
+        if collapse and pending.isEmpty()
+        {
             return
+        }
 
         var item: HtmlInlineItem
         let stored = .storeText(" ")
@@ -977,30 +1085,57 @@ impl HtmlLayout
     private mtd const sealsTopMargin(box: u32, containingWidth: f32)->bool
     {
         let style = &.styles[.boxes[box].style]
-        if style.borderTop.width > 0 do
+        if style.borderTop.width > 0
+        {
             return true
-        if .resolveLength(style.padding.top, .boxes[box].style, containingWidth) > 0 do
+        }
+
+        if .resolveLength(style.padding.top, .boxes[box].style, containingWidth) > 0
+        {
             return true
-        if .boxes[box].kind != .Block do
+        }
+
+        if .boxes[box].kind != .Block
+        {
             return true
-        if style.overflowY != .Visible or style.position == .Absolute or style.position == .Fixed do
+        }
+
+        if style.overflowY != .Visible or style.position == .Absolute or style.position == .Fixed
+        {
             return true
+        }
+
         return not .boxes[box].items.isEmpty()
     }
 
     private mtd const sealsBottomMargin(box: u32, containingWidth: f32)->bool
     {
         let style = &.styles[.boxes[box].style]
-        if style.borderBottom.width > 0 do
+        if style.borderBottom.width > 0
+        {
             return true
-        if .resolveLength(style.padding.bottom, .boxes[box].style, containingWidth) > 0 do
+        }
+
+        if .resolveLength(style.padding.bottom, .boxes[box].style, containingWidth) > 0
+        {
             return true
-        if .boxes[box].kind != .Block do
+        }
+
+        if .boxes[box].kind != .Block
+        {
             return true
-        if style.overflowY != .Visible or style.position == .Absolute or style.position == .Fixed do
+        }
+
+        if style.overflowY != .Visible or style.position == .Absolute or style.position == .Fixed
+        {
             return true
-        if not style.height.isAuto() do
+        }
+
+        if not style.height.isAuto()
+        {
             return true
+        }
+
         return not .boxes[box].items.isEmpty()
     }
 
@@ -1010,14 +1145,19 @@ impl HtmlLayout
     {
         let style  = &.styles[.boxes[box].style]
         var result = .resolveLength(style.margin.top, .boxes[box].style, containingWidth)
-        if .sealsTopMargin(box, containingWidth) do
+        if .sealsTopMargin(box, containingWidth)
+        {
             return result
+        }
 
         let inner = Math.max(containingWidth - .horizontalExtra(box, containingWidth), 0)
         for child in .boxes[box].children
         {
-            if .styles[.boxes[child].style].isOutOfFlow() do
+            if .styles[.boxes[child].style].isOutOfFlow()
+            {
                 continue
+            }
+
             result = Math.max(result, .collapsedTop(child, inner))
             break
         }
@@ -1029,23 +1169,33 @@ impl HtmlLayout
     {
         let style  = &.styles[.boxes[box].style]
         var result = .resolveLength(style.margin.bottom, .boxes[box].style, containingWidth)
-        if .sealsBottomMargin(box, containingWidth) do
+        if .sealsBottomMargin(box, containingWidth)
+        {
             return result
+        }
 
         let inner = Math.max(containingWidth - .horizontalExtra(box, containingWidth), 0)
         var last  = HtmlNoNode
-        for child in .boxes[box].children where not .styles[.boxes[child].style].isOutOfFlow() do
+        for child in .boxes[box].children where not .styles[.boxes[child].style].isOutOfFlow()
+        {
             last = child
-        if last != HtmlNoNode do
+        }
+
+        if last != HtmlNoNode
+        {
             result = Math.max(result, .collapsedBottom(last, inner))
+        }
+
         return result
     }
 
     // Measures what a box would take on one line, and what it needs at its narrowest.
     mtd intrinsicWidths(box: u32)->HtmlIntrinsicWidths
     {
-        if .boxes[box].hasIntrinsic do
+        if .boxes[box].hasIntrinsic
+        {
             return HtmlIntrinsicWidths{.boxes[box].minContent, .boxes[box].maxContent}
+        }
 
         var result: #returntype
         let style = &.styles[.boxes[box].style]
@@ -1056,9 +1206,9 @@ impl HtmlLayout
             result.min = size.x
             result.max = size.x
         }
-        elif .boxes[box].items.count
+        else if .boxes[box].items.count
         {
-            var line = 0.0'f32
+            var line = 0.0_f32
             for item in .boxes[box].items
             {
                 var width = item.width
@@ -1068,7 +1218,7 @@ impl HtmlLayout
                     width      = inner.max
                     result.min = Math.max(result.min, inner.min)
                 }
-                elif item.kind == .Text
+                else if item.kind == .Text
                 {
                     result.min = Math.max(result.min, width)
                 }
@@ -1083,10 +1233,10 @@ impl HtmlLayout
                 result.max = Math.max(result.max, line)
             }
         }
-        elif .boxes[box].kind == .Flex and .styles[.boxes[box].style].flexDirection == .Row
+        else if .boxes[box].kind == .Flex and .styles[.boxes[box].style].flexDirection == .Row
         {
-            var minimum = 0.0'f32
-            var count   = 0'u32
+            var minimum = 0.0_f32
+            var count   = 0_u32
             for child in .boxes[box].children
             {
                 let inner = .intrinsicWidths(child)
@@ -1100,8 +1250,10 @@ impl HtmlLayout
             {
                 let gap = .resolveLength(style.columnGap, .boxes[box].style, .viewport.x) * cast(f32, (count - 1))
                 result.max += gap
-                if style.flexWrap == .NoWrap do
+                if style.flexWrap == .NoWrap
+                {
                     result.min = minimum + gap
+                }
             }
         }
         else
@@ -1152,31 +1304,53 @@ impl HtmlLayout
         {
             let width  = htmlParseNumber(.document.attribute(node, "width"))
             let height = htmlParseNumber(.document.attribute(node, "height"))
-            if width.eat do
+            if width.eat
+            {
                 natural.x = width.value
-            if height.eat do
+            }
+
+            if height.eat
+            {
                 natural.y = height.value
+            }
         }
 
         // An image the engine could not read still occupies the room a document reserved for it,
         // so the text around it keeps the shape the author intended.
-        if not natural.x do
+        if not natural.x
+        {
             natural.x = 20
-        if not natural.y do
+        }
+
+        if not natural.y
+        {
             natural.y = 20
+        }
 
         result = natural
-        if not style.width.isAuto() and not style.width.isNone() do
+        if not style.width.isAuto() and not style.width.isNone()
+        {
             result.x = .resolveLength(style.width, .boxes[box].style, containingWidth, natural.x)
-        if not style.maxWidth.isAuto() and not style.maxWidth.isNone() do
-            result.x = Math.min(result.x, .resolveLength(style.maxWidth, .boxes[box].style, containingWidth, result.x))
-        if not style.height.isAuto() and not style.height.isNone() do
-            result.y = .resolveLength(style.height, .boxes[box].style, containingWidth, natural.y)
-        elif natural.x > 0 do
-            result.y = natural.y * result.x / natural.x
+        }
 
-        if .images and node != HtmlNoNode do
+        if not style.maxWidth.isAuto() and not style.maxWidth.isNone()
+        {
+            result.x = Math.min(result.x, .resolveLength(style.maxWidth, .boxes[box].style, containingWidth, result.x))
+        }
+
+        if not style.height.isAuto() and not style.height.isNone()
+        {
+            result.y = .resolveLength(style.height, .boxes[box].style, containingWidth, natural.y)
+        }
+        else if natural.x > 0
+        {
+            result.y = natural.y * result.x / natural.x
+        }
+
+        if .images and node != HtmlNoNode
+        {
             .images.requestSize(.document.attribute(node, "src"), result.x * .deviceScale, result.y * .deviceScale)
+        }
 
         return result
     }
@@ -1185,8 +1359,10 @@ impl HtmlLayout
     // normal flow has already placed the subtree.
     private mtd translate(box: u32, dx, dy: f32)
     {
-        if not dx and not dy do
+        if not dx and not dy
+        {
             return
+        }
 
         .boxes[box].rect.offset(dx, dy)
         .boxes[box].content.offset(dx, dy)
@@ -1206,18 +1382,25 @@ impl HtmlLayout
         }
 
         let children = .boxes[box].children
-        for child in children do
+        for child in children
+        {
             .translate(child, dx, dy)
-        for index in .boxes[box].items.count where .boxes[box].items[index].box != HtmlNoNode do
+        }
+
+        for index in .boxes[box].items.count where .boxes[box].items[index].box != HtmlNoNode
+        {
             .translate(.boxes[box].items[index].box, dx, dy)
+        }
     }
 
     // Moves what a box contains while leaving its own border and content rectangles in place.
     // Table-cell alignment uses this after the row has established a taller shared cell height.
     private mtd translateContents(box: u32, dx, dy: f32)
     {
-        if not dx and not dy do
+        if not dx and not dy
+        {
             return
+        }
 
         for &item in .boxes[box].items
         {
@@ -1226,10 +1409,15 @@ impl HtmlLayout
         }
 
         let children = .boxes[box].children
-        for child in children do
+        for child in children
+        {
             .translate(child, dx, dy)
-        for index in .boxes[box].items.count where .boxes[box].items[index].box != HtmlNoNode do
+        }
+
+        for index in .boxes[box].items.count where .boxes[box].items[index].box != HtmlNoNode
+        {
             .translate(.boxes[box].items[index].box, dx, dy)
+        }
     }
 }
 
@@ -1239,8 +1427,10 @@ impl HtmlLayout
     // Lays the whole document out inside a viewport.
     mtd layout(width, height: f32)
     {
-        if .root == HtmlNoNode do
+        if .root == HtmlNoNode
+        {
             return
+        }
 
         .viewport = Math.Point{Math.max(width, 1), Math.max(height, 1)}
 
@@ -1269,8 +1459,11 @@ impl HtmlLayout
         var contentHeight = .boxes[.root].items.count ? .layoutInline(.root, 0, 0, .viewport.x) : .layoutBlockChildren(.root, 0, 0, .viewport.x, containing)
 
         // The document is the root formatting context, so it closes past its own floats.
-        for band in .floats do
+        for band in .floats
+        {
             contentHeight = Math.max(contentHeight, band.rect.bottom())
+        }
+
         .floats.clear()
 
         .boxes[.root].rect.height    = contentHeight
@@ -1295,15 +1488,19 @@ impl HtmlLayout
         for child in children
         {
             let childBounds = .computePaintBounds(child)
-            if expands do
+            if expands
+            {
                 result.combine(childBounds)
+            }
         }
 
         for item in .boxes[box].items where item.box != HtmlNoNode
         {
             let childBounds = .computePaintBounds(item.box)
-            if expands do
+            if expands
+            {
                 result.combine(childBounds)
+            }
         }
 
         .boxes[box].paintBounds = result
@@ -1319,7 +1516,7 @@ impl HtmlLayout
         inner.width = contentWidth
 
         var y            = contentY
-        var previousEdge = 0.0'f32
+        var previousEdge = 0.0_f32
         var first        = true
         let sealsTop     = .sealsTopMargin(box, containing.width)
         let sealsBottom  = .sealsBottomMargin(box, containing.width)
@@ -1343,11 +1540,13 @@ impl HtmlLayout
             }
 
             let childTop = .collapsedTop(child, contentWidth)
-            var gap      = 0.0'f32
+            var gap      = 0.0_f32
             if first
             {
-                if sealsTop do
+                if sealsTop
+                {
                     gap = childTop
+                }
             }
             else
             {
@@ -1357,8 +1556,10 @@ impl HtmlLayout
             // Clearance puts the box below the floats its `clear` names, whatever the margin
             // collapsing would have produced.
             var top = y + gap
-            if childStyle.clearLeft or childStyle.clearRight do
+            if childStyle.clearLeft or childStyle.clearRight
+            {
                 top = Math.max(top, .clearY(top, childStyle.clearLeft, childStyle.clearRight))
+            }
 
             .layoutBlockBox(child, contentX, top, contentWidth, inner)
             y            = .boxes[child].rect.bottom()
@@ -1369,8 +1570,11 @@ impl HtmlLayout
         // The last child's bottom margin only counts inside this box when the box keeps it; a box
         // that lets it through already reported it as its own collapsed bottom margin.
         var height = y - contentY
-        if sealsBottom and not first do
+        if sealsBottom and not first
+        {
             height += previousEdge
+        }
+
         return Math.max(height, 0)
     }
 
@@ -1417,7 +1621,7 @@ impl HtmlLayout
             marginLeft  = (containingWidth - borderWidth) * 0.5
             marginRight = marginLeft
         }
-        elif style.margin.left.isAuto() and borderWidth < containingWidth
+        else if style.margin.left.isAuto() and borderWidth < containingWidth
         {
             marginLeft = containingWidth - borderWidth - marginRight
         }
@@ -1479,10 +1683,14 @@ impl HtmlLayout
             contentHeight = .layoutBlockChildren(box, contentX, contentY, contentWidth, inner)
 
         default:
-            if .boxes[box].items.count do
+            if .boxes[box].items.count
+            {
                 contentHeight = .layoutInline(box, contentX, contentY, contentWidth)
-            else do
+            }
+            else
+            {
                 contentHeight = .layoutBlockChildren(box, contentX, contentY, contentWidth, inner)
+            }
         }
 
         if ownFormattingContext
@@ -1499,14 +1707,18 @@ impl HtmlLayout
 
         // A single flex line consumes a definite or minimum cross size. Aligning it only inside
         // its natural text height pins a min-height navigation bar to the top of its own band.
-        if .boxes[box].kind == .Flex and usedHeight > contentHeight do
+        if .boxes[box].kind == .Flex and usedHeight > contentHeight
+        {
             .expandSingleFlexLine(box, usedHeight - contentHeight, contentWidth)
+        }
 
         // A region that limits its height and admits overflow scrolls on its own.
         .boxes[box].scrollable   = false
         .boxes[box].scrollHeight = contentHeight
-        if contentHeight > usedHeight + 0.5 and (style.overflowY == .Auto or style.overflowY == .Scroll) do
+        if contentHeight > usedHeight + 0.5 and (style.overflowY == .Auto or style.overflowY == .Scroll)
+        {
             .boxes[box].scrollable = true
+        }
 
         .boxes[box].rect.height    = usedHeight + extraY
         .boxes[box].content.height = usedHeight
@@ -1534,8 +1746,10 @@ impl HtmlLayout
         var result: #returntype
         if style.height.isAuto() or
            style.height.isNone() or
-           not style.height.isDefinite(.pool, containing.hasHeight) do
+           not style.height.isDefinite(.pool, containing.hasHeight)
+        {
             return result
+        }
 
         let value = style.height.resolve(.pool, .lengthContext(styleIndex, containing.height, containing.hasHeight), 0)
         result.value = style.boxSizing == .BorderBox ? Math.max(value - extraY, 0) : value
@@ -1589,8 +1803,11 @@ impl HtmlLayout
     // the queue is drained once every in-flow rectangle is final.
     private mtd queueOutOfFlow(box: u32, staticX, staticY: f32)
     {
-        if .boxes[box].outOfFlowQueued do
+        if .boxes[box].outOfFlowQueued
+        {
             return
+        }
+
         .boxes[box].outOfFlowQueued = true
         .boxes[box].staticPos       = Math.Point{staticX, staticY}
         .outOfFlow.add(box)
@@ -1601,7 +1818,7 @@ impl HtmlLayout
     // out, and the same pass reaches it after the container it resolves against is final.
     private mtd placeOutOfFlow()
     {
-        var index = 0'u64
+        var index = 0_u64
         while index < .outOfFlow.count
         {
             .layoutOutOfFlow(.outOfFlow[index])
@@ -1619,14 +1836,19 @@ impl HtmlLayout
     // stands between it and the root.
     private mtd const containingBlockOf(box: u32)->u32
     {
-        if .styles[.boxes[box].style].position == .Fixed do
+        if .styles[.boxes[box].style].position == .Fixed
+        {
             return HtmlNoNode
+        }
 
         var ancestor = .boxes[box].parent
         while ancestor != HtmlNoNode and ancestor != .root
         {
-            if .styles[.boxes[ancestor].style].position != .Static do
+            if .styles[.boxes[ancestor].style].position != .Static
+            {
                 return ancestor
+            }
+
             ancestor = .boxes[ancestor].parent
         }
 
@@ -1657,10 +1879,15 @@ impl HtmlLayout
         // measures from the containing block's edge.
         var x = .boxes[box].staticPos.x
         var y = .boxes[box].staticPos.y
-        if not style.inset.left.isAuto() do
+        if not style.inset.left.isAuto()
+        {
             x = frame.x + .resolveLength(style.inset.left, styleIndex, frame.width)
-        if not style.inset.top.isAuto() do
+        }
+
+        if not style.inset.top.isAuto()
+        {
             y = frame.y + .resolveLength(style.inset.top, styleIndex, frame.height)
+        }
 
         var available = frame.width
         if style.width.isAuto() or style.width.isNone()
@@ -1692,12 +1919,19 @@ impl HtmlLayout
         result.right = contentX + contentWidth
         for band in .floats
         {
-            if band.rect.bottom() <= top or band.rect.y >= bottom do
+            if band.rect.bottom() <= top or band.rect.y >= bottom
+            {
                 continue
-            if band.left do
+            }
+
+            if band.left
+            {
                 result.left = Math.max(result.left, band.rect.right())
-            else do
+            }
+            else
+            {
                 result.right = Math.min(result.right, band.rect.x)
+            }
         }
 
         return result
@@ -1710,8 +1944,11 @@ impl HtmlLayout
     private mtd const clearY(y: f32, clearLeft, clearRight: bool)->f32
     {
         var result = y
-        for band in .floats where (band.left and clearLeft) or (not band.left and clearRight) do
+        for band in .floats where (band.left and clearLeft) or (not band.left and clearRight)
+        {
             result = Math.max(result, band.rect.bottom())
+        }
+
         return result
     }
 
@@ -1720,8 +1957,11 @@ impl HtmlLayout
     private mtd const nextFloatBottom(y: f32)->f32
     {
         var result = Swag.F32.Max
-        for band in .floats where band.rect.bottom() > y + 0.5 do
+        for band in .floats where band.rect.bottom() > y + 0.5
+        {
             result = Math.min(result, band.rect.bottom())
+        }
+
         return result == Swag.F32.Max ? y : result
     }
 
@@ -1829,8 +2069,8 @@ private impl HtmlLayout
             end -= 1
         }
 
-        var ascent  = 0.0'f32
-        var descent = 0.0'f32
+        var ascent  = 0.0_f32
+        var descent = 0.0_f32
         for index in first until end where .boxes[box].items[index].visible
         {
             let extent = .itemExtent(box, index)
@@ -1842,11 +2082,13 @@ private impl HtmlLayout
         let height   = Math.max(natural, strutHeight)
         let baseline = top + ascent + Math.max(height - natural, 0) * 0.5
 
-        var lineWidth = 0.0'f32
-        for index in first until end where .boxes[box].items[index].visible do
+        var lineWidth = 0.0_f32
+        for index in first until end where .boxes[box].items[index].visible
+        {
             lineWidth = Math.max(lineWidth, .boxes[box].items[index].x + .boxes[box].items[index].width - left)
+        }
 
-        var shift = 0.0'f32
+        var shift = 0.0_f32
         let extra = Math.max(available - lineWidth, 0)
         switch blockStyle.textAlign
         {
@@ -1856,17 +2098,22 @@ private impl HtmlLayout
         }
 
         // Justification stretches the spaces of every line but the one that ends the paragraph.
-        var spaceExtra = 0.0'f32
+        var spaceExtra = 0.0_f32
         if blockStyle.textAlign == .Justify and end < .boxes[box].items.count
         {
-            var spaces = 0'u32
-            for index in first until end where .boxes[box].items[index].visible and .boxes[box].items[index].kind == .Space do
+            var spaces = 0_u32
+            for index in first until end where .boxes[box].items[index].visible and .boxes[box].items[index].kind == .Space
+            {
                 spaces += 1
-            if spaces do
+            }
+
+            if spaces
+            {
                 spaceExtra = extra / cast(f32, spaces)
+            }
         }
 
-        var slide = 0.0'f32
+        var slide = 0.0_f32
         for index in first until end
         {
             let item = &.boxes[box].items[index]
@@ -1874,12 +2121,16 @@ private impl HtmlLayout
             // A run starts on a whole pixel, which is where the painter would snap it anyway;
             // measuring and drawing then agree on where the next run begins.
             item.x = Math.round(item.x + shift + slide)
-            if spaceExtra > 0 and item.kind == .Space and item.visible do
+            if spaceExtra > 0 and item.kind == .Space and item.visible
+            {
                 slide += spaceExtra
+            }
 
             item.y = baseline - item.ascent
-            if item.kind == .Atomic and item.box != HtmlNoNode do
+            if item.kind == .Atomic and item.box != HtmlNoNode
+            {
                 item.y = baseline - .boxes[item.box].rect.height
+            }
 
             let style = &.styles[item.style]
             switch style.verticalAlign
@@ -1923,8 +2174,10 @@ private impl HtmlLayout
                 return true
 
             case .OpenInline, .CloseInline:
-                if item.width do
+                if item.width
+                {
                     return true
+                }
 
             case .Break:
                 break
@@ -1947,7 +2200,7 @@ private impl HtmlLayout
         containing.width = contentWidth
 
         var y         = contentY
-        var lineStart = 0'u64
+        var lineStart = 0_u64
 
         // Each line lives between the floats that overlap it, so its left edge and its width
         // are the band's rather than the box's.
@@ -1959,7 +2212,7 @@ private impl HtmlLayout
 
         // Splitting an overlong run inserts its tail after the current item, so the loop reads
         // the count as it goes.
-        var index = 0'u64
+        var index = 0_u64
         while index < .boxes[box].items.count
         {
             .boxes[box].items[index].visible       = false
@@ -2007,8 +2260,10 @@ private impl HtmlLayout
                itemStyle.wordBreak == .BreakAll and
                pen + width > band.right + 0.5
             {
-                if .splitInlineItem(box, index, band.right + 0.5 - pen) do
+                if .splitInlineItem(box, index, band.right + 0.5 - pen)
+                {
                     width = .boxes[box].items[index].width
+                }
             }
 
             if breakable and kind != .Space and not atLineHead and pen + width > band.right + 0.5
@@ -2016,8 +2271,10 @@ private impl HtmlLayout
                 // A break taken at a soft hyphen is where its hyphen becomes visible.
                 if index > lineStart and
                    .boxes[box].items[index - 1].kind == .Text and
-                   .boxes[box].items[index - 1].softHyphen do
+                   .boxes[box].items[index - 1].softHyphen
+                {
                     .boxes[box].items[index - 1].hyphenAtBreak = true
+                }
 
                 y         += .finishLine(box, lineStart, index, y, band.left, band.right - band.left)
                 lineStart = index
@@ -2032,8 +2289,11 @@ private impl HtmlLayout
                 while pen + width > band.right + 0.5 and (band.left > contentX + 0.5 or band.right < contentX + contentWidth - 0.5)
                 {
                     let drop = .nextFloatBottom(y)
-                    if drop <= y do
+                    if drop <= y
+                    {
                         break
+                    }
+
                     y    = drop
                     band = .lineBand(contentX, contentWidth, y)
                     pen  = band.left
@@ -2049,8 +2309,10 @@ private impl HtmlLayout
                pen + width > band.right + 0.5 and
                (itemStyle.overflowWrap or itemStyle.wordBreak == .BreakAll)
             {
-                if .splitInlineItem(box, index, band.right + 0.5 - pen) do
+                if .splitInlineItem(box, index, band.right + 0.5 - pen)
+                {
                     width = .boxes[box].items[index].width
+                }
             }
 
             .boxes[box].items[index].x       = pen
@@ -2059,8 +2321,11 @@ private impl HtmlLayout
             index                            += 1
         }
 
-        if .hasLineContent(box, lineStart, .boxes[box].items.count) do
+        if .hasLineContent(box, lineStart, .boxes[box].items.count)
+        {
             y += .finishLine(box, lineStart, .boxes[box].items.count, y, band.left, band.right - band.left)
+        }
+
         return Math.max(y - contentY, 0)
     }
 
@@ -2075,10 +2340,12 @@ private impl HtmlLayout
             break
         }
 
-        if not hasSplit do
+        if not hasSplit
+        {
             return
+        }
 
-        var write = 0'u64
+        var write = 0_u64
         for read in .boxes[box].items.count
         {
             if .boxes[box].items[read].continuation and write > 0
@@ -2096,8 +2363,11 @@ private impl HtmlLayout
                 }
             }
 
-            if write != read do
+            if write != read
+            {
                 .boxes[box].items[write] = .boxes[box].items[read]
+            }
+
             write += 1
         }
 
@@ -2109,32 +2379,44 @@ private impl HtmlLayout
     // run is the better answer.
     mtd splitInlineItem(box: u32, index: u64, room: f32)->bool
     {
-        if room <= 0 do
+        if room <= 0
+        {
             return false
+        }
 
         let item       = &.boxes[box].items[index]
         let styleIndex = item.style
         let text       = .inlineText(item)
-        if text.count < 2 do
+        if text.count < 2
+        {
             return false
+        }
 
         // The longest prefix that fits, keeping at least one character on each side.
-        var fit  = 0'u64
-        var scan = 0'u64
+        var fit  = 0_u64
+        var scan = 0_u64
         while scan < text.count
         {
             let {c: _, eat} = Utf8.decodeRune(text[scan to])
             let next        = scan + eat
-            if next >= text.count do
+            if next >= text.count
+            {
                 break
-            if .measure(styleIndex, text[0 until next]) > room do
+            }
+
+            if .measure(styleIndex, text[0 until next]) > room
+            {
                 break
+            }
+
             fit  = next
             scan = next
         }
 
-        if not fit do
+        if not fit
+        {
             return false
+        }
 
         var tail: HtmlInlineItem = .boxes[box].items[index]
         tail.textStart    += fit
@@ -2160,15 +2442,19 @@ private impl HtmlLayout
     //
     // A flex, grid or table container has no flow position to offer a box that left it, so its
     // content origin stands in for the static position.
-    mtd flowChildren(box: u32, contentX, contentY: f32)->Array'u32
+    mtd flowChildren(box: u32, contentX, contentY: f32)->Array!{u32}
     {
         var result: #returntype
         for child in .boxes[box].children
         {
-            if .styles[.boxes[child].style].isOutOfFlow() do
+            if .styles[.boxes[child].style].isOutOfFlow()
+            {
                 .queueOutOfFlow(child, contentX, contentY)
-            else do
+            }
+            else
+            {
                 result.add(child)
+            }
         }
 
         return result
@@ -2180,49 +2466,66 @@ private impl HtmlLayout
         let styleIndex = .boxes[box].style
         let style      = &.styles[styleIndex]
         let items      = .flowChildren(box, contentX, contentY)
-        if items.isEmpty() do
+        if items.isEmpty()
+        {
             return 0
+        }
 
         let columnGap = .resolveLength(style.columnGap, styleIndex, contentWidth)
         let rowGap    = .resolveLength(style.rowGap, styleIndex, contentWidth)
         let column    = style.flexDirection == .Column or style.flexDirection == .ColumnReverse
 
-        if column do
+        if column
+        {
             return .layoutFlexColumn(box, items.toSlice(), contentX, contentY, contentWidth, rowGap, containing)
+        }
 
         // The base size of an item is what it asks for before any free space is shared.
-        var bases: Array'f32
+        var bases: Array!{f32}
         for child in items
         {
             let childStyle = &.styles[.boxes[child].style]
             var base: f32
-            if not childStyle.flexBasis.isAuto() and not childStyle.flexBasis.isNone() do
+            if not childStyle.flexBasis.isAuto() and not childStyle.flexBasis.isNone()
+            {
                 base = .resolveLength(childStyle.flexBasis, .boxes[child].style, contentWidth) + .horizontalExtra(child, contentWidth)
-            elif not childStyle.width.isAuto() and not childStyle.width.isNone() do
+            }
+            else if not childStyle.width.isAuto() and not childStyle.width.isNone()
+            {
                 base = .resolveLength(childStyle.width, .boxes[child].style, contentWidth) + (childStyle.boxSizing == .BorderBox ? 0 : .horizontalExtra(child, contentWidth))
-            else do
+            }
+            else
+            {
                 base = .intrinsicWidths(child).max
+            }
+
             bases.add(Math.max(base, 0))
         }
 
         var y     = contentY
-        var start = 0'u64
+        var start = 0_u64
         while start < items.count
         {
             var end   = start
-            var total = 0.0'f32
+            var total = 0.0_f32
             while end < items.count
             {
                 let next = total + bases[end] + (end > start ? columnGap : 0)
-                if style.flexWrap != .NoWrap and end > start and next > contentWidth do
+                if style.flexWrap != .NoWrap and end > start and next > contentWidth
+                {
                     break
+                }
+
                 total = next
                 end   += 1
             }
 
             y += .layoutFlexLine(box, items.toSlice()[start until end], bases.toSlice()[start until end], contentX, y, contentWidth, total, columnGap, containing)
-            if end < items.count do
+            if end < items.count
+            {
                 y += rowGap
+            }
+
             start = end
         }
 
@@ -2233,13 +2536,18 @@ private impl HtmlLayout
     // settled the content box. Multi-line and column containers distribute that room differently.
     mtd expandSingleFlexLine(box: u32, extra, contentWidth: f32)
     {
-        if extra <= 0 do
+        if extra <= 0
+        {
             return
+        }
+
         let style = &.styles[.boxes[box].style]
         if style.flexWrap != .NoWrap or
            style.flexDirection == .Column or
-           style.flexDirection == .ColumnReverse do
+           style.flexDirection == .ColumnReverse
+        {
             return
+        }
 
         for child in .boxes[box].children where not .styles[.boxes[child].style].isOutOfFlow()
         {
@@ -2273,53 +2581,73 @@ private impl HtmlLayout
         let itemCount = items.count
         let free      = contentWidth - total
 
-        var sizes: Array'f32
-        for index in itemCount do
+        var sizes: Array!{f32}
+        for index in itemCount
+        {
             sizes.add(bases[index])
+        }
 
         if free > 0
         {
-            var grow = 0.0'f32
-            for child in items do
+            var grow = 0.0_f32
+            for child in items
+            {
                 grow += .styles[.boxes[child].style].flexGrow
+            }
+
             if grow > 0
             {
-                for index in itemCount do
+                for index in itemCount
+                {
                     sizes[index] += free * .styles[.boxes[items[index]].style].flexGrow / grow
+                }
             }
         }
-        elif free < 0
+        else if free < 0
         {
-            var weight = 0.0'f32
-            for index in itemCount do
+            var weight = 0.0_f32
+            for index in itemCount
+            {
                 weight += .styles[.boxes[items[index]].style].flexShrink * bases[index]
+            }
+
             if weight > 0
             {
-                for index in itemCount do
+                for index in itemCount
+                {
                     sizes[index] = Math.max(sizes[index] + free * .styles[.boxes[items[index]].style].flexShrink * bases[index] / weight, 0)
+                }
             }
         }
 
-        var used = 0.0'f32
-        for index in itemCount do
+        var used = 0.0_f32
+        for index in itemCount
+        {
             used += sizes[index]
+        }
+
         used += gap * cast(f32, (itemCount > 0 ? itemCount - 1 : 0))
 
         var extra = Math.max(contentWidth - used, 0)
 
         // An automatic side margin on a flex item claims what is left before any distribution
         // does, which is how `margin-left: auto` pushes one item against the far edge.
-        var autoMargins = 0'u32
+        var autoMargins = 0_u32
         for index in itemCount
         {
             let itemStyle = &.styles[.boxes[items[index]].style]
-            if itemStyle.margin.left.isAuto() do
+            if itemStyle.margin.left.isAuto()
+            {
                 autoMargins += 1
-            if itemStyle.margin.right.isAuto() do
+            }
+
+            if itemStyle.margin.right.isAuto()
+            {
                 autoMargins += 1
+            }
         }
 
-        var autoShare = 0.0'f32
+        var autoShare = 0.0_f32
         if autoMargins and extra > 0
         {
             autoShare = extra / cast(f32, autoMargins)
@@ -2337,8 +2665,10 @@ private impl HtmlLayout
             pen += extra * 0.5
 
         case .SpaceBetween:
-            if itemCount > 1 do
+            if itemCount > 1
+            {
                 between = gap + extra / cast(f32, (itemCount - 1))
+            }
 
         case .SpaceAround:
             let slot = extra / cast(f32, itemCount)
@@ -2354,18 +2684,22 @@ private impl HtmlLayout
             break
         }
 
-        var height = 0.0'f32
+        var height = 0.0_f32
         for index in itemCount
         {
             let itemStyle = &.styles[.boxes[items[index]].style]
-            if itemStyle.margin.left.isAuto() do
+            if itemStyle.margin.left.isAuto()
+            {
                 pen += autoShare
+            }
 
             .layoutBlockBox(items[index], pen, lineTop, sizes[index], containing)
             height = Math.max(height, .boxes[items[index]].rect.height)
             pen    += sizes[index] + between
-            if itemStyle.margin.right.isAuto() do
+            if itemStyle.margin.right.isAuto()
+            {
                 pen += autoShare
+            }
         }
 
         for index in itemCount
@@ -2409,8 +2743,10 @@ private impl HtmlLayout
             let align      = childStyle.hasAlignSelf ? childStyle.alignSelf : style.alignItems
 
             var width = contentWidth
-            if align != .Stretch and (childStyle.width.isAuto() or childStyle.width.isNone()) do
+            if align != .Stretch and (childStyle.width.isAuto() or childStyle.width.isNone())
+            {
                 width = Math.clamp(.intrinsicWidths(child).max, 0, contentWidth)
+            }
 
             .layoutBlockBox(child, contentX, y, width, containing)
             switch align
@@ -2421,8 +2757,10 @@ private impl HtmlLayout
             }
 
             y = .boxes[child].rect.bottom()
-            if index + 1 < itemCount do
+            if index + 1 < itemCount
+            {
                 y += gap
+            }
         }
 
         return Math.max(y - contentY, 0)
@@ -2434,16 +2772,18 @@ private impl HtmlLayout
         let styleIndex = .boxes[box].style
         let style      = &.styles[styleIndex]
         let items      = .flowChildren(box, contentX, contentY)
-        if items.isEmpty() do
+        if items.isEmpty()
+        {
             return 0
+        }
 
         let columnGap = .resolveLength(style.columnGap, styleIndex, contentWidth)
         let rowGap    = .resolveLength(style.rowGap, styleIndex, contentWidth)
 
-        var widths:    Array'f32
-        var fractions: Array'f32
-        var fixed = 0.0'f32
-        var flex  = 0.0'f32
+        var widths:    Array!{f32}
+        var fractions: Array!{f32}
+        var fixed = 0.0_f32
+        var flex  = 0.0_f32
         for index in style.gridColumnCount
         {
             let node = &.pool.calc[style.gridColumnFirst + index]
@@ -2472,17 +2812,19 @@ private impl HtmlLayout
         let free = Math.max(contentWidth - fixed - gaps, 0)
         if flex > 0
         {
-            for index in widths.count where fractions[index] > 0 do
+            for index in widths.count where fractions[index] > 0
+            {
                 widths[index] = free * fractions[index] / flex
+            }
         }
 
         var y     = contentY
-        var index = 0'u64
+        var index = 0_u64
         while index < items.count
         {
             var x      = contentX
-            var height = 0.0'f32
-            var column = 0'u64
+            var height = 0.0_f32
+            var column = 0_u64
             while column < widths.count and index < items.count
             {
                 .layoutBlockBox(items[index], x, y, widths[column], containing)
@@ -2493,8 +2835,10 @@ private impl HtmlLayout
             }
 
             y += height
-            if index < items.count do
+            if index < items.count
+            {
                 y += rowGap
+            }
         }
 
         return Math.max(y - contentY, 0)
@@ -2503,98 +2847,126 @@ private impl HtmlLayout
     mtd const tableColumnSpan(cell: u32)->u64
     {
         let node = .boxes[cell].node
-        if node == HtmlNoNode do
+        if node == HtmlNoNode
+        {
             return 1
+        }
+
         let value = catch StrConv.toU64(.document.attribute(node, "colspan")) { return 1; }
-        return Math.clamp(value, 1'u64, 64'u64)
+        return Math.clamp(value, 1_u64, 64_u64)
     }
 
     mtd const tableRowSpan(cell: u32)->u64
     {
         let node = .boxes[cell].node
-        if node == HtmlNoNode do
+        if node == HtmlNoNode
+        {
             return 1
+        }
+
         let value = catch StrConv.toU64(.document.attribute(node, "rowspan")) { return 1; }
-        return Math.clamp(value, 1'u64, 64'u64)
+        return Math.clamp(value, 1_u64, 64_u64)
     }
 
     // Lays a table out, sizing its columns from what their cells need.
     mtd layoutTable(box: u32, contentX, contentY, contentWidth: f32, containing: HtmlContainingBlock)->f32
     {
         let rows = .flowChildren(box, contentX, contentY)
-        if rows.isEmpty() do
+        if rows.isEmpty()
+        {
             return 0
+        }
 
-        var columns = 0'u64
-        var tableRowCount = 0'u64
-        for row in rows where .boxes[row].kind == .TableRow do
-            tableRowCount += 1
-        var placements: Array'HtmlTableCellPlacement
-        var occupiedRows: Array'u64
-        occupiedRows.resize(256)
-        var rowIndex = 0'u64
+        var columns       = 0_u64
+        var tableRowCount = 0_u64
         for row in rows where .boxes[row].kind == .TableRow
         {
-            var overflowColumnCount = 0'u64
+            tableRowCount += 1
+        }
+
+        var placements:   Array!{HtmlTableCellPlacement}
+        var occupiedRows: Array!{u64}
+        occupiedRows.resize(256)
+        var rowIndex = 0_u64
+        for row in rows where .boxes[row].kind == .TableRow
+        {
+            var overflowColumnCount = 0_u64
             for cell in .boxes[row].children
             {
                 let columnSpan = .tableColumnSpan(cell)
-                var column     = 0'u64
+                var column     = 0_u64
                 var found      = false
                 var overflowed = false
-                var overflowColumnOffset = 0'u64
+                var overflowColumnOffset = 0_u64
                 while column + columnSpan <= 256 and not found
                 {
                     var overlaps = false
                     for offset in 0 until columnSpan
                     {
-                        if occupiedRows[column + offset] do
+                        if occupiedRows[column + offset]
+                        {
                             overlaps = true
+                        }
                     }
-                    if overlaps do
+
+                    if overlaps
+                    {
                         column += 1
-                    else do
+                    }
+                    else
+                    {
                         found = true
+                    }
                 }
 
                 if not found
                 {
-                    column = 256 - columnSpan
-                    overflowed = true
+                    column               = 256 - columnSpan
+                    overflowed           = true
                     overflowColumnOffset = overflowColumnCount
-                    overflowColumnCount += columnSpan
+                    overflowColumnCount  += columnSpan
                 }
-                let span = Math.min(columnSpan, 256 - column)
+
+                let span    = Math.min(columnSpan, 256 - column)
                 let rowSpan = Math.min(.tableRowSpan(cell), Math.min(64, tableRowCount - rowIndex))
                 placements.add(HtmlTableCellPlacement{cell, rowIndex, column, span, rowSpan, overflowed, overflowColumnOffset})
-                for offset in 0 until span do
+                for offset in 0 until span
+                {
                     occupiedRows[column + offset] = Math.max(occupiedRows[column + offset], rowSpan)
+                }
+
                 columns = Math.max(columns, column + span)
             }
 
-            for index in 256 where occupiedRows[index] > 0 do
+            for index in 256 where occupiedRows[index] > 0
+            {
                 occupiedRows[index] -= 1
+            }
+
             rowIndex += 1
         }
-        if not columns do
-            return .layoutBlockChildren(box, contentX, contentY, contentWidth, containing)
 
-        var minimums: Array'f32
-        var maximums: Array'f32
+        if not columns
+        {
+            return .layoutBlockChildren(box, contentX, contentY, contentWidth, containing)
+        }
+
+        var minimums: Array!{f32}
+        var maximums: Array!{f32}
         minimums.resize(columns)
         maximums.resize(columns)
 
-        var placementIndex = 0'u64
+        var placementIndex = 0_u64
         for row in rows where .boxes[row].kind == .TableRow
         {
             for cell in .boxes[row].children
             {
-                let placement = placements[placementIndex]
-                let column    = placement.column
-                let span      = placement.columnSpan
-                let intrinsic = .intrinsicWidths(cell)
-                var currentMinimum = 0.0'f32
-                var currentMaximum = 0.0'f32
+                let placement      = placements[placementIndex]
+                let column         = placement.column
+                let span           = placement.columnSpan
+                let intrinsic      = .intrinsicWidths(cell)
+                var currentMinimum = 0.0_f32
+                var currentMaximum = 0.0_f32
                 for offset in 0 until span
                 {
                     currentMinimum += minimums[column + offset]
@@ -2614,33 +2986,37 @@ private impl HtmlLayout
             }
         }
 
-        var wanted = 0.0'f32
-        var floor  = 0.0'f32
+        var wanted = 0.0_f32
+        var floor  = 0.0_f32
         for index in columns
         {
             wanted += maximums[index]
             floor  += minimums[index]
         }
 
-        var widths: Array'f32
+        var widths: Array!{f32}
         widths.resize(columns)
         if wanted <= contentWidth or wanted <= floor
         {
             // Everything fits, so the surplus is shared in proportion to what each column asked
             // for, which is what keeps a wide column wide.
             let surplus = Math.max(contentWidth - wanted, 0)
-            for index in columns do
+            for index in columns
+            {
                 widths[index] = maximums[index] + (wanted > 0 ? surplus * maximums[index] / wanted : surplus / cast(f32, columns))
+            }
         }
         else
         {
             let range = wanted - floor
             let room  = Math.max(contentWidth - floor, 0)
-            for index in columns do
+            for index in columns
+            {
                 widths[index] = minimums[index] + (range > 0 ? room * (maximums[index] - minimums[index]) / range : 0)
+            }
         }
 
-        var rowHeights: Array'f32
+        var rowHeights: Array!{f32}
         rowHeights.resize(rowIndex)
         placementIndex = 0
         for row in rows where .boxes[row].kind == .TableRow
@@ -2648,41 +3024,58 @@ private impl HtmlLayout
             for _ in .boxes[row].children
             {
                 let placement = placements[placementIndex]
-                var cellWidth = 0.0'f32
-                for offset in 0 until placement.columnSpan do
+                var cellWidth = 0.0_f32
+                for offset in 0 until placement.columnSpan
+                {
                     cellWidth += widths[placement.column + offset]
+                }
+
                 var cellX = contentX
                 if placement.overflowed
                 {
-                    for column in columns do
+                    for column in columns
+                    {
                         cellX += widths[column]
+                    }
+
                     cellX += widths[columns - 1] * cast(f32, placement.overflowColumnOffset)
                 }
                 else
                 {
-                    for column in placement.column do
+                    for column in placement.column
+                    {
                         cellX += widths[column]
+                    }
                 }
+
                 .layoutBlockBox(placement.box, cellX, contentY, cellWidth, containing)
-                if placement.rowSpan == 1 do
+                if placement.rowSpan == 1
+                {
                     rowHeights[placement.row] = Math.max(rowHeights[placement.row], .boxes[placement.box].rect.height)
+                }
+
                 placementIndex += 1
             }
         }
 
         for placement in placements where placement.rowSpan > 1
         {
-            var height = 0.0'f32
-            for offset in 0 until placement.rowSpan do
+            var height = 0.0_f32
+            for offset in 0 until placement.rowSpan
+            {
                 height += rowHeights[placement.row + offset]
+            }
+
             let naturalHeight = .boxes[placement.box].rect.height
-            let extra = Math.max(naturalHeight - height, 0) / cast(f32, placement.rowSpan)
-            for offset in 0 until placement.rowSpan do
+            let extra         = Math.max(naturalHeight - height, 0) / cast(f32, placement.rowSpan)
+            for offset in 0 until placement.rowSpan
+            {
                 rowHeights[placement.row + offset] += extra
+            }
         }
 
         var y = contentY
-        var tableRowIndex = 0'u64
+        var tableRowIndex = 0_u64
         placementIndex = 0
         for row in rows
         {
@@ -2698,46 +3091,63 @@ private impl HtmlLayout
             for cell in cells
             {
                 let placement = placements[placementIndex]
-                var cellWidth = 0.0'f32
-                for offset in 0 until placement.columnSpan do
+                var cellWidth = 0.0_f32
+                for offset in 0 until placement.columnSpan
+                {
                     cellWidth += widths[placement.column + offset]
+                }
+
                 var cellX = contentX
                 if placement.overflowed
                 {
-                    for column in columns do
+                    for column in columns
+                    {
                         cellX += widths[column]
+                    }
+
                     cellX += widths[columns - 1] * cast(f32, placement.overflowColumnOffset)
                 }
                 else
                 {
-                    for column in placement.column do
+                    for column in placement.column
+                    {
                         cellX += widths[column]
+                    }
                 }
+
                 .layoutBlockBox(cell, cellX, y, cellWidth, containing)
                 let naturalHeight = .boxes[cell].rect.height
-                var cellHeight = height
+                var cellHeight    = height
                 if placement.rowSpan > 1
                 {
                     cellHeight = 0
-                    for offset in 0 until placement.rowSpan do
+                    for offset in 0 until placement.rowSpan
+                    {
                         cellHeight += rowHeights[placement.row + offset]
+                    }
                 }
+
                 .boxes[cell].rect.height    = cellHeight
                 .boxes[cell].content.height = Math.max(cellHeight - .verticalExtra(cell, contentWidth), 0)
 
                 let extra = cellHeight - naturalHeight
                 let align = .styles[.boxes[cell].style].verticalAlign
-                if align == .Middle do
+                if align == .Middle
+                {
                     .translateContents(cell, 0, extra * 0.5)
-                elif align == .Bottom or align == .TextBottom do
+                }
+                else if align == .Bottom or align == .TextBottom
+                {
                     .translateContents(cell, 0, extra)
+                }
+
                 placementIndex += 1
             }
 
             .boxes[row].rect    = Math.Rectangle{contentX, y, contentWidth, height}
             .boxes[row].content = .boxes[row].rect
             y += height
-            tableRowIndex += 1
+            tableRowIndex       += 1
         }
 
         return Math.max(y - contentY, 0)

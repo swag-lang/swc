@@ -124,21 +124,18 @@ Character literals are enclosed in quotes and can represent any Unicode characte
 not just ASCII.
 
 > NOTE:
-> The quote is shared with the suffix and generic-argument syntax, so the lexer
-> reads it from what comes before: right after an identifier or a literal it opens
-> a suffix or a generic argument list, anywhere else it opens a character literal.
-> Only meaningful tokens count, so blanks and comments never change the reading and
-> '5's32' and '5 's32' are the same suffixed literal.
+> Apostrophes always delimit character literals. Literal suffixes use an underscore,
+> as in `5_s32`, while generic arguments use `!{...}`.
 */
 #test
 {
     let char0 = 'a'
     let char1 = '我'
-    let value = 5's32     // Type suffix example
+    let value = 5_s32     // Type suffix example
     Swag.require(char0 != char1)
 
     // The same literal, with the blank the lexer ignores.
-    let spaced = 5 's32
+    let spaced = 5_s32
     #assert(#typeof(spaced) == s32)
     Swag.require(spaced == value)
 }
@@ -180,34 +177,34 @@ closing quote. The literal is already closed by that quote, so it is the quote t
 separates the literal from its suffix and the suffix follows it immediately.
 
 ```swag
-let letter = '0'u8      // a 'u8'
-let space  = ' 'u32     // the literal is a space, the suffix still follows the quote
+let letter = '0'_u8      // a '_u8'
+let space  = ' '_u32     // the literal is a space, the suffix still follows the quote
 ```
 */
 #test
 {
-    let a = '0'u8
+    let a = '0'_u8
     Swag.require(a == 48)
     Swag.require(#typeof(a) == u8)
 
-    let b = '1'u16
+    let b = '1'_u16
     Swag.require(b == 49)
     Swag.require(#typeof(b) == u16)
 
-    let c = '2'u32
+    let c = '2'_u32
     Swag.require(c == 50)
     Swag.require(#typeof(c) == u32)
 
-    let d = '3'u64
+    let d = '3'_u64
     Swag.require(d == 51)
     Swag.require(#typeof(d) == u64)
 
-    let e = '4'rune
+    let e = '4'_rune
     Swag.require(e == 52)
     Swag.require(#typeof(e) == rune)
 
     // The literal itself can be a space: the closing quote still ends it.
-    let f = ' 'u32
+    let f = ' '_u32
     Swag.require(f == 32)
     Swag.require(#typeof(f) == u32)
 }
@@ -258,7 +255,7 @@ In a character literal, '\x' accepts the full range from '\x00' through '\xFF'.
         #assert("\x7F".count == 1)
         #assert("\u00FF" == "ÿ")
         #assert("\u00FF".count == 2)
-        #assert('\xFF'u8 == 255)
+        #assert('\xFF'_u8 == 255)
     }
 
     scope

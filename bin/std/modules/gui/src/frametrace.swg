@@ -49,13 +49,13 @@ struct FrameTrace
 }
 
 // Frames dropped before the totals start, letting the adapter, the caches and the atlases settle.
-private const WarmUpFrames = 20'u64
+private const WarmUpFrames = 20_u64
 
 // Measured frames a stress run defaults to when its marker carries no usable count.
-private const DefaultStressFrames = 300'u64
+private const DefaultStressFrames = 300_u64
 
 // Side of the moving box a partial stress uses when its marker carries no usable size.
-private const DefaultStressBoxSide = 300.0'f32
+private const DefaultStressBoxSide = 300.0_f32
 
 internal impl FrameTrace
 {
@@ -63,8 +63,10 @@ internal impl FrameTrace
     mtd setup()
     {
         let trace = findMarker("swag.frametrace")
-        if not trace.found do
+        if not trace.found
+        {
             return
+        }
 
         .enabled  = true
         .path     = trace.value
@@ -96,8 +98,8 @@ internal impl FrameTrace
     mtd const movingBox(size: Math.Point)->Math.Rectangle
     {
         let side  = Math.min(.boxSide, size.x, size.y)
-        let spanX = Math.max(size.x - side, 1.0'f32)
-        let spanY = Math.max(size.y - side, 1.0'f32)
+        let spanX = Math.max(size.x - side, 1.0_f32)
+        let spanY = Math.max(size.y - side, 1.0_f32)
         let step  = cast(f32, (.frames + .warmedUp))
         let x     = step * 7 - Math.floor(step * 7 / spanX) * spanX
         let y     = step * 5 - Math.floor(step * 5 / spanY) * spanY
@@ -111,15 +113,20 @@ internal impl FrameTrace
     mtd beginFrame()
     {
         .paintedThisFrame = false
-        if .enabled do
+        if .enabled
+        {
             .watch.restart()
+        }
     }
 
     // Adds one surface's recorded and executed cost, and the area it covered.
     mtd addSurface(recordUs, targetUs, presentUs, swapUs, pixels, vertices, batches: u64)
     {
-        if not .enabled do
+        if not .enabled
+        {
             return
+        }
+
         .paintedThisFrame = true
         .recordUs         += recordUs
         .targetUs         += targetUs
@@ -133,8 +140,11 @@ internal impl FrameTrace
     // Adds what the batch bound saved on one surface's frame.
     mtd addSavings(scratch, scratchFull: u64)
     {
-        if not .enabled do
+        if not .enabled
+        {
             return
+        }
+
         .scratchPixels += scratch
         .scratchFull   += scratchFull
     }
@@ -142,11 +152,17 @@ internal impl FrameTrace
     // Closes one frame, dropping it while the run is still warming up.
     mtd endFrame()
     {
-        if not .enabled do
+        if not .enabled
+        {
             return
+        }
+
         .pendingUs += .watch.elapsedMicroseconds()
-        if not .paintedThisFrame do
+        if not .paintedThisFrame
+        {
             return
+        }
+
         let us = .pendingUs
         .pendingUs = 0
         if .warmedUp < WarmUpFrames
@@ -171,8 +187,10 @@ internal impl FrameTrace
     // Writes what the run measured, once, when the loop is over.
     mtd report()
     {
-        if not .enabled or not .frames do
+        if not .enabled or not .frames
+        {
             return
+        }
 
         let frames = cast(f64, .frames)
         let avgMs  = cast(f64, .totalUs) / frames / 1000.0
@@ -219,10 +237,15 @@ private func findMarker(name: string)->Marker
 
     for arg in Env.arguments()
     {
-        if arg.count < name.count do
+        if arg.count < name.count
+        {
             continue
-        if arg[until name.count] != name do
+        }
+
+        if arg[until name.count] != name
+        {
             continue
+        }
 
         if arg.count == name.count
         {

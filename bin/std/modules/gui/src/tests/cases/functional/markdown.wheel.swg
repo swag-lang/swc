@@ -9,8 +9,11 @@ using Swag, Core
     let fileName = Testing.tempFilePath("markdown-first-viewport-", ".md")
     defer discard catch File.delete(fileName)
     var source: String
-    for 512 do
+    for 512
+    {
         source += "A short paragraph is followed by more source.\n\n"
+    }
+
     discard expect File.writeAllText(fileName, source)
 
     var host: Testing.HeadlessHost
@@ -23,8 +26,11 @@ using Swag, Core
     host.mouseWheel({360, 240}, -1)
     host.finishAnimations()
     Swag.require(view.scroll.scrollPosition().y == 0 and view.waitingScroll)
-    for 64 where view.waitingScroll do
+    for 64 where view.waitingScroll
+    {
         host.fireTimer(view.loadTimer)
+    }
+
     host.finishAnimations()
     Swag.require(view.scroll.scrollPosition().y > 0 and not view.waitingScroll)
 }
@@ -35,8 +41,11 @@ using Swag, Core
     let fileName = Testing.tempFilePath("markdown-initial-wheel-", ".md")
     defer discard catch File.delete(fileName)
     var source: String
-    for 512 do
+    for 512
+    {
         source += "A paragraph remains available while the rest of this large document is loading.\n\n"
+    }
+
     discard expect File.writeAllText(fileName, source)
 
     for reduced in [false, true]
@@ -50,13 +59,19 @@ using Swag, Core
         Swag.require(view.blocks.isEmpty() and view.isLoading())
 
         let step = view.scroll.verticalScrollStep * 3
-        for 3 do
+        for 3
+        {
             host.mouseWheel({360, 240}, -1)
+        }
+
         Swag.require(view.scroll.scrollPosition().y == 0)
 
         // Do not wait for the prefetch reserve to finish before expecting the first movement.
-        for 64 where view.scroll.scrollTarget().y == 0 and view.isLoading() do
+        for 64 where view.scroll.scrollTarget().y == 0 and view.isLoading()
+        {
             host.fireTimer(view.loadTimer)
+        }
+
         host.finishAnimations()
         Swag.require(Math.abs(view.scroll.scrollPosition().y - step * 3) <= 1)
         Swag.require(view.hasUnloadedSource())
@@ -69,8 +84,11 @@ using Swag, Core
     let fileName = Testing.tempFilePath("markdown-initial-reverse-", ".md")
     defer discard catch File.delete(fileName)
     var source: String
-    for 256 do
+    for 256
+    {
         source += "A paragraph keeps a pending wheel gesture separate from the loading extent.\n\n"
+    }
+
     discard expect File.writeAllText(fileName, source)
 
     var host: Testing.HeadlessHost
@@ -80,8 +98,11 @@ using Swag, Core
     view.applyLayout()
     host.mouseWheel({360, 240}, -2)
     host.mouseWheel({360, 240}, 1)
-    for 64 where view.isLoading() do
+    for 64 where view.isLoading()
+    {
         host.fireTimer(view.loadTimer)
+    }
+
     host.finishAnimations()
     Swag.require(view.scroll.scrollPosition().y == 0 and not view.waitingScroll)
     host.mouseWheel({360, 240}, -1)

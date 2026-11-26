@@ -9,9 +9,9 @@ private func paintCaptureWindow(window: *Env.Window, pixel: u32)
     let library  = Linux.dlopen("libxcb.so.1".buffer, Linux.RTLD_NOW | Linux.RTLD_LOCAL)
     Swag.require(library != null)
     defer discard Linux.dlclose(unwrap library)
-    let attributes = expect X11Capture.symbol'Linux.xcb_change_window_attributes_checked_fn(library, "xcb_change_window_attributes_checked")
-    let clear      = expect X11Capture.symbol'Linux.xcb_clear_area_checked_fn(library, "xcb_clear_area_checked")
-    let check      = expect X11Capture.symbol'Linux.xcb_request_check_fn(library, "xcb_request_check")
+    let attributes = expect X11Capture.symbol!{Linux.xcb_change_window_attributes_checked_fn}(library, "xcb_change_window_attributes_checked")
+    let clear      = expect X11Capture.symbol!{Linux.xcb_clear_area_checked_fn}(library, "xcb_clear_area_checked")
+    let check      = expect X11Capture.symbol!{Linux.xcb_request_check_fn}(library, "xcb_request_check")
     let connection = unwrap drawable.connection
     let changed    = check(connection, attributes(connection, drawable.window, 2, &pixel))
     defer Linux.free(changed)
@@ -26,8 +26,8 @@ private func paintCaptureWindow(window: *Env.Window, pixel: u32)
 #test
 {
     var capture = expect X11Capture.create()
-    let width   = Math.min(3840's32, cast(s32, capture.desktopWidth()))
-    let height  = Math.min(2160's32, cast(s32, capture.desktopHeight()))
+    let width   = Math.min(3840_s32, cast(s32, capture.desktopWidth()))
+    let height  = Math.min(2160_s32, cast(s32, capture.desktopHeight()))
     var source  = expect ScreenFrameSource.create(false, 0, 0, width, height)
     var frame: Image
     expect source.grabInto(&frame)
@@ -53,8 +53,10 @@ private func paintCaptureWindow(window: *Env.Window, pixel: u32)
         expect source.grabInto(&narrow)
         for y in 4
         {
-            for x in width do
+            for x in width
+            {
                 Swag.require(narrow.pixelColor(x, y).argb == wide.pixelColor(x, y).argb)
+            }
         }
     }
 }
@@ -65,10 +67,13 @@ private func paintCaptureWindow(window: *Env.Window, pixel: u32)
 #test
 {
     var capture = expect X11Capture.create()
-    let width   = Math.min(3840's32, cast(s32, capture.desktopWidth()))
-    let height  = Math.min(2160's32, cast(s32, capture.desktopHeight()))
-    if width < 128 or height < 96 do
+    let width   = Math.min(3840_s32, cast(s32, capture.desktopWidth()))
+    let height  = Math.min(2160_s32, cast(s32, capture.desktopHeight()))
+    if width < 128 or height < 96
+    {
         return
+    }
+
     var top = expect Env.createWindow({identifier: "capture-parity-top", title: "Top capture parity",
                                        width: 64, height: 48, stopLoopOnClose: false})
     var bottom = expect Env.createWindow({identifier: "capture-parity-bottom", title: "Bottom capture parity",
@@ -102,6 +107,8 @@ private func paintCaptureWindow(window: *Env.Window, pixel: u32)
     let firstSize = capture.sharedMemorySize()
     discard expect capture.imageInto(&frame, false, 0, 0, 64, 32)
     Swag.require(frame.width == 64 and frame.height == 32)
-    if capture.usesSharedMemory() do
+    if capture.usesSharedMemory()
+    {
         Swag.require(firstSize == 32 * 16 * 4 and capture.sharedMemorySize() == 64 * 32 * 4)
+    }
 }

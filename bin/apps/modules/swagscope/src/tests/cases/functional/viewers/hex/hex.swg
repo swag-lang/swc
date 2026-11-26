@@ -23,7 +23,7 @@ internal func writeSampleFile()->String
     let view = hexTestViewer(&host, fileName, 900, 560)
     let grid = view.grid
     Swag.require(grid.doc.fileSize == 656)
-    Swag.require(grid.doc.byteAt(0) == 'N'u8 and grid.doc.byteAt(1) == 'B'u8)
+    Swag.require(grid.doc.byteAt(0) == 'N'_u8 and grid.doc.byteAt(1) == 'B'_u8)
     Swag.require(grid.doc.byteAt(4) == 1 and grid.doc.byteAt(6) == 0 and grid.doc.byteAt(7) == 20)
     Swag.require(grid.doc.byteAt(402) == 0x54 and grid.doc.byteAt(405) == 1)
 
@@ -134,12 +134,12 @@ internal func writeSampleFile()->String
 // The dump copy is the view in text form: the offset, the grouped bytes, and the text column.
 #test
 {
-    let text = Hex.formatDump([0'u8, 1'u8, 0x20'u8, 0x41'u8, 0xFF'u8], 0x20, 16, 16)
+    let text = Hex.formatDump([0_u8, 1_u8, 0x20_u8, 0x41_u8, 0xFF_u8], 0x20, 16, 16)
     Swag.require(Utf8.contains(text.toSlice(), "0000000000000020"))
     Swag.require(Utf8.contains(text.toSlice(), "00 01 20 41 FF"))
     Swag.require(Utf8.contains(text.toSlice(), ".. A."))
 
-    let narrow = Hex.formatDump([0xAA'u8, 0xBB'u8, 0xCC'u8], 0, 2, 8)
+    let narrow = Hex.formatDump([0xAA_u8, 0xBB_u8, 0xCC_u8], 0, 2, 8)
     Swag.require(Utf8.contains(narrow.toSlice(), "00000000  AA BB"))
     Swag.require(Utf8.contains(narrow.toSlice(), "00000002  CC"))
 }
@@ -224,8 +224,8 @@ internal func writeSampleFile()->String
 // The inspector decodes IEEE-754 binary16 in either byte order and only when two bytes remain.
 #test
 {
-    Swag.require(Hex.float16ToFloat(0x3C00) == 1'f32)
-    Swag.require(Hex.float16ToFloat(0x0001) == 5.960464477539063e-8'f32)
+    Swag.require(Hex.float16ToFloat(0x3C00) == 1_f32)
+    Swag.require(Hex.float16ToFloat(0x0001) == 5.960464477539063e-8_f32)
     Swag.require(cast #bit (u32, Hex.float16ToFloat(0x0400)) == 0x38800000)
     Swag.require(cast #bit (u32, Hex.float16ToFloat(0x7BFF)) == 0x477FE000)
     Swag.require(cast #bit (u32, Hex.float16ToFloat(0x0000)) == 0x00000000)
@@ -234,12 +234,12 @@ internal func writeSampleFile()->String
     Swag.require(cast #bit (u32, Hex.float16ToFloat(0xFC00)) == 0xFF800000)
     let nanBits = cast #bit (u32, Hex.float16ToFloat(0x7E00))
     Swag.require((nanBits & 0x7F800000) == 0x7F800000 and (nanBits & 0x007FFFFF) != 0)
-    let bigEndianBytes: Array'u8 = [0x3C, 0x00]
-    Swag.require(Hex.float16ToFloat(cast(u16, Hex.readScalar(bigEndianBytes.toSlice(), true))) == 1'f32)
+    let bigEndianBytes: Array!{u8} = [0x3C, 0x00]
+    Swag.require(Hex.float16ToFloat(cast(u16, Hex.readScalar(bigEndianBytes.toSlice(), true))) == 1_f32)
 
     let fileName = Gui.Testing.tempFilePath("scope-hex-inspector-f16-", ".bin")
     defer discard catch File.delete(fileName)
-    let halfValue: Array'u8 = [0x00, 0x3C]
+    let halfValue: Array!{u8} = [0x00, 0x3C]
     expect File.writeAllBytes(fileName, halfValue.toSlice())
 
     var host: Testing.HeadlessHost
@@ -252,6 +252,7 @@ internal func writeSampleFile()->String
         Swag.require(line.value == "1", line.value)
         found = true
     }
+
     Swag.require(found)
 
     view.grid.bigEndian = true
@@ -262,12 +263,15 @@ internal func writeSampleFile()->String
         Swag.require(line.value != "1", line.value)
         found = true
     }
+
     Swag.require(found)
 
     view.grid.moveCaret(1, false)
     view.refreshInspector()
-    for line in view.inspectorView.readings do
+    for line in view.inspectorView.readings
+    {
         Swag.require(line.label != Hex.texts().ui_InspectorFloat16)
+    }
 }
 
 // IPv4 preserves the four source bytes regardless of scalar byte order, and needs all four bytes.
@@ -275,14 +279,16 @@ internal func writeSampleFile()->String
 {
     let fileName = Gui.Testing.tempFilePath("scope-hex-inspector-ipv4-", ".bin")
     defer discard catch File.delete(fileName)
-    let address: Array'u8 = [192, 168, 1, 1]
+    let address: Array!{u8} = [192, 168, 1, 1]
     expect File.writeAllBytes(fileName, address.toSlice())
 
     var host: Testing.HeadlessHost
     host.setup(900, 600)
     let view = hexTestViewer(&host, fileName, 900, 560)
-    for reading in view.inspectorView.readings where reading.label == Hex.texts().ui_InspectorIpv4 do
+    for reading in view.inspectorView.readings where reading.label == Hex.texts().ui_InspectorIpv4
+    {
         Swag.require(reading.value == "192.168.1.1", reading.value)
+    }
 
     view.grid.setBigEndian(true)
     view.refreshInspector()
@@ -292,41 +298,50 @@ internal func writeSampleFile()->String
         Swag.require(reading.value == "192.168.1.1", reading.value)
         found = true
     }
+
     Swag.require(found)
 
     view.grid.moveCaret(1, false)
     view.refreshInspector()
-    for reading in view.inspectorView.readings do
+    for reading in view.inspectorView.readings
+    {
         Swag.require(reading.label != Hex.texts().ui_InspectorIpv4)
+    }
 }
 
 // ULEB128 and SLEB128 stop at ten bytes, distinguish incomplete input from overflow, and sign-extend.
 #test
 {
-    let positive: Array'u8 = [0xE5, 0x8E, 0x26]
+    let positive: Array!{u8} = [0xE5, 0x8E, 0x26]
     let unsigned = Hex.readUleb128(positive.toSlice())
     let signed   = Hex.readSleb128(positive.toSlice())
     Swag.require(unsigned.state == .Valid and unsigned.value == 624485)
     Swag.require(signed.state == .Valid and cast #bit (s64, signed.value) == 624485)
 
-    let minusOne: Array'u8 = [0x7F]
+    let minusOne: Array!{u8} = [0x7F]
     let negative = Hex.readSleb128(minusOne.toSlice())
     Swag.require(negative.state == .Valid and cast #bit (s64, negative.value) == -1)
-    let incomplete: Array'u8 = [0x80]
+    let incomplete: Array!{u8} = [0x80]
     Swag.require(Hex.readUleb128(incomplete.toSlice()).state == .Incomplete)
     Swag.require(Hex.readSleb128(incomplete.toSlice()).state == .Incomplete)
 
-    var unsignedMax: Array'u8
+    var unsignedMax: Array!{u8}
     unsignedMax.resize(10)
-    for index in 9 do
+    for index in 9
+    {
         unsignedMax[index] = 0xFF
+    }
+
     unsignedMax[9] = 1
     Swag.require(Hex.readUleb128(unsignedMax.toSlice()).value == Swag.U64.Max)
 
-    var signedMin: Array'u8
+    var signedMin: Array!{u8}
     signedMin.resize(10)
-    for index in 9 do
+    for index in 9
+    {
         signedMin[index] = 0x80
+    }
+
     signedMin[9] = 0x7F
     let minValue = Hex.readSleb128(signedMin.toSlice())
     Swag.require(minValue.state == .Valid and minValue.value == 0x8000000000000000)
@@ -338,11 +353,11 @@ internal func writeSampleFile()->String
 
     let fileName = Gui.Testing.tempFilePath("scope-hex-inspector-varint-", ".bin")
     defer discard catch File.delete(fileName)
-    let encoded: Array'u8 = [0xE5, 0x8E, 0x26, 0x00]
+    let encoded: Array!{u8} = [0xE5, 0x8E, 0x26, 0x00]
     expect File.writeAllBytes(fileName, encoded.toSlice())
     var host: Testing.HeadlessHost
     host.setup(900, 600)
-    let view = hexTestViewer(&host, fileName, 900, 560)
+    let view      = hexTestViewer(&host, fileName, 900, 560)
     var ulebFound = false
     var slebFound = false
     for reading in view.inspectorView.readings
@@ -352,12 +367,14 @@ internal func writeSampleFile()->String
             Swag.require(reading.value == "624 485")
             ulebFound = true
         }
+
         if reading.label == Hex.texts().ui_InspectorSleb128
         {
             Swag.require(reading.value == "624 485")
             slebFound = true
         }
     }
+
     Swag.require(ulebFound and slebFound)
 }
 
@@ -366,15 +383,18 @@ internal func writeSampleFile()->String
 {
     let fileName = Gui.Testing.tempFilePath("scope-hex-inspector-varint-ten-bytes-", ".bin")
     defer discard catch File.delete(fileName)
-    var bytes: Array'u8
+    var bytes: Array!{u8}
     bytes.resize(10)
-    for index in 9 do
+    for index in 9
+    {
         bytes[index] = 0xFF
+    }
+
     bytes[9] = 1
     expect File.writeAllBytes(fileName, bytes.toSlice())
     var host: Testing.HeadlessHost
     host.setup(900, 600)
-    let view = hexTestViewer(&host, fileName, 900, 560)
+    let view  = hexTestViewer(&host, fileName, 900, 560)
     var found = false
     for reading in view.inspectorView.readings
     {
@@ -384,19 +404,23 @@ internal func writeSampleFile()->String
             found = true
         }
     }
+
     Swag.require(found)
 
     let signedName = Gui.Testing.tempFilePath("scope-hex-inspector-sleb-ten-bytes-", ".bin")
     defer discard catch File.delete(signedName)
-    var signedMin: Array'u8
+    var signedMin: Array!{u8}
     signedMin.resize(10)
-    for index in 9 do
+    for index in 9
+    {
         signedMin[index] = 0x80
+    }
+
     signedMin[9] = 0x7F
     expect File.writeAllBytes(signedName, signedMin.toSlice())
     var signedHost: Testing.HeadlessHost
     signedHost.setup(900, 600)
-    let signedView = hexTestViewer(&signedHost, signedName, 900, 560)
+    let signedView  = hexTestViewer(&signedHost, signedName, 900, 560)
     var signedFound = false
     for reading in signedView.inspectorView.readings
     {
@@ -406,6 +430,7 @@ internal func writeSampleFile()->String
             signedFound = true
         }
     }
+
     Swag.require(signedFound)
 }
 
@@ -414,18 +439,23 @@ internal func writeSampleFile()->String
 {
     let fileName = Gui.Testing.tempFilePath("scope-hex-inspector-addresses-", ".bin")
     defer discard catch File.delete(fileName)
-    let bytes: Array'u8 = [0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07,
-                           0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F]
+    let bytes: Array!{u8} = [0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07,
+                             0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F]
     expect File.writeAllBytes(fileName, bytes.toSlice())
     var host: Testing.HeadlessHost
     host.setup(900, 600)
     let view = hexTestViewer(&host, fileName, 900, 560)
     for reading in view.inspectorView.readings
     {
-        if reading.label == Hex.texts().ui_InspectorIpv6 do
+        if reading.label == Hex.texts().ui_InspectorIpv6
+        {
             Swag.require(reading.value == "0001:0203:0405:0607:0809:0A0B:0C0D:0E0F")
-        if reading.label == Hex.texts().ui_InspectorGuid do
+        }
+
+        if reading.label == Hex.texts().ui_InspectorGuid
+        {
             Swag.require(reading.value == "00010203-0405-0607-0809-0A0B0C0D0E0F")
+        }
     }
 
     view.setBigEndian(true)
@@ -440,40 +470,48 @@ internal func writeSampleFile()->String
             Swag.require(reading.value == "#00010203")
             rgbaFound = true
         }
+
         if reading.label == Hex.texts().ui_InspectorIpv6
         {
             Swag.require(reading.value == "0001:0203:0405:0607:0809:0A0B:0C0D:0E0F")
             ipv6Found = true
         }
+
         if reading.label == Hex.texts().ui_InspectorGuid
         {
             Swag.require(reading.value == "00010203-0405-0607-0809-0A0B0C0D0E0F")
             guidFound = true
         }
     }
+
     Swag.require(ipv6Found and guidFound and rgbaFound)
 
     let shortName = Gui.Testing.tempFilePath("scope-hex-inspector-short-addresses-", ".bin")
     defer discard catch File.delete(shortName)
-    var shortBytes: Array'u8
+    var shortBytes: Array!{u8}
     shortBytes.resize(15)
-    for index in shortBytes.count do
+    for index in shortBytes.count
+    {
         shortBytes[index] = cast(u8, index)
+    }
+
     expect File.writeAllBytes(shortName, shortBytes.toSlice())
     var shortHost: Testing.HeadlessHost
     shortHost.setup(900, 600)
     let shortView = hexTestViewer(&shortHost, shortName, 900, 560)
-    for reading in shortView.inspectorView.readings do
+    for reading in shortView.inspectorView.readings
+    {
         Swag.require(reading.label != Hex.texts().ui_InspectorIpv6 and
                      reading.label != Hex.texts().ui_InspectorGuid)
+    }
 }
 
 // Packed decimal uses explicit sign nibbles and rejects malformed digits.
 #test
 {
-    let positive: Array'u8 = [0x12, 0x3C]
-    let negative: Array'u8 = [0x12, 0x3D]
-    let malformed: Array'u8 = [0x1A, 0x3C]
+    let positive:  Array!{u8} = [0x12, 0x3C]
+    let negative:  Array!{u8} = [0x12, 0x3D]
+    let malformed: Array!{u8} = [0x1A, 0x3C]
     Swag.require(Hex.readPackedBcd(positive.toSlice()) == "123")
     Swag.require(Hex.readPackedBcd(negative.toSlice()) == "-123")
     Swag.require(Hex.readPackedBcd(malformed.toSlice()) == Hex.texts().ui_ReadingInvalid)
@@ -483,7 +521,7 @@ internal func writeSampleFile()->String
     expect File.writeAllBytes(fileName, positive.toSlice())
     var host: Testing.HeadlessHost
     host.setup(900, 600)
-    let view = hexTestViewer(&host, fileName, 900, 560)
+    let view  = hexTestViewer(&host, fileName, 900, 560)
     var found = false
     for reading in view.inspectorView.readings
     {
@@ -493,15 +531,16 @@ internal func writeSampleFile()->String
             found = true
         }
     }
+
     Swag.require(found)
 }
 
 // FAT directory timestamps use fixed little-endian fields and reject invalid calendar values.
 #test
 {
-    let encoded: Array'u8 = [0x21, 0x00, 0x21, 0x00]
+    let encoded: Array!{u8} = [0x21, 0x00, 0x21, 0x00]
     Swag.require(Hex.readFatDateTime(encoded.toSlice()) == "1980-01-01 00:01:02")
-    let invalid: Array'u8 = [0x00, 0x00, 0x00, 0x00]
+    let invalid: Array!{u8} = [0x00, 0x00, 0x00, 0x00]
     Swag.require(Hex.readFatDateTime(invalid.toSlice()) == Hex.texts().ui_ReadingInvalid)
 
     let fileName = Gui.Testing.tempFilePath("scope-hex-inspector-fat-time-", ".bin")
@@ -509,7 +548,7 @@ internal func writeSampleFile()->String
     expect File.writeAllBytes(fileName, encoded.toSlice())
     var host: Testing.HeadlessHost
     host.setup(900, 600)
-    let view = hexTestViewer(&host, fileName, 900, 560)
+    let view  = hexTestViewer(&host, fileName, 900, 560)
     var found = false
     for reading in view.inspectorView.readings
     {
@@ -519,23 +558,29 @@ internal func writeSampleFile()->String
             found = true
         }
     }
+
     Swag.require(found)
     view.setBigEndian(true)
     view.refreshInspector()
-    for reading in view.inspectorView.readings where reading.label == Hex.texts().ui_InspectorFatDateTime do
+    for reading in view.inspectorView.readings where reading.label == Hex.texts().ui_InspectorFatDateTime
+    {
         Swag.require(reading.value == "1980-01-01 00:01:02")
+    }
 }
 
 // FILETIME remains UTC regardless of the selected scalar byte order and rejects out-of-range ticks.
 #test
 {
-    var epoch: Array'u8
+    var epoch: Array!{u8}
     epoch.resize(8)
     Swag.require(Hex.readFileTime(epoch.toSlice()) == "1601-01-01 00:00:00.000Z")
-    var overflow: Array'u8
+    var overflow: Array!{u8}
     overflow.resize(8)
-    for index in 8 do
+    for index in 8
+    {
         overflow[index] = 0xFF
+    }
+
     Swag.require(Hex.readFileTime(overflow.toSlice()) == Hex.texts().ui_ReadingInvalid)
 
     let fileName = Gui.Testing.tempFilePath("scope-hex-inspector-filetime-", ".bin")
@@ -543,7 +588,7 @@ internal func writeSampleFile()->String
     expect File.writeAllBytes(fileName, epoch.toSlice())
     var host: Testing.HeadlessHost
     host.setup(900, 600)
-    let view = hexTestViewer(&host, fileName, 900, 560)
+    let view  = hexTestViewer(&host, fileName, 900, 560)
     var found = false
     for reading in view.inspectorView.readings
     {
@@ -553,18 +598,21 @@ internal func writeSampleFile()->String
             found = true
         }
     }
+
     Swag.require(found)
 }
 
 // The lens copies exactly the inspector's current headline, and disables the action without a value.
 #test
 {
-    if not Clipboard.isFake() do
+    if not Clipboard.isFake()
+    {
         return
+    }
 
     let fileName = Gui.Testing.tempFilePath("scope-hex-copy-value-", ".bin")
     defer discard catch File.delete(fileName)
-    let payload: Array'u8 = [42, 43]
+    let payload: Array!{u8} = [42, 43]
     expect File.writeAllBytes(fileName, payload.toSlice())
 
     var host: Testing.HeadlessHost
@@ -585,11 +633,15 @@ internal func writeSampleFile()->String
         entry.run!()
         found = true
     }
+
     Swag.require(found and Clipboard.getString() == view.inspectorView.headline and Clipboard.getString() == "42")
 
     var f16Value = String{}
-    for reading in view.inspectorView.readings where reading.label == Hex.texts().ui_InspectorFloat16 do
+    for reading in view.inspectorView.readings where reading.label == Hex.texts().ui_InspectorFloat16
+    {
         f16Value = reading.value
+    }
+
     found = false
     let copyF16 = Format.toString(Hex.texts().ui_CopyReading, Hex.texts().ui_InspectorFloat16)
     for &entry in results.sections[0]!.entries where entry.title == copyF16
@@ -598,6 +650,7 @@ internal func writeSampleFile()->String
         entry.run!()
         found = true
     }
+
     Swag.require(found, Format.toString("f16 copy row missing among % rows", results.sections[0]!.entries.count))
     Swag.require(not f16Value.isEmpty(), "f16 inspector value missing")
     Swag.require(Clipboard.getString() == f16Value, Format.toString("copied %, expected %", Clipboard.getString(), f16Value))
@@ -615,6 +668,7 @@ internal func writeSampleFile()->String
         entry.run!()
         found = true
     }
+
     Swag.require(found and Clipboard.getString() == view.inspectorView.headline and Clipboard.getString() == "43")
 
     let emptyName = Gui.Testing.tempFilePath("scope-hex-copy-value-empty-", ".bin")
@@ -630,6 +684,7 @@ internal func writeSampleFile()->String
         Swag.require(entry.disabled)
         found = true
     }
+
     Swag.require(found)
 }
 
@@ -639,11 +694,14 @@ internal func writeSampleFile()->String
     let fileName = Gui.Testing.tempFilePath("scope-hex-analysis-", ".bin")
     defer discard catch File.delete(fileName)
 
-    var payload: Array'u8
+    var payload: Array!{u8}
     payload.resize(256)
     let ascii = "HELLO-WORLD"
-    for value, index in ascii do
+    for value, index in ascii
+    {
         payload[16 + index] = value
+    }
+
     let little = "WideLE"
     for value, index in little
     {
@@ -675,18 +733,26 @@ internal func writeSampleFile()->String
     var foundBig:    bool
     for one in result.strings
     {
-        if one.kind == .Ascii and one.offset == 16 and one.length == ascii.count do
+        if one.kind == .Ascii and one.offset == 16 and one.length == ascii.count
+        {
             foundAscii = one.text == ascii
-        if one.kind == .Utf16Little and one.offset == 64 and one.length == little.count * 2 do
+        }
+
+        if one.kind == .Utf16Little and one.offset == 64 and one.length == little.count * 2
+        {
             foundLittle = one.text == little
-        if one.kind == .Utf16Big and one.offset == 96 and one.length == big.count * 2 do
+        }
+
+        if one.kind == .Utf16Big and one.offset == 96 and one.length == big.count * 2
+        {
             foundBig = one.text == big
+        }
     }
 
     Swag.require(foundAscii and foundLittle and foundBig)
 
     // A scan run by work that was asked to stop ends before reading anything.
-    var stopper: Swag.Task'Hex.AnalysisResult
+    var stopper: Swag.Task!{Hex.AnalysisResult}
     let self  = &stopper
     let count = payload.count
     let path:    string = fileName
@@ -705,11 +771,14 @@ internal func writeSampleFile()->String
     let fileName = Gui.Testing.tempFilePath("scope-hex-entropy-blocks-", ".bin")
     defer discard catch File.delete(fileName)
 
-    const BlockSize = 64 * 1024'u64
-    var payload: Array'u8
+    const BlockSize = 64 * 1024_u64
+    var payload: Array!{u8}
     payload.resize(BlockSize * 2 + 7)
-    for index in BlockSize do
+    for index in BlockSize
+    {
         payload[BlockSize + index] = cast(u8, index)
+    }
+
     expect File.writeAllBytes(fileName, payload.toSlice())
 
     var result = Hex.analyzeRange(fileName, Viewers.Hex.AnalysisRange{0, payload.count})
@@ -726,29 +795,32 @@ internal func writeSampleFile()->String
     view.analysisView.publish(&result)
     Swag.require(view.analysisView.entropyList.lineCount() == 3)
     view.analysisView.entropyList.selectLine(1)
-    Swag.require(view.grid.caret == BlockSize and view.grid.selectionStart() == BlockSize and view.grid.selectionLength() == BlockSize)
+    Swag.require(view.grid.caret == BlockSize and
+                 view.grid.selectionStart() == BlockSize and
+                 view.grid.selectionLength() == BlockSize)
 }
 
 // Repeated blocks are reported only after exact byte comparison, and both occurrences navigate
 // to their aligned ranges inside a non-zero analysis selection.
 #test
 {
-    const BlockSize = 64 * 1024'u64
+    const BlockSize = 64 * 1024_u64
     let fileName = Gui.Testing.tempFilePath("scope-hex-repeated-blocks-", ".bin")
     defer discard catch File.delete(fileName)
 
-    let start = 37'u64
+    let start  = 37_u64
     let length = BlockSize * 4 + 19
-    var payload: Array'u8
+    var payload: Array!{u8}
     payload.resize(start + length + 11)
     for index in BlockSize
     {
         let value = cast(u8, index % 251)
         payload[start + index] = value
         payload[start + BlockSize * 2 + index] = value
-        payload[start + BlockSize + index] = 0x5A
+        payload[start + BlockSize + index]     = 0x5A
         payload[start + BlockSize * 3 + index] = value
     }
+
     payload[start + BlockSize * 3 + 123] ^= 1
     expect File.writeAllBytes(fileName, payload.toSlice())
 
@@ -783,8 +855,8 @@ internal func writeSampleFile()->String
     Swag.require(not defaults.crc64 and not defaults.sha512 and not defaults.blake2s and not defaults.blake2b)
 
     var all: Hex.AnalysisAlgorithms
-    all.crc64 = true
-    all.sha512 = true
+    all.crc64   = true
+    all.sha512  = true
     all.blake2s = true
     all.blake2b = true
     let result = Hex.analyzeRange(fileName, Viewers.Hex.AnalysisRange{1, 3}, algorithms: all)
@@ -802,20 +874,23 @@ internal func writeSampleFile()->String
 
     // Leaving two algorithms off leaves them out of the stream and the published copy actions.
     var algorithms = all
-    algorithms.sha256 = false
+    algorithms.sha256  = false
     algorithms.blake2b = false
     let selected = Hex.analyzeRange(fileName, Viewers.Hex.AnalysisRange{1, 3}, algorithms: algorithms)
-    Swag.require(selected.hasDigests and selected.algorithms.sha512 and not selected.algorithms.sha256 and not selected.algorithms.blake2b)
+    Swag.require(selected.hasDigests and
+                 selected.algorithms.sha512 and
+                 not selected.algorithms.sha256 and
+                 not selected.algorithms.blake2b)
     Swag.require(not selected.sha256[0] and not selected.blake2b[0])
     Swag.require(not Utf8.contains(selected.digestsText(), "SHA-256") and not Utf8.contains(selected.digestsText(), "BLAKE2b"))
 
     var none: Hex.AnalysisAlgorithms
-    none.crc32 = false
-    none.crc64 = false
-    none.md5 = false
-    none.sha1 = false
-    none.sha256 = false
-    none.sha512 = false
+    none.crc32   = false
+    none.crc64   = false
+    none.md5     = false
+    none.sha1    = false
+    none.sha256  = false
+    none.sha512  = false
     none.blake2s = false
     none.blake2b = false
     let noChecksums = Hex.analyzeRange(fileName, Viewers.Hex.AnalysisRange{1, 3}, algorithms: none)
@@ -846,16 +921,22 @@ internal func writeSampleFile()->String
     host.thenActivateOptionRow(Hex.texts().ui_AnalysisBlake2b)
     host.thenActivateOptionRow(Hex.texts().ui_AnalysisSha512)
     view.analysisView.showAlgorithmOptions()
-    Swag.require(host.autoHandled and not view.analysisView.algorithms.sha256 and view.analysisView.algorithms.blake2b and view.analysisView.algorithms.sha512)
+    Swag.require(host.autoHandled and
+                 not view.analysisView.algorithms.sha256 and
+                 view.analysisView.algorithms.blake2b and
+                 view.analysisView.algorithms.sha512)
     view.analysis.start(fileName, Viewers.Hex.AnalysisRange{1, 3}, algorithms: view.analysisView.algorithms)
     view.analysis.task.wait()
     var selectedResult = view.analysis.finish()
-    Swag.require(selectedResult.hasDigests and selectedResult.algorithms.sha512 and not selectedResult.algorithms.sha256 and selectedResult.algorithms.blake2b)
+    Swag.require(selectedResult.hasDigests and
+                 selectedResult.algorithms.sha512 and
+                 not selectedResult.algorithms.sha256 and
+                 selectedResult.algorithms.blake2b)
     view.analysisView.publish(&selectedResult)
     results = {}
     entries = Viewer.LensEntries.create(&results, "Hexadecimal", host.theme)
     view.describeLens(&entries)
-    var sha512Copied = false
+    var sha512Copied    = false
     var sha256Available = false
     for &entry in results.sections[0]!.entries
     {
@@ -864,7 +945,11 @@ internal func writeSampleFile()->String
             entry.run!()
             sha512Copied = true
         }
-        if entry.title == Hex.texts().ui_AnalysisCopySha256 do sha256Available = true
+
+        if entry.title == Hex.texts().ui_AnalysisCopySha256
+        {
+            sha256Available = true
+        }
     }
 
     Swag.require(sha512Copied and not sha256Available)
@@ -924,8 +1009,8 @@ internal func writeSampleFile()->String
     let grid = view.grid
     grid.setBytesPerRow(16, false)
 
-    let row    = 3'u64
-    let column = 5'u64
+    let row    = 3_u64
+    let column = 5_u64
     Swag.require(grid.offsetAt(Math.Point{grid.hexCellX(column) + 1, grid.rowTop(row) + 2}) == row * 16 + column)
     Swag.require(grid.offsetAt(Math.Point{grid.textCellX(column) + 1, grid.rowTop(row) + 2}) == row * 16 + column)
     Swag.require(grid.offsetAt({4, 2}) == Swag.U64.Max)
@@ -936,7 +1021,7 @@ internal func writeSampleFile()->String
 {
     let fileName = Gui.Testing.tempFilePath("viewer-hex-values-", ".bin")
     defer discard catch File.delete(fileName)
-    discard expect File.writeAllBytes(fileName, [0x78'u8, 0x56'u8, 0x34'u8, 0x12'u8, 0'u8, 0'u8, 0'u8, 0x80'u8, 0x41'u8])
+    discard expect File.writeAllBytes(fileName, [0x78_u8, 0x56_u8, 0x34_u8, 0x12_u8, 0_u8, 0_u8, 0_u8, 0x80_u8, 0x41_u8])
 
     var host: Testing.HeadlessHost
     host.setup(900, 600)
@@ -961,8 +1046,10 @@ internal func writeSampleFile()->String
 // What leaves through the clipboard is what the reader selected, in the form asked for.
 #test
 {
-    if not Clipboard.isFake() do
+    if not Clipboard.isFake()
+    {
         return
+    }
 
     let fileName = writeStreamedFile(4096)
     defer discard catch File.delete(fileName)
@@ -1064,7 +1151,11 @@ internal func writeSampleFile()->String
             hasBookmarkAction = true
             entry.run!()
         }
-        if entry.title == Hex.texts().ui_SetBaseAddress do hasBaseAction = true
+
+        if entry.title == Hex.texts().ui_SetBaseAddress
+        {
+            hasBaseAction = true
+        }
     }
 
     Swag.require(hasBookmarkAction and hasBaseAction)
@@ -1132,7 +1223,7 @@ internal func writeSampleFile()->String
     Swag.require(view.grid.matchStart == 11 and view.grid.matchLength == 5)
     Swag.require(view.grid.selectionStart() == 11 and view.grid.selectionLength() == 5)
     discard host.render(view)
-    Swag.require(view.grid.doc.byteAt(11) == 'h'u8)
+    Swag.require(view.grid.doc.byteAt(11) == 'h'_u8)
 
     view.grid.moveCaret(0, false)
     Swag.require(view.grid.matchStart == 11 and view.grid.matchLength == 5)
@@ -1166,7 +1257,7 @@ internal func writeSampleFile()->String
     host.keyPress(.End, .Control)
     Swag.require(grid.caret == 0x1_0000_1233 and grid.topRow == grid.maxTopRow())
 
-    let dump = Hex.formatDump([0xAB'u8], 0x1_0000_0000, 16, grid.offsetDigits)
+    let dump = Hex.formatDump([0xAB_u8], 0x1_0000_0000, 16, grid.offsetDigits)
     Swag.require(Utf8.contains(dump.toSlice(), "0000000100000000"))
 }
 
@@ -1212,7 +1303,7 @@ internal func writeSampleFile()->String
     host.fireTimer(grid.selectionTimer)
     Swag.require(grid.topRow > firstTop and grid.selectionLength() > 1)
 
-    with let other = Wnd.create'Wnd(&host.root, "hex.capture.other", {0, 0, 40, 20})
+    with let other = Wnd.create!{Wnd}(&host.root, "hex.capture.other", {0, 0, 40, 20})
     {
         .focusPolicy = .Tab
         .setFocus()
@@ -1233,8 +1324,8 @@ internal func writeSampleFile()->String
     let view = hexTestViewer(&host, fileName, 900, 560)
     let grid = view.grid
     grid.setBytesPerRow(16, false)
-    let row    = 2'u64
-    let column = 13'u64
+    let row    = 2_u64
+    let column = 13_u64
     Swag.require(grid.deviceScale() == 1.5)
     Swag.require(grid.offsetAt(Math.Point{grid.textCellX(column) + 1, grid.rowTop(row) + 2}) == row * 16 + column)
     Swag.require(grid.contentWidth() <= grid.clientRect().width)
@@ -1342,8 +1433,11 @@ internal func writeSampleFile()->String
     var setEntries = Viewer.LensEntries.create(&setResults, "Hexadecimal", host.theme)
     view.describeLens(&setEntries)
     var setBookmark: *Lens.Entry?
-    for &entry in setResults.sections[0]!.entries where entry.title == Hex.texts().ui_SetBookmark do
+    for &entry in setResults.sections[0]!.entries where entry.title == Hex.texts().ui_SetBookmark
+    {
         setBookmark = entry
+    }
+
     Swag.require(setBookmark != null and not setBookmark.disabled)
     setBookmark.run!()
     Swag.require(view.hasBookmark and view.bookmarkOffset == 2)
@@ -1354,8 +1448,11 @@ internal func writeSampleFile()->String
     view.describeLens(&goEntries)
     let destination = Format.toString(Hex.texts().ui_GoToBookmark, "0x00000002")
     var goBookmark: *Lens.Entry?
-    for &entry in goResults.sections[0]!.entries where entry.title == destination do
+    for &entry in goResults.sections[0]!.entries where entry.title == destination
+    {
         goBookmark = entry
+    }
+
     Swag.require(goBookmark != null and not goBookmark.disabled)
     goBookmark.run!()
     Swag.require(view.grid.caret == 2)
@@ -1382,8 +1479,11 @@ internal func writeSampleFile()->String
     var entries = Viewer.LensEntries.create(&results, "Hexadecimal", host.theme)
     view.describeLens(&entries)
     var bookmark: *Lens.Entry?
-    for &entry in results.sections[0]!.entries where entry.title == Format.toString(Hex.texts().ui_GoToBookmark, "0x0000000C") do
+    for &entry in results.sections[0]!.entries where entry.title == Format.toString(Hex.texts().ui_GoToBookmark, "0x0000000C")
+    {
         bookmark = entry
+    }
+
     Swag.require(bookmark != null and not bookmark.disabled)
     bookmark.run!()
     Swag.require(view.grid.caret == 12)
@@ -1392,8 +1492,11 @@ internal func writeSampleFile()->String
     var backEntries = Viewer.LensEntries.create(&backResults, "Hexadecimal", host.theme)
     view.describeLens(&backEntries)
     var back: *Lens.Entry?
-    for &entry in backResults.sections[0]!.entries where entry.title == Hex.texts().ui_Back do
+    for &entry in backResults.sections[0]!.entries where entry.title == Hex.texts().ui_Back
+    {
         back = entry
+    }
+
     Swag.require(back != null and not back.disabled and back.defaultKey.key == .Left)
     back.run!()
     Swag.require(view.grid.caret == 8)
@@ -1402,8 +1505,11 @@ internal func writeSampleFile()->String
     var forwardEntries = Viewer.LensEntries.create(&forwardResults, "Hexadecimal", host.theme)
     view.describeLens(&forwardEntries)
     var forward: *Lens.Entry?
-    for &entry in forwardResults.sections[0]!.entries where entry.title == Hex.texts().ui_Forward do
+    for &entry in forwardResults.sections[0]!.entries where entry.title == Hex.texts().ui_Forward
+    {
         forward = entry
+    }
+
     Swag.require(forward != null and not forward.disabled and forward.defaultKey.key == .Right)
     forward.run!()
     Swag.require(view.grid.caret == 12)
@@ -1422,8 +1528,11 @@ internal func writeSampleFile()->String
     var host: Testing.HeadlessHost
     host.setup(900, 600)
     let view = hexTestViewer(&host, fileName, 900, 560)
-    for offset in 1 until 101 do
+    for offset in 1 until 101
+    {
         Swag.require(view.revealOffset(offset, 1))
+    }
+
     Swag.require(view.navigationHistory.count == 64)
     Swag.require(view.grid.caret == 100)
     var steps = 0
@@ -1439,8 +1548,10 @@ internal func writeSampleFile()->String
 // The clipboard contract names and enforces its exact bound before a large selection is copied.
 #test
 {
-    if not Clipboard.isFake() do
+    if not Clipboard.isFake()
+    {
         return
+    }
 
     let fileName = writeStreamedFile(Hex.CopyLimit + 37)
     defer discard catch File.delete(fileName)
@@ -1515,8 +1626,11 @@ internal func writeSampleFile()->String
     }
 
     var goTo = 0
-    for &entry in results.sections[0]!.entries where entry.title == Hex.texts().ui_GoTo do
+    for &entry in results.sections[0]!.entries where entry.title == Hex.texts().ui_GoTo
+    {
         goTo += entry.detail == Input.formatKeyShortcut(.Control, .G) ? 1 : 0
+    }
+
     Swag.require(goTo == 1)
 
     run(&results, Hex.texts().ui_SelectAll)
@@ -1549,8 +1663,11 @@ internal func writeSampleFile()->String
     defer discard catch File.delete(fileName)
     var host: Testing.HeadlessHost
     let window = framedViewerWindow(&host, fileName, false)
-    for choice, index in window.choices where choice.key == "hex" and index != window.activeChoiceIndex do
+    for choice, index in window.choices where choice.key == "hex" and index != window.activeChoiceIndex
+    {
         window.selectViewer(cast(u32, index))
+    }
+
     completeQueuedViewerFile(&host, window)
     let view = assume cast(*Hex.Panel, window.currentView)
 

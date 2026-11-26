@@ -16,8 +16,11 @@ internal impl Properties
         let editAlpha = not opaque and not keepAlpha
 
         var width = cast(f32, Reflection.attributeValue(value, .EditSize, "size", .editorWidth))
-        if not .isGridLike() do
+        if not .isGridLike()
+        {
             width = .listContentWidthFromUseful(width)
+        }
+
         const MarginBtn = 4
         const WidthBtn  = 60
 
@@ -25,10 +28,13 @@ internal impl Properties
         // stay left-aligned at its edit size in list mode (otherwise the color row
         // is the only one that ends up centered). maxSize caps the stack stretch;
         // an anchored width would drift with the resize history.
-        let line = Wnd.create'Wnd(item.line, Math.Rectangle{0, 0, width, .themeMetrics().editBox_Height})
+        let line = Wnd.create!{Wnd}(item.line, Math.Rectangle{0, 0, width, .themeMetrics().editBox_Height})
         line.maxSize.x = width
-        if .isGridLike() do
+        if .isGridLike()
+        {
             line.dockStyle = .CenterKeepSizeVert
+        }
+
         .adaptCondensedControl(line)
 
         with let btn = IconButton.create(line, {}, Math.Rectangle{0, 0, WidthBtn, item.line.position.height})
@@ -53,10 +59,15 @@ internal impl Properties
             {
                 let parsed = catch StrConv.parseX64(ed.text()).value orelse 0
                 var result = cast(u32, (parsed & 0xFFFFFFFF))
-                if opaque do
+                if opaque
+                {
                     result |= 0xFF000000
-                elif keepAlpha do
+                }
+                else if keepAlpha
+                {
                     result |= cast(u32, color.a) << 24
+                }
+
                 color.argb = result
                 prop.commitItemChange(item)
             }
@@ -69,8 +80,11 @@ internal impl Properties
         {
             bc.painter.setParams(.Antialiased)
             let radius = btn.themeRects().btnIcon_RoundSquareBk.radius
-            if not color.isOpaque() do
+            if not color.isOpaque()
+            {
                 bc.painter.fillRoundRect(pos, radius, radius, Brush.createHatch(.CheckBoardLarge, Argb.DarkGray))
+            }
+
             bc.painter.fillRoundRect(pos, radius, radius, color[])
         }
 
@@ -79,23 +93,32 @@ internal impl Properties
             let frame = btn.createAnchorPopup(356, 382)
             prop.editPopup = frame
 
-            var pal: Array'Color
-            for i in 9 do
+            var pal: Array!{Color}
+            for i in 9
+            {
                 pal.add(Color.lerpRgb(Argb.White, Argb.Black, i / 8.0))
+            }
 
             var flags = ColorPickerFlags.All
-            if opaque or keepAlpha do
+            if opaque or keepAlpha
+            {
                 flags.remove(ColorPickerFlags.AllowAlpha)
+            }
 
             let picker = ColorPickerCtrl.createWithPalette(frame, {8, 54}, pal, flags)
             picker.setColor(color[])
             picker.sigColorChanged += func|prop, color, item, opaque, keepAlpha|(pk)
             {
                 var result = pk.color().argb
-                if opaque do
+                if opaque
+                {
                     result |= 0xFF000000
-                elif keepAlpha do
+                }
+                else if keepAlpha
+                {
                     result |= cast(u32, color.a) << 24
+                }
+
                 color.argb = result
                 prop.commitItemChange(item)
             }
@@ -108,10 +131,15 @@ internal impl Properties
 
         item.sigRefresh += func|prop = me, ed, btn, color, editAlpha|(item)
         {
-            if editAlpha do
+            if editAlpha
+            {
                 ed.setText(Format.toString("%{X08}", color.argb))
-            else do
+            }
+            else
+            {
                 ed.setText(Format.toString("%{X06}", color.argb & 0xFFFFFF))
+            }
+
             prop.setEditMixed(item, ed)
             btn.invalidate()
         }
@@ -132,5 +160,5 @@ internal impl IPropertyEditor for ColorEditor
 
 #init
 {
-    Properties.registerEditor'(ColorEditor)()
+    Properties.registerEditor!{ColorEditor}()
 }

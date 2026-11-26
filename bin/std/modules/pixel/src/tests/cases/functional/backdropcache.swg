@@ -3,7 +3,7 @@
 
 using Core
 
-func drawGaussian(cpu: *RenderCpu, source: Image, radius = 3.5'f32, mode = 0, scale = 1.0'f32, clipped = false, translated = false, fullClip = false)->Image
+func drawGaussian(cpu: *RenderCpu, source: Image, radius = 3.5_f32, mode = 0, scale = 1.0_f32, clipped = false, translated = false, fullClip = false)->Image
 {
     cpu.begin(source.width, source.height)
     let renderer: IRenderer = cpu
@@ -18,16 +18,27 @@ func drawGaussian(cpu: *RenderCpu, source: Image, radius = 3.5'f32, mode = 0, sc
     painter.setBlendingMode(.Copy)
     painter.setAntialiased(false)
     painter.setInterpolationMode(.Linear)
-    if fullClip do
+    if fullClip
+    {
         painter.pushClippingRect({0, 0, source.width / scale, source.height / scale})
-    elif clipped do
+    }
+    else if clipped
+    {
         painter.pushClippingRect({0, 0, source.width / (2 * scale), source.height / scale})
-    if translated do
+    }
+
+    if translated
+    {
         painter.translateTransform(1, 0)
+    }
+
     painter.setBackdropShader({width: source.width, height: source.height, radius: radius, mode: mode})
     painter.drawTexture({0, 0, source.width / scale, source.height / scale}, texture)
-    if clipped or fullClip do
+    if clipped or fullClip
+    {
         painter.popClippingRect()
+    }
+
     painter.end()
     expect renderer.draw(&painter)
     return cpu.surfaceImage()
@@ -45,8 +56,11 @@ func assertSamePixels(first, second: Image)
 #test
 {
     var source = Image.create(37, 23, .BGRA8)
-    for i in source.pixels.count do
+    for i in source.pixels.count
+    {
         source.pixels[i] = cast(u8, (i * 37) % 256)
+    }
+
     var cpu: RenderCpu
     let first = drawGaussian(&cpu, source)
     let again = drawGaussian(&cpu, source)
@@ -106,8 +120,10 @@ func assertSamePixels(first, second: Image)
     let renderer: IRenderer = &cpu
     renderer.begin({width: 40, height: 24})
     renderer.end()
-    for cache in cpu.backdropCache do
+    for cache in cpu.backdropCache
+    {
         Swag.require(cache.retainedBytes() == 0 and not cache.valid)
+    }
 }
 
 // Both passes fit a 4K screen using useful texels, within a fixed total retention budget.
@@ -124,11 +140,14 @@ func assertSamePixels(first, second: Image)
 #test
 {
     var source = Image.create(321, 239, .BGRA8)
-    for i in source.pixels.count do
+    for i in source.pixels.count
+    {
         source.pixels[i] = cast(u8, (i * 37 + i / 11) % 256)
+    }
+
     for mode in [0, 1]
     {
-        for scale in [1.0'f32, 1.5]
+        for scale in [1.0_f32, 1.5]
         {
             var optimized, general: RenderCpu
             let actual   = drawGaussian(&optimized, source, radius: 10.5, mode: mode, scale: scale)

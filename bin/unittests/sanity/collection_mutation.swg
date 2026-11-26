@@ -36,8 +36,10 @@ impl CollMutVec
 
     mtd remove()
     {
-        if me.count > 0 do
+        if me.count > 0
+        {
             me.count -= 1
+        }
     }
 
     #[Swag.Inline]
@@ -57,10 +59,14 @@ impl CollMutVec
     {
         for idx in me.count
         {
-            #static if ptr do
+            #static if ptr
+            {
                 #inject(stmt, item = cast(*s32, &me.buffer[idx]), index = idx)
-            else do
+            }
+            else
+            {
                 #inject(stmt, item = me.buffer[idx], index = idx)
+            }
         }
     }
 }
@@ -133,8 +139,10 @@ func collMutAfterIter()
 {
     var v: CollMutVec
     v.add(1)
-    for x in v do
+    for x in v
+    {
         discard x
+    }
     v.add(2)
 }
 
@@ -220,7 +228,7 @@ struct CollMutEntry
 func collMutElementMethodDuringIter()
 {
     var entries: [2] CollMutEntry
-    var total = 0'u64
+    var total = 0_u64
 
     for &entry in entries
     {
@@ -235,9 +243,11 @@ func collMutElementMethodDuringIter()
 func collMutDirectElementMethodDuringIter()
 {
     var names: [2] CollMutName
-    var total = 0'u64
-    for &name in names do
+    var total = 0_u64
+    for &name in names
+    {
         total += name.measure()
+    }
     Swag.assert(total == 2)
 }
 

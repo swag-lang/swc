@@ -12,7 +12,7 @@
 #[Swag.Sanity(.Math, true)]
 #test
 {
-    var x = -1.0'f32
+    var x = -1.0_f32
     let y = Swag.sqrt(x)     // swc-expected-error {{sanity_err_invalid_argument}}
     discard y
 }
@@ -21,7 +21,7 @@
 #[Swag.Sanity(.Math, true)]
 #test
 {
-    var x = -2.0'f64
+    var x = -2.0_f64
     let y = Swag.sqrt(x)     // swc-expected-error {{sanity_err_invalid_argument}}
     discard y
 }
@@ -30,7 +30,7 @@
 #[Swag.Sanity(.Math, true)]
 #test
 {
-    var x = -1.0'f32
+    var x = -1.0_f32
     let y = Swag.log(x)     // swc-expected-error {{sanity_err_invalid_argument}}
     discard y
 }
@@ -39,7 +39,7 @@
 #[Swag.Sanity(.Math, true)]
 #test
 {
-    var x = -5.0'f64
+    var x = -5.0_f64
     let y = Swag.log10(x)     // swc-expected-error {{sanity_err_invalid_argument}}
     discard y
 }
@@ -48,7 +48,7 @@
 #[Swag.Sanity(.Math, true)]
 #test
 {
-    var x = 2.0'f32
+    var x = 2.0_f32
     let y = Swag.asin(x)     // swc-expected-error {{sanity_err_invalid_argument}}
     discard y
 }
@@ -57,7 +57,7 @@
 #[Swag.Sanity(.Math, true)]
 #test
 {
-    var x = -3.0'f64
+    var x = -3.0_f64
     let y = Swag.acos(x)     // swc-expected-error {{sanity_err_invalid_argument}}
     discard y
 }
@@ -69,21 +69,21 @@
 // In-domain constants.
 #test
 {
-    var x = 4.0'f32
-    Swag.require(Swag.sqrt(x) == 2.0'f32)
+    var x = 4.0_f32
+    Swag.require(Swag.sqrt(x) == 2.0_f32)
 }
 
 #[Swag.Sanity(.Math, true)]
 #test
 {
-    var x = 1.0'f64
-    Swag.require(Swag.log(x) == 0.0'f64)
+    var x = 1.0_f64
+    Swag.require(Swag.log(x) == 0.0_f64)
 }
 
 #[Swag.Sanity(.Math, true)]
 #test
 {
-    var x = 0.5'f32
+    var x = 0.5_f32
     let y = Swag.asin(x)
     discard y
 }
@@ -92,7 +92,7 @@
 #[Swag.Sanity(.Math, true)]
 #test
 {
-    var x = -0.0'f32
+    var x = -0.0_f32
     let y = Swag.sqrt(x)
     discard y
 }
@@ -105,5 +105,5 @@ func rootOf(v: f32)->f32
 
 #test
 {
-    Swag.require(rootOf(9.0'f32) == 3.0'f32)
+    Swag.require(rootOf(9.0_f32) == 3.0_f32)
 }

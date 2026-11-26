@@ -24,12 +24,21 @@ impl Guid128
 {
     private func hexDigit(character: u8)->{ value: u8, valid: bool }
     {
-        if character >= '0' and character <= '9' do
-            return {value: character - '0'u8, valid: true}
-        if character >= 'a' and character <= 'f' do
-            return {value: character - 'a'u8 + 10, valid: true}
-        if character >= 'A' and character <= 'F' do
-            return {value: character - 'A'u8 + 10, valid: true}
+        if character >= '0' and character <= '9'
+        {
+            return {value: character - '0'_u8, valid: true}
+        }
+
+        if character >= 'a' and character <= 'f'
+        {
+            return {value: character - 'a'_u8 + 10, valid: true}
+        }
+
+        if character >= 'A' and character <= 'F'
+        {
+            return {value: character - 'A'_u8 + 10, valid: true}
+        }
+
         return {value: 0, valid: false}
     }
 
@@ -141,8 +150,11 @@ impl Guid128
     func parse(str: string)->Guid128 fail
     {
         var result: #returntype
-        if not tryParse(str, &result) do
+        if not tryParse(str, &result)
+        {
             fail InvalidFormatError{"invalid 128-bit identifier"}
+        }
+
         return result
     }
 
@@ -151,24 +163,31 @@ impl Guid128
     // Hexadecimal digits are accepted in either case. `result` is unchanged on failure.
     func tryParse(str: string, result: *Guid128)->bool
     {
-        if str.count != 36 do
+        if str.count != 36
+        {
             return false
+        }
 
         var parsed: Guid128
-        var sourceIndex = 0'u64
+        var sourceIndex = 0_u64
         for byteIndex in 16
         {
             if sourceIndex == 8 or sourceIndex == 13 or sourceIndex == 18 or sourceIndex == 23
             {
-                if str[sourceIndex] != '-' do
+                if str[sourceIndex] != '-'
+                {
                     return false
+                }
+
                 sourceIndex += 1
             }
 
             let {value: high, valid: highValid} = hexDigit(str[sourceIndex])
             let {value: low, valid: lowValid}   = hexDigit(str[sourceIndex + 1])
-            if not highValid or not lowValid do
+            if not highValid or not lowValid
+            {
                 return false
+            }
 
             parsed.bytes[byteIndex] = (high << 4) | low
             sourceIndex += 2

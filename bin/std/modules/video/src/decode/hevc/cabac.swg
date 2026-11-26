@@ -60,8 +60,10 @@ impl CabacReader
         for group in ContextGroups
         {
             let initBase = group.init[initType]
-            if initBase == NoInit do
+            if initBase == NoInit
+            {
                 continue
+            }
 
             for index in cast(u32, group.count)
             {
@@ -69,10 +71,14 @@ impl CabacReader
                 let m         = (initValue >> 4) * 5 - 45
                 let n         = ((initValue & 15) << 3) - 16
                 let preState  = Math.clamp(((m * qp) >> 4) + n, 1, 126)
-                if preState <= 63 do
+                if preState <= 63
+                {
                     .contexts[cast(u32, group.offset) + index] = cast(u8, ((63 - preState) << 1))
-                else do
+                }
+                else
+                {
                     .contexts[cast(u32, group.offset) + index] = cast(u8, (((preState - 64) << 1) | 1))
+                }
             }
         }
 
@@ -118,33 +124,46 @@ impl CabacReader
     #[Swag.Inline]
     private mtd const lookAhead(offset: u64)->u32
     {
-        if offset >= .size do
-            return 0
-        let remaining = .size - offset
-        let data      = unwrap .data + offset
-        if remaining >= 4 do
-            return Swag.byteSwap(cast(const [*] u32, data)[0])
-        return readTail(data, remaining)
+        // An empty buffer with a whole word of data left loads it in one swapped read.
+        if .bitCount <= 0 and .position + 8 <= .size
+        {
+            .bitBuffer = Swag.byteSwap(cast(const [*] u64, unwrap .data + .position)[0])
+            .bitCount  = 64
+            .position  += 8
+            return
+        }
+
+        while .bitCount <= 56
+        {
+            var value = 0_u8
+            if .position < .size
+            {
+                value     = .data![.position]
+                .position += 1
+            }
+            else
+            {
+                .padBytes += 1
+            }
+
+            .bitBuffer |= cast(u64, value) << cast(u32, (56 - .bitCount))
+            .bitCount  += 8
+        }
     }
 
     // The last one to three bytes may be followed by another substream in the same buffer.
     #[Swag.NoInline]
     private func readTail(data: const [*] u8, count: u64)->u32
     {
-        var result = 0'u32
-        for index in count do
-            result |= cast(u32, data[index]) << (24 - cast(u32, index) * 8)
-        return result
-    }
+        if .bitCount < cast(s32, count)
+        {
+            .refill()
+        }
 
-    // Move the marker down by 32 and insert the next four bytes above it.
-    #[Swag.Inline]
-    private mtd reload(low: u64)->u64
-    {
-        let extra = cast(u32, Swag.trailingZeros(low)) - LookAheadBits
-        let bits  = cast(u64, .lookAhead(.position)) << 1
-        .position += 4
-        return low - #wrap (RefillMask << extra) + #wrap (bits << extra)
+        let bits = cast(u32, (.bitBuffer >> cast(u32, (64 - count))))
+        .bitBuffer <<= count
+        .bitCount  -= cast(s32, count)
+        return bits
     }
 
     // Decodes one bin against the context at `contextIndex`, clause 9.3.4.3.2.
@@ -198,21 +217,12 @@ impl CabacReader
     #[Swag.Inline]
     mtd bypassBits(count: u32)->u32
     {
-        let range  = cast(u64, .range) << OffsetShift
-        var low    = .low
-        var result = 0'u32
+        var result = 0_u32
         for count
         {
-            low <<= 1
-            if (low & RefillMask) == 0 do
-                low = .reload(low)
-            let offset = low - #wrap range
-            let one    = low >= range
-            low    = one ? offset : low
-            result = (result << 1) | (one ? 1'u32 : 0'u32)
+            result = (result << 1) | .bypass()
         }
 
-        .low = low
         return result
     }
 
@@ -223,8 +233,10 @@ impl CabacReader
     mtd terminate()->u32
     {
         .range -= 2
-        if .low >= (cast(u64, .range) << OffsetShift) do
+        if .low >= .range
+        {
             return 1
+        }
 
         if .range < 256
         {

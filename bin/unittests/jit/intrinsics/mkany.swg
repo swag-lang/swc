@@ -114,8 +114,10 @@ enum MkanyKind: u16
     {
         var k: MkanyKind = MkanyKind.B
         let a: any       = Swag.makeAny(&k, MkanyKind)
-        if Swag.kindOf(a) != MkanyKind do
+        if Swag.kindOf(a) != MkanyKind
+        {
             return false
+        }
         let p = cast(*MkanyKind, a.buffer)
         return p[] == MkanyKind.B
     }
@@ -153,7 +155,7 @@ enum MkanyKind: u16
     }
 
     const V = #run mkanyRewriteStress()
-    #assert(V == 100'u64)
+    #assert(V == 100_u64)
 }
 
 #test

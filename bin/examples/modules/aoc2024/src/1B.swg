@@ -36,15 +36,15 @@ func day1B()
     let dataPath = Path.combine(Path.directoryName(#curlocation.fileName), "1.txt")
     let lines    = expect File.readAllLines(dataPath)
 
-    var leftIds, rightIds: Array's32
+    var leftIds, rightIds: Array!{s32}
     for line in lines
     {
-        let locationIds = Tokenize.split(line[], ' 'u8)
+        let locationIds = Tokenize.split(line[], ' '_u8)
         leftIds.add(expect StrConv.toS32(locationIds[0]))
         rightIds.add(expect StrConv.toS32(locationIds[1]))
     }
 
-    var rightCounts: HashTable'(s32, s32)
+    var rightCounts: HashTable!{s32, s32}
     for id in rightIds
     {
         rightCounts.findOrAdd(id).value += 1

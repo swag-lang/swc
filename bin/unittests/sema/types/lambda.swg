@@ -24,7 +24,7 @@ struct(T) LambdaTypeBox
     value: T
 }
 
-#assert(#type LambdaTypeBox'func||(s32) == #type LambdaTypeBox'func||(s32))
+#assert(#type LambdaTypeBox!{func||(s32)} == #type LambdaTypeBox!{func||(s32)})
 
 #assert(#nameof(#type func()) == "func()")
 #assert(#nameof(#type func(...)) == "func(...)")
@@ -38,8 +38,10 @@ func PtrMatch2(_: s32, _: bool)->string => "ok"
 func PtrMatch4(values: s32...)->s32
 {
     var result = 0
-    for value in values do
+    for value in values
+    {
         result += value
+    }
     return result
 }
 func PtrMatch5(values: ...)->s32

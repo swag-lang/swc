@@ -29,28 +29,32 @@ func day9B()
 
     for line in lines
     {
-        let valueTokens = Tokenize.split(line[], ' 'u8)
+        let valueTokens = Tokenize.split(line[], ' '_u8)
 
-        var differences: Array's64
-        for token in valueTokens do
+        var differences: Array!{s64}
+        for token in valueTokens
+        {
             differences.add(expect StrConv.toS64(token))
+        }
 
-        var firstValues: Array's64
+        var firstValues: Array!{s64}
         firstValues.add(differences[0])
 
         var hasNonzeroDifference = true
         while hasNonzeroDifference
         {
             hasNonzeroDifference = false
-            var nextDifferences: Array's64
+            var nextDifferences: Array!{s64}
             for index in 0 until differences.count - 1
             {
                 let difference = differences[index + 1] - differences[index]
                 hasNonzeroDifference = difference or hasNonzeroDifference
                 nextDifferences.add(difference)
 
-                if index == 0 do
+                if index == 0
+                {
                     firstValues.add(difference)
+                }
             }
 
             differences = nextDifferences

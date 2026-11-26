@@ -83,7 +83,7 @@ func day5A()
     let lines    = expect File.readAllLines(dataPath)
 
     var readingRules = true
-    var pagesAfter: HashTable'(s32, Array's32)
+    var pagesAfter: HashTable!{s32, Array!{s32}}
     var total        = 0
 
     for line in lines
@@ -96,7 +96,7 @@ func day5A()
 
         if readingRules
         {
-            let rulePages = Tokenize.split(line[], '|'u8)
+            let rulePages = Tokenize.split(line[], '|'_u8)
             Swag.assert(rulePages.count == 2)
 
             let beforePage = expect StrConv.toS32(rulePages[0])
@@ -105,15 +105,17 @@ func day5A()
         }
         else
         {
-            let update = Tokenize.split(line[], ','u8)
+            let update = Tokenize.split(line[], ','_u8)
             Swag.assert(not update.isEmpty())
 
             var isOrdered = true
             for beforeIndex in update.count
             {
                 let beforePage = expect StrConv.toS32(update[beforeIndex])
-                if beforeIndex + 1 >= update.count do
+                if beforeIndex + 1 >= update.count
+                {
                     continue
+                }
 
                 for afterIndex in beforeIndex + 1 to update.count - 1
                 {

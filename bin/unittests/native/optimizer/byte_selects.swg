@@ -24,17 +24,17 @@ func pickWord(flag: bool, a, b: u16)->u32 => cast(u32, (flag ? a : b)) + 1
 func keepUpper(wide: u64, low: u8)->u64
 {
     var v = wide
-    v = (v & ~0xFF'u64) | cast(u64, low)
+    v = (v & ~0xFF_u64) | cast(u64, low)
     return v
 }
 
 #[Swag.Optimize(true), Swag.NoInline]
 func byteSum(p: const [*] u8, n: u64)->u32
 {
-    var total = 0'u32
+    var total = 0_u32
     for i in n
     {
-        let c = p[i] > 127 ? 127'u8 : p[i]
+        let c = p[i] > 127 ? 127_u8 : p[i]
         total += cast(u32, c)
     }
     return total

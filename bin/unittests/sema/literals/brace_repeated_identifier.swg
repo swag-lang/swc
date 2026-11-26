@@ -2,7 +2,7 @@
 
 struct Point { x, y: f32 }
 struct Margins { Margin, other: f32 }
-const Margin = 12.0'f32
+const Margin = 12.0_f32
 
 func take(point: Point)->f32     => point.x + point.y
 func take(margins: Margins)->f32 => margins.Margin + margins.other

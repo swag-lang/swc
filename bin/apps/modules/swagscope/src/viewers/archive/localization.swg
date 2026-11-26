@@ -78,10 +78,10 @@ func texts()->const *Texts => &g_Texts
 func registerTexts(app: *Application)
 {
     app.resources.addEmbedded(FrenchStringsName, FrenchStrings)
-    Gui.registerStrings'Texts(&g_Texts, "scope.archive")
+    Gui.registerStrings!{Texts}(&g_Texts, "scope.archive")
 }
 
 #run
 {
-    expect Gui.validateStrings'Texts(cast(string, FrenchStrings))
+    expect Gui.validateStrings!{Texts}(cast(string, FrenchStrings))
 }

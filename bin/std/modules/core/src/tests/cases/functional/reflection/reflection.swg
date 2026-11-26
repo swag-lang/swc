@@ -98,8 +98,11 @@ var ReflectionRuntimePointerCalls: s32
 func(T, N: s32) makeRepeated(value: T)->[N] T
 {
     var result: [N] T
-    for i in N do
+    for i in N
+    {
         result[i] = value
+    }
+
     return result
 }
 
@@ -123,8 +126,10 @@ func runtimeMethodReflectionWorks(type: typeinfo, seed: s32)->bool
     ReflectionRuntimeMethodCalls += 1
 
     let method = Reflection.findMethod(type, "ping")
-    if method == null do
+    if method == null
+    {
         return false
+    }
 
     let pointedType = unwrap method.pointedType
     let methodType  = assume cast(const *Swag.TypeInfoFunc, pointedType)
@@ -134,8 +139,10 @@ func runtimeMethodReflectionWorks(type: typeinfo, seed: s32)->bool
        methodType.parameters![0].pointedType != #type *ReflectionProbe or
        methodType.returnType != s32 or
        method.value == null or
-       Reflection.findMethod(type, "visitMacro") != null do
+       Reflection.findMethod(type, "visitMacro") != null
+    {
         return false
+    }
 
     var probe: ReflectionProbe = ReflectionProbe{x: seed}
     let ping   = cast(ReflectionProbePingFn, method.value)
@@ -261,7 +268,7 @@ func runtimeMethodReflectionWorks(type: typeinfo, seed: s32)->bool
 
 #test
 {
-    let arrayType = #typeof(Array's32)
+    let arrayType = #typeof(Array!{s32})
     let arrayInfo = assume cast(const *Swag.TypeInfoStruct, arrayType)
     Swag.require(Reflection.isDynamicArray(arrayType))
     Swag.require(Reflection.isGeneric(arrayType))
@@ -269,7 +276,7 @@ func runtimeMethodReflectionWorks(type: typeinfo, seed: s32)->bool
     Swag.require(arrayInfo.generics[0].pointedType == s32)
     Swag.require(Reflection.dynamicArrayElementType(arrayType) == s32)
 
-    let hashType = #typeof(HashSet's32)
+    let hashType = #typeof(HashSet!{s32})
     Swag.require(not Reflection.isDynamicArray(hashType))
 }
 
@@ -277,7 +284,7 @@ func runtimeMethodReflectionWorks(type: typeinfo, seed: s32)->bool
 {
     let pointerType = #typeof(*s32)
     let arrayType   = #typeof([2] s32)
-    var values: Array's32
+    var values: Array!{s32}
     let sliceType   = #typeof(values.toSlice())
 
     Swag.require(Reflection.isNative(#typeof(s32)))
@@ -306,7 +313,7 @@ func runtimeMethodReflectionWorks(type: typeinfo, seed: s32)->bool
 {
     // The array holds views: the literals are static, so the elements stay valid. A
     // temporary 'String' here would leave every element pointing at a freed buffer.
-    var values: Array'string
+    var values: Array!{string}
     values.add("11111111111111111111111111111111")
     values.add("22222222222222222222222222222222")
     values.add("33333333333333333333333333333333")
@@ -406,7 +413,7 @@ func runtimeMethodReflectionWorks(type: typeinfo, seed: s32)->bool
 
 #test
 {
-    let funcType = #typeof(makeRepeated'(u16, 3))
+    let funcType = #typeof(makeRepeated!{u16, 3})
     let funcInfo = assume cast(const *Swag.TypeInfoFunc, funcType)
     Swag.require(Reflection.isGeneric(funcType))
     Swag.require(funcInfo.generics.count == 2)

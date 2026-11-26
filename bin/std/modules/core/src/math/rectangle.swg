@@ -303,8 +303,11 @@ impl Rectangle
         let right  = min(a.x + a.width, b.x + b.width)
         let top    = max(a.y, b.y)
         let bottom = min(a.y + a.height, b.y + b.height)
-        if right > left and bottom > top do
+        if right > left and bottom > top
+        {
             return Rectangle{left, top, right - left, bottom - top}
+        }
+
         return Zero
     }
 
@@ -353,8 +356,11 @@ impl Rectangle
     // Returns the aspect ratio, `width / height`, or 0 when the height is zero.
     mtd const aspectRatio()->f32
     {
-        if .height == 0 do
+        if .height == 0
+        {
             return 0
+        }
+
         return .width / .height
     }
 
@@ -433,8 +439,10 @@ impl Rectangle
     // A rectangle with a zero width or height has no aspect ratio and is left unchanged.
     mtd fitWithin(bounds: Rectangle)
     {
-        if .width == 0 or .height == 0 do
+        if .width == 0 or .height == 0
+        {
             return
+        }
 
         let scaleX = bounds.width / .width
         let scaleY = bounds.height / .height

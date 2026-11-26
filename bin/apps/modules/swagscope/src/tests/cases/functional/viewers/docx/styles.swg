@@ -10,8 +10,10 @@ func readWordRun(source: string, theme: const *Package.OfficeTheme)->Docx.RunFor
     var token:  Package.Token
     while scan.next(&token)
     {
-        if token.kind == .Start do
+        if token.kind == .Start
+        {
             result.read(&token, theme)
+        }
     }
 
     Swag.require(not scan.damaged)
@@ -25,8 +27,10 @@ func readWordParagraph(source: string)->Docx.ParagraphFormat
     var token:  Package.Token
     while scan.next(&token)
     {
-        if token.kind == .Start do
+        if token.kind == .Start
+        {
             result.read(&token)
+        }
     }
 
     Swag.require(not scan.damaged)
@@ -174,16 +178,18 @@ func readWordParagraph(source: string)->Docx.ParagraphFormat
 {
     let document = expect Docx.Document.load(scopeTestDataPath("viewer.poi-sample.docx"))
     Swag.require(document.usePaperColors and not document.stylesSimplified and document.sectionLayoutSimplified)
-    for property in ["font-size:11.0pt;", "font-size:16.0pt;", "color:#548DD4;", "font-family:'Arial Black';"] do
+    for property in ["font-size:11.0pt;", "font-size:16.0pt;", "color:#548DD4;", "font-family:'Arial Black';"]
+    {
         Swag.require(Utf8.contains(document.html, property))
+    }
 }
 
 // Styled headings are available through the same filterable outline as other document readers.
 #test
 {
     var host: Gui.Testing.HeadlessHost
-    let window = framedViewerWindow(&host, scopeTestDataPath("viewer.styles.docx"), false)
-    let view   = assume cast(*Docx.Panel, window.currentView)
+    let window  = framedViewerWindow(&host, scopeTestDataPath("viewer.styles.docx"), false)
+    let view    = assume cast(*Docx.Panel, window.currentView)
     let outline = unwrap view.outline
     Swag.require(outline.headings.count == 3)
     Swag.require(outline.headings[0].title == "A little room for words")
@@ -199,7 +205,7 @@ func wordStyleVariant(part, before, after: string)->String
 {
     let source  = scopeTestDataPath("viewer.styles.docx")
     let archive = expect Archive.Zip.load(source)
-    var entries: Array'ZipFixtureEntry
+    var entries: Array!{ZipFixtureEntry}
     for item in archive.entries
     {
         var entry: ZipFixtureEntry

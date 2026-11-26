@@ -89,46 +89,60 @@ impl HostServices
 {
     mtd failed(view: *Wnd, reason: string)
     {
-        if .reportFailure do
+        if .reportFailure
+        {
             .reportFailure(view, reason)
+        }
     }
 
     mtd showDetails(view: *Wnd, details: string)
     {
-        if .reportDetails do
+        if .reportDetails
+        {
             .reportDetails(view, details)
+        }
     }
 
     // Tells the host that `view`'s contribution to the information sheet changed while its
     // summary may not have; an open sheet showing its file is described again.
     mtd informationChanged(view: *Wnd)
     {
-        if .reportInformationChanged do
+        if .reportInformationChanged
+        {
             .reportInformationChanged(view)
+        }
     }
 
     mtd loadingChanged(view: *Wnd)
     {
-        if .reportLoadingChanged do
+        if .reportLoadingChanged
+        {
             .reportLoadingChanged(view)
+        }
     }
 
     mtd chromeChanged(view: *Wnd)
     {
-        if .reportChromeChanged do
+        if .reportChromeChanged
+        {
             .reportChromeChanged(view)
+        }
     }
 
     mtd shown(view: *Wnd)
     {
-        if .reportShown do
+        if .reportShown
+        {
             .reportShown(view)
+        }
     }
 
     mtd navigate(view: *Wnd, delta: s32)
     {
-        if .navigateFile do
+        if .navigateFile
+        {
             .navigateFile(view, delta)
+        }
     }
 
     // Reports the end of `view`'s file; without a host that listens, the view stays where it ended.

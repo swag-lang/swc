@@ -4,25 +4,35 @@ using Swag, Core
 
 #test
 {
-    var samples: Array'f32
+    var samples: Array!{f32}
     samples.resize(5000)
-    for i in 0 to 4095 do
+    for i in 0 to 4095
+    {
         samples[i] = 0.1
-    for i in 4096 to 4999 do
+    }
+
+    for i in 4096 to 4999
+    {
         samples[i] = 0.9
+    }
 
     let {a: low, b: high} = Image.estimatePercentiles(&samples, 5000, 0, 1)
     Swag.require(low == 0.1 and high == 0.9)
 
-    for i in 0 to 903 do
+    for i in 0 to 903
+    {
         samples[i] = 0.9
-    for i in 904 to 4999 do
+    }
+
+    for i in 904 to 4999
+    {
         samples[i] = 0.1
+    }
 
     let {a: reversedLow, b: reversedHigh} = Image.estimatePercentiles(&samples, 5000, 0, 1)
     Swag.require(reversedLow == 0.1 and reversedHigh == 0.9)
 
-    var smallSamples: Array'f32     = [0.8, 0.2, 0.5]
+    var smallSamples: Array!{f32}   = [0.8, 0.2, 0.5]
     let {a: smallLow, b: smallHigh} = Image.estimatePercentiles(&smallSamples, 3, 0, 1)
     Swag.require(smallLow == 0.2 and smallHigh == 0.8)
 }
@@ -30,8 +40,8 @@ using Swag, Core
 #test
 {
     const pixels = [
-        10'u8, 20'u8, 30'u8, 40'u8, 50'u8, 60'u8, 70'u8, 80'u8, 90'u8, 100'u8, 110'u8, 120'u8, 130'u8, 140'u8, 150'u8, 160'u8,
-        170'u8, 180'u8, 190'u8, 200'u8, 210'u8, 220'u8, 230'u8, 240'u8, 15'u8, 25'u8, 35'u8, 45'u8, 55'u8, 65'u8, 75'u8, 85'u8]
+        10_u8, 20_u8, 30_u8, 40_u8, 50_u8, 60_u8, 70_u8, 80_u8, 90_u8, 100_u8, 110_u8, 120_u8, 130_u8, 140_u8, 150_u8, 160_u8,
+        170_u8, 180_u8, 190_u8, 200_u8, 210_u8, 220_u8, 230_u8, 240_u8, 15_u8, 25_u8, 35_u8, 45_u8, 55_u8, 65_u8, 75_u8, 85_u8]
 
     var src = makeImage(4, 2, .RGBA8, pixels)
 
@@ -45,10 +55,10 @@ using Swag, Core
 
     src.smartCrop(targetRect, opts)
     assertImage(src, 4, 2, .RGBA8)
-    assertPixel(src, 0, 1, Color.fromArgb(40'u8, 10'u8, 20'u8, 30'u8))
-    assertPixel(src, 3, 1, Color.fromArgb(160'u8, 130'u8, 140'u8, 150'u8))
-    assertPixel(src, 0, 0, Color.fromArgb(200'u8, 170'u8, 180'u8, 190'u8))
-    assertPixel(src, 3, 0, Color.fromArgb(85'u8, 55'u8, 65'u8, 75'u8))
+    assertPixel(src, 0, 1, Color.fromArgb(40_u8, 10_u8, 20_u8, 30_u8))
+    assertPixel(src, 3, 1, Color.fromArgb(160_u8, 130_u8, 140_u8, 150_u8))
+    assertPixel(src, 0, 0, Color.fromArgb(200_u8, 170_u8, 180_u8, 190_u8))
+    assertPixel(src, 3, 0, Color.fromArgb(85_u8, 55_u8, 65_u8, 75_u8))
 }
 
 // Scoring prefers a crop containing contrast, and multiscale search returns the requested aspect.
@@ -95,7 +105,7 @@ using Swag, Core
         let text   = x >= 35 and x < 105 and row >= 24 and row < 80 and row % 5 < 2
         let paper  = cast(u8, 250 - Math.max(row - 125, 0) / 2)
         let bottom = row == image.height - 1 and x >= 90
-        let ink    = bottom ? 0'u8 : 80
+        let ink    = bottom ? 0_u8 : 80
         let dark   = text or bottom
         pix[0] = header ? 190 : dark ? ink : 253
         pix[1] = header ? 223 : dark ? ink : 250
@@ -117,8 +127,10 @@ using Swag, Core
     source.fill(Color.fromRgb(64, 64, 64))
     source.visitPixels()
     {
-        if x >= 60 do
+        if x >= 60
+        {
             pix[0] = cast(u8, (x + y) % 2 == 0 ? 20 : 220)
+        }
     }
 
     let entropy = source.smartCropRect(1, .Entropy)

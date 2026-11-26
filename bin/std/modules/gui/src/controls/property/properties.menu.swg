@@ -15,14 +15,20 @@ internal impl Properties
     mtd menuArrayContext()->{ arrItem: *PropertiesItem?, arrElem: *PropertiesItem? }
     {
         var result: #returntype
-        if not .menuItem do
+        if not .menuItem
+        {
             return result
+        }
 
         result.arrElem = .resolveArrayElement(.menuItem)
-        if .isArrayItem(.menuItem) do
+        if .isArrayItem(.menuItem)
+        {
             result.arrItem = .menuItem
-        elif result.arrElem do
+        }
+        else if result.arrElem
+        {
             result.arrItem = result.arrElem.parent
+        }
 
         return result
     }
@@ -78,8 +84,11 @@ internal impl Properties
             if Reflection.isDynamicArray(arr.arrItem.type)
             {
                 menu.addSeparator()
-                if arr.arrElem do
+                if arr.arrElem
+                {
                     menu.addItem(ActionProperties.Remove)
+                }
+
                 menu.addItem(ActionProperties.RemoveAll)
             }
         }

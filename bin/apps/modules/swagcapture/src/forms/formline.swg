@@ -82,8 +82,11 @@ impl IForm for FormLine
     mtd impl isSame(ptr: *BaseForm)->bool
     {
         let other = catch cast(*FormLine?, ptr) orelse null
-        if not other do
+        if not other
+        {
             return false
+        }
+
         return .isSameBase(ptr) and
                .outlineSize == other.outlineSize and
                .outlineColor == other.outlineColor and
@@ -177,8 +180,11 @@ impl IForm for FormLine
         {
             let newCoords  = Math.Rectangle{.xa, .ya, .xb, .yb}
             let newCoords2 = Math.Point{.xc, .yc}
-            if .cacheCoords == newCoords and .cacheCoords2 == newCoords2 do
+            if .cacheCoords == newCoords and .cacheCoords2 == newCoords2
+            {
                 return .cacheBv
+            }
+
             .cacheCoords  = newCoords
             .cacheCoords2 = newCoords2
             .cacheBv      = Math.Curve.bezierBounds(Math.Vector2{.xa, .ya}, Math.Vector2{.xb, .yb}, Math.Vector2{.xa + .xc, .ya + .yc})
@@ -243,7 +249,7 @@ impl IForm for FormLine
                 .yc = Math.abs(.ya - .yb) * 0.75
             }
         }
-        elif .gizmo.anchors.count == 3
+        else if .gizmo.anchors.count == 3
         {
             .gizmo.anchors.resize(2)
         }
@@ -251,10 +257,14 @@ impl IForm for FormLine
         let z       = cxt.z
         let contour = (.subKind != .PixSel and .outlineColor.a) ? outlineSize : 0
         let pen     = .createPaintPen(.borderColor, bSize, sSize, eSize, contour)
-        if .bezier do
+        if .bezier
+        {
             painter.drawBezier(.xa * z, .ya * z, .xb * z, .yb * z, (.xa + .xc) * z, (.ya + .yc) * z, pen)
-        else do
+        }
+        else
+        {
             painter.drawLine(.xa * z, .ya * z, .xb * z, .yb * z, pen)
+        }
     }
 
     mtd impl setup(capt: *Capture?)

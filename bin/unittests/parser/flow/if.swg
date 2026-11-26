@@ -16,7 +16,7 @@ func if_control_flow_ok()
     if false
     {
     }
-    elif true
+    else if true
     {
     }
     else
@@ -44,8 +44,9 @@ func if_control_flow_ok()
     {
     }
 
-    if let c = 4 where c > 2 do
+    if let c = 4 where c > 2 {
         return
+}
 
     return
 }
@@ -65,7 +66,7 @@ func if_control_flow_ok()
     {
         var c = 0
     }
-    elif true
+    else if true
     {
         var d = 1
     }
@@ -80,6 +81,7 @@ func if_control_flow_ok()
         var q = p
     }
 
-    if let r = 4 where r > 2 do
+    if let r = 4 where r > 2 {
         var s = r
+}
 }

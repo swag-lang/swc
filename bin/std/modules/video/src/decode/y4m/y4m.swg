@@ -11,14 +11,14 @@ using Core, Core.Errors, Pixel
 //
 // The signature line of the format has no length limit, so a bound is what keeps a
 // malformed or non-video file from being read into memory one byte at a time.
-private const MaxLineBytes = 4096'u64
+private const MaxLineBytes = 4096_u64
 
 // Signature line and frame marker of the format.
 const StreamSignature = "YUV4MPEG2"
 const FrameMarker     = "FRAME"
 
 // Size of the shortest frame marker, `FRAME` followed by a line feed.
-private const ShortMarkerSize = 6'u64
+private const ShortMarkerSize = 6_u64
 
 // Frame index meaning that the source sits between two frames.
 //
@@ -62,16 +62,21 @@ private func parsePositiveU32(value, field: string)->u32 fail
     var parsed: #decltype(expect StrConv.toU32(value))
     catch { parsed = try StrConv.toU32(value) } as parseErrorOutcome
     let parseError = parseErrorOutcome.value()
-    if parseError != null or not parsed do
+    if parseError != null or not parsed
+    {
         fail InvalidFormatError{Errors.mkString(Format.toString("YUV4MPEG2 % needs a positive integer", field))}
+    }
+
     return parsed
 }
 
 private func parseHeader(line: string)->Header fail
 {
-    let tokens = Tokenize.split(line, ' 'u8)
-    if not tokens.count or tokens[0] != StreamSignature do
+    let tokens = Tokenize.split(line, ' '_u8)
+    if not tokens.count or tokens[0] != StreamSignature
+    {
         fail InvalidFormatError{"YUV4MPEG2 stream header is missing"}
+    }
 
     var result: #returntype
     result.chromaMode = .Yuv420
@@ -80,16 +85,22 @@ private func parseHeader(line: string)->Header fail
     {
         if token.count < 2
         {
-            if token.count and token[0] == 'A' do
+            if token.count and token[0] == 'A'
+            {
                 fail InvalidFormatError{"YUV4MPEG2 aspect ratio needs width:height"}
+            }
+
             if token.count and
                (token[0] == 'W' or
                 token[0] == 'H' or
                 token[0] == 'F' or
                 token[0] == 'I' or
                 token[0] == 'C' or
-                token[0] == 'X') do
+                token[0] == 'X')
+            {
                 fail InvalidFormatError{"YUV4MPEG2 header field needs a value"}
+            }
+
             continue
         }
 
@@ -98,30 +109,42 @@ private func parseHeader(line: string)->Header fail
         {
         case 'W':
             let width = try parsePositiveU32(value, "width")
-            if width > cast(u32, (Swag.S32.Max / 4)) do
+            if width > cast(u32, (Swag.S32.Max / 4))
+            {
                 fail UnsupportedFormatError{"YUV4MPEG2 frame width exceeds Pixel image storage"}
+            }
+
             result.info.width = cast(s32, width)
             hasWidth = true
 
         case 'H':
             let height = try parsePositiveU32(value, "height")
-            if height > Swag.S32.Max do
+            if height > Swag.S32.Max
+            {
                 fail UnsupportedFormatError{"YUV4MPEG2 frame height exceeds Pixel image storage"}
+            }
+
             result.info.height = cast(s32, height)
             hasHeight = true
 
         case 'F':
-            let parts = Tokenize.split(value, ':'u8, removeEmpty: false)
-            if parts.count != 2 do
+            let parts = Tokenize.split(value, ':'_u8, removeEmpty: false)
+            if parts.count != 2
+            {
                 fail InvalidFormatError{"YUV4MPEG2 frame rate needs numerator:denominator"}
+            }
+
             let numerator   = try parsePositiveU32(parts[0], "frame-rate numerator")
             let denominator = try parsePositiveU32(parts[1], "frame-rate denominator")
             result.info.frameRate = try FrameRate.create(numerator, denominator)
             hasRate = true
 
         case 'I':
-            if value != "p" do
+            if value != "p"
+            {
                 fail UnsupportedFormatError{"video decoder only supports progressive YUV4MPEG2 streams"}
+            }
+
             hasInterlace = true
 
         case 'C':
@@ -136,9 +159,12 @@ private func parseHeader(line: string)->Header fail
             }
 
         case 'A':
-            let parts = Tokenize.split(value, ':'u8, removeEmpty: false)
-            if parts.count != 2 do
+            let parts = Tokenize.split(value, ':'_u8, removeEmpty: false)
+            if parts.count != 2
+            {
                 fail InvalidFormatError{"YUV4MPEG2 aspect ratio needs width:height"}
+            }
+
             if parts[0] == "0" and parts[1] == "0"
             {
                 result.aspectWidth  = 0
@@ -151,10 +177,14 @@ private func parseHeader(line: string)->Header fail
             }
 
         case 'X':
-            if value == "COLORRANGE=FULL" do
+            if value == "COLORRANGE=FULL"
+            {
                 result.colorRange = .Full
-            elif value == "COLORRANGE=LIMITED" do
+            }
+            else if value == "COLORRANGE=LIMITED"
+            {
                 result.colorRange = .Limited
+            }
 
         default:
 
@@ -163,12 +193,21 @@ private func parseHeader(line: string)->Header fail
         }
     }
 
-    if not hasWidth or not hasHeight do
+    if not hasWidth or not hasHeight
+    {
         fail InvalidFormatError{"YUV4MPEG2 stream needs width and height"}
-    if not hasRate do
+    }
+
+    if not hasRate
+    {
         fail InvalidFormatError{"YUV4MPEG2 stream needs a frame rate"}
-    if not hasInterlace do
+    }
+
+    if not hasInterlace
+    {
         fail InvalidFormatError{"YUV4MPEG2 stream needs an interlacing mode"}
+    }
+
     if result.aspectWidth and result.aspectHeight
     {
         let display = pictureDisplaySize(result.info.width, result.info.height, result.aspectWidth, result.aspectHeight)
@@ -207,7 +246,26 @@ private func framePayloadSize(width, height: s32, chromaMode: ChromaMode)->u64
 #[Swag.Inline]
 private func(T, Full: bool) convertRgb(y, u, v: T)->{r: T, g: T, b: T}
 {
-    #static if Full
+    let width       = header.info.width
+    let height      = header.info.height
+    let chromaMode  = header.chromaMode
+    let lumaSize    = cast(u64, width) * cast(u64, height)
+    let chromaWidth = chromaMode == .Yuv444 ? cast(u64, width) :
+                      (chromaMode == .Yuv411 ? (cast(u64, width) + 3) / 4 :
+                       (cast(u64, width) + 1) / 2)
+    let chromaHeight   = chromaMode == .Yuv420 ? (cast(u64, height) + 1) / 2 : cast(u64, height)
+    let chromaSize     = chromaMode == .Mono ? 0 : chromaWidth * chromaHeight
+    let chromaRowShift = chromaMode == .Yuv420 ? 1 : 0
+    let chromaColShift = chromaMode == .Yuv444 ? 0 : (chromaMode == .Yuv411 ? 2 : 1)
+
+    // Reusing the frame the caller already has is what keeps a whole stream at the memory cost
+    // of one frame; a fresh image is created only when it cannot hold this one.
+    if target.width != width or target.height != height or target.pixelFormat != .RGB8
+    {
+        target[] = Image.create(width, height, .RGB8)
+    }
+
+    for y in height
     {
         return {r: y + ((359 * v + 128) >> 8),
                 g: y - ((88 * u + 183 * v + 128) >> 8),
@@ -483,14 +541,14 @@ struct Decoder
 {
     internal
     {
-        header:         Header       // What the signature line described.
-        payloadSize:    u64          // Size of one frame payload, in bytes.
-        firstMarker:    u64          // Offset of the first frame marker.
-        markerSize:     u64          // Size of the first frame marker, in bytes.
-        frameStride:    u64          // Offset from one frame marker to the next.
-        nextIndex:      u64          // Index of the frame the decoder is positioned on.
-        isRandomAccess: bool         // Whether frame offsets can be computed instead of walked.
-        payload:        Array'u8     // Scratch storage of one encoded frame.
+        header:         Header         // What the signature line described.
+        payloadSize:    u64            // Size of one frame payload, in bytes.
+        firstMarker:    u64            // Offset of the first frame marker.
+        markerSize:     u64            // Size of the first frame marker, in bytes.
+        frameStride:    u64            // Offset from one frame marker to the next.
+        nextIndex:      u64            // Index of the frame the decoder is positioned on.
+        isRandomAccess: bool           // Whether frame offsets can be computed instead of walked.
+        payload:        Array!{u8}     // Scratch storage of one encoded frame.
     }
 }
 
@@ -503,13 +561,17 @@ impl IDecoder for Decoder
         .header      = try parseHeader(try source.readLine(MaxLineBytes).toString())
         .payloadSize = framePayloadSize(.header.info.width, .header.info.height, .header.chromaMode)
         .firstMarker = source.position()
-        if source.isAtEnd() do
+        if source.isAtEnd()
+        {
             fail InvalidFormatError{"YUV4MPEG2 stream needs at least one frame"}
+        }
 
         .markerSize  = try .readMarker(source)
         .frameStride = .markerSize + .payloadSize
-        if .payloadSize > source.remaining() do
+        if .payloadSize > source.remaining()
+        {
             fail InvalidFormatError{"YUV4MPEG2 frame payload is truncated"}
+        }
 
         // Every frame occupies the same number of bytes when its marker carries no per-frame
         // parameter, which is how the whole format is written in practice. Tiling and the last
@@ -521,8 +583,10 @@ impl IDecoder for Decoder
         result.codecName  = "Uncompressed YUV"
         result.frameCount = span / .frameStride
         .isRandomAccess   = not (span % .frameStride) and .probeUniformFrames(source, result.frameCount)
-        if not .isRandomAccess do
+        if not .isRandomAccess
+        {
             result.frameCount = 0
+        }
 
         try source.seek(.firstMarker)
         .nextIndex = 0
@@ -533,8 +597,10 @@ impl IDecoder for Decoder
 
     mtd impl seekFrame(source: *ByteSource, index: u64) fail
     {
-        if index == .nextIndex and .nextIndex != NoFrameIndex do
+        if index == .nextIndex and .nextIndex != NoFrameIndex
+        {
             return
+        }
 
         if .isRandomAccess
         {
@@ -569,11 +635,16 @@ impl IDecoder for Decoder
         .nextIndex = NoFrameIndex
 
         discard try .readMarker(source)
-        if .payloadSize > source.remaining() do
+        if .payloadSize > source.remaining()
+        {
             fail InvalidFormatError{"YUV4MPEG2 frame payload is truncated"}
+        }
 
-        if .payload.count != .payloadSize do
+        if .payload.count != .payloadSize
+        {
             .payload.resize(.payloadSize)
+        }
+
         try source.readExact(.payload.toSlice())
         decodePayload(target, .payload.toSlice(), &.header)
         .nextIndex = current + 1
@@ -590,22 +661,35 @@ private impl Decoder
     {
         var marker: [ShortMarkerSize] u8
         try source.readExact(marker)
-        if Swag.memcmp(&marker[0], FrameMarker.buffer, FrameMarker.count) != 0 do
+        if Swag.memcmp(&marker[0], FrameMarker.buffer, FrameMarker.count) != 0
+        {
             fail InvalidFormatError{"YUV4MPEG2 frame marker is missing"}
-        if marker[ShortMarkerSize - 1] == '\n' do
+        }
+
+        if marker[ShortMarkerSize - 1] == '\n'
+        {
             return ShortMarkerSize
-        if marker[ShortMarkerSize - 1] != ' ' and marker[ShortMarkerSize - 1] != '\r' do
+        }
+
+        if marker[ShortMarkerSize - 1] != ' ' and marker[ShortMarkerSize - 1] != '\r'
+        {
             fail InvalidFormatError{"YUV4MPEG2 frame marker is missing"}
+        }
 
         var size = ShortMarkerSize
         while true
         {
             let value = try source.readByte()
             size += 1
-            if value == '\n' do
+            if value == '\n'
+            {
                 return size
-            if size > MaxLineBytes do
+            }
+
+            if size > MaxLineBytes
+            {
                 fail InvalidFormatError{"YUV4MPEG2 frame marker exceeds its maximum length"}
+            }
         }
     }
 
@@ -616,8 +700,10 @@ private impl Decoder
     // frame after this probe either way.
     mtd probeUniformFrames(source: *ByteSource, frameCount: u64)->bool
     {
-        if not frameCount do
+        if not frameCount
+        {
             return false
+        }
 
         var probeErrorOutcome: Swag.Error
         catch .checkUniformFrames(source, frameCount) as probeErrorOutcome
@@ -631,10 +717,16 @@ private impl Decoder
         try source.seek(.firstMarker)
         for frameCount
         {
-            if try .readMarker(source) != .markerSize do
+            if try .readMarker(source) != .markerSize
+            {
                 fail InvalidFormatError{"YUV4MPEG2 frame markers do not have a constant size"}
-            if .payloadSize > source.remaining() do
+            }
+
+            if .payloadSize > source.remaining()
+            {
                 fail InvalidFormatError{"YUV4MPEG2 frame payload is truncated"}
+            }
+
             try source.skip(.payloadSize)
         }
     }

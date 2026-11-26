@@ -39,8 +39,8 @@ tc-ka"""
 // Node name ↔ index mapping
 // ---------------------------------------------------------------------------
 
-const MaxNodes = 676'u32     // 26*26
-const MaxEdges = 4096'u32
+const MaxNodes = 676_u32     // 26*26
+const MaxEdges = 4096_u32
 
 struct Graph
 {
@@ -59,7 +59,13 @@ func graphInit()->Graph
     return g
 }
 
-func graphFree(g: *Graph) { if g.adj do testFree(g.adj) }
+func graphFree(g: *Graph)
+{
+    if g.adj
+    {
+        testFree(g.adj)
+    }
+}
 
 // Encode a 2-char name as an index: (ch0 - 'a') * 26 + (ch1 - 'a')
 #[Swag.Inline]
@@ -112,16 +118,28 @@ func parseGraph(text: string)->Graph
 
     for
     {
-        if pos >= bytes.count do break
+        if pos >= bytes.count
+        {
+            break
+        }
 
         // Skip whitespace/newlines
         for
         {
-            if pos >= bytes.count do break
-            if bytes[pos] != '\n' and bytes[pos] != '\r' do break
+            if pos >= bytes.count
+            {
+                break
+            }
+            if bytes[pos] != '\n' and bytes[pos] != '\r'
+            {
+                break
+            }
             pos += 1
         }
-        if pos + 4 >= bytes.count do break
+        if pos + 4 >= bytes.count
+        {
+            break
+        }
 
         let a0 = bytes[pos]; let a1 = bytes[pos + 1]
         // skip '-'
@@ -160,16 +178,28 @@ func countTrianglesWithT(g: *Graph)->u64
     for ii in nn
     {
         let i = nodes[ii]
-        if ii + 1 >= nn do continue
+        if ii + 1 >= nn
+        {
+            continue
+        }
         for jj in ii + 1 until nn
         {
             let j = nodes[jj]
-            if not g.edge(i, j) do continue
-            if jj + 1 >= nn do continue
+            if not g.edge(i, j)
+            {
+                continue
+            }
+            if jj + 1 >= nn
+            {
+                continue
+            }
             for kk in jj + 1 until nn
             {
                 let k = nodes[kk]
-                if not g.edge(i, k) or not g.edge(j, k) do continue
+                if not g.edge(i, k) or not g.edge(j, k)
+                {
+                    continue
+                }
 
                 // At least one starts with 't'
                 if g.startsWithT(i) or g.startsWithT(j) or g.startsWithT(k)
@@ -187,7 +217,7 @@ func countTrianglesWithT(g: *Graph)->u64
 // Part 2: find largest clique (Bron-Kerbosch)
 // ---------------------------------------------------------------------------
 
-const MaxClique = 64'u32
+const MaxClique = 64_u32
 
 struct CliqueState
 {
@@ -215,7 +245,10 @@ func bronKerbosch(g: *Graph, state: *CliqueState,
     }
 
     // Pivot: pick first candidate
-    if candCount == 0 do return
+    if candCount == 0
+    {
+        return
+    }
 
     // Copy candidates for iteration (we modify the set)
     let iterBuf = cast([*] u32, unwrap testAlloc(cast(u64, candCount) * #sizeof(u32)))
@@ -294,7 +327,10 @@ func formatClique(state: *CliqueState, buf: [*] u8, bufLen: u32)->u32
     // Bubble sort the best clique (small, at most ~15 elements)
     for i in state.bestSize
     {
-        if i + 1 >= state.bestSize do continue
+        if i + 1 >= state.bestSize
+        {
+            continue
+        }
         for j in i + 1 until state.bestSize
         {
             if state.best[j] < state.best[i]
@@ -362,9 +398,9 @@ func solve(text: string)->SolveResult
 // nameToIdx inline
 #test
 {
-    Swag.require(nameToIdx('a', 'a') == 0'u32)
-    Swag.require(nameToIdx('a', 'b') == 1'u32)
-    Swag.require(nameToIdx('b', 'a') == 26'u32)
+    Swag.require(nameToIdx('a', 'a') == 0_u32)
+    Swag.require(nameToIdx('a', 'b') == 1_u32)
+    Swag.require(nameToIdx('b', 'a') == 26_u32)
     Swag.require(nameToIdx('t', 'c') == nameToIdx('t', 'a') + 2)
 }
 
@@ -373,7 +409,7 @@ func solve(text: string)->SolveResult
 {
     var g = parseGraph(SampleInput)
     defer graphFree(&g)
-    Swag.require(g.count > 0'u32)
+    Swag.require(g.count > 0_u32)
 
     // kh-tc edge exists
     let kh = nameToIdx('k', 'h')
@@ -405,8 +441,8 @@ func solve(text: string)->SolveResult
     g.addEdge(nameToIdx('t', 'a'), nameToIdx('t', 'b'))
     g.addEdge(nameToIdx('t', 'b'), nameToIdx('t', 'c'))
     g.addEdge(nameToIdx('t', 'a'), nameToIdx('t', 'c'))
-    Swag.require(g.count == 3'u32)
-    Swag.require(countTrianglesWithT(&g) == 1'u64)
+    Swag.require(g.count == 3_u32)
+    Swag.require(countTrianglesWithT(&g) == 1_u64)
 }
 
 // Node count
@@ -414,7 +450,7 @@ func solve(text: string)->SolveResult
 {
     var g = parseGraph(SampleInput)
     defer graphFree(&g)
-    Swag.require(g.count == 16'u32)
+    Swag.require(g.count == 16_u32)
 }
 
 // Count ALL triangles (should be 12 in sample)
@@ -434,12 +470,21 @@ func solve(text: string)->SolveResult
     for ii in nn
     {
         let i = nodes[ii]
-        if ii + 1 >= nn do continue
+        if ii + 1 >= nn
+        {
+            continue
+        }
         for jj in ii + 1 until nn
         {
             let j = nodes[jj]
-            if not g.edge(i, j) do continue
-            if jj + 1 >= nn do continue
+            if not g.edge(i, j)
+            {
+                continue
+            }
+            if jj + 1 >= nn
+            {
+                continue
+            }
             for kk in jj + 1 until nn
             {
                 let k = nodes[kk]
@@ -451,7 +496,7 @@ func solve(text: string)->SolveResult
         }
     }
 
-    Swag.require(total > 0'u64)
+    Swag.require(total > 0_u64)
 }
 
 // Part 1: 7 triangles with t
@@ -461,15 +506,15 @@ func solve(text: string)->SolveResult
     defer graphFree(&g)
     let tc = countTrianglesWithT(&g)
     // With the 26-edge sample, there are 4 triangles with 't'
-    Swag.require(tc == 4'u64)
+    Swag.require(tc == 4_u64)
 }
 
 // Full solve
 #test
 {
     let result = solve(SampleInput)
-    Swag.require(result.part1 == 4'u64)
-    Swag.require(result.part2Len > 0'u32)
+    Swag.require(result.part1 == 4_u64)
+    Swag.require(result.part2Len > 0_u32)
 }
 
 // with &ptr (exercises day 21 fix)
@@ -481,7 +526,7 @@ func solve(text: string)->SolveResult
         .part1    = 42
         .part2Len = 0
     }
-    Swag.require(sr.part1 == 42'u64)
+    Swag.require(sr.part1 == 42_u64)
 }
 
 // Inline returning struct via #returntype (exercises day 20 fix)

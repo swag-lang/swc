@@ -105,7 +105,7 @@ func PackedImageWrite(result: *PackedImageLike, header: PackedHeader18, pixelInd
 func PackedImageDecodeLike(header: PackedHeader18)->u8
 {
     var result: PackedImageLike
-    result.storage       = [0'u8, 0, 0, 42, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+    result.storage       = [0_u8, 0, 0, 42, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
     result.size          = 12
     result.width         = 2
     result.height        = 2

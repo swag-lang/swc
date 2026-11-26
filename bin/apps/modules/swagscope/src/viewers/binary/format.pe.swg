@@ -4,16 +4,16 @@
 using Core
 
 // Where the DOS header records the file offset of the PE signature.
-const PeLfanewOffset = 0x3C'u64
+const PeLfanewOffset = 0x3C_u64
 
 // Size of the file header a PE signature is followed by.
-const PeFileHeaderSize = 20'u64
+const PeFileHeaderSize = 20_u64
 
 // Size of one section header.
-const PeSectionHeaderSize = 40'u64
+const PeSectionHeaderSize = 40_u64
 
 // Size of one symbol table record in a COFF object.
-private const PeSymbolSize = 18'u64
+private const PeSymbolSize = 18_u64
 
 // One section, kept for the address translation every data directory needs.
 struct PeSection
@@ -32,7 +32,7 @@ struct PeSection
 // later structure is reached through this.
 struct PeLayout
 {
-    sections:      Array'PeSection
+    sections:      Array!{PeSection}
     sizeOfHeaders: u32
     imageBase:     u64
     is64:          bool
@@ -44,26 +44,36 @@ impl PeLayout
     // Returns the file offset an address holds its bytes at, or `Swag.U64.Max` when nothing does.
     mtd const offsetOf(rva: u32)->u64
     {
-        if not rva do
+        if not rva
+        {
             return Swag.U64.Max
+        }
 
         for section in .sections
         {
             let span = section.virtualSize ? section.virtualSize : section.rawSize
-            if rva < section.virtualAddr or rva - section.virtualAddr >= span do
+            if rva < section.virtualAddr or rva - section.virtualAddr >= span
+            {
                 continue
+            }
 
             // A section can declare more memory than it stores, and the excess is zero-filled at
             // load time. There is no byte in the file to point at, so the caller is told.
             let delta = cast(u64, rva - section.virtualAddr)
-            if delta >= cast(u64, section.rawSize) do
+            if delta >= cast(u64, section.rawSize)
+            {
                 return Swag.U64.Max
+            }
+
             return cast(u64, section.rawOffset) + delta
         }
 
         // The headers are mapped where they are stored, which is how a directory can address them.
-        if rva < .sizeOfHeaders do
+        if rva < .sizeOfHeaders
+        {
             return cast(u64, rva)
+        }
+
         return Swag.U64.Max
     }
 
@@ -73,8 +83,10 @@ impl PeLayout
         for section in .sections
         {
             let span = section.virtualSize ? section.virtualSize : section.rawSize
-            if rva >= section.virtualAddr and rva - section.virtualAddr < span do
+            if rva >= section.virtualAddr and rva - section.virtualAddr < span
+            {
                 return section.name
+            }
         }
 
         return ""
@@ -202,13 +214,16 @@ func peSectionFlagsText(value: u32)->String
 
     // The alignment of a section is a small enumeration packed into four bits of the same field, so
     // it is read out before the rest is spelled as flags.
-    var result = flagsText(cast(u64, value) & ~0x00F00000'u64, names)
+    var result = flagsText(cast(u64, value) & ~0x00F00000_u64, names)
     let align  = (value >> 20) & 0xF
     if align
     {
-        if not result.isEmpty() do
+        if not result.isEmpty()
+        {
             result += " | "
-        let text = Format.toString("ALIGN_%_BYTES", 1'u32 << (align - 1))
+        }
+
+        let text = Format.toString("ALIGN_%_BYTES", 1_u32 << (align - 1))
         result += text
     }
 
@@ -221,8 +236,11 @@ func peDirectoryName(index: u64)->string
     const Names = ["Export", "Import", "Resource", "Exception", "Certificate", "BaseRelocation",
                    "Debug", "Architecture", "GlobalPtr", "TLS", "LoadConfig", "BoundImport",
                    "IAT", "DelayImport", "COMDescriptor", "Reserved"]
-    if index >= Names.count do
+    if index >= Names.count
+    {
         return "?"
+    }
+
     return Names[index]
 }
 
@@ -287,8 +305,11 @@ func peResourceTypeName(value: u32)->string
 // Returns whether the file begins with a DOS header that leads to a PE signature.
 func isPeImage(image: *BinaryImage)->bool
 {
-    if not image.matches(0, "MZ") do
+    if not image.matches(0, "MZ")
+    {
         return false
+    }
+
     let peOffset = cast(u64, image.u32At(PeLfanewOffset))
     return image.matches(peOffset, "PE\0\0")
 }
@@ -299,8 +320,10 @@ func isPeImage(image: *BinaryImage)->bool
 // count and header size agree with. Everything checked here is what a linker itself checks.
 func isCoffObject(image: *BinaryImage)->bool
 {
-    if image.bytes.count < PeFileHeaderSize do
+    if image.bytes.count < PeFileHeaderSize
+    {
         return false
+    }
 
     let machine = image.u16At(0)
     if machine != 0x014C and
@@ -308,10 +331,15 @@ func isCoffObject(image: *BinaryImage)->bool
        machine != 0xAA64 and
        machine != 0x01C0 and
        machine != 0x01C4 and
-       machine != 0xA641 do
+       machine != 0xA641
+    {
         return false
-    if image.u16At(16) != 0 do
+    }
+
+    if image.u16At(16) != 0
+    {
         return false
+    }
 
     let sections = cast(u64, image.u16At(2))
     return sections != 0 and PeFileHeaderSize + sections * PeSectionHeaderSize <= image.bytes.count
@@ -358,12 +386,19 @@ func reportPeImage(image: *BinaryImage, report: *Report)
 
     let texts = texts()
     var kind: string
-    if header.characteristics & 0x2000 do
+    if header.characteristics & 0x2000
+    {
         kind = "DLL"
-    elif header.characteristics & 0x1000 do
+    }
+    else if header.characteristics & 0x1000
+    {
         kind = "SYS"
-    else do
+    }
+    else
+    {
         kind = "EXE"
+    }
+
     let sections = countText(cast(u64, header.sectionCount), texts.word_Section, texts.word_Sections)
     report.formatName = layout.is64 ? "PE32+" : "PE32"
     report.summary    = Format.toString("% · % · % · %", report.formatName, kind, peMachineName(header.machine), sections)
@@ -375,10 +410,15 @@ func reportPeImage(image: *BinaryImage, report: *Report)
         .identity.add(report.formatName)
         .identity.add(peMachineName(header.machine))
         .identity.add(kind == "EXE" ? peSubsystemName(layout.subsystem) : kind)
-        if signed do
+        if signed
+        {
             .identity.add(texts.pe_Signed)
-        for section in layout.sections where section.rawSize do
+        }
+
+        for section in layout.sections where section.rawSize
+        {
             .sections.add({section.name, cast(u64, section.rawSize)})
+        }
     }
 }
 
@@ -430,8 +470,11 @@ private func reportPeDosHeader(image: *BinaryImage, report: *Report, peOffset: u
     // The stub is the program a DOS box would have run, and in every modern image it exists only to
     // print one sentence. That sentence is the readable part, so it is what the report shows.
     let stub = peDosStubText(image, peOffset)
-    if not stub.isEmpty() do
+    if not stub.isEmpty()
+    {
         report.field(64, peOffset > 64 ? peOffset - 64 : 0, texts.pe_DosStub, stub, texts.pe_DosStubDesc)
+    }
+
     report.endGroup()
 }
 
@@ -444,27 +487,34 @@ private func peDosStubText(image: *BinaryImage, peOffset: u64)->String
     for index in 64 until limit
     {
         let value = image.bytes[index]
-        if value >= 'A'u8 and value <= 'Z'u8
+        if value >= 'A'_u8 and value <= 'Z'_u8
         {
             start = index
             break
         }
     }
 
-    if start == Swag.U64.Max do
+    if start == Swag.U64.Max
+    {
         return {}
+    }
 
     var end = start
-    while end < limit and image.bytes[end] != '$'u8 and image.bytes[end] >= 9 do
+    while end < limit and image.bytes[end] != '$'_u8 and image.bytes[end] >= 9
+    {
         end += 1
-    if end - start < 8 do
-        return {}
+    }
 
-    var text: Array'u8
+    if end - start < 8
+    {
+        return {}
+    }
+
+    var text: Array!{u8}
     for index in start until end
     {
         let value = image.bytes[index]
-        text.add(value >= 32 and value < 127 ? value : ' 'u8)
+        text.add(value >= 32 and value < 127 ? value : ' '_u8)
     }
 
     return Latin1.trim(cast(string, text.toSlice()))
@@ -479,7 +529,7 @@ private func reportPeRichHeader(image: *BinaryImage, report: *Report, peOffset: 
 {
     let limit  = Math.min(peOffset, image.bytes.count)
     var richAt = Swag.U64.Max
-    var scan   = 64'u64
+    var scan   = 64_u64
 
     while scan + 8 <= limit
     {
@@ -492,8 +542,10 @@ private func reportPeRichHeader(image: *BinaryImage, report: *Report, peOffset: 
         scan += 4
     }
 
-    if richAt == Swag.U64.Max do
+    if richAt == Swag.U64.Max
+    {
         return
+    }
 
     // The block is written backwards from `Rich`, and its start is the only place where the stored
     // word decodes to `DanS`, so the key is what finds it.
@@ -511,8 +563,10 @@ private func reportPeRichHeader(image: *BinaryImage, report: *Report, peOffset: 
         scan += 4
     }
 
-    if startAt == Swag.U64.Max do
+    if startAt == Swag.U64.Max
+    {
         return
+    }
 
     let texts = texts()
     let first = startAt + 16
@@ -583,12 +637,19 @@ private func reportPeOptionalHeader(image: *BinaryImage, report: *Report, at, si
 
     report.beginGroup(texts.pe_Optional, layout.is64 ? "PE32+" : "PE32", "", offset: at, length: size, open: true)
     var imageTypeText: string
-    if magic == 0x20B do
+    if magic == 0x20B
+    {
         imageTypeText = texts.pe_Image64
-    elif magic == 0x10B do
+    }
+    else if magic == 0x10B
+    {
         imageTypeText = texts.pe_Image32
-    else do
+    }
+    else
+    {
         imageTypeText = texts.pe_ImageRom
+    }
+
     report.hexField(at, 2, "Magic", cast(u64, magic), imageTypeText)
 
     let linker = Format.toString("%.%", image.u8At(at + 2), image.u8At(at + 3))
@@ -661,7 +722,7 @@ private func reportPeOptionalHeader(image: *BinaryImage, report: *Report, at, si
 private func reportPeDirectories(image: *BinaryImage, report: *Report, at, count: u64, layout: *PeLayout)
 {
     let texts   = texts()
-    let shown   = Math.min(count, 16'u64)
+    let shown   = Math.min(count, 16_u64)
     let entries = countText(shown, texts.word_Entry, texts.word_Entries)
 
     report.beginGroup(texts.pe_Directories, entries, "", offset: at, length: shown * 8)
@@ -734,11 +795,13 @@ private func peDirectory(image: *BinaryImage, layout: *PeLayout, index: u64)->{ 
     // layout is what every caller already holds, and it is what says where the table starts.
     let peOffset  = cast(u64, image.u32At(PeLfanewOffset))
     let optional  = peOffset + 4 + PeFileHeaderSize
-    let available = cast(u64, image.u32At(optional + (layout.is64 ? 108'u64 : 92)))
-    if index >= available do
+    let available = cast(u64, image.u32At(optional + (layout.is64 ? 108_u64 : 92)))
+    if index >= available
+    {
         return {rva: 0, size: 0}
+    }
 
-    let entryAt = optional + (layout.is64 ? 112'u64 : 96) + index * 8
+    let entryAt = optional + (layout.is64 ? 112_u64 : 96) + index * 8
     return {rva: image.u32At(entryAt), size: image.u32At(entryAt + 4)}
 }
 
@@ -747,8 +810,10 @@ private func peDirectory(image: *BinaryImage, layout: *PeLayout, index: u64)->{ 
 private func reportPeExports(image: *BinaryImage, report: *Report, layout: *PeLayout)
 {
     let {rva, size} = peDirectory(image, layout, 0)
-    if not rva do
+    if not rva
+    {
         return
+    }
 
     let texts = texts()
     let at    = layout.offsetOf(rva)
@@ -787,7 +852,7 @@ private func reportPeExports(image: *BinaryImage, report: *Report, layout: *PeLa
 
     // A name is what a linker binds against, so the named entries come first and in their own
     // order; the ordinal-only ones follow, because nothing can reach them by name.
-    var named: HashSet'u32
+    var named: HashSet!{u32}
     let shown = Math.min(nameCount, ListLimit)
     if nameAt != Swag.U64.Max and ordinalAt != Swag.U64.Max
     {
@@ -808,14 +873,19 @@ private func reportPeExports(image: *BinaryImage, report: *Report, layout: *PeLa
         report.endGroup()
     }
 
-    var anonymous = 0'u64
+    var anonymous = 0_u64
     for index in Math.min(funcCount, ListLimit) where not named.contains(cast(u32, index))
     {
         let address = image.u32At(funcAt + index * 4)
-        if not address do
+        if not address
+        {
             continue
-        if not anonymous do
+        }
+
+        if not anonymous
+        {
             report.beginGroup(texts.pe_ByOrdinal, "", texts.pe_ByOrdinalDesc)
+        }
 
         anonymous += 1
         let label  = Format.toString(texts.pe_Ordinal, index + base)
@@ -824,8 +894,11 @@ private func reportPeExports(image: *BinaryImage, report: *Report, layout: *PeLa
         report.field(funcAt + index * 4, 4, label, value, target)
     }
 
-    if anonymous do
+    if anonymous
+    {
         report.endGroup()
+    }
+
     report.endGroup()
 }
 
@@ -833,8 +906,10 @@ private func reportPeExports(image: *BinaryImage, report: *Report, layout: *PeLa
 private func peExportTarget(image: *BinaryImage, layout: *PeLayout, target, directoryRva, directorySize: u32)->String
 {
     let texts = texts()
-    if not target do
+    if not target
+    {
         return texts.pe_NotExported
+    }
 
     // An address inside the export directory itself is not code: it is the name of the symbol
     // another module is expected to answer with.
@@ -852,8 +927,10 @@ private func peExportTarget(image: *BinaryImage, layout: *PeLayout, target, dire
 private func reportPeImports(image: *BinaryImage, report: *Report, layout: *PeLayout)
 {
     let {rva, size} = peDirectory(image, layout, 1)
-    if not rva do
+    if not rva
+    {
         return
+    }
 
     let texts = texts()
     let at    = layout.offsetOf(rva)
@@ -865,21 +942,27 @@ private func reportPeImports(image: *BinaryImage, report: *Report, layout: *PeLa
 
     // The table ends at an all-zero descriptor, so its length is counted before the first module is
     // written: the group has to name how many there are before it holds any of them.
-    var entries: Array'u64
+    var entries: Array!{u64}
     while entries.count < ListLimit
     {
         let entryAt = at + entries.count * 20
-        if not image.has(entryAt, 20) do
+        if not image.has(entryAt, 20)
+        {
             break
-        if not image.u32At(entryAt) and not image.u32At(entryAt + 12) and not image.u32At(entryAt + 16) do
+        }
+
+        if not image.u32At(entryAt) and not image.u32At(entryAt + 12) and not image.u32At(entryAt + 16)
+        {
             break
+        }
+
         entries.add(entryAt)
     }
 
     let modules = countText(entries.count, texts.word_Module, texts.word_Modules)
     report.beginGroup(texts.shr_Imports, modules, "", offset: at, length: cast(u64, size), open: true)
 
-    var symbols = 0'u64
+    var symbols = 0_u64
     for entryAt in entries
     {
         let lookup = image.u32At(entryAt)
@@ -904,13 +987,15 @@ private func reportPeThunks(image: *BinaryImage, report: *Report, layout: *PeLay
     let texts   = texts()
     let tableAt = layout.offsetOf(tableRva)
     let wide    = layout.pointerSize()
-    let ordinal = wide == 8 ? 0x8000000000000000'u64 : 0x80000000'u64
+    let ordinal = wide == 8 ? 0x8000000000000000_u64 : 0x80000000_u64
 
-    var count = 0'u64
+    var count = 0_u64
     if tableAt != Swag.U64.Max
     {
-        while count < ListLimit and image.scalarAt(tableAt + count * wide, wide) do
+        while count < ListLimit and image.scalarAt(tableAt + count * wide, wide)
+        {
             count += 1
+        }
     }
 
     let stamp   = image.u32At(entryAt + 4)
@@ -958,8 +1043,11 @@ private func reportPeThunks(image: *BinaryImage, report: *Report, layout: *PeLay
 
         let symbol = image.cstringAt(hintAt + 2)
         let hint   = Format.toString(texts.pe_Hint, image.u16At(hintAt))
-        if library and library.symbols.count < OverviewSymbolLimit do
+        if library and library.symbols.count < OverviewSymbolLimit
+        {
             library.symbols.add(symbol)
+        }
+
         report.field(thunkAt, wide, symbol, "", hint)
     }
 
@@ -972,12 +1060,16 @@ private func reportPeThunks(image: *BinaryImage, report: *Report, layout: *PeLay
 private func reportPeDelayImports(image: *BinaryImage, report: *Report, layout: *PeLayout)
 {
     let {rva, size} = peDirectory(image, layout, 13)
-    if not rva do
+    if not rva
+    {
         return
+    }
 
     let at = layout.offsetOf(rva)
-    if at == Swag.U64.Max do
+    if at == Swag.U64.Max
+    {
         return
+    }
 
     let texts = texts()
     report.beginGroup(texts.pe_Delayed, "", texts.pe_DelayedDesc, offset: at, length: cast(u64, size))
@@ -985,16 +1077,21 @@ private func reportPeDelayImports(image: *BinaryImage, report: *Report, layout: 
     for module in ListLimit
     {
         let entryAt = at + module * 32
-        if not image.has(entryAt, 32) or not image.u32At(entryAt + 4) do
+        if not image.has(entryAt, 32) or not image.u32At(entryAt + 4)
+        {
             break
+        }
 
         // The first delay-load format stored virtual addresses; the current one stores addresses
         // relative to the image, and its attributes say which.
         let relative = image.u32At(entryAt) & 1
         let stored   = cast(u64, image.u32At(entryAt + 4))
         var nameRva  = stored
-        if not relative and stored > layout.imageBase do
+        if not relative and stored > layout.imageBase
+        {
             nameRva = stored - layout.imageBase
+        }
+
         let name  = peStringAt(image, layout, cast(u32, nameRva))
         let stamp = epochText(cast(u64, image.u32At(entryAt + 28)))
 
@@ -1014,8 +1111,10 @@ private func reportPeDelayImports(image: *BinaryImage, report: *Report, layout: 
 private func reportPeResources(image: *BinaryImage, report: *Report, layout: *PeLayout)
 {
     let {rva, size} = peDirectory(image, layout, 2)
-    if not rva do
+    if not rva
+    {
         return
+    }
 
     let texts = texts()
     let at    = layout.offsetOf(rva)
@@ -1034,8 +1133,10 @@ private func reportPeResources(image: *BinaryImage, report: *Report, layout: *Pe
 // Walks one level of the resource tree: types, then names, then languages.
 private func reportPeResourceLevel(image: *BinaryImage, report: *Report, layout: *PeLayout, base, at: u64, depth: u32)
 {
-    if depth > 2 or not image.has(at, 16) do
+    if depth > 2 or not image.has(at, 16)
+    {
         return
+    }
 
     let texts    = texts()
     let declared = cast(u64, image.u16At(at + 12)) + cast(u64, image.u16At(at + 14))
@@ -1065,7 +1166,7 @@ private func reportPeResourceLevel(image: *BinaryImage, report: *Report, layout:
         let value       = StrConv.toDisplaySize(dataLen)
         let detail      = Format.toString(texts.pe_ResourceWhere, image.u32At(leafAt + 8), hexText(cast(u64, dataRva), 8))
         var fieldAt     = leafAt
-        var fieldLength = 16'u64
+        var fieldLength = 16_u64
         if dataAt != Swag.U64.Max
         {
             fieldAt     = dataAt
@@ -1086,22 +1187,31 @@ private func peResourceLabel(image: *BinaryImage, base: u64, nameId: u32, depth:
     {
         let stringAt = base + cast(u64, nameId & 0x7FFFFFFF)
         let length   = cast(u64, image.u16At(stringAt))
-        var text     = image.wideTextAt(stringAt + 2, Math.min(length, 128'u64))
-        if text.isEmpty() do
+        var text     = image.wideTextAt(stringAt + 2, Math.min(length, 128_u64))
+        if text.isEmpty()
+        {
             text = texts.pe_Unnamed
+        }
+
         return text
     }
 
     if not depth
     {
         let standard = peResourceTypeName(nameId)
-        if standard.count do
+        if standard.count
+        {
             return Format.toString("% (%)", standard, nameId)
+        }
+
         return Format.toString(texts.pe_ResourceType, nameId)
     }
 
-    if depth == 1 do
+    if depth == 1
+    {
         return Format.toString(texts.pe_ResourceId, nameId)
+    }
+
     return Format.toString(texts.pe_ResourceLang, hexText(cast(u64, nameId), 4))
 }
 
@@ -1112,8 +1222,10 @@ private func peResourceLabel(image: *BinaryImage, base: u64, nameId: u32, depth:
 private func reportPeVersionResource(image: *BinaryImage, report: *Report, layout: *PeLayout, base: u64)
 {
     let dataAt = peFindResourceData(image, layout, base, 16)
-    if dataAt == Swag.U64.Max do
+    if dataAt == Swag.U64.Max
+    {
         return
+    }
 
     // VS_VERSIONINFO is a length, a value length, a type, the key `VS_VERSION_INFO`, then the fixed
     // block on the next four-byte boundary.
@@ -1147,13 +1259,15 @@ private func reportPeVersionStrings(image: *BinaryImage, report: *Report, blockA
 {
     let blockEnd = blockAt + cast(u64, image.u16At(blockAt))
     var at       = peAlign4(childAt, blockAt)
-    var written  = 0'u64
+    var written  = 0_u64
 
     while at + 6 <= blockEnd and written < ListLimit
     {
         let length = cast(u64, image.u16At(at))
-        if length < 6 do
+        if length < 6
+        {
             break
+        }
 
         let key = image.wideTextAt(at + 6, 64)
         if key == "StringFileInfo"
@@ -1163,20 +1277,24 @@ private func reportPeVersionStrings(image: *BinaryImage, report: *Report, blockA
             while tableAt + 6 <= at + length
             {
                 let tableLength = cast(u64, image.u16At(tableAt))
-                if tableLength < 6 do
+                if tableLength < 6
+                {
                     break
+                }
 
                 let language = image.wideTextAt(tableAt + 6, 32)
                 var pairAt   = peAlign4(tableAt + 6 + (language.length + 1) * 2, blockAt)
                 while pairAt + 6 <= tableAt + tableLength and written < ListLimit
                 {
                     let pairLength = cast(u64, image.u16At(pairAt))
-                    if pairLength < 6 do
+                    if pairLength < 6
+                    {
                         break
+                    }
 
                     let name    = image.wideTextAt(pairAt + 6, 128)
                     let valueAt = peAlign4(pairAt + 6 + (name.length + 1) * 2, blockAt)
-                    let value   = image.wideTextAt(valueAt, Math.min(cast(u64, image.u16At(pairAt + 2)), 512'u64))
+                    let value   = image.wideTextAt(valueAt, Math.min(cast(u64, image.u16At(pairAt + 2)), 512_u64))
                     if not name.isEmpty()
                     {
                         report.field(pairAt, pairLength, name, value, language)
@@ -1195,7 +1313,7 @@ private func reportPeVersionStrings(image: *BinaryImage, report: *Report, blockA
 }
 
 // Rounds `value` up to the four-byte boundary the version format aligns every block on.
-private func peAlign4(value, base: u64)->u64 => base + ((value - base + 3) & ~3'u64)
+private func peAlign4(value, base: u64)->u64 => base + ((value - base + 3) & ~3_u64)
 
 private func peVersionText(high, low: u32)->String => Format.toString("%.%.%.%", high >> 16, high & 0xFFFF, low >> 16, low & 0xFFFF)
 
@@ -1228,31 +1346,43 @@ private func peVersionFileTypeName(value: u32)->string
 // Returns the file offset of the first leaf of resource type `wanted`.
 private func peFindResourceData(image: *BinaryImage, layout: *PeLayout, base: u64, wanted: u32)->u64
 {
-    if not image.has(base, 16) do
+    if not image.has(base, 16)
+    {
         return Swag.U64.Max
+    }
 
     let typeCount = cast(u64, image.u16At(base + 12)) + cast(u64, image.u16At(base + 14))
     for index in Math.min(typeCount, ListLimit)
     {
         let entryAt = base + 16 + index * 8
-        if image.u32At(entryAt) != wanted do
+        if image.u32At(entryAt) != wanted
+        {
             continue
+        }
 
         let nameDir = image.u32At(entryAt + 4)
-        if not (nameDir & 0x80000000) do
+        if not (nameDir & 0x80000000)
+        {
             return Swag.U64.Max
+        }
 
         let nameAt = base + cast(u64, nameDir & 0x7FFFFFFF)
-        if not image.has(nameAt, 24) do
+        if not image.has(nameAt, 24)
+        {
             return Swag.U64.Max
+        }
 
         let langDir = image.u32At(nameAt + 20)
-        if not (langDir & 0x80000000) do
+        if not (langDir & 0x80000000)
+        {
             return Swag.U64.Max
+        }
 
         let langAt = base + cast(u64, langDir & 0x7FFFFFFF)
-        if not image.has(langAt, 24) do
+        if not image.has(langAt, 24)
+        {
             return Swag.U64.Max
+        }
 
         let leafAt = base + cast(u64, image.u32At(langAt + 20))
         return layout.offsetOf(image.u32At(leafAt))
@@ -1266,12 +1396,16 @@ private func peFindResourceData(image: *BinaryImage, layout: *PeLayout, base: u6
 private func reportPeDebug(image: *BinaryImage, report: *Report, layout: *PeLayout)
 {
     let {rva, size} = peDirectory(image, layout, 6)
-    if not rva do
+    if not rva
+    {
         return
+    }
 
     let at = layout.offsetOf(rva)
-    if at == Swag.U64.Max do
+    if at == Swag.U64.Max
+    {
         return
+    }
 
     let texts   = texts()
     let count   = Math.min(cast(u64, size) / 28, ListLimit)
@@ -1319,12 +1453,16 @@ private func reportPeDebug(image: *BinaryImage, report: *Report, layout: *PeLayo
 private func reportPeExceptions(image: *BinaryImage, report: *Report, layout: *PeLayout)
 {
     let {rva, size} = peDirectory(image, layout, 3)
-    if not rva do
+    if not rva
+    {
         return
+    }
 
     let at = layout.offsetOf(rva)
-    if at == Swag.U64.Max do
+    if at == Swag.U64.Max
+    {
         return
+    }
 
     // Each record covers one function, so the count is how many functions the image can unwind.
     let texts   = texts()
@@ -1341,23 +1479,30 @@ private func reportPeExceptions(image: *BinaryImage, report: *Report, layout: *P
 private func reportPeRelocations(image: *BinaryImage, report: *Report, layout: *PeLayout)
 {
     let {rva, size} = peDirectory(image, layout, 5)
-    if not rva do
+    if not rva
+    {
         return
+    }
 
     let at = layout.offsetOf(rva)
-    if at == Swag.U64.Max do
+    if at == Swag.U64.Max
+    {
         return
+    }
 
     let end    = at + cast(u64, size)
-    var blocks = 0'u64
-    var fixups = 0'u64
+    var blocks = 0_u64
+    var fixups = 0_u64
     var scan   = at
 
     while scan + 8 <= end and blocks < ListLimit
     {
         let blockSize = cast(u64, image.u32At(scan + 4))
-        if blockSize < 8 do
+        if blockSize < 8
+        {
             break
+        }
+
         fixups += (Math.min(blockSize, end - scan) - 8) / 2
         blocks += 1
         scan   += blockSize
@@ -1378,12 +1523,16 @@ private func reportPeRelocations(image: *BinaryImage, report: *Report, layout: *
 private func reportPeTls(image: *BinaryImage, report: *Report, layout: *PeLayout)
 {
     let {rva, size} = peDirectory(image, layout, 9)
-    if not rva do
+    if not rva
+    {
         return
+    }
 
     let at = layout.offsetOf(rva)
-    if at == Swag.U64.Max do
+    if at == Swag.U64.Max
+    {
         return
+    }
 
     let wide = layout.pointerSize()
     report.beginGroup(texts().pe_Tls, "", "", offset: at, length: cast(u64, size))
@@ -1401,18 +1550,22 @@ private func reportPeTls(image: *BinaryImage, report: *Report, layout: *PeLayout
 private func reportPeLoadConfig(image: *BinaryImage, report: *Report, layout: *PeLayout)
 {
     let {rva, size} = peDirectory(image, layout, 10)
-    if not rva do
+    if not rva
+    {
         return
+    }
 
     let at = layout.offsetOf(rva)
-    if at == Swag.U64.Max do
+    if at == Swag.U64.Max
+    {
         return
+    }
 
     let texts    = texts()
     let declared = cast(u64, image.u32At(at))
     let wide     = layout.pointerSize()
-    let cookieAt = at + (layout.is64 ? 88'u64 : 60)
-    let guardAt  = at + (layout.is64 ? 144'u64 : 88)
+    let cookieAt = at + (layout.is64 ? 88_u64 : 60)
+    let guardAt  = at + (layout.is64 ? 144_u64 : 88)
     let stamp    = epochText(cast(u64, image.u32At(at + 4)))
     let version  = Format.toString("%.%", image.u16At(at + 8), image.u16At(at + 10))
     let stored   = StrConv.toDisplaySize(declared)
@@ -1424,8 +1577,10 @@ private func reportPeLoadConfig(image: *BinaryImage, report: *Report, layout: *P
     report.hexField(at + 12, 4, "GlobalFlagsClear", cast(u64, image.u32At(at + 12)))
     report.hexField(at + 16, 4, "GlobalFlagsSet", cast(u64, image.u32At(at + 16)))
 
-    if declared > cookieAt - at do
+    if declared > cookieAt - at
+    {
         report.hexField(cookieAt, wide, "SecurityCookie", image.scalarAt(cookieAt, wide), texts.pe_Cookie)
+    }
 
     if declared > guardAt + 4 - at
     {
@@ -1458,12 +1613,16 @@ private func peGuardFlagsText(value: u32)->String
 private func reportPeClr(image: *BinaryImage, report: *Report, layout: *PeLayout)
 {
     let {rva, size} = peDirectory(image, layout, 14)
-    if not rva do
+    if not rva
+    {
         return
+    }
 
     let at = layout.offsetOf(rva)
-    if at == Swag.U64.Max do
+    if at == Swag.U64.Max
+    {
         return
+    }
 
     let texts   = texts()
     let metaRva = image.u32At(at + 8)
@@ -1506,33 +1665,40 @@ private func peClrFlagsText(value: u32)->String
 private func reportPeCertificates(image: *BinaryImage, report: *Report, layout: *PeLayout)
 {
     let {rva, size} = peDirectory(image, layout, 4)
-    if not rva or not size do
+    if not rva or not size
+    {
         return
+    }
 
     let texts  = texts()
     let at     = cast(u64, rva)
     let end    = at + cast(u64, size)
     let stored = StrConv.toDisplaySize(cast(u64, size))
     var scan   = at
-    var count  = 0'u64
+    var count  = 0_u64
 
     report.beginGroup(texts.pe_Certificates, stored, texts.pe_CertificateAt, offset: at, length: cast(u64, size))
 
     while scan + 8 <= end and count < ListLimit
     {
         let length = cast(u64, image.u32At(scan))
-        if length < 8 do
+        if length < 8
+        {
             break
+        }
 
         let label = Format.toString(texts.pe_Certificate, count)
         let value = StrConv.toDisplaySize(length)
         report.field(scan, length, label, value, peCertificateTypeName(image.u16At(scan + 6)))
         count += 1
-        scan  += (length + 7) & ~7'u64
+        scan  += (length + 7) & ~7_u64
     }
 
-    if not count do
+    if not count
+    {
         report.note(texts.pe_CertificateNo)
+    }
+
     report.endGroup()
 }
 
@@ -1552,16 +1718,21 @@ private func peCertificateTypeName(value: u16)->string
 private func peStringAt(image: *BinaryImage, layout: *PeLayout, rva: u32)->String
 {
     let at = layout.offsetOf(rva)
-    if at == Swag.U64.Max do
+    if at == Swag.U64.Max
+    {
         return NoValue
+    }
+
     return image.cstringAt(at)
 }
 
 // Adds the symbols of a COFF object, which is the only part of it a linker actually matches on.
 private func reportCoffSymbols(image: *BinaryImage, report: *Report, at, count: u64)
 {
-    if not at or not count do
+    if not at or not count
+    {
         return
+    }
 
     // The string table sits right after the symbols and opens with its own total size, which is how
     // a name longer than eight bytes is reached.
@@ -1574,13 +1745,15 @@ private func reportCoffSymbols(image: *BinaryImage, report: *Report, at, count: 
     report.beginGroup(texts.pe_Symbols, symbols, "", offset: at, length: count * PeSymbolSize)
     report.field(stringsAt, 4, texts.pe_StringTable, strings)
 
-    var index = 0'u64
+    var index = 0_u64
     while index < shown
     {
         let entryAt = at + index * PeSymbolSize
         var name    = image.fixedTextAt(entryAt, 8)
-        if not image.u32At(entryAt) do
+        if not image.u32At(entryAt)
+        {
             name = image.cstringAt(stringsAt + cast(u64, image.u32At(entryAt + 4)))
+        }
 
         let section = cast #bit (s16, image.u16At(entryAt + 12))
         let value   = hexText(cast(u64, image.u32At(entryAt + 8)), 8)

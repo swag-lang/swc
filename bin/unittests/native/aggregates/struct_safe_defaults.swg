@@ -62,8 +62,10 @@ struct PartialSliceLabels
 func countHiddenDescriptors(values: const [..] PartialSliceDescriptor)->u64
 {
     var result: u64
-    for &value in values where value.hidden do
+    for &value in values where value.hidden
+    {
         result += 1
+    }
     return result
 }
 
@@ -97,14 +99,14 @@ const ALL_UNDEFINED_CONST:     AllUndefinedDefaults
     value.required = 25
 
     Swag.require(value.required == 25)
-    Swag.require(value.label[0] == 'r'u8)
+    Swag.require(value.label[0] == 'r'_u8)
     Swag.require(value.value == 17)
     Swag.require(value.enabled == false)
 }
 
 #test
 {
-    Swag.require(PARTIAL_UNDEFINED_CONST.label[0] == 'r'u8)
+    Swag.require(PARTIAL_UNDEFINED_CONST.label[0] == 'r'_u8)
 }
 
 #test
@@ -113,7 +115,7 @@ const ALL_UNDEFINED_CONST:     AllUndefinedDefaults
     value.required = 31
 
     Swag.require(value.required == 31)
-    Swag.require(value.label[0] == 'r'u8)
+    Swag.require(value.label[0] == 'r'_u8)
     Swag.require(value.value == 17)
     Swag.require(value.enabled == false)
 }
@@ -124,7 +126,7 @@ const ALL_UNDEFINED_CONST:     AllUndefinedDefaults
     value.required = 49
 
     Swag.require(value.required == 49)
-    Swag.require(value.label[0] == 'r'u8)
+    Swag.require(value.label[0] == 'r'_u8)
     Swag.require(value.value == 17)
     Swag.require(value.enabled == false)
 }

@@ -19,8 +19,8 @@ impl List
     mtd insertAfter(node: *ListEntry?, value: T)->*ListEntry?
     {
         discard node
-        let n = nullPtr'ListEntry()
-        #assert(#typeof(n) == *ListEntry'T?)
+        let n = nullPtr!{ListEntry}()
+        #assert(#typeof(n) == *ListEntry!{T}?)
         let nn = unwrap n
         nn.value = value
         return n
@@ -29,7 +29,7 @@ impl List
 
 func semaTestGenericExplicitTypeArgContext()
 {
-    var values: List's32
-    var node:   *ListEntry's32? = null
+    var values: List!{s32}
+    var node:   *ListEntry!{s32}? = null
     discard values.insertAfter(node, 1)
 }

@@ -18,8 +18,10 @@
     while true
     {
         count += 1
-        if count == 5 do
+        if count == 5
+        {
             break
+        }
     }
     Swag.require(count == 5)
 }
@@ -32,8 +34,10 @@
     while i < 10
     {
         i += 1
-        if i % 2 == 0 do
+        if i % 2 == 0
+        {
             continue
+        }
         sum += i
     }
     Swag.require(sum == 25)     // 1 + 3 + 5 + 7 + 9
@@ -47,10 +51,14 @@
     while true
     {
         i += 1
-        if i > 10 do
+        if i > 10
+        {
             break
-        if i % 3 == 0 do
+        }
+        if i % 3 == 0
+        {
             continue
+        }
         sum += i
     }
     // 1 + 2 + 4 + 5 + 7 + 8 + 10 = 37
@@ -82,8 +90,10 @@
     while i < 3 or not done
     {
         i += 1
-        if i >= 5 do
+        if i >= 5
+        {
             done = true
+        }
     }
     Swag.require(i == 5)
 }
@@ -95,8 +105,10 @@ func whileEarlyReturn(limit: s32)->s32
     while i < 100
     {
         i += 1
-        if i == limit do
+        if i == limit
+        {
             return i
+        }
     }
     return -1
 }
@@ -119,8 +131,10 @@ func whileEarlyReturn(limit: s32)->s32
         {
             j     += 1
             total += 1
-            if j == 2 do
-                break     // only breaks inner
+            if j == 2
+            {
+                break
+            }     // only breaks inner
         }
         i += 1
     }

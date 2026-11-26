@@ -29,7 +29,7 @@ func day2B()
     var total = 0
     for l in lines
     {
-        var values: Array's32
+        var values: Array!{s32}
 
         scope(Done)
         for v in Tokenize.splitAny(l[], [' ', '\t'])

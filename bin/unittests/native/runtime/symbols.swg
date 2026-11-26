@@ -4,8 +4,10 @@ using Swag
 
 func writeDebugU32(bytes: [..] u8, offset: u32, value: u32)
 {
-    for index in 4 do
+    for index in 4
+    {
         bytes[offset + index] = cast(u8, ((value >> (index * 8)) & 0xFF))
+    }
 }
 
 func validDebugTable()->[64] u8
@@ -28,12 +30,14 @@ func symbolizationFixture()->u32 => 7
 
 #test
 {
-    var invalid: Swag.AtomicValue'u32
+    var invalid: Swag.AtomicValue!{u32}
     parallel for |&invalid| 64
     {
         let symbol = Swag.symbolizeStackAddress(cast(*void, &symbolizationFixture))
-        if symbol.found and not symbol.name.count do
+        if symbol.found and not symbol.name.count
+        {
             invalid.add(1)
+        }
     }
 
     Swag.require(invalid.load() == 0)
@@ -87,8 +91,10 @@ func symbolizationFixture()->u32 => 7
     let success = block.decode(&packed[0], &decoded[0])
     Swag.require(success and Swag.validateDebugSection(&decoded[0], decoded.count))
     let startBytes: [4] u8 = [0, 0xFF, 0xFF, 0xFF]
-    for byte, index in startBytes do
+    for byte, index in startBytes
+    {
         Swag.require(decoded[16 + index] == byte)
+    }
     Swag.require(decoded[36] == 0x20)
     Swag.require(decoded[32] == 12 and decoded[52] == 8)
 

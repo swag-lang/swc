@@ -6,12 +6,17 @@ using Swag
 // Locate the options editor in the actual dialog created by the application command.
 func findOptionsEditor(wnd: *Wnd)->*PropertiesCtrl?
 {
-    if wnd is PropertiesCtrl as editor do
+    if wnd is PropertiesCtrl as editor
+    {
         return editor
+    }
+
     for child in wnd.children
     {
-        if let found = findOptionsEditor(child) do
+        if let found = findOptionsEditor(child)
+        {
             return found
+        }
     }
 
     return null
@@ -33,8 +38,10 @@ func assertOptionsGolden(kind: PropertiesKind, name: string, dark: bool, tab: u3
     var captured: bool
     host.app.sigFrame += func|host = &host, captured = &captured, kind, name, tab, scrollToEnd|(_)
     {
-        if captured[] do
+        if captured[]
+        {
             return
+        }
 
         for surface in host.app.surfaces where surface.view() is Gui.Dialog
         {

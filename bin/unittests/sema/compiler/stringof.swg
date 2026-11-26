@@ -22,7 +22,7 @@ namespace Scoped
         value: T
     }
 
-    func(T) Make(value: T)->Wrapper'T
+    func(T) Make(value: T)->Wrapper!{T}
     {
         return {value: value}
     }
@@ -30,7 +30,7 @@ namespace Scoped
 
 var ScopedValue:   Scoped.Box
 var ScopedArray:   [2] Scoped.Box
-var ScopedWrapped: Scoped.Wrapper'(Scoped.Box)
+var ScopedWrapped: Scoped.Wrapper!{Scoped.Box}
 
 #assert(#fullnameof(Test.A) == "Test.A")
 #assert(#fullnameof(Test.B) == "Test.B")
@@ -41,16 +41,16 @@ var ScopedWrapped: Scoped.Wrapper'(Scoped.Box)
 #assert(#fullnameof(#type func(value: Scoped.Box)->Scoped.Box fail) == "func(value: Scoped.Box)->Scoped.Box fail")
 #assert(#fullnameof(#type func(Scoped.Box...)->Scoped.Box) == "func(Scoped.Box...)->Scoped.Box")
 #assert(#fullnameof(#typeof(ScopedArray)) == "[2] Scoped.Box")
-#assert(#fullnameof(Scoped.Wrapper'(Scoped.Box)) == "Scoped.Wrapper'(Scoped.Box)")
-#assert(#fullnameof(Scoped.Wrapper'(Scoped.Wrapper'(Scoped.Box))) == "Scoped.Wrapper'(Scoped.Wrapper'(Scoped.Box))")
-#assert(#fullnameof(#type *Scoped.Wrapper'(Scoped.Box)) == "*Scoped.Wrapper'(Scoped.Box)")
-#assert(#fullnameof(#type [..] Scoped.Wrapper'(Scoped.Box)) == "[..] Scoped.Wrapper'(Scoped.Box)")
-#assert(#fullnameof(#type func(Scoped.Wrapper'(Scoped.Box))->Scoped.Wrapper'(Scoped.Box)) == "func(Scoped.Wrapper'(Scoped.Box))->Scoped.Wrapper'(Scoped.Box)")
+#assert(#fullnameof(Scoped.Wrapper!{Scoped.Box}) == "Scoped.Wrapper!{Scoped.Box}")
+#assert(#fullnameof(Scoped.Wrapper!{Scoped.Wrapper!{Scoped.Box}}) == "Scoped.Wrapper!{Scoped.Wrapper!{Scoped.Box}}")
+#assert(#fullnameof(#type *Scoped.Wrapper!{Scoped.Box}) == "*Scoped.Wrapper!{Scoped.Box}")
+#assert(#fullnameof(#type [..] Scoped.Wrapper!{Scoped.Box}) == "[..] Scoped.Wrapper!{Scoped.Box}")
+#assert(#fullnameof(#type func(Scoped.Wrapper!{Scoped.Box})->Scoped.Wrapper!{Scoped.Box}) == "func(Scoped.Wrapper!{Scoped.Box})->Scoped.Wrapper!{Scoped.Box}")
 
 func semaTestGeneric001()
 {
-    let made = Scoped.Make'(Scoped.Box)({value: 1})
-    #assert(#typeof(made) == Scoped.Wrapper'(Scoped.Box))
+    let made = Scoped.Make!{Scoped.Box}({value: 1})
+    #assert(#typeof(made) == Scoped.Wrapper!{Scoped.Box})
 }
 
 #assert(#nameof(Test.A) == "A")

@@ -10,8 +10,11 @@ func checkResolve(width, height: s32)
     for factor in 1 to 8
     {
         var source = Image.create(width * factor, height * factor, .BGRA8)
-        for &value, index in source.pixels do
+        for &value, index in source.pixels
+        {
             value[] = cast(u8, (index * 37 + index / 11) % 256)
+        }
+
         Memory.clear(source.pixels.storage(), cast(u64, source.rowStride * factor))
 
         var cpu: RenderCpu
@@ -34,8 +37,11 @@ func checkResolve(width, height: s32)
             painter.setResolveShader(factor)
 
             // A full-size scissor preserves the picture while selecting the general path.
-            if pass do
+            if pass
+            {
                 painter.setClippingRect({0, 0, width, height})
+            }
+
             painter.drawTexture({0, 0, width, height}, {0, 0, width * factor, height * factor}, texture)
             painter.resetClippingRect()
             painter.setDefaultShader()
@@ -45,8 +51,10 @@ func checkResolve(width, height: s32)
             images[pass] = renderer.readRenderTarget(&target, 0, 0, width, height)
         }
 
-        for value, index in images[0].pixels do
+        for value, index in images[0].pixels
+        {
             Swag.require(value == images[1].pixels[index])
+        }
     }
 }
 
@@ -70,11 +78,11 @@ func checkResolve(width, height: s32)
 #test
 {
     Swag.startWorkers()
-    const Height = 65's32
-    for width in [17's32, 257]
+    const Height = 65_s32
+    for width in [17_s32, 257]
     {
         var source = Image.create(width * 2, Height * 2, .BGRA8)
-        const Colors = [0x00000000'u32, 0x01010101, 0x7F351C59, 0x80804020,
+        const Colors = [0x00000000_u32, 0x01010101, 0x7F351C59, 0x80804020,
                         0xFE417DAD, 0xFF416987, 0xFFFFFFFF, 0x00010203]
         for y in source.height
         {
@@ -82,8 +90,11 @@ func checkResolve(width, height: s32)
             {
                 let index = cast(u64, (x / 6 + y / 2)) % Colors.count
                 var color = Color.fromArgb(Colors[index])
-                if x / 2 % 7 == 0 do
+                if x / 2 % 7 == 0
+                {
                     color.g = cast(u8, (x * 11 + y * 13) % 256)
+                }
+
                 let pixel = source.pixels.storage() + cast(u64, y) * cast(u64, source.rowStride) + cast(u64, x) * 4
                 pixel[0] = color.b
                 pixel[1] = color.g
@@ -110,8 +121,11 @@ func checkResolve(width, height: s32)
             let rect = Math.Rectangle{0, 0, width, Height}
 
             // A full-target scissor preserves every pixel but selects the general shader.
-            if general do
+            if general
+            {
                 painter.setClippingRect(rect)
+            }
+
             painter.drawTexture(rect, {0, 0, source.width, source.height}, texture)
             painter.setDefaultShader()
             painter.unbindRenderTarget()
@@ -120,7 +134,9 @@ func checkResolve(width, height: s32)
             images[index] = renderer.readRenderTarget(&target, 0, 0, width, Height)
         }
 
-        for value, index in images[0].pixels do
+        for value, index in images[0].pixels
+        {
             Swag.require(value == images[1].pixels[index])
+        }
     }
 }

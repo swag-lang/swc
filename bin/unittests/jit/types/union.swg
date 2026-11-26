@@ -12,8 +12,8 @@
 #test
 {
     union IntOrFloat { i: s32, f: f32 }
-    var u = IntOrFloat{i: 0x42280000's32}
-    Swag.require(u.i == 0x42280000's32)
+    var u = IntOrFloat{i: 0x42280000_s32}
+    Swag.require(u.i == 0x42280000_s32)
     Swag.require(#sizeof(IntOrFloat) == 4)
 }
 

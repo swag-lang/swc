@@ -23,8 +23,11 @@ func waitForDesktopCapture(path: string, argument: string)
 {
     var clock: Time.Stopwatch
     clock.start()
-    while not File.exists(path) and clock.elapsedMilliseconds() < 5000 do
-        Threading.Thread.sleep(10'ms)
+    while not File.exists(path) and clock.elapsedMilliseconds() < 5000
+    {
+        Threading.Thread.sleep(10_ms)
+    }
+
     let recorded = expect File.readAllText(path)
     Swag.require(recorded == Format.toString("1\n%", argument))
     expect File.delete(path)

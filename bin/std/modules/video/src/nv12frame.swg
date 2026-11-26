@@ -29,9 +29,9 @@ private func nv12Chroma(value: s32)->u8
 private func nv12BgraLuma(pixel: const [*] u8)->u8
     => cast #wrap(u8, 16 + (11_966 * cast(s32, pixel[2]) + 40_254 * cast(s32, pixel[1]) + 4_064 * cast(s32, pixel[0]) + 32_768) / 65_536)
 
-private const Nv12BlueBytes  = cast(Math.Simd.U8x16, [0'u8, 4, 8, 12, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128])
-private const Nv12GreenBytes = cast(Math.Simd.U8x16, [1'u8, 5, 9, 13, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128])
-private const Nv12RedBytes   = cast(Math.Simd.U8x16, [2'u8, 6, 10, 14, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128])
+private const Nv12BlueBytes  = cast(Math.Simd.U8x16, [0_u8, 4, 8, 12, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128])
+private const Nv12GreenBytes = cast(Math.Simd.U8x16, [1_u8, 5, 9, 13, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128])
+private const Nv12RedBytes   = cast(Math.Simd.U8x16, [2_u8, 6, 10, 14, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128])
 
 #[Swag.Inline]
 private func nv12BgraLuma4(packed: Math.Simd.U8x16)->Math.Simd.U8x16
@@ -40,13 +40,13 @@ private func nv12BgraLuma4(packed: Math.Simd.U8x16)->Math.Simd.U8x16
     let green = cast #bit(Math.Simd.S32x4, Math.Simd.widenLow(Math.Simd.widenLow(Math.Simd.shuffle(packed, Nv12GreenBytes))))
     let red   = cast #bit(Math.Simd.S32x4, Math.Simd.widenLow(Math.Simd.widenLow(Math.Simd.shuffle(packed, Nv12RedBytes))))
     let luma  = 16 + ((red * 11_966 + green * 40_254 + blue * 4_064 + 32_768) >> 16)
-    return Math.Simd.packUnsigned(Math.Simd.packSigned(luma, Math.Simd.splat(0's32)), Math.Simd.splat(0's16))
+    return Math.Simd.packUnsigned(Math.Simd.packSigned(luma, Math.Simd.splat(0_s32)), Math.Simd.splat(0_s16))
 }
 
 #[Swag.Inline]
 private func nv12BgraChroma2(top, bottom: Math.Simd.U8x16, uv: [*] u8)
 {
-    let ones: Math.Simd.S16x8 = Math.Simd.splat(1's16)
+    let ones: Math.Simd.S16x8 = Math.Simd.splat(1_s16)
     let red = Math.Simd.mulAddPairs(cast #bit(Math.Simd.S16x8, Math.Simd.widenLow(Math.Simd.shuffle(top, Nv12RedBytes))) +
                                     cast #bit(Math.Simd.S16x8, Math.Simd.widenLow(Math.Simd.shuffle(bottom, Nv12RedBytes))),
                                     ones)
@@ -109,8 +109,10 @@ private func convertBgraNv12Band(source: const [*] u8, target: [*] u8, width, he
 // The screen readback path supplies BGRA8. Keep its channel positions constant in the hot loop.
 private func convertBgraToNv12(source: const [*] u8, target: [*] u8, width, height, rowStride, lumaSize: u64)
 {
-    parallel for |source, target, width, height, rowStride, lumaSize| blockY in height / 2 do
+    parallel for |source, target, width, height, rowStride, lumaSize| blockY in height / 2
+    {
         convertBgraNv12Band(source, target, width, height, rowStride, lumaSize, blockY)
+    }
 }
 
 // Owns one tightly packed NV12 picture for a video encoder.
@@ -123,9 +125,9 @@ struct Nv12Frame
 {
     public readonly
     {
-        width:  s32          // Visible width; positive and even for a converted picture.
-        height: s32          // Visible height; positive and even for a converted picture.
-        bytes:  Array'u8     // Owned Y plane followed by interleaved Cb/Cr plane.
+        width:  s32            // Visible width; positive and even for a converted picture.
+        height: s32            // Visible height; positive and even for a converted picture.
+        bytes:  Array!{u8}     // Owned Y plane followed by interleaved Cb/Cr plane.
     }
 }
 
@@ -153,22 +155,33 @@ impl Nv12Frame
     // capacity when dimensions stay the same.
     mtd convertFrom(image: const *Image) fail
     {
-        if image.width <= 0 or image.height <= 0 or image.width % 2 or image.height % 2 do
+        if image.width <= 0 or image.height <= 0 or image.width % 2 or image.height % 2
+        {
             fail BadParameterError{"NV12 conversion needs positive even image dimensions"}
+        }
+
         let format = image.pixelFormat
-        if format != .RGB8 and format != .BGR8 and format != .RGBA8 and format != .BGRA8 do
+        if format != .RGB8 and format != .BGR8 and format != .RGBA8 and format != .BGRA8
+        {
             fail UnsupportedFormatError{"NV12 conversion needs packed 8-bit RGB pixels"}
+        }
+
         if not image.isValid() or
            image.width <= 0 or
            image.height <= 0 or
-           image.bytesPerPixel != format.bitsPerPixel() / 8 do
+           image.bytesPerPixel != format.bitsPerPixel() / 8
+        {
             fail BadParameterError{"NV12 conversion needs a packed image with a complete pixel buffer"}
+        }
+
         let rowBytes = cast(u64, image.width) * cast(u64, image.bytesPerPixel)
         if rowBytes > Swag.S32.Max or
            image.rowStride != cast(s32, rowBytes) or
            image.byteCount != rowBytes * cast(u64, image.height) or
-           image.pixels.count != image.byteCount do
+           image.pixels.count != image.byteCount
+        {
             fail BadParameterError{"NV12 conversion needs a packed image with a complete pixel buffer"}
+        }
 
         let width    = cast(u64, image.width)
         let height   = cast(u64, image.height)
@@ -187,7 +200,7 @@ impl Nv12Frame
         }
 
         let pixelSize = cast(u64, image.bytesPerPixel)
-        let redIndex  = format == .BGR8 or format == .BGRA8 ? 2'u64 : 0'u64
+        let redIndex  = format == .BGR8 or format == .BGRA8 ? 2_u64 : 0_u64
         let blueIndex = 2 - redIndex
         for blockY in height / 2
         {
@@ -225,10 +238,15 @@ impl Nv12Frame
     // with [[Core.Errors.UnsupportedFormatError]]. A failure leaves the previous picture intact.
     mtd convertFrom(frame: const *PlanarFrame) fail
     {
-        if not frame.isValid() or frame.width % 2 or frame.height % 2 do
+        if not frame.isValid() or frame.width % 2 or frame.height % 2
+        {
             fail BadParameterError{"NV12 conversion needs a valid planar picture with even dimensions"}
-        if frame.chromaShift != 1 or frame.matrix != .Bt709 or not frame.studioRange do
+        }
+
+        if frame.chromaShift != 1 or frame.matrix != .Bt709 or not frame.studioRange
+        {
             fail UnsupportedFormatError{"NV12 conversion needs BT.709 studio-range 4:2:0 planes"}
+        }
 
         let width       = cast(u64, frame.width)
         let height      = cast(u64, frame.height)
@@ -244,10 +262,12 @@ impl Nv12Frame
         let cr    = frame.chromaR.storage()
         let yOut  = .bytes.storage()
         let uvOut = yOut + lumaSize
-        for row in height do
+        for row in height
+        {
             Memory.copy(yOut + row * width,
                         luma + row * cast(u64, frame.strideLuma),
                         width)
+        }
 
         for row in chromaRows
         {

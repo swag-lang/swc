@@ -47,7 +47,7 @@ impl Decoder
         if .readEntropyBits(1)
         {
             var p = coeffBufGetp(.coefficients[cmpId], blkX, blkY)
-            p[0] |= (1's16 << .successiveLow)
+            p[0] |= (1_s16 << .successiveLow)
         }
     }
 
@@ -80,27 +80,38 @@ impl Decoder
             if s
             {
                 k += r
-                if k > 63 do
-                    return false
-                let amplitude   = symbol >= 1 << 24 ? (symbol << 8) >> 24 : extendSign(.readEntropyBits(s), s)
-                let coefficient = cast(s16, (amplitude << .successiveLow))
-                p[ZigzagToTransposed[k]] = coefficient
-                let bit = 1'u64 << k
-                mask = (mask & ~bit) | (coefficient != 0 ? bit : 0)
+                if k > 63
+                {
+                    fail InvalidFormatError{"decode error"}
+                }
+
+                let rbits = .getBits2(s)
+                if s > 15
+                {
+                    fail InvalidFormatError{"decode error"}
+                }
+
+                s         = extendSign(rbits, s)
+                p[Zag[k]] = cast(s16, (s << .successiveLow))
             }
             else
             {
                 if r == 15
                 {
                     k += 15
-                    if k > 63 do
-                        return false
+                    if k > 63
+                    {
+                        fail InvalidFormatError{"decode error"}
+                    }
                 }
                 else
                 {
                     .eobRun = 1 << r
-                    if r do
-                        .eobRun += .readEntropyBits(r)
+                    if r
+                    {
+                        .eobRun += .getBits2(r)
+                    }
+
                     .eobRun -= 1
                     break
                 }
@@ -117,10 +128,10 @@ impl Decoder
         let value = coeff[]
         if .readEntropyBits(1) and (value & bit) == 0
         {
-            let sign = value >> 15
-            coeff[] = value + ((bit ^ sign) - sign)
-        }
-    }
+            if .spectralEnd >= 64
+            {
+                fail InvalidFormatError{"decode error"}
+            }
 
     mtd decodeBlockAcRefine(p: [*] s16, present: *u64, table: *HuffTables, band: u64, bit: s16)->bool
     {
@@ -137,10 +148,82 @@ impl Decoder
             var coefficient: s16
             if size
             {
-                if size != 1 do
-                    return false
-                let positive = symbol >= 1 << 24 ? (symbol & 0x00800000) == 0 : .readEntropyBits(1) != 0
-                coefficient = positive ? bit : -bit
+                var s = .huffDecode(&.h[.compAcTab[cmpId]])
+                var r = s >> 4
+                s &= 15
+
+                if s
+                {
+                    if s != 1
+                    {
+                        fail InvalidFormatError{"decode error"}
+                    }
+
+                    if .getBits2(1)
+                    {
+                        s = p1
+                    }
+                    else
+                    {
+                        s = m1
+                    }
+                }
+                else
+                {
+                    if r != 15
+                    {
+                        .eobRun = 1 << r
+                        if r
+                        {
+                            .eobRun += .getBits2(r)
+                        }
+
+                        break
+                    }
+                }
+
+                for
+                {
+                    var thisCoef = p + Zag[k]
+                    if thisCoef[] != 0
+                    {
+                        if .getBits2(1)
+                        {
+                            if (thisCoef[] & cast(s16, p1)) == 0
+                            {
+                                if thisCoef[] >= 0
+                                {
+                                    thisCoef[] += cast(s16, p1)
+                                }
+                                else
+                                {
+                                    thisCoef[] += cast(s16, m1)
+                                }
+                            }
+                        }
+                    }
+                    else
+                    {
+                        r -= 1
+                        if r < 0
+                        {
+                            break
+                        }
+                    }
+
+                    k += 1
+                    if k > .spectralEnd
+                    {
+                        break
+                    }
+                }
+
+                if s and (k < 64)
+                {
+                    p[Zag[k]] = cast(s16, s)
+                }
+
+                k += 1
             }
             elif run != 15
             {
@@ -174,11 +257,33 @@ impl Decoder
 
         if .eobRun
         {
-            while remaining
+            if .spectralEnd >= 64
             {
-                let occupied = cast(s32, Swag.trailingZeros(remaining))
-                .refineCoefficient(&p[ZigzagToTransposed[occupied]], bit)
-                remaining &= remaining - 1
+                fail InvalidFormatError{"decode error"}
+            }
+
+            while k <= .spectralEnd
+            {
+                var thisCoef = p + Zag[k]
+                if thisCoef[] != 0
+                {
+                    if .getBits2(1)
+                    {
+                        if (thisCoef[] & cast(s16, p1)) == 0
+                        {
+                            if thisCoef[] >= 0
+                            {
+                                thisCoef[] += cast(s16, p1)
+                            }
+                            else
+                            {
+                                thisCoef[] += cast(s16, m1)
+                            }
+                        }
+                    }
+                }
+
+                k += 1
             }
 
             .eobRun -= 1
@@ -255,18 +360,38 @@ impl Decoder
                 var blockMcuOfsX = 0
                 var blockMcuOfsY = 0
 
-                if .restartInterval and (.restartsLeft == 0) do
+                if .restartInterval and (.restartsLeft == 0)
+                {
                     try .restartProcess()
+                }
 
                 for mcuBlock in .blocksPerMcu
                 {
                     let componentId = .mcuOrg[mcuBlock]
                     let blkX        = blockMcutX[componentId] + blockMcuOfsX
                     let blkY        = blockMcutY[componentId] + blockMcuOfsY
-                    #static if Refine do
-                        .decodeBlockDcRefine(componentId, blkX, blkY)
-                    else do
-                        .decodeBlockDcFirst(componentId, blkX, blkY)
+                    if dcOnlyScan
+                    {
+                        if refinementScan
+                        {
+                            try .decodeBlockDcRefine(componentId, blkX, blkY)
+                        }
+                        else
+                        {
+                            try .decodeBlockDcFirst(componentId, blkX, blkY)
+                        }
+                    }
+                    else
+                    {
+                        if refinementScan
+                        {
+                            try .decodeBlockAcRefine(componentId, blkX, blkY)
+                        }
+                        else
+                        {
+                            try .decodeBlockAcFirst(componentId, blkX, blkY)
+                        }
+                    }
 
                     if .compsInScan == 1
                     {
@@ -308,24 +433,36 @@ impl Decoder
 
     mtd validateProgressiveScan() fail
     {
-        if .spectralStart > .spectralEnd or .spectralEnd > 63 do
+        if .spectralStart > .spectralEnd or .spectralEnd > 63
+        {
             fail InvalidFormatError{"bad sos spectral"}
-        if .spectralStart == 0 ? .spectralEnd != 0 : .compsInScan != 1 do
+        }
+
+        if .spectralStart == 0 ? .spectralEnd != 0 : .compsInScan != 1
+        {
             fail InvalidFormatError{"bad sos spectral"}
-        if .successiveHigh != 0 and .successiveLow != .successiveHigh - 1 do
+        }
+
+        if .successiveHigh != 0 and .successiveLow != .successiveHigh - 1
+        {
             fail InvalidFormatError{"bad sos successive"}
+        }
     }
 
     mtd initProgressive() fail
     {
-        for i in .compsInFrame do
+        for i in .compsInFrame
+        {
             .coefficients[i] = coeffBufOpen(.maxMcusPerRow * .compSampH[i], .maxMcusPerCol * .compSampV[i])
+        }
 
         for
         {
             let res = try .initScan()
-            if not res do
+            if not res
+            {
                 break
+            }
 
             let refinementScan = .successiveHigh != 0
             if .spectralStart == 0
@@ -347,8 +484,10 @@ impl Decoder
             .primeMarkerBits()
         }
 
-        if .lastMarkerSynthetic do
+        if .lastMarkerSynthetic
+        {
             fail InvalidFormatError{"JPEG data ends before the end-of-image marker"}
+        }
 
         // The masks have no further use once every scan has been decoded.
         for &component in .coefficients do
@@ -358,15 +497,21 @@ impl Decoder
         // coefficients at a time.
         for &table in .quant where not table.isEmpty()
         {
-            var weights: [64] s16
-            for i in 64 do
-                weights[ZigzagToTransposed[i]] = table[i]
-            Memory.copy(table.storage(), &weights[0], #sizeof(weights))
+            var natural: [64] s16
+            for i in 64
+            {
+                natural[Zag[i]] = table[i]
+            }
+
+            Memory.copy(table.storage(), &natural[0], #sizeof(natural))
         }
 
         .compsInScan = .compsInFrame
-        for i in .compsInFrame do
+        for i in .compsInFrame
+        {
             .compList[i] = i
+        }
+
         .calcMcuBlockOrder()
     }
 }

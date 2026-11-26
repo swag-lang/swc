@@ -47,8 +47,11 @@ execution limits.
 #[Swag.ConstExpr]
 func constexprFactorial(value: u32)->u32
 {
-    if value <= 1 do
+    if value <= 1
+    {
         return 1
+    }
+
     return value * constexprFactorial(value - 1)
 }
 
@@ -56,8 +59,11 @@ func constexprFactorial(value: u32)->u32
 func constexprSum(values: const [..] s32)->s32
 {
     var result = 0
-    for value in values do
+    for value in values
+    {
         result += value
+    }
+
     return result
 }
 

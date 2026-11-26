@@ -69,19 +69,21 @@ struct(T) AuditDiff
     {
         var buffer: [8192] u8
         var len = appendAuditDiffFields(&buffer[0], 0, #typeof(T))
-        if len == 0 do
+        if len == 0
+        {
             return ""
+        }
         return cast(string, Swag.makeSlice(&buffer[0], len))
     }
 }
 
-func(T) buildAuditDiff(before: T, after: T)->AuditDiff'T
+func(T) buildAuditDiff(before: T, after: T)->AuditDiff!{T}
 {
-    var result: AuditDiff'T
+    var result: AuditDiff!{T}
     #ast
     {
         var buffer: [8192] u8
-        var len        = 0'u64
+        var len        = 0_u64
         let typeStruct = cast(const *Swag.TypeInfoStruct, #typeof(T))
         for field in typeStruct.fields
         {
@@ -105,56 +107,62 @@ func(T) buildAuditDiff(before: T, after: T)->AuditDiff'T
             len = appendAst(&buffer[0], len, field.name)
             len = appendAst(&buffer[0], len, "\n")
         }
-        if len == 0 do
+        if len == 0
+        {
             return ""
+        }
         return cast(string, Swag.makeSlice(&buffer[0], len))
     }
     return result
 }
 
-func(T) auditChangedCount(diff: AuditDiff'T)->s32
+func(T) auditChangedCount(diff: AuditDiff!{T})->s32
 {
     var count: s32
     #ast
     {
         var buffer: [4096] u8
-        var len        = 0'u64
+        var len        = 0_u64
         let typeStruct = cast(const *Swag.TypeInfoStruct, #typeof(T))
         for field in typeStruct.fields
         {
             len = appendAst(&buffer[0], len, "if diff.changed_")
             len = appendAst(&buffer[0], len, unwrap field.name)
-            len = appendAst(&buffer[0], len, " do\n")
-            len = appendAst(&buffer[0], len, "    count += 1\n")
+            len = appendAst(&buffer[0], len, " {\n")
+            len = appendAst(&buffer[0], len, "    count += 1\n    }\n")
         }
-        if len == 0 do
+        if len == 0
+        {
             return ""
+        }
         return cast(string, Swag.makeSlice(&buffer[0], len))
     }
     return count
 }
 
-func(T) applyAuditDiff(base: T, diff: AuditDiff'T)->T
+func(T) applyAuditDiff(base: T, diff: AuditDiff!{T})->T
 {
     var result = base
     #ast
     {
         var buffer: [4096] u8
-        var len        = 0'u64
+        var len        = 0_u64
         let typeStruct = cast(const *Swag.TypeInfoStruct, #typeof(T))
         for field in typeStruct.fields
         {
             len = appendAst(&buffer[0], len, "if diff.changed_")
             len = appendAst(&buffer[0], len, unwrap field.name)
-            len = appendAst(&buffer[0], len, " do\n")
+            len = appendAst(&buffer[0], len, " {\n")
             len = appendAst(&buffer[0], len, "    result.")
             len = appendAst(&buffer[0], len, field.name)
             len = appendAst(&buffer[0], len, " = diff.new_")
             len = appendAst(&buffer[0], len, field.name)
-            len = appendAst(&buffer[0], len, "\n")
+            len = appendAst(&buffer[0], len, "\n    }\n")
         }
-        if len == 0 do
+        if len == 0
+        {
             return ""
+        }
         return cast(string, Swag.makeSlice(&buffer[0], len))
     }
     return result
@@ -180,8 +188,8 @@ func(T) applyAuditDiff(base: T, diff: AuditDiff'T)->T
         owner: "ops@contoso.test"
         }
 
-    let diff    = buildAuditDiff'(DeployConfig)(before, after)
-    let rebuilt = applyAuditDiff'(DeployConfig)(before, diff)
+    let diff    = buildAuditDiff!{DeployConfig}(before, after)
+    let rebuilt = applyAuditDiff!{DeployConfig}(before, diff)
 
     Swag.require(diff.changed_replicas)
     Swag.require(diff.old_replicas == 3)
@@ -203,7 +211,7 @@ func(T) applyAuditDiff(base: T, diff: AuditDiff'T)->T
     Swag.require(diff.old_owner == "ops@contoso.test")
     Swag.require(diff.new_owner == "ops@contoso.test")
 
-    Swag.require(auditChangedCount'(DeployConfig)(diff) == 3)
+    Swag.require(auditChangedCount!{DeployConfig}(diff) == 3)
     Swag.require(rebuilt.replicas == 6)
     Swag.require(rebuilt.rollout == .Progressive)
     Swag.require(rebuilt.pauseSeconds == 20)
@@ -229,8 +237,8 @@ func(T) applyAuditDiff(base: T, diff: AuditDiff'T)->T
         overflowContact: "dispatch@warehouse.test"
         }
 
-    let diff    = buildAuditDiff'(WarehouseLimits)(before, after)
-    let rebuilt = applyAuditDiff'(WarehouseLimits)(before, diff)
+    let diff    = buildAuditDiff!{WarehouseLimits}(before, after)
+    let rebuilt = applyAuditDiff!{WarehouseLimits}(before, diff)
 
     Swag.require(not diff.changed_maxBins)
     Swag.require(diff.changed_maxLoadKg)
@@ -242,7 +250,7 @@ func(T) applyAuditDiff(base: T, diff: AuditDiff'T)->T
     Swag.require(diff.changed_overflowContact)
     Swag.require(diff.old_overflowContact == "night-shift@warehouse.test")
     Swag.require(diff.new_overflowContact == "dispatch@warehouse.test")
-    Swag.require(auditChangedCount'(WarehouseLimits)(diff) == 3)
+    Swag.require(auditChangedCount!{WarehouseLimits}(diff) == 3)
 
     Swag.require(rebuilt.maxBins == 48)
     Swag.require(rebuilt.maxLoadKg == 1800)

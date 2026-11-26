@@ -7,30 +7,29 @@
 
 using Core, Core.Errors, Core.Math
 
-internal const CeltBandCount       = 21'u32
-internal const CeltOverlap         = 120'u32
-internal const CeltShortSize       = 120'u32
-internal const CeltFrameMax        = 960'u32
-private const CeltMaxLM            = 3'u32
-private const CeltAllocVectors     = 11'u32
-private const CeltPreemphasis      = 0.85000610'f32
-private const CeltMdctSize         = 1920'u32
-private const CeltFftMax           = 480'u32
-private const MaxFineBits          = 8's32
-private const FineOffset           = 21's32
-private const QThetaOffset         = 4's32
-private const QThetaOffsetTwoPhase = 16's32
-private const AllocSteps           = 6'u32
-private const LogMaxPseudo         = 6'u32
-private const CombMinPeriod        = 15's32
-private const CombMaxPeriod        = 1024'u32
-private const CombHistory          = CombMaxPeriod + 4
-private const CeltDecodeBuffer     = CombHistory + 2 * CeltFrameMax
-private const SpreadNone           = 0'u32
-private const SpreadAggressive     = 3'u32
-private const LaplaceMinP          = 1'u32
-private const LaplaceNMin          = 16'u32
-private const NoiseFloor           = -28.0'f32
+internal const CeltBandCount       = 21_u32
+internal const CeltOverlap         = 120_u32
+internal const CeltShortSize       = 120_u32
+internal const CeltFrameMax        = 960_u32
+private const CeltMaxLM            = 3_u32
+private const CeltAllocVectors     = 11_u32
+private const CeltPreemphasis      = 0.85000610_f32
+private const CeltDecodeBuffer     = 2048_u32
+private const CeltMdctSize         = 1920_u32
+private const CeltFftMax           = 480_u32
+private const MaxFineBits          = 8_s32
+private const FineOffset           = 21_s32
+private const QThetaOffset         = 4_s32
+private const QThetaOffsetTwoPhase = 16_s32
+private const AllocSteps           = 6_u32
+private const LogMaxPseudo         = 6_u32
+private const CombMinPeriod        = 15_s32
+private const CombMaxPeriod        = 1024_u32
+private const SpreadNone           = 0_u32
+private const SpreadAggressive     = 3_u32
+private const LaplaceMinP          = 1_u32
+private const LaplaceNMin          = 16_u32
+private const NoiseFloor           = -28.0_f32
 
 private const TrimIcdf:        [11] u8    = [126, 124, 119, 109, 87, 41, 19, 9, 4, 2, 0]
 private const SpreadIcdf:      [4] u8     = [25, 23, 2, 0]
@@ -38,7 +37,7 @@ private const TapsetIcdf:      [3] u8     = [2, 1, 0]
 private const SmallEnergyIcdf: [3] u8     = [2, 1, 0]
 private const PredCoef:        [4] f32    = [29440.0 / 32768.0, 26112.0 / 32768.0, 21248.0 / 32768.0, 16384.0 / 32768.0]
 private const BetaCoef:        [4] f32    = [30147.0 / 32768.0, 22282.0 / 32768.0, 12124.0 / 32768.0, 6554.0 / 32768.0]
-private const BetaIntra = 4915.0'f32 / 32768.0'f32
+private const BetaIntra = 4915.0_f32 / 32768.0_f32
 private const CombGains:       [3, 3] f32 = [[0.3066406250, 0.2170410156, 0.1296386719], [0.4638671875, 0.2680664062, 0.0], [0.7998046875, 0.1000976562, 0.0]]
 private const SpreadFactor:    [3] s32    = [15, 10, 5]
 private const Exp2Table8:      [8] s32    = [16384, 17866, 19483, 21247, 23170, 25267, 27554, 30048]
@@ -436,17 +435,11 @@ private func bitexactLog2Tan(isin, icos: s32)->s32
 
 private struct CodedTheta
 {
-    angle:  u16
-    middle: u16
-    side:   u16
-    logTan: s16
-}
-
-// For qn = 2 * row, the preceding rows contain row * row - 1 coded angles.
-private const CodedThetas: [129 * 129 - 1] CodedTheta = #run
-{
-    var table: [129 * 129 - 1] CodedTheta
-    for row in 1's32 until 129
+    var g      = 0_u32
+    var bshift = cast(s32, (ilog(value) - 1)) >> 1
+    var b      = 1_u32 << cast(u32, bshift)
+    var v      = value
+    while bshift >= 0
     {
         let base = row * row - 1
         let qn   = 2 * row
@@ -488,8 +481,8 @@ private func laplaceFreq1(fs0, decay: u32)->u32
 
 private func laplaceDecode(dec: *RangeDecoder, fs0, decay: u32)->s32
 {
-    var value = 0's32
-    var fl    = 0'u32
+    var value = 0_s32
+    var fl    = 0_u32
     var fs    = fs0
     let fm    = dec.decodeBinary(15)
     if fm >= fs
@@ -513,10 +506,14 @@ private func laplaceDecode(dec: *RangeDecoder, fs0, decay: u32)->s32
             fl    += 2 * di * LaplaceMinP
         }
 
-        if fm < fl + fs do
+        if fm < fl + fs
+        {
             value = -value
-        else do
+        }
+        else
+        {
             fl += fs
+        }
     }
 
     dec.update(fl, Math.min(fl + fs, 32768), 32768)
@@ -528,9 +525,8 @@ private func laplaceDecode(dec: *RangeDecoder, fs0, decay: u32)->s32
 private struct CeltFft
 {
     n:      u32
-    cosine: Array'f32
-    sine:   Array'f32
-    order:  Array'u32
+    cosine: Array!{f32}
+    sine:   Array!{f32}
 }
 
 private impl CeltFft
@@ -613,11 +609,31 @@ private impl CeltFft
             p[4] = a + ci
         }
 
-        // Rotate the three five-point transforms into their fifteen-point group.
-        let cosine = .cosine.storage()
-        let sine   = .sine.storage()
-        let radixThreeGroups = .n / 15
-        for group in radixThreeGroups
+        var radix = 5_u32
+        if count % 2 == 0
+        {
+            radix = 2
+        }
+        else if count % 3 == 0
+        {
+            radix = 3
+        }
+        else if count % 5 != 0
+        {
+            radix = count
+        }
+
+        let m = count / radix
+        for r in radix
+        {
+            .transform(output + 2 * r * m, input + 2 * r * stride, stride * radix, m, twiddleStride * radix)
+        }
+
+        var re:    [8] f32
+        var im:    [8] f32
+        var outRe: [8] f32
+        var outIm: [8] f32
+        for k in m
         {
             let p = points + group * 15
             for k in 5
@@ -642,9 +658,9 @@ private impl CeltFft
         {
             for group in groups
             {
-                let even = points + group * 2 * width
-                let odd  = even + width
-                for k in width
+                var sumRe = 0.0_f32
+                var sumIm = 0.0_f32
+                for r in radix
                 {
                     let a     = even[k]
                     let index = k * groups
@@ -664,9 +680,10 @@ private impl CeltFft
 // cancellation exactly as the reference decoder lays it out.
 private struct CeltMdct
 {
-    trig:    [4] Array'f32
-    fft:     [4] CeltFft
-    scratch: Array'Simd.F32x4
+    trig:   [4] Array!{f32}
+    fft:    [4] CeltFft
+    input:  Array!{f32}
+    output: Array!{f32}
 }
 
 private impl CeltMdct
@@ -679,8 +696,11 @@ private impl CeltMdct
         {
             let half = n / 2
             result.trig[shift].resize(half)
-            for i in half do
+            for i in half
+            {
                 result.trig[shift][i] = cast(f32, Math.cos(2.0 * Math.ConstF64.Pi * (cast(f64, i) + 0.125) / cast(f64, n)))
+            }
+
             result.fft[shift] = CeltFft.create(n / 4)
             n /= 2
         }
@@ -781,7 +801,11 @@ private impl CeltMdct
 
         fft.transform(points)
         let yp = out + CeltOverlap / 2
-        if rightOut
+        Memory.copy(yp, fftOut, cast(u64, n2) * #sizeof(f32))
+
+        var a = 0_u32
+        var b = n2 - 2
+        for i in (n4 + 1) / 2
         {
             let yr = rightOut + CeltOverlap / 2
             for i in n4
@@ -819,7 +843,17 @@ private impl CeltMdct
             }
         }
 
-        overlap(out)
+        var lowIndex  = 0_u32
+        var highIndex = CeltOverlap - 1
+        for CeltOverlap / 2
+        {
+            let x1 = out[highIndex]
+            let x2 = out[lowIndex]
+            out[lowIndex]  = CeltWindow[highIndex] * x2 - CeltWindow[lowIndex] * x1
+            out[highIndex] = CeltWindow[lowIndex] * x2 + CeltWindow[highIndex] * x1
+            lowIndex       += 1
+            highIndex      -= 1
+        }
     }
 }
 
@@ -903,19 +937,17 @@ internal struct CeltDecoder
     postfilterTapset:    u32
     postfilterTapsetOld: u32
     preemphasisMemory:   [2] f32
-    decodePosition:      u32
-    decodeMemory:        [2] Array'f32     // CeltDecodeBuffer + CeltOverlap samples per channel.
+    decodeMemory:        [2] Array!{f32}     // CeltDecodeBuffer + CeltOverlap samples per channel.
     oldBandE:            [2 * CeltBandCount] f32
     oldLogE:             [2 * CeltBandCount] f32
     oldLogE2:            [2 * CeltBandCount] f32
     backgroundLogE:      [2 * CeltBandCount] f32
     mdct:                CeltMdct
-    spectrum:            Array'f32     // Normalised MDCT coefficients of both channels.
-    frequency:           Array'f32     // Denormalised coefficients of one channel.
-    norm:                Array'f32     // Folding source for both channels.
-    scratch:             Array'f32     // Lowband copy while a band is recombined.
-    pulses:              Array's32
-    hadamard:            [MaxPulseDimensions] f32
+    spectrum:            Array!{f32}     // Normalised MDCT coefficients of both channels.
+    frequency:           Array!{f32}     // Denormalised coefficients of one channel.
+    norm:                Array!{f32}     // Folding source for both channels.
+    scratch:             Array!{f32}     // Lowband copy while a band is recombined.
+    pulses:              Array!{s32}
 }
 
 internal impl CeltDecoder
@@ -927,8 +959,11 @@ internal impl CeltDecoder
         result.streamChannels = channels
         result.endBand        = CeltBandCount
         result.disableInv     = channels == 1
-        for c in 2 do
+        for c in 2
+        {
             result.decodeMemory[c].resize(CeltDecodeBuffer + CeltOverlap)
+        }
+
         result.mdct = CeltMdct.create()
         result.spectrum.resize(2 * CeltFrameMax)
         result.frequency.resize(2 * CeltFrameMax)
@@ -951,8 +986,11 @@ internal impl CeltDecoder
         .postfilterTapsetOld  = 0
         .preemphasisMemory[0] = 0
         .preemphasisMemory[1] = 0
-        for c in 2 do
+        for c in 2
+        {
             Memory.set(.decodeMemory[c].storage(), 0, .decodeMemory[c].count * #sizeof(f32))
+        }
+
         for i in 2 * CeltBandCount
         {
             .oldBandE[i]       = 0
@@ -964,11 +1002,11 @@ internal impl CeltDecoder
 
     mtd unquantCoarseEnergy(intra: bool, dec: *RangeDecoder, lm: u32)
     {
-        let coef   = intra ? 0.0'f32 : PredCoef[lm]
+        let coef   = intra ? 0.0_f32 : PredCoef[lm]
         let beta   = intra ? BetaIntra : BetaCoef[lm]
         let budget = cast(s32, dec.storage) * 8
         var prev: [2] f32
-        let model  = intra ? 1'u32 : 0
+        let model  = intra ? 1_u32 : 0
         for i in .startBand until .endBand
         {
             for c in .streamChannels
@@ -980,12 +1018,12 @@ internal impl CeltDecoder
                     let pi = 2 * Math.min(i, 20)
                     qi = laplaceDecode(dec, cast(u32, CeltEnergyProbabilities[lm, model, pi]) << 7, cast(u32, CeltEnergyProbabilities[lm, model, pi + 1]) << 6)
                 }
-                elif budget - tell >= 2
+                else if budget - tell >= 2
                 {
                     let raw = cast(s32, dec.decodeIcdf(SmallEnergyIcdf, 2))
                     qi = (raw >> 1) ^ -(raw & 1)
                 }
-                elif budget - tell >= 1
+                else if budget - tell >= 1
                 {
                     qi = dec.decodeBit(1) ? -1 : 0
                 }
@@ -996,7 +1034,7 @@ internal impl CeltDecoder
 
                 let q     = cast(f32, qi)
                 let index = i + c * CeltBandCount
-                .oldBandE[index] = Math.max(-9.0'f32, .oldBandE[index])
+                .oldBandE[index] = Math.max(-9.0_f32, .oldBandE[index])
                 let tmp = coef * .oldBandE[index] + prev[c] + q
                 .oldBandE[index] = tmp
                 prev[c] = prev[c] + q - beta * q
@@ -1008,8 +1046,11 @@ internal impl CeltDecoder
     {
         for i in .startBand until .endBand
         {
-            if fineQuant[i] <= 0 do
+            if fineQuant[i] <= 0
+            {
                 continue
+            }
+
             for c in .streamChannels
             {
                 let q2     = cast(f32, dec.decodeBits(cast(u32, fineQuant[i])))
@@ -1026,10 +1067,16 @@ internal impl CeltDecoder
         {
             for i in .startBand until .endBand
             {
-                if left < cast(s32, .streamChannels) do
+                if left < cast(s32, .streamChannels)
+                {
                     break
-                if fineQuant[i] >= MaxFineBits or finePriority[i] != cast(s32, priority) do
+                }
+
+                if fineQuant[i] >= MaxFineBits or finePriority[i] != cast(s32, priority)
+                {
                     continue
+                }
+
                 for c in .streamChannels
                 {
                     let q2     = cast(f32, dec.decodeBits(1))
@@ -1045,12 +1092,15 @@ internal impl CeltDecoder
     {
         var budget  = cast(s32, dec.storage) * 8
         var tell    = dec.tell()
-        var logp    = isTransient ? 2'u32 : 4
+        var logp    = isTransient ? 2_u32 : 4
         let reserve = lm > 0 and tell + cast(s32, logp) + 1 <= budget
-        if reserve do
+        if reserve
+        {
             budget -= 1
-        var changed = 0's32
-        var current = 0's32
+        }
+
+        var changed = 0_s32
+        var current = 0_s32
         for i in .startBand until .endBand
         {
             if tell + cast(s32, logp) <= budget
@@ -1061,15 +1111,20 @@ internal impl CeltDecoder
             }
 
             tfRes[i] = current
-            logp     = isTransient ? 4'u32 : 5
+            logp     = isTransient ? 4_u32 : 5
         }
 
-        var select = 0's32
-        let row    = isTransient ? 4'u32 : 0
-        if reserve and CeltTfSelectTable[lm, row + cast(u32, changed)] != CeltTfSelectTable[lm, row + 2 + cast(u32, changed)] do
+        var select = 0_s32
+        let row    = isTransient ? 4_u32 : 0
+        if reserve and CeltTfSelectTable[lm, row + cast(u32, changed)] != CeltTfSelectTable[lm, row + 2 + cast(u32, changed)]
+        {
             select = dec.decodeBit(1) ? 1 : 0
-        for i in .startBand until .endBand do
+        }
+
+        for i in .startBand until .endBand
+        {
             tfRes[i] = cast(s32, CeltTfSelectTable[lm, row + 2 * cast(u32, select) + cast(u32, tfRes[i])])
+        }
     }
 
     // Bit allocation, clause 4.3.3: interpolates between the static allocation rows that bracket
@@ -1092,10 +1147,10 @@ internal impl CeltDecoder
         let end       = .endBand
         var total     = Math.max(totalBits, 0)
         var skipStart = start
-        let skipRsv   = total >= 1's32 << BitRes ? 1's32 << BitRes : 0
+        let skipRsv   = total >= 1_s32 << BitRes ? 1_s32 << BitRes : 0
         total -= skipRsv
-        var intensityRsv  = 0's32
-        var dualStereoRsv = 0's32
+        var intensityRsv  = 0_s32
+        var dualStereoRsv = 0_s32
         if C == 2
         {
             intensityRsv = cast(s32, CeltLog2FracTable[end - start])
@@ -1106,7 +1161,7 @@ internal impl CeltDecoder
             else
             {
                 total         -= intensityRsv
-                dualStereoRsv = total >= 1's32 << BitRes ? 1's32 << BitRes : 0
+                dualStereoRsv = total >= 1_s32 << BitRes ? 1_s32 << BitRes : 0
                 total         -= dualStereoRsv
             }
         }
@@ -1120,16 +1175,18 @@ internal impl CeltDecoder
             let width = cast(s32, (CeltBands[j + 1] - CeltBands[j]))
             thresh[j]     = Math.max(C << BitRes, ((3 * width) << lm << BitRes) >> 4)
             trimOffset[j] = (C * width * (allocTrim - 5 - cast(s32, lm)) * cast(s32, (end - j - 1)) * (1 << (lm + BitRes))) >> 6
-            if (width << lm) == 1 do
+            if (width << lm) == 1
+            {
                 trimOffset[j] -= C << BitRes
+            }
         }
 
-        var lo = 1's32
+        var lo = 1_s32
         var hi = cast(s32, CeltAllocVectors) - 1
         while lo <= hi
         {
             var done = false
-            var psum = 0's32
+            var psum = 0_s32
             let mid  = (lo + hi) >> 1
             var j    = end
             while j > start
@@ -1137,24 +1194,31 @@ internal impl CeltDecoder
                 j -= 1
                 let width = cast(s32, (CeltBands[j + 1] - CeltBands[j]))
                 var bitsj = ((C * width * cast(s32, CeltBandAllocation[cast(u32, mid), j])) << lm) >> 2
-                if bitsj > 0 do
-                    bitsj = Math.max(0's32, bitsj + trimOffset[j])
+                if bitsj > 0
+                {
+                    bitsj = Math.max(0_s32, bitsj + trimOffset[j])
+                }
+
                 bitsj += offsets[j]
                 if bitsj >= thresh[j] or done
                 {
                     done = true
                     psum += Math.min(bitsj, cap[j])
                 }
-                elif bitsj >= C << BitRes
+                else if bitsj >= C << BitRes
                 {
                     psum += C << BitRes
                 }
             }
 
-            if psum > total do
+            if psum > total
+            {
                 hi = mid - 1
-            else do
+            }
+            else
+            {
                 lo = mid + 1
+            }
         }
 
         hi = lo
@@ -1164,16 +1228,28 @@ internal impl CeltDecoder
             let width  = cast(s32, (CeltBands[j + 1] - CeltBands[j]))
             var bits1j = ((C * width * cast(s32, CeltBandAllocation[cast(u32, lo), j])) << lm) >> 2
             var bits2j = hi >= cast(s32, CeltAllocVectors) ? cap[j] : ((C * width * cast(s32, CeltBandAllocation[cast(u32, hi), j])) << lm) >> 2
-            if bits1j > 0 do
-                bits1j = Math.max(0's32, bits1j + trimOffset[j])
-            if bits2j > 0 do
-                bits2j = Math.max(0's32, bits2j + trimOffset[j])
-            if lo > 0 do
+            if bits1j > 0
+            {
+                bits1j = Math.max(0_s32, bits1j + trimOffset[j])
+            }
+
+            if bits2j > 0
+            {
+                bits2j = Math.max(0_s32, bits2j + trimOffset[j])
+            }
+
+            if lo > 0
+            {
                 bits1j += offsets[j]
+            }
+
             bits2j += offsets[j]
-            if offsets[j] > 0 do
+            if offsets[j] > 0
+            {
                 skipStart = j
-            bits2j   = Math.max(0's32, bits2j - bits1j)
+            }
+
+            bits2j   = Math.max(0_s32, bits2j - bits1j)
             bits1[j] = bits1j
             bits2[j] = bits2j
         }
@@ -1182,8 +1258,8 @@ internal impl CeltDecoder
         let allocFloor = C << BitRes
         let stereo     = C > 1
         let logM       = cast(s32, lm) << BitRes
-        var ilo        = 0's32
-        var ihi        = 1's32 << AllocSteps
+        var ilo        = 0_s32
+        var ihi        = 1_s32 << AllocSteps
         var psum: s32
         for AllocSteps
         {
@@ -1200,16 +1276,20 @@ internal impl CeltDecoder
                     done = true
                     psum += Math.min(tmp, cap[j])
                 }
-                elif tmp >= allocFloor
+                else if tmp >= allocFloor
                 {
                     psum += allocFloor
                 }
             }
 
-            if psum > total do
+            if psum > total
+            {
                 ihi = mid
-            else do
+            }
+            else
+            {
                 ilo = mid
+            }
         }
 
         psum = 0
@@ -1219,10 +1299,15 @@ internal impl CeltDecoder
         {
             j -= 1
             var tmp = bits1[j] + ((ilo * bits2[j]) >> AllocSteps)
-            if tmp < thresh[j] and not done do
+            if tmp < thresh[j] and not done
+            {
                 tmp = tmp >= allocFloor ? allocFloor : 0
-            else do
+            }
+            else
+            {
                 done = true
+            }
+
             tmp       = Math.min(tmp, cap[j])
             pulses[j] = tmp
             psum      += tmp
@@ -1245,17 +1330,23 @@ internal impl CeltDecoder
             let rem       = Math.max(left - cast(s32, (CeltBands[j] - CeltBands[start])), 0)
             let bandWidth = cast(s32, (CeltBands[codedBands] - CeltBands[j]))
             var bandBits  = pulses[j] + percoeff * bandWidth + rem
-            if bandBits >= Math.max(thresh[j], allocFloor + (1's32 << BitRes))
+            if bandBits >= Math.max(thresh[j], allocFloor + (1_s32 << BitRes))
             {
-                if dec.decodeBit(1) do
+                if dec.decodeBit(1)
+                {
                     break
-                psum     += 1's32 << BitRes
-                bandBits -= 1's32 << BitRes
+                }
+
+                psum     += 1_s32 << BitRes
+                bandBits -= 1_s32 << BitRes
             }
 
             psum -= pulses[j] + intensityRsv
-            if intensityRsv > 0 do
+            if intensityRsv > 0
+            {
                 intensityRsv = cast(s32, CeltLog2FracTable[j - start])
+            }
+
             psum += intensityRsv
             if bandBits >= allocFloor
             {
@@ -1270,10 +1361,15 @@ internal impl CeltDecoder
             codedBands -= 1
         }
 
-        if intensityRsv > 0 do
+        if intensityRsv > 0
+        {
             intensity[] = start + dec.decodeUint(codedBands + 1 - start)
-        else do
+        }
+        else
+        {
             intensity[] = 0
+        }
+
         if intensity[] <= start
         {
             total         += dualStereoRsv
@@ -1286,8 +1382,11 @@ internal impl CeltDecoder
         let span     = cast(s32, (CeltBands[codedBands] - CeltBands[start]))
         let percoeff = left / span
         left -= span * percoeff
-        for k in start until codedBands do
+        for k in start until codedBands
+        {
             pulses[k] += percoeff * cast(s32, (CeltBands[k + 1] - CeltBands[k]))
+        }
+
         for k in start until codedBands
         {
             let tmp = Math.min(left, cast(s32, (CeltBands[k + 1] - CeltBands[k])))
@@ -1295,7 +1394,7 @@ internal impl CeltDecoder
             left      -= tmp
         }
 
-        var bal = 0's32
+        var bal = 0_s32
         for k in start until codedBands
         {
             let n0  = cast(s32, (CeltBands[k + 1] - CeltBands[k]))
@@ -1309,23 +1408,34 @@ internal impl CeltDecoder
                 let den    = C * n + ((C == 2 and n > 2 and not dualStereo[] and k < intensity[]) ? 1 : 0)
                 let nclogn = den * (cast(s32, CeltLogN[k]) + logM)
                 var offset = (nclogn >> 1) - den * FineOffset
-                if n == 2 do
+                if n == 2
+                {
                     offset += (den << BitRes) >> 2
-                if pulses[k] + offset < (den * 2) << BitRes do
+                }
+
+                if pulses[k] + offset < (den * 2) << BitRes
+                {
                     offset += nclogn >> 2
-                elif pulses[k] + offset < (den * 3) << BitRes do
+                }
+                else if pulses[k] + offset < (den * 3) << BitRes
+                {
                     offset += nclogn >> 3
-                ebits[k] = Math.max(0's32, pulses[k] + offset + (den << (BitRes - 1)))
-                ebits[k] = divideCeltBudget(ebits[k], den) >> BitRes
-                if C * ebits[k] > (pulses[k] >> BitRes) do
+                }
+
+                ebits[k] = Math.max(0_s32, pulses[k] + offset + (den << (BitRes - 1)))
+                ebits[k] = (ebits[k] / den) >> BitRes
+                if C * ebits[k] > (pulses[k] >> BitRes)
+                {
                     ebits[k] = pulses[k] >> (stereo ? 1 : 0) >> BitRes
+                }
+
                 ebits[k]        = Math.min(ebits[k], MaxFineBits)
                 finePriority[k] = ebits[k] * (den << BitRes) >= pulses[k] + offset ? 1 : 0
                 pulses[k]       -= (C * ebits[k]) << BitRes
             }
             else
             {
-                excess          = Math.max(0's32, bit - (C << BitRes))
+                excess          = Math.max(0_s32, bit - (C << BitRes))
                 pulses[k]       = bit - excess
                 ebits[k]        = 0
                 finePriority[k] = 1
@@ -1354,29 +1464,53 @@ internal impl CeltDecoder
         return codedBands
     }
 
-    mtd const bits2pulses(row: u32, bits: s32)->s32
-        => cast(s32, PulseChoices[row, Math.clamp(bits - 1, 0, 255)])
+    mtd const bits2pulses(band: u32, lm: s32, bits: s32)->s32
+    {
+        let base = cast(u32, CeltCacheIndex[cast(u32, (lm + 1)) * CeltBandCount + band])
+        var lo   = 0_s32
+        var hi   = cast(s32, CeltCacheBits[base])
+        let want = bits - 1
+        for LogMaxPseudo
+        {
+            let mid = (lo + hi + 1) >> 1
+            if cast(s32, CeltCacheBits[base + cast(u32, mid)]) >= want
+            {
+                hi = mid
+            }
+            else
+            {
+                lo = mid
+            }
+        }
 
     mtd const pulses2bits(base: u32, pulses: s32)->s32
     {
-        if not pulses do
+        if not pulses
+        {
             return 0
+        }
+
+        let base = cast(u32, CeltCacheIndex[cast(u32, (lm + 1)) * CeltBandCount + band])
         return cast(s32, CeltCacheBits[base + cast(u32, pulses)]) + 1
     }
 
     // Reconstructs the signed pulse vector in the spectrum and returns its squared norm.
     mtd decodePulses(target: [*] s32, n, k: u32, dec: *RangeDecoder)->f32
     {
-        var index     = dec.decodeUint(pulseArrangements(n, k) + pulseArrangements(n, k + 1))
-        var remaining = k
-        var norm      = 0'u32
-        var position  = 0'u32
-
-        // Stop as soon as the remaining codebook has a closed form.
-        while remaining > 1 and position + 2 < n
+        var u: [160] u32
+        let len = k + 2
+        u[0] = 0
+        u[1] = 1
+        for j in 2_u32 until len
         {
-            let dimensions = n - position
-            if dimensions <= 8 and remaining <= 6
+            u[j] = (j << 1) - 1
+        }
+
+        for 2_u32 until n
+        {
+            // Next row of the recurrence u[i][j] = u[i-1][j] + u[i][j-1] + u[i-1][j-1].
+            var ui0 = 1_u32
+            for j in 1_u32 until k + 1
             {
                 let start = PulseTailLayout.offset[dimensions, remaining]
                 if start
@@ -1413,14 +1547,21 @@ internal impl CeltDecoder
             position         += 1
         }
 
-        let tail       = target + position
-        let dimensions = n - position
-        if remaining <= 1
+        var index = dec.decodeUint(u[k] + u[k + 1])
+        var yy    = 0.0_f32
+        var kk    = k
+        for j in n
         {
-            // Single pulses are indexed by increasing position when positive and by
-            // decreasing position when negative. Zero pulses leave the entire tail empty.
-            Memory.clear(tail, cast(u64, dimensions) * #sizeof(s32))
-            if remaining
+            var p        = u[kk + 1]
+            let negative = index >= p
+            if negative
+            {
+                index -= p
+            }
+
+            var yj = cast(s32, kk)
+            p = u[kk]
+            while p > index
             {
                 if index < dimensions do
                     tail[index] = 1
@@ -1428,7 +1569,27 @@ internal impl CeltDecoder
                     tail[2 * dimensions - 1 - index] = -1
             }
 
-            return cast(f32, norm + remaining)
+            index -= p
+            yj    -= cast(s32, kk)
+            var value = yj
+            if negative
+            {
+                value = -yj
+            }
+
+            target[j] = value
+            yy        += cast(f32, (value * value))
+
+            // Previous row of the recurrence.
+            var ui0 = 0_u32
+            for i in 1_u32 until kk + 2
+            {
+                let ui1 = u[i] - u[i - 1] - ui0
+                u[i - 1] = ui0
+                ui0      = ui1
+            }
+
+            u[kk + 1] = ui0
         }
 
         if dimensions == 1
@@ -1453,7 +1614,7 @@ internal impl CeltDecoder
     mtd expRotation1(x: [*] f32, len, stride: u32, c, s: f32)
     {
         let ms = -s
-        var i  = 0'u32
+        var i  = 0_u32
         while i + stride < len
         {
             let x1 = x[i]
@@ -1472,8 +1633,11 @@ internal impl CeltDecoder
                 let x2 = x[j + stride]
                 x[j + stride] = c * x2 + s * x1
                 x[j] = c * x1 + ms * x2
-                if j == 0 do
+                if j == 0
+                {
                     break
+                }
+
                 j -= 1
             }
         }
@@ -1611,46 +1775,70 @@ internal impl CeltDecoder
 
     mtd expRotation(x: [*] f32, len: u32, stride, k, spread: u32)
     {
-        if 2 * k >= len or spread == SpreadNone do
+        if 2 * k >= len or spread == SpreadNone
+        {
             return
-        let offset = SpreadLayout.offset[len] + k - 1
-        let c      = SpreadRotations[spread - 1, offset, 0]
-        let s      = SpreadRotations[spread - 1, offset, 1]
+        }
+
+        let factor  = SpreadFactor[spread - 1]
+        let gain    = cast(f32, len) / cast(f32, (cast(s32, len) + factor * cast(s32, k)))
+        let theta   = 0.5 * gain * gain
+        let c       = cast(f32, Math.cos(0.5 * Math.ConstF64.Pi * cast(f64, theta)))
+        let s       = cast(f32, Math.cos(0.5 * Math.ConstF64.Pi * cast(f64, (1.0 - theta))))
+        var stride2 = 0_u32
+        if len >= 8 * stride
+        {
+            stride2 = 1
+            while (stride2 * stride2 + stride2) * stride + (stride >> 2) < len
+            {
+                stride2 += 1
+            }
+        }
 
         // The transform block count is a power of two.
         let part    = len >> cast(u32, Swag.trailingZeros(stride))
         let stride2 = SpreadStride[part]
         for i in stride
         {
-            let at = x + i * part
-            if stride2 == 4 and (part & 3) == 0 do
-                .expRotationStridedFour(at, part, s, c)
-            elif stride2 do
-                .expRotation1(at, part, cast(u32, stride2), s, c)
-            if part >= 12 do
-                .expRotationAdjacentPacked(at, part, c, s)
-            else do
-                .expRotationAdjacent(at, part, c, s)
+            if stride2
+            {
+                .expRotation1(x + i * part, part, stride2, s, c)
+            }
+
+            .expRotation1(x + i * part, part, 1, c, s)
         }
     }
 
     mtd algUnquant(x: [*] f32, n, k: u32, spread, b: u32, dec: *RangeDecoder, gain: f32)->u32
     {
-        let pulses = cast([*] s32, x)
-        let energy = .decodePulses(pulses, n, k, dec)
-        var mask   = 1'u32
-        if b > 1
+        var iy: [176] s32
+        let ryy = .decodePulses(&iy[0], n, k, dec)
+        let g   = celtRsqrt(ryy) * gain
+        for i in n
         {
-            let blockSize = n / b
-            mask = 0
-            for i in b
+            x[i] = g * cast(f32, iy[i])
+        }
+
+        .expRotation(x, n, b, k, spread)
+
+        if b <= 1
+        {
+            return 1
+        }
+
+        let n0   = n / b
+        var mask = 0_u32
+        for i in b
+        {
+            var anyPulses = false
+            for j in n0 where iy[i * n0 + j]
             {
-                let block = pulses + i * blockSize
-                for j in blockSize where block[j] != 0
-                {
-                    mask |= 1'u32 << i
-                    break
-                }
+                anyPulses = true
+            }
+
+            if anyPulses
+            {
+                mask |= 1_u32 << i
             }
         }
 
@@ -1670,12 +1858,17 @@ internal impl CeltDecoder
 
     mtd renormaliseVector(x: [*] f32, n: u32, gain: f32)
     {
-        var energy = 1e-15'f32
-        for i in n do
+        var energy = 1e-15_f32
+        for i in n
+        {
             energy += x[i] * x[i]
+        }
+
         let g = celtRsqrt(energy) * gain
-        for i in n do
+        for i in n
+        {
             x[i] *= g
+        }
     }
 
     mtd haar1(x: [*] f32, n0, stride: u32)
@@ -1685,8 +1878,8 @@ internal impl CeltDecoder
         {
             for j in half
             {
-                let a = 0.70710678'f32 * x[stride * 2 * j + i]
-                let b = 0.70710678'f32 * x[stride * (2 * j + 1) + i]
+                let a = 0.70710678_f32 * x[stride * 2 * j + i]
+                let b = 0.70710678_f32 * x[stride * (2 * j + 1) + i]
                 x[stride * 2 * j + i]       = a + b
                 x[stride * (2 * j + 1) + i] = a - b
             }
@@ -1702,20 +1895,27 @@ internal impl CeltDecoder
             let base = stride - 2
             for i in stride
             {
-                for j in n0 do
+                for j in n0
+                {
                     tmp[cast(u32, CeltOrderyTable[base + i]) * n0 + j] = x[j * stride + i]
+                }
             }
         }
         else
         {
             for i in stride
             {
-                for j in n0 do
+                for j in n0
+                {
                     tmp[i * n0 + j] = x[j * stride + i]
+                }
             }
         }
 
-        Memory.copy(x, tmp, cast(u64, n) * #sizeof(f32))
+        for i in n
+        {
+            x[i] = tmp[i]
+        }
     }
 
     mtd interleaveHadamard(x: [*] f32, n0, stride: u32, hadamard: bool)
@@ -1727,20 +1927,27 @@ internal impl CeltDecoder
             let base = stride - 2
             for i in stride
             {
-                for j in n0 do
+                for j in n0
+                {
                     tmp[j * stride + i] = x[cast(u32, CeltOrderyTable[base + i]) * n0 + j]
+                }
             }
         }
         else
         {
             for i in stride
             {
-                for j in n0 do
+                for j in n0
+                {
                     tmp[j * stride + i] = x[i * n0 + j]
+                }
             }
         }
 
-        Memory.copy(x, tmp, cast(u64, n) * #sizeof(f32))
+        for i in n
+        {
+            x[i] = tmp[i]
+        }
     }
 
     mtd computeTheta(ctx: *BandContext,
@@ -1755,34 +1962,42 @@ internal impl CeltDecoder
                      dec: *RangeDecoder)
     {
         let i        = ctx.band
-        let pulseCap = cast(s32, CeltLogN[i]) + lm * (1's32 << BitRes)
+        let pulseCap = cast(s32, CeltLogN[i]) + lm * (1_s32 << BitRes)
         let offset   = (pulseCap >> 1) - cast(s32, (stereo and n == 2 ? QThetaOffsetTwoPhase : QThetaOffset))
         var qn       = computeQn(cast(s32, n), b[], offset, pulseCap, stereo)
-        if stereo and i >= ctx.intensity do
+        if stereo and i >= ctx.intensity
+        {
             qn = 1
+        }
+
         let tell   = cast(s32, dec.tellFrac())
-        var itheta = 0's32
+        var itheta = 0_s32
         var inv    = false
         var th: CodedTheta
         if qn != 1
         {
             if stereo and n > 2
             {
-                let p0 = 3's32
+                let p0 = 3_s32
                 let x0 = qn / 2
                 let ft = cast(u32, (p0 * (x0 + 1) + x0))
                 let fs = cast(s32, dec.decode(ft))
                 var x: s32
-                if fs < (x0 + 1) * p0 do
+                if fs < (x0 + 1) * p0
+                {
                     x = fs / p0
-                else do
+                }
+                else
+                {
                     x = x0 + 1 + (fs - (x0 + 1) * p0)
+                }
+
                 let low  = x <= x0 ? p0 * x : (x - 1 - x0) + (x0 + 1) * p0
                 let high = x <= x0 ? p0 * (x + 1) : (x - x0) + (x0 + 1) * p0
                 dec.update(cast(u32, low), cast(u32, high), ft)
                 itheta = x
             }
-            elif b0 > 1 or stereo
+            else if b0 > 1 or stereo
             {
                 itheta = cast(s32, dec.decodeUint(cast(u32, qn) + 1))
             }
@@ -1806,12 +2021,18 @@ internal impl CeltDecoder
             th     = CodedThetas[row * row - 1 + itheta]
             itheta = cast(s32, th.angle)
         }
-        elif stereo
+        else if stereo
         {
-            if b[] > 2's32 << BitRes and ctx.remainingBits > 2's32 << BitRes do
+            if b[] > 2_s32 << BitRes and ctx.remainingBits > 2_s32 << BitRes
+            {
                 inv = dec.decodeBit(2)
-            if ctx.disableInv do
+            }
+
+            if ctx.disableInv
+            {
                 inv = false
+            }
+
             itheta = 0
         }
 
@@ -1822,14 +2043,14 @@ internal impl CeltDecoder
         {
             imid   = 32767
             iside  = 0
-            fill[] &= (1'u32 << bBlocks) - 1
+            fill[] &= (1_u32 << bBlocks) - 1
             delta  = -16384
         }
-        elif itheta == 16384
+        else if itheta == 16384
         {
             imid   = 0
             iside  = 32767
-            fill[] &= ((1'u32 << bBlocks) - 1) << bBlocks
+            fill[] &= ((1_u32 << bBlocks) - 1) << bBlocks
             delta  = 16384
         }
         else
@@ -1850,22 +2071,27 @@ internal impl CeltDecoder
     mtd quantBandN1(ctx: *BandContext, x: [*] f32, y: [*] f32?, lowbandOut: [*] f32?, dec: *RangeDecoder)->u32
     {
         var target = x
-        for (y ? 2'u32 : 1)
+        for (y ? 2_u32 : 1)
         {
             var sign = false
-            if ctx.remainingBits >= 1's32 << BitRes
+            if ctx.remainingBits >= 1_s32 << BitRes
             {
                 sign = dec.decodeBits(1) != 0
-                ctx.remainingBits -= 1's32 << BitRes
+                ctx.remainingBits -= 1_s32 << BitRes
             }
 
-            target[0] = sign ? -1.0'f32 : 1.0
-            if y do
+            target[0] = sign ? -1.0_f32 : 1.0
+            if y
+            {
                 target = y
+            }
         }
 
-        if lowbandOut do
+        if lowbandOut
+        {
             lowbandOut[0] = x[0]
+        }
+
         return 1
     }
 
@@ -1880,18 +2106,22 @@ internal impl CeltDecoder
                        fill: u32,
                        dec: *RangeDecoder)->u32
     {
-        let i    = ctx.band
-        var cm   = 0'u32
-        let plan = &CeltPartitionPlans[cast(u32, (lm + 1)) * CeltBandCount + i]
-        if lm != -1 and bBits > cast(s32, plan.limit) and n > 2
+        let i     = ctx.band
+        var cm    = 0_u32
+        let base  = cast(u32, CeltCacheIndex[cast(u32, (lm + 1)) * CeltBandCount + i])
+        let limit = cast(s32, CeltCacheBits[base + cast(u32, CeltCacheBits[base])]) + 12
+        if lm != -1 and bBits > limit and n > 2
         {
             var sctx: SplitContext
             let half    = n >> 1
             let y       = x + half
             let lmNew   = lm - 1
             var fillNow = fill
-            if b == 1 do
+            if b == 1
+            {
                 fillNow = (fill & 1) | (fill << 1)
+            }
+
             let bNew = (b + 1) >> 1
             var bb   = bBits
             .computeTheta(ctx, &sctx, half, &bb, bNew, b, lmNew, false, &fillNow, dec)
@@ -1900,33 +2130,46 @@ internal impl CeltDecoder
             var delta = sctx.delta
             if b > 1 and (sctx.itheta & 0x3FFF)
             {
-                if sctx.itheta > 8192 do
+                if sctx.itheta > 8192
+                {
                     delta -= delta >> cast(u32, (4 - lmNew))
-                else do
-                    delta = Math.min(0's32, delta + ((cast(s32, half) << BitRes) >> cast(u32, (5 - lmNew))))
+                }
+                else
+                {
+                    delta = Math.min(0_s32, delta + ((cast(s32, half) << BitRes) >> cast(u32, (5 - lmNew))))
+                }
             }
 
-            var mbits = Math.max(0's32, Math.min(bb, (bb - delta) / 2))
+            var mbits = Math.max(0_s32, Math.min(bb, (bb - delta) / 2))
             var sbits = bb - mbits
             ctx.remainingBits -= sctx.qalloc
             var nextLowband: [*] f32?
-            if lowband do
+            if lowband
+            {
                 nextLowband = lowband + half
+            }
+
             var rebalance = ctx.remainingBits
             if mbits >= sbits
             {
                 cm        = .quantPartition(ctx, x, half, mbits, bNew, lowband, lmNew, gain * mid, fillNow, dec)
                 rebalance = mbits - (rebalance - ctx.remainingBits)
-                if rebalance > 3's32 << BitRes and sctx.itheta != 0 do
-                    sbits += rebalance - (3's32 << BitRes)
+                if rebalance > 3_s32 << BitRes and sctx.itheta != 0
+                {
+                    sbits += rebalance - (3_s32 << BitRes)
+                }
+
                 cm |= .quantPartition(ctx, y, half, sbits, bNew, nextLowband, lmNew, gain * side, fillNow >> bNew, dec) << (b >> 1)
             }
             else
             {
                 cm        = .quantPartition(ctx, y, half, sbits, bNew, nextLowband, lmNew, gain * side, fillNow >> bNew, dec) << (b >> 1)
                 rebalance = sbits - (rebalance - ctx.remainingBits)
-                if rebalance > 3's32 << BitRes and sctx.itheta != 16384 do
-                    mbits += rebalance - (3's32 << BitRes)
+                if rebalance > 3_s32 << BitRes and sctx.itheta != 16384
+                {
+                    mbits += rebalance - (3_s32 << BitRes)
+                }
+
                 cm |= .quantPartition(ctx, x, half, mbits, bNew, lowband, lmNew, gain * mid, fillNow, dec)
             }
 
@@ -1951,11 +2194,15 @@ internal impl CeltDecoder
             return .algUnquant(x, n, k, ctx.spread, b, dec, gain)
         }
 
-        let cmMask   = (1'u32 << b) - 1
+        let cmMask   = (1_u32 << b) - 1
         let fillMask = fill & cmMask
         if not fillMask
         {
-            Memory.clear(x, cast(u64, n) * #sizeof(f32))
+            for j in n
+            {
+                x[j] = 0
+            }
+
             return 0
         }
 
@@ -1978,8 +2225,10 @@ internal impl CeltDecoder
                   fillIn: u32,
                   dec: *RangeDecoder)->u32
     {
-        if n == 1 do
+        if n == 1
+        {
             return .quantBandN1(ctx, x, null, lowbandOut, dec)
+        }
 
         // One block with unchanged resolution needs no coefficient permutation.
         if b == 1 and not ctx.tfChange
@@ -1996,24 +2245,33 @@ internal impl CeltDecoder
         let n0         = n
         var nb         = n / b
         var blocks     = b
-        var timeDivide = 0'u32
-        var recombine  = 0'u32
+        var timeDivide = 0_u32
+        var recombine  = 0_u32
         let longBlocks = b == 1
         var tfChange   = ctx.tfChange
-        if tfChange > 0 do
+        if tfChange > 0
+        {
             recombine = cast(u32, tfChange)
+        }
 
         if useScratch and lowband and (recombine or ((nb & 1) == 0 and tfChange < 0) or b > 1)
         {
             let scratch = .scratch.storage()
-            Memory.copy(scratch, lowband, cast(u64, n) * #sizeof(f32))
+            for j in n
+            {
+                scratch[j] = lowband[j]
+            }
+
             lowband = scratch
         }
 
         for k in recombine
         {
-            if lowband do
-                .haar1(lowband, n >> k, 1'u32 << k)
+            if lowband
+            {
+                .haar1(lowband, n >> k, 1_u32 << k)
+            }
+
             fill = BitInterleave[fill & 0xF] | (BitInterleave[fill >> 4] << 2)
         }
 
@@ -2021,8 +2279,11 @@ internal impl CeltDecoder
         nb     <<= recombine
         while (nb & 1) == 0 and tfChange < 0
         {
-            if lowband do
+            if lowband
+            {
                 .haar1(lowband, nb, blocks)
+            }
+
             fill       |= fill << blocks
             blocks     <<= 1
             nb         >>= 1
@@ -2032,13 +2293,18 @@ internal impl CeltDecoder
 
         let b0  = blocks
         let nb0 = nb
-        if b0 > 1 and lowband do
+        if b0 > 1 and lowband
+        {
             .deinterleaveHadamard(lowband, nb >> recombine, b0 << recombine, longBlocks)
+        }
 
         var cm = .quantPartition(ctx, x, n, bBits, blocks, lowband, cast(s32, lm), gain, fill, dec)
 
-        if b0 > 1 do
+        if b0 > 1
+        {
             .interleaveHadamard(x, nb >> recombine, b0 << recombine, longBlocks)
+        }
+
         nb     = nb0
         blocks = b0
         for timeDivide
@@ -2052,14 +2318,20 @@ internal impl CeltDecoder
         for k in recombine
         {
             cm = BitDeinterleave[cm & 0xF]
-            .haar1(x, n0 >> k, 1'u32 << k)
+            .haar1(x, n0 >> k, 1_u32 << k)
         }
 
         blocks <<= recombine
-        if lowbandOut do
-            copyScaledBand(x, lowbandOut, n0, CeltBandScales[n0])
+        if lowbandOut
+        {
+            let scale = cast(f32, Math.sqrt(cast(f64, n0)))
+            for j in n0
+            {
+                lowbandOut[j] = scale * x[j]
+            }
+        }
 
-        return cm & ((1'u32 << blocks) - 1)
+        return cm & ((1_u32 << blocks) - 1)
     }
 
     mtd quantBandStereo(ctx: *BandContext,
@@ -2075,8 +2347,10 @@ internal impl CeltDecoder
                         fillIn: u32,
                         dec: *RangeDecoder)->u32
     {
-        if n == 1 do
+        if n == 1
+        {
             return .quantBandN1(ctx, x, y, lowbandOut, dec)
+        }
 
         var sctx: SplitContext
         var fill = fillIn
@@ -2098,17 +2372,23 @@ internal impl CeltDecoder
         if n == 2
         {
             var mbits = bb
-            var sbits = 0's32
-            if sctx.itheta != 0 and sctx.itheta != 16384 do
-                sbits = 1's32 << BitRes
+            var sbits = 0_s32
+            if sctx.itheta != 0 and sctx.itheta != 16384
+            {
+                sbits = 1_s32 << BitRes
+            }
+
             mbits -= sbits
             let swap = sctx.itheta > 8192
             ctx.remainingBits -= sctx.qalloc + sbits
             let x2   = swap ? y : x
             let y2   = swap ? x : y
-            var sign = 1.0'f32
-            if sbits and dec.decodeBits(1) do
+            var sign = 1.0_f32
+            if sbits and dec.decodeBits(1)
+            {
                 sign = -1.0
+            }
+
             cm    = .quantBand(ctx, x2, n, mbits, b, lowband, lm, lowbandOut, 1.0, useScratch, fillIn, dec)
             y2[0] = -sign * x2[1]
             y2[1] = sign * x2[0]
@@ -2125,7 +2405,7 @@ internal impl CeltDecoder
         }
         else
         {
-            var mbits = Math.max(0's32, Math.min(bb, (bb - sctx.delta) / 2))
+            var mbits = Math.max(0_s32, Math.min(bb, (bb - sctx.delta) / 2))
             var sbits = bb - mbits
             ctx.remainingBits -= sctx.qalloc
             var rebalance = ctx.remainingBits
@@ -2133,26 +2413,37 @@ internal impl CeltDecoder
             {
                 cm        = .quantBand(ctx, x, n, mbits, b, lowband, lm, lowbandOut, 1.0, useScratch, fill, dec)
                 rebalance = mbits - (rebalance - ctx.remainingBits)
-                if rebalance > 3's32 << BitRes and sctx.itheta != 0 do
-                    sbits += rebalance - (3's32 << BitRes)
+                if rebalance > 3_s32 << BitRes and sctx.itheta != 0
+                {
+                    sbits += rebalance - (3_s32 << BitRes)
+                }
+
                 cm |= .quantBand(ctx, y, n, sbits, b, null, lm, null, side, false, fill >> b, dec)
             }
             else
             {
                 cm        = .quantBand(ctx, y, n, sbits, b, null, lm, null, side, false, fill >> b, dec)
                 rebalance = sbits - (rebalance - ctx.remainingBits)
-                if rebalance > 3's32 << BitRes and sctx.itheta != 16384 do
-                    mbits += rebalance - (3's32 << BitRes)
+                if rebalance > 3_s32 << BitRes and sctx.itheta != 16384
+                {
+                    mbits += rebalance - (3_s32 << BitRes)
+                }
+
                 cm |= .quantBand(ctx, x, n, mbits, b, lowband, lm, lowbandOut, 1.0, useScratch, fill, dec)
             }
         }
 
-        if n != 2 do
+        if n != 2
+        {
             .stereoMerge(x, y, mid, n)
+        }
+
         if sctx.inv
         {
-            for j in n do
+            for j in n
+            {
                 y[j] = -y[j]
+            }
         }
 
         return cm
@@ -2182,8 +2473,8 @@ internal impl CeltDecoder
 
     mtd stereoMerge(x, y: [*] f32, mid: f32, n: u32)
     {
-        var xp   = 0.0'f32
-        var side = 0.0'f32
+        var xp   = 0.0_f32
+        var side = 0.0_f32
         for j in n
         {
             xp   += y[j] * x[j]
@@ -2193,9 +2484,13 @@ internal impl CeltDecoder
         xp *= mid
         let el = mid * mid + side - 2.0 * xp
         let er = mid * mid + side + 2.0 * xp
-        if er < 6e-4'f32 or el < 6e-4'f32
+        if er < 6e-4_f32 or el < 6e-4_f32
         {
-            Memory.copy(y, x, cast(u64, n) * #sizeof(f32))
+            for j in n
+            {
+                y[j] = x[j]
+            }
+
             return
         }
 
@@ -2234,7 +2529,7 @@ internal impl CeltDecoder
                       collapseMasks: [*] u8)
     {
         let C             = .streamChannels
-        let M             = 1'u32 << lm
+        let M             = 1_u32 << lm
         let B             = shortBlocks ? M : 1
         let normOffset    = M * cast(u32, CeltBands[.startBand])
         let normSpan      = M * cast(u32, CeltBands[CeltBandCount - 1]) - normOffset
@@ -2244,7 +2539,7 @@ internal impl CeltDecoder
         let N             = M * CeltShortSize
         var dualStereo    = dualStereoIn
         var balance       = balanceIn
-        var lowbandOffset = 0'u32
+        var lowbandOffset = 0_u32
         var updateLowband = true
         var ctx: BandContext
         ctx.intensity       = intensity
@@ -2260,23 +2555,32 @@ internal impl CeltDecoder
             let last = i == .endBand - 1
             var x    = spectrum + M * cast(u32, CeltBands[i])
             var y: [*] f32?
-            if C == 2 do
-                y = spectrum + N + M * cast(u32, CeltBands[i])
-            let n    = M * cast(u32, (CeltBands[i + 1] - CeltBands[i]))
-            let tell = cast(s32, dec.tellFrac())
-            if i != .startBand do
-                balance -= tell
-            let remainingBits = totalBits - tell - 1
-            ctx.remainingBits = remainingBits
-            var b = 0's32
-            if i <= codedBands - 1
+            if C == 2
             {
-                let currBalance = balance / cast(s32, Math.min(3'u32, codedBands - i))
-                b = Math.clamp(Math.min(remainingBits + 1, .pulses[i] + currBalance), 0's32, 16383's32)
+                y = spectrum + N + M * cast(u32, CeltBands[i])
             }
 
-            if (cast(s32, (M * cast(u32, CeltBands[i]))) - cast(s32, n) >= cast(s32, (M * cast(u32, CeltBands[.startBand]))) or i == .startBand + 1) and (updateLowband or lowbandOffset == 0) do
+            let n    = M * cast(u32, (CeltBands[i + 1] - CeltBands[i]))
+            let tell = cast(s32, dec.tellFrac())
+            if i != .startBand
+            {
+                balance -= tell
+            }
+
+            let remainingBits = totalBits - tell - 1
+            ctx.remainingBits = remainingBits
+            var b = 0_s32
+            if i <= codedBands - 1
+            {
+                let currBalance = balance / cast(s32, Math.min(3_u32, codedBands - i))
+                b = Math.clamp(Math.min(remainingBits + 1, .pulses[i] + currBalance), 0_s32, 16383_s32)
+            }
+
+            if (cast(s32, (M * cast(u32, CeltBands[i]))) - cast(s32, n) >= cast(s32, (M * cast(u32, CeltBands[.startBand]))) or i == .startBand + 1) and (updateLowband or lowbandOffset == 0)
+            {
                 lowbandOffset = i
+            }
+
             if i == .startBand + 1
             {
                 // Duplicate enough of the first band to fold the second one from it.
@@ -2285,8 +2589,10 @@ internal impl CeltDecoder
                 for j in n2 - n1
                 {
                     norm[n1 + j] = norm[2 * n1 - n2 + j]
-                    if dualStereo do
+                    if dualStereo
+                    {
                         norm2[n1 + j] = norm2[2 * n1 - n2 + j]
+                    }
                 }
             }
 
@@ -2304,23 +2610,29 @@ internal impl CeltDecoder
                 while true
                 {
                     foldStart -= 1
-                    if M * cast(u32, CeltBands[foldStart]) <= effectiveLowband + normOffset do
+                    if M * cast(u32, CeltBands[foldStart]) <= effectiveLowband + normOffset
+                    {
                         break
+                    }
                 }
 
                 var foldEnd = lowbandOffset - 1
                 while true
                 {
                     foldEnd += 1
-                    if not (foldEnd < i and M * cast(u32, CeltBands[foldEnd]) < effectiveLowband + normOffset + n) do
+                    if not (foldEnd < i and M * cast(u32, CeltBands[foldEnd]) < effectiveLowband + normOffset + n)
+                    {
                         break
+                    }
                 }
 
                 while true
                 {
                     foldEnd += 1
-                    if M * cast(u32, CeltBands[foldEnd]) >= effectiveLowband + normOffset + n do
+                    if M * cast(u32, CeltBands[foldEnd]) >= effectiveLowband + normOffset + n
+                    {
                         break
+                    }
                 }
 
                 xcm = 0
@@ -2333,15 +2645,17 @@ internal impl CeltDecoder
             }
             else
             {
-                xcm = (1'u32 << B) - 1
+                xcm = (1_u32 << B) - 1
                 ycm = xcm
             }
 
             if dualStereo and i == intensity
             {
                 dualStereo = false
-                for j in M * cast(u32, CeltBands[i]) - normOffset do
+                for j in M * cast(u32, CeltBands[i]) - normOffset
+                {
                     norm[j] = 0.5 * (norm[j] + norm2[j])
+                }
             }
 
             var lowband:  [*] f32?
@@ -2367,10 +2681,15 @@ internal impl CeltDecoder
             }
             else
             {
-                if y do
+                if y
+                {
                     xcm = .quantBandStereo(&ctx, x, y, n, b, B, lowband, lm, lowbandOut, useScratch, xcm | ycm, dec)
-                else do
+                }
+                else
+                {
                     xcm = .quantBand(&ctx, x, n, b, B, lowband, lm, lowbandOut, 1.0, useScratch, xcm | ycm, dec)
+                }
+
                 ycm = xcm
             }
 
@@ -2404,16 +2723,19 @@ internal impl CeltDecoder
                     prev2 = Math.max(prev2, .oldLogE2[CeltBandCount + i])
                 }
 
-                let ediff = Math.max(0.0'f32, .oldBandE[c * CeltBandCount + i] - Math.min(prev1, prev2))
+                let ediff = Math.max(0.0_f32, .oldBandE[c * CeltBandCount + i] - Math.min(prev1, prev2))
                 var r     = 2.0 * celtExp2(-ediff)
-                if lm == 3 do
-                    r *= 1.41421356'f32
+                if lm == 3
+                {
+                    r *= 1.41421356_f32
+                }
+
                 r = Math.min(thresh, r) * sqrt1
                 let x = .spectrum.storage() + c * size + (cast(u32, CeltBands[i]) << lm)
                 var renormalize = false
-                for k in 1'u32 << lm
+                for k in 1_u32 << lm
                 {
-                    if not (cast(u32, collapseMasks[i * C + c]) & (1'u32 << k))
+                    if not (cast(u32, collapseMasks[i * C + c]) & (1_u32 << k))
                     {
                         for j in n0
                         {
@@ -2425,8 +2747,10 @@ internal impl CeltDecoder
                     }
                 }
 
-                if renormalize do
+                if renormalize
+                {
                     .renormaliseVector(x, n0 << lm, 1.0)
+                }
             }
         }
     }
@@ -2444,32 +2768,41 @@ internal impl CeltDecoder
             end   = 0
         }
 
-        Memory.clear(freq, cast(u64, M * cast(u32, CeltBands[start])) * #sizeof(f32))
-        for i in start until end
+        for i in M * cast(u32, CeltBands[start])
         {
-            let lg     = bandLogE[i] + CeltEnergyMeans[i]
-            let g      = celtExp2(Math.min(32.0'f32, lg))
-            let lo     = M * cast(u32, CeltBands[i])
-            let hi     = M * cast(u32, CeltBands[i + 1])
-            let packed = (hi - lo) & ~3'u32
-            for group in packed / 4
-            {
-                let j = lo + 4 * group
-                Simd.store(freq + j, Simd.load(x + j) * g)
-            }
-
-            for j in lo + packed until hi do
-                freq[j] = x[j] * g
+            freq[i] = 0
         }
 
-        Memory.clear(freq + bound, cast(u64, N - bound) * #sizeof(f32))
+        for i in start until end
+        {
+            let lg = bandLogE[i] + CeltEnergyMeans[i]
+            let g  = celtExp2(Math.min(32.0_f32, lg))
+            for j in M * cast(u32, CeltBands[i]) until M * cast(u32, CeltBands[i + 1])
+            {
+                freq[j] = x[j] * g
+            }
+        }
+
+        for i in bound until N
+        {
+            freq[i] = 0
+        }
     }
 
     // Every call covers whole four-sample groups. The pitch taps precede the
     // group being overwritten because the lag is at least fifteen samples.
     mtd combFilter(samples: [*] f32, t0In, t1In: s32, n: u32, g0, g1: f32, tapset0, tapset1: u32, overlap: u32)
     {
-        if g0 == 0 and g1 == 0 do
+        if g0 == 0 and g1 == 0
+        {
+            if y != x
+            {
+                for i in n
+                {
+                    y[i] = x[i]
+                }
+            }
+
             return
 
         let t0  = cast(u32, Math.max(t0In, CombMinPeriod))
@@ -2481,12 +2814,22 @@ internal impl CeltDecoder
         let g11 = g1 * CombGains[tapset1, 1]
         let g12 = g1 * CombGains[tapset1, 2]
 
-        // The decode buffer retains the two extra taps on either side of the pitch lag.
-        let past0  = samples - (t0 + 2)
-        let past1  = samples - (t1 + 2)
-        let fade   = g0 == g1 and t0 == t1 and tapset0 == tapset1 ? 0 : overlap
-        let window = cast(const [*] f32, &CeltWindow[0])
-        for block in fade / 4
+        // The filters read up to two samples around each period back, which the decode buffer
+        // keeps in front of the block being filtered.
+        let past0 = x - (t0 + 2)
+        let past1 = x - (t1 + 2)
+        var x1    = past1[3]
+        var x2    = past1[2]
+        var x3    = past1[1]
+        var x4    = past1[0]
+        var fade  = overlap
+        if g0 == g1 and t0 == t1 and tapset0 == tapset1
+        {
+            fade = 0
+        }
+
+        var i = 0_u32
+        while i < fade
         {
             let i      = 4 * block
             let w      = Simd.load(window + i)
@@ -2502,7 +2845,16 @@ internal impl CeltDecoder
             Simd.store(samples + i, result)
         }
 
-        if g1 == 0 do
+        if g1 == 0
+        {
+            if y != x
+            {
+                for j in fade until n
+                {
+                    y[j] = x[j]
+                }
+            }
+
             return
         for block in fade / 4 until n / 4
         {
@@ -2571,12 +2923,18 @@ internal impl CeltDecoder
     // frame without gain can write directly to the caller's PCM16 buffer.
     mtd decodeFrame(data: const [..] u8, dec: *RangeDecoder, frameSize: u32, pcm: [*] f32, direct: [*] s16? = null) fail
     {
-        var lm = 0'u32
-        while lm <= CeltMaxLM and (CeltShortSize << lm) != frameSize do
+        var lm = 0_u32
+        while lm <= CeltMaxLM and (CeltShortSize << lm) != frameSize
+        {
             lm += 1
-        if lm > CeltMaxLM do
+        }
+
+        if lm > CeltMaxLM
+        {
             fail InvalidFormatError{"Opus CELT frame size is not one the mode supports"}
-        let M      = 1'u32 << lm
+        }
+
+        let M      = 1_u32 << lm
         let N      = M * CeltShortSize
         let C      = .streamChannels
         let CC     = .channels
@@ -2585,35 +2943,45 @@ internal impl CeltDecoder
 
         if C == 1
         {
-            for i in CeltBandCount do
+            for i in CeltBandCount
+            {
                 .oldBandE[i] = Math.max(.oldBandE[i], .oldBandE[CeltBandCount + i])
+            }
         }
 
         var totalBits = len * 8
         var tell      = dec.tell()
         var silence   = false
-        if tell >= totalBits do
+        if tell >= totalBits
+        {
             silence = true
-        elif tell == 1 do
+        }
+        else if tell == 1
+        {
             silence = dec.decodeBit(15)
+        }
+
         if silence
         {
             tell = len * 8
             dec.bitsTotal += tell - dec.tell()
         }
 
-        var postfilterGain   = 0.0'f32
-        var postfilterPitch  = 0's32
-        var postfilterTapset = 0'u32
+        var postfilterGain   = 0.0_f32
+        var postfilterPitch  = 0_s32
+        var postfilterTapset = 0_u32
         if .startBand == 0 and tell + 16 <= totalBits
         {
             if dec.decodeBit(1)
             {
                 let octave = dec.decodeUint(6)
-                postfilterPitch = cast(s32, ((16'u32 << octave) + dec.decodeBits(4 + octave))) - 1
+                postfilterPitch = cast(s32, ((16_u32 << octave) + dec.decodeBits(4 + octave))) - 1
                 let qg = dec.decodeBits(3)
-                if dec.tell() + 2 <= totalBits do
+                if dec.tell() + 2 <= totalBits
+                {
                     postfilterTapset = dec.decodeIcdf(TapsetIcdf, 2)
+                }
+
                 postfilterGain = 0.09375 * cast(f32, (qg + 1))
             }
 
@@ -2634,9 +3002,11 @@ internal impl CeltDecoder
         var tfRes: [CeltBandCount] s32
         .tfDecode(isTransient, &tfRes[0], lm, dec)
         tell = dec.tell()
-        var spread = 2'u32
-        if tell + 4 <= totalBits do
+        var spread = 2_u32
+        if tell + 4 <= totalBits
+        {
             spread = dec.decodeIcdf(SpreadIcdf, 5)
+        }
 
         var cap: [CeltBandCount] s32
         for i in CeltBandCount
@@ -2646,44 +3016,54 @@ internal impl CeltDecoder
         }
 
         var offsets: [CeltBandCount] s32
-        var dynallocLogp = 6'u32
+        var dynallocLogp = 6_u32
         totalBits <<= BitRes
         var tellFrac = cast(s32, dec.tellFrac())
         for i in .startBand until .endBand
         {
             let width    = cast(s32, C) * cast(s32, (CeltBands[i + 1] - CeltBands[i])) << lm
-            let quanta   = Math.min(width << BitRes, Math.max(6's32 << BitRes, width))
+            let quanta   = Math.min(width << BitRes, Math.max(6_s32 << BitRes, width))
             var loopLogp = dynallocLogp
-            var boost    = 0's32
+            var boost    = 0_s32
             while tellFrac + (cast(s32, loopLogp) << BitRes) < totalBits and boost < cap[i]
             {
                 let flag = dec.decodeBit(loopLogp)
                 tellFrac = cast(s32, dec.tellFrac())
-                if not flag do
+                if not flag
+                {
                     break
+                }
+
                 boost     += quanta
                 totalBits -= quanta
                 loopLogp  = 1
             }
 
             offsets[i] = boost
-            if boost > 0 do
-                dynallocLogp = Math.max(2'u32, dynallocLogp - 1)
+            if boost > 0
+            {
+                dynallocLogp = Math.max(2_u32, dynallocLogp - 1)
+            }
         }
 
-        var allocTrim = 5's32
-        if tellFrac + (6's32 << BitRes) <= totalBits do
+        var allocTrim = 5_s32
+        if tellFrac + (6_s32 << BitRes) <= totalBits
+        {
             allocTrim = cast(s32, dec.decodeIcdf(TrimIcdf, 7))
+        }
 
         var bits = ((len * 8) << BitRes) - cast(s32, dec.tellFrac()) - 1
-        var antiCollapseRsv = 0's32
-        if isTransient and lm >= 2 and bits >= (cast(s32, (lm + 2)) << BitRes) do
-            antiCollapseRsv = 1's32 << BitRes
+        var antiCollapseRsv = 0_s32
+        if isTransient and lm >= 2 and bits >= (cast(s32, (lm + 2)) << BitRes)
+        {
+            antiCollapseRsv = 1_s32 << BitRes
+        }
+
         bits -= antiCollapseRsv
 
-        var intensity  = 0'u32
+        var intensity  = 0_u32
         var dualStereo = false
-        var balance    = 0's32
+        var balance    = 0_s32
         var fineQuant:    [CeltBandCount] s32
         var finePriority: [CeltBandCount] s32
         let pulses     = .pulses.storage()
@@ -2706,13 +3086,11 @@ internal impl CeltDecoder
         var decodeAt = .decodePosition
         if decodeAt + N > CeltDecodeBuffer
         {
-            for c in CC
+            let memory = .decodeMemory[c].storage()
+            for j in CeltDecodeBuffer - N + CeltOverlap
             {
-                let memory = .decodeMemory[c].storage()
-                Memory.copyOverlapping(memory, memory + decodeAt - CombHistory, cast(u64, CombHistory + CeltOverlap) * #sizeof(f32))
+                memory[j] = memory[j + N]
             }
-
-            decodeAt = CombHistory
         }
 
         .decodePosition = decodeAt + N
@@ -2722,7 +3100,7 @@ internal impl CeltDecoder
                        dualStereo,
                        intensity,
                        &tfRes[0],
-                       len * (8's32 << BitRes) - antiCollapseRsv,
+                       len * (8_s32 << BitRes) - antiCollapseRsv,
                        balance,
                        dec,
                        lm,
@@ -2730,15 +3108,23 @@ internal impl CeltDecoder
                        &collapseMasks[0])
 
         var antiCollapseOn = false
-        if antiCollapseRsv > 0 do
+        if antiCollapseRsv > 0
+        {
             antiCollapseOn = dec.decodeBits(1) != 0
+        }
+
         .unquantEnergyFinalise(&fineQuant[0], &finePriority[0], len * 8 - dec.tell(), dec)
-        if antiCollapseOn do
+        if antiCollapseOn
+        {
             .antiCollapse(&collapseMasks[0], lm, N, .rng)
+        }
+
         if silence
         {
-            for i in C * CeltBandCount do
+            for i in C * CeltBandCount
+            {
                 .oldBandE[i] = NoiseFloor
+            }
         }
 
         // Denormalize the channel spectra before transforming their paired blocks.
@@ -2746,35 +3132,34 @@ internal impl CeltDecoder
         let blockSize = shortBlocks ? CeltShortSize : N
         let shift     = shortBlocks ? CeltMaxLM : CeltMaxLM - lm
         let spectrum  = .spectrum.storage()
-        let left      = .frequency.storage()
-        .denormaliseBands(left, spectrum, &.oldBandE[0], effEnd, M, silence)
-
-        var right = left
-        if C == 2
+        for c in CC
         {
-            right = left + CeltFrameMax
-            .denormaliseBands(right, spectrum + N, &.oldBandE[CeltBandCount], effEnd, M, silence)
-            if CC == 1
+            let outSyn = .decodeMemory[c].storage() + CeltDecodeBuffer - N
+            var source = spectrum + Math.min(c, C - 1) * N
+            var energy = &.oldBandE[Math.min(c, C - 1) * CeltBandCount]
+            if CC == 1 and C == 2
             {
-                for i in N do
-                    left[i] = 0.5 * (left[i] + right[i])
+                // Downmix a stereo stream to mono.
+                .denormaliseBands(spectrum, &.oldBandE[0], effEnd, M, silence)
+                var mono: Array!{f32}
+                mono.add(.frequency.toSlice())
+                .denormaliseBands(spectrum + N, &.oldBandE[CeltBandCount], effEnd, M, silence)
+                let freq = .frequency.storage()
+                for i in N
+                {
+                    freq[i] = 0.5 * (mono[i] + freq[i])
+                }
             }
-        }
+            else
+            {
+                .denormaliseBands(source, energy, effEnd, M, silence)
+            }
 
-        let leftOut = .decodeMemory[0].storage() + decodeAt
-        if CC == 2
-        {
-            let rightOut = .decodeMemory[1].storage() + decodeAt
+            let freq = .frequency.storage()
             for b in blocks
             {
-                let offset = blockSize * b
-                .mdct.backward(left + b, blocks, leftOut + offset, shift, right + b, rightOut + offset)
+                .mdct.backward(freq + b, blocks, outSyn + blockSize * b, shift)
             }
-        }
-        else
-        {
-            for b in blocks do
-                .mdct.backward(left + b, blocks, leftOut + blockSize * b, shift)
         }
 
         for c in CC
@@ -2791,7 +3176,8 @@ internal impl CeltDecoder
                         .postfilterTapsetOld,
                         .postfilterTapset,
                         CeltOverlap)
-            if lm != 0 do
+            if lm != 0
+            {
                 .combFilter(outSyn + CeltShortSize,
                             .postfilterPeriod,
                             postfilterPitch,
@@ -2801,6 +3187,7 @@ internal impl CeltDecoder
                             .postfilterTapset,
                             postfilterTapset,
                             CeltOverlap)
+            }
         }
 
         .postfilterPeriodOld = .postfilterPeriod
@@ -2818,8 +3205,10 @@ internal impl CeltDecoder
 
         if C == 1
         {
-            for i in CeltBandCount do
+            for i in CeltBandCount
+            {
                 .oldBandE[CeltBandCount + i] = .oldBandE[i]
+            }
         }
 
         if not isTransient
@@ -2832,13 +3221,18 @@ internal impl CeltDecoder
         }
         else
         {
-            for i in 2 * CeltBandCount do
+            for i in 2 * CeltBandCount
+            {
                 .oldLogE[i] = Math.min(.oldLogE[i], .oldBandE[i])
+            }
         }
 
-        let increase = cast(f32, Math.min(160'u32, M)) * 0.001'f32
-        for i in 2 * CeltBandCount do
+        let increase = cast(f32, Math.min(160_u32, M)) * 0.001_f32
+        for i in 2 * CeltBandCount
+        {
             .backgroundLogE[i] = Math.min(.backgroundLogE[i] + increase, .oldBandE[i])
+        }
+
         for c in 2
         {
             for i in .startBand
@@ -2869,35 +3263,18 @@ internal impl CeltDecoder
             var leftMemory = .preemphasisMemory[0]
             if CC == 2
             {
-                let right       = .decodeMemory[1].storage() + decodeAt
-                var rightMemory = .preemphasisMemory[1]
-                for j in N
-                {
-                    let l = leftOut[j] + 1e-30'f32 + leftMemory
-                    let r = right[j] + 1e-30'f32 + rightMemory
-                    leftMemory     = CeltPreemphasis * l
-                    rightMemory    = CeltPreemphasis * r
-                    pcm[2 * j]     = l * (1.0 / 32768.0)
-                    pcm[2 * j + 1] = r * (1.0 / 32768.0)
-                }
-
-                .preemphasisMemory[1] = rightMemory
-            }
-            else
-            {
-                for j in N
-                {
-                    let sample = leftOut[j] + 1e-30'f32 + leftMemory
-                    leftMemory = CeltPreemphasis * sample
-                    pcm[j]     = sample * (1.0 / 32768.0)
-                }
+                let tmp = outSyn[j] + 1e-30_f32 + m
+                m = CeltPreemphasis * tmp
+                pcm[j * CC + c] = tmp * (1.0 / 32768.0)
             }
 
             .preemphasisMemory[0] = leftMemory
         }
 
-        if dec.tell() > 8 * len do
+        if dec.tell() > 8 * len
+        {
             fail InvalidFormatError{"Opus CELT frame reads past its end"}
+        }
     }
 }
 
@@ -2924,16 +3301,19 @@ private func divideCeltBudget(numerator, divisor: s32)->s32
 private func computeQn(n, b, offset, pulseCap: s32, stereo: bool)->s32
 {
     var n2 = 2 * n - 1
-    if stereo and n == 2 do
+    if stereo and n == 2
+    {
         n2 -= 1
-    let available = b - pulseCap - (4's32 << BitRes)
-    if available < (1's32 << BitRes >> 1) do
+    }
+
+    var qb = (b + n2 * offset) / n2
+    qb = Math.min(b - pulseCap - (4_s32 << BitRes), qb)
+    qb = Math.min(8_s32 << BitRes, qb)
+    if qb < (1_s32 << BitRes >> 1)
+    {
         return 1
-    var qb = divideCeltBudget(Math.max(0's32, b + n2 * offset), n2)
-    qb = Math.min(available, qb)
-    qb = Math.min(8's32 << BitRes, qb)
-    if qb < (1's32 << BitRes >> 1) do
-        return 1
+    }
+
     var qn = Exp2Table8[cast(u32, (qb & 7))] >> cast(u32, (14 - (qb >> BitRes)))
     qn = (qn + 1) >> 1 << 1
     return qn

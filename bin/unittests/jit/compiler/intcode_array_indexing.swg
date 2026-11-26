@@ -9,22 +9,30 @@ func(T) swapValues(a, b: *T)
 
 func maxS32(a, b: s32)->s32
 {
-    if a >= b do
+    if a >= b
+    {
         return a
+    }
     return b
 }
 
 func nextPermutation5(values: *[5] s32)->bool
 {
     var pivot = 3
-    while pivot >= 0 and values[][pivot] >= values[][pivot + 1] do
+    while pivot >= 0 and values[][pivot] >= values[][pivot + 1]
+    {
         pivot -= 1
-    if pivot < 0 do
+    }
+    if pivot < 0
+    {
         return false
+    }
 
     var successor = 4
-    while values[][successor] <= values[][pivot] do
+    while values[][successor] <= values[][pivot]
+    {
         successor -= 1
+    }
 
     swapValues(&values[][pivot], &values[][successor])
 
@@ -51,10 +59,14 @@ internal func(N: s32) runIntcodeProgram(prg: [N] s32, input: const [2] s32)->s32
         let inst = op[ip] % 10
 
         var param0, param1 = 0
-        if inst != 3 do
+        if inst != 3
+        {
             param0 = imm0 ? op[ip + 1] : op[op[ip + 1]]
-        if inst != 3 and inst != 4 do
+        }
+        if inst != 3 and inst != 4
+        {
             param1 = imm1 ? op[ip + 2] : op[op[ip + 2]]
+        }
 
         switch inst
         {
@@ -101,8 +113,10 @@ func(N: s32) maxThrusterSignal(prg: [N] s32)->s32
         }
 
         total = maxS32(total, input)
-        if not nextPermutation5(&phase) do
+        if not nextPermutation5(&phase)
+        {
             break
+        }
     }
 
     return total

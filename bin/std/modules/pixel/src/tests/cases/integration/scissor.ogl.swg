@@ -107,8 +107,11 @@ using Core, Ogl
 
     let font     = gpu.fontCache().createFont(expect fallbackTestFace(false), 18, .Bitmap)
     var gradient = Brush.createLinearGradient(0, 0, 64, 0, Argb.Red, Argb.Blue)
-    for index in 12 do
+    for index in 12
+    {
         gradient.addGradientStop(cast(f32, index) / 12, Argb.Lime)
+    }
+
     var painter = Painter.create(gpu)
     painter.begin()
     painter.setColorMaskFull()

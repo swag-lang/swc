@@ -58,10 +58,14 @@ func day5A0()
         var row1 = 127
         for c in 7
         {
-            if l[c] == 'F' do
+            if l[c] == 'F'
+            {
                 row1 = (row1 + row0) / 2
-            else do
+            }
+            else
+            {
                 row0 = 1 + (row1 + row0) / 2
+            }
         }
 
         var col0 = 0
@@ -69,10 +73,14 @@ func day5A0()
         var col1 = 7
         for c in 3
         {
-            if l[7 + c] == 'L' do
+            if l[7 + c] == 'L'
+            {
                 col1 = (col1 + col0) / 2
-            else do
+            }
+            else
+            {
                 col0 = 1 + (col1 + col0) / 2
+            }
         }
 
         total = Math.max(total, row0 * 8 + col0)
@@ -85,7 +93,7 @@ func day5A1()
 {
     let dataPath = Path.combine(Path.directoryName(#file), "5.txt")
 
-    var seats: Array'u64
+    var seats: Array!{u64}
     var lines = expect File.readAllLines(dataPath)
     for &l in lines
     {

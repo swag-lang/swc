@@ -26,10 +26,10 @@ struct ScreenFrameSource
     flushMicroseconds:  u64
     copyMicroseconds:   u64
     cursorMicroseconds: u64
-    cursorBackup:       Array'u8
+    cursorBackup:       Array!{u8}
     cursorTarget, cursorStorage: u64
     cursorLeft, cursorTop, cursorRight, cursorBottom: s32
-    cursorRendered:     Array'u8
+    cursorRendered:     Array!{u8}
     cursorRenderedLeft, cursorRenderedTop, cursorRenderedRight, cursorRenderedBottom: s32
 }
 
@@ -37,8 +37,11 @@ impl ScreenFrameSource
 {
     func create(drawCursor: bool, x, y, width, height: s32)->ScreenFrameSource fail
     {
-        if width <= 0 or height <= 0 or width > 0x7FFFFFFF's32 / 4 do
+        if width <= 0 or height <= 0 or width > 0x7FFFFFFF_s32 / 4
+        {
             fail BadParameterError{"screen frame source needs positive image dimensions"}
+        }
+
         var result: #returntype
         result.x          = x
         result.y          = y
@@ -57,12 +60,21 @@ impl ScreenFrameSource
         }
 
         .triedAccelerated = false
-        if .memoryDC and .oldBitmap do
+        if .memoryDC and .oldBitmap
+        {
             discard SelectObject(.memoryDC, .oldBitmap)
-        if .bitmap do
+        }
+
+        if .bitmap
+        {
             catch DeleteObject(cast(HGDIOBJ, .bitmap))
-        if .memoryDC do
+        }
+
+        if .memoryDC
+        {
             catch DeleteDC(.memoryDC)
+        }
+
         .memoryDC  = null
         .bitmap    = null
         .oldBitmap = null
@@ -75,14 +87,19 @@ impl ScreenFrameSource
     {
         let desktopWnd = GetDesktopWindow()
         let desktopDC  = GetDC(desktopWnd)
-        if not desktopDC do
+        if not desktopDC
+        {
             return false
+        }
+
         defer discard ReleaseDC(desktopWnd, desktopDC)
         var ready = false
         defer
         {
-            if not ready do
+            if not ready
+            {
                 .closeNative()
+            }
         }
 
         .memoryDC = catch CreateCompatibleDC(desktopDC) { return false }
@@ -96,11 +113,17 @@ impl ScreenFrameSource
         info.bmiHeader.biBitCount    = 32
         info.bmiHeader.biCompression = BI_RGB
         .bitmap = catch CreateDIBSection(desktopDC, &info, cast(UINT, DIB_RGB_COLORS), &.pixels, null, 0) { return false }
-        if not .pixels do
+        if not .pixels
+        {
             return false
+        }
+
         .oldBitmap = SelectObject(.memoryDC, cast(HGDIOBJ, .bitmap))
-        if not .oldBitmap do
+        if not .oldBitmap
+        {
             return false
+        }
+
         ready = true
         return true
     }
@@ -132,7 +155,7 @@ impl ScreenFrameSource
             .triedAccelerated = true
             catch
             {
-                .accelerated   = Memory.new'Screen.Source()
+                .accelerated   = Memory.new!{Screen.Source}()
                 .accelerated[] = try Screen.Source.open({.x, .y, .width, .height, false})
                 .acceleratedX  = .x
                 .acceleratedY  = .y
@@ -150,8 +173,11 @@ impl ScreenFrameSource
         {
             catch
             {
-                if .drawCursor do
+                if .drawCursor
+                {
                     .restoreCursorPixels(target)
+                }
+
                 .fresh = try .accelerated.grabInto(target,
                                                    copyUnchanged: copyUnchanged,
                                                    updateChangedOnly: not copyUnchanged)
@@ -203,8 +229,11 @@ impl ScreenFrameSource
         }
 
         .blitMicroseconds += Time.monotonicMicroseconds() - blitStart
-        if .drawCursor do
+        if .drawCursor
+        {
             drawCursorInto(.memoryDC, .x, .y)
+        }
+
         let flushStart = Time.monotonicMicroseconds()
         if not GdiFlush()
         {
@@ -214,8 +243,11 @@ impl ScreenFrameSource
         }
 
         .flushMicroseconds += Time.monotonicMicroseconds() - flushStart
-        if target.width != .width or target.height != .height or target.pixelFormat != .BGRA8 do
+        if target.width != .width or target.height != .height or target.pixelFormat != .BGRA8
+        {
             target[] = Image.create(.width, .height, .BGRA8)
+        }
+
         let copyStart = Time.monotonicMicroseconds()
         Memory.copy(target.pixels.storage(), unwrap .pixels, target.byteCount)
         .copyMicroseconds += Time.monotonicMicroseconds() - copyStart
@@ -245,8 +277,11 @@ impl ScreenFrameSource
 
     internal mtd restoreCursorPixels(target: *Image)
     {
-        if .cursorBackup.isEmpty() do
+        if .cursorBackup.isEmpty()
+        {
             return
+        }
+
         if cast(u64, target) == .cursorTarget and
            cast(u64, target.pixels.storage()) == .cursorStorage and
            target.width == .width and
@@ -322,31 +357,45 @@ impl ScreenFrameSource
     {
         var cursor: CURSORINFO
         cursor.cbSize = #sizeof(CURSORINFO)
-        if not GetCursorInfo(&cursor) or not (cursor.flags & CURSOR_SHOWING) or not cursor.hCursor do
+        if not GetCursorInfo(&cursor) or not (cursor.flags & CURSOR_SHOWING) or not cursor.hCursor
+        {
             return .clearCursorRendered()
+        }
+
         let icon = cast(HICON, cursor.hCursor)
         var info: ICONINFO
         catch GetIconInfo(icon, &info) { return .clearCursorRendered(); }
         defer
         {
-            if info.hbmMask do
+            if info.hbmMask
+            {
                 catch DeleteObject(cast(HGDIOBJ, info.hbmMask))
-            if info.hbmColor do
+            }
+
+            if info.hbmColor
+            {
                 catch DeleteObject(cast(HGDIOBJ, info.hbmColor))
+            }
         }
 
         var bitmap: BITMAP
         let iconBitmap = info.hbmColor ? info.hbmColor : info.hbmMask
         catch GetObjectW(cast(HANDLE, iconBitmap), #sizeof(BITMAP), cast(*void, &bitmap)) { return .clearCursorRendered(); }
         let iconHeight = info.hbmColor ? bitmap.bmHeight : bitmap.bmHeight / 2
-        let left       = Math.max(0's32, cursor.ptScreenPos.x - .x - cast(s32, info.xHotspot))
-        let top        = Math.max(0's32, cursor.ptScreenPos.y - .y - cast(s32, info.yHotspot))
+        let left       = Math.max(0_s32, cursor.ptScreenPos.x - .x - cast(s32, info.xHotspot))
+        let top        = Math.max(0_s32, cursor.ptScreenPos.y - .y - cast(s32, info.yHotspot))
         let right      = Math.min(.width, cursor.ptScreenPos.x - .x - cast(s32, info.xHotspot) + bitmap.bmWidth)
         let bottom     = Math.min(.height, cursor.ptScreenPos.y - .y - cast(s32, info.yHotspot) + iconHeight)
-        if right <= left or bottom <= top do
+        if right <= left or bottom <= top
+        {
             return .clearCursorRendered()
-        if not .memoryDC and not .openNative() do
+        }
+
+        if not .memoryDC and not .openNative()
+        {
             return .clearCursorRendered()
+        }
+
         let source    = target.pixels.storage()
         let overlay   = assume cast([*] u8, .pixels)
         let rowBytes  = cast(u64, .width) * 4

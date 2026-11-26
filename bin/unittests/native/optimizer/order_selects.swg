@@ -8,45 +8,61 @@
 #[Swag.Optimize(true), Swag.NoInline]
 func order(a, b: s32)->s32
 {
-    if a < b do
+    if a < b
+    {
         return -1
-    if a > b do
+    }
+    if a > b
+    {
         return 1
+    }
     return 0
 }
 
 #[Swag.Optimize(true), Swag.NoInline]
 func orderReversed(a, b: u64)->s64
 {
-    if a > b do
+    if a > b
+    {
         return 1
-    if a < b do
+    }
+    if a < b
+    {
         return -1
+    }
     return 0
 }
 
 #[Swag.Optimize(true), Swag.NoInline]
 func notOrder(a, b, c: s32)->s32
 {
-    if a < b do
+    if a < b
+    {
         return -1
-    if a > c do
+    }
+    if a > c
+    {
         return 1
+    }
     return 0
 }
 
 func reference(less, greater: bool)->s64
 {
-    if less do
+    if less
+    {
         return -1
-    if greater do
+    }
+    if greater
+    {
         return 1
+    }
     return 0
 }
 
 #test
 {
-    let values = [0's64, 1, -1, 2, -2, 0x7FFFFFFF, -0x80000000, 0x7FFFFFFFFFFFFFFF, -0x7FFFFFFFFFFFFFFF - 1]
+    let values = [0_s64, 1, -1, 2, -2, 0x7FFFFFFF, -0x80000000, 0x7FFFFFFFFFFFFFFF, -0x7FFFFFFFFFFFFFFF - 1]
     for x in values
     {
         for y in values

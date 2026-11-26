@@ -21,13 +21,22 @@ const PictureScales: [5] f32 = [0.37, 0.75, 1.3, 2.7, 3.2]
 // shapes rather than a rounding step.
 func scaledPictureLevel(x, y: s32)->u8
 {
-    if x < 12 do
-        return (x + y) & 1 ? 235'u8 : 20'u8
-    if x < 24 do
+    if x < 12
+    {
+        return (x + y) & 1 ? 235_u8 : 20_u8
+    }
+
+    if x < 24
+    {
         return cast(u8, 20 + y * 7)
-    if x < 36 do
-        return (x / 4 + y / 4) & 1 ? 200'u8 : 40'u8
-    return y % 5 == 0 or x % 6 == 0 ? 245'u8 : 30'u8
+    }
+
+    if x < 36
+    {
+        return (x / 4 + y / 4) & 1 ? 200_u8 : 40_u8
+    }
+
+    return y % 5 == 0 or x % 6 == 0 ? 245_u8 : 30_u8
 }
 
 func makeScaledPicture()->Image
@@ -60,7 +69,7 @@ func drawScaledTexture(renderer: IRenderer, texture: Texture, scale: f32, mode: 
     painter.bindRenderTarget(&target)
     painter.setColorMaskFull()
     painter.setBlendingMode(.Copy)
-    painter.clear(Color.fromArgb(255'u8, 18'u8, 22'u8, 30'u8))
+    painter.clear(Color.fromArgb(255_u8, 18_u8, 22_u8, 30_u8))
     painter.setInterpolationMode(mode)
     painter.drawTexture({3, 2, ScaledPictureWidth * scale, ScaledPictureHeight * scale}, texture)
     painter.unbindRenderTarget()
@@ -84,15 +93,17 @@ func renderScaledFrame(renderer: IRenderer, scale: f32, mode: InterpolationMode)
     const ChromaWidth  = (Width + 1) / 2
     const ChromaHeight = (Height + 1) / 2
 
-    var storage: Array'u8
+    var storage: Array!{u8}
     storage.resize(Width * Height + ChromaWidth * ChromaHeight * 2)
     let luma    = storage.storage()
     let chromaB = luma + Width * Height
     let chromaR = chromaB + ChromaWidth * ChromaHeight
     for y in Height
     {
-        for x in Width do
+        for x in Width
+        {
             luma[y * Width + x] = scaledPictureLevel(cast(s32, x), cast(s32, y))
+        }
     }
 
     for y in ChromaHeight
@@ -195,7 +206,7 @@ func renderReducedPhoto(renderer: IRenderer, scale: f32)->Image
     painter.bindRenderTarget(&target)
     painter.setColorMaskFull()
     painter.setBlendingMode(.Copy)
-    painter.clear(Color.fromArgb(255'u8, 18'u8, 22'u8, 30'u8))
+    painter.clear(Color.fromArgb(255_u8, 18_u8, 22_u8, 30_u8))
     painter.setInterpolationMode(.Linear)
     painter.drawTexture({3, 2, PhotoWidth * scale, PhotoHeight * scale}, texture)
     painter.unbindRenderTarget()
@@ -208,7 +219,7 @@ func renderReducedPhoto(renderer: IRenderer, scale: f32)->Image
 #[Swag.TestTag("integration.renderer.opengl")]
 #test
 {
-    for scale in [0.47'f32, 0.31, 0.19]
+    for scale in [0.47_f32, 0.31, 0.19]
     {
         let scene: RenderParityScene = func|scale|(renderer: IRenderer)->Image => renderReducedPhoto(renderer, scale)
         let label = Format.toString("scaling.parity.photo.%", cast(s32, (scale * 100)))

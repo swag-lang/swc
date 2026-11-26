@@ -9,8 +9,11 @@ internal func completeExplorer(host: *Testing.HeadlessHost, explorer: *Explorer)
 {
     for 16
     {
-        if not explorer.load.started do
+        if not explorer.load.started
+        {
             return
+        }
+
         explorer.load.task.wait()
         host.pump()
     }
@@ -61,8 +64,10 @@ internal func completeExplorer(host: *Testing.HeadlessHost, explorer: *Explorer)
     for &entry in roots where entry.directory
     {
         let children = archive.children(entry.path)
-        for &child in children do
+        for &child in children
+        {
             Swag.require(Utf8.startsWith(child.path, entry.path))
+        }
     }
 
     archive.archive.entries.clear()
@@ -98,8 +103,11 @@ internal func completeExplorer(host: *Testing.HeadlessHost, explorer: *Explorer)
     completeExplorer(&host, explorer)
     Swag.require(explorer.filter.text() == ".txt" and window.searchBox.text() == ".txt")
     var selected = Swag.U64.Max
-    for &entry, index in explorer.entries where entry.name == "comprehensive.txt" do
+    for &entry, index in explorer.entries where entry.name == "comprehensive.txt"
+    {
         selected = index
+    }
+
     Swag.require(selected != Swag.U64.Max)
     explorer.selected = selected
     explorer.activate(selected)
@@ -156,7 +164,7 @@ internal func completeExplorer(host: *Testing.HeadlessHost, explorer: *Explorer)
                 return
             }
 
-            Threading.Thread.sleep(5'ms)
+            Threading.Thread.sleep(5_ms)
         }
 
         Swag.require(false, "the folder watcher did not request a refresh")
@@ -201,8 +209,11 @@ internal func completeExplorer(host: *Testing.HeadlessHost, explorer: *Explorer)
     for name in Cases
     {
         var selected = Swag.U64.Max
-        for &entry, index in explorer.entries where entry.name == name do
+        for &entry, index in explorer.entries where entry.name == name
+        {
             selected = index
+        }
+
         Swag.require(selected != Swag.U64.Max)
         explorer.activate(selected)
         completeQueuedViewerFile(&host, window)
@@ -286,8 +297,11 @@ internal func completeExplorer(host: *Testing.HeadlessHost, explorer: *Explorer)
         Swag.require(not window.viewerCaptionButton.isChecked)
 
         var archiveChoice = Swag.U32.Max
-        for choice, index in window.choices where choice.key == "archive" do
+        for choice, index in window.choices where choice.key == "archive"
+        {
             archiveChoice = cast(u32, index)
+        }
+
         Swag.require(archiveChoice != Swag.U32.Max)
         window.selectViewer(archiveChoice)
         let explorer = unwrap window.explorer
@@ -356,10 +370,15 @@ internal func archivePage(host: *Testing.HeadlessHost, light: bool)->*ViewerWind
 {
     host.setup(1280, 800)
     host.surface.updateFlags(SurfaceFlags.StandardWindow | SurfaceFlags.NoShadow)
-    if light do
+    if light
+    {
         host.theme.setLight()
-    else do
+    }
+    else
+    {
         host.theme.setDark()
+    }
+
     host.notify(.ThemeChanged)
 
     let window = ViewerWindow.create(&host.surfaceWnd, createViewerPluginRegistry())
@@ -415,8 +434,11 @@ func completeExtraction(host: *Testing.HeadlessHost, explorer: *Explorer)
 {
     for 16
     {
-        if not explorer.extraction.started do
+        if not explorer.extraction.started
+        {
             return
+        }
+
         explorer.extraction.task.wait()
         host.pump()
     }
@@ -431,8 +453,11 @@ func completeExtraction(host: *Testing.HeadlessHost, explorer: *Explorer)
 {
     Swag.require(ArchiveExtraction.destination("C:/t", "", "../evil.txt").isEmpty())
     Swag.require(ArchiveExtraction.destination("C:/t", "", "a/../../evil.txt").isEmpty())
-    if WINDOWS do
+    if WINDOWS
+    {
         Swag.require(ArchiveExtraction.destination("C:/t", "", ".. /evil.txt").isEmpty())
+    }
+
     Swag.require(ArchiveExtraction.destination("C:/t", "docs/", "docs/").isEmpty())
     Swag.require(ArchiveExtraction.destination("C:/t", "docs/", "docs/readme.txt") == Path.combine("C:/t", "readme.txt"))
 
@@ -462,8 +487,11 @@ func completeExtraction(host: *Testing.HeadlessHost, explorer: *Explorer)
     defer discard catch Directory.delete(member, recurse: true)
     explorer.navigate(explorer.listing.path, "docs/")
     completeExplorer(&host, explorer)
-    for &entry, index in explorer.entries where entry.name == "readme.txt" do
+    for &entry, index in explorer.entries where entry.name == "readme.txt"
+    {
         explorer.selected = index
+    }
+
     explorer.extractTo(member, all: false)
     completeExtraction(&host, explorer)
     Swag.require(explorer.extraction.written == 1 and File.exists(Path.combine(member, "readme.txt")))
@@ -487,8 +515,11 @@ func completeExtraction(host: *Testing.HeadlessHost, explorer: *Explorer)
     // A second activation supersedes the extraction even if the first worker already finished.
     explorer.previews[0].task.wait()
     explorer.activate(0)
-    for preview in explorer.previews do
+    for preview in explorer.previews
+    {
         preview.task.wait()
+    }
+
     host.pump()
     for preview in explorer.previews where preview.started
     {
@@ -595,8 +626,11 @@ func completeExtraction(host: *Testing.HeadlessHost, explorer: *Explorer)
 
         // Keep one publication pending to photograph its indicator without starting a decoder.
         explorer.refreshPreviewSettings()
-        for &entry in explorer.entries do
+        for &entry in explorer.entries
+        {
             entry.attempted = true
+        }
+
         host.app.renderer.removeTexture(&explorer.entries[2].texture)
         explorer.previews[0].index      = 2
         explorer.previews[0].generation = explorer.generation
@@ -608,8 +642,10 @@ func completeExtraction(host: *Testing.HeadlessHost, explorer: *Explorer)
         discard host.render(window)
         Swag.require(not explorer.grid.spinners[0].isLocallyVisible())
         let review = Env.variable("SWAG_SCOPE_REVIEW")
-        if not review.isEmpty() do
+        if not review.isEmpty()
+        {
             expect image.save(Path.combine(review, Format.toString("explorer-palette-%.png", palette)))
+        }
     }
 }
 

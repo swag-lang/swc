@@ -60,8 +60,10 @@ func initContent() fail
     g_SourceFont   = g_Renderer.fonts.createFont(regular, 12, .Auto)
     g_MathFont     = g_Renderer.fonts.createFont(regular, 34, .Auto)
 
-    for source, idx in Sources do
+    for source, idx in Sources
+    {
         g_Formulas[idx] = try MathExpression.parse(source)
+    }
 }
 
 func computeSceneLayout(width, height: s32)->SceneLayout
@@ -94,9 +96,11 @@ func drawCard(painter: *Pixel.Painter, rect: Math.Rectangle, index: u64)
 
     let formulaArea = Math.Rectangle{rect.x + 22, rect.y + 48, rect.width - 44, rect.height - 91}
     let metrics     = g_Formulas[index].measure(g_MathFont)
-    var zoom        = 1.0'f32
-    if metrics.width > formulaArea.width do
+    var zoom        = 1.0_f32
+    if metrics.width > formulaArea.width
+    {
         zoom = formulaArea.width / metrics.width
+    }
 
     painter.pushTransform()
     painter.translateTransform(formulaArea.horzCenter(), formulaArea.vertCenter())
@@ -185,8 +189,13 @@ func onResize(window: *Env.Window, width, height: s32)
     try g_Window.show()
 
     var loop: Env.WindowLoop
-    if Env.isSmokeRun() do
+    if Env.isSmokeRun()
+    {
         loop.smokeFrames = TestFrames
-    while loop.next() do
+    }
+
+    while loop.next()
+    {
         try display()
+    }
 }

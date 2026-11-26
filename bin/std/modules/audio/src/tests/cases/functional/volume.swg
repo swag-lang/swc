@@ -20,7 +20,7 @@ using Swag, Core, Core.Errors
 // NaN must reach the setters' finite-value validation instead of becoming silence.
 #test
 {
-    const NotANumber = cast #bit (f32, 0x7FC0_0000'u32)
+    const NotANumber = cast #bit (f32, 0x7FC0_0000_u32)
     Swag.require(not Math.isFinite(decibelsToLinearGain(NotANumber)))
     Swag.require(not Math.isFinite(linearGainToDecibels(NotANumber)))
 

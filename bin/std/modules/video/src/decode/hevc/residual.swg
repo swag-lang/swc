@@ -32,7 +32,7 @@ impl Decoder
     mtd residualCoding(_, _: s32, log2TrafoSize, component: u32, predModeIntra: u32, isIntra, bypass: bool)->ResidualResult fail
     {
         let pps  = unwrap .activePps
-        let size = 1'u32 << log2TrafoSize
+        let size = 1_u32 << log2TrafoSize
 
         var result: #returntype
         Memory.set(&.coefficients, 0, cast(u64, (size * size)) * #sizeof(s16))
@@ -51,10 +51,14 @@ impl Decoder
         let directional = isIntra and (log2TrafoSize == 2 or (log2TrafoSize == 3 and component == 0))
         if directional
         {
-            if predModeIntra >= 6 and predModeIntra <= 14 do
+            if predModeIntra >= 6 and predModeIntra <= 14
+            {
                 scanIdx = ScanVertical
-            elif predModeIntra >= 22 and predModeIntra <= 30 do
+            }
+            else if predModeIntra >= 22 and predModeIntra <= 30
+            {
                 scanIdx = ScanHorizontal
+            }
         }
 
         // Both prefixes are stated before either suffix, clause 7.3.8.11.
@@ -62,10 +66,15 @@ impl Decoder
         let prefixY = .readLastPrefix(component, log2TrafoSize, CtxLastSigCoeffYPrefix)
         var lastX   = prefixX
         var lastY   = prefixY
-        if prefixX > 3 do
+        if prefixX > 3
+        {
             lastX = .readLastSuffix(prefixX)
-        if prefixY > 3 do
+        }
+
+        if prefixY > 3
+        {
             lastY = .readLastSuffix(prefixY)
+        }
 
         if scanIdx == ScanVertical
         {
@@ -74,23 +83,25 @@ impl Decoder
             lastY = swap
         }
 
-        if lastX >= size or lastY >= size do
+        if lastX >= size or lastY >= size
+        {
             fail InvalidFormatError{"HEVC last significant coefficient is outside its transform block"}
+        }
 
         // Where the last coefficient sits in the scan, which is where the walk below starts.
         // The scan is a permutation of the block, so its inverse says that outright.
         let subBlockLog2 = log2TrafoSize - 2
-        let subSide      = 1'u32 << subBlockLog2
+        let subSide      = 1_u32 << subBlockLog2
         let lastSubBlock = cast(u32, ScanIndex[subBlockLog2, scanIdx, (lastY >> 2) * subSide + (lastX >> 2)])
         let lastScanPos  = cast(u32, ScanIndex[2, scanIdx, (lastY & 3) * 4 + (lastX & 3)])
 
         var codedSubBlock: [64] bool
-        var maxX, maxY = 0'u32
+        var maxX, maxY = 0_u32
 
         // The greater-than-one context set carries over between the sub-blocks of one block,
         // clause 9.3.4.2.6.
         var anySubBlockCoded     = false
-        var previousGreater1Ctx  = 0'u32
+        var previousGreater1Ctx  = 0_u32
         var previousGreater1Flag = false
 
         var subBlock = cast(s32, lastSubBlock)
@@ -115,29 +126,58 @@ impl Decoder
                 continue
             }
 
-            // A bit at the scan position marks each coefficient that needs a level.
-            let isLast      = index == lastSubBlock
-            var significant = isLast ? 1'u32 << lastScanPos : 0'u32
-            let first       = isLast ? cast(s32, lastScanPos) - 1 : 15's32
+            // Significance of every coefficient of the sub-block, walked backwards.
+            var significant: [16] bool
+            var significantCount = 0_u32
+            var first = index == lastSubBlock ? cast(s32, lastScanPos) - 1 : 15_s32
+            if index == lastSubBlock
+            {
+                significant[lastScanPos] = true
+                significantCount         = 1
+            }
 
             // The whole sub-block shares its context but for the position inside it, and the
             // first coefficient of the block is the one exception the clause carves out.
-            var pattern = 0'u32
-            var base    = 0'u32
+            var pattern = 0_u32
+            var base    = 0_u32
             let mapped  = log2TrafoSize == 2
             let dcBlock = not xS and not yS and not mapped
-            if not mapped do
+            if not mapped
+            {
                 base = .significanceContextBase(&codedSubBlock[0], xS, yS, scanIdx, log2TrafoSize, subBlockLog2, component, &pattern)
-            let dcContext = component == 0 ? 0'u32 : 27'u32
+            }
+
+            let dcContext = component == 0 ? 0_u32 : 27_u32
 
             var position = first
             while position > 0
             {
                 let scanPos = cast(u32, position)
-                let inner   = (cast(u32, ScanY[2, scanIdx, scanPos]) << 2) + cast(u32, ScanX[2, scanIdx, scanPos])
-                let context = mapped ? cast(u32, SigCtxMap4x4[inner]) + dcContext : cast(u32, SigCtxPattern[pattern, inner]) + base
-                significant |= .cabac.decision(CtxSigCoeffFlag + context) << scanPos
-                position    -= 1
+                if position > 0 or not inferDcSignificant
+                {
+                    let inner   = (cast(u32, ScanY[2, scanIdx, scanPos]) << 2) + cast(u32, ScanX[2, scanIdx, scanPos])
+                    var context = mapped ? cast(u32, SigCtxMap4x4[inner]) + dcContext : cast(u32, SigCtxPattern[pattern, inner]) + base
+                    if not inner and dcBlock
+                    {
+                        context = dcContext
+                    }
+
+                    if .cabac.decision(CtxSigCoeffFlag + context) != 0
+                    {
+                        significant[scanPos] = true
+                        significantCount     += 1
+                        inferDcSignificant   = false
+                    }
+                }
+                else if position == 0
+                {
+                    // The last coefficient of a coded sub-block is significant by inference when
+                    // every other one turned out not to be.
+                    significant[0]   = true
+                    significantCount += 1
+                }
+
+                position -= 1
             }
 
             if first >= 0
@@ -156,28 +196,36 @@ impl Decoder
                 continue
             }
 
-            // Only the first eight significant coefficients have greater-than-one flags.
-            let significantCount = Swag.countOnes(significant)
-            let firstSigScanPos  = Swag.trailingZeros(significant)
-            let lastSigScanPos   = 31 - Swag.leadingZeros(significant)
-            var ctxSet           = (index == 0 or component > 0) ? 0'u32 : 2'u32
-            var lastCtx          = 1'u32
+            // Levels above one, for at most eight coefficients of the sub-block.
+            var greater1: [16] bool
+            var greater2            = false
+            var greater1Count       = 0_u32
+            var lastGreater1ScanPos = -1_s32
+            var firstSigScanPos     = 16_s32
+            var lastSigScanPos      = -1_s32
+
+            var ctxSet  = (index == 0 or component > 0) ? 0_u32 : 2_u32
+            var lastCtx = 1_u32
             if anySubBlockCoded
             {
                 lastCtx = previousGreater1Ctx
-                if lastCtx > 0 do
+                if lastCtx > 0
+                {
                     lastCtx = previousGreater1Flag ? 0 : lastCtx + 1
+                }
             }
 
-            if not lastCtx do
+            if not lastCtx
+            {
                 ctxSet += 1
-            let contextBase   = CtxCoeffAbsLevelGreater1Flag + ctxSet * 4 + (component > 0 ? 16'u32 : 0'u32)
-            var greater1Ctx   = 1'u32
-            var greater1Flag  = false
-            var greater1      = 0'u32
-            var firstGreater1 = 0'u32
-            var pending       = significant
-            for order in Math.min(significantCount, 8'u32)
+            }
+
+            var greater1Ctx  = 1_u32
+            var greater1Flag = false
+            var decodedAny   = false
+
+            position = 15
+            while position >= 0
             {
                 let scanPos = 31 - Swag.leadingZeros(pending)
                 let bit     = 1'u32 << scanPos
@@ -188,9 +236,35 @@ impl Decoder
                 greater1Flag = .cabac.decision(contextBase + Math.min(3'u32, greater1Ctx)) != 0
                 if greater1Flag
                 {
-                    if not greater1 do
-                        firstGreater1 = bit
-                    greater1 |= bit
+                    if greater1Count < 8
+                    {
+                        if decodedAny and greater1Ctx > 0
+                        {
+                            greater1Ctx = greater1Flag ? 0 : greater1Ctx + 1
+                        }
+
+                        var context = ctxSet * 4 + Math.min(3_u32, greater1Ctx)
+                        if component > 0
+                        {
+                            context += 16
+                        }
+
+                        greater1Flag      = .cabac.decision(CtxCoeffAbsLevelGreater1Flag + context) != 0
+                        decodedAny        = true
+                        greater1[scanPos] = greater1Flag
+                        greater1Count     += 1
+                        if greater1Flag and lastGreater1ScanPos < 0
+                        {
+                            lastGreater1ScanPos = position
+                        }
+                    }
+
+                    if lastSigScanPos < 0
+                    {
+                        lastSigScanPos = position
+                    }
+
+                    firstSigScanPos = position
                 }
             }
 
@@ -201,20 +275,36 @@ impl Decoder
             var greater2 = false
             if firstGreater1
             {
-                let context = ctxSet + (component > 0 ? 4'u32 : 0'u32)
+                var context = ctxSet
+                if component > 0
+                {
+                    context += 4
+                }
+
                 greater2 = .cabac.decision(CtxCoeffAbsLevelGreater2Flag + context) != 0
             }
 
-            // A hidden sign belongs to the lowest scan position, so it removes the final bin.
-            let signHidden = pps.signDataHiding and not bypass and lastSigScanPos - firstSigScanPos > 3
-            var signIndex  = significantCount - (signHidden ? 1'u32 : 0'u32)
-            let signs      = .cabac.bypassBits(signIndex)
+            var signs     = 0_u32
+            var signCount = 0_u32
+            position = 15
+            while position >= 0
+            {
+                let scanPos = cast(u32, position)
+                if significant[scanPos] and (not pps.signDataHiding or not signHidden or position != firstSigScanPos)
+                {
+                    signs     = (signs << 1) | .cabac.bypass()
+                    signCount += 1
+                }
 
-            // Decode the remaining magnitudes and write only the significant positions.
-            var numSigCoeff    = 0'u32
-            var sumAbsLevel    = 0'u32
-            var riceParam      = 0'u32
-            var lastAbsLevel   = 0'u32
+                position -= 1
+            }
+
+            // Remaining magnitude, and the levels themselves.
+            var signIndex      = signCount
+            var numSigCoeff    = 0_u32
+            var sumAbsLevel    = 0_u32
+            var riceParam      = 0_u32
+            var lastAbsLevel   = 0_u32
             var firstRemaining = true
 
             pending = significant
@@ -224,19 +314,25 @@ impl Decoder
                 let bit     = 1'u32 << scanPos
                 pending ^= bit
 
-                let isFirstGreater1 = bit == firstGreater1
-                var baseLevel       = 1'u32
-                if greater1 & bit do
+                var baseLevel = 1_u32
+                if greater1[scanPos]
+                {
                     baseLevel += 1
-                if isFirstGreater1 and greater2 do
-                    baseLevel += 1
+                }
 
-                var threshold = 1'u32
+                if position == lastGreater1ScanPos and greater2
+                {
+                    baseLevel += 1
+                }
+
+                var threshold = 1_u32
                 if numSigCoeff < 8
                 {
                     threshold = 2
-                    if isFirstGreater1 do
+                    if position == lastGreater1ScanPos
+                    {
                         threshold = 3
+                    }
                 }
 
                 var level = baseLevel
@@ -244,7 +340,7 @@ impl Decoder
                 {
                     if not firstRemaining
                     {
-                        riceParam = Math.min(riceParam + (lastAbsLevel > 3 * (1'u32 << riceParam) ? 1'u32 : 0'u32), 4)
+                        riceParam = Math.min(riceParam + (lastAbsLevel > 3 * (1_u32 << riceParam) ? 1_u32 : 0_u32), 4)
                     }
 
                     let remaining = .readCoeffAbsLevelRemaining(riceParam)
@@ -264,14 +360,18 @@ impl Decoder
                 {
                     signIndex -= 1
                     sign      = ((signs >> signIndex) & 1) != 0
+                    if pps.signDataHiding and signHidden
+                    {
+                        sumAbsLevel += level
+                    }
                 }
 
                 let xC    = (xS << 2) + cast(u32, ScanX[2, scanIdx, scanPos])
                 let yC    = (yS << 2) + cast(u32, ScanY[2, scanIdx, scanPos])
-                let value = cast(s32, Math.min(level, 32767'u32))
+                let value = cast(s32, Math.min(level, 32767_u32))
                 .coefficients[yC * size + xC] = cast(s16, (sign ? -value : value))
-                .coefficientRows[xC] |= 1'u32 << yC
-                .coefficientColumns  |= 1'u32 << xC
+                .coefficientRows[xC] |= 1_u32 << yC
+                .coefficientColumns  |= 1_u32 << xC
                 maxX                 = Math.max(maxX, xC)
                 maxY                 = Math.max(maxY, yC)
                 numSigCoeff          += 1
@@ -280,8 +380,10 @@ impl Decoder
             subBlock -= 1
         }
 
-        if .cabac.hasOverrun() do
+        if .cabac.hasOverrun()
+        {
             fail InvalidFormatError{"HEVC residual data runs past the end of its slice segment"}
+        }
 
         result.lastX = maxX
         result.lastY = maxY
@@ -304,11 +406,14 @@ impl Decoder
         }
 
         let maximum = (log2TrafoSize << 1) - 1
-        var prefix  = 0'u32
+        var prefix  = 0_u32
         while prefix < maximum
         {
-            if .cabac.decision(contextBase + (prefix >> shift) + offset) == 0 do
+            if .cabac.decision(contextBase + (prefix >> shift) + offset) == 0
+            {
                 break
+            }
+
             prefix += 1
         }
 
@@ -319,39 +424,51 @@ impl Decoder
     private mtd readLastSuffix(prefix: u32)->u32
     {
         let bits = (prefix >> 1) - 1
-        return (1'u32 << bits) * (2 + (prefix & 1)) + .cabac.bypassBits(bits)
+        return (1_u32 << bits) * (2 + (prefix & 1)) + .cabac.bypassBits(bits)
     }
 
     // Reads one `coeff_abs_level_remaining`, clause 9.3.3.11.
     private mtd readCoeffAbsLevelRemaining(riceParam: u32)->u32
     {
-        var prefix = 0'u32
-        while prefix < 4 and .cabac.bypass() != 0 do
+        var prefix = 0_u32
+        while prefix < 4 and .cabac.bypass() != 0
+        {
             prefix += 1
+        }
 
-        if prefix < 4 do
+        if prefix < 4
+        {
             return (prefix << riceParam) + .cabac.bypassBits(riceParam)
+        }
 
         // Past the truncated Rice prefix the value continues as an Exp-Golomb code of order one
         // above the Rice parameter, equation 9-13.
-        var extension = 0'u32
-        while extension < 24 and .cabac.bypass() != 0 do
+        var extension = 0_u32
+        while extension < 24 and .cabac.bypass() != 0
+        {
             extension += 1
+        }
 
         let order  = riceParam + 1
-        let escape = ((1'u32 << extension) - 1) << order
-        return (4'u32 << riceParam) + escape + .cabac.bypassBits(order + extension)
+        let escape = ((1_u32 << extension) - 1) << order
+        return (4_u32 << riceParam) + escape + .cabac.bypassBits(order + extension)
     }
 
     // Returns the context of one `coded_sub_block_flag`, clause 9.3.4.2.4.
     private mtd const codedSubBlockContext(coded: const [*] bool, xS, yS, subBlockLog2, component: u32)->u32
     {
-        let limit   = (1'u32 << subBlockLog2) - 1
-        var context = 0'u32
-        if xS < limit and coded[yS * 8 + xS + 1] do
+        let limit   = (1_u32 << subBlockLog2) - 1
+        var context = 0_u32
+        if xS < limit and coded[yS * 8 + xS + 1]
+        {
             context += 1
-        if yS < limit and coded[(yS + 1) * 8 + xS] do
+        }
+
+        if yS < limit and coded[(yS + 1) * 8 + xS]
+        {
             context += 1
+        }
+
         context = Math.min(context, 1)
         return component == 0 ? context : 2 + context
     }
@@ -363,25 +480,38 @@ impl Decoder
     // constant. Both are answered once here, and a coefficient then reads one byte and adds it.
     private mtd const significanceContextBase(coded: const [*] bool, xS, yS, scanIdx, log2TrafoSize, subBlockLog2, component: u32, pattern: *u32)->u32
     {
-        let limit    = (1'u32 << subBlockLog2) - 1
-        var previous = 0'u32
-        if xS < limit and coded[yS * 8 + xS + 1] do
+        let limit    = (1_u32 << subBlockLog2) - 1
+        var previous = 0_u32
+        if xS < limit and coded[yS * 8 + xS + 1]
+        {
             previous += 1
-        if yS < limit and coded[(yS + 1) * 8 + xS] do
+        }
+
+        if yS < limit and coded[(yS + 1) * 8 + xS]
+        {
             previous += 2
+        }
+
         pattern[] = previous
 
-        var base = component == 0 ? 0'u32 : 27'u32
+        var base = component == 0 ? 0_u32 : 27_u32
         if not component
         {
-            if xS + yS > 0 do
+            if xS + yS > 0
+            {
                 base += 3
+            }
+
             if log2TrafoSize == 3
             {
-                if scanIdx == ScanDiagonal do
+                if scanIdx == ScanDiagonal
+                {
                     base += 9
-                else do
+                }
+                else
+                {
                     base += 15
+                }
             }
             else
             {
@@ -390,7 +520,7 @@ impl Decoder
         }
         else
         {
-            base += log2TrafoSize == 3 ? 9'u32 : 12'u32
+            base += log2TrafoSize == 3 ? 9_u32 : 12_u32
         }
 
         return base

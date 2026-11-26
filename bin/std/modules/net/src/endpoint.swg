@@ -24,8 +24,11 @@ impl IpAddress
     func ipv4(octets: [4] u8)->IpAddress
     {
         var result = IpAddress{family: .IPv4}
-        for i in 4 do
+        for i in 4
+        {
             result.bytes[i] = octets[i]
+        }
+
         return result
     }
 

@@ -22,25 +22,31 @@ func readText(source: string, styles: const *Odf.StyleCatalog, base: Docx.RunFor
     var scan        = Package.Scanner.create(source)
     var token:  Package.Token
     var run         = base
-    var stack:  Array'Inline
+    var stack:  Array!{Inline}
     var text:   String
     var inParagraph = false
-    var depth       = 0'u64
+    var depth       = 0_u64
     var skip        = Swag.U64.Max
-    var lists:  Array'bool
+    var lists:  Array!{bool}
 
     func flush(result: *Text, text: *String, run: Docx.RunFormat, width: f32, readerStyle: bool)
     {
-        if text.isEmpty() do
+        if text.isEmpty()
+        {
             return
+        }
+
         if run.hidden != .On
         {
             result.plain += text[]
             var escaped: String
             Package.appendHtmlEscaped(&escaped, text[])
             let pixels = cast(f32, run.size ? run.size : 36) / 2 * 4 / 3
-            if not readerStyle do
+            if not readerStyle
+            {
                 result.html += Format.toString("<span style=\"font-size:%{f4}vw;\">", pixels / width * 100)
+            }
+
             var inner = run
             inner.size = 0
             if readerStyle
@@ -51,8 +57,10 @@ func readText(source: string, styles: const *Odf.StyleCatalog, base: Docx.RunFor
             }
 
             inner.appendHtml(&result.html, escaped)
-            if not readerStyle do
+            if not readerStyle
+            {
                 result.html += "</span>"
+            }
         }
 
         text.clear()
@@ -73,21 +81,27 @@ func readText(source: string, styles: const *Odf.StyleCatalog, base: Docx.RunFor
                 {
                     skip = depth
                 }
-                elif token.isElement("p") or token.isElement("h")
+                else if token.isElement("p") or token.isElement("h")
                 {
-                    if inParagraph do
+                    if inParagraph
+                    {
                         fail Errors.InvalidFormatError{texts().err_Invalid}
+                    }
+
                     run = base
                     let properties = styles.lookup(token.attribute("style-name") orelse "", .Paragraph)
                     properties.applyRun(&run)
                     result.limited = result.limited or properties.limited
                     result.html    += "<p"
-                    if not properties.paragraph.alignment.isEmpty() do
+                    if not properties.paragraph.alignment.isEmpty()
+                    {
                         result.html += Format.toString(" style=\"text-align:%\"", properties.paragraph.alignment)
+                    }
+
                     result.html += ">"
                     inParagraph = true
                 }
-                elif inParagraph
+                else if inParagraph
                 {
                     if token.isElement("span")
                     {
@@ -97,70 +111,78 @@ func readText(source: string, styles: const *Odf.StyleCatalog, base: Docx.RunFor
                         properties.applyRun(&run)
                         result.limited = result.limited or properties.limited
                     }
-                    elif token.isElement("line-break")
+                    else if token.isElement("line-break")
                     {
                         flush(&result, &text, run, width, readerStyle)
                         result.html  += "<br>"
                         result.plain += "\n"
                     }
-                    elif token.isElement("tab")
+                    else if token.isElement("tab")
                     {
                         text += "\t"
                     }
-                    elif token.isElement("s")
+                    else if token.isElement("s")
                     {
                         let count = catch StrConv.toU32(token.attribute("c") orelse "1") orelse 0
-                        if count > 8192 do
+                        if count > 8192
+                        {
                             fail Errors.UnsupportedFormatError{texts().err_TooLarge}
-                        for count do
+                        }
+
+                        for count
+                        {
                             text += "\u00A0"
+                        }
                     }
                 }
-                elif token.isElement("list")
+                else if token.isElement("list")
                 {
                     let entry   = styles.lists.tryFind(String.from(token.attribute("style-name") orelse ""))
                     let ordered = entry and entry.value
                     lists.add(ordered)
                     result.html += ordered ? "<ol>" : "<ul>"
                 }
-                elif token.isElement("list-item")
+                else if token.isElement("list-item")
                 {
                     result.html += "<li>"
                 }
             }
         }
-        elif token.kind == .Text and inParagraph and skip == Swag.U64.Max
+        else if token.kind == .Text and inParagraph and skip == Swag.U64.Max
         {
             text += token.text
         }
 
-        if text.count + result.html.count > 1024 * 1024 do
+        if text.count + result.html.count > 1024 * 1024
+        {
             fail Errors.UnsupportedFormatError{texts().err_TooLarge}
+        }
+
         if token.kind == .End or token.empty
         {
             if skip == depth
             {
                 skip = Swag.U64.Max
             }
-            elif skip == Swag.U64.Max
+            else if skip == Swag.U64.Max
             {
                 if token.isElement("span") and not stack.isEmpty()
                 {
                     flush(&result, &text, run, width, readerStyle)
                     run = stack.popBack().run
                 }
-                elif (token.isElement("p") or token.isElement("h")) and inParagraph
+                else if (token.isElement("p") or token.isElement("h")) and inParagraph
                 {
                     flush(&result, &text, run, width, readerStyle)
                     result.html  += "</p>"
                     result.plain += "\n"
                     inParagraph  = false
                 }
-                elif token.isElement("list-item")
+                else if token.isElement("list-item")
                 {
                     result.html += "</li>"
                 }
-                elif token.isElement("list") and not lists.isEmpty()
+                else if token.isElement("list") and not lists.isEmpty()
                 {
                     result.html += lists.popBack() ? "</ol>" : "</ul>"
                 }
@@ -170,7 +192,10 @@ func readText(source: string, styles: const *Odf.StyleCatalog, base: Docx.RunFor
         }
     }
 
-    if scan.damaged or inParagraph or not stack.isEmpty() do
+    if scan.damaged or inParagraph or not stack.isEmpty()
+    {
         fail Errors.InvalidFormatError{texts().err_Invalid}
+    }
+
     return result
 }

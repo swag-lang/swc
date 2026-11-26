@@ -28,21 +28,21 @@ struct ChoicePoint
 
 struct Backtracker
 {
-    trail:        Array'TrailEntry      // Slots to put back when a branch fails.
-    trailTop:     u64                   // How much of it is in use.
-    choices:      Array'ChoicePoint     // Branches left to try.
-    choicesTop:   u64                   // How many of them there are.
-    slots:        Array'u64             // Capture slots of the branch being explored, and of the match once one is found.
-    budget:       u64                   // Steps left before the search gives up.
-    limit:        u64                   // Offset the search may not read past.
-    ignoreCase:   bool                  // Whether a backreference compares without case.
-    exhausted:    bool                  // Whether the budget ran out, so a refusal is not an answer.
-    wholeSubject: bool                  // Whether only a match ending at 'limit' counts.
+    trail:        Array!{TrailEntry}      // Slots to put back when a branch fails.
+    trailTop:     u64                     // How much of it is in use.
+    choices:      Array!{ChoicePoint}     // Branches left to try.
+    choicesTop:   u64                     // How many of them there are.
+    slots:        Array!{u64}             // Capture slots of the branch being explored, and of the match once one is found.
+    budget:       u64                     // Steps left before the search gives up.
+    limit:        u64                     // Offset the search may not read past.
+    ignoreCase:   bool                    // Whether a backreference compares without case.
+    exhausted:    bool                    // Whether the budget ran out, so a refusal is not an answer.
+    wholeSubject: bool                    // Whether only a match ending at 'limit' counts.
 }
 
 // How many instruction steps one search may take. A backreference pattern can be exponential
 // in the length of the subject, and an interactive caller must still get an answer.
-const BacktrackBudget = 20_000_000'u64
+const BacktrackBudget = 20_000_000_u64
 
 impl Backtracker
 {
@@ -72,17 +72,23 @@ impl Backtracker
             .slots.fill(NoSlot)
             .trailTop   = 0
             .choicesTop = 0
-            if .step(program, hay, program.start, pos) do
+            if .step(program, hay, program.start, pos)
+            {
                 return true
+            }
 
-            if anchored or pos >= limit do
+            if anchored or pos >= limit
+            {
                 return false
+            }
 
             // The next attempt starts at the next scalar value: a match never starts inside
             // the encoding of one.
             pos += 1
-            while pos < limit and (hay[pos] & 0xC0) == 0x80 do
+            while pos < limit and (hay[pos] & 0xC0) == 0x80
+            {
                 pos += 1
+            }
         }
 
         return false
@@ -149,8 +155,10 @@ impl Backtracker
                 let slot = instruction.slot
                 if slot < slotCount
                 {
-                    if .trailTop >= .trail.count do
+                    if .trailTop >= .trail.count
+                    {
                         me.growTrail()
+                    }
 
                     let entry = .trail.storage() + .trailTop
                     entry.slot  = slot
@@ -162,14 +170,20 @@ impl Backtracker
                 pc = instruction.next
 
             case .Assert:
-                if not assertionHolds(instruction.assertion, hay, pos) do
+                if not assertionHolds(instruction.assertion, hay, pos)
+                {
                     failed = true
-                else do
+                }
+                else
+                {
                     pc = instruction.next
+                }
 
             case .Split:
-                if .choicesTop >= .choices.count do
+                if .choicesTop >= .choices.count
+                {
                     me.growChoices()
+                }
 
                 let choice = .choices.storage() + .choicesTop
                 choice.pc   = instruction.alt
@@ -185,7 +199,7 @@ impl Backtracker
                 {
                     failed = true
                 }
-                elif slots![opening] == NoSlot or slots[closing] == NoSlot
+                else if slots![opening] == NoSlot or slots[closing] == NoSlot
                 {
                     // A group that did not take part in the match stands for the empty string,
                     // so a reference to a group behind a `{0}` or an unused branch still matches.
@@ -207,15 +221,20 @@ impl Backtracker
                 }
 
             case .Match:
-                if not .wholeSubject or pos == .limit do
+                if not .wholeSubject or pos == .limit
+                {
                     return true
+                }
+
                 failed = true
             }
 
             if failed
             {
-                if .choicesTop == 0 do
+                if .choicesTop == 0
+                {
                     return false
+                }
 
                 .choicesTop -= 1
                 let choice = .choices.storage() + .choicesTop
@@ -255,17 +274,24 @@ impl Backtracker
     mtd matchReference(hay: const [..] u8, referenced: const [..] u8, pos: u64)->u64
     {
         let referenceBytes = referenced.count
-        if referenceBytes == 0 do
+        if referenceBytes == 0
+        {
             return 0
+        }
 
         if not .ignoreCase
         {
-            if pos + referenceBytes > .limit do
-                return NoSlot
-            for var i = 0'u64; i < referenceBytes; i += 1
+            if pos + referenceBytes > .limit
             {
-                if hay[pos + i] != referenced[i] do
+                return NoSlot
+            }
+
+            for var i = 0_u64; i < referenceBytes; i += 1
+            {
+                if hay[pos + i] != referenced[i]
+                {
                     return NoSlot
+                }
             }
 
             return referenceBytes
@@ -274,18 +300,22 @@ impl Backtracker
         // Case-insensitively, the repeat may take a different number of bytes than the
         // capture did, because two spellings of one letter can have different encodings.
         var subjectOffset   = pos
-        var referenceOffset = 0'u64
+        var referenceOffset = 0_u64
         while referenceOffset < referenceBytes
         {
-            if subjectOffset >= .limit do
+            if subjectOffset >= .limit
+            {
                 return NoSlot
+            }
 
             let subjectRune = Utf8.decodeRune(Swag.makeSlice(hay.buffer + subjectOffset,
                                                              .limit - subjectOffset))
             let referenceRune = Utf8.decodeRune(Swag.makeSlice(referenced.buffer + referenceOffset,
                                                                referenceBytes - referenceOffset))
-            if Unicode.toUpper(subjectRune.c) != Unicode.toUpper(referenceRune.c) do
+            if Unicode.toUpper(subjectRune.c) != Unicode.toUpper(referenceRune.c)
+            {
                 return NoSlot
+            }
 
             subjectOffset   += subjectRune.eat
             referenceOffset += referenceRune.eat

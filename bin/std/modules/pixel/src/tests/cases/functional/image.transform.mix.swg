@@ -5,92 +5,97 @@ using Swag, Core
 #test
 {
     const dstPixels = [
-        10'u8, 20'u8, 30'u8, 200'u8, 40'u8, 50'u8, 60'u8, 201'u8, 70'u8, 80'u8, 90'u8, 202'u8,
-        100'u8, 110'u8, 120'u8, 203'u8, 130'u8, 140'u8, 150'u8, 204'u8, 160'u8, 170'u8, 180'u8, 205'u8]
+        10_u8, 20_u8, 30_u8, 200_u8, 40_u8, 50_u8, 60_u8, 201_u8, 70_u8, 80_u8, 90_u8, 202_u8,
+        100_u8, 110_u8, 120_u8, 203_u8, 130_u8, 140_u8, 150_u8, 204_u8, 160_u8, 170_u8, 180_u8, 205_u8]
 
     const copyPixels = [
-        1'u8, 2'u8, 3'u8, 4'u8, 5'u8, 6'u8, 7'u8, 8'u8]
+        1_u8, 2_u8, 3_u8, 4_u8, 5_u8, 6_u8, 7_u8, 8_u8]
 
     const blendPixels = [
-        200'u8, 210'u8, 220'u8, 128'u8, 0'u8, 10'u8, 20'u8, 64'u8]
+        200_u8, 210_u8, 220_u8, 128_u8, 0_u8, 10_u8, 20_u8, 64_u8]
 
     let dst     = makeImage(3, 2, .RGBA8, dstPixels)
     let srcCopy = makeImage(2, 1, .RGBA8, copyPixels)
     let copied  = dst.mixed(srcCopy, 1, 0, .Copy)
     assertImage(copied, 3, 2, .RGBA8)
 
-    assertPixel(copied, 0, 1, Color.fromArgb(200'u8, 10'u8, 20'u8, 30'u8))
-    assertPixel(copied, 1, 1, Color.fromArgb(4'u8, 1'u8, 2'u8, 3'u8))
-    assertPixel(copied, 2, 1, Color.fromArgb(8'u8, 5'u8, 6'u8, 7'u8))
-    assertPixel(copied, 0, 0, Color.fromArgb(203'u8, 100'u8, 110'u8, 120'u8))
+    assertPixel(copied, 0, 1, Color.fromArgb(200_u8, 10_u8, 20_u8, 30_u8))
+    assertPixel(copied, 1, 1, Color.fromArgb(4_u8, 1_u8, 2_u8, 3_u8))
+    assertPixel(copied, 2, 1, Color.fromArgb(8_u8, 5_u8, 6_u8, 7_u8))
+    assertPixel(copied, 0, 0, Color.fromArgb(203_u8, 100_u8, 110_u8, 120_u8))
 
     let srcBlend = makeImage(2, 1, .RGBA8, blendPixels)
     let blended  = dst.mixed(srcBlend, 0, 1, .SourceOver)
     assertImage(blended, 3, 2, .RGBA8)
 
-    assertPixel(blended, 0, 0, Color.fromArgb(229'u8, 156'u8, 166'u8, 176'u8))
-    assertPixel(blended, 1, 0, Color.fromArgb(217'u8, 92'u8, 102'u8, 112'u8))
-    assertPixel(blended, 2, 0, Color.fromArgb(205'u8, 160'u8, 170'u8, 180'u8))
+    assertPixel(blended, 0, 0, Color.fromArgb(229_u8, 156_u8, 166_u8, 176_u8))
+    assertPixel(blended, 1, 0, Color.fromArgb(217_u8, 92_u8, 102_u8, 112_u8))
+    assertPixel(blended, 2, 0, Color.fromArgb(205_u8, 160_u8, 170_u8, 180_u8))
 }
 
 #test
 {
-    const destination = [17'u8, 31, 47, 63]
-    const source      = [101'u8, 103, 107, 109]
+    const destination = [17_u8, 31, 47, 63]
+    const source      = [101_u8, 103, 107, 109]
     let mixed = makeImage(1, 1, .RGBA8, destination).mixed(makeImage(1, 1, .RGBA8, source), Swag.S32.Max, 0)
-    assertPixel(mixed, 0, 0, Color.fromArgb(63'u8, 17'u8, 31'u8, 47'u8))
+    assertPixel(mixed, 0, 0, Color.fromArgb(63_u8, 17_u8, 31_u8, 47_u8))
 }
 
 #test
 {
-    const destination = [17'u8, 31, 47, 63]
-    const source      = [101'u8, 103, 107, 109]
+    const destination = [17_u8, 31, 47, 63]
+    const source      = [101_u8, 103, 107, 109]
     var image   = makeImage(1, 1, .RGBA8, destination)
     let overlay = makeImage(1, 1, .RGBA8, source)
 
     image.mix(overlay, Swag.S32.Max, 0)
-    assertPixel(image, 0, 0, Color.fromArgb(63'u8, 17'u8, 31'u8, 47'u8))
+    assertPixel(image, 0, 0, Color.fromArgb(63_u8, 17_u8, 31_u8, 47_u8))
     image.mix(overlay, 0, Swag.S32.Min)
-    assertPixel(image, 0, 0, Color.fromArgb(63'u8, 17'u8, 31'u8, 47'u8))
+    assertPixel(image, 0, 0, Color.fromArgb(63_u8, 17_u8, 31_u8, 47_u8))
 }
 
 #test
 {
-    const destination = [17'u8, 31, 47, 63]
-    const source      = [101'u8, 103, 107, 109]
+    const destination = [17_u8, 31, 47, 63]
+    const source      = [101_u8, 103, 107, 109]
     let mixed = makeImage(1, 1, .RGBA8, destination).mixed(makeImage(1, 1, .RGBA8, source), 0, Swag.S32.Max)
-    assertPixel(mixed, 0, 0, Color.fromArgb(63'u8, 17'u8, 31'u8, 47'u8))
+    assertPixel(mixed, 0, 0, Color.fromArgb(63_u8, 17_u8, 31_u8, 47_u8))
 }
 
 #test
 {
-    const destination = [17'u8, 31, 47, 63]
-    const source      = [101'u8, 103, 107, 109]
+    const destination = [17_u8, 31, 47, 63]
+    const source      = [101_u8, 103, 107, 109]
     let mixed = makeImage(1, 1, .RGBA8, destination).mixed(makeImage(1, 1, .RGBA8, source), Swag.S32.Min, 0)
-    assertPixel(mixed, 0, 0, Color.fromArgb(63'u8, 17'u8, 31'u8, 47'u8))
+    assertPixel(mixed, 0, 0, Color.fromArgb(63_u8, 17_u8, 31_u8, 47_u8))
 }
 
 #test
 {
-    const destination = [17'u8, 31, 47, 63]
-    const source      = [101'u8, 103, 107, 109]
+    const destination = [17_u8, 31, 47, 63]
+    const source      = [101_u8, 103, 107, 109]
     let mixed = makeImage(1, 1, .RGBA8, destination).mixed(makeImage(1, 1, .RGBA8, source), 0, Swag.S32.Min)
-    assertPixel(mixed, 0, 0, Color.fromArgb(63'u8, 17'u8, 31'u8, 47'u8))
+    assertPixel(mixed, 0, 0, Color.fromArgb(63_u8, 17_u8, 31_u8, 47_u8))
 }
 
 #test
 {
     var dstPixels: [48] u8
-    for index in dstPixels.count do
+    for index in dstPixels.count
+    {
         dstPixels[index] = cast(u8, (index * 3 + 1))
+    }
+
     var srcPixels: [24] u8
-    for index in srcPixels.count do
+    for index in srcPixels.count
+    {
         srcPixels[index] = cast(u8, (index * 5 + 7))
+    }
 
     let dst = makeImage(4, 3, .RGBA8, dstPixels)
     let src = makeImage(3, 2, .RGBA8, srcPixels)
 
-    var expected: Array'u8
+    var expected: Array!{u8}
     expected.resize(dstPixels.count)
     Memory.copy(expected.storage(), dstPixels.buffer, expected.count)
     for row in 2
@@ -122,19 +127,19 @@ using Swag, Core
     }
 
     srcChannels[0] = 1
-    srcChannels[3] = 0.00000001'f32
+    srcChannels[3] = 0.00000001_f32
 
     let mixed         = dst.mixed(src, 0, 0, .SourceOver)
     let mixedChannels = cast(const [*] f32, mixed.pixels.storage())
-    Swag.require(mixedChannels[0] == 1.0'f32 and mixedChannels[3] == 0.00000001'f32)
+    Swag.require(mixedChannels[0] == 1.0_f32 and mixedChannels[3] == 0.00000001_f32)
 
     let copied         = dst.mixed(src, 0, 0, .Copy)
     let copiedChannels = cast(const [*] f32, copied.pixels.storage())
-    Swag.require(copiedChannels[0] == 1.0'f32 and copiedChannels[3] == 0.00000001'f32)
+    Swag.require(copiedChannels[0] == 1.0_f32 and copiedChannels[3] == 0.00000001_f32)
 
     dst.mix(src, 0, 0, .SourceOver)
     let inPlaceChannels = cast(const [*] f32, dst.pixels.storage())
-    Swag.require(inPlaceChannels[0] == 1.0'f32 and inPlaceChannels[3] == 0.00000001'f32)
+    Swag.require(inPlaceChannels[0] == 1.0_f32 and inPlaceChannels[3] == 0.00000001_f32)
 
     var transparent         = Image.create(1, 1, .RGBAF32)
     let transparentChannels = cast([*] f32, transparent.pixels.storage())
@@ -147,8 +152,8 @@ using Swag, Core
     let zeroChannels = cast(const [*] f32, zeroResult.pixels.storage())
     Swag.require(zeroChannels[0] == 0 and zeroChannels[1] == 0 and zeroChannels[2] == 0 and zeroChannels[3] == 0)
 
-    const dstBytes = [0'u8, 0, 0, 0]
-    const srcBytes = [255'u8, 0, 0, 1]
+    const dstBytes = [0_u8, 0, 0, 0]
+    const srcBytes = [255_u8, 0, 0, 1]
     let byteMix = makeImage(1, 1, .RGBA8, dstBytes).mixed(makeImage(1, 1, .RGBA8, srcBytes), 0, 0, .SourceOver)
-    assertPixel(byteMix, 0, 0, Color.fromArgb(1'u8, 255'u8, 0'u8, 0'u8))
+    assertPixel(byteMix, 0, 0, Color.fromArgb(1_u8, 255_u8, 0_u8, 0_u8))
 }

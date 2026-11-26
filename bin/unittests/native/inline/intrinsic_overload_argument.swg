@@ -13,10 +13,10 @@ func addQuad(a, b: #simd [4] s32)->#simd [4] s32 => a + b
 
 #test
 {
-    let f = addF(Swag.min(1.5'f32, 2.5), Swag.max(1.5'f32, 2.5))
+    let f = addF(Swag.min(1.5_f32, 2.5), Swag.max(1.5_f32, 2.5))
     Swag.require(f == 4.0)
 
-    let u = addU(Swag.min(3'u64, 4), Swag.max(3'u64, 4))
+    let u = addU(Swag.min(3_u64, 4), Swag.max(3_u64, 4))
     Swag.require(u == 7)
 }
 

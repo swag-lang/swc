@@ -40,10 +40,16 @@ private func pluginName()->string => texts().ui_Name
 // reading of the same thing rather than a contradiction of the first.
 private func pluginProbe(content: Viewer.ProbeContent)->bool
 {
-    if content.claimed and not content.claimedText do
+    if content.claimed and not content.claimedText
+    {
         return false
-    if not content.head.count do
+    }
+
+    if not content.head.count
+    {
         return false
+    }
+
     return Viewer.probeTextHead(content.head).accepted
 }
 
@@ -72,14 +78,14 @@ func viewerPlugin()->Viewer.Plugin
 
 private
 {
-    const StreamChunkSize = 16 * 1024'u64
+    const StreamChunkSize = 16 * 1024_u64
 
-    const RevealContextSize  = 16 * 1024'u64
-    const LensHistoryLimit   = 64'u64
-    const BookmarkNameLimit  = 128'u64
+    const RevealContextSize = 16 * 1024_u64
+    const LensHistoryLimit  = 64_u64
+    const BookmarkNameLimit = 128_u64
 
     // Bytes the window is counted over to name the cursor line when the gutter does not ask for it.
-    const QuietLineCountLimit = 4 * 1024 * 1024'u64
+    const QuietLineCountLimit = 4 * 1024 * 1024_u64
 
     // The encodings offered in the action bar, in the order the selector lists them.
     const Encodings: [6] Text.Encoding = [.Utf8, .Utf16Le, .Utf16Be, .Utf32Le, .Utf32Be, .Windows1252]
@@ -98,10 +104,10 @@ private func textFileIdentity(fileName: string)->String
     let absolute = catch Path.absolute(fileName) { return "" }
     let info     = catch File.info(absolute) { return "" }
     return Format.toString("%\n%\n%\n%",
-                          absolute,
-                          info.size,
-                          Hash.hash64(info.creationTime),
-                          Hash.hash64(info.lastWriteTime))
+                           absolute,
+                           info.size,
+                           Hash.hash64(info.creationTime),
+                           Hash.hash64(info.lastWriteTime))
 }
 
 // Text view available for readable content independently of the format-specific viewers.
@@ -117,54 +123,54 @@ struct Panel
         zoomLabel:     *IconButton
     }
 
-    read:               Read
-    residentText:       String
-    pendingMatchBytes:  u64
-    pendingMatch:       String
-    pendingCaret:       bool     // Whether the window being read is to place the caret at `pendingSeekOffset`.
-    pendingCaretColumn: u64
-    pendingHasCaretColumn: bool
-    hasEstimatedLine:  bool
-    estimatedLine:     u64
-    pendingNavigation:  Input.Key
-    internal lensHistory: Array'u64
-    internal lensHistoryIndex: u64 = Swag.U64.Max
+    read:                          Read
+    residentText:                  String
+    pendingMatchBytes:             u64
+    pendingMatch:                  String
+    pendingCaret:                  bool     // Whether the window being read is to place the caret at `pendingSeekOffset`.
+    pendingCaretColumn:            u64
+    pendingHasCaretColumn:         bool
+    hasEstimatedLine:              bool
+    estimatedLine:                 u64
+    pendingNavigation:             Input.Key
+    internal lensHistory:          Array!{u64}
+    internal lensHistoryIndex:     u64  = Swag.U64.Max
     internal replayingLensHistory: bool
-    fileIdentity:       String
-    internal bookmarkIdentity: String
-    internal bookmarks: Array'Bookmark
-    internal bookmarksStale: bool
+    fileIdentity:                  String
+    internal bookmarkIdentity:     String
+    internal bookmarks:            Array!{Bookmark}
+    internal bookmarksStale:       bool
     internal bookmarksPersistable: bool = true
-    retiring:           bool
-    readFailed:         bool
-    fileName:           String
-    fileSize:           u64
-    bytesRead:          u64
-    residentStart:      u64
-    residentOffsetY:    f32
-    virtualHeight:      f32
-    loadTimer:          *Timer?
-    statisticsTask:     Swag.Task'TextStatistics
-    hasStatistics:      bool
-    statistics:         TextStatistics
-    statisticsEncoding: Text.Encoding
-    statisticsStart:    u64
-    hasText:            bool
-    pauseStreaming:     bool
-    pendingSeek:        bool
-    pendingSeekOffset:  u64
-    repositioning:      bool
-    encoding:           Text.Encoding
-    displayedEncoding:  Text.Encoding
-    contentStart:       u64
-    wrapping:           bool = true
-    lineNumbers:        bool
-    blanks:             bool
-    tabWidth:           s32  = 4
-    windowLine:         u64     // Number of the resident window's first line, or zero when it is not counted.
-    lines:              Viewer.LineCounter
-    zoomPercent:        u32  = 100
-    services:           Viewer.HostServices
+    retiring:                      bool
+    readFailed:                    bool
+    fileName:                      String
+    fileSize:                      u64
+    bytesRead:                     u64
+    residentStart:                 u64
+    residentOffsetY:               f32
+    virtualHeight:                 f32
+    loadTimer:                     *Timer?
+    statisticsTask:                Swag.Task!{TextStatistics}
+    hasStatistics:                 bool
+    statistics:                    TextStatistics
+    statisticsEncoding:            Text.Encoding
+    statisticsStart:               u64
+    hasText:                       bool
+    pauseStreaming:                bool
+    pendingSeek:                   bool
+    pendingSeekOffset:             u64
+    repositioning:                 bool
+    encoding:                      Text.Encoding
+    displayedEncoding:             Text.Encoding
+    contentStart:                  u64
+    wrapping:                      bool = true
+    lineNumbers:                   bool
+    blanks:                        bool
+    tabWidth:                      s32  = 4
+    windowLine:                    u64     // Number of the resident window's first line, or zero when it is not counted.
+    lines:                         Viewer.LineCounter
+    zoomPercent:                   u32  = 100
+    services:                      Viewer.HostServices
 }
 
 // Reports whether `evt` is the wrap shortcut, Ctrl+Shift+W. The editor's hook and
@@ -175,8 +181,11 @@ impl Panel
 {
     mtd searchBounds(result: *Math.Rectangle)->bool
     {
-        if not .pendingMatch.isEmpty() do
+        if not .pendingMatch.isEmpty()
+        {
             return false
+        }
+
         return Viewer.richEditMatchBounds(.editor, result)
     }
 
@@ -209,16 +218,23 @@ impl Panel
                                                .encoding,
                                                .residentStart)
         }
-        if start == Swag.U64.Max do
+
+        if start == Swag.U64.Max
+        {
             return Swag.U64.Max
+        }
+
         return .offsetOfColumn(start, .editor.cursorLogicalCharPos() + 1).offset
     }
 
     // Records Lens destinations as file offsets, independent of the resident window.
     private mtd recordLensDestination(offset, from: u64)
     {
-        if .replayingLensHistory or offset > .fileSize do
+        if .replayingLensHistory or offset > .fileSize
+        {
             return
+        }
+
         let origin = Math.min(from, .fileSize)
 
         if not .lensHistory.count
@@ -226,17 +242,23 @@ impl Panel
             .lensHistory.add(origin)
             .lensHistoryIndex = 0
         }
-        elif .lensHistoryIndex < .lensHistory.count and .lensHistory[.lensHistoryIndex] != origin
+        else if .lensHistoryIndex < .lensHistory.count and .lensHistory[.lensHistoryIndex] != origin
         {
             .lensHistory.resize(.lensHistoryIndex + 1)
             .lensHistory.add(origin)
             .lensHistoryIndex = .lensHistory.count - 1
         }
 
-        if .lensHistoryIndex < .lensHistory.count and .lensHistory[.lensHistoryIndex] == offset do
+        if .lensHistoryIndex < .lensHistory.count and .lensHistory[.lensHistoryIndex] == offset
+        {
             return
-        if .lensHistoryIndex != Swag.U64.Max and .lensHistoryIndex + 1 < .lensHistory.count do
+        }
+
+        if .lensHistoryIndex != Swag.U64.Max and .lensHistoryIndex + 1 < .lensHistory.count
+        {
             .lensHistory.resize(.lensHistoryIndex + 1)
+        }
+
         .lensHistory.add(offset)
         .lensHistoryIndex = .lensHistory.count - 1
 
@@ -252,17 +274,26 @@ impl Panel
                                        text: string = "",
                                        caret = true,
                                        caretColumn = Swag.U64.Max,
-                                       estimatedLine = 0'u64)->bool
+                                       estimatedLine = 0_u64)->bool
     {
-        if offset > .fileSize do
+        if offset > .fileSize
+        {
             return false
-        let current = .currentByteOffset()
-        let from = current == Swag.U64.Max ? .residentStart : current
+        }
+
+        let current     = .currentByteOffset()
+        let from        = current == Swag.U64.Max ? .residentStart : current
         var destination = Math.min(offset, .fileSize)
-        if caretColumn != Swag.U64.Max and caretColumn do
+        if caretColumn != Swag.U64.Max and caretColumn
+        {
             destination = .offsetOfColumn(destination, caretColumn + 1).offset
-        if not .revealOffset(offset, text, caret: caret, caretColumn: caretColumn, estimatedLine: estimatedLine) do
+        }
+
+        if not .revealOffset(offset, text, caret: caret, caretColumn: caretColumn, estimatedLine: estimatedLine)
+        {
             return false
+        }
+
         .recordLensDestination(destination, from)
         return true
     }
@@ -270,16 +301,25 @@ impl Panel
     // Returns to a recorded Lens destination, without adding another history visit.
     private mtd navigateLensHistory(direction: s32)->bool
     {
-        if .lensHistoryIndex == Swag.U64.Max do
+        if .lensHistoryIndex == Swag.U64.Max
+        {
             return false
+        }
+
         let next = cast(s64, .lensHistoryIndex) + direction
-        if next < 0 or next >= cast(s64, .lensHistory.count) do
+        if next < 0 or next >= cast(s64, .lensHistory.count)
+        {
             return false
+        }
+
         .replayingLensHistory = true
         defer .replayingLensHistory = false
         let offset = .lensHistory[cast(u64, next)]
-        if not .revealOffset(offset, "", caret: true) do
+        if not .revealOffset(offset, "", caret: true)
+        {
             return false
+        }
+
         .lensHistoryIndex = cast(u64, next)
         return true
     }
@@ -287,29 +327,44 @@ impl Panel
     mtd handleLensHistoryKey(evt: const *KeyEvent)->bool
     {
         let direction = Viewer.historyKeyDirection(evt)
-        if direction < 0 do
+        if direction < 0
+        {
             return .navigateLensHistory(-1)
-        if direction > 0 do
+        }
+
+        if direction > 0
+        {
             return .navigateLensHistory(1)
+        }
+
         return false
     }
 
     mtd handleBookmarkKey(evt: const *KeyEvent)->bool
     {
-        if evt.kind != .Pressed do
+        if evt.kind != .Pressed
+        {
             return false
+        }
+
         let modifiers = Input.KeyModifiers.Control | .Shift
-        if evt.modifiers != modifiers do
+        if evt.modifiers != modifiers
+        {
             return false
+        }
+
         switch evt.key
         {
         case .B:
             .promptBookmarkCurrentPosition()
             return true
+
         case .PageUp:
             return .navigateBookmark(-1)
+
         case .PageDown:
             return .navigateBookmark(1)
+
         default:
             return false
         }
@@ -322,6 +377,7 @@ impl Panel
             .bookmarksStale = false
             return false
         }
+
         let currentIdentity = textFileIdentity(.fileName)
         .bookmarksStale = currentIdentity.isEmpty() or currentIdentity != .bookmarkIdentity
         return .bookmarksStale
@@ -332,17 +388,23 @@ impl Panel
         if .bookmarks.count >= ViewerTextBookmarkLimit or
            .fileIdentity.isEmpty() or
            .refreshBookmarkStaleness() or
-           textFileIdentity(.fileName) != .fileIdentity do
+           textFileIdentity(.fileName) != .fileIdentity
+        {
             return false
+        }
+
         return .currentByteOffset() != Swag.U64.Max
     }
 
     // Stores a named current position after its source file and byte offset are checked.
     internal mtd addCurrentPositionBookmark(label: string)->bool
     {
-        if not .canBookmarkCurrentPosition() do
+        if not .canBookmarkCurrentPosition()
+        {
             return false
-        let line = .currentLine()
+        }
+
+        let line   = .currentLine()
         let offset = .currentByteOffset()
         return .storeBookmark(label, line, offset)
     }
@@ -351,16 +413,28 @@ impl Panel
     internal mtd storeBookmark(label: string, line, offset: u64)->bool
     {
         let name = Latin1.trim(label)
-        if name.count == 0 or name.count > BookmarkNameLimit or
-           offset == Swag.U64.Max or offset > .fileSize or .bookmarks.count >= ViewerTextBookmarkLimit or
-           .fileIdentity.isEmpty() or .refreshBookmarkStaleness() or
-           textFileIdentity(.fileName) != .fileIdentity do
+        if name.count == 0 or
+           name.count > BookmarkNameLimit or
+           offset == Swag.U64.Max or
+           offset > .fileSize or
+           .bookmarks.count >= ViewerTextBookmarkLimit or
+           .fileIdentity.isEmpty() or
+           .refreshBookmarkStaleness() or
+           textFileIdentity(.fileName) != .fileIdentity
+        {
             return false
-        for bookmark in .bookmarks where Utf8.compare(bookmark.label, name, .Latin1NoCase) == 0 do
-            return false
+        }
 
-        if .bookmarks.isEmpty() do
+        for bookmark in .bookmarks where Utf8.compare(bookmark.label, name, .Latin1NoCase) == 0
+        {
+            return false
+        }
+
+        if .bookmarks.isEmpty()
+        {
             .bookmarkIdentity = .fileIdentity
+        }
+
         .bookmarks.add(Bookmark{String.from(name), line, offset})
         .bookmarksStale = false
         return true
@@ -369,165 +443,214 @@ impl Panel
     internal mtd restoreBookmarks(saved: const [..] Bookmark, identity: string)
     {
         .bookmarks.clear()
-        for bookmark in saved do
+        for bookmark in saved
+        {
             .bookmarks.add(bookmark)
+        }
+
         .bookmarkIdentity = identity
         discard .refreshBookmarkStaleness()
     }
 
     internal mtd renameBookmark(index: u64, label: string)->bool
     {
-        if index >= .bookmarks.count do
+        if index >= .bookmarks.count
+        {
             return false
+        }
+
         let name = Latin1.trim(label)
-        if name.count == 0 or name.count > BookmarkNameLimit do
+        if name.count == 0 or name.count > BookmarkNameLimit
+        {
             return false
+        }
+
         for bookmark, other in .bookmarks where other != index and
-                                                Utf8.compare(bookmark.label, name, .Latin1NoCase) == 0 do
+                                                Utf8.compare(bookmark.label, name, .Latin1NoCase) == 0
+        {
             return false
+        }
+
         .bookmarks[index].label = String.from(name)
         return true
     }
 
     mtd navigateToBookmark(index: u64)->bool
     {
-        if index >= .bookmarks.count or .refreshBookmarkStaleness() do
+        if index >= .bookmarks.count or .refreshBookmarkStaleness()
+        {
             return false
+        }
+
         return .revealLensDestination(.bookmarks[index].offset)
     }
 
     mtd bookmarkIndexInDirection(direction: s32)->u64
     {
-        if .bookmarks.isEmpty() or .refreshBookmarkStaleness() do
+        if .bookmarks.isEmpty() or .refreshBookmarkStaleness()
+        {
             return Swag.U64.Max
-        let currentLine = .currentLine()
+        }
+
+        let currentLine   = .currentLine()
         let currentOffset = .currentByteOffset()
-        if currentOffset == Swag.U64.Max do
+        if currentOffset == Swag.U64.Max
+        {
             return Swag.U64.Max
+        }
+
         var found = Swag.U64.Max
         if direction < 0
         {
-            var best = 0'u64
+            var best = 0_u64
             for bookmark, index in .bookmarks where bookmark.offset < currentOffset and
-                                                       (not currentLine or not bookmark.line or bookmark.line != currentLine) and
-                                                       (found == Swag.U64.Max or bookmark.offset > best)
+                                                    (not currentLine or not bookmark.line or bookmark.line != currentLine) and
+                                                    (found == Swag.U64.Max or bookmark.offset > best)
             {
                 found = index
-                best = bookmark.offset
+                best  = bookmark.offset
             }
         }
         else
         {
             var best = Swag.U64.Max
             for bookmark, index in .bookmarks where bookmark.offset > currentOffset and
-                                                       (not currentLine or not bookmark.line or bookmark.line != currentLine) and
-                                                       (found == Swag.U64.Max or bookmark.offset < best)
+                                                    (not currentLine or not bookmark.line or bookmark.line != currentLine) and
+                                                    (found == Swag.U64.Max or bookmark.offset < best)
             {
                 found = index
-                best = bookmark.offset
+                best  = bookmark.offset
             }
         }
+
         return found
     }
 
     mtd navigateBookmark(direction: s32)->bool
     {
         let found = .bookmarkIndexInDirection(direction)
-        if found == Swag.U64.Max do
+        if found == Swag.U64.Max
+        {
             return false
+        }
+
         return .navigateToBookmark(found)
     }
 
     internal mtd promptBookmarkCurrentPosition()
     {
-        if not .canBookmarkCurrentPosition() do
+        if not .canBookmarkCurrentPosition()
+        {
             return
+        }
+
         let strings = texts()
-        let dialog = EditDlg.createSingleLine(unwrap .surface,
-                                              {title: strings.ui_BookmarkCurrentPosition,
-                                               message: strings.ui_BookmarkNameHint,
-                                               text: .currentLine() ? Format.toString(strings.ui_BookmarkDefaultName, .currentLine()) :
-                                                                       Format.toString(strings.ui_BookmarkOffsetName, .currentByteOffset()),
-                                               confirmButtonText: strings.ui_BookmarkAdd})
-        if dialog.doModal() != Dialog.BtnOk do
+        let dialog  = EditDlg.createSingleLine(unwrap .surface, {title: strings.ui_BookmarkCurrentPosition,
+                                                                 message: strings.ui_BookmarkNameHint,
+                                                                 text: .currentLine() ? Format.toString(strings.ui_BookmarkDefaultName, .currentLine()) :
+                                                                 Format.toString(strings.ui_BookmarkOffsetName, .currentByteOffset()),
+                                                                 confirmButtonText: strings.ui_BookmarkAdd})
+        if dialog.doModal() != Dialog.BtnOk
+        {
             return
-        if not .addCurrentPositionBookmark(dialog.text()) do
+        }
+
+        if not .addCurrentPositionBookmark(dialog.text())
+        {
             MessageDlg.error(.surface,
                              strings.ui_BookmarkNameInvalid,
                              options: {title: strings.ui_BookmarkCurrentPosition})
+        }
     }
 
     internal mtd promptRenameBookmark(index: u64)
     {
-        if index >= .bookmarks.count do
+        if index >= .bookmarks.count
+        {
             return
+        }
+
         let strings = texts()
-        let dialog = EditDlg.createSingleLine(unwrap .surface,
-                                              {title: Format.toString(strings.ui_RenameBookmark, .bookmarks[index].label),
-                                               message: strings.ui_BookmarkNameHint,
-                                               text: .bookmarks[index].label,
-                                               confirmButtonText: strings.ui_Rename})
-        if dialog.doModal() != Dialog.BtnOk do
+        let dialog  = EditDlg.createSingleLine(unwrap .surface, {title: Format.toString(strings.ui_RenameBookmark, .bookmarks[index].label),
+                                                                 message: strings.ui_BookmarkNameHint,
+                                                                 text: .bookmarks[index].label,
+                                                                 confirmButtonText: strings.ui_Rename})
+        if dialog.doModal() != Dialog.BtnOk
+        {
             return
-        if not .renameBookmark(index, dialog.text()) do
+        }
+
+        if not .renameBookmark(index, dialog.text())
+        {
             MessageDlg.error(.surface,
                              strings.ui_BookmarkNameInvalid,
                              options: {title: Format.toString(strings.ui_RenameBookmark, .bookmarks[index].label)})
+        }
     }
 
     internal mtd clearBookmarks()
     {
         .bookmarks.clear()
         .bookmarkIdentity = .fileIdentity
-        .bookmarksStale = false
+        .bookmarksStale   = false
     }
 
     internal mtd confirmClearBookmarks()
     {
-        if .bookmarks.isEmpty() do
+        if .bookmarks.isEmpty()
+        {
             return
+        }
+
         var options: MessageDlgOptions
         options.title = texts().ui_ClearBookmarks
-        if MessageDlg.confirm(unwrap .surface, texts().ui_ClearBookmarksMessage, options: options) == Dialog.BtnYes do
+        if MessageDlg.confirm(unwrap .surface, texts().ui_ClearBookmarksMessage, options: options) == Dialog.BtnYes
+        {
             .clearBookmarks()
+        }
     }
 
     // Turns a one-based character column into a file byte offset without assuming UTF-8 storage.
     // The read ends at the requested character or the first line break, whichever comes first.
     mtd offsetOfColumn(lineStart, column: u64)->{offset: u64, column: u64}
     {
-        if column <= 1 do
+        if column <= 1
+        {
             return {lineStart, 1}
+        }
 
-        let unit = Text.unitSize(.encoding)
+        let unit      = Text.unitSize(.encoding)
         let available = .fileSize - Math.min(lineStart, .fileSize)
         let requested = column - 1 > (Swag.U64.Max - 8) / 4 ? Swag.U64.Max : (column - 1) * 4 + 8
         let byteLimit = Math.min(available, requested)
-        var file = catch File.openReadLive(.fileName) { return {lineStart, 1} }
+        var file      = catch File.openReadLive(.fileName) { return {lineStart, 1} }
         defer file.close()
         discard catch file.seek(.Begin, lineStart) { return {lineStart, 1} }
 
-        var bytes: Array'u8
+        var bytes: Array!{u8}
         bytes.resize(byteLimit)
         let count = catch file.read(bytes.toSlice()) { return {lineStart, 1} }
         bytes.resize(count)
 
-        var at = 0'u64
-        var reached = 1'u64
+        var at      = 0_u64
+        var reached = 1_u64
         while at < count
         {
-            var width = unit
+            var width     = unit
             var lineBreak = false
             if .encoding == .Utf8
             {
                 let decoded = Utf8.decodeRune(bytes.toSlice()[at to])
-                width = Math.max(cast(u64, decoded.eat), 1)
+                width     = Math.max(cast(u64, decoded.eat), 1)
                 lineBreak = decoded.c == '\n' or decoded.c == '\r'
             }
-            elif .encoding == .Utf16Le or .encoding == .Utf16Be
+            else if .encoding == .Utf16Le or .encoding == .Utf16Be
             {
-                if count - at < 2 do
+                if count - at < 2
+                {
                     break
+                }
+
                 let first = .encoding == .Utf16Le ?
                             cast(u16, bytes[at]) | (cast(u16, bytes[at + 1]) << 8) :
                             (cast(u16, bytes[at]) << 8) | cast(u16, bytes[at + 1])
@@ -537,14 +660,19 @@ impl Panel
                     let second = .encoding == .Utf16Le ?
                                  cast(u16, bytes[at + 2]) | (cast(u16, bytes[at + 3]) << 8) :
                                  (cast(u16, bytes[at + 2]) << 8) | cast(u16, bytes[at + 3])
-                    if second >= 0xDC00 and second <= 0xDFFF do
+                    if second >= 0xDC00 and second <= 0xDFFF
+                    {
                         width = 4
+                    }
                 }
             }
-            elif .encoding == .Utf32Le or .encoding == .Utf32Be
+            else if .encoding == .Utf32Le or .encoding == .Utf32Be
             {
-                if count - at < 4 do
+                if count - at < 4
+                {
                     break
+                }
+
                 let value = .encoding == .Utf32Le ?
                             cast(u32, bytes[at]) | (cast(u32, bytes[at + 1]) << 8) |
                             (cast(u32, bytes[at + 2]) << 16) | (cast(u32, bytes[at + 3]) << 24) :
@@ -557,12 +685,17 @@ impl Panel
                 lineBreak = bytes[at] == 10 or bytes[at] == 13
             }
 
-            if lineBreak do
+            if lineBreak
+            {
                 return {lineStart + at, reached}
-            at += width
+            }
+
+            at      += width
             reached += 1
-            if reached == column do
+            if reached == column
+            {
                 return {lineStart + at, reached}
+            }
         }
 
         return {lineStart + at, reached}
@@ -572,67 +705,79 @@ impl Panel
     mtd columnAtOffset(lineStart, offset: u64)->u64
     {
         let countLimit = Math.min(offset - Math.min(lineStart, offset), .fileSize - Math.min(lineStart, .fileSize))
-        var file = catch File.openReadLive(.fileName) { return 1 }
+        var file       = catch File.openReadLive(.fileName) { return 1 }
         defer file.close()
         discard catch file.seek(.Begin, lineStart) { return 1 }
 
-        var bytes: Array'u8
+        var bytes: Array!{u8}
         bytes.resize(countLimit)
         let count = catch file.read(bytes.toSlice()) { return 1 }
         bytes.resize(count)
 
-        var at = 0'u64
-        var column = 1'u64
+        var at     = 0_u64
+        var column = 1_u64
         while at < count
         {
-            var width = 0'u64
+            var width     = 0_u64
             var lineBreak = false
             if .encoding == .Utf8
             {
                 let decoded = Utf8.decodeRune(bytes.toSlice()[at to])
-                width = Math.max(cast(u64, decoded.eat), 1)
+                width     = Math.max(cast(u64, decoded.eat), 1)
                 lineBreak = decoded.c == '\n' or decoded.c == '\r'
             }
-            elif .encoding == .Utf16Le or .encoding == .Utf16Be
+            else if .encoding == .Utf16Le or .encoding == .Utf16Be
             {
-                if count - at < 2 do
+                if count - at < 2
+                {
                     break
+                }
+
                 let first = .encoding == .Utf16Le ?
                             cast(u16, bytes[at]) | (cast(u16, bytes[at + 1]) << 8) :
                             (cast(u16, bytes[at]) << 8) | cast(u16, bytes[at + 1])
                 lineBreak = first == 10 or first == 13
-                var size = 2'u64
+                var size = 2_u64
                 if first >= 0xD800 and first <= 0xDBFF and count - at >= 4
                 {
                     let second = .encoding == .Utf16Le ?
                                  cast(u16, bytes[at + 2]) | (cast(u16, bytes[at + 3]) << 8) :
                                  (cast(u16, bytes[at + 2]) << 8) | cast(u16, bytes[at + 3])
-                    if second >= 0xDC00 and second <= 0xDFFF do
+                    if second >= 0xDC00 and second <= 0xDFFF
+                    {
                         size = 4
+                    }
                 }
+
                 width = size
             }
-            elif .encoding == .Utf32Le or .encoding == .Utf32Be
+            else if .encoding == .Utf32Le or .encoding == .Utf32Be
             {
-                if count - at < 4 do
+                if count - at < 4
+                {
                     break
+                }
+
                 let value = .encoding == .Utf32Le ?
                             cast(u32, bytes[at]) | (cast(u32, bytes[at + 1]) << 8) |
                             (cast(u32, bytes[at + 2]) << 16) | (cast(u32, bytes[at + 3]) << 24) :
                             (cast(u32, bytes[at]) << 24) | (cast(u32, bytes[at + 1]) << 16) |
                             (cast(u32, bytes[at + 2]) << 8) | cast(u32, bytes[at + 3])
                 lineBreak = value == 10 or value == 13
-                width = 4
+                width     = 4
             }
             else
             {
                 lineBreak = bytes[at] == 10 or bytes[at] == 13
-                width = 1
+                width     = 1
             }
 
-            if lineBreak do
+            if lineBreak
+            {
                 break
-            at += width
+            }
+
+            at     += width
             column += 1
         }
 
@@ -642,8 +787,11 @@ impl Panel
     // Keeps file-offset jumps on a decoded character boundary for the active encoding.
     mtd alignOffset(offset: u64)->u64
     {
-        if .fileSize <= .contentStart do
+        if .fileSize <= .contentStart
+        {
             return .contentStart
+        }
+
         let target = Math.clamp(offset, .contentStart, .fileSize - 1)
         if .encoding != .Utf8
         {
@@ -651,10 +799,13 @@ impl Panel
             return .contentStart + (target - .contentStart) / unit * unit
         }
 
-        if target <= .contentStart do
+        if target <= .contentStart
+        {
             return .contentStart
+        }
+
         let start = Math.max(.contentStart, target > 3 ? target - 3 : 0)
-        var file = catch File.openReadLive(.fileName) { return target }
+        var file  = catch File.openReadLive(.fileName) { return target }
         defer file.close()
         discard catch file.seek(.Begin, start) { return target }
         var bytes: [4] u8
@@ -662,10 +813,13 @@ impl Panel
         for index in count where start + index <= target
         {
             let decoded = Utf8.decodeRune(bytes[index until count])
-            let width = Math.max(cast(u64, decoded.eat), 1)
-            if start + index + width > target do
+            let width   = Math.max(cast(u64, decoded.eat), 1)
+            if start + index + width > target
+            {
                 return start + index
+            }
         }
+
         return target
     }
 
@@ -673,39 +827,51 @@ impl Panel
     // False leaves non-position queries to the existing whole-file text search.
     mtd describeTypedPosition(results: *Lens.Results)->bool
     {
-        if results.prefix != .Line do
+        if results.prefix != .Line
+        {
             return false
+        }
+
         let query = Latin1.trim(results.query.toString())
-        if not query.count do
+        if not query.count
+        {
             return false
+        }
 
         var separator = Swag.U64.Max
-        var digits = true
+        var digits    = true
         for value, index in query
         {
-            if value == ':' and separator == Swag.U64.Max and index > 0 and index + 1 < query.count do
+            if value == ':' and separator == Swag.U64.Max and index > 0 and index + 1 < query.count
+            {
                 separator = index
-            elif not Latin1.isDigit(value) do
+            }
+            else if not Latin1.isDigit(value)
+            {
                 digits = false
+            }
         }
 
         let strings = appStrings()
         if digits
         {
             let wantedText = separator == Swag.U64.Max ? query : query[0 until separator]
-            let wanted = catch StrConv.toU64(wantedText) { return false }
-            if not wanted do
+            let wanted     = catch StrConv.toU64(wantedText) { return false }
+            if not wanted
+            {
                 return false
-            let sample = .lines.estimateOffsetOfLine(.fileName, wanted, .encoding, .contentStart)
-            var start = Swag.U64.Max
+            }
+
+            let sample    = .lines.estimateOffsetOfLine(.fileName, wanted, .encoding, .contentStart)
+            var start     = Swag.U64.Max
             var estimated = false
             if sample != Swag.U64.Max
             {
-                let anchor = wanted >= .lines.numberedLine ? .lines.numberedOffset : .contentStart
+                let anchor   = wanted >= .lines.numberedLine ? .lines.numberedOffset : .contentStart
                 let distance = sample >= anchor ? sample - anchor : anchor - sample
                 if distance > Viewer.LineCountScanLimit
                 {
-                    start = sample
+                    start     = sample
                     estimated = true
                 }
             }
@@ -715,38 +881,47 @@ impl Panel
                 start = .lines.offsetOfLine(.fileName, wanted, .encoding, .contentStart)
                 if start == Swag.U64.Max
                 {
-                    if sample == Swag.U64.Max do
+                    if sample == Swag.U64.Max
+                    {
                         return false
-                    start = sample
+                    }
+
+                    start     = sample
                     estimated = true
                 }
                 else
                 {
                     let actualLine = .lines.lineAt(.fileName, start, .encoding, .contentStart)
-                    if actualLine != wanted do
+                    if actualLine != wanted
+                    {
                         return false
+                    }
                 }
             }
 
             if estimated
             {
-                if start == Swag.U64.Max do
+                if start == Swag.U64.Max
+                {
                     return false
+                }
+
                 start = .alignOffset(start)
             }
 
             var offset = start
-            var column = 0'u64
+            var column = 0_u64
             if separator != Swag.U64.Max
             {
                 let position = .offsetOfColumn(start, catch StrConv.toU64(query[separator + 1 to]) orelse 1)
                 offset = position.offset
                 column = position.column
             }
-            let section = results.addSection(strings.lens_InFile)
+
+            let section   = results.addSection(strings.lens_InFile)
             let lineTitle = separator == Swag.U64.Max ? Format.toString(strings.lens_GoToLine, wanted) :
                             Format.toString(strings.lens_GoToLineColumn, wanted, column)
-            let title = estimated ? Format.toString("% · %", lineTitle, texts().ui_Estimated) : lineTitle
+            let title      = estimated ? Format.toString("% · %", lineTitle, texts().ui_Estimated) : lineTitle
             with let entry = section.addEntry(title)
             {
                 .lead = separator == Swag.U64.Max ? Format.toString("%", wanted) : Format.toString("%:%", wanted, column)
@@ -756,34 +931,44 @@ impl Panel
                     discard view.revealLensDestination(start, "", caret: true, caretColumn: caretColumn, estimatedLine: estimated ? wanted : 0)
                 }
             }
+
             return true
         }
 
-        let isOffset = Utf8.startsWith(query, "0x") or Utf8.startsWith(query, "0X") or
-                       Utf8.startsWith(query, "0d") or Utf8.startsWith(query, "0D") or
+        let isOffset = Utf8.startsWith(query, "0x") or
+                       Utf8.startsWith(query, "0X") or
+                       Utf8.startsWith(query, "0d") or
+                       Utf8.startsWith(query, "0D") or
                        query[query.count - 1] == '%'
-        if not isOffset do
+        if not isOffset
+        {
             return false
+        }
+
         let target = parseFileOffset(query, 0, .fileSize)
-        if target == Swag.U64.Max do
+        if target == Swag.U64.Max
+        {
             return false
-        let offset = .alignOffset(target)
-        let value = Format.toString("0x%{X}", offset)
-        let line = .lines.lineAt(.fileName, offset, .encoding, .contentStart)
-        var start = offset
-        var caretColumn = 0'u64
-        var hasLine = false
+        }
+
+        let offset      = .alignOffset(target)
+        let value       = Format.toString("0x%{X}", offset)
+        let line        = .lines.lineAt(.fileName, offset, .encoding, .contentStart)
+        var start       = offset
+        var caretColumn = 0_u64
+        var hasLine     = false
         if line
         {
             let lineStart = .lines.offsetOfLine(.fileName, line, .encoding, .contentStart)
             if lineStart != Swag.U64.Max
             {
-                start = lineStart
+                start       = lineStart
                 caretColumn = .columnAtOffset(lineStart, offset) - 1
-                hasLine = true
+                hasLine     = true
             }
         }
-        let section = results.addSection(strings.lens_InFile)
+
+        let section    = results.addSection(strings.lens_InFile)
         with let entry = section.addEntry(Viewer.jumpRowText(strings.lens_GoToOffset, value, query))
         {
             if hasLine
@@ -795,6 +980,7 @@ impl Panel
                 .run = func|view = me, offset|() { discard view.revealLensDestination(offset, "", caret: true) }
             }
         }
+
         return true
     }
 
@@ -808,10 +994,12 @@ impl Panel
             let column = .editor.cursorLogicalCharPos() + 1
             let offset = .currentByteOffset()
             result += Format.toString(" · %", Format.toString(texts().ui_CurrentColumn, column))
-            if offset != Swag.U64.Max do
+            if offset != Swag.U64.Max
+            {
                 result += Format.toString(" · %", Format.toString(texts().ui_CurrentByte, Format.toString("%{X}", offset)))
+            }
         }
-        elif .displayedEncoding == .encoding and .hasEstimatedLine
+        else if .displayedEncoding == .encoding and .hasEstimatedLine
         {
             result += Format.toString(" · %", Format.toString(texts().ui_EstimatedLine, .estimatedLine))
             result += Format.toString(" · %", Format.toString(texts().ui_CurrentColumn, .editor.cursorLogicalCharPos() + 1))
@@ -823,8 +1011,11 @@ impl Panel
         // presented as facts about the newly decoded document.
         if not .hasStatistics or
            .statisticsEncoding != .encoding or
-           .statisticsStart != .contentStart do
+           .statisticsStart != .contentStart
+        {
             return result
+        }
+
         let lines      = .statistics.lines == 1 ? String.from(texts().ui_OneLine) : Format.toString(texts().ui_Lines, .statistics.lines)
         let words      = .statistics.words == 1 ? String.from(texts().ui_OneWord) : Format.toString(texts().ui_Words, .statistics.words)
         let characters = .statistics.characters == 1 ? String.from(texts().ui_OneCharacter) : Format.toString(texts().ui_Characters, .statistics.characters)
@@ -881,12 +1072,18 @@ impl Panel
         .stopLoading()
 
         .statisticsTask.cancel()
-        if .statisticsTask.isPending() do
+        if .statisticsTask.isPending()
+        {
             return false
+        }
+
         if .read.started
         {
-            if not .read.isDone() do
+            if not .read.isDone()
+            {
                 return false
+            }
+
             .read.wait()
         }
 
@@ -904,15 +1101,20 @@ impl Panel
     mtd hasMore()->bool => not .readFailed and .bytesRead < .fileSize
 
     mtd needsMore()->bool
-        => .hasMore() and not .pauseStreaming and Viewer.needsMoreText(.editor, .bytesRead - .residentStart, .residentOffsetY)
+        => .hasMore() and
+           not .pauseStreaming and
+           Viewer.needsMoreText(.editor, .bytesRead - .residentStart, .residentOffsetY)
 
     // Extrapolates the full document height from the bytes read so far and places the resident
     // window within it, so the scroll bar spans the whole file while only part of it is loaded.
     mtd updateEstimatedHeight()
     {
         let consumed = .bytesRead - .residentStart
-        if not consumed do
+        if not consumed
+        {
             return
+        }
+
         if .bytesRead >= .fileSize and not .residentStart
         {
             .editor.setEstimatedDocumentHeight(0)
@@ -920,8 +1122,11 @@ impl Panel
         }
 
         let loadedHeight = .editor.loadedDocumentHeight()
-        if loadedHeight > 0 do
+        if loadedHeight > 0
+        {
             .virtualHeight = Math.max(.virtualHeight, loadedHeight * cast(f32, .fileSize) / cast(f32, consumed), loadedHeight)
+        }
+
         if .virtualHeight <= 0
         {
             .residentOffsetY = 0
@@ -934,8 +1139,10 @@ impl Panel
         let previousOffset = .residentOffsetY
         .residentOffsetY = .fileSize ? .virtualHeight * cast(f32, .residentStart) / cast(f32, .fileSize) : 0
         .editor.setVirtualDocumentRange(.residentOffsetY, .virtualHeight)
-        if .repositioning or not .residentStart or .residentOffsetY == previousOffset do
+        if .repositioning or not .residentStart or .residentOffsetY == previousOffset
+        {
             return
+        }
 
         .repositioning = true
         defer .repositioning = false
@@ -948,10 +1155,15 @@ impl Panel
     // stream itself, from its task event.
     mtd scheduleMore()
     {
-        if .retiring or .read.started or .loadTimer do
+        if .retiring or .read.started or .loadTimer
+        {
             return
-        if .pendingSeek or .needsMore() do
-            .loadTimer = .addTimer(8'ms)
+        }
+
+        if .pendingSeek or .needsMore()
+        {
+            .loadTimer = .addTimer(8_ms)
+        }
     }
 
     // Reports whether text is still being read for the view.
@@ -962,15 +1174,19 @@ impl Panel
         .stopTimer(&.loadTimer)
         .pendingSeek = false
         .pendingHasCaretColumn = false
-        if .read.started do
+        if .read.started
+        {
             .read.cancel()
+        }
     }
 
     mtd finishLoading()
     {
         .bytesRead = .fileSize
-        if not .residentStart do
+        if not .residentStart
+        {
             .editor.setEstimatedDocumentHeight(0)
+        }
     }
 
     mtd showReadError()
@@ -978,10 +1194,15 @@ impl Panel
         .stopLoading()
         .readFailed = true
         let message = texts().ui_NotText
-        if not .hasText do
+        if not .hasText
+        {
             .editor.setText(message)
-        else do
+        }
+        else
+        {
             .editor.addText(Format.toString("\n\n%", message))
+        }
+
         .editor.setEstimatedDocumentHeight(0)
     }
 
@@ -989,12 +1210,18 @@ impl Panel
     // the old result before reusing its storage.
     mtd loadNextChunk()
     {
-        if .retiring do
+        if .retiring
+        {
             return
+        }
+
         if .read.started
         {
-            if not .read.isDone() do
+            if not .read.isDone()
+            {
                 return
+            }
+
             .read.wait()
             if .read.wasCancelled()
             {
@@ -1021,8 +1248,10 @@ impl Panel
             {
                 .residentStart = .read.start
                 .contentStart  = .read.contentStart
-                if .statisticsStart != .contentStart do
+                if .statisticsStart != .contentStart
+                {
                     .restartStatistics()
+                }
 
                 .residentText = .read.text
                 .editor.setText(.residentText)
@@ -1036,8 +1265,11 @@ impl Panel
             .displayedEncoding = .read.encoding
             .bytesRead         = .read.end
             .hasText           = .hasText or not .read.text.isEmpty()
-            if .read.replace do
+            if .read.replace
+            {
                 .numberWindow()
+            }
+
             .updateEstimatedHeight()
             .editor.setScrollPosition(oldPosition)
             if not .pendingMatch.isEmpty() or .pendingCaret
@@ -1049,6 +1281,7 @@ impl Panel
                     .editor.setCursorPos(.editor.cursorFromLogicalPosition(0, .pendingCaretColumn))
                     .pendingHasCaretColumn = false
                 }
+
                 .pendingMatch.clear()
                 .pendingCaret = false
             }
@@ -1061,8 +1294,11 @@ impl Panel
 
             .reportStatistics()
 
-            if .read.text.isEmpty() or not .hasMore() do
+            if .read.text.isEmpty() or not .hasMore()
+            {
                 .finishLoading()
+            }
+
             .read.text.clear()
             return
         }
@@ -1074,11 +1310,14 @@ impl Panel
             var start     = requested > RevealContextSize ? requested - RevealContextSize : 0
 
             // A typed column is relative to the target line, so start the window at that line.
-            if .pendingHasCaretColumn do
+            if .pendingHasCaretColumn
+            {
                 start = requested
+            }
+
             .read.startRead(.fileName, .encoding, start, 64 * 1024, true, me)
         }
-        elif .needsMore()
+        else if .needsMore()
         {
             .read.contentStart = .contentStart
             .read.startRead(.fileName, .encoding, .bytesRead, StreamChunkSize, false, me)
@@ -1094,7 +1333,7 @@ impl Panel
     // With `caret`, the caret is placed at `offset` and brought into view even without text to
     // highlight; without it, an empty `text` only loads the part of the file around `offset` and
     // leaves the view where it is.
-    mtd revealOffset(offset: u64, text: string, caret = false, caretColumn = Swag.U64.Max, estimatedLine = 0'u64, matchLength = Swag.U64.Max)->bool
+    mtd revealOffset(offset: u64, text: string, caret = false, caretColumn = Swag.U64.Max, estimatedLine = 0_u64, matchLength = Swag.U64.Max)->bool
     {
         let length = matchLength == Swag.U64.Max ? Viewer.sourceByteCount(text, .encoding) : matchLength
         if (text.count or caret) and
@@ -1111,19 +1350,22 @@ impl Panel
             return true
         }
 
-        if .read.started do
+        if .read.started
+        {
             .read.cancel()
-        .pendingSeek       = true
-        .pendingSeekOffset = Math.min(offset, .fileSize)
-        .pendingMatchBytes = length
-        .pendingMatch      = text
-        .pendingCaret      = caret
+        }
+
+        .pendingSeek           = true
+        .pendingSeekOffset     = Math.min(offset, .fileSize)
+        .pendingMatchBytes     = length
+        .pendingMatch          = text
+        .pendingCaret          = caret
         .pendingHasCaretColumn = caretColumn != Swag.U64.Max
-        .pendingCaretColumn = caretColumn == Swag.U64.Max ? 0 : caretColumn
-        .hasEstimatedLine = estimatedLine != 0
-        .estimatedLine = estimatedLine
-        .pendingNavigation = .None
-        .readFailed        = false
+        .pendingCaretColumn    = caretColumn == Swag.U64.Max ? 0 : caretColumn
+        .hasEstimatedLine      = estimatedLine != 0
+        .estimatedLine         = estimatedLine
+        .pendingNavigation     = .None
+        .readFailed            = false
         .scheduleMore()
         return true
     }
@@ -1132,12 +1374,21 @@ impl Panel
     mtd updateWrap()
     {
         var flags = RichEditFlags.ReadOnly
-        if .wrapping do
+        if .wrapping
+        {
             flags.add(.WordWrap)
-        if .lineNumbers and .windowLine do
+        }
+
+        if .lineNumbers and .windowLine
+        {
             flags.add(.LineNumbers)
-        if .blanks do
+        }
+
+        if .blanks
+        {
             flags.add(.DrawBlanks)
+        }
+
         .editor.tabSize = .tabWidth
         .editor.setFlags(flags)
         .scheduleMore()
@@ -1180,8 +1431,11 @@ impl Panel
     // Sets the tab stops of the text every `width` spaces.
     mtd setTabWidth(width: s32)
     {
-        if width != 2 and width != 4 and width != 8 do
+        if width != 2 and width != 4 and width != 8
+        {
             return
+        }
+
         .tabWidth  = width
         g_TabWidth = width
         .updateWrap()
@@ -1193,8 +1447,11 @@ impl Panel
     // another one shows its mark as content rather than hiding bytes that mean nothing there.
     mtd applyEncoding(encoding: Text.Encoding)
     {
-        if encoding == .encoding do
+        if encoding == .encoding
+        {
             return
+        }
+
         .encoding = encoding
         .lines.reset()
 
@@ -1212,9 +1469,12 @@ impl Panel
 
     mtd setZoom(percent: u32, remember = true)
     {
-        .zoomPercent  = Viewer.clampZoom(percent)
-        if remember do
+        .zoomPercent = Viewer.clampZoom(percent)
+        if remember
+        {
             g_ZoomPercent = .zoomPercent
+        }
+
         .applyMeasure()
         .zoomLabel.setText(Viewer.zoomText(.zoomPercent))
         .updateEstimatedHeight()
@@ -1234,8 +1494,10 @@ impl Panel
     mtd showZoomMenu()
     {
         let percent = Viewer.pickZoom(me, .zoomLabel, .zoomPercent)
-        if percent do
+        if percent
+        {
             .setZoom(percent)
+        }
     }
 }
 
@@ -1244,8 +1506,10 @@ impl IWnd for Panel
     // The column stays centred whatever the width of the window.
     mtd impl onResizeEvent(_: *ResizeEvent)
     {
-        if .editor != null do
+        if .editor != null
+        {
             Viewer.centerColumn(.editor, Viewer.ProseColumn * cast(f32, .zoomPercent) / 100)
+        }
     }
 
     mtd impl onDestroyEvent(_: *DestroyEvent)
@@ -1258,8 +1522,10 @@ impl IWnd for Panel
     // Publishes the statistics count that just ended.
     mtd finishStatistics()
     {
-        if not .statisticsTask.isDone() do
+        if not .statisticsTask.isDone()
+        {
             return
+        }
 
         // A count that was asked to stop, or that describes an interpretation the reader has
         // since left, is replaced rather than shown.
@@ -1268,8 +1534,11 @@ impl IWnd for Panel
         var counted: #decltype(expect .statisticsTask.take())
         catch { counted = try .statisticsTask.take() } as countErrorOutcome
         let countError = countErrorOutcome.value()
-        if .retiring do
+        if .retiring
+        {
             return
+        }
+
         if stopped or .statisticsEncoding != .encoding or .statisticsStart != .contentStart
         {
             .startStatistics()
@@ -1299,10 +1568,15 @@ impl IWnd for Panel
     {
         if not .read.claim(evt)
         {
-            if evt.task != &.statisticsTask do
+            if evt.task != &.statisticsTask
+            {
                 evt.accepted = false
-            else do
+            }
+            else
+            {
                 .finishStatistics()
+            }
+
             return
         }
 
@@ -1326,16 +1600,26 @@ impl IWnd for Panel
 
     mtd impl onKeyEvent(evt: *KeyEvent)
     {
-        if .handleLensHistoryKey(evt) do
+        if .handleLensHistoryKey(evt)
+        {
             evt.accepted = true
-        elif .handleBookmarkKey(evt) do
+        }
+        else if .handleBookmarkKey(evt)
+        {
             evt.accepted = true
-        elif Viewer.isZoomKey(evt) do
+        }
+        else if Viewer.isZoomKey(evt)
+        {
             .setZoom(Viewer.zoomAfterKey(evt, .zoomPercent))
-        elif isWrapKey(evt) do
+        }
+        else if isWrapKey(evt)
+        {
             .toggleWrap()
-        else do
+        }
+        else
+        {
             evt.accepted = false
+        }
     }
 }
 
@@ -1344,7 +1628,7 @@ impl Panel
     // Creates the streamed text view of the host's file, with its options and zoom on the line of readings.
     func create(host: Viewer.Host)->*Panel
     {
-        with let result = Wnd.create'Panel(host.contentParent(), "scope.text")
+        with let result = Wnd.create!{Panel}(host.contentParent(), "scope.text")
         {
             // The document host owns the rounded view ground. Keeping the viewer transparent lets
             // those antialiased corners remain visible instead of repainting them with a square view.
@@ -1354,15 +1638,15 @@ impl Panel
         }
 
         let probed = Viewer.probeTextFile(host.fileName())
-        result.encoding     = probed.encoding
-        result.contentStart = probed.contentStart
-        result.lineNumbers  = g_LineNumbers
-        result.blanks       = g_Blanks
-        result.tabWidth     = g_TabWidth
-        result.fileIdentity = textFileIdentity(host.fileName())
+        result.encoding         = probed.encoding
+        result.contentStart     = probed.contentStart
+        result.lineNumbers      = g_LineNumbers
+        result.blanks           = g_Blanks
+        result.tabWidth         = g_TabWidth
+        result.fileIdentity     = textFileIdentity(host.fileName())
         result.bookmarkIdentity = result.fileIdentity
         result.lensHistory.clear()
-        result.lensHistoryIndex = Swag.U64.Max
+        result.lensHistoryIndex     = Swag.U64.Max
         result.replayingLensHistory = false
 
         result.createReadingControls(host)
@@ -1382,19 +1666,25 @@ impl Panel
     // and asks for the part of the file it reaches when it does.
     mtd followScroll(oldPosition, newPosition: Math.Point)
     {
-        if .repositioning do
+        if .repositioning
+        {
             return
-        if .pauseStreaming and newPosition.y < oldPosition.y do
+        }
+
+        if .pauseStreaming and newPosition.y < oldPosition.y
+        {
             .pauseStreaming = false
+        }
+
         let viewport     = .editor.paddedClientRect()
         let loadedHeight = .editor.loadedDocumentHeight()
 
-        var residentHeight = 0'f32
+        var residentHeight = 0_f32
         if loadedHeight > 0
         {
             residentHeight = loadedHeight
         }
-        elif .fileSize
+        else if .fileSize
         {
             let scaledBytes = .virtualHeight * cast(f32, .bytesRead - .residentStart)
             residentHeight = scaledBytes / cast(f32, .fileSize)
@@ -1411,13 +1701,16 @@ impl Panel
         let outside = newPosition.y < .residentOffsetY or newPosition.y + viewport.height > residentEnd
         .pendingSeek = .displayedEncoding != .encoding or (.virtualHeight > 0 and (before or after or outside))
         .pendingMatch.clear()
-        .pendingCaret      = false
+        .pendingCaret          = false
         .pendingHasCaretColumn = false
-        .pendingNavigation = .None
+        .pendingNavigation     = .None
 
         // Returning to resident text also supersedes an in-flight replacement.
-        if .read.started and (.pendingSeek or .read.replace) do
+        if .read.started and (.pendingSeek or .read.replace)
+        {
             .read.cancel()
+        }
+
         if .pendingSeek
         {
             let ratio = Math.clamp(newPosition.y / .virtualHeight, 0, 1)
@@ -1432,11 +1725,11 @@ impl Panel
     {
         let strings = texts()
         discard .refreshBookmarkStaleness()
-        let canGoBack = .lensHistoryIndex != Swag.U64.Max and .lensHistoryIndex > 0
-        let canGoForward = .lensHistoryIndex != Swag.U64.Max and .lensHistoryIndex + 1 < .lensHistory.count
-        let bookmarkIsStale = .bookmarksStale
-        let canBookmark = .canBookmarkCurrentPosition()
-        let canBookmarkBack = not bookmarkIsStale and .bookmarkIndexInDirection(-1) != Swag.U64.Max
+        let canGoBack          = .lensHistoryIndex != Swag.U64.Max and .lensHistoryIndex > 0
+        let canGoForward       = .lensHistoryIndex != Swag.U64.Max and .lensHistoryIndex + 1 < .lensHistory.count
+        let bookmarkIsStale    = .bookmarksStale
+        let canBookmark        = .canBookmarkCurrentPosition()
+        let canBookmarkBack    = not bookmarkIsStale and .bookmarkIndexInDirection(-1) != Swag.U64.Max
         let canBookmarkForward = not bookmarkIsStale and .bookmarkIndexInDirection(1) != Swag.U64.Max
         entries.add(strings.ui_Back,
                     .ChevronLeft,
@@ -1475,17 +1768,19 @@ impl Panel
                     bindId: "scope.text.bookmark.clear")
         for bookmark, index in .bookmarks
         {
-            let name = bookmark.label
-            let line = bookmark.line
-            let stale = bookmarkIsStale
+            let name        = bookmark.label
+            let line        = bookmark.line
+            let stale       = bookmarkIsStale
             let destination = entries.add(name,
                                           .GoTo,
                                           func|view = me, index|() { discard view.navigateToBookmark(index) },
                                           disabled: stale)
-            if destination do
+            if destination
+            {
                 destination.detail = stale ? strings.ui_BookmarkStale :
                                      line ? Format.toString(strings.ui_BookmarkLine, line) :
-                                            Format.toString(strings.ui_BookmarkOffset, bookmark.offset)
+                                     Format.toString(strings.ui_BookmarkOffset, bookmark.offset)
+            }
 
             entries.add(Format.toString(strings.ui_RenameBookmark, name),
                         .Edit,
@@ -1497,8 +1792,11 @@ impl Panel
         entries.add(strings.ui_Numbers, .LineNumbers, func|view = me|() { view.toggleLineNumbers() }, checked: .lineNumbers, bindId: "scope.text.numbers")
         entries.add(strings.ui_Blanks, .Whitespace, func|view = me|() { view.toggleBlanks() }, checked: .blanks, bindId: "scope.text.blanks")
 
-        for width in Viewer.TabWidths where entries.query.count or entries.results.collectingShortcuts do
+        for width in Viewer.TabWidths where entries.query.count or entries.results.collectingShortcuts
+        {
             entries.add(Viewer.tabWidthRowText(strings.ui_TabWidth, width), .Whitespace, func|view = me, width|() { view.setTabWidth(width) }, checked: .tabWidth == width, bindId: Format.toString("scope.text.tabWidth.%", width))
+        }
+
         describeEncodingCommands(me, entries, "scope.text")
 
         entries.addZoom(.In, .zoomPercent, func|view = me, percent = Viewer.zoomTarget(.In, me.zoomPercent)|() { view.setZoom(percent) })
@@ -1590,8 +1888,11 @@ impl Panel
                 view.scheduleMore()
                 let line = view.editor.cursorLogicalLineIndex()
                 keyEvt.target!.processEvent(evt)
-                if view.editor.cursorLogicalLineIndex() != line do
+                if view.editor.cursorLogicalLineIndex() != line
+                {
                     view.reportStatistics()
+                }
+
                 return keyEvt.accepted
 
             case KeyEvent as keyEvt where keyEvt.kind == .Pressed and keyEvt.key == .Space:
@@ -1603,8 +1904,11 @@ impl Panel
                                           view.editor.commandForShortcut(keyEvt.key, keyEvt.modifiers) != .None:
                 let line = view.editor.cursorLogicalLineIndex()
                 keyEvt.target!.processEvent(evt)
-                if view.editor.cursorLogicalLineIndex() != line do
+                if view.editor.cursorLogicalLineIndex() != line
+                {
                     view.reportStatistics()
+                }
+
                 return keyEvt.accepted
 
             case MouseEvent as mouseEvt where mouseEvt.kind == .Pressed or
@@ -1613,8 +1917,11 @@ impl Panel
                                               mouseEvt.kind == .DoubleClick:
                 let line = view.editor.cursorLogicalLineIndex()
                 mouseEvt.target!.processEvent(evt)
-                if view.editor.cursorLogicalLineIndex() != line do
+                if view.editor.cursorLogicalLineIndex() != line
+                {
                     view.reportStatistics()
+                }
+
                 return mouseEvt.accepted
 
             default:
@@ -1654,8 +1961,10 @@ impl Panel
         }
 
         .fileSize = size
-        if not size do
+        if not size
+        {
             return
+        }
 
         // A byte-order mark is part of the file and not part of the text, so reading starts past
         // it and every offset the view reports stays a file offset.
@@ -1676,15 +1985,18 @@ impl Panel
         var data: MediaInfoData
         data.add(.Text, group: true)
         data.add(.Encoding, .encodingName())
-        var longestLine = 0'u64
+        var longestLine = 0_u64
         if .hasStatistics and .statisticsEncoding == .encoding and .statisticsStart == .contentStart
         {
             data.addTextStatistics(&.statistics)
             longestLine = .statistics.longestLine
         }
+
         data.describe(sheet)
-        if longestLine do
+        if longestLine
+        {
             sheet.addLink(Format.toString(appStrings().lens_GoToLine, longestLine), ViewerCommands.TextLongestLine)
+        }
     }
 
     // Reveals the current longest line when its information-sheet command is received.
@@ -1694,17 +2006,24 @@ impl Panel
            not .hasStatistics or
            .statisticsEncoding != .encoding or
            .statisticsStart != .contentStart or
-           not .statistics.longestLine do
+           not .statistics.longestLine
+        {
             return false
+        }
 
-        let line = .statistics.longestLine
+        let line   = .statistics.longestLine
         let offset = .lines.offsetOfLine(.fileName, line, .encoding, .contentStart)
-        if offset != Swag.U64.Max do
+        if offset != Swag.U64.Max
+        {
             return .revealLensDestination(offset, "", caret: true)
+        }
 
         let estimate = .lines.estimateOffsetOfLine(.fileName, line, .encoding, .contentStart)
-        if estimate == Swag.U64.Max do
+        if estimate == Swag.U64.Max
+        {
             return false
+        }
+
         return .revealLensDestination(estimate, "", caret: true, estimatedLine: line)
     }
 }
@@ -1735,16 +2054,20 @@ func(T) describeReadingOptions(view: *T, page: *OptionSheet.Page)
 
     let tabWidths = func|view|(widths: *OptionSheet.Page)
     {
-        for width in Viewer.TabWidths do
+        for width in Viewer.TabWidths
+        {
             widths.addChoice(Format.toString("%", width), width == view.tabWidth, func|view, width|() { view.setTabWidth(width) })
+        }
     }
 
     page.addLink(strings.ui_TabWidth, Format.toString("%", view.tabWidth), tabWidths, icon: theme.icon(.Whitespace, size))
 
     let encodings = func|view|(choices: *OptionSheet.Page)
     {
-        for encoding in Encodings do
+        for encoding in Encodings
+        {
             choices.addChoice(Viewer.encodingName(encoding), encoding == view.encoding, func|view, encoding|() { view.applyEncoding(encoding) })
+        }
     }
 
     page.addLink(strings.ui_Encoding, Viewer.encodingName(view.encoding), encodings, icon: theme.icon(.FileCode, size))
@@ -1760,9 +2083,9 @@ func createViewer(host: Viewer.Host)
     with var search: Viewer.SearchApi
     {
         .fileEncoding = func|view|()->Text.Encoding => view.encoding
-        .revealMatch = func|view|(match, text)->bool => view.revealOffset(match.offset, text, caret: true, matchLength: match.length)
-        .matchBounds = func|view|(_, bounds)->bool { return view.searchBounds(bounds) }
-        .clear       = func|view|() => view.clearSearch()
+        .revealMatch  = func|view|(match, text)->bool => view.revealOffset(match.offset, text, caret: true, matchLength: match.length)
+        .matchBounds  = func|view|(_, bounds)->bool { return view.searchBounds(bounds) }
+        .clear        = func|view|() => view.clearSearch()
     }
 
     host.setSearch(search)

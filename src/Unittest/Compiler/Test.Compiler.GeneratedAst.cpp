@@ -130,20 +130,20 @@ struct(T) Wrapper
 
 func touch()
 {
-    let a: Wrapper's8
-    let b: Wrapper's16
-    let c: Wrapper's32
-    let d: Wrapper's64
-    let e: Wrapper'u8
-    let f: Wrapper'u16
-    let g: Wrapper'u32
-    let h: Wrapper'u64
-    let i: Wrapper'f32
-    let j: Wrapper'f64
-    let k: Wrapper'bool
-    let l: Wrapper'(string?)
-    let m: Wrapper'(Wrapper's32)
-    let n: Wrapper'(Wrapper'u64)
+    let a: Wrapper!{s8}
+    let b: Wrapper!{s16}
+    let c: Wrapper!{s32}
+    let d: Wrapper!{s64}
+    let e: Wrapper!{u8}
+    let f: Wrapper!{u16}
+    let g: Wrapper!{u32}
+    let h: Wrapper!{u64}
+    let i: Wrapper!{f32}
+    let j: Wrapper!{f64}
+    let k: Wrapper!{bool}
+    let l: Wrapper!{string?}
+    let m: Wrapper!{Wrapper!{s32}}
+    let n: Wrapper!{Wrapper!{u64}}
 
     #assert(#typeof(a.value) == s8)
     #assert(#typeof(b.value) == s16)
@@ -252,8 +252,8 @@ struct LifecycleOwner
 
 func touch()
 {
-    let eqA = GeneratedBox's32{value: 1}
-    let eqB = GeneratedBox's32{value: 2}
+    let eqA = GeneratedBox!{s32}{value: 1}
+    let eqB = GeneratedBox!{s32}{value: 2}
     let eqBoolA = eqA != eqB
     let eqBoolB = eqA < eqB
 
@@ -262,15 +262,15 @@ func touch()
     let pairBoolA = pairA != pairB
     let pairBoolB = pairA < pairB
 
-    let nestedA = GeneratedBox'GeneratedPair{value: GeneratedPair{left: 7, right: 8}}
-    let nestedB = GeneratedBox'GeneratedPair{value: GeneratedPair{left: 7, right: 9}}
+    let nestedA = GeneratedBox!{GeneratedPair}{value: GeneratedPair{left: 7, right: 8}}
+    let nestedB = GeneratedBox!{GeneratedPair}{value: GeneratedPair{left: 7, right: 9}}
     let nestedBoolA = nestedA != nestedB
     let nestedBoolB = nestedA < nestedB
 
-    var one: LifecycleBox'Tracked
-    var two: LifecycleBox'Tracked
+    var one: LifecycleBox!{Tracked}
+    var two: LifecycleBox!{Tracked}
     var owner: LifecycleOwner
-    var nested: LifecycleBox'LifecycleOwner
+    var nested: LifecycleBox!{LifecycleOwner}
 
     Swag.postCopy(one)
     Swag.postMove(two)

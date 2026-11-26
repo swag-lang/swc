@@ -11,7 +11,7 @@ struct(K) OrderedSet
 {
     private
     {
-        keys:       Array'K
+        keys:       Array!{K}
         comparator: *void?
     }
 
@@ -22,7 +22,7 @@ struct(K) OrderedSet
 #[Swag.Opaque]
 struct(K) ReversedOrderedSet
 {
-    source: const *OrderedSet'K
+    source: const *OrderedSet!{K}
 }
 
 impl ReversedOrderedSet
@@ -37,24 +37,30 @@ impl ReversedOrderedSet
             let keyIndex = .source.count - offset - 1
             scope(Down)
             {
-                #static if ptr do
+                #static if ptr
+                {
                     #inject(stmt,
                             key = cast(const *K, &.source.keys[keyIndex]),
                             index = offset,
                             break = break to Up,
                             continue = break to Down)
-                elif Reflection.isStruct(K) do
+                }
+                else if Reflection.isStruct(K)
+                {
                     #inject(stmt,
                             key = cast(const *K, &.source.keys[keyIndex]),
                             index = offset,
                             break = break to Up,
                             continue = break to Down)
-                else do
+                }
+                else
+                {
                     #inject(stmt,
                             key = .source.keys[keyIndex],
                             index = offset,
                             break = break to Up,
                             continue = break to Down)
+                }
             }
         }
     }
@@ -97,15 +103,20 @@ impl OrderedSet
     // Requests at or below the current capacity, including zero, do nothing.
     mtd reserve(newCapacity: u64)
     {
-        if newCapacity <= .capacity() do
+        if newCapacity <= .capacity()
+        {
             return
+        }
+
         .keys.reserve(newCapacity)
     }
 
     private mtd const compareKeys(left, right: K)->s32
     {
-        if .comparator do
+        if .comparator
+        {
             return cast(func(const *K, const *K)->s32, unwrap .comparator)(&left, &right)
+        }
 
         Swag.assert(false, "ordered set has not been initialized with a comparator")
         return 0
@@ -114,7 +125,7 @@ impl OrderedSet
     // Returns the first index whose key is not less than `key`.
     mtd const lowerBound(key: K)->u64
     {
-        var first  = 0'u64
+        var first  = 0_u64
         var length = .count
         while length
         {
@@ -137,7 +148,7 @@ impl OrderedSet
     // Returns the first index whose key is greater than `key`.
     mtd const upperBound(key: K)->u64
     {
-        var first  = 0'u64
+        var first  = 0_u64
         var length = .count
         while length
         {
@@ -164,8 +175,11 @@ impl OrderedSet
     {
         let first = .lowerBound(lower)
         let last  = .lowerBound(upper)
-        if last <= first do
+        if last <= first
+        {
             return Swag.makeSlice(.keys.storage(), 0)
+        }
+
         return Swag.makeSlice(.keys.storage() + first, last - first)
     }
 
@@ -183,8 +197,11 @@ impl OrderedSet
     mtd add(key: #fwd K)->bool
     {
         let index = .lowerBound(key)
-        if index < .count and .compareKeys(.keys[index], key) == 0 do
+        if index < .count and .compareKeys(.keys[index], key) == 0
+        {
             return false
+        }
+
         .keys.insertAt(index, #fwd key)
         .count += 1
         return true
@@ -194,8 +211,11 @@ impl OrderedSet
     mtd remove(key: K)->bool
     {
         let index = .lowerBound(key)
-        if index == .count or .compareKeys(.keys[index], key) != 0 do
+        if index == .count or .compareKeys(.keys[index], key) != 0
+        {
             return false
+        }
+
         .keys.removeAtOrdered(index)
         .count -= 1
         return true
@@ -226,28 +246,34 @@ impl OrderedSet
         {
             scope(Down)
             {
-                #static if ptr do
+                #static if ptr
+                {
                     #inject(stmt,
                             key = cast(const *K, &.keys[keyIndex]),
                             index = keyIndex,
                             break = break to Up,
                             continue = break to Down)
-                elif Reflection.isStruct(K) do
+                }
+                else if Reflection.isStruct(K)
+                {
                     #inject(stmt,
                             key = cast(const *K, &.keys[keyIndex]),
                             index = keyIndex,
                             break = break to Up,
                             continue = break to Down)
-                else do
+                }
+                else
+                {
                     #inject(stmt,
                             key = .keys[keyIndex],
                             index = keyIndex,
                             break = break to Up,
                             continue = break to Down)
+                }
             }
         }
     }
 
     // Returns an immutable zero-allocation view that traverses keys in descending order.
-    mtd const reversed()->ReversedOrderedSet'K => {source: me}
+    mtd const reversed()->ReversedOrderedSet!{K} => {source: me}
 }

@@ -131,8 +131,11 @@ and are plain data (POD).
     fct = func|x|(toAdd)
     {
         var res = 0
-        for v in x do
+        for v in x
+        {
             res += v
+        }
+
         res += toAdd
         return res
     }

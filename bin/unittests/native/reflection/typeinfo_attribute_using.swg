@@ -34,8 +34,10 @@ const ATTRIBUTE_USING_INFO = cast(const *Swag.TypeInfoStruct, #typeof(AttributeU
     {
         for attribute in field.attributes
         {
-            if attribute.type != #typeof(AttributeUsingScope.ScopedLabel) do
+            if attribute.type != #typeof(AttributeUsingScope.ScopedLabel)
+            {
                 continue
+            }
 
             Swag.require(attribute.params.count == 1)
             let params = unwrap attribute.params

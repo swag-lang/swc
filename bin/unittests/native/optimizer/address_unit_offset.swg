@@ -15,7 +15,7 @@ func isolateLowestZero(values: const [*]u64, index: u64)->u64
 
 #test
 {
-    let values = [0'u64, 1, 2, 0x7FFFFFFFFFFFFFFF, 0xFFFFFFFFFFFFFFFE, 0xFFFFFFFFFFFFFFFF]
+    let values = [0_u64, 1, 2, 0x7FFFFFFFFFFFFFFF, 0xFFFFFFFFFFFFFFFE, 0xFFFFFFFFFFFFFFFF]
     for value, index in values
     {
         Swag.require(addOne(&values[0], index) == value + #wrap 1)

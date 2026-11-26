@@ -9,8 +9,10 @@ func(what: Swag.SafetyWhat) safety(expr: #code->bool, message: string? = null, l
 {
     #static if #safety(what)
     {
-        if not #inject(expr) do
+        if not #inject(expr)
+        {
             Swag.panic(message, loc)
+        }
     }
 }
 
@@ -18,5 +20,5 @@ func(what: Swag.SafetyWhat) safety(expr: #code->bool, message: string? = null, l
 #[Swag.Macro]
 func safetyBoundCheck(expr50: #code->bool, message: string? = null, loc = #callerlocation)
 {
-    safety'(Swag.SafetyWhat.BoundCheck)(expr50, message, loc)
+    safety!{Swag.SafetyWhat.BoundCheck}(expr50, message, loc)
 }

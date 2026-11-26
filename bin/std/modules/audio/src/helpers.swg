@@ -10,6 +10,8 @@ public func decibelsToLinearGain(decibels: f32)->f32
         return decibels
     if decibels <= -100 do
         return 0.0
+    }
+
     return Math.pow(10.0, decibels / 20.0)
 }
 
@@ -22,5 +24,7 @@ public func linearGainToDecibels(gain: f32)->f32
         return gain
     if gain <= 0.0 do
         return -100.0
+    }
+
     return 20.0 * Math.log10(gain)
 }

@@ -29,17 +29,17 @@ alias BigArray   = [5] s32
 #test
 {
     func passS8(x: s8) => x
-    const V = #run passS8(-12's8)
+    const V = #run passS8(-12_s8)
     #assert(#typeof(V) == s8)
-    #assert(V == -12's8)
+    #assert(V == -12_s8)
 }
 
 #test
 {
     func passS16(x: s16) => x
-    const V = #run passS16(-1234's16)
+    const V = #run passS16(-1234_s16)
     #assert(#typeof(V) == s16)
-    #assert(V == -1234's16)
+    #assert(V == -1234_s16)
 }
 
 #test
@@ -53,57 +53,57 @@ alias BigArray   = [5] s32
 #test
 {
     func passS64(x: s64) => x
-    const V = #run passS64(5000000000's64)
+    const V = #run passS64(5000000000_s64)
     #assert(#typeof(V) == s64)
-    #assert(V == 5000000000's64)
+    #assert(V == 5000000000_s64)
 }
 
 #test
 {
     func passU8(x: u8) => x
-    const V = #run passU8(12'u8)
+    const V = #run passU8(12_u8)
     #assert(#typeof(V) == u8)
-    #assert(V == 12'u8)
+    #assert(V == 12_u8)
 }
 
 #test
 {
     func passU16(x: u16) => x
-    const V = #run passU16(1234'u16)
+    const V = #run passU16(1234_u16)
     #assert(#typeof(V) == u16)
-    #assert(V == 1234'u16)
+    #assert(V == 1234_u16)
 }
 
 #test
 {
     func passU32(x: u32) => x
-    const V = #run passU32(123456'u32)
+    const V = #run passU32(123456_u32)
     #assert(#typeof(V) == u32)
-    #assert(V == 123456'u32)
+    #assert(V == 123456_u32)
 }
 
 #test
 {
     func passU64(x: u64) => x
-    const V = #run passU64(5000000000'u64)
+    const V = #run passU64(5000000000_u64)
     #assert(#typeof(V) == u64)
-    #assert(V == 5000000000'u64)
+    #assert(V == 5000000000_u64)
 }
 
 #test
 {
     func passF32(x: f32) => x
-    const V = #run passF32(1.25'f32)
+    const V = #run passF32(1.25_f32)
     #assert(#typeof(V) == f32)
-    #assert(V == 1.25'f32)
+    #assert(V == 1.25_f32)
 }
 
 #test
 {
     func passF64(x: f64) => x
-    const V = #run passF64(1.5'f64)
+    const V = #run passF64(1.5_f64)
     #assert(#typeof(V) == f64)
-    #assert(V == 1.5'f64)
+    #assert(V == 1.5_f64)
 }
 
 #test
@@ -135,7 +135,7 @@ alias BigArray   = [5] s32
     func passEnum(x: PassEnum) => x
     const V = #run passEnum(PassEnum.B)
     #assert(#typeof(V) == PassEnum)
-    #assert(cast(u16, V) == 513'u16)
+    #assert(cast(u16, V) == 513_u16)
 }
 
 #test
@@ -149,45 +149,45 @@ alias BigArray   = [5] s32
 #test
 {
     func passSmallPair(x: SmallPair) => x
-    const V = #run passSmallPair({a: 12'u32, b: 34'u32, c: 56'u64})
+    const V = #run passSmallPair({a: 12_u32, b: 34_u32, c: 56_u64})
     #assert(#typeof(V) == SmallPair)
-    #assert(V.a == 12'u32)
-    #assert(V.b == 34'u32)
-    #assert(V.c == 56'u64)
+    #assert(V.a == 12_u32)
+    #assert(V.b == 34_u32)
+    #assert(V.c == 56_u64)
 }
 
 #test
 {
     func passBigBlob(x: BigBlob) => x
     const V = #run passBigBlob({
-        a0: 0x0102_0304_0506_0708'u64,
-        a1: 0x1112_1314_1516_1718'u64,
-        a2: 0x2122_2324_2526_2728'u64,
-        a3: 0x3132_3334_3536_3738'u64,
-        a4: 0x4142_4344_4546_4748'u64
+        a0: 0x0102_0304_0506_0708_u64,
+        a1: 0x1112_1314_1516_1718_u64,
+        a2: 0x2122_2324_2526_2728_u64,
+        a3: 0x3132_3334_3536_3738_u64,
+        a4: 0x4142_4344_4546_4748_u64
         })
     #assert(#typeof(V) == BigBlob)
-    #assert(V.a0 == 0x0102_0304_0506_0708'u64)
-    #assert(V.a4 == 0x4142_4344_4546_4748'u64)
+    #assert(V.a0 == 0x0102_0304_0506_0708_u64)
+    #assert(V.a4 == 0x4142_4344_4546_4748_u64)
 }
 
 #test
 {
     func passSmallArray(x: SmallArray) => x
-    const V = #run passSmallArray([12's32, 34's32, 56's32])
+    const V = #run passSmallArray([12_s32, 34_s32, 56_s32])
     #assert(#typeof(V) == SmallArray)
-    #assert(V[0] == 12's32)
-    #assert(V[1] == 34's32)
-    #assert(V[2] == 56's32)
+    #assert(V[0] == 12_s32)
+    #assert(V[1] == 34_s32)
+    #assert(V[2] == 56_s32)
 }
 
 #test
 {
     func passBigArray(x: BigArray) => x
-    const V = #run passBigArray([1's32, 2's32, 3's32, 4's32, 5's32])
+    const V = #run passBigArray([1_s32, 2_s32, 3_s32, 4_s32, 5_s32])
     #assert(#typeof(V) == BigArray)
-    #assert(V[0] == 1's32)
-    #assert(V[4] == 5's32)
+    #assert(V[0] == 1_s32)
+    #assert(V[4] == 5_s32)
 }
 
 #test
@@ -227,38 +227,38 @@ alias BigArray   = [5] s32
 #test
 {
     func pickFifthF64(_: f64, _: f64, _: f64, _: f64, a4: f64) => a4
-    const V = #run pickFifthF64(1.0'f64, 2.0'f64, 3.0'f64, 4.0'f64, 5.5'f64)
-    #assert(V == 5.5'f64)
+    const V = #run pickFifthF64(1.0_f64, 2.0_f64, 3.0_f64, 4.0_f64, 5.5_f64)
+    #assert(V == 5.5_f64)
 }
 
 #test
 {
     func pickSixthF32(_: f32, _: f32, _: f32, _: f32, _: f32, a5: f32) => a5
-    const V = #run pickSixthF32(1.0'f32, 2.0'f32, 3.0'f32, 4.0'f32, 5.0'f32, 6.25'f32)
-    #assert(V == 6.25'f32)
+    const V = #run pickSixthF32(1.0_f32, 2.0_f32, 3.0_f32, 4.0_f32, 5.0_f32, 6.25_f32)
+    #assert(V == 6.25_f32)
 }
 
 #test
 {
     func pickFifthSmall(_: s32, _: s32, _: s32, _: s32, e: SmallPair) => e
-    const V = #run pickFifthSmall(1, 2, 3, 4, {a: 88'u32, b: 99'u32, c: 111'u64})
-    #assert(V.a == 88'u32)
-    #assert(V.b == 99'u32)
-    #assert(V.c == 111'u64)
+    const V = #run pickFifthSmall(1, 2, 3, 4, {a: 88_u32, b: 99_u32, c: 111_u64})
+    #assert(V.a == 88_u32)
+    #assert(V.b == 99_u32)
+    #assert(V.c == 111_u64)
 }
 
 #test
 {
     func pickSixthBig(_: s32, _: s32, _: s32, _: s32, _: s32, f: BigBlob) => f
     const V = #run pickSixthBig(1, 2, 3, 4, 5, {
-        a0: 10'u64,
-        a1: 20'u64,
-        a2: 30'u64,
-        a3: 40'u64,
-        a4: 50'u64
+        a0: 10_u64,
+        a1: 20_u64,
+        a2: 30_u64,
+        a3: 40_u64,
+        a4: 50_u64
         })
-    #assert(V.a0 == 10'u64)
-    #assert(V.a4 == 50'u64)
+    #assert(V.a0 == 10_u64)
+    #assert(V.a4 == 50_u64)
 }
 
 #test
@@ -277,9 +277,9 @@ alias BigArray   = [5] s32
         return h
     }
 
-    const V = #run pickEighthArray(1, 2, 3, 4, 5, 6, 7, [7's32, 8's32, 9's32, 10's32, 11's32])
-    #assert(V[0] == 7's32)
-    #assert(V[4] == 11's32)
+    const V = #run pickEighthArray(1, 2, 3, 4, 5, 6, 7, [7_s32, 8_s32, 9_s32, 10_s32, 11_s32])
+    #assert(V[0] == 7_s32)
+    #assert(V[4] == 11_s32)
 }
 
 #test
@@ -303,14 +303,14 @@ alias BigArray   = [5] s32
     }
 
     const V = #run passViaLocalBig({
-        a0: 100'u64,
-        a1: 200'u64,
-        a2: 300'u64,
-        a3: 400'u64,
-        a4: 500'u64
+        a0: 100_u64,
+        a1: 200_u64,
+        a2: 300_u64,
+        a3: 400_u64,
+        a4: 500_u64
         })
-    #assert(V.a0 == 100'u64)
-    #assert(V.a4 == 500'u64)
+    #assert(V.a0 == 100_u64)
+    #assert(V.a4 == 500_u64)
 }
 
 #test
@@ -329,9 +329,9 @@ alias BigArray   = [5] s32
         b: u32
     }
     func passTinyPairFail(x: TinyPair) => x
-    const V = #run passTinyPairFail({a: 12'u32, b: 34'u32})
-    #assert(V.a == 12'u32)
-    #assert(V.b == 34'u32)
+    const V = #run passTinyPairFail({a: 12_u32, b: 34_u32})
+    #assert(V.a == 12_u32)
+    #assert(V.b == 34_u32)
 }
 
 #test
@@ -339,9 +339,9 @@ alias BigArray   = [5] s32
     alias TinyArray = [2] s32
 
     func passTinyArrayFail(x: TinyArray) => x
-    const V = #run passTinyArrayFail([12's32, 34's32])
-    #assert(V[0] == 12's32)
-    #assert(V[1] == 34's32)
+    const V = #run passTinyArrayFail([12_s32, 34_s32])
+    #assert(V[0] == 12_s32)
+    #assert(V[1] == 34_s32)
 }
 
 #test
@@ -369,10 +369,10 @@ alias BigArray   = [5] s32
         return cast(u64, x.a) + cast(u64, x.b) + x.c
     }
 
-    const P: SmallPair = SmallPair{a: 1'u32, b: 2'u32, c: 39'u64}
+    const P: SmallPair = SmallPair{a: 1_u32, b: 2_u32, c: 39_u64}
     const V = #run passConstRef(P)
     #assert(#typeof(V) == u64)
-    #assert(V == 42'u64)
+    #assert(V == 42_u64)
 }
 
 #test
@@ -382,9 +382,9 @@ alias BigArray   = [5] s32
         return cast(u64, a) + cast(u64, b) + cast(u64, c[0]) + d.c + cast(u64, cast(u16, e))
     }
 
-    const V = #run passMixed(1, 2.0'f64, "A", {a: 3'u32, b: 4'u32, c: 5'u64}, PassEnum.A)
+    const V = #run passMixed(1, 2.0_f64, "A", {a: 3_u32, b: 4_u32, c: 5_u64}, PassEnum.A)
     #assert(#typeof(V) == u64)
-    #assert(V == 84'u64)
+    #assert(V == 84_u64)
 }
 
 #test

@@ -12,15 +12,19 @@ struct NonNullConditionItem
 
 func nonNullConditionNullableIf(item: *NonNullConditionItem?)->s32
 {
-    if item do
+    if item
+    {
         return item.value
+    }
     return 0
 }
 
 func nonNullConditionNullableNot(item: *NonNullConditionItem?)->s32
 {
-    if not item do
+    if not item
+    {
         return 0
+    }
     return item.value
 }
 
@@ -39,18 +43,24 @@ func nonNullConditionNullableWhile(scan: *NonNullConditionItem?)->s32
 // fallback on a nullable-declared value.
 func nonNullConditionNarrowed(item: *NonNullConditionItem?)->s32
 {
-    if item == null do
+    if item == null
+    {
         return 0
-    if item do
+    }
+    if item
+    {
         return item.value
+    }
     return 0
 }
 
 // A non-null pointer offers the pointed value instead.
 func nonNullConditionPointee(flag: *bool)->s32
 {
-    if flag[] do
+    if flag[]
+    {
         return 1
+    }
     return 0
 }
 
@@ -70,8 +80,10 @@ func nonNullConditionInlinedCaller(item: *NonNullConditionItem)->s32
 
 func nonNullConditionErrIf(item: *NonNullConditionItem)->s32
 {
-    if item do     // swc-expected-error {{sema_err_bool_test_not_nullable}}
+    if item     // swc-expected-error {{sema_err_bool_test_not_nullable}}
+    {
         return item.value
+    }
     return 0
 }
 
@@ -87,8 +99,10 @@ func nonNullConditionErrWhile(item: *NonNullConditionItem)->s32
 
 func nonNullConditionErrNot(item: *NonNullConditionItem)->s32
 {
-    if not item do     // swc-expected-error {{sema_err_bool_test_not_nullable}}
+    if not item     // swc-expected-error {{sema_err_bool_test_not_nullable}}
+    {
         return 0
+    }
     return item.value
 }
 
@@ -109,8 +123,10 @@ func nonNullConditionErrExplicitCast(item: *NonNullConditionItem)->bool
 
 func nonNullConditionErrBlockPointer(bytes: [*] u8)->s32
 {
-    if bytes do     // swc-expected-error {{sema_err_bool_test_not_nullable}}
+    if bytes     // swc-expected-error {{sema_err_bool_test_not_nullable}}
+    {
         return cast(s32, bytes[0])
+    }
     return 0
 }
 
@@ -118,8 +134,10 @@ impl NonNullConditionItem
 {
     mtd errMe()->s32
     {
-        if me do     // swc-expected-error {{sema_err_bool_test_not_nullable}}
+        if me     // swc-expected-error {{sema_err_bool_test_not_nullable}}
+        {
             return .value
+        }
         return 0
     }
 }

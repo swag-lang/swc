@@ -10,11 +10,13 @@ using Swag
 #[Swag.Optimize(true), Swag.NoInline]
 func countAbove(values: const [*] s32, count: u64, limit: s32)->u64
 {
-    var total = 0'u64
+    var total = 0_u64
     for i in count
     {
-        if values[i] > limit do
+        if values[i] > limit
+        {
             total += 1
+        }
     }
 
     return total
@@ -23,12 +25,14 @@ func countAbove(values: const [*] s32, count: u64, limit: s32)->u64
 #[Swag.Optimize(true), Swag.NoInline]
 func sumScaledAbove(values: const [*] s32, count: u64, limit: s32)->s64
 {
-    var total = 0's64
+    var total = 0_s64
     for i in count
     {
         let value = cast(s64, values[i])
-        if value > limit do
+        if value > limit
+        {
             total += value * 3 + 1
+        }
     }
 
     return total
@@ -38,8 +42,10 @@ func sumScaledAbove(values: const [*] s32, count: u64, limit: s32)->s64
 func shiftWhenOdd(value: u64, count: u64)->u64
 {
     var result = value
-    if (count & 1) == 1 do
+    if (count & 1) == 1
+    {
         result = (result << 2) ^ count
+    }
     return result
 }
 
@@ -47,14 +53,16 @@ func shiftWhenOdd(value: u64, count: u64)->u64
 func clampUpdate(value, limit: u32)->u32
 {
     var result = value
-    if result > limit do
+    if result > limit
+    {
         result -= limit
+    }
     return result
 }
 
 #test
 {
-    let values = [3's32, -7, 12, 12, 0, 25, -1]
+    let values = [3_s32, -7, 12, 12, 0, 25, -1]
     Swag.require(countAbove(&values[0], 7, 2) == 4)
     Swag.require(countAbove(&values[0], 7, 12) == 1)
     Swag.require(countAbove(&values[0], 7, 100) == 0)

@@ -31,15 +31,15 @@ func checkedMultiplyMinusOne(a: s64)->s64 => a * -1
 #[Swag.Safety(.Overflow, false)]
 #test
 {
-    let values = [0'u64, 1, 2, 0xFFFFFFFF, 0x100000000, 0x7FFFFFFFFFFFFFFF, 0x8000000000000000, 0xFFFFFFFFFFFFFFFF]
+    let values = [0_u64, 1, 2, 0xFFFFFFFF, 0x100000000, 0x7FFFFFFFFFFFFFFF, 0x8000000000000000, 0xFFFFFFFFFFFFFFFF]
     for a in values
     {
-        let expected = 0'u64 - a
+        let expected = 0_u64 - a
         Swag.require(complementPlusOne(a) == expected)
         Swag.require(multiplyMinusOne(a) == expected)
         Swag.require(sharedComplement(a) == (expected ^ ~a))
         let a32        = cast(u32, (a & 0xFFFFFFFF))
-        let expected32 = 0'u32 - a32
+        let expected32 = 0_u32 - a32
         Swag.require(complementPlusOne32(a32) == expected32)
         Swag.require(multiplyMinusOne32(a32) == expected32)
     }

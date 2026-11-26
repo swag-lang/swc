@@ -42,12 +42,12 @@ impl ImdctStackProbe
             }
         }
 
-        var length = 2's32
+        var length = 2_s32
         while length <= quarter
         {
             let butterfly = length >> 1
             let stride    = quarter / length
-            var base      = 0's32
+            var base      = 0_s32
             while base < quarter
             {
                 for j in cast(u64, butterfly)
@@ -111,7 +111,10 @@ func initImdctStackProbe()
 func runNearStackGuard()->u64
 {
     var padding: [32768] u64
-    for i in padding.count do padding[i] = cast(u64, i)
+    for i in padding.count
+    {
+        padding[i] = cast(u64, i)
+    }
 
     var spectrum: [1024] f64
     var output:   [1024] f64

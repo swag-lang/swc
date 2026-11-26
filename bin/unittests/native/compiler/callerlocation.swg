@@ -285,8 +285,10 @@ func twoLocCaller()->SourceCodeLocation
 
 func recursiveCapture(depth: s32, loc = #callerlocation)->SourceCodeLocation
 {
-    if depth <= 0 do
+    if depth <= 0
+    {
         return loc
+    }
     return recursiveCapture(depth - 1)
 }
 

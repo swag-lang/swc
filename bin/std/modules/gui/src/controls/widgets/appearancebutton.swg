@@ -14,9 +14,9 @@ struct AppearanceButton
     {
         using button: IconButton     // Embedded icon-button behavior and presentation.
 
-        sigThemeChanged:    SigArray'func||(*Wnd)     // Emitted after the user changes the theme.
-        sigLanguageChanged: SigArray'func||(*Wnd)     // Emitted after the user changes the language.
-        sigAboutRequested:  SigArray'func||(*Wnd)     // Emitted after the user chooses the About item.
+        sigThemeChanged:    SigArray!{func||(*Wnd)}     // Emitted after the user changes the theme.
+        sigLanguageChanged: SigArray!{func||(*Wnd)}     // Emitted after the user changes the language.
+        sigAboutRequested:  SigArray!{func||(*Wnd)}     // Emitted after the user chooses the About item.
 
         readonly
         {
@@ -42,7 +42,7 @@ private struct AppearanceLanguageCommand
     tag: String
 }
 
-private var g_AppearanceLanguageCommands: Array'AppearanceLanguageCommand
+private var g_AppearanceLanguageCommands: Array!{AppearanceLanguageCommand}
 
 // Routes registered theme and language choices through the same state and command events as
 // every application action. The surface owns the AppearanceButton that applies each choice.
@@ -57,8 +57,10 @@ internal impl IActionUI for ActionAppearance
     mtd impl update(cxt: ActionContext, evt: *CommandStateEvent)->bool
     {
         let button = assume cast (*SurfaceWnd, cxt.wnd).appearanceButton
-        if not button do
+        if not button
+        {
             return false
+        }
 
         evt.updatedFields |= .Name | .Checked | .RenderingHint
         evt.renderingHint = .ExclusiveGroup
@@ -92,8 +94,10 @@ internal impl IActionUI for ActionAppearance
     mtd impl execute(cxt: ActionContext)->bool
     {
         let button = assume cast (*SurfaceWnd, cxt.wnd).appearanceButton
-        if not button do
+        if not button
+        {
             return false
+        }
 
         let themeIndex = appearanceThemeCommandIndex(cxt.id)
         if themeIndex != Swag.U32.Max
@@ -124,15 +128,21 @@ impl IWnd for AppearanceButton
     {
         let parent = assume cast (*SurfaceWnd, .parent)
         parent.unregisterCaptionButton(me)
-        if parent.appearanceButton == me do
+        if parent.appearanceButton == me
+        {
             parent.appearanceButton = null
+        }
+
         .button.IWnd.onDestroyEvent(evt)
     }
 
     mtd impl onNotifyEvent(evt: *NotifyEvent)
     {
-        if evt.kind == .LanguageChanged do
+        if evt.kind == .LanguageChanged
+        {
             .toolTip = strings().appearance_ToolTip
+        }
+
         evt.accepted = false
     }
 }
@@ -148,7 +158,7 @@ impl AppearanceButton
     func create(surface: *Surface, id: WndId? = null, documentTheme = false)->*AppearanceButton
     {
         let parent      = assume cast (*SurfaceWnd, surface.wnd)
-        with let result = Wnd.create'AppearanceButton(parent, null, {}, id)
+        with let result = Wnd.create!{AppearanceButton}(parent, null, {}, id)
         {
             .appearanceTheme     = surface.app.appearance
             .offersDocumentTheme = documentTheme
@@ -165,7 +175,7 @@ impl AppearanceButton
         parent.registerCaptionButton(result)
         if not parent.appearanceActionRegistered
         {
-            parent.registerAction'ActionAppearance()
+            parent.registerAction!{ActionAppearance}()
             parent.appearanceActionRegistered = true
         }
 
@@ -179,12 +189,17 @@ impl AppearanceButton
     // operating system while the application runs.
     mtd setAppearanceTheme(theme: AppearanceTheme, notify = false)
     {
-        if theme == .Document and not .offersDocumentTheme do
+        if theme == .Document and not .offersDocumentTheme
+        {
             return
+        }
+
         .appearanceTheme = theme
         .app().setAppearance(theme == .Document ? .documentTheme : theme)
-        if notify do
+        if notify
+        {
             .sigThemeChanged.call(me)
+        }
     }
 
     // Updates the theme used when Match Document is selected.
@@ -194,11 +209,16 @@ impl AppearanceButton
     mtd setDocumentTheme(theme: AppearanceTheme)
     {
         Swag.assert(theme != .Document)
-        if .documentTheme == theme do
+        if .documentTheme == theme
+        {
             return
+        }
+
         .documentTheme = theme
-        if .appearanceTheme == .Document do
+        if .appearanceTheme == .Document
+        {
             .app().setAppearance(theme)
+        }
     }
 
     // Applies the registered language `tag`, or the system language when `tag` is empty.
@@ -211,8 +231,10 @@ impl AppearanceButton
         try .app().setLanguage(resolved)
         .language = tag
         .toolTip  = strings().appearance_ToolTip
-        if notify do
+        if notify
+        {
             .sigLanguageChanged.call(me)
+        }
     }
 
     // Opens the theme, language and application information beside this button.
@@ -232,8 +254,10 @@ impl AppearanceButton
                      appearanceThemeName(.appearanceTheme),
                      func|button = me|(themes)
                      {
-                         for theme in DocumentThemeValues where theme != .Document or button.offersDocumentTheme do
+                         for theme in DocumentThemeValues where theme != .Document or button.offersDocumentTheme
+                         {
                              themes.addChoice(appearanceThemeName(theme), theme == button.appearanceTheme, func|button, theme|() { button.setAppearanceTheme(theme, notify: true) })
+                         }
                      },
                      .theme().icon(.Appearance, iconSize))
 
@@ -258,8 +282,10 @@ impl AppearanceButton
                      },
                      .theme().icon(.Information, iconSize))
 
-        if not .sigAboutRequested.isEmpty() do
+        if not .sigAboutRequested.isEmpty()
+        {
             page.addAction(texts.appearance_About, func|button = me|() { button.sigAboutRequested.call(button) }, closesSheet: true)
+        }
     }
 
     // Offers the theme, language and About box as rows of `lens` and registers menu choices.
@@ -277,23 +303,28 @@ impl AppearanceButton
                          menuGroup: func()->string => strings().appearance_Theme,
                          menuSection: 1,
                          inLens: false)
-        if .offersDocumentTheme do
+        if .offersDocumentTheme
+        {
             lens.addCommand(func()->string => strings().lens_Application,
                             AppearanceDocumentCommand,
                             menuGroup: func()->string => strings().appearance_Theme,
                             menuSection: 1,
                             inLens: false)
+        }
+
         lens.addCommand(func()->string => strings().lens_Application,
                         AppearanceSystemLanguageCommand,
                         menuGroup: func()->string => strings().appearance_Language,
                         menuSection: 1,
                         inLens: false)
-        for &one in languages() do
+        for &one in languages()
+        {
             lens.addCommand(func()->string => strings().lens_Application,
                             appearanceLanguageCommandId(one.tag),
                             menuGroup: func()->string => strings().appearance_Language,
                             menuSection: 1,
                             inLens: false)
+        }
     }
 
     internal mtd describeLens(results: *Lens.Results)
@@ -304,8 +335,11 @@ impl AppearanceButton
         for theme in DocumentThemeValues where theme != .Document or .offersDocumentTheme
         {
             let name = appearanceThemeName(theme)
-            if not lensAnswers(results.folded, name, texts.appearance_Theme) do
+            if not lensAnswers(results.folded, name, texts.appearance_Theme)
+            {
                 continue
+            }
+
             if not themes
             {
                 themes        = results.addSection(texts.appearance_Theme)
@@ -334,8 +368,11 @@ impl AppearanceButton
         for &one in languages()
         {
             let name = one.nativeName.toString()
-            if not lensAnswers(results.folded, name, texts.appearance_Language) do
+            if not lensAnswers(results.folded, name, texts.appearance_Language)
+            {
                 continue
+            }
+
             if not choices
             {
                 choices        = results.addSection(texts.appearance_Language)
@@ -391,8 +428,10 @@ private func appearanceThemeCommandIndex(id: WndId)->u32
 
 private func appearanceLanguageCommandId(tag: string)->WndId
 {
-    for &choice in g_AppearanceLanguageCommands where choice.tag == tag do
+    for &choice in g_AppearanceLanguageCommands where choice.tag == tag
+    {
         return choice.id
+    }
 
     g_AppearanceLanguageCommands.add(AppearanceLanguageCommand{
         Format.toString("Gui.Appearance.Language.%", tag), String.from(tag)})
@@ -401,7 +440,10 @@ private func appearanceLanguageCommandId(tag: string)->WndId
 
 private func appearanceLanguageForCommand(id: WndId)->const *AppearanceLanguageCommand?
 {
-    for &choice in g_AppearanceLanguageCommands where choice.id == id do
+    for &choice in g_AppearanceLanguageCommands where choice.id == id
+    {
         return choice
+    }
+
     return null
 }

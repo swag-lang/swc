@@ -3,7 +3,7 @@
 #test
 {
     var flag  = true
-    var count = 1's32
+    var count = 1_s32
     let mixed = flag ? count : "text"     // swc-expected-error {{sema_err_conditional_branch_types}}
 }
 

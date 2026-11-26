@@ -27,7 +27,7 @@ using Core, Gui, Pixel
     openViews(&host, workspace)
     Swag.require(workspace.scene() == pair and pair.layout == .SideBySide and pair.split == 0.62)
     let document = workspace.activeDocument()
-    let closed = document.runCommand(TabCommands.CloseOthers)
+    let closed   = document.runCommand(TabCommands.CloseOthers)
     Swag.require(closed and workspace.scenes.count == 1 and workspace.activeDocument() == document)
     let cleared = document.runCommand(TabCommands.CloseAll)
     Swag.require(cleared and workspace.scenes.isEmpty() and workspace.primary.home.isVisible())
@@ -35,7 +35,7 @@ using Core, Gui, Pixel
 
 #test
 {
-    let root = Testing.tempFilePath("scope-tabs-", "")
+    let root   = Testing.tempFilePath("scope-tabs-", "")
     let folder = Path.combine(root, "folder")
     expect Directory.create(folder, recurse: true)
     defer catch Directory.delete(root, recurse: true)
@@ -93,7 +93,7 @@ using Core, Gui, Pixel
 
     var point = workspace.localToSurface(workspace.gridCellRect(restored, 2).center())
     host.surface.surfaceToScreen(&point)
-    let paths = [scopeTestDataPath("comprehensive.txt"), scopeTestDataPath("sample.cpp")]
+    let paths  = [scopeTestDataPath("comprehensive.txt"), scopeTestDataPath("sample.cpp")]
     let effect = host.dropFiles(point, [paths[0].toString(), paths[1].toString()])
     Swag.require(effect == .Copy and workspace.scenes.count == 1 and workspace.documentCount() == 2)
     Swag.require(restored.cellOf(0) == 2 and restored.cellOf(1) == 3 and restored.layout == .Grid2)
@@ -121,7 +121,7 @@ using Core, Gui, Pixel
     Swag.require(opened and host.autoHandled and workspace.scenes.count == 2 and workspace.active == 1)
     Swag.require(workspace.scene()!.manual and Path.fileName(workspace.activeDocument().currentFile) == "viewer.md")
 
-    let tabs = workspace.tabs
+    let tabs  = workspace.tabs
     var point = tabs.localToSurface(tabs.items[0].center())
     host.surface.surfaceToScreen(&point)
     host.clickPopupMenuItemWhenShown(TabCommands.CloseOthers)
@@ -133,7 +133,7 @@ using Core, Gui, Pixel
 
 #test
 {
-    let root = Testing.tempFilePath("scope-tab-layout-", "")
+    let root   = Testing.tempFilePath("scope-tab-layout-", "")
     let folder = Path.combine(root, "design")
     expect Directory.create(folder, recurse: true)
     defer catch Directory.delete(root, recurse: true)
@@ -143,15 +143,15 @@ using Core, Gui, Pixel
     defer host.shutdown()
     workspace.openDocument(folder, newTab: true)
     openViews(&host, workspace)
-    let scene = unwrap workspace.scene()
+    let scene    = unwrap workspace.scene()
     let document = workspace.activeDocument()
     let explorer = unwrap document.explorer
     completeExplorer(&host, explorer)
 
-    let tabs = workspace.tabs
-    let name = workspace.sceneName(scene)
-    let font = tabs.theme().createDefaultFont(12)
-    let item = tabs.items[0]
+    let tabs  = workspace.tabs
+    let name  = workspace.sceneName(scene)
+    let font  = tabs.theme().createDefaultFont(12)
+    let item  = tabs.items[0]
     let width = item.width - SceneTabs.ItemChromeWidth
     Swag.require(name == "design")
     Swag.require(width == Math.ceil(Painter.measureStringSnapped(name, font, deviceScale: tabs.deviceScale())))
@@ -188,7 +188,7 @@ using Core, Gui, Pixel
     let folder = Testing.tempFilePath("scope-tab-location-", "")
     expect Directory.create(folder)
     defer discard catch Directory.delete(folder, recurse: true)
-    let file = expect Path.absolute(scopeTestDataPath("sample.cpp"))
+    let file      = expect Path.absolute(scopeTestDataPath("sample.cpp"))
     var host: Testing.HeadlessHost
     let workspace = testWorkspace(&host)
     defer host.shutdown()
@@ -202,16 +202,24 @@ using Core, Gui, Pixel
     var checked: bool
     host.app.sigFrame += func|host = &host, fileMenu, &checked|(_)
     {
-        if checked do
+        if checked
+        {
             return
+        }
+
         let menu = host.capturedPopupMenu()
-        if not menu do
+        if not menu
+        {
             return
+        }
+
         for item, index in menu.items where item and not item.separator and not item.hidden
         {
             Swag.require(item.icon.isValid(), item.id)
-            for peer, next in menu.items where next > index and peer and not peer.separator and not peer.hidden do
+            for peer, next in menu.items where next > index and peer and not peer.separator and not peer.hidden
+            {
                 Swag.require(item.icon.index != peer.icon.index, item.id)
+            }
         }
 
         for item in fileMenu.items where item and not item.separator
@@ -222,13 +230,15 @@ using Core, Gui, Pixel
                 found = row.icon.index == item.icon.index
                 break
             }
+
             Swag.require(found, item.id)
         }
+
         checked = true
         Swag.require(host.clickPopupMenuItem(ViewerCommands.CopyPath))
     }
 
-    let tabs = workspace.tabs
+    let tabs  = workspace.tabs
     var point = tabs.localToSurface(tabs.items[0].center())
     host.surface.surfaceToScreen(&point)
     host.click(point, .Right)
@@ -268,14 +278,14 @@ using Core, Gui, Pixel
     let reader   = unwrap scene.views[1].document
     completeExplorer(&host, unwrap explorer.explorer)
 
-    let up      = explorer.upCaptionButton
-    let refresh = explorer.refreshCaptionButton
-    let choices = reader.viewerCaptionButton
-    let layout  = workspace.mediaTransport
-    let newTab  = workspace.newTabButton
-    let start   = layout.position.x
-    let startNewTab = newTab.position.x
-    let startUp = up.presentationRect().x
+    let up           = explorer.upCaptionButton
+    let refresh      = explorer.refreshCaptionButton
+    let choices      = reader.viewerCaptionButton
+    let layout       = workspace.mediaTransport
+    let newTab       = workspace.newTabButton
+    let start        = layout.position.x
+    let startNewTab  = newTab.position.x
+    let startUp      = up.presentationRect().x
     let startRefresh = refresh.presentationRect().x
     Swag.require(up.isVisible() and not choices.isVisible())
     var oldUp = up.surfaceRect().center()

@@ -9,11 +9,17 @@ func finishBinaryViewer(host: *Testing.HeadlessHost, view: *Binary.Panel)
     var attempts: u32
     while view.isLoading() and attempts < 10_000
     {
-        if view.loadTask.isPending() do
+        if view.loadTask.isPending()
+        {
             view.loadTask.wait()
+        }
+
         host.pump()
-        if view.loadTimer do
+        if view.loadTimer
+        {
             host.fireTimer(view.loadTimer)
+        }
+
         attempts += 1
     }
 

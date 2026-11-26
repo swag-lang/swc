@@ -7,9 +7,11 @@
 #[Swag.Optimize(true), Swag.NoInline]
 func popcount8(x: u8)->u32
 {
-    var count = 0'u32
-    for i in 0 until 8 do
+    var count = 0_u32
+    for i in 0 until 8
+    {
         count += cast(u32, ((x >> cast(u8, i)) & 1))
+    }
     return count
 }
 
@@ -28,7 +30,7 @@ func mixed(x: u64)->u32
 
 func slowPopcount(x: u64)->u32
 {
-    var count = 0'u32
+    var count = 0_u32
     var v     = x
     while v != 0
     {

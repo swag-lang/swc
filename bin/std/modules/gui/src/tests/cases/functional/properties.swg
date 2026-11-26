@@ -79,7 +79,7 @@ struct PropHeadlessFontData
     let item  = unwrap findFieldItem(prop, #nameof(PropHeadlessFontData.face))
     let combo = item.comboBox
     Swag.require(combo != null and combo.items.count == 5)
-    for index in [2'u32, cast(u32, combo.items.count - 1)]
+    for index in [2_u32, cast(u32, combo.items.count - 1)]
     {
         let name: String = combo.items[index]!.name.text
         combo.setSelectedIndex(index)
@@ -122,7 +122,7 @@ struct PropMoveElem
 
 struct PropMoveData
 {
-    dyn:  Array'PropMoveElem
+    dyn:  Array!{PropMoveElem}
     stat: [3] s32
 }
 
@@ -132,8 +132,11 @@ impl IPropertyNotify for PropHeadlessRoData
 {
     mtd impl isItemReadOnly(_: *Properties, item: *PropertiesItem)->bool
     {
-        if item.typeValue.name == #nameof(PropHeadlessRoData.dynamic) do
+        if item.typeValue.name == #nameof(PropHeadlessRoData.dynamic)
+        {
             return g_PropRoDynamic
+        }
+
         return false
     }
 }
@@ -187,7 +190,7 @@ impl IPropertyNotify for PropHeadlessRoData
 {
     var host: Testing.HeadlessHost
     host.setup(1240, 820)
-    let page = Wnd.create'Wnd(&host.root, {24, 104, 1192, 666})
+    let page = Wnd.create!{Wnd}(&host.root, {24, 104, 1192, 666})
 
     var data: PropHeadlessGroupedData
     let ctrl = PropertiesCtrl.create(page, {0, 0, 560, 10}, .Grid, .SectionTabs | .SectionNavigation | .SearchBar)
@@ -200,7 +203,7 @@ impl IPropertyNotify for PropHeadlessRoData
     let paneIt = unwrap ctrl.splitter.items[0]
     paneIt.preserveSize = true
 
-    let preview = Wnd.create'FrameWnd(page, {})
+    let preview = Wnd.create!{FrameWnd}(page, {})
     preview.dockStyle = .Center
 
     page.applyLayout()
@@ -352,7 +355,7 @@ struct PropHeadlessActionData
 struct PropHeadlessArrayData
 {
     origin:  Math.Point = {36, 46}
-    actions: Array'PropHeadlessActionData
+    actions: Array!{PropHeadlessActionData}
 }
 
 // In list mode each row is a vertical StackLayoutCtrl: the name label on top and the
@@ -378,8 +381,11 @@ struct PropHeadlessArrayData
         let labelBottom = item.label.position.bottom()
         for c in item.line.children
         {
-            if c == cast(*Wnd?, item.label) do
+            if c == cast(*Wnd?, item.label)
+            {
                 continue
+            }
+
             Swag.require(c.position.y >= labelBottom)
         }
     }
@@ -404,9 +410,14 @@ struct PropHeadlessArrayData
     let chk    = prop.items[4]!.checkBox
     let chkRow = unwrap chk.parent
     var desc: *Label?
-    for c in chkRow.children do
-        if c != cast(*Wnd?, chk) do
+    for c in chkRow.children
+    {
+        if c != cast(*Wnd?, chk)
+        {
             desc = assume cast (*Label, c)
+        }
+    }
+
     let descLbl = unwrap desc
     Swag.require(descLbl.textVerticalAlignment == .OpticalCenter)
     Swag.require(chk.position.vertCenter() == descLbl.position.vertCenter())
@@ -449,7 +460,7 @@ struct PropHeadlessColorData
     Swag.require(y1 != y0)
 
     // Modal: with a popup open, the same wheel is swallowed and the list stays put.
-    let popup = Wnd.create'Wnd(&host.root, {})
+    let popup = Wnd.create!{Wnd}(&host.root, {})
     prop.editPopup = popup
     sendWheel(prop, -6)
     Swag.require(prop.scrollWnd.scrollPosition().y == y1)
@@ -464,11 +475,16 @@ func findIconButton(w: *Wnd)->*IconButton?
 {
     for c in w.children
     {
-        if c is IconButton as button do
+        if c is IconButton as button
+        {
             return button
+        }
+
         let sub = findIconButton(c)
-        if sub do
+        if sub
+        {
             return sub
+        }
     }
 
     return null
@@ -493,7 +509,7 @@ func findIconButton(w: *Wnd)->*IconButton?
     Swag.require(btn.isHot)
 
     // With a popup open, a MouseLeave must still reach the button and clear the hover.
-    let popup = Wnd.create'Wnd(&host.root, {})
+    let popup = Wnd.create!{Wnd}(&host.root, {})
     prop.editPopup = popup
     host.sendMouseEvent(btn, .Leave, {0, 0}, .Left, .None)
     Swag.require(not btn.isHot)
@@ -711,7 +727,7 @@ func findIconButton(w: *Wnd)->*IconButton?
 {
     var host: Testing.HeadlessHost
     host.setup(1240, 820)
-    let page = Wnd.create'Wnd(&host.root, {24, 104, 1192, 666})
+    let page = Wnd.create!{Wnd}(&host.root, {24, 104, 1192, 666})
 
     let filter = EditBox.create(page, "")
     filter.dockStyle = .Top
@@ -835,8 +851,10 @@ struct MultiTile
         }
     }
 
-    for item in prop.items where item!.line.isVisible() do
+    for item in prop.items where item!.line.isVisible()
+    {
         assertEditorsFit(item.line, item.line)
+    }
 
     let rate   = unwrap findFieldItem(prop, #nameof(PropCondensedEditorData.rate))
     let combo  = rate.comboBox
@@ -871,7 +889,7 @@ struct MultiTile
     var t0, t1, t2: MultiTile
     let prop = Properties.create(&host.root, {0, 0, 300, 340}, .List)
 
-    var bases: Array'(*u8)
+    var bases: Array!{*u8}
     bases.add(cast(*u8, &t0))
     bases.add(cast(*u8, &t1))
     bases.add(cast(*u8, &t2))
@@ -911,7 +929,7 @@ struct MultiTile
     t1.flag  = false     // differs -> mixed
 
     let prop = Properties.create(&host.root, {0, 0, 300, 340}, .List)
-    var bases: Array'(*u8)
+    var bases: Array!{*u8}
     bases.add(cast(*u8, &t0))
     bases.add(cast(*u8, &t1))
     prop.addStructMulti(MultiTile, bases.toSlice(), "S")
@@ -941,7 +959,7 @@ struct MultiTile
     var t0: MultiTile
     t0.count = 3
     let prop = Properties.create(&host.root, {0, 0, 300, 340}, .List)
-    var bases: Array'(*u8)
+    var bases: Array!{*u8}
     bases.add(cast(*u8, &t0))
     prop.addStructMulti(MultiTile, bases.toSlice(), "S")
     prop.edView.sendResizeEvent()
@@ -956,12 +974,15 @@ struct MultiTile
     Swag.require(t0.count == 8)
 }
 
-func collectEditBoxes(w: *Wnd, out: *Array'(*EditBox?))
+func collectEditBoxes(w: *Wnd, out: *Array!{*EditBox?})
 {
     for c in w.children
     {
-        if c is EditBox as edit do
+        if c is EditBox as edit
+        {
             out.add(edit)
+        }
+
         collectEditBoxes(c, out)
     }
 }
@@ -977,7 +998,7 @@ func collectEditBoxes(w: *Wnd, out: *Array'(*EditBox?))
     t1.pos = {2, 10}     // x differs (mixed), y uniform
 
     let prop = Properties.create(&host.root, {0, 0, 300, 360}, .List)
-    var bases: Array'(*u8)
+    var bases: Array!{*u8}
     bases.add(cast(*u8, &t0))
     bases.add(cast(*u8, &t1))
     prop.addStructMulti(MultiTile, bases.toSlice(), "S")
@@ -989,7 +1010,7 @@ func collectEditBoxes(w: *Wnd, out: *Array'(*EditBox?))
     Swag.require(prop.subFieldIsMixed(posItem, 0, #sizeof(f32)))
     Swag.require(not prop.subFieldIsMixed(posItem, #sizeof(f32), #sizeof(f32)))
 
-    var boxes: Array'(*EditBox?)
+    var boxes: Array!{*EditBox?}
     collectEditBoxes(posItem.line, &boxes)
     Swag.require(boxes.count == 2)     // x and y
 
@@ -1051,7 +1072,7 @@ func collectEditBoxes(w: *Wnd, out: *Array'(*EditBox?))
     t1.name = "beta"     // differs -> mixed
 
     let prop = Properties.create(&host.root, {0, 0, 300, 340}, .List)
-    var bases: Array'(*u8)
+    var bases: Array!{*u8}
     bases.add(cast(*u8, &t0))
     bases.add(cast(*u8, &t1))
     prop.addStructMulti(MultiTile, bases.toSlice(), "S")
@@ -1082,7 +1103,7 @@ func collectEditBoxes(w: *Wnd, out: *Array'(*EditBox?))
     t1.tint = Pixel.Argb.Blue     // differs -> mixed
 
     let prop = Properties.create(&host.root, {0, 0, 300, 340}, .List)
-    var bases: Array'(*u8)
+    var bases: Array!{*u8}
     bases.add(cast(*u8, &t0))
     bases.add(cast(*u8, &t1))
     prop.addStructMulti(MultiTile, bases.toSlice(), "S")
@@ -1114,12 +1135,16 @@ impl Gui.IPropertyNotify for ValData
         switch item.typeValue.crc
         {
         case Reflection.fieldCrc(ValData, #nameof(ValData.name)):
-            if .name.isEmpty() do
+            if .name.isEmpty()
+            {
                 return {.Error, "Name is required."}
+            }
 
         case Reflection.fieldCrc(ValData, #nameof(ValData.count)):
-            if .count > 100 do
+            if .count > 100
+            {
                 return {.Warning, "Count is unusually large."}
+            }
         }
 
         return {}
@@ -1240,9 +1265,12 @@ impl Gui.IPropertyNotify for ValData
     prop.addStruct(data)
 
     let dynArr = unwrap findFieldItem(prop, #nameof(PropMoveData.dyn))
-    var elems: Array'(*PropertiesItem?)
-    for it in prop.items where it!.parent == dynArr do
+    var elems: Array!{*PropertiesItem?}
+    for it in prop.items where it!.parent == dynArr
+    {
         elems.add(it)
+    }
+
     Swag.require(elems.count == 3)
 
     // Move element 0 down -> [20,10,30], then element 2 up -> [20,30,10].
@@ -1262,9 +1290,12 @@ impl Gui.IPropertyNotify for ValData
 
     // Static array reorder: [1,2,3], move index 0 down -> [2,1,3].
     let statArr = unwrap findFieldItem(prop, #nameof(PropMoveData.stat))
-    var statElems: Array'(*PropertiesItem?)
-    for it in prop.items where it!.parent == statArr do
+    var statElems: Array!{*PropertiesItem?}
+    for it in prop.items where it!.parent == statArr
+    {
         statElems.add(it)
+    }
+
     Swag.require(statElems.count == 3)
     prop.moveArrayValue(unwrap statElems[0], 1)
     Swag.require(data.stat[0] == 2 and data.stat[1] == 1 and data.stat[2] == 3)
@@ -1314,9 +1345,12 @@ impl Gui.IPropertyNotify for ValData
     Swag.require(Clipboard.getTypedValue(&got, unwrap idField.type) and got == 10)
 
     let dynArr = findFieldItem(prop, #nameof(PropMoveData.dyn))
-    var elems: Array'(*PropertiesItem?)
-    for it in prop.items where it!.parent == dynArr do
+    var elems: Array!{*PropertiesItem?}
+    for it in prop.items where it!.parent == dynArr
+    {
         elems.add(it)
+    }
+
     Swag.require(elems.count == 3)
 
     // update(): Move Up is disabled on the first element, enabled on the second.
@@ -1393,8 +1427,11 @@ impl IPropertyNotify for PropDefaultCustom
     // Force the modified state regardless of the actual value (the customizable test).
     mtd impl isItemAtDefault(_: *Properties, item: *PropertiesItem)->PropDefaultState
     {
-        if item.typeValue.name == #nameof(PropDefaultCustom.val) do
+        if item.typeValue.name == #nameof(PropDefaultCustom.val)
+        {
             return g_PropDefForceModified ? .Modified : .AtDefault
+        }
+
         return .Auto
     }
 
@@ -1552,7 +1589,7 @@ impl IPropertyNotify for PropDefaultCustom
     btn.isIn               = true
     btn.isPressed          = true
     btn.isPressing         = true
-    btn.aniBk.themeCrc     = 42'u32
+    btn.aniBk.themeCrc     = 42_u32
     host.app.mouseEnterWnd = btn
     host.app.setMouseCaptureRaw(btn)
     prop.resetItemDefault(countItem)
@@ -1603,7 +1640,7 @@ impl IPropertyNotify for PropDefaultCustom
     t1.count = 7      // differs
 
     let prop = Properties.create(&host.root, {0, 0, 300, 340}, .List)
-    var bases: Array'(*u8)
+    var bases: Array!{*u8}
     bases.add(cast(*u8, &t0))
     bases.add(cast(*u8, &t1))
     prop.addStructMulti(PropDefaultData, bases.toSlice(), "S")
@@ -1693,7 +1730,7 @@ impl IPropertyNotify for PropDefaultCustom
     host.setup(320, 360)
     var t0, t1: PropHeadlessData     // both count = 42
     let prop = Properties.create(&host.root, {0, 0, 300, 340}, .List)
-    var bases:  Array'(*u8)
+    var bases:  Array!{*u8}
     bases.add(cast(*u8, &t0))
     bases.add(cast(*u8, &t1))
     prop.addStructMulti(PropHeadlessData, bases.toSlice(), "S")
@@ -1787,12 +1824,20 @@ struct PropDecorData
     for it in prop.items
     {
         let item = unwrap it
-        if item.flags.has(.Spacer) do
+        if item.flags.has(.Spacer)
+        {
             spacer = item
-        if item.flags.has(.Header) do
+        }
+
+        if item.flags.has(.Header)
+        {
             heading = item
-        if item.flags.has(.Note) do
+        }
+
+        if item.flags.has(.Note)
+        {
             note = item
+        }
     }
 
     let spacerIt  = unwrap spacer
@@ -1878,8 +1923,10 @@ struct PropHeadlessPanelStringData
     let item  = unwrap prop.items[1]
     let combo = item.comboBox
     Swag.require(combo != null and combo.flags.has(.Segmented) and combo.items.count == 4)
-    for style, i in [FontFamilyStyle.Regular, FontFamilyStyle.Bold, FontFamilyStyle.Italic, FontFamilyStyle.BoldItalic] do
+    for style, i in [FontFamilyStyle.Regular, FontFamilyStyle.Bold, FontFamilyStyle.Italic, FontFamilyStyle.BoldItalic]
+    {
         Swag.require(combo.items[i]!.fontStyle == style)
+    }
 
     combo.setSelectedIndex(1)
     Swag.require(data.style == .Bold)
@@ -1915,8 +1962,10 @@ struct PropHeadlessUsingDerived
     {
         for item, idx in prop.items
         {
-            if item!.typeValue.name == name do
+            if item!.typeValue.name == name
+            {
                 return idx
+            }
         }
 
         Swag.require(false)
@@ -1984,8 +2033,10 @@ struct PropFilterData
     {
         let row  = prop.items[index]!.line
         let next = prop.items[index + 1]!.line
-        if next.position.y <= row.position.bottom() do
+        if next.position.y <= row.position.bottom()
+        {
             continue
+        }
 
         let gapY = (row.position.bottom() + next.position.y) * 0.5
         point = prop.edView.localToSurface(Math.Point{prop.edView.position.width * 0.5, gapY})
@@ -2110,8 +2161,10 @@ struct PropSameCategData
     var categs = 0
     for item in opt.properties.items
     {
-        if item!.flags.has(.Category) do
+        if item!.flags.has(.Category)
+        {
             categs += 1
+        }
     }
 
     Swag.require(categs == 1)
@@ -2121,8 +2174,10 @@ struct PropSameCategData
     var descItem: *PropertiesItem?
     for item in opt.properties.items
     {
-        if item!.typeValue.name == "first" do
+        if item!.typeValue.name == "first"
+        {
             descItem = item
+        }
     }
 
     let descIt = unwrap descItem
@@ -2157,23 +2212,35 @@ struct PropAlignData
 
     func assertAligned(prop: *Properties)
     {
-        var right = -1.0'f32
+        var right = -1.0_f32
         for item in prop.items
         {
             let it = unwrap item
             var w: *Wnd?
-            if it.sliderBox != null do
+            if it.sliderBox != null
+            {
                 w = it.sliderBox
-            elif it.comboBox != null do
+            }
+            else if it.comboBox != null
+            {
                 w = it.comboBox
-            elif it.editBox != null do
+            }
+            else if it.editBox != null
+            {
                 w = it.editBox
-            if not w do
+            }
+
+            if not w
+            {
                 continue
+            }
 
             let wnd = w
-            if right < 0 do
+            if right < 0
+            {
                 right = wnd.position.right()
+            }
+
             Swag.require(Math.isEqualEpsilon(wnd.position.right(), right, 0.01))
         }
 
@@ -2257,16 +2324,27 @@ struct PropAlignData
     for item in prop.items
     {
         let it = unwrap item
-        if it.label == null do
+        if it.label == null
+        {
             continue
-        if it.label.text() == "NOMBRES" do
+        }
+
+        if it.label.text() == "NOMBRES"
+        {
             sawCategory = true
-        if it.label.text() == "Nombre" do
+        }
+
+        if it.label.text() == "Nombre"
+        {
             sawLabel = true
+        }
+
         if it.comboBox != null and
            it.comboBox.items.count == 2 and
-           it.comboBox.items[0]!.name.text == "Droite" do
+           it.comboBox.items[0]!.name.text == "Droite"
+        {
             sawCombo = true
+        }
     }
 
     Swag.require(sawCategory)
@@ -2379,13 +2457,17 @@ func sectionCountText(ctrl: *PropertiesCtrl, index: u64)->string => ctrl.section
     let firstSection = String.from(ctrl.sectionLines[0].items[0]!.name.text)
     ctrl.setSectionIcon(firstSection, host.theme.icon(.Options, 16))
     Swag.require(ctrl.sectionLines[0].items[0]!.icon.isValid() and ctrl.list.isLineSelected(0))
-    for expected, index in ["2", "2", "1", "2", "1", "1"] do
+    for expected, index in ["2", "2", "1", "2", "1", "1"]
+    {
         Swag.require(sectionCountText(ctrl, index) == expected)
+    }
 
     ctrl.search.setText("op")
     Swag.require(ctrl.properties.matchCount() == 3)
-    for expected, index in ["2", "0", "0", "1", "1", "0"] do
+    for expected, index in ["2", "0", "0", "1", "1", "0"]
+    {
         Swag.require(sectionCountText(ctrl, index) == expected)
+    }
 
     for kind in [PropertiesKind.Panel, .List, .Condensed, .Grid]
     {
@@ -2423,8 +2505,10 @@ func sectionCountText(ctrl: *PropertiesCtrl, index: u64)->string => ctrl.section
     var checked: bool
     host.app.sigFrame += func|&host, ctrl, &checked|(_)
     {
-        if checked do
+        if checked
+        {
             return
+        }
 
         checked = true
         ctrl.search.setFocus()
@@ -2497,7 +2581,9 @@ func sectionCountText(ctrl: *PropertiesCtrl, index: u64)->string => ctrl.section
         Swag.require(caption.validationLabel.isVisible() == (kind != .Condensed))
 
         // A panel names a field with its control, from the leading edge, where its mark follows.
-        if kind == .Panel do
+        if kind == .Panel
+        {
             Swag.require(opacity.sliderBox.label.textHorizontalAlignment == .Left)
+        }
     }
 }

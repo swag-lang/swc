@@ -23,8 +23,8 @@ func encodingName(encoding: Text.Encoding)->string
 struct TextProbe
 {
     encoding:     Text.Encoding     // How the bytes read as characters.
-    contentStart: u64               // First byte of text, past a byte-order mark.
-    accepted:     bool              // Whether the decoded sample reads as text.
+    contentStart: u64      // First byte of text, past a byte-order mark.
+    accepted:     bool     // Whether the decoded sample reads as text.
 }
 
 // Reads the head of a file once and reports how it spells its characters.
@@ -39,7 +39,7 @@ func probeTextFile(fileName: string)->TextProbe
 // Reads the encoding probe from an open stream at its beginning, leaving it after the probe.
 internal func probeTextStream(stream: *File.FileStream)->TextProbe fail
 {
-    var bytes: Array'u8
+    var bytes: Array!{u8}
     bytes.resize(Viewer.ProbeHeadSize)
     let count = try stream.read(bytes.toSlice())
     bytes.resize(count)
@@ -50,9 +50,12 @@ internal func probeTextStream(stream: *File.FileStream)->TextProbe fail
 internal func readTextPrefix(fileName: string, budget: u64)->String fail
 {
     var stream = try File.openReadLive(fileName)
-    let probe = try probeTextStream(&stream)
-    if not probe.accepted do
+    let probe  = try probeTextStream(&stream)
+    if not probe.accepted
+    {
         return {}
+    }
+
     try stream.seek(.Begin, probe.contentStart)
     return try stream.readTextChunk(budget, probe.encoding)
 }
@@ -86,30 +89,41 @@ internal func sourceRuneWidth(c: rune, utf8Width: u32, encoding: Text.Encoding)-
 // Returns the file byte count for a slice of decoded UTF-8 text, excluding any file marker.
 internal func sourceByteCount(text: string, encoding: Text.Encoding)->u64
 {
-    if encoding == .Utf8 do
+    if encoding == .Utf8
+    {
         return text.count
+    }
+
     var count: u64
     Utf8.visitRunes(text)
     {
         count += sourceRuneWidth(c, 0, encoding)
     }
+
     return count
 }
 
 // Maps a file byte position to a UTF-8 editor position, rounding down within a character.
 func decodedTextOffset(text: string, offset: u64, encoding: Text.Encoding)->u64
 {
-    if encoding == .Utf8 do
+    if encoding == .Utf8
+    {
         return Math.min(offset, text.count)
+    }
+
     var decoded, source: u64
     while decoded < text.count and source < offset
     {
-        let r = Utf8.decodeRune(text[decoded to])
+        let r   = Utf8.decodeRune(text[decoded to])
         let end = source + sourceRuneWidth(r.c, r.eat, encoding)
-        if end > offset or not r.eat do
+        if end > offset or not r.eat
+        {
             break
+        }
+
         decoded += r.eat
-        source = end
+        source  = end
     }
+
     return decoded
 }

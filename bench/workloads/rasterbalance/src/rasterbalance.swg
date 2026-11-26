@@ -8,8 +8,11 @@ func recordScene(painter: *Painter, size: s32, region: u32)
     painter.fillRect(0, 0, cast(f32, size), cast(f32, size), Color.fromArgb(Argb.White))
     let top    = region == 2 ? cast(f32, size) * 0.75 : 0.0
     let height = region == 0 ? cast(f32, size) : cast(f32, size) * 0.25
-    for 16 do
-        painter.fillRect(0, top, cast(f32, size), height, Color.fromArgb(64'u8, 210'u8, 60'u8, 30'u8))
+    for 16
+    {
+        painter.fillRect(0, top, cast(f32, size), height, Color.fromArgb(64_u8, 210_u8, 60_u8, 30_u8))
+    }
+
     painter.end()
 }
 
@@ -23,14 +26,20 @@ func measure(name: string, size: s32, region: u32, expected: *Image)
     var painter: Painter
     recordScene(&painter, size, region)
 
-    for 4 do
+    for 4
+    {
         renderer.draw(&painter)
+    }
+
     for sample in 3
     {
         var watch: Time.Stopwatch
         watch.start()
-        for 2 do
+        for 2
+        {
             renderer.draw(&painter)
+        }
+
         watch.stop()
         let result = cpu.surfaceImage()
         if Swag.workerCount() == 1
@@ -40,8 +49,10 @@ func measure(name: string, size: s32, region: u32, expected: *Image)
         else
         {
             Swag.assert(result.byteCount == expected.byteCount)
-            for index in result.byteCount do
+            for index in result.byteCount
+            {
                 Swag.assert(result.pixels[index] == expected.pixels[index])
+            }
         }
 
         Console.println(name, " size=", size, " workers=", Swag.workerCount(), " sample=", sample, " us=", watch.elapsedMicroseconds())

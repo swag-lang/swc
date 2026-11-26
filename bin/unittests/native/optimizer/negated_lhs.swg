@@ -11,7 +11,7 @@ func sum32(a, b: u32)->u32 => (0 - a) + (0 - b)
 #[Swag.NoInline, Swag.Safety(.Overflow, false)]
 func shared(a, b: u64)->u64
 {
-    let negative = 0'u64 - a
+    let negative = 0_u64 - a
     return (negative - b) ^ negative
 }
 #[Swag.NoInline, Swag.Safety(.Overflow, false)]
@@ -24,7 +24,7 @@ func shifted(a, b: u64)->u64 => ((0 - a) - b) >> 3
 #[Swag.Safety(.Overflow, false)]
 #test
 {
-    let values = [0'u64, 1, 7, 0xFFFFFFFF, 0x100000000, 0x8000000000000000, 0xFFFFFFFFFFFFFFFF]
+    let values = [0_u64, 1, 7, 0xFFFFFFFF, 0x100000000, 0x8000000000000000, 0xFFFFFFFFFFFFFFFF]
     for a in values
     {
         for b in values

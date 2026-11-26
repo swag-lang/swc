@@ -30,8 +30,8 @@ by different `where` clauses.
         return 2
     }
 
-    Swag.require(classify(1's32) == 1)
-    Swag.require(classify(1.5'f32) == 2)
+    Swag.require(classify(1_s32) == 1)
+    Swag.require(classify(1.5_f32) == 2)
 }
 
 /**
@@ -82,7 +82,7 @@ func(T) readValue(value: *T)->s32
 {
     var value: ConstantValue
     Swag.require(readValue(&value) == 42)
-    Swag.require(readValue'ConstantValue(&value) == 42)
+    Swag.require(readValue!{ConstantValue}(&value) == 42)
 }
 
 /**
@@ -96,16 +96,19 @@ when the constraint is clearer as ordinary control flow.
     func(T, U = T) sameTypePair(left: T, right: U)->U
         where
         {
-            if T == U do
+            if T == U
+            {
                 return true
+            }
+
             return false
         }
     {
         return right
     }
 
-    Swag.require(sameTypePair(10's32, 20's32) == 20)
-    Swag.require(sameTypePair'(f64)(1.0'f64, 2.0'f64) == 2.0'f64)
+    Swag.require(sameTypePair(10_s32, 20_s32) == 20)
+    Swag.require(sameTypePair!{f64}(1.0_f64, 2.0_f64) == 2.0_f64)
 }
 
 /**
@@ -131,8 +134,8 @@ the compiler tries to instantiate the type.
         data: [Rows * Cols] T
     }
 
-    let point:  FloatPoint'f64        = {x: 1.5, y: 2.5}
-    let matrix: SquareMatrix'(f32, 2) = {data: [1.0'f32, 2.0, 3.0, 4.0]}
+    let point:  FloatPoint!{f64}      = {x: 1.5, y: 2.5}
+    let matrix: SquareMatrix!{f32, 2} = {data: [1.0_f32, 2.0, 3.0, 4.0]}
 
     #assert(#typeof(point.x) == f64)
     #assert(#typeof(matrix.data) == #type [4] f32)
@@ -168,9 +171,9 @@ impl RefWindow
 
 #test
 {
-    let floatWindow: RefWindow'(f32, 3) = {values: [10.0'f32, 20.0, 30.0]}
+    let floatWindow: RefWindow!{f32, 3} = {values: [10.0_f32, 20.0, 30.0]}
 
-    Swag.require(floatWindow.at'1() == 20.0'f32)
-    Swag.require(floatWindow.sameSample(99.0'f32) == 99.0'f32)
-    #assert(#typeof(floatWindow.sameSample(1.5'f32)) == f32)
+    Swag.require(floatWindow.at!{1}() == 20.0_f32)
+    Swag.require(floatWindow.sameSample(99.0_f32) == 99.0_f32)
+    #assert(#typeof(floatWindow.sameSample(1.5_f32)) == f32)
 }

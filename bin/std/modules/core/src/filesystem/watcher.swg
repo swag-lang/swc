@@ -51,8 +51,8 @@ struct WatchBatch
 {
     public
     {
-        status:  WatchStatus      // Outcome that determines how the caller should continue.
-        changes: Array'Change     // Normalized changes; populated only for `Changes`.
+        status:  WatchStatus        // Outcome that determines how the caller should continue.
+        changes: Array!{Change}     // Normalized changes; populated only for `Changes`.
     }
 }
 
@@ -63,7 +63,7 @@ struct WatchOptions
     {
         filter     = WatchFilter.Common     // Properties that produce notifications.
         recurse    = false                  // Whether descendants of the watched directory are included.
-        bufferSize = 64 * 1024'u32          // Native notification buffer in bytes, from 4 KiB through 64 KiB.
+        bufferSize = 64 * 1024_u32          // Native notification buffer in bytes, from 4 KiB through 64 KiB.
     }
 }
 
@@ -98,12 +98,20 @@ func watch(root: string)->Watcher fail => try watch(root, {})
 // Starts watching `root` with an explicit scope and notification policy.
 func watch(root: string, options: WatchOptions)->Watcher fail
 {
-    if not options.filter do
+    if not options.filter
+    {
         fail Errors.BadParameterError{}
-    if (options.filter & ~WatchFilter.All) != cast(WatchFilter, 0) do
+    }
+
+    if (options.filter & ~WatchFilter.All) != cast(WatchFilter, 0)
+    {
         fail Errors.BadParameterError{}
-    if options.bufferSize < 4 * 1024 or options.bufferSize > 64 * 1024 do
+    }
+
+    if options.bufferSize < 4 * 1024 or options.bufferSize > 64 * 1024
+    {
         fail Errors.BadParameterError{}
+    }
 
     var result: #returntype
     result.root    = try Path.absolute(root)
@@ -135,8 +143,10 @@ impl Watcher
     // nothing. The watcher remains owned until `close` or automatic destruction.
     mtd cancel()
     {
-        if .native do
+        if .native
+        {
             .cancelNative()
+        }
     }
 
     // Waits for the next batch of filesystem changes.

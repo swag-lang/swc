@@ -5,16 +5,19 @@ using Swag
 
 func hmacSha3HexDigit(value: u8)->u8
 {
-    if value >= '0' and value <= '9' do
+    if value >= '0' and value <= '9'
+    {
         return value - '0'
+    }
+
     return (value - 'a') + 10
 }
 
-func hmacSha3HexBytes(text: string)->Array'u8
+func hmacSha3HexBytes(text: string)->Array!{u8}
 {
     var result: #returntype
     result.reserve(text.count / 2)
-    var index = 0'u64
+    var index = 0_u64
     while index + 1 < text.count
     {
         result.add(cast(u8, (hmacSha3HexDigit(text[index]) << 4) | hmacSha3HexDigit(text[index + 1])))
@@ -28,7 +31,7 @@ func hmacSha3HexBytes(text: string)->Array'u8
 {
     // Standard HMAC-SHA-3 vectors cover SHA3-224, -256, -384, and -512 output sizes.
     var key: [20] u8
-    Memory.set(key.buffer, 0x0B'u8, key.count)
+    Memory.set(key.buffer, 0x0B_u8, key.count)
     let message     = "Hi There"
     let expected224 = hmacSha3HexBytes("3b16546bbc7be2706a031dcafd56373d9884367641d8c59af3c860f7")
     let expected256 = hmacSha3HexBytes("ba85192310dffa96e2a3a40e69774351140bb7185e1202cdcc917589f95e16bb")
@@ -51,14 +54,20 @@ func hmacSha3HexBytes(text: string)->Array'u8
 #test
 {
     // A key longer than the SHA3-256 rate is hashed first; updates may split at any byte.
-    var key: Array'u8
+    var key: Array!{u8}
     key.resize(200)
-    for index in key.count do
+    for index in key.count
+    {
         key[index] = cast(u8, index)
-    var message: Array'u8
+    }
+
+    var message: Array!{u8}
     message.resize(87)
-    for index in message.count do
+    for index in message.count
+    {
         message[index] = cast(u8, index)
+    }
+
     let expected = hmacSha3HexBytes("812c453b4f70cbb835bb810f7910c17f16b0e3ebd2c71beceff07a4f9d564759")
     var actual: [32] u8
     expect Crypto.HmacSha3.compute(key.toSlice(), message.toSlice(), 32, actual)

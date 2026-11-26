@@ -62,8 +62,10 @@ using Swag, Core, File
     let root = Path.combine(Env.getSpecialDirectory(.Temp).toString(), Format.toString("swag-path-menu-%", Guid64.random().toString()))
     expect Directory.create(root)
     defer discard catch Directory.delete(root, recurse: true)
-    for name in ["Folder 10", "Folder 2", "Folder 1"] do
+    for name in ["Folder 10", "Folder 2", "Folder 1"]
+    {
         expect Directory.create(Path.combine(root, name))
+    }
 
     var host: Testing.HeadlessHost
     host.setup(700, 460)
@@ -72,8 +74,11 @@ using Swag, Core, File
     var opened: bool
     host.app.sigFrame += func|host = &host, &opened|(_)
     {
-        if opened do
+        if opened
+        {
             return
+        }
+
         let menu = unwrap host.capturedPopupMenu()
         Swag.require(menu.items.count == 3)
         Swag.require(menu.items[0]!.name.text == "Folder 1")
@@ -208,8 +213,10 @@ using Swag, Core, File
     let upper = Path.combine(root, "Case")
     let lower = Path.combine(root, "case")
     expect Directory.create(upper)
-    if not Path.equals(upper.toString(), lower.toString()) do
+    if not Path.equals(upper.toString(), lower.toString())
+    {
         expect Directory.create(lower)
+    }
 
     var state:   FileDlgState
     var options: FileDlgOptions
@@ -224,7 +231,7 @@ using Swag, Core, File
     browser.recordRecentFolder(upper.toString())
     browser.recordRecentFolder(lower.toString())
 
-    let expectedCount = Path.equals(upper.toString(), lower.toString()) ? 1'u64 : 2'u64
+    let expectedCount = Path.equals(upper.toString(), lower.toString()) ? 1_u64 : 2_u64
     Swag.require(state.recentFolders.count == expectedCount)
 }
 
@@ -267,16 +274,22 @@ using Swag, Core, File
     var checked: bool
     host.app.sigFrame += func|host = &host, fb, checked = &checked|(_)
     {
-        if checked[] do
+        if checked[]
+        {
             return
+        }
+
         let popup  = unwrap host.capturedPopupMenu()
         let anchor = fb.historyButton.surfaceRect()
         Swag.require(popup.popupAnchorButton == fb.historyButton)
         Swag.require(popup.popupBarItemSurfaceRect == anchor)
         Swag.require(popup.surfaceRect().y + popup.getPopupBodyRect().y == anchor.bottom() + popup.themeMetrics().menuPopup_AnchorGap)
         Swag.require(popup.items.count == 2)
-        for item in popup.items do
+        for item in popup.items
+        {
             Swag.require(item!.icon.color == host.theme.colors.arc)
+        }
+
         checked[] = true
         popup.setEndModal(null)
     }
@@ -381,8 +394,11 @@ using Swag, Core, File
     var opened: bool
     host.app.sigFrame += func|host = &host, places, target, opened = &opened|(_)
     {
-        if opened[] do
+        if opened[]
+        {
             return
+        }
+
         let popup = unwrap host.capturedPopupMenu()
         Swag.require(popup.items.count == places.stops.count - places.visibleCount)
         opened[] = true
@@ -403,8 +419,11 @@ using Swag, Core, File
     let lower  = Path.combine(root, "case")
     let folder = Path.combine(lower, "child")
     expect Directory.create(place, recurse: true)
-    if not Path.equals(place.toString(), lower.toString()) do
+    if not Path.equals(place.toString(), lower.toString())
+    {
         expect Directory.create(lower)
+    }
+
     expect Directory.create(folder, recurse: true)
     defer discard catch Directory.delete(root.toString(), recurse: true)
 
@@ -438,8 +457,11 @@ using Swag, Core, File
     for drive, idx in drives
     {
         var name = String.from(drive.toString())
-        if name.count > 1 do
+        if name.count > 1
+        {
             name.removeBack()
+        }
+
         var path = String.from(drive.toString())
         Path.normalize(&path)
         Swag.require(places.stops[idx].name == name)
@@ -451,15 +473,21 @@ using Swag, Core, File
     Swag.require(Directory.exists(downloads.toString()))
 
     var downloadsIndex = Swag.U64.Max
-    for &stop, idx in places.stops where stop.path == downloads do
+    for &stop, idx in places.stops where stop.path == downloads
+    {
         downloadsIndex = idx
+    }
+
     Swag.require(downloadsIndex != Swag.U64.Max and downloadsIndex >= places.visibleCount)
 
     var opened: bool
     host.app.sigFrame += func|host = &host, downloads = &downloads, opened = &opened|(_)
     {
-        if opened[] do
+        if opened[]
+        {
             return
+        }
+
         let popup = unwrap host.capturedPopupMenu()
         var found: bool
         for idx in 0 until popup.items.count
@@ -501,8 +529,10 @@ using Swag, Core, File
     var browsed: bool
     host.app.sigFrame += func|host = &host, dlg, folder = &folder, browsed = &browsed|(_)
     {
-        if browsed[] do
+        if browsed[]
+        {
             return
+        }
 
         dlg.browser.pathField.setText("sub/")
         dlg.browser.pathField.sigSubmitted.call(dlg.browser.pathField)
@@ -535,8 +565,10 @@ using Swag, Core, File
 
     host.app.sigFrame += func|host = &host, dlg, navigated = &navigated|(_)
     {
-        if navigated[] do
+        if navigated[]
+        {
             return
+        }
 
         let places = unwrap dlg.browser.placesBar
         Swag.require(places.stops.count >= 2)
@@ -551,8 +583,11 @@ using Swag, Core, File
 
         var expected = Env.getSpecialDirectory(.UserDocuments)
         Path.normalize(&expected)
-        if expected.back() == '/' and expected.length > Path.rootLength(expected.toString()) do
+        if expected.back() == '/' and expected.length > Path.rootLength(expected.toString())
+        {
             expected.removeBack()
+        }
+
         Swag.require(dlg.browser.currentFolder == expected and places.currentIndex() == 1)
         let clicked = host.clickModalButton(Dialog.BtnCancel)
         Swag.require(clicked)
@@ -575,8 +610,10 @@ using Swag, Core, File
 
     host.app.sigFrame += func|host = &host, dlg, checked = &checked|(_)
     {
-        if checked[] do
+        if checked[]
+        {
             return
+        }
 
         let surface = unwrap dlg.surface
         var start   = surface.wnd.view.surfaceRect().topLeft()

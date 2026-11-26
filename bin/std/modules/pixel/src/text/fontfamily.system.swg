@@ -22,8 +22,11 @@ public impl FontFamily
     // [[Pixel.FontCache]]. Typefaces loaded from files or memory are never affected.
     func hasSystemFontAccess()->bool
     {
-        if g_SystemFontAccess == .Undecided do
+        if g_SystemFontAccess == .Undecided
+        {
             g_SystemFontAccess = Env.hasArgument("swag.test") ? .Refused : .Allowed
+        }
+
         return g_SystemFontAccess == .Allowed
     }
 
@@ -61,10 +64,16 @@ public impl FontFamily
     // ```
     func createTypeFace(fontFamily: string, style: FontFamilyStyle)->*TypeFace? fail
     {
-        if cast(u64, style) >= FontFamilyStyle.count do
+        if cast(u64, style) >= FontFamilyStyle.count
+        {
             fail Errors.BadParameterError{}
-        if not hasSystemFontAccess() do
+        }
+
+        if not hasSystemFontAccess()
+        {
             return null
+        }
+
         return try systemTypeFaceNative(fontFamily, style)
     }
 
@@ -77,13 +86,16 @@ public impl FontFamily
     // [[Pixel.FontFamily.hasSystemFontAccess]] the array is empty.
     //
     // ```swag
-    // for name in Pixel.FontFamily.enumerateSystemFontNames() do
+    // for name in Pixel.FontFamily.enumerateSystemFontNames() { }
     //     Swag.print(name.toString(), "\n")
     // ```
-    func enumerateSystemFontNames()->Array'String
+    func enumerateSystemFontNames()->Array!{String}
     {
-        if not hasSystemFontAccess() do
+        if not hasSystemFontAccess()
+        {
             return {}
+        }
+
         var result = systemFontNamesNative()
         result.sort(func(a, b) => a <=> b)
         return result

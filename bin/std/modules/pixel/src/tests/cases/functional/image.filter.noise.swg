@@ -23,8 +23,8 @@ func makeNoiseColor(noise: *Noise.FastNoise, x, y: s32, alpha: u8)->Color
 #test
 {
     const pixels = [
-        10'u8, 20'u8, 30'u8, 40'u8, 50'u8, 60'u8, 70'u8, 80'u8,
-        90'u8, 100'u8, 110'u8, 120'u8, 130'u8, 140'u8, 150'u8, 160'u8]
+        10_u8, 20_u8, 30_u8, 40_u8, 50_u8, 60_u8, 70_u8, 80_u8,
+        90_u8, 100_u8, 110_u8, 120_u8, 130_u8, 140_u8, 150_u8, 160_u8]
 
     var img   = makeImage(2, 2, .BGRA8, pixels)
     var noise = makeFastNoise()

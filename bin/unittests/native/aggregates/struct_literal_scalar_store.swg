@@ -1,6 +1,6 @@
 #global private     //
 
-const MutationFreeSpanId = -1's64
+const MutationFreeSpanId = -1_s64
 
 struct MutationSpan
 {
@@ -15,8 +15,10 @@ func buildMutationMap(text: string)->[3] MutationSpan
     for ch, index in text
     {
         let runLength = ch - '0'
-        if index & 1 do
+        if index & 1
+        {
             map[index] = MutationSpan{MutationFreeSpanId, runLength}
+        }
         else
         {
             map[index] = MutationSpan{nextId, runLength}

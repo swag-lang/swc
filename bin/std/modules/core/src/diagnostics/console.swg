@@ -46,14 +46,20 @@ func silent(value: bool)
 // Writes a formatted message unless console output is silent.
 func printf(message: string?, params: ...)
 {
-    if g_SilentMode or message == null do
+    if g_SilentMode or message == null
+    {
         return
+    }
 
     let safeMessage = message orelse ""
-    if params.count do
+    if params.count
+    {
         writeNative(Format.toString(safeMessage, params))
-    else do
+    }
+    else
+    {
         writeNative(safeMessage)
+    }
 }
 
 // Writes the text form of every parameter, without separators, unless console output is silent.
@@ -62,8 +68,11 @@ func print(params: ...)
     var buf:     ConcatBuffer
     let convFmt: StrConv.ConvertFormat
 
-    for v in params do
+    for v in params
+    {
         StrConv.convertAny(&buf, v, convFmt, null)
+    }
+
     printf(buf.toString())
 }
 

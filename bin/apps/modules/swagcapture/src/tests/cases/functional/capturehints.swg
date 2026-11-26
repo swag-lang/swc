@@ -6,7 +6,7 @@ using Swag, Core, Gui
 // Shortcuts follow the active monitor on staggered desktops, including negative origins and DPI.
 #test
 {
-    for scale in [1'f32, 1.5, 2]
+    for scale in [1_f32, 1.5, 2]
     {
         var host: Testing.HeadlessHost
         let main = testSetupSurfaceMain(&host, dpiScale: scale)
@@ -25,7 +25,7 @@ using Swag, Core, Gui
         g_DesktopX = cast(s32, -512 * scale)
         g_DesktopY = cast(s32, -160 * scale)
 
-        with let overlay = Wnd.create'CaptureRectWnd(&host.surfaceWnd, {0, 0, 1024, 640})
+        with let overlay = Wnd.create!{CaptureRectWnd}(&host.surfaceWnd, {0, 0, 1024, 640})
         {
             .main = main
         }
@@ -52,8 +52,10 @@ using Swag, Core, Gui
                 Swag.require(hints.line.contentWidth() + 4 * main.themeMetrics().hintLine_KeyGap <= line.width)
                 Testing.assertContentFits(hints.line)
                 Swag.require(hints.line.hints.count == 3)
-                for hint in hints.line.hints do
+                for hint in hints.line.hints
+                {
                     Swag.require(hint.key != Gui.strings().key_Tab)
+                }
             }
         }
 

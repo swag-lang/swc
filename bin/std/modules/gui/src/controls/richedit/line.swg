@@ -9,14 +9,14 @@ public struct RichEditLine
 
     internal
     {
-        chars:            Array'rune                 // Runes of the line, without its terminator.
-        styles:           Array'RichEditStyleRef     // Style reference of each rune, same count as 'chars'.
-        dirtyStyle:       bool                       // Whether the line must be lexed again.
-        hidden:           u64                        // Fold depth hiding the line, zero when visible.
-        drawingRect:      Math.Rectangle             // Last painted rectangle, in client space.
-        lexerEndingState: s32                        // Lexer state at the end of the line, seeding the next one.
-        lexerCptCmt:      s32                        // Depth of nested block comments at the end of the line.
-        wordWrap:         bool                       // Whether the line was wrapped by the layout.
+        chars:            Array!{rune}       // Runes of the line, without its terminator.
+        styles:           Array!{RichEditStyleRef}     // Style reference of each rune, same count as 'chars'.
+        dirtyStyle:       bool               // Whether the line must be lexed again.
+        hidden:           u64                // Fold depth hiding the line, zero when visible.
+        drawingRect:      Math.Rectangle     // Last painted rectangle, in client space.
+        lexerEndingState: s32                // Lexer state at the end of the line, seeding the next one.
+        lexerCptCmt:      s32                // Depth of nested block comments at the end of the line.
+        wordWrap:         bool               // Whether the line was wrapped by the layout.
     }
 }
 
@@ -46,8 +46,11 @@ impl RichEditLine
     // Replaces the lexer-defined state and returns whether it changed.
     public mtd setLexerState(state: s32)->bool
     {
-        if .lexerEndingState == state do
+        if .lexerEndingState == state
+        {
             return false
+        }
+
         .lexerEndingState = state
         return true
     }
@@ -90,8 +93,11 @@ impl RichEditLine
 
     mtd removeRunes(srcIndex, count: u64)
     {
-        if not count do
+        if not count
+        {
             return
+        }
+
         .dirtyStyle = true
         .chars.remove(srcIndex, count)
         .styles.remove(srcIndex, count)

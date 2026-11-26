@@ -9,7 +9,7 @@ using Core
 
 struct LzwBitWriter
 {
-    result:      *Array'u8
+    result:      *Array!{u8}
     pending:     u64
     pendingBits: u32
 }
@@ -25,27 +25,25 @@ impl LzwBitWriter
         .pendingBits = total & 7
         let word = cast(u16, ((.pending >> .pendingBits) & 0xFFFF))
 
-        let count = .result.count
-        let end   = count + bytes
-        if end > .result.capacity do
-            .result.grow(end)
-        let dst = .result.storage() + count
-        if bytes == 2 do
-            cast(*u16, dst)[] = Math.byteSwap(word)
-        else do
-            dst[0] = cast(u8, (word & 255))
-        .result.count = end
+        while .pendingBits >= 8
+        {
+            .pendingBits -= 8
+            .result.add(cast(u8, (.pending >> .pendingBits)))
+            .pending &= (1_u64 << .pendingBits) - 1
+        }
     }
 
     mtd finish()
     {
-        if .pendingBits do
-            .result.add(cast(u8, ((.pending << (8 - .pendingBits)) & 255)))
+        if .pendingBits
+        {
+            .result.add(cast(u8, (.pending << (8 - .pendingBits))))
+        }
     }
 }
 
 // Encode one TIFF strip with MSB-first, early-transition LZW codes.
-func packLzw(result: *Array'u8, src: const [*] u8, count: u64)
+func packLzw(result: *Array!{u8}, src: const [*] u8, count: u64)
 {
     var writer: LzwBitWriter
     writer.result      = result
@@ -60,13 +58,10 @@ func packLzw(result: *Array'u8, src: const [*] u8, count: u64)
         return
     }
 
-    // A 12-bit prefix plus the next byte and the 12-bit code fit in one slot.
-    // The dictionary never holds more than 3838 entries at a time.
-    const Capacity = 8192
-    var dictionary: [Capacity] u32
-    let slots = cast([*] u32, &dictionary[0])
+    var dictionary: HashTable!{u32, u16}
+    dictionary.reserve(4096)
 
-    var width    = 9'u32
+    var width    = 9_u32
     var nextCode = LZW_FIRST_CODE
     var prefix   = cast(u32, src[0])
 
@@ -95,8 +90,10 @@ func packLzw(result: *Array'u8, src: const [*] u8, count: u64)
             slots[slot] = (key << 12) | nextCode
             nextCode    += 1
 
-            if width < 12 and nextCode > (1'u32 << width) - 1 do
+            if width < 12 and nextCode > (1_u32 << width) - 1
+            {
                 width += 1
+            }
         }
         else
         {

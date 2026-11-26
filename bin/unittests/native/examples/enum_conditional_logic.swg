@@ -30,16 +30,20 @@ struct OrderSummary
 func countUnits(lines: const [..] OrderLine)->u32
 {
     var result: u32
-    for line in lines do
+    for line in lines
+    {
         result += line.quantity
+    }
     return result
 }
 
 func computeSubtotal(lines: const [..] OrderLine)->u32
 {
     var result: u32
-    for line in lines do
+    for line in lines
+    {
         result += line.unitPriceCents * line.quantity
+    }
     return result
 }
 
@@ -47,8 +51,10 @@ func hasFragileLine(lines: const [..] OrderLine)->bool
 {
     for line in lines
     {
-        if line.fragile do
+        if line.fragile
+        {
             return true
+        }
     }
 
     return false
@@ -56,16 +62,18 @@ func hasFragileLine(lines: const [..] OrderLine)->bool
 
 func computePackaging(lines: const [..] OrderLine)->u32
 {
-    const BasePackaging = 250'u32
-    const UnitPackaging = 50'u32
-    const FragileExtra  = 200'u32
+    const BasePackaging = 250_u32
+    const UnitPackaging = 50_u32
+    const FragileExtra  = 200_u32
 
     var result = BasePackaging
     for line in lines
     {
         result += UnitPackaging * line.quantity
-        if line.fragile do
+        if line.fragile
+        {
             result += FragileExtra
+        }
     }
 
     return result
@@ -73,11 +81,15 @@ func computePackaging(lines: const [..] OrderLine)->u32
 
 func computeDiscount(subtotalCents: u32, tier: CustomerTier)->u32
 {
-    if tier == CustomerTier.Gold and subtotalCents >= 15000'u32 do
+    if tier == CustomerTier.Gold and subtotalCents >= 15000_u32
+    {
         return subtotalCents / 10
+    }
 
-    if tier == CustomerTier.Silver and subtotalCents >= 10000'u32 do
+    if tier == CustomerTier.Silver and subtotalCents >= 10000_u32
+    {
         return subtotalCents / 20
+    }
 
     return 0
 }
@@ -107,7 +119,7 @@ func buildOrderSummary(lines: const [..] OrderLine, tier: CustomerTier)->OrderSu
     result.packagingCents = computePackaging(lines)
     result.discountCents  = computeDiscount(result.subtotalCents, tier)
     result.totalCents     = result.subtotalCents + result.packagingCents - result.discountCents
-    result.needsSignature = hasFragileLine(lines) or result.totalCents >= 20000'u32
+    result.needsSignature = hasFragileLine(lines) or result.totalCents >= 20000_u32
     return result
 }
 
@@ -126,8 +138,8 @@ func buildOrderSummary(lines: const [..] OrderLine, tier: CustomerTier)->OrderSu
     Swag.require(order[1].quantity == 2)
     Swag.require(order[2].quantity == 1)
     Swag.require(countUnits(order) == 4)
-    Swag.require(computeSubtotal(order) == 19400'u32)
-    Swag.require(computePackaging(order) == 650'u32)
+    Swag.require(computeSubtotal(order) == 19400_u32)
+    Swag.require(computePackaging(order) == 650_u32)
     Swag.require(hasFragileLine(order))
     Swag.require(findTopSku(order) == "mechanical-keyboard")
 
@@ -136,17 +148,17 @@ func buildOrderSummary(lines: const [..] OrderLine, tier: CustomerTier)->OrderSu
     let gold     = buildOrderSummary(order, CustomerTier.Gold)
 
     Swag.require(standard.unitCount == 4)
-    Swag.require(standard.subtotalCents == 19400'u32)
-    Swag.require(standard.packagingCents == 650'u32)
-    Swag.require(standard.discountCents == 0'u32)
-    Swag.require(standard.totalCents == 20050'u32)
+    Swag.require(standard.subtotalCents == 19400_u32)
+    Swag.require(standard.packagingCents == 650_u32)
+    Swag.require(standard.discountCents == 0_u32)
+    Swag.require(standard.totalCents == 20050_u32)
     Swag.require(standard.needsSignature)
 
-    Swag.require(silver.discountCents == 970'u32)
-    Swag.require(silver.totalCents == 19080'u32)
+    Swag.require(silver.discountCents == 970_u32)
+    Swag.require(silver.totalCents == 19080_u32)
     Swag.require(silver.needsSignature)
 
-    Swag.require(gold.discountCents == 1940'u32)
-    Swag.require(gold.totalCents == 18110'u32)
+    Swag.require(gold.discountCents == 1940_u32)
+    Swag.require(gold.totalCents == 18110_u32)
     Swag.require(gold.needsSignature)
 }

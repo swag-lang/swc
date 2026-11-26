@@ -15,8 +15,8 @@ alias GenericBoxAlias  = Box
 
 func semaTest001()
 {
-    #assert(#typeof(GenericFreeAlias'(bool)(true, 0.0'f32)) == bool)
+    #assert(#typeof(GenericFreeAlias!{bool}(true, 0.0_f32)) == bool)
 
-    let boxed: GenericBoxAlias'bool
+    let boxed: GenericBoxAlias!{bool}
     #assert(#typeof(boxed.value) == bool)
 }

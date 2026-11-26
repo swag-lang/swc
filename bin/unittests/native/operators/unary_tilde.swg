@@ -20,7 +20,7 @@ func unaryTildeU64(a: u64)->u64
 
 func unaryTildeMask(a: u32)->u32
 {
-    return ~a & 0xFF'u32
+    return ~a & 0xFF_u32
 }
 
 func unaryTildeStrictU32(a: UnaryTildeStrictU32)->UnaryTildeStrictU32
@@ -35,40 +35,40 @@ func unaryTildeRune(a: rune)->rune
 
 #test
 {
-    let v0 = unaryTildeU32(0xFFFF_FFD5'u32)
-    let v1 = unaryTildeChain(42'u32)
-    let v2 = unaryTildeU64(0xFFFF_FFFF_FFFF_FFD5'u64)
-    let v3 = unaryTildeMask(0xD5'u32)
+    let v0 = unaryTildeU32(0xFFFF_FFD5_u32)
+    let v1 = unaryTildeChain(42_u32)
+    let v2 = unaryTildeU64(0xFFFF_FFFF_FFFF_FFD5_u64)
+    let v3 = unaryTildeMask(0xD5_u32)
 
     #assert(#typeof(v0) == u32)
     #assert(#typeof(v2) == u64)
 
-    Swag.require(v0 == 42'u32)
-    Swag.require(v1 == 42'u32)
-    Swag.require(v2 == 42'u64)
-    Swag.require(v3 == 42'u32)
+    Swag.require(v0 == 42_u32)
+    Swag.require(v1 == 42_u32)
+    Swag.require(v2 == 42_u64)
+    Swag.require(v3 == 42_u32)
 }
 
 #test
 {
-    let runtimeValue = unaryTildeStrictU32(cast(UnaryTildeStrictU32, 0xFFFF_FFD5'u32))
-    const constantValue = ~cast(UnaryTildeStrictU32, 0xFFFF_FFD5'u32)
+    let runtimeValue = unaryTildeStrictU32(cast(UnaryTildeStrictU32, 0xFFFF_FFD5_u32))
+    const constantValue = ~cast(UnaryTildeStrictU32, 0xFFFF_FFD5_u32)
 
     #assert(#typeof(runtimeValue) == UnaryTildeStrictU32)
     #assert(#typeof(constantValue) == UnaryTildeStrictU32)
 
-    Swag.require(runtimeValue == cast(UnaryTildeStrictU32, 42'u32))
-    Swag.require(constantValue == cast(UnaryTildeStrictU32, 42'u32))
+    Swag.require(runtimeValue == cast(UnaryTildeStrictU32, 42_u32))
+    Swag.require(constantValue == cast(UnaryTildeStrictU32, 42_u32))
 }
 
 #test
 {
-    let runtimeValue = unaryTildeRune(cast(rune, 0xFFFF_FFD5'u32))
-    const constantValue = ~cast(rune, 0xFFFF_FFD5'u32)
+    let runtimeValue = unaryTildeRune(cast(rune, 0xFFFF_FFD5_u32))
+    const constantValue = ~cast(rune, 0xFFFF_FFD5_u32)
 
     #assert(#typeof(runtimeValue) == rune)
     #assert(#typeof(constantValue) == rune)
 
-    Swag.require(runtimeValue == cast(rune, 42'u32))
-    Swag.require(constantValue == cast(rune, 42'u32))
+    Swag.require(runtimeValue == cast(rune, 42_u32))
+    Swag.require(constantValue == cast(rune, 42_u32))
 }

@@ -7,8 +7,10 @@ func pick(values: const [..] s32, idx: s32)->s32
 
 func containsRune(values: const [..] rune, what: rune)->bool
 {
-    for value in values where value == what do
+    for value in values where value == what
+    {
         return true
+    }
     return false
 }
 
@@ -39,7 +41,7 @@ func aggregateLiteralRuneSlice(marker: rune)->bool
 
 #test
 {
-    const V = #run aggregateLiteralRuneSlice('\u00E9'rune)
+    const V = #run aggregateLiteralRuneSlice('\u00E9'_rune)
     #assert(V)
 }
 
@@ -85,6 +87,6 @@ func textRefWindow()->string
     const V1 = #run sliceRefWindow()
     const V2 = #run textRefWindow()
     #assert(V0 == 6)
-    #assert(V1 == 63'u64)
+    #assert(V1 == 63_u64)
     #assert(V2 == "tri")
 }

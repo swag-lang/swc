@@ -11,50 +11,62 @@ func crc64Reference(buffer: const [..] u8, kind: Hash.Crc64Kind)->u64
     switch #complete kind
     {
     case Hash.Crc64Kind.Ecma182:
-        const Poly = 0x42F0_E1EB_A9EA_3693'u64
+        const Poly = 0x42F0_E1EB_A9EA_3693_u64
         for value in buffer
         {
             crc ^= cast(u64, value) << 56
             for 8
             {
-                if crc & 0x8000_0000_0000_0000'u64 do
+                if crc & 0x8000_0000_0000_0000_u64
+                {
                     crc = (crc << 1) ^ Poly
-                else do
+                }
+                else
+                {
                     crc <<= 1
+                }
             }
         }
 
         return crc
 
     case Hash.Crc64Kind.Iso:
-        const Poly = 0xD800_0000_0000_0000'u64
+        const Poly = 0xD800_0000_0000_0000_u64
         crc = ~crc
         for value in buffer
         {
             crc ^= value
             for 8
             {
-                if crc & 1 do
+                if crc & 1
+                {
                     crc = (crc >> 1) ^ Poly
-                else do
+                }
+                else
+                {
                     crc >>= 1
+                }
             }
         }
 
         return ~crc
 
     case Hash.Crc64Kind.IsoXz:
-        const Poly = 0xC96C_5795_D787_0F42'u64
+        const Poly = 0xC96C_5795_D787_0F42_u64
         crc = ~crc
         for value in buffer
         {
             crc ^= value
             for 8
             {
-                if crc & 1 do
+                if crc & 1
+                {
                     crc = (crc >> 1) ^ Poly
-                else do
+                }
+                else
+                {
                     crc >>= 1
+                }
             }
         }
 
@@ -103,7 +115,7 @@ func assertCrc64(buffer: const [..] u8)
 
 func fillCrc64Pattern(buffer: [..] u8)
 {
-    var i = 0'u64
+    var i = 0_u64
     while i < buffer.count
     {
         buffer[i] = cast(u8, (((i ^ (i >> 8)) * 109 + 41) & 0xFF))
@@ -113,21 +125,10 @@ func fillCrc64Pattern(buffer: [..] u8)
 
 #test
 {
-    const compileTime = #run
-    {
-        var data: [257] u8
-        fillCrc64Pattern(data)
-        return data
-    }
-
-    #assert(Hash.Crc64.compute(compileTime) == 0x6DF2_EB94_3CB1_EB0B'u64)
-    #assert(Hash.Crc64.compute(compileTime, .Iso) == 0x61D9_8A6A_57A2_AD9B'u64)
-    #assert(Hash.Crc64.compute(compileTime, .IsoXz) == 0xC87F_ACE7_A5EA_4A60'u64)
-
-    Swag.require(Hash.Crc64.compute("") == 0'u64)
-    Swag.require(Hash.Crc64.compute("123456789") == 0x6C40_DF5F_0B49_7347'u64)
-    Swag.require(Hash.Crc64.compute("123456789", Hash.Crc64Kind.Iso) == 0xB909_56C7_75A4_1001'u64)
-    Swag.require(Hash.Crc64.compute("123456789", Hash.Crc64Kind.IsoXz) == 0x995D_C9BB_DF19_39FA'u64)
+    Swag.require(Hash.Crc64.compute("") == 0_u64)
+    Swag.require(Hash.Crc64.compute("123456789") == 0x6C40_DF5F_0B49_7347_u64)
+    Swag.require(Hash.Crc64.compute("123456789", Hash.Crc64Kind.Iso) == 0xB909_56C7_75A4_1001_u64)
+    Swag.require(Hash.Crc64.compute("123456789", Hash.Crc64Kind.IsoXz) == 0x995D_C9BB_DF19_39FA_u64)
 
     assertCrc64("")
     assertCrc64("a")

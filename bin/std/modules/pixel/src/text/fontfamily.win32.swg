@@ -11,17 +11,29 @@ impl FontFamily
     {
         if italic
         {
-            if weight >= FW_BOLD do
+            if weight >= FW_BOLD
+            {
                 return .BoldItalic
+            }
+
             return .Italic
         }
 
-        if weight != FW_DONTCARE and weight < FW_REGULAR do
+        if weight != FW_DONTCARE and weight < FW_REGULAR
+        {
             return .Light
-        if weight >= FW_BOLD do
+        }
+
+        if weight >= FW_BOLD
+        {
             return .Bold
-        if weight >= FW_SEMIBOLD do
+        }
+
+        if weight >= FW_SEMIBOLD
+        {
             return .SemiBold
+        }
+
         return .Regular
     }
 }
@@ -50,8 +62,8 @@ public struct SystemFontFamilyInfo
 // The process cache is protected by g_SystemFallbackLock; isolated caches need no shared state.
 struct SystemFontFallbackCache
 {
-    faces:          HashTable'(u64, *TypeFace?)
-    families:       Array'SystemFontFamilyInfo
+    faces:          HashTable!{u64, *TypeFace?}
+    families:       Array!{SystemFontFamilyInfo}
     preferredReady: bool
     complete:       bool
 }
@@ -60,12 +72,16 @@ impl SystemFontFallbackCache
 {
     mtd find(c: rune, style: FontFamilyStyle)->*TypeFace?
     {
-        if not isFontFallbackRune(c) do
+        if not isFontFallbackRune(c)
+        {
             return null
+        }
 
         let key = cast(u64, c) * FontFamilyStyle.count + cast(u64, style)
-        if let found = .faces.tryFind(key) do
+        if let found = .faces.tryFind(key)
+        {
             return found.value
+        }
 
         if not .preferredReady
         {
@@ -74,8 +90,10 @@ impl SystemFontFallbackCache
             for name in ["Segoe UI", "Segoe UI Symbol", "Cambria Math", "Segoe UI Emoji"]
             {
                 let family = FontFamily.findSystemFont(name)
-                if not family.name.isEmpty() do
+                if not family.name.isEmpty()
+                {
                     .families.add(family)
+                }
             }
 
             .preferredReady = true
@@ -86,8 +104,11 @@ impl SystemFontFallbackCache
         {
             let first     = .families.count
             let installed = FontFamily.enumerateSystemFonts()
-            for family in installed do
+            for family in installed
+            {
                 .families.add(family)
+            }
+
             .complete = true
             result    = .findFace(c, style, first)
         }
@@ -101,8 +122,10 @@ impl SystemFontFallbackCache
         for family in .families.toSlice()[first to]
         {
             let face = catch FontFamily.createTypeFace(family, style) orelse null
-            if face and face.face.hasChar(c) do
+            if face and face.face.hasChar(c)
+            {
                 return face
+            }
         }
 
         return null
@@ -115,18 +138,24 @@ impl FontFamily
     // coverage; Windows supplies family names and font data only when they are needed.
     internal func findSystemFallback(c: rune, bold, italic: bool)->*TypeFace?
     {
-        if not hasSystemFontAccess() do
+        if not hasSystemFontAccess()
+        {
             return null
+        }
 
         var style = FontFamilyStyle.Regular
         if bold
         {
-            if italic do
+            if italic
+            {
                 style = FontFamilyStyle.BoldItalic
-            else do
+            }
+            else
+            {
                 style = FontFamilyStyle.Bold
+            }
         }
-        elif italic
+        else if italic
         {
             style = FontFamilyStyle.Italic
         }
@@ -139,8 +168,11 @@ impl FontFamily
     func enumSubFamily(fa: const *LOGFONTW, _: const *TEXTMETRICW, _: DWORD, lParam: LPARAM)->BOOL
     {
         let len = Utf16.lengthUntilZero(fa.lfFaceName)
-        if not len do
+        if not len
+        {
             return TRUE
+        }
+
         let x = Utf8.fromUtf16(Swag.makeSlice(&fa.lfFaceName[0], len))
 
         let ret   = cast(*SystemFontFamilyInfo, cast #bit (u64, lParam))
@@ -157,20 +189,27 @@ impl FontFamily
         if fontType & TRUETYPE_FONTTYPE
         {
             let len = Utf16.lengthUntilZero(fa.lfFaceName)
-            if not len do
+            if not len
+            {
                 return TRUE
+            }
+
             let x = Utf8.fromUtf16(Swag.makeSlice(&fa.lfFaceName[0], len))
 
             // Ignore vertical aliases, which Windows prefixes with `@`.
-            if x[0] == '@' do
+            if x[0] == '@'
+            {
                 return TRUE
+            }
 
             // Already here ?
-            let ret = cast(*Array'SystemFontFamilyInfo, cast #bit (u64, lParam))
+            let ret = cast(*Array!{SystemFontFamilyInfo}, cast #bit (u64, lParam))
             for here in ret[]
             {
-                if here.name == x do
+                if here.name == x
+                {
                     return TRUE
+                }
             }
 
             var v: SystemFontFamilyInfo
@@ -192,22 +231,27 @@ impl FontFamily
         return try createTypeFace(family, style)
     }
 
-    internal func systemFontNamesNative()->Array'String
+    internal func systemFontNamesNative()->Array!{String}
     {
         var result: #returntype
-        for family in enumerateSystemFonts() do
+        for family in enumerateSystemFonts()
+        {
             result.add(family.name)
+        }
+
         return result
     }
 
     // Returns the font families currently available from Windows.
     //
     // Without [[Pixel.FontFamily.hasSystemFontAccess]] the array is empty.
-    public func enumerateSystemFonts()->Array'SystemFontFamilyInfo
+    public func enumerateSystemFonts()->Array!{SystemFontFamilyInfo}
     {
         var result: #returntype
-        if not hasSystemFontAccess() do
+        if not hasSystemFontAccess()
+        {
             return result
+        }
 
         let hdc = GetDC(null)
         defer ReleaseDC(null, hdc)
@@ -226,18 +270,23 @@ impl FontFamily
     // [[Pixel.FontFamily.hasSystemFontAccess]].
     public func findSystemFont(fontFamily: string)->SystemFontFamilyInfo
     {
-        if not hasSystemFontAccess() do
+        if not hasSystemFontAccess()
+        {
             return {}
+        }
 
         let hdc = GetDC(null)
         defer ReleaseDC(null, hdc)
 
-        var arr: Array'SystemFontFamilyInfo
+        var arr: Array!{SystemFontFamilyInfo}
         let v = Utf16.toZeroTerminated(fontFamily)
         EnumFontFamiliesW(hdc, v.buffer, &enumFamily, cast #bit (LPARAM, cast(u64, &arr)))
 
-        if arr.isEmpty() do
+        if arr.isEmpty()
+        {
             return {}
+        }
+
         return arr[0]
     }
 
@@ -247,49 +296,78 @@ impl FontFamily
     // descriptor contains no usable face. Invalid style values fail.
     public func createTypeFace(fontFamily: SystemFontFamilyInfo, style: FontFamilyStyle)->*TypeFace? fail
     {
-        if cast(u64, style) >= FontFamilyStyle.count do
+        if cast(u64, style) >= FontFamilyStyle.count
+        {
             fail Errors.BadParameterError{}
+        }
 
         var logFont = fontFamily.faces[cast(u64, style)]
         if style == .Regular
         {
-            if logFont.name.isEmpty() do
+            if logFont.name.isEmpty()
+            {
                 logFont = fontFamily.faces[cast(u64, FontFamilyStyle.Bold)]
+            }
         }
-        elif style == .Bold
+        else if style == .Bold
         {
-            if logFont.name.isEmpty() do
+            if logFont.name.isEmpty()
+            {
                 logFont = fontFamily.faces[cast(u64, FontFamilyStyle.Regular)]
+            }
         }
-        elif style == .Italic
+        else if style == .Italic
         {
-            if logFont.name.isEmpty() do
+            if logFont.name.isEmpty()
+            {
                 logFont = fontFamily.faces[cast(u64, FontFamilyStyle.BoldItalic)]
-            if logFont.name.isEmpty() do
+            }
+
+            if logFont.name.isEmpty()
+            {
                 logFont = fontFamily.faces[cast(u64, FontFamilyStyle.Regular)]
-            if logFont.name.isEmpty() do
+            }
+
+            if logFont.name.isEmpty()
+            {
                 logFont = fontFamily.faces[cast(u64, FontFamilyStyle.Bold)]
+            }
         }
-        elif style == .BoldItalic
+        else if style == .BoldItalic
         {
-            if logFont.name.isEmpty() do
+            if logFont.name.isEmpty()
+            {
                 logFont = fontFamily.faces[cast(u64, FontFamilyStyle.Italic)]
-            if logFont.name.isEmpty() do
+            }
+
+            if logFont.name.isEmpty()
+            {
                 logFont = fontFamily.faces[cast(u64, FontFamilyStyle.Bold)]
-            if logFont.name.isEmpty() do
+            }
+
+            if logFont.name.isEmpty()
+            {
                 logFont = fontFamily.faces[cast(u64, FontFamilyStyle.Regular)]
+            }
         }
-        elif style == .Light
+        else if style == .Light
         {
-            if logFont.name.isEmpty() do
+            if logFont.name.isEmpty()
+            {
                 logFont = fontFamily.faces[cast(u64, FontFamilyStyle.Regular)]
+            }
         }
-        elif style == .SemiBold
+        else if style == .SemiBold
         {
-            if logFont.name.isEmpty() do
+            if logFont.name.isEmpty()
+            {
                 logFont = fontFamily.faces[cast(u64, FontFamilyStyle.Bold)]
-            if logFont.name.isEmpty() do
+            }
+
+            if logFont.name.isEmpty()
+            {
                 logFont = fontFamily.faces[cast(u64, FontFamilyStyle.Regular)]
+            }
         }
 
         if logFont.name.isEmpty()
@@ -297,12 +375,16 @@ impl FontFamily
             for i in FontFamilyStyle.count
             {
                 logFont = fontFamily.faces[i]
-                if not logFont.name.isEmpty() do
+                if not logFont.name.isEmpty()
+                {
                     break
+                }
             }
 
-            if logFont.name.isEmpty() do
+            if logFont.name.isEmpty()
+            {
                 return null
+            }
         }
 
         let hf = try CreateFontIndirectW(logFont.face)
@@ -311,10 +393,15 @@ impl FontFamily
         let fontName = Format.toString("%_%", logFont.name, cast(u32, style))
         let typeFace = try TypeFace.createFromHfont(fontName, hf)
 
-        if (style == .Italic or style == .BoldItalic) and not typeFace.isItalic() do
+        if (style == .Italic or style == .BoldItalic) and not typeFace.isItalic()
+        {
             typeFace.forceItalic = true
-        if (style == .Bold or style == .BoldItalic) and not typeFace.isBold() do
+        }
+
+        if (style == .Bold or style == .BoldItalic) and not typeFace.isBold()
+        {
             typeFace.forceBold = true
+        }
 
         return typeFace
     }

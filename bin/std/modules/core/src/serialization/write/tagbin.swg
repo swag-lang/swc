@@ -39,7 +39,7 @@ enum TagBinSignature: u32
 //
 // Used for dynamic fields written through [[Core.Serialization.Serializer.serialize]] and for
 // types that drive their own fields with [[Core.Serialization.ISerialize]].
-const TagBinAdHocShape = 0xFFFFFFFF'u32
+const TagBinAdHocShape = 0xFFFFFFFF_u32
 
 // Additional signature for each value in an ad-hoc section, stored after its key and static type identity.
 //
@@ -70,9 +70,9 @@ struct TagBinSection
     public
     {
         startSeek:    ConcatBufferPosition     // Position of the patched section header words.
-        mapSeek:      HashTable'(string, ConcatBufferPosition)     // Ad-hoc sections: maps field keys to their position.
-        keys:         ArrayPtr'String          // Owns stable text borrowed by 'mapSeek'.
-        offsets:      Array'u32                // Shaped sections: per-field offsets, relative to the section payload.
+        mapSeek:      HashTable!{string, ConcatBufferPosition}     // Ad-hoc sections: maps field keys to their position.
+        keys:         ArrayPtr!{String}        // Owns stable text borrowed by 'mapSeek'.
+        offsets:      Array!{u32}              // Shaped sections: per-field offsets, relative to the section payload.
         plan:         const *Plan?             // Shaped sections: the plan driving the field order.
         payloadStart: u64                      // Offset of the first payload byte of the section.
         fieldIndex:   u64                      // Shaped sections: index of the next field to write.
@@ -109,19 +109,19 @@ struct TagBin
 
     private
     {
-        rootType:     typeinfo?                  // Root type supplied by the high-level encoder.
-        compressor:   Core.Compress.Deflate      // Compressor used for compressed sections.
-        finalOutput:  *ConcatBuffer?             // Caller buffer receiving the header, then the body.
-        output:       *ConcatBuffer?             // Current sink: the body, or a compressed element scratch.
-        body:         ConcatBuffer               // Accumulates every section before the final assembly.
-        shapeIds:     HashTable'(u64, u32)       // Maps each serialization plan address to its shape id.
-        shapePlans:   Array'(const *Plan)        // The plan of each registered shape, by shape id.
-        headerPatch:  ConcatBufferPosition       // Position of the shape directory offset in the header.
-        freeSections: ArrayPtr'TagBinSection     // Pool of reusable section structures.
-        sections:     ArrayPtr'TagBinSection     // Stack of currently active sections.
-        outStack:     Array'(*ConcatBuffer?)     // Output buffers of the enclosing sections.
-        elemStack:    Array'{ compressed: bool, tmpBuf: *ConcatBuffer? }     // Element stack.
-        freeTmpBuf:   Array'(*ConcatBuffer?)     // Pool of reusable scratch buffers, owned by the writer.
+        rootType:     typeinfo?                    // Root type supplied by the high-level encoder.
+        compressor:   Core.Compress.Deflate        // Compressor used for compressed sections.
+        finalOutput:  *ConcatBuffer?               // Caller buffer receiving the header, then the body.
+        output:       *ConcatBuffer?               // Current sink: the body, or a compressed element scratch.
+        body:         ConcatBuffer                 // Accumulates every section before the final assembly.
+        shapeIds:     HashTable!{u64, u32}         // Maps each serialization plan address to its shape id.
+        shapePlans:   Array!{const *Plan}          // The plan of each registered shape, by shape id.
+        headerPatch:  ConcatBufferPosition         // Position of the shape directory offset in the header.
+        freeSections: ArrayPtr!{TagBinSection}     // Pool of reusable section structures.
+        sections:     ArrayPtr!{TagBinSection}     // Stack of currently active sections.
+        outStack:     Array!{*ConcatBuffer?}       // Output buffers of the enclosing sections.
+        elemStack:    Array!{{ compressed: bool, tmpBuf: *ConcatBuffer? } }     // Element stack.
+        freeTmpBuf:   Array!{*ConcatBuffer?}       // Pool of reusable scratch buffers, owned by the writer.
     }
 }
 
@@ -156,7 +156,8 @@ private impl TagBin
     // bucket chain and states no copy, so the pool holds pointers and releases them here.
     mtd opDrop()
     {
-        for buf in .freeTmpBuf do
+        for buf in .freeTmpBuf
+        {
             Memory.delete(buf)
         for &element in .elemStack where element.tmpBuf do
             Memory.delete(element.tmpBuf)
@@ -171,7 +172,7 @@ private impl TagBin
             return b
         }
 
-        return Memory.new'ConcatBuffer()
+        return Memory.new!{ConcatBuffer}()
     }
 
     mtd releaseTmpBuf(b: *ConcatBuffer)
@@ -185,8 +186,10 @@ private impl TagBin
     {
         let key = cast(u64, plan)
         let e   = .shapeIds.tryFind(key)
-        if e do
+        if e
+        {
             return e.value
+        }
 
         let id = cast(u32, .shapePlans.count)
         .shapePlans.add(plan)
@@ -206,24 +209,32 @@ private impl TagBin
         if kind == .Raw
         {
             sec.startSeek = output.position()
-            output.addNative(0'u64)     // Will store the raw byte length here
+            output.addNative(0_u64)     // Will store the raw byte length here
             sec.payloadStart = ConcatBuffer.offsetOf(output.position())
             return
         }
 
-        if kind != .Unordered do
+        if kind != .Unordered
+        {
             return
+        }
 
         output.addNative(TagBinSignature.Fat)
-        if plan do
+        if plan
+        {
             output.addNative(.shapeIdFor(plan))
-        else do
+        }
+        else
+        {
             output.addNative(TagBinAdHocShape)
+        }
 
         sec.startSeek = output.position()
-        output.addNative(0'u64)     // Will store the fat offset here
-        if not plan do
-            output.addNative(0'u64)     // Ad-hoc sections also store the fat count here
+        output.addNative(0_u64)     // Will store the fat offset here
+        if not plan
+        {
+            output.addNative(0_u64)
+        }     // Ad-hoc sections also store the fat count here
 
         sec.payloadStart = ConcatBuffer.offsetOf(output.position())
     }
@@ -270,14 +281,22 @@ impl TagBin
     #[Swag.NoDoc]
     mtd interfaceTypeKey(type: typeinfo?)->string fail
     {
-        if not type do
+        if not type
+        {
             return ""
+        }
 
         let key = wireTypeKey(type)
-        if key == "" do
+        if key == ""
+        {
             fail SerializationError{"interface object type needs a Serialization.TypeKey attribute"}
-        if Reflection.typeFromKey(key) != type do
+        }
+
+        if Reflection.typeFromKey(key) != type
+        {
             fail SerializationError{Errors.mkString(Format.toString("interface object key [[%]] does not resolve to one registered type", key))}
+        }
+
         return key
     }
 
@@ -318,12 +337,15 @@ impl TagBin
         header.addBytes(schema)
 
         var flags: TagBinHeaderFlags = .Zero
-        if .compressStream do
+        if .compressStream
+        {
             flags.add(.StreamCompressed)
+        }
+
         header.addNative(flags)
 
         .headerPatch = header.position()
-        header.addNative(0'u64)     // Will store the shape directory offset here
+        header.addNative(0_u64)     // Will store the shape directory offset here
     }
 
     // Writes the shape directory, patches the header, and appends the body to the caller buffer.
@@ -348,8 +370,11 @@ impl TagBin
                 .body.addBytes(pf.key)
                 .body.addNative(pf.wireCrc)
                 var flags: TagBinShapeFlags = .Zero
-                if pf.compressed do
+                if pf.compressed
+                {
                     flags.add(.Compressed)
+                }
+
                 .body.addNative(flags)
             }
         }
@@ -368,7 +393,7 @@ impl TagBin
         {
             .compressor.init(.compressionLevel, .compressionStrategy, .compressionFlags)
 
-            var compressBuffer: Array'u8
+            var compressBuffer: Array!{u8}
             var errOutcome:     Swag.Error
             catch .compressor.compress(&compressBuffer, bodyBytes) as errOutcome
             let err = errOutcome.value()
@@ -416,19 +441,21 @@ impl TagBin
             output.addNative(rawLen)
             output.setPosition(curSeek)
         }
-        elif sec.kind == .Unordered and sec.plan
+        else if sec.kind == .Unordered and sec.plan
         {
             // Shaped section: the fat is the per-field offsets, in shape order.
             let fatSeek = ConcatBuffer.offsetOf(output.position())
-            for off in sec.offsets do
+            for off in sec.offsets
+            {
                 output.addNative(off)
+            }
 
             let curSeek = output.position()
             output.setPosition(sec.startSeek)
             output.addNative(fatSeek)
             output.setPosition(curSeek)
         }
-        elif sec.kind == .Unordered
+        else if sec.kind == .Unordered
         {
             // Ad-hoc section: the fat carries its own crc/offset pairs and its count.
             let fatSeek = ConcatBuffer.offsetOf(output.position())
@@ -457,7 +484,7 @@ impl TagBin
         if not structType
         {
             output.addNative(TagBinSignature.Version)
-            output.addNative(0'u32)
+            output.addNative(0_u32)
             .beginSectionWithPlan(.Unordered, null)
             return false
         }
@@ -494,8 +521,10 @@ impl TagBin
 
         // If section is raw, then we just have values without versioning
         let sec = unwrap .sections.back()
-        if sec.kind == .Raw do
+        if sec.kind == .Raw
+        {
             return
+        }
 
         let output = unwrap .output
         var compressed: bool
@@ -512,8 +541,11 @@ impl TagBin
             sec.fieldIndex += 1
 
             let off = ConcatBuffer.offsetOf(output.position()) - sec.payloadStart
-            if off > cast(u64, Swag.U32.Max) do
+            if off > cast(u64, Swag.U32.Max)
+            {
                 fail SerializationError{"section payload exceeds the 4 GiB shaped section limit", field: val}
+            }
+
             sec.offsets.add(cast(u32, off))
 
             compressed = pf.compressed
@@ -521,11 +553,16 @@ impl TagBin
         else
         {
             let key = wireFieldKey(val)
-            if key == "" do
+            if key == ""
+            {
                 fail SerializationError{"serialized field needs a non-empty key", field: val}
+            }
 
-            if sec.mapSeek.contains(key) do
+            if sec.mapSeek.contains(key)
+            {
                 fail SerializationError{Errors.mkString(Format.toString("serialized ad-hoc field key [[%]] is already used", key)), field: val}
+            }
+
             let ownedKey = sec.keys.addNew()
             ownedKey[] = String.from(key)
             sec.mapSeek.add(ownedKey[].toString(), output.position())
@@ -537,8 +574,11 @@ impl TagBin
 
             var valSig: TagBinValueFlags = .None
             compressed = Reflection.hasAttribute(val, Compress) or Reflection.hasAttribute(val.pointedType, Compress)
-            if compressed do
+            if compressed
+            {
                 valSig.add(TagBinValueFlags.Compressed)
+            }
+
             output.addNative(valSig)
         }
 
@@ -565,13 +605,17 @@ impl TagBin
     {
         // If section is raw, then we just have values without versioning
         let sec = unwrap .sections.back()
-        if sec.kind == .Raw do
+        if sec.kind == .Raw
+        {
             return
+        }
 
         Swag.assert(not .elemStack.isEmpty())
         let ctx = .elemStack.popBack()
-        if not ctx.compressed do
+        if not ctx.compressed
+        {
             return
+        }
 
         // We must have a previous buffer to append into
         Swag.assert(not .outStack.isEmpty())
@@ -584,7 +628,7 @@ impl TagBin
         // Compress
         .compressor.init(.compressionLevel, .compressionStrategy, .compressionFlags)
 
-        var compressBuffer: Array'u8
+        var compressBuffer: Array!{u8}
         var errOutcome:     Swag.Error
         catch .compressor.compress(&compressBuffer, childBytes.toSlice()) as errOutcome
         let err = errOutcome.value()
@@ -634,9 +678,12 @@ impl TagBin
                 // the payload even when the element type changed.
                 output.addNative(TagBinSignature.Raw)
                 .writeVarint(countElem * sizeof)
-                if not data do
+                if not data
+                {
                     return true
-                let bufArr = cast(const *Array'u8, data)
+                }
+
+                let bufArr = cast(const *Array!{u8}, data)
                 output.addBytes(Swag.makeSlice(bufArr.buffer, countElem * sizeof))
                 return true
             }
@@ -653,8 +700,11 @@ impl TagBin
             {
                 output.addNative(TagBinSignature.Raw)
                 .writeVarint(countElem * sizeof)
-                if not data do
+                if not data
+                {
                     return true
+                }
+
                 output.addBytes(Swag.makeSlice(cast(const [*] u8, data), countElem * sizeof))
                 return true
             }

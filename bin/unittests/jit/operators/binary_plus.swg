@@ -9,7 +9,7 @@
 
     const V = #run addManyMixed(1)
     #assert(#typeof(V) == f64)
-    #assert(V == 1.0'f64)
+    #assert(V == 1.0_f64)
 }
 
 #test
@@ -23,33 +23,33 @@
 #test
 {
     func add(a: f64, b: f64)->f64 { return a + b }
-    const V = #run add(1.5'f64, 2.25'f64)
+    const V = #run add(1.5_f64, 2.25_f64)
     #assert(#typeof(V) == f64)
-    #assert(V == 3.75'f64)
+    #assert(V == 3.75_f64)
 }
 
 #test
 {
     func add(a: s64, b: s64)->s64 { return a + b }
-    const V = #run add(10000000000's64, 7's64)
+    const V = #run add(10000000000_s64, 7_s64)
     #assert(#typeof(V) == s64)
-    #assert(V == 10000000007's64)
+    #assert(V == 10000000007_s64)
 }
 
 #test
 {
     func add(a: f32, b: f32)->f32 { return a + b }
-    const V = #run add(1.25'f32, 2.5'f32)
+    const V = #run add(1.25_f32, 2.5_f32)
     #assert(#typeof(V) == f32)
-    #assert(V == 3.75'f32)
+    #assert(V == 3.75_f32)
 }
 
 #test
 {
     func add(a: f64, b: f64)->f64 { return a + b }
-    const V = #run add(40, 2.5'f64)
+    const V = #run add(40, 2.5_f64)
     #assert(#typeof(V) == f64)
-    #assert(V == 42.5'f64)
+    #assert(V == 42.5_f64)
 }
 
 #test
@@ -57,12 +57,12 @@
     #[Swag.Optimize(false)]
     func addPromotedFloat(v: f32)->f64
     {
-        return v + 1.25'f64
+        return v + 1.25_f64
     }
 
-    const V = #run addPromotedFloat(42.5'f32)
+    const V = #run addPromotedFloat(42.5_f32)
     #assert(#typeof(V) == f64)
-    #assert(V == 43.75'f64)
+    #assert(V == 43.75_f64)
 }
 
 #test
@@ -73,9 +73,9 @@
         return v * 1.4247691104677813
     }
 
-    const V = #run multiplyWithNarrowedLiteral(2.0'f32)
+    const V = #run multiplyWithNarrowedLiteral(2.0_f32)
     #assert(#typeof(V) == f32)
-    #assert(V == 2.0'f32 * 1.4247691104677813'f32)
+    #assert(V == 2.0_f32 * 1.4247691104677813_f32)
 }
 
 #test
@@ -83,18 +83,18 @@
     #[Swag.Optimize(false)]
     func promotedFloatSource(v: f32)->f32
     {
-        return v * 0.5'f32
+        return v * 0.5_f32
     }
 
     #[Swag.Optimize(false)]
     func multiplyPromotedCall(v: f32)->f64
     {
-        return promotedFloatSource(v) * 1.4247691104677813'f64
+        return promotedFloatSource(v) * 1.4247691104677813_f64
     }
 
-    const V = #run multiplyPromotedCall(2.5'f32)
+    const V = #run multiplyPromotedCall(2.5_f32)
     #assert(#typeof(V) == f64)
-    #assert(V == 1.25'f64 * 1.4247691104677813'f64)
+    #assert(V == 1.25_f64 * 1.4247691104677813_f64)
 }
 
 #test
@@ -124,36 +124,36 @@
 {
     #[Swag.Optimize(false)]
     func addChainFloat(a: f64, b: f64, c: f64, d: f64)->f64 { return a + b + c + d }
-    const V = #run addChainFloat(10.0'f64, 20.5'f64, 5.25'f64, 6.25'f64)
+    const V = #run addChainFloat(10.0_f64, 20.5_f64, 5.25_f64, 6.25_f64)
     #assert(#typeof(V) == f64)
-    #assert(V == 42.0'f64)
+    #assert(V == 42.0_f64)
 }
 
 #test
 {
     #[Swag.Optimize(true)]
     func addChainFloat(a: f64, b: f64, c: f64, d: f64)->f64 { return a + b + c + d }
-    const V = #run addChainFloat(10.0'f64, 20.5'f64, 5.25'f64, 6.25'f64)
+    const V = #run addChainFloat(10.0_f64, 20.5_f64, 5.25_f64, 6.25_f64)
     #assert(#typeof(V) == f64)
-    #assert(V == 42.0'f64)
+    #assert(V == 42.0_f64)
 }
 
 #test
 {
     #[Swag.Optimize(true)]
     func addChainFloat(a: f64, b: f64, c: f64, d: f64)->f64 { return a + b + c + d }
-    const V = #run addChainFloat(10.0'f64, 20.5'f64, 5.25'f64, 6.25'f64)
+    const V = #run addChainFloat(10.0_f64, 20.5_f64, 5.25_f64, 6.25_f64)
     #assert(#typeof(V) == f64)
-    #assert(V == 42.0'f64)
+    #assert(V == 42.0_f64)
 }
 
 #test
 {
     #[Swag.Optimize(false)]
     func thirdFloatArg(_: f64, _: f64, c: f64, _: f64)->f64 { return c }
-    const V = #run thirdFloatArg(10.0'f64, 20.5'f64, 5.25'f64, 6.25'f64)
+    const V = #run thirdFloatArg(10.0_f64, 20.5_f64, 5.25_f64, 6.25_f64)
     #assert(#typeof(V) == f64)
-    #assert(V == 5.25'f64)
+    #assert(V == 5.25_f64)
 }
 
 #test
@@ -172,9 +172,9 @@
                cast(f64, a6) + a7 + cast(f64, a8) + cast(f64, a9) + cast(f64, a10) + a11
     }
 
-    const V = #run addManyMixed(1, 2.5'f32, 3's64, 4.0'f64, 5'u32, 6.0'f32, 7, 8.0'f64, 2'u16, 1.0'f32, 2's8, 0.5'f64)
+    const V = #run addManyMixed(1, 2.5_f32, 3_s64, 4.0_f64, 5_u32, 6.0_f32, 7, 8.0_f64, 2_u16, 1.0_f32, 2_s8, 0.5_f64)
     #assert(#typeof(V) == f64)
-    #assert(V == 42.0'f64)
+    #assert(V == 42.0_f64)
 }
 
 #test

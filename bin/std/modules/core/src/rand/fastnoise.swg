@@ -47,8 +47,10 @@ impl FastNoise
 
     mtd const fractalBounding()->f32
     {
-        if .octaves <= 1 do
+        if .octaves <= 1
+        {
             return 1
+        }
 
         var amp        = .gain
         var ampFractal = 1.0

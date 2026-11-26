@@ -9,8 +9,8 @@ struct FormDlgOptions
         confirmButtonText: string = ""           // Confirmation-button text, or empty for the localized OK.
         showCancelButton:  bool   = true         // Whether the dialog offers a cancel button.
         cancelButtonText:  string = ""           // Cancel-button text, or empty for the localized Cancel.
-        width                     = 520's32      // Width of the box.
-        height                    = 360's32      // Height of the box before the form is measured; see [[Gui.FormDlg.doModal]].
+        width                     = 520_s32      // Width of the box.
+        height                    = 360_s32      // Height of the box before the form is measured; see [[Gui.FormDlg.doModal]].
         resizable:         bool                  // Whether the user can resize the surface.
         formOptions:       FormLayoutOptions     // Field-layout geometry; the labels always stand above their fields.
     }
@@ -27,7 +27,7 @@ struct FormDlgOptions
 // let dlg  = FormDlg.create(surface, options)
 // let name = dlg.form.addTextField("Name", "New Folder")
 // dlg.form.computeLayout()
-// if dlg.doModal() == Dialog.BtnOk do
+// if dlg.doModal() == Dialog.BtnOk { ... }
 //     createFolder(name.text())
 // ```
 struct FormDlg
@@ -52,7 +52,7 @@ impl FormDlg
         Swag.assert(from != null)
         Swag.assert(options.width > 0 and options.height > 0, "form dialog dimensions must be positive")
 
-        let result  = Wnd.create'FormDlg()
+        let result  = Wnd.create!{FormDlg}()
         let flags   = options.resizable ? SurfaceFlags.Resizable : SurfaceFlags.None
         let surface = result.createSurface(from, 0, 0, options.width, options.height, flags)
         result.setTitle(options.title)
@@ -66,8 +66,11 @@ impl FormDlg
         result.form.dockStyle      = .Center
 
         result.addButton(options.confirmButtonText.count ? options.confirmButtonText : strings().dlg_Ok, Dialog.BtnOk, true)
-        if options.showCancelButton do
+        if options.showCancelButton
+        {
             result.addButton(options.cancelButtonText.count ? options.cancelButtonText : strings().dlg_Cancel, Dialog.BtnCancel)
+        }
+
         result.applyLayout()
         return result
     }

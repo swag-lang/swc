@@ -50,8 +50,10 @@ func appendPatchFields(buffer: [*] u8, start: u64, type: typeinfo)->u64
         len = appendAst(buffer, len, field.name)
         len = appendAst(buffer, len, ": ")
         len = appendAst(buffer, len, unwrap field.pointedType!.name)
-        if field.pointedType == string do
+        if field.pointedType == string
+        {
             len = appendAst(buffer, len, "?")
+        }
         len = appendAst(buffer, len, "\n")
     }
 
@@ -64,18 +66,20 @@ struct(T) ApiPatch
     {
         var buffer: [4096] u8
         var len = appendPatchFields(&buffer[0], 0, #typeof(T))
-        if len == 0 do
+        if len == 0
+        {
             return ""
+        }
         return cast(string, Swag.makeSlice(&buffer[0], len))
     }
 }
 
-func(T) clearPatch(patch: *ApiPatch'T)
+func(T) clearPatch(patch: *ApiPatch!{T})
 {
     #ast
     {
         var buffer: [4096] u8
-        var len        = 0'u64
+        var len        = 0_u64
         let typeStruct = cast(const *Swag.TypeInfoStruct, #typeof(T))
         for field in typeStruct.fields
         {
@@ -83,18 +87,20 @@ func(T) clearPatch(patch: *ApiPatch'T)
             len = appendAst(&buffer[0], len, unwrap field.name)
             len = appendAst(&buffer[0], len, " = false\n")
         }
-        if len == 0 do
+        if len == 0
+        {
             return ""
+        }
         return cast(string, Swag.makeSlice(&buffer[0], len))
     }
 }
 
-func(T) capturePatch(patch: *ApiPatch'T, value: T)
+func(T) capturePatch(patch: *ApiPatch!{T}, value: T)
 {
     #ast
     {
         var buffer: [4096] u8
-        var len        = 0'u64
+        var len        = 0_u64
         let typeStruct = cast(const *Swag.TypeInfoStruct, #typeof(T))
         for field in typeStruct.fields
         {
@@ -107,83 +113,93 @@ func(T) capturePatch(patch: *ApiPatch'T, value: T)
             len = appendAst(&buffer[0], len, field.name)
             len = appendAst(&buffer[0], len, "\n")
         }
-        if len == 0 do
+        if len == 0
+        {
             return ""
+        }
         return cast(string, Swag.makeSlice(&buffer[0], len))
     }
 }
 
-func(T) patchChangedCount(patch: ApiPatch'T)->s32
+func(T) patchChangedCount(patch: ApiPatch!{T})->s32
 {
     var count: s32
     #ast
     {
         var buffer: [4096] u8
-        var len        = 0'u64
+        var len        = 0_u64
         let typeStruct = cast(const *Swag.TypeInfoStruct, #typeof(T))
         for field in typeStruct.fields
         {
             len = appendAst(&buffer[0], len, "if patch.has_")
             len = appendAst(&buffer[0], len, unwrap field.name)
-            len = appendAst(&buffer[0], len, " do\n")
-            len = appendAst(&buffer[0], len, "    count += 1\n")
+            len = appendAst(&buffer[0], len, " {\n")
+            len = appendAst(&buffer[0], len, "    count += 1\n    }\n")
         }
-        if len == 0 do
+        if len == 0
+        {
             return ""
+        }
         return cast(string, Swag.makeSlice(&buffer[0], len))
     }
     return count
 }
 
-func(T) patchChangedMask(patch: ApiPatch'T)->u64
+func(T) patchChangedMask(patch: ApiPatch!{T})->u64
 {
-    var mask = 0'u64
-    var bit  = 1'u64
+    var mask = 0_u64
+    var bit  = 1_u64
     #ast
     {
         var buffer: [4096] u8
-        var len        = 0'u64
+        var len        = 0_u64
         let typeStruct = cast(const *Swag.TypeInfoStruct, #typeof(T))
         for field in typeStruct.fields
         {
             len = appendAst(&buffer[0], len, "if patch.has_")
             len = appendAst(&buffer[0], len, unwrap field.name)
-            len = appendAst(&buffer[0], len, " do\n")
-            len = appendAst(&buffer[0], len, "    mask |= bit\n")
+            len = appendAst(&buffer[0], len, " {\n")
+            len = appendAst(&buffer[0], len, "    mask |= bit\n    }\n")
             len = appendAst(&buffer[0], len, "bit <<= 1\n")
         }
-        if len == 0 do
+        if len == 0
+        {
             return ""
+        }
         return cast(string, Swag.makeSlice(&buffer[0], len))
     }
     return mask
 }
 
-func(T) applyPatch(patch: ApiPatch'T, base: T)->T
+func(T) applyPatch(patch: ApiPatch!{T}, base: T)->T
 {
     var result = base
     #ast
     {
         var buffer: [4096] u8
-        var len        = 0'u64
+        var len        = 0_u64
         let typeStruct = cast(const *Swag.TypeInfoStruct, #typeof(T))
         for field in typeStruct.fields
         {
             len = appendAst(&buffer[0], len, "if patch.has_")
             len = appendAst(&buffer[0], len, unwrap field.name)
-            len = appendAst(&buffer[0], len, " do\n")
+            len = appendAst(&buffer[0], len, " {\n")
             len = appendAst(&buffer[0], len, "    result.")
             len = appendAst(&buffer[0], len, field.name)
             len = appendAst(&buffer[0], len, " = ")
             // A 'string?' field needs the assertion on the generated read.
-            if field.pointedType == string do
+            if field.pointedType == string
+            {
                 len = appendAst(&buffer[0], len, "unwrap ")
+            }
             len = appendAst(&buffer[0], len, "patch.")
             len = appendAst(&buffer[0], len, field.name)
-            len = appendAst(&buffer[0], len, "\n")
+            len = appendAst(&buffer[0], len, "\n    }\n")
         }
-        if len == 0 do
+        if len == 0
+        {
             return ""
+        }
         return cast(string, Swag.makeSlice(&buffer[0], len))
     }
     return result
@@ -201,7 +217,7 @@ func(T) applyPatch(patch: ApiPatch'T, base: T)->T
         tier: .Growth
         }
 
-    var patch: ApiPatch'TenantSettings
+    var patch: ApiPatch!{TenantSettings}
     patch.has_storageGb    = true
     patch.storageGb        = 750
     patch.has_ssoEnabled   = true
@@ -209,10 +225,10 @@ func(T) applyPatch(patch: ApiPatch'T, base: T)->T
     patch.has_billingEmail = true
     patch.billingEmail     = "ops@acme.test"
 
-    let updated = applyPatch'(TenantSettings)(patch, base)
+    let updated = applyPatch!{TenantSettings}(patch, base)
 
-    Swag.require(patchChangedCount'(TenantSettings)(patch) == 3)
-    Swag.require(patchChangedMask'(TenantSettings)(patch) == 26'u64)
+    Swag.require(patchChangedCount!{TenantSettings}(patch) == 3)
+    Swag.require(patchChangedMask!{TenantSettings}(patch) == 26_u64)
     Swag.require(updated.seatLimit == 25)
     Swag.require(updated.storageGb == 750)
     Swag.require(updated.auditRetentionDays == 30)
@@ -236,8 +252,8 @@ func(T) applyPatch(patch: ApiPatch'T, base: T)->T
         tier: .Enterprise
         }
 
-    var patch: ApiPatch'TenantSettings
-    capturePatch'(TenantSettings)(&patch, source)
+    var patch: ApiPatch!{TenantSettings}
+    capturePatch!{TenantSettings}(&patch, source)
 
     let blank: TenantSettings =
         TenantSettings{
@@ -249,10 +265,10 @@ func(T) applyPatch(patch: ApiPatch'T, base: T)->T
         tier: .Starter
         }
 
-    let rebuilt = applyPatch'(TenantSettings)(patch, blank)
+    let rebuilt = applyPatch!{TenantSettings}(patch, blank)
 
-    Swag.require(patchChangedCount'(TenantSettings)(patch) == 6)
-    Swag.require(patchChangedMask'(TenantSettings)(patch) == 63'u64)
+    Swag.require(patchChangedCount!{TenantSettings}(patch) == 6)
+    Swag.require(patchChangedMask!{TenantSettings}(patch) == 63_u64)
     Swag.require(rebuilt.seatLimit == 120)
     Swag.require(rebuilt.storageGb == 2000)
     Swag.require(rebuilt.auditRetentionDays == 365)
@@ -260,9 +276,9 @@ func(T) applyPatch(patch: ApiPatch'T, base: T)->T
     Swag.require(rebuilt.billingEmail == "finance@northwind.test")
     Swag.require(rebuilt.tier == .Enterprise)
 
-    clearPatch'(TenantSettings)(&patch)
-    Swag.require(patchChangedCount'(TenantSettings)(patch) == 0)
-    Swag.require(patchChangedMask'(TenantSettings)(patch) == 0'u64)
+    clearPatch!{TenantSettings}(&patch)
+    Swag.require(patchChangedCount!{TenantSettings}(patch) == 0)
+    Swag.require(patchChangedMask!{TenantSettings}(patch) == 0_u64)
 }
 
 #test
@@ -275,16 +291,16 @@ func(T) applyPatch(patch: ApiPatch'T, base: T)->T
         smsEnabled: false
         }
 
-    var patch: ApiPatch'NotificationPolicy
+    var patch: ApiPatch!{NotificationPolicy}
     patch.has_weeklyReport      = true
     patch.weeklyReport          = true
     patch.has_escalationMinutes = true
     patch.escalationMinutes     = 15
 
-    let updated = applyPatch'(NotificationPolicy)(patch, base)
+    let updated = applyPatch!{NotificationPolicy}(patch, base)
 
-    Swag.require(patchChangedCount'(NotificationPolicy)(patch) == 2)
-    Swag.require(patchChangedMask'(NotificationPolicy)(patch) == 6'u64)
+    Swag.require(patchChangedCount!{NotificationPolicy}(patch) == 2)
+    Swag.require(patchChangedMask!{NotificationPolicy}(patch) == 6_u64)
     Swag.require(updated.dailyDigest)
     Swag.require(updated.weeklyReport)
     Swag.require(updated.escalationMinutes == 15)

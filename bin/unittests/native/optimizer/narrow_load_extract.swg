@@ -36,7 +36,7 @@ func compared(p: *u64)->bool => ((p[] >> 16) & 0xFF) == 0
 
 #test
 {
-    let values = [0'u64, 1, 0xFF, 0x10000, 0xFF0000, 0x8000000000000000, 0xABCDEF0123456789, 0xFFFFFFFFFFFFFFFF]
+    let values = [0_u64, 1, 0xFF, 0x10000, 0xFF0000, 0x8000000000000000, 0xABCDEF0123456789, 0xFFFFFFFFFFFFFFFF]
     for a in values
     {
         var value = a

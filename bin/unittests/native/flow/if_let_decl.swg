@@ -28,8 +28,10 @@ func nativeIfLetWhereFalseElse()->s32
 
 func nativeIfLetDo()->s32
 {
-    if let x = 4 where x > 2 do
+    if let x = 4 where x > 2
+    {
         return x + 1
+    }
 
     return -1
 }

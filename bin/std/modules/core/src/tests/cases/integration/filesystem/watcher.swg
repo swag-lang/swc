@@ -18,16 +18,23 @@ internal func waitForWatchChange(watcher: *Directory.Watcher, kind: Directory.Ch
     for 12
     {
         let batch = try watcher.next(500)
-        if batch.status == .Overflow do
+        if batch.status == .Overflow
+        {
             return false
-        if batch.status != .Changes do
+        }
+
+        if batch.status != .Changes
+        {
             continue
+        }
 
         for change in batch.changes
         {
             let oldPathMatches = oldPath == null or change.oldPath.toString() == oldPath
-            if change.kind == kind and change.path.toString() == path and oldPathMatches do
+            if change.kind == kind and change.path.toString() == path and oldPathMatches
+            {
                 return true
+            }
         }
     }
 
@@ -46,7 +53,7 @@ internal func waitForWatchChange(watcher: *Directory.Watcher, kind: Directory.Ch
     var watcher = expect Directory.watch(root, options)
 
     let first = Path.combine(root, "before.txt")
-    discard expect File.writeAllBytes(first, ['a'u8])
+    discard expect File.writeAllBytes(first, ['a'_u8])
     Swag.require(expect waitForWatchChange(&watcher, .Added, first.toString()))
 
     let second = Path.combine(root, "after.txt")
@@ -91,9 +98,9 @@ internal func waitForWatchChange(watcher: *Directory.Watcher, kind: Directory.Ch
     Swag.require((expect watcher.next(0)).status == .TimedOut)
     Swag.require((expect watcher.next(20)).status == .TimedOut)
     let file = Path.combine(root, "after-timeout")
-    discard expect File.writeAllBytes(file, ['x'u8])
+    discard expect File.writeAllBytes(file, ['x'_u8])
     Swag.require(expect waitForWatchChange(&watcher, .Added, file.toString()))
-    discard expect File.writeAllBytes(file, ['y'u8])
+    discard expect File.writeAllBytes(file, ['y'_u8])
     Swag.require((expect watcher.next(20)).status == .TimedOut)
 }
 
@@ -107,12 +114,12 @@ internal func waitForWatchChange(watcher: *Directory.Watcher, kind: Directory.Ch
     defer discard catch Directory.delete(root, recurse: true)
     var watcher = expect Directory.watch(root, {recurse: true})
     let first   = Path.combine(nested, "first")
-    discard expect File.writeAllBytes(first, ['x'u8])
+    discard expect File.writeAllBytes(first, ['x'_u8])
     Swag.require(expect waitForWatchChange(&watcher, .Added, first.toString()))
     let renamed = Path.combine(root, "after")
     expect File.move(renamed, child)
     Swag.require(expect waitForWatchChange(&watcher, .Renamed, renamed.toString(), child.toString()))
     let second = Path.combine(renamed, "nested/second")
-    discard expect File.writeAllBytes(second, ['y'u8])
+    discard expect File.writeAllBytes(second, ['y'_u8])
     Swag.require(expect waitForWatchChange(&watcher, .Added, second.toString()))
 }

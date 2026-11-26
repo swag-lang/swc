@@ -3,23 +3,23 @@
 
 using Core, Gui
 
-private const FileLimit     = 16 * 1024 * 1024'u64
-private const CellTextLimit = 64 * 1024'u64
+private const FileLimit     = 16 * 1024 * 1024_u64
+private const CellTextLimit = 64 * 1024_u64
 
 // The supported, inert subset of a Jupyter notebook. Unknown JSON properties, including widget
 // state and executable metadata, are skipped by the strict JSON reader.
 struct MimeData
 {
     #[Serialization.Key("text/plain")]
-    textPlain: Array'String
+    textPlain: Array!{String}
 }
 
 struct StoredOutput
 {
     #[Serialization.Key("output_type")]
     outputType: String
-    text:       Array'String
-    traceback:  Array'String
+    text:       Array!{String}
+    traceback:  Array!{String}
     #[Serialization.Key("ename")]
     errorName: String
     #[Serialization.Key("evalue")]
@@ -33,8 +33,8 @@ struct Cell
     cellType: String
     #[Serialization.Key("execution_count")]
     executionCount: String
-    source:         Array'String
-    outputs:        Array'StoredOutput
+    source:         Array!{String}
+    outputs:        Array!{StoredOutput}
 }
 
 struct KernelMetadata
@@ -60,7 +60,7 @@ struct NotebookMetadata
 
 struct Document
 {
-    cells:    Array'Cell
+    cells:    Array!{Cell}
     metadata: NotebookMetadata
     nbformat: u32
 }
@@ -76,8 +76,11 @@ private func quotedEnd(source: string, start: u64)->u64
             continue
         }
 
-        if source[at] == '"' do
+        if source[at] == '"'
+        {
             return at
+        }
+
         at += 1
     }
 
@@ -91,8 +94,8 @@ private func quotedEnd(source: string, start: u64)->u64
 private func normalizeSources(source: string)->String
 {
     var result: String
-    var copiedUntil = 0'u64
-    var at = 0'u64
+    var copiedUntil = 0_u64
+    var at = 0_u64
     while at < source.count
     {
         if source[at] != '"'
@@ -102,8 +105,11 @@ private func normalizeSources(source: string)->String
         }
 
         let end = quotedEnd(source, at)
-        if end == Swag.U64.Max do
+        if end == Swag.U64.Max
+        {
             break
+        }
+
         let field = source[at until end + 1]
         if field != "\"source\"" and field != "\"text/plain\"" and field != "\"execution_count\""
         {
@@ -116,8 +122,11 @@ private func normalizeSources(source: string)->String
               (source[colon] == ' ' or
                source[colon] == '\t' or
                source[colon] == '\r' or
-               source[colon] == '\n') do
+               source[colon] == '\n')
+        {
             colon += 1
+        }
+
         if colon >= source.count or source[colon] != ':'
         {
             at = end + 1
@@ -129,8 +138,11 @@ private func normalizeSources(source: string)->String
               (source[value] == ' ' or
                source[value] == '\t' or
                source[value] == '\r' or
-               source[value] == '\n') do
+               source[value] == '\n')
+        {
             value += 1
+        }
+
         if value >= source.count
         {
             at = end + 1
@@ -146,11 +158,17 @@ private func normalizeSources(source: string)->String
             }
             else
             {
-                if source[value] == '-' do
+                if source[value] == '-'
+                {
                     valueEnd += 1
+                }
+
                 let digitsStart = valueEnd
-                while valueEnd < source.count and Latin1.isDigit(source[valueEnd]) do
+                while valueEnd < source.count and Latin1.isDigit(source[valueEnd])
+                {
                     valueEnd += 1
+                }
+
                 if valueEnd == digitsStart
                 {
                     at = end + 1
@@ -174,8 +192,11 @@ private func normalizeSources(source: string)->String
         }
 
         let valueEnd = quotedEnd(source, value)
-        if valueEnd == Swag.U64.Max do
+        if valueEnd == Swag.U64.Max
+        {
             break
+        }
+
         result      += source[copiedUntil until value]
         result      += "["
         result      += source[value until valueEnd + 1]
@@ -191,31 +212,41 @@ private func normalizeSources(source: string)->String
 // Parses and validates a bounded UTF-8 notebook without interpreting code or rich output.
 func parseNotebook(source: string)->Document fail
 {
-    if source.count > FileLimit do
+    if source.count > FileLimit
+    {
         fail UnsupportedFormatError{"Notebook is too large to open"}
+    }
 
-    var decoder: Serialization.Decoder'Serialization.Read.Json
+    var decoder: Serialization.Decoder!{Serialization.Read.Json}
     let normalized = normalizeSources(source)
-    return try decoder.readAll'Document(cast(const [..] u8, normalized))[]
+    return try decoder.readAll!{Document}(cast(const [..] u8, normalized))[]
 }
 
-private func joinLines(lines: Array'String)->String
+private func joinLines(lines: Array!{String})->String
 {
     var result: #returntype
-    for line in lines do
+    for line in lines
+    {
         result += line[]
+    }
+
     return result
 }
 
 // Keeps Markdown shaping and the document model bounded even when a single cell/output is huge.
 private func boundedText(source: string)->String
 {
-    if source.count <= CellTextLimit do
+    if source.count <= CellTextLimit
+    {
         return String.from(source)
+    }
 
     var end = CellTextLimit
-    while end and (source[end] & 0xC0) == 0x80 do
+    while end and (source[end] & 0xC0) == 0x80
+    {
         end -= 1
+    }
+
     return Format.toString("%\n\n[Cell text truncated at 64 KiB.]", source[0 until end])
 }
 
@@ -239,8 +270,11 @@ private func codeFence(source: string)->String
 
     let fenceLength = Math.max(3, longest + 1)
     var fence: String
-    for fenceLength do
+    for fenceLength
+    {
         fence += '`'
+    }
+
     return fence
 }
 
@@ -250,8 +284,11 @@ private func fenced(source: string)->String
     var result: String = fence
     result += "text\n"
     result += source
-    if source.count and source[source.count - 1] != '\n' do
+    if source.count and source[source.count - 1] != '\n'
+    {
         result += "\n"
+    }
+
     result += fence
     return result
 }
@@ -280,10 +317,10 @@ private func markdownSafe(source: string)->String
 // The first two lines cover both ATX and underlined headings.
 private func startsWithHeading(source: string)->bool
 {
-    let text = Latin1.trim(source)
-    let firstBreak = Utf8.indexOf(text, '\n'rune)
-    let end = firstBreak < text.count ? Math.min(Utf8.indexOf(text, '\n'rune, firstBreak + 1), text.count) : text.count
-    let headings = Markdown.parseHeadings(text[until end])
+    let text       = Latin1.trim(source)
+    let firstBreak = Utf8.indexOf(text, '\n'_rune)
+    let end        = firstBreak < text.count ? Math.min(Utf8.indexOf(text, '\n'_rune, firstBreak + 1), text.count) : text.count
+    let headings   = Markdown.parseHeadings(text[until end])
     return not headings.isEmpty() and headings[0].sourceOffset == 0
 }
 
@@ -298,8 +335,11 @@ func renderMarkdown(document: const *Document)->String
         if cell.cellType == "markdown"
         {
             let source = markdownSafe(boundedText(joinLines(cell.source).toString()).toString())
-            if not startsWithHeading(source.toString()) do
+            if not startsWithHeading(source.toString())
+            {
                 result += Format.toString("## Markdown cell %\n\n", number)
+            }
+
             result += source
             result += "\n\n"
             continue
@@ -315,8 +355,11 @@ func renderMarkdown(document: const *Document)->String
             for output in cell.outputs
             {
                 var plainText = joinLines(output.text)
-                if not plainText.count do
+                if not plainText.count
+                {
                     plainText = joinLines(output.data.textPlain)
+                }
+
                 let plain = boundedText(plainText.toString())
                 let trace = boundedText(joinLines(output.traceback).toString())
                 if plain.count
@@ -329,8 +372,11 @@ func renderMarkdown(document: const *Document)->String
                 if trace.count or output.errorName.count or output.errorValue.count
                 {
                     var errorText: String = output.errorValue
-                    if trace.count do
+                    if trace.count
+                    {
                         errorText += Format.toString("\n%", trace)
+                    }
+
                     let error = boundedText(errorText.toString())
                     result += Format.toString("**Error · %**\n\n%\n\n", output.errorName, fenced(error.toString()))
                 }
@@ -339,10 +385,10 @@ func renderMarkdown(document: const *Document)->String
                 {
                     result += "**Rich output omitted** · HTML, SVG, images, widgets and other MIME data remain available in the notebook source; they are not rendered, executed or fetched.\n\n"
                 }
-                elif not plain.count and
-                     not trace.count and
-                     not output.errorName.count and
-                     not output.errorValue.count
+                else if not plain.count and
+                        not trace.count and
+                        not output.errorName.count and
+                        not output.errorValue.count
                 {
                     result += "**Rich output omitted** · HTML, SVG, images, widgets and other MIME data remain available in the notebook source; they are not rendered, executed or fetched.\n\n"
                 }
@@ -357,16 +403,31 @@ func renderMarkdown(document: const *Document)->String
     }
 
     var metadata = Format.toString("nbformat: %\n", document.nbformat)
-    if not document.metadata.kernelspec.displayName.isEmpty() do
+    if not document.metadata.kernelspec.displayName.isEmpty()
+    {
         metadata += Format.toString("Kernel: %\n", boundedText(document.metadata.kernelspec.displayName.toString()))
-    if not document.metadata.kernelspec.name.isEmpty() do
+    }
+
+    if not document.metadata.kernelspec.name.isEmpty()
+    {
         metadata += Format.toString("Kernel identifier: %\n", boundedText(document.metadata.kernelspec.name.toString()))
-    if not document.metadata.kernelspec.language.isEmpty() do
+    }
+
+    if not document.metadata.kernelspec.language.isEmpty()
+    {
         metadata += Format.toString("Kernel language: %\n", boundedText(document.metadata.kernelspec.language.toString()))
-    if not document.metadata.languageInfo.name.isEmpty() do
+    }
+
+    if not document.metadata.languageInfo.name.isEmpty()
+    {
         metadata += Format.toString("Language: %\n", boundedText(document.metadata.languageInfo.name.toString()))
-    if not document.metadata.languageInfo.version.isEmpty() do
+    }
+
+    if not document.metadata.languageInfo.version.isEmpty()
+    {
         metadata += Format.toString("Language version: %\n", boundedText(document.metadata.languageInfo.version.toString()))
+    }
+
     result += "## Notebook metadata\n\n"
     result += fenced(metadata.toString())
     result += "\n\n"
@@ -376,8 +437,11 @@ func renderMarkdown(document: const *Document)->String
 
 private func pluginProbe(content: Viewer.ProbeContent)->bool
 {
-    if content.head.count < 2 or content.head[0] != '{' do
+    if content.head.count < 2 or content.head[0] != '{'
+    {
         return false
+    }
+
     let head = cast(string, content.head)
     return Utf8.contains(head, "\"cells\"") and Utf8.contains(head, "\"nbformat\"")
 }

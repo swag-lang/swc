@@ -36,11 +36,11 @@ internal struct Bot
     count:   s32
     val:     [2] s32 = Swag.S32.Max
     out:     s32
-    pending: Array'String
+    pending: Array!{String}
 }
 
 internal var result = 0
-internal var bots: Array'Bot
+internal var bots: Array!{Bot}
 internal var r0:   Parser.RegExp
 internal var r1:   Parser.RegExp
 
@@ -92,7 +92,7 @@ internal func getBot(x: s32)->*Bot
     return bots.ptr1(x)
 }
 
-internal func executeLines(lines: Array'String)
+internal func executeLines(lines: Array!{String})
 {
     for l in lines
     {
@@ -114,15 +114,23 @@ internal func executeLines(lines: Array'String)
             let low  = getBot(expect StrConv.toS32(r1[3]))
             let high = getBot(expect StrConv.toS32(r1[5]))
 
-            if r1[2] == "bot" do
+            if r1[2] == "bot"
+            {
                 low.add(bot.eatLow())
-            else do
+            }
+            else
+            {
                 low.out = bot.eatLow()
+            }
 
-            if r1[4] == "bot" do
+            if r1[4] == "bot"
+            {
                 high.add(bot.eatHigh())
-            else do
+            }
+            else
+            {
                 high.out = bot.eatHigh()
+            }
 
             low.execute()
             high.execute()

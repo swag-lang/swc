@@ -11,9 +11,9 @@ using Swag, Core
         let actualPpm = direction == 0 ? 100 : -100
         var clock     = expect CaptureClockDrift.create(48_000, 1_000_000_000)
         Swag.require(not expect clock.observe(0, 0))
-        var outputFrames = 0.0'f64
-        var estimates    = 0'u64
-        var lastFrame    = 0'u64
+        var outputFrames = 0.0_f64
+        var estimates    = 0_u64
+        var lastFrame    = 0_u64
         for index in 14_400
         {
             let frame = (cast(u64, index) + 1) * 48_000

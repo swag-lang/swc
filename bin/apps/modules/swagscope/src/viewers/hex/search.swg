@@ -27,8 +27,8 @@ enum SearchError
 // written and lets a pattern cross any streamed file-window boundary.
 struct SearchPattern
 {
-    values: Array'u8
-    masks:  Array'u8
+    values: Array!{u8}
+    masks:  Array!{u8}
 }
 
 impl SearchPattern
@@ -37,23 +37,32 @@ impl SearchPattern
 
     mtd matches(source: string, offset: u64)->bool
     {
-        if offset + .values.count > source.count do
+        if offset + .values.count > source.count
+        {
             return false
+        }
 
-        for index in .values.count where source[offset + index] & .masks[index] != .values[index] do
+        for index in .values.count where source[offset + index] & .masks[index] != .values[index]
+        {
             return false
+        }
+
         return true
     }
 
     // Appends every occurrence, including overlaps, inside one streamed source window.
-    mtd collectMatches(source: string, baseOffset: u64, result: *Array'Viewer.SearchMatch)
+    mtd collectMatches(source: string, baseOffset: u64, result: *Array!{Viewer.SearchMatch})
     {
-        if .values.isEmpty() or source.count < .values.count do
+        if .values.isEmpty() or source.count < .values.count
+        {
             return
+        }
 
         let last = source.count - .values.count
-        for offset in last + 1 where .matches(source, offset) do
+        for offset in last + 1 where .matches(source, offset)
+        {
             result.add({offset: baseOffset + offset, length: .values.count})
+        }
     }
 }
 
@@ -61,12 +70,12 @@ impl SearchPattern
 // invalid pattern.
 struct SearchParse
 {
-    pattern:       SearchPattern
-    state:         SearchParseState
-    error:         SearchError
-    hasByteRange:  bool
-    rangeOffset:   u64
-    rangeLength:   u64
+    pattern:      SearchPattern
+    state:        SearchParseState
+    error:        SearchError
+    hasByteRange: bool
+    rangeOffset:  u64
+    rangeLength:  u64
 }
 
 private struct SearchRangeNumber
@@ -85,12 +94,12 @@ private struct SearchRangeHeader
 
 private func appendSearchByte(pattern: *SearchPattern, high, low: u8)
 {
-    let highWildcard = high == '?'u8
-    let lowWildcard  = low == '?'u8
-    let highValue    = highWildcard ? 0'u8 : hexDigitValue(high)
-    let lowValue     = lowWildcard ? 0'u8 : hexDigitValue(low)
+    let highWildcard = high == '?'_u8
+    let lowWildcard  = low == '?'_u8
+    let highValue    = highWildcard ? 0_u8 : hexDigitValue(high)
+    let lowValue     = lowWildcard ? 0_u8 : hexDigitValue(low)
     pattern.values.add((highValue << 4) | lowValue)
-    pattern.masks.add((highWildcard ? 0'u8 : 0xF0'u8) | (lowWildcard ? 0'u8 : 0x0F'u8))
+    pattern.masks.add((highWildcard ? 0_u8 : 0xF0_u8) | (lowWildcard ? 0_u8 : 0x0F_u8))
 }
 
 // Parses hexadecimal bytes such as `4D 5A ?? 00`, where `?` matches any nibble. Separators may only
@@ -98,13 +107,13 @@ private func appendSearchByte(pattern: *SearchPattern, high, low: u8)
 private func parseBytePattern(source: string)->SearchParse
 {
     var result:  #returntype
-    var high = 0'u8
+    var high = 0_u8
     var hasHigh: bool
 
     for index in source.count
     {
         let value = source[index]
-        if value == ' 'u8 or value == '\t'u8 or value == '_'u8
+        if value == ' '_u8 or value == '\t'_u8 or value == '_'_u8
         {
             if hasHigh
             {
@@ -116,7 +125,7 @@ private func parseBytePattern(source: string)->SearchParse
             continue
         }
 
-        if value != '?'u8 and hexDigitValue(value) == 16
+        if value != '?'_u8 and hexDigitValue(value) == 16
         {
             result.state = .Invalid
             result.error = .Pattern
@@ -188,7 +197,7 @@ private func parseValuePattern(source: string, grouping: Grouping, bigEndian: bo
     }
 
     let size = groupingSize(grouping)
-    var raw  = 0'u64
+    var raw  = 0_u64
     var valid: bool
     switch grouping
     {
@@ -200,8 +209,8 @@ private func parseValuePattern(source: string, grouping: Grouping, bigEndian: bo
         if parseError == null and parsed.eat == source.count and not parsed.ovf
         {
             let bits = size * 8
-            let min  = bits == 64 ? Swag.S64.Min : -(1's64 << (bits - 1))
-            let max  = bits == 64 ? Swag.S64.Max : (1's64 << (bits - 1)) - 1
+            let min  = bits == 64 ? Swag.S64.Min : -(1_s64 << (bits - 1))
+            let max  = bits == 64 ? Swag.S64.Max : (1_s64 << (bits - 1)) - 1
             valid = parsed.value >= min and parsed.value <= max
             raw   = cast #bit (u64, parsed.value)
         }
@@ -213,7 +222,7 @@ private func parseValuePattern(source: string, grouping: Grouping, bigEndian: bo
         let parseError = parseErrorOutcome.value()
         if parseError == null and parsed.eat == source.count and not parsed.ovf
         {
-            let max = size == 8 ? Swag.U64.Max : (1'u64 << (size * 8)) - 1
+            let max = size == 8 ? Swag.U64.Max : (1_u64 << (size * 8)) - 1
             valid = parsed.value <= max
             raw   = parsed.value
         }
@@ -248,7 +257,7 @@ private func parseValuePattern(source: string, grouping: Grouping, bigEndian: bo
         let parseError = parseErrorOutcome.value()
         if parseError == null and parsed.eat == digits.count and not parsed.ovf
         {
-            let max = size == 8 ? Swag.U64.Max : (1'u64 << (size * 8)) - 1
+            let max = size == 8 ? Swag.U64.Max : (1_u64 << (size * 8)) - 1
             valid = parsed.value <= max
             raw   = parsed.value
         }
@@ -280,16 +289,24 @@ private func parseSearchPattern(query: string, grouping: Grouping, bigEndian: bo
         return result
     }
 
-    if Utf8.startsWith(trimmed, "text:", .Latin1NoCase) do
-        return parseTextPattern(Latin1.trim(cast(string, trimmed[5 to])))
-    if Utf8.startsWith(trimmed, "value:", .Latin1NoCase) do
-        return parseValuePattern(Latin1.trim(cast(string, trimmed[6 to])), grouping, bigEndian)
-    if Utf8.startsWith(trimmed, "hex:", .Latin1NoCase) do
-        return parseBytePattern(Latin1.trim(cast(string, trimmed[4 to])))
-
-    if trimmed[0] == '"'u8
+    if Utf8.startsWith(trimmed, "text:", .Latin1NoCase)
     {
-        if trimmed.count == 1 or trimmed[trimmed.count - 1] != '"'u8
+        return parseTextPattern(Latin1.trim(cast(string, trimmed[5 to])))
+    }
+
+    if Utf8.startsWith(trimmed, "value:", .Latin1NoCase)
+    {
+        return parseValuePattern(Latin1.trim(cast(string, trimmed[6 to])), grouping, bigEndian)
+    }
+
+    if Utf8.startsWith(trimmed, "hex:", .Latin1NoCase)
+    {
+        return parseBytePattern(Latin1.trim(cast(string, trimmed[4 to])))
+    }
+
+    if trimmed[0] == '"'_u8
+    {
+        if trimmed.count == 1 or trimmed[trimmed.count - 1] != '"'_u8
         {
             var result: #returntype
             result.state = .Incomplete
@@ -314,9 +331,9 @@ private func parseSearchRangeNumber(source: string)->SearchRangeNumber
         return result
     }
 
-    let decimal = Utf8.startsWith(trimmed, "0d", .Latin1NoCase)
+    let decimal     = Utf8.startsWith(trimmed, "0d", .Latin1NoCase)
     let hexadecimal = Utf8.startsWith(trimmed, "0x", .Latin1NoCase)
-    let digits = decimal or hexadecimal ? cast(string, trimmed[2 to]) : trimmed
+    let digits      = decimal or hexadecimal ? cast(string, trimmed[2 to]) : trimmed
     if not digits.count
     {
         result.state = .Incomplete
@@ -361,28 +378,30 @@ private func parseSearchRangeHeader(query: string)->SearchRangeHeader
     var firstSeparator = body.count
     for index in body.count
     {
-        if body[index] == ':'u8
+        if body[index] == ':'_u8
         {
             firstSeparator = index
             break
         }
     }
+
     if firstSeparator == body.count
     {
         var result: #returntype = {state: .Incomplete, pattern: ""}
         return result
     }
 
-    let afterOffset = cast(string, body[firstSeparator + 1 to])
+    let afterOffset     = cast(string, body[firstSeparator + 1 to])
     var secondSeparator = afterOffset.count
     for index in afterOffset.count
     {
-        if afterOffset[index] == ':'u8
+        if afterOffset[index] == ':'_u8
         {
             secondSeparator = index
             break
         }
     }
+
     if secondSeparator == afterOffset.count
     {
         var result: #returntype = {state: .Incomplete, pattern: ""}
@@ -415,16 +434,21 @@ private func parseSearchRangeHeader(query: string)->SearchRangeHeader
 func parseSearch(query: string, grouping: Grouping, bigEndian: bool)->SearchParse
 {
     let trimmed = Latin1.trim(query)
-    if not Utf8.startsWith(trimmed, "range:", .Latin1NoCase) do
+    if not Utf8.startsWith(trimmed, "range:", .Latin1NoCase)
+    {
         return parseSearchPattern(trimmed, grouping, bigEndian)
+    }
 
     let header = parseSearchRangeHeader(trimmed)
     if header.state != .Valid
     {
         var result: #returntype
         result.state = header.state
-        if header.state == .Invalid do
+        if header.state == .Invalid
+        {
             result.error = .Range
+        }
+
         return result
     }
 
@@ -435,5 +459,6 @@ func parseSearch(query: string, grouping: Grouping, bigEndian: bool)->SearchPars
         result.rangeOffset  = header.offset
         result.rangeLength  = header.length
     }
+
     return result
 }

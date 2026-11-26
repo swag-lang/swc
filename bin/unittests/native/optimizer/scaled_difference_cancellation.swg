@@ -11,7 +11,7 @@ func direct(value, quotient: u64)->u64 => quotient + (value - quotient * 3)
 
 #test
 {
-    for value in [0'u64, 1, 2, 3, 17, 0x7FFFFFFFFFFFFFFF, 0xFFFFFFFFFFFFFFFF]
+    for value in [0_u64, 1, 2, 3, 17, 0x7FFFFFFFFFFFFFFF, 0xFFFFFFFFFFFFFFFF]
     {
         Swag.require(quotientRemainder(value) == value / 3 + value % 3)
         Swag.require(remainderQuotient(value) == value % 3 + value / 3)

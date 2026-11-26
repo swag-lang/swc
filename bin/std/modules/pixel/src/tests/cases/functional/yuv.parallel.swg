@@ -7,7 +7,7 @@ using Core
 {
     let scheduler = Swag.schedulerInstance()
     let started   = scheduler.started.load()
-    var storage: Array'u8
+    var storage: Array!{u8}
     let view      = flatPlanarPicture(&storage, 8, 1, 100, 90, 200)
     var image:   Image
     view.convertToRgb(&image)
@@ -23,14 +23,17 @@ using Core
     Swag.setWorkerCount(4)
     const Width        = 259
     const Height       = 131
-    const LumaStride   = 267'u64
-    const ChromaStride = 137'u64
+    const LumaStride   = 267_u64
+    const ChromaStride = 137_u64
     const LumaSize     = LumaStride * Height
     const ChromaSize   = ChromaStride * ((Height + 1) / 2)
-    var storage: Array'u8
+    var storage: Array!{u8}
     storage.resize(LumaSize + ChromaSize * 2)
-    for index in storage.count do
+    for index in storage.count
+    {
         storage[index] = cast(u8, ((index * 37 + index / 97) & 255))
+    }
+
     var view = YuvPlanarView{luma: storage.storage(), chromaB: storage.storage() + LumaSize, chromaR: storage.storage() + LumaSize + ChromaSize, lumaStride: LumaStride, chromaStride: ChromaStride, width: Width, height: Height}
     let matrices: [3] YuvMatrix = [.Bt601, .Bt709, .Bt2020]
     var image:    Image
@@ -64,7 +67,7 @@ using Core
     const Widths:   [4] s32       = [16, 34, 48, 66]
     const Heights:  [2] s32       = [2, 10]
     const Matrices: [3] YuvMatrix = [.Bt601, .Bt709, .Bt2020]
-    var storage: Array'u8
+    var storage: Array!{u8}
     var result:  Image
     for width in Widths
     {
@@ -75,8 +78,10 @@ using Core
             let lumaSize     = lumaStride * cast(u64, height)
             let chromaSize   = chromaStride * cast(u64, height / 2)
             storage.resize(lumaSize + chromaSize * 2)
-            for index in storage.count do
+            for index in storage.count
+            {
                 storage[index] = cast(u8, ((index * 67 + index / 47) & 255))
+            }
 
             var view = YuvPlanarView{luma: storage.storage(), chromaB: storage.storage() + lumaSize,
                                      chromaR: storage.storage() + lumaSize + chromaSize, lumaStride: lumaStride,

@@ -80,10 +80,15 @@ impl Image
         try GetIconInfo(hicon, &ii)
         result = try fromBitmapHandle(ii.hbmColor)
 
-        if ii.hbmMask != null do
+        if ii.hbmMask != null
+        {
             try DeleteObject(cast(HGDIOBJ, ii.hbmMask))
-        if ii.hbmColor != null do
+        }
+
+        if ii.hbmColor != null
+        {
             try DeleteObject(cast(HGDIOBJ, ii.hbmColor))
+        }
 
         return result
     }

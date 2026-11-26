@@ -196,20 +196,27 @@ public impl Adler32
         var weightedSum = (.currentValue >> 16) & 0xFFFF
 
         let byteCount = buffer.count
-        if not byteCount do
+        if not byteCount
+        {
             return
+        }
 
         let input = buffer.buffer
         if byteCount == 1
         {
             byteSum += input[0]
-            if byteSum >= Modulus do
+            if byteSum >= Modulus
+            {
                 byteSum -= Modulus
+            }
+
             weightedSum += byteSum
-            if weightedSum >= Modulus do
+            if weightedSum >= Modulus
+            {
                 weightedSum -= Modulus
+            }
         }
-        elif byteCount < 16
+        else if byteCount < 16
         {
             for byte in buffer
             {
@@ -217,13 +224,20 @@ public impl Adler32
                 weightedSum += byteSum
             }
 
-            if byteSum >= Modulus do
+            if byteSum >= Modulus
+            {
                 byteSum -= Modulus
+            }
+
             weightedSum %= Modulus
         }
         else
         {
-            if byteCount >= 128
+            const BlocksPerReduction = BytesPerReduction / 16
+            var byteOffset = 0_u64
+
+            // Reduce both sums before their accumulated values can overflow.
+            while byteCount - byteOffset >= BytesPerReduction
             {
                 .updateLarge(input, byteCount)
                 return

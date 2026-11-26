@@ -525,7 +525,7 @@ struct AstQuotedExpr : AstNodeT<AstNodeId::QuotedExpr>
     AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;
 };
 
-struct AstQuotedListExpr : AstCompoundT<AstNodeId::QuotedListExpr>
+struct AstGenericArgListExpr : AstCompoundT<AstNodeId::GenericArgListExpr>
 {
     AstNodeRef nodeExprRef;
 

@@ -25,8 +25,11 @@ struct EnumerationOptions
 // many levels are missing.
 func create(dirName: string, recurse = false) fail
 {
-    if not dirName.count do
+    if not dirName.count
+    {
         fail Errors.BadParameterError{}
+    }
+
     try Env.guardWrite(dirName)
     if not recurse
     {
@@ -34,17 +37,24 @@ func create(dirName: string, recurse = false) fail
         return
     }
 
-    if dirName.count == 0 or exists(dirName) do
+    if dirName.count == 0 or exists(dirName)
+    {
         return
+    }
+
     let parent = Path.directoryName(dirName)
-    if parent != null and parent.count != 0 and parent != dirName do
+    if parent != null and parent.count != 0 and parent != dirName
+    {
         try create(parent, recurse: true)
+    }
 
     // Another process may create the same directory between the check and the call.
     catch createNative(dirName)
     {
-        if not exists(dirName) do
+        if not exists(dirName)
+        {
             fail Swag.err
+        }
     }
 }
 
@@ -54,8 +64,10 @@ func create(dirName: string, recurse = false) fail
 // Directory reparse points, including the requested root, are removed without traversing their targets.
 func delete(dirName: string, recurse = false) fail
 {
-    if not dirName.count do
+    if not dirName.count
+    {
         fail Errors.BadParameterError{}
+    }
 
     // A trailing slash or '/.' makes a native no-follow query resolve a link's target.
     // Strip only these directory suffixes before inspecting or removing the named entry;
@@ -64,14 +76,20 @@ func delete(dirName: string, recurse = false) fail
     let root = cast(u64, Path.rootLength(path))
     while path.count > root
     {
-        if Path.isDirectorySeparator(path[path.count - 1]) do
+        if Path.isDirectorySeparator(path[path.count - 1])
+        {
             path = path[until path.count - 1]
-        elif path.count >= root + 2 and
-             path[path.count - 1] == '.' and
-             Path.isDirectorySeparator(path[path.count - 2]) do
+        }
+        else if path.count >= root + 2 and
+                path[path.count - 1] == '.' and
+                Path.isDirectorySeparator(path[path.count - 2])
+        {
             path = path[until path.count - 1]
-        else do
+        }
+        else
+        {
             break
+        }
     }
 
     try Env.guardWrite(path, followFinalEntry: false)
@@ -89,10 +107,14 @@ func delete(dirName: string, recurse = false) fail
         {
             if entry.isDirectory()
             {
-                if entry.attributes.has(File.FileAttributes.ReparsePoint) do
+                if entry.attributes.has(File.FileAttributes.ReparsePoint)
+                {
                     try deleteEmptyNative(entry.fullName)
-                else do
+                }
+                else
+                {
                     try delete(entry.fullName, recurse: true)
+                }
             }
             else
             {
@@ -108,21 +130,28 @@ func delete(dirName: string, recurse = false) fail
 // A missing directory or a native enumeration failure reports an error.
 //
 // When both `matchExtension` and `matchFileName` are set, an entry matching either one is kept.
-func enumerate(dirName: string?, options: EnumerationOptions)->Array'(File.FileInfo) fail
+func enumerate(dirName: string?, options: EnumerationOptions)->Array!{File.FileInfo} fail
 {
     var result: #returntype
-    if dirName == null do
+    if dirName == null
+    {
         return result
-    if not dirName.count do
-        fail Errors.BadParameterError{}
+    }
 
-    var stack: Array'String
+    if not dirName.count
+    {
+        fail Errors.BadParameterError{}
+    }
+
+    var stack: Array!{String}
     stack.add(dirName)
     while not stack.isEmpty()
     {
         var toScan = stack.popBack()
-        if Path.VolumeSeparator != 0 and toScan.back() == Path.VolumeSeparator do
+        if Path.VolumeSeparator != 0 and toScan.back() == Path.VolumeSeparator
+        {
             toScan += Path.DirectorySeparator
+        }
 
         var entries = try enumerateOneNative(toScan)
         for &entry in entries
@@ -134,31 +163,45 @@ func enumerate(dirName: string?, options: EnumerationOptions)->Array'(File.FileI
             if isDir and
                not special and
                options.recurse and
-               not entry.attributes.has(File.FileAttributes.ReparsePoint) do
+               not entry.attributes.has(File.FileAttributes.ReparsePoint)
+            {
                 stack.add(entry.fullName)
+            }
 
             var wanted: bool
-            if special do
+            if special
+            {
                 wanted = options.wantSpecialDirectories
-            elif isDir do
+            }
+            else if isDir
+            {
                 wanted = options.wantDirectories
-            else do
+            }
+            else
+            {
                 wanted = options.wantFiles
+            }
 
-            if not wanted or entry.attributes & options.skipAttributes do
+            if not wanted or entry.attributes & options.skipAttributes
+            {
                 continue
+            }
 
             if options.matchExtension or options.matchFileName
             {
                 let matchesExtension = options.matchExtension and
                                        Path.hasExtension(entry.fullName, options.matchExtension orelse "")
                 let matchesFileName = options.matchFileName and fileName == options.matchFileName
-                if not matchesExtension and not matchesFileName do
+                if not matchesExtension and not matchesFileName
+                {
                     continue
+                }
             }
 
-            if options.filter and not options.filter(entry) do
+            if options.filter and not options.filter(entry)
+            {
                 continue
+            }
 
             result.add(#move entry[])
         }
@@ -168,13 +211,13 @@ func enumerate(dirName: string?, options: EnumerationOptions)->Array'(File.FileI
 }
 
 // Returns the files of `dirName`, optionally restricted to one extension and extended to its subdirectories.
-func enumerateFiles(dirName: string, matchExtension: string? = null, recurse = false)->Array'(File.FileInfo) fail
+func enumerateFiles(dirName: string, matchExtension: string? = null, recurse = false)->Array!{File.FileInfo} fail
 {
     return try enumerate(dirName, {matchExtension: matchExtension, wantDirectories: false, recurse: recurse})
 }
 
 // Returns the subdirectories of `dirName`, optionally restricted to one extension and extended to their own subdirectories.
-func enumerateDirectories(dirName: string, matchExtension: string? = null, recurse = false)->Array'(File.FileInfo) fail
+func enumerateDirectories(dirName: string, matchExtension: string? = null, recurse = false)->Array!{File.FileInfo} fail
 {
     return try enumerate(dirName, {matchExtension: matchExtension, wantFiles: false, recurse: recurse})
 }

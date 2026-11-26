@@ -16,10 +16,10 @@ struct DocumentText
 {
     task:     Swag.Task
     fileName: String
-    pages:    Array'String     // One entry per page, written once by the worker before it is published.
-    ready:    u32              // Pages published so far, from the first; read and written atomically.
-    cancel:   u32              // Asks the worker to stop after the page it is on; read and written atomically.
-    failed:   Array'bool       // Whether each page's text could not be read, written with `pages`.
+    pages:    Array!{String}     // One entry per page, written once by the worker before it is published.
+    ready:    u32                // Pages published so far, from the first; read and written atomically.
+    cancel:   u32                // Asks the worker to stop after the page it is on; read and written atomically.
+    failed:   Array!{bool}       // Whether each page's text could not be read, written with `pages`.
     started:  bool
 }
 
@@ -64,15 +64,20 @@ impl DocumentText
     // Blocks until every page is published.
     mtd wait()
     {
-        if .started do
+        if .started
+        {
             .task.wait()
+        }
     }
 
     // Stops the worker after the page it is on and releases everything extracted.
     mtd stop()
     {
-        if not .started do
+        if not .started
+        {
             return
+        }
+
         Atomic.exchange(&.cancel, 1)
         .task.wait()
         .started = false
@@ -99,24 +104,34 @@ impl DocumentText
         let openError = openErrorOutcome.value()
         if openError != null
         {
-            for index in .failed.count do
+            for index in .failed.count
+            {
                 .failed[index] = true
+            }
         }
         else
         {
             let count = Math.min(reader.pageCount(), .pages.count)
             for index in count
             {
-                if Atomic.get(&.cancel) != 0 do
+                if Atomic.get(&.cancel) != 0
+                {
                     return
+                }
+
                 var pageErrorOutcome: Swag.Error
                 var text: #decltype(expect reader.loadPageText(index))
                 catch { text = try reader.loadPageText(index) } as pageErrorOutcome
                 let pageError = pageErrorOutcome.value()
-                if pageError == null do
+                if pageError == null
+                {
                     .pages[index] = #move text
-                else do
+                }
+                else
+                {
                     .failed[index] = true
+                }
+
                 Atomic.exchange(&.ready, cast(u32, (index + 1)))
             }
         }

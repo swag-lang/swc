@@ -9,12 +9,12 @@ const StateSize = 312
 
 const MID      = StateSize / 2
 const MM       = 156
-const MATRIX_A = 0xB5026F5AA96619E9'u64
-const UM       = 0xFFFFFFFF80000000'u64
-const LM       = 0x7FFFFFFF'u64
+const MATRIX_A = 0xB5026F5AA96619E9_u64
+const UM       = 0xFFFFFFFF80000000_u64
+const LM       = 0x7FFFFFFF_u64
 
-private const DefaultSeed = 5489'u64     // Seed of the reference implementation when none is given
-private const Unseeded    = StateSize + 1'u64     // Index of a generator that was never seeded
+private const DefaultSeed = 5489_u64     // Seed of the reference implementation when none is given
+private const Unseeded    = StateSize + 1_u64     // Index of a generator that was never seeded
 
 // The MT19937-64 Mersenne Twister generator.
 //
@@ -41,7 +41,7 @@ public impl MersenneTwister64
         .index    = 1
         while .index < StateSize
         {
-            .state[.index] = (6364136223846793005'u64 * (.state[.index - 1] ^ (.state[.index - 1] >> 62)) + .index)
+            .state[.index] = (6364136223846793005_u64 * (.state[.index - 1] ^ (.state[.index - 1] >> 62)) + .index)
             .index         += 1
         }
     }
@@ -52,8 +52,10 @@ public impl MersenneTwister64
     mtd seedU64(seed: const [..] u64)
     {
         let keyLength = seed.count
-        if not keyLength do
+        if not keyLength
+        {
             return .seedU64(DefaultSeed)
+        }
 
         .seedU64(19650218)
         var i = 1
@@ -70,8 +72,11 @@ public impl MersenneTwister64
                 i         = 1
             }
 
-            if j >= keyLength do
+            if j >= keyLength
+            {
                 j = 0
+            }
+
             k -= 1
         }
 
@@ -89,15 +94,17 @@ public impl MersenneTwister64
             k -= 1
         }
 
-        .state[0] = 1'u64 << 63
+        .state[0] = 1_u64 << 63
     }
 
     // Returns the next pseudorandom 64-bit value.
     #[Swag.Safety(.Overflow, false)]
     mtd nextU64()->u64
     {
-        if .index == Unseeded do
+        if .index == Unseeded
+        {
             .seedU64(DefaultSeed)
+        }
 
         if .index >= StateSize
         {
@@ -122,9 +129,9 @@ public impl MersenneTwister64
         var result = .state[.index]
         .index += 1
 
-        result ^= (result >> 29) & 0x5555555555555555'u64
-        result ^= (result << 17) & 0x71D67FFFEDA60000'u64
-        result ^= (result << 37) & 0xFFF7EEE000000000'u64
+        result ^= (result >> 29) & 0x5555555555555555_u64
+        result ^= (result << 17) & 0x71D67FFFEDA60000_u64
+        result ^= (result << 37) & 0xFFF7EEE000000000_u64
         result ^= (result >> 43)
         return result
     }

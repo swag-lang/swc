@@ -71,8 +71,8 @@ func callKindof(a: FixedPair, b: [3] s32, c: string, d: *void, e: FixedKind)->bo
 
 #test
 {
-    let mixed = callMixedNumeric(1, 2.0'f32, 3, 4.0'f32, 5's64, 6.0'f64, 7'u32, 8.0'f32, 9'u64, 10.0'f64)
-    let small = callSmallInts(-1's8, -2's16, -3's32, -4's64, 5'u8, 6'u16, 7'u32, 8'u64)
+    let mixed = callMixedNumeric(1, 2.0_f32, 3, 4.0_f32, 5_s64, 6.0_f64, 7_u32, 8.0_f32, 9_u64, 10.0_f64)
+    let small = callSmallInts(-1_s8, -2_s16, -3_s32, -4_s64, 5_u8, 6_u16, 7_u32, 8_u64)
     let rune0 = callBoolRune(true, 'A', false, 'Z', true, '0')
     let rune1 = callBoolRune(false, 'B', true, 'C', false, 'D')
 
@@ -80,8 +80,8 @@ func callKindof(a: FixedPair, b: [3] s32, c: string, d: *void, e: FixedKind)->bo
     #assert(#typeof(small) == s64)
     #assert(#typeof(rune0) == s32)
 
-    Swag.require(mixed == 55's64)
-    Swag.require(small == 16's64)
+    Swag.require(mixed == 55_s64)
+    Swag.require(small == 16_s64)
     Swag.require(rune0 == 205)
     Swag.require(rune1 == 202)
 }
@@ -91,12 +91,12 @@ func callKindof(a: FixedPair, b: [3] s32, c: string, d: *void, e: FixedKind)->bo
     let sum0 = callAggregate({a: 2, b: 4}, [10, 20, 30], "Az")
     let sum1 = callAggregate({a: -2, b: 14}, [4, 5, 6], "By")
     let ptr0 = callPointerEnum(null, FixedKind.A, 3)
-    let ptr1 = callPointerEnum(cast(*void, 0x45'u64), FixedKind.B, 7)
+    let ptr1 = callPointerEnum(cast(*void, 0x45_u64), FixedKind.B, 7)
 
     #assert(#typeof(ptr0) == u64)
     Swag.require(sum0 == 168)
     Swag.require(sum1 == 143)
-    Swag.require(ptr0 == 8'u64)
-    Swag.require(ptr1 == 17'u64)
-    Swag.require(callKindof({a: 1, b: 2}, [3, 4, 5], "ok", cast(*void, 0x10'u64), FixedKind.B))
+    Swag.require(ptr0 == 8_u64)
+    Swag.require(ptr1 == 17_u64)
+    Swag.require(callKindof({a: 1, b: 2}, [3, 4, 5], "ok", cast(*void, 0x10_u64), FixedKind.B))
 }

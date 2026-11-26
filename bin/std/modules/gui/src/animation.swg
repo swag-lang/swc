@@ -74,7 +74,7 @@ struct AnimationOptions
     public
     {
         delay:            Time.Duration                        // Non-negative time kept at the start value before progress begins.
-        duration:         Time.Duration      = 150'ms          // Non-negative time of one play, between the start and end values.
+        duration:         Time.Duration      = 150_ms          // Non-negative time of one play, between the start and end values.
         easing:           AnimationEasing    = .EaseInOut      // Named curve applied to normalized progress; ignored once `curve` is set.
         direction:        AnimationDirection = .Forward        // Endpoint from which the track starts.
         repeatCount:      u32 = 1                              // Number of successive plays; zero repeats until the track is cancelled.
@@ -161,7 +161,7 @@ private struct AnimationTrack
 struct AnimationGroup
 {
     kind:       AnimationGroupKind
-    tracks:     ArrayPtr'AnimationTrack
+    tracks:     ArrayPtr!{AnimationTrack}
     completion: AnimationCompletion?
 }
 
@@ -172,13 +172,16 @@ private impl AnimationGroup
         Swag.assert(target != null)
         Swag.assert(options.delay.seconds >= 0)
         Swag.assert(options.duration.seconds >= 0)
-        let track = Memory.new'AnimationTrack()
+        let track = Memory.new!{AnimationTrack}()
         track.target  = target
         track.channel = channel
         track.options = options
         track.kind    = kind
-        if .kind == .Sequence do
+        if .kind == .Sequence
+        {
             track.step = cast(u32, .tracks.count)
+        }
+
         .tracks.add(track)
         return track
     }
@@ -267,7 +270,7 @@ private struct AnimationRun
     id:              u64
     currentStep:     u32
     cancelRequested: bool
-    tracks:          ArrayPtr'AnimationTrack
+    tracks:          ArrayPtr!{AnimationTrack}
     completion:      AnimationCompletion?
 }
 
@@ -276,7 +279,7 @@ private struct AnimationRun
 struct Animator
 {
     app:           *Application?
-    animations:    ArrayPtr'AnimationRun
+    animations:    ArrayPtr!{AnimationRun}
     nextId:        u64 = 1
     duringAdvance: bool
 }
@@ -290,8 +293,11 @@ private impl Animator
     func directedFactor(track: *AnimationTrack, progress: f32)->f32
     {
         let directed = track.options.direction == .Forward ? progress : 1 - progress
-        if track.options.curve do
+        if track.options.curve
+        {
             return track.options.curve.evaluateNormalized(directed)
+        }
+
         return Math.Curve.shared(track.options.easing).evaluateNormalized(directed)
     }
 
@@ -301,16 +307,22 @@ private impl Animator
     // endless one is treated as even because that is the value it keeps returning to.
     func restProgress(track: *AnimationTrack)->f32
     {
-        if not track.options.autoReverse do
+        if not track.options.autoReverse
+        {
             return 1
+        }
+
         return track.options.repeatCount & 1 ? 1 : 0
     }
 
     // Returns the elapsed time at which a track stops advancing, or an unreachable time while it repeats forever.
     func totalSeconds(track: *AnimationTrack)->f64
     {
-        if not track.options.repeatCount do
+        if not track.options.repeatCount
+        {
             return Swag.F64.Max
+        }
+
         return track.options.delay.seconds + track.options.duration.seconds * cast(f64, track.options.repeatCount)
     }
 
@@ -319,21 +331,31 @@ private impl Animator
     func progress(track: *AnimationTrack)->f32
     {
         let delay = track.options.delay.seconds
-        if track.elapsedSeconds <= delay do
+        if track.elapsedSeconds <= delay
+        {
             return 0
+        }
+
         let duration = track.options.duration.seconds
-        if duration <= 0 do
+        if duration <= 0
+        {
             return restProgress(track)
+        }
 
         // The last play holds its final frame instead of wrapping to the beginning again.
         let plays = (track.elapsedSeconds - delay) / duration
         var index = Math.floor(plays)
-        if track.options.repeatCount and index > cast(f64, (track.options.repeatCount - 1)) do
+        if track.options.repeatCount and index > cast(f64, (track.options.repeatCount - 1))
+        {
             index = cast(f64, (track.options.repeatCount - 1))
+        }
 
         let local = Math.saturate(cast(f32, (plays - index)))
-        if track.options.autoReverse and cast(u64, index) & 1 do
+        if track.options.autoReverse and cast(u64, index) & 1
+        {
             return 1 - local
+        }
+
         return local
     }
 
@@ -371,15 +393,22 @@ private impl Animator
 
     mtd applyImpact(track: *AnimationTrack)
     {
-        if track.target.isPendingDestroy do
+        if track.target.isPendingDestroy
+        {
             return
+        }
+
         if track.options.impact == .Layout
         {
             track.target.invalidateLayout()
-            if track.target.parent do
+            if track.target.parent
+            {
                 track.target.parent.applyLayout()
-            else do
+            }
+            else
+            {
                 track.target.applyLayout()
+            }
         }
 
         track.target.invalidate()
@@ -416,11 +445,16 @@ private impl Animator
 
     mtd completeTrack(track: *AnimationTrack, result: AnimationResult)
     {
-        if track.finished do
+        if track.finished
+        {
             return
+        }
+
         track.finished = true
-        if track.completion do
+        if track.completion
+        {
             track.completion(result)
+        }
     }
 
     mtd finishAt(index: u64, result: AnimationResult)
@@ -429,12 +463,17 @@ private impl Animator
         .animations.removeAtOrdered(index)
         for track in run.tracks
         {
-            if not track!.finished do
+            if not track!.finished
+            {
                 .completeTrack(track, result)
+            }
         }
 
-        if run.completion do
+        if run.completion
+        {
             run.completion(result)
+        }
+
         Memory.delete(run)
     }
 
@@ -445,8 +484,10 @@ private impl Animator
             for track in run!.tracks
             {
                 let value = unwrap track
-                if not value.finished and value.target == target and value.channel == channel do
+                if not value.finished and value.target == target and value.channel == channel
+                {
                     return value
+                }
             }
         }
 
@@ -468,12 +509,19 @@ private impl Animator
                 }
             }
 
-            if not matches do
+            if not matches
+            {
                 continue
-            if .duringAdvance do
+            }
+
+            if .duringAdvance
+            {
                 run.cancelRequested = true
-            else do
+            }
+            else
+            {
                 .finishAt(index, .Cancelled)
+            }
         }
     }
 
@@ -486,20 +534,33 @@ private impl Animator
             for track in run.tracks
             {
                 let value = unwrap track
-                if value.target != target do
+                if value.target != target
+                {
                     continue
-                if value.channel != channel do
+                }
+
+                if value.channel != channel
+                {
                     continue
+                }
+
                 matches = true
                 break
             }
 
-            if not matches do
+            if not matches
+            {
                 continue
-            if .duringAdvance do
+            }
+
+            if .duringAdvance
+            {
                 run.cancelRequested = true
-            else do
+            }
+            else
+            {
                 .finishAt(index, .Cancelled)
+            }
         }
     }
 
@@ -510,38 +571,58 @@ private impl Animator
         {
         case .F32:
             track.currentF32 = previous.currentF32
-            if track.options.direction == .Forward do
+            if track.options.direction == .Forward
+            {
                 track.fromF32 = track.currentF32
-            else do
+            }
+            else
+            {
                 track.toF32 = track.currentF32
+            }
 
         case .Color:
             track.currentColor = previous.currentColor
-            if track.options.direction == .Forward do
+            if track.options.direction == .Forward
+            {
                 track.fromColor = track.currentColor
-            else do
+            }
+            else
+            {
                 track.toColor = track.currentColor
+            }
 
         case .Point:
             track.currentPoint = previous.currentPoint
-            if track.options.direction == .Forward do
+            if track.options.direction == .Forward
+            {
                 track.fromPoint = track.currentPoint
-            else do
+            }
+            else
+            {
                 track.toPoint = track.currentPoint
+            }
 
         case .Vector4:
             track.currentVector4 = previous.currentVector4
-            if track.options.direction == .Forward do
+            if track.options.direction == .Forward
+            {
                 track.fromVector4 = track.currentVector4
-            else do
+            }
+            else
+            {
                 track.toVector4 = track.currentVector4
+            }
 
         case .Rectangle:
             track.currentRectangle = previous.currentRectangle
-            if track.options.direction == .Forward do
+            if track.options.direction == .Forward
+            {
                 track.fromRectangle = track.currentRectangle
-            else do
+            }
+            else
+            {
                 track.toRectangle = track.currentRectangle
+            }
         }
     }
 
@@ -636,8 +717,11 @@ private impl Animator
             for trackIt in run.tracks
             {
                 let track = unwrap trackIt
-                if track.finished or track.step != run.currentStep do
+                if track.finished or track.step != run.currentStep
+                {
                     continue
+                }
+
                 hasStep = true
                 track.elapsedSeconds += stepDelta
                 .applyTrack(track, progress(track))
@@ -651,18 +735,27 @@ private impl Animator
                     stepDone = false
                 }
 
-                if run.cancelRequested do
+                if run.cancelRequested
+                {
                     return false
+                }
             }
 
-            if hasStep and not stepDone do
+            if hasStep and not stepDone
+            {
                 return false
+            }
 
             var nextStep = Swag.U32.Max
-            for track in run.tracks where not track!.finished do
+            for track in run.tracks where not track!.finished
+            {
                 nextStep = Math.min(nextStep, track.step)
-            if nextStep == Swag.U32.Max do
+            }
+
+            if nextStep == Swag.U32.Max
+            {
                 return true
+            }
 
             run.currentStep = nextStep
             stepDelta       = hasStep ? stepRemainder : 0
@@ -672,8 +765,10 @@ private impl Animator
     mtd startTrack(track: *AnimationTrack)
     {
         let previous = .findTrack(track.target, track.channel)
-        if previous and previous.kind == track.kind do
+        if previous and previous.kind == track.kind
+        {
             .preserveCurrent(track, previous)
+        }
     }
 }
 
@@ -686,8 +781,10 @@ impl Animator
     // outgoing half of [[Gui.Animator.transitionPage]] remains a valid presentation target.
     mtd start(group: #move AnimationGroup)->AnimationHandle
     {
-        if group.tracks.isEmpty() do
+        if group.tracks.isEmpty()
+        {
             return {}
+        }
 
         for track in group.tracks
         {
@@ -696,17 +793,26 @@ impl Animator
                (target.wndFlags.has(.Hidden) and not target.paintsWhenHidden) or
                not target.surface
             {
-                for cancelledTrack in group.tracks do
+                for cancelledTrack in group.tracks
+                {
                     .completeTrack(unwrap cancelledTrack, .Cancelled)
-                if group.completion do
+                }
+
+                if group.completion
+                {
                     group.completion(.Cancelled)
+                }
+
                 return {}
             }
         }
 
         let first = unwrap group.tracks[0]
-        if not .app do
+        if not .app
+        {
             .app = first.target.app()
+        }
+
         for track in group.tracks
         {
             Swag.assert(track!.target.app() == .app)
@@ -714,10 +820,12 @@ impl Animator
         }
 
         // Retargeting one channel cancels its old group as one coherent operation.
-        for track in group.tracks do
+        for track in group.tracks
+        {
             .requestCancellation(track!.target, track.channel)
+        }
 
-        let run = Memory.new'AnimationRun()
+        let run = Memory.new!{AnimationRun}()
         run.id         = .nextId
         run.tracks     = #move group.tracks
         run.completion = group.completion
@@ -731,8 +839,10 @@ impl Animator
             for trackIt in run.tracks
             {
                 let track = unwrap trackIt
-                if track.options.motion != .Decorative do
+                if track.options.motion != .Decorative
+                {
                     continue
+                }
 
                 // Reduced motion wants the state a loop settles on, not one of its plays, so a
                 // ping-pong track is collapsed to the pair that returns it to where it began.
@@ -753,7 +863,7 @@ impl Animator
                 break
             }
         }
-        elif done
+        else if done
         {
             for index in .animations.count where .animations[index] == run
             {
@@ -860,16 +970,27 @@ impl Animator
     // Cancels an active animation and reports `Cancelled` to unfinished callbacks.
     mtd cancel(handle: AnimationHandle)
     {
-        if not handle.isValid() do
+        if not handle.isValid()
+        {
             return
+        }
+
         for index in .animations.count
         {
-            if .animations[index]!.id != handle.id do
+            if .animations[index]!.id != handle.id
+            {
                 continue
-            if .duringAdvance do
+            }
+
+            if .duringAdvance
+            {
                 .animations[index]!.cancelRequested = true
-            else do
+            }
+            else
+            {
                 .finishAt(index, .Cancelled)
+            }
+
             return
         }
     }
@@ -877,10 +998,16 @@ impl Animator
     // Reports whether a handle still names an active animation.
     mtd const isActive(handle: AnimationHandle)->bool
     {
-        if not handle.isValid() do
+        if not handle.isValid()
+        {
             return false
-        for run in .animations where run!.id == handle.id do
+        }
+
+        for run in .animations where run!.id == handle.id
+        {
             return true
+        }
+
         return false
     }
 
@@ -892,8 +1019,10 @@ impl Animator
             for track in run!.tracks
             {
                 let value = unwrap track
-                if not value.finished and value.target == target and value.channel == channel do
+                if not value.finished and value.target == target and value.channel == channel
+                {
                     return true
+                }
             }
         }
 
@@ -913,14 +1042,23 @@ impl Animator
             .duringAdvance = true
             for track in run.tracks
             {
-                if run.cancelRequested do
+                if run.cancelRequested
+                {
                     break
+                }
+
                 let value = unwrap track
-                if value.finished do
+                if value.finished
+                {
                     continue
+                }
+
                 .applyTrack(value, restProgress(value))
-                if run.cancelRequested do
+                if run.cancelRequested
+                {
                     break
+                }
+
                 .completeTrack(value, .Completed)
             }
 
@@ -935,7 +1073,7 @@ impl Animator
     internal mtd advance(deltaSeconds: f32)
     {
         .duringAdvance = true
-        var index        = 0'u64
+        var index        = 0_u64
         var initialCount = .animations.count
         while index < initialCount
         {
@@ -974,21 +1112,28 @@ impl Animator
             for track in run.tracks
             {
                 let value = unwrap track
-                if value.finished or value.options.motion == .Essential do
+                if value.finished or value.options.motion == .Essential
+                {
                     continue
+                }
+
                 .applyTrack(value, restProgress(value))
                 .completeTrack(value, .Completed)
             }
 
-            if .advanceRun(run, 0) do
+            if .advanceRun(run, 0)
+            {
                 .finishAt(index, .Completed)
+            }
         }
     }
 
     internal mtd cancelAll()
     {
-        while not .animations.isEmpty() do
+        while not .animations.isEmpty()
+        {
             .finishAt(.animations.count - 1, .Cancelled)
+        }
     }
 
     // Replaces one visible page with another using a covered cross-fade and horizontal arrival.
@@ -997,7 +1142,7 @@ impl Animator
     // the final page throughout the decorative transition. The outgoing page fades out under
     // the incoming page until the handoff completes, so the page area is never empty.
     // `direction` is normally `1` for forward navigation and `-1` for backward navigation.
-    mtd transitionPage(outgoing: *Wnd?, incoming: *Wnd, direction = 1'f32)->AnimationHandle
+    mtd transitionPage(outgoing: *Wnd?, incoming: *Wnd, direction = 1_f32)->AnimationHandle
     {
         Swag.assert(incoming != null)
         if outgoing == incoming
@@ -1026,8 +1171,11 @@ impl Animator
         options.easing   = .EaseOut
 
         var group = AnimationGroup.concurrent()
-        if outgoing do
+        if outgoing
+        {
             group.addF32(outgoing, AnimationChannel.from("Gui.Page.Opacity"), 1, 0, func(wnd, value) { wnd.setPresentationOpacity(value) }, options)
+        }
+
         group.addF32(incoming, AnimationChannel.from("Gui.Page.Opacity"), 0, 1, func(wnd, value) { wnd.setPresentationOpacity(value) }, options)
         group.addPoint(incoming, AnimationChannel.from("Gui.Page.Offset"), offset, {}, func(wnd, value) { wnd.setPresentationOffset(value) }, options)
         group.setCompletion(func|outgoing, incoming|(_)
@@ -1042,8 +1190,10 @@ impl Animator
                 }
             }
 
-            if not incoming.isPendingDestroy do
+            if not incoming.isPendingDestroy
+            {
                 incoming.resetPresentation()
+            }
         })
         return .start(#move group)
     }
@@ -1055,9 +1205,7 @@ impl Animator
         Swag.assert(target != null)
         let opacity = AnimationChannel.from("Gui.Float.Opacity")
         discard .showForArrival(target, opacity)
-        return .animateF32(target, opacity, target.presentationOpacity, 1,
-                           func(wnd, value) { wnd.setPresentationOpacity(value) },
-                           {duration: duration, easing: easing})
+        return .animateF32(target, opacity, target.presentationOpacity, 1, func(wnd, value) { wnd.setPresentationOpacity(value) }, {duration: duration, easing: easing})
     }
 
     private mtd showForArrival(target: *Wnd, opacity: AnimationChannel)->bool
@@ -1065,8 +1213,11 @@ impl Animator
         let fading = .isActive(target, opacity)
         target.setPaintWhenHidden(false)
         target.show()
-        if not fading do
+        if not fading
+        {
             target.setPresentationOpacity(0)
+        }
+
         return fading
     }
 
@@ -1086,8 +1237,10 @@ impl Animator
         Swag.assert(target != null)
         let opacity = AnimationChannel.from("Gui.Float.Opacity")
         let offset  = AnimationChannel.from("Gui.Float.Offset")
-        if not .showForArrival(target, opacity) do
+        if not .showForArrival(target, opacity)
+        {
             target.setPresentationOffset(travel)
+        }
 
         var options: AnimationOptions
         options.duration = duration
@@ -1098,8 +1251,10 @@ impl Animator
         group.addPoint(target, offset, target.presentationOffset, {}, func(wnd, value) { wnd.setPresentationOffset(value) }, options)
         group.setCompletion(func|target|(result)
         {
-            if result == .Completed and not target.isPendingDestroy do
+            if result == .Completed and not target.isPendingDestroy
+            {
                 target.resetPresentation()
+            }
         })
         return .start(#move group)
     }
@@ -1115,8 +1270,10 @@ impl Animator
     mtd leave(target: *Wnd, duration: Time.Duration, easing: AnimationEasing)->AnimationHandle
     {
         Swag.assert(target != null)
-        if not target.isLocallyVisible() do
+        if not target.isLocallyVisible()
+        {
             return {}
+        }
 
         target.hide()
         target.setPaintWhenHidden(true)
@@ -1176,8 +1333,11 @@ impl Animator
                            options,
                            func|target, height|(result)
                            {
-                               if target.isPendingDestroy do
+                               if target.isPendingDestroy
+                               {
                                    return
+                               }
+
                                target.preferredSize.y = result == .Completed ? height : target.position.height
                                target.invalidateLayout()
                                target.parent?.applyLayout()

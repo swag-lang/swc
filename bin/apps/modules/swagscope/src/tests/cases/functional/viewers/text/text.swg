@@ -35,8 +35,10 @@ func finishTextStatistics(host: *Testing.HeadlessHost, view: *PlainText.Panel)
         host.pump()
         if view.hasStatistics and
            view.statisticsEncoding == view.encoding and
-           view.statisticsStart == view.contentStart do
+           view.statisticsStart == view.contentStart
+        {
             return
+        }
     }
 
     Swag.require(false, "text statistics did not settle")
@@ -50,7 +52,7 @@ func finishTextStatistics(host: *Testing.HeadlessHost, view: *PlainText.Panel)
     defer discard catch File.delete(fileName)
 
     // UTF-16 LE with its mark: "a", U+0A00, U+010A, line feed, "b", line feed, "c".
-    let bytes = [0xFF'u8, 0xFE'u8, 0x61'u8, 0x00'u8, 0x00'u8, 0x0A'u8, 0x0A'u8, 0x01'u8, 0x0A'u8, 0x00'u8, 0x62'u8, 0x00'u8, 0x0A'u8, 0x00'u8, 0x63'u8, 0x00'u8]
+    let bytes = [0xFF_u8, 0xFE_u8, 0x61_u8, 0x00_u8, 0x00_u8, 0x0A_u8, 0x0A_u8, 0x01_u8, 0x0A_u8, 0x00_u8, 0x62_u8, 0x00_u8, 0x0A_u8, 0x00_u8, 0x63_u8, 0x00_u8]
     expect File.writeAllBytes(fileName, bytes)
 
     var lines: Viewer.LineCounter
@@ -79,7 +81,7 @@ func finishTextStatistics(host: *Testing.HeadlessHost, view: *PlainText.Panel)
     Swag.require(lines.offsetOfLine(fileName, 2, .Utf16Le, 2) == 10)
 
     let anchorOffset = lines.numberedOffset
-    let anchorLine = lines.numberedLine
+    let anchorLine   = lines.numberedLine
     Swag.require(lines.estimateOffsetOfLine(fileName, 3, .Utf16Le, 2) == 14)
     Swag.require(lines.estimateOffsetOfLine(fileName, 100, .Utf16Le, 2) == Swag.U64.Max)
     Swag.require(lines.numberedOffset == anchorOffset and lines.numberedLine == anchorLine)
@@ -90,7 +92,7 @@ func finishTextStatistics(host: *Testing.HeadlessHost, view: *PlainText.Panel)
 {
     let fileName = Testing.tempFilePath("scope-text-line-endings-", ".txt")
     defer discard catch File.delete(fileName)
-    let bytes = ['a'u8, '\r'u8, 'b'u8, '\r'u8, '\n'u8, 'c'u8, '\n'u8, 'd'u8, '\r'u8, 'e'u8]
+    let bytes = ['a'_u8, '\r'_u8, 'b'_u8, '\r'_u8, '\n'_u8, 'c'_u8, '\n'_u8, 'd'_u8, '\r'_u8, 'e'_u8]
     discard expect File.writeAllBytes(fileName, bytes)
 
     var lines: Viewer.LineCounter
@@ -114,8 +116,9 @@ func finishTextStatistics(host: *Testing.HeadlessHost, view: *PlainText.Panel)
 
     let utf16File = Testing.tempFilePath("scope-text-line-endings-utf16-", ".txt")
     defer discard catch File.delete(utf16File)
+
     // UTF-16 LE: U+0D00, CR, U+0A00, CRLF, U+000A.
-    let utf16Bytes = [0x00'u8, 0x0D, 0x0D, 0, 0x00, 0x0A, 0x0D, 0, 0x0A, 0, 0x0A, 0]
+    let utf16Bytes = [0x00_u8, 0x0D, 0x0D, 0, 0x00, 0x0A, 0x0D, 0, 0x0A, 0, 0x0A, 0]
     discard expect File.writeAllBytes(utf16File, utf16Bytes)
     lines.reset()
     Swag.require(lines.offsetOfLine(utf16File, 2, .Utf16Le) == 4)
@@ -127,7 +130,7 @@ func finishTextStatistics(host: *Testing.HeadlessHost, view: *PlainText.Panel)
     // A final CR starts an empty last line, including for requests beyond EOF.
     let trailingCrFile = Testing.tempFilePath("scope-text-trailing-cr-", ".txt")
     defer discard catch File.delete(trailingCrFile)
-    discard expect File.writeAllBytes(trailingCrFile, ['x'u8, '\r'u8])
+    discard expect File.writeAllBytes(trailingCrFile, ['x'_u8, '\r'_u8])
     lines.reset()
     Swag.require(lines.offsetOfLine(trailingCrFile, 2) == 2)
     Swag.require(lines.offsetOfLine(trailingCrFile, 8) == 2)
@@ -139,10 +142,13 @@ func finishTextStatistics(host: *Testing.HeadlessHost, view: *PlainText.Panel)
 {
     let fileName = Testing.tempFilePath("scope-text-split-crlf-", ".txt")
     defer discard catch File.delete(fileName)
-    var bytes: Array'u8
+    var bytes: Array!{u8}
     bytes.resize(65_538)
-    for i in 65_535 do
+    for i in 65_535
+    {
         bytes[i] = 'x'
+    }
+
     bytes[65_535] = '\r'
     bytes[65_536] = '\n'
     bytes[65_537] = 'z'
@@ -155,13 +161,14 @@ func finishTextStatistics(host: *Testing.HeadlessHost, view: *PlainText.Panel)
     // UTF-16 LE has its CR unit at the end of the same read chunk.
     let wideFile = Testing.tempFilePath("scope-text-split-crlf-utf16-", ".txt")
     defer discard catch File.delete(wideFile)
-    var wideBytes: Array'u8
+    var wideBytes: Array!{u8}
     wideBytes.resize(65_540)
     for i in 32_767
     {
-        wideBytes[i * 2] = 'x'
+        wideBytes[i * 2]     = 'x'
         wideBytes[i * 2 + 1] = 0
     }
+
     wideBytes[65_534] = 0x0D
     wideBytes[65_535] = 0
     wideBytes[65_536] = 0x0A
@@ -183,16 +190,22 @@ func finishTextStatistics(host: *Testing.HeadlessHost, view: *PlainText.Panel)
     let fileName = Testing.tempFilePath("scope-text-line-readout-", ".txt")
     defer discard catch File.delete(fileName)
     var source: String
-    for i in 120_000 do
+    for i in 120_000
+    {
         source += Format.toString("Line % of a file longer than the resident window.\n", i + 1)
+    }
+
     discard expect File.writeAllBytes(fileName, source)
 
     var host: Testing.HeadlessHost
     host.setup(640, 360)
     var session = openTestViewer(PlainText.viewerPlugin(), &host.root, fileName)
     let view    = assume cast(*PlainText.Panel, session.view)
-    defer if view.lineNumbers do
+    defer if view.lineNumbers
+    {
         view.toggleLineNumbers()
+    }
+
     Swag.require(view.currentLine() == 1)
 
     // A window a short count away is numbered without the gutter.
@@ -222,11 +235,11 @@ func finishTextStatistics(host: *Testing.HeadlessHost, view: *PlainText.Panel)
 {
     let utf8File = Testing.tempFilePath("scope-text-offset-utf8-", ".txt")
     defer discard catch File.delete(utf8File)
-    discard expect File.writeAllBytes(utf8File, ['a'u8, 0xC3, 0xA9, 'z'u8])
+    discard expect File.writeAllBytes(utf8File, ['a'_u8, 0xC3, 0xA9, 'z'_u8])
 
     var host: Testing.HeadlessHost
     host.setup(640, 360)
-    var session = openTestViewer(PlainText.viewerPlugin(), &host.root, utf8File)
+    var session  = openTestViewer(PlainText.viewerPlugin(), &host.root, utf8File)
     let utf8View = assume cast(*PlainText.Panel, session.view)
     completeTextReads(&host, utf8View)
     Swag.require(utf8View.encoding == .Utf8)
@@ -235,10 +248,10 @@ func finishTextStatistics(host: *Testing.HeadlessHost, view: *PlainText.Panel)
 
     let utf32File = Testing.tempFilePath("scope-text-offset-utf32-", ".txt")
     defer discard catch File.delete(utf32File)
-    discard expect File.writeAllBytes(utf32File, [0'u8, 0, 0xFE, 0xFF, 0, 0, 0, 'A'u8, 0, 0, 0, 'B'u8])
+    discard expect File.writeAllBytes(utf32File, [0_u8, 0, 0xFE, 0xFF, 0, 0, 0, 'A'_u8, 0, 0, 0, 'B'_u8])
 
     var utf32Session = openTestViewer(PlainText.viewerPlugin(), &host.root, utf32File)
-    let utf32View = assume cast(*PlainText.Panel, utf32Session.view)
+    let utf32View    = assume cast(*PlainText.Panel, utf32Session.view)
     completeTextReads(&host, utf32View)
     Swag.require(utf32View.encoding == .Utf32Be)
     Swag.require(utf32View.alignOffset(7) == 4)
@@ -259,8 +272,11 @@ func finishTextStatistics(host: *Testing.HeadlessHost, view: *PlainText.Panel)
     Swag.require(not view.editor.flags.has(.LineNumbers))
 
     view.toggleLineNumbers()
-    defer if view.lineNumbers do
+    defer if view.lineNumbers
+    {
         view.toggleLineNumbers()
+    }
+
     Swag.require(view.editor.flags.has(.LineNumbers))
 
     // The options show both switches in the state the panel is in.
@@ -272,8 +288,11 @@ func finishTextStatistics(host: *Testing.HeadlessHost, view: *PlainText.Panel)
     // Marking the blanks is one more flag of the same editor; numbering stays as it was.
     Swag.require(options.rows[2].label == PlainText.texts().ui_Blanks and not options.rows[2].checked)
     view.toggleBlanks()
-    defer if view.blanks do
+    defer if view.blanks
+    {
         view.toggleBlanks()
+    }
+
     Swag.require(view.editor.flags.has(.DrawBlanks) and view.editor.flags.has(.LineNumbers))
 
     // The tab stops are a choice of the same sheet, carried by the editor and to the next file.
@@ -336,7 +355,7 @@ func finishTextStatistics(host: *Testing.HeadlessHost, view: *PlainText.Panel)
     let changedDetails = view.detailsText()
     Swag.require(Utf8.startsWith(changedDetails.toSlice(), "UTF-16 LE"))
     let columnReadout = Format.toString(PlainText.texts().ui_CurrentColumn, view.editor.cursorLogicalCharPos() + 1)
-    let byteReadout = Format.toString(PlainText.texts().ui_CurrentByte, Format.toString("%{X}", view.currentByteOffset()))
+    let byteReadout   = Format.toString(PlainText.texts().ui_CurrentByte, Format.toString("%{X}", view.currentByteOffset()))
     Swag.require(Utf8.contains(changedDetails.toSlice(), columnReadout.toSlice()))
     Swag.require(Utf8.contains(changedDetails.toSlice(), byteReadout.toSlice()))
 
@@ -370,8 +389,10 @@ func finishTextStatistics(host: *Testing.HeadlessHost, view: *PlainText.Panel)
     var empty: Lens.Results
     var emptyEntries = Viewer.LensEntries.create(&empty, "Text", host.theme)
     view.describeLens(&emptyEntries)
-    for &entry in empty.sections[0]!.entries do
+    for &entry in empty.sections[0]!.entries
+    {
         Swag.require(not Utf8.startsWith(entry.title, PlainText.texts().ui_Encoding), "an empty lens lists no encodings")
+    }
 
     var asked        = Testing.lensResults("encoding")
     var askedEntries = Viewer.LensEntries.create(&asked, "Text", host.theme)
@@ -381,8 +402,10 @@ func finishTextStatistics(host: *Testing.HeadlessHost, view: *PlainText.Panel)
     for &entry in asked.sections[0]!.entries where Utf8.startsWith(entry.title, PlainText.texts().ui_Encoding)
     {
         encodings += 1
-        if entry.checked do
+        if entry.checked
+        {
             checked += 1
+        }
     }
 
     Swag.require(encodings == 6 and checked == 1)
@@ -395,8 +418,11 @@ func finishTextStatistics(host: *Testing.HeadlessHost, view: *PlainText.Panel)
     let fileName = Testing.tempFilePath("scope-text-encoding-", ".txt")
     defer discard catch File.delete(fileName)
     var source: String
-    for 40_000 do
+    for 40_000
+    {
         source += "Plain text stays responsive while changing its encoding.\n"
+    }
+
     discard expect File.writeAllBytes(fileName, source)
     var host: Testing.HeadlessHost
     host.setup(640, 360)

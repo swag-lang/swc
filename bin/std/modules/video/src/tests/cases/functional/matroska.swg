@@ -8,7 +8,7 @@ func waitForMatroskaAudio(reader: *Reader, count: u32)
     var attempts: u32
     while reader.audioTrackCount() != count and attempts < 1000
     {
-        Threading.Thread.sleep(1'ms)
+        Threading.Thread.sleep(1_ms)
         attempts += 1
     }
 
@@ -20,7 +20,7 @@ func waitForMatroskaSubtitles(reader: *Reader, count: u32)
     var attempts: u32
     while reader.subtitleTrackCount() != count and attempts < 1000
     {
-        Threading.Thread.sleep(1'ms)
+        Threading.Thread.sleep(1_ms)
         attempts += 1
     }
 
@@ -43,7 +43,7 @@ func waitForMatroskaSubtitles(reader: *Reader, count: u32)
 // A Cluster signature and timestamp inside a Block payload are not Segment-level cluster offsets.
 #test
 {
-    const EmbeddedClusterOffset = 14'u64
+    const EmbeddedClusterOffset = 14_u64
     const Bytes: [22] u8        = [0x1F, 0x43, 0xB6, 0x75, 0x91,
                                    0xE7, 0x81, 0x01,
                                    0xA3, 0x8C,
@@ -170,8 +170,8 @@ func waitForMatroskaSubtitles(reader: *Reader, count: u32)
 
     let sizeOffset = clusterOffset + 4
     let sizeFirst  = bytes[sizeOffset]
-    var marker     = 0x80'u8
-    var sizeWidth  = 1'u32
+    var marker     = 0x80_u8
+    var sizeWidth  = 1_u32
     while not (sizeFirst & marker)
     {
         marker    >>= 1
@@ -180,8 +180,10 @@ func waitForMatroskaSubtitles(reader: *Reader, count: u32)
 
     Swag.require(sizeWidth == 2)
     bytes[sizeOffset] = marker | (marker - 1)
-    for index in 1 until sizeWidth do
+    for index in 1 until sizeWidth
+    {
         bytes[sizeOffset + index] = 0xFF
+    }
 
     let fileName = videoTempPath("matroska-unknown-cluster", "mkv")
     defer discard catch File.delete(fileName)
@@ -373,10 +375,12 @@ func waitForMatroskaSubtitles(reader: *Reader, count: u32)
     while not hasCompleteAudio and attempts < 5000
     {
         let audioTrack = reader.audioTrack(0)
-        if audioTrack do
+        if audioTrack
+        {
             hasCompleteAudio = audioTrack.durationInSeconds() >= 590
+        }
 
-        Threading.Thread.sleep(1'ms)
+        Threading.Thread.sleep(1_ms)
         attempts += 1
     }
 
@@ -535,7 +539,7 @@ func waitForMatroskaSubtitles(reader: *Reader, count: u32)
     var whole = expect Reader.open(videoFixturePath("ffmpeg-h264-two-aac.mkv"))
     var cut:    Image
     var entire: Image
-    for index in 12'u64
+    for index in 12_u64
     {
         expect reader.decodeFrameInto(&cut, index)
         expect whole.decodeFrameInto(&entire, index)
@@ -557,8 +561,11 @@ func waitForMatroskaSubtitles(reader: *Reader, count: u32)
           not (bytes[cues] == 0x1C and
                bytes[cues + 1] == 0x53 and
                bytes[cues + 2] == 0xBB and
-               bytes[cues + 3] == 0x6B) do
+               bytes[cues + 3] == 0x6B)
+    {
         cues -= 1
+    }
+
     Swag.require(cues != 0)
     Memory.set(&bytes[cues], 0, 4)
     let path = videoTempPath("cueless", "mkv")
@@ -620,8 +627,11 @@ func waitForMatroskaSubtitles(reader: *Reader, count: u32)
           not (bytes[cues] == 0x1C and
                bytes[cues + 1] == 0x53 and
                bytes[cues + 2] == 0xBB and
-               bytes[cues + 3] == 0x6B) do
+               bytes[cues + 3] == 0x6B)
+    {
         cues -= 1
+    }
+
     Memory.set(&bytes[cues], 0, 4)
     let path = videoTempPath("cueless-key", "mkv")
     defer catch File.delete(path)
@@ -647,7 +657,7 @@ func waitForMatroskaSubtitles(reader: *Reader, count: u32)
 
     var cut:    Image
     var entire: Image
-    for index in 12'u64
+    for index in 12_u64
     {
         expect stripped.decodeFrameInto(&cut, index)
         expect whole.decodeFrameInto(&entire, index)
@@ -685,7 +695,7 @@ func waitForMatroskaSubtitles(reader: *Reader, count: u32)
         Swag.require(sound.sampleRateHz() == Rates[fileIndex] and sound.numChannels() == 2)
         Swag.require(not sound.isDataPreloaded() and sound.packetCount() > 40)
 
-        var decoded: Array's16
+        var decoded: Array!{s16}
         expect sound.decodePcm16(func|decoded = &decoded|(samples: const [..] s16)->bool
         {
             decoded.add(samples)
@@ -700,7 +710,9 @@ func waitForMatroskaSubtitles(reader: *Reader, count: u32)
 
         // The references are libopus's and libvorbis's; this module's decoders sit within one
         // least significant bit of them, as the audio module's own tests establish.
-        for index in compared do
+        for index in compared
+        {
             Swag.require(Math.abs(cast(s32, decoded[index]) - cast(s32, wantedAt[index])) <= 1)
+        }
     }
 }

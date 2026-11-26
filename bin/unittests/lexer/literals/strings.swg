@@ -16,11 +16,11 @@
 '*'
 
 // --- Explicit character literal types ---
-'A'u8
-'é'u16
-'☃'u32
-'😀'u64
-'\n'rune
+'A'_u8
+'é'_u16
+'☃'_u32
+'😀'_u64
+'\n'_rune
 
 // --- Valid escape sequences ---
 '\n'
@@ -78,19 +78,17 @@
 // --- Quotes inside character literals ---
 '\''        // Escaped single quote (valid)
 
-// --- Character literals in expressions (context) ---
-// A quote opens a character literal unless the last meaningful token can carry a
-// suffix or generic arguments: an identifier, a character, a number, or a string.
-// Trivia is skipped by that test, so a blank or a comment never changes the reading.
+// --- Character literals in expressions ---
+// Apostrophes always delimit character literals, independent of the previous token.
 'a' + 'b'
 '0' - '9'
 
-// --- The quote operator, reached through trivia ---
-// Each of these is one suffixed literal, not a literal followed by a character.
-1's32
-1 's32
-1 /* comment */ 's32
-'a'u8
+// --- Explicit literal suffixes ---
+1_s32
+1_000_u32
+1 _s32
+1 /* comment */ _s32
+'a'_u8
 
 // ============================================================================
 // MULTI-LINE STRINGS

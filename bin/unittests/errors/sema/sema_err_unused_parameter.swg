@@ -66,7 +66,7 @@ impl Pair
 
 func closuresInVisit()->s32
 {
-    let pair: Pair's32
+    let pair: Pair!{s32}
     var total = 0
     for v in pair
     {

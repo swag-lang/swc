@@ -29,8 +29,10 @@ func target(value: Owner)->*void => cast #unconst (*void, unwrap value.target)
 #[Swag.NoInline]
 func dropValue(value: Owner)
 {
-    if value.owned do
+    if value.owned
+    {
         release(target(value), 8)
+    }
 }
 #test
 {

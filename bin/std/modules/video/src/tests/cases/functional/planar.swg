@@ -133,8 +133,10 @@ func assertPlanarMatchesPacked(reader: *Reader, index: u64)
 {
     var reader = expect Reader.open(videoFixturePath("ffmpeg-h264-high.mp4"))
     Swag.require(reader.hasPlanarFrames())
-    for index in 3'u64 do
+    for index in 3_u64
+    {
         assertPlanarMatchesPacked(&reader, index)
+    }
 }
 
 // A cropped stream hands over the visible window, not the coded one.

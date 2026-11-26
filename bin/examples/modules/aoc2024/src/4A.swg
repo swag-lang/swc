@@ -49,10 +49,16 @@ func day4A()
 
     func test(a, b, c, d: rune)->bool
     {
-        if a == 'X' and b == 'M' and c == 'A' and d == 'S' do
+        if a == 'X' and b == 'M' and c == 'A' and d == 'S'
+        {
             return true
-        if a == 'S' and b == 'A' and c == 'M' and d == 'X' do
+        }
+
+        if a == 'S' and b == 'A' and c == 'M' and d == 'X'
+        {
             return true
+        }
+
         return false
     }
 
@@ -62,20 +68,30 @@ func day4A()
         for x in lines[y].count
         {
             if x <= lines[y].length - 4 and
-               test(lines[y][x], lines[y][x + 1], lines[y][x + 2], lines[y][x + 3]) do
+               test(lines[y][x], lines[y][x + 1], lines[y][x + 2], lines[y][x + 3])
+            {
                 total += 1
+            }
+
             if y <= lines.count - 4 and
-               test(lines[y][x], lines[y + 1][x], lines[y + 2][x], lines[y + 3][x]) do
+               test(lines[y][x], lines[y + 1][x], lines[y + 2][x], lines[y + 3][x])
+            {
                 total += 1
+            }
 
             if y >= 3 and
                x <= lines[y].length - 4 and
-               test(lines[y][x], lines[y - 1][x + 1], lines[y - 2][x + 2], lines[y - 3][x + 3]) do
+               test(lines[y][x], lines[y - 1][x + 1], lines[y - 2][x + 2], lines[y - 3][x + 3])
+            {
                 total += 1
+            }
+
             if y <= lines.count - 4 and
                x <= lines[y].length - 4 and
-               test(lines[y][x], lines[y + 1][x + 1], lines[y + 2][x + 2], lines[y + 3][x + 3]) do
+               test(lines[y][x], lines[y + 1][x + 1], lines[y + 2][x + 2], lines[y + 3][x + 3])
+            {
                 total += 1
+            }
         }
     }
 

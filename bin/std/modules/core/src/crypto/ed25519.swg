@@ -159,11 +159,15 @@ private func(UpdateT: bool) ed25519Double(point: Ed25519Point)->Ed25519Point
 // A subsequent doubling consumes X, Y and Z. A point addition also needs T.
 private func ed25519DoubleRepeated(point: Ed25519Point, count: u32)->Ed25519Point
 {
-    var result = point
-    for count - 1 do
-        result = ed25519Double'(false)(result)
-    return ed25519Double'(true)(result)
-}
+    let mask = 0_u64 - chooseRight
+    var result: #returntype
+    for index in 16
+    {
+        result.x.limbs[index] = (left.x.limbs[index] & ~mask) | (right.x.limbs[index] & mask)
+        result.y.limbs[index] = (left.y.limbs[index] & ~mask) | (right.y.limbs[index] & mask)
+        result.z.limbs[index] = (left.z.limbs[index] & ~mask) | (right.z.limbs[index] & mask)
+        result.t.limbs[index] = (left.t.limbs[index] & ~mask) | (right.t.limbs[index] & mask)
+    }
 
 private func ed25519BuildMultiples(point: Ed25519Point)->[16] Ed25519Cached
 {
@@ -199,9 +203,9 @@ private func ed25519SelectMultiple(multiples: const [..] Ed25519Cached, digit: u
 private func ed25519ScalarMultiply(multiples: const [..] Ed25519Cached, scalar: const [..] u8)->Ed25519Point
 {
     var result = ed25519Identity()
-    var selected: Ed25519Cached
-    defer Crypto.secureClear(Swag.makeSlice(&selected, 1))
-    for window in 2 * Ed25519KeySize
+    var addend = point
+    var bit    = 0_u32
+    while bit < 256
     {
         result = ed25519DoubleRepeated(result, 4)
         let nibbleIndex = 2 * Ed25519KeySize - 1 - window
@@ -381,8 +385,10 @@ private func ed25519DecodePoint(encoded: const [..] u8)->(Ed25519Point, bool)
     let y = x25519Decode(yBytes)
     var canonicalY: [32] u8
     x25519Encode(y, canonicalY)
-    if not Crypto.constantTimeEqual(yBytes, canonicalY) do
+    if not Crypto.constantTimeEqual(yBytes, canonicalY)
+    {
         return (ed25519Identity(), false)
+    }
 
     var one: X25519Field
     one.limbs[0] = 1
@@ -390,31 +396,43 @@ private func ed25519DecodePoint(encoded: const [..] u8)->(Ed25519Point, bool)
     let numerator   = x25519Subtract(ySquared, one)
     let denominator = x25519Add(x25519Multiply(ed25519D(), ySquared), one)
 
-    // For u = y^2 - 1 and v = d*y^2 + 1, this recovers sqrt(u/v) as
-    // u*v^3 * (u*v^7)^((p-5)/8). Checking x^2*v avoids an inversion.
-    let v2  = x25519Square(denominator)
-    let v3  = x25519Multiply(v2, denominator)
-    let v7  = x25519Multiply(x25519Square(v3), denominator)
-    let uv3 = x25519Multiply(numerator, v3)
-    let uv7 = x25519Multiply(numerator, v7)
-    var x   = x25519Multiply(uv3, x25519Pow252Minus3(uv7))
+    // sqrt(u) = u^((p+3)/8), with the standard sqrt(-1) correction.
+    var x: X25519Field
+    x.limbs[0] = 1
+    var bit = 252_u32
+    while bit
+    {
+        bit -= 1
+        x   = x25519Square(x)
+        if bit
+        {
+            x = x25519Multiply(x, xSquared)
+        }
+    }
 
     let check = x25519Multiply(x25519Square(x), denominator)
     if not ed25519FieldEqual(check, numerator)
     {
-        var zero: X25519Field
-        if not ed25519FieldEqual(check, x25519Subtract(zero, numerator)) do
-            return (ed25519Identity(), false)
         x = x25519Multiply(x, ed25519SqrtMinusOne())
+        if not ed25519FieldEqual(x25519Square(x), xSquared)
+        {
+            return (ed25519Identity(), false)
+        }
     }
 
     var xBytes: [32] u8
     x25519Encode(x, xBytes)
-    var xNonzero = 0'u8
-    for byte in xBytes do
+    var xNonzero = 0_u8
+    for byte in xBytes
+    {
         xNonzero |= byte
-    if not xNonzero and sign do
+    }
+
+    if not xNonzero and sign
+    {
         return (ed25519Identity(), false)
+    }
+
     if (xBytes[0] & 1) != sign
     {
         var zero: X25519Field
@@ -508,22 +526,21 @@ private func ed25519Reduce(digest: const [..] u8)->[32] u8
     }
     defer Crypto.secureClear(Swag.makeSlice(&scratch, 1))
 
-    let words = cast(const [*] u64, digest.buffer)
-    for index in 8 do
-        scratch.input[index] = Math.littleEndianToNative(words[index])
+        var difference: [16] u32
+        var borrow = 0_u32
+        for index in 16
+        {
+            let sub       = Ed25519Order[index] + borrow
+            let underflow = remainder[index] < sub
+            difference[index] = (remainder[index] - sub) & 0xFFFF
+            borrow = cast(u32, underflow)
+        }
 
-    // Barrett's quotient estimate uses the high five input words and the
-    // reciprocal. The resulting remainder is in [0, 3*Ed25519Order).
-    ed25519MultiplyWords(scratch.input[3 until 8], Ed25519Reciprocal, scratch.reciprocalProduct)
-    ed25519MultiplyWords(scratch.reciprocalProduct[5 until 10], Ed25519Order[until 4], scratch.product)
-    discard ed25519SubtractWords(cast(*[5] u64, scratch.input.buffer)[], scratch.product, &scratch.remainder)
-
-    for 2
-    {
-        let borrow = ed25519SubtractWords(scratch.remainder, Ed25519Order, &scratch.difference)
-        let keep = 0'u64 - borrow
-        for index in 5 do
-            scratch.remainder[index] = (scratch.remainder[index] & keep) | (scratch.difference[index] & ~keep)
+        let mask = 0_u32 - (1 - borrow)
+        for index in 16
+        {
+            remainder[index] = (difference[index] & mask) | (remainder[index] & ~mask)
+        }
     }
 
     var result: #returntype
@@ -549,12 +566,17 @@ private func ed25519ScalarMultiplyAdd(left, right, addend: const [..] u8)->[32] 
     var wide: [32] u64
     for i in 16
     {
-        for j in 16 do
+        for j in 16
+        {
             wide[i + j] += leftDigits[i] * rightDigits[j]
+        }
     }
 
-    for index in 16 do
+    for index in 16
+    {
         wide[index] += addendDigits[index]
+    }
+
     for index in 31
     {
         let carry = wide[index] >> 16
@@ -638,8 +660,10 @@ private func ed25519PublicKeyFromExpanded(expanded: [64] u8)->[32] u8
 // Fails with [[Core.Errors.BadParameterError]] unless the seed and destination are exactly 32 bytes.
 func ed25519PublicKey(privateSeed: const [..] u8, destination: [..] u8) fail
 {
-    if privateSeed.count != Ed25519KeySize or destination.count != Ed25519KeySize do
+    if privateSeed.count != Ed25519KeySize or destination.count != Ed25519KeySize
+    {
         fail Errors.BadParameterError{"Ed25519 seeds and public keys must be exactly 32 bytes"}
+    }
 
     var expanded = ed25519HashSeed(privateSeed)
     let encoded  = ed25519PublicKeyFromExpanded(expanded)
@@ -652,8 +676,10 @@ func ed25519PublicKey(privateSeed: const [..] u8, destination: [..] u8) fail
 // Fails with [[Core.Errors.BadParameterError]] unless the seed is 32 bytes and the output is 64 bytes.
 func ed25519Sign(privateSeed, message: const [..] u8, signature: [..] u8) fail
 {
-    if privateSeed.count != Ed25519KeySize or signature.count != Ed25519SignatureSize do
+    if privateSeed.count != Ed25519KeySize or signature.count != Ed25519SignatureSize
+    {
         fail Errors.BadParameterError{"Ed25519 needs a 32-byte seed and a 64-byte signature output"}
+    }
 
     var expanded = ed25519HashSeed(privateSeed)
     var scalar: [32] u8
@@ -708,25 +734,27 @@ func ed25519Sign(privateSeed, message: const [..] u8, signature: [..] u8) fail
 // [[Core.Errors.BadParameterError]]; invalid signatures return `false`.
 func ed25519Verify(publicKey, message, signature: const [..] u8)->bool fail
 {
-    if publicKey.count != Ed25519KeySize or signature.count != Ed25519SignatureSize do
+    if publicKey.count != Ed25519KeySize or signature.count != Ed25519SignatureSize
+    {
         fail Errors.BadParameterError{"Ed25519 needs a 32-byte public key and a 64-byte signature"}
+    }
 
     let encodedR = signature[until 32]
     let encodedS = signature[32 to]
-    if not ed25519IsCanonicalScalar(encodedS) do
+    if not ed25519IsCanonicalScalar(encodedS)
+    {
         return false
+    }
 
     let (publicPoint, validPublic) = ed25519DecodePoint(publicKey)
     let (rPoint, validR) = ed25519DecodePoint(encodedR)
     if not validPublic or
        not validR or
-       ed25519IsIdentity(publicPoint) or
-       ed25519IsIdentity(rPoint) do
+       not ed25519IsPrimeSubgroup(publicPoint) or
+       not ed25519IsPrimeSubgroup(rPoint)
+    {
         return false
-
-    let multiples = ed25519BuildMultiples(publicPoint)
-    if not ed25519IsPrimeSubgroup(publicPoint, multiples) do
-        return false
+    }
 
     var challengeHash: Hash.Sha512
     challengeHash.reset()

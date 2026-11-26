@@ -56,8 +56,8 @@ struct ComboBox
         maximumPopupHeight: f32 = 300     // Maximum drop-down height in logical units.
         popupItemHeight:    f32 = 24      // Height of each selectable row in the drop-down list.
         popupIconSize:      f32 = 16      // Icon size used by drop-down entries; zero uses each icon's size.
-        sigChanged:         SigArray'func||(*Wnd, u32)     // Emitted after a notifying selection change.
-        sigPopupChanged:    SigArray'func||(*Wnd, *PopupListCtrl, bool)     // Emitted after opening and before closing the drop-down.
+        sigChanged:         SigArray!{func||(*Wnd, u32)}     // Emitted after a notifying selection change.
+        sigPopupChanged:    SigArray!{func||(*Wnd, *PopupListCtrl, bool)}     // Emitted after opening and before closing the drop-down.
 
         // What the combo shows. Add items through the methods, which keep the popup and the
         // measured icon width in step, and select through [[Gui.ComboBox.setSelectedIndex]].
@@ -66,7 +66,7 @@ struct ComboBox
         {
             mode          = ComboBoxMode.Selection     // Text interaction mode chosen at creation.
             flags         = ComboBoxFlags.None         // Active presentation options.
-            items:   ArrayPtr'ComboBoxItem             // Entries in display order.
+            items:   ArrayPtr!{ComboBoxItem}           // Entries in display order.
             selectedIndex = Swag.U32.Max               // Selected item index, or U32.Max when empty.
             editBox: *EditBox?     // Embedded editor in editable mode, otherwise null.
             textHorizontalAlignment = StringHorzAlignment.Left     // Horizontal alignment of selected text in selection mode.
@@ -74,16 +74,16 @@ struct ComboBox
     }
 
     // Hover state, the open popup, and the color animations of the painted parts.
-    isHot:                bool                           // Whether the mouse is over the combo.
-    popup:                *PopupListCtrl?                // Drop-down list while it is open.
-    pointerFocusReturn:   *Wnd?                          // Focus owner restored after pointer use.
-    maxIconSize:          s32                            // Widest item icon, sizing the icon column.
-    hotSegment:           u32 = Swag.U32.Max             // Segment under the pointer, when segmented.
-    segmentWidths:        Array'f32                      // Optional content widths for a hosted segmented choice.
-    sigSegmentReselected: SigArray'func||(*Wnd, u32)     // A pressed segment that was already selected.
+    isHot:                bool                   // Whether the mouse is over the combo.
+    popup:                *PopupListCtrl?        // Drop-down list while it is open.
+    pointerFocusReturn:   *Wnd?                  // Focus owner restored after pointer use.
+    maxIconSize:          s32                    // Widest item icon, sizing the icon column.
+    hotSegment:           u32 = Swag.U32.Max     // Segment under the pointer, when segmented.
+    segmentWidths:        Array!{f32}            // Optional content widths for a hosted segmented choice.
+    sigSegmentReselected: SigArray!{func||(*Wnd, u32)}     // A pressed segment that was already selected.
 
-    internal quietCell:    bool                           // Reads as an inline value while the list is closed.
-    internal popupLayout:  (func||(*ComboBox, bool))?     // Lays out the field before anchoring its popup and after dismissal.
+    internal quietCell:   bool     // Reads as an inline value while the list is closed.
+    internal popupLayout: (func||(*ComboBox, bool))?     // Lays out the field before anchoring its popup and after dismissal.
 
     aniBk:     BlendColor     // Color animation of the background.
     aniBorder: BlendColor     // Color animation of the border.
@@ -106,8 +106,10 @@ impl IWnd for ComboBox
         case .Lost:
 
             // A click elsewhere made an explicit focus choice; closing the popup must not undo it.
-            if evt.other != .popup do
+            if evt.other != .popup
+            {
                 .pointerFocusReturn = null
+            }
 
         default:
             break
@@ -183,16 +185,21 @@ impl IWnd for ComboBox
         .aniText.apply(me, colorText)
 
         var fieldRect = .clientRect()
-        if .quietCell and .popup do
+        if .quietCell and .popup
+        {
             fieldRect.width = Math.min(fieldRect.width, .popup.position.width)
+        }
 
         // An inline value uses its parent's hover ground. When editing, the field uses the
         // width of the opened list instead of filling the whole cell with a frame.
         let framed = .popup != null or (not .quietCell and (not .flags.has(.Flat) or .isHot))
         if framed
         {
-            if not .flags.has(.TransparentBackground) do
+            if not .flags.has(.TransparentBackground)
+            {
                 theme.drawSubRect(painter, fieldRect, subRectBk, .aniBk.cur())
+            }
+
             theme.drawSubRect(painter, fieldRect, subRectBorder, .aniBorder.cur())
         }
 
@@ -214,8 +221,10 @@ impl IWnd for ComboBox
                 item.icon.paint(painter, itemRect.x, itemRect.vertCenter() - item.icon.sizeY * 0.5, .aniText.cur())
             }
 
-            if .maxIconSize do
+            if .maxIconSize
+            {
                 itemRect.moveLeft(.maxIconSize + metrics.comboBox_IconTextMargin)
+            }
 
             theme.setTextColors(&format, .aniText.cur())
             format.horzAlignment = .textHorizontalAlignment
@@ -233,8 +242,11 @@ impl IWnd for ComboBox
         // pointer or the open list engages the field.
         let icon  = theme.icon(ThemeIcons.ChevronDown, metrics.chevron_Size)
         var iconX = fieldRect.right() - (metrics.comboBox_RightMargin + icon.sizeX) * 0.5
-        if .quietCell and not .popup do
+        if .quietCell and not .popup
+        {
             iconX = Math.min(iconX, valueEnd + metrics.quiet_ChevronGap)
+        }
+
         let iconColor = bc.isDisabled or .isHot or .popup ? colorText : colors.faintText
         icon.paint(painter, iconX, fieldRect.vertCenter() - icon.sizeY * 0.5, iconColor)
     }
@@ -249,19 +261,24 @@ impl IWnd for ComboBox
         let metrics = .themeMetrics()
         if .flags.has(.Segmented)
         {
-            var width = 0'f32
+            var width = 0_f32
             if .segmentWidths.count == .items.count
             {
-                for segmentWidth in .segmentWidths do
+                for segmentWidth in .segmentWidths
+                {
                     width += segmentWidth
+                }
             }
             else
             {
                 for itemIt in .items
                 {
                     let item = unwrap itemIt
-                    if item.isSeparator do
+                    if item.isSeparator
+                    {
                         continue
+                    }
+
                     width += .segmentContentWidth(item) + 2 * metrics.comboBox_Padding
                 }
             }
@@ -277,12 +294,15 @@ impl IWnd for ComboBox
         // and the widest entry is where that shows.
         let deviceScale = .deviceScale()
 
-        var text = 0'f32
+        var text = 0_f32
         for item in .items
         {
             let current = unwrap item
-            if current.isSeparator do
+            if current.isSeparator
+            {
                 continue
+            }
+
             current.name.compute()
             Painter.computeLayout({0, 0, MaxTextLayoutExtent, MaxTextLayoutExtent}, &current.name, format, deviceScale)
             text = Math.max(text, current.name.boundRect.width)
@@ -292,8 +312,11 @@ impl IWnd for ComboBox
         // padding is counted again before it: without that the widest entry would read as
         // touching the arrow.
         var width = 2 * metrics.comboBox_Padding + text + metrics.comboBox_RightMargin
-        if .maxIconSize do
+        if .maxIconSize
+        {
             width += cast(f32, .maxIconSize) + metrics.comboBox_IconTextMargin
+        }
+
         return Math.Point{Math.max(width, metrics.comboBox_Width), metrics.comboBox_Height}
     }
 
@@ -306,26 +329,37 @@ impl IWnd for ComboBox
             return
 
         case .Pressed:
-            if evt.button != .Left do
+            if evt.button != .Left
+            {
                 break
+            }
+
             if .showsSegments()
             {
                 let index = .segmentAt(.surfaceToLocal(evt.surfacePos))
                 if index < .items.count and not .items[index]!.disabled
                 {
-                    if index == .selectedIndex do
+                    if index == .selectedIndex
+                    {
                         .sigSegmentReselected.call(me, index)
-                    else do
+                    }
+                    else
+                    {
                         .applySelectedIndex(index, notify: true)
+                    }
                 }
 
                 break
             }
 
-            if .popup do
+            if .popup
+            {
                 .hidePopup()
-            else do
+            }
+            else
+            {
                 .showPopup()
+            }
 
         case .Move:
             if .showsSegments()
@@ -358,8 +392,10 @@ impl IWnd for ComboBox
     mtd impl onKeyEvent(evt: *KeyEvent)
     {
         evt.accepted = false
-        if evt.kind != .Pressed do
+        if evt.kind != .Pressed
+        {
             return
+        }
 
         let alt = evt.modifiers.has(.Alt)
 
@@ -418,8 +454,10 @@ private impl ComboBox
     // of its alternate content explicitly.
     mtd segmentContentWidth(item: *ComboBoxItem)->f32
     {
-        if item.paintWidth > 0 do
+        if item.paintWidth > 0
+        {
             return item.paintWidth
+        }
 
         let regular = unwrap .font().regular
         let face    = .font().getFont(item.fontStyle) orelse regular
@@ -430,8 +468,11 @@ private impl ComboBox
     // its share of the width. A choice whose words do not fit stays a list that opens.
     mtd showsSegments()->bool
     {
-        if not .flags.has(.Segmented) or .items.isEmpty() do
+        if not .flags.has(.Segmented) or .items.isEmpty()
+        {
             return false
+        }
+
         let metrics = .themeMetrics()
         if .segmentWidths.count == .items.count
         {
@@ -439,11 +480,17 @@ private impl ComboBox
             for item, index in .items
             {
                 let item = unwrap item
-                if item.isSeparator do
+                if item.isSeparator
+                {
                     return false
+                }
+
                 let width = .segmentContentWidth(item)
-                if width + 2 * metrics.comboBox_Padding > .segmentWidths[index] do
+                if width + 2 * metrics.comboBox_Padding > .segmentWidths[index]
+                {
                     return false
+                }
+
                 total += .segmentWidths[index]
             }
 
@@ -455,8 +502,10 @@ private impl ComboBox
         {
             let item  = unwrap item
             let width = .segmentContentWidth(item)
-            if item.isSeparator or width + 2 * metrics.comboBox_Padding > share do
+            if item.isSeparator or width + 2 * metrics.comboBox_Padding > share
+            {
                 return false
+            }
         }
 
         return true
@@ -472,8 +521,11 @@ private impl ComboBox
         if .segmentWidths.count == count
         {
             var x = frame.x
-            for i in index do
+            for i in index
+            {
                 x += .segmentWidths[i]
+            }
+
             return Math.Rectangle{x, frame.y, .segmentWidths[index], frame.height}
         }
 
@@ -487,8 +539,11 @@ private impl ComboBox
         let count = .items.count
         for i in count where .segmentRect(i, count).contains(pos)
         {
-            if .items[i]!.disabled do
+            if .items[i]!.disabled
+            {
                 return Swag.U32.Max
+            }
+
             return cast(u32, i)
         }
 
@@ -524,14 +579,17 @@ private impl ComboBox
 
                 theme.drawSubRect(painter, rect, &rects.tabItem_RoundSelected, colors.tabItem_RoundSelected)
             }
-            elif i == .hotSegment
+            else if i == .hotSegment
             {
                 theme.drawSubRect(painter, rect, &rects.tabItem_RoundSelected, colors.tabItem_ButtonHot)
             }
 
             var ink = i == .selectedIndex ? colors.tabItem_SelectedText : colors.tabItem_HotText
-            if disabled or item.disabled do
+            if disabled or item.disabled
+            {
                 ink = colors.comboBox_DisabledText
+            }
+
             if item.paint
             {
                 var content = rect
@@ -552,22 +610,33 @@ private impl ComboBox
     // ends (no wrap-around, matching native combo boxes).
     mtd selectRelative(dir: s32)
     {
-        if .items.isEmpty() do
+        if .items.isEmpty()
+        {
             return
+        }
 
         var idx: s32
-        if .selectedIndex >= .items.count do
+        if .selectedIndex >= .items.count
+        {
             idx = dir > 0 ? -1 : cast(s32, .items.count)
-        else do
+        }
+        else
+        {
             idx = cast(s32, .selectedIndex)
+        }
 
         for
         {
             idx += dir
-            if idx < 0 or idx >= cast(s32, .items.count) do
+            if idx < 0 or idx >= cast(s32, .items.count)
+            {
                 return
-            if not .items[idx]!.isSeparator and not .items[idx]!.disabled do
+            }
+
+            if not .items[idx]!.isSeparator and not .items[idx]!.disabled
+            {
                 break
+            }
         }
 
         .setSelectedIndex(cast(u32, idx))
@@ -629,13 +698,19 @@ private impl ComboBox
 
         popup.sigClosed = func|combo = me|(_, idx)
         {
-            if idx != Swag.U32.Max do
+            if idx != Swag.U32.Max
+            {
                 combo.setSelectedIndex(idx)
+            }
+
             combo.hidePopup()
         }
 
-        if .popupLayout do
+        if .popupLayout
+        {
             .popupLayout(me, true)
+        }
+
         let rect = .surfaceRect()
         popup.show(rect.x, rect.bottom(), .quietCell ? 0 : rect.width)
         .sigPopupChanged.call(me, popup, true)
@@ -644,8 +719,10 @@ private impl ComboBox
     mtd hidePopup()
     {
         let popup = .popup
-        if not popup do
+        if not popup
+        {
             return
+        }
 
         let restoreFocus = .hasFocus() and not .hasVisibleFocus() ? .pointerFocusReturn : null
 
@@ -657,8 +734,11 @@ private impl ComboBox
         popup.destroy()
         if not .popup
         {
-            if .popupLayout do
+            if .popupLayout
+            {
                 .popupLayout(me, false)
+            }
+
             .pointerFocusReturn = null
         }
 
@@ -668,8 +748,10 @@ private impl ComboBox
            restoreFocus and
            not restoreFocus.isPendingDestroy and
            restoreFocus.surface == .surface and
-           restoreFocus.isEnabled() do
+           restoreFocus.isEnabled()
+        {
             restoreFocus.setFocus()
+        }
     }
 }
 
@@ -683,8 +765,11 @@ impl ComboBox
     // This affects selection mode only; editable text and popup entries keep their own layout.
     mtd setTextAlignment(horizontal: StringHorzAlignment)
     {
-        if .textHorizontalAlignment == horizontal do
+        if .textHorizontalAlignment == horizontal
+        {
             return
+        }
+
         .textHorizontalAlignment = horizontal
         .invalidate()
     }
@@ -701,9 +786,12 @@ impl ComboBox
         // shorter row is really asking for a shorter row, not for a broken control.
         var pos = position
         pos.height = Math.max(pos.height, metrics.comboBox_Height)
-        if pos.width == 0 do
+        if pos.width == 0
+        {
             pos.width = metrics.comboBox_Width
-        let result = Wnd.create'ComboBox(parent, null, pos, id)
+        }
+
+        let result = Wnd.create!{ComboBox}(parent, null, pos, id)
 
         result.mode        = mode
         result.flags       = flags
@@ -713,10 +801,15 @@ impl ComboBox
 
         // An unstated width belongs to the items: the theme width above only gives the
         // field a sane size until the first layout pass measures it, and stays its floor.
-        if position.width == 0 do
+        if position.width == 0
+        {
             result.preferredSize.x = 0
-        else do
+        }
+        else
+        {
             result.minSize.x = pos.width
+        }
+
         if result.mode == .Editable
         {
             // The field is the control's own writing surface, not a second stop beside it.
@@ -756,8 +849,11 @@ impl ComboBox
             .userData1 = userData1
         }
 
-        if item.icon.isValid() do
+        if item.icon.isValid()
+        {
             .maxIconSize = Math.max(.maxIconSize, cast(s32, item.icon.sizeX))
+        }
+
         .items.add(item)
         .hidePopup()
         .invalidate()
@@ -786,10 +882,15 @@ impl ComboBox
         .items.deleteAt(index)
         .recomputeMaximumIconWidth()
 
-        if .selectedIndex == index do
+        if .selectedIndex == index
+        {
             .applySelectedIndex(Swag.U32.Max, notify: false)
-        elif .selectedIndex > index and .selectedIndex != Swag.U32.Max do
+        }
+        else if .selectedIndex > index and .selectedIndex != Swag.U32.Max
+        {
             .selectedIndex -= 1
+        }
+
         .invalidate()
         .invalidateLayout()
     }
@@ -797,16 +898,21 @@ impl ComboBox
     // Returns the selected item, or null when the combo box has no selection.
     mtd const selectedItem()->*ComboBoxItem?
     {
-        if .selectedIndex >= .items.count do
+        if .selectedIndex >= .items.count
+        {
             return null
+        }
+
         return .items[.selectedIndex]
     }
 
     // Opens the drop-down without moving keyboard focus away from the combo box.
     mtd openPopup()
     {
-        if not .popup do
+        if not .popup
+        {
             .showPopup()
+        }
     }
 
     // Selects one selectable item and optionally emits the change signal and command.
@@ -834,11 +940,14 @@ impl ComboBox
 
     // Gives a hosted segmented combo the measured width of each item, instead of equal shares.
     // An empty list restores the usual equal-width rule.
-    internal mtd setSegmentWidths(widths: Array'f32)
+    internal mtd setSegmentWidths(widths: Array!{f32})
     {
         .segmentWidths.clear()
-        for width in widths do
+        for width in widths
+        {
             .segmentWidths.add(width)
+        }
+
         .invalidate()
         .invalidateLayout()
     }
@@ -848,26 +957,37 @@ private impl ComboBox
 {
     mtd applySelectedIndex(index: u32, notify: bool)
     {
-        if index < .items.count and .items[index]!.disabled do
+        if index < .items.count and .items[index]!.disabled
+        {
             return
-        if index == .selectedIndex do
+        }
+
+        if index == .selectedIndex
+        {
             return
+        }
 
         .selectedIndex = index
         let editBox = .editBox
         if editBox
         {
-            if .selectedIndex < .items.count do
+            if .selectedIndex < .items.count
+            {
                 editBox.setText(.items[.selectedIndex]!.name.text)
-            else do
+            }
+            else
+            {
                 editBox.setText("")
+            }
         }
 
         if notify
         {
             .sigChanged.call(me, .selectedIndex)
-            if .selectedIndex < .items.count do
+            if .selectedIndex < .items.count
+            {
                 .postCommandEvent(.items[.selectedIndex]!.id)
+            }
         }
 
         .invalidate()
@@ -879,8 +999,10 @@ private impl ComboBox
         for item in .items
         {
             let current = unwrap item
-            if current.icon.isValid() do
+            if current.icon.isValid()
+            {
                 .maxIconSize = Math.max(.maxIconSize, cast(s32, current.icon.sizeX))
+            }
         }
     }
 }

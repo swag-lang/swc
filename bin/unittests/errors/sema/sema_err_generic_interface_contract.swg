@@ -31,7 +31,7 @@ impl IValue for Present
 {
     var value: Present
     discard readValue(&value)
-    discard readValue'Present(&value)
+    discard readValue!{Present}(&value)
 }
 
 struct(T) ValueHolder
@@ -42,7 +42,7 @@ struct(T) ValueHolder
 
 #test
 {
-    var holder: ValueHolder'Missing     // swc-expected-error {{sema_err_generic_struct_where_failed}}
+    var holder: ValueHolder!{Missing}     // swc-expected-error {{sema_err_generic_struct_where_failed}}
 }
 
 func(T) overloaded(value: *T)->s32

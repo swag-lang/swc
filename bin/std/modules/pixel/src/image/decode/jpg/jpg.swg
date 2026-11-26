@@ -31,8 +31,8 @@ private
     const CmykH1V1        = 6
     const YGeneric        = 7
     const Failed          = -1
-    const ConstBits       = 13'u32
-    const Pass1Bits       = 2'u32
+    const ConstBits       = 13_u32
+    const Pass1Bits       = 2_u32
     const Fix_0_298631336 = 2446
     const Fix_0_390180644 = 3196
     const Fix_0_541196100 = 4433
@@ -74,8 +74,7 @@ private
 
     struct CoeffBuf
     {
-        values:    Array's16
-        nonzeroAc: Array'u64     // Occupied AC positions in zigzag order for each block.
+        values:    Array!{s16}
         blockNumX: s32
         blockNumY: s32
     }
@@ -145,7 +144,7 @@ private
 
     #[Inline]
     {
-        func descale(x: s32, n: u32)->s32 => cast(s32, ((x + (1's32 << (n - 1))) >> n))
+        func descale(x: s32, n: u32)->s32 => cast(s32, ((x + (1_s32 << (n - 1))) >> n))
         func clamp(i: s32)->u8 => cast(u8, ((i & cast #bit (s32, 0xFFFFFF00)) ? ((~i >> 31) & 0xFF) : i))
 
         func extendSign(r: u32, s: s32)->s32
@@ -251,14 +250,15 @@ internal struct Decoder
         baselineBlocks: [MaxBlocksPerMcu] BaselineBlock
 
         coefficients: [MaxComponents] CoeffBuf
-        huffNum:      [MaxHuffTables] Array'u8
-        huffVal:      [MaxHuffTables] Array'u8
-        quant:        [MaxQuantTables] Array's16
-        scanLine0:    Array'u8
-        scanLine1:    Array'u8
-        sampleBuf:    Array'u8
+        huffNum:      [MaxHuffTables] Array!{u8}
+        huffVal:      [MaxHuffTables] Array!{u8}
+        quant:        [MaxQuantTables] Array!{s16}
+        scanLine0:    Array!{u8}
+        scanLine1:    Array!{u8}
+        quantBuf:     Array!{u8}
+        sampleBuf:    Array!{u8}
         decOptions:   DecodeOptions
-        metadata:     Array'ImageMetadata
+        metadata:     Array!{ImageMetadata}
     }
 }
 
@@ -283,10 +283,14 @@ impl Decoder
 
         // A geometry probe needs the frame and first scan headers. Pixels and metadata can
         // depend on later scans, so requests for either still read the progressive stream.
-        if .progressiveFlag and (.decOptions.decodePixels or .decOptions.decodeMetadata) do
+        if .progressiveFlag and (.decOptions.decodePixels or .decOptions.decodeMetadata)
+        {
             try .initProgressive()
-        else do
+        }
+        else
+        {
             try .initFirstScan()
+        }
     }
 
     mtd decodeGrayPixels(buf: [*] u8) fail
@@ -323,9 +327,12 @@ impl Decoder
         let direct = .destBytesPerScanLine == .realDestBytesPerScanLine
         for .imageSizeY
         {
-            let source = try .decodeScanLine'Rgb(direct ? destination : null)
-            if source != destination do
+            let source = try .decodeScanLine(direct ? destination : null)
+            if source != destination
+            {
                 Memory.copy(destination, source, stride)
+            }
+
             destination -= stride
         }
     }

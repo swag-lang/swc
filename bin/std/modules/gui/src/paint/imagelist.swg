@@ -2,7 +2,7 @@
 
 using Pixel
 
-private var g_ImageListRevision: Swag.AtomicValue'u64
+private var g_ImageListRevision: Swag.AtomicValue!{u64}
 
 private func nextImageListRevision()->u64 => g_ImageListRevision.add(1) + 1
 
@@ -76,8 +76,11 @@ impl ImageList
     mtd release(renderer: IRenderer)
     {
         let revision = nextImageListRevision()
-        if .texture.isValid() do
+        if .texture.isValid()
+        {
             renderer.removeTexture(&.texture)
+        }
+
         Swag.init(me, 1)
         .revision = revision
     }
@@ -86,8 +89,11 @@ impl ImageList
     internal mtd replace(renderer: IRenderer, texture: Texture, frameWidth = 0, frameHeight = 0, frameCount = 0)
     {
         let revision = .revision != 0 ? .revision : nextImageListRevision()
-        if .texture.isValid() do
+        if .texture.isValid()
+        {
             renderer.removeTexture(&.texture)
+        }
+
         .set(texture, frameWidth, frameHeight, frameCount)
         .revision = revision
     }

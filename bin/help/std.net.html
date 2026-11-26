@@ -168,8 +168,9 @@
     <span class="SLgc">while</span> offset &lt; request.count
     {
         <span class="SKwd">let</span> sent = <span class="SKwd">try</span> connection.<span class="SFct">write</span>(request[offset <span class="SLgc">to</span>])
-        <span class="SLgc">if</span> sent == <span class="SNum">0</span> <span class="SLgc">do</span>
+        <span class="SLgc">if</span> sent == <span class="SNum">0</span> {
             <span class="SKwd">fail</span> <span class="SCst"><a href="#Net_NetworkError">NetworkError</a></span>{<span class="SStr">"TCP stream stopped accepting bytes"</span>, code: <span class="SNum">0</span>}
+        }
         offset += sent
     }
 }</span></div>
@@ -182,8 +183,9 @@
 {
     <span class="SKwd">let</span> target = <span class="SKwd">try</span> <span class="SCst"><a href="#namespace_Net_Url">Url</a></span>.<span class="SFct">parseHttp</span>(<span class="SStr">"https://example.com/?q=swag"</span>)
     <span class="SKwd">let</span> response = <span class="SKwd">try</span> <span class="SCst"><a href="#namespace_Net_Http">Http</a></span>.<span class="SFct">get</span>(target.host, target.port, target.path, target.secure)
-    <span class="SLgc">if</span> response.status == <span class="SNum">200</span> <span class="SLgc">do</span>
+    <span class="SLgc">if</span> response.status == <span class="SNum">200</span> {
         <span class="SCst"><a href="std.core.html#namespace_Core_Console">Console</a></span>.<span class="SFct">println</span>(<span class="SKwd">cast</span>(<span class="STpe">string</span>, response.body.<span class="SFct">toSlice</span>()))
+    }
 }</span></div>
 <p>HTTPS verifies certificates and host names against the platform trust roots. Linux loads <span class="code-inline">libcurl.so.4</span> on the first HTTP request and needs thread-safe initialization and asynchronous DNS support; TCP-only programs do not load it. Standard proxy settings remain effective, including <span class="code-inline">NO_PROXY</span>. <span class="code-inline">SSL_CERT_FILE</span> and <span class="code-inline">SSL_CERT_DIR</span> override Linux CA roots for the server and HTTPS proxy. Responses expose the final status, body, and ordered headers (including duplicate names). Requests have bounded response bodies and return redirects without following them, so the caller can decide which destinations are acceptable by default. GET can optionally follow at most ten redirects; HTTPS requests cannot downgrade to HTTP, and redirect following rejects origin-sensitive request headers. POST never follows redirects. <a href="#Net_Http_get">Net.Http.get</a> documents timeout and header limits.</p>
 <h2 id="overview_Exchange_WebSocket_frames">Exchange WebSocket frames</h2>
@@ -195,8 +197,9 @@
     <span class="SKwd">var</span> peer = <span class="SKwd">try</span> <span class="SCst"><a href="#Net_WebSocket">WebSocket</a></span>.<span class="SFct">connect</span>(<span class="SStr">"example.com"</span>, <span class="SNum">80</span>, <span class="SStr">"/events"</span>)
     <span class="SKwd">try</span> peer.<span class="SFct">sendFrame</span>(.<span class="SCst"><a href="#Net_WebSocketOpcode_Text">Text</a></span>, <span class="SKwd">cast</span>(<span class="SKwd">const</span> [..] <span class="STpe">u8</span>, <span class="SStr">"hello"</span>))
     <span class="SKwd">let</span> frame = <span class="SKwd">try</span> peer.<span class="SFct">receiveFrame</span>()
-    <span class="SLgc">if</span> frame.opcode == .<span class="SCst"><a href="#Net_WebSocketOpcode_Text">Text</a></span> <span class="SLgc">do</span>
+    <span class="SLgc">if</span> frame.opcode == .<span class="SCst"><a href="#Net_WebSocketOpcode_Text">Text</a></span> {
         <span class="SCst"><a href="std.core.html#namespace_Core_Console">Console</a></span>.<span class="SFct">println</span>(<span class="SKwd">cast</span>(<span class="STpe">string</span>, frame.payload.<span class="SFct">toSlice</span>()))
+    }
 }</span></div>
 <p>The client and server validate RFC 6455 upgrades and frame masking. Frames remain visible to the caller, including fragments and control frames; <span class="code-inline">closeGracefully</span> performs the close handshake. <span class="code-inline">WebSocket.connect</span> currently uses an unencrypted <span class="code-inline">ws://</span> transport. HTTPS requests verify TLS certificates, but the module does not yet expose a reusable TLS stream.</p>
 </section>
@@ -809,7 +812,7 @@
 </tbody>
 </table>
 <section class="api-symbol">
-<div class="api-item api-item-struct"><span id="Net_Endpoint" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Net.Endpoint</span> <a class="api-item-permalink" href="#Net_Endpoint" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/net/src/endpoint.swg#L53">src</a></div>
+<div class="api-item api-item-struct"><span id="Net_Endpoint" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Net.Endpoint</span> <a class="api-item-permalink" href="#Net_Endpoint" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/net/src/endpoint.swg#L56">src</a></div>
 <p>An IPv4 address and port in host byte order for TCP or UDP.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">Endpoint</span></span></div>
 </section>
@@ -906,7 +909,7 @@
 </tbody>
 </table>
 <section class="api-symbol">
-<div class="api-item api-item-struct"><span id="Net_SocketEndpoint" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Net.SocketEndpoint</span> <a class="api-item-permalink" href="#Net_SocketEndpoint" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/net/src/endpoint.swg#L43">src</a></div>
+<div class="api-item api-item-struct"><span id="Net_SocketEndpoint" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Net.SocketEndpoint</span> <a class="api-item-permalink" href="#Net_SocketEndpoint" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/net/src/endpoint.swg#L46">src</a></div>
 <p>An IP address and TCP or UDP port in host byte order.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">SocketEndpoint</span></span></div>
 </section>
@@ -1119,7 +1122,7 @@
 </table>
 <h3 id="functions">Functions</h3>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Net_DatagramSocket_bind" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">DatagramSocket.bind</span> <a class="api-item-permalink" href="#Net_DatagramSocket_bind" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/net/src/udp.win32.swg#L59">src</a></div>
+<div class="api-item api-item-func"><span id="Net_DatagramSocket_bind" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">DatagramSocket.bind</span> <a class="api-item-permalink" href="#Net_DatagramSocket_bind" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/net/src/udp.linux.swg#L67">src</a></div>
 <p>Binds an IPv4 or IPv6 endpoint and returns an owned socket.</p>
 <p>A port of zero selects an available port, which <a href="#Net_DatagramSocket_localAddress">Net.DatagramSocket.localAddress</a> returns.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">bind</span>(endpoint: <span class="SCst"><a href="#Net_SocketEndpoint">SocketEndpoint</a></span>)-&gt;<span class="SCst"><a href="#Net_DatagramSocket">DatagramSocket</a></span> <span class="SKwd">fail</span></span></div>
@@ -1151,7 +1154,7 @@
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">leaveMulticast</span>(group: <span class="SCst"><a href="#Net_IpAddress">IpAddress</a></span>, options: <span class="SCst"><a href="#Net_MulticastOptions">MulticastOptions</a></span> = {}) <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Net_DatagramSocket_localAddress" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">DatagramSocket.localAddress</span> <a class="api-item-permalink" href="#Net_DatagramSocket_localAddress" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/net/src/udp.win32.swg#L84">src</a></div>
+<div class="api-item api-item-func"><span id="Net_DatagramSocket_localAddress" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">DatagramSocket.localAddress</span> <a class="api-item-permalink" href="#Net_DatagramSocket_localAddress" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/net/src/udp.linux.swg#L95">src</a></div>
 <p>Returns the bound IPv4 or IPv6 address and port.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">localAddress</span>()-&gt;<span class="SCst"><a href="#Net_SocketEndpoint">SocketEndpoint</a></span> <span class="SKwd">fail</span></span></div>
 </section>
@@ -1161,12 +1164,12 @@
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">opDrop</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Net_DatagramSocket_receiveFrom" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">DatagramSocket.receiveFrom</span> <a class="api-item-permalink" href="#Net_DatagramSocket_receiveFrom" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/net/src/udp.win32.swg#L113">src</a></div>
+<div class="api-item api-item-func"><span id="Net_DatagramSocket_receiveFrom" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">DatagramSocket.receiveFrom</span> <a class="api-item-permalink" href="#Net_DatagramSocket_receiveFrom" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/net/src/udp.linux.swg#L134">src</a></div>
 <p>Receives one datagram; oversized messages are truncated to <span class="code-inline">buffer.count</span> bytes.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">receiveFrom</span>(buffer: [..] <span class="STpe">u8</span>)-&gt;<span class="SCst"><a href="#Net_Datagram">Datagram</a></span> <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Net_DatagramSocket_sendTo" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">DatagramSocket.sendTo</span> <a class="api-item-permalink" href="#Net_DatagramSocket_sendTo" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/net/src/udp.win32.swg#L95">src</a></div>
+<div class="api-item api-item-func"><span id="Net_DatagramSocket_sendTo" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">DatagramSocket.sendTo</span> <a class="api-item-permalink" href="#Net_DatagramSocket_sendTo" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/net/src/udp.linux.swg#L109">src</a></div>
 <p>Sends one complete datagram. A zero-byte payload is a valid datagram.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">sendTo</span>(endpoint: <span class="SCst"><a href="#Net_SocketEndpoint">SocketEndpoint</a></span>, bytes: <span class="SKwd">const</span> [..] <span class="STpe">u8</span>)-&gt;<span class="STpe">u64</span> <span class="SKwd">fail</span></span></div>
 </section>
@@ -1194,7 +1197,7 @@
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">resolve</span>(host, service: <span class="STpe">string</span>, options: <span class="SCst"><a href="#Net_ResolveOptions">ResolveOptions</a></span> = {})-&gt;<span class="SFct"><a href="std.core.html#Core_Array">Array</a></span>'<span class="SCst"><a href="#Net_SocketEndpoint">SocketEndpoint</a></span> <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Net_Endpoint_toSocketEndpoint" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Endpoint.toSocketEndpoint</span> <a class="api-item-permalink" href="#Net_Endpoint_toSocketEndpoint" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/net/src/endpoint.swg#L65">src</a></div>
+<div class="api-item api-item-func"><span id="Net_Endpoint_toSocketEndpoint" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Endpoint.toSocketEndpoint</span> <a class="api-item-permalink" href="#Net_Endpoint_toSocketEndpoint" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/net/src/endpoint.swg#L68">src</a></div>
 <p>Converts this IPv4 endpoint to the address family independent form.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">toSocketEndpoint</span>()-&gt;<span class="SCst"><a href="#Net_SocketEndpoint">SocketEndpoint</a></span></span></div>
 </section>
@@ -1225,33 +1228,33 @@
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">ipv4</span>(octets: [<span class="SNum">4</span>] <span class="STpe">u8</span>)-&gt;<span class="SCst"><a href="#Net_IpAddress">IpAddress</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Net_IpAddress_ipv6" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">IpAddress.ipv6</span> <a class="api-item-permalink" href="#Net_IpAddress_ipv6" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/net/src/endpoint.swg#L33">src</a></div>
+<div class="api-item api-item-func"><span id="Net_IpAddress_ipv6" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">IpAddress.ipv6</span> <a class="api-item-permalink" href="#Net_IpAddress_ipv6" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/net/src/endpoint.swg#L36">src</a></div>
 <p>Creates an IPv6 address from its sixteen network-order octets.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">ipv6</span>(octets: [<span class="SNum">16</span>] <span class="STpe">u8</span>, scopeId: <span class="STpe">u32</span> = <span class="SNum">0</span>)-&gt;<span class="SCst"><a href="#Net_IpAddress">IpAddress</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Net_IpAddress_isIPv4" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">IpAddress.isIPv4</span> <a class="api-item-permalink" href="#Net_IpAddress_isIPv4" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/net/src/endpoint.swg#L36">src</a></div>
+<div class="api-item api-item-func"><span id="Net_IpAddress_isIPv4" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">IpAddress.isIPv4</span> <a class="api-item-permalink" href="#Net_IpAddress_isIPv4" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/net/src/endpoint.swg#L39">src</a></div>
 <p>Returns whether this address is IPv4.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">isIPv4</span>()-&gt;<span class="STpe">bool</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Net_IpAddress_isIPv6" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">IpAddress.isIPv6</span> <a class="api-item-permalink" href="#Net_IpAddress_isIPv6" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/net/src/endpoint.swg#L39">src</a></div>
+<div class="api-item api-item-func"><span id="Net_IpAddress_isIPv6" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">IpAddress.isIPv6</span> <a class="api-item-permalink" href="#Net_IpAddress_isIPv6" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/net/src/endpoint.swg#L42">src</a></div>
 <p>Returns whether this address is IPv6.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">isIPv6</span>()-&gt;<span class="STpe">bool</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Net_Http_Server_accept" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Server.accept</span> <a class="api-item-permalink" href="#Net_Http_Server_accept" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/net/src/http/server.swg#L156">src</a></div>
+<div class="api-item api-item-func"><span id="Net_Http_Server_accept" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Server.accept</span> <a class="api-item-permalink" href="#Net_Http_Server_accept" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/net/src/http/server.swg#L165">src</a></div>
 <p>Blocks until a peer connects and returns an independently owned connection.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">accept</span>()-&gt;<span class="SCst"><a href="#Net_Http_ServerConnection">ServerConnection</a></span> <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Net_Http_Server_close" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Server.close</span> <a class="api-item-permalink" href="#Net_Http_Server_close" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/net/src/http/server.swg#L153">src</a></div>
+<div class="api-item api-item-func"><span id="Net_Http_Server_close" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Server.close</span> <a class="api-item-permalink" href="#Net_Http_Server_close" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/net/src/http/server.swg#L162">src</a></div>
 <p>Closes the listener; connections already accepted remain owned by callers.</p>
 <p>A call to <span class="code-inline">accept</span> already blocked on another thread is not guaranteed to wake. Coordinate shutdown with accept callers before closing the server.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">close</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Net_Http_Server_listen" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Server.listen</span> <a class="api-item-permalink" href="#Net_Http_Server_listen" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/net/src/http/server.swg#L132">src</a></div>
+<div class="api-item api-item-func"><span id="Net_Http_Server_listen" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Server.listen</span> <a class="api-item-permalink" href="#Net_Http_Server_listen" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/net/src/http/server.swg#L138">src</a></div>
 <p>Binds a blocking HTTP listener for IPv4 or IPv6 requests.</p>
 <p>Connections serve one request by default. A larger request limit requires a nonzero <span class="code-inline">idleTimeoutMs</span>, which bounds each blocking read while parsing requests.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">listen</span>(endpoint: <span class="SCst"><a href="#Net_SocketEndpoint">SocketEndpoint</a></span>, options: <span class="SCst"><a href="#Net_Http_ServerOptions">ServerOptions</a></span> = {})-&gt;<span class="SCst"><a href="#Net_Http_Server">Server</a></span> <span class="SKwd">fail</span></span></div>
@@ -1259,52 +1262,52 @@
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">listen</span>(endpoint: <span class="SCst"><a href="#Net_Endpoint">Endpoint</a></span>, options: <span class="SCst"><a href="#Net_Http_ServerOptions">ServerOptions</a></span> = {})-&gt;<span class="SCst"><a href="#Net_Http_Server">Server</a></span> <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Net_Http_Server_localAddress" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Server.localAddress</span> <a class="api-item-permalink" href="#Net_Http_Server_localAddress" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/net/src/http/server.swg#L147">src</a></div>
+<div class="api-item api-item-func"><span id="Net_Http_Server_localAddress" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Server.localAddress</span> <a class="api-item-permalink" href="#Net_Http_Server_localAddress" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/net/src/http/server.swg#L156">src</a></div>
 <p>Returns the bound local IPv4 or IPv6 address and port.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">localAddress</span>()-&gt;<span class="SCst"><a href="#Net_SocketEndpoint">SocketEndpoint</a></span> <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Net_Http_ServerConnection_beginChunkedResponse" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ServerConnection.beginChunkedResponse</span> <a class="api-item-permalink" href="#Net_Http_ServerConnection_beginChunkedResponse" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/net/src/http/server.swg#L483">src</a></div>
+<div class="api-item api-item-func"><span id="Net_Http_ServerConnection_beginChunkedResponse" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ServerConnection.beginChunkedResponse</span> <a class="api-item-permalink" href="#Net_Http_ServerConnection_beginChunkedResponse" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/net/src/http/server.swg#L623">src</a></div>
 <p>Starts a chunked response for a body whose length is not known in advance.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">beginChunkedResponse</span>(status: <span class="STpe">u32</span>, headers: <span class="SKwd">const</span> [..] <span class="SCst"><a href="#Net_Http_Header">Header</a></span> = []) <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Net_Http_ServerConnection_close" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ServerConnection.close</span> <a class="api-item-permalink" href="#Net_Http_ServerConnection_close" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/net/src/http/server.swg#L168">src</a></div>
+<div class="api-item api-item-func"><span id="Net_Http_ServerConnection_close" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ServerConnection.close</span> <a class="api-item-permalink" href="#Net_Http_ServerConnection_close" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/net/src/http/server.swg#L180">src</a></div>
 <p>Closes the connection; repeated calls do nothing.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">close</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Net_Http_ServerConnection_finishResponse" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ServerConnection.finishResponse</span> <a class="api-item-permalink" href="#Net_Http_ServerConnection_finishResponse" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/net/src/http/server.swg#L518">src</a></div>
+<div class="api-item api-item-func"><span id="Net_Http_ServerConnection_finishResponse" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ServerConnection.finishResponse</span> <a class="api-item-permalink" href="#Net_Http_ServerConnection_finishResponse" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/net/src/http/server.swg#L667">src</a></div>
 <p>Completes the chunked response and applies the connection policy.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">finishResponse</span>() <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Net_Http_ServerConnection_opDrop" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ServerConnection.opDrop</span> <a class="api-item-permalink" href="#Net_Http_ServerConnection_opDrop" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/net/src/http/server.swg#L171">src</a></div>
+<div class="api-item api-item-func"><span id="Net_Http_ServerConnection_opDrop" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ServerConnection.opDrop</span> <a class="api-item-permalink" href="#Net_Http_ServerConnection_opDrop" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/net/src/http/server.swg#L183">src</a></div>
 <p>Closes the connection when this owner is dropped.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">opDrop</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Net_Http_ServerConnection_readRequest" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ServerConnection.readRequest</span> <a class="api-item-permalink" href="#Net_Http_ServerConnection_readRequest" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/net/src/http/server.swg#L282">src</a></div>
+<div class="api-item api-item-func"><span id="Net_Http_ServerConnection_readRequest" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ServerConnection.readRequest</span> <a class="api-item-permalink" href="#Net_Http_ServerConnection_readRequest" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/net/src/http/server.swg#L337">src</a></div>
 <p>Reads and validates one bounded request, including Content-Length and chunked bodies.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">readRequest</span>()-&gt;<span class="SCst"><a href="#Net_Http_ServerRequest">ServerRequest</a></span> <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Net_Http_ServerConnection_respond" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ServerConnection.respond</span> <a class="api-item-permalink" href="#Net_Http_ServerConnection_respond" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/net/src/http/server.swg#L475">src</a></div>
+<div class="api-item api-item-func"><span id="Net_Http_ServerConnection_respond" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ServerConnection.respond</span> <a class="api-item-permalink" href="#Net_Http_ServerConnection_respond" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/net/src/http/server.swg#L615">src</a></div>
 <p>Writes a complete response with a known body length and applies the connection policy.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">respond</span>(status: <span class="STpe">u32</span>, body: <span class="SKwd">const</span> [..] <span class="STpe">u8</span>, headers: <span class="SKwd">const</span> [..] <span class="SCst"><a href="#Net_Http_Header">Header</a></span> = []) <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Net_Http_ServerConnection_upgradeWebSocket" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ServerConnection.upgradeWebSocket</span> <a class="api-item-permalink" href="#Net_Http_ServerConnection_upgradeWebSocket" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/net/src/http/server.swg#L489">src</a></div>
+<div class="api-item api-item-func"><span id="Net_Http_ServerConnection_upgradeWebSocket" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ServerConnection.upgradeWebSocket</span> <a class="api-item-permalink" href="#Net_Http_ServerConnection_upgradeWebSocket" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/net/src/http/server.swg#L629">src</a></div>
 <p>Completes an RFC 6455 upgrade and transfers this connection to a WebSocket owner.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">upgradeWebSocket</span>(request: <span class="SCst"><a href="#Net_Http_ServerRequest">ServerRequest</a></span>, options: <span class="SCst"><a href="#Net_WebSocketOptions">WebSocketOptions</a></span> = {})-&gt;<span class="SCst"><a href="#Net_WebSocket">WebSocket</a></span> <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Net_Http_ServerConnection_writeBody" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ServerConnection.writeBody</span> <a class="api-item-permalink" href="#Net_Http_ServerConnection_writeBody" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/net/src/http/server.swg#L505">src</a></div>
+<div class="api-item api-item-func"><span id="Net_Http_ServerConnection_writeBody" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ServerConnection.writeBody</span> <a class="api-item-permalink" href="#Net_Http_ServerConnection_writeBody" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/net/src/http/server.swg#L648">src</a></div>
 <p>Writes one chunk of a response started by <a href="#Net_Http_ServerConnection_beginChunkedResponse">Net.Http.ServerConnection.beginChunkedResponse</a>.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">writeBody</span>(bytes: <span class="SKwd">const</span> [..] <span class="STpe">u8</span>) <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Net_TcpListener_accept" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">TcpListener.accept</span> <a class="api-item-permalink" href="#Net_TcpListener_accept" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/net/src/tcp.win32.swg#L211">src</a></div>
+<div class="api-item api-item-func"><span id="Net_TcpListener_accept" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">TcpListener.accept</span> <a class="api-item-permalink" href="#Net_TcpListener_accept" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/net/src/tcp.linux.swg#L324">src</a></div>
 <p>Blocks until a peer connects and returns an independently owned stream.</p>
 <p>Fails with <a href="std.core.html#Core_Errors_BadParameterError">Core.Errors.BadParameterError</a> when the listener is not open.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">accept</span>()-&gt;<span class="SCst"><a href="#Net_TcpStream">TcpStream</a></span> <span class="SKwd">fail</span></span></div>
@@ -1315,7 +1318,7 @@
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">close</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Net_TcpListener_listen" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">TcpListener.listen</span> <a class="api-item-permalink" href="#Net_TcpListener_listen" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/net/src/tcp.win32.swg#L153">src</a></div>
+<div class="api-item api-item-func"><span id="Net_TcpListener_listen" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">TcpListener.listen</span> <a class="api-item-permalink" href="#Net_TcpListener_listen" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/net/src/tcp.linux.swg#L245">src</a></div>
 <p>Binds an IPv4 endpoint and starts listening for connections.</p>
 <p>Port zero selects an available port, which <a href="#Net_TcpListener_localEndpoint">Net.TcpListener.localEndpoint</a> returns.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">listen</span>(endpoint: <span class="SCst"><a href="#Net_SocketEndpoint">SocketEndpoint</a></span>, backlog = <span class="SNum">16</span>)-&gt;<span class="SCst"><a href="#Net_TcpListener">TcpListener</a></span> <span class="SKwd">fail</span></span></div>
@@ -1323,12 +1326,12 @@
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">listen</span>(endpoint: <span class="SCst"><a href="#Net_Endpoint">Endpoint</a></span>, backlog = <span class="SNum">16</span>)-&gt;<span class="SCst"><a href="#Net_TcpListener">TcpListener</a></span> <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Net_TcpListener_localAddress" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">TcpListener.localAddress</span> <a class="api-item-permalink" href="#Net_TcpListener_localAddress" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/net/src/tcp.win32.swg#L197">src</a></div>
+<div class="api-item api-item-func"><span id="Net_TcpListener_localAddress" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">TcpListener.localAddress</span> <a class="api-item-permalink" href="#Net_TcpListener_localAddress" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/net/src/tcp.linux.swg#L304">src</a></div>
 <p>Returns the bound local IPv4 or IPv6 address and port.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">localAddress</span>()-&gt;<span class="SCst"><a href="#Net_SocketEndpoint">SocketEndpoint</a></span> <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Net_TcpListener_localEndpoint" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">TcpListener.localEndpoint</span> <a class="api-item-permalink" href="#Net_TcpListener_localEndpoint" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/net/src/tcp.win32.swg#L183">src</a></div>
+<div class="api-item api-item-func"><span id="Net_TcpListener_localEndpoint" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">TcpListener.localEndpoint</span> <a class="api-item-permalink" href="#Net_TcpListener_localEndpoint" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/net/src/tcp.linux.swg#L281">src</a></div>
 <p>Returns the bound local address and port.</p>
 <p>Fails with <a href="std.core.html#Core_Errors_BadParameterError">Core.Errors.BadParameterError</a> when the listener is not open.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">localEndpoint</span>()-&gt;<span class="SCst"><a href="#Net_Endpoint">Endpoint</a></span> <span class="SKwd">fail</span></span></div>
@@ -1344,7 +1347,7 @@
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">close</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Net_TcpStream_connect" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">TcpStream.connect</span> <a class="api-item-permalink" href="#Net_TcpStream_connect" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/net/src/tcp.win32.swg#L82">src</a></div>
+<div class="api-item api-item-func"><span id="Net_TcpStream_connect" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">TcpStream.connect</span> <a class="api-item-permalink" href="#Net_TcpStream_connect" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/net/src/tcp.linux.swg#L118">src</a></div>
 <p>Connects to an IPv4 or IPv6 endpoint, returning an owned blocking stream.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">connect</span>(endpoint: <span class="SCst"><a href="#Net_SocketEndpoint">SocketEndpoint</a></span>)-&gt;<span class="SCst"><a href="#Net_TcpStream">TcpStream</a></span> <span class="SKwd">fail</span></span></div>
 <p>Connects to an IPv4 endpoint, returning an owned blocking stream.</p>
@@ -1356,12 +1359,12 @@
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">isOpen</span>()-&gt;<span class="STpe">bool</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Net_TcpStream_opDrop" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">TcpStream.opDrop</span> <a class="api-item-permalink" href="#Net_TcpStream_opDrop" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/net/src/tcpstream.swg#L68">src</a></div>
+<div class="api-item api-item-func"><span id="Net_TcpStream_opDrop" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">TcpStream.opDrop</span> <a class="api-item-permalink" href="#Net_TcpStream_opDrop" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/net/src/tcpstream.swg#L74">src</a></div>
 <p>Closes the connection when this owner is dropped.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">opDrop</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Net_TcpStream_read" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">TcpStream.read</span> <a class="api-item-permalink" href="#Net_TcpStream_read" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/net/src/tcp.win32.swg#L118">src</a></div>
+<div class="api-item api-item-func"><span id="Net_TcpStream_read" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">TcpStream.read</span> <a class="api-item-permalink" href="#Net_TcpStream_read" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/net/src/tcp.linux.swg#L176">src</a></div>
 <p>Reads up to <span class="code-inline">buffer.count</span> bytes; zero indicates EOF or an empty buffer.</p>
 <p>Fails with <a href="std.core.html#Core_Errors_BadParameterError">Core.Errors.BadParameterError</a> when the stream is not open.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">read</span>(buffer: [..] <span class="STpe">u8</span>)-&gt;<span class="STpe">u64</span> <span class="SKwd">fail</span></span></div>
@@ -1373,7 +1376,7 @@
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">readExact</span>(buffer: [..] <span class="STpe">u8</span>)-&gt;<span class="STpe">u64</span> <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Net_TcpStream_setKeepAlive" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">TcpStream.setKeepAlive</span> <a class="api-item-permalink" href="#Net_TcpStream_setKeepAlive" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/net/src/tcp.win32.swg#L52">src</a></div>
+<div class="api-item api-item-func"><span id="Net_TcpStream_setKeepAlive" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">TcpStream.setKeepAlive</span> <a class="api-item-permalink" href="#Net_TcpStream_setKeepAlive" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/net/src/tcp.linux.swg#L71">src</a></div>
 <p>Enables or disables operating-system TCP keepalive probes for this connection.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setKeepAlive</span>(enabled: <span class="STpe">bool</span>) <span class="SKwd">fail</span></span></div>
 <p>Enables or disables operating-system TCP keepalive probes for this connection.</p>
@@ -1381,7 +1384,7 @@
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setKeepAlive</span>(enabled: <span class="STpe">bool</span>) <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Net_TcpStream_setNoDelay" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">TcpStream.setNoDelay</span> <a class="api-item-permalink" href="#Net_TcpStream_setNoDelay" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/net/src/tcp.win32.swg#L42">src</a></div>
+<div class="api-item api-item-func"><span id="Net_TcpStream_setNoDelay" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">TcpStream.setNoDelay</span> <a class="api-item-permalink" href="#Net_TcpStream_setNoDelay" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/net/src/tcp.linux.swg#L56">src</a></div>
 <p>Enables or disables Nagle's algorithm for this connection.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setNoDelay</span>(enabled: <span class="STpe">bool</span>) <span class="SKwd">fail</span></span></div>
 <p>Enables or disables Nagle's algorithm for this connection.</p>
@@ -1389,7 +1392,7 @@
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setNoDelay</span>(enabled: <span class="STpe">bool</span>) <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Net_TcpStream_setReadTimeout" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">TcpStream.setReadTimeout</span> <a class="api-item-permalink" href="#Net_TcpStream_setReadTimeout" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/net/src/tcp.win32.swg#L62">src</a></div>
+<div class="api-item api-item-func"><span id="Net_TcpStream_setReadTimeout" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">TcpStream.setReadTimeout</span> <a class="api-item-permalink" href="#Net_TcpStream_setReadTimeout" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/net/src/tcp.linux.swg#L86">src</a></div>
 <p>Sets the maximum blocking read time in milliseconds; zero disables the timeout.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setReadTimeout</span>(timeoutMs: <span class="STpe">u32</span>) <span class="SKwd">fail</span></span></div>
 <p>Sets the maximum blocking read time in milliseconds; zero disables the timeout.</p>
@@ -1397,7 +1400,7 @@
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setReadTimeout</span>(timeoutMs: <span class="STpe">u32</span>) <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Net_TcpStream_setWriteTimeout" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">TcpStream.setWriteTimeout</span> <a class="api-item-permalink" href="#Net_TcpStream_setWriteTimeout" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/net/src/tcp.win32.swg#L72">src</a></div>
+<div class="api-item api-item-func"><span id="Net_TcpStream_setWriteTimeout" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">TcpStream.setWriteTimeout</span> <a class="api-item-permalink" href="#Net_TcpStream_setWriteTimeout" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/net/src/tcp.linux.swg#L102">src</a></div>
 <p>Sets the maximum blocking write time in milliseconds; zero disables the timeout.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setWriteTimeout</span>(timeoutMs: <span class="STpe">u32</span>) <span class="SKwd">fail</span></span></div>
 <p>Sets the maximum blocking write time in milliseconds; zero disables the timeout.</p>
@@ -1405,7 +1408,7 @@
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setWriteTimeout</span>(timeoutMs: <span class="STpe">u32</span>) <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Net_TcpStream_shutdownWrite" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">TcpStream.shutdownWrite</span> <a class="api-item-permalink" href="#Net_TcpStream_shutdownWrite" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/net/src/tcp.win32.swg#L107">src</a></div>
+<div class="api-item api-item-func"><span id="Net_TcpStream_shutdownWrite" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">TcpStream.shutdownWrite</span> <a class="api-item-permalink" href="#Net_TcpStream_shutdownWrite" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/net/src/tcp.linux.swg#L160">src</a></div>
 <p>Stops sending bytes while keeping the receive side open.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">shutdownWrite</span>() <span class="SKwd">fail</span></span></div>
 <p>Stops sending bytes while keeping the receive side open.</p>
@@ -1413,25 +1416,26 @@
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">shutdownWrite</span>() <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Net_TcpStream_write" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">TcpStream.write</span> <a class="api-item-permalink" href="#Net_TcpStream_write" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/net/src/tcp.win32.swg#L134">src</a></div>
+<div class="api-item api-item-func"><span id="Net_TcpStream_write" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">TcpStream.write</span> <a class="api-item-permalink" href="#Net_TcpStream_write" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/net/src/tcp.linux.swg#L210">src</a></div>
 <p>Writes up to <span class="code-inline">buffer.count</span> bytes and returns the amount accepted by the host.</p>
+<p>A closed peer reports <a href="#Net_NetworkError">Net.NetworkError</a> without raising SIGPIPE in the process.</p>
 <p>Fails with <a href="std.core.html#Core_Errors_BadParameterError">Core.Errors.BadParameterError</a> when the stream is not open.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">write</span>(buffer: <span class="SKwd">const</span> [..] <span class="STpe">u8</span>)-&gt;<span class="STpe">u64</span> <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Net_TcpStream_writeAll" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">TcpStream.writeAll</span> <a class="api-item-permalink" href="#Net_TcpStream_writeAll" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/net/src/tcpstream.swg#L53">src</a></div>
+<div class="api-item api-item-func"><span id="Net_TcpStream_writeAll" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">TcpStream.writeAll</span> <a class="api-item-permalink" href="#Net_TcpStream_writeAll" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/net/src/tcpstream.swg#L56">src</a></div>
 <p>Writes all bytes, retrying partial writes.</p>
 <p>Returns zero for an empty buffer; a write that makes no progress fails with <a href="#Net_NetworkError">Net.NetworkError</a>.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">writeAll</span>(bytes: <span class="SKwd">const</span> [..] <span class="STpe">u8</span>)-&gt;<span class="STpe">u64</span> <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Net_Url_decodeComponent" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Url.decodeComponent</span> <a class="api-item-permalink" href="#Net_Url_decodeComponent" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/net/src/url.swg#L293">src</a></div>
+<div class="api-item api-item-func"><span id="Net_Url_decodeComponent" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Url.decodeComponent</span> <a class="api-item-permalink" href="#Net_Url_decodeComponent" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/net/src/url.swg#L382">src</a></div>
 <p>Decodes percent escapes in one URL component into its original bytes.</p>
 <p><span class="code-inline">+</span> remains <span class="code-inline">+</span>. A truncated escape or a non-hexadecimal digit fails; unescaped bytes are copied without interpreting or validating UTF-8.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">decodeComponent</span>(text: <span class="STpe">string</span>)-&gt;<span class="SFct"><a href="std.core.html#Core_Array">Array</a></span>'<span class="STpe">u8</span> <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Net_Url_encodeComponent" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Url.encodeComponent</span> <a class="api-item-permalink" href="#Net_Url_encodeComponent" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/net/src/url.swg#L262">src</a></div>
+<div class="api-item api-item-func"><span id="Net_Url_encodeComponent" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Url.encodeComponent</span> <a class="api-item-permalink" href="#Net_Url_encodeComponent" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/net/src/url.swg#L351">src</a></div>
 <p>Percent-encodes bytes for one URL component using the RFC 3986 unreserved alphabet.</p>
 <p>UTF-8 text is encoded byte by byte. Spaces become <span class="code-inline">%20</span>, not <span class="code-inline">+</span>; separators such as <span class="code-inline">&amp;</span>, <span class="code-inline">=</span>, <span class="code-inline">/</span> and <span class="code-inline">%</span> are encoded so the result can be inserted as one query value or path segment.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">encodeComponent</span>(bytes: <span class="SKwd">const</span> [..] <span class="STpe">u8</span>)-&gt;<span class="SCst"><a href="std.core.html#Core_String">String</a></span></span></div>
@@ -1443,37 +1447,37 @@
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">parseHttp</span>(text: <span class="STpe">string</span>)-&gt;<span class="SCst"><a href="#Net_Url_HttpTarget">HttpTarget</a></span> <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Net_WebSocket_close" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">WebSocket.close</span> <a class="api-item-permalink" href="#Net_WebSocket_close" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/net/src/websocket.swg#L272">src</a></div>
+<div class="api-item api-item-func"><span id="Net_WebSocket_close" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">WebSocket.close</span> <a class="api-item-permalink" href="#Net_WebSocket_close" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/net/src/websocket.swg#L310">src</a></div>
 <p>Closes the connection; repeated calls do nothing.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">close</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Net_WebSocket_closeGracefully" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">WebSocket.closeGracefully</span> <a class="api-item-permalink" href="#Net_WebSocket_closeGracefully" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/net/src/websocket.swg#L395">src</a></div>
+<div class="api-item api-item-func"><span id="Net_WebSocket_closeGracefully" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">WebSocket.closeGracefully</span> <a class="api-item-permalink" href="#Net_WebSocket_closeGracefully" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/net/src/websocket.swg#L477">src</a></div>
 <p>Sends a close frame, answers intervening pings, and waits for the peer's close frame.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">closeGracefully</span>(code: <span class="STpe">u16</span> = <span class="SNum">1000</span>, reason: <span class="STpe">string</span> = <span class="SStr">""</span>) <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Net_WebSocket_connect" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">WebSocket.connect</span> <a class="api-item-permalink" href="#Net_WebSocket_connect" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/net/src/websocket.swg#L537">src</a></div>
+<div class="api-item api-item-func"><span id="Net_WebSocket_connect" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">WebSocket.connect</span> <a class="api-item-permalink" href="#Net_WebSocket_connect" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/net/src/websocket.swg#L679">src</a></div>
 <p>Starts a client WebSocket handshake and verifies the server's HTTP upgrade response.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">connect</span>(host: <span class="STpe">string</span>, port: <span class="STpe">u16</span> = <span class="SNum">80</span>, path: <span class="STpe">string</span> = <span class="SStr">"/"</span>, options: <span class="SCst"><a href="#Net_WebSocketOptions">WebSocketOptions</a></span> = {})-&gt;<span class="SCst"><a href="#Net_WebSocket">WebSocket</a></span> <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Net_WebSocket_isOpen" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">WebSocket.isOpen</span> <a class="api-item-permalink" href="#Net_WebSocket_isOpen" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/net/src/websocket.swg#L269">src</a></div>
+<div class="api-item api-item-func"><span id="Net_WebSocket_isOpen" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">WebSocket.isOpen</span> <a class="api-item-permalink" href="#Net_WebSocket_isOpen" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/net/src/websocket.swg#L307">src</a></div>
 <p>Returns whether this socket still owns a connection.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">isOpen</span>()-&gt;<span class="STpe">bool</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Net_WebSocket_opDrop" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">WebSocket.opDrop</span> <a class="api-item-permalink" href="#Net_WebSocket_opDrop" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/net/src/websocket.swg#L282">src</a></div>
+<div class="api-item api-item-func"><span id="Net_WebSocket_opDrop" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">WebSocket.opDrop</span> <a class="api-item-permalink" href="#Net_WebSocket_opDrop" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/net/src/websocket.swg#L320">src</a></div>
 <p>Closes the connection when the owner is dropped.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">opDrop</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Net_WebSocket_receiveFrame" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">WebSocket.receiveFrame</span> <a class="api-item-permalink" href="#Net_WebSocket_receiveFrame" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/net/src/websocket.swg#L426">src</a></div>
+<div class="api-item api-item-func"><span id="Net_WebSocket_receiveFrame" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">WebSocket.receiveFrame</span> <a class="api-item-permalink" href="#Net_WebSocket_receiveFrame" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/net/src/websocket.swg#L516">src</a></div>
 <p>Reads one frame and validates masking, control-frame, fragmentation, and size rules.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">receiveFrame</span>()-&gt;<span class="SCst"><a href="#Net_WebSocketFrame">WebSocketFrame</a></span> <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Net_WebSocket_sendFrame" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">WebSocket.sendFrame</span> <a class="api-item-permalink" href="#Net_WebSocket_sendFrame" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/net/src/websocket.swg#L285">src</a></div>
+<div class="api-item api-item-func"><span id="Net_WebSocket_sendFrame" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">WebSocket.sendFrame</span> <a class="api-item-permalink" href="#Net_WebSocket_sendFrame" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/net/src/websocket.swg#L323">src</a></div>
 <p>Sends one frame, applying the client mask required by RFC 6455.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">sendFrame</span>(opcode: <span class="SCst"><a href="#Net_WebSocketOpcode">WebSocketOpcode</a></span>, payload: <span class="SKwd">const</span> [..] <span class="STpe">u8</span>, final: <span class="STpe">bool</span> = <span class="SKwd">true</span>) <span class="SKwd">fail</span></span></div>
 </section>

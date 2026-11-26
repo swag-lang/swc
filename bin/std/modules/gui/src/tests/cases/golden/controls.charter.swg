@@ -19,10 +19,16 @@ func buildCharterWall(host: *Testing.HeadlessHost)
     {
         let names = ["Open", "Cancel", "Later", "Delete", "Disabled", "Hover"]
         let btn   = PushButton.create(root, names[index], {x, 20, 92, 0}, form: form)
-        if index == 4 do
+        if index == 4
+        {
             btn.disable()
-        if index == 5 do
+        }
+
+        if index == 5
+        {
             btn.isHot = true
+        }
+
         x += 100
     }
 
@@ -44,8 +50,11 @@ func buildCharterWall(host: *Testing.HeadlessHost)
     with let segments = Tab.create(root, {Left + 176, 64, 280, 32})
     {
         .setForms(.Round, .Round, .Flat)
-        for name in ["Code", "Text", "Hexa", "Binary"] do
+        for name in ["Code", "Text", "Hexa", "Binary"]
+        {
             .addItem(name)
+        }
+
         .setSelectedIndex(0)
     }
 
@@ -100,8 +109,11 @@ func buildCharterWall(host: *Testing.HeadlessHost)
     with let tabs = Tab.create(root, {Left, 288, 320, 40})
     {
         .setForms(.Flat, .Flat, .Flat)
-        for name in ["Appearance", "Language", "About"] do
+        for name in ["Appearance", "Language", "About"]
+        {
             .addItem(name)
+        }
+
         .setSelectedIndex(0)
     }
 
@@ -136,7 +148,7 @@ func buildCharterWall(host: *Testing.HeadlessHost)
     // Notices: information, caution and failure, each a tinted ground and a dot.
     for kind, index in [InfoBarKind.Information, .Message, .Critical]
     {
-        let notice = Wnd.create'Wnd(root, {Left + 440, 344 + cast(f32, index) * 48, 340, 40})
+        let notice = Wnd.create!{Wnd}(root, {Left + 440, 344 + cast(f32, index) * 48, 340, 40})
         let texts  = ["These settings apply to the next shapes.", "The reader is busy.", "Wrong password."]
         InfoBar.create(notice, texts[index], kind)
     }
@@ -144,8 +156,11 @@ func buildCharterWall(host: *Testing.HeadlessHost)
     // Swatches, the chosen one ringed in Arc.
     with let swatches = PalettePicker.create(root, {Left + 600, 248, 200, 28})
     {
-        for color in [0xFFE5484D'u32, 0xFFF59E0B, 0xFF22A35A, 0xFF38BDF8, 0xFFF2F2F2] do
+        for color in [0xFFE5484D_u32, 0xFFF59E0B, 0xFF22A35A, 0xFF38BDF8, 0xFFF2F2F2]
+        {
             .addColor(Color.fromArgb(color))
+        }
+
         .setSelectedIndex(1, notify: false)
     }
 

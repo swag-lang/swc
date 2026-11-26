@@ -33,22 +33,22 @@ const KEY_WOW64_RES          = 0x0300
 const KEY_READ               = 0x00020019
 
 alias PSECURITY_DESCRIPTOR = *void?
-const SDDL_REVISION_1 = 1'u32
+const SDDL_REVISION_1 = 1_u32
 
-const REG_NONE                       = 0'u32     // No value type
-const REG_SZ                         = 1'u32     // Unicode nul terminated string
-const REG_EXPAND_SZ                  = 2'u32     // Unicode nul terminated string
-const REG_BINARY                     = 3'u32     // Free form binary
-const REG_DWORD                      = 4'u32     // 32-bit number
-const REG_DWORD_LITTLE_ENDIAN        = 4'u32     // 32-bit number (same as REG_DWORD)
-const REG_DWORD_BIG_ENDIAN           = 5'u32     // 32-bit number
-const REG_LINK                       = 6'u32     // Symbolic Link (unicode)
-const REG_MULTI_SZ                   = 7'u32     // Multiple Unicode strings
-const REG_RESOURCE_LIST              = 8'u32     // Resource list in the resource map
-const REG_FULL_RESOURCE_DESCRIPTOR   = 9'u32     // Resource list in the hardware description
-const REG_RESOURCE_REQUIREMENTS_LIST = 10'u32
-const REG_QWORD                      = 11'u32     // 64-bit number
-const REG_QWORD_LITTLE_ENDIAN        = 11'u32     // 64-bit number (same as REG_QWORD)
+const REG_NONE                       = 0_u32     // No value type
+const REG_SZ                         = 1_u32     // Unicode nul terminated string
+const REG_EXPAND_SZ                  = 2_u32     // Unicode nul terminated string
+const REG_BINARY                     = 3_u32     // Free form binary
+const REG_DWORD                      = 4_u32     // 32-bit number
+const REG_DWORD_LITTLE_ENDIAN        = 4_u32     // 32-bit number (same as REG_DWORD)
+const REG_DWORD_BIG_ENDIAN           = 5_u32     // 32-bit number
+const REG_LINK                       = 6_u32     // Symbolic Link (unicode)
+const REG_MULTI_SZ                   = 7_u32     // Multiple Unicode strings
+const REG_RESOURCE_LIST              = 8_u32     // Resource list in the resource map
+const REG_FULL_RESOURCE_DESCRIPTOR   = 9_u32     // Resource list in the hardware description
+const REG_RESOURCE_REQUIREMENTS_LIST = 10_u32
+const REG_QWORD                      = 11_u32     // 64-bit number
+const REG_QWORD_LITTLE_ENDIAN        = 11_u32     // 64-bit number (same as REG_QWORD)
 
 #[Foreign("advapi32", callconv: Swag.CallConv.C), Swag.Discardable]
 {

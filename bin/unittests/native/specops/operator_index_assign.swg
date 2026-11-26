@@ -56,10 +56,14 @@ impl RuntimeWriteOnlyIndexAssignBox
         where op == .AddAssign
     {
         .writes += 1
-        if index == 0 do
+        if index == 0
+        {
             .first += value
-        else do
+        }
+        else
+        {
             .second += value
+        }
     }
 }
 
@@ -150,7 +154,7 @@ struct RuntimeIndexAssignHolder
 #test
 {
     var box = RuntimeIndexAssignBox{values: [3, 5]}
-    box[0] <<= 2'u32
+    box[0] <<= 2_u32
 
     Swag.require(box.values[0] == 12)
     Swag.require(box.values[1] == 5)

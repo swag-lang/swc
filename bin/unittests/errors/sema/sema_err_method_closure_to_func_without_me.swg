@@ -15,8 +15,10 @@ impl CallbackDialog
     mtd doModal()->string
     {
         let cb = .sigPressed
-        if cb and cb(me, "ok") do
+        if cb and cb(me, "ok")
+        {
             return "ok"
+        }
         return "cancel"
     }
 }

@@ -27,8 +27,11 @@ using Swag, Core, Pixel
 
         host.app.deterministicStreaming = false
         let view = Markdown.View.createText(&host.root, source.toString())
-        if index == 2 do
+        if index == 2
+        {
             view.setDocumentThemeColors("view_Bk 0xFFFFFFFF\nlabel_Text 0xFF333333")
+        }
+
         view.resize(480, 240)
         view.applyLayout()
         let inline = unwrap view.blocks[0].inline
@@ -43,10 +46,16 @@ using Swag, Core, Pixel
         // Waiting belongs to the test harness; an actual frame only polls the tasks.
         for 3 where not inline.images.parsing.isEmpty() or not html.images.parsing.isEmpty()
         {
-            for parsing in inline.images.parsing do
+            for parsing in inline.images.parsing
+            {
                 parsing.task.wait()
-            for parsing in html.images.parsing do
+            }
+
+            for parsing in html.images.parsing
+            {
                 parsing.task.wait()
+            }
+
             Swag.require(host.surface.isDirty)
             host.surface.paintWnd(view)
         }

@@ -3,7 +3,7 @@
 // Real-life example: a generic dynamic array backed by the default runtime allocator.
 // Same as dynamic_generic_array.swg but using methods instead of global functions.
 
-const DefaultCapacity = 4'u64
+const DefaultCapacity = 4_u64
 
 struct(T) DynArray
 {
@@ -14,9 +14,9 @@ struct(T) DynArray
 
 impl DynArray
 {
-    func(T) create()->DynArray'T
+    func(T) create()->DynArray!{T}
     {
-        var result: DynArray'T
+        var result: DynArray!{T}
         result.capacity = DefaultCapacity
         result.data     = cast([*] T?, testAlloc(DefaultCapacity * #sizeof(T)))
         return result
@@ -24,8 +24,10 @@ impl DynArray
 
     mtd destroy()
     {
-        if .data do
+        if .data
+        {
             testFree(.data)
+        }
         .data     = null
         .count    = 0
         .capacity = 0
@@ -82,8 +84,10 @@ impl DynArray
         let data = unwrap me.data
         for i in me.count
         {
-            if data[i] == value do
+            if data[i] == value
+            {
                 return true
+            }
         }
 
         return false
@@ -127,8 +131,10 @@ impl DynArray
 
     mtd reverse()
     {
-        if .count <= 1 do
+        if .count <= 1
+        {
             return
+        }
         var lo: u64 = 0
         var hi      = .count - 1
         let data    = unwrap .data
@@ -149,7 +155,7 @@ impl DynArray
 
 #test
 {
-    var arr = DynArray'u32.create()
+    var arr = DynArray.create!{u32}()
     defer arr.destroy()
 
     Swag.require(arr.count == 0)
@@ -183,7 +189,7 @@ impl DynArray
 
 #test
 {
-    var arr = DynArray's32.create()
+    var arr = DynArray.create!{s32}()
     defer arr.destroy()
 
     arr.push(-5)
@@ -214,7 +220,7 @@ impl DynArray
 
 #test
 {
-    var arr = DynArray'f64.create()
+    var arr = DynArray.create!{f64}()
     defer arr.destroy()
 
     arr.push(1.5)
@@ -236,7 +242,7 @@ impl DynArray
 
 #test
 {
-    var arr = DynArray'u8.create()
+    var arr = DynArray.create!{u8}()
     defer arr.destroy()
 
     arr.push('A')
@@ -263,7 +269,7 @@ impl DynArray
 
 #test
 {
-    var arr = DynArray'bool.create()
+    var arr = DynArray.create!{bool}()
     defer arr.destroy()
 
     arr.push(true)
@@ -287,11 +293,13 @@ impl DynArray
 
 #test
 {
-    var arr = DynArray'u64.create()
+    var arr = DynArray.create!{u64}()
     defer arr.destroy()
 
-    for i in 100'u64 do
+    for i in 100_u64
+    {
         arr.push(i * i)
+    }
 
     Swag.require(arr.count == 100)
     Swag.require(arr.capacity >= 100)
@@ -301,8 +309,10 @@ impl DynArray
     Swag.require(arr.get(99) == 9801)
 
     // Pop half
-    for 50 do
-        arr.pop()
+    for 50
+    {
+        discard arr.pop()
+    }
     Swag.require(arr.count == 50)
     Swag.require(arr.last() == 49 * 49)
 }
@@ -313,7 +323,7 @@ impl DynArray
 
 #test
 {
-    var arr = DynArray's64.create()
+    var arr = DynArray.create!{s64}()
     defer arr.destroy()
 
     // Insert at index 0 on empty array
@@ -340,7 +350,7 @@ impl DynArray
 
 #test
 {
-    var arr = DynArray'f32.create()
+    var arr = DynArray.create!{f32}()
     defer arr.destroy()
 
     // Odd count
@@ -372,7 +382,7 @@ impl DynArray
 
 #test
 {
-    var arr = DynArray'u16.create()
+    var arr = DynArray.create!{u16}()
     defer arr.destroy()
 
     arr.push(100)
@@ -410,7 +420,7 @@ struct Point
 
 #test
 {
-    var arr = DynArray'Point.create()
+    var arr = DynArray.create!{Point}()
     defer arr.destroy()
 
     arr.push({x: 1, y: 2})

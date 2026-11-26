@@ -8,13 +8,13 @@
 
 using Core, Core.Errors, Core.Math
 
-const HeaderSize = 26'u64
+const HeaderSize = 26_u64
 
 internal struct Decoder
 {
     bytes:       const [..] u8?
-    layers:      Array'Layer
-    imageLayers: Array'u32
+    layers:      Array!{Layer}
+    imageLayers: Array!{u32}
     depth:       u16
     colorMode:   u16
 }
@@ -29,7 +29,7 @@ struct LayerChannel
 struct Layer
 {
     info:     ImageFrameInfo
-    channels: Array'LayerChannel
+    channels: Array!{LayerChannel}
 }
 
 #[Swag.Inline]
@@ -46,19 +46,25 @@ func readU32(source: const [*] u8)->u32
 
 func skipSection(buffer: const [..] u8, offset: *u64) fail
 {
-    if offset[] + 4 > buffer.count do
+    if offset[] + 4 > buffer.count
+    {
         fail InvalidFormatError{"PSD section length is truncated"}
+    }
+
     let size = cast(u64, readU32(buffer.buffer + offset[]))
     offset[] += 4
-    if size > buffer.count - offset[] do
+    if size > buffer.count - offset[]
+    {
         fail InvalidFormatError{"PSD section exceeds the file"}
+    }
+
     offset[] += size
 }
 
 func decodePackBits(destination: [*] u8, expected: u64, source: const [..] u8) fail
 {
-    var input  = 0'u64
-    var output = 0'u64
+    var input  = 0_u64
+    var output = 0_u64
     while input < source.count and output < expected
     {
         let control = cast #bit (s8, source[input])
@@ -66,29 +72,43 @@ func decodePackBits(destination: [*] u8, expected: u64, source: const [..] u8) f
         if control >= 0
         {
             let count = cast(u64, control) + 1
-            if count > source.count - input or count > expected - output do
+            if count > source.count - input or count > expected - output
+            {
                 fail InvalidFormatError{"PSD PackBits literal exceeds its row"}
+            }
+
             Memory.copy(destination + output, source.buffer + input, count)
             input  += count
             output += count
         }
-        elif control != -128
+        else if control != -128
         {
             let count = cast(u64, (1 - cast(s32, control)))
-            if input >= source.count or count > expected - output do
+            if input >= source.count or count > expected - output
+            {
                 fail InvalidFormatError{"PSD PackBits run exceeds its row"}
+            }
+
             Memory.set(destination + output, source[input], count)
             input  += 1
             output += count
         }
     }
 
-    if output != expected or input != source.count do
+    if output != expected or input != source.count
+    {
         fail InvalidFormatError{"PSD PackBits row has an invalid decoded length"}
+    }
 }
 
 func storeChannel(image: *Image, channel: u16, sourceY: s32, source: const [*] u8, depth: u16)
 {
+    let alphaChannel = image.pixelFormat.isGrayscale() ? 1_u16 : 3_u16
+    if channel >= image.pixelFormat.channels() or channel > alphaChannel
+    {
+        return
+    }
+
     let targetY = image.height - sourceY - 1
     let row     = image.pixels.storage() + cast(u64, targetY) * image.rowStride
     let stride  = image.bytesPerPixel
@@ -305,15 +325,26 @@ internal impl IImageDecoder for Decoder
 
     mtd impl decode(buffer: const [..] u8, options: DecodeOptions)->Image fail
     {
-        if buffer.count < HeaderSize do
+        if buffer.count < HeaderSize
+        {
             fail InvalidFormatError{"PSD header is truncated"}
+        }
+
         let source = buffer.buffer
-        if source[0] != '8' or source[1] != 'B' or source[2] != 'P' or source[3] != 'S' do
+        if source[0] != '8' or source[1] != 'B' or source[2] != 'P' or source[3] != 'S'
+        {
             fail InvalidFormatError{"PSD signature is invalid"}
-        if readU16(source + 4) != 1 do
+        }
+
+        if readU16(source + 4) != 1
+        {
             fail UnsupportedFormatError{"only PSD version 1 files are supported"}
-        for i in 6 where source[6 + i] do
+        }
+
+        for i in 6 where source[6 + i]
+        {
             fail InvalidFormatError{"PSD reserved header bytes must be zero"}
+        }
 
         let channels  = readU16(source + 12)
         let height    = readU32(source + 14)
@@ -323,76 +354,141 @@ internal impl IImageDecoder for Decoder
         if width == 0 or
            height == 0 or
            width > cast(u32, Swag.S32.Max) or
-           height > cast(u32, Swag.S32.Max) do
+           height > cast(u32, Swag.S32.Max)
+        {
             fail UnsupportedFormatError{"PSD dimensions exceed the image limits"}
-        if depth != 8 and depth != 16 do
+        }
+
+        if depth != 8 and depth != 16
+        {
             fail UnsupportedFormatError{"PSD composite depth must be 8 or 16 bits"}
+        }
 
         var format: PixelFormat
         switch colorMode
         {
         case 1:
-            if channels < 1 do
+            if channels < 1
+            {
                 fail InvalidFormatError{"grayscale PSD data has no channel"}
-            if depth == 8 do
+            }
+
+            if depth == 8
+            {
                 format = channels >= 2 ? .GrayAlpha8 : .Gray8
-            else do
+            }
+            else
+            {
                 format = channels >= 2 ? .GrayAlpha16 : .Gray16
+            }
 
         case 3:
-            if channels < 3 do
+            if channels < 3
+            {
                 fail InvalidFormatError{"RGB PSD data has fewer than three channels"}
-            if depth == 8 do
+            }
+
+            if depth == 8
+            {
                 format = channels >= 4 ? .RGBA8 : .RGB8
-            else do
+            }
+            else
+            {
                 format = channels >= 4 ? .RGBA16 : .RGB16
+            }
 
         default:
             fail UnsupportedFormatError{"PSD color mode is not RGB or grayscale"}
         }
 
         let bytesPerPixel = format.bitsPerPixel() / 8
-        if width > cast(u32, Swag.S32.Max) / bytesPerPixel do
+        if width > cast(u32, Swag.S32.Max) / bytesPerPixel
+        {
             fail UnsupportedFormatError{"PSD image row exceeds the image limits"}
+        }
+
         try options.checkImage(cast(s32, width), cast(s32, height), format)
 
         var result: #returntype
         result.init(cast(s32, width), cast(s32, height), format)
-        if not options.decodePixels do
+        if not options.decodePixels
+        {
             return result
+        }
 
         var offset = HeaderSize
         try skipSection(buffer, &offset)     // Color-mode data.
         try skipSection(buffer, &offset)     // Image resources.
         try skipSection(buffer, &offset)     // Layer and mask information.
-        if offset + 2 > buffer.count do
-            fail InvalidFormatError{"PSD composite compression is missing"}
-        let compression = readU16(source + offset)
-        offset += 2
-        if compression > 1 do
-            fail UnsupportedFormatError{"PSD composite compression must be raw or PackBits"}
-
-        let rowBytes = cast(u64, width) * (depth / 8)
-        if rowBytes > Swag.U32.Max or cast(u64, channels) * height > Swag.U64.Max / rowBytes do
-            fail UnsupportedFormatError{"PSD composite is too large"}
-
-        let rowCount = cast(u64, channels) * height
-        if compression == 0
+        if offset + 2 > buffer.count
         {
-            if rowCount * rowBytes > buffer.count - offset do
-                fail InvalidFormatError{"PSD raw composite is truncated"}
-            result.allocPixels()
-            storeRawComposite(&result, source + offset, rowBytes)
-            return result
+            fail InvalidFormatError{"PSD composite compression is missing"}
         }
 
-        if rowCount > (buffer.count - offset) / 2 do
-            fail InvalidFormatError{"PSD PackBits row table is truncated"}
-        let rowLengths = source + offset
-        offset += rowCount * 2
+        let compression = readU16(source + offset)
+        offset += 2
+        if compression > 1
+        {
+            fail UnsupportedFormatError{"PSD composite compression must be raw or PackBits"}
+        }
+
+        let rowBytes = cast(u64, width) * (depth / 8)
+        if rowBytes > Swag.U32.Max or cast(u64, channels) * height > Swag.U64.Max / rowBytes
+        {
+            fail UnsupportedFormatError{"PSD composite is too large"}
+        }
 
         result.allocPixels()
-        try decodePackedComposite(&result, buffer, rowLengths, offset, rowBytes, channels)
+        result.clear()
+
+        var rowLengths: Array!{u16}
+        if compression == 1
+        {
+            let rowCount = cast(u64, channels) * height
+            if rowCount > (buffer.count - offset) / 2
+            {
+                fail InvalidFormatError{"PSD PackBits row table is truncated"}
+            }
+
+            rowLengths.resize(rowCount)
+            for i in rowCount
+            {
+                rowLengths[i] = readU16(source + offset)
+                offset        += 2
+            }
+        }
+
+        var row: Array!{u8}
+        row.resize(rowBytes)
+        for channel in channels
+        {
+            for y in cast(s32, height)
+            {
+                if compression == 0
+                {
+                    if rowBytes > buffer.count - offset
+                    {
+                        fail InvalidFormatError{"PSD raw composite is truncated"}
+                    }
+
+                    Memory.copy(row.storage(), source + offset, rowBytes)
+                    offset += rowBytes
+                }
+                else
+                {
+                    let encodedSize = cast(u64, rowLengths[cast(u64, channel) * height + cast(u64, y)])
+                    if encodedSize > buffer.count - offset
+                    {
+                        fail InvalidFormatError{"PSD PackBits row is truncated"}
+                    }
+
+                    try decodePackBits(row.storage(), rowBytes, Swag.makeSlice(source + offset, encodedSize))
+                    offset += encodedSize
+                }
+
+                storeChannel(&result, channel, y, row.toSlice(), depth)
+            }
+        }
 
         return result
     }
@@ -403,16 +499,22 @@ impl Decoder
     mtd indexLayers(buffer: const [..] u8, options: DecodeOptions) fail
     {
         .layers.clear()
-        if buffer.count < 2 do
+        if buffer.count < 2
+        {
             fail InvalidFormatError{"PSD layer count is truncated"}
+        }
+
         let signedCount = cast(s32, cast #bit(s16, readU16(buffer.buffer)))
         let count       = cast(u32, Math.abs(signedCount))
         try options.checkFrameCount(cast(u64, count) + 1)
-        var offset = 2'u64
+        var offset = 2_u64
         for index in count
         {
-            if buffer.count - offset < 18 do
+            if buffer.count - offset < 18
+            {
                 fail InvalidFormatError{"PSD layer record is truncated"}
+            }
+
             let top      = cast #bit(s32, readU32(buffer.buffer + offset))
             let left     = cast #bit(s32, readU32(buffer.buffer + offset + 4))
             let bottom   = cast #bit(s32, readU32(buffer.buffer + offset + 8))
@@ -421,10 +523,16 @@ impl Decoder
             offset += 18
             let width  = cast(s64, right) - left
             let height = cast(s64, bottom) - top
-            if width < 0 or height < 0 or width > Swag.S32.Max or height > Swag.S32.Max do
+            if width < 0 or height < 0 or width > Swag.S32.Max or height > Swag.S32.Max
+            {
                 fail InvalidFormatError{"PSD layer dimensions are invalid"}
-            if cast(u64, channels) * 6 + 16 > buffer.count - offset do
+            }
+
+            if cast(u64, channels) * 6 + 16 > buffer.count - offset
+            {
                 fail InvalidFormatError{"PSD layer channels are truncated"}
+            }
+
             var layer:  Layer
             var format: PixelFormat
             if .colorMode == 1
@@ -437,29 +545,44 @@ impl Decoder
             }
 
             layer.info = {kind: .Layer, width: cast(s32, width), height: cast(s32, height), x: left, y: top, pixelFormat: format, layer: index}
-            if width and height do
+            if width and height
+            {
                 try options.checkImage(layer.info.width, layer.info.height, format)
+            }
+
             for channels
             {
                 layer.channels.add({id: cast #bit(s16, readU16(buffer.buffer + offset)), length: readU32(buffer.buffer + offset + 2)})
                 offset += 6
             }
 
-            if readU32(buffer.buffer + offset) != 0x3842494D do
+            if readU32(buffer.buffer + offset) != 0x3842494D
+            {
                 fail InvalidFormatError{"PSD layer blend signature is invalid"}
+            }
+
             let extraLength = cast(u64, readU32(buffer.buffer + offset + 12))
             offset += 16
-            if extraLength > buffer.count - offset do
+            if extraLength > buffer.count - offset
+            {
                 fail InvalidFormatError{"PSD layer extra data is truncated"}
+            }
+
             let extra       = buffer[offset until offset + extraLength]
-            var extraOffset = 0'u64
+            var extraOffset = 0_u64
             try skipSection(extra, &extraOffset)
             try skipSection(extra, &extraOffset)
-            if extraOffset >= extra.count do
+            if extraOffset >= extra.count
+            {
                 fail InvalidFormatError{"PSD layer name is truncated"}
+            }
+
             let nameLength = cast(u64, extra[extraOffset])
-            if nameLength + 1 > extra.count - extraOffset do
+            if nameLength + 1 > extra.count - extraOffset
+            {
                 fail InvalidFormatError{"PSD layer name exceeds its record"}
+            }
+
             layer.info.name = cast(string, extra[extraOffset + 1 until extraOffset + 1 + nameLength])
             offset += extraLength
             .layers.add(#move layer)
@@ -469,8 +592,11 @@ impl Decoder
         {
             for &channel in layer.channels
             {
-                if channel.length > buffer.count - offset do
+                if channel.length > buffer.count - offset
+                {
                     fail InvalidFormatError{"PSD layer channel data is truncated"}
+                }
+
                 channel.bytes = buffer[offset until offset + channel.length]
                 offset        += channel.length
             }
@@ -541,71 +667,78 @@ impl Layer
     {
         var result: #returntype
         result.init(.info.width, .info.height, .info.pixelFormat)
-        if not options.decodePixels do
+        if not options.decodePixels
+        {
             return result
+        }
+
         result.allocPixels()
         let rowBytes = cast(u64, result.width) * (depth / 8)
         let required = rowBytes * cast(u64, result.height)
-        let alpha    = result.pixelFormat.isGrayscale() ? 1'u16 : 3'u16
-        if .storeRawPlanes(&result, alpha, rowBytes, required) do
-            return result
-
-        var present: u8
-        for channel in .channels where channel.id >= -1 and channel.id < cast(s16, alpha)
-        {
-            let component = channel.id == -1 ? alpha : cast(u16, channel.id)
-            present |= 1'u8 << component
-        }
-
-        if present != (1'u8 << (alpha + 1)) - 1 do
-            result.fill(Argb.Black)
-
-        var rowScratch: Array'u8
+        let alpha    = result.pixelFormat.isGrayscale() ? 1_u16 : 3_u16
         for channel in .channels
         {
-            if channel.id < -1 or cast(s32, channel.id) >= cast(s32, alpha) do
+            if channel.id < -1 or cast(s32, channel.id) >= cast(s32, alpha)
+            {
                 continue
+            }
+
             let component = channel.id == -1 ? alpha : cast(u16, channel.id)
             let bytes     = unwrap channel.bytes
-            if bytes.count < 2 do
+            if bytes.count < 2
+            {
                 fail InvalidFormatError{"PSD layer channel compression is missing"}
+            }
+
             let compression = readU16(bytes.buffer)
-            var offset      = 2'u64
-            var unpacked: Array'u8
-            var pixels = bytes[offset to]
+            var offset      = 2_u64
+            var pixels: Array!{u8}
             if compression == 0
             {
-                if bytes.count - offset != required do
+                if bytes.count - offset != required
+                {
                     fail InvalidFormatError{"PSD raw layer channel has an invalid size"}
+                }
+
+                pixels.add(bytes[offset to])
             }
-            elif compression == 1
+            else if compression == 1
             {
                 let tableBytes = cast(u64, result.height) * 2
-                if tableBytes > bytes.count - offset do
+                if tableBytes > bytes.count - offset
+                {
                     fail InvalidFormatError{"PSD layer row table is truncated"}
+                }
+
                 offset += tableBytes
                 rowScratch.reserve(rowBytes)
                 let row = rowScratch.storage()
                 for y in result.height
                 {
                     let length = cast(u64, readU16(bytes.buffer + 2 + cast(u64, y) * 2))
-                    if length > bytes.count - offset do
+                    if length > bytes.count - offset
+                    {
                         fail InvalidFormatError{"PSD compressed layer row is truncated"}
-                    try decodePackBits(row, rowBytes, bytes[offset until offset + length])
-                    storeChannel(&result, component, y, row, depth)
+                    }
+
+                    try decodePackBits(pixels.storage() + cast(u64, y) * rowBytes, rowBytes, bytes[offset until offset + length])
                     offset += length
                 }
 
-                if offset != bytes.count do
+                if offset != bytes.count
+                {
                     fail InvalidFormatError{"PSD layer channel has trailing bytes"}
-                continue
+                }
             }
-            elif compression == 2 or compression == 3
+            else if compression == 2 or compression == 3
             {
                 var zlib: Compress.ZLib
-                unpacked = try zlib.decompress(pixels, required)
-                if unpacked.count != required do
+                pixels = try zlib.decompress(bytes[offset to], required)
+                if pixels.count != required
+                {
                     fail InvalidFormatError{"PSD ZIP layer channel has an invalid decoded size"}
+                }
+
                 if compression == 3
                 {
                     for y in result.height
@@ -624,8 +757,10 @@ impl Layer
                 fail UnsupportedFormatError{"PSD layer compression is not supported"}
             }
 
-            for y in result.height do
-                storeChannel(&result, component, y, pixels.buffer + cast(u64, y) * rowBytes, depth)
+            for y in result.height
+            {
+                storeChannel(&result, component, y, Swag.makeSlice(pixels.storage() + cast(u64, y) * rowBytes, rowBytes), depth)
+            }
         }
 
         return result
@@ -650,22 +785,40 @@ impl IImageSetDecoder for Decoder
         var offset = HeaderSize
         try skipSection(buffer, &offset)
         try skipSection(buffer, &offset)
-        if buffer.count - offset < 4 do
+        if buffer.count - offset < 4
+        {
             fail InvalidFormatError{"PSD layer section is truncated"}
+        }
+
         let sectionLength = cast(u64, readU32(buffer.buffer + offset))
         offset += 4
-        if sectionLength > buffer.count - offset do
+        if sectionLength > buffer.count - offset
+        {
             fail InvalidFormatError{"PSD layer section exceeds the file"}
-        if not sectionLength do
+        }
+
+        if not sectionLength
+        {
             return result
+        }
+
         let section = buffer[offset until offset + sectionLength]
-        if section.count < 4 do
+        if section.count < 4
+        {
             fail InvalidFormatError{"PSD layer information length is truncated"}
+        }
+
         let layerLength = cast(u64, readU32(section.buffer))
-        if layerLength > section.count - 4 do
+        if layerLength > section.count - 4
+        {
             fail InvalidFormatError{"PSD layer information exceeds its section"}
-        if layerLength do
+        }
+
+        if layerLength
+        {
             try .indexLayers(section[4 until 4 + layerLength], options)
+        }
+
         var tail = 4 + layerLength
         if tail < section.count
         {
@@ -675,13 +828,21 @@ impl IImageSetDecoder for Decoder
                 let key  = readU32(section.buffer + tail + 4)
                 let size = cast(u64, readU32(section.buffer + tail + 8))
                 tail += 12
-                if size > section.count - tail do
+                if size > section.count - tail
+                {
                     fail InvalidFormatError{"PSD additional layer block is truncated"}
-                if key == 0x4C723136 and .depth == 16 do
+                }
+
+                if key == 0x4C723136 and .depth == 16
+                {
                     try .indexLayers(section[tail until tail + size], options)
+                }
+
                 tail += size + (size & 1)
-                if tail > section.count do
+                if tail > section.count
+                {
                     fail InvalidFormatError{"PSD additional layer padding is truncated"}
+                }
             }
         }
 
@@ -706,8 +867,11 @@ impl IImageSetDecoder for Decoder
             return try single.decode(unwrap .bytes, options)
         }
 
-        if index > .imageLayers.count do
+        if index > .imageLayers.count
+        {
             fail InvalidFormatError{"PSD layer index is out of range"}
+        }
+
         return try .layers[.imageLayers[index - 1]].decode(.depth, options)
     }
 }

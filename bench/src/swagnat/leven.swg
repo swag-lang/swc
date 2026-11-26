@@ -1,6 +1,6 @@
-const DICT    = 6000'u64
-const QUERIES = 40'u64
-const MAXLEN  = 3'u64
+const DICT    = 6000_u64
+const QUERIES = 40_u64
+const MAXLEN  = 3_u64
 
 late var g_Bytes:   [*] u8
 late var g_WordOff: [*] u64
@@ -17,7 +17,7 @@ late var g_QLen:   [*] u64
     g_WordOff = cast([*] u64, unwrap benchAlloc(DICT * #sizeof(u64)))
     g_WordLen = cast([*] u64, unwrap benchAlloc(DICT * #sizeof(u64)))
 
-    var wp = 0'u64
+    var wp = 0_u64
     for i in DICT
     {
         var n = i + 1
@@ -36,16 +36,17 @@ late var g_QLen:   [*] u64
     g_QOff   = cast([*] u64, unwrap benchAlloc(QUERIES * #sizeof(u64)))
     g_QLen   = cast([*] u64, unwrap benchAlloc(QUERIES * #sizeof(u64)))
 
-    var qp = 0'u64
+    var qp = 0_u64
     for q in QUERIES
     {
         var tmp: [32] u8
         let src = rnd() % DICT
         var nw  = g_WordLen[src]
-        for i in nw do
+        for i in nw {
             tmp[i] = g_Bytes[g_WordOff[src] + i]
 
-        for 2'u64
+        }
+        for 2_u64
         {
             let p  = rnd() % nw
             let op = rnd() % 3
@@ -97,50 +98,58 @@ late var g_QLen:   [*] u64
     var row0: [64] u64
     var row1: [64] u64
 
-    var check = 0's64
+    var check = 0_s64
     for q in QUERIES
     {
         let ao      = g_QOff[q]
         let la      = g_QLen[q]
-        var best    = 1073741824'u64
-        var bestIdx = -1's64
+        var best    = 1073741824_u64
+        var bestIdx = -1_s64
 
         for i in DICT
         {
             let bo = g_WordOff[i]
             let lb = g_WordLen[i]
-            var d  = 0'u64
-            if la > lb do
+            var d  = 0_u64
+            if la > lb {
                 d = la - lb
-            else do
+            }
+            else {
                 d = lb - la
-            if d > MAXLEN do
+            }
+            if d > MAXLEN {
                 continue
 
-            for j in lb + 1 do
+            }
+            for j in lb + 1 {
                 row0[j] = j
 
+            }
             for x in la
             {
                 row1[0] = x + 1
                 let ca = g_QBytes[ao + x]
                 for y in lb
                 {
-                    var cost = 1'u64
-                    if ca == g_Bytes[bo + y] do
+                    var cost = 1_u64
+                    if ca == g_Bytes[bo + y] {
                         cost = 0
+                    }
                     var v  = row0[y] + cost
                     var v2 = row0[y + 1] + 1
-                    if v2 < v do
+                    if v2 < v {
                         v = v2
+                    }
                     v2 = row1[y] + 1
-                    if v2 < v do
+                    if v2 < v {
                         v = v2
+                    }
                     row1[y + 1] = v
                 }
 
-                for j in lb + 1 do
+                for j in lb + 1 {
                     row0[j] = row1[j]
+                }
             }
 
             let dd = row0[lb]

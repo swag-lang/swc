@@ -9,9 +9,9 @@ using Core
     // Directory traversal is independent of the volume-wide node count. The
     // linked child index must retain insertion order while supporting constant-
     // time continuation from every emitted node.
-    const NodeCount = 100_000'u64
+    const NodeCount = 100_000_u64
 
-    var nodes: Array'Node
+    var nodes: Array!{Node}
     nodes.reserve(NodeCount + 1)
 
     var root: Node
@@ -38,7 +38,7 @@ using Core
     Swag.require(index.childId(RootNodeId, "ENTRY_99999") == NodeCount + RootNodeId)
 
     var childId = index.firstChildId(RootNodeId)
-    var count   = 0'u64
+    var count   = 0_u64
     while childId
     {
         Swag.require(childId == count + RootNodeId + 1)
@@ -50,7 +50,7 @@ using Core
 
     // Removing alternating children exercises both ends and every interior
     // link without turning removal into an ordered-array shift.
-    var i = 0'u64
+    var i = 0_u64
     while i < NodeCount
     {
         index.remove(&nodes[i + 1])

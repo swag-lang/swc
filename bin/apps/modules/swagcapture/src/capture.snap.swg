@@ -3,8 +3,8 @@
 struct SnapTargets
 {
     bound: Math.Rectangle
-    xs:    Array's32
-    ys:    Array's32
+    xs:    Array!{s32}
+    ys:    Array!{s32}
 }
 
 impl Capture
@@ -22,7 +22,7 @@ impl Capture
             result.x = poly.points[idxPt].x + nx
             result.y = poly.points[idxPt].y + ny
         }
-        elif form is FormLine as line where .selection.count == 1 or editForm
+        else if form is FormLine as line where .selection.count == 1 or editForm
         {
             if not right or not bottom
             {
@@ -53,16 +53,22 @@ impl Capture
     // selection has an empty box.
     mtd getSelectionBoundRect(editForm: IForm? = null)->Math.Rectangle
     {
-        if editForm do
+        if editForm
+        {
             return editForm.boundRect()
+        }
 
         var result: #returntype
-        foreachSelected'BaseForm(me, .selection)
+        foreachSelected!{BaseForm}(me, .selection)
         {
-            if idx == 0 do
+            if idx == 0
+            {
                 result = itf.boundRect()
-            else do
+            }
+            else
+            {
                 result.combine(itf.boundRect())
+            }
         }
 
         return result
@@ -78,10 +84,12 @@ impl Capture
 
         // Whether each form is being moved, looked up per form rather than searched for in the
         // selection.
-        var moving: Array'bool
+        var moving: Array!{bool}
         moving.resize(.forms.count)
-        for s in .selection do
+        for s in .selection
+        {
             moving[s] = true
+        }
 
         result.xs.add(0)
         result.xs.add(.width)
@@ -98,10 +106,15 @@ impl Capture
             switch f
             {
             case FormLine as form2:
-                if not autoSel or (idxPt != 0 and Math.abs(form2.ya - form2.yb) > 25) do
+                if not autoSel or (idxPt != 0 and Math.abs(form2.ya - form2.yb) > 25)
+                {
                     result.xs.add(cast(s32, form2.xa))
-                if not autoSel or (idxPt != 0 and Math.abs(form2.xa - form2.xb) > 25) do
+                }
+
+                if not autoSel or (idxPt != 0 and Math.abs(form2.xa - form2.xb) > 25)
+                {
                     result.ys.add(cast(s32, form2.ya))
+                }
 
                 if not autoSel or idxPt != 1
                 {
@@ -120,8 +133,11 @@ impl Capture
                 }
 
             case FormDraw:
-                if autoSel do
+                if autoSel
+                {
                     continue
+                }
+
                 let boundR = f.boundRect()
                 result.xs.add(cast(s32, boundR.x))
                 result.xs.add(cast(s32, boundR.right()))
@@ -129,8 +145,11 @@ impl Capture
                 result.ys.add(cast(s32, boundR.bottom()))
 
             default:
-                if autoSel do
+                if autoSel
+                {
                     continue
+                }
+
                 result.xs.add(cast(s32, form.x))
                 result.xs.add(cast(s32, form.x + form.w))
                 result.ys.add(cast(s32, form.y))
@@ -171,12 +190,20 @@ impl Capture
     // applies when it is on or while Control is held; a null axis is left alone.
     mtd snap(x, y: *s32?, right, bottom: bool, idxPt: u32 = 0, editForm: IForm? = null)
     {
-        if x do
+        if x
+        {
             .snapX = -1
-        if y do
+        }
+
+        if y
+        {
             .snapY = -1
-        if .isSnapping() do
+        }
+
+        if .isSnapping()
+        {
             .snapTo(.snapTargets(idxPt, editForm), x, y, right, bottom, idxPt, editForm)
+        }
     }
 
     // Snaps the move in `x` and `y` against `targets`, gathered for the same `idxPt` and
@@ -186,10 +213,15 @@ impl Capture
     {
         const SnapToler = 10
 
-        if x do
+        if x
+        {
             .snapX = -1
-        if y do
+        }
+
+        if y
+        {
             .snapY = -1
+        }
 
         var nx = x ? x[] : 0
         var ny = y ? y[] : 0
@@ -216,9 +248,14 @@ impl Capture
             }
         }
 
-        if x do
+        if x
+        {
             x[] = nx
-        if y do
+        }
+
+        if y
+        {
             y[] = ny
+        }
     }
 }

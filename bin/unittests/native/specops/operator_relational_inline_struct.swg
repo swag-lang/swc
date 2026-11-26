@@ -14,20 +14,28 @@ impl InlineRectangle
     mtd const opCompare(other: InlineRectangle)->s32
     {
         let swagCmp0 = .x <=> other.x
-        if swagCmp0 != 0 do
+        if swagCmp0 != 0
+        {
             return swagCmp0
+        }
 
         let swagCmp1 = .y <=> other.y
-        if swagCmp1 != 0 do
+        if swagCmp1 != 0
+        {
             return swagCmp1
+        }
 
         let swagCmp2 = .width <=> other.width
-        if swagCmp2 != 0 do
+        if swagCmp2 != 0
+        {
             return swagCmp2
+        }
 
         let swagCmp3 = .height <=> other.height
-        if swagCmp3 != 0 do
+        if swagCmp3 != 0
+        {
             return swagCmp3
+        }
 
         return 0
     }
@@ -41,40 +49,64 @@ impl InlineRectangle
 
 func inlineRectanglePick(a, b, c: InlineRectangle)->f32
 {
-    var result = 0'f32
+    var result = 0_f32
 
-    if a == b do
+    if a == b
+    {
         result += 1
-    if a != c do
+    }
+    if a != c
+    {
         result += 2
-    if a < c do
+    }
+    if a < c
+    {
         result += 4
-    if c > b do
+    }
+    if c > b
+    {
         result += 8
-    if a <= b do
+    }
+    if a <= b
+    {
         result += 16
-    if c >= a do
+    }
+    if c >= a
+    {
         result += 32
+    }
 
     return result
 }
 
 func inlineRectanglePickDirect(a, b, c: InlineRectangle)->f32
 {
-    var result = 0'f32
+    var result = 0_f32
 
-    if a.opEquals(b) do
+    if a.opEquals(b)
+    {
         result += 1
-    if not a.opEquals(c) do
+    }
+    if not a.opEquals(c)
+    {
         result += 2
-    if a.opCompare(c) < 0 do
+    }
+    if a.opCompare(c) < 0
+    {
         result += 4
-    if c.opCompare(b) > 0 do
+    }
+    if c.opCompare(b) > 0
+    {
         result += 8
-    if a.opCompare(b) <= 0 do
+    }
+    if a.opCompare(b) <= 0
+    {
         result += 16
-    if c.opCompare(a) >= 0 do
+    }
+    if c.opCompare(a) >= 0
+    {
         result += 32
+    }
 
     return result
 }

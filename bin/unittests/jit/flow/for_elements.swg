@@ -161,7 +161,7 @@ enum ForeachIndexedSlot: u8
     }
 
     const V = #run foreachStringValueIndex()
-    #assert(V == 201'u32)
+    #assert(V == 201_u32)
 }
 
 #test
@@ -170,14 +170,16 @@ enum ForeachIndexedSlot: u8
     {
         const values: [1] string = ["1 blue"]
 
-        for value in values do
+        for value in values
+        {
             return value[0] & 15
+        }
 
         return 0
     }
 
     const V = #run foreachStringValueMask()
-    #assert(V == 1'u32)
+    #assert(V == 1_u32)
 }
 
 #test
@@ -234,7 +236,7 @@ enum ForeachIndexedSlot: u8
         return acc
     }
 
-    const V = #run foreachUntypedVariadic(3's32, 4's32, 5's32)
+    const V = #run foreachUntypedVariadic(3_s32, 4_s32, 5_s32)
     #assert(V == 15)
 }
 
@@ -270,10 +272,10 @@ enum ForeachIndexedSlot: u8
         return acc
     }
 
-    const p0: ForeachVariadicPayload = ForeachVariadicPayload{arr: [7, 8, 9], flag: true, tag: 2'u8}
-    const p1: ForeachVariadicPayload = ForeachVariadicPayload{arr: [1, 2, 3], flag: false, tag: 4'u8}
+    const p0: ForeachVariadicPayload = ForeachVariadicPayload{arr: [7, 8, 9], flag: true, tag: 2_u8}
+    const p1: ForeachVariadicPayload = ForeachVariadicPayload{arr: [1, 2, 3], flag: false, tag: 4_u8}
     const V = #run foreachTypedVariadicPayload(p0, p1)
-    #assert(V == 28'u64)
+    #assert(V == 28_u64)
 }
 
 #test
@@ -286,8 +288,10 @@ enum ForeachIndexedSlot: u8
         {
             for w, j in values
             {
-                if j == i do
+                if j == i
+                {
                     continue
+                }
                 acc += v + w + cast(s32, i) + cast(s32, j)
             }
         }
@@ -331,7 +335,7 @@ enum ForeachIndexedSlot: u8
         return acc
     }
 
-    const V = #run foreachUntypedMixed(2's32, true, cast(rune, 'A'), 4's32, false)
+    const V = #run foreachUntypedMixed(2_s32, true, cast(rune, 'A'), 4_s32, false)
     #assert(V == 93)
 }
 

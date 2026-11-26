@@ -58,10 +58,10 @@ func packageWithRelationships(source: string)->String
 #test
 {
     let fileName = scopeTestDataPath("viewer.image.docx")
-    let archive = expect Archive.Zip.load(fileName)
-    let reader = Package.PartReader{fileName, &archive, "Invalid XML", "XML too large"}
+    let archive  = expect Archive.Zip.load(fileName)
+    let reader   = Package.PartReader{fileName, &archive, "Invalid XML", "XML too large"}
     let external = expect reader.externalRelationships("word/document.xml")
-    let local = expect reader.relationships("word/document.xml")
+    let local    = expect reader.relationships("word/document.xml")
     Swag.require(external.count == 1 and local.count == 1)
     Swag.require(external[0].id == "rIdRemote")
     Swag.require(external[0].target == "https://example.invalid/never.jpg")
@@ -73,8 +73,8 @@ func packageWithRelationships(source: string)->String
 #test
 {
     let fileName = scopeTestDataPath("viewer.docx")
-    let archive = expect Archive.Zip.load(fileName)
-    let reader = Package.PartReader{fileName, &archive, "Invalid XML", "XML too large"}
+    let archive  = expect Archive.Zip.load(fileName)
+    let reader   = Package.PartReader{fileName, &archive, "Invalid XML", "XML too large"}
     let external = expect reader.externalRelationships("word/document.xml")
     Swag.require(external.isEmpty())
 }
@@ -82,7 +82,7 @@ func packageWithRelationships(source: string)->String
 // Safe HTTP(S) links and one-recipient mail links are returned; unsafe targets are omitted.
 #test
 {
-    let source = """<Relationships>
+    let source   = """<Relationships>
         <Relationship Id="web" Type="hyperlink" Target="https://example.invalid/page" TargetMode="External"/>
         <Relationship Id="mail" Type="hyperlink" Target="mailto:help@example.invalid" TargetMode="External"/>
         <Relationship Id="upperScheme" Type="hyperlink" Target="HTTPS://example.invalid/case" TargetMode="External"/>
@@ -98,8 +98,8 @@ func packageWithRelationships(source: string)->String
     </Relationships>"""
     let fileName = packageWithRelationships(source)
     defer discard catch File.delete(fileName)
-    let archive = expect Archive.Zip.load(fileName)
-    let reader = Package.PartReader{fileName, &archive, "Invalid XML", "XML too large"}
+    let archive  = expect Archive.Zip.load(fileName)
+    let reader   = Package.PartReader{fileName, &archive, "Invalid XML", "XML too large"}
     let external = expect reader.externalRelationships("word/document.xml")
     Swag.require(external.count == 3)
     Swag.require(external[0].id == "web" and external[0].target == "https://example.invalid/page")
@@ -118,7 +118,7 @@ func packageWithRelationships(source: string)->String
         let fileName = packageWithRelationships(source)
         defer discard catch File.delete(fileName)
         let archive = expect Archive.Zip.load(fileName)
-        let reader = Package.PartReader{fileName, &archive, "Invalid XML", "XML too large"}
+        let reader  = Package.PartReader{fileName, &archive, "Invalid XML", "XML too large"}
         var error: Swag.Error
         discard catch reader.externalRelationships("word/document.xml") as error
         Swag.require(error.value() is Errors.InvalidFormatError)

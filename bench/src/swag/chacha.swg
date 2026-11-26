@@ -1,5 +1,5 @@
-const SIZE = 4194304'u64     // 32-bit words, sixteen mebibytes of key stream
-const M32  = 0xFFFFFFFF'u64
+const SIZE = 4194304_u64     // 32-bit words, sixteen mebibytes of key stream
+const M32  = 0xFFFFFFFF_u64
 
 // The rounds add modulo 2^32. Going through 64 bits keeps the addition inside
 // the range every port of this benchmark can represent exactly, and keeps the
@@ -28,18 +28,25 @@ func quarterRound(state: *[16] u32, a, b, c, d: u32)
 {
     // ---- data generation (not timed) ----
     let data = cast([*] u32, unwrap benchAlloc(SIZE * 4))
-    for i in SIZE do
+    for i in SIZE
+    {
         data[i] = cast(u32, (rnd() & M32))
+    }
 
     var key: [8] u32
-    for i in 8 do
+    for i in 8
+    {
         key[i] = cast(u32, (rnd() & M32))
+    }
 
     var nonce: [3] u32
-    for i in 3 do
+    for i in 3
+    {
         nonce[i] = cast(u32, (rnd() & M32))
 
-    // ---- timed work ----
+        // ---- timed work ----
+    }
+
     let t0 = now()
 
     var initial: [16] u32
@@ -47,13 +54,18 @@ func quarterRound(state: *[16] u32, a, b, c, d: u32)
     initial[1] = 0x3320646E
     initial[2] = 0x79622D32
     initial[3] = 0x6B206574
-    for i in 8 do
+    for i in 8
+    {
         initial[4 + i] = key[i]
-    for i in 3 do
-        initial[13 + i] = nonce[i]
+    }
 
-    var offset  = 0'u64
-    var counter = 1'u32
+    for i in 3
+    {
+        initial[13 + i] = nonce[i]
+    }
+
+    var offset  = 0_u64
+    var counter = 1_u32
     while offset < SIZE
     {
         initial[12] = counter
@@ -71,16 +83,20 @@ func quarterRound(state: *[16] u32, a, b, c, d: u32)
             quarterRound(&state, 3, 4, 9, 14)
         }
 
-        for i in 16'u64 do
+        for i in 16_u64
+        {
             data[offset + i] ^= add32(state[i], initial[i])
+        }
 
         offset  += 16
         counter += 1
     }
 
-    var check = 0'u64
-    for i in SIZE do
+    var check = 0_u64
+    for i in SIZE
+    {
         check ^= (cast(u64, data[i]) + i) & M32
+    }
 
     let t1 = now()
     report(check, t0, t1)

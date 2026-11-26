@@ -7,7 +7,7 @@
 
 using Core
 
-const DefaultArcTolerance = 0.25'f64     // Default tolerance for arc approximation in polygon offsetting
+const DefaultArcTolerance = 0.25_f64     // Default tolerance for arc approximation in polygon offsetting
 
 // Used internally for high precision geometric calculations during offsetting operations.
 struct DoublePoint
@@ -19,20 +19,20 @@ struct DoublePoint
 // Handles the creation of offset polygons with different join types and miter limits.
 struct Offset
 {
-    miterLimit:   f64      = 2           // Maximum ratio of miter length to offset distance before square join is used
+    miterLimit:   f64      = 2            // Maximum ratio of miter length to offset distance before square join is used
     arcTolerance: f64      = DefaultArcTolerance     // Maximum allowed distance between true arc and approximating line segments
-    destPolys:    ClipperPaths           // Output collection of offset polygons
-    srcPoly:      ClipperPath            // Current source polygon being processed
-    destPoly:     ClipperPath            // Current destination polygon being built
-    normals:      Array'DoublePoint      // Unit normal vectors for each edge of the source polygon
-    deltaVal:     f64                    // Current offset distance (positive for outward, negative for inward)
-    sinaVal:      f64                    // Sine of angle between adjacent edge normals
-    sinVal:       f64                    // Sine value for arc step calculations
-    cosVal:       f64                    // Cosine value for arc step calculations
-    miterLim:     f64                    // Computed miter limit threshold for join type switching
-    stepsPerRad:  f64                    // Number of steps per radian for arc approximation
-    lowest:       IntPoint = {-1, 0}     // Index of polygon and vertex with lowest Y coordinate (leftmost if tied)
-    polyNodes:    PolyNode               // Tree structure holding all input polygons with their join types
+    destPolys:    ClipperPaths            // Output collection of offset polygons
+    srcPoly:      ClipperPath             // Current source polygon being processed
+    destPoly:     ClipperPath             // Current destination polygon being built
+    normals:      Array!{DoublePoint}     // Unit normal vectors for each edge of the source polygon
+    deltaVal:     f64                     // Current offset distance (positive for outward, negative for inward)
+    sinaVal:      f64                     // Sine of angle between adjacent edge normals
+    sinVal:       f64                     // Sine value for arc step calculations
+    cosVal:       f64                     // Cosine value for arc step calculations
+    miterLim:     f64                     // Computed miter limit threshold for join type switching
+    stepsPerRad:  f64                     // Number of steps per radian for arc approximation
+    lowest:       IntPoint = {-1, 0}      // Index of polygon and vertex with lowest Y coordinate (leftmost if tied)
+    polyNodes:    PolyNode                // Tree structure holding all input polygons with their join types
 }
 
 impl Offset
@@ -48,8 +48,11 @@ impl Offset
     // Deallocates all polygon nodes and resets the lowest point tracking.
     mtd clear()
     {
-        for node in .polyNodes.childs do
+        for node in .polyNodes.childs
+        {
             Memory.delete(node)
+        }
+
         .polyNodes.childs.clear()
         .lowest.x = -1
     }
@@ -61,15 +64,19 @@ impl Offset
         // A closed contour needs three distinct corners to enclose anything, and the strip below
         // reads the first point unconditionally. The count is unsigned, so a shorter path has to
         // be turned away here rather than by a negative index.
-        if path.count < 3 do
+        if path.count < 3
+        {
             return
+        }
 
         var highI   = path.count - 1
         let pathBuf = path.storage()
-        while highI > 0 and pathBuf[0].x == pathBuf[highI].x and pathBuf[0].y == pathBuf[highI].y do
+        while highI > 0 and pathBuf[0].x == pathBuf[highI].x and pathBuf[0].y == pathBuf[highI].y
+        {
             highI -= 1
+        }
 
-        let newNode = Memory.new'PolyNode()
+        let newNode = Memory.new!{PolyNode}()
         newNode.jointype = joinType
         newNode.contour.reserve(highI + 1)
         newNode.contour.add(pathBuf[0])
@@ -80,15 +87,19 @@ impl Offset
         {
             let pt      = pathBuf[i]
             let contour = newNode.contour.storage()
-            if contour[uniqueCount].x == pt.x and contour[uniqueCount].y == pt.y do
+            if contour[uniqueCount].x == pt.x and contour[uniqueCount].y == pt.y
+            {
                 continue
+            }
 
             uniqueCount += 1
             newNode.contour.add(pt)
 
             let lowestPt = newNode.contour[lowestIdx]
-            if pt.y > lowestPt.y or (pt.y == lowestPt.y and pt.x < lowestPt.x) do
+            if pt.y > lowestPt.y or (pt.y == lowestPt.y and pt.x < lowestPt.x)
+            {
                 lowestIdx = uniqueCount
+            }
         }
 
         if uniqueCount < 2
@@ -106,8 +117,10 @@ impl Offset
         else
         {
             let ip = .polyNodes.childs[cast(s32, .lowest.x)].contour[cast(s32, .lowest.y)]
-            if newNode.contour[lowestIdx].y > ip.y or (newNode.contour[lowestIdx].y == ip.y and newNode.contour[lowestIdx].x < ip.x) do
+            if newNode.contour[lowestIdx].y > ip.y or (newNode.contour[lowestIdx].y == ip.y and newNode.contour[lowestIdx].x < ip.x)
+            {
                 .lowest = IntPoint{.polyNodes.childs.count - 1, lowestIdx}
+            }
         }
     }
 
@@ -120,8 +133,10 @@ impl Offset
         .doOffset(delta)
 
         var clpr: Transform
-        for &p in .destPolys do
+        for &p in .destPolys
+        {
             clpr.addPath(p, PolyType.Subject)
+        }
 
         if delta > 0
         {
@@ -139,8 +154,10 @@ impl Offset
             clpr.addPath(&outer, PolyType.Subject)
             clpr.reverseOutput = reverseNeg
             clpr.execute(ClipType.Union, solution, PolyFillType.Negative, PolyFillType.Negative)
-            if not solution.isEmpty() do
+            if not solution.isEmpty()
+            {
                 solution.removeAt(0)
+            }
         }
     }
 
@@ -149,10 +166,12 @@ impl Offset
     func area(poly: ClipperPath)->f64
     {
         let size = cast(s32, poly.count)
-        if size < 3 do
+        if size < 3
+        {
             return 0
+        }
 
-        var a  = 0'f64
+        var a  = 0_f64
         var j  = size - 1
         var pJ = poly[j]
         for i in size
@@ -177,8 +196,10 @@ impl Offset
     {
         if .lowest.x >= 0 and not orientation(.polyNodes.childs[.lowest.x].contour)
         {
-            for node in .polyNodes.childs do
+            for node in .polyNodes.childs
+            {
                 Slice.reverse(node.contour.toSlice())
+            }
         }
     }
 
@@ -187,8 +208,10 @@ impl Offset
     func getUnitNormal(pt1, pt2: IntPoint)->DoublePoint
     {
         var result: #returntype
-        if pt2.x == pt1.x and pt2.y == pt1.y do
+        if pt2.x == pt1.x and pt2.y == pt1.y
+        {
             return result
+        }
 
         var dx = cast(f64, (pt2.x - pt1.x))
         var dy = cast(f64, (pt2.y - pt1.y))
@@ -217,34 +240,52 @@ impl Offset
         if Math.isZeroEpsilon(delta)
         {
             .destPolys.reserve(.polyNodes.childs.count)
-            for node in .polyNodes.childs do
+            for node in .polyNodes.childs
+            {
                 .destPolys.add(node.contour)
+            }
+
             return
         }
 
-        if .miterLimit > 2 do
+        if .miterLimit > 2
+        {
             .miterLim = 2 / (.miterLimit * .miterLimit)
-        else do
+        }
+        else
+        {
             .miterLim = 0.5
+        }
 
         var arcT: f64
-        if .arcTolerance <= 0.0 do
+        if .arcTolerance <= 0.0
+        {
             arcT = DefaultArcTolerance
-        elif .arcTolerance > abs(delta) * DefaultArcTolerance do
+        }
+        else if .arcTolerance > abs(delta) * DefaultArcTolerance
+        {
             arcT = abs(delta) * DefaultArcTolerance
-        else do
+        }
+        else
+        {
             arcT = .arcTolerance
+        }
 
         const Pi    = ConstF64.Pi
         const TwoPi = ConstF64.TwoPi
         var steps = Pi / acos(1 - arcT / abs(delta))
-        if steps > abs(delta) * Pi do
+        if steps > abs(delta) * Pi
+        {
             steps = abs(delta) * Pi
+        }
+
         .sinVal      = sin(TwoPi / steps)
         .cosVal      = cos(TwoPi / steps)
         .stepsPerRad = steps / TwoPi
-        if delta < 0.0 do
+        if delta < 0.0
+        {
             .sinVal = -.sinVal
+        }
 
         .destPolys.reserve(.polyNodes.childs.count * 2)
         for node in .polyNodes.childs
@@ -252,16 +293,18 @@ impl Offset
             .srcPoly = node.contour
 
             let len = cast(s32, .srcPoly.count)
-            if len == 0 or (delta <= 0 and len < 3) do
+            if len == 0 or (delta <= 0 and len < 3)
+            {
                 continue
+            }
 
             .destPoly.clear()
             if len == 1
             {
                 if node.jointype == .Round
                 {
-                    var x = 1.0'f64
-                    var y = 0.0'f64
+                    var x = 1.0_f64
+                    var y = 0.0_f64
                     for var j = 1; j <= steps; j += 1
                     {
                         let r1 = cround(.srcPoly[0].x + x * delta)
@@ -274,19 +317,25 @@ impl Offset
                 }
                 else
                 {
-                    var x = -1.0'f64
-                    var y = -1.0'f64
+                    var x = -1.0_f64
+                    var y = -1.0_f64
                     for 4
                     {
                         let r1 = cround(.srcPoly[0].x + x * delta)
                         let r2 = cround(.srcPoly[0].y + y * delta)
                         .destPoly.add(IntPoint{r1, r2})
-                        if x < 0 do
+                        if x < 0
+                        {
                             x = 1
-                        elif y < 0 do
+                        }
+                        else if y < 0
+                        {
                             y = 1
-                        else do
+                        }
+                        else
+                        {
                             x = -1
+                        }
                     }
                 }
 
@@ -297,13 +346,19 @@ impl Offset
             // Build normals
             .normals.clear()
             .normals.reserve(cast(u64, len))
-            for j in len - 1 do
+            for j in len - 1
+            {
                 .normals.add(getUnitNormal(.srcPoly[j], .srcPoly[j + 1]))
+            }
+
             .normals.add(getUnitNormal(.srcPoly[len - 1], .srcPoly[0]))
 
             var k = len - 1
-            for j in len do
+            for j in len
+            {
                 .offsetPoint(j, &k, node.jointype)
+            }
+
             .destPolys.add(.destPoly)
         }
     }
@@ -330,11 +385,11 @@ impl Offset
                 return
             }
         }
-        elif .sinaVal > 1.0
+        else if .sinaVal > 1.0
         {
             .sinaVal = 1.0
         }
-        elif .sinaVal < -1.0
+        else if .sinaVal < -1.0
         {
             .sinaVal = -1.0
         }
@@ -355,10 +410,14 @@ impl Offset
             {
             case .Miter:
                 let r = 1 + (jN.x * kN.x + jN.y * kN.y)
-                if r >= .miterLim do
+                if r >= .miterLim
+                {
                     .doMiter(j, k, r)
-                else do
+                }
+                else
+                {
                     .doSquare(j, k)
+                }
 
             case .Square:
                 .doSquare(j, k)

@@ -9,22 +9,24 @@ private var g_ArgumentCount: u64
 private var g_ArgumentHash:  u64
 private var g_CheckLibraryPath = true
 
-#static if #os == Swag.TargetOs.Linux and #hastag("Swag.AllocatorDiagnostics") do
+#static if #os == Swag.TargetOs.Linux and #hastag("Swag.AllocatorDiagnostics")
+{
     private var g_ElectricAllocator: Swag.Allocator
+}
 
 private func argumentFingerprint(arguments: const [..] string)->u64
 {
-    var hash = 0xCBF29CE484222325'u64
+    var hash = 0xCBF29CE484222325_u64
     for argument in arguments
     {
         for byte in cast(const [..] u8, argument)
         {
             hash ^= cast(u64, byte)
-            hash *= #wrap 0x100000001B3'u64
+            hash *= #wrap 0x100000001B3_u64
         }
 
-        hash ^= 0xFF'u64
-        hash *= #wrap 0x100000001B3'u64
+        hash ^= 0xFF_u64
+        hash *= #wrap 0x100000001B3_u64
     }
 
     return hash
@@ -60,8 +62,10 @@ private func argumentFingerprint(arguments: const [..] string)->u64
         {
             var foundLibraryPath = false
             const Prefix = "--dynamic-runtime-library="
-            for argument in arguments where argument.count > Prefix.count and argument[0 until Prefix.count] == Prefix do
+            for argument in arguments where argument.count > Prefix.count and argument[0 until Prefix.count] == Prefix
+            {
                 foundLibraryPath = true
+            }
             Swag.assert(foundLibraryPath)
         }
     }

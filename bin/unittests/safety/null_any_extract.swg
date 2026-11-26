@@ -57,14 +57,18 @@
     {
         var ns:    string? = null
         var boxed: any     = ns
-        if assume cast(string?, boxed) != null do
+        if assume cast(string?, boxed) != null
+        {
             return false
+        }
 
         boxed = "hello"
-        if assume cast(string, boxed) != "hello" do
+        if assume cast(string, boxed) != "hello"
+        {
             return false
+        }
 
-        boxed = 42's32
+        boxed = 42_s32
         return assume cast(s32, boxed) == 42
     }
 

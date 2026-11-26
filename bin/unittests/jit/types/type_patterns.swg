@@ -52,10 +52,14 @@ func patternSource(value: IPatternValue, calls: *s32)->IPatternValue
     Swag.require(view is PatternValue and view is IPatternOther)
     Swag.require(view is PatternOther or view is PatternValue)
     Swag.require((view is PatternValue) == true)
-    if view is IPatternOther as other do
+    if view is IPatternOther as other
+    {
         Swag.require(other.other() == 43)
-    else do
+    }
+    else
+    {
         Swag.require(false)
+    }
 }
 
 #test
@@ -64,18 +68,24 @@ func patternSource(value: IPatternValue, calls: *s32)->IPatternValue
     let view:  IPatternValue = &value
     var calls  = 0
     var result = 0
-    if patternSource(view, &calls) is PatternValue as item where item.number < 0 do
+    if patternSource(view, &calls) is PatternValue as item where item.number < 0
+    {
         result = -1
-    elif patternSource(view, &calls) is PatternOther do
+    }
+    else if patternSource(view, &calls) is PatternOther
+    {
         result = -2
-    elif patternSource(view, &calls) is PatternValue as item where item.number == 42
+    }
+    else if patternSource(view, &calls) is PatternValue as item where item.number == 42
     {
         #assert(#typeof(item) == #type *PatternValue)
         Swag.require(item == &value)
         result = item.number
     }
-    else do
+    else
+    {
         result = -3
+    }
     Swag.require(calls == 3 and result == 42)
 }
 
@@ -113,10 +123,14 @@ func patternSource(value: IPatternValue, calls: *s32)->IPatternValue
     let base:  *PatternBase = &value
     Swag.require(base is PatternValue)
     Swag.require(not (base is PatternOther))
-    if base is PatternValue as item do
+    if base is PatternValue as item
+    {
         Swag.require(item == &value)
-    else do
+    }
+    else
+    {
         Swag.require(false)
+    }
     switch base
     {
     case PatternOther:         Swag.require(false)
@@ -129,8 +143,10 @@ func patternSource(value: IPatternValue, calls: *s32)->IPatternValue
         #assert(#typeof(item) == #type const *PatternValue)
         Swag.require(item.number == 42)
     }
-    else do
+    else
+    {
         Swag.require(false)
+    }
     switch readOnly
     {
     case PatternValue as item:
@@ -142,8 +158,10 @@ func patternSource(value: IPatternValue, calls: *s32)->IPatternValue
 
 func patternAbsent(value: any?)->bool
 {
-    if value is s32 do
+    if value is s32
+    {
         return true
+    }
     switch value
     {
     case s32: return true
@@ -191,10 +209,14 @@ func patternType(source: typeinfo)->bool => source is IPatternValue
     Swag.require(patternType(PatternValue))
     Swag.require(not patternType(PatternOther))
     let metadata: typeinfo = PatternValue
-    if metadata is Swag.TypeInfoStruct as info do
+    if metadata is Swag.TypeInfoStruct as info
+    {
         Swag.require(info.fields.count != 0)
-    else do
+    }
+    else
+    {
         Swag.require(false)
+    }
 }
 
 func(T) patternOverload(value: T)->s32 where T is IPatternValue and T is IPatternOther => 1

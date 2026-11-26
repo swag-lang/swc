@@ -20,13 +20,15 @@ using Core
     let tables  = cast(u32, invalid[4]) << 8 | invalid[5]
     for table in tables
     {
-        let offset = 12'u64 + table * 16
+        let offset = 12_u64 + table * 16
         let tag    = cast(u32, invalid[offset]) << 24 | cast(u32, invalid[offset + 1]) << 16 |
                      cast(u32, invalid[offset + 2]) << 8 | invalid[offset + 3]
         if tag == 0x676C7966 or tag == 0x6C6F6361
         {
-            for byte in 4 do
+            for byte in 4
+            {
                 invalid[offset + byte] = 0
+            }
         }
     }
 
@@ -39,8 +41,11 @@ using Core
     var cache: FontCatalogFallbackCache
     cache.setCatalog(catalog, ["Missing family", "Segoe UI"])
     catalog.clear()
-    for c in [0'rune, '\t'rune, '\n'rune, '\u009F'rune, '\U0010FFFF'rune] do
+    for c in [0_rune, '\t'_rune, '\n'_rune, '\u009F'_rune, '\U0010FFFF'_rune]
+    {
         Swag.require(cache.find(c, .Regular) == null)
+    }
+
     Swag.require(cache.faces.count == 0)
     let primary = cache.find('A', .Regular)
     Swag.require(primary == (expect TypeFace.load(primaryPath)))
@@ -50,7 +55,7 @@ using Core
     Swag.require(cache.find('\u0905', .Regular) == null and cache.faces.count == 3)
     Swag.require(cache.find('\u0905', .Regular) == null and cache.faces.count == 3)
     discard expect catalog.addFile(symbolsPath)
-    var noPreferred: Array'string
+    var noPreferred: Array!{string}
     cache.setCatalog(catalog, noPreferred.toSlice())
     Swag.require(cache.faces.count == 0 and cache.find('A', .Regular) == symbols)
 }

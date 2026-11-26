@@ -26,8 +26,11 @@ using Core, Gui, Pixel
     let image = expect Image.load(exported)
     Swag.require(image.width == 41 and image.height == 29)
     var sourceMetadata: bool
-    for md in image.metadata where md.isTag(CaptureFileMetadataTag) do
+    for md in image.metadata where md.isTag(CaptureFileMetadataTag)
+    {
         sourceMetadata = sourceMetadata or Path.equals(cast(string, md.toSlice()), source)
+    }
+
     Swag.require(sourceMetadata)
 
     var linked = Path.combine(journey.root, "linked.png")

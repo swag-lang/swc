@@ -27,11 +27,14 @@ using Core, Gui, Pixel, Video
     var picture = Image.create(32, 16, .BGRA8)
     picture.fill(Argb.White)
     var writer = expect Mp4.SoftwareRecording.createVideoOnly(source, 32, 16, 1_000_000)
-    for frame in 3'u64 do
+    for frame in 3_u64
+    {
         expect writer.addFrame(&picture, FrameSlot{frame, frame * 100_000, 100_000, 0})
+    }
+
     expect writer.flush()
     var input = expect ByteSource.openFile(source, .ReadWrite)
-    var prefix: Array'u8
+    var prefix: Array!{u8}
     prefix.resize(input.size())
     expect input.readExact(prefix.toSlice())
     discard expect File.writeAllBytes(media, prefix.toSlice())
@@ -43,7 +46,7 @@ using Core, Gui, Pixel, Video
     Swag.require(recovered.count == 1 and recovered[0] == document)
     let second = expect Library.recoverOrphanVideos(folder)
     Swag.require(second.isEmpty())
-    for index in 5'u64
+    for index in 5_u64
     {
         let nextDocument = Path.combine(folder, Format.toString("extra-%.scc", index))
         expect File.duplicate(Capture.mediaPathOf(nextDocument, .Video), media)

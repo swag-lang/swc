@@ -31,14 +31,22 @@ struct WireReceipt
 #[StringPolicyRule("authToken", 16, false, true)]
 func scheduleDeployment(replicas: s32, region: string, dryRun: bool, authToken: string)->DeploymentDecision
 {
-    if dryRun do
+    if dryRun
+    {
         return .DryRunOnly
-    if replicas > 12 do
+    }
+    if replicas > 12
+    {
         return .Rejected
-    if region == "legacy-eu" do
+    }
+    if region == "legacy-eu"
+    {
         return .Rejected
-    if authToken.count < 16 do
+    }
+    if authToken.count < 16
+    {
         return .Rejected
+    }
     return .Accepted
 }
 
@@ -85,8 +93,10 @@ func appendS32Literal(buffer: [*] u8, start: u64, value: s32)->u64
     var tmpLen: u64
     while true
     {
-        if v == 0 do
+        if v == 0
+        {
             break
+        }
         tmp[tmpLen] = cast(u8, (v % 10)) + '0'
         tmpLen      += 1
         v           /= 10
@@ -142,8 +152,10 @@ func appendCommandValidation(buffer: [*] u8, start: u64, contractName: string, t
         for attribute in typeFunc.attributes
         {
             let params = unwrap attribute.params
-            if assume cast(string, unwrap params[0].value) != parameter.name do
+            if assume cast(string, unwrap params[0].value) != parameter.name
+            {
                 continue
+            }
 
             if attribute.type == #typeof(IntRangeRule)
             {
@@ -203,12 +215,18 @@ func appendCommandRedaction(buffer: [*] u8, start: u64, contractName: string, ty
         for attribute in typeFunc.attributes
         {
             let params = unwrap attribute.params
-            if assume cast(string, unwrap params[0].value) != parameter.name do
+            if assume cast(string, unwrap params[0].value) != parameter.name
+            {
                 continue
-            if attribute.type != #typeof(StringPolicyRule) do
+            }
+            if attribute.type != #typeof(StringPolicyRule)
+            {
                 continue
-            if not assume cast(bool, params[3].value) do
+            }
+            if not assume cast(bool, params[3].value)
+            {
                 continue
+            }
 
             len = appendAst(buffer, len, "    result.")
             len = appendAst(buffer, len, unwrap parameter.name)
@@ -236,12 +254,18 @@ func appendCommandSecretCount(buffer: [*] u8, start: u64, contractName: string, 
         for attribute in typeFunc.attributes
         {
             let params = unwrap attribute.params
-            if assume cast(string, unwrap params[0].value) != parameter.name do
+            if assume cast(string, unwrap params[0].value) != parameter.name
+            {
                 continue
-            if attribute.type != #typeof(StringPolicyRule) do
+            }
+            if attribute.type != #typeof(StringPolicyRule)
+            {
                 continue
-            if not assume cast(bool, params[3].value) do
+            }
+            if not assume cast(bool, params[3].value)
+            {
                 continue
+            }
 
             len = appendAst(buffer, len, "    count += 1\n")
         }
@@ -270,15 +294,19 @@ func appendCommandInvoke(buffer: [*] u8, start: u64, contractName, handlerName: 
     }
 
     len = appendAst(buffer, len, "\n{\n    ")
-    if not returnsVoid do
+    if not returnsVoid
+    {
         len = appendAst(buffer, len, "return ")
+    }
     len = appendAst(buffer, len, handlerName)
     len = appendAst(buffer, len, "(")
 
     for parameter, index in typeFunc.parameters
     {
-        if index != 0 do
+        if index != 0
+        {
             len = appendAst(buffer, len, ", ")
+        }
 
         len = appendAst(buffer, len, "command.")
         len = appendAst(buffer, len, unwrap parameter.name)
@@ -303,14 +331,16 @@ func appendCommandContract(buffer: [*] u8, start: u64, contractName, handlerName
 #ast
 {
     var buffer: [32768] u8
-    var len = 0'u64
+    var len = 0_u64
 
     len = appendCommandContract(&buffer[0], len, "ScheduleDeploymentCommand", "scheduleDeployment", #typeof(scheduleDeployment))
     len = appendCommandContract(&buffer[0], len, "SubmitWireTransferCommand", "submitWireTransfer", #typeof(submitWireTransfer))
     len = appendCommandContract(&buffer[0], len, "ResyncCatalogCommand", "resyncCatalog", #typeof(resyncCatalog))
 
-    if len == 0 do
+    if len == 0
+    {
         return ""
+    }
     return cast(string, Swag.makeSlice(&buffer[0], len))
 }
 

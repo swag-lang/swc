@@ -15,7 +15,7 @@ impl Gated
 
 #test
 {
-    var value: Gated'u32
+    var value: Gated!{u32}
     value.opPostCopy()     // swc-expected-error {{sema_err_unknown_symbol}}
 }
 
@@ -37,6 +37,6 @@ impl Switched
 
 #test
 {
-    var value: Switched'(false)
+    var value: Switched!{false}
     value.opPostCopy()     // swc-expected-error {{sema_err_unknown_symbol}}
 }

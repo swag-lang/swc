@@ -12,10 +12,16 @@ using Core
 #[Swag.Inline]
 private func signOf(value: s32)->s32
 {
-    if value > 0 do
+    if value > 0
+    {
         return 1
-    if value < 0 do
+    }
+
+    if value < 0
+    {
         return -1
+    }
+
     return 0
 }
 
@@ -76,23 +82,29 @@ impl Decoder
             }
         }
 
-        if merged do
+        if merged
+        {
             return
+        }
 
         var parameters: SaoParameters
-        let maximumOffset = (1'u32 << (Math.min(sps.bitDepthLuma, 10'u32) - 5)) - 1
+        let maximumOffset = (1_u32 << (Math.min(sps.bitDepthLuma, 10_u32) - 5)) - 1
 
-        for component in 3'u32
+        for component in 3_u32
         {
-            if (component == 0 and not header.saoLuma) or (component > 0 and not header.saoChroma) do
+            if (component == 0 and not header.saoLuma) or (component > 0 and not header.saoChroma)
+            {
                 continue
+            }
 
             // The two chroma components share one type and one class, stated with the first.
-            var kind = 0'u32
+            var kind = 0_u32
             if component < 2
             {
-                if .cabac.decision(CtxSaoTypeIdx) != 0 do
-                    kind = .cabac.bypass() != 0 ? 2'u32 : 1'u32
+                if .cabac.decision(CtxSaoTypeIdx) != 0
+                {
+                    kind = .cabac.bypass() != 0 ? 2_u32 : 1_u32
+                }
             }
             else
             {
@@ -100,25 +112,33 @@ impl Decoder
             }
 
             parameters.typeIdx[component] = cast(u8, kind)
-            if not kind do
+            if not kind
+            {
                 continue
+            }
 
             var magnitude: [4] u32
-            for entry in 4'u32
+            for entry in 4_u32
             {
-                var value = 0'u32
-                while value < maximumOffset and .cabac.bypass() != 0 do
+                var value = 0_u32
+                while value < maximumOffset and .cabac.bypass() != 0
+                {
                     value += 1
+                }
+
                 magnitude[entry] = value
             }
 
             if kind == 1
             {
-                for entry in 4'u32
+                for entry in 4_u32
                 {
                     var value = cast(s16, magnitude[entry])
-                    if magnitude[entry] != 0 and .cabac.bypass() != 0 do
+                    if magnitude[entry] != 0 and .cabac.bypass() != 0
+                    {
                         value = -value
+                    }
+
                     parameters.offsets[component, entry + 1] = value
                 }
 
@@ -132,16 +152,22 @@ impl Decoder
                 parameters.offsets[component, 2] = cast(s16, magnitude[1])
                 parameters.offsets[component, 3] = -cast(s16, magnitude[2])
                 parameters.offsets[component, 4] = -cast(s16, magnitude[3])
-                if component < 2 do
+                if component < 2
+                {
                     parameters.eoClass[component] = cast(u8, .cabac.bypassBits(2))
-                else do
+                }
+                else
+                {
                     parameters.eoClass[2] = parameters.eoClass[1]
+                }
             }
         }
 
         .sao[index] = parameters
-        if parameters.typeIdx[0] != 0 or parameters.typeIdx[1] != 0 or parameters.typeIdx[2] != 0 do
+        if parameters.typeIdx[0] != 0 or parameters.typeIdx[1] != 0 or parameters.typeIdx[2] != 0
+        {
             .saoUsed = true
+        }
     }
 
     // Applies the sample adaptive offset of every coding tree block, clause 8.7.3.
@@ -152,8 +178,10 @@ impl Decoder
     mtd applySampleAdaptiveOffset()
     {
         let sps = unwrap .activeSps
-        if not sps.saoEnabled or not .saoUsed do
+        if not sps.saoEnabled or not .saoUsed
+        {
             return
+        }
 
         let frame   = unwrap .current
         let columns = cast(u64, sps.widthInCtbs)
@@ -163,36 +191,10 @@ impl Decoder
             var hasOffsets = false
             for &parameters in .sao where parameters.typeIdx[component]
             {
-                hasOffsets = true
-                break
-            }
-
-            if not hasOffsets do
-                continue
-
-            let plane   = component == 0 ? &frame.luma : component == 1 ? &frame.chromaB : &frame.chromaR
-            let scratch = component == 0 ? &.saoSource : component == 1 ? &.saoSourceChromaB : &.saoSourceChromaR
-            scratch.resize(plane.count)
-            Core.swap(scratch, plane)
-
-            for ry in sps.heightInCtbs
-            {
-                let row = .sao.storage() + cast(u64, ry) * columns
-                var rx  = 0'u64
-                while rx < columns
+                let parameters = &.sao[cast(u64, ry) * cast(u64, sps.widthInCtbs) + cast(u64, rx)]
+                for component in 3_u32
                 {
-                    let parameters = row + rx
-                    var endRx      = rx + 1
-
-                    // Adjacent blocks without offsets can copy each row as one span.
-                    if not parameters.typeIdx[component]
-                    {
-                        while endRx < columns and not row[endRx].typeIdx[component] do
-                            endRx += 1
-                    }
-
-                    .applySaoBlock(parameters, component, cast(s32, rx), cast(s32, endRx), cast(s32, ry))
-                    rx = endRx
+                    .applySaoBlock(parameters, component, cast(s32, rx), cast(s32, ry))
                 }
             }
         }
@@ -203,9 +205,9 @@ impl Decoder
     {
         let sps      = unwrap .activeSps
         let frame    = unwrap .current
-        let scale    = component == 0 ? 1's32 : 2's32
+        let scale    = component == 0 ? 1_s32 : 2_s32
         let bitDepth = component == 0 ? sps.bitDepthLuma : sps.bitDepthChroma
-        let maximum  = cast(s32, ((1'u32 << bitDepth) - 1))
+        let maximum  = cast(s32, ((1_u32 << bitDepth) - 1))
 
         let ctbSize     = cast(s32, sps.ctbSize) / scale
         let planeWidth  = cast(s32, (component == 0 ? sps.width : sps.width / sps.subWidthC))
@@ -214,8 +216,10 @@ impl Decoder
         let y0          = ry * ctbSize
         let width       = Math.min(endRx * ctbSize, planeWidth) - x0
         let height      = Math.min(ctbSize, planeHeight - y0)
-        if width <= 0 or height <= 0 do
+        if width <= 0 or height <= 0
+        {
             return
+        }
 
         var source:      const [*] u16
         var destination: [*] u16
@@ -256,11 +260,11 @@ impl Decoder
             // than an entry of a table of thirty-two, and the same four selections that serve an
             // edge category serve it here.
             let shift     = bitDepth - 5
-            let zeros     = Simd.splat(0's16)
-            let ones      = Simd.splat(1's16)
-            let twos      = Simd.splat(2's16)
-            let threes    = Simd.splat(3's16)
-            let masks     = Simd.splat(31's16)
+            let zeros     = Simd.splat(0_s16)
+            let ones      = Simd.splat(1_s16)
+            let twos      = Simd.splat(2_s16)
+            let threes    = Simd.splat(3_s16)
+            let masks     = Simd.splat(31_s16)
             let maxima    = Simd.splat(cast(s16, maximum))
             let positions = Simd.splat(cast(s16, parameters.bandPosition[component]))
             let offset1   = Simd.splat(parameters.offsets[component, 1])
@@ -271,7 +275,7 @@ impl Decoder
             for row in height
             {
                 let line   = origin + cast(u64, (y0 + row)) * stride + cast(u64, x0)
-                var column = 0's32
+                var column = 0_s32
 
                 while column + 8 <= width
                 {
@@ -338,10 +342,15 @@ impl Decoder
         for y in yBegin until yEnd
         {
             let line = origin + cast(u64, y) * stride
-            if xBegin > x0 do
+            if xBegin > x0
+            {
                 Memory.copy(&destination[line + cast(u64, x0)], &source[line + cast(u64, x0)], cast(u64, (xBegin - x0)) * #sizeof(u16))
-            if xEnd < x0 + width do
+            }
+
+            if xEnd < x0 + width
+            {
                 Memory.copy(&destination[line + cast(u64, xEnd)], &source[line + cast(u64, xEnd)], cast(u64, (x0 + width - xEnd)) * #sizeof(u16))
+            }
         }
 
         for y in yEnd until y0 + height
@@ -353,11 +362,11 @@ impl Decoder
         // The categories the standard derives from two comparisons index the offsets directly,
         // and category two, the flat one, carries no offset. Selecting the offset by category
         // rather than the category itself leaves nothing to look up.
-        let zeros   = Simd.splat(0's16)
-        let ones    = Simd.splat(1's16)
-        let twos    = Simd.splat(2's16)
-        let threes  = Simd.splat(3's16)
-        let fours   = Simd.splat(4's16)
+        let zeros   = Simd.splat(0_s16)
+        let ones    = Simd.splat(1_s16)
+        let twos    = Simd.splat(2_s16)
+        let threes  = Simd.splat(3_s16)
+        let fours   = Simd.splat(4_s16)
         let maxima  = Simd.splat(cast(s16, maximum))
         let offset1 = Simd.splat(parameters.offsets[component, 1])
         let offset2 = Simd.splat(parameters.offsets[component, 2])
@@ -394,8 +403,10 @@ impl Decoder
                 let second = cast(s32, source[secondLine + cast(u64, (x + h1))])
 
                 var edge = 2 + signOf(centre - first) + signOf(centre - second)
-                if edge <= 2 do
+                if edge <= 2
+                {
                     edge = edge == 2 ? 0 : edge + 1
+                }
 
                 let offset = parameters.offsets[component, cast(u32, edge)]
                 destination[centreLine + cast(u64, x)] = cast(u16, Math.clamp(centre + cast(s32, offset), 0, maximum))

@@ -17,8 +17,10 @@ func inlineGcdShadow(a0, b0: s64)->s64
 
 func inlineLcmShadow(a, b: s64)->s64
 {
-    if a > b do
+    if a > b
+    {
         return a / inlineGcdShadow(a, b) * b
+    }
     return b / inlineGcdShadow(a, b) * a
 }
 

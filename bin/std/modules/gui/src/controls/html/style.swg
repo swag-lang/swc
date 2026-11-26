@@ -683,8 +683,11 @@ impl HtmlComputedStyle
     private mtd readColor(value: string, target: *Color)->bool
     {
         let parsed = htmlParseColor(value)
-        if not parsed.matched do
+        if not parsed.matched
+        {
             return false
+        }
+
         target[] = parsed.current ? .color : parsed.color
         return true
     }
@@ -693,8 +696,10 @@ impl HtmlComputedStyle
     private mtd edges(value: string, target: *HtmlEdges, context: *HtmlDeclarationContext)
     {
         let parts = htmlSplitValue(value)
-        if parts.isEmpty() do
+        if parts.isEmpty()
+        {
             return
+        }
 
         var values: [4] HtmlLength
         for index in Math.min(parts.count, 4)
@@ -761,26 +766,32 @@ impl HtmlComputedStyle
             }
         }
 
-        if edge.style == .None do
+        if edge.style == .None
+        {
             edge.width = 0
+        }
     }
 
     private mtd borderWidth(value: string, edge: *HtmlBorderEdge, context: *HtmlDeclarationContext)
     {
         let parsed = .length(value, context)
-        if parsed.matched and parsed.length.kind == .Pixels do
+        if parsed.matched and parsed.length.kind == .Pixels
+        {
             edge.width = parsed.length.value
+        }
     }
 
     // Applies the four corner radii of a `border-radius` shorthand, ignoring the elliptical form
     // behind a slash because the painter draws circular corners.
     private mtd borderRadius(value: string, context: *HtmlDeclarationContext)
     {
-        let slash = Utf8.indexOf(value, '/'rune)
+        let slash = Utf8.indexOf(value, '/'_rune)
         let text  = slash == Swag.U64.Max ? value : value[0 until slash]
         let parts = htmlSplitValue(text)
-        if parts.isEmpty() do
+        if parts.isEmpty()
+        {
             return
+        }
 
         var corners: [4] f32
         for index in Math.min(parts.count, 4)
@@ -834,12 +845,14 @@ impl HtmlComputedStyle
     private func resolveFontFamily(value: string)->{ kind: HtmlFontFamilyKind, matched: bool }
     {
         var result: #returntype
-        let families = htmlSplitValue(value, ','u8)
+        let families = htmlSplitValue(value, ','_u8)
         for family in families
         {
             var name = family.toString()
-            if name.count >= 2 and (name[0] == '"' or name[0] == '\'') do
+            if name.count >= 2 and (name[0] == '"' or name[0] == '\'')
+            {
                 name = name[1 until name.count - 1]
+            }
 
             let folded = String.from(name).toLower()
             switch folded.toString()
@@ -887,13 +900,18 @@ impl HtmlComputedStyle
         {
             let text   = parts[index].toString()
             let number = htmlParseNumber(text)
-            if number.eat == text.count do
+            if number.eat == text.count
+            {
                 continue
+            }
 
             let parsed = .length(text, context)
             var isSize = parsed.matched and not parsed.length.isAuto() and not parsed.length.isNone()
-            if not isSize and Utf8.indexOf(text, '/'rune) != Swag.U64.Max do
+            if not isSize and Utf8.indexOf(text, '/'_rune) != Swag.U64.Max
+            {
                 isSize = true
+            }
+
             if not isSize
             {
                 switch text
@@ -904,14 +922,19 @@ impl HtmlComputedStyle
                 }
             }
 
-            if not isSize do
+            if not isSize
+            {
                 continue
+            }
+
             sizeIndex = index
             break
         }
 
-        if sizeIndex == Swag.U64.Max do
+        if sizeIndex == Swag.U64.Max
+        {
             return
+        }
 
         // The shorthand resets every longhand it can set before its parts write over them.
         .italic     = false
@@ -934,14 +957,16 @@ impl HtmlComputedStyle
 
             default:
                 let number = htmlParseNumber(text)
-                if number.eat == text.count and number.value >= 1 and number.value <= 1000 do
+                if number.eat == text.count and number.value >= 1 and number.value <= 1000
+                {
                     .fontWeight = cast(u32, number.value)
+                }
             }
         }
 
         let sizeText    = parts[sizeIndex].toString()
         var familyStart = sizeIndex + 1
-        let slash       = Utf8.indexOf(sizeText, '/'rune)
+        let slash       = Utf8.indexOf(sizeText, '/'_rune)
         if slash != Swag.U64.Max
         {
             .applyDeclaration(.FontSize, Latin1.trim(sizeText[0 until slash]), context)
@@ -957,14 +982,19 @@ impl HtmlComputedStyle
             }
         }
 
-        if familyStart >= parts.count do
+        if familyStart >= parts.count
+        {
             return
+        }
 
         var family: String
         for index in familyStart until parts.count
         {
-            if not family.isEmpty() do
+            if not family.isEmpty()
+            {
                 family += " "
+            }
+
             family += parts[index]
         }
 
@@ -990,34 +1020,45 @@ impl HtmlComputedStyle
         }
 
         let parts = htmlSplitValue(value)
-        if parts.isEmpty() do
+        if parts.isEmpty()
+        {
             return
+        }
 
         // A single number is the grow factor, and the basis collapses to zero so the factors
         // share the whole line rather than what is left of it.
         .flexBasis = HtmlLength.pixels(0)
-        var numbers = 0'u32
+        var numbers = 0_u32
         for part in parts
         {
             let text   = part.toString()
             let number = htmlParseNumber(text)
             if number.eat == text.count and numbers < 2
             {
-                if not numbers do
+                if not numbers
+                {
                     .flexGrow = number.value
-                else do
+                }
+                else
+                {
                     .flexShrink = number.value
+                }
+
                 numbers += 1
                 continue
             }
 
             let parsed = .length(text, context)
-            if parsed.matched do
+            if parsed.matched
+            {
                 .flexBasis = parsed.length
+            }
         }
 
-        if numbers == 1 do
+        if numbers == 1
+        {
             .flexShrink = 1
+        }
     }
 
     // Reads the track list of a grid container into the value pool.
@@ -1026,13 +1067,15 @@ impl HtmlComputedStyle
         let parts = htmlSplitValue(value)
         .gridColumnFirst = cast(u32, context.pool.calc.count)
         .gridColumnCount = 0
-        if parts.isEmpty() do
+        if parts.isEmpty()
+        {
             return
+        }
 
         // `repeat()` is unrolled here so the rest of the engine only ever sees plain tracks. An
         // `auto-fill` or `auto-fit` count depends on the width layout discovers, so it keeps the
         // single flexible track the unexpanded form already produces.
-        var tracks: Array'String
+        var tracks: Array!{String}
         for part in parts
         {
             let call = htmlFunctionArguments(part.toString(), "repeat")
@@ -1047,8 +1090,10 @@ impl HtmlComputedStyle
                     let inner = htmlSplitValue(call.arguments[1].toString())
                     for times
                     {
-                        for track in inner do
+                        for track in inner
+                        {
                             tracks.add(String.from(track.toString()))
+                        }
                     }
 
                     continue
@@ -1064,17 +1109,25 @@ impl HtmlComputedStyle
         {
             var text  = part.toString()
             let range = htmlFunctionArguments(text, "minmax")
-            if range.matched and range.arguments.count == 2 do
+            if range.matched and range.arguments.count == 2
+            {
                 text = range.arguments[1].toString()
+            }
 
             var node: HtmlCalcNode
             let parsed = .length(text, context)
-            if parsed.matched and parsed.length.kind == .Fraction do
+            if parsed.matched and parsed.length.kind == .Fraction
+            {
                 node.percent = parsed.length.value
-            elif parsed.matched do
+            }
+            else if parsed.matched
+            {
                 node.pixels = parsed.length.resolve(context.pool, context.length)
-            else do
+            }
+            else
+            {
                 node.percent = 1
+            }
 
             discard context.pool.addCalc(node)
             .gridColumnCount += 1
@@ -1129,21 +1182,30 @@ impl HtmlComputedStyle
             var found:       bool
             for part in parts
             {
-                if not .readColor(part.toString(), &parsedColor) do
+                if not .readColor(part.toString(), &parsedColor)
+                {
                     continue
+                }
+
                 found = true
                 break
             }
 
-            if found do
+            if found
+            {
                 .background = parsedColor
-            elif value == "none" do
-                .background = Color.fromArgb(0'u32)
+            }
+            else if value == "none"
+            {
+                .background = Color.fromArgb(0_u32)
+            }
 
         case .Opacity:
             let number = htmlParseNumber(value)
-            if number.eat do
+            if number.eat
+            {
                 .opacity = Math.clamp(number.value, 0, 1)
+            }
 
         case .Mask, .MaskImage, .WebkitMask, .WebkitMaskImage:
             .masked = value != "none"
@@ -1196,8 +1258,10 @@ impl HtmlComputedStyle
 
             default:
                 let number = htmlParseNumber(value)
-                if number.eat do
+                if number.eat
+                {
                     .fontWeight = cast(u32, Math.clamp(number.value, 1, 1000))
+                }
             }
 
         case .FontStyle:
@@ -1205,8 +1269,10 @@ impl HtmlComputedStyle
 
         case .FontFamily:
             let family = HtmlComputedStyle.resolveFontFamily(value)
-            if family.matched do
+            if family.matched
+            {
                 .fontFamily = family.kind
+            }
 
         case .LineHeight:
             if value == "normal"
@@ -1223,8 +1289,10 @@ impl HtmlComputedStyle
                 else
                 {
                     let parsed = .length(value, context)
-                    if parsed.matched do
+                    if parsed.matched
+                    {
                         .lineHeight = parsed.length
+                    }
                 }
             }
 
@@ -1252,8 +1320,10 @@ impl HtmlComputedStyle
 
             // The strictness grades govern CJK punctuation rules this engine does not model;
             // only the value that changes where a line may break is acted on.
-            if value == "anywhere" do
+            if value == "anywhere"
+            {
                 .wordBreak = .BreakAll
+            }
 
         case .Font:
             .fontShorthand(value, context)
@@ -1280,8 +1350,10 @@ impl HtmlComputedStyle
 
         case .TextIndent:
             let parsed = .length(value, context)
-            if parsed.matched do
+            if parsed.matched
+            {
                 .textIndent = parsed.length
+            }
 
         case .TextDecoration, .TextDecorationLine:
             .textDecoration = .None
@@ -1319,13 +1391,17 @@ impl HtmlComputedStyle
 
         case .TextDecorationThickness:
             let parsed = .length(value, context)
-            if parsed.matched do
+            if parsed.matched
+            {
                 .textDecorationThickness = Math.max(parsed.length.resolve(context.pool, context.length), 0)
+            }
 
         case .TextUnderlineOffset:
             let parsed = .length(value, context)
-            if parsed.matched do
+            if parsed.matched
+            {
                 .textUnderlineOffset = parsed.length.resolve(context.pool, context.length)
+            }
 
         case .TextOverflow:
             .textOverflowEllipsis = value == "ellipsis"
@@ -1397,46 +1473,62 @@ impl HtmlComputedStyle
 
         case .MarginTop:
             let parsed = .length(value, context)
-            if parsed.matched do
+            if parsed.matched
+            {
                 .margin.top = parsed.length
+            }
 
         case .MarginRight:
             let parsed = .length(value, context)
-            if parsed.matched do
+            if parsed.matched
+            {
                 .margin.right = parsed.length
+            }
 
         case .MarginBottom:
             let parsed = .length(value, context)
-            if parsed.matched do
+            if parsed.matched
+            {
                 .margin.bottom = parsed.length
+            }
 
         case .MarginLeft:
             let parsed = .length(value, context)
-            if parsed.matched do
+            if parsed.matched
+            {
                 .margin.left = parsed.length
+            }
 
         case .Padding:
             .edges(value, &.padding, context)
 
         case .PaddingTop:
             let parsed = .length(value, context)
-            if parsed.matched do
+            if parsed.matched
+            {
                 .padding.top = parsed.length
+            }
 
         case .PaddingRight:
             let parsed = .length(value, context)
-            if parsed.matched do
+            if parsed.matched
+            {
                 .padding.right = parsed.length
+            }
 
         case .PaddingBottom:
             let parsed = .length(value, context)
-            if parsed.matched do
+            if parsed.matched
+            {
                 .padding.bottom = parsed.length
+            }
 
         case .PaddingLeft:
             let parsed = .length(value, context)
-            if parsed.matched do
+            if parsed.matched
+            {
                 .padding.left = parsed.length
+            }
 
         case .Border:
             .borderShorthand(value, &.borderTop, context)
@@ -1499,111 +1591,153 @@ impl HtmlComputedStyle
             }
 
         case .BorderTopColor:
-            if .readColor(value, &.borderTop.color) do
+            if .readColor(value, &.borderTop.color)
+            {
                 .borderTop.hasColor = true
+            }
 
         case .BorderRightColor:
-            if .readColor(value, &.borderRight.color) do
+            if .readColor(value, &.borderRight.color)
+            {
                 .borderRight.hasColor = true
+            }
 
         case .BorderBottomColor:
-            if .readColor(value, &.borderBottom.color) do
+            if .readColor(value, &.borderBottom.color)
+            {
                 .borderBottom.hasColor = true
+            }
 
         case .BorderLeftColor:
-            if .readColor(value, &.borderLeft.color) do
+            if .readColor(value, &.borderLeft.color)
+            {
                 .borderLeft.hasColor = true
+            }
 
         case .BorderRadius:
             .borderRadius(value, context)
 
         case .BorderTopLeftRadius:
             let parsed = .length(value, context)
-            if parsed.matched do
+            if parsed.matched
+            {
                 .radiusTopLeft = parsed.length.resolve(context.pool, context.length)
+            }
 
         case .BorderTopRightRadius:
             let parsed = .length(value, context)
-            if parsed.matched do
+            if parsed.matched
+            {
                 .radiusTopRight = parsed.length.resolve(context.pool, context.length)
+            }
 
         case .BorderBottomRightRadius:
             let parsed = .length(value, context)
-            if parsed.matched do
+            if parsed.matched
+            {
                 .radiusBottomRight = parsed.length.resolve(context.pool, context.length)
+            }
 
         case .BorderBottomLeftRadius:
             let parsed = .length(value, context)
-            if parsed.matched do
+            if parsed.matched
+            {
                 .radiusBottomLeft = parsed.length.resolve(context.pool, context.length)
+            }
 
         case .Width:
             let parsed = .length(value, context)
-            if parsed.matched do
+            if parsed.matched
+            {
                 .width = parsed.length
+            }
 
         case .Height:
             let parsed = .length(value, context)
-            if parsed.matched do
+            if parsed.matched
+            {
                 .height = parsed.length
+            }
 
         case .MinWidth:
             let parsed = .length(value, context)
-            if parsed.matched do
+            if parsed.matched
+            {
                 .minWidth = parsed.length
+            }
 
         case .MaxWidth:
             let parsed = .length(value, context)
-            if parsed.matched do
+            if parsed.matched
+            {
                 .maxWidth = parsed.length
+            }
 
         case .MinHeight:
             let parsed = .length(value, context)
-            if parsed.matched do
+            if parsed.matched
+            {
                 .minHeight = parsed.length
+            }
 
         case .MaxHeight:
             let parsed = .length(value, context)
-            if parsed.matched do
+            if parsed.matched
+            {
                 .maxHeight = parsed.length
+            }
 
         case .ScrollMarginTop:
             let parsed = .length(value, context)
-            if parsed.matched do
+            if parsed.matched
+            {
                 .scrollMarginTop = parsed.length
+            }
 
         case .Top:
             let parsed = .length(value, context)
-            if parsed.matched do
+            if parsed.matched
+            {
                 .inset.top = parsed.length
+            }
 
         case .Right:
             let parsed = .length(value, context)
-            if parsed.matched do
+            if parsed.matched
+            {
                 .inset.right = parsed.length
+            }
 
         case .Bottom:
             let parsed = .length(value, context)
-            if parsed.matched do
+            if parsed.matched
+            {
                 .inset.bottom = parsed.length
+            }
 
         case .Left:
             let parsed = .length(value, context)
-            if parsed.matched do
+            if parsed.matched
+            {
                 .inset.left = parsed.length
+            }
 
         case .Inset:
             .edges(value, &.inset, context)
 
         case .ZIndex:
             let number = htmlParseNumber(value)
-            if number.eat do
+            if number.eat
+            {
                 .zIndex = cast(s32, number.value)
+            }
 
         case .Order:
             let number = htmlParseNumber(value)
-            if number.eat do
+            if number.eat
+            {
                 .order = cast(s32, number.value)
+            }
 
         case .Overflow:
             .applyDeclaration(.OverflowX, value, context)
@@ -1654,18 +1788,24 @@ impl HtmlComputedStyle
 
         case .JustifyContent:
             let parsed = HtmlComputedStyle.justify(value)
-            if parsed.matched do
+            if parsed.matched
+            {
                 .justifyContent = parsed.value
+            }
 
         case .AlignContent:
             let parsed = HtmlComputedStyle.justify(value)
-            if parsed.matched do
+            if parsed.matched
+            {
                 .alignContent = parsed.value
+            }
 
         case .AlignItems:
             let parsed = HtmlComputedStyle.align(value)
-            if parsed.matched do
+            if parsed.matched
+            {
                 .alignItems = parsed.value
+            }
 
         case .AlignSelf:
             let parsed = HtmlComputedStyle.align(value)
@@ -1680,18 +1820,24 @@ impl HtmlComputedStyle
 
         case .FlexGrow:
             let number = htmlParseNumber(value)
-            if number.eat do
+            if number.eat
+            {
                 .flexGrow = number.value
+            }
 
         case .FlexShrink:
             let number = htmlParseNumber(value)
-            if number.eat do
+            if number.eat
+            {
                 .flexShrink = number.value
+            }
 
         case .FlexBasis:
             let parsed = .length(value, context)
-            if parsed.matched do
+            if parsed.matched
+            {
                 .flexBasis = parsed.length
+            }
 
         case .Gap, .GridGap:
             let parts = htmlSplitValue(value)
@@ -1707,33 +1853,43 @@ impl HtmlComputedStyle
                 if parts.count > 1
                 {
                     let column = .length(parts[1].toString(), context)
-                    if column.matched do
+                    if column.matched
+                    {
                         .columnGap = column.length
+                    }
                 }
             }
 
         case .RowGap, .GridRowGap:
             let parsed = .length(value, context)
-            if parsed.matched do
+            if parsed.matched
+            {
                 .rowGap = parsed.length
+            }
 
         case .ColumnGap, .GridColumnGap:
             let parsed = .length(value, context)
-            if parsed.matched do
+            if parsed.matched
+            {
                 .columnGap = parsed.length
+            }
 
         case .GridTemplateColumns:
             .gridTemplate(value, context)
 
         case .GridColumn, .GridColumnStart:
             let number = htmlParseNumber(value)
-            if number.eat do
+            if number.eat
+            {
                 .gridColumn = cast(s32, number.value)
+            }
 
         case .GridRow, .GridRowStart:
             let number = htmlParseNumber(value)
-            if number.eat do
+            if number.eat
+            {
                 .gridRow = cast(s32, number.value)
+            }
 
         case .Content:
             var text = Latin1.trim(value)
@@ -1744,7 +1900,7 @@ impl HtmlComputedStyle
                 .content    = context.pool.addString(htmlDecodeText(text[1 until text.count - 1]).toString())
                 .hasContent = true
             }
-            elif text == "none" or text == "normal"
+            else if text == "none" or text == "normal"
             {
                 .hasContent = false
             }

@@ -233,12 +233,12 @@ const VideoInfoBitrateTag     = "ScopeVideoBitrate"
 func registerMediaInfoStrings(bundle: *Core.Resources.Bundle)
 {
     bundle.addEmbedded(FrenchMediaStringsName, FrenchMediaStrings)
-    Gui.registerStrings'MediaInfoStrings(&g_MediaInfoStrings, "scope.media")
+    Gui.registerStrings!{MediaInfoStrings}(&g_MediaInfoStrings, "scope.media")
 }
 
 #run
 {
-    expect Gui.validateStrings'MediaInfoStrings(cast(string, FrenchMediaStrings))
+    expect Gui.validateStrings!{MediaInfoStrings}(cast(string, FrenchMediaStrings))
 }
 
 // One property of the panel, or the heading of a group of them.
@@ -357,10 +357,11 @@ impl MediaInfoRow
     {
         switch .field
         {
-        case .Dimensions, .DisplaySize, .AspectRatio, .Depth, .Frames, .Pages, .Lines, .ByteCount, .CountExtent,
-             .Sections, .Members, .Duration, .FrameRate, .ExactFrameRate, .Bitrate, .SampleRate,
-             .Channels, .SampleSize, .SamplePeak, .RmsLevel, .FullScale, .Bookmarks, .UnitsPerEm,
-             .Faces, .Meter, .LineEnds, .LongestLine, .ControlCharacters, .Replacements:
+        case .Dimensions, .DisplaySize, .AspectRatio, .Depth, .Frames, .Pages, .Lines,
+             .ByteCount, .CountExtent, .Sections, .Members, .Duration, .FrameRate,
+             .ExactFrameRate, .Bitrate, .SampleRate, .Channels, .SampleSize,
+             .SamplePeak, .RmsLevel, .FullScale, .Bookmarks, .UnitsPerEm, .Faces,
+             .Meter, .LineEnds, .LongestLine, .ControlCharacters, .Replacements:
             return true
 
         default: return false
@@ -387,8 +388,11 @@ func channelsText(channels: u32)->String
 // Returns a track language worth writing: empty for the undetermined code `und`.
 func knownLanguage(language: string)->String
 {
-    if language.count == 0 or Latin1.compare(language, "und", ignoreCase: true) == 0 do
+    if language.count == 0 or Latin1.compare(language, "und", ignoreCase: true) == 0
+    {
         return {}
+    }
+
     return String.from(language)
 }
 
@@ -398,8 +402,11 @@ func joinMeasures(measures: const [..] String)->String
     var result: #returntype
     for index in measures.count where not measures[index].isEmpty()
     {
-        if result.count do
+        if result.count
+        {
             result += " · "
+        }
+
         result += measures[index]
     }
 
@@ -416,8 +423,8 @@ func glyphCountText(count: u64)->String => Format.toString(g_MediaInfoStrings.gl
 func trackText(number: u64)->String => Format.toString(g_MediaInfoStrings.track, number)
 
 // Owns values independently of the decoded pixels, file mapping, and language table.
-private const IccProfileLimit = 1024'u64 * 1024
-private const XmpPacketLimit  = 1024'u64 * 1024
+private const IccProfileLimit = 1024_u64 * 1024
+private const XmpPacketLimit  = 1024_u64 * 1024
 
 private struct XmpBinding
 {
@@ -435,8 +442,11 @@ private struct XmpField
 private func xmpQNameParts(name: string, prefix: *String, local: *String)->bool
 {
     let separator = Utf8.indexOf(name, ":")
-    if separator == Swag.U64.Max or separator == 0 or separator + 1 >= name.count do
+    if separator == Swag.U64.Max or separator == 0 or separator + 1 >= name.count
+    {
         return false
+    }
+
     prefix[] = String.from(name[until separator])
     local[]  = String.from(name[separator + 1 to])
     return true
@@ -448,12 +458,17 @@ private func xmpNamespace(bindings: const [..] XmpBinding, prefix: string)->stri
     while index
     {
         index -= 1
-        if bindings[index].prefix == prefix do
+        if bindings[index].prefix == prefix
+        {
             return bindings[index].uri.toString()
+        }
     }
 
-    if prefix == "xml" do
+    if prefix == "xml"
+    {
         return "http://www.w3.org/XML/1998/namespace"
+    }
+
     return null
 }
 
@@ -464,26 +479,38 @@ private func xmpProperty(name: string, bindings: const [..] XmpBinding, attribut
     if not xmpQNameParts(name, &prefix, &local)
     {
         // XML's default namespace applies to element names, but never to attributes.
-        if attribute or not name.count do
+        if attribute or not name.count
+        {
             return {}
+        }
+
         local = String.from(name)
     }
 
     let uri = xmpNamespace(bindings, prefix)
-    if not uri do
+    if not uri
+    {
         return {}
+    }
+
     if uri == "http://purl.org/dc/elements/1.1/" and
-       (local == "title" or local == "creator" or local == "description" or local == "rights" or local == "subject") do
+       (local == "title" or local == "creator" or local == "description" or local == "rights" or local == "subject")
+    {
         return Format.toString("XMP %", name)
+    }
+
     if uri == "http://ns.adobe.com/xap/1.0/" and
-       (local == "CreateDate" or local == "ModifyDate" or local == "CreatorTool") do
+       (local == "CreateDate" or local == "ModifyDate" or local == "CreatorTool")
+    {
         return Format.toString("XMP %", name)
+    }
+
     return {}
 }
 
 // Parses a small descriptive XMP subset by namespace URI. The XML scanner disables DTDs and
 // external entities; size and depth are bounded before any value is surfaced.
-private func readXmp(bytes: const [..] u8, fields: *Array'XmpField, problem: *String)->bool
+private func readXmp(bytes: const [..] u8, fields: *Array!{XmpField}, problem: *String)->bool
 {
     if bytes.count > XmpPacketLimit
     {
@@ -500,12 +527,12 @@ private func readXmp(bytes: const [..] u8, fields: *Array'XmpField, problem: *St
     let source      = cast(string, bytes)
     var scanner     = Viewers.Package.Scanner.create(source)
     var token:       Viewers.Package.Token
-    var bindings:    Array'XmpBinding
-    var elements:    Array'String
+    var bindings:    Array!{XmpBinding}
+    var elements:    Array!{String}
     var activeName:  String
     var activeValue: String
-    var activeDepth = 0'u32
-    var depth       = 0'u32
+    var activeDepth = 0_u32
+    var depth       = 0_u32
     var rootSeen    = false
     var rootClosed  = false
 
@@ -538,11 +565,14 @@ private func readXmp(bytes: const [..] u8, fields: *Array'XmpField, problem: *St
             // are removed as their elements close, so a nested prefix override cannot leak out.
             for &attribute in token.attributes
             {
-                if attribute.name == "xmlns" do
+                if attribute.name == "xmlns"
+                {
                     bindings.add(XmpBinding{{}, String.from(attribute.value), depth})
-                elif Utf8.startsWith(attribute.name.toString(), "xmlns:")
-                    do
+                }
+                else if Utf8.startsWith(attribute.name.toString(), "xmlns:")
+                {
                     bindings.add(XmpBinding{String.from(cast(string, attribute.name.toSlice()[6 to])), String.from(attribute.value), depth})
+                }
             }
 
             // XMP commonly stores simple values as attributes on rdf:Description as well as child
@@ -561,8 +591,10 @@ private func readXmp(bytes: const [..] u8, fields: *Array'XmpField, problem: *St
                 if attributeName.count
                 {
                     let value = Latin1.trim(attribute.value.toString())
-                    if value.count do
+                    if value.count
+                    {
                         fields.add(XmpField{attributeName, String.from(value)})
+                    }
                 }
             }
 
@@ -571,25 +603,36 @@ private func readXmp(bytes: const [..] u8, fields: *Array'XmpField, problem: *St
                 if activeName.count and activeDepth == depth
                 {
                     let value = Latin1.trim(activeValue.toString())
-                    if value.count do
+                    if value.count
+                    {
                         fields.add(XmpField{#move activeName, String.from(value)})
+                    }
+
                     activeValue.clear()
                     activeDepth = 0
                 }
 
-                while bindings.count and bindings[bindings.count - 1].depth == depth do
+                while bindings.count and bindings[bindings.count - 1].depth == depth
+                {
                     bindings.removeBack()
+                }
+
                 elements.removeBack()
                 depth -= 1
-                if not depth do
+                if not depth
+                {
                     rootClosed = true
+                }
             }
 
         case .Text:
             if activeName.count and depth >= activeDepth and token.text.count
             {
-                if activeValue.count and Latin1.trim(token.text.toString()).count do
+                if activeValue.count and Latin1.trim(token.text.toString()).count
+                {
                     activeValue += "; "
+                }
+
                 activeValue += token.text
             }
 
@@ -603,18 +646,26 @@ private func readXmp(bytes: const [..] u8, fields: *Array'XmpField, problem: *St
             if activeName.count and activeDepth == depth
             {
                 let value = Latin1.trim(activeValue.toString())
-                if value.count do
+                if value.count
+                {
                     fields.add(XmpField{#move activeName, String.from(value)})
+                }
+
                 activeValue.clear()
                 activeDepth = 0
             }
 
-            while bindings.count and bindings[bindings.count - 1].depth == depth do
+            while bindings.count and bindings[bindings.count - 1].depth == depth
+            {
                 bindings.removeBack()
+            }
+
             elements.removeBack()
             depth -= 1
-            if not depth do
+            if not depth
+            {
                 rootClosed = true
+            }
         }
     }
 
@@ -629,8 +680,11 @@ private func readXmp(bytes: const [..] u8, fields: *Array'XmpField, problem: *St
 
 private func readIccU32(bytes: const [..] u8, offset: u64, value: *u32)->bool
 {
-    if offset > bytes.count or bytes.count - offset < 4 do
+    if offset > bytes.count or bytes.count - offset < 4
+    {
         return false
+    }
+
     value[] = (cast(u32, bytes[offset]) << 24) |
               (cast(u32, bytes[offset + 1]) << 16) |
               (cast(u32, bytes[offset + 2]) << 8) |
@@ -699,10 +753,12 @@ private func readIccMlucName(bytes: const [..] u8, name: *String, problem: *Stri
             return false
         }
 
-        if not byteLength do
+        if not byteLength
+        {
             continue
+        }
 
-        var units: Array'u16
+        var units: Array!{u16}
         units.resize(byteLength / 2)
         for unit in units.count
         {
@@ -719,7 +775,7 @@ private func readIccMlucName(bytes: const [..] u8, name: *String, problem: *Stri
                     return false
                 }
             }
-            elif value >= Utf16.Surr2 and value < Utf16.Surr3
+            else if value >= Utf16.Surr2 and value < Utf16.Surr3
             {
                 if unit == 0 or units[unit - 1] < Utf16.Surr1 or units[unit - 1] >= Utf16.Surr2
                 {
@@ -731,20 +787,28 @@ private func readIccMlucName(bytes: const [..] u8, name: *String, problem: *Stri
 
         var candidate = Utf8.fromUtf16(units.toSlice())
         candidate = Latin1.trim(candidate)
-        if not candidate.count do
+        if not candidate.count
+        {
             continue
-        if not firstValid.count do
+        }
+
+        if not firstValid.count
+        {
             firstValid = candidate
+        }
+
         let englishLocale = bytes[at] == 'e' and bytes[at + 1] == 'n'
-        if englishLocale and not english.count do
+        if englishLocale and not english.count
+        {
             english = candidate
+        }
     }
 
     if english.count
     {
         name[] = #move english
     }
-    elif firstValid.count
+    else if firstValid.count
     {
         name[] = #move firstValid
     }
@@ -803,8 +867,10 @@ private func inspectIccProfile(bytes: const [..] u8, identity: *String, problem:
         for index in tagCount
         {
             let recordAt = 132 + cast(u64, index) * 12
-            if iccSignature(profile, recordAt) != "desc" do
+            if iccSignature(profile, recordAt) != "desc"
+            {
                 continue
+            }
 
             var offset: u32
             var length: u32
@@ -821,10 +887,12 @@ private func inspectIccProfile(bytes: const [..] u8, identity: *String, problem:
             let description = profile[offset until cast(u64, offset) + length]
             if iccSignature(description, 0) == "mluc"
             {
-                if not readIccMlucName(description, &name, problem) do
+                if not readIccMlucName(description, &name, problem)
+                {
                     return false
+                }
             }
-            elif iccSignature(description, 0) == "desc"
+            else if iccSignature(description, 0) == "desc"
             {
                 var textLength: u32
                 if not readIccU32(description, 8, &textLength) or
@@ -837,8 +905,11 @@ private func inspectIccProfile(bytes: const [..] u8, identity: *String, problem:
 
                 for byte in description[12 until 12 + textLength]
                 {
-                    if byte == 0 do
+                    if byte == 0
+                    {
                         break
+                    }
+
                     name += cast(rune, byte >= 32 and byte <= 126 ? byte : '?')
                 }
 
@@ -850,19 +921,22 @@ private func inspectIccProfile(bytes: const [..] u8, identity: *String, problem:
     }
 
     identity[] = Format.toString("Embedded ICC · % · PCS %", colorSpace, pcs)
-    if name.count do
+    if name.count
+    {
         identity[] += Format.toString(" · %", name)
+    }
+
     return true
 }
 
 private struct JpegIccChunk
 {
-    bytes:   Array'u8
+    bytes:   Array!{u8}
     present: bool
 }
 
 // Reassembles bounded JPEG APP2 ICC_PROFILE records in their declared sequence order.
-private func assembleJpegIccProfile(records: const [..] ImageMetadata, profile: *Array'u8, problem: *String)->bool
+private func assembleJpegIccProfile(records: const [..] ImageMetadata, profile: *Array!{u8}, problem: *String)->bool
 {
     var segmentCount: u8
     var chunkCount:   u64
@@ -893,17 +967,20 @@ private func assembleJpegIccProfile(records: const [..] ImageMetadata, profile: 
         segmentCount = count
     }
 
-    if not chunkCount do
+    if not chunkCount
+    {
         return false
+    }
+
     if chunkCount != segmentCount
     {
         problem[] = "JPEG ICC profile is missing one or more segments"
         return false
     }
 
-    var chunks: Array'JpegIccChunk
+    var chunks: Array!{JpegIccChunk}
     chunks.resize(segmentCount)
-    var totalBytes = 0'u64
+    var totalBytes = 0_u64
     for record in records where record.signature == 2 and record.isTag("ICC_PROFILE")
     {
         let bytes       = record.toSlice()
@@ -943,7 +1020,7 @@ private func assembleJpegIccProfile(records: const [..] ImageMetadata, profile: 
 
 struct MediaInfoData
 {
-    rows: Array'MediaInfoRow
+    rows: Array!{MediaInfoRow}
 }
 
 impl MediaInfoData
@@ -955,24 +1032,42 @@ impl MediaInfoData
         for &record in image.metadata
         {
             let value = cast(string, record.toSlice())
-            if record.isTag(cast(const [..] u8, VideoInfoFormatTag)) do
+            if record.isTag(cast(const [..] u8, VideoInfoFormatTag))
+            {
                 result.add(.Format, value)
-            elif record.isTag(cast(const [..] u8, VideoInfoCodecTag)) do
+            }
+            else if record.isTag(cast(const [..] u8, VideoInfoCodecTag))
+            {
                 result.add(.Codec, value)
-            elif record.isTag(cast(const [..] u8, VideoInfoDimensionsTag)) do
+            }
+            else if record.isTag(cast(const [..] u8, VideoInfoDimensionsTag))
+            {
                 result.add(.Dimensions, value)
-            elif record.isTag(cast(const [..] u8, VideoInfoDisplaySizeTag)) do
+            }
+            else if record.isTag(cast(const [..] u8, VideoInfoDisplaySizeTag))
+            {
                 result.add(.DisplaySize, value)
-            elif record.isTag(cast(const [..] u8, VideoInfoAspectRatioTag)) do
+            }
+            else if record.isTag(cast(const [..] u8, VideoInfoAspectRatioTag))
+            {
                 result.add(.AspectRatio, value)
-            elif record.isTag(cast(const [..] u8, VideoInfoFrameRateTag)) do
+            }
+            else if record.isTag(cast(const [..] u8, VideoInfoFrameRateTag))
+            {
                 result.add(.FrameRate, value)
-            elif record.isTag(cast(const [..] u8, VideoInfoExactRateTag)) do
+            }
+            else if record.isTag(cast(const [..] u8, VideoInfoExactRateTag))
+            {
                 result.add(.ExactFrameRate, value)
-            elif record.isTag(cast(const [..] u8, VideoInfoFramesTag)) do
+            }
+            else if record.isTag(cast(const [..] u8, VideoInfoFramesTag))
+            {
                 result.add(.Frames, value)
-            elif record.isTag(cast(const [..] u8, VideoInfoBitrateTag)) do
+            }
+            else if record.isTag(cast(const [..] u8, VideoInfoBitrateTag))
+            {
                 result.add(.Bitrate, value)
+            }
         }
 
         return result
@@ -1010,12 +1105,20 @@ impl MediaInfoData
     {
         let s = &g_MediaInfoStrings
         .addFigure(.Lines, statistics.lines == 1 ? String.from(s.oneLine) : Format.toString(s.lineCount, statistics.lines))
-        if statistics.extent != .Unknown do
+        if statistics.extent != .Unknown
+        {
             .addFigure(.ByteCount, Format.toString("%", statistics.bytes))
-        if statistics.extent == .Exact do
+        }
+
+        if statistics.extent == .Exact
+        {
             .add(.CountExtent, s.exactExtent)
-        elif statistics.extent == .Sampled do
+        }
+        else if statistics.extent == .Sampled
+        {
             .add(.CountExtent, s.sampledExtent)
+        }
+
         if withWords
         {
             .addFigure(.Custom, statistics.words == 1 ? String.from(s.oneWord) : Format.toString(s.wordCount, statistics.words))
@@ -1024,19 +1127,32 @@ impl MediaInfoData
 
         // A text broken into lines whose last one has no break says so, as a diff would.
         var ends = statistics.lineEnds()
-        if ends.count and statistics.unended do
+        if ends.count and statistics.unended
+        {
             ends = Format.toString("% · %", ends, s.noFinalBreak)
-        if ends.count do
+        }
+
+        if ends.count
+        {
             .add(.LineEnds, ends)
+        }
 
         // The widest line, then what may not read as text: control characters and the U+FFFD that
         // bytes the encoding could not read become.
-        if statistics.longestLine do
+        if statistics.longestLine
+        {
             .add(.LongestLine, Format.toString(s.longestLineValue, characterCountText(statistics.longest), statistics.longestLine))
-        if statistics.controls do
+        }
+
+        if statistics.controls
+        {
             .add(.ControlCharacters, Format.toString("%", statistics.controls))
-        if statistics.replaced do
+        }
+
+        if statistics.replaced
+        {
             .add(.Replacements, Format.toString("%", statistics.replaced))
+        }
     }
 
     // Appends a row whose name the format owns, shown as written.
@@ -1059,21 +1175,27 @@ impl MediaInfoData
         }
 
         var hasJpegIcc = false
-        for record in records where record.signature == 2 and record.isTag("ICC_PROFILE") do
+        for record in records where record.signature == 2 and record.isTag("ICC_PROFILE")
+        {
             hasJpegIcc = true
+        }
+
         if hasJpegIcc
         {
             let strings = &g_MediaInfoStrings
-            var profile:  Array'u8
+            var profile:  Array!{u8}
             var identity: String
             var problem:  String
             if assembleJpegIccProfile(records, &profile, &problem)
             {
                 if inspectIccProfile(profile.toSlice(), &identity, &problem)
-                    do
+                {
                     .addText(strings.iccProfile, Format.toString(strings.iccInspectionOnly, identity))
-                else do
+                }
+                else
+                {
                     .add(.Unavailable, Format.toString(strings.iccProfileError, problem))
+                }
             }
             else
             {
@@ -1094,8 +1216,11 @@ impl MediaInfoData
                     continue
                 }
 
-                for property in properties do
+                for property in properties
+                {
                     .addText(property.name(), property.value)
+                }
+
                 continue
             }
 
@@ -1105,24 +1230,33 @@ impl MediaInfoData
                 var identity: String
                 var problem:  String
                 if inspectIccProfile(record.toSlice(), &identity, &problem)
-                    do
+                {
                     .addText(strings.iccProfile, Format.toString(strings.iccInspectionOnly, identity))
-                else do
+                }
+                else
+                {
                     .add(.Unavailable, Format.toString(strings.iccProfileError, problem))
+                }
+
                 continue
             }
 
             let jpegXmp = record.signature == 1 and cast(string, record.tag.toSlice()) == "http://ns.adobe.com/xap/1.0/"
             if record.isTag("XMP") or jpegXmp
             {
-                var fields:  Array'XmpField
+                var fields:  Array!{XmpField}
                 var problem: String
                 if readXmp(record.toSlice(), &fields, &problem)
                 {
-                    for &field in fields do
+                    for &field in fields
+                    {
                         .addText(field.name, field.value)
-                    if not fields.count do
+                    }
+
+                    if not fields.count
+                    {
                         .addText("XMP packet", "No supported descriptive fields")
+                    }
                 }
                 else
                 {
@@ -1132,14 +1266,22 @@ impl MediaInfoData
                 continue
             }
 
-            if record.signature == 2 and record.isTag("ICC_PROFILE") do
+            if record.signature == 2 and record.isTag("ICC_PROFILE")
+            {
                 continue
+            }
 
             var tag: String
-            for byte in record.tag do
+            for byte in record.tag
+            {
                 tag += cast(rune, byte >= 32 ? byte : '?')
-            if tag.isEmpty() do
+            }
+
+            if tag.isEmpty()
+            {
                 tag = Format.toString("APP%", record.signature)
+            }
+
             let bytes = record.toSlice()
             var text: String
 
@@ -1153,8 +1295,10 @@ impl MediaInfoData
                     text += cast(rune, isText ? byte : ' ')
                 }
 
-                if bytes.count > 4096 do
+                if bytes.count > 4096
+                {
                     text += "…"
+                }
             }
             else
             {
@@ -1181,8 +1325,11 @@ impl MediaInfoData
                 continue
             }
 
-            if row.field == .Empty do
+            if row.field == .Empty
+            {
                 continue
+            }
+
             if row.figure or row.field == .Dimensions
             {
                 addFigure(sheet, row.value)
@@ -1211,17 +1358,24 @@ impl MediaInfoData
 func addFigure(sheet: *InfoSheet, value: string)
 {
     let space = Utf8.lastIndexOf(value, " ")
-    if space != Swag.U64.Max and space + 1 < value.count and Latin1.isLetter(value[space + 1]) do
+    if space != Swag.U64.Max and space + 1 < value.count and Latin1.isLetter(value[space + 1])
+    {
         sheet.addFact(value[0 until space], value[space + 1 to])
-    else do
+    }
+    else
+    {
         sheet.addFact(value)
+    }
 }
 
 // Returns the displayed picture shape as a reduced width-to-height ratio.
 func videoAspectRatio(width, height: s32)->String
 {
-    if width <= 0 or height <= 0 do
+    if width <= 0 or height <= 0
+    {
         return ""
+    }
+
     let divisor = expect Math.gcd(width, height)
     return Format.toString("%:%", width / divisor, height / divisor)
 }
@@ -1229,7 +1383,10 @@ func videoAspectRatio(width, height: s32)->String
 // Approximates the overall file rate, including sound, subtitles, and container overhead.
 func videoBitrate(size: u64, duration: f64)->String
 {
-    if not size or duration <= 0 do
+    if not size or duration <= 0
+    {
         return ""
+    }
+
     return Format.toString("%{f0} kb/s", cast(f64, size) * 8 / duration / 1_000)
 }

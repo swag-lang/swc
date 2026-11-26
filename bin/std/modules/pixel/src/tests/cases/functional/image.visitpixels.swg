@@ -6,7 +6,7 @@ using Swag, Core
 // Pixel visits reject invalid storage and nonpositive strides before entering the loop.
 #test
 {
-    var image = Image.create(5, 1, .Gray8, [1'u8, 2, 3, 4, 5])
+    var image = Image.create(5, 1, .Gray8, [1_u8, 2, 3, 4, 5])
     image.visitPixels(stride: 2)
     {
         Swag.require(index == 0 or index == 2 or index == 4)

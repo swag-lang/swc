@@ -22,8 +22,10 @@ impl Reader
 {
     mtd opDrop()
     {
-        if .pointer do
+        if .pointer
+        {
             observed = .pointer[]
+        }
     }
 
     #[Swag.NoInline]
@@ -86,8 +88,10 @@ func readerAfterBranch(condition: bool)
     var reader: Reader
     var second: Value
     var pointer = &first.value
-    if condition do
+    if condition
+    {
         pointer = &second.value
+    }
     reader.set(pointer)     // swc-expected-error {{sanity_err_borrow_escape}}
 }
 
@@ -97,8 +101,10 @@ func readerAfterReverseBranch(condition: bool)
     var reader: Reader
     var second: Value
     var pointer = &second.value
-    if condition do
+    if condition
+    {
         pointer = &first.value
+    }
     reader.set(pointer)     // swc-expected-error {{sanity_err_borrow_escape}}
 }
 

@@ -20,8 +20,8 @@ struct Node
     lastAccessTime: u64
     lastWriteTime:  u64
     changeTime:     u64
-    blocks:         Array'BlockMapping
-    security:       Array'u8
+    blocks:         Array!{BlockMapping}
+    security:       Array!{u8}
 }
 
 impl Node
@@ -32,15 +32,19 @@ impl Node
     // contains it. When it does not, `index` is where a mapping for `logical` would be inserted.
     mtd blockSearch(logical: u64)->{found: bool, index: u64}
     {
-        var low  = 0'u64
+        var low  = 0_u64
         var high = .blocks.count
         while low < high
         {
             let middle = low + (high - low) / 2
-            if .blocks[middle].logical + .blocks[middle].count <= logical do
+            if .blocks[middle].logical + .blocks[middle].count <= logical
+            {
                 low = middle + 1
-            else do
+            }
+            else
+            {
                 high = middle
+            }
         }
 
         return {found: low < .blocks.count and .blocks[low].logical <= logical, index: low}
@@ -49,8 +53,11 @@ impl Node
     // Adds one mapping while preserving the canonical coalesced representation.
     mtd appendMapping(mapping: BlockMapping)
     {
-        if not mapping.count do
+        if not mapping.count
+        {
             return
+        }
+
         if not .blocks.isEmpty()
         {
             let previous = .blocks.backPtr()
@@ -98,49 +105,59 @@ impl Node
     {
         with var result: #returntype
         {
-            .id             = try reader.readLittleEndian'u64()
-            .parentId       = try reader.readLittleEndian'u64()
+            .id             = try reader.readLittleEndian!{u64}()
+            .parentId       = try reader.readLittleEndian!{u64}()
             .name           = try reader.readSizedString(MaximumNameSize)
-            .attributes     = try reader.readLittleEndian'u32()
-            .size           = try reader.readLittleEndian'u64()
-            .creationTime   = try reader.readLittleEndian'u64()
-            .lastAccessTime = try reader.readLittleEndian'u64()
-            .lastWriteTime  = try reader.readLittleEndian'u64()
-            .changeTime     = try reader.readLittleEndian'u64()
+            .attributes     = try reader.readLittleEndian!{u32}()
+            .size           = try reader.readLittleEndian!{u64}()
+            .creationTime   = try reader.readLittleEndian!{u64}()
+            .lastAccessTime = try reader.readLittleEndian!{u64}()
+            .lastWriteTime  = try reader.readLittleEndian!{u64}()
+            .changeTime     = try reader.readLittleEndian!{u64}()
         }
 
-        let securitySize = try reader.readLittleEndian'u32()
-        if securitySize > MaximumSecuritySize do
+        let securitySize = try reader.readLittleEndian!{u32}()
+        if securitySize > MaximumSecuritySize
+        {
             fail volumeError(.Corrupted)
+        }
+
         result.security.resize(securitySize)
         try reader.readBytes(result.security.storage(), securitySize)
 
-        let runCount = try reader.readLittleEndian'u64()
-        if runCount > blockCount do
+        let runCount = try reader.readLittleEndian!{u64}()
+        if runCount > blockCount
+        {
             fail volumeError(.Corrupted)
+        }
 
-        var mapped = 0'u64
-        var previousLogical = 0'u64
+        var mapped = 0_u64
+        var previousLogical = 0_u64
         for runCount
         {
-            let logical  = try reader.readLittleEndian'u64()
-            let physical = try reader.readLittleEndian'u64()
-            let count    = try reader.readLittleEndian'u64()
+            let logical  = try reader.readLittleEndian!{u64}()
+            let physical = try reader.readLittleEndian!{u64}()
+            let count    = try reader.readLittleEndian!{u64}()
             if not count or
                physical >= blockCount or
                count > blockCount - physical or
                count > blockCount - mapped or
                logical > Swag.U64.Max - count or
-               (not result.blocks.isEmpty() and logical < previousLogical) do
+               (not result.blocks.isEmpty() and logical < previousLogical)
+            {
                 fail volumeError(.Corrupted)
+            }
 
             result.appendMapping({logical, physical, count})
             previousLogical = logical + count
             mapped += count
         }
 
-        if reader.isEof() do
+        if reader.isEof()
+        {
             fail volumeError(.Corrupted)
+        }
+
         return result
     }
 }

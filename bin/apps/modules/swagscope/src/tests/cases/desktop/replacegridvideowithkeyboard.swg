@@ -12,9 +12,9 @@ using Audio, Gui
     var journey: ScopeJourney
     journey.setup(withWorkspace: true)
     let workspace = unwrap journey.window.workspace
-    let first = journey.copyData("comprehensive.txt", "first.txt")
-    let other = journey.copyData("sample.cpp", "other.cpp")
-    let film  = journey.copyData("viewer.avi", "film.avi")
+    let first     = journey.copyData("comprehensive.txt", "first.txt")
+    let other     = journey.copyData("sample.cpp", "other.cpp")
+    let film      = journey.copyData("viewer.avi", "film.avi")
 
     workspace.openScene([first, other], .SideBySide)
     let scene = unwrap workspace.scene()

@@ -177,11 +177,11 @@ namespace Swag
     // Number of error stack levels a [[Context]] holds itself. Handlers seldom nest deeper, so
     // ordinary code never allocates for its error stack.
     #[NoDoc]
-    const ErrorInlineCount = 4'u32
+    const ErrorInlineCount = 4_u32
 
     // Number of error stack levels a block of a [[Context]] holds above its own.
     #[NoDoc]
-    const ErrorBlockCount = 16'u32
+    const ErrorBlockCount = 16_u32
 
     // A block of the error stack of a [[Context]], above the levels the context holds itself.
     //

@@ -29,7 +29,7 @@ func day8A()
     let lines    = expect File.readAllLines(dataPath)
 
     var re = expect Parser.RegExp.create(#raw "(\w+) (\w+) (-?\d+) if (\w+) ([[:ascii:]]+) (-?\d+)")
-    var regs:  HashTable'(string, s32)
+    var regs:  HashTable!{string, s32}
     var total: s32
 
     for l in lines
@@ -40,12 +40,20 @@ func day8A()
         Swag.assert(matched)
         var v0 = expect StrConv.toS32(re[3])
         let v1 = expect StrConv.toS32(re[6])
-        if not regs.contains(re[1]) do
+        if not regs.contains(re[1])
+        {
             regs.add(re[1], 0)
-        if not regs.contains(re[4]) do
+        }
+
+        if not regs.contains(re[4])
+        {
             regs.add(re[4], 0)
-        if re[2] == "dec" do
+        }
+
+        if re[2] == "dec"
+        {
             v0 = -v0
+        }
 
         let test  = regs[re[4]]
         var valid = false
@@ -59,11 +67,16 @@ func day8A()
         case "<":  valid = test < v1
         }
 
-        if valid do
+        if valid
+        {
             regs.find(re[1]).value += v0
+        }
     }
 
-    for _, v in regs do
+    for _, v in regs
+    {
         total = Math.max(total, v)
+    }
+
     Swag.assert(total == 4066)
 }

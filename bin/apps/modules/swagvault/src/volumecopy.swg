@@ -37,17 +37,23 @@ impl VolumeCopy
             }
             else
             {
-                var buffer: Array'u8
+                var buffer: Array!{u8}
                 buffer.resize(MaximumIoBatchBlocks * BlockSize)
                 defer Core.Crypto.secureClear(buffer.toSlice())
-                var offset = 0'u64
+                var offset = 0_u64
                 while offset < node.size
                 {
                     let count = Math.min(buffer.count, node.size - offset)
-                    if (try .source.readNode(node.id, offset, buffer[until count])) != count do
+                    if (try .source.readNode(node.id, offset, buffer[until count])) != count
+                    {
                         fail volumeError(.Io)
-                    if (try .target.writeNode(id, offset, buffer[until count], false, false)) != count do
+                    }
+
+                    if (try .target.writeNode(id, offset, buffer[until count], false, false)) != count
+                    {
                         fail volumeError(.Io)
+                    }
+
                     offset += count
                     .bytes += count
                 }
@@ -76,10 +82,15 @@ impl VolumeCopy
         {
             let path  = Format.toString("%\\%", prefix, node.name)
             let found = .target.resolve(path)
-            if not found do
+            if not found
+            {
                 fail volumeError(.Io)
-            if not sameMetadata(found, node) do
+            }
+
+            if not sameMetadata(found, node)
+            {
                 fail volumeError(.Io)
+            }
 
             if node.isDirectory()
             {
@@ -87,19 +98,22 @@ impl VolumeCopy
             }
             else
             {
-                var original, restored: Array'u8
+                var original, restored: Array!{u8}
                 original.resize(MaximumIoBatchBlocks * BlockSize)
                 restored.resize(original.count)
                 defer Core.Crypto.secureClear(original.toSlice())
                 defer Core.Crypto.secureClear(restored.toSlice())
-                var offset = 0'u64
+                var offset = 0_u64
                 while offset < node.size
                 {
                     let count = Math.min(original.count, node.size - offset)
                     if (try .source.readNode(node.id, offset, original[until count])) != count or
                        (try .target.readNode(found.id, offset, restored[until count])) != count or
-                       not Core.Crypto.constantTimeEqual(original[until count], restored[until count]) do
+                       not Core.Crypto.constantTimeEqual(original[until count], restored[until count])
+                    {
                         fail volumeError(.Io)
+                    }
+
                     offset += count
                 }
             }
@@ -122,8 +136,10 @@ impl VolumeCopy
         if sourcePath.isEmpty() or
            targetPath.isEmpty() or
            outerPassword.isEmpty() or
-           hiddenPassword.isEmpty() do
+           hiddenPassword.isEmpty()
+        {
             fail volumeError(.InvalidInput)
+        }
 
         Console.println("Opening source read only...")
         var source = try Volume.open(sourcePath, outerPassword.toSlice(), true)
@@ -131,7 +147,7 @@ impl VolumeCopy
 
         // Keep the source capacity for future hidden files and a further GiB for ordinary files.
         let hiddenSize = source.containerSize
-        let reserve    = 1'u64 * 1024 * 1024 * 1024
+        let reserve    = 1_u64 * 1024 * 1024 * 1024
         let outerSize  = DataOffset + hiddenSize + (reserve / BlockSize + 16) * BlockRecordSize
         Console.println("Creating outer container; hidden capacity: ", hiddenSize, "; outer reserve: ", reserve)
         var outer = try Volume.create(targetPath, outerPassword.toSlice(), outerSize)
@@ -147,8 +163,11 @@ impl VolumeCopy
         Console.println("Reopening and comparing every copied byte...")
         var verified = try Volume.open(targetPath, hiddenPassword.toSlice(), true)
         copier.target = &verified
-        if verified.nodes.count != source.nodes.count do
+        if verified.nodes.count != source.nodes.count
+        {
             fail volumeError(.Io)
+        }
+
         try copier.verifyDirectory(RootNodeId, "")
         verified.close()
 

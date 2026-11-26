@@ -4,7 +4,7 @@
 using Core, Pixel, Gui, Viewers
 
 // The streamed file spans 32 resident windows plus a partial tail.
-const StreamedFileSize = Hex.WindowSize * 32 + 1234'u64
+const StreamedFileSize = Hex.WindowSize * 32 + 1234_u64
 
 // The document never holds more than one window, wherever the reader is standing.
 #[Swag.TestTag("stress")]
@@ -27,7 +27,7 @@ const StreamedFileSize = Hex.WindowSize * 32 + 1234'u64
 
     // Refill before the visible screen reaches the edge, and retain enough overlap that a
     // reversal stays in the same window instead of alternating disk reads.
-    let screen         = 1024'u64
+    let screen         = 1024_u64
     let approachingEnd = Hex.WindowSize - Hex.WindowAlign + screen
     Swag.require(doc.ensure(approachingEnd, screen))
     Swag.require(doc.windowStart > 0)

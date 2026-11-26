@@ -3,16 +3,19 @@
 
 func blake3HexDigit(value: u8)->u8
 {
-    if value >= '0' and value <= '9' do
+    if value >= '0' and value <= '9'
+    {
         return value - '0'
+    }
+
     return (value - 'a') + 10
 }
 
-func blake3HexBytes(text: string)->Array'u8
+func blake3HexBytes(text: string)->Array!{u8}
 {
     var result: #returntype
     result.reserve(text.count / 2)
-    var index = 0'u64
+    var index = 0_u64
     while index + 1 < text.count
     {
         result.add(cast(u8, (blake3HexDigit(text[index]) << 4) | blake3HexDigit(text[index + 1])))
@@ -22,12 +25,15 @@ func blake3HexBytes(text: string)->Array'u8
     return result
 }
 
-func blake3Pattern(length: u64)->Array'u8
+func blake3Pattern(length: u64)->Array!{u8}
 {
     var result: #returntype
     result.resize(length)
-    for index in length do
+    for index in length
+    {
         result[index] = cast(u8, index % 251)
+    }
+
     return result
 }
 
@@ -107,10 +113,10 @@ func assertBlake3Output(output: const [..] u8, expected: const [..] string)
     let input = blake3Pattern(4097)
     var expected: [32] u8
     expect Hash.Blake3.compute(input.toSlice(), expected)
-    for split in [1'u64, 63, 64, 65, 1023, 1024, 1025, 2048, 4096]
+    for split in [1_u64, 63, 64, 65, 1023, 1024, 1025, 2048, 4096]
     {
         var hash   = Hash.Blake3.create()
-        var offset = 0'u64
+        var offset = 0_u64
         while offset < input.count
         {
             let count = Math.min(split, input.count - offset)

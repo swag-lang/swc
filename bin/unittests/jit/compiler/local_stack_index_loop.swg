@@ -11,7 +11,7 @@ func parseNumber(bytes: const [..] u8, index: *u32)->u32
     var result: u32
     while index[] < bytes.count and bytes[index[]] >= '0' and bytes[index[]] <= '9'
     {
-        result  = result * 10'u32 + cast(u32, (bytes[index[]] - '0'))
+        result  = result * 10_u32 + cast(u32, (bytes[index[]] - '0'))
         index[] += 1
     }
 
@@ -32,32 +32,34 @@ func parseNumber(bytes: const [..] u8, index: *u32)->u32
         index += 1
         boxes[slot].max = parseNumber(bytes, &index)
 
-        if index < bytes.count and bytes[index] == '\n'u8 do
+        if index < bytes.count and bytes[index] == '\n'_u8
+        {
             index += 1
+        }
     }
 
-    Swag.require(slot == 0'u32)
-    Swag.require(index == 4'u32)
-    Swag.require(boxes[0].min == 3'u32)
-    Swag.require(boxes[0].max == 5'u32)
+    Swag.require(slot == 0_u32)
+    Swag.require(index == 4_u32)
+    Swag.require(boxes[0].min == 3_u32)
+    Swag.require(boxes[0].max == 5_u32)
 }
 
 func bumpForIndex(index: *u32)
 {
-    index[] += 2'u32
+    index[] += 2_u32
 }
 
 func parseForDigit(bytes: const [..] u8, index: *u64)->u32
 {
-    let value = cast(u32, (bytes[index[]] - '0'u8))
-    index[] += 2'u64
+    let value = cast(u32, (bytes[index[]] - '0'_u8))
+    index[] += 2_u64
     return value
 }
 
 func parseForDigit32(bytes: const [..] u8, index: *u32)->u32
 {
-    let value = cast(u32, (bytes[index[]] - '0'u8))
-    index[] += 2'u32
+    let value = cast(u32, (bytes[index[]] - '0'_u8))
+    index[] += 2_u32
     return value
 }
 
@@ -67,15 +69,15 @@ func parseForDigit32(bytes: const [..] u8, index: *u32)->u32
     var seen: u8
     for i in bytes.count
     {
-        if i == 1'u32
+        if i == 1_u32
         {
-            i    += 2'u32
+            i    += 2_u32
             seen = bytes[i]
             break
         }
     }
 
-    Swag.require(seen == '3'u8)
+    Swag.require(seen == '3'_u8)
 }
 
 #test
@@ -84,7 +86,7 @@ func parseForDigit32(bytes: const [..] u8, index: *u32)->u32
     var seen: u8
     for i in bytes.count
     {
-        if i == 1'u32
+        if i == 1_u32
         {
             bumpForIndex(&i)
             seen = bytes[i]
@@ -92,7 +94,7 @@ func parseForDigit32(bytes: const [..] u8, index: *u32)->u32
         }
     }
 
-    Swag.require(seen == '3'u8)
+    Swag.require(seen == '3'_u8)
 }
 
 #test
@@ -101,8 +103,8 @@ func parseForDigit32(bytes: const [..] u8, index: *u32)->u32
     for i in bytes.count
     {
         let a = parseForDigit32(bytes, &i), b = parseForDigit32(bytes, &i)
-        Swag.require(a == 2'u32)
-        Swag.require(b == 4'u32)
+        Swag.require(a == 2_u32)
+        Swag.require(b == 4_u32)
         break
     }
 }
@@ -114,12 +116,12 @@ func parseForDigit32(bytes: const [..] u8, index: *u32)->u32
         for i in cast(u64, bytes.count)
         {
             let a = parseForDigit(bytes, &i), b = parseForDigit(bytes, &i)
-            return a * 10'u32 + b
+            return a * 10_u32 + b
         }
 
-        return 0'u32
+        return 0_u32
     }
 
     let bytes = cast(const [..] u8, "2a4b")
-    Swag.require(solveDigits(bytes) == 24'u32)
+    Swag.require(solveDigits(bytes) == 24_u32)
 }

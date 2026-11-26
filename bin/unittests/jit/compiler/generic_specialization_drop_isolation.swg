@@ -84,8 +84,10 @@ impl LeakTrackedValue
 
     mtd opPostCopy()
     {
-        if .self do
+        if .self
+        {
             .self = cast([*] u8, &.storage[0])
+        }
     }
 
     mtd const marker()->s32
@@ -131,11 +133,11 @@ struct(K, V) LeakEntry
 
 struct(K, V) LeakTable
 {
-    entries: [2] LeakEntry'(K, V)
+    entries: [2] LeakEntry!{K, V}
     live:    [2] bool
 }
 
-func(K, V) leakDropEntryValue(entry: *LeakEntry'(K, V))
+func(K, V) leakDropEntryValue(entry: *LeakEntry!{K, V})
 {
     Swag.drop(&entry.value)
 }
@@ -170,7 +172,7 @@ impl LeakTable
     }
 
     #[Swag.NoInline]
-    mtd entryPtr(index: s32)->*LeakEntry'(K, V)
+    mtd entryPtr(index: s32)->*LeakEntry!{K, V}
     {
         return &.entries[index]
     }
@@ -215,17 +217,21 @@ impl LeakTable
     #[Swag.NoInline]
     mtd dropAllLive()
     {
-        if .live[0] do
+        if .live[0]
+        {
             Swag.drop(&.entries[0].value)
-        if .live[1] do
+        }
+        if .live[1]
+        {
             Swag.drop(&.entries[1].value)
+        }
         .live = [false, false]
     }
 }
 
 struct(K, V) LeakBox
 {
-    table: LeakTable'(K, V)
+    table: LeakTable!{K, V}
 }
 
 impl LeakBox
@@ -252,7 +258,7 @@ impl LeakBox
 
 struct(K, V) LeakGrid
 {
-    tables: [2] LeakTable'(K, V)
+    tables: [2] LeakTable!{K, V}
 }
 
 impl LeakGrid
@@ -277,17 +283,17 @@ impl LeakGrid
     }
 }
 
-func makeLeakStringTable()->LeakTable'(string, LeakTrackedValue)
+func makeLeakStringTable()->LeakTable!{string, LeakTrackedValue}
 {
     return {entries: [{key: ""}, {key: ""}]}
 }
 
-func makeLeakStringBox()->LeakBox'(string, LeakTrackedValue)
+func makeLeakStringBox()->LeakBox!{string, LeakTrackedValue}
 {
     return {table: makeLeakStringTable()}
 }
 
-func makeLeakStringGrid()->LeakGrid'(string, LeakTrackedValue)
+func makeLeakStringGrid()->LeakGrid!{string, LeakTrackedValue}
 {
     return {tables: [makeLeakStringTable(), makeLeakStringTable()]}
 }
@@ -301,8 +307,8 @@ func makeLeakStringGrid()->LeakGrid'(string, LeakTrackedValue)
         leakResetDropProbe()
 
         var byString = makeLeakStringTable()
-        var byInt:  LeakTable'(s32, LeakTrackedValue)
-        var byWide: LeakTable'(LeakWideKey, LeakTrackedValue)
+        var byInt:  LeakTable!{s32, LeakTrackedValue}
+        var byWide: LeakTable!{LeakWideKey, LeakTrackedValue}
 
         byString.put(0, "alpha", 11)
         byInt.put(0, 7, 21)
@@ -355,8 +361,8 @@ func makeLeakStringGrid()->LeakGrid'(string, LeakTrackedValue)
         leakResetDropProbe()
 
         var byString = makeLeakStringTable()
-        var byInt:  LeakTable'(s32, LeakTrackedValue)
-        var byWide: LeakTable'(LeakWideKey, LeakTrackedValue)
+        var byInt:  LeakTable!{s32, LeakTrackedValue}
+        var byWide: LeakTable!{LeakWideKey, LeakTrackedValue}
 
         byInt.put(0, 1, 41)
         byWide.put(0, makeLeakWideKey(8, 9), 51)
@@ -401,7 +407,7 @@ func makeLeakStringGrid()->LeakGrid'(string, LeakTrackedValue)
         leakResetDropProbe()
 
         var boxedString = makeLeakStringBox()
-        var boxedInt: LeakBox'(s32, LeakTrackedValue)
+        var boxedInt: LeakBox!{s32, LeakTrackedValue}
 
         boxedString.put(0, "left", 71)
         boxedInt.put(0, 4, 81)
@@ -433,7 +439,7 @@ func makeLeakStringGrid()->LeakGrid'(string, LeakTrackedValue)
         leakResetDropProbe()
 
         var gridString = makeLeakStringGrid()
-        var gridWide: LeakGrid'(LeakWideKey, LeakTrackedValue)
+        var gridWide: LeakGrid!{LeakWideKey, LeakTrackedValue}
 
         gridString.put(0, 0, "north", 91)
         gridWide.put(0, 0, makeLeakWideKey(12, 13), 101)
@@ -463,7 +469,7 @@ func makeLeakStringGrid()->LeakGrid'(string, LeakTrackedValue)
         leakResetDropProbe()
 
         var byString = makeLeakStringTable()
-        var byInt: LeakTable'(s32, LeakTrackedValue)
+        var byInt: LeakTable!{s32, LeakTrackedValue}
 
         byString.put(0, "warmup", 111)
         byInt.put(0, 6, 121)

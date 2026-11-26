@@ -19,7 +19,7 @@ using Swag
     var returned: DWORD
     Swag.require(DeviceIoControl(file, FSCTL_SET_SPARSE, null, 0, null, 0, &returned, null) != 0)
 
-    var high = 0's32
+    var high = 0_s32
     let low  = expect SetFilePointer(file, -1, &high, FILE_BEGIN)
     Swag.require(low == INVALID_SET_FILE_POINTER and high == 0)
     expect SetEndOfFile(file)

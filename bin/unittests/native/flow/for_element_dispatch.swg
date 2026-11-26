@@ -25,8 +25,10 @@ impl CountedBag
 {
     var arr: [3] s32 = [10, 20, 30]
     var sum = 0
-    for v in arr do
+    for v in arr
+    {
         sum += v
+    }
     Swag.require(sum == 60)
 }
 
@@ -36,8 +38,10 @@ impl CountedBag
     var arr:   [3] s32        = [10, 20, 30]
     let slice: const [..] s32 = arr
     var sum = 0
-    for v in slice do
+    for v in slice
+    {
         sum += v
+    }
     Swag.require(sum == 60)
 }
 
@@ -46,8 +50,10 @@ impl CountedBag
 {
     let text = "abc"
     var sum  = 0
-    for b in text do
+    for b in text
+    {
         sum += cast(s32, b)
+    }
     Swag.require(sum == 97 + 98 + 99)
 }
 
@@ -56,8 +62,10 @@ impl CountedBag
 {
     var arr: [3] s32 = [10, 20, 30]
     var sum = 0
-    for v, i in arr do
+    for v, i in arr
+    {
         sum += v + cast(s32, i)
+    }
     Swag.require(sum == 60 + 3)
 }
 
@@ -65,8 +73,10 @@ impl CountedBag
 #test
 {
     var arr: [3] s32 = [10, 20, 30]
-    for &v in arr do
+    for &v in arr
+    {
         v[] += 1
+    }
     Swag.require(arr[0] == 11 and arr[1] == 21 and arr[2] == 31)
 }
 
@@ -76,8 +86,10 @@ impl CountedBag
     var count = 0
     for c in Color
     {
-        if c == Color.Green do
+        if c == Color.Green
+        {
             count += 1
+        }
     }
     Swag.require(count == 1)
 }
@@ -86,13 +98,17 @@ impl CountedBag
 #test
 {
     var arr: [3] s32 = [10, 20, 30]
-    var total        = 0'u64
+    var total        = 0_u64
 
-    for i in arr.count do
+    for i in arr.count
+    {
         total += i
+    }
 
-    for i in 0 until arr.count do
+    for i in 0 until arr.count
+    {
         total += i
+    }
 
     Swag.require(total == 6)
 }
@@ -102,8 +118,10 @@ impl CountedBag
 {
     var bag   = CountedBag{}
     var count = 0
-    for bag do
+    for bag
+    {
         count += 1
+    }
     Swag.require(count == 4)
 }
 
@@ -126,7 +144,9 @@ impl CountedBag
 {
     var arr: [4] s32 = [1, 2, 3, 4]
     var sum = 0
-    for v in arr where v % 2 == 0 do
+    for v in arr where v % 2 == 0
+    {
         sum += v
+    }
     Swag.require(sum == 6)
 }

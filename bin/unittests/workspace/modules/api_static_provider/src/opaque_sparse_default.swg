@@ -35,16 +35,26 @@ impl OpaqueSparseDefault
         {
             return false
         }
-        for value in .leading where value != 0 do
+        for value in .leading where value != 0
+        {
             return false
-        for value in .middle where value != 0 do
+        }
+        for value in .middle where value != 0
+        {
             return false
-        for value in .shortZeros where value != 0 do
+        }
+        for value in .shortZeros where value != 0
+        {
             return false
-        for value in .trailing where value != 0 do
+        }
+        for value in .trailing where value != 0
+        {
             return false
-        for value in .tail where value != 0 do
+        }
+        for value in .tail where value != 0
+        {
             return false
+        }
         return true
     }
 

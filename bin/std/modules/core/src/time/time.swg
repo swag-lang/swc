@@ -17,7 +17,7 @@ const TicksPerHour: u64 = TicksPerMinute * 60
 const TicksPerDay: u64 = TicksPerHour * 24
 
 // Number of milliseconds in one second.
-const MillisecondsPerSecond = 1000'u64
+const MillisecondsPerSecond = 1000_u64
 
 // Number of milliseconds in one minute.
 const MillisecondsPerMinute = MillisecondsPerSecond * 60
@@ -40,9 +40,9 @@ const DaysPer100Years = (DaysPer4Years * 25) - 1
 // Number of days in one 400-year cycle of the Gregorian calendar.
 const DaysPer400Years = (DaysPer100Years * 4) + 1
 
-internal const DaysToMonth365 = [0'u16, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334, 365]
+internal const DaysToMonth365 = [0_u16, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334, 365]
 
-internal const DaysToMonth366 = [0'u16, 31, 60, 91, 121, 152, 182, 213, 244, 274, 305, 335, 366]
+internal const DaysToMonth366 = [0_u16, 31, 60, 91, 121, 152, 182, 213, 244, 274, 305, 335, 366]
 
 internal const MaxMilliseconds = Swag.U64.Max / TicksPerMillisecond
 
@@ -85,7 +85,7 @@ func timeToTicks(hour, minute, second, millisecond: u16)->Ticks
     Swag.assert(0 <= millisecond and millisecond < 1000)
 
     // The asserted ranges keep the total below one day, so the arithmetic cannot overflow.
-    var totalMilli = (hour * 3600'u32 + minute * 60'u32 + second) * 1000'u64
+    var totalMilli = (hour * 3600_u32 + minute * 60_u32 + second) * 1000_u64
     totalMilli += millisecond
     Swag.assert(totalMilli <= MaxMilliseconds)
     return totalMilli * TicksPerMillisecond
@@ -129,16 +129,22 @@ func ticksToDate(ticks: Ticks)->{ year: u16, month: u16, day: u16 }
     remainingDays -= complete400YearCycles * DaysPer400Years
 
     var complete100YearCycles = remainingDays / DaysPer100Years
-    if complete100YearCycles == 4 do
+    if complete100YearCycles == 4
+    {
         complete100YearCycles = 3
+    }
+
     remainingDays -= complete100YearCycles * DaysPer100Years
 
     let complete4YearCycles = remainingDays / DaysPer4Years
     remainingDays -= complete4YearCycles * DaysPer4Years
 
     var yearsWithin4YearCycle = remainingDays / DaysPerYear
-    if yearsWithin4YearCycle == 4 do
+    if yearsWithin4YearCycle == 4
+    {
         yearsWithin4YearCycle = 3
+    }
+
     remainingDays -= yearsWithin4YearCycle * DaysPerYear
 
     // These cycle counts are relative to year 1, so the leap-year calculation differs from isLeapYear.
@@ -147,8 +153,10 @@ func ticksToDate(ticks: Ticks)->{ year: u16, month: u16, day: u16 }
 
     // All months have fewer than 32 days, so this is a conservative starting estimate.
     var month = (remainingDays >> 5) + 1
-    while remainingDays >= monthStartDays[month] do
+    while remainingDays >= monthStartDays[month]
+    {
         month += 1
+    }
 
     let completeYears = complete400YearCycles * 400 + complete100YearCycles * 100 +
                         complete4YearCycles * 4 + yearsWithin4YearCycle
@@ -166,7 +174,10 @@ func isLeapYear(year: u16)->bool => year % 4 == 0 and (year % 100 != 0 or year %
 func daysInMonth(year, month: u16)->u16
 {
     Swag.assert(1 <= month and month <= 12)
-    if isLeapYear(year) do
+    if isLeapYear(year)
+    {
         return cast(u16, (DaysToMonth366[month] - DaysToMonth366[month - 1]))
+    }
+
     return cast(u16, (DaysToMonth365[month] - DaysToMonth365[month - 1]))
 }

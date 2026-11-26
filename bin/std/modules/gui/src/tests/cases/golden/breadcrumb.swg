@@ -32,8 +32,11 @@ private func assertBreadcrumbGolden(ancestors: bool)
 
     path.addItem(ancestors ? "Current" : "Illustrations", tag: location)
     bar.refreshPath()
-    if ancestors do
+    if ancestors
+    {
         bar.resize(300, 34)
+    }
+
     host.root.applyLayout()
     path.layout()
     path.sigFillMenu += func(_, _, menu)
@@ -50,12 +53,18 @@ private func assertBreadcrumbGolden(ancestors: bool)
     var captured: bool
     host.app.sigFrame += func|host = &host, &captured, ancestors|(_)
     {
-        if captured do
+        if captured
+        {
             return
+        }
+
         let menu = unwrap host.capturedPopupMenu()
         Swag.require(menu.popupAnchorButton != null)
-        for item in menu.items do
+        for item in menu.items
+        {
             Swag.require(item!.icon.color == host.theme.colors.arc)
+        }
+
         let anchor = menu.popupAnchorButton.surfaceRect()
         Swag.require(Math.abs(menu.surfaceRect().y + menu.getPopupBodyRect().y - anchor.bottom() - menu.themeMetrics().menuPopup_AnchorGap) < 0.5)
         let image = host.renderSettled()

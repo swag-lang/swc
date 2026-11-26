@@ -40,78 +40,74 @@ private const MacStandardGlyphNames: [258] string = [
 
 func packedPostGlyphName(names: const *GlyphNames, indices: const [..] u8, glyphIndex: u32)->string?
 {
-    let entry     = indices.buffer + cast(u64, glyphIndex) * 2
-    let nameIndex = Math.make16(entry[0], entry[1])
-    if nameIndex < MacStandardGlyphNames.count do
-        return MacStandardGlyphNames[nameIndex]
+    if name.count == 0
+    {
+        return
+    }
 
-    let offset = names.postOffsets[nameIndex - MacStandardGlyphNames.count]
-    let length = names.postStrings.buffer[offset]
-    if not length do
-        return null
-    return cast(string?, Swag.makeSlice(names.postStrings.buffer + offset + 1, length))
+    faceData.postGlyphNames[glyphIndex] = String.from(name)
+    let key = String.from(name)
+    if not faceData.postNameToGid.contains(key)
+    {
+        faceData.postNameToGid.add(key, glyphIndex)
+    }
 }
 
 func parsePostGlyphNames(names: *GlyphNames, glyphCount: u32, postTable: const [..] u8, format: u32) fail
 {
     if format == 0x00010000
     {
-        if glyphCount > MacStandardGlyphNames.count do
+        if glyphCount > MacStandardGlyphNames.count
+        {
             try fault(0x9B)
-        names.entries.add(Swag.makeSlice(&MacStandardGlyphNames[0], glyphCount))
+        }
+
+        faceData.postGlyphNames.resize(glyphCount)
+        for glyphIndex in glyphCount
+        {
+            addPostGlyphName(faceData, MacStandardGlyphNames[glyphIndex], glyphIndex)
+        }
+
         return
     }
 
     if format == 0x00020000
     {
         let count = try readU16(postTable, 32)
-        if count != glyphCount do
+        if count != glyphCount
+        {
             try fault(0x9B)
-        let indices = try getSlice(postTable, 34, cast(u64, count) * 2)
-        if not count do
-            return
+        }
 
-        var maxCustomIndex = 257'u16
-        var entry          = indices.buffer
-        var checked        = 0'u32
-        #static if Math.nativeToBigEndian(1'u16) != 1
+        try assertRange(postTable, 34, cast(u64, count) * 2)
+        faceData.postGlyphNames.resize(glyphCount)
+
+        var indices: Array!{u16}
+        indices.resize(count)
+        var maxCustomIndex = 257_u16
+        for glyphIndex in count
         {
-            const SwapWords = cast(Math.Simd.U8x16, [1'u8, 0, 3, 2, 5, 4, 7, 6, 9, 8, 11, 10, 13, 12, 15, 14])
-            let blocks  = count / 8
-            var largest = Math.Simd.splat(maxCustomIndex)
-            for blocks
+            let nameIndex = try readU16(postTable, 34 + cast(u64, glyphIndex) * 2)
+            indices[glyphIndex] = nameIndex
+            if nameIndex >= 258 and nameIndex > maxCustomIndex
             {
-                let words = cast #bit(Math.Simd.U16x8, Math.Simd.permute(Math.Simd.load(entry), SwapWords))
-                largest = Math.Simd.select(words > largest, words, largest)
-                entry   += 16
+                maxCustomIndex = nameIndex
             }
-
-            maxCustomIndex = Math.Simd.maximum(largest)
-            checked        = cast(u32, blocks) * 8
         }
 
-        for checked until count
-        {
-            maxCustomIndex = Math.max(maxCustomIndex, Math.make16(entry[0], entry[1]))
-            entry += 2
-        }
-
+        var customNames: Array!{String}
         let customCount  = cast(u64, maxCustomIndex) - 257
         let customOffset = 34 + cast(u64, count) * 2
-        if customCount > postTable.count - customOffset do
-            try fault(0x9B)
-
-        names.postOffsets.allocator = Swag.getContext().allocator
-        if customCount
+        if customCount > postTable.count - customOffset
         {
-            names.postOffsets.reserve(customCount)
-            let offsets = unwrap names.postOffsets.buffer
-            let bytes   = postTable.buffer
-            var offset  = customOffset
-            var checked = 0'u64
+            try fault(0x9B)
+        }
 
-            // Four Pascal strings fit within 1024 bytes, including their length bytes.
-            while customCount - checked >= 4 and postTable.count - offset >= 1024
+        if maxCustomIndex >= 258
+        {
+            customNames.resize(customCount)
+            var offset = customOffset
+            for customIndex in 258_u32 until cast(u32, maxCustomIndex) + 1
             {
                 for lane in 4
                 {
@@ -145,17 +141,23 @@ func parsePostGlyphNames(names: *GlyphNames, glyphCount: u32, postTable: const [
     if format == 0x00025000
     {
         let count = try readU16(postTable, 32)
-        if count != glyphCount do
+        if count != glyphCount
+        {
             try fault(0x9B)
+        }
+
         try assertRange(postTable, 34, count)
         names.entries.reserve(glyphCount)
         for glyphIndex in glyphCount
         {
             let offset    = cast(s8, try readU8(postTable, 34 + glyphIndex))
             let nameIndex = cast(s32, glyphIndex) + cast(s32, offset)
-            if nameIndex < 0 or nameIndex >= MacStandardGlyphNames.count do
+            if nameIndex < 0 or nameIndex >= MacStandardGlyphNames.count
+            {
                 try fault(0x9B)
-            names.entries.add(MacStandardGlyphNames[cast(u32, nameIndex)])
+            }
+
+            addPostGlyphName(faceData, MacStandardGlyphNames[cast(u32, nameIndex)], glyphIndex)
         }
     }
 }

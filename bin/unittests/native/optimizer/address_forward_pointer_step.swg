@@ -12,8 +12,10 @@ var Out:     [256] u8
 
 func fillSamples()
 {
-    for i in 8 * 64 do
+    for i in 8 * 64
+    {
         Samples[i] = cast(u8, ((i * 13 + 5) & 0xFF))
+    }
 }
 
 #[Swag.Optimize(true)]
@@ -66,6 +68,8 @@ func referenceUpsample(dst: [*] u8, luma: const [*] u8, units: u64)
     let luma = cast(const [*] u8, &Samples[0])
     upsample(&Out[0], luma, 2)
     referenceUpsample(&expected[0], luma, 2)
-    for i in 12 do
+    for i in 12
+    {
         Swag.require(Out[i] == expected[i])
+    }
 }

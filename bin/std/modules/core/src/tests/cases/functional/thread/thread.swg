@@ -4,9 +4,9 @@
 
 using Win32
 
-const WaitManyThreadCount       = cast(u64, MAXIMUM_WAIT_OBJECTS) + 1'u64
+const WaitManyThreadCount       = cast(u64, MAXIMUM_WAIT_OBJECTS) + 1_u64
 const WaitManyExpectedDoneCount = cast(s32, WaitManyThreadCount)
-const WaitManyDelayedSleepMs    = 1000'u32
+const WaitManyDelayedSleepMs    = 1000_u32
 
 struct WaitManyPayload
 {
@@ -19,15 +19,20 @@ func idleThread(_: const *Threading.Thread) {}
 func waitManyThread(th: const *Threading.Thread)
 {
     let payload = cast(*WaitManyPayload, unwrap th.userParam)
-    if payload.sleepMs != 0 do
+    if payload.sleepMs != 0
+    {
         Sleep(payload.sleepMs)
+    }
+
     Atomic.add(payload.doneCount, 1)
 }
 
 func waitUntilDone(doneCount: *s32)
 {
-    while Atomic.get(doneCount) != WaitManyExpectedDoneCount do
+    while Atomic.get(doneCount) != WaitManyExpectedDoneCount
+    {
         Sleep(10)
+    }
 }
 
 func waitManyThreads(threads: [..] Threading.Thread)

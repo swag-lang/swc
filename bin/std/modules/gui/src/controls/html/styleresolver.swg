@@ -39,19 +39,19 @@ struct HtmlStyleResolver
 
     defaults: HtmlStyleDefaults
 
-    styles:      Array'HtmlComputedStyle
-    nodeStyles:  Array'u32
-    pseudos:     Array'HtmlPseudoStyle
-    pseudoIndex: HashTable'(u64, u32)
+    styles:      Array!{HtmlComputedStyle}
+    nodeStyles:  Array!{u32}
+    pseudos:     Array!{HtmlPseudoStyle}
+    pseudoIndex: HashTable!{u64, u32}
 
-    media:    Array'bool
+    media:    Array!{bool}
     match:    HtmlMatchContext
     viewport: Math.Point
 
-    customNames:  Array'String
-    customValues: Array'String
-    candidates:   Array'u32
-    entries:      Array'HtmlCascadeEntry
+    customNames:  Array!{String}
+    customValues: Array!{String}
+    candidates:   Array!{u32}
+    entries:      Array!{HtmlCascadeEntry}
 }
 
 impl HtmlStyleResolver
@@ -63,18 +63,20 @@ impl HtmlStyleResolver
     mtd const resolveVariables(value: string)->String
     {
         // A cyclic definition would otherwise substitute forever; CSS treats one as invalid.
-        const MaxSubstitutionRounds = 8'u32
+        const MaxSubstitutionRounds = 8_u32
 
         var current = String.from(value)
         for MaxSubstitutionRounds
         {
             let start = Utf8.indexOf(current.toString(), "var(")
-            if start == Swag.U64.Max do
+            if start == Swag.U64.Max
+            {
                 break
+            }
 
             var scan     = start + 3
             let argument = htmlReadBalanced(current.toString(), &scan)
-            let comma    = Utf8.indexOf(argument, ','rune)
+            let comma    = Utf8.indexOf(argument, ','_rune)
             let name     = Latin1.trim(comma == Swag.U64.Max ? argument : argument[0 until comma])
             let fallback = comma == Swag.U64.Max ? "" : Latin1.trim(argument[comma + 1 to])
 
@@ -82,8 +84,11 @@ impl HtmlStyleResolver
             for index in .customNames.count
             {
                 let candidate = .customNames.count - index - 1
-                if .customNames[candidate].toString() != name do
+                if .customNames[candidate].toString() != name
+                {
                     continue
+                }
+
                 replacement = .customValues[candidate]
                 break
             }
@@ -334,30 +339,45 @@ impl HtmlStyleResolver
         let container = .document.constNode(element).parent
         if container != HtmlNoNode and .document.constNode(container).tag == .Details
         {
-            if node.tag != .Summary and not .document.hasAttribute(container, "open") do
+            if node.tag != .Summary and not .document.hasAttribute(container, "open")
+            {
                 style.display = .None
+            }
         }
 
         // Legacy documents and repository landing pages still use presentational attributes.
         // Apply them before author CSS so an ordinary style rule keeps precedence.
         let align = .document.attribute(element, "align")
-        if Utf8.compare(align, "left", .Latin1NoCase) == 0 do
+        if Utf8.compare(align, "left", .Latin1NoCase) == 0
+        {
             style.textAlign = .Left
-        elif Utf8.compare(align, "center", .Latin1NoCase) == 0 do
+        }
+        else if Utf8.compare(align, "center", .Latin1NoCase) == 0
+        {
             style.textAlign = .Center
-        elif Utf8.compare(align, "right", .Latin1NoCase) == 0 do
+        }
+        else if Utf8.compare(align, "right", .Latin1NoCase) == 0
+        {
             style.textAlign = .Right
-        elif Utf8.compare(align, "justify", .Latin1NoCase) == 0 do
+        }
+        else if Utf8.compare(align, "justify", .Latin1NoCase) == 0
+        {
             style.textAlign = .Justify
+        }
 
         if node.tag == .Img
         {
             let width = .document.attribute(element, "width")
-            if width.count do
+            if width.count
+            {
                 style.applyDeclaration(.Width, width, context)
+            }
+
             let height = .document.attribute(element, "height")
-            if height.count do
+            if height.count
+            {
                 style.applyDeclaration(.Height, height, context)
+            }
         }
 
         context.length.fontSize = style.fontSize
@@ -374,15 +394,23 @@ impl HtmlStyleResolver
         var previous = HtmlNoNode
         for rule in .candidates
         {
-            if rule == previous do
+            if rule == previous
+            {
                 continue
+            }
+
             previous = rule
 
             let source = &.sheet.rules[rule]
-            if source.parts.backPtr().pseudoElement != pseudo do
+            if source.parts.backPtr().pseudoElement != pseudo
+            {
                 continue
-            if not .sheet.matches(source, element, &.match) do
+            }
+
+            if not .sheet.matches(source, element, &.match)
+            {
                 continue
+            }
 
             let block = &.sheet.blocks[source.block]
             for index in block.declarations.count
@@ -401,7 +429,7 @@ impl HtmlStyleResolver
     // Packs one declaration's cascade weight, most significant criterion first.
     func cascadeKey(important: bool, specificity, order, position: u32)->u64
     {
-        var result = important ? 1'u64 << 63 : 0'u64
+        var result = important ? 1_u64 << 63 : 0_u64
         result |= cast(u64, (specificity & 0x7FFFFF)) << 40
         result |= cast(u64, (order & 0xFFFFFFF)) << 12
         result |= cast(u64, (position & 0xFFF))
@@ -413,12 +441,15 @@ impl HtmlStyleResolver
     // everything else.
     private mtd applyEntries(style: *HtmlComputedStyle, context: *HtmlDeclarationContext, inlineBlock: const *HtmlDeclarationBlock?)->u64
     {
-        var pushed = 0'u64
+        var pushed = 0_u64
         for entry in .entries
         {
             let declaration = &.sheet.blocks[entry.block].declarations[entry.declaration]
-            if declaration.property != .Custom do
+            if declaration.property != .Custom
+            {
                 continue
+            }
+
             .customNames.add(declaration.name)
             .customValues.add(.resolveVariables(declaration.value.toString()))
             pushed += 1
@@ -437,27 +468,35 @@ impl HtmlStyleResolver
         for entry in .entries
         {
             let declaration = &.sheet.blocks[entry.block].declarations[entry.declaration]
-            if declaration.property == .FontSize do
+            if declaration.property == .FontSize
+            {
                 .apply(style, context, declaration)
+            }
         }
 
         if inlineBlock
         {
-            for value in inlineBlock.declarations where value.property == .FontSize do
+            for value in inlineBlock.declarations where value.property == .FontSize
+            {
                 .apply(style, context, value)
+            }
         }
 
         for entry in .entries
         {
             let declaration = &.sheet.blocks[entry.block].declarations[entry.declaration]
-            if declaration.property != .FontSize and declaration.property != .Custom do
+            if declaration.property != .FontSize and declaration.property != .Custom
+            {
                 .apply(style, context, declaration)
+            }
         }
 
         if inlineBlock
         {
-            for value in inlineBlock.declarations where value.property != .FontSize and value.property != .Custom do
+            for value in inlineBlock.declarations where value.property != .FontSize and value.property != .Custom
+            {
                 .apply(style, context, value)
+            }
         }
 
         return pushed
@@ -480,8 +519,10 @@ impl HtmlStyleResolver
     private mtd resolvePseudo(element: u32, which: HtmlPseudoElement, parentStyle: HtmlComputedStyle)
     {
         .collect(element, which)
-        if .entries.isEmpty() do
+        if .entries.isEmpty()
+        {
             return
+        }
 
         var style = HtmlComputedStyle.inherited(parentStyle)
         style.display = .Inline
@@ -499,8 +540,10 @@ impl HtmlStyleResolver
             .customValues.removeBack()
         }
 
-        if not style.hasContent or style.display == .None do
+        if not style.hasContent or style.display == .None
+        {
             return
+        }
 
         var record: HtmlPseudoStyle
         record.element = element
@@ -527,8 +570,10 @@ impl HtmlStyleResolver
 
         var inlineBlock: HtmlDeclarationBlock
         let inlineText = .document.attribute(element, "style")
-        if inlineText.count do
+        if inlineText.count
+        {
             inlineBlock = HtmlStyleSheet.parseDeclarations(inlineText)
+        }
 
         .sheet.candidates(.document, element, &.candidates)
         .collect(element, .None)
@@ -549,8 +594,10 @@ impl HtmlStyleResolver
         .resolvePseudo(element, .Before, style)
         .resolvePseudo(element, .After, style)
 
-        for child in .document.children(element) where .document.constNode(child).kind == .Element do
+        for child in .document.children(element) where .document.constNode(child).kind == .Element
+        {
             .resolveElement(child, style)
+        }
 
         for pushed
         {
@@ -590,16 +637,21 @@ impl HtmlStyleResolver
         let root = HtmlComputedStyle.fromDefaults(defaults)
         .nodeStyles[0] = 0
         .styles.add(root)
-        for child in document.children(0) where document.constNode(child).kind == .Element do
+        for child in document.children(0) where document.constNode(child).kind == .Element
+        {
             .resolveElement(child, root)
+        }
     }
 
     // Returns the style of a generated box, or null when the document generates none there.
     mtd const pseudoStyle(element: u32, which: HtmlPseudoElement)->const *HtmlComputedStyle?
     {
         let found = .pseudoIndex.tryFind(HtmlStyleResolver.pseudoKey(element, which))
-        if not found do
+        if not found
+        {
             return null
+        }
+
         return &.pseudos[found.value].style
     }
 }

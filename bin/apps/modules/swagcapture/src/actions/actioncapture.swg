@@ -55,8 +55,8 @@ impl ActionCapture
     // first. A `WndId` is a borrowed string that a menu item and a queued command event
     // both outlive, so the ids are cached here and kept for the process lifetime; there
     // is one per monitor, so the cache stays a handful of entries.
-    private var screenIds:       Array'String
-    private var recordScreenIds: Array'String
+    private var screenIds:       Array!{String}
+    private var recordScreenIds: Array!{String}
 
     // Returns the command id capturing the monitor at `index` in `MainWnd.monitors`.
     func screenId(index: u64)->WndId
@@ -64,8 +64,10 @@ impl ActionCapture
         if screenIds.count <= index
         {
             screenIds.reserve(index + 1)
-            while screenIds.count <= index do
+            while screenIds.count <= index
+            {
                 screenIds.add(Format.toString("%.Screen%", #scopename, screenIds.count))
+            }
         }
 
         return screenIds[index]
@@ -74,8 +76,11 @@ impl ActionCapture
     // Returns the monitor `id` captures, or `Swag.U64.Max` when it captures no monitor.
     func screenIndex(id: WndId)->u64
     {
-        for &minted, index in screenIds where minted[] == id do
+        for &minted, index in screenIds where minted[] == id
+        {
             return index
+        }
+
         return Swag.U64.Max
     }
 
@@ -85,8 +90,10 @@ impl ActionCapture
         if recordScreenIds.count <= index
         {
             recordScreenIds.reserve(index + 1)
-            while recordScreenIds.count <= index do
+            while recordScreenIds.count <= index
+            {
                 recordScreenIds.add(Format.toString("%.RecordScreen%", #scopename, recordScreenIds.count))
+            }
         }
 
         return recordScreenIds[index]
@@ -95,8 +102,11 @@ impl ActionCapture
     // Returns the recorded monitor, or `Swag.U64.Max` for another command.
     func recordScreenIndex(id: WndId)->u64
     {
-        for &minted, index in recordScreenIds where minted[] == id do
+        for &minted, index in recordScreenIds where minted[] == id
+        {
             return index
+        }
+
         return Swag.U64.Max
     }
 }
@@ -250,8 +260,11 @@ impl IActionUI for ActionCapture
         let target = ActionCapture.pictureTarget(cxt.id)
         if target.found
         {
-            if cxt.id != .DoIt and (target.mode == .Monitor or not g_Recorder) do
+            if cxt.id != .DoIt and (target.mode == .Monitor or not g_Recorder)
+            {
                 main.lastCapture = cxt.id
+            }
+
             main.captureScreen(target.mode, target.monitor)
             return true
         }
@@ -272,8 +285,11 @@ impl IActionUI for ActionCapture
         let recordedMonitor = ActionCapture.recordScreenIndex(cxt.id)
         if recordedMonitor != Swag.U64.Max
         {
-            if not g_Recorder do
+            if not g_Recorder
+            {
                 main.lastCapture = cxt.id
+            }
+
             main.recordVideoScreen(.Monitor, recordedMonitor)
             return true
         }
@@ -286,8 +302,10 @@ impl IActionUI for ActionCapture
             return true
 
         case .Record, .RecordVideo, .RecordScreen, .RecordActiveWindow:
-            if not g_Recorder do
+            if not g_Recorder
+            {
                 main.lastCapture = cxt.id
+            }
         }
 
         switch cxt.id
@@ -305,8 +323,10 @@ impl IActionUI for ActionCapture
             main.recordVideoScreen(.ActiveWindow)
 
         case .CancelRecording:
-            if g_Recorder do
+            if g_Recorder
+            {
                 g_Recorder!.cancel()
+            }
 
         case .HideEditor:
             main.captureOptions.hideEditorBefore = not main.captureOptions.hideEditorBefore
@@ -326,17 +346,21 @@ impl MainWnd
     // image file the capture came from.
     mtd newCapture(img: Image, linked: string = "", from: *Capture? = null, sourceKind = CaptureSourceKind.Unknown)
     {
-        if not img.isValid() do
+        if not img.isValid()
+        {
             return
+        }
 
         var capture = from
         if not capture
         {
             var resolvedSourceKind = sourceKind
-            if resolvedSourceKind == .Unknown do
+            if resolvedSourceKind == .Unknown
+            {
                 resolvedSourceKind = linked.count == 0 ? .Clipboard : .ImageFile
+            }
 
-            with capture = Memory.new'Capture()
+            with capture = Memory.new!{Capture}()
             {
                 .width, .widthOrg   = img.width
                 .height, .heightOrg = img.height
@@ -351,8 +375,10 @@ impl MainWnd
         {
             .changed     = true
             .linkedImage = linked
-            if not .isTimed() do
+            if not .isTimed()
+            {
                 .file = Library.newFileName()
+            }
         }
 
         .recentWnd.cancelRequestedSelection()
@@ -378,8 +404,10 @@ impl MainWnd
     // that is no longer connected falls back to it too.
     mtd lastCaptureCommand()->WndId
     {
-        if .lastCapture.isEmpty() do
+        if .lastCapture.isEmpty()
+        {
             return ActionCapture.Area
+        }
 
         // The per-monitor commands are minted from the monitor list; mint them before matching.
         for index in .monitors.count
@@ -389,14 +417,22 @@ impl MainWnd
         }
 
         let monitor = ActionCapture.screenIndex(.lastCapture)
-        if monitor < .monitors.count do
+        if monitor < .monitors.count
+        {
             return ActionCapture.screenId(monitor)
-        let recordedMonitor = ActionCapture.recordScreenIndex(.lastCapture)
-        if recordedMonitor < .monitors.count do
-            return ActionCapture.recordScreenId(recordedMonitor)
+        }
 
-        for id in [ActionCapture.Area, ActionCapture.Record, ActionCapture.RecordVideo, ActionCapture.RecordScreen, ActionCapture.RecordActiveWindow, ActionCapture.LastArea, ActionCapture.FullScreen, ActionCapture.ActiveWnd] where .lastCapture == id do
+        let recordedMonitor = ActionCapture.recordScreenIndex(.lastCapture)
+        if recordedMonitor < .monitors.count
+        {
+            return ActionCapture.recordScreenId(recordedMonitor)
+        }
+
+        for id in [ActionCapture.Area, ActionCapture.Record, ActionCapture.RecordVideo, ActionCapture.RecordScreen, ActionCapture.RecordActiveWindow, ActionCapture.LastArea, ActionCapture.FullScreen, ActionCapture.ActiveWnd] where .lastCapture == id
+        {
             return id
+        }
+
         return ActionCapture.Area
     }
 
@@ -438,8 +474,11 @@ impl MainWnd
     mtd pointedMonitorIndex()->u64
     {
         let pointer = Input.mousePosition()
-        for monitor, index in .monitors where monitor.physicalBounds.contains(pointer) do
+        for monitor, index in .monitors where monitor.physicalBounds.contains(pointer)
+        {
             return index
+        }
+
         return 0
     }
 }

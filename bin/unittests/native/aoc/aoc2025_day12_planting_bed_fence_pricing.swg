@@ -50,8 +50,10 @@ func analyzeFencePricing(layout: const [..] string)->FencePricingReport
     for index in totalCells
     {
         let startIndex = cast(u32, index)
-        if visited[startIndex] do
+        if visited[startIndex]
+        {
             continue
+        }
 
         let startX = startIndex % width
         let startY = startIndex / width
@@ -146,23 +148,39 @@ func analyzeFencePricing(layout: const [..] string)->FencePricingReport
             let exposedLeft   = not leftInRegion
             let exposedRight  = not rightInRegion
 
-            if exposedTop do
+            if exposedTop
+            {
                 perimeter += 1
-            if exposedBottom do
+            }
+            if exposedBottom
+            {
                 perimeter += 1
-            if exposedLeft do
+            }
+            if exposedLeft
+            {
                 perimeter += 1
-            if exposedRight do
+            }
+            if exposedRight
+            {
                 perimeter += 1
+            }
 
-            if exposedTop and (not leftInRegion or topLeftInRegion) do
+            if exposedTop and (not leftInRegion or topLeftInRegion)
+            {
                 sideCount += 1
-            if exposedBottom and (not leftInRegion or bottomLeftInRegion) do
+            }
+            if exposedBottom and (not leftInRegion or bottomLeftInRegion)
+            {
                 sideCount += 1
-            if exposedLeft and (not topInRegion or topLeftInRegion) do
+            }
+            if exposedLeft and (not topInRegion or topLeftInRegion)
+            {
                 sideCount += 1
-            if exposedRight and (not topInRegion or topRightInRegion) do
+            }
+            if exposedRight and (not topInRegion or topRightInRegion)
+            {
                 sideCount += 1
+            }
         }
 
         result.totalPerimeterPrice  += cast(u64, regionCount) * cast(u64, perimeter)
@@ -189,9 +207,9 @@ func analyzeFencePricing(layout: const [..] string)->FencePricingReport
 
     let sampleReport = analyzeFencePricing(sampleBeds)
 
-    Swag.require(sampleReport.regionCount == 5'u32)
-    Swag.require(sampleReport.totalPerimeterPrice == 140'u64)
-    Swag.require(sampleReport.totalDiscountedPrice == 80'u64)
+    Swag.require(sampleReport.regionCount == 5_u32)
+    Swag.require(sampleReport.totalPerimeterPrice == 140_u64)
+    Swag.require(sampleReport.totalDiscountedPrice == 80_u64)
 
     const courtyardBeds: [4] string =
         [
@@ -203,7 +221,7 @@ func analyzeFencePricing(layout: const [..] string)->FencePricingReport
 
     let courtyardReport = analyzeFencePricing(courtyardBeds)
 
-    Swag.require(courtyardReport.regionCount == 2'u32)
-    Swag.require(courtyardReport.totalPerimeterPrice == 320'u64)
-    Swag.require(courtyardReport.totalDiscountedPrice == 112'u64)
+    Swag.require(courtyardReport.regionCount == 2_u32)
+    Swag.require(courtyardReport.totalPerimeterPrice == 320_u64)
+    Swag.require(courtyardReport.totalDiscountedPrice == 112_u64)
 }

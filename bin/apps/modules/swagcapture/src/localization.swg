@@ -636,8 +636,10 @@ func resolvePropertyText(key: string)->string?
 
     for field in unwrap type.fields where Utf8.startsWith(field.name orelse "", PropertyKeyPrefix)
     {
-        if cast(const *string, reference + field.offset)[] == key do
+        if cast(const *string, reference + field.offset)[] == key
+        {
             return cast(const *string, active + field.offset)[]
+        }
     }
 
     return null
@@ -646,7 +648,7 @@ func resolvePropertyText(key: string)->string?
 // Registers the Swag Capture string table, its embedded translations, and its property resolver.
 func registerAppStrings(bundle: *Core.Resources.Bundle)
 {
-    Gui.registerStrings'AppStrings(&g_AppStrings, "capture")
+    Gui.registerStrings!{AppStrings}(&g_AppStrings, "capture")
     bundle.addEmbedded(FrenchStringsName, FrenchStrings)
     Gui.Properties.setTextResolver(&resolvePropertyText)
 }
@@ -655,7 +657,7 @@ func registerAppStrings(bundle: *Core.Resources.Bundle)
 // file is a compile error with its line number, not a runtime fallback.
 #run
 {
-    expect Gui.validateStrings'AppStrings(cast(string, FrenchStrings))
+    expect Gui.validateStrings!{AppStrings}(cast(string, FrenchStrings))
     checkPropertyKeysAreDistinct()
 }
 
@@ -674,18 +676,28 @@ private func checkPropertyKeysAreDistinct()
     for field in unwrap type.fields
     {
         let name = field.name orelse ""
-        if not Utf8.startsWith(name, PropertyKeyPrefix) do
+        if not Utf8.startsWith(name, PropertyKeyPrefix)
+        {
             continue
+        }
 
         let value = cast(const *string, data + field.offset)[]
         for other in type.fields
         {
-            if other.offset >= field.offset do
+            if other.offset >= field.offset
+            {
                 break
-            if not Utf8.startsWith(other.name orelse "", PropertyKeyPrefix) do
+            }
+
+            if not Utf8.startsWith(other.name orelse "", PropertyKeyPrefix)
+            {
                 continue
-            if cast(const *string, data + other.offset)[] != value do
+            }
+
+            if cast(const *string, data + other.offset)[] != value
+            {
                 continue
+            }
 
             let clash = Format.toString("property key [[%]] is declared by both [[%]] and [[%]]", value, other.name orelse "", name)
             Swag.assert(false, clash)

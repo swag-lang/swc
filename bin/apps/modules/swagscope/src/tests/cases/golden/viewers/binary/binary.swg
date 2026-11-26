@@ -7,13 +7,16 @@ func completeBinaryViewerWindow(host: *Testing.HeadlessHost, window: *ViewerWind
 {
     completeViewerWindowClassification(host, window)
 
-    var steps = 0'u32
+    var steps = 0_u32
     while window.activeChoiceIndex < window.instances.count and steps < 10_000
     {
         let instance = &window.instances[window.activeChoiceIndex]
-        if not instance.view or not instance.isLoading or not instance.isLoading() do
+        if not instance.view or not instance.isLoading or not instance.isLoading()
+        {
             break
-        Threading.Thread.sleep(1'ms)
+        }
+
+        Threading.Thread.sleep(1_ms)
         host.fireTimers()
         steps += 1
     }
@@ -120,8 +123,11 @@ func completeBinaryViewerWindow(host: *Testing.HeadlessHost, window: *ViewerWind
     window.searchFilterMode = true
     window.updateSearchAvailability()
     window.searchBox.setText("header")
-    while assume cast(*Binary.Panel, window.currentView).filterTimer do
+    while assume cast(*Binary.Panel, window.currentView).filterTimer
+    {
         host.pump()
+    }
+
     host.settleAnimations(window.searchBar, 4)
     image = host.render(window)
     image.crop(window.searchBar.surfaceRect())

@@ -6,8 +6,11 @@ using Core, Core.Errors, Pixel
 // Returns the first byte of `tag`, or the byte count when it is absent.
 func mp4FindTag(bytes: const [..] u8, tag: string)->u64
 {
-    if tag.count > bytes.count do
+    if tag.count > bytes.count
+    {
         return bytes.count
+    }
+
     for offset in bytes.count - tag.count + 1
     {
         var matches = true
@@ -17,8 +20,10 @@ func mp4FindTag(bytes: const [..] u8, tag: string)->u64
             break
         }
 
-        if matches do
+        if matches
+        {
             return offset
+        }
     }
 
     return bytes.count
@@ -178,8 +183,8 @@ func mp4AssertCompositionCountRejected(compositionSamples: u32) fail
 {
     expect mp4AssertSignedCompositionOffset(0xFFFF_FFFF, -1)
     expect mp4AssertSignedCompositionOffset(0xFFFF_FF9C, -100)
-    expect mp4AssertSignedCompositionOffset(0x8000_0000, -2_147_483_648's64)
-    expect mp4AssertSignedCompositionOffset(0x7FFF_FFFF, 2_147_483_647's64)
+    expect mp4AssertSignedCompositionOffset(0x8000_0000, -2_147_483_648_s64)
+    expect mp4AssertSignedCompositionOffset(0x7FFF_FFFF, 2_147_483_647_s64)
 }
 
 // Composition-offset runs must describe every sample exactly once.
@@ -212,8 +217,11 @@ func mp4AssertCompositionCountRejected(compositionSamples: u32) fail
     decoder.info.frameRate        = expect track.frameRate()
     decoder.presentationTimescale = track.timescale
     decoder.presentationEndTime   = endTime - times[0]
-    for time in times do
+    for time in times
+    {
         decoder.presentationTimes.add(time - times[0])
+    }
+
     Swag.require(decoder.presentationTimes[1] == 200)
     Swag.require(decoder.presentationEndTime == 300)
 }
@@ -221,7 +229,7 @@ func mp4AssertCompositionCountRejected(compositionSamples: u32) fail
 // A Motion JPEG MP4 written by the module reads back out of order and preserves the exact rate.
 #test
 {
-    const Size = 32's32
+    const Size = 32_s32
     let rate = expect FrameRate.create(30_000, 1_001)
     var clip = expect Clip.create(Size, Size, rate)
     expect clip.addFrame(videoGrayImage(Size, Size, 40))
@@ -393,8 +401,11 @@ func mp4AssertCompositionCountRejected(compositionSamples: u32) fail
     var unsupported = fixture
     let descriptor  = mp4FindTag(unsupported.toSlice(), "esds")
     var objectType  = descriptor + 4
-    while objectType < unsupported.count and unsupported[objectType] != 0x6C do
+    while objectType < unsupported.count and unsupported[objectType] != 0x6C
+    {
         objectType += 1
+    }
+
     Swag.require(objectType < unsupported.count)
     unsupported[objectType] = 0x21
 
@@ -480,7 +491,7 @@ func mp4AssertCompositionCountRejected(compositionSamples: u32) fail
     Swag.require(Math.isEqualEpsilon(sound.timelineStartSeconds(), 0.0, 0.000001))
     Swag.require((expect sound.packet(7)).sampleFrameCount == 1_152)
 
-    var decoded: Array's16
+    var decoded: Array!{s16}
     expect sound.decodePcm16(func|decoded = &decoded|(samples: const [..] s16)->bool
     {
         decoded.add(samples)
@@ -489,15 +500,15 @@ func mp4AssertCompositionCountRejected(compositionSamples: u32) fail
     let wanted   = expect File.readAllBytes(videoFixturePath("mp3-mono-48000.pcm"))
     let wantedAt = cast(const [*] s16, wanted.storage())
     Swag.require(decoded.count == sound.sampleFrameCount() and wanted.count / #sizeof(s16) == decoded.count)
-    var energy = 0.0'f64
+    var energy = 0.0_f64
     for index in decoded.count
     {
         let difference = cast(f64, decoded[index]) - cast(f64, wantedAt[index])
         energy += difference * difference
     }
 
-    let rms = Math.sqrt(energy / cast(f64, decoded.count)) / 32768.0'f64
-    Swag.require(rms <= 0.001'f64)
+    let rms = Math.sqrt(energy / cast(f64, decoded.count)) / 32768.0_f64
+    Swag.require(rms <= 0.001_f64)
 }
 
 // MPEG audio object types may describe Layer I or II frames; reject those through std/audio's
@@ -508,8 +519,11 @@ func mp4AssertCompositionCountRejected(compositionSamples: u32) fail
     let media  = mp4FindTag(bytes.toSlice(), "mdat")
     var header = media
     while header + 1 < bytes.count and
-          (bytes[header] != 0xFF or (bytes[header + 1] & 0xE0) != 0xE0 or (bytes[header + 1] & 0x06) != 0x02) do
+          (bytes[header] != 0xFF or (bytes[header + 1] & 0xE0) != 0xE0 or (bytes[header + 1] & 0x06) != 0x02)
+    {
         header += 1
+    }
+
     Swag.require(header + 1 < bytes.count)
     bytes[header + 1] = (bytes[header + 1] & 0xF9) | 0x04
     let path = videoTempPath("mp4-mpeg-layer-two", "mp4")

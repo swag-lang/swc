@@ -8,21 +8,21 @@
 // nested inline mtd calls, bitwise XOR/shift on registers.
 
 const SampleProg = "0,1,5,4,3,0"
-const SampleRegA = 729'u64
+const SampleRegA = 729_u64
 
 const SmallProg = "2,6"
-const SmallRegA = 0'u64
-const SmallRegC = 9'u64
+const SmallRegA = 0_u64
+const SmallRegC = 9_u64
 
 const XorProg = "1,7"
-const XorRegB = 29'u64
+const XorRegB = 29_u64
 
 // ---------------------------------------------------------------------------
 // CPU
 // ---------------------------------------------------------------------------
 
-const MaxMem = 32'u32
-const MaxOut = 64'u32
+const MaxMem = 32_u32
+const MaxOut = 64_u32
 
 struct Cpu
 {
@@ -49,7 +49,10 @@ impl Cpu
     #[Swag.Inline]
     mtd combo(operand: u8)->u64
     {
-        if operand <= 3 do return cast(u64, operand)
+        if operand <= 3
+        {
+            return cast(u64, operand)
+        }
         return me.regs[operand - 4]
     }
 
@@ -77,8 +80,10 @@ func run(cpu: *Cpu)
 {
     for
     {
-        if cpu.ip >= cpu.memLen do
+        if cpu.ip >= cpu.memLen
+        {
             break
+        }
 
         let op  = cpu.fetch()
         let arg = cpu.fetch()
@@ -87,32 +92,34 @@ func run(cpu: *Cpu)
         {
             cpu.regs[0] = cpu.regs[0] >> cast(u8, cpu.combo(arg))
         }
-        elif op == 1     // bxl: B ^= literal
+        else if op == 1     // bxl: B ^= literal
         {
             cpu.regs[1] ^= cast(u64, arg)
         }
-        elif op == 2     // bst: B = combo % 8
+        else if op == 2     // bst: B = combo % 8
         {
             cpu.regs[1] = cpu.combo(arg) % 8
         }
-        elif op == 3     // jnz: jump if A != 0
+        else if op == 3     // jnz: jump if A != 0
         {
-            if cpu.regs[0] != 0 do
+            if cpu.regs[0] != 0
+            {
                 cpu.ip = cast(u32, arg)
+            }
         }
-        elif op == 4     // bxc: B ^= C
+        else if op == 4     // bxc: B ^= C
         {
             cpu.regs[1] = cpu.regs[1] ^ cpu.regs[2]
         }
-        elif op == 5     // out: output combo % 8
+        else if op == 5     // out: output combo % 8
         {
             cpu.emit(cast(u8, (cpu.combo(arg) % 8)))
         }
-        elif op == 6     // bdv: B = A >> combo
+        else if op == 6     // bdv: B = A >> combo
         {
             cpu.regs[1] = cpu.regs[0] >> cast(u8, cpu.combo(arg))
         }
-        elif op == 7     // cdv: C = A >> combo
+        else if op == 7     // cdv: C = A >> combo
         {
             cpu.regs[2] = cpu.regs[0] >> cast(u8, cpu.combo(arg))
         }
@@ -130,7 +137,10 @@ func parseProgram(text: string, cpu: *Cpu)
     var pos: u32
     for
     {
-        if pos >= bytes.count do break
+        if pos >= bytes.count
+        {
+            break
+        }
         let ch = bytes[pos]
         if ch >= '0' and ch <= '9'
         {
@@ -147,10 +157,16 @@ func parseProgram(text: string, cpu: *Cpu)
 
 func outputEquals(cpu: *Cpu, expected: [*] u8, len: u32)->bool
 {
-    if cpu.outLen != len do return false
+    if cpu.outLen != len
+    {
+        return false
+    }
     for i in len
     {
-        if cpu.out[i] != expected[i] do return false
+        if cpu.out[i] != expected[i]
+        {
+            return false
+        }
     }
     return true
 }
@@ -170,8 +186,10 @@ func findSelfOutputA(cpu: *Cpu, maxSearch: u64)->u64
     {
         cpu.reset(cast(u64, a), 0, 0)
         run(cpu)
-        if outputMatchesProgram(cpu) do
+        if outputMatchesProgram(cpu)
+        {
             return cast(u64, a)
+        }
     }
     return 0
 }
@@ -185,7 +203,7 @@ func findSelfOutputA(cpu: *Cpu, maxSearch: u64)->u64
 {
     var cpu: Cpu
     parseProgram(SampleProg, &cpu)
-    Swag.require(cpu.memLen == 6'u32)
+    Swag.require(cpu.memLen == 6_u32)
     Swag.require(cpu.mem[0] == 0)
     Swag.require(cpu.mem[1] == 1)
     Swag.require(cpu.mem[5] == 0)
@@ -199,10 +217,10 @@ func findSelfOutputA(cpu: *Cpu, maxSearch: u64)->u64
     cpu.ip = 0
     let v0 = cpu.fetch()
     Swag.require(v0 == 0)
-    Swag.require(cpu.ip == 1'u32)
+    Swag.require(cpu.ip == 1_u32)
     let v1 = cpu.fetch()
     Swag.require(v1 == 1)
-    Swag.require(cpu.ip == 2'u32)
+    Swag.require(cpu.ip == 2_u32)
 }
 
 // Inline mtd: combo operand
@@ -212,11 +230,11 @@ func findSelfOutputA(cpu: *Cpu, maxSearch: u64)->u64
     cpu.regs[0] = 100
     cpu.regs[1] = 200
     cpu.regs[2] = 300
-    Swag.require(cpu.combo(0) == 0'u64)
-    Swag.require(cpu.combo(3) == 3'u64)
-    Swag.require(cpu.combo(4) == 100'u64)
-    Swag.require(cpu.combo(5) == 200'u64)
-    Swag.require(cpu.combo(6) == 300'u64)
+    Swag.require(cpu.combo(0) == 0_u64)
+    Swag.require(cpu.combo(3) == 3_u64)
+    Swag.require(cpu.combo(4) == 100_u64)
+    Swag.require(cpu.combo(5) == 200_u64)
+    Swag.require(cpu.combo(6) == 300_u64)
 }
 
 // Small example: program 2,6 with C=9 → B = 9%8 = 1
@@ -226,7 +244,7 @@ func findSelfOutputA(cpu: *Cpu, maxSearch: u64)->u64
     parseProgram(SmallProg, &cpu)
     cpu.reset(SmallRegA, 0, SmallRegC)
     run(&cpu)
-    Swag.require(cpu.regs[1] == 1'u64)
+    Swag.require(cpu.regs[1] == 1_u64)
 }
 
 // XOR example: program 1,7 with B=29 → B = 29^7 = 26
@@ -236,7 +254,7 @@ func findSelfOutputA(cpu: *Cpu, maxSearch: u64)->u64
     parseProgram(XorProg, &cpu)
     cpu.reset(0, XorRegB, 0)
     run(&cpu)
-    Swag.require(cpu.regs[1] == 26'u64)
+    Swag.require(cpu.regs[1] == 26_u64)
 }
 
 // Sample: A=729, prog=0,1,5,4,3,0 → output 4,6,3,5,6,3,5,2,1,0
@@ -257,7 +275,7 @@ func findSelfOutputA(cpu: *Cpu, maxSearch: u64)->u64
     cpu.emit(7)
     cpu.emit(3)
     cpu.emit(1)
-    Swag.require(cpu.outLen == 3'u32)
+    Swag.require(cpu.outLen == 3_u32)
     Swag.require(cpu.out[0] == 7)
     Swag.require(cpu.out[1] == 3)
     Swag.require(cpu.out[2] == 1)
@@ -270,11 +288,11 @@ func findSelfOutputA(cpu: *Cpu, maxSearch: u64)->u64
     cpu.emit(1)
     cpu.emit(2)
     cpu.reset(10, 20, 30)
-    Swag.require(cpu.outLen == 0'u32)
-    Swag.require(cpu.regs[0] == 10'u64)
-    Swag.require(cpu.regs[1] == 20'u64)
-    Swag.require(cpu.regs[2] == 30'u64)
-    Swag.require(cpu.ip == 0'u32)
+    Swag.require(cpu.outLen == 0_u32)
+    Swag.require(cpu.regs[0] == 10_u64)
+    Swag.require(cpu.regs[1] == 20_u64)
+    Swag.require(cpu.regs[2] == 30_u64)
+    Swag.require(cpu.ip == 0_u32)
 }
 
 // Self-output search: prog=0,3,5,4,3,0 with A=117440 outputs itself
@@ -295,5 +313,5 @@ func findSelfOutputA(cpu: *Cpu, maxSearch: u64)->u64
     cpu.reset(1024, 0, 0)
     cpu.regs[1] = 5
     run(&cpu)
-    Swag.require(cpu.regs[0] == 32'u64)
+    Swag.require(cpu.regs[0] == 32_u64)
 }

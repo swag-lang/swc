@@ -97,6 +97,8 @@ func checkStorageInline(value: *void, type: typeinfo)
 #test
 {
     var values: [3] StorageChild
-    for &value in values do
+    for &value in values
+    {
         checkStorage(value, StorageChild)
+    }
 }

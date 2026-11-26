@@ -9,7 +9,7 @@ public struct ByteStream
     internal
     {
         readBuffer:  const [..] u8?     // Borrowed read-only bytes.
-        writeBuffer: *Array'u8?         // Borrowed writable destination.
+        writeBuffer: *Array!{u8}?       // Borrowed writable destination.
         seek:        u64                // Current byte position.
         eof:         bool               // Whether a read advanced to the end.
     }
@@ -26,7 +26,7 @@ public impl ByteStream
     }
 
     // Creates a stream that writes into the borrowed array `writeBuffer`, growing it as needed.
-    func openWrite(writeBuffer: *Array'u8)->ByteStream
+    func openWrite(writeBuffer: *Array!{u8})->ByteStream
     {
         var result: #returntype
         result.writeBuffer = writeBuffer
@@ -45,8 +45,11 @@ public impl ByteStream
     // Returns the start of the underlying buffer.
     internal mtd data()->const [*] u8
     {
-        if .writeBuffer do
+        if .writeBuffer
+        {
             return .writeBuffer.storage()
+        }
+
         return .readBuffer.buffer orelse cast(const [*] u8, cast(u64, 1))
     }
 
@@ -59,8 +62,11 @@ public impl ByteStream
         Swag.assert(.writeBuffer != null)
 
         let wb = unwrap .writeBuffer
-        if .seek + #sizeof(T) > wb.count do
+        if .seek + #sizeof(T) > wb.count
+        {
             wb.grow(.seek + #sizeof(T))
+        }
+
         Memory.copy(wb.storage() + .seek, &val, #sizeof(T))
         .seek    += #sizeof(T)
         wb.count = Math.max(wb.count, .seek)
@@ -74,8 +80,10 @@ public impl ByteStream
         Swag.assert(.writeBuffer != null)
 
         let count = slice.count
-        if not count do
+        if not count
+        {
             return
+        }
 
         let wb = .writeBuffer
         if wb.buffer
@@ -83,14 +91,17 @@ public impl ByteStream
             let sourceData = slice.buffer
             if sourceData >= wb.buffer and sourceData < wb.buffer + wb.count
             {
-                var copy: Array'u8
+                var copy: Array!{u8}
                 copy.add(slice)
                 return .writeBytes(copy.toSlice())
             }
         }
 
-        if .seek + count > wb.count do
+        if .seek + count > wb.count
+        {
             wb.grow(.seek + count)
+        }
+
         let buffer = wb.storage()
         let ptr    = buffer + .seek
         Memory.copy(ptr, slice.buffer, count)
@@ -101,8 +112,11 @@ public impl ByteStream
     // Reads a value of type `T` laid out as the host stores it, and advances past it.
     mtd(T) readNative()->T fail
     {
-        if #sizeof(T) > .length() - .seek do
+        if #sizeof(T) > .length() - .seek
+        {
             fail OverflowError{"byte stream overflow"}
+        }
+
         var val: T
         Memory.copy(&val, .data() + .seek, #sizeof(T))
         .seek += #sizeof(T)
@@ -114,10 +128,16 @@ public impl ByteStream
     // `dest` may overlap the borrowed input, and must be non-null even when `count` is zero.
     mtd readBytes(dest: *u8, count: u64) fail
     {
-        if count > .length() - .seek do
+        if count > .length() - .seek
+        {
             fail OverflowError{"byte stream overflow"}
-        if not count do
+        }
+
+        if not count
+        {
             return
+        }
+
         Memory.copyOverlapping(dest, .data() + .seek, count)
         .seek += count
     }
@@ -128,20 +148,20 @@ public impl ByteStream
     // so the bytes do not depend on the architecture that produced them.
     mtd(T) writeLittleEndian(value: T)
     {
-        .writeNative'T(Math.nativeToLittleEndian(value))
+        .writeNative!{T}(Math.nativeToLittleEndian(value))
     }
 
     // Reads a little-endian value of type `T`.
-    mtd(T) readLittleEndian()->T fail => Math.littleEndianToNative(try .readNative'T())
+    mtd(T) readLittleEndian()->T fail => Math.littleEndianToNative(try .readNative!{T}())
 
     // Writes a value of type `T` in big-endian byte order.
     mtd(T) writeBigEndian(value: T)
     {
-        .writeNative'T(Math.nativeToBigEndian(value))
+        .writeNative!{T}(Math.nativeToBigEndian(value))
     }
 
     // Reads a big-endian value of type `T`.
-    mtd(T) readBigEndian()->T fail => Math.bigEndianToNative(try .readNative'T())
+    mtd(T) readBigEndian()->T fail => Math.bigEndianToNative(try .readNative!{T}())
 
     // Writes an unsigned value as a LEB128 varint.
     //
@@ -165,23 +185,30 @@ public impl ByteStream
     mtd readVarint()->u64 fail
     {
         var result: u64
-        var shift = 0'u32
+        var shift = 0_u32
         while true
         {
-            let b       = try .readNative'u8()
+            let b       = try .readNative!{u8}()
             let payload = cast(u64, (b & 0x7F))
 
             // The tenth byte can only carry the top bit of a 64-bit value; anything
             // wider is an over-long encoding.
-            if shift == 63 and payload > 1 do
+            if shift == 63 and payload > 1
+            {
                 fail OverflowError{"varint is too long"}
+            }
 
             result |= payload << shift
-            if b < 0x80 do
+            if b < 0x80
+            {
                 return result
+            }
+
             shift += 7
-            if shift >= 64 do
+            if shift >= 64
+            {
                 fail OverflowError{"varint is too long"}
+            }
         }
     }
 
@@ -192,8 +219,10 @@ public impl ByteStream
     // Panics when `value` exceeds the maximum encodable byte count.
     mtd writeSizedString(value: string)
     {
-        if value.count > Swag.U32.Max do
+        if value.count > Swag.U32.Max
+        {
             Swag.panic("sized string exceeds the 32-bit byte-count limit", #curlocation)
+        }
 
         if .writeBuffer and value.count
         {
@@ -220,10 +249,14 @@ public impl ByteStream
     mtd readSizedString(maxLength: u64 = Swag.U32.Max)->String fail
     {
         var result: #returntype
-        let count = cast(u64, (try .readLittleEndian'u32()))
-        if count > maxLength do
+        let count = cast(u64, (try .readLittleEndian!{u32}()))
+        if count > maxLength
+        {
             fail OverflowError{"sized string is too long"}
-        if count > .remainingBytes().count do
+        }
+
+        if count > .remainingBytes().count
+        {
             fail OverflowError{"sized string is longer than the remaining input"}
         result.reserve(count + 1)
         let buffer = unwrap result.buffer
@@ -244,8 +277,11 @@ public impl ByteStream
     // Returns the byte at the current position without consuming it, or zero at the end of the buffer.
     mtd peekU8()->u8
     {
-        if .seek >= .length() do
+        if .seek >= .length()
+        {
             return 0
+        }
+
         return (.data() + .seek)[]
     }
 

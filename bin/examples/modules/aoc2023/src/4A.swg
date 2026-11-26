@@ -41,25 +41,32 @@ func day4A()
     let dataPath = Path.combine(Path.directoryName(#curlocation.fileName), "4.txt")
     let lines    = expect File.readAllLines(dataPath)
 
-    var total = 0'u64
+    var total = 0_u64
     for l in lines
     {
-        let cardRecord          = Tokenize.split(l[], ':'u8)
-        let numberLists         = Tokenize.split(cardRecord[1], '|'u8)
-        let winningNumberTokens = Tokenize.split(numberLists[0], ' 'u8)
-        let drawnNumberTokens   = Tokenize.split(numberLists[1], ' 'u8)
+        let cardRecord          = Tokenize.split(l[], ':'_u8)
+        let numberLists         = Tokenize.split(cardRecord[1], '|'_u8)
+        let winningNumberTokens = Tokenize.split(numberLists[0], ' '_u8)
+        let drawnNumberTokens   = Tokenize.split(numberLists[1], ' '_u8)
 
-        var winningNumbers, drawnNumbers: Array's32
-        for number in winningNumberTokens do
+        var winningNumbers, drawnNumbers: Array!{s32}
+        for number in winningNumberTokens
+        {
             winningNumbers.add(expect StrConv.toS32(number))
-        for number in drawnNumberTokens do
+        }
+
+        for number in drawnNumberTokens
+        {
             drawnNumbers.add(expect StrConv.toS32(number))
+        }
 
         var score = 1
         for number in drawnNumbers
         {
-            if winningNumbers.contains(number) do
+            if winningNumbers.contains(number)
+            {
                 score <<= 1
+            }
         }
 
         total += score / 2

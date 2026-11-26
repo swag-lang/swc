@@ -22,10 +22,16 @@ func recordPlacementFocus(_: *Env.Window, focused: bool)
         let reply    = context.xcb_get_geometry_reply(unwrap context.connection,
                                                       context.xcb_get_geometry(context.connection, drawable.window),
                                                       &error)
-        defer if error do
+        defer if error
+        {
             Linux.free(error)
-        defer if reply do
+        }
+
+        defer if reply
+        {
             Linux.free(reply)
+        }
+
         Swag.require(error == null and reply != null)
         return {cast(f32, reply.x), cast(f32, reply.y), cast(f32, reply.width), cast(f32, reply.height)}
     }
@@ -85,14 +91,22 @@ func mutateWindowFromWorker(thread: const *Threading.Thread)
     let window = unwrap probe.window
     var outcome: Swag.Error
     catch window.setPosition(31, 47) as outcome
-    if outcome.value() is Errors.BadParameterError do
+    if outcome.value() is Errors.BadParameterError
+    {
         probe.rejected += 1
+    }
+
     catch window.hide() as outcome
-    if outcome.value() is Errors.BadParameterError do
+    if outcome.value() is Errors.BadParameterError
+    {
         probe.rejected += 1
+    }
+
     catch window.requestFocus() as outcome
-    if outcome.value() is Errors.BadParameterError do
+    if outcome.value() is Errors.BadParameterError
+    {
         probe.rejected += 1
+    }
 }
 
 #[Swag.TestTag("integration.desktop.placement")]

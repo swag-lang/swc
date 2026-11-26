@@ -43,22 +43,29 @@ using Core, Gui, Pixel, Video, Viewers
     let window = ViewerWindow.create(&host.surfaceWnd, createViewerPluginRegistry())
     window.onlineMovies = Env.variable("SWAG_VAULT_PREVIEW_ONLINE") == "1"
 
-    var pictured = 0'u64
+    var pictured = 0_u64
     window.openExplorer(mountRoot)
     let explorer = unwrap window.explorer
     for 2000
     {
         host.pump()
         pictured = 0
-        for &entry in explorer.entries where entry.texture.isValid() do
+        for &entry in explorer.entries where entry.texture.isValid()
+        {
             pictured += 1
+        }
 
-        if pictured and pictured == explorer.entries.count do
+        if pictured and pictured == explorer.entries.count
+        {
             break
-        Threading.Thread.sleep(20'ms)
+        }
+
+        Threading.Thread.sleep(20_ms)
     }
 
     Swag.require(pictured > 0)
-    for &entry in explorer.entries where entry.texture.isValid() do
+    for &entry in explorer.entries where entry.texture.isValid()
+    {
         Swag.require(entry.attempted and not entry.onlinePending)
+    }
 }

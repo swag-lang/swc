@@ -56,8 +56,10 @@ impl IWnd for TaskStrip
     mtd impl onLayout()
     {
         let parent = .parent
-        if not parent do
+        if not parent
+        {
             return
+        }
 
         let metrics = .themeMetrics()
         let strip   = parent.stripInset()
@@ -87,7 +89,7 @@ impl IWnd for TaskStrip
         // the library keeps its glyph and moves its words to its tip, then the save control does
         // the same. Capture keeps its full name, and Copy is the primary action.
         var leadingSize, trailingSize: Math.Point
-        for words in [2'u32, 1, 0]
+        for words in [2_u32, 1, 0]
         {
             .showWords(words)
             leadingSize  = .leading.itf.measureContent({})
@@ -100,8 +102,10 @@ impl IWnd for TaskStrip
                 fits = start + leadingSize.x + half <= center and end - trailingSize.x - half >= center
             }
 
-            if fits do
+            if fits
+            {
                 break
+            }
         }
 
         .leading.setPosition(Math.Rectangle{start, Math.round((height - leadingSize.y) * 0.5), leadingSize.x, leadingSize.y})
@@ -125,8 +129,11 @@ impl IWnd for TaskStrip
             let button = .frozenButton
             let width  = button.position.width + 2 * pad
             var right  = .main.clientRect().right() - metrics.floating_Inset
-            if .main.inspector.isLocallyVisible() and not .main.inspector.folded do
+            if .main.inspector.isLocallyVisible() and not .main.inspector.folded
+            {
                 right = .main.inspector.surfaceRect().x - .main.surfaceRect().x - metrics.floating_Inset
+            }
+
             .frozenPanel.setPosition({right - width, y, width, metrics.quiet_Height + 2 * pad})
             button.setPosition({pad, pad, button.position.width, metrics.quiet_Height})
         }
@@ -148,12 +155,20 @@ impl TaskStrip
     {
         func show(button: *IconButton, shown: bool, tip: string)
         {
-            if button.flags.has(.IconOnly) != shown do
+            if button.flags.has(.IconOnly) != shown
+            {
                 return
-            if shown do
+            }
+
+            if shown
+            {
                 button.updateFlags(remove: .IconOnly)
-            else do
+            }
+            else
+            {
                 button.updateFlags(add: .IconOnly)
+            }
+
             button.toolTip = tip
         }
 
@@ -164,7 +179,7 @@ impl TaskStrip
     // Builds the two groups in `main`, posting their commands to it.
     func create(main: *MainWnd)->*TaskStrip
     {
-        with let result = Wnd.create'TaskStrip(main)
+        with let result = Wnd.create!{TaskStrip}(main)
         {
             .dockStyle       = .Float
             .backgroundStyle = .Application
@@ -261,8 +276,11 @@ impl TaskStrip
     // the library; the title takes the room back.
     mtd showOutput(shown: bool)
     {
-        if .trailing.isLocallyVisible() == shown do
+        if .trailing.isLocallyVisible() == shown
+        {
             return
+        }
+
         .trailing.show(shown)
         .itf.onLayout()
         .invalidate()
@@ -271,8 +289,11 @@ impl TaskStrip
     // Keeps a persistent mode beside the inspector, with the same control to leave it.
     mtd showFrozen(frozen: bool)
     {
-        if .frozenPanel.isLocallyVisible() == frozen do
+        if .frozenPanel.isLocallyVisible() == frozen
+        {
             return
+        }
+
         .frozenPanel.show(frozen)
         .itf.onLayout()
     }
@@ -280,8 +301,11 @@ impl TaskStrip
     // Keeps a global-key failure by the capture control until the next registration attempt.
     mtd showUnavailableShortcuts(unavailable: bool)
     {
-        if .shortcutPanel.isLocallyVisible() == unavailable do
+        if .shortcutPanel.isLocallyVisible() == unavailable
+        {
             return
+        }
+
         .shortcutPanel.show(unavailable)
         .itf.onLayout()
     }
@@ -293,8 +317,11 @@ impl TaskStrip
     private mtd surfaceFrame()->*SurfaceWnd?
     {
         let surface = .surface
-        if not surface do
+        if not surface
+        {
             return null
+        }
+
         return assume cast(*SurfaceWnd, surface.wnd)
     }
 }

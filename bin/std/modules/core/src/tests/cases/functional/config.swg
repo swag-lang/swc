@@ -8,13 +8,21 @@ using Swag
 
 #test
 {
-    #static if #gettag("Swag.Endian", string, "little") == "big" do
+    #static if #gettag("Swag.Endian", string, "little") == "big"
+    {
         Swag.require(BIG_ENDIAN)
-    else do
+    }
+    else
+    {
         Swag.require(not BIG_ENDIAN)
+    }
 
-    #static if #os == Swag.TargetOs.Windows do
+    #static if #os == Swag.TargetOs.Windows
+    {
         Swag.require(WINDOWS)
-    else do
+    }
+    else
+    {
         Swag.require(not WINDOWS)
+    }
 }

@@ -134,7 +134,7 @@ struct Encoder
     internal
     {
         info:     StreamInfo        // Geometry and rate the stream was opened with.
-        payload:  Array'u8          // Scratch storage of one encoded frame.
+        payload:  Array!{u8}        // Scratch storage of one encoded frame.
         options:  EncodeOptions     // Chroma layout applied to every frame.
         hasFrame: bool              // Whether at least one complete frame was written.
     }
@@ -153,12 +153,20 @@ impl IEncoder for Encoder
             .options = cast(const *EncodeOptions, unwrap options.buffer)[]
         }
 
-        if (.options.chroma == .Yuv420 or .options.chroma == .Yuv422) and info.width & 1 do
+        if (.options.chroma == .Yuv420 or .options.chroma == .Yuv422) and info.width & 1
+        {
             fail BadParameterError{"Y4M 4:2:2 and 4:2:0 output needs an even frame width"}
-        if .options.chroma == .Yuv420 and info.height & 1 do
+        }
+
+        if .options.chroma == .Yuv420 and info.height & 1
+        {
             fail BadParameterError{"Y4M 4:2:0 output needs an even frame height"}
-        if .options.chroma == .Yuv411 and info.width & 3 do
+        }
+
+        if .options.chroma == .Yuv411 and info.width & 3
+        {
             fail BadParameterError{"Y4M 4:1:1 output needs a frame width divisible by four"}
+        }
 
         var chromaTag = "C444 XYSCSS=444"
         switch .options.chroma
@@ -196,18 +204,52 @@ impl IEncoder for Encoder
                           (.options.chroma == .Yuv411 ? width / 4 : width / 2)
         let chromaHeight = .options.chroma == .Yuv420 ? height / 2 : height
         let chromaSize   = chromaWidth * chromaHeight
-        if .payload.count != lumaSize + chromaSize * 2 do
+        if .payload.count != lumaSize + chromaSize * 2
+        {
             .payload.resize(lumaSize + chromaSize * 2)
+        }
 
         let yPlane = .payload.storage()
         let uPlane = yPlane + lumaSize
         let vPlane = uPlane + chromaSize
         switch .options.chroma
         {
-        case .Yuv411: convertPlanes'(4, 1)(&image, width, height, chromaWidth, chromaHeight, yPlane, uPlane, vPlane)
-        case .Yuv420: convertPlanes'(2, 2)(&image, width, height, chromaWidth, chromaHeight, yPlane, uPlane, vPlane)
-        case .Yuv422: convertPlanes'(2, 1)(&image, width, height, chromaWidth, chromaHeight, yPlane, uPlane, vPlane)
-        case .Yuv444: convertPlanes'(1, 1)(&image, width, height, chromaWidth, chromaHeight, yPlane, uPlane, vPlane)
+            let sourceRow = cast(u64, (image.height - y - 1)) * cast(u64, image.rowStride)
+            for x in image.width
+            {
+                let source    = image.pixels.storage() + sourceRow + cast(u64, x) * image.bytesPerPixel
+                let {r, g, b} = readRgb(image, source)
+                yPlane[cast(u64, y) * width + cast(u64, x)] = luma(r, g, b)
+            }
+        }
+
+        let stepX = .options.chroma == .Yuv444 ? 1_u64 :
+                    (.options.chroma == .Yuv411 ? 4_u64 : 2_u64)
+        let stepY = .options.chroma == .Yuv420 ? 2_u64 : 1_u64
+        for cy in chromaHeight
+        {
+            for cx in chromaWidth
+            {
+                var sumU, sumV: u32
+                for dy in stepY
+                {
+                    for dx in stepX
+                    {
+                        let x         = cx * stepX + dx
+                        let y         = cy * stepY + dy
+                        let sourceRow = (height - y - 1) * cast(u64, image.rowStride)
+                        let source    = image.pixels.storage() + sourceRow + x * image.bytesPerPixel
+                        let {r, g, b} = readRgb(image, source)
+                        sumU += cast(u32, cb(r, g, b))
+                        sumV += cast(u32, cr(r, g, b))
+                    }
+                }
+
+                let samples = stepX * stepY
+                let target  = cy * chromaWidth + cx
+                uPlane[target] = cast(u8, (sumU + cast(u32, samples / 2)) / cast(u32, samples))
+                vPlane[target] = cast(u8, (sumV + cast(u32, samples / 2)) / cast(u32, samples))
+            }
         }
 
         try sink.writeText(FrameMarker)
@@ -218,7 +260,9 @@ impl IEncoder for Encoder
 
     mtd impl end(_: *ByteSink) fail
     {
-        if not .hasFrame do
+        if not .hasFrame
+        {
             fail BadParameterError{"Y4M stream needs at least one frame"}
+        }
     }
 }

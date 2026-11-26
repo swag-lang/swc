@@ -24,8 +24,10 @@ func formDescIndex(type: typeinfo)->u64
 {
     for i in FormRegistry.count
     {
-        if FormRegistry[i].type == type do
+        if FormRegistry[i].type == type
+        {
             return i
+        }
     }
 
     unreachable
@@ -35,8 +37,10 @@ func formDescIndexOfMode(mode: EditMode)->u64
 {
     for i in FormRegistry.count
     {
-        if FormRegistry[i].mode == mode do
+        if FormRegistry[i].mode == mode
+        {
             return i
+        }
     }
 
     unreachable
@@ -127,20 +131,29 @@ impl MainWnd
     {
         let form: *BaseForm = f
 
-        if form.subKind == .Highlight do
+        if form.subKind == .Highlight
+        {
             .mdlHighlight = f
-        elif form.subKind == .PixSel do
+        }
+        else if form.subKind == .PixSel
+        {
             .mdlPixSel = f
+        }
 
         .copyFormToModel(f)
 
         let desc = FormRegistry[formDescIndex(Swag.kindOf(f))]
         let mdl  = .modelFor(Swag.kindOf(f))
         .mdlFavorite = mdl
-        if desc.canHighlight do
+        if desc.canHighlight
+        {
             .mdlHighlight = mdl
-        if desc.canPixSel do
+        }
+
+        if desc.canPixSel
+        {
             .mdlPixSel = mdl
+        }
     }
 
     // Switches to the tool that draws forms like `f`.
@@ -158,7 +171,7 @@ impl MainWnd
             .editMode = .Highlight
             return
         }
-        elif form.subKind == .PixSel
+        else if form.subKind == .PixSel
         {
             .editMode = .PixSel
             return

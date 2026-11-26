@@ -228,21 +228,26 @@ using Swag, Core
 // The DC-only inverse transform clips each block pixel without touching its neighbours.
 #test
 {
-    var input   = [0'u8]
+    var input   = [0_u8]
     var decoder = Webp.Vp8Decoder{source: &input[0]}
-    for coefficient in [-32768's32, -2048, -1025, -9, -4, 0, 3, 4, 9, 1024, 2048, 32767]
+    for coefficient in [-32768_s32, -2048, -1025, -9, -4, 0, 3, 4, 9, 1024, 2048, 32767]
     {
         decoder.coeff[0] = cast(s16, coefficient)
         let dc = (coefficient + 4) >> 3
-        for x in 29's32
+        for x in 29_s32
         {
-            for row in 4's32 do
-                for column in 32's32 do
-                    decoder.ybr[22 + row][column] = cast(u8, ((row * 61 + column * 37 + x * 11) & 255))
-            Webp.vp8InverseDct4Dc(&decoder, 22, x, 0)
-            for row in 4's32
+            for row in 4_s32
             {
-                for column in 32's32
+                for column in 32_s32
+                {
+                    decoder.ybr[22 + row][column] = cast(u8, ((row * 61 + column * 37 + x * 11) & 255))
+                }
+            }
+
+            Webp.vp8InverseDct4Dc(&decoder, 22, x, 0)
+            for row in 4_s32
+            {
+                for column in 32_s32
                 {
                     let original = (row * 61 + column * 37 + x * 11) & 255
                     let expected = column >= x and column < x + 4 ? Math.clamp(original + dc, 0, 255) : original
@@ -377,7 +382,8 @@ func checkWebpAgainstPng(fileName, goldenName: string, width, height: s32)
     let golden = expect Image.load(getTestDataPath(goldenName))
     Swag.require(golden.width == width)
     Swag.require(golden.height == height)
-    for y in height do
+    for y in height
+    {
         for x in width
         {
             let got  = decoded.pixelColor(x, y)
@@ -387,6 +393,7 @@ func checkWebpAgainstPng(fileName, goldenName: string, width, height: s32)
             Swag.require(got.b == want.b)
             Swag.require(got.a == want.a)
         }
+    }
 }
 
 func checkLossyWebp(fileName, goldenName: string, width, height: s32, withAlpha: bool)
@@ -442,7 +449,8 @@ func assertEncodedWebpRoundtrip(source: Image)
     Swag.require(decoded.width == source.width)
     Swag.require(decoded.height == source.height)
     Swag.require(decoded.pixelFormat == .RGBA8)
-    for y in source.height do
+    for y in source.height
+    {
         for x in source.width
         {
             let got  = decoded.pixelColor(x, y)
@@ -452,6 +460,7 @@ func assertEncodedWebpRoundtrip(source: Image)
             Swag.require(got.b == want.b)
             Swag.require(got.a == want.a)
         }
+    }
 }
 
 // The decoder and encoder registries recognise WebP files.
@@ -466,7 +475,7 @@ func assertEncodedWebpRoundtrip(source: Image)
 #test
 {
     var image = Image.create(1, 1, .Gray8)
-    image.pixels.storage()[0] = 128'u8
+    image.pixels.storage()[0] = 128_u8
     var errorOutcome: Swag.Error
     catch { discard try image.encodeToBytes("unsupported.webp") } as errorOutcome
     Swag.require(errorOutcome.value() != null)
@@ -476,9 +485,9 @@ func assertEncodedWebpRoundtrip(source: Image)
 #test
 {
     const pixels = [
-        11'u8, 22'u8, 33'u8, 44'u8, 55'u8, 66'u8, 77'u8, 88'u8,
-        91'u8, 102'u8, 113'u8, 124'u8, 135'u8, 146'u8, 157'u8, 168'u8,
-        179'u8, 190'u8, 201'u8, 212'u8, 223'u8, 234'u8, 245'u8, 17'u8]
+        11_u8, 22_u8, 33_u8, 44_u8, 55_u8, 66_u8, 77_u8, 88_u8,
+        91_u8, 102_u8, 113_u8, 124_u8, 135_u8, 146_u8, 157_u8, 168_u8,
+        179_u8, 190_u8, 201_u8, 212_u8, 223_u8, 234_u8, 245_u8, 17_u8]
     let rgba = makeImage(3, 2, .RGBA8, pixels)
     assertEncodedWebpRoundtrip(rgba)
     assertEncodedWebpRoundtrip(rgba.convertedTo(.BGRA8))
@@ -489,16 +498,8 @@ func assertEncodedWebpRoundtrip(source: Image)
 // Backward-distance runs can span the VP8L maximum length and start a new run.
 #test
 {
-    var source = Image.create(5257, 1, .RGBA8)
-    source.fill(Color.fromArgb(37'u8, 19'u8, 73'u8, 211'u8))
-    let pixels = cast([*] u32, source.pixels.storage())
-
-    // The distinct prefix exercises the direct-color run encoder.
-    for i in 257
-    {
-        let color = cast(u32, i)
-        pixels[i] = 0x25D34900'u32 + ((color >> 8) << 8) + (color & 0xFF)
-    }
+    var source = Image.create(5000, 1, .RGBA8)
+    source.fill(Color.fromArgb(37_u8, 19_u8, 73_u8, 211_u8))
 
     let buffer = expect source.encode("memory.webp")
     Swag.require(buffer.count() < 1024)

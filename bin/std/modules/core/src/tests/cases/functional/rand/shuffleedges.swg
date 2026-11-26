@@ -19,11 +19,11 @@ internal impl NoDrawRandomSource
 
 #test
 {
-    var generator: Random.Generator'NoDrawRandomSource
+    var generator: Random.Generator!{NoDrawRandomSource}
     generator.seedU32(1)
     RandomDrawCount = 0
 
-    var empty:  Array'u32
+    var empty:  Array!{u32}
     var single: [1] u32 = [42]
     generator.shuffle(empty.toSlice())
     generator.shuffle(single)

@@ -5,8 +5,8 @@
 //
 using Core, Core.Errors
 
-var g_Codecs:       Array'CodecDesc
-var g_PacketCodecs: Array'PacketCodecDesc
+var g_Codecs:       Array!{CodecDesc}
+var g_PacketCodecs: Array!{PacketCodecDesc}
 
 // Converts encoded audio incrementally between sound-file encodings.
 //
@@ -120,8 +120,11 @@ public func packetFrameCount(encoding: SoundFileEncoding, packet: const [..] u8)
 
     case .Opus:
         let count = Opus.packetFrames(packet)
-        if not count do
+        if not count
+        {
             fail InvalidFormatError{"Opus packet has an invalid table of contents"}
+        }
+
         return cast(u32, count)
 
     case .AdpcmMs, .AdpcmIma:
@@ -154,20 +157,28 @@ public impl PacketDurationProbe
     // Releases the duration-tracking state owned by this probe.
     mtd opDrop()
     {
-        if .vorbis != null do
+        if .vorbis != null
+        {
             Memory.delete(cast(*Vorbis.DurationProbe, .vorbis))
+        }
     }
 
     // Prepares the probe for one stream of `encoding`, whose decoder configuration is `config`.
     mtd initialize(encoding: SoundFileEncoding, config: const [..] u8) fail
     {
-        if .vorbis != null do
+        if .vorbis != null
+        {
             Memory.delete(cast(*Vorbis.DurationProbe, .vorbis))
+        }
+
         .vorbis   = null
         .encoding = encoding
-        if encoding != .Vorbis do
+        if encoding != .Vorbis
+        {
             return
-        .vorbis = Memory.new'Vorbis.DurationProbe()
+        }
+
+        .vorbis = Memory.new!{Vorbis.DurationProbe}()
         let probe = cast(*Vorbis.DurationProbe, .vorbis)
         try probe.initialize(config)
     }
@@ -186,8 +197,11 @@ public impl PacketDurationProbe
 
         case .Opus:
             let count = Opus.packetFrames(packet)
-            if not count do
+            if not count
+            {
                 fail InvalidFormatError{"Opus packet has an invalid table of contents"}
+            }
+
             return cast(u32, count)
 
         default:
@@ -229,10 +243,15 @@ private func startsWithCodecHeader(type: const *Swag.TypeInfoStruct)->bool
 {
     for field in type.fields
     {
-        if field.offset != 0 or not field.pointedType do
+        if field.offset != 0 or not field.pointedType
+        {
             continue
-        if field.pointedType.crc == #typeof(Codec).crc do
+        }
+
+        if field.pointedType.crc == #typeof(Codec).crc
+        {
             return true
+        }
     }
 
     return false
@@ -281,16 +300,22 @@ public func registerPacketCodecImplementation(type: const *Swag.TypeInfoStruct, 
 // Returns the registered codec that converts `sourceEncoding` to `destinationEncoding`, or null.
 func findCodec(destinationEncoding, sourceEncoding: SoundFileEncoding)->*CodecDesc?
 {
-    for &codec in g_Codecs where codec.itf.canEncode(destinationEncoding) and codec.itf.canDecode(sourceEncoding) do
+    for &codec in g_Codecs where codec.itf.canEncode(destinationEncoding) and codec.itf.canDecode(sourceEncoding)
+    {
         return codec
+    }
+
     return null
 }
 
 // Returns the registered packet codec that decodes `sourceEncoding`, or null.
 func findPacketCodec(sourceEncoding: SoundFileEncoding)->*PacketCodecDesc?
 {
-    for &codec in g_PacketCodecs where codec.itf.canDecode(sourceEncoding) do
+    for &codec in g_PacketCodecs where codec.itf.canDecode(sourceEncoding)
+    {
         return codec
+    }
+
     return null
 }
 
@@ -329,5 +354,5 @@ impl Codec
 // Registers the built-in PCM codec.
 #init
 {
-    registerCodec'CodecPcmToPcm16()
+    registerCodec!{CodecPcmToPcm16}()
 }

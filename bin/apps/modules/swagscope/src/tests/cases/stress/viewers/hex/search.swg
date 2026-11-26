@@ -10,10 +10,13 @@ using Core, Gui, Gui.Testing, Viewers
     defer discard catch File.delete(fileName)
 
     let size = ViewerWindow.SearchMatchLimit + ViewerWindow.SearchChunkSize * 2
-    var bytes: Array'u8
+    var bytes: Array!{u8}
     bytes.resize(size)
-    for index in size do
+    for index in size
+    {
         bytes[index] = 0xAA
+    }
+
     expect File.writeAllBytes(fileName, bytes.toSlice())
 
     var host:  Testing.HeadlessHost
@@ -31,7 +34,7 @@ using Core, Gui, Gui.Testing, Viewers
     window.showSearch()
     window.searchBox.setText("AA")
 
-    var steps = 0'u32
+    var steps = 0_u32
     while window.searchTimer and steps < 4_096
     {
         host.fireTimer(window.searchTimer)
@@ -61,15 +64,18 @@ using Core, Gui, Gui.Testing, Viewers
     let fileName = Testing.tempFilePath("scope-hex-search-range-cap-", ".bin")
     defer discard catch File.delete(fileName)
 
-    let start = 113'u64
+    let start  = 113_u64
     let length = ViewerWindow.SearchMatchLimit + ViewerWindow.SearchChunkSize * 2
-    var bytes: Array'u8
+    var bytes: Array!{u8}
     bytes.resize(start + length + 256)
-    for index in bytes.count do
+    for index in bytes.count
+    {
         bytes[index] = 0xAA
+    }
+
     expect File.writeAllBytes(fileName, bytes.toSlice())
 
-    var host: Testing.HeadlessHost
+    var host:  Testing.HeadlessHost
     let window = framedViewerWindow(&host, fileName, false)
     var found: bool
     for choice, index in window.choices where choice.key == "hex"
@@ -86,7 +92,7 @@ using Core, Gui, Gui.Testing, Viewers
     window.showSearch()
     window.searchBox.setText("selection: AA")
 
-    var steps = 0'u32
+    var steps = 0_u32
     while window.searchTimer and steps < 4_096
     {
         host.fireTimer(window.searchTimer)

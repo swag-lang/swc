@@ -6,7 +6,7 @@
 // an earlier guard already made. These cases stand on both sides of each proof: the guard
 // that is gone must leave the right value, and the one that only looks alike must still fire.
 
-const M32 = 0xFFFFFFFF'u64
+const M32 = 0xFFFFFFFF_u64
 
 #[Swag.NoInline]
 func opaqueU32(v: u32)->u32 => v
@@ -61,8 +61,10 @@ var g_Wide = Swag.U64.Max
     func accumulate(start: u64, bytes: [4] u8)->u64
     {
         var total = start
-        for value in bytes do
+        for value in bytes
+        {
             total += value     // swc-expected-error {{safety_err_runtime}}
+        }
         return total
     }
 
@@ -108,9 +110,11 @@ var g_Wide = Swag.U64.Max
     #[Swag.Safety(.BoundCheck, true)]
     func readAfterTest(values: *[4] u32, index: u64)->u32
     {
-        var extra = 0'u32
-        if index < 4 do
+        var extra = 0_u32
+        if index < 4
+        {
             extra = 1
+        }
         return extra + values[][index]     // swc-expected-error {{safety_err_runtime}}
     }
 
@@ -131,7 +135,7 @@ func opaqueS64(v: s64)->s64 => v
     {
         var i     = first
         var j     = last
-        var steps = 0's64
+        var steps = 0_s64
         while i < j
         {
             i     += 1
@@ -153,8 +157,10 @@ func opaqueS64(v: s64)->s64 => v
     #[Swag.Safety(.Overflow, true)]
     func previous(value: u64)->u64
     {
-        if value != 0 do
+        if value != 0
+        {
             return value - 1
+        }
         return 0
     }
 
@@ -168,8 +174,10 @@ func opaqueS64(v: s64)->s64 => v
     #[Swag.Safety(.Overflow, true)]
     func previousUnlessFive(value: u64)->u64
     {
-        if value != 5 do
+        if value != 5
+        {
             return value - 1     // swc-expected-error {{safety_err_runtime}}
+        }
         return 0
     }
 
@@ -183,8 +191,10 @@ func opaqueS64(v: s64)->s64 => v
     #[Swag.Safety(.Overflow, true)]
     func bump(value: u8)->u8
     {
-        if value < 200 do
+        if value < 200
+        {
             return value + 55
+        }
         return 0
     }
 
@@ -197,8 +207,10 @@ func opaqueS64(v: s64)->s64 => v
     #[Swag.Safety(.Overflow, true)]
     func bumpTooFar(value: u8)->u8
     {
-        if value < 200 do
+        if value < 200
+        {
             return value + 57     // swc-expected-error {{safety_err_runtime}}
+        }
         return 0
     }
 
@@ -213,8 +225,10 @@ func opaqueS64(v: s64)->s64 => v
     func climb(first, last: s64)->s64
     {
         var i = first
-        while i <= last do
+        while i <= last
+        {
             i += 1     // swc-expected-error {{safety_err_runtime}}
+        }
         return i
     }
 

@@ -24,13 +24,22 @@ impl Quaternion
     // Returns the magnitude of this quaternion.
     mtd const length()->f32
     {
-        if Math.isNaN(.x) or Math.isNaN(.y) or Math.isNaN(.z) or Math.isNaN(.w) do
+        if Math.isNaN(.x) or Math.isNaN(.y) or Math.isNaN(.z) or Math.isNaN(.w)
+        {
             return Swag.F32.NaN
+        }
+
         let scale = Math.max(Math.max(Math.abs(.x), Math.abs(.y)), Math.max(Math.abs(.z), Math.abs(.w)))
-        if scale == 0 do
+        if scale == 0
+        {
             return 0
-        if not Math.isFinite(scale) do
+        }
+
+        if not Math.isFinite(scale)
+        {
             return Swag.F32.Inf
+        }
+
         let x = .x / scale
         let y = .y / scale
         let z = .z / scale
@@ -44,11 +53,17 @@ impl Quaternion
         if not Math.isFinite(.x) or
            not Math.isFinite(.y) or
            not Math.isFinite(.z) or
-           not Math.isFinite(.w) do
+           not Math.isFinite(.w)
+        {
             return Identity
+        }
+
         let scale = Math.max(Math.max(Math.abs(.x), Math.abs(.y)), Math.max(Math.abs(.z), Math.abs(.w)))
-        if scale == 0 or not Math.isFinite(scale) do
+        if scale == 0 or not Math.isFinite(scale)
+        {
             return Identity
+        }
+
         let x = .x / scale
         let y = .y / scale
         let z = .z / scale
@@ -74,11 +89,17 @@ impl Quaternion
         if not Math.isFinite(.x) or
            not Math.isFinite(.y) or
            not Math.isFinite(.z) or
-           not Math.isFinite(.w) do
+           not Math.isFinite(.w)
+        {
             return Identity
+        }
+
         let scale = Math.max(Math.max(Math.abs(.x), Math.abs(.y)), Math.max(Math.abs(.z), Math.abs(.w)))
-        if scale == 0 or not Math.isFinite(scale) do
+        if scale == 0 or not Math.isFinite(scale)
+        {
             return Identity
+        }
+
         let x    = .x / scale
         let y    = .y / scale
         let z    = .z / scale
@@ -136,10 +157,13 @@ impl Quaternion
     mtd const toAxisAngle()->{ axis: Vector3, angle: f32 }
     {
         let q        = .normalized()
-        let angle    = 2 * Math.acos(Math.clamp(q.w, -1'f32, 1'f32))
-        let sineHalf = sqrt(Math.max(0'f32, 1 - q.w * q.w))
-        if sineHalf <= ConstF32.Epsilon do
+        let angle    = 2 * Math.acos(Math.clamp(q.w, -1_f32, 1_f32))
+        let sineHalf = sqrt(Math.max(0_f32, 1 - q.w * q.w))
+        if sineHalf <= ConstF32.Epsilon
+        {
             return {axis: Vector3.UnitX, angle: 0}
+        }
+
         return {axis: Vector3{q.x, q.y, q.z} / sineHalf, angle: angle}
     }
 
@@ -147,8 +171,11 @@ impl Quaternion
     func fromAxisAngle(axis: Vector3, angle: f32)->Quaternion
     {
         let unitAxis = axis.normalizedOrZero()
-        if unitAxis.isZero() do
+        if unitAxis.isZero()
+        {
             return Identity
+        }
+
         let halfAngle = angle * 0.5
         let sine      = Math.sin(halfAngle)
         return Quaternion{unitAxis.x * sine, unitAxis.y * sine, unitAxis.z * sine, Math.cos(halfAngle)}
@@ -159,10 +186,13 @@ impl Quaternion
     {
         let start  = from.normalizedOrZero()
         let finish = target.normalizedOrZero()
-        if start.isZero() or finish.isZero() do
+        if start.isZero() or finish.isZero()
+        {
             return Identity
-        let cosine = Math.clamp(start.dot(finish), -1'f32, 1'f32)
-        if cosine < -0.999999'f32
+        }
+
+        let cosine = Math.clamp(start.dot(finish), -1_f32, 1_f32)
+        if cosine < -0.999999_f32
         {
             let absolute = start.absolute()
             var basis    = Vector3.UnitZ
@@ -172,8 +202,10 @@ impl Quaternion
             }
             else
             {
-                if absolute.y <= absolute.z do
+                if absolute.y <= absolute.z
+                {
                     basis = Vector3.UnitY
+                }
             }
 
             return fromAxisAngle(start.cross(basis), ConstF32.Pi)
@@ -221,7 +253,7 @@ impl Quaternion
             return blended.normalized()
         }
 
-        let angle      = Math.acos(Math.clamp(cosine, -1'f32, 1'f32))
+        let angle      = Math.acos(Math.clamp(cosine, -1_f32, 1_f32))
         let sine       = Math.sin(angle)
         let fromWeight = Math.sin((1 - factor) * angle) / sine
         let toWeight   = Math.sin(factor * angle) / sine

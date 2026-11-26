@@ -41,8 +41,11 @@ using Core, Gui
     var host: Testing.HeadlessHost
     let window = testSetupMainWindow(&host, 1.25, width: 1280, height: 800)
     fillPictureList(window)
-    for index in 8 do
+    for index in 8
+    {
         window.vaults.add(KnownVault{Format.toString("/vaults/extra-%", index), "", false})
+    }
+
     window.refreshVaults()
     Swag.require(window.list.position.width < window.clientRect().width)
 

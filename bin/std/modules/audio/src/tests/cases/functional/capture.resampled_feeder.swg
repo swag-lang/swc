@@ -25,10 +25,10 @@ using Swag, Core, Core.Errors
     }
 
     expect feeder.finish()
-    var all:   Array's16
-    var block: Array's16
+    var all:   Array!{s16}
+    var block: Array!{s16}
     var info:  CaptureBlock
-    var expected = 0'u64
+    var expected = 0_u64
     while queue.pop(&block, &info)
     {
         Swag.require(info.startSample == expected and info.gapFrames == 0)
@@ -37,9 +37,9 @@ using Swag, Core, Core.Errors
     }
 
     Swag.require(expected == 2_400 and all.count == 4_800)
-    var sourcePower  = 0.0'f64
-    var decodedPower = 0.0'f64
-    var cross        = 0.0'f64
+    var sourcePower  = 0.0_f64
+    var decodedPower = 0.0_f64
+    var cross        = 0.0_f64
     for frame in 200 until 2_200
     {
         let original = 16_384.0 * Math.sin(Math.ConstF64.TwoPi * 1_000.0 * frame / 48_000.0)
@@ -60,7 +60,7 @@ using Swag, Core, Core.Errors
     var queue  = expect CaptureQueue.create(48_000, 1, 0, 10_000_000, blockFrames: 1_024, slots: 8, tolerance: 1)
     var feeder = expect CaptureResampledFeeder.create(&queue, 48_000)
     var input:  [1_024] s16
-    var copied: Array's16
+    var copied: Array!{s16}
     var info:   CaptureBlock
     for block in 120
     {
@@ -90,7 +90,7 @@ using Swag, Core, Core.Errors
     input[0] = 0.5
     expect feeder.pushFloat32(Swag.makeSlice(&input[0], input.count), 20_000_000, 0, true)
     expect feeder.finish()
-    var samples: Array's16
+    var samples: Array!{s16}
     var info:    CaptureBlock
     Swag.require(queue.pop(&samples, &info) and info.startSample == 0)
     var lastEnd = info.startSample + info.frameCount
@@ -116,15 +116,18 @@ using Swag, Core, Core.Errors
     var resampler = expect Resampler.create(96_000, 48_000, 1)
     var fresh     = expect Resampler.create(96_000, 48_000, 1)
     var input: [500] f32
-    for frame in input.count do
+    for frame in input.count
+    {
         input[frame] = cast(f32, Math.sin(Math.ConstF64.TwoPi * 500.0 * frame / 96_000.0))
-    var previous: Array'f32
+    }
+
+    var previous: Array!{f32}
     expect resampler.setInputClockDriftPpm(1_000)
     expect resampler.addFrames(Swag.makeSlice(&input[0], input.count), &previous)
     expect resampler.end(&previous)
     resampler.restart()
-    var restarted: Array'f32
-    var expected:  Array'f32
+    var restarted: Array!{f32}
+    var expected:  Array!{f32}
     expect resampler.addFrames(Swag.makeSlice(&input[0], input.count), &restarted)
     expect resampler.end(&restarted)
     expect fresh.addFrames(Swag.makeSlice(&input[0], input.count), &expected)
@@ -146,7 +149,7 @@ using Swag, Core, Core.Errors
     Swag.require(expect queue.markSilentUntil(1_000_000) == 4_320)
     expect feeder.pushFloat32(Swag.makeSlice(&signal[0], signal.count), 1_000_000, 0)
     expect feeder.finish()
-    var output: Array's16
+    var output: Array!{s16}
     var info:   CaptureBlock
     var foundResume = false
     while queue.pop(&output, &info)
@@ -166,14 +169,16 @@ using Swag, Core, Core.Errors
 {
     var queue   = expect CaptureQueue.create(48_000, 1, 0, 10_000_000, blockFrames: 1_024, slots: 8, tolerance: 0)
     var feeder  = expect CaptureResampledFeeder.create(&queue, 96_000)
-    var samples: Array's16
+    var samples: Array!{s16}
     var info:    CaptureBlock
-    var lastEnd = 0'u64
+    var lastEnd = 0_u64
     for packet in 120
     {
         expect feeder.pushSilence(960, packet * 100_000, packet * 960)
-        while queue.pop(&samples, &info) do
+        while queue.pop(&samples, &info)
+        {
             lastEnd = info.startSample + info.frameCount
+        }
     }
 
     Swag.require(feeder.clockEstimateIsReady() and feeder.inputClockDriftPpm() == 0)

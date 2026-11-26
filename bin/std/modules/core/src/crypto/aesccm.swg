@@ -19,21 +19,17 @@ private func aesCcmValidTagSize(size: u64)->bool
 
 private func aesCcmMacBlock(aes: *Aes, state: *[AesBlockSize] u8, block: *[AesBlockSize] u8) fail
 {
-    if aes[].usesHardwareRounds()
+    for index in AesBlockSize
     {
-        let next = aes[].encryptBlockHardware(load(&state[][0]) ^ load(&block[][0]))
-        store(&state[][0], next)
-        return
+        block[][index] ^= state[][index]
     }
 
-    for index in AesBlockSize do
-        block[][index] ^= state[][index]
     try aes[].encryptBlock(block[], state[])
 }
 
 private func aesCcmMacAppend(aes: *Aes, state: *[AesBlockSize] u8, block: *[AesBlockSize] u8, position: *u64, data: const [..] u8) fail
 {
-    var offset = 0'u64
+    var offset = 0_u64
     while offset < data.count
     {
         let count = Math.min(AesBlockSize - position[], data.count - offset)
@@ -43,7 +39,7 @@ private func aesCcmMacAppend(aes: *Aes, state: *[AesBlockSize] u8, block: *[AesB
         if position[] == AesBlockSize
         {
             try aesCcmMacBlock(aes, state, block)
-            Memory.set(&block[][0], 0'u8, AesBlockSize)
+            Memory.set(&block[][0], 0_u8, AesBlockSize)
             position[] = 0
         }
     }
@@ -62,25 +58,33 @@ private func aesCcmWriteAdLength(length: u64, header: *[10] u8)->u64
     {
         header[][0] = 0xFF
         header[][1] = 0xFE
-        for index in 4 do
+        for index in 4
+        {
             header[][2 + index] = Math.byteAt(cast(u32, length), 3 - index)
+        }
+
         return 6
     }
 
     header[][0] = 0xFF
     header[][1] = 0xFF
-    for index in 8 do
+    for index in 8
+    {
         header[][2 + index] = cast(u8, (length >> cast(u32, (7 - index) * 8)) & 0xFF)
+    }
+
     return 10
 }
 
 private func aesCcmMacAssociatedData(aes: *Aes, state: *[AesBlockSize] u8, associatedData: const [..] u8) fail
 {
-    if not associatedData.count do
+    if not associatedData.count
+    {
         return
+    }
 
     var block:  [AesBlockSize] u8
-    var position     = 0'u64
+    var position     = 0_u64
     var header: [10] u8
     let headerLength = aesCcmWriteAdLength(associatedData.count, &header)
     try aesCcmMacAppend(aes, state, &block, &position, Swag.makeSlice(&header[0], headerLength))
@@ -128,21 +132,40 @@ private func aesCcmStartMac(aes: *Aes, nonce, associatedData: const [..] u8, pla
     var block: [AesBlockSize] u8
     block[0] = cast(u8, (cast(u64, associatedData.count != 0) << 6) | (((tagSize - 2) / 2) << 3) | (lengthBytes - 1))
     Swag.memcpy(&block[1], nonce.buffer, nonce.count)
-    for index in lengthBytes do
-        block[15 - index] = cast(u8, (plaintextSize >> cast(u32, index * 8)) & 0xFF)
+    for index in lengthBytes
+    {
+        block[15 - index] = cast(u8, (plaintext.count >> cast(u32, index * 8)) & 0xFF)
+    }
 
     defer Crypto.secureClear(block)
     try aesCcmMacBlock(aes, state, &block)
     try aesCcmMacAssociatedData(aes, state, associatedData)
 }
 
-private func aesCcmFinishTag(aes: *Aes, counter, state: const *[AesBlockSize] u8, tagSize: u64)->[AesBlockSize] u8 fail
-{
-    var result = state[]
+    var offset = 0_u64
+    while offset < plaintext.count
+    {
+        var messageBlock: [AesBlockSize] u8
+        let count = Math.min(plaintext.count - offset, AesBlockSize)
+        Swag.memcpy(&messageBlock[0], plaintext.buffer + offset, count)
+        try aesCcmMacBlock(aes, &state, &messageBlock)
+        Crypto.secureClear(messageBlock)
+        offset += count
+    }
+
+    var result = state
+    var counter: [AesBlockSize] u8
+    counter[0] = cast(u8, lengthBytes - 1)
+    Swag.memcpy(&counter[1], nonce.buffer, nonce.count)
     var encryptedCounter: [AesBlockSize] u8
-    try aes[].encryptBlock(counter[], encryptedCounter)
-    for index in tagSize do
+    try aes.encryptBlock(counter, encryptedCounter)
+    for index in tagSize
+    {
         result[index] ^= encryptedCounter[index]
+    }
+
+    Crypto.secureClear(state)
+    Crypto.secureClear(counter)
     Crypto.secureClear(encryptedCounter)
     return result
 }
@@ -237,14 +260,20 @@ private func aesCcmCryptBlocks(aes: *Aes, nonce: const [..] u8, source: const [.
         counter[0] = cast(u8, lengthBytes - 1)
         Swag.memcpy(&counter[1], nonce.buffer, nonce.count)
         let counterValue = block + 1
-        for index in lengthBytes do
+        for index in lengthBytes
+        {
             counter[15 - index] = cast(u8, (counterValue >> cast(u32, index * 8)) & 0xFF)
+        }
+
         var keyStream: [AesBlockSize] u8
         try aes[].encryptBlock(counter, keyStream)
         let offset = block * AesBlockSize
         let count  = Math.min(source.count - offset, AesBlockSize)
-        for index in count do
+        for index in count
+        {
             destination[offset + index] = source[offset + index] ^ keyStream[index]
+        }
+
         Crypto.secureClear(counter)
         Crypto.secureClear(keyStream)
         block += 1
@@ -278,11 +307,16 @@ private func aesCcmValidate(nonce, input: const [..] u8, output: [..] u8, tag: c
     if nonce.count < 7 or
        nonce.count > 13 or
        not aesCcmValidTagSize(tag.count) or
-       input.count != output.count do
+       input.count != output.count
+    {
         fail Errors.BadParameterError{"AES-CCM needs a 7-to-13-byte nonce, a 4-to-16-byte even tag, and matching data lengths"}
+    }
+
     let lengthBytes = 15 - nonce.count
-    if lengthBytes < 8 and input.count >= (1'u64 << cast(u32, lengthBytes * 8)) do
+    if lengthBytes < 8 and input.count >= (1_u64 << cast(u32, lengthBytes * 8))
+    {
         fail Errors.BadParameterError{"AES-CCM payload does not fit the nonce-selected length field"}
+    }
 }
 
 // Encrypts and authenticates data with AES-CCM.
@@ -326,14 +360,19 @@ func aesCcmDecrypt(key, nonce, associatedData, ciphertext, tag: const [..] u8, p
     try aesCcmValidate(nonce, ciphertext, plaintext, tag)
     var aes = try Aes.create(key)
     defer aes.clear()
-    var temporary: Array'u8
+    var temporary: Array!{u8}
     temporary.resize(ciphertext.count)
     defer Crypto.secureClear(temporary.toSlice())
     try aesCcmCrypt(&aes, nonce, ciphertext, temporary.toSlice())
     var computedTag = try aesCcmComputeTag(&aes, nonce, associatedData, temporary.toSlice(), tag.count)
     defer Crypto.secureClear(computedTag)
-    if not Crypto.constantTimeEqual(computedTag[until tag.count], tag) do
+    if not Crypto.constantTimeEqual(computedTag[until tag.count], tag)
+    {
         fail Errors.BadParameterError{"AES-CCM authentication failed"}
-    if plaintext.count do
+    }
+
+    if plaintext.count
+    {
         Swag.memcpy(plaintext.buffer, temporary.toSlice().buffer, plaintext.count)
+    }
 }

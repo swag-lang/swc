@@ -51,17 +51,14 @@ namespace
         }
     }
 
-    // A nested control statement or a failure handler written after `do` can
-    // capture the `else` that follows it: `catch expr else { ... }` is valid
-    // grammar, so `if c do try a() else do b()` binds the `else` to the `try`.
+    // A nested control statement or failure handler can capture the `else`
+    // that follows it, so a branch body must keep its own block boundary.
     bool capturesElse(const FormatPiece& piece)
     {
         switch (piece.id)
         {
             case TokenId::KwdIf:
             case TokenId::KwdElse:
-            case TokenId::KwdElseIf:
-            case TokenId::KwdDo:
             case TokenId::KwdFor:
             case TokenId::KwdWhile:
             case TokenId::KwdSwitch:
@@ -283,27 +280,18 @@ namespace FormatSiblings
         if (branch.keyword == INVALID_PIECE || branch.lastPiece == INVALID_PIECE)
             return shape;
 
-        uint32_t intro = branch.doPiece;
-        if (branch.openPiece != INVALID_PIECE)
-        {
-            shape.braced = true;
-            intro        = branch.openPiece;
-            shape.first  = model.nextPiece(branch.openPiece);
-            shape.last   = model.prevPiece(branch.lastPiece);
-        }
-        else
-        {
-            if (branch.doPiece == INVALID_PIECE)
-                return shape;
+        if (branch.openPiece == INVALID_PIECE)
+            return shape;
 
-            shape.first = model.nextPiece(branch.doPiece);
-            shape.last  = branch.lastPiece;
-        }
+        shape.braced = true;
+        const uint32_t intro = branch.openPiece;
+        shape.first          = model.nextPiece(branch.openPiece);
+        shape.last           = model.prevPiece(branch.lastPiece);
 
         shape.valid   = model.rangeEditable(branch.keyword, branch.lastPiece);
         shape.oneLine = noBreakBetween(model, intro, branch.lastPiece);
         if (shape.first == INVALID_PIECE || shape.last == INVALID_PIECE || shape.first > shape.last || model.piece(shape.first).is(TokenId::SymRightCurly))
-            return shape; // an empty body has nothing to put after `do`
+            return shape; // an empty body has nothing to lay out
 
         const ContentScan scan = scanContent(model, shape.first, shape.last);
         shape.compact          = scan.compact;

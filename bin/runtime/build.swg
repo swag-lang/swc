@@ -336,8 +336,8 @@ namespace Swag.Build
             ignoreInWorkspace    = false     // Skip this module when building a workspace
             publishDependencies  = false     // Place the shared libraries an executable needs beside it, so it runs without the compiler
 
-            tempAllocatorCapacity  = 4'u32 * 1024 * 1024     // Default capacity of the 'temp' allocator (in bytes)
-            errorAllocatorCapacity = 16'u32 * 1024           // Default capacity of the 'error' allocator (in bytes)
+            tempAllocatorCapacity  = 4_u32 * 1024 * 1024     // Default capacity of the 'temp' allocator (in bytes)
+            errorAllocatorCapacity = 16_u32 * 1024           // Default capacity of the 'error' allocator (in bytes)
             safetyGuards           = SafetyWhat.All          // Activate language RUNTIME safety checks; allocator checks use the early 'Swag.AllocatorSafety' tag
             sanityGuards           = SafetyWhat.All          // Activate specific STATIC (compile-time) sanity checks
         }

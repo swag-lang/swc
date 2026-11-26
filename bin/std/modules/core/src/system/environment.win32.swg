@@ -14,8 +14,11 @@ public const LineEnding = "\r\n"
 // Returns an empty string when the directory cannot be resolved.
 public func getSpecialDirectory(what: SpecialDirectory)->String
 {
-    if isSandboxed() do
+    if isSandboxed()
+    {
         return sandboxSpecialDirectory(what)
+    }
+
     return realSpecialDirectory(what)
 }
 
@@ -28,15 +31,19 @@ public func getSpecialDirectory(what: SpecialDirectory)->String
 // Returns an empty string when the directory cannot be resolved.
 public func realSpecialDirectory(what: SpecialDirectory)->String
 {
-    if what == SpecialDirectory.Downloads do
+    if what == SpecialDirectory.Downloads
+    {
         return downloadsDirectory()
+    }
 
     if what == SpecialDirectory.Temp
     {
         var a: [MAX_PATH] u8
         let len = catch GetTempPathA(MAX_PATH, &a[0]) { return "" }
-        if len >= MAX_PATH do
+        if len >= MAX_PATH
+        {
             return ""
+        }
 
         var result: #returntype = cast(string, a[until len])
         Path.normalize(&result)
@@ -80,30 +87,43 @@ public func realSpecialDirectory(what: SpecialDirectory)->String
 private func downloadsDirectory()->String
 {
     let initResult = Win32.CoInitializeEx(null, Win32.COINIT_APARTMENTTHREADED)
-    if initResult < 0 and initResult != Win32.RPC_E_CHANGED_MODE do
+    if initResult < 0 and initResult != Win32.RPC_E_CHANGED_MODE
+    {
         return ""
-    if initResult >= 0 do
+    }
+
+    if initResult >= 0
+    {
         defer Win32.CoUninitialize()
+    }
 
     var nativePath: LPWSTR?
     var folderId = Win32.FOLDERID_Downloads
     let result   = Win32.SHGetKnownFolderPath(&folderId, 0, null, &nativePath)
-    if nativePath do
+    if nativePath
+    {
         defer Win32.CoTaskMemFree(cast(*void?, nativePath))
-    if result != Win32.S_OK or not nativePath do
+    }
+
+    if result != Win32.S_OK or not nativePath
+    {
         return ""
+    }
 
     let pathBuffer = nativePath
-    var pathLength = 0'u64
-    while pathBuffer[pathLength] != 0 do
+    var pathLength = 0_u64
+    while pathBuffer[pathLength] != 0
+    {
         pathLength += 1
+    }
+
     var path = Utf8.fromUtf16(Swag.makeSlice(pathBuffer, pathLength))
     Path.normalize(&path)
     return path
 }
 
 // Returns snapshots of all active display monitors, ordered from left to right.
-public func getMonitors()->Array'Monitor
+public func getMonitors()->Array!{Monitor}
 {
     var result: #returntype
 
@@ -119,12 +139,14 @@ public func getMonitors()->Array'Monitor
         {
             let last = Win32.SetThreadDpiAwarenessContext(Win32.DPI_AWARENESS_CONTEXT_UNAWARE)
             defer discard Win32.SetThreadDpiAwarenessContext(last)
-            catch GetMonitorInfoA(hMonitor, &mi) do
+            catch GetMonitorInfoA(hMonitor, &mi)
+            {
                 return TRUE
+            }
         }
 
         var m: Monitor
-        let ptr = cast(*Array'Monitor, cast #bit (u64, lParam))
+        let ptr = cast(*Array!{Monitor}, cast #bit (u64, lParam))
 
         m.bounds.x      = mi.rcMonitor.left
         m.bounds.y      = mi.rcMonitor.top
@@ -168,8 +190,10 @@ public func getMonitors()->Array'Monitor
 #[Swag.Discardable]
 public func showInFileExplorer(path: string)->bool
 {
-    if Utf8.contains(cast(const [..] u8, path), 0'u8) do
+    if Utf8.contains(cast(const [..] u8, path), 0_u8)
+    {
         return false
+    }
 
     var x: String = path
     x.replace("/", "\\")
@@ -193,8 +217,10 @@ public func showInFileExplorer(path: string)->bool
 #[Swag.Discardable]
 public func openFileWith(path: string)->bool
 {
-    if Utf8.contains(cast(const [..] u8, path), 0'u8) do
+    if Utf8.contains(cast(const [..] u8, path), 0_u8)
+    {
         return false
+    }
 
     var x: String = path
     x.replace("/", "\\")
@@ -221,8 +247,10 @@ public func openFileWith(path: string)->bool
 #[Swag.Discardable]
 public func openFile(path: string)->bool
 {
-    if Utf8.contains(cast(const [..] u8, path), 0'u8) do
+    if Utf8.contains(cast(const [..] u8, path), 0_u8)
+    {
         return false
+    }
 
     var normalized = String.from(path)
     normalized.replace("/", "\\")
@@ -242,8 +270,10 @@ public func openFile(path: string)->bool
 #[Swag.Discardable]
 public func openUrl(url: string)->bool
 {
-    if not isWebUrl(url) do
+    if not isWebUrl(url)
+    {
         return false
+    }
 
     // A 'string' view has no terminator of its own, and the wide call keeps non-ASCII URLs intact.
     let wideUrl = Utf16.toZeroTerminated(url)
@@ -272,8 +302,10 @@ public func userLocaleName()->String
 {
     var name16: [LOCALE_NAME_MAX_LENGTH] u16
     let len = catch GetUserDefaultLocaleName(&name16[0], LOCALE_NAME_MAX_LENGTH) { return "" }
-    if len <= 1 do
+    if len <= 1
+    {
         return ""
+    }
 
     // The returned length includes the terminating zero.
     return Utf8.fromUtf16(Swag.makeSlice(&name16[0], cast(u64, (len - 1))))
@@ -291,8 +323,10 @@ var g_SysInfo: SYSTEM_INFO
 // registry, which a test or a smoke run has no business touching.
 public func registerApplication(appName, appFriendly: string)
 {
-    if denySystemMutation(.ApplicationRegistration) do
+    if denySystemMutation(.ApplicationRegistration)
+    {
         return
+    }
 
     // The registry reads zero-terminated text, which a 'string' view does not guarantee.
     let friendly = String.from(appFriendly)
@@ -356,8 +390,10 @@ public func registerApplication(appName, appFriendly: string)
 #[Swag.Discardable]
 public func associateFileExtension(extension, appName, appPath: string)->bool
 {
-    if denySystemMutation(.FileAssociation) do
+    if denySystemMutation(.FileAssociation)
+    {
         return false
+    }
 
     var hKey: HKEY
 
@@ -370,8 +406,10 @@ public func associateFileExtension(extension, appName, appPath: string)->bool
                        KEY_SET_VALUE,
                        null,
                        &hKey,
-                       null) != ERROR_SUCCESS do
+                       null) != ERROR_SUCCESS
+    {
         return false
+    }
 
     let valApp = Format.toString("%", appName)
     if RegSetValueExA(hKey, null, 0, REG_SZ, valApp.buffer, cast(u32, (valApp.length + 1))) != ERROR_SUCCESS
@@ -391,8 +429,10 @@ public func associateFileExtension(extension, appName, appPath: string)->bool
                        KEY_SET_VALUE,
                        null,
                        &hKey,
-                       null) != ERROR_SUCCESS do
+                       null) != ERROR_SUCCESS
+    {
         return false
+    }
 
     let extensionName = String.from(extension)
     if RegSetValueExA(hKey, extensionName.buffer, 0, REG_SZ, null, 0) != ERROR_SUCCESS
@@ -412,8 +452,10 @@ public func associateFileExtension(extension, appName, appPath: string)->bool
                        KEY_SET_VALUE,
                        null,
                        &hKey,
-                       null) != ERROR_SUCCESS do
+                       null) != ERROR_SUCCESS
+    {
         return false
+    }
 
     var command = Format.toString("\"%\" \"%%1\"", appPath)
     command.replace("/", "\\")
@@ -448,29 +490,39 @@ public func associateFileExtension(extension, appName, appPath: string)->bool
 #[Swag.Discardable]
 public func claimFileExtension(extension, progId, description, appPath: string)->bool
 {
-    if denySystemMutation(.FileAssociation) do
+    if denySystemMutation(.FileAssociation)
+    {
         return false
+    }
 
     var native = String.from(appPath)
     native.replace("/", "\\")
 
     let progIdKey = Format.toString("Software\\Classes\\%", progId)
-    if not writeUserClassString(progIdKey, "", description) do
+    if not writeUserClassString(progIdKey, "", description)
+    {
         return false
+    }
 
     let iconKey  = Format.toString("Software\\Classes\\%\\DefaultIcon", progId)
     let iconPath = Format.toString("%,0", native)
-    if not writeUserClassString(iconKey, "", iconPath) do
+    if not writeUserClassString(iconKey, "", iconPath)
+    {
         return false
+    }
 
     let commandKey = Format.toString("Software\\Classes\\%\\shell\\open\\command", progId)
     let command    = Format.toString("\"%\" \"%%1\" %%*", native)
-    if not writeUserClassString(commandKey, "", command) do
+    if not writeUserClassString(commandKey, "", command)
+    {
         return false
+    }
 
     let extensionKey = Format.toString("Software\\Classes\\%", extension)
-    if not writeUserClassString(extensionKey, "", progId) do
+    if not writeUserClassString(extensionKey, "", progId)
+    {
         return false
+    }
 
     SHChangeNotify(SHCNE_ASSOCCHANGED, SHCNF_IDLIST, null, null)
     return true
@@ -494,15 +546,20 @@ private func writeUserClassString(keyPath: string, valueName: string, value: str
                        KEY_SET_VALUE,
                        null,
                        &hKey,
-                       null) != ERROR_SUCCESS do
+                       null) != ERROR_SUCCESS
+    {
         return false
+    }
+
     defer RegCloseKey(hKey)
 
     let nativeValue = Utf16.toZeroTerminated(value)
     let bytes       = cast(u32, (nativeValue.count * #sizeof(u16)))
 
-    if valueName.count == 0 do
+    if valueName.count == 0
+    {
         return RegSetValueExW(hKey, null, 0, REG_SZ, cast(const *u8?, nativeValue.buffer), bytes) == ERROR_SUCCESS
+    }
 
     let nativeName = Utf16.toZeroTerminated(valueName)
     return RegSetValueExW(hKey, nativeName.buffer, 0, REG_SZ, cast(const *u8?, nativeValue.buffer), bytes) == ERROR_SUCCESS
@@ -513,8 +570,10 @@ private func writeUserClassString(keyPath: string, valueName: string, value: str
     if not (Swag.runtimeFlags() & .FromCompiler)
     {
         let str = getNativeArgs()
-        if str.count do
+        if str.count
+        {
             Swag.processInfo().args = str
+        }
     }
 }
 
@@ -527,8 +586,10 @@ func getNativeArgs()->string
     // a plain native start, and appending one to the other glues two command
     // lines into one unparseable text.
     let handed = Swag.processInfo().args
-    if handed != null and handed.count do
+    if handed != null and handed.count
+    {
         return handed
+    }
 
     let ptr = GetCommandLineW()
     g_StoreArgs = Utf8.fromUtf16(Swag.makeSlice(ptr, Utf16.lengthZeroTerminated(ptr)))
@@ -557,8 +618,11 @@ var g_DpiAware: bool
 // and a failure (for example when the awareness was already set by other means) is ignored.
 public func enableDpiAwareness()
 {
-    if g_DpiAware do
+    if g_DpiAware
+    {
         return
+    }
+
     g_DpiAware = true
     discard SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2)
 }
@@ -572,8 +636,11 @@ private func envWindowProc(hWnd: HWND, msg: UINT, wParam: WPARAM, lParam: LPARAM
     func dispatchPointer(window: *Window, hWnd: HWND, msg: UINT, wParam: WPARAM, lParam: LPARAM)
     {
         let callback = window.callbacks.onPointer
-        if not callback do
+        if not callback
+        {
             return
+        }
+
         with var event: WindowPointerEvent
         {
             .x = GET_X_LPARAM(lParam)
@@ -599,8 +666,11 @@ private func envWindowProc(hWnd: HWND, msg: UINT, wParam: WPARAM, lParam: LPARAM
 
         case WM_XBUTTONDOWN, WM_XBUTTONUP:
             let button = HIWORD(wParam)
-            if button != 1 and button != 2 do
+            if button != 1 and button != 2
+            {
                 return
+            }
+
             event.kind   = msg == WM_XBUTTONDOWN ? .ButtonDown : .ButtonUp
             event.button = button == 1 ? .XButton1 : .XButton2
 
@@ -608,16 +678,23 @@ private func envWindowProc(hWnd: HWND, msg: UINT, wParam: WPARAM, lParam: LPARAM
 
             // Wheel messages carry screen coordinates, unlike the other mouse messages.
             var position: POINT = {event.x, event.y}
-            if not ScreenToClient(hWnd, &position) do
+            if not ScreenToClient(hWnd, &position)
+            {
                 return
+            }
+
             event.x    = position.x
             event.y    = position.y
             event.kind = .Wheel
             let delta = cast(f32, GET_WHEEL_DELTA_WPARAM(wParam)) / WHEEL_DELTA
-            if msg == WM_MOUSEHWHEEL do
+            if msg == WM_MOUSEHWHEEL
+            {
                 event.wheelX = delta
-            else do
+            }
+            else
+            {
                 event.wheelY = delta
+            }
 
         default:
             return
@@ -645,20 +722,28 @@ private func envWindowProc(hWnd: HWND, msg: UINT, wParam: WPARAM, lParam: LPARAM
         case WM_CLOSE:
             let stopLoop       = window.stopLoopOnClose
             let onCloseRequest = window.callbacks.onCloseRequest
-            if onCloseRequest do
+            if onCloseRequest
+            {
                 onCloseRequest(safeWindow)
+            }
 
             // The callback may move or destroy its owner. Only the captured policy remains.
-            if stopLoop do
+            if stopLoop
+            {
                 PostQuitMessage(0)
+            }
+
             return 0
 
         case WM_PAINT:
             var ps: PAINTSTRUCT
             BeginPaint(hWnd, &ps)
             let onPaint = window.callbacks.onPaint
-            if onPaint do
+            if onPaint
+            {
                 onPaint(safeWindow)
+            }
+
             EndPaint(hWnd, &ps)
             return 0
 
@@ -673,14 +758,20 @@ private func envWindowProc(hWnd: HWND, msg: UINT, wParam: WPARAM, lParam: LPARAM
 
         case WM_SETFOCUS, WM_KILLFOCUS:
             let onFocus = window.callbacks.onFocus
-            if onFocus do
+            if onFocus
+            {
                 onFocus(safeWindow, msg == WM_SETFOCUS)
+            }
+
             return 0
 
         case WM_SIZE:
             let onResize = window.callbacks.onResize
-            if onResize do
+            if onResize
+            {
                 onResize(safeWindow, LOWORD(lParam), HIWORD(lParam))
+            }
+
             return 0
 
         case WM_DPICHANGED:
@@ -698,8 +789,11 @@ private func envWindowProc(hWnd: HWND, msg: UINT, wParam: WPARAM, lParam: LPARAM
             return 0
 
         case WM_DESTROY:
-            if window.stopLoopOnClose do
+            if window.stopLoopOnClose
+            {
                 PostQuitMessage(0)
+            }
+
             return 0
 
         case WM_NCDESTROY:
@@ -724,9 +818,11 @@ impl Window
 
 internal func createWindowNative(result: *Window, options: WindowOptions) fail
 {
-    if Utf8.contains(cast(const [..] u8, options.identifier), 0'u8) or
-       Utf8.contains(cast(const [..] u8, options.title), 0'u8) do
+    if Utf8.contains(cast(const [..] u8, options.identifier), 0_u8) or
+       Utf8.contains(cast(const [..] u8, options.title), 0_u8)
+    {
         fail Errors.BadParameterError{"window identifier and title cannot contain a zero byte"}
+    }
 
     // The first native window of the process decides its DPI awareness.
     enableDpiAwareness()
@@ -743,12 +839,20 @@ internal func createWindowNative(result: *Window, options: WindowOptions) fail
     try RegisterClassA(wc)
 
     var style = WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_CLIPSIBLINGS | WS_CLIPCHILDREN
-    if options.flags.has(.Resizable) do
+    if options.flags.has(.Resizable)
+    {
         style |= WS_THICKFRAME
-    if options.flags.has(.Minimizable) do
+    }
+
+    if options.flags.has(.Minimizable)
+    {
         style |= WS_MINIMIZEBOX
-    if options.flags.has(.Maximizable) do
+    }
+
+    if options.flags.has(.Maximizable)
+    {
         style |= WS_MAXIMIZEBOX
+    }
 
     let hWnd = CreateWindowExA(0,
                                className.buffer,
@@ -762,8 +866,10 @@ internal func createWindowNative(result: *Window, options: WindowOptions) fail
                                null,
                                wc.hInstance,
                                result)
-    if not hWnd do
+    if not hWnd
+    {
         try failWinError(GetLastError())
+    }
 
     result.setNativeHandle(hWnd)
 }
@@ -778,8 +884,10 @@ public func processWindowMessages()->bool
     var msg: MSG
     while PeekMessageA(&msg, null, 0, 0, PM_REMOVE) != 0
     {
-        if msg.message == WM_QUIT do
+        if msg.message == WM_QUIT
+        {
             return false
+        }
 
         TranslateMessage(&msg)
         DispatchMessageA(&msg)
@@ -815,8 +923,11 @@ public impl Window
     // Returns the physical device pixels per logical unit on the window's monitor.
     mtd const dpiScale()->f32
     {
-        if not .nativeHandle do
+        if not .nativeHandle
+        {
             return 1
+        }
+
         return cast(f32, GetDpiForWindow(.win32Handle())) / cast(f32, USER_DEFAULT_SCREEN_DPI)
     }
 
@@ -824,10 +935,15 @@ public impl Window
     {
         var windowRect: RECT
         var clientRect: RECT
-        if not GetWindowRect(.win32Handle(), &windowRect) do
+        if not GetWindowRect(.win32Handle(), &windowRect)
+        {
             try failWinError(GetLastError())
-        if not GetClientRect(.win32Handle(), &clientRect) do
+        }
+
+        if not GetClientRect(.win32Handle(), &clientRect)
+        {
             try failWinError(GetLastError())
+        }
 
         let frameWidth  = (windowRect.right - windowRect.left) - (clientRect.right - clientRect.left)
         let frameHeight = (windowRect.bottom - windowRect.top) - (clientRect.bottom - clientRect.top)
@@ -842,21 +958,33 @@ public impl Window
     internal mtd clientSizeNative()->{width, height: s32} fail
     {
         var clientRect: RECT
-        if not GetClientRect(.win32Handle(), &clientRect) do
+        if not GetClientRect(.win32Handle(), &clientRect)
+        {
             try failWinError(GetLastError())
+        }
+
         return {width: clientRect.right - clientRect.left, height: clientRect.bottom - clientRect.top}
     }
 
     private mtd checkedMutationHandle()->HWND fail
     {
-        if not .isOpen() do
+        if not .isOpen()
+        {
             fail Errors.BadParameterError{"window is closed"}
+        }
+
         let handle = .win32Handle()
         let thread = GetWindowThreadProcessId(handle, null)
-        if thread == 0 do
+        if thread == 0
+        {
             try failWinError(GetLastError())
-        if thread != GetCurrentThreadId() do
+        }
+
+        if thread != GetCurrentThreadId()
+        {
             fail Errors.BadParameterError{"window operations require their creating thread"}
+        }
+
         .rebindNative()
         return handle
     }
@@ -876,15 +1004,20 @@ public impl Window
     internal mtd requestFocusNative() fail
     {
         let handle = try .checkedMutationHandle()
-        if not IsWindowVisible(handle) do
+        if not IsWindowVisible(handle)
+        {
             fail Errors.BadParameterError{"window is hidden"}
+        }
+
         SetLastError(0)
         let previous = SetFocus(handle)
         if not previous
         {
             let error = GetLastError()
-            if error != 0 do
+            if error != 0
+            {
                 try failWinError(error)
+            }
         }
     }
 

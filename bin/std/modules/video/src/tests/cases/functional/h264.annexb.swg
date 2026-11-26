@@ -3,18 +3,18 @@
 
 using Swag, Core, Core.Errors
 
-func annexPacket(source: *ByteSource)->Array'u8 fail
+func annexPacket(source: *ByteSource)->Array!{u8} fail
 {
-    let size = try source.readBigEndian'u32()
-    var result: Array'u8
+    let size = try source.readBigEndian!{u32}()
+    var result: Array!{u8}
     result.resize(size)
     try source.readExact(result.toSlice())
     return result
 }
 
-func appendAnnexPacket(result: *Array'u8, packet: const [..] u8, startCode: const [..] u8)
+func appendAnnexPacket(result: *Array!{u8}, packet: const [..] u8, startCode: const [..] u8)
 {
-    var offset = 0'u64
+    var offset = 0_u64
     while offset < packet.count
     {
         let size = Math.make32(packet[offset], packet[offset + 1], packet[offset + 2], packet[offset + 3])
@@ -37,7 +37,7 @@ func appendAnnexPacket(result: *Array'u8, packet: const [..] u8, startCode: cons
     let ppsSize  = Math.make16(config[ppsCount + 1], config[ppsCount + 2])
     const Start: [4] u8 = [0, 0, 0, 1]
     let delimiter = Swag.makeSlice(&Start[0], Start.count)
-    var annex: Array'u8
+    var annex: Array!{u8}
     annex.add(delimiter)
     annex.add(config.toSlice()[8 until 8 + spsSize])
     annex.add(delimiter)
@@ -72,10 +72,10 @@ func appendAnnexPacket(result: *Array'u8, packet: const [..] u8, startCode: cons
     discard expect annexPacket(&source)
     let packet = expect annexPacket(&source)
     const Start: [3] u8 = [0, 0, 1]
-    var annex: Array'u8
+    var annex: Array!{u8}
     appendAnnexPacket(&annex, packet.toSlice(), Swag.makeSlice(&Start[0], Start.count))
-    annex.add(0'u8)
-    annex.add(0'u8)
+    annex.add(0_u8)
+    annex.add(0_u8)
 
     let converted = expect H264.AnnexBAccessUnit.parse(annex.toSlice())
     Swag.require(converted.hasPicture and not converted.isKeyFrame)

@@ -22,16 +22,16 @@ func bitXorWide(a: u64, b: u64)->u64
 // XOR operations: basic, chained, self, and wide
 #test
 {
-    let v0 = bitXor(47'u32, 5'u32)
-    let v1 = bitXorChain(58'u32, 24'u32, 8'u32)
-    let v2 = bitXorSelf(0xABCD_1234'u32)
-    let v3 = bitXorWide(0xFF00_FF00_FF00_FF00'u64, 0x00FF_00FF_00FF_00FF'u64)
+    let v0 = bitXor(47_u32, 5_u32)
+    let v1 = bitXorChain(58_u32, 24_u32, 8_u32)
+    let v2 = bitXorSelf(0xABCD_1234_u32)
+    let v3 = bitXorWide(0xFF00_FF00_FF00_FF00_u64, 0x00FF_00FF_00FF_00FF_u64)
 
     #assert(#typeof(v0) == u32)
     #assert(#typeof(v3) == u64)
 
-    Swag.require(v0 == 42'u32)
-    Swag.require(v1 == 42'u32)
-    Swag.require(v2 == 0'u32)
-    Swag.require(v3 == 0xFFFF_FFFF_FFFF_FFFF'u64)
+    Swag.require(v0 == 42_u32)
+    Swag.require(v1 == 42_u32)
+    Swag.require(v2 == 0_u32)
+    Swag.require(v3 == 0xFFFF_FFFF_FFFF_FFFF_u64)
 }

@@ -10,8 +10,11 @@ internal impl FileStream
     mtd readNative(buffer: *void, length: u32)->u32 fail
     {
         var read: DWORD
-        if not ReadFile(.handle, buffer, length, &read, null) do
+        if not ReadFile(.handle, buffer, length, &read, null)
+        {
             try failWinError(GetLastError())
+        }
+
         return read
     }
 

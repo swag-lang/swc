@@ -6,7 +6,7 @@ using Gui, Core, Pixel, Core.Math
 const ElemSize  = 40
 const SnakeTime = 150
 
-var g_Snake:      Array'Vector2
+var g_Snake:      Array!{Vector2}
 var g_ApplePos:   Vector2
 var g_SnakeSpeed: Vector2
 var g_Rect:       Rectangle
@@ -21,8 +21,11 @@ func paintSnake(painter: *Painter)
         let y = p.y * ElemSize
 
         painter.fillCircle(x, y, ElemSize * scale, Argb.Black)
-        if index == 0 do
+        if index == 0
+        {
             painter.fillCircle(x, y, ElemSize * 0.45, Argb.Green)
+        }
+
         scale -= 0.025
         scale = Math.max(scale, 0.4)
     }
@@ -74,13 +77,17 @@ func updateCollisions()->bool
 func updateSnakePosition()
 {
     let curTime = Time.monotonicMilliseconds()
-    if curTime - g_Time < SnakeTime do
+    if curTime - g_Time < SnakeTime
+    {
         return
+    }
 
     g_Time = curTime
 
-    if updateCollisions() do
+    if updateCollisions()
+    {
         return
+    }
 
     var newHeadPos = g_Snake[0]
     newHeadPos += g_SnakeSpeed

@@ -5,8 +5,10 @@ public impl Image
     // Inverts the color channels, leaving alpha unchanged.
     mtd invert()
     {
-        if not .pixelFormat.isPacked() do
+        if not .pixelFormat.isPacked()
+        {
             return
+        }
 
         if .pixelFormat.isGrayscale() or .pixelFormat.bitDepth() != 8 or .alphaMode == .Premultiplied
         {
@@ -25,7 +27,7 @@ public impl Image
         {
             .visitVectorBytes() #code(block, _)
             {
-                let invertMask = cast(Math.Simd.U8x16, [255'u8, 255, 255, 0, 255, 255, 255, 0, 255, 255, 255, 0, 255, 255, 255, 0])
+                let invertMask = cast(Math.Simd.U8x16, [255_u8, 255, 255, 0, 255, 255, 255, 0, 255, 255, 255, 0, 255, 255, 255, 0])
                 Math.Simd.store(block, Math.Simd.load(block) ^ invertMask)
             }
         }
@@ -33,16 +35,19 @@ public impl Image
         {
             .visitVectorBytes() #code(block, _)
             {
-                Math.Simd.store(block, Math.Simd.load(block) ^ Math.Simd.splat(255'u8))
+                Math.Simd.store(block, Math.Simd.load(block) ^ Math.Simd.splat(255_u8))
             }
         }
 
         let pixels = .pixels.storage()
-        var offset = .byteCount & ~15'u64
+        var offset = .byteCount & ~15_u64
         while offset < .byteCount
         {
-            if not keepAlpha or offset & 3 != 3 do
+            if not keepAlpha or offset & 3 != 3
+            {
                 pixels[offset] = 255 - pixels[offset]
+            }
+
             offset += 1
         }
     }

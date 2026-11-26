@@ -5,8 +5,10 @@ namespace GenericCloneCodegenSupport
 {
     func helperFree(buffer: [*] void?, size: u64, allocator: IAllocator? = null)
     {
-        if not buffer do
+        if not buffer
+        {
             return
+        }
 
         var req: AllocatorRequest
         req.size    = size
@@ -40,8 +42,10 @@ namespace GenericCloneCodegenSupport
     {
         mtd reserve(newCapacity: u64)
         {
-            if newCapacity <= .capacity do
+            if newCapacity <= .capacity
+            {
                 return
+            }
 
             .buffer   = cast([*] T?, helperRealloc(.buffer, newCapacity * #sizeof(T), .capacity * #sizeof(T), .allocator))
             .capacity = newCapacity
@@ -69,7 +73,7 @@ namespace GenericCloneCodegenSupport
 
     struct(T) PtrBox
     {
-        values: BufferBox'(*T)
+        values: BufferBox!{*T}
     }
 
     impl PtrBox
@@ -83,8 +87,10 @@ namespace GenericCloneCodegenSupport
 
         mtd clear()
         {
-            for item in .values.toSlice() do
+            for item in .values.toSlice()
+            {
                 testFree(item)
+            }
             .values.count = 0
         }
     }
@@ -92,7 +98,7 @@ namespace GenericCloneCodegenSupport
 
 #test
 {
-    var box: GenericCloneCodegenSupport.BufferBox'u32
+    var box: GenericCloneCodegenSupport.BufferBox!{u32}
     box.reserve(4)
     box.add(11)
     box.add(22)
@@ -106,7 +112,7 @@ namespace GenericCloneCodegenSupport
 
 #test
 {
-    var box: GenericCloneCodegenSupport.PtrBox's32
+    var box: GenericCloneCodegenSupport.PtrBox!{s32}
     box.values.reserve(2)
     box.addNew(7)
     box.addNew(9)

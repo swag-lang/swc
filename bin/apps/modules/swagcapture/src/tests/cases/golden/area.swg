@@ -27,7 +27,7 @@ using Swag, Core
     f.gui.theme.setDark()
     f.gui.notify(.ThemeChanged)
 
-    with let wnd = Wnd.create'CaptureRectWnd(&f.gui.root, {0, 0, 1024, 640})
+    with let wnd = Wnd.create!{CaptureRectWnd}(&f.gui.root, {0, 0, 1024, 640})
     {
         .main      = f.main
         .startGrab = true
@@ -67,7 +67,7 @@ using Swag, Core
     f.gui.theme.setLight()
     f.gui.notify(.ThemeChanged)
 
-    with let wnd = Wnd.create'CaptureRectWnd(&f.gui.root, {0, 0, 800, 500})
+    with let wnd = Wnd.create!{CaptureRectWnd}(&f.gui.root, {0, 0, 800, 500})
     {
         .main    = f.main
         .pointer = {400, 250}

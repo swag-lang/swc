@@ -13,8 +13,14 @@ func right64(value, first, second, flag: u64)->u64 => flag != 0 ? value >> first
 {
     // Shift counts stay below the width they shift: anywhere else a shift is
     // a runtime error under safety and unspecified without it.
-    let values = [0'u64, 1, 7, 31, 32, 63, 64, 0xFFFFFFFF, 0x8000000000000000, 0xFFFFFFFFFFFFFFFF]
-    for value in values do for first in values do for second in values do for flag in values
+    let values = [0_u64, 1, 7, 31, 32, 63, 64, 0xFFFFFFFF, 0x8000000000000000, 0xFFFFFFFFFFFFFFFF]
+    for value in values
+    {
+        for first in values
+        {
+            for second in values
+            {
+                for flag in values
                 {
                     let count    = first & 63
                     let other    = second & 63
@@ -30,4 +36,7 @@ func right64(value, first, second, flag: u64)->u64 => flag != 0 ? value >> first
                     Swag.require(left32(value32, count32, other32, flag32) == value32 << selected32)
                     Swag.require(right32(value32, count32, other32, flag32) == value32 >> selected32)
                 }
+            }
+        }
+    }
 }

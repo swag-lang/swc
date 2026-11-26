@@ -9,7 +9,7 @@ struct ToggleButton
     {
         using button: Button     // Embedded button behavior and presentation.
 
-        sigChanged: SigArray'func||(*Wnd)     // Emitted after a user action changes the state.
+        sigChanged: SigArray!{func||(*Wnd)}     // Emitted after a user action changes the state.
     }
 
     // Color animations of the painted parts, driven by the toggle and hover state.
@@ -86,8 +86,11 @@ impl IWnd for ToggleButton
         theme.drawSubRect(bc.painter, clientRect, subRectBorder, .aniBorder.cur())
 
         // Content. The knob rests at the end of its state unless a toggle is sliding it there.
-        if not .app().animator.isActive(me, AnimationChannel.from("Gui.Toggle.Knob")) do
+        if not .app().animator.isActive(me, AnimationChannel.from("Gui.Toggle.Knob"))
+        {
             .knob = .checked ? 1 : 0
+        }
+
         var posBox = clientRect
         posBox.y     = clientRect.vertCenter() - (posBox.height * 0.5)
         posBox.width = posBox.height
@@ -97,8 +100,10 @@ impl IWnd for ToggleButton
 
     mtd impl onMouseEvent(evt: *MouseEvent)
     {
-        if .processMouseEvent(evt) do
+        if .processMouseEvent(evt)
+        {
             .toggle()
+        }
     }
 
     // Space or Enter toggles the focused button.
@@ -107,8 +112,10 @@ impl IWnd for ToggleButton
         evt.accepted = false
         if evt.kind != .Pressed or
            evt.modifiers != .None or
-           (evt.key == .Space and not .hasVisibleFocus()) do
+           (evt.key == .Space and not .hasVisibleFocus())
+        {
             return
+        }
 
         if evt.key == .Space or evt.key == .Return
         {
@@ -126,11 +133,17 @@ impl ToggleButton
     {
         Swag.assert(parent != null)
         var pos = position
-        if pos.height == 0 do
+        if pos.height == 0
+        {
             pos.height = parent.themeMetrics().btnToggle_Height
-        if pos.width == 0 do
+        }
+
+        if pos.width == 0
+        {
             pos.width = parent.themeMetrics().btnToggle_Width
-        let result = Wnd.create'ToggleButton(parent, null, pos, id)
+        }
+
+        let result = Wnd.create!{ToggleButton}(parent, null, pos, id)
         result.focusPolicy = .Tab
         result.wndFlags    |= .ActivatesOnKey | .FocusRing
         return result
@@ -142,11 +155,17 @@ impl ToggleButton
     // Changes the state without emitting a change signal or command.
     mtd setChecked(checked: bool)
     {
-        if .checked == checked do
+        if .checked == checked
+        {
             return
+        }
+
         .checked = checked
-        if .surface do
+        if .surface
+        {
             .app().animator.cancel(me, AnimationChannel.from("Gui.Toggle.Knob"))
+        }
+
         .knob = checked ? 1 : 0
         .invalidate()
     }

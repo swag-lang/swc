@@ -107,7 +107,7 @@ struct DragVTable
 
 #test
 {
-    let base = 5'u32
+    let base = 5_u32
     let cb: func||(Pair)->u32 = func|base|(v: Pair)->u32
     {
         return base + v.x + v.y

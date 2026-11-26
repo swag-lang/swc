@@ -7,7 +7,7 @@ struct FormDraw
     #[Name("Outline"), SliderMinMax(MinOutlineSize, MaxOutlineSize), Category("Stroke")]
     outlineSize:  f32
     outlineColor: Color = Argb.Black
-    points:       Array'Math.Vector2
+    points:       Array!{Math.Vector2}
     anchorSize:   f32   = 12
 }
 
@@ -30,8 +30,11 @@ impl IForm for FormDraw
     mtd impl isSame(ptr: *BaseForm)->bool
     {
         let other = catch cast(*FormDraw?, ptr) orelse null
-        if not other do
+        if not other
+        {
             return false
+        }
+
         return .isSameBase(ptr) and
                .outlineSize == other.outlineSize and
                .outlineColor == other.outlineColor
@@ -48,8 +51,10 @@ impl IForm for FormDraw
 
     mtd impl edit(evt: *MouseEvent, movingStart: Math.Point, localPos: Math.Point, zoom: f32)->bool
     {
-        if evt.kind == .Released and evt.button == .Left do
+        if evt.kind == .Released and evt.button == .Left
+        {
             return false
+        }
 
         let x0 = localPos.x / zoom
         let y0 = localPos.y / zoom
@@ -61,12 +66,14 @@ impl IForm for FormDraw
             .points.add(Math.Vector2{xs, ys})
             .points.add(Math.Vector2{x0, y0})
         }
-        elif evt.kind == .Move
+        else if evt.kind == .Move
         {
             let xs = Math.abs(x0 - .points.back().x)
             let ys = Math.abs(y0 - .points.back().y)
-            if xs > 5 or ys > 5 do
+            if xs > 5 or ys > 5
+            {
                 .points.add(Math.Vector2{x0, y0})
+            }
         }
         else
         {
@@ -106,8 +113,11 @@ impl IForm for FormDraw
 
     mtd impl boundRect()->Math.Rectangle
     {
-        if not .points.count do
+        if not .points.count
+        {
             .setDefaultShape()
+        }
+
         return boundOfPoints(&.points, .borderSize * 0.5 + .outlineSize)
     }
 
@@ -141,8 +151,10 @@ impl IForm for FormDraw
         let z = cxt.z
         var pl: LinePath
         pl.start(.points[0].x * z, .points[0].y * z)
-        for i in 1 until .points.count do
+        for i in 1 until .points.count
+        {
             pl.lineTo(.points[i].x * z, .points[i].y * z)
+        }
 
         if .subKind == .PixSel
         {

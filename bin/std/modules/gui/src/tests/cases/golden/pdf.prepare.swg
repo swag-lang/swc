@@ -8,7 +8,7 @@ func heaviestPage(name: string)->{ reader: Reader, index: u64 }
 {
     var result: #returntype
     result.reader = #move expect Reader.open(guiTestDataPath(name))
-    var best = 0'u64
+    var best = 0_u64
     for pageIndex in result.reader.pageCount()
     {
         var page = expect result.reader.loadPage(pageIndex)
@@ -27,7 +27,7 @@ func heaviestPage(name: string)->{ reader: Reader, index: u64 }
 #[Swag.TestTag("golden")]
 #test
 {
-    const Scale = 0.75'f32
+    const Scale = 0.75_f32
 
     var plain    = #move heaviestPage("llvm-polly-impact-2011-slides.pdf")
     var plainPg  = expect plain.reader.loadPage(plain.index)

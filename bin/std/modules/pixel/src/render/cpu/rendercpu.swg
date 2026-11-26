@@ -23,15 +23,15 @@ struct RenderCpu
     {
         nextHandle: u64 = 1
         generation: TextureGeneration
-        textures:   Array'CpuTexture
+        textures:   Array!{CpuTexture}
 
         surface:     Image
         scanScratch:   ScanScratch
         areaScratch:   AreaScratch
         scanClip:      ScanIntersection
 
-        stackReleasedRT: Array'(*RenderTarget?)
-        stackRT:         Array'(*RenderTarget?)
+        stackReleasedRT: Array!{*RenderTarget?}
+        stackRT:         Array!{*RenderTarget?}
         curRT:           *RenderTarget?
 
         worldTransform: Transform2 = Transform2.Identity
@@ -52,20 +52,19 @@ struct RenderCpu
         // The clipping region is a coverage plane, one byte per device pixel of the target: a
         // region cut along a curve keeps the fraction of each pixel its edge covers, so what is
         // painted through it keeps a smooth edge.
-        surfaceStencil: CpuStencil
+        surfaceStencil: Array!{u8}
         stencilOn:      bool
         stencilWrite:   bool
         stencilMode:    ClippingMode = Set
-        stackStencilOn: Array'bool     // Regions suspended by the render targets bound inside them.
+        stackStencilOn: Array!{bool}     // Regions suspended by the render targets bound inside them.
 
         font:           *Font?
         fontAtlasIndex: s32 = -1
         fontEffect:     FontEffectParams
         overlapMode:    bool
         overlapPass:    u8
-        overlapAlpha:   Array'u8
-        overlapWritten: Array'u8
-        overlapRows:    Array'OverlapRow
+        overlapAlpha:   Array!{u8}
+        overlapWritten: Array!{u8}
         alphaResolve:   bool
         whiteMatte:     [*] u8?
 
@@ -98,7 +97,7 @@ internal struct CpuBackdropCacheKey
 internal impl CpuBackdropCache
 {
     // Each of the two passes owns at most 64 MiB, counting both retained images.
-    const MaxBytes = 64'u64 * 1024 * 1024
+    const MaxBytes = 64_u64 * 1024 * 1024
 
     func acceptsSize(width, height: s32)->bool => width > 0 and height > 0 and cast(u64, width) <= MaxBytes / 8 / cast(u64, height)
 
@@ -112,9 +111,8 @@ internal struct CpuTexture
     public
     {
         handle:  TextureHandle
-        image:    Image
-        borrowed: const *Image?
-        stencil:  CpuStencil
+        image:   Image
+        stencil: Array!{u8}
         planar:  CpuPlanarTexture
     }
 }
@@ -127,7 +125,7 @@ internal impl CpuTexture
 // CPU-owned copies of the source planes, sampled before RGB conversion like the GPU shader.
 private struct CpuPlanarTexture
 {
-    luma, chromaB, chromaR: Array'u8
+    luma, chromaB, chromaR: Array!{u8}
     width, height, chromaWidth, chromaHeight: s32 = 0
     matrix:      YuvMatrix = .Bt601
     studioRange: bool      = false
@@ -186,8 +184,9 @@ private
     const CpuProgram_Backdrop: u8 = 6
 
     // Four BGRA pixels share these byte masks in the packed span kernels.
-    const CpuBgraRgbMask   = cast(Math.Simd.U8x16, [255'u8, 255, 255, 0, 255, 255, 255, 0, 255, 255, 255, 0, 255, 255, 255, 0])
-    const CpuBgraAlphaMask = cast(Math.Simd.U8x16, [0'u8, 0, 0, 255, 0, 0, 0, 255, 0, 0, 0, 255, 0, 0, 0, 255])
+    const CpuBgraRgbMask   = cast(Math.Simd.U8x16, [255_u8, 255, 255, 0, 255, 255, 255, 0, 255, 255, 255, 0, 255, 255, 255, 0])
+    const CpuBgraAlphaMask = cast(Math.Simd.U8x16, [0_u8, 0, 0, 255, 0, 0, 0, 255, 0, 0, 0, 255, 0, 0, 0, 255])
+    const CpuPixelLanes    = cast(Math.Simd.F32x4, [0.0_f32, 1.0, 2.0, 3.0])
 
     // Alpha factor of the bitmap font shader per atlas byte: pow(byte / 255, FontGamma).
     //
@@ -204,13 +203,14 @@ private func ensureFontGammaLut()
     g_FontGammaLutMutex.lock()
     defer g_FontGammaLutMutex.unlock()
 
-    if g_FontGammaLutReady do
+    if g_FontGammaLutReady
+    {
         return
+    }
+
     for i in 256
     {
-        let gamma = Math.pow(cast(f32, i) / 255.0, FontGamma)
-        g_FontGammaLut[i]    = gamma
-        g_FontGammaOpaque[i] = cast(u8, Math.clamp(Math.round(255.0 * gamma), 0.0, 255.0))
+        g_FontGammaLut[i] = Math.pow(cast(f32, i) / 255.0, FontGamma)
     }
 
     g_FontGammaLutReady = true
@@ -345,22 +345,30 @@ private impl RenderCpu
 {
     mtd ensureGeneration()->bool
     {
-        if .generation.tag do
+        if .generation.tag
+        {
             return true
+        }
 
         var generation: TextureGeneration
         var outcome:    Swag.Error
         catch { generation = try TextureGeneration.claim() } as outcome
-        if outcome.value() != null do
+        if outcome.value() != null
+        {
             return false
+        }
+
         .generation = generation
         return true
     }
 
     mtd findTexture(handle: TextureHandle)->*CpuTexture?
     {
-        for &texture in .textures where texture.handle == handle do
+        for &texture in .textures where texture.handle == handle
+        {
             return texture
+        }
+
         return null
     }
 
@@ -378,17 +386,23 @@ private impl RenderCpu
         if .curRT
         {
             let texture = .findTexture(.curRT.colorBuffer.handle)
-            if texture do
+            if texture
+            {
                 return &texture.image
+            }
+
             return null
         }
 
-        if .surface.isValid() do
+        if .surface.isValid()
+        {
             return &.surface
+        }
+
         return null
     }
 
-    mtd currentStencil()->*CpuStencil
+    mtd currentStencil()->*Array!{u8}
     {
         if .curRT
         {
@@ -401,10 +415,15 @@ private impl RenderCpu
 
     mtd ensureSurface(width, height: s32)
     {
-        if width <= 0 or height <= 0 do
+        if width <= 0 or height <= 0
+        {
             return
-        if .surface.isValid() and .surface.width == width and .surface.height == height do
+        }
+
+        if .surface.isValid() and .surface.width == width and .surface.height == height
+        {
             return
+        }
 
         .surface = Image.create(width, height, .BGRA8)
         .surface.clear()
@@ -415,21 +434,13 @@ private impl RenderCpu
     {
         let count   = cast(u64, width) * cast(u64, height)
         let stencil = .currentStencil()
-        if stencil.width == width and stencil.pixels.count == count do
+        if stencil.count == count
+        {
             return
-        stencil.pixels.resize(count)
-        Memory.clear(stencil.pixels.storage(), count)
-        stencil.width = width
-        stencil.dirty = PixelBounds.Empty
-    }
+        }
 
-    mtd clearStencil()
-    {
-        let stencil = .currentStencil()
-        if stencil.dirty.isEmpty() do
-            return
-        clearScratchRows(stencil.pixels.storage(), stencil.width, stencil.dirty)
-        stencil.dirty = PixelBounds.Empty
+        stencil.resize(count)
+        Memory.clear(stencil.storage(), count)
     }
 
     // Returns the transform mapping painter-stream positions to device pixels.
@@ -440,8 +451,11 @@ private impl RenderCpu
     {
         var result = .worldTransform
         result.multiply(.modelTransform)
-        if .contentScale != 1 do
+        if .contentScale != 1
+        {
             result.multiply(Transform2.createScale(.contentScale, .contentScale, 0, 0))
+        }
+
         return result
     }
 
@@ -505,8 +519,11 @@ private impl RenderCpu
     #[Swag.Inline]
     func signedCoverage(raw: f32)->f32
     {
-        if raw > StrokeCoverageBias * 0.5 do
+        if raw > StrokeCoverageBias * 0.5
+        {
             return 0.5 - Math.abs(raw - StrokeCoverageBias)
+        }
+
         return raw - 0.5
     }
 
@@ -514,8 +531,10 @@ private impl RenderCpu
     func clearScratchRows(plane: [*] u8, width: s32, bounds: PixelBounds)
     {
         let runWidth = cast(u64, (bounds.maxX - bounds.minX + 1))
-        for var y = bounds.minY; y <= bounds.maxY; y += 1 do
+        for var y = bounds.minY; y <= bounds.maxY; y += 1
+        {
             Memory.clear(plane + cast(u64, y) * cast(u64, width) + cast(u64, bounds.minX), runWidth)
+        }
     }
 
     func edge(a, b, p: Vector2)->f32 => Math.mulAdd(-(b.y - a.y), p.x - a.x, (b.x - a.x) * (p.y - a.y))
@@ -537,33 +556,26 @@ private impl RenderCpu
     #[Swag.Inline]
     func insideEdge(value: f32, topLeft: bool)->bool
     {
-        let bits      = cast #bit(u32, value)
-        let magnitude = bits & 0x7FFF_FFFF
-        if not magnitude do
-            return topLeft
-        return bits <= 0x7F80_0000
-    }
+        let zero  = Math.Simd.splat(0.0_f32)
+        var mask0 = edge0 > zero
+        var mask1 = edge1 > zero
+        var mask2 = edge2 > zero
+        if edge0TopLeft
+        {
+            mask0 |= edge0 == zero
+        }
 
-    // A rounded edge test is monotonic along a row. Once its outside columns are
-    // trimmed, every interior pixel can use the same coverage without rechecking it.
-    #[Swag.Inline]
-    func trimEdgeSpan(x0, x1: *s32, a, c, origin: f32, topLeft: bool)
-    {
-        if a == 0
+        if edge1TopLeft
         {
-            if not insideEdge(c, topLeft) do
-                x1[] = x0[] - 1
+            mask1 |= edge1 == zero
         }
-        elif a > 0
+
+        if edge2TopLeft
         {
-            while x0[] <= x1[] and not insideEdge(Math.mulAdd(a, cast(f32, x0[]) + 0.5 - origin, c), topLeft) do
-                x0[] += 1
+            mask2 |= edge2 == zero
         }
-        else
-        {
-            while x0[] <= x1[] and not insideEdge(Math.mulAdd(a, cast(f32, x1[]) + 0.5 - origin, c), topLeft) do
-                x1[] -= 1
-        }
+
+        return Math.Simd.bitmask(mask0 & mask1 & mask2)
     }
 
     // Narrows the columns `x0` to `x1` of one row to those that can pass one edge test.
@@ -579,30 +591,44 @@ private impl RenderCpu
         // The value is the same across the row, so one negative value rejects all of it.
         if a == 0
         {
-            if c < 0 do
+            if c < 0
+            {
                 x1[] = x0[] - 1
+            }
+
             return
         }
 
         let root = originX - c / a
-        if not Math.isFinite(root) do
+        if not Math.isFinite(root)
+        {
             return
+        }
+
         let margin = 1 + 0.000001 * (Math.abs(root - originX) + Math.abs(cast(f32, x0[]) - originX) + Math.abs(cast(f32, x1[]) - originX))
         if a > 0
         {
             let first = root - 0.5 - margin
-            if first > cast(f32, x1[]) do
+            if first > cast(f32, x1[])
+            {
                 x0[] = x1[] + 1
-            elif first > cast(f32, x0[]) do
-                x0[] = cast(s32, first)
+            }
+            else if first > cast(f32, x0[])
+            {
+                x0[] = cast(s32, Math.floor(first))
+            }
         }
         else
         {
             let last = root - 0.5 + margin
-            if last < cast(f32, x0[]) do
+            if last < cast(f32, x0[])
+            {
                 x1[] = x0[] - 1
-            elif last < cast(f32, x1[]) do
-                x1[] = cast(s32, last) + 1
+            }
+            else if last < cast(f32, x1[])
+            {
+                x1[] = cast(s32, Math.ceil(last))
+            }
         }
     }
 
@@ -620,7 +646,7 @@ private impl RenderCpu
     // colors through normalized floats for every sampled pixel.
     func lerpByte(c0, c1: u8, weight: u32)->u8
     {
-        const One = 65536'u32
+        const One = 65536_u32
         return cast(u8, ((cast(u32, c0) * (One - weight) + cast(u32, c1) * weight) >> 16))
     }
 
@@ -648,8 +674,8 @@ private impl RenderCpu
     #[Swag.Inline]
     func lerpBgra8(c0, c1, weight: u32)->u32
     {
-        const Lanes = 0x000000FF000000FF'u64
-        const Pair  = 0x00FF00FF'u64
+        const Lanes = 0x000000FF000000FF_u64
+        const Pair  = 0x00FF00FF_u64
         let a       = cast(u64, c0)
         let b       = cast(u64, c1)
         let inverse = 65536 - cast(u64, weight)
@@ -692,10 +718,14 @@ private impl RenderCpu
     func loadBgra8(row: const [*] u8, x: s32)->u32
     {
         let pixel = cast(const [*] u32, row)[x]
-        #static if Core.BIG_ENDIAN do
+        #static if Core.BIG_ENDIAN
+        {
             return Swag.byteSwap(pixel)
-        else do
+        }
+        else
+        {
             return pixel
+        }
     }
 
     #[Swag.Inline]
@@ -736,9 +766,12 @@ private impl RenderCpu
         let pixels = image.pixels.storage()
         let stride = cast(u64, image.rowStride)
         let top    = pixels + cast(u64, (image.height - y0 - 1)) * stride
-        let c0     = lerpBgra8(loadColor8'Format(top, x0), loadColor8'Format(top, x1), wx)
-        if wy == 0 or y0 == y1 do
+        let c0     = lerpBgra8(loadBgra8(top, x0), loadBgra8(top, x1), wx)
+        if wy == 0 or y0 == y1
+        {
             return Color.fromArgb(c0)
+        }
+
         let bottom = pixels + cast(u64, (image.height - y1 - 1)) * stride
         let c1     = lerpBgra8(loadColor8'Format(bottom, x0), loadColor8'Format(bottom, x1), wx)
         return Color.fromArgb(lerpBgra8(c0, c1, wy))
@@ -776,8 +809,11 @@ private impl RenderCpu
     func modFloor(value, divisor: s32)->s32
     {
         var result = value % divisor
-        if result < 0 do
+        if result < 0
+        {
             result += divisor
+        }
+
         return result
     }
 
@@ -870,8 +906,11 @@ private impl RenderCpu
             return src <= 0.5 ? 2.0 * src * dst : 1.0 - 2.0 * (1.0 - src) * (1.0 - dst)
 
         case .SoftLight:
-            if src <= 0.5 do
+            if src <= 0.5
+            {
                 return dst - (1.0 - 2.0 * src) * dst * (1.0 - dst)
+            }
+
             let d = dst <= 0.25 ? ((16.0 * dst - 12.0) * dst + 4.0) * dst : Math.sqrt(dst)
             return dst + (2.0 * src - 1.0) * (d - dst)
 
@@ -897,10 +936,16 @@ private impl RenderCpu
         let maxValue   = Math.max(color.x, color.y, color.z)
         var result     = color
 
-        if minValue < 0 do
+        if minValue < 0
+        {
             result = luminosity + (result - luminosity) * luminosity / (luminosity - minValue)
-        if maxValue > 1 do
+        }
+
+        if maxValue > 1
+        {
             result = luminosity + (result - luminosity) * (1.0 - luminosity) / (maxValue - luminosity)
+        }
+
         return result
     }
 
@@ -909,8 +954,10 @@ private impl RenderCpu
     func setBlendSaturation(color: Math.Vector3, saturation: f32)->Math.Vector3
     {
         let currentSaturation = blendSaturation(color)
-        if currentSaturation == 0 do
+        if currentSaturation == 0
+        {
             return Math.Vector3.Zero
+        }
 
         let minValue = Math.min(color.x, color.y, color.z)
         return (color - minValue) * saturation / currentSaturation
@@ -971,7 +1018,7 @@ private impl RenderCpu
     // Both weights sum to 255, so the numerator fits in 16 bits and equal colors stay equal.
     // Keeping the weights integral makes quantization independent of floating-point contraction.
     #[Swag.Inline]
-    func blendAlphaByte(src, dst, alpha: u8)->u8 => cast(u8, ((cast(u32, src) * alpha + cast(u32, dst) * (255'u32 - alpha)) / 255))
+    func blendAlphaByte(src, dst, alpha: u8)->u8 => cast(u8, ((cast(u32, src) * alpha + cast(u32, dst) * (255_u32 - alpha)) / 255))
 
     // Alpha-blends one BGRA8 pixel under the default color mask, preserving its alpha byte.
     #[Swag.Inline]
@@ -1014,8 +1061,10 @@ private impl RenderCpu
     {
         // A zero-alpha source is coverage, not ink: the OpenGL shader discards it under
         // every mode except 'Copy', where a transparent write is the erase operation.
-        if src.a == 0 and .blendingMode != .Copy do
+        if src.a == 0 and .blendingMode != .Copy
+        {
             return
+        }
 
         // GL_MAX ignores blend factors: alpha replay keeps the greatest source coverage.
         if .alphaResolve
@@ -1040,30 +1089,20 @@ private impl RenderCpu
 
         if .overlapPass == 2
         {
-            if .overlapWritten[pixelIdx] != 0 do
+            if .overlapWritten[pixelIdx] != 0
+            {
                 return
+            }
+
             .overlapWritten[pixelIdx] = 1
 
             // The first fragment consumes the maximum alpha accumulated by the mark pass;
             // subsequent overlapping fragments see zero destination alpha and contribute nothing.
             let alpha = .overlapAlpha[pixelIdx]
-            if image.pixelFormat == .BGRA8 and image.alphaMode == .Straight
-            {
-                let offset = cast(u64, image.height - y - 1) * image.rowStride + cast(u64, x) * 4
-                let pixel  = image.pixels.storage() + offset
-                let color  = Color.fromArgb(alpha, src.r, src.g, src.b)
-                blendAlphaBgra8(pixel, color)
-                if let matte = .whiteMatte do
-                    blendAlphaBgra8(matte + offset, color)
-                pixel[3] = 0
-                return
-            }
-
-            let dst = readPixel(image, x, y)
-            let out = Color.fromArgb(0'u8,
-                                     blendAlphaByte(src.r, dst.r, alpha),
-                                     blendAlphaByte(src.g, dst.g, alpha),
-                                     blendAlphaByte(src.b, dst.b, alpha))
+            let out   = Color.fromArgb(0_u8,
+                                       blendAlphaByte(src.r, dst.r, alpha),
+                                       blendAlphaByte(src.g, dst.g, alpha),
+                                       blendAlphaByte(src.b, dst.b, alpha))
             writePixel(image, x, y, out)
             return
         }
@@ -1072,14 +1111,26 @@ private impl RenderCpu
         if .blendingMode == .Alpha
         {
             var out = dst
-            if .colorMask.r do
+            if .colorMask.r
+            {
                 out.r = blendAlphaByte(src.r, dst.r, src.a)
-            if .colorMask.g do
+            }
+
+            if .colorMask.g
+            {
                 out.g = blendAlphaByte(src.g, dst.g, src.a)
-            if .colorMask.b do
+            }
+
+            if .colorMask.b
+            {
                 out.b = blendAlphaByte(src.b, dst.b, src.a)
-            if .colorMask.a do
+            }
+
+            if .colorMask.a
+            {
                 out.a = blendAlphaByte(255, dst.a, src.a)
+            }
+
             writePixel(image, x, y, out)
             return
         }
@@ -1092,8 +1143,10 @@ private impl RenderCpu
         // of faint layers reaches almost no opacity at all. This matches the separate blend
         // function the OpenGL renderer sets, so a CPU render and a GPU render cover the same.
         var outA = blendChannel(sa, da, sa, da, .blendingMode)
-        if .blendingMode.usesAdvancedBlending() do
+        if .blendingMode.usesAdvancedBlending()
+        {
             outA = sa + da * (1.0 - sa)
+        }
 
         let srcColor = Math.Vector3{cast(f32, src.r) / 255.0, cast(f32, src.g) / 255.0, cast(f32, src.b) / 255.0}
         let dstColor = Math.Vector3{cast(f32, dst.r) / 255.0, cast(f32, dst.g) / 255.0, cast(f32, dst.b) / 255.0}
@@ -1105,19 +1158,33 @@ private impl RenderCpu
         // being written, that plane is scratch — the window's is never written at all — and a
         // backdrop read as transparent would lose the effect: the stored colour is the backdrop,
         // and it is opaque by definition.
-        if .blendingMode.usesAdvancedBlending() do
+        if .blendingMode.usesAdvancedBlending()
+        {
             outColor = blendAdvanced(srcColor, dstColor, sa, .colorMask.a ? da : 1.0, .blendingMode)
+        }
 
         var out = Color.fromArgbF32(outA, outColor.x, outColor.y, outColor.z)
 
-        if not .colorMask.r do
+        if not .colorMask.r
+        {
             out.r = dst.r
-        if not .colorMask.g do
+        }
+
+        if not .colorMask.g
+        {
             out.g = dst.g
-        if not .colorMask.b do
+        }
+
+        if not .colorMask.b
+        {
             out.b = dst.b
-        if not .colorMask.a do
+        }
+
+        if not .colorMask.a
+        {
             out.a = dst.a
+        }
+
         writePixel(image, x, y, out)
     }
 
@@ -1129,10 +1196,15 @@ private impl RenderCpu
         {
             uu = Math.fract(uu)
             vv = Math.fract(vv)
-            if uu < 0 do
+            if uu < 0
+            {
                 uu += 1
-            if vv < 0 do
+            }
+
+            if vv < 0
+            {
                 vv += 1
+            }
         }
         else
         {
@@ -1142,8 +1214,11 @@ private impl RenderCpu
 
         let x = Math.clamp(nearestTexel(uu * image.width), 0, image.width - 1)
         let y = Math.clamp(nearestTexel((1.0 - vv) * image.height), 0, image.height - 1)
-        if image.pixelFormat == .BGRA8 do
+        if image.pixelFormat == .BGRA8
+        {
             return fetchBgra8(image, x, y)
+        }
+
         return readPixel(image, x, y)
     }
 
@@ -1155,10 +1230,15 @@ private impl RenderCpu
         {
             uu = Math.fract(uu)
             vv = Math.fract(vv)
-            if uu < 0 do
+            if uu < 0
+            {
                 uu += 1
-            if vv < 0 do
+            }
+
+            if vv < 0
+            {
                 vv += 1
+            }
         }
         else
         {
@@ -1175,8 +1255,11 @@ private impl RenderCpu
 
         func coord(value, size: s32, wrap: bool)->s32
         {
-            if wrap do
+            if wrap
+            {
                 return modFloor(value, size)
+            }
+
             return Math.clamp(value, 0, size - 1)
         }
 
@@ -1186,7 +1269,16 @@ private impl RenderCpu
         let x1    = coord(baseX + 1, image.width, repeat)
         let y0    = coord(baseY, image.height, repeat)
         let y1    = coord(baseY + 1, image.height, repeat)
-        return bilinearTexels(image, x0, x1, y0, y1, tx, ty)
+        if image.pixelFormat == .BGRA8
+        {
+            return sampleBgra8Bilinear(image, x0, x1, y0, y1, bilinearWeight(tx), bilinearWeight(ty))
+        }
+
+        let c00 = readPixel(image, x0, y0)
+        let c10 = readPixel(image, x1, y0)
+        let c01 = readPixel(image, x0, y1)
+        let c11 = readPixel(image, x1, y1)
+        return bilinearColor(c00, c10, c01, c11, tx, ty)
     }
 
     // Returns the texel a nearest sampler picks for `coordinate`, in texels.
@@ -1201,7 +1293,7 @@ private impl RenderCpu
     }
 
     // Reads the texel of a top-down byte plane nearest to the normalized coordinates.
-    func fetchPlanarPlane(plane: const *Array'u8, width, height: s32, u, v: f32, repeat: bool)->f32
+    func fetchPlanarPlane(plane: const *Array!{u8}, width, height: s32, u, v: f32, repeat: bool)->f32
     {
         var x = nearestTexel(u * width)
         var y = nearestTexel((1.0 - v) * height)
@@ -1220,7 +1312,7 @@ private impl RenderCpu
     }
 
     // Samples a top-down byte plane at the normalized coordinates used by a GPU texture.
-    func samplePlanarPlane(plane: const *Array'u8, width, height: s32, u, v: f32, repeat: bool)->f32
+    func samplePlanarPlane(plane: const *Array!{u8}, width, height: s32, u, v: f32, repeat: bool)->f32
     {
         var x = u * width - 0.5
         var y = (1.0 - v) * height - 0.5
@@ -1266,11 +1358,15 @@ private impl RenderCpu
     // planes are half-size companions that are always interpolated up to it.
     func samplePlanar(texture: const *CpuPlanarTexture, u, v: f32, mode: InterpolationMode, repeat: bool)->Color
     {
-        var y = 0.0'f32
-        if mode == .Pixel do
+        var y = 0.0_f32
+        if mode == .Pixel
+        {
             y = RenderCpu.fetchPlanarPlane(&texture.luma, texture.width, texture.height, u, v, repeat)
-        else do
+        }
+        else
+        {
             y = RenderCpu.samplePlanarPlane(&texture.luma, texture.width, texture.height, u, v, repeat)
+        }
 
         let d       = RenderCpu.samplePlanarPlane(&texture.chromaB, texture.chromaWidth, texture.chromaHeight, u, v, repeat) - 128.0
         let e       = RenderCpu.samplePlanarPlane(&texture.chromaR, texture.chromaWidth, texture.chromaHeight, u, v, repeat) - 128.0
@@ -1298,8 +1394,11 @@ private impl RenderCpu
             let y = Math.clamp(nearestTexel(py + 0.5), sampler.minY, sampler.maxY)
 
             // The presentation blit runs through here for every surface pixel.
-            if image.pixelFormat == .BGRA8 do
+            if image.pixelFormat == .BGRA8
+            {
                 return fetchBgra8(image, x, y)
+            }
+
             return readPixel(image, x, y)
         }
 
@@ -1343,8 +1442,11 @@ private impl RenderCpu
     #[Swag.Inline]
     func backdropTexel(image: const *Image, params: const *BackdropPass, pixels: const [*] Math.Simd.F32x4?, x, y: s32)->Math.Simd.F32x4
     {
-        if pixels do
+        if pixels
+        {
             return pixels[cast(u64, y) * cast(u64, params.width) + cast(u64, x)]
+        }
+
         return normalizedChannels(fetchBgra8(image, x, y))
     }
 
@@ -1363,8 +1465,11 @@ private impl RenderCpu
 
         // Aligned texel centers need no interpolation. Keep fractional coordinates on
         // the same bilinear path, without an epsilon that could change edge pixels.
-        if x == x0 and y == y0 do
+        if x == x0 and y == y0
+        {
             return c00
+        }
+
         let c10    = backdropTexel(image, params, pixels, x1, y0)
         let c01    = backdropTexel(image, params, pixels, x0, y1)
         let c11    = backdropTexel(image, params, pixels, x1, y1)
@@ -1391,7 +1496,7 @@ private impl RenderCpu
                 sum += sampleBackdropLinear(image, params, batch.backdropPixels, su, sv) * batch.blurWeights![i]
             }
         }
-        elif params.mode < 4
+        else if params.mode < 4
         {
             let dx       = params.radius / image.width
             let dy       = params.radius / image.height
@@ -1422,7 +1527,7 @@ private impl RenderCpu
             sum = sum * (1 - tint[3]) + tint * tint[3]
         }
 
-        return Color.fromArgb(255'u8,
+        return Color.fromArgb(255_u8,
                               cast(u8, Math.round(Math.saturate(sum[0]) * 255)),
                               cast(u8, Math.round(Math.saturate(sum[1]) * 255)),
                               cast(u8, Math.round(Math.saturate(sum[2]) * 255)))
@@ -1430,8 +1535,10 @@ private impl RenderCpu
 
     mtd sampleBlur(batch: *RasterBatch, image: const *Image, u, v: f32)->Color
     {
-        if batch.blurTapCount == 0 do
+        if batch.blurTapCount == 0
+        {
             return sampleLinear(image, u, v, false)
+        }
 
         var sum: Math.Simd.F32x4
         let horizontal = .blurAxis == 0
@@ -1471,15 +1578,21 @@ private impl RenderCpu
 
         let count = cast(f32, (factor * factor))
         let alpha = sumA / count
-        if sumA <= 0.00001 do
+        if sumA <= 0.00001
+        {
             return Color.fromArgbF32(alpha, 0, 0, 0)
+        }
+
         return Color.fromArgbF32(alpha, sumR / sumA, sumG / sumA, sumB / sumA)
     }
 
     mtd sampleGradient(p: const *BrushBinding, paintPos: Vector2)->Color
     {
-        if p.gradientStopCount == 0 do
+        if p.gradientStopCount == 0
+        {
             return Color.fromArgb(Argb.White)
+        }
+
         let stops = unwrap .gradientStops
 
         var t: f32
@@ -1489,10 +1602,14 @@ private impl RenderCpu
             let dx   = p.gradientEnd.x - p.gradientStart.x
             let dy   = p.gradientEnd.y - p.gradientStart.y
             let len2 = dx * dx + dy * dy
-            if len2 <= 0.000001 do
+            if len2 <= 0.000001
+            {
                 t = 0
-            else do
+            }
+            else
+            {
                 t = ((paintPos.x - p.gradientStart.x) * dx + (paintPos.y - p.gradientStart.y) * dy) / len2
+            }
 
         case .RadialGradient:
             let dx     = paintPos.x - p.gradientStart.x
@@ -1502,8 +1619,11 @@ private impl RenderCpu
 
         case .SweepGradient:
             var span = p.gradientAngle1 - p.gradientAngle0
-            if Math.abs(span) <= 0.000001 do
+            if Math.abs(span) <= 0.000001
+            {
                 span = ConstF32.TwoPi
+            }
+
             let angle = Math.atan2(paintPos.y - p.gradientStart.y, paintPos.x - p.gradientStart.x)
             t = (angle - p.gradientAngle0) / span
 
@@ -1518,22 +1638,33 @@ private impl RenderCpu
 
         case .Repeat:
             t = Math.fract(t)
-            if t < 0 do
+            if t < 0
+            {
                 t += 1
+            }
 
         case .Mirror:
             var u = Math.fract(t * 0.5) * 2.0
-            if u < 0 do
+            if u < 0
+            {
                 u += 2
+            }
+
             t = u <= 1.0 ? u : 2.0 - u
         }
 
-        if t <= stops[0].offset do
-            return stops[0].color
-        for var i = 1'u64; i < p.gradientStopCount; i += 1
+        if t <= stops[0].offset
         {
-            if t > stops[i].offset do
+            return stops[0].color
+        }
+
+        for var i = 1_u64; i < p.gradientStopCount; i += 1
+        {
+            if t > stops[i].offset
+            {
                 continue
+            }
+
             let lo = stops[i - 1].offset
             let hi = stops[i].offset
             let u  = hi == lo ? 1.0 : Math.saturate((t - lo) / (hi - lo))
@@ -1556,8 +1687,10 @@ private impl RenderCpu
 
         case .Texture:
             let image = batch.paintImage
-            if not image do
+            if not image
+            {
                 return Color.fromArgb(Argb.Zero)
+            }
 
             if p.uvMode == .FillSubRect and
                .program != CpuProgram_Blur and
@@ -1589,24 +1722,37 @@ private impl RenderCpu
                 u = p.textureRect.x + u * (p.textureRect.z - p.textureRect.x)
                 v = 1.0 - (p.textureRect.y + (1.0 - v) * (p.textureRect.w - p.textureRect.y))
             }
-            elif p.uvMode == .Tile
+            else if p.uvMode == .Tile
             {
                 u = (paintPos.x - p.boundRect.x) / Math.max(p.textureRect.z, 0.000001)
                 v = 1.0 - (paintPos.y - p.boundRect.y) / Math.max(p.textureRect.w, 0.000001)
             }
 
-            if batch.paintPlanar do
+            if batch.paintPlanar
+            {
                 return RenderCpu.samplePlanar(batch.paintPlanar, u, v, p.interpolationMode, repeat)
+            }
 
-            if .program == CpuProgram_Blur do
+            if .program == CpuProgram_Blur
+            {
                 return .sampleBlur(batch, image, u, v)
-            if .program == CpuProgram_Resolve do
-                return .sampleResolve(image, u, v)
-            if .program == CpuProgram_Backdrop do
-                return .sampleBackdrop(batch, image, u, v)
+            }
 
-            if p.interpolationMode == .Linear do
+            if .program == CpuProgram_Resolve
+            {
+                return .sampleResolve(image, u, v)
+            }
+
+            if .program == CpuProgram_Backdrop
+            {
+                return .sampleBackdrop(batch, image, u, v)
+            }
+
+            if p.interpolationMode == .Linear
+            {
                 return sampleLinear(image, u, v, repeat)
+            }
+
             return sampleNearest(image, u, v, repeat)
 
         case .Hatch:
@@ -1665,8 +1811,11 @@ private impl RenderCpu
 
     func smoothStep(edge0, edge1, value: f32)->f32
     {
-        if edge1 <= edge0 do
+        if edge1 <= edge0
+        {
             return value < edge0 ? 0.0 : 1.0
+        }
+
         let t = Math.saturate((value - edge0) / (edge1 - edge0))
         return t * t * (3.0 - 2.0 * t)
     }
@@ -1675,12 +1824,17 @@ private impl RenderCpu
 
     mtd fontAtlas()->*GlyphAtlas?
     {
-        if not .font or .fontAtlasIndex < 0 do
+        if not .font or .fontAtlasIndex < 0
+        {
             return null
+        }
 
         let cache = .font.cache
-        if cast(u64, .fontAtlasIndex) >= cache.atlases.count do
+        if cast(u64, .fontAtlasIndex) >= cache.atlases.count
+        {
             return null
+        }
+
         return &cache.atlases[cast(u64, .fontAtlasIndex)]
     }
 
@@ -1821,10 +1975,13 @@ private impl RenderCpu
     {
         if atlas.bytesPerPixel != 4
         {
-            var fallback = msdfCoverage(atlas, pos.moved({-offset.x, -offset.y}), screenPxRange, 0.5, 1.0)
-            fallback += msdfCoverage(atlas, pos.moved({offset.x, -offset.y}), screenPxRange, 0.5, 1.0)
-            fallback += msdfCoverage(atlas, pos.moved({-offset.x, offset.y}), screenPxRange, 0.5, 1.0)
-            return fallback + msdfCoverage(atlas, pos.moved(offset), screenPxRange, 0.5, 1.0)
+            var fallback = 0_f32
+            for point in points
+            {
+                fallback += msdfCoverage(atlas, point, screenPxRange, 0.5, 1.0)
+            }
+
+            return fallback
         }
 
         let width    = cast(s32, (atlas.width / 4))
@@ -1837,10 +1994,60 @@ private impl RenderCpu
         let top    = fontLinearAxis(pos.baseY, height, position[2], floors[2])
         let bottom = fontLinearAxis(pos.baseY, height, position[3], floors[3])
 
-        let first = msdfRow(atlas, top.first, left, right)
-        let next  = top.first == top.second ? first : msdfRow(atlas, top.second, left, right)
-        let other = bottom.first == top.second ? next : msdfRow(atlas, bottom.first, left, right)
-        let last  = bottom.first == bottom.second ? other : msdfRow(atlas, bottom.second, left, right)
+        // A tap past the page only reads the edge texel, so clamping it there changes no value
+        // and keeps the shared neighborhood below ordered and at most three texels wide.
+        for point, index in points
+        {
+            let px     = point.offset.x - 0.5
+            let py     = point.offset.y - 0.5
+            let sample = &samples[index]
+            sample.x0 = Math.clamp(point.baseX + cast(s32, Math.floor(px)), -1, width - 1)
+            sample.y0 = Math.clamp(point.baseY + cast(s32, Math.floor(py)), -1, height - 1)
+            sample.x1 = Math.min(sample.x0 + 1, width - 1)
+            sample.y1 = Math.min(sample.y0 + 1, height - 1)
+            sample.tx = px - Math.floor(px)
+            sample.ty = py - Math.floor(py)
+            minX      = Math.min(minX, sample.x0)
+            minY      = Math.min(minY, sample.y0)
+            maxX      = Math.max(maxX, sample.x1)
+            maxY      = Math.max(maxY, sample.y1)
+        }
+
+        let cacheWidth  = maxX - minX + 1
+        let cacheHeight = maxY - minY + 1
+        if cacheWidth > 3 or cacheHeight > 3
+        {
+            var fallback = 0_f32
+            for point in points
+            {
+                fallback += msdfCoverage(atlas, point, screenPxRange, 0.5, 1.0)
+            }
+
+            return fallback
+        }
+
+        var cache: [9] Vector4
+        for y in cacheHeight
+        {
+            for x in cacheWidth
+            {
+                cache[cast(u64, (y * cacheWidth + x))] = readFontAtlas(atlas, minX + x, minY + y)
+            }
+        }
+
+        var result = 0_f32
+        for sample in samples
+        {
+            let row0  = (sample.y0 - minY) * cacheWidth
+            let row1  = (sample.y1 - minY) * cacheWidth
+            let f00   = cache[cast(u64, (row0 + sample.x0 - minX))]
+            let f10   = cache[cast(u64, (row0 + sample.x1 - minX))]
+            let f01   = cache[cast(u64, (row1 + sample.x0 - minX))]
+            let f11   = cache[cast(u64, (row1 + sample.x1 - minX))]
+            let value = lerpFontSample(lerpFontSample(f00, f10, sample.tx), lerpFontSample(f01, f11, sample.tx), sample.ty)
+            let sd    = median(value.x, value.y, value.z)
+            result += Math.saturate((sd - 0.5) * screenPxRange + 0.5)
+        }
 
         var result = msdfTap(first.left, next.left, top.fraction, screenPxRange)
         result += msdfTap(first.right, next.right, top.fraction, screenPxRange)
@@ -1883,8 +2090,11 @@ private impl RenderCpu
             let reference = 1.0 / screenPxRange
             let strength  = smoothStep(0.0, 0.6 * reference, magnitude)
             var lit: f32
-            if magnitude > 0.000001 do
+            if magnitude > 0.000001
+            {
                 lit = (-gradX - gradY) / (magnitude * ConstF32.Sqrt2)
+            }
+
             let light = Math.clamp(1.0 + p.bevel * lit * strength, 0.25, 1.75)
             faceR, faceG, faceB *= light
         }
@@ -1913,8 +2123,10 @@ private impl RenderCpu
         }
 
         // A fragment containing only glow keeps its authored straight-alpha color.
-        if shapeAlpha == 0 and glowAlpha > 0 do
+        if shapeAlpha == 0 and glowAlpha > 0
+        {
             return p.glowColor.withAlphaF32(glowAlpha)
+        }
 
         let resultAlpha = shapeAlpha + glowAlpha * (1.0 - shapeAlpha)
         var resultR     = shapeR
@@ -1947,8 +2159,10 @@ private impl RenderCpu
             // With no atlas bound the font program covers the whole primitive, the way a white
             // texture does: a text decoration is drawn between two glyph runs in that state.
             let atlas = batch.atlas
-            if not atlas do
+            if not atlas
+            {
                 return result
+            }
 
             // Nearest atlas fetch, inlined: the sample value only feeds the gamma power, so the
             // lookup table replaces the per-pixel pow with the factor it would have computed.
@@ -1959,14 +2173,17 @@ private impl RenderCpu
             result.a = result.a == 255 ? g_FontGammaOpaque[value] :
                        cast(u8, Math.clamp(Math.round(cast(f32, result.a) * g_FontGammaLut[value]), 0.0, 255.0))
         }
-        elif .program == CpuProgram_Msdf
+        else if .program == CpuProgram_Msdf
         {
             let atlas = batch.atlas
-            if not atlas do
+            if not atlas
+            {
                 return result
-            result = .shadeMsdf(result, fontPos, fontFrame, atlas)
+            }
+
+            result = .shadeMsdf(result, fontPos, fontDx, fontDy, atlas)
         }
-        elif .program == CpuProgram_Default
+        else if .program == CpuProgram_Default
         {
             result.a = coverageAlpha(result.a, coverage)
         }
@@ -1990,8 +2207,11 @@ private impl RenderCpu
         var p2 = batch.transform.transformPoint(v2.pos)
 
         var area = edge(p0, p1, p2)
-        if area == 0 do
+        if area == 0
+        {
             return
+        }
+
         if area < 0
         {
             swap(&v1, &v2)
@@ -2003,8 +2223,10 @@ private impl RenderCpu
         let minY = Math.max(Math.clamp(cast(s32, Math.floor(Math.min(p0.y, p1.y, p2.y))), 0, batch.height - 1), bandMinY, batch.clipMinY)
         let maxX = Math.min(Math.clamp(cast(s32, Math.ceil(Math.max(p0.x, p1.x, p2.x))) - 1, 0, batch.width - 1), batch.clipMaxX)
         let maxY = Math.min(Math.clamp(cast(s32, Math.ceil(Math.max(p0.y, p1.y, p2.y))) - 1, 0, batch.height - 1), bandMaxY, batch.clipMaxY)
-        if minX > maxX or minY > maxY do
+        if minX > maxX or minY > maxY
+        {
             return
+        }
 
         let edge0TopLeft = isTopLeft(p1, p2)
         let edge1TopLeft = isTopLeft(p2, p0)
@@ -2098,8 +2320,10 @@ private impl RenderCpu
             // general loop below keeps the per-pixel decision.
             if v0.cov == v1.cov and v1.cov == v2.cov and (v0.cov < 0.49 or v0.cov > 0.51)
             {
-                if v0.cov < 0.5 do
+                if v0.cov < 0.5
+                {
                     constColor.a = 0
+                }
             }
             else
             {
@@ -2113,12 +2337,16 @@ private impl RenderCpu
         {
             // Multiplying the destination by an opaque coverage returns every channel's own
             // byte, masked or not, so the whole triangle leaves the target untouched.
-            if .blendingMode == .DstIn and constColor.a == 255 do
+            if .blendingMode == .DstIn and constColor.a == 255
+            {
                 return
+            }
 
             // 'Alpha' blending never writes a transparent source.
-            if .blendingMode == .Alpha and (maskColor or maskAlpha) and constColor.a == 0 do
+            if .blendingMode == .Alpha and (maskColor or maskAlpha) and constColor.a == 0
+            {
                 return
+            }
 
             // Writing only the alpha channel is the same store under both blend modes that
             // reach it: 'Copy' replaces the byte, and 'Alpha' with an opaque source replaces
@@ -2162,50 +2390,122 @@ private impl RenderCpu
                     var x = x0
                     if not stencilTest
                     {
-                        while x1 - x >= 3
+                        var coverage: u32
+                        var laneCount = 1
+                        if x1 - x >= 3
                         {
-                            let pixel = rowPixels + cast(u64, x) * 4
-                            if copyAll do
-                                Math.Simd.store(pixel, fill)
-                            elif alphaMaskStore do
-                                Math.Simd.store(pixel, Math.Simd.select(CpuBgraAlphaMask, fill, Math.Simd.load(pixel)))
-                            elif fastAlpha and constColor.a != 255 do
-                                Math.Simd.store(pixel, blendAlphaBgra8x4(fill, Math.Simd.load(pixel), alpha))
-                            else do
-                                Math.Simd.store(pixel, Math.Simd.select(CpuBgraRgbMask, fill, Math.Simd.load(pixel)))
-                            // Alpha restoration and copy operations affect only the current target.
-                            if fastAlpha and whiteMatte
+                            let sx = Math.Simd.splat(cast(f32, x) + 0.5) + CpuPixelLanes
+                            let e0 = Math.mulAdd(Math.Simd.splat(-dy0), sx - edge0Origin.x, Math.Simd.splat(dx0 * rowDy0))
+                            let e1 = Math.mulAdd(Math.Simd.splat(-dy1), sx - edge1Origin.x, Math.Simd.splat(dx1 * rowDy1))
+                            let e2 = Math.mulAdd(Math.Simd.splat(-dy2), sx - edge2Origin.x, Math.Simd.splat(dx2 * rowDy2))
+                            coverage  = insideEdges4(e0, e1, e2, edge0TopLeft, edge1TopLeft, edge2TopLeft)
+                            laneCount = 4
+                        }
+                        else
+                        {
+                            let sx = cast(f32, x) + 0.5
+                            let e0 = Math.mulAdd(-dy0, sx - edge0Origin.x, dx0 * rowDy0)
+                            let e1 = Math.mulAdd(-dy1, sx - edge1Origin.x, dx1 * rowDy1)
+                            let e2 = Math.mulAdd(-dy2, sx - edge2Origin.x, dx2 * rowDy2)
+                            if insideEdge(e0, edge0TopLeft) and
+                               insideEdge(e1, edge1TopLeft) and
+                               insideEdge(e2, edge2TopLeft)
                             {
-                                let target = whiteMatte + rowOffset + cast(u64, x) * 4
-                                Math.Simd.store(target, blendAlphaBgra8x4(fill, Math.Simd.load(target), alpha))
+                                coverage = 1
+                            }
+                        }
+
+                        let pixel = rowPixels + cast(u64, x) * 4
+
+                        // Translucent alpha uses the exact byte blend; the other full spans
+                        // collapse to one packed load/store pair.
+                        if laneCount == 4 and
+                           coverage == 0xF and
+                           not stencilTest and
+                           (not fastAlpha or constColor.a == 255)
+                        {
+                            if copyAll
+                            {
+                                Math.Simd.store(pixel, fill)
+                            }
+                            else if alphaMaskStore
+                            {
+                                Math.Simd.store(pixel, Math.Simd.select(CpuBgraAlphaMask, fill, Math.Simd.load(pixel)))
+                            }
+                            else
+                            {
+                                Math.Simd.store(pixel, Math.Simd.select(CpuBgraRgbMask, fill, Math.Simd.load(pixel)))
                             }
 
                             x += 4
+                            continue
                         }
-                    }
 
-                    for pixelX in x until x1 + 1
-                    {
-                        // The region cuts the coverage. A copy has no coverage to cut, so the
-                        // region decides alone whether the pixel is written.
-                        var laneColor = constColor
-                        if stencilTest
+                        for lane in laneCount
                         {
-                            let clip = rowStencil[pixelX]
-                            if clip == 0 do
-                                continue
-                            if clip != 255
+                            if not (coverage & (1_u32 << lane))
                             {
-                                if .blendingMode == .Copy
+                                continue
+                            }
+
+                            let pixelX = x + cast(s32, lane)
+
+                            // The region cuts the coverage. A copy has no coverage to cut, so the
+                            // region decides alone whether the pixel is written.
+                            var laneColor = constColor
+                            if stencilTest
+                            {
+                                let clip = rowStencil[pixelX]
+                                if clip == 0
                                 {
-                                    if clip < 128 do
-                                        continue
+                                    continue
+                                }
+
+                                if clip != 255
+                                {
+                                    if .blendingMode == .Copy
+                                    {
+                                        if clip < 128
+                                        {
+                                            continue
+                                        }
+                                    }
+                                    else
+                                    {
+                                        laneColor.a = cast(u8, ((cast(u32, laneColor.a) * clip) / 255))
+                                        if laneColor.a == 0
+                                        {
+                                            continue
+                                        }
+                                    }
+                                }
+                            }
+
+                            let lanePixel = rowPixels + cast(u64, pixelX) * 4
+                            if fastAlpha
+                            {
+                                blendAlphaBgra8(lanePixel, laneColor)
+                            }
+                            else if alphaMaskStore
+                            {
+                                // A cut alpha no longer stores as it is: it composites.
+                                if laneColor.a == constColor.a
+                                {
+                                    lanePixel[3] = laneColor.a
                                 }
                                 else
                                 {
-                                    laneColor.a = cast(u8, ((cast(u32, laneColor.a) * clip) / 255))
-                                    if laneColor.a == 0 do
-                                        continue
+                                    .blendPixel(image, pixelX, y, laneColor)
+                                }
+                            }
+                            else
+                            {
+                                lanePixel[0] = laneColor.b
+                                lanePixel[1] = laneColor.g
+                                lanePixel[2] = laneColor.r
+                                if copyAll
+                                {
+                                    lanePixel[3] = laneColor.a
                                 }
                             }
                         }
@@ -2314,8 +2614,10 @@ private impl RenderCpu
                         let e2 = Math.mulAdd(-dy2, sx - edge2Origin.x, dx2 * rowDy2)
                         if not insideEdge(e0, edge0TopLeft) or
                            not insideEdge(e1, edge1TopLeft) or
-                           not insideEdge(e2, edge2TopLeft) do
+                           not insideEdge(e2, edge2TopLeft)
+                        {
                             continue
+                        }
 
                         let w0 = e0 * invArea
                         let w1 = e1 * invArea
@@ -2340,8 +2642,11 @@ private impl RenderCpu
 
                             // A transparent texel is coverage, not ink; the general loop skips it
                             // before it can round the destination down by one.
-                            if src.a == 0 do
+                            if src.a == 0
+                            {
                                 continue
+                            }
+
                             blendAlphaBgra8(pixel, src)
                             continue
                         }
@@ -2463,15 +2768,19 @@ private impl RenderCpu
                 let e2 = Math.mulAdd(-dy2, sx - edge2Origin.x, dx2 * rowDy2)
                 if not insideEdge(e0, edge0TopLeft) or
                    not insideEdge(e1, edge1TopLeft) or
-                   not insideEdge(e2, edge2TopLeft) do
+                   not insideEdge(e2, edge2TopLeft)
+                {
                     continue
+                }
 
-                var clip = 255'u8
+                var clip = 255_u8
                 if stencilTest
                 {
                     clip = rowStencil[x]
-                    if clip == 0 and not .stencilWrite do
+                    if clip == 0 and not .stencilWrite
+                    {
                         continue
+                    }
                 }
 
                 let w0          = e0 * invArea
@@ -2490,10 +2799,15 @@ private impl RenderCpu
                 // its texture, the transparency of its colour — joins the mask and shades nothing.
                 if .stencilWrite
                 {
-                    if .stencilMode == .Set do
+                    if .stencilMode == .Set
+                    {
                         rowStencil[x] = Math.max(rowStencil[x], src.a)
-                    else do
+                    }
+                    else
+                    {
                         rowStencil[x] = cast(u8, ((cast(u32, rowStencil[x]) * (255 - cast(u32, src.a))) / 255))
+                    }
+
                     continue
                 }
 
@@ -2503,8 +2817,10 @@ private impl RenderCpu
                 {
                     if .blendingMode == .Copy
                     {
-                        if clip < 128 do
+                        if clip < 128
+                        {
                             continue
+                        }
                     }
                     else
                     {
@@ -2515,21 +2831,27 @@ private impl RenderCpu
                 if fastAlpha
                 {
                     // The zero-alpha skip mirrors the general blend's coverage early-out.
-                    if src.a == 0 do
+                    if src.a == 0
+                    {
                         continue
+                    }
+
                     blendAlphaBgra8(rowPixels + cast(u64, x) * 4, src)
                     if let matte = whiteMatte do
                         blendAlphaBgra8(matte + rowOffset + cast(u64, x) * 4, src)
                 }
-                elif fastCopy
+                else if fastCopy
                 {
                     // 'Copy' writes transparent sources too, which is the erase operation.
                     let pixel = rowPixels + cast(u64, x) * 4
                     pixel[0] = src.b
                     pixel[1] = src.g
                     pixel[2] = src.r
-                    if copyAll do
+                    if copyAll
+                    {
                         pixel[3] = src.a
+                    }
+
                     continue
                 }
                 else
@@ -3595,9 +3917,11 @@ private impl RenderCpu
             let storage = .findTexture(.paint.texture.handle)
             if storage
             {
-                batch.paintImage = storage.sourceImage()
-                if storage.planar.width > 0 do
+                batch.paintImage = &storage.image
+                if storage.planar.width > 0
+                {
                     batch.paintPlanar = &storage.planar
+                }
             }
         }
 
@@ -3627,10 +3951,8 @@ private impl RenderCpu
         }
 
         batch.atlas = .fontAtlas()
-        if .program == CpuProgram_Font and batch.atlas
+        if .program == CpuProgram_Font
         {
-            batch.atlasMaxX = cast(s32, batch.atlas.width / batch.atlas.bytesPerPixel) - 1
-            batch.atlasMaxY = cast(s32, batch.atlas.height) - 1
             ensureFontGammaLut()
         }
     }
@@ -3639,37 +3961,48 @@ private impl RenderCpu
     // SVG coverage tiles and window presentation both use this mapping.
     mtd tryDrawTextureRect(batch: *RasterBatch)->bool
     {
-        if batch.count != 6 or .program != CpuProgram_Default and .program != CpuProgram_Simple do
+        if batch.count != 6 or .program != CpuProgram_Default and .program != CpuProgram_Simple
+        {
             return false
-        if .contentScale != 1 or not batch.transform.isTranslationOnly() do
+        }
+
+        if .contentScale != 1 or not batch.transform.isTranslationOnly()
+        {
             return false
-        if not .colorMask.r or
+        }
+
+        if .blendingMode != .Copy or
+           not .colorMask.r or
            not .colorMask.g or
-           not .colorMask.b do
+           not .colorMask.b or
+           not .colorMask.a
+        {
             return false
-        let copy  = .blendingMode == .Copy and .colorMask.a and not .scissorOn
-        let blend = .blendingMode == .Alpha and not .colorMask.a and batch.transform.isIdentity()
-        if (not copy and not blend) or .stencilOn or .stencilWrite or .overlapMode or .alphaResolve do
+        }
+
+        if .stencilOn or .stencilWrite or .scissorOn or .overlapMode or .alphaResolve
+        {
             return false
+        }
 
         let source = batch.paintImage
         let target = batch.image
         if not source or
            not target or
            source == target or
-           target.pixelFormat != .BGRA8 do
+           source.pixelFormat != .BGRA8 or
+           target.pixelFormat != .BGRA8
+        {
             return false
-        let rgba = source.pixelFormat == .RGBA8
-        if source.pixelFormat != .BGRA8 and not (blend and rgba) do
-            return false
-        if blend and source.alphaMode != .Straight do
-            return false
+        }
 
         let params = &.paint
         if params.type != .Texture or
-           params.interpolationMode != .Pixel or
-           params.uvMode != (blend ? .Fill : .FillSubRect) do
+           params.uvMode != .FillSubRect or
+           params.interpolationMode != .Pixel
+        {
             return false
+        }
 
         let vertices    = batch.painter!.vertexBuffer.storage() + batch.start
         let topLeft     = Vector2{params.boundRect.x, params.boundRect.y}
@@ -3689,8 +4022,10 @@ private impl RenderCpu
         let white = Color.fromArgb(Argb.White).argb
         for vertex in Swag.makeSlice(vertices, 6)
         {
-            if vertex.color != white or vertex.cov != 1 do
+            if vertex.color != white or vertex.cov != 1
+            {
                 return false
+            }
         }
 
         let deviceTopLeft     = batch.transform.transformPoint(topLeft)
@@ -3702,8 +4037,10 @@ private impl RenderCpu
         if cast(f32, dstX) != deviceTopLeft.x or
            cast(f32, dstY) != deviceTopLeft.y or
            cast(f32, dstRight) != deviceBottomRight.x or
-           cast(f32, dstBottom) != deviceBottomRight.y do
+           cast(f32, dstBottom) != deviceBottomRight.y
+        {
             return false
+        }
 
         let srcX      = blend ? 0 : cast(s32, params.texturePixelBounds.x)
         let srcY      = blend ? 0 : cast(s32, params.texturePixelBounds.y)
@@ -3711,12 +4048,20 @@ private impl RenderCpu
         let srcBottom = blend ? source.height : cast(s32, params.texturePixelBounds.w) + 1
         let width     = dstRight - dstX
         let height    = dstBottom - dstY
-        if width <= 0 or height <= 0 or srcRight - srcX != width or srcBottom - srcY != height do
+        if width <= 0 or height <= 0 or srcRight - srcX != width or srcBottom - srcY != height
+        {
             return false
-        if dstX < 0 or dstY < 0 or dstRight > target.width or dstBottom > target.height do
+        }
+
+        if dstX < 0 or dstY < 0 or dstRight > target.width or dstBottom > target.height
+        {
             return false
-        if srcX < 0 or srcY < 0 or srcRight > source.width or srcBottom > source.height do
+        }
+
+        if srcX < 0 or srcY < 0 or srcRight > source.width or srcBottom > source.height
+        {
             return false
+        }
 
         // Keep the aligned blend within the range where interpolated f32 pixel centers
         // also select the same texel, including near the diagonal shared by the triangles.
@@ -3786,8 +4131,11 @@ private impl RenderCpu
     // Other mappings and render states keep the general shader path.
     mtd tryResolveTextureRect(batch: *RasterBatch)->bool
     {
-        if batch.count != 6 or .program != CpuProgram_Resolve or not batch.transform.isIdentity() do
+        if batch.count != 6 or .program != CpuProgram_Resolve or not batch.transform.isIdentity()
+        {
             return false
+        }
+
         if .blendingMode != .Copy or
            not .colorMask.r or
            not .colorMask.g or
@@ -3797,8 +4145,10 @@ private impl RenderCpu
            .stencilWrite or
            .scissorOn or
            .overlapMode or
-           .alphaResolve do
+           .alphaResolve
+        {
             return false
+        }
 
         let source = batch.paintImage
         let target = batch.image
@@ -3806,26 +4156,35 @@ private impl RenderCpu
            not target or
            source == target or
            source.pixelFormat != .BGRA8 or
-           target.pixelFormat != .BGRA8 do
+           target.pixelFormat != .BGRA8
+        {
             return false
+        }
 
         let factor = Math.clamp(.resolveFactor, 1, 8)
-        if source.width != target.width * factor or source.height != target.height * factor do
+        if source.width != target.width * factor or source.height != target.height * factor
+        {
             return false
+        }
+
         let params = &.paint
-        let insetX = 0.5'f32 / source.width
-        let insetY = 0.5'f32 / source.height
+        let insetX = 0.5_f32 / source.width
+        let insetY = 0.5_f32 / source.height
         if params.type != .Texture or
            params.uvMode != .FillSubRect or
            params.boundRect != Vector4{0, 0, cast(f32, target.width), cast(f32, target.height)} or
-           params.textureRect != Vector4{insetX, insetY, 1 - insetX, 1 - insetY} do
+           params.textureRect != Vector4{insetX, insetY, 1 - insetX, 1 - insetY}
+        {
             return false
+        }
 
         let vertices = batch.painter!.vertexBuffer.storage() + batch.start
         let corners  = [Vector2{0, 0}, Vector2{target.width, 0}, Vector2{target.width, target.height},
                         Vector2{0, 0}, Vector2{target.width, target.height}, Vector2{0, target.height}]
-        for i in 6 where vertices[i].pos != corners[i] or vertices[i].color != Argb.White do
+        for i in 6 where vertices[i].pos != corners[i] or vertices[i].color != Argb.White
+        {
             return false
+        }
 
         resolveTexture(source, target, factor)
         return true
@@ -4269,76 +4628,15 @@ private impl RenderCpu
     mtd drawScanFill(painter: *Painter, fill: const *ScanFillBatch)
     {
         let image = .currentImage()
-        if not image do
-            return
-
-        let transform = .deviceTransform()
-        let area      = .scanBounds(image, fill, &transform)
-        if not area.isEmpty() do
-            .rasterScanFill(&.scanScratch, &.areaScratch, painter, fill, image, &transform, area, 0, image.height, true)
-    }
-
-    mtd rasterScanFill(scratch: *ScanScratch, areaScratch: *AreaScratch, painter: *Painter, fill: const *ScanFillBatch, image: *Image,
-                       transform: const *Transform2, area: Rectangle, startRow, endRow: s32, allowParallel: bool)
-    {
-        // Each row range keeps the same origin and sample grid as the full fill.
-        let left       = cast(s32, Math.floor(area.x))
-        let top        = cast(s32, Math.floor(area.y))
-        let right      = cast(s32, Math.ceil(area.right()))
-        let bottom     = cast(s32, Math.ceil(area.bottom()))
-        let width      = right - left
-        let firstPoint = firstScanPoint(painter, fill)
-        let pointCount = painter.scanContourEnds[fill.end - 1] - firstPoint
-        let bandHeight = scanBandHeight(pointCount)
-        if .stencilWrite and .stencilMode == .Set do
-            .markStencilDirty({left, top, right - 1, bottom - 1})
-
-        var visibleLeft   = left
-        var visibleRight  = right
-        var visibleTop    = Math.max(top, startRow)
-        var visibleBottom = Math.min(bottom, endRow)
-        if .stencilOn and (not .stencilWrite or .stencilMode == .Clear)
+        if not image or count < 3
         {
-            let dirty = .currentStencil().dirty
-            if dirty.isEmpty() or dirty.maxX < left or dirty.minX >= right do
-                return
-            // Keep a whole pixel representable at either end of the coverage interval.
-            if width <= 16_777_216
-            {
-                visibleLeft  = Math.max(left, dirty.minX)
-                visibleRight = Math.min(right, dirty.maxX + 1)
-            }
-            visibleTop    = Math.max(visibleTop, dirty.minY)
-            visibleBottom = Math.min(visibleBottom, dirty.maxY + 1)
+            return
         }
-        if visibleTop >= visibleBottom do
-            return
 
-        if fill.end == fill.first + 1 and pointCount >= 3 and pointCount <= 32 and
-           (cast(u64, width) + cast(u64, bottom - top)) * pointCount <= ScanBandCrossingBudget and not .stencilWrite
+        let bounds = .triangleRangeBounds(image, painter, start, count)
+        if bounds.isEmpty()
         {
-            var local: [32] Vector2
-            let source = painter.scanPoints.storage() + firstPoint
-            let origin = Vector2{cast(f32, left), cast(f32, top)}
-            for i in pointCount do
-                local[i] = transform.transformPoint(source[i]) - origin
-            let final = local[0] == local[pointCount - 1] ? pointCount - 1 : pointCount
-            let points = local[until final]
-            if final >= 3 and isSimpleAreaContour(points)
-            {
-                areaScratch.rasterize(points, width, visibleBottom - top, visibleTop - top)
-                let color = fill.color
-                let tint = cast #bit(Math.Simd.U8x16, Math.Simd.splat(color.argb))
-                let alphaScale = Math.Simd.splat(cast(f32, color.a) / VerticalSamples)
-                let stencil = .stencilOn ? .currentStencil().pixels.storage() : null
-                for deviceY in visibleTop until visibleBottom
-                {
-                    let {values: coverage, first: lo, end: hi} = areaScratch.resolve(deviceY - top, width)
-                    .drawScanCoverageRow(image, left, deviceY, color, tint, alphaScale, stencil, coverage, lo, hi)
-                }
-
-                return
-            }
+            return
         }
 
         // Keep the original subrow origin in the first band touching the stencil.
@@ -4579,15 +4877,15 @@ private impl RenderCpu
             .markStencilDirty(bounds)
 
         var batch: RasterBatch
-        .setupBatch(&batch, image, painter, triangles, transform)
-        if .tryDrawSolidRect(&batch, bounds) or
-           .tryDrawTextureRect(&batch) or
-           .tryResolveTextureRect(&batch) do
+        .setupBatch(&batch, image, painter, start, count)
+        if .tryCopyTextureRect(&batch) or .tryResolveTextureRect(&batch)
+        {
             return
+        }
 
         // Both the Gaussian weights and the normalized tap offsets are constant over the draw.
-        var blurTaps:    Array'BlurTap
-        var blurWeights: Array'f32
+        var blurTaps:    Array!{BlurTap}
+        var blurWeights: Array!{f32}
         if .program == CpuProgram_Blur and batch.paintImage
         {
             let radius = Math.max(.blurRadius, 0.0)
@@ -4613,7 +4911,7 @@ private impl RenderCpu
             let radius = .backdropPass.radius
             let reach  = cast(s32, Math.ceil(radius))
             let sigma  = Math.max(radius / 3, 0.001)
-            var total  = 0.0'f32
+            var total  = 0.0_f32
             for var offset = -reach; offset <= reach; offset += 1
             {
                 let weight = Math.exp(-cast(f32, offset * offset) / (2 * sigma * sigma))
@@ -4621,24 +4919,38 @@ private impl RenderCpu
                 total += weight
             }
 
-            for &weight in blurWeights do
+            for &weight in blurWeights
+            {
                 weight[] /= total
+            }
+
             batch.blurWeights     = blurWeights.storage()
             batch.blurWeightCount = blurWeights.count
         }
 
         if not .overlapMode or .alphaResolve
         {
-            if not .rasterizeCachedBackdrop(&batch, bounds) do
+            if not .rasterizeCachedBackdrop(&batch, bounds)
+            {
                 .rasterizeRange(&batch, bounds)
+            }
+
             return
         }
 
         // Both overlap passes only ever reach the pixels the range covers, so the scratch
         // planes are reset over those bounds instead of over the whole target.
         let pixelCount = cast(u64, image.width) * cast(u64, image.height)
-        if .overlapAlpha.count != pixelCount do
+        if .overlapAlpha.count != pixelCount
+        {
             .overlapAlpha.resize(pixelCount)
+        }
+
+        if .overlapWritten.count != pixelCount
+        {
+            .overlapWritten.resize(pixelCount)
+        }
+
         clearScratchRows(.overlapAlpha.storage(), image.width, bounds)
         let solid = .solidOverlapColor(&batch)
         if solid.valid
@@ -4674,16 +4986,24 @@ private impl RenderCpu
     // one-byte edit invalidates it. Other drawing states keep the general raster path.
     mtd rasterizeCachedBackdrop(batch: *RasterBatch, bounds: PixelBounds)->bool
     {
-        if .program != CpuProgram_Backdrop or .backdropPass.mode >= 2 or batch.count != 6 do
+        if .program != CpuProgram_Backdrop or .backdropPass.mode >= 2 or batch.count != 6
+        {
             return false
+        }
+
         if .blendingMode != .Copy or
            not .colorMask.r or
            not .colorMask.g or
            not .colorMask.b or
-           not .colorMask.a do
+           not .colorMask.a
+        {
             return false
-        if .stencilOn or .stencilWrite or .scissorOn or .overlapMode or .alphaResolve do
+        }
+
+        if .stencilOn or .stencilWrite or .scissorOn or .overlapMode or .alphaResolve
+        {
             return false
+        }
 
         let source = batch.paintImage
         let target = batch.image
@@ -4694,15 +5014,23 @@ private impl RenderCpu
            source == target or
            source.pixelFormat != .BGRA8 or
            target.pixelFormat != .BGRA8 or
-           not CpuBackdropCache.acceptsSize(width, height) do
+           not CpuBackdropCache.acceptsSize(width, height)
+        {
             return false
+        }
+
         if source.width < width or
            source.height < height or
            target.width < width or
-           target.height < height do
+           target.height < height
+        {
             return false
-        if .paint.type != .Texture or .paint.uvMode != .Fill do
+        }
+
+        if .paint.type != .Texture or .paint.uvMode != .Fill
+        {
             return false
+        }
 
         let topLeft     = Vector2{.paint.boundRect.x, .paint.boundRect.y}
         let topRight    = Vector2{.paint.boundRect.z, .paint.boundRect.y}
@@ -4714,20 +5042,28 @@ private impl RenderCpu
            transform.m11 <= 0 or
            transform.m22 <= 0 or
            transform.transformPoint(topLeft) != Vector2.Zero or
-           transform.transformPoint(bottomRight) != Vector2{width, height} do
+           transform.transformPoint(bottomRight) != Vector2{width, height}
+        {
             return false
+        }
+
         let vertices = batch.painter!.vertexBuffer.storage() + batch.start
         if vertices[0].pos != topLeft or
            vertices[1].pos != topRight or
            vertices[2].pos != bottomRight or
            vertices[3].pos != topLeft or
            vertices[4].pos != bottomRight or
-           vertices[5].pos != bottomLeft do
+           vertices[5].pos != bottomLeft
+        {
             return false
+        }
+
         for vertex in Swag.makeSlice(vertices, 6)
         {
-            if vertex.color != Argb.White or vertex.cov != 1 do
+            if vertex.color != Argb.White or vertex.cov != 1
+            {
                 return false
+            }
         }
 
         // The sampler clamps to the declared useful extent. Mapping and physical texture
@@ -4785,7 +5121,7 @@ private impl RenderCpu
         // A Gaussian repeatedly fetches the same texels across neighbouring output pixels.
         // Convert each source texel once, with the exact division used by the general sampler.
         // Keep tiny draws allocation-free and bound transient storage independently of the cache.
-        var samples: Array'Math.Simd.F32x4
+        var samples: Array!{Math.Simd.F32x4}
         var prepared   = batch[]
         let pixelCount = cast(u64, width) * cast(u64, height)
         if pixelCount >= 4096 and pixelCount <= CpuBackdropCache.MaxBytes / #sizeof(Math.Simd.F32x4)
@@ -4794,8 +5130,10 @@ private impl RenderCpu
             for y in height
             {
                 let row = samples.storage() + cast(u64, y) * cast(u64, width)
-                for x in width do
+                for x in width
+                {
                     row[x] = normalizedChannels(fetchBgra8(source, x, y))
+                }
             }
 
             prepared.backdropPixels = samples.storage()
@@ -4817,8 +5155,10 @@ private impl RenderCpu
     // Returns the region the scissor allows, as the bounds an unrestricted pass covers.
     mtd clipBounds(image: *Image)->PixelBounds
     {
-        if not .scissorOn do
+        if not .scissorOn
+        {
             return PixelBounds{0, 0, image.width - 1, image.height - 1}
+        }
 
         var result: #returntype
         result.minX = Math.clamp(cast(s32, .scissorRect.x), 0, image.width - 1)
@@ -4840,8 +5180,10 @@ private impl RenderCpu
     // trip made this the dominant cost of rasterizing a vector atlas.
     mtd clearAlpha(image: *Image, bounds: PixelBounds)
     {
-        if not image.pixelFormat.hasAlpha() do
+        if not image.pixelFormat.hasAlpha()
+        {
             return
+        }
 
         let minX = Math.clamp(bounds.minX, 0, image.width)
         let minY = Math.clamp(bounds.minY, 0, image.height)
@@ -4851,11 +5193,11 @@ private impl RenderCpu
         // Every format carrying alpha stores it in the fourth byte, and rows are stored bottom-up.
         let pixels = image.pixels.storage()
         let stride = cast(u64, image.bytesPerPixel)
-        let zero   = Math.Simd.splat(0'u8)
+        let zero   = Math.Simd.splat(0_u8)
         for var y = minY; y < maxY; y += 1
         {
             let row    = pixels + cast(u64, ((image.height - y - 1) * image.rowStride + minX * image.bytesPerPixel))
-            var offset = 3'u64
+            var offset = 3_u64
             var x      = minX
             while maxX - x >= 4
             {
@@ -4877,29 +5219,27 @@ private impl RenderCpu
     mtd clearCurrent(color: Color, forceColorMask = false)
     {
         let image = .currentImage()
-        if not image do
+        if not image
+        {
             return
+        }
 
         let minX = .scissorOn ? Math.clamp(cast(s32, .scissorRect.x), 0, image.width) : 0
         let minY = .scissorOn ? Math.clamp(cast(s32, .scissorRect.y), 0, image.height) : 0
         let maxX = .scissorOn ? Math.clamp(cast(s32, .scissorRect.right()), 0, image.width) : image.width
         let maxY = .scissorOn ? Math.clamp(cast(s32, .scissorRect.bottom()), 0, image.height) : image.height
-        if minX >= maxX or minY >= maxY do
+        if minX >= maxX or minY >= maxY
+        {
             return
-
-        let runWidth = cast(u64, (maxX - minX))
-        if minX == 0 and minY == 0 and maxX == image.width and maxY == image.height
-        {
-            .clearStencil()
         }
-        else
+
+        // The stencil plane is row-contiguous, so the reset runs per row instead of per pixel.
+        let stencil    = .currentStencil()
+        let stencilBuf = stencil.storage()
+        let runWidth   = cast(u64, (maxX - minX))
+        for var y = minY; y < maxY; y += 1
         {
-            // A scissored clear can leave part of the dirty rectangle intact.
-            let stencil = .currentStencil()
-            let cleared = PixelBounds{Math.max(minX, stencil.dirty.minX), Math.max(minY, stencil.dirty.minY),
-                                      Math.min(maxX - 1, stencil.dirty.maxX), Math.min(maxY - 1, stencil.dirty.maxY)}
-            if not cleared.isEmpty() do
-                clearScratchRows(stencil.pixels.storage(), image.width, cleared)
+            Memory.clear(stencilBuf + cast(u64, y) * cast(u64, image.width) + cast(u64, minX), runWidth)
         }
 
         // The masked general write reduces to raw byte stores for the BGRA8 targets every frame
@@ -4932,14 +5272,19 @@ private impl RenderCpu
             for var y = minY; y < maxY; y += 1
             {
                 let row       = pixels + cast(u64, ((image.height - y - 1) * image.rowStride + minX * 4))
-                var offset    = 0'u64
+                var offset    = 0_u64
                 let byteCount = runWidth * 4
                 while byteCount - offset >= #sizeof(Math.Simd.U8x16)
                 {
-                    if writeAll do
+                    if writeAll
+                    {
                         Math.Simd.store(row + offset, fill)
-                    else do
+                    }
+                    else
+                    {
                         Math.Simd.store(row + offset, Math.Simd.select(CpuBgraRgbMask, fill, Math.Simd.load(row + offset)))
+                    }
+
                     offset += #sizeof(Math.Simd.U8x16)
                 }
 
@@ -4948,8 +5293,11 @@ private impl RenderCpu
                     row[offset]     = color.b
                     row[offset + 1] = color.g
                     row[offset + 2] = color.r
-                    if writeAll do
+                    if writeAll
+                    {
                         row[offset + 3] = color.a
+                    }
+
                     offset += 4
                 }
             }
@@ -4969,14 +5317,26 @@ private impl RenderCpu
 
                 let old = readPixel(image, x, y)
                 var out = color
-                if not .colorMask.r do
+                if not .colorMask.r
+                {
                     out.r = old.r
-                if not .colorMask.g do
+                }
+
+                if not .colorMask.g
+                {
                     out.g = old.g
-                if not .colorMask.b do
+                }
+
+                if not .colorMask.b
+                {
                     out.b = old.b
-                if not .colorMask.a do
+                }
+
+                if not .colorMask.a
+                {
                     out.a = old.a
+                }
+
                 writePixel(image, x, y, out)
             }
         }
@@ -5001,15 +5361,19 @@ private impl RenderCpu
         .overlapPass    = 0
         .alphaResolve   = false
         let image = .currentImage()
-        if image do
+        if image
+        {
             .ensureStencil(image.width, image.height)
+        }
     }
 
     mtd replayTargetAlpha(painter: *Painter, first, last: u64)
     {
         let image = .currentImage()
-        if not image do
+        if not image
+        {
             return
+        }
 
         // The replay rebuilds the whole alpha plane rather than one batch's scratch, so it starts
         // from the whole clipped region and not from any batch's bounds.
@@ -5019,7 +5383,12 @@ private impl RenderCpu
         // same clips the color plane was. That only reproduces the color pass from a region the
         // recording started with: the target was cleared right after it was bound, and a clear
         // empties the stencil, so the replay starts from an empty one too.
-        .clearStencil()
+        let stencil = .currentStencil()
+        if stencil.count
+        {
+            Memory.clear(stencil.storage(), stencil.count)
+        }
+
         .stencilOn    = false
         .stencilWrite = false
         .stencilMode  = .Set
@@ -5060,8 +5429,15 @@ private impl RenderCpu
 
         case .StartClippingRegion:
 
-            // The previous mask can extend past the current scissor.
-            .clearStencil()
+            // A region starts empty: what the previous start/end pair wrote must not leak into
+            // it. The whole plane is reset rather than the scissor box, because the old region
+            // can extend past the clip in force now.
+            let stencil = .currentStencil()
+            if stencil.count
+            {
+                Memory.clear(stencil.storage(), stencil.count)
+            }
+
             .stencilOn    = true
             .stencilWrite = true
             .stencilMode  = cmd.clippingRegion.mode
@@ -5130,10 +5506,15 @@ private impl RenderCpu
 
         case .BindTexture0:
             .paint = cmd.texture0
-            if cmd.texture0.gradientStopCount do
+            if cmd.texture0.gradientStopCount
+            {
                 .gradientStops = Swag.makeSlice(painter.gradientStops.buffer + cmd.texture0.gradientStopStart, cmd.texture0.gradientStopCount)
-            else do
+            }
+            else
+            {
                 .gradientStops = null
+            }
+
             .paintOn = true
 
         case .ReleaseTexture:
@@ -5154,11 +5535,16 @@ private impl RenderCpu
 
         case .UnbindRenderTarget:
             let target = unwrap .curRT
-            if target.paintAlpha do
+            if target.paintAlpha
+            {
                 .replayTargetAlpha(painter, target.paintAlphaIdx, cmdIdx)
+            }
+
             .unbindRenderTargetImpl()
-            if .stackStencilOn.count do
+            if .stackStencilOn.count
+            {
                 .stencilOn = .stackStencilOn.popBack()
+            }
 
         case .ReleaseRenderTarget:
             .releaseRenderTargetImpl(cmd.renderTgt.tgt)
@@ -5169,8 +5555,10 @@ private impl RenderCpu
             let rect   = cmd.backdropCapture.rect
             for y in cast(s32, rect.height)
             {
-                for x in cast(s32, rect.width) do
+                for x in cast(s32, rect.width)
+                {
                     writePixel(&target.image, x, y, readPixel(source, x + cast(s32, rect.x), y + cast(s32, rect.y)))
+                }
             }
 
         case .SetBackdropShader:
@@ -5201,10 +5589,14 @@ private impl RenderCpu
 
         case .SetShader:
             let shader = cmd.shader.shader
-            if not shader do
+            if not shader
+            {
                 .program = CpuProgram_Default
-            else do
+            }
+            else
+            {
                 Swag.assert(false, "RenderCpu does not support custom shaders")
+            }
 
         case .SetShaderParam:
             Swag.assert(false, "RenderCpu does not support custom shader parameters")
@@ -5221,8 +5613,10 @@ impl RenderCpu
     mtd opDrop()
     {
         .generation.release()
-        for rt in .stackReleasedRT do
+        for rt in .stackReleasedRT
+        {
             Memory.delete(rt)
+        }
     }
 
     // Resets all renderer-owned resources and returns to an empty deterministic state.
@@ -5298,8 +5692,11 @@ impl RenderCpu
     internal mtd targetSizeImpl()->{ width, height: s32 }
     {
         let image = .currentImage()
-        if image do
+        if image
+        {
             return {width: image.width, height: image.height}
+        }
+
         return {width: 0, height: 0}
     }
 
@@ -5349,12 +5746,16 @@ impl RenderCpu
             switch cmd.op
             {
             case .BindRenderTarget:
-                if not cmd.renderTgt.tgt.colorBuffer.isValid() do
+                if not cmd.renderTgt.tgt.colorBuffer.isValid()
+                {
                     fail RenderResourceError{"CPU renderer cannot bind a render target from an earlier resource generation"}
+                }
 
             case .CaptureBackdrop:
-                if not cmd.backdropCapture.tgt.colorBuffer.isValid() do
+                if not cmd.backdropCapture.tgt.colorBuffer.isValid()
+                {
                     fail RenderResourceError{"CPU renderer cannot capture into a target from an earlier resource generation"}
+                }
 
             default:
                 break
@@ -5412,10 +5813,16 @@ impl RenderCpu
     internal mtd bindRenderTargetImpl(rt: *RenderTarget)
     {
         Swag.assert(rt != null, "bindRenderTarget needs a target")
-        if not rt.colorBuffer.isValid() do
+        if not rt.colorBuffer.isValid()
+        {
             return
-        if .curRT do
+        }
+
+        if .curRT
+        {
             .stackRT.add(.curRT)
+        }
+
         .curRT = rt
         .curRT.paintAlpha = false
         .ensureStencil(rt.colorBuffer.width, rt.colorBuffer.height)
@@ -5442,8 +5849,11 @@ impl RenderCpu
     internal mtd readRenderTargetImpl(rt: const *RenderTarget, x, y, width, height: s32)->Image
     {
         Swag.assert(rt != null and width > 0 and height > 0, "readRenderTarget needs a target and positive dimensions")
-        if not rt.colorBuffer.isValid() do
+        if not rt.colorBuffer.isValid()
+        {
             return {}
+        }
+
         let storage = .findTexture(rt.colorBuffer.handle)
         Swag.assert(storage != null, "render target is not owned by this renderer")
         let source = storage
@@ -5472,18 +5882,24 @@ impl RenderCpu
     // Restores the previous render target, or the frame surface.
     internal mtd unbindRenderTargetImpl()
     {
-        if .stackRT.count do
+        if .stackRT.count
+        {
             .curRT = .stackRT.popBack()
-        else do
+        }
+        else
+        {
             .curRT = null
+        }
     }
 
     // Creates a transparent off-screen BGRA target with positive dimensions.
     internal mtd createRenderTargetImpl(width, height: s32)->RenderTarget
     {
         Swag.assert(width > 0 and height > 0, "createRenderTarget needs positive width and height")
-        if not .ensureGeneration() do
+        if not .ensureGeneration()
+        {
             return {}
+        }
 
         let targetHandle = cast(RenderTargetHandle, .nextHandle)
         .nextHandle += 1
@@ -5504,8 +5920,11 @@ impl RenderCpu
     // Releases an off-screen target and invalidates its descriptor.
     internal mtd deleteRenderTargetImpl(rt: *RenderTarget)
     {
-        if rt.handle == InvalidRenderTargetHandle do
+        if rt.handle == InvalidRenderTargetHandle
+        {
             return
+        }
+
         if not rt.colorBuffer.isValid()
         {
             rt.clear()
@@ -5530,8 +5949,10 @@ impl RenderCpu
     // the caller handed over.
     internal mtd addImageImpl(view: const *YuvPlanarView)->Texture
     {
-        if not view.isValidLayout() or not .ensureGeneration() do
+        if not view.isValidLayout() or not .ensureGeneration()
+        {
             return {}
+        }
 
         var image = Image.create(view.width, view.height, .RGB8)
         view.convertToRgb(&image)
@@ -5554,12 +5975,18 @@ impl RenderCpu
         if not view.isValidLayout() or
            not texture.isValid() or
            view.width != texture.width or
-           view.height != texture.height do
+           view.height != texture.height
+        {
             return false
+        }
+
         if (texture.pixelFormat == .Yuv420 and view.chromaShift != 1) or
            (texture.pixelFormat == .Yuv444 and view.chromaShift != 0) or
-           (texture.pixelFormat != .Yuv420 and texture.pixelFormat != .Yuv444) do
+           (texture.pixelFormat != .Yuv420 and texture.pixelFormat != .Yuv444)
+        {
             return false
+        }
+
         let storage = .findTexture(texture.handle)
         Swag.assert(storage != null, "texture is not owned by this renderer")
         view.convertToRgb(&storage.image)
@@ -5600,8 +6027,10 @@ impl RenderCpu
     // Copies an image into a renderer-owned CPU texture.
     internal mtd addImageImpl(image: const *Image)->Texture
     {
-        if not image.isValid() or not .ensureGeneration() do
+        if not image.isValid() or not .ensureGeneration()
+        {
             return {}
+        }
 
         var result: #returntype
         result.attach(cast(TextureHandle, .nextHandle), image.pixelFormat, image.width, image.height, .generation)
@@ -5609,10 +6038,15 @@ impl RenderCpu
 
         var storage: CpuTexture
         storage.handle = result.handle
-        if image.alphaMode == .Premultiplied do
+        if image.alphaMode == .Premultiplied
+        {
             storage.image = image.convertedAlphaTo(.Straight)
-        else do
+        }
+        else
+        {
             storage.image = image[]
+        }
+
         .textures.add(#move storage)
         return result
     }
@@ -5622,8 +6056,11 @@ impl RenderCpu
     // `pixels` must address at least [[Pixel.Texture.byteCount]] readable bytes.
     internal mtd updateTextureImpl(texture: Texture, pixels: const *u8)->bool
     {
-        if not texture.isValid() do
+        if not texture.isValid()
+        {
             return false
+        }
+
         let storage = .findTexture(texture.handle)
         Swag.assert(storage != null, "texture is not owned by this renderer")
         let target = storage
@@ -5633,7 +6070,7 @@ impl RenderCpu
         if texture.pixelFormat == .Yuv420 or texture.pixelFormat == .Yuv444
         {
             let shift        = texture.pixelFormat == .Yuv420 ? 1 : 0
-            let divisor      = 1's32 << shift
+            let divisor      = 1_s32 << shift
             let chromaWidth  = texture.width / divisor + (texture.width % divisor != 0 ? 1 : 0)
             let chromaHeight = texture.height / divisor + (texture.height % divisor != 0 ? 1 : 0)
             let lumaSize     = cast(u64, texture.width) * cast(u64, texture.height)
@@ -5661,11 +6098,14 @@ impl RenderCpu
     }
 
     // Reads a renderer-owned texture into the requested tightly packed format.
-    internal mtd readTexturePixelsImpl(texture: Texture, pixelFormat: PixelFormat)->Array'u8
+    internal mtd readTexturePixelsImpl(texture: Texture, pixelFormat: PixelFormat)->Array!{u8}
     {
         var result: #returntype
-        if not texture.isValid() do
+        if not texture.isValid()
+        {
             return result
+        }
+
         let storage = .findTexture(texture.handle)
         Swag.assert(storage != null, "texture is not owned by this renderer")
         let source = storage
@@ -5734,7 +6174,7 @@ impl RenderCpu
         let bucketHeight = RenderTarget.pooledExtent(height)
         if not bucketWidth or not bucketHeight
         {
-            let result = Memory.new'RenderTarget()
+            let result = Memory.new!{RenderTarget}()
             result.clear()
             return result
         }
@@ -5750,7 +6190,7 @@ impl RenderCpu
             }
         }
 
-        let result = Memory.new'RenderTarget()
+        let result = Memory.new!{RenderTarget}()
         result[] = .createRenderTargetImpl(cast(s32, bucketWidth), cast(s32, bucketHeight))
         return result
     }
@@ -5761,8 +6201,11 @@ impl RenderCpu
     // [[Pixel.RenderCpu.acquireRenderTarget]]. Ownership transfers back to the renderer.
     internal mtd releaseRenderTargetImpl(target: *RenderTarget?)
     {
-        if not target do
+        if not target
+        {
             return
+        }
+
         if not target.colorBuffer.isValid()
         {
             target.clear()

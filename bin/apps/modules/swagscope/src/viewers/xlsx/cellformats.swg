@@ -12,8 +12,8 @@ private struct CustomNumberFormat
 // Resolves a cell's style index to its authored numeric display format.
 struct CellFormats
 {
-    custom:   Array'CustomNumberFormat
-    styles:   Array'u32
+    custom:   Array!{CustomNumberFormat}
+    styles:   Array!{u32}
     date1904: bool
 }
 
@@ -26,7 +26,7 @@ impl CellFormats
         var token:  Package.Token
         var inStyles = false
         var inBases  = false
-        var bases:  Array'u32
+        var bases:  Array!{u32}
         while scan.next(&token)
         {
             if token.kind == .Start
@@ -35,19 +35,22 @@ impl CellFormats
                 {
                     let id   = catch StrConv.toU32(token.attribute("numFmtId") orelse "") { fail Errors.InvalidFormatError{texts().err_Invalid} }
                     let code = token.attribute("formatCode") orelse ""
-                    if code.count > 512 or result.custom.count >= 4096 do
+                    if code.count > 512 or result.custom.count >= 4096
+                    {
                         fail Errors.UnsupportedFormatError{texts().err_TooLarge}
+                    }
+
                     result.custom.add(CustomNumberFormat{id, NumberFormat{String.from(code)}})
                 }
-                elif token.isElement("cellXfs")
+                else if token.isElement("cellXfs")
                 {
                     inStyles = not token.empty
                 }
-                elif token.isElement("cellStyleXfs")
+                else if token.isElement("cellStyleXfs")
                 {
                     inBases = not token.empty
                 }
-                elif token.isElement("xf") and (inStyles or inBases)
+                else if token.isElement("xf") and (inStyles or inBases)
                 {
                     let id = catch StrConv.toU32(token.attribute("numFmtId") orelse "0") { fail Errors.InvalidFormatError{texts().err_Invalid} }
                     if inBases
@@ -60,40 +63,60 @@ impl CellFormats
                         if token.attribute("applyNumberFormat") == "0" or token.attribute("numFmtId") == null
                         {
                             let parent = catch StrConv.toU64(token.attribute("xfId") orelse "0") orelse Swag.U64.Max
-                            if parent < bases.count do
+                            if parent < bases.count
+                            {
                                 effective = bases[parent]
+                            }
                         }
 
                         result.styles.add(effective)
                     }
 
-                    if bases.count > 65536 or result.styles.count > 65536 do
+                    if bases.count > 65536 or result.styles.count > 65536
+                    {
                         fail Errors.UnsupportedFormatError{texts().err_TooLarge}
+                    }
                 }
             }
-            elif token.kind == .End
+            else if token.kind == .End
             {
-                if token.isElement("cellXfs") do
+                if token.isElement("cellXfs")
+                {
                     inStyles = false
-                elif token.isElement("cellStyleXfs") do
+                }
+                else if token.isElement("cellStyleXfs")
+                {
                     inBases = false
+                }
             }
         }
 
-        if scan.damaged do
+        if scan.damaged
+        {
             fail Errors.InvalidFormatError{texts().err_Invalid}
+        }
+
         return result
     }
 
     mtd const format(value: string, style: u32)->FormattedCell fail
     {
-        if .styles.isEmpty() and style == 0 do
+        if .styles.isEmpty() and style == 0
+        {
             return FormattedCell{String.from(value)}
-        if style >= .styles.count do
+        }
+
+        if style >= .styles.count
+        {
             fail Errors.InvalidFormatError{texts().err_Invalid}
+        }
+
         let id = .styles[style]
-        for custom in .custom where custom.id == id do
+        for custom in .custom where custom.id == id
+        {
             return custom.format.format(value, .date1904)
+        }
+
         return NumberFormat.builtIn(id).format(value, .date1904)
     }
 }

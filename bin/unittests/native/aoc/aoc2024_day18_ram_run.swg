@@ -37,8 +37,8 @@ const SampleInput =
 // Grid with multi-dimensional array
 // ---------------------------------------------------------------------------
 
-const Dim  = 8'u32
-const MaxQ = 256'u32
+const Dim  = 8_u32
+const MaxQ = 256_u32
 
 struct Grid
 {
@@ -75,7 +75,7 @@ impl Grid
 // Byte list
 // ---------------------------------------------------------------------------
 
-const MaxBytes = 128'u32
+const MaxBytes = 128_u32
 
 struct BytePos
 {
@@ -97,39 +97,66 @@ func parseBytes(text: string)->ByteList
 
     for
     {
-        if pos >= bytes.count or result.count >= MaxBytes do break
+        if pos >= bytes.count or result.count >= MaxBytes
+        {
+            break
+        }
 
         // skip to digit
         for
         {
-            if pos >= bytes.count do break
+            if pos >= bytes.count
+            {
+                break
+            }
             let ch = bytes[pos]
-            if ch >= '0' and ch <= '9' do break
+            if ch >= '0' and ch <= '9'
+            {
+                break
+            }
             pos += 1
         }
-        if pos >= bytes.count do break
+        if pos >= bytes.count
+        {
+            break
+        }
 
         // parse col
         var col: u32
         for
         {
-            if pos >= bytes.count do break
+            if pos >= bytes.count
+            {
+                break
+            }
             let ch = bytes[pos]
-            if ch < '0' or ch > '9' do break
+            if ch < '0' or ch > '9'
+            {
+                break
+            }
             col = col * 10 + cast(u32, (ch - '0'))
             pos += 1
         }
 
         // skip comma
-        if pos < bytes.count and bytes[pos] == ',' do pos += 1
+        if pos < bytes.count and bytes[pos] == ','
+        {
+            pos += 1
+        }
 
         // parse row
         var row: u32
         for
         {
-            if pos >= bytes.count do break
+            if pos >= bytes.count
+            {
+                break
+            }
             let ch = bytes[pos]
-            if ch < '0' or ch > '9' do break
+            if ch < '0' or ch > '9'
+            {
+                break
+            }
             row = row * 10 + cast(u32, (ch - '0'))
             pos += 1
         }
@@ -155,8 +182,10 @@ func applyBytes(g: *Grid, bl: *ByteList, count: u32)
     for i in count
     {
         let b = bl.items[i]
-        if b.row < g.h and b.col < g.w do
+        if b.row < g.h and b.col < g.w
+        {
             g.set(b.row, b.col, 1)
+        }
     }
 }
 
@@ -171,8 +200,10 @@ func bfs(g: *Grid)->s32
 {
     let er = g.h - 1
     let ec = g.w - 1
-    if not g.passable(0, 0) or not g.passable(er, ec) do
+    if not g.passable(0, 0) or not g.passable(er, ec)
+    {
         return -1
+    }
 
     var dist: [Dim] [Dim] s32
     for r in Dim
@@ -194,25 +225,33 @@ func bfs(g: *Grid)->s32
 
     for MaxQ
     {
-        if head >= tail do
+        if head >= tail
+        {
             break
+        }
         let cr = queue[head]
         let cc = queue[head + 1]
         head += 2
 
-        if cr == er and cc == ec do
+        if cr == er and cc == ec
+        {
             return dist[cr][cc]
+        }
 
         for d in 4
         {
             let nr = cast(s32, cr) + DR[d]
             let nc = cast(s32, cc) + DC[d]
-            if nr < 0 or nc < 0 or cast(u32, nr) >= g.h or cast(u32, nc) >= g.w do
+            if nr < 0 or nc < 0 or cast(u32, nr) >= g.h or cast(u32, nc) >= g.w
+            {
                 continue
+            }
             let ur = cast(u32, nr)
             let uc = cast(u32, nc)
-            if not g.passable(ur, uc) or dist[ur][uc] >= 0 do
+            if not g.passable(ur, uc) or dist[ur][uc] >= 0
+            {
                 continue
+            }
             dist[ur][uc]    = dist[cr][cc] + 1
             queue[tail]     = ur
             queue[tail + 1] = uc
@@ -234,8 +273,10 @@ func findBlockingByte(g: *Grid, bl: *ByteList)->u32
 
     for bl.count
     {
-        if lo >= hi do
+        if lo >= hi
+        {
             break
+        }
         let mid = (lo + hi) / 2
         applyBytes(g, bl, mid + 1)
         if bfs(g) < 0
@@ -309,7 +350,10 @@ func formatCoord(col: u32, row: u32, buf: [*] u8, _: u32)->u32
         var v = col
         for
         {
-            if v == 0 do break
+            if v == 0
+            {
+                break
+            }
             tmp[tmpLen] = cast(u8, (v % 10)) + '0'
             tmpLen      += 1
             v           /= 10
@@ -337,7 +381,10 @@ func formatCoord(col: u32, row: u32, buf: [*] u8, _: u32)->u32
         var v = row
         for
         {
-            if v == 0 do break
+            if v == 0
+            {
+                break
+            }
             tmp[tmpLen] = cast(u8, (v % 10)) + '0'
             tmpLen      += 1
             v           /= 10
@@ -360,11 +407,11 @@ func formatCoord(col: u32, row: u32, buf: [*] u8, _: u32)->u32
 #test
 {
     let bl = parseBytes(SampleInput)
-    Swag.require(bl.count == 25'u32)
-    Swag.require(bl.items[0].col == 5'u32)
-    Swag.require(bl.items[0].row == 4'u32)
-    Swag.require(bl.items[1].col == 4'u32)
-    Swag.require(bl.items[1].row == 2'u32)
+    Swag.require(bl.count == 25_u32)
+    Swag.require(bl.items[0].col == 5_u32)
+    Swag.require(bl.items[0].row == 4_u32)
+    Swag.require(bl.items[1].col == 4_u32)
+    Swag.require(bl.items[1].row == 2_u32)
 }
 
 // Multi-dim array: set and read
@@ -419,9 +466,9 @@ func formatCoord(col: u32, row: u32, buf: [*] u8, _: u32)->u32
 #test
 {
     let result = solve(SampleInput, 7, 12)
-    Swag.require(result.blockingByteIdx == 20'u32)
-    Swag.require(result.blockingCol == 6'u32)
-    Swag.require(result.blockingRow == 1'u32)
+    Swag.require(result.blockingByteIdx == 20_u32)
+    Swag.require(result.blockingCol == 6_u32)
+    Swag.require(result.blockingRow == 1_u32)
 }
 
 // Format coordinate
@@ -429,7 +476,7 @@ func formatCoord(col: u32, row: u32, buf: [*] u8, _: u32)->u32
 {
     var buf: [16] u8
     let len = formatCoord(6, 1, &buf[0], 16)
-    Swag.require(len == 3'u32)
+    Swag.require(len == 3_u32)
     Swag.require(buf[0] == '6')
     Swag.require(buf[1] == ',')
     Swag.require(buf[2] == '1')
@@ -449,7 +496,7 @@ func formatCoord(col: u32, row: u32, buf: [*] u8, _: u32)->u32
     // Just test formatCoord with single digits
     var buf2: [8] u8
     let len2 = formatCoord(0, 0, &buf2[0], 8)
-    Swag.require(len2 == 3'u32)
+    Swag.require(len2 == 3_u32)
     Swag.require(buf2[0] == '0')
     Swag.require(buf2[1] == ',')
     Swag.require(buf2[2] == '0')
@@ -468,5 +515,5 @@ func formatCoord(col: u32, row: u32, buf: [*] u8, _: u32)->u32
     let idx = findBlockingByte(&g, &bl)
     // After 1 byte: (0,1) blocked. Path (0,0)→(1,0)→(1,1) still open
     // After 2 bytes: (1,0) also blocked. No path. So blocking = index 1
-    Swag.require(idx == 1'u32)
+    Swag.require(idx == 1_u32)
 }

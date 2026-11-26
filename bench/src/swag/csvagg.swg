@@ -1,11 +1,11 @@
-const ROWS = 400000'u64
+const ROWS = 400000_u64
 
 const REGIONS: [8] string = ["EMEA", "APAC", "AMER", "LATAM", "NORDIC", "IBERIA", "BENELUX", "DACH"]
 
 func writeUInt(buf: [*] u8, pos, v: u64)->u64
 {
     var tmp: [24] u8
-    var n = 0'u64
+    var n = 0_u64
     var x = v
     if x == 0
     {
@@ -43,7 +43,7 @@ func writeUInt2(buf: [*] u8, pos, v: u64)->u64
 {
     // ---- data generation (not timed) ----
     let text = cast([*] u8, unwrap benchAlloc(ROWS * 48))
-    var n    = 0'u64
+    var n    = 0_u64
 
     for j in ROWS
     {
@@ -100,35 +100,47 @@ func writeUInt2(buf: [*] u8, pos, v: u64)->u64
     var slotRev   = cast([*] f64, unwrap benchAlloc(64 * #sizeof(f64)))
     var slotMax   = cast([*] f64, unwrap benchAlloc(64 * #sizeof(f64)))
 
-    var pos  = 0'u64
-    var rows = 0'u64
+    var pos  = 0_u64
+    var rows = 0_u64
 
     while pos < n
     {
         var eol = pos
-        while eol < n and text[eol] != '\n' do
+        while eol < n and text[eol] != '\n'
+        {
             eol += 1
 
-        // field 0: id
+            // field 0: id
+        }
+
         var p = pos
-        while p < eol and text[p] != ',' do
+        while p < eol and text[p] != ','
+        {
             p += 1
+        }
+
         p += 1
 
         // field 1: region
         let rs = p
-        while p < eol and text[p] != ',' do
+        while p < eol and text[p] != ','
+        {
             p += 1
+        }
+
         let rlen = p - rs
         p += 1
 
         // field 2: date (skipped)
-        while p < eol and text[p] != ',' do
+        while p < eol and text[p] != ','
+        {
             p += 1
+        }
+
         p += 1
 
         // field 3: qty
-        var qty = 0'u64
+        var qty = 0_u64
         while p < eol and text[p] != ','
         {
             qty = qty * 10 + cast(u64, (text[p] - 48))
@@ -138,7 +150,7 @@ func writeUInt2(buf: [*] u8, pos, v: u64)->u64
         p += 1
 
         // field 4: price
-        var ip = 0'u64
+        var ip = 0_u64
         while p < eol and text[p] != '.'
         {
             ip = ip * 10 + cast(u64, (text[p] - 48))
@@ -146,14 +158,14 @@ func writeUInt2(buf: [*] u8, pos, v: u64)->u64
         }
 
         p += 1
-        var fr = 0'u64
+        var fr = 0_u64
         while p < eol
         {
             fr = fr * 10 + cast(u64, (text[p] - 48))
             p  += 1
         }
 
-        let price = cast(f64, ip) + cast(f64, fr) / 100.0'f64
+        let price = cast(f64, ip) + cast(f64, fr) / 100.0_f64
 
         let idx = mapProbe(&agg, rs, rlen)
         if agg.used[idx] == 0
@@ -171,8 +183,10 @@ func writeUInt2(buf: [*] u8, pos, v: u64)->u64
             slotCount[slot] += 1
             slotQty[slot]   += qty
             slotRev[slot]   += cast(f64, qty) * price
-            if price > slotMax[slot] do
+            if price > slotMax[slot]
+            {
                 slotMax[slot] = price
+            }
         }
 
         rows += 1
@@ -182,8 +196,8 @@ func writeUInt2(buf: [*] u8, pos, v: u64)->u64
     // sort the region keys, then fold them in order
     var order:  [64] u64
     var keyIdx: [64] u64
-    var nk = 0'u64
-    for i in 64'u64
+    var nk = 0_u64
+    for i in 64_u64
     {
         if agg.used[i] != 0
         {
@@ -192,23 +206,34 @@ func writeUInt2(buf: [*] u8, pos, v: u64)->u64
         }
     }
 
-    for i in nk do
+    for i in nk
+    {
         order[i] = i
+    }
+
     for i in nk
     {
         var best = i
         for j in nk
         {
-            if j <= i do
+            if j <= i
+            {
                 continue
+            }
+
             let a  = keyIdx[order[best]]
             let b  = keyIdx[order[j]]
             var la = agg.keyLen[a]
-            if agg.keyLen[b] < la do
+            if agg.keyLen[b] < la
+            {
                 la = agg.keyLen[b]
+            }
+
             let c = Swag.memcmp(&text[agg.keyOff[b]], &text[agg.keyOff[a]], la)
-            if c < 0 or (c == 0 and agg.keyLen[b] < agg.keyLen[a]) do
+            if c < 0 or (c == 0 and agg.keyLen[b] < agg.keyLen[a])
+            {
                 best = j
+            }
         }
 
         let t = order[i]
@@ -220,8 +245,8 @@ func writeUInt2(buf: [*] u8, pos, v: u64)->u64
     for k in nk
     {
         let slot = agg.val[keyIdx[order[k]]]
-        check += (k + 1) * (cast(u64, (slotRev[slot] * 100.0'f64 + 0.5'f64)) % 1000003)
-        check += slotCount[slot] + slotQty[slot] + cast(u64, (slotMax[slot] * 100.0'f64 + 0.5'f64))
+        check += (k + 1) * (cast(u64, (slotRev[slot] * 100.0_f64 + 0.5_f64)) % 1000003)
+        check += slotCount[slot] + slotQty[slot] + cast(u64, (slotMax[slot] * 100.0_f64 + 0.5_f64))
     }
 
     let t1 = now()

@@ -50,12 +50,18 @@ internal func touchNative(fullName: string) fail
 // A directory, an empty name, or a path the process cannot query reports false.
 func exists(fullName: string)->bool
 {
-    if fullName.count == 0 do
+    if fullName.count == 0
+    {
         return false
+    }
+
     let winPath    = Utf16.toZeroTerminated(fullName)
     let attributes = catch GetFileAttributesW(winPath.buffer) { return false }
-    if attributes == 0xFFFFFFFF do
+    if attributes == 0xFFFFFFFF
+    {
         return false
+    }
+
     return (attributes & FILE_ATTRIBUTE_DIRECTORY) == 0
 }
 
@@ -74,18 +80,31 @@ internal func openNative(fullName: string, mode: FileMode, access: FileAccess, s
     }
 
     var desiredAccess: DWORD
-    if access.has(.Read) do
+    if access.has(.Read)
+    {
         desiredAccess |= GENERIC_READ
-    if access.has(.Write) do
+    }
+
+    if access.has(.Write)
+    {
         desiredAccess |= GENERIC_WRITE
+    }
 
     var shareMode: DWORD
-    if share.has(.Read) do
+    if share.has(.Read)
+    {
         shareMode |= FILE_SHARE_READ
-    if share.has(.Write) do
+    }
+
+    if share.has(.Write)
+    {
         shareMode |= FILE_SHARE_WRITE
-    if share.has(.Delete) do
+    }
+
+    if share.has(.Delete)
+    {
         shareMode |= FILE_SHARE_DELETE
+    }
 
     var security:    SECURITY_ATTRIBUTES
     var securityPtr: *SECURITY_ATTRIBUTES?

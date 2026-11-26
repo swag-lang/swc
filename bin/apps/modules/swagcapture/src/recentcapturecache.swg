@@ -10,8 +10,10 @@ impl RecentCachedCapture
 {
     mtd opDrop()
     {
-        if .capture do
+        if .capture
+        {
             Memory.delete(.capture)
+        }
     }
 }
 
@@ -20,7 +22,7 @@ struct RecentCaptureCache
 {
     const MaxBytes = 128 * 1024 * 1024
 
-    entries:  ArrayPtr'RecentCachedCapture
+    entries:  ArrayPtr!{RecentCachedCapture}
     bytes:    u64
     maxBytes: u64 = MaxBytes
 }
@@ -40,10 +42,16 @@ impl RecentCaptureCache
         for item, i in .entries
         {
             let entry = unwrap item
-            if not entry.capture do
+            if not entry.capture
+            {
                 continue
-            if entry.capture.file != file do
+            }
+
+            if entry.capture.file != file
+            {
                 continue
+            }
+
             let current = catch File.info(file) orelse {}
             let valid   = sameRevision(entry.revision, current)
             let result  = valid ? entry.capture : null
@@ -75,8 +83,11 @@ impl RecentCaptureCache
         }
 
         var size = cast(u64, capture.backImg.byteCount + capture.backImgOriginal.byteCount + capture.preview.byteCount + capture.previewBytes.count)
-        for form in capture.forms where Swag.kindOf(form) == FormImage do
+        for form in capture.forms where Swag.kindOf(form) == FormImage
+        {
             size += (assume cast(*FormImage, form)).image.byteCount
+        }
+
         if size > .maxBytes
         {
             Memory.delete(capture)
@@ -102,7 +113,7 @@ impl RecentCaptureCache
 
     mtd invalidate(file: string)
     {
-        var i = 0'u64
+        var i = 0_u64
         while i < .entries.count
         {
             if .entries[i]!.capture!.file != file

@@ -7,10 +7,14 @@
         var acc: s32 = 0
         for var i = 0; i < 8; i += 1
         {
-            if i == 2 do
+            if i == 2
+            {
                 continue
-            if i == 6 do
+            }
+            if i == 6
+            {
                 break
+            }
             acc += i
         }
 

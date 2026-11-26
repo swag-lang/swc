@@ -5,8 +5,8 @@
 
 A basic test with an 'if' statement.
 
-In Swag, curly braces `{}` are optional for control structures like `if`.
-However, if you omit them, you must use `do`. This rule also applies to `while` and `for` loops.
+Control-flow bodies use curly braces `{}`. The braces also define the scope of
+the body.
 
 Unlike in C/C++, the condition in an `if` statement does not need parentheses.
 They can be used for clarity or grouping, but they are not required.
@@ -16,11 +16,15 @@ They can be used for clarity or grouping, but they are not required.
 {
     var a = 0
 
-    if a == 1 do
+    if a == 1
+    {
         Swag.require(false)
+    }
 
-    if a == 1 do
+    if a == 1
+    {
         Swag.require(false)
+    }
 
     if a == 0
     {
@@ -28,37 +32,55 @@ They can be used for clarity or grouping, but they are not required.
     }
 
     // The 'else' keyword works as in most languages.
-    // When omitting braces, 'do' is mandatory after the condition.
-    if a == 0 do
+    if a == 0
+    {
         a += 1
-    else do
+    }
+    else
+    {
         a += 2
+    }
+
     Swag.require(a == 1)
 
-    // 'elif' functions like 'else if' in other languages.
-    if a == 1 do
+    if a == 1
+    {
         a += 1
-    else do
-        if a == 2 do
-            Swag.require(false)
-        elif a == 3 do
-            Swag.require(false)
-        elif a == 4 do
-            Swag.require(false)
+    }
+    else if a == 2
+    {
+        Swag.require(false)
+    }
+    else if a == 3
+    {
+        Swag.require(false)
+    }
+    else if a == 4
+    {
+        Swag.require(false)
+    }
 
     // Logical expressions work as expected with 'and' and 'or'.
-    if a == 0 and a == 1 do
+    if a == 0 and a == 1
+    {
         Swag.require(false)
-    if a == 0 or a == 1 do
+    }
+
+    if a == 0 or a == 1
+    {
         Swag.require(false)
-    if a == 1 or a == 2 do
+    }
+
+    if a == 1 or a == 2
+    {
         Swag.require(true)
+    }
 }
 
 /**
 # Variable Declaration in 'if'
 
-An `if` or `elif` can declare a value with `let`, `var`, or `const`.
+An `if` or `else if` can declare a value with `let`, `var`, or `const`.
 A runtime initializer is evaluated once when that clause is reached.
 A nullable declaration tests whether the value is present.
 A non-nullable declaration needs `where`, which supplies the condition
@@ -69,10 +91,14 @@ The binding's lifetime ends as control leaves the conditional.
 
 #test
 {
-    if let count = 0 where count == 0 do
+    if let count = 0 where count == 0
+    {
         Swag.require(count == 0)
-    else do
+    }
+    else
+    {
         Swag.require(false)
+    }
 
     if var available = 3 where available >= 10
     {
@@ -84,12 +110,18 @@ The binding's lifetime ends as control leaves the conditional.
         Swag.require(available == 4)
     }
 
-    if const preferred = 0 where preferred > 0 do
+    if const preferred = 0 where preferred > 0
+    {
         Swag.require(false)
-    elif let fallback = 1 where fallback > 0 do
+    }
+    else if let fallback = 1 where fallback > 0
+    {
         Swag.require(fallback == 1)
-    else do
+    }
+    else
+    {
         Swag.require(false)
+    }
 }
 
 /**
@@ -106,15 +138,22 @@ An empty string or slice is present. A pointer to a zero-valued object is presen
     func readAbsent()->string? => null
 
     var matched = false
-    if let text = readText() where text[0] == 's' do
+    if let text = readText() where text[0] == 's'
+    {
         matched = true
+    }
+
     Swag.require(matched)
 
     let empty: string? = ""
-    if let text = empty do
+    if let text = empty
+    {
         Swag.require(text.count == 0)
-    else do
+    }
+    else
+    {
         Swag.require(false)
+    }
 
     if var text = readAbsent() where text == null
     {
@@ -139,16 +178,22 @@ An 'any' boxed from a literal or constant binds a read-only view.
 Declare the source `const any` to request that view in a binding pattern.
 
 An optional `where` guard runs only after a match. The binding is visible in that
-guard and the successful body, but not in `elif`, `else`, or after the statement.
-A false guard continues to the next branch. `elif` accepts the same binding form.
+guard and the successful body, but not in `else if`, `else`, or after the statement.
+A false guard continues to the next branch. `else if` accepts the same binding form.
 */
 #test
 {
-    let value: const any = 42's32
-    if value is s32 as number where number[] > 0 do
+    let value: const any = 42_s32
+    if value is s32 as number where number[] > 0
+    {
         Swag.require(number[] == 42)
-    elif value is string as text do
+    }
+    else if value is string as text
+    {
         Swag.require(text[].count != 0)
-    else do
+    }
+    else
+    {
         Swag.require(false)
+    }
 }

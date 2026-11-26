@@ -8,8 +8,10 @@ func testFindItem(prop: *PropWnd, name: string)->*PropertiesItem?
     for item in prop.grid.items
     {
         let it = unwrap item
-        if it.typeValue.name == name do
+        if it.typeValue.name == name
+        {
             return it
+        }
     }
 
     return null
@@ -19,8 +21,10 @@ func testItemIndex(prop: *PropWnd, name: string)->u64
 {
     for item, idx in prop.grid.items
     {
-        if item!.typeValue.name == name do
+        if item!.typeValue.name == name
+        {
             return idx
+        }
     }
 
     Swag.require(false)
@@ -28,24 +32,27 @@ func testItemIndex(prop: *PropWnd, name: string)->u64
 }
 
 // Collects the controls of the head of the panel whose tooltip is `tip`, in display order.
-func testCollectStyleButtons(wnd: *Wnd, tip: string, result: *Array'(*IconButton))
+func testCollectStyleButtons(wnd: *Wnd, tip: string, result: *Array!{*IconButton})
 {
     for child in wnd.children
     {
-        if child is IconButton as button where button.toolTip == tip do
+        if child is IconButton as button where button.toolTip == tip
+        {
             result.add(button)
+        }
+
         testCollectStyleButtons(child, tip, result)
     }
 }
 
 func testHasStyleTip(prop: *PropWnd, tip: string)->bool
 {
-    var buttons: Array'(*IconButton)
+    var buttons: Array!{*IconButton}
     testCollectStyleButtons(prop.topLayout, tip, &buttons)
     return not buttons.isEmpty()
 }
 
-func testFindStyleButtons(prop: *PropWnd, tip: string)->Array'(*IconButton)
+func testFindStyleButtons(prop: *PropWnd, tip: string)->Array!{*IconButton}
 {
     var result: #returntype
     testCollectStyleButtons(prop.topLayout, tip, &result)
@@ -114,8 +121,8 @@ func testFindStyleButtons(prop: *PropWnd, tip: string)->Array'(*IconButton)
     prop.selectionHasChanged()
     f.gui.pump()
     f.capture.changed = false
-    let model = unwrap prop.getSelectedForm'FormText()
-    let value = model.fontSize == 48 ? 36'f32 : 48'f32
+    let model = unwrap prop.getSelectedForm!{FormText}()
+    let value = model.fontSize == 48 ? 36_f32 : 48_f32
     let size  = unwrap testFindItem(prop, #nameof(FormText.fontSize))
     size.sliderBox.setValue(value)
     Swag.require(model.fontSize == value)
@@ -191,7 +198,7 @@ func testFindStyleButtons(prop: *PropWnd, tip: string)->Array'(*IconButton)
     f.capture.changed = true
     expect f.capture.save()
 
-    let next = Memory.new'Capture()
+    let next = Memory.new!{Capture}()
     next.width, next.widthOrg   = 120
     next.height, next.heightOrg = 80
     next.backImg = Gui.Testing.indexedImage(120, 80)
@@ -251,7 +258,7 @@ func testFindStyleButtons(prop: *PropWnd, tip: string)->Array'(*IconButton)
     Swag.require(Math.isEqualEpsilon(arrow.outlineSize, 5, 0.001))
 
     f.capture.selection.clear()
-    var points: Array'Math.Vector2
+    var points: Array!{Math.Vector2}
     points.add({10, 50})
     points.add({100, 50})
     let draw = testAddDraw(f.capture, points.toSlice())
@@ -651,7 +658,7 @@ func testFindStyleButtons(prop: *PropWnd, tip: string)->Array'(*IconButton)
     f.capture.selection.add(1)
     f.gui.paint(f.main)
     Swag.require(calls > 0)
-    Swag.require(prop.getSelectedForm'FormCallout() == null)
+    Swag.require(prop.getSelectedForm!{FormCallout}() == null)
 }
 
 // The timed inspector edits seconds as undoable form spans and restores the whole recording.
@@ -678,16 +685,23 @@ func testFindStyleButtons(prop: *PropWnd, tip: string)->Array'(*IconButton)
         {
             if child is EditCtrl as ctrl
             {
-                if it.typeValue.name == "time.start" do
+                if it.typeValue.name == "time.start"
+                {
                     start = ctrl.edit
-                if it.typeValue.name == "time.end" do
+                }
+
+                if it.typeValue.name == "time.end"
+                {
                     end = ctrl.edit
+                }
             }
 
             if child is PushButton as button
             {
-                if it.typeValue.name == "time.whole" do
+                if it.typeValue.name == "time.whole"
+                {
                     whole = button
+                }
             }
         }
     }
@@ -728,18 +742,18 @@ func testFindStyleButtons(prop: *PropWnd, tip: string)->Array'(*IconButton)
     f.capture.selection.add(0)
     prop.selectionHasChanged()
     prop.applyLayout()
-    Swag.require(prop.getSelectedForm'FormShape() != null)
+    Swag.require(prop.getSelectedForm!{FormShape}() != null)
 
     // Move the selection to the text form without telling the panel, which is the window every
     // repaint between an editor being built and being rebuilt falls into.
     f.capture.selection.clear()
     f.capture.selection.add(1)
 
-    Swag.require(prop.getSelectedForm'FormShape() == null)
-    Swag.require(prop.getSelectedForm'FormStep() == null)
-    Swag.require(prop.getSelectedForm'FormLine() == null)
-    Swag.require(prop.getSelectedForm'FormCallout() == null)
-    Swag.require(prop.getSelectedForm'FormText() != null)
+    Swag.require(prop.getSelectedForm!{FormShape}() == null)
+    Swag.require(prop.getSelectedForm!{FormStep}() == null)
+    Swag.require(prop.getSelectedForm!{FormLine}() == null)
+    Swag.require(prop.getSelectedForm!{FormCallout}() == null)
+    Swag.require(prop.getSelectedForm!{FormText}() != null)
 }
 
 // Returns the value the first row of `count` glyph choices under `wnd` has checked, as the
@@ -750,14 +764,19 @@ func testFirstCheckedChoice(wnd: *Wnd, count: u64)->u64
     {
         if child.itf is IconButton as glyph where glyph.flags.has(.Radio) and wnd.children.count == count
         {
-            for other in wnd.children where (assume cast(*IconButton, other)).isChecked do
+            for other in wnd.children where (assume cast(*IconButton, other)).isChecked
+            {
                 return cast(u64, other.userData)
+            }
+
             return Swag.U64.Max
         }
 
         let found = testFirstCheckedChoice(child, count)
-        if found != Swag.U64.Max - 1 do
+        if found != Swag.U64.Max - 1
+        {
             return found
+        }
     }
 
     return Swag.U64.Max - 1

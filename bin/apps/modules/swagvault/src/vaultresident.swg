@@ -24,7 +24,7 @@ struct VaultResident
     forceUnmount:        bool
     retainedFailure:     VaultFailure
     syncFailure:         VaultFailure
-    pending:             Array'String
+    pending:             Array!{String}
 }
 
 impl VaultResident
@@ -37,10 +37,14 @@ impl VaultResident
         if Env.hasArgument("--hide") and
            not .activationRequested and
            .settings.enabled and
-           .window.surface!.hasTrayIcon() do
+           .window.surface!.hasTrayIcon()
+        {
             .remind()
-        else do
+        }
+        else
+        {
             .showWindow()
+        }
     }
 
     mtd isHidden()->bool => .running and .window.surface!.isHidden
@@ -48,26 +52,36 @@ impl VaultResident
     mtd activate()
     {
         .activationRequested = true
-        if .running do
+        if .running
+        {
             .showWindow()
+        }
     }
 
     mtd showWindow()
     {
         .notice?.close()
         let surface = unwrap .window.surface
-        if surface.isMinimized do
+        if surface.isMinimized
+        {
             surface.showNormal()
-        else do
+        }
+        else
+        {
             surface.show()
+        }
+
         surface.bringToFront()
     }
 
     // Failure to register the icon always leaves a visible route back to the mounts.
     mtd refreshTray()
     {
-        if not .running do
+        if not .running
+        {
             return
+        }
+
         let surface = unwrap .window.surface
         if not .settings.enabled
         {
@@ -115,15 +129,21 @@ impl VaultResident
 
     mtd remind()
     {
-        if not .settings.showReminder do
+        if not .settings.showReminder
+        {
             return
+        }
+
         .notify(appStrings().msg_ResidentText, reminder: true)
     }
 
     mtd notify(message: string, reminder = false)
     {
-        if not .running do
+        if not .running
+        {
             return
+        }
+
         .notice?.close()
         let texts  = appStrings()
         let notice = TrayNotice.open(unwrap .window.surface, texts.msg_ResidentTitle, message, reminder ? texts.ui_ResidentReminder : null)
@@ -136,8 +156,10 @@ impl VaultResident
         .notice = notice
         notice.sigDismissed += func|resident = me|(dismissed)
         {
-            if resident.notice == dismissed do
+            if resident.notice == dismissed
+            {
                 resident.notice = null
+            }
         }
 
         notice.sigOptionChanged += func|resident = me|(_, checked)
@@ -170,16 +192,22 @@ impl VaultResident
         }
 
         .settings.enabled = enabled
-        if not enabled and .isHidden() do
+        if not enabled and .isHidden()
+        {
             .showWindow()
+        }
+
         .applySettings()
         catch g_App.saveState()
     }
 
     mtd setSessionStartup(enabled: bool)
     {
-        if enabled and not .settings.enabled do
+        if enabled and not .settings.enabled
+        {
             return
+        }
+
         if not Env.setSessionStartup(ApplicationId, ProductName, enabled, ["--hide"])
         {
             .applySettings()
@@ -195,8 +223,11 @@ impl VaultResident
     // Never exit while a mount, an operation or an unreviewed synchronization failure remains.
     mtd unmountAll(quit: bool)
     {
-        if .batch do
+        if .batch
+        {
             return
+        }
+
         if .window.operation.kind != .None
         {
             .showWindow()
@@ -211,8 +242,11 @@ impl VaultResident
     {
         .window.startupQueue.clear()
         .pending.clear()
-        for &drive in .window.mountedDrives.drives do
+        for &drive in .window.mountedDrives.drives
+        {
             .pending.add(drive.path)
+        }
+
         .batch           = true
         .quitting        = quit
         .forceUnmount    = force
@@ -225,20 +259,28 @@ impl VaultResident
     mtd recordUnmountFailure(operationError: any, retained: bool)
     {
         let detail = retained ? &.retainedFailure : &.syncFailure
-        if not detail.present do
+        if not detail.present
+        {
             detail[] = describeFailure(operationError)
+        }
     }
 
     mtd continueUnmount()
     {
-        if not .batch do
+        if not .batch
+        {
             return
+        }
+
         while .pending.count
         {
             let path = .pending[0]
             .pending.removeAtOrdered(0)
-            if not .window.isMounted(path) do
+            if not .window.isMounted(path)
+            {
                 continue
+            }
+
             .window.unmountVault(path, force: .forceUnmount)
             return
         }
@@ -251,15 +293,22 @@ impl VaultResident
             .window.statusDrive  = Format.toString("%", count)
             .window.setStatus(count ? .UnmountStopped : .UnmountSyncStopped)
             var force: bool
-            if .quitting do
+            if .quitting
+            {
                 force = .confirmForceQuit(detail.text())
-            elif .isHidden() do
+            }
+            else if .isHidden()
+            {
                 .notify(.window.statusText())
+            }
 
             .batch    = false
             .quitting = false
-            if force do
+            if force
+            {
                 .startUnmountBatch(quit: true, force: true)
+            }
+
             return
         }
 

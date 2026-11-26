@@ -40,22 +40,22 @@ struct(T) LocalWrap
 
 impl Sample
 {
-    func(var U) pairWith(const me, other: U)->Pair'(T, U)
+    func(var U) pairWith(const me, other: U)->Pair!{T, U}
     {
         return {first: me.values[0], second: other}
     }
 
-    func(var U, var V) makeTriple(const me, other: U, tail: V)->Triple'(T, U, V)
+    func(var U, var V) makeTriple(const me, other: U, tail: V)->Triple!{T, U, V}
     {
         return {first: me.values[0], second: other, third: tail}
     }
 
-    func(const Left: s32, const Right: s32) pickPair(const me)->IndexedPair'(T, T, Left, Right)
+    func(const Left: s32, const Right: s32) pickPair(const me)->IndexedPair!{T, T, Left, Right}
     {
         return {first: me.values[Left], second: me.values[Right], total: Left + Right}
     }
 
-    func(var U, var V, const Left: s32, const Right: s32) makeIndexedTriple(const me, other: U, tail: V)->IndexedTriple'(T, U, V, Left, Right)
+    func(var U, var V, const Left: s32, const Right: s32) makeIndexedTriple(const me, other: U, tail: V)->IndexedTriple!{T, U, V, Left, Right}
     {
         return {first: me.values[Left], second: other, third: tail, total: Left + Right}
     }
@@ -76,22 +76,22 @@ impl LocalWrap
 
 func semaTest001()
 {
-    let sample: Sample'(s32, 4)
+    let sample: Sample!{s32, 4}
 
-    let pair   = sample.pairWith'(string)("ten")
-    let triple = sample.makeTriple'(u8, bool)(9'u8, true)
-    let picked = sample.pickPair'(1, 3)()
-    let mixed  = sample.makeIndexedTriple'(u16, string, 0, 2)(7'u16, "done")
+    let pair   = sample.pairWith!{string}("ten")
+    let triple = sample.makeTriple!{u8, bool}(9_u8, true)
+    let picked = sample.pickPair!{1, 3}()
+    let mixed  = sample.makeIndexedTriple!{u16, string, 0, 2}(7_u16, "done")
 
     #assert(#typeof(pair.first) == s32)
     #assert(#typeof(pair.second) == string)
     #assert(#typeof(triple.first) == s32)
     #assert(#typeof(triple.second) == u8)
     #assert(#typeof(triple.third) == bool)
-    #assert(#typeof(picked) == IndexedPair'(s32, s32, 1, 3))
+    #assert(#typeof(picked) == IndexedPair!{s32, s32, 1, 3})
     #assert(#typeof(picked.first) == s32)
     #assert(#typeof(picked.second) == s32)
-    #assert(#typeof(mixed) == IndexedTriple'(s32, u16, string, 0, 2))
+    #assert(#typeof(mixed) == IndexedTriple!{s32, u16, string, 0, 2})
     #assert(#typeof(mixed.first) == s32)
     #assert(#typeof(mixed.second) == u16)
     #assert(#typeof(mixed.third) == string)
@@ -99,9 +99,9 @@ func semaTest001()
 
 func semaTest002()
 {
-    let wrapped: LocalWrap's32 = {value: 7}
+    let wrapped: LocalWrap!{s32} = {value: 7}
     let clone = wrapped.cloneThroughHelper()
 
-    #assert(#typeof(clone) == LocalWrap's32)
+    #assert(#typeof(clone) == LocalWrap!{s32})
     #assert(#typeof(clone.value) == s32)
 }

@@ -17,6 +17,8 @@ using Core, Gui
     let media    = expect Directory.enumerateFiles(journey.root, CaptureMediaExtension)
     let captures = expect Directory.enumerateFiles(journey.root, CaptureFileExtension)
     Swag.require(media.isEmpty())
-    for file in captures do
+    for file in captures
+    {
         Swag.require(Path.fileName(file.fullName) == "settings.scc")
+    }
 }

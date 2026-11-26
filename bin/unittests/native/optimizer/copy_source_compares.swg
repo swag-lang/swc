@@ -21,13 +21,13 @@ func reusedInput(a, b: u64)->u64
 
 #test
 {
-    let values = [0'u64, 1, 122, 123, 124, 0xFFFFFFFF, 0x100000000, 0x7FFFFFFFFFFFFFFF, 0x8000000000000000, 0xFFFFFFFFFFFFFFFF]
+    let values = [0_u64, 1, 122, 123, 124, 0xFFFFFFFF, 0x100000000, 0x7FFFFFFFFFFFFFFF, 0x8000000000000000, 0xFFFFFFFFFFFFFFFF]
     for a in values
     {
         Swag.require(immediateMask(a) == (a < 123 ? 0xFFFFFFFFFFFFFFFF : 0))
         for b in values
         {
-            let expected = a < b ? 0xFFFFFFFFFFFFFFFF'u64 : 0
+            let expected = a < b ? 0xFFFFFFFFFFFFFFFF_u64 : 0
             Swag.require(unsignedMask(a, b) == expected)
             Swag.require(reusedInput(a, b) == (expected ^ a ^ b))
             let a32 = cast(u32, (a & 0xFFFFFFFF))

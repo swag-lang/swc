@@ -15,8 +15,11 @@ func startSelectionPeer(mode: string)->Env.Process
     for
     {
         peer.readAvailable()
-        if peer.standardOutput() == "ready\n" do
+        if peer.standardOutput() == "ready\n"
+        {
             return #move peer
+        }
+
         if not peer.isRunning() or Time.monotonicMilliseconds() >= deadline
         {
             discard catch peer.kill()
@@ -24,7 +27,7 @@ func startSelectionPeer(mode: string)->Env.Process
             Swag.require(false, "independent X11 peer did not become ready")
         }
 
-        discard expect peer.tryWaitForExit(5'ms)
+        discard expect peer.tryWaitForExit(5_ms)
     }
 }
 
@@ -68,14 +71,17 @@ func readSelectionPeer(mode: string)
     readSelectionPeer("read-text")
 
     var large: String
-    for 262144 do
+    for 262144
+    {
         large += 'x'
+    }
+
     Clipboard.setString(large.toString())
     readSelectionPeer("read-large")
 
     // Files travel as a text/uri-list another client reads, every byte outside the unreserved
     // set percent-encoded, and come back as the same paths.
-    var paths: Array'String
+    var paths: Array!{String}
     paths.add("/tmp/swag capture/demo réglages.gif")
     paths.add("/tmp/second.gif")
     Clipboard.setFiles(paths.toSlice())
@@ -120,8 +126,11 @@ func readSelectionPeer(mode: string)
         defer stopSelectionPeer(&peer)
         let copied = Clipboard.getString()
         Swag.require(copied.count == 262144)
-        for byte in copied.toString() do
+        for byte in copied.toString()
+        {
             Swag.require(byte == 'q')
+        }
+
         Clipboard.clear()
         waitSelectionPeer(&peer, 3000)
         Swag.require(peer.exitCode() == 0)
@@ -159,8 +168,11 @@ func readSelectionPeer(mode: string)
         // The server drops a dead owner's selection even when it never sent a clear request.
         stopSelectionPeer(&peer)
         let deadline = Time.monotonicMilliseconds() + 2000
-        while Clipboard.hasString() and Time.monotonicMilliseconds() < deadline do
-            Threading.Thread.sleep(10'ms)
+        while Clipboard.hasString() and Time.monotonicMilliseconds() < deadline
+        {
+            Threading.Thread.sleep(10_ms)
+        }
+
         Swag.require(not Clipboard.hasString() and Clipboard.getString().isEmpty())
     }
 

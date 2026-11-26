@@ -2,7 +2,7 @@
 
 using Swag
 
-const BufSize = 4096'u64
+const BufSize = 4096_u64
 
 struct ScratchAlignmentProbeAllocator
 {
@@ -30,10 +30,14 @@ impl IAllocator for ScratchBufferFailureAllocator
     mtd impl alloc(request: *AllocatorRequest)
     {
         .calls += 1
-        if .calls == 1 do
+        if .calls == 1
+        {
             request.address = null
-        else do
+        }
+        else
+        {
             request.address = &.storage[0]
+        }
     }
 
     mtd impl realloc(request: *AllocatorRequest) { request.address = null }
@@ -45,10 +49,14 @@ impl IAllocator for ScratchLeakFailureAllocator
     mtd impl alloc(request: *AllocatorRequest)
     {
         .calls += 1
-        if .calls == 1 do
+        if .calls == 1
+        {
             request.address = &.storage[0]
-        else do
+        }
+        else
+        {
             request.address = null
+        }
     }
 
     mtd impl realloc(request: *AllocatorRequest) { request.address = null }
@@ -66,10 +74,14 @@ impl IAllocator for ScratchAlignmentProbeAllocator
             return
         }
 
-        if request.alignment != 0 and request.alignment < #alignof(ScratchAllocator.LeakHeader) do
+        if request.alignment != 0 and request.alignment < #alignof(ScratchAllocator.LeakHeader)
+        {
             request.address = &.storage[32 + request.alignment]
-        else do
+        }
+        else
+        {
             request.address = &.storage[32]
+        }
     }
 
     mtd impl realloc(request: *AllocatorRequest) { request.address = null }
@@ -292,11 +304,15 @@ func makeScratchAllocator(scratch: *ScratchAllocator, alloc: *Allocator)->IAlloc
     itf.alloc(&req)
 
     let ptr = cast([*] u8, unwrap req.address)
-    for i in 256 do
+    for i in 256
+    {
         ptr[i] = cast(u8, ((i * 3 + 5) & 0xFF))
+    }
 
-    for i in 256 do
+    for i in 256
+    {
         Swag.require(ptr[i] == cast(u8, ((i * 3 + 5) & 0xFF)))
+    }
 
     scratch.release()
 }
@@ -319,8 +335,10 @@ func makeScratchAllocator(scratch: *ScratchAllocator, alloc: *Allocator)->IAlloc
     }
 
     // Pointers should be distinct and in increasing order (linear allocator)
-    for i in 1 until 4 do
+    for i in 1 until 4
+    {
         Swag.require(cast(u64, ptrs[i]) > cast(u64, ptrs[i - 1]))
+    }
 
     scratch.release()
 }
@@ -476,8 +494,10 @@ func makeScratchAllocator(scratch: *ScratchAllocator, alloc: *Allocator)->IAlloc
     itf.alloc(&req)
 
     let ptr = cast([*] u8, unwrap req.address)
-    for i in 32 do
+    for i in 32
+    {
         ptr[i] = cast(u8, (i + 1))
+    }
 
     req.oldSize = 32
     req.size    = 128
@@ -485,8 +505,10 @@ func makeScratchAllocator(scratch: *ScratchAllocator, alloc: *Allocator)->IAlloc
     Swag.require(req.address != null)
 
     let newPtr = cast([*] u8, req.address)
-    for i in 32 do
+    for i in 32
+    {
         Swag.require(newPtr[i] == cast(u8, (i + 1)))
+    }
 
     scratch.release()
 }
@@ -610,11 +632,15 @@ func makeScratchAllocator(scratch: *ScratchAllocator, alloc: *Allocator)->IAlloc
     itf.alloc(&req)
 
     let vals = cast([*] u32, unwrap req.address)
-    for i in 10 do
+    for i in 10
+    {
         vals[i] = cast(u32, (i * 777 + 11))
+    }
 
-    for i in 10 do
+    for i in 10
+    {
         Swag.require(vals[i] == cast(u32, (i * 777 + 11)))
+    }
 
     scratch.release()
 }
@@ -696,7 +722,7 @@ func makeScratchAllocator(scratch: *ScratchAllocator, alloc: *Allocator)->IAlloc
     fill.size = 1
     itf.alloc(&fill)
 
-    for alignment in [0'u32, 1, 2, 4]
+    for alignment in [0_u32, 1, 2, 4]
     {
         var overflow: AllocatorRequest
         overflow.size      = 24
@@ -732,8 +758,10 @@ func makeScratchAllocator(scratch: *ScratchAllocator, alloc: *Allocator)->IAlloc
     itf.alloc(&req)
     let oldAddress = req.address
     let data       = cast([*] u8, unwrap req.address)
-    for i in 128 do
+    for i in 128
+    {
         data[i] = cast(u8, i)
+    }
 
     req.oldSize = 128
     req.size    = 32
@@ -743,8 +771,10 @@ func makeScratchAllocator(scratch: *ScratchAllocator, alloc: *Allocator)->IAlloc
     Swag.require(req.address != oldAddress)
     Swag.require(scratch.totalLeak == 32)
     let resized = cast([*] u8, req.address)
-    for i in 32 do
+    for i in 32
+    {
         Swag.require(resized[i] == cast(u8, i))
+    }
 
     req.size = 32
     itf.free(&req)
@@ -866,7 +896,7 @@ func makeScratchAllocator(scratch: *ScratchAllocator, alloc: *Allocator)->IAlloc
 // Alignment keeps the full 64 bits of an address
 #test
 {
-    const High = 0x0000_0134_0000_0000'u64
+    const High = 0x0000_0134_0000_0000_u64
 
     Swag.require(ScratchAllocator.align(High, 16) == High)
     Swag.require(ScratchAllocator.align(High + 1, 16) == High + 16)
@@ -882,7 +912,7 @@ func makeScratchAllocator(scratch: *ScratchAllocator, alloc: *Allocator)->IAlloc
     var scratch: ScratchAllocator
     let itf = makeScratchAllocator(&scratch, &alloc)
 
-    for alignment in [8'u32, 16, 32, 64, 128]
+    for alignment in [8_u32, 16, 32, 64, 128]
     {
         var req: AllocatorRequest
         req.size      = 24

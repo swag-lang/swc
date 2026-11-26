@@ -22,17 +22,57 @@ impl Decoder
             return row * 8
         row -= passRows
 
-        passRows = height > 4 ? (height - 5) / 8 + 1 : 0
-        if row < passRows do
-            return row * 8 + 4
-        row -= passRows
+        // Image descriptor
+        .fx = try .readU16()
+        .fy = try .readU16()
+        if .fx >= .width or .fy >= .height
+        {
+            fail InvalidFormatError{"invalid frame size"}
+        }
 
-        passRows = height > 2 ? (height - 3) / 4 + 1 : 0
-        if row < passRows do
-            return row * 4 + 2
-        row -= passRows
+        .fw = try .readU16()
+        .fh = try .readU16()
+        if not .fw or not .fh or .fw > .width - .fx or .fh > .height - .fy
+        {
+            fail InvalidFormatError{"GIF frame rectangle lies outside its canvas"}
+        }
 
-        return row * 2 + 1
+        let fisrz     = try .readU8()
+        let interlace = fisrz & 0x40
+
+        // Ignore Sort Flag
+        // Local Color Table?
+        if fisrz & 0x80
+        {
+            /* Read LCT */
+            .lct.size = 1 << ((fisrz & 0x07) + 1)
+            try .read(.lct.colors, 3_u64 * .lct.size)
+            .palette = &.lct
+        }
+        else
+        {
+            .palette = &.gct
+        }
+
+        if not .palette.size
+        {
+            fail InvalidFormatError{"GIF frame has no color table"}
+        }
+
+        if decodePixels
+        {
+            try .readImageData(interlace)
+        }
+        else
+        {
+            let codeSize = try .readU8()
+            if codeSize < 2 or codeSize > 8
+            {
+                fail InvalidFormatError{"GIF LZW code size is invalid"}
+            }
+
+            try .discardSubBlocks()
+        }
     }
 
     mtd readImage()->IndexedFrame fail
@@ -90,10 +130,16 @@ impl Decoder
         var sep = try .readU8()
         while sep != ','
         {
-            if sep == ';' do
-                return false
-            if sep != '!' do
+            if sep == ';'
+            {
+                return 0
+            }
+
+            if sep != '!'
+            {
                 fail InvalidFormatError{"invalid format"}
+            }
+
             try .readExt()
             sep = try .readU8()
         }

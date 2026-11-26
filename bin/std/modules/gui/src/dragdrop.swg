@@ -33,9 +33,9 @@ struct DragContent
 
     internal
     {
-        bytes:    Array'u8     // Content, once it exists.
-        producer: (func||()->Array'u8)?     // Produces the content on the first read.
-        produced: bool         // Whether the producer already ran.
+        bytes:    Array!{u8}     // Content, once it exists.
+        producer: (func||()->Array!{u8})?     // Produces the content on the first read.
+        produced: bool           // Whether the producer already ran.
     }
 }
 
@@ -52,7 +52,7 @@ impl DragContent
     }
 
     // Builds one offered file whose content is produced the first time it is read.
-    internal func from(name: String, producer: func||()->Array'u8)->DragContent
+    internal func from(name: String, producer: func||()->Array!{u8})->DragContent
     {
         var result: #returntype
         result.name     = name
@@ -70,8 +70,10 @@ impl DragContent
         if not .produced
         {
             .produced = true
-            if .producer do
+            if .producer
+            {
                 .bytes = .producer()
+            }
         }
 
         return .bytes.toSlice()
@@ -102,19 +104,19 @@ struct DragData
     public
     {
         // Absolute paths offered by the source, in the order it listed them, empty when it offers none.
-        readonly files: Array'String
+        readonly files: Array!{String}
 
         // Files offered by content rather than by path, in the order the source listed them.
         //
         // A gesture hovering a window carries their names and not their bytes, so a target decides
         // what it will take from the names alone and reads the content from the `Drop` phase on.
-        readonly contents: Array'DragContent
+        readonly contents: Array!{DragContent}
 
         // Plain UTF-8 text offered by the source, empty when it offers none.
         readonly text: String
     }
 
-    imageBytes:   Array'u8        // Encoded image bytes, as offered or as encoded on demand.
+    imageBytes:   Array!{u8}      // Encoded image bytes, as offered or as encoded on demand.
     imageName:    String          // File name whose extension selects the decoder.
     imageValue:   Pixel.Image     // Picture handed in, or the result of the one decode.
     imageDecoded: bool            // Whether the decode was already attempted.
@@ -142,8 +144,11 @@ impl DragData
     // returned string borrows the payload.
     mtd const singleFile()->string?
     {
-        if .files.count != 1 do
+        if .files.count != 1
+        {
             return null
+        }
+
         return .files[0].toString()
     }
 
@@ -156,12 +161,17 @@ impl DragData
         if not .imageDecoded
         {
             .imageDecoded = true
-            if not .imageBytes.isEmpty() do
+            if not .imageBytes.isEmpty()
+            {
                 .imageValue = catch Pixel.Image.decode(.imageName.toString(), .imageBytes.toSlice(), {}) orelse {}
+            }
         }
 
-        if not .imageValue.isValid() do
+        if not .imageValue.isValid()
+        {
             return null
+        }
+
         return &.imageValue
     }
 
@@ -196,7 +206,7 @@ impl DragData
     // allocates nothing. It has to stay valid for the whole gesture, which a closure over the
     // frame that calls [[Gui.Wnd.startDrag]] does by construction, since that call blocks until
     // the gesture ends.
-    mtd addContent(name: String, producer: func||()->Array'u8)
+    mtd addContent(name: String, producer: func||()->Array!{u8})
     {
         .contents.add(DragContent.from(name, producer))
     }
@@ -306,23 +316,42 @@ impl IEvent for DragDropEvent {}
 // value is always a member of `allowed` or `None`.
 func pickDropEffect(allowed: DropEffect, modifiers: Input.KeyModifiers)->DropEffect
 {
-    if allowed == .None do
+    if allowed == .None
+    {
         return .None
+    }
 
     let wantsLink = modifiers.has(.Control) and modifiers.has(.Shift)
-    if wantsLink and allowed.has(.Link) do
+    if wantsLink and allowed.has(.Link)
+    {
         return .Link
-    if not wantsLink and modifiers.has(.Shift) and allowed.has(.Move) do
-        return .Move
-    if not wantsLink and modifiers.has(.Control) and allowed.has(.Copy) do
-        return .Copy
+    }
 
-    if allowed.has(.Copy) do
-        return .Copy
-    if allowed.has(.Move) do
+    if not wantsLink and modifiers.has(.Shift) and allowed.has(.Move)
+    {
         return .Move
-    if allowed.has(.Link) do
+    }
+
+    if not wantsLink and modifiers.has(.Control) and allowed.has(.Copy)
+    {
+        return .Copy
+    }
+
+    if allowed.has(.Copy)
+    {
+        return .Copy
+    }
+
+    if allowed.has(.Move)
+    {
+        return .Move
+    }
+
+    if allowed.has(.Link)
+    {
         return .Link
+    }
+
     return .None
 }
 
@@ -363,15 +392,22 @@ impl Application
 
         if target != .dragEnterWnd
         {
-            if .dragEnterWnd do
+            if .dragEnterWnd
+            {
                 discard .sendDragEvent(.dragEnterWnd, .Leave, screenPos, data, .None, modifiers)
+            }
+
             .dragEnterWnd = target
-            if target do
+            if target
+            {
                 discard .sendDragEvent(target, .Enter, screenPos, data, allowed, modifiers)
+            }
         }
 
-        if not target do
+        if not target
+        {
             return .None
+        }
 
         return .sendDragEvent(target, .Over, screenPos, data, allowed, modifiers)
     }
@@ -381,8 +417,10 @@ impl Application
     {
         let target = .dragEnterWnd
         .dragEnterWnd = null
-        if not target do
+        if not target
+        {
             return
+        }
 
         discard .sendDragEvent(target, .Leave, .dragScreenPos, data, .None, .None)
     }
@@ -400,12 +438,17 @@ impl Application
     {
         .dragScreenPos = screenPos
 
-        if .dragEnterWnd and .dragEnterWnd != target do
+        if .dragEnterWnd and .dragEnterWnd != target
+        {
             discard .sendDragEvent(.dragEnterWnd, .Leave, screenPos, data, .None, modifiers)
+        }
+
         .dragEnterWnd = null
 
-        if not target do
+        if not target
+        {
             return .None
+        }
 
         let effect = .sendDragEvent(target, .Drop, screenPos, data, allowed, modifiers)
         discard .sendDragEvent(target, .Leave, screenPos, data, .None, modifiers)

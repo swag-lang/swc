@@ -27,7 +27,7 @@ func day3B()
     }
 
     var pos: [2] Pos
-    var set: HashSet'u64
+    var set: HashSet!{u64}
     for c, i in (expect File.readAllText(dataPath)).bytes()
     {
         let who = i & 1

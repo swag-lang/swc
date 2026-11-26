@@ -33,11 +33,11 @@ func day7A()
             {
                 cpt += 1
             }
-            elif cpt and l[i] == ']'
+            else if cpt and l[i] == ']'
             {
                 cpt -= 1
             }
-            elif l[i] == l[i + 3] and l[i + 1] == l[i + 2] and l[i] != l[i + 1]
+            else if l[i] == l[i + 3] and l[i + 1] == l[i + 2] and l[i] != l[i + 1]
             {
                 if cpt
                 {

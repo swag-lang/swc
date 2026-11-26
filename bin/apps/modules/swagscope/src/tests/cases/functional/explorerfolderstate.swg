@@ -44,8 +44,10 @@ using Core, Gui
     expect Directory.create(first, recurse: true)
     expect Directory.create(second)
     defer catch Directory.delete(root, recurse: true)
-    for index in 24 do
+    for index in 24
+    {
         discard expect File.writeAllText(Path.combine(first, Format.toString("item-%{02}.txt", index)), "text")
+    }
 
     var host: Testing.HeadlessHost
     host.setup(880, 560)

@@ -19,13 +19,13 @@
 // Compound assignment on array elements - bitwise
 #test
 {
-    var arr: [3] u32 = [0xFF'u32, 0x0F'u32, 0x01'u32]
-    arr[0] &= 0x0F'u32
-    arr[1] |= 0xF0'u32
-    arr[2] ^= 0x03'u32
-    Swag.require(arr[0] == 0x0F'u32)
-    Swag.require(arr[1] == 0xFF'u32)
-    Swag.require(arr[2] == 0x02'u32)
+    var arr: [3] u32 = [0xFF_u32, 0x0F_u32, 0x01_u32]
+    arr[0] &= 0x0F_u32
+    arr[1] |= 0xF0_u32
+    arr[2] ^= 0x03_u32
+    Swag.require(arr[0] == 0x0F_u32)
+    Swag.require(arr[1] == 0xFF_u32)
+    Swag.require(arr[2] == 0x02_u32)
 }
 
 // Compound assignment in a loop
@@ -65,25 +65,25 @@
 // Compound shift on u64
 #test
 {
-    var a: u64 = 1'u64
+    var a: u64 = 1_u64
     a <<= 32
-    Swag.require(a == 0x0000_0001_0000_0000'u64)
+    Swag.require(a == 0x0000_0001_0000_0000_u64)
     a >>= 16
-    Swag.require(a == 0x0000_0000_0001_0000'u64)
+    Swag.require(a == 0x0000_0000_0001_0000_u64)
 }
 
 // Compound assignment with f32
 #test
 {
-    var f: f32 = 1.0'f32
-    f += 0.5'f32
-    Swag.require(f == 1.5'f32)
-    f *= 4.0'f32
-    Swag.require(f == 6.0'f32)
-    f -= 1.0'f32
-    Swag.require(f == 5.0'f32)
-    f /= 2.5'f32
-    Swag.require(f == 2.0'f32)
+    var f: f32 = 1.0_f32
+    f += 0.5_f32
+    Swag.require(f == 1.5_f32)
+    f *= 4.0_f32
+    Swag.require(f == 6.0_f32)
+    f -= 1.0_f32
+    Swag.require(f == 5.0_f32)
+    f /= 2.5_f32
+    Swag.require(f == 2.0_f32)
 }
 
 // XOR swap pattern
@@ -101,13 +101,13 @@
 // XOR swap with u64
 #test
 {
-    var a: u64 = 0xDEAD_BEEF'u64
-    var b: u64 = 0xCAFE_BABE'u64
+    var a: u64 = 0xDEAD_BEEF_u64
+    var b: u64 = 0xCAFE_BABE_u64
     a ^= b
     b ^= a
     a ^= b
-    Swag.require(a == 0xCAFE_BABE'u64)
-    Swag.require(b == 0xDEAD_BEEF'u64)
+    Swag.require(a == 0xCAFE_BABE_u64)
+    Swag.require(b == 0xDEAD_BEEF_u64)
 }
 
 // Compound assignment through pointer
@@ -134,11 +134,11 @@
 // All compound bitwise on same variable
 #test
 {
-    var x: u32 = 0xFF'u32
-    x &= 0x3F'u32     // 0x3F
-    x |= 0x80'u32     // 0xBF
-    x ^= 0x0F'u32     // 0xB0
+    var x: u32 = 0xFF_u32
+    x &= 0x3F_u32     // 0x3F
+    x |= 0x80_u32     // 0xBF
+    x ^= 0x0F_u32     // 0xB0
     x <<= 4           // 0xB00
     x >>= 8           // 0x0B
-    Swag.require(x == 0x0B'u32)
+    Swag.require(x == 0x0B_u32)
 }

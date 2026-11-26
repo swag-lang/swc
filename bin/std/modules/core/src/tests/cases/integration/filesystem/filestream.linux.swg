@@ -13,7 +13,7 @@
     Swag.require(File.nativeFileHandle(0) != null)
     Swag.require(File.nativeFileDescriptor(File.nativeFileHandle(0)) == 0)
 
-    const LargeOffset = 4_294_967_297'u64
+    const LargeOffset = 4_294_967_297_u64
     expect stream.resize(LargeOffset)
     let initialSize     = expect stream.size()
     let initialPosition = expect stream.position()
@@ -24,7 +24,7 @@
     expect stream.flush()
     let size = expect stream.size()
     Swag.require(size == LargeOffset + payload.count)
-    expect stream.seek(.Current, cast #bit (u64, -3's64))
+    expect stream.seek(.Current, cast #bit (u64, -3_s64))
     var recovered: [4] u8
     recovered[3] = 47
     let count = expect stream.read(recovered)

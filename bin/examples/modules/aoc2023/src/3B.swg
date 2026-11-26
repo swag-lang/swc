@@ -29,16 +29,18 @@ What is the sum of all of the gear ratios in your engine schematic?
 
 using Core
 
-private var symbols: Array'{ s, x, y: s32 }
-private var nums:    Array'{ num, x, lx, y: s32 }
-private var parts:   Array'{ num, x, lx, y: s32 }
+private var symbols: Array!{{ s, x, y: s32 }}
+private var nums:    Array!{{ num, x, lx, y: s32 }}
+private var parts:   Array!{{ num, x, lx, y: s32 }}
 
 private func hasSymbol(x, y: s32)->bool
 {
     for s in symbols
     {
-        if s.x == x and s.y == y do
+        if s.x == x and s.y == y
+        {
             return true
+        }
     }
 
     return false
@@ -61,8 +63,11 @@ func day3B()
                 while x < l.length
                 {
                     c = l[x]
-                    if c < '0' or c > '9' do
+                    if c < '0' or c > '9'
+                    {
                         break
+                    }
+
                     num *= 10
                     num += c - '0'
                     x   += 1
@@ -78,7 +83,7 @@ func day3B()
         }
     }
 
-    var total = 0'u64
+    var total = 0_u64
     for n in nums
     {
         for x in n.x to n.lx
@@ -100,15 +105,20 @@ func day3B()
 
     for s in symbols
     {
-        if s.s != '*' do
+        if s.s != '*'
+        {
             continue
+        }
 
         var gear = 1
         var cpt  = 0
         for n in parts
         {
-            if n.y < s.y - 1 or n.y > s.y + 1 do
+            if n.y < s.y - 1 or n.y > s.y + 1
+            {
                 continue
+            }
+
             if s.x >= n.x - 1 and s.x <= n.lx + 1
             {
                 gear *= n.num

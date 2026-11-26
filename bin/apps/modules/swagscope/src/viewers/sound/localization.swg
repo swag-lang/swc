@@ -65,10 +65,10 @@ func channelCountText(count: u32)->String => Format.toString("% %", count, count
 func registerTexts(app: *Application)
 {
     app.resources.addEmbedded(FrenchStringsName, FrenchStrings)
-    Gui.registerStrings'Texts(&g_Texts, "scope.sound")
+    Gui.registerStrings!{Texts}(&g_Texts, "scope.sound")
 }
 
 #run
 {
-    expect Gui.validateStrings'Texts(cast(string, FrenchStrings))
+    expect Gui.validateStrings!{Texts}(cast(string, FrenchStrings))
 }

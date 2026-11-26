@@ -25,7 +25,7 @@ using Swag, Core, Pixel, Audio
     Swag.require(Math.abs(cast(s32, restored.pixelColor(20, 20).r) - restored.pixelColor(20, 20).g) <= 2)
     var before = expect Mp4.FragmentedPacketReader.open(source)
     var after  = expect Mp4.FragmentedPacketReader.open(target)
-    var a, b: Array'u8
+    var a, b: Array!{u8}
     Swag.require(Slice.equals((expect before.readPacket(8, &a)).bytes, (expect after.readPacket(6, &b)).bytes))
 }
 
@@ -54,13 +54,13 @@ func softwareTrimSource(rate: u32)->String
     let path   = videoTempPath("software-trim-source", "mp4")
     let configs: [2] Mp4.SoftwareAudioConfig = [{rate, 1, .Full}, {rate, 2, .Voice}]
     var writer = expect Mp4.SoftwareRecording.createWithAudioTracks(path, 64, 48, 1_000_000, configs, keyInterval: 4, options: Mp4.FragmentedOptions{4, 4 * 1024 * 1024, 8, true})
-    for index in 16'u64
+    for index in 16_u64
     {
         let image = videoGrayImage(64, 48, cast(u8, 32 + index * 10))
         expect writer.addFrame(&image, {index, index * 100_000, 100_000, 0})
     }
 
-    var mono, stereo: Array's16
+    var mono, stereo: Array!{s16}
     mono.resize(rate * 16 / 10)
     stereo.resize(mono.count * 2)
     for index in mono.count
@@ -85,8 +85,10 @@ func softwareTrimSource(rate: u32)->String
     var cut = expect Reader.open(source)
     Swag.require(cut.frameCount() == 1 and cut.audioTrackCount() == 2)
     discard expect cut.decodeFrame(0)
-    for track in 2'u32 do
+    for track in 2_u32
+    {
         Swag.require(cut.audioTrack(track)!.sampleFrameCount() == 4_800)
+    }
 }
 
 // A silent recording keeps a video-only topology through an arbitrary cut.
@@ -98,21 +100,26 @@ func softwareTrimSource(rate: u32)->String
     defer discard catch File.delete(target)
     var writer  = expect Mp4.SoftwareRecording.createVideoOnly(source, 64, 48, 1_000_000, keyInterval: 4)
     let picture = videoGrayImage(64, 48, 96)
-    for index in 8'u64 do
+    for index in 8_u64
+    {
         expect writer.addFrame(&picture, FrameSlot{index, index * 100_000, 100_000, 0})
+    }
+
     expect writer.end()
     let work = expect Mp4.trimSoftwareRecording(source, target, 2, 7)
     Swag.require(work.encodedVideoFrames == 2 and work.copiedVideoFrames == 3 and work.copiedAudioPackets == 0)
     var cut = expect Reader.open(target)
     Swag.require(cut.frameCount() == 5 and cut.audioTrackCount() == 0)
-    for index in cut.frameCount() do
+    for index in cut.frameCount()
+    {
         discard expect cut.decodeFrame(index)
+    }
 }
 
 // Arbitrary picture boundaries re-encode the dependent head only and retain exact sound samples.
 #test
 {
-    for rate in [44_100'u32, 48_000'u32]
+    for rate in [44_100_u32, 48_000_u32]
     {
         let source = softwareTrimSource(rate)
         let target = videoTempPath("software-trim-cut", "mp4")
@@ -134,20 +141,20 @@ func softwareTrimSource(rate: u32)->String
 
         var originalPackets = expect Mp4.FragmentedPacketReader.open(source)
         var cutPackets      = expect Mp4.FragmentedPacketReader.open(target)
-        var left, right: Array'u8
-        for index in 7'u64
+        var left, right: Array!{u8}
+        for index in 7_u64
         {
             let before = expect originalPackets.readPacket(index + 4, &left)
             let after  = expect cutPackets.readPacket(index + 2, &right)
             Swag.require(Slice.equals(before.bytes, after.bytes), "interior H.264 packets must be byte-identical")
         }
 
-        for track in 2'u32
+        for track in 2_u32
         {
             let input  = unwrap original.audioTrack(track)
             let output = unwrap cut.audioTrack(track)
             Swag.require(output.sampleFrameCount() == cast(u64, rate) * 9 / 10)
-            var sourcePcm, cutPcm: Array's16
+            var sourcePcm, cutPcm: Array!{s16}
             expect input.decodePcm16(func|&sourcePcm|(part: const [..] s16)->bool
             {
                 sourcePcm.add(part)
@@ -170,7 +177,7 @@ func softwareTrimSource(rate: u32)->String
         Swag.require(secondCut.frameCount() == 5)
         let secondSound   = unwrap secondCut.audioTrack(0)
         let originalSound = unwrap original.audioTrack(0)
-        var originalPcm, nestedPcm: Array's16
+        var originalPcm, nestedPcm: Array!{s16}
         expect originalSound.decodePcm16(func|&originalPcm|(part: const [..] s16)->bool
         {
             originalPcm.add(part)
@@ -199,8 +206,10 @@ func softwareTrimSource(rate: u32)->String
     Swag.require(work.encodedVideoFrames == 0 and work.copiedVideoFrames == 6)
     var cut = expect Reader.open(target)
     Swag.require(cut.frameCount() == 6)
-    for index in cut.frameCount() do
+    for index in cut.frameCount()
+    {
         discard expect cut.decodeFrame(index)
+    }
 }
 
 // Invalid ranges leave an existing destination untouched, including a cut outside the source.

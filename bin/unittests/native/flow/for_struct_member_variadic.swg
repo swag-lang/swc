@@ -54,5 +54,5 @@ func argCount(args: ...)->u64
     }
 
     Swag.require(total == 9)
-    Swag.require(firsts == 'a'u8 + 'b'u8)
+    Swag.require(firsts == 'a'_u8 + 'b'_u8)
 }

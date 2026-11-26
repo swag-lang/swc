@@ -5,7 +5,7 @@ using Core
 
 #test
 {
-    var nodes: Array'Node
+    var nodes: Array!{Node}
     nodes.reserve(4)
 
     var root: Node

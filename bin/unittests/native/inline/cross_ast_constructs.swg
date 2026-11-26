@@ -29,12 +29,12 @@ impl CrossAstCastProbe
 
 #test
 {
-    var probe: CrossAstCastProbe'u64
+    var probe: CrossAstCastProbe!{u64}
     probe.val = 42
     Swag.require(probe.asS32() == 42)
     Swag.require(probe.doubledAsU8() == 84)
 
-    var probe2: CrossAstCastProbe'f64
+    var probe2: CrossAstCastProbe!{f64}
     probe2.val = 7.0
     Swag.require(probe2.asS32() == 7)
 }

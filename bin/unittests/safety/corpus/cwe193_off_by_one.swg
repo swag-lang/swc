@@ -34,9 +34,11 @@ func sliceToCount(count: u64)->s32
 func loopOnePastEnd(count: u64)->s32
 {
     var storage = [10, 20, 30]
-    var total   = 0's32
-    for index in 0 to count do
+    var total   = 0_s32
+    for index in 0 to count
+    {
         total += storage[index]     // swc-expected-error {{safety_err_runtime}}
+    }
     return total
 }
 
@@ -50,8 +52,8 @@ func loopOnePastEnd(count: u64)->s32
 //
 // func constantInvertedRange()->s32
 // {
-//     var total = 0's32
-//     for index in 4 until 2 do     // error: range lower bound 4 is greater than upper bound 2
+//     var total = 0_s32
+//     for index in 4 until 2 { }    // error: range lower bound 4 is greater than upper bound 2
 //         total += index
 //     return total
 // }
@@ -62,9 +64,11 @@ func loopOnePastEnd(count: u64)->s32
 #[Swag.Safety(.BoundCheck, true)]
 func invertedRangeRunsEmpty(low, high: s32)->s32
 {
-    var turns = 0's32
-    for low until high do
+    var turns = 0_s32
+    for low until high
+    {
         turns += 1
+    }
     return turns
 }
 
@@ -87,8 +91,10 @@ func sliceUntilCount()->s64
     Swag.require(sliceUntilCount() == 3)
 
     // An empty 'until' range is empty, not inverted: it runs zero turns and does not panic.
-    var turns = 0's32
-    for opaqueS32(2) until opaqueS32(2) do
+    var turns = 0_s32
+    for opaqueS32(2) until opaqueS32(2)
+    {
         turns += 1
+    }
     Swag.require(turns == 0)
 }

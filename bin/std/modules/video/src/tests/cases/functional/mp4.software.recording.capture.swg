@@ -12,10 +12,13 @@ using Swag, Core, Audio, Pixel
     Memory.set(image.pixels.storage(), 90, image.pixels.count)
     var queue = expect CaptureQueue.create(48_000, 1, 0, 48_000, blockFrames: 1_024, tolerance: 0)
     var signal: [1_024] s16
-    for sample in signal.count do
+    for sample in signal.count
+    {
         signal[sample] = cast(s16,
                               Math.round(10_000.0 * Math.sin(Math.ConstF64.TwoPi *
                                                              1_000.0 * sample / 48_000.0)))
+    }
+
     discard expect queue.push(Swag.makeSlice(&signal[0], signal.count), 0)
     expect queue.markLost(1_024)
     expect queue.markRestored(2_048)
@@ -23,9 +26,12 @@ using Swag, Core, Audio, Pixel
 
     var recorder = expect Mp4.SoftwareRecording.create(path, 32, 16, 90_000, 48_000, 1)
     let pacer    = expect FramePacer.create(expect FrameRate.create(60, 1), 48_000, 90_000)
-    for frame in 5'u64 do
+    for frame in 5_u64
+    {
         expect recorder.addFrame(&image, expect pacer.slotAt(frame))
-    var captured: Array's16
+    }
+
+    var captured: Array!{s16}
     var info:     CaptureBlock
     var sawGap = false
     var sawInterruption = false
@@ -39,8 +45,11 @@ using Swag, Core, Audio, Pixel
             sawGap = true
         }
 
-        if info.sourceInterrupted do
+        if info.sourceInterrupted
+        {
             sawInterruption = true
+        }
+
         expect recorder.addAudioFrames(captured.toSlice())
     }
 
@@ -53,17 +62,17 @@ using Swag, Core, Audio, Pixel
     Swag.require(reader.frameCount() == 5 and reader.audioTrackCount() == 1)
     let sound = unwrap reader.audioTrack(0)
     Swag.require(sound.sampleFrameCount() == 3 * 1_024)
-    var decoded: Array's16
+    var decoded: Array!{s16}
     expect sound.decodePcm16(func|decoded = &decoded|(part: const [..] s16)->bool
     {
         decoded.add(part)
         return true
     })
     Swag.require(decoded.count == 3 * 1_024)
-    var before = 0.0'f64
-    var gap    = 0.0'f64
-    var after  = 0.0'f64
-    for sample in 1_024'u64
+    var before = 0.0_f64
+    var gap    = 0.0_f64
+    var after  = 0.0_f64
+    for sample in 1_024_u64
     {
         before += cast(f64, decoded[sample]) * decoded[sample]
         gap    += cast(f64, decoded[1_024 + sample]) * decoded[1_024 + sample]

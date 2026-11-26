@@ -6,24 +6,24 @@
 // by xcb_poll_for_event borrow their allocation until libc free; the high response bit marks
 // SendEvent delivery. These declarations do not load an X11 library or connect to a display.
 
-const XCB_KEY_PRESS      = 2'u8      // Key press event opcode.
-const XCB_KEY_RELEASE    = 3'u8      // Key release event opcode.
-const XCB_BUTTON_PRESS   = 4'u8      // Pointer button press event opcode.
-const XCB_BUTTON_RELEASE = 5'u8      // Pointer button release event opcode.
-const XCB_MOTION_NOTIFY  = 6'u8      // Pointer motion event opcode.
-const XCB_ENTER_NOTIFY   = 7'u8      // Pointer crossing into a window event opcode.
-const XCB_LEAVE_NOTIFY   = 8'u8      // Pointer crossing out of a window event opcode.
-const XCB_FOCUS_IN       = 9'u8      // Input focus gained event opcode.
-const XCB_FOCUS_OUT      = 10'u8     // Input focus lost event opcode.
+const XCB_KEY_PRESS      = 2_u8      // Key press event opcode.
+const XCB_KEY_RELEASE    = 3_u8      // Key release event opcode.
+const XCB_BUTTON_PRESS   = 4_u8      // Pointer button press event opcode.
+const XCB_BUTTON_RELEASE = 5_u8      // Pointer button release event opcode.
+const XCB_MOTION_NOTIFY  = 6_u8      // Pointer motion event opcode.
+const XCB_ENTER_NOTIFY   = 7_u8      // Pointer crossing into a window event opcode.
+const XCB_LEAVE_NOTIFY   = 8_u8      // Pointer crossing out of a window event opcode.
+const XCB_FOCUS_IN       = 9_u8      // Input focus gained event opcode.
+const XCB_FOCUS_OUT      = 10_u8     // Input focus lost event opcode.
 
-const XCB_EVENT_MASK_KEY_PRESS      = 1'u32           // Native event-selection bit.
-const XCB_EVENT_MASK_KEY_RELEASE    = 2'u32           // Native event-selection bit.
-const XCB_EVENT_MASK_BUTTON_PRESS   = 4'u32           // Native event-selection bit.
-const XCB_EVENT_MASK_BUTTON_RELEASE = 8'u32           // Native event-selection bit.
-const XCB_EVENT_MASK_ENTER_WINDOW   = 16'u32          // Native event-selection bit.
-const XCB_EVENT_MASK_LEAVE_WINDOW   = 32'u32          // Native event-selection bit.
-const XCB_EVENT_MASK_POINTER_MOTION = 64'u32          // Native event-selection bit.
-const XCB_EVENT_MASK_FOCUS_CHANGE   = 2097152'u32     // Native event-selection bit.
+const XCB_EVENT_MASK_KEY_PRESS      = 1_u32           // Native event-selection bit.
+const XCB_EVENT_MASK_KEY_RELEASE    = 2_u32           // Native event-selection bit.
+const XCB_EVENT_MASK_BUTTON_PRESS   = 4_u32           // Native event-selection bit.
+const XCB_EVENT_MASK_BUTTON_RELEASE = 8_u32           // Native event-selection bit.
+const XCB_EVENT_MASK_ENTER_WINDOW   = 16_u32          // Native event-selection bit.
+const XCB_EVENT_MASK_LEAVE_WINDOW   = 32_u32          // Native event-selection bit.
+const XCB_EVENT_MASK_POINTER_MOTION = 64_u32          // Native event-selection bit.
+const XCB_EVENT_MASK_FOCUS_CHANGE   = 2097152_u32     // Native event-selection bit.
 
 // Native key press event packet.
 struct xcb_key_press_event_t

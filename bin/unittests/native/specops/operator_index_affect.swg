@@ -14,8 +14,10 @@ impl RuntimeIndexBox
     mtd opIndex(index: s32)->s32
     {
         .reads += 1
-        if index == 0 do
+        if index == 0
+        {
             return .first
+        }
         return .second
     }
 
@@ -23,10 +25,14 @@ impl RuntimeIndexBox
     mtd opIndexSet(index: s32, value: s32)
     {
         .writes += 1
-        if index == 0 do
+        if index == 0
+        {
             .first = value
-        else do
+        }
+        else
+        {
             .second = value
+        }
     }
 }
 
@@ -43,10 +49,14 @@ impl RuntimeWriteOnlyIndexBox
     mtd opIndexSet(index: s32, value: s32)
     {
         .writes += 1
-        if index == 0 do
+        if index == 0
+        {
             .first = value
-        else do
+        }
+        else
+        {
             .second = value
+        }
     }
 }
 

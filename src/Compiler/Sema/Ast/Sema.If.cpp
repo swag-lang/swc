@@ -307,7 +307,7 @@ Result AstIfStmt::semaPostNode(Sema& sema) const
             return Result::Continue;
     }
 
-    // Publish in the existing frame: pushing a new one for an elif would block
+    // Publish in the existing frame: pushing a new one for an else-if would block
     // the enclosing branch's region frame from popping. This frame already ends
     // at the enclosing block or branch region that bounds the facts.
     SemaHelpers::addNarrowFacts(sema.frame(), {merged.data(), merged.size()});

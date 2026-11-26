@@ -32,10 +32,16 @@ func runOp(subject, clip: *ClipperPaths, op: ClipType, rules: Rules)->ClipperPat
 
     var trf: Transform
     trf.strictSimple = rules.strictSimple
-    for &path in subject do
+    for &path in subject
+    {
         trf.addPath(path, .Subject)
-    for &path in clip do
+    }
+
+    for &path in clip
+    {
         trf.addPath(path, .Clip)
+    }
+
     trf.execute(op, &result, rules.subject, rules.clip)
 
     return result
@@ -79,7 +85,7 @@ func starContour(rng: *Random.Generator, cx, cy: f64, count: u32)->ClipperPath
 // arrangements a horizontal join has to tell apart, and the one that froze a real document.
 func gridContour(rng: *Random.Generator)->ClipperPath
 {
-    const Cell = 20_000'f64
+    const Cell = 20_000_f64
 
     var result: #returntype
     let col = cast(f64, rng.nextS32(-3, 3))
@@ -243,7 +249,7 @@ func assertSolutionsAreSimple(subject, clip: *ClipperPaths, rules: Rules)
     rng.seedU32(77)
 
     // Just past 0x3FFFFFFF, where `rangeTest` gives up on 64-bit products.
-    const Origin = 2_000_000_000'f64
+    const Origin = 2_000_000_000_f64
 
     for 12
     {

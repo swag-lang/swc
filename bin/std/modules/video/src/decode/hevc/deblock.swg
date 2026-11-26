@@ -24,8 +24,8 @@ private func storeQuad(line: [*] u16, offset: s64, value: Simd.S16x8) { cast([*]
 #[Swag.Inline]
 private func chromaDeblockDelta(p1, p0, q0, q1: Simd.S16x8, bound: Simd.S16x8)->Simd.S16x8
 {
-    let zero = Simd.splat(0's16)
-    return Math.max(Math.min((((q0 - p0) << 2) + p1 - q1 + Simd.splat(4's16)) >> 3, bound), zero - bound)
+    let zero = Simd.splat(0_s16)
+    return Math.max(Math.min((((q0 - p0) << 2) + p1 - q1 + Simd.splat(4_s16)) >> 3, bound), zero - bound)
 }
 
 // Filters the two adjacent chroma samples of a horizontal edge. Each read
@@ -37,7 +37,7 @@ func filterChromaPair(line: [*] u16, stride: s64, tc, maximum: s32)
     let p1    = cast #bit(Simd.S16x8, Simd.splat(cast(const [*] u32, &line[-2 * stride])[0]))
     let q0    = cast #bit(Simd.S16x8, Simd.splat(cast(const [*] u32, &line[0])[0]))
     let q1    = cast #bit(Simd.S16x8, Simd.splat(cast(const [*] u32, &line[stride])[0]))
-    let zero  = Simd.splat(0's16)
+    let zero  = Simd.splat(0_s16)
     let bound = Simd.splat(cast(s16, tc))
     let max   = Simd.splat(cast(s16, maximum))
     let delta = chromaDeblockDelta(p1, p0, q0, q1, bound)
@@ -60,7 +60,7 @@ func filterChromaVerticalPair(line: [*] u16, stride: s64, tc, maximum: s32)
     let p0     = cast #bit(Simd.S16x8, Simd.align(pairs, pairs, 4))
     let q0     = cast #bit(Simd.S16x8, Simd.align(pairs, pairs, 8))
     let q1     = cast #bit(Simd.S16x8, Simd.align(pairs, pairs, 12))
-    let zero   = Simd.splat(0's16)
+    let zero   = Simd.splat(0_s16)
     let bound  = Simd.splat(cast(s16, tc))
     let max    = Simd.splat(cast(s16, maximum))
     let delta  = chromaDeblockDelta(p1, p0, q0, q1, bound)
@@ -88,10 +88,10 @@ struct SliceDeblock
 
 // The bits of the per-block edge grid: which of a block's two leading edges start a transform or
 // a prediction block, which is what decides whether the loop filter looks at them at all.
-const EdgeTransformLeft  = 1'u8
-const EdgeTransformTop   = 2'u8
-const EdgePredictionLeft = 4'u8
-const EdgePredictionTop  = 8'u8
+const EdgeTransformLeft  = 1_u8
+const EdgeTransformTop   = 2_u8
+const EdgePredictionLeft = 4_u8
+const EdgePredictionTop  = 8_u8
 
 // The chroma threshold is shared by both edge directions.
 #[Swag.Inline]
@@ -103,10 +103,14 @@ private func chromaDeblockTc(sps: const *Sps, pps: const *Pps, slice: const *Sli
     var chromaQp = average
     if sps.chromaArrayType == 1
     {
-        if average >= 30 and average <= 43 do
+        if average >= 30 and average <= 43
+        {
             chromaQp = cast(s32, ChromaQpMapping[average - 30])
-        elif average > 43 do
+        }
+        else if average > 43
+        {
             chromaQp = average - 6
+        }
     }
     else
     {
@@ -118,7 +122,7 @@ private func chromaDeblockTc(sps: const *Sps, pps: const *Pps, slice: const *Sli
     return tc
 }
 
-private const DeblockLanes = 8'u32
+private const DeblockLanes = 8_u32
 
 private struct DeblockContext
 {
@@ -139,10 +143,15 @@ impl Decoder
         let blocksY = cast(u32, height) >> MinBlockLog2
         let origin  = .blockIndex(x0, y0)
 
-        for row in blocksY do
+        for row in blocksY
+        {
             .edgeFlags[origin + cast(u64, row) * cast(u64, .gridWidth)] |= leftMask
-        for column in blocksX do
+        }
+
+        for column in blocksX
+        {
             .edgeFlags[origin + cast(u64, column)] |= topMask
+        }
     }
 
     // Filters the block edges of the whole picture, clause 8.7.2.
@@ -159,8 +168,8 @@ impl Decoder
     private mtd filterEdges(vertical: bool)
     {
         let sps       = unwrap .activeSps
-        let stepX     = vertical ? 8'u32 : 4'u32
-        let stepY     = vertical ? 4'u32 : 8'u32
+        let stepX     = vertical ? 8_u32 : 4_u32
+        let stepY     = vertical ? 4_u32 : 8_u32
         let bandCount = (sps.height + stepY - 1) / stepY
         let laneCount = Math.min(Swag.workerCount(), DeblockLanes, bandCount)
 
@@ -175,7 +184,7 @@ impl Decoder
                 while band < context.bandCount
                 {
                     let y = band * context.stepY
-                    var x = 0'u32
+                    var x = 0_u32
                     while x < width
                     {
                         context.decoder.filterBlockEdge(cast(s32, x), cast(s32, y), context.vertical)
@@ -189,10 +198,10 @@ impl Decoder
             return
         }
 
-        var y = 0'u32
+        var y = 0_u32
         while y < sps.height
         {
-            var x = 0'u32
+            var x = 0_u32
             while x < sps.width
             {
                 .filterBlockEdge(cast(s32, x), cast(s32, y), vertical)
@@ -207,25 +216,36 @@ impl Decoder
     private mtd filterBlockEdge(x, y: s32, vertical: bool)
     {
         let sps = unwrap .activeSps
-        if vertical and not x do
+        if vertical and not x
+        {
             return
-        if not vertical and not y do
+        }
+
+        if not vertical and not y
+        {
             return
+        }
 
         let index = .blockIndex(x, y)
         let flags = .edgeFlags[index]
         let mask  = vertical ? EdgeTransformLeft | EdgePredictionLeft : EdgeTransformTop | EdgePredictionTop
-        if (flags & mask) == 0 do
+        if (flags & mask) == 0
+        {
             return
+        }
 
         let xP = vertical ? x - 1 : x
         let yP = vertical ? y : y - 1
-        if not .filterAcrossAllowed(x, y, xP, yP) do
+        if not .filterAcrossAllowed(x, y, xP, yP)
+        {
             return
+        }
 
         let strength = .boundaryStrength(x, y, xP, yP, vertical, flags)
-        if not strength do
+        if not strength
+        {
             return
+        }
 
         let qpP   = cast(s32, .qpY[.blockIndex(xP, yP)])
         let qpQ   = cast(s32, .qpY[index])
@@ -262,15 +282,22 @@ impl Decoder
 
         let currentCtb   = .ctbRsToTs[.ctbAddressRs(x, y)]
         let neighbourCtb = .ctbRsToTs[.ctbAddressRs(xP, yP)]
-        if currentCtb == neighbourCtb do
+        if currentCtb == neighbourCtb
+        {
             return true
+        }
 
-        if not pps.loopFilterAcrossTiles and .tileId[currentCtb] != .tileId[neighbourCtb] do
+        if not pps.loopFilterAcrossTiles and .tileId[currentCtb] != .tileId[neighbourCtb]
+        {
             return false
+        }
 
         let slice = &.sliceParams[cast(u64, .ctbSliceIndex[.ctbAddressRs(x, y)])]
-        if not slice.loopFilterAcrossSlices and .ctbSliceAddr[.ctbAddressRs(x, y)] != .ctbSliceAddr[.ctbAddressRs(xP, yP)] do
+        if not slice.loopFilterAcrossSlices and .ctbSliceAddr[.ctbAddressRs(x, y)] != .ctbSliceAddr[.ctbAddressRs(xP, yP)]
+        {
             return false
+        }
+
         return true
     }
 
@@ -280,14 +307,18 @@ impl Decoder
         let indexQ = .blockIndex(x, y)
         let indexP = .blockIndex(xP, yP)
 
-        if .predMode[indexQ] == ModeIntra or .predMode[indexP] == ModeIntra do
+        if .predMode[indexQ] == ModeIntra or .predMode[indexP] == ModeIntra
+        {
             return 2
+        }
 
         let transformEdge = (flags & (vertical ? EdgeTransformLeft : EdgeTransformTop)) != 0
-        if transformEdge and (.cbfLuma[indexQ] != 0 or .cbfLuma[indexP] != 0) do
+        if transformEdge and (.cbfLuma[indexQ] != 0 or .cbfLuma[indexP] != 0)
+        {
             return 1
+        }
 
-        return .motionDiffers(.motionAt(x, y), .motionAt(xP, yP)) ? 1'u32 : 0'u32
+        return .motionDiffers(.motionAt(x, y), .motionAt(xP, yP)) ? 1_u32 : 0_u32
     }
 
     // Reports whether two prediction blocks differ enough for the edge between them to be
@@ -295,42 +326,51 @@ impl Decoder
     private mtd const motionDiffers(left, right: const *PuMotion)->bool
     {
         var leftPoc, rightPoc: [2] s32
-        var leftCount, rightCount = 0'u32
+        var leftCount, rightCount = 0_u32
         for list in ListCount
         {
-            if (cast(u32, left.predFlags) & (1'u32 << list)) != 0
+            if (cast(u32, left.predFlags) & (1_u32 << list)) != 0
             {
                 leftPoc[leftCount] = .refList.poc[list, cast(u32, left.refIdx[list])]
                 leftCount += 1
             }
 
-            if (cast(u32, right.predFlags) & (1'u32 << list)) != 0
+            if (cast(u32, right.predFlags) & (1_u32 << list)) != 0
             {
                 rightPoc[rightCount] = .refList.poc[list, cast(u32, right.refIdx[list])]
                 rightCount += 1
             }
         }
 
-        if leftCount != rightCount do
+        if leftCount != rightCount
+        {
             return true
+        }
 
         // The two sides have to name the same pictures, whichever list each used.
         if leftCount == 1
         {
-            if leftPoc[0] != rightPoc[0] do
+            if leftPoc[0] != rightPoc[0]
+            {
                 return true
-            let leftList  = (left.predFlags & 1) != 0 ? 0'u32 : 1'u32
-            let rightList = (right.predFlags & 1) != 0 ? 0'u32 : 1'u32
+            }
+
+            let leftList  = (left.predFlags & 1) != 0 ? 0_u32 : 1_u32
+            let rightList = (right.predFlags & 1) != 0 ? 0_u32 : 1_u32
             return .motionFar(left, leftList, right, rightList)
         }
 
-        if not leftCount do
+        if not leftCount
+        {
             return false
+        }
 
         let sameOrder    = leftPoc[0] == rightPoc[0] and leftPoc[1] == rightPoc[1]
         let crossedOrder = leftPoc[0] == rightPoc[1] and leftPoc[1] == rightPoc[0]
-        if not sameOrder and not crossedOrder do
+        if not sameOrder and not crossedOrder
+        {
             return true
+        }
 
         if leftPoc[0] == leftPoc[1]
         {
@@ -340,8 +380,11 @@ impl Decoder
             return straight and crossed
         }
 
-        if sameOrder do
+        if sameOrder
+        {
             return .motionFar(left, 0, right, 0) or .motionFar(left, 1, right, 1)
+        }
+
         return .motionFar(left, 0, right, 1) or .motionFar(left, 1, right, 0)
     }
 
@@ -360,26 +403,30 @@ impl Decoder
     // the same offsets, and the whole filter costs no address arithmetic beyond an index.
     private mtd filterLumaEdge(x, y: s32, vertical: bool, strength: u32, qpP, qpQ: s32, slice: const *SliceDeblock)
     {
-        if slice.disabled do
+        if slice.disabled
+        {
             return
+        }
 
         let sps      = unwrap .activeSps
         let frame    = unwrap .current
         let bitDepth = sps.bitDepthLuma
-        let maximum  = cast(s32, ((1'u32 << bitDepth) - 1))
+        let maximum  = cast(s32, ((1_u32 << bitDepth) - 1))
 
         let average = (qpP + qpQ + 1) >> 1
         let betaQ   = Math.clamp(average + (cast(s32, slice.betaOffsetDiv2) << 1), 0, 51)
         let beta    = cast(s32, DeblockBeta[betaQ]) * (1 << (bitDepth - 8))
         let tcQ     = Math.clamp(average + 2 * (cast(s32, strength) - 1) + (cast(s32, slice.tcOffsetDiv2) << 1), 0, 53)
         let tc      = cast(s32, DeblockTc[tcQ]) * (1 << (bitDepth - 8))
-        if not beta do
+        if not beta
+        {
             return
+        }
 
         let stride    = cast(s64, frame.strideLuma)
         let origin    = frame.luma.storage() + cast(u64, (y + cast(s32, FramePadding))) * frame.strideLuma + cast(u64, (x + cast(s32, FramePadding)))
-        let lineStep  = vertical ? stride : 1's64
-        let crossStep = vertical ? 1's64 : stride
+        let lineStep  = vertical ? stride : 1_s64
+        let crossStep = vertical ? 1_s64 : stride
 
         // The two outer lines of the segment decide for all four, clause 8.7.2.5.3.
         let a = origin
@@ -412,8 +459,10 @@ impl Decoder
         let dp   = dp0 + dp3
         let dq   = dq0 + dq3
         let d0   = dpq0 + dpq3
-        if d0 >= beta do
+        if d0 >= beta
+        {
             return
+        }
 
         let strong0 = .strongFilterDecision(2 * dpq0, beta, tc, p3a, p0a, q0a, q3a)
         let strong3 = .strongFilterDecision(2 * dpq3, beta, tc, p3d, p0d, q0d, q3d)
@@ -493,22 +542,22 @@ impl Decoder
             let p3    = lineQuad(line, -4 * crossStep)
             let q3    = lineQuad(line, 3 * crossStep)
             let limit = Simd.splat(cast(s16, (2 * tc)))
-            let fours = Simd.splat(4's16)
-            let twos  = Simd.splat(2's16)
+            let fours = Simd.splat(4_s16)
+            let twos  = Simd.splat(2_s16)
 
             storeQuad(line, -crossStep, holdNear(p0, (p2 + twos * p1 + twos * p0 + twos * q0 + q1 + fours) >> 3, limit))
             storeQuad(line, -2 * crossStep, holdNear(p1, (p2 + p1 + p0 + q0 + twos) >> 2, limit))
-            storeQuad(line, -3 * crossStep, holdNear(p2, (twos * p3 + Simd.splat(3's16) * p2 + p1 + p0 + q0 + fours) >> 3, limit))
+            storeQuad(line, -3 * crossStep, holdNear(p2, (twos * p3 + Simd.splat(3_s16) * p2 + p1 + p0 + q0 + fours) >> 3, limit))
             storeQuad(line, 0, holdNear(q0, (p1 + twos * p0 + twos * q0 + twos * q1 + q2 + fours) >> 3, limit))
             storeQuad(line, crossStep, holdNear(q1, (p0 + q0 + q1 + q2 + twos) >> 2, limit))
-            storeQuad(line, 2 * crossStep, holdNear(q2, (p0 + q0 + q1 + Simd.splat(3's16) * q2 + twos * q3 + fours) >> 3, limit))
+            storeQuad(line, 2 * crossStep, holdNear(q2, (p0 + q0 + q1 + Simd.splat(3_s16) * q2 + twos * q3 + fours) >> 3, limit))
             return
         }
 
-        let zeros  = Simd.splat(0's16)
+        let zeros  = Simd.splat(0_s16)
         let maxima = Simd.splat(cast(s16, maximum))
         let bound  = Simd.splat(cast(s16, tc))
-        var delta  = (Simd.splat(9's16) * (q0 - p0) - Simd.splat(3's16) * (q1 - p1) + Simd.splat(8's16)) >> 4
+        var delta  = (Simd.splat(9_s16) * (q0 - p0) - Simd.splat(3_s16) * (q1 - p1) + Simd.splat(8_s16)) >> 4
 
         // A line the filter would move too far is left alone, and that is the one decision the
         // clause makes per line rather than per segment.
@@ -521,13 +570,13 @@ impl Decoder
         let half = Simd.splat(cast(s16, (tc >> 1)))
         if filterP
         {
-            let move = Math.max(Math.min((((p2 + p0 + Simd.splat(1's16)) >> 1) - p1 + delta) >> 1, half), zeros - half)
+            let move = Math.max(Math.min((((p2 + p0 + Simd.splat(1_s16)) >> 1) - p1 + delta) >> 1, half), zeros - half)
             storeQuad(line, -2 * crossStep, Simd.select(active, Math.max(Math.min(p1 + move, maxima), zeros), p1))
         }
 
         if filterQ
         {
-            let move = Math.max(Math.min((((q2 + q0 + Simd.splat(1's16)) >> 1) - q1 - delta) >> 1, half), zeros - half)
+            let move = Math.max(Math.min((((q2 + q0 + Simd.splat(1_s16)) >> 1) - q1 - delta) >> 1, half), zeros - half)
             storeQuad(line, crossStep, Simd.select(active, Math.max(Math.min(q1 + move, maxima), zeros), q1))
         }
     }
@@ -535,28 +584,38 @@ impl Decoder
     // Decides whether one line of an edge takes the wide filter, clause 8.7.2.5.6.
     private mtd const strongFilterDecision(dpq, beta, tc, p3, p0, q0, q3: s32)->bool
     {
-        if dpq >= (beta >> 2) do
+        if dpq >= (beta >> 2)
+        {
             return false
-        if Math.abs(p3 - p0) + Math.abs(q0 - q3) >= (beta >> 3) do
+        }
+
+        if Math.abs(p3 - p0) + Math.abs(q0 - q3) >= (beta >> 3)
+        {
             return false
+        }
+
         return Math.abs(p0 - q0) < ((5 * tc + 1) >> 1)
     }
 
     // Filters the two rows of one vertical chroma edge, clause 8.7.2.5.5.
     private mtd filterChromaEdgeVertical(x, y: s32, qpP, qpQ: s32, component: u32, slice: const *SliceDeblock)
     {
-        if slice.disabled do
+        if slice.disabled
+        {
             return
+        }
 
         let sps      = unwrap .activeSps
         let pps      = unwrap .activePps
         let frame    = unwrap .current
         let bitDepth = sps.bitDepthChroma
-        let maximum  = cast(s32, ((1'u32 << bitDepth) - 1))
+        let maximum  = cast(s32, ((1_u32 << bitDepth) - 1))
 
         let tc = chromaDeblockTc(sps, pps, slice, qpP, qpQ, component, bitDepth)
-        if not tc do
+        if not tc
+        {
             return
+        }
 
         let plane  = component == 1 ? frame.chromaB.storage() : frame.chromaR.storage()
         let stride = cast(s64, frame.strideChroma)
@@ -570,18 +629,22 @@ impl Decoder
     // Filters the two contiguous lines of one horizontal chroma segment.
     private mtd filterChromaEdgeHorizontal(x, y: s32, qpP, qpQ: s32, component: u32, slice: const *SliceDeblock)
     {
-        if slice.disabled do
+        if slice.disabled
+        {
             return
+        }
 
         let sps      = unwrap .activeSps
         let pps      = unwrap .activePps
         let frame    = unwrap .current
         let bitDepth = sps.bitDepthChroma
-        let maximum  = cast(s32, ((1'u32 << bitDepth) - 1))
+        let maximum  = cast(s32, ((1_u32 << bitDepth) - 1))
 
         let tc = chromaDeblockTc(sps, pps, slice, qpP, qpQ, component, bitDepth)
-        if not tc do
+        if not tc
+        {
             return
+        }
 
         let plane  = component == 1 ? frame.chromaB.storage() : frame.chromaR.storage()
         let stride = cast(s64, frame.strideChroma)

@@ -12,43 +12,43 @@
 // each table names the clause it comes from and nothing here is tuned.
 
 // The number of context variables one slice keeps.
-const ContextCount = 157'u32
+const ContextCount = 157_u32
 
 // The offset of each syntax element's context group in the flat context array.
-const CtxSaoMergeFlag              = 0'u32
-const CtxSaoTypeIdx                = 1'u32
-const CtxSplitCuFlag               = 2'u32
-const CtxCuTransquantBypassFlag    = 5'u32
-const CtxCuSkipFlag                = 6'u32
-const CtxPredModeFlag              = 9'u32
-const CtxPartMode                  = 10'u32
-const CtxPrevIntraLumaPredFlag     = 14'u32
-const CtxIntraChromaPredMode       = 15'u32
-const CtxRqtRootCbf                = 16'u32
-const CtxMergeFlag                 = 17'u32
-const CtxMergeIdx                  = 18'u32
-const CtxInterPredIdc              = 19'u32
-const CtxRefIdx                    = 24'u32
-const CtxMvpFlag                   = 26'u32
-const CtxSplitTransformFlag        = 27'u32
-const CtxCbfLuma                   = 30'u32
-const CtxCbfChroma                 = 32'u32
-const CtxCbfChroma422              = 36'u32
-const CtxAbsMvdGreater0Flag        = 37'u32
-const CtxAbsMvdGreater1Flag        = 38'u32
-const CtxCuQpDeltaAbs              = 39'u32
-const CtxTransformSkipFlagLuma     = 41'u32
-const CtxTransformSkipFlagChroma   = 42'u32
-const CtxLastSigCoeffXPrefix       = 43'u32
-const CtxLastSigCoeffYPrefix       = 61'u32
-const CtxCodedSubBlockFlag         = 79'u32
-const CtxSigCoeffFlag              = 83'u32
-const CtxSigCoeffFlagTransformSkip = 125'u32
-const CtxCoeffAbsLevelGreater1Flag = 127'u32
-const CtxCoeffAbsLevelGreater2Flag = 151'u32
+const CtxSaoMergeFlag              = 0_u32
+const CtxSaoTypeIdx                = 1_u32
+const CtxSplitCuFlag               = 2_u32
+const CtxCuTransquantBypassFlag    = 5_u32
+const CtxCuSkipFlag                = 6_u32
+const CtxPredModeFlag              = 9_u32
+const CtxPartMode                  = 10_u32
+const CtxPrevIntraLumaPredFlag     = 14_u32
+const CtxIntraChromaPredMode       = 15_u32
+const CtxRqtRootCbf                = 16_u32
+const CtxMergeFlag                 = 17_u32
+const CtxMergeIdx                  = 18_u32
+const CtxInterPredIdc              = 19_u32
+const CtxRefIdx                    = 24_u32
+const CtxMvpFlag                   = 26_u32
+const CtxSplitTransformFlag        = 27_u32
+const CtxCbfLuma                   = 30_u32
+const CtxCbfChroma                 = 32_u32
+const CtxCbfChroma422              = 36_u32
+const CtxAbsMvdGreater0Flag        = 37_u32
+const CtxAbsMvdGreater1Flag        = 38_u32
+const CtxCuQpDeltaAbs              = 39_u32
+const CtxTransformSkipFlagLuma     = 41_u32
+const CtxTransformSkipFlagChroma   = 42_u32
+const CtxLastSigCoeffXPrefix       = 43_u32
+const CtxLastSigCoeffYPrefix       = 61_u32
+const CtxCodedSubBlockFlag         = 79_u32
+const CtxSigCoeffFlag              = 83_u32
+const CtxSigCoeffFlagTransformSkip = 125_u32
+const CtxCoeffAbsLevelGreater1Flag = 127_u32
+const CtxCoeffAbsLevelGreater2Flag = 151_u32
 
 // A group whose syntax element cannot occur in a slice of that initialization type.
-const NoInit = 0xFFFF'u16
+const NoInit = 0xFFFF_u16
 
 // One syntax element's context group: where it lives in the flat context array, and where its
 // initialization values start for each of the three initialization types.

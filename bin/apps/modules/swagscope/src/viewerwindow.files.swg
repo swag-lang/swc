@@ -6,32 +6,50 @@ impl ViewerWindow
     {
         if .workspace
         {
-            if .workspace.tabStripHeight() > 0 or .hasSoloCaption() do
+            if .workspace.tabStripHeight() > 0 or .hasSoloCaption()
+            {
                 return false
+            }
+
             let count = .workspace.documentCount()
-            if count > 1 do
+            if count > 1
+            {
                 return count > 2
+            }
         }
+
         return not .isExploring() and not .isEdgeToEdge()
     }
 
     // Reports whether the selected plugin explicitly requests an edge-to-edge presentation.
     mtd isEdgeToEdge()->bool
     {
-        if .isExploring() or .activeChoiceIndex >= .choices.count do
+        if .isExploring() or .activeChoiceIndex >= .choices.count
+        {
             return false
+        }
+
         return .index.plugins[.choices[.activeChoiceIndex].pluginIndex].edgeToEdge
     }
 
     // Reports whether the selected viewer asks for the host's line of readings at the document foot.
     mtd canShowReadingLine()->bool
     {
-        if .isExploring() do
+        if .isExploring()
+        {
             return true
-        if .activeChoiceIndex >= .choices.count do
+        }
+
+        if .activeChoiceIndex >= .choices.count
+        {
             return true
-        if .currentView is Viewers.Film.Panel and (.workspace?.isTiled() orelse false) do
+        }
+
+        if .currentView is Viewers.Film.Panel and (.workspace?.isTiled() orelse false)
+        {
             return false
+        }
+
         return .index.plugins[.choices[.activeChoiceIndex].pluginIndex].showReadingLine
     }
 
@@ -47,8 +65,11 @@ impl ViewerWindow
         var line: String = details
         if size.count
         {
-            if not line.isEmpty() do
+            if not line.isEmpty()
+            {
                 line += " · "
+            }
+
             line += size
         }
 
@@ -62,17 +83,24 @@ impl ViewerWindow
         var size: String = .currentFileSize
         if .activeChoiceIndex < .choices.count and .choices[.activeChoiceIndex].key == "image"
         {
-            if .siblingsDirty do
+            if .siblingsDirty
+            {
                 .rebuildSiblings()
-            if .siblings.count > 1 do
+            }
+
+            if .siblings.count > 1
+            {
                 size += Format.toString(" · % / %", .siblingIndex + 1, .siblings.count)
+            }
         }
 
         .showFileInfo(details, size)
         .refreshTitle()
         .layoutFileInfo()
-        if .infoSheet.isLocallyVisible() do
+        if .infoSheet.isLocallyVisible()
+        {
             .refreshInformation()
+        }
     }
 
     // Lays the line of readings out again after its details or a viewer contribution changed,
@@ -82,27 +110,35 @@ impl ViewerWindow
         .refreshReadingAppearance()
 
         // Only the active document owns the shared title strip.
-        if .canRefreshCaption() do
+        if .canRefreshCaption()
+        {
             .surface?.wnd.showTitle(.showsCaptionTitle())
+        }
+
         .updateDocumentInsets()
         let wasVisible = .readingLine.isLocallyVisible()
-        .readingLine.show(.hasCellFooter() or .readingLine.hasContent() and
-                          .canShowReadingLine() and
-                          not .fullScreen and
-                          not .isEdgeToEdge())
+        .readingLine.show(.hasCellFooter() or .readingLine.hasContent() and .canShowReadingLine() and not .fullScreen and not .isEdgeToEdge())
         .readingLine.computeLayout()
-        if wasVisible != .readingLine.isLocallyVisible() do
+        if wasVisible != .readingLine.isLocallyVisible()
+        {
             .applyLayout()
-        else do
+        }
+        else
+        {
             .documentHost.applyLayout()
+        }
+
         .layoutViewerBar()
     }
 
     // Resolves the appearance from the current reader's canvas, or from the desktop.
     mtd refreshReadingAppearance()
     {
-        if .updatingReadingAppearance or not .canRefreshCaption() do
+        if .updatingReadingAppearance or not .canRefreshCaption()
+        {
             return
+        }
+
         .updatingReadingAppearance = true
         defer .updatingReadingAppearance = false
 
@@ -111,16 +147,22 @@ impl ViewerWindow
         let customMarkdown = markdown and Viewers.MarkdownText.g_ViewerSettings.themeIndex != 0
         let background     = active ? .authoredReadingBackground() : Color{}
         var documentTheme  = AppearanceTheme.System
-        if customMarkdown do
+        if customMarkdown
+        {
             documentTheme = appearanceForGround(markdown!.themeColors().view_Bk)
-        elif background.a == 255 do
+        }
+        else if background.a == 255
+        {
             documentTheme = appearanceForGround(background)
+        }
+
         if .workspace and .workspace.documentCount() > 1
         {
             .appearanceButton.setDocumentTheme(.System)
             .surface?.wnd.setChromePalette(null)
             return
         }
+
         .appearanceButton.setDocumentTheme(documentTheme)
 
         // A Markdown sheet also sets the inks for its own reading surface.
@@ -171,8 +213,11 @@ impl ViewerWindow
     // Puts `fileName` at the head of the recent list, keeping it free of repeats and bounded.
     mtd rememberRecent(fileName: string)
     {
-        if not .privacy.mayRemember(fileName) do
+        if not .privacy.mayRemember(fileName)
+        {
             return
+        }
+
         .recentOpened.resize(.recent.count)
         for one, index in .recent where one[] == fileName
         {
@@ -193,8 +238,11 @@ impl ViewerWindow
     // Puts an explored directory at the head of the folders the home offers.
     mtd rememberExplored(location: string)
     {
-        if .thumbnailMode or not .privacy.mayRemember(location) or not Directory.exists(location) do
+        if .thumbnailMode or not .privacy.mayRemember(location) or not Directory.exists(location)
+        {
             return
+        }
+
         for one, index in .exploredFolders where Utf8.compare(one.toSlice(), location, .Latin1NoCase) == 0
         {
             .exploredFolders.removeAtOrdered(index)
@@ -202,18 +250,25 @@ impl ViewerWindow
         }
 
         .exploredFolders.insertAt(0, location)
-        while .exploredFolders.count > FolderHistoryCount do
+        while .exploredFolders.count > FolderHistoryCount
+        {
             .exploredFolders.removeBack()
+        }
     }
 
     // Puts the file's folder at the head of the bounded folder history.
     mtd rememberFolder(fileName: string)
     {
-        if not .privacy.mayRemember(fileName) do
+        if not .privacy.mayRemember(fileName)
+        {
             return
+        }
+
         let folder = Path.directoryName(fileName)
-        if not folder do
+        if not folder
+        {
             return
+        }
 
         for one, index in .folderHistory where Utf8.compare(one.folder.toSlice(), folder, .Latin1NoCase) == 0
         {
@@ -222,8 +277,10 @@ impl ViewerWindow
         }
 
         .folderHistory.insertAt(0, ViewerFolderHistory{folder, fileName})
-        while .folderHistory.count > FolderHistoryCount do
+        while .folderHistory.count > FolderHistoryCount
+        {
             .folderHistory.removeAtOrdered(.folderHistory.count - 1)
+        }
     }
 
     // Shows what the open file offers, wherever the reader pointed at it.
@@ -232,21 +289,30 @@ impl ViewerWindow
     // place that is reading it.
     mtd showCurrentFileActions(position: Math.Point)
     {
-        if .currentFile.isEmpty() do
+        if .currentFile.isEmpty()
+        {
             return
+        }
+
         .showFileActions(.currentFile, position)
     }
 
     // Keeps file actions on the selection while the Explorer is on screen.
     mtd fileActionPath()->string
     {
-        if not .isExploring() do
+        if not .isExploring()
+        {
             return .currentFile
+        }
+
         let explorer = unwrap .explorer
         if explorer.listing.isArchive or
            explorer.load.started or
-           explorer.selected >= explorer.entries.count do
+           explorer.selected >= explorer.entries.count
+        {
             return ""
+        }
+
         let item = &explorer.entries[explorer.selected]
         return item.directory ? "" : item.path.toString()
     }
@@ -281,16 +347,20 @@ impl ViewerWindow
             .addOpenItemAction(menu)
             .addPathAction(menu, texts.explore_OpenSystemFolder, ViewerCommands.OpenSystemFolder)
         }
-        elif archive do
+        else if archive
+        {
             .addPathAction(menu, texts.explore_RevealArchive, ViewerCommands.RevealArchive)
+        }
+
         .addPathAction(menu, texts.ui_MenuCopyPath, ViewerCommands.CopyLocation)
     }
 
     private mtd addOpenItemAction(menu: *MenuCtrl)
     {
-        if let workspace = .workspace do
-            .addPathAction(menu, appStrings().tab_OpenItem, TabCommands.OpenItem,
-                           disabled: workspace.scenes.count >= ViewerWorkspace.MaxScenes)
+        if let workspace = .workspace
+        {
+            .addPathAction(menu, appStrings().tab_OpenItem, TabCommands.OpenItem, disabled: workspace.scenes.count >= ViewerWorkspace.MaxScenes)
+        }
     }
 
     private mtd addPathAction(menu: *MenuCtrl, name: string, id: WndId, disabled = false)
@@ -305,24 +375,29 @@ impl ViewerWindow
         let menu = .createFileActionsMenu()
 
         let chosen = menu.doModal(position, autoDestroy: true, dispatchCommand: false)
-        if not chosen do
+        if not chosen
+        {
             return
+        }
 
         .runFileAction(chosen, path)
     }
 
     internal mtd runFileAction(chosen: WndId, fileName: string)
     {
-        if fileName.count == 0 do
+        if fileName.count == 0
+        {
             return
+        }
+
         switch chosen
         {
-        case TabCommands.OpenItem: .workspace?.openDocument(fileName, newTab: true)
-        case ViewerCommands.Locate, ViewerCommands.RevealArchive: Env.showInFileExplorer(fileName)
+        case TabCommands.OpenItem:                                        .workspace?.openDocument(fileName, newTab: true)
+        case ViewerCommands.Locate, ViewerCommands.RevealArchive:         Env.showInFileExplorer(fileName)
         case ViewerCommands.OpenDefault, ViewerCommands.OpenSystemFolder: Env.openFile(fileName)
-        case ViewerCommands.OpenWith:    Env.openFileWith(fileName)
-        case ViewerCommands.CopyPath, ViewerCommands.CopyLocation: Clipboard.setString(fileName)
-        case ViewerCommands.CopyName:    Clipboard.setString(Path.fileName(fileName) orelse fileName)
+        case ViewerCommands.OpenWith:                                     Env.openFileWith(fileName)
+        case ViewerCommands.CopyPath, ViewerCommands.CopyLocation:        Clipboard.setString(fileName)
+        case ViewerCommands.CopyName:                                     Clipboard.setString(Path.fileName(fileName) orelse fileName)
         }
     }
 
@@ -354,9 +429,12 @@ impl ViewerWindow
     mtd olderRecentCount()->u64
     {
         let limit  = .monthAgo()
-        var result = 0'u64
-        for i in .recent.count where i >= .recentOpened.count or .recentOpened[i] < limit do
+        var result = 0_u64
+        for i in .recent.count where i >= .recentOpened.count or .recentOpened[i] < limit
+        {
             result += 1
+        }
+
         return result
     }
 
@@ -398,16 +476,20 @@ impl ViewerWindow
     // Confirms the destructive history action before applying it.
     mtd confirmClearRecent()
     {
-        if MessageDlg.confirm(unwrap .surface, appStrings().ui_ConfirmClearHistory) == Dialog.BtnYes do
+        if MessageDlg.confirm(unwrap .surface, appStrings().ui_ConfirmClearHistory) == Dialog.BtnYes
+        {
             .clearRecent()
+        }
     }
 
     // Offers to forget a file that disappeared after it was added to the history.
     mtd confirmForgetMissingRecent(fileName: string)
     {
         let file = String.from(fileName)
-        if not .recent.contains(file) do
+        if not .recent.contains(file)
+        {
             return
+        }
 
         let texts = appStrings()
         var options: MessageDlgOptions
@@ -415,8 +497,10 @@ impl ViewerWindow
         if MessageDlg.confirm(unwrap .surface,
                               texts.ui_FailureNotFound,
                               texts.home_AskForgetMissing,
-                              options: options) == Dialog.BtnYes do
+                              options: options) == Dialog.BtnYes
+        {
             .forgetRecent(file)
+        }
     }
 
     // Rebuilds the list the next and previous commands walk: the folder's files, or only those
@@ -442,8 +526,11 @@ impl ViewerWindow
     // Applies the folder-navigation filter and refreshes what depends on it.
     mtd setFolderSameKind(value: bool)
     {
-        if .folderSameKind == value do
+        if .folderSameKind == value
+        {
             return
+        }
+
         .folderSameKind = value
         .siblingsDirty  = true
         catch .saveState()
@@ -453,8 +540,10 @@ impl ViewerWindow
     // files named for the image viewer even when general navigation includes every file kind.
     mtd navigate(delta: s32, imagesOnly: bool = false)
     {
-        if .currentFile.isEmpty() do
+        if .currentFile.isEmpty()
+        {
             return
+        }
 
         if imagesOnly
         {
@@ -470,32 +559,45 @@ impl ViewerWindow
             return
         }
 
-        if .siblingsDirty do
+        if .siblingsDirty
+        {
             .rebuildSiblings()
+        }
+
         .navigateAmong(delta, .siblings.toSlice(), .siblingIndex)
     }
 
     private mtd navigateAmong(delta: s32, files: const [..] String, current: u64)
     {
-        if files.count <= 1 do
+        if files.count <= 1
+        {
             return
+        }
 
         var index = cast(s64, current) + delta
-        if index < 0 do
+        if index < 0
+        {
             index = cast(s64, files.count) - 1
-        elif index >= cast(s64, files.count) do
+        }
+        else if index >= cast(s64, files.count)
+        {
             index = 0
+        }
+
         .queueFile(files[cast(u64, index)])
     }
 
     // Returns the files of the current file's folder that its viewer opens, in folder order and
     // whatever the navigation filter says: a play mode walks the movies of a folder past the notes
     // stored beside them, whether or not ordinary navigation includes those notes.
-    mtd kindSiblings()->Array'String
+    mtd kindSiblings()->Array!{String}
     {
         var result: #returntype
-        if .activeChoiceIndex >= .choices.count do
+        if .activeChoiceIndex >= .choices.count
+        {
             return result
+        }
+
         let activeKey = .choices[.activeChoiceIndex].key
         for file in .folderFiles
         {
@@ -511,14 +613,16 @@ impl ViewerWindow
     }
 
     // Returns only folder entries whose names select the image viewer.
-    private mtd imageSiblings()->Array'String
+    private mtd imageSiblings()->Array!{String}
     {
         var result: #returntype
         for file in .folderFiles
         {
             var pluginIndex: u64
-            if .index.namePlugin(file[], &pluginIndex) and .index.plugins[pluginIndex].key == "image" do
+            if .index.namePlugin(file[], &pluginIndex) and .index.plugins[pluginIndex].key == "image"
+            {
                 result.add(file[])
+            }
         }
 
         return result
@@ -529,13 +633,13 @@ internal func pathActionGlyph(id: WndId)->ThemeIcons
 {
     switch id
     {
-    case TabCommands.OpenItem: return .Duplicate
-    case ViewerCommands.Locate: return .ParentFolder
+    case TabCommands.OpenItem:                                        return .Duplicate
+    case ViewerCommands.Locate:                                       return .ParentFolder
     case ViewerCommands.OpenDefault, ViewerCommands.OpenSystemFolder: return .OpenExternal
-    case ViewerCommands.OpenWith: return .Options
-    case ViewerCommands.CopyPath, ViewerCommands.CopyLocation: return .Link
-    case ViewerCommands.CopyName: return .Copy
-    case ViewerCommands.RevealArchive: return .FileArchive
+    case ViewerCommands.OpenWith:                                     return .Options
+    case ViewerCommands.CopyPath, ViewerCommands.CopyLocation:        return .Link
+    case ViewerCommands.CopyName:                                     return .Copy
+    case ViewerCommands.RevealArchive:                                return .FileArchive
     default: return .File
     }
 }
@@ -545,7 +649,8 @@ internal func isPathMenuAction(id: WndId)->bool
     return Slice.contains([TabCommands.OpenItem, ViewerCommands.Locate, ViewerCommands.OpenDefault,
                            ViewerCommands.OpenWith, ViewerCommands.CopyPath, ViewerCommands.CopyName,
                            ViewerCommands.CopyLocation, ViewerCommands.OpenSystemFolder,
-                           ViewerCommands.RevealArchive], id)
+                           ViewerCommands.RevealArchive],
+                          id)
 }
 
 private func bindPathMenu(menu: *MenuCtrl)
@@ -558,6 +663,7 @@ private func bindPathMenu(menu: *MenuCtrl)
             command.accepted = true
             return true
         }
+
         return false
     }
 }

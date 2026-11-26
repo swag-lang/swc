@@ -28,9 +28,9 @@ func advance(trace: *Trace, seed, steps: s64)->s64
 
 #test
 {
-    for seed in -16's64 to 16
+    for seed in -16_s64 to 16
     {
-        for steps in 0's64 to 64
+        for steps in 0_s64 to 64
         {
             var expected = Trace{}
             var current  = seed

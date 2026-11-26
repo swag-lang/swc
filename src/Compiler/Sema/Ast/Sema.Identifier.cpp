@@ -486,9 +486,9 @@ namespace
         SmallVector<AstNodeRef> genericArgs;
         genericArgs.clear();
         if constexpr (std::is_same_v<T, AstQuotedExpr>)
-            SemaGeneric::appendQuotedGenericArgs(node, genericArgs);
+            SemaGeneric::appendExplicitGenericArgs(node, genericArgs);
         else
-            SemaGeneric::appendQuotedGenericArgs(sema.ast(), node, genericArgs);
+            SemaGeneric::appendExplicitGenericArgs(sema.ast(), node, genericArgs);
 
         const SemaNodeView baseView    = sema.viewNodeSymbolList(node.nodeExprRef);
         const auto         baseSymbols = baseView.symbols();
@@ -651,14 +651,6 @@ Result AstIdentifier::semaPostNode(Sema& sema) const
     }
 
     const AstNodeRef parentRef = sema.visit().parentNodeRef();
-    if (!symbolView.sym() &&
-        !symbolView.hasSymbolList() &&
-        codeRef().isValid() &&
-        sema.token(codeRef()).id == TokenId::SymSingleQuote &&
-        parentRef.isValid() &&
-        sema.node(parentRef).is(AstNodeId::CastExpr))
-        return Result::Continue;
-
     if (parentRef.isValid() && sema.node(parentRef).is(AstNodeId::SuffixLiteral))
         return Result::Continue;
 
@@ -694,7 +686,7 @@ Result AstIdentifier::semaPostNode(Sema& sema) const
                     return Result::Continue;
             }
 
-            if (parentNode.is(AstNodeId::QuotedExpr) || parentNode.is(AstNodeId::QuotedListExpr))
+            if (parentNode.is(AstNodeId::QuotedExpr) || parentNode.is(AstNodeId::GenericArgListExpr))
             {
                 if (symbolView.sym() || symbolView.hasSymbolList())
                     return Result::Continue;
@@ -912,7 +904,7 @@ Result AstQuotedExpr::semaPostNode(Sema& sema) const
     return semaQuotedGenericCommon(sema, *this);
 }
 
-Result AstQuotedListExpr::semaPostNode(Sema& sema) const
+Result AstGenericArgListExpr::semaPostNode(Sema& sema) const
 {
     return semaQuotedGenericCommon(sema, *this);
 }

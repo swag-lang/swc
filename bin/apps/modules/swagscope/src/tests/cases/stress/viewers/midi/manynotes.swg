@@ -7,12 +7,12 @@ using Core, Pixel, Gui, Viewers
 #[Swag.TestTag("stress")]
 #test
 {
-    const NoteCount = 20_000'u32
+    const NoteCount = 20_000_u32
     let file = Testing.tempFilePath("scope-many-notes-", ".mid")
     defer discard catch File.delete(file)
-    var bytes: Array'u8
+    var bytes: Array!{u8}
     bytes.add(cast(const [..] u8, "MThd"))
-    bytes.add([0'u8, 0, 0, 6, 0, 0, 0, 1, 1, 0xE0])
+    bytes.add([0_u8, 0, 0, 6, 0, 0, 0, 1, 1, 0xE0])
     bytes.add(cast(const [..] u8, "MTrk"))
     let trackSize = NoteCount * 8 + 4
     bytes.add([cast(u8, (trackSize >> 24) & 0xFF), cast(u8, (trackSize >> 16) & 0xFF),
@@ -20,10 +20,10 @@ using Core, Pixel, Gui, Viewers
     for index in NoteCount
     {
         let key = cast(u8, 60 + index % 12)
-        bytes.add([0'u8, 0x90, key, 100, 1, 0x80, key, 0])
+        bytes.add([0_u8, 0x90, key, 100, 1, 0x80, key, 0])
     }
 
-    bytes.add([0'u8, 0xFF, 0x2F, 0])
+    bytes.add([0_u8, 0xFF, 0x2F, 0])
     expect File.writeAllBytes(file, bytes.toSlice())
 
     var host: Testing.HeadlessHost

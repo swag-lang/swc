@@ -13,31 +13,40 @@ using Core, Core.Errors
 // The filter bank looks back over blocks that did not exist when the stream started, so its first
 // 529 samples belong to no input sample. Every player drops them, which is what makes two players
 // line up on the same file.
-const DecoderDelay = 529'u64
+const DecoderDelay = 529_u64
 
 // Bytes a frame header spans, which is what the walk peeks at each frame.
-private const HeaderBytes = 4'u64
+private const HeaderBytes = 4_u64
 
 // Returns where the audio starts, past any ID3v2 prologue.
 private func skipMetadata(source: *ByteSource)->u64 fail
 {
     let fileBytes = source.size()
-    if fileBytes < 10 do
+    if fileBytes < 10
+    {
         return 0
+    }
 
     try source.seek(0)
     let header = try source.peek(10)
-    if header[0] != 'I' or header[1] != 'D' or header[2] != '3' do
+    if header[0] != 'I' or header[1] != 'D' or header[2] != '3'
+    {
         return 0
+    }
 
     // The length is four groups of seven bits, most significant first, and excludes the header.
-    var length = 0'u64
-    for index in 4'u64 do
+    var length = 0_u64
+    for index in 4_u64
+    {
         length = (length << 7) | cast(u64, (header[6 + index] & 0x7F))
+    }
 
     // A footer, when the flags announce one, adds ten bytes more.
-    if (header[5] & 0x10) != 0 do
+    if (header[5] & 0x10) != 0
+    {
         length += 10
+    }
+
     let audioOffset = 10 + length
     return audioOffset <= fileBytes ? audioOffset : fileBytes
 }
@@ -56,8 +65,11 @@ private func readEncoderInfo(frame: const [..] u8, header: const *FrameHeader)->
 
     // A protected frame places its CRC word between the header and side information.
     let tagOffset = 4 + (header.hasCrc ? 2 : 0) + header.sideInfoBytes
-    if tagOffset + 8 > frame.count do
+    if tagOffset + 8 > frame.count
+    {
         return result
+    }
+
     let isXing = frame[tagOffset] == 'X' and
                  frame[tagOffset + 1] == 'i' and
                  frame[tagOffset + 2] == 'n' and
@@ -66,19 +78,27 @@ private func readEncoderInfo(frame: const [..] u8, header: const *FrameHeader)->
                  frame[tagOffset + 1] == 'n' and
                  frame[tagOffset + 2] == 'f' and
                  frame[tagOffset + 3] == 'o'
-    if not isXing and not isInfo do
+    if not isXing and not isInfo
+    {
         return result
+    }
 
     result.isHeaderFrame = true
 
     // The LAME extension follows the tag at a fixed distance and states the priming.
     let extensionOffset = tagOffset + 120
-    if extensionOffset + 24 > frame.count do
+    if extensionOffset + 24 > frame.count
+    {
         return result
+    }
+
     let encoderDelay = (cast(u64, frame[extensionOffset + 0x15]) << 4) |
                        (cast(u64, frame[extensionOffset + 0x16]) >> 4)
-    if encoderDelay do
+    if encoderDelay
+    {
         result.delayFrames = encoderDelay + DecoderDelay
+    }
+
     return result
 }
 
@@ -88,13 +108,13 @@ private func readEncoderInfo(frame: const [..] u8, header: const *FrameHeader)->
 // index and not its audio.
 private func readFrameIndex(source: *ByteSource,
                             audioOffset: u64,
-                            packets: *Array'SoundPacket,
+                            packets: *Array!{SoundPacket},
                             encoderInfo: *EncoderInfo,
                             firstHeader: *FrameHeader)->u64 fail
 {
     let fileBytes     = source.size()
     var byteOffset    = audioOffset
-    var totalFrames   = 0'u64
+    var totalFrames   = 0_u64
     var hasFirstFrame = false
     var skippedJunk   = false
     var previousKey   = 0'u32
@@ -105,54 +125,33 @@ private func readFrameIndex(source: *ByteSource,
 
     for
     {
-        if byteOffset > fileBytes do
-            break
-        if fileBytes - byteOffset < HeaderBytes do
-            break
-        if byteOffset - windowStart + HeaderBytes > window.count
+        if byteOffset > fileBytes
         {
-            windowStart = byteOffset
-            try source.seek(windowStart)
-            window = try source.peek(HeaderBytes)
+            break
         }
 
-        let offset = byteOffset - windowStart
-        let bytes  = window[offset until offset + HeaderBytes]
-
-        // A run often repeats the header fields used by the index.
-        // Packet padding changes the length by a byte and is applied separately.
-        // Copyright, original, emphasis and private bits are outside the shape.
-        let word = Math.littleEndianToNative(cast(const [*] u32, bytes.buffer)[0])
-        let key  = word & 0xF0FC_FFFF
-        var header: FrameHeader
-        if key and key == previousKey
+        if fileBytes - byteOffset < HeaderBytes
         {
-            header = previous
-            header.frameBytes += (word >> 17) & 1
+            break
         }
-        else
-        {
-            header = catch readHeader(bytes)
-            {
-                // Resynchronize within this window without parsing non-marker bytes.
-                skippedJunk = true
-                var scan = offset + 1
-                let end  = window.count - HeaderBytes + 1
-                while scan < end and window[scan] != 0xFF do
-                    scan += 1
-                byteOffset = windowStart + scan
-                continue
-            }
 
-            previousKey         = key
-            previous            = header
-            previous.frameBytes -= (word >> 17) & 1
+        try source.seek(byteOffset)
+        let probe  = try source.peek(HeaderBytes)
+        let header = catch readHeader(probe)
+        {     // Tags and padding sit between frames often enough that one bad byte is not the end
+            // of the stream; a run of them is.
+            byteOffset  += 1
+            skippedJunk = true
+            continue
         }
 
         if header.frameBytes > fileBytes - byteOffset
         {
-            if not skippedJunk do
+            if not skippedJunk
+            {
                 fail InvalidFormatError{"MP3 frame is truncated"}
+            }
+
             break
         }
 
@@ -177,24 +176,33 @@ private func readFrameIndex(source: *ByteSource,
                 continue
             }
         }
-        elif header.sampleRate != firstHeader.sampleRate or header.channels != firstHeader.channels
+        else if header.sampleRate != firstHeader.sampleRate or header.channels != firstHeader.channels
         {
             fail InvalidFormatError{"MP3 frame changes sample rate or channel count"}
         }
 
-        if header.frameBytes > Swag.U32.Max do
+        if header.frameBytes > Swag.U32.Max
+        {
             fail InvalidFormatError{"MP3 frame is larger than a packet may be"}
+        }
+
         packets.add(SoundPacket{byteOffset, cast(u32, header.frameBytes), header.frameSamples})
         let frameCount = cast(u64, header.frameSamples)
-        if totalFrames > Swag.U64.Max - frameCount do
+        if totalFrames > Swag.U64.Max - frameCount
+        {
             fail OverflowError{"MP3 stream sample count overflows"}
+        }
+
         totalFrames += frameCount
         byteOffset  += header.frameBytes
         skippedJunk = false
     }
 
-    if not hasFirstFrame do
+    if not hasFirstFrame
+    {
         fail InvalidFormatError{"file carries no MP3 frame"}
+    }
+
     return totalFrames
 }
 
@@ -207,23 +215,30 @@ internal func openFile(path: string)->SoundFile fail
     var source      = try ByteSource.openFile(path)
     let audioOffset = try skipMetadata(&source)
 
-    var packets:     Array'SoundPacket
+    var packets:     Array!{SoundPacket}
     var encoderInfo: EncoderInfo
     var firstHeader: FrameHeader
     let totalFrames = try readFrameIndex(&source, audioOffset, &packets, &encoderInfo, &firstHeader)
-    if not packets.count do
+    if not packets.count
+    {
         fail InvalidFormatError{"MP3 file carries no audio frame"}
+    }
 
     // A file with no encoder tag still has the decoder's own priming to drop.
     var trimFrames = encoderInfo.delayFrames
-    if not trimFrames and encoderInfo.isHeaderFrame do
+    if not trimFrames and encoderInfo.isHeaderFrame
+    {
         trimFrames = DecoderDelay
-    if trimFrames >= totalFrames do
+    }
+
+    if trimFrames >= totalFrames
+    {
         trimFrames = 0
+    }
 
     let options = PacketStreamOptions{leadingTrimFrames: trimFrames}
     source.close()
-    var config: Array'u8
+    var config: Array!{u8}
     return try SoundFile.openPacketStream(path,
                                           .Mp3,
                                           firstHeader.sampleRate,

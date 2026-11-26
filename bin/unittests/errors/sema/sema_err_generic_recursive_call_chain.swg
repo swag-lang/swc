@@ -9,7 +9,7 @@ func(T) relay(value: T)->s32
 {
     #static if T == s32
     {
-        return relay'Point(Point{})     // swc-expected-note {{sema_note_generic_requested_here}}
+        return relay!{Point}(Point{})     // swc-expected-note {{sema_note_generic_requested_here}}
     }
     else
     {

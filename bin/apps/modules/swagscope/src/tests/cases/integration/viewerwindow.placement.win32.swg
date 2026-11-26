@@ -20,14 +20,17 @@ func assertViewerNativeBounds(surface: *Surface)
 func observeViewerPlacement(app: *Application)
 {
     app.runFrame()
-    if Env.variable("SWAG_SCOPE_PLACEMENT_CAPTURE").isEmpty() do
+    if Env.variable("SWAG_SCOPE_PLACEMENT_CAPTURE").isEmpty()
+    {
         return
+    }
+
     var watch: Time.Stopwatch
     watch.restart()
     while watch.elapsedMicroseconds() < 500_000
     {
         app.runFrame()
-        Threading.Thread.sleep(1'ms)
+        Threading.Thread.sleep(1_ms)
     }
 }
 
@@ -43,8 +46,11 @@ func observeViewerPlacement(app: *Application)
     app.notifyThemeChanged()
     let window   = ViewerWindow.create(surface.wnd, createViewerPluginRegistry())
     var fileName = Env.variable("SWAG_SCOPE_PLACEMENT_DOCUMENT")
-    if fileName.isEmpty() do
+    if fileName.isEmpty()
+    {
         fileName = Path.combine(testSourceRoot(#curlocation), "datas/markdown.images.md")
+    }
+
     window.openFile(fileName, remember: false)
     surface.show()
 
@@ -53,9 +59,12 @@ func observeViewerPlacement(app: *Application)
     while watch.elapsedMicroseconds() < 10_000_000
     {
         app.runFrame()
-        if window.currentView is Markdown.View as view where not view.isLoading() do
+        if window.currentView is Markdown.View as view where not view.isLoading()
+        {
             break
-        Threading.Thread.sleep(1'ms)
+        }
+
+        Threading.Thread.sleep(1_ms)
     }
 
     Swag.require(not expect cast(*Markdown.View, window.currentView).isLoading())

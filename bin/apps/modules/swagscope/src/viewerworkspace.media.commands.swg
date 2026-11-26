@@ -62,27 +62,49 @@ impl ViewerWorkspace
     mtd setSceneLink(id: WndId, on: bool)
     {
         let scene = .scene()
-        if not scene do
+        if not scene
+        {
             return
+        }
+
         let wasFramingLinked = scene.linked and scene.links.framing
         switch id
         {
-        case MediaCommands.Linked:   scene.linked = on
-        case MediaCommands.Time:     scene.links.time = on
-        case MediaCommands.Playback: scene.links.playback = on
-        case MediaCommands.Framing:  scene.links.framing = on
-        case MediaCommands.Scroll:   scene.links.scroll = on
+        case MediaCommands.Linked:
+            scene.linked = on
+
+        case MediaCommands.Time:
+            scene.links.time = on
+
+        case MediaCommands.Playback:
+            scene.links.playback = on
+
+        case MediaCommands.Framing:
+            scene.links.framing = on
+
+        case MediaCommands.Scroll:
+            scene.links.scroll = on
+
         case MediaCommands.Explorer:
             scene.links.explorer = on
-            if on do
+            if on
+            {
                 scene.linked = true
-        case MediaCommands.ExplorerSingleClick: scene.links.explorerSingleClick = on
-        default: return
+            }
+
+        case MediaCommands.ExplorerSingleClick:
+            scene.links.explorerSingleClick = on
+
+        default:
+            return
         }
 
         let framingLinked = scene.linked and scene.links.framing
-        if wasFramingLinked != framingLinked and .comparisonVisible() and .comparison!.isPicture() do
+        if wasFramingLinked != framingLinked and .comparisonVisible() and .comparison!.isPicture()
+        {
             .comparison!.synchronizePictureFraming(fromRight: framingLinked and scene.active == 1)
+        }
+
         .updateMedia()
         .refreshMediaCaptions()
         .invalidate()
@@ -111,6 +133,7 @@ impl ViewerWorkspace
             scene.linked         = true
             scene.links.playback = true
         }
+
         .synchronizeMedia()
         catch .primary.saveState()
     }
@@ -126,34 +149,46 @@ impl ViewerWorkspace
     mtd routeSceneMediaKey(evt: *KeyEvent, source: *Wnd)->bool
     {
         let scene = .scene()
-        if not scene or (scene.views.count < 2 and not .isTiled()) or source is EditBox or .activeDocument().lens.isOpen() do
+        if not scene or
+           (scene.views.count < 2 and not .isTiled()) or
+           source is EditBox or
+           .activeDocument().lens.isOpen()
+        {
             return false
+        }
+
         if evt.modifiers == .None and evt.key == .L and .hasViewLinks()
         {
             .setSceneLink(MediaCommands.Linked, not scene.linked)
             return true
         }
 
-        let groupToggle = evt.modifiers == .Shift and evt.key == .Space and .canPlayScene()
+        let groupToggle  = evt.modifiers == .Shift and evt.key == .Space and .canPlayScene()
         let linkedToggle = evt.modifiers == .None and
                            (evt.key == .Space or evt.key == .MediaPlayPause) and
                            .usesLinkedTransport(scene)
         if groupToggle or linkedToggle
         {
-            if not .mediaPlayKeyDown do
+            if not .mediaPlayKeyDown
+            {
                 .playScene(all: true)
+            }
+
             .mediaPlayKeyDown = true
             return true
         }
 
-        if not .isMediaScene() do
+        if not .isMediaScene()
+        {
             return false
+        }
+
         if evt.modifiers == .None and not .focusOnGrid
         {
             switch evt.key
             {
-            case .A:     .alignSceneHere()
-            default:     return false
+            case .A: .alignSceneHere()
+            default: return false
             }
 
             return true
@@ -165,23 +200,33 @@ impl ViewerWorkspace
            scene.links.playback
         {
             let player = ScenePlayer.from(scene.views[.mediaLeader(scene)].document)
-            if not player.film or not player.ready() do
+            if not player.film or not player.ready()
+            {
                 return false
+            }
+
             let film = player.film
             let last = film.video.frameCount()
             let next = evt.key == .Right ? (last ? Math.min(film.frameIndex + 1, last - 1) : film.frameIndex + 1) :
                        (film.frameIndex ? film.frameIndex - 1 : 0)
-            for view in scene.views do
+            for view in scene.views
+            {
                 ScenePlayer.from(view.document).setPlaying(false)
+            }
+
             let relative = scene.links.mode == .Relative
             let position = film.frameSeconds(next)
             for view, index in scene.views
             {
                 let target = position + (relative ? view.offset - scene.views[.mediaLeader(scene)].offset : 0)
-                if index == .mediaLeader(scene) do
+                if index == .mediaLeader(scene)
+                {
                     film.seekFrame(next)
-                elif scene.links.time do
+                }
+                else if scene.links.time
+                {
                     ScenePlayer.from(view.document).seek(target)
+                }
             }
 
             return true
@@ -210,8 +255,11 @@ impl ViewerWindow
     mtd computeMediaCommand(evt: *CommandStateEvent)->bool
     {
         let workspace = .workspace
-        if not workspace do
+        if not workspace
+        {
             return false
+        }
+
         let scene        = workspace.scene()
         let text         = appStrings()
         var name: string = ""
@@ -233,10 +281,10 @@ impl ViewerWindow
             checkable = false
 
         case MediaCommands.Play, MediaCommands.Pause, MediaCommands.Stop:
-            name      = evt.id == MediaCommands.Play ? text.scene_Play : (evt.id == MediaCommands.Pause ? text.scene_Pause : text.scene_Stop)
-            icon      = evt.id == MediaCommands.Play ? .Play : (evt.id == MediaCommands.Pause ? .Pause : .Stop)
-            hidden    = not workspace.canPlayScene()
-            checkable = false
+            name         = evt.id == MediaCommands.Play ? text.scene_Play : (evt.id == MediaCommands.Pause ? text.scene_Pause : text.scene_Stop)
+            icon         = evt.id == MediaCommands.Play ? .Play : (evt.id == MediaCommands.Pause ? .Pause : .Stop)
+            hidden       = not workspace.canPlayScene()
+            checkable    = false
             evt.disabled = hidden or not workspace.canRunTransport(evt.id)
             evt.updatedFields.add(.Disabled)
 
@@ -318,8 +366,11 @@ impl ViewerWindow
             }
         }
 
-        if not name.count do
+        if not name.count
+        {
             return false
+        }
+
         evt.name          = name
         evt.hidden        = hidden
         evt.icon          = .theme().icon(icon, .themeMetrics().menuPopup_IconSize)
@@ -337,32 +388,47 @@ impl ViewerWindow
     mtd runMediaCommand(id: WndId)->bool
     {
         let workspace = .workspace
-        if not workspace do
+        if not workspace
+        {
             return false
+        }
+
         if id == MediaCommands.Transport
         {
-            if not workspace.canSetLayout() do
+            if not workspace.canSetLayout()
+            {
                 return false
+            }
+
             workspace.showMediaTransport()
             return true
         }
 
         let scene = workspace.scene()
-        if not scene or (scene.views.count < 2 and not workspace.isTiled()) do
+        if not scene or (scene.views.count < 2 and not workspace.isTiled())
+        {
             return false
+        }
+
         switch id
         {
         case MediaCommands.Links:
-            if workspace.hasViewLinks() do
+            if workspace.hasViewLinks()
+            {
                 workspace.showMediaLinks()
+            }
 
         case MediaCommands.Play, MediaCommands.Pause:
-            if workspace.canPlayScene() do
+            if workspace.canPlayScene()
+            {
                 workspace.setScenePlaying(id == MediaCommands.Play)
+            }
 
         case MediaCommands.Stop:
-            if workspace.canPlayScene() do
+            if workspace.canPlayScene()
+            {
                 workspace.stopScene()
+            }
 
         case MediaCommands.Linked:
             workspace.setSceneLink(id, not scene.linked)

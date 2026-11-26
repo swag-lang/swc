@@ -34,8 +34,11 @@ private func styleEnabled(value: string?)->bool => value != "0" and value != "fa
 
 private func styleIndex(token: const *Package.Token, name: string)->u32
 {
-    if let value = token.attribute(name) do
+    if let value = token.attribute(name)
+    {
         return catch StrConv.toU32(value) orelse Swag.U32.Max
+    }
+
     return Swag.U32.Max
 }
 
@@ -43,10 +46,10 @@ private func styleIndex(token: const *Package.Token, name: string)->u32
 struct CellStyles
 {
     normalFont: CellFont
-    fonts:      Array'CellFont
-    fills:      Array'FillStyle
-    borders:    Array'BorderStyle
-    styles:     Array'CellLook
+    fonts:      Array!{CellFont}
+    fills:      Array!{FillStyle}
+    borders:    Array!{BorderStyle}
+    styles:     Array!{CellLook}
 }
 
 impl CellStyles
@@ -57,15 +60,15 @@ impl CellStyles
         let colors            = try CellColors.parse(source, theme)
         var scan              = Package.Scanner.create(source)
         var token:     Package.Token
-        var normalIndex       = 0'u32
+        var normalIndex       = 0_u32
         var section:   string = ""
         var font:      CellFont
         var fill:      FillStyle
         var border:    BorderStyle
         var reference: StyleReference
-        var bases:     Array'StyleReference
-        var cells:     Array'StyleReference
-        var side              = -1's32
+        var bases:     Array!{StyleReference}
+        var cells:     Array!{StyleReference}
+        var side              = -1_s32
         while scan.next(&token)
         {
             if token.kind == .Start
@@ -74,65 +77,69 @@ impl CellStyles
                 {
                     section = "fonts"
                 }
-                elif token.isElement("fills")
+                else if token.isElement("fills")
                 {
                     section = "fills"
                 }
-                elif token.isElement("borders")
+                else if token.isElement("borders")
                 {
                     section = "borders"
                 }
-                elif token.isElement("cellStyleXfs")
+                else if token.isElement("cellStyleXfs")
                 {
                     section = "bases"
                 }
-                elif token.isElement("cellXfs")
+                else if token.isElement("cellXfs")
                 {
                     section = "cells"
                 }
-                elif token.isElement("cellStyle") and token.attribute("builtinId") == "0"
+                else if token.isElement("cellStyle") and token.attribute("builtinId") == "0"
                 {
                     normalIndex = catch StrConv.toU32(token.attribute("xfId") orelse "0") orelse 0
                 }
-                elif section == "fonts"
+                else if section == "fonts"
                 {
                     if token.isElement("font")
                     {
                         font = {}
                     }
-                    elif token.isElement("b")
+                    else if token.isElement("b")
                     {
                         font.bold = styleEnabled(token.attribute("val"))
                     }
-                    elif token.isElement("i")
+                    else if token.isElement("i")
                     {
                         font.italic = styleEnabled(token.attribute("val"))
                     }
-                    elif token.isElement("strike")
+                    else if token.isElement("strike")
                     {
                         font.strike = styleEnabled(token.attribute("val"))
                     }
-                    elif token.isElement("u")
+                    else if token.isElement("u")
                     {
                         let value = token.attribute("val") orelse "single"
                         font.underline = value != "none"
                         font.limited   = font.limited or (value != "none" and value != "single")
                     }
-                    elif token.isElement("sz")
+                    else if token.isElement("sz")
                     {
                         let size = catch StrConv.toF64(token.attribute("val") orelse "11") orelse 0
-                        if Math.isFinite(size) and size >= 1 and size <= 409 do
+                        if Math.isFinite(size) and size >= 1 and size <= 409
+                        {
                             font.size = cast(f32, size)
-                        else do
+                        }
+                        else
+                        {
                             font.limited = true
+                        }
                     }
-                    elif token.isElement("color")
+                    else if token.isElement("color")
                     {
                         let color = colors.color(&token)
                         font.color   = color.argb
                         font.limited = font.limited or not color.valid
                     }
-                    elif token.isElement("name")
+                    else if token.isElement("name")
                     {
                         let name = String.from(token.attribute("val") orelse "").toLower()
                         font.mono = name == "courier new" or
@@ -142,46 +149,46 @@ impl CellStyles
                                     name == "cascadia code" or
                                     name == "monospace"
                     }
-                    elif (token.isElement("outline") or token.isElement("shadow")) and styleEnabled(token.attribute("val"))
+                    else if (token.isElement("outline") or token.isElement("shadow")) and styleEnabled(token.attribute("val"))
                     {
                         font.limited = true
                     }
-                    elif token.isElement("vertAlign") and (token.attribute("val") orelse "baseline") != "baseline"
+                    else if token.isElement("vertAlign") and (token.attribute("val") orelse "baseline") != "baseline"
                     {
                         font.limited = true
                     }
                 }
-                elif section == "fills"
+                else if section == "fills"
                 {
                     if token.isElement("fill")
                     {
                         fill = {}
                     }
-                    elif token.isElement("patternFill")
+                    else if token.isElement("patternFill")
                     {
                         let pattern = token.attribute("patternType") orelse "none"
                         fill.solid   = pattern == "solid"
                         fill.limited = pattern != "none" and pattern != "solid"
                     }
-                    elif token.isElement("fgColor")
+                    else if token.isElement("fgColor")
                     {
                         let color = colors.color(&token)
                         fill.color   = color.argb
                         fill.limited = fill.limited or not color.valid
                     }
-                    elif token.isElement("gradientFill")
+                    else if token.isElement("gradientFill")
                     {
                         fill.limited = true
                     }
                 }
-                elif section == "borders"
+                else if section == "borders"
                 {
                     if token.isElement("border")
                     {
                         border = {}
                         side   = -1
                     }
-                    elif token.isElement("color") and side >= 0
+                    else if token.isElement("color") and side >= 0
                     {
                         let color = colors.color(&token)
                         border.edges[cast(u32, side)].color = color.argb
@@ -240,13 +247,13 @@ impl CellStyles
                                 border.limited = true
                             }
                         }
-                        elif kind != "none"
+                        else if kind != "none"
                         {
                             border.limited = true
                         }
                     }
                 }
-                elif section == "bases" or section == "cells"
+                else if section == "bases" or section == "cells"
                 {
                     if token.isElement("xf")
                     {
@@ -264,7 +271,7 @@ impl CellStyles
                                                    (reference.border == Swag.U32.Max and token.attribute("borderId") != null) or
                                                    reference.parent == Swag.U32.Max
                     }
-                    elif token.isElement("alignment")
+                    else if token.isElement("alignment")
                     {
                         reference.alignment.read(&token)
                     }
@@ -277,26 +284,30 @@ impl CellStyles
                 {
                     result.fonts.add(font)
                 }
-                elif section == "fills" and token.isElement("fill")
+                else if section == "fills" and token.isElement("fill")
                 {
                     result.fills.add(fill)
                 }
-                elif section == "borders" and token.isElement("border")
+                else if section == "borders" and token.isElement("border")
                 {
                     result.borders.add(border)
                 }
-                elif (section == "bases" or section == "cells") and token.isElement("xf")
+                else if (section == "bases" or section == "cells") and token.isElement("xf")
                 {
-                    if section == "bases" do
+                    if section == "bases"
+                    {
                         bases.add(reference)
-                    else do
+                    }
+                    else
+                    {
                         cells.add(reference)
+                    }
                 }
-                elif token.isElement("fonts") or
-                     token.isElement("fills") or
-                     token.isElement("borders") or
-                     token.isElement("cellStyleXfs") or
-                     token.isElement("cellXfs")
+                else if token.isElement("fonts") or
+                        token.isElement("fills") or
+                        token.isElement("borders") or
+                        token.isElement("cellStyleXfs") or
+                        token.isElement("cellXfs")
                 {
                     section = ""
                 }
@@ -305,34 +316,54 @@ impl CellStyles
                    (token.isElement("left") or
                     token.isElement("right") or
                     token.isElement("top") or
-                    token.isElement("bottom")) do
+                    token.isElement("bottom"))
+                {
                     side = -1
+                }
             }
 
             if result.fonts.count > 4096 or
                result.fills.count > 4096 or
                result.borders.count > 4096 or
                bases.count > 65536 or
-               cells.count > 65536 do
+               cells.count > 65536
+            {
                 fail Errors.UnsupportedFormatError{texts().err_TooLarge}
+            }
         }
 
-        if scan.damaged do
+        if scan.damaged
+        {
             fail Errors.InvalidFormatError{texts().err_Invalid}
-        var parents: Array'CellLook
-        for base in bases do
+        }
+
+        var parents: Array!{CellLook}
+        for base in bases
+        {
             parents.add(result.resolve(base, {}))
-        if normalIndex < parents.count do
+        }
+
+        if normalIndex < parents.count
+        {
             result.normalFont = parents[normalIndex].font
-        elif not result.fonts.isEmpty() do
+        }
+        else if not result.fonts.isEmpty()
+        {
             result.normalFont = result.fonts[0]
+        }
+
         for cell in cells
         {
             var parent: CellLook
-            if cell.parent < parents.count do
+            if cell.parent < parents.count
+            {
                 parent = parents[cell.parent]
-            elif not parents.isEmpty() do
+            }
+            else if not parents.isEmpty()
+            {
                 parent.limited = true
+            }
+
             result.styles.add(result.resolve(cell, parent))
         }
 
@@ -345,10 +376,14 @@ impl CellStyles
         result.limited = result.limited or reference.limited
         if reference.applyFont and reference.font != Swag.U32.Max
         {
-            if reference.font < .fonts.count do
+            if reference.font < .fonts.count
+            {
                 result.font = .fonts[reference.font]
-            else do
+            }
+            else
+            {
                 result.limited = true
+            }
         }
 
         if reference.applyFill and reference.fill != Swag.U32.Max
@@ -378,16 +413,22 @@ impl CellStyles
             }
         }
 
-        if reference.applyAlignment do
+        if reference.applyAlignment
+        {
             result.alignment.apply(&reference.alignment)
+        }
+
         result.limited = result.limited or result.font.limited or result.alignment.limited
         return result
     }
 
     mtd const look(index: u32)->CellLook
     {
-        if index < .styles.count do
+        if index < .styles.count
+        {
             return .styles[index]
+        }
+
         return CellLook{limited: index != 0 or not .styles.isEmpty()}
     }
 }

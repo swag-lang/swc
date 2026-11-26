@@ -15,8 +15,10 @@ func s()->[2] u32
     for l, g in I
     {
         var i: u32
-        while i < l.count and l[i] != ':'u8 do
+        while i < l.count and l[i] != ':'_u8
+        {
             i += 1
+        }
         i += 1
 
         var x: u32 = 0
@@ -25,7 +27,7 @@ func s()->[2] u32
 
         while i < l.count
         {
-            if l[i] < '0'u8 or l[i] > '9'u8
+            if l[i] < '0'_u8 or l[i] > '9'_u8
             {
                 i += 1
                 continue
@@ -52,8 +54,10 @@ func s()->[2] u32
             }
         }
 
-        if x <= 12 and y <= 13 and z <= 14 do
+        if x <= 12 and y <= 13 and z <= 14
+        {
             r[0] += cast(u32, g) + 1
+        }
         r[1] += x * y * z
     }
 

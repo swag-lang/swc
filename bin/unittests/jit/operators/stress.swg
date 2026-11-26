@@ -35,22 +35,22 @@ enum StressKind: u16
             a += b
         }
 
-        var f: f32 = 3.5'f32
-        f *= 2.0'f32
-        f += 1.0'f32
-        f /= 2.0'f32
-        f -= 1.0'f32
+        var f: f32 = 3.5_f32
+        f *= 2.0_f32
+        f += 1.0_f32
+        f /= 2.0_f32
+        f -= 1.0_f32
 
-        var g: f64 = 10.0'f64
+        var g: f64 = 10.0_f64
         g += cast(f64, f)
-        g -= 1.0'f64
-        g *= 2.0'f64
-        g /= 3.0'f64
+        g -= 1.0_f64
+        g *= 2.0_f64
+        g /= 3.0_f64
 
         var p: *void? = null
         if p == null
         {
-            p = cast(*void, 0x10'u64)
+            p = cast(*void, 0x10_u64)
         }
 
         if p != null and a > 0
@@ -59,11 +59,11 @@ enum StressKind: u16
         }
 
         var h: u32 = cast(u32, a)
-        h <<= 1'u32
-        h >>= 2'u32
-        h |= 0x20'u32
-        h ^= 0x03'u32
-        h &= 0x3F'u32
+        h <<= 1_u32
+        h >>= 2_u32
+        h |= 0x20_u32
+        h ^= 0x03_u32
+        h &= 0x3F_u32
 
         return cast(s32, h) + cast(s32, g) + b
     }
@@ -80,17 +80,17 @@ enum StressKind: u16
         var k: StressKind = StressKind.A
         k = StressKind.C
 
-        var a: s8  = -10's8
-        var b: u16 = 300'u16
+        var a: s8  = -10_s8
+        var b: u16 = 300_u16
         var c: s64 = cast(s64, a) + cast(s64, b) + cast(s64, cast(u16, k))
 
         c <<= 1
         c >>= 2
 
-        var d: u64 = 1000'u64
-        d %= 331'u64
-        d |= 40'u64
-        d ^= 5'u64
+        var d: u64 = 1000_u64
+        d %= 331_u64
+        d |= 40_u64
+        d ^= 5_u64
 
         c += cast(s64, d)
         return c
@@ -98,7 +98,7 @@ enum StressKind: u16
 
     const V = #run stressEnumAndWidths()
     #assert(#typeof(V) == s64)
-    #assert(V == 208's64)
+    #assert(V == 208_s64)
 }
 
 #test
@@ -162,7 +162,7 @@ enum StressKind: u16
         acc += neg
         var plusVal: u32 = +cast(u32, arr[1])
         acc += cast(s32, plusVal)
-        var mask: s32 = ~0x3's32
+        var mask: s32 = ~0x3_s32
         acc -= mask
 
         var cond = acc > 120 and arr[4] == 10 or arr[0] == 1
@@ -176,19 +176,19 @@ enum StressKind: u16
         }
 
         var bits: u32 = cast(u32, acc)
-        bits = (bits << 3'u32) ^ 0x55'u32
-        bits = (bits >> 2'u32) | 0x11'u32
-        bits &= 0x7F'u32
+        bits = (bits << 3_u32) ^ 0x55_u32
+        bits = (bits >> 2_u32) | 0x11_u32
+        bits &= 0x7F_u32
 
-        var f: f32 = 5.5'f32
-        f *= 3.0'f32
-        f -= 2.5'f32
-        f /= 2.0'f32
+        var f: f32 = 5.5_f32
+        f *= 3.0_f32
+        f -= 2.5_f32
+        f /= 2.0_f32
 
         var p: *void? = null
-        if (bits & 1'u32) != 0'u32
+        if (bits & 1_u32) != 0_u32
         {
-            p = cast(*void, 0x111'u64)
+            p = cast(*void, 0x111_u64)
         }
 
         if p != null and acc > 0

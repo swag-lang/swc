@@ -7,7 +7,7 @@ using Core, Gui, Pixel
 // numbered column of 900 in the fixed face on lines twice its size apart. The column grows with
 // the zoom, so a line holds the same words at every size.
 const ProseColumn   = 680.0
-const ProseFontSize = 16'u32
+const ProseFontSize = 16_u32
 const ProsePitch    = 29.0 / 16.0
 const CodeColumn    = 900.0
 const CodePitch     = 2.0
@@ -22,8 +22,11 @@ func centerColumn(editor: *RichEditCtrl, width: f32)
 {
     let view   = editor.clientRect().width
     let margin = Math.round(Math.max(ColumnInset, (view - width) * 0.5))
-    if margin == editor.marginLeft and margin == editor.marginRight do
+    if margin == editor.marginLeft and margin == editor.marginRight
+    {
         return
+    }
+
     editor.marginLeft  = margin
     editor.marginRight = margin
     editor.setFlags(editor.flags)

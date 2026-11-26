@@ -32,33 +32,46 @@ func day9A()
     let lines    = expect File.readAllLines(dataPath)
 
     var r = expect Parser.RegExp.create(#raw "(\w+) to (\w+) = (\d+)")
-    var town:  HashTable'(string, u64)
-    var dist:  HashTable'(u64, u64)
-    var combi: Array'u64
+    var town:  HashTable!{string, u64}
+    var dist:  HashTable!{u64, u64}
+    var combi: Array!{u64}
 
     for l in lines
     {
         discard r.match(l[])
-        if not town.contains(r[1]) do
+        if not town.contains(r[1])
+        {
             town.add(r[1], town.count)
-        if not town.contains(r[2]) do
+        }
+
+        if not town.contains(r[2])
+        {
             town.add(r[2], town.count)
+        }
+
         dist.add(town.find(r[1]).value << 32 | town.find(r[2]).value, expect StrConv.toU64(r[3]))
         dist.add(town.find(r[1]).value | town.find(r[2]).value << 32, expect StrConv.toU64(r[3]))
     }
 
-    for i in town.count do
+    for i in town.count
+    {
         combi.add(i)
+    }
 
     var total = Swag.U64.Max
     for
     {
-        var calc = 0'u64
-        for i in cast(s64, combi.count) - 1 do
+        var calc = 0_u64
+        for i in cast(s64, combi.count) - 1
+        {
             calc += dist.find(combi[i] << 32 | combi[i + 1]).value
+        }
+
         total = Math.min(total, calc)
-        if not Slice.nextPermutation(combi.toSlice()) do
+        if not Slice.nextPermutation(combi.toSlice())
+        {
             break
+        }
     }
 
     Swag.assert(total == 141)

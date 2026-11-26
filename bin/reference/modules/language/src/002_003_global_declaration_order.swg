@@ -19,7 +19,7 @@ const A = B
 // which is also not yet declared or defined.
 const B = C
 
-// Finally, we declare and define 'C' as a constant of type 'u64'
+// Finally, we declare and define 'C' as a constant of type '_u64'
 // (an unsigned 64-bit integer) with a value of 1.
 // This retroactively assigns values to both 'A' and 'B'
 // based on the earlier assignments.

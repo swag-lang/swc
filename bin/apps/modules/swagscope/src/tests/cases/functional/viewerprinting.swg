@@ -13,7 +13,7 @@ using Core, Gui, Pixel
     workspace.openScene([scopeTestDataPath("viewer.pdf"), scopeTestDataPath("viewer.srt")], .SideBySide)
     openViews(&host, workspace)
 
-    for index in 2'u64
+    for index in 2_u64
     {
         workspace.selectView(index)
         let document = workspace.activeDocument()
@@ -21,11 +21,13 @@ using Core, Gui, Pixel
         Swag.require(not state.hidden and not state.disabled)
         Swag.require(state.shortcut == Input.formatKeyShortcut(.Control, .P))
         document.lens.open(">")
-        var count = 0'u64
+        var count = 0_u64
         for section in document.lens.results.sections
         {
-            for &entry in section!.entries where entry.title == Gui.strings().print_Command do
+            for &entry in section!.entries where entry.title == Gui.strings().print_Command
+            {
                 count += 1
+            }
         }
 
         Swag.require(count == 1)
@@ -44,8 +46,11 @@ using Core, Gui, Pixel
     host.app.sigFrame += func|host = &host, &sawPrint|(app)
     {
         let surface = app.surfaces.back()
-        if surface.isHidden or surface.isDisabled do
+        if surface.isHidden or surface.isDisabled
+        {
             return
+        }
+
         if surface.view() is Dialog as dialog
         {
             if dialog.title.text == Gui.strings().print_Title
@@ -69,19 +74,28 @@ using Core, Gui, Pixel
     var host: Testing.HeadlessHost
     let window = framedViewerWindow(&host, fileName, false)
     defer host.shutdown()
-    for choice, index in window.choices where choice.key == "hex" and index != window.activeChoiceIndex do
+    for choice, index in window.choices where choice.key == "hex" and index != window.activeChoiceIndex
+    {
         window.selectViewer(cast(u32, index))
+    }
+
     completeQueuedViewerFile(&host, window)
     Swag.require(window.currentView is Viewers.Hex.Panel)
 
     var previewed = false
     host.app.sigFrame += func|host = &host, &previewed|(app)
     {
-        if not app.isInModalLoop() do
+        if not app.isInModalLoop()
+        {
             return
+        }
+
         let surface = app.surfaces.back()
-        if surface.isHidden or surface.isDisabled do
+        if surface.isHidden or surface.isDisabled
+        {
             return
+        }
+
         if surface.view() is Dialog as dlg
         {
             let tr    = Gui.strings()

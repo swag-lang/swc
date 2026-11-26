@@ -54,8 +54,8 @@ var WndCreateTestId: String
     var host: Testing.HeadlessHost
     host.setup(300, 100)
 
-    let parent = Wnd.create'Wnd(&host.root, null, {0, 0, 280, 80})
-    let child  = Wnd.create'Wnd(null, null, {10, 12, 40, 24})
+    let parent = Wnd.create!{Wnd}(&host.root, null, {0, 0, 280, 80})
+    let child  = Wnd.create!{Wnd}(null, null, {10, 12, 40, 24})
     host.pump()
 
     child.setParent(parent)
@@ -135,7 +135,7 @@ var WndCreateTestId: String
 
     let expected = "Wnd.Dynamic.Command.Identifier"
     WndCreateTestId = Core.String.from(expected)
-    let child = Wnd.create'Wnd(null, null, {}, WndCreateTestId.toString())
+    let child = Wnd.create!{Wnd}(null, null, {}, WndCreateTestId.toString())
     child.setParent(&host.root)
     WndCreateTestId[0] = 'X'
 
@@ -159,16 +159,16 @@ impl IWnd for AncestorTestWnd {}
     var host: Testing.HeadlessHost
     host.setup(200, 200)
 
-    let outer = Wnd.create'AncestorTestWnd(&host.root)
-    let inner = Wnd.create'AncestorTestWnd(outer)
-    let child = Wnd.create'Wnd(inner)
-    Swag.require(child.ancestorByType'AncestorTestWnd() == inner)
-    Swag.require(inner.ancestorByType'AncestorTestWnd() == outer)
-    Swag.require(outer.ancestorByType'AncestorTestWnd() == null)
-    Swag.require(child.ancestorByType'PushButton() == null)
+    let outer = Wnd.create!{AncestorTestWnd}(&host.root)
+    let inner = Wnd.create!{AncestorTestWnd}(outer)
+    let child = Wnd.create!{Wnd}(inner)
+    Swag.require(child.ancestorByType!{AncestorTestWnd}() == inner)
+    Swag.require(inner.ancestorByType!{AncestorTestWnd}() == outer)
+    Swag.require(outer.ancestorByType!{AncestorTestWnd}() == null)
+    Swag.require(child.ancestorByType!{PushButton}() == null)
 
     child.setParent(outer)
-    Swag.require(child.ancestorByType'AncestorTestWnd() == outer)
+    Swag.require(child.ancestorByType!{AncestorTestWnd}() == outer)
 }
 
 // An unhandled command state is empty in every field. Presenters use UpdatedFields as the sole
@@ -194,9 +194,9 @@ impl IWnd for AncestorTestWnd {}
 {
     var host: Testing.HeadlessHost
     host.setup(200, 200)
-    let container = Wnd.create'Wnd(&host.root, null, {0, 0, 200, 200})
-    let a         = Wnd.create'Wnd(container, null, {0, 0, 50, 50}, "Wnd.A")
-    let b         = Wnd.create'Wnd(container, null, {0, 0, 50, 50}, "Wnd.B")
+    let container = Wnd.create!{Wnd}(&host.root, null, {0, 0, 200, 200})
+    let a         = Wnd.create!{Wnd}(container, null, {0, 0, 50, 50}, "Wnd.A")
+    let b         = Wnd.create!{Wnd}(container, null, {0, 0, 50, 50}, "Wnd.B")
 
     Swag.require(container.children.count == 2)
     Swag.require(a.parent == container)
@@ -214,10 +214,10 @@ impl IWnd for AncestorTestWnd {}
 {
     var host: Testing.HeadlessHost
     host.setup(200, 200)
-    let left       = Wnd.create'Wnd(&host.root, null, {0, 0, 100, 200})
-    let right      = Wnd.create'Wnd(&host.root, null, {100, 0, 100, 200})
-    let child      = Wnd.create'Wnd(left, null, {0, 0, 50, 50})
-    let grandChild = Wnd.create'Wnd(child, null, {0, 0, 20, 20})
+    let left       = Wnd.create!{Wnd}(&host.root, null, {0, 0, 100, 200})
+    let right      = Wnd.create!{Wnd}(&host.root, null, {100, 0, 100, 200})
+    let child      = Wnd.create!{Wnd}(left, null, {0, 0, 50, 50})
+    let grandChild = Wnd.create!{Wnd}(child, null, {0, 0, 20, 20})
 
     Swag.require(left.detachChild(child))
     Swag.require(child.parent == null and child.surface == null)
@@ -235,8 +235,8 @@ impl IWnd for AncestorTestWnd {}
 {
     var host: Testing.HeadlessHost
     host.setup(200, 200)
-    let container        = Wnd.create'Wnd(&host.root, null, {0, 0, 200, 200})
-    let child            = Wnd.create'Wnd(container, null, {0, 0, 50, 50})
+    let container        = Wnd.create!{Wnd}(&host.root, null, {0, 0, 200, 200})
+    let child            = Wnd.create!{Wnd}(container, null, {0, 0, 50, 50})
     let originalPosition = child.position
 
     Swag.require(child.isVisible())
@@ -266,8 +266,8 @@ impl IWnd for AncestorTestWnd {}
 {
     var host: Testing.HeadlessHost
     host.setup(200, 200)
-    let container = Wnd.create'Wnd(&host.root, null, {0, 0, 200, 200})
-    let child     = Wnd.create'Wnd(container, null, {0, 0, 50, 50})
+    let container = Wnd.create!{Wnd}(&host.root, null, {0, 0, 200, 200})
+    let child     = Wnd.create!{Wnd}(container, null, {0, 0, 50, 50})
 
     Swag.require(child.isEnabled())
     Swag.require(child.isLocallyEnabled())
@@ -293,8 +293,8 @@ impl IWnd for AncestorTestWnd {}
 {
     var host: Testing.HeadlessHost
     host.setup(200, 200)
-    let container = Wnd.create'Wnd(&host.root, null, {10, 20, 180, 160})
-    let child     = Wnd.create'Wnd(container, null, {30, 40, 50, 50})
+    let container = Wnd.create!{Wnd}(&host.root, null, {10, 20, 180, 160})
+    let child     = Wnd.create!{Wnd}(container, null, {30, 40, 50, 50})
 
     // child is at container(10,20) + local(30,40) in surface space.
     Swag.require(child.localToSurface(Math.Point{0, 0}) == Math.Point{40, 60})
@@ -321,11 +321,14 @@ impl IWnd for AncestorTestWnd {}
     var moves: u32
     var host:  Testing.HeadlessHost
     host.setup(200, 200)
-    let child = Wnd.create'Wnd(&host.root, null, {10, 20, 50, 50})
+    let child = Wnd.create!{Wnd}(&host.root, null, {10, 20, 50, 50})
     child.hookOnEvent = func|count = &moves|(_, evt)
     {
-        if evt is MoveEvent do
+        if evt is MoveEvent
+        {
             count[] += 1
+        }
+
         return false
     }
 
@@ -343,10 +346,10 @@ impl IWnd for AncestorTestWnd {}
 {
     var host: Testing.HeadlessHost
     host.setup(220, 140)
-    let container = Wnd.create'Wnd(&host.root, null, {0, 0, 200, 100})
-    let left      = Wnd.create'Wnd(container, null, {0, 0, 40, 0})
-    let right     = Wnd.create'Wnd(container, null, {0, 0, 30, 0})
-    let center    = Wnd.create'Wnd(container, null, {0, 0, 0, 0})
+    let container = Wnd.create!{Wnd}(&host.root, null, {0, 0, 200, 100})
+    let left      = Wnd.create!{Wnd}(container, null, {0, 0, 40, 0})
+    let right     = Wnd.create!{Wnd}(container, null, {0, 0, 30, 0})
+    let center    = Wnd.create!{Wnd}(container, null, {0, 0, 0, 0})
 
     left.dockStyle   = .Left
     right.dockStyle  = .Right
@@ -363,8 +366,8 @@ impl IWnd for AncestorTestWnd {}
 {
     var host: Testing.HeadlessHost
     host.setup(200, 200)
-    let container = Wnd.create'Wnd(&host.root, null, {10, 10, 180, 180})
-    let child     = Wnd.create'Wnd(container, null, {20, 20, 60, 60})
+    let container = Wnd.create!{Wnd}(&host.root, null, {10, 10, 180, 180})
+    let child     = Wnd.create!{Wnd}(container, null, {20, 20, 60, 60})
 
     // Surface point (40,40) -> container(10,10) -> child local (20,20): inside child.
     Swag.require(host.root.windowAt(40, 40, true) == child)
@@ -387,9 +390,9 @@ impl IWnd for AncestorTestWnd {}
 {
     var host: Testing.HeadlessHost
     host.setup(200, 200)
-    let container = Wnd.create'Wnd(&host.root, null, {0, 0, 200, 200})
-    let a         = Wnd.create'Wnd(container, null, {0, 0, 100, 100})
-    let b         = Wnd.create'Wnd(container, null, {0, 0, 100, 100})
+    let container = Wnd.create!{Wnd}(&host.root, null, {0, 0, 200, 200})
+    let a         = Wnd.create!{Wnd}(container, null, {0, 0, 100, 100})
+    let b         = Wnd.create!{Wnd}(container, null, {0, 0, 100, 100})
 
     // b was added last -> painted on top -> hit first.
     Swag.require(host.root.windowAt(50, 50, true) == b)
@@ -408,8 +411,8 @@ impl IWnd for AncestorTestWnd {}
 {
     var host: Testing.HeadlessHost
     host.setup(200, 200)
-    let container = Wnd.create'Wnd(&host.root, null, {0, 0, 200, 200})
-    let child     = Wnd.create'Wnd(container, null, {0, 0, 50, 50})
+    let container = Wnd.create!{Wnd}(&host.root, null, {0, 0, 200, 200})
+    let child     = Wnd.create!{Wnd}(container, null, {0, 0, 50, 50})
     Swag.require(container.children.count == 1)
 
     child.destroy()
@@ -424,19 +427,19 @@ impl IWnd for AncestorTestWnd {}
     var host: Testing.HeadlessHost
     host.setup(240, 180)
 
-    let scroller = Wnd.create'Wnd(&host.root, null, {10, 20, 200, 140})
+    let scroller = Wnd.create!{Wnd}(&host.root, null, {10, 20, 200, 140})
     scroller.scrollPos = {0, 70}
 
-    let normal = Wnd.create'Wnd(scroller, null, {5, 100, 40, 30})
+    let normal = Wnd.create!{Wnd}(scroller, null, {5, 100, 40, 30})
     Swag.require(normal.surfaceRect().y == 50)
 
-    let fixed = Wnd.create'Wnd(scroller, null, {5, 30, 80, 60})
+    let fixed = Wnd.create!{Wnd}(scroller, null, {5, 30, 80, 60})
     fixed.wndFlags |= .NoScroll
     Swag.require(fixed.surfaceRect().y == 50)
     Swag.require(fixed.surfaceToLocal({15, 50}) == Math.Point{0, 0})
 
     fixed.scrollPos = {0, 6}
-    let nested = Wnd.create'Wnd(fixed, null, {2, 20, 20, 20})
+    let nested = Wnd.create!{Wnd}(fixed, null, {2, 20, 20, 20})
     Swag.require(nested.surfaceRect().y == 64)
 
     host.root.scrollPos = {0, 9}
@@ -454,8 +457,8 @@ impl IWnd for AncestorTestWnd {}
     var host: Testing.HeadlessHost
     host.setup(160, 100)
 
-    let wnd   = Wnd.create'Wnd(&host.root, null, {0, 0, 40, 30})
-    let timer = wnd.addTimer(1'ms)
+    let wnd   = Wnd.create!{Wnd}(&host.root, null, {0, 0, 40, 30})
+    let timer = wnd.addTimer(1_ms)
     Swag.require(not timer.isPendingRemoval)
     wnd.destroy()
     Swag.require(timer.isPendingRemoval)
@@ -469,8 +472,8 @@ impl IWnd for AncestorTestWnd {}
     var host: Testing.HeadlessHost
     host.setup(160, 100)
 
-    let wnd   = Wnd.create'Wnd(&host.root, null, {0, 0, 40, 30})
-    let timer = wnd.addTimer(1'ms)
+    let wnd   = Wnd.create!{Wnd}(&host.root, null, {0, 0, 40, 30})
+    let timer = wnd.addTimer(1_ms)
     wnd.destroy()
     host.pumpTimerQueues()
     host.app.removeTimer(timer)
@@ -483,13 +486,13 @@ impl IWnd for AncestorTestWnd {}
     var host: Testing.HeadlessHost
     host.setup(160, 100)
 
-    let wnd = Wnd.create'Wnd(&host.root, null, {0, 0, 40, 30})
-    var timer: *Timer? = wnd.addTimer(1'ms)
+    let wnd = Wnd.create!{Wnd}(&host.root, null, {0, 0, 40, 30})
+    var timer: *Timer? = wnd.addTimer(1_ms)
     wnd.stopTimer(&timer)
     Swag.require(timer == null)
     wnd.stopTimer(&timer)
 
-    timer = wnd.addTimer(1'ms)
+    timer = wnd.addTimer(1_ms)
     wnd.destroy()
     wnd.stopTimer(&timer)
     Swag.require(timer == null)

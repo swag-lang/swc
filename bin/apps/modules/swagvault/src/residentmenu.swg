@@ -6,7 +6,7 @@ struct ResidentMenu
     using wnd:   Wnd
     late window: *MainWindow
     late menu:   *MenuCtrl
-    paths:       Array'String
+    paths:       Array!{String}
     watch:       *Timer?
     wasActive:   bool
     armed:       bool
@@ -21,25 +21,28 @@ impl ResidentMenu
         window.resident.menu?.close()
         let pointer = Input.mousePosition()
         let surface = PopupMenuSurface.create(window.app(), pointer)
-        if not surface do
+        if not surface
+        {
             return null
+        }
+
         let result = create(surface.wnd, window)
         window.resident.menu = result
         PopupMenuSurface.show(result, result.menu, {pointer.x, pointer.y, 0, 0}, .AtPoint, pointer)
-        result.watch = result.addTimer(30'ms)
+        result.watch = result.addTimer(30_ms)
         return result
     }
 
     func create(parent: *Wnd, window: *MainWindow)->*ResidentMenu
     {
-        with let result = Wnd.create'ResidentMenu(parent)
+        with let result = Wnd.create!{ResidentMenu}(parent)
         {
             .window      = window
             .dockStyle   = .Center
             .focusPolicy = .Click
         }
 
-        result.menu = Wnd.create'MenuCtrl(result)
+        result.menu = Wnd.create!{MenuCtrl}(result)
         let menu = result.menu
         menu.owner     = result
         menu.dockStyle = .Center
@@ -71,8 +74,11 @@ impl ResidentMenu
             menu.addItem(texts.cmd_ForceUnmount, Format.toString("vault.resident.force.%", index), result.theme().icon(.Warning, iconSize), disabled: not ready)
         }
 
-        if not window.mountedDrives.drives.isEmpty() do
+        if not window.mountedDrives.drives.isEmpty()
+        {
             menu.addSeparator()
+        }
+
         menu.addItem(VaultCommands.UnmountAll)
         menu.addSeparator()
         menu.addItem(VaultCommands.Options)
@@ -85,8 +91,11 @@ impl ResidentMenu
     mtd close()
     {
         .stopTimer(&.watch)
-        if .window.resident.menu == me do
+        if .window.resident.menu == me
+        {
             .window.resident.menu = null
+        }
+
         .surface?.destroy()
     }
 
@@ -109,17 +118,26 @@ impl ResidentMenu
         }
 
         .close()
-        if not id do
+        if not id
+        {
             return
+        }
+
         if path.count
         {
-            if not window.isMounted(path) do
+            if not window.isMounted(path)
+            {
                 return
+            }
+
             window.chosenPath = path
         }
 
-        if command == VaultCommands.OpenFile or command == VaultCommands.Options do
+        if command == VaultCommands.OpenFile or command == VaultCommands.Options
+        {
             window.resident.showWindow()
+        }
+
         window.postCommandEvent(command)
     }
 }
@@ -128,8 +146,10 @@ impl IWnd for ResidentMenu
 {
     mtd impl onComputeStateEvent(evt: *CommandStateEvent)
     {
-        if not .window.computeCommandState(evt) do
+        if not .window.computeCommandState(evt)
+        {
             evt.accepted = true
+        }
 
         // The window may be hidden on this page; its tray command remains a way back.
         if evt.id == VaultCommands.Options
@@ -141,21 +161,27 @@ impl IWnd for ResidentMenu
 
     mtd impl onTimerEvent(_: *TimerEvent)
     {
-        if PopupMenuSurface.shouldDismiss(me, .menu, &.wasActive, &.armed) do
+        if PopupMenuSurface.shouldDismiss(me, .menu, &.wasActive, &.armed)
+        {
             .choose(.menu.modalResult())
+        }
     }
 
     mtd impl onKeyEvent(evt: *KeyEvent)
     {
         .menu.handleKeyboard(evt)
-        if .menu.isModalEnded() do
+        if .menu.isModalEnded()
+        {
             .choose(.menu.modalResult())
+        }
     }
 
     mtd impl onDestroyEvent(_: *DestroyEvent)
     {
         .stopTimer(&.watch)
-        if .window.resident.menu == me do
+        if .window.resident.menu == me
+        {
             .window.resident.menu = null
+        }
     }
 }

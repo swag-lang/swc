@@ -18,9 +18,12 @@ func waitForViewerNativeBounds(app: *Application, surface: *Surface, expected: M
            origin == {expected.x, expected.y} and
            surface.renderingContext().width == cast(s32, expected.width) and
            surface.renderingContext().height == cast(s32, expected.height) and
-           try Testing.verifyNativePresentation(surface) do
+           try Testing.verifyNativePresentation(surface)
+        {
             return
-        Threading.Thread.sleep(10'ms)
+        }
+
+        Threading.Thread.sleep(10_ms)
     }
 
     var origin = Math.Point{0, 0}
@@ -71,9 +74,12 @@ func waitForViewerNativeBounds(app: *Application, surface: *Surface, expected: M
     while watch.elapsedMilliseconds() < 10_000
     {
         app.runFrame()
-        if window.currentView is Markdown.View as view where not view.isLoading() do
+        if window.currentView is Markdown.View as view where not view.isLoading()
+        {
             break
-        Threading.Thread.sleep(10'ms)
+        }
+
+        Threading.Thread.sleep(10_ms)
     }
 
     Swag.require(not expect cast(*Markdown.View, window.currentView).isLoading())

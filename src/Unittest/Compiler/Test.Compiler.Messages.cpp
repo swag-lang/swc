@@ -207,12 +207,12 @@ SWC_TEST_BEGIN(Compiler_AssertDiagnosticPreservesLiteralSuffixQuotes)
 
     const TaskContext localCtx(ctx.global(), cmdLine);
     Diagnostic        diag = Diagnostic::get(DiagnosticId::sema_err_assert_failed);
-    diag.addArgument(Diagnostic::ARG_BECAUSE, "text[0] == 'w''u8 + 'd''u8");
+    diag.addArgument(Diagnostic::ARG_BECAUSE, "text[0] == 'w'_u8 + 'd'_u8");
 
     DiagnosticBuilder builder(localCtx, diag);
     const Utf8        text = builder.build();
 
-    if (text.find("assertion does not hold: text[0] == 'w''u8 + 'd''u8") == Utf8::npos)
+    if (text.find("assertion does not hold: text[0] == 'w'_u8 + 'd'_u8") == Utf8::npos)
         return Result::Error;
 }
 SWC_TEST_END()
@@ -224,12 +224,12 @@ SWC_TEST_BEGIN(Compiler_DiagnosticEscapesQuotedArgumentTicks)
 
     const TaskContext localCtx(ctx.global(), cmdLine);
     Diagnostic        diag = Diagnostic::get(DiagnosticId::sema_err_type_not_indexable);
-    diag.addArgument(Diagnostic::ARG_TYPE, "List'(s32)");
+    diag.addArgument(Diagnostic::ARG_TYPE, "List!{s32}");
 
     DiagnosticBuilder builder(localCtx, diag);
     const Utf8        text = builder.build();
 
-    if (text.find("type 'List'(s32)' is not indexable") == Utf8::npos)
+    if (text.find("type 'List!{s32}' is not indexable") == Utf8::npos)
         return Result::Error;
 }
 SWC_TEST_END()
@@ -364,12 +364,12 @@ SWC_TEST_BEGIN(Compiler_DiagnosticEscapesQuotedArgumentWithoutBreakingHelpSplit)
 
     const TaskContext localCtx(ctx.global(), cmdLine);
     Diagnostic        diag = Diagnostic::get(DiagnosticId::sema_err_type_not_indexable);
-    diag.addArgument(Diagnostic::ARG_TYPE, "List'(s32); [help] fake");
+    diag.addArgument(Diagnostic::ARG_TYPE, "List!{s32}; [help] fake");
 
     DiagnosticBuilder builder(localCtx, diag);
     const Utf8        text = builder.build();
 
-    if (text.find("type 'List'(s32); [help] fake' is not indexable") == Utf8::npos)
+    if (text.find("type 'List!{s32}; [help] fake' is not indexable") == Utf8::npos)
         return Result::Error;
 
     size_t helpCount = 0;

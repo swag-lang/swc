@@ -60,16 +60,18 @@ func reference64(value, divisor: u64, output: [*] u64)
 
 #test
 {
-    let divisors   = [14'u32, 28, 56, 70, 1000, 1000000, 4294967294]
-    let boundaries = [0'u32, 1, 0xFFFFFFFF, 0x80000000]
+    let divisors   = [14_u32, 28, 56, 70, 1000, 1000000, 4294967294]
+    let boundaries = [0_u32, 1, 0xFFFFFFFF, 0x80000000]
     var actual:   [15] u32
     var expected: [2] u32
-    var state      = 0x9E3779B9'u32
+    var state      = 0x9E3779B9_u32
     for sample in 512
     {
         var value = state
-        if sample < boundaries.count do
+        if sample < boundaries.count
+        {
             value = boundaries[sample]
+        }
         results32(value, &actual[0])
         for divisor, i in divisors
         {
@@ -85,7 +87,7 @@ func reference64(value, divisor: u64, output: [*] u64)
 
     for divisor in divisors
     {
-        let lastMultiple = 0xFFFFFFFF'u32 - 0xFFFFFFFF'u32 % divisor
+        let lastMultiple = 0xFFFFFFFF_u32 - 0xFFFFFFFF_u32 % divisor
         for value in [divisor - 1, divisor, divisor + 1, lastMultiple - 1, lastMultiple, lastMultiple + 1]
         {
             results32(value, &actual[0])
@@ -101,16 +103,18 @@ func reference64(value, divisor: u64, output: [*] u64)
 
 #test
 {
-    let divisors   = [14'u64, 28, 56, 70, 1000, 1000000, 18446744073709551614, 13835058055282163712, 3458764513820540928]
-    let boundaries = [0'u64, 1, 0xFFFFFFFFFFFFFFFF, 0x8000000000000000]
+    let divisors   = [14_u64, 28, 56, 70, 1000, 1000000, 18446744073709551614, 13835058055282163712, 3458764513820540928]
+    let boundaries = [0_u64, 1, 0xFFFFFFFFFFFFFFFF, 0x8000000000000000]
     var actual:   [19] u64
     var expected: [2] u64
-    var state      = 0x9E3779B9'u64
+    var state      = 0x9E3779B9_u64
     for sample in 512
     {
         var value = state
-        if sample < boundaries.count do
+        if sample < boundaries.count
+        {
             value = boundaries[sample]
+        }
         results64(value, &actual[0])
         for divisor, i in divisors
         {
@@ -126,7 +130,7 @@ func reference64(value, divisor: u64, output: [*] u64)
 
     for divisor in divisors
     {
-        let lastMultiple = 0xFFFFFFFFFFFFFFFF'u64 - 0xFFFFFFFFFFFFFFFF'u64 % divisor
+        let lastMultiple = 0xFFFFFFFFFFFFFFFF_u64 - 0xFFFFFFFFFFFFFFFF_u64 % divisor
         for value in [divisor - 1, divisor, divisor + 1, lastMultiple - 1, lastMultiple, lastMultiple + 1]
         {
             results64(value, &actual[0])

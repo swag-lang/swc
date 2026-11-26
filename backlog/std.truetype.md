@@ -200,6 +200,10 @@ here. Compiler issues belong in [compiler.frontend.md](compiler.frontend.md), [c
 - Evidence: the 71-case pathname comparison adds 12 TrueType CJK scenarios and records
   60 wins. The remaining 11 losses all use large Noto CJK CFF outlines.
   [71-case comparison](../bench/results/swagscope-filesamples/font-decode-linux.md#expanded-chinese-japanese-and-korean-fixtures)
+- Evidence: four regional CFF subsets add eight cases with nonconsecutive CIDs.
+  Compact CID lookup takes 60–75% off fresh-source opening. FreeType still leads
+  the pathname comparisons.
+  [CID subset timings](../bench/results/swagscope-filesamples/font-decode-linux.md#compact-cff-cid-maps)
 - Next: isolate the remaining cost of a single-worker CFF outline copy and check whether
   a host can provide independent snapshot storage. Preserve the face's guarantee after
   in-place file edits.

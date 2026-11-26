@@ -995,3 +995,31 @@ all seven WOFF1 cases.
 
 The native compression cases pass in Release and Release Safe.
 The TrueType and selected Pixel PNG and collection cases pass.
+
+## Compact CFF CID maps
+
+Regional CFF subsets can assign many glyphs to nonconsecutive CIDs.
+Dense-enough CID ranges use 16-bit glyph indices in a direct lookup
+table. The identity fast path and the sparse hash lookup cover the
+other distributions. Duplicate CIDs retain the last glyph.
+
+Four pinned Noto regional subsets add eight cases, for 79 cases across
+62 files. The comparison with `0cacd90c1f` uses 11 interleaved batches on
+one CPU. Opening a fresh source after the font bytes have been acquired
+improves by 60–75%. Opening from the pathname improves by 39–55%, with
+FreeType 2.14.3 ahead on all eight pathname cases. Direct CID lookups
+run in 4.7–5.9 ns compared with 18.1–23.8 ns before. The mapping
+fingerprints cover all 65,536 CID values in each file. Rendered glyph
+indices, advances, dimensions and bitmap checksums match across builds.
+[Raw opening and lookup timings](font-decode-linux-cff-cid-map.json)
+
+| New fixture | Character | Pathname before (ms) | After | FreeType (ms) | Fresh source before (ms) | After |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| `NotoSansJP-Regular.otf` | U+3042 | 2.163 | 0.975 | 0.518 | 2.068 | 0.636 |
+| `NotoSansJP-Regular.otf` | U+65E5 | 2.041 | 1.032 | 0.491 | 1.690 | 0.628 |
+| `NotoSansHK-Regular.otf` | U+9AA8 | 2.374 | 1.451 | 0.502 | 2.171 | 0.669 |
+| `NotoSansHK-Regular.otf` | U+9F8D | 2.378 | 1.357 | 0.500 | 1.959 | 0.743 |
+| `NotoSerifKR-Regular.otf` | U+D55C | 2.457 | 1.261 | 0.628 | 1.877 | 0.469 |
+| `NotoSerifKR-Regular.otf` | U+570B | 2.977 | 1.425 | 0.587 | 1.662 | 0.509 |
+| `NotoSerifSC-Regular.otf` | U+4E2D | 3.377 | 2.009 | 0.551 | 1.919 | 0.773 |
+| `NotoSerifSC-Regular.otf` | U+6587 | 3.266 | 1.971 | 0.566 | 2.278 | 0.745 |

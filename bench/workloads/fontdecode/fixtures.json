@@ -489,6 +489,66 @@
     ]
   },
   {
+    "file": "NotoSansJP-Regular.otf",
+    "url": "https://raw.githubusercontent.com/notofonts/noto-cjk/523d033d6cb47f4a80c58a35753646f5c3608a78/Sans/SubsetOTF/JP/NotoSansJP-Regular.otf",
+    "sha256": "dff723ba59d57d136764a04b9b2d03205544f7cd785a711442d6d2d085ac5073",
+    "cases": [
+      {
+        "character": 12354,
+        "profile": "CJK CID-keyed JP CFF subset"
+      },
+      {
+        "character": 26085,
+        "profile": "CJK CID-keyed JP CFF subset"
+      }
+    ]
+  },
+  {
+    "file": "NotoSansHK-Regular.otf",
+    "url": "https://raw.githubusercontent.com/notofonts/noto-cjk/523d033d6cb47f4a80c58a35753646f5c3608a78/Sans/SubsetOTF/HK/NotoSansHK-Regular.otf",
+    "sha256": "8a43afea92bb58dfd9027bd7ac6f5b0b2662e2ffb3e7c1edc02c62b2b21924f1",
+    "cases": [
+      {
+        "character": 39592,
+        "profile": "CJK CID-keyed HK CFF subset"
+      },
+      {
+        "character": 40845,
+        "profile": "CJK CID-keyed HK CFF subset"
+      }
+    ]
+  },
+  {
+    "file": "NotoSerifKR-Regular.otf",
+    "url": "https://raw.githubusercontent.com/notofonts/noto-cjk/9b0f1436e455d902de067a2501422e5dc71ad16b/Serif/SubsetOTF/KR/NotoSerifKR-Regular.otf",
+    "sha256": "5ea012e15cb7eacc1f680aee1703f3b164791b1443ea3e52b65080cca5d179cf",
+    "cases": [
+      {
+        "character": 54620,
+        "profile": "CJK CID-keyed KR CFF subset"
+      },
+      {
+        "character": 22283,
+        "profile": "CJK CID-keyed KR CFF subset"
+      }
+    ]
+  },
+  {
+    "file": "NotoSerifSC-Regular.otf",
+    "url": "https://raw.githubusercontent.com/notofonts/noto-cjk/9b0f1436e455d902de067a2501422e5dc71ad16b/Serif/SubsetOTF/SC/NotoSerifSC-Regular.otf",
+    "sha256": "e8f396decc1f0963a016a989c3d8852e863d1350996f573860a80767c83a1cd3",
+    "cases": [
+      {
+        "character": 20013,
+        "profile": "CJK CID-keyed SC CFF subset"
+      },
+      {
+        "character": 25991,
+        "profile": "CJK CID-keyed SC CFF subset"
+      }
+    ]
+  },
+  {
     "file": "DejaVuSans.woff",
     "source": "DejaVuSans.ttf",
     "cases": [

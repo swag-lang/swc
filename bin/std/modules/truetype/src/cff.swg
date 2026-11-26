@@ -227,6 +227,7 @@ struct CffFont
     glyphNames:    GlyphNames
     encoding:      CffEncoding
     codeToGid:     HashTable'(u32, u32)
+    denseCidToGid: Array'u16
     cidToGid:      HashTable'(u32, u32)
     cidIsIdentity: bool
 
@@ -311,6 +312,8 @@ impl CffFont
     {
         if .cidIsIdentity do
             return cid < .charStrings.count() ? cid : 0
+        if .denseCidToGid.count do
+            return cid < .denseCidToGid.count ? .denseCidToGid[cid] : 0
         return .cidToGid.getOrDefault(cid, 0)
     }
 
@@ -659,14 +662,29 @@ private func readCffCharset(font: *CffFont, offset: u64) fail
     // the same table answers two different questions depending on the font's kind.
     if font.isCid
     {
-        font.cidIsIdentity = true
-        for gid in glyphCount where sids[gid] != gid
+        var largest     = 0'u32
+        var differences = 0'u32
+        for gid in glyphCount
         {
-            font.cidIsIdentity = false
-            break
+            let cid = sids[gid]
+            differences |= cid ^ gid
+            largest     = Math.max(largest, cid)
         }
 
-        if not font.cidIsIdentity
+        font.cidIsIdentity = differences == 0
+        if font.cidIsIdentity do
+            return
+
+        // At this density a table of 16-bit glyph indices uses no more than
+        // eight bytes per glyph. Dispersed CIDs use the sparse index instead.
+        if largest < glyphCount * 4
+        {
+            font.denseCidToGid.resize(largest + 1)
+            let glyphs = font.denseCidToGid.storage()
+            for gid in glyphCount do
+                glyphs[sids[gid]] = cast(u16, gid)
+        }
+        else
         {
             for gid in glyphCount do
                 font.cidToGid[sids[gid]] = gid

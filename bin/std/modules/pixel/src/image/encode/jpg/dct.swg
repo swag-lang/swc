@@ -144,10 +144,37 @@ impl Encoder
         return cast #bit(Math.Simd.F32x4, biased) - 8421376.0'f32
     }
 
-    // Transforms one block and quantizes it straight into zigzag order.
-    //
-    // The zigzag is applied while the coefficients are scaled, rather than in a pass of its own.
-    func quantization(data: [*] s16, fdtbl: [*] f32, outData: [*] s16)
+    // Expands a row's eight occupancy bits to the corresponding entropy-order positions.
+    func makeZigzagOccupancyMasks()->[8 * 256] u64
+    {
+        var result: #returntype
+        for row in 8
+        {
+            for bits in 256
+            {
+                var mask: u64
+                for col in 8 where bits & (1 << col) do
+                    mask |= 1'u64 << ZigZag[row * 8 + col]
+                result[row * 256 + bits] = mask
+            }
+        }
+
+        return result
+    }
+
+    func makeZigzagToBlock()->[64] u8
+    {
+        var result: #returntype
+        for offset in 64 do
+            result[ZigZag[offset]] = cast(u8, offset)
+        return result
+    }
+
+    const ZigzagOccupancyMasks = #run makeZigzagOccupancyMasks()
+    const ZigzagToBlock        = #run makeZigzagToBlock()
+
+    // Stores eight quantized coefficients at once. Only their occupancy is reordered.
+    func quantization(data: [*] s16, fdtbl: [*] f32, outData: [*] s16)->u64
     {
         var dataFloat: [64] f32
         let coefficients = cast([*] f32, &dataFloat[0])
@@ -175,26 +202,34 @@ impl Encoder
             }
         }
 
-        for group in 2
+        var left, right: [8] Math.Simd.F32x4
+        for row in 8
         {
-            let firstColumn = group * 4
-            var lanes: [8] Math.Simd.F32x4
-            for row in 8 do
-                lanes[row] = Math.Simd.load(coefficients + row * 8 + firstColumn)
-
-            transformFourLines(lanes)
-
-            // Keep multiplication and addition separately rounded as in the scalar transform.
-            let rounding = Math.Simd.splat(16384.5'f32)
-            for row in 8
-            {
-                let offset    = row * 8 + firstColumn
-                let scaled    = Math.mulAdd(lanes[row], Math.Simd.load(fdtbl + offset), rounding)
-                let quantized = Math.Simd.truncateToS32(scaled) - 16384
-                for column in 4 do
-                    outData[ZigZag[offset + column]] = cast(s16, quantized[column])
-            }
+            left[row]  = Math.Simd.load(coefficients + row * 8)
+            right[row] = Math.Simd.load(coefficients + row * 8 + 4)
         }
+
+        transformFourLines(left)
+        transformFourLines(right)
+
+        var occupied: u64
+        let zero     = Math.Simd.splat(0's16)
+        let rounding = Math.Simd.splat(16384.5'f32)
+        for row in 8
+        {
+            let offset = row * 8
+
+            // Keep the scalar transform's separate roundings for scaling and bias.
+            let low    = Math.mulAdd(left[row], Math.Simd.load(fdtbl + offset), rounding)
+            let high   = Math.mulAdd(right[row], Math.Simd.load(fdtbl + offset + 4), rounding)
+            let values = Math.Simd.packSigned(Math.Simd.truncateToS32(low) - 16384,
+                                              Math.Simd.truncateToS32(high) - 16384)
+            let rowMask = Math.Simd.bitmask(values != zero)
+            Math.Simd.store(outData + offset, values)
+            occupied |= ZigzagOccupancyMasks[row * 256 + rowMask]
+        }
+
+        return occupied & ~1'u64
     }
 
     // A coefficient category is the number of bits needed for its absolute magnitude.
@@ -280,94 +315,31 @@ impl Encoder
         .writePackedCode(acTable[0])
     }
 
-    // The upper half is empty, so a gap needs at most one run of sixteen zeros.
-    mtd writeSparseAc(coefficients: const [*] s16, table: const [*] u32)
+    mtd processDU(componentDU: [*] s16, fdtbl: [*] f32, dC: *s16, hTDC, hTAC: const [*] u32)
     {
-        let zero = Math.Simd.splat(0's16)
-        var occupied: u32
-        for group in 4
-        {
-            let values = Math.Simd.load(coefficients + group * 8)
-            occupied |= Math.Simd.bitmask(values != zero) << (group * 8)
-        }
+        var occupied = quantization(componentDU, fdtbl, .du)
 
-        occupied &= 0xFFFF_FFFE
+        .writeDc(.du[0], dC, hTDC)
 
-        var next = 1'u32
+        var next = 1'u64
         while occupied
         {
             let index = Math.trailingZeros(occupied)
             var run   = index - next
-            if run >= 16
+            while run >= 16
             {
-                .writePackedCode(table[0xF0])
+                .writePackedCode(hTAC[0xF0])
                 run -= 16
             }
 
-            let coefficient = coefficients[index]
-            let category    = magnitudeCategory(coefficient)
-            .writeAmplitude(table[run * 16 + category], coefficient, category)
+            let value    = .du[ZigzagToBlock[index]]
+            let category = magnitudeCategory(value)
+            .writeAmplitude(hTAC[run * 16 + category], value, category)
             next     = index + 1
             occupied &= occupied - 1
         }
 
-        .writePackedCode(table[0])
-    }
-
-    mtd processDU(componentDU: [*] s16, fdtbl: [*] f32, dC: *s16, hTDC, hTAC: const [*] u32)
-    {
-        let eob       = hTAC[0x00]
-        let m16Zeroes = hTAC[0xF0]
-
-        quantization(componentDU, fdtbl, .du)
-
-        .writeDc(.du[0], dC, hTDC)
-
-        let coefficients = cast(const [*] s16, .du)
-        let zero         = Math.Simd.splat(0's16)
-        if Math.Simd.allTrue(Math.Simd.load(coefficients + 56) == zero)
-        {
-            let tail = Math.Simd.load(coefficients + 32) |
-                       Math.Simd.load(coefficients + 40) |
-                       Math.Simd.load(coefficients + 48)
-            if Math.Simd.allTrue(tail == zero)
-            {
-                .writeSparseAc(coefficients, hTAC)
-                return
-            }
-        }
-
-        var end0pos = 63
-        while (end0pos > 0) and (.du[end0pos] == 0) do
-            end0pos -= 1
-
-        if end0pos == 0
-        {
-            .writePackedCode(eob)
-            return
-        }
-
-        var i = 1
-        while i <= end0pos
-        {
-            let startpos = i
-            while (i <= end0pos) and (.du[i] == 0) do
-                i += 1
-            var nrzeroes = i - startpos
-            if nrzeroes >= 16
-            {
-                for 1 to nrzeroes / 16 do
-                    .writePackedCode(m16Zeroes)
-                nrzeroes = nrzeroes % 16
-            }
-
-            let coefficient = .du[i]
-            let category    = magnitudeCategory(coefficient)
-            .writeAmplitude(hTAC[nrzeroes * 16 + category], coefficient, category)
-            i += 1
-        }
-
-        if end0pos != 63 do
-            .writePackedCode(eob)
+        if next < 64 do
+            .writePackedCode(hTAC[0])
     }
 }

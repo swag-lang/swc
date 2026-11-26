@@ -178,7 +178,7 @@ internal struct Encoder
         duY:  [64] s16     // Luma samples of the current block.
         duCb: [64] s16     // Blue-chroma samples of the current block.
         duCr: [64] s16     // Red-chroma samples of the current block.
-        du:   [64] s16     // Quantized coefficients of the current block, in zigzag order.
+        du:   [64] s16     // Quantized coefficients of the current block, in row order.
     }
 }
 

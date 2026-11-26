@@ -952,14 +952,11 @@ func losslessDecodePixels(reader: *LosslessBitReader, result: *Array'u8, width, 
 
 func losslessWrap8(value: s32)->u8 => cast(u8, (value & 0xFF))
 
-func losslessAverage(a, b: u8)->u8 => cast(u8, ((cast(u32, a) + b) / 2))
-
-func losslessClampAddSubtractFull(a, b, c: u8)->u8 => cast(u8, Math.clamp(cast(s32, a) + b - c, 0, 255))
-
-func losslessClampAddSubtractHalf(a, b: u8)->u8
+#[Swag.Inline]
+private func losslessAverageDown(a, b: Math.Simd.U8x16)->Math.Simd.U8x16
 {
-    let value = cast(s32, a) + (cast(s32, a) - b) / 2
-    return cast(u8, Math.clamp(value, 0, 255))
+    using Math.Simd
+    return average(a, b) - ((a ^ b) & splat(1'u8))
 }
 
 func losslessInversePredictor(transform: *LosslessTransform, pixels: *Array'u8, height: s32)
@@ -1017,14 +1014,98 @@ func losslessInversePredictor(transform: *LosslessTransform, pixels: *Array'u8, 
             addPixel(destination + j, prediction[j])
     }
 
+    func addAverages(destination: [*] u32, left, right: const [*] u32, count: s32)
+    {
+        var x: s32
+        while count - x >= 4
+        {
+            let a        = cast #bit(U8x16, load(left + x))
+            let b        = cast #bit(U8x16, load(right + x))
+            let residual = cast #bit(U8x16, load(destination + x))
+            store(destination + x, cast #bit(U32x4, (residual + losslessAverageDown(a, b))))
+            x += 4
+        }
+
+        for i in x until count do
+            addPixel(destination + i, averagePixel(left[i], right[i]))
+    }
+
+    func addColor(row: [*] u32, first, last: s32, color: u32)
+    {
+        let value = cast #bit(U8x16, splat(color))
+        var x     = first
+        while last - x >= 4
+        {
+            let residual = cast #bit(U8x16, load(row + x))
+            store(row + x, cast #bit(U32x4, (residual + value)))
+            x += 4
+        }
+
+        for i in x until last do
+            addPixel(row + i, color)
+    }
+
+    func addSelected(row: [*] u32, top: const [*] u32, first, last: s32)
+    {
+        var left   = cast #bit(U8x16, splat(row[first - 1]))
+        var corner = cast #bit(U8x16, splat(top[first - 1]))
+        for x in first until last
+        {
+            let above    = cast #bit(U8x16, splat(top[x]))
+            let residual = cast #bit(U8x16, splat(row[x]))
+
+            // The low half contains two copies of the four channel differences.
+            let aboveDistance = absoluteDifferences(corner, above)[0]
+            let leftDistance  = absoluteDifferences(corner, left)[0]
+            left = residual + (aboveDistance < leftDistance ? left : above)
+            storeLow4(cast([*] u8, row + x), left)
+            corner = above
+        }
+    }
+
+    func(HALF: bool) addGradient(row: [*] u32, top: const [*] u32, first, last: s32)
+    {
+        #[Swag.Inline]
+        func halve(value: U8x16)->U8x16
+        {
+            let even = value & splat(0xFE'u8)
+            return cast #bit(U8x16, (cast #bit(U16x8, even) >> 1))
+        }
+
+        var left   = cast #bit(U8x16, splat(row[first - 1]))
+        var corner = cast #bit(U8x16, splat(top[first - 1]))
+        for x in first until last
+        {
+            let above    = cast #bit(U8x16, splat(top[x]))
+            let residual = cast #bit(U8x16, splat(row[x]))
+            #static if HALF
+            {
+                // Halve the magnitude before applying its sign, matching signed division.
+                let mean     = losslessAverageDown(left, above)
+                let increase = halve(subSaturating(mean, corner))
+                let decrease = halve(subSaturating(corner, mean))
+                left = residual + addSaturating(subSaturating(mean, decrease), increase)
+            }
+            else
+            {
+                // At most one direction is nonzero in a channel, so saturation clips once.
+                let increase = subSaturating(above, corner)
+                let decrease = subSaturating(corner, above)
+                left = residual + addSaturating(subSaturating(left, decrease), increase)
+            }
+
+            storeLow4(cast([*] u8, row + x), left)
+            corner = above
+        }
+    }
+
     let width = transform.oldWidth
     if width == 0 or height == 0 do
         return
 
     let data = cast([*] u32, pixels.storage())
     addPixel(data, 0xFF000000)
-    for x in 1 until width do
-        addPixel(data + x, data[x - 1])
+    addFromLeft(data, 1, width)
 
     let tileWidth   = 1's32 << transform.bits
     let tilesPerRow = losslessTileCount(width, transform.bits)
@@ -1044,8 +1125,7 @@ func losslessInversePredictor(transform: *LosslessTransform, pixels: *Array'u8, 
             switch parameters[tile] & 0x0F
             {
             case 0:
-                for column in x until endX do
-                    addPixel(row + column, 0xFF000000)
+                addColor(row, x, endX, 0xFF000000)
 
             case 1:
                 addFromLeft(row, x, endX)
@@ -1072,54 +1152,23 @@ func losslessInversePredictor(transform: *LosslessTransform, pixels: *Array'u8, 
                     addPixel(row + column, averagePixel(row[column - 1], top[column]))
 
             case 8:
-                for column in x until endX do
-                    addPixel(row + column, averagePixel(top[column - 1], top[column]))
+                addAverages(row + x, top + x - 1, top + x, endX - x)
 
             case 9:
-                for column in x until endX do
-                    addPixel(row + column, averagePixel(top[column], top[column + 1]))
+                addAverages(row + x, top + x, top + x + 1, endX - x)
 
             case 10:
                 for column in x until endX do
                     addPixel(row + column, averagePixel(averagePixel(row[column - 1], top[column - 1]), averagePixel(top[column], top[column + 1])))
 
             case 11:
-                for column in x until endX
-                {
-                    let left   = cast(const [*] u8, row + column - 1)
-                    let above  = cast(const [*] u8, top + column)
-                    let corner = cast(const [*] u8, top + column - 1)
-                    var leftDistance, topDistance: s32
-                    for channel in 4
-                    {
-                        leftDistance += Math.abs(cast(s32, corner[channel]) - above[channel])
-                        topDistance  += Math.abs(cast(s32, corner[channel]) - left[channel])
-                    }
-
-                    addPixel(row + column, leftDistance < topDistance ? row[column - 1] : top[column])
-                }
+                addSelected(row, top, x, endX)
 
             case 12:
-                for column in x until endX
-                {
-                    let target = cast([*] u8, row + column)
-                    let left   = cast(const [*] u8, row + column - 1)
-                    let above  = cast(const [*] u8, top + column)
-                    let corner = cast(const [*] u8, top + column - 1)
-                    for channel in 4 do
-                        target[channel] += #wrap losslessClampAddSubtractFull(left[channel], above[channel], corner[channel])
-                }
+                addGradient'false(row, top, x, endX)
 
             case 13:
-                for column in x until endX
-                {
-                    let target = cast([*] u8, row + column)
-                    let left   = cast(const [*] u8, row + column - 1)
-                    let above  = cast(const [*] u8, top + column)
-                    let corner = cast(const [*] u8, top + column - 1)
-                    for channel in 4 do
-                        target[channel] += #wrap losslessClampAddSubtractHalf(losslessAverage(left[channel], above[channel]), corner[channel])
-                }
+                addGradient'true(row, top, x, endX)
             }
 
             x        = endX
@@ -1218,63 +1267,64 @@ func losslessInverseSubtractGreen(pixels: *Array'u8)
 
 func losslessInverseColorIndexing(transform: *LosslessTransform, pixels: *Array'u8, height: s32)
 {
-    let data = cast([*] u8, pixels.storage())
+    using Math.Simd
+
+    let data    = cast([*] u32, pixels.storage())
+    let palette = cast(const [*] u32, transform.pixels.storage())
     if transform.bits == 0
     {
-        var offset: u64
-        while offset < pixels.count
-        {
-            let paletteOffset = 4'u64 * data[offset + 1]
-            data[offset + 0] = transform.pixels[paletteOffset + 0]
-            data[offset + 1] = transform.pixels[paletteOffset + 1]
-            data[offset + 2] = transform.pixels[paletteOffset + 2]
-            data[offset + 3] = transform.pixels[paletteOffset + 3]
-            offset += 4
-        }
-
+        for i in pixels.count / 4 do
+            data[i] = palette[(data[i] >> 8) & 0xFF]
         return
     }
 
-    var valueMask: u32
-    var xMask:     s32
+    let width        = transform.oldWidth
+    let packedWidth  = losslessTileCount(width, transform.bits)
+    let groupSize    = 1's32 << transform.bits
     let bitsPerPixel = 8'u32 >> transform.bits
-    switch transform.bits
-    {
-    case 1:
-        valueMask = 0x0F
-        xMask     = 0x01
-
-    case 2:
-        valueMask = 0x03
-        xMask     = 0x03
-
-    case 3:
-        valueMask = 0x01
-        xMask     = 0x07
-    }
-
+    let valueMask    = (1'u32 << bitsPerPixel) - 1
+    let byteCount    = 4'u64 * width * height
     var decoded: Array'u8
-    decoded.resize(4'u64 * transform.oldWidth * height)
-    var sourceOffset:      u64
-    var destinationOffset: u64
-    var packedValue:       u32
-    for height
+    decoded.grow(byteCount)
+    decoded.count = byteCount
+    let target = cast([*] u32, decoded.storage())
+
+    let zero     = splat(0'u32)
+    let first    = splat(palette[0])
+    let second   = splat(palette[1])
+    let lowBits  = cast(U32x4, [1'u32, 2, 4, 8])
+    let highBits = lowBits << 4
+    for y in height
     {
-        for x in transform.oldWidth
+        let input  = data + cast(u64, y) * packedWidth
+        let output = target + cast(u64, y) * width
+        var x: s32
+        var packedColumn: s32
+        if transform.bits == 3
         {
-            if (x & xMask) == 0
+            // Expand each green byte to eight consecutive entries of the two-color palette.
+            while width - x >= 8
             {
-                packedValue  = data[sourceOffset + 1]
-                sourceOffset += 4
+                let selector = splat((input[packedColumn] >> 8) & 0xFF)
+                store(output + x, select((selector & lowBits) != zero, second, first))
+                store(output + x + 4, select((selector & highBits) != zero, second, first))
+                x += 8
+                packedColumn += 1
+            }
+        }
+
+        while x < width
+        {
+            let count   = Math.min(groupSize, width - x)
+            var indices = (input[packedColumn] >> 8) & 0xFF
+            for i in count
+            {
+                output[x + i] = palette[indices & valueMask]
+                indices       >>= bitsPerPixel
             }
 
-            let paletteOffset = cast(u64, (4 * (packedValue & valueMask)))
-            decoded[destinationOffset + 0] = transform.pixels[paletteOffset + 0]
-            decoded[destinationOffset + 1] = transform.pixels[paletteOffset + 1]
-            decoded[destinationOffset + 2] = transform.pixels[paletteOffset + 2]
-            decoded[destinationOffset + 3] = transform.pixels[paletteOffset + 3]
-            destinationOffset              += 4
-            packedValue                    >>= bitsPerPixel
+            x += count
+            packedColumn += 1
         }
     }
 

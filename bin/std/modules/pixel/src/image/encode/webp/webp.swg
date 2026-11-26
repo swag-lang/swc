@@ -119,6 +119,37 @@ struct EncodeChannels
     alpha: EncodeChannel
 }
 
+struct EncodePalette
+{
+    colors: [16] u32
+    slots:  [32] u8
+    count:  u32
+}
+
+impl EncodePalette
+{
+    #[Swag.Inline]
+    mtd indexOf(color: u32)->s32
+    {
+        var slot = (color * #wrap 0x9E3779B1'u32) >> 27
+        while .slots[slot]
+        {
+            let index = .slots[slot] - 1
+            if .colors[index] == color do
+                return cast(s32, index)
+            slot = (slot + 1) & 31
+        }
+
+        if .count == .colors.count do
+            return -1
+        let index = .count
+        .colors[index] = color
+        .count         += 1
+        .slots[slot]   = cast(u8, .count)
+        return cast(s32, index)
+    }
+}
+
 // Encodes lossless VP8L WebP images in a RIFF container.
 internal struct Encoder {}
 
@@ -172,7 +203,7 @@ impl Encoder
         }
     }
 
-    func collectPixels(image: Image, pixels: *Array'u32, channels: *EncodeChannels)->bool
+    func packPixels(image: Image, pixels: *Array'u32)
     {
         let pixelCount = cast(u64, image.width) * image.height
         pixels.grow(pixelCount)
@@ -193,8 +224,10 @@ impl Encoder
             default:     unreachable
             }
         }
+    }
 
-        let hasAlphaChannel = image.bytesPerPixel == 4
+    func collectChannels(pixels: const [..] u32, hasAlphaChannel: bool, channels: *EncodeChannels)->bool
+    {
         if not hasAlphaChannel
         {
             channels.alpha.values[0] = 0xFF
@@ -202,9 +235,9 @@ impl Encoder
         }
 
         var previous: u32
-        for index in pixelCount
+        for index in pixels.count
         {
-            let pixel = destination[index]
+            let pixel = pixels[index]
             if index and pixel == previous do
                 continue
             previous = pixel
@@ -363,11 +396,340 @@ impl Encoder
         }
     }
 
+    func collectPalette(palette: *EncodePalette, pixels: const [..] u32)->bool
+    {
+        using Math.Simd
+
+        let firstColor = pixels[0]
+        let first      = splat(firstColor)
+        discard palette.indexOf(firstColor)
+        var cursor: u64
+        while pixels.count - cursor >= 4 and allTrue(load(pixels.buffer + cursor) == first) do
+            cursor += 4
+        while cursor < pixels.count and pixels[cursor] == firstColor do
+            cursor += 1
+        if cursor == pixels.count do
+            return true
+
+        var previous = pixels[cursor]
+        discard palette.indexOf(previous)
+        let second = splat(previous)
+        cursor += 1
+        while pixels.count - cursor >= 4
+        {
+            let next = load(pixels.buffer + cursor)
+            if not allTrue((next == first) | (next == second)) do
+                break
+            cursor += 4
+        }
+
+        for i in cursor until pixels.count
+        {
+            let color = pixels[i]
+            if color == previous do
+                continue
+            if palette.indexOf(color) < 0 do
+                return false
+            previous = color
+        }
+
+        return true
+    }
+
+    func writeSolidImage(writer: *EncodeBitWriter, color: u32)
+    {
+        writer.writeBits(0, 3)     // End transforms, no color cache or Huffman group map.
+        var channel = EncodeChannel{count: 1}
+        for lane in [1, 0, 2, 3]
+        {
+            channel.values[0] = cast(u8, ((color >> (8 * lane)) & 0xFF))
+            writeSimpleTree(writer, channel)
+        }
+
+        writeDistanceTree(writer)
+
+        // Single-symbol trees can fill the image without any literal bits.
+    }
+
+    func writeColorImage(writer: *EncodeBitWriter, pixels: Array'u32, channels: EncodeChannels, topLevel: bool)
+    {
+        writer.writeBits(0, 1)     // Color cache.
+        if topLevel do
+            writer.writeBits(0, 1)     // Huffman group map.
+        writeGreenTree(writer)
+        writeByteTree(writer, channels.red)
+        writeByteTree(writer, channels.blue)
+        writeByteTree(writer, channels.alpha)
+        writeDistanceTree(writer)
+        writePixels(writer, pixels, channels)
+    }
+
+    func writePalette(writer: *EncodeBitWriter, palette: *EncodePalette)
+    {
+        writer.writeBits(1, 1)
+        writer.writeBits(LOSSLESS_TRANSFORM_COLOR_INDEXING, 2)
+        writer.writeBits(palette.count - 1, 8)
+
+        var deltas:   Array'u32
+        var channels: EncodeChannels
+        var previous: u32
+        for i in palette.count
+        {
+            let color = palette.colors[i]
+            var delta: u32
+            for lane in 4
+            {
+                let shift  = 8 * lane
+                let sample = ((color >> shift) - #wrap (previous >> shift)) & 0xFF
+                delta |= sample << shift
+            }
+
+            deltas.add(delta)
+            channels.red.add(cast(u8, (delta & 0xFF)))
+            channels.blue.add(cast(u8, ((delta >> 16) & 0xFF)))
+            channels.alpha.add(cast(u8, (delta >> 24)))
+            previous = color
+        }
+
+        writeColorImage(writer, deltas, channels, false)
+    }
+
+    func packPalette(palette: *EncodePalette, pixels: const [..] u32, width, height, packedWidth: s32, bits: u32)->Array'u8
+    {
+        using Math.Simd
+
+        var packed: Array'u8
+        let count = cast(u64, packedWidth) * height
+        packed.grow(count)
+        packed.count = count
+        let output    = cast([*] u8, packed.storage())
+        let groupSize = 1's32 << bits
+        let indexBits = 8'u32 >> bits
+        var previous  = pixels[0]
+        var paletteIndex: u32
+
+        let binaryColor = splat(palette.colors[1])
+
+        for y in height
+        {
+            let inputRow  = pixels.buffer + cast(u64, y) * width
+            let outputRow = output + cast(u64, y) * packedWidth
+            if bits == 3
+            {
+                var x:     s32
+                var index: s32
+                while width - x >= 8
+                {
+                    let low  = bitmask(load(inputRow + x) == binaryColor)
+                    let high = bitmask(load(inputRow + x + 4) == binaryColor)
+                    outputRow[index] = cast(u8, (low | (high << 4)))
+                    x     += 8
+                    index += 1
+                }
+
+                if x < width
+                {
+                    let second = palette.colors[1]
+                    var bitsRemaining: u32
+                    for i in x until width do
+                        bitsRemaining |= cast(u32, inputRow[i] == second) << (i - x)
+                    outputRow[index] = cast(u8, bitsRemaining)
+                }
+
+                continue
+            }
+
+            for group in packedWidth
+            {
+                let x    = cast(s32, group) * groupSize
+                let span = Math.min(groupSize, width - x)
+                var value: u32
+                for i in span
+                {
+                    let color = inputRow[x + i]
+                    if color != previous
+                    {
+                        paletteIndex = cast(u32, palette.indexOf(color))
+                        previous     = color
+                    }
+
+                    value |= paletteIndex << (i * indexBits)
+                }
+
+                outputRow[group] = cast(u8, value)
+            }
+        }
+
+        return packed
+    }
+
+    func writeMatchDistanceTree(writer: *EncodeBitWriter)
+    {
+        // Forty canonical codes use 24 five-bit codes and 16 six-bit codes.
+        const CodeCount = 10
+        writer.writeBits(0, 1)
+        writer.writeBits(CodeCount - 4, 4)
+        for i in CodeCount
+        {
+            let symbol = WEBP_ENCODE_CODE_LENGTH_ORDER[i]
+            writer.writeBits(symbol == 5 or symbol == 6 ? 1 : 0, 3)
+        }
+
+        writer.writeBits(0, 1)
+        for i in LOSSLESS_DISTANCE_CODES do
+            writer.writeBits(i < 24 ? 0 : 1, 1)
+    }
+
+    func writeMatchDistance(writer: *EncodeBitWriter, distance, width: u32)
+    {
+        // Use the plane distance for the pixel immediately above or to the left.
+        let parameter = distance == 1 ? 2'u32 : (distance == width ? 1'u32 : distance + cast(u32, LOSSLESS_DISTANCE_MAP.count))
+        let value     = parameter - 1
+        if parameter <= 4
+        {
+            writer.writeHuffman(value, 5)
+            return
+        }
+
+        let high      = 31 - Math.leadingZeros(value)
+        let extraBits = high - 1
+        let symbol    = 2 * high + ((value >> extraBits) & 1)
+        if symbol < 24 do
+            writer.writeHuffman(symbol, 5)
+        else do
+            writer.writeHuffman(symbol + 24, 6)
+        writer.writeBits(value & ((1'u32 << extraBits) - 1), extraBits)
+    }
+
+    #[Swag.Inline]
+    func extendMatch(input, previous: const [*] u8, limit: u64)->u64
+    {
+        using Math.Simd
+
+        var length = 4'u64
+        while limit - length >= 16 and allTrue(load(input + length) == load(previous + length)) do
+            length += 16
+        while length < limit and input[length] == previous[length] do
+            length += 1
+        return length
+    }
+
+    func findRowRepeat(packed: const [..] u8, width: s32, maxDistance: u64)->u64
+    {
+        let stride = cast(u64, width)
+        let prefix = Math.min(4096'u64, 3 * stride)
+        if prefix < 4 or packed.count < prefix + stride do
+            return 0
+
+        let first     = packed.buffer
+        let key       = cast(const [*] u32, first)[0]
+        let available = Math.min(maxDistance, packed.count - prefix) / stride
+        let rows      = Math.min(128'u64, available)
+        for step in 1 until rows + 1
+        {
+            let offset = step * stride
+            let probe  = first + offset
+            if cast(const [*] u32, probe)[0] == key and extendMatch(probe, first, prefix) == prefix do
+                return offset
+        }
+
+        return 0
+    }
+
+    func writePackedMatches(writer: *EncodeBitWriter, packed: const [..] u8, width: s32)
+    {
+        const HashBits        = 12
+        const MaximumDistance = (1'u64 << 20) - LOSSLESS_DISTANCE_MAP.count
+        var lastPosition: [1 << HashBits] u32
+        let data      = packed.buffer
+        let rowRepeat = findRowRepeat(packed, width, MaximumDistance)
+        var index:        u64
+        while index < packed.count
+        {
+            let remaining = packed.count - index
+            if remaining >= 4
+            {
+                let input    = data + index
+                let key      = cast(const [*] u32, input)[0]
+                let hash     = (key * #wrap 0x9E3779B1'u32) >> (32 - HashBits)
+                let previous = lastPosition[hash]
+                lastPosition[hash] = cast(u32, index + 1)
+                let limit = Math.min(4096'u64, remaining)
+                var length, distance: u64
+                if rowRepeat and
+                   index >= rowRepeat and
+                   cast(const [*] u32, input - rowRepeat)[0] == key
+                {
+                    length   = extendMatch(input, input - rowRepeat, limit)
+                    distance = rowRepeat
+                }
+
+                if length < limit and previous
+                {
+                    let probe = cast(u64, previous - 1)
+                    let delta = index - probe
+                    if delta <= MaximumDistance and cast(const [*] u32, data + probe)[0] == key
+                    {
+                        let amount = extendMatch(input, data + probe, limit)
+                        if amount >= length
+                        {
+                            length   = amount
+                            distance = delta
+                        }
+                    }
+                }
+
+                if length
+                {
+                    writeLength(writer, cast(u32, length))
+                    writeMatchDistance(writer, cast(u32, distance), cast(u32, width))
+                    index += length
+                    continue
+                }
+            }
+
+            writeGreenSymbol(writer, data[index])
+            index += 1
+        }
+    }
+
+    func writeIndexedImage(writer: *EncodeBitWriter, palette: *EncodePalette, pixels: Array'u32, width, height: s32)
+    {
+        writePalette(writer, palette)
+        writer.writeBits(0, 1)     // End transforms.
+        writer.writeBits(0, 1)     // Color cache.
+        writer.writeBits(0, 1)     // Huffman group map.
+        writeGreenTree(writer)
+        let constant = EncodeChannel{count: 1}
+        writeByteTree(writer, constant)
+        writeByteTree(writer, constant)
+        writeByteTree(writer, constant)
+        writeMatchDistanceTree(writer)
+
+        let bits        = palette.count <= 2 ? 3'u32 : (palette.count <= 4 ? 2'u32 : 1'u32)
+        let packedWidth = losslessTileCount(width, bits)
+        let packed      = packPalette(palette, pixels.toSlice(), width, height, packedWidth, bits)
+        writePackedMatches(writer, packed.toSlice(), packedWidth)
+    }
+
     func encodeLossless(image: Image)->Array'u8
     {
         var pixels:   Array'u32
         var channels: EncodeChannels
-        let hasAlpha = collectPixels(image, &pixels, &channels)
+        packPixels(image, &pixels)
+
+        var palette: EncodePalette
+        let indexed  = pixels.count >= 1024 and collectPalette(&palette, pixels.toSlice())
+        var hasAlpha = false
+        if indexed
+        {
+            for i in palette.count do
+                hasAlpha = hasAlpha or (palette.colors[i] >> 24) != 0xFF
+        }
+        else
+        {
+            hasAlpha = collectChannels(pixels.toSlice(), image.bytesPerPixel == 4, &channels)
+        }
 
         var writer: EncodeBitWriter
         writer.writeBits(0x2F, 8)
@@ -376,15 +738,19 @@ impl Encoder
         writer.writeBits(hasAlpha ? 1 : 0, 1)
         writer.writeBits(0, 3)
 
-        writer.writeBits(0, 1)
-        writer.writeBits(0, 1)
-        writer.writeBits(0, 1)
-        writeGreenTree(&writer)
-        writeByteTree(&writer, channels.red)
-        writeByteTree(&writer, channels.blue)
-        writeByteTree(&writer, channels.alpha)
-        writeDistanceTree(&writer)
-        writePixels(&writer, pixels, channels)
+        if indexed
+        {
+            if palette.count == 1 do
+                writeSolidImage(&writer, palette.colors[0])
+            else do
+                writeIndexedImage(&writer, &palette, pixels, image.width, image.height)
+        }
+        else
+        {
+            writer.writeBits(0, 1)
+            writeColorImage(&writer, pixels, channels, true)
+        }
+
         writer.finish()
         return writer.bytes
     }

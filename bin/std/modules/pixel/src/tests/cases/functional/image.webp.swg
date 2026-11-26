@@ -454,12 +454,60 @@ func assertEncodedWebpRoundtrip(source: Image)
 // Backward-distance runs can span the VP8L maximum length and start a new run.
 #test
 {
-    var source = Image.create(5000, 1, .RGBA8)
+    var source = Image.create(5017, 1, .RGBA8)
     source.fill(Color.fromArgb(37'u8, 19'u8, 73'u8, 211'u8))
+    let pixels = cast([*] u32, source.pixels.storage())
+
+    // The distinct prefix exercises the direct-color run encoder.
+    for i in 17 do
+        pixels[i] = 0x25D34900'u32 | cast(u32, i)
 
     let buffer = expect source.encode("memory.webp")
     Swag.require(buffer.count() < 128)
     assertEncodedWebpRoundtrip(source)
+}
+
+// Odd rows exercise padding in each packed palette layout, including transparent colors.
+#test
+{
+    const Width  = 193
+    const Height = 57
+    for colors in [2'u32, 4, 16]
+    {
+        var image  = Image.create(Width, Height, .RGBA8)
+        let pixels = cast([*] u32, image.pixels.storage())
+        for y in Height
+        {
+            for x in Width
+            {
+                let color = cast(u32, (y * 3 / 7 + x * 5 / 9)) % colors
+                let red   = 11 + color * 13
+                let green = 23 + color * 11
+                let blue  = 31 + color * 7
+                let alpha = color * 17
+                pixels[y * Width + x] = red | (green << 8) | (blue << 16) | (alpha << 24)
+            }
+        }
+
+        let encoded = expect image.encodeToBytes("palette.webp")
+        Swag.require(encoded.count < 2048)
+        let decoded = expect Image.decode("palette.webp", encoded.toSlice())
+        Swag.require(decoded.width == Width and decoded.height == Height)
+        Swag.require(decoded.pixelFormat == .RGBA8)
+        Swag.require(decoded.pixels.count == image.pixels.count)
+        for i in image.pixels.count do
+            Swag.require(decoded.pixels[i] == image.pixels[i])
+    }
+}
+
+// A uniform image uses four single-symbol trees, including for fully transparent RGB.
+#test
+{
+    var image = Image.create(127, 95, .RGBA8)
+    image.fill(Color.fromArgb(0'u8, 21'u8, 39'u8, 67'u8))
+    let encoded = expect image.encodeToBytes("solid.webp")
+    Swag.require(encoded.count <= 40)
+    assertEncodedWebpRoundtrip(image)
 }
 
 // Empty images are rejected before a VP8L payload is created.

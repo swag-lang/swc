@@ -303,20 +303,23 @@ func assertEncodedJpgRoundtrip(src: Image, expectedB, expectedG, expectedR: u8, 
     var record: ImageMetadata
     record.signature = 1
     record.tag       = "Source"
-    record.value     = "camera"
+    record.value.resize(8192)
+    for i in record.value.count do
+        record.value[i] = cast(u8, i % 251)
     source.metadata.add(record)
     let encoded = expect source.encode("metadata.jpg")
+    let bytes   = encoded.toArray()
     for pixels in [true, false]
     {
         for metadata in [true, false]
         {
-            let decoded = expect Image.decode("metadata.jpg", encoded.toSlice(), {decodePixels: pixels, decodeMetadata: metadata})
+            let decoded = expect Image.decode("metadata.jpg", bytes.toSlice(), {decodePixels: pixels, decodeMetadata: metadata})
             Swag.require(decoded.isValid() == pixels)
             Swag.require(decoded.width == 8 and decoded.height == 8)
             var found = false
             for item in decoded.metadata where item.isTag("Source")
             {
-                Swag.require(cast(string, item.toSlice()) == "camera")
+                Swag.require(item.opCompare(record) == 0)
                 found = true
             }
 

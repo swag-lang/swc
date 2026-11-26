@@ -406,25 +406,56 @@ impl Decoder
         var meta:        ImageMetadata
         meta.signature = cast(u32, marker) - cast(u32, Marker.M_APP0)
 
-        while left
+        // Marker lookahead keeps two bytes plus the remainder of its current word.
+        let offset = .streamSeek - .inBufLeft - 2 - .bitsLeft / 8
+        if left >= 256 and not .bitSyntheticMask and offset >= 0 and left <= .streamLen - offset
         {
-            let c = cast(u8, .getBits1(8))
-            left -= 1
-
-            if prefixCount < prefix.count
-            {
-                prefix[prefixCount] = c
-                prefixCount         += 1
-            }
+            let payload = Swag.makeSlice(unwrap .stream + offset, left)
+            prefixCount = cast(u32, Math.min(payload.count, prefix.count))
+            Memory.copy(prefix, payload.buffer, prefixCount)
 
             if .decOptions.decodeMetadata
             {
-                if not inValue and c == 0 do
-                    inValue = true
-                elif inValue do
-                    meta.value.add(c)
-                else do
-                    meta.tag.add(c)
+                let separator = Slice.findLinear(payload, 0'u8)
+                if separator < left
+                {
+                    meta.tag.add(payload[until separator])
+                    meta.value.add(payload[separator + 1 to])
+                }
+                else
+                {
+                    meta.tag.add(payload)
+                }
+            }
+
+            .streamSeek     = offset + cast(s32, left)
+            .totalBytesRead = .streamSeek
+            .eofReached     = 0
+            .prepareInBuffer()
+            .primeMarkerBits()
+        }
+        else
+        {
+            while left
+            {
+                let c = cast(u8, .getBits1(8))
+                left -= 1
+
+                if prefixCount < prefix.count
+                {
+                    prefix[prefixCount] = c
+                    prefixCount         += 1
+                }
+
+                if .decOptions.decodeMetadata
+                {
+                    if not inValue and c == 0 do
+                        inValue = true
+                    elif inValue do
+                        meta.value.add(c)
+                    else do
+                        meta.tag.add(c)
+                }
             }
         }
 

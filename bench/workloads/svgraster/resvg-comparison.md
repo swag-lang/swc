@@ -576,3 +576,26 @@ At two samples per axis, the one-pixel stroke fixture took 414.92 versus
 389.84 ms at one worker and 453.64 versus 416.06 ms at four. All six
 bitmap controls and the three supersampled stroke fixtures matched their
 baseline CRC-64s.
+
+## Projection across scan bands
+
+`dense-colored` renders two 8,000-contour fills with different colors and
+partial opacity. It follows the shared CPU matte path and exposes the
+cost of reprojecting every vertex for each short band. The renderer now
+projects the contours once and skips the ones whose vertical bounds miss
+the band. Crossings still use the same tile-local subtraction, sample
+positions, winding and blend order. The device-point cache is capped at
+one million points, with its bounds stored per contour.
+
+Nine Release runs per build used the Scope options and matching CPU
+sets. Medians include parsing and first rasterization in milliseconds.
+
+| CPU budget | Swag before | Swag after | resvg 0.50.0 |
+| --- | ---: | ---: | ---: |
+| One logical CPU | 805.59 | 96.27 | 49.71 |
+| Four logical CPUs | 853.19 | 103.64 | 59.43 |
+
+All original bitmaps and thumbnails, the eleven generated fixtures, and
+thirteen public resvg fixtures matched their Swag baseline CRC-64s. A
+regression checks fractional coverage against individually drawn contours
+across several clipped scan bands.

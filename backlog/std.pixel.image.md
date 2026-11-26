@@ -171,8 +171,11 @@ ships; history lives in Git, not here.
   outline fragments.
 - Evidence: [deferred stroke metrics](../bench/workloads/svgraster/resvg-comparison.md#preparing-undashed-strokes)
   reduce first raster time for undashed strokes without changing the tested pixels.
-- Next: measure crossing collection and fill resolution on dense colored paths. Rerun the
-  original Windows comparison at one worker and at the runtime default.
+- Evidence: [shared projection across scan bands](../bench/workloads/svgraster/resvg-comparison.md#projection-across-scan-bands)
+  cuts the two-color compound fill from 806 to 96 ms at one worker with matching pixels.
+  resvg takes 50 ms on the same input.
+- Next: measure parallel band processing and the cost of finding contours for each band.
+  Rerun the original Windows comparison at one worker and at the runtime default.
 - Done when: the original corpus meets agreed parse and raster budgets against resvg and the
   renderer's verified output behavior is preserved.
 - Related: std.pixel.image.039, app.scope.image.010

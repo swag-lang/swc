@@ -3539,6 +3539,65 @@ private impl RenderCpu
         return cast(s32, Math.clamp(1_048_576'u64 / (pointCount * VerticalSamples), 1, 256))
     }
 
+    // Device-space points and row bounds shared by the bands of a compound fill.
+    struct ScanContourBounds
+    {
+        low, high: f32
+        finite:    bool
+    }
+
+    struct ProjectedContours
+    {
+        points: Array'Vector2
+        bounds: Array'ScanContourBounds
+    }
+
+    func projectContours(projected: *ProjectedContours, painter: const *Painter, fill: const *ScanFillBatch, transform: const *Transform2, first, pointCount: u64)
+    {
+        let points = painter.scanPoints.toSlice()
+        let ends   = painter.scanContourEnds.toSlice()[fill.first until fill.end]
+        let mapped = projected.points.emplaceAddress(cast(u32, pointCount))
+        projected.bounds.reserve(ends.count)
+        var point = first
+        for end in ends
+        {
+            var bounds = ScanContourBounds{Swag.F32.Max, -Swag.F32.Max, true}
+            for index in point until end
+            {
+                let value = transform.transformPoint(points[index])
+                bounds.finite         = bounds.finite and value.isFinite()
+                bounds.low            = Math.min(bounds.low, value.y)
+                bounds.high           = Math.max(bounds.high, value.y)
+                mapped[index - first] = value
+            }
+
+            projected.bounds.add(bounds)
+            point = end
+        }
+    }
+
+    mtd gatherProjectedRows(painter: const *Painter, fill: const *ScanFillBatch, projected: const *ProjectedContours, origin: Vector2, width, height: s32)->[..] ScanSample
+    {
+        let crossings = .scanScratch.startRows(height)
+        let points    = projected.points.toSlice()
+        let ends      = painter.scanContourEnds.toSlice()[fill.first until fill.end]
+        let first     = firstScanPoint(painter, fill)
+        let identity  = Transform2.Identity
+        var point     = 0'u64
+        for terminal, index in ends
+        {
+            let end    = terminal - first
+            let bounds = &projected.bounds[index]
+
+            // Use the same tile-local coordinates the edge collector will subtract.
+            if not bounds.finite or (bounds.high - origin.y >= 0 and bounds.low - origin.y <= cast(f32, height)) do
+                addScanContour(crossings, points[point until end], &identity, 1, origin, true, cast(f32, width))
+            point = end
+        }
+
+        return crossings
+    }
+
     mtd gatherScanRows(painter: const *Painter, fill: const *ScanFillBatch, transform: const *Transform2, origin: Vector2, width, height: s32)->[..] ScanSample
     {
         let crossings = .scanScratch.startRows(height)
@@ -3577,25 +3636,34 @@ private impl RenderCpu
         if area.isEmpty() do
             return
 
-        let left   = cast(s32, Math.floor(area.x))
-        let top    = cast(s32, Math.floor(area.y))
-        let right  = cast(s32, Math.ceil(area.right()))
-        let bottom = cast(s32, Math.ceil(area.bottom()))
-        let width  = right - left
-        let bandHeight = scanBandHeight(painter.scanContourEnds[fill.end - 1] - firstScanPoint(painter, fill))
+        let left       = cast(s32, Math.floor(area.x))
+        let top        = cast(s32, Math.floor(area.y))
+        let right      = cast(s32, Math.ceil(area.right()))
+        let bottom     = cast(s32, Math.ceil(area.bottom()))
+        let width      = right - left
+        let firstPoint = firstScanPoint(painter, fill)
+        let pointCount = painter.scanContourEnds[fill.end - 1] - firstPoint
+        let bandHeight = scanBandHeight(pointCount)
         let color      = fill.color
         let tint       = cast #bit(Math.Simd.U8x16, Math.Simd.splat(color.argb))
         let alphaScale = Math.Simd.splat(cast(f32, color.a) / VerticalSamples)
-        let evenOdd   = fill.rule == .EvenOdd
-        let stencil   = .stencilOn ? .currentStencil().pixels.storage() : null
+        let evenOdd    = fill.rule == .EvenOdd
+        let stencil    = .stencilOn ? .currentStencil().pixels.storage() : null
         if .stencilWrite and .stencilMode == .Set do
             .markStencilDirty({left, top, right - 1, bottom - 1})
+
+        var projected: ProjectedContours
+
+        // Keep the device-point cache within the same order as a band's crossing storage.
+        if fill.end - fill.first >= 128 and pointCount <= 1_048_576 and bottom - top > bandHeight * 2 do
+            projectContours(&projected, painter, fill, &transform, firstPoint, pointCount)
 
         for var y = top; y < bottom; y += bandHeight
         {
             let height    = Math.min(bandHeight, bottom - y)
             let origin    = Vector2{cast(f32, left), cast(f32, y)}
-            let crossings = .gatherScanRows(painter, fill, &transform, origin, width, height)
+            let crossings = projected.bounds.count ? .gatherProjectedRows(painter, fill, &projected, origin, width, height) :
+                            .gatherScanRows(painter, fill, &transform, origin, width, height)
 
             for row in height
             {

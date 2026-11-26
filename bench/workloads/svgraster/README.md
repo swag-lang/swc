@@ -16,6 +16,8 @@ per active row. `hairline-strokes` and `wide-strokes` draw the same translucent
 curves with 0.5 px and 4 px pens. Pass `--filesamples /path/to/filesamples/samples/image/svg`
 to use the four originals described in [std.pixel.image.057](../../../backlog/std.pixel.image.md#stdpixelimage057--svg-cpu-rasterization-is-far-slower-than-resvg).
 It verifies their SHA-256 digests and caps the largest output at 2048 pixels.
+The `dense-colored` fixture stacks two 8,000-contour fills with different inks
+and measures the multi-band color path.
 
 Add `--public` to include 13 fixtures from the pinned resvg 0.50.0 test suite.
 They exercise clip paths, fill rules, acute and round joins, square caps,

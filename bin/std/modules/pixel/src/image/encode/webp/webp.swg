@@ -14,6 +14,24 @@ const WEBP_ENCODE_GREEN_LONG_CODE_BASE = 464'u32
 const WEBP_ENCODE_CODE_LENGTH_ORDER: [19] u8 = [
     17, 18, 0, 1, 2, 3, 4, 5, 16, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
 
+private const WEBP_ENCODE_GREEN_CODES = #run buildGreenCodes()
+
+private func buildGreenCodes()->[LOSSLESS_LITERAL_CODES + LOSSLESS_LENGTH_CODES] u16
+{
+    var codes: #returntype
+    for symbol in codes.count
+    {
+        let literal   = cast(u32, symbol)
+        let shortCode = literal < WEBP_ENCODE_GREEN_SHORT_SYMBOLS
+        let count     = shortCode ? 8'u32 : 9'u32
+        let code      = shortCode ? literal : WEBP_ENCODE_GREEN_LONG_CODE_BASE + literal - WEBP_ENCODE_GREEN_SHORT_SYMBOLS
+        let reversed  = cast(u32, Math.reverse(cast(u16, code))) >> (16 - count)
+        codes[symbol] = cast(u16, (reversed | (count << 9)))
+    }
+
+    return codes
+}
+
 struct EncodeBitWriter
 {
     bytes:    Array'u8
@@ -23,18 +41,25 @@ struct EncodeBitWriter
 
 impl EncodeBitWriter
 {
-    mtd writeBits(value: u32, count: u32)
+    #[Swag.Inline]
+    mtd writeBits(value: u64, count: u32)
     {
-        Swag.assert(count <= 32)
-        let mask = count == 32 ? 0xFFFFFFFF'u64 : ((1'u64 << count) - 1)
-        .bits     |= (cast(u64, value) & mask) << .bitCount
+        Swag.assert(count <= 33)
+        let mask = (1'u64 << count) - 1
+        .bits     |= (value & mask) << .bitCount
         .bitCount += count
 
-        while .bitCount >= 8
+        let completeBytes = .bitCount >> 3
+        if completeBytes
         {
-            .bytes.add(cast(u8, (.bits & 0xFF)))
-            .bits     >>= 8
-            .bitCount -= 8
+            // Leave room for the whole word, then expose only its complete bytes.
+            let offset = .bytes.count
+            if offset + 8 > .bytes.capacity do
+                .bytes.grow(offset + 8)
+            cast([*] u64, (.bytes.storage() + offset))[0] = .bits
+            .bytes.count = offset + completeBytes
+            .bits        >>= completeBytes * 8
+            .bitCount    &= 7
         }
     }
 
@@ -107,63 +132,96 @@ impl Encoder
         result.addNative(cast(u8, (value >> 24)))
     }
 
+    func(BGR: bool, ALPHA: bool) packRow(destination: [*] u32, source: const [*] u8, width: s32)
+    {
+        using Math.Simd
+
+        #static if ALPHA and not BGR
+        {
+            Memory.copy(destination, source, cast(u64, width) * 4)
+        }
+        else
+        {
+            const Channels    = ALPHA ? 4 : 3
+            const VectorWidth = ALPHA ? 4 : 6
+            const R           = BGR ? 2 : 0
+            const B           = BGR ? 0 : 2
+
+            // Three-byte pixels need six input pixels before a sixteen-byte load.
+            const BgrToRgba  = cast(U8x16, [2'u8, 1, 0, 0x80, 5, 4, 3, 0x80, 8, 7, 6, 0x80, 11, 10, 9, 0x80])
+            const RgbToRgba  = cast(U8x16, [0'u8, 1, 2, 0x80, 3, 4, 5, 0x80, 6, 7, 8, 0x80, 9, 10, 11, 0x80])
+            const BgraToRgba = cast(U8x16, [2'u8, 1, 0, 3, 6, 5, 4, 7, 10, 9, 8, 11, 14, 13, 12, 15])
+            const Reorder    = ALPHA ? BgraToRgba : (BGR ? BgrToRgba : RgbToRgba)
+            var x: s32
+            while width - x >= VectorWidth
+            {
+                var rgba = cast #bit(U32x4, shuffle(load(source + x * Channels), Reorder))
+                #static if not ALPHA do
+                    rgba |= splat(0xFF000000'u32)
+                store(destination + x, rgba)
+                x += 4
+            }
+
+            for i in x until width
+            {
+                let pixel = source + i * Channels
+                let alpha = ALPHA ? pixel[3] : 0xFF
+                destination[i] = cast(u32, pixel[R]) | (cast(u32, pixel[1]) << 8) |
+                                 (cast(u32, pixel[B]) << 16) | (cast(u32, alpha) << 24)
+            }
+        }
+    }
+
     func collectPixels(image: Image, pixels: *Array'u32, channels: *EncodeChannels)->bool
     {
         let pixelCount = cast(u64, image.width) * image.height
-        pixels.resize(pixelCount)
+        pixels.grow(pixelCount)
+        pixels.count = pixelCount
         let destination = cast([*] u32, pixels.storage())
         let source      = cast(const [*] u8, image.pixels.storage())
-        var hasAlpha    = false
-        var output: u64
 
         for y in image.height
         {
-            var pixel = source + cast(u64, (image.height - y - 1)) * image.rowStride
-            for image.width
+            let input  = source + cast(u64, (image.height - y - 1)) * image.rowStride
+            let output = destination + cast(u64, y) * image.width
+            switch image.pixelFormat
             {
-                var red, green, blue, alpha: u8
-                switch image.pixelFormat
-                {
-                case .BGR8:
-                    red   = pixel[2]
-                    green = pixel[1]
-                    blue  = pixel[0]
-                    alpha = 0xFF
-
-                case .BGRA8:
-                    red   = pixel[2]
-                    green = pixel[1]
-                    blue  = pixel[0]
-                    alpha = pixel[3]
-
-                case .RGB8:
-                    red   = pixel[0]
-                    green = pixel[1]
-                    blue  = pixel[2]
-                    alpha = 0xFF
-
-                case .RGBA8:
-                    red   = pixel[0]
-                    green = pixel[1]
-                    blue  = pixel[2]
-                    alpha = pixel[3]
-
-                default:
-                    break
-                }
-
-                destination[output] = cast(u32, red) | (cast(u32, green) << 8) |
-                                      (cast(u32, blue) << 16) | (cast(u32, alpha) << 24)
-                channels.red.add(red)
-                channels.blue.add(blue)
-                channels.alpha.add(alpha)
-                hasAlpha = hasAlpha or alpha != 0xFF
-                output   += 1
-                pixel    += image.bytesPerPixel
+            case .RGB8:  packRow'(false, false)(output, input, image.width)
+            case .BGR8:  packRow'(true, false)(output, input, image.width)
+            case .RGBA8: packRow'(false, true)(output, input, image.width)
+            case .BGRA8: packRow'(true, true)(output, input, image.width)
+            default:     unreachable
             }
         }
 
-        return hasAlpha
+        let hasAlphaChannel = image.bytesPerPixel == 4
+        if not hasAlphaChannel
+        {
+            channels.alpha.values[0] = 0xFF
+            channels.alpha.count     = 1
+        }
+
+        var previous: u32
+        for index in pixelCount
+        {
+            let pixel = destination[index]
+            if index and pixel == previous do
+                continue
+            previous = pixel
+
+            if channels.red.count < 3 do
+                channels.red.add(cast(u8, (pixel & 0xFF)))
+            if channels.blue.count < 3 do
+                channels.blue.add(cast(u8, ((pixel >> 16) & 0xFF)))
+            if hasAlphaChannel and channels.alpha.count < 3 do
+                channels.alpha.add(cast(u8, (pixel >> 24)))
+            if channels.red.count == 3 and
+               channels.blue.count == 3 and
+               (not hasAlphaChannel or channels.alpha.count == 3) do
+                break
+        }
+
+        return channels.alpha.count > 1 or channels.alpha.values[0] != 0xFF
     }
 
     func writeComplexTreeHeader(writer: *EncodeBitWriter, includeNine: bool)
@@ -226,87 +284,81 @@ impl Encoder
 
     func writeGreenSymbol(writer: *EncodeBitWriter, symbol: u32)
     {
-        if symbol < WEBP_ENCODE_GREEN_SHORT_SYMBOLS
-        {
-            writer.writeHuffman(symbol, 8)
-            return
-        }
-
-        let code = WEBP_ENCODE_GREEN_LONG_CODE_BASE + symbol - WEBP_ENCODE_GREEN_SHORT_SYMBOLS
-        writer.writeHuffman(code, 9)
+        let code = WEBP_ENCODE_GREEN_CODES[symbol]
+        writer.writeBits(code & 0x1FF, cast(u32, code >> 9))
     }
 
-    func writeByteSymbol(writer: *EncodeBitWriter, channel: EncodeChannel, value: u8)
+    func prepareChannel(codes: *[256] u32, channel: EncodeChannel, shift: u32)->u32
     {
         if channel.count == 1 do
-            return
+            return shift
         if channel.count == 2
         {
-            writer.writeHuffman(value == channel.values[1] ? 1 : 0, 1)
-            return
+            codes[][channel.values[1]] = 1'u32 << shift
+            return shift + 1
         }
 
-        writer.writeHuffman(value, 8)
+        for symbol in 256 do
+            codes[][symbol] = cast(u32, Math.reverse(cast(u8, symbol))) << shift
+        return shift + 8
     }
 
     func writeLength(writer: *EncodeBitWriter, length: u32)
     {
         Swag.assert(length >= 1 and length <= 4096)
-        for symbol in LOSSLESS_LENGTH_CODES
+        let value = length - 1
+        if length <= 4
         {
-            var base:      u32
-            var extraBits: u32
-            if symbol < 4
-            {
-                base = cast(u32, symbol) + 1
-            }
-            else
-            {
-                extraBits = (cast(u32, symbol) - 2) >> 1
-                base      = (2 + (cast(u32, symbol) & 1)) << extraBits
-                base      += 1
-            }
-
-            let last = base + (extraBits ? (1'u32 << extraBits) - 1 : 0)
-            if length < base or length > last do
-                continue
-
-            writeGreenSymbol(writer, LOSSLESS_LITERAL_CODES + cast(u32, symbol))
-            if extraBits do
-                writer.writeBits(length - base, extraBits)
+            writeGreenSymbol(writer, LOSSLESS_LITERAL_CODES + value)
             return
         }
 
-        unreachable
+        let high      = 31 - Math.leadingZeros(value)
+        let extraBits = high - 1
+        let next      = (value >> extraBits) & 1
+        let symbol    = 2 * high + next
+        writeGreenSymbol(writer, LOSSLESS_LITERAL_CODES + symbol)
+        writer.writeBits(value & ((1'u32 << extraBits) - 1), extraBits)
     }
 
     func writePixels(writer: *EncodeBitWriter, pixels: Array'u32, channels: EncodeChannels)
     {
+        var redCodes, blueCodes, alphaCodes: [256] u32
+        let blueShift  = prepareChannel(&redCodes, channels.red, 0)
+        let alphaShift = prepareChannel(&blueCodes, channels.blue, blueShift)
+        let colorWidth = prepareChannel(&alphaCodes, channels.alpha, alphaShift)
+
         let data = cast(const [*] u32, pixels.storage())
         var index: u64
         while index < pixels.count
         {
             if index and data[index] == data[index - 1]
             {
-                var length = 1'u32
-                while length < 4096 and
-                      index + length < pixels.count and
-                      data[index + length] == data[index - 1] do
+                using Math.Simd
+
+                let color    = data[index - 1]
+                let repeated = splat(color)
+                let limit    = cast(u32, Math.min(4096'u64, pixels.count - index))
+                var length   = 1'u32
+                while limit - length >= 4 and allTrue(load(data + index + length) == repeated) do
+                    length += 4
+                while length < limit and data[index + length] == color do
                     length += 1
                 writeLength(writer, length)
                 index += length
                 continue
             }
 
-            let pixel = data[index]
-            let red   = cast(u8, (pixel & 0xFF))
-            let green = cast(u8, ((pixel >> 8) & 0xFF))
-            let blue  = cast(u8, ((pixel >> 16) & 0xFF))
-            let alpha = cast(u8, (pixel >> 24))
-            writeGreenSymbol(writer, green)
-            writeByteSymbol(writer, channels.red, red)
-            writeByteSymbol(writer, channels.blue, blue)
-            writeByteSymbol(writer, channels.alpha, alpha)
+            let pixel      = data[index]
+            let red        = cast(u8, (pixel & 0xFF))
+            let green      = cast(u8, ((pixel >> 8) & 0xFF))
+            let blue       = cast(u8, ((pixel >> 16) & 0xFF))
+            let alpha      = cast(u8, (pixel >> 24))
+            let greenCode  = WEBP_ENCODE_GREEN_CODES[green]
+            let greenWidth = cast(u32, greenCode >> 9)
+            let colorCode  = redCodes[red] | blueCodes[blue] | alphaCodes[alpha]
+            let bits       = cast(u64, greenCode & 0x1FF) | (cast(u64, colorCode) << greenWidth)
+            writer.writeBits(bits, greenWidth + colorWidth)
             index += 1
         }
     }

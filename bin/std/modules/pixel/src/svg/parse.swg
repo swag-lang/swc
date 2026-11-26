@@ -8,6 +8,8 @@ private const PaintBlockSize       = 64'u64
 private const PaintBinCount        = 128'u64
 private const PaintGridColumns     = 16'u64
 
+private const ContourChunkSize = 512'u64
+
 // Controls resources that SVG parsing may resolve outside the document text.
 //
 // Data-image URIs are accepted up to `maxImageBytes`. A non-empty
@@ -45,16 +47,43 @@ private enum DeferredKind: u8
     Instance
 }
 
+private struct DeferredContours
+{
+    paths: *LinePathList?
+}
+
+private impl DeferredContours
+{
+    mtd opDrop()
+    {
+        if .paths do
+            Memory.delete(.paths)
+    }
+
+    mtd opPostCopy()
+    {
+        if let original = .paths
+        {
+            let copy = Memory.new'LinePathList()
+            copy[] = original[]
+            .paths = copy
+        }
+    }
+}
+
 private struct DeferredGeometry
 {
     kind:     DeferredKind
     min, max: Vector2
+    contours: DeferredContours
 }
 
 private struct DeferredInstance
 {
     source:    u64
     transform: Math.Transform2
+    min, max:  Vector2
+    contours:  DeferredContours
 }
 
 private struct DashRange
@@ -89,8 +118,8 @@ struct Shape
 {
     internal
     {
-        pathList:      LinePathList     // Contours, in drawing user units.
-        geometryCache: u64     // Scan-fill or deferred-instance index plus one, as selected by the deferred kind.
+        geometry: u64     // Index plus one of the contour list, primitive or instance.
+        scanFill: u64     // Index plus one of the raster cache for a dense solid fill.
 
         fillGradient: u64         // Index plus one of the resolved gradient, or zero for solid paint.
         fillColor:    Color       // Solid fill color, including opacity once resolved.
@@ -100,7 +129,7 @@ struct Shape
         evenOdd:      bool        // Whether the fill uses the even-odd rule.
 
         hidden:   bool             // Whether the shape is a reusable definition, not painted directly.
-        deferred: DeferredKind     // The path list holds only the bounds until geometry is needed.
+        deferred: DeferredKind     // Selects the stored bounds and the contour builder.
 
         stroke: u64     // Index plus one of authored stroke properties.
 
@@ -138,20 +167,23 @@ struct Drawing
         height: f32     // View-box height, in user units.
     }
 
-    shapes:          Array'Shape                    // Parsed vector shapes, including hidden definitions.
-    imageSize:       Vector2                        // Absolute root dimensions in CSS pixels, independent of view-box units.
-    texts:           Array'SvgText                  // Parsed text blocks referenced by the paint-order list.
-    images:          Array'SvgImage                 // Raster placements referenced by the paint-order list.
-    rasterImages:    Array'Image                    // Decoded bitmaps shared by their placements.
-    items:           Array'DrawingItem              // Visible elements in paint order.
-    paintIndex:      Array'PaintIndex               // Owned spatial index, mutable when text is first measured.
-    paintBlocks:     Array'PaintBlock               // Bounds of consecutive runs of paint items.
-    strokes:         Array'ShapeStroke              // Paint and line style for stroked shapes.
-    dashValues:      Array'f32                      // Resolved dash lengths, shared where possible.
-    gradientBrushes: Array'SvgGradientBrush         // Resolved gradient geometry and tint.
-    gradientStops:   Array'Array'GradientStop       // Stops shared by placements of the same gradient.
-    scanFills:       Array'ScanFill                 // Raster caches for dense solid fills.
-    instances:       Array'DeferredInstance         // Affine placements materialized only when used.
+    shapes:          Array'Shape                  // Parsed vector shapes, including hidden definitions.
+    imageSize:       Vector2                      // Absolute root dimensions in CSS pixels, independent of view-box units.
+    texts:           Array'SvgText                // Parsed text blocks referenced by the paint-order list.
+    images:          Array'SvgImage               // Raster placements referenced by the paint-order list.
+    rasterImages:    Array'Image                  // Decoded bitmaps shared by their placements.
+    items:           Array'DrawingItem            // Visible elements in paint order.
+    paintIndex:      Array'PaintIndex             // Owned spatial index, mutable when text is first measured.
+    paintBlocks:     Array'PaintBlock             // Bounds of consecutive runs of paint items.
+    strokes:         Array'ShapeStroke            // Paint and line style for stroked shapes.
+    dashValues:      Array'f32                    // Resolved dash lengths, shared where possible.
+    gradientBrushes: Array'SvgGradientBrush       // Resolved gradient geometry and tint.
+    gradientStops:   Array'Array'GradientStop     // Stops shared by placements of the same gradient.
+    scanFills:       Array'ScanFill               // Raster caches for dense solid fills.
+    instances:       Array'DeferredInstance       // Affine placements materialized only when used.
+    primitives:      Array'DeferredGeometry       // Bounds of primitives without contour lists.
+    contours:        Array'Array'LinePathList     // Geometry constructed during parsing, in fixed-capacity chunks.
+    contourCount:    u64
     patterns:        HashTable'(u64, Pattern)       // Resolved repeating paint servers by their interned identifier.
     filters:         HashTable'(u64, SvgFilter)     // Resolved filter primitive chains by their interned identifier.
 }
@@ -2288,15 +2320,19 @@ private impl Parser
         {
             let cache = .drawing.scanFills.emplaceInitAddress()
             cache.measureGeometry(&list)
-            shape.geometryCache = .drawing.scanFills.count
+            shape.scanFill = .drawing.scanFills.count
         }
 
-        shape.pathList = #move list
         shape.hidden   = state.inDefs
+        shape.deferred = geometry.kind
         if geometry.kind != .None
         {
-            shape.deferred = geometry.kind
-            shape.pathList.setBounds(geometry.min, geometry.max)
+            .drawing.primitives.add(geometry)
+            shape.geometry = .drawing.primitives.count
+        }
+        else
+        {
+            .drawing.storeContours(shape, #move list)
         }
 
         shape.hasFill = state.hasFill
@@ -2948,9 +2984,10 @@ private impl Parser
             for i in count
             {
                 let shape = &.drawing.shapes[first + i]
-                if shape.deferred == .Ellipse or shape.deferred == .Instance do
-                    .drawing.materializeShape(shape)
-                for path in shape.pathList.paths where path.hasCurves() do
+                if shape.deferred == .Rect do
+                    continue
+                let paths = .drawing.materializeShape(shape)
+                for path in paths.paths where path.hasCurves() do
                     path.flatten(.Normal)
             }
 
@@ -2961,10 +2998,9 @@ private impl Parser
         for i in count
         {
             let shape = &.drawing.shapes[first + i]
-            if shape.deferred != .None do
-                .drawing.materializeShape(shape)
-            shape.pathList.flatten(.Normal)
-            for path in shape.pathList.paths
+            let paths = .drawing.materializeShape(shape)
+            paths.flatten(.Normal)
+            for path in paths.paths
             {
                 let pointCount = path.polygon.points.count
                 for j in 1 until pointCount do
@@ -4062,7 +4098,7 @@ private impl Parser
                     var outer = .clipGeometry(clip.first, clip.count)
                     inner.intersect(&outer)
                     var shape: Shape
-                    shape.pathList = #move inner
+                    .drawing.storeContours(shape, #move inner)
                     shape.hidden   = true
                     item.clipFirst = .drawing.shapes.count
                     .drawing.shapes.add(#move shape)
@@ -4086,7 +4122,7 @@ private impl Parser
         var result: #returntype
         for index in first until first + count
         {
-            var shape = .drawing.shapes[index].pathList
+            var shape = .drawing.pathsFor(&.drawing.shapes[index])[]
             shape.flatten(.High)
             shape.clean(.drawing.shapes[index].evenOdd ? .EvenOdd : .NonZero)
             for path in shape.paths do
@@ -4304,14 +4340,14 @@ private impl Parser
         if gradient.userSpace
         {
             // Preserve the decode-time curve tolerance for the first paint at draft quality.
-            for path in shape.pathList.paths where path.hasCurves() do
+            for path in .drawing.pathsFor(shape).paths where path.hasCurves() do
                 path.flattenPoints(.Normal, 1)
         }
         else
         {
             // A bounding-box gradient needs the flattened bounds. Polygon simplicity, winding
             // and tessellation are only needed when the contour is actually painted.
-            for path in shape.pathList.paths
+            for path in .drawing.pathsFor(shape).paths
             {
                 path.flattenPoints(.Normal, 1)
                 min = Vector2.min(min, path.minBounds)
@@ -4393,7 +4429,7 @@ private impl Parser
     // `symbol` viewport and a clip reference all reach here the same way. `hidden` withholds the
     // copies from the paint order, which is what a clip needs: its shapes exist as geometry and
     // are never drawn.
-    mtd deferInstance(source: u64, paths: const *LinePathList, transform: Math.Transform2, pending: *LinePathList)->u64
+    mtd deferInstance(source: u64, paths: const *LinePathList, transform: Math.Transform2)->u64
     {
         if paths.paths.isEmpty() do
             return 0
@@ -4423,8 +4459,7 @@ private impl Parser
         if not min.isFinite() or not max.isFinite() or not (max - min).isFinite() do
             return 0
 
-        pending.setBounds(min, max)
-        .drawing.instances.add(DeferredInstance{source, transform})
+        .drawing.instances.add(DeferredInstance{source, transform, min, max})
         return .drawing.instances.count
     }
 
@@ -4490,23 +4525,23 @@ private impl Parser
                     paintTransform = .storePaintTransform(&transform)
                 }
 
+                let paths = .drawing.pathsFor(src)
                 if deferPlacement and
                    src.hasFill and
                    not strokeIndex and
                    not fillPaintId and
                    not filterId
                 {
-                    instance = .deferInstance(first + i, &src.pathList, state.transform, &list)
+                    instance = .deferInstance(first + i, paths, state.transform)
                 }
 
                 if not instance do
-                    copyContours(&list, &src.pathList, state)
+                    copyContours(&list, paths, state)
             }
 
             let shapeIndex = .drawing.shapes.count
             with let shape = .drawing.shapes.emplaceInitAddress()
             {
-                .pathList       = #move list
                 .fillColor      = fillColor
                 .fillPaintId    = fillPaintId
                 .fillOpacity    = fillOpacity
@@ -4518,8 +4553,12 @@ private impl Parser
                 .filterId       = filterId
                 if instance
                 {
-                    .deferred      = .Instance
-                    .geometryCache = instance
+                    .deferred = .Instance
+                    .geometry = instance
+                }
+                else
+                {
+                    me.drawing.storeContours(shape, #move list)
                 }
             }
 
@@ -4581,31 +4620,62 @@ private const InkFringeMargin = 2.0'f32
 
 private impl Drawing
 {
-    mtd const materializeShape(shape: *Shape)
+    mtd const pathsFor(shape: const *Shape)->*LinePathList
     {
-        let min = shape.pathList.minBounds
-        let max = shape.pathList.maxBounds
-        switch #complete shape.deferred
+        let index = shape.geometry - 1
+        return &.contours[index / ContourChunkSize][index % ContourChunkSize]
+    }
+
+    mtd storeContours(shape: *Shape, paths: #move LinePathList)
+    {
+        if .contourCount % ContourChunkSize == 0 do
+            .contours.emplaceInitAddress().reserve(ContourChunkSize)
+        .contours.backPtr().add(#move paths)
+        .contourCount  += 1
+        shape.geometry = .contourCount
+    }
+
+    mtd const materializeShape(shape: const *Shape)->*LinePathList
+    {
+        if shape.deferred == .None do
+            return .pathsFor(shape)
+
+        if shape.deferred == .Instance
         {
-        case .None:
-            return
+            let instance = &.instances[shape.geometry - 1]
+            if not instance.contours.paths
+            {
+                let paths = Memory.new'LinePathList()
+                var state = GroupState{transform: instance.transform}
+                copyContours(paths, .pathsFor(&.shapes[instance.source]), &state)
+                instance.contours.paths = paths
+            }
 
-        case .Rect:
-            shape.pathList.newPath().setRectCornersRaw(min.x, min.y, max.x, max.y)
-
-        case .Ellipse:
-            let radii  = (max - min) * 0.5
-            let center = min + radii
-            shape.pathList.newPath().setEllipseRaw(center.x, center.y, radii.x, radii.y)
-
-        case .Instance:
-            let instance = &.instances[shape.geometryCache - 1]
-            var state    = GroupState{transform: instance.transform}
-            copyContours(&shape.pathList, &.shapes[instance.source].pathList, &state)
-            shape.geometryCache = 0
+            return instance.contours.paths
         }
 
-        shape.deferred = .None
+        let primitive = &.primitives[shape.geometry - 1]
+        if not primitive.contours.paths
+        {
+            let paths = Memory.new'LinePathList()
+            let min   = primitive.min
+            let max   = primitive.max
+            let path  = paths.newPath()
+            if shape.deferred == .Rect
+            {
+                path.setRectCornersRaw(min.x, min.y, max.x, max.y)
+            }
+            else
+            {
+                let radii  = (max - min) * 0.5
+                let center = min + radii
+                path.setEllipseRaw(center.x, center.y, radii.x, radii.y)
+            }
+
+            primitive.contours.paths = paths
+        }
+
+        return primitive.contours.paths
     }
 
     mtd const strokeFor(shape: const *Shape)->*ShapeStroke?
@@ -4619,14 +4689,27 @@ private impl Drawing
     {
         if shape.deferred != .None
         {
-            let min  = shape.pathList.minBounds
-            let size = shape.pathList.maxBounds - min
+            var min, max: Vector2
+            if shape.deferred == .Instance
+            {
+                let instance = &.instances[shape.geometry - 1]
+                min = instance.min
+                max = instance.max
+            }
+            else
+            {
+                let primitive = &.primitives[shape.geometry - 1]
+                min = primitive.min
+                max = primitive.max
+            }
+
+            let size = max - min
             return Rectangle{min.x, min.y, size.x, size.y}
         }
 
-        if shape.geometryCache do
-            return .scanFills[shape.geometryCache - 1].bounds
-        var result: #returntype = shape.pathList.controlBounds()
+        if shape.scanFill do
+            return .scanFills[shape.scanFill - 1].bounds
+        var result: #returntype = .pathsFor(shape).controlBounds()
         let stroke = .strokeFor(shape)
         if stroke and stroke.enabled
         {
@@ -4931,7 +5014,7 @@ impl Drawing
         var result: #returntype
         for i in count
         {
-            let bounds = .shapes[first + i].pathList.controlBounds()
+            let bounds = .pathsFor(&.shapes[first + i]).controlBounds()
             if not i do
                 result = bounds
             else do
@@ -4976,16 +5059,15 @@ impl Drawing
 
     private mtd const paintShapeCore(painter: *Painter, shape: *Shape, paintFill = true)
     {
+        let paths = .materializeShape(shape)
         if paintFill and shape.hasFill
         {
-            if shape.deferred != .None do
-                .materializeShape(shape)
-            if shape.geometryCache do
-                .scanFills[shape.geometryCache - 1].paint(painter, &shape.pathList, shape.fillColor, shape.evenOdd)
+            if shape.scanFill do
+                .scanFills[shape.scanFill - 1].paint(painter, paths, shape.fillColor, shape.evenOdd)
             elif shape.fillGradient do
-                painter.fillPath(&shape.pathList, .gradientBrushAt(shape.fillGradient)[])
+                painter.fillPath(paths, .gradientBrushAt(shape.fillGradient)[])
             else do
-                painter.fillPath(&shape.pathList, shape.fillColor)
+                painter.fillPath(paths, shape.fillColor)
         }
 
         let stroke = .strokeFor(shape)
@@ -5016,16 +5098,16 @@ impl Drawing
                 pen.dashStyle = .Pattern
             }
 
-            painter.drawPath(&shape.pathList, pen, .Separate)
+            painter.drawPath(paths, pen, .Separate)
         }
     }
 
     private mtd const paintPattern(painter: *Painter, shape: *Shape, pattern: const *Pattern)
     {
-        shape.pathList.flatten(.Normal)
+        .pathsFor(shape).flatten(.Normal)
         var min = Vector2.Max
         var max = Vector2.Min
-        for path in shape.pathList.paths
+        for path in .pathsFor(shape).paths
         {
             min = Vector2.min(min, path.minBounds)
             max = Vector2.max(max, path.maxBounds)
@@ -5078,7 +5160,7 @@ impl Drawing
         let texture = painter.renderer().addImage(tileImage)
         var brush   = Brush.createTiled(texture)
 
-        painter.fillPath(&shape.pathList, brush)
+        painter.fillPath(.pathsFor(shape), brush)
         painter.releaseTexture(texture)
     }
 
@@ -5398,7 +5480,7 @@ impl Drawing
         {
             painter.startClippingRegion(.Clear)
             for i in outCount do
-                painter.fillPath(&.shapes[outFirst + i].pathList, white)
+                painter.fillPath(.pathsFor(&.shapes[outFirst + i]), white)
             painter.endClippingRegion()
         }
 
@@ -5410,7 +5492,7 @@ impl Drawing
 
         painter.startClippingRegion(.Set)
         for i in inCount do
-            painter.fillPath(&.shapes[inFirst + i].pathList, white)
+            painter.fillPath(.pathsFor(&.shapes[inFirst + i]), white)
         painter.endClippingRegion()
     }
 

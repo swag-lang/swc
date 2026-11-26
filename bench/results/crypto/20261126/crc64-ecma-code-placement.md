@@ -36,3 +36,5 @@ The measurements cover the complete linked executables and correlate the
 loop position with the observed cost. ISA-L measured around 52 GB/s.
 
 [Compiler crossover](crc64-ecma-crossover.json) · [Placement timings](crc64-ecma-placements.json) · [ELF layout evidence](crc64-ecma-placements-layout.json) · [Aligned checkpoint replay](crc64-ecma-checkpoint-offset0.json) · [Offset 31 checkpoint replay](crc64-ecma-checkpoint-offset31.json)
+
+[Controlled placement replay with identical bytes](crc64-ecma-placement/README.md).

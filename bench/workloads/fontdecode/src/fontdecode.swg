@@ -4,7 +4,8 @@ using Core, TrueType
 {
     let args       = Env.arguments()
     let fromMemory = args.count == 7 and args[6] == "memory"
-    Swag.require(args.count == 6 or fromMemory)
+    let fromSource = args.count == 7 and args[6] == "source"
+    Swag.require(args.count == 6 or fromMemory or fromSource)
     let path      = args[1]
     let faceIndex = expect StrConv.toU32(args[2])
     let character = cast(rune, expect StrConv.toU32(args[3]))
@@ -12,9 +13,12 @@ using Core, TrueType
     let samples   = expect StrConv.toU32(args[5])
     Swag.require(samples > 0)
 
-    var input: Array'u8
+    var input:  Array'u8
+    var source: FontSource
     if fromMemory do
         input = expect File.readAllBytes(path)
+    elif fromSource do
+        source = expect FontSource.loadFile(path)
 
     const Warmups = 5
     var openTicks, renderTicks:  u64
@@ -29,6 +33,8 @@ using Core, TrueType
         {
             if fromMemory do
                 loaded = try Face.loadAt(input.toSlice(), faceIndex)
+            elif fromSource do
+                loaded = try source.loadFace(faceIndex)
             else do
                 loaded = try Face.loadFile(path, faceIndex)
         }

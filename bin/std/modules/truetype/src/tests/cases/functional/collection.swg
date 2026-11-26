@@ -64,6 +64,88 @@ using Swag, Core
     Swag.require(bold.glyphIndex('A') > 0)
 }
 
+// Copies and loaded faces keep the snapshot alive through the last owner.
+#test
+{
+    var bytes = buildFontCollection(["arial.ttf", "arialbd.ttf"])
+    var allocator: Swag.Allocator
+    allocator.setup()
+    defer allocator.releaseAll()
+    let allocationView: IAllocator = &allocator
+    let baseline = allocator.stats().countAlloc
+
+    var source   = FontSource.copy(bytes.toSlice(), allocationView)
+    var retained = source
+    let regular  = expect source.loadFace()
+    source = {}
+    bytes.fill(0)
+
+    var badIndex: Swag.Error
+    discard catch retained.loadFace(2) as badIndex
+    Swag.require(badIndex.value() != null)
+    let bold          = expect retained.loadFace(1)
+    let firstBacking  = cast(*FaceImpl, cast(*void, regular))
+    let secondBacking = cast(*FaceImpl, cast(*void, bold))
+    Swag.require(firstBacking.fontBytes().buffer == retained.bytes().buffer)
+    Swag.require(secondBacking.fontBytes().buffer == retained.bytes().buffer)
+    retained = {}
+    Swag.require(allocator.stats().countAlloc > baseline)
+
+    expect regular.setPixelSize(0, 13)
+    expect bold.setPixelSize(0, 21)
+    expect regular.loadChar('A', .Render)
+    expect bold.loadChar('A', .Render)
+    Swag.require(not regular.isBold() and bold.isBold())
+    Swag.require(regular.glyph.bitmap.rows > 0 and bold.glyph.bitmap.rows > regular.glyph.bitmap.rows)
+
+    regular.destroy()
+    expect bold.loadChar('B', .Render)
+    Swag.require(bold.glyph.bitmap.rows > 0)
+    bold.destroy()
+    Swag.require(allocator.stats().countAlloc == baseline)
+
+    var empty:    FontSource
+    var noSource: Swag.Error
+    discard catch empty.loadFace() as noSource
+    Swag.require(empty.bytes().count == 0 and noSource.value() != null)
+}
+
+// Separate workers can retain a common source and render independently.
+#test
+{
+    let bytes  = buildFontCollection(["arial.ttf", "arialbd.ttf"])
+    let source = FontSource.copy(bytes.toSlice())
+    var ready:   u32
+    var tasks:   [2] Swag.Task'bool
+    var workers: [2] Swag.Executor
+    for &task, index in tasks
+    {
+        workers[index].start()
+        task.submit(func|source = &source, ready = &ready, index|()->bool
+        {
+            discard Atomic.add(ready, 1)
+            while Atomic.get(ready) != 2 do
+                Threading.Thread.yield()
+
+            for 4
+            {
+                let face = expect source.loadFace(cast(u32, index))
+                defer face.destroy()
+                expect face.setPixelSize(0, 20)
+                expect face.loadChar('A', .Render)
+                if face.isBold() != (index == 1) or not face.glyph.bitmap.rows do
+                    return false
+            }
+
+            return true
+        },
+                    executor: &workers[index])
+    }
+
+    for &task in tasks do
+        Swag.require(expect task.take())
+}
+
 // A large collection member survives changes to either the file or the caller's buffer.
 #test
 {
@@ -86,11 +168,15 @@ using Swag, Core
     let memoryFace = expect Face.loadAt(bytes.toSlice(), 1)
     defer memoryFace.destroy()
 
+    var source = expect FontSource.loadFile(path)
     discard expect File.writeAllBytes(path, BrokenFontBytes)
     bytes.fill(0)
+    let sharedFace = expect source.loadFace(1)
+    defer sharedFace.destroy()
+    source = {}
     expect expected.setPixelSize(0, 18)
     expect expected.loadChar('A', .Render)
-    for face in [fileFace, memoryFace]
+    for face in [fileFace, memoryFace, sharedFace]
     {
         Swag.require(face.isBold() and face.familyName == expected.familyName)
         Swag.require(face.glyphIndex('A') == expected.glyphIndex('A'))

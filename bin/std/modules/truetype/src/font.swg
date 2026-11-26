@@ -164,6 +164,7 @@ struct FaceImpl
     late allocationAllocator: IAllocator
 
     fontData:               Array'u8
+    fontSource:             FontSource
     tables:                 Array'TableRecord
     charstringAdvances:     Array'u16
     verticalGlyphMetrics:   Array'GlyphVerticalMetrics
@@ -251,6 +252,13 @@ impl FaceImpl
         Swag.drop(&.type1)
         Swag.init(&.type1, 1)
         .fontData.free()
+    }
+
+    mtd const fontBytes()->const [..] u8
+    {
+        if .fontData.count do
+            return .fontData.toSlice()
+        return .fontSource.bytes()
     }
 
     // The validated hmtx table stores the first advances explicitly. All short metrics reuse
@@ -367,5 +375,5 @@ func getTableSlice(faceData: *FaceImpl, tag: u32, missingCode: u8)->const [..] u
     if not rec do
         try fault(missingCode)
     let r = unwrap rec
-    return try getSlice(faceData.fontData.toSlice(), r.offset, r.length)
+    return try getSlice(faceData.fontBytes(), r.offset, r.length)
 }

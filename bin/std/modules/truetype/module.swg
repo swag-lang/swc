@@ -1,8 +1,9 @@
 /*
 TrueType reads, measures, transforms, and rasterizes outline fonts from files or memory.
 
-A [[TrueType.Face]] owns a private copy of the font bytes and exposes one
-reusable [[TrueType.GlyphSlot]]. Select a pixel size, load a character or glyph,
+A [[TrueType.Face]] retains its font bytes and exposes one reusable [[TrueType.GlyphSlot]].
+Use [[TrueType.FontSource]] to share bytes between faces of one font or collection.
+Select a pixel size, load a character or glyph,
 then consume its outline, metrics, or bitmap before loading the next glyph.
 Coordinates and advances in a loaded slot use 26.6 fixed-point pixels: divide
 them by 64 to obtain ordinary pixel values.

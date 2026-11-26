@@ -192,7 +192,7 @@ func parseGpos(faceData: *FaceImpl) fail
         return
 
     let r     = rec
-    let table = try getSlice(faceData.fontData.toSlice(), r.offset, r.length)
+    let table = try getSlice(faceData.fontBytes(), r.offset, r.length)
     if table.count < 10 do
         return
 

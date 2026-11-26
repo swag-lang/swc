@@ -15,7 +15,7 @@ public struct TypeFace
     {
         fullName:     String         // Cache key or source filename, owned so a dynamic key cannot dangle.
         late allocationAllocator: IAllocator     // Allocator that owns this cached value.
-        late face:    *Face          // Owned TrueType face and its copied font bytes.
+        late face:    *Face          // Owned TrueType face retaining its font bytes.
         faceLoaded:   bool           // Whether `face` can be destroyed during cleanup.
         glyphMutex:   Swag.Mutex     // Protects the shared size, outline and borrowed glyph bitmap.
         forceBoldDiv: u32 = 11       // Em-size divisor used for synthetic bold strength.
@@ -52,6 +52,35 @@ var g_HashTypeFace: HashTable'(TypeFaceCacheKey, *TypeFace)
 impl TypeFace
 {
     var lock: Swag.Mutex
+
+    func createCached(fullName: string, faceIndex: u32, bytes: const [..] u8, source: const *FontSource? = null)->*TypeFace fail
+    {
+        Sync.scopedLock(&lock)
+
+        let key = TypeFaceCacheKey{String.from(fullName), faceIndex}
+        if let here = g_HashTypeFace.tryFind(key) do
+            return here.value
+
+        let allocator = unwrap (Swag.getContext().defaultAllocator orelse Swag.getContext().allocator)
+        let tf        = Memory.new'TypeFace(allocator)
+        tf.allocationAllocator = allocator
+        defer #fail Memory.delete(tf, allocator)
+        tf.fullName = fullName
+
+        if source
+        {
+            tf.face = try source.loadFace(faceIndex, allocator)
+        }
+        else
+        {
+            tf.face = faceIndex == 0 ? try Face.loadSubset(bytes, fullName, allocator) : try Face.loadAt(bytes, faceIndex, allocator)
+        }
+
+        tf.faceLoaded = true
+
+        g_HashTypeFace.add(key, tf)
+        return tf
+    }
 
     func addOutlineToPathList(pathList: *LinePathList, commands: const [..] OutlineCommand)
     {
@@ -111,26 +140,17 @@ public impl TypeFace
     // Bytes are copied on the first call. Index zero follows [[Pixel.TypeFace.create]], including
     // its rendering-subset fallback name. Other indices require a collection; invalid indices
     // fail without adding a cache entry. The returned pointer belongs to Pixel until shutdown.
-    func createAt(fullName: string, bytes: const [..] u8, faceIndex: u32)->*TypeFace fail
-    {
-        Sync.scopedLock(&lock)
+    func createAt(fullName: string, bytes: const [..] u8, faceIndex: u32)->*TypeFace fail =>
+        try createCached(fullName, faceIndex, bytes)
 
-        let key = TypeFaceCacheKey{String.from(fullName), faceIndex}
-        if let here = g_HashTypeFace.tryFind(key) do
-            return here.value
-
-        let allocator = unwrap (Swag.getContext().defaultAllocator orelse Swag.getContext().allocator)
-        let tf        = Memory.new'TypeFace(allocator)
-        tf.allocationAllocator = allocator
-        defer #fail Memory.delete(tf, allocator)
-        tf.fullName = fullName
-
-        tf.face       = faceIndex == 0 ? try Face.loadSubset(bytes, fullName, allocator) : try Face.loadAt(bytes, faceIndex, allocator)
-        tf.faceLoaded = true
-
-        g_HashTypeFace.add(key, tf)
-        return tf
-    }
+    // Returns the cached typeface for a zero-based face of an immutable font source.
+    //
+    // The first successful call for (`fullName`, `faceIndex`) loads a complete face through
+    // [[TrueType.FontSource.loadFace]]. The face retains the source bytes until Pixel shuts down,
+    // so the source allocator must live that long. Later calls with the same key reuse the face.
+    // Invalid input fails without creating a cache entry.
+    func createFromSource(fullName: string, source: const *FontSource, faceIndex: u32 = 0)->*TypeFace fail =>
+        try createCached(fullName, faceIndex, "", source)
 
     // Reports whether [[Pixel.TypeFace.load]] has a font to load for `fullName`.
     //

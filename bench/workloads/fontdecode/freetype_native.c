@@ -16,6 +16,7 @@ enum source_kind
 {
     FILE_PATH,
     OWNED_SNAPSHOT,
+    MEMORY_BUFFER,
     COUNTED_STREAM
 };
 
@@ -75,10 +76,12 @@ int main(int argc, char **argv)
     enum source_kind source = FILE_PATH;
     if (strcmp(argv[1], "snapshot") == 0)
         source = OWNED_SNAPSHOT;
+    else if (strcmp(argv[1], "memory") == 0)
+        source = MEMORY_BUFFER;
     else if (strcmp(argv[1], "count") == 0)
         source = COUNTED_STREAM;
     else
-        require(strcmp(argv[1], "file") == 0, "expected file, snapshot or count mode");
+        require(strcmp(argv[1], "file") == 0, "expected file, snapshot, memory or count mode");
 
     const char *path = argv[2];
     const long index = strtol(argv[3], NULL, 0);
@@ -122,15 +125,19 @@ int main(int argc, char **argv)
         {
             require(FT_New_Face(library, path, index, &face) == 0, "FT_New_Face");
         }
-        else if (source == OWNED_SNAPSHOT)
+        else if (source == COUNTED_STREAM)
         {
-            require(pread(fd, buffer, length, 0) == (ssize_t)length, "read font snapshot");
-            input_done = time_ns();
-            require(FT_New_Memory_Face(library, buffer, length, index, &face) == 0, "FT_New_Memory_Face");
+            require(FT_Open_Face(library, &args, index, &face) == 0, "FT_Open_Face");
         }
         else
         {
-            require(FT_Open_Face(library, &args, index, &face) == 0, "FT_Open_Face");
+            if (source == OWNED_SNAPSHOT)
+            {
+                require(pread(fd, buffer, length, 0) == (ssize_t)length, "read font snapshot");
+                input_done = time_ns();
+            }
+
+            require(FT_New_Memory_Face(library, buffer, length, index, &face) == 0, "FT_New_Memory_Face");
         }
 
         require(FT_Request_Size(face, &size) == 0, "FT_Request_Size");

@@ -203,3 +203,33 @@ table at open, including dictionary indices and the final glyph sentinel.
 | `NotoSansCJK-Regular.ttc` | 7 | 1525.74 | 208.98 → 163.95 | 35.23 → 0.48 |
 | `NotoSansCJKjp-Regular.otf` | 0 | 1581.79 | 226.72 → 176.34 | 37.25 → 0.47 |
 | `NotoSerifCJKjp-Regular.otf` | 0 | 2868.31 | 266.73 → 207.34 | 45.67 → 0.77 |
+
+## Shared font source
+
+An immutable `FontSource` snapshots a file once. Each loaded face retains the source,
+and its size, glyph slot, and rendering workspace remain independent. Scope shares
+one source between its collection probe, specimen view, and Pixel typeface cache.
+[FontSource implementation](../../../bin/std/modules/truetype/src/fontsource.swg)
+
+Both memory inputs are available before timing starts. The earlier Swag path calls
+`Face.loadAt` on the byte buffer, the shared path opens a new face from `FontSource`,
+and FreeType 2.14.3 calls `FT_New_Memory_Face`. All variants set 20 px and render one
+glyph. The table gives medians of 11 interleaved batches of 21 fresh faces with five
+warmups, pinned to a single Intel Xeon Platinum 8573C CPU. The regular Swag file loads
+are in the raw samples as a control. The baseline revision is `7447dae0a7`.
+[Raw samples](font-decode-linux-source.json) · [Probe modes](../../workloads/fontdecode/README.md#shared-source-comparison)
+
+| Fixture | Face | Swag copying (µs) | Swag shared (µs) | FreeType memory (µs) |
+| --- | ---: | ---: | ---: | ---: |
+| `NotoSansCJK-Regular.ttc` | 0 | 1684.14 | 140.28 | 709.42 |
+| `NotoSansCJK-Regular.ttc` | 1 | 1668.06 | 132.61 | 708.46 |
+| `NotoSansCJK-Regular.ttc` | 2 | 1612.95 | 123.34 | 710.13 |
+| `NotoSansCJK-Regular.ttc` | 7 | 1588.57 | 120.73 | 706.37 |
+| `NotoSansCJKjp-Regular.otf` | 0 | 1553.45 | 125.22 | 871.36 |
+| `NotoSerifCJKjp-Regular.otf` | 0 | 2279.41 | 145.56 | 792.12 |
+
+A separate collection pass includes reading the file, counting all ten TTC members,
+opening each, setting 20 px, rendering U+65E5, and destroying each face. It takes
+25.63 ms with per-face copies and 12.07 ms with a shared source. Each median uses
+11 interleaved batches of 11 complete passes after five warmups. The two Swag modes
+match glyph indices, advances, bitmap dimensions, and CRC-64 in both workloads.

@@ -153,12 +153,12 @@ private func saveFaceSelection(path, identity: string, memberIndex: u32) fail
     try File.move(storePath, temporary)
 }
 
-// What loading a font file produces: its bytes, the face and typeface built on them, the details
+// What loading a font file produces: its source, the face and typeface built on it, the details
 // line, the pages of the character map, and the facts the panel reads about the face.
 #[Swag.NoCopy]
 struct ViewerContent
 {
-    bytes:             Array'u8
+    source:            FontSource
     face:              *Face?
     typeFace:          *TypeFace?
     faceCount:         u32
@@ -187,10 +187,14 @@ impl ViewerContent
 private func loadViewerContent(fileName: string)->ViewerContent fail
 {
     var result: #returntype
-    result.bytes = try File.readAllBytes(fileName)
-    let collectionCount = try Face.countFaces(result.bytes.toSlice())
+
+    // The cached typeface can retain this snapshot after the viewer closes.
+    let allocator = Swag.getContext().defaultAllocator orelse Swag.getContext().allocator
+    result.source = try FontSource.loadFile(fileName, allocator)
+    let bytes           = result.source.bytes()
+    let collectionCount = try Face.countFaces(bytes)
     let fileInfo        = try File.info(fileName)
-    result.selectionIdentity = faceSelectionIdentity(fileInfo.fullName, result.bytes.toSlice())
+    result.selectionIdentity = faceSelectionIdentity(fileInfo.fullName, bytes)
     let rememberedIndex = selectedFaceMember(fileName, result.selectionIdentity)
 
     // A broken collection member cannot invalidate its neighbors. Probe every original index
@@ -199,7 +203,7 @@ private func loadViewerContent(fileName: string)->ViewerContent fail
     {
         var candidate:   *Face?
         var loadOutcome: Swag.Error
-        catch { candidate = try Face.loadAt(result.bytes.toSlice(), memberIndex) } as loadOutcome
+        catch { candidate = try result.source.loadFace(memberIndex) } as loadOutcome
         if loadOutcome.value() != null do
             continue
 
@@ -207,7 +211,7 @@ private func loadViewerContent(fileName: string)->ViewerContent fail
         var name: String
         catch
         {
-            let metadata = try Face.metadataAt(result.bytes.toSlice(), memberIndex)
+            let metadata = try Face.metadataAt(bytes, memberIndex)
             let family   = metadata.typographicFamilyName.isEmpty() ? metadata.familyName.toString() : metadata.typographicFamilyName.toString()
             let style    = metadata.typographicStyleName.isEmpty() ? metadata.styleName.toString() : metadata.typographicStyleName.toString()
             name = style.count == 0 ? family : Format.toString("% · %", family, style)
@@ -239,8 +243,8 @@ private func loadViewerContent(fileName: string)->ViewerContent fail
         fail InvalidFormatError{Errors.mkString(texts().ui_NoValidFaces)}
 
     let selectedMember = result.faceIndices[result.selectedFaceIndex]
-    result.cacheKey = Format.toString("%|scope-font|%{X08}", fileName, Hash.Crc32.compute(result.bytes.toSlice()))
-    result.typeFace = try TypeFace.createAt(result.cacheKey, result.bytes.toSlice(), selectedMember)
+    result.cacheKey = Format.toString("%|scope-font|%{X08}", fileName, Hash.Crc32.compute(bytes))
+    result.typeFace = try TypeFace.createFromSource(result.cacheKey, &result.source, selectedMember)
 
     let unreadable = collectionCount - result.faceCount
     if unreadable do
@@ -283,7 +287,7 @@ private func loadViewerContent(fileName: string)->ViewerContent fail
 
     catch
     {
-        let metadata = try Face.metadataAt(result.bytes.toSlice(), selectedMember)
+        let metadata = try Face.metadataAt(bytes, selectedMember)
         result.facts.weight      = metadata.weight
         result.facts.embedding   = metadata.embedding
         result.facts.hasMetadata = true
@@ -367,11 +371,11 @@ struct Panel
 
     late
     {
-        commands:       *Wnd
-        sampleEdit:     *EditBox
-        pageLabel:      *IconButton
-        faceButton:     *PushButton
-        document:       *DocumentView
+        commands:   *Wnd
+        sampleEdit: *EditBox
+        pageLabel:  *IconButton
+        faceButton: *PushButton
+        document:   *DocumentView
     }
 
     details:           String
@@ -488,9 +492,10 @@ private impl Panel
         if .steps.showSteps(.document.pageStarts.count > 1)
         {
             .commands.preferredSize.x = CommandWidth - (.counter.isLocallyVisible() ? 0 : Viewer.pageControlWidth(.themeMetrics()))
-            .sampleEdit.margin.x = .counter.isLocallyVisible() or .faceButton.isLocallyVisible() ? 16 : 0
+            .sampleEdit.margin.x      = .counter.isLocallyVisible() or .faceButton.isLocallyVisible() ? 16 : 0
             .services.chromeChanged(me)
         }
+
         .steps.setPageRange(.document.pageIndex, .document.pageStarts.count)
         .pageLabel.toolTip = Format.toString("% · U+%{X04}–U+%{X04}", appStrings().ui_GoToPage, .document.pageStart, .document.pageEnd)
     }
@@ -563,11 +568,11 @@ private impl Panel
             return
 
         let memberIndex = .faceIndices[index]
-        var face        = try Face.loadAt(.document.fontBytes.toSlice(), memberIndex)
+        var face        = try .document.fontSource.loadFace(memberIndex)
         var ownsFace    = true
         defer if ownsFace do
             face.destroy()
-        let typeFace = try TypeFace.createAt(.cacheKey, .document.fontBytes.toSlice(), memberIndex)
+        let typeFace = try TypeFace.createFromSource(.cacheKey, &.document.fontSource, memberIndex)
 
         var facts: FaceFacts
         for &count, block in facts.coverage
@@ -578,7 +583,7 @@ private impl Panel
 
         catch
         {
-            let metadata = try Face.metadataAt(.document.fontBytes.toSlice(), memberIndex)
+            let metadata = try Face.metadataAt(.document.fontSource.bytes(), memberIndex)
             facts.weight      = metadata.weight
             facts.embedding   = metadata.embedding
             facts.hasMetadata = true
@@ -789,22 +794,22 @@ private impl IWnd for Panel
             return
         }
 
-        .document                 = DocumentView.create(me, unwrap content.face, unwrap content.typeFace, #move content.bytes, .sampleEdit)
+        .document = DocumentView.create(me, unwrap content.face, unwrap content.typeFace, #move content.source, .sampleEdit)
         .document.pageStarts      = #move content.pageStarts
         .document.glyphCharacters = #move content.glyphCharacters
         .document.glyphNames      = #move content.glyphNames
         .document.prepareSpecimen()
         .updateSample()
-        .document.sigMarked       += func|view = me|(_) { view.services.informationChanged(view) }
-        content.face              = null
-        .details                  = #move content.details
-        .facts                    = content.facts
-        .faceCount                = content.faceCount
-        .faceNames                = #move content.faceNames
-        .faceIndices              = #move content.faceIndices
-        .cacheKey                 = #move content.cacheKey
-        .selectionIdentity        = #move content.selectionIdentity
-        .faceIndex                = content.selectedFaceIndex
+        .document.sigMarked += func|view = me|(_) { view.services.informationChanged(view) }
+        content.face        = null
+        .details            = #move content.details
+        .facts              = content.facts
+        .faceCount          = content.faceCount
+        .faceNames          = #move content.faceNames
+        .faceIndices        = #move content.faceIndices
+        .cacheKey           = #move content.cacheKey
+        .selectionIdentity  = #move content.selectionIdentity
+        .faceIndex          = content.selectedFaceIndex
         .faceButton.enable(.faceCount > 1)
         .faceButton.show(.faceCount > 1)
         .faceButton.setText(.faceNames[.faceIndex])
@@ -880,8 +885,8 @@ impl Panel
                 view.document.nextPage()
             view.refreshPageCommands()
         }
-        .pageLabel = .steps.create(.commands, "scope.font.page", .Page, turn,
-                                   func|view = me|(index) { view.jumpToBlock(view.document.pageStarts[index]) })
+
+        .pageLabel = .steps.create(.commands, "scope.font.page", .Page, turn, func|view = me|(index) { view.jumpToBlock(view.document.pageStarts[index]) })
         .previousButton.enable(false)
         .nextButton.enable(false)
         .pageLabel.enable(false)

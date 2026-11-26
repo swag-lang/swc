@@ -96,25 +96,25 @@ struct DocumentCell
 struct DocumentLayout
 {
     markSize, nameSize: u32
-    wide:         bool        // Whether the specimen stands in two columns beside the name.
-    aaTop:        f32         // Top of the large "Aa".
-    tabsTop:      f32         // Top of the style tabs.
-    glyphsTop:    f32         // Top of the glyph-row caption.
-    rowTop:       f32         // Top of the row of glyphs.
-    glyphNameTop: f32         // Top of the line naming the chosen glyph.
-    sampleLeft:   f32         // Left edge of the specimen lines.
-    sampleWidth:  f32         // Width the specimen lines may take.
-    nameTop:      f32         // Top of the family name.
-    metricsTop:   f32         // Top of the style, version, glyph count and units-per-em line.
-    noticeTop:    f32         // Top of the designer and copyright line, when the face names either.
-    sampleTops:   [SampleCount] f32     // Top of each specimen line, one per entry of `SampleSizes`.
-    mapTop:       f32         // Top of the character-map caption.
-    gridTop:      f32         // Top of the first row of cells.
-    gridLeft:     f32         // Left edge of the first column.
-    cellHeight:   f32         // Height one cell needs for its glyph and its code label.
-    columns:      u32 = 1     // Cells one row holds.
-    rows:         u64         // Rows the loaded page fills.
-    height:       f32         // Total content height, which is what the scrollbar is given.
+    wide:               bool        // Whether the specimen stands in two columns beside the name.
+    aaTop:              f32         // Top of the large "Aa".
+    tabsTop:            f32         // Top of the style tabs.
+    glyphsTop:          f32         // Top of the glyph-row caption.
+    rowTop:             f32         // Top of the row of glyphs.
+    glyphNameTop:       f32         // Top of the line naming the chosen glyph.
+    sampleLeft:         f32         // Left edge of the specimen lines.
+    sampleWidth:        f32         // Width the specimen lines may take.
+    nameTop:            f32         // Top of the family name.
+    metricsTop:         f32         // Top of the style, version, glyph count and units-per-em line.
+    noticeTop:          f32         // Top of the designer and copyright line, when the face names either.
+    sampleTops:         [SampleCount] f32     // Top of each specimen line, one per entry of `SampleSizes`.
+    mapTop:             f32         // Top of the character-map caption.
+    gridTop:            f32         // Top of the first row of cells.
+    gridLeft:           f32         // Left edge of the first column.
+    cellHeight:         f32         // Height one cell needs for its glyph and its code label.
+    columns:            u32 = 1     // Cells one row holds.
+    rows:               u64         // Rows the loaded page fills.
+    height:             f32         // Total content height, which is what the scrollbar is given.
 }
 
 // Scrollable specimen and Unicode character map drawn with the inspected face.
@@ -138,8 +138,8 @@ struct DocumentView
         fontCode:   *Font
     }
 
-    fontBytes: Array'u8
-    face:      *Face?
+    fontSource: FontSource
+    face:       *Face?
 
     specimenGlyphs:  Array'rune
     specimenMark:    String
@@ -234,6 +234,7 @@ private impl DocumentView
                     break
             }
         }
+
         if .specimenGlyphs.isEmpty()
         {
             for glyph in .glyphCharacters where glyph > 0x20 and not Unicode.isSpace(glyph)
@@ -245,13 +246,16 @@ private impl DocumentView
         }
 
         .specimenMark.clear()
-        if latinMark do
+        if latinMark
+        {
             .specimenMark = "Aa"
+        }
         else
         {
             for glyph in .specimenGlyphs.toSlice()[until Math.min(.specimenGlyphs.count, 2)] do
                 .specimenMark.append(glyph)
         }
+
         .refreshLayout()
     }
 
@@ -267,6 +271,7 @@ private impl DocumentView
                     mapped += 1
             }
         }
+
         if mapped * 2 >= letters or .specimenGlyphs.isEmpty() do
             return String.from(suggested)
 
@@ -496,8 +501,8 @@ impl IWnd for DocumentView
 impl DocumentView
 {
     // Creates the scrollable specimen of `face` under `parent`, taking ownership of `face` and of
-    // the bytes it was loaded from; `sampleEdit` supplies the specimen text.
-    func create(parent: *Wnd, face: *Face, typeFace: *TypeFace, fontBytes: #move Array'u8, sampleEdit: *EditBox)->*DocumentView
+    // the source it was loaded from; `sampleEdit` supplies the specimen text.
+    func create(parent: *Wnd, face: *Face, typeFace: *TypeFace, fontSource: #move FontSource, sampleEdit: *EditBox)->*DocumentView
     {
         with let scroll = Wnd.create'ScrollWnd(parent, "scope.font.scroll", {})
         {
@@ -508,7 +513,7 @@ impl DocumentView
         with let result = scroll.createView'DocumentView()
         {
             .scroll          = scroll
-            .fontBytes       = #move fontBytes
+            .fontSource      = #move fontSource
             .face            = face
             .typeFace        = typeFace
             .sampleEdit      = sampleEdit
@@ -581,12 +586,12 @@ impl DocumentView
         // The left column: "Aa", the name, the identity, the style, the row of glyphs.
         // The "Aa" stands on its own ink: the room a face keeps above its capitals is left out.
         let available = Math.max(1, Math.min(LeftColumn, client.width - 2 * ContentInset))
-        let mark = .sampleFont(SpecimenSize)
+        let mark      = .sampleFont(SpecimenSize)
         let markWidth = Math.max(1, Painter.measureString(.specimenMark, mark).width)
         let nameWidth = Math.max(1, Painter.measureString(.face!.familyName, .theme().createDefaultFont(FamilySize, .Bold)).width)
-        let top = Math.min(ContentInset, Math.floor(client.height * 0.1))
-        let markRoom = Math.max(1, client.height - 2 * top - .theme().createDefaultFont(FamilySize, .Bold).height)
-        let scale = Math.min(available / markWidth, markRoom / mark.height, 1.0'f32)
+        let top       = Math.min(ContentInset, Math.floor(client.height * 0.1))
+        let markRoom  = Math.max(1, client.height - 2 * top - .theme().createDefaultFont(FamilySize, .Bold).height)
+        let scale     = Math.min(available / markWidth, markRoom / mark.height, 1.0'f32)
         .layout.markSize = Math.max(1, cast(u32, SpecimenSize * scale))
         .layout.nameSize = Math.max(12, cast(u32, FamilySize * Math.min(1, available / nameWidth)))
         let aa = .sampleFont(.layout.markSize)

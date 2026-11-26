@@ -1,7 +1,7 @@
 #global if #command == Swag.CompilerCommand.Test
 #global private
 
-using Core
+using Core, TrueType
 
 #test
 {
@@ -43,4 +43,23 @@ using Core
     Swag.require(outcome.value() != null)
     discard expect File.delete(path.toString())
     Swag.require((expect TypeFace.loadAt(path.toString(), 1)) == bold)
+}
+
+#test
+{
+    let bytes  = makeTypeFaceCollection()
+    var source = FontSource.copy(bytes.toSlice())
+    const Name = "pixel-test-shared-font"
+
+    var badIndex: Swag.Error
+    discard catch TypeFace.createFromSource(Name, &source, 2) as badIndex
+    Swag.require(badIndex.value() != null)
+
+    let regular = expect TypeFace.createFromSource(Name, &source)
+    let bold    = expect TypeFace.createFromSource(Name, &source, 1)
+    Swag.require(not regular.isBold() and bold.isBold())
+    Swag.require((expect TypeFace.createAt(Name, bytes.toSlice(), 1)) == bold)
+    source = {}
+    Swag.require((expect regular.renderGlyph('A', 16)).width > 0)
+    Swag.require((expect bold.renderGlyph('A', 16)).width > 0)
 }

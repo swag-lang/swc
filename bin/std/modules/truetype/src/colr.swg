@@ -21,7 +21,7 @@ func readColorGlyphLayers(faceData: const *FaceImpl, baseGlyph: u32, paletteInde
     if colrIndex == Swag.U32.Max do
         return result
     let colrRecord = faceData.tables[colrIndex]
-    let colr       = try getSlice(faceData.fontData.toSlice(), colrRecord.offset, colrRecord.length)
+    let colr       = try getSlice(faceData.fontBytes(), colrRecord.offset, colrRecord.length)
     try assertRange(colr, 0, 14)
 
     if try readU16(colr, 0) != 0 do
@@ -77,7 +77,7 @@ func readColorGlyphLayers(faceData: const *FaceImpl, baseGlyph: u32, paletteInde
     if cpalIndex == Swag.U32.Max do
         try fault(0x08)
     let cpalRecord = faceData.tables[cpalIndex]
-    let cpal       = try getSlice(faceData.fontData.toSlice(), cpalRecord.offset, cpalRecord.length)
+    let cpal       = try getSlice(faceData.fontBytes(), cpalRecord.offset, cpalRecord.length)
     try assertRange(cpal, 0, 12)
     if try readU16(cpal, 0) != 0 do
         try fault(0x07)

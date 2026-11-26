@@ -56,7 +56,7 @@ stream callback independently. Build it against the FreeType version used for th
 cc -std=c11 -O2 bench/workloads/fontdecode/freetype_native.c \
   $(pkg-config --cflags --libs freetype2) -o /tmp/fontdecode/freetype
 /tmp/fontdecode/freetype --version
-for mode in file snapshot count
+for mode in file snapshot memory count
 do
   /tmp/fontdecode/freetype "$mode" /tmp/fontdecode/fonts/NotoSansCJKjp-Regular.otf 0 0x65e5 20 21
 done
@@ -68,7 +68,20 @@ and glyph loading with rendering in nanoseconds, followed by bytes requested dur
 bytes requested for the glyph, and the glyph index.
 
 The `file` mode uses `FT_New_Face`. The `snapshot` mode reads the whole file with `pread`
-into a reusable buffer before calling `FT_New_Memory_Face`. The `count` mode wraps an
-already-read buffer in an `FT_Stream` and counts logical byte requests. Overlapping
+into a reusable buffer before calling `FT_New_Memory_Face`. The `memory` mode uses that
+call with a buffer read before timing starts. The `count` mode wraps an already-read buffer in an `FT_Stream` and counts logical byte requests. Overlapping
 requests count each time they occur. The counts describe stream access rather than
 filesystem pages or faults.
+
+## Shared source comparison
+
+Pass the final argument `source` to the Swag probe to snapshot the file before timing
+and open each fresh face from that snapshot. Use `memory` to compare the existing
+`Face.loadAt` path on a buffer read before timing. FreeType's `memory` mode also
+reuses one buffer acquired before timing.
+
+```sh
+/tmp/fontdecode/out/fontdecode /tmp/fontdecode/fonts/NotoSansCJK-Regular.ttc 1 54620 20 21 source
+/tmp/fontdecode/out/fontdecode /tmp/fontdecode/fonts/NotoSansCJK-Regular.ttc 1 54620 20 21 memory
+/tmp/fontdecode/freetype memory /tmp/fontdecode/fonts/NotoSansCJK-Regular.ttc 1 54620 20 21
+```

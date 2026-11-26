@@ -131,7 +131,7 @@ private func detectProgramSource(bytes: const [..] u8)->{ source: OutlineSource,
     return result
 }
 
-private func loadFaceBytes(bytes: const [..] u8, faceIndex: u32, fallbackFamilyName: string, allocator: IAllocator?, fileName: string? = null)->*Face fail
+func loadFaceBytes(bytes: const [..] u8, faceIndex: u32, fallbackFamilyName: string, allocator: IAllocator?, fileName: string? = null, source: const *FontSource? = null)->*Face fail
 {
     let allocationAllocator = unwrap (allocator orelse Swag.getContext().allocator)
     let context = Swag.getContext()
@@ -161,6 +161,10 @@ private func loadFaceBytes(bytes: const [..] u8, faceIndex: u32, fallbackFamilyN
         var normalized = try inflateWoff(input)
         faceData.fontData = #move normalized
     }
+    elif let shared = source
+    {
+        faceData.fontSource = shared[]
+    }
     elif not fileName
     {
         var member = try copyFontMember(input, faceIndex)
@@ -175,7 +179,7 @@ private func loadFaceBytes(bytes: const [..] u8, faceIndex: u32, fallbackFamilyN
         }
     }
 
-    let detected = detectProgramSource(faceData.fontData.toSlice())
+    let detected = detectProgramSource(faceData.fontBytes())
     if detected.sfnt
     {
         try parseFace(faceData, memberIndex, fallbackFamilyName)

@@ -145,7 +145,7 @@ func parseNames(faceData: *FaceImpl, fallbackFamilyName: string) fail
         return
     }
 
-    let nameTable = try getSlice(faceData.fontData.toSlice(), rec.offset, rec.length)
+    let nameTable = try getSlice(faceData.fontBytes(), rec.offset, rec.length)
 
     var familyName = catch decodeBestName(nameTable, NAME_ID_FAMILY) orelse {}
     var styleName  = catch decodeBestName(nameTable, NAME_ID_STYLE) orelse {}
@@ -173,7 +173,7 @@ func parsePost(faceData: *FaceImpl, allowMissing: bool) fail
     }
 
     let record    = unwrap rec
-    let postTable = try getSlice(faceData.fontData.toSlice(), record.offset, record.length)
+    let postTable = try getSlice(faceData.fontBytes(), record.offset, record.length)
     if postTable.count < 32 do
         try fault(0x9B)
     let format = try readU32(postTable, 0)
@@ -194,7 +194,7 @@ func parseOS2(faceData: *FaceImpl) fail
     if not rec do
         return
 
-    let table = try getSlice(faceData.fontData.toSlice(), rec.offset, rec.length)
+    let table = try getSlice(faceData.fontBytes(), rec.offset, rec.length)
     if table.count < 4 do
         return
 
@@ -256,7 +256,7 @@ func parseCMap(faceData: *FaceImpl, allowMissing: bool) fail
     }
 
     let table     = unwrap record
-    let cmapTable = try getSlice(faceData.fontData.toSlice(), table.offset, table.length)
+    let cmapTable = try getSlice(faceData.fontBytes(), table.offset, table.length)
     let count     = try readU16(cmapTable, 2)
 
     var bestSlice: const [..] u8?
@@ -502,7 +502,7 @@ func buildVerticalGlyphMetrics(faceData: *FaceImpl) fail
 
     let vheaTable = unwrap vheaRecord
     let vmtxTable = unwrap vmtxRecord
-    let vhea      = try getSlice(faceData.fontData.toSlice(), vheaTable.offset, vheaTable.length)
+    let vhea      = try getSlice(faceData.fontBytes(), vheaTable.offset, vheaTable.length)
     if vhea.count < 36 do
         try fault(0x98)
 
@@ -511,7 +511,7 @@ func buildVerticalGlyphMetrics(faceData: *FaceImpl) fail
     if not longMetricCount or longMetricCount > glyphCount do
         try fault(0x98)
 
-    let vmtx = try getSlice(faceData.fontData.toSlice(), vmtxTable.offset, vmtxTable.length)
+    let vmtx = try getSlice(faceData.fontBytes(), vmtxTable.offset, vmtxTable.length)
     let requiredBytes = cast(u64, longMetricCount) * 4 + cast(u64, glyphCount - longMetricCount) * 2
     if vmtx.count < requiredBytes do
         try fault(0x98)
@@ -637,7 +637,7 @@ func parseKern(faceData: *FaceImpl) fail
     if not rec do
         return
 
-    let table = try getSlice(faceData.fontData.toSlice(), rec.offset, rec.length)
+    let table = try getSlice(faceData.fontBytes(), rec.offset, rec.length)
     if table.count < 4 do
         return
 
@@ -957,7 +957,7 @@ func buildSyntheticCMap(faceData: *FaceImpl)
 // OpenType face would read from a table has to come from the program's own header.
 func parseProgramFace(faceData: *FaceImpl, fallbackFamilyName: string) fail
 {
-    let data   = faceData.fontData.toSlice()
+    let data   = faceData.fontBytes()
     var name: String
     var italic = false
     var bold   = false
@@ -1012,7 +1012,7 @@ func parseProgramFace(faceData: *FaceImpl, fallbackFamilyName: string) fail
 #[Swag.Propagate]
 func parseFace(faceData: *FaceImpl, faceIndex: u32, fallbackFamilyName: string = "") fail
 {
-    let data       = faceData.fontData.toSlice()
+    let data       = faceData.fontBytes()
     let faceOffset = findFaceOffset(data, faceIndex)
 
     let numTables = readU16(data, faceOffset + 4)

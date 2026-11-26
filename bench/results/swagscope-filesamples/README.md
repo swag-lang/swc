@@ -284,6 +284,9 @@ existing buffer. [Compact collection results](font-decode-linux.md#compact-colle
 The CJK follow-up compares the FreeType mapped-file path with a private snapshot and
 profiles Swag's CFF setup. [CJK ownership and parsing results](font-decode-linux.md#cjk-file-ownership-and-cff-parsing)
 
+Sharing one immutable source cuts the ten-member CJK open-and-render pass from
+25.63 to 12.07 ms, including the initial file read. [Shared source results](font-decode-linux.md#shared-font-source)
+
 ### SVG results already reported
 
 The prior four-file comparison measured Scope's SVG parse plus CPU rasterization against resvg

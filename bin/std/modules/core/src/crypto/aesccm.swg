@@ -220,17 +220,17 @@ private func aesCcmEncryptMacHardware(aes: *Aes, counterZero: [AesBlockSize] u8,
 private func aesCcmCryptBlocks(aes: *Aes, nonce: const [..] u8, source: const [..] u8, destination: [..] u8, firstBlock, blockCount: u64) fail
 {
     let lengthBytes = 15 - nonce.count
+    var initial = aesCcmInitialCounter(nonce)
+    initial[15] = 1
+    // The mode has already checked the payload length against the nonce-selected counter width.
+    let prefix = cast #bit (U64x2, load(&initial[0]))
     if aes[].usesHardwareRounds()
     {
-        var initial = aesCcmInitialCounter(nonce)
-        initial[15] = 1
-        // The mode has already checked the payload length against the nonce-selected counter width.
-        let prefix = cast #bit (U64x2, load(&initial[0]))
         aesXorCounterBlocksHardware'64(aes, prefix, source, destination, firstBlock, blockCount)
         return
     }
 
-    var block = firstBlock
+    var block = aesXorCounterPairsSoftware'64(aes, prefix, source, destination, firstBlock, blockCount)
     while block < firstBlock + blockCount
     {
         var counter: [AesBlockSize] u8

@@ -369,10 +369,10 @@ private func aesGcmCryptAndHashHardware(aes: *Aes, nonce: const [..] u8, source:
     let initial   = aes[].roundKey(0)
     let final     = aes[].roundKey(numRounds)
 
-    var first  = aesGcmHardwareCounter(prefix, 0) ^ initial
-    var second = aesGcmHardwareCounter(prefix, 1) ^ initial
-    var third  = aesGcmHardwareCounter(prefix, 2) ^ initial
-    var fourth = aesGcmHardwareCounter(prefix, 3) ^ initial
+    var first  = aesGcmCounterBlock(prefix, 0) ^ initial
+    var second = aesGcmCounterBlock(prefix, 1) ^ initial
+    var third  = aesGcmCounterBlock(prefix, 2) ^ initial
+    var fourth = aesGcmCounterBlock(prefix, 3) ^ initial
 
     #[Swag.Mixin]
     func applyRound(index: u32)
@@ -417,10 +417,10 @@ private func aesGcmCryptAndHashHardware(aes: *Aes, nonce: const [..] u8, source:
         let previousSecond = second
         let previousThird  = third
         let previousFourth = fourth
-        first  = aesGcmHardwareCounter(prefix, block) ^ initial
-        second = aesGcmHardwareCounter(prefix, block + 1) ^ initial
-        third  = aesGcmHardwareCounter(prefix, block + 2) ^ initial
-        fourth = aesGcmHardwareCounter(prefix, block + 3) ^ initial
+        first  = aesGcmCounterBlock(prefix, block) ^ initial
+        second = aesGcmCounterBlock(prefix, block + 1) ^ initial
+        third  = aesGcmCounterBlock(prefix, block + 2) ^ initial
+        fourth = aesGcmCounterBlock(prefix, block + 3) ^ initial
         var low, high, cross: U64x2
         // Carry-less products for the previous ciphertext can issue between the next AES rounds.
         applyRound(1)
@@ -457,16 +457,16 @@ private func aesGcmCryptAndHashHardware(aes: *Aes, nonce: const [..] u8, source:
 
 private func aesGcmCryptBlocks(aes: *Aes, nonce: const [..] u8, source: const [..] u8, destination: [..] u8, firstBlock, blockCount: u64) fail
 {
+    var initial: [AesBlockSize] u8
+    Swag.memcpy(&initial[0], nonce.buffer, AesGcmNonceSize)
+    let prefix = cast #bit (U64x2, load(&initial[0]))
     if aes[].usesHardwareRounds()
     {
-        var initial: [AesBlockSize] u8
-        Swag.memcpy(&initial[0], nonce.buffer, AesGcmNonceSize)
-        let prefix = cast #bit (U64x2, load(&initial[0]))
         aesXorCounterBlocksHardware'32(aes, prefix, source, destination, firstBlock, blockCount)
         return
     }
 
-    var block    = firstBlock
+    var block    = aesXorCounterPairsSoftware'32(aes, prefix, source, destination, firstBlock, blockCount)
     let endBlock = firstBlock + blockCount
     while block < endBlock
     {

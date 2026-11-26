@@ -30,41 +30,44 @@ private func aesCtrAddCounter(counter: *[AesCtrCounterSize] u8, amount: u64)->bo
 }
 
 #[Swag.Inline]
-internal func aesGcmHardwareCounter(initial: U64x2, index: u64)->U8x16
+internal func aesGcmCounterBlock(initial: U64x2, index: u64)->U8x16
 {
     var words = cast #bit (U32x4, initial)
     // GCM reserves counter one for its tag mask.
-    words[3] = Swag.byteSwap(cast(u32, index + 2))
+    #static if BIG_ENDIAN do
+        words[3] = cast(u32, index + 2)
+    else do
+        words[3] = Swag.byteSwap(cast(u32, index + 2))
     return cast #bit (U8x16, words)
+}
+
+#[Swag.Inline]
+private func(CounterBits: u32) aesCounterBlock(initial: U64x2, low: u64, index: u64)->U8x16
+{
+    #static if CounterBits == 32
+    {
+        discard low
+        return aesGcmCounterBlock(initial, index)
+    }
+    else
+    {
+        let next  = low + index
+        var words = initial
+        words[1] = aesCtrNetworkWord(next)
+        #static if CounterBits == 128
+        {
+            let high = aesCtrNetworkWord(initial[0])
+            words[0] = aesCtrNetworkWord(high + cast(u64, next < low))
+        }
+
+        return cast #bit (U8x16, words)
+    }
 }
 
 // The mode validates its full counter range before selecting the counter width.
 internal func(CounterBits: u32) aesXorCounterBlocksHardware(aes: *Aes, prefix: U64x2, source: const [..] u8, destination: [..] u8, firstBlock, blockCount: u64)
 {
-    #[Swag.Inline]
-    func counter(initial: U64x2, low: u64, index: u64)->U8x16
-    {
-        #static if CounterBits == 32
-        {
-            discard low
-            return aesGcmHardwareCounter(initial, index)
-        }
-        else
-        {
-            let next  = low + index
-            var words = initial
-            words[1] = Swag.byteSwap(next)
-            #static if CounterBits == 128
-            {
-                let high = Swag.byteSwap(initial[0])
-                words[0] = Swag.byteSwap(high + cast(u64, next < low))
-            }
-
-            return cast #bit (U8x16, words)
-        }
-    }
-
-    let low              = Swag.byteSwap(prefix[1])
+    let low              = aesCtrNetworkWord(prefix[1])
     let sourceBytes      = source.buffer
     let destinationBytes = destination.buffer
     let endBlock         = firstBlock + blockCount
@@ -75,14 +78,14 @@ internal func(CounterBits: u32) aesXorCounterBlocksHardware(aes: *Aes, prefix: U
         while block + 8 <= fullBlockEnd
         {
             let offset = block * AesBlockSize
-            aes[].xorEightCountersHardware(counter(prefix, low, block),
-                                           counter(prefix, low, block + 1),
-                                           counter(prefix, low, block + 2),
-                                           counter(prefix, low, block + 3),
-                                           counter(prefix, low, block + 4),
-                                           counter(prefix, low, block + 5),
-                                           counter(prefix, low, block + 6),
-                                           counter(prefix, low, block + 7),
+            aes[].xorEightCountersHardware(aesCounterBlock'CounterBits(prefix, low, block),
+                                           aesCounterBlock'CounterBits(prefix, low, block + 1),
+                                           aesCounterBlock'CounterBits(prefix, low, block + 2),
+                                           aesCounterBlock'CounterBits(prefix, low, block + 3),
+                                           aesCounterBlock'CounterBits(prefix, low, block + 4),
+                                           aesCounterBlock'CounterBits(prefix, low, block + 5),
+                                           aesCounterBlock'CounterBits(prefix, low, block + 6),
+                                           aesCounterBlock'CounterBits(prefix, low, block + 7),
                                            sourceBytes + offset,
                                            destinationBytes + offset)
             block += 8
@@ -92,10 +95,10 @@ internal func(CounterBits: u32) aesXorCounterBlocksHardware(aes: *Aes, prefix: U
     while block + 4 <= fullBlockEnd
     {
         let offset = block * AesBlockSize
-        aes[].xorFourHardware'(false, false)(counter(prefix, low, block),
-                              counter(prefix, low, block + 1),
-                              counter(prefix, low, block + 2),
-                              counter(prefix, low, block + 3),
+        aes[].xorFourHardware'(false, false)(aesCounterBlock'CounterBits(prefix, low, block),
+                              aesCounterBlock'CounterBits(prefix, low, block + 1),
+                              aesCounterBlock'CounterBits(prefix, low, block + 2),
+                              aesCounterBlock'CounterBits(prefix, low, block + 3),
                               sourceBytes + offset,
                               destinationBytes + offset)
         block += 4
@@ -104,7 +107,7 @@ internal func(CounterBits: u32) aesXorCounterBlocksHardware(aes: *Aes, prefix: U
     while block < fullBlockEnd
     {
         let offset = block * AesBlockSize
-        let stream = aes[].encryptBlockHardware(counter(prefix, low, block))
+        let stream = aes[].encryptBlockHardware(aesCounterBlock'CounterBits(prefix, low, block))
         store(destinationBytes + offset, stream ^ load(sourceBytes + offset))
         block += 1
     }
@@ -112,12 +115,31 @@ internal func(CounterBits: u32) aesXorCounterBlocksHardware(aes: *Aes, prefix: U
     if block < endBlock
     {
         var tail: [16] u8
-        store(&tail[0], aes[].encryptBlockHardware(counter(prefix, low, block)))
+        store(&tail[0], aes[].encryptBlockHardware(aesCounterBlock'CounterBits(prefix, low, block)))
         let offset = block * AesBlockSize
         for i in source.count - offset do
             destinationBytes[offset + i] = sourceBytes[offset + i] ^ tail[i]
         Crypto.secureClear(tail)
     }
+}
+
+// Processes complete two-block batches and returns the index of the next block.
+internal func(CounterBits: u32) aesXorCounterPairsSoftware(aes: *Aes, prefix: U64x2, source: const [..] u8, destination: [..] u8, firstBlock, blockCount: u64)->u64
+{
+    let low          = aesCtrNetworkWord(prefix[1])
+    let fullBlockEnd = Math.min(firstBlock + blockCount, source.count / AesBlockSize)
+    var block        = firstBlock
+    while block + 2 <= fullBlockEnd
+    {
+        let offset = block * AesBlockSize
+        aes[].xorTwoCountersSoftware(aesCounterBlock'CounterBits(prefix, low, block),
+                                     aesCounterBlock'CounterBits(prefix, low, block + 1),
+                                     source.buffer + offset,
+                                     destination.buffer + offset)
+        block += 2
+    }
+
+    return block
 }
 
 private func aesCtrCryptBlocks(aes: *Aes, initialCounter: [AesCtrCounterSize] u8, source: const [..] u8, destination: [..] u8, firstBlock, blockCount: u64) fail

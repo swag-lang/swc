@@ -34,3 +34,26 @@ repeated-image document the in-memory encode also drops from 1,394 to
 171 ms. The PDFBox JPEG page places the same photo twice. The GUI
 Release suite passes 1,263 tests, including cross-page references and
 the streaming print writer.
+
+
+## Writing fixed-point coordinates directly
+
+The writer appends coordinates, text matrices and color values directly
+to the page's content buffer. Ordinary finite coordinates use a stack
+buffer and the same four decimal places, ties to even, and removal of
+trailing zeroes. This avoids a temporary formatted string for each value
+and each path instruction.
+
+Thirteen interleaved Release runs on one AMD EPYC 7763 logical CPU use
+`7d19843433` as the baseline. Both builds use the same compiler and Core
+at `3f81024a37`. The 12-page vector document has 9,600 marks.
+[Timings, sizes, and checksums](pdf-write-linux-fixed-points.json)
+
+| Operation | Before, ms | After, ms | Output bytes |
+| --- | ---: | ---: | ---: |
+| `encode` | 145.11 | 45.86 | 123,459 |
+| `save` | 149.60 | 45.50 | 123,459 |
+
+The vector, opaque-image, and PDFBox JPEG outputs all retain their byte
+counts and CRC-32, with the same PDFium rasters. The 134 PDF tests
+include positive and negative half-way coordinates.

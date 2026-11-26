@@ -87,22 +87,86 @@ private impl Writer
     }
 }
 
+private func appendPdfNumber(result: *String, value: f32)
+{
+    let magnitude = Math.abs(value)
+    if not (magnitude < 1e9)
+    {
+        var text = Format.toString("%{f4}", value)
+        while text.endsWith("0") do
+            text.removeBack(1)
+        if text.endsWith(".") do
+            text.removeBack(1)
+        result.append(text.toString())
+        return
+    }
+
+    // Scaling a 24-bit significand by 10,000 is exact in f64. Round ties to even.
+    let scaled    = cast(f64, magnitude) * 10000.0
+    var units     = cast(u64, scaled)
+    let remainder = scaled - cast(f64, units)
+    if remainder > 0.5 or (remainder == 0.5 and units & 1 != 0) do
+        units += 1
+
+    var digits: [16] u8
+    var start      = cast(u64, digits.count)
+    var fractional = units % 10000
+    if fractional
+    {
+        for 4
+        {
+            let digit = fractional % 10
+            if digit or start < digits.count
+            {
+                start -= 1
+                digits[start] = '0'u8 + cast(u8, digit)
+            }
+
+            fractional /= 10
+        }
+
+        start -= 1
+        digits[start] = '.'u8
+    }
+
+    var whole = units / 10000
+    while true
+    {
+        start -= 1
+        digits[start] = '0'u8 + cast(u8, whole % 10)
+        whole /= 10
+        if not whole do
+            break
+    }
+
+    if value < 0
+    {
+        start -= 1
+        digits[start] = '-'u8
+    }
+
+    result.append(Swag.makeString(&digits[start], digits.count - start))
+}
+
 private func pdfNumber(value: f32)->String
 {
     var result: #returntype
-    if value == Math.trunc(value) and Math.abs(value) < 1e9
-    {
-        let magnitude = cast(s64, Math.abs(value))
-        result.appendFormat("%", value < 0 ? -magnitude : magnitude)
-        return result
-    }
-
-    result.appendFormat("%{f4}", value)
-    while result.endsWith("0") do
-        result.removeBack(1)
-    if result.endsWith(".") do
-        result.removeBack(1)
+    appendPdfNumber(&result, value)
     return result
+}
+
+private func appendPdfPoint(result: *String, point: Vector2, suffix: string)
+{
+    appendPdfNumber(result, point.x)
+    result[] += ' '
+    appendPdfNumber(result, point.y)
+    result[] += suffix
+}
+
+private func appendPdfMatrix(result: *String, transform: Transform2)
+{
+    appendPdfPoint(result, {transform.m11, -transform.m12}, " ")
+    appendPdfPoint(result, {-transform.m21, transform.m22}, " ")
 }
 
 private func windows1252(text: string)->Array'u8 fail
@@ -165,7 +229,12 @@ private func appendPdfString(result: *String, text: string) fail
 
 private func appendColor(result: *String, color: Color, stroke: bool)
 {
-    result.appendFormat("% % % %\n", pdfNumber(color.r / 255.0), pdfNumber(color.g / 255.0), pdfNumber(color.b / 255.0), stroke ? "RG" : "rg")
+    appendPdfNumber(result, color.r / 255.0)
+    result[] += ' '
+    appendPdfNumber(result, color.g / 255.0)
+    result[] += ' '
+    appendPdfNumber(result, color.b / 255.0)
+    result[] += stroke ? " RG\n" : " rg\n"
 }
 
 private func appendStrokeStyle(result: *String, item: const *Item)
@@ -191,7 +260,7 @@ private func appendStrokeStyle(result: *String, item: const *Item)
     {
         if index do
             result[] += ' '
-        result[] += pdfNumber(length)
+        appendPdfNumber(result, length)
     }
 
     result.appendFormat("] % d\n", pdfNumber(item.strokeStyle.dashPhase))
@@ -222,7 +291,7 @@ private func appendPath(result: *String, page: const *Page, item: const *Item)
             for point, index in polygon.points
             {
                 let encoded = encodedPoint(page, item, point)
-                result.appendFormat("% % %\n", pdfNumber(encoded.x), pdfNumber(encoded.y), index == 0 ? "m" : "l")
+                appendPdfPoint(result, encoded, index == 0 ? " m\n" : " l\n")
             }
 
             if path.isClosed do
@@ -232,7 +301,7 @@ private func appendPath(result: *String, page: const *Page, item: const *Item)
 
         let start        = path.startPoint
         let encodedStart = encodedPoint(page, item, start)
-        result.appendFormat("% % m\n", pdfNumber(encodedStart.x), pdfNumber(encodedStart.y))
+        appendPdfPoint(result, encodedStart, " m\n")
         var current = start
         for element in path.elements
         {
@@ -240,7 +309,7 @@ private func appendPath(result: *String, page: const *Page, item: const *Item)
             {
             case .Line:
                 let p = encodedPoint(page, item, element.position)
-                result.appendFormat("% % l\n", pdfNumber(p.x), pdfNumber(p.y))
+                appendPdfPoint(result, p, " l\n")
 
             case .Bezier1:
                 let c1x = current.x + 2.0 / 3.0 * (element.p1.x - current.x)
@@ -250,13 +319,17 @@ private func appendPath(result: *String, page: const *Page, item: const *Item)
                 let c1  = encodedPoint(page, item, Math.Vector2{c1x, c1y})
                 let c2  = encodedPoint(page, item, Math.Vector2{c2x, c2y})
                 let p   = encodedPoint(page, item, element.position)
-                result.appendFormat("% % % % % % c\n", pdfNumber(c1.x), pdfNumber(c1.y), pdfNumber(c2.x), pdfNumber(c2.y), pdfNumber(p.x), pdfNumber(p.y))
+                appendPdfPoint(result, c1, " ")
+                appendPdfPoint(result, c2, " ")
+                appendPdfPoint(result, p, " c\n")
 
             case .Bezier2:
                 let c1 = encodedPoint(page, item, element.p1)
                 let c2 = encodedPoint(page, item, element.p2)
                 let p  = encodedPoint(page, item, element.position)
-                result.appendFormat("% % % % % % c\n", pdfNumber(c1.x), pdfNumber(c1.y), pdfNumber(c2.x), pdfNumber(c2.y), pdfNumber(p.x), pdfNumber(p.y))
+                appendPdfPoint(result, c1, " ")
+                appendPdfPoint(result, c2, " ")
+                appendPdfPoint(result, p, " c\n")
 
             default:
                 break
@@ -274,7 +347,8 @@ private func appendPath(result: *String, page: const *Page, item: const *Item)
     if item.hasStroke
     {
         appendColor(result, item.strokeColor, true)
-        result.appendFormat("% w\n", pdfNumber(item.strokeWidth))
+        appendPdfNumber(result, item.strokeWidth)
+        result[] += " w\n"
         appendStrokeStyle(result, item)
     }
 
@@ -327,7 +401,11 @@ private func pageContent(page: const *Page, fonts: const [..] StandardFont)->Str
         case .Text:
             appendColor(&result, item.fillColor, false)
             let baseline = item.transform.transformPoint(Math.Vector2{0, item.fontSize})
-            result.appendFormat("BT\n/F% % Tf\n% % % % % % Tm\n", fontSlot(fonts, item.standardFont), pdfNumber(item.fontSize), pdfNumber(item.transform.m11), pdfNumber(-item.transform.m12), pdfNumber(-item.transform.m21), pdfNumber(item.transform.m22), pdfNumber(baseline.x), pdfNumber(page.height - baseline.y))
+            result.appendFormat("BT\n/F% ", fontSlot(fonts, item.standardFont))
+            appendPdfNumber(&result, item.fontSize)
+            result += " Tf\n"
+            appendPdfMatrix(&result, item.transform)
+            appendPdfPoint(&result, {baseline.x, page.height - baseline.y}, " Tm\n")
             if item.invisibleText do
                 result += "3 Tr\n"
             try appendPdfString(&result, item.text.toString())
@@ -338,7 +416,10 @@ private func pageContent(page: const *Page, fonts: const [..] StandardFont)->Str
 
         case .Image:
             let tr = item.transform
-            result.appendFormat("q\n% % % % % % cm\n/Im% Do\nQ\n", pdfNumber(tr.m11), pdfNumber(-tr.m12), pdfNumber(-tr.m21), pdfNumber(tr.m22), pdfNumber(tr.tx + tr.m21), pdfNumber(page.height - tr.ty - tr.m22), imageIndex)
+            result += "q\n"
+            appendPdfMatrix(&result, tr)
+            appendPdfPoint(&result, {tr.tx + tr.m21, page.height - tr.ty - tr.m22}, " cm\n")
+            result.appendFormat("/Im% Do\nQ\n", imageIndex)
             imageIndex += 1
         }
     }

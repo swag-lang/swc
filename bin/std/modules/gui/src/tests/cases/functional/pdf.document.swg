@@ -142,6 +142,32 @@ private func sampleDocument()->Document
     Swag.require(loaded.pages[0].items.count == 3)
 }
 
+// The writer rounds fixed-point coordinates to four places, with ties rounded to even.
+#test
+{
+    var paths: LinePathList
+    let outline = paths.newPath()
+    outline.start(0.03125, 5.25)
+    outline.lineTo(-0.09375, 6.125)
+    outline.lineTo(123.125, 7)
+    outline.close()
+
+    var page = Page.create(240.125, 160)
+    page.addPath(paths)
+    var document = Document.create()
+    document.addPage(#move page)
+    let bytes   = expect document.encode()
+    let decoded = expect Document.decode(bytes.toSlice())
+    Swag.require(decoded.pages[0].width == 240.125)
+    let path = (unwrap decoded.pages[0].items[0].pathValue()).toSlice()[0]
+    Swag.require(Math.isEqualEpsilon(path.startPoint.x, 0.0312, 0.000001))
+    Swag.require(path.startPoint.y == 5.25)
+    Swag.require(Math.isEqualEpsilon(path.elements[0].position.x, -0.0938, 0.000001))
+    Swag.require(Math.isEqualEpsilon(path.elements[0].position.y, 6.125, 0.00005))
+    Swag.require(Math.isEqualEpsilon(path.elements[1].position.x, 123.125, 0.00005))
+    Swag.require(Math.isEqualEpsilon(path.elements[1].position.y, 7, 0.00005))
+}
+
 // Identical images share a resource across pages. The same bytes in a different channel
 // order describe a distinct image. An opaque channel needs no soft-mask stream.
 #test

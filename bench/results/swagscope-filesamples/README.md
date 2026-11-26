@@ -1506,3 +1506,68 @@ a 4097 × 4257 RGBA8 buffer took 174.519 ms before and 71.396 ms after the
 parallel output pass, with the same buffer checksum. On repeated BC1 texture
 blocks at 4609 × 4097, four warmed workers took 39.209 and 21.707 ms, with
 equal decoded texels before and after.
+
+### Cumulative FileSamples raster retest
+
+Both Swag builds use the same Linux Release compiler at `52f76fab9d`.
+The earlier raster source is `335b91f31e`; the later checkpoint is
+`a484a59e32`. Decoding uses 17 rotating trials with one worker and times
+the load through the public image API. The encode comparison uses
+13 rotating trials, two encodes per trial, the public byte-array output,
+and default codec settings. It loads the source pixels before timing.
+
+| Decode input | Earlier Swag (ms) | Later Swag (ms) | Same pixel CRC |
+| --- | ---: | ---: | --- |
+| sample.bmp | 0.230 | 0.241 | Yes |
+| sample.dds | 2.315 | 0.329 | See DDS note |
+| sample.exr | 25.900 | 0.463 | Yes |
+| sample.gif | 15.757 | 2.014 | Yes |
+| sample.ico | 0.144 | 0.077 | Yes |
+| sample.jfif | 3.230 | 1.901 | Yes |
+| sample.jpg | 3.772 | 1.979 | Yes |
+| sample.png | 6.640 | 3.658 | Yes |
+| sample.psd | 0.802 | 0.258 | Yes |
+| sample.tga | 0.193 | 0.182 | Yes |
+| sample.tiff | 0.942 | 0.245 | Yes |
+| sample.webp | 561.040 | 90.485 | Yes |
+
+The DDS sample contains BC1 blocks. The later RGBA checksum
+`4414419191257492543` also matches a separate scalar reconstruction from
+the encoded RGB565 endpoints and BC1 indices. The earlier build gives
+`6529884652203497542`. That difference also flows into the encoded DDS
+when each build is given the pixels it decoded from the sample.
+
+| Encode target | Earlier Swag (ms) | Later Swag (ms) | Earlier output (bytes) | Later output (bytes) |
+| --- | ---: | ---: | ---: | ---: |
+| BMP | 0.416 | 0.201 | 817,974 | 817,974 |
+| DDS | 0.574 | 0.297 | 1,090,688 | 1,090,688 |
+| EXR | 13.411 | 0.551 | 1,642,969 | 1,642,969 |
+| GIF | 10.021 | 5.199 | 194,779 | 194,779 |
+| ICO | 0.171 | 0.064 | 179,582 | 179,582 |
+| JPG | 9.054 | 5.396 | 234,014 | 230,420 |
+| KTX2 | 0.338 | 0.202 | 818,100 | 818,100 |
+| PNG | 61.666 | 58.052 | 520,537 | 520,537 |
+| QOI | 11.170 | 3.027 | 564,321 | 564,321 |
+| TGA | 0.241 | 0.213 | 817,938 | 817,938 |
+| TIFF | 1.991 | 0.282 | 818,048 | 818,048 |
+| WEBP | 620.589 | 122.029 | 15,699,700 | 7,152,406 |
+
+The QOI and KTX2 rows encode FileSamples PNG pixels. The other rows load
+the FileSamples input with the same extension as the target. Nine outputs
+are byte-identical. The JPEG rounding correction changes encoded bytes.
+Pillow with libwebp 1.6.0 decoded both VP8L streams to the same RGBA
+SHA-256 `fbf09b6b7553dc9b95b3807087d2801ac0d3425dbc19a15cfc5ef747952d68a3`.
+
+The later animation compositor preserved Swag pixels on four 15-frame
+APNGs. The noise case took 284.371 ms before and 85.269 ms after. The
+photo took 348.123 and 148.895 ms. Pillow took 108.892 and 261.529 ms on
+the same inputs and produced different partial-alpha pixels. The
+binary-alpha control matched Pillow byte for byte and measured 127.442 ms
+with the later Swag versus 234.618 ms with Pillow. A test covers all
+65,536 alpha pairs with varied RGB and mixed scalar/vector lanes.
+
+On the later PSD layer reader, the 1537 × 1031 RGBA16 raw case goes from
+58.786 to 13.924 ms after removing the redundant fill and interleaving the
+visible planes together. ImageMagick 7.1.1-43 takes 96.658 ms and agrees
+on the decoded pixels. The predicted RGBA16 case goes from 68.885 to
+33.829 ms versus 110.327 ms for ImageMagick in the same series.

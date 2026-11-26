@@ -1,8 +1,9 @@
 """Shared Windows/Linux commands behind the repository's workspace and test launchers.
 
 Usage: tool.py <tests|unittests|std|apps|examples|reference|goldens> [dm] [action|suite] [module] [swc options]
-Use `tool.py tests [dm] [functional|goldens|smoke|integrations|stress] [swc options]` to run a pass.
-The default pass is functional. Use `tests integrations --list` to list integration tags and their modules.
+Use `tool.py tests [dm] [functional|goldens|smoke|integrations] [swc options]` to run a pass.
+The default functional pass includes stress tests.
+Use `tests integrations --list` to list integration tags and their modules.
 Use `tests integrations --test-tag <tag>` to select a specific integration. Repeat the option to select more tags.
 Use `tool.py goldens accept` to promote reviewed pending snapshots.
 Set SWC_COMPILER or SWC_DEVMODE_COMPILER to select an externally built compiler.
@@ -21,7 +22,7 @@ import sys
 SOURCE_SUITES = ('lexer', 'parser', 'sema', 'jit', 'safety', 'sanity', 'native')
 WORKSPACES = ('std', 'examples', 'apps', 'reference')
 COMPILER_SUITES = ('cpp', *SOURCE_SUITES, 'workspace')
-TEST_PASSES = ('functional', 'goldens', 'smoke', 'integrations', 'stress')
+TEST_PASSES = ('functional', 'goldens', 'smoke', 'integrations')
 TEST_TAG = re.compile(r'^\s*#\[\s*Swag\.TestTag\(\s*"([^"]+)"\s*\)\s*\]', re.MULTILINE)
 FILE_GUARD = re.compile(r'^#global if ([^\r\n]+)', re.MULTILINE)
 
@@ -239,12 +240,12 @@ def test_pass_stages(compiler, bin_root, test_pass, options, *, devmode, windows
 
     if test_pass == 'functional':
         stages = compiler_stages(compiler, bin_root, None, options, devmode=devmode, windows=windows)
-        tagged_workspaces = {workspace for workspace, _, tags in tagged_modules(bin_root, windows=windows)
-                             if tags.intersection(('golden', 'stress'))}
-        functional_options = [*options, '--test-tag', '!golden', '--test-tag', '!stress']
+        golden_workspaces = {workspace for workspace, _, tags in tagged_modules(bin_root, windows=windows)
+                             if 'golden' in tags}
+        functional_options = [*options, '--test-tag', '!golden']
         # An explicit filter that selects zero tests fails. Some workspaces only compile examples.
         return stages + [module_stage(compiler, bin_root, workspace, 'test', None,
-                                      functional_options if workspace in tagged_workspaces else options)
+                                      functional_options if workspace in golden_workspaces else options)
                          for workspace in WORKSPACES]
 
     if test_pass == 'smoke':
@@ -269,7 +270,7 @@ def test_pass_stages(compiler, bin_root, test_pass, options, *, devmode, windows
         tags = selected_tags or default_integration_tags(windows)
         options = without_options(options, ('--test-tag',))
     else:
-        tags = ('golden',) if test_pass == 'goldens' else ('stress',)
+        tags = ('golden',)
 
     files = tuple(option_values(options, ('--test-file',)))
     stages = []
@@ -396,7 +397,7 @@ def main(arguments=None):
             portability_check(root)
         stages = test_pass_stages(compiler, bin_root, test_pass, arguments, devmode=devmode, windows=windows)
         action = 'smoke' if test_pass == 'smoke' else 'test'
-        keep_going = keep_going or test_pass in ('goldens', 'integrations', 'stress')
+        keep_going = keep_going or test_pass in ('goldens', 'integrations')
     elif tool == 'unittests':
         suite = arguments.pop(0) if arguments and not arguments[0].startswith('-') else None
         stages = compiler_stages(compiler, bin_root, suite, arguments, devmode=devmode, windows=windows)

@@ -179,7 +179,7 @@ Shared build and test pass
       scripts and expected diagnostics are covered at the test or smoke boundary that
       knows how to validate them.
 
-   B. Run the functional, golden and stress passes separately.
+   B. Run the functional and golden passes separately. The functional pass includes scale cases.
       Run lexer, parser, sema, jit, safety, sanity, native and workspace fixtures with the
       Release compiler. The launcher schedules C++ unit tests only with the DevMode
       compiler. Use those tests as a focused check for a suspected compiler defect.
@@ -193,7 +193,6 @@ Shared build and test pass
         tools\build.bat -bc release
      B. tools\tests.bat functional -bc release --keep-going
         tools\tests.bat goldens
-        tools\tests.bat stress -bc release
 
    In WSL 2
 
@@ -202,7 +201,6 @@ Shared build and test pass
         Run the workspace command in order for std, examples, apps and reference.
      B. tools\linux.bat exec python3 tools/tool.py tests functional -bc release --keep-going
         tools\linux.bat exec python3 tools/tool.py tests goldens
-        tools\linux.bat exec python3 tools/tool.py tests stress -bc release
 
    The WSL wrapper sets the compiler and runtime paths. The shared tool uses the Linux
    checkout's normal incremental outputs for both builds and tests. On a native Linux

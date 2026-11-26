@@ -87,8 +87,8 @@ Apply these reductions:
 ### Use The Development Coverage Modes
 
 For routine `bin/std` and `bin/apps` feedback, use the `functional` pass. It selects headless
-functional tests and excludes tests tagged `golden` or `stress`. Narrow a wider feedback run to
-the owning workspace and module:
+functional tests, including `stress` cases, and excludes tests tagged `golden`. Narrow a wider
+feedback run to the owning workspace and module:
 
 ```text
 tools\coverage.bat -Configuration release -Suite functional -Workspace std -Module gui
@@ -100,15 +100,14 @@ test families or shared state changed. These modes do not replace the compiler s
 `tools/unittests.bat` when compiler behavior changed.
 
 Tag a test `stress` when its contract depends on deliberately large synthetic inputs, scale limits,
-large corpora, dimensions, memory bounds or sustained streaming work. Keep its smallest useful
-functional counterpart in `functional` when one can prove the ordinary behavior. Run the changed stress
-boundary with `tools/coverage.bat -Configuration release -Suite stress`, narrowed to its workspace,
-module and file. Run the broader stress selection on a scheduled or cross-cutting pass. Do not tag
-a test as stress solely because it is new or somewhat slower.
+large corpora, dimensions, memory bounds or sustained streaming work. Keep a small counterpart when
+it can prove the ordinary behavior. Use `--test-file` on the owning workspace launcher to select an
+individual case or `--test-tag stress` to select the module's scale cases. A test's duration alone
+does not make it a stress case.
 
 `HeadlessHost` always uses the CPU renderer in coverage suites and direct compiler tests.
 Use `goldens` when changes can reach snapshots beyond a confidently bounded set.
-Use `tools/tests.bat` with `functional`, `goldens`, `smoke`, `integrations` or `stress` for a
+Use `tools/tests.bat` with `functional`, `goldens`, `smoke` or `integrations` for a
 repository-wide campaign. Select each pass for the behavior it covers. The `parity` coverage suite
 selects tests tagged `integration.renderer.opengl` that exercise the renderers directly.
 

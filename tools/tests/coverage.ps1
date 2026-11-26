@@ -47,10 +47,11 @@ exit /b 0
 
     $env:SWAG_COVERAGE_LOG = Join-Path $scratch 'calls.txt'
     $env:SWAG_COVERAGE_FAILURE = $null
-    $functionalCalls = @('std|test --test-tag !golden --test-tag !stress', 'apps|test --test-tag !golden --test-tag !stress')
+    $functionalCalls = @('std|test --test-tag !golden -bc release ', 'apps|test --test-tag !golden -bc release ')
     Assert-Calls (Invoke-Launcher @('-Configuration', 'release')) $functionalCalls 'The default functional pass'
     Assert-Calls (Invoke-Launcher @('-Suite', 'functional', '-Configuration', 'release')) $functionalCalls 'The functional pass'
     Assert-Calls (Invoke-Launcher @('-Suite', 'fast', '-Configuration', 'release')) $functionalCalls 'The fast alias'
+    $null = Invoke-Launcher @('-Suite', 'stress') 1
 
     # A full Release pass includes goldens; a DevMode full pass leaves snapshots to Release.
     Assert-Calls (Invoke-Launcher @('-Suite', 'full', '-Configuration', 'release')) @('std|test -bc release ', 'apps|test -bc release ') 'The full pass'

@@ -68,9 +68,9 @@ class ToolTests(unittest.TestCase):
             self.invoke(['goldens', 'unexpected'])
 
     def test_functional_pass_uses_same_suites_on_both_hosts(self):
-        for workspace, tag in (('std', 'stress'), ('apps', 'golden')):
-            path = self.root / f'bin/{workspace}/modules/fixture/src/tests/cases/special.swg'
-            path.parent.mkdir(parents=True)
+        for workspace, tag in (('std', 'golden'), ('std', 'stress'), ('apps', 'golden'), ('reference', 'stress')):
+            path = self.root / f'bin/{workspace}/modules/fixture/src/tests/cases/{tag}.swg'
+            path.parent.mkdir(parents=True, exist_ok=True)
             path.write_text(f'#[Swag.TestTag("{tag}")]\n#test {{}}\n', encoding='utf-8')
         for windows in (False, True):
             self.assertEqual(self.invoke(['tests', 'dm', 'functional', '-bc', 'release'], windows=windows), 0)
@@ -83,11 +83,14 @@ class ToolTests(unittest.TestCase):
             for stage in self.stages[:-4]:
                 self.assertNotIn('--test-tag', stage.command)
             for stage in self.stages[-4:]:
-                tags = ['!golden', '!stress'] if stage.name in ('std', 'apps') else []
+                tags = ['!golden'] if stage.name in ('std', 'apps') else []
                 self.assertEqual(list(tool.option_values(stage.command, ('--test-tag',))), tags)
         self.invoke(['tests'])
         self.assertNotIn('cpp', [stage.name for stage in self.stages])
-        self.assertIn('!stress', self.stages[-2].command)
+        self.assertIn('!golden', self.stages[-2].command)
+        self.assertNotIn('!stress', self.stages[-2].command)
+        with self.assertRaisesRegex(ValueError, "unknown test pass 'stress'"):
+            self.invoke(['tests', 'stress'])
 
     def test_tagged_passes_use_case_owners_and_keep_independent_stages(self):
         for workspace, case, tag in (('std', 'scene.swg', 'golden'), ('examples', 'example.swg', 'golden'),
@@ -109,13 +112,10 @@ class ToolTests(unittest.TestCase):
         self.assertTrue(self.stages[0].command[0].endswith('swc.dm.exe'))
         self.assertTrue(self.keep_going)
 
-        self.invoke(['tests', 'stress', '-bc', 'release'])
-        self.assertEqual([stage.name for stage in self.stages], ['apps-fixture', 'reference-fixture'])
-        self.assertTrue(self.keep_going)
-        self.invoke(['tests', 'stress', '--test-file', 'large.swg'])
-        self.assertEqual([stage.name for stage in self.stages], ['apps-fixture'])
+        self.invoke(['tests', 'goldens', '--test-file', 'example.swg'])
+        self.assertEqual([stage.name for stage in self.stages], ['examples-fixture'])
         with self.assertRaisesRegex(ValueError, 'match the selected files'):
-            self.invoke(['tests', 'stress', '--test-file', 'absent.swg'])
+            self.invoke(['tests', 'goldens', '--test-file', 'absent.swg'])
         with self.assertRaisesRegex(ValueError, 'needs -bc release'):
             self.invoke(['tests', 'goldens', '-bc', 'devmode'])
 

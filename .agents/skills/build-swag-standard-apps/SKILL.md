@@ -501,7 +501,7 @@ different contracts; none replaces the other two. Keep maintained snapshots in
    tools\coverage.bat -Suite functional -Workspace apps -Module <application>
    ```
 
-   Run related scale cases separately with `-Suite stress` when their boundary changed.
+   Use `--test-file` to check a focused scale case when its boundary changes.
 3. For a visible change, review **every** `.actual.png` the run left as a whole screen against its
    charter picture, in Encre and in Papier. Do not review only the diff or only the part you
    meant to change. A golden that changed in a part you did not touch is a finding. Promote each

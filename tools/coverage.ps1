@@ -1,11 +1,10 @@
 <#
 .SYNOPSIS
-Run functional, stress, golden, or renderer parity coverage for standard modules and applications.
+Run functional, golden, or renderer parity coverage for standard modules and applications.
 .DESCRIPTION
-Functional coverage excludes goldens and stress tests. Stress selects scale-boundary tests.
-The fast alias selects functional coverage. The legacy full suite selects functional and stress tests,
-plus goldens in Release. The -DevMode switch selects the DevMode compiler executable. -Configuration
-selects the program configuration independently.
+Functional coverage includes stress tests and excludes goldens. The fast alias selects functional
+coverage. The legacy full suite adds goldens in Release. The -DevMode switch selects the DevMode
+compiler executable. -Configuration selects the program configuration independently.
 
 Goldens uses CPU pixels for its references. Parity checks a GPU against the CPU: its tests draw one scene
 with both renderers and compare them with a tolerance that follows local contrast. Both campaigns
@@ -14,7 +13,7 @@ can be focused with -Workspace, -Module and -TestFile.
 .EXAMPLE
 tools\coverage.bat -Workspace apps -Module swagcapture
 .EXAMPLE
-tools\coverage.bat -Suite stress -Workspace apps -Module swagscope
+tools\coverage.bat -Suite functional -Workspace apps -Module swagscope -TestFile largefile.swg
 .EXAMPLE
 tools\coverage.bat -Suite goldens -Configuration release
 .EXAMPLE
@@ -24,7 +23,7 @@ tools\coverage.bat -DevMode -Suite parity
 #>
 [CmdletBinding()]
 param(
-    [ValidateSet('functional', 'goldens', 'stress', 'parity', 'fast', 'full')]
+    [ValidateSet('functional', 'goldens', 'parity', 'fast', 'full')]
     [string] $Suite = 'functional',
     [ValidateSet('all', 'std', 'apps')]
     [string] $Workspace = 'all',
@@ -95,9 +94,9 @@ if ($Suite -eq 'parity') {
 } else {
     $options = @()
     if ($Module) { $options += $Module }
-    if ($Suite -eq 'functional') { $options += @('--test-tag', '!golden', '--test-tag', '!stress') }
-    if ($Suite -eq 'stress') { $options += @('--test-tag', 'stress') }
-    if ($Suite -eq 'full' -and $Configuration -eq 'devmode') { $options += @('--test-tag', '!golden') }
+    if ($Suite -eq 'functional' -or ($Suite -eq 'full' -and $Configuration -eq 'devmode')) {
+        $options += @('--test-tag', '!golden')
+    }
     foreach ($file in $TestFile) { $options += @('--test-file', $file) }
     $workspaces = if ($Workspace -eq 'all') { @('std', 'apps') } else { @($Workspace) }
     foreach ($item in $workspaces) { Invoke-Coverage $item $options }

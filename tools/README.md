@@ -226,8 +226,8 @@ For compatibility, a focused `std --module` runs both modes by default. `--execu
 these defaults. The focused `cpp` suite requires DevMode; add `--dev-full` for filesystem tests.
 `dynamic-library` selects just shared-library preparation and its native consumer.
 
-As on Windows, ordinary campaigns include functional, golden and stress cases; `integration.*`
-tags are opt-in. Select those explicitly with `--test-tag` and supply their external services or
+The Linux `all` campaign includes ordinary, golden and stress cases. Cases tagged `integration.*`
+are opt-in. Select them with `--test-tag` and supply their external services or
 hardware. Platform guards restrict native API tests to their owning operating system.
 Golden failures are never promoted or ignored; `SWAG_GOLDEN_CONTINUE=1` is rejected.
 GUI and GPU-backed golden cases need an X11 display and the libraries described above.
@@ -403,19 +403,17 @@ tools\tests.bat functional -bc release
 tools\tests.bat goldens
 tools\tests.bat smoke -bc release
 tools\tests.bat integrations -bc release
-tools\tests.bat stress -bc release
 ```
 
 | Pass | Coverage |
 | --- | --- |
-| `functional` (default) | Compiler suites and ordinary workspace tests. Workspace selection excludes `golden`, `stress` and opt-in integrations. |
+| `functional` (default) | Compiler suites and workspace tests, including `stress` cases. Goldens and opt-in integrations have dedicated passes. |
 | `goldens` | Every `golden` case, with exact CPU references in Release. |
 | `smoke` | Bounded startup of the examples and applications, plus the example scripts on Windows. |
 | `integrations` | OpenGL, native host tests, application journeys and desktop input. |
-| `stress` | Cases tagged `stress`, including large inputs and scale boundaries. |
 
 On Linux, use `python3 tools/tool.py tests` with the same pass and options. `--keep-going` continues
-independent stages after a failure. The tagged passes `goldens`, `integrations` and `stress` always
+independent stages after a failure. The tagged passes `goldens` and `integrations` always
 continue with the other modules. Use `--test-file <substring>` to focus these passes.
 
 `tools\tests.bat integrations --list` lists integration tags and their source modules for the host.
@@ -427,18 +425,18 @@ Use their documented launchers for GPU reset, capture fixtures and privileged Va
 ### Focused application and rendering coverage
 
 `coverage.bat` selects `functional` by default. Use `-Workspace std|apps -Module <name>` and
-`-TestFile <substring>` to focus `functional`, `goldens`, `stress` or `parity`.
+`-TestFile <substring>` to focus `functional`, `goldens` or `parity`.
 
 ```text
 tools\coverage.bat -Configuration release -Suite functional -Workspace apps -Module swagscope
 tools\coverage.bat -Configuration release -Suite goldens -Workspace std -Module gui
-tools\coverage.bat -Configuration release -Suite stress
+tools\std.bat test video -bc release --test-tag stress
 tools\coverage.bat -Configuration release -Suite parity
 ```
 
 `-Configuration devmode|release` selects the program preset for coverage. Goldens use Release.
-The compatibility alias `fast` selects `functional`. The legacy `full` suite still combines
-functional and stress tests, plus goldens in Release, for `std` and `apps`.
+The compatibility alias `fast` selects `functional`. The legacy `full` suite adds goldens in Release
+for `std` and `apps`. Use `--test-tag stress` with a workspace launcher to focus its scale cases.
 
 `HeadlessHost` always uses `RenderCpu`. This also applies to direct compiler invocations.
 Native application scenarios and dedicated OpenGL integrations create their own graphics
@@ -530,7 +528,7 @@ tools/std.bat dm test gui --test-file devicereset.win32.swg --test-tag integrati
 | --- | --- |
 | `unittests.bat [dm] [suite] [options...]` | C++, lexer, parser, semantic, JIT, safety, sanity, native, and workspace input suites |
 | `build.bat [dm] [options...]` | Build the standard library, examples, applications, and reference |
-| `tests.bat [dm] [functional\|goldens\|smoke\|integrations\|stress] [options...]` | Run a repository test pass |
+| `tests.bat [dm] [functional\|goldens\|smoke\|integrations] [options...]` | Run a repository test pass |
 | `integrations.bat [dm] [all\|opengl\|windows\|smoke] [options...]` | Run the integration pass or use the focused OpenGL, Windows host and smoke commands |
 | `portability.bat` | Check that no Swag script launcher remains under `tools/` |
 | `vault.bat [dm]` | Build, launch, and restore the Swag Vault integration |

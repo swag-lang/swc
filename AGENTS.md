@@ -35,7 +35,8 @@ After every Swag Capture change, finish by building its Release application in t
 Use `swc.dm.exe` for a focused reproducer when a compiler defect is suspected.
 Use `-bc devmode` for a focused comparison when a failure may be specific to the Release program
 configuration. `-Configuration` and `-bc` select the compiled program configuration independently
-of the compiler executable. Keep large scale-boundary tests in the separate `stress` pass.
+of the compiler executable. Tag large scale-boundary tests with `stress` for focused selection.
+The `functional` pass includes them.
 Select `goldens`, smoke and integrations for the validation needs described in
 `validate-swag-changes`.
 Headless tests and goldens use the CPU renderer. Native application tests and OpenGL integrations

@@ -228,8 +228,11 @@ impl Decoder
         scope
         {
             defer #fail catch .serializer.endElement(typedVal)
-            if not found do
+            if not found
+            {
                 fail SerializationError{"serialized type value is missing"}
+            }
+
             try .readTypedContent(data, typedVal.pointedType)
         }
 
@@ -518,8 +521,13 @@ impl Decoder
 
                 catch
                 {
-                    defer #fail catch .serializer.endElement(field.value)
-                    try .readTypedContent(fieldData, fieldType)
+                    scope
+                    {
+                        defer #fail catch .serializer.endElement(field.value)
+                        try .readTypedContent(fieldData, fieldType)
+                    }
+
+                    try .serializer.endElement(field.value)
                 }
                 {
                     if not (.flags & .IgnoreStructFieldError)
@@ -534,8 +542,6 @@ impl Decoder
                     Reflection.reset(fieldData, fieldType)
                     continue
                 }
-
-                try .serializer.endElement(field.value)
             }
 
             // Rebuild derived state after all fields have been read.

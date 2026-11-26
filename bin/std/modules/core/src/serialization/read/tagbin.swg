@@ -22,6 +22,15 @@ private func deflateExpansionFits(uncompressedSize, compressedSize: u64)->bool
 // Shape index of a field reference coming from a stream without shapes.
 private const NoShapeIndex = 0xFFFFFFFF_u32
 
+private struct TagBinElement
+{
+    parentInput:   const [..] u8?
+    parentSection: *TagBinSection?
+    resume:        u64
+    tmpBuf:        *Buffer?
+    exact:         bool
+}
+
 // Raw TagBin arrays bypass per-value decoding, so validate closed enums in place,
 // including enums nested in raw structs and fixed arrays.
 private func hasValidClosedEnumValues(type: typeinfo, values: const [*] u8?, count: u64)->bool
@@ -213,12 +222,12 @@ struct TagBin
     convertNextNative: const *Swag.TypeInfoNative?     // Pending native conversion.
     convertValToArray: bool                            // Whether the next scalar becomes an array.
     convertArrayToVal: bool                            // Whether the next array becomes a scalar.
-    outStack:          Array'{ buf: const [..] u8?, seek: u64, section: *TagBinSection? }
-    elemStack:         Array'{ compressed: bool, tmpBuf: *Buffer? }
-    tmpPool:           ArrayPtr'Buffer
-    payloadSection:    *TagBinSection?     // Section bounding the current input buffer.
-    expectedRootType:  typeinfo?           // Root type supplied by [[Core.Serialization.Decoder.readAll]].
-    shapeDirOffset:    u64                 // Body offset where the shape directory begins.
+    elemStack:         Array!{TagBinElement}
+    tmpPool:           ArrayPtr!{Buffer}
+    fieldRefs:         Array!{*TagBinFieldRef}     // Scratch references used to order indexed field ranges.
+    payloadSection:    *TagBinSection?             // Section bounding the current input buffer.
+    expectedRootType:  typeinfo?                   // Root type supplied by [[Core.Serialization.Decoder.readAll]].
+    shapeDirOffset:    u64                         // Body offset where the shape directory begins.
 }
 
 // Counters describing what a decode had to tolerate.
@@ -256,6 +265,8 @@ struct TagBinFieldRef
         shapeIndex: u32      // Index in the section shape, or 'NoShapeIndex'.
         consumed:   bool     // Whether the field was requested by the decode.
     }
+
+    internal end: u64
 }
 
 // One field of a shape directory entry.
@@ -272,7 +283,7 @@ struct TagBinShapeField
 // The field list of one struct type, stored once per version 1 stream.
 struct TagBinShape
 {
-    public fields: Array'TagBinShapeField     // The fields, in written order.
+    public fields: Array!{TagBinShapeField}     // The fields, in written order.
 
     internal
     {
@@ -382,12 +393,16 @@ private impl TagBin
     {
         let seek = .stream.seek
         let sec  = .payloadSection
-        if not sec do
-            return .stream.length() - seek
+        let size = .stream.length()
+        if not sec
+        {
+            return size - seek
+        }
 
         // A section inherits or checks its enclosing limit when it opens.
-        let end = sec.kind == .Unordered and seek < sec.fatSeek ? sec.fatSeek : sec.afterFatSeek
-        return seek < end ? end - seek : 0'u64
+        let sectionEnd = sec.kind == .Unordered and seek < sec.fatSeek ? sec.fatSeek : sec.afterFatSeek
+        let end        = Math.min(size, sectionEnd)
+        return seek < end ? end - seek : 0_u64
     }
 
     // Reads a varint-sized UTF-8 string from the current stream.
@@ -572,6 +587,7 @@ private impl TagBin
     {
         let savedSeek = .stream.position()
         .stream.setPosition(sec.fatSeek)
+        defer .stream.setPosition(savedSeek)
 
         if 4 > .remainingPayload()
         {
@@ -591,20 +607,49 @@ private impl TagBin
             if 8 > .remainingPayload()
             {
                 fail SerializationError{"fat table runs past the end of its section"}
-            let seek = try .stream.readNative'u64()
-            if seek < sec.payloadStart or seek >= sec.fatSeek do
+            let seek = try .stream.readNative!{u64}()
+            if seek < sec.payloadStart or seek >= sec.fatSeek
+            {
                 fail SerializationError{"field offset runs past the payload area"}
-            if sec.mapSeek.contains(key) do
+            }
+
+            if sec.mapSeek.contains(key)
+            {
                 fail SerializationError{"serialized field key is duplicated"}
+            }
             }
 
             sec.mapSeek.add(#move key, {seek: seek, shapeIndex: NoShapeIndex})
             fatCount -= 1
         }
 
+        try .setFieldEnds(sec)
         sec.mapLoaded    = true
         sec.afterFatSeek = .stream.position()
-        .stream.setPosition(savedSeek)
+    }
+
+    // Index records can arrive in any order. A field ends where its physical successor starts.
+    mtd setFieldEnds(sec: *TagBinSection) fail
+    {
+        defer .fieldRefs.clear()
+        for &key, reference in sec.mapSeek
+        {
+            discard key
+            .fieldRefs.add(reference)
+        }
+
+        .fieldRefs.sort(func||(left, right) => left.seek <=> right.seek)
+        for reference, index in .fieldRefs
+        {
+            let next = index + 1
+            let end  = next < .fieldRefs.count ? .fieldRefs[next].seek : sec.fatSeek
+            if end == reference.seek
+            {
+                fail SerializationError{"field offsets are duplicated"}
+            }
+
+            reference.end = end
+        }
     }
 
     // Opens a section of a version 1 stream.
@@ -619,10 +664,15 @@ private impl TagBin
             // A raw section starts with its byte length, so the end of the decode can be
             // verified against what was written.
             let available = .remainingPayload()
-            if #sizeof(u64) > available do
+            if #sizeof(u64) > available
+            {
                 fail SerializationError{"raw section header runs past the end of its section"}
-            let rawLen = try .stream.readNative'u64()
-            if rawLen > available - #sizeof(u64) do
+            }
+
+            let rawLen = try .stream.readNative!{u64}()
+            if rawLen > available - #sizeof(u64)
+            {
+                .diag.corruptPayloads += 1
                 fail SerializationError{"raw section runs past the end of the stream"}
             }
 
@@ -646,23 +696,33 @@ private impl TagBin
 
         let available    = .remainingPayload()
         let enclosingEnd = .stream.position() + available
-        if 2 * #sizeof(u32) + #sizeof(u64) > available do
+        if 2 * #sizeof(u32) + #sizeof(u64) > available
+        {
             fail SerializationError{"section header runs past the end of its section"}
-        let sig = try .stream.readNative'u32()
-        if sig != Write.TagBinSignature.Fat do
+        }
+
+        let sig = try .stream.readNative!{u32}()
+        if sig != Write.TagBinSignature.Fat
+        {
             fail SerializationError{"invalid fat signature"}
+        }
         }
 
         let shapeId = try .stream.readNative!{u32}()
         if shapeId == Write.TagBinAdHocShape
         {
-            if 2 * #sizeof(u32) + 2 * #sizeof(u64) > available do
+            if 2 * #sizeof(u32) + 2 * #sizeof(u64) > available
+            {
                 fail SerializationError{"ad-hoc section header runs past the end of its section"}
-            let fatSeek      = try .stream.readNative'u64()
-            let fatCount     = try .stream.readNative'u64()
+            }
+
+            let fatSeek      = try .stream.readNative!{u64}()
+            let fatCount     = try .stream.readNative!{u64}()
             let payloadStart = .stream.position()
-            if fatSeek < payloadStart or fatSeek > enclosingEnd do
+            if fatSeek < payloadStart or fatSeek > enclosingEnd
+            {
                 fail SerializationError{"fat table runs past the end of its section"}
+            }
             }
 
             if enclosingEnd - fatSeek < #sizeof(u32)
@@ -703,8 +763,10 @@ private impl TagBin
 
         let fatSeek      = try .stream.readNative!{u64}()
         let payloadStart = .stream.position()
-        if fatSeek < payloadStart or fatSeek > enclosingEnd do
+        if fatSeek < payloadStart or fatSeek > enclosingEnd
+        {
             fail SerializationError{"fat table runs past the end of its section"}
+        }
         }
 
         if shape.fields.count > (enclosingEnd - fatSeek) / #sizeof(u32)
@@ -724,10 +786,8 @@ private impl TagBin
         sec.payloadStart = payloadStart
         sec.afterFatSeek = afterFatSeek
 
-        // The shape matching the reader's own field list, in order, means every field
-        // sits exactly where the decode expects it: read positionally and never touch
-        // the fat. Ignored elements and custom 'ISerialize' fields break that pairing,
-        // so they force the indexed path.
+        // An identical shape lets each field use the next offset as its bound without
+        // building a lookup table. Ignored and custom fields force keyed lookup.
         if plan and not plan.hasCustom and .ignoreElements.isEmpty()
         {
             // Repeated instances of the same shape share the compatibility check.
@@ -756,8 +816,6 @@ private impl TagBin
         .stream.setPosition(sec.fatSeek)
         defer .stream.setPosition(savedSeek)
         let payloadSize = sec.fatSeek - sec.payloadStart
-        var fieldOffsets: HashSet!{u32}
-        defer fieldOffsets.free()
         for i in shape.fields.count
         {
             if #sizeof(u32) > .remainingPayload()
@@ -771,19 +829,14 @@ private impl TagBin
                 fail SerializationError{"field offset runs past the payload area"}
             }
 
-            if fieldOffsets.contains(cast(u32, off))
-            {
-                fail SerializationError{"field offsets are duplicated"}
-            }
-
-            fieldOffsets.add(cast(u32, off))
             let sf = shape.fields[i]
             if sec.mapSeek.contains(sf.key)
             {
                 fail SerializationError{"serialized field key is duplicated"}
-            sec.mapSeek.add(sf.key, TagBinFieldRef{sec.payloadStart + off, cast(u32, i), i < sec.posIndex})
+            sec.mapSeek.add(sf.key, {seek: sec.payloadStart + off, shapeIndex: cast(u32, i), consumed: i < sec.posIndex})
         }
 
+        try .setFieldEnds(sec)
         sec.consumedCount = sec.posIndex
         sec.mapLoaded     = true
     }
@@ -812,22 +865,36 @@ private impl TagBin
         return true
     }
 
-    // Enters the payload of an element, decompressing it when the stream says so.
-    //
-    // On return the element owns an entry on the element stack, and the stream reads
-    // from the decompressed payload when one was present.
+    // Reads a shaped offset without moving the cursor. The section already checked the table range.
+    mtd shapedOffset(sec: const *TagBinSection, index: u64)->u64
+    {
+        var offset: u32
+        Memory.copy(&offset, .stream.data() + sec.fatSeek + index * #sizeof(u32), #sizeof(u32))
+        return offset
+    }
+
+    // Keeps absolute offsets inside a shorter view so nested framed values keep their wire offsets.
+    mtd openElement(end: u64, exact = false)
+    {
+        .elemStack.add({parentInput: .stream.readBuffer, resume: end, exact: exact})
+        .stream.readBuffer = Swag.makeSlice(.stream.data(), end)
+    }
+
+    // Installs the decompressed payload when the element's flags request it.
     mtd enterElementPayload(compressed: bool, val: TypeValue) fail
     {
         if not compressed
         {
-            .elemStack.add({compressed: false, tmpBuf: null})
             return
         }
 
-        if 2 * #sizeof(u64) > .remainingPayload() do
+        if 2 * #sizeof(u64) > .remainingPayload()
+        {
             fail SerializationError{"compressed payload header runs past the end of its section", field: val}
-        let uncompressedSize = try .stream.readNative'u64()
-        let compressedSize   = try .stream.readNative'u64()
+        }
+
+        let uncompressedSize = try .stream.readNative!{u64}()
+        let compressedSize   = try .stream.readNative!{u64}()
 
         // Both sizes come from the stream, so a truncated or foreign payload can
         // name any value at all. The compressed run must fit in what is left,
@@ -837,6 +904,12 @@ private impl TagBin
             fail SerializationError{"compressed payload runs past the end of the stream", field: val}
         }
 
+        let element = .elemStack.backPtr()
+        if element.parentInput and compressedSize != .stream.length() - .stream.position()
+        {
+            fail SerializationError{"compressed payload does not fill its field", field: val}
+        }
+
         if not deflateExpansionFits(uncompressedSize, compressedSize)
         {
             fail SerializationError{"corrupted compressed payload", field: val}
@@ -844,7 +917,6 @@ private impl TagBin
 
         if uncompressedSize == compressedSize
         {
-            .elemStack.add({compressed: false, tmpBuf: null})
             return
         }
 
@@ -869,23 +941,26 @@ private impl TagBin
             fail SerializationError{"corrupted compressed payload", field: val}
         }
 
-        // track this element context
-        .elemStack.add({compressed: true, tmpBuf: decompressedBuffer})
+        if not element.parentInput
+        {
+            element.parentInput = .stream.readBuffer
+            element.resume      = .stream.position() + compressedSize
+        }
 
-        .outStack.add({buf: .stream.readBuffer, seek: .stream.seek + compressedSize, section: .payloadSection})
-        .stream.readBuffer = decompressedBuffer.toSlice()
-        .stream.seek       = 0
-        .payloadSection    = null
+        element.tmpBuf        = decompressedBuffer
+        element.parentSection = .payloadSection
+        .stream.readBuffer    = decompressedBuffer.toSlice()
+        .stream.seek          = 0
+        .payloadSection       = null
     }
 
-    // Checks the element type read from the stream against the requested one, arming a
-    // conversion when they differ. Returns false when the element must be skipped.
-    mtd checkElementType(streamCrc: u32, val: TypeValue) fail
+    // Matches the element type or arms a compatible conversion. Returns true for an exact match.
+    mtd checkElementType(streamCrc: u32, val: TypeValue)->bool fail
     {
         let wantedCrc = wireTypeCrc(val.pointedType)
         if streamCrc == wantedCrc
         {
-            return
+            return true
         }
 
         // We try to find a registered type with the crc from the stream.
@@ -909,7 +984,7 @@ private impl TagBin
 
             // Structured payloads are framed and decoded through the statically
             // requested shape. Their runtime type name is not part of the contract.
-            return
+            return false
         }
 
         // The type exists, but we do not have a way to convert it to the requested
@@ -943,18 +1018,20 @@ private impl TagBin
                 discard try .stream.readVarint()
             }
         }
+
+        return false
     }
 
     // Looks a field up by its canonical key. Marks the entry consumed and returns its
-    // position, or 'found' false.
-    mtd findFieldRef(sec: *TagBinSection, val: TypeValue)->{ found: bool, seek: u64, shapeIndex: u32 }
+    // range, or null for a missing field.
+    mtd findFieldRef(sec: *TagBinSection, val: TypeValue)->*TagBinFieldRef?
     {
         let reqKey = wireFieldKey(val)
         var ent    = sec.mapSeek.tryFind(reqKey)
 
         if not ent
         {
-            return {found: false, seek: 0, shapeIndex: 0}
+            return null
         }
 
         if not ent.value.consumed
@@ -963,7 +1040,7 @@ private impl TagBin
             sec.consumedCount  += 1
         }
 
-        return {found: true, seek: ent.value.seek, shapeIndex: ent.value.shapeIndex}
+        return &ent.value
     }
 
     // Reads the stream header, re-bases the stream on the body, and loads the shape directory.
@@ -973,11 +1050,13 @@ private impl TagBin
         if expectedRootType
         {
             let wantedSchema = wireSchema(expectedRootType)
-            if streamSchema != wantedSchema do
+            if streamSchema != wantedSchema
+            {
                 fail SerializationError{
                     Errors.mkString(Format.toString("document schema is [[%]], but the requested type needs [[%]]",
                                                     streamSchema,
                                                     wantedSchema))}
+            }
             }
         }
         else if not .schema.isEmpty() and streamSchema != .schema
@@ -1071,8 +1150,10 @@ private impl TagBin
             var fieldCount = try .stream.readVarint()
 
             // Even an empty key needs a length byte, an identity and flags.
-            if fieldCount > .remaining() / (1 + #sizeof(u32) + #sizeof(Write.TagBinShapeFlags)) do
+            if fieldCount > .remaining() / (1 + #sizeof(u32) + #sizeof(Write.TagBinShapeFlags))
+            {
                 fail SerializationError{"corrupted shape directory"}
+            }
             }
 
             shape.fields.reserve(fieldCount)
@@ -1099,7 +1180,7 @@ private impl TagBin
             fail SerializationError{"shape directory has trailing data"}
         }
 
-        .stream.setPosition(0)
+        .stream = ByteStream.openRead(Swag.makeSlice(.stream.data(), shapeDirOffset))
     }
 }
 
@@ -1139,9 +1220,11 @@ impl TagBin
         .bodyBuffer.clear()
         .sections.clear()
         .payloadSection = null
-        .outStack.clear()
-        for &element in .elemStack where element.tmpBuf do
+        for &element in .elemStack where element.tmpBuf
+        {
             .releaseTmpBuf(element.tmpBuf)
+        }
+
         .elemStack.clear()
         .convertNextNative = null
         .convertValToArray = false
@@ -1157,9 +1240,11 @@ impl TagBin
     {
         let expectedRootType = .expectedRootType
         .expectedRootType = null
-        let sig = try .stream.readNative'u32()
-        if sig != Write.TagBinSignature.Root do
+        let sig = try .stream.readNative!{u32}()
+        if sig != Write.TagBinSignature.Root
+        {
             fail SerializationError{"invalid root signature"}
+        }
         }
 
         let mark = try .stream.readNative!{u32}()
@@ -1285,14 +1370,14 @@ impl TagBin
         let sec = unwrap .sections.back()
         if sec.recoveryFailed or .ignoreElements.contains(val.name)
         {
-            .elemStack.add({compressed: false, tmpBuf: null})
+            .elemStack.add({})
             return false
         }
 
         // If section is raw, then we just have values without versionning
         if sec.kind == .Raw
         {
-            .elemStack.add({compressed: false, tmpBuf: null})
+            .elemStack.add({})
             return true
         }
 
@@ -1302,11 +1387,29 @@ impl TagBin
         {
             let shape = unwrap sec.shape
             Swag.assert(sec.posIndex < shape.fields.count)
-            let sf = shape.fields.storage() + sec.posIndex
+            let index = sec.posIndex
+            let sf    = shape.fields.storage() + index
             Swag.assert(sf.key == wireFieldKey(val))
             sec.posIndex += 1
 
-            catch .enterElementPayload(sf.flags.has(.Compressed), val)
+            catch
+            {
+                if not index and .shapedOffset(sec, 0) != 0
+                {
+                    fail SerializationError{"first field offset does not start at the section payload", field: val}
+                }
+
+                let payloadSize = sec.fatSeek - sec.payloadStart
+                let next        = sec.posIndex < sec.fatCount ? .shapedOffset(sec, sec.posIndex) : payloadSize
+                if next > payloadSize or sec.payloadStart + next < .stream.position()
+                {
+                    fail SerializationError{"field index does not delimit the next payload", field: val}
+                }
+
+                .openElement(sec.payloadStart + next, exact: true)
+                defer #fail catch .endElement(val)
+                try .enterElementPayload(sf.flags.has(.Compressed), val)
+            }
             {
                 .recoverElement()
                 fail Swag.err
@@ -1319,25 +1422,21 @@ impl TagBin
         if sec.shape
         {
             let ent = .findFieldRef(sec, val)
-            if not ent.found
+            if not ent
             {
-                .elemStack.add({compressed: false, tmpBuf: null})
+                .elemStack.add({})
                 return false
-            }
-
-            // The offset comes from the stream, so it can name any position at all.
-            if ent.seek >= .stream.length()
-            {
-                fail SerializationError{"field offset runs past the end of the stream", field: val}
             }
 
             .stream.setPosition(ent.seek)
             let sf = sec.shape.fields.storage() + ent.shapeIndex
 
-            try .enterElementPayload(sf.flags.has(.Compressed), val)
+            .openElement(ent.end)
             defer #fail catch .endElement(val)
+            try .enterElementPayload(sf.flags.has(.Compressed), val)
 
-            try .checkElementType(sf.crcType, val)
+            let exact = try .checkElementType(sf.crcType, val)
+            .elemStack.backPtr().exact = exact and sec.plan and not sec.plan.hasCustom
             return true
         }
 
@@ -1346,23 +1445,21 @@ impl TagBin
         if sec.mapLoaded
         {
             let ent = .findFieldRef(sec, val)
-
-            // The requested field is not there, just ignore it
-            if not ent.found
+            if not ent
             {
-                .elemStack.add({compressed: false, tmpBuf: null})
+                .elemStack.add({})
                 return false
             }
 
-            // The offset comes from the stream, so it can name any position at all.
-            if ent.seek >= .stream.length()
-            {
-                fail SerializationError{"field offset runs past the end of the stream", field: val}
-            }
-
-            // Otherwise we seek to the field in the stream
             .stream.setPosition(ent.seek)
+            .openElement(ent.end)
         }
+        else
+        {
+            .elemStack.add({})
+        }
+
+        defer #fail catch .endElement(val)
 
         // Read the name signature.
         let fieldKey = try .readWireString()
@@ -1384,12 +1481,7 @@ impl TagBin
 
         try .enterElementPayload(flags.has(.Compressed), val)
 
-        // The element owns an entry on the stacks from here on. Whatever fails below
-        // has to hand them back, because a caller pairs 'endElement' with a
-        // 'beginElement' that returned and with nothing else.
-        defer #fail catch .endElement(val)
-
-        try .checkElementType(crcType, val)
+        discard try .checkElementType(crcType, val)
         return true
     }
 
@@ -1398,8 +1490,10 @@ impl TagBin
     mtd recoverElement()
     {
         let sec = unwrap .sections.back()
-        if not sec.positional do
+        if not sec.positional
+        {
             return
+        }
 
         sec.positional = false
         catch .loadShapedFat(sec)
@@ -1412,29 +1506,32 @@ impl TagBin
         .diag.recoveredFields += 1
     }
 
-    // Closes the current field and clears any pending conversion.
-    mtd endElement(_: TypeValue) fail
+    // Closes the current field and validates that an exact-layout value filled its payload.
+    mtd endElement(val: TypeValue) fail
     {
         .convertNextNative = null
         .convertValToArray = false
         .convertArrayToVal = false
 
         Swag.assert(not .elemStack.isEmpty())
-        let ctx = .elemStack.popBack()
-        if not ctx.compressed
+        let ctx        = .elemStack.popBack()
+        let incomplete = ctx.exact and .stream.position() != .stream.length()
+        if ctx.parentInput
         {
-            return
+            .stream.readBuffer = ctx.parentInput
+            .stream.seek       = ctx.resume
         }
 
-        // We must have a previous buffer to append into
-        Swag.assert(not .outStack.isEmpty())
-        let {buf: parentOut, seek: parentSeek, section: parentSection} = .outStack.popBack()
+        if ctx.tmpBuf
+        {
+            .payloadSection = ctx.parentSection
+            .releaseTmpBuf(ctx.tmpBuf)
+        }
 
-        // Switch current 'output' back to parent and recycle tmp
-        .stream.readBuffer = parentOut
-        .stream.seek       = parentSeek
-        .payloadSection    = parentSection
-        .releaseTmpBuf(unwrap ctx.tmpBuf)
+        if incomplete
+        {
+            fail SerializationError{"serialized value does not fill its field", field: val}
+        }
     }
 
     // Does nothing: TagBin values need no opening mark.
@@ -1528,8 +1625,11 @@ impl TagBin
 
                 // Validate the payload against the remaining bytes before any
                 // allocation, so a corrupt count cannot request arbitrary memory.
-                if elemSize != 0 and countElem[] > .remainingPayload() / elemSize do
+                if elemSize != 0 and countElem[] > .remainingPayload() / elemSize
+                {
                     fail SerializationError{"raw sequence runs past the end of the stream"}
+                }
+
                 let byteCount = countElem[] * elemSize
 
                 // The stream also records the written byte length: a different
@@ -1668,8 +1768,11 @@ impl TagBin
     // Reads a value of type `NT`, converting it from the stored type when a conversion is armed.
     mtd(NT) readNative()->NT fail
     {
-        #static if NT == Core.String do
+        #static if NT == Core.String
+        {
             return try .readWireString()
+        }
+
         else
         {
             let nativeSize = .convertNextNative ? .convertNextNative.sizeof : #sizeof(NT)

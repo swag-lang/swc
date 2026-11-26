@@ -110,6 +110,13 @@ struct TagBinPayload
     transient: s32
 }
 
+struct TagBinFieldBounds
+{
+    label:  String
+    marker: u8
+    check:  u8
+}
+
 #[Serialization.Version(1)]
 struct TagBinLegacyPayload
 {
@@ -942,19 +949,22 @@ func releaseTagBinInterface(value: *(ITagBinScore?))
     payload.name = "a longer TagBin name"
     let bytes = encodeTagBin(payload)
     let field = findTagBinV1Field(bytes.toSlice(), "name")
-    var patched: Array'u8
+    var patched: Array!{u8}
     patched.add(bytes.toSlice())
-    for i in 9 do
+    for i in 9
+    {
         patched[field.seek + i] = 0xFF
+    }
+
     patched[field.seek + 9] = 1
 
-    var decoder: Serialization.Decoder'Serialization.Read.TagBin
+    var decoder: Serialization.Decoder!{Serialization.Read.TagBin}
     var error:   Swag.Error
-    catch CoreTests.readAndDelete'(TagBinPayload, Serialization.Read.TagBin)(&decoder, patched.toSlice()) as error
+    catch CoreTests.readAndDelete!{TagBinPayload, Serialization.Read.TagBin}(&decoder, patched.toSlice()) as error
     Swag.require(error.value() != null)
 
     decoder.flags |= .IgnoreStructFieldError
-    let decoded = expect decoder.readAll'TagBinPayload(patched.toSlice())
+    let decoded = expect decoder.readAll!{TagBinPayload}(patched.toSlice())
     defer Memory.delete(decoded)
     Swag.require(decoded.id == 17 and decoded.active and decoded.name.isEmpty())
     Swag.require(Slice.equals(decoded.counts.toSlice(), [-8, 0, 7, 42]))
@@ -963,6 +973,54 @@ func releaseTagBinInterface(value: *(ITagBinScore?))
     Swag.require(decoder.serializer.diag.fieldErrors == 1)
     Swag.require(decoder.serializer.diag.recoveredFields == 1)
     Swag.require(decoder.serializer.diag.droppedStreamFields == 0)
+}
+
+// A length inside one field cannot consume the next field or leave trailing bytes before it.
+#test
+{
+    let bytes = encodeTagBin(TagBinFieldBounds{label: "abc", marker: 53, check: 44})
+    let field = findTagBinV1Field(bytes.toSlice(), "label")
+    var damaged: Array!{u8}
+    damaged.add(bytes.toSlice())
+
+    for indexed in [false, true]
+    {
+        for length in [2_u8, 4]
+        {
+            damaged[field.seek] = length
+            var decoder: Serialization.Decoder!{Serialization.Read.TagBin}
+            if indexed
+            {
+                decoder.serializer.ignoreElements.add("unused")
+            }
+
+            var error: Swag.Error
+            catch CoreTests.readAndDelete!{TagBinFieldBounds, Serialization.Read.TagBin}(&decoder, damaged.toSlice()) as error
+            Swag.require(error.value() != null)
+
+            decoder.flags |= .IgnoreStructFieldError
+            let decoded = expect decoder.readAll!{TagBinFieldBounds}(damaged.toSlice())
+            defer Memory.delete(decoded)
+            Swag.require(decoded.label.isEmpty() and decoded.marker == 53 and decoded.check == 44)
+            Swag.require(decoder.serializer.diag.fieldErrors == 1)
+        }
+    }
+}
+
+// A type the writer skips can share an offset with the next field in a positional section.
+#test
+{
+    struct WithSkippedPointer
+    {
+        pointer: *u32?
+        marker:  u8
+    }
+
+    let bytes   = encodeTagBin(WithSkippedPointer{marker: 71})
+    var decoder: Serialization.Decoder!{Serialization.Read.TagBin}
+    let decoded = expect decoder.readAll!{WithSkippedPointer}(bytes.toSlice())
+    defer Memory.delete(decoded)
+    Swag.require(decoded.pointer == null and decoded.marker == 71)
 }
 
 // A scalar whose stream type crc resolves to nothing has no self-validating framing,

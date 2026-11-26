@@ -151,30 +151,6 @@ func buildEdges(outline: const *Outline)->Array'Edge
     return edges
 }
 
-func isInside(edges: const [..] Edge, x, y: f64)->bool
-{
-    var winding = 0
-    for edge in edges
-    {
-        if y < edge.minY or y >= edge.maxY do
-            continue
-
-        let cross = (edge.x1 - edge.x0) * (y - edge.y0) - (x - edge.x0) * (edge.y1 - edge.y0)
-        if edge.y0 <= y and edge.y1 > y
-        {
-            if cross > 0 do
-                winding += 1
-        }
-        elif edge.y1 <= y and edge.y0 > y
-        {
-            if cross < 0 do
-                winding -= 1
-        }
-    }
-
-    return winding != 0
-}
-
 // Accumulate the exact coverage contribution of one edge piece, already clipped to
 // a single scanline band, into the per-column 'area' and 'cover' buffers.
 //   - cover[x] : signed vertical extent of the edge inside column x (0..1 of the band)

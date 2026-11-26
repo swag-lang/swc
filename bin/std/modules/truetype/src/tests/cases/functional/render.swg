@@ -90,6 +90,31 @@ using Swag, Core
     Swag.require(hasInside)
 }
 
+// Scalar reference for the sign of a sample in the SDF tests.
+func referenceSdfInside(edges: const [..] Edge, x, y: f64)->bool
+{
+    var winding = 0
+    for edge in edges
+    {
+        if y < edge.minY or y >= edge.maxY do
+            continue
+
+        let cross = (edge.x1 - edge.x0) * (y - edge.y0) - (x - edge.x0) * (edge.y1 - edge.y0)
+        if edge.y0 <= y and edge.y1 > y
+        {
+            if cross > 0 do
+                winding += 1
+        }
+        elif edge.y1 <= y and edge.y0 > y
+        {
+            if cross < 0 do
+                winding -= 1
+        }
+    }
+
+    return winding != 0
+}
+
 // The two-pixel SDF kernel must be byte-identical to the scalar distance and winding
 // definitions, including the last pixel of an odd-width row.
 #test
@@ -131,7 +156,7 @@ using Swag, Core
                     let sampleX        = left + cast(f64, px) + 0.5
                     let sampleY        = top - (cast(f64, py) + 0.5)
                     let distance       = closestEdgeDistance(edges.toSlice(), sampleX, sampleY)
-                    let signedDistance = isInside(edges.toSlice(), sampleX, sampleY) ? distance : -distance
+                    let signedDistance = referenceSdfInside(edges.toSlice(), sampleX, sampleY) ? distance : -distance
                     let value          = Math.max(0.0, Math.min(255.0, 128.0 + signedDistance * scale))
                     let expected       = cast(u8, Math.round(value))
                     Swag.require(bitmap.buffer![cast(u64, py) * bitmap.width + px] == expected)

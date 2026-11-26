@@ -957,6 +957,36 @@ private func requireBmpDecodeFails(bytes: const [..] u8)
     Swag.require(errorOutcome.value() != null)
 }
 
+// A truncated command can occur before the first pixel or in the end marker.
+#test
+{
+    for depth in [4'u16, 8]
+    {
+        let compression = depth == 4 ? Bmp.BI_RLE4 : Bmp.BI_RLE8
+        let index       = depth == 4 ? 0x10'u8 : 1'u8
+        for size in [1'u32, 3]
+        {
+            var cb: ConcatBuffer
+            cb.addStruct(BmpFH{bfType: 0x4D42, bfSize: 62 + size, bfOffBits: 62})
+            cb.addStruct(Bmp.Header{biSize: 40, biWidth: 1, biHeight: 1, biPlanes: 1, biBitCount: depth,
+                                    biCompression: compression, biSizeImage: size, biClrUsed: 2})
+            addBmpPaletteColor(&cb, 0, 0, 0)
+            addBmpPaletteColor(&cb, 40, 50, 60)
+            cb.addNative(1'u8)
+            if size == 3
+            {
+                cb.addNative(index)
+                cb.addNative(0'u8)
+            }
+
+            var image:   Image
+            var outcome: Swag.Error
+            catch { image = try Image.decode("short-rle-command.bmp", nnBytes(cb.toSlice())) } as outcome
+            Swag.require(outcome.value() != null)
+        }
+    }
+}
+
 // Decode BI_RLE8 indexed data.
 #test
 {

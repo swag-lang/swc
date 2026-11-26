@@ -147,12 +147,12 @@ private impl Codebook
         return true
     }
 
-    // Adds the leaf of `entry` at the end of `codeword`, whose `length` bits are read most
-    // significant first.
-    mtd insert(codeword, length, entry: u32) fail
+    // Adds the leaf of `entry`, starting at an ancestor that the build has
+    // already visited. The path records node indices for the next codeword.
+    mtd insert(codeword, length, entry, common: u32, path: *[33] u32) fail
     {
-        var node = 0'u32
-        var bit  = length
+        var node = path[][common]
+        var bit  = length - common
         while bit
         {
             bit -= 1
@@ -180,6 +180,8 @@ private impl Codebook
             {
                 node = cast(u32, child)
             }
+
+            path[][length - bit] = node
         }
     }
 
@@ -192,15 +194,22 @@ private impl Codebook
         .children.add(0)
         .usedEntries = 0
 
-        var marker: [33] u32
+        var marker, path: [33] u32
+        var previousCodeword = 0'u32
+        var previousDepth    = 0'u32
         for length, index in .lengths where length
         {
             let bits  = cast(u32, length)
             var entry = marker[bits]
             if bits < 32 and (entry >> bits) do
                 fail InvalidFormatError{"Vorbis codebook lengths overpopulate the tree"}
-            try .insert(entry, bits, cast(u32, index))
-            .usedEntries += 1
+            let aligned = entry << (32 - bits)
+            let shared  = cast(u32, Swag.leadingZeros(previousCodeword ^ aligned))
+            let common  = Math.min(shared, previousDepth, bits - 1)
+            try .insert(entry, bits, cast(u32, index), common, &path)
+            previousCodeword = aligned
+            previousDepth    = bits - 1
+            .usedEntries     += 1
 
             // Advance the marker of this length, carrying into the shorter ones that shared the branch.
             var level = bits
@@ -245,21 +254,32 @@ private impl Codebook
     // A negative leaf packs the entry index above the four bits that hold its length.
     mtd buildPrefixes()
     {
-        let children = .children.storage()
-        for prefix in PrefixCount
-        {
-            var child = 0's32
-            var depth = 0'u32
-            while depth < PrefixBits
-            {
-                let bit = (prefix >> depth) & 1
-                child = children[cast(u64, child) * 2 + bit]
-                depth += 1
-                if child <= 0 do
-                    break
-            }
+        #[Swag.Inline]
+        func pack(child: s32, depth: u32)->s32
+            => child < 0 ? -(((-child - 1) << LeafBits) | cast(s32, depth)) : child
 
-            .prefixes[prefix] = child < 0 ? -(((-child - 1) << LeafBits) | cast(s32, depth)) : child
+        let children = .children.storage()
+        .prefixes[0] = pack(children[0], 1)
+        .prefixes[1] = pack(children[1], 1)
+
+        // Each new bit either descends to a child or repeats a resolved short
+        // codeword. Expanding by depth reuses each resolved prefix for both new slots.
+        for depth in 2'u32 until PrefixBits + 1
+        {
+            let width = 1'u32 << (depth - 1)
+            for prefix in width
+            {
+                let child = .prefixes[prefix]
+                if child <= 0
+                {
+                    .prefixes[prefix + width] = child
+                    continue
+                }
+
+                let node = cast(u64, child) * 2
+                .prefixes[prefix]         = pack(children[node], depth)
+                .prefixes[prefix + width] = pack(children[node + 1], depth)
+            }
         }
     }
 

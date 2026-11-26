@@ -121,6 +121,18 @@ func decodePalette4Row(source: const [*] u8, destination: [*] u8, count: u64, co
     var src  = source
     var dst  = destination
     var left = count
+    while left >= 9
+    {
+        // Each following pair or tail pixel overwrites the extra two bytes.
+        cast(*u64, dst)[]        = pairs[src[0]]
+        cast(*u64, (dst + 6))[]  = pairs[src[1]]
+        cast(*u64, (dst + 12))[] = pairs[src[2]]
+        cast(*u64, (dst + 18))[] = pairs[src[3]]
+        src                      += 4
+        dst                      += 24
+        left                     -= 8
+    }
+
     while left >= 3
     {
         // The next pixel overwrites the two high bytes covered by this store.
@@ -141,9 +153,25 @@ func decodePalette4Row(source: const [*] u8, destination: [*] u8, count: u64, co
 
 func decodePalette8Row(source: const [*] u8, destination: [*] u8, count: u64, colors: const [*] u32)
 {
-    for pixel in count - 1 do
-        cast(*u32, (destination + pixel * 3))[] = colors[source[pixel]]
-    writePackedBgr(destination + (count - 1) * 3, colors[source[count - 1]])
+    var src  = source
+    var dst  = destination
+    var left = count
+    while left >= 5
+    {
+        let first = cast(u64, colors[src[0]]) | (cast(u64, colors[src[1]]) << 24)
+        let last  = cast(u64, colors[src[2]]) | (cast(u64, colors[src[3]]) << 24)
+
+        // The next pixel overwrites the two bytes beyond this block.
+        cast(*u64, dst)[]       = first
+        cast(*u64, (dst + 6))[] = last
+        src                     += 4
+        dst                     += 12
+        left                    -= 4
+    }
+
+    for pixel in left - 1 do
+        cast(*u32, (dst + pixel * 3))[] = colors[src[pixel]]
+    writePackedBgr(dst + (left - 1) * 3, colors[src[left - 1]])
 }
 
 func palette4RowFits(source: const [*] u8, count: u64, paletteCount: u32)->bool

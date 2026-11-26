@@ -576,6 +576,9 @@ PDF-specific evidence, investigations, and intended outcomes stay together here.
   take the transformed text fixture from 974 to 389 ms at 1200 px and from
   5133 to 1372 ms at 2400 px. PDFium takes 163 and 292 ms. Cached glyph
   outlines improve mean RGB agreement and preserve PDF advances.
+- [Applying soft mask coverage](../bench/results/swagscope-filesamples/pdf-raster-linux.md#applying-soft-mask-coverage-to-images)
+  brings the transformed mask fixture from 927 to 174 ms at 1200 px.
+  PDFium takes 106 ms. The 43 supported cases keep their bitmap checksums.
 - Profile the remaining stroke coverage and image span composition. Retaining encoded images for
   later zoom levels would let decoding use the requested image size.
 - Done when: the first-page gap has a stage-level explanation and the dominant work is within 1.25×

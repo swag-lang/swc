@@ -852,3 +852,50 @@ bit for bit.
 
 Native Release passes 321 audio tests. Release-safe passes
 59 focused FLAC and MP3 tests.
+
+## Twenty-third optimization pass
+
+This follow-up compares the changed codecs with commit `98a3032b32` and native FFmpeg.
+Each median uses 56 samples and includes opening and materializing ten seconds of PCM16.
+[Raw stage times and PCM deltas](audio-decode-linux-round23.json)
+
+| Format | R22 CPU 0 (ms) | Swag CPU 0 (ms) | FFmpeg CPU 0 (ms) | R22 CPU 1 (ms) | Swag CPU 1 (ms) | FFmpeg CPU 1 (ms) |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| Ogg FLAC | 8.92 | 8.79 | 11.07 | 8.78 | 8.58 | 11.21 |
+| AAC | 6.30 | 6.28 | 6.79 | 6.25 | 6.31 | 6.63 |
+| Ogg Vorbis | 7.14 | 7.05 | 7.61 | 6.76 | 6.66 | 7.18 |
+| Opus | 20.29 | 20.41 | 20.24 | 19.46 | 19.88 | 19.54 |
+
+| Format | R22 4 cores (ms) | Swag 4 cores (ms) | FFmpeg 4 cores (ms) |
+| --- | ---: | ---: | ---: |
+| Ogg FLAC | 6.21 | 6.24 | 7.96 |
+| AAC | 4.75 | 4.47 | 6.70 |
+| Ogg Vorbis | 6.70 | 6.73 | 7.10 |
+| Opus | 19.97 | 19.55 | 19.42 |
+
+
+The generated-fixture medians use 42 samples per worker budget.
+
+| Fixture | R22 1 core (ms) | Swag 1 core (ms) | FFmpeg 1 core (ms) | R22 4 cores (ms) | Swag 4 cores (ms) | FFmpeg 4 cores (ms) |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| `aac-lc-32k-mono.aac` | 2.40 | 2.42 | 3.41 | 2.32 | 2.22 | 3.42 |
+| `aac-lc-48k-5.1.aac` | 18.43 | 18.50 | 17.55 | 11.19 | 9.66 | 17.49 |
+| `aac-lc-48k-stereo.aac` | 8.34 | 8.32 | 7.84 | 5.59 | 5.98 | 8.37 |
+| `ogg-flac-48k-mono-16.oga` | 3.64 | 3.64 | 6.48 | 2.60 | 2.25 | 5.91 |
+| `opus-5ms-48k-stereo.opus` | 28.07 | 28.32 | 32.68 | 28.50 | 28.97 | 33.07 |
+| `vorbis-32k-mono.ogg` | 3.60 | 3.44 | 4.93 | 3.72 | 3.49 | 5.09 |
+| `vorbis-48k-5.1.ogg` | 27.59 | 26.80 | 27.25 | 28.08 | 28.27 | 28.04 |
+| `vorbis-48k-stereo.ogg` | 8.96 | 8.85 | 9.99 | 9.00 | 8.89 | 10.19 |
+
+AAC merges packets inside their existing six-channel synthesis lanes
+and handles only lane boundaries in the final merge. It also simplifies
+the escape-value test. Vorbis reduces codebook build work. Ogg reuses the
+verified page slice and masks its stored checksum in the SIMD fold. All
+selected PCM remains byte-identical to R22.
+
+The PCM matches between the one-core and four-core runs, with a peak difference of
+one PCM16 unit from the original Swag output. All files match the preceding build
+bit for bit.
+
+Native Release passes 322 audio tests. Release-safe passes
+69 focused AAC, Ogg, Opus and Vorbis tests.

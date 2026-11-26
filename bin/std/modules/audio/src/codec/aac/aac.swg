@@ -1046,7 +1046,8 @@ private impl AacCodec
                     var samplePower = g_SignedPowers[value]
                     #static if Escape
                     {
-                        if value == 0 or value == 2 * SpectralValueBias
+                        // The two biased escape values, 0 and 32, have zero low five bits.
+                        if not (value & (2 * SpectralValueBias - 1))
                         {
                             let magnitude = try reader.readEscapeMagnitude()
                             samplePower = requantize(value == 0 ? -magnitude : magnitude, 1.0)
@@ -1650,9 +1651,9 @@ private func mergeSurroundPcm16(worker: [*] AacCodec, head: const [*] f32, prev:
     }
 }
 
-private func mergeChunk(states: [*] AacCodec, heads: const [*] f32, initialOverlap: const *[MaxChannels, FrameSamples] f32, count, stride: u64, output: [*] s16)
+private func mergeChunk(states: [*] AacCodec, heads: const [*] f32, initialOverlap: const *[MaxChannels, FrameSamples] f32, first, end, stride: u64, output: [*] s16)
 {
-    for index in count
+    for index in first until end
     {
         let worker       = states + index
         let prev         = index ? &states[index - 1].overlap : initialOverlap
@@ -1691,6 +1692,18 @@ private func mergeChunk(states: [*] AacCodec, heads: const [*] f32, initialOverl
                     packetOutput[frame * worker.channels + channel] = roundPcm16(current[frame] + tail[frame])
             }
         }
+    }
+}
+
+private func synthesizeMergeChunk(states: [*] AacCodec, heads: [*] f32, shape: const *[MaxChannels] s32, history: const *[MaxChannels, FrameSamples] f32, first, end, stride: u64, output: [*] s16)
+{
+    for index in first until end
+    {
+        synthesizeChunk(states, heads, shape, index, index + 1, stride)
+
+        // The first packet of a later lane still needs the adjacent lane's tail.
+        if not first or index > first do
+            mergeChunk(states, heads, history, index, index + 1, stride, output)
     }
 }
 
@@ -1753,18 +1766,45 @@ internal func decodePacketBatch(decoder: IPacketCodec, packets: const [..] const
             seed = advanceNoise(seed, states[index].noiseSamples)
         }
 
-        // Adjacent window shapes are now known. Workers write head and tail contributions.
-        let shape = &previousShape
-        for lane in 1 until lanes
+        // Adjacent window shapes are now known.
+        let shape   = &previousShape
+        let history = &overlap
+        if initial.channels == 6 and lanes > 1
         {
-            let first = count * lane / lanes
-            let end   = count * (lane + 1) / lanes
-            group.spawn(func|states, heads, shape, first, end, stride|() { synthesizeChunk(states, heads, shape, first, end, stride) })
+            // Convert each packet while its head and previous tail are local to its lane.
+            for lane in 1 until lanes
+            {
+                let first = count * lane / lanes
+                let end   = count * (lane + 1) / lanes
+                group.spawn(func|states, heads, shape, history, first, end, stride, target|()
+                {
+                    synthesizeMergeChunk(states, heads, shape, history, first, end, stride, target)
+                })
+            }
+
+            synthesizeMergeChunk(states, heads, shape, history, 0, count / lanes, stride, target)
+            try group.join()
+
+            for lane in 1 until lanes
+            {
+                let first = count * lane / lanes
+                mergeChunk(states, heads, history, first, first + 1, stride, target)
+            }
+        }
+        else
+        {
+            for lane in 1 until lanes
+            {
+                let first = count * lane / lanes
+                let end   = count * (lane + 1) / lanes
+                group.spawn(func|states, heads, shape, first, end, stride|() { synthesizeChunk(states, heads, shape, first, end, stride) })
+            }
+
+            synthesizeChunk(states, heads, shape, 0, count / lanes, stride)
+            try group.join()
+            mergeChunk(states, heads, history, 0, count, stride, target)
         }
 
-        synthesizeChunk(states, heads, shape, 0, count / lanes, stride)
-        try group.join()
-        mergeChunk(states, heads, &overlap, count, stride, target)
         let final = states + count - 1
         overlap = final.overlap
         for channel in initial.channels do

@@ -91,6 +91,16 @@ func readPageHeader(bytes: const [..] u8, offset: u64)->PageHeader fail
 // The checksum a page must carry, computed over the page with its own checksum field zeroed.
 internal func pageChecksum(page: const [..] u8)->u32
 {
+    #static if not Core.BIG_ENDIAN
+    {
+        let foldBytes = page.count & ~15'u64
+        if foldBytes >= 64
+        {
+            let block = foldMsbChecksum'(32'u32, ChecksumPolynomial, true)(page[until foldBytes], 0)
+            return updateChecksum(page[foldBytes until], updateChecksum(block, 0))
+        }
+    }
+
     var crc = 0'u32
     let beforeChecksum = Math.min(page.count, ChecksumOffset)
     let afterChecksum  = Math.min(page.count, ChecksumEnd)
@@ -98,20 +108,7 @@ internal func pageChecksum(page: const [..] u8)->u32
         crc = (crc << 8) ^ ChecksumTable[0, (crc >> 24) ^ page[index]]
     for beforeChecksum until afterChecksum do
         crc = (crc << 8) ^ ChecksumTable[0, crc >> 24]
-
-    var offset = afterChecksum
-    #static if not Core.BIG_ENDIAN
-    {
-        let foldBytes = (page.count - offset) & ~15'u64
-        if foldBytes >= 64
-        {
-            let block = foldMsbChecksum'(32'u32, ChecksumPolynomial)(page[offset until offset + foldBytes], crc)
-            crc    = updateChecksum(block, 0)
-            offset += foldBytes
-        }
-    }
-
-    return updateChecksum(page[offset until], crc)
+    return updateChecksum(page[afterChecksum until], crc)
 }
 
 private func updateChecksum(bytes: const [..] u8, initial: u32)->u32
@@ -266,6 +263,7 @@ private func identify(body: const [..] u8)->StreamInfo fail
 private struct Walker
 {
     source:  ByteSource
+    page:    const [..] u8?     // The last verified page, borrowed from source.
     offset:  u64     // Where the page being examined starts.
     packets: Array'SoundPacket
 }
@@ -288,6 +286,7 @@ private impl Walker
         let page  = bytes[until total]
         if pageChecksum(page) != readU32(page, ChecksumOffset) do
             fail InvalidFormatError{"Ogg page checksum does not match its content"}
+        .page = page
         return true
     }
 
@@ -307,11 +306,8 @@ private impl Walker
     // Returns the body of the page at `.offset`, whose header was just read.
     //
     // The slice borrows the source's window and is valid until the walk moves on.
-    mtd body(header: const *PageHeader)->const [..] u8 fail
-    {
-        try .source.seek(.offset + header.headerBytes)
-        return (try .source.peek(header.bodyBytes))[0 until header.bodyBytes]
-    }
+    mtd const body(header: const *PageHeader)->const [..] u8
+        => (unwrap .page)[header.headerBytes until]
 }
 
 // Finds the sound stream among the first pages, which every stream of the file opens with.
@@ -322,7 +318,7 @@ private func findStream(walker: *Walker)->StreamInfo fail
     {
         if not (header.flags & FirstPage) do
             break
-        let info = try identify(try walker.body(&header))
+        let info = try identify(walker.body(&header))
         if info.kind != .Unknown
         {
             var result = info
@@ -481,7 +477,7 @@ private func indexRuns(walker: *Walker, info: const *StreamInfo)->u64 fail
 
         if info.kind == .Opus
         {
-            let body = try walker.body(&header)
+            let body = walker.body(&header)
             var at   = 0'u64
             var headersToSkip = header.sequence == info.firstAudioSequence ? info.headerPacketsOnAudioPage : 0'u32
             for index in header.segments

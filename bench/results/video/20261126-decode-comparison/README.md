@@ -292,6 +292,31 @@ experiment allowed the same four-core affinity mask as the parallel budgets.
 The separate single-core comparisons above used one logical CPU.
 [Raw timings, picture hashes and fixture command](thread-budgets.json).
 
+## AVC multi-slice frame lanes
+
+The stream publishes validated slice headers and reference lists before the frame lane
+starts entropy decoding. The lane owns each unescaped slice buffer until it finishes.
+It decodes the slices in their original order and publishes reference metadata when they
+are complete. Single-slice row-by-row reconstruction retains its direct path.
+
+Seven rotating runs per fixture compare against the preceding decoder. Times are median
+milliseconds per picture. The 4K fixture uses six slices, and both controls use one slice.
+
+| AVC input and thread budget | Swag before | Swag after | FFmpeg | Swag after / FFmpeg |
+| --- | ---: | ---: | ---: | ---: |
+| 4K six slices, four threads | 18.48 | 13.92 | 5.22 | 2.67× |
+| 1080p High, four threads | 5.02 | 4.31 | 1.61 | 2.67× |
+| 960×540 Baseline, four threads | 2.51 | 2.43 | 0.69 | 3.54× |
+| 4K six slices, one thread | 30.17 | 29.71 | 17.34 | 1.71× |
+| 1080p High, one thread | 7.57 | 7.81 | 5.04 | 1.55× |
+| 960×540 Baseline, one thread | 4.99 | 4.73 | 2.00 | 2.36× |
+
+The 4K multi-slice change reduced four-thread wall time by 24.7%. A separate five-run
+trial of the deferred path measured 33.6%. The single-thread 1080p control had overlapping
+run ranges and a 3.2% higher group median, while five of its seven paired observations
+were faster. All 405 pictures matched FFmpeg byte for byte at both budgets. The H.264,
+MP4 and Matroska Release selection passed 104 tests. [Raw timings and hashes](avc-deferred-slices.json)
+
 ## Reproduce
 
 The [workload](../../../workloads/videodecode/README.md) contains the benchmark and generation

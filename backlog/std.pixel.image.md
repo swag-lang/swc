@@ -385,11 +385,11 @@ ships; history lives in Git, not here.
 ### std.pixel.image.054 — Reduce the remaining JPEG encode cost on textured photographs
 
 - Evidence: the forward transform and quantization use packed lanes. The
-  [Motion JPEG comparison](../bench/results/video/20261126-encode-comparison/README.md#motion-jpeg-against-ffmpeg-91-and-libjpeg-turbo-321)
+  [Motion JPEG comparison](../bench/results/video/20261126-encode-comparison/README.md#motion-jpeg-matrix-order-coefficient-storage)
   uses the same JPEG encoder on 30 camera frames. At matched RGB PSNR, Swag spends
-  2.03× libjpeg-turbo's process CPU time and emits within 1% of its bytes.
-- Next: profile the packed forward transform, coefficient stores and dense AC output
-  separately on the camera clip using the current encoder.
+  1.52× libjpeg-turbo's process CPU time and emits within 1% of its bytes.
+- Next: profile the packed forward transform and matrix-order quantization separately
+  on the camera clip using the current encoder.
 - Done when: at comparable RGB PSNR and packet size, camera encode time falls in
   an interleaved A/B and uniform, saturated and odd-sized inputs retain their output.
 - Related: std.core.042, compiler.codegen.022.

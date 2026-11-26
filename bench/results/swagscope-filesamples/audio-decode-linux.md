@@ -1589,3 +1589,41 @@ All 15 outputs match the preceding Swag PCM and remain identical across
 worker budgets.
 
 Native Release passes 342 audio tests. Release-safe passes 342 audio tests.
+
+## Forty-fourth optimization pass
+
+Both Linux Release builds use the compiler and SDK from `b768af2f89`.
+The previous audio sources are at `800585cadf`. Each cohort opens and
+materializes the first ten seconds of PCM16. It contains 42 observations
+per engine, or 56 in the second single-core run.
+
+[Raw stage times, paired medians, and PCM digests](audio-decode-linux-round44.json)
+
+| Input | Cohort | Before (ms) | Swag (ms) | FFmpeg 9.1 (ms) |
+| --- | --- | ---: | ---: | ---: |
+| `sample3.ac3` | CPU 0 | 6.69 | 6.32 | 6.17 |
+| `ac3-32k-mono.ac3` | CPU 0 | 3.86 | 3.86 | 3.52 |
+| `ac3-44k-stereo.ac3` | CPU 0 | 7.71 | 7.43 | 7.46 |
+| `ac3-48k-stereo.ac3` | CPU 0 | 7.61 | 7.46 | 7.05 |
+| `ac3-48k-5.1.ac3` | CPU 0 | 18.97 | 19.07 | 20.99 |
+| `eac3-48k-5.1.eac3` | CPU 0 | 20.07 | 19.96 | 20.91 |
+| `sample3.ac3` | CPU 1 | 6.35 | 6.50 | 6.47 |
+| `ac3-44k-stereo.ac3` | CPU 1 | 7.26 | 7.21 | 6.88 |
+| `sample3.ac3` | Four cores | 5.12 | 5.32 | 6.62 |
+| `ac3-32k-mono.ac3` | Four cores | 2.81 | 2.60 | 3.51 |
+| `ac3-44k-stereo.ac3` | Four cores | 5.98 | 6.09 | 7.00 |
+| `ac3-48k-stereo.ac3` | Four cores | 6.31 | 6.42 | 7.39 |
+| `ac3-48k-5.1.ac3` | Four cores | 15.27 | 15.13 | 20.64 |
+| `eac3-48k-5.1.eac3` | Four cores | 20.72 | 20.76 | 21.98 |
+
+
+The Dolby coefficient reader chooses whether to add dither once per
+channel and block. All six selected outputs match the previous build
+and match across worker budgets. All 19 targeted native tests pass in
+Release and Release-safe. The wider standalone checks also preserve
+31 Dolby outputs and 114 malformed-input, callback, and seek results.
+
+FileSamples drops by 0.37 ms on CPU 0. In the other cohorts it takes
+0.15 ms longer on CPU 1 and 0.21 ms longer on four cores. The four-core
+median remains 1.29 ms ahead of FFmpeg. Generated 44.1 kHz stereo gains
+0.28 ms on CPU 0 and is close to the FFmpeg median on that core.

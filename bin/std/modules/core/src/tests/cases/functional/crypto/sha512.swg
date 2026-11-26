@@ -145,7 +145,7 @@ func sha512_256DigestBytes(digest: Hash.Sha512_256.Digest)->[32] u8
 
     var input: [400] u8
     for index in input.count do
-        input[index] = cast(u8, index * 29 + 7)
+        input[index] = cast(u8, (index * 29 + 7) & 0xFF)
     let expected224 = sha512_224DigestBytes(Hash.Sha512_224.compute(input))
     let expected256 = sha512_256DigestBytes(Hash.Sha512_256.compute(input))
     for split in [0'u64, 1, 111, 112, 113, 127, 128, 129, 255, 256, 399, 400]

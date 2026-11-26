@@ -120,8 +120,7 @@ func sha224DigestBytes(digest: Hash.Sha224.Digest)->[28] u8
     Swag.require(Crypto.constantTimeEqual(abcDigest, sha224HexBytes("23097d223405d8228642a477bda255b32aadbce4bda0b3f7e36c9da7").toSlice()))
 
     var input: [128] u8
-    for index in input.count do
-        input[index] = cast(u8, index * 37 + 11)
+    fillSha256Pattern(input)
     let expected = Hash.Sha224.compute(input)
     for split in [0'u64, 1, 55, 56, 63, 64, 65, 127, 128]
     {

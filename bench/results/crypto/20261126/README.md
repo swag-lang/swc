@@ -54,3 +54,4 @@ optimizations moved each result.
 - [MD5 wide loads and direct blocks](md5-wide.md)
 - [BLAKE3 four-chunk batches](blake3-four-chunks.md)
 - [Poly1305 keyed-state cleanup](poly1305-cleanup.md)
+- [Packed SHA-512 message schedule](sha512-schedule.md)

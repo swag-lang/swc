@@ -156,18 +156,26 @@ impl Sha512Core
 
     private mtd transformBlock(buf: const [*] u8)
     {
+        using Math
         var words: [80] u64
-        let input = cast(const [*] u64, buf)
-        for index in 16 do
-            words[index] = Math.bigEndianToNative(input[index])
-
-        for index in 16 until 80
+        let input    = cast(const [*] u64, buf)
+        let schedule = words.buffer
+        for pair in 8
         {
-            let x      = words[index - 15]
-            let y      = words[index - 2]
-            let sigma0 = Swag.ror(x, 1'u8) ^ Swag.ror(x, 8'u8) ^ (x >> 7)
-            let sigma1 = Swag.ror(y, 19'u8) ^ Swag.ror(y, 61'u8) ^ (y >> 6)
-            words[index] = words[index - 16] + sigma0 + words[index - 7] + sigma1
+            let index = pair * 2
+            Simd.store(schedule + index, Math.bigEndianToNative(Simd.load(input + index)))
+        }
+
+        // Both words depend on earlier pairs, so they can share the packed rotations.
+        for pair in 8 until 40
+        {
+            let index    = pair * 2
+            let x        = Simd.load(schedule + index - 15)
+            let y        = Simd.load(schedule + index - 2)
+            let sigma0   = Swag.ror(x, 1'u8) ^ Swag.ror(x, 8'u8) ^ (x >> 7)
+            let sigma1   = Swag.ror(y, 19'u8) ^ Swag.ror(y, 61'u8) ^ (y >> 6)
+            let expanded = Simd.load(schedule + index - 16) + sigma0 + Simd.load(schedule + index - 7) + sigma1
+            Simd.store(schedule + index, expanded)
         }
 
         var a = .state[0]

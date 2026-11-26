@@ -421,13 +421,15 @@ the sampling layouts used by ffmpeg's 4:2:0, 4:2:2, and 4:4:4 Motion JPEG output
   pattern and 4.9% more on a camera clip. The camera gap rises to 24.2% against x264 High/veryfast.
   Against the shared Baseline profile, x264 veryfast is 2.21-2.61 times as fast at QP 25
   across seven repeats per clip. The remaining opportunity is primarily encode throughput,
-  especially the region estimator and candidate motion costs. The High profile also exposes
+  especially the region estimator and candidate motion costs. Packed column profiles and
+  Hadamard scores cut median paired encode wall time by 11-20% across the four 640x360
+  clips, with bitstreams unchanged. The High profile also exposes
   compression headroom from coding tools unavailable in Baseline.
   [Measurements and fixtures](../bench/results/video/20261126-encode-comparison/README.md)
 - Next: remeasure the complete 1080p60 and 4K60 capture paths with the new coder, which spends
   about 26 ms on a 2664×1078 film picture with eight slices. Slices cost 5% of the stream:
   code one slice in parallel waves, decisions first and bits after, to drop them. Vectorize the
-  region estimate, the 4x4 transforms and the Intra_4x4 predictions. Then 8×8 and 16×8
+  remaining region estimator, the forward 4x4 transforms and the Intra_4x4 predictions. Then 8×8 and 16×8
   partitions, which x264 uses on 2–5% of these macroblocks, and a trellis or adaptive dead
   zone; CABAC needs the Main profile. Give the exact QP 0 path the same motion search.
   The app allows eight slices up to 4096 pixels and four above that, where downscaled desktop

@@ -49,6 +49,26 @@ The equal-PSNR table uses separate interpolated points and should be used for ra
 At the shared Baseline profile and fixed QP, x264 veryfast was 2.21–2.61× as fast
 across the clips. The JSON includes individual timing samples and x264 process CPU times.
 
+### SIMD motion profiles and transform scores
+
+Swag now keeps the 16×16 Hadamard score in vector lanes until its final reduction and
+sums and compares the motion estimator's column profiles in packed groups. Every scoring
+operation keeps the original integer result and vector tie-breaking. Seven rotating runs
+at QP 25, four slices and three CPUs each encoded six independent 30-picture sequences.
+The changes were measured together and individually.
+
+| Input | Baseline wall, 180 pictures | SIMD wall, 180 pictures | Median paired wall change | Median paired process CPU change |
+| --- | ---: | ---: | ---: | ---: |
+| Scrolling desktop | 290.87 ms | 233.93 ms | −16.4% | −11.5% |
+| Changing tiles | 696.32 ms | 632.70 ms | −11.8% | −13.1% |
+| Animated test pattern | 329.72 ms | 257.09 ms | −20.2% | −19.6% |
+| Camera | 954.27 ms | 833.41 ms | −11.3% | −9.9% |
+
+The four-clip sweep at QPs 21, 25, 29 and 33 produced identical MP4 files. A 650×370 clip
+with partial edge macroblocks did so at QPs 1, 25 and 51 with one and eight slices. The resulting 552 pictures
+matched FFmpeg's independent decoded planes byte for byte, and
+23 focused native Release tests passed. [Individual timings and equality checks](h264-simd.json)
+
 ### Reproduction
 
 Build the Linux Release compiler and the native x264 reference using the [workload

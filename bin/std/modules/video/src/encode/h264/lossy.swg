@@ -996,7 +996,7 @@ func lossySatd16(a: const [*] u8, aStride: u64, b: const [*] u8, bStride: u64)->
 {
     let ones: Simd.S16x8 = Simd.splat(1's16)
     let alternate        = cast(Simd.S16x8, [1's16, -1, 1, -1, 1, -1, 1, -1])
-    var sum              = 0'u32
+    var sum:  Simd.S32x4
     for band in 4'u64
     {
         // Four rows of differences, eight columns to a vector: the vertical half of the
@@ -1021,16 +1021,16 @@ func lossySatd16(a: const [*] u8, aStride: u64, b: const [*] u8, bStride: u64)->
             {
                 // The horizontal half: pair sums and pair differences, then |x + y| + |x - y|,
                 // which is twice the larger of |x| and |y|.
-                var pairs: [8] s32
-                Simd.store(pairs.buffer, Simd.mulAddPairs(lines[line], ones))
-                Simd.store(pairs.buffer + 4, Simd.mulAddPairs(lines[line], alternate))
-                for pair in 4'u64 do
-                    sum += cast(u32, Math.max(Math.abs(pairs[pair * 2]), Math.abs(pairs[pair * 2 + 1])))
+                let sums  = cast #bit(Simd.U32x4, Math.abs(Simd.mulAddPairs(lines[line], ones)))
+                let diffs = cast #bit(Simd.U32x4, Math.abs(Simd.mulAddPairs(lines[line], alternate)))
+                let even  = cast #bit(Simd.S32x4, Simd.deinterleaveEven(sums, diffs))
+                let odd   = cast #bit(Simd.S32x4, Simd.deinterleaveOdd(sums, diffs))
+                sum += Math.max(even, odd)
             }
         }
     }
 
-    return sum
+    return cast(u32, Simd.sum(sum))
 }
 
 // Sum of the absolute Hadamard coefficients of the difference of two 4x4 blocks, halved.
@@ -1598,53 +1598,82 @@ impl LossyCoder
         if bestScore == 0 and bestY == 0 do
             return {{}, false}
 
-        // Column profiles over the rows the vertical shift pairs up, in cells of rows.
-        let cellsY = (rows + Cell - 1) / Cell
-        var columns:       Array's32
-        var columnsBefore: Array's32
+        // Column profiles over the rows the vertical shift pairs up, in cells of rows. Each
+        // cell sums at most eight samples per column, which fits in a 16-bit word.
+        func addColumns(columns: [*] u16, line: const [*] u8, count: u64)
+        {
+            for offset in count / 16
+            {
+                let at      = offset * 16
+                let samples = Simd.load(line + at)
+                Simd.store(columns + at, Simd.load(columns + at) + Simd.widenLow(samples))
+                Simd.store(columns + at + 8, Simd.load(columns + at + 8) + Simd.widenHigh(samples))
+            }
+        }
+
+        let cellsY      = (rows + Cell - 1) / Cell
+        let beforeWidth = width + 2 * range
+        let beforeLeft  = Math.max(0, left - range)
+        let beforeRight = Math.min(total, left + width + range)
+        let beforeStart = beforeLeft - left + range
+        let beforeCount = cast(u64, beforeRight - beforeLeft)
+        var columns:       Array'u16
+        var columnsBefore: Array'u16
         columns.resize(cast(u64, width * cellsY))
-        columnsBefore.resize(cast(u64, (width + 2 * range) * cellsY))
+        columnsBefore.resize(cast(u64, beforeWidth * cellsY))
         for sample in rows / 4
         {
             // One row in four tells the columns apart as well as all of them.
             let row = sample * 4
-            if top + row + bestY < 0 or top + row + bestY >= height do
+            let y   = top + row + bestY
+            if y < 0 or y >= height do
                 continue
             let cell       = row / Cell
             let line       = current + cast(u64, top + row) * stride + cast(u64, left)
-            let lineBefore = prior + cast(u64, top + row + bestY) * stride
-            for column in width do
-                columns[cast(u64, column * cellsY + cell)] += cast(s32, line[cast(u64, column)])
-            for column in width + 2 * range
-            {
-                let x = left - range + column
-                if x >= 0 and x < total do
-                    columnsBefore[cast(u64, column * cellsY + cell)] += cast(s32, lineBefore[cast(u64, x)])
-            }
+            let lineBefore = prior + cast(u64, y) * stride + cast(u64, beforeLeft)
+            addColumns(columns.storage() + cast(u64, cell * width), line, cast(u64, width))
+            addColumns(columnsBefore.storage() + cast(u64, cell * beforeWidth + beforeStart), lineBefore, beforeCount)
         }
 
         var bestX = 0's64
         bestScore = Swag.S64.Max
+        let mask = Simd.splat(0xFFFF'u32)
         for shift in -range to range
         {
-            var score = 0's64
-            var valid = 0's64
-            for pair in width / 2
-            {
-                let column = pair * 2
-                let x      = left + column + shift
-                if x < 0 or x >= total do
-                    continue
-                let here  = columns.storage() + cast(u64, column * cellsY)
-                let there = columnsBefore.storage() + cast(u64, (column + range + shift) * cellsY)
-                for cell in cast(u64, cellsY) do
-                    score += cast(s64, Math.abs(here[cell] - there[cell]))
-                valid += 1
-            }
-
+            // Keep the even columns whose shifted coordinates are inside the picture.
+            let first = Math.max(0, 1 - left - shift) / 2
+            let end   = Math.min(width / 2, (total - left - shift + 1) / 2)
+            let valid = end - first
             if valid * 4 < width do
                 continue
-            score = score * width / valid
+
+            var lanes: Simd.S32x4
+            var score = 0's64
+
+            // The eighth word of each load is unused. Leave the last sample for the scalar tail
+            // so a vector never reads beyond the final valid column.
+            let groups = (valid - 1) / 4
+            for cell in cellsY
+            {
+                let here  = columns.storage() + cast(u64, cell * width + first * 2)
+                let there = columnsBefore.storage() + cast(u64, cell * beforeWidth + first * 2 + range + shift)
+                for group in groups
+                {
+                    // Select every other column from each eight-word load, keeping four sums.
+                    let column = cast(u64, group * 8)
+                    let a      = cast #bit(Simd.U32x4, Simd.load(here + column)) & mask
+                    let b      = cast #bit(Simd.U32x4, Simd.load(there + column)) & mask
+                    lanes += Math.abs(cast #bit(Simd.S32x4, a) - cast #bit(Simd.S32x4, b))
+                }
+
+                for pair in groups * 4 until valid
+                {
+                    let column = cast(u64, pair * 2)
+                    score += cast(s64, Math.abs(cast(s32, here[column]) - cast(s32, there[column])))
+                }
+            }
+
+            score = (score + Simd.sumWide(lanes)) * width / valid
             if score < bestScore or (score == bestScore and Math.abs(shift) < Math.abs(bestX))
             {
                 bestScore = score

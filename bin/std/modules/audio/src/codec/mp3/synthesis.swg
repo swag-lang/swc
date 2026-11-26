@@ -158,6 +158,55 @@ private func(T, K: u64) dct9Bin(pairs: const [*] T, middle: T)->T
     return sum
 }
 
+// The outer pairs form independent even and odd cosine sums. Finish the
+// even outputs before loading the odd differences to limit live vectors.
+#[Swag.Inline]
+private func(T) factoredDct9(input: const [*] T, output: [*] T)
+{
+    scope
+    {
+        let s0 = input[0] + input[8]
+        let s1 = input[1] + input[7]
+        let s2 = input[2] + input[6]
+        let s3 = input[3] + input[5]
+        let middle = input[4]
+
+        const C20  = 0.939692621'f32
+        const C100 = -0.173648178'f32
+        const C140 = -0.766044443'f32
+        let u = s0 - s3
+        let v = s2 - s3
+        let even0 = u * C20 + v * C100
+        let even1 = u * C100 + v * C140
+        let balance = s1 * 0.5 - middle
+        let sides = s0 + s2 + s3
+        output[0] = middle + s1 + sides
+        output[2] = even0 + balance
+        output[4] = even0 + even1 - balance
+        output[6] = sides * 0.5 - s1 - middle
+        output[8] = -even1 - balance
+    }
+    scope
+    {
+        let d0 = input[0] - input[8]
+        let d1 = input[1] - input[7]
+        let d2 = input[2] - input[6]
+        let d3 = input[3] - input[5]
+
+        const C30 = 0.866025404'f32
+        const C50 = 0.642787610'f32
+        const C70 = 0.342020143'f32
+        let difference = d3 - d2
+        let odd0 = (d0 + d3) * C50 + difference * C70
+        let odd1 = (d0 + d2) * C70 - difference * C50
+        let middle = d1 * C30
+        output[1] = odd0 + odd1 + middle
+        output[3] = (d0 - d2 - d3) * C30
+        output[5] = odd0 - middle
+        output[7] = odd1 - middle
+    }
+}
+
 // Lee's even half supplies even indices. Each odd bin adds its next neighbor.
 #[Swag.Inline]
 private func(N: u64, T) mergeDctHalves(input: const [*] T, output: [*] T)
@@ -209,6 +258,10 @@ private func(N: u64, T) dct(input: [*] T, output: [*] T)
         output[0] = ends + input[1]
         output[1] = (input[0] - input[2]) * 0.866025404
         output[2] = ends * 0.5 - input[1]
+    }
+    elif N == 9 and T == Math.Simd.F32x4
+    {
+        factoredDct9'T(input, output)
     }
     elif N == 9
     {

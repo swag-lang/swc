@@ -1322,3 +1322,80 @@ the preceding 31 digests unchanged.
 
 Native Release passes 336 audio tests. Release-safe passes 114 focused AAC,
 Dolby, MP3, Opus, Ogg and Vorbis tests.
+
+## Fortieth optimization pass
+
+These native Linux Release measurements open and materialize the first ten
+seconds of PCM16. Both Swag builds use the same compiler and the previous audio
+sources are at `24f0f6bdf7`. The reference uses FFmpeg 9.1 with native x86
+assembly. FileSamples medians use 42 observations per engine, and the expanded
+set uses 28. The focused repeat uses 35 per engine.
+
+[Raw stage times and PCM digests](audio-decode-linux-round40.json)
+
+| FileSamples input | Before CPU 0 (ms) | Swag CPU 0 (ms) | FFmpeg CPU 0 (ms) | Before CPU 1 (ms) | Swag CPU 1 (ms) | FFmpeg CPU 1 (ms) | Before 4 cores (ms) | Swag 4 cores (ms) | FFmpeg 4 cores (ms) |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| `sample1.flac` | 9.25 | 8.95 | 10.45 | — | — | — | 6.50 | 6.63 | 6.41 |
+| `sample1.oga` | 8.78 | 8.51 | 10.12 | — | — | — | 6.17 | 6.25 | 6.55 |
+| `sample3.ac3` | 7.14 | 6.69 | 6.34 | 6.99 | 6.53 | 6.14 | 7.03 | 6.76 | 6.59 |
+| `sample3.mp3` | 7.68 | 7.24 | 7.00 | 7.30 | 7.15 | 6.99 | 4.20 | 4.02 | 7.16 |
+| `sample3.opus` | 17.91 | 17.05 | 17.79 | 18.46 | 17.92 | 19.32 | 18.90 | 17.47 | 18.77 |
+
+| Generated input | Before 1 core (ms) | Swag 1 core (ms) | FFmpeg 1 core (ms) | Before 4 cores (ms) | Swag 4 cores (ms) | FFmpeg 4 cores (ms) |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| `ac3-32k-mono.ac3` | 4.27 | 4.05 | 3.52 | 3.90 | 3.44 | 3.70 |
+| `ac3-32k-stereo.ac3` | 6.72 | 6.47 | 6.14 | 6.48 | 6.45 | 6.20 |
+| `ac3-44k-stereo.ac3` | 8.15 | 7.84 | 7.09 | 7.57 | 7.42 | 7.09 |
+| `ac3-48k-3.0.ac3` | 15.00 | 15.02 | 11.76 | 11.75 | 12.50 | 11.66 |
+| `ac3-48k-5.0.ac3` | 23.86 | 23.09 | 18.33 | 18.04 | 18.98 | 18.99 |
+| `ac3-48k-5.1.ac3` | 20.65 | 19.93 | 19.88 | 20.07 | 19.85 | 21.27 |
+| `ac3-48k-quad.ac3` | 20.00 | 19.25 | 14.87 | 14.71 | 14.29 | 15.23 |
+| `ac3-48k-stereo.ac3` | 7.94 | 7.61 | 6.76 | 7.95 | 7.89 | 7.09 |
+| `eac3-48k-5.1.eac3` | 20.34 | 20.43 | 19.87 | 21.02 | 21.97 | 21.09 |
+| `mp3-24k-mono.mp3` | 2.40 | 2.40 | 2.50 | 1.67 | 1.96 | 2.62 |
+| `mp3-44k-stereo-cbr.mp3` | 7.23 | 7.20 | 6.73 | 3.97 | 4.57 | 7.18 |
+| `mp3-48k-stereo.mp3` | 8.36 | 8.20 | 7.88 | 5.20 | 5.28 | 8.39 |
+| `mp3-8k-mono.mp3` | 0.97 | 0.92 | 1.08 | 0.85 | 0.74 | 1.12 |
+| `opus-20ms-48k-stereo.opus` | 26.36 | 25.31 | 25.77 | 27.58 | 25.98 | 26.85 |
+| `opus-5ms-48k-stereo.opus` | 25.65 | 24.92 | 29.16 | 26.29 | 25.82 | 30.35 |
+| `opus-voip-16k-mono.opus` | 6.81 | 6.77 | 9.18 | 7.31 | 7.07 | 10.12 |
+| `opus-voip-48k-mono.opus` | 12.96 | 12.89 | 12.88 | 13.20 | 13.44 | 13.62 |
+| `flac-44k-stereo-16.flac` | 5.89 | 5.92 | 10.16 | 3.57 | 3.46 | 6.75 |
+| `flac-48k-5.1-16.flac` | 18.53 | 18.64 | 32.08 | 9.77 | 9.70 | 18.26 |
+| `flac-96k-stereo-24.flac` | 16.63 | 16.31 | 21.65 | 8.27 | 9.88 | 14.92 |
+| `flac-verbatim-48k-stereo-16.flac` | 1.58 | 1.16 | 3.93 | 1.73 | 1.55 | 4.09 |
+| `flac-verbatim-48k-stereo-24.flac` | 1.87 | 1.46 | 4.12 | 2.19 | 1.71 | 5.38 |
+| `flac-verbatim-48k-stereo-32.flac` | 3.45 | 2.06 | 5.01 | 2.87 | 2.27 | 5.73 |
+| `ogg-flac-48k-mono-16.oga` | 3.48 | 3.36 | 6.01 | 2.16 | 2.19 | 4.88 |
+
+| Focused repeat | Before 1 core (ms) | Swag 1 core (ms) | FFmpeg 1 core (ms) | Before 4 cores (ms) | Swag 4 cores (ms) | FFmpeg 4 cores (ms) |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| `sample3.ac3` | 7.22 | 6.95 | 6.46 | 6.20 | 5.76 | 6.21 |
+| `ac3-48k-3.0.ac3` | 14.93 | 14.55 | 11.21 | 12.19 | 10.68 | 11.78 |
+| `ac3-48k-5.0.ac3` | 24.13 | 23.37 | 18.50 | 16.55 | 18.93 | 18.69 |
+| `eac3-48k-5.1.eac3` | 20.79 | 20.77 | 20.44 | 21.97 | 21.28 | 21.16 |
+| `flac-96k-stereo-24.flac` | 16.88 | 16.72 | 22.77 | 8.98 | 8.65 | 12.94 |
+| `mp3-44k-stereo-cbr.mp3` | 7.34 | 7.18 | 6.81 | 3.67 | 4.46 | 7.25 |
+| `opus-voip-48k-mono.opus` | 12.92 | 12.80 | 12.92 | 13.18 | 13.15 | 13.41 |
+
+Across the two four-core cohorts, the generated AC-3 5.0 input is slower
+than the previous build by 0.94–2.39 ms. The generated MP3 44.1 kHz
+input also loses 0.60–0.79 ms on four cores and retains its lead over
+FFmpeg. The four-core FLAC 96 kHz and E-AC-3 increases in the first
+cohort do not recur in the focused repeat.
+
+The AC-3 block parser uses a padded mantissa scratch row and wider dither
+runs. E-AC-3 keeps the guarded mantissa path. CELT copies contiguous bands
+and uses exact integer shortcuts for range-budget division and small pulse
+vectors. FLAC takes aligned verbatim bytes and assembles independent
+32-bit samples directly. MP3 factors the nine-point synthesis transform
+with a different floating-point operation order.
+
+The candidate PCM is byte-identical across worker budgets on all 29
+fixtures. The 24 non-MP3 inputs also match the previous build. The five MP3
+inputs differ by at most one PCM16 unit. On FileSamples, 1,021 of 882,000
+samples differ from the previous pass, and 42,951 differ from the first
+campaign. The maximum difference is one in both comparisons.
+
+Native Release passes 337 audio tests. Release-safe passes 104 focused Dolby,
+MP3, Opus, Ogg and FLAC tests.

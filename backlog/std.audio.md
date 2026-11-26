@@ -185,6 +185,7 @@ owned by `bin/std/modules/audio` together. [README.md](README.md) has the whole 
   each coded prefix. The regular and adaptive outputs are byte-identical across the measured
   inputs. At about 126 kb/s on FileSamples, FDK waveform SNR is 1.90 dB higher.
   [AAC payload-rate comparison](../bench/results/swagscope-filesamples/audio-encode-linux.md#aac-payload-rate-ceilings)
+  · [FLAC dual mono and WAV storage](../bench/results/swagscope-filesamples/audio-encode-linux.md#flac-dual-mono-and-wav-storage-comparison)
   Tests cover irregular input chunks and packet boundaries. The decoded AAC stream has 1024
   priming frames; the MP4 presentation edit reports the exact audible final frame count to
   `Video.Reader`, while FFmpeg currently ignores edits in fragmented MP4 and exposes at most
@@ -243,6 +244,7 @@ owned by `bin/std/modules/audio` together. [README.md](README.md) has the whole 
   · [Parallel surround Vorbis, MP3, Dolby and SILK](../bench/results/swagscope-filesamples/audio-decode-linux.md#thirty-fifth-optimization-pass)
   · [Stereo AC-3 pipeline, CELT partitions and Vorbis 7.1 residue](../bench/results/swagscope-filesamples/audio-decode-linux.md#thirty-seventh-optimization-pass)
   · [Wider Dolby and Vorbis, AAC, MP3 and Opus](../bench/results/swagscope-filesamples/audio-decode-linux.md#thirty-ninth-optimization-pass)
+  · [FLAC verbatim, MP3 transform and CELT pulse and band work](../bench/results/swagscope-filesamples/audio-decode-linux.md#fortieth-optimization-pass)
   · [Generated audio comparison](../bench/results/swagscope-filesamples/audio-decode-expanded-linux.md)
 - Next: reduce AC-3 block parsing and synthesis, MP3 spectrum and polyphase work,
   AAC spectral decoding, and Opus CELT allocation.

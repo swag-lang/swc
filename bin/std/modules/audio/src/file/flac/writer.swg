@@ -1,5 +1,5 @@
 //! Format: Native FLAC PCM16 streaming writer.
-//! Supported: One to eight channels, independent variable-block frames, constant, verbatim, and fixed subframes of orders one through four.
+//! Supported: One to eight channels, variable-block frames, constant, verbatim, and fixed subframes of orders one through four.
 //! Role: This file writes bounded PCM blocks and keeps every flushed file prefix playable.
 //
 #global namespace Flac
@@ -33,10 +33,18 @@ private struct WriterRicePlan
     partitions: [WriterMaxPartitions] WriterRicePartition
 }
 
+private enum WriterStereoMode
+{
+    Independent
+    Duplicated
+    Constant
+}
+
 // Writes signed PCM16 frames to a native FLAC file without retaining the recording.
 //
 // The writer buffers at most 4096 sample frames and one encoded frame. A flush completes a
 // partial frame, updates STREAMINFO (including its PCM MD5), and makes the prefix playable.
+// Frames with duplicated stereo use mid/side coding.
 // Input samples are interleaved and owned by the caller. Each channel chooses constant,
 // fixed prediction of orders one to four with partitioned Rice coding, or verbatim coding.
 #[Swag.NoCopy]
@@ -411,18 +419,40 @@ private impl Writer
         .bitBuffer    = 0
         .bufferedBits = 0
 
+        let stereo     = .channels == 2 ? stereoMode(.pending.storage(), count) : WriterStereoMode.Independent
+        let assignment = stereo == .Duplicated ? 10'u16 : .channels - 1
         .writeByte(0xFF)
         .writeByte(0xF9)     // Variable-block stream, with an absolute sample number.
         .writeByte(0x70)     // Explicit 16-bit block size, sample rate from STREAMINFO.
-        .writeByte(cast(u8, (.channels - 1) << 4))
+        .writeByte(cast(u8, assignment << 4))
         .writeSampleNumber(.writtenFrames)
         .writeByte(cast(u8, (count - 1) >> 8))
         .writeByte(cast(u8, (count - 1) & 0xFF))
         let headerChecksum = crc8(.frame.toSlice())
         .writeByte(headerChecksum)
 
-        for channel in .channels do
-            .writeChannel(cast(u64, channel), count)
+        switch stereo
+        {
+        case .Duplicated:
+
+            // Equal channels have the original signal as their mid channel and a zero side.
+            .writeChannel(0, count)
+            .writeBits(0, 8)
+            .writeBits(0, 17)
+
+        case .Constant:
+            let sample = cast #bit(u16, .pending[0])
+            for 2
+            {
+                .writeBits(0, 8)
+                .writeBits(sample, 16)
+            }
+
+        default:
+            for channel in .channels do
+                .writeChannel(cast(u64, channel), count)
+        }
+
         .alignByte()
         let checksum = frameCrc16(.frame.toSlice())
         .writeByte(cast(u8, checksum >> 8))
@@ -435,6 +465,40 @@ private impl Writer
         .maxBlock      = cast(u16, Math.max(.maxBlock, count))
         .minFrameBytes = .minFrameBytes ? Math.min(.minFrameBytes, bytes) : bytes
         .maxFrameBytes = Math.max(.maxFrameBytes, bytes)
+    }
+
+    // Stereo frames with two copies of a varying signal need to code that signal once.
+    func stereoMode(samples: const [*] s16, count: u32)->WriterStereoMode
+    {
+        let firstSample = samples[0]
+        let finalPair   = (count - 1) * 2
+        if firstSample != samples[1] or samples[finalPair] != samples[finalPair + 1] do
+            return .Independent
+        let bits      = cast(u32, cast #bit(u16, firstSample))
+        let reference = Math.Simd.splat(bits * 0x1_0001)
+        let low       = Math.Simd.splat(0xFFFF'u32)
+        let pairs     = cast(const [*] u32, samples)
+        var variation = Math.Simd.splat(0'u32)
+        var index     = 0'u32
+        while count - index >= 4
+        {
+            let stereo = Math.Simd.load(pairs + index)
+            if Math.Simd.bitmask((stereo & low) == (stereo >> 16)) != 0b1111 do
+                return .Independent
+            variation |= stereo ^ reference
+            index     += 4
+        }
+
+        var varied = Math.Simd.bitwiseOr(variation) != 0
+        for tail in index until count
+        {
+            let value = samples[tail * 2]
+            if value != samples[tail * 2 + 1] do
+                return .Independent
+            varied = varied or value != firstSample
+        }
+
+        return varied ? .Duplicated : .Constant
     }
 
     mtd writeSampleNumber(number: u64)

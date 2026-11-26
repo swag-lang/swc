@@ -323,6 +323,27 @@ private func celtRsqrt(x: f32)->f32 => cast(f32, (1.0 / Math.sqrt(cast(f64, x)))
 private const NoiseMultiplier = 1664525'u32
 private const NoiseIncrement  = 1013904223'u32
 
+private const CeltBandScales: [MaxPulseDimensions + 1] f32 = #run
+{
+    var scales: [MaxPulseDimensions + 1] f32
+    for width in scales.count do
+        scales[width] = cast(f32, Math.sqrt(cast(f64, width)))
+    return scales
+}
+
+private func copyScaledBand(source: const [*] f32, dest: [*] f32, width: u32, scale: f32)
+{
+    let vectorEnd = width & ~3'u32
+    for block in vectorEnd / 4
+    {
+        let at = 4 * block
+        Simd.store(dest + at, Simd.load(source + at) * scale)
+    }
+
+    for at in vectorEnd until width do
+        dest[at] = source[at] * scale
+}
+
 #[Swag.Safety(.Overflow, false)]
 private func lcgRand(seed: u32)->u32 => NoiseMultiplier * seed + NoiseIncrement
 
@@ -1250,7 +1271,7 @@ internal impl CeltDecoder
                 elif pulses[k] + offset < (den * 3) << BitRes do
                     offset += nclogn >> 3
                 ebits[k] = Math.max(0's32, pulses[k] + offset + (den << (BitRes - 1)))
-                ebits[k] = (ebits[k] / den) >> BitRes
+                ebits[k] = divideCeltBudget(ebits[k], den) >> BitRes
                 if C * ebits[k] > (pulses[k] >> BitRes) do
                     ebits[k] = pulses[k] >> (stereo ? 1 : 0) >> BitRes
                 ebits[k]        = Math.min(ebits[k], MaxFineBits)
@@ -1329,7 +1350,10 @@ internal impl CeltDecoder
             index -= threshold & cast #bit(u32, negative)
 
             let available = remaining
-            var offset    = row[remaining]
+
+            // Compare two adjacent thresholds before the less common longer search.
+            remaining -= cast(u32, row[available] > index) + cast(u32, row[available - 1] > index)
+            var offset = row[remaining]
             while offset > index
             {
                 remaining -= 1
@@ -1916,12 +1940,8 @@ internal impl CeltDecoder
         if b == 1 and not ctx.tfChange
         {
             let cm = .quantPartition(ctx, x, n, bBits, 1, lowbandIn, cast(s32, lm), gain, fillIn, dec)
-            if lowbandOut
-            {
-                let scale = cast(f32, Math.sqrt(cast(f64, n)))
-                for j in n do
-                    lowbandOut[j] = scale * x[j]
-            }
+            if lowbandOut do
+                copyScaledBand(x, lowbandOut, n, CeltBandScales[n])
 
             return cm & 1
         }
@@ -1941,8 +1961,7 @@ internal impl CeltDecoder
         if useScratch and lowband and (recombine or ((nb & 1) == 0 and tfChange < 0) or b > 1)
         {
             let scratch = .scratch.storage()
-            for j in n do
-                scratch[j] = lowband[j]
+            Memory.copy(scratch, lowband, cast(u64, n) * #sizeof(f32))
             lowband = scratch
         }
 
@@ -1992,12 +2011,8 @@ internal impl CeltDecoder
         }
 
         blocks <<= recombine
-        if lowbandOut
-        {
-            let scale = cast(f32, Math.sqrt(cast(f64, n0)))
-            for j in n0 do
-                lowbandOut[j] = scale * x[j]
-        }
+        if lowbandOut do
+            copyScaledBand(x, lowbandOut, n0, CeltBandScales[n0])
 
         return cm & ((1'u32 << blocks) - 1)
     }
@@ -2135,14 +2150,23 @@ internal impl CeltDecoder
         let er = mid * mid + side + 2.0 * xp
         if er < 6e-4'f32 or el < 6e-4'f32
         {
-            for j in n do
-                y[j] = x[j]
+            Memory.copy(y, x, cast(u64, n) * #sizeof(f32))
             return
         }
 
-        let lgain = celtRsqrt(el)
-        let rgain = celtRsqrt(er)
-        for j in n
+        let lgain     = celtRsqrt(el)
+        let rgain     = celtRsqrt(er)
+        let vectorEnd = n & ~3'u32
+        for block in vectorEnd / 4
+        {
+            let at = 4 * block
+            let l  = mid * Simd.load(x + at)
+            let r  = Simd.load(y + at)
+            Simd.store(x + at, lgain * (l - r))
+            Simd.store(y + at, rgain * (l + r))
+        }
+
+        for j in vectorEnd until n
         {
             let l = mid * x[j]
             let r = y[j]
@@ -2832,13 +2856,36 @@ internal impl CeltDecoder
     }
 }
 
+// CELT's divisors are bounded by two channels of the widest band plus one.
+private const CeltBudgetDivisorCount = 2 * MaxPulseDimensions + 2
+private const CeltBudgetPrecision    = 30'u32
+private const CeltBudgetReciprocal: [CeltBudgetDivisorCount] u32 = #run
+{
+    var reciprocals: [CeltBudgetDivisorCount] u32
+    for divisor in 1'u32 until reciprocals.count do
+        reciprocals[divisor] = ((1'u32 << CeltBudgetPrecision) + divisor - 1) / divisor
+    return reciprocals
+}
+
+#[Swag.Inline]
+private func divideCeltBudget(numerator, divisor: s32)->s32
+{
+    // The frame budget with its offsets is below 2^21. At this precision the
+    // upward reciprocal error is smaller than the next integer quotient's gap.
+    let reciprocal = CeltBudgetReciprocal[cast(u32, divisor)]
+    return cast(s32, (cast(u64, numerator) * reciprocal) >> CeltBudgetPrecision)
+}
+
 private func computeQn(n, b, offset, pulseCap: s32, stereo: bool)->s32
 {
     var n2 = 2 * n - 1
     if stereo and n == 2 do
         n2 -= 1
-    var qb = (b + n2 * offset) / n2
-    qb = Math.min(b - pulseCap - (4's32 << BitRes), qb)
+    let available = b - pulseCap - (4's32 << BitRes)
+    if available < (1's32 << BitRes >> 1) do
+        return 1
+    var qb = divideCeltBudget(Math.max(0's32, b + n2 * offset), n2)
+    qb = Math.min(available, qb)
     qb = Math.min(8's32 << BitRes, qb)
     if qb < (1's32 << BitRes >> 1) do
         return 1

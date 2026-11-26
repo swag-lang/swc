@@ -126,6 +126,41 @@ func assertFlacWriterSamples(path: string, expected: const [..] s16, channels, s
     Swag.require(file[66] == 0x16 or file[66] == 0x18)
 }
 
+// Duplicated stereo uses one varying subframe, then resumes into independent stereo.
+#test
+{
+    let path = flacWriterPath("duplicated-stereo")
+    defer discard catch File.delete(path)
+    const Frames     = 513
+    const Duplicated = 257
+    var samples: [Frames * 2] s16
+    for index in Frames
+    {
+        let value = cast(s16, cast(s32, index % 31) - 15)
+        samples[2 * index]     = value
+        samples[2 * index + 1] = index < Duplicated ? value : -value
+    }
+
+    let pcm = Swag.makeSlice(&samples[0], samples.count)
+    scope
+    {
+        var writer = expect Flac.Writer.create(path.toString(), 2, 48_000)
+        expect writer.addFrames(pcm[until 2 * Duplicated])
+        expect writer.flush()
+    }
+
+    let prefix = expect File.readAllBytes(path)
+    Swag.require(prefix[61] >> 4 == 10)
+    assertFlacWriterSamples(path.toString(), pcm[until 2 * Duplicated], 2, 48_000)
+
+    var writer = expect Flac.Writer.resume(path.toString())
+    expect writer.addFrames(pcm[2 * Duplicated until])
+    expect writer.end()
+    let completed = expect File.readAllBytes(path)
+    Swag.require(completed[prefix.count + 3] >> 4 == 1)
+    assertFlacWriterSamples(path.toString(), pcm, 2, 48_000)
+}
+
 // Silence and smooth ramps choose compact subframes; irregular noise stays verbatim.
 #test
 {

@@ -34,6 +34,7 @@ REFERENCES = {
     "poly1305": {"OpenSSL": "poly1305"},
     "chacha20": {"OpenSSL": "chacha20"},
     "chacha20-poly1305": {"OpenSSL": "chacha20-poly1305"},
+    "aes-256-ctr": {"OpenSSL": "aes-256-ctr"},
     "aes-256-gcm": {"OpenSSL": "aes-256-gcm"},
 }
 DEFAULT_ALGORITHMS = tuple(REFERENCES)

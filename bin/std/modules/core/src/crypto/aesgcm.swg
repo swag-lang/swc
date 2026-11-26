@@ -248,61 +248,14 @@ private func aesGcmTag(aes: *Aes, nonce: const [..] u8, associatedData: const [.
     return tag
 }
 
-private func aesGcmCryptBlocksHardware(aes: *Aes, nonce: const [..] u8, source: const [..] u8, destination: [..] u8, firstBlock, blockCount: u64)
-{
-    #[Swag.Inline]
-    func counter(prefix: U32x4, block: u64)->U8x16
-    {
-        var words = prefix
-        words[3] = Swag.byteSwap(cast(u32, block + 2))
-        return cast #bit (U8x16, words)
-    }
-
-    // Only the last 32 bits of the nonce's counter block change between AES inputs.
-    var initial: [AesBlockSize] u8
-    Swag.memcpy(&initial[0], nonce.buffer, AesGcmNonceSize)
-    let prefix           = cast #bit (U32x4, load(&initial[0]))
-    let sourceBytes      = source.buffer
-    let destinationBytes = destination.buffer
-    let endBlock         = firstBlock + blockCount
-    let fullBlockEnd     = Math.min(endBlock, source.count / AesBlockSize)
-    var block            = firstBlock
-    while block + 4 <= fullBlockEnd
-    {
-        let offset = block * AesBlockSize
-        aes[].xorFourHardware(counter(prefix, block),
-                              counter(prefix, block + 1),
-                              counter(prefix, block + 2),
-                              counter(prefix, block + 3),
-                              sourceBytes + offset,
-                              destinationBytes + offset)
-        block += 4
-    }
-
-    while block < fullBlockEnd
-    {
-        let offset = block * AesBlockSize
-        let stream = aes[].encryptBlockHardware(counter(prefix, block))
-        store(destinationBytes + offset, stream ^ load(sourceBytes + offset))
-        block += 1
-    }
-
-    if block < endBlock
-    {
-        var tail: [16] u8
-        store(&tail[0], aes[].encryptBlockHardware(counter(prefix, block)))
-        let offset = block * AesBlockSize
-        for i in source.count - offset do
-            destinationBytes[offset + i] = sourceBytes[offset + i] ^ tail[i]
-        Crypto.secureClear(tail)
-    }
-}
-
 private func aesGcmCryptBlocks(aes: *Aes, nonce: const [..] u8, source: const [..] u8, destination: [..] u8, firstBlock, blockCount: u64) fail
 {
     if aes[].usesHardwareRounds()
     {
-        aesGcmCryptBlocksHardware(aes, nonce, source, destination, firstBlock, blockCount)
+        var initial: [AesBlockSize] u8
+        Swag.memcpy(&initial[0], nonce.buffer, AesGcmNonceSize)
+        let prefix = cast #bit (U64x2, load(&initial[0]))
+        aesXorCounterBlocksHardware'32(aes, prefix, source, destination, firstBlock, blockCount)
         return
     }
 

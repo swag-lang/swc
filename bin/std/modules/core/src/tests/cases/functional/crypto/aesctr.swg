@@ -67,7 +67,7 @@ func aesCtrHexBytes(text: string)->Array'u8
     var plaintext: Array'u8
     plaintext.resize(65 * 1024 + 19)
     for index in plaintext.count do
-        plaintext[index] = cast(u8, index * 29 + 7)
+        plaintext[index] = cast(u8, (index * 29 + 7) & 0xFF)
     var ciphertext: Array'u8
     ciphertext.resize(plaintext.count)
     Swag.setWorkerCount(4)
@@ -91,4 +91,24 @@ func aesCtrHexBytes(text: string)->Array'u8
     Swag.require(error.value() is Errors.BadParameterError)
     for value in output do
         Swag.require(value == 0xA5)
+}
+
+#test
+{
+    // OpenSSL AES-256-CTR across a carry into the high 64 bits, with an unaligned tail.
+    let key        = aesCtrHexBytes("000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f")
+    let counter    = aesCtrHexBytes("c0c1c2c3c4c5c6c7fffffffffffffffe")
+    let ciphertext = aesCtrHexBytes("f11deed95baa9faad6acb5a54a4339506299088f48335bde7ee00a45bd165fcaddc39226a2145f86b71bfcd0dc2c0ecf3b65dbcf1f8b25a90f7c607e35f7ea5368ca7d5652336a3c75d0bd36dcb9b5c6b973c0fbdaaba896dadfdb6bcc6303af4b")
+    var buffer: [99] u8
+    let data       = buffer[1 until 98]
+    for index in data.count do
+        data[index] = cast(u8, (index * 29 + 7) & 0xFF)
+    let plaintext = buffer
+
+    expect Crypto.aesCtrCrypt(key.toSlice(), counter.toSlice(), data, data)
+    Swag.require(Crypto.constantTimeEqual(data, ciphertext.toSlice()))
+    Swag.require(buffer[0] == 0 and buffer[98] == 0)
+
+    expect Crypto.aesCtrCrypt(key.toSlice(), counter.toSlice(), data, data)
+    Swag.require(Crypto.constantTimeEqual(buffer, plaintext))
 }

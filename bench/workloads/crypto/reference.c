@@ -23,6 +23,7 @@ extern const char *lzma_version_string(void);
 
 static const unsigned char key[] = "0123456789abcdefghijklmnopqrstuv";
 static const unsigned char nonce[] = "0123456789ab";
+static const unsigned char aes_ctr_iv[] = "0123456789abcdef";
 static const unsigned char chacha_iv[] = "\1\0\0\0" "0123456789ab";
 static const unsigned char associated_data[] = "swag-crypto-1";
 
@@ -33,6 +34,7 @@ static EVP_CIPHER_CTX *cipher_context;
 static EVP_MAC *mac;
 static EVP_MAC_CTX *mac_context;
 static int authenticated;
+static int use_aes_ctr;
 static EC_GROUP *p256_group;
 static EC_POINT *p256_point;
 static BN_CTX *p256_context;
@@ -123,7 +125,7 @@ static void mac_evp(const unsigned char *p, size_t n, unsigned char *out)
 
 static void encrypt_evp(const unsigned char *p, size_t n, unsigned char *out)
 {
-    const unsigned char *iv = authenticated ? nonce : chacha_iv;
+    const unsigned char *iv = use_aes_ctr ? aes_ctr_iv : (authenticated ? nonce : chacha_iv);
     int used = 0;
     int tail = 0;
     require(EVP_EncryptInit_ex2(cipher_context, cipher, key, iv, NULL),
@@ -303,8 +305,9 @@ static operation select_operation(const char *name, size_t input_size, size_t *r
     }
 
     if (!strcmp(name, "chacha20") || !strcmp(name, "chacha20-poly1305") ||
-        !strcmp(name, "aes-256-gcm")) {
-        authenticated = strcmp(name, "chacha20") != 0;
+        !strcmp(name, "aes-256-gcm") || !strcmp(name, "aes-256-ctr")) {
+        use_aes_ctr = !strcmp(name, "aes-256-ctr");
+        authenticated = !use_aes_ctr && strcmp(name, "chacha20") != 0;
         cipher = EVP_CIPHER_fetch(NULL, name, NULL);
         require(cipher != NULL, "OpenSSL could not fetch cipher");
         cipher_context = EVP_CIPHER_CTX_new();

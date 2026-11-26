@@ -52,6 +52,9 @@ func chacha20(input: const [..] u8, output: [..] u8) =>
 func chacha20Poly1305(input: const [..] u8, output: [..] u8) =>
     expect Crypto.chacha20Poly1305Seal(Key, Nonce, input, AssociatedData, output[until input.count], output[input.count until output.count])
 
+func aes256Ctr(input: const [..] u8, output: [..] u8) =>
+    expect Crypto.aesCtrCrypt(Key, "0123456789abcdef", input, output)
+
 func aes256Gcm(input: const [..] u8, output: [..] u8) =>
     expect Crypto.aesGcmEncrypt(Key, Nonce, AssociatedData, input, output[until input.count], output[input.count until output.count])
 
@@ -95,6 +98,7 @@ func selectOperation(name: string, size: u64)->{operation: Operation, outputSize
     case "poly1305":          return {&poly1305, 16}
     case "chacha20":          return {&chacha20, size}
     case "chacha20-poly1305": return {&chacha20Poly1305, size + 16}
+    case "aes-256-ctr":       return {&aes256Ctr, size}
     case "aes-256-gcm":       return {&aes256Gcm, size + 16}
     case "x25519-public":     return {&x25519Public, 32}
     case "x25519-shared":     return {&x25519Shared, 32}

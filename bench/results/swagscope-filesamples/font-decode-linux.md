@@ -415,3 +415,31 @@ baseline `b50a786180`. FreeType selects the same glyph indices.
 | `SourceSans3-Regular.woff` | 2.396 | 0.020 | 2.435 | 2.467 | 2.933 |
 | `NotoSansCJKjp-Regular.woff` | 140.022 | 0.068 | 144.358 | 142.367 | 153.263 |
 | `NotoSansSC-Variable.woff` | 137.758 | 0.077 | 142.215 | 139.633 | 157.508 |
+
+## Parallel WOFF1 reconstruction
+
+A WOFF1 file with at least two independently compressed tables of 1 MiB or more
+can reconstruct its tables on the existing worker pool. Directory validation
+assigns each table a disjoint sfnt range. A worker verifies the zlib stream and
+copies its decoded bytes and alignment padding into that range. The decoder
+returns errors in directory order. Concurrent tables use temporary output
+buffers in addition to the final sfnt. One-worker runs and files below the
+threshold decode serially.
+
+The corpus adds WOFF1 variants of Noto Sans JP and TC variable TrueType, for 56
+scenarios on 49 files. The baseline is `29663c04fe`. Each row measures a fresh
+pathname open and one rendered glyph at 20 px with a warm filesystem cache.
+Results are medians of 11 interleaved batches of seven opens after five warmups.
+The Swag builds return identical glyph indices, advances, bitmap dimensions,
+and CRC-64. FreeType 2.14.3 agrees on the glyph indices.
+[Raw samples](font-decode-linux-woff-parallel.json)
+
+| Fixture | Before, 1 worker (ms) | After, 1 worker (ms) | Before, 4 workers (ms) | After, 4 workers (ms) | FreeType file (ms) |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| `DejaVuSans.woff` | 4.014 | 4.104 | 4.091 | 3.880 | 5.001 |
+| `Inter-Variable.woff` | 4.810 | 4.770 | 4.771 | 4.869 | 7.615 |
+| `SourceSans3-Regular.woff` | 1.945 | 2.008 | 2.016 | 2.015 | 2.599 |
+| `NotoSansCJKjp-Regular.woff` | 116.844 | 117.216 | 111.422 | 116.097 | 133.345 |
+| `NotoSansSC-Variable.woff` | 112.930 | 112.537 | 109.453 | 82.094 | 133.829 |
+| `NotoSansJP-Variable.woff` | 56.865 | 58.157 | 57.344 | 34.873 | 70.728 |
+| `NotoSansTC-Variable.woff` | 77.360 | 75.758 | 76.828 | 51.539 | 88.707 |

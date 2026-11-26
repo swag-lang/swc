@@ -14,10 +14,6 @@ private const MaxSubbandSamples  = 128
 private const HistorySamples     = 512
 private const SamplesPerSubband  = 8
 
-// Dequantized subband samples and the synthesis output use the 24-bit PCM scale of ETSI TS
-// 102 114. The packet codec publishes 16-bit samples, so every output sample drops eight bits.
-private const OutputScale = 1.0 / 256.0
-
 private const ModeChannels:     [10] u32  = [1, 2, 2, 2, 2, 3, 3, 4, 4, 5]
 private const SampleRates:      [16] u32  = [0, 8_000, 16_000, 32_000, 0, 0, 11_025, 22_050, 44_100, 0, 0, 12_000, 24_000, 48_000, 0, 0]
 private const QuantLevels:      [8] u32   = [0, 3, 5, 7, 9, 13, 17, 25]
@@ -36,6 +32,41 @@ private const ScaleFactors:     [128] f64 = [
     31_623, 35_892, 40_738, 46_238, 52_481, 59_566, 67_608, 76_736, 87_096, 98_855, 112_202, 127_350, 144_544, 164_059, 186_209, 211_349,
     239_883, 272_270, 309_030, 350_752, 398_107, 451_856, 512_861, 582_103, 660_693, 749_894, 851_138, 966_051, 1_096_478, 1_244_515, 1_412_538, 1_603_245,
     1_819_701, 2_065_380, 2_344_229, 2_660_725, 3_019_952, 3_427_678, 3_890_451, 4_415_704, 5_011_872, 5_688_529, 6_456_542, 7_328_245, 8_317_638, 0, 0, 0]
+
+// Allocation one with the first Huffman book uses at most two bits per symbol.
+private const TernaryPrefixBits = 8
+private const TernarySamples    = 4
+private const TernaryTable      = #run buildTernaryTable()
+
+private func buildTernaryTable()->[1 << TernaryPrefixBits] u64
+{
+    var result: #returntype
+    let root = cast(s32, QuantBookRoots[0, 0])
+    let bias = QuantBookBias[0]
+    for prefix in result.count
+    {
+        var consumed: u32
+        var entry:    u64
+        for sample in TernarySamples
+        {
+            var node = root
+            while node >= 0
+            {
+                Swag.require(consumed < TernaryPrefixBits)
+                let bit = (prefix >> (TernaryPrefixBits - 1 - consumed)) & 1
+                node     = HuffmanNodes[node, bit]
+                consumed += 1
+            }
+
+            let value = cast #bit(u8, cast(s8, (-1 - node - bias)))
+            entry |= cast(u64, value) << (8 * sample)
+        }
+
+        result[prefix] = (cast(u64, consumed) << 32) | entry
+    }
+
+    return result
+}
 
 private struct BitReader
 {
@@ -227,6 +258,32 @@ private impl BitReader
         return -1 - node
     }
 
+    // Two prefix lookups cover a band. Use the scalar reader when the padded lookahead
+    // would run past the packet, so short valid codes may still end close to its boundary.
+    mtd readTernaryBand(output: *[SamplesPerSubband] s32) fail
+    {
+        if .bitsBuffered < 2 * TernaryPrefixBits do
+            .refill(2 * TernaryPrefixBits)
+        if .bitsBuffered < 2 * TernaryPrefixBits or .overrun
+        {
+            for index in SamplesPerSubband do
+                output[][index] = (try .readHuffman(QuantBookRoots[0, 0])) - QuantBookBias[0]
+            return
+        }
+
+        for group in SamplesPerSubband / TernarySamples
+        {
+            let prefix = (.buffer >> (.bitsBuffered - TernaryPrefixBits)) & ((1 << TernaryPrefixBits) - 1)
+            let entry  = TernaryTable[prefix]
+            .bitsBuffered -= cast(u32, (entry >> 32))
+            for index in TernarySamples
+            {
+                let value = cast #bit(s8, cast(u8, ((entry >> (8 * index)) & 0xFF)))
+                output[][group * TernarySamples + index] = cast(s32, value)
+            }
+        }
+    }
+
     mtd readScale(selector: u32, index: *s32)->f64 fail
     {
         if selector == 6 do
@@ -342,14 +399,6 @@ internal func frameInfo(packet: const [..] u8)->FrameInfo fail
 }
 
 internal func packetFrameCount(packet: const [..] u8)->u32 fail => (try frameInfo(packet)).frames
-
-// Bias the truncating conversion by half a sample to round ties away from zero.
-#[Swag.Inline]
-private func pcm16(sample: f64)->s16
-{
-    let scaled = sample * OutputScale
-    return cast(s16, Math.clamp(scaled + Math.copysign(0.5, scaled), -32_768.0, 32_767.0))
-}
 
 private struct Codec
 {
@@ -488,34 +537,17 @@ private impl Codec
     {
         if not header.lfe do
             return
-        let factor           = header.lfe == 1 ? 128'u32 : 64
-        let coefficients     = header.lfe == 1 ? LfeFir128 : LfeFir64
-        let coefficientCount = header.lfe == 1 ? 4'u32 : 8
-        let outputChannel    = .lfeDestination(header)
-        for sample in sampleCount
-        {
-            for half in factor / 2
-            {
-                var first, second: f64
-                for tap in coefficientCount
-                {
-                    let source = cast(s32, sample) - cast(s32, tap)
-                    let value  = source < 0 ? .lfeHistory[8 + source] : samples[source]
-                    first  += coefficients[half * coefficientCount + tap] * value
-                    second += coefficients[255 - half * coefficientCount - tap] * value
-                }
 
-                let frame = sample * factor
-                destination[(frame + half) * header.channels + outputChannel] = pcm16(first)
-                destination[(frame + factor / 2 + half) * header.channels + outputChannel] = pcm16(second)
-            }
-        }
-
-        for index in 8
-        {
-            let source = cast(s32, sampleCount) - 8 + cast(s32, index)
-            .lfeHistory[index] = source < 0 ? .lfeHistory[8 + source] : samples[source]
-        }
+        // Append the current samples to the preceding taps to remove history tests from the FIR.
+        var history: [72] f64
+        Memory.copy(&history[0], &.lfeHistory[0], #sizeof(.lfeHistory))
+        Memory.copy(&history[8], samples, sampleCount * #sizeof(f64))
+        let output = destination + .lfeDestination(header)
+        if header.lfe == 1 do
+            synthesisLfe'(128, 4)(output, header.channels, &history[0], sampleCount)
+        else do
+            synthesisLfe'(64, 8)(output, header.channels, &history[0], sampleCount)
+        Memory.copy(&.lfeHistory[0], &history[sampleCount], #sizeof(.lfeHistory))
     }
 
     mtd decodeFrame(destination: [*] s16, reader: *BitReader, header: const *FrameHeader) fail
@@ -696,10 +728,18 @@ private impl Codec
                         if not bits {}
                         elif bits <= 10 and quantSelector[channel, bits - 1] < QuantGroupSize[bits - 1]
                         {
-                            let root = QuantBookRoots[bits - 1, quantSelector[channel, bits - 1]]
-                            let bias = QuantBookBias[bits - 1]
-                            for index in SamplesPerSubband do
-                                audio[index] = (try reader.readHuffman(root)) - bias
+                            if bits == 1
+                            {
+                                try reader.readTernaryBand(&audio)
+                            }
+                            else
+                            {
+                                let root = QuantBookRoots[bits - 1, quantSelector[channel, bits - 1]]
+                                let bias = QuantBookBias[bits - 1]
+                                for index in SamplesPerSubband do
+                                    audio[index] = (try reader.readHuffman(root)) - bias
+                            }
+
                             adjustment = quantAdjust[channel, bits - 1]
                         }
                         elif bits <= 7

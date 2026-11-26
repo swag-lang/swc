@@ -127,6 +127,40 @@ using Swag, Core
     Swag.require(failure.value() is Errors.BadParameterError)
 }
 
+// A nonzero PCM range keeps its byte position across multiple input windows.
+#test
+{
+    const Frames = 150_000'u64
+    const First  = 17'u64
+    const Count  = 140_000'u64
+    let path = Path.combine(Env.getSpecialDirectory(.Temp), Format.toString("pcm-range-%.wav", Guid128.random()))
+    defer discard catch File.delete(path)
+
+    var samples: Array's16
+    samples.resize(2 * Frames)
+    for index in samples.count do
+        samples[index] = cast(s16, cast(s32, index % 65_521) - 32_760)
+    var writer = expect Wav.Writer.create(path.toString(), 2, 48_000)
+    expect writer.addFrames(samples.toSlice())
+    expect writer.end()
+
+    for preload in [false, true]
+    {
+        let sound = expect SoundFile.load(path.toString(), preloadData: preload)
+        var next  = 2 * First
+        var calls = 0'u32
+        expect sound.decodePcm16(First, Count, func|&next, &calls, &samples|(part: const [..] s16)->bool
+        {
+            Swag.require(part.count and part.count % 2 == 0)
+            Swag.require(Slice.equals(part, samples.toSlice()[next until next + part.count]))
+            next  += part.count
+            calls += 1
+            return true
+        })
+        Swag.require(next == 2 * (First + Count) and calls > 1)
+    }
+}
+
 // A tail range must not decode a corrupt distant prefix. One AAC preroll packet reproduces
 // uninterrupted PCM exactly, including a non-packet-aligned start and end.
 #test

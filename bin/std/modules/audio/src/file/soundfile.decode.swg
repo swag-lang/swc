@@ -78,6 +78,24 @@ impl SoundFile
         let bytesPerFrame = bytesPerSample * .channelCount
         var byteOffset    = firstFrame * bytesPerFrame
         let byteEnd       = byteOffset + frameCount * bytesPerFrame
+
+        // A contiguous PCM payload can reuse one read window for the whole range.
+        let contiguous = .packets.isEmpty()
+        var source: ByteSource
+        if contiguous
+        {
+            if .isDataPreloaded()
+            {
+                source = ByteSource.openMemory(.data.toSlice())
+                try source.seek(byteOffset)
+            }
+            else
+            {
+                source = try ByteSource.openFile(.path.toString(), .ReadWrite)
+                try source.seek(.dataOffset + byteOffset)
+            }
+        }
+
         var decoded: Array's16
         while byteOffset < byteEnd
         {
@@ -88,17 +106,33 @@ impl SoundFile
             if not wantedBytes do
                 break
 
-            let source = try .readPayload(byteOffset, wantedBytes)
-            if source.count != wantedBytes do
-                fail InvalidFormatError{"sound payload is truncated"}
-            decoded.resize(source.count / bytesPerSample)
+            var payload: Array'u8
+            var input:   const [..] u8
+            if contiguous
+            {
+                if byteOffset >= .dataSize or wantedBytes > .dataSize - byteOffset do
+                    fail InvalidFormatError{"sound payload is truncated"}
+                let window = try source.peek(wantedBytes)
+                input = window[until wantedBytes]
+            }
+            else
+            {
+                payload = try .readPayload(byteOffset, wantedBytes)
+                input   = payload.toSlice()
+                if input.count != wantedBytes do
+                    fail InvalidFormatError{"sound payload is truncated"}
+            }
+
+            decoded.resize(input.count / bytesPerSample)
             let outputBytes = decoded.count * #sizeof(s16)
-            let progress    = try decoder.decode(decoded.storage(), outputBytes, source.storage(), source.count)
-            if progress.bytesRead != source.count or progress.bytesWritten != outputBytes do
+            let progress    = try decoder.decode(decoded.storage(), outputBytes, input.buffer, input.count)
+            if progress.bytesRead != input.count or progress.bytesWritten != outputBytes do
                 fail InvalidFormatError{"sound payload decoded to an unexpected size"}
             if not consumer(decoded.toSlice()) do
                 return
-            byteOffset += source.count
+            if contiguous do
+                try source.skip(wantedBytes)
+            byteOffset += wantedBytes
         }
     }
 }

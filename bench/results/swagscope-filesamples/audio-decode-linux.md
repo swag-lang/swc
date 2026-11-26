@@ -545,3 +545,47 @@ match the preceding build exactly.
 
 Native Release passes 314 audio tests. Release-safe passes
 69 focused FLAC and AAC tests.
+
+## Sixteenth optimization pass
+
+This follow-up compares the changed codecs with commit `254fcb304c` and native FFmpeg.
+Each median uses 56 samples and includes opening and materializing ten seconds of PCM16.
+[Raw stage times and PCM deltas](audio-decode-linux-round16.json)
+
+| Format | R15 CPU 0 (ms) | Swag CPU 0 (ms) | FFmpeg CPU 0 (ms) | R15 CPU 1 (ms) | Swag CPU 1 (ms) | FFmpeg CPU 1 (ms) |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| DTS | 13.39 | 11.71 | 14.61 | 14.06 | 13.05 | 15.11 |
+| Opus | 21.06 | 21.07 | 19.21 | 22.40 | 22.27 | 20.17 |
+| WAV | 1.56 | 1.00 | 25.91 | 1.77 | 1.13 | 29.13 |
+
+| Format | R15 4 cores (ms) | Swag 4 cores (ms) | FFmpeg 4 cores (ms) |
+| --- | ---: | ---: | ---: |
+| DTS | 14.53 | 13.01 | 15.39 |
+| Opus | 21.79 | 21.22 | 19.46 |
+| WAV | 1.71 | 1.08 | 25.95 |
+
+
+The generated-fixture medians use 42 samples per worker budget.
+
+| Fixture | R15 1 core (ms) | Swag 1 core (ms) | FFmpeg 1 core (ms) | R15 4 cores (ms) | Swag 4 cores (ms) | FFmpeg 4 cores (ms) |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| `dts-48k-5.1.dts` | 48.24 | 31.27 | 33.82 | 56.30 | 33.16 | 35.09 |
+| `opus-20ms-48k-stereo.opus` | 31.23 | 30.66 | 29.85 | 35.73 | 41.82 | 38.24 |
+| `opus-5ms-48k-stereo.opus` | 31.61 | 30.77 | 34.42 | 33.60 | 32.52 | 34.73 |
+| `opus-voip-48k-mono.opus` | 29.01 | 16.34 | 13.73 | 30.96 | 16.41 | 14.82 |
+| `wav-48k-stereo-24.wav` | 1.43 | 0.61 | 1.42 | 1.62 | 0.67 | 1.61 |
+
+DTS groups short ternary Huffman codes and vectorizes LFE synthesis. Opus
+vectorizes fixed-point SILK filters and resampling. Streaming WAV reuses its
+input window through a contiguous PCM range. The generated DTS and WAV
+fixtures cross ahead of FFmpeg at one core in this series.
+
+The four-core 20 ms Opus timing had a noisy first series. The 84-sample repeat
+measured 32.23 ms for R15, 31.08 ms for Swag, and 31.18 ms for FFmpeg.
+
+The PCM matches between the one-core and four-core runs, with a peak difference of
+one PCM16 unit from the original Swag output. All files match the preceding build
+bit for bit.
+
+Native Release passes 316 audio tests. Release-safe passes
+37 focused DTS, Opus and WAV tests.

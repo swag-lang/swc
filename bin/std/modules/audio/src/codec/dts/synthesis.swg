@@ -2,6 +2,9 @@
 
 using Core.Math
 
+// The synthesis filters produce the 24-bit scale defined by ETSI TS 102 114.
+private const Pcm16Scale = 1.0 / 256.0
+
 private struct SynthesisRotations
 {
     cosine:    [16] f64
@@ -110,7 +113,7 @@ private const PackedNonPerfectFilter = #run buildPackedFilter(BandFirNonPerfect)
 #[Swag.Inline]
 private func pcmLanes(samples: Simd.F32x4)->Simd.S32x4
 {
-    let scaled = samples * (1.0'f32 / 256.0)
+    let scaled = samples * cast(f32, Pcm16Scale)
     let biased = scaled + Math.copysign(Simd.splat(0.5'f32), scaled)
     return Simd.truncateToS32(Math.clamp(biased, Simd.splat(-32_768.0'f32), Simd.splat(32_767.0'f32)))
 }
@@ -166,4 +169,79 @@ func synthesisFir(history, filter: const [*] f32, output: [*] s16, stride: u32)
     writePcmLanes(output, stride, 4, first1, second1)
     writePcmLanes(output, stride, 8, first2, second2)
     writePcmLanes(output, stride, 12, first3, second3)
+}
+
+// Bias the truncating conversion by half a sample to round ties away from zero.
+#[Swag.Inline]
+private func pcm16(sample: f64)->s16
+{
+    let scaled = sample * Pcm16Scale
+    return cast(s16, Math.clamp(scaled + Math.copysign(0.5, scaled), -32_768.0, 32_767.0))
+}
+
+// Each row has a tap's coefficients in playback order, including the reversed half.
+private func(Factor: u32, Taps: u32) buildLfeCoefficients(coefficients: const [256] f64)->[Taps * Factor] f64
+{
+    var result: #returntype
+    for tap in Taps
+    {
+        for phase in Factor / 2
+        {
+            result[tap * Factor + phase] = coefficients[phase * Taps + tap]
+            result[tap * Factor + Factor / 2 + phase] = coefficients[255 - phase * Taps - tap]
+        }
+    }
+
+    return result
+}
+
+func(Factor: u32, Taps: u32) synthesisLfe(destination: [*] s16, stride: u32, history: const [*] f64, sampleCount: u32)
+{
+    #static if Factor == 64
+    {
+        const Coefficients = #run buildLfeCoefficients'(64, 8)(LfeFir64)
+    }
+    else
+    {
+        const Coefficients = #run buildLfeCoefficients'(128, 4)(LfeFir128)
+    }
+
+    let table: const [..] f64 = Coefficients
+    let coefficients = table.buffer
+    for sample in sampleCount
+    {
+        // Keep each history value broadcast across all interpolation phases.
+        let input0 = Simd.splat(history[sample + 8])
+        let input1 = Simd.splat(history[sample + 7])
+        let input2 = Simd.splat(history[sample + 6])
+        let input3 = Simd.splat(history[sample + 5])
+        #static if Taps == 8
+        {
+            let input4 = Simd.splat(history[sample + 4])
+            let input5 = Simd.splat(history[sample + 3])
+            let input6 = Simd.splat(history[sample + 2])
+            let input7 = Simd.splat(history[sample + 1])
+        }
+
+        let output = destination + sample * Factor * stride
+        for pair in Factor / 2
+        {
+            let row = coefficients + pair * 2
+            var sum: Simd.F64x2
+            sum += input0 * Simd.load(row)
+            sum += input1 * Simd.load(row + Factor)
+            sum += input2 * Simd.load(row + 2 * Factor)
+            sum += input3 * Simd.load(row + 3 * Factor)
+            #static if Taps == 8
+            {
+                sum += input4 * Simd.load(row + 4 * Factor)
+                sum += input5 * Simd.load(row + 5 * Factor)
+                sum += input6 * Simd.load(row + 6 * Factor)
+                sum += input7 * Simd.load(row + 7 * Factor)
+            }
+
+            output[pair * 2 * stride]       = pcm16(sum[0])
+            output[(pair * 2 + 1) * stride] = pcm16(sum[1])
+        }
+    }
 }

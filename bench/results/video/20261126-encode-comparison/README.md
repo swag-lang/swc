@@ -69,6 +69,24 @@ with partial edge macroblocks did so at QPs 1, 25 and 51 with one and eight slic
 matched FFmpeg's independent decoded planes byte for byte, and
 23 focused native Release tests passed. [Individual timings and equality checks](h264-simd.json)
 
+### SIMD 4×4 quantization
+
+The AVC encoder quantizes and inverse-scales four coefficients at a time, packs the
+zigzag levels and transposes the reconstruction coefficients in vector lanes. Repeating
+the same four-slice QP 25 CPU experiment gives the following results against the motion
+profile optimization above.
+
+| Input | Median paired wall change | Median paired process CPU change |
+| --- | ---: | ---: |
+| Scrolling desktop | −9.2% | −12.7% |
+| Changing tiles | −10.8% | −4.6% |
+| Animated test pattern | −6.8% | −6.9% |
+| Camera | −10.9% | −11.4% |
+
+The 552-picture corpus again retains byte-identical MP4 output, including QP 1 and 51
+and partial macroblocks with one and eight slices. All decoded sample planes match
+FFmpeg. The targeted Release selection passed 23 tests. [Measurements](h264-quantize-simd.json)
+
 ### Reproduction
 
 Build the Linux Release compiler and the native x264 reference using the [workload

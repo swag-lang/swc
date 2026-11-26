@@ -563,3 +563,26 @@ func exrUnalignedFloatFixture(names: const [..] string, width = 1'u32)->ConcatBu
             Swag.require(wide[lane] == cast #bit(u32, halfToFloat(source[lane])))
     }
 }
+
+// The EXR decoder checks both geometry limits when reading its data window.
+#test
+{
+    const Packed: [4] u8 = [0, 0x3C, 0, 0x40]
+    let input = exrZipFixture(2, Packed)
+    let bytes = nnBytes(input.toSlice())
+    var options: DecodeOptions
+    options.maxPixels       = 2
+    options.maxDecodedBytes = 4
+    let image = expect Image.decode("bounded.exr", bytes, options)
+    assertImage(image, 2, 1, .GrayF16)
+
+    var outcome: Swag.Error
+    options.maxPixels = 1
+    discard catch Image.decode("pixel-limit.exr", bytes, options) as outcome
+    Swag.require(outcome.value() is Errors.UnsupportedFormatError)
+
+    options.maxPixels       = 2
+    options.maxDecodedBytes = 3
+    discard catch Image.decode("byte-limit.exr", bytes, options) as outcome
+    Swag.require(outcome.value() is Errors.UnsupportedFormatError)
+}

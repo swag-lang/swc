@@ -792,3 +792,67 @@ func parseTestCmap(faceData: *FaceImpl, cmap: Array'u8) fail
     Swag.require(Slice.equals(codes.toSlice(), cast(const [..] rune, Codes)))
     Swag.require(Slice.equals(glyphs.toSlice(), cast(const [..] u32, Glyphs)))
 }
+
+// Format-4 visitation agrees with lookup for array entries, deltas and overlapping segments.
+#test
+{
+    const Subtable = 12'u64
+    var cmap: Array'u8
+    cmap.resize(Subtable + 48)
+    cmap[3]  = 1
+    cmap[5]  = 3
+    cmap[7]  = 1
+    cmap[11] = 12
+    writeBigU16(&cmap, Subtable, 4)
+    writeBigU16(&cmap, Subtable + 2, 48)
+    writeBigU16(&cmap, Subtable + 6, 6)
+    writeBigU16(&cmap, Subtable + 14, 0x44)
+    writeBigU16(&cmap, Subtable + 16, 0x45)
+    writeBigU16(&cmap, Subtable + 18, 0xFFFF)
+    writeBigU16(&cmap, Subtable + 22, 0x41)
+    writeBigU16(&cmap, Subtable + 24, 0x43)
+    writeBigU16(&cmap, Subtable + 26, 0xFFFF)
+    writeBigU16(&cmap, Subtable + 28, 2)
+    writeBigU16(&cmap, Subtable + 30, 0xFFC6)
+    writeBigU16(&cmap, Subtable + 32, 1)
+    writeBigU16(&cmap, Subtable + 34, 6)
+    writeBigU16(&cmap, Subtable + 40, 2)
+    writeBigU16(&cmap, Subtable + 44, 4)
+    writeBigU16(&cmap, Subtable + 46, 0xFFFF)
+
+    for attempt in 2
+    {
+        if attempt
+        {
+            // Older faces can carry unusual segment order. Keep their lookup results.
+            writeBigU16(&cmap, Subtable + 14, 0x45)
+            writeBigU16(&cmap, Subtable + 16, 0x44)
+        }
+
+        var faceData: FaceImpl
+        expect parseTestCmap(&faceData, cmap)
+        var expected: Array'rune
+        for code in 0x42'u32 to 0x45
+        {
+            let character = cast(rune, code)
+            if faceData.face.glyphIndex(character) do
+                expected.add(character)
+        }
+
+        if not attempt
+        {
+            const Codes: [3] rune = ['C', 'D', 'E']
+            Swag.require(Slice.equals(expected.toSlice(), cast(const [..] rune, Codes)))
+        }
+
+        let face = &faceData.face
+        var visited: Array'rune
+        face.visitCharacters(0x42, func|face, &visited|(character: rune, glyphIndex: u32)->bool
+        {
+            Swag.require(face.glyphIndex(character) == glyphIndex)
+            visited.add(character)
+            return true
+        })
+        Swag.require(Slice.equals(visited.toSlice(), expected.toSlice()))
+    }
+}

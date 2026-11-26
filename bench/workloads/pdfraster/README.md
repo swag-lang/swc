@@ -45,3 +45,20 @@ Checksums check repeatability within each engine. The 32 × 32 ink sample count 
 cases where an engine painted much less of the page. Matching dimensions and ink counts
 alone do not establish rendering equivalence. Review unsupported features or large ink
 differences before comparing timings.
+
+
+## Retaining repeated page loads
+
+The repeated-load driver warms a single reader, then times additional
+loads of page 1 while retaining each resulting page. Linux peak RSS
+includes the whole process. Repeat with each build and the same PDF.
+
+```sh
+swc build -d bench/workloads/pdfraster/reread \
+  --module-file bench/workloads/pdfraster/module.swg -bc release \
+  -n reread --out-dir /tmp/reread/out --work-dir /tmp/reread/work
+python3 bench/workloads/pdfraster/reread.py \
+  --baseline /tmp/reread-before/out/reread --candidate /tmp/reread/out/reread \
+  --file /tmp/pdfraster/corpus/perf_images_jpeg_large.pdf \
+  --cpu 2 --copies 16 --output /tmp/reread/results.json
+```

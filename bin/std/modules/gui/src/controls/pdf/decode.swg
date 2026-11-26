@@ -785,14 +785,17 @@ private func meanCoverage(coverage: const *Image)->f32
 // stated at.
 private func maskImagePixels(item: *Item, coverage: const *Image, region: Math.Rectangle)
 {
-    if not item.image.isValid() or not coverage.isValid() do
+    let stored = item.image.value()
+    if not stored or not stored.isValid() or not coverage.isValid() do
         return
     Swag.assert(coverage.pixelFormat == .RGBA8)
-    if item.image.pixelFormat != .RGBA8
+    if stored.pixelFormat != .RGBA8
     {
-        var opaque = #move item.image.convertedTo(.RGBA8)
-        item.image = #move opaque
+        var opaque = #move stored.convertedTo(.RGBA8)
+        item.image = #move ImageReference.create(#move opaque)
     }
+
+    let image = item.image.edit()
 
     #[Swag.Inline]
     func maskCoordinate(point, origin, length: f32, count: s32)->s32
@@ -800,8 +803,8 @@ private func maskImagePixels(item: *Item, coverage: const *Image, region: Math.R
         return Math.clamp(cast(s32, (point - origin) / length * cast(f32, count)), 0, count - 1)
     }
 
-    let width    = cast(u64, item.image.width)
-    let height   = cast(u64, item.image.height)
+    let width    = cast(u64, image.width)
+    let height   = cast(u64, image.height)
     let mask     = coverage.pixels.storage()
     let maskLast = coverage.height - 1
     let stride   = cast(u64, coverage.rowStride)
@@ -826,7 +829,7 @@ private func maskImagePixels(item: *Item, coverage: const *Image, region: Math.R
             let y      = maskCoordinate(point.y, region.y, region.height, coverage.height)
             let alpha  = mask + cast(u64, maskLast - y) * stride
             let words  = cast(const [*] s32, alpha)
-            let pixels = item.image.pixels.storage() + row * cast(u64, item.image.rowStride)
+            let pixels = image.pixels.storage() + row * cast(u64, image.rowStride)
             var column = 0'u64
             while width - column >= 4
             {
@@ -851,7 +854,7 @@ private func maskImagePixels(item: *Item, coverage: const *Image, region: Math.R
     {
         // An image stores its rows bottom-up while its unit square runs top-down.
         let v      = (cast(f32, height - row - 1) + 0.5) / cast(f32, height)
-        var pixels = item.image.pixels.storage() + row * cast(u64, item.image.rowStride)
+        var pixels = image.pixels.storage() + row * cast(u64, image.rowStride)
         for column in width
         {
             let u     = (cast(f32, column) + 0.5) / cast(f32, width)

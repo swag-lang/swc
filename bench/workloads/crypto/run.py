@@ -37,6 +37,8 @@ REFERENCES = {
     "aes-256-ctr": {"OpenSSL": "aes-256-ctr"},
     "aes-256-gcm": {"OpenSSL": "aes-256-gcm"},
     "aes-256-gcm-aad": {"OpenSSL": "aes-256-gcm-aad"},
+    "aes-256-cmac": {"OpenSSL": "aes-256-cmac"},
+    "aes-256-siv": {"OpenSSL": "aes-256-siv"},
     "aes-256-ccm": {"OpenSSL": "aes-256-ccm"},
     "aes-256-xts-encrypt": {"OpenSSL": "aes-256-xts-encrypt"},
     "aes-256-xts-decrypt": {"OpenSSL": "aes-256-xts-decrypt"},

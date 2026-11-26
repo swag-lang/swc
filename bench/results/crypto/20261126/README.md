@@ -130,3 +130,4 @@ optimizations moved each result.
 - [AES-CCM hardware CBC-MAC and CTR](aes-ccm-hardware.md)
 - [P-256 generator comb with four tables](p256-generator-tables.md)
 - [Packed AES-XTS tweak doubling](aes-xts-doubling.md)
+- [Direct AES-CMAC blocks](aes-cmac-direct.md)

@@ -5,7 +5,7 @@ alias Operation = func(const [..] u8, [..] u8)
 const Key   = "0123456789abcdefghijklmnopqrstuv"
 const Nonce = "0123456789ab"
 const AssociatedData = "swag-crypto-1"
-const AesXtsKey = "0123456789abcdefghijklmnopqrstuvvutsrqponmlkjihgfedcba9876543210"
+const DualAesKey = "0123456789abcdefghijklmnopqrstuvvutsrqponmlkjihgfedcba9876543210"
 const AesXtsTweak = "0123456789abcdef"
 
 func(T) writeChecksum(value: T, output: [..] u8)
@@ -75,14 +75,23 @@ func aes256Gcm(input: const [..] u8, output: [..] u8) =>
 func aes256Ccm(input: const [..] u8, output: [..] u8) =>
     expect Crypto.aesCcmEncrypt(Key, Nonce, AssociatedData, input, output[until input.count], output[input.count until output.count])
 
+func aes256Cmac(input: const [..] u8, output: [..] u8)
+{
+    let tag = expect Crypto.AesCmac.compute(Key, input)
+    Memory.copy(output.buffer, tag.buffer, tag.count)
+}
+
+func aes256Siv(input: const [..] u8, output: [..] u8) =>
+    expect Crypto.aesSivEncryptWithAssociatedData(DualAesKey, AssociatedData, input, output[until input.count], output[input.count until output.count])
+
 func aes256GcmAad(input: const [..] u8, output: [..] u8) =>
     expect Crypto.aesGcmEncrypt(Key, Nonce, input, "", output[until 0], output)
 
 func aes256XtsEncrypt(input: const [..] u8, output: [..] u8) =>
-    expect Crypto.aesXtsCrypt(AesXtsKey, AesXtsTweak, input, output, false)
+    expect Crypto.aesXtsCrypt(DualAesKey, AesXtsTweak, input, output, false)
 
 func aes256XtsDecrypt(input: const [..] u8, output: [..] u8) =>
-    expect Crypto.aesXtsCrypt(AesXtsKey, AesXtsTweak, input, output, true)
+    expect Crypto.aesXtsCrypt(DualAesKey, AesXtsTweak, input, output, true)
 
 func x25519Public(input: const [..] u8, output: [..] u8) =>
     expect Crypto.x25519PublicKey(input, output)
@@ -141,6 +150,8 @@ func selectOperation(name: string, size: u64)->{operation: Operation, outputSize
     case "aes-256-ctr":       return {&aes256Ctr, size}
     case "aes-256-gcm":       return {&aes256Gcm, size + 16}
     case "aes-256-ccm":       return {&aes256Ccm, size + 16}
+    case "aes-256-cmac":      return {&aes256Cmac, 16}
+    case "aes-256-siv":       return {&aes256Siv, size + 16}
     case "aes-256-gcm-aad":   return {&aes256GcmAad, 16}
     case "aes-256-xts-encrypt": return {&aes256XtsEncrypt, size}
     case "aes-256-xts-decrypt": return {&aes256XtsDecrypt, size}

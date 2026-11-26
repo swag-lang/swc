@@ -29,7 +29,7 @@ extern const char *lzma_version_string(void);
 
 static const unsigned char key[] = "0123456789abcdefghijklmnopqrstuv";
 static const unsigned char nonce[] = "0123456789ab";
-static const unsigned char aes_xts_key[] = "0123456789abcdefghijklmnopqrstuv"
+static const unsigned char dual_aes_key[] = "0123456789abcdefghijklmnopqrstuv"
                                            "vutsrqponmlkjihgfedcba9876543210";
 static const unsigned char aes_xts_tweak[] = "0123456789abcdef";
 static const unsigned char aes_ctr_iv[] = "0123456789abcdef";
@@ -175,7 +175,7 @@ static void xts_evp(const unsigned char *p, size_t n, unsigned char *out)
 {
     int used = 0;
     int tail = 0;
-    require(EVP_CipherInit_ex2(cipher_context, cipher, aes_xts_key, aes_xts_tweak, !decrypt_xts, NULL) &&
+    require(EVP_CipherInit_ex2(cipher_context, cipher, dual_aes_key, aes_xts_tweak, !decrypt_xts, NULL) &&
             EVP_CipherUpdate(cipher_context, out, &used, p, (int)n) &&
             EVP_CipherFinal_ex(cipher_context, out + used, &tail) &&
             (size_t)(used + tail) == n, "OpenSSL XTS operation failed");
@@ -194,6 +194,20 @@ static void encrypt_ccm_evp(const unsigned char *p, size_t n, unsigned char *out
             (size_t)(used + tail) == n &&
             EVP_CIPHER_CTX_ctrl(cipher_context, EVP_CTRL_AEAD_GET_TAG, 16, out + n),
             "OpenSSL CCM encryption failed");
+}
+
+static void encrypt_siv_evp(const unsigned char *p, size_t n, unsigned char *out)
+{
+    int used = 0;
+    int tail = 0;
+    require(EVP_EncryptInit_ex2(cipher_context, NULL, dual_aes_key, NULL, NULL) &&
+            EVP_EncryptUpdate(cipher_context, NULL, &used, associated_data,
+                              sizeof(associated_data) - 1) &&
+            EVP_EncryptUpdate(cipher_context, out, &used, p, (int)n) &&
+            EVP_EncryptFinal_ex(cipher_context, out + used, &tail) &&
+            (size_t)(used + tail) == n &&
+            EVP_CIPHER_CTX_ctrl(cipher_context, EVP_CTRL_AEAD_GET_TAG, 16, out + n),
+            "OpenSSL SIV encryption failed");
 }
 
 static void authenticate_aad_evp(const unsigned char *p, size_t n, unsigned char *out)
@@ -436,6 +450,33 @@ static operation select_operation(const char *name, size_t input_size, size_t *r
                 "OpenSSL could not configure the CCM nonce and tag");
         *result_size = input_size + 16;
         return encrypt_ccm_evp;
+    }
+
+    if (!strcmp(name, "aes-256-cmac")) {
+        mac = EVP_MAC_fetch(NULL, "CMAC", NULL);
+        require(mac != NULL, "OpenSSL could not fetch CMAC");
+        mac_context = EVP_MAC_CTX_new(mac);
+        require(mac_context != NULL, "OpenSSL could not allocate a MAC context");
+        char block_cipher[] = "AES-256-CBC";
+        OSSL_PARAM params[] = {
+            OSSL_PARAM_construct_utf8_string(OSSL_MAC_PARAM_CIPHER, block_cipher, 0),
+            OSSL_PARAM_construct_end(),
+        };
+        require(EVP_MAC_CTX_set_params(mac_context, params), "OpenSSL could not set the CMAC block cipher");
+        mac_size = 16;
+        *result_size = mac_size;
+        return mac_evp;
+    }
+
+    if (!strcmp(name, "aes-256-siv")) {
+        cipher = EVP_CIPHER_fetch(NULL, "aes-256-siv", NULL);
+        require(cipher != NULL, "OpenSSL could not fetch AES-256-SIV");
+        cipher_context = EVP_CIPHER_CTX_new();
+        require(cipher_context != NULL, "OpenSSL could not allocate a cipher context");
+        require(EVP_EncryptInit_ex2(cipher_context, cipher, NULL, NULL, NULL),
+                "OpenSSL could not initialize the SIV cipher context");
+        *result_size = input_size + 16;
+        return encrypt_siv_evp;
     }
 
     if (!strcmp(name, "aes-256-gcm-aad")) {

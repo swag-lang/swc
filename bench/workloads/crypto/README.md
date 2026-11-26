@@ -105,6 +105,12 @@ as Swag does. The P-256 comparator uses OpenSSL's fixed-base EC multiplication w
 the group and scratch containers allocated before timing. P-256 signing enables
 RFC 6979 nonces in OpenSSL and exports the two 32-byte signature components.
 
+## AES-CMAC and AES-SIV
+
+Select `aes-256-cmac` for the 16-byte tag or `aes-256-siv` for encryption
+and the tag. The SIV workload uses fixed associated data and two
+256-bit keys. Verification includes empty plaintext.
+
 ## AES-CCM
 
 Select `aes-256-ccm` with `--algorithm` for encryption and its full

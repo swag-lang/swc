@@ -74,3 +74,24 @@ func aesCmacHexBytes(text: string)->Array'u8
     discard catch Crypto.AesCmac.compute(invalidKey, message) as error
     Swag.require(error.value() is Errors.BadParameterError)
 }
+
+#test
+{
+    // Cross-check every split around full and partial buffered blocks with OpenSSL's tag.
+    const Key = "0123456789abcdefghijklmnopqrstuv"
+    let expected = aesCmacHexBytes("de7925c2a730525997b1ce7d4eed0831")
+    var storage: [146] u8
+    let message = storage[1 until]
+    for index in message.count do
+        message[index] = cast(u8, (index * 13 + 7) & 0xFF)
+
+    for split in message.count + 1
+    {
+        var cmac = expect Crypto.AesCmac.create(Key)
+        expect cmac.update(message[until split])
+        expect cmac.update(message[until 0])
+        expect cmac.update(message[split until])
+        let tag = expect cmac.finalize()
+        Swag.require(Crypto.constantTimeEqual(tag, expected.toSlice()))
+    }
+}

@@ -572,8 +572,11 @@ PDF-specific evidence, investigations, and intended outcomes stay together here.
 - [SIMD for cached image rows](../bench/results/swagscope-filesamples/pdf-raster-linux.md#simd-for-cached-image-rows)
   reduces the 2400 px PDFBox scan from 42 to 28 ms. PDFium takes 6 ms.
   All 43 supported pages retain the same bitmap CRC-32.
-- Measure cached glyph masks for transformed PDF text. Profile the remaining
-  stroke coverage and image span composition. Retaining encoded images for
+- [Transformed glyph outlines](../bench/results/swagscope-filesamples/pdf-raster-linux.md#direct-coverage-for-transformed-glyph-outlines)
+  take the transformed text fixture from 974 to 389 ms at 1200 px and from
+  5133 to 1372 ms at 2400 px. PDFium takes 163 and 292 ms. Cached glyph
+  outlines improve mean RGB agreement and preserve PDF advances.
+- Profile the remaining stroke coverage and image span composition. Retaining encoded images for
   later zoom levels would let decoding use the requested image size.
 - Done when: the first-page gap has a stage-level explanation and the dominant work is within 1.25×
   of an equivalent PDFium render, or a concrete fidelity or safety tradeoff justifies the remainder.

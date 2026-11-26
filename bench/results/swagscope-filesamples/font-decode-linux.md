@@ -608,3 +608,38 @@ this repeat. Four PNG IDAT streams, fixed and stored streams, and repetitive
 dynamic data were also decoded directly. The decoded lengths and CRC-64
 match in every control. The stored 256 KiB stream takes 21.09 µs versus
 20.81 µs. The PNG streams gain 4–10%.
+
+## CFF glyph outlines
+
+Type 2 decoding consumes consecutive one-byte operands with a local stack
+cursor. Cubic curves reserve their three points and three tags together.
+
+The probe measures a glyph in a loaded face at 24 px and 64 px. Each program
+warms the glyph set once and measures five passes through the same set.
+The medians use nine interleaved batches on one CPU. Up to 513 code points
+are sampled per face from its CJK, Hangul, and supplementary CJK coverage,
+with Latin and neighboring blocks for the controls. The seed is 5973 plus
+the member index. The two builds match point counts and CRC-64 of contour
+ends, points, tags, and rendered bitmap bytes.
+[Raw timings and fixture fingerprints](font-glyph-linux-cff-batch.json)
+
+| Fixture | Face | Pixels | Outline before (µs/glyph) | After | Bitmap before (µs/glyph) | After |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| `GowunBatang-Regular.ttf` | 0 | 24 | 12.517 | 11.688 | 75.999 | 74.806 |
+| `GowunBatang-Regular.ttf` | 0 | 64 | 12.293 | 12.464 | 182.789 | 186.396 |
+| `NimbusSans-Regular.otf` | 0 | 24 | 2.008 | 1.651 | 11.484 | 10.742 |
+| `NimbusSans-Regular.otf` | 0 | 64 | 1.915 | 1.589 | 24.291 | 23.349 |
+| `NotoSansCJK-Regular.ttc` | 1 | 24 | 6.101 | 4.694 | 29.332 | 27.916 |
+| `NotoSansCJK-Regular.ttc` | 1 | 64 | 6.010 | 4.668 | 59.923 | 58.153 |
+| `NotoSansCJKjp-Regular.otf` | 0 | 24 | 6.359 | 4.559 | 28.238 | 27.496 |
+| `NotoSansCJKjp-Regular.otf` | 0 | 64 | 6.106 | 4.436 | 58.061 | 57.604 |
+| `NotoSerifCJK-Regular.ttc` | 4 | 24 | 13.235 | 9.262 | 49.825 | 45.470 |
+| `NotoSerifCJK-Regular.ttc` | 4 | 64 | 11.870 | 9.655 | 96.679 | 96.802 |
+| `NotoSerifCJKjp-Regular.otf` | 0 | 24 | 12.526 | 8.915 | 50.001 | 46.381 |
+| `NotoSerifCJKjp-Regular.otf` | 0 | 64 | 11.423 | 8.945 | 97.159 | 94.230 |
+| `SourceSans3-Regular.otf` | 0 | 24 | 2.490 | 1.858 | 12.164 | 11.845 |
+| `SourceSans3-Regular.otf` | 0 | 64 | 2.589 | 2.047 | 26.386 | 24.730 |
+
+The 64 px TrueType control and the large Serif CJK bitmap case show small
+timing increases. The CFF outline phase improves at both sizes on all six
+CFF faces.

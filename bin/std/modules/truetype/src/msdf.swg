@@ -850,12 +850,18 @@ func msdfChannelDistances(segs: const [..] MsdfSeg, px, py: f64, seed: *MsdfSeed
     var best: MsdfBest
     best.start()
 
-    for k in 4
-    {
-        let index = k < 3 ? seed.channel[k] : seed.nearest
-        if index >= 0 do
-            best.fold(&segs[index], index, px, py)
-    }
+    let r       = seed.channel[0]
+    let g       = seed.channel[1]
+    let b       = seed.channel[2]
+    let nearest = seed.nearest
+    if r >= 0 do
+        best.fold(&segs[r], r, px, py)
+    if g >= 0 and g != r do
+        best.fold(&segs[g], g, px, py)
+    if b >= 0 and b != r and b != g do
+        best.fold(&segs[b], b, px, py)
+    if nearest >= 0 and nearest != r and nearest != g and nearest != b do
+        best.fold(&segs[nearest], nearest, px, py)
 
     for &s, i in segs
     {
@@ -868,7 +874,9 @@ func msdfChannelDistances(segs: const [..] MsdfSeg, px, py: f64, seed: *MsdfSeed
         if bx * bx + by * by > best.reach2[s.color] do
             continue
 
-        best.fold(s, cast(s32, i), px, py)
+        let index = cast(s32, i)
+        if index != r and index != g and index != b and index != nearest do
+            best.fold(s, index, px, py)
     }
 
     seed.channel[0] = best.idx[0]

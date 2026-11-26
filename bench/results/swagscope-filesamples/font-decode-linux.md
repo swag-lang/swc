@@ -1417,3 +1417,33 @@ for a median 216 µs in the phase probe before table validation.
 | `ShipporiMincho-Regular.ttf` | U+6F22 | 2105.92 | 1907.31 | 3998.37 |
 | `GothicA1-Regular.ttf` | U+D55C | 377.89 | 408.10 | 272.04 |
 | `GothicA1-Regular.ttf` | U+AC01 | 413.31 | 430.23 | 218.79 |
+
+## Distinct previous winners for MSDF searches
+
+Several distance channels can share the same winning edge. The next
+sample measures each distinct previous winner once and skips those
+edges in the remaining search. The existing tie order remains intact.
+
+Five interleaved batches on one CPU give 4–21% lower load and render
+times on the seven 64 px cases. Both spread-64 controls also improve.
+Every outline and bitmap fingerprint agrees with `06343223ad`.
+[Raw timings and fingerprints](font-glyph-linux-msdf-seeds.json)
+
+| Fixture | Pixels | Spread | Load and render before (µs/glyph) | After |
+| --- | ---: | ---: | ---: | ---: |
+| `Lato-Regular.ttf` | 24 | 8 | 822.00 | 633.80 |
+| `Lato-Regular.ttf` | 64 | 8 | 2991.70 | 2558.61 |
+| `Lato-Regular.ttf` | 24 | 64 | 18268.46 | 14098.32 |
+| `OpenSans-Regular.ttf` | 24 | 8 | 804.25 | 631.38 |
+| `OpenSans-Regular.ttf` | 64 | 8 | 2978.39 | 2696.97 |
+| `GowunBatang-Regular.ttf` | 24 | 8 | 3730.52 | 3678.98 |
+| `GowunBatang-Regular.ttf` | 64 | 8 | 20668.80 | 18034.15 |
+| `MaShanZheng-Regular.ttf` | 24 | 8 | 5988.22 | 5565.79 |
+| `MaShanZheng-Regular.ttf` | 64 | 8 | 33492.69 | 26411.14 |
+| `NotoSansJP-Variable.ttf` | 24 | 8 | 2336.34 | 2044.02 |
+| `NotoSansJP-Variable.ttf` | 64 | 8 | 8436.86 | 8081.46 |
+| `NotoSansCJKjp-Regular.otf` | 24 | 8 | 1435.45 | 1131.71 |
+| `NotoSansCJKjp-Regular.otf` | 64 | 8 | 6405.66 | 5532.52 |
+| `NotoSansCJKjp-Regular.otf` | 24 | 64 | 17282.39 | 15295.24 |
+| `NotoSerifCJKjp-Regular.otf` | 24 | 8 | 1826.12 | 1623.72 |
+| `NotoSerifCJKjp-Regular.otf` | 64 | 8 | 8633.64 | 7316.69 |

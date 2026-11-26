@@ -535,3 +535,26 @@ changes based on `5d769d9d98`. Each sample opens a fresh reader.
 Both engines render all nine added page cases at the same output
 dimensions. Shared-resource pages remain dominated by their first
 image load when opened separately.
+
+
+## Sharing device images across page resources
+
+Direct DeviceRGB, DeviceGray and DeviceCMYK images with no mask are
+cached by image object. Named color spaces and masked images retain
+their page resource context. The reader checks both caches against one
+byte budget.
+
+Nine interleaved native Release runs on one AMD EPYC 7763 logical CPU
+compare Swag `7477a81726` before and after the change using the same compiler
+and Core at `5d769d9d98`. The test warms page 1, then loads each page
+in order and retains it. Times are milliseconds.
+[Raw samples, memory measurements, and corpus checksums](pdf-raster-linux-device-resources.json)
+
+| Document | Pages | Before | After | Peak RSS before, KiB | Peak RSS after, KiB |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| `perf_structure_shared_resources.pdf` | 4 | 49.41 | 1.83 | 36,068 | 24,484 |
+| Generated repeated-image document | 8 | 118.58 | 0.133 | 72,940 | 28,588 |
+
+All 52 supported cases in the expanded corpus keep their Swag raster
+checksums. The 141 PDF tests include both direct image reuse and an image
+whose named color space resolves differently on two pages.

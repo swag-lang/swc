@@ -60,30 +60,40 @@ impl Encoder
             .dhtInfo.valuesCbAC[i] = StdAcChrominanceValues[i]
     }
 
-    func computeHuffmanTable(nrCodes: const [*] u8, stdTable: const [*] u8, hT: [*] BitString)
+    const LumaDcCodes   = #run compileCodes'12(StdDcLuminanceNrCodes, StdDcLuminanceValues, false)
+    const LumaAcCodes   = #run compileCodes'256(StdAcLuminanceNrCodes, StdAcLuminanceValues, true)
+    const ChromaDcCodes = #run compileCodes'12(StdDcChrominanceNrCodes, StdDcChrominanceValues, false)
+    const ChromaAcCodes = #run compileCodes'256(StdAcChrominanceNrCodes, StdAcChrominanceValues, true)
+
+    // A symbol already determines the category. Keep the shifted prefix and combined bit count.
+    func(Size: u64) compileCodes(counts, symbols: const [..] u8, ac: bool)->[Size] u32
     {
-        var codevalue  = 0'u16
-        var posInTable = 0
-        for k in 1 to 16
+        var packed: #returntype
+        if ac
         {
-            for var j = 1; j <= nrCodes[k]; j += 1
+            // Undefined symbols still carry the amplitude bits, as with a zero-length prefix.
+            for i in packed.count do
+                packed[i] = (cast(u32, i) & 15) << PackedLengthShift
+        }
+
+        var code  = 0'u16
+        var index = 0
+        for length in 1 to 16
+        {
+            for counts[length]
             {
-                hT[stdTable[posInTable]].value  = codevalue
-                hT[stdTable[posInTable]].length = cast(u8, k)
-                posInTable                      += 1
-                codevalue                       += #wrap 1
+                let symbol   = symbols[index]
+                let category = ac ? symbol & 15 : symbol
+                let total    = cast(u32, length) + category
+                packed[symbol] = (total << PackedLengthShift) | (cast(u32, code) << category)
+                code  += #wrap 1
+                index += 1
             }
 
-            codevalue *= #wrap 2
+            code *= #wrap 2
         }
-    }
 
-    mtd initHuffmanTables()
-    {
-        computeHuffmanTable(StdDcLuminanceNrCodes, StdDcLuminanceValues, .htYDC)
-        computeHuffmanTable(StdDcChrominanceNrCodes, StdDcChrominanceValues, .htCbDC)
-        computeHuffmanTable(StdAcLuminanceNrCodes, StdAcLuminanceValues, .htYAC)
-        computeHuffmanTable(StdAcChrominanceNrCodes, StdAcChrominanceValues, .htCbAC)
+        return packed
     }
 
     mtd prepareQuantTables()

@@ -45,18 +45,17 @@ impl Encoder
 
     // Entropy bits are accumulated until a complete word can be written.
     #[Swag.Inline]
-    mtd writeBits(code: BitString)
+    mtd writePackedCode(code: u32)
     {
-        .appendEntropyBits(code.length, code.value)
+        .appendEntropyBits(code >> PackedLengthShift, code & PackedBitsMask)
     }
 
     #[Swag.Inline]
-    mtd writeAmplitude(prefix: BitString, value: s32, category: u8)
+    mtd writeAmplitude(code: u32, value: s32, category: u8)
     {
         let mask      = (1'u32 << category) - 1
         let amplitude = cast #bit(u32, (value + (value >> 31))) & mask
-        let bits      = (cast(u32, prefix.value) << category) | amplitude
-        .appendEntropyBits(cast(u32, prefix.length) + category, bits)
+        .appendEntropyBits(code >> PackedLengthShift, (code & PackedBitsMask) | amplitude)
     }
 
     #[Swag.Inline]

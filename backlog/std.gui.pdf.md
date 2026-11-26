@@ -431,8 +431,9 @@ PDF-specific evidence, investigations, and intended outcomes stay together here.
   take 16 warmed loads of the same large JPEG page from 228 to 0.072 ms and
   lower peak memory from 624,876 to 79,212 KiB. Pages keep their own references
   and isolate page-specific alpha edits.
-- Next: reuse resource-independent images across different page resource dictionaries and
-  verify that named color spaces still resolve in the correct page.
+- Evidence: [sharing device images across page resources](../bench/results/swagscope-filesamples/pdf-raster-linux.md#sharing-device-images-across-page-resources)
+  reduces four warmed page loads on the public shared-resource document from 49 to 1.8 ms.
+  Named spaces keep their resource context and all 52 supported rasters match.
 - Related: std.gui.pdf.028, std.gui.pdf.025.
 
 ### std.gui.pdf.028 — An embedded font program is copied once per page that uses it

@@ -6,8 +6,10 @@ import statistics
 import subprocess
 
 
-def measure(executable, path, copies, cpu):
+def measure(executable, path, copies, cpu, all_pages):
     command = ["taskset", "-c", str(cpu), str(executable), str(path), str(copies), "1"]
+    if all_pages:
+        command.append("all")
     with subprocess.Popen(command, stdout=subprocess.PIPE, text=True) as process:
         output = process.stdout.read()
         _, status, usage = os.wait4(process.pid, 0)
@@ -28,6 +30,7 @@ def main():
     parser.add_argument("--file", type=Path, required=True)
     parser.add_argument("--cpu", type=int, required=True)
     parser.add_argument("--copies", type=int, default=16)
+    parser.add_argument("--all-pages", action="store_true")
     parser.add_argument("--batches", type=int, default=9)
     parser.add_argument("--output", type=Path, required=True)
     args = parser.parse_args()
@@ -39,9 +42,10 @@ def main():
     for batch in range(args.batches):
         order = list(programs) if batch % 2 == 0 else reversed(programs)
         for name in order:
-            samples[name].append(measure(programs[name], args.file, args.copies, args.cpu))
+            samples[name].append(measure(programs[name], args.file, args.copies, args.cpu, args.all_pages))
 
-    report = {"file": args.file.name, "cpu": args.cpu, "copies": args.copies, "measurements": {}}
+    report = {"file": args.file.name, "cpu": args.cpu, "copies": args.copies,
+              "all_pages": args.all_pages, "measurements": {}}
     for name, series in samples.items():
         report["measurements"][name] = {
             "median_ms": statistics.median(sample["ns"] for sample in series) / 1_000_000,

@@ -52,7 +52,9 @@ differences before comparing timings.
 
 The repeated-load driver warms a single reader, then times additional
 loads of page 1 while retaining each resulting page. Linux peak RSS
-includes the whole process. Repeat with each build and the same PDF.
+includes the whole process. Use `--all-pages` to walk distinct pages in
+order, cycling if the requested copy count exceeds the document's page
+count. Repeat with each build and the same PDF.
 
 ```sh
 swc build -d bench/workloads/pdfraster/reread \

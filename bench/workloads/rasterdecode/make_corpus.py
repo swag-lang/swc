@@ -21,14 +21,22 @@ def main():
     write("small-jpeg.jpg", "-resize", "317x211!", "-sampling-factor", "4:2:0", "-quality", "84")
     write("large-jpeg.jpg", "-resize", "1921x1281!", "-sampling-factor", "4:4:4", "-quality", "91")
     write("progressive.jpg", "-resize", "1279x853!", "-interlace", "Plane", "-quality", "85")
+    write("progressive-444.jpg", "-resize", "1601x907!", "-sampling-factor", "4:4:4",
+          "-interlace", "Plane", "-quality", "94")
     write("grayscale.jpg", "-resize", "641x427!", "-colorspace", "gray")
     write("palette.png", "-resize", "639x425!", "-colors", "48", "-define", "png:color-type=3")
+    write("grain.png", "-resize", "1801x1199!", "-seed", "727", "+noise", "Gaussian",
+          "-depth", "8", "-define", "png:color-type=2")
     write("adam7.png", "-resize", "641x427!", "-depth", "16", "-interlace", "PNG",
           "-define", "png:color-type=2", "-define", "png:bit-depth=16")
     write("packbits.tiff", "-resize", "1025x683!", "-depth", "8", "-compress", "RLE")
     write("lzw-predictor.tiff", "-resize", "1025x683!", "-depth", "8", "-compress", "LZW",
           "-define", "tiff:predictor=2", "-define", "tiff:rows-per-strip=31")
+    write("gray-lzw.tiff", "-resize", "1553x1033!", "-colorspace", "gray", "-depth", "8", "-compress", "LZW",
+          "-define", "tiff:predictor=2", "-define", "tiff:rows-per-strip=31")
     write("vp8.webp", "-resize", "1601x1067!", "-quality", "82")
+    write("vp8-alpha.webp", "-resize", "1281x847!", "(", "-size", "1281x847", "gradient:", ")",
+          "-alpha", "off", "-compose", "CopyAlpha", "-composite", "-quality", "82")
     write("vp8l.webp", "-resize", "1009x673!", "-define", "webp:lossless=true")
     write("transparent.gif", "-resize", "641x427!", "-alpha", "set", "-channel", "A",
           "-region", "128x128+0+0", "-evaluate", "set", "0", "+region", "+channel", "-colors", "128")

@@ -107,14 +107,82 @@ class LibWebP:
         return measure
 
 
-def compare_fixture(fixture, candidate, baseline, magick, webp, repetitions):
+class PngImage(ctypes.Structure):
+    # Public png_image ABI from png.h (simplified API, PNG_IMAGE_VERSION 1).
+    _fields_ = [("opaque", ctypes.c_void_p)] + [
+        (name, ctypes.c_uint32)
+        for name in ("version", "width", "height", "format", "flags", "colormap_entries", "warning_or_error")
+    ] + [("message", ctypes.c_char * 64)]
+
+
+class LibPng:
+    def __init__(self, library):
+        lib = ctypes.CDLL(library)
+        image, ptr = ctypes.POINTER(PngImage), ctypes.c_void_p
+        self.begin = bind(lib, "png_image_begin_read_from_file", [image, ctypes.c_char_p], ctypes.c_int)
+        self.finish = bind(lib, "png_image_finish_read", [image, ptr, ptr, ctypes.c_int32, ptr], ctypes.c_int)
+        self.free = bind(lib, "png_image_free", [image], None)
+        self.version = bind(lib, "png_get_libpng_ver", [ptr], ctypes.c_char_p)(None).decode()
+
+    def prepare(self, fixture, width, height, channels):
+        path = os.fsencode(fixture)
+        pixels = ctypes.create_string_buffer(width * height * channels)
+
+        def measure():
+            image = PngImage(version=1)
+            started = time.perf_counter_ns()
+            try:
+                if not self.begin(ctypes.byref(image), path):
+                    raise ValueError(f"{fixture}: libpng could not read the header: {image.message.decode()}")
+                if (image.width, image.height) != (width, height):
+                    raise ValueError(f"{fixture}: libpng and Swag output dimensions differ")
+                # Channels minus one encodes PNG_FORMAT_FLAG_COLOR and PNG_FORMAT_FLAG_ALPHA.
+                image.format = channels - 1
+                if not self.finish(ctypes.byref(image), None, pixels, 0, None):
+                    raise ValueError(f"{fixture}: libpng could not export pixels: {image.message.decode()}")
+                return (time.perf_counter_ns() - started) / 1000
+            finally:
+                self.free(ctypes.byref(image))
+
+        return measure
+
+
+class LibJpegTurbo:
+    def __init__(self, executable):
+        self.executable = executable
+        self.version = subprocess.check_output([executable, "--version"], text=True).strip()
+
+    def prepare(self, fixture, width, height):
+        def read_sample():
+            return subprocess.check_output([self.executable, fixture], text=True).split()
+
+        if read_sample() == ["unsupported"]:
+            return None
+
+        def measure():
+            elapsed, actual_width, actual_height, channels = map(int, read_sample())
+            if (actual_width, actual_height, channels) != (width, height, 3):
+                raise ValueError(f"{fixture}: libjpeg-turbo and Swag output layouts differ")
+            return elapsed
+
+        return measure
+
+
+def compare_fixture(fixture, candidate, baseline, magick, native, repetitions):
     _, expected = measure_swag(candidate, fixture)
     width, height, channels, bits, floating, pixel_format, checksum = expected
     references = {"imagemagick": magick.prepare(fixture, width, height, channels, bits, floating)}
-    if webp and fixture.suffix.lower() == ".webp" and channels == 4 and bits == 8:
-        native = webp.prepare(fixture, width, height)
-        if native:
-            references["libwebp"] = native
+    suffix = fixture.suffix.lower()
+    if native.get("libwebp") and suffix == ".webp" and channels == 4 and bits == 8:
+        reference = native["libwebp"].prepare(fixture, width, height)
+        if reference:
+            references["libwebp"] = reference
+    if native.get("libpng") and suffix in (".png", ".apng") and bits == 8:
+        references["libpng"] = native["libpng"].prepare(fixture, width, height, channels)
+    if native.get("libjpeg-turbo") and suffix in (".jpg", ".jpeg", ".jpe", ".jfif") and channels == 3 and bits == 8:
+        reference = native["libjpeg-turbo"].prepare(fixture, width, height)
+        if reference:
+            references["libjpeg-turbo"] = reference
     for measure in references.values():
         measure()
     engines = {"candidate": candidate, **dict.fromkeys(references)}
@@ -155,6 +223,8 @@ def main():
     parser.add_argument("--baseline", type=Path, help="optional previous rasterdecode executable")
     parser.add_argument("--magick-wand", required=True, help="MagickWand library name or path")
     parser.add_argument("--libwebp", help="optional libwebp library name or path for still WebP")
+    parser.add_argument("--libpng", help="optional libpng library name or path for 8-bit PNG output")
+    parser.add_argument("--libjpeg-runner", type=Path, help="optional executable built from jpeg_native.c")
     parser.add_argument("--repetitions", type=int, default=9)
     parser.add_argument("--output", type=Path, required=True, help="JSON results file")
     parser.add_argument("fixtures", type=Path, nargs="+")
@@ -166,13 +236,21 @@ def main():
     baseline = args.baseline.resolve() if args.baseline else None
     magick = MagickWand(args.magick_wand)
     webp = LibWebP(args.libwebp) if args.libwebp else None
+    native = {
+        "libwebp": webp,
+        "libpng": LibPng(args.libpng) if args.libpng else None,
+        "libjpeg-turbo": LibJpegTurbo(args.libjpeg_runner.resolve()) if args.libjpeg_runner else None,
+    }
     with magick:
         versions = {"imagemagick": magick.version(None).decode()}
         if webp:
             versions["libwebp"] = ".".join(str((webp.version >> shift) & 255) for shift in (16, 8, 0))
+        for library in ("libpng", "libjpeg-turbo"):
+            if native[library]:
+                versions[library] = native[library].version
         report = {"references": versions, "results": []}
         for fixture in args.fixtures:
-            result = compare_fixture(fixture.resolve(), candidate, baseline, magick, webp, args.repetitions)
+            result = compare_fixture(fixture.resolve(), candidate, baseline, magick, native, args.repetitions)
             report["results"].append(result)
             medians = ", ".join(f"{engine} {elapsed / 1000:.3f} ms" for engine, elapsed in result["median_us"].items())
             print(f"{fixture.name} {medians}", file=sys.stderr, flush=True)

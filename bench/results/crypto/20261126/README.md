@@ -113,3 +113,4 @@ optimizations moved each result.
 - [Packed BLAKE2 state initialization and feed-forward](blake2-state.md)
 - [BLAKE3 streaming updates and full SIMD batches](blake3-stream-updates.md)
 - [Affine Curve25519 generator table](ed25519-affine-generator.md)
+- [Signed affine Curve25519 generator tables](ed25519-signed-generator.md)

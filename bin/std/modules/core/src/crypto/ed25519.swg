@@ -171,30 +171,28 @@ private func ed25519BasePoint()->Ed25519Point
     return result
 }
 
-// Each column contributes a multiple of 2^(64 * column) times the base point.
-// The table is built at compile time from public coordinates.
-private const Ed25519GeneratorComb = #run ed25519BuildGeneratorComb()
+// Row i stores the first eight multiples of 256^i times the base point.
+private const Ed25519GeneratorRadix16 = #run ed25519BuildGeneratorRadix16()
 
-private func ed25519BuildGeneratorComb()->[16] Ed25519Affine
+private func ed25519BuildGeneratorRadix16()->[256] Ed25519Affine
 {
-    var points: [16] Ed25519Point
-    points[0] = ed25519Identity()
+    var points: [256] Ed25519Point
     var base = ed25519BasePoint()
-    for column in 4
+    for row in 32
     {
-        let count = 1'u32 << column
-        for index in count do
-            points[count + index] = ed25519Add(points[index], base)
-
-        if column < 3
+        let start = row * 8
+        points[start] = base
+        for column in 1 until 8 do
+            points[start + column] = ed25519Add(points[start + column - 1], base)
+        if row < 31
         {
-            for 64 do
+            for 8 do
                 base = ed25519Double(base)
         }
     }
 
-    // Normalize all 16 public points with one inversion.
-    var prefixes: [16] X25519Field
+    // Normalize the public points with one inversion.
+    var prefixes: [256] X25519Field
     var product: X25519Field
     product.limbs[0] = 1
     for point, index in points
@@ -206,9 +204,9 @@ private func ed25519BuildGeneratorComb()->[16] Ed25519Affine
     var inverse = x25519InvertPublic(product)
     let twiceD = x25519Add(ed25519D(), ed25519D())
     var result: #returntype
-    for row in 16
+    for row in points.count
     {
-        let index = 15 - row
+        let index = points.count - 1 - row
         let inverseZ = x25519Multiply(inverse, prefixes[index])
         inverse = x25519Multiply(inverse, points[index].z)
         let x = x25519Multiply(points[index].x, inverseZ)
@@ -220,18 +218,34 @@ private func ed25519BuildGeneratorComb()->[16] Ed25519Affine
     return result
 }
 
-private func ed25519SelectAffine(multiples: const [..] Ed25519Affine, digit: u8)->Ed25519Affine
+private func ed25519SelectAffine(multiples: const [..] Ed25519Affine, digit: s8)->Ed25519Affine
 {
+    let sign = digit >> 7
+    let magnitude = cast(u8, ((digit ^ sign) - sign))
     var result: #returntype
-    for index in 16
+    result.yMinusX.limbs[0] = cast(u64, magnitude == 0)
+    result.yPlusX.limbs[0] = result.yMinusX.limbs[0]
+    for entry, index in multiples
     {
-        let mask = 0'u64 - cast(u64, index == digit)
+        let mask = 0'u64 - cast(u64, index + 1 == magnitude)
         for limb in result.yMinusX.limbs.count
         {
-            result.yMinusX.limbs[limb] |= multiples[index].yMinusX.limbs[limb] & mask
-            result.yPlusX.limbs[limb]  |= multiples[index].yPlusX.limbs[limb] & mask
-            result.twiceDT.limbs[limb] |= multiples[index].twiceDT.limbs[limb] & mask
+            result.yMinusX.limbs[limb] |= entry.yMinusX.limbs[limb] & mask
+            result.yPlusX.limbs[limb]  |= entry.yPlusX.limbs[limb] & mask
+            result.twiceDT.limbs[limb] |= entry.twiceDT.limbs[limb] & mask
         }
+    }
+
+    // Negating an Edwards point swaps Y-X and Y+X, and negates 2dXY.
+    let negativeMask = 0'u64 - cast(u64, sign != 0)
+    var zero: X25519Field
+    let negatedT = x25519Subtract(zero, result.twiceDT)
+    for limb in result.yMinusX.limbs.count
+    {
+        let swap = (result.yMinusX.limbs[limb] ^ result.yPlusX.limbs[limb]) & negativeMask
+        result.yMinusX.limbs[limb] ^= swap
+        result.yPlusX.limbs[limb] ^= swap
+        result.twiceDT.limbs[limb] ^= (result.twiceDT.limbs[limb] ^ negatedT.limbs[limb]) & negativeMask
     }
 
     return result
@@ -239,22 +253,42 @@ private func ed25519SelectAffine(multiples: const [..] Ed25519Affine, digit: u8)
 
 private func ed25519MultiplyGenerator(scalar: const [..] u8)->Ed25519Point
 {
-    var result = ed25519Identity()
-    for row in 64
+    // The caller supplies a clamped or reduced scalar below 2^255. Carrying
+    // across its radix-16 digits gives signed digits in [-8, 8].
+    var digits: [64] s8
+    defer Crypto.secureClear(digits)
+    for byte, index in scalar
     {
-        result = ed25519Double(result)
-        let bit    = 63 - row
-        let byte   = bit / 8
-        let shift  = bit & 7
-        let first  = (scalar[byte] >> shift) & 1
-        let second = (scalar[byte + 8] >> shift) & 1
-        let third  = (scalar[byte + 16] >> shift) & 1
-        let fourth = (scalar[byte + 24] >> shift) & 1
-        let digit  = first | (second << 1) | (third << 2) | (fourth << 3)
+        digits[index * 2] = cast(s8, byte & 15)
+        digits[index * 2 + 1] = cast(s8, byte >> 4)
+    }
 
-        var selected = ed25519SelectAffine(Ed25519GeneratorComb, digit)
-        result = ed25519AddAffine(result, selected)
-        Crypto.secureClear(Swag.makeSlice(&selected, 1))
+    var carry = 0's8
+    for index in 63
+    {
+        let digit = digits[index] + carry
+        carry = (digit + 8) >> 4
+        digits[index] = digit - (carry << 4)
+    }
+    digits[63] += carry
+
+    // Odd-position digits share the same rows as even digits after four doublings.
+    var result = ed25519Identity()
+    var selected: Ed25519Affine
+    defer Crypto.secureClear(Swag.makeSlice(&selected, 1))
+    for pass in 2
+    {
+        for row in 32
+        {
+            let table = Ed25519GeneratorRadix16[row * 8 until row * 8 + 8]
+            selected = ed25519SelectAffine(table, digits[row * 2 + 1 - pass])
+            result = ed25519AddAffine(result, selected)
+        }
+        if pass == 0
+        {
+            for 4 do
+                result = ed25519Double(result)
+        }
     }
 
     return result

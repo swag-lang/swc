@@ -613,3 +613,44 @@ file, loading the page, and rendering at 1200 px.
 | `perf_codecs_ccitt.pdf` | 89.08 | 28.22 |
 | `ccitt_EndOfBlock_false.pdf` | 6.88 | 1.28 |
 | `scan-bad.pdf` | 54.09 | 55.55 |
+
+## Advancing reference transitions during fax decoding
+
+A CCITT 2D line now advances through the reference transitions once.
+The decoder restarts the search if a damaged code moves backwards.
+It also writes whole black bytes when possible, reads MSB-first
+codes from three bytes, and exchanges the two line buffers.
+
+Eleven interleaved native Release runs with two samples each use
+baseline `2534d3961d`, PDFium 159.0.8149.0, and one AMD EPYC 7763
+logical CPU. The large Group 4 scan at 1200 px takes 98.66 ms before
+and 70.05 ms after, with PDFium at 29.95 ms. Swag's page load falls
+from 61.63 to 34.10 ms. An earlier series measured 52.42 to 27.10 ms
+for that phase under a lighter host load.
+[Timing series and corpus checksums](pdf-raster-linux-fax.json)
+
+All 55 supported cases keep their Swag raster checksums. The 144 PDF
+tests pass, including the reference Group 4 fixture at both bit
+polarities and white padding after an early end.
+
+## Sampling decoded page images in place
+
+The bitmap export holds the page and its decoded image references for the
+entire render. Its CPU texture handles sample those buffers directly.
+Premultiplied inputs use an owned straight-alpha conversion.
+
+Nine interleaved native Release runs with two samples per batch use
+baseline `2534d3961d`, one AMD EPYC 7763 logical CPU, and PDFium
+159.0.8149.0. Times include opening, loading and rendering at 1200 px.
+[Raw phases, checksums, and peak memory](pdf-raster-linux-borrowed-textures.json)
+
+| PDF | Swag before, ms | Swag after, ms | PDFium, ms |
+| --- | ---: | ---: | ---: |
+| `perf_images_jpeg_large.pdf` | 95.13 | 91.90 | 96.60 |
+| `large_jpeg_downscale.pdf` | 52.23 | 45.87 | 56.15 |
+| `perf_images_repeated.pdf` | 97.23 | 92.42 | 74.51 |
+| `perf_transparency_soft_masks.pdf` | 72.39 | 67.50 | 94.75 |
+
+The large JPEG render phase drops from 33.18 to 28.71 ms. The process
+peak stays near 128 MiB in the seven-sample memory check. All 55
+supported raster checksums, 987 Pixel tests, and 144 PDF tests pass.

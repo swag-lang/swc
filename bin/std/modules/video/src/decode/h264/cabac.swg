@@ -75,32 +75,38 @@ func buildCabacTables()->[928] u8
     return result
 }
 
+// A slice chooses one of the four context tables and an integer QP in 0 through 51.
+private const InitialCabacContexts: [4 * 52 * 1024] u8 = #run buildInitialCabacContexts()
+
+private func buildInitialCabacContexts()->[4 * 52 * 1024] u8
+{
+    var result: #returntype
+    for set in 4'u64
+    {
+        for qp in 52'u64
+        {
+            for index in 1024'u64
+            {
+                let base     = set == 0 ? index * 2 : (set - 1) * 2048 + index * 2
+                let m        = cast(s32, set == 0 ? CabacInitI[base] : CabacInitPB[base])
+                let n        = cast(s32, set == 0 ? CabacInitI[base + 1] : CabacInitPB[base + 1])
+                let preState = Math.clamp(((m * cast(s32, qp)) >> 4) + n, 1, 126)
+                result[(set * 52 + qp) * 1024 + index] = preState <= 63 ? cast(u8, ((63 - preState) << 1)) : cast(u8, (((preState - 64) << 1) | 1))
+            }
+        }
+    }
+
+    return result
+}
+
 impl CabacReader
 {
     // Initializes the contexts for one slice, section 9.3.1.1.
     mtd initContexts(sliceQp: s32, sliceType: u32, cabacInitIdc: u32)
     {
-        for index in 1024'u64
-        {
-            var m, n: s32
-            if sliceType == SliceTypeI
-            {
-                m = cast(s32, CabacInitI[index * 2])
-                n = cast(s32, CabacInitI[index * 2 + 1])
-            }
-            else
-            {
-                let base = cast(u64, cabacInitIdc) * 2048 + index * 2
-                m = cast(s32, CabacInitPB[base])
-                n = cast(s32, CabacInitPB[base + 1])
-            }
-
-            let preState = Math.clamp(((m * Math.clamp(sliceQp, 0, 51)) >> 4) + n, 1, 126)
-            if preState <= 63 do
-                .contexts[index] = cast(u8, ((63 - preState) << 1))
-            else do
-                .contexts[index] = cast(u8, (((preState - 64) << 1) | 1))
-        }
+        let set = sliceType == SliceTypeI ? 0'u64 : cast(u64, cabacInitIdc) + 1
+        let qp  = cast(u64, Math.clamp(sliceQp, 0, 51))
+        Memory.copy(.contexts.buffer, InitialCabacContexts.buffer + (set * 52 + qp) * 1024, #sizeof(.contexts))
     }
 
     // Starts the arithmetic engine on the byte-aligned slice data, section 9.3.1.2: nine bits of

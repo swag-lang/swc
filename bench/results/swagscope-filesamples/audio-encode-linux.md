@@ -274,3 +274,38 @@ the same size and takes 0.32 ms longer.
 Native Release passes 333 audio tests. Release-safe passes 60 focused AAC,
 MDCT and FLAC writer tests. The audio API audit documents all 221 items and
 reports no unresolved references or broken anchors.
+
+## AAC payload-rate ceilings
+
+`StreamEncoder.createRateLimited` chooses a rate–distortion plan for the bounded
+AAC payload. The caller supplies a ceiling in bits per second. The available
+bytes are rounded down for each group of 1,024 coded frames. Unused bytes carry
+forward up to three access units' worth. The budget accounts for priming and
+drain packets. Software can account for its container overhead separately.
+
+Both Swag builds use the same native Release compiler and source baseline
+`6080ba5987`. The table shows the candidate and each reference in separate
+interleaved runs, each with 12 samples per engine on CPU 3. Input PCM lasts
+ten seconds. Achieved payload rate uses the input duration and excludes ADTS
+headers. Waveform SNR removes each encoder's declared priming.
+
+[Raw stage times, per-prefix checks, and PCM metrics](audio-encode-linux-round7.json)
+
+| Input | Ceiling (kb/s) | Swag (kb/s) | FFmpeg 9.1 (kb/s) | FDK 2.0.3 (kb/s) | Swag SNR (dB) | FFmpeg SNR (dB) | FDK SNR (dB) | Swag with FDK (ms) | FDK (ms) | FFmpeg (ms) |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| FileSamples stereo 44.1 kHz | 96 | 96.06 | 95.93 | 96.09 | 20.07 | 11.36 | 20.94 | 29.77 | 100.74 | 221.81 |
+| FileSamples stereo 44.1 kHz | 128 | 126.28 | 125.94 | 126.31 | 22.41 | 14.21 | 24.32 | 23.77 | 108.97 | 369.49 |
+| FileSamples stereo 44.1 kHz | 192 | 158.82 | 159.59 | 157.55 | 25.94 | 17.32 | 27.39 | 23.23 | 117.38 | 452.28 |
+| Generated stereo 48 kHz | 128 | 115.94 | 112.93 | 115.98 | 23.88 | 16.15 | 24.30 | 22.13 | 109.54 | 505.62 |
+| Generated mono 48 kHz | 96 | 83.60 | 83.14 | 83.67 | 28.74 | 20.56 | 24.00 | 9.13 | 53.73 | 269.91 |
+
+All ten capped outputs stay within their byte budget at every coded prefix.
+The seven regular and eight adaptive outputs remain byte-identical to their
+previous Swag builds. FDK rates are within 1% of Swag across these runs.
+FFmpeg's achieved rate on generated stereo is 2.6% lower than Swag's.
+At approximately 126 kb/s on FileSamples, FDK's waveform SNR is 1.90 dB
+higher. Swag encodes that input in 23.77 ms in the FDK series.
+
+Native Release passes 336 audio tests. Release-safe passes 49 focused AAC and
+MDCT tests. The audio API audit documents all 222 items and reports no unresolved
+references or broken anchors.

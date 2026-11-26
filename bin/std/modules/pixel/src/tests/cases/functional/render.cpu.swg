@@ -526,6 +526,34 @@ private func renderCpuFontOnThread(thread: const *Threading.Thread)
     assertPixel(image, 9, 5, Argb.Zero)
 }
 
+// A borrowed texture draws and reads the caller's bytes without allowing updates.
+#test
+{
+    let source = Image.create(1, 1, .RGBA8, [34'u8, 79, 212, 255])
+    var cpu: RenderCpu
+    cpu.begin(4, 4)
+    let render: IRenderer = &cpu
+    defer render.end()
+    var texture = cpu.addBorrowedImage(&source)
+    const Other = [99'u8, 85, 76, 255]
+    Swag.require(texture.isValid() and not render.updateTexture(texture, Other.buffer))
+    let pixels = render.readTexturePixels(texture, .RGBA8)
+    Swag.require(Slice.equals(pixels.toSlice(), source.pixels.toSlice()))
+
+    var painter = Painter.create(render)
+    painter.begin()
+    painter.setColorMaskFull()
+    painter.clear(Color.fromArgb(Argb.Black))
+    painter.setColorMaskColor()
+    painter.drawTexture({0, 0, 4, 4}, texture)
+    painter.end()
+    expect render.draw(&painter)
+    assertPixel(cpu.surfaceImage(), 2, 2, Color.fromRgb(34, 79, 212))
+
+    render.removeTexture(&texture)
+    Swag.require(source.pixelColor(0, 0) == Color.fromRgb(34, 79, 212))
+}
+
 // A linearly sampled texture multiplies its source alpha by stencil coverage.
 #test
 {

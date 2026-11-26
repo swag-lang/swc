@@ -59,17 +59,29 @@ def rgb_fixtures():
     )
 
 
+def avc_slice_fixtures():
+    return tuple(
+        (f"avc-high-{slices}-slices.mp4", "1920x1080", 96, None,
+         ["-c:v", "libx264", "-preset", "fast", "-profile:v", "high", "-crf", "23",
+          "-x264-params", f"slices={slices}:scenecut=0:keyint=32"])
+        for slices in (1, 8, 32)
+    )
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output", required=True, type=Path)
-    parser.add_argument("--rgb", action="store_true", help="generate Y4M and Motion JPEG fixtures")
+    profile = parser.add_mutually_exclusive_group()
+    profile.add_argument("--rgb", action="store_true", help="generate Y4M and Motion JPEG fixtures")
+    profile.add_argument("--avc-slices", action="store_true", help="generate 1080p H.264 with one, eight and 32 slices")
     args = parser.parse_args()
     output = args.output.resolve()
     if output == REPO or REPO in output.parents:
         parser.error("--output must be outside the checkout")
     output.mkdir(parents=True)
     records = []
-    for name, size, count, filters, encoder in rgb_fixtures() if args.rgb else fixtures():
+    selected = rgb_fixtures() if args.rgb else avc_slice_fixtures() if args.avc_slices else fixtures()
+    for name, size, count, filters, encoder in selected:
         path = output / name
         command = ["ffmpeg", "-nostdin", "-v", "error", "-filter_threads", "1",
                    "-f", "lavfi", "-i", "testsrc2=size=" + size + ":rate=30"]

@@ -42,6 +42,10 @@ and submit them at 48 kHz with one channel. For isolated attacks, run
 attacks, also give `--background` the output directory from encoding the
 background at the same encoder settings.
 
+Pass `--aac-rate 128000` to benchmark the candidate with a payload ceiling of
+128,000 bits per second. The comparison baseline uses its regular encoder,
+and the reference calibrates against the achieved candidate payload rate.
+
 For FLAC, `--reference-setting` selects the FFmpeg compression level and defaults to 5.
 `--libflac 0` adds the installed libFLAC streaming reference at level 0. Its input is
 widened to the 32-bit API representation before the timer starts.

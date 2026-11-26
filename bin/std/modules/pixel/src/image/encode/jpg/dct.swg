@@ -280,6 +280,40 @@ impl Encoder
         .writePackedCode(acTable[0])
     }
 
+    // The upper half is empty, so a gap needs at most one run of sixteen zeros.
+    mtd writeSparseAc(coefficients: const [*] s16, table: const [*] u32)
+    {
+        let zero = Math.Simd.splat(0's16)
+        var occupied: u32
+        for group in 4
+        {
+            let values = Math.Simd.load(coefficients + group * 8)
+            occupied |= Math.Simd.bitmask(values != zero) << (group * 8)
+        }
+
+        occupied &= 0xFFFF_FFFE
+
+        var next = 1'u32
+        while occupied
+        {
+            let index = Math.trailingZeros(occupied)
+            var run   = index - next
+            if run >= 16
+            {
+                .writePackedCode(table[0xF0])
+                run -= 16
+            }
+
+            let coefficient = coefficients[index]
+            let category    = magnitudeCategory(coefficient)
+            .writeAmplitude(table[run * 16 + category], coefficient, category)
+            next     = index + 1
+            occupied &= occupied - 1
+        }
+
+        .writePackedCode(table[0])
+    }
+
     mtd processDU(componentDU: [*] s16, fdtbl: [*] f32, dC: *s16, hTDC, hTAC: const [*] u32)
     {
         let eob       = hTAC[0x00]
@@ -288,6 +322,20 @@ impl Encoder
         quantization(componentDU, fdtbl, .du)
 
         .writeDc(.du[0], dC, hTDC)
+
+        let coefficients = cast(const [*] s16, .du)
+        let zero         = Math.Simd.splat(0's16)
+        if Math.Simd.allTrue(Math.Simd.load(coefficients + 56) == zero)
+        {
+            let tail = Math.Simd.load(coefficients + 32) |
+                       Math.Simd.load(coefficients + 40) |
+                       Math.Simd.load(coefficients + 48)
+            if Math.Simd.allTrue(tail == zero)
+            {
+                .writeSparseAc(coefficients, hTAC)
+                return
+            }
+        }
 
         var end0pos = 63
         while (end0pos > 0) and (.du[end0pos] == 0) do

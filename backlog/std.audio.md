@@ -181,15 +181,17 @@ owned by `bin/std/modules/audio` together. [README.md](README.md) has the whole 
   PCM16 amplitude from 1536 to 256 frames before the peak. Mixed-signal pre-attack metrics
   remain dependent on the background and quantization.
   [Adaptive AAC and higher-order FLAC](../bench/results/swagscope-filesamples/audio-encode-linux.md#aac-short-windows-and-higher-order-flac)
+  The optional `StreamEncoder.createRateLimited` enforces the AAC payload ceiling over
+  each coded prefix. The regular and adaptive outputs are byte-identical across the measured
+  inputs. At about 126 kb/s on FileSamples, FDK waveform SNR is 1.90 dB higher.
+  [AAC payload-rate comparison](../bench/results/swagscope-filesamples/audio-encode-linux.md#aac-payload-rate-ceilings)
   Tests cover irregular input chunks and packet boundaries. The decoded AAC stream has 1024
   priming frames; the MP4 presentation edit reports the exact audible final frame count to
   `Video.Reader`, while FFmpeg currently ignores edits in fragmented MP4 and exposes at most
   1023 padding frames at the end.
-- Next: add bounded target bitrate and transient coding with AAC LONG_START, EIGHT_SHORT
-  and LONG_STOP window transitions. Further compare short-window pre-attack energy on
-  music-backed impulses before setting a quality threshold.
+- Next: refine capped AAC rate–distortion and mixed-signal pre-attack handling.
   Test sample-accurate final trimming in other reference players while keeping the
-  resumable fragmented prefix and an implementation independent of external codec libraries.
+  resumable fragmented prefix and native codec implementation.
 - Done when: a captured non-silent recording plays in the module and reference players with
   video/audio sync within one video frame, including its start, end, source gaps and long runs.
 - Related: app.capture.013, std.video.016, platform.portability.099

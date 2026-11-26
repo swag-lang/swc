@@ -4,8 +4,8 @@ using Swag, Core, Core.Math
 
 // Executes [[Pixel.Painter]] command streams into deterministic CPU-owned pixel buffers.
 //
-// A CPU renderer owns every texture and render target it creates. It needs no native window,
-// graphics context, or GPU driver. Call [[Pixel.RenderCpu.begin]], record and submit a painter,
+// A CPU renderer owns its texture descriptors and render targets. It needs no native
+// window, graphics context, or GPU driver. Call [[Pixel.RenderCpu.begin]], record and submit a painter,
 // then read the surface or an off-screen target back as an [[Pixel.Image]].
 //
 // Every renderer-independent painter operation, including MSDF font effects, blur, and
@@ -112,10 +112,16 @@ internal struct CpuTexture
     public
     {
         handle:  TextureHandle
-        image:   Image
-        stencil: CpuStencil
+        image:    Image
+        borrowed: const *Image?
+        stencil:  CpuStencil
         planar:  CpuPlanarTexture
     }
+}
+
+internal impl CpuTexture
+{
+    mtd const sourceImage()->const *Image => .borrowed ? .borrowed : &.image
 }
 
 // CPU-owned copies of the source planes, sampled before RGB conversion like the GPU shader.
@@ -235,7 +241,7 @@ private struct RasterBatch
     overlapRows:  [*] OverlapRow?
 
     solidPaint:  bool                   // The paint multiplies by opaque white, which is the identity.
-    paintImage:  *Image?                // Storage of a bound texture paint, resolved once.
+    paintImage:  const *Image?                // Storage of a bound texture paint, resolved once.
     paintPlanar: *CpuPlanarTexture?     // Source planes for video textures.
     atlas:       const *GlyphAtlas?     // Glyph atlas of the bound font, resolved once.
     subRect:     SubRectSampler
@@ -723,7 +729,7 @@ private impl RenderCpu
     }
 
     #[Swag.Inline]
-    func(const Format: PixelFormat) sampleColor8Bilinear(image: *Image, x0, x1, y0, y1: s32, wx, wy: u32)->Color
+    func(const Format: PixelFormat) sampleColor8Bilinear(image: const *Image, x0, x1, y0, y1: s32, wx, wy: u32)->Color
     {
         let pixels = image.pixels.storage()
         let stride = cast(u64, image.rowStride)
@@ -739,7 +745,7 @@ private impl RenderCpu
     // The caller has clamped the coordinates. Straight integer colors use the same
     // two quantized lerps as the generic sampler after converting texels to bytes.
     #[Swag.Inline]
-    func bilinearTexels(image: *Image, x0, x1, y0, y1: s32, tx, ty: f32)->Color
+    func bilinearTexels(image: const *Image, x0, x1, y0, y1: s32, tx, ty: f32)->Color
     {
         let wx = bilinearWeight(tx)
         let wy = bilinearWeight(ty)
@@ -772,13 +778,13 @@ private impl RenderCpu
         return result
     }
 
-    func readPixel(image: *Image, x, y: s32)->Color => image.pixelColor(x, y)
+    func readPixel(image: const *Image, x, y: s32)->Color => image.pixelColor(x, y)
 
     // Reads one clamped BGRA8 pixel: the exact bytes [[readPixel]] returns for that format,
     // without the per-pixel format dispatch. The sampling helpers call this on every fetch of
     // a texture paint, which is most of what a themed frame rasterizes.
     #[Swag.Inline]
-    func fetchBgra8(image: *Image, x, y: s32)->Color
+    func fetchBgra8(image: const *Image, x, y: s32)->Color
     {
         let cx  = Math.clamp(x, 0, image.width - 1)
         let cy  = image.height - Math.clamp(y, 0, image.height - 1) - 1
@@ -1112,7 +1118,7 @@ private impl RenderCpu
         writePixel(image, x, y, out)
     }
 
-    func sampleNearest(image: *Image, u, v: f32, repeat: bool)->Color
+    func sampleNearest(image: const *Image, u, v: f32, repeat: bool)->Color
     {
         var uu = u
         var vv = v
@@ -1138,7 +1144,7 @@ private impl RenderCpu
         return readPixel(image, x, y)
     }
 
-    func sampleLinear(image: *Image, u, v: f32, repeat: bool)->Color
+    func sampleLinear(image: const *Image, u, v: f32, repeat: bool)->Color
     {
         var uu = u
         var vv = v
@@ -1276,7 +1282,7 @@ private impl RenderCpu
                      b: cast(u8, Math.round(Math.clamp(b, 0.0, 255.0)))}
     }
 
-    func sampleSubRect(image: *Image, paintPos: Vector2, sampler: const *SubRectSampler)->Color
+    func sampleSubRect(image: const *Image, paintPos: Vector2, sampler: const *SubRectSampler)->Color
     {
         let tx = Math.saturate((paintPos.x - sampler.origin.x) / sampler.size.x)
         let ty = Math.saturate((paintPos.y - sampler.origin.y) / sampler.size.y)
@@ -1332,7 +1338,7 @@ private impl RenderCpu
     }
 
     #[Swag.Inline]
-    func backdropTexel(image: *Image, params: const *BackdropPass, pixels: const [*] Math.Simd.F32x4?, x, y: s32)->Math.Simd.F32x4
+    func backdropTexel(image: const *Image, params: const *BackdropPass, pixels: const [*] Math.Simd.F32x4?, x, y: s32)->Math.Simd.F32x4
     {
         if pixels do
             return pixels[cast(u64, y) * cast(u64, params.width) + cast(u64, x)]
@@ -1340,7 +1346,7 @@ private impl RenderCpu
     }
 
     #[Swag.Inline]
-    func sampleBackdropLinear(image: *Image, params: const *BackdropPass, pixels: const [*] Math.Simd.F32x4?, su, sv: f32)->Math.Simd.F32x4
+    func sampleBackdropLinear(image: const *Image, params: const *BackdropPass, pixels: const [*] Math.Simd.F32x4?, su, sv: f32)->Math.Simd.F32x4
     {
         // Keep interpolation in float until the pass is complete. Quantizing each of the
         // two bilinear lerps loses brightness repeatedly on the reconstruction pyramid.
@@ -1364,7 +1370,7 @@ private impl RenderCpu
         return top + (bottom - top) * (y - y0)
     }
 
-    mtd sampleBackdrop(batch: *RasterBatch, image: *Image, u, v: f32)->Color
+    mtd sampleBackdrop(batch: *RasterBatch, image: const *Image, u, v: f32)->Color
     {
         let params  = &.backdropPass
         let sourceU = u * params.width / image.width
@@ -1419,7 +1425,7 @@ private impl RenderCpu
                               cast(u8, Math.round(Math.saturate(sum[2]) * 255)))
     }
 
-    mtd sampleBlur(batch: *RasterBatch, image: *Image, u, v: f32)->Color
+    mtd sampleBlur(batch: *RasterBatch, image: const *Image, u, v: f32)->Color
     {
         if batch.blurTapCount == 0 do
             return sampleLinear(image, u, v, false)
@@ -1437,7 +1443,7 @@ private impl RenderCpu
         return Color.fromArgbF32(sum[3], sum[0], sum[1], sum[2])
     }
 
-    mtd sampleResolve(image: *Image, u, v: f32)->Color
+    mtd sampleResolve(image: const *Image, u, v: f32)->Color
     {
         let factor = Math.clamp(.resolveFactor, 1, 8)
 
@@ -2749,7 +2755,7 @@ private impl RenderCpu
             cached.colors[index] = lerpBgra8(loadColor8'Format(pixels, sample.low), loadColor8'Format(pixels, sample.high), sample.weight)
     }
 
-    func(const Format: PixelFormat) drawLinearImageTriangle(batch: *RasterBatch, source: *Image, triangle: const *TriangleSpan, paintRect: Vector4, matte: [*] u8?, stenciled: bool)
+    func(const Format: PixelFormat) drawLinearImageTriangle(batch: *RasterBatch, source: const *Image, triangle: const *TriangleSpan, paintRect: Vector4, matte: [*] u8?, stenciled: bool)
     {
         if stenciled do
             drawLinearTextureTriangle'(Format, true)(batch, source, triangle, paintRect, matte)
@@ -2757,7 +2763,7 @@ private impl RenderCpu
             drawLinearTextureTriangle'(Format, false)(batch, source, triangle, paintRect, matte)
     }
 
-    func(const Format: PixelFormat, const Stenciled: bool) drawLinearTextureTriangle(batch: *RasterBatch, source: *Image, triangle: const *TriangleSpan, paintRect: Vector4, matte: [*] u8?)
+    func(const Format: PixelFormat, const Stenciled: bool) drawLinearTextureTriangle(batch: *RasterBatch, source: const *Image, triangle: const *TriangleSpan, paintRect: Vector4, matte: [*] u8?)
     {
         let paintWidth  = Math.max(paintRect.z - paintRect.x, 0.000001)
         let paintHeight = Math.max(paintRect.w - paintRect.y, 0.000001)
@@ -3263,7 +3269,7 @@ private impl RenderCpu
             let storage = .findTexture(.paint.texture.handle)
             if storage
             {
-                batch.paintImage = &storage.image
+                batch.paintImage = storage.sourceImage()
                 if storage.planar.width > 0 do
                     batch.paintPlanar = &storage.planar
             }
@@ -5291,6 +5297,8 @@ impl RenderCpu
         let storage = .findTexture(texture.handle)
         Swag.assert(storage != null, "texture is not owned by this renderer")
         let target = storage
+        if target.borrowed do
+            return false
 
         if texture.pixelFormat == .Yuv420 or texture.pixelFormat == .Yuv444
         {
@@ -5331,7 +5339,7 @@ impl RenderCpu
         let storage = .findTexture(texture.handle)
         Swag.assert(storage != null, "texture is not owned by this renderer")
         let source = storage
-        let image  = source.image.convertedTo(pixelFormat)
+        let image  = source.sourceImage().convertedTo(pixelFormat)
         result = image.pixels
         return result
     }

@@ -200,8 +200,11 @@ ships; history lives in Git, not here.
 - Evidence: [parallel batches of color fills](../bench/workloads/svgraster/resvg-comparison.md#processing-consecutive-color-fills-by-row-range)
   reduce the 16,000-shape fixture from 233 to 120 ms and the stroke fixture from
   64 to 44 ms at four workers with unchanged pixels.
-- Next: measure batches of single-ink fills and crossing order on the
-  original SVGs. Rerun the original
+- Evidence: [parallel single-ink bitmap rendering](../bench/workloads/svgraster/resvg-comparison.md#parallelizing-the-single-ink-bitmap-path)
+  reduces the largest original from 184 to 136 ms at four workers with the same
+  pixels. Its four-worker thumbnail drops from 146 to 118 ms.
+- Next: measure crossing order, short path allocations and paint sampling.
+  Rerun the original
   Windows comparison at one worker and at the runtime default.
 - Done when: the original corpus meets agreed parse and raster budgets against resvg and the
   renderer's verified output behavior is preserved.

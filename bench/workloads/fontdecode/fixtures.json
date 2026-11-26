@@ -549,6 +549,51 @@
     ]
   },
   {
+    "file": "NimbusSans-Regular.t1",
+    "url": "https://raw.githubusercontent.com/ArtifexSoftware/urw-base35-fonts/3c0ba3b5687632dfc66526544a4e811fe0ec0cd9/fonts/NimbusSans-Regular.t1",
+    "sha256": "779a9c820bbe8b470d36e77bcf949eef7bf1b889184274ba0f51da4c8c883cfa",
+    "cases": [
+      {
+        "character": 65,
+        "profile": "PostScript Type 1, binary eexec"
+      },
+      {
+        "character": 103,
+        "profile": "PostScript Type 1, binary eexec"
+      }
+    ]
+  },
+  {
+    "file": "NimbusMonoPS-Regular.t1",
+    "url": "https://raw.githubusercontent.com/ArtifexSoftware/urw-base35-fonts/3c0ba3b5687632dfc66526544a4e811fe0ec0cd9/fonts/NimbusMonoPS-Regular.t1",
+    "sha256": "b1c0f23ba9732ee495ea52658684dc36064d3c439ac81b7dfcf922e790e5160f",
+    "cases": [
+      {
+        "character": 87,
+        "profile": "PostScript Type 1, binary eexec"
+      },
+      {
+        "character": 105,
+        "profile": "PostScript Type 1, binary eexec"
+      }
+    ]
+  },
+  {
+    "file": "P052-Roman.t1",
+    "url": "https://raw.githubusercontent.com/ArtifexSoftware/urw-base35-fonts/3c0ba3b5687632dfc66526544a4e811fe0ec0cd9/fonts/P052-Roman.t1",
+    "sha256": "99a8259f8eaec4604ad8794dc63e67b0d4fe189bdf6acbd1a7047dbe1ef9c86f",
+    "cases": [
+      {
+        "character": 103,
+        "profile": "PostScript Type 1, binary eexec"
+      },
+      {
+        "character": 69,
+        "profile": "PostScript Type 1, binary eexec"
+      }
+    ]
+  },
+  {
     "file": "DejaVuSans.woff",
     "source": "DejaVuSans.ttf",
     "cases": [

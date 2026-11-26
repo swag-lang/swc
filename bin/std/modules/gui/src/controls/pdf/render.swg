@@ -815,7 +815,7 @@ internal func renderPage(page: *Page, options: RenderOptions)->Image fail
         }
 
         let pixels = item.kind == .Image ? (unwrap item.imageValue()) : &item.maskImage
-        textures.add(renderer.addImage(pixels[]))
+        textures.add(cpu.addBorrowedImage(pixels))
     }
 
     renderer.end()

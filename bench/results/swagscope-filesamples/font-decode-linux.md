@@ -1172,3 +1172,71 @@ The native tests also compare the complete SDF with scalar winding.
 | `NotoSansCJKjp-Regular.otf` | 24 | 64 | 6737.09 | 5819.02 |
 | `NotoSerifCJKjp-Regular.otf` | 24 | 8 | 399.34 | 352.41 |
 | `NotoSerifCJKjp-Regular.otf` | 64 | 8 | 1105.43 | 929.19 |
+
+## Glyph locations shared by a retained font source
+
+A retained source caches the validation and final offset of each
+packed glyph location range. Each face still verifies that the final
+offset fits its own outline table. Standalone opens validate their
+independent bytes as before.
+
+The comparison with `9a7d0f5cdc` uses seven interleaved batches of 251
+reopens on one CPU. Opening the CJK TrueType fixtures falls by 19–56%.
+Both builds select the same glyphs and preserve the advance, bitmap
+dimensions and CRC-64 in every case. The native tests include two
+faces that share offsets and declare different outline lengths.
+[Raw timings and pathname controls](font-decode-linux-shared-loca.json)
+
+| Fixture | Character | Open before (µs) | After | Open and render before (µs) | After |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| `DejaVuSans.ttf` | U+0041 | 21.23 | 17.81 | 26.60 | 23.31 |
+| `Inter-Variable.ttf` | U+0057 | 12.89 | 12.95 | 25.24 | 23.77 |
+| `ZenKakuGothicNew-Regular.ttf` | U+6C38 | 16.67 | 11.24 | 40.41 | 36.77 |
+| `MaShanZheng-Regular.ttf` | U+9F99 | 15.14 | 12.26 | 80.42 | 79.89 |
+| `GowunBatang-Regular.ttf` | U+D55C | 18.26 | 12.19 | 67.08 | 63.19 |
+| `NotoSansJP-Variable.ttf` | U+2000B | 24.78 | 13.82 | 48.04 | 35.84 |
+| `NotoSansTC-Variable.ttf` | U+9F8D | 26.03 | 14.30 | 57.53 | 48.96 |
+| `NotoSansSC-Variable.ttf` | U+9F8D | 32.27 | 14.49 | 62.84 | 40.86 |
+| `NotoSansKR-Variable.ttf` | U+AC01 | 30.32 | 14.43 | 45.59 | 28.26 |
+| `NotoSansKR-Variable.ttf` | U+97D3 | 29.45 | 14.00 | 46.13 | 30.08 |
+| `NotoSansHK-Variable.ttf` | U+20021 | 25.30 | 14.79 | 49.30 | 38.34 |
+| `NotoSansHK-Variable.ttf` | U+9AA8 | 25.39 | 14.53 | 40.66 | 27.45 |
+| `NotoSerifJP-Variable.ttf` | U+3042 | 28.14 | 15.34 | 75.01 | 61.51 |
+| `NotoSerifJP-Variable.ttf` | U+9AD8 | 24.91 | 15.52 | 49.42 | 38.76 |
+| `NotoSerifKR-Variable.ttf` | U+D55C | 29.61 | 17.56 | 74.46 | 64.72 |
+| `NotoSerifKR-Variable.ttf` | U+91D1 | 31.33 | 15.45 | 57.64 | 40.08 |
+| `LXGWWenKaiTC-Regular.ttf` | U+570B | 23.98 | 11.37 | 80.06 | 66.47 |
+| `LXGWWenKaiTC-Regular.ttf` | U+9F8D | 25.05 | 11.07 | 92.10 | 76.61 |
+| `Iansui-Regular.ttf` | U+81FA | 23.87 | 14.64 | 81.90 | 78.43 |
+| `Iansui-Regular.ttf` | U+9F9C | 22.41 | 13.49 | 87.10 | 78.93 |
+| `Lato-Regular.ttf` | U+0041 | 14.88 | 15.47 | 22.43 | 23.41 |
+| `OpenSans-Regular.ttf` | U+0041 | 12.71 | 11.87 | 18.72 | 19.73 |
+
+## PostScript Type 1 decoding
+
+Type 1 decrypts directly into its output buffer, uses the byte
+substring search for dictionary markers, and moves each decoded
+charstring into the font. Bare programs can borrow their input while
+parsing. The common leading `hsbw` sequence supplies the advance
+directly. Computed widths and other operators use the interpreter.
+
+Three pinned URW Type 1 files add six cases, for 85 cases on 65 files.
+All six take 22–28% less time to open and render than `9a7d0f5cdc`,
+and all six are ahead of Pillow 12.3.0 with FreeType 2.14.3. The test
+uses 13 interleaved batches of 41 opens on one CPU. The Swag builds
+match glyph IDs, advances, dimensions and bitmap checksums. Both
+engines select the same PostScript glyph names.
+[Raw timings and glyph names](font-decode-linux-type1.json)
+
+| Fixture | Character | Before (µs) | Buffer and scan changes | With width fast path | Pillow |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| `NimbusSans-Regular.t1` | U+0041 | 1348.6 | 1020.2 | 975.6 | 1250.8 |
+| `NimbusSans-Regular.t1` | U+0067 | 1293.1 | 1030.4 | 998.0 | 1295.4 |
+| `NimbusMonoPS-Regular.t1` | U+0057 | 1642.3 | 1288.1 | 1245.8 | 1427.1 |
+| `NimbusMonoPS-Regular.t1` | U+0069 | 1599.4 | 1267.6 | 1238.4 | 1456.6 |
+| `P052-Roman.t1` | U+0067 | 1814.4 | 1429.1 | 1382.8 | 1667.2 |
+| `P052-Roman.t1` | U+0045 | 1876.3 | 1441.8 | 1398.0 | 1582.2 |
+
+The timing set uses Latin Type 1 glyphs. The Standard Symbols PS
+trial for U+03A9 has no Unicode glyph in Swag and is excluded from
+the timing set.

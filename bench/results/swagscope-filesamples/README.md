@@ -1387,3 +1387,58 @@ The integrated raster checkpoint at `72139801f6` passed 422 native Pixel and
 63 Core tests. The check used the Linux compiler at `52f76fab9d` with its
 matching CRC32 and CRC64 sources. The tested image and buffer sources came
 from the checkpoint.
+
+### Larger raster and animation inputs
+
+The lossless WebP encoder estimates the cost of predicting pixels from the
+preceding row and subtracting green from the other color channels. The sample
+uses 15 rotating trials and preserves the full RGBA data, including RGB values
+at zero alpha. Libwebp used its exact lossless mode at method 0.
+
+| VP8L input | Swag before (ms / bytes) | Swag after (ms / bytes) | libwebp 1.5.0 (ms / bytes) |
+| --- | ---: | ---: | ---: |
+| FileSamples photograph, RGB | 91.487 / 16,147,454 | 74.899 / 7,755,584 | 602.556 / 6,745,522 |
+
+Across 14 inputs, the VP8L comparison matched the reference RGBA SHA-256.
+Palettes and noise retained their earlier encoded bytes. On one RGB UI input,
+encoding time rose 7.04% in paired trials while output shrank from 266,416 to
+184,894 bytes. On the alpha UI input, time fell 17.93% and the output shrank
+from 410,850 to 173,200 bytes.
+
+| Codec and input | Swag before (ms) | Swag after (ms) | Reference (ms) |
+| --- | ---: | ---: | ---: |
+| TIFF decode, 8,192 reordered page directories | 35.203 | 6.036 | LibTIFF 4.7.0, 56.584 |
+| TIFF decode, 16,384 page directories | 126.485 | 10.907 | LibTIFF 4.7.0, 123.297 |
+| TIFF decode, PackBits palette | 1.828 | 1.605 | |
+| DDS decode, 4609 × 4097 BC5, four warmed workers | 201.554 | 80.271 | bcdec 0.985 with OpenMP, 215.700 |
+| DDS decode, 4609 × 4097 BC4, four warmed workers | 108.050 | 40.723 | bcdec 0.985 with OpenMP, 138.218 |
+| BMP decode, packed 4-bit full palette | 1.683 | 1.586 | gdk-pixbuf, 9.189 |
+| PNG decode, FileSamples with batched Deflate literals | 4.847 | 4.371 | libpng 1.6.48, 6.696 |
+| PNG encode, interlaced RGB16 at level 0 | 1.614 | 1.278 | |
+| QOI encode, flat RGB | 2.916 | 0.435 | QOI reference C, 2.498 |
+| QOI encode, flat RGBA | 2.871 | 0.420 | QOI reference C, 1.930 |
+| OpenEXR encode, 641 × 479 Gray16 to HALF | 3.141 | 0.409 | |
+| OpenEXR encode, 641 × 479 GrayAlpha16 to HALF | 1.273 | 0.486 | |
+| OpenEXR decode, ZIPS cube, four warmed workers | 8.700 | 5.480 | |
+| OpenEXR decode, uneven ZIP RGBA blocks, four warmed workers | 40.150 | 29.060 | |
+
+The texture harness reads the input before timing and decodes five times on
+four warmed workers. Its bcdec reference expands BC4 and BC5 to Swag's RGBA8
+layout and matches the output CRC. The TIFF page tests cover both increasing
+and reordered directory offsets, and cycle detection. The BMP reference and
+Swag agree on the decoded pixels. The PNG comparisons use exact decoded pixels.
+The level-zero Adam7 output is byte-identical on seven encodes. The OpenEXR
+Gray16 and GrayAlpha16 encodes preserve all 65,536 input values, including
+values near HALF rounding midpoints, across SIMD blocks and scalar row tails.
+
+The shared premultiplied-alpha conversion preserves the generated files across
+58 scenarios. On a 1291 × 727 RGBA texture it changed the total QOI, PNG and BMP
+encode times from 44.26 to 10.03 ms, 122.56 to 83.64 ms, and 41.82 to 2.55 ms,
+respectively. Independent decoders verified 28 outputs against the straight
+alpha pixel buffers.
+
+The integrated raster checkpoint `3df88e2b24` passed 436 native Pixel and 65
+Core tests. The native compiler at `52f76fab9d` used its matching CRC32 and
+CRC64 sources in the validation checkout. The tested image and compression
+sources came from the checkpoint. Seven native WOFF tests also passed with
+the shared Inflate change.

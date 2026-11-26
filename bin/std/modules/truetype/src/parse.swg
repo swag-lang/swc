@@ -653,6 +653,13 @@ func decodeVerticalMetrics(vmtx: const [..] u8, glyphCount, longMetricCount: u32
     return result
 }
 
+func validateGlyphEnd(locations: const [..] u8, glyphCount: u32, longFormat: bool)->u64 fail
+{
+    if longFormat do
+        return cast(u64, try validatePackedOffsets'4(locations.buffer, glyphCount))
+    return cast(u64, try validatePackedOffsets'2(locations.buffer, glyphCount)) * 2
+}
+
 func buildGlyphLocations(faceData: *FaceImpl) fail
 {
     if faceData.indexToLocFormat != 0 and faceData.indexToLocFormat != 1 do
@@ -665,9 +672,7 @@ func buildGlyphLocations(faceData: *FaceImpl) fail
     let width      = longFormat ? 4'u64 : 2'u64
     let locations  = try getSlice(loca, 0, (cast(u64, glyphCount) + 1) * width)
 
-    let lastOffset = longFormat ? (try validatePackedOffsets'4(locations.buffer, glyphCount)) :
-                     (try validatePackedOffsets'2(locations.buffer, glyphCount))
-    let end = longFormat ? cast(u64, lastOffset) : cast(u64, lastOffset) * 2
+    let end = try faceData.fontSource.validatedGlyphEnd(locations, glyphCount, longFormat)
     if end > glyf.count do
         try fault(0x08)
     faceData.glyphLocations = locations
@@ -1036,7 +1041,7 @@ func buildCharstringMetrics(faceData: *FaceImpl) fail
         if faceData.outlineSource == .Cff do
             width = try runType2Charstring(faceData.cffFont(), gid, null)
         else do
-            width = try runType1Charstring(&faceData.type1, gid, null)
+            width = try type1CharstringWidth(&faceData.type1, gid)
 
         faceData.charstringAdvances[gid] = cast(u16, Math.clamp(Math.round(width), 0.0, cast(f64, Swag.U16.Max)))
     }

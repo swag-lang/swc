@@ -893,3 +893,26 @@ func(width: u8) checkPackedOffsetBoundaries()
     checkPackedOffsetBoundaries'3()
     checkPackedOffsetBoundaries'4()
 }
+
+// The shared loca scan still has to fit each face's own glyf table.
+#test
+{
+    const Bytes: [8] u8 = [0, 0, 0, 2, 0, 0, 0, 0]
+    let source = FontSource.copy(Bytes)
+    var whole: FaceImpl
+    whole.fontSource = source
+    whole.face.setGlyphCount(1)
+    whole.tables.add({tag: TAG_LOCA, offset: 0, length: 4})
+    whole.tables.add({tag: TAG_GLYF, offset: 4, length: 4})
+    expect buildGlyphLocations(&whole)
+    Swag.require(whole.glyphLocations.count == 4)
+
+    var truncated: FaceImpl
+    truncated.fontSource = source
+    truncated.face.setGlyphCount(1)
+    truncated.tables.add({tag: TAG_LOCA, offset: 0, length: 4})
+    truncated.tables.add({tag: TAG_GLYF, offset: 4, length: 2})
+    var rejected: Swag.Error
+    catch buildGlyphLocations(&truncated) as rejected
+    Swag.require(not rejected.isEmpty())
+}

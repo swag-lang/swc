@@ -45,7 +45,9 @@ private func encodeAac(path: string, pcm: const [..] s16, rate: u32, channels: u
     let rateIndex = rate == 48000 ? 3'u8 : 4'u8
     var watch: Time.Stopwatch
     watch.start()
-    #static if #hastag("AudioEncodeAdaptive") do
+    #static if #hastag("AudioEncodeRate") do
+        var encoder = try Aac.StreamEncoder.createRateLimited(rate, channels, #gettag("AudioEncodeRate", u32, 0), bandwidth)
+    elif #hastag("AudioEncodeAdaptive") do
         var encoder = try Aac.StreamEncoder.createAdaptive(rate, channels, bandwidth)
     else do
         var encoder = try Aac.StreamEncoder.create(rate, channels, bandwidth)

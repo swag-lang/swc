@@ -44,42 +44,35 @@ func eexecDecrypt(data: const [..] u8, key: u16, skip: u64)->Array'u8
         return result
 
     var state = cast(u32, key)
-    result.reserve(data.count - skip)
-    for cipher, index in data
+    var input = data.buffer
+    for skip
     {
-        let plain = cipher ^ cast(u8, (state >> 8))
-        state = ((cast(u32, cipher) + state) * EexecC1 + EexecC2) & 0xFFFF
-        if index >= skip do
-            result.add(plain)
+        state = ((cast(u32, input[]) + state) * EexecC1 + EexecC2) & 0xFFFF
+        input += 1
     }
+
+    let size = data.count - skip
+    result.reserve(size)
+    let output = unwrap result.buffer
+    for index in size
+    {
+        let cipher = input[index]
+        output[index] = cipher ^ cast(u8, state >> 8)
+        state         = ((cast(u32, cipher) + state) * EexecC1 + EexecC2) & 0xFFFF
+    }
+
+    result.count = size
 
     return result
 }
 
 func findBytes(data: const [..] u8, from: u64, needle: string)->u64
 {
-    let size  = needle.count
-    let total = data.count
-    if not size or size > total do
-        return total
+    if from >= data.count or not needle.count do
+        return data.count
 
-    let bytes = data
-    var start = from
-    while start + size <= total
-    {
-        var found = true
-        for k in size where bytes[start + k] != needle[k]
-        {
-            found = false
-            break
-        }
-
-        if found do
-            return start
-        start += 1
-    }
-
-    return total
+    let relative = Slice.findSubslice(data[from to], needle)
+    return relative == Swag.U64.Max ? data.count : from + relative
 }
 
 #[Swag.Inline]
@@ -163,6 +156,7 @@ func unwrapPfb(bytes: const [..] u8)->Array'u8 fail
     if bytes.count < 2 do
         try fault(0x03)
 
+    result.reserve(bytes.count)
     let data = bytes
     var pos  = 0'u64
     while pos < bytes.count
@@ -310,10 +304,10 @@ private func parseType1Subrs(font: *Type1Font, data: const [..] u8, lenIV: s32) 
             return
 
         let index = readPostScriptNumber(data, dup + 3)
-        let entry = try readCharstringData(data, index.next, lenIV)
+        var entry = try readCharstringData(data, index.next, lenIV)
         let slot  = cast(u64, index.value)
         if slot < font.subrs.count do
-            font.subrs[slot] = entry.bytes
+            font.subrs[slot] = #move entry.bytes
         pos = entry.next
     }
 }
@@ -365,22 +359,21 @@ private func parseType1CharStrings(font: *Type1Font, data: const [..] u8, lenIV:
             continue
         }
 
-        let entry = try readCharstringData(data, name.next, lenIV)
+        var entry = try readCharstringData(data, name.next, lenIV)
         if entry.bytes.isEmpty() and entry.next >= data.count do
             break
 
-        let owned = String.from(name.text)
+        var owned = String.from(name.text)
         if owned == NotDefName
         {
-            font.charstrings[0] = entry.bytes
+            font.charstrings[0] = #move entry.bytes
             pos = entry.next
             continue
         }
 
-        if not font.nameToGid.contains(owned) do
-            font.nameToGid.add(owned, cast(u32, font.charstrings.count))
-        font.glyphNames.add(owned)
-        font.charstrings.add(entry.bytes)
+        font.nameToGid.add(owned, cast(u32, font.charstrings.count), updateValue: false)
+        font.glyphNames.add(#move owned)
+        font.charstrings.add(#move entry.bytes)
         pos = entry.next
     }
 
@@ -504,9 +497,15 @@ func parseType1Font(bytes: const [..] u8)->Type1Font fail
 {
     var result: #returntype
 
-    let program = try unwrapPfb(bytes)
-    let flat    = program.toSlice()
-    let marker  = findBytes(flat, 0, "eexec")
+    var program: Array'u8
+    var flat = bytes
+    if bytes.count and bytes[0] == 0x80
+    {
+        program = try unwrapPfb(bytes)
+        flat    = program.toSlice()
+    }
+
+    let marker = findBytes(flat, 0, "eexec")
     if marker >= flat.count do
         try fault(0x02)
 

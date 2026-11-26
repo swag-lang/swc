@@ -909,6 +909,26 @@ private impl Type1State
     }
 }
 
+// Type 1 encodes wide operands as integers.
+#[Swag.Inline]
+private func readType1Number(code: const [..] u8, first: u8, pos: *u64)->s32 fail
+{
+    if first <= 246 do
+        return cast(s32, first) - 139
+
+    if first <= 254
+    {
+        let low = cast(s32, peekU8(code, pos[]))
+        pos[] += 1
+        let high = cast(s32, first)
+        return first <= 250 ? (high - 247) * 256 + low + 108 : -(high - 251) * 256 - low - 108
+    }
+
+    let value = try readS32(code, pos[])
+    pos[] += 4
+    return value
+}
+
 private func execType1(state: *Type1State, code: const [..] u8, depth: u32) fail
 {
     if depth >= MaxCharstringDepth do
@@ -922,30 +942,8 @@ private func execType1(state: *Type1State, code: const [..] u8, depth: u32) fail
 
         if b0 >= 32
         {
-            if b0 <= 246
-            {
-                try state.push(cast(f64, (cast(s32, b0) - 139)))
-            }
-            elif b0 <= 250
-            {
-                let decodedValue = (cast(s32, b0) - 247) * 256 + cast(s32, peekU8(code, pos)) + 108
-                try state.push(cast(f64, decodedValue))
-                pos += 1
-            }
-            elif b0 <= 254
-            {
-                let decodedValue = -(cast(s32, b0) - 251) * 256 - cast(s32, peekU8(code, pos)) - 108
-                try state.push(cast(f64, decodedValue))
-                pos += 1
-            }
-            else
-            {
-                // Type 1 spells its wide literals as plain 32-bit integers, not as the
-                // fixed-point form Type 2 introduced for the same encoding byte.
-                try state.push(cast(f64, (try readS32(code, pos))))
-                pos += 4
-            }
-
+            let operand = try readType1Number(code, b0, &pos)
+            try state.push(cast(f64, operand))
             continue
         }
 
@@ -1179,6 +1177,32 @@ private func execType1OtherSubr(state: *Type1State)
             state.pushResult(state.stack[state.depth - 1 - i])
         state.depth -= count
     }
+}
+
+func type1CharstringWidth(font: *Type1Font, gid: u32)->f64 fail
+{
+    if gid >= font.charstrings.count do
+        try fault(0x10)
+
+    let code = font.charstrings[gid].toSlice()
+    var pos  = 1'u64
+    let lsb  = peekU8(code, 0)
+    if lsb >= 32
+    {
+        discard try readType1Number(code, lsb, &pos)
+        let encodedWidth = peekU8(code, pos)
+        if encodedWidth >= 32
+        {
+            pos += 1
+            let width = try readType1Number(code, encodedWidth, &pos)
+
+            // A leading pair of operands followed by hsbw declares the width.
+            if peekU8(code, pos) == 13 do
+                return cast(f64, width)
+        }
+    }
+
+    return try runType1Charstring(font, gid, null)
 }
 
 // Runs one Type 1 charstring and returns the advance width it declares.

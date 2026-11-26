@@ -249,6 +249,39 @@ private func expandGrayRow(source: const [*] u8, destination: [*] u8, count: u64
     }
 }
 
+private func expandPaletteRow(source: const [*] u8, destination: [*] u8, count: u64, palette: const [..] u32) fail
+{
+    if palette.count < 256
+    {
+        for i in count where source[i] >= palette.count do
+            fail InvalidFormatError{"invalid palette index"}
+    }
+
+    let colors = palette.buffer
+    var src    = source
+    var dst    = destination
+    var left   = count
+    while left >= 5
+    {
+        let first = cast(u64, colors[src[0]]) | (cast(u64, colors[src[1]]) << 24)
+        let last  = cast(u64, colors[src[2]]) | (cast(u64, colors[src[3]]) << 24)
+
+        // Each overlapping store stays inside the output row.
+        cast(*u64, dst)[]       = first
+        cast(*u64, (dst + 6))[] = last
+        src                     += 4
+        dst                     += 12
+        left                    -= 4
+    }
+
+    for i in left - 1 do
+        cast(*u32, (dst + 3 * i))[] = colors[src[i]]
+    let last = colors[src[left - 1]]
+    let tail = dst + 3 * (left - 1)
+    cast(*u16, tail)[] = cast(u16, (last & 0xFFFF))
+    tail[2] = cast(u8, (last >> 16))
+}
+
 // Each strip has its own compression state and maps to a disjoint row range.
 private struct StripReader
 {
@@ -271,10 +304,10 @@ private impl StripReader
 {
     mtd const decodeRange(first, end: u64) fail
     {
-        let rowBytes  = cast(u64, .width) * .samples
-        let samples   = .samples
-        let grayMask  = .photometric == PHOTO_WHITE_IS_ZERO ? 255'u8 : 0'u8
-        let palette   = .photometric == PHOTO_PALETTE
+        let rowBytes = cast(u64, .width) * .samples
+        let samples  = .samples
+        let grayMask = .photometric == PHOTO_WHITE_IS_ZERO ? 255'u8 : 0'u8
+        let palette  = .photometric == PHOTO_PALETTE
 
         // Borrow raw strips directly. Only compression or the predictor needs writable scratch.
         var decoded:       Array'u8
@@ -321,8 +354,7 @@ private impl StripReader
                 if .predictor == 2 and palette
                 {
                     let row = decoded.storage() + offset
-                    for i in rowBytes - samples do
-                        row[i + samples] += #wrap row[i]
+                    PackedPixel.restoreHorizontalDeltas(row, row, rowBytes, 1)
                 }
 
                 let source = strip + offset
@@ -335,19 +367,9 @@ private impl StripReader
                     else do
                         Memory.copy(dst, source, rowBytes)
                 }
-                elif .photometric == PHOTO_PALETTE
+                elif palette
                 {
-                    for x in .width
-                    {
-                        let index = cast(u32, source[x])
-                        if index >= .palette.count do
-                            fail InvalidFormatError{"invalid palette index"}
-                        let argb = .palette[index]
-                        dst[0] = cast(u8, ((argb >> 16) & 0xFF))
-                        dst[1] = cast(u8, ((argb >> 8) & 0xFF))
-                        dst[2] = cast(u8, (argb & 0xFF))
-                        dst    += 3
-                    }
+                    try expandPaletteRow(source, dst, rowBytes, .palette)
                 }
                 else
                 {
@@ -522,7 +544,7 @@ impl Decoder
         result.init(cast(s32, width), cast(s32, height), pf, alphaMode)
 
         // Palette (for photometric=palette)
-        var palette: Array'u32     // packed 0x00RRGGBB
+        var palette: Array'u32     // packed RGB byte order
         if samples == 1 and photometric == PHOTO_PALETTE
         {
             let cmEntry = ifd.find(TAG_COLOR_MAP)
@@ -535,7 +557,7 @@ impl Decoder
                 let r = cast(u32, (cm[i] >> 8))
                 let g = cast(u32, (cm[entries + i] >> 8))
                 let b = cast(u32, (cm[2 * entries + i] >> 8))
-                palette.add((r << 16) | (g << 8) | b)
+                palette.add(Math.byteSwap((r << 16) | (g << 8) | b) >> 8)
             }
         }
 

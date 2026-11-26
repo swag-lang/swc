@@ -45,12 +45,17 @@ private func scryptSalsaRound(a, b, c, d: *SalsaVector)
     a[] ^= Swag.rol(d[] + c[], 18'u8)
 }
 
-private func scryptSalsa208(state: *SalsaBlock)
+private func scryptSalsa208(state: *SalsaBlock, source: const *SalsaBlock)
 {
-    var a = state[][0]
-    var b = state[][1]
-    var c = state[][2]
-    var d = state[][3]
+    var a = state[][0] ^ source[][0]
+    var b = state[][1] ^ source[][1]
+    var c = state[][2] ^ source[][2]
+    var d = state[][3] ^ source[][3]
+
+    let startA = a
+    let startB = b
+    let startC = c
+    let startD = d
     for 4
     {
         // Rotate the lanes into columns, then restore the row arrangement.
@@ -64,10 +69,10 @@ private func scryptSalsa208(state: *SalsaBlock)
         scryptSalsaRound(&a, &b, &c, &d)
     }
 
-    state[][0] += a
-    state[][1] += b
-    state[][2] += c
-    state[][3] += d
+    state[][0] = startA + a
+    state[][1] = startB + b
+    state[][2] = startC + c
+    state[][3] = startD + d
 }
 
 private func scryptBlockMix(source: const [*] SalsaBlock, target: [*] SalsaBlock, r: u32)
@@ -76,11 +81,7 @@ private func scryptBlockMix(source: const [*] SalsaBlock, target: [*] SalsaBlock
     var state      = source[blockCount - 1]
     for chunk in blockCount
     {
-        state[0] ^= source[chunk][0]
-        state[1] ^= source[chunk][1]
-        state[2] ^= source[chunk][2]
-        state[3] ^= source[chunk][3]
-        scryptSalsa208(&state)
+        scryptSalsa208(&state, &source[chunk])
 
         // BlockMix groups the even chunks before the odd chunks.
         target[chunk / 2 + (chunk % 2) * r] = state

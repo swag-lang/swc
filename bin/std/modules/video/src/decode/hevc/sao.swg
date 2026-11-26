@@ -163,19 +163,34 @@ impl Decoder
         Core.swap(&.saoSourceChromaB, &frame.chromaB)
         Core.swap(&.saoSourceChromaR, &frame.chromaR)
 
-        for ry in sps.heightInCtbs
+        let columns = cast(u64, sps.widthInCtbs)
+        for component in 3'u32
         {
-            for rx in sps.widthInCtbs
+            for ry in sps.heightInCtbs
             {
-                let parameters = &.sao[cast(u64, ry) * cast(u64, sps.widthInCtbs) + cast(u64, rx)]
-                for component in 3'u32 do
-                    .applySaoBlock(parameters, component, cast(s32, rx), cast(s32, ry))
+                let row = .sao.storage() + cast(u64, ry) * columns
+                var rx  = 0'u64
+                while rx < columns
+                {
+                    let parameters = row + rx
+                    var endRx      = rx + 1
+
+                    // Adjacent blocks without offsets can copy each row as one span.
+                    if not parameters.typeIdx[component]
+                    {
+                        while endRx < columns and not row[endRx].typeIdx[component] do
+                            endRx += 1
+                    }
+
+                    .applySaoBlock(parameters, component, cast(s32, rx), cast(s32, endRx), cast(s32, ry))
+                    rx = endRx
+                }
             }
         }
     }
 
-    // Applies one block's offsets to one component, clause 8.7.3.2.
-    private mtd applySaoBlock(parameters: const *SaoParameters, component: u32, rx, ry: s32)
+    // Applies one block's offsets or copies a span of unchanged blocks, clause 8.7.3.2.
+    private mtd applySaoBlock(parameters: const *SaoParameters, component: u32, rx, endRx, ry: s32)
     {
         let sps      = unwrap .activeSps
         let frame    = unwrap .current
@@ -188,7 +203,7 @@ impl Decoder
         let planeHeight = cast(s32, (component == 0 ? sps.height : sps.height / sps.subHeightC))
         let x0          = rx * ctbSize
         let y0          = ry * ctbSize
-        let width       = Math.min(ctbSize, planeWidth - x0)
+        let width       = Math.min(endRx * ctbSize, planeWidth) - x0
         let height      = Math.min(ctbSize, planeHeight - y0)
         if width <= 0 or height <= 0 do
             return
@@ -214,10 +229,12 @@ impl Decoder
 
         if not kind
         {
-            for row in height
+            var line  = origin + cast(u64, y0) * stride + cast(u64, x0)
+            let bytes = cast(u64, width) * #sizeof(u16)
+            for height
             {
-                let line = origin + cast(u64, (y0 + row)) * stride + cast(u64, x0)
-                Memory.copy(&destination[line], &source[line], cast(u64, width) * #sizeof(u16))
+                Memory.copy(&destination[line], &source[line], bytes)
+                line += stride
             }
 
             return

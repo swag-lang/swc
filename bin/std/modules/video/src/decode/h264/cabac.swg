@@ -43,8 +43,6 @@ struct CabacReader
 // rebuilt one address for every table it touched, on every bin. Behind a single base they are
 // one address and a displacement, which the addressing of a memory operand already carries at no
 // cost, and the two registers this frees are two the loop no longer spills.
-const CabacLpsAt            = 0'u64       // Table 9-44, read as `2 * (range & 0xC0) + state`.
-const CabacStateAt          = 512'u64     // The state after a bin, read as `128 + state`.
 const CabacSigAt            = 768'u64     // Table 9-43 frame coding, significance context per 8x8 scan position.
 const CabacLastAt           = 832'u64     // Table 9-43 frame coding, last-coefficient context per 8x8 scan position.
 const CabacLevel1At         = 896'u64     // Context of a level's first bin, per level node.
@@ -56,23 +54,8 @@ func buildCabacTables()->[928] u8
 {
     var result: #returntype
 
-    // Table 9-44 laid out for one lookup from the packed state and the two range bits that
-    // select its column.
-    for column in 4'u64
-    {
-        for state in 128'u64 do
-            result[CabacLpsAt + column * 128 + state] = CabacRangeLps[(state >> 1) * 4 + column]
-    }
-
-    // One table for both outcomes: `128 + state` on the MPS path and `128 + (state ^ -1)` on the
-    // LPS path, which flips valMPS at pStateIdx 0 as Table 9-45 says.
-    for state in 128'u64
-    {
-        let mps  = cast(u32, (state & 1))
-        let flip = (state >> 1) == 0 ? 1'u32 : 0'u32
-        result[CabacStateAt + 128 + state] = cast(u8, ((cast(u32, CabacTransMps[state >> 1]) << 1) | mps))
-        result[CabacStateAt + 127 - state] = cast(u8, ((cast(u32, CabacTransLps[state >> 1]) << 1) | (mps ^ flip)))
-    }
+    for value, index in buildCabacDecisionTables() do
+        result[index] = value
 
     for scan in 63'u64
     {

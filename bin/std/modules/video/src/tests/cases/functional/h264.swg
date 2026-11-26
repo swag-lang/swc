@@ -103,6 +103,37 @@ using Core, Core.Errors, Pixel
     Swag.require(frame.width == 96 and frame.height == 64)
 }
 
+// All lookahead values must resolve as the syntax table specifies, including unused
+// prefixes and short codes followed by arbitrary bits from the next symbol.
+#test
+{
+    for table in 4'u64
+    {
+        for lookahead in 65_536'u32
+        {
+            var expected = 68'u64
+            var consumed = 0'u32
+            for symbol in 68'u64
+            {
+                let offset = table * 68 + symbol
+                let length = cast(u32, H264.CoeffTokenLen[offset])
+                if length and lookahead >> (16 - length) == H264.CoeffTokenBits[offset]
+                {
+                    expected = symbol
+                    consumed = length
+                    break
+                }
+            }
+
+            let bytes = [cast(u8, (lookahead >> 8)), cast(u8, (lookahead & 255))]
+            var bits: BitReader
+            bits.init(bytes)
+            let actual = H264.matchCoeffToken(&bits, table)
+            Swag.require(actual == expected and bits.bitPos == consumed and not bits.overran)
+        }
+    }
+}
+
 // Constrained Baseline: CAVLC entropy coding, I and P slices, several references.
 #test
 {

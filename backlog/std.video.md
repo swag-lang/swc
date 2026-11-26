@@ -28,15 +28,13 @@ the sampling layouts used by ffmpeg's 4:2:0, 4:2:2, and 4:4:4 Motion JPEG output
 
 ### std.video.001 — Reduce the remaining serial cost of H.264 decoding
 
-- Evidence: the last one-slice comparison put this decoder within roughly 10% of single-threaded
-  FFmpeg with its hand-written assembly disabled; FFmpeg with assembly was about twice as fast.
-  Measurements on the shared machine varied widely, and the decoder has since changed, so earlier
-  profiles and instruction counts cannot rank current work.
-  The current CAVLC first-byte lookup retains an ordered search for ambiguous prefixes; its
-  effect on complete decoding still needs measurement.
-- Next: collect a current per-function profile, choose one remaining serial kernel, and compare the
-  change against the same FFmpeg build and fixture. Keep decoded planes byte-exact across the
-  existing Baseline, Main, High, and 4:4:4 corpus.
+- Evidence: [the Linux decode comparison](../bench/results/video/20261126-decode-comparison/README.md) measures one-slice 1080p Baseline at
+  2.40× native single-threaded FFmpeg and High at 1.68×. The baseline profile
+  attributes about a fifth of Baseline samples to CAVLC residuals and VLC lookup. High's
+  CABAC residual loop and integer motion compensation remain measured hotspots.
+- Next: profile the remaining CAVLC residual and motion compensation work on Baseline, and
+  isolate the CABAC residual and integer prediction costs on High. Keep decoded planes
+  byte-exact across the Baseline, Main, High and 4:4:4 corpus.
 - Measurement: use one VCL slice per picture, one AVC lane, warm references, decode forward, and
   interleave identical input against single-threaded FFmpeg. Measure the decoding thread and caller;
   whole-process cycles include unrelated workers. Multi-slice scheduling belongs to std.video.013.
@@ -49,16 +47,13 @@ the sampling layouts used by ffmpeg's 4:2:0, 4:2:2, and 4:4:4 Motion JPEG output
 
 ### std.video.005 — Reduce the measured serial cost of H.265 decoding
 
-- Evidence: the last one-lane comparison on a 3840x2076 Main10 passage cost about three times
-  FFmpeg's processor time per picture; the decoder and compiler have changed since, so it is
-  not a current ratio. `filterLumaEdge` uses packed four-line luma filtering in both
-  orientations, transposing vertical segments, while chroma packs two-line segments in both
-  orientations. Main/Main10 conformance and container fixtures remain the correctness boundary; range-extension coverage belongs to
-  std.video.009, and wider SIMD capability to compiler.codegen.019.
-- Next: rebaseline a redistributable Main10 clip with one decode lane against identical FFmpeg
-  input, profile the remaining stages, and pick one lead: threshold/context derivation and
-  frame traffic, the vertical luma transpose, band-local edge processing, or the separate
-  prediction-buffer combine for uni-predicted blocks.
+- Evidence: [the Linux decode comparison](../bench/results/video/20261126-decode-comparison/README.md) measures serial Main10 at
+  1.65× native single-threaded FFmpeg at 1080p and 1.63× at 3840×2076.
+  The optimized 4K profile still spends about 22% of samples in residual coding and 14% in
+  the generic copy routine. The Main and Main10 conformance digests and the container
+  reference planes are the correctness boundary.
+- Next: attribute the remaining copy cost to prediction, SAO and reference padding by call
+  site. Compare the largest copy or residual kernel against the current serial baseline.
 - Measurement: warm and decode forward without seeking back inside a measured window; prove
   which threads carry decoding; compare small stage changes by alternating implementations in
   one process on the same blocks, not by disabling stages.

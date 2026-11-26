@@ -31,22 +31,6 @@ being compiled by it.
   build a test executable without running it, or a dedicated tag), in each configuration.
 - Done when: breaking any `bench/*/module.swg` source fails `tools/build.bat`.
 
-### repo.tooling.002 — A video differential harness must line pictures up by time, not by rank
-
-- Evidence: FFmpeg numbers the pictures it emits densely, while `std/video` numbers them as the
-  container does. The two diverge wherever a sample produces no picture: a plane that codes
-  nothing, a skipped leading picture, or an access unit before the first one that can be
-  reconstructed. Pairing by ordinal reported defects that vanished when pictures were paired
-  by presentation time. No differential harness against an external decoder is checked in;
-  the video tests only compare against reference planes such as
-  `bin/std/modules/video/src/tests/datas/ffmpeg-h264-baseline.yuv`.
-- Next: check in an opt-in differential harness that decodes a media file with an external
-  reference decoder, records each reference picture's presentation time, and asks this reader
-  for the rank carrying that time before comparing decoded pixels.
-- Done when: the checked-in harness pairs decoded pictures by presentation time rather than
-  ordinal, a reproducible case with a non-picture sample compares without manual alignment,
-  and a mismatched decoded picture still fails the comparison.
-
 ### repo.tooling.010 — Separate cross-language build scenarios from compiler throughput
 
 - Evidence: since protocol 3 every toolchain is timed in one recorded state, a warm toolchain

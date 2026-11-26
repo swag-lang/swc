@@ -1,0 +1,68 @@
+# Single-lane video decoding against FFmpeg
+
+`compare.py` compares H.264 and HEVC planar video through `Video.Reader` in Release.
+It needs the built Swag compiler and its runtime, Python 3.11 or newer with NumPy, and FFmpeg
+and ffprobe. Timing also needs a C compiler, pkg-config and the FFmpeg development libraries
+`libavformat`, `libavcodec` and `libavutil`. Use `--quality-only` for the picture comparison
+alone or `--reference` to use an independently built `ffmpeg_native` from this workload.
+
+For comparable timings, generate single-slice MP4 clips on the same FFmpeg installation and
+pin the benchmark to one otherwise idle logical CPU.
+
+```sh
+clips=/tmp/swag-video-fixtures
+mkdir -p "$clips"
+
+for profile in baseline high; do
+    ffmpeg -v error -f lavfi -i testsrc2=size=1920x1080:rate=30 -frames:v 180 \
+        -an -c:v libx264 -threads 1 -preset fast -profile:v "$profile" -crf 20 \
+        -x264-params slices=1:keyint=60:scenecut=0 "$clips/avc-$profile.mp4"
+done
+
+hevc_options=pools=none:frame-threads=1:wpp=0:keyint=60:scenecut=0:log-level=error
+ffmpeg -v error -filter_threads 1 -f lavfi -i testsrc2=size=1920x1080:rate=30 \
+    -frames:v 180 -an -c:v libx265 -threads 1 -preset fast -pix_fmt yuv420p10le -crf 22 \
+    -x265-params "$hevc_options" "$clips/hevc-main10.mp4"
+ffmpeg -v error -filter_threads 1 -f lavfi -i testsrc2=size=3840x2076:rate=24 \
+    -frames:v 90 -an -c:v libx265 -threads 1 -preset fast -pix_fmt yuv420p10le -crf 22 \
+    -x265-params "$hevc_options" "$clips/hevc-main10-4k.mp4"
+
+taskset -c 4 python3 bench/workloads/videodecode/compare.py \
+    --compiler /absolute/build/release/swc \
+    --baseline-bin /absolute/baseline-source/bin \
+    --output /tmp/swag-video-results "$clips"/*.mp4
+```
+
+`--baseline-bin` selects a preserved standard-module source tree and is optional.
+Both Swag variants use the same compiler and runtime. The output directory must be new and
+outside the source trees. It receives the picture hashes, timing samples, FFmpeg version,
+reference timestamps and individual run logs.
+
+The quality pass uses FFmpeg's best-effort presentation timestamps relative to the earliest
+video packet PTS. This is the same origin as the sample timeline in `Reader`, so coded
+pictures omitted by FFmpeg can be skipped even at the start of the file. The Swag driver
+opens the input in memory to index the complete timeline and looks up each corresponding
+display rank. Unique timestamps within half a microsecond are
+required. The driver writes visible Y, Cb and Cr planes. The comparison counts changed samples
+and reports the maximum difference and PSNR. For Main10 the reference is first decoded to
+native ten-bit samples, then rounded and saturated to the same eight-bit presentation
+layout that `Reader` exposes. The module's separate HEVC conformance tests check the native
+Main10 picture digests.
+
+Timed inputs need a known frame count on open and one picture per display rank. Each timed
+pass opens the file, decodes the first 30 pictures, and decodes the remaining pictures
+sequentially. A separate untimed pass warms the process and file cache. The timer excludes
+startup, compilation, opening the container, the warmup pictures and output serialization.
+The Python runner rotates Swag and FFmpeg runs between repetitions and reports the median
+wall time per picture. Each implementation has one decode lane. FFmpeg uses its decoded
+native frames, while Swag's public reader writes to reusable eight-bit planes. The FFmpeg
+run with CPU flags cleared is diagnostic. Native FFmpeg is the performance reference.
+
+This fixture starts with four HEVC samples that FFmpeg never emits as pictures. The comparison
+still matches all 30 displayed pictures by presentation time.
+
+```sh
+python3 bench/workloads/videodecode/compare.py --compiler /absolute/build/release/swc \
+    --quality-only --output /tmp/swag-video-edited \
+    bin/std/modules/video/src/tests/datas/edited-open-group-start.mkv
+```

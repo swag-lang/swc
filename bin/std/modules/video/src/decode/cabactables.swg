@@ -47,3 +47,29 @@ const CabacTransMps: [64] u8 = [
     17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32,
     33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48,
     49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 62, 63]
+
+// Range columns and next states for the packed context shared by AVC and HEVC.
+const CabacLpsAt   = 0'u64
+const CabacStateAt = 512'u64
+
+func buildCabacDecisionTables()->[768] u8
+{
+    var result: #returntype
+    for column in 4'u64
+    {
+        for state in 128'u64 do
+            result[CabacLpsAt + column * 128 + state] = CabacRangeLps[(state >> 1) * 4 + column]
+    }
+
+    // Complement the index on the LPS path. The new state flips valMPS only at pStateIdx zero.
+    for state in 128'u64
+    {
+        let probability = state >> 1
+        let mps         = cast(u32, (state & 1))
+        let flip        = probability == 0 ? 1'u32 : 0'u32
+        result[CabacStateAt + 128 + state] = cast(u8, ((cast(u32, CabacTransMps[probability]) << 1) | mps))
+        result[CabacStateAt + 127 - state] = cast(u8, ((cast(u32, CabacTransLps[probability]) << 1) | (mps ^ flip)))
+    }
+
+    return result
+}

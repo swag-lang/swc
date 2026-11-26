@@ -46,6 +46,8 @@ struct CabacReader
     riceInit: [4] u8
 }
 
+private const CabacDecisionTables = #run buildCabacDecisionTables()
+
 impl CabacReader
 {
     // Initializes every context variable for one slice, clause 9.3.2.2.
@@ -159,65 +161,58 @@ impl CabacReader
     #[Swag.Inline]
     mtd decision(contextIndex: u32)->u32
     {
-        var range  = .range
-        var low    = .low
-        let state  = cast(u32, .contexts[contextIndex])
-        let pState = cast(u64, (state >> 1))
-        let mps    = state & 1
-        let lps    = cast(u32, CabacRangeLps[pState * 4 + cast(u64, ((range >> 6) & 3))])
+        let state = cast(s64, .contexts[contextIndex])
+        let lps   = cast(u32, CabacDecisionTables[CabacLpsAt + cast(u64, (2 * (.range & 0xC0))) + cast(u64, state)])
+        var range = .range - lps
+        var low   = .low
 
-        range -= lps
-        var result: u32
-        if low < range
-        {
-            .contexts[contextIndex] = cast(u8, ((cast(u32, CabacTransMps[pState]) << 1) | mps))
-            result = mps
-        }
-        else
-        {
-            low   -= range
-            range = lps
+        let isLps  = low >= range
+        let offset = low - #wrap range
+        low   = isLps ? offset : low
+        range = isLps ? lps : range
+        let symbol = isLps ? ~state : state
+        .contexts[contextIndex] = CabacDecisionTables[CabacStateAt + cast(u64, (128 + symbol))]
 
-            // State zero is the only one where the least probable symbol swaps the meaning of
-            // the most probable one; the shift turns that test into a mask.
-            let lpsMps = mps ^ cast(u32, ((pState - #wrap 1) >> 63))
-            .contexts[contextIndex] = cast(u8, ((cast(u32, CabacTransLps[pState]) << 1) | lpsMps))
-            result = mps ^ 1
-        }
-
-        let shift = Math.max(cast(s32, Swag.leadingZeros(range)) - 23, 0)
+        let shift = Swag.leadingZeros(range) - 23
         if shift != 0
         {
-            range <<= cast(u32, shift)
-            low   = (low << cast(u32, shift)) | .takeBits(cast(u32, shift))
+            range <<= shift
+            low   = (low << shift) | .takeBits(shift)
         }
 
         .range = range
         .low   = low
-        return result
+        return cast(u32, (symbol & 1))
     }
 
     // Decodes one bypass bin, clause 9.3.4.3.4.
     #[Swag.Inline]
     mtd bypass()->u32
     {
-        .low = (.low << 1) | .takeBits(1)
-        if .low >= .range
-        {
-            .low -= .range
-            return 1
-        }
-
-        return 0
+        let low    = (.low << 1) | .takeBits(1)
+        let offset = low - #wrap .range
+        let one    = low >= .range
+        .low = one ? offset : low
+        return one ? 1'u32 : 0'u32
     }
 
     // Decodes `count` bypass bins as an unsigned value, most significant bin first.
     #[Swag.Inline]
     mtd bypassBits(count: u32)->u32
     {
+        let range  = .range
+        var low    = .low
         var result = 0'u32
-        for count do
-            result = (result << 1) | .bypass()
+        for count
+        {
+            low = (low << 1) | .takeBits(1)
+            let offset = low - #wrap range
+            let one    = low >= range
+            low    = one ? offset : low
+            result = (result << 1) | (one ? 1'u32 : 0'u32)
+        }
+
+        .low = low
         return result
     }
 

@@ -1333,7 +1333,7 @@ internal func decodeImage(parser: *PdfParser, nodeId, resourcesId: u32, fillColo
         if maskId == InvalidNode
         {
             var result: Image
-            if decoded.pixelFormat == .RGB8 do
+            if decoded.pixelFormat == .RGB8 or decoded.pixelFormat == .BGR8 do
                 result = #move decoded
             else do
                 result = decoded.convertedTo(.RGB8)

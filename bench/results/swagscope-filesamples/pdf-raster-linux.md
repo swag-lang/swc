@@ -679,3 +679,24 @@ from seven additional runs for the three large grayscale scans.
 All 55 supported corpus rasters are byte-identical to baseline.
 The 145 PDF and 992 Pixel tests pass. The odd-width bilevel
 regression checks both the compact format and bit polarity.
+
+## Keeping JPEG channel order through rendering
+
+The PDF reader keeps an unmasked JPEG's decoder-native BGR8 pixels.
+Both renderer backends and the writer already accept BGR8. Matching
+soft masks still compose straight RGBA from either channel order.
+
+Nine alternating native Release runs on one AMD EPYC 7763 logical CPU
+use baseline `238120e726` and PDFium 159.0.8149.0. Times include opening,
+loading, and rendering at 1200 px.
+[Raw phases and raster checksums](pdf-raster-linux-native-jpeg.json)
+
+| PDF | Swag before, ms | Swag after, ms | PDFium, ms |
+| --- | ---: | ---: | ---: |
+| `sample1.pdf` | 31.19 | 30.16 | 26.01 |
+| `sample2.pdf` | 11.06 | 10.53 | 4.58 |
+| `perf_images_jpeg_large.pdf` | 91.95 | 79.91 | 98.31 |
+| `large_jpeg_downscale.pdf` | 60.10 | 43.59 | 57.61 |
+
+All 55 supported pages keep their raster checksums. The 124 focused
+PDF tests include retained source JPEGs and same-size soft masks.

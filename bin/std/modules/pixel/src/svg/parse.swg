@@ -42,12 +42,19 @@ private enum DeferredKind: u8
     None
     Rect
     Ellipse
+    Instance
 }
 
 private struct DeferredGeometry
 {
     kind:     DeferredKind
     min, max: Vector2
+}
+
+private struct DeferredInstance
+{
+    source:    u64
+    transform: Math.Transform2
 }
 
 private struct DashRange
@@ -82,8 +89,8 @@ struct Shape
 {
     internal
     {
-        pathList: LinePathList     // Contours, in drawing user units.
-        scanFill: u64     // Index plus one of the raster cache for a dense solid fill.
+        pathList:      LinePathList     // Contours, in drawing user units.
+        geometryCache: u64     // Scan-fill or deferred-instance index plus one, as selected by the deferred kind.
 
         fillGradient: u64         // Index plus one of the resolved gradient, or zero for solid paint.
         fillColor:    Color       // Solid fill color, including opacity once resolved.
@@ -144,6 +151,7 @@ struct Drawing
     gradientBrushes: Array'SvgGradientBrush         // Resolved gradient geometry and tint.
     gradientStops:   Array'Array'GradientStop       // Stops shared by placements of the same gradient.
     scanFills:       Array'ScanFill                 // Raster caches for dense solid fills.
+    instances:       Array'DeferredInstance         // Affine placements materialized only when used.
     patterns:        HashTable'(u64, Pattern)       // Resolved repeating paint servers by their interned identifier.
     filters:         HashTable'(u64, SvgFilter)     // Resolved filter primitive chains by their interned identifier.
 }
@@ -437,6 +445,7 @@ private struct Parser
     dimensionsOnly: bool
 
     paintTransforms: Array'Math.Transform2     // Element transforms used to resolve paint references.
+    instanceBounds:  HashTable'(u64, {min, max: Vector2})     // Bounds of reused definitions before placement.
 
     lastTransform:       string = ""
     lastTransformParent: Math.Transform2
@@ -2268,7 +2277,7 @@ private impl Parser
         {
             let cache = .drawing.scanFills.emplaceInitAddress()
             cache.measureGeometry(&list)
-            shape.scanFill = .drawing.scanFills.count
+            shape.geometryCache = .drawing.scanFills.count
         }
 
         shape.pathList = #move list
@@ -2928,8 +2937,8 @@ private impl Parser
             for i in count
             {
                 let shape = &.drawing.shapes[first + i]
-                if shape.deferred == .Ellipse do
-                    shape.materializePrimitive()
+                if shape.deferred == .Ellipse or shape.deferred == .Instance do
+                    .drawing.materializeShape(shape)
                 for path in shape.pathList.paths where path.hasCurves() do
                     path.flatten(.Normal)
             }
@@ -2942,7 +2951,7 @@ private impl Parser
         {
             let shape = &.drawing.shapes[first + i]
             if shape.deferred != .None do
-                shape.materializePrimitive()
+                .drawing.materializeShape(shape)
             shape.pathList.flatten(.Normal)
             for path in shape.pathList.paths
             {
@@ -3799,7 +3808,7 @@ private impl Parser
                             }
                         }
 
-                        discard .instantiate(here.value.first, here.value.count, &useState)
+                        discard .instantiate(here.value.first, here.value.count, &useState, deferGeometry: true)
                     }
                 }
 
@@ -4373,11 +4382,53 @@ private impl Parser
     // `symbol` viewport and a clip reference all reach here the same way. `hidden` withholds the
     // copies from the paint order, which is what a clip needs: its shapes exist as geometry and
     // are never drawn.
-    mtd instantiate(first, count: u64, state: *GroupState, hidden = false)->{ first: u64, count: u64 }
+    mtd deferInstance(source: u64, paths: const *LinePathList, transform: Math.Transform2, pending: *LinePathList)->u64
+    {
+        if paths.paths.isEmpty() do
+            return 0
+
+        var bounds: {min, max: Vector2}
+        if let cached = .instanceBounds.tryFind(source)
+        {
+            bounds = cached.value
+        }
+        else
+        {
+            let rect  = paths.controlBounds()
+            let first = Vector2{rect.x, rect.y}
+            let last  = Vector2{rect.right(), rect.bottom()}
+
+            // The rectangle stores extent instead of the upper corner. Expand both ends
+            // enough to cover its reconstruction and the arithmetic of an authored arc.
+            let extent  = Vector2.max(Vector2{Math.abs(first.x), Math.abs(first.y)}, Vector2{Math.abs(last.x), Math.abs(last.y)})
+            let padding = extent * (8 * Math.ConstF32.Epsilon) + Vector2{0.0001, 0.0001}
+            bounds.min = first - padding
+            bounds.max = last + padding
+            .instanceBounds.add(source, bounds)
+        }
+
+        let min = transform.transformPoint(bounds.min)
+        let max = transform.transformPoint(bounds.max)
+        if not min.isFinite() or not max.isFinite() or not (max - min).isFinite() do
+            return 0
+
+        pending.setBounds(min, max)
+        .drawing.instances.add(DeferredInstance{source, transform})
+        return .drawing.instances.count
+    }
+
+    mtd instantiate(first, count: u64, state: *GroupState, hidden = false, deferGeometry = false)->{ first: u64, count: u64 }
     {
         var result: #returntype
         result.first = .drawing.shapes.count
 
+        let deferPlacement = deferGeometry and
+                             not hidden and
+                             not state.inDefs and
+                             state.transform.m12 == 0 and
+                             state.transform.m21 == 0 and
+                             state.transform.m11 > 0 and
+                             state.transform.m22 > 0
         for i in count
         {
             // Build the transformed copy fully before appending: appending can
@@ -4388,6 +4439,7 @@ private impl Parser
             var fillOpacity:      f32
             var hasFill, evenOdd: bool
             var paintTransform:   u64
+            var instance:         u64
 
             scope
             {
@@ -4427,44 +4479,17 @@ private impl Parser
                     paintTransform = .storePaintTransform(&transform)
                 }
 
-                for srcPath in src.pathList.paths
+                if deferPlacement and
+                   src.hasFill and
+                   not strokeIndex and
+                   not fillPaintId and
+                   not filterId
                 {
-                    let path   = list.newPath()
-                    let origin = mapPoint(state, srcPath.startPoint.x, srcPath.startPoint.y)
-                    path.start(origin.x, origin.y)
-                    for &element in srcPath.elements
-                    {
-                        switch element.type
-                        {
-                        case .Line:
-                            let target = mapPoint(state, element.position.x, element.position.y)
-                            path.lineTo(target.x, target.y)
-
-                        case .Bezier1:
-                            let target  = mapPoint(state, element.position.x, element.position.y)
-                            let control = mapPoint(state, element.p1.x, element.p1.y)
-                            path.bezierTo(target.x, target.y, control.x, control.y)
-
-                        case .Bezier2:
-                            let target   = mapPoint(state, element.position.x, element.position.y)
-                            let control1 = mapPoint(state, element.p1.x, element.p1.y)
-                            let control2 = mapPoint(state, element.p2.x, element.p2.y)
-                            path.bezierTo(target.x, target.y, control1.x, control1.y, control2.x, control2.y)
-
-                        case .Arc:
-
-                            // An arc stores its center in `position`, its angle
-                            // interval in `p1`, and its radii in `p2`.
-                            appendArcElement(path, state, element.position, element.p1, element.p2)
-
-                        default:
-                            Swag.assert(false, "definition uses an unsupported segment type")
-                        }
-                    }
-
-                    if srcPath.isClosed do
-                        path.close()
+                    instance = .deferInstance(first + i, &src.pathList, state.transform, &list)
                 }
+
+                if not instance do
+                    copyContours(&list, &src.pathList, state)
             }
 
             let shapeIndex = .drawing.shapes.count
@@ -4480,6 +4505,11 @@ private impl Parser
                 .paintTransform = paintTransform
                 .hidden         = hidden or state.inDefs
                 .filterId       = filterId
+                if instance
+                {
+                    .deferred      = .Instance
+                    .geometryCache = instance
+                }
             }
 
             if not shape.hidden do
@@ -4491,36 +4521,82 @@ private impl Parser
     }
 }
 
+#[Swag.Inline]
+private func copyContours(destination: *LinePathList, source: const *LinePathList, state: *GroupState)
+{
+    for srcPath in source.paths
+    {
+        let path   = destination.newPath()
+        let origin = mapPoint(state, srcPath.startPoint.x, srcPath.startPoint.y)
+        path.start(origin.x, origin.y)
+        for &element in srcPath.elements
+        {
+            switch element.type
+            {
+            case .Line:
+                let target = mapPoint(state, element.position.x, element.position.y)
+                path.lineTo(target.x, target.y)
+
+            case .Bezier1:
+                let target  = mapPoint(state, element.position.x, element.position.y)
+                let control = mapPoint(state, element.p1.x, element.p1.y)
+                path.bezierTo(target.x, target.y, control.x, control.y)
+
+            case .Bezier2:
+                let target   = mapPoint(state, element.position.x, element.position.y)
+                let control1 = mapPoint(state, element.p1.x, element.p1.y)
+                let control2 = mapPoint(state, element.p2.x, element.p2.y)
+                path.bezierTo(target.x, target.y, control1.x, control1.y, control2.x, control2.y)
+
+            case .Arc:
+
+                // An arc stores its center in `position`, its angle
+                // interval in `p1`, and its radii in `p2`.
+                appendArcElement(path, state, element.position, element.p1, element.p2)
+
+            default:
+                Swag.assert(false, "definition uses an unsupported segment type")
+            }
+        }
+
+        if srcPath.isClosed do
+            path.close()
+    }
+}
+
 // How far outside its geometry an antialiased edge lays its fringe, which a rectangle tested
 // against a viewport is widened by so an item touching the edge is never rejected.
 private const InkFringeMargin = 2.0'f32
 
-private impl Shape
+private impl Drawing
 {
-    mtd materializePrimitive()
+    mtd const materializeShape(shape: *Shape)
     {
-        let min = .pathList.minBounds
-        let max = .pathList.maxBounds
-        switch #complete .deferred
+        let min = shape.pathList.minBounds
+        let max = shape.pathList.maxBounds
+        switch #complete shape.deferred
         {
         case .None:
             return
 
         case .Rect:
-            .pathList.newPath().setRectCornersRaw(min.x, min.y, max.x, max.y)
+            shape.pathList.newPath().setRectCornersRaw(min.x, min.y, max.x, max.y)
 
         case .Ellipse:
             let radii  = (max - min) * 0.5
             let center = min + radii
-            .pathList.newPath().setEllipseRaw(center.x, center.y, radii.x, radii.y)
+            shape.pathList.newPath().setEllipseRaw(center.x, center.y, radii.x, radii.y)
+
+        case .Instance:
+            let instance = &.instances[shape.geometryCache - 1]
+            var state    = GroupState{transform: instance.transform}
+            copyContours(&shape.pathList, &.shapes[instance.source].pathList, &state)
+            shape.geometryCache = 0
         }
 
-        .deferred = .None
+        shape.deferred = .None
     }
-}
 
-private impl Drawing
-{
     mtd const strokeFor(shape: const *Shape)->*ShapeStroke?
     {
         return shape.stroke ? &.strokes[shape.stroke - 1] : null
@@ -4530,8 +4606,6 @@ private impl Drawing
     // around them.
     mtd const shapeInkBounds(shape: const *Shape)->Rectangle
     {
-        if shape.scanFill do
-            return .scanFills[shape.scanFill - 1].bounds
         if shape.deferred != .None
         {
             let min  = shape.pathList.minBounds
@@ -4539,6 +4613,8 @@ private impl Drawing
             return Rectangle{min.x, min.y, size.x, size.y}
         }
 
+        if shape.geometryCache do
+            return .scanFills[shape.geometryCache - 1].bounds
         var result: #returntype = shape.pathList.controlBounds()
         let stroke = .strokeFor(shape)
         if stroke and stroke.enabled
@@ -4892,9 +4968,9 @@ impl Drawing
         if paintFill and shape.hasFill
         {
             if shape.deferred != .None do
-                shape.materializePrimitive()
-            if shape.scanFill do
-                .scanFills[shape.scanFill - 1].paint(painter, &shape.pathList, shape.fillColor, shape.evenOdd)
+                .materializeShape(shape)
+            if shape.geometryCache do
+                .scanFills[shape.geometryCache - 1].paint(painter, &shape.pathList, shape.fillColor, shape.evenOdd)
             elif shape.fillGradient do
                 painter.fillPath(&shape.pathList, .gradientBrushAt(shape.fillGradient)[])
             else do

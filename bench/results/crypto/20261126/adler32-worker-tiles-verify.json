@@ -1,0 +1,220 @@
+{
+  "utc": "2026-11-26T15:31:31.071501+00:00",
+  "system": "Linux-6.18.57-x86_64-with-glibc2.41",
+  "cpu": 0,
+  "affinity": [
+    0,
+    1,
+    2,
+    3
+  ],
+  "workers": {
+    "baseline": 1,
+    "tiled": 4
+  },
+  "processor": {
+    "model name": "AMD EPYC 9V74 80-Core Processor",
+    "microcode": "0x1000065",
+    "flags": "fpu vme de pse tsc msr pae mce cx8 apic sep mtrr pge mca cmov pat pse36 clflush mmx fxsr sse sse2 ht syscall nx mmxext fxsr_opt pdpe1gb rdtscp lm constant_tsc rep_good nopl xtopology nonstop_tsc cpuid extd_apicid tsc_known_freq pni pclmulqdq ssse3 fma cx16 pcid sse4_1 sse4_2 x2apic movbe popcnt tsc_deadline_timer aes xsave avx f16c rdrand hypervisor lahf_lm cmp_legacy cr8_legacy abm sse4a misalignsse 3dnowprefetch osvw topoext cpuid_fault vmmcall fsgsbase tsc_adjust bmi1 avx2 smep bmi2 erms invpcid avx512f avx512dq rdseed adx smap avx512ifma clflushopt clwb avx512cd sha_ni avx512bw avx512vl xsaveopt xsavec xgetbv1 xsaves avx512_bf16 clzero xsaveerptr arat npt nrip_save tsc_scale vmcb_clean flushbyasid pausefilter pfthreshold v_vmsave_vmload avx512vbmi umip avx512_vbmi2 gfni vaes vpclmulqdq avx512_vnni avx512_bitalg avx512_vpopcntdq rdpid fsrm arch_capabilities"
+  },
+  "reference_build": "OpenSSL 3.5.7 9 Jun 2026 | zlib 1.3.1 | BLAKE3 1.8.7 | libdeflate 1.26 | ISA-L 2.32.1 | liblzma 5.8.1",
+  "reference_sha256": "5b1a5b28eb02cadf78fd23bd651bd7a3ffa5543de84715d39d7551773d44413b",
+  "swag_builds": {
+    "baseline": "c2324f94830e94986b32182142f515e0add43f6e01a0df8485adb54339ae8cad",
+    "tiled": "ae2ee5cec1500c0e412c06a6c53042d3e5af60286f0505d596aa329bf9f97b79"
+  },
+  "rounds": 0,
+  "target_ms": 50,
+  "clock": "cpu",
+  "rows": [
+    {
+      "algorithm": "adler32",
+      "bytes": 2097151,
+      "offset": 0,
+      "input_sha256": "d84787d3327460e152d94a4ce6eef16d70d1f7ed3609d3c815bdad8269c36cc1",
+      "output_sha256": "7e20a9276888fa759ab756a12a5b967ce49bc55543512d3c401aeb3c4440a1ae",
+      "samples": {},
+      "round_order": []
+    },
+    {
+      "algorithm": "adler32",
+      "bytes": 2097151,
+      "offset": 7,
+      "input_sha256": "8ed1ebef868cc500697dbf83b1532b98e68fabe5e3619533b54ec29c9da1dd65",
+      "output_sha256": "38898a2fdfe260cb7d94d433823434453cd3bbbb9cc3aad924719bd3d14d5314",
+      "samples": {},
+      "round_order": []
+    },
+    {
+      "algorithm": "adler32",
+      "bytes": 2097151,
+      "offset": 31,
+      "input_sha256": "9abd8bebc5154cb63c7b044a92ff26584024f8f6ccac50dc69ec2240898f25b8",
+      "output_sha256": "230bc41cbf6dccbdd5753411222d5687c106bd0330bfc6b25f8f3efdf72a02db",
+      "samples": {},
+      "round_order": []
+    },
+    {
+      "algorithm": "adler32",
+      "bytes": 2097152,
+      "offset": 0,
+      "input_sha256": "e02dc34cfb454c9de9109c76af74770562f5f07a1189d4711d1d464e24d16747",
+      "output_sha256": "479e59adf2f793e51cfb674e79454805a8d6c98901437e21d2738d188db8ac4f",
+      "samples": {},
+      "round_order": []
+    },
+    {
+      "algorithm": "adler32",
+      "bytes": 2097152,
+      "offset": 7,
+      "input_sha256": "d16ca1f96eee23c5f02eaa2d4cad07e4afc2ee9e4d2808f61ee896740d030488",
+      "output_sha256": "e6a8d72dc60fa0f02a83df961488f9f0958e2ab3836a8d3e93a6563ca7c15c62",
+      "samples": {},
+      "round_order": []
+    },
+    {
+      "algorithm": "adler32",
+      "bytes": 2097152,
+      "offset": 31,
+      "input_sha256": "110a29648ba4ee93b75726aacd55308261c6b88cdb94789c3ba035b1baf20e43",
+      "output_sha256": "87505c0e86cfcaa93b8bf12f1a452d1f43c5090ba8db4a32ddf653159975bd8b",
+      "samples": {},
+      "round_order": []
+    },
+    {
+      "algorithm": "adler32",
+      "bytes": 2097153,
+      "offset": 0,
+      "input_sha256": "5aff91f9711be7fc1af3604609c5e48bc7ba56605e2aeaa392c8af8671f04edb",
+      "output_sha256": "aa23d5ec60da204c59e0fbebb8e60e095aca8c01f8d8b88c1ad216a983057032",
+      "samples": {},
+      "round_order": []
+    },
+    {
+      "algorithm": "adler32",
+      "bytes": 2097153,
+      "offset": 7,
+      "input_sha256": "ede04253adc7167035090101b0a27083cc95724ba67c09ec0396dc1243215975",
+      "output_sha256": "691b6c1e3ce0e8cd11339ae050eca17668fd85e39c22c3f1e47e64a7acce0d4d",
+      "samples": {},
+      "round_order": []
+    },
+    {
+      "algorithm": "adler32",
+      "bytes": 2097153,
+      "offset": 31,
+      "input_sha256": "ff1f29ab3b35b71a902f38b3f3251bff7965426fde52178e58e6b0942d8d8c05",
+      "output_sha256": "f311d3bef073366ca3ccb180c015919643a3a49084d1fb1e44acf726a0d6611a",
+      "samples": {},
+      "round_order": []
+    },
+    {
+      "algorithm": "adler32",
+      "bytes": 2097231,
+      "offset": 0,
+      "input_sha256": "d56828c854e06afb147988a28e1fae8ece8630d31ad8915ef93e8065b27f6607",
+      "output_sha256": "75e76870121794c8c317318facd37020b930452408096cda1317e8b8d9b7542a",
+      "samples": {},
+      "round_order": []
+    },
+    {
+      "algorithm": "adler32",
+      "bytes": 2097231,
+      "offset": 7,
+      "input_sha256": "f5e668f2297a8887e073402ad4b69b422f1fa876978ccaa9e85ea0cb16458cc3",
+      "output_sha256": "b0398a84c9756934a5d6912dd75ae10abd42e5a27fbd7fac97519ddf71076dd4",
+      "samples": {},
+      "round_order": []
+    },
+    {
+      "algorithm": "adler32",
+      "bytes": 2097231,
+      "offset": 31,
+      "input_sha256": "4cb07cc398069939d5355867a749caf47252398883f6aa42fd177922e71d8b3d",
+      "output_sha256": "9a0ffc11ab8466a8760ec9d15fd5f4b7d1d18cee01cc131b8e692cdfc9292532",
+      "samples": {},
+      "round_order": []
+    },
+    {
+      "algorithm": "adler32",
+      "bytes": 2097232,
+      "offset": 0,
+      "input_sha256": "e50bad7fc89e110b4277d6b5e01b0d782ac3a100d465eeb97e148ca681629b2e",
+      "output_sha256": "7ea61344b75ff2db3105668c07457af08f5fa26bf37250bc537a66658cf751c6",
+      "samples": {},
+      "round_order": []
+    },
+    {
+      "algorithm": "adler32",
+      "bytes": 2097232,
+      "offset": 7,
+      "input_sha256": "e3ed4daa5956d517ed508b4e5924f62854467617382913946ee6bff2e017b1fe",
+      "output_sha256": "b5d929b7642a731b193060407b075a428aaf08960df99a77cc9dad8747b798a3",
+      "samples": {},
+      "round_order": []
+    },
+    {
+      "algorithm": "adler32",
+      "bytes": 2097232,
+      "offset": 31,
+      "input_sha256": "c77e0be7f18db5f0282d414b6f23606280ad5b6d6e143c4f77c2b0da953d69d0",
+      "output_sha256": "7598557a241834eb054b8140a3641dbdd08f1bb1a5ec1fab26aa413dd508305d",
+      "samples": {},
+      "round_order": []
+    },
+    {
+      "algorithm": "adler32",
+      "bytes": 2621439,
+      "offset": 0,
+      "input_sha256": "9e31bd438bdb65e0b627fe80b20322d4b4f63e66e84b30399105e28b1b75b2c4",
+      "output_sha256": "76fb0cebd2afb4e048a24375671955c178e1162f61dcf00afb3769a797661b5d",
+      "samples": {},
+      "round_order": []
+    },
+    {
+      "algorithm": "adler32",
+      "bytes": 2621439,
+      "offset": 7,
+      "input_sha256": "9f933261ecb019b48134a1f5e1b9988e4555cc69c2dbbb85fb0ae301d79c4a87",
+      "output_sha256": "1151ee5c172ba3ecf0e513dbf31fff0697f6236a21ad3d8458929ae13f91b36f",
+      "samples": {},
+      "round_order": []
+    },
+    {
+      "algorithm": "adler32",
+      "bytes": 2621439,
+      "offset": 31,
+      "input_sha256": "62d3165b893464a02e59ab3d852815d15418dec68f4fff9e1df2bd52d593c334",
+      "output_sha256": "068f55bf5c81c4b618efe8f9ee2f0b9c6b953b5a808801db7dbfbf200f56290f",
+      "samples": {},
+      "round_order": []
+    },
+    {
+      "algorithm": "adler32",
+      "bytes": 16777217,
+      "offset": 0,
+      "input_sha256": "ba0912a805214e486b2a11b30ea1440f3f0b48fd49671e828c2f643feef427c7",
+      "output_sha256": "887201c678127a78ec799429d05791d8464712e69797687a2791b935c09ca958",
+      "samples": {},
+      "round_order": []
+    },
+    {
+      "algorithm": "adler32",
+      "bytes": 16777217,
+      "offset": 7,
+      "input_sha256": "994b56032e57927298494e5f48a31b028a3fceaea65a6d708c3181e483b44e7a",
+      "output_sha256": "e1385f88262932000f007bd754c3e25efebf2a97d5c443e18f6066b00ff85e76",
+      "samples": {},
+      "round_order": []
+    },
+    {
+      "algorithm": "adler32",
+      "bytes": 16777217,
+      "offset": 31,
+      "input_sha256": "c5d210fa7f646d9dfa4412c24ee3369a17ab1757cd3750cc90cbfc41f7821997",
+      "output_sha256": "cbabaae845bb4adfb90b16b74f66690e2226db0b931f318395b50a794750894f",
+      "samples": {},
+      "round_order": []
+    }
+  ]
+}

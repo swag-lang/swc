@@ -214,3 +214,4 @@ optimizations moved each result.
 - [Paired software AES counters in GCM and CCM](aes-aead-software-pairs.md)
 - [Wide-word scalar Poly1305 fallback](poly1305-wide-scalar.md)
 - [Interleaved ChaCha20-Poly1305 short seals](chacha20-poly1305-short-pair.md)
+- [Parallel Adler-32 on large buffers](adler32-worker-tiles.md)

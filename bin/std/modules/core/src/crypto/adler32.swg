@@ -96,10 +96,54 @@ public struct Adler32
 private impl Adler32
 {
     const Modulus = 65521
+    const TileBytes = 512 * 1024'u64
+    const MaxTiles = 32
+
+    func mergeTile(previous, tile: u32)->u32
+    {
+        // Tile checksums start from the Adler identity A = 1.
+        const TileLength = cast(u32, TileBytes % Modulus)
+        let prefixSum = ((previous & 0xFFFF) + Modulus - 1) % Modulus
+        let byteSum = (prefixSum + (tile & 0xFFFF)) % Modulus
+        let weightedSum = ((previous >> 16) + (tile >> 16) + TileLength * prefixSum) % Modulus
+        return byteSum | (weightedSum << 16)
+    }
+
+    #[Swag.NoInline]
+    mtd updateParallel(input: const [*] u8, byteCount: u64)
+    {
+        var checksum = .currentValue
+        var offset = 0'u64
+        var results: [MaxTiles] u32
+        while byteCount - offset >= TileBytes
+        {
+            let tiles = Swag.min((byteCount - offset) / TileBytes, MaxTiles)
+            let source = input + offset
+            parallel for |source, &results| tile in tiles
+            {
+                var local: Adler32
+                local.updateLarge(source + tile * TileBytes, TileBytes)
+                results[tile] = local.currentValue
+            }
+            for tile in tiles do
+                checksum = mergeTile(checksum, results[tile])
+            offset += tiles * TileBytes
+        }
+
+        .currentValue = checksum
+        if offset != byteCount do
+            .updateLarge(input + offset, byteCount - offset)
+    }
 
     #[Swag.NoInline]
     mtd updateLarge(input: const [*] u8, byteCount: u64)
     {
+        if byteCount >= 4 * TileBytes and not Swag.jit() and Swag.workerCount() > 1
+        {
+            .updateParallel(input, byteCount)
+            return
+        }
+
         // Round the worst-case modulo interval down to a whole SIMD block.
         const BlocksPerReduction = 5552 / 64
         var byteSum     = .currentValue & 0xFFFF

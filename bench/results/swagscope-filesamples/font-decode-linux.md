@@ -578,3 +578,33 @@ A full pathname repeat before this pass uses Pillow 12.3.0 Basic layout with
 FreeType 2.14.3. Swag wins 46 of 59 cases across 52 files on one CPU. The
 remaining cases include eleven CJK CFF faces, Gowun Batang, and DejaVu Sans.
 [Full corpus repeat](font-decode-linux-59-cases.json)
+
+## Deflate table widths
+
+Deflate uses an 11-bit literal lookup for dynamic streams at least 16 KiB and
+a 9-bit lookup for smaller streams. Its distance and code-length tables use
+eight and seven bits. Dynamic lookup storage belongs to the dynamic block
+decoder. The baseline `65bb993978` includes the fixed tables already
+precomputed by `59b58035db`.
+
+The table uses 11 interleaved batches of seven fresh pathname opens with one
+worker after five warmups. Each open renders one glyph at 20 px. The Swag
+builds return the same glyph indices, advances, dimensions, and CRC-64.
+FreeType 2.14.3 selects the same glyph indices.
+[Raw timings, an earlier run, and zlib controls](font-decode-linux-deflate.json)
+
+| Fixture | Before (ms) | After (ms) | FreeType file (ms) |
+| --- | ---: | ---: | ---: |
+| `DejaVuSans.woff` | 3.881 | 3.651 | 4.978 |
+| `Inter-Variable.woff` | 4.773 | 4.283 | 7.567 |
+| `SourceSans3-Regular.woff` | 1.881 | 1.948 | 2.564 |
+| `NotoSansCJKjp-Regular.woff` | 114.465 | 104.958 | 132.816 |
+| `NotoSansSC-Variable.woff` | 112.823 | 100.501 | 132.070 |
+| `NotoSansJP-Variable.woff` | 56.432 | 50.088 | 68.359 |
+| `NotoSansTC-Variable.woff` | 75.505 | 64.921 | 87.658 |
+
+The WOFF1 CJK opens improve by 8–14%. Source Sans 3 takes 0.067 ms longer in
+this repeat. Four PNG IDAT streams, fixed and stored streams, and repetitive
+dynamic data were also decoded directly. The decoded lengths and CRC-64
+match in every control. The stored 256 KiB stream takes 21.09 µs versus
+20.81 µs. The PNG streams gain 4–10%.

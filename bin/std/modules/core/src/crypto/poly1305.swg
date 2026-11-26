@@ -192,60 +192,61 @@ public impl Poly1305
             .bufferCount = 0
         }
 
-        var h     = .accumulator
-        var carry = h[1] >> 26
-        h[1] &= LimbMask
-        for i in 2 to 4
+        var scratch: struct
         {
-            h[i]  += carry
-            carry = h[i] >> 26
-            h[i]  &= LimbMask
+            h, g: [5] u64
         }
-
-        h[0]  += carry * 5
-        carry = h[0] >> 26
-        h[0]  &= LimbMask
-        h[1]  += carry
-
-        // Compute `h - p` and keep it only when it did not borrow, which is the
-        // branch-free way to reduce the last time.
-        var g: [5] u64
-        g[0]  = h[0] + 5
-        carry = g[0] >> 26
-        g[0]  &= LimbMask
-        for i in 1 to 3
-        {
-            g[i]  = h[i] + carry
-            carry = g[i] >> 26
-            g[i]  &= LimbMask
-        }
-
-        g[4] = h[4] + carry - (1 << 26)
-
-        let borrowed = (g[4] >> 63) & 1
-        let keepG    = borrowed - 1
-        let keepH    = ~keepG
-        for i in 5 do
-            h[i] = (h[i] & keepH) | (g[i] & keepG)
-
-        var packed: [4] u64
-        packed[0] = (h[0] | (h[1] << 26)) & 0xFFFF_FFFF
-        packed[1] = ((h[1] >> 6) | (h[2] << 20)) & 0xFFFF_FFFF
-        packed[2] = ((h[2] >> 12) | (h[3] << 14)) & 0xFFFF_FFFF
-        packed[3] = ((h[3] >> 18) | (h[4] << 8)) & 0xFFFF_FFFF
-
+        scratch.h = .accumulator
         var result: #returntype
-        var sum = 0'u64
-        for i in 4
+        with scratch
         {
-            sum = packed[i] + .pad[i] + (sum >> 32)
-            for b in 4 do
-                result[i * 4 + b] = cast(u8, ((sum >> cast(u32, (b * 8))) & 0xFF))
+            var carry = .h[1] >> 26
+            .h[1] &= LimbMask
+            for i in 2 to 4
+            {
+                .h[i]  += carry
+                carry = .h[i] >> 26
+                .h[i]  &= LimbMask
+            }
+
+            .h[0]  += carry * 5
+            carry = .h[0] >> 26
+            .h[0]  &= LimbMask
+            .h[1]  += carry
+
+            // Compute `h - p` and keep it only when it did not borrow, which is the
+            // branch-free way to reduce the last time.
+            .g[0]  = .h[0] + 5
+            carry = .g[0] >> 26
+            .g[0]  &= LimbMask
+            for i in 1 to 3
+            {
+                .g[i]  = .h[i] + carry
+                carry = .g[i] >> 26
+                .g[i]  &= LimbMask
+            }
+
+            .g[4] = .h[4] + carry - (1 << 26)
+
+            let borrowed = (.g[4] >> 63) & 1
+            let keepG    = borrowed - 1
+            let keepH    = ~keepG
+            for i in 5 do
+                .h[i] = (.h[i] & keepH) | (.g[i] & keepG)
+
+            // Store the low 128 bits in two words and propagate the pad carry once.
+            let low = .h[0] | (.h[1] << 26) | (.h[2] << 52)
+            let high = (.h[2] >> 12) | (.h[3] << 14) | (.h[4] << 40)
+            let padLow = me.pad[0] | (me.pad[1] << 32)
+            let padHigh = me.pad[2] | (me.pad[3] << 32)
+            let lowSum = low + padLow
+            let highSum = high + padHigh + cast(u64, lowSum < low)
+            let words = cast([*] u64, result.buffer)
+            words[0] = Math.nativeToLittleEndian(lowSum)
+            words[1] = Math.nativeToLittleEndian(highSum)
         }
 
-        secureClear(h)
-        secureClear(g)
-        secureClear(packed)
+        secureClear(Swag.makeSlice(&scratch, 1))
         .clear()
         return result
     }
@@ -277,47 +278,49 @@ public impl Poly1305
     private mtd absorbBlocks(blocks: const [*] u8, count, highBit: u64)
     {
         // Terms that wrap past 2^130 pick up a factor of five modulo 2^130 - 5.
-        var scaled: [5] u64
-        for i in 1 to 4 do
-            scaled[i] = .r[i] * 5
-
-        var h = .accumulator
-        var d: [5] u64
-        for block in count
+        var scratch: struct
         {
-            let data = cast(const [*] u64, blocks + block * Poly1305BlockSize)
-            let low  = Math.littleEndianToNative(data[0])
-            let high = Math.littleEndianToNative(data[1])
-            h[0] += low & LimbMask
-            h[1] += (low >> 26) & LimbMask
-            h[2] += ((low >> 52) | (high << 12)) & LimbMask
-            h[3] += (high >> 14) & LimbMask
-            h[4] += (high >> 40) | highBit
-
-            d[0] = h[0] * .r[0] + h[1] * scaled[4] + h[2] * scaled[3] + h[3] * scaled[2] + h[4] * scaled[1]
-            d[1] = h[0] * .r[1] + h[1] * .r[0] + h[2] * scaled[4] + h[3] * scaled[3] + h[4] * scaled[2]
-            d[2] = h[0] * .r[2] + h[1] * .r[1] + h[2] * .r[0] + h[3] * scaled[4] + h[4] * scaled[3]
-            d[3] = h[0] * .r[3] + h[1] * .r[2] + h[2] * .r[1] + h[3] * .r[0] + h[4] * scaled[4]
-            d[4] = h[0] * .r[4] + h[1] * .r[3] + h[2] * .r[2] + h[3] * .r[1] + h[4] * .r[0]
-
-            var carry = 0'u64
-            for i in 5
+            scaled, h, d: [5] u64
+        }
+        with scratch
+        {
+            for i in 1 to 4 do
+                .scaled[i] = me.r[i] * 5
+            .h = me.accumulator
+            for block in count
             {
-                d[i]  += carry
-                carry = d[i] >> 26
-                h[i]  = d[i] & LimbMask
+                let data = cast(const [*] u64, blocks + block * Poly1305BlockSize)
+                let low  = Math.littleEndianToNative(data[0])
+                let high = Math.littleEndianToNative(data[1])
+                .h[0] += low & LimbMask
+                .h[1] += (low >> 26) & LimbMask
+                .h[2] += ((low >> 52) | (high << 12)) & LimbMask
+                .h[3] += (high >> 14) & LimbMask
+                .h[4] += (high >> 40) | highBit
+
+                .d[0] = .h[0] * me.r[0] + .h[1] * .scaled[4] + .h[2] * .scaled[3] + .h[3] * .scaled[2] + .h[4] * .scaled[1]
+                .d[1] = .h[0] * me.r[1] + .h[1] * me.r[0] + .h[2] * .scaled[4] + .h[3] * .scaled[3] + .h[4] * .scaled[2]
+                .d[2] = .h[0] * me.r[2] + .h[1] * me.r[1] + .h[2] * me.r[0] + .h[3] * .scaled[4] + .h[4] * .scaled[3]
+                .d[3] = .h[0] * me.r[3] + .h[1] * me.r[2] + .h[2] * me.r[1] + .h[3] * me.r[0] + .h[4] * .scaled[4]
+                .d[4] = .h[0] * me.r[4] + .h[1] * me.r[3] + .h[2] * me.r[2] + .h[3] * me.r[1] + .h[4] * me.r[0]
+
+                var carry = 0'u64
+                for i in 5
+                {
+                    .d[i]  += carry
+                    carry = .d[i] >> 26
+                    .h[i]  = .d[i] & LimbMask
+                }
+
+                .h[0]  += carry * 5
+                carry = .h[0] >> 26
+                .h[0]  &= LimbMask
+                .h[1]  += carry
             }
 
-            h[0]  += carry * 5
-            carry = h[0] >> 26
-            h[0]  &= LimbMask
-            h[1]  += carry
+            me.accumulator = .h
         }
-
-        .accumulator = h
-        secureClear(h)
-        secureClear(d)
-        secureClear(scaled)
+        secureClear(Swag.makeSlice(&scratch, 1))
     }
 
     private mtd absorbPairs(blocks: const [*] u8, count: u64)

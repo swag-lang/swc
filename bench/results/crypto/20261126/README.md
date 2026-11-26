@@ -123,3 +123,4 @@ optimizations moved each result.
 - [Four-block AES-XTS](aes-xts-four-blocks.md)
 - [CRC-32 short inputs and bounded SIMD tails](crc32-padded-tail.md)
 - [Streaming Curve25519 product carries](curve25519-product-carries.md)
+- [Poly1305 packed tag output](poly1305-tag-stores.md)

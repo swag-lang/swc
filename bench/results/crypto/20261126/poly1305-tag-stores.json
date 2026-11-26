@@ -1,0 +1,2010 @@
+{
+  "utc": "2026-11-26T13:07:18.045802+00:00",
+  "system": "Linux-6.18.57-x86_64-with-glibc2.41",
+  "cpu": 3,
+  "affinity": [
+    3
+  ],
+  "workers": {
+    "chacha-chunks-direct": 1,
+    "poly-packed-finish": 1,
+    "poly-packed-wipe": 1
+  },
+  "processor": {
+    "model name": "AMD EPYC 9V74 80-Core Processor",
+    "microcode": "0x1000065",
+    "flags": "fpu vme de pse tsc msr pae mce cx8 apic sep mtrr pge mca cmov pat pse36 clflush mmx fxsr sse sse2 ht syscall nx mmxext fxsr_opt pdpe1gb rdtscp lm constant_tsc rep_good nopl xtopology nonstop_tsc cpuid extd_apicid tsc_known_freq pni pclmulqdq ssse3 fma cx16 pcid sse4_1 sse4_2 x2apic movbe popcnt tsc_deadline_timer aes xsave avx f16c rdrand hypervisor lahf_lm cmp_legacy cr8_legacy abm sse4a misalignsse 3dnowprefetch osvw topoext cpuid_fault vmmcall fsgsbase tsc_adjust bmi1 avx2 smep bmi2 erms invpcid avx512f avx512dq rdseed adx smap avx512ifma clflushopt clwb avx512cd sha_ni avx512bw avx512vl xsaveopt xsavec xgetbv1 xsaves avx512_bf16 clzero xsaveerptr arat npt nrip_save tsc_scale vmcb_clean flushbyasid pausefilter pfthreshold v_vmsave_vmload avx512vbmi umip avx512_vbmi2 gfni vaes vpclmulqdq avx512_vnni avx512_bitalg avx512_vpopcntdq rdpid fsrm arch_capabilities"
+  },
+  "reference_build": "OpenSSL 3.5.7 9 Jun 2026 | zlib 1.3.1 | BLAKE3 1.8.7 | libdeflate 1.26 | ISA-L 2.32.1 | liblzma 5.8.1",
+  "reference_sha256": "d6f36f4496d0434337b2936a7ff71c55c7ca395d52e0ae4222a2fc5b3d5a5f51",
+  "swag_builds": {
+    "chacha-chunks-direct": "70343ddcfcff2a4ecd6daa07cb04a1f19b2bfb208e64e9ca0fc2d82b7b07eea9",
+    "poly-packed-finish": "0ebce61f25b707b8b6b98297919d6d734e8102b90e70ae40f40df5aaa02f686a",
+    "poly-packed-wipe": "d9f1f5de56368c687dbb38aac3a3ead41394ee6b6f5c3b61833259deb0976a62"
+  },
+  "rounds": 9,
+  "target_ms": 20,
+  "clock": "cpu",
+  "rows": [
+    {
+      "algorithm": "poly1305",
+      "bytes": 64,
+      "offset": 0,
+      "input_sha256": "28f0a1a9fae78b5247ebe5b1919541c009f78cc2b79d276352a9c46251a02522",
+      "output_sha256": "427c9e000e987b634633750f30259c614dcb09b94556d52ddb3487c619e0ee8d",
+      "samples": {
+        "OpenSSL": {
+          "iterations": 252228,
+          "wall": [
+            0.020128397,
+            0.020022548,
+            0.019868886,
+            0.019935055,
+            0.019865441,
+            0.019895606,
+            0.020507108,
+            0.022925906,
+            0.025509918
+          ],
+          "cpu": [
+            0.020113683,
+            0.01999701,
+            0.019854868,
+            0.019924452,
+            0.019834829,
+            0.019884693,
+            0.020491636,
+            0.022906713,
+            0.025492439
+          ]
+        },
+        "chacha-chunks-direct": {
+          "iterations": 119447,
+          "wall": [
+            0.02754357,
+            0.020458094,
+            0.02047549,
+            0.020369701,
+            0.019968486,
+            0.026348858,
+            0.01971945,
+            0.02212639,
+            0.034480882
+          ],
+          "cpu": [
+            0.027516568,
+            0.020410426,
+            0.020462093,
+            0.020354411,
+            0.019958152,
+            0.026330332,
+            0.019704183,
+            0.022108234,
+            0.031291861
+          ]
+        },
+        "poly-packed-finish": {
+          "iterations": 128274,
+          "wall": [
+            0.019758177,
+            0.019770607,
+            0.019979662,
+            0.019529192,
+            0.020018121,
+            0.019929576,
+            0.019715192,
+            0.028124074,
+            0.04001569
+          ],
+          "cpu": [
+            0.019694529,
+            0.019761029,
+            0.019969719,
+            0.019516335,
+            0.020004652,
+            0.01991704,
+            0.01970089,
+            0.028101961,
+            0.019951563
+          ]
+        },
+        "poly-packed-wipe": {
+          "iterations": 126888,
+          "wall": [
+            0.01940849,
+            0.018782307,
+            0.018927025,
+            0.019112304,
+            0.019185405,
+            0.019121257,
+            0.018797781,
+            0.021020583,
+            0.019259396
+          ],
+          "cpu": [
+            0.019393502,
+            0.018750335,
+            0.018920766,
+            0.019088496,
+            0.019168047,
+            0.019073284,
+            0.018787139,
+            0.020716262,
+            0.019246192
+          ]
+        }
+      },
+      "round_order": [
+        [
+          "poly-packed-finish",
+          "OpenSSL",
+          "chacha-chunks-direct",
+          "poly-packed-wipe"
+        ],
+        [
+          "chacha-chunks-direct",
+          "OpenSSL",
+          "poly-packed-finish",
+          "poly-packed-wipe"
+        ],
+        [
+          "chacha-chunks-direct",
+          "OpenSSL",
+          "poly-packed-finish",
+          "poly-packed-wipe"
+        ],
+        [
+          "OpenSSL",
+          "poly-packed-wipe",
+          "chacha-chunks-direct",
+          "poly-packed-finish"
+        ],
+        [
+          "OpenSSL",
+          "chacha-chunks-direct",
+          "poly-packed-wipe",
+          "poly-packed-finish"
+        ],
+        [
+          "poly-packed-wipe",
+          "poly-packed-finish",
+          "chacha-chunks-direct",
+          "OpenSSL"
+        ],
+        [
+          "chacha-chunks-direct",
+          "OpenSSL",
+          "poly-packed-finish",
+          "poly-packed-wipe"
+        ],
+        [
+          "poly-packed-wipe",
+          "chacha-chunks-direct",
+          "OpenSSL",
+          "poly-packed-finish"
+        ],
+        [
+          "poly-packed-finish",
+          "chacha-chunks-direct",
+          "OpenSSL",
+          "poly-packed-wipe"
+        ]
+      ]
+    },
+    {
+      "algorithm": "poly1305",
+      "bytes": 1024,
+      "offset": 0,
+      "input_sha256": "d1342d558fb88c39242e391978e9f86e44d2f00a04038d5e8711ab29980a4eef",
+      "output_sha256": "0ce4858ccd579e12898f8890e47e94f4f8d580efb38bf5af071a3f25b66cbafb",
+      "samples": {
+        "OpenSSL": {
+          "iterations": 110540,
+          "wall": [
+            0.018378618,
+            0.018719893,
+            0.023223334,
+            0.018102351,
+            0.018861796,
+            0.024439429,
+            0.018814044,
+            0.019021778,
+            0.019137663
+          ],
+          "cpu": [
+            0.018336028,
+            0.018681575,
+            0.023209694,
+            0.018093126,
+            0.018573439,
+            0.024421239,
+            0.018798545,
+            0.019007846,
+            0.019129157
+          ]
+        },
+        "chacha-chunks-direct": {
+          "iterations": 24579,
+          "wall": [
+            0.020374147,
+            0.01988538,
+            0.020213005,
+            0.019531647,
+            0.020333407,
+            0.028543648,
+            0.019993934,
+            0.019777828,
+            0.019976889
+          ],
+          "cpu": [
+            0.020344689,
+            0.019873896,
+            0.020201875,
+            0.019517656,
+            0.020301363,
+            0.028527863,
+            0.019979053,
+            0.019767256,
+            0.019962939
+          ]
+        },
+        "poly-packed-finish": {
+          "iterations": 24764,
+          "wall": [
+            0.020327968,
+            0.019986012,
+            0.023242593,
+            0.021662459,
+            0.020219403,
+            0.023348283,
+            0.027262551,
+            0.019982337,
+            0.019943939
+          ],
+          "cpu": [
+            0.020309968,
+            0.019956956,
+            0.02308026,
+            0.02164234,
+            0.020205751,
+            0.023330505,
+            0.027235635,
+            0.019967665,
+            0.019932684
+          ]
+        },
+        "poly-packed-wipe": {
+          "iterations": 25247,
+          "wall": [
+            0.020558025,
+            0.020577514,
+            0.020943876,
+            0.019968556,
+            0.020277802,
+            0.020546767,
+            0.021306363,
+            0.020106994,
+            0.020486557
+          ],
+          "cpu": [
+            0.020545255,
+            0.020557795,
+            0.020917511,
+            0.019947316,
+            0.020264459,
+            0.02053456,
+            0.021291048,
+            0.020096949,
+            0.020465477
+          ]
+        }
+      },
+      "round_order": [
+        [
+          "OpenSSL",
+          "poly-packed-finish",
+          "poly-packed-wipe",
+          "chacha-chunks-direct"
+        ],
+        [
+          "OpenSSL",
+          "poly-packed-finish",
+          "poly-packed-wipe",
+          "chacha-chunks-direct"
+        ],
+        [
+          "poly-packed-wipe",
+          "chacha-chunks-direct",
+          "OpenSSL",
+          "poly-packed-finish"
+        ],
+        [
+          "poly-packed-finish",
+          "poly-packed-wipe",
+          "chacha-chunks-direct",
+          "OpenSSL"
+        ],
+        [
+          "chacha-chunks-direct",
+          "poly-packed-finish",
+          "poly-packed-wipe",
+          "OpenSSL"
+        ],
+        [
+          "poly-packed-wipe",
+          "poly-packed-finish",
+          "chacha-chunks-direct",
+          "OpenSSL"
+        ],
+        [
+          "poly-packed-finish",
+          "OpenSSL",
+          "poly-packed-wipe",
+          "chacha-chunks-direct"
+        ],
+        [
+          "poly-packed-finish",
+          "poly-packed-wipe",
+          "chacha-chunks-direct",
+          "OpenSSL"
+        ],
+        [
+          "OpenSSL",
+          "poly-packed-wipe",
+          "poly-packed-finish",
+          "chacha-chunks-direct"
+        ]
+      ]
+    },
+    {
+      "algorithm": "poly1305",
+      "bytes": 2048,
+      "offset": 0,
+      "input_sha256": "04f8399a4c911a956d835f2d4da1b4adde3f44ee670db84fa3a0030a5b84d2fd",
+      "output_sha256": "7e776a7dd9d8b7dbf1df4fcd54801ecd080723f5bb6e3b25dd10d24b4c5b7ab3",
+      "samples": {
+        "OpenSSL": {
+          "iterations": 80032,
+          "wall": [
+            0.01954685,
+            0.01977301,
+            0.019839352,
+            0.020785187,
+            0.020819008,
+            0.019781503,
+            0.020604725,
+            0.021702491,
+            0.019755985
+          ],
+          "cpu": [
+            0.019536483,
+            0.019751725,
+            0.019827247,
+            0.020757343,
+            0.020540389,
+            0.019768369,
+            0.020589062,
+            0.021691373,
+            0.019745866
+          ]
+        },
+        "chacha-chunks-direct": {
+          "iterations": 14891,
+          "wall": [
+            0.020186254,
+            0.0203561,
+            0.019950819,
+            0.020000724,
+            0.04225632,
+            0.020655421,
+            0.022332792,
+            0.020470622,
+            0.02078717
+          ],
+          "cpu": [
+            0.020176557,
+            0.020342985,
+            0.019937542,
+            0.019988608,
+            0.042231231,
+            0.020643022,
+            0.0223204,
+            0.020457236,
+            0.020763362
+          ]
+        },
+        "poly-packed-finish": {
+          "iterations": 14684,
+          "wall": [
+            0.019753601,
+            0.019713481,
+            0.021581698,
+            0.021426875,
+            0.020078452,
+            0.019860403,
+            0.019090782,
+            0.021386184,
+            0.019535533
+          ],
+          "cpu": [
+            0.01970751,
+            0.019699808,
+            0.020684392,
+            0.021412429,
+            0.020067395,
+            0.019619938,
+            0.019083018,
+            0.021370857,
+            0.019471318
+          ]
+        },
+        "poly-packed-wipe": {
+          "iterations": 15865,
+          "wall": [
+            0.020926691,
+            0.034085466,
+            0.020949566,
+            0.021067893,
+            0.026149909,
+            0.024393513,
+            0.025184071,
+            0.020808221,
+            0.022754428
+          ],
+          "cpu": [
+            0.020908537,
+            0.034065872,
+            0.020939454,
+            0.021050889,
+            0.026131787,
+            0.024376809,
+            0.025172346,
+            0.020798443,
+            0.022743119
+          ]
+        }
+      },
+      "round_order": [
+        [
+          "poly-packed-finish",
+          "chacha-chunks-direct",
+          "poly-packed-wipe",
+          "OpenSSL"
+        ],
+        [
+          "poly-packed-wipe",
+          "OpenSSL",
+          "poly-packed-finish",
+          "chacha-chunks-direct"
+        ],
+        [
+          "poly-packed-wipe",
+          "OpenSSL",
+          "poly-packed-finish",
+          "chacha-chunks-direct"
+        ],
+        [
+          "OpenSSL",
+          "poly-packed-wipe",
+          "poly-packed-finish",
+          "chacha-chunks-direct"
+        ],
+        [
+          "OpenSSL",
+          "chacha-chunks-direct",
+          "poly-packed-finish",
+          "poly-packed-wipe"
+        ],
+        [
+          "poly-packed-wipe",
+          "poly-packed-finish",
+          "OpenSSL",
+          "chacha-chunks-direct"
+        ],
+        [
+          "poly-packed-wipe",
+          "poly-packed-finish",
+          "OpenSSL",
+          "chacha-chunks-direct"
+        ],
+        [
+          "chacha-chunks-direct",
+          "poly-packed-finish",
+          "OpenSSL",
+          "poly-packed-wipe"
+        ],
+        [
+          "poly-packed-wipe",
+          "chacha-chunks-direct",
+          "OpenSSL",
+          "poly-packed-finish"
+        ]
+      ]
+    },
+    {
+      "algorithm": "poly1305",
+      "bytes": 2064,
+      "offset": 0,
+      "input_sha256": "30f1806801c962b7991370b540457147f1ade54c189c8544c8206f93651a4ff0",
+      "output_sha256": "7a590f9648eeb933c6761d15cc737fdb8f4d5dab821e23ccd12277a18a3fb1c1",
+      "samples": {
+        "OpenSSL": {
+          "iterations": 74431,
+          "wall": [
+            0.020337852,
+            0.020329629,
+            0.020172624,
+            0.020019522,
+            0.020139774,
+            0.020315999,
+            0.020327957,
+            0.020886019,
+            0.019918731
+          ],
+          "cpu": [
+            0.020219883,
+            0.020313713,
+            0.020159052,
+            0.020002067,
+            0.020128716,
+            0.020305821,
+            0.020313802,
+            0.020866184,
+            0.01990879
+          ]
+        },
+        "chacha-chunks-direct": {
+          "iterations": 13678,
+          "wall": [
+            0.018653873,
+            0.019072855,
+            0.01861293,
+            0.019444786,
+            0.019060005,
+            0.019125705,
+            0.020081537,
+            0.020977587,
+            0.018915167
+          ],
+          "cpu": [
+            0.018642584,
+            0.019056409,
+            0.018594672,
+            0.019427782,
+            0.019037902,
+            0.019112882,
+            0.020063609,
+            0.020961166,
+            0.018909761
+          ]
+        },
+        "poly-packed-finish": {
+          "iterations": 13455,
+          "wall": [
+            0.017849229,
+            0.018334061,
+            0.019946833,
+            0.01789585,
+            0.018932293,
+            0.023064385,
+            0.018939182,
+            0.01958043,
+            0.018164124
+          ],
+          "cpu": [
+            0.017838637,
+            0.018306972,
+            0.019918435,
+            0.017879237,
+            0.018919116,
+            0.022871078,
+            0.018927077,
+            0.019567322,
+            0.018153826
+          ]
+        },
+        "poly-packed-wipe": {
+          "iterations": 13770,
+          "wall": [
+            0.018924631,
+            0.018497377,
+            0.019067387,
+            0.018613663,
+            0.018542955,
+            0.018740244,
+            0.018653552,
+            0.018259898,
+            0.019643175
+          ],
+          "cpu": [
+            0.01890964,
+            0.01838488,
+            0.0190566,
+            0.018601792,
+            0.01852013,
+            0.01872798,
+            0.018641482,
+            0.018249568,
+            0.019621862
+          ]
+        }
+      },
+      "round_order": [
+        [
+          "poly-packed-wipe",
+          "chacha-chunks-direct",
+          "poly-packed-finish",
+          "OpenSSL"
+        ],
+        [
+          "poly-packed-finish",
+          "OpenSSL",
+          "poly-packed-wipe",
+          "chacha-chunks-direct"
+        ],
+        [
+          "poly-packed-finish",
+          "poly-packed-wipe",
+          "chacha-chunks-direct",
+          "OpenSSL"
+        ],
+        [
+          "poly-packed-wipe",
+          "chacha-chunks-direct",
+          "OpenSSL",
+          "poly-packed-finish"
+        ],
+        [
+          "chacha-chunks-direct",
+          "poly-packed-finish",
+          "OpenSSL",
+          "poly-packed-wipe"
+        ],
+        [
+          "OpenSSL",
+          "poly-packed-finish",
+          "chacha-chunks-direct",
+          "poly-packed-wipe"
+        ],
+        [
+          "poly-packed-wipe",
+          "OpenSSL",
+          "poly-packed-finish",
+          "chacha-chunks-direct"
+        ],
+        [
+          "poly-packed-finish",
+          "OpenSSL",
+          "chacha-chunks-direct",
+          "poly-packed-wipe"
+        ],
+        [
+          "poly-packed-wipe",
+          "chacha-chunks-direct",
+          "OpenSSL",
+          "poly-packed-finish"
+        ]
+      ]
+    },
+    {
+      "algorithm": "poly1305",
+      "bytes": 16384,
+      "offset": 0,
+      "input_sha256": "f27f7211cbabb52ae73b7932796d9ef01a7cbc8bf4c7557aa3cca0e890f9a1bd",
+      "output_sha256": "744fa0e3d36fd559b8f44b586b682d574fe8868cedd69538340f3daeea5f2d1d",
+      "samples": {
+        "OpenSSL": {
+          "iterations": 9723,
+          "wall": [
+            0.013409984,
+            0.01352649,
+            0.0137589,
+            0.013463415,
+            0.013557837,
+            0.013674624,
+            0.013462163,
+            0.013437366,
+            0.013497567
+          ],
+          "cpu": [
+            0.013398853,
+            0.013521647,
+            0.013748215,
+            0.013452944,
+            0.013545482,
+            0.013667053,
+            0.013449109,
+            0.013422507,
+            0.013487645
+          ]
+        },
+        "chacha-chunks-direct": {
+          "iterations": 2255,
+          "wall": [
+            0.019851029,
+            0.020220797,
+            0.02011046,
+            0.020306817,
+            0.019904609,
+            0.020476902,
+            0.01975918,
+            0.020387769,
+            0.020034125
+          ],
+          "cpu": [
+            0.019841038,
+            0.020199732,
+            0.020098331,
+            0.020294022,
+            0.019890352,
+            0.020466719,
+            0.019746697,
+            0.020369654,
+            0.020019264
+          ]
+        },
+        "poly-packed-finish": {
+          "iterations": 2237,
+          "wall": [
+            0.020166124,
+            0.019836446,
+            0.019932441,
+            0.019834203,
+            0.019766341,
+            0.020556603,
+            0.019766792,
+            0.019928455,
+            0.020120786
+          ],
+          "cpu": [
+            0.020142135,
+            0.019795573,
+            0.019919795,
+            0.019824261,
+            0.019745755,
+            0.020542183,
+            0.01974112,
+            0.01989667,
+            0.020107534
+          ]
+        },
+        "poly-packed-wipe": {
+          "iterations": 1445,
+          "wall": [
+            0.012732642,
+            0.012769468,
+            0.012909049,
+            0.012679002,
+            0.012789268,
+            0.012742558,
+            0.012687665,
+            0.012884462,
+            0.013017853
+          ],
+          "cpu": [
+            0.012727755,
+            0.012756218,
+            0.012899239,
+            0.012669318,
+            0.012780323,
+            0.012733504,
+            0.012665241,
+            0.012873672,
+            0.013004166
+          ]
+        }
+      },
+      "round_order": [
+        [
+          "poly-packed-finish",
+          "poly-packed-wipe",
+          "chacha-chunks-direct",
+          "OpenSSL"
+        ],
+        [
+          "poly-packed-wipe",
+          "OpenSSL",
+          "chacha-chunks-direct",
+          "poly-packed-finish"
+        ],
+        [
+          "chacha-chunks-direct",
+          "poly-packed-finish",
+          "OpenSSL",
+          "poly-packed-wipe"
+        ],
+        [
+          "OpenSSL",
+          "chacha-chunks-direct",
+          "poly-packed-wipe",
+          "poly-packed-finish"
+        ],
+        [
+          "poly-packed-wipe",
+          "chacha-chunks-direct",
+          "OpenSSL",
+          "poly-packed-finish"
+        ],
+        [
+          "OpenSSL",
+          "chacha-chunks-direct",
+          "poly-packed-wipe",
+          "poly-packed-finish"
+        ],
+        [
+          "poly-packed-finish",
+          "chacha-chunks-direct",
+          "OpenSSL",
+          "poly-packed-wipe"
+        ],
+        [
+          "OpenSSL",
+          "poly-packed-finish",
+          "chacha-chunks-direct",
+          "poly-packed-wipe"
+        ],
+        [
+          "chacha-chunks-direct",
+          "poly-packed-finish",
+          "OpenSSL",
+          "poly-packed-wipe"
+        ]
+      ]
+    },
+    {
+      "algorithm": "poly1305",
+      "bytes": 4194304,
+      "offset": 0,
+      "input_sha256": "2f3a5fcfc12a4dba0fd3ee80587b700964b988b0b7f15ec7d3ec12d31e2a90d0",
+      "output_sha256": "c84d42daff9e4229c5991574abbc3fe227388f5f8d7c428524a2c9b728d281cf",
+      "samples": {
+        "OpenSSL": {
+          "iterations": 60,
+          "wall": [
+            0.019974941,
+            0.01981904,
+            0.020109628,
+            0.020389772,
+            0.021693006,
+            0.020509341,
+            0.021200023,
+            0.020710575,
+            0.053412374
+          ],
+          "cpu": [
+            0.019963535,
+            0.019809341,
+            0.020097831,
+            0.020219111,
+            0.021674158,
+            0.020491325,
+            0.021182407,
+            0.02070829,
+            0.053361417
+          ]
+        },
+        "chacha-chunks-direct": {
+          "iterations": 9,
+          "wall": [
+            0.022539854,
+            0.02015005,
+            0.020134587,
+            0.020396521,
+            0.020104531,
+            0.020760541,
+            0.020490423,
+            0.020174026,
+            0.020346476
+          ],
+          "cpu": [
+            0.02251427,
+            0.020133694,
+            0.02012356,
+            0.020379701,
+            0.020084379,
+            0.020746757,
+            0.020478037,
+            0.020171469,
+            0.020269516
+          ]
+        },
+        "poly-packed-finish": {
+          "iterations": 9,
+          "wall": [
+            0.021760593,
+            0.019729004,
+            0.020404272,
+            0.020037169,
+            0.019570545,
+            0.021147844,
+            0.019981776,
+            0.020228638,
+            0.021282277
+          ],
+          "cpu": [
+            0.021746992,
+            0.01971461,
+            0.020387713,
+            0.020025482,
+            0.019561181,
+            0.021137968,
+            0.019979594,
+            0.020226481,
+            0.02127976
+          ]
+        },
+        "poly-packed-wipe": {
+          "iterations": 9,
+          "wall": [
+            0.019759671,
+            0.021046873,
+            0.0202561,
+            0.020120234,
+            0.019902336,
+            0.020251031,
+            0.019973223,
+            0.020048096,
+            0.019717527
+          ],
+          "cpu": [
+            0.019750012,
+            0.020563404,
+            0.020244478,
+            0.020109858,
+            0.019892315,
+            0.020238029,
+            0.019970751,
+            0.020046364,
+            0.01971503
+          ]
+        }
+      },
+      "round_order": [
+        [
+          "poly-packed-finish",
+          "chacha-chunks-direct",
+          "OpenSSL",
+          "poly-packed-wipe"
+        ],
+        [
+          "poly-packed-finish",
+          "chacha-chunks-direct",
+          "poly-packed-wipe",
+          "OpenSSL"
+        ],
+        [
+          "OpenSSL",
+          "chacha-chunks-direct",
+          "poly-packed-wipe",
+          "poly-packed-finish"
+        ],
+        [
+          "chacha-chunks-direct",
+          "OpenSSL",
+          "poly-packed-finish",
+          "poly-packed-wipe"
+        ],
+        [
+          "OpenSSL",
+          "poly-packed-wipe",
+          "chacha-chunks-direct",
+          "poly-packed-finish"
+        ],
+        [
+          "poly-packed-finish",
+          "chacha-chunks-direct",
+          "poly-packed-wipe",
+          "OpenSSL"
+        ],
+        [
+          "OpenSSL",
+          "chacha-chunks-direct",
+          "poly-packed-wipe",
+          "poly-packed-finish"
+        ],
+        [
+          "chacha-chunks-direct",
+          "OpenSSL",
+          "poly-packed-wipe",
+          "poly-packed-finish"
+        ],
+        [
+          "chacha-chunks-direct",
+          "OpenSSL",
+          "poly-packed-wipe",
+          "poly-packed-finish"
+        ]
+      ]
+    },
+    {
+      "algorithm": "chacha20-poly1305",
+      "bytes": 64,
+      "offset": 0,
+      "input_sha256": "28f0a1a9fae78b5247ebe5b1919541c009f78cc2b79d276352a9c46251a02522",
+      "output_sha256": "02c13ba4860b72e492980585b0be763b8d02176774d63a929e3b865c41cd206d",
+      "samples": {
+        "OpenSSL": {
+          "iterations": 33414,
+          "wall": [
+            0.020208827,
+            0.021717414,
+            0.020888914,
+            0.020716564,
+            0.020875253,
+            0.020369901,
+            0.020384473,
+            0.021491232,
+            0.020589884
+          ],
+          "cpu": [
+            0.020173033,
+            0.021715349,
+            0.020887406,
+            0.020714789,
+            0.020873566,
+            0.020367953,
+            0.020382744,
+            0.021489412,
+            0.02058764
+          ]
+        },
+        "chacha-chunks-direct": {
+          "iterations": 34846,
+          "wall": [
+            0.018308081,
+            0.02197385,
+            0.019269412,
+            0.017930832,
+            0.017833175,
+            0.018422484,
+            0.017854648,
+            0.018433621,
+            0.017618371
+          ],
+          "cpu": [
+            0.018306402,
+            0.021966853,
+            0.019267634,
+            0.01792907,
+            0.017830844,
+            0.018421114,
+            0.017852998,
+            0.018431699,
+            0.017616555
+          ]
+        },
+        "poly-packed-finish": {
+          "iterations": 37645,
+          "wall": [
+            0.022320113,
+            0.019533019,
+            0.019517215,
+            0.019585458,
+            0.020007985,
+            0.019360378,
+            0.019495082,
+            0.021455619,
+            0.019419398
+          ],
+          "cpu": [
+            0.022318177,
+            0.019531627,
+            0.019515513,
+            0.019583304,
+            0.020006484,
+            0.019358649,
+            0.01949334,
+            0.02145384,
+            0.019417767
+          ]
+        },
+        "poly-packed-wipe": {
+          "iterations": 41653,
+          "wall": [
+            0.021276297,
+            0.019681023,
+            0.020930967,
+            0.021245381,
+            0.021622971,
+            0.021434266,
+            0.021179252,
+            0.020549251,
+            0.021599335
+          ],
+          "cpu": [
+            0.021274092,
+            0.019679307,
+            0.020929158,
+            0.021243847,
+            0.021621039,
+            0.021432437,
+            0.021177188,
+            0.020546989,
+            0.021597434
+          ]
+        }
+      },
+      "round_order": [
+        [
+          "OpenSSL",
+          "poly-packed-finish",
+          "poly-packed-wipe",
+          "chacha-chunks-direct"
+        ],
+        [
+          "poly-packed-wipe",
+          "poly-packed-finish",
+          "OpenSSL",
+          "chacha-chunks-direct"
+        ],
+        [
+          "OpenSSL",
+          "poly-packed-finish",
+          "chacha-chunks-direct",
+          "poly-packed-wipe"
+        ],
+        [
+          "chacha-chunks-direct",
+          "poly-packed-finish",
+          "OpenSSL",
+          "poly-packed-wipe"
+        ],
+        [
+          "OpenSSL",
+          "chacha-chunks-direct",
+          "poly-packed-finish",
+          "poly-packed-wipe"
+        ],
+        [
+          "chacha-chunks-direct",
+          "OpenSSL",
+          "poly-packed-wipe",
+          "poly-packed-finish"
+        ],
+        [
+          "poly-packed-wipe",
+          "poly-packed-finish",
+          "chacha-chunks-direct",
+          "OpenSSL"
+        ],
+        [
+          "OpenSSL",
+          "poly-packed-wipe",
+          "chacha-chunks-direct",
+          "poly-packed-finish"
+        ],
+        [
+          "poly-packed-finish",
+          "OpenSSL",
+          "poly-packed-wipe",
+          "chacha-chunks-direct"
+        ]
+      ]
+    },
+    {
+      "algorithm": "chacha20-poly1305",
+      "bytes": 1024,
+      "offset": 0,
+      "input_sha256": "d1342d558fb88c39242e391978e9f86e44d2f00a04038d5e8711ab29980a4eef",
+      "output_sha256": "e6792a1c5f6d2b6aadfd2ce37d77025e92d996a8be5f7e49ebd26a997f44b7ef",
+      "samples": {
+        "OpenSSL": {
+          "iterations": 22583,
+          "wall": [
+            0.017940517,
+            0.018167249,
+            0.017937312,
+            0.018255562,
+            0.018319549,
+            0.018343955,
+            0.018652231,
+            0.018155301,
+            0.018523486
+          ],
+          "cpu": [
+            0.01792849,
+            0.018165272,
+            0.01793566,
+            0.018253714,
+            0.018317699,
+            0.018342266,
+            0.018650514,
+            0.018153685,
+            0.018521542
+          ]
+        },
+        "chacha-chunks-direct": {
+          "iterations": 10699,
+          "wall": [
+            0.026475028,
+            0.023573842,
+            0.019902206,
+            0.019623616,
+            0.020188137,
+            0.019873683,
+            0.019837087,
+            0.02086623,
+            0.023819173
+          ],
+          "cpu": [
+            0.026472604,
+            0.023553617,
+            0.019900296,
+            0.019621481,
+            0.020186272,
+            0.019871403,
+            0.019835349,
+            0.020863982,
+            0.023816969
+          ]
+        },
+        "poly-packed-finish": {
+          "iterations": 10295,
+          "wall": [
+            0.023126628,
+            0.018573583,
+            0.019191814,
+            0.018890881,
+            0.019143972,
+            0.019102099,
+            0.019516794,
+            0.018719903,
+            0.023698711
+          ],
+          "cpu": [
+            0.023124517,
+            0.01856718,
+            0.019189778,
+            0.01888891,
+            0.019142297,
+            0.019099965,
+            0.019515213,
+            0.018718426,
+            0.022967845
+          ]
+        },
+        "poly-packed-wipe": {
+          "iterations": 10769,
+          "wall": [
+            0.025952901,
+            0.023911288,
+            0.019406989,
+            0.019617327,
+            0.019452507,
+            0.019585658,
+            0.019068949,
+            0.019231794,
+            0.01911583
+          ],
+          "cpu": [
+            0.025950757,
+            0.023908751,
+            0.019404718,
+            0.01961401,
+            0.019450155,
+            0.019583875,
+            0.019067245,
+            0.019230288,
+            0.019114345
+          ]
+        }
+      },
+      "round_order": [
+        [
+          "OpenSSL",
+          "poly-packed-finish",
+          "chacha-chunks-direct",
+          "poly-packed-wipe"
+        ],
+        [
+          "poly-packed-wipe",
+          "chacha-chunks-direct",
+          "poly-packed-finish",
+          "OpenSSL"
+        ],
+        [
+          "chacha-chunks-direct",
+          "poly-packed-wipe",
+          "poly-packed-finish",
+          "OpenSSL"
+        ],
+        [
+          "poly-packed-wipe",
+          "OpenSSL",
+          "poly-packed-finish",
+          "chacha-chunks-direct"
+        ],
+        [
+          "chacha-chunks-direct",
+          "OpenSSL",
+          "poly-packed-wipe",
+          "poly-packed-finish"
+        ],
+        [
+          "chacha-chunks-direct",
+          "OpenSSL",
+          "poly-packed-finish",
+          "poly-packed-wipe"
+        ],
+        [
+          "chacha-chunks-direct",
+          "OpenSSL",
+          "poly-packed-finish",
+          "poly-packed-wipe"
+        ],
+        [
+          "chacha-chunks-direct",
+          "poly-packed-wipe",
+          "poly-packed-finish",
+          "OpenSSL"
+        ],
+        [
+          "OpenSSL",
+          "poly-packed-wipe",
+          "chacha-chunks-direct",
+          "poly-packed-finish"
+        ]
+      ]
+    },
+    {
+      "algorithm": "chacha20-poly1305",
+      "bytes": 2048,
+      "offset": 0,
+      "input_sha256": "04f8399a4c911a956d835f2d4da1b4adde3f44ee670db84fa3a0030a5b84d2fd",
+      "output_sha256": "82b1e541bde57e42167123d3790a5d12d2ae044dcf87b6f70a2bba03322cccc0",
+      "samples": {
+        "OpenSSL": {
+          "iterations": 18897,
+          "wall": [
+            0.020908133,
+            0.020583864,
+            0.021658034,
+            0.020206284,
+            0.02155588,
+            0.020579597,
+            0.020539366,
+            0.020501891,
+            0.020244151
+          ],
+          "cpu": [
+            0.020905974,
+            0.020411197,
+            0.021634599,
+            0.020204589,
+            0.021554029,
+            0.020577725,
+            0.020537104,
+            0.020499248,
+            0.020242816
+          ]
+        },
+        "chacha-chunks-direct": {
+          "iterations": 6362,
+          "wall": [
+            0.020418174,
+            0.020106934,
+            0.022169816,
+            0.019660621,
+            0.020165172,
+            0.025662233,
+            0.019867855,
+            0.023436486,
+            0.024209392
+          ],
+          "cpu": [
+            0.020416405,
+            0.019766487,
+            0.022167493,
+            0.01964775,
+            0.020163519,
+            0.025660194,
+            0.019866315,
+            0.023433938,
+            0.024206689
+          ]
+        },
+        "poly-packed-finish": {
+          "iterations": 6278,
+          "wall": [
+            0.019326278,
+            0.019383653,
+            0.021140373,
+            0.019848325,
+            0.01961357,
+            0.019397344,
+            0.020140345,
+            0.019886542,
+            0.026637404
+          ],
+          "cpu": [
+            0.019288854,
+            0.019381754,
+            0.02113836,
+            0.019423696,
+            0.019611857,
+            0.019395525,
+            0.019961316,
+            0.019884803,
+            0.026634745
+          ]
+        },
+        "poly-packed-wipe": {
+          "iterations": 6398,
+          "wall": [
+            0.020396961,
+            0.020201887,
+            0.037066252,
+            0.020010458,
+            0.020355309,
+            0.020113424,
+            0.020584715,
+            0.02421445,
+            0.025400418
+          ],
+          "cpu": [
+            0.020395193,
+            0.020086603,
+            0.032126463,
+            0.020008637,
+            0.02019216,
+            0.02011114,
+            0.020582893,
+            0.024212288,
+            0.025398604
+          ]
+        }
+      },
+      "round_order": [
+        [
+          "poly-packed-finish",
+          "OpenSSL",
+          "poly-packed-wipe",
+          "chacha-chunks-direct"
+        ],
+        [
+          "poly-packed-finish",
+          "poly-packed-wipe",
+          "OpenSSL",
+          "chacha-chunks-direct"
+        ],
+        [
+          "poly-packed-wipe",
+          "chacha-chunks-direct",
+          "poly-packed-finish",
+          "OpenSSL"
+        ],
+        [
+          "poly-packed-finish",
+          "chacha-chunks-direct",
+          "poly-packed-wipe",
+          "OpenSSL"
+        ],
+        [
+          "OpenSSL",
+          "poly-packed-finish",
+          "chacha-chunks-direct",
+          "poly-packed-wipe"
+        ],
+        [
+          "OpenSSL",
+          "poly-packed-wipe",
+          "poly-packed-finish",
+          "chacha-chunks-direct"
+        ],
+        [
+          "OpenSSL",
+          "chacha-chunks-direct",
+          "poly-packed-wipe",
+          "poly-packed-finish"
+        ],
+        [
+          "OpenSSL",
+          "poly-packed-finish",
+          "chacha-chunks-direct",
+          "poly-packed-wipe"
+        ],
+        [
+          "chacha-chunks-direct",
+          "OpenSSL",
+          "poly-packed-finish",
+          "poly-packed-wipe"
+        ]
+      ]
+    },
+    {
+      "algorithm": "chacha20-poly1305",
+      "bytes": 2064,
+      "offset": 0,
+      "input_sha256": "30f1806801c962b7991370b540457147f1ade54c189c8544c8206f93651a4ff0",
+      "output_sha256": "3a17df8874647456a6c1a2bb420f4bdaafedcfadddaf78e7baaeb007856cb6e0",
+      "samples": {
+        "OpenSSL": {
+          "iterations": 16531,
+          "wall": [
+            0.020034425,
+            0.029259097,
+            0.021523861,
+            0.01996495,
+            0.020355099,
+            0.019992902,
+            0.020016037,
+            0.028255243,
+            0.020698747
+          ],
+          "cpu": [
+            0.020032693,
+            0.029255348,
+            0.02152054,
+            0.019962519,
+            0.02035299,
+            0.019990971,
+            0.020014326,
+            0.028253165,
+            0.020696753
+          ]
+        },
+        "chacha-chunks-direct": {
+          "iterations": 6052,
+          "wall": [
+            0.027660506,
+            0.025142098,
+            0.019462102,
+            0.019854483,
+            0.019849245,
+            0.021245872,
+            0.025539317,
+            0.023421513,
+            0.019894734
+          ],
+          "cpu": [
+            0.027642516,
+            0.025124236,
+            0.019460511,
+            0.019852735,
+            0.019847718,
+            0.021243817,
+            0.02553682,
+            0.023418766,
+            0.019893205
+          ]
+        },
+        "poly-packed-finish": {
+          "iterations": 6153,
+          "wall": [
+            0.025956151,
+            0.019895906,
+            0.01993834,
+            0.021514477,
+            0.020000444,
+            0.020031501,
+            0.028432561,
+            0.020849955,
+            0.020980251
+          ],
+          "cpu": [
+            0.025953606,
+            0.019892885,
+            0.019935658,
+            0.021512537,
+            0.019998803,
+            0.019960586,
+            0.028298052,
+            0.020847927,
+            0.020978442
+          ]
+        },
+        "poly-packed-wipe": {
+          "iterations": 5927,
+          "wall": [
+            0.020125042,
+            0.019080747,
+            0.029246589,
+            0.019849125,
+            0.019275771,
+            0.019758359,
+            0.028095122,
+            0.026622501,
+            0.019399287
+          ],
+          "cpu": [
+            0.020088396,
+            0.019079013,
+            0.029244592,
+            0.019847548,
+            0.019274254,
+            0.019756692,
+            0.028092967,
+            0.026620374,
+            0.019397217
+          ]
+        }
+      },
+      "round_order": [
+        [
+          "poly-packed-wipe",
+          "chacha-chunks-direct",
+          "OpenSSL",
+          "poly-packed-finish"
+        ],
+        [
+          "OpenSSL",
+          "chacha-chunks-direct",
+          "poly-packed-finish",
+          "poly-packed-wipe"
+        ],
+        [
+          "poly-packed-wipe",
+          "OpenSSL",
+          "poly-packed-finish",
+          "chacha-chunks-direct"
+        ],
+        [
+          "chacha-chunks-direct",
+          "OpenSSL",
+          "poly-packed-wipe",
+          "poly-packed-finish"
+        ],
+        [
+          "OpenSSL",
+          "poly-packed-wipe",
+          "chacha-chunks-direct",
+          "poly-packed-finish"
+        ],
+        [
+          "chacha-chunks-direct",
+          "OpenSSL",
+          "poly-packed-finish",
+          "poly-packed-wipe"
+        ],
+        [
+          "OpenSSL",
+          "poly-packed-finish",
+          "poly-packed-wipe",
+          "chacha-chunks-direct"
+        ],
+        [
+          "OpenSSL",
+          "poly-packed-wipe",
+          "chacha-chunks-direct",
+          "poly-packed-finish"
+        ],
+        [
+          "OpenSSL",
+          "poly-packed-wipe",
+          "chacha-chunks-direct",
+          "poly-packed-finish"
+        ]
+      ]
+    },
+    {
+      "algorithm": "chacha20-poly1305",
+      "bytes": 16384,
+      "offset": 0,
+      "input_sha256": "f27f7211cbabb52ae73b7932796d9ef01a7cbc8bf4c7557aa3cca0e890f9a1bd",
+      "output_sha256": "8256952d7f3c00e66b9b7f78a6869bf5064f938be74594fbd43e3ba5a3c2ddb3",
+      "samples": {
+        "OpenSSL": {
+          "iterations": 4052,
+          "wall": [
+            0.023089984,
+            0.019835705,
+            0.020777987,
+            0.020096909,
+            0.023813024,
+            0.019898961,
+            0.01993819,
+            0.020077545,
+            0.019870588
+          ],
+          "cpu": [
+            0.02283043,
+            0.019834048,
+            0.020757272,
+            0.020094385,
+            0.023809949,
+            0.019897181,
+            0.019936389,
+            0.020075612,
+            0.019868489
+          ]
+        },
+        "chacha-chunks-direct": {
+          "iterations": 927,
+          "wall": [
+            0.020073384,
+            0.019683566,
+            0.020790516,
+            0.023819403,
+            0.021309418,
+            0.019888825,
+            0.019693871,
+            0.025696244,
+            0.0202438
+          ],
+          "cpu": [
+            0.020051591,
+            0.019681661,
+            0.020788208,
+            0.02381762,
+            0.021307762,
+            0.019886796,
+            0.019691795,
+            0.025693343,
+            0.020242325
+          ]
+        },
+        "poly-packed-finish": {
+          "iterations": 870,
+          "wall": [
+            0.019815304,
+            0.025592607,
+            0.019175539,
+            0.018729087,
+            0.021256117,
+            0.018557407,
+            0.018944151,
+            0.022002795,
+            0.018407561
+          ],
+          "cpu": [
+            0.019811914,
+            0.02536912,
+            0.019173554,
+            0.018726889,
+            0.021253412,
+            0.018555404,
+            0.018942109,
+            0.022000443,
+            0.018406111
+          ]
+        },
+        "poly-packed-wipe": {
+          "iterations": 896,
+          "wall": [
+            0.019032384,
+            0.018992964,
+            0.019201328,
+            0.019244003,
+            0.019130792,
+            0.025687611,
+            0.020685307,
+            0.026717724,
+            0.032353354
+          ],
+          "cpu": [
+            0.019030431,
+            0.018991453,
+            0.019199122,
+            0.019241836,
+            0.019129078,
+            0.025685461,
+            0.020683132,
+            0.026715706,
+            0.032351679
+          ]
+        }
+      },
+      "round_order": [
+        [
+          "chacha-chunks-direct",
+          "OpenSSL",
+          "poly-packed-finish",
+          "poly-packed-wipe"
+        ],
+        [
+          "poly-packed-wipe",
+          "OpenSSL",
+          "chacha-chunks-direct",
+          "poly-packed-finish"
+        ],
+        [
+          "poly-packed-finish",
+          "chacha-chunks-direct",
+          "OpenSSL",
+          "poly-packed-wipe"
+        ],
+        [
+          "poly-packed-finish",
+          "chacha-chunks-direct",
+          "poly-packed-wipe",
+          "OpenSSL"
+        ],
+        [
+          "poly-packed-wipe",
+          "chacha-chunks-direct",
+          "poly-packed-finish",
+          "OpenSSL"
+        ],
+        [
+          "chacha-chunks-direct",
+          "OpenSSL",
+          "poly-packed-wipe",
+          "poly-packed-finish"
+        ],
+        [
+          "chacha-chunks-direct",
+          "OpenSSL",
+          "poly-packed-finish",
+          "poly-packed-wipe"
+        ],
+        [
+          "poly-packed-finish",
+          "poly-packed-wipe",
+          "chacha-chunks-direct",
+          "OpenSSL"
+        ],
+        [
+          "OpenSSL",
+          "chacha-chunks-direct",
+          "poly-packed-wipe",
+          "poly-packed-finish"
+        ]
+      ]
+    },
+    {
+      "algorithm": "chacha20-poly1305",
+      "bytes": 4194304,
+      "offset": 0,
+      "input_sha256": "2f3a5fcfc12a4dba0fd3ee80587b700964b988b0b7f15ec7d3ec12d31e2a90d0",
+      "output_sha256": "b0d9535a05060335c402d7a231c6c95649bf28ffbdf001f8f4982cf1d4741ded",
+      "samples": {
+        "OpenSSL": {
+          "iterations": 18,
+          "wall": [
+            0.020368579,
+            0.020310632,
+            0.020279955,
+            0.020353426,
+            0.024800138,
+            0.020792699,
+            0.020387428,
+            0.021240384,
+            0.020550003
+          ],
+          "cpu": [
+            0.020359109,
+            0.020308344,
+            0.020277728,
+            0.020351348,
+            0.024795061,
+            0.02078908,
+            0.020385419,
+            0.021237748,
+            0.020547771
+          ]
+        },
+        "chacha-chunks-direct": {
+          "iterations": 4,
+          "wall": [
+            0.021388577,
+            0.021193714,
+            0.026025371,
+            0.022304399,
+            0.028016313,
+            0.021484412,
+            0.021267034,
+            0.021432002,
+            0.021828151
+          ],
+          "cpu": [
+            0.021386069,
+            0.02119217,
+            0.026022874,
+            0.022301722,
+            0.027979788,
+            0.02148085,
+            0.021263816,
+            0.021429514,
+            0.021824912
+          ]
+        },
+        "poly-packed-finish": {
+          "iterations": 3,
+          "wall": [
+            0.015990435,
+            0.016190487,
+            0.0160793,
+            0.023032937,
+            0.016830403,
+            0.017145988,
+            0.016073511,
+            0.016208154,
+            0.019676345
+          ],
+          "cpu": [
+            0.015988661,
+            0.015814711,
+            0.016077052,
+            0.023029696,
+            0.01682744,
+            0.017141908,
+            0.016070753,
+            0.016205704,
+            0.019671976
+          ]
+        },
+        "poly-packed-wipe": {
+          "iterations": 4,
+          "wall": [
+            0.021269177,
+            0.021575109,
+            0.021261416,
+            0.021335057,
+            0.021432354,
+            0.022400163,
+            0.021512844,
+            0.021169868,
+            0.021311491
+          ],
+          "cpu": [
+            0.021266971,
+            0.021572907,
+            0.021258919,
+            0.021332639,
+            0.021428212,
+            0.022397264,
+            0.021509983,
+            0.021166632,
+            0.021308893
+          ]
+        }
+      },
+      "round_order": [
+        [
+          "chacha-chunks-direct",
+          "poly-packed-wipe",
+          "poly-packed-finish",
+          "OpenSSL"
+        ],
+        [
+          "poly-packed-finish",
+          "poly-packed-wipe",
+          "chacha-chunks-direct",
+          "OpenSSL"
+        ],
+        [
+          "OpenSSL",
+          "chacha-chunks-direct",
+          "poly-packed-wipe",
+          "poly-packed-finish"
+        ],
+        [
+          "poly-packed-wipe",
+          "OpenSSL",
+          "chacha-chunks-direct",
+          "poly-packed-finish"
+        ],
+        [
+          "OpenSSL",
+          "chacha-chunks-direct",
+          "poly-packed-wipe",
+          "poly-packed-finish"
+        ],
+        [
+          "poly-packed-finish",
+          "OpenSSL",
+          "poly-packed-wipe",
+          "chacha-chunks-direct"
+        ],
+        [
+          "poly-packed-wipe",
+          "poly-packed-finish",
+          "OpenSSL",
+          "chacha-chunks-direct"
+        ],
+        [
+          "poly-packed-wipe",
+          "chacha-chunks-direct",
+          "poly-packed-finish",
+          "OpenSSL"
+        ],
+        [
+          "OpenSSL",
+          "poly-packed-wipe",
+          "chacha-chunks-direct",
+          "poly-packed-finish"
+        ]
+      ]
+    }
+  ]
+}

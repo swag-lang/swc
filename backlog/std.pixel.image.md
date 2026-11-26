@@ -323,9 +323,10 @@ ships; history lives in Git, not here.
 - Evidence: the lossy FileSamples path uses batched entropy input, packed normal deblocking
   and YUV conversion, and dedicated DC-only reconstruction. Lossless decoding uses batched
   Huffman input, packed copies and subtract-green, and reconstructs predictor pixels as packed
-  RGBA words. The three VP8L fixtures take 1.5–1.9× libwebp's time in the fourth Linux pass. The
-  original lossy FileSamples image takes 2.2× libwebp's time.
-  See [the FileSamples report](../bench/results/swagscope-filesamples/README.md#fourth-raster-decode-pass-on-linux).
+  RGBA words. Dispatching the predictor per tile and vectorizing spans further reduced VP8L
+  decode time. The three original VP8L fixtures take 1.6–1.9× libwebp's time in that comparison,
+  and the opaque FileSamples VP8 takes 2.1× libwebp's time.
+  See [the FileSamples report](../bench/results/swagscope-filesamples/README.md#webp-predictor-spans).
 - Next: profile remaining VP8 entropy and reconstruction work and the VP8L color cache on the
   photo and interface fixtures from the [raster decode workload](../bench/workloads/rasterdecode/README.md).
   Rerun the original Windows comparison.

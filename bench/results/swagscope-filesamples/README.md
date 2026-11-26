@@ -453,8 +453,8 @@ The Release `Image.load` measurements compare `b31d712f65` with the raster chang
 `cc5407d2f9`. Each elapsed median uses nine warmed samples per implementation in rotating
 order on a pinned Xeon Platinum 8573C CPU. The
 [raster decode workload](../../workloads/rasterdecode/README.md) records input SHA-256 and
-verified identical dimensions, pixel formats, and CRC64 values on all 49 inputs. The native comparisons
-use libjpeg-turbo 2.1.5, libpng 1.6.48, and libwebp 1.5.0. The full image export comparison
+verified identical dimensions, pixel formats, and CRC64 values on all 49 inputs. The native
+comparisons use libjpeg-turbo 2.1.5, libpng 1.6.48, and libwebp 1.5.0. The full image export comparison
 uses ImageMagick 7.1.1-43 Q16-HDRI. The reference libraries use their own color conversion.
 
 | Fixture | Swag before (ms) | Swag after (ms) | Native library (ms) | ImageMagick (ms) |
@@ -479,8 +479,9 @@ A seven-sample repeat for the largest progressive JPEG gave 193.373 ms before an
 after, with libjpeg-turbo at 120.899 ms. Swag's gain held in both runs, and the relative order
 with libjpeg-turbo varied. PNG's smaller 48-color palette fixture was retested in 60 rotating
 blocks on each of two cores. Its median was within 3% of the baseline on both cores.
-The RGB16 Adam7 control was 16.596 to 17.404 ms elapsed. The isolated Inflate change reduced
-its thread CPU time from 17.076 to 16.066 ms.
+The RGB16 Adam7 control was 16.596 to 17.404 ms elapsed in the broad run. A 36-block
+follow-up measured 12.185 to 11.490 ms. The isolated Inflate change reduced its thread CPU
+time from 17.076 to 16.066 ms.
 
 | Fixture | Swag before (ms) | Swag after (ms) | ImageMagick (ms) |
 | --- | ---: | ---: | ---: |
@@ -512,3 +513,23 @@ for both fixtures.
 
 The GIF input SHA-256 is `16a926170a7608c0a4c7c20d0bb5d4f88d8ac40bd5fb733b0c4905d05574deea`.
 The APNG input SHA-256 is `fb8ad92d6a4d2674d9cf41673cb3b04bbe6de7ec0dc9cbf30bb5feea084cbddd`.
+
+### WebP predictor spans
+
+Commit `0d92eb5688` selects each predictor once per tile row and reconstructs left and top
+predictor spans with SIMD. This follow-up compares it with the already optimized build
+through `cc5407d2f9` in nine rotating samples per implementation. All nine inputs had matching
+Swag pixel checksums. Elapsed times vary between the two runs. The table uses the baselines
+and references measured alongside this patch.
+
+| Fixture | Swag before spans (ms) | Swag with spans (ms) | libwebp (ms) | ImageMagick (ms) |
+| --- | ---: | ---: | ---: | ---: |
+| VP8L photo, 4275 × 2451 | 378.680 | 359.871 | 227.311 | 493.605 |
+| VP8L photo, 1254 × 1254 | 81.561 | 75.196 | 41.051 | 64.742 |
+| VP8L interface, 1280 × 800 | 24.277 | 21.449 | 11.618 | 27.619 |
+| VP8L interface with alpha, 600 × 401 | 5.457 | 4.592 | 2.649 | 6.845 |
+| VP8 with compressed alpha, 1921 × 1081 | 69.482 | 65.135 | 32.966 | 70.643 |
+| VP8 with indexed alpha, 400 × 301 | 3.952 | 3.997 | 1.878 | 4.496 |
+| FileSamples opaque VP8 | 298.471 | 299.539 | 142.243 | 401.082 |
+| VP8L from the expanded corpus, 1009 × 673 | 35.074 | 33.331 | 22.387 | 32.887 |
+| VP8 with gradient alpha, 1281 × 847 | 42.651 | 43.596 | 23.634 | 45.366 |

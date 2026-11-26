@@ -182,18 +182,9 @@ private func p256FieldMultiply(left, right: P256Field)->P256Field
 
 private func p256FieldSquare(value: P256Field)->P256Field => p256FieldMultiply(value, value)
 
-private func p256FieldSmall(value: P256Field, factor: u32)->P256Field
-{
-    var result: P256Field
-    var iteration = 0'u32
-    while iteration < factor
-    {
-        result    = p256FieldAdd(result, value)
-        iteration += 1
-    }
+private func p256FieldDouble(value: P256Field)->P256Field => p256FieldAdd(value, value)
 
-    return result
-}
+private func p256FieldTriple(value: P256Field)->P256Field => p256FieldAdd(p256FieldDouble(value), value)
 
 private func p256FieldEqual(left, right: P256Field)->bool
 {
@@ -565,24 +556,22 @@ private func p256PointDouble(point: P256Point)->P256Point
     let delta = p256FieldSquare(point.z)
     let gamma = p256FieldSquare(point.y)
     let beta  = p256FieldMultiply(point.x, gamma)
-    let alpha = p256FieldSmall(p256FieldMultiply(p256FieldSubtract(point.x, delta), p256FieldAdd(point.x, delta)), 3)
+    let alpha = p256FieldTriple(p256FieldMultiply(p256FieldSubtract(point.x, delta), p256FieldAdd(point.x, delta)))
 
     var result: P256Point
     let alphaSquared = p256FieldSquare(alpha)
-    let eightBeta    = p256FieldSmall(beta, 8)
+    let fourBeta     = p256FieldDouble(p256FieldDouble(beta))
+    let eightBeta    = p256FieldDouble(fourBeta)
     result.x = p256FieldSubtract(alphaSquared, eightBeta)
 
-    let fourBeta          = p256FieldSmall(beta, 4)
     let gammaSquared      = p256FieldSquare(gamma)
-    let eightGammaSquared = p256FieldSmall(gammaSquared, 8)
+    let eightGammaSquared = p256FieldDouble(p256FieldDouble(p256FieldDouble(gammaSquared)))
     result.y = p256FieldSubtract(p256FieldMultiply(alpha, p256FieldSubtract(fourBeta, result.x)), eightGammaSquared)
-
-    let yzSquared = p256FieldSquare(p256FieldAdd(point.y, point.z))
-    result.z = p256FieldSubtract(p256FieldSubtract(yzSquared, gamma), delta)
+    result.z = p256FieldDouble(p256FieldMultiply(point.y, point.z))
     return result
 }
 
-private func p256PointAdd(left, right: P256Point)->P256Point
+private func p256PointAdd(left, right, doubled: P256Point)->P256Point
 {
     let z1Squared = p256FieldSquare(left.z)
     let z2Squared = p256FieldSquare(right.z)
@@ -595,7 +584,7 @@ private func p256PointAdd(left, right: P256Point)->P256Point
     let hSquared  = p256FieldSquare(h)
     let hCubed    = p256FieldMultiply(h, hSquared)
     let u1h2      = p256FieldMultiply(u1, hSquared)
-    let x3        = p256FieldSubtract(p256FieldSubtract(p256FieldSquare(r), hCubed), p256FieldSmall(u1h2, 2))
+    let x3        = p256FieldSubtract(p256FieldSubtract(p256FieldSquare(r), hCubed), p256FieldDouble(u1h2))
     let y3        = p256FieldSubtract(p256FieldMultiply(r, p256FieldSubtract(u1h2, x3)), p256FieldMultiply(s1, hCubed))
     let z3        = p256FieldMultiply(h, p256FieldMultiply(left.z, right.z))
     var sum: P256Point
@@ -604,7 +593,6 @@ private func p256PointAdd(left, right: P256Point)->P256Point
     sum.z = z3
 
     let infinity = p256Infinity()
-    let doubled  = p256PointDouble(left)
     let sameX    = p256FieldEqual(u1, u2)
     let sameY    = p256FieldEqual(s1, s2)
     var result   = p256PointSelect(sum, doubled, sameX and sameY)
@@ -633,21 +621,26 @@ private func p256ConditionalSwap(left, right: *P256Point, swap: u32)
 
 private func p256ScalarMultiply(scalar: const *P256Field, point: P256Point)->P256Point
 {
-    var low  = p256Infinity()
-    var high = point
+    var low         = p256Infinity()
+    var high        = point
+    var previousBit = 0'u32
     for step in 256
     {
         let bitIndex = 255 - step
         let bit      = (scalar[].limbs[bitIndex / 32] >> (bitIndex % 32)) & 1
-        p256ConditionalSwap(&low, &high, bit)
-        var sum     = p256PointAdd(low, high)
+
+        // Undo the previous swap and apply the next with a single masked selection.
+        p256ConditionalSwap(&low, &high, previousBit ^ bit)
         var doubled = p256PointDouble(low)
-        low  = doubled
-        high = sum
-        p256ConditionalSwap(&low, &high, bit)
+        var sum     = p256PointAdd(low, high, doubled)
+        low         = doubled
+        high        = sum
+        previousBit = bit
         Crypto.secureClear(Swag.makeSlice(&sum, 1))
         Crypto.secureClear(Swag.makeSlice(&doubled, 1))
     }
+
+    p256ConditionalSwap(&low, &high, previousBit)
 
     var result = low
     Crypto.secureClear(Swag.makeSlice(&low, 1))
@@ -675,7 +668,7 @@ private func p256ValidatePublicPoint(point: P256Point)->bool
     let xSquared  = p256FieldSquare(point.x)
     let xCubed    = p256FieldMultiply(xSquared, point.x)
     let ySquared  = p256FieldSquare(point.y)
-    let threeX    = p256FieldSmall(point.x, 3)
+    let threeX    = p256FieldTriple(point.x)
     let curveBRaw = P256Field{limbs: [0x27D2604B, 0x3BCE3C3E, 0xCC53B0F6, 0x651D06B0,
                                       0x769886BC, 0xB3EBBD55, 0xAA3A93E7, 0x5AC635D8]}
     let curveB   = p256ToMontgomery(curveBRaw)
@@ -687,14 +680,6 @@ private func p256AffineX(point: P256Point)->P256Field
 {
     var inverse = p256FieldPower(point.z, P256InverseExponent)
     let result  = p256FieldMultiply(point.x, p256FieldSquare(inverse))
-    Crypto.secureClear(Swag.makeSlice(&inverse, 1))
-    return result
-}
-
-private func p256AffineY(point: P256Point)->P256Field
-{
-    var inverse = p256FieldPower(point.z, P256InverseExponent)
-    let result  = p256FieldMultiply(point.y, p256FieldMultiply(p256FieldSquare(inverse), inverse))
     Crypto.secureClear(Swag.makeSlice(&inverse, 1))
     return result
 }
@@ -711,9 +696,16 @@ func p256PublicKey(privateKey: const [..] u8, publicKey: [..] u8) fail
     defer Crypto.secureClear(Swag.makeSlice(&scalar, 1))
     var point = p256ScalarMultiply(&scalar, p256Generator())
     defer Crypto.secureClear(Swag.makeSlice(&point, 1))
+
+    var inverse = p256FieldPower(point.z, P256InverseExponent)
+    defer Crypto.secureClear(Swag.makeSlice(&inverse, 1))
+    var inverseSquared = p256FieldSquare(inverse)
+    defer Crypto.secureClear(Swag.makeSlice(&inverseSquared, 1))
+
     publicKey[0] = 4
-    p256FieldEncode(p256AffineX(point), publicKey[1 until 33])
-    p256FieldEncode(p256AffineY(point), publicKey[33 until 65])
+    p256FieldEncode(p256FieldMultiply(point.x, inverseSquared), publicKey[1 until 33])
+    p256FieldEncode(p256FieldMultiply(point.y, p256FieldMultiply(inverseSquared, inverse)),
+                    publicKey[33 until 65])
 }
 
 // Derives a 32-byte P-256 ECDH shared secret from a private scalar and an uncompressed peer key.
@@ -887,7 +879,7 @@ func p256EcdsaVerify(publicKey, message, signature: const [..] u8)->bool fail
     defer Crypto.secureClear(Swag.makeSlice(&first, 1))
     var second = p256ScalarMultiply(&u2, publicPoint)
     defer Crypto.secureClear(Swag.makeSlice(&second, 1))
-    var sum = p256PointAdd(first, second)
+    var sum = p256PointAdd(first, second, p256PointDouble(first))
     defer Crypto.secureClear(Swag.makeSlice(&sum, 1))
     if p256FieldEqual(sum.z, P256Field{})
     {

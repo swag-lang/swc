@@ -59,3 +59,4 @@ optimizations moved each result.
 - [Baseline public-key comparison](asymmetric-baseline.md)
 - [BLAKE2b and BLAKE2s direct input blocks](blake2-direct.md)
 - [Scrypt Salsa20/8 and BlockMix](scrypt.md)
+- [P-256 ladder arithmetic](p256-ladder.md)

@@ -348,9 +348,75 @@ private
 
     // Folds at least 80 bytes into the inverted CRC-32 register. Longer buffers
     // advance four 16-byte lanes in parallel before the final Barrett reduction.
+    const Crc32TileBytes = 512 * 1024'u64
+    const Crc32MaxTiles = 32
+    const Crc32TileAdvance = #run computeTileAdvance()
+
+    #[Swag.Inline]
+    func advanceBit(value: u32)->u32
+    {
+        return value & 1 ? (value >> 1) ^ 0xEDB8_8320'u32 : value >> 1
+    }
+
+    func computeTileAdvance()->u32
+    {
+        var factor = 0x8000_0000'u32
+        for Crc32TileBytes * 8 do
+            factor = advanceBit(factor)
+        return factor
+    }
+
+    func mergeTile(previous, tile: u32)->u32
+    {
+        // Multiply by x^(8 * Crc32TileBytes) in the reflected polynomial basis.
+        var crc = tile
+        var term = previous
+        var factor = Crc32TileAdvance
+        while factor
+        {
+            if factor >> 31 do
+                crc ^= term
+            term = advanceBit(term)
+            factor <<= 1
+        }
+        return crc
+    }
+
+    #[Swag.NoInline]
+    func foldParallel(crcReg: u32, bytes: const [*] u8, length: u64)->u32
+    {
+        var checksum = crcReg
+        var offset = 0'u64
+        var results: [Crc32MaxTiles] u32
+        while offset < length
+        {
+            let tiles = Swag.min((length - offset) / Crc32TileBytes, Crc32MaxTiles)
+            let source = bytes + offset
+            parallel for |source, &results| tile in tiles do
+                results[tile] = foldClmul(0, source + tile * Crc32TileBytes, Crc32TileBytes)
+            for tile in tiles do
+                checksum = mergeTile(checksum, results[tile])
+            offset += tiles * Crc32TileBytes
+        }
+        return checksum
+    }
+
     #[Swag.NoInline]
     func foldClmul(crcReg: u32, buffer: const [*] u8, length: u64)->u32
     {
+        if length >= 8 * Crc32TileBytes and not Swag.jit() and Swag.workerCount() > 1
+        {
+            var complete = length & ~(Crc32TileBytes - 1)
+            let tail = length - complete
+            // Keep at least one whole block in the serial remainder when it is nonempty.
+            if tail != 0 and tail < 80 do
+                complete -= Crc32TileBytes
+            let checksum = foldParallel(crcReg, buffer, complete)
+            if complete == length do
+                return checksum
+            return foldClmul(checksum, buffer + complete, length - complete)
+        }
+
         if length >= 1024
         {
             if Swag.hasCpuFeature(.CarrylessMultiply512) do

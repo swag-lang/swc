@@ -1,0 +1,579 @@
+{
+  "utc": "2026-11-26T15:37:00.252940+00:00",
+  "system": "Linux-6.18.57-x86_64-with-glibc2.41",
+  "cpu": 0,
+  "affinity": [
+    0,
+    1,
+    2,
+    3
+  ],
+  "workers": {
+    "baseline": 4,
+    "tiled": 4
+  },
+  "processor": {
+    "model name": "AMD EPYC 9V74 80-Core Processor",
+    "microcode": "0x1000065",
+    "flags": "fpu vme de pse tsc msr pae mce cx8 apic sep mtrr pge mca cmov pat pse36 clflush mmx fxsr sse sse2 ht syscall nx mmxext fxsr_opt pdpe1gb rdtscp lm constant_tsc rep_good nopl xtopology nonstop_tsc cpuid extd_apicid tsc_known_freq pni pclmulqdq ssse3 fma cx16 pcid sse4_1 sse4_2 x2apic movbe popcnt tsc_deadline_timer aes xsave avx f16c rdrand hypervisor lahf_lm cmp_legacy cr8_legacy abm sse4a misalignsse 3dnowprefetch osvw topoext cpuid_fault vmmcall fsgsbase tsc_adjust bmi1 avx2 smep bmi2 erms invpcid avx512f avx512dq rdseed adx smap avx512ifma clflushopt clwb avx512cd sha_ni avx512bw avx512vl xsaveopt xsavec xgetbv1 xsaves avx512_bf16 clzero xsaveerptr arat npt nrip_save tsc_scale vmcb_clean flushbyasid pausefilter pfthreshold v_vmsave_vmload avx512vbmi umip avx512_vbmi2 gfni vaes vpclmulqdq avx512_vnni avx512_bitalg avx512_vpopcntdq rdpid fsrm arch_capabilities"
+  },
+  "reference_build": "OpenSSL 3.5.7 9 Jun 2026 | zlib 1.3.1 | BLAKE3 1.8.7 | libdeflate 1.26 | ISA-L 2.32.1 | liblzma 5.8.1",
+  "reference_sha256": "5b1a5b28eb02cadf78fd23bd651bd7a3ffa5543de84715d39d7551773d44413b",
+  "swag_builds": {
+    "baseline": "c2324f94830e94986b32182142f515e0add43f6e01a0df8485adb54339ae8cad",
+    "tiled": "fc229bc035460c56f0623a85da5778fbbc709461944fd6237e77911943c20375"
+  },
+  "rounds": 7,
+  "target_ms": 10,
+  "clock": "wall",
+  "rows": [
+    {
+      "algorithm": "crc32",
+      "bytes": 4194304,
+      "offset": 31,
+      "input_sha256": "0219e5067b82ded4d8df4042f5e2311aede4112e1282055b41e98abf4b493ae4",
+      "output_sha256": "ae582898edca8f7c125cfa67bc200cb2158995f51eef70e10032389f11889cfc",
+      "samples": {
+        "libdeflate": {
+          "iterations": 135,
+          "wall": [
+            0.00993938,
+            0.010212722,
+            0.00994591,
+            0.010309939,
+            0.010871185,
+            0.014967984,
+            0.010021854
+          ],
+          "cpu": [
+            0.00993798,
+            0.010189214,
+            0.009943778,
+            0.010307851,
+            0.010851851,
+            0.014965848,
+            0.010019311
+          ]
+        },
+        "zlib": {
+          "iterations": 10,
+          "wall": [
+            0.010504212,
+            0.010353014,
+            0.009935363,
+            0.00995244,
+            0.010579736,
+            0.009916345,
+            0.012493161
+          ],
+          "cpu": [
+            0.01049491,
+            0.010341882,
+            0.009925061,
+            0.009930349,
+            0.010566425,
+            0.009914374,
+            0.012490742
+          ]
+        },
+        "baseline": {
+          "iterations": 98,
+          "wall": [
+            0.010181305,
+            0.009809754,
+            0.010215797,
+            0.010047083,
+            0.009840972,
+            0.010465433,
+            0.009994303
+          ],
+          "cpu": [
+            0.01016661,
+            0.009807936,
+            0.01021368,
+            0.010044949,
+            0.009839203,
+            0.01038217,
+            0.00999193
+          ]
+        },
+        "tiled": {
+          "iterations": 166,
+          "wall": [
+            0.009735173,
+            0.008541121,
+            0.007942319,
+            0.00873997,
+            0.008172074,
+            0.0086394,
+            0.009940311
+          ],
+          "cpu": [
+            0.020085635,
+            0.020178016,
+            0.019453167,
+            0.020526224,
+            0.019804796,
+            0.020390357,
+            0.020338067
+          ]
+        }
+      },
+      "round_order": [
+        [
+          "baseline",
+          "libdeflate",
+          "zlib",
+          "tiled"
+        ],
+        [
+          "zlib",
+          "libdeflate",
+          "baseline",
+          "tiled"
+        ],
+        [
+          "zlib",
+          "libdeflate",
+          "baseline",
+          "tiled"
+        ],
+        [
+          "libdeflate",
+          "tiled",
+          "zlib",
+          "baseline"
+        ],
+        [
+          "libdeflate",
+          "zlib",
+          "tiled",
+          "baseline"
+        ],
+        [
+          "tiled",
+          "baseline",
+          "zlib",
+          "libdeflate"
+        ],
+        [
+          "zlib",
+          "libdeflate",
+          "baseline",
+          "tiled"
+        ]
+      ]
+    },
+    {
+      "algorithm": "crc32",
+      "bytes": 4194305,
+      "offset": 31,
+      "input_sha256": "afabae4466d949aa02df3b0bf26f517c535ec66fa735601bfef211b47ecb494d",
+      "output_sha256": "5a41d8701af4c1d929d08e97bd4892b1f71bd2c856c495b691413d4f9bbee215",
+      "samples": {
+        "libdeflate": {
+          "iterations": 117,
+          "wall": [
+            0.008646661,
+            0.008612218,
+            0.00867889,
+            0.009050348,
+            0.009067655,
+            0.008727061,
+            0.009183059
+          ],
+          "cpu": [
+            0.008635181,
+            0.008610644,
+            0.008667678,
+            0.009039142,
+            0.00906566,
+            0.008725485,
+            0.009171839
+          ]
+        },
+        "zlib": {
+          "iterations": 10,
+          "wall": [
+            0.01001222,
+            0.010007192,
+            0.00999183,
+            0.009900212,
+            0.009896895,
+            0.010071588,
+            0.010189307
+          ],
+          "cpu": [
+            0.010010388,
+            0.010005521,
+            0.009989927,
+            0.009898001,
+            0.009895056,
+            0.010069365,
+            0.010176435
+          ]
+        },
+        "baseline": {
+          "iterations": 98,
+          "wall": [
+            0.009895815,
+            0.009835512,
+            0.009945118,
+            0.010055715,
+            0.010040172,
+            0.010189036,
+            0.010043086
+          ],
+          "cpu": [
+            0.009893915,
+            0.009833684,
+            0.009942837,
+            0.010053742,
+            0.010038159,
+            0.010186951,
+            0.010041314
+          ]
+        },
+        "tiled": {
+          "iterations": 144,
+          "wall": [
+            0.010096877,
+            0.010039291,
+            0.009837797,
+            0.010612235,
+            0.009655873,
+            0.00971415,
+            0.009593399
+          ],
+          "cpu": [
+            0.018799006,
+            0.018521463,
+            0.018011039,
+            0.018081974,
+            0.018056992,
+            0.018241558,
+            0.017859814
+          ]
+        }
+      },
+      "round_order": [
+        [
+          "tiled",
+          "zlib",
+          "libdeflate",
+          "baseline"
+        ],
+        [
+          "baseline",
+          "zlib",
+          "libdeflate",
+          "tiled"
+        ],
+        [
+          "libdeflate",
+          "baseline",
+          "tiled",
+          "zlib"
+        ],
+        [
+          "libdeflate",
+          "baseline",
+          "tiled",
+          "zlib"
+        ],
+        [
+          "tiled",
+          "zlib",
+          "libdeflate",
+          "baseline"
+        ],
+        [
+          "baseline",
+          "tiled",
+          "zlib",
+          "libdeflate"
+        ],
+        [
+          "zlib",
+          "baseline",
+          "tiled",
+          "libdeflate"
+        ]
+      ]
+    },
+    {
+      "algorithm": "crc32",
+      "bytes": 4194383,
+      "offset": 31,
+      "input_sha256": "53a764097116048bfe7e52fe57e33231f4a321b70198fef3c618e374e800b346",
+      "output_sha256": "f560c310add1c25d80a11da2e75438c371441faec53deec2614e7f969ea37922",
+      "samples": {
+        "libdeflate": {
+          "iterations": 135,
+          "wall": [
+            0.009929495,
+            0.009995434,
+            0.009920672,
+            0.01004571,
+            0.014694672,
+            0.014258524,
+            0.010044689
+          ],
+          "cpu": [
+            0.009927745,
+            0.009985761,
+            0.009908065,
+            0.010032661,
+            0.014691669,
+            0.014222281,
+            0.010031618
+          ]
+        },
+        "zlib": {
+          "iterations": 9,
+          "wall": [
+            0.009240315,
+            0.009098912,
+            0.009272133,
+            0.008992772,
+            0.009289009,
+            0.009061827,
+            0.009035888
+          ],
+          "cpu": [
+            0.009229995,
+            0.009096957,
+            0.009270506,
+            0.008991099,
+            0.009183256,
+            0.009027043,
+            0.009020663
+          ]
+        },
+        "baseline": {
+          "iterations": 96,
+          "wall": [
+            0.009898249,
+            0.010114966,
+            0.009959471,
+            0.009830075,
+            0.009850426,
+            0.009976686,
+            0.009828402
+          ],
+          "cpu": [
+            0.009895787,
+            0.01011275,
+            0.009956618,
+            0.009828166,
+            0.009848386,
+            0.009974044,
+            0.009826474
+          ]
+        },
+        "tiled": {
+          "iterations": 147,
+          "wall": [
+            0.009678206,
+            0.011396899,
+            0.01100668,
+            0.012561735,
+            0.013567892,
+            0.009851047,
+            0.010270819
+          ],
+          "cpu": [
+            0.018284054,
+            0.017722779,
+            0.022429643,
+            0.027082659,
+            0.025353517,
+            0.0199154,
+            0.019186661
+          ]
+        }
+      },
+      "round_order": [
+        [
+          "tiled",
+          "baseline",
+          "zlib",
+          "libdeflate"
+        ],
+        [
+          "baseline",
+          "libdeflate",
+          "tiled",
+          "zlib"
+        ],
+        [
+          "baseline",
+          "tiled",
+          "zlib",
+          "libdeflate"
+        ],
+        [
+          "libdeflate",
+          "tiled",
+          "baseline",
+          "zlib"
+        ],
+        [
+          "baseline",
+          "zlib",
+          "tiled",
+          "libdeflate"
+        ],
+        [
+          "tiled",
+          "libdeflate",
+          "baseline",
+          "zlib"
+        ],
+        [
+          "tiled",
+          "libdeflate",
+          "baseline",
+          "zlib"
+        ]
+      ]
+    },
+    {
+      "algorithm": "crc32",
+      "bytes": 16777216,
+      "offset": 31,
+      "input_sha256": "d2d6c94281c9ab2b264c3784c6c97dd80cf05f6d36c92c85c517a2bebd7413a8",
+      "output_sha256": "ff66a00dcecd4318b1ecac30385fe3df249dfef7626147640ed09e36e524803a",
+      "samples": {
+        "libdeflate": {
+          "iterations": 31,
+          "wall": [
+            0.009360106,
+            0.00924928,
+            0.009265854,
+            0.009460959,
+            0.009337854,
+            0.010339333,
+            0.009576573
+          ],
+          "cpu": [
+            0.00934041,
+            0.00924689,
+            0.009263816,
+            0.00944147,
+            0.009317566,
+            0.010336163,
+            0.009573697
+          ]
+        },
+        "zlib": {
+          "iterations": 3,
+          "wall": [
+            0.012009732,
+            0.011960037,
+            0.012066599,
+            0.012171906,
+            0.011881009,
+            0.012048731,
+            0.012387922
+          ],
+          "cpu": [
+            0.011984267,
+            0.011957567,
+            0.012063715,
+            0.012168732,
+            0.011877939,
+            0.012018859,
+            0.012385425
+          ]
+        },
+        "baseline": {
+          "iterations": 23,
+          "wall": [
+            0.009432255,
+            0.009399746,
+            0.009623473,
+            0.009564605,
+            0.009812509,
+            0.010092732,
+            0.009813601
+          ],
+          "cpu": [
+            0.009429923,
+            0.009397134,
+            0.009621359,
+            0.00956235,
+            0.009809659,
+            0.010089235,
+            0.009811101
+          ]
+        },
+        "tiled": {
+          "iterations": 45,
+          "wall": [
+            0.010288536,
+            0.010089277,
+            0.010069717,
+            0.009907131,
+            0.010008185,
+            0.010142126,
+            0.008136942
+          ],
+          "cpu": [
+            0.02500604,
+            0.027595971,
+            0.027821324,
+            0.027378712,
+            0.027729705,
+            0.027762191,
+            0.021243864
+          ]
+        }
+      },
+      "round_order": [
+        [
+          "libdeflate",
+          "tiled",
+          "baseline",
+          "zlib"
+        ],
+        [
+          "libdeflate",
+          "zlib",
+          "baseline",
+          "tiled"
+        ],
+        [
+          "tiled",
+          "baseline",
+          "libdeflate",
+          "zlib"
+        ],
+        [
+          "tiled",
+          "baseline",
+          "libdeflate",
+          "zlib"
+        ],
+        [
+          "zlib",
+          "baseline",
+          "libdeflate",
+          "tiled"
+        ],
+        [
+          "tiled",
+          "zlib",
+          "libdeflate",
+          "baseline"
+        ],
+        [
+          "tiled",
+          "zlib",
+          "baseline",
+          "libdeflate"
+        ]
+      ]
+    }
+  ]
+}

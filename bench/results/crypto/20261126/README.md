@@ -215,3 +215,4 @@ optimizations moved each result.
 - [Wide-word scalar Poly1305 fallback](poly1305-wide-scalar.md)
 - [Interleaved ChaCha20-Poly1305 short seals](chacha20-poly1305-short-pair.md)
 - [Parallel Adler-32 on large buffers](adler32-worker-tiles.md)
+- [Parallel CRC-32 on large buffers](crc32-workers.md)

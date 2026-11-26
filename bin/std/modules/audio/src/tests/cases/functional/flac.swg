@@ -47,6 +47,32 @@ private func flacTestHeaderCrc8(bytes: const [..] u8)->u8
     return crc
 }
 
+// Long FLAC packets use the same CRC16 as short packets and preserve the running remainder.
+#test
+{
+    var bytes: [256] u8
+    for index in bytes.count do
+        bytes[index] = cast(u8, (index * 37 + index / 16) & 0xFF)
+
+    const Initial = 0x926B'u16
+    for count in [15'u64, 16, 63, 64, 65, 127, 128, 137, 256]
+    {
+        let slice    = bytes[until count]
+        var expected = cast(u32, Initial)
+        for byte in slice
+        {
+            expected ^= cast(u32, byte) << 8
+            for 8 do
+                expected = ((expected << 1) ^ (expected & 0x8000 ? 0x8005 : 0)) & 0xFFFF
+        }
+
+        let half  = count / 2
+        let first = Flac.frameCrc16(slice[until half], Initial)
+        Swag.require(Flac.frameCrc16(slice[half until], first) == expected)
+        Swag.require(Flac.frameCrc16(slice, Initial) == expected)
+    }
+}
+
 private func flacTestAppendBits(bytes: *Array'u8, bitCount: *u64, value: u64, count: u32)
 {
     for bit in count
@@ -122,16 +148,16 @@ private func flacLinearShiftTestConfig()->Array'u8
     return config
 }
 
-private func flacLinearOverflowTestConfig()->Array'u8
+private func flacLinearOverflowTestConfig(samples = 33'u8)->Array'u8
 {
     var config: Array'u8
     config.add(0)
-    config.add(33)     // Min block size: 33 samples.
+    config.add(samples)
     config.add(0)
-    config.add(33)     // Max block size: 33 samples.
+    config.add(samples)
     for 6 do
         config.add(0)     // Min/max frame sizes are unknown.
-    let description = (48_000'u64 << 44) | (31'u64 << 36) | 33
+    let description = (48_000'u64 << 44) | (31'u64 << 36) | samples
     for byte in 8 do
         config.add(cast(u8, (description >> (56 - byte * 8)) & 0xFF))
     for 16 do
@@ -187,6 +213,39 @@ private func flacOverflowingLinearShiftFrame()->Array'u8
     flacTestAppendBits(&frame, &bitCount, 0, 2)     // Rice residual coding.
     flacTestAppendBits(&frame, &bitCount, 0, 4)     // One partition, Rice parameter 0.
     flacTestAppendBits(&frame, &bitCount, 1, 1)     // Zero residual.
+    while bitCount & 7 do
+        flacTestAppendBits(&frame, &bitCount, 0, 1)
+
+    let checksum = Flac.frameCrc16(frame.toSlice())
+    frame.add(cast(u8, checksum >> 8))
+    frame.add(cast(u8, checksum & 0xFF))
+    return frame
+}
+
+private func flacOverflowingLinearAdditionFrame()->Array'u8
+{
+    var frame: Array'u8
+
+    // Variable-block strategy, six samples, with the sample format from STREAMINFO.
+    frame.add([0xFF'u8, 0xF9, 0x60, 0, 0, 5])
+    frame.add(flacTestHeaderCrc8(frame.toSlice()))
+
+    var bitCount = frame.count * 8
+    flacTestAppendBits(&frame, &bitCount, 0x48, 8)     // Order-five linear predictor.
+    flacTestAppendBits(&frame, &bitCount, 1, 32)
+    for 4 do
+        flacTestAppendBits(&frame, &bitCount, 0x8000_0000, 32)
+    flacTestAppendBits(&frame, &bitCount, 14, 4)           // Fifteen-bit coefficients.
+    flacTestAppendBits(&frame, &bitCount, 0b1_0000, 5)     // Signed QLP shift: -16.
+    for 4 do
+        flacTestAppendBits(&frame, &bitCount, 0x4000, 15)     // Coefficient -16,384.
+    flacTestAppendBits(&frame, &bitCount, 0x7FFF, 15)     // Coefficient -1.
+
+    // The prediction is 2^63 - 65,536. The residual of 65,536 then overflows the signed sum.
+    flacTestAppendBits(&frame, &bitCount, 1, 2)     // Rice coding with a five-bit parameter.
+    flacTestAppendBits(&frame, &bitCount, 0, 4)     // One partition.
+    flacTestAppendBits(&frame, &bitCount, 17, 5)
+    flacTestAppendBits(&frame, &bitCount, 1 << 17, 19)
     while bitCount & 7 do
         flacTestAppendBits(&frame, &bitCount, 0, 1)
 
@@ -400,6 +459,21 @@ private func flacAssertLossless(name: string, sampleRate, channels: u32)
     let frame = flacOverflowingLinearShiftFrame()
     var errorOutcome: Swag.Error
     discard catch decoder.decodePacket(cast([*] void, &decoded[0]), 33 * #sizeof(s16), frame.toSlice()) as errorOutcome
+    Swag.require(errorOutcome.value() is InvalidFormatError)
+}
+
+// A representable prediction and residual can still overflow when added together.
+#test
+{
+    var codec:   Flac.Codec
+    let decoder: IPacketCodec = &codec
+    let config = flacLinearOverflowTestConfig(6)
+    expect decoder.initialize(config.toSlice(), 48_000, 1)
+
+    var decoded:      [6] s16
+    let frame = flacOverflowingLinearAdditionFrame()
+    var errorOutcome: Swag.Error
+    discard catch decoder.decodePacket(cast([*] void, &decoded[0]), 6 * #sizeof(s16), frame.toSlice()) as errorOutcome
     Swag.require(errorOutcome.value() is InvalidFormatError)
 }
 

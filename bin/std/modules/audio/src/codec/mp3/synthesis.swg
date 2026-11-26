@@ -11,7 +11,8 @@ using Core
 // Spectral lines of one granule of one channel.
 //
 // The 576 lines of a granule are 32 subbands of 18, in that order: line `band * 18 + index`.
-alias Granule576 = [576] f32
+alias Granule576     = [576] f32
+alias SubbandOverlap = [18, 32] f32
 
 // What one channel carries from one granule to the next.
 //
@@ -20,9 +21,9 @@ alias Granule576 = [576] f32
 // alone. A seek resets both.
 struct ChannelState
 {
-    overlap:  [32, 18] f32     // Second half of the previous inverse transform, per subband.
-    filter:   [1024] f32       // The filter bank's delay line, addressed through `filterAt`.
-    filterAt: u32              // Where the newest block of 64 starts in `filter`.
+    overlap:  SubbandOverlap     // Second half of the previous inverse transform, grouped by time slot.
+    filter:   [1024] f32         // The filter bank's delay line, addressed through `filterAt`.
+    filterAt: u32                // Where the newest block of 64 starts in `filter`.
 }
 
 impl ChannelState
@@ -127,8 +128,8 @@ private func buildDct9Matrix()->[9, 4] f32
 //
 // Pairing opposite input samples separates even and odd outputs. Lee's half-angle factor
 // reduces each half to a DCT-II again. The only odd lengths reached are the MP3 IMDCT
-// leaves of three and nine points.
-private func(N: u64) dct(input: const [*] f32, output: [*] f32)
+// leaves of three and nine points. Each lane of a vector follows the same transform.
+private func(N: u64, T) dct(input: const [*] T, output: [*] T)
 {
     #static if N == 2
     {
@@ -146,7 +147,7 @@ private func(N: u64) dct(input: const [*] f32, output: [*] f32)
     {
         const Half   = N / 2
         const Matrix = #run buildDct9Matrix()
-        var sums, differences: [Half] f32
+        var sums, differences: [Half] T
         for i in Half
         {
             let first = input[i]
@@ -159,7 +160,9 @@ private func(N: u64) dct(input: const [*] f32, output: [*] f32)
         {
             let odd   = (k & 1) != 0
             let pairs = odd ? &differences : &sums
-            var sum   = odd ? 0'f32 : ((k & 2) != 0 ? -input[Half] : input[Half])
+            var sum: T
+            if not odd do
+                sum = (k & 2) != 0 ? -input[Half] : input[Half]
             for i in Half do
                 sum += pairs[][i] * Matrix[k, i]
             output[k] = sum
@@ -169,7 +172,7 @@ private func(N: u64) dct(input: const [*] f32, output: [*] f32)
     {
         const Half    = N / 2
         const Factors = #run buildCosineReciprocals'Half(cast(f64, N))
-        var sums, differences, even, odd: [Half] f32
+        var sums, differences, even, odd: [Half] T
         for i in Half
         {
             let first = input[i]
@@ -178,8 +181,8 @@ private func(N: u64) dct(input: const [*] f32, output: [*] f32)
             differences[i] = (first - last) * Factors[i]
         }
 
-        dct'Half(&sums[0], &even[0])
-        dct'Half(&differences[0], &odd[0])
+        dct'(Half, T)(&sums[0], &even[0])
+        dct'(Half, T)(&differences[0], &odd[0])
 
         for i in Half - 1
         {
@@ -195,13 +198,13 @@ private func(N: u64) dct(input: const [*] f32, output: [*] f32)
 // The inverse MDCT is a DCT-IV shifted by N/2 bins. The cosine sum identity gives each
 // DCT-IV bin by adding adjacent DCT-II bins of the scaled input, with bin N equal to zero.
 // Symmetry then expands the shifted bins to the two halves of the time-domain block.
-private func(N: u64) inverseMdct(input: const [*] f32, stride: u64, output: [*] f32)
+private func(N: u64, T) inverseMdct(input: const [*] T, stride: u64, output: [*] T)
 {
     const Factors = #run buildCosineReciprocals'N(cast(f64, 2 * N))
-    var scaled, bins: [N] f32
+    var scaled, bins: [N] T
     for i in N do
         scaled[i] = input[i * stride] * Factors[i]
-    dct'N(&scaled[0], &bins[0])
+    dct'(N, T)(&scaled[0], &bins[0])
 
     for i in N - 1 do
         bins[i] += bins[i + 1]
@@ -218,40 +221,82 @@ private func(N: u64) inverseMdct(input: const [*] f32, stride: u64, output: [*] 
     }
 }
 
-// The inverse transform of one subband, windowed, and added to what the previous granule left.
-//
-// `blockType` selects the window: 0 normal, 1 start, 2 three short blocks, 3 stop. A short block
-// is three six-point transforms whose windows overlap each other six samples apart inside the
-// thirty-six sample result, before the result overlaps its predecessor.
-func inverseTransform(lines: *Granule576, overlap: *[32, 18] f32, subband: u32, blockType: u32)
+// A short block combines three overlapping windows. A long block selects one of the
+// normal, start, and stop windows for its entire output. Short windows accumulate into
+// the caller's zeroed output.
+private func(T) windowedTransform(input: const [*] T, raw: [*] T, blockType: u32)
 {
-    let base  = cast(u64, subband) * 18
-    let input = cast(const [*] f32, &lines[][base])
-    var raw: [36] f32
-
     if blockType == 2
     {
         for window in 3'u64
         {
-            var shortBlock: [12] f32
-            inverseMdct'6(input + window, 3, &shortBlock[0])
+            var shortBlock: [12] T
+            inverseMdct'(6, T)(input + window, 3, &shortBlock[0])
             for i in 12'u64 do
                 raw[6 * window + i + 6] += shortBlock[i] * BlockWindow[2, i]
         }
     }
     else
     {
-        inverseMdct'18(input, 1, &raw[0])
+        inverseMdct'(18, T)(input, 1, raw)
         for i in 36'u64 do
             raw[i] *= BlockWindow[blockType, i]
     }
+}
 
-    // The first half leaves now, added to what the previous granule kept; the second half waits.
-    for index in 18'u64
+// The inverse transform adds the first half to the previous block's overlap and saves the second.
+private func inverseTransform(lines: *Granule576, overlap: *SubbandOverlap, subband: u32, blockType: u32)
+{
+    let base = cast(u64, subband) * 18
+    var raw: [36] f32
+    windowedTransform'f32(&lines[][base], &raw[0], blockType)
+
+    for i in 18'u64
     {
-        lines[][base + index]     = raw[index] + overlap[][subband, index]
-        overlap[][subband, index] = raw[18 + index]
+        lines[][base + i]     = raw[i] + overlap[][i, subband]
+        overlap[][i, subband] = raw[18 + i]
     }
+}
+
+// Vector lanes hold the same time or frequency slot in four adjacent subbands.
+// Their overlap is already contiguous. Each subband's time samples remain contiguous
+// for the polyphase pass that follows.
+private func inverseTransform4(lines: *Granule576, overlap: *SubbandOverlap, subband, blockType: u32)
+{
+    let base = cast(u64, subband) * 18
+    var input: [18] Math.Simd.F32x4
+    for i in 18'u64
+    {
+        let at = base + i
+        input[i] = cast(Math.Simd.F32x4, [lines[][at], lines[][at + 18], lines[][at + 36], lines[][at + 54]])
+    }
+
+    var raw: [36] Math.Simd.F32x4
+    windowedTransform'Math.Simd.F32x4(&input[0], &raw[0], blockType)
+    for i in 18'u64
+    {
+        let previous = Math.Simd.load(&overlap[][i, subband])
+        let sample   = raw[i] + previous
+        let at       = base + i
+        lines[][at]      = sample[0]
+        lines[][at + 18] = sample[1]
+        lines[][at + 36] = sample[2]
+        lines[][at + 54] = sample[3]
+        Math.Simd.store(&overlap[][i, subband], raw[18 + i])
+    }
+}
+
+func inverseTransformBands(lines: *Granule576, overlap: *SubbandOverlap, start, end, blockType: u32)
+{
+    var subband = start
+    while subband + 4 <= end
+    {
+        inverseTransform4(lines, overlap, subband, blockType)
+        subband += 4
+    }
+
+    for band in subband until end do
+        inverseTransform(lines, overlap, band, blockType)
 }
 
 // Negates every second sample of every second subband, which is what puts the filter bank input
@@ -273,50 +318,62 @@ func invertFrequencies(lines: *Granule576)
     }
 }
 
+// Creates the next filter block from one lane of the 32 DCT-II bins and their reflections.
+private func synthesizeBlock(state: *ChannelState, bins: const [*] f32, destination: [*] f32)
+{
+    state.filterAt = (state.filterAt + 1024 - 64) & 1023
+    let at     = cast(u64, state.filterAt)
+    let newest = cast([*] f32, &state.filter[at])
+
+    newest[0]  = bins[16 * 4]
+    newest[16] = 0
+    newest[32] = -bins[16 * 4]
+    newest[48] = -bins[0]
+    for i in 1 until 16'u64
+    {
+        let high = bins[(32 - i) * 4]
+        let low  = bins[i * 4]
+        newest[16 - i] = high
+        newest[16 + i] = -high
+        newest[48 - i] = -low
+        newest[48 + i] = -low
+    }
+
+    for group in 8'u64
+    {
+        let lane = group * 4
+        var sum: Math.Simd.F32x4
+        for tap in 8'u64
+        {
+            let filter = (at + tap * 128) & 1023
+            let first  = Math.Simd.load(&state.filter[filter + lane])
+            let second = Math.Simd.load(&state.filter[((filter + 96) & 1023) + lane])
+            let weight = tap * 64 + lane
+            sum += first * Math.Simd.load(&SynthesisWindow[weight])
+            sum += second * Math.Simd.load(&SynthesisWindow[weight + 32])
+        }
+
+        Math.Simd.store(destination + lane, sum)
+    }
+}
+
 // Turns the 32 by 18 subband samples of one granule into 576 output samples.
 //
-// The 64 rows of the polyphase matrix are the 32 DCT-II bins and their reflections.
-// Keep the delay line in window order so each multiply reads four adjacent sample lanes.
+// Each vector lane holds a different time slot. The last four-slot input overlaps
+// the previous group by two slots, so the widest read ends at the last sample.
 func synthesizeGranule(state: *ChannelState, lines: const *Granule576, destination: [*] f32)
 {
-    for block in 18'u64
+    for group in 5'u64
     {
-        state.filterAt = (state.filterAt + 1024 - 64) & 1023
-        let at     = cast(u64, state.filterAt)
-        let newest = cast([*] f32, &state.filter[at])
-
-        var input, bins: [32] f32
+        let first = group * 4
+        let start = Math.min(first, 14)
+        var input, bins: [32] Math.Simd.F32x4
         for i in 32'u64 do
-            input[i] = lines[][i * 18 + block]
-        dct'32(&input[0], &bins[0])
+            input[i] = Math.Simd.load(&lines[][i * 18 + start])
+        dct'(32, Math.Simd.F32x4)(&input[0], &bins[0])
 
-        newest[0]  = bins[16]
-        newest[16] = 0
-        newest[32] = -bins[16]
-        newest[48] = -bins[0]
-        for i in 1 until 16'u64
-        {
-            newest[16 - i] = bins[32 - i]
-            newest[16 + i] = -bins[32 - i]
-            newest[48 - i] = -bins[i]
-            newest[48 + i] = -bins[i]
-        }
-
-        for group in 8'u64
-        {
-            let lane = group * 4
-            var sum: Math.Simd.F32x4
-            for tap in 8'u64
-            {
-                let filter = (at + tap * 128) & 1023
-                let first  = Math.Simd.load(&state.filter[filter + lane])
-                let second = Math.Simd.load(&state.filter[((filter + 96) & 1023) + lane])
-                let weight = tap * 64 + lane
-                sum += first * Math.Simd.load(&SynthesisWindow[weight])
-                sum += second * Math.Simd.load(&SynthesisWindow[weight + 32])
-            }
-
-            Math.Simd.store(destination + block * 32 + lane, sum)
-        }
+        let values = cast(const [*] f32, &bins[0])
+        for lane in first - start until 4'u64 do
+            synthesizeBlock(state, values + lane, destination + (start + lane) * 32)
     }
 }

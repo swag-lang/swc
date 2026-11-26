@@ -312,6 +312,23 @@ private var g_TransitionWindows: [2, 1024] f64
 private var g_ShortWindows:      [2, 128] f64
 private var g_QuantizedPowers:   [1024] f64
 
+private const BandGainBias = 256
+private var g_BandGains: [2 * BandGainBias] f64
+
+private func bandGain(scale: s32)->f64
+{
+    let index = scale + BandGainBias
+    return index >= 0 and index < g_BandGains.count ? g_BandGains[index] : Math.pow(2.0, 0.25 * cast(f64, scale))
+}
+
+private func requantize(value: s32, gain: f64)->f64
+{
+    let magnitude = Math.abs(value)
+    let power     = magnitude < g_QuantizedPowers.count ? g_QuantizedPowers[magnitude] :
+                    Math.pow(cast(f64, magnitude), 4.0 / 3.0)
+    return (value < 0 ? -power : power) * gain
+}
+
 private func initializeTables()
 {
     for book in 11
@@ -346,6 +363,9 @@ private func initializeTables()
 
     for magnitude in g_QuantizedPowers.count do
         g_QuantizedPowers[magnitude] = Math.pow(cast(f64, magnitude), 4.0 / 3.0)
+
+    for index in g_BandGains.count do
+        g_BandGains[index] = Math.pow(2.0, 0.25 * cast(f64, (cast(s32, index) - BandGainBias)))
 
     g_ImdctLong.init(2048)
     g_ImdctShort.init(256)
@@ -490,45 +510,24 @@ private impl AacCodec
         return cast(f64, (.pnsState >> 8)) * (2.0 / 16777216.0) - 1.0
     }
 
-    mtd dequantizeBand(channel, book, scale, first, last: s32)
+    mtd synthesizeNoiseBand(channel, scale, first, last: s32)
     {
-        if book == 0 or book == 14 or book == 15
-        {
-            for index in first until last do
-                .coefficients[channel, index] = 0
-            return
-        }
-
-        if book == 13
-        {
-            var energy = 0'f64
-            for index in first until last
-            {
-                let noise = .randomNoise()
-                .coefficients[channel, index] = noise
-                energy += noise * noise
-            }
-
-            let width  = last - first
-            let target = Math.pow(2.0, 0.25 * cast(f64, (scale - 100)))
-            let norm   = energy > 0 ? target * Math.sqrt(cast(f64, width) / energy) : 0.0
-            for index in first until last do
-                .coefficients[channel, index] *= norm
-            return
-        }
-
-        let gain = Math.pow(2.0, 0.25 * cast(f64, (scale - 100)))
+        var energy = 0'f64
         for index in first until last
         {
-            let value     = .coefficients[channel, index]
-            let magnitude = cast(u32, Math.abs(value))
-            let power     = magnitude < g_QuantizedPowers.count ? g_QuantizedPowers[magnitude] :
-                            Math.pow(cast(f64, magnitude), 4.0 / 3.0)
-            .coefficients[channel, index] = (value < 0 ? -power : power) * gain
+            let noise = .randomNoise()
+            .coefficients[channel, index] = noise
+            energy += noise * noise
         }
+
+        let width  = last - first
+        let target = bandGain(scale - 100)
+        let norm   = energy > 0 ? target * Math.sqrt(cast(f64, width) / energy) : 0.0
+        for index in first until last do
+            .coefficients[channel, index] *= norm
     }
 
-    mtd inverseQuantize(channel: s32)
+    mtd synthesizeNoise(channel: s32)
     {
         let value = &.ics[channel]
         if value.windowSequence == 2
@@ -541,11 +540,8 @@ private impl AacCodec
                 for band in value.maxSfb
                 {
                     let width = cast(s32, (offsets[band + 1] - offsets[band])) * value.groupLength[group]
-                    .dequantizeBand(channel,
-                                    .books[channel, bandIndex],
-                                    .scaleFactors[channel, bandIndex],
-                                    line,
-                                    line + width)
+                    if .books[channel, bandIndex] == 13 do
+                        .synthesizeNoiseBand(channel, .scaleFactors[channel, bandIndex], line, line + width)
                     line      += width
                     bandIndex += 1
                 }
@@ -554,14 +550,8 @@ private impl AacCodec
         else
         {
             let offsets = swbLong(.sampleRateIndex)
-            for band in value.maxSfb do
-                .dequantizeBand(channel,
-                                .books[channel, band],
-                                .scaleFactors[channel, band],
-                                offsets[band],
-                                offsets[band + 1])
-            for line in offsets[value.maxSfb] until FrameSamples do
-                .coefficients[channel, line] = 0
+            for band in value.maxSfb where .books[channel, band] == 13 do
+                .synthesizeNoiseBand(channel, .scaleFactors[channel, band], offsets[band], offsets[band + 1])
         }
     }
 
@@ -828,6 +818,7 @@ private impl AacCodec
                 continue
             }
 
+            let gain      = bandGain(.scaleFactors[channel, band] - 100)
             let dimension = cast(s32, BookDim[book - 1])
             let signed    = BookSigned[book - 1] != 0
             let end       = line + width
@@ -859,7 +850,7 @@ private impl AacCodec
                 }
 
                 for item in dimension where index + item < end do
-                    .coefficients[channel, index + item] = values[item]
+                    .coefficients[channel, index + item] = requantize(values[item], gain)
                 index += dimension
             }
 
@@ -960,7 +951,7 @@ private impl AacCodec
                 var sign = rightBook == 15 ? 1'f64 : -1'f64
                 if .usesMs[left] and .msUsed[left, band] do
                     sign = -sign
-                let scale = sign * Math.pow(2.0, 0.25 * cast(f64, .scaleFactors[right, band]))
+                let scale = sign * bandGain(.scaleFactors[right, band])
                 for index in line until line + width do
                     .coefficients[right, index] = scale * .coefficients[left, index]
             }
@@ -1004,26 +995,28 @@ private impl AacCodec
 
     mtd reconstruct(destination: [*] s16)
     {
+        // Advance the noise generator only after the complete access unit has been validated.
         for channel in .channels do
-            .inverseQuantize(channel)
+            .synthesizeNoise(channel)
         for channel in .channels where .pairStart[channel] do
             .applyStereoPair(channel)
 
-        var channelPcm: [MaxChannels, FrameSamples] f64
         for channel in .channels
         {
-            .deinterleaveShort(channel)
-            .applyTns(channel)
-            .imdctChannel(channel, &channelPcm[channel, 0])
-        }
+            let source = .sourceChannel(channel)
+            .deinterleaveShort(source)
+            .applyTns(source)
+            var pcm: [FrameSamples] f64
+            .imdctChannel(source, &pcm)
 
-        for frame in FrameSamples
-        {
-            for channel in .channels
+            let output = destination + channel
+            for frame in FrameSamples
             {
-                let source = .sourceChannel(channel)
-                let scaled = Math.clamp(cast(s32, Math.round(channelPcm[source, frame] * 32768.0)), -32768, 32767)
-                destination[frame * .channels + channel] = cast(s16, scaled)
+                let scaled = pcm[frame] * 32768.0
+
+                // Truncate after adding a half with the sample's sign to round ties away from zero.
+                let rounded = Math.trunc(scaled + Math.copysign(0.5, scaled))
+                output[frame * .channels] = cast(s16, Math.clamp(cast(s32, rounded), -32768, 32767))
             }
         }
     }

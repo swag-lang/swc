@@ -142,6 +142,19 @@ impl BitReader
         return cast(u32, .data![at >> 3]) >> (7 - cast(u32, (at & 7))) & 1
     }
 
+    #[Swag.Inline]
+    mtd readMagnitude(value, escape: u32, gain: f32)->f32
+    {
+        var magnitude = value
+        if value == 15 and escape do
+            magnitude += .read(escape)
+        if not magnitude do
+            return 0
+
+        let sample = Powers43[magnitude] * gain
+        return .readBit() ? -sample : sample
+    }
+
     mtd const overran()->bool => .bitPos > .bitEnd
 }
 
@@ -366,6 +379,27 @@ private func codeTree(table: u32)->const [..] s16
     return Huff1Tree
 }
 
+// How many values one axis of that table holds, which is what splits a symbol into its pair.
+private func codeWidth(table: u32)->u32
+{
+    switch table
+    {
+    case 1:          return 2
+    case 2, 3:       return 3
+    case 5, 6:       return 4
+    case 7, 8, 9:    return 6
+    case 10, 11, 12: return 8
+    case 13, 15, 16, 24, Count1TableA, Count1TableB: return 16
+    }
+
+    return 1
+}
+
+// A pair's magnitudes occupy two nibbles; a count1 symbol is already a four-bit mask.
+#[Swag.Inline]
+private func packSymbol(symbol, axis: u32)->u32
+    => (symbol / axis) << 4 | (symbol % axis)
+
 // Each prefix identifies a leaf and its consumed length, or the node where the
 // ordinary tree walk resumes after all eight bits have been consumed.
 private func buildHuffmanPrefixes()->[Count1TableB + 1, PrefixCount] s16
@@ -374,6 +408,7 @@ private func buildHuffmanPrefixes()->[Count1TableB + 1, PrefixCount] s16
     for table in Count1TableB + 1
     {
         let tree = codeTree(table)
+        let axis = codeWidth(table)
         for prefix in PrefixCount
         {
             var node = 0's16
@@ -383,8 +418,8 @@ private func buildHuffmanPrefixes()->[Count1TableB + 1, PrefixCount] s16
                 let next = tree[cast(u64, node) * 2 + bit]
                 if next < 0
                 {
-                    let symbol = cast(s32, (-next - 1))
-                    node = cast(s16, -((symbol << LeafBits) | cast(s32, depth)))
+                    let symbol = packSymbol(cast(u32, (-next - 1)), axis)
+                    node = -cast(s16, ((symbol << LeafBits) | depth))
                     break
                 }
 
@@ -548,7 +583,7 @@ impl Codec
 
     // Resolves short codes in one lookup and resumes the tree for longer codes.
     #[Swag.Inline]
-    mtd const decodeSymbol(tree: const [..] s16, table: u32, reader: *BitReader)->s32
+    mtd const decodeSymbol(tree: const [..] s16, table, axis: u32, reader: *BitReader)->s32
     {
         var node  = 0's32
         var depth = 0'u32
@@ -578,27 +613,11 @@ impl Codec
                 return -1
             let next = tree[slot]
             if next < 0 do
-                return cast(s32, (-next - 1))
+                return cast(s32, packSymbol(cast(u32, (-next - 1)), axis))
             node = cast(s32, next)
         }
 
         return -1
-    }
-
-    // How many values one axis of that table holds, which is what splits a symbol into its pair.
-    mtd const codeWidth(select: u32)->u32
-    {
-        switch cast(u32, HuffCodeTable[cast(u64, select)])
-        {
-        case 1:              return 2
-        case 2, 3:           return 3
-        case 5, 6:           return 4
-        case 7, 8, 9:        return 6
-        case 10, 11, 12:     return 8
-        case 13, 15, 16, 24: return 16
-        }
-
-        return 1
     }
 
     // Decodes the spectral lines of one granule of one channel and requantizes them.
@@ -629,7 +648,7 @@ impl Codec
             let table  = cast(u32, HuffCodeTable[cast(u64, select)])
             let empty  = table == 0
             let tree   = codeTree(table)
-            let axis   = .codeWidth(select)
+            let axis   = codeWidth(table)
             let escape = cast(u32, HuffLinbits[cast(u64, select)])
             var spans  = cast(s32, info.regionBands[region]) + 1
             region += 1
@@ -648,50 +667,28 @@ impl Codec
                 spans -= 1
 
                 pairsLeft = cast(u64, width) / 2
-                var take = Math.min(big, pairsLeft)
+                let take = Math.min(big, pairsLeft)
                 big       -= take
                 pairsLeft -= take
 
-                while take
+                // The granule was cleared above. Each of its at most 288 big-value pairs
+                // advances by two lines, including runs with no codewords.
+                if empty
                 {
-                    take -= 1
-                    if empty
-                    {
-                        if line + 2 <= 576
-                        {
-                            lines[][line]     = 0
-                            lines[][line + 1] = 0
-                            line += 2
-                        }
+                    line += take * 2
+                    continue
+                }
 
-                        continue
-                    }
-
-                    let symbol = .decodeSymbol(tree, table, reader)
+                for take
+                {
+                    let symbol = .decodeSymbol(tree, table, axis, reader)
                     if symbol < 0 or reader.bitPos > limit do
                         return
 
                     let pair = cast(u32, symbol)
-                    for component in 2'u32
-                    {
-                        var value = component == 0 ? pair / axis : pair % axis
-                        if value == 15 and escape do
-                            value += reader.read(escape)
-
-                        var sample = 0'f32
-                        if value
-                        {
-                            sample = Powers43[value] * gain
-                            if reader.readBit() != 0 do
-                                sample = -sample
-                        }
-
-                        if line < 576
-                        {
-                            lines[][line] = sample
-                            line += 1
-                        }
-                    }
+                    lines[][line]     = reader.readMagnitude(pair >> 4, escape, gain)
+                    lines[][line + 1] = reader.readMagnitude(pair & 15, escape, gain)
+                    line += 2
                 }
             }
         }
@@ -702,7 +699,7 @@ impl Codec
 
         while line + 4 <= 576 and reader.bitPos < limit and not ended
         {
-            let symbol = .decodeSymbol(quadTree, quadTable, reader)
+            let symbol = .decodeSymbol(quadTree, quadTable, 16, reader)
             if symbol < 0 or reader.bitPos > limit do
                 break
 
@@ -909,19 +906,10 @@ impl Codec
             longSubbands = 32
         }
 
-        for subband in 32'u32
-        {
-            var kind = 2'u32
-            if subband < longSubbands
-            {
-                if info.blockType == 2 do
-                    kind = 0
-                else do
-                    kind = info.blockType
-            }
-
-            inverseTransform(lines, &.state[cast(u64, channel)].overlap, subband, kind)
-        }
+        let overlap    = &.state[cast(u64, channel)].overlap
+        let longWindow = info.blockType == 2 ? 0'u32 : info.blockType
+        inverseTransformBands(lines, overlap, 0, longSubbands, longWindow)
+        inverseTransformBands(lines, overlap, longSubbands, 32, 2)
 
         invertFrequencies(lines)
 

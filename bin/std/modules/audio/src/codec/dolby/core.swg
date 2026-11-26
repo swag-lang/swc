@@ -77,19 +77,56 @@ private func dolbySourceChannel(destination, acmod, nfchans: u32, lfeon: bool)->
 
 private struct BitReader
 {
-    data:    const [*] u8
-    bitSize: u64
-    bitPos:  u64
-    overrun: bool
+    data:     const [*] u8
+    bitSize:  u64
+    bitPos:   u64
+    overrun:  bool
+    cache:    u64
+    cacheEnd: u64
 }
 
 private impl BitReader
 {
     internal func create(data: const [*] u8, size: u64)->BitReader => BitReader{data, size * 8}
 
+    // Dolby fields are at most 32 bits and never seek backwards.
+    #[Swag.Inline]
     internal mtd read(count: u32)->u32
     {
-        var pos       = .bitPos
+        if not count do
+            return 0
+
+        let start = .bitPos
+        let end   = start + count
+        .bitPos = end
+        if end <= .cacheEnd
+        {
+            let offset = cast(u32, 64 - (.cacheEnd - start))
+            return cast(u32, ((.cache << offset) >> (64 - count)))
+        }
+
+        return .refillAndRead(count, start)
+    }
+
+    mtd refillAndRead(count: u32, start: u64)->u32
+    {
+        let byteStart = start >> 3
+        let cacheEnd  = (byteStart + 8) * 8
+        if cacheEnd <= .bitSize
+        {
+            .cache    = Math.bigEndianToNative(cast(const [*] u64, .data + byteStart)[0])
+            .cacheEnd = cacheEnd
+            return cast(u32, ((.cache << cast(u32, (start & 7))) >> (64 - count)))
+        }
+
+        // Read the tail without loading a full word past the end of the packet.
+        if start >= .bitSize
+        {
+            .overrun = true
+            return 0
+        }
+
+        var pos       = start
         let end       = pos + count
         let available = Math.min(end, .bitSize)
         var value: u32
@@ -102,13 +139,10 @@ private impl BitReader
             pos   += take
         }
 
-        .bitPos = end
-        if end > .bitSize and count
+        if end > .bitSize
         {
             .overrun = true
-            if pos == end - count do
-                return 0
-            value <<= cast(u32, end - pos)
+            value    <<= cast(u32, end - pos)
         }
 
         return value

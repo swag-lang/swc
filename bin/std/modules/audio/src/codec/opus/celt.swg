@@ -341,11 +341,12 @@ private impl CeltMdct
         let order  = fft.order.storage()
         let points = .scratch.storage()
 
+        const Pair = cast(Simd.U32x4, [0'u32, 4, 0, 4])
         for i in n4
         {
             let x1    = spectrum[2 * stride * i]
             let x2    = spectrum[stride * (n2 - 1 - 2 * i)]
-            let point = cast(Simd.F32x4, [x1, x2, 0.0, 0.0])
+            let point = Swag.vecShuffle2(Simd.splat(x1), Simd.splat(x2), Pair)
             points[order[i]] = CeltFft.rotate(point, t[i], t[n4 + i])
         }
 
@@ -889,16 +890,18 @@ internal impl CeltDecoder
         return cast(s32, CeltCacheBits[base + cast(u32, pulses)]) + 1
     }
 
-    // Decodes the pulse vector of one band as the index-th arrangement of k pulses over n
-    // positions, and returns the squared norm of the vector.
-    mtd decodePulses(target: [*] s32, n, k: u32, dec: *RangeDecoder)->f32
+    // Reconstructs the signed pulse vector in the spectrum and returns its squared norm.
+    mtd decodePulses(target: [*] f32, n, k: u32, dec: *RangeDecoder)->f32
     {
         var index     = dec.decodeUint(pulseArrangements(n, k) + pulseArrangements(n, k + 1))
         var remaining = k
-        var norm      = 0.0'f32
-        for j in n
+        var norm      = 0'u32
+        var position  = 0'u32
+
+        // Stop as soon as the remaining codebook has a closed form.
+        while remaining > 1 and position + 2 < n
         {
-            let dimensions = n - j
+            let dimensions = n - position
             let threshold  = pulseArrangements(dimensions, remaining + 1)
             let negative   = index >= threshold
             if negative do
@@ -913,13 +916,48 @@ internal impl CeltDecoder
             }
 
             index -= offset
-            let magnitude = cast(s32, available - remaining)
-            let value     = negative ? -magnitude : magnitude
-            target[j] = value
-            norm      += cast(f32, value * value)
+            let magnitude = available - remaining
+            let value     = cast(f32, magnitude)
+            target[position] = negative ? -value : value
+            norm             += magnitude * magnitude
+            position         += 1
         }
 
-        return norm
+        let tail       = target + position
+        let dimensions = n - position
+        if remaining <= 1
+        {
+            // Single pulses are indexed by increasing position when positive and by
+            // decreasing position when negative. Zero pulses leave the entire tail empty.
+            Memory.clear(tail, cast(u64, dimensions) * #sizeof(f32))
+            if remaining
+            {
+                if index < dimensions do
+                    tail[index] = 1
+                else do
+                    tail[2 * dimensions - 1 - index] = -1
+            }
+
+            return cast(f32, norm + remaining)
+        }
+
+        if dimensions == 1
+        {
+            let value = cast(f32, remaining)
+            tail[0] = index ? -value : value
+            return cast(f32, norm + remaining * remaining)
+        }
+
+        // U(2,k) = 2*k - 1 for k > 0, so the two-bin case recovers the second
+        // magnitude and its sign directly from the index after the first sign.
+        let threshold = 2 * remaining + 1
+        let negative  = index >= threshold
+        let code      = negative ? index - threshold : index
+        let second    = (code + 1) >> 1
+        let first     = cast(s32, remaining - second)
+        tail[0] = cast(f32, negative ? -first : first)
+        tail[1] = cast(f32, (code & 1) ? cast(s32, second) : -cast(s32, second))
+        return cast(f32, norm + cast(u32, first * first) + second * second)
     }
 
     mtd expRotation1(x: [*] f32, len, stride: u32, c, s: f32)
@@ -951,6 +989,38 @@ internal impl CeltDecoder
         }
     }
 
+    // Adjacent rotations pass one coefficient to the next pair in either direction.
+    mtd expRotationAdjacent(x: [*] f32, len: u32, c, s: f32)
+    {
+        if len < 2 do
+            return
+
+        let ms      = -s
+        var carried = x[0]
+        for i in len - 1
+        {
+            let next = x[i + 1]
+            x[i]    = c * carried + ms * next
+            carried = c * next + s * carried
+        }
+
+        x[len - 1] = carried
+        if len == 2 do
+            return
+
+        var i = len - 2
+        carried = x[i]
+        while i
+        {
+            let previous = x[i - 1]
+            x[i]    = c * carried + s * previous
+            carried = c * previous + ms * carried
+            i       -= 1
+        }
+
+        x[0] = carried
+    }
+
     mtd expRotation(x: [*] f32, len: u32, stride, k, spread: u32)
     {
         if 2 * k >= len or spread == SpreadNone do
@@ -973,32 +1043,33 @@ internal impl CeltDecoder
         {
             if stride2 do
                 .expRotation1(x + i * part, part, stride2, s, c)
-            .expRotation1(x + i * part, part, 1, c, s)
+            .expRotationAdjacent(x + i * part, part, c, s)
         }
     }
 
     mtd algUnquant(x: [*] f32, n, k: u32, spread, b: u32, dec: *RangeDecoder, gain: f32)->u32
     {
-        var iy: [MaxPulseDimensions] s32
-        let ryy = .decodePulses(&iy[0], n, k, dec)
-        let g   = celtRsqrt(ryy) * gain
-        for i in n do
-            x[i] = g * cast(f32, iy[i])
-        .expRotation(x, n, b, k, spread)
-
-        if b <= 1 do
-            return 1
-        let n0   = n / b
-        var mask = 0'u32
-        for i in b
+        let energy = .decodePulses(x, n, k, dec)
+        var mask   = 1'u32
+        if b > 1
         {
-            var anyPulses = false
-            for j in n0 where iy[i * n0 + j] do
-                anyPulses = true
-            if anyPulses do
-                mask |= 1'u32 << i
+            let blockSize = n / b
+            mask = 0
+            for i in b
+            {
+                let block = x + i * blockSize
+                for j in blockSize where block[j] != 0
+                {
+                    mask |= 1'u32 << i
+                    break
+                }
+            }
         }
 
+        let scale = celtRsqrt(energy) * gain
+        for i in n do
+            x[i] *= scale
+        .expRotation(x, n, b, k, spread)
         return mask
     }
 

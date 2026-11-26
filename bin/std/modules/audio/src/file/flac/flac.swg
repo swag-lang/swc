@@ -54,8 +54,7 @@ private const FrameCrcTable: [8, 256] u16 = #run
     return table
 }
 
-// FLAC's frame trailer protects the complete header and coded subframes.
-internal func frameCrc16(bytes: const [..] u8, initial = 0'u16)->u16
+private func frameCrc16Table(bytes: const [..] u8, initial: u16)->u16
 {
     var checksum = initial
     var offset   = 0'u64
@@ -75,6 +74,23 @@ internal func frameCrc16(bytes: const [..] u8, initial = 0'u16)->u16
     for byte in bytes[offset until] do
         checksum = ((checksum & 0xFF) << 8) ^ FrameCrcTable[0, byte ^ (checksum >> 8)]
     return checksum
+}
+
+// FLAC's frame trailer protects the complete header and coded subframes.
+internal func frameCrc16(bytes: const [..] u8, initial = 0'u16)->u16
+{
+    #static if not Core.BIG_ENDIAN
+    {
+        if bytes.count >= 64
+        {
+            let foldedCount = bytes.count & ~15'u64
+            let block       = foldMsbChecksum'(16'u32, 0x8005'u32)(bytes[until foldedCount], cast(u32, initial))
+            let checksum    = frameCrc16Table(block, 0)
+            return frameCrc16Table(bytes[foldedCount until], checksum)
+        }
+    }
+
+    return frameCrc16Table(bytes, initial)
 }
 
 // Returns the length of the frame header starting at `offset`, or zero when none does.
@@ -153,6 +169,30 @@ private func frameHeaderSize(bytes: const [..] u8, offset: u64)->u64
     if headerCrc8(bytes[offset until offset + size]) != bytes[offset + size] do
         return 0
     return size + 1
+}
+
+private func findFrameSync(bytes: const [..] u8, start, end: u64)->u64
+{
+    const VectorBytes = #sizeof(Math.Simd.U8x16)
+    let first  = Math.Simd.splat(0xFF'u8)
+    let second = Math.Simd.splat(0xF8'u8)
+    let mask   = Math.Simd.splat(0xFC'u8)
+    let limit  = Math.min(end, bytes.count - 1)
+    let data   = bytes.buffer
+    var scan   = start
+    while limit - scan >= VectorBytes
+    {
+        let leading  = Math.Simd.load(data + scan) == first
+        let trailing = (Math.Simd.load(data + scan + 1) & mask) == second
+        let matches  = Math.Simd.bitmask(leading & trailing)
+        if matches do
+            return scan + Math.trailingZeros(matches)
+        scan += VectorBytes
+    }
+
+    for index in scan until limit where data[index] == 0xFF and (data[index + 1] & 0xFC) == 0xF8 do
+        return index
+    return end
 }
 
 // What the metadata prologue of a file says about the stream that follows it.
@@ -274,14 +314,9 @@ internal func findFrameEnd(source: *ByteSource,
         let scanEnd = bytes.count - overlap
         while scan < scanEnd
         {
-            let nextSync = Slice.findLinear(bytes[scan until scanEnd], 0xFF'u8)
-            if nextSync == Swag.U64.Max
-            {
-                scan = scanEnd
+            scan = findFrameSync(bytes, scan, scanEnd)
+            if scan == scanEnd do
                 break
-            }
-
-            scan += nextSync
 
             if frameHeaderSize(bytes, scan)
             {

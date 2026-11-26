@@ -99,11 +99,29 @@ internal func pageChecksum(page: const [..] u8)->u32
     for beforeChecksum until afterChecksum do
         crc = (crc << 8) ^ ChecksumTable[0, crc >> 24]
 
-    // The tables fold each byte's contribution after up to seven further bytes.
     var offset = afterChecksum
-    while page.count - offset >= #sizeof(u64)
+    #static if not Core.BIG_ENDIAN
     {
-        let word  = Math.bigEndianToNative(cast(const [*] u64, page.buffer + offset)[0])
+        let foldBytes = (page.count - offset) & ~15'u64
+        if foldBytes >= 64
+        {
+            let block = foldMsbChecksum'(32'u32, ChecksumPolynomial)(page[offset until offset + foldBytes], crc)
+            crc    = updateChecksum(block, 0)
+            offset += foldBytes
+        }
+    }
+
+    return updateChecksum(page[offset until], crc)
+}
+
+private func updateChecksum(bytes: const [..] u8, initial: u32)->u32
+{
+    // The tables fold each byte's contribution after up to seven further bytes.
+    var crc    = initial
+    var offset = 0'u64
+    while bytes.count - offset >= #sizeof(u64)
+    {
+        let word  = Math.bigEndianToNative(cast(const [*] u64, bytes.buffer + offset)[0])
         let mixed = word ^ (cast(u64, crc) << 32)
         crc = ChecksumTable[7, mixed >> 56] ^
               ChecksumTable[6, (mixed >> 48) & 0xFF] ^
@@ -116,8 +134,8 @@ internal func pageChecksum(page: const [..] u8)->u32
         offset += #sizeof(u64)
     }
 
-    for index in offset until page.count do
-        crc = (crc << 8) ^ ChecksumTable[0, (crc >> 24) ^ page[index]]
+    for index in offset until bytes.count do
+        crc = (crc << 8) ^ ChecksumTable[0, (crc >> 24) ^ bytes[index]]
     return crc
 }
 
@@ -221,8 +239,12 @@ private func identify(body: const [..] u8)->StreamInfo fail
     if body.count >= 5 and body[0] == 0x7F and body[1 until 5] == cast(const [..] u8, "FLAC")
     {
         // The nine-byte mapping header is followed by the native marker and STREAMINFO block.
-        if body.count != 51 or body[9 until 13] != cast(const [..] u8, "fLaC") or
-           (body[13] & 0x7F) != 0 or body[14] != 0 or body[15] != 0 or body[16] != 34 do
+        if body.count != 51 or
+           body[9 until 13] != cast(const [..] u8, "fLaC") or
+           (body[13] & 0x7F) != 0 or
+           body[14] != 0 or
+           body[15] != 0 or
+           body[16] != 34 do
             fail InvalidFormatError{"Ogg FLAC identification packet does not hold STREAMINFO"}
         if body[5] != 1 or body[6] != 0 do
             fail UnsupportedFormatError{"Ogg FLAC stream mapping needs version 1.0"}

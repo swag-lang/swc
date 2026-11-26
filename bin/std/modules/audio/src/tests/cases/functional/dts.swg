@@ -84,7 +84,7 @@ private func dtsVqPacket()->Array'u8
 
 // Builds one mono Core packet whose first scalar subband uses predictor vector zero. The first
 // residual is an impulse, so the following reconstructed samples exercise the four-tap feedback.
-private func dtsPredictionPacket(huffman = false)->Array'u8
+private func dtsPredictionPacket(huffman = false, frameBytes = 32'u32)->Array'u8
 {
     var bits: DtsTestBits
     bits.add(0x7FFE8001, 32)
@@ -92,7 +92,7 @@ private func dtsPredictionPacket(huffman = false)->Array'u8
     bits.add(31, 5)
     bits.add(0, 1)
     bits.add(7, 7)
-    bits.add(31, 14)
+    bits.add(frameBytes - 1, 14)
     bits.add(0, 6)
     bits.add(13, 4)
     bits.add(0, 5)
@@ -298,6 +298,27 @@ private func dtsAssertNativeStream(fileName: string, packetBytes: u32)
     Swag.require(coreDecoded.size == cast(u64, info.frames) * info.channels * #sizeof(s16))
     Swag.require(extendedDecoded.size == coreDecoded.size)
     Swag.require(Slice.equals(Swag.makeSlice(cast(const [*] u8, unwrap coreDecoded.buffer), coreDecoded.size), Swag.makeSlice(cast(const [*] u8, unwrap extendedDecoded.buffer), extendedDecoded.size)))
+}
+
+// The packet may carry extensions, but a truncated core header cannot borrow from them.
+#test
+{
+    let bytes = dtsPredictionPacket(frameBytes: 12)
+    let info  = expect Dts.frameInfo(bytes.toSlice())
+    let path  = Path.combine(Env.getSpecialDirectory(.Temp).toString(),
+                             Format.toString("audio-dts-truncated-core-%.bin", Guid64.random()).toString())
+    defer discard catch File.delete(path)
+    expect File.writeAllBytes(path, bytes.toSlice())
+
+    let packets = [SoundPacket{0, cast(u32, bytes.count), info.frames}]
+    let sound   = expect SoundFile.openPacketStream(path, .Dts, info.sampleRate, info.channels, info.frames, packets, [], {speakerMask: info.speakerMask})
+    var error: Swag.Error
+    catch sound.decodePcm16(func(_)
+    {
+        Swag.require(false)
+        return false
+    }) as error
+    Swag.require(error.value() is InvalidFormatError)
 }
 
 // A high-frequency VQ address is consumed and its band omitted instead of making the otherwise

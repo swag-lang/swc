@@ -279,9 +279,6 @@ private impl Decoder
         let mode      = info.mode
         let base      = .output.count
         .output.resize(base + cast(u64, frameSize) * CC)
-        let pcm = .pcm.storage()
-        for i in frameSize * CC do
-            pcm[i] = 0
 
         // A frame of one byte or none is a request for concealment; a file plays it as silence.
         if data.count <= 1
@@ -291,6 +288,10 @@ private impl Decoder
             .prevMode = mode
             return
         }
+
+        let pcm = .pcm.storage()
+        if mode == ModeSilk do
+            Memory.clear(pcm, cast(u64, frameSize) * CC * #sizeof(f32))
 
         var dec = RangeDecoder.create(data)
         var len = cast(s32, data.count)
@@ -416,8 +417,36 @@ private impl Decoder
 
         .prevMode       = mode
         .prevRedundancy = redundancy and not celtToSilk
-        for i in frameSize * CC do
-            .output[base + i] = cast(s16, Math.clamp(Math.round(cast(f64, pcm[i]) * 32768.0), -32768.0, 32767.0))
+        .writePcm16(base, frameSize * CC)
+    }
+
+    mtd writePcm16(base: u64, count: u32)
+    {
+        #[Swag.Inline]
+        func roundSamples(samples: Simd.F32x4)->Simd.S32x4
+        {
+            let scaled  = samples * 32768.0'f32
+            let bounded = Math.max(Simd.splat(-32768.0'f32), Math.min(Simd.splat(32767.0'f32), scaled))
+            let whole   = Math.trunc(bounded)
+
+            // Compare the fractional part so even values immediately below a half stay exact.
+            let fraction     = bounded - whole
+            let positiveHalf = cast #bit(Simd.S32x4, fraction >= Simd.splat(0.5'f32))
+            let negativeHalf = cast #bit(Simd.S32x4, fraction <= Simd.splat(-0.5'f32))
+            return Simd.truncateToS32(whole) - positiveHalf + negativeHalf
+        }
+
+        let source      = .pcm.storage()
+        let destination = .output.storage() + base
+
+        // Every Opus frame size is a multiple of eight samples.
+        for block in count / 8
+        {
+            let i    = block * 8
+            let low  = roundSamples(Simd.load(source + i))
+            let high = roundSamples(Simd.load(source + i + 4))
+            Simd.store(destination + i, Simd.packSigned(low, high))
+        }
     }
 
     // Splits a packet into its frames, RFC 6716 clause 3.2, and decodes each of them.

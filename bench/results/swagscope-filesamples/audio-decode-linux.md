@@ -66,3 +66,38 @@ MP3 changed 42,932 of 882,000 values by one PCM16 unit, with RMS error 0.221 uni
 Opus changed 542 of 960,000 values by one PCM16 unit, with RMS error 0.024 units.
 FLAC and OGA also match FFmpeg PCM16 byte for byte. The native Release audio module passed
 300 functional and stress tests.
+
+## Second optimization pass
+
+Baseline commit `87100a43ff` and the second pass ran on the same Linux host with the same
+fixtures and 21-sample procedure. This compares the two optimized builds directly.
+The table shows total wall time including file opening and PCM16 materialization.
+[Raw samples, stage times and PCM deltas](audio-decode-linux-round2.json)
+
+| Format | First pass (ms) | Second pass (ms) | Time saved | FFmpeg (ms) | Swag / FFmpeg |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| AAC | 22.75 | 18.85 | 17.2% | 6.67 | 2.83× |
+| AC-3 | 22.82 | 17.64 | 22.7% | 8.33 | 2.12× |
+| DTS | 32.95 | 27.83 | 15.6% | 14.75 | 1.89× |
+| FLAC | 25.40 | 14.42 | 43.2% | 12.20 | 1.18× |
+| MP3 | 22.69 | 17.92 | 21.0% | 9.05 | 1.98× |
+| OGA (FLAC) | 23.59 | 13.40 | 43.2% | 11.20 | 1.20× |
+| Ogg Vorbis | 18.41 | 13.26 | 28.0% | 8.20 | 1.62× |
+| Opus | 42.52 | 32.23 | 24.2% | 20.23 | 1.59× |
+| WAV | 2.05 | 1.89 | Control | 28.44 | 0.07× |
+
+Carry-less multiplication speeds up FLAC frame checksums and Ogg page checksums.
+The FLAC reader searches both bytes of the sync prefix, and the decoder spends less
+time in linear prediction and stereo PCM output. AAC requantizes spectral values
+while decoding each tuple and packs PCM16 directly after synthesis. AC-3 reuses the
+bit allocation across blocks with the same parameters and reads from a bounded bit
+reservoir. DTS reduces scratch initialization and parses each packet header once.
+MP3 vectorizes across time slots and subbands. Opus specializes sparse pulse
+reconstruction and uses packed SIMD for the inverse transform and PCM output. Vorbis
+decodes stereo residue in pairs and uses SIMD for stereo uncoupling and windowing.
+
+MP3 differs from the original Swag PCM by at most 1 PCM16 unit (RMS 0.221).
+Opus differs from the original Swag PCM by at most 1 PCM16 unit (RMS 0.023).
+The original and final Swag PCM are bit-identical for AAC, AC-3, DTS, FLAC, OGA (FLAC),
+Ogg Vorbis and WAV.
+The native Release audio module passed 304 functional and stress tests.

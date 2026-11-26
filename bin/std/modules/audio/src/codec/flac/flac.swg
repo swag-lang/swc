@@ -517,10 +517,22 @@ private impl Codec
         for index in order do
             target[index] = source[index]
 
+        let groups      = order / 4
+        let groupedTaps = groups * 4
         for index in order until blockSize
         {
             var sum = 0's64
-            for tap in order do
+            for group in groups
+            {
+                let tap      = group * 4
+                let previous = index - 1 - tap
+                sum += coefficients[tap] * target[previous]
+                sum += coefficients[tap + 1] * target[previous - 1]
+                sum += coefficients[tap + 2] * target[previous - 2]
+                sum += coefficients[tap + 3] * target[previous - 3]
+            }
+
+            for tap in groupedTaps until order do
                 sum += coefficients[tap] * target[index - 1 - tap]
 
             var prediction: s64
@@ -531,17 +543,19 @@ private impl Codec
             else
             {
                 let amount = cast(u32, -shift)
-                if (sum > 0 and sum > (Swag.S64.Max >> amount)) or
-                   (sum < 0 and sum < (Swag.S64.Min >> amount)) do
+                if sum > (Swag.S64.Max >> amount) or sum < (Swag.S64.Min >> amount) do
                     fail InvalidFormatError{"FLAC linear predictor overflows its accumulator"}
                 prediction = sum << amount
             }
 
             let residual = source[index]
-            if (prediction > 0 and residual > Swag.S64.Max - prediction) or
-               (prediction < 0 and residual < Swag.S64.Min - prediction) do
+
+            // Addition overflows if both operands have the opposite sign from the sum.
+            #[Swag.Safety(.Overflow, false)]
+            let sample = residual + prediction
+            if ((sample ^ residual) & (sample ^ prediction)) < 0 do
                 fail InvalidFormatError{"FLAC linear predictor overflows its accumulator"}
-            target[index] = residual + prediction
+            target[index] = sample
         }
     }
 
@@ -613,6 +627,19 @@ private impl Codec
     mtd writePcm16(destination: [*] s16, header: FrameHeader)
     {
         let shift = cast(s32, header.bitsPerSample) - 16
+        if not shift and header.channels == 2
+        {
+            let left  = .channels[0].storage()
+            let right = .channels[1].storage()
+            for sample in header.blockSize
+            {
+                destination[sample * 2]     = cast(s16, Math.clamp(left[sample], -32768's64, 32767's64))
+                destination[sample * 2 + 1] = cast(s16, Math.clamp(right[sample], -32768's64, 32767's64))
+            }
+
+            return
+        }
+
         var index = 0'u64
         for sample in header.blockSize
         {

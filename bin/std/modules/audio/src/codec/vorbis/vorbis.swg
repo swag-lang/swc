@@ -1379,17 +1379,45 @@ private impl Codec
     // Residue type 2: the channels are interleaved into one vector before partitioning.
     mtd decodeAcrossChannels(book: *Codebook, reader: *BitReader, active: const [MaxChannels] u32, width: u32, offset: u64, count: u32)->bool
     {
-        let limit   = (offset + count) / width
-        var index   = offset / width
+        let limit  = (offset + count) / width
+        var index  = offset / width
+        let values = book.values.storage()
+
+        // A stereo codeword with an even dimension contains whole left/right pairs.
+        if width == 2 and (book.dimensions & 1) == 0
+        {
+            let left  = .spectrum[active[0]].storage()
+            let right = .spectrum[active[1]].storage()
+            let pairs = book.dimensions / 2
+            while index < limit
+            {
+                let entry = book.decode(reader)
+                if entry < 0 do
+                    return false
+                let vector = values + cast(u64, entry) * book.dimensions
+                let frames = Math.min(cast(u64, pairs), limit - index)
+                for frame in frames
+                {
+                    left[index + frame]  += vector[2 * frame]
+                    right[index + frame] += vector[2 * frame + 1]
+                }
+
+                index += frames
+            }
+
+            return true
+        }
+
         var channel = 0'u32
         while index < limit
         {
             let entry = book.decode(reader)
             if entry < 0 do
                 return false
+            let vector = values + cast(u64, entry) * book.dimensions
             for dimension in book.dimensions where index < limit
             {
-                .spectrum[active[channel]][index] += book.values[cast(u64, entry) * book.dimensions + dimension]
+                .spectrum[active[channel]][index] += vector[dimension]
                 channel += 1
                 if channel == width
                 {
@@ -1464,33 +1492,21 @@ private impl Codec
             step -= 1
             let magnitudes = .spectrum[mapping.magnitude[step]].storage()
             let angles     = .spectrum[mapping.angle[step]].storage()
-            for line in half
+            let zero       = Simd.splat(0'f32)
+
+            // The signs select the reconstructed value and the channel that receives it.
+            // Half a Vorbis block is a multiple of four, including the smallest block.
+            var line = 0'u32
+            while line < half
             {
-                let magnitude = magnitudes[line]
-                let angle     = angles[line]
-                if magnitude > 0
-                {
-                    if angle > 0
-                    {
-                        magnitudes[line] = magnitude
-                        angles[line]     = magnitude - angle
-                    }
-                    else
-                    {
-                        angles[line]     = magnitude
-                        magnitudes[line] = magnitude + angle
-                    }
-                }
-                elif angle > 0
-                {
-                    magnitudes[line] = magnitude
-                    angles[line]     = magnitude + angle
-                }
-                else
-                {
-                    angles[line]     = magnitude
-                    magnitudes[line] = magnitude - angle
-                }
+                let magnitude     = Simd.load(magnitudes + line)
+                let angle         = Simd.load(angles + line)
+                let positiveAngle = angle > zero
+                let addAngle      = (magnitude > zero) ^ positiveAngle
+                let combined      = Simd.select(addAngle, magnitude + angle, magnitude - angle)
+                Simd.store(magnitudes + line, Simd.select(positiveAngle, magnitude, combined))
+                Simd.store(angles + line, Simd.select(positiveAngle, combined, magnitude))
+                line += 4
             }
         }
 
@@ -1539,21 +1555,43 @@ private impl Codec
         for channel in .channels
         {
             .transforms[which].inverse(.spectrum[channel].storage(), time)
-            for index in leftStart do
-                time[index] = 0
-            for index in leftStart until leftEnd do
-                time[index] *= .slopes[leftSlope][index - leftStart]
-            let rightLength = rightEnd - rightStart
-            for index in rightStart until rightEnd do
-                time[index] *= .slopes[rightSlope][rightLength - 1 - (index - rightStart)]
-            for index in rightEnd until n do
-                time[index] = 0
+            if leftStart do
+                Memory.clear(time, cast(u64, leftStart) * #sizeof(f32))
+            if rightEnd < n do
+                Memory.clear(time + rightEnd, cast(u64, n - rightEnd) * #sizeof(f32))
+
+            // Every window boundary is a multiple of four. The right slope runs in reverse.
+            let left  = .slopes[leftSlope].storage()
+            let right = .slopes[rightSlope].storage()
+            const Reverse = cast(Simd.U32x4, [3'u32, 2, 1, 0])
+            var index = leftStart
+            while index < leftEnd
+            {
+                let samples = Simd.load(time + index)
+                let gain    = Simd.load(left + (index - leftStart))
+                Simd.store(time + index, samples * gain)
+                index += 4
+            }
+
+            index = rightStart
+            while index < rightEnd
+            {
+                let samples = Simd.load(time + index)
+                let gain    = Simd.load(right + (rightEnd - index - 4))
+                Simd.store(time + index, samples * Simd.permute(gain, Reverse))
+                index += 4
+            }
 
             if outputFrames
             {
                 #[Swag.Inline]
                 func toPcm16(value: f32)->s16
-                    => cast(s16, Math.clamp(Math.round(cast(f64, value) * 32767.0), -32768.0, 32767.0))
+                {
+                    // Add half a sample away from zero. The integer cast truncates it.
+                    let scaled = cast(f64, value) * 32767.0
+                    let biased = scaled + Math.copysign(0.5, scaled)
+                    return cast(s16, Math.clamp(biased, -32768.0, 32767.0))
+                }
 
                 let saved  = .saved[channel].storage()
                 let slot   = ChannelSlots[.channels, channel]

@@ -189,7 +189,6 @@ private struct FrameHeader
     channels:         u32
     primaryChannels:  u32
     bitRateIndex:     u32
-    subframes:        u32
     lfe:              u32
     crc:              bool
     syncSubsubframes: bool
@@ -209,47 +208,50 @@ private func parseFrameHeader(reader: *BitReader)->FrameHeader fail
 {
     if reader.read(32) != 0x7FFE8001 do
         fail InvalidFormatError{"DTS packet has an invalid core sync word"}
-    discard reader.read(1)
-    if reader.read(5) != 31 do
+
+    // Read the packed frame shape together so the same buffered bits serve all four fields.
+    let shape = reader.read(28)
+    if ((shape >> 22) & 31) != 31 do
         fail UnsupportedFormatError{"DTS packet uses a partial first sample block"}
 
     var result: #returntype
-    result.crc = reader.read(1) != 0
-    let blocks = reader.read(7) + 1
+    result.crc = (shape & (1'u32 << 21)) != 0
+    let blocks = ((shape >> 14) & 127) + 1
     if blocks < 8 or blocks > MaxSubbandSamples or blocks & 7 do
         fail InvalidFormatError{"DTS packet has an invalid sample-block count"}
     result.frames = blocks * 32
-    let unpackedFrameBytes = reader.read(14) + 1
+    let unpackedFrameBytes = (shape & 0x3FFF) + 1
     result.frameBytes = reader.packed14 ? unpackedFrameBytes * 8 / 14 * 2 : unpackedFrameBytes
-    result.mode       = reader.read(6)
+
+    let format = reader.read(15)
+    result.mode = format >> 9
     if result.mode >= ModeChannels.count do
         fail UnsupportedFormatError{"DTS packet uses an unsupported channel arrangement"}
     result.primaryChannels = ModeChannels[result.mode]
-    let rateIndex = reader.read(4)
-    result.sampleRate = SampleRates[rateIndex]
+    result.sampleRate      = SampleRates[(format >> 5) & 15]
     if not result.sampleRate do
         fail InvalidFormatError{"DTS packet states a reserved sampling frequency"}
-    result.bitRateIndex = reader.read(5)
+    result.bitRateIndex = format & 31
     if result.bitRateIndex >= 25 and result.bitRateIndex != 29 and result.bitRateIndex != 31 do
         fail InvalidFormatError{"DTS packet states a reserved transmission rate"}
 
-    reader.skip(9)
-    result.syncSubsubframes = reader.read(1) != 0
-    result.lfe = reader.read(2)
+    let flags = reader.read(13)
+    result.syncSubsubframes = (flags & 8) != 0
+    result.lfe = (flags >> 1) & 3
     if result.lfe == 3 do
         fail InvalidFormatError{"DTS packet states a reserved LFE mode"}
     result.channels         = result.primaryChannels + (result.lfe ? 1 : 0)
-    result.predictorHistory = reader.read(1) != 0
+    result.predictorHistory = (flags & 1) != 0
     if result.crc do
         reader.skip(16)
-    result.perfectFilter = reader.read(1) != 0
-    reader.skip(6)
-    let resolution = reader.read(3)
+
+    let trailer = reader.read(16)
+    result.perfectFilter = (trailer & 0x8000) != 0
+    let resolution = (trailer >> 6) & 7
     if resolution == 4 or resolution == 7 do
         fail InvalidFormatError{"DTS packet states a reserved PCM resolution"}
-    result.sumDifference   = reader.read(1) != 0
-    result.surroundSumDiff = reader.read(1) != 0
-    reader.skip(4)
+    result.sumDifference   = (trailer & 0x20) != 0
+    result.surroundSumDiff = (trailer & 0x10) != 0
     if reader.overrun do
         fail InvalidFormatError{"DTS packet header is truncated"}
     return result
@@ -264,6 +266,14 @@ internal func frameInfo(packet: const [..] u8)->FrameInfo fail
 
 internal func packetFrameCount(packet: const [..] u8)->u32 fail => (try frameInfo(packet)).frames
 
+// Bias the truncating conversion by half a sample to round ties away from zero.
+#[Swag.Inline]
+private func pcm16(sample: f64)->s16
+{
+    let scaled = sample * OutputScale
+    return cast(s16, Math.clamp(scaled + Math.copysign(0.5, scaled), -32_768.0, 32_767.0))
+}
+
 private struct Codec
 {
     using base: Audio.Codec
@@ -274,6 +284,7 @@ private struct Codec
     historyStart:      [MaxPrimaryChannels] u32
     predictionHistory: [MaxPrimaryChannels, MaxSubbands, 4] f64
     lfeHistory:        [8] f64
+    subbands:          Array'f64
 }
 
 private impl Codec
@@ -359,18 +370,18 @@ private impl Codec
         return 3
     }
 
-    mtd synthesize(destination: [*] s16, header: const *FrameHeader, subbands: *[MaxPrimaryChannels, MaxSubbands, MaxSubbandSamples] f64)
+    mtd synthesize(destination: [*] s16, header: const *FrameHeader, subbands: const [*] f64, samplesPerBand: u32)
     {
         let filter = header.perfectFilter ? BandFirPerfect : BandFirNonPerfect
         for channel in header.primaryChannels
         {
             let outputChannel = .sourceDestination(header.mode, channel, header.lfe)
             var historyStart  = .historyStart[channel]
-            for sample in header.frames / 32
+            let channelBands  = subbands + channel * MaxSubbands * samplesPerBand
+            for sample in samplesPerBand
             {
-                let bands = cast(const [*] f64, &subbands[][channel, 0, sample])
                 var transformed: [32] f64
-                synthesisDct(bands, MaxSubbandSamples, &transformed)
+                synthesisDct(channelBands + sample, samplesPerBand, &transformed)
 
                 // Mirror each block so the FIR can read a contiguous 512-sample window.
                 historyStart = (historyStart + HistorySamples - 32) & (HistorySamples - 1)
@@ -403,8 +414,8 @@ private impl Codec
                         second += history[16 + reverse + tap] * filter[16 + index + tap]
                     }
 
-                    destination[(sample * 32 + index) * header.channels + outputChannel]      = cast(s16, Math.clamp(Math.round(first * OutputScale), -32_768.0, 32_767.0))
-                    destination[(sample * 32 + 16 + index) * header.channels + outputChannel] = cast(s16, Math.clamp(Math.round(second * OutputScale), -32_768.0, 32_767.0))
+                    destination[(sample * 32 + index) * header.channels + outputChannel]      = pcm16(first)
+                    destination[(sample * 32 + 16 + index) * header.channels + outputChannel] = pcm16(second)
                 }
             }
 
@@ -458,8 +469,8 @@ private impl Codec
                 }
 
                 let frame = sample * factor
-                destination[(frame + half) * header.channels + outputChannel] = cast(s16, Math.clamp(Math.round(first * OutputScale), -32_768.0, 32_767.0))
-                destination[(frame + factor / 2 + half) * header.channels + outputChannel] = cast(s16, Math.clamp(Math.round(second * OutputScale), -32_768.0, 32_767.0))
+                destination[(frame + half) * header.channels + outputChannel] = pcm16(first)
+                destination[(frame + factor / 2 + half) * header.channels + outputChannel] = pcm16(second)
             }
         }
 
@@ -470,17 +481,10 @@ private impl Codec
         }
     }
 
-    mtd decodeFrame(destination: [*] s16, packet: const [..] u8)->FrameHeader fail
+    mtd decodeFrame(destination: [*] s16, reader: *BitReader, header: const *FrameHeader) fail
     {
-        var reader = try BitReader.create(packet)
-        var header = try parseFrameHeader(&reader)
-        if header.frameBytes != packet.count do
-            fail InvalidFormatError{"DTS packet size does not match its core-frame header"}
-        if header.sampleRate != .sampleRate or header.channels != .channels do
-            fail InvalidFormatError{"DTS packet shape differs from its container track"}
-
-        header.subframes = reader.read(4) + 1
-        let channels = reader.read(3) + 1
+        let subframes = reader.read(4) + 1
+        let channels  = reader.read(3) + 1
         if channels != header.primaryChannels do
             fail InvalidFormatError{"DTS primary-channel count differs from its channel arrangement"}
 
@@ -537,10 +541,17 @@ private impl Codec
         if header.crc do
             reader.skip(16)
 
-        var subbands:   [MaxPrimaryChannels, MaxSubbands, MaxSubbandSamples] f64
+        // Ignored and inactive bands start at zero. Clear only the samples this packet can use.
+        let samplesPerBand    = header.frames / 32
+        let samplesPerChannel = MaxSubbands * samplesPerBand
+        let sampleCount       = cast(u64, channels) * samplesPerChannel
+        .subbands.resize(sampleCount)
+        let subbands = .subbands.storage()
+        Memory.clear(subbands, sampleCount * #sizeof(f64))
+
         var lfeSamples: [64] f64
         var subbandPosition, lfePosition: u32
-        for header.subframes
+        for subframes
         {
             let subsubframes = reader.read(2) + 1
             reader.skip(3)
@@ -584,7 +595,7 @@ private impl Codec
                 {
                     for band in Math.min(vqStart[channel], subbandCount[channel]) where allocation[channel, band]
                     {
-                        transition[channel, band] = try .decodeTransition(&reader, transitionSelector[channel])
+                        transition[channel, band] = try .decodeTransition(reader, transitionSelector[channel])
                     }
                 }
             }
@@ -677,12 +688,13 @@ private impl Codec
                                 audio[index] = reader.readSigned(bits - 3)
                         }
 
-                        let scale  = transition[channel, band] and subsubframe >= transition[channel, band] ? scales[channel, band, 1] : scales[channel, band, 0]
-                        let step   = header.bitRateIndex == 31 ? StepSizeLossless[bits] : StepSizeLossy[bits]
+                        let scale         = transition[channel, band] and subsubframe >= transition[channel, band] ? scales[channel, band, 1] : scales[channel, band, 0]
+                        let step          = header.bitRateIndex == 31 ? StepSizeLossless[bits] : StepSizeLossy[bits]
                         let adjustedScale = Math.min(Math.floor(scale * adjustment), 8_388_607.0)
-                        let factor = step * adjustedScale / 4_194_304.0
+                        let factor        = step * adjustedScale / 4_194_304.0
+                        let samples       = subbands + channel * samplesPerChannel + band * samplesPerBand + subbandPosition + subsubframe * SamplesPerSubband
                         for index in SamplesPerSubband do
-                            subbands[channel, band, subbandPosition + subsubframe * SamplesPerSubband + index] = cast(f64, audio[index]) * factor
+                            samples[index] = cast(f64, audio[index]) * factor
                     }
                 }
 
@@ -697,7 +709,8 @@ private impl Codec
             {
                 for band in Math.min(vqStart[channel], subbandCount[channel]) where prediction[channel, band]
                 {
-                    let vector = predictionIndex[channel, band]
+                    let vector      = predictionIndex[channel, band]
+                    let bandSamples = subbands + channel * samplesPerChannel + band * samplesPerBand
                     for offset in subbandSamples
                     {
                         let position = subbandPosition + offset
@@ -713,13 +726,13 @@ private impl Codec
                             }
                             else
                             {
-                                value = subbands[channel, band, source]
+                                value = bandSamples[source]
                             }
 
                             predicted += value * cast(f64, AdpcmCoefficients[vector, tap])
                         }
 
-                        subbands[channel, band, position] = Math.clamp(subbands[channel, band, position] + predicted / 8_192.0, -8_388_608.0, 8_388_607.0)
+                        bandSamples[position] = Math.clamp(bandSamples[position] + predicted / 8_192.0, -8_388_608.0, 8_388_607.0)
                     }
                 }
             }
@@ -737,14 +750,14 @@ private impl Codec
         {
             for band in subbandCount[channel]
             {
+                let samples = subbands + channel * samplesPerChannel + band * samplesPerBand + subbandPosition - 4
                 for sample in 4 do
-                    .predictionHistory[channel, band, sample] = subbands[channel, band, subbandPosition - 4 + sample]
+                    .predictionHistory[channel, band, sample] = samples[sample]
             }
         }
 
-        .synthesize(destination, &header, &subbands)
-        .synthesizeLfe(destination, &header, &lfeSamples, lfePosition)
-        return header
+        .synthesize(destination, header, subbands, samplesPerBand)
+        .synthesizeLfe(destination, header, &lfeSamples, lfePosition)
     }
 }
 
@@ -765,16 +778,26 @@ impl IPacketCodec for Codec
 
     mtd impl decodePacket(destination: [*] void, destinationSize: u64, packet: const [..] u8)->u64 fail
     {
-        let info     = try frameInfo(packet)
-        let required = cast(u64, info.frames) * .channels * #sizeof(s16)
-        if info.frameBytes > packet.count do
+        var reader   = try BitReader.create(packet)
+        let header   = try parseFrameHeader(&reader)
+        let required = cast(u64, header.frames) * .channels * #sizeof(s16)
+        if header.frameBytes > packet.count do
             fail InvalidFormatError{"DTS packet size does not match its core-frame header"}
         if destinationSize < required do
             fail BadParameterError{"DTS destination buffer is too small"}
 
-        // A DTS-HD access unit starts with a complete backward-compatible core. This decoder
-        // consumes that core and leaves the extension substream to codecs that implement it.
-        discard try .decodeFrame(cast([*] s16, destination), packet[0 until info.frameBytes])
+        // A DTS-HD access unit can include bytes after its core. If the header prefetched
+        // those bytes, read it again with the declared core boundary before decoding.
+        if reader.bytePosition > header.frameBytes
+        {
+            reader = try BitReader.create(packet[until header.frameBytes])
+            discard try parseFrameHeader(&reader)
+        }
+
+        reader.byteSize = header.frameBytes
+        if header.sampleRate != .sampleRate or header.channels != .channels do
+            fail InvalidFormatError{"DTS packet shape differs from its container track"}
+        try .decodeFrame(cast([*] s16, destination), &reader, &header)
         return required
     }
 }

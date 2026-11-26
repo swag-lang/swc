@@ -2,47 +2,59 @@
 
 using Core
 
-// Check each window against the defining cosine sum with energy in every spectral line.
+// Check every window against the defining cosine sum for both vector groups and scalar tails.
 #test
 {
-    for blockType in 4'u32
+    for bands in [4'u32, 2]
     {
-        var lines:   Mp3.Granule576
-        var overlap: [32, 18] f32
-        for i in 18'u64
+        for blockType in 4'u32
         {
-            lines[i]      = cast(f32, cast(s32, (i * 13 % 23)) - 11) / 16
-            overlap[0, i] = cast(f32, i) / 64
-        }
-
-        var expected: [36] f64
-        let short   = blockType == 2
-        let bins    = short ? 6'u64 : 18
-        let windows = short ? 3'u64 : 1
-        for window in windows
-        {
-            for sample in 2 * bins
+            let short   = blockType == 2
+            let bins    = short ? 6'u64 : 18
+            let windows = short ? 3'u64 : 1
+            var lines:    Mp3.Granule576
+            var overlap:  Mp3.SubbandOverlap
+            var expected: [4, 36] f64
+            for band in bands
             {
-                var value = 0'f64
-                for bin in bins
+                let base = cast(u64, band) * 18
+                for i in 18'u64
                 {
-                    let angle = Math.ConstF64.Pi * cast(f64, ((2 * sample + bins + 1) * (2 * bin + 1))) /
-                                cast(f64, 4 * bins)
-                    value += cast(f64, lines[window + windows * bin]) * Math.cos(angle)
+                    lines[base + i]  = cast(f32, cast(s32, ((base + i) * 13 % 23)) - 11) / 16
+                    overlap[i, band] = cast(f32, (base + i)) / 64
                 }
 
-                let start = short ? 6 * (window + 1) : 0
-                expected[start + sample] += value * cast(f64, Mp3.BlockWindow[blockType, sample])
-            }
-        }
+                for window in windows
+                {
+                    for sample in 2 * bins
+                    {
+                        var value = 0'f64
+                        for bin in bins
+                        {
+                            let angle = Math.ConstF64.Pi * cast(f64, ((2 * sample + bins + 1) * (2 * bin + 1))) /
+                                        cast(f64, 4 * bins)
+                            value += cast(f64, lines[base + window + windows * bin]) * Math.cos(angle)
+                        }
 
-        for i in 18'u64 do
-            expected[i] += cast(f64, overlap[0, i])
-        Mp3.inverseTransform(&lines, &overlap, 0, blockType)
-        for i in 18'u64
-        {
-            Swag.require(Math.abs(cast(f64, lines[i]) - expected[i]) < 2e-5)
-            Swag.require(Math.abs(cast(f64, overlap[0, i]) - expected[18 + i]) < 2e-5)
+                        let start = short ? 6 * (window + 1) : 0
+                        expected[band, start + sample] += value * cast(f64, Mp3.BlockWindow[blockType, sample])
+                    }
+                }
+
+                for i in 18'u64 do
+                    expected[band, i] += cast(f64, overlap[i, band])
+            }
+
+            Mp3.inverseTransformBands(&lines, &overlap, 0, bands, blockType)
+            for band in bands
+            {
+                let base = cast(u64, band) * 18
+                for i in 18'u64
+                {
+                    Swag.require(Math.abs(cast(f64, lines[base + i]) - expected[band, i]) < 2e-5)
+                    Swag.require(Math.abs(cast(f64, overlap[i, band]) - expected[band, 18 + i]) < 2e-5)
+                }
+            }
         }
     }
 }

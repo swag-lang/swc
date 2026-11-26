@@ -354,11 +354,16 @@ private impl Ac3Codec
         }
     }
 
-    mtd readAllocation(reader: *BitReader, bsi: const *Ac3Bsi, blockIndex: u32) fail
+    mtd readAllocation(reader: *BitReader, bsi: const *Ac3Bsi, blockIndex: u32, couplingChanged: bool) fail
     {
         let block = &.block
+
+        // An unchanged allocation is valid only within the current sync frame.
+        var refreshAll      = not blockIndex
+        var refreshCoupling = couplingChanged
         if reader.read(1)
         {
+            refreshAll          = true
             block.slowDecayCode = reader.read(2)
             block.fastDecayCode = reader.read(2)
             block.slowGainCode  = reader.read(2)
@@ -372,6 +377,7 @@ private impl Ac3Codec
 
         if reader.read(1)
         {
+            refreshAll      = true
             block.coarseSnr = reader.read(6)
             if block.coupling
             {
@@ -398,12 +404,14 @@ private impl Ac3Codec
 
         if block.coupling and reader.read(1)
         {
+            refreshCoupling        = true
             block.couplingFastLeak = reader.read(3)
             block.couplingSlowLeak = reader.read(3)
         }
 
         if reader.read(1)
         {
+            refreshAll = true
             if block.coupling do
                 block.couplingDelta.mode = reader.read(2)
             for channel in bsi.nfchans do
@@ -425,15 +433,15 @@ private impl Ac3Codec
         let slowGain  = SLOW_GAIN[block.slowGainCode]
         let dbKnee    = DB_PER_BIT[block.dbPerBitCode]
         let floor     = FLOOR[block.floorCode]
-        for channel in bsi.nfchans
+        for channel in bsi.nfchans where refreshAll or block.channelExpStrategy[channel]
         {
             let delta = &block.channelDelta[channel]
             try bitAllocation(bsi.fscod, 0, block.channelEnd[channel], &block.channelExponents[channel, 0], FAST_GAIN[block.channelFastGain[channel]], slowGain, fastDecay, slowDecay, dbKnee, floor, ((cast(s32, block.coarseSnr) - 15) * 16 + cast(s32, block.channelFineSnr[channel])) * 4, 0, 0, delta, &block.channelBap[channel, 0])
         }
 
-        if block.coupling do
+        if block.coupling and (refreshAll or refreshCoupling or block.couplingExpStrategy) do
             try bitAllocation(bsi.fscod, block.couplingStart, block.couplingEndMantissa, &block.couplingExponents, FAST_GAIN[block.couplingFastGain], slowGain, fastDecay, slowDecay, dbKnee, floor, ((cast(s32, block.coarseSnr) - 15) * 16 + cast(s32, block.couplingFineSnr)) * 4, cast(s32, (block.couplingFastLeak << 8)) + 768, cast(s32, (block.couplingSlowLeak << 8)) + 768, &block.couplingDelta, &block.couplingBap)
-        if bsi.lfeon do
+        if bsi.lfeon and (refreshAll or block.lfeExpStrategy) do
             try bitAllocation(bsi.fscod, 0, 7, &block.lfeExponents, FAST_GAIN[block.lfeFastGain], slowGain, fastDecay, slowDecay, dbKnee, floor, ((cast(s32, block.coarseSnr) - 15) * 16 + cast(s32, block.lfeFineSnr)) * 4, 0, 0, null, &block.lfeBap)
     }
 
@@ -520,6 +528,9 @@ private impl Ac3Codec
         if not bsi.acmod and reader.read(1) do
             reader.skip(8)
 
+        let hadCoupling   = block.coupling
+        let previousStart = block.couplingStart
+        let previousEnd   = block.couplingEndMantissa
         try .readCoupling(reader, bsi)
         if bsi.acmod == 2 and reader.read(1)
         {
@@ -540,7 +551,10 @@ private impl Ac3Codec
         }
 
         try .readExponents(reader, bsi)
-        try .readAllocation(reader, bsi, blockIndex)
+        let couplingChanged = not hadCoupling or
+                              previousStart != block.couplingStart or
+                              previousEnd != block.couplingEndMantissa
+        try .readAllocation(reader, bsi, blockIndex, couplingChanged)
         if reader.read(1)
         {
             let skipBytes = reader.read(9)

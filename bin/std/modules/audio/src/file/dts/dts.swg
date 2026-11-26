@@ -17,12 +17,14 @@ internal func openElementaryStream(path: string)->SoundFile fail
     var source    = try ByteSource.openFile(path)
     let fileBytes = source.size()
 
-    var packets: Array'SoundPacket
+    var packets:     Array'SoundPacket
     var byteOffset   = 0'u64
     var totalFrames  = 0'u64
     var sampleRate   = 0'u32
     var channelCount = 0'u32
     var speakerMask  = 0'u32
+    var window:      const [..] u8 = []
+    var windowStart: u64
 
     for
     {
@@ -30,9 +32,18 @@ internal func openElementaryStream(path: string)->SoundFile fail
             break
         if fileBytes - byteOffset < 16 do
             break
-        try source.seek(byteOffset)
-        let probe = try source.peek(Math.min(HeaderBytes, fileBytes - byteOffset))
-        let info  = try frameInfo(probe)
+
+        // Walk the borrowed read-ahead window until a header crosses its end.
+        let headerSize = Math.min(HeaderBytes, fileBytes - byteOffset)
+        if byteOffset - windowStart + headerSize > window.count
+        {
+            try source.seek(byteOffset)
+            window      = try source.peek(headerSize)
+            windowStart = byteOffset
+        }
+
+        let headerOffset = byteOffset - windowStart
+        let info         = try frameInfo(window[headerOffset until headerOffset + headerSize])
         if not info.frameBytes or info.frameBytes > fileBytes - byteOffset do
             break
 

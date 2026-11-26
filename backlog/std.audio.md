@@ -200,14 +200,14 @@ owned by `bin/std/modules/audio` together. [README.md](README.md) has the whole 
 
 ### std.audio.017 — Compressed audio decode still trails native FFmpeg on FileSamples
 
-- Evidence: the native Linux Release comparison measures open and decode separately for the
-  first ten seconds of all eight compressed audio cases. FLAC, OGA, DTS and MP3 have the largest
-  absolute reductions. Complete checksum-validated indexing accounts for most of the remaining
-  FLAC and OGA gap. Decode accounts for most of the remaining AAC, AC-3, DTS, MP3, Vorbis and
-  Opus gap. The report records timings and accepted PCM error on each file.
-  [Linux comparison](../bench/results/swagscope-filesamples/audio-decode-linux.md)
-- Next: profile the remaining codec kernels against native FFmpeg on the same ten-second
-  windows. Measure full-file index validation separately when evaluating FLAC and OGA.
+- Evidence: the native Linux Release comparison measures open and decode separately on the
+  first ten seconds of eight compressed FileSamples fixtures. FLAC and OGA are within 20%
+  of FFmpeg end to end while validating the complete index. Vorbis, Opus and DTS remain
+  about 1.6–1.9× slower. AAC, AC-3 and MP3 have the largest relative gaps.
+  [Linux comparison](../bench/results/swagscope-filesamples/audio-decode-linux.md#second-optimization-pass)
+- Next: profile the revised AAC spectrum and synthesis loops first, then AC-3 mantissa
+  reconstruction and MP3 transform and synthesis. Compare the same PCM16 windows and separate
+  codec time from full-file index validation when measuring FLAC or OGA.
 - Done when: the residual gaps are closed or quantified for the required indexing and decode
   operations, with the reference PCM tolerances preserved.
 - Related: app.scope.viewers.009.

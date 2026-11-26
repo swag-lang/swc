@@ -265,18 +265,40 @@ private func oggAssertMatchesPcm(decoded: const [..] s16, expected: const [..] u
     Swag.require(rms <= 0.0001'f64)
 }
 
+// The folded CRC matches the defining polynomial at short, block and group boundaries.
+#test
+{
+    var bytes: [256] u8
+    for index in bytes.count do
+        bytes[index] = cast(u8, (23 * index + 7) & 255)
+
+    for length in [0'u64, 21, 22, 25, 26, 89, 90, 91, 105, 106, 107, 153, 154, 155, 256]
+    {
+        var expected = 0'u32
+        for index in length
+        {
+            let value = index >= 22 and index < 26 ? 0'u8 : bytes[index]
+            expected ^= cast(u32, value) << 24
+            for 8 do
+                expected = (expected << 1) ^ (expected & 0x80000000 ? 0x04C11DB7 : 0)
+        }
+
+        Swag.require(Ogg.pageChecksum(bytes[until length]) == expected)
+    }
+}
+
 // Ogg FLAC keeps its lossless PCM, including audio placed on the last setup page.
 #test
 {
-    let path = audioGetTestDataPath("flac-stereo-44100.oga")
-    let native = expect SoundFile.load(audioGetTestDataPath("flac-stereo-44100.flac"))
+    let path     = audioGetTestDataPath("flac-stereo-44100.oga")
+    let native   = expect SoundFile.load(audioGetTestDataPath("flac-stereo-44100.flac"))
     let expected = expect oggDecodePcm16(&native)
-    let ogg = expect SoundFile.load(path)
+    let ogg      = expect SoundFile.load(path)
     Swag.require(ogg.sampleEncoding() == .Flac and ogg.numChannels() == 2 and ogg.sampleRateHz() == 44_100)
     Swag.require(Slice.equals((expect oggDecodePcm16(&ogg)).toSlice(), expected.toSlice()))
 
-    let source = expect File.readAllBytes(path)
-    let merged = expect oggMoveAudioPageAfterHeaders(source.toSlice(), 1, 2)
+    let source    = expect File.readAllBytes(path)
+    let merged    = expect oggMoveAudioPageAfterHeaders(source.toSlice(), 1, 2)
     let mixedPath = Path.combine(Env.getSpecialDirectory(.Temp), Format.toString("audio-ogg-flac-%.oga", Guid64.random()))
     defer discard catch File.delete(mixedPath)
     expect File.writeAllBytes(mixedPath, merged.toSlice())

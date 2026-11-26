@@ -263,7 +263,7 @@ impl ScanFill
 
 private struct ScanRows
 {
-    crossings:    [..] Array'Crossing
+    crossings:    [..] ScanSample
     image:        *Image
     width:        s32
     bottomRow:    s32

@@ -136,6 +136,29 @@ using Core
     Swag.require(image.pixelColor(2, 1).a == 64)
 }
 
+// Scan single-row and multi-row edges while reusing scratch across different fill heights.
+#test
+{
+    var source = String.from("<svg width='42' height='4'><path d='")
+    for stripe in 20 do
+        source.appendFormat("M% 0h.75l.5 .25h-.75z ", 1 + 2 * ((stripe * 7) % 20))
+    source += "'/><path d='M3 1h.75l2.5 1.25h-.75z'/><path d='M10 3h.75l.5 .25h-.75z'/></svg>"
+
+    let drawing = expect Svg.Drawing.parse(source.toString(), {preferScanFills: true})
+    let image   = drawing.rasterize(42, 4, 1)
+    Swag.require(image.isValid())
+    const MiddleAlpha = [64'u8, 96, 32]
+    for column in 42
+    {
+        let x = cast(s32, column)
+        Swag.require(image.pixelColor(x, 0).a == (x % 2 == 1 and x < 40 ? 48 : 0))
+        let middle = x >= 3 and x < 6 ? MiddleAlpha[x - 3] : 0
+        Swag.require(image.pixelColor(x, 1).a == middle)
+        Swag.require(image.pixelColor(x, 2).a == (x == 5 ? 48 : 0))
+        Swag.require(image.pixelColor(x, 3).a == (x == 10 ? 48 : 0))
+    }
+}
+
 // Reordering a medium crossing list must preserve coincident boundaries and either fill rule.
 #test
 {

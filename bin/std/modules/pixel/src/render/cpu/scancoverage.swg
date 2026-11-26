@@ -9,9 +9,15 @@ internal struct Crossing
     winding: s32
 }
 
+internal struct ScanSample
+{
+    y:         f64
+    crossings: Array'Crossing
+}
+
 internal struct ScanScratch
 {
-    rows:     Array'Array'Crossing
+    rows:     Array'ScanSample
     coverage: Array'f32
     sorted:   Array'Crossing
 }
@@ -19,19 +25,27 @@ internal struct ScanScratch
 internal impl ScanScratch
 {
     // Reuses the crossing buffers of the preceding shape or tile.
-    mtd startRows(height: s32)->[..] Array'Crossing
+    mtd startRows(height: s32)->[..] ScanSample
     {
         let count = cast(u64, height) * VerticalSamples
-        if .rows.count < count do
+        if .rows.count < count
+        {
+            let first = .rows.count
             .rows.resize(count)
+
+            // The sample grid is local to the tile, so its ordinates survive clearing the rows.
+            for row in first until count do
+                .rows[row].y = cast(f64, (cast(f32, row) + 0.5) / VerticalSamples)
+        }
+
         let crossings = .rows.toSlice()[0 until count]
         for &line in crossings do
-            line.clear()
+            line.crossings.clear()
         return crossings
     }
 
     // Integrates horizontal coverage at four vertical sample positions per device row.
-    mtd resolveRow(crossings: [..] Array'Crossing, row, width: s32, evenOdd, fullRow: bool)->{values: [*] f32, first, end: u64}
+    mtd resolveRow(crossings: [..] ScanSample, row, width: s32, evenOdd, fullRow: bool)->{values: [*] f32, first, end: u64}
     {
         func sortLine(line: *Array'Crossing, scratch: *Array'Crossing)
         {
@@ -111,11 +125,12 @@ internal impl ScanScratch
 
         var low  = cast(f32, width)
         var high = 0.0'f32
-        for &sample in samples where sample.count > 1
+        for &sample in samples where sample.crossings.count > 1
         {
-            sortLine(sample, &.sorted)
-            low  = Math.min(low, sample[0].x)
-            high = Math.max(high, sample[sample.count - 1].x)
+            let line = &sample.crossings
+            sortLine(line, &.sorted)
+            low  = Math.min(low, line[0].x)
+            high = Math.max(high, line[line.count - 1].x)
         }
 
         // For a sloped edge most of the bounding-box row has no crossings.
@@ -129,7 +144,7 @@ internal impl ScanScratch
         {
             var winding:  s32
             var previous: f32
-            for crossing in line
+            for crossing in line.crossings
             {
                 let x = crossing.x
                 if x > previous and (evenOdd ? (winding & 1) != 0 : winding != 0)
@@ -158,7 +173,7 @@ internal impl ScanScratch
     }
 }
 
-internal func addScanContour(crossings: [..] Array'Crossing, points: const [..] Vector2, transform: const *Transform2, density: f32, origin: Vector2, uniform: bool, width: f32)
+internal func addScanContour(crossings: [..] ScanSample, points: const [..] Vector2, transform: const *Transform2, density: f32, origin: Vector2, uniform: bool, width: f32)
 {
     #[Swag.Inline]
     func project(point: Vector2, transform: const *Transform2, density: f32, origin: Vector2, uniform: bool)->Vector2
@@ -176,7 +191,7 @@ internal func addScanContour(crossings: [..] Array'Crossing, points: const [..] 
         return cast(s64, Math.clamp(Math.ceil(point.y * VerticalSamples - 0.5), 0.0, limit))
     }
 
-    func addEdge(rows: [..] Array'Crossing, a, b: Vector2, aRow, bRow: s64, width: f32)
+    func addEdge(rows: [..] ScanSample, a, b: Vector2, aRow, bRow: s64, width: f32)
     {
         let forward = aRow < bRow
         let top     = forward ? a : b
@@ -188,7 +203,7 @@ internal func addScanContour(crossings: [..] Array'Crossing, points: const [..] 
         {
             let crossing = Crossing{Math.clamp(top.x, 0, width), winding}
             for row in start until end do
-                rows[row].add(crossing)
+                rows[row].crossings.add(crossing)
             return
         }
 
@@ -198,13 +213,13 @@ internal func addScanContour(crossings: [..] Array'Crossing, points: const [..] 
         let dy   = cast(f64, bottom.y) - topY
         for row in start until end
         {
-            let y       = (cast(f32, row) + 0.5) / VerticalSamples
-            let portion = (cast(f64, y) - topY) / dy
+            let sample  = &rows[row]
+            let portion = (sample.y - topY) / dy
             let x       = cast(f32, topX + dx * portion)
 
             // Crossings outside the tile can share its boundary: between them
             // there is no span of visible pixels, only a change of winding.
-            rows[row].add(Crossing{Math.clamp(x, 0, width), winding})
+            sample.crossings.add(Crossing{Math.clamp(x, 0, width), winding})
         }
     }
 

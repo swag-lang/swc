@@ -382,3 +382,40 @@ intersections grew a row buffer 32,418 times. At 320 × 213 with two
 samples per axis, 214,584 of 220,338 sloped edges crossed one sample row
 (97%). Those counts narrow the interpolation work to the single-row case
 and identify where to measure row buffer growth separately.
+
+## Cached scan sample positions
+
+Each sample row now stores its tile-local Y alongside its crossing list.
+The scanner computes Y when scratch grows and keeps it when the next
+shape or tile clears the list. The cached value uses the previous f32
+sample calculation widened to f64. Interpolation uses the same rounding
+for one-row and multi-row edges. This scan path is shared by the SVG
+renderer and CPU Painter fills.
+
+These seven interleaved Release medians use `838d348519` as the
+baseline, the Scope bitmap parse option and resvg 0.50.0. Both programs
+use the same CPU affinity at each worker count. Times include parsing
+and the first raster and are in milliseconds.
+
+| Source size | Swag before, 1 worker | Swag after, 1 worker | resvg, 1 CPU | Swag before, 4 workers | Swag after, 4 workers | resvg, 4 CPUs |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| 640 × 426 | 5.15 | 4.73 | 5.80 | 4.11 | 4.03 | 5.47 |
+| 1280 × 853 | 20.04 | 19.15 | 21.87 | 16.30 | 15.63 | 21.77 |
+| 1920 × 1280 | 45.92 | 44.99 | 47.03 | 34.17 | 33.37 | 48.33 |
+| 5184 × 3456 | 244.18 | 239.79 | 244.90 | 203.21 | 189.96 | 263.22 |
+
+On the largest output (2048 × 1365), the raster alone moves from 177.43
+to 172.79 ms at one worker and from 133.86 to 124.32 ms at four. Its
+320 × 213 thumbnail, rendered at two samples per axis, moves from 195.18
+to 192.03 ms at one worker and from 166.74 to 155.66 ms at four. The
+synthetic dense fill measures 47.25 versus 47.87 ms at one worker and
+32.89 versus 32.49 ms at four. All bitmap, thumbnail and dense-fill
+CRC-64s match the baseline.
+
+The explicit one-row interpolation branch took 259.78 ms against a
+255.78 ms baseline in the five-run trial on the largest bitmap at one
+worker. An inline four-crossing buffer prototype with cached Y took
+170.68 ms in the raster phase against a 184.51 ms baseline on that bitmap
+and 44.34 versus 44.74 ms on the dense fill. This experiment also puts
+more storage in each sample record, so it needs measurements on sparse
+and parallel scans.

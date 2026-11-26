@@ -152,9 +152,13 @@ ships; history lives in Git, not here.
   on the largest bitmap but change coverage within the second horizontal tile.
 - Evidence: [shared contour traversal](../bench/workloads/svgraster/resvg-comparison.md#sharing-contour-traversal-between-columns)
   retains tile-local rounding but adds enough work to slow the four-worker bitmap.
-- Next: measure a single-sample-row interpolation fast path and the separate cost of
-  growing crossing buffers on the largest original. Rerun the original Windows
-  comparison at one worker and at the runtime default.
+- Evidence: [cached scan sample positions](../bench/workloads/svgraster/resvg-comparison.md#cached-scan-sample-positions)
+  cut the largest four-worker raster phase from 134 to 124 ms with matching pixels. A
+  prototype storing four crossings in the sample record reduced the one-worker
+  raster time on the largest bitmap.
+- Next: compare inline crossing buffers on sparse, dense and parallel scans, including peak
+  scratch memory. Rerun the original Windows comparison at one worker and at the runtime
+  default.
 - Done when: the original corpus meets agreed parse and raster budgets against resvg and the
   renderer's verified output behavior is preserved.
 - Related: std.pixel.image.039, app.scope.image.010

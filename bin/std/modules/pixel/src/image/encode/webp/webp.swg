@@ -241,12 +241,12 @@ internal struct Encoder {}
 
 impl Encoder
 {
-    func writeU32(result: *ConcatBuffer, value: u32)
+    func writeU32(destination: [*] u8, value: u32)
     {
-        result.addNative(cast(u8, (value & 0xFF)))
-        result.addNative(cast(u8, ((value >> 8) & 0xFF)))
-        result.addNative(cast(u8, ((value >> 16) & 0xFF)))
-        result.addNative(cast(u8, (value >> 24)))
+        destination[0] = cast(u8, (value & 0xFF))
+        destination[1] = cast(u8, ((value >> 8) & 0xFF))
+        destination[2] = cast(u8, ((value >> 16) & 0xFF))
+        destination[3] = cast(u8, (value >> 24))
     }
 
     func(BGR: bool, ALPHA: bool) packRow(destination: [*] u32, source: const [*] u8, width: s32)
@@ -1254,13 +1254,15 @@ internal impl IImageEncoder for Encoder
         if paddedSize > Swag.U32.Max - 12 do
             fail UnsupportedFormatError{"WebP encoded data does not fit in a RIFF chunk"}
 
-        result.addBytes("RIFF")
-        Encoder.writeU32(result, cast(u32, (4 + 8 + paddedSize)))
-        result.addBytes("WEBP")
-        result.addBytes("VP8L")
-        Encoder.writeU32(result, cast(u32, payload.count))
-        result.addBytes(payload.toSlice())
+        const Header: [20] u8 = ['R', 'I', 'F', 'F', 0, 0, 0, 0, 'W', 'E', 'B', 'P', 'V', 'P', '8', 'L', 0, 0, 0, 0]
+
+        // Write one bucket so encodeToBytes can transfer its storage.
+        let destination = result.reserveInPlace(Header.count + paddedSize)
+        Memory.copy(destination, &Header[0], Header.count)
+        Encoder.writeU32(destination + 4, cast(u32, (4 + 8 + paddedSize)))
+        Encoder.writeU32(destination + 16, cast(u32, payload.count))
+        Memory.copy(destination + Header.count, payload.storage(), payload.count)
         if payload.count & 1 do
-            result.addNative(0'u8)
+            destination[Header.count + payload.count] = 0
     }
 }

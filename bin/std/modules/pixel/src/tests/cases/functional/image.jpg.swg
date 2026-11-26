@@ -771,3 +771,27 @@ func assertEncodedJpgRoundtrip(src: Image, expectedB, expectedG, expectedR: u8, 
     // The source encoder's Y, Cb and Cr component samples become direct R, G and B.
     assertJpgPixelNear(decoded, 255, 85, 76, 4)
 }
+
+// Low-frequency blocks use the same rounding and output clamp as the full IDCT.
+#test
+{
+    var rng = 0xADB361CB'u32
+    for 4096
+    {
+        var coefficients: [64] s16
+        for row in 4
+        {
+            for column in 4
+            {
+                rng *= #wrap 1664525
+                rng += #wrap 1013904223
+                coefficients[row * 8 + column] = cast #bit(s16, cast(u16, rng >> 16))
+            }
+        }
+
+        var full, sparse: [64] u8
+        Jpg.Decoder.idctFull'false(coefficients, full)
+        Jpg.Decoder.idctFull'true(coefficients, sparse)
+        Swag.require(Memory.compare(full, sparse, 64) == 0)
+    }
+}

@@ -2415,6 +2415,24 @@ private impl RenderCpu
             }
         }
 
+        if fastAlpha and not batch.solidPaint and not stencilTest and not .stencilWrite and constantColor and
+           (paint.type == .LinearGradient or paint.type == .RadialGradient or paint.type == .SweepGradient) and
+           (.program == CpuProgram_Simple or .program == CpuProgram_Default) and
+           maxX - minX >= 8 and Math.isFinite(invArea) and
+           p0.isFinite() and p1.isFinite() and p2.isFinite() and
+           Math.max(Math.abs(p0.x), Math.abs(p1.x), Math.abs(p2.x)) <= 1_048_576 and
+           Math.max(Math.abs(p0.y), Math.abs(p1.y), Math.abs(p2.y)) <= 1_048_576
+        {
+            let triangle = TriangleSpan{
+                bounds: {minX, minY, maxX, maxY},
+                origin: [edge0Origin, edge1Origin, edge2Origin],
+                dx: [dx0, dx1, dx2], dy: [dy0, dy1, dy2],
+                topLeft: [edge0TopLeft, edge1TopLeft, edge2TopLeft],
+                pos: [v0.pos, v1.pos, v2.pos], invArea: invArea}
+            .drawGradientTriangle(batch, &triangle, c0, [v0.cov, v1.cov, v2.cov], covWidth)
+            return
+        }
+
         let needPaintPos = not batch.solidPaint
         let needCoverage = .program == CpuProgram_Default
         let copyAll      = fastCopy and maskFull
@@ -2518,6 +2536,99 @@ private impl RenderCpu
                 {
                     .blendPixel(image, x, y, src)
                 }
+            }
+        }
+    }
+
+    // The gradient shade and its matte coverage are shared by the two targets.
+    mtd drawGradientTriangle(batch: *RasterBatch, triangle: const *TriangleSpan, ink: Color,
+                             coverage: [3] f32, covWidth: f32)
+    {
+        let bounds  = triangle.bounds
+        let origin  = triangle.origin
+        let dx      = triangle.dx
+        let dy      = triangle.dy
+        let pos     = triangle.pos
+        let invArea = triangle.invArea
+        let cov     = .program == CpuProgram_Default
+        let tinted  = (ink.argb & 0x00FF_FFFF) != 0x00FF_FFFF
+        let matte   = .whiteMatte
+        const ExpandAlpha = cast(Math.Simd.U8x16, [3, 3, 3, 3, 7, 7, 7, 7, 11, 11, 11, 11, 15, 15, 15, 15])
+        for y in bounds.minY until bounds.maxY + 1
+        {
+            let sy     = cast(f32, y) + 0.5
+            let c0     = dx[0] * (sy - origin[0].y)
+            let c1     = dx[1] * (sy - origin[1].y)
+            let c2     = dx[2] * (sy - origin[2].y)
+            let offset = cast(u64, batch.height - y - 1) * batch.rowStride
+            let row    = batch.pixels + offset
+            var first  = bounds.minX
+            var last   = bounds.maxX
+            narrowEdgeSpan(&first, &last, -dy[0], c0, origin[0].x)
+            narrowEdgeSpan(&first, &last, -dy[1], c1, origin[1].x)
+            narrowEdgeSpan(&first, &last, -dy[2], c2, origin[2].x)
+            trimEdgeSpan(&first, &last, -dy[0], c0, origin[0].x, triangle.topLeft[0])
+            trimEdgeSpan(&first, &last, -dy[1], c1, origin[1].x, triangle.topLeft[1])
+            trimEdgeSpan(&first, &last, -dy[2], c2, origin[2].x, triangle.topLeft[2])
+
+            var x = first
+            while x <= last
+            {
+                var colors: [4] u32
+                let count = Math.min(4, last - x + 1)
+                let sx    = Math.Simd.splat(cast(f32, x)) + cast(Math.Simd.F32x4, [0.5'f32, 1.5, 2.5, 3.5])
+                let ws0 = Math.mulAdd(Math.Simd.splat(-dy[0]), sx - origin[0].x, Math.Simd.splat(c0)) * invArea
+                let ws1 = Math.mulAdd(Math.Simd.splat(-dy[1]), sx - origin[1].x, Math.Simd.splat(c1)) * invArea
+                let ws2 = Math.mulAdd(Math.Simd.splat(-dy[2]), sx - origin[2].x, Math.Simd.splat(c2)) * invArea
+                // The scalar evaluation rounds each product before adding the positions.
+                let xs = Math.mulAdd(ws2, Math.Simd.splat(pos[2].x),
+                                    Math.mulAdd(ws1, Math.Simd.splat(pos[1].x), ws0 * pos[0].x))
+                let ys = Math.mulAdd(ws2, Math.Simd.splat(pos[2].y),
+                                    Math.mulAdd(ws1, Math.Simd.splat(pos[1].y), ws0 * pos[0].y))
+                for lane in count
+                {
+                    let w0       = ws0[lane]
+                    let w1       = ws1[lane]
+                    let w2       = ws2[lane]
+                    let paintPos = Vector2{xs[lane], ys[lane]}
+                    var color    = .sampleGradient(&.paint, paintPos)
+                    if tinted do
+                        color = Color.multiply(ink, color)
+                    elif ink.a != 255 do
+                        color.a = cast(u8, cast(u16, ink.a) * color.a / 255)
+                    if cov
+                    {
+                        let firstTwo = coverage[0] * w0 + coverage[1] * w1
+                        let sum = Math.mulAdd(coverage[2], w2, firstTwo)
+                        color.a = coverageAlpha(color.a, Math.saturate(signedCoverage(sum) / covWidth + 0.5))
+                    }
+                    colors[lane] = color.argb
+                }
+
+                if count == 4
+                {
+                    let src   = Math.Simd.load(cast(const [*] u8, &colors[0]))
+                    let alpha = Math.Simd.shuffle(src, ExpandAlpha)
+                    let dest  = row + x * 4
+                    Math.Simd.store(dest, blendAlphaBgra8x4(src, Math.Simd.load(dest), alpha))
+                    if matte
+                    {
+                        let white = matte + offset + x * 4
+                        Math.Simd.store(white, blendAlphaBgra8x4(src, Math.Simd.load(white), alpha))
+                    }
+                }
+                else
+                {
+                    for lane in count
+                    {
+                        let pixel = (x + cast(s32, lane)) * 4
+                        let color = Color.fromArgb(colors[lane])
+                        blendAlphaBgra8(row + pixel, color)
+                        if matte do
+                            blendAlphaBgra8(matte + offset + pixel, color)
+                    }
+                }
+                x += count
             }
         }
     }

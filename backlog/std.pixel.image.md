@@ -208,7 +208,10 @@ ships; history lives in Git, not here.
 - Evidence: [cubic allocations and control bounds](../bench/workloads/svgraster/resvg-comparison.md#preparing-repeated-cubic-commands-and-control-bounds)
   reduce parsing the largest original from 61 to 48 ms at four workers with
   unchanged raster CRC-64s.
-- Next: profile interpolated paint and the remaining stroke and clip costs.
+- Evidence: [packed gradient spans](../bench/workloads/svgraster/resvg-comparison.md#vectorizing-translucent-gradient-spans)
+  reduce 420 overlapping gradient paths from 188 to 115 ms on one logical CPU.
+  resvg takes 30 ms. Scalar paint quantization and CRC-64s remain identical.
+- Next: measure disjoint gradient row jobs and the remaining stroke and clip costs.
   Rerun the original Windows comparison at one worker and at the runtime default.
 - Done when: the original corpus meets agreed parse and raster budgets against resvg and the
   renderer's verified output behavior is preserved.

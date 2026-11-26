@@ -976,3 +976,35 @@ Both sizes of the clipped image keep every RGBA byte. All 16
 generated SVG cases, 13 public SVG cases and 55 supported PDF
 cases keep their Swag checksums. The 991 Pixel tests include
 independent bilinear weights and edge clamps for all four lanes.
+
+## Vectorizing translucent gradient spans
+
+The profile of 420 overlapping gradient paths attributed 41% of samples to
+the general triangle loop and 45% to sampling, interpolation, shading and
+multiplying colors. tiny-skia computes a slope and bias for each interval
+once, then looks up the stops and composites premultiplied spans over
+8 or 16 lanes. Swag starts with triangle edge equations, interpolates the
+painter-space position, and quantizes each sampled color before blending
+over its two mattes.
+[Stop coefficients](https://github.com/linebender/tiny-skia/blob/e48b9027762d33731e60e40eb17eaa4f583b0185/src/shaders/gradient.rs#L200)
+[16-lane gradient evaluation](https://github.com/linebender/tiny-skia/blob/e48b9027762d33731e60e40eb17eaa4f583b0185/src/pipeline/lowp.rs#L602)
+[8-lane gradient evaluation](https://github.com/linebender/tiny-skia/blob/e48b9027762d33731e60e40eb17eaa4f583b0185/src/pipeline/highp.rs#L916)
+
+For eligible color-only triangles, the CPU renderer trims each row with
+the existing edge tests and interpolates four positions together, with the
+scalar product rounding. It samples each color once and composites the four
+pixels into both mattes. White RGB tint scales only the sampled alpha.
+
+Thirteen interleaved Release runs of `gradient-fills.svg` at 1280 × 853 gave
+these median parse-plus-raster times in milliseconds.
+
+| Logical CPUs | Swag before | Swag after | resvg 0.50.0 |
+| --- | ---: | ---: | ---: |
+| 1 | 188.17 | 115.33 | 29.66 |
+| 2 | 188.61 | 115.22 | 29.68 |
+| 4 | 183.98 | 119.59 | 30.69 |
+
+The generated, public, and attached rasters retain their CRC-64s. Twelve
+additional transformed gradient files and a gradient thumbnail match with
+one or two samples per axis and one or four workers. A test compares
+linear, radial and sweep gradients with scalar blending over opaque targets.

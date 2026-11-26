@@ -104,8 +104,9 @@ impl Image
         if options.maxInputBytes and bytes.count > options.maxInputBytes do
             fail UnsupportedFormatError{"image exceeds the encoded byte limit"}
 
-        // PNG enforces both limits before allocating its compressed or decoded pixel buffers.
+        // JPEG and PNG enforce the geometry limits before allocating their decoded buffers.
         if decoderType != #typeof(Png.Decoder) and
+           decoderType != #typeof(Jpg.Decoder) and
            options.decodePixels and
            (options.maxPixels or options.maxDecodedBytes)
         {

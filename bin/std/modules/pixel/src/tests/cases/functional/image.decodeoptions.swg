@@ -91,6 +91,31 @@ using Swag, Core.Errors
     Swag.require((errorOutcome.value() is InvalidFormatError))
 }
 
+// JPEG checks the SOF dimensions before it needs the start of the scan.
+#test
+{
+    let bytes = expect File.readAllBytes(getTestDataPath("sampling-thirds.jpg"))
+    var scan  = bytes.count
+    for i in bytes.count - 1
+    {
+        if bytes[i] == 0xFF and bytes[i + 1] == 0xDA
+        {
+            scan = i
+            break
+        }
+    }
+
+    Swag.require(scan < bytes.count)
+    let prefix = bytes.toSlice()[until scan]
+    let limits = [DecodeOptions{maxPixels: 1}, DecodeOptions{maxPixels: 0, maxDecodedBytes: 1}]
+    for options in limits
+    {
+        var errorOutcome: Swag.Error
+        catch { discard try Image.decode("limited.jpg", prefix, options) } as errorOutcome
+        Swag.require(errorOutcome.value() is UnsupportedFormatError)
+    }
+}
+
 // PNG enforces limits itself, using the output format after palette transparency expansion.
 #test
 {

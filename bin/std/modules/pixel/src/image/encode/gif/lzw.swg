@@ -28,6 +28,7 @@ private
 
 impl BitWriter
 {
+    #[Inline]
     mtd write(code: u16, codeSize: u8)
     {
         .curBits  |= cast(u64, code) << .bitCount
@@ -35,9 +36,13 @@ impl BitWriter
 
         if .bitCount >= 32
         {
-            cast([*] u32, .bytes.emplaceAddress(4))[0] = cast #wrap(u32, .curBits)
-            .curBits  >>= 32
-            .bitCount -= 32
+            let end = .bytes.count + 4
+            if end > .bytes.capacity do
+                .bytes.grow(end)
+            cast([*] u32, .bytes.storage() + .bytes.count)[0] = cast #wrap(u32, .curBits)
+            .bytes.count = end
+            .curBits     >>= 32
+            .bitCount    -= 32
         }
     }
 
@@ -133,19 +138,57 @@ impl Encoder
     {
         if singleIndex and indexes.count do
             return lzwCompressRepeat(indexes[0], indexes.count, minCodeSize)
-        return lzwCompressStream'false(indexes, minCodeSize, null)
+        return lzwCompressSelected'false(indexes, minCodeSize, null)
     }
 
     func lzwCompressGray(indexes: const [..] u8, literals: const [*] u8)->Array'u8
     {
-        return lzwCompressStream'true(indexes, 8, literals)
+        return lzwCompressSelected'true(indexes, 8, literals)
+    }
+
+    // Sample a sequence to see whether most indexes have a consistent successor.
+    func sampleHasConsistentTransitions(source: const [*] u8)->bool
+    {
+        var successors: [256] u16
+        var different:  u32
+        var previous = source[0]
+        for i in 1 until 512
+        {
+            let next     = source[i]
+            let expected = cast(u16, next) + 1
+            let slot     = &successors[previous]
+            if not slot[]
+            {
+                slot[] = expected
+            }
+            elif slot[] != expected
+            {
+                different += 1
+                if different >= 64 do
+                    return false
+            }
+
+            previous = next
+        }
+
+        return true
+    }
+
+    func(RemapLiterals: bool) lzwCompressSelected(indexes: const [..] u8, minCodeSize: u8, literals: const [*] u8?)->Array'u8
+    {
+        if indexes.count >= 4096 and
+           sampleHasConsistentTransitions(indexes.buffer) and
+           sampleHasConsistentTransitions(indexes.buffer + indexes.count / 2) and
+           sampleHasConsistentTransitions(indexes.buffer + indexes.count * 3 / 4) do
+            return lzwCompressStream'(RemapLiterals, true)(indexes, minCodeSize, literals)
+        return lzwCompressStream'(RemapLiterals, false)(indexes, minCodeSize, literals)
     }
 
     // Compresses palette indexes into GIF LZW codes.
     //
     // The dictionary maps a known string, as its code, followed by one more index to the code of
     // the longer string. It is reset with a clear code once every 12-bit code is taken.
-    func(RemapLiterals: bool) lzwCompressStream(indexes: const [..] u8, minCodeSize: u8, literals: const [*] u8?)->Array'u8
+    func(RemapLiterals: bool, FirstTransition: bool) lzwCompressStream(indexes: const [..] u8, minCodeSize: u8, literals: const [*] u8?)->Array'u8
     {
         var enc: LzwEncoder
         enc.init(minCodeSize)
@@ -162,7 +205,7 @@ impl Encoder
         let capacity = Math.roundUpToPowerOf2(cast(u32, Math.min(indexes.count, 4096'u64)) * 2)
         let shift    = Math.leadingZeros(capacity - 1)
         var table: Array'u32
-        table.resize(capacity)
+        table.resize(capacity + (FirstTransition ? MaxLzwCode + 1 : 0))
         let dictionary = table.storage()
         var nextCode   = cast(u32, enc.endCode) + 1
 
@@ -170,23 +213,50 @@ impl Encoder
         var prefix = cast(u32, indexes[0])
         for i in 1 until indexes.count
         {
-            let index = indexes[i]
-            let key   = (prefix << 8 | index) << 12
-            var slot  = ((key >> 12) * #wrap 0x9E3779B9'u32) >> shift
-            var entry = dictionary[slot]
-            while entry and (entry & ~MaxLzwCode) != key
+            let index  = indexes[i]
+            var slot: u32
+            var key:  u32
+            var search = true
+            #static if FirstTransition
             {
-                slot  = (slot + 1) & (capacity - 1)
-                entry = dictionary[slot]
+                // The first extension of each prefix gets a direct slot. Other extensions
+                // still share the compact hash table.
+                slot = capacity + prefix
+                key  = cast(u32, index) << 12
+                let first = dictionary[slot]
+                if first
+                {
+                    if (first & ~MaxLzwCode) == key
+                    {
+                        prefix = first & MaxLzwCode
+                        continue
+                    }
+                }
+                else
+                {
+                    search = false
+                }
             }
 
-            if entry
+            if search
             {
-                prefix = entry & MaxLzwCode
-                continue
+                key  = (prefix << 8 | index) << 12
+                slot = ((key >> 12) * #wrap 0x9E3779B9'u32) >> shift
+                var entry = dictionary[slot]
+                while entry and (entry & ~MaxLzwCode) != key
+                {
+                    slot  = (slot + 1) & (capacity - 1)
+                    entry = dictionary[slot]
+                }
+
+                if entry
+                {
+                    prefix = entry & MaxLzwCode
+                    continue
+                }
             }
 
-            enc.writeCode(RemapLiterals and prefix < 256 ? cast(u16, (unwrap literals)[prefix]) : cast(u16, prefix))
+            enc.bits.write(RemapLiterals and prefix < 256 ? cast(u16, (unwrap literals)[prefix]) : cast(u16, prefix), enc.codeSize)
             if nextCode < MaxLzwCode
             {
                 dictionary[slot] = key | nextCode
@@ -196,14 +266,14 @@ impl Encoder
             else
             {
                 enc.writeCode(enc.clearCode)
-                Memory.clear(dictionary, cast(u64, capacity) * #sizeof(u32))
+                Memory.clear(dictionary, table.count * #sizeof(u32))
                 nextCode = cast(u32, enc.endCode) + 1
             }
 
             prefix = index
         }
 
-        enc.writeCode(RemapLiterals and prefix < 256 ? cast(u16, (unwrap literals)[prefix]) : cast(u16, prefix))
+        enc.bits.write(RemapLiterals and prefix < 256 ? cast(u16, (unwrap literals)[prefix]) : cast(u16, prefix), enc.codeSize)
         enc.writeCode(enc.endCode)
         enc.bits.flush()
         return enc.bits.bytes

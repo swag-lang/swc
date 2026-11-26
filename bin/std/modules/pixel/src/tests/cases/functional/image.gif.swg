@@ -521,10 +521,10 @@ func wideGifPaletteFixture(withTransparency, invalidIndex: bool)->Array'u8
     assertGifPixelAt(alphaDecoded, 1, 0, 180'u8, 180'u8, 180'u8, 255'u8)
 }
 
-// A full grayscale ramp in the first row fixes the palette order for every row.
+// A full grayscale ramp in the first row fixes the palette order across dictionary resets.
 #test
 {
-    let source = Image.create(263, 3, .Gray8)
+    let source = Image.create(263, 277, .Gray8)
     for y in source.height
     {
         for x in source.width do

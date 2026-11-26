@@ -26,72 +26,84 @@ private const KeccakRoundConstants: [24] u64 = [
     0x8000000080008081, 0x8000000000008080, 0x0000000080000001, 0x8000000080008008]
 
 #[Swag.Inline]
-private func keccakChi(row: [*] u64, a, b, c, d, e: u64)
+private func keccakChi(row: [*] u64, a, b, c, d, e: u64, roundConstant = 0'u64)
 {
-    row[0] = a ^ (~b & c)
+    row[0] = a ^ (~b & c) ^ roundConstant
     row[1] = b ^ (~c & d)
     row[2] = c ^ (~d & e)
     row[3] = d ^ (~e & a)
     row[4] = e ^ (~a & b)
 }
 
+#[Swag.Inline]
+private func keccakRound(lanes: const [*] u64, output: [*] u64, roundConstant: u64)
+{
+    // Theta mixes the parity of each column into the neighboring columns.
+    let c0 = lanes[0] ^ lanes[5] ^ lanes[10] ^ lanes[15] ^ lanes[20]
+    let c1 = lanes[1] ^ lanes[6] ^ lanes[11] ^ lanes[16] ^ lanes[21]
+    let c2 = lanes[2] ^ lanes[7] ^ lanes[12] ^ lanes[17] ^ lanes[22]
+    let c3 = lanes[3] ^ lanes[8] ^ lanes[13] ^ lanes[18] ^ lanes[23]
+    let c4 = lanes[4] ^ lanes[9] ^ lanes[14] ^ lanes[19] ^ lanes[24]
+
+    let d0 = c4 ^ Math.rol(c1, 1)
+    let d1 = c0 ^ Math.rol(c2, 1)
+    let d2 = c1 ^ Math.rol(c3, 1)
+    let d3 = c2 ^ Math.rol(c4, 1)
+    let d4 = c3 ^ Math.rol(c0, 1)
+
+    // Rotate each set of theta-adjusted lanes into its destination row, then apply Chi.
+    let b00 = lanes[0] ^ d0
+    let b10 = Math.rol(lanes[6] ^ d1, 44)
+    let b20 = Math.rol(lanes[12] ^ d2, 43)
+    let b30 = Math.rol(lanes[18] ^ d3, 21)
+    let b40 = Math.rol(lanes[24] ^ d4, 14)
+    keccakChi(output, b00, b10, b20, b30, b40, roundConstant)
+
+    let b01 = Math.rol(lanes[3] ^ d3, 28)
+    let b11 = Math.rol(lanes[9] ^ d4, 20)
+    let b21 = Math.rol(lanes[10] ^ d0, 3)
+    let b31 = Math.rol(lanes[16] ^ d1, 45)
+    let b41 = Math.rol(lanes[22] ^ d2, 61)
+    keccakChi(output + 5, b01, b11, b21, b31, b41)
+
+    let b02 = Math.rol(lanes[1] ^ d1, 1)
+    let b12 = Math.rol(lanes[7] ^ d2, 6)
+    let b22 = Math.rol(lanes[13] ^ d3, 25)
+    let b32 = Math.rol(lanes[19] ^ d4, 8)
+    let b42 = Math.rol(lanes[20] ^ d0, 18)
+    keccakChi(output + 10, b02, b12, b22, b32, b42)
+
+    let b03 = Math.rol(lanes[4] ^ d4, 27)
+    let b13 = Math.rol(lanes[5] ^ d0, 36)
+    let b23 = Math.rol(lanes[11] ^ d1, 10)
+    let b33 = Math.rol(lanes[17] ^ d2, 15)
+    let b43 = Math.rol(lanes[23] ^ d3, 56)
+    keccakChi(output + 15, b03, b13, b23, b33, b43)
+
+    let b04 = Math.rol(lanes[2] ^ d2, 62)
+    let b14 = Math.rol(lanes[8] ^ d3, 55)
+    let b24 = Math.rol(lanes[14] ^ d4, 39)
+    let b34 = Math.rol(lanes[15] ^ d0, 41)
+    let b44 = Math.rol(lanes[21] ^ d1, 2)
+    keccakChi(output + 20, b04, b14, b24, b34, b44)
+}
+
 private func permuteKeccak(state: *[25] u64)
 {
+    var buffer: [25] u64
     let lanes = state[].buffer
-    for roundConstant in KeccakRoundConstants
+
+    // Each round writes rows into the other state, keeping only one row of rotations live.
+    for group in 6
     {
-        // Theta mixes the parity of each column into the neighboring columns.
-        let c0 = lanes[0] ^ lanes[5] ^ lanes[10] ^ lanes[15] ^ lanes[20]
-        let c1 = lanes[1] ^ lanes[6] ^ lanes[11] ^ lanes[16] ^ lanes[21]
-        let c2 = lanes[2] ^ lanes[7] ^ lanes[12] ^ lanes[17] ^ lanes[22]
-        let c3 = lanes[3] ^ lanes[8] ^ lanes[13] ^ lanes[18] ^ lanes[23]
-        let c4 = lanes[4] ^ lanes[9] ^ lanes[14] ^ lanes[19] ^ lanes[24]
-
-        let d0 = c4 ^ Math.rol(c1, 1)
-        let d1 = c0 ^ Math.rol(c2, 1)
-        let d2 = c1 ^ Math.rol(c3, 1)
-        let d3 = c2 ^ Math.rol(c4, 1)
-        let d4 = c3 ^ Math.rol(c0, 1)
-
-        // Rotate and permute the theta-adjusted lanes into their destination rows.
-        let b00 = lanes[0] ^ d0
-        let b10 = Math.rol(lanes[6] ^ d1, 44)
-        let b20 = Math.rol(lanes[12] ^ d2, 43)
-        let b30 = Math.rol(lanes[18] ^ d3, 21)
-        let b40 = Math.rol(lanes[24] ^ d4, 14)
-
-        let b01 = Math.rol(lanes[3] ^ d3, 28)
-        let b11 = Math.rol(lanes[9] ^ d4, 20)
-        let b21 = Math.rol(lanes[10] ^ d0, 3)
-        let b31 = Math.rol(lanes[16] ^ d1, 45)
-        let b41 = Math.rol(lanes[22] ^ d2, 61)
-
-        let b02 = Math.rol(lanes[1] ^ d1, 1)
-        let b12 = Math.rol(lanes[7] ^ d2, 6)
-        let b22 = Math.rol(lanes[13] ^ d3, 25)
-        let b32 = Math.rol(lanes[19] ^ d4, 8)
-        let b42 = Math.rol(lanes[20] ^ d0, 18)
-
-        let b03 = Math.rol(lanes[4] ^ d4, 27)
-        let b13 = Math.rol(lanes[5] ^ d0, 36)
-        let b23 = Math.rol(lanes[11] ^ d1, 10)
-        let b33 = Math.rol(lanes[17] ^ d2, 15)
-        let b43 = Math.rol(lanes[23] ^ d3, 56)
-
-        let b04 = Math.rol(lanes[2] ^ d2, 62)
-        let b14 = Math.rol(lanes[8] ^ d3, 55)
-        let b24 = Math.rol(lanes[14] ^ d4, 39)
-        let b34 = Math.rol(lanes[15] ^ d0, 41)
-        let b44 = Math.rol(lanes[21] ^ d1, 2)
-
-        // Chi combines adjacent lanes within each row. Iota adjusts the first lane.
-        keccakChi(lanes, b00, b10, b20, b30, b40)
-        keccakChi(lanes + 5, b01, b11, b21, b31, b41)
-        keccakChi(lanes + 10, b02, b12, b22, b32, b42)
-        keccakChi(lanes + 15, b03, b13, b23, b33, b43)
-        keccakChi(lanes + 20, b04, b14, b24, b34, b44)
-        lanes[0] ^= roundConstant
+        let round = group * 4
+        keccakRound(lanes, buffer.buffer, KeccakRoundConstants[round])
+        keccakRound(buffer.buffer, lanes, KeccakRoundConstants[round + 1])
+        keccakRound(lanes, buffer.buffer, KeccakRoundConstants[round + 2])
+        keccakRound(buffer.buffer, lanes, KeccakRoundConstants[round + 3])
     }
+
+    Crypto.secureClear(buffer)
 }
 
 private func absorbKeccak(state: *[25] u64, data: const [*] u8, rate: u64)

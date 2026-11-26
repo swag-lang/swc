@@ -68,10 +68,13 @@ func unpackLzw(dst: [*] u8, expected: u64, src: const [*] u8, srcCount: u32, dic
     let words = dictionary.storage()
 
     var output:         u64
-    var previousLength: u64
-    var width    = 9'u32
-    var mask     = 511'u32
-    var nextCode = LZW_FIRST_CODE
+    var previousWord:   u64
+    var width = 9'u32
+    var mask  = 511'u32
+
+    // The first literal writes into the unused EOI slot, then starts the dictionary.
+    // Until then a dictionary reference is necessarily greater than nextCode.
+    var nextCode = LZW_EOI_CODE
 
     while true
     {
@@ -80,10 +83,9 @@ func unpackLzw(dst: [*] u8, expected: u64, src: const [*] u8, srcCount: u32, dic
             break
         if code == LZW_CLEAR_CODE
         {
-            width          = 9
-            mask           = 511
-            nextCode       = LZW_FIRST_CODE
-            previousLength = 0
+            width    = 9
+            mask     = 511
+            nextCode = LZW_EOI_CODE
             continue
         }
 
@@ -98,12 +100,12 @@ func unpackLzw(dst: [*] u8, expected: u64, src: const [*] u8, srcCount: u32, dic
         }
         else
         {
-            if not previousLength or code > nextCode do
+            if code > nextCode do
                 fail InvalidFormatError{"invalid lzw stream"}
 
             // A reference to the next entry uses the previous word and its first byte.
             let repeat     = code == nextCode
-            let word       = repeat ? ((output - previousLength) << LengthBits) | previousLength : words[code]
+            let word       = repeat ? previousWord : words[code]
             let wordLength = word & LengthMask
             length = repeat ? wordLength + 1 : wordLength
             if length > expected - output do
@@ -134,9 +136,9 @@ func unpackLzw(dst: [*] u8, expected: u64, src: const [*] u8, srcCount: u32, dic
         }
 
         // This entry ends at the first byte of this word. All future copies are disjoint.
-        if previousLength and nextCode <= LZW_MAX_CODE
+        if nextCode <= LZW_MAX_CODE
         {
-            words[nextCode] = ((output - previousLength) << LengthBits) | (previousLength + 1)
+            words[nextCode] = previousWord + 1
             nextCode        += 1
 
             // TIFF changes width when the next code reaches the current all-ones value.
@@ -147,8 +149,8 @@ func unpackLzw(dst: [*] u8, expected: u64, src: const [*] u8, srcCount: u32, dic
             }
         }
 
-        output         += length
-        previousLength = length
+        previousWord = (output << LengthBits) | length
+        output       += length
     }
 
     if output != expected do

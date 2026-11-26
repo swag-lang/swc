@@ -1737,6 +1737,12 @@ from Swag's retained source. FreeType takes 658–821 µs from a
 buffer acquired before timing.
 [Raw native timings and fingerprints](font-decode-linux-cjk-native-verified.json)
 
+A pathname trace with the verified build shows Swag reading 2,295,700
+bytes for Gothic A1 and 16,467,748 bytes for Noto Sans CJK JP, including
+the preliminary header reads. The FreeType probe maps their 2,295,400
+and 16,467,736 bytes with `PROT_READ` and `MAP_PRIVATE`. It reads the
+requested glyph through that mapping.
+
 The parallel comparison requests one or four workers on the same
 four CPUs and starts the workers before timing. The 16 cases that
 qualify for parallel reads take 19–43% less time with four workers,

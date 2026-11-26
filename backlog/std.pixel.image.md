@@ -156,9 +156,14 @@ ships; history lives in Git, not here.
   cut the largest four-worker raster phase from 134 to 124 ms with matching pixels. A
   prototype storing four crossings in the sample record reduced the one-worker
   raster time on the largest bitmap.
-- Next: compare inline crossing buffers on sparse, dense and parallel scans, including peak
-  scratch memory. Rerun the original Windows comparison at one worker and at the runtime
-  default.
+- Evidence: [sparse and dense scan comparisons](../bench/workloads/svgraster/resvg-comparison.md#crossing-storage-on-sparse-and-dense-samples)
+  show a gain from inline buffers on sparse rows and slower parallel scans on the largest
+  original. A shared crossing store also slowed its one-worker bitmap. The
+  [short integer path](../bench/workloads/svgraster/resvg-comparison.md#short-svg-integers)
+  cut the largest original's parse time in repeated one-worker runs.
+- Next: measure the cost of evaluating cubic sample positions after contours have chosen
+  their segment counts. Rerun the original Windows comparison at one worker and at the
+  runtime default.
 - Done when: the original corpus meets agreed parse and raster budgets against resvg and the
   renderer's verified output behavior is preserved.
 - Related: std.pixel.image.039, app.scope.image.010

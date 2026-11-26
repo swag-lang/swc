@@ -31,7 +31,7 @@ func exrAddAttribute(result: *ConcatBuffer, name, type: string, payload: const [
     result.addBytes(payload)
 }
 
-func exrZipFixture(width: u32, packed: const [..] u8, extraName = "")->ConcatBuffer
+func exrZipFixture(width: u32, packed: const [..] u8, extraName = "", rowsPerBlock = 1'u32, blocks = 1'u32)->ConcatBuffer
 {
     var channels: ConcatBuffer
     exrAddText(&channels, "Y")
@@ -41,12 +41,12 @@ func exrZipFixture(width: u32, packed: const [..] u8, extraName = "")->ConcatBuf
     exrAddU32(&channels, 1)
     channels.addNative(0'u8)
 
-    var compression: [1] u8 = [2]     // ZIPS.
+    var compression: [1] u8 = [rowsPerBlock == 16 ? 3 : 2]
     var dataWindow:  ConcatBuffer
     exrAddU32(&dataWindow, 0)
     exrAddU32(&dataWindow, 0)
     exrAddU32(&dataWindow, width - 1)
-    exrAddU32(&dataWindow, 0)
+    exrAddU32(&dataWindow, blocks * rowsPerBlock - 1)
 
     var header: ConcatBuffer
     exrAddAttribute(&header, "channels", "chlist", unwrap channels.toSlice())
@@ -60,10 +60,17 @@ func exrZipFixture(width: u32, packed: const [..] u8, extraName = "")->ConcatBuf
     exrAddU32(&result, Exr.Magic)
     exrAddU32(&result, 2)
     result.addBytes(unwrap header.toSlice())
-    exrAddU64(&result, result.count() + 8)
-    exrAddU32(&result, 0)     // First scanline.
-    exrAddU32(&result, cast(u32, packed.count))
-    result.addBytes(packed)
+    let firstChunk = result.count() + cast(u64, blocks) * 8
+    let chunkBytes = packed.count + 8
+    for block in blocks do
+        exrAddU64(&result, firstChunk + cast(u64, block) * chunkBytes)
+    for block in blocks
+    {
+        exrAddU32(&result, block * rowsPerBlock)
+        exrAddU32(&result, cast(u32, packed.count))
+        result.addBytes(packed)
+    }
+
     return result
 }
 
@@ -438,6 +445,62 @@ func exrUnalignedFloatFixture(names: const [..] string, width = 1'u32)->ConcatBu
     var errorOutcome: Swag.Error
     discard catch Image.decode("oversized-header.exr", nnBytes(rejected.toSlice())) as errorOutcome
     Swag.require(errorOutcome.value() is Errors.InvalidFormatError)
+}
+
+// A ZIP image large enough to use the worker pool preserves its scanlines and error order.
+#test
+{
+    const Width      = 1024'u32
+    const Rows       = 16'u32
+    const Blocks     = 32'u32
+    const PlaneBytes = cast(u64, Width * Rows)
+    var deltas: Array'u8
+    deltas.resize(PlaneBytes * 2)
+    var state = 0x436C_A9D5'u32
+    for index in PlaneBytes
+    {
+        state = state * #wrap 1664525 + #wrap 1013904223
+        let value = cast(u16, state >> 18)
+        deltas[index] = cast(u8, value & 255)
+        deltas[PlaneBytes + index] = cast(u8, value >> 8)
+    }
+
+    var previous = deltas[0]
+    for index in rangeTo(1'u64, deltas.count - 1)
+    {
+        let current = deltas[index]
+        deltas[index] = cast(u8, (cast(s32, current) - previous + 128) & 255)
+        previous      = current
+    }
+
+    var zlib: Compress.ZLib
+    let packed = expect zlib.compress(deltas.toSlice())
+    Swag.require(packed.count < deltas.count and packed.count * Blocks >= 512 * 1024)
+    var single = exrZipFixture(Width, packed.toSlice(), rowsPerBlock: Rows)
+    single.makeLinear()
+    let reference = expect Image.decode("single-zip-block.exr", nnBytes(single.toSlice()))
+    var many      = exrZipFixture(Width, packed.toSlice(), rowsPerBlock: Rows, blocks: Blocks)
+    many.makeLinear()
+    var bytes   = unwrap many.toSlice()
+    let decoded = expect Image.decode("parallel-zip-blocks.exr", bytes)
+    assertImage(decoded, cast(s32, Width), cast(s32, Rows * Blocks), .GrayF16)
+    for block in Blocks
+    {
+        let target = decoded.pixels.storage() + cast(u64, block) * reference.byteCount
+        Swag.require(Memory.compare(target, reference.pixels.storage(), reference.byteCount) == 0)
+    }
+
+    // A bad first payload precedes a duplicate last chunk in the offset table.
+    let firstChunk = bytes.count - cast(u64, Blocks) * (packed.count + 8)
+    let table      = firstChunk - cast(u64, Blocks) * 8
+    Memory.copy(bytes.buffer + firstChunk - 8, bytes.buffer + table, 8)
+    bytes[firstChunk + 8] = 0xFF
+    var errorOutcome: Swag.Error
+    discard catch Image.decode("invalid-parallel-zip-blocks.exr", bytes) as errorOutcome
+    let error = errorOutcome.value()
+    Swag.require(error is Errors.InvalidFormatError)
+    let detail = assume cast(const *Errors.InvalidFormatError, error)
+    Swag.require(detail.message == "invalid compression method")
 }
 
 // Error: RGB and Y channels cannot be mapped to one output image without ambiguity.

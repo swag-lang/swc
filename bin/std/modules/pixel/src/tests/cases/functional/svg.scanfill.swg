@@ -136,6 +136,29 @@ using Core
     Swag.require(image.pixelColor(2, 1).a == 64)
 }
 
+// Short signed coordinates can sit beside numbers that need the full parser.
+#test
+{
+    const ShortNumbers = """
+        <svg width='32' height='20'>
+          <path d='M+2 1e0l+12-0 0+9-1.2e1 .0Z M1.6e1,2H2e1v+8h-4z M24 3L+28 3 +26 1e1'/>
+        </svg>
+        """
+    const Equivalent   = """
+        <svg width='32' height='20'>
+          <path d='M2 1H14V10H2Z M16 2H20V10H16Z M24 3L28 3 26 10Z'/>
+        </svg>
+        """
+    let options   = Svg.ParseOptions{preferScanFills: true}
+    let drawing   = expect Svg.Drawing.parse(ShortNumbers, options)
+    let reference = expect Svg.Drawing.parse(Equivalent, options)
+    let image     = drawing.rasterize(32, 20, 1)
+    let expected  = reference.rasterize(32, 20, 1)
+    Swag.require(image.isValid() and expected.isValid())
+    Swag.require(image.pixelColor(3, 5).a == 255)
+    Swag.require(Memory.compare(image.pixels.storage(), expected.pixels.storage(), image.pixels.count) == 0)
+}
+
 // Scan single-row and multi-row edges while reusing scratch across different fill heights.
 #test
 {

@@ -419,3 +419,50 @@ worker. An inline four-crossing buffer prototype with cached Y took
 and 44.34 versus 44.74 ms on the dense fill. This experiment also puts
 more storage in each sample record, so it needs measurements on sparse
 and parallel scans.
+
+## Crossing storage on sparse and dense samples
+
+The generated corpus now covers mostly empty sample rows
+(`sparse-curves`) and very short contours grouped on a few sample rows
+(`thin-edges`). The six existing generated documents retain their bytes.
+
+A four-crossing inline buffer helped `sparse-curves`. At one worker
+the raster median fell from 0.67 to 0.47 ms with direct inline storage.
+On the largest original, the same implementation reduced the one-worker
+raster median from 184 to 171 ms and increased the four-worker median
+from 127 to 135 ms. Keeping owned overflow counts through the array API
+also produced mixed results. Both variants kept all checked CRC-64s.
+
+A single crossing store with per-row offsets reduced the number of
+independent allocations. It kept the checked CRC-64s while raising the
+largest one-worker raster median from 176 to 183 ms. Retaining each row's
+reserved range across tiles still took 188 ms against 174 ms in a
+separate nine-run series. The dense synthetic fill also took longer.
+Those trials used the shared renderer with nested PDF clipping.
+
+## Short SVG integers
+
+One- and two-digit integers make up about 97% of the path coordinates
+in the largest original. The reader can now finish those numbers once
+it sees a following byte that rules out a longer integer, a decimal
+or an exponent. It keeps the sign and cursor semantics of the general
+number reader.
+
+Here are nine interleaved Release medians in milliseconds against
+`bf49559935`, using the Scope parse option and equal CPU affinity for
+Swag and resvg 0.50.0. Each bitmap timing includes parsing and first
+rasterization. The largest output is 2048 × 1365.
+
+| Source size | Swag before, 1 worker | Swag after, 1 worker | resvg, 1 CPU | Swag before, 4 workers | Swag after, 4 workers | resvg, 4 CPUs |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| 640 × 426 | 4.62 | 4.42 | 5.45 | 4.08 | 4.31 | 5.90 |
+| 1280 × 853 | 19.12 | 18.71 | 20.99 | 14.56 | 14.54 | 22.27 |
+| 1920 × 1280 | 49.75 | 46.15 | 46.15 | 33.62 | 35.49 | 49.01 |
+| 5184 × 3456 | 240.15 | 240.13 | 247.47 | 198.06 | 191.99 | 275.16 |
+
+The largest one-worker bitmap parse phase fell from 68.86 to 66.71 ms.
+An earlier nine-run series measured 73.93 to 65.95 ms for the same
+phase. Its 320 × 213 thumbnail, with two samples per axis, measured
+190.73 to 181.57 ms total at one worker and 165.03 to 158.78 ms at four.
+The four original bitmaps and thumbnails, `curves`, `dense`,
+`sparse-curves` and `thin-edges` kept their comparison CRC-64s.

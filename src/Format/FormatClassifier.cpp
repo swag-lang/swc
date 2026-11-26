@@ -1463,14 +1463,15 @@ namespace
 
                 case AstNodeId::GenericArgListExpr:
                 {
-                    if (span.valid())
+                    const uint32_t bang = pieceOfNodeToken(node);
+                    if (bang == INVALID_PIECE)
+                        break;
+
+                    const uint32_t open = nextCodeIf(bang, TokenId::SymLeftCurly);
+                    if (open != INVALID_PIECE && model_->piece(open).match != INVALID_PIECE)
                     {
-                        const uint32_t open = nextCodeIf(span.minPiece, TokenId::SymLeftCurly);
-                        if (open != INVALID_PIECE && model_->piece(open).match != INVALID_PIECE)
-                        {
-                            addRole(open, FormatRoleE::GenericArgsOpen);
-                            addRole(model_->piece(open).match, FormatRoleE::GenericArgsClose);
-                        }
+                        addRole(open, FormatRoleE::GenericArgsOpen);
+                        addRole(model_->piece(open).match, FormatRoleE::GenericArgsClose);
                     }
                     break;
                 }

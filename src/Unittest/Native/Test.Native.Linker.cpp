@@ -1496,8 +1496,23 @@ SWC_FILESYSTEM_TEST_BEGIN(ELFImage_FoldsCallGraphsWithTheirUnwindAndRuntimeNames
     }
     const auto names  = elfImageSection(bytes, SymbolTable::IMAGE_SECTION);
     const auto unwind = elfImageSection(bytes, ".eh_frame_hdr");
-    if (!names || !unwind || bytes.readLe32(names->offset + 4) != SymbolTable::VERSION_LZ4 || bytes.readLe32(unwind->offset + 8) != 1)
+    if (!names || names->size <= SymbolTable::HEADER_SIZE || bytes.readLe32(names->offset) != SymbolTable::MAGIC ||
+        !unwind || unwind->size < 12 || bytes.readLe32(unwind->offset + 8) != 1)
         return Result::Error;
+
+    // Both LZ4 layouts are valid. The compact header also records the number
+    // of distinct ranges left after pairs of functions have been folded.
+    const uint32_t version = bytes.readLe32(names->offset + 4);
+    if (version == SymbolTable::VERSION_COMPACT_LZ4)
+    {
+        if (names->size <= SymbolTable::COMPACT_HEADER_SIZE ||
+            bytes.readLe32(names->offset + 12) != names->size - SymbolTable::COMPACT_HEADER_SIZE ||
+            bytes.readLe32(names->offset + 20) != depth)
+            return Result::Error;
+    }
+    else if (version != SymbolTable::VERSION_LZ4 || bytes.readLe32(names->offset + 12) != 0)
+        return Result::Error;
+
     const auto rules = elfImageSection(bytes, ".eh_frame");
     if (!rules)
         return Result::Error;

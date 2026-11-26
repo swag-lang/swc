@@ -1264,7 +1264,7 @@ SWC_TEST_BEGIN(FormatBraces_AnonymousStructTypeKeepsItsShape)
 
     static constexpr std::string_view EXPECTED =
         "var id: HashTable!{string, Array!{{ count: u32,\n"
-        "                                     name: string }}}\n";
+        "    name: string }}}\n";
 
     FormatOptions options;
     options.indentStyle                   = FormatIndentStyle::Spaces;

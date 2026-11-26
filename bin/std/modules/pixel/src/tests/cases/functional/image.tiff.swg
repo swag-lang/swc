@@ -427,6 +427,29 @@ func tiffDecodeFails(bytes: const [..] u8)->bool
     Swag.require(outcome.value() != null)
 }
 
+// Literal-heavy LZW crosses an early width transition and ends with an odd output size.
+#test
+{
+    const Width = 523
+    var bytes: [Width] u8
+    var random = 0xA123_78B9'u32
+    for i in Width
+    {
+        random   ^= random << 13
+        random   ^= random >> 17
+        random   ^= random << 5
+        bytes[i] = cast(u8, (random & 255))
+    }
+
+    var compressed: Array'u8
+    Tiff.packLzw(&compressed, &bytes[0], Width)
+    Swag.require(compressed.count > Width + Width / 8)
+    let fixture = buildTiff(false, Width, 1, 1, 1, 5, 1, 8, compressed.toSlice(), null, false)
+    let image   = expect decodeTiff(nnBytes(fixture.toSlice()))
+    for i in Width do
+        Swag.require(image.pixelColor(cast(s32, i), 0) == Color.fromRgb(bytes[i], bytes[i], bytes[i]))
+}
+
 // Decode an RGBA image (extra alpha sample) into RGBA8.
 #test
 {

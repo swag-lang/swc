@@ -454,3 +454,31 @@ All 43 supported cases retain their Swag bitmap checksums, with both
 focused sizes also exact. The 132 PDF tests include an image masked at two
 translations and a luminosity mask that references the same group as an
 alpha mask.
+
+
+## Packed sampling for reduced images
+
+Axis-aligned BGRA8 and RGBA8 spans gather four two-texel pairs at a time
+when consecutive output rows rarely reuse the same source rows. The
+horizontal and vertical interpolations both keep the scalar byte
+quantization, including alpha. A scalar prefix and tail follow the
+triangle's span boundaries.
+
+Nine interleaved Release runs at each size and a 13-run recheck at 2400 px
+compare Swag `99d1a8be6e` and PDFium 159.0.8149.0 on one AMD EPYC 7763
+logical CPU. Both Swag builds use the same compiler and Core at
+`3f81024a37`. Times are milliseconds.
+[Phase timings and corpus checksums](pdf-raster-linux-packed-downscale.json)
+
+| PDF | Series | Render before | Render after | Total before | Total after | PDFium total |
+| --- | --- | ---: | ---: | ---: | ---: | ---: |
+| `perf_images_smask.pdf` | 1200 | 72.30 | 30.91 | 108.78 | 70.48 | 70.90 |
+| `perf_transparency_soft_masks.pdf` | 1200 | 104.21 | 71.07 | 173.03 | 146.91 | 114.73 |
+| `perf_images_jpeg_large.pdf` | 2400 | 166.02 | 132.98 | 262.01 | 206.68 | 141.26 |
+| `perf_images_smask.pdf` | 2400 recheck | 96.92 | 90.46 | 140.26 | 123.16 | 67.65 |
+| `perf_transparency_soft_masks.pdf` | 2400 recheck | 232.85 | 111.11 | 274.39 | 161.46 | 233.48 |
+| `large_jpeg_downscale.pdf` | 2400 recheck | 48.08 | 46.37 | 116.55 | 121.78 | 67.47 |
+
+All 43 supported cases and every focused comparison keep their Swag
+raster checksums. The focused Pixel suite also compares mirrored RGBA8
+and BGRA8 downscales with scalar reference samples across span tails.

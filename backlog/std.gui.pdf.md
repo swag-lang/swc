@@ -589,6 +589,10 @@ PDF-specific evidence, investigations, and intended outcomes stay together here.
   cuts load from 69 to 38 ms on the transformed mask fixture. At 1200 px the
   total goes from 174 to 113 ms against PDFium's 94 ms. All 43 supported cases
   retain their bitmap checksums.
+- [Packed sampling for reduced images](../bench/results/swagscope-filesamples/pdf-raster-linux.md#packed-sampling-for-reduced-images)
+  cuts 2400 px render time on the transformed mask fixture from 233 to
+  111 ms and brings the total from 274 to 161 ms against PDFium's 233 ms.
+  All 43 supported cases retain their bitmap checksums.
 - Profile the remaining stroke coverage and image span composition. Retaining encoded images for
   later zoom levels would let decoding use the requested image size.
 - Done when: the first-page gap has a stage-level explanation and the dominant work is within 1.25×

@@ -130,3 +130,64 @@ func blend(first, second: Color, weight: u32)->Color
             Swag.require(result[channel] == cast(u8, (cast(u32, A[channel]) * (65536 - weight) + cast(u32, B[channel]) * weight) >> 16))
     }
 }
+
+
+// The downscale sampler gathers four neighboring pairs and leaves a scalar tail.
+#test
+{
+    const Width        = 67
+    const Height       = 65
+    const SourceWidth  = 131
+    const SourceHeight = 113
+    const Formats      = [PixelFormat.BGRA8, .RGBA8]
+    for format in Formats
+    {
+        var source = Image.create(SourceWidth, SourceHeight, format)
+        for i in source.pixels.count do
+            source.pixels[i] = cast(u8, (17 * i + i / 503) & 255)
+
+        var cpu: RenderCpu
+        cpu.begin(Width, Height)
+        let renderer: IRenderer = &cpu
+        defer renderer.end()
+        var texture = renderer.addImage(source)
+        defer renderer.removeTexture(&texture)
+
+        var painter = Painter.createScanline(&cpu)
+        painter.begin()
+        painter.setColorMaskFull()
+        painter.clear(Color.fromArgb(Argb.White))
+        painter.setColorMaskColor()
+        painter.setAntialiased(false)
+        painter.setInterpolationMode(.Linear)
+        painter.setTransform(Math.Transform2{-Width, 0, 0, -Height, Width, Height})
+        painter.drawTexture({0, 0, 1, 1}, texture)
+        painter.end()
+        expect renderer.draw(&painter)
+        let image = cpu.surfaceImage()
+
+        func overWhite(channel, alpha: u8)->u8
+        {
+            return cast(u8, (cast(u32, channel) * alpha + 255 * (255'u32 - alpha)) / 255)
+        }
+
+        for y in Height
+        {
+            let v  = 1.0 - (cast(f32, y) + 0.5 - Height) / -Height
+            let py = (1.0 - v) * SourceHeight - 0.5
+            let iy = cast(s32, Math.floor(py))
+            let wy = cast(u32, (py - Math.floor(py)) * 65536)
+            for x in Width
+            {
+                let px       = (cast(f32, Width - x) - 0.5) / Width * SourceWidth - 0.5
+                let ix       = cast(s32, Math.floor(px))
+                let wx       = cast(u32, (px - Math.floor(px)) * 65536)
+                let upper    = blend(source.pixelColor(ix, iy), source.pixelColor(ix + 1, iy), wx)
+                let lower    = blend(source.pixelColor(ix, iy + 1), source.pixelColor(ix + 1, iy + 1), wx)
+                let sampled  = blend(upper, lower, wy)
+                let expected = Color.fromArgb(255'u8, overWhite(sampled.r, sampled.a), overWhite(sampled.g, sampled.a), overWhite(sampled.b, sampled.a))
+                Swag.require(image.pixelColor(cast(s32, x), cast(s32, y)) == expected)
+            }
+        }
+    }
+}

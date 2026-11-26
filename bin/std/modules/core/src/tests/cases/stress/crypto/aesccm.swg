@@ -12,7 +12,7 @@ using Swag
     var plaintext: Array'u8
     plaintext.resize(65 * 1024 + 19)
     for index in plaintext.count do
-        plaintext[index] = cast(u8, index * 17 + 11)
+        plaintext[index] = cast(u8, (index * 17 + 11) & 0xFF)
     var ciphertext: Array'u8
     ciphertext.resize(plaintext.count)
     var tag: [Crypto.AesCcmTagMaxSize] u8

@@ -22,6 +22,13 @@ private struct PostNamesCacheEntry
     late names: *GlyphNames
 }
 
+private struct GlyphLocationCacheEntry
+{
+    late bytes: const [..] u8
+    longFormat: bool
+    end:        u64
+}
+
 private struct FontSourceStorage
 {
     late allocator:  IAllocator
@@ -32,6 +39,7 @@ private struct FontSourceStorage
     cmapSelections:  Array'CMapCacheEntry
     verticalMetrics: Array'VerticalMetricsCacheEntry
     postNames:       Array'PostNamesCacheEntry
+    glyphLocations:  Array'GlyphLocationCacheEntry
     parseMutex:      Swag.Mutex
 }
 
@@ -207,6 +215,28 @@ impl FontSource
         return names
     }
 
+    mtd const validatedGlyphEnd(bytes: const [..] u8, glyphCount: u32, longFormat: bool)->u64 fail
+    {
+        if not .storage do
+            return try validateGlyphEnd(bytes, glyphCount, longFormat)
+
+        let storage = .storage
+        Sync.scopedLock(&storage.parseMutex)
+
+        // The bounded slice size and format identify the glyph count.
+        for entry in storage.glyphLocations
+        {
+            if entry.bytes.buffer == bytes.buffer and
+               entry.bytes.count == bytes.count and
+               entry.longFormat == longFormat do
+                return entry.end
+        }
+
+        let end = try validateGlyphEnd(bytes, glyphCount, longFormat)
+        storage.glyphLocations.add({bytes, longFormat, end})
+        return end
+    }
+
     private func takeBytes(bytes: #move Array'u8, allocator: IAllocator)->FontSource
     {
         let storage = Memory.new'FontSourceStorage(allocator)
@@ -216,6 +246,7 @@ impl FontSource
         storage.cmapSelections.allocator  = allocator
         storage.verticalMetrics.allocator = allocator
         storage.postNames.allocator       = allocator
+        storage.glyphLocations.allocator  = allocator
         return {storage: storage}
     }
 }
@@ -273,7 +304,7 @@ public impl FontSource
     //
     // Formats and index checks follow [[TrueType.Face.loadAt]]. The face allocator covers
     // per-face state. The source allocator covers the shared character maps, CFF programs,
-    // glyph names, vertical metrics, and WOFF1 reconstruction.
+    // glyph locations, glyph names, vertical metrics, and WOFF1 reconstruction.
     // A default source or invalid input fails.
     // Destroy the face with [[TrueType.Face.destroy]]. It can outlive this source value.
     mtd const loadFace(faceIndex: u32 = 0, allocator: IAllocator? = null)->*Face fail =>

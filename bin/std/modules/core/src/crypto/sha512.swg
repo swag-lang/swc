@@ -82,15 +82,36 @@ impl Sha512Core
 
     mtd update(data: const [..] u8)
     {
-        var offset = 0'u64
-        while offset < data.count
+        var remaining = data.count
+        if remaining == 0 do
+            return
+        var input = data.buffer
+
+        if .dataLength
         {
-            let count = Math.min(data.count - offset, Sha512BlockSize - .dataLength)
-            Swag.memcpy(&.data[.dataLength], data.buffer + offset, count)
-            .dataLength += count
-            offset      += count
-            if .dataLength == Sha512BlockSize do
-                .transformBlock()
+            let copied = Math.min(remaining, Sha512BlockSize - .dataLength)
+            Swag.memcpy(.data.buffer + .dataLength, input, copied)
+            .dataLength += copied
+            if .dataLength < Sha512BlockSize do
+                return
+
+            .transformBlock(.data)
+            .dataLength = 0
+            input       += copied
+            remaining   -= copied
+        }
+
+        while remaining >= Sha512BlockSize
+        {
+            .transformBlock(input)
+            input     += Sha512BlockSize
+            remaining -= Sha512BlockSize
+        }
+
+        if remaining
+        {
+            Swag.memcpy(.data.buffer, input, remaining)
+            .dataLength = remaining
         }
     }
 
@@ -119,32 +140,26 @@ impl Sha512Core
         if .dataLength > 112
         {
             Swag.memset(.data.buffer + .dataLength, 0, Sha512BlockSize - .dataLength)
-            .transformBlock()
+            .transformBlock(.data)
+            .dataLength = 0
         }
 
         Swag.memset(.data.buffer + .dataLength, 0, 112 - .dataLength)
-        for index in 8
-        {
-            .data[112 + index] = cast(u8, (finalHigh >> cast(u32, (7 - index) * 8)) & 0xFF)
-            .data[120 + index] = cast(u8, (finalLow >> cast(u32, (7 - index) * 8)) & 0xFF)
-        }
-
-        .dataLength = Sha512BlockSize
-        .transformBlock()
-        result = .state
+        let lengthWords = cast([*] u64, .data.buffer + 112)
+        lengthWords[0] = Math.nativeToBigEndian(finalHigh)
+        lengthWords[1] = Math.nativeToBigEndian(finalLow)
+        .transformBlock(.data)
+        .dataLength = 0
+        result      = .state
         return result
     }
 
-    private mtd transformBlock()
+    private mtd transformBlock(buf: const [*] u8)
     {
         var words: [80] u64
-        for index in 16
-        {
-            var word = 0'u64
-            for byte in 8 do
-                word = (word << 8) | cast(u64, .data[index * 8 + byte])
-            words[index] = word
-        }
+        let input = cast(const [*] u64, buf)
+        for index in 16 do
+            words[index] = Math.bigEndianToNative(input[index])
 
         for index in 16 until 80
         {
@@ -189,7 +204,6 @@ impl Sha512Core
         .state[5]     += f
         .state[6]     += g
         .state[7]     += h
-        .dataLength   = 0
         .bitLengthLow += Sha512BlockSize * 8
         if .bitLengthLow < Sha512BlockSize * 8 do
             .bitLengthHigh += 1

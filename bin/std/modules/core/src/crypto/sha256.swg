@@ -28,31 +28,23 @@ impl Sha256
 
     #[Swag.Inline]
     {
-        func rotLeft(a, b: u32)  => ((a << b) | (a >> (32 - b)))
-        func rotRight(a, b: u32) => ((a >> b) | (a << (32 - b)))
-        func ch(x, y, z: u32)    => ((x & y) ^ (~x & z))
-        func maj(x, y, z: u32)   => ((x & y) ^ (x & z) ^ (y & z))
-        func ep0(x: u32)         => (rotRight(x, 2) ^ rotRight(x, 13) ^ rotRight(x, 22))
-        func ep1(x: u32)         => (rotRight(x, 6) ^ rotRight(x, 11) ^ rotRight(x, 25))
-        func sig0(x: u32)        => (rotRight(x, 7) ^ rotRight(x, 18) ^ (x >> 3))
-        func sig1(x: u32)        => (rotRight(x, 17) ^ rotRight(x, 19) ^ (x >> 10))
+        func ch(x, y, z: u32)  => ((x & y) ^ (~x & z))
+        func maj(x, y, z: u32) => ((x & y) ^ (x & z) ^ (y & z))
+        func ep0(x: u32)       => (Swag.ror(x, 2) ^ Swag.ror(x, 13) ^ Swag.ror(x, 22))
+        func ep1(x: u32)       => (Swag.ror(x, 6) ^ Swag.ror(x, 11) ^ Swag.ror(x, 25))
+        func sig0(x: u32)      => (Swag.ror(x, 7) ^ Swag.ror(x, 18) ^ (x >> 3))
+        func sig1(x: u32)      => (Swag.ror(x, 17) ^ Swag.ror(x, 19) ^ (x >> 10))
     }
 
     mtd transform(buf: const [*] u8)
     {
         var m: [64] u32
 
-        var i, j = 0'u32
-        while i < 16
-        {
-            m[i] = (cast(u32, buf[j]) << 24) |
-                   (cast(u32, buf[j + 1]) << 16) |
-                   (cast(u32, buf[j + 2]) << 8) |
-                   buf[j + 3]
-            i += 1
-            j += 4
-        }
+        let input = cast(const [*] u32, buf)
+        for index in 16 do
+            m[index] = Math.bigEndianToNative(input[index])
 
+        var i = 16'u32
         while i < 64
         {
             m[i] = sig1(m[i - 2]) + m[i - 7] + sig0(m[i - 15]) + m[i - 16]
@@ -105,51 +97,20 @@ public impl Sha256
     // Call [[reset]] before reusing this value after finalization.
     mtd finalize()->Digest
     {
-        var result: #returntype
-        var i = .dataLength
-        if .dataLength < 56
+        .bitLength         += .dataLength * 8
+        .data[.dataLength] = 0x80
+        var used = .dataLength + 1
+        if used > 56
         {
-            .data[i] = 0x80
-            i        += 1
-            while i < 56
-            {
-                .data[i] = 0x00
-                i        += 1
-            }
-        }
-        else
-        {
-            .data[i] = 0x80
-            i        += 1
-            while i < 64
-            {
-                .data[i] = 0x00
-                i        += 1
-            }
-
+            Swag.memset(.data.buffer + used, 0, 64 - used)
             .transform(.data)
-
-            i = 0
-            while i < 56
-            {
-                .data[i] = 0x00
-                i        += 1
-            }
+            used = 0
         }
 
-        .bitLength += .dataLength * 8
-        .data[63]  = cast(u8, .bitLength)
-        .data[62]  = cast(u8, (.bitLength >> 8))
-        .data[61]  = cast(u8, (.bitLength >> 16))
-        .data[60]  = cast(u8, (.bitLength >> 24))
-        .data[59]  = cast(u8, (.bitLength >> 32))
-        .data[58]  = cast(u8, (.bitLength >> 40))
-        .data[57]  = cast(u8, (.bitLength >> 48))
-        .data[56]  = cast(u8, (.bitLength >> 56))
+        Swag.memset(.data.buffer + used, 0, 56 - used)
+        cast([*] u64, .data.buffer)[7] = Math.nativeToBigEndian(.bitLength)
         .transform(.data)
-
-        Memory.copy(result, &.state[0], #sizeof(.state))
-        return result
+        return .state
     }
 
     // Resets the sequence to the standard SHA-256 initial state.
@@ -161,19 +122,38 @@ public impl Sha256
     // Includes `buffer` in the running digest.
     mtd update(buffer: const [..] u8)
     {
-        let buf = buffer.buffer
-        let len = buffer.count
+        var remaining = buffer.count
+        if remaining == 0 do
+            return
+        var input = buffer.buffer
 
-        for i in len
+        if .dataLength
         {
-            .data[.dataLength] = buf[i]
-            .dataLength        += 1
-            if .dataLength == 64
-            {
-                .transform(.data)
-                .bitLength  += 512
-                .dataLength = 0
-            }
+            let copied = Math.min(remaining, 64 - cast(u64, .dataLength))
+            Swag.memcpy(.data.buffer + .dataLength, input, copied)
+            .dataLength += cast(u32, copied)
+            if .dataLength < 64 do
+                return
+
+            .transform(.data)
+            .bitLength  += 512
+            .dataLength = 0
+            input       += copied
+            remaining   -= copied
+        }
+
+        while remaining >= 64
+        {
+            .transform(input)
+            .bitLength += 512
+            input      += 64
+            remaining  -= 64
+        }
+
+        if remaining
+        {
+            Swag.memcpy(.data.buffer, input, remaining)
+            .dataLength = cast(u32, remaining)
         }
     }
 

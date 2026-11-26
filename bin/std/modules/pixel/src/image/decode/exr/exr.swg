@@ -559,6 +559,8 @@ struct ScanlineChunk
 
 struct ScanlineScratch
 {
+    zlib:         Compress.ZLib
+    unpacked:     Array'u8
     reordered:    Array'u8
     cachedPixels: const [..] u8?
     cachedFirstRow, cachedRows: s32
@@ -751,25 +753,25 @@ impl Part
     }
 
     #[Swag.Inline]
-    mtd const writeScanlineChunk(image: *Image, chunk: ScanlineChunk, layout: ScanlineLayout, reordered: *Array'u8) fail
+    mtd const writeScanlineChunk(image: *Image, chunk: ScanlineChunk, layout: ScanlineLayout, scratch: *ScanlineScratch) fail
     {
         var pixels = chunk.pixels
 
         // OpenEXR writes the original bytes when ZIP cannot make the block smaller.
         if .compression and pixels.count < chunk.expected
         {
-            var zlib: Compress.ZLib
-            var unpacked = try zlib.decompress(pixels, chunk.expected, maxOutputSize: chunk.expected)
-            if unpacked.count != chunk.expected do
+            scratch.unpacked.clear()
+            try scratch.zlib.decompress(&scratch.unpacked, pixels, chunk.expected, maxOutputSize: chunk.expected)
+            if scratch.unpacked.count != chunk.expected do
                 fail InvalidFormatError{"OpenEXR ZIP chunk has an invalid decoded size"}
             if layout.grayHalf and image.pixelFormat == .GrayF16
             {
-                writeGrayZipHalfChunk(image, unpacked.toSlice(), chunk.relativeY, chunk.rows)
+                writeGrayZipHalfChunk(image, scratch.unpacked.toSlice(), chunk.relativeY, chunk.rows)
                 return
             }
 
-            undoZipPredictor(unpacked.toSlice(), reordered)
-            pixels = reordered.toSlice()
+            undoZipPredictor(scratch.unpacked.toSlice(), &scratch.reordered)
+            pixels = scratch.reordered.toSlice()
         }
 
         if pixels.count != chunk.expected do
@@ -819,7 +821,7 @@ impl Part
             return
         }
 
-        try .writeScanlineChunk(image, chunk, layout, &scratch.reordered)
+        try .writeScanlineChunk(image, chunk, layout, scratch)
         if cacheable
         {
             scratch.cachedPixels   = chunk.pixels

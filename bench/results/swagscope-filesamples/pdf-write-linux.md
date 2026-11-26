@@ -78,3 +78,30 @@ Seven interleaved Release runs on one AMD EPYC 7763 logical CPU use
 
 All six saved scenarios keep their PDFium rasters. The 135 PDF tests
 include odd-width rows, asymmetric samples and a partial alpha channel.
+
+
+## Predicting large, smooth image streams
+
+The writer estimates the residual size on a small grid of pixels. Large,
+smooth eight-bit gray, RGB and alpha planes use the shared PNG Sub
+kernel before a short greedy Deflate search. The differences are
+reversible. A bilevel stream retains its packed row layout.
+
+Nine interleaved Release runs on one AMD EPYC 7763 logical CPU use
+`3e33c0033e` as the baseline.
+[Raw samples, output sizes, and raster comparisons](pdf-write-linux-predictors.json)
+
+| Input | Save before, ms | Save after, ms | Bytes before | Bytes after |
+| --- | ---: | ---: | ---: | ---: |
+| `opaque` | 154.55 | 80.51 | 1,224,670 | 629,050 |
+| `alpha` | 156.48 | 84.30 | 1,237,844 | 634,398 |
+| `rgb` | 135.19 | 65.21 | 1,233,855 | 630,515 |
+| `gray` | 65.72 | 25.00 | 227,064 | 136,007 |
+| `pdfbox-jpeg.pdf` | 14.03 | 13.25 | 159,599 | 159,599 |
+| `pdfbox-scan.pdf` | 1.80 | 1.90 | 3,660 | 3,660 |
+| `perf_images_scan_bilevel.pdf` | 52.87 | 56.51 | 35,466 | 35,466 |
+
+Every saved raster matches its baseline in PDFium. The 136 PDF tests
+include a 513 by 513 GrayAlpha8 image with one predictor per plane.
+The 52 PNG tests pass and the public row filter appears in the
+generated Pixel documentation.

@@ -514,6 +514,60 @@ private func encodeImagePixels(image: const *Image)->EncodedImage
     return result
 }
 
+// Samples adjacent pixels at several positions. Smooth channels become a narrow residual
+// distribution, which gives Deflate more matches and cheaper literals.
+private func preferSubPredictor(samples: const [..] u8, rowBytes, components: u64)->bool
+{
+    if samples.count < 256 * 1024 or rowBytes < components * 16 do
+        return false
+
+    func distance(value: s32)->s32
+    {
+        let magnitude = Math.abs(value)
+        return Math.min(magnitude, 256 - magnitude)
+    }
+
+    let rows = samples.count / rowBytes
+    var sourceTotal, residualTotal: s32
+    for y in 8
+    {
+        let row = samples.buffer + (y * rows / 8) * rowBytes
+        for x in 8
+        {
+            let pixel = row + (1 + x * (rowBytes / components - 1) / 8) * components
+            let previous = pixel - components
+            for c in components
+            {
+                let value = cast(s32, pixel[c])
+                sourceTotal += distance(value)
+                residualTotal += distance(value - cast(s32, previous[c]))
+            }
+        }
+    }
+
+    return sourceTotal and residualTotal * 4 < sourceTotal
+}
+
+private func compressImageSamples(zlib: *Compress.ZLib, samples: const [..] u8, width, components: u64, bits = 8'u8)->{bytes: Array'u8, predicted: bool} fail
+{
+    var result: #returntype
+    let rowBytes = width * components
+    var residuals: Array'u8
+    var input = samples
+    if bits == 8 and preferSubPredictor(samples, rowBytes, components)
+    {
+        residuals.resize(samples.count + samples.count / rowBytes)
+        Swag.require(Pixel.Png.filterSubPredictorRows(samples, residuals.toSlice(), rowBytes, components))
+        result.predicted = true
+        input = residuals.toSlice()
+    }
+
+    // The predictor lowers entropy enough that a short greedy match search still saves space.
+    const PredictorLevel = cast(Compress.Deflate.CompressionLevel, 2)
+    result.bytes = #move try zlib.compress(input, result.predicted ? PredictorLevel : .Default)
+    return result
+}
+
 private func infoDictionary(metadata: const *Metadata)->String fail
 {
     var result: #returntype = "<<"
@@ -639,7 +693,9 @@ private impl Writer
                 continue
 
             let encoded    = encodeImagePixels(&item.image)
-            let samples    = #move try .zlib.compress(encoded.samples.toSlice())
+            let width      = cast(u64, item.image.width)
+            let components = encoded.isGray ? 1'u64 : 3'u64
+            let samples    = #move try compressImageSamples(&.zlib, encoded.samples.toSlice(), width, components, encoded.bitsPerComponent)
             var maskObject: u32
             if encoded.alpha.count
             {
@@ -650,13 +706,17 @@ private impl Writer
             var dictionary = Format.toString("/Type /XObject /Subtype /Image /Width % /Height % /ColorSpace /Device% /BitsPerComponent % /Filter /FlateDecode", item.image.width, item.image.height, encoded.isGray ? "Gray" : "RGB", encoded.bitsPerComponent)
             if maskObject do
                 dictionary.appendFormat(" /SMask % 0 R", maskObject)
-            .streamObject(imageObject.number, samples.toSlice(), dictionary.toString())
+            if samples.predicted do
+                dictionary.appendFormat(" /DecodeParms << /Predictor 15 /Colors % /Columns % >>", components, width)
+            .streamObject(imageObject.number, samples.bytes.toSlice(), dictionary.toString())
 
             if maskObject
             {
-                let maskData = #move try .zlib.compress(encoded.alpha.toSlice())
-                let maskDict = Format.toString("/Type /XObject /Subtype /Image /Width % /Height % /ColorSpace /DeviceGray /BitsPerComponent 8 /Filter /FlateDecode", item.image.width, item.image.height)
-                .streamObject(maskObject, maskData.toSlice(), maskDict.toString())
+                let maskData = #move try compressImageSamples(&.zlib, encoded.alpha.toSlice(), width, 1)
+                var maskDict = Format.toString("/Type /XObject /Subtype /Image /Width % /Height % /ColorSpace /DeviceGray /BitsPerComponent 8 /Filter /FlateDecode", item.image.width, item.image.height)
+                if maskData.predicted do
+                    maskDict.appendFormat(" /DecodeParms << /Predictor 15 /Colors 1 /Columns % >>", width)
+                .streamObject(maskObject, maskData.bytes.toSlice(), maskDict.toString())
             }
         }
     }

@@ -121,6 +121,21 @@ func assertEncodedJpgRoundtrip(src: Image, expectedB, expectedG, expectedR: u8, 
     assertJpgPixelNear(img, expectedB, expectedG, expectedR, tolerance)
 }
 
+// Flat color blocks round to the nearest JPEG samples, including the chroma endpoints.
+#test
+{
+    const Colors: [4, 3] u8 = [[24, 96, 180], [19, 81, 167], [255, 0, 0], [0, 0, 255]]
+    var source = Image.create(9, 7, .RGB8)
+    for index in 4'u64
+    {
+        let blue  = Colors[index, 0]
+        let green = Colors[index, 1]
+        let red   = Colors[index, 2]
+        fillSolidImage(&source, blue, green, red, 255)
+        assertEncodedJpgRoundtrip(source, blue, green, red, 1)
+    }
+}
+
 // The decoder registry accepts JPEG aliases, including stereoscopic JPEG containers.
 #test
 {

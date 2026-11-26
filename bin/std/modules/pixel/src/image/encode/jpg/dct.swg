@@ -13,9 +13,14 @@ impl Encoder
     #[Swag.Inline]
     func channelOf(source: const [*] u8, lanes: Math.Simd.U8x16)->Math.Simd.S32x4 => cast #bit(Math.Simd.S32x4, Math.Simd.shuffle(Math.Simd.load(source), lanes))
 
-    // The fixed-point dot product one component of the format is defined as.
+    // Rounds the fixed-point dot product to the nearest sample. Chroma ties round down so
+    // the top half-step (127.5) fits in the signed range of the centered sample.
     #[Swag.Inline]
-    func componentOf(red, green, blue: Math.Simd.S32x4, coeffRed, coeffGreen, coeffBlue: s32)->Math.Simd.S32x4 => (Math.Simd.splat(coeffRed) * red + Math.Simd.splat(coeffGreen) * green + Math.Simd.splat(coeffBlue) * blue) >> 16
+    func componentOf(red, green, blue: Math.Simd.S32x4, coeffRed, coeffGreen, coeffBlue, rounding: s32)->Math.Simd.S32x4
+    {
+        let total = Math.Simd.splat(coeffRed) * red + Math.Simd.splat(coeffGreen) * green + Math.Simd.splat(coeffBlue) * blue
+        return (total + rounding) >> 16
+    }
 
     // Reads the eight-by-eight block at the given position as the three components of the format.
     //
@@ -45,14 +50,14 @@ impl Encoder
             let blueHigh  = channelOf(next, BlueLanes)
 
             Math.Simd.store(luma + pos,
-                            Math.Simd.packSigned(componentOf(redLow, greenLow, blueLow, CoeffYR, CoeffYG, CoeffYB) - levelShift,
-                                                 componentOf(redHigh, greenHigh, blueHigh, CoeffYR, CoeffYG, CoeffYB) - levelShift))
+                            Math.Simd.packSigned(componentOf(redLow, greenLow, blueLow, CoeffYR, CoeffYG, CoeffYB, 32_768) - levelShift,
+                                                 componentOf(redHigh, greenHigh, blueHigh, CoeffYR, CoeffYG, CoeffYB, 32_768) - levelShift))
             Math.Simd.store(blue + pos,
-                            Math.Simd.packSigned(componentOf(redLow, greenLow, blueLow, CoeffCbR, CoeffCbG, CoeffCbB),
-                                                 componentOf(redHigh, greenHigh, blueHigh, CoeffCbR, CoeffCbG, CoeffCbB)))
+                            Math.Simd.packSigned(componentOf(redLow, greenLow, blueLow, CoeffCbR, CoeffCbG, CoeffCbB, 32_767),
+                                                 componentOf(redHigh, greenHigh, blueHigh, CoeffCbR, CoeffCbG, CoeffCbB, 32_767)))
             Math.Simd.store(red + pos,
-                            Math.Simd.packSigned(componentOf(redLow, greenLow, blueLow, CoeffCrR, CoeffCrG, CoeffCrB),
-                                                 componentOf(redHigh, greenHigh, blueHigh, CoeffCrR, CoeffCrG, CoeffCrB)))
+                            Math.Simd.packSigned(componentOf(redLow, greenLow, blueLow, CoeffCrR, CoeffCrG, CoeffCrB, 32_767),
+                                                 componentOf(redHigh, greenHigh, blueHigh, CoeffCrR, CoeffCrG, CoeffCrB, 32_767)))
 
             location += .imageX
             pos      += 8

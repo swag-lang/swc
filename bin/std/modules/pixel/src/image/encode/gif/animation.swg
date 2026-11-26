@@ -232,7 +232,7 @@ private impl AnimationWriter
         let codeSize = useGlobal ? Math.max(.globalBits, 2'u8) : palette.lzwMinCodeSize
         block.addNative(codeSize)
 
-        let compressed = Encoder.lzwCompress(palette.indexes.toSlice(), codeSize)
+        let compressed = Encoder.lzwCompress(palette.indexes.toSlice(), codeSize, palette.count == 1)
         Encoder.writeSubBlocks(&block, compressed.toSlice())
 
         block.makeLinear()

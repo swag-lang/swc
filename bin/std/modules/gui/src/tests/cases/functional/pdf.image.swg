@@ -715,3 +715,40 @@ private func imageDocument(dictionary: string, samples: const [..] u8)->Document
     let rendered = expect decoded.editPage(0).render({scale: 1})
     Swag.require(rendered.isValid() and rendered.width == 200)
 }
+
+
+// A smooth gray image and its alpha mask can each use the PNG Sub predictor.
+#test
+{
+    const Width  = 513
+    const Height = 513
+    var source = Image.create(Width, Height, .GrayAlpha8)
+    for y in Height
+    {
+        for x in Width
+        {
+            let offset = (y * Width + x) * 2
+            source.pixels[offset]     = cast(u8, (x / 2 + y / 3) & 255)
+            source.pixels[offset + 1] = cast(u8, (128 + x / 6 + y / 7) & 255)
+        }
+    }
+
+    var page = Page.create(128, 128)
+    page.addImage(source, 0, 0, 128, 128)
+    var document = Document.create()
+    document.addPage(#move page)
+    let bytes = expect document.encode()
+    let text  = String.from(cast(string, bytes.toSlice()))
+    const Filter = "/DecodeParms << /Predictor 15 /Colors 1 /Columns 513 >>"
+    let first = text.indexOf(Filter)
+    Swag.require(first != Swag.U64.Max)
+    Swag.require(text.indexOf(Filter, first + Filter.count) != Swag.U64.Max)
+
+    let decoded = expect Document.decode(bytes.toSlice())
+    let output  = unwrap decoded.pages[0].items[0].imageValue()
+    for y in Height
+    {
+        for x in Width do
+            Swag.require(output.pixelColor(x, y) == source.pixelColor(x, y))
+    }
+}

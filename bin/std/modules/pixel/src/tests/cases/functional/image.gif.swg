@@ -638,3 +638,15 @@ func wideGifPaletteFixture(withTransparency, invalidIndex: bool)->Array'u8
     let img = expect Image.load(path.toString())
     assertGifPixelAt(img, 0, 0, 12'u8, 34'u8, 56'u8, 255'u8)
 }
+
+// A uniform palette's LZW run codes cross several code widths and clear the dictionary.
+#test
+{
+    let source = Image.create(4097, 2201, .Gray8)
+    Memory.set(source.pixels.storage(), 137, source.pixels.count)
+    let encoded = expect source.encodeToBytes("long-run.gif")
+    let decoded = expect Image.decode("long-run.gif", encoded.toSlice())
+    Swag.require(decoded.width == source.width and decoded.height == source.height)
+    Swag.require(decoded.pixelFormat == .RGB8)
+    Swag.require(Hash.Crc32.compute(decoded.pixels.toSlice()) == 3791399009'u32)
+}

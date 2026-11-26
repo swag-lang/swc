@@ -114,12 +114,12 @@ private
     const CoeffYR  = cast(s32, (65536.0 * 0.299 + 0.5))
     const CoeffYG  = cast(s32, (65536.0 * 0.587 + 0.5))
     const CoeffYB  = cast(s32, (65536.0 * 0.114 + 0.5))
-    const CoeffCbR = cast(s32, (65536.0 * -0.16874 + 0.5))
-    const CoeffCbG = cast(s32, (65536.0 * -0.33126 + 0.5))
+    const CoeffCbR = -cast(s32, (65536.0 * 0.16874 + 0.5))
+    const CoeffCbG = -cast(s32, (65536.0 * 0.33126 + 0.5))
     const CoeffCbB = 32768
     const CoeffCrR = 32768
-    const CoeffCrG = cast(s32, (65536.0 * -0.41869 + 0.5))
-    const CoeffCrB = cast(s32, (65536.0 * -0.08131 + 0.5))
+    const CoeffCrG = -cast(s32, (65536.0 * 0.41869 + 0.5))
+    const CoeffCrB = -cast(s32, (65536.0 * 0.08131 + 0.5))
 
     // Byte permutations that lift one colour channel of four pixels into four 32-bit lanes.
     const RedLanes   = cast(Math.Simd.U8x16, [2'u8, 0x80, 0x80, 0x80, 5, 0x80, 0x80, 0x80, 8, 0x80, 0x80, 0x80, 11, 0x80, 0x80, 0x80])

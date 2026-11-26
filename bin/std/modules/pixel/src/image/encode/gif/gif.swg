@@ -105,7 +105,7 @@ internal impl IImageEncoder for Encoder
         result.addNative(0'u8)
         result.addNative(palette.lzwMinCodeSize)
 
-        let compressed = lzwCompress(palette.indexes.toSlice(), palette.lzwMinCodeSize)
+        let compressed = lzwCompress(palette.indexes.toSlice(), palette.lzwMinCodeSize, palette.count == 1)
         Encoder.writeSubBlocks(result, compressed.toSlice())
 
         result.addNative(0x3B'u8)

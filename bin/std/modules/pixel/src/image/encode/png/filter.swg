@@ -89,6 +89,27 @@ func filterSubRow(source: const [*] u8, destination: [*] u8, count, bytesPerPixe
     }
 }
 
+// Writes PNG Sub residuals from packed scanlines into separate storage, with one filter
+// byte before each output row. `pixelBytes` is the byte distance to the previous pixel.
+// Returns false without writing if the row geometry or slice lengths are inconsistent.
+public func filterSubPredictorRows(input: const [..] u8, output: [..] u8, rowBytes, pixelBytes: u64)->bool
+{
+    if not rowBytes or rowBytes == Swag.U64.Max or not pixelBytes or pixelBytes > rowBytes do
+        return false
+    let stride = rowBytes + 1
+    let count  = output.count / stride
+    if output.count % stride or input.count != count * rowBytes do
+        return false
+    for row in count
+    {
+        let destination = output.buffer + row * stride
+        destination[0] = 1
+        filterSubRow(input.buffer + row * rowBytes, destination + 1, rowBytes, pixelBytes)
+    }
+
+    return true
+}
+
 // Scores the None filter, or the Up filter when 'up' is set.
 //
 // Both read their predictor straight out of memory, which is what lets one loop serve them.

@@ -127,3 +127,4 @@ optimizations moved each result.
 - [Reusable Ed25519 verification table](ed25519-verification-table.md)
 - [Reusable Argon2id lane-segment workspace](argon2-workspace.md)
 - [Register-local BLAKE3 vector state](blake3-vector-locals.md)
+- [AES-CCM hardware CBC-MAC and CTR](aes-ccm-hardware.md)

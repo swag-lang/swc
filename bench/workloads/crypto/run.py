@@ -37,6 +37,7 @@ REFERENCES = {
     "aes-256-ctr": {"OpenSSL": "aes-256-ctr"},
     "aes-256-gcm": {"OpenSSL": "aes-256-gcm"},
     "aes-256-gcm-aad": {"OpenSSL": "aes-256-gcm-aad"},
+    "aes-256-ccm": {"OpenSSL": "aes-256-ccm"},
     "aes-256-xts-encrypt": {"OpenSSL": "aes-256-xts-encrypt"},
     "aes-256-xts-decrypt": {"OpenSSL": "aes-256-xts-decrypt"},
 }
@@ -237,6 +238,8 @@ def main(references=REFERENCES, default_algorithms=DEFAULT_ALGORITHMS):
     for name in ("aes-256-xts-encrypt", "aes-256-xts-decrypt"):
         if name in sizes and any(not 16 <= size <= 1 << 24 for size in sizes[name]):
             parser.error(f"{name} requires a 16-byte to 16-MiB data unit")
+    if "aes-256-ccm" in sizes and any(size >= 1 << 24 for size in sizes["aes-256-ccm"]):
+        parser.error("aes-256-ccm requires a payload below 16 MiB with its 12-byte nonce")
     if any(offset < 0 for offset in offsets):
         parser.error("offsets must be nonnegative")
     if args.rounds < 6 or args.target_ms < 1:

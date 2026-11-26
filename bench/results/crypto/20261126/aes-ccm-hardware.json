@@ -1,0 +1,640 @@
+{
+  "utc": "2026-11-26T13:09:10.393071+00:00",
+  "system": "Linux-6.18.57-x86_64-with-glibc2.41",
+  "cpu": 2,
+  "affinity": [
+    2
+  ],
+  "workers": {
+    "serial": 1,
+    "vector-mac-ctr": 1
+  },
+  "processor": {
+    "model name": "AMD EPYC 9V74 80-Core Processor",
+    "microcode": "0x1000065",
+    "flags": "fpu vme de pse tsc msr pae mce cx8 apic sep mtrr pge mca cmov pat pse36 clflush mmx fxsr sse sse2 ht syscall nx mmxext fxsr_opt pdpe1gb rdtscp lm constant_tsc rep_good nopl xtopology nonstop_tsc cpuid extd_apicid tsc_known_freq pni pclmulqdq ssse3 fma cx16 pcid sse4_1 sse4_2 x2apic movbe popcnt tsc_deadline_timer aes xsave avx f16c rdrand hypervisor lahf_lm cmp_legacy cr8_legacy abm sse4a misalignsse 3dnowprefetch osvw topoext cpuid_fault vmmcall fsgsbase tsc_adjust bmi1 avx2 smep bmi2 erms invpcid avx512f avx512dq rdseed adx smap avx512ifma clflushopt clwb avx512cd sha_ni avx512bw avx512vl xsaveopt xsavec xgetbv1 xsaves avx512_bf16 clzero xsaveerptr arat npt nrip_save tsc_scale vmcb_clean flushbyasid pausefilter pfthreshold v_vmsave_vmload avx512vbmi umip avx512_vbmi2 gfni vaes vpclmulqdq avx512_vnni avx512_bitalg avx512_vpopcntdq rdpid fsrm arch_capabilities"
+  },
+  "reference_build": "OpenSSL 3.5.7 9 Jun 2026 | zlib 1.3.1 | BLAKE3 1.8.7 | libdeflate 1.26 | ISA-L 2.32.1 | liblzma 5.8.1",
+  "reference_sha256": "b7d5feffe80d8255631c7e295e6d79e412dbf00b14e6538a2cd569b60418c5c2",
+  "swag_builds": {
+    "serial": "b646be77d2b4b49f83555d6924c3482429e3c4117761fedee02d4840df40202f",
+    "vector-mac-ctr": "785ef929469204358070271941de1ec9f146895656e11b07740abbece8565bdb"
+  },
+  "rounds": 11,
+  "target_ms": 25,
+  "clock": "cpu",
+  "rows": [
+    {
+      "algorithm": "aes-256-ccm",
+      "bytes": 64,
+      "offset": 0,
+      "input_sha256": "28f0a1a9fae78b5247ebe5b1919541c009f78cc2b79d276352a9c46251a02522",
+      "output_sha256": "9d01799d1dfc52429caadec85a6ca1d99e7005d26913211bed85ff48c3621259",
+      "samples": {
+        "OpenSSL": {
+          "iterations": 104104,
+          "wall": [
+            0.025424804,
+            0.025486938,
+            0.025273477,
+            0.025321989,
+            0.02502417,
+            0.025022237,
+            0.026007288,
+            0.025339997,
+            0.024834534,
+            0.025005382,
+            0.024912682
+          ],
+          "cpu": [
+            0.025372334,
+            0.025485113,
+            0.025271555,
+            0.025319597,
+            0.02500654,
+            0.02501971,
+            0.025971442,
+            0.025338375,
+            0.024832891,
+            0.025003425,
+            0.024910978
+          ]
+        },
+        "serial": {
+          "iterations": 34716,
+          "wall": [
+            0.022402597,
+            0.022077296,
+            0.022887428,
+            0.026175457,
+            0.025278534,
+            0.022438651,
+            0.022500384,
+            0.031594269,
+            0.022656309,
+            0.022370538,
+            0.022225079
+          ],
+          "cpu": [
+            0.02240078,
+            0.022075165,
+            0.022885261,
+            0.026172677,
+            0.02527444,
+            0.022436333,
+            0.022498305,
+            0.031592348,
+            0.022654178,
+            0.022368522,
+            0.022223515
+          ]
+        },
+        "vector-mac-ctr": {
+          "iterations": 61677,
+          "wall": [
+            0.023337396,
+            0.028990573,
+            0.023588354,
+            0.024631387,
+            0.023588805,
+            0.022797132,
+            0.023588426,
+            0.022797292,
+            0.023250224,
+            0.027520005,
+            0.028528286
+          ],
+          "cpu": [
+            0.023335442,
+            0.028983223,
+            0.02341516,
+            0.024628608,
+            0.023585975,
+            0.022795057,
+            0.023586506,
+            0.022794366,
+            0.023247581,
+            0.027518121,
+            0.028526372
+          ]
+        }
+      },
+      "round_order": [
+        [
+          "OpenSSL",
+          "serial",
+          "vector-mac-ctr"
+        ],
+        [
+          "vector-mac-ctr",
+          "OpenSSL",
+          "serial"
+        ],
+        [
+          "OpenSSL",
+          "serial",
+          "vector-mac-ctr"
+        ],
+        [
+          "serial",
+          "OpenSSL",
+          "vector-mac-ctr"
+        ],
+        [
+          "vector-mac-ctr",
+          "OpenSSL",
+          "serial"
+        ],
+        [
+          "OpenSSL",
+          "serial",
+          "vector-mac-ctr"
+        ],
+        [
+          "OpenSSL",
+          "vector-mac-ctr",
+          "serial"
+        ],
+        [
+          "OpenSSL",
+          "serial",
+          "vector-mac-ctr"
+        ],
+        [
+          "OpenSSL",
+          "serial",
+          "vector-mac-ctr"
+        ],
+        [
+          "vector-mac-ctr",
+          "serial",
+          "OpenSSL"
+        ],
+        [
+          "OpenSSL",
+          "vector-mac-ctr",
+          "serial"
+        ]
+      ]
+    },
+    {
+      "algorithm": "aes-256-ccm",
+      "bytes": 4096,
+      "offset": 0,
+      "input_sha256": "af26928ca7645ec0d0e3eb12ef41f86dcde5c1aaa8e8debc79011d0a002fa71c",
+      "output_sha256": "17b2cb86f2a3711446d27aaf66933de124e9e4e455e98da14e18fe71b19686d8",
+      "samples": {
+        "OpenSSL": {
+          "iterations": 5920,
+          "wall": [
+            0.024857449,
+            0.025349871,
+            0.028473803,
+            0.025142379,
+            0.024856587,
+            0.024946343,
+            0.024959433,
+            0.02487123,
+            0.02501756,
+            0.025371464,
+            0.025073715
+          ],
+          "cpu": [
+            0.024855515,
+            0.025339627,
+            0.028464161,
+            0.02514055,
+            0.024854785,
+            0.024936356,
+            0.024941233,
+            0.024869536,
+            0.025015654,
+            0.025369481,
+            0.025027202
+          ]
+        },
+        "serial": {
+          "iterations": 1148,
+          "wall": [
+            0.024836897,
+            0.02485775,
+            0.024919052,
+            0.032125309,
+            0.024454681,
+            0.024860974,
+            0.024442703,
+            0.031795952,
+            0.024596926,
+            0.024398917,
+            0.024444346
+          ],
+          "cpu": [
+            0.024802938,
+            0.024855435,
+            0.024916927,
+            0.032123379,
+            0.024452926,
+            0.024859151,
+            0.024346357,
+            0.031784495,
+            0.024594827,
+            0.024397063,
+            0.024442881
+          ]
+        },
+        "vector-mac-ctr": {
+          "iterations": 4373,
+          "wall": [
+            0.024740222,
+            0.024936117,
+            0.024915797,
+            0.024739161,
+            0.025431034,
+            0.024931891,
+            0.024569495,
+            0.025028948,
+            0.025664006,
+            0.024590746,
+            0.024999914
+          ],
+          "cpu": [
+            0.024738832,
+            0.024933892,
+            0.024913693,
+            0.02473741,
+            0.025429,
+            0.024929876,
+            0.024568117,
+            0.025026911,
+            0.025662016,
+            0.024589058,
+            0.024997848
+          ]
+        }
+      },
+      "round_order": [
+        [
+          "serial",
+          "OpenSSL",
+          "vector-mac-ctr"
+        ],
+        [
+          "vector-mac-ctr",
+          "OpenSSL",
+          "serial"
+        ],
+        [
+          "OpenSSL",
+          "vector-mac-ctr",
+          "serial"
+        ],
+        [
+          "vector-mac-ctr",
+          "serial",
+          "OpenSSL"
+        ],
+        [
+          "vector-mac-ctr",
+          "serial",
+          "OpenSSL"
+        ],
+        [
+          "OpenSSL",
+          "serial",
+          "vector-mac-ctr"
+        ],
+        [
+          "vector-mac-ctr",
+          "serial",
+          "OpenSSL"
+        ],
+        [
+          "OpenSSL",
+          "vector-mac-ctr",
+          "serial"
+        ],
+        [
+          "vector-mac-ctr",
+          "serial",
+          "OpenSSL"
+        ],
+        [
+          "vector-mac-ctr",
+          "serial",
+          "OpenSSL"
+        ],
+        [
+          "serial",
+          "OpenSSL",
+          "vector-mac-ctr"
+        ]
+      ]
+    },
+    {
+      "algorithm": "aes-256-ccm",
+      "bytes": 65536,
+      "offset": 0,
+      "input_sha256": "f9554b39b3292980513df4bc441c226ae0d9eefe56846162d0e9ff6792ffe656",
+      "output_sha256": "fa6bb50d12c4287fde384bb677981f3c97761b71a8153b37c88f5d75d41170ae",
+      "samples": {
+        "OpenSSL": {
+          "iterations": 386,
+          "wall": [
+            0.024947705,
+            0.024968065,
+            0.024987765,
+            0.024950439,
+            0.025273927,
+            0.024929668,
+            0.025296491,
+            0.024892342,
+            0.025063389,
+            0.025160376,
+            0.025300006
+          ],
+          "cpu": [
+            0.02494572,
+            0.0249659,
+            0.02498551,
+            0.024948003,
+            0.025272076,
+            0.024927924,
+            0.02529478,
+            0.024889867,
+            0.025061512,
+            0.025158537,
+            0.025298415
+          ]
+        },
+        "serial": {
+          "iterations": 74,
+          "wall": [
+            0.025014355,
+            0.025835413,
+            0.025205694,
+            0.024928586,
+            0.0251501,
+            0.035768915,
+            0.025298854,
+            0.025357653,
+            0.025161678,
+            0.02603876,
+            0.025036529
+          ],
+          "cpu": [
+            0.025005569,
+            0.025833171,
+            0.025204034,
+            0.024926531,
+            0.025148162,
+            0.035766284,
+            0.025296482,
+            0.025356031,
+            0.025159498,
+            0.026036915,
+            0.025035013
+          ]
+        },
+        "vector-mac-ctr": {
+          "iterations": 291,
+          "wall": [
+            0.024933533,
+            0.025100375,
+            0.024968297,
+            0.024926052,
+            0.024927184,
+            0.025418745,
+            0.025079784,
+            0.024900564,
+            0.024963138,
+            0.025075017,
+            0.025173155
+          ],
+          "cpu": [
+            0.024931619,
+            0.025075123,
+            0.024966511,
+            0.024924308,
+            0.02492552,
+            0.025387307,
+            0.025078157,
+            0.02489896,
+            0.024953683,
+            0.02507327,
+            0.025171216
+          ]
+        }
+      },
+      "round_order": [
+        [
+          "serial",
+          "vector-mac-ctr",
+          "OpenSSL"
+        ],
+        [
+          "serial",
+          "OpenSSL",
+          "vector-mac-ctr"
+        ],
+        [
+          "vector-mac-ctr",
+          "serial",
+          "OpenSSL"
+        ],
+        [
+          "vector-mac-ctr",
+          "OpenSSL",
+          "serial"
+        ],
+        [
+          "vector-mac-ctr",
+          "OpenSSL",
+          "serial"
+        ],
+        [
+          "serial",
+          "OpenSSL",
+          "vector-mac-ctr"
+        ],
+        [
+          "vector-mac-ctr",
+          "OpenSSL",
+          "serial"
+        ],
+        [
+          "vector-mac-ctr",
+          "serial",
+          "OpenSSL"
+        ],
+        [
+          "serial",
+          "vector-mac-ctr",
+          "OpenSSL"
+        ],
+        [
+          "vector-mac-ctr",
+          "OpenSSL",
+          "serial"
+        ],
+        [
+          "serial",
+          "OpenSSL",
+          "vector-mac-ctr"
+        ]
+      ]
+    },
+    {
+      "algorithm": "aes-256-ccm",
+      "bytes": 1048576,
+      "offset": 0,
+      "input_sha256": "1e8e8f15703ff175699f1e1588b5a85d378c7c1aa34a320c37dffae28c916b32",
+      "output_sha256": "8137a2328ad67b4237b8a621a24ec228307be1c80e06c12ef827a42cf972e714",
+      "samples": {
+        "OpenSSL": {
+          "iterations": 24,
+          "wall": [
+            0.024852813,
+            0.02499099,
+            0.025332465,
+            0.025054206,
+            0.025492246,
+            0.025309361,
+            0.024918632,
+            0.024935356,
+            0.024929939,
+            0.02481187,
+            0.024866242
+          ],
+          "cpu": [
+            0.024850528,
+            0.024980582,
+            0.025001563,
+            0.025051818,
+            0.025490451,
+            0.025135173,
+            0.024916317,
+            0.024933092,
+            0.024928104,
+            0.024810008,
+            0.024862877
+          ]
+        },
+        "serial": {
+          "iterations": 5,
+          "wall": [
+            0.027350789,
+            0.027893087,
+            0.027506404,
+            0.027339803,
+            0.027131389,
+            0.026964727,
+            0.027340835,
+            0.027230418,
+            0.029982688,
+            0.027213872,
+            0.02875647
+          ],
+          "cpu": [
+            0.027348829,
+            0.027878268,
+            0.027503028,
+            0.027337212,
+            0.026955563,
+            0.026962864,
+            0.027338723,
+            0.027227578,
+            0.029977664,
+            0.027211183,
+            0.028753601
+          ]
+        },
+        "vector-mac-ctr": {
+          "iterations": 18,
+          "wall": [
+            0.025052043,
+            0.025997949,
+            0.024681524,
+            0.024957069,
+            0.024810628,
+            0.025168227,
+            0.024702545,
+            0.040697849,
+            0.025421129,
+            0.025321178,
+            0.025028738
+          ],
+          "cpu": [
+            0.025050015,
+            0.025995754,
+            0.024680014,
+            0.024955084,
+            0.024808355,
+            0.025143835,
+            0.024699734,
+            0.028968767,
+            0.025419075,
+            0.025297193,
+            0.02502611
+          ]
+        }
+      },
+      "round_order": [
+        [
+          "serial",
+          "OpenSSL",
+          "vector-mac-ctr"
+        ],
+        [
+          "serial",
+          "OpenSSL",
+          "vector-mac-ctr"
+        ],
+        [
+          "serial",
+          "OpenSSL",
+          "vector-mac-ctr"
+        ],
+        [
+          "OpenSSL",
+          "serial",
+          "vector-mac-ctr"
+        ],
+        [
+          "OpenSSL",
+          "serial",
+          "vector-mac-ctr"
+        ],
+        [
+          "OpenSSL",
+          "serial",
+          "vector-mac-ctr"
+        ],
+        [
+          "serial",
+          "vector-mac-ctr",
+          "OpenSSL"
+        ],
+        [
+          "serial",
+          "vector-mac-ctr",
+          "OpenSSL"
+        ],
+        [
+          "serial",
+          "vector-mac-ctr",
+          "OpenSSL"
+        ],
+        [
+          "vector-mac-ctr",
+          "OpenSSL",
+          "serial"
+        ],
+        [
+          "vector-mac-ctr",
+          "serial",
+          "OpenSSL"
+        ]
+      ]
+    }
+  ]
+}

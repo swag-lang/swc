@@ -181,6 +181,21 @@ static void xts_evp(const unsigned char *p, size_t n, unsigned char *out)
             (size_t)(used + tail) == n, "OpenSSL XTS operation failed");
 }
 
+static void encrypt_ccm_evp(const unsigned char *p, size_t n, unsigned char *out)
+{
+    int used = 0;
+    int tail = 0;
+    require(EVP_EncryptInit_ex2(cipher_context, NULL, key, nonce, NULL) &&
+            EVP_EncryptUpdate(cipher_context, NULL, &used, NULL, (int)n) &&
+            EVP_EncryptUpdate(cipher_context, NULL, &used, associated_data,
+                              sizeof(associated_data) - 1) &&
+            EVP_EncryptUpdate(cipher_context, out, &used, p, (int)n) &&
+            EVP_EncryptFinal_ex(cipher_context, out + used, &tail) &&
+            (size_t)(used + tail) == n &&
+            EVP_CIPHER_CTX_ctrl(cipher_context, EVP_CTRL_AEAD_GET_TAG, 16, out + n),
+            "OpenSSL CCM encryption failed");
+}
+
 static void authenticate_aad_evp(const unsigned char *p, size_t n, unsigned char *out)
 {
     int used = 0;
@@ -407,6 +422,20 @@ static operation select_operation(const char *name, size_t input_size, size_t *r
         require(cipher_context != NULL, "OpenSSL could not allocate a cipher context");
         *result_size = input_size;
         return xts_evp;
+    }
+
+    if (!strcmp(name, "aes-256-ccm")) {
+        require(input_size < (1u << 24), "CCM payload does not fit the 12-byte nonce");
+        cipher = EVP_CIPHER_fetch(NULL, "aes-256-ccm", NULL);
+        require(cipher != NULL, "OpenSSL could not fetch AES-256-CCM");
+        cipher_context = EVP_CIPHER_CTX_new();
+        require(cipher_context != NULL, "OpenSSL could not allocate a cipher context");
+        require(EVP_EncryptInit_ex2(cipher_context, cipher, NULL, NULL, NULL) &&
+                EVP_CIPHER_CTX_ctrl(cipher_context, EVP_CTRL_AEAD_SET_IVLEN, sizeof(nonce) - 1, NULL) &&
+                EVP_CIPHER_CTX_ctrl(cipher_context, EVP_CTRL_AEAD_SET_TAG, 16, NULL),
+                "OpenSSL could not configure the CCM nonce and tag");
+        *result_size = input_size + 16;
+        return encrypt_ccm_evp;
     }
 
     if (!strcmp(name, "aes-256-gcm-aad")) {

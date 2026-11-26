@@ -103,3 +103,41 @@ func aesCcmHexBytes(text: string)->Array'u8
     discard catch Crypto.aesCcmEncrypt(key, longNonce, "", oversized.toSlice(), oversizedCiphertext.toSlice(), largeTag) as error
     Swag.require(error.value() is Errors.BadParameterError)
 }
+
+#test
+{
+    // OpenSSL EVP vector for the shortest counter field, batched CTR and a partial block.
+    const Key = "0123456789abcdefghijklmnopqrstuv"
+    const Aad = "swag-crypto-1"
+    let nonce = aesCcmHexBytes("ffffffffffffffffffffffffff")
+    let expected = aesCcmHexBytes(#stringof(
+        "2fe735f45c7a860659e3f35f431d9188b4341baabcd4a4e6887adb0f38bc74be",
+        "d984612790d09abd69fc3f390d0d30821d3d3a0eb855ed4864480987082560e9",
+        "f9098b8e5129bf5b62d77ce06e2f5fcbaee54f663815977231c17c8881ffe77f",
+        "3ce8f51d830b25a68f316f492ff4516bb16187fac05907dbf92ac0de53f9609f",
+        "9edf8543069332eeb588cd4a72309bf13b"))
+    let expectedTag = aesCcmHexBytes("1e17d7d418e585b66ee97c59585c5051")
+    var storage: [147] u8
+    var tag: [Crypto.AesCcmTagMaxSize] u8
+    storage[0] = 0xA5
+    storage[146] = 0x5A
+    let data = storage[1 until 146]
+    for index in data.count do
+        data[index] = cast(u8, (index * 13 + 7) & 0xFF)
+
+    expect Crypto.aesCcmEncrypt(Key, nonce.toSlice(), Aad, data, data, tag)
+    Swag.require(Crypto.constantTimeEqual(data, expected.toSlice()))
+    Swag.require(Crypto.constantTimeEqual(tag, expectedTag.toSlice()))
+
+    tag[0] ^= 1
+    var error: Swag.Error
+    discard catch Crypto.aesCcmDecrypt(Key, nonce.toSlice(), Aad, data, tag, data) as error
+    Swag.require(error.value() is Errors.BadParameterError)
+    Swag.require(Crypto.constantTimeEqual(data, expected.toSlice()))
+    tag[0] ^= 1
+
+    expect Crypto.aesCcmDecrypt(Key, nonce.toSlice(), Aad, data, tag, data)
+    for index in data.count do
+        Swag.require(data[index] == cast(u8, (index * 13 + 7) & 0xFF))
+    Swag.require(storage[0] == 0xA5 and storage[146] == 0x5A)
+}

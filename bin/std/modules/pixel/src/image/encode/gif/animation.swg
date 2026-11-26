@@ -7,6 +7,8 @@
 
 using Swag, Core, Core.Errors
 
+private const PackRGB = cast(Math.Simd.U8x16, [0'u8, 1, 2, 4, 5, 6, 8, 9, 10, 12, 13, 14, 128, 128, 128, 128])
+
 // Configures an animated GIF.
 public struct AnimationOptions
 {
@@ -163,7 +165,6 @@ private impl AnimationWriter
         }
         else
         {
-            const PackRGB = [0'u8, 1, 2, 4, 5, 6, 8, 9, 10, 12, 13, 14, 0x80, 0x80, 0x80, 0x80]
             let groups = cast(u64, w) / 4
             for row in h
             {
@@ -178,7 +179,7 @@ private impl AnimationWriter
                 for group in groups
                 {
                     let bytes  = Math.Simd.load(source + group * 16)
-                    let packed = Math.Simd.shuffle(bytes, cast(Math.Simd.U8x16, PackRGB))
+                    let packed = Math.Simd.shuffle(bytes, PackRGB)
                     let output = target + group * 12
                     Math.Simd.storeLow8(output, packed)
                     cast([*] u32, output + 8)[0] = cast #bit(Math.Simd.U32x4, packed)[2]
@@ -258,32 +259,97 @@ private impl AnimationWriter
         .pending.release()
     }
 
+    #[Inline]
+    func changedByteMask(first, second: const [*] u8, channels: u32)->u32
+    {
+        let equal = Math.Simd.load(first) == Math.Simd.load(second)
+        return ~Math.Simd.bitmask(equal) & channels
+    }
+
     // Finds the first and last byte of a changed RGB channel in one packed row.
     func changedPackedRow(first, second: const [*] u8, rowBytes: s32, alpha: bool)->{ left, right: s32 }
     {
         let channels  = alpha ? 0x7777'u32 : 0xFFFF'u32
         let vectorEnd = rowBytes & ~15
-        var left      = rowBytes
-        var right     = -1
-        for group in vectorEnd / 16
+        var start     = 0
+        var mask: u32
+        while start < vectorEnd
         {
-            let offset  = group * 16
-            let equal   = Math.Simd.load(first + offset) == Math.Simd.load(second + offset)
-            let changed = ~Math.Simd.bitmask(equal) & channels
-            if not changed do
-                continue
-            if right < 0 do
-                left = offset + cast(s32, Math.trailingZeros(changed))
-            right = offset + 31 - cast(s32, Math.leadingZeros(changed))
+            mask = changedByteMask(first + start, second + start, channels)
+            if mask do
+                break
+            start += 16
         }
 
+        var left  = mask ? start + cast(s32, Math.trailingZeros(mask)) : rowBytes
+        var right = -1
         for offset in vectorEnd until rowBytes
         {
             if (alpha and (offset & 3) == 3) or first[offset] == second[offset] do
                 continue
-            if right < 0 do
+            if left == rowBytes do
                 left = offset
             right = offset
+        }
+
+        if right >= 0 or not mask do
+            return {left, right}
+
+        // The earliest changed group already supplies both bounds when no later group differs.
+        var stop = vectorEnd - 16
+        while stop > start
+        {
+            let last = changedByteMask(first + stop, second + stop, channels)
+            if last do
+                return {left, stop + 31 - cast(s32, Math.leadingZeros(last))}
+            stop -= 16
+        }
+
+        return {left, start + 31 - cast(s32, Math.leadingZeros(mask))}
+    }
+
+    #[Inline]
+    func channelsDiffer(first, second: const [*] u8, swap: bool)->bool
+    {
+        let red  = swap ? 2 : 0
+        let blue = 2 - red
+        return first[0] != second[red] or first[1] != second[1] or first[2] != second[blue]
+    }
+
+    // Compares packed RGB channels with different pixel strides or channel orders.
+    func changedMixedRow(first, second: const [*] u8, width: s32, firstStep, secondStep: u8, swap: bool)->{ left, right: s32 }
+    {
+        const CopyRGB = cast(Math.Simd.U8x16, [0'u8, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 128, 128, 128, 128])
+        const SwapRGB = cast(Math.Simd.U8x16, [2'u8, 1, 0, 5, 4, 3, 8, 7, 6, 11, 10, 9, 128, 128, 128, 128])
+        const PackBGR = cast(Math.Simd.U8x16, [2'u8, 1, 0, 6, 5, 4, 10, 9, 8, 14, 13, 12, 128, 128, 128, 128])
+        let firstOrder  = firstStep == 4 ? PackRGB : CopyRGB
+        let secondOrder = secondStep == 4 ? (swap ? PackBGR : PackRGB) : (swap ? SwapRGB : CopyRGB)
+        var left        = width
+        var right       = -1
+        var x           = 0
+        while width - x >= 6
+        {
+            let a = Math.Simd.shuffle(Math.Simd.load(first + x * firstStep), firstOrder)
+            let b = Math.Simd.shuffle(Math.Simd.load(second + x * secondStep), secondOrder)
+            let changes = ~Math.Simd.bitmask(a == b) & 0xFFF
+            if changes
+            {
+                if right < 0 do
+                    left = x + cast(s32, Math.trailingZeros(changes)) / 3
+                right = x + (31 - cast(s32, Math.leadingZeros(changes))) / 3
+            }
+            x += 4
+        }
+
+        for tail in x until width
+        {
+            let a = first + tail * firstStep
+            let b = second + tail * secondStep
+            if not channelsDiffer(a, b, swap) do
+                continue
+            if right < 0 do
+                left = tail
+            right = tail
         }
 
         return {left, right}
@@ -297,8 +363,17 @@ private impl AnimationWriter
         let sameFormat   = before.pixelFormat == after.pixelFormat
         let beforeBgr    = before.pixelFormat == .BGR8 or before.pixelFormat == .BGRA8
         let afterBgr     = after.pixelFormat == .BGR8 or after.pixelFormat == .BGRA8
-        let firstChannel = beforeBgr == afterBgr ? 0 : 2
-        let lastChannel  = 2 - firstChannel
+        let swap         = beforeBgr != afterBgr
+
+        // Opposite changed corners already establish every side of the bounding rectangle.
+        let topRow = cast(u64, after.height - 1)
+        if channelsDiffer(first + topRow * before.rowStride, second + topRow * after.rowStride, swap)
+        {
+            let rightColumn = cast(u64, after.width - 1)
+            if channelsDiffer(first + rightColumn * before.bytesPerPixel,
+                              second + rightColumn * after.bytesPerPixel, swap) do
+                return {0, 0, after.width, after.height}
+        }
 
         var left   = after.width
         var right  = -1
@@ -321,23 +396,11 @@ private impl AnimationWriter
             }
             else
             {
-                var a = firstRow
-                var b = secondRow
-                for x in after.width
-                {
-                    if a[0] != b[firstChannel] or a[1] != b[1] or a[2] != b[lastChannel]
-                    {
-                        if rowRight < 0 do
-                            rowLeft = x
-                        rowRight = x
-                    }
-
-                    a += before.bytesPerPixel
-                    b += after.bytesPerPixel
-                }
-
-                if rowRight < 0 do
+                let changed = changedMixedRow(firstRow, secondRow, after.width, before.bytesPerPixel, after.bytesPerPixel, swap)
+                if changed.right < 0 do
                     continue
+                rowLeft  = changed.left
+                rowRight = changed.right
             }
 
             if top < 0 do

@@ -12,8 +12,6 @@ private const Dither: [16] s32 = [-8, 0, -6, 2, 4, -4, 6, -2, -5, 3, -7, 1, 7, -
 
 impl Encoder
 {
-    func colorKey(col: Color)->u32 => (cast(u32, col.r) << 16) | (cast(u32, col.g) << 8) | col.b
-
     func tableBitsForColorCount(count: u32)->u8
     {
         var bits = 1'u8
@@ -27,37 +25,14 @@ impl Encoder
         return bits
     }
 
-    func readPixelColor(image: Image, pix: const [*] u8)->Color
+    func pixelChannelOffsets(image: Image)->{ red, green, blue, alpha: u8 }
     {
-        var result: #returntype
-
-        switch image.pixelFormat
-        {
-        case .Gray8:
-            result.setArgb(255, pix[0], pix[0], pix[0])
-
-        case .GrayAlpha8:
-            result.setArgb(pix[1], pix[0], pix[0], pix[0])
-
-        case .BGR8:
-            result.setArgb(255, pix[2], pix[1], pix[0])
-
-        case .BGRA8:
-            result.setArgb(pix[3], pix[2], pix[1], pix[0])
-
-        case .RGB8:
-            result.setArgb(255, pix[0], pix[1], pix[2])
-
-        case .RGBA8:
-            result.setArgb(pix[3], pix[0], pix[1], pix[2])
-
-        default:
-
-            // Unsupported pixel format: opaque black rather than garbage.
-            result.setArgb(255, 0, 0, 0)
-        }
-
-        return result
+        let gray = image.pixelFormat == .Gray8 or image.pixelFormat == .GrayAlpha8
+        let bgr  = image.pixelFormat == .BGR8 or image.pixelFormat == .BGRA8
+        return {gray or not bgr ? 0 : 2,
+                gray ? 0 : 1,
+                gray or bgr ? 0 : 2,
+                image.bytesPerPixel - 1}
     }
 
     func imageHasTransparentPixels(image: Image)->bool
@@ -65,16 +40,24 @@ impl Encoder
         if not image.pixelFormat.hasAlpha() do
             return false
 
-        for y in image.height
+        // Alpha is the last byte of each two- or four-byte pixel. Its sign bit
+        // is set exactly when that pixel is opaque in GIF.
+        let step = image.bytesPerPixel
+        let mask = step == 2 ? 0xAAAA'u32 : 0x8888'u32
+        let end  = image.pixels.storage() + image.byteCount
+        var pix  = image.pixels.storage()
+        while end - pix >= 16
         {
-            var pix = image.pixels.storage() + cast(u64, y) * image.rowStride
-            for image.width
-            {
-                let col = readPixelColor(image, pix)
-                if col.a < 128 do
-                    return true
-                pix += image.bytesPerPixel
-            }
+            if (Math.Simd.bitmask(Math.Simd.load(pix)) & mask) != mask do
+                return true
+            pix += 16
+        }
+
+        while pix < end
+        {
+            if pix[step - 1] < 128 do
+                return true
+            pix += step
         }
 
         return false
@@ -86,7 +69,8 @@ impl Encoder
         data.tableBits        = 0
         data.lzwMinCodeSize   = 0
         data.transparentIndex = -1
-        data.indexes.resize(pixelCount)
+        data.indexes.grow(pixelCount)
+        data.indexes.count = pixelCount
         Memory.clear(&data.colors, #sizeof(data.colors))
     }
 
@@ -101,8 +85,9 @@ impl Encoder
         let pixelCount = cast(u64, image.width) * image.height
         resetPaletteResult(data, pixelCount)
 
-        var colorMap: HashTable'(u32, u8)
-        colorMap.reserve(257)
+        // The entry stores a 24-bit RGB key and a one-based palette index.
+        const MapCapacity = 512
+        var colorMap: [MapCapacity] u64
 
         if hasTransparent
         {
@@ -110,36 +95,47 @@ impl Encoder
             data.count = 1
         }
 
+        let offsets  = pixelChannelOffsets(image)
+        let gray     = offsets.green == 0
         var dstIndex = 0'u64
         for y in image.height
         {
             var pix = cast([*] u8, image.pixels.storage()) + cast(u64, (image.height - y - 1)) * image.rowStride
             for image.width
             {
-                let col = readPixelColor(image, pix)
                 var paletteIndex: u8
 
-                if hasTransparent and col.a < 128
+                if hasTransparent and pix[offsets.alpha] < 128
                 {
                     paletteIndex = cast(u8, data.transparentIndex)
                 }
                 else
                 {
-                    let key   = colorKey(col)
-                    let found = colorMap.tryFind(key)
-                    if found
+                    let r     = pix[offsets.red]
+                    let g     = pix[offsets.green]
+                    let b     = pix[offsets.blue]
+                    let key   = (cast(u32, r) << 16) | (cast(u32, g) << 8) | b
+                    var slot  = gray ? cast(u32, r) : (key * #wrap 0x9E3779B9'u32) >> 23
+                    var entry = colorMap[slot]
+                    while entry and (entry >> 9) != key
                     {
-                        paletteIndex = found.value
+                        slot  = (slot + 1) & (MapCapacity - 1)
+                        entry = colorMap[slot]
+                    }
+
+                    if entry
+                    {
+                        paletteIndex = cast(u8, (entry & 0x1FF) - 1)
                     }
                     else
                     {
                         if data.count == MaxPaletteColors do
                             return false
 
-                        paletteIndex = cast(u8, data.count)
-                        data.colors[paletteIndex] = PaletteColor{col.r, col.g, col.b}
-                        colorMap.add(key, paletteIndex)
-                        data.count += 1
+                        paletteIndex   = cast(u8, data.count)
+                        data.colors[paletteIndex] = PaletteColor{r, g, b}
+                        colorMap[slot] = (cast(u64, key) << 9) | (data.count + 1)
+                        data.count     += 1
                     }
                 }
 
@@ -284,20 +280,22 @@ impl Encoder
         // Five bits per channel keep the histogram bounded independently of image size.
         var histogram: Array'HistogramCell
         histogram.resize(32 * 32 * 32)
-        Memory.clear(histogram.storage(), histogram.count * #sizeof(HistogramCell))
+        let offsets = pixelChannelOffsets(image)
         for y in image.height
         {
             var pix = image.pixels.storage() + cast(u64, image.height - 1 - y) * image.rowStride
             for image.width
             {
-                let color = readPixelColor(image, pix)
-                if not hasTransparent or color.a >= 128
+                if not hasTransparent or pix[offsets.alpha] >= 128
                 {
-                    let cell = &histogram[histogramIndex(color.r, color.g, color.b)]
+                    let r    = pix[offsets.red]
+                    let g    = pix[offsets.green]
+                    let b    = pix[offsets.blue]
+                    let cell = &histogram[histogramIndex(r, g, b)]
                     cell.count += 1
-                    cell.red   += color.r
-                    cell.green += color.g
-                    cell.blue  += color.b
+                    cell.red   += r
+                    cell.green += g
+                    cell.blue  += b
                 }
 
                 pix += image.bytesPerPixel
@@ -324,33 +322,60 @@ impl Encoder
                 cast(u8, (box.blueTotal + box.pixels / 2) / box.pixels)}
         }
 
-        // Map every histogram cell, including empty ones a dithered pixel may reach.
+        // A distance takes the high bits and the palette index breaks equal-distance ties.
+        // Precompute each channel's contribution for four palette colors at a time.
+        const Groups = MaxPaletteColors / 4
+        var redCosts, greenCosts, blueCosts: [32, Groups] Math.Simd.S32x4
+        let groups = (data.count - firstColor + 3) / 4
+        for group in groups
+        {
+            var reds, greens, blues, indices: [4] s32
+            for lane in 4
+            {
+                let index = Math.min(firstColor + group * 4 + lane, data.count - 1)
+                let color = data.colors[index]
+                reds[lane]    = color.r
+                greens[lane]  = color.g
+                blues[lane]   = color.b
+                indices[lane] = cast(s32, index)
+            }
+
+            for coordinate in 32
+            {
+                let center = Math.Simd.splat(cast(s32, coordinate * 8 + 4))
+                let dr     = center - cast(Math.Simd.S32x4, reds)
+                let dg     = center - cast(Math.Simd.S32x4, greens)
+                let db     = center - cast(Math.Simd.S32x4, blues)
+                redCosts[coordinate, group]   = dr * dr * 256 + cast(Math.Simd.S32x4, indices)
+                greenCosts[coordinate, group] = dg * dg * 256
+                blueCosts[coordinate, group]  = db * db * 256
+            }
+        }
+
         var mapping: Array'u8
         mapping.resize(histogram.count)
         for red in 32
         {
             for green in 32
             {
+                var rgCosts: [Groups] Math.Simd.S32x4
+                for group in groups do
+                    rgCosts[group] = redCosts[red, group] + greenCosts[green, group]
+
                 for blue in 32
                 {
-                    let index        = (red << 10) | (green << 5) | blue
-                    var bestDistance = Swag.U32.Max
-                    var bestIndex    = firstColor
-                    for i in firstColor to data.count - 1
+                    let index = (red << 10) | (green << 5) | blue
+                    if not dither and not histogram[index].count do
+                        continue
+
+                    var best = Math.Simd.splat(Swag.S32.Max)
+                    for group in groups
                     {
-                        let color    = data.colors[i]
-                        let dr       = cast(s32, red * 8 + 4) - cast(s32, color.r)
-                        let dg       = cast(s32, green * 8 + 4) - cast(s32, color.g)
-                        let db       = cast(s32, blue * 8 + 4) - cast(s32, color.b)
-                        let distance = cast(u32, dr * dr + dg * dg + db * db)
-                        if distance < bestDistance
-                        {
-                            bestDistance = distance
-                            bestIndex    = i
-                        }
+                        let cost = rgCosts[group] + blueCosts[blue, group]
+                        best = Math.Simd.select(cost < best, cost, best)
                     }
 
-                    mapping[index] = cast(u8, bestIndex)
+                    mapping[index] = cast #wrap(u8, Math.Simd.minimum(best))
                 }
             }
         }
@@ -361,17 +386,16 @@ impl Encoder
             var pix = image.pixels.storage() + cast(u64, image.height - 1 - y) * image.rowStride
             for x in image.width
             {
-                let color = readPixelColor(image, pix)
-                if hasTransparent and color.a < 128
+                if hasTransparent and pix[offsets.alpha] < 128
                 {
                     data.indexes[destination] = 0
                 }
                 else
                 {
                     let shift = dither ? Dither[((y & 3) << 2) | (x & 3)] : 0
-                    let red   = cast(u8, Math.clamp(cast(s32, color.r) + shift, 0, 255))
-                    let green = cast(u8, Math.clamp(cast(s32, color.g) + shift, 0, 255))
-                    let blue  = cast(u8, Math.clamp(cast(s32, color.b) + shift, 0, 255))
+                    let red   = cast(u8, Math.clamp(cast(s32, pix[offsets.red]) + shift, 0, 255))
+                    let green = cast(u8, Math.clamp(cast(s32, pix[offsets.green]) + shift, 0, 255))
+                    let blue  = cast(u8, Math.clamp(cast(s32, pix[offsets.blue]) + shift, 0, 255))
                     data.indexes[destination] = mapping[histogramIndex(red, green, blue)]
                 }
 

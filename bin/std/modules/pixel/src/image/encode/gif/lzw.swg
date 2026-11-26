@@ -12,7 +12,7 @@ private
     struct BitWriter
     {
         bytes:    Array'u8
-        curBits:  u32
+        curBits:  u64
         bitCount: u32
     }
 
@@ -30,25 +30,25 @@ impl BitWriter
 {
     mtd write(code: u16, codeSize: u8)
     {
-        .curBits  |= cast(u32, code) << .bitCount
+        .curBits  |= cast(u64, code) << .bitCount
         .bitCount += codeSize
 
-        while .bitCount >= 8
+        if .bitCount >= 32
         {
-            .bytes.add(cast(u8, (.curBits & 0xFF)))
-            .curBits  >>= 8
-            .bitCount -= 8
+            cast([*] u32, .bytes.emplaceAddress(4))[0] = cast #wrap(u32, .curBits)
+            .curBits  >>= 32
+            .bitCount -= 32
         }
     }
 
     mtd flush()
     {
-        if .bitCount
-        {
-            .bytes.add(cast(u8, (.curBits & 0xFF)))
-            .curBits  = 0
-            .bitCount = 0
-        }
+        let count  = (.bitCount + 7) >> 3
+        let target = .bytes.emplaceAddress(count)
+        for i in count do
+            target[i] = cast #wrap(u8, .curBits >> (i * 8))
+        .curBits  = 0
+        .bitCount = 0
     }
 }
 
@@ -100,28 +100,39 @@ impl Encoder
             return enc.bits.bytes
         }
 
-        // One slot per (code, index) pair; zero means the longer string is not known yet.
-        var dictionary: Array'u16
-        dictionary.resize((MaxLzwCode + 1) * 256)
-        var nextCode = cast(u32, enc.endCode) + 1
+        // Pack the (prefix, index) key and its 12-bit code in a single table entry.
+        // A zero entry is empty. Each dictionary cycle stays below half capacity.
+        let capacity = Math.roundUpToPowerOf2(cast(u32, Math.min(indexes.count, 4096'u64)) * 2)
+        let shift    = Math.leadingZeros(capacity - 1)
+        var table: Array'u32
+        table.resize(capacity)
+        let dictionary = table.storage()
+        var nextCode   = cast(u32, enc.endCode) + 1
 
         enc.writeCode(enc.clearCode)
         var prefix = cast(u32, indexes[0])
         for i in 1 until indexes.count
         {
             let index = indexes[i]
-            let slot  = prefix * 256 + index
-            let known = dictionary[slot]
-            if known
+            let key   = (prefix << 8 | index) << 12
+            var slot  = ((key >> 12) * #wrap 0x9E3779B9'u32) >> shift
+            var entry = dictionary[slot]
+            while entry and (entry & ~MaxLzwCode) != key
             {
-                prefix = known
+                slot  = (slot + 1) & (capacity - 1)
+                entry = dictionary[slot]
+            }
+
+            if entry
+            {
+                prefix = entry & MaxLzwCode
                 continue
             }
 
             enc.writeCode(cast(u16, prefix))
             if nextCode < MaxLzwCode
             {
-                dictionary[slot] = cast(u16, nextCode)
+                dictionary[slot] = key | nextCode
                 nextCode         += 1
                 if nextCode > (1'u32 << enc.codeSize) and enc.codeSize < 12 do
                     enc.codeSize += 1
@@ -129,7 +140,7 @@ impl Encoder
             else
             {
                 enc.writeCode(enc.clearCode)
-                Memory.clear(dictionary.storage(), dictionary.count * #sizeof(u16))
+                Memory.clear(dictionary, cast(u64, capacity) * #sizeof(u32))
                 nextCode = cast(u32, enc.endCode) + 1
             }
 
@@ -144,15 +155,18 @@ impl Encoder
 
     func writeSubBlocks(result: *ConcatBuffer, bytes: const [..] u8)
     {
-        var offset = 0'u64
+        let blocks      = (bytes.count + 254) / 255
+        var destination = result.reserveInPlace(bytes.count + blocks + 1)
+        var offset      = 0'u64
         while offset < bytes.count
         {
             let blockSize = Math.min(255'u64, bytes.count - offset)
-            result.addNative(cast(u8, blockSize))
-            result.addBytes(Swag.makeSlice(bytes.buffer + offset, blockSize))
-            offset += blockSize
+            destination[0] = cast(u8, blockSize)
+            Memory.copy(destination + 1, bytes.buffer + offset, blockSize)
+            destination += 1 + blockSize
+            offset      += blockSize
         }
 
-        result.addNative(0'u8)
+        destination[0] = 0
     }
 }

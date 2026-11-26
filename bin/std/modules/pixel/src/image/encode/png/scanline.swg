@@ -82,21 +82,25 @@ impl Encoder
         }
     }
 
-    mtd finishIDat() fail
+    mtd finishIDat(deferHeader: bool) fail
     {
         var zlib: Compress.ZLib
         let cmp = try zlib.compress(.bufferToCompress.toSlice(), .userOptions.compressionLevel)
+
+        if deferHeader
+        {
+            // Signature, 13-byte IHDR, and the framing of IHDR, IDAT, and IEND.
+            const PngOverhead = #sizeof(PngSignature) + 13 + 3 * 12
+            if cmp.count <= MaxPngChunkLength do
+                .stream!.grow(cmp.count + PngOverhead)
+            try .writeChunksBeforeIDat()
+        }
 
         .writePtr = try .writeHeader(TypeIDat, cmp.count)
         Memory.copy(.writePtr, cmp.storage(), cmp.count)
         .bufferToCompress.count = 0
 
         .finishChunk()
-    }
-
-    mtd writeIDatBytes(sl: [*] u8, len: u32) fail
-    {
-        .bufferToCompress.add(Swag.makeSlice(sl, len))
     }
 
     mtd encodeRow(row: [*] u8)->bool fail
@@ -192,27 +196,17 @@ impl Encoder
         if not .rowInfo.scanlineIdx and requiresPrevious do
             Memory.clear(cast([*] u8, unwrap .prevScanline), cast(u64, scanlineWidth))
 
-        var filtered = cast([*] u8, unwrap .filteredScanline)
-        let filter   = .getBestFilter(scanlineWidth - 1)
+        let output = .bufferToCompress.storage() + .bufferToCompress.count
+        let filter = .getBestFilter(scanlineWidth - 1)
+        output[0] = cast(u8, filter)
         if filter == .None do
-            filtered = cast([*] u8, unwrap .scanline)
-        filtered    -= 1
-        filtered[0] = cast(u8, filter)
-        filtered    += 1
-
-        if filter != .None do
-            .filterScanline(filtered, scanlineWidth - 1, filter)
-
-        try .writeIDatBytes(filtered - 1, scanlineWidth)
+            Memory.copy(output + 1, unwrap .scanline, cast(u64, scanlineWidth) - 1)
+        else do
+            .filterScanline(output + 1, scanlineWidth - 1, filter)
+        .bufferToCompress.count += scanlineWidth
 
         swap(&.prevScanline, &.scanline)
-        if .updateRowInfo()
-        {
-            try .finishIDat()
-            return true
-        }
-
-        return false
+        return .updateRowInfo()
     }
 
     mtd updateRowInfo()->bool

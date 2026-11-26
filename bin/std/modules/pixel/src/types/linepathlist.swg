@@ -24,9 +24,10 @@ struct LinePathList
     internal
     {
         fillCache:            *LinePathList?     // Owned normalized copy, when one was needed.
-        fillCacheStamps:      Array'u64          // Contour revisions the cache was built from.
+        fillCacheRevisions:   [*] u64?           // Revisions of two or more contours.
+        fillCacheRevision:    u64                // A single revision, or the number allocated above.
         fillCacheRule:        Clipper.PolyFillType = NonZero
-        fillCacheDirect:      bool     // The source can be filled as it is.
+        fillCacheEmpty:       bool     // The cache describes an empty list.
         fillCacheByDirection: bool     // The cache serves the winding-direction fill.
         fillCacheValid:       bool
     }
@@ -117,7 +118,8 @@ impl LinePathList
         result += .paths.capacity * #sizeof(*LinePath)
         for path in .paths do
             result += path.memoryUsage()
-        result += .fillCacheStamps.capacity * #sizeof(u64)
+        if .fillCacheRevisions do
+            result += .fillCacheRevision * #sizeof(u64)
         if .fillCache do
             result += .fillCache.memoryUsage()
         return result
@@ -137,6 +139,7 @@ impl LinePathList
     mtd opDrop()
     {
         .clear()
+        .releaseFillCacheRevisions()
     }
 
     // Deep-copies every owned path after copying the list.
@@ -152,9 +155,9 @@ impl LinePathList
             .paths[i] = ptr
         }
 
-        .fillCache = null
-        .fillCacheStamps.clear()
-        .fillCacheValid = false
+        .fillCache          = null
+        .fillCacheRevisions = null
+        .fillCacheValid     = false
     }
 
     // Drops the cached fill normalization; the next fill rebuilds it.
@@ -166,8 +169,15 @@ impl LinePathList
             .fillCache = null
         }
 
-        .fillCacheStamps.clear()
         .fillCacheValid = false
+    }
+
+    private mtd releaseFillCacheRevisions()
+    {
+        if not .fillCacheRevisions do
+            return
+        Memory.free(.fillCacheRevisions, .fillCacheRevision * #sizeof(u64))
+        .fillCacheRevisions = null
     }
 
     // Returns the number of owned paths.
@@ -510,11 +520,43 @@ impl LinePathList
     {
         if not .fillCacheValid or .fillCacheRule != rule or .fillCacheByDirection != byDirection do
             return false
-        if .fillCacheStamps.count != .paths.count do
+        let count = .paths.count
+        if not count do
+            return .fillCacheEmpty
+        if .fillCacheEmpty do
             return false
-        for p, i in .paths where .fillCacheStamps[i] != p.revision do
+
+        let revisions = .fillCacheRevisions
+        if count == 1 do
+            return not revisions and .fillCacheRevision == .paths[0].revision
+        if not revisions or .fillCacheRevision != count do
+            return false
+        for p, i in .paths where revisions[i] != p.revision do
             return false
         return true
+    }
+
+    private mtd storeFillCacheRevisions()
+    {
+        let count = .paths.count
+        .fillCacheEmpty = count == 0
+        if count < 2
+        {
+            .releaseFillCacheRevisions()
+            .fillCacheRevision = count ? .paths[0].revision : 0
+            return
+        }
+
+        if not .fillCacheRevisions or .fillCacheRevision != count
+        {
+            let previousBytes = .fillCacheRevisions ? .fillCacheRevision * #sizeof(u64) : 0
+            .fillCacheRevisions = cast([*] u64, Memory.realloc(.fillCacheRevisions, count * #sizeof(u64), previousBytes, alignment: #alignof(u64)))
+            .fillCacheRevision  = count
+        }
+
+        let revisions = .fillCacheRevisions
+        for p, i in .paths do
+            revisions[i] = p.revision
     }
 
     // Returns the geometry a fill can triangulate directly under `rule`, normalizing at most
@@ -534,7 +576,7 @@ impl LinePathList
     internal mtd normalizedFill(rule: Clipper.PolyFillType, byDirection: bool)->*LinePathList
     {
         if .fillCacheMatches(rule, byDirection) do
-            return .fillCacheDirect ? me : unwrap .fillCache
+            return .fillCache orelse me
 
         .invalidateFillCache()
 
@@ -552,13 +594,10 @@ impl LinePathList
             .fillCache = cache
         }
 
-        .fillCacheStamps.reserve(.paths.count)
-        for p in .paths do
-            .fillCacheStamps.add(p.revision)
+        .storeFillCacheRevisions()
         .fillCacheRule        = rule
-        .fillCacheDirect      = direct
         .fillCacheByDirection = byDirection
         .fillCacheValid       = true
-        return direct ? me : unwrap .fillCache
+        return .fillCache orelse me
     }
 }

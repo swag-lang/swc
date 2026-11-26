@@ -1674,8 +1674,9 @@ private impl Codec
         }
 
         let outputFrames = .previousSize ? cast(u64, .previousSize) / 4 + n / 4 : 0
-        let base         = .output.count / .channels
-        .output.resize((base + outputFrames) * .channels)
+
+        // Every channel writes all of its new samples before the next packet.
+        let pcm       = .output.emplaceAddress(cast(u32, outputFrames * .channels))
         let time      = .timeDomain.storage()
         let stereo    = .channels == 2
         let fusedLeft = stereo and .previousSize == n and leftStart == 0 and leftEnd == half
@@ -1713,7 +1714,7 @@ private impl Codec
                 }
 
                 let slot   = ChannelSlots[.channels, channel]
-                let output = .output.storage() + base * .channels + slot
+                let output = pcm + slot
 
                 // Different block sizes leave samples to one side of the overlap. Compute
                 // that span once, then add the two windows without bounds checks per sample.
@@ -1796,7 +1797,7 @@ private impl Codec
 
             let left   = .spectrum[0].storage()
             let right  = .spectrum[1].storage()
-            let output = cast([*] u16, .output.storage() + base * 2)
+            let output = cast([*] u16, pcm)
             var frame  = 0'u64
             while frame < outputFrames
             {

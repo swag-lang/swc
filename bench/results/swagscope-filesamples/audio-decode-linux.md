@@ -359,3 +359,28 @@ interleaved PCM16. [Raw stage times and PCM deltas](audio-decode-linux-round9.js
 The Swag PCM matches between worker budgets for all nine fixtures. FLAC and OGA
 match FFmpeg byte for byte. The largest difference from the original Swag output
 is one PCM16 unit.
+
+## Tenth optimization pass
+
+This follow-up compares the changed codecs with commit `c235d7a7eb` and native FFmpeg.
+Each median uses 56 samples and includes opening and materializing ten seconds of PCM16.
+[Raw stage times and PCM deltas](audio-decode-linux-round10.json)
+
+| Format | R9 CPU 0 (ms) | Swag CPU 0 (ms) | FFmpeg CPU 0 (ms) | R9 CPU 1 (ms) | Swag CPU 1 (ms) | FFmpeg CPU 1 (ms) |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| Ogg Vorbis | 7.38 | 7.02 | 7.34 | 7.58 | 7.08 | 7.83 |
+
+| Format | R9 4 cores (ms) | Swag 4 cores (ms) | FFmpeg 4 cores (ms) |
+| --- | ---: | ---: | ---: |
+| Ogg Vorbis | 7.28 | 7.06 | 7.44 |
+
+Vorbis appends uninitialized PCM slots and fills them in the existing overlap loop.
+The decoder writes every appended sample for all channel layouts. FileSamples PCM
+matches the ninth-pass output byte for byte, as do the seven additional Vorbis fixtures
+used for the focused comparison.
+
+The PCM matches between the one-core and four-core runs, with a peak difference of
+one PCM16 unit from the original Swag output.
+
+Native Release passes 314 functional and stress tests. Release-safe passes
+18 focused Vorbis, Ogg and MDCT tests.

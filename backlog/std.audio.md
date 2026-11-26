@@ -200,13 +200,14 @@ owned by `bin/std/modules/audio` together. [README.md](README.md) has the whole 
 
 ### std.audio.017 — Compressed audio decode still trails native FFmpeg on FileSamples
 
-- Evidence: native Linux Release timings cover file opening and materialization of
-  the first ten seconds of PCM16. DTS, FLAC and OGA lead on one core. AAC and MP3
-  also lead with four cores. AC-3, AAC, MP3, Vorbis and Opus improved over the
-  fifth-pass build on one core. The Vorbis retests cluster near FFmpeg.
-  [FileSamples comparison](../bench/results/swagscope-filesamples/audio-decode-linux.md#full-ninth-pass-comparison)
+- Evidence: native Linux Release timings cover opening and materializing the first
+  ten seconds of PCM16. DTS, FLAC, OGA and Vorbis lead at one core, with Vorbis
+  confirmed in repeated series. AAC and MP3 also lead with four cores. AAC, AC-3,
+  MP3 and Opus still trail at one core.
+  [Full FileSamples comparison](../bench/results/swagscope-filesamples/audio-decode-linux.md#full-ninth-pass-comparison)
+  · [Vorbis output follow-up](../bench/results/swagscope-filesamples/audio-decode-linux.md#tenth-optimization-pass)
 - Next: reduce AC-3 block parsing and synthesis, MP3 spectrum and polyphase work,
-  AAC spectral decoding, Vorbis residue and Opus CELT allocation.
+  AAC spectral decoding, and Opus CELT allocation.
 - Done when: Swag opens and materializes the same PCM16 windows faster than native
   FFmpeg on all eight compressed inputs on one core, with format validation and
   PCM tolerances intact. Repeat the four-core comparison to track scaling.

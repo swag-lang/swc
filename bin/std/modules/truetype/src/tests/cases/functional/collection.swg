@@ -150,7 +150,7 @@ using Swag, Core
 #test
 {
     var bytes = buildFontCollection(["arial.ttf", "arialbd.ttf"])
-    Swag.require(bytes.count >= MinCollectionReadSize)
+    Swag.require(bytes.count >= MinFontCompactionSize)
     let path = Path.combine(Env.getSpecialDirectory(.Temp), Format.toString("swag-collection-%.ttc", Guid128.random().toString()))
     defer discard catch File.delete(path)
     discard expect File.writeAllBytes(path, bytes.toSlice())
@@ -187,6 +187,46 @@ using Swag, Core
         for row in face.glyph.bitmap.rows do
             Swag.require(Slice.equals(expect face.glyph.bitmap.row(row), expect expected.glyph.bitmap.row(row)))
     }
+}
+
+// A standalone snapshot can omit glyph variations while validating their source range.
+#test
+{
+    var bytes    = loadFontBytes("arial.ttf")
+    let original = expect Face.load(bytes.toSlice())
+    defer original.destroy()
+    let record = parseTestTableRecord(&bytes, imageTag('D'u32, 'S'u32, 'I'u32, 'G'u32))
+    let offset = bytes.count
+    bytes.resize(offset + MinFontCompactionSize)
+    writeBigU32(&bytes, record, imageTag('g'u32, 'v'u32, 'a'u32, 'r'u32))
+    writeBigU32(&bytes, record + 8, cast(u32, offset))
+    writeBigU32(&bytes, record + 12, cast(u32, MinFontCompactionSize))
+
+    let path = Path.combine(Env.getSpecialDirectory(.Temp), Format.toString("swag-variable-%.ttf", Guid128.random().toString()))
+    defer discard catch File.delete(path)
+    discard expect File.writeAllBytes(path, bytes.toSlice())
+
+    let file   = expect readFontFile(path, 0)
+    let memory = expect copyFontMember(bytes.toSlice(), 0)
+    Swag.require(file.bytes.count <= offset and Slice.equals(file.bytes.toSlice(), memory.toSlice()))
+    let face = expect Face.loadFile(path)
+    defer face.destroy()
+    expect original.setPixelSize(0, 18)
+    expect face.setPixelSize(0, 18)
+    expect original.loadChar('A', .Render)
+    expect face.loadChar('A', .Render)
+    Swag.require(face.glyph.advance.x == original.glyph.advance.x)
+    Swag.require(face.glyph.bitmap.rows == original.glyph.bitmap.rows and face.glyph.bitmap.rows > 0)
+    for row in face.glyph.bitmap.rows do
+        Swag.require(Slice.equals(expect face.glyph.bitmap.row(row), expect original.glyph.bitmap.row(row)))
+
+    writeBigU32(&bytes, record + 12, cast(u32, MinFontCompactionSize + 1))
+    discard expect File.writeAllBytes(path, bytes.toSlice())
+    var invalidFile:   Swag.Error
+    var invalidMemory: Swag.Error
+    discard catch Face.loadFile(path) as invalidFile
+    discard catch Face.load(bytes.toSlice()) as invalidMemory
+    Swag.require(invalidFile.value() != null and invalidMemory.value() != null)
 }
 
 // A table range outside the file rejects only the member that references it.

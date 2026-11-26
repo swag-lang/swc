@@ -290,6 +290,9 @@ Sharing one immutable source cuts the ten-member CJK open-and-render pass from
 The parsed CFF cache adds Noto Serif CJK TTC and a variable TrueType control to the
 memory comparison. [Parsed CFF results](font-decode-linux.md#reusing-a-parsed-cff-program)
 
+The expanded direct-file corpus also measures large variable TrueType fonts at their
+default instance. [Default-instance results](font-decode-linux.md#default-instance-truetype-snapshots)
+
 ### SVG results already reported
 
 The prior four-file comparison measured Scope's SVG parse plus CPU rasterization against resvg

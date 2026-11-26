@@ -29,6 +29,9 @@ extern const char *lzma_version_string(void);
 
 static const unsigned char key[] = "0123456789abcdefghijklmnopqrstuv";
 static const unsigned char nonce[] = "0123456789ab";
+static const unsigned char aes_xts_key[] = "0123456789abcdefghijklmnopqrstuv"
+                                           "vutsrqponmlkjihgfedcba9876543210";
+static const unsigned char aes_xts_tweak[] = "0123456789abcdef";
 static const unsigned char aes_ctr_iv[] = "0123456789abcdef";
 static const unsigned char chacha_iv[] = "\1\0\0\0" "0123456789ab";
 static const unsigned char associated_data[] = "swag-crypto-1";
@@ -44,6 +47,7 @@ static EVP_MAC_CTX *mac_context;
 static size_t mac_size;
 static int authenticated;
 static int use_aes_ctr;
+static int decrypt_xts;
 static EC_GROUP *p256_group;
 static EC_POINT *p256_point;
 static BN_CTX *p256_context;
@@ -165,6 +169,16 @@ static void encrypt_evp(const unsigned char *p, size_t n, unsigned char *out)
     if (authenticated)
         require(EVP_CIPHER_CTX_ctrl(cipher_context, EVP_CTRL_AEAD_GET_TAG, 16, out + n),
                 "OpenSSL authentication tag failed");
+}
+
+static void xts_evp(const unsigned char *p, size_t n, unsigned char *out)
+{
+    int used = 0;
+    int tail = 0;
+    require(EVP_CipherInit_ex2(cipher_context, cipher, aes_xts_key, aes_xts_tweak, !decrypt_xts, NULL) &&
+            EVP_CipherUpdate(cipher_context, out, &used, p, (int)n) &&
+            EVP_CipherFinal_ex(cipher_context, out + used, &tail) &&
+            (size_t)(used + tail) == n, "OpenSSL XTS operation failed");
 }
 
 static void authenticate_aad_evp(const unsigned char *p, size_t n, unsigned char *out)
@@ -382,6 +396,17 @@ static operation select_operation(const char *name, size_t input_size, size_t *r
         mac_size = poly1305 ? 16 : hmac384 ? 48 : 64;
         *result_size = mac_size;
         return mac_evp;
+    }
+
+    if (!strcmp(name, "aes-256-xts-encrypt") || !strcmp(name, "aes-256-xts-decrypt")) {
+        require(input_size >= 16 && input_size <= (1u << 24), "XTS data unit size is out of range");
+        decrypt_xts = !strcmp(name, "aes-256-xts-decrypt");
+        cipher = EVP_CIPHER_fetch(NULL, "aes-256-xts", NULL);
+        require(cipher != NULL, "OpenSSL could not fetch AES-256-XTS");
+        cipher_context = EVP_CIPHER_CTX_new();
+        require(cipher_context != NULL, "OpenSSL could not allocate a cipher context");
+        *result_size = input_size;
+        return xts_evp;
     }
 
     if (!strcmp(name, "aes-256-gcm-aad")) {

@@ -2,6 +2,8 @@
 #global namespace Crypto
 #global #[Swag.Safety(.Overflow, false)]
 
+using Math.Simd
+
 // AES-XTS data-unit tweak size in bytes.
 public const AesXtsTweakSize = 16
 
@@ -18,8 +20,64 @@ private func aesXtsMultiplyTweak(tweak: *[AesXtsTweakSize] u8)
     tweak[][0] ^= 0x87'u8 & cast(u8, 0'u8 - carry)
 }
 
+#[Swag.Inline]
+private func aesXtsMultiplyTweak(tweak: U8x16)->U8x16
+{
+    const Zero       = cast(U64x2, [0'u64, 0])
+    const Polynomial = cast(U64x2, [0x87'u64, 0])
+    const HighLanes  = cast(U64x2, [1'u64, 1])
+    let value = cast #bit (U64x2, tweak)
+    let carry = value >> 63
+    let mask  = Zero - permute(carry, HighLanes)
+    return cast #bit (U8x16, (value << 1) ^ align(Zero, carry, 8) ^ (mask & Polynomial))
+}
+
+#[Swag.Inline]
+private func(Decrypt: bool) aesXtsCryptBlockHardware(aes: *Aes, tweak, input: U8x16)->U8x16
+{
+    #static if Decrypt do
+        return aes[].decryptBlockHardware(input ^ tweak) ^ tweak
+    else do
+        return aes[].encryptBlockHardware(input ^ tweak) ^ tweak
+}
+
+private func(Decrypt: bool) aesXtsCryptBlocksHardware(aes: *Aes, initialTweak: U8x16, input: const [*] u8, output: [*] u8, blockCount: u64)->U8x16
+{
+    var tweak  = initialTweak
+    var offset = 0'u64
+    while offset + 4 <= blockCount
+    {
+        let second = aesXtsMultiplyTweak(tweak)
+        let third  = aesXtsMultiplyTweak(second)
+        let fourth = aesXtsMultiplyTweak(third)
+        let bytes  = offset * AesBlockSize
+        aes[].xorFourHardware'(true, Decrypt)(tweak, second, third, fourth, input + bytes, output + bytes)
+        tweak   = aesXtsMultiplyTweak(fourth)
+        offset += 4
+    }
+
+    while offset < blockCount
+    {
+        let bytes = offset * AesBlockSize
+        store(output + bytes, aesXtsCryptBlockHardware'Decrypt(aes, tweak, load(input + bytes)))
+        tweak   = aesXtsMultiplyTweak(tweak)
+        offset += 1
+    }
+
+    return tweak
+}
+
 private func aesXtsCryptBlock(aes: *Aes, tweak: [AesXtsTweakSize] u8, input: *[AesXtsTweakSize] u8, output: *[AesXtsTweakSize] u8, decrypt: bool) fail
 {
+    if aes[].usesHardwareRounds()
+    {
+        let data = load(&input[][0])
+        let whitening = load(&tweak[0])
+        let result = decrypt ? aesXtsCryptBlockHardware'true(aes, whitening, data) : aesXtsCryptBlockHardware'false(aes, whitening, data)
+        store(&output[][0], result)
+        return
+    }
+
     var block: [AesXtsTweakSize] u8
     for index in AesXtsTweakSize do
         block[index] = input[][index] ^ tweak[index]
@@ -65,19 +123,29 @@ func aesXtsCrypt(key, dataUnitNumber, input: const [..] u8, output: [..] u8, dec
     let fullBlocks     = input.count / AesBlockSize
     let remainder      = input.count % AesBlockSize
     let ordinaryBlocks = fullBlocks - cast(u64, remainder != 0)
-    var offset         = 0'u64
-    while offset < ordinaryBlocks
+    if dataAes.usesHardwareRounds()
     {
-        let byteOffset = offset * AesBlockSize
-        var source: [AesXtsTweakSize] u8
-        var result: [AesXtsTweakSize] u8
-        Swag.memcpy(&source[0], input.buffer + byteOffset, AesXtsTweakSize)
-        try aesXtsCryptBlock(&dataAes, tweak, &source, &result, decrypt)
-        Swag.memcpy(output.buffer + byteOffset, &result[0], AesXtsTweakSize)
-        aesXtsMultiplyTweak(&tweak)
-        Crypto.secureClear(source)
-        Crypto.secureClear(result)
-        offset += 1
+        let initial = load(&tweak[0])
+        let next = decrypt ? aesXtsCryptBlocksHardware'true(&dataAes, initial, input.buffer, output.buffer, ordinaryBlocks) :
+                            aesXtsCryptBlocksHardware'false(&dataAes, initial, input.buffer, output.buffer, ordinaryBlocks)
+        store(&tweak[0], next)
+    }
+    else
+    {
+        var offset = 0'u64
+        while offset < ordinaryBlocks
+        {
+            let byteOffset = offset * AesBlockSize
+            var source: [AesXtsTweakSize] u8
+            var result: [AesXtsTweakSize] u8
+            Swag.memcpy(&source[0], input.buffer + byteOffset, AesXtsTweakSize)
+            try aesXtsCryptBlock(&dataAes, tweak, &source, &result, decrypt)
+            Swag.memcpy(output.buffer + byteOffset, &result[0], AesXtsTweakSize)
+            aesXtsMultiplyTweak(&tweak)
+            Crypto.secureClear(source)
+            Crypto.secureClear(result)
+            offset += 1
+        }
     }
 
     if remainder

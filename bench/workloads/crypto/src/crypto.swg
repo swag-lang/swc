@@ -5,6 +5,8 @@ alias Operation = func(const [..] u8, [..] u8)
 const Key   = "0123456789abcdefghijklmnopqrstuv"
 const Nonce = "0123456789ab"
 const AssociatedData = "swag-crypto-1"
+const AesXtsKey = "0123456789abcdefghijklmnopqrstuvvutsrqponmlkjihgfedcba9876543210"
+const AesXtsTweak = "0123456789abcdef"
 
 func(T) writeChecksum(value: T, output: [..] u8)
 {
@@ -73,6 +75,12 @@ func aes256Gcm(input: const [..] u8, output: [..] u8) =>
 func aes256GcmAad(input: const [..] u8, output: [..] u8) =>
     expect Crypto.aesGcmEncrypt(Key, Nonce, input, "", output[until 0], output)
 
+func aes256XtsEncrypt(input: const [..] u8, output: [..] u8) =>
+    expect Crypto.aesXtsCrypt(AesXtsKey, AesXtsTweak, input, output, false)
+
+func aes256XtsDecrypt(input: const [..] u8, output: [..] u8) =>
+    expect Crypto.aesXtsCrypt(AesXtsKey, AesXtsTweak, input, output, true)
+
 func x25519Public(input: const [..] u8, output: [..] u8) =>
     expect Crypto.x25519PublicKey(input, output)
 
@@ -130,6 +138,8 @@ func selectOperation(name: string, size: u64)->{operation: Operation, outputSize
     case "aes-256-ctr":       return {&aes256Ctr, size}
     case "aes-256-gcm":       return {&aes256Gcm, size + 16}
     case "aes-256-gcm-aad":   return {&aes256GcmAad, 16}
+    case "aes-256-xts-encrypt": return {&aes256XtsEncrypt, size}
+    case "aes-256-xts-decrypt": return {&aes256XtsDecrypt, size}
     case "x25519-public":     return {&x25519Public, 32}
     case "x25519-shared":     return {&x25519Shared, 32}
     case "ed25519-public":    return {&ed25519Public, 32}

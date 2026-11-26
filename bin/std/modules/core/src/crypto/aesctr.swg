@@ -59,7 +59,7 @@ internal func(CounterBits: u32) aesXorCounterBlocksHardware(aes: *Aes, prefix: U
     while block + 4 <= fullBlockEnd
     {
         let offset = block * AesBlockSize
-        aes[].xorFourHardware(counter(prefix, low, block),
+        aes[].xorFourHardware'(false, false)(counter(prefix, low, block),
                               counter(prefix, low, block + 1),
                               counter(prefix, low, block + 2),
                               counter(prefix, low, block + 3),

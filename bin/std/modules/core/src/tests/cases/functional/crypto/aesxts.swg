@@ -54,6 +54,31 @@ func aesXtsHexBytes(text: string)->Array'u8
 
 #test
 {
+    // OpenSSL EVP XTS vector over two groups of four blocks and a stolen final byte.
+    let key = #stringof("0123456789abcdefghijklmnopqrstuv", "vutsrqponmlkjihgfedcba9876543210")
+    let expected = aesXtsHexBytes(#stringof(
+        "6fdd01b99ad3db1052fbee3c26842937d6da671e360e5f32d5ba3ba463c2f25d",
+        "a588ff2057d1b34357b82562a141b2e725bf347707d851508733c416adb9b122",
+        "4c0e115d99478ed45c34238c1b6537e1e3b9f7b36ea225846393b9e432c2e2ff",
+        "c5f40c2ab7627043df834ffda2708412153932b5f1c86ed1102bfc0802c4f41b",
+        "4354f7ffb7803a7f47d277574401b799a7"))
+    var storage: [147] u8
+    storage[0] = 0xA5
+    storage[146] = 0x5A
+    let data = storage[1 until 146]
+    for index in data.count do
+        data[index] = cast(u8, (index * 13 + 7) & 0xFF)
+
+    expect Crypto.aesXtsCrypt(key, "0123456789abcdef", data, data, false)
+    Swag.require(Crypto.constantTimeEqual(data, expected.toSlice()))
+    expect Crypto.aesXtsCrypt(key, "0123456789abcdef", data, data, true)
+    for index in data.count do
+        Swag.require(data[index] == cast(u8, (index * 13 + 7) & 0xFF))
+    Swag.require(storage[0] == 0xA5 and storage[146] == 0x5A)
+}
+
+#test
+{
     var key:    [32] u8
     var tweak:  [Crypto.AesXtsTweakSize] u8
     var input:  [15] u8

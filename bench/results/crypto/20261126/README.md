@@ -120,3 +120,4 @@ optimizations moved each result.
 - [SHA-3 bulk kernel alternatives](sha3-bulk-experiments.md)
 - [Fixed-width Barrett reduction for Ed25519 scalars](ed25519-barrett.md)
 - [Reusable HKDF expansion prefixes](hkdf-prefix-reuse.md)
+- [Four-block AES-XTS](aes-xts-four-blocks.md)

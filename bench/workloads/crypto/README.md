@@ -105,6 +105,14 @@ as Swag does. The P-256 comparator uses OpenSSL's fixed-base EC multiplication w
 the group and scratch containers allocated before timing. P-256 signing enables
 RFC 6979 nonces in OpenSSL and exports the two 32-byte signature components.
 
+## AES-XTS
+
+Select `aes-256-xts-encrypt` or `aes-256-xts-decrypt` with `--algorithm`.
+Each file is one data unit of 16 bytes to 16 MiB. The workload uses two
+fixed 256-bit keys and one 16-byte tweak. The decryption case treats the
+input file as ciphertext. Try sizes such as 17 and 145 to exercise
+ciphertext stealing.
+
 ## HKDF
 
 Select `hkdf-sha224`, `hkdf-sha256`, `hkdf-sha384` or `hkdf-sha512` with

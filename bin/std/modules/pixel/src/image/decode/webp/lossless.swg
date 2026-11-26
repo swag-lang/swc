@@ -193,9 +193,10 @@ impl LosslessHuffmanGroup
             }
         }
 
-        let red   = try .trees[LOSSLESS_HUFF_RED].next(reader)
-        let blue  = try .trees[LOSSLESS_HUFF_BLUE].next(reader)
-        let alpha = try .trees[LOSSLESS_HUFF_ALPHA].next(reader)
+        let red       = try .trees[LOSSLESS_HUFF_RED].next(reader)
+        let blue      = try .trees[LOSSLESS_HUFF_BLUE].next(reader)
+        let alphaTree = &.trees[LOSSLESS_HUFF_ALPHA]
+        let alpha     = alphaTree.maxLength ? (try alphaTree.next(reader)) : alphaTree.nodes[0].symbol
         return red | (green << 8) | (blue << 16) | (alpha << 24)
     }
 }
@@ -838,6 +839,19 @@ func losslessDecodePixels(reader: *LosslessBitReader, result: *Array'u8, width, 
     let output    = cast([*] u8, result.storage())
     let groupData = groups.storage()
 
+    if not huffmanBits and groupData[0].literalTable.count == 1
+    {
+        let green = &groupData[0].trees[LOSSLESS_HUFF_GREEN]
+        if not green.maxLength and green.nodes[0].symbol < LOSSLESS_LITERAL_CODES
+        {
+            let rgba = (groupData[0].literalTable[0] & 0xFFFF00FF) | (green.nodes[0].symbol << 8)
+            let data = cast([*] u32, output)
+            data[0] = rgba
+            losslessCopyRun(data + 1, 1, pixelCount - 1)
+            return
+        }
+    }
+
     if not huffmanBits and
        pixelCount >= 16 and
        losslessUniformByteTree(&groupData[0].trees[LOSSLESS_HUFF_GREEN]) and
@@ -922,6 +936,25 @@ func losslessDecodePixels(reader: *LosslessBitReader, result: *Array'u8, width, 
             lookupGroup = huffmanMask != 0
 
         default:
+            using Math.Simd
+
+            const RgbaToArgb = cast(U8x16, [2'u8, 1, 0, 3, 6, 5, 4, 7, 10, 9, 8, 11, 14, 13, 12, 15])
+            let multiplier = splat(LOSSLESS_COLOR_CACHE_MULTIPLIER)
+            while offset - cachedOffset >= 16
+            {
+                let rgba   = load(output + cachedOffset)
+                let argb   = cast #bit(U32x4, shuffle(rgba, RgbaToArgb))
+                let hashes = (argb * multiplier) >> colorCacheShift
+                let colors = cast #bit(U32x4, rgba)
+
+                // Preserve insertion order for lanes that hash to the same slot.
+                colorCache[hashes[0]] = colors[0]
+                colorCache[hashes[1]] = colors[1]
+                colorCache[hashes[2]] = colors[2]
+                colorCache[hashes[3]] = colors[3]
+                cachedOffset += 16
+            }
+
             while cachedOffset < offset
             {
                 let rgba = cast(const [*] u32, output + cachedOffset)[0]

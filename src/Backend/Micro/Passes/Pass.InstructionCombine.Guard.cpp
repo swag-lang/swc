@@ -465,7 +465,7 @@ namespace InstructionCombine
             {
                 if (proven)
                     break;
-                if (use.kind != MicroSsaState::UseSite::Kind::Instruction || use.instRef == opRef)
+                if (use.isPhi() || use.instRef == opRef)
                     continue;
 
                 const MicroInstrRef      branchRef = ctx.nextRef(use.instRef);

@@ -30,24 +30,24 @@ public:
 
     struct UseSite
     {
-        enum class Kind : uint8_t
-        {
-            Instruction,
-            Phi,
-        };
-
-        Kind          kind     = Kind::Instruction;
         MicroInstrRef instRef  = MicroInstrRef::invalid();
         uint32_t      phiIndex = K_INVALID_PHI;
+
+        // A phi carries its own index. The invalid sentinel distinguishes instruction uses.
+        bool isPhi() const { return phiIndex != K_INVALID_PHI; }
     };
+
+#if !SWC_HAS_REF_DEBUG_INFO
+    static_assert(sizeof(UseSite) == 8);
+#endif
 
     struct ValueInfo
     {
-        MicroReg              reg        = MicroReg::invalid();
-        MicroInstrRef         instRef    = MicroInstrRef::invalid();
-        uint32_t              blockIndex = 0;
-        uint32_t              phiIndex   = K_INVALID_PHI;
-        SmallVector2<UseSite> uses;
+        MicroReg                reg        = MicroReg::invalid();
+        MicroInstrRef           instRef    = MicroInstrRef::invalid();
+        uint32_t                blockIndex = 0;
+        uint32_t                phiIndex   = K_INVALID_PHI;
+        SmallVector<UseSite, 3> uses;
 
         bool isPhi() const { return phiIndex != K_INVALID_PHI; }
     };

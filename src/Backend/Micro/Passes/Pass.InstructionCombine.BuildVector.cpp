@@ -144,7 +144,7 @@ namespace InstructionCombine
                 return false;
             for (const MicroSsaState::UseSite& use : info->uses)
             {
-                if (use.kind != MicroSsaState::UseSite::Kind::Instruction || std::ranges::find(storeRefs, use.instRef) == storeRefs.end())
+                if (use.isPhi() || std::ranges::find(storeRefs, use.instRef) == storeRefs.end())
                     return false;
                 const MicroInstr*        store = ctx.storage->ptr(use.instRef);
                 const MicroInstrOperand* ops   = store ? store->ops(*ctx.operands) : nullptr;
@@ -649,7 +649,7 @@ namespace InstructionCombine
         bool                       needed[2] = {};
         for (const auto& use : value->uses)
         {
-            if (use.kind == MicroSsaState::UseSite::Kind::Phi)
+            if (use.isPhi())
             {
                 const auto* phi = ctx.ssa->phiInfo(use.phiIndex);
                 if (!phi || ctx.ssa->transitiveInstructionUseCount(phi->resultValueId, 1))

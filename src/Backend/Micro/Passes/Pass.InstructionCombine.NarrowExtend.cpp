@@ -62,7 +62,7 @@ namespace InstructionCombine
             uint32_t                   widest   = 0;
             for (const auto& useSite : valueInfo.uses)
             {
-                if (useSite.kind == MicroSsaState::UseSite::Kind::Phi)
+                if (useSite.isPhi())
                 {
                     const MicroSsaState::PhiInfo* phi = ssa.phiInfo(useSite.phiIndex);
                     if (!phi || phi->reg != reg || depth >= K_MAX_DEMAND_DEPTH)
@@ -78,7 +78,7 @@ namespace InstructionCombine
                         return 64;
                     continue;
                 }
-                if (useSite.kind != MicroSsaState::UseSite::Kind::Instruction)
+                if (useSite.isPhi())
                     return 64;
                 const MicroInstr* useInst = storage.ptr(useSite.instRef);
                 if (!useInst)
@@ -709,14 +709,14 @@ namespace InstructionCombine
         };
         for (const auto& useSite : valueInfo->uses)
         {
-            if (useSite.kind == MicroSsaState::UseSite::Kind::Instruction && !isSelect(useSite.instRef) && ctx.isClaimed(useSite.instRef))
+            if (!useSite.isPhi() && !isSelect(useSite.instRef) && ctx.isClaimed(useSite.instRef))
                 return false;
         }
         if (!ctx.claimAll({ref}))
             return false;
         for (const auto& useSite : valueInfo->uses)
         {
-            if (useSite.kind == MicroSsaState::UseSite::Kind::Instruction && !isSelect(useSite.instRef))
+            if (!useSite.isPhi() && !isSelect(useSite.instRef))
                 ctx.claimed.insert(useSite.instRef.get());
         }
 
@@ -875,14 +875,14 @@ namespace InstructionCombine
             return false;
         for (const auto& useSite : valueInfo->uses)
         {
-            if (useSite.kind == MicroSsaState::UseSite::Kind::Instruction && ctx.isClaimed(useSite.instRef))
+            if (!useSite.isPhi() && ctx.isClaimed(useSite.instRef))
                 return false;
         }
         if (!ctx.claimAll({ref}))
             return false;
         for (const auto& useSite : valueInfo->uses)
         {
-            if (useSite.kind == MicroSsaState::UseSite::Kind::Instruction)
+            if (!useSite.isPhi())
                 ctx.claimed.insert(useSite.instRef.get());
         }
 

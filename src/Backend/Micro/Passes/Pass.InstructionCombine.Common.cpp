@@ -222,7 +222,7 @@ namespace InstructionCombine
         bool          hasPhiUse = false;
         for (const auto& use : info->uses)
         {
-            if (use.kind != MicroSsaState::UseSite::Kind::Instruction)
+            if (use.isPhi())
             {
                 hasPhiUse = true;
                 continue;

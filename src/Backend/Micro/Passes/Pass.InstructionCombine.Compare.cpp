@@ -455,7 +455,7 @@ namespace InstructionCombine
         bool usedByCompare = false;
         for (const auto& use : value->uses)
         {
-            if (use.kind != MicroSsaState::UseSite::Kind::Instruction)
+            if (use.isPhi())
                 continue;
             if (use.instRef != copyRef && use.instRef != cmpRef)
                 return false;
@@ -684,7 +684,7 @@ namespace InstructionCombine
             return false;
         for (const MicroSsaState::UseSite& use : rightInfo->uses)
         {
-            if (use.kind != MicroSsaState::UseSite::Kind::Instruction || (use.instRef != cmpRef && use.instRef != selectRef))
+            if (use.isPhi() || (use.instRef != cmpRef && use.instRef != selectRef))
                 return false;
         }
 
@@ -698,7 +698,7 @@ namespace InstructionCombine
         SmallVector<MicroInstrRef, 8> uses;
         for (const MicroSsaState::UseSite& use : resultInfo->uses)
         {
-            if (use.kind != MicroSsaState::UseSite::Kind::Instruction || ctx.isClaimed(use.instRef) || ctx.isRelocated(use.instRef) ||
+            if (use.isPhi() || ctx.isClaimed(use.instRef) || ctx.isRelocated(use.instRef) ||
                 ctx.ssa->reachingValueId(right, use.instRef) != rightValue.valueId)
                 return false;
             if (std::ranges::find(uses, use.instRef) == uses.end())

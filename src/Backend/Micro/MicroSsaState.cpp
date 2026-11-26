@@ -258,7 +258,7 @@ void MicroSsaState::pruneRemovedUses()
         uint32_t      kept    = 0;
         for (const UseSite& use : value.uses)
         {
-            if (use.kind == UseSite::Kind::Instruction)
+            if (!use.isPhi())
             {
                 if (use.instRef != lastRef)
                 {
@@ -1105,12 +1105,7 @@ void MicroSsaState::renameBlock(const uint32_t blockIndex, RenameState& state)
             if (valueId == K_INVALID_VALUE)
                 continue;
 
-            appendValueUse(valueId,
-                           UseSite{
-                               .kind     = UseSite::Kind::Instruction,
-                               .instRef  = instRef,
-                               .phiIndex = K_INVALID_PHI,
-                           });
+            appendValueUse(valueId, UseSite{.instRef = instRef});
         }
 
         info.firstDefValue = valueInfoCount_;
@@ -1177,11 +1172,7 @@ void MicroSsaState::assignPhiInputs(const uint32_t predecessorBlock, const uint3
             continue;
 
         phi.incomingValueIds[predSlot] = valueId;
-        appendValueUse(valueId, UseSite{
-                                    .kind     = UseSite::Kind::Phi,
-                                    .instRef  = MicroInstrRef::invalid(),
-                                    .phiIndex = phiIndex,
-                                });
+        appendValueUse(valueId, UseSite{.phiIndex = phiIndex});
     }
 }
 
@@ -1250,6 +1241,7 @@ uint32_t MicroSsaState::createPhi(const uint32_t blockIndex, const MicroReg reg,
 void MicroSsaState::appendValueUse(const uint32_t valueId, const UseSite& useSite)
 {
     SWC_ASSERT(valueId < valueInfoCount_);
+    SWC_ASSERT(useSite.instRef.isValid() != useSite.isPhi());
     valueInfos_[valueId].uses.push_back(useSite);
 }
 
@@ -1264,14 +1256,14 @@ uint32_t MicroSsaState::transitiveInstructionUseCount(const uint32_t valueId, co
     // With no phis every use is direct; no graph traversal or visit scratch is needed.
     if (!phiInfoCount_)
         return static_cast<uint32_t>(std::min<size_t>(cap, uses.size()));
-    if (cap == 1 && uses.front().kind == UseSite::Kind::Instruction)
+    if (cap == 1 && !uses.front().isPhi())
         return 1;
 
     uint32_t directUses = 0;
     bool     hasPhiUse  = false;
     for (const UseSite& use : uses)
     {
-        if (use.kind == UseSite::Kind::Instruction)
+        if (!use.isPhi())
         {
             if (++directUses >= cap)
                 return cap;
@@ -1297,9 +1289,9 @@ uint32_t MicroSsaState::transitiveInstructionUseCount(const uint32_t valueId, co
     useVisitStamps_[valueId] = visitStamp;
     for (const UseSite& use : uses)
     {
-        if (use.kind == UseSite::Kind::Instruction)
+        if (!use.isPhi())
             continue;
-        SWC_ASSERT(use.kind == UseSite::Kind::Phi);
+
         SWC_ASSERT(use.phiIndex < phiInfoCount_);
         const uint32_t nextValueId = phiInfos_[use.phiIndex].resultValueId;
         if (nextValueId != K_INVALID_VALUE)
@@ -1325,7 +1317,7 @@ uint32_t MicroSsaState::transitiveInstructionUseCount(const uint32_t valueId, co
         const ValueInfo& info = valueInfos_[currentValueId];
         for (const UseSite& useSite : info.uses)
         {
-            if (useSite.kind == UseSite::Kind::Instruction)
+            if (!useSite.isPhi())
             {
                 if (++count >= cap)
                     return count;
@@ -1333,7 +1325,6 @@ uint32_t MicroSsaState::transitiveInstructionUseCount(const uint32_t valueId, co
             }
 
             // Phi uses come from this build's successor phi lists.
-            SWC_ASSERT(useSite.kind == UseSite::Kind::Phi);
             SWC_ASSERT(useSite.phiIndex < phiInfoCount_);
             const uint32_t nextValueId = phiInfos_[useSite.phiIndex].resultValueId;
             if (nextValueId == K_INVALID_VALUE)

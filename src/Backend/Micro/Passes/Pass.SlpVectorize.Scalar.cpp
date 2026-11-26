@@ -36,7 +36,7 @@ namespace
             // Once one use observes this value, the remaining uses need no scan.
             for (const auto& use : value.uses)
             {
-                if (use.kind == MicroSsaState::UseSite::Kind::Phi)
+                if (use.isPhi())
                 {
                     const auto* phi = ssa.phiInfo(use.phiIndex);
                     if (phi && phi->resultValueId != MicroSsaState::K_INVALID_VALUE)
@@ -528,7 +528,7 @@ bool SlpVectorize::exposeScalarValues(MicroPassContext& context)
                 bool        liveOutside = false;
                 for (const auto& use : info->uses)
                 {
-                    if (use.kind == MicroSsaState::UseSite::Kind::Phi)
+                    if (use.isPhi())
                     {
                         const auto* phi = ssa.phiInfo(use.phiIndex);
                         liveOutside |= phi && ssa.transitiveInstructionUseCount(phi->resultValueId, 1);
@@ -599,7 +599,7 @@ namespace
             return false;
         for (const auto& use : ssa.valueInfo(value)->uses)
         {
-            if (use.kind == MicroSsaState::UseSite::Kind::Phi)
+            if (use.isPhi())
             {
                 const auto* phi = ssa.phiInfo(use.phiIndex);
                 if (!phi || ssa.transitiveInstructionUseCount(phi->resultValueId, 1))
@@ -743,7 +743,7 @@ namespace
                     const auto original = replacement.first == low.valueId ? lowReg : highReg;
                     for (const auto& use : ssa.valueInfo(replacement.first)->uses)
                     {
-                        if (use.kind != MicroSsaState::UseSite::Kind::Instruction)
+                        if (use.isPhi())
                             continue;
                         auto*      instruction = context.instructions->ptr(use.instRef);
                         auto*      ops         = instruction->ops(*context.operands);
@@ -887,7 +887,7 @@ namespace
             const auto replacement = *names.find(value);
             for (const auto& use : ssa.valueInfo(value)->uses)
             {
-                if (use.kind != MicroSsaState::UseSite::Kind::Instruction)
+                if (use.isPhi())
                     continue;
                 auto*      instruction = context.instructions->ptr(use.instRef);
                 auto*      ops         = instruction->ops(*context.operands);
@@ -937,7 +937,7 @@ namespace
         ssa.defValue(first.destination, first.reference, value);
         for (const auto& use : ssa.valueInfo(value)->uses)
         {
-            if (use.kind != MicroSsaState::UseSite::Kind::Instruction)
+            if (use.isPhi())
                 continue;
             auto*      instruction = context.instructions->ptr(use.instRef);
             auto*      ops         = instruction->ops(*context.operands);

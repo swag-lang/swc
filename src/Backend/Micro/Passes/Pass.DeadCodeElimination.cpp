@@ -179,7 +179,7 @@ namespace
             // Every seed is overwritten before the phi walk reads any of them.
             // Avoid clearing the retained array and then marking live entries.
             const bool used     = std::ranges::any_of(values[valueId].uses, [&](const auto& use) {
-                return use.kind == MicroSsaState::UseSite::Kind::Instruction && storage.ptr(use.instRef);
+                return !use.isPhi() && storage.ptr(use.instRef);
             });
             usedValues[valueId] = used;
             if (used && values[valueId].isPhi())

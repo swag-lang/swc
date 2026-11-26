@@ -76,7 +76,7 @@ namespace InstructionCombine
                 return false;
 
             const MicroSsaState::ValueInfo* value = ctx.ssa->valueInfo(valueId);
-            if (!value || value->uses.size() != 1 || value->uses.front().kind != MicroSsaState::UseSite::Kind::Instruction)
+            if (!value || value->uses.size() != 1 || value->uses.front().isPhi())
                 return false;
 
             const MicroInstrRef useRef  = value->uses.front().instRef;

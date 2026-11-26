@@ -5726,7 +5726,7 @@ namespace
 
         for (const MicroSsaState::UseSite& use : info->uses)
         {
-            if (use.kind == MicroSsaState::UseSite::Kind::Instruction)
+            if (!use.isPhi())
             {
                 if (std::ranges::find(insideRefs, use.instRef) == insideRefs.end())
                     return true;

@@ -359,7 +359,7 @@ namespace InstructionCombine
         for (const MicroSsaState::UseSite& use : values[valueId].uses)
         {
             // A phi is the loop header's; its readers are counted below.
-            if (use.kind != MicroSsaState::UseSite::Kind::Instruction)
+            if (use.isPhi())
                 continue;
             if (!use.instRef.isValid() || ctx.isClaimed(use.instRef) || ctx.isRelocated(use.instRef))
                 return false;

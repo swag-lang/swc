@@ -1128,7 +1128,7 @@ SWC_TEST_BEGIN(MicroSsa_ReusedAnalysisMatchesFreshAnalysisAfterMutations)
             SWC_ASSERT(actual->blockIndex == expected->blockIndex && actual->uses.size() == expected->uses.size());
             for (uint32_t use = 0; use < expected->uses.size(); ++use)
             {
-                SWC_ASSERT(actual->uses[use].kind == expected->uses[use].kind && actual->uses[use].instRef == expected->uses[use].instRef &&
+                SWC_ASSERT(actual->uses[use].instRef == expected->uses[use].instRef &&
                            actual->uses[use].phiIndex == expected->uses[use].phiIndex);
             }
             SWC_ASSERT(reused.transitiveInstructionUseCount(id, 16) == fresh.transitiveInstructionUseCount(id, 16));

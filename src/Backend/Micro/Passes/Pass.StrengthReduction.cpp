@@ -913,7 +913,7 @@ namespace
 
             for (const MicroSsaState::UseSite& useSite : value->uses)
             {
-                if (useSite.kind == MicroSsaState::UseSite::Kind::Phi)
+                if (useSite.isPhi())
                 {
                     const MicroSsaState::PhiInfo* phi = ssa.phiInfo(useSite.phiIndex);
                     if (!phi || phi->resultValueId == MicroSsaState::K_INVALID_VALUE)

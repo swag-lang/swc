@@ -1463,7 +1463,7 @@ namespace
 
             for (const MicroSsaState::UseSite& use : info->uses)
             {
-                if (use.kind == MicroSsaState::UseSite::Kind::Phi)
+                if (use.isPhi())
                 {
                     // A phi input is only a real use if the phi's result is.
                     // Loop headers carry phis for every re-defined register,

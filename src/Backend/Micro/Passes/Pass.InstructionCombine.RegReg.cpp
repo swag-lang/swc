@@ -1841,7 +1841,7 @@ namespace InstructionCombine
                                       shift[2].microOp == MicroOp::ShiftRight && !shift[3].hasWideImmediateValue() && shift[3].valueU64 == 1;
                     for (const auto& use : quotientInfo->uses)
                     {
-                        foldLogicalHalf &= use.kind == MicroSsaState::UseSite::Kind::Instruction &&
+                        foldLogicalHalf &= !use.isPhi() &&
                                            (use.instRef == productDef.instRef || use.instRef == quotientCopy);
                     }
                     foldLogicalHalf &= ctx.areCpuFlagsDeadAfter(quotientDef.instRef);
@@ -2988,7 +2988,7 @@ namespace InstructionCombine
         if (!copyOps || copyOps[0].reg != dst || copyOps[1].reg != src || getNumBits(copyOps[2].opBits) < getNumBits(bits))
             return false;
         const MicroSsaState::ValueInfo* copyValue = ctx.ssa->valueInfo(dstDef.valueId);
-        if (!copyValue || copyValue->uses.size() != 1 || copyValue->uses[0].kind != MicroSsaState::UseSite::Kind::Instruction ||
+        if (!copyValue || copyValue->uses.size() != 1 || copyValue->uses[0].isPhi() ||
             copyValue->uses[0].instRef != ref)
             return false;
 
@@ -3004,7 +3004,7 @@ namespace InstructionCombine
         bool readByOp   = false;
         for (const MicroSsaState::UseSite& use : srcValue->uses)
         {
-            if (use.kind != MicroSsaState::UseSite::Kind::Instruction)
+            if (use.isPhi())
                 return false;
             if (use.instRef == dstDef.instRef)
                 readByCopy = true;

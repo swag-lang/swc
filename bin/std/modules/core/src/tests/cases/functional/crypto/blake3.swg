@@ -39,6 +39,20 @@ func assertBlake3(input: const [..] u8, expected: string)
     Swag.require(Crypto.constantTimeEqual(actual, reference.toSlice()))
 }
 
+func assertBlake3Output(output: const [..] u8, expected: const [..] string)
+{
+    var offset = 0'u64
+    for hex in expected
+    {
+        let block = blake3HexBytes(hex)
+        let end   = offset + block.count
+        Swag.require(Crypto.constantTimeEqual(output[offset until end], block.toSlice()))
+        offset = end
+    }
+
+    Swag.require(offset == output.count)
+}
+
 #test
 {
     // Official BLAKE3 vectors cover empty input and the 64-byte block boundary.
@@ -112,6 +126,33 @@ func assertBlake3(input: const [..] u8, expected: string)
     // This published vector crosses the parallel threshold and checks multi-level tree merging.
     let large = blake3Pattern(102400)
     assertBlake3(large.toSlice(), "bc3e3d41a1146b069abffad3c0d44860cf664390afce4d9661f7902e7943e085")
+}
+
+#test
+{
+    // Official 131-byte vectors cross two root-output block boundaries.
+    let input   = blake3Pattern(8193)
+    let key     = "whats the Elvish word for friend"
+    let context = "BLAKE3 2019-12-27 16:29:52 test vectors context"
+    var digest: [131] u8
+
+    expect Hash.Blake3.compute(input.toSlice(), digest)
+    assertBlake3Output(digest, [
+        "bab6c09cb8ce8cf459261398d2e7aef35700bf488116ceb94a36d0f5f1b7bc3bb2282aa69be089359ea1154b",
+        "9a9286c4a56af4de975a9aa4a5c497654914d279bea60bb6d2cf7225a2fa0ff5ef56bbe4b149f3ed15860f78",
+        "b4e2ad04e158e375c1e0c0b551cd7dfc82f1b155c11b6b3ed51ec9edb30d133653bb5709d1dbd55f4e1ff6"])
+
+    expect Hash.Blake3.computeKeyed(key, input.toSlice(), digest)
+    assertBlake3Output(digest, [
+        "954a2a75420c8d6547e3ba5b98d963e6fa6491addc8c023189cc519821b4a1f5f03228648fd983aef045c2fa",
+        "8290934b0866b615f585149587dda2299039965328835a2b18f1d63b7e300fc76ff260b571839fe44876a4ea",
+        "e66cbac8c67694411ed7e09df51068a22c6e67d6d3dd2cca8ff12e3275384006c80f4db68023f24eebba57"])
+
+    expect Hash.Blake3.deriveKey(context, input.toSlice(), digest)
+    assertBlake3Output(digest, [
+        "af1e0346e389b17c23200270a64aa4e1ead98c61695d917de7d5b00491c9b0f12f20a01d6d622edf3de026a4",
+        "db4e4526225debb93c1237934d71c7340bb5916158cbdafe9ac3225476b6ab57a12357db3abbad7a26c6e662",
+        "90e44034fb08a20a8d0ec264f309994d2810c49cfba6989d7abb095897459f5425adb48aba07c5fb3c83c0"])
 }
 
 #test

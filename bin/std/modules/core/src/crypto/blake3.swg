@@ -14,7 +14,6 @@ private const Blake3Iv: [8] u32 = [
     0x6A09E667, 0xBB67AE85, 0x3C6EF372, 0xA54FF53A,
     0x510E527F, 0x9B05688C, 0x1F83D9AB, 0x5BE0CD19]
 
-private const Blake3MessagePermutation: [16] u8 = [2, 6, 3, 10, 7, 0, 4, 13, 1, 11, 12, 5, 9, 14, 15, 8]
 private const Blake3ChunkStart        = 1'u32
 private const Blake3ChunkEnd          = 2'u32
 private const Blake3Parent            = 4'u32
@@ -32,76 +31,97 @@ private struct Blake3Output
     flags:     u32
 }
 
-#[Swag.Inline]
-private func blake3Mix(state: *[16] u32, a, b, c, d, x, y: u32)
-{
-    state[][a] += state[][b] + x
-    state[][d] = Swag.ror(state[][d] ^ state[][a], 16'u8)
-    state[][c] += state[][d]
-    state[][b] = Swag.ror(state[][b] ^ state[][c], 12'u8)
-    state[][a] += state[][b] + y
-    state[][d] = Swag.ror(state[][d] ^ state[][a], 8'u8)
-    state[][c] += state[][d]
-    state[][b] = Swag.ror(state[][b] ^ state[][c], 7'u8)
-}
+private alias Blake3Vector = Math.Simd.U32x4
 
-#[Swag.Inline]
 private func blake3Compress(inputCv: [8] u32, block: [16] u32, counter: u64, blockSize, flags: u32)->[16] u32
 {
-    var state: [16] u32
-    for index in 8
+    const Left   = cast(Blake3Vector, [1'u32, 2, 3, 0])
+    const Across = cast(Blake3Vector, [2'u32, 3, 0, 1])
+    const Right  = cast(Blake3Vector, [3'u32, 0, 1, 2])
+    const Rot16  = cast(Math.Simd.U8x16, [2'u8, 3, 0, 1, 6, 7, 4, 5, 10, 11, 8, 9, 14, 15, 12, 13])
+    const Rot8   = cast(Math.Simd.U8x16, [1'u8, 2, 3, 0, 5, 6, 7, 4, 9, 10, 11, 8, 13, 14, 15, 12])
+
+    // Keep one state row in each SIMD vector.
+    let cvLow  = Math.Simd.load(&inputCv[0])
+    let cvHigh = Math.Simd.load(&inputCv[4])
+    var a      = cvLow
+    var b      = cvHigh
+    var c      = Math.Simd.load(&Blake3Iv[0])
+    var d      = cast(Blake3Vector, [cast(u32, counter), cast(u32, (counter >> 32)), blockSize, flags])
+
+    #[Swag.Mixin]
+    func mix(x, y: Blake3Vector)
     {
-        state[index]     = inputCv[index]
-        state[index + 8] = Blake3Iv[index]
+        a += b + x
+        d = cast #bit(Blake3Vector, Math.Simd.shuffle(cast #bit(Math.Simd.U8x16, (d ^ a)), Rot16))
+        c += d
+        b = Math.ror(b ^ c, 12)
+        a += b + y
+        d = cast #bit(Blake3Vector, Math.Simd.shuffle(cast #bit(Math.Simd.U8x16, (d ^ a)), Rot8))
+        c += d
+        b = Math.ror(b ^ c, 7)
     }
 
-    state[12] = cast(u32, counter)
-    state[13] = cast(u32, (counter >> 32))
-    state[14] = blockSize
-    state[15] = flags
-
-    var message = block
-    for round in 7
+    #[Swag.Mixin]
+    func mixRound(columnX, columnY, diagonalX, diagonalY: Blake3Vector)
     {
-        blake3Mix(&state, 0, 4, 8, 12, message[0], message[1])
-        blake3Mix(&state, 1, 5, 9, 13, message[2], message[3])
-        blake3Mix(&state, 2, 6, 10, 14, message[4], message[5])
-        blake3Mix(&state, 3, 7, 11, 15, message[6], message[7])
-        blake3Mix(&state, 0, 5, 10, 15, message[8], message[9])
-        blake3Mix(&state, 1, 6, 11, 12, message[10], message[11])
-        blake3Mix(&state, 2, 7, 8, 13, message[12], message[13])
-        blake3Mix(&state, 3, 4, 9, 14, message[14], message[15])
-
-        if round < 6
-        {
-            var permuted: [16] u32
-            for index in 16 do
-                permuted[index] = message[Blake3MessagePermutation[index]]
-            message = permuted
-        }
+        mix(columnX, columnY)
+        a = Math.Simd.permute(a, Right)
+        c = Math.Simd.permute(c, Left)
+        d = Math.Simd.permute(d, Across)
+        mix(diagonalX, diagonalY)
+        a = Math.Simd.permute(a, Left)
+        c = Math.Simd.permute(c, Right)
+        d = Math.Simd.permute(d, Across)
     }
 
-    for index in 8
+    // Start the diagonal message vectors with the last word pair so row b stays in place.
+    let block0    = Math.Simd.load(&block[0])
+    let block1    = Math.Simd.load(&block[4])
+    let block2    = Math.Simd.load(&block[8])
+    let block3    = Math.Simd.load(&block[12])
+    var columnX   = Math.Simd.deinterleaveEven(block0, block1)
+    var columnY   = Math.Simd.deinterleaveOdd(block0, block1)
+    var diagonalX = Math.Simd.permute(Math.Simd.deinterleaveEven(block2, block3), Right)
+    var diagonalY = Math.Simd.permute(Math.Simd.deinterleaveOdd(block2, block3), Right)
+
+    mixRound(columnX, columnY, diagonalX, diagonalY)
+    for 6
     {
-        state[index]     ^= state[index + 8]
-        state[index + 8] ^= inputCv[index]
+        // Apply the BLAKE3 message permutation in each mix's lane order.
+        let nextColumnX = Math.Simd.permute(Math.Simd.permute2(columnX, columnY, cast(Blake3Vector, [2'u32, 1, 5, 7])), Left)
+        let nextColumnY = Math.Simd.permute2(columnX,
+                                             Math.Simd.permute2(diagonalX, diagonalY, cast(Blake3Vector, [2'u32, 2, 7, 7])),
+                                             cast(Blake3Vector, [3'u32, 4, 0, 6]))
+        let nextDiagonalX = Math.Simd.permute2(diagonalY,
+                                               Math.Simd.permute2(columnY, diagonalX, cast(Blake3Vector, [0'u32, 0, 7, 7])),
+                                               cast(Blake3Vector, [0'u32, 4, 6, 1]))
+        let nextDiagonalY = Math.Simd.permute2(diagonalX,
+                                               Math.Simd.permute2(diagonalY, columnY, cast(Blake3Vector, [2'u32, 2, 6, 6])),
+                                               cast(Blake3Vector, [1'u32, 4, 6, 0]))
+
+        columnX   = nextColumnX
+        columnY   = nextColumnY
+        diagonalX = nextDiagonalX
+        diagonalY = nextDiagonalY
+        mixRound(columnX, columnY, diagonalX, diagonalY)
     }
 
+    var state: #returntype
+    Math.Simd.store(&state[0], a ^ c)
+    Math.Simd.store(&state[4], b ^ d)
+    Math.Simd.store(&state[8], c ^ cvLow)
+    Math.Simd.store(&state[12], d ^ cvHigh)
     return state
 }
 
-private func blake3BlockWords(block: const [*] u8)->[16] u32
+#[Swag.Inline]
+private func(Count: u64) blake3ReadWords(block: const [*] u8)->[Count] u32
 {
+    let source = cast(const [*] u32, block)
     var words: #returntype
-    for index in 16
-    {
-        let offset = index * 4
-        words[index] = cast(u32, block[offset]) |
-                       (cast(u32, block[offset + 1]) << 8) |
-                       (cast(u32, block[offset + 2]) << 16) |
-                       (cast(u32, block[offset + 3]) << 24)
-    }
-
+    for index in Count do
+        words[index] = Math.littleEndianToNative(source[index])
     return words
 }
 
@@ -129,37 +149,40 @@ private func blake3ParentOutput(key: [8] u32, left, right: [8] u32, flags: u32)-
     return result
 }
 
-private func blake3ChunkCv(data: const [*] u8, length, counter: u64, key: [8] u32, flags: u32)->[8] u32
+private func blake3ChunkOutput(data: const [..] u8, counter: u64, key: [8] u32, flags: u32)->Blake3Output
 {
-    var cv         = key
-    let blockCount = length ? ((length - 1) / Blake3BlockSize) + 1 : 1
-    for blockIndex in blockCount
-    {
-        let offset    = blockIndex * Blake3BlockSize
-        let blockSize = length > offset ? Math.min(length - offset, Blake3BlockSize) : 0
-        var block: [Blake3BlockSize] u8
-        if blockSize do
-            Swag.memcpy(&block[0], data + offset, blockSize)
-        var blockFlags = flags
-        if not blockIndex do
-            blockFlags |= Blake3ChunkStart
-        if blockIndex + 1 == blockCount do
-            blockFlags |= Blake3ChunkEnd
-        let words      = blake3BlockWords(&block[0])
-        let compressed = blake3Compress(cv, words, counter, cast(u32, blockSize), blockFlags)
-        if blockIndex + 1 == blockCount
-        {
-            var result: [8] u32
-            for index in 8 do
-                result[index] = compressed[index]
-            return result
-        }
+    var output: #returntype
+    output.inputCv   = key
+    output.counter   = counter
+    output.flags     = flags | Blake3ChunkStart
+    output.blockSize = Blake3BlockSize
 
-        for index in 8 do
-            cv[index] = compressed[index]
+    var offset = 0'u64
+    while data.count - offset > Blake3BlockSize
+    {
+        output.block   = blake3ReadWords'16(data.buffer + offset)
+        output.inputCv = blake3OutputCv(output)
+        output.flags   = flags
+        offset         += Blake3BlockSize
     }
 
-    unreachable
+    let remaining = data.count - offset
+    output.blockSize = cast(u32, remaining)
+    output.flags     |= Blake3ChunkEnd
+    if remaining == Blake3BlockSize
+    {
+        output.block = blake3ReadWords'16(data.buffer + offset)
+    }
+    else
+    {
+        var tail: [Blake3BlockSize] u8
+        if remaining do
+            Swag.memcpy(&tail[0], data.buffer + offset, remaining)
+        output.block = blake3ReadWords'16(&tail[0])
+        Crypto.secureClear(tail)
+    }
+
+    return output
 }
 
 // Stores an incremental BLAKE3 sequence with unkeyed, keyed, or context-derived key state.
@@ -207,10 +230,7 @@ public impl Blake3
     {
         if key.count != Blake3KeySize do
             fail Errors.BadParameterError{"BLAKE3 keyed hashing needs exactly 32 key bytes"}
-        let words = blake3BlockWords(key.buffer)
-        var keyWords: [8] u32
-        for index in 8 do
-            keyWords[index] = words[index]
+        let keyWords = blake3ReadWords'8(key.buffer)
         .resetWithKey(keyWords, Blake3KeyedHash)
     }
 
@@ -261,13 +281,16 @@ public impl Blake3
             output     = blake3ParentOutput(.key, .cvStack[stackIndex], blake3OutputCv(output), .flags)
         }
 
-        .writeRootOutput(output, destination)
+        writeRootOutput(output, destination)
         .clear()
     }
 
     // Clears the chaining state and any buffered input.
     mtd clear()
     {
+        if not .initialized do
+            return
+
         Crypto.secureClear(.key)
         Crypto.secureClear(.chunkCv)
         Crypto.secureClear(.block)
@@ -291,10 +314,7 @@ public impl Blake3
     {
         if key.count != Blake3KeySize do
             fail Errors.BadParameterError{"BLAKE3 keyed hashing needs exactly 32 key bytes"}
-        let words = blake3BlockWords(key.buffer)
-        var keyWords: [8] u32
-        for index in 8 do
-            keyWords[index] = words[index]
+        let keyWords = blake3ReadWords'8(key.buffer)
         try Blake3.computeWithKeyAndFlags(data, keyWords, Blake3KeyedHash, destination)
     }
 
@@ -305,10 +325,7 @@ public impl Blake3
         contextHasher.update(context)
         var contextOutput: [Blake3KeySize] u8
         try contextHasher.finalize(contextOutput)
-        let keyWordsWithTail = blake3BlockWords(&contextOutput[0])
-        var contextKey: [8] u32
-        for index in 8 do
-            contextKey[index] = keyWordsWithTail[index]
+        var contextKey = blake3ReadWords'8(&contextOutput[0])
         Crypto.secureClear(contextOutput)
         var materialHasher = Blake3.createWithKeyAndFlags(contextKey, Blake3DeriveKeyMaterial)
         materialHasher.update(inputKeyMaterial)
@@ -334,7 +351,15 @@ public impl Blake3
 
     private func computeWithKeyAndFlags(data: const [..] u8, key: [8] u32, flags: u32, destination: [..] u8) fail
     {
-        let chunkCount = data.count ? ((data.count - 1) / Blake3ChunkSize) + 1 : 1
+        if data.count <= Blake3ChunkSize
+        {
+            var output = blake3ChunkOutput(data, 0, key, flags)
+            writeRootOutput(output, destination)
+            Crypto.secureClear(Swag.makeSlice(&output, 1))
+            return
+        }
+
+        let chunkCount = (data.count - 1) / Blake3ChunkSize + 1
         if chunkCount < Math.max(4'u64, cast(u64, Swag.workerCount()) * 2)
         {
             var hash = Blake3.createWithKeyAndFlags(key, flags)
@@ -349,7 +374,8 @@ public impl Blake3
         let output = unwrap chainingValues.buffer
         parallel for |input, output, key, flags| chunkIndex in chunkCount - 1
         {
-            let cv = blake3ChunkCv(input + chunkIndex * Blake3ChunkSize, Blake3ChunkSize, chunkIndex, key, flags)
+            let chunk = Swag.makeSlice(input + chunkIndex * Blake3ChunkSize, Blake3ChunkSize)
+            let cv    = blake3OutputCv(blake3ChunkOutput(chunk, chunkIndex, key, flags))
             for word in 8 do
                 output[chunkIndex * 8 + word] = cv[word]
         }
@@ -393,7 +419,7 @@ public impl Blake3
         var blockFlags = .flags
         if not .blocksCompressed do
             blockFlags |= Blake3ChunkStart
-        let words      = blake3BlockWords(&.block[0])
+        let words      = blake3ReadWords'16(&.block[0])
         let compressed = blake3Compress(.chunkCv, words, .chunkCounter, Blake3BlockSize, blockFlags)
         for index in 8 do
             .chunkCv[index] = compressed[index]
@@ -409,14 +435,14 @@ public impl Blake3
             flags |= Blake3ChunkStart
         var result: #returntype
         result.inputCv   = .chunkCv
-        result.block     = blake3BlockWords(&.block[0])
+        result.block     = blake3ReadWords'16(&.block[0])
         result.counter   = .chunkCounter
         result.blockSize = cast(u32, .blockSize)
         result.flags     = flags
         return result
     }
 
-    private mtd writeRootOutput(output: Blake3Output, destination: [..] u8)
+    private func writeRootOutput(output: Blake3Output, destination: [..] u8)
     {
         var written       = 0'u64
         var outputCounter = 0'u64
@@ -424,12 +450,15 @@ public impl Blake3
         {
             let words = blake3Compress(output.inputCv, output.block, outputCounter, output.blockSize, output.flags | Blake3Root)
             let count = Math.min(destination.count - written, Blake3BlockSize)
-            for index in count
+            #static if BIG_ENDIAN
             {
-                let word  = words[index / 4]
-                let shift = cast(u32, (index % 4) * 8)
-                destination[written + index] = cast(u8, (word >> shift) & 0xFF)
+                var littleEndian: [16] u32
+                for index in 16 do
+                    littleEndian[index] = Math.nativeToLittleEndian(words[index])
+                Swag.memcpy(destination.buffer + written, &littleEndian[0], count)
             }
+            else do
+                Swag.memcpy(destination.buffer + written, &words[0], count)
 
             written       += count
             outputCounter += 1

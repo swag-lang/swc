@@ -119,13 +119,29 @@ private func buildCosines()->[8, 8] f32
 
 private var g_Cosines: [8, 8] f32 = #run buildCosines()
 
-// A block with only DC runs the DC lane of both transform passes, with their original rounding.
+// Keep the two floating-point transform passes and their exact rounding at half samples.
+private const DcSamples = #run buildDcSamples()
+
+private func buildDcSamples()->[CoefficientCeil + 1] u8
+{
+    var samples: #returntype
+    let cosines = buildCosines()
+    let basis   = cosines[0, 0]
+    for coefficient in samples.count
+    {
+        let row   = cast(f32, coefficient) * basis * 0.5'f32
+        let value = cast(s32, Math.round(row * basis * 0.5'f32))
+        samples[coefficient] = cast(u8, Math.clamp(value, 0's32, 255's32))
+    }
+
+    return samples
+}
+
+// Outside the table the inverse transform saturates to zero or 255.
 func dcSample(coefficient: s32)->u8
 {
-    let basis = g_Cosines[0, 0]
-    let row   = cast(f32, coefficient) * basis * 0.5'f32
-    let value = cast(s32, Math.round(row * basis * 0.5'f32))
-    return cast(u8, Math.clamp(value, 0's32, 255's32))
+    let index = Math.clamp(coefficient, 0's32, CoefficientCeil)
+    return DcSamples[cast(u64, index)]
 }
 
 // The inverse transform of one block, clause 7.4.5.

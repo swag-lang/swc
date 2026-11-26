@@ -471,5 +471,35 @@
       1
     ],
     "sha256": "6c0b6eebbefb4efc687630767221f151048cd36355bd9a4f020f92be25441d37"
+  },
+  {
+    "file": "perf_codecs_ccitt.pdf",
+    "url": "https://raw.githubusercontent.com/mozilla/pdf.js/ac7d3717e478133747f47819816c743b296a2e9c/test/pdfs/perf_codecs_ccitt.pdf",
+    "source": "Mozilla PDF.js",
+    "workload": "large CCITT Group 4 scan",
+    "pages": [
+      1
+    ],
+    "sha256": "8b262e6df39f1d66151830911b1371ccdb98cedc53b50589a209143293c98221"
+  },
+  {
+    "file": "ccitt_EndOfBlock_false.pdf",
+    "url": "https://raw.githubusercontent.com/mozilla/pdf.js/ac7d3717e478133747f47819816c743b296a2e9c/test/pdfs/ccitt_EndOfBlock_false.pdf",
+    "source": "Mozilla PDF.js",
+    "workload": "mixed fax modes and end-of-block flags",
+    "pages": [
+      1
+    ],
+    "sha256": "f2289b94e7e3f05f9e37754c399d3f525edf9444fb32c3279959cf64b575fe62"
+  },
+  {
+    "file": "scan-bad.pdf",
+    "url": "https://raw.githubusercontent.com/mozilla/pdf.js/ac7d3717e478133747f47819816c743b296a2e9c/test/pdfs/scan-bad.pdf",
+    "source": "Mozilla PDF.js",
+    "workload": "high-resolution RGB scan with overlaid text",
+    "pages": [
+      1
+    ],
+    "sha256": "d40f31f182cf254ab134826d379875acacb1f7b48bf1a57bce2e30b38d16628e"
   }
 ]

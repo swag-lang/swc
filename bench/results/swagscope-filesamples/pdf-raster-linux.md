@@ -595,3 +595,21 @@ of 255, and the mean distance to PDFium drops from 22.69 to 22.35.
 On the three FileSamples pages the mean change stays below 0.108.
 The 973 Pixel and 141 PDF tests pass, including analytic coverage of
 clipped and wide diagonal edges and detection of a self-crossing path.
+
+## Public scan and fax fixtures
+
+Three more pinned PDF.js files extend the manifest to 56 page cases
+from 50 PDFs. The added cases cover a large Group 4 fax image, mixed fax
+modes and end-of-block flags, and a high-resolution RGB scan with text.
+Both engines render all three at the same dimensions.
+
+Nine interleaved Release runs with two samples each use one AMD EPYC
+7763 logical CPU and PDFium 159.0.8149.0. Times include opening each
+file, loading the page, and rendering at 1200 px.
+[Timings and raster checksums](pdf-raster-linux-public-scans.json)
+
+| PDF | Swag, ms | PDFium, ms |
+| --- | ---: | ---: |
+| `perf_codecs_ccitt.pdf` | 89.08 | 28.22 |
+| `ccitt_EndOfBlock_false.pdf` | 6.88 | 1.28 |
+| `scan-bad.pdf` | 54.09 | 55.55 |

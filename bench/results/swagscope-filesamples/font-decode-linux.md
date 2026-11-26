@@ -1769,4 +1769,6 @@ agree across worker counts.
 The verified build passes 210 native TrueType tests in Release and
 108 selected tests in Release Safe. The 46 Core compression tests
 pass in both configurations. The 12 Scope font tests pass and the
-Scope Release application builds.
+Scope Release application builds. The three Pixel collection tests
+and 18 GUI PDF font and text tests pass in Release. TrueType and
+Pixel documentation builds also pass.

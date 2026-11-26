@@ -148,8 +148,8 @@ public:
     void emitSanityIntDivision(MicroReg dividend, MicroReg divisor, MicroOpBits bits);
     void emitLabel(MicroLabelRef& outLabelRef);
     void emitRet();
-    void emitCallLocal(const Symbol* targetSymbol, CallConvKind callConv, uint8_t intArgMask = K_CALL_ARG_MASK_ALL, CallFloatArgs floatArgMask = K_CALL_ARG_MASK_ALL);
-    void emitCallExtern(const Symbol* targetSymbol, CallConvKind callConv, uint8_t intArgMask = K_CALL_ARG_MASK_ALL, CallFloatArgs floatArgMask = K_CALL_ARG_MASK_ALL);
+    void emitCallLocal(const Symbol* targetSymbol, CallConvKind callConv, uint8_t intArgMask = K_CALL_ARG_MASK_ALL, CallFloatArgs floatArgMask = K_CALL_ARG_MASK_ALL, bool fixedSystemVPrototype = false);
+    void emitCallExtern(const Symbol* targetSymbol, CallConvKind callConv, uint8_t intArgMask = K_CALL_ARG_MASK_ALL, CallFloatArgs floatArgMask = K_CALL_ARG_MASK_ALL, bool fixedSystemVPrototype = false);
     void emitCallReg(MicroReg reg, CallConvKind callConv, uint8_t intArgMask = K_CALL_ARG_MASK_ALL, CallFloatArgs floatArgMask = K_CALL_ARG_MASK_ALL);
     void emitAlignedCallReg(MicroReg reg, CallConvKind callConv, AlignedCallStack stack, uint8_t intArgMask, CallFloatArgs floatArgMask);
     void emitJumpToLabel(MicroCond cpuCond, MicroOpBits opBits, MicroLabelRef labelRef);

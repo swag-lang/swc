@@ -37,10 +37,12 @@ namespace __LinuxRT
         func sched_yield()->s32
         func __errno_location()->*s32
 
-        // Fixed declaration of the six-argument futex operation: all arguments are integer
-        // class, so its System V call also satisfies syscall's variadic register contract.
-        func syscall(number: s64, address: *u32, operation: s32, value: u32, timeout: const *Timespec?, other: *u32?, value3: u32)->s64
+        func syscall(number: s64, args: ...)->s64
     }
+
+    #[Swag.Inline]
+    func futex(address: *u32, operation: s32, value: u32, timeout: const *Timespec? = null)->s64
+        => syscall(FutexSyscall, address, operation, value, timeout, cast(*u32?, null), 0'u32)
 }
 
 // Linux x86-64 has 4 KiB base pages; huge pages are not part of the bootstrap allocator.
@@ -109,7 +111,7 @@ private const LinuxWriter = 0x8000_0000'u32
 #[Swag.Safety(.ValueBorrow, false)]
 private func __linuxWake(address: *u32, count: u32)
 {
-    discard __LinuxRT.syscall(__LinuxRT.FutexSyscall, address, __LinuxRT.FutexWakePrivate, count, null, null, 0)
+    discard __LinuxRT.futex(address, __LinuxRT.FutexWakePrivate, count)
 }
 
 // A lock in storage several mappings share, such as the process storage that each loaded runtime
@@ -124,7 +126,7 @@ func __linuxLockProcessWide(lock: *(*void?))
     {
         let observed = Swag.atomicLoad(state)
         if observed do
-            discard __LinuxRT.syscall(__LinuxRT.FutexSyscall, state, __LinuxRT.FutexWait, observed, null, null, 0)
+            discard __LinuxRT.futex(state, __LinuxRT.FutexWait, observed)
     }
 }
 
@@ -133,7 +135,7 @@ func __linuxUnlockProcessWide(lock: *(*void?))
 {
     let state = cast(*u32, lock)
     Swag.atomicStore(state, 0)
-    discard __LinuxRT.syscall(__LinuxRT.FutexSyscall, state, __LinuxRT.FutexWake, 0x7FFF_FFFF, null, null, 0)
+    discard __LinuxRT.futex(state, __LinuxRT.FutexWake, 0x7FFF_FFFF)
 }
 
 #[Swag.Safety(.ValueBorrow, false)]
@@ -147,7 +149,7 @@ func __hostLockExclusive(lock: *(*void?))
     {
         let observed = Swag.atomicLoad(state)
         if observed do
-            discard __LinuxRT.syscall(__LinuxRT.FutexSyscall, state, __LinuxRT.FutexWaitPrivate, observed, null, null, 0)
+            discard __LinuxRT.futex(state, __LinuxRT.FutexWaitPrivate, observed)
     }
 }
 
@@ -183,7 +185,7 @@ func __hostLockShared(lock: *(*void?))
     {
         let observed = Swag.atomicLoad(state)
         if observed >= LinuxWriter - 1 do
-            discard __LinuxRT.syscall(__LinuxRT.FutexSyscall, state, __LinuxRT.FutexWaitPrivate, observed, null, null, 0)
+            discard __LinuxRT.futex(state, __LinuxRT.FutexWaitPrivate, observed)
     }
 }
 
@@ -244,7 +246,7 @@ func __hostConditionWait(condition: *(*void?), lock: *(*void?), milliseconds: u3
             timeout = &duration
         }
 
-        let result = __LinuxRT.syscall(__LinuxRT.FutexSyscall, sequence, __LinuxRT.FutexWaitPrivate, observed, timeout, null, 0)
+        let result = __LinuxRT.futex(sequence, __LinuxRT.FutexWaitPrivate, observed, timeout)
         if result == 0 do
             return true
         let error = __LinuxRT.__errno_location()[]

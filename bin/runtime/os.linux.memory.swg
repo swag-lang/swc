@@ -22,8 +22,8 @@ namespace __LinuxRT
     #[Swag.Foreign(module: "libc.so.6", link: "c", callconv: .C)]
     {
         func getpid()->s32
-        func open(path: const [*] u8, flags: s32)->s32
-        func openat(directory: s32, path: const [*] u8, flags: s32)->s32
+        func open(path: const [*] u8, flags: s32, args: ...)->s32
+        func openat(directory: s32, path: const [*] u8, flags: s32, args: ...)->s32
         func close(descriptor: s32)->s32
         func flock(descriptor: s32, operation: s32)->s32
         func opendir(path: const [*] u8)->*void?

@@ -487,7 +487,7 @@ void MicroBuilder::emitRet()
     addInstruction(MicroInstrOpcode::Ret, 0);
 }
 
-void MicroBuilder::emitCallLocal(const Symbol* targetSymbol, const CallConvKind callConv, const uint8_t intArgMask, const CallFloatArgs floatArgMask)
+void MicroBuilder::emitCallLocal(const Symbol* targetSymbol, const CallConvKind callConv, const uint8_t intArgMask, const CallFloatArgs floatArgMask, const bool fixedSystemVPrototype)
 {
     SWC_ASSERT(targetSymbol && targetSymbol->isFunction());
     const SymbolFunction& targetFunction = targetSymbol->cast<SymbolFunction>();
@@ -497,7 +497,7 @@ void MicroBuilder::emitCallLocal(const Symbol* targetSymbol, const CallConvKind 
     MicroInstrOperand* ops = inst.ops(operands_);
     ops[0].callConv        = callConv;
     ops[1].valueU32        = intArgMask;
-    ops[2].valueU32        = floatArgMask.widths;
+    ops[2].valueU32        = floatArgMask.widths | (fixedSystemVPrototype ? MicroInstr::K_CALL_FIXED_SYSTEM_V_PROTOTYPE : 0);
     ops[3].valueU64        = MicroInstr::K_CALL_CLOBBERS_ALL;
 
     addRelocation({
@@ -509,7 +509,7 @@ void MicroBuilder::emitCallLocal(const Symbol* targetSymbol, const CallConvKind 
     });
 }
 
-void MicroBuilder::emitCallExtern(const Symbol* targetSymbol, const CallConvKind callConv, const uint8_t intArgMask, const CallFloatArgs floatArgMask)
+void MicroBuilder::emitCallExtern(const Symbol* targetSymbol, const CallConvKind callConv, const uint8_t intArgMask, const CallFloatArgs floatArgMask, const bool fixedSystemVPrototype)
 {
     SWC_ASSERT(targetSymbol && targetSymbol->isFunction());
     const SymbolFunction& targetFunction = targetSymbol->cast<SymbolFunction>();
@@ -519,7 +519,7 @@ void MicroBuilder::emitCallExtern(const Symbol* targetSymbol, const CallConvKind
     MicroInstrOperand* ops = inst.ops(operands_);
     ops[0].callConv        = callConv;
     ops[1].valueU32        = intArgMask;
-    ops[2].valueU32        = floatArgMask.widths;
+    ops[2].valueU32        = floatArgMask.widths | (fixedSystemVPrototype ? MicroInstr::K_CALL_FIXED_SYSTEM_V_PROTOTYPE : 0);
     ops[3].valueU64        = MicroInstr::K_CALL_CLOBBERS_ALL;
 
     addRelocation({

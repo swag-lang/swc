@@ -225,6 +225,10 @@ struct MicroInstr
     // unless its target's final code proved less (see SymbolFunction::resolveCallClobbers).
     static constexpr uint64_t K_CALL_CLOBBERS_ALL = ~0ull;
 
+    // The low 16 bits of the call operand describe vector argument widths.
+    // A proved fixed System V prototype does not consume a vector count in AL.
+    static constexpr uint32_t K_CALL_FIXED_SYSTEM_V_PROTOTYPE = 1u << 16;
+
     DebugSourceInfo  debugSourceInfo;
     MicroOperandRef  opsRef      = MicroOperandRef::invalid();
     MicroInstrOpcode op          = MicroInstrOpcode::OpBinaryRegImm;

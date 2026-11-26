@@ -2,7 +2,7 @@
 #include "Backend/ABI/ABICall.h"
 #include "Backend/ABI/ABICall.SystemV.h"
 #include "Backend/Micro/MicroBuilder.h"
-#include "Compiler/Sema/Symbol/Symbol.h"
+#include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Main/CompilerInstance.h"
 #include "Support/Report/Assert.h"
 
@@ -191,9 +191,8 @@ namespace
         if (!conv.isSystemVAMD64)
             return targetReg;
 
-        // AL carries the number of live vector argument registers on a variadic
-        // call. Setting it for every System V call also covers function pointers
-        // whose declaration is unavailable here; fixed-prototype callees ignore it.
+        // AL carries the number of vector argument registers on a variadic call.
+        // Calls without a known prototype prepare it conservatively.
         if (targetReg == conv.intReturn)
         {
             MicroReg scratch, unused;
@@ -326,9 +325,13 @@ namespace
         const PreparedCallStackAdjust stackAdjust = computePreparedCallStackAdjust(callConvKind, preparedCall);
         const CallConv&               conv        = CallConv::get(callConvKind);
 
+        const auto& targetFunction       = targetSymbol->cast<SymbolFunction>();
+        const bool  fixedSystemVPrototype = conv.isSystemVAMD64 && targetFunction.isSemaCompleted() && !targetFunction.hasVariadicParam();
+
         emitCallStackAdjust(builder, conv, stackAdjust.before, MicroOp::Subtract);
-        prepareSystemVCall(builder, conv, preparedCall.floatArgMask);
-        (builder.*EmitCall)(targetSymbol, callConvKind, preparedCall.intArgMask, preparedCall.floatArgMask);
+        if (!fixedSystemVPrototype)
+            prepareSystemVCall(builder, conv, preparedCall.floatArgMask);
+        (builder.*EmitCall)(targetSymbol, callConvKind, preparedCall.intArgMask, preparedCall.floatArgMask, fixedSystemVPrototype);
         emitReturnWriteBackIfNeeded(builder, conv, ret);
         emitCallStackAdjust(builder, conv, stackAdjust.restore, MicroOp::Add);
     }

@@ -2,6 +2,7 @@
 
 #if SWC_HAS_UNITTEST
 
+#include "Backend/ABI/ABICall.h"
 #include "Backend/ABI/CallConv.h"
 #include "Backend/Micro/MachineCode.h"
 #include "Backend/Micro/MicroBuilder.h"
@@ -64,6 +65,49 @@ SWC_TEST_BEGIN(CallClobbers_RegisterOnlyCallsRespectBothArgumentBanks)
             }
         }
     }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(CallClobbers_SystemVFixedPrototypesDoNotUseTheVectorCount)
+{
+    constexpr auto  convention = CallConvKind::SystemVAMD64;
+    const CallConv& conv       = CallConv::get(convention);
+    auto*           fixed      = makeCallee(ctx);
+    auto*           variadic   = makeCallee(ctx);
+    auto*           unresolved = Symbol::make<SymbolFunction>(ctx, nullptr, TokenRef::invalid(), IdentifierRef::invalid(), SymbolFlagsE::Zero);
+    variadic->addExtraFlag(SymbolFunctionFlagsE::Variadic);
+
+    for (const SymbolFunction* callee : {fixed, variadic, unresolved})
+    {
+        MicroBuilder builder(ctx);
+        ABICall::PreparedCall prepared{.stackAdjust = 0, .stackAlreadyAdjusted = true};
+        prepared.floatArgMask.setWidth(0, 64);
+        ABICall::callLocal(builder, convention, callee, prepared);
+
+        const MicroInstr& call           = lastInstruction(builder);
+        const auto        useDef         = call.collectUseDef(builder.operands(), nullptr);
+        const bool        hasVectorCount = callee != fixed;
+        if (std::ranges::contains(useDef.uses, conv.intReturn) != hasVectorCount ||
+            !std::ranges::contains(useDef.defs, conv.intReturn) ||
+            !std::ranges::contains(useDef.uses, conv.floatArgRegs[0]))
+            return Result::Error;
+
+        const auto first = builder.instructions().view().begin();
+        if (hasVectorCount)
+        {
+            if (first->op != MicroInstrOpcode::LoadRegImm)
+                return Result::Error;
+            const auto* operands = first->ops(builder.operands());
+            if (operands[0].reg != conv.intReturn || operands[2].valueU64 != 1)
+                return Result::Error;
+        }
+        else if (first->op != MicroInstrOpcode::CallLocal)
+        {
+            return Result::Error;
+        }
+    }
+
     return Result::Continue;
 }
 SWC_TEST_END()

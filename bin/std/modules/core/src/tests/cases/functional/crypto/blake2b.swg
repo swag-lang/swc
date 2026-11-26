@@ -136,6 +136,7 @@ func assertBlake2b(data: const [..] u8, expected: string)
         data[index] = cast(u8, index)
     assertBlake2b(data[0 until 128], "2319e3789c47e2daa5fe807f61bec2a1a6537fa03f19ff32e87eecbfd64b7e0e8ccff439ac333b040f19b0c4ddd11a61e24ac1fe0f10a039806c5dcc0da3d115")
     assertBlake2b(data[0 until 256], "1ecc896f34d3f9cac484c73f75f6a5fb58ee6784be41b35f46067b9c65c63a6794d3d744112c653f73dd7deb6666204c5a9bfa5b46081fc10fdbe7884fa5cbf8")
+    assertBlake2b(data[1 until 130], "86485b4d1f048b2ba9603cc5cdd5b4ae6fe3eae791450c987ec14629163b646151b53e33c659ff7f012f77ea865c5ee7fb04c66aecc95f435f2f7e98031df7ce")
 }
 
 // A failed finalize leaves the current sequence intact, and reset can reuse a

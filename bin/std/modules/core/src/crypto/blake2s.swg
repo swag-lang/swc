@@ -27,20 +27,6 @@ private const Blake2sSigma: [160] u8 = [
     10, 2, 8, 4, 7, 6, 1, 5, 15, 11, 9, 14, 3, 12, 13, 0]
 
 #[Swag.Inline]
-private func blake2sLoad32(data: const [*] u8)->u32
-{
-    return cast(u32, data[0]) | (cast(u32, data[1]) << 8) |
-           (cast(u32, data[2]) << 16) | (cast(u32, data[3]) << 24)
-}
-
-#[Swag.Inline]
-private func blake2sStore32(data: [*] u8, value: u32)
-{
-    for i in 4 do
-        data[i] = cast(u8, (value >> cast(u32, i * 8)) & 0xFF)
-}
-
-#[Swag.Inline]
 private func blake2sMix(state: *[16] u32, a, b, c, d, x, y: u32)
 {
     state[][a] += state[][b] + x
@@ -123,8 +109,15 @@ public impl Blake2s
         {
             if .bufferCount == Blake2sBlockSize
             {
-                .compress(false)
+                .compress(&.buffer[0], .bufferCount, false)
                 .bufferCount = 0
+            }
+
+            if .bufferCount == 0 and data.count - offset > Blake2sBlockSize
+            {
+                .compress(data.buffer + offset, Blake2sBlockSize, false)
+                offset += Blake2sBlockSize
+                continue
             }
 
             let count = Math.min(data.count - offset, Blake2sBlockSize - .bufferCount)
@@ -143,19 +136,28 @@ public impl Blake2s
             fail Errors.BadParameterError{"BLAKE2s destination must match the configured digest length"}
 
         Swag.memset(.buffer.buffer + .bufferCount, 0, Blake2sBlockSize - .bufferCount)
-        .compress(true)
+        .compress(&.buffer[0], .bufferCount, true)
 
-        var words: [Blake2sMaxDigestSize] u8
-        for i in 8 do
-            blake2sStore32(&words[i * 4], .state[i])
-        Swag.memcpy(destination.buffer, &words[0], .digestSize)
-        Crypto.secureClear(words)
+        #static if BIG_ENDIAN
+        {
+            var words: [8] u32
+            for index in 8 do
+                words[index] = Math.nativeToLittleEndian(.state[index])
+            Swag.memcpy(destination.buffer, &words[0], .digestSize)
+            Crypto.secureClear(words)
+        }
+        else do
+            Swag.memcpy(destination.buffer, &.state[0], .digestSize)
+
         .clear()
     }
 
     // Clears all state held by this value.
     mtd clear()
     {
+        if not .digestSize do
+            return
+
         Crypto.secureClear(.state)
         Crypto.secureClear(.buffer)
         .bufferCount = 0
@@ -183,12 +185,13 @@ public impl Blake2s
         try hash.finalize(destination)
     }
 
-    private mtd compress(last: bool)
+    private mtd compress(input: const [*] u8, count: u64, last: bool)
     {
-        .counter += .bufferCount
+        .counter += count
+        let words = cast(const [*] u32, input)
         var message: [16] u32
-        for i in 16 do
-            message[i] = blake2sLoad32(&.buffer[i * 4])
+        for index in 16 do
+            message[index] = Math.littleEndianToNative(words[index])
 
         var state: [16] u32
         for i in 8

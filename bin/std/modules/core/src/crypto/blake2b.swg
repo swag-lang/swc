@@ -31,22 +31,6 @@ private const Sigma: [192] u8 = [
     14, 10, 4, 8, 9, 15, 13, 6, 1, 12, 0, 2, 11, 7, 5, 3]
 
 #[Swag.Inline]
-private func load64(data: const [*] u8)->u64
-{
-    return cast(u64, data[0]) | (cast(u64, data[1]) << 8) |
-           (cast(u64, data[2]) << 16) | (cast(u64, data[3]) << 24) |
-           (cast(u64, data[4]) << 32) | (cast(u64, data[5]) << 40) |
-           (cast(u64, data[6]) << 48) | (cast(u64, data[7]) << 56)
-}
-
-#[Swag.Inline]
-private func store64(data: [*] u8, value: u64)
-{
-    for i in 8 do
-        data[i] = cast(u8, ((value >> cast(u32, (i * 8))) & 0xFF))
-}
-
-#[Swag.Inline]
 private func mix(state: *[16] u64, a, b, c, d: u64, x, y: u64)
 {
     state[][a] += state[][b] + x
@@ -140,8 +124,15 @@ public impl Blake2b
             // follow, because the last block takes the finalization flag.
             if .bufferCount == Blake2bBlockSize
             {
-                .compress(false)
+                .compress(&.buffer[0], .bufferCount, false)
                 .bufferCount = 0
+            }
+
+            if .bufferCount == 0 and data.count - offset > Blake2bBlockSize
+            {
+                .compress(data.buffer + offset, Blake2bBlockSize, false)
+                offset += Blake2bBlockSize
+                continue
             }
 
             let count = Math.min(data.count - offset, Blake2bBlockSize - .bufferCount)
@@ -165,19 +156,28 @@ public impl Blake2b
         // A sequence ending on a block boundary leaves the buffer full: the final compression
         // takes it as it is, and there is no element at `bufferCount` to address.
         Swag.memset(.buffer.buffer + .bufferCount, 0, Blake2bBlockSize - .bufferCount)
-        .compress(true)
+        .compress(&.buffer[0], .bufferCount, true)
 
-        var words: [Blake2bMaxDigestSize] u8
-        for i in 8 do
-            store64(&words[i * 8], .state[i])
-        Swag.memcpy(destination.buffer, &words[0], .digestSize)
-        Crypto.secureClear(words)
+        #static if BIG_ENDIAN
+        {
+            var words: [8] u64
+            for index in 8 do
+                words[index] = Math.nativeToLittleEndian(.state[index])
+            Swag.memcpy(destination.buffer, &words[0], .digestSize)
+            Crypto.secureClear(words)
+        }
+        else do
+            Swag.memcpy(destination.buffer, &.state[0], .digestSize)
+
         .clear()
     }
 
     // Clears all state held by this value.
     mtd clear()
     {
+        if not .digestSize do
+            return
+
         Crypto.secureClear(.state)
         Crypto.secureClear(.buffer)
         .bufferCount = 0
@@ -212,15 +212,16 @@ public impl Blake2b
         try hash.finalize(destination)
     }
 
-    private mtd compress(last: bool)
+    private mtd compress(input: const [*] u8, count: u64, last: bool)
     {
-        .counterLow += .bufferCount
-        if .counterLow < .bufferCount do
+        .counterLow += count
+        if .counterLow < count do
             .counterHigh += 1
 
+        let words = cast(const [*] u64, input)
         var m: [16] u64
-        for i in 16 do
-            m[i] = load64(&.buffer[i * 8])
+        for index in 16 do
+            m[index] = Math.littleEndianToNative(words[index])
 
         var v: [16] u64
         for i in 8

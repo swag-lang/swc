@@ -57,3 +57,4 @@ optimizations moved each result.
 - [Packed SHA-512 message schedule](sha512-schedule.md)
 - [Direct SHA-3 and SHAKE sponge input](sha3-direct.md)
 - [Baseline public-key comparison](asymmetric-baseline.md)
+- [BLAKE2b and BLAKE2s direct input blocks](blake2-direct.md)

@@ -84,6 +84,20 @@ func assertBlake2s(data: const [..] u8, expected: string)
 
 #test
 {
+    // Start at an odd byte, including when the sequence ends exactly on a block boundary.
+    var input: [130] u8
+    for index in input.count do
+        input[index] = cast(u8, index)
+
+    assertBlake2s(input[1 until 64], "98b4ba19442c0e35f30a23dd9821711f4c4599331b36a77ad4bd39dd1ae46002")
+    assertBlake2s(input[1 until 65], "aa9932410694932a282715ae15f432f37f0ffac012d20a6019bdb008bb21fac7")
+    assertBlake2s(input[1 until 66], "35492839ca7bb72312e2bc6e091e19aaf3c2b63dcd9feb120ae3744291cd292c")
+    assertBlake2s(input[1 until 129], "d510becea458ec8fb7795a3fe0ca2b356ae0509940f098e4fbaff7646b035156")
+    assertBlake2s(input[1 until 130], "f78a2339ce599c492d0757dc8528b30c6e69e4b5e32cddceb4629c07d2494e19")
+}
+
+#test
+{
     var oversizedKey: [Hash.Blake2sMaxKeySize + 1] u8
     var digest:       [32] u8
     var keyError:     Swag.Error

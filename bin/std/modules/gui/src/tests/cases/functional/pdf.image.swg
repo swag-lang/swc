@@ -801,23 +801,23 @@ private func imageDocument(dictionary: string, samples: const [..] u8)->Document
     var found = false
     for item, index in loaded.pages[0].items where item.kind == .Image
     {
-        let before = item.image.jpeg()
+        let before = item.image.encoded().bytes.toSlice()
         if not before.count do
             continue
 
         found = true
-        let after = saved.pages[0].items[index].image.jpeg()
+        let after = saved.pages[0].items[index].image.encoded().bytes.toSlice()
         Swag.require(Slice.equals(before, after))
 
         var changed = item.image
         let editable = changed.edit()
-        Swag.require(editable.isValid() and not changed.jpeg().count)
-        Swag.require(item.image.jpeg().count == before.count)
+        Swag.require(editable.isValid() and not changed.encoded().bytes.count)
+        Swag.require(item.image.encoded().bytes.toSlice().count == before.count)
 
         let pixels = unwrap item.imageValue()
         let dictionary = Format.toString("/Type /XObject /Subtype /Image /Width % /Height % /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Decode [1 0 1 0 1 0]", pixels.width, pixels.height)
         let custom = imageDocument(dictionary.toString(), before)
-        Swag.require(not custom.pages[0].items[0].image.jpeg().count)
+        Swag.require(not custom.pages[0].items[0].image.encoded().bytes.toSlice().count)
     }
 
     Swag.require(found)
@@ -833,8 +833,56 @@ private func imageDocument(dictionary: string, samples: const [..] u8)->Document
     let encoded = expect source.encode()
     let saved = expect Document.decode(encoded.toSlice())
     let image = saved.pages[0].items[0].image
-    Swag.require(image.jpegChannels() == 1)
-    Swag.require(Slice.equals(bytes.toSlice(), image.jpeg()))
+    Swag.require(image.encoded().channels == 1)
+    Swag.require(Slice.equals(bytes.toSlice(), image.encoded().bytes.toSlice()))
+}
+
+// A Flate predictor keeps its parameters, image samples and interpolation request.
+#test
+{
+    var rows: [17 * 16] u8
+    for y in 16
+    {
+        let row = cast(u64, y) * 17
+        rows[row] = 1
+        rows[row + 1] = 64
+        for x in 2 until 17 do
+            rows[row + x] = 5
+    }
+
+    var zlib: Compress.ZLib
+    let bytes = expect zlib.compress(rows)
+    const Dictionary = "/Type /XObject /Subtype /Image /Width 16 /Height 16 /ColorSpace /DeviceGray /BitsPerComponent 8 /Filter /FlateDecode /DecodeParms << /Predictor 15 /Columns 16 >> /Interpolate true"
+    let source = imageDocument(Dictionary, bytes.toSlice())
+    let encoded = expect source.encode()
+    let saved = expect Document.decode(encoded.toSlice())
+    let image = saved.pages[0].items[0].image
+    let stream = image.encoded()
+    Swag.require(stream.filter == .Flate and stream.channels == 1 and stream.predictor == 15 and stream.interpolate)
+    Swag.require(Slice.equals(bytes.toSlice(), stream.bytes.toSlice()))
+    Swag.require(image.value()!.pixelColor(15, 15) == Color.fromRgb(139, 139, 139))
+}
+
+// Identical compressed bytes under different image dimensions are distinct objects.
+#test
+{
+    var samples: [256] u8
+    for i in samples.count do
+        samples[i] = 128
+    var zlib: Compress.ZLib
+    let bytes = expect zlib.compress(samples)
+    var extra: Array'u8
+    addStreamObject(&extra, 5, "/Type /XObject /Subtype /Image /Width 16 /Height 16 /ColorSpace /DeviceGray /BitsPerComponent 8 /Filter /FlateDecode", bytes.toSlice())
+    addStreamObject(&extra, 6, "/Type /XObject /Subtype /Image /Width 8 /Height 32 /ColorSpace /DeviceGray /BitsPerComponent 8 /Filter /FlateDecode", bytes.toSlice())
+    let commands = "q 5 0 0 5 0 0 cm /Im0 Do Q q 5 0 0 5 5 0 cm /Im1 Do Q"
+    let fixture = singlePagePdf("/XObject << /Im0 5 0 R /Im1 6 0 R >>", cast(const [..] u8, commands), extra.toSlice())
+    let source = expect Document.decode(fixture.toSlice())
+    let encoded = expect source.encode()
+    let saved = expect Document.decode(encoded.toSlice())
+    let first = unwrap saved.pages[0].items[0].imageValue()
+    let second = unwrap saved.pages[0].items[1].imageValue()
+    Swag.require(first.width == 16 and first.height == 16)
+    Swag.require(second.width == 8 and second.height == 32)
 }
 
 // The same image can appear below two different page resource dictionaries.

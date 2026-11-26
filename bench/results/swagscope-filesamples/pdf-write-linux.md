@@ -149,3 +149,30 @@ source PDF. The earlier Flate output has a different raster checksum.
 The RGB JPEG and scan controls keep their saved PDF checksums. The 142
 PDF tests include a generated one-component JPEG with the grayscale
 dictionary and compressed samples checked after a round trip.
+
+## Retaining original Flate image streams
+
+An editable document preserves a directly declared DeviceGray, DeviceRGB,
+or DeviceCMYK stream with a single Flate filter, default sample mapping,
+and no mask. The writer keeps the original bit depth, matching predictor
+parameters, and interpolation flag. Image deduplication checks those
+properties and the dimensions as well as the compressed bytes.
+
+Nine alternating native Release runs on one AMD EPYC 7763 logical CPU
+use baseline `5e7f9edcc1` and time `Document.save` after loading.
+[Raw samples, bytes, and source raster comparisons](pdf-write-linux-retained-flate.json)
+
+| Input | Before, ms | After, ms | Bytes before | Bytes after |
+| --- | ---: | ---: | ---: | ---: |
+| `perf_images_flate_predictor.pdf` | 104.28 | 1.53 | 1,675,371 | 2,175,767 |
+| `perf_images_16bit.pdf` | 40.29 | 1.11 | 759,127 | 1,468,083 |
+| `perf_images_scan_bilevel.pdf` | 45.07 | 0.64 | 35,466 | 33,249 |
+| `perf_images_cmyk.pdf` | 67.43 | 1.49 | 1,173,146 | 2,047,793 |
+
+PDFium produces identical output to each of the four originals at one
+pixel per point. The predictor fixture keeps its original compression.
+The 16-bit and CMYK outputs are larger because they keep those samples.
+The RGB conversion in the older CMYK save changes its raster. The
+grayscale JPEG control keeps its saved PDF checksum. The 144 PDF tests
+cover sample and predictor retention and distinguish images with the
+same encoded bytes under different dimensions.

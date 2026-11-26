@@ -49,7 +49,7 @@ impl Document
     func load(fileName: string)->Document fail
     {
         var reader = #move try Reader.open(fileName)
-        reader.parser.retainJpeg = true
+        reader.parser.retainImageStreams = true
         var result = Document.create()
         result.metadata = reader.metadata()
         for index in reader.pageCount()

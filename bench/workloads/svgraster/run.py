@@ -90,6 +90,21 @@ def fixtures(scratch, filesamples):
         svg.write('"/></svg>\n')
     yield path, width, height
 
+    width, height = 1280, 853
+    for name, stroke_width in (("hairline-strokes", "0.5"), ("wide-strokes", "4")):
+        stroke_random = random.Random(61)
+        path = scratch / f"{name}.svg"
+        with path.open("w", encoding="ascii", newline="\n") as svg:
+            svg.write(f'<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}">\n')
+            svg.write(f'<g fill="none" stroke-width="{stroke_width}" stroke-opacity=".86">\n')
+            for _ in range(384):
+                x, y = stroke_random.randrange(width), stroke_random.randrange(height)
+                dx, dy = stroke_random.randrange(-300, 301), stroke_random.randrange(-300, 301)
+                color = f"#{stroke_random.randrange(0x1000000):06x}"
+                svg.write(f'<path stroke="{color}" d="M{x} {y}c{dx} 0 0 {dy} {dx} {dy}"/>\n')
+            svg.write('</g></svg>\n')
+        yield path, width, height
+
 
 def build(compiler, bin_root, build_root, *, scope=False):
     build_root.mkdir()

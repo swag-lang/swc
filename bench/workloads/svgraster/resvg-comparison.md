@@ -466,3 +466,31 @@ phase. Its 320 × 213 thumbnail, with two samples per axis, measured
 190.73 to 181.57 ms total at one worker and 165.03 to 158.78 ms at four.
 The four original bitmaps and thumbnails, `curves`, `dense`,
 `sparse-curves` and `thin-edges` kept their comparison CRC-64s.
+
+## Translucent stroke widths
+
+The two generated stroke fixtures share 384 cubic curves and paint colors.
+Only the pen width changes, from 0.5 to 4 device pixels. In resvg 0.50.0,
+`stroke_path` passes the authored path to tiny-skia. With antialiasing and
+an axis-aligned width at or below one pixel, tiny-skia uses its hairline
+scanner. A wider stroke is converted to an outline and filled.
+Swag promotes narrow strokes in `Painter` and builds distance-stroke
+triangles. Its CPU renderer rasterizes their coverage before blending
+it once per stroke.
+[resvg stroke dispatch](https://github.com/linebender/resvg/blob/v0.50.0/crates/resvg/src/path.rs#L77)
+[tiny-skia hairline selection](https://github.com/linebender/tiny-skia/blob/e48b9027762d33731e60e40eb17eaa4f583b0185/src/painter.rs#L544)
+[Swag stroke coverage](../../../bin/std/modules/pixel/src/render/cpu/rendercpu.swg#L2528)
+
+Seven interleaved Release runs at `70a3961487` measured parse-plus-raster
+milliseconds with the Scope options and matching CPU affinity.
+
+| Pen width | Swag, 1 worker | resvg, 1 CPU | Swag, 4 workers | resvg, 4 CPUs |
+| --- | ---: | ---: | ---: | ---: |
+| 0.5 px | 33.16 | 6.12 | 42.95 | 8.00 |
+| 4 px | 43.82 | 13.05 | 49.92 | 14.13 |
+
+The separate `strokes` fixture uses one-pixel pens and longer curves. At
+one worker, about 17% of CPU samples landed in the solid stroke coverage
+loop and 9% in triangle setup. Another 6% landed in the overlap alpha
+clear. Those samples came from optimized native code built with debug
+information and timed independently of the Release benchmark.

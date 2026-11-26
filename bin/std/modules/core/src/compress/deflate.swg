@@ -286,8 +286,42 @@ impl Deflate
         d.huffCount[0, LenSym[matchLen - MinMatchLen]] += 1
     }
 
+    // Twelve consecutive chain entries can be checked together once their links are
+    // known to be contiguous. The caller charges four groups of three probes.
+    #[Swag.Inline, Swag.Safety(.All, false)]
+    mtd canSkipConsecutiveProbes(pos, origin, maxDist, length: u32, boundary: u16)->bool
+    {
+        if pos < 16 do
+            return false
+
+        let d    = unwrap .state
+        let next = d.next[pos]
+        if next < 16 or (next & LzDictSizeMask) != pos - 1 do
+            return false
+
+        let distance = cast(u16, (origin - (next - 11)))
+        if distance <= 11 or distance > maxDist do
+            return false
+
+        const Offsets = cast(Simd.U16x8, [0'u16, 1, 2, 3, 4, 5, 6, 7])
+        let nearer    = Simd.load(&d.next[pos - 7])
+        let farther   = Simd.load(&d.next[pos - 15])
+        if not Simd.allTrue(nearer == Simd.splat(cast(u16, (next - 7))) + Offsets) or
+           not Simd.allTrue(farther == Simd.splat(cast(u16, (next - 15))) + Offsets) do
+            return false
+
+        // The sixteen-byte loads include four leading bytes before the first candidate.
+        let ending  = Simd.load(&d.dict[pos - 16 + length])
+        let before  = Simd.load(&d.dict[pos - 16 + length - 1])
+        let pair    = Math.littleEndianToNative(boundary)
+        let last    = cast(u8, pair & 255)
+        let nextBeyond = cast(u8, pair >> 8)
+        let matches = (ending == Simd.splat(nextBeyond)) & (before == Simd.splat(last))
+        return (Simd.bitmask(matches) & 0xFFF0) == 0
+    }
+
     #[Swag.Safety(.All, false)]
-    mtd findMatch(laPos, maxDist, maxMatchLen: u32, matchDistAddr, matchLenAddr: *u32)
+    mtd(DETECT_RUNS: bool) findMatch(laPos, maxDist, maxMatchLen: u32, matchDistAddr, matchLenAddr: *u32)
     {
         let d = unwrap .state
 
@@ -331,6 +365,15 @@ impl Deflate
                 probe()
                 probe()
                 probe()
+
+                // A candidate accepted above bypasses the batch check. Long
+                // chains of failures can advance several groups at once.
+                while DETECT_RUNS and numProbesLeft > 4 and
+                      .canSkipConsecutiveProbes(probePos, laPos, maxDist, matchLen, boundary)
+                {
+                    probePos      -= 12
+                    numProbesLeft -= 4
+                }
             }
 
             if not dist do
@@ -1284,7 +1327,7 @@ impl Deflate
             }
             else
             {
-                .findMatch(d.lookaheadPos, d.dictSize, d.lookaheadSize, &curMatchDist, &curMatchLen)
+                .findMatch'(DETECT_RUNS)(d.lookaheadPos, d.dictSize, d.lookaheadSize, &curMatchDist, &curMatchLen)
                 if not curMatchDist and d.dictSize and d.lookaheadSize >= MinMatchLen do
                     .findShortMatch(curPos, &curMatchDist, &curMatchLen)
             }

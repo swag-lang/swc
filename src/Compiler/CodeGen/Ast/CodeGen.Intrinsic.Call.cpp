@@ -2559,6 +2559,13 @@ namespace
                 isMulAdd = true;
                 break;
 
+            case TokenId::IntrinsicVecMultiplyAdd52Low:
+            case TokenId::IntrinsicVecMultiplyAdd52High:
+                SWC_ASSERT(laneBits == 64 && laneCount == 2 && !floatLanes);
+                op = tokId == TokenId::IntrinsicVecMultiplyAdd52Low ? MicroOp::VecMultiplyAdd52Low : MicroOp::VecMultiplyAdd52High;
+                isMulAdd = true;
+                break;
+
             case TokenId::IntrinsicFloor:
                 isRound   = true;
                 roundMode = 9;
@@ -2697,7 +2704,8 @@ namespace
             const MicroReg aReg = loadArg(0);
             const MicroReg bReg = loadArg(1);
             const MicroReg cReg = loadArg(2);
-            const MicroOp  op   = laneBits == 32 ? MicroOp::VecMultiplyAddF32 : MicroOp::VecMultiplyAddF64;
+            if (tokId == TokenId::IntrinsicMulAdd)
+                op = laneBits == 32 ? MicroOp::VecMultiplyAddF32 : MicroOp::VecMultiplyAddF64;
             builder.emitLoadRegReg(resultPayload.reg, aReg, MicroOpBits::B128);
             builder.emitOpTernaryRegRegReg(resultPayload.reg, bReg, cReg, op, MicroOpBits::B128);
             outHandled = true;

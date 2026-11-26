@@ -471,6 +471,10 @@ namespace
                 return "vec.shuff32";
             case MicroOp::VecAlignR:
                 return "vec.alignr";
+            case MicroOp::VecMultiplyAdd52Low:
+                return "vpmadd52luq";
+            case MicroOp::VecMultiplyAdd52High:
+                return "vpmadd52huq";
             case MicroOp::VecClmul:
                 return "vec.clmul";
             case MicroOp::VecSha1NextE:

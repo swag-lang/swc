@@ -4214,6 +4214,15 @@ void X64Encoder::encodeOpTernaryRegRegMem(MicroReg regDst, MicroReg regLeft, Mic
 
 void X64Encoder::encodeOpTernaryRegRegReg(MicroReg reg0, MicroReg reg1, MicroReg reg2, MicroOp op, MicroOpBits opBits)
 {
+    if (op == MicroOp::VecMultiplyAdd52Low || op == MicroOp::VecMultiplyAdd52High)
+    {
+        SWC_ASSERT(opBits == MicroOpBits::B128 && reg0.isFloat() && reg1.isFloat() && reg2.isFloat());
+        emitEvex(store_, 0x66, VEX_MAP_0F38, microRegToX64Reg(reg0), microRegToX64Reg(reg1), microRegToX64Reg(reg2), EvexVectorLength::Xmm, true);
+        emitCpuOp(store_, op == MicroOp::VecMultiplyAdd52Low ? 0xB4 : 0xB5);
+        emitModRm(store_, reg0, reg2);
+        return;
+    }
+
     if (op == MicroOp::VecMultiplyAddF32 || op == MicroOp::VecMultiplyAddF64)
     {
         SWC_ASSERT(opBits == MicroOpBits::B128 && reg0.isFloat() && reg1.isFloat() && reg2.isFloat());

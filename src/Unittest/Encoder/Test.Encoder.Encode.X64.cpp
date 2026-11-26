@@ -113,6 +113,8 @@ namespace
         ENCODE_CASE("jump_reg_r13", "41 FF E5", b.emitJumpReg(R13););
         ENCODE_CASE("ret", "C3", b.emitRet(););
         ENCODE_CASE("trap", "0F 0B", b.emitTrap(););
+        ENCODE_CASE("packed_multiply_add52_low", "62 F2 ED 08 B4 CB", b.emitOpTernaryRegRegReg(MicroReg::floatReg(1), MicroReg::floatReg(2), MicroReg::floatReg(3), MicroOp::VecMultiplyAdd52Low, MicroOpBits::B128););
+        ENCODE_CASE("packed_multiply_add52_high_extended", "62 52 AD 08 B5 CB", b.emitOpTernaryRegRegReg(MicroReg::floatReg(9), MicroReg::floatReg(10), MicroReg::floatReg(11), MicroOp::VecMultiplyAdd52High, MicroOpBits::B128););
         ENCODE_CASE("wide_unsigned_multiply", "48 F7 E1", b.emitOpBinaryRegReg(RAX, RCX, MicroOp::MultiplyWideUnsigned, MicroOpBits::B64););
         ENCODE_CASE("wide_unsigned_multiply_extended", "49 F7 E1", b.emitOpBinaryRegReg(RAX, R9, MicroOp::MultiplyWideUnsigned, MicroOpBits::B64););
         ENCODE_CASE("prefetch_rax", "0F 18 08", b.emitPrefetch(RAX););

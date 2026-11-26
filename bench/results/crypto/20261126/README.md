@@ -196,3 +196,4 @@ optimizations moved each result.
 - [Direct ChaCha20 tail XOR](chacha20-direct-tail.md)
 
 - [RSA Montgomery setup by exponentiating the limb count](rsa-montgomery-setup-power.md)
+- [Packed 52-bit unsigned x64 multiply-add](ifma-instructions.md)

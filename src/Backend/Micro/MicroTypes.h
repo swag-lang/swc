@@ -334,6 +334,9 @@ enum class MicroOp : uint8_t
     VecMultiplyAddF32,
     VecMultiplyAddF64,
 
+    VecMultiplyAdd52Low,
+    VecMultiplyAdd52High,
+
     // Packed FMA, with the same operand roles as the scalar forms above.
     // Keep each F32/F64 pair together for fusedFloatElementBits.
     VecAddProductF32,

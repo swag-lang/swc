@@ -376,6 +376,8 @@ SWC_TOKEN_DEF(IntrinsicVecInterleaveHi, "Swag.vecInterleaveHi", TokenIdKindE::In
 SWC_TOKEN_DEF(IntrinsicVecWidenLo, "Swag.vecWidenLo", TokenIdKindE::Intrinsic | TokenIdKindE::Return | TokenIdKindE::Portable)
 SWC_TOKEN_DEF(IntrinsicVecWidenHi, "Swag.vecWidenHi", TokenIdKindE::Intrinsic | TokenIdKindE::Return | TokenIdKindE::Portable)
 SWC_TOKEN_DEF(IntrinsicVecAvgR, "Swag.vecAvgRound", TokenIdKindE::Intrinsic | TokenIdKindE::Return | TokenIdKindE::Portable)
+SWC_TOKEN_DEF(IntrinsicVecMultiplyAdd52Low, "Swag.vecMultiplyAdd52Low", TokenIdKindE::Intrinsic | TokenIdKindE::Return)
+SWC_TOKEN_DEF(IntrinsicVecMultiplyAdd52High, "Swag.vecMultiplyAdd52High", TokenIdKindE::Intrinsic | TokenIdKindE::Return)
 SWC_TOKEN_DEF(IntrinsicVecClmul, "Swag.vecCarrylessMul", TokenIdKindE::Intrinsic | TokenIdKindE::Return | TokenIdKindE::Portable)
 SWC_TOKEN_DEF(IntrinsicVecClmul2XorPair, "Swag.vecCarrylessMul2XorPair", TokenIdKindE::Intrinsic | TokenIdKindE::ArgumentStorageOnly)
 SWC_TOKEN_DEF(IntrinsicVecClmul2XorQuad, "Swag.vecCarrylessMul2XorQuad", TokenIdKindE::Intrinsic | TokenIdKindE::ArgumentStorageOnly)

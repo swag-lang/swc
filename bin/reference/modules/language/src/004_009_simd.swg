@@ -233,6 +233,11 @@ up the four partial products of their halves.
 /**
 # Carry-less Products Across Lanes
 
+The two-lane unsigned multiply-add instructions multiply the low 52 bits of each
+factor. 'Swag.vecMultiplyAdd52Low' adds the low 52 product bits to each 64-bit
+accumulator lane. 'Swag.vecMultiplyAdd52High' adds the next 52 product bits.
+Guard both with 'Swag.hasCpuFeature(.MultiplyAdd52)'.
+
 'Swag.vecCarrylessMul2XorPair' selects halves of two 32-byte inputs and computes
 two carry-less products per 128-bit lane. Each lane is updated with both products
 and the matching lane of the addend combined by XOR. Use the runtime

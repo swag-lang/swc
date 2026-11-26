@@ -8,6 +8,7 @@ public enum CpuFeature: u32
     Sha = 4     // SHA-1 and SHA-256 compression instructions.
     WideCarrylessMultiply = 8     // 256-bit carry-less multiplication with independent 128-bit lanes.
     CarrylessMultiply512 = 16     // 512-bit carry-less multiplication with independent 128-bit lanes.
+    MultiplyAdd52 = 32     // Packed 52-bit unsigned integer multiply-add.
 }
 
 private
@@ -52,6 +53,10 @@ private
 
             let avx512Enabled = osXsave and (ebx & (1'u32 << 16)) != 0 and
                                 (Swag.__x64ReadXcr0() & Avx512State) == Avx512State
+
+            const MultiplyAddFeatures = (1'u32 << 21) | (1'u32 << 31)
+            if avx512Enabled and (ebx & MultiplyAddFeatures) == MultiplyAddFeatures do
+                bits |= cast(u32, CpuFeature.MultiplyAdd52)
             if ecx & (1'u32 << 10)
             {
                 bits |= cast(u32, CpuFeature.WideCarrylessMultiply)

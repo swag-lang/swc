@@ -439,6 +439,14 @@ func atomicStore(addr: *u64, value: u64)
     // Each pointer names 64 bytes. Call only when [[hasCpuFeature]] reports `.CarrylessMultiply512`.
     func vecCarrylessMul2XorQuad(value: *[8] u64, factor, addend: const *[8] u64, first, second: u8)
 
+    // Adds the low 52 bits of each product to its 64-bit accumulator lane.
+    // Multiplies the low 52 bits of each factor. Requires [[Swag.CpuFeature.MultiplyAdd52]].
+    func vecMultiplyAdd52Low(accumulator, left, right: #simd [2] u64)->#simd [2] u64
+
+    // Adds bits 52 through 103 of each product to its 64-bit accumulator lane.
+    // Multiplies the low 52 bits of each factor. Requires [[Swag.CpuFeature.MultiplyAdd52]].
+    func vecMultiplyAdd52High(accumulator, left, right: #simd [2] u64)->#simd [2] u64
+
     // Starts extending four SHA-1 message words from the first two message vectors.
     //
     // Each vector holds its earlier words in higher-numbered lanes. Call only when

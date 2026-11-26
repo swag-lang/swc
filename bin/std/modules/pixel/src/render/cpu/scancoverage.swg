@@ -19,7 +19,9 @@ internal struct ScanScratch
 {
     rows:     Array'ScanSample
     coverage: Array'f32
-    sorted:   Array'Crossing
+    order:    Array'u32
+    reordered: Array'Crossing
+    keys, sorted: Array'u64
 }
 
 internal impl ScanScratch
@@ -27,6 +29,7 @@ internal impl ScanScratch
     // Reuses the crossing buffers of the preceding shape or tile.
     mtd startRows(height: s32)->[..] ScanSample
     {
+        .order.clear()
         let count = cast(u64, height) * VerticalSamples
         if .rows.count < count
         {
@@ -42,6 +45,40 @@ internal impl ScanScratch
         for &line in crossings do
             line.crossings.clear()
         return crossings
+    }
+
+    // The same set of edges usually crosses multiple nearby samples. Reusing the
+    // previous permutation often leaves only local exchanges. The repair has a
+    // fixed budget, so a different set of edges falls back to a full sort.
+    mtd reorderLine(line: *Array'Crossing)->bool
+    {
+        let count = line.count
+        if .order.count != count do
+            return false
+        .reordered.growResize(count)
+        let old = line.storage()
+        let target = .reordered.storage()
+        let order = .order.storage()
+        var exchanges = 16 + count / 8
+        for index in count
+        {
+            let original = order[index]
+            let crossing = old[original]
+            var slot = index
+            while slot and target[slot - 1].x > crossing.x
+            {
+                if not exchanges do
+                    return false
+                exchanges -= 1
+                target[slot] = target[slot - 1]
+                order[slot]  = order[slot - 1]
+                slot -= 1
+            }
+            target[slot] = crossing
+            order[slot]  = original
+        }
+        Memory.copy(old, target, count * #sizeof(Crossing))
+        return true
     }
 
     mtd sortLine(line: *Array'Crossing)
@@ -78,21 +115,30 @@ internal impl ScanScratch
             return
         }
 
-        // Nonnegative f32 values have the same order as their unsigned bits.
-        // Radix sorting long lines avoids repeated comparison calls at each sample.
-        .sorted.resize(line.count)
-        var source = line.storage()
+        if .reorderLine(line) do
+            return
+
+        // Sort the original indices by the nonnegative float's unsigned bits.
+        // The indices themselves are payload and do not take part in the sort.
+        .keys.growResize(line.count)
+        .sorted.growResize(line.count)
+        .order.resize(line.count)
+        .reordered.growResize(line.count)
+        var source = .keys.storage()
         var target = .sorted.storage()
+        let crossings = line.storage()
+        for index in line.count
+        {
+            let key = cast #bit(u32, crossings[index].x) & 0x7FFF_FFFF
+            source[index] = (cast(u64, key) << 32) | index
+        }
+
         for digit in 4
         {
-            let shift = digit * 8
+            let shift = 32 + digit * 8
             var offsets: [256] u64
-            for index in line.count
-            {
-                let key = cast #bit(u32, source[index].x) & 0x7FFF_FFFF
-                offsets[(key >> shift) & 0xFF] += 1
-            }
-
+            for index in line.count do
+                offsets[(source[index] >> shift) & 0xFF] += 1
             var total = 0'u64
             for &offset in offsets
             {
@@ -103,15 +149,22 @@ internal impl ScanScratch
 
             for index in line.count
             {
-                let crossing = source[index]
-                let key      = cast #bit(u32, crossing.x) & 0x7FFF_FFFF
-                let bucket   = (key >> shift) & 0xFF
-                target[offsets[bucket]] = crossing
-                offsets[bucket]         += 1
+                let key = source[index]
+                let bucket = (key >> shift) & 0xFF
+                target[offsets[bucket]] = key
+                offsets[bucket] += 1
             }
-
             swap(&source, &target)
         }
+
+        let ordered = .reordered.storage()
+        for index in line.count
+        {
+            let original = cast(u32, source[index] & Swag.U32.Max)
+            .order[index] = original
+            ordered[index] = crossings[original]
+        }
+        Memory.copy(crossings, ordered, line.count * #sizeof(Crossing))
     }
 
     // Integrates horizontal coverage at four vertical sample positions per device row.

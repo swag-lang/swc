@@ -293,6 +293,37 @@ impl Inflate
 
         for
         {
+            if LiteralBits == WideLiteralBits and cur < fastLimit and literalEnd - count >= 4
+            {
+                let input  = unwrap src
+                let output = unwrap buf
+                let end    = literalEnd - 4
+                while cur < fastLimit and count <= end
+                {
+                    let chunk = Math.littleEndianToNative(cast(const [*] u64, input + cur)[0])
+                    cb  |= chunk << #wrap nb
+                    cur += cast(u64, ((63 - nb) >> 3))
+                    nb  |= 56
+
+                    // Four direct literal codes need at most 44 of the buffered bits.
+                    var entry   = repeatHt.fast[cb & LiteralMask]
+                    var emitted = 0
+                    while entry and (entry & SymbolMask) < 256 and emitted < 4
+                    {
+                        output[count] = cast(u8, (entry & 255))
+                        count         += 1
+                        let used = cast(u32, (entry >> SymbolBits))
+                        cb      >>= used
+                        nb      -= #wrap used
+                        emitted += 1
+                        entry   = repeatHt.fast[cb & LiteralMask]
+                    }
+
+                    if emitted != 4 do
+                        break
+                }
+            }
+
             // Refill to at least 56 bits with one unaligned load. Bits above nb are
             // from the next partial source byte. Each lookup masks the bits it needs,
             // and the next refill overlays that same byte.

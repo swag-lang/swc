@@ -1,0 +1,247 @@
+{
+  "utc": "2026-11-26T15:05:39.201016+00:00",
+  "system": "Linux-6.18.57-x86_64-with-glibc2.41",
+  "cpu": 2,
+  "affinity": [
+    2
+  ],
+  "workers": {
+    "four": 1,
+    "eight": 1
+  },
+  "processor": {
+    "model name": "AMD EPYC 9V74 80-Core Processor",
+    "microcode": "0x1000065",
+    "flags": "fpu vme de pse tsc msr pae mce cx8 apic sep mtrr pge mca cmov pat pse36 clflush mmx fxsr sse sse2 ht syscall nx mmxext fxsr_opt pdpe1gb rdtscp lm constant_tsc rep_good nopl xtopology nonstop_tsc cpuid extd_apicid tsc_known_freq pni pclmulqdq ssse3 fma cx16 pcid sse4_1 sse4_2 x2apic movbe popcnt tsc_deadline_timer aes xsave avx f16c rdrand hypervisor lahf_lm cmp_legacy cr8_legacy abm sse4a misalignsse 3dnowprefetch osvw topoext cpuid_fault vmmcall fsgsbase tsc_adjust bmi1 avx2 smep bmi2 erms invpcid avx512f avx512dq rdseed adx smap avx512ifma clflushopt clwb avx512cd sha_ni avx512bw avx512vl xsaveopt xsavec xgetbv1 xsaves avx512_bf16 clzero xsaveerptr arat npt nrip_save tsc_scale vmcb_clean flushbyasid pausefilter pfthreshold v_vmsave_vmload avx512vbmi umip avx512_vbmi2 gfni vaes vpclmulqdq avx512_vnni avx512_bitalg avx512_vpopcntdq rdpid fsrm arch_capabilities"
+  },
+  "reference_build": "OpenSSL 4.1.0 23 Oct 2026 | zlib 1.3.1 | BLAKE3 1.8.7 | libdeflate 1.26 | ISA-L 2.32.1 | liblzma 5.8.1",
+  "reference_sha256": "711b8f569020ac48e5eb5f12794431065962c1247e7bf50f28124ebac77d9c69",
+  "swag_builds": {
+    "four": "0c5103ff34b41a67b798228a50ec956df1930ce66b96792ce7c406ab2a5ac014",
+    "eight": "a205278abe09abc7d5709c1750beccb12e3dc9d811c64f4e343089b7b7369190"
+  },
+  "rounds": 17,
+  "target_ms": 22,
+  "clock": "cpu",
+  "rows": [
+    {
+      "algorithm": "aes-256-ctr",
+      "bytes": 1048576,
+      "offset": 0,
+      "input_sha256": "1e8e8f15703ff175699f1e1588b5a85d378c7c1aa34a320c37dffae28c916b32",
+      "output_sha256": "1f3e5a11c1b42c0976261c01cffa3d39d3c48052056fb4beb04376d22100a426",
+      "samples": {
+        "OpenSSL": {
+          "iterations": 170,
+          "wall": [
+            0.04743739,
+            0.046921091,
+            0.059735225,
+            0.070185325,
+            0.069130134,
+            0.071469782,
+            0.054949634,
+            0.074953172,
+            0.068241861,
+            0.055738864,
+            0.046229812,
+            0.051251926,
+            0.047708532,
+            0.069022187,
+            0.054254915,
+            0.050647235,
+            0.050773034
+          ],
+          "cpu": [
+            0.021891011,
+            0.023466627,
+            0.024215562,
+            0.022766624,
+            0.02275597,
+            0.022223526,
+            0.022629119,
+            0.022258067,
+            0.02280453,
+            0.026707013,
+            0.022127122,
+            0.022546897,
+            0.02218681,
+            0.028739579,
+            0.026102164,
+            0.022403734,
+            0.022359949
+          ]
+        },
+        "four": {
+          "iterations": 20,
+          "wall": [
+            0.003292676,
+            0.007672401,
+            0.007779322,
+            0.00310996,
+            0.007143262,
+            0.007756877,
+            0.003151493,
+            0.008669265,
+            0.012852024,
+            0.003157732,
+            0.003153997,
+            0.003103661,
+            0.007248832,
+            0.010382769,
+            0.007634334,
+            0.003202309,
+            0.007383386
+          ],
+          "cpu": [
+            0.003282048,
+            0.003345723,
+            0.003102571,
+            0.003101659,
+            0.003080377,
+            0.003435927,
+            0.003123061,
+            0.003325643,
+            0.003185153,
+            0.003147918,
+            0.003144242,
+            0.003093697,
+            0.003277962,
+            0.003076382,
+            0.003157092,
+            0.003195628,
+            0.00310266
+          ]
+        },
+        "eight": {
+          "iterations": 163,
+          "wall": [
+            0.055762775,
+            0.043710368,
+            0.067720158,
+            0.041727829,
+            0.042046449,
+            0.068289843,
+            0.045996309,
+            0.064923936,
+            0.046219316,
+            0.048659567,
+            0.052067687,
+            0.04683802,
+            0.047603954,
+            0.249697031,
+            0.051822027,
+            0.047771057,
+            0.046275882
+          ],
+          "cpu": [
+            0.027212035,
+            0.022415291,
+            0.021826064,
+            0.021700117,
+            0.021926945,
+            0.022039251,
+            0.02199151,
+            0.021985793,
+            0.022133203,
+            0.023484642,
+            0.022355111,
+            0.021735818,
+            0.022047353,
+            0.115602447,
+            0.024279509,
+            0.022572355,
+            0.022211791
+          ]
+        }
+      },
+      "round_order": [
+        [
+          "OpenSSL",
+          "four",
+          "eight"
+        ],
+        [
+          "eight",
+          "OpenSSL",
+          "four"
+        ],
+        [
+          "OpenSSL",
+          "four",
+          "eight"
+        ],
+        [
+          "four",
+          "OpenSSL",
+          "eight"
+        ],
+        [
+          "eight",
+          "OpenSSL",
+          "four"
+        ],
+        [
+          "OpenSSL",
+          "four",
+          "eight"
+        ],
+        [
+          "OpenSSL",
+          "eight",
+          "four"
+        ],
+        [
+          "OpenSSL",
+          "four",
+          "eight"
+        ],
+        [
+          "OpenSSL",
+          "four",
+          "eight"
+        ],
+        [
+          "eight",
+          "four",
+          "OpenSSL"
+        ],
+        [
+          "OpenSSL",
+          "eight",
+          "four"
+        ],
+        [
+          "four",
+          "OpenSSL",
+          "eight"
+        ],
+        [
+          "eight",
+          "OpenSSL",
+          "four"
+        ],
+        [
+          "OpenSSL",
+          "eight",
+          "four"
+        ],
+        [
+          "eight",
+          "four",
+          "OpenSSL"
+        ],
+        [
+          "eight",
+          "four",
+          "OpenSSL"
+        ],
+        [
+          "OpenSSL",
+          "four",
+          "eight"
+        ]
+      ]
+    }
+  ]
+}

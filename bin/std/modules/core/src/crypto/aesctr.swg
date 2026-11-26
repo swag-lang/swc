@@ -62,6 +62,25 @@ internal func(CounterBits: u32) aesXorCounterBlocksHardware(aes: *Aes, prefix: U
     let endBlock         = firstBlock + blockCount
     let fullBlockEnd     = Math.min(endBlock, source.count / AesBlockSize)
     var block            = firstBlock
+    #static if CounterBits == 64
+    {
+        while block + 8 <= fullBlockEnd
+        {
+            let offset = block * AesBlockSize
+            aes[].xorEightCountersHardware(counter(prefix, low, block),
+                                           counter(prefix, low, block + 1),
+                                           counter(prefix, low, block + 2),
+                                           counter(prefix, low, block + 3),
+                                           counter(prefix, low, block + 4),
+                                           counter(prefix, low, block + 5),
+                                           counter(prefix, low, block + 6),
+                                           counter(prefix, low, block + 7),
+                                           sourceBytes + offset,
+                                           destinationBytes + offset)
+            block += 8
+        }
+    }
+
     while block + 4 <= fullBlockEnd
     {
         let offset = block * AesBlockSize

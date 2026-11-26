@@ -188,3 +188,4 @@ optimizations moved each result.
 - [RSA Montgomery multiplication with 64-bit words](rsa-64-bit-words.md)
 
 - [Symmetric RSA Montgomery squaring](rsa-symmetric-square.md)
+- [Eight independent AES-NI counters](aes-ctr-eight-way.md)

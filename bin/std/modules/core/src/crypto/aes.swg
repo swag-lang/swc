@@ -425,6 +425,44 @@ public impl Aes
         }
     }
 
+    // The caller provides a complete batch of independent counter blocks.
+    #[Swag.Inline]
+    internal mtd xorEightCountersHardware(first, second, third, fourth, fifth, sixth, seventh, eighth: U8x16, source: const [*] u8, destination: [*] u8)
+    {
+        let initial      = .roundKey(0)
+        var firstState   = first ^ initial
+        var secondState  = second ^ initial
+        var thirdState   = third ^ initial
+        var fourthState  = fourth ^ initial
+        var fifthState   = fifth ^ initial
+        var sixthState   = sixth ^ initial
+        var seventhState = seventh ^ initial
+        var eighthState  = eighth ^ initial
+
+        for index in 1 until .rounds
+        {
+            let key = .roundKey(index)
+            firstState    = Swag.vecAesEncryptRound(firstState, key)
+            secondState   = Swag.vecAesEncryptRound(secondState, key)
+            thirdState    = Swag.vecAesEncryptRound(thirdState, key)
+            fourthState   = Swag.vecAesEncryptRound(fourthState, key)
+            fifthState    = Swag.vecAesEncryptRound(fifthState, key)
+            sixthState    = Swag.vecAesEncryptRound(sixthState, key)
+            seventhState  = Swag.vecAesEncryptRound(seventhState, key)
+            eighthState   = Swag.vecAesEncryptRound(eighthState, key)
+        }
+
+        let final = .roundKey(.rounds)
+        store(destination, Swag.vecAesEncryptLastRound(firstState, final) ^ load(source))
+        store(destination + AesBlockSize, Swag.vecAesEncryptLastRound(secondState, final) ^ load(source + AesBlockSize))
+        store(destination + 2 * AesBlockSize, Swag.vecAesEncryptLastRound(thirdState, final) ^ load(source + 2 * AesBlockSize))
+        store(destination + 3 * AesBlockSize, Swag.vecAesEncryptLastRound(fourthState, final) ^ load(source + 3 * AesBlockSize))
+        store(destination + 4 * AesBlockSize, Swag.vecAesEncryptLastRound(fifthState, final) ^ load(source + 4 * AesBlockSize))
+        store(destination + 5 * AesBlockSize, Swag.vecAesEncryptLastRound(sixthState, final) ^ load(source + 5 * AesBlockSize))
+        store(destination + 6 * AesBlockSize, Swag.vecAesEncryptLastRound(seventhState, final) ^ load(source + 6 * AesBlockSize))
+        store(destination + 7 * AesBlockSize, Swag.vecAesEncryptLastRound(eighthState, final) ^ load(source + 7 * AesBlockSize))
+    }
+
     #[Swag.Inline]
     internal mtd(Prepared: bool) decryptBlockHardware(value: U8x16)->U8x16
     {

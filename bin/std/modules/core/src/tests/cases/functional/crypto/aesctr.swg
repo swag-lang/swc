@@ -112,3 +112,25 @@ func aesCtrHexBytes(text: string)->Array'u8
     expect Crypto.aesCtrCrypt(key.toSlice(), counter.toSlice(), data, data)
     Swag.require(Crypto.constantTimeEqual(buffer, plaintext))
 }
+
+#test
+{
+    // OpenSSL AES-192-CTR over eight batched blocks, one complete block, and a partial block.
+    let key        = aesCtrHexBytes("000102030405060708090a0b0c0d0e0f1011121314151617")
+    let counter    = aesCtrHexBytes("f0f1f2f3f4f5f6f7f8f9fafbfcfd0000")
+    let ciphertext = aesCtrHexBytes("c2d8ba702d886b39d7549174d2b9c6a742bea5aeb3bb8110de26a25e2c646db730103019019acbe934e721430322bb0934eed27a4209fd8f5bf8734e98d4bdde124842332491687449a296b659f2a51f033ba741b29dc44246c5062a69a4d1463b729effcdfe8c9adab015cac7b11589eaa1cba263b3ef0b8abd93cd634046c87d1c16164f6a8108439791cea73d563d70")
+    var buffer: [147] u8
+    let data       = buffer[1 until 146]
+    buffer[0]      = 0xA5
+    buffer[146]    = 0x5A
+    for index in data.count do
+        data[index] = cast(u8, (index * 29 + 7) & 0xFF)
+    let plaintext = buffer
+
+    expect Crypto.aesCtrCrypt(key.toSlice(), counter.toSlice(), data, data)
+    Swag.require(Crypto.constantTimeEqual(data, ciphertext.toSlice()))
+    Swag.require(buffer[0] == 0xA5 and buffer[146] == 0x5A)
+
+    expect Crypto.aesCtrCrypt(key.toSlice(), counter.toSlice(), data, data)
+    Swag.require(Crypto.constantTimeEqual(buffer, plaintext))
+}

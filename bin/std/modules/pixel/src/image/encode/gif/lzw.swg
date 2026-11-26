@@ -67,6 +67,13 @@ impl LzwEncoder
         .resetDictionary()
     }
 
+    #[Inline]
+    mtd growCodeSize(nextCode: u32)
+    {
+        if nextCode > (1'u32 << .codeSize) and .codeSize < 12 do
+            .codeSize += 1
+    }
+
     mtd writeCode(code: u16)
     {
         .bits.write(code, .codeSize)
@@ -83,6 +90,51 @@ impl Encoder
 {
     // Largest code of the GIF dictionary, whose codes are at most 12 bits wide.
     const MaxLzwCode = 4095'u32
+
+    // When all pixels have the same index, successive dictionary entries describe runs
+    // of lengths two, three, and so on. Emit those codes without looking up each pixel.
+    func lzwCompressRepeat(index: u8, count: u64, minCodeSize: u8)->Array'u8
+    {
+        var enc: LzwEncoder
+        enc.init(minCodeSize)
+        enc.writeCode(enc.clearCode)
+
+        let firstCode = cast(u32, enc.endCode) + 1
+        var nextCode  = firstCode
+        var remaining = count
+        var runLength = 1'u32
+        while remaining > runLength
+        {
+            let prefix = runLength == 1 ? cast(u16, index) : cast(u16, firstCode + runLength - 2)
+            enc.writeCode(prefix)
+            remaining -= runLength
+            if nextCode < MaxLzwCode
+            {
+                nextCode += 1
+                enc.growCodeSize(nextCode)
+                runLength += 1
+            }
+            else
+            {
+                enc.writeCode(enc.clearCode)
+                nextCode  = firstCode
+                runLength = 1
+            }
+        }
+
+        let prefix = remaining == 1 ? cast(u16, index) : cast(u16, firstCode + remaining - 2)
+        enc.writeCode(prefix)
+        enc.writeCode(enc.endCode)
+        enc.bits.flush()
+        return enc.bits.bytes
+    }
+
+    func lzwCompress(indexes: const [..] u8, minCodeSize: u8, singleIndex: bool)->Array'u8
+    {
+        if singleIndex and indexes.count do
+            return lzwCompressRepeat(indexes[0], indexes.count, minCodeSize)
+        return lzwCompress(indexes, minCodeSize)
+    }
 
     // Compresses palette indexes into GIF LZW codes.
     //
@@ -134,8 +186,7 @@ impl Encoder
             {
                 dictionary[slot] = key | nextCode
                 nextCode         += 1
-                if nextCode > (1'u32 << enc.codeSize) and enc.codeSize < 12 do
-                    enc.codeSize += 1
+                enc.growCodeSize(nextCode)
             }
             else
             {

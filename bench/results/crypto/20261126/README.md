@@ -65,3 +65,4 @@ optimizations moved each result.
 - [P-256 four-bit scalar multiplication](p256-window.md)
 - [CPU feature discovery and AES instructions](hardware-instructions.md)
 - [AES-NI dispatch for AES and GCM](aesni.md)
+- [CPU-gated carry-less CRC folding](crc64-fold.md)

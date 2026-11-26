@@ -160,7 +160,7 @@ public impl Crc32
         // messages and the remainder of a folded message.
         #static if not BIG_ENDIAN
         {
-            if length >= 64
+            if length >= 64 and Swag.hasCpuFeature(.CarrylessMultiply)
             {
                 let folded = length & ~15'u64
                 cur     = foldClmul(cur, current, folded)

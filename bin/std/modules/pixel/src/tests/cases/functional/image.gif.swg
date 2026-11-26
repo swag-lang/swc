@@ -307,6 +307,75 @@ func assertEncodedGifRoundtrip(src: Image, expectedPf: PixelFormat)
     Swag.require(Memory.compare(image.pixels.storage(), canvas.pixels.storage(), image.byteCount) == 0)
 }
 
+func wideGifPaletteFixture(withTransparency, invalidIndex: bool)->Array'u8
+{
+    const Header: [25] u8 = [
+        'G', 'I', 'F', '8', '9', 'a',
+        33, 0, 9, 0, 0x81, 0, 0,
+        17, 103, 219, 255, 40, 13, 150, 235, 72, 249, 128, 213]
+    const Control:    [8] u8  = [0x21, 0xF9, 4, 1, 0, 0, 1, 0]
+    const Descriptor: [11] u8 = [0x2C, 0, 0, 0, 0, 33, 0, 9, 0, 0, 3]
+    const PixelCount          = 33 * 9
+    var bytes: #returntype
+    bytes.add(Header)
+    if withTransparency do
+        bytes.add(Control)
+    bytes.add(Descriptor)
+
+    for offset in PixelCount
+    {
+        if offset == 0 do
+            bytes.add(255'u8)
+        elif offset == 255 do
+            bytes.add(cast(u8, (PixelCount + 1 - 255)))
+
+        // Each byte has a four-bit clear code followed by a literal.
+        let paletteIndex = invalidIndex and offset == 16 ? 4 : (offset & 3)
+        bytes.add(cast(u8, ((paletteIndex << 4) | 8)))
+    }
+
+    bytes.add(9'u8)        // LZW end code
+    bytes.add(0'u8)        // Sub-block terminator
+    bytes.add(0x3B'u8)     // GIF trailer
+    return bytes
+}
+
+// A four-color palette decodes SIMD blocks and the scalar row tail in both RGB and RGBA.
+#test
+{
+    const Palette: [12] u8 = [17, 103, 219, 255, 40, 13, 150, 235, 72, 249, 128, 213]
+    for mode in 2
+    {
+        let withTransparency = mode == 1
+        let bytes = wideGifPaletteFixture(withTransparency, false)
+        let image = expect Image.decode("wide-palette.gif", nnBytes(bytes.toSlice()))
+        Swag.require(image.width == 33 and image.height == 9)
+        Swag.require(image.pixelFormat == (withTransparency ? .RGBA8 : .RGB8))
+        for y in image.height
+        {
+            for x in image.width
+            {
+                let paletteIndex = (y * image.width + x) & 3
+                let color        = paletteIndex * 3
+                let row          = image.height - y - 1
+                if withTransparency and paletteIndex == 1 do
+                    assertGifPixelAt(image, x, row, 0, 0, 0, 0)
+                else do
+                    assertGifPixelAt(image, x, row, Palette[color], Palette[color + 1], Palette[color + 2], 255)
+            }
+        }
+    }
+}
+
+// A lookup in the vector block still rejects a code outside the declared palette.
+#test
+{
+    let bytes = wideGifPaletteFixture(true, true)
+    var errorOutcome: Swag.Error
+    discard catch Image.decode("wide-invalid-palette.gif", nnBytes(bytes.toSlice())) as errorOutcome
+    Swag.require(errorOutcome.value() is Errors.InvalidFormatError)
+}
+
 // A literal allowed by LZW is still invalid when it has no palette entry.
 #test
 {

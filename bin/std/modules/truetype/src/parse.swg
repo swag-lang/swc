@@ -1030,10 +1030,10 @@ func metadataIn(data: const [..] u8, faceIndex: u32)->FaceMetadata fail
 // A bare CFF or Type 1 program ships no `hmtx`, and the advance of a charstring glyph is
 // stated inside the charstring itself. Resolving it stops at the first stack-clearing
 // operator, so this costs a fraction of interpreting the outline.
-func buildCharstringMetrics(faceData: *FaceImpl) fail
+func buildCharstringMetrics(faceData: *FaceImpl, advances: *Array'u16) fail
 {
     let glyphCount = faceData.face.glyphCount
-    faceData.charstringAdvances.resize(glyphCount)
+    advances.resize(glyphCount)
 
     for gid in glyphCount
     {
@@ -1041,9 +1041,9 @@ func buildCharstringMetrics(faceData: *FaceImpl) fail
         if faceData.outlineSource == .Cff do
             width = try runType2Charstring(faceData.cffFont(), gid, null)
         else do
-            width = try type1CharstringWidth(&faceData.type1, gid)
+            width = try type1CharstringWidth(faceData.type1Font(), gid)
 
-        faceData.charstringAdvances[gid] = cast(u16, Math.clamp(Math.round(width), 0.0, cast(f64, Swag.U16.Max)))
+        advances[gid] = cast(u16, Math.clamp(Math.round(width), 0.0, cast(f64, Swag.U16.Max)))
     }
 }
 
@@ -1052,7 +1052,7 @@ func buildCharstringMetrics(faceData: *FaceImpl) fail
 // The font's built-in encoding says which glyph each code selects, and StandardEncoding
 // says which character that code stands for; together they answer a character lookup
 // without inventing a mapping the font never declared.
-func buildSyntheticCMap(faceData: *FaceImpl)
+func buildSyntheticCMap(faceData: *FaceImpl, cmap: *HashTable'(u32, u32))
 {
     for code in 256'u32
     {
@@ -1060,28 +1060,28 @@ func buildSyntheticCMap(faceData: *FaceImpl)
         if not gid do
             continue
         let value = standardEncodingRune(cast(u8, code))
-        if value and not faceData.syntheticCMap.contains(cast(u32, value)) do
-            faceData.syntheticCMap.add(cast(u32, value), gid)
+        if value and not cmap.contains(cast(u32, value)) do
+            cmap.add(cast(u32, value), gid)
     }
 
     // A subset that names its glyphs by code point still resolves, which is the convention
     // a document writer falls back to when no standard name fits.
-    func addNamedGlyph(faceData: *FaceImpl, name: string, gid: u64)
+    func addNamedGlyph(cmap: *HashTable'(u32, u32), name: string, gid: u64)
     {
         let value = glyphNameRune(name)
         if value do
-            faceData.syntheticCMap.add(cast(u32, value), cast(u32, gid), updateValue: false)
+            cmap.add(cast(u32, value), cast(u32, gid), updateValue: false)
     }
 
     if faceData.outlineSource == .Cff
     {
         for name, gid in faceData.cffFont().glyphNames.entries do
-            addNamedGlyph(faceData, name, gid)
+            addNamedGlyph(cmap, name, gid)
     }
     else
     {
-        for name, gid in faceData.type1.glyphNames do
-            addNamedGlyph(faceData, name.toString(), gid)
+        for name, gid in faceData.type1Font().glyphNames do
+            addNamedGlyph(cmap, name.toString(), gid)
     }
 }
 
@@ -1109,13 +1109,14 @@ func parseProgramFace(faceData: *FaceImpl, fallbackFamilyName: string) fail
     }
     else
     {
-        faceData.type1      = try parseType1Font(data)
-        faceData.unitsPerEm = faceData.type1.unitsPerEm
-        faceData.face.setGlyphCount(cast(u32, faceData.type1.charstrings.count))
-        faceData.face.setHeader(faceData.unitsPerEm, faceData.type1.xMin, faceData.type1.yMin, faceData.type1.xMax, faceData.type1.yMax)
-        name   = faceData.type1.fontName
-        italic = faceData.type1.italic
-        bold   = faceData.type1.bold
+        try faceData.loadType1(data)
+        let font = faceData.type1Font()
+        faceData.unitsPerEm = font.unitsPerEm
+        faceData.face.setGlyphCount(cast(u32, font.charstrings.count))
+        faceData.face.setHeader(faceData.unitsPerEm, font.xMin, font.yMin, font.xMax, font.yMax)
+        name   = font.fontName
+        italic = font.italic
+        bold   = font.bold
     }
 
     if not faceData.face.glyphCount do
@@ -1139,8 +1140,13 @@ func parseProgramFace(faceData: *FaceImpl, fallbackFamilyName: string) fail
         style |= .Italic
     faceData.face.setStyle(style)
 
-    try buildCharstringMetrics(faceData)
-    buildSyntheticCMap(faceData)
+    faceData.sharedProgramTables = try faceData.fontSource.cachedProgramTables(faceData)
+    if not faceData.sharedProgramTables
+    {
+        try buildCharstringMetrics(faceData, &faceData.programTables.advances)
+        buildSyntheticCMap(faceData, &faceData.programTables.cmap)
+    }
+
     initFaceRecords(faceData)
 }
 
@@ -1214,7 +1220,7 @@ func parseFace(faceData: *FaceImpl, faceIndex: u32, fallbackFamilyName: string =
     let isSubset = fallbackFamilyName.count != 0
     parseCMap(faceData, isSubset)
     if not faceData.hasCMap and faceData.outlineSource == .Cff do
-        buildSyntheticCMap(faceData)
+        buildSyntheticCMap(faceData, &faceData.programTables.cmap)
     parseNames(faceData, fallbackFamilyName)
     parsePost(faceData, isSubset or faceData.outlineSource == .Cff)
     parseKern(faceData)

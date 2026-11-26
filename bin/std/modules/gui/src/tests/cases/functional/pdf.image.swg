@@ -885,6 +885,27 @@ private func imageDocument(dictionary: string, samples: const [..] u8)->Document
     Swag.require(second.width == 8 and second.height == 32)
 }
 
+// A fax image retains its bit polarity, row parameter and end-of-block flag through save.
+#test
+{
+    let bytes = expect File.readAllBytes(guiTestDataPath("pdf.ccitt-g4.bin"))
+    for height in [48, 60]
+    {
+        let rows = height == 48 ? " /Rows 48" : ""
+        let dictionary = Format.toString("/Type /XObject /Subtype /Image /Width 64 /Height % /ColorSpace /DeviceGray /BitsPerComponent 1 /Filter /CCITTFaxDecode /DecodeParms << /K -1 /Columns 64% /BlackIs1 true /EndOfBlock false >>", height, rows)
+        let source = imageDocument(dictionary.toString(), bytes.toSlice())
+        let encoded = expect source.encode()
+        let saved = expect Document.decode(encoded.toSlice())
+        let image = saved.pages[0].items[0].image
+        let stream = image.encoded()
+        Swag.require(image.value()!.height == height)
+        Swag.require(stream.filter == .Ccitt and stream.bits == 1 and stream.channels == 1)
+        Swag.require(stream.fax.k == -1 and stream.fax.rows == (height == 48 ? 48 : -1))
+        Swag.require(stream.fax.blackIs1 and not stream.fax.endOfBlock)
+        Swag.require(Slice.equals(stream.bytes.toSlice(), bytes.toSlice()))
+    }
+}
+
 // The same image can appear below two different page resource dictionaries.
 #test
 {

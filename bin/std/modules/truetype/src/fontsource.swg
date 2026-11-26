@@ -35,7 +35,9 @@ private struct FontSourceStorage
     references:      s64 = 1
     bytes:           Array'u8
     woffSfnt:        Array'u8
+    type1Program:    *Type1Font?
     cffPrograms:     Array'(*CffFont)
+    programTables:   *ProgramTables?
     cmapSelections:  Array'CMapCacheEntry
     verticalMetrics: Array'VerticalMetricsCacheEntry
     postNames:       Array'PostNamesCacheEntry
@@ -47,8 +49,12 @@ impl FontSourceStorage
 {
     mtd opDrop()
     {
+        if let program = .type1Program do
+            Memory.delete(program, .allocator)
         for program in .cffPrograms do
             Memory.delete(program, .allocator)
+        if let tables = .programTables do
+            Memory.delete(tables, .allocator)
         for entry in .postNames do
             Memory.delete(entry.names, .allocator)
     }
@@ -117,6 +123,28 @@ impl FontSource
         return storage.woffSfnt.toSlice()
     }
 
+    mtd const cachedType1(bytes: const [..] u8)->const *Type1Font? fail
+    {
+        if not .storage do
+            return null
+
+        let storage = .storage
+        Sync.scopedLock(&storage.parseMutex)
+        if let program = storage.type1Program do
+            return program
+
+        let context = Swag.getContext()
+        let previousAllocator = context.allocator
+        context.allocator = storage.allocator
+        defer context.allocator = previousAllocator
+
+        var program = try parseType1Font(bytes)
+        let cached  = Memory.new'Type1Font(storage.allocator)
+        cached[] = #move program
+        storage.type1Program = cached
+        return cached
+    }
+
     // Different faces of a collection can reference the same CFF byte range.
     mtd const cachedCff(bytes: const [..] u8)->*CffFont? fail
     {
@@ -141,6 +169,31 @@ impl FontSource
         program[] = #move parsed
         storage.cffPrograms.add(program)
         return program
+    }
+
+    // Only a bare program uses these tables. It occupies the entire source.
+    mtd const cachedProgramTables(face: *FaceImpl)->const *ProgramTables? fail
+    {
+        if not .storage do
+            return null
+
+        let storage = .storage
+        Sync.scopedLock(&storage.parseMutex)
+        if let tables = storage.programTables do
+            return tables
+
+        let allocator = storage.allocator
+        let tables    = Memory.new'ProgramTables(allocator)
+        defer #fail Memory.delete(tables, allocator)
+        tables.advances.allocator = allocator
+        let context = Swag.getContext()
+        let previousAllocator = context.allocator
+        context.allocator = allocator
+        defer context.allocator = previousAllocator
+        try buildCharstringMetrics(face, &tables.advances)
+        buildSyntheticCMap(face, &tables.cmap)
+        storage.programTables = tables
+        return tables
     }
 
     // A shared table can occur on faces with different glyph bounds.
@@ -303,8 +356,9 @@ public impl FontSource
     // Loads one zero-based face while retaining this snapshot.
     //
     // Formats and index checks follow [[TrueType.Face.loadAt]]. The face allocator covers
-    // per-face state. The source allocator covers the shared character maps, CFF programs,
-    // glyph locations, glyph names, vertical metrics, and WOFF1 reconstruction.
+    // per-face state. The source allocator covers the shared character maps, PostScript
+    // programs and advances, glyph locations, glyph names, vertical metrics, and WOFF1
+    // reconstruction.
     // A default source or invalid input fails.
     // Destroy the face with [[TrueType.Face.destroy]]. It can outlive this source value.
     mtd const loadFace(faceIndex: u32 = 0, allocator: IAllocator? = null)->*Face fail =>

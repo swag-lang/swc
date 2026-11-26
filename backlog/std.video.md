@@ -17,12 +17,11 @@ the sampling layouts used by ffmpeg's 4:2:0, 4:2:2, and 4:4:4 Motion JPEG output
 
 ### std.video.041 — Reduce the remaining Y4M subsampled RGB conversion cost
 
-- Evidence: [The shared-chroma comparison](../bench/results/video/20261126-decode-comparison/README.md#y4m-shared-chroma-correction)
-  puts 1080p 4:2:0 at 1.80 ms per picture and 720p 4:2:2 at 0.98 ms, roughly 1.5 times the
-  respective libswscale times. The odd full-range 4:2:0 fixture exposes a chroma placement
-  difference from libswscale.
-- Next: narrow the packed RGB matrix while retaining its rounding. Use a fixture with isolated
-  chroma transitions to compare siting conventions separately from matrix rounding.
+- Evidence: [The sixteen-bit matrix comparison](../bench/results/video/20261126-decode-comparison/README.md#y4m-16-bit-colour-arithmetic)
+  puts 1080p 4:2:0 at 1.71 ms per picture and 720p 4:2:2 at 0.91 ms, against 1.20 and
+  0.58 ms for libswscale. The odd full-range 4:2:0 fixture exposes a chroma placement difference.
+- Next: profile packed RGB stores and file input separately. Use a fixture with isolated chroma
+  transitions to compare siting conventions separately from matrix rounding.
 - Done when: the 4:2:0 and 4:2:2 conversion narrows the measured gap and existing RGB pictures
   match byte for byte or an explicit chroma-siting decision explains every changed fixture.
 

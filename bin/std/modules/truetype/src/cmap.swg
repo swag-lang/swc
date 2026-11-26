@@ -371,7 +371,7 @@ func lookupGlyphIndex(faceData: const *FaceImpl, charCode: u32)->u32 fail
     // built-in encoding answers in its place.
     if not faceData.hasCMap
     {
-        let glyphIndex = faceData.syntheticCMap.getOrDefault(charCode, 0)
+        let glyphIndex = faceData.charstringTables().cmap.getOrDefault(charCode, 0)
         return glyphIndex < faceData.face.glyphCount ? glyphIndex : 0
     }
 
@@ -486,8 +486,9 @@ func visitMappedCharacters(faceData: const *FaceImpl, first: u32, visitor: func|
 
     if not faceData.hasCMap
     {
+        let cmap = &faceData.charstringTables().cmap
         var codes: Array'u32
-        for code, glyph in faceData.syntheticCMap
+        for code, glyph in cmap[]
         {
             if code >= first and
                code < ScalarLimit and
@@ -500,7 +501,7 @@ func visitMappedCharacters(faceData: const *FaceImpl, first: u32, visitor: func|
         codes.sort()
         for code in codes
         {
-            if not visitor(cast(rune, code), faceData.syntheticCMap.getOrDefault(code, 0)) do
+            if not visitor(cast(rune, code), cmap.getOrDefault(code, 0)) do
                 return
         }
 

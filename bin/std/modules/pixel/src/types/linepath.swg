@@ -243,6 +243,11 @@ public impl LinePath
         .isDirty  = true
     }
 
+    internal mtd reserveSegments(count: u64)
+    {
+        .elements.reserve(count)
+    }
+
     // Adds a cubic Bézier ending at `(x, y)` with two control points.
     mtd bezierTo(x, y: f32, ct1x, ct1y: f32, ct2x, ct2y: f32)
     {
@@ -366,33 +371,37 @@ public impl LinePath
         if .isPolyOnly do
             return Math.Rectangle{.minBounds.x, .minBounds.y, .maxBounds.x - .minBounds.x, .maxBounds.y - .minBounds.y}
 
+        #[Swag.Inline]
+        func extend(low, high: *Vector2, first, last: Vector2)
+        {
+            low.x  = Math.min(low.x, first.x)
+            low.y  = Math.min(low.y, first.y)
+            high.x = Math.max(high.x, last.x)
+            high.y = Math.max(high.y, last.y)
+        }
         var min = .startPoint
         var max = .startPoint
 
-        for element in .elements
+        for &element in .elements
         {
             if element.type == .Arc
             {
                 // An arc stores its centre, its angle interval, and its radii, so the
                 // circle around the centre is the bound that holds for every interval.
                 let radius = Vector2{Math.abs(element.p2.x), Math.abs(element.p2.y)}
-                min = Vector2.min(min, element.position - radius)
-                max = Vector2.max(max, element.position + radius)
+                extend(&min, &max, element.position - radius, element.position + radius)
                 continue
             }
 
-            min = Vector2.min(min, element.position)
-            max = Vector2.max(max, element.position)
+            extend(&min, &max, element.position, element.position)
             if element.type == .Bezier1 or element.type == .Bezier2
             {
-                min = Vector2.min(min, element.p1)
-                max = Vector2.max(max, element.p1)
+                extend(&min, &max, element.p1, element.p1)
             }
 
             if element.type == .Bezier2
             {
-                min = Vector2.min(min, element.p2)
-                max = Vector2.max(max, element.p2)
+                extend(&min, &max, element.p2, element.p2)
             }
         }
 

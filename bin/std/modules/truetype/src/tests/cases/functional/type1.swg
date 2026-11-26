@@ -153,3 +153,29 @@ func buildBinaryType1Fixture(firstCipher: const [4] u8,
         Swag.require(expect runType1Charstring(&font, glyph, null) == width)
     }
 }
+
+// Retained Type 1 faces can outlive the source and share one parsed program.
+#test
+{
+    const BinaryPrefix: [4] u8 = [0x80, 0x81, 0x82, 0x83]
+    let bytes = buildBinaryType1Fixture(BinaryPrefix)
+    var allocator: Swag.Allocator
+    allocator.setup()
+    defer allocator.releaseAll()
+    let allocationView: IAllocator = &allocator
+    let baseline = allocator.stats().countAlloc
+
+    var source  = FontSource.copy(bytes.toSlice(), allocationView)
+    let first   = expect source.loadFace()
+    let second  = expect source.loadFace()
+    let backing = cast(const *FaceImpl, cast(const *void, first))
+    let sibling = cast(const *FaceImpl, cast(const *void, second))
+    Swag.require(backing.sharedType1 != null and backing.sharedType1 == sibling.sharedType1)
+    Swag.require(backing.sharedProgramTables != null and backing.sharedProgramTables == sibling.sharedProgramTables)
+    source = {}
+    first.destroy()
+    Swag.require(second.glyphIndex('A') == 1 and second.glyphName(1) == "A")
+    Swag.require(expect second.getAdvanceWidth(1) == 50)
+    second.destroy()
+    Swag.require(allocator.stats().countAlloc == baseline)
+}

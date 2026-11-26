@@ -265,6 +265,7 @@ func square(x, y, size: f32)->LinePathList
         .arcTo(10, 10, 10, 10, 0.0'deg, 180.0'deg)
     }
 
+    Swag.require(arc.controlBounds() == {0, 0, 20, 20})
     arc.transform(placement)
     arc.flatten(.High)
     let polygon = arc.paths[0].flattenedPolygon(.High)

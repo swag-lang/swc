@@ -658,27 +658,30 @@ private struct Ac3PreparedFrame
     blockSwitch: [BlocksPerAc3Frame, MaxFullBandwidthChannels] bool
 }
 
-internal const Ac3PipelineFrames     = BlocksPerAc3Frame * SamplesPerBlock
-private const Ac3StereoPacketSamples = 2 * Ac3PipelineFrames
-private const Ac3PipelineCapacity    = 16'u64
+internal const Ac3PipelineFrames  = BlocksPerAc3Frame * SamplesPerBlock
+private const Ac3PipelineCapacity = 16'u64
 
 internal struct Ac3DecodeBatch
 {
-    private headers: [Ac3PipelineCapacity] Ac3PreparedFrame
-    private spectra: Array'f64
-    pcm:             Array's16
-    count:           u64
+    private headers:     [Ac3PipelineCapacity] Ac3PreparedFrame
+    private spectra:     Array'f64
+    private packetLimit: u64
+    pcm:                 Array's16
+    count:               u64
 }
 
 internal impl Ac3DecodeBatch
 {
-    mtd initialize()
+    mtd initialize(channels: u32)
     {
-        .spectra.reserve(Ac3PipelineCapacity * Ac3StereoPacketSamples)
-        .pcm.reserve(Ac3PipelineCapacity * Ac3StereoPacketSamples)
+        // Keep the maximum batch footprint independent of channel count.
+        .packetLimit = Math.min(Ac3PipelineCapacity, 32'u64 / channels)
+        let capacity = .packetLimit * Ac3PipelineFrames * channels
+        .spectra.reserve(capacity)
+        .pcm.reserve(capacity)
     }
 
-    mtd const capacity()->u64 => Ac3PipelineCapacity
+    mtd const capacity()->u64 => .packetLimit
 }
 
 internal struct Ac3DecodePipeline
@@ -690,10 +693,10 @@ internal func isNativeAc3Codec(type: const *Swag.TypeInfoStruct)->bool => type =
 
 internal impl Ac3DecodePipeline
 {
-    mtd initialize(sampleRate: u32)
+    mtd initialize(sampleRate, channels: u32)
     {
         .codec.sampleRate = sampleRate
-        .codec.channels   = 2
+        .codec.channels   = channels
         .codec.resetState()
     }
 
@@ -702,15 +705,16 @@ internal impl Ac3DecodePipeline
         try .codec.decodeFrame(packet, output)
     }
 
-    mtd prepare(batch: *Ac3DecodeBatch, packet: const [..] u8) fail
+    mtd(FixedChannels: u32) prepareFrame(batch: *Ac3DecodeBatch, packet: const [..] u8) fail
     {
         var reader = BitReader.create(packet.buffer, packet.count)
         let header = &batch.headers[batch.count]
         header.bsi = try .codec.readFrameHeader(&reader, packet.count)
-        let spectra = batch.spectra.storage() + batch.count * Ac3StereoPacketSamples
+        let channels = FixedChannels ? FixedChannels : .codec.channels
+        let spectra  = batch.spectra.storage() + batch.count * Ac3PipelineFrames * channels
         for blockIndex in BlocksPerAc3Frame
         {
-            let destination = spectra + blockIndex * 2 * SamplesPerBlock
+            let destination = spectra + blockIndex * channels * SamplesPerBlock
             try .codec.parseBlock(&reader, &header.bsi, blockIndex, destination)
             for channel in header.bsi.nfchans do
                 header.blockSwitch[blockIndex, channel] = .codec.block.blockSwitch[channel]
@@ -719,21 +723,38 @@ internal impl Ac3DecodePipeline
         batch.count += 1
     }
 
-    mtd synthesize(batch: *Ac3DecodeBatch)
+    mtd prepare(batch: *Ac3DecodeBatch, packet: const [..] u8) fail
     {
-        let spectra = batch.spectra.storage()
-        let pcm     = batch.pcm.storage()
+        if .codec.channels == 2 do
+            try .prepareFrame'2(batch, packet)
+        else do
+            try .prepareFrame'0(batch, packet)
+    }
+
+    mtd(FixedChannels: u32) synthesizeFrames(batch: *Ac3DecodeBatch)
+    {
+        let channels = FixedChannels ? FixedChannels : .codec.channels
+        let spectra  = batch.spectra.storage()
+        let pcm      = batch.pcm.storage()
         for packet in batch.count
         {
             let header = &batch.headers[packet]
             for blockIndex in BlocksPerAc3Frame
             {
-                let offset       = packet * Ac3StereoPacketSamples + blockIndex * 2 * SamplesPerBlock
+                let offset       = (packet * Ac3PipelineFrames + blockIndex * SamplesPerBlock) * channels
                 let coefficients = spectra + offset
                 let switches     = cast(const *[MaxFullBandwidthChannels] bool, &header.blockSwitch[blockIndex, 0])
-                .codec.synthesizeBlock(&header.bsi, switches, coefficients, pcm + offset, 2)
+                .codec.synthesizeBlock(&header.bsi, switches, coefficients, pcm + offset, channels)
             }
         }
+    }
+
+    mtd synthesize(batch: *Ac3DecodeBatch)
+    {
+        if .codec.channels == 2 do
+            .synthesizeFrames'2(batch)
+        else do
+            .synthesizeFrames'0(batch)
     }
 }
 

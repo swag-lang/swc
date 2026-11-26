@@ -306,7 +306,7 @@ private impl ImdctPlan
         Simd.store(output + 3 * Quarter / 4, cast #bit(Simd.F32x4, Simd.interleaveHigh(highAB, highCD)))
     }
 
-    mtd(Quarter: u64) const run(spectrum: const [*] f32, output: [*] f32, window: const *ImdctOverlap? = null)
+    mtd(Quarter: u64, Sparse: bool) const run(spectrum: const [*] f32, output: [*] f32, window: const *ImdctOverlap? = null)
     {
         const Half = 2 * Quarter
         var real: [Quarter] f32
@@ -323,56 +323,90 @@ private impl ImdctPlan
         const Step     = Quarter / 4
         let twReal = cast(const [*] f32, &.twReal[0])
         let twImag = cast(const [*] f32, &.twImag[0])
-        for group in Quarter / 16
+        #static if Sparse
         {
-            let k           = 4 * group
-            let k0          = k + 0 * Step
-            let lo0         = spectrum + 2 * k0
-            let hi0         = spectrum + Half - 8 - 2 * k0
-            let a0          = Simd.permute2(Simd.load(lo0), Simd.load(lo0 + 4), EvenBins) * 0.5
-            let b0          = Simd.permute2(Simd.load(hi0), Simd.load(hi0 + 4), OddBins) * -0.5
-            let c0          = Simd.load(twReal + k0)
-            let s0          = Simd.load(twImag + k0)
-            let r0          = a0 * c0 + b0 * s0
-            let i0          = -a0 * s0 + b0 * c0
-            let k2          = k + 2 * Step
-            let lo2         = spectrum + 2 * k2
-            let hi2         = spectrum + Half - 8 - 2 * k2
-            let a2          = Simd.permute2(Simd.load(lo2), Simd.load(lo2 + 4), EvenBins) * 0.5
-            let b2          = Simd.permute2(Simd.load(hi2), Simd.load(hi2 + 4), OddBins) * -0.5
-            let c2          = Simd.load(twReal + k2)
-            let s2          = Simd.load(twImag + k2)
-            let r2          = a2 * c2 + b2 * s2
-            let i2          = -a2 * s2 + b2 * c2
-            let sumRe       = r0 + r2
-            let sumIm       = i0 + i2
-            let diffRe      = r0 - r2
-            let diffIm      = i0 - i2
-            let k1          = k + 1 * Step
-            let lo1         = spectrum + 2 * k1
-            let hi1         = spectrum + Half - 8 - 2 * k1
-            let a1          = Simd.permute2(Simd.load(lo1), Simd.load(lo1 + 4), EvenBins) * 0.5
-            let b1          = Simd.permute2(Simd.load(hi1), Simd.load(hi1 + 4), OddBins) * -0.5
-            let c1          = Simd.load(twReal + k1)
-            let s1          = Simd.load(twImag + k1)
-            let r1          = a1 * c1 + b1 * s1
-            let i1          = -a1 * s1 + b1 * c1
-            let k3          = k + 3 * Step
-            let lo3         = spectrum + 2 * k3
-            let hi3         = spectrum + Half - 8 - 2 * k3
-            let a3          = Simd.permute2(Simd.load(lo3), Simd.load(lo3 + 4), EvenBins) * 0.5
-            let b3          = Simd.permute2(Simd.load(hi3), Simd.load(hi3 + 4), OddBins) * -0.5
-            let c3          = Simd.load(twReal + k3)
-            let s3          = Simd.load(twImag + k3)
-            let r3          = a3 * c3 + b3 * s3
-            let i3          = -a3 * s3 + b3 * c3
-            let otherSumRe  = r1 + r3
-            let otherSumIm  = i1 + i3
-            let otherDiffRe = r1 - r3
-            let otherDiffIm = i1 - i3
-            let first       = .reverse[k]
-            .storeQuartets'Quarter(re, first, sumRe + otherSumRe, diffRe - otherDiffIm, sumRe - otherSumRe, diffRe + otherDiffIm)
-            .storeQuartets'Quarter(im, first, sumIm + otherSumIm, diffIm + otherDiffRe, sumIm - otherSumIm, diffIm - otherDiffRe)
+            #assert(Quarter == 512)
+
+            // With at most 16 coded lines, only the first even bins and the last
+            // mirrored odd bins contribute to the pre-rotation.
+            for group in 2
+            {
+                let k        = 4 * group
+                let front    = spectrum + 2 * k
+                let even     = Simd.permute2(Simd.load(front), Simd.load(front + 4), EvenBins) * 0.5
+                let realPart = even * Simd.load(twReal + k)
+                let imagPart = -even * Simd.load(twImag + k)
+                let index    = .reverse[k]
+                .storeQuartets'Quarter(re, index, realPart, realPart, realPart, realPart)
+                .storeQuartets'Quarter(im, index, imagPart, imagPart, imagPart, imagPart)
+            }
+
+            for group in Quarter / 16 - 2 until Quarter / 16
+            {
+                let k        = 4 * group
+                let mirror   = k + 3 * Step
+                let back     = spectrum + Half - 8 - 2 * mirror
+                let odd      = Simd.permute2(Simd.load(back), Simd.load(back + 4), OddBins) * -0.5
+                let realPart = odd * Simd.load(twImag + mirror)
+                let imagPart = odd * Simd.load(twReal + mirror)
+                let index    = .reverse[k]
+                .storeQuartets'Quarter(re, index, realPart, imagPart, -realPart, -imagPart)
+                .storeQuartets'Quarter(im, index, imagPart, -realPart, -imagPart, realPart)
+            }
+        }
+        else
+        {
+            for group in Quarter / 16
+            {
+                let k           = 4 * group
+                let k0          = k + 0 * Step
+                let lo0         = spectrum + 2 * k0
+                let hi0         = spectrum + Half - 8 - 2 * k0
+                let a0          = Simd.permute2(Simd.load(lo0), Simd.load(lo0 + 4), EvenBins) * 0.5
+                let b0          = Simd.permute2(Simd.load(hi0), Simd.load(hi0 + 4), OddBins) * -0.5
+                let c0          = Simd.load(twReal + k0)
+                let s0          = Simd.load(twImag + k0)
+                let r0          = a0 * c0 + b0 * s0
+                let i0          = -a0 * s0 + b0 * c0
+                let k2          = k + 2 * Step
+                let lo2         = spectrum + 2 * k2
+                let hi2         = spectrum + Half - 8 - 2 * k2
+                let a2          = Simd.permute2(Simd.load(lo2), Simd.load(lo2 + 4), EvenBins) * 0.5
+                let b2          = Simd.permute2(Simd.load(hi2), Simd.load(hi2 + 4), OddBins) * -0.5
+                let c2          = Simd.load(twReal + k2)
+                let s2          = Simd.load(twImag + k2)
+                let r2          = a2 * c2 + b2 * s2
+                let i2          = -a2 * s2 + b2 * c2
+                let sumRe       = r0 + r2
+                let sumIm       = i0 + i2
+                let diffRe      = r0 - r2
+                let diffIm      = i0 - i2
+                let k1          = k + 1 * Step
+                let lo1         = spectrum + 2 * k1
+                let hi1         = spectrum + Half - 8 - 2 * k1
+                let a1          = Simd.permute2(Simd.load(lo1), Simd.load(lo1 + 4), EvenBins) * 0.5
+                let b1          = Simd.permute2(Simd.load(hi1), Simd.load(hi1 + 4), OddBins) * -0.5
+                let c1          = Simd.load(twReal + k1)
+                let s1          = Simd.load(twImag + k1)
+                let r1          = a1 * c1 + b1 * s1
+                let i1          = -a1 * s1 + b1 * c1
+                let k3          = k + 3 * Step
+                let lo3         = spectrum + 2 * k3
+                let hi3         = spectrum + Half - 8 - 2 * k3
+                let a3          = Simd.permute2(Simd.load(lo3), Simd.load(lo3 + 4), EvenBins) * 0.5
+                let b3          = Simd.permute2(Simd.load(hi3), Simd.load(hi3 + 4), OddBins) * -0.5
+                let c3          = Simd.load(twReal + k3)
+                let s3          = Simd.load(twImag + k3)
+                let r3          = a3 * c3 + b3 * s3
+                let i3          = -a3 * s3 + b3 * c3
+                let otherSumRe  = r1 + r3
+                let otherSumIm  = i1 + i3
+                let otherDiffRe = r1 - r3
+                let otherDiffIm = i1 - i3
+                let first       = .reverse[k]
+                .storeQuartets'Quarter(re, first, sumRe + otherSumRe, diffRe - otherDiffIm, sumRe - otherSumRe, diffRe + otherDiffIm)
+                .storeQuartets'Quarter(im, first, sumIm + otherSumIm, diffIm + otherDiffRe, sumIm - otherSumIm, diffIm - otherDiffRe)
+            }
         }
 
         var butterfly = 4'u32
@@ -382,6 +416,18 @@ private impl ImdctPlan
             var base   = 0'u32
             while base < Quarter
             {
+                #static if Sparse
+                {
+                    // The first two remaining FFT stages can skip empty groups. In each
+                    // half-quarter the live quartets occupy its first and last four lanes.
+                    let position = base & (Step / 2 - 1)
+                    if length <= 16 and position and position != Step / 2 - length
+                    {
+                        base += length
+                        continue
+                    }
+                }
+
                 var j = 0'u32
                 while j < butterfly
                 {
@@ -877,7 +923,10 @@ private impl AacCodec
                               cast(const [*] f32, &g_RightLongWindows[currentShape, 0])
             let overlap = cast([*] f32, &.overlap[channel, 0])
             let window: ImdctOverlap = {leftWindow, rightWindow, overlap}
-            g_ImdctLong.run'512(&.coefficients[channel, 0], output, &window)
+            if channel == 5 and not .pairStart[4] and swbLong(.sampleRateIndex)[value.maxSfb] <= 16 do
+                g_ImdctLong.run'(512, true)(&.coefficients[channel, 0], output, &window)
+            else do
+                g_ImdctLong.run'(512, false)(&.coefficients[channel, 0], output, &window)
         }
         else
         {
@@ -889,7 +938,7 @@ private impl AacCodec
             for window in 8
             {
                 var transformed: [256] f32
-                g_ImdctShort.run'64(&.coefficients[channel, 128 * window], &transformed)
+                g_ImdctShort.run'(64, false)(&.coefficients[channel, 128 * window], &transformed)
                 let leftShape  = window == 0 ? previousShape : currentShape
                 let leftWindow = cast(const [*] f32, &g_ShortWindows[leftShape, 0])
                 let raw        = cast(const [*] f32, &transformed[0])
@@ -1087,46 +1136,41 @@ private impl AacCodec
         }
     }
 
-    mtd decodeSpectral(reader: *BitReader, channel, bandCount: s32) fail
+    mtd decodeSpectral(reader: *BitReader, channel: s32) fail
     {
         Memory.set(&.coefficients[channel, 0], 0, #sizeof(.coefficients[0]))
         let value   = &.ics[channel]
         let offsets = value.windowSequence == 2 ? swbShort(.sampleRateIndex) : swbLong(.sampleRateIndex)
         var line    = 0's32
-        for band in bandCount
+        var band    = 0's32
+        for group in value.numWindowGroups
         {
-            let book = .books[channel, band]
-            var width: s32
-            if value.windowSequence == 2
+            let windows = value.groupLength[group]
+            for scaleBand in value.maxSfb
             {
-                let group     = band / value.maxSfb
-                let scaleBand = band % value.maxSfb
-                width = cast(s32, (offsets[scaleBand + 1] - offsets[scaleBand])) * value.groupLength[group]
-            }
-            else
-            {
-                width = cast(s32, (offsets[band + 1] - offsets[band]))
-            }
-
-            if not book or book >= 12
-            {
-                if book == 13 do
+                let book  = .books[channel, band]
+                let width = cast(s32, offsets[scaleBand + 1] - offsets[scaleBand]) * windows
+                if book == 13
+                {
                     .noiseSamples += cast(u32, width)
+                }
+                elif book and book < 12
+                {
+                    let gain = bandGain(.scaleFactors[channel, band] - 100)
+                    let dest = cast([*] f32, &.coefficients[channel, line])
+
+                    // AAC's band boundaries are multiples of four for both window sizes.
+                    if book <= 4 do
+                        try .decodeSpectralBand'(4, false)(reader, book - 1, dest, width, gain)
+                    elif book == 11 do
+                        try .decodeSpectralBand'(2, true)(reader, book - 1, dest, width, gain)
+                    else do
+                        try .decodeSpectralBand'(2, false)(reader, book - 1, dest, width, gain)
+                }
+
                 line += width
-                continue
+                band += 1
             }
-
-            let gain = bandGain(.scaleFactors[channel, band] - 100)
-            let dest = cast([*] f32, &.coefficients[channel, line])
-
-            // AAC's band boundaries are multiples of four for both window sizes.
-            if book <= 4 do
-                try .decodeSpectralBand'(4, false)(reader, book - 1, dest, width, gain)
-            elif book == 11 do
-                try .decodeSpectralBand'(2, true)(reader, book - 1, dest, width, gain)
-            else do
-                try .decodeSpectralBand'(2, false)(reader, book - 1, dest, width, gain)
-            line += width
         }
     }
 
@@ -1181,7 +1225,7 @@ private impl AacCodec
             Memory.set(&.tnsFilterCount[channel, 0], 0, #sizeof(.tnsFilterCount[0]))
         if reader.get1() do
             fail UnsupportedFormatError{"AAC gain control is not supported by the Low Complexity profile"}
-        try .decodeSpectral(reader, channel, bandCount)
+        try .decodeSpectral(reader, channel)
     }
 
     mtd applyStereoPair(left: s32)

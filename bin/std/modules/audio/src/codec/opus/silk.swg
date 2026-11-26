@@ -308,7 +308,7 @@ private func resampleFirFour(a, b, c, d: Simd.S32x4)->Simd.S32x4
 // fractional FIR interpolation.
 private struct Resampler
 {
-    iir:        [6] s32
+    iir:        [3] Simd.S32x4
     fir:        [ResamplerOrderFir12] s16
     delay:      [48] s16
     batchSize:  u32
@@ -330,40 +330,59 @@ private impl Resampler
         .buffer.resize(2 * .batchSize + ResamplerOrderFir12)
     }
 
+    // The even and odd all-pass filters share the input but have separate states.
     #[Swag.Safety(.Overflow, false)]
     mtd up2(out: [*] s16, input: const [*] s16, len: u32)
     {
+        #[Swag.Inline]
+        func stage(sample: Simd.S32x4, memory: *Simd.S32x4, lo: Simd.U16x8, hi: Simd.S16x8, adjust: s32)->Simd.S32x4
+        {
+            let delta = sample - memory[]
+            let words = cast #bit (Simd.U16x8, delta)
+            let low   = cast #bit (Simd.S32x4, Simd.mulHigh(words, lo))
+            let high  = Swag.vecMulAddPairs(cast #bit (Simd.S16x8, words), hi)
+            let step  = low + high + (delta & adjust)
+            let value = memory[] + step
+            memory[] = sample + step
+            return value
+        }
+
+        const Taps = #run
+        {
+            var taps: {lo: [3] Simd.U16x8, hi: [3] Simd.S16x8}
+            for j in 3
+            {
+                let even       = cast #wrap (u16, ResamplerUp2Hq0[j])
+                let odd        = cast #wrap (u16, ResamplerUp2Hq1[j])
+                let evenSigned = cast #bit (s16, even)
+                let oddSigned  = cast #bit (s16, odd)
+                taps.lo[j] = cast(Simd.U16x8, [even, 0'u16, odd, 0, even, 0, odd, 0])
+                taps.hi[j] = cast(Simd.S16x8, [0's16, evenSigned, 0, oddSigned, 0, evenSigned, 0, oddSigned])
+            }
+
+            return taps
+        }
+
+        var a = .iir[0]
+        var b = .iir[1]
+        var c = .iir[2]
         for k in len
         {
-            let in32 = cast(s32, input[k]) << 10
-            var y    = in32 - .iir[0]
-            var x    = smulwb(y, ResamplerUp2Hq0[0])
-            var out1 = .iir[0] + x
-            .iir[0] = in32 + x
-            y       = out1 - .iir[1]
-            x       = smulwb(y, ResamplerUp2Hq0[1])
-            var out2 = .iir[1] + x
-            .iir[1]    = out1 + x
-            y          = out2 - .iir[2]
-            x          = smlawb(y, y, ResamplerUp2Hq0[2])
-            out1       = .iir[2] + x
-            .iir[2]    = out2 + x
-            out[2 * k] = cast(s16, sat16(rshiftRound(out1, 10)))
+            let sample = Simd.splat(cast(s32, input[k]) << 10)
+            let first  = stage(sample, &a, Taps.lo[0], Taps.hi[0], 0)
+            let second = stage(first, &b, Taps.lo[1], Taps.hi[1], 0)
 
-            y              = in32 - .iir[3]
-            x              = smulwb(y, ResamplerUp2Hq1[0])
-            out1           = .iir[3] + x
-            .iir[3]        = in32 + x
-            y              = out1 - .iir[4]
-            x              = smulwb(y, ResamplerUp2Hq1[1])
-            out2           = .iir[4] + x
-            .iir[4]        = out1 + x
-            y              = out2 - .iir[5]
-            x              = smlawb(y, y, ResamplerUp2Hq1[2])
-            out1           = .iir[5] + x
-            .iir[5]        = out2 + x
-            out[2 * k + 1] = cast(s16, sat16(rshiftRound(out1, 10)))
+            // Add the high word of the difference for the unsigned third
+            // coefficient, equivalent to the reference's extra addition of y.
+            let third   = stage(second, &c, Taps.lo[2], Taps.hi[2], -65536)
+            let rounded = ((third >> 9) + 1) >> 1
+            let packed  = cast #bit (Simd.U32x4, Simd.packSigned(rounded, rounded))
+            cast([*] u32, out + 2 * k)[0] = packed[0]
         }
+
+        .iir[0] = a
+        .iir[1] = b
+        .iir[2] = c
     }
 
     // The 8, 12 and 16 kHz inputs take 3, 2 and 3/2 samples per IIR output.

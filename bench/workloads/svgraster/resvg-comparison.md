@@ -917,3 +917,19 @@ The prototype's peak resident memory for the largest bitmap at four workers
 rose from 94,456 to 95,460 KiB. The original bitmaps and thumbnails, generated
 and public controls retain their CRC-64s. A regression compares the row groups
 against the same translucent layers split by invisible compound paths.
+
+## Preparing repeated cubic commands and control bounds
+
+An implicitly repeated cubic can reserve four segments in a fresh contour.
+Short contours and explicit commands keep their current allocation policy.
+Computing control bounds updates scalar extrema directly while borrowing the
+segments, including the full ellipse bounds for an arc.
+
+Thirteen interleaved Release runs on the original 5184 × 3456 SVG used the
+Scope bitmap cap of 2048 × 1365. Median parse times in milliseconds were
+60.77 to 49.10 on one logical CPU, 62.28 to 51.01 on two, and 61.04 to 47.56
+on four. Median parse-plus-raster time declined from 137.84 to 127.78 ms at
+four workers, with resvg 0.50.0 at 250.54 ms on the same CPUs. Bitmap and
+thumbnail CRC-64s match for the originals. The generated and public control
+rasters also match. Regression cases compare implicit signed cubic groups
+to explicit commands and exercise the arc bound.

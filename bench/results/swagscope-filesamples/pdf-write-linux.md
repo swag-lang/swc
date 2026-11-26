@@ -176,3 +176,25 @@ The RGB conversion in the older CMYK save changes its raster. The
 grayscale JPEG control keeps its saved PDF checksum. The 144 PDF tests
 cover sample and predictor retention and distinguish images with the
 same encoded bytes under different dimensions.
+
+## Retaining original CCITT fax streams
+
+An unmasked one-bit DeviceGray image with a single CCITT filter
+can keep its compressed bytes, bit polarity, and fax parameters.
+The writer carries through an omitted row parameter or an explicit
+row count and includes those values in image deduplication.
+
+Nine alternating native Release runs on one AMD EPYC 7763 logical CPU
+time `Document.save` after loading. The baseline is `2534d3961d`.
+[Timings, output bytes, and source raster checksums](pdf-write-linux-retained-fax.json)
+
+| Input | Before, ms | After, ms | Bytes before | Bytes after |
+| --- | ---: | ---: | ---: | ---: |
+| `perf_codecs_ccitt.pdf` | 50.43 | 0.57 | 32,782 | 38,183 |
+| `ccitt_EndOfBlock_false.pdf` | 0.44 | 0.46 | 1,647 | 2,877 |
+| `pdfbox-scan.pdf` | 2.09 | 0.45 | 3,660 | 2,645 |
+
+PDFium produces identical rasters to all three original PDFs at one
+pixel per point. The two PDF.js outputs are larger than the prior
+Flate saves. The 145 PDF tests include both bit-polarity retention
+and a short source stream with no declared row count.

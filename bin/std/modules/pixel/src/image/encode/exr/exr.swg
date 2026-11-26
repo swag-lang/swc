@@ -280,7 +280,7 @@ private func(INPUT, CHANNELS: u64, BLUE_FIRST: bool) writeIntegerPlanes(destinat
     }
 }
 
-func(T, INPUT, CHANNELS: u64, BLUE_FIRST: bool) writeScanlines(destination: [*] u8, source: const *Image, fileOffset: u64)
+private func(T, INPUT, CHANNELS: u64, BLUE_FIRST: bool) writeScanlineRange(destination: [*] u8, source: const *Image, fileOffset, first, end: u64)
 {
     let width      = cast(u64, source.width)
     let rows       = cast(u64, source.height)
@@ -292,7 +292,7 @@ func(T, INPUT, CHANNELS: u64, BLUE_FIRST: bool) writeScanlines(destination: [*] 
     let pixels     = source.pixels.storage()
     let stride     = cast(u64, source.rowStride)
 
-    for y in rows
+    for y in first until end
     {
         let chunkOffset = y * chunkBytes
         offsets[y] = Math.nativeToLittleEndian(fileOffset + tableBytes + chunkOffset)
@@ -317,6 +317,31 @@ func(T) writeChannelLayout(destination: [*] u8, source: const *Image, fileOffset
     case 3:  writeScanlines'(T, void, 3, false)(destination, source, fileOffset)
     default: writeScanlines'(T, void, 4, false)(destination, source, fileOffset)
     }
+}
+func(T, INPUT, CHANNELS: u64, BLUE_FIRST: bool) writeScanlines(destination: [*] u8, source: const *Image, fileOffset: u64)
+{
+    const ParallelOutputBytes = 64'u64 * 1024 * 1024
+    let rows       = cast(u64, source.height)
+    let rowBytes = cast(u64, source.width) * #sizeof(T) * CHANNELS
+    if rows >= 8 and rowBytes * rows >= ParallelOutputBytes
+    {
+        let workers = Swag.workerCount()
+        if workers > 1
+        {
+            // Each worker owns the table entries and output bytes for its rows.
+            let rowsPerBlock = (rows + workers - 1) / workers
+            let blocks       = (rows + rowsPerBlock - 1) / rowsPerBlock
+            parallel for |destination, source, fileOffset, rowsPerBlock, rows| block in blocks
+            {
+                let first = block * rowsPerBlock
+                let end   = Math.min(first + rowsPerBlock, rows)
+                writeScanlineRange'(T, INPUT, CHANNELS, BLUE_FIRST)(destination, source, fileOffset, first, end)
+            }
+            return
+        }
+    }
+
+    writeScanlineRange'(T, INPUT, CHANNELS, BLUE_FIRST)(destination, source, fileOffset, 0, rows)
 }
 
 private func writeIntegerScanlines(destination: [*] u8, source: const *Image, fileOffset: u64) fail

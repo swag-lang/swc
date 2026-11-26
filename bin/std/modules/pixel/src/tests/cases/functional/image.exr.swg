@@ -659,3 +659,26 @@ func exrUnalignedFloatFixture(names: const [..] string, width = 1'u32)->ConcatBu
         Swag.require(Memory.compare(output.storage(), expected.storage(), output.count) == 0)
     }
 }
+
+// Wide images write the same scanline offsets and pixels across parallel row ranges.
+#test
+{
+    const Width  = 4097
+    const Height = 2049
+    var source   = Image.create(Width, Height, .RGBAF16)
+    let pixels   = cast([*] u64, source.pixels.storage())
+    for row in Height
+    {
+        let scanline = pixels + cast(u64, row) * Width
+        let red      = 0x3000'u64 + cast(u64, row)
+        let blue     = 0x3800'u64 - cast(u64, row)
+        let value    = 0x3C00_0000_3400_0000'u64 | (blue << 32) | red
+        for column in Width do
+            scanline[column] = value
+    }
+
+    let encoded = expect source.encodeToBytes("wide.exr")
+    let decoded = expect Image.decode("wide.exr", encoded.toSlice())
+    assertImage(decoded, Width, Height, .RGBAF16)
+    Swag.require(Memory.compare(source.pixels.storage(), decoded.pixels.storage(), source.byteCount) == 0)
+}

@@ -1393,3 +1393,57 @@ literals, fixed point, default widths and arithmetic fallback.
 | `NimbusMonoPS-Regular.cff` | U+0069 | 223.63 | 182.28 | 290.46 |
 | `SourceSans3-Regular.cff` | U+0043 | 723.97 | 594.05 | 618.90 |
 | `SourceSans3-Regular.cff` | U+0045 | 709.19 | 592.83 | 613.85 |
+
+## Additional Japanese and Korean TrueType fixtures
+
+Klee One, Sawarabi Gothic, Shippori Mincho and Gothic A1 add eight
+cases on four pinned public fonts. The corpus now covers 99 cases on
+72 files. The added glyphs include kana, Hangul and ideographs.
+
+The timings are medians of nine interleaved batches of 31 pathname
+opens on one CPU. Both Swag builds report identical glyph indices,
+advances, dimensions and CRC-64. Six cases are ahead of Pillow.
+Gothic A1 takes longer to open, and its 2.3 MB input copy accounts
+for a median 216 µs in the phase probe before table validation.
+[Raw timings and fixture hashes](font-decode-linux-cjk-static-extra.json)
+
+| Fixture | Character | Swag before (µs) | Swag candidate | Pillow |
+| --- | ---: | ---: | ---: | ---: |
+| `KleeOne-Regular.ttf` | U+6C38 | 2085.41 | 1728.55 | 4705.11 |
+| `KleeOne-Regular.ttf` | U+3042 | 2186.15 | 1947.57 | 4422.03 |
+| `SawarabiGothic-Regular.ttf` | U+672C | 321.63 | 311.96 | 1715.63 |
+| `SawarabiGothic-Regular.ttf` | U+9AA8 | 301.78 | 320.55 | 2188.69 |
+| `ShipporiMincho-Regular.ttf` | U+5B57 | 2002.75 | 1461.16 | 3535.57 |
+| `ShipporiMincho-Regular.ttf` | U+6F22 | 2105.92 | 1907.31 | 3998.37 |
+| `GothicA1-Regular.ttf` | U+D55C | 377.89 | 408.10 | 272.04 |
+| `GothicA1-Regular.ttf` | U+AC01 | 413.31 | 430.23 | 218.79 |
+
+## Distinct previous winners for MSDF searches
+
+Several distance channels can share the same winning edge. The next
+sample measures each distinct previous winner once and skips those
+edges in the remaining search. The existing tie order remains intact.
+
+Five interleaved batches on one CPU give 4–21% lower load and render
+times on the seven 64 px cases. Both spread-64 controls also improve.
+Every outline and bitmap fingerprint agrees with `06343223ad`.
+[Raw timings and fingerprints](font-glyph-linux-msdf-seeds.json)
+
+| Fixture | Pixels | Spread | Load and render before (µs/glyph) | After |
+| --- | ---: | ---: | ---: | ---: |
+| `Lato-Regular.ttf` | 24 | 8 | 822.00 | 633.80 |
+| `Lato-Regular.ttf` | 64 | 8 | 2991.70 | 2558.61 |
+| `Lato-Regular.ttf` | 24 | 64 | 18268.46 | 14098.32 |
+| `OpenSans-Regular.ttf` | 24 | 8 | 804.25 | 631.38 |
+| `OpenSans-Regular.ttf` | 64 | 8 | 2978.39 | 2696.97 |
+| `GowunBatang-Regular.ttf` | 24 | 8 | 3730.52 | 3678.98 |
+| `GowunBatang-Regular.ttf` | 64 | 8 | 20668.80 | 18034.15 |
+| `MaShanZheng-Regular.ttf` | 24 | 8 | 5988.22 | 5565.79 |
+| `MaShanZheng-Regular.ttf` | 64 | 8 | 33492.69 | 26411.14 |
+| `NotoSansJP-Variable.ttf` | 24 | 8 | 2336.34 | 2044.02 |
+| `NotoSansJP-Variable.ttf` | 64 | 8 | 8436.86 | 8081.46 |
+| `NotoSansCJKjp-Regular.otf` | 24 | 8 | 1435.45 | 1131.71 |
+| `NotoSansCJKjp-Regular.otf` | 64 | 8 | 6405.66 | 5532.52 |
+| `NotoSansCJKjp-Regular.otf` | 24 | 64 | 17282.39 | 15295.24 |
+| `NotoSerifCJKjp-Regular.otf` | 24 | 8 | 1826.12 | 1623.72 |
+| `NotoSerifCJKjp-Regular.otf` | 64 | 8 | 8633.64 | 7316.69 |

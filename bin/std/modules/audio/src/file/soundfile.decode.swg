@@ -542,15 +542,24 @@ private impl SoundFile
                 first = end
             }
 
-            pcm.resize(Math.max(1'u64, batchFrames * .channelCount))
-            let dst   = pcm.storage()
-            let work  = jobs.storage()
-            let sound = me
-            parallel for |sound, work, dst, batchFrame| index in jobCount
+            // Successful jobs write every sample before its packet is published.
+            pcm.reserve(Math.max(1'u64, batchFrames * .channelCount))
+            let dst  = pcm.storage()
+            let work = jobs.storage()
+            if jobCount == 1
             {
-                let job = work + index
-                catch sound.decodeFlacJob(job, dst, batchFrame) do
-                    job.error.capture(Swag.err)
+                catch .decodeFlacJob(work, dst, batchFrame) do
+                    work.error.capture(Swag.err)
+            }
+            else
+            {
+                let sound = me
+                parallel for |sound, work, dst, batchFrame| index in jobCount
+                {
+                    let job = work + index
+                    catch sound.decodeFlacJob(job, dst, batchFrame) do
+                        job.error.capture(Swag.err)
+                }
             }
 
             // Publish on the caller in packet order. A cancelled range never exposes an

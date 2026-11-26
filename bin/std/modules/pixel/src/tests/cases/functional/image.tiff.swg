@@ -945,6 +945,32 @@ func tiffDecodeFails(bytes: const [..] u8)->bool
         Swag.require(dst[index] == value)
 }
 
+// A vector-sized LZW copy must stay inside both the decoded history and the strip tail.
+#test
+{
+    var writer: TestTiffLzwWriter
+    writer.write(256, 9)
+    writer.write(65, 9)
+    for code in 258 until 274 do
+        writer.write(cast(u32, code), 9)
+    for 7 do
+        writer.write(272, 9)
+    writer.write(268, 9)
+    writer.write(257, 9)
+    writer.finish()
+
+    const Expected = 17 * 18 / 2 + 7 * 16 + 12
+    Swag.require(writer.bytes.count <= Expected / 2)
+    var bytes: [Expected + 2] u8
+    bytes[0], bytes[Expected + 1] = 0xA5
+    var dictionary: Array'u64
+    let destination = bytes.buffer + 1
+    expect Tiff.unpackLzw(destination, Expected, writer.bytes.storage(), cast(u32, writer.bytes.count), &dictionary)
+    Swag.require(bytes[0] == 0xA5 and bytes[Expected + 1] == 0xA5)
+    for i in Expected do
+        Swag.require(destination[i] == 65)
+}
+
 // Exercise independent literal streams across every TIFF LZW code-width edge.
 #test
 {

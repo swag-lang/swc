@@ -320,6 +320,29 @@ private impl Codebook
             return -1
         let children = .children.storage()
         var node     = startNode
+        let position = reader.bitPos
+        let byteAt   = position >> 3
+        if depth >= PrefixBits and not reader.overran and reader.size - byteAt >= 4
+        {
+            // Past the prefix, all remaining tree bits fit in one unaligned word.
+            var packed: u32
+            Memory.copy(&packed, unwrap reader.data + byteAt, #sizeof(u32))
+            var bits = Math.littleEndianToNative(packed) >> cast(u32, position & 7)
+            for step in depth until MaxCodewordBits
+            {
+                let child = children[cast(u64, node) * 2 + (bits & 1)]
+                if child <= 0
+                {
+                    reader.bitPos = position + step - depth + 1
+                    return child < 0 ? -child - 1 : -1
+                }
+                node  = cast(u32, child)
+                bits >>= 1
+            }
+            reader.bitPos = position + MaxCodewordBits - depth
+            return -1
+        }
+
         for depth until MaxCodewordBits
         {
             let bit = reader.read(1)
@@ -1371,7 +1394,7 @@ private impl Codec
             try .decodeResidueKind'(0, false, false)(residue, reader, list, half)
 
         case 1:
-            if .channels == 8 do
+            if .channels >= 3 do
                 try .decodeResidueKind'(1, false, true)(residue, reader, list, half)
             else do
                 try .decodeResidueKind'(1, false, false)(residue, reader, list, half)

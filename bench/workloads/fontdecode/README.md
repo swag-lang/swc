@@ -5,7 +5,7 @@ runner records the opening and rasterization phases separately and checks that t
 builds return the same glyph index, advance, bitmap dimensions, and CRC-64. Pillow with FreeType
 supplies an independent timing in Basic layout mode and must return a nonempty grayscale mask.
 
-The public corpus has 56 files and 79 scenarios. It covers static and variable TrueType
+The public corpus has 60 files and 87 scenarios. It covers static and variable TrueType
 at default axis coordinates, Latin and regional CID-keyed CFF, nine faces across two
 CJK collections, bare CFF and Type 1, and seven WOFF1 files. It includes Arabic,
 Devanagari, Thai, Tibetan, Armenian, Hebrew, Ethiopic, Chinese, Japanese, Korean,
@@ -17,7 +17,7 @@ WOFF1 compression can vary by tool version.
 Use Python 3.11 or later with Pillow and FontTools. The `prepare` command verifies existing
 files and downloads any missing public inputs. Pass a directory containing the original
 12 attachments as `--attachments` to add the original FileSamples comparison and its
-controls, bringing the corpus to 68 files and 91 scenarios.
+controls, bringing the corpus to 72 files and 99 scenarios.
 
 ```sh
 python3 bench/workloads/fontdecode/run.py prepare --corpus /tmp/fontdecode/fonts

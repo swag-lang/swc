@@ -827,5 +827,65 @@
         "profile": "Bare name-keyed CFF"
       }
     ]
+  },
+  {
+    "file": "KleeOne-Regular.ttf",
+    "url": "https://raw.githubusercontent.com/google/fonts/6ebe737e44fd64ee736bbc6feed6136a6dbfd222/ofl/kleeone/KleeOne-Regular.ttf",
+    "sha256": "bf4063f030cc2ae6adf0a11424a1888e5c0eb4438f1f6d02f52294af868e9b3a",
+    "cases": [
+      {
+        "character": 27704,
+        "profile": "Japanese handwritten TrueType"
+      },
+      {
+        "character": 12354,
+        "profile": "Japanese handwritten TrueType"
+      }
+    ]
+  },
+  {
+    "file": "SawarabiGothic-Regular.ttf",
+    "url": "https://raw.githubusercontent.com/google/fonts/6ebe737e44fd64ee736bbc6feed6136a6dbfd222/ofl/sawarabigothic/SawarabiGothic-Regular.ttf",
+    "sha256": "04f2f9111bb69cb8d3706c27b44879c2c0fac593a11edf5cfe8cec1efc92c789",
+    "cases": [
+      {
+        "character": 26412,
+        "profile": "Japanese Gothic TrueType"
+      },
+      {
+        "character": 39592,
+        "profile": "Japanese Gothic TrueType"
+      }
+    ]
+  },
+  {
+    "file": "ShipporiMincho-Regular.ttf",
+    "url": "https://raw.githubusercontent.com/google/fonts/6ebe737e44fd64ee736bbc6feed6136a6dbfd222/ofl/shipporimincho/ShipporiMincho-Regular.ttf",
+    "sha256": "769b5269f0f9bc6534b352c0e6bd856a566e03ff788f107191c2d835863570b2",
+    "cases": [
+      {
+        "character": 23383,
+        "profile": "Japanese Mincho TrueType"
+      },
+      {
+        "character": 28450,
+        "profile": "Japanese Mincho TrueType"
+      }
+    ]
+  },
+  {
+    "file": "GothicA1-Regular.ttf",
+    "url": "https://raw.githubusercontent.com/google/fonts/6ebe737e44fd64ee736bbc6feed6136a6dbfd222/ofl/gothica1/GothicA1-Regular.ttf",
+    "sha256": "211151bea98098c579610ab1114bb1bfe909057207db561f357b896d076c21ac",
+    "cases": [
+      {
+        "character": 54620,
+        "profile": "Korean Gothic TrueType"
+      },
+      {
+        "character": 44033,
+        "profile": "Korean Gothic TrueType"
+      }
+    ]
   }
 ]

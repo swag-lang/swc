@@ -561,13 +561,16 @@ private const SurroundWaveChannels: [MaxChannels] u32 = #run
 
 private struct SurroundImdct
 {
-    pairs: [MaxChannels / 2] StereoImdct
+    pairs:          [MaxChannels / 2] StereoImdct
+    sourceChannels: [MaxChannels] u32
+    layout:         u32 = Swag.U32.Max
 }
 
 impl SurroundImdct
 {
     mtd reset()
     {
+        .layout = Swag.U32.Max
         for index in .pairs.count do
             .pairs[index].active = false
     }
@@ -592,6 +595,50 @@ impl SurroundImdct
                 states[][left].process(&coefficients[][left, 0], leftShort, destination + output, MaxChannels)
                 states[][right].process(&coefficients[][right, 0], rightShort, destination + output + 1, MaxChannels)
             }
+        }
+    }
+
+    mtd(Stride: u32) processMapped(states: *[MaxChannels] Imdct, coefficients: const [*] f64, shortBlocks: const *[MaxFullBandwidthChannels] bool, acmod, nfchans: u32, lfe: bool, destination: [*] s16)
+    {
+        let layout = 2 * acmod + (lfe ? 1 : 0)
+        if layout != .layout
+        {
+            // The public packet decoder permits different layouts with the same
+            // channel count. Restore each old pair before assigning its buffers.
+            for pair in Stride / 2 do
+                .pairs[pair].restorePair(&states[][.sourceChannels[2 * pair]], &states[][.sourceChannels[2 * pair + 1]])
+            for channel in Stride do
+                .sourceChannels[channel] = dolbySourceChannel(cast(u32, channel), acmod, nfchans, lfe)
+            .layout = layout
+        }
+
+        for pair in Stride / 2
+        {
+            let output        = 2 * pair
+            let left          = .sourceChannels[output]
+            let right         = .sourceChannels[output + 1]
+            let leftShort     = left < nfchans and shortBlocks[][left]
+            let rightShort    = right < nfchans and shortBlocks[][right]
+            let leftSpectrum  = coefficients + left * SamplesPerBlock
+            let rightSpectrum = coefficients + right * SamplesPerBlock
+            let pairState     = &.pairs[pair]
+            if not leftShort and not rightShort
+            {
+                pairState.processPair'Stride(&states[][left], &states[][right], leftSpectrum, rightSpectrum, destination + output)
+            }
+            else
+            {
+                pairState.restorePair(&states[][left], &states[][right])
+                states[][left].process(leftSpectrum, leftShort, destination + output, Stride)
+                states[][right].process(rightSpectrum, rightShort, destination + output + 1, Stride)
+            }
+        }
+
+        if Stride & 1
+        {
+            let source     = .sourceChannels[Stride - 1]
+            let shortBlock = source < nfchans and shortBlocks[][source]
+            states[][source].process(coefficients + source * SamplesPerBlock, shortBlock, destination + Stride - 1, Stride)
         }
     }
 }
@@ -991,65 +1038,24 @@ impl MantissaReader
     func create(reader: *BitReader)->MantissaReader => MantissaReader{reader}
 
     #[Swag.Inline]
-    mtd(Group: u32, Bits: u32, Guarded: bool) readPacked(packed: *u32)->s32
+    mtd(Guarded: bool) getPrepared(code: s32, gain: f64)->f64
     {
-        if packed[] == 1 do
-            packed[] = LowMantissaValues[Group, .reader.readMantissa'Guarded(Bits)]
-        let value = cast(s32, cast #wrap(s8, packed[]))
-        packed[] >>= 8
-        return value
-    }
-
-    #[Swag.Inline]
-    mtd(UseTable: bool, Guarded: bool) getPrepared(code: s32, gain: f64)->f64
-    {
-        if UseTable
-        {
-            if code >= 6 do
-                return cast(f64, .reader.readSignedMantissa'Guarded(cast(u32, code - 1))) * gain
-            if not code do
-                return 0
-
-            let index = code - 1
-            var group = .packed[index]
-            if group == 1 do
-                group = LowMantissaValues[index, .reader.readMantissa'Guarded(LowMantissaWidths[index])]
-            .packed[index] = group >> 8
-            return cast(f64, cast #wrap(s8, group)) * gain
-        }
-
-        var value: s32
-        switch code
-        {
-        case 0:
+        if code >= 6 do
+            return cast(f64, .reader.readSignedMantissa'Guarded(cast(u32, code - 1))) * gain
+        if not code do
             return 0
 
-        case 1:
-            value = .readPacked'(0, 5, Guarded)(&.packed[0])
+        let index = code - 1
+        var group = .packed[index]
+        if group == 1 do
+            group = LowMantissaValues[index, .reader.readMantissa'Guarded(LowMantissaWidths[index])]
 
-        case 2:
-            value = .readPacked'(1, 7, Guarded)(&.packed[1])
-
-        case 3:
-            let raw = .reader.readMantissa'Guarded(3)
-            value = raw < 7 ? cast(s32, raw) - 3 : 0
-
-        case 4:
-            value = .readPacked'(3, 7, Guarded)(&.packed[3])
-
-        case 5:
-            let raw = .reader.readMantissa'Guarded(4)
-            value = raw < 15 ? cast(s32, raw) - 7 : 0
-
-        default:
-            value = .reader.readSignedMantissa'Guarded(cast(u32, (code - 1)))
-        }
-
-        return cast(f64, value) * gain
+        .packed[index] = group >> 8
+        return cast(f64, cast #wrap(s8, group)) * gain
     }
 }
 
-private func(UseTable: bool, Guarded: bool) readPreparedMantissas(reader: *BitReader, block: const *Ac3Block, channelCount: u32, lfe: bool, coefficients: [*] f64, prepared: const *PreparedMantissaGains, noise: *DitherGenerator)
+private func(Guarded: bool, WideDither: bool) readPreparedMantissas(reader: *BitReader, block: const *Ac3Block, channelCount: u32, lfe: bool, coefficients: [*] f64, prepared: const *PreparedMantissaGains, noise: *DitherGenerator)
 {
     var mantissas    = MantissaReader.create(reader)
     var couplingRead = false
@@ -1070,13 +1076,13 @@ private func(UseTable: bool, Guarded: bool) readPreparedMantissas(reader: *BitRe
             let code = codes[bin]
             if code
             {
-                output[bin] = mantissas.getPrepared'(UseTable, Guarded)(code, gains[bin])
+                output[bin] = mantissas.getPrepared'Guarded(code, gains[bin])
             }
             elif dither
             {
                 if bin + 4 <= end and Simd.allTrue(Simd.load(codes + bin) == zero)
                 {
-                    if not UseTable and
+                    if WideDither and
                        bin + 8 <= end and
                        Simd.allTrue(Simd.load(codes + bin + 4) == zero)
                     {
@@ -1113,7 +1119,7 @@ private func(UseTable: bool, Guarded: bool) readPreparedMantissas(reader: *BitRe
                     let bin  = first + offset
                     let code = codes[bin]
                     if code do
-                        couplingMantissas[bin] = mantissas.getPrepared'(UseTable, Guarded)(code, prepared.coupling[bin])
+                        couplingMantissas[bin] = mantissas.getPrepared'Guarded(code, prepared.coupling[bin])
                 }
             }
 
@@ -1126,7 +1132,7 @@ private func(UseTable: bool, Guarded: bool) readPreparedMantissas(reader: *BitRe
         let output = coefficients + channelCount * SamplesPerBlock
         Memory.set(output, 0, SamplesPerBlock * #sizeof(f64))
         for bin in 7 do
-            output[bin] = mantissas.getPrepared'(UseTable, Guarded)(block.lfeBap[bin], prepared.lfe[bin])
+            output[bin] = mantissas.getPrepared'Guarded(block.lfeBap[bin], prepared.lfe[bin])
     }
 
     if block.coupling
@@ -1139,7 +1145,7 @@ private func(UseTable: bool, Guarded: bool) readPreparedMantissas(reader: *BitRe
             {
                 let scale     = block.couplingCoord[channel, subband] * 8.0
                 let firstQuad = subband * 3
-                if not UseTable and dither and ((zeroedQuads >> cast(u32, firstQuad)) & 7) == 7
+                if WideDither and dither and ((zeroedQuads >> cast(u32, firstQuad)) & 7) == 7
                 {
                     let offset = firstQuad * 4
                     noise.writeDitherRun'(true, 3)(destination + offset, &prepared.coupling[offset], scale)

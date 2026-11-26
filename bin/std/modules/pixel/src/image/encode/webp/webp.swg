@@ -38,14 +38,14 @@ impl EncodeBitWriter
         }
     }
 
+    #[Swag.Inline]
     mtd writeHuffman(code, count: u32)
     {
-        var remaining = count
-        while remaining
-        {
-            remaining -= 1
-            .writeBits((code >> remaining) & 1, 1)
-        }
+        Swag.assert(count <= 16)
+
+        // Canonical codes are emitted most significant bit first in the little-endian writer.
+        let reversed = cast(u32, Math.reverse(cast(u16, code))) >> (16 - count)
+        .writeBits(reversed, count)
     }
 
     mtd finish()

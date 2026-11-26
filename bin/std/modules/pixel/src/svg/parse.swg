@@ -1514,22 +1514,27 @@ private func appendArcElement(path: *LinePath, state: *GroupState, center, angle
     let segAngle   = sweepAngle / cast(f32, segCount)
     let k          = 4.0 / 3.0 * Math.tan(segAngle * 0.25)
 
-    var angle = angles.x
+    var angle    = angles.x
+    var sinAngle = Math.sin(angle)
+    var cosAngle = Math.cos(angle)
     for segCount
     {
-        let a0 = angle
-        let a1 = angle + segAngle
+        let nextAngle = angle + segAngle
+        let sinNext   = Math.sin(nextAngle)
+        let cosNext   = Math.cos(nextAngle)
 
-        let p0x = cx + Math.sin(a0) * radii.x
-        let p0y = cy - Math.cos(a0) * radii.y
-        let p1x = cx + Math.sin(a1) * radii.x
-        let p1y = cy - Math.cos(a1) * radii.y
+        let p0x = cx + sinAngle * radii.x
+        let p0y = cy - cosAngle * radii.y
+        let p1x = cx + sinNext * radii.x
+        let p1y = cy - cosNext * radii.y
 
-        let control0 = mapPoint(state, p0x + k * Math.cos(a0) * radii.x, p0y + k * Math.sin(a0) * radii.y)
-        let control1 = mapPoint(state, p1x - k * Math.cos(a1) * radii.x, p1y - k * Math.sin(a1) * radii.y)
+        let control0 = mapPoint(state, p0x + k * cosAngle * radii.x, p0y + k * sinAngle * radii.y)
+        let control1 = mapPoint(state, p1x - k * cosNext * radii.x, p1y - k * sinNext * radii.y)
         let end      = mapPoint(state, p1x, p1y)
         path.bezierTo(end.x, end.y, control0.x, control0.y, control1.x, control1.y)
-        angle = a1
+        angle    = nextAngle
+        sinAngle = sinNext
+        cosAngle = cosNext
     }
 }
 
@@ -1590,8 +1595,8 @@ private func appendArc(path: *LinePath, state: *GroupState, x0, y0: f32, rxIn, r
     }
 
     let phi    = Math.toRadians(xAxisRotation)
-    let cosPhi = Math.cos(phi)
-    let sinPhi = Math.sin(phi)
+    let cosPhi = phi == 0 ? 1.0 : Math.cos(phi)
+    let sinPhi = phi == 0 ? phi : Math.sin(phi)
 
     // Endpoint to center parameterization (SVG specification appendix), in the frame the
     // ellipse's own axes define.
@@ -1639,23 +1644,28 @@ private func appendArc(path: *LinePath, state: *GroupState, x0, y0: f32, rxIn, r
     let segAngle = sweepAngle / cast(f32, segCount)
     let k        = 4.0 / 3.0 * Math.tan(segAngle * 0.25)
 
-    var angle = startAngle
+    var angle    = startAngle
+    var sinAngle = Math.sin(angle)
+    var cosAngle = Math.cos(angle)
     for segCount
     {
-        let a0  = angle
-        let a1  = angle + segAngle
-        let p1x = rx * Math.cos(a1)
-        let p1y = ry * Math.sin(a1)
-        let c0x = rx * Math.cos(a0) - k * rx * Math.sin(a0)
-        let c0y = ry * Math.sin(a0) + k * ry * Math.cos(a0)
-        let c1x = p1x + k * rx * Math.sin(a1)
-        let c1y = p1y - k * ry * Math.cos(a1)
+        let nextAngle = angle + segAngle
+        let sinNext   = Math.sin(nextAngle)
+        let cosNext   = Math.cos(nextAngle)
+        let p1x       = rx * cosNext
+        let p1y       = ry * sinNext
+        let c0x       = rx * cosAngle - k * rx * sinAngle
+        let c0y       = ry * sinAngle + k * ry * cosAngle
+        let c1x       = p1x + k * rx * sinNext
+        let c1y       = p1y - k * ry * cosNext
 
         let end      = placeArcPoint(state, cx, cy, cosPhi, sinPhi, p1x, p1y)
         let control0 = placeArcPoint(state, cx, cy, cosPhi, sinPhi, c0x, c0y)
         let control1 = placeArcPoint(state, cx, cy, cosPhi, sinPhi, c1x, c1y)
         path.bezierTo(end.x, end.y, control0.x, control0.y, control1.x, control1.y)
-        angle = a1
+        angle    = nextAngle
+        sinAngle = sinNext
+        cosAngle = cosNext
     }
 }
 

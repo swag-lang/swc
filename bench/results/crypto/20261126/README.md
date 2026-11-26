@@ -51,3 +51,4 @@ optimizations moved each result.
 - [Packed ChaCha20 block output](chacha20.md)
 - [CRC-32 on short byte slices](crc32-short.md)
 - [Keccak rounds with fixed lane positions](sha3-round.md)
+- [MD5 wide loads and direct blocks](md5-wide.md)

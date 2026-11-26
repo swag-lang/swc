@@ -107,42 +107,159 @@ func vp8FilterSamples(samples: [*] U16x8, edgeLimit, inLimit, hevLimit: S16x8, f
     return true
 }
 
-// The normal filter processes luma edges of sixteen samples and chroma edges of eight.
-// Each vector lane handles one position along the edge.
-func vp8Filter246(pixels: [*] u8, count, level, iLevel, hLevel, index, iStep, jStep: s32, fourNotSix: bool)
+// Each tile transposes eight rows into the samples on either side of the edge.
+func vp8FilterVertical(edge: [*] u8, count, stride, level, iLevel, hLevel: s32, fourNotSix: bool)
 {
-    let edgeLimit  = splat(cast(s16, level))
-    let inLimit    = splat(cast(s16, iLevel))
-    let hevLimit   = splat(cast(s16, hLevel))
-    let horizontal = iStep == 1
-    let sampleStep = horizontal ? jStep : iStep
-    let firstEdge  = pixels + index - 4 * (horizontal ? jStep : 1)
+    let edgeLimit = splat(cast(s16, level))
+    let inLimit   = splat(cast(s16, iLevel))
+    let hevLimit  = splat(cast(s16, hLevel))
+    let first     = edge - 4
     for block in count / 8
     {
-        let edge = firstEdge + block * 8 * iStep
+        let tile = first + block * 8 * stride
         var samples: [8] U16x8
-        for i in 8 do
-            samples[i] = vp8LoadEight(edge + i * sampleStep)
+        for row in 8 do
+            samples[row] = vp8LoadEight(tile + row * stride)
 
-        // A vertical edge loads contiguous rows and transposes them into sample positions.
-        if not horizontal do
-            transpose8x8(&samples)
-
+        transpose8x8(&samples)
         if not vp8FilterSamples(&samples[0], edgeLimit, inLimit, hevLimit, fourNotSix) do
             continue
 
-        if horizontal
-        {
-            let first = fourNotSix ? 2 : 1
-            for i in first until 8 - first do
-                vp8StoreEight(edge + i * sampleStep, samples[i])
-        }
-        else
-        {
-            transpose8x8(&samples)
-            for row in 8 do
-                vp8StoreEight(edge + row * sampleStep, samples[row])
-        }
+        transpose8x8(&samples)
+        for row in 8 do
+            vp8StoreEight(tile + row * stride, samples[row])
+    }
+}
+
+#[Swag.Inline]
+func vp8ByteDifference(first, second: U8x16)->U8x16
+{
+    return subSaturating(first, second) | subSaturating(second, first)
+}
+
+#[Swag.Inline]
+func vp8RoundByteDelta(delta: S8x16, bias: s8)->S8x16
+{
+    let biased = addSaturating(delta, splat(bias))
+    return packSigned(widenLow(biased) >> 3, widenHigh(biased) >> 3)
+}
+
+#[Swag.Inline]
+func(INNER: bool) vp8FilterByteSamples(samples: [*] U8x16, edgeLimit, inLimit, hevLimit: U8x16)->bool
+{
+    let p3 = samples[0]
+    let p2 = samples[1]
+    let p1 = samples[2]
+    let p0 = samples[3]
+    let q0 = samples[4]
+    let q1 = samples[5]
+    let q2 = samples[6]
+    let q3 = samples[7]
+
+    let cross = vp8ByteDifference(p0, q0)
+
+    // Clearing each low bit lets the word shift halve every byte independently.
+    let outer     = vp8ByteDifference(p1, q1) & splat(0xFE'u8)
+    let halfOuter = cast #bit(U8x16, (cast #bit(U16x8, outer) >> 1))
+    let across    = addSaturating(addSaturating(cross, cross), halfOuter)
+    let gap       = Math.max(vp8ByteDifference(p1, p0), vp8ByteDifference(q1, q0))
+    let insideP   = Math.max(vp8ByteDifference(p3, p2), vp8ByteDifference(p2, p1))
+    let insideQ   = Math.max(vp8ByteDifference(q3, q2), vp8ByteDifference(q2, q1))
+    let inside    = Math.max(gap, Math.max(insideP, insideQ))
+    let active    = (across <= edgeLimit) & (inside <= inLimit)
+    if not anyTrue(active) do
+        return false
+
+    let notHev = gap <= hevLimit
+    let wide   = active & notHev
+    let sign   = splat(0x80'u8)
+    let sp1    = cast #bit(S8x16, (p1 ^ sign))
+    let sp0    = cast #bit(S8x16, (p0 ^ sign))
+    let sq0    = cast #bit(S8x16, (q0 ^ sign))
+    let sq1    = cast #bit(S8x16, (q1 ^ sign))
+
+    // An active lane has |q0 - p0| <= edgeLimit / 2, at most 96. Adding the
+    // same signed step three times preserves the clipped VP8 delta.
+    let step = subSaturating(sq0, sp0)
+    var base = subSaturating(sp1, sq1)
+    #static if INNER do
+        base &= cast #bit(S8x16, ~notHev)
+    let delta = addSaturating(addSaturating(addSaturating(base, step), step), step)
+
+    #static if INNER
+    {
+        let adjust = delta & cast #bit(S8x16, active)
+        let a1     = vp8RoundByteDelta(adjust, 4)
+        let a2     = vp8RoundByteDelta(adjust, 3)
+        let half   = average(cast #bit(U8x16, a1) ^ sign, splat(0'u8)) - splat(64'u8)
+        let a3     = cast #bit(S8x16, (half & wide))
+        samples[2] = cast #bit(U8x16, addSaturating(sp1, a3)) ^ sign
+        samples[3] = cast #bit(U8x16, addSaturating(sp0, a2)) ^ sign
+        samples[4] = cast #bit(U8x16, subSaturating(sq0, a1)) ^ sign
+        samples[5] = cast #bit(U8x16, subSaturating(sq1, a3)) ^ sign
+    }
+    else
+    {
+        let narrow = delta & cast #bit(S8x16, (active & ~notHev))
+        let strong = delta & cast #bit(S8x16, wide)
+        let lo     = widenLow(strong) * 9
+        let hi     = widenHigh(strong) * 9
+        let loBias = lo + 63
+        let hiBias = hi + 63
+        let w2     = packSigned(loBias >> 7, hiBias >> 7)
+        let w1     = packSigned((loBias + lo) >> 7, (hiBias + hi) >> 7)
+        let w0     = packSigned((loBias + 2 * lo) >> 7, (hiBias + 2 * hi) >> 7)
+        let a1     = w0 + vp8RoundByteDelta(narrow, 4)
+        let a2     = w0 + vp8RoundByteDelta(narrow, 3)
+        let sp2    = cast #bit(S8x16, (p2 ^ sign))
+        let sq2    = cast #bit(S8x16, (q2 ^ sign))
+        samples[1] = cast #bit(U8x16, addSaturating(sp2, w2)) ^ sign
+        samples[2] = cast #bit(U8x16, addSaturating(sp1, w1)) ^ sign
+        samples[3] = cast #bit(U8x16, addSaturating(sp0, a2)) ^ sign
+        samples[4] = cast #bit(U8x16, subSaturating(sq0, a1)) ^ sign
+        samples[5] = cast #bit(U8x16, subSaturating(sq1, w1)) ^ sign
+        samples[6] = cast #bit(U8x16, subSaturating(sq2, w2)) ^ sign
+    }
+
+    return true
+}
+
+func(INNER: bool) vp8FilterHorizontalLuma(edge: [*] u8, stride, level, iLevel, hLevel: s32)
+{
+    let first = edge - 4 * stride
+    var samples: [8] U8x16
+    for row in 8 do
+        samples[row] = load(first + row * stride)
+
+    if not vp8FilterByteSamples'INNER(&samples[0], splat(cast(u8, level)), splat(cast(u8, iLevel)), splat(cast(u8, hLevel))) do
+        return
+
+    const Start = INNER ? 2 : 1
+    for row in Start until 8 - Start do
+        store(first + row * stride, samples[row])
+}
+
+func(INNER: bool) vp8FilterHorizontalChroma(cb, cr: [*] u8, stride, level, iLevel, hLevel: s32)
+{
+    let cbFirst = cb - 4 * stride
+    let crFirst = cr - 4 * stride
+    var samples: [8] U8x16
+    for row in 8
+    {
+        let cbRow = cast(const [*] u64, cbFirst + row * stride)[0]
+        let crRow = cast(const [*] u64, crFirst + row * stride)[0]
+        samples[row] = cast #bit(U8x16, interleaveLow(splat(cbRow), splat(crRow)))
+    }
+
+    if not vp8FilterByteSamples'INNER(&samples[0], splat(cast(u8, level)), splat(cast(u8, iLevel)), splat(cast(u8, hLevel))) do
+        return
+
+    const Start = INNER ? 2 : 1
+    for row in Start until 8 - Start
+    {
+        let lanes = cast #bit(U64x2, samples[row])
+        cast([*] u64, cbFirst + row * stride)[0] = lanes[0]
+        cast([*] u64, crFirst + row * stride)[0] = lanes[1]
     }
 }
 
@@ -297,32 +414,30 @@ func vp8NormalFilter(decoder: *Vp8Decoder, mbY: s32)
         let cOffset = (mbY * decoder.cStride + mbX) * 8
         if mbX
         {
-            vp8Filter246(yData, 16, level + 4, iLevel, hLevel, yOffset, decoder.yStride, 1, false)
-            vp8Filter246(cbData, 8, level + 4, iLevel, hLevel, cOffset, decoder.cStride, 1, false)
-            vp8Filter246(crData, 8, level + 4, iLevel, hLevel, cOffset, decoder.cStride, 1, false)
+            vp8FilterVertical(yData + yOffset, 16, decoder.yStride, level + 4, iLevel, hLevel, false)
+            vp8FilterVertical(cbData + cOffset, 8, decoder.cStride, level + 4, iLevel, hLevel, false)
+            vp8FilterVertical(crData + cOffset, 8, decoder.cStride, level + 4, iLevel, hLevel, false)
         }
 
         if parameter.inner
         {
             vp8FilterVerticalLumaInner(yData + yOffset, level, iLevel, hLevel, decoder.yStride)
-            vp8Filter246(cbData, 8, level, iLevel, hLevel, cOffset + 4, decoder.cStride, 1, true)
-            vp8Filter246(crData, 8, level, iLevel, hLevel, cOffset + 4, decoder.cStride, 1, true)
+            vp8FilterVertical(cbData + cOffset + 4, 8, decoder.cStride, level, iLevel, hLevel, true)
+            vp8FilterVertical(crData + cOffset + 4, 8, decoder.cStride, level, iLevel, hLevel, true)
         }
 
         if mbY
         {
-            vp8Filter246(yData, 16, level + 4, iLevel, hLevel, yOffset, 1, decoder.yStride, false)
-            vp8Filter246(cbData, 8, level + 4, iLevel, hLevel, cOffset, 1, decoder.cStride, false)
-            vp8Filter246(crData, 8, level + 4, iLevel, hLevel, cOffset, 1, decoder.cStride, false)
+            vp8FilterHorizontalLuma'false(yData + yOffset, decoder.yStride, level + 4, iLevel, hLevel)
+            vp8FilterHorizontalChroma'false(cbData + cOffset, crData + cOffset, decoder.cStride, level + 4, iLevel, hLevel)
         }
 
         if parameter.inner
         {
-            vp8Filter246(yData, 16, level, iLevel, hLevel, yOffset + 4 * decoder.yStride, 1, decoder.yStride, true)
-            vp8Filter246(yData, 16, level, iLevel, hLevel, yOffset + 8 * decoder.yStride, 1, decoder.yStride, true)
-            vp8Filter246(yData, 16, level, iLevel, hLevel, yOffset + 12 * decoder.yStride, 1, decoder.yStride, true)
-            vp8Filter246(cbData, 8, level, iLevel, hLevel, cOffset + 4 * decoder.cStride, 1, decoder.cStride, true)
-            vp8Filter246(crData, 8, level, iLevel, hLevel, cOffset + 4 * decoder.cStride, 1, decoder.cStride, true)
+            vp8FilterHorizontalLuma'true(yData + yOffset + 4 * decoder.yStride, decoder.yStride, level, iLevel, hLevel)
+            vp8FilterHorizontalLuma'true(yData + yOffset + 8 * decoder.yStride, decoder.yStride, level, iLevel, hLevel)
+            vp8FilterHorizontalLuma'true(yData + yOffset + 12 * decoder.yStride, decoder.yStride, level, iLevel, hLevel)
+            vp8FilterHorizontalChroma'true(cbData + cOffset + 4 * decoder.cStride, crData + cOffset + 4 * decoder.cStride, decoder.cStride, level, iLevel, hLevel)
         }
     }
 }

@@ -1442,3 +1442,67 @@ Core tests. The native compiler at `52f76fab9d` used its matching CRC32 and
 CRC64 sources in the validation checkout. The tested image and compression
 sources came from the checkpoint. Seven native WOFF tests also passed with
 the shared Inflate change.
+
+### Current native reference libraries
+
+Pillow 12.3.0 supplies libjpeg-turbo 3.1.4.1, libwebp 1.6.0 and LibTIFF
+4.7.1. The JPEG and WebP comparisons link the same native harnesses used
+for the earlier library builds against the libraries from the wheel. The
+JPEG encoder uses 4:4:4 and identical Q95 quantization tables. Both versions
+of libjpeg-turbo emitted the same sizes and PSNR values for these jobs.
+
+| JPEG operation | Swag (ms) | libjpeg-turbo 2.1.5 (ms) | libjpeg-turbo 3.1.4.1 (ms) |
+| --- | ---: | ---: | ---: |
+| Decode FileSamples JPG | 1.768 | 1.576 | 1.530 |
+| Decode 4275 × 2451 progressive photo | 140.157 | 189.387 | 192.195 |
+| Encode FileSamples JPG at Q95 | 4.789 | 2.806 | 2.428 |
+| Encode 4275 × 2451 photo at Q95 | 121.862 | 70.200 | 76.109 |
+
+The JPEG encoder's sparse coefficient pass preserves all 61 compared files
+byte for byte. The large Q95 stream is 3,189,453 bytes at 51.90 dB with Swag
+and 3,279,900 at 51.81 dB with libjpeg-turbo. The progressive scan changes
+preserve the decoded pixel checksums.
+
+| WebP operation | Swag (ms) | libwebp 1.6.0 (ms) |
+| --- | ---: | ---: |
+| Decode FileSamples opaque VP8, nearest chroma | 100.833 | 89.840 |
+| Decode large VP8L photograph | 211.131 | 170.549 |
+| Decode VP8L photograph with alpha | 49.403 | 35.016 |
+| Encode FileSamples pixels to exact VP8L | 57.520 | 502.099 |
+| Encode square photograph to exact VP8L | 10.439 | 101.118 |
+| Encode alpha photograph to exact VP8L | 13.714 | 103.073 |
+
+The WebP harness uses the encoder from `0ba0de49df` and the lossless decoder
+from `66fdfba163` with the shared standard library pinned at `31564187fe`.
+The libwebp encoder used method 0 with exact RGBA preservation. The FileSamples
+VP8L stream is 7,755,584 bytes with Swag and 6,746,104 with libwebp. The alpha
+photograph is 2,802,412 and 2,318,262 bytes, respectively. The decoded pixels
+match. The old Swag FileSamples stream used 16,147,454 bytes.
+
+| TIFF operation | Swag (ms) | LibTIFF 4.7.0, Debian (ms) | LibTIFF 4.7.1, Pillow (ms) |
+| --- | ---: | ---: | ---: |
+| Decode FileSamples | 0.151 | 0.227 | 0.319 |
+| Decode RGB LZW noise, single strip | 11.431 | 15.844 | 49.103 |
+| Decode RGB LZW photo, single strip | 21.897 | 18.772 | 47.399 |
+| Index 8,192 reordered page directories | 6.352 | 58.744 | 117.780 |
+
+Both LibTIFF builds match Swag on the decoded pixel checksums. The native
+builds have different packaging and performance, so the two comparisons
+are kept separate.
+
+The original and current Swag OpenEXR decoders were rebuilt on the same
+52f compiler. On FileSamples, `335b91f31e` took 27.656 ms, `9db7e6ad62`
+took 0.249 ms and OpenEXR C++ 3.5.5 took 0.862 ms. The Swag outputs retain
+CRC64 `7400250202080655105`. The same two Swag revisions encode the sample
+in 10.083 and 0.185 ms, producing the same 1,642,969 bytes. A separate
+preallocated-output comparison measures 0.117 ms for Swag and 0.507 ms for
+OpenEXR C++. Timing excludes reading the source pixels.
+
+Additional paired measurements include GIF LZW with identical indices and
+palette (6.447 to 3.988 ms for Swag, 6.440 ms for Pillow and 6.367 ms for
+giflib), and PSD raw RGBA16 layer decoding (51.336 to 20.849 ms with identical
+pixels after removing the redundant fill). Four-worker alpha conversion on
+a 4097 × 4257 RGBA8 buffer took 174.519 ms before and 71.396 ms after the
+parallel output pass, with the same buffer checksum. On repeated BC1 texture
+blocks at 4609 × 4097, four warmed workers took 39.209 and 21.707 ms, with
+equal decoded texels before and after.

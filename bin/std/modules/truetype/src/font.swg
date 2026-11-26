@@ -220,7 +220,8 @@ struct FaceImpl
     gposPairLookups:   Array'GposPairLookup
 
     // Names borrow the owned sfnt bytes or the static Macintosh glyph vocabulary.
-    postNames: GlyphNames
+    postNames:       GlyphNames
+    sharedPostNames: *GlyphNames?
 }
 
 impl FaceImpl
@@ -275,6 +276,12 @@ impl FaceImpl
     #[Swag.Inline]
     mtd const cffFont()->const *CffFont => .sharedCff orelse &.cff
 
+    #[Swag.Inline]
+    mtd postGlyphNames()->*GlyphNames => .sharedPostNames orelse &.postNames
+
+    #[Swag.Inline]
+    mtd const postGlyphNames()->const *GlyphNames => .sharedPostNames orelse &.postNames
+
     // The validated hmtx table stores the first advances explicitly. All short metrics reuse
     // the last long advance. Bare PostScript faces supply their own charstring advances.
     mtd const glyphAdvance(glyphIndex: u32)->u16
@@ -315,7 +322,7 @@ impl FaceImpl
         {
         case .Cff:   return .cffFont().glyphNames.glyphIndex(name)
         case .Type1: return .type1.nameToGid.getOrDefault(String.from(name), 0)
-        case .Glyf:  return .postNames.glyphIndex(name)
+        case .Glyf:  return .postGlyphNames().glyphIndex(name)
         }
     }
 
@@ -338,7 +345,7 @@ impl FaceImpl
             return .type1.glyphNames[glyphIndex].toString()
 
         case .Glyf:
-            return .postNames.nameOf(glyphIndex)
+            return .postGlyphNames().nameOf(glyphIndex)
         }
     }
 

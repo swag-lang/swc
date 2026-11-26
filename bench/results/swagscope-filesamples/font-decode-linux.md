@@ -837,3 +837,27 @@ tests pass, including selection persistence and invalid TTC members.
 | `LXGWWenKaiTC-Regular.ttf` | 107.040 | 89.891 |
 | `Lato-Regular.ttf` | 0.972 | 0.698 |
 | `SourceCodePro-Regular.otf` | 1.780 | 1.183 |
+
+## Glyph names shared by a retained font source
+
+TrueType faces that share a validated `post` range and glyph count reuse
+the forward glyph names and their lazily built reverse index. Both indexes
+stay with the source until its last face closes.
+
+The comparison with `0cacd90c1f` uses nine interleaved batches of 251
+source reopens on one CPU at 20 px. Loading falls by 65–79% on the five
+static CJK fonts with large custom name tables. Faces without custom
+names serve as controls. Source reloads preserve the glyph indices,
+advances, dimensions and bitmap fingerprints in all measured cases.
+[Raw timings and pathname controls](font-decode-linux-post-names.json)
+
+| Fixture | Character | Open before (µs) | After | Open and render before (µs) | After |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| `DejaVuSans.ttf` | U+0041 | 33.55 | 15.97 | 37.92 | 19.81 |
+| `ZenKakuGothicNew-Regular.ttf` | U+6C38 | 34.97 | 11.67 | 56.19 | 32.22 |
+| `MaShanZheng-Regular.ttf` | U+9F99 | 33.11 | 11.75 | 83.71 | 63.59 |
+| `GowunBatang-Regular.ttf` | U+D55C | 49.73 | 14.41 | 94.75 | 59.95 |
+| `LXGWWenKaiTC-Regular.ttf` | U+570B | 86.55 | 18.28 | 130.96 | 73.61 |
+| `LXGWWenKaiTC-Regular.ttf` | U+9F8D | 85.41 | 19.44 | 148.02 | 76.68 |
+| `Iansui-Regular.ttf` | U+81FA | 65.87 | 16.27 | 122.61 | 67.88 |
+| `Iansui-Regular.ttf` | U+9F9C | 60.62 | 17.58 | 119.98 | 80.42 |

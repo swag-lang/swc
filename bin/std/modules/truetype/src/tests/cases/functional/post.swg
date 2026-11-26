@@ -132,7 +132,7 @@ using Swag, Core
 
     var faceData: FaceImpl
     faceData.face.setGlyphCount(5)
-    expect parsePostGlyphNames(&faceData, table.toSlice(), 0x00020000)
+    expect parsePostGlyphNames(&faceData.postNames, faceData.face.glyphCount, table.toSlice(), 0x00020000)
     for index in 4
     {
         let name = unwrap faceData.face.glyphName(cast(u32, index))
@@ -145,6 +145,33 @@ using Swag, Core
     truncated.face.setGlyphCount(5)
     table.removeBack()
     var rejected: Swag.Error
-    catch parsePostGlyphNames(&truncated, table.toSlice(), 0x00020000) as rejected
+    catch parsePostGlyphNames(&truncated.postNames, truncated.face.glyphCount, table.toSlice(), 0x00020000) as rejected
     Swag.require(rejected.value() != null)
+}
+
+// A shared post table owns its names and lazily built reverse index until the last face closes.
+#test
+{
+    let bytes = loadFontBytes("arial.ttf")
+    let font  = expect buildPostFormat2Font(bytes.toSlice(), 36, 36, 200, 258, ["SharedName"])
+    var allocator: Swag.Allocator
+    allocator.setup()
+    defer allocator.releaseAll()
+    let allocationView: IAllocator = &allocator
+    let baseline = allocator.stats().countAlloc
+
+    var source  = FontSource.copy(font.toSlice(), allocationView)
+    let first   = expect source.loadFace()
+    let second  = expect source.loadFace()
+    let backing = cast(*FaceImpl, cast(*void, second))
+    Swag.require(backing.sharedPostNames != null)
+    Swag.require(first.glyphIndexByName("SharedName") == 200)
+    Swag.require(backing.sharedPostNames.ready.isRaised())
+    source = {}
+    first.destroy()
+
+    Swag.require(second.glyphName(200) == "SharedName")
+    Swag.require(second.glyphIndexByName("SharedName") == 200)
+    second.destroy()
+    Swag.require(allocator.stats().countAlloc == baseline)
 }

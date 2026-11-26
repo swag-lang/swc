@@ -11,11 +11,15 @@ func decodeRle8(result: *Image, src, last: const [*] u8, palette: const [*] u8, 
 {
     let entries = makePackedPalette(palette, paletteEntrySize, paletteCount)
     let colors  = cast(const [*] u32, &entries[0])
+    let width   = result.width
+    let height  = result.height
+    let stride  = result.rowStride
+    var row     = result.pixels.storage()
     var x: s32
     var y: s32
     var p       = src
 
-    while p < last and y < result.height
+    while p < last and y < height
     {
         try checkBuffer(p, last, 2)
         let count = p[0]
@@ -24,14 +28,23 @@ func decodeRle8(result: *Image, src, last: const [*] u8, palette: const [*] u8, 
 
         if count
         {
-            if x + count > result.width do
+            if x + count > width do
                 fail InvalidFormatError{"invalid source buffer"}
             if value >= paletteCount do
                 fail InvalidFormatError{"BMP RLE8 index exceeds its palette"}
 
-            let dst   = result.pixels.storage() + cast(u64, y) * result.rowStride + cast(u64, x) * 3
-            let entry = palette + cast(u64, value) * paletteEntrySize
-            PackedPixel.fillBgr24Row(entry, dst, count)
+            let dst = row + cast(u64, x) * 3
+            if count < 4
+            {
+                let color = colors[value]
+                for i in count do
+                    writePackedBgr(dst + cast(u64, i) * 3, color)
+            }
+            else
+            {
+                let entry = palette + cast(u64, value) * paletteEntrySize
+                PackedPixel.fillBgr24Row(entry, dst, count)
+            }
 
             x += count
             continue
@@ -40,31 +53,35 @@ func decodeRle8(result: *Image, src, last: const [*] u8, palette: const [*] u8, 
         switch value
         {
         case FILL_RLE_ENDOFLINE:
-            x = 0
-            y += 1
+            x   = 0
+            y   += 1
+            row += stride
 
         case FILL_RLE_ENDOFBITMAP:
             return
 
         case FILL_RLE_DELTA:
             try checkBuffer(p, last, 2)
-            x += p[0]
-            y += p[1]
-            p += 2
-            if x > result.width or y > result.height do
+            let dx = p[0]
+            let dy = p[1]
+            if dx > width - x or dy > height - y do
                 fail InvalidFormatError{"invalid source buffer"}
+            x   += dx
+            y   += dy
+            row += cast(u64, dy) * stride
+            p   += 2
 
         default:
             let absoluteCount = cast(u32, value)
             let padding       = absoluteCount & 1
             try checkBuffer(p, last, absoluteCount + padding)
-            if x + absoluteCount > result.width do
+            if x + absoluteCount > width do
                 fail InvalidFormatError{"invalid source buffer"}
 
             if paletteCount < 256 and not palette8RowFits(p, absoluteCount, paletteCount) do
                 fail InvalidFormatError{"BMP RLE8 index exceeds its palette"}
 
-            let dst = result.pixels.storage() + cast(u64, y) * result.rowStride + cast(u64, x) * 3
+            let dst = row + cast(u64, x) * 3
             decodePalette8Row(p, dst, absoluteCount, colors)
 
             p += absoluteCount

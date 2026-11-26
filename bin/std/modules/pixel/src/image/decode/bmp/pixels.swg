@@ -312,9 +312,33 @@ func decode16Row(source: const [*] u8, destination: [*] u8, pixelCount: u64, mas
         return
     }
 
-    var src = source
-    var dst = destination
-    for pixelCount
+    var src   = source
+    var dst   = destination
+    var count = pixelCount
+    if validMask(masks.b, 16) and validMask(masks.g, 16) and validMask(masks.r, 16)
+    {
+        let blue  = prepareField(masks.b)
+        let green = prepareField(masks.g)
+        let red   = prepareField(masks.r)
+        while count >= 16
+        {
+            let first  = Math.Simd.load(cast(const [*] u16, src))
+            let second = Math.Simd.load(cast(const [*] u16, (src + 16)))
+            let p0     = Math.Simd.widenLow(first)
+            let p1     = Math.Simd.widenHigh(first)
+            let p2     = Math.Simd.widenLow(second)
+            let p3     = Math.Simd.widenHigh(second)
+            let b      = packField16(p0, p1, p2, p3, blue)
+            let g      = packField16(p0, p1, p2, p3, green)
+            let r      = packField16(p0, p1, p2, p3, red)
+            PackedPixel.storeTriplets16(dst, b, g, r)
+            src   += 32
+            dst   += 48
+            count -= 16
+        }
+    }
+
+    for count
     {
         writeMaskedPixel(dst, cast(const *u16, src)[], masks, false)
         src += 2
@@ -367,6 +391,14 @@ private func expandField(pixels: Math.Simd.U32x4, field: FieldScale)->Math.Simd.
 
     // Each quotient is at most 255. In this range the second shift divides exactly by 2^bits - 1.
     return (weighted + 1 + (weighted >> field.resultShift)) >> field.resultShift
+}
+
+#[Swag.Inline]
+private func packField16(p0, p1, p2, p3: Math.Simd.U32x4, field: FieldScale)->Math.Simd.U8x16
+{
+    let low  = Math.Simd.packUnsigned(cast #bit(Math.Simd.S32x4, expandField(p0, field)), cast #bit(Math.Simd.S32x4, expandField(p1, field)))
+    let high = Math.Simd.packUnsigned(cast #bit(Math.Simd.S32x4, expandField(p2, field)), cast #bit(Math.Simd.S32x4, expandField(p3, field)))
+    return Math.Simd.packUnsigned(cast #bit(Math.Simd.S16x8, low), cast #bit(Math.Simd.S16x8, high))
 }
 
 private func byteFieldOrder(masks: Masks)->Math.Simd.U8x16

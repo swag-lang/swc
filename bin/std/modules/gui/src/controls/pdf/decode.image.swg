@@ -1147,9 +1147,8 @@ private func retainedJpegChannels(parser: *PdfParser, nodeId: u32, raw: const [.
     return matchesJpegFrame(raw, image.width, image.height, channels) ? channels : 0
 }
 
-// Retain a single Flate filter whose parameters can be written from the
-// image's own dimensions. The stream was already decoded and validated.
-private func retainFlateImage(parser: *PdfParser, nodeId: u32, image: const *Image, colorName: string)->EncodedImageStream
+// Keep a single supported lossless filter whose dictionary can be reconstructed.
+private func retainLosslessImage(parser: *PdfParser, nodeId: u32, image: const *Image, colorName: string)->EncodedImageStream
 {
     var result: #returntype
     if not parser.retainImageStreams or
@@ -1158,23 +1157,44 @@ private func retainFlateImage(parser: *PdfParser, nodeId: u32, image: const *Ima
         return result
 
     let filter = parser.name(parser.dict(nodeId, "Filter"))
-    if filter != "FlateDecode" and filter != "Fl" do
-        return result
-
-    let channels = colorName == "DeviceGray" ? 1 : (colorName == "DeviceCMYK" ? 4 : 3)
     let bits = parser.integer(parser.dict(nodeId, "BitsPerComponent"), 8)
     let parameters = parser.dict(nodeId, "DecodeParms")
     if parameters != InvalidNode and parser.nodes[parameters].kind != .Dictionary do
         return result
 
-    let predictor = parser.integer(parser.dict(parameters, "Predictor"), 1)
-    if predictor != 1
+    let channels = colorName == "DeviceGray" ? 1 : (colorName == "DeviceCMYK" ? 4 : 3)
+    var predictor = 1's64
+    var codec: EncodedImageFilter
+    var fax: EncodedFaxParameters
+    switch filter
     {
-        if (predictor != 2 and (predictor < 10 or predictor > 15)) or
-           parser.integer(parser.dict(parameters, "Columns"), 1) != image.width or
-           parser.integer(parser.dict(parameters, "Colors"), 1) != channels or
-           parser.integer(parser.dict(parameters, "BitsPerComponent"), 8) != bits do
+    case "FlateDecode", "Fl":
+        codec = .Flate
+        predictor = parser.integer(parser.dict(parameters, "Predictor"), 1)
+        if predictor != 1
+        {
+            if (predictor != 2 and (predictor < 10 or predictor > 15)) or
+               parser.integer(parser.dict(parameters, "Columns"), 1) != image.width or
+               parser.integer(parser.dict(parameters, "Colors"), 1) != channels or
+               parser.integer(parser.dict(parameters, "BitsPerComponent"), 8) != bits do
+                return result
+        }
+
+    case "CCITTFaxDecode", "CCF":
+        codec = .Ccitt
+        if channels != 1 or bits != 1 or
+           parser.integer(parser.dict(parameters, "Columns"), 1728) != image.width do
             return result
+        fax.k           = parser.integer(parser.dict(parameters, "K"), 0)
+        fax.rows        = parser.integer(parser.dict(parameters, "Rows"), -1)
+        fax.damagedRows = parser.integer(parser.dict(parameters, "DamagedRowsBeforeError"), 0)
+        fax.blackIs1    = parser.boolean(parser.dict(parameters, "BlackIs1"), false)
+        fax.byteAlign   = parser.boolean(parser.dict(parameters, "EncodedByteAlign"), false)
+        fax.endOfLine   = parser.boolean(parser.dict(parameters, "EndOfLine"), false)
+        fax.endOfBlock  = parser.boolean(parser.dict(parameters, "EndOfBlock"), true)
+
+    default:
+        return result
     }
 
     let interpolate = parser.boolean(parser.dict(nodeId, "Interpolate"), false)
@@ -1183,11 +1203,12 @@ private func retainFlateImage(parser: *PdfParser, nodeId: u32, image: const *Ima
         return result
 
     result.bytes.add(data)
-    result.filter      = .Flate
+    result.filter      = codec
     result.channels    = cast(u8, channels)
     result.bits        = cast(u8, bits)
     result.predictor   = cast(u8, predictor)
     result.interpolate = interpolate
+    result.fax         = fax
     return result
 }
 
@@ -1377,7 +1398,7 @@ internal func decodeImage(parser: *PdfParser, nodeId, resourcesId: u32, fillColo
     var result = #move planeToImage(&plane, null)
     if deviceOnly
     {
-        var encoded = #move retainFlateImage(parser, nodeId, &result, colorName)
+        var encoded = #move retainLosslessImage(parser, nodeId, &result, colorName)
         return cacheDecodedImage(parser, nodeId, resourcesId, deviceOnly, #move result, #move encoded)
     }
     return cacheDecodedImage(parser, nodeId, resourcesId, deviceOnly, #move result)

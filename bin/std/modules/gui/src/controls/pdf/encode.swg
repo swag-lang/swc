@@ -598,11 +598,19 @@ private func sameImageSource(first, second: const *Image)->bool
            not Memory.compare(first.pixels.storage(), second.pixels.storage(), first.pixels.count)
 }
 
+private func sameFaxParameters(first, second: const *EncodedFaxParameters)->bool
+{
+    return first.k == second.k and first.rows == second.rows and first.damagedRows == second.damagedRows and
+           first.blackIs1 == second.blackIs1 and first.byteAlign == second.byteAlign and
+           first.endOfLine == second.endOfLine and first.endOfBlock == second.endOfBlock
+}
+
 private func sameEncodedImage(first, second: const *EncodedImageStream, image, prior: const *Image)->bool
 {
     return first.filter == second.filter and first.channels == second.channels and first.bits == second.bits and
            first.predictor == second.predictor and first.interpolate == second.interpolate and
            image.width == prior.width and image.height == prior.height and
+           (first.filter != .Ccitt or sameFaxParameters(&first.fax, &second.fax)) and
            Slice.equals(first.bytes.toSlice(), second.bytes.toSlice())
 }
 
@@ -711,9 +719,27 @@ private impl Writer
             if source.bytes.count
             {
                 let space = source.channels == 1 ? "Gray" : (source.channels == 4 ? "CMYK" : "RGB")
-                let filter = source.filter == .Dct ? "DCTDecode" : "FlateDecode"
+                let filter = source.filter == .Dct ? "DCTDecode" : (source.filter == .Ccitt ? "CCITTFaxDecode" : "FlateDecode")
                 var dictionary = Format.toString("/Type /XObject /Subtype /Image /Width % /Height % /ColorSpace /Device% /BitsPerComponent % /Filter /%", image.width, image.height, space, source.bits, filter)
-                if source.predictor > 1 do
+                if source.filter == .Ccitt
+                {
+                    let fax = &source.fax
+                    dictionary.appendFormat(" /DecodeParms << /K % /Columns %", fax.k, image.width)
+                    if fax.rows >= 0 do
+                        dictionary.appendFormat(" /Rows %", fax.rows)
+                    if fax.blackIs1 do
+                        dictionary += " /BlackIs1 true"
+                    if fax.byteAlign do
+                        dictionary += " /EncodedByteAlign true"
+                    if fax.endOfLine do
+                        dictionary += " /EndOfLine true"
+                    if not fax.endOfBlock do
+                        dictionary += " /EndOfBlock false"
+                    if fax.damagedRows do
+                        dictionary.appendFormat(" /DamagedRowsBeforeError %", fax.damagedRows)
+                    dictionary += " >>"
+                }
+                elif source.predictor > 1 do
                     dictionary.appendFormat(" /DecodeParms << /Predictor % /Colors % /Columns % /BitsPerComponent % >>", source.predictor, source.channels, image.width, source.bits)
                 if source.interpolate do
                     dictionary += " /Interpolate true"

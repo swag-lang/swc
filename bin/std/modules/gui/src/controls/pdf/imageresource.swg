@@ -7,6 +7,18 @@ enum EncodedImageFilter
 {
     Dct
     Flate
+    Ccitt
+}
+
+struct EncodedFaxParameters
+{
+    k:                    s64
+    rows:                 s64
+    damagedRows:          s64
+    blackIs1:             bool
+    byteAlign:            bool
+    endOfLine:            bool
+    endOfBlock:           bool = true
 }
 
 struct EncodedImageStream
@@ -17,6 +29,7 @@ struct EncodedImageStream
     bits:        u8 = 8
     predictor:   u8 = 1
     interpolate: bool
+    fax:         EncodedFaxParameters
 }
 
 private struct ImageResource

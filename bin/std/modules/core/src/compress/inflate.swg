@@ -152,6 +152,24 @@ internal
     }
 }
 
+private
+{
+    // RFC 1951 fixes these Huffman trees for every stream and every fixed block.
+    var fixedLiteralLengthTable = #run
+    {
+        var table: HuffmanTable
+        expect table.init(FixedLength)
+        return table
+    }
+
+    var fixedDistanceTable = #run
+    {
+        var table: HuffmanTable
+        expect table.init(FixedDist)
+        return table
+    }
+}
+
 // Decompresses data in the raw Deflate format (RFC 1951).
 //
 // Use [[Core.Compress.ZLib]] for a zlib stream, which wraps Deflate data with a header and a
@@ -231,7 +249,7 @@ impl Inflate
     // through 'me' for the bit cursor and through 'dest' for the output cursor on
     // every symbol is what the loop cannot afford; 'me' and 'dest' are resynced
     // whenever anything else has to see them.
-    mtd parseBlock(repeatHt, repeatZ: *HuffmanTable, dest: *Array'u8) fail
+    mtd parseBlock(repeatHt, repeatZ: const *HuffmanTable, dest: *Array'u8) fail
     {
         let startBufCount = dest.count
 
@@ -587,9 +605,7 @@ impl Inflate
                 .stream.advanceBytes(uncompressedLen)
 
             case 1:
-                try repeatHt.init(FixedLength)
-                try repeatZ.init(FixedDist)
-                try .parseBlock(&repeatHt, &repeatZ, result)
+                try .parseBlock(&fixedLiteralLengthTable, &fixedDistanceTable, result)
 
             case 3:
                 fail InvalidFormatError{"invalid block type"}

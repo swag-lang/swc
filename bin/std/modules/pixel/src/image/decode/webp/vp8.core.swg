@@ -47,7 +47,7 @@ struct Vp8Partition
     offset:        u32
     rangeM1:       u32
     bits:          u64     // Valid bits start at the most significant bit.
-    bitCount:      u8
+    bitCount:      s32     // Available bits beyond the next decision byte.
     unexpectedEnd: bool
 }
 
@@ -60,7 +60,7 @@ impl Vp8Partition
         .offset        = 0
         .rangeM1       = 254
         .bits          = 0
-        .bitCount      = 0
+        .bitCount      = -8
         .unexpectedEnd = false
     }
 
@@ -71,13 +71,13 @@ impl Vp8Partition
         {
             // Keep seven bytes so the refill fits even when the buffer has seven live bits.
             let word = cast(const [*] u64, (unwrap .data) + .offset)[0]
-            .bits     |= (Math.byteSwap(word) & 0xFFFFFFFFFFFFFF00'u64) >> .bitCount
+            .bits     |= (Math.byteSwap(word) & 0xFFFFFFFFFFFFFF00'u64) >> (8 + .bitCount)
             .offset   += 7
             .bitCount += 56
         }
         elif remaining
         {
-            .bits     |= cast(u64, .data![.offset]) << (56 - .bitCount)
+            .bits     |= cast(u64, .data![.offset]) << (48 - .bitCount)
             .offset   += 1
             .bitCount += 8
         }
@@ -93,7 +93,7 @@ impl Vp8Partition
     #[Swag.Inline]
     mtd readBit(probability: u8)->bool
     {
-        if .bitCount < 8 and not .refill() do
+        if .bitCount < 0 and not .refill() do
             return false
 
         var rangeM1  = .rangeM1
@@ -109,7 +109,7 @@ impl Vp8Partition
     #[Swag.Inline]
     mtd readCoefficientSign(value: s32)->s32
     {
-        if .bitCount < 8 and not .refill() do
+        if .bitCount < 0 and not .refill() do
             return value
 
         var rangeM1     = .rangeM1
@@ -166,7 +166,7 @@ func vp8AdvanceBit(probability: u8)->bool
     let #uniq3 = Math.leadingZeros(#uniq2) - 24
     bits     <<= #uniq3
     rangeM1  = (#uniq2 << #uniq3) - 1
-    bitCount -= cast(u8, #uniq3)
+    bitCount -= cast(s32, #uniq3)
     return #uniq1
 }
 

@@ -137,18 +137,9 @@ func vp8InverseWht(decoder: *Vp8Decoder)
     }
 }
 
-// Magnitudes above four share the less frequent category subtree.
+// Magnitudes above ten use a variable-length category suffix.
 private func vp8ReadCoefficientCategory(partition: *Vp8Partition, probabilities: const [*] u8)->s32
 {
-    if not partition.readBit(probabilities[6])
-    {
-        if not partition.readBit(probabilities[7]) do
-            return 5 + cast(s32, partition.readBit(159))
-        let high = cast(s32, partition.readBit(165))
-        let low  = cast(s32, partition.readBit(145))
-        return 7 + 2 * high + low
-    }
-
     let high     = cast(s32, partition.readBit(probabilities[8]))
     let low      = cast(s32, partition.readBit(probabilities[9 + high]))
     let category = 2 * high + low
@@ -216,7 +207,7 @@ private func vp8ParseResidualValues(partition: *Vp8Partition, probabilities, fir
     #[Swag.Mixin]
     func readLocalBit(chance: u8)->bool
     {
-        if bitCount < 8 and not refillLocal() do
+        if bitCount < 0 and not refillLocal() do
             return false
 
         return vp8AdvanceBit(chance)
@@ -225,7 +216,7 @@ private func vp8ParseResidualValues(partition: *Vp8Partition, probabilities, fir
     #[Swag.Mixin]
     func readLocalSign(magnitude: s32)->s32
     {
-        if bitCount < 8 and not refillLocal() do
+        if bitCount < 0 and not refillLocal() do
             return magnitude
 
         return vp8AdvanceSign(magnitude)
@@ -256,9 +247,22 @@ private func vp8ParseResidualValues(partition: *Vp8Partition, probabilities, fir
         {
             if readLocalBit(probability[3])
             {
-                saveLocal()
-                value = vp8ReadCoefficientCategory(partition, probability)
-                loadLocal()
+                if readLocalBit(probability[6])
+                {
+                    saveLocal()
+                    value = vp8ReadCoefficientCategory(partition, probability)
+                    loadLocal()
+                }
+                elif readLocalBit(probability[7])
+                {
+                    let high = cast(s32, readLocalBit(165))
+                    let low  = cast(s32, readLocalBit(145))
+                    value = 7 + 2 * high + low
+                }
+                else
+                {
+                    value = 5 + cast(s32, readLocalBit(159))
+                }
             }
             elif readLocalBit(probability[4])
             {

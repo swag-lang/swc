@@ -1,0 +1,1650 @@
+{
+  "encoder_revision": "3cc5f111cb",
+  "compiler_sha256": "7ca664f7feaf6d0906b8d8ebc469768e20710fa45299db20b0eb8405e6cb016c",
+  "ffmpeg": "ffmpeg version 7.1.5-0+deb13u1 Copyright (c) 2000-2026 the FFmpeg developers",
+  "x264": "c24e06c via FFmpeg n9.1",
+  "affinity": [
+    1,
+    2,
+    3
+  ],
+  "cpu": "AMD EPYC 9V74",
+  "repetitions_at_25": 7,
+  "qp_or_crf": [
+    21,
+    25,
+    29
+  ],
+  "slices": 4,
+  "key_interval": 120,
+  "fps": 30,
+  "independent_decoders_identical": 96,
+  "format": "BT.709 NV12",
+  "results": [
+    {
+      "dimensions": [
+        1920,
+        1080
+      ],
+      "frames_per_clip": 12,
+      "inputs": [
+        {
+          "name": "testsrc1080p.rgb",
+          "sha256": "e672f074208fd8fe2e0f197590979362e872dd99e7e659814b39728d787d6720"
+        },
+        {
+          "name": "camera1080p.rgb",
+          "sha256": "18b9ba21693811a3e2d22d7f4468059e9a362f143e7c5390470b6533125b732a"
+        }
+      ],
+      "summary": {
+        "testsrc1080p.rgb": {
+          "equal_luma_psnr": {
+            "baseline-veryfast": {
+              "luma_psnr": 49.5824,
+              "swag_bytes": 621655,
+              "ref_bytes": 579665,
+              "swag_bytes_pct": 7.244
+            },
+            "high-veryfast": null,
+            "baseline-ultrafast": {
+              "luma_psnr": 49.3574,
+              "swag_bytes": 612715,
+              "ref_bytes": 641545,
+              "swag_bytes_pct": -4.494
+            }
+          },
+          "fixed_setting25": {
+            "swag": {
+              "median_wall_us": 138281,
+              "median_picture_ms": 11.5234
+            },
+            "x264-ultrafast-baseline-crf": {
+              "median_wall_us": 44369,
+              "median_picture_ms": 3.6974
+            },
+            "x264-veryfast-baseline-qp": {
+              "median_wall_us": 69380,
+              "median_picture_ms": 5.7817
+            },
+            "x264-veryfast-high-crf": {
+              "median_wall_us": 175924,
+              "median_picture_ms": 14.6603
+            }
+          }
+        },
+        "camera1080p.rgb": {
+          "equal_luma_psnr": {
+            "baseline-veryfast": {
+              "luma_psnr": 46.3411,
+              "swag_bytes": 492891,
+              "ref_bytes": 432761,
+              "swag_bytes_pct": 13.895
+            },
+            "high-veryfast": {
+              "luma_psnr": 46.1442,
+              "swag_bytes": 471984,
+              "ref_bytes": 312149,
+              "swag_bytes_pct": 51.205
+            },
+            "baseline-ultrafast": {
+              "luma_psnr": 44.9262,
+              "swag_bytes": 360995,
+              "ref_bytes": 620570,
+              "swag_bytes_pct": -41.828
+            }
+          },
+          "fixed_setting25": {
+            "swag": {
+              "median_wall_us": 427253,
+              "median_picture_ms": 35.6044
+            },
+            "x264-ultrafast-baseline-crf": {
+              "median_wall_us": 83767,
+              "median_picture_ms": 6.9806
+            },
+            "x264-veryfast-baseline-qp": {
+              "median_wall_us": 213185,
+              "median_picture_ms": 17.7654
+            },
+            "x264-veryfast-high-crf": {
+              "median_wall_us": 458809,
+              "median_picture_ms": 38.2341
+            }
+          }
+        }
+      },
+      "points": [
+        {
+          "input": "testsrc1080p.rgb",
+          "encoder": "swag",
+          "qp": 21,
+          "slices": 4,
+          "frames": 12,
+          "encode_us": null,
+          "packet_bytes": 755757,
+          "file_bytes": 757829,
+          "source_sha256": "c07f961718698c667cfcde8d7aa75aeb3a104cce3210ead5a1aeca8ea41a0286",
+          "decoded_sha256": "30aea1b7731c489aca10c8c1ffa0ae1b9510d7513347538026ba905fce559d06",
+          "psnr_y": 52.615475,
+          "psnr_u": 50.747603,
+          "psnr_v": 51.126132,
+          "psnr_average": 51.979342,
+          "ssim_y": 0.998979,
+          "ssim_u": 0.998856,
+          "ssim_v": 0.999034,
+          "ssim_all": 0.998968
+        },
+        {
+          "input": "testsrc1080p.rgb",
+          "encoder": "x264",
+          "preset": "veryfast",
+          "profile": "baseline",
+          "mode": "qp",
+          "quality": 21,
+          "slices": 4,
+          "frames": 12,
+          "process_seconds": null,
+          "packet_bytes": 768907,
+          "file_bytes": 769813,
+          "encode_us": null,
+          "encode_cpu_us": null,
+          "psnr_y": 54.001348,
+          "psnr_u": 52.125113,
+          "psnr_v": 52.71275,
+          "psnr_average": 53.403323,
+          "ssim_y": 0.999166,
+          "ssim_u": 0.999347,
+          "ssim_v": 0.999474,
+          "ssim_all": 0.999247
+        },
+        {
+          "input": "testsrc1080p.rgb",
+          "encoder": "x264",
+          "preset": "veryfast",
+          "profile": "high",
+          "mode": "crf",
+          "quality": 21,
+          "slices": 4,
+          "frames": 12,
+          "process_seconds": null,
+          "packet_bytes": 360759,
+          "file_bytes": 361776,
+          "encode_us": null,
+          "encode_cpu_us": null,
+          "psnr_y": 44.624198,
+          "psnr_u": 43.507524,
+          "psnr_v": 43.718772,
+          "psnr_average": 44.259898,
+          "ssim_y": 0.997071,
+          "ssim_u": 0.996793,
+          "ssim_v": 0.998067,
+          "ssim_all": 0.997191
+        },
+        {
+          "input": "testsrc1080p.rgb",
+          "encoder": "x264",
+          "preset": "ultrafast",
+          "profile": "baseline",
+          "mode": "crf",
+          "quality": 21,
+          "slices": 4,
+          "frames": 12,
+          "process_seconds": null,
+          "packet_bytes": 820120,
+          "file_bytes": 821026,
+          "encode_us": null,
+          "encode_cpu_us": null,
+          "psnr_y": 53.409825,
+          "psnr_u": 51.60113,
+          "psnr_v": 52.021563,
+          "psnr_average": 52.807096,
+          "ssim_y": 0.999078,
+          "ssim_u": 0.999175,
+          "ssim_v": 0.999438,
+          "ssim_all": 0.999154
+        },
+        {
+          "input": "testsrc1080p.rgb",
+          "encoder": "swag",
+          "qp": 25,
+          "slices": 4,
+          "frames": 12,
+          "encode_us": null,
+          "packet_bytes": 605662,
+          "file_bytes": 607734,
+          "source_sha256": "c07f961718698c667cfcde8d7aa75aeb3a104cce3210ead5a1aeca8ea41a0286",
+          "decoded_sha256": "92798675a647c2e215f4630e2c2dd4221227675ee889ef236cdfc652bc2c4dbd",
+          "psnr_y": 49.177643,
+          "psnr_u": 47.151585,
+          "psnr_v": 47.525942,
+          "psnr_average": 48.472843,
+          "ssim_y": 0.998398,
+          "ssim_u": 0.99782,
+          "ssim_v": 0.998305,
+          "ssim_all": 0.998286
+        },
+        {
+          "input": "testsrc1080p.rgb",
+          "encoder": "x264",
+          "preset": "veryfast",
+          "profile": "baseline",
+          "mode": "qp",
+          "quality": 25,
+          "slices": 4,
+          "frames": 12,
+          "process_seconds": null,
+          "packet_bytes": 622210,
+          "file_bytes": 623116,
+          "encode_us": null,
+          "encode_cpu_us": null,
+          "psnr_y": 50.521046,
+          "psnr_u": 48.349898,
+          "psnr_v": 49.077267,
+          "psnr_average": 49.825001,
+          "ssim_y": 0.998725,
+          "ssim_u": 0.9985,
+          "ssim_v": 0.999048,
+          "ssim_all": 0.998741
+        },
+        {
+          "input": "testsrc1080p.rgb",
+          "encoder": "x264",
+          "preset": "veryfast",
+          "profile": "high",
+          "mode": "crf",
+          "quality": 25,
+          "slices": 4,
+          "frames": 12,
+          "process_seconds": null,
+          "packet_bytes": 242474,
+          "file_bytes": 243490,
+          "encode_us": null,
+          "encode_cpu_us": null,
+          "psnr_y": 41.102183,
+          "psnr_u": 40.723024,
+          "psnr_v": 40.829001,
+          "psnr_average": 40.990602,
+          "ssim_y": 0.993926,
+          "ssim_u": 0.994233,
+          "ssim_v": 0.996395,
+          "ssim_all": 0.994388
+        },
+        {
+          "input": "testsrc1080p.rgb",
+          "encoder": "x264",
+          "preset": "ultrafast",
+          "profile": "baseline",
+          "mode": "crf",
+          "quality": 25,
+          "slices": 4,
+          "frames": 12,
+          "process_seconds": null,
+          "packet_bytes": 653593,
+          "file_bytes": 654499,
+          "encode_us": null,
+          "encode_cpu_us": null,
+          "psnr_y": 49.606218,
+          "psnr_u": 47.621406,
+          "psnr_v": 48.018164,
+          "psnr_average": 48.923846,
+          "ssim_y": 0.998402,
+          "ssim_u": 0.998207,
+          "ssim_v": 0.998812,
+          "ssim_all": 0.998438
+        },
+        {
+          "input": "testsrc1080p.rgb",
+          "encoder": "swag",
+          "qp": 29,
+          "slices": 4,
+          "frames": 12,
+          "encode_us": null,
+          "packet_bytes": 441321,
+          "file_bytes": 443393,
+          "source_sha256": "c07f961718698c667cfcde8d7aa75aeb3a104cce3210ead5a1aeca8ea41a0286",
+          "decoded_sha256": "e95f64e2dfad6bf69434e3cf7eea85b2f9d3d2018b7f27429c8a4e9584bfed10",
+          "psnr_y": 45.413076,
+          "psnr_u": 42.738871,
+          "psnr_v": 43.099134,
+          "psnr_average": 44.412379,
+          "ssim_y": 0.997074,
+          "ssim_u": 0.995089,
+          "ssim_v": 0.995791,
+          "ssim_all": 0.99653
+        },
+        {
+          "input": "testsrc1080p.rgb",
+          "encoder": "x264",
+          "preset": "veryfast",
+          "profile": "baseline",
+          "mode": "qp",
+          "quality": 29,
+          "slices": 4,
+          "frames": 12,
+          "process_seconds": null,
+          "packet_bytes": 461088,
+          "file_bytes": 461994,
+          "encode_us": null,
+          "encode_cpu_us": null,
+          "psnr_y": 46.549241,
+          "psnr_u": 43.597817,
+          "psnr_v": 44.23629,
+          "psnr_average": 45.479186,
+          "ssim_y": 0.997667,
+          "ssim_u": 0.996326,
+          "ssim_v": 0.997475,
+          "ssim_all": 0.997412
+        },
+        {
+          "input": "testsrc1080p.rgb",
+          "encoder": "x264",
+          "preset": "veryfast",
+          "profile": "high",
+          "mode": "crf",
+          "quality": 29,
+          "slices": 4,
+          "frames": 12,
+          "process_seconds": null,
+          "packet_bytes": 143415,
+          "file_bytes": 144431,
+          "encode_us": null,
+          "encode_cpu_us": null,
+          "psnr_y": 37.896586,
+          "psnr_u": 38.589856,
+          "psnr_v": 38.40303,
+          "psnr_average": 38.087173,
+          "ssim_y": 0.987272,
+          "ssim_u": 0.990981,
+          "ssim_v": 0.99419,
+          "ssim_all": 0.989044
+        },
+        {
+          "input": "testsrc1080p.rgb",
+          "encoder": "x264",
+          "preset": "ultrafast",
+          "profile": "baseline",
+          "mode": "crf",
+          "quality": 29,
+          "slices": 4,
+          "frames": 12,
+          "process_seconds": null,
+          "packet_bytes": 502830,
+          "file_bytes": 503736,
+          "encode_us": null,
+          "encode_cpu_us": null,
+          "psnr_y": 46.099346,
+          "psnr_u": 43.443612,
+          "psnr_v": 43.842379,
+          "psnr_average": 45.115965,
+          "ssim_y": 0.997264,
+          "ssim_u": 0.996087,
+          "ssim_v": 0.997217,
+          "ssim_all": 0.99706
+        },
+        {
+          "input": "camera1080p.rgb",
+          "encoder": "swag",
+          "qp": 21,
+          "slices": 4,
+          "frames": 12,
+          "encode_us": null,
+          "packet_bytes": 801803,
+          "file_bytes": 803875,
+          "source_sha256": "1908d72995155a4303961d63bbcf44cdb6229b1d9be90739760aa042132f5123",
+          "decoded_sha256": "74184b6b7310a1dae70a7fb43af8b80829c39a53dacda5e7c7b99fd8f40e8aef",
+          "psnr_y": 48.517981,
+          "psnr_u": 50.307068,
+          "psnr_v": 51.03187,
+          "psnr_average": 49.120375,
+          "ssim_y": 0.99086,
+          "ssim_u": 0.991838,
+          "ssim_v": 0.993142,
+          "ssim_all": 0.991404
+        },
+        {
+          "input": "camera1080p.rgb",
+          "encoder": "x264",
+          "preset": "veryfast",
+          "profile": "baseline",
+          "mode": "qp",
+          "quality": 21,
+          "slices": 4,
+          "frames": 12,
+          "process_seconds": null,
+          "packet_bytes": 750881,
+          "file_bytes": 751787,
+          "encode_us": null,
+          "encode_cpu_us": null,
+          "psnr_y": 49.154198,
+          "psnr_u": 50.807392,
+          "psnr_v": 51.507261,
+          "psnr_average": 49.721643,
+          "ssim_y": 0.991876,
+          "ssim_u": 0.992792,
+          "ssim_v": 0.993937,
+          "ssim_all": 0.992372
+        },
+        {
+          "input": "camera1080p.rgb",
+          "encoder": "x264",
+          "preset": "veryfast",
+          "profile": "high",
+          "mode": "crf",
+          "quality": 21,
+          "slices": 4,
+          "frames": 12,
+          "process_seconds": null,
+          "packet_bytes": 432969,
+          "file_bytes": 433986,
+          "encode_us": null,
+          "encode_cpu_us": null,
+          "psnr_y": 48.190023,
+          "psnr_u": 49.53429,
+          "psnr_v": 50.186308,
+          "psnr_average": 48.675603,
+          "ssim_y": 0.991024,
+          "ssim_u": 0.991665,
+          "ssim_v": 0.993072,
+          "ssim_all": 0.991473
+        },
+        {
+          "input": "camera1080p.rgb",
+          "encoder": "x264",
+          "preset": "ultrafast",
+          "profile": "baseline",
+          "mode": "crf",
+          "quality": 21,
+          "slices": 4,
+          "frames": 12,
+          "process_seconds": null,
+          "packet_bytes": 747425,
+          "file_bytes": 748331,
+          "encode_us": null,
+          "encode_cpu_us": null,
+          "psnr_y": 45.754062,
+          "psnr_u": 48.30016,
+          "psnr_v": 49.318382,
+          "psnr_average": 46.548897,
+          "ssim_y": 0.980851,
+          "ssim_u": 0.987077,
+          "ssim_v": 0.990129,
+          "ssim_all": 0.983435
+        },
+        {
+          "input": "camera1080p.rgb",
+          "encoder": "swag",
+          "qp": 25,
+          "slices": 4,
+          "frames": 12,
+          "encode_us": null,
+          "packet_bytes": 514430,
+          "file_bytes": 516502,
+          "source_sha256": "1908d72995155a4303961d63bbcf44cdb6229b1d9be90739760aa042132f5123",
+          "decoded_sha256": "7b0073d609621c097a9cf43f78d6098ffc4d0a59f8dd3ec04a813ece40dfc68b",
+          "psnr_y": 46.535447,
+          "psnr_u": 48.027319,
+          "psnr_v": 48.764167,
+          "psnr_average": 47.067765,
+          "ssim_y": 0.98752,
+          "ssim_u": 0.988823,
+          "ssim_v": 0.991064,
+          "ssim_all": 0.988328
+        },
+        {
+          "input": "camera1080p.rgb",
+          "encoder": "x264",
+          "preset": "veryfast",
+          "profile": "baseline",
+          "mode": "qp",
+          "quality": 25,
+          "slices": 4,
+          "frames": 12,
+          "process_seconds": null,
+          "packet_bytes": 501962,
+          "file_bytes": 502868,
+          "encode_us": null,
+          "encode_cpu_us": null,
+          "psnr_y": 47.105093,
+          "psnr_u": 48.503844,
+          "psnr_v": 49.209884,
+          "psnr_average": 47.610738,
+          "ssim_y": 0.988796,
+          "ssim_u": 0.990016,
+          "ssim_v": 0.991913,
+          "ssim_all": 0.989519
+        },
+        {
+          "input": "camera1080p.rgb",
+          "encoder": "x264",
+          "preset": "veryfast",
+          "profile": "high",
+          "mode": "crf",
+          "quality": 25,
+          "slices": 4,
+          "frames": 12,
+          "process_seconds": null,
+          "packet_bytes": 291554,
+          "file_bytes": 292570,
+          "encode_us": null,
+          "encode_cpu_us": null,
+          "psnr_y": 45.71742,
+          "psnr_u": 47.43686,
+          "psnr_v": 48.208934,
+          "psnr_average": 46.308518,
+          "ssim_y": 0.987025,
+          "ssim_u": 0.988512,
+          "ssim_v": 0.990849,
+          "ssim_all": 0.98791
+        },
+        {
+          "input": "camera1080p.rgb",
+          "encoder": "x264",
+          "preset": "ultrafast",
+          "profile": "baseline",
+          "mode": "crf",
+          "quality": 25,
+          "slices": 4,
+          "frames": 12,
+          "process_seconds": null,
+          "packet_bytes": 439017,
+          "file_bytes": 439923,
+          "encode_us": null,
+          "encode_cpu_us": null,
+          "psnr_y": 43.385776,
+          "psnr_u": 46.529665,
+          "psnr_v": 47.463528,
+          "psnr_average": 44.286743,
+          "ssim_y": 0.970631,
+          "ssim_u": 0.982334,
+          "ssim_v": 0.986369,
+          "ssim_all": 0.975204
+        },
+        {
+          "input": "camera1080p.rgb",
+          "encoder": "swag",
+          "qp": 29,
+          "slices": 4,
+          "frames": 12,
+          "encode_us": null,
+          "packet_bytes": 300863,
+          "file_bytes": 302935,
+          "source_sha256": "1908d72995155a4303961d63bbcf44cdb6229b1d9be90739760aa042132f5123",
+          "decoded_sha256": "c17d2177ff2774aad7cbafe35122a3152cc04d27a3b0e24e51cade7424643649",
+          "psnr_y": 44.098385,
+          "psnr_u": 46.049888,
+          "psnr_v": 46.935264,
+          "psnr_average": 44.754737,
+          "ssim_y": 0.982123,
+          "ssim_u": 0.985148,
+          "ssim_v": 0.988441,
+          "ssim_all": 0.98368
+        },
+        {
+          "input": "camera1080p.rgb",
+          "encoder": "x264",
+          "preset": "veryfast",
+          "profile": "baseline",
+          "mode": "qp",
+          "quality": 29,
+          "slices": 4,
+          "frames": 12,
+          "process_seconds": null,
+          "packet_bytes": 283584,
+          "file_bytes": 284490,
+          "encode_us": null,
+          "encode_cpu_us": null,
+          "psnr_y": 44.164262,
+          "psnr_u": 46.149332,
+          "psnr_v": 47.006326,
+          "psnr_average": 44.825275,
+          "ssim_y": 0.982953,
+          "ssim_u": 0.985735,
+          "ssim_v": 0.988929,
+          "ssim_all": 0.984413
+        },
+        {
+          "input": "camera1080p.rgb",
+          "encoder": "x264",
+          "preset": "veryfast",
+          "profile": "high",
+          "mode": "crf",
+          "quality": 29,
+          "slices": 4,
+          "frames": 12,
+          "process_seconds": null,
+          "packet_bytes": 168606,
+          "file_bytes": 169622,
+          "encode_us": null,
+          "encode_cpu_us": null,
+          "psnr_y": 42.369024,
+          "psnr_u": 45.403391,
+          "psnr_v": 46.255133,
+          "psnr_average": 43.24333,
+          "ssim_y": 0.978909,
+          "ssim_u": 0.985021,
+          "ssim_v": 0.988472,
+          "ssim_all": 0.981522
+        },
+        {
+          "input": "camera1080p.rgb",
+          "encoder": "x264",
+          "preset": "ultrafast",
+          "profile": "baseline",
+          "mode": "crf",
+          "quality": 29,
+          "slices": 4,
+          "frames": 12,
+          "process_seconds": null,
+          "packet_bytes": 261153,
+          "file_bytes": 262059,
+          "encode_us": null,
+          "encode_cpu_us": null,
+          "psnr_y": 41.379057,
+          "psnr_u": 45.117775,
+          "psnr_v": 46.094834,
+          "psnr_average": 42.384127,
+          "ssim_y": 0.960094,
+          "ssim_u": 0.979921,
+          "ssim_v": 0.985107,
+          "ssim_all": 0.967568
+        }
+      ],
+      "repeated_runs": [
+        {
+          "input": "testsrc1080p.rgb",
+          "encoder": "swag",
+          "repeat": 0,
+          "wall_us": 139902,
+          "cpu_us": null,
+          "bytes": 605662
+        },
+        {
+          "input": "testsrc1080p.rgb",
+          "encoder": "x264-veryfast-baseline-qp",
+          "repeat": 0,
+          "wall_us": 73444,
+          "cpu_us": 116436,
+          "bytes": 622173
+        },
+        {
+          "input": "testsrc1080p.rgb",
+          "encoder": "x264-veryfast-high-crf",
+          "repeat": 0,
+          "wall_us": 162180,
+          "cpu_us": 219810,
+          "bytes": 242437
+        },
+        {
+          "input": "testsrc1080p.rgb",
+          "encoder": "x264-ultrafast-baseline-crf",
+          "repeat": 0,
+          "wall_us": 45128,
+          "cpu_us": 78892,
+          "bytes": 653556
+        },
+        {
+          "input": "testsrc1080p.rgb",
+          "encoder": "x264-veryfast-baseline-qp",
+          "repeat": 1,
+          "wall_us": 75985,
+          "cpu_us": 121987,
+          "bytes": 622173
+        },
+        {
+          "input": "testsrc1080p.rgb",
+          "encoder": "x264-veryfast-high-crf",
+          "repeat": 1,
+          "wall_us": 192362,
+          "cpu_us": 228831,
+          "bytes": 242437
+        },
+        {
+          "input": "testsrc1080p.rgb",
+          "encoder": "x264-ultrafast-baseline-crf",
+          "repeat": 1,
+          "wall_us": 39227,
+          "cpu_us": 68907,
+          "bytes": 653556
+        },
+        {
+          "input": "testsrc1080p.rgb",
+          "encoder": "swag",
+          "repeat": 1,
+          "wall_us": 138281,
+          "cpu_us": null,
+          "bytes": 605662
+        },
+        {
+          "input": "testsrc1080p.rgb",
+          "encoder": "x264-veryfast-high-crf",
+          "repeat": 2,
+          "wall_us": 180856,
+          "cpu_us": 279715,
+          "bytes": 242437
+        },
+        {
+          "input": "testsrc1080p.rgb",
+          "encoder": "x264-ultrafast-baseline-crf",
+          "repeat": 2,
+          "wall_us": 44369,
+          "cpu_us": 84154,
+          "bytes": 653556
+        },
+        {
+          "input": "testsrc1080p.rgb",
+          "encoder": "swag",
+          "repeat": 2,
+          "wall_us": 128322,
+          "cpu_us": null,
+          "bytes": 605662
+        },
+        {
+          "input": "testsrc1080p.rgb",
+          "encoder": "x264-veryfast-baseline-qp",
+          "repeat": 2,
+          "wall_us": 83700,
+          "cpu_us": 131502,
+          "bytes": 622173
+        },
+        {
+          "input": "testsrc1080p.rgb",
+          "encoder": "x264-ultrafast-baseline-crf",
+          "repeat": 3,
+          "wall_us": 76346,
+          "cpu_us": 135076,
+          "bytes": 653556
+        },
+        {
+          "input": "testsrc1080p.rgb",
+          "encoder": "swag",
+          "repeat": 3,
+          "wall_us": 132403,
+          "cpu_us": null,
+          "bytes": 605662
+        },
+        {
+          "input": "testsrc1080p.rgb",
+          "encoder": "x264-veryfast-baseline-qp",
+          "repeat": 3,
+          "wall_us": 65586,
+          "cpu_us": 117167,
+          "bytes": 622173
+        },
+        {
+          "input": "testsrc1080p.rgb",
+          "encoder": "x264-veryfast-high-crf",
+          "repeat": 3,
+          "wall_us": 156111,
+          "cpu_us": 249666,
+          "bytes": 242437
+        },
+        {
+          "input": "testsrc1080p.rgb",
+          "encoder": "swag",
+          "repeat": 4,
+          "wall_us": 145282,
+          "cpu_us": null,
+          "bytes": 605662
+        },
+        {
+          "input": "testsrc1080p.rgb",
+          "encoder": "x264-veryfast-baseline-qp",
+          "repeat": 4,
+          "wall_us": 67327,
+          "cpu_us": 118292,
+          "bytes": 622173
+        },
+        {
+          "input": "testsrc1080p.rgb",
+          "encoder": "x264-veryfast-high-crf",
+          "repeat": 4,
+          "wall_us": 185816,
+          "cpu_us": 240728,
+          "bytes": 242437
+        },
+        {
+          "input": "testsrc1080p.rgb",
+          "encoder": "x264-ultrafast-baseline-crf",
+          "repeat": 4,
+          "wall_us": 48334,
+          "cpu_us": 85241,
+          "bytes": 653556
+        },
+        {
+          "input": "testsrc1080p.rgb",
+          "encoder": "x264-veryfast-baseline-qp",
+          "repeat": 5,
+          "wall_us": 69380,
+          "cpu_us": 134918,
+          "bytes": 622173
+        },
+        {
+          "input": "testsrc1080p.rgb",
+          "encoder": "x264-veryfast-high-crf",
+          "repeat": 5,
+          "wall_us": 175454,
+          "cpu_us": 269432,
+          "bytes": 242437
+        },
+        {
+          "input": "testsrc1080p.rgb",
+          "encoder": "x264-ultrafast-baseline-crf",
+          "repeat": 5,
+          "wall_us": 40653,
+          "cpu_us": 69121,
+          "bytes": 653556
+        },
+        {
+          "input": "testsrc1080p.rgb",
+          "encoder": "swag",
+          "repeat": 5,
+          "wall_us": 125058,
+          "cpu_us": null,
+          "bytes": 605662
+        },
+        {
+          "input": "testsrc1080p.rgb",
+          "encoder": "x264-veryfast-high-crf",
+          "repeat": 6,
+          "wall_us": 175924,
+          "cpu_us": 241950,
+          "bytes": 242437
+        },
+        {
+          "input": "testsrc1080p.rgb",
+          "encoder": "x264-ultrafast-baseline-crf",
+          "repeat": 6,
+          "wall_us": 40828,
+          "cpu_us": 81373,
+          "bytes": 653556
+        },
+        {
+          "input": "testsrc1080p.rgb",
+          "encoder": "swag",
+          "repeat": 6,
+          "wall_us": 142099,
+          "cpu_us": null,
+          "bytes": 605662
+        },
+        {
+          "input": "testsrc1080p.rgb",
+          "encoder": "x264-veryfast-baseline-qp",
+          "repeat": 6,
+          "wall_us": 55095,
+          "cpu_us": 116952,
+          "bytes": 622173
+        },
+        {
+          "input": "camera1080p.rgb",
+          "encoder": "swag",
+          "repeat": 0,
+          "wall_us": 427253,
+          "cpu_us": null,
+          "bytes": 514430
+        },
+        {
+          "input": "camera1080p.rgb",
+          "encoder": "x264-veryfast-baseline-qp",
+          "repeat": 0,
+          "wall_us": 213185,
+          "cpu_us": 472220,
+          "bytes": 501925
+        },
+        {
+          "input": "camera1080p.rgb",
+          "encoder": "x264-veryfast-high-crf",
+          "repeat": 0,
+          "wall_us": 405434,
+          "cpu_us": 749086,
+          "bytes": 291517
+        },
+        {
+          "input": "camera1080p.rgb",
+          "encoder": "x264-ultrafast-baseline-crf",
+          "repeat": 0,
+          "wall_us": 81169,
+          "cpu_us": 157262,
+          "bytes": 438980
+        },
+        {
+          "input": "camera1080p.rgb",
+          "encoder": "x264-veryfast-baseline-qp",
+          "repeat": 1,
+          "wall_us": 266838,
+          "cpu_us": 561946,
+          "bytes": 501925
+        },
+        {
+          "input": "camera1080p.rgb",
+          "encoder": "x264-veryfast-high-crf",
+          "repeat": 1,
+          "wall_us": 480738,
+          "cpu_us": 831610,
+          "bytes": 291517
+        },
+        {
+          "input": "camera1080p.rgb",
+          "encoder": "x264-ultrafast-baseline-crf",
+          "repeat": 1,
+          "wall_us": 77853,
+          "cpu_us": 158664,
+          "bytes": 438980
+        },
+        {
+          "input": "camera1080p.rgb",
+          "encoder": "swag",
+          "repeat": 1,
+          "wall_us": 450721,
+          "cpu_us": null,
+          "bytes": 514430
+        },
+        {
+          "input": "camera1080p.rgb",
+          "encoder": "x264-veryfast-high-crf",
+          "repeat": 2,
+          "wall_us": 443880,
+          "cpu_us": 816187,
+          "bytes": 291517
+        },
+        {
+          "input": "camera1080p.rgb",
+          "encoder": "x264-ultrafast-baseline-crf",
+          "repeat": 2,
+          "wall_us": 78456,
+          "cpu_us": 150049,
+          "bytes": 438980
+        },
+        {
+          "input": "camera1080p.rgb",
+          "encoder": "swag",
+          "repeat": 2,
+          "wall_us": 423064,
+          "cpu_us": null,
+          "bytes": 514430
+        },
+        {
+          "input": "camera1080p.rgb",
+          "encoder": "x264-veryfast-baseline-qp",
+          "repeat": 2,
+          "wall_us": 172880,
+          "cpu_us": 448592,
+          "bytes": 501925
+        },
+        {
+          "input": "camera1080p.rgb",
+          "encoder": "x264-ultrafast-baseline-crf",
+          "repeat": 3,
+          "wall_us": 88478,
+          "cpu_us": 157130,
+          "bytes": 438980
+        },
+        {
+          "input": "camera1080p.rgb",
+          "encoder": "swag",
+          "repeat": 3,
+          "wall_us": 416749,
+          "cpu_us": null,
+          "bytes": 514430
+        },
+        {
+          "input": "camera1080p.rgb",
+          "encoder": "x264-veryfast-baseline-qp",
+          "repeat": 3,
+          "wall_us": 201917,
+          "cpu_us": 449953,
+          "bytes": 501925
+        },
+        {
+          "input": "camera1080p.rgb",
+          "encoder": "x264-veryfast-high-crf",
+          "repeat": 3,
+          "wall_us": 436987,
+          "cpu_us": 817308,
+          "bytes": 291517
+        },
+        {
+          "input": "camera1080p.rgb",
+          "encoder": "swag",
+          "repeat": 4,
+          "wall_us": 468311,
+          "cpu_us": null,
+          "bytes": 514430
+        },
+        {
+          "input": "camera1080p.rgb",
+          "encoder": "x264-veryfast-baseline-qp",
+          "repeat": 4,
+          "wall_us": 252038,
+          "cpu_us": 503999,
+          "bytes": 501925
+        },
+        {
+          "input": "camera1080p.rgb",
+          "encoder": "x264-veryfast-high-crf",
+          "repeat": 4,
+          "wall_us": 468819,
+          "cpu_us": 846603,
+          "bytes": 291517
+        },
+        {
+          "input": "camera1080p.rgb",
+          "encoder": "x264-ultrafast-baseline-crf",
+          "repeat": 4,
+          "wall_us": 91551,
+          "cpu_us": 177966,
+          "bytes": 438980
+        },
+        {
+          "input": "camera1080p.rgb",
+          "encoder": "x264-veryfast-baseline-qp",
+          "repeat": 5,
+          "wall_us": 235870,
+          "cpu_us": 453450,
+          "bytes": 501925
+        },
+        {
+          "input": "camera1080p.rgb",
+          "encoder": "x264-veryfast-high-crf",
+          "repeat": 5,
+          "wall_us": 465794,
+          "cpu_us": 751219,
+          "bytes": 291517
+        },
+        {
+          "input": "camera1080p.rgb",
+          "encoder": "x264-ultrafast-baseline-crf",
+          "repeat": 5,
+          "wall_us": 84814,
+          "cpu_us": 156175,
+          "bytes": 438980
+        },
+        {
+          "input": "camera1080p.rgb",
+          "encoder": "swag",
+          "repeat": 5,
+          "wall_us": 467276,
+          "cpu_us": null,
+          "bytes": 514430
+        },
+        {
+          "input": "camera1080p.rgb",
+          "encoder": "x264-veryfast-high-crf",
+          "repeat": 6,
+          "wall_us": 458809,
+          "cpu_us": 761670,
+          "bytes": 291517
+        },
+        {
+          "input": "camera1080p.rgb",
+          "encoder": "x264-ultrafast-baseline-crf",
+          "repeat": 6,
+          "wall_us": 83767,
+          "cpu_us": 166439,
+          "bytes": 438980
+        },
+        {
+          "input": "camera1080p.rgb",
+          "encoder": "swag",
+          "repeat": 6,
+          "wall_us": 424354,
+          "cpu_us": null,
+          "bytes": 514430
+        },
+        {
+          "input": "camera1080p.rgb",
+          "encoder": "x264-veryfast-baseline-qp",
+          "repeat": 6,
+          "wall_us": 189042,
+          "cpu_us": 416160,
+          "bytes": 501925
+        }
+      ]
+    },
+    {
+      "dimensions": [
+        3840,
+        2160
+      ],
+      "frames_per_clip": 8,
+      "inputs": [
+        {
+          "name": "testsrc4k.rgb",
+          "sha256": "cf25b4f2fab35a0f2e9086c62dd3668b2db2bc54b9e9f573a5241165103c272b"
+        }
+      ],
+      "summary": {
+        "testsrc4k.rgb": {
+          "equal_luma_psnr": {
+            "baseline-veryfast": {
+              "luma_psnr": 49.6821,
+              "swag_bytes": 1678085,
+              "ref_bytes": 1705017,
+              "swag_bytes_pct": -1.58
+            },
+            "high-veryfast": null,
+            "baseline-ultrafast": {
+              "luma_psnr": 49.4262,
+              "swag_bytes": 1651432,
+              "ref_bytes": 1737387,
+              "swag_bytes_pct": -4.947
+            }
+          },
+          "fixed_setting25": {
+            "swag": {
+              "median_wall_us": 424284,
+              "median_picture_ms": 53.0355
+            },
+            "x264-ultrafast-baseline-crf": {
+              "median_wall_us": 110401,
+              "median_picture_ms": 13.8001
+            },
+            "x264-veryfast-baseline-qp": {
+              "median_wall_us": 162112,
+              "median_picture_ms": 20.264
+            },
+            "x264-veryfast-high-crf": {
+              "median_wall_us": 390266,
+              "median_picture_ms": 48.7833
+            }
+          }
+        }
+      },
+      "points": [
+        {
+          "input": "testsrc4k.rgb",
+          "encoder": "swag",
+          "qp": 21,
+          "slices": 4,
+          "frames": 8,
+          "encode_us": null,
+          "packet_bytes": 2040548,
+          "file_bytes": 2042171,
+          "source_sha256": "4135d532972cbdfe29033a4ae5cf9bbf5580d0587a9cd72ddd999d975abf44ce",
+          "decoded_sha256": "fe2db66e2e0826fc0ae1bc68f375198b200afb1863429ba96765db649aff84f9",
+          "psnr_y": 52.80775,
+          "psnr_u": 51.497651,
+          "psnr_v": 51.943318,
+          "psnr_average": 52.412064,
+          "ssim_y": 0.999127,
+          "ssim_u": 0.999361,
+          "ssim_v": 0.999465,
+          "ssim_all": 0.999223
+        },
+        {
+          "input": "testsrc4k.rgb",
+          "encoder": "x264",
+          "preset": "veryfast",
+          "profile": "baseline",
+          "mode": "qp",
+          "quality": 21,
+          "slices": 4,
+          "frames": 8,
+          "process_seconds": null,
+          "packet_bytes": 2184411,
+          "file_bytes": 2185333,
+          "encode_us": null,
+          "encode_cpu_us": null,
+          "psnr_y": 54.181305,
+          "psnr_u": 52.754263,
+          "psnr_v": 53.460167,
+          "psnr_average": 53.787404,
+          "ssim_y": 0.99928,
+          "ssim_u": 0.999518,
+          "ssim_v": 0.999602,
+          "ssim_all": 0.999373
+        },
+        {
+          "input": "testsrc4k.rgb",
+          "encoder": "x264",
+          "preset": "veryfast",
+          "profile": "high",
+          "mode": "crf",
+          "quality": 21,
+          "slices": 4,
+          "frames": 8,
+          "process_seconds": null,
+          "packet_bytes": 873816,
+          "file_bytes": 874785,
+          "encode_us": null,
+          "encode_cpu_us": null,
+          "psnr_y": 43.668522,
+          "psnr_u": 43.35861,
+          "psnr_v": 43.331572,
+          "psnr_average": 43.558006,
+          "ssim_y": 0.996969,
+          "ssim_u": 0.997301,
+          "ssim_v": 0.998257,
+          "ssim_all": 0.997239
+        },
+        {
+          "input": "testsrc4k.rgb",
+          "encoder": "x264",
+          "preset": "ultrafast",
+          "profile": "baseline",
+          "mode": "crf",
+          "quality": 21,
+          "slices": 4,
+          "frames": 8,
+          "process_seconds": null,
+          "packet_bytes": 2203901,
+          "file_bytes": 2204823,
+          "encode_us": null,
+          "encode_cpu_us": null,
+          "psnr_y": 53.497648,
+          "psnr_u": 52.016015,
+          "psnr_v": 52.505462,
+          "psnr_average": 53.042307,
+          "ssim_y": 0.999248,
+          "ssim_u": 0.999414,
+          "ssim_v": 0.999574,
+          "ssim_all": 0.99933
+        },
+        {
+          "input": "testsrc4k.rgb",
+          "encoder": "swag",
+          "qp": 25,
+          "slices": 4,
+          "frames": 8,
+          "encode_us": null,
+          "packet_bytes": 1642431,
+          "file_bytes": 1644054,
+          "source_sha256": "4135d532972cbdfe29033a4ae5cf9bbf5580d0587a9cd72ddd999d975abf44ce",
+          "decoded_sha256": "164498b19acae819ccae4bbf5e3f55cf0cf6157e5de87cd4398f8e72c2466b33",
+          "psnr_y": 49.338868,
+          "psnr_u": 47.877763,
+          "psnr_v": 48.292693,
+          "psnr_average": 48.877609,
+          "ssim_y": 0.998642,
+          "ssim_u": 0.998637,
+          "ssim_v": 0.998942,
+          "ssim_all": 0.998691
+        },
+        {
+          "input": "testsrc4k.rgb",
+          "encoder": "x264",
+          "preset": "veryfast",
+          "profile": "baseline",
+          "mode": "qp",
+          "quality": 25,
+          "slices": 4,
+          "frames": 8,
+          "process_seconds": null,
+          "packet_bytes": 1817261,
+          "file_bytes": 1818155,
+          "encode_us": null,
+          "encode_cpu_us": null,
+          "psnr_y": 50.633936,
+          "psnr_u": 48.977392,
+          "psnr_v": 49.618857,
+          "psnr_average": 50.136791,
+          "ssim_y": 0.998903,
+          "ssim_u": 0.998919,
+          "ssim_v": 0.999224,
+          "ssim_all": 0.998959
+        },
+        {
+          "input": "testsrc4k.rgb",
+          "encoder": "x264",
+          "preset": "veryfast",
+          "profile": "high",
+          "mode": "crf",
+          "quality": 25,
+          "slices": 4,
+          "frames": 8,
+          "process_seconds": null,
+          "packet_bytes": 557509,
+          "file_bytes": 558477,
+          "encode_us": null,
+          "encode_cpu_us": null,
+          "psnr_y": 40.244095,
+          "psnr_u": 40.276867,
+          "psnr_v": 40.507619,
+          "psnr_average": 40.292419,
+          "ssim_y": 0.99362,
+          "ssim_u": 0.994726,
+          "ssim_v": 0.996848,
+          "ssim_all": 0.994343
+        },
+        {
+          "input": "testsrc4k.rgb",
+          "encoder": "x264",
+          "preset": "ultrafast",
+          "profile": "baseline",
+          "mode": "crf",
+          "quality": 25,
+          "slices": 4,
+          "frames": 8,
+          "process_seconds": null,
+          "packet_bytes": 1765696,
+          "file_bytes": 1766590,
+          "encode_us": null,
+          "encode_cpu_us": null,
+          "psnr_y": 49.646526,
+          "psnr_u": 48.035754,
+          "psnr_v": 48.435046,
+          "psnr_average": 49.121655,
+          "ssim_y": 0.998796,
+          "ssim_u": 0.998639,
+          "ssim_v": 0.998981,
+          "ssim_all": 0.9988
+        },
+        {
+          "input": "testsrc4k.rgb",
+          "encoder": "swag",
+          "qp": 29,
+          "slices": 4,
+          "frames": 8,
+          "encode_us": null,
+          "packet_bytes": 1212876,
+          "file_bytes": 1214499,
+          "source_sha256": "4135d532972cbdfe29033a4ae5cf9bbf5580d0587a9cd72ddd999d975abf44ce",
+          "decoded_sha256": "932c672bddcfb770a67594de9042339f5c6b79068da22629ae5368432d32c12a",
+          "psnr_y": 45.510322,
+          "psnr_u": 43.561787,
+          "psnr_v": 43.714723,
+          "psnr_average": 44.792575,
+          "ssim_y": 0.997575,
+          "ssim_u": 0.996988,
+          "ssim_v": 0.997678,
+          "ssim_all": 0.997494
+        },
+        {
+          "input": "testsrc4k.rgb",
+          "encoder": "x264",
+          "preset": "veryfast",
+          "profile": "baseline",
+          "mode": "qp",
+          "quality": 29,
+          "slices": 4,
+          "frames": 8,
+          "process_seconds": null,
+          "packet_bytes": 1382941,
+          "file_bytes": 1383847,
+          "encode_us": null,
+          "encode_cpu_us": null,
+          "psnr_y": 46.556472,
+          "psnr_u": 44.023477,
+          "psnr_v": 44.699563,
+          "psnr_average": 45.689691,
+          "ssim_y": 0.998073,
+          "ssim_u": 0.997176,
+          "ssim_v": 0.998314,
+          "ssim_all": 0.997964
+        },
+        {
+          "input": "testsrc4k.rgb",
+          "encoder": "x264",
+          "preset": "veryfast",
+          "profile": "high",
+          "mode": "crf",
+          "quality": 29,
+          "slices": 4,
+          "frames": 8,
+          "process_seconds": null,
+          "packet_bytes": 326225,
+          "file_bytes": 327193,
+          "encode_us": null,
+          "encode_cpu_us": null,
+          "psnr_y": 37.437485,
+          "psnr_u": 38.299973,
+          "psnr_v": 38.487398,
+          "psnr_average": 37.733138,
+          "ssim_y": 0.987398,
+          "ssim_u": 0.991901,
+          "ssim_v": 0.995114,
+          "ssim_all": 0.989435
+        },
+        {
+          "input": "testsrc4k.rgb",
+          "encoder": "x264",
+          "preset": "ultrafast",
+          "profile": "baseline",
+          "mode": "crf",
+          "quality": 29,
+          "slices": 4,
+          "frames": 8,
+          "process_seconds": null,
+          "packet_bytes": 1355668,
+          "file_bytes": 1356574,
+          "encode_us": null,
+          "encode_cpu_us": null,
+          "psnr_y": 46.044691,
+          "psnr_u": 43.948993,
+          "psnr_v": 44.260238,
+          "psnr_average": 45.296309,
+          "ssim_y": 0.997843,
+          "ssim_u": 0.997019,
+          "ssim_v": 0.997929,
+          "ssim_all": 0.99772
+        }
+      ],
+      "repeated_runs": [
+        {
+          "input": "testsrc4k.rgb",
+          "encoder": "swag",
+          "repeat": 0,
+          "wall_us": 384364,
+          "cpu_us": null,
+          "bytes": 1642431
+        },
+        {
+          "input": "testsrc4k.rgb",
+          "encoder": "x264-veryfast-baseline-qp",
+          "repeat": 0,
+          "wall_us": 149888,
+          "cpu_us": 285160,
+          "bytes": 1817236
+        },
+        {
+          "input": "testsrc4k.rgb",
+          "encoder": "x264-veryfast-high-crf",
+          "repeat": 0,
+          "wall_us": 399934,
+          "cpu_us": 639952,
+          "bytes": 557484
+        },
+        {
+          "input": "testsrc4k.rgb",
+          "encoder": "x264-ultrafast-baseline-crf",
+          "repeat": 0,
+          "wall_us": 113161,
+          "cpu_us": 222298,
+          "bytes": 1765671
+        },
+        {
+          "input": "testsrc4k.rgb",
+          "encoder": "x264-veryfast-baseline-qp",
+          "repeat": 1,
+          "wall_us": 162112,
+          "cpu_us": 298467,
+          "bytes": 1817236
+        },
+        {
+          "input": "testsrc4k.rgb",
+          "encoder": "x264-veryfast-high-crf",
+          "repeat": 1,
+          "wall_us": 387357,
+          "cpu_us": 564948,
+          "bytes": 557484
+        },
+        {
+          "input": "testsrc4k.rgb",
+          "encoder": "x264-ultrafast-baseline-crf",
+          "repeat": 1,
+          "wall_us": 114988,
+          "cpu_us": 221403,
+          "bytes": 1765671
+        },
+        {
+          "input": "testsrc4k.rgb",
+          "encoder": "swag",
+          "repeat": 1,
+          "wall_us": 523010,
+          "cpu_us": null,
+          "bytes": 1642431
+        },
+        {
+          "input": "testsrc4k.rgb",
+          "encoder": "x264-veryfast-high-crf",
+          "repeat": 2,
+          "wall_us": 371335,
+          "cpu_us": 576704,
+          "bytes": 557484
+        },
+        {
+          "input": "testsrc4k.rgb",
+          "encoder": "x264-ultrafast-baseline-crf",
+          "repeat": 2,
+          "wall_us": 111015,
+          "cpu_us": 200800,
+          "bytes": 1765671
+        },
+        {
+          "input": "testsrc4k.rgb",
+          "encoder": "swag",
+          "repeat": 2,
+          "wall_us": 427716,
+          "cpu_us": null,
+          "bytes": 1642431
+        },
+        {
+          "input": "testsrc4k.rgb",
+          "encoder": "x264-veryfast-baseline-qp",
+          "repeat": 2,
+          "wall_us": 173011,
+          "cpu_us": 315904,
+          "bytes": 1817236
+        },
+        {
+          "input": "testsrc4k.rgb",
+          "encoder": "x264-ultrafast-baseline-crf",
+          "repeat": 3,
+          "wall_us": 96008,
+          "cpu_us": 188737,
+          "bytes": 1765671
+        },
+        {
+          "input": "testsrc4k.rgb",
+          "encoder": "swag",
+          "repeat": 3,
+          "wall_us": 418782,
+          "cpu_us": null,
+          "bytes": 1642431
+        },
+        {
+          "input": "testsrc4k.rgb",
+          "encoder": "x264-veryfast-baseline-qp",
+          "repeat": 3,
+          "wall_us": 153909,
+          "cpu_us": 287294,
+          "bytes": 1817236
+        },
+        {
+          "input": "testsrc4k.rgb",
+          "encoder": "x264-veryfast-high-crf",
+          "repeat": 3,
+          "wall_us": 410227,
+          "cpu_us": 578910,
+          "bytes": 557484
+        },
+        {
+          "input": "testsrc4k.rgb",
+          "encoder": "swag",
+          "repeat": 4,
+          "wall_us": 424284,
+          "cpu_us": null,
+          "bytes": 1642431
+        },
+        {
+          "input": "testsrc4k.rgb",
+          "encoder": "x264-veryfast-baseline-qp",
+          "repeat": 4,
+          "wall_us": 177020,
+          "cpu_us": 356974,
+          "bytes": 1817236
+        },
+        {
+          "input": "testsrc4k.rgb",
+          "encoder": "x264-veryfast-high-crf",
+          "repeat": 4,
+          "wall_us": 376698,
+          "cpu_us": 565712,
+          "bytes": 557484
+        },
+        {
+          "input": "testsrc4k.rgb",
+          "encoder": "x264-ultrafast-baseline-crf",
+          "repeat": 4,
+          "wall_us": 99795,
+          "cpu_us": 196089,
+          "bytes": 1765671
+        },
+        {
+          "input": "testsrc4k.rgb",
+          "encoder": "x264-veryfast-baseline-qp",
+          "repeat": 5,
+          "wall_us": 139229,
+          "cpu_us": 295609,
+          "bytes": 1817236
+        },
+        {
+          "input": "testsrc4k.rgb",
+          "encoder": "x264-veryfast-high-crf",
+          "repeat": 5,
+          "wall_us": 408919,
+          "cpu_us": 557378,
+          "bytes": 557484
+        },
+        {
+          "input": "testsrc4k.rgb",
+          "encoder": "x264-ultrafast-baseline-crf",
+          "repeat": 5,
+          "wall_us": 100889,
+          "cpu_us": 214762,
+          "bytes": 1765671
+        },
+        {
+          "input": "testsrc4k.rgb",
+          "encoder": "swag",
+          "repeat": 5,
+          "wall_us": 445578,
+          "cpu_us": null,
+          "bytes": 1642431
+        },
+        {
+          "input": "testsrc4k.rgb",
+          "encoder": "x264-veryfast-high-crf",
+          "repeat": 6,
+          "wall_us": 390266,
+          "cpu_us": 570554,
+          "bytes": 557484
+        },
+        {
+          "input": "testsrc4k.rgb",
+          "encoder": "x264-ultrafast-baseline-crf",
+          "repeat": 6,
+          "wall_us": 110401,
+          "cpu_us": 211423,
+          "bytes": 1765671
+        },
+        {
+          "input": "testsrc4k.rgb",
+          "encoder": "swag",
+          "repeat": 6,
+          "wall_us": 395364,
+          "cpu_us": null,
+          "bytes": 1642431
+        },
+        {
+          "input": "testsrc4k.rgb",
+          "encoder": "x264-veryfast-baseline-qp",
+          "repeat": 6,
+          "wall_us": 179868,
+          "cpu_us": 320342,
+          "bytes": 1817236
+        }
+      ]
+    }
+  ]
+}

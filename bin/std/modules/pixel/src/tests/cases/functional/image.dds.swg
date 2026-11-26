@@ -211,3 +211,44 @@ func ddsRoundtrip(source: Image)->Image
     let error = errorOutcome.value()
     Swag.require(error != null)
 }
+
+// Padded BGR rows cover a vector group and an odd tail without reading
+// row padding as pixels or borrowing the unused alpha mask.
+#test
+{
+    const Width  = 9
+    const Height = 2
+    const Pitch  = 32
+    const Header: [32] u32 = [
+        0x20534444, 124, 0x100F, Height, Width, Pitch, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        32, 0x40, 0, 24, 0xFF0000, 0xFF00, 0xFF, 0,
+        0x1000, 0, 0, 0, 0]
+    var encoded: ConcatBuffer
+    for field in Header do
+        ddsAddU32(&encoded, field)
+
+    for y in Height
+    {
+        for x in Width
+        {
+            encoded.addNative(cast(u8, x + 8))
+            encoded.addNative(cast(u8, y + 20))
+            encoded.addNative(cast(u8, x + y + 30))
+        }
+
+        for Pitch - 3 * Width do
+            encoded.addNative(173'u8)
+    }
+
+    let image = expect Image.decode("padded-bgr.dds", nnBytes(encoded.toSlice()))
+    assertImage(image, Width, Height, .RGBA8)
+    for y in Height
+    {
+        for x in Width
+        {
+            let pixel = image.pixelColor(cast(s32, x), cast(s32, y))
+            Swag.require(pixel.r == x + y + 30 and pixel.g == y + 20 and pixel.b == x + 8 and pixel.a == 255)
+        }
+    }
+}

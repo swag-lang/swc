@@ -76,49 +76,135 @@ func dxgiFormat(dxgi: u32, pixelFormat: *PixelFormat, blocks: *TextureBlocks.For
     return true
 }
 
-#[Swag.Inline]
-func maskToByte(value, mask: u32, fallback: u8)->u8
+private struct MaskField
 {
-    if not mask do
-        return fallback
-    let shift  = Math.trailingZeros(mask)
-    let bits   = Math.countOnes(mask)
-    let limit  = bits == 32 ? Swag.U32.Max : (1'u32 << bits) - 1
-    let sample = cast(u64, ((value & mask) >> shift))
-    return cast(u8, ((sample * 255 + limit / 2) / limit))
+    mask:     u32
+    shift:    u32
+    limit:    u32
+    fallback: u8
 }
 
-func decodeMasked(image: *Image, buffer: const [..] u8, offset: u64, pitch: u64, bits: u32, redMask, greenMask, blueMask, alphaMask: u32, luminance: bool) fail
+private func prepareField(mask: u32, fallback: u8)->MaskField
 {
+    if not mask do
+        return {0, 0, 1, fallback}
+    let shift = Math.trailingZeros(mask)
+    let bits  = Math.countOnes(mask)
+    let limit = bits == 32 ? Swag.U32.Max : (1'u32 << bits) - 1
+    return {mask, shift, limit, fallback}
+}
+
+#[Swag.Inline]
+private func maskToByte(value: u32, field: MaskField)->u8
+{
+    if not field.mask do
+        return field.fallback
+    let sample = cast(u64, ((value & field.mask) >> field.shift))
+    return cast(u8, ((sample * 255 + field.limit / 2) / field.limit))
+}
+
+private func isByteField(field: MaskField, bits: u32)->bool
+{
+    return not field.mask or (field.shift % 8 == 0 and field.shift < bits and field.mask == (255'u32 << field.shift))
+}
+
+private func decodeByteFieldsRow(source: const [*] u8, target: [*] u8, width, pixelBytes: u64, fields: const *[4] MaskField, order, fallback: Math.Simd.U8x16)
+{
+    using Math.Simd
+    let rowBytes = width * pixelBytes
+    var x        = 0'u64
+    var offset   = 0'u64
+    while width - x >= 4 and rowBytes - offset >= 16
+    {
+        store(target + x * 4, shuffle(load(source + offset), order) | fallback)
+        x      += 4
+        offset += 4 * pixelBytes
+    }
+
+    while x < width
+    {
+        for channel in 4
+        {
+            let field = fields[][channel]
+            target[x * 4 + channel] = field.mask ? source[offset + field.shift / 8] : field.fallback
+        }
+
+        x      += 1
+        offset += pixelBytes
+    }
+}
+
+func decodeMasked(image: *Image, buffer: const [..] u8, offset, pitch: u64, bits: u32, redMask, greenMask, blueMask, alphaMask: u32, luminance: bool) fail
+{
+    let width      = cast(u64, image.width)
     let pixelBytes = cast(u64, (bits + 7)) / 8
-    let rowBytes   = cast(u64, image.width) * pixelBytes
+    let rowBytes   = width * pixelBytes
     if pitch < rowBytes or cast(u64, image.height) > (buffer.count - offset) / pitch do
         fail InvalidFormatError{"DDS pixel rows are truncated"}
 
+    let fields: [4] MaskField = [prepareField(redMask, 0), prepareField(greenMask, 0), prepareField(blueMask, 0), prepareField(alphaMask, 255)]
+    let copyLuminance         = luminance and
+                                redMask == 255 and
+                                ((bits == 8 and not alphaMask) or (bits == 16 and alphaMask == 0xFF00))
+    var byteFields = not luminance
+    for field in fields do
+        byteFields = byteFields and isByteField(field, bits)
+
+    var orderBytes:    [16] u8
+    var fallbackBytes: [16] u8
+    if byteFields
+    {
+        for lane in 4
+        {
+            for channel in 4
+            {
+                let field = fields[channel]
+                let index = lane * 4 + channel
+                orderBytes[index]    = field.mask ? cast(u8, (lane * pixelBytes + field.shift / 8)) : 0x80
+                fallbackBytes[index] = field.mask ? 0 : field.fallback
+            }
+        }
+    }
+
+    let order    = cast(Math.Simd.U8x16, orderBytes)
+    let fallback = cast(Math.Simd.U8x16, fallbackBytes)
     for y in image.height
     {
-        let source  = buffer.buffer + offset + cast(u64, y) * pitch
+        var source  = buffer.buffer + offset + cast(u64, y) * pitch
         let targetY = image.height - y - 1
         var target  = image.pixels.storage() + cast(u64, targetY) * image.rowStride
-        for x in image.width
+        if copyLuminance
+        {
+            Memory.copy(target, source, rowBytes)
+            continue
+        }
+
+        if byteFields
+        {
+            decodeByteFieldsRow(source, target, width, pixelBytes, &fields, order, fallback)
+            continue
+        }
+
+        for width
         {
             var value = 0'u32
             for byte in pixelBytes do
-                value |= cast(u32, source[cast(u64, x) * pixelBytes + byte]) << (byte * 8)
+                value |= cast(u32, source[byte]) << (byte * 8)
+
+            target[0] = maskToByte(value, fields[0])
             if luminance
             {
-                target[0] = maskToByte(value, redMask, 0)
                 if image.pixelFormat == .GrayAlpha8 do
-                    target[1] = maskToByte(value, alphaMask, 255)
+                    target[1] = maskToByte(value, fields[3])
             }
             else
             {
-                target[0] = maskToByte(value, redMask, 0)
-                target[1] = maskToByte(value, greenMask, 0)
-                target[2] = maskToByte(value, blueMask, 0)
-                target[3] = maskToByte(value, alphaMask, 255)
+                target[1] = maskToByte(value, fields[1])
+                target[2] = maskToByte(value, fields[2])
+                target[3] = maskToByte(value, fields[3])
             }
 
+            source += pixelBytes
             target += image.bytesPerPixel
         }
     }
@@ -136,8 +222,18 @@ func copyRows(image: *Image, buffer: const [..] u8, offset, pitch: u64, forceOpa
         Memory.copy(target, buffer.buffer + offset + cast(u64, y) * pitch, rowBytes)
         if forceOpaqueAlpha
         {
-            for x in image.width do
-                target[cast(u64, x) * 4 + 3] = 255
+            using Math.Simd
+            let width = cast(u64, image.width)
+            let words = cast([*] u32, target)
+            var x     = 0'u64
+            while width - x >= 4
+            {
+                store(words + x, load(words + x) | 0xFF000000'u32)
+                x += 4
+            }
+
+            for i in x until width do
+                words[i] |= 0xFF000000'u32
         }
     }
 }

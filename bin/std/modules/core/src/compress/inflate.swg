@@ -14,6 +14,25 @@ internal
     const HuffmanMaxBits  = 16
     const HuffmanFastBits = 9
 
+    // Repeat the final distance bytes of the previous eight output bytes.
+    const ShortMatchMasks = #run
+    {
+        var masks: [6] Math.Simd.U8x16
+        for index in 6
+        {
+            let distance = index + 2
+            var lanes: [16] u8
+            for lane in 16 do
+                lanes[lane] = cast(u8, (8 - distance + lane % distance))
+            masks[index] = cast(Math.Simd.U8x16, lanes)
+        }
+
+        return masks
+    }
+
+    // Largest number of whole repetitions that one vector can contain.
+    const ShortMatchSteps = [16'u64, 15, 16, 15, 12, 14]
+
     const LengthBase: [31] u16 = [
         3, 4, 5, 6, 7, 8, 9, 10,
         11, 13, 15, 17, 19, 23, 27,
@@ -481,6 +500,24 @@ impl Inflate
             {
                 Memory.set(obuf + count, obuf[count - 1], length)
                 count += length
+            }
+            elif count >= 8
+            {
+                let seed    = cast(const [*] u64, (obuf + count - 8))[0]
+                let window  = cast #bit(Math.Simd.U8x16, Math.Simd.splat(seed))
+                let pattern = Math.Simd.shuffle(window, ShortMatchMasks[distance - 2])
+                let step    = ShortMatchSteps[distance - 2]
+                let end     = count + length
+                var dst     = count
+                for
+                {
+                    Math.Simd.store(obuf + dst, pattern)
+                    if end - dst <= #sizeof(Math.Simd.U8x16) do
+                        break
+                    dst += step
+                }
+
+                count = end
             }
             else
             {

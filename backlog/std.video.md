@@ -618,3 +618,42 @@ the sampling layouts used by ffmpeg's 4:2:0, 4:2:2, and 4:4:4 Motion JPEG output
 - Evidence: negative `DiscardPadding` is ignored, and positive padding is subtracted only from the last lace even when it spans earlier audio packets. The audio packet contract exposes only stream-edge trims, so the current video module cannot skip decoded samples at an arbitrary packet edge.
 - Next: add leading and trailing decoded-frame trims to the packetized audio contract, apply them in the Matroska packet table, and verify positive and negative padding across laced and later blocks against decoded PCM references.
 - Done when: signed padding removes the stated samples from each affected block without changing the timeline of surrounding audio.
+
+### std.video.036 — Decode VP8 pictures in Matroska and WebM
+
+- Evidence: the Matroska reader accepts WebM documents and already handles their timestamps and
+  Vorbis/Opus tracks, but it has no `V_VP8` picture decoder. Pixel's VP8 path decodes still WebP
+  pictures; video also needs inter-picture references and motion prediction. The base VP8 profile
+  is limited to 8-bit 4:2:0, making it a bounded first codec for WebM.
+- Next: define a bounded VP8 profile, reuse only the applicable WebP reconstruction primitives,
+  implement video entropy parsing, reference frames and filtering, and route `V_VP8` blocks through
+  the Matroska reader. Add redistributable FFmpeg reference fixtures for sequential decode and seek.
+- Done when: the selected VP8 profile decodes and seeks against reference planes, malformed input
+  stays bounded, audio timestamps remain aligned, and `.webm` is advertised by the reader.
+- Related: std.video.010, std.video.011
+
+### std.video.037 — Read raw Motion JPEG video streams
+
+- Evidence: FileSamples includes `.mjpeg` streams, and Pixel already decodes JPEG pictures; the
+  video module only reaches Motion JPEG through AVI and ISO-BMFF. A raw stream still needs bounded
+  JPEG frame-boundary scanning, an index for seeking, and a cadence policy because it carries no
+  container timestamps.
+- Next: add a raw MJPEG reader that reuses Pixel's JPEG decoder, indexes concatenated pictures,
+  and defines how callers learn or supply a frame rate when the stream has none. Compare complete
+  frames against FFmpeg and reject malformed or truncated image boundaries safely.
+- Done when: `.mjpeg` and `.mjpg` streams decode sequentially and by frame index against FFmpeg,
+  with an explicit frame-rate contract and bounded malformed-input handling.
+
+### std.video.038 — Read raw H.264 and HEVC elementary streams
+
+- Evidence: H.264 and HEVC decoding exists behind MP4 and Matroska packet readers, while FileSamples
+  also contains raw `.hevc` elementary streams. These inputs have no container index or timestamps,
+  so registering their extensions alone cannot open them; the reader must frame access units and
+  preserve codec picture reordering.
+- Next: add a bounded Annex-B reader for H.264 and HEVC that feeds the existing codec decoders,
+  indexes access units for seeking, reads dimensions and timing from codec metadata when present,
+  and defines the fallback when timing is absent. Compare reference frames and presentation order
+  against FFmpeg.
+- Done when: `.h264`/`.264` and `.hevc`/`.h265` elementary streams decode and seek against reference
+  planes, missing timing is reported or supplied according to the documented contract, and
+  malformed access units fail safely.

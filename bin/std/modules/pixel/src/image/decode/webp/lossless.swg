@@ -690,6 +690,117 @@ func losslessCopyRun(destination: [*] u32, distance, count: u64)
     }
 }
 
+// A single tree with no length or cache symbols can skip the general run loop.
+private func losslessHasOnlyLiterals(tree: *LosslessHuffmanTree)->bool
+{
+    let nodes = tree.nodes.storage()
+    for i in tree.nodeCount
+    {
+        if nodes[i].children == LOSSLESS_LEAF_NODE and nodes[i].symbol >= LOSSLESS_LITERAL_CODES do
+            return false
+    }
+
+    return true
+}
+
+private func losslessUniformByteTree(tree: *LosslessHuffmanTree)->bool
+{
+    // An eight-level full tree with 256 byte symbols assigns code i to symbol i.
+    return tree.maxLength == 8 and tree.nodes.count == 511 and tree.nodeCount == 511
+}
+
+#[Swag.Inline]
+private func losslessLoadReversedBytes(source: const [*] u8, shift: u8)->Math.Simd.U8x16
+{
+    using Math.Simd
+    var bytes = load(source)
+    if shift
+    {
+        let mask = splat(0xFF'u8 >> shift)
+        let next = load(source + 1)
+        let low  = cast #bit(U8x16, (cast #bit(U16x8, bytes) >> shift))
+        let high = cast #bit(U8x16, (cast #bit(U16x8, next) << (8 - shift)))
+        bytes = (low & mask) | (high & ~mask)
+    }
+
+    var words = cast #bit(U16x8, bytes)
+    let mask1 = splat(0x5555'u16)
+    let mask2 = splat(0x3333'u16)
+    let mask4 = splat(0x0F0F'u16)
+    words = ((words & mask1) << 1) | ((words >> 1) & mask1)
+    words = ((words & mask2) << 2) | ((words >> 2) & mask2)
+    return cast #bit(U8x16, (((words & mask4) << 4) | ((words >> 4) & mask4)))
+}
+
+func(CHANNELS: u32) losslessDecodeByteLiterals(reader: *LosslessBitReader, output: [*] u32, count: u64, color: u32)->bool
+{
+    using Math.Simd
+
+    #[Swag.Inline]
+    func readByte(source: const [*] u8, shift: u8)->u32
+    {
+        var byte = cast(u16, source[0])
+        if shift do
+            byte |= cast(u16, source[1]) << 8
+        return losslessReverseByte(cast(u8, ((byte >> shift) & 0xFF)))
+    }
+
+    // Prefetched data is still in the immutable source. Locate the current bit
+    // and preserve the final partial byte for the next nested image or field.
+    let shift  = cast(u8, ((8 - (reader.nBits & 7)) & 7))
+    let extra  = cast(u64, shift != 0)
+    let source = reader.ptr - ((reader.nBits + 7) >> 3)
+    let bytes  = count * CHANNELS
+    if reader.last - source < bytes + extra do
+        return false
+
+    #static if CHANNELS != 4 do
+        let colors = splat(color)
+    var index: u64
+    while bytes - index * CHANNELS >= 16
+    {
+        let samples = losslessLoadReversedBytes(source + index * CHANNELS, shift)
+        #static if CHANNELS == 4
+        {
+            const Order: [16] u8 = [1, 0, 2, 3, 5, 4, 6, 7, 9, 8, 10, 11, 13, 12, 14, 15]
+            store(output + index, cast #bit(U32x4, shuffle(samples, cast #bit(U8x16, Order))))
+            index += 4
+        }
+        elif CHANNELS == 3
+        {
+            const Order: [16] u8 = [1, 0, 2, 0x80, 4, 3, 5, 0x80, 7, 6, 8, 0x80, 10, 9, 11, 0x80]
+            store(output + index, cast #bit(U32x4, shuffle(samples, cast #bit(U8x16, Order))) | colors)
+            index += 4
+        }
+        else
+        {
+            let lo = widenLow(samples)
+            let hi = widenHigh(samples)
+            store(output + index, colors | (widenLow(lo) << 8))
+            store(output + index + 4, colors | (widenHigh(lo) << 8))
+            store(output + index + 8, colors | (widenLow(hi) << 8))
+            store(output + index + 12, colors | (widenHigh(hi) << 8))
+            index += 16
+        }
+    }
+
+    for i in index until count
+    {
+        let next   = source + i * CHANNELS
+        var result = color | (readByte(next, shift) << 8)
+        #static if CHANNELS > 1 do
+            result |= readByte(next + 1, shift) | (readByte(next + 2, shift) << 16)
+        #static if CHANNELS == 4 do
+            result |= readByte(next + 3, shift) << 24
+        output[i] = result
+    }
+
+    reader.ptr   = source + bytes + extra
+    reader.bits  = shift ? cast(u64, source[bytes] >> shift) : 0
+    reader.nBits = shift ? 8 - cast(u32, shift) : 0
+    return true
+}
+
 func losslessDecodePixels(reader: *LosslessBitReader, result: *Array'u8, width, height, minimumCapacity: s32, topLevel: bool) fail
 {
     var colorCacheBits:  u32
@@ -724,8 +835,33 @@ func losslessDecodePixels(reader: *LosslessBitReader, result: *Array'u8, width, 
 
     result.grow(Math.max(cast(u64, minimumCapacity), byteCount))
     result.count = byteCount
-    let output      = cast([*] u8, result.storage())
-    let groupData   = groups.storage()
+    let output    = cast([*] u8, result.storage())
+    let groupData = groups.storage()
+
+    if not huffmanBits and
+       pixelCount >= 16 and
+       losslessUniformByteTree(&groupData[0].trees[LOSSLESS_HUFF_GREEN]) and
+       losslessHasOnlyLiterals(&groupData[0].trees[LOSSLESS_HUFF_GREEN])
+    {
+        let target = cast([*] u32, output)
+        let red    = &groupData[0].trees[LOSSLESS_HUFF_RED]
+        let blue   = &groupData[0].trees[LOSSLESS_HUFF_BLUE]
+        let alpha  = &groupData[0].trees[LOSSLESS_HUFF_ALPHA]
+        if losslessUniformByteTree(red) and losslessUniformByteTree(blue)
+        {
+            if losslessUniformByteTree(alpha) and losslessDecodeByteLiterals'4(reader, target, pixelCount, 0) do
+                return
+            if not alpha.maxLength and losslessDecodeByteLiterals'3(reader, target, pixelCount, alpha.nodes[0].symbol << 24) do
+                return
+        }
+        elif not red.maxLength and not blue.maxLength and not alpha.maxLength
+        {
+            let color = red.nodes[0].symbol | (blue.nodes[0].symbol << 16) | (alpha.nodes[0].symbol << 24)
+            if losslessDecodeByteLiterals'1(reader, target, pixelCount, color) do
+                return
+        }
+    }
+
     let huffmanData = huffmanBits ? cast([*] u8, huffmanPixels.storage()) : null
 
     var offset:       u64

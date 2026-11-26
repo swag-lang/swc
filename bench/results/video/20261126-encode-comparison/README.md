@@ -110,3 +110,25 @@ at 46.56 dB from quality 60 through 95. libjpeg-turbo reaches 52.96 dB at qualit
 FFmpeg reaches 52.95 dB at QP 3 through 12. This clip isolates a conversion or reconstruction
 floor that increasing the JPEG quality setting leaves unchanged.
 [Measurements](mjpeg-baseline.json) · [Reproduction](../../../workloads/mjpeg/README.md)
+
+### Motion JPEG color rounding
+
+The encoder now rounds the fixed-point RGB dot products to the closest sample. Chroma
+uses the JPEG half-step bias to stay in the signed sample range, and the rounded
+chroma coefficients sum to zero for neutral colors.
+
+| Input and Swag quality | RGB PSNR before | RGB PSNR after | Packet bytes change |
+| --- | ---: | ---: | ---: |
+| Scrolling desktop, 95 | 43.82 dB | 44.75 dB | +0.82% |
+| Changing tiles, 60 | 46.56 dB | 52.96 dB | +0.01% |
+| Animated test pattern, 95 | 49.08 dB | 52.48 dB | +0.04% |
+| Camera, 95 | 44.99 dB | 49.56 dB | −0.60% |
+
+All 16 measured points gain RGB PSNR. On the saturated test pattern at quality 95,
+FFmpeg's RGB SSIM falls from 0.99384 to 0.94069. An independent uniform-window
+SSIM calculation also falls, from 0.99887 to 0.99168. The maximum RGB error stays
+at 12 levels. Of the source's 3.20 million zero-valued green samples, about 1.04
+million decode to one after the rounding change, up from 48,296. The desktop,
+changing tiles and camera have similar or higher SSIM. Packet size changes stay
+below 0.83% across the sweep. The JPEG, AVI and MP4 Release selection passed 86 tests.
+[Individual measurements and saturation check](mjpeg-rounding.json)

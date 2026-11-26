@@ -27,3 +27,24 @@ func multiply(left, right: u64, high: *u64)->u64 => Swag.mulWide(left, right, hi
     discard Swag.mulWide(0, 12, &high)
     Swag.require(high == 0)
 }
+
+#[Swag.NoInline]
+func multiplyAccumulate(left, right, first, second: u64, high: *u64)->u64 =>
+    Swag.mulWide(left, right, first, second, high)
+
+#test
+{
+    var high: u64
+    let largest = multiplyAccumulate(Swag.U64.Max, Swag.U64.Max, Swag.U64.Max, Swag.U64.Max, &high)
+    Swag.require(largest == Swag.U64.Max and high == Swag.U64.Max)
+
+    let carry = multiplyAccumulate(Swag.U64.Max, 2, 2, 5, &high)
+    Swag.require(carry == 5 and high == 2)
+
+    let pureSum = multiplyAccumulate(0, 13, Swag.U64.Max, 1, &high)
+    Swag.require(pureSum == 0 and high == 1)
+
+    var aliasOutput = Swag.U64.Max
+    let aliasLow = Swag.mulWide(aliasOutput, 2, aliasOutput, 3, &aliasOutput)
+    Swag.require(aliasLow == 0 and aliasOutput == 3)
+}

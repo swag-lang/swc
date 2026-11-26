@@ -806,11 +806,15 @@ namespace
     Result codeGenMulWide(CodeGen& codeGen, const AstIntrinsicCallExpr& node)
     {
         const auto children = codeGen.ast().nodeRefs(node.spanChildrenRef);
-        SWC_ASSERT(children.size() == 3);
+        SWC_ASSERT(children.size() == 3 || children.size() == 5);
 
-        const MicroReg left  = materializeIntrinsicIntArgReg(codeGen, codeGen.payload(children[0]), MicroOpBits::B64);
-        const MicroReg right = materializeIntrinsicIntArgReg(codeGen, codeGen.payload(children[1]), MicroOpBits::B64);
-        const MicroReg high  = materializeIntrinsicIntArgReg(codeGen, codeGen.payload(children[2]), MicroOpBits::B64);
+        const size_t   addendCount = children.size() - 3;
+        const MicroReg left        = materializeIntrinsicIntArgReg(codeGen, codeGen.payload(children[0]), MicroOpBits::B64);
+        const MicroReg right       = materializeIntrinsicIntArgReg(codeGen, codeGen.payload(children[1]), MicroOpBits::B64);
+        const MicroReg high        = materializeIntrinsicIntArgReg(codeGen, codeGen.payload(children[2 + addendCount]), MicroOpBits::B64);
+        std::array<MicroReg, 2> addends{};
+        for (size_t index = 0; index < addendCount; ++index)
+            addends[index] = materializeIntrinsicIntArgReg(codeGen, codeGen.payload(children[2 + index]), MicroOpBits::B64);
         SWC_RESULT(CodeGenSafety::emitValueBorrowWrite(codeGen, high, sizeof(uint64_t)));
 
         constexpr MicroReg rax     = MicroReg::intReg(0);
@@ -818,6 +822,11 @@ namespace
         MicroBuilder&      builder = codeGen.builder();
         builder.emitLoadRegReg(rax, left, MicroOpBits::B64);
         builder.emitOpBinaryRegReg(rax, right, MicroOp::MultiplyWideUnsigned, MicroOpBits::B64);
+        for (size_t index = 0; index < addendCount; ++index)
+        {
+            builder.emitOpBinaryRegReg(rax, addends[index], MicroOp::Add, MicroOpBits::B64);
+            builder.emitAddCarryRegImm(rdx, 0, MicroOpBits::B64);
+        }
         builder.emitLoadMemReg(high, 0, rdx, MicroOpBits::B64);
 
         CodeGenNodePayload& result = codeGen.setPayloadValue(codeGen.curNodeRef(), codeGen.curViewType().typeRef());

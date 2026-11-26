@@ -21,7 +21,8 @@ unsigned widths from 'u8' through 'u64'.
 # Wide Unsigned Multiplication
 
 'Swag.mulWide' computes the exact product of two 'u64' values. It returns the low 64 bits
-and writes the high 64 bits through the provided pointer.
+and writes the high 64 bits through the provided pointer. An overload adds two unsigned
+64-bit words to the product before splitting it into halves.
 */
 #test
 {
@@ -29,6 +30,10 @@ and writes the high 64 bits through the provided pointer.
     let low = Swag.mulWide(0x8000000000000000'u64, 3'u64, &high)
     Swag.require(low == 0x8000000000000000'u64)
     Swag.require(high == 1)
+
+    const Max = Swag.U64.Max
+    let accumulated = Swag.mulWide(Max, Max, Max, Max, &high)
+    Swag.require(accumulated == Max and high == Max)
 }
 
 /**

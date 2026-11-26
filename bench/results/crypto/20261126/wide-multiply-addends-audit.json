@@ -1,0 +1,100 @@
+[
+  {
+    "task": "binarytrees",
+    "base_functions": 456,
+    "new_functions": 456,
+    "differing_families": [],
+    "base_metadata": [],
+    "new_metadata": []
+  },
+  {
+    "task": "chacha",
+    "base_functions": 454,
+    "new_functions": 454,
+    "differing_families": [],
+    "base_metadata": [],
+    "new_metadata": []
+  },
+  {
+    "task": "csvagg",
+    "base_functions": 459,
+    "new_functions": 459,
+    "differing_families": [],
+    "base_metadata": [],
+    "new_metadata": []
+  },
+  {
+    "task": "dijkstra",
+    "base_functions": 454,
+    "new_functions": 454,
+    "differing_families": [
+      "__run_expr_AT_runtime/core.swg:682"
+    ],
+    "base_metadata": [],
+    "new_metadata": []
+  },
+  {
+    "task": "fannkuch",
+    "base_functions": 452,
+    "new_functions": 452,
+    "differing_families": [],
+    "base_metadata": [],
+    "new_metadata": []
+  },
+  {
+    "task": "leven",
+    "base_functions": 452,
+    "new_functions": 452,
+    "differing_families": [],
+    "base_metadata": [],
+    "new_metadata": []
+  },
+  {
+    "task": "lz77",
+    "base_functions": 453,
+    "new_functions": 453,
+    "differing_families": [],
+    "base_metadata": [],
+    "new_metadata": []
+  },
+  {
+    "task": "nbody",
+    "base_functions": 456,
+    "new_functions": 456,
+    "differing_families": [],
+    "base_metadata": [],
+    "new_metadata": []
+  },
+  {
+    "task": "raytrace",
+    "base_functions": 454,
+    "new_functions": 454,
+    "differing_families": [],
+    "base_metadata": [],
+    "new_metadata": []
+  },
+  {
+    "task": "sha256",
+    "base_functions": 453,
+    "new_functions": 453,
+    "differing_families": [],
+    "base_metadata": [],
+    "new_metadata": []
+  },
+  {
+    "task": "sort",
+    "base_functions": 454,
+    "new_functions": 454,
+    "differing_families": [],
+    "base_metadata": [],
+    "new_metadata": []
+  },
+  {
+    "task": "wordfreq",
+    "base_functions": 459,
+    "new_functions": 459,
+    "differing_families": [],
+    "base_metadata": [],
+    "new_metadata": []
+  }
+]

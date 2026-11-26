@@ -202,3 +202,5 @@ optimizations moved each result.
 - [Poly1305 IFMA register-state recurrence and scaling](poly1305-ifma-register-state.md)
 - [Paired software AES-CTR blocks](aes-ctr-software-pairs.md)
 - [SIMD whitening in software AES-XTS](aes-xts-software-vectors.md)
+
+- [Full-width multiplication with two additive words](wide-multiply-addends.md)

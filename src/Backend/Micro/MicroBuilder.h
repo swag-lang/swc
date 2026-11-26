@@ -204,6 +204,7 @@ public:
     void emitOpTernaryRegRegMem(MicroReg regDst, MicroReg regLeft, MicroReg memBase, uint64_t memOffset, MicroOp op, MicroOpBits opBits);
     void emitOpBinaryRegAmcMem(MicroReg regDst, MicroReg regBase, MicroReg regMul, uint64_t mulValue, uint64_t addValue, MicroOp op, MicroOpBits opBits);
     void emitOpBinaryMemReg(MicroReg memReg, uint64_t memOffset, MicroReg reg, MicroOp op, MicroOpBits opBits);
+    void emitAddCarryRegImm(MicroReg reg, uint64_t value, MicroOpBits opBits);
     void emitOpBinaryRegImm(MicroReg reg, const ApInt& value, MicroOp op, MicroOpBits opBits);
     void emitOpBinaryMemImm(MicroReg memReg, uint64_t memOffset, const ApInt& value, MicroOp op, MicroOpBits opBits);
     void emitOpTernaryRegRegReg(MicroReg reg0, MicroReg reg1, MicroReg reg2, MicroOp op, MicroOpBits opBits);

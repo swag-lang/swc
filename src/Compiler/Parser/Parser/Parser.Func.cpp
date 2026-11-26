@@ -732,7 +732,6 @@ AstNodeRef Parser::lowerSwagIntrinsicCall(const AstNodeRef nodeExpr, const SpanR
                 case TokenId::IntrinsicX64CpuId:
                 case TokenId::IntrinsicAtomicCmpXchg:
                 case TokenId::IntrinsicMulAdd:
-                case TokenId::IntrinsicMulWide:
                 case TokenId::IntrinsicVecShuffle2:
                 case TokenId::IntrinsicVecAlign:
                 case TokenId::IntrinsicVecSelect:
@@ -742,6 +741,10 @@ AstNodeRef Parser::lowerSwagIntrinsicCall(const AstNodeRef nodeExpr, const SpanR
                 case TokenId::IntrinsicVecSha1Rounds4:
                 case TokenId::IntrinsicVecSha256Rounds2:
                     numRequiredArgs = 3;
+                    break;
+
+                case TokenId::IntrinsicMulWide:
+                    numRequiredArgs = args.size() == 5 ? 5 : 3;
                     break;
 
                 case TokenId::IntrinsicVecClmul2XorPair:

@@ -1147,6 +1147,15 @@ void MicroBuilder::emitOpBinaryMemReg(MicroReg memReg, uint64_t memOffset, Micro
     ops[4].valueU64         = memOffset;
 }
 
+void MicroBuilder::emitAddCarryRegImm(MicroReg reg, uint64_t value, MicroOpBits opBits)
+{
+    const auto&        inst = addInstruction(MicroInstrOpcode::AddCarryRegImm, 3);
+    MicroInstrOperand* ops  = inst.ops(operands_);
+    ops[0].reg              = reg;
+    ops[1].opBits           = opBits;
+    ops[2].valueU64         = value;
+}
+
 void MicroBuilder::emitOpBinaryRegImm(MicroReg reg, const ApInt& value, MicroOp op, MicroOpBits opBits)
 {
     const auto&        inst = addInstruction(MicroInstrOpcode::OpBinaryRegImm, 4);

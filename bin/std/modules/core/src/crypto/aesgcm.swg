@@ -84,38 +84,68 @@ internal func aesGcmGhashBlockClmul(state: *[16] u8, hashKey: [16] u8, block: co
 }
 
 #[Swag.Inline]
-private func aesGcmPolynomialMultiply32(x, y: u32)->u64
-{
-    const NibbleLow = 0x1111_1111_1111_1111'u64
-    let x0 = cast(u64, x) & NibbleLow
-    let x1 = cast(u64, x) & (NibbleLow << 1)
-    let x2 = cast(u64, x) & (NibbleLow << 2)
-    let x3 = cast(u64, x) & (NibbleLow << 3)
-    let y0 = cast(u64, y) & NibbleLow
-    let y1 = cast(u64, y) & (NibbleLow << 1)
-    let y2 = cast(u64, y) & (NibbleLow << 2)
-    let y3 = cast(u64, y) & (NibbleLow << 3)
-
-    // A product combines at most eight bits per coefficient. The four-bit spacing
-    // keeps carries from changing the parity of the next coefficient.
-    let p0 = (x0 * y0 ^ x1 * y3 ^ x2 * y2 ^ x3 * y1) & NibbleLow
-    let p1 = (x0 * y1 ^ x1 * y0 ^ x2 * y3 ^ x3 * y2) & (NibbleLow << 1)
-    let p2 = (x0 * y2 ^ x1 * y1 ^ x2 * y0 ^ x3 * y3) & (NibbleLow << 2)
-    let p3 = (x0 * y3 ^ x1 * y2 ^ x2 * y1 ^ x3 * y0) & (NibbleLow << 3)
-    return p0 | p1 | p2 | p3
-}
-
-#[Swag.Inline]
 private func aesGcmPolynomialMultiply64(x, y: u64)->{low: u64, high: u64}
 {
-    let x0    = cast(u32, x)
-    let x1    = cast(u32, x >> 32)
-    let y0    = cast(u32, y)
-    let y1    = cast(u32, y >> 32)
-    let low   = aesGcmPolynomialMultiply32(x0, y0)
-    let high  = aesGcmPolynomialMultiply32(x1, y1)
-    let cross = aesGcmPolynomialMultiply32(x0 ^ x1, y0 ^ y1) ^ low ^ high
-    return {low ^ (cross << 32), high ^ (cross >> 32)}
+    const Mask = 0x1111_1111_1111_1111'u64
+    // Dropping one coefficient from each residue leaves at most fifteen terms
+    // in a column, so each ordinary product preserves parity across four-bit slots.
+    let upper = x & ~15'u64
+    let x0 = upper & (Mask << 0)
+    let y0 = y & (Mask << 0)
+    let x1 = upper & (Mask << 1)
+    let y1 = y & (Mask << 1)
+    let x2 = upper & (Mask << 2)
+    let y2 = y & (Mask << 2)
+    let x3 = upper & (Mask << 3)
+    let y3 = y & (Mask << 3)
+
+    var low  = 0'u64
+    var high = 0'u64
+    scope {
+        let p0 = Math.mulU64(x0, y0)
+        let p1 = Math.mulU64(x1, y3)
+        let p2 = Math.mulU64(x2, y2)
+        let p3 = Math.mulU64(x3, y1)
+        low  |= (p0.lo ^ p1.lo ^ p2.lo ^ p3.lo) & (Mask << 0)
+        high |= (p0.hi ^ p1.hi ^ p2.hi ^ p3.hi) & (Mask << 0)
+    }
+
+    scope {
+        let p0 = Math.mulU64(x0, y1)
+        let p1 = Math.mulU64(x1, y0)
+        let p2 = Math.mulU64(x2, y3)
+        let p3 = Math.mulU64(x3, y2)
+        low  |= (p0.lo ^ p1.lo ^ p2.lo ^ p3.lo) & (Mask << 1)
+        high |= (p0.hi ^ p1.hi ^ p2.hi ^ p3.hi) & (Mask << 1)
+    }
+
+    scope {
+        let p0 = Math.mulU64(x0, y2)
+        let p1 = Math.mulU64(x1, y1)
+        let p2 = Math.mulU64(x2, y0)
+        let p3 = Math.mulU64(x3, y3)
+        low  |= (p0.lo ^ p1.lo ^ p2.lo ^ p3.lo) & (Mask << 2)
+        high |= (p0.hi ^ p1.hi ^ p2.hi ^ p3.hi) & (Mask << 2)
+    }
+
+    scope {
+        let p0 = Math.mulU64(x0, y3)
+        let p1 = Math.mulU64(x1, y2)
+        let p2 = Math.mulU64(x2, y1)
+        let p3 = Math.mulU64(x3, y0)
+        low  |= (p0.lo ^ p1.lo ^ p2.lo ^ p3.lo) & (Mask << 3)
+        high |= (p0.hi ^ p1.hi ^ p2.hi ^ p3.hi) & (Mask << 3)
+    }
+
+    // Restore the dropped low nibble with four fixed carry-less products.
+    low ^= y & (0'u64 - (x & 1))
+    for shift in 1 until 4
+    {
+        let selected = 0'u64 - ((x >> shift) & 1)
+        low  ^= (y << shift) & selected
+        high ^= (y >> (64 - shift)) & selected
+    }
+    return {low, high}
 }
 
 #[Swag.Inline]

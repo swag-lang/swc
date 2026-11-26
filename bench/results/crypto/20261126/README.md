@@ -139,3 +139,4 @@ optimizations moved each result.
 - [Complete mixed addition for P-256 generator multiplication](p256-complete-addition.md)
 - [Integrated Core crypto validation at 14:26 CET](integrated-validation-1426.md)
 - [Poly1305 parallel tiles](poly1305-worker-tiles.md)
+- [Portable GHASH with wide integer products](ghash-wide-integer.md)

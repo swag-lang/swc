@@ -664,6 +664,14 @@ public impl LinePath
         }
     }
 
+    // Reports whether the authored segments need a flattening tolerance.
+    internal mtd const hasCurves()->bool
+    {
+        for element in .elements where element.type != .Line do
+            return true
+        return false
+    }
+
     // Builds the contour points without measuring properties needed only by triangulation.
     internal mtd flattenPoints(quality: PaintQuality, scale: f32)
     {
@@ -680,12 +688,7 @@ public impl LinePath
         // path's tessellation and its list's fill normalization for nothing — which is most of
         // what a viewer feels as a freeze on the first frame at a new zoom, since a page of
         // rules, boxes and tables is polygons all the way down.
-        var curved = false
-        for elem in .elements where elem.type != .Line
-        {
-            curved = true
-            break
-        }
+        let curved = .hasCurves()
 
         .clearCache()
         .isDirty               = false

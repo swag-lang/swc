@@ -2646,6 +2646,26 @@ private impl Parser
         if authoredLength <= 0 or Math.abs(geometryScale) <= 0.000001 do
             return
 
+        // The calibrated length only affects a stroke's dash pattern and offset.
+        var calibrateStroke = false
+        for i in count
+        {
+            let stroke = .drawing.strokeFor(&.drawing.shapes[first + i])
+            if stroke and (stroke.pattern.count or stroke.offset != 0)
+            {
+                calibrateStroke = true
+                break
+            }
+        }
+        if not calibrateStroke
+        {
+            // Keep the original tolerance for curves before a draft-quality paint.
+            for i in count do
+                for path in .drawing.shapes[first + i].pathList.paths where path.hasCurves() do
+                    path.flatten(.Normal)
+            return
+        }
+
         var actualLength: f32
         for i in count
         {

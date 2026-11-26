@@ -16,8 +16,10 @@ It verifies their SHA-256 digests and caps the largest output at 2048 pixels.
 
 The runner prints separate parse, raster and combined medians from seven repetitions. Each
 Swag sample warms the engine once and parses a fresh drawing before calling
-`Svg.Drawing.rasterize(width, height, 1)`, the CPU path Scope uses for bitmap output. resvg
-reports XML parsing, SVG parsing and rendering through `--perf`. File reading, image saving,
+`Svg.Drawing.rasterize(width, height, 1)`. Pass `--scope` to measure the bitmap path
+with Scope's `preferScanFills` parse option. When comparing a baseline in this mode, use
+standard-library sources that also support the option. resvg reports XML parsing, SVG
+parsing and rendering through `--perf`. File reading, image saving,
 checksumming, window startup and presentation are excluded. `--workers` sets the number of
 Swag runtime workers (one by default).
 

@@ -66,7 +66,7 @@ def fixtures(scratch, filesamples):
         yield path, width, height
 
 
-def build(compiler, bin_root, build_root):
+def build(compiler, bin_root, build_root, *, scope=False):
     build_root.mkdir()
     executable = build_root / compiler.name
     shutil.copy2(compiler, executable)
@@ -74,9 +74,11 @@ def build(compiler, bin_root, build_root):
     shutil.copytree(bin_root / "std", build_root / "std", ignore=shutil.ignore_patterns(".output", ".tmp"))
     output = build_root / "out"
     environment = dict(os.environ, SWAG_PATH=str(build_root), TMPDIR=str(build_root))
-    subprocess.run([executable, "build", "-d", HERE / "src", "--module-file", HERE / "module.swg",
-                    "-bc", "release", "--out-dir", output, "--work-dir", build_root / "work"],
-                   cwd=build_root, env=environment, check=True)
+    command = [executable, "build", "-d", HERE / "src", "--module-file", HERE / "module.swg",
+               "-bc", "release", "--out-dir", output, "--work-dir", build_root / "work"]
+    if scope:
+        command += ["--tag", "Benchmark.SvgScope"]
+    subprocess.run(command, cwd=build_root, env=environment, check=True)
     return output / ("svgraster.exe" if os.name == "nt" else "svgraster")
 
 
@@ -107,6 +109,7 @@ def main():
     parser.add_argument("--filesamples", type=Path, help="directory containing the four original SVGs")
     parser.add_argument("--reps", type=int, default=7)
     parser.add_argument("--workers", type=int, default=1)
+    parser.add_argument("--scope", action="store_true", help="use Swag Scope's SVG bitmap parse options")
     args = parser.parse_args()
     if args.reps < 1 or args.workers < 1:
         parser.error("--reps and --workers must be positive")
@@ -117,10 +120,11 @@ def main():
         scratch = Path(directory)
         programs = {}
         if args.against_bin:
-            programs["baseline"] = build(compiler, args.against_bin.resolve(), scratch / "baseline")
-        programs["swag"] = build(compiler, ROOT / "bin", scratch / "swag")
+            programs["baseline"] = build(compiler, args.against_bin.resolve(), scratch / "baseline", scope=args.scope)
+        programs["swag"] = build(compiler, ROOT / "bin", scratch / "swag", scope=args.scope)
 
-        print(f"Release, {args.workers} Swag workers, {args.reps} repetitions", flush=True)
+        mode = "Scope bitmap" if args.scope else "default SVG"
+        print(f"Release, {mode}, {args.workers} Swag workers, {args.reps} repetitions", flush=True)
         print("fixture                engine    parse ms   raster ms    total ms     vs resvg", flush=True)
         for fixture, width, height in fixtures(scratch, args.filesamples):
             samples = {engine: [] for engine in (*programs, "resvg")}

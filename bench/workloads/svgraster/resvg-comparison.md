@@ -343,3 +343,42 @@ of the 1920 × 1280 output and 438 pixels of the largest output, all in the
 second horizontal tile. The generated dense fill also changed CRC-64. The
 interpolation and coverage use coordinates relative to each tile, so sharing
 more work across tiles still needs to preserve those local coordinates.
+
+## Sharing contour traversal between columns
+
+A prototype classified each flattened contour for both horizontal tiles
+while visiting the left one. It queued the contours that reached the
+right tile and used the usual tile-local interpolation in both. This
+preserved the bitmap CRC-64s of the 1920 × 1280 and 5184 × 3456 originals
+and of the generated dense fill.
+
+The table reports median parse and first raster time in milliseconds
+against `b031932f1c`. The originals used seven interleaved Release runs
+per CPU budget. The generated dense fill used five.
+
+| Source | Baseline, 1 worker | Shared traversal, 1 worker | Baseline, 4 workers | Shared traversal, 4 workers |
+| --- | ---: | ---: | ---: | ---: |
+| 1920 × 1280 | 44.84 | 44.74 | 34.19 | 37.44 |
+| 5184 × 3456 | 249.95 | 250.43 | 208.48 | 218.53 |
+| Generated dense fill | 49.65 | 51.63 | 30.21 | 32.04 |
+
+On the largest bitmap, raster time went from 180.87 to 183.13 ms
+at one worker and from 138.07 to 144.23 ms at four. resvg 0.50.0
+measured 258.63 and 249.76 ms total under the same CPU affinities.
+Queuing candidates in the left tile moved work out of the right tile's
+pass. The combined raster phase was slower at both CPU budgets.
+Limiting composition to covered columns improved the largest bitmap
+in a five-run trial and slowed it in the seven-run confirmation at one
+worker.
+
+The benchmark now exposes this bitmap mode through `--scope`. It
+uses Scope's parse option in both Swag builds while retaining the
+runner's existing baseline CRC-64 check. [Benchmark runner](README.md)
+
+An instrumented pass counted edges and buffer growth in the two largest
+compound fills of the 5184 × 3456 original. At 2048 × 1365, 610,259 of
+728,994 sloped edges crossed one sample row (84%), and recording 928,738
+intersections grew a row buffer 32,418 times. At 320 × 213 with two
+samples per axis, 214,584 of 220,338 sloped edges crossed one sample row
+(97%). Those counts narrow the interpolation work to the single-row case
+and identify where to measure row buffer growth separately.

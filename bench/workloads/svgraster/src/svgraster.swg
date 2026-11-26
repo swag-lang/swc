@@ -2,6 +2,14 @@ using Core, Pixel
 
 #main
 {
+    func parseDrawing(source: string)->Svg.Drawing
+    {
+        #static if #hastag("Benchmark.SvgScope") do
+            return expect Svg.Drawing.parse(source, {preferScanFills: true})
+        else do
+            return expect Svg.Drawing.parse(source)
+    }
+
     let args = Env.arguments()
     Swag.require(args.count == 5)
     let source  = expect File.readAllText(args[1])
@@ -17,7 +25,7 @@ using Core, Pixel
     {
         var watch: Time.Stopwatch
         watch.start()
-        let drawing = expect Svg.Drawing.parse(source.toString())
+        let drawing = parseDrawing(source.toString())
         let parse   = watch.elapsedMicroseconds()
         let image   = drawing.rasterize(width, height, 1)
         watch.stop()

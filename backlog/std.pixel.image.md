@@ -150,9 +150,11 @@ ships; history lives in Git, not here.
 - Evidence: [medium scan line sorting](../bench/workloads/svgraster/resvg-comparison.md#sorting-medium-scan-lines)
   cuts the 1920 × 1280 single-worker raster phase by 11%. Full-width scan strips save work
   on the largest bitmap but change coverage within the second horizontal tile.
-- Next: test sharing contour traversal across horizontal tiles while preserving each tile's
-  local-coordinate interpolation. Rerun the original Windows comparison at one worker
-  and at the runtime default.
+- Evidence: [shared contour traversal](../bench/workloads/svgraster/resvg-comparison.md#sharing-contour-traversal-between-columns)
+  retains tile-local rounding but adds enough work to slow the four-worker bitmap.
+- Next: measure a single-sample-row interpolation fast path and the separate cost of
+  growing crossing buffers on the largest original. Rerun the original Windows
+  comparison at one worker and at the runtime default.
 - Done when: the original corpus meets agreed parse and raster budgets against resvg and the
   renderer's verified output behavior is preserved.
 - Related: std.pixel.image.039, app.scope.image.010

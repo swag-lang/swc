@@ -199,6 +199,21 @@ private func ed25519MultiplyGenerator(scalar: const [..] u8)->Ed25519Point
     return result
 }
 
+// Edwards y = 4/5 maps to the X25519 generator u = 9. In projective
+// coordinates the Montgomery map is u = (Z + Y) / (Z - Y).
+internal func x25519MultiplyGenerator(scalar: const [..] u8, destination: [..] u8)
+{
+    var point = ed25519MultiplyGenerator(scalar)
+    defer Crypto.secureClear(Swag.makeSlice(&point, 1))
+    var numerator = x25519Add(point.z, point.y)
+    defer Crypto.secureClear(numerator.limbs)
+    var denominator = x25519Subtract(point.z, point.y)
+    defer Crypto.secureClear(denominator.limbs)
+    var coordinate = x25519Multiply(numerator, x25519Invert(denominator))
+    defer Crypto.secureClear(coordinate.limbs)
+    x25519Encode(coordinate, destination)
+}
+
 private func ed25519HashSeed(seed: const [..] u8)->[64] u8
 {
     var hash: Hash.Sha512

@@ -262,15 +262,20 @@ private func x25519ConditionalSwap(left, right: *X25519Field, swap: u64)
     }
 }
 
+private func x25519ClampScalar(privateKey: const [..] u8)->[X25519KeySize] u8
+{
+    var result: #returntype
+    Swag.memcpy(result.buffer, privateKey.buffer, X25519KeySize)
+    result[0] &= 248
+    result[31] = (result[31] & 63) | 64
+    return result
+}
+
 private func x25519ScalarMult(privateKey, publicCoordinate: const [..] u8)->[X25519KeySize] u8
 {
-    var scalar:     [X25519KeySize] u8
+    var scalar = x25519ClampScalar(privateKey)
     var coordinate: [X25519KeySize] u8
-    Swag.memcpy(&scalar[0], privateKey.buffer, X25519KeySize)
-    Swag.memcpy(&coordinate[0], publicCoordinate.buffer, X25519KeySize)
-    scalar[0]      &= 248
-    scalar[31]     &= 127
-    scalar[31]     |= 64
+    Swag.memcpy(coordinate.buffer, publicCoordinate.buffer, X25519KeySize)
     coordinate[31] &= 127
 
     var x1 = x25519Decode(coordinate)
@@ -339,11 +344,9 @@ func x25519PublicKey(privateKey: const [..] u8, destination: [..] u8) fail
     if privateKey.count != X25519KeySize or destination.count != X25519KeySize do
         fail Errors.BadParameterError{"X25519 keys and outputs must be exactly 32 bytes"}
 
-    var baseCoordinate: [X25519KeySize] u8
-    baseCoordinate[0] = 9
-    let result = x25519ScalarMult(privateKey, baseCoordinate)
-    Swag.memcpy(destination.buffer, &result[0], X25519KeySize)
-    Crypto.secureClear(result)
+    var scalar = x25519ClampScalar(privateKey)
+    defer Crypto.secureClear(scalar)
+    x25519MultiplyGenerator(scalar, destination)
 }
 
 // Computes a 32-byte shared secret and rejects low-order peer keys that produce the all-zero result.

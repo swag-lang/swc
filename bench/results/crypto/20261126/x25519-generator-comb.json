@@ -1,0 +1,334 @@
+{
+  "utc": "2026-11-26T12:43:49.587204+00:00",
+  "system": "Linux-6.18.57-x86_64-with-glibc2.41",
+  "cpu": 1,
+  "affinity": [
+    1
+  ],
+  "workers": {
+    "baseline": 1,
+    "masked-edwards": 1
+  },
+  "processor": {
+    "model name": "AMD EPYC 9V74 80-Core Processor",
+    "microcode": "0x1000065",
+    "flags": "fpu vme de pse tsc msr pae mce cx8 apic sep mtrr pge mca cmov pat pse36 clflush mmx fxsr sse sse2 ht syscall nx mmxext fxsr_opt pdpe1gb rdtscp lm constant_tsc rep_good nopl xtopology nonstop_tsc cpuid extd_apicid tsc_known_freq pni pclmulqdq ssse3 fma cx16 pcid sse4_1 sse4_2 x2apic movbe popcnt tsc_deadline_timer aes xsave avx f16c rdrand hypervisor lahf_lm cmp_legacy cr8_legacy abm sse4a misalignsse 3dnowprefetch osvw topoext cpuid_fault vmmcall fsgsbase tsc_adjust bmi1 avx2 smep bmi2 erms invpcid avx512f avx512dq rdseed adx smap avx512ifma clflushopt clwb avx512cd sha_ni avx512bw avx512vl xsaveopt xsavec xgetbv1 xsaves avx512_bf16 clzero xsaveerptr arat npt nrip_save tsc_scale vmcb_clean flushbyasid pausefilter pfthreshold v_vmsave_vmload avx512vbmi umip avx512_vbmi2 gfni vaes vpclmulqdq avx512_vnni avx512_bitalg avx512_vpopcntdq rdpid fsrm arch_capabilities"
+  },
+  "reference_build": "OpenSSL 3.5.7 9 Jun 2026 | zlib 1.3.1 | BLAKE3 1.8.7 | libdeflate 1.26 | ISA-L 2.32.1 | liblzma 5.8.1",
+  "reference_sha256": "d6f36f4496d0434337b2936a7ff71c55c7ca395d52e0ae4222a2fc5b3d5a5f51",
+  "swag_builds": {
+    "baseline": "99caad642058fe42fda6ff369ba0d403a0488d5c61231692046c37ffc0dfc169",
+    "masked-edwards": "0ef5f9114d00e584bc9c62dda6cb762785adc5cf71eb53eb33a40e43c3894733"
+  },
+  "rounds": 11,
+  "target_ms": 35,
+  "clock": "cpu",
+  "rows": [
+    {
+      "algorithm": "x25519-public",
+      "bytes": 32,
+      "offset": 0,
+      "input_sha256": "2404657934fda9253c9d38499cb12ebdbbed5a27f47746fb93ed5d1b676bd395",
+      "output_sha256": "82bc2c8f4e75b535a175120445ec22f7265a811b633ced733b9d06869c502c69",
+      "samples": {
+        "OpenSSL": {
+          "iterations": 935,
+          "wall": [
+            0.034225448,
+            0.034021499,
+            0.03378278,
+            0.033461224,
+            0.033310448,
+            0.040802166,
+            0.03341818,
+            0.033656529,
+            0.041671818,
+            0.033481235,
+            0.033869269
+          ],
+          "cpu": [
+            0.034206611,
+            0.034003209,
+            0.033779856,
+            0.033458888,
+            0.033294253,
+            0.04079938,
+            0.033415974,
+            0.033654419,
+            0.040271237,
+            0.033478938,
+            0.033866875
+          ]
+        },
+        "baseline": {
+          "iterations": 252,
+          "wall": [
+            0.035045744,
+            0.034627253,
+            0.035101899,
+            0.034448283,
+            0.034738901,
+            0.035918871,
+            0.036470833,
+            0.034711581,
+            0.044487233,
+            0.034816509,
+            0.034583006
+          ],
+          "cpu": [
+            0.035042847,
+            0.034625255,
+            0.035099942,
+            0.034445527,
+            0.034736741,
+            0.035917039,
+            0.036451925,
+            0.0347094,
+            0.042179452,
+            0.034813966,
+            0.034580578
+          ]
+        },
+        "masked-edwards": {
+          "iterations": 440,
+          "wall": [
+            0.033105928,
+            0.034071184,
+            0.033924273,
+            0.033762529,
+            0.033328054,
+            0.033830121,
+            0.033156856,
+            0.033654866,
+            0.043067231,
+            0.052022889,
+            0.03324584
+          ],
+          "cpu": [
+            0.03310404,
+            0.034069227,
+            0.033921777,
+            0.033760577,
+            0.03332613,
+            0.033828017,
+            0.033154625,
+            0.033646808,
+            0.040753252,
+            0.039063838,
+            0.033243888
+          ]
+        }
+      },
+      "round_order": [
+        [
+          "OpenSSL",
+          "baseline",
+          "masked-edwards"
+        ],
+        [
+          "masked-edwards",
+          "OpenSSL",
+          "baseline"
+        ],
+        [
+          "OpenSSL",
+          "baseline",
+          "masked-edwards"
+        ],
+        [
+          "baseline",
+          "OpenSSL",
+          "masked-edwards"
+        ],
+        [
+          "masked-edwards",
+          "OpenSSL",
+          "baseline"
+        ],
+        [
+          "OpenSSL",
+          "baseline",
+          "masked-edwards"
+        ],
+        [
+          "OpenSSL",
+          "masked-edwards",
+          "baseline"
+        ],
+        [
+          "OpenSSL",
+          "baseline",
+          "masked-edwards"
+        ],
+        [
+          "OpenSSL",
+          "baseline",
+          "masked-edwards"
+        ],
+        [
+          "masked-edwards",
+          "baseline",
+          "OpenSSL"
+        ],
+        [
+          "OpenSSL",
+          "masked-edwards",
+          "baseline"
+        ]
+      ]
+    },
+    {
+      "algorithm": "x25519-shared",
+      "bytes": 32,
+      "offset": 0,
+      "input_sha256": "2404657934fda9253c9d38499cb12ebdbbed5a27f47746fb93ed5d1b676bd395",
+      "output_sha256": "9cece8f62296730a835add7d412edfd57587a071fb99e1b937693a5159c24d5d",
+      "samples": {
+        "OpenSSL": {
+          "iterations": 497,
+          "wall": [
+            0.034510517,
+            0.035016239,
+            0.034363806,
+            0.034856078,
+            0.036756514,
+            0.034534273,
+            0.035105945,
+            0.034672381,
+            0.034337065,
+            0.034418619,
+            0.034401733
+          ],
+          "cpu": [
+            0.034508331,
+            0.035009888,
+            0.034361432,
+            0.034853765,
+            0.036754115,
+            0.034532167,
+            0.035103447,
+            0.034657774,
+            0.034334202,
+            0.034416103,
+            0.034399639
+          ]
+        },
+        "baseline": {
+          "iterations": 255,
+          "wall": [
+            0.03585181,
+            0.035007978,
+            0.034867555,
+            0.03467181,
+            0.034713262,
+            0.034873414,
+            0.035213167,
+            0.034646382,
+            0.035047677,
+            0.035462062,
+            0.035104112
+          ],
+          "cpu": [
+            0.035841787,
+            0.035005832,
+            0.034865452,
+            0.03466849,
+            0.034711473,
+            0.034871231,
+            0.035210787,
+            0.034644013,
+            0.035044919,
+            0.035460008,
+            0.035102115
+          ]
+        },
+        "masked-edwards": {
+          "iterations": 257,
+          "wall": [
+            0.03466493,
+            0.034624829,
+            0.035064864,
+            0.035118634,
+            0.035137974,
+            0.035653791,
+            0.034876889,
+            0.035501412,
+            0.034786393,
+            0.034790159,
+            0.0347711
+          ],
+          "cpu": [
+            0.034662911,
+            0.034622511,
+            0.035016878,
+            0.035116206,
+            0.035135505,
+            0.035650832,
+            0.034874797,
+            0.035499137,
+            0.03478324,
+            0.034787908,
+            0.034768949
+          ]
+        }
+      },
+      "round_order": [
+        [
+          "baseline",
+          "OpenSSL",
+          "masked-edwards"
+        ],
+        [
+          "masked-edwards",
+          "OpenSSL",
+          "baseline"
+        ],
+        [
+          "OpenSSL",
+          "masked-edwards",
+          "baseline"
+        ],
+        [
+          "masked-edwards",
+          "baseline",
+          "OpenSSL"
+        ],
+        [
+          "masked-edwards",
+          "baseline",
+          "OpenSSL"
+        ],
+        [
+          "OpenSSL",
+          "baseline",
+          "masked-edwards"
+        ],
+        [
+          "masked-edwards",
+          "baseline",
+          "OpenSSL"
+        ],
+        [
+          "OpenSSL",
+          "masked-edwards",
+          "baseline"
+        ],
+        [
+          "masked-edwards",
+          "baseline",
+          "OpenSSL"
+        ],
+        [
+          "masked-edwards",
+          "baseline",
+          "OpenSSL"
+        ],
+        [
+          "baseline",
+          "OpenSSL",
+          "masked-edwards"
+        ]
+      ]
+    }
+  ]
+}

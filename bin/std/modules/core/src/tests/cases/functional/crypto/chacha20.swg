@@ -174,7 +174,7 @@ func scalarChaCha20Xor(key, nonce, source: const [..] u8, destination: [..] u8, 
     for index in source.count do
         source[index] = cast(u8, ((index * 47 + 13) & 0xFF))
 
-    let lengths: [8] u64 = [65535, 65536, 65537, 65599, 65600, 65791, 65792, Capacity - 2]
+    let lengths: [11] u64 = [4095, 4096, 4097, 65535, 65536, 65537, 65599, 65600, 65791, 65792, Capacity - 2]
     for length in lengths
     {
         Memory.set(actual.storage(), 0xA5, actual.count)

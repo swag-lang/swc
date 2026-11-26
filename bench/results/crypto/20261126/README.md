@@ -107,3 +107,4 @@ optimizations moved each result.
 - [X25519 ladder with deferred carries](x25519-ladder-carries.md)
 - [Fixed PBKDF2 blocks for SHA-384 and SHA-512](pbkdf2-sha512-blocks.md)
 - [Portable GHASH with persistent field state](ghash-portable-stream.md)
+- [ChaCha20 key and nonce reuse across batches](chacha20-chunk-reuse.md)

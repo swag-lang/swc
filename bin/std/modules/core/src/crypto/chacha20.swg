@@ -176,7 +176,7 @@ internal func hchacha20(key: const [..] u8, nonce: const [..] u8)->[ChaCha20KeyS
 // input needs more blocks than the counter range starting at `initialCounter` provides.
 func chacha20Xor(key, nonce, source: const [..] u8, destination: [..] u8, initialCounter = 0'u32) fail
 {
-    func chacha20XorFour(key, nonce: const [..] u8, counter: u32, source: const [*] u8, destination: [*] u8)
+    func chacha20XorBatches(key, nonce: const [..] u8, counter: u32, source: const [*] u8, destination: [*] u8, count: u64)
     {
         var initial: [16] Simd.U32x4
         initial[0] = Simd.splat(0x61707865'u32)
@@ -185,37 +185,42 @@ func chacha20Xor(key, nonce, source: const [..] u8, destination: [..] u8, initia
         initial[3] = Simd.splat(0x6B206574'u32)
         for i in 8 do
             initial[4 + i] = Simd.splat(load32(key.buffer + i * 4))
-        initial[12] = cast(Simd.U32x4, [counter, counter + 1, counter + 2, counter + 3])
         initial[13] = Simd.splat(load32(nonce.buffer))
         initial[14] = Simd.splat(load32(nonce.buffer + 4))
         initial[15] = Simd.splat(load32(nonce.buffer + 8))
 
-        var state = initial
-        for 10
-        {
-            quarterRound(&state[0], &state[4], &state[8], &state[12])
-            quarterRound(&state[1], &state[5], &state[9], &state[13])
-            quarterRound(&state[2], &state[6], &state[10], &state[14])
-            quarterRound(&state[3], &state[7], &state[11], &state[15])
-            quarterRound(&state[0], &state[5], &state[10], &state[15])
-            quarterRound(&state[1], &state[6], &state[11], &state[12])
-            quarterRound(&state[2], &state[7], &state[8], &state[13])
-            quarterRound(&state[3], &state[4], &state[9], &state[14])
-        }
-
-        // Transpose each four-word group from lanes of independent blocks into
-        // consecutive words, so it can be applied directly to the input.
+        const counterOffsets = cast(Simd.U32x4, [0'u32, 1, 2, 3])
+        var state: [16] Simd.U32x4
         var words: [4] Simd.U32x4
-        for group in 4
+        for batch in count
         {
-            for word in 4 do
-                words[word] = state[group * 4 + word] + initial[group * 4 + word]
-            Simd.transpose4x4(&words)
-            for block in 4
+            initial[12] = Simd.splat(counter + cast(u32, (batch * 4))) + counterOffsets
+            state = initial
+            for 10
             {
-                let offset = block * ChaCha20BlockSize + group * #sizeof(Simd.U8x16)
-                let stream = swapWordBytesOnBigEndian(cast #bit (Simd.U8x16, words[block]))
-                Simd.store(destination + offset, Simd.load(source + offset) ^ stream)
+                quarterRound(&state[0], &state[4], &state[8], &state[12])
+                quarterRound(&state[1], &state[5], &state[9], &state[13])
+                quarterRound(&state[2], &state[6], &state[10], &state[14])
+                quarterRound(&state[3], &state[7], &state[11], &state[15])
+                quarterRound(&state[0], &state[5], &state[10], &state[15])
+                quarterRound(&state[1], &state[6], &state[11], &state[12])
+                quarterRound(&state[2], &state[7], &state[8], &state[13])
+                quarterRound(&state[3], &state[4], &state[9], &state[14])
+            }
+
+            // Transpose each four-word group from lanes of independent blocks into
+            // consecutive words, so it can be applied directly to the input.
+            for group in 4
+            {
+                for word in 4 do
+                    words[word] = state[group * 4 + word] + initial[group * 4 + word]
+                Simd.transpose4x4(&words)
+                for block in 4
+                {
+                    let offset = (batch * 4 + block) * ChaCha20BlockSize + group * #sizeof(Simd.U8x16)
+                    let stream = swapWordBytesOnBigEndian(cast #bit (Simd.U8x16, words[block]))
+                    Simd.store(destination + offset, Simd.load(source + offset) ^ stream)
+                }
             }
         }
 
@@ -235,18 +240,28 @@ func chacha20Xor(key, nonce, source: const [..] u8, destination: [..] u8, initia
     if blockCount and blockCount - 1 > Swag.U32.Max - initialCounter do
         fail Errors.OverflowError{"ChaCha20 input exceeds the counter range"}
 
-    let batches = source.count / (4 * ChaCha20BlockSize)
+    const BatchesPerChunk = 16
+    const BatchSize = 4 * ChaCha20BlockSize
+    let batches = source.count / BatchSize
+    let chunks = (batches + BatchesPerChunk - 1) / BatchesPerChunk
 
-    // Each group owns four complete destination blocks and its key-stream scratch.
-    // The key and nonce remain read-only; exact in-place XOR stays inside that group.
-    parallel for |&key, &nonce, &source, &destination, initialCounter| batch in batches
+    // A chunk reuses its initial state and scratch for several complete batches.
+    // Chunks own disjoint ranges, so exact in-place XOR remains valid.
+    if batches == 1 do
+        chacha20XorBatches(key, nonce, initialCounter, source.buffer, destination.buffer, 1)
+    elif batches
     {
-        let start = batch * 4 * ChaCha20BlockSize
-        let first = initialCounter + cast(u32, (batch * 4))
-        chacha20XorFour(key, nonce, first, source.buffer + start, destination.buffer + start)
+        parallel for |&key, &nonce, &source, &destination, initialCounter, batches| chunk in chunks
+        {
+            let first = chunk * BatchesPerChunk
+            let count = Math.min(batches - first, BatchesPerChunk)
+            let start = first * BatchSize
+            let counter = initialCounter + cast(u32, (first * 4))
+            chacha20XorBatches(key, nonce, counter, source.buffer + start, destination.buffer + start, count)
+        }
     }
 
-    var offset  = batches * 4 * ChaCha20BlockSize
+    var offset  = batches * BatchSize
     var counter = initialCounter
 
     // The last legal counter need not have a successor when there is no tail.

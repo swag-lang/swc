@@ -1,0 +1,3504 @@
+{
+  "utc": "2026-11-26T12:47:20.493186+00:00",
+  "system": "Linux-6.18.57-x86_64-with-glibc2.41",
+  "cpu": 3,
+  "affinity": [
+    3
+  ],
+  "workers": {
+    "chacha-byte-base": 1,
+    "chacha-chunks": 1,
+    "chacha-chunks-direct": 1
+  },
+  "processor": {
+    "model name": "AMD EPYC 9V74 80-Core Processor",
+    "microcode": "0x1000065",
+    "flags": "fpu vme de pse tsc msr pae mce cx8 apic sep mtrr pge mca cmov pat pse36 clflush mmx fxsr sse sse2 ht syscall nx mmxext fxsr_opt pdpe1gb rdtscp lm constant_tsc rep_good nopl xtopology nonstop_tsc cpuid extd_apicid tsc_known_freq pni pclmulqdq ssse3 fma cx16 pcid sse4_1 sse4_2 x2apic movbe popcnt tsc_deadline_timer aes xsave avx f16c rdrand hypervisor lahf_lm cmp_legacy cr8_legacy abm sse4a misalignsse 3dnowprefetch osvw topoext cpuid_fault vmmcall fsgsbase tsc_adjust bmi1 avx2 smep bmi2 erms invpcid avx512f avx512dq rdseed adx smap avx512ifma clflushopt clwb avx512cd sha_ni avx512bw avx512vl xsaveopt xsavec xgetbv1 xsaves avx512_bf16 clzero xsaveerptr arat npt nrip_save tsc_scale vmcb_clean flushbyasid pausefilter pfthreshold v_vmsave_vmload avx512vbmi umip avx512_vbmi2 gfni vaes vpclmulqdq avx512_vnni avx512_bitalg avx512_vpopcntdq rdpid fsrm arch_capabilities"
+  },
+  "reference_build": "OpenSSL 3.5.7 9 Jun 2026 | zlib 1.3.1 | BLAKE3 1.8.7 | libdeflate 1.26 | ISA-L 2.32.1 | liblzma 5.8.1",
+  "reference_sha256": "d6f36f4496d0434337b2936a7ff71c55c7ca395d52e0ae4222a2fc5b3d5a5f51",
+  "swag_builds": {
+    "chacha-byte-base": "5803d978547c54a13cecd0e5f6e5e7309a4f69d837fe0cd589322128301093a1",
+    "chacha-chunks": "dfe47afea0e66dadb7730b3a0a4fd194942ef48cbc92a31ce26d837d7a6eb9dd",
+    "chacha-chunks-direct": "70343ddcfcff2a4ecd6daa07cb04a1f19b2bfb208e64e9ca0fc2d82b7b07eea9"
+  },
+  "rounds": 11,
+  "target_ms": 20,
+  "clock": "cpu",
+  "rows": [
+    {
+      "algorithm": "chacha20",
+      "bytes": 64,
+      "offset": 1,
+      "input_sha256": "e6147dcd81a6acd67e31bcd7542d14497d6264e4d25596b78fdc6c5590701ea9",
+      "output_sha256": "ed2d6bc52971ee2fee78a43f59af10fbf12fff506c4675d154b85862f6a101af",
+      "samples": {
+        "OpenSSL": {
+          "iterations": 76315,
+          "wall": [
+            0.039370837,
+            0.044288373,
+            0.04657989,
+            0.039920776,
+            0.039265368,
+            0.039119118,
+            0.044258228,
+            0.044023263,
+            0.04403428,
+            0.045001419,
+            0.039381873
+          ],
+          "cpu": [
+            0.019197759,
+            0.019120475,
+            0.019294444,
+            0.019085924,
+            0.019243588,
+            0.019112212,
+            0.01917725,
+            0.019420491,
+            0.019037542,
+            0.019280121,
+            0.019287222
+          ]
+        },
+        "chacha-byte-base": {
+          "iterations": 118225,
+          "wall": [
+            0.03969072,
+            0.039900045,
+            0.039870511,
+            0.04158067,
+            0.042298342,
+            0.040173579,
+            0.039835267,
+            0.039440001,
+            0.039423848,
+            0.039735487,
+            0.04655043
+          ],
+          "cpu": [
+            0.019687439,
+            0.019861479,
+            0.019775369,
+            0.021538696,
+            0.01968732,
+            0.019470424,
+            0.019766337,
+            0.019408353,
+            0.019381763,
+            0.019684604,
+            0.021236926
+          ]
+        },
+        "chacha-chunks": {
+          "iterations": 115381,
+          "wall": [
+            0.039649948,
+            0.039199288,
+            0.046191323,
+            0.035108488,
+            0.041987463,
+            0.040445989,
+            0.039392089,
+            0.039141871,
+            0.03930672,
+            0.039070214,
+            0.039602587
+          ],
+          "cpu": [
+            0.019654528,
+            0.01914335,
+            0.021029348,
+            0.019071802,
+            0.019461763,
+            0.019207394,
+            0.019359771,
+            0.019134665,
+            0.019307822,
+            0.01899021,
+            0.019602403
+          ]
+        },
+        "chacha-chunks-direct": {
+          "iterations": 119160,
+          "wall": [
+            0.039749779,
+            0.039804542,
+            0.042331142,
+            0.048375368,
+            0.039561435,
+            0.03843804,
+            0.039677009,
+            0.039964682,
+            0.03980974,
+            0.039793134,
+            0.040002219
+          ],
+          "cpu": [
+            0.019724163,
+            0.019730152,
+            0.0193533,
+            0.022966482,
+            0.019528303,
+            0.01956071,
+            0.019436886,
+            0.019877091,
+            0.019789441,
+            0.019734847,
+            0.019971583
+          ]
+        }
+      },
+      "round_order": [
+        [
+          "chacha-chunks",
+          "OpenSSL",
+          "chacha-byte-base",
+          "chacha-chunks-direct"
+        ],
+        [
+          "chacha-byte-base",
+          "OpenSSL",
+          "chacha-chunks",
+          "chacha-chunks-direct"
+        ],
+        [
+          "chacha-byte-base",
+          "OpenSSL",
+          "chacha-chunks",
+          "chacha-chunks-direct"
+        ],
+        [
+          "OpenSSL",
+          "chacha-chunks-direct",
+          "chacha-byte-base",
+          "chacha-chunks"
+        ],
+        [
+          "OpenSSL",
+          "chacha-byte-base",
+          "chacha-chunks-direct",
+          "chacha-chunks"
+        ],
+        [
+          "chacha-chunks-direct",
+          "chacha-chunks",
+          "chacha-byte-base",
+          "OpenSSL"
+        ],
+        [
+          "chacha-byte-base",
+          "OpenSSL",
+          "chacha-chunks",
+          "chacha-chunks-direct"
+        ],
+        [
+          "chacha-chunks-direct",
+          "chacha-byte-base",
+          "OpenSSL",
+          "chacha-chunks"
+        ],
+        [
+          "chacha-chunks",
+          "chacha-byte-base",
+          "OpenSSL",
+          "chacha-chunks-direct"
+        ],
+        [
+          "OpenSSL",
+          "chacha-chunks",
+          "chacha-chunks-direct",
+          "chacha-byte-base"
+        ],
+        [
+          "OpenSSL",
+          "chacha-chunks",
+          "chacha-chunks-direct",
+          "chacha-byte-base"
+        ]
+      ]
+    },
+    {
+      "algorithm": "chacha20",
+      "bytes": 255,
+      "offset": 1,
+      "input_sha256": "a1c9c8a2014702acda76aacec31ea2c754c5dbea60bfdccd9a3d43f636a8a45b",
+      "output_sha256": "0e8ece386846d9536db28d411396eb8251153c0e9b65f82fabea1fa36b9898ed",
+      "samples": {
+        "OpenSSL": {
+          "iterations": 49684,
+          "wall": [
+            0.039646362,
+            0.04412052,
+            0.044068482,
+            0.039818402,
+            0.041751358,
+            0.040780072,
+            0.040100918,
+            0.039530778,
+            0.039715196,
+            0.039629647,
+            0.039918703
+          ],
+          "cpu": [
+            0.019526238,
+            0.019432692,
+            0.019314033,
+            0.019796912,
+            0.019628951,
+            0.020702882,
+            0.020079291,
+            0.019491096,
+            0.019540491,
+            0.019579879,
+            0.019867828
+          ]
+        },
+        "chacha-byte-base": {
+          "iterations": 37497,
+          "wall": [
+            0.053369789,
+            0.04014157,
+            0.046356983,
+            0.047252733,
+            0.045332759,
+            0.046967424,
+            0.046216972,
+            0.040076772,
+            0.041673039,
+            0.046429753,
+            0.04487607
+          ],
+          "cpu": [
+            0.02483814,
+            0.020124238,
+            0.022235664,
+            0.022667047,
+            0.022512107,
+            0.0229571,
+            0.021114555,
+            0.020018102,
+            0.021628139,
+            0.022250767,
+            0.020693308
+          ]
+        },
+        "chacha-chunks": {
+          "iterations": 36607,
+          "wall": [
+            0.040052635,
+            0.039835368,
+            0.039738201,
+            0.046480309,
+            0.039582166,
+            0.039800646,
+            0.047260245,
+            0.039516196,
+            0.039858672,
+            0.040119375,
+            0.0421514
+          ],
+          "cpu": [
+            0.020022528,
+            0.019799947,
+            0.019691165,
+            0.022629289,
+            0.019514471,
+            0.019744725,
+            0.023765312,
+            0.019484246,
+            0.019809682,
+            0.019997641,
+            0.020783592
+          ]
+        },
+        "chacha-chunks-direct": {
+          "iterations": 38725,
+          "wall": [
+            0.050792122,
+            0.04068564,
+            0.041071792,
+            0.040695825,
+            0.044952254,
+            0.046601892,
+            0.04061949,
+            0.047572777,
+            0.046059925,
+            0.040740904,
+            0.0450883
+          ],
+          "cpu": [
+            0.024133759,
+            0.020629411,
+            0.021009497,
+            0.020593358,
+            0.020913395,
+            0.020980395,
+            0.020562233,
+            0.023477974,
+            0.020826455,
+            0.02068099,
+            0.020996218
+          ]
+        }
+      },
+      "round_order": [
+        [
+          "chacha-chunks-direct",
+          "chacha-byte-base",
+          "OpenSSL",
+          "chacha-chunks"
+        ],
+        [
+          "chacha-chunks",
+          "chacha-chunks-direct",
+          "chacha-byte-base",
+          "OpenSSL"
+        ],
+        [
+          "chacha-byte-base",
+          "chacha-chunks",
+          "chacha-chunks-direct",
+          "OpenSSL"
+        ],
+        [
+          "chacha-chunks-direct",
+          "chacha-chunks",
+          "chacha-byte-base",
+          "OpenSSL"
+        ],
+        [
+          "chacha-chunks",
+          "OpenSSL",
+          "chacha-chunks-direct",
+          "chacha-byte-base"
+        ],
+        [
+          "chacha-chunks",
+          "chacha-chunks-direct",
+          "chacha-byte-base",
+          "OpenSSL"
+        ],
+        [
+          "OpenSSL",
+          "chacha-chunks-direct",
+          "chacha-chunks",
+          "chacha-byte-base"
+        ],
+        [
+          "chacha-chunks",
+          "chacha-byte-base",
+          "chacha-chunks-direct",
+          "OpenSSL"
+        ],
+        [
+          "chacha-chunks-direct",
+          "OpenSSL",
+          "chacha-chunks",
+          "chacha-byte-base"
+        ],
+        [
+          "chacha-chunks-direct",
+          "OpenSSL",
+          "chacha-chunks",
+          "chacha-byte-base"
+        ],
+        [
+          "OpenSSL",
+          "chacha-chunks-direct",
+          "chacha-chunks",
+          "chacha-byte-base"
+        ]
+      ]
+    },
+    {
+      "algorithm": "chacha20",
+      "bytes": 256,
+      "offset": 1,
+      "input_sha256": "dbbb7ab18f6796b1efba0284a7801fb21d3d25c090f524be507f46b169510651",
+      "output_sha256": "d456471391d589ac7989bd0be80e165b26d2cb118138c2e94bd016a991098075",
+      "samples": {
+        "OpenSSL": {
+          "iterations": 74724,
+          "wall": [
+            0.039659232,
+            0.040565529,
+            0.041107366,
+            0.046461701,
+            0.041834022,
+            0.044283927,
+            0.044534665,
+            0.040509144,
+            0.039761065,
+            0.039445981,
+            0.047148397
+          ],
+          "cpu": [
+            0.01941278,
+            0.020485177,
+            0.021052803,
+            0.021187443,
+            0.019400873,
+            0.019255227,
+            0.019269209,
+            0.019032904,
+            0.019558937,
+            0.019283498,
+            0.021684112
+          ]
+        },
+        "chacha-byte-base": {
+          "iterations": 72164,
+          "wall": [
+            0.039156844,
+            0.039862418,
+            0.063155609,
+            0.046632609,
+            0.039647705,
+            0.045165937,
+            0.039938333,
+            0.039506141,
+            0.040862878,
+            0.055784712,
+            0.039091966
+          ],
+          "cpu": [
+            0.019092314,
+            0.019827819,
+            0.031040537,
+            0.023380608,
+            0.019483586,
+            0.020704614,
+            0.019160624,
+            0.019491246,
+            0.019605126,
+            0.026698091,
+            0.01904266
+          ]
+        },
+        "chacha-chunks": {
+          "iterations": 68878,
+          "wall": [
+            0.054208154,
+            0.050841777,
+            0.044932946,
+            0.040485989,
+            0.034584808,
+            0.040269773,
+            0.040319528,
+            0.038532683,
+            0.040449804,
+            0.038692885,
+            0.0402477
+          ],
+          "cpu": [
+            0.026108302,
+            0.023615299,
+            0.020663653,
+            0.020542683,
+            0.018560702,
+            0.020156099,
+            0.020254042,
+            0.018420832,
+            0.020393319,
+            0.01862739,
+            0.018429306
+          ]
+        },
+        "chacha-chunks-direct": {
+          "iterations": 72807,
+          "wall": [
+            0.045769047,
+            0.039530007,
+            0.039603527,
+            0.039259249,
+            0.039057946,
+            0.039876259,
+            0.03935311,
+            0.046444666,
+            0.039259068,
+            0.039794376,
+            0.03904099
+          ],
+          "cpu": [
+            0.021686916,
+            0.019465739,
+            0.019568281,
+            0.01922586,
+            0.018997512,
+            0.019865595,
+            0.019321955,
+            0.021383826,
+            0.019155476,
+            0.019704025,
+            0.019011302
+          ]
+        }
+      },
+      "round_order": [
+        [
+          "OpenSSL",
+          "chacha-byte-base",
+          "chacha-chunks",
+          "chacha-chunks-direct"
+        ],
+        [
+          "chacha-chunks-direct",
+          "chacha-chunks",
+          "OpenSSL",
+          "chacha-byte-base"
+        ],
+        [
+          "chacha-chunks-direct",
+          "chacha-chunks",
+          "OpenSSL",
+          "chacha-byte-base"
+        ],
+        [
+          "chacha-byte-base",
+          "chacha-chunks",
+          "OpenSSL",
+          "chacha-chunks-direct"
+        ],
+        [
+          "chacha-chunks-direct",
+          "chacha-byte-base",
+          "OpenSSL",
+          "chacha-chunks"
+        ],
+        [
+          "chacha-chunks-direct",
+          "chacha-byte-base",
+          "chacha-chunks",
+          "OpenSSL"
+        ],
+        [
+          "chacha-chunks",
+          "OpenSSL",
+          "chacha-chunks-direct",
+          "chacha-byte-base"
+        ],
+        [
+          "chacha-chunks",
+          "chacha-chunks-direct",
+          "chacha-byte-base",
+          "OpenSSL"
+        ],
+        [
+          "chacha-chunks-direct",
+          "chacha-byte-base",
+          "OpenSSL",
+          "chacha-chunks"
+        ],
+        [
+          "chacha-byte-base",
+          "chacha-chunks",
+          "OpenSSL",
+          "chacha-chunks-direct"
+        ],
+        [
+          "OpenSSL",
+          "chacha-chunks",
+          "chacha-byte-base",
+          "chacha-chunks-direct"
+        ]
+      ]
+    },
+    {
+      "algorithm": "chacha20",
+      "bytes": 257,
+      "offset": 1,
+      "input_sha256": "9cf03dccb1743e7e3fc56e902c853940058188470051cd8e9a170fec73097371",
+      "output_sha256": "8a887b2186ebe5e1c47d388f92c0f52f75ba04150bbdb0b358443d3ff8587b77",
+      "samples": {
+        "OpenSSL": {
+          "iterations": 54419,
+          "wall": [
+            0.040801835,
+            0.03993645,
+            0.041632397,
+            0.040455432,
+            0.040941565,
+            0.044824051,
+            0.048946107,
+            0.056078595,
+            0.04394125,
+            0.051360569,
+            0.064056916
+          ],
+          "cpu": [
+            0.020721757,
+            0.01988301,
+            0.019887587,
+            0.020401892,
+            0.020863302,
+            0.020662233,
+            0.020764957,
+            0.019927465,
+            0.019922879,
+            0.020392599,
+            0.027955112
+          ]
+        },
+        "chacha-byte-base": {
+          "iterations": 48955,
+          "wall": [
+            0.046862886,
+            0.038713295,
+            0.039763148,
+            0.039900124,
+            0.039530147,
+            0.039115622,
+            0.044945514,
+            0.03955826,
+            0.039893925,
+            0.039417177,
+            0.050018304
+          ],
+          "cpu": [
+            0.021495162,
+            0.018653409,
+            0.019755749,
+            0.019760077,
+            0.019457447,
+            0.019105084,
+            0.021240321,
+            0.019145543,
+            0.019858204,
+            0.018890812,
+            0.019017403
+          ]
+        },
+        "chacha-chunks": {
+          "iterations": 50489,
+          "wall": [
+            0.039756599,
+            0.039583107,
+            0.039990972,
+            0.051072345,
+            0.04008945,
+            0.046853572,
+            0.044704365,
+            0.039910501,
+            0.039592231,
+            0.040158003,
+            0.039745431
+          ],
+          "cpu": [
+            0.019725984,
+            0.019530646,
+            0.019958775,
+            0.025167701,
+            0.02007749,
+            0.021220243,
+            0.024682403,
+            0.019879675,
+            0.01956107,
+            0.020090018,
+            0.019732617
+          ]
+        },
+        "chacha-chunks-direct": {
+          "iterations": 51613,
+          "wall": [
+            0.054754718,
+            0.039761025,
+            0.046259415,
+            0.048091498,
+            0.045319538,
+            0.041165403,
+            0.054293978,
+            0.044274572,
+            0.043918275,
+            0.036338884,
+            0.045139456
+          ],
+          "cpu": [
+            0.026554445,
+            0.019716012,
+            0.020509211,
+            0.023947082,
+            0.021286189,
+            0.021144648,
+            0.022258254,
+            0.020202015,
+            0.019881217,
+            0.020295092,
+            0.020688891
+          ]
+        }
+      },
+      "round_order": [
+        [
+          "chacha-chunks-direct",
+          "OpenSSL",
+          "chacha-chunks",
+          "chacha-byte-base"
+        ],
+        [
+          "chacha-chunks",
+          "OpenSSL",
+          "chacha-byte-base",
+          "chacha-chunks-direct"
+        ],
+        [
+          "chacha-chunks-direct",
+          "chacha-byte-base",
+          "OpenSSL",
+          "chacha-chunks"
+        ],
+        [
+          "chacha-chunks",
+          "chacha-chunks-direct",
+          "chacha-byte-base",
+          "OpenSSL"
+        ],
+        [
+          "chacha-chunks-direct",
+          "OpenSSL",
+          "chacha-byte-base",
+          "chacha-chunks"
+        ],
+        [
+          "chacha-byte-base",
+          "chacha-chunks",
+          "OpenSSL",
+          "chacha-chunks-direct"
+        ],
+        [
+          "OpenSSL",
+          "chacha-byte-base",
+          "chacha-chunks-direct",
+          "chacha-chunks"
+        ],
+        [
+          "chacha-chunks-direct",
+          "chacha-byte-base",
+          "OpenSSL",
+          "chacha-chunks"
+        ],
+        [
+          "OpenSSL",
+          "chacha-byte-base",
+          "chacha-chunks-direct",
+          "chacha-chunks"
+        ],
+        [
+          "chacha-chunks",
+          "chacha-byte-base",
+          "OpenSSL",
+          "chacha-chunks-direct"
+        ],
+        [
+          "OpenSSL",
+          "chacha-chunks",
+          "chacha-byte-base",
+          "chacha-chunks-direct"
+        ]
+      ]
+    },
+    {
+      "algorithm": "chacha20",
+      "bytes": 512,
+      "offset": 1,
+      "input_sha256": "10151e753b1df20f3a6feba8fc712998674a6680fe4eef235f5e38af1426e7e3",
+      "output_sha256": "5ddc1ecf42926228fde8e5c891e979001f0685bada341e6770b659f2c62f9519",
+      "samples": {
+        "OpenSSL": {
+          "iterations": 54840,
+          "wall": [
+            0.065357067,
+            0.058703432,
+            0.060410497,
+            0.044438709,
+            0.059847108,
+            0.039786703,
+            0.040247298,
+            0.060112158,
+            0.044726233,
+            0.040231494,
+            0.040287269
+          ],
+          "cpu": [
+            0.02050793,
+            0.019984851,
+            0.021398629,
+            0.020151208,
+            0.020156097,
+            0.019635892,
+            0.020126884,
+            0.019941447,
+            0.019881509,
+            0.020111211,
+            0.020234455
+          ]
+        },
+        "chacha-byte-base": {
+          "iterations": 40430,
+          "wall": [
+            0.044886575,
+            0.050423926,
+            0.054922631,
+            0.076406592,
+            0.047344853,
+            0.040253137,
+            0.040344244,
+            0.040355732,
+            0.043039439,
+            0.05333689,
+            0.06397929
+          ],
+          "cpu": [
+            0.020821628,
+            0.022156116,
+            0.019964073,
+            0.027749656,
+            0.021945482,
+            0.020169067,
+            0.020302044,
+            0.020315986,
+            0.02006378,
+            0.019952162,
+            0.019867517
+          ]
+        },
+        "chacha-chunks": {
+          "iterations": 44044,
+          "wall": [
+            0.056213087,
+            0.060282073,
+            0.041242168,
+            0.040170172,
+            0.040151544,
+            0.066559611,
+            0.065992035,
+            0.040032605,
+            0.045346839,
+            0.060168703,
+            0.057562403
+          ],
+          "cpu": [
+            0.020192742,
+            0.020261375,
+            0.021141975,
+            0.020152372,
+            0.020121585,
+            0.027516279,
+            0.020991982,
+            0.020028867,
+            0.021281053,
+            0.020140123,
+            0.021514963
+          ]
+        },
+        "chacha-chunks-direct": {
+          "iterations": 42729,
+          "wall": [
+            0.039577267,
+            0.048214244,
+            0.045401321,
+            0.082204575,
+            0.054732093,
+            0.058533937,
+            0.059649599,
+            0.039626542,
+            0.046703155,
+            0.040277143,
+            0.039510347
+          ],
+          "cpu": [
+            0.019536124,
+            0.02254888,
+            0.021388843,
+            0.030936893,
+            0.019474553,
+            0.019543734,
+            0.019604905,
+            0.019622693,
+            0.019749171,
+            0.020172943,
+            0.019421884
+          ]
+        }
+      },
+      "round_order": [
+        [
+          "chacha-byte-base",
+          "chacha-chunks",
+          "OpenSSL",
+          "chacha-chunks-direct"
+        ],
+        [
+          "chacha-chunks",
+          "chacha-byte-base",
+          "OpenSSL",
+          "chacha-chunks-direct"
+        ],
+        [
+          "chacha-chunks",
+          "chacha-byte-base",
+          "chacha-chunks-direct",
+          "OpenSSL"
+        ],
+        [
+          "OpenSSL",
+          "chacha-byte-base",
+          "chacha-chunks-direct",
+          "chacha-chunks"
+        ],
+        [
+          "chacha-byte-base",
+          "OpenSSL",
+          "chacha-chunks",
+          "chacha-chunks-direct"
+        ],
+        [
+          "OpenSSL",
+          "chacha-chunks-direct",
+          "chacha-byte-base",
+          "chacha-chunks"
+        ],
+        [
+          "chacha-chunks",
+          "chacha-byte-base",
+          "chacha-chunks-direct",
+          "OpenSSL"
+        ],
+        [
+          "OpenSSL",
+          "chacha-byte-base",
+          "chacha-chunks-direct",
+          "chacha-chunks"
+        ],
+        [
+          "chacha-byte-base",
+          "OpenSSL",
+          "chacha-chunks-direct",
+          "chacha-chunks"
+        ],
+        [
+          "chacha-byte-base",
+          "OpenSSL",
+          "chacha-chunks-direct",
+          "chacha-chunks"
+        ],
+        [
+          "OpenSSL",
+          "chacha-chunks",
+          "chacha-chunks-direct",
+          "chacha-byte-base"
+        ]
+      ]
+    },
+    {
+      "algorithm": "chacha20",
+      "bytes": 1024,
+      "offset": 1,
+      "input_sha256": "7311fb0bdb03a2ad4957e5b8431c3acf9618869e56e321bb0a2170d1d6b8816a",
+      "output_sha256": "9904ce669ddabd3483e41d9756ebdda2b27884633bd9eb559521df75f550a216",
+      "samples": {
+        "OpenSSL": {
+          "iterations": 38161,
+          "wall": [
+            0.030339777,
+            0.031532926,
+            0.050194821,
+            0.031351692,
+            0.034951462,
+            0.046349762,
+            0.031541178,
+            0.036160826,
+            0.047052022,
+            0.045222422,
+            0.030305175
+          ],
+          "cpu": [
+            0.01426978,
+            0.014234729,
+            0.014179859,
+            0.014290552,
+            0.014165485,
+            0.014293806,
+            0.014076853,
+            0.014170203,
+            0.014380806,
+            0.014178355,
+            0.014217764
+          ]
+        },
+        "chacha-byte-base": {
+          "iterations": 7591,
+          "wall": [
+            0.035083751,
+            0.014993823,
+            0.037943895,
+            0.01497833,
+            0.023909419,
+            0.015074274,
+            0.014992561,
+            0.021515489,
+            0.022757352,
+            0.022227773,
+            0.015146063
+          ],
+          "cpu": [
+            0.007086864,
+            0.006997792,
+            0.007022919,
+            0.006987756,
+            0.011924248,
+            0.007092452,
+            0.007000016,
+            0.010861575,
+            0.010750961,
+            0.007308995,
+            0.007144259
+          ]
+        },
+        "chacha-chunks": {
+          "iterations": 23590,
+          "wall": [
+            0.059780218,
+            0.058579918,
+            0.039719003,
+            0.050908758,
+            0.050846824,
+            0.075267334,
+            0.039627805,
+            0.050705832,
+            0.039855267,
+            0.04390173,
+            0.039869449
+          ],
+          "cpu": [
+            0.019780785,
+            0.019628531,
+            0.019696411,
+            0.019927215,
+            0.019832915,
+            0.028300385,
+            0.019579457,
+            0.019731916,
+            0.01980788,
+            0.019827889,
+            0.019853537
+          ]
+        },
+        "chacha-chunks-direct": {
+          "iterations": 23348,
+          "wall": [
+            0.039969069,
+            0.039579481,
+            0.086399152,
+            0.039671291,
+            0.039563397,
+            0.040096051,
+            0.063387308,
+            0.055151476,
+            0.044202764,
+            0.03955812,
+            0.039572561
+          ],
+          "cpu": [
+            0.019946737,
+            0.01956012,
+            0.031367974,
+            0.019575904,
+            0.019513561,
+            0.020075516,
+            0.02037182,
+            0.020174114,
+            0.019794658,
+            0.019531269,
+            0.019500652
+          ]
+        }
+      },
+      "round_order": [
+        [
+          "chacha-chunks-direct",
+          "chacha-chunks",
+          "OpenSSL",
+          "chacha-byte-base"
+        ],
+        [
+          "OpenSSL",
+          "chacha-chunks",
+          "chacha-byte-base",
+          "chacha-chunks-direct"
+        ],
+        [
+          "chacha-byte-base",
+          "chacha-chunks",
+          "OpenSSL",
+          "chacha-chunks-direct"
+        ],
+        [
+          "OpenSSL",
+          "chacha-byte-base",
+          "chacha-chunks",
+          "chacha-chunks-direct"
+        ],
+        [
+          "chacha-byte-base",
+          "OpenSSL",
+          "chacha-chunks-direct",
+          "chacha-chunks"
+        ],
+        [
+          "chacha-chunks-direct",
+          "chacha-chunks",
+          "chacha-byte-base",
+          "OpenSSL"
+        ],
+        [
+          "OpenSSL",
+          "chacha-chunks-direct",
+          "chacha-byte-base",
+          "chacha-chunks"
+        ],
+        [
+          "chacha-chunks",
+          "OpenSSL",
+          "chacha-chunks-direct",
+          "chacha-byte-base"
+        ],
+        [
+          "OpenSSL",
+          "chacha-chunks",
+          "chacha-byte-base",
+          "chacha-chunks-direct"
+        ],
+        [
+          "chacha-chunks-direct",
+          "chacha-byte-base",
+          "chacha-chunks",
+          "OpenSSL"
+        ],
+        [
+          "chacha-byte-base",
+          "chacha-chunks-direct",
+          "chacha-chunks",
+          "OpenSSL"
+        ]
+      ]
+    },
+    {
+      "algorithm": "chacha20",
+      "bytes": 4096,
+      "offset": 1,
+      "input_sha256": "a54c44ad185f85ecee304d43ea3b8d30fb5a31820bd675f5a166c4334f9be6f7",
+      "output_sha256": "f390e806bb75e99586723f3b277ae88280d9ae1e088acf7aa23faff11e629d64",
+      "samples": {
+        "OpenSSL": {
+          "iterations": 21378,
+          "wall": [
+            0.065886086,
+            0.06326973,
+            0.060510098,
+            0.041808063,
+            0.040006116,
+            0.047337342,
+            0.050898822,
+            0.06354498,
+            0.053951967,
+            0.063370702,
+            0.059096005
+          ],
+          "cpu": [
+            0.021279319,
+            0.02007609,
+            0.019834581,
+            0.01997017,
+            0.019929931,
+            0.020134805,
+            0.019892294,
+            0.020343395,
+            0.024640715,
+            0.020483304,
+            0.020103269
+          ]
+        },
+        "chacha-byte-base": {
+          "iterations": 5503,
+          "wall": [
+            0.059269967,
+            0.040318236,
+            0.039375133,
+            0.058147085,
+            0.062348331,
+            0.054183336,
+            0.05191787,
+            0.039897731,
+            0.088967385,
+            0.058842132,
+            0.066753829
+          ],
+          "cpu": [
+            0.019281102,
+            0.019959564,
+            0.019302645,
+            0.019170148,
+            0.019315943,
+            0.019181336,
+            0.019376941,
+            0.019209016,
+            0.032855548,
+            0.019886966,
+            0.021583112
+          ]
+        },
+        "chacha-chunks": {
+          "iterations": 6386,
+          "wall": [
+            0.039939324,
+            0.059872497,
+            0.039926585,
+            0.054882922,
+            0.062863117,
+            0.047305714,
+            0.039992404,
+            0.077112748,
+            0.058723148,
+            0.080843723,
+            0.040413109
+          ],
+          "cpu": [
+            0.019853417,
+            0.019803643,
+            0.019887235,
+            0.019897521,
+            0.019868808,
+            0.023146495,
+            0.019719628,
+            0.025641396,
+            0.022667963,
+            0.029633741,
+            0.020353742
+          ]
+        },
+        "chacha-chunks-direct": {
+          "iterations": 6424,
+          "wall": [
+            0.057084453,
+            0.039926024,
+            0.040233168,
+            0.039951202,
+            0.039962029,
+            0.041875304,
+            0.036175467,
+            0.043204919,
+            0.086344339,
+            0.043718944,
+            0.039959575
+          ],
+          "cpu": [
+            0.019994126,
+            0.019889691,
+            0.020169948,
+            0.019730834,
+            0.019932505,
+            0.020033584,
+            0.020048309,
+            0.0199557,
+            0.029783886,
+            0.021574048,
+            0.019893275
+          ]
+        }
+      },
+      "round_order": [
+        [
+          "chacha-chunks-direct",
+          "OpenSSL",
+          "chacha-chunks",
+          "chacha-byte-base"
+        ],
+        [
+          "chacha-byte-base",
+          "OpenSSL",
+          "chacha-chunks-direct",
+          "chacha-chunks"
+        ],
+        [
+          "chacha-byte-base",
+          "OpenSSL",
+          "chacha-chunks",
+          "chacha-chunks-direct"
+        ],
+        [
+          "chacha-byte-base",
+          "OpenSSL",
+          "chacha-chunks",
+          "chacha-chunks-direct"
+        ],
+        [
+          "chacha-byte-base",
+          "chacha-chunks-direct",
+          "chacha-chunks",
+          "OpenSSL"
+        ],
+        [
+          "OpenSSL",
+          "chacha-chunks-direct",
+          "chacha-byte-base",
+          "chacha-chunks"
+        ],
+        [
+          "chacha-chunks",
+          "OpenSSL",
+          "chacha-chunks-direct",
+          "chacha-byte-base"
+        ],
+        [
+          "chacha-chunks",
+          "chacha-chunks-direct",
+          "OpenSSL",
+          "chacha-byte-base"
+        ],
+        [
+          "chacha-chunks-direct",
+          "chacha-byte-base",
+          "chacha-chunks",
+          "OpenSSL"
+        ],
+        [
+          "chacha-chunks",
+          "chacha-byte-base",
+          "chacha-chunks-direct",
+          "OpenSSL"
+        ],
+        [
+          "OpenSSL",
+          "chacha-chunks",
+          "chacha-byte-base",
+          "chacha-chunks-direct"
+        ]
+      ]
+    },
+    {
+      "algorithm": "chacha20",
+      "bytes": 4097,
+      "offset": 1,
+      "input_sha256": "be4f3460584f4e15f2e045f8db99b29165ead9eb1688433cf5f0e4a1387c606d",
+      "output_sha256": "2292c95d38bcbde080de2a387058f6cd8dddd8b1c52a2ecd25f68899d65398bc",
+      "samples": {
+        "OpenSSL": {
+          "iterations": 18705,
+          "wall": [
+            0.0398046,
+            0.064786953,
+            0.068049308,
+            0.077580032,
+            0.041996037,
+            0.041220466,
+            0.051125504,
+            0.040291105,
+            0.040093766,
+            0.040292326,
+            0.040113146
+          ],
+          "cpu": [
+            0.019603456,
+            0.019604327,
+            0.023968064,
+            0.035164258,
+            0.020391227,
+            0.02042013,
+            0.020175264,
+            0.020136408,
+            0.020171261,
+            0.020382374,
+            0.019956478
+          ]
+        },
+        "chacha-byte-base": {
+          "iterations": 5512,
+          "wall": [
+            0.035922336,
+            0.045190944,
+            0.046285535,
+            0.041166184,
+            0.043952867,
+            0.059912196,
+            0.049689088,
+            0.04079884,
+            0.102429948,
+            0.046384855,
+            0.055364958
+          ],
+          "cpu": [
+            0.019877942,
+            0.02089715,
+            0.02038768,
+            0.021195024,
+            0.022688147,
+            0.031709511,
+            0.020835569,
+            0.020677082,
+            0.050126961,
+            0.020502363,
+            0.027424042
+          ]
+        },
+        "chacha-chunks": {
+          "iterations": 6129,
+          "wall": [
+            0.040051522,
+            0.046483649,
+            0.042778947,
+            0.040276273,
+            0.040825711,
+            0.062743506,
+            0.039998373,
+            0.040119035,
+            0.03654851,
+            0.041031812,
+            0.040436083
+          ],
+          "cpu": [
+            0.019949499,
+            0.022471349,
+            0.021955256,
+            0.020199672,
+            0.020727477,
+            0.030706869,
+            0.020043901,
+            0.019975898,
+            0.020482121,
+            0.021203406,
+            0.020406891
+          ]
+        },
+        "chacha-chunks-direct": {
+          "iterations": 6129,
+          "wall": [
+            0.039920506,
+            0.121855575,
+            0.047666218,
+            0.039980997,
+            0.036894001,
+            0.040468221,
+            0.043295275,
+            0.041081837,
+            0.040152906,
+            0.045875637,
+            0.040366629
+          ],
+          "cpu": [
+            0.019866215,
+            0.047244318,
+            0.023257507,
+            0.020501502,
+            0.020733266,
+            0.020404066,
+            0.022505836,
+            0.020734528,
+            0.020278478,
+            0.02049996,
+            0.020408233
+          ]
+        }
+      },
+      "round_order": [
+        [
+          "OpenSSL",
+          "chacha-chunks-direct",
+          "chacha-chunks",
+          "chacha-byte-base"
+        ],
+        [
+          "OpenSSL",
+          "chacha-byte-base",
+          "chacha-chunks-direct",
+          "chacha-chunks"
+        ],
+        [
+          "OpenSSL",
+          "chacha-chunks",
+          "chacha-byte-base",
+          "chacha-chunks-direct"
+        ],
+        [
+          "chacha-byte-base",
+          "OpenSSL",
+          "chacha-chunks",
+          "chacha-chunks-direct"
+        ],
+        [
+          "chacha-chunks-direct",
+          "chacha-byte-base",
+          "OpenSSL",
+          "chacha-chunks"
+        ],
+        [
+          "OpenSSL",
+          "chacha-byte-base",
+          "chacha-chunks",
+          "chacha-chunks-direct"
+        ],
+        [
+          "chacha-chunks-direct",
+          "OpenSSL",
+          "chacha-chunks",
+          "chacha-byte-base"
+        ],
+        [
+          "chacha-byte-base",
+          "OpenSSL",
+          "chacha-chunks-direct",
+          "chacha-chunks"
+        ],
+        [
+          "OpenSSL",
+          "chacha-chunks-direct",
+          "chacha-byte-base",
+          "chacha-chunks"
+        ],
+        [
+          "chacha-byte-base",
+          "OpenSSL",
+          "chacha-chunks",
+          "chacha-chunks-direct"
+        ],
+        [
+          "OpenSSL",
+          "chacha-chunks",
+          "chacha-chunks-direct",
+          "chacha-byte-base"
+        ]
+      ]
+    },
+    {
+      "algorithm": "chacha20",
+      "bytes": 4194304,
+      "offset": 1,
+      "input_sha256": "4ee2735a5e1ca0bd9393d207d8489acce6dcf269c676ab36dc04862aebbc2d0c",
+      "output_sha256": "3da407c6eb7a157b22cd606f349556d55be5469d37f4812c98d382815ade1cb9",
+      "samples": {
+        "OpenSSL": {
+          "iterations": 20,
+          "wall": [
+            0.037411842,
+            0.037133813,
+            0.036874752,
+            0.032047673,
+            0.032003646,
+            0.032049266,
+            0.032033761,
+            0.031967392,
+            0.033094772,
+            0.031964757,
+            0.032683492
+          ],
+          "cpu": [
+            0.017390717,
+            0.01594128,
+            0.01609396,
+            0.01598795,
+            0.015972116,
+            0.015991686,
+            0.015988801,
+            0.015956031,
+            0.015868511,
+            0.015972877,
+            0.016693741
+          ]
+        },
+        "chacha-byte-base": {
+          "iterations": 5,
+          "wall": [
+            0.039343835,
+            0.035436343,
+            0.040032105,
+            0.040372899,
+            0.039495776,
+            0.038224358,
+            0.034392349,
+            0.038257799,
+            0.033506122,
+            0.03359737,
+            0.039504648
+          ],
+          "cpu": [
+            0.017968189,
+            0.017756854,
+            0.017830484,
+            0.020350637,
+            0.017829092,
+            0.017807831,
+            0.018342166,
+            0.017569756,
+            0.017506801,
+            0.017574513,
+            0.01758533
+          ]
+        },
+        "chacha-chunks": {
+          "iterations": 6,
+          "wall": [
+            0.047864056,
+            0.03937323,
+            0.040323974,
+            0.04262804,
+            0.044656799,
+            0.056095941,
+            0.040779532,
+            0.040796026,
+            0.055966326,
+            0.062410003,
+            0.044714776
+          ],
+          "cpu": [
+            0.025330222,
+            0.019242896,
+            0.019034637,
+            0.019907958,
+            0.01880163,
+            0.028064497,
+            0.018864894,
+            0.018976771,
+            0.027919659,
+            0.030382896,
+            0.018995788
+          ]
+        },
+        "chacha-chunks-direct": {
+          "iterations": 6,
+          "wall": [
+            0.437079025,
+            0.039760024,
+            0.040830999,
+            0.055657389,
+            0.039266499,
+            0.041535983,
+            0.054677807,
+            0.038885816,
+            0.045954406,
+            0.041289196,
+            0.040762015
+          ],
+          "cpu": [
+            0.218448817,
+            0.018943071,
+            0.019206162,
+            0.025929985,
+            0.019212703,
+            0.018963942,
+            0.024783062,
+            0.018816552,
+            0.021206561,
+            0.021310481,
+            0.018916702
+          ]
+        }
+      },
+      "round_order": [
+        [
+          "OpenSSL",
+          "chacha-chunks-direct",
+          "chacha-byte-base",
+          "chacha-chunks"
+        ],
+        [
+          "OpenSSL",
+          "chacha-chunks-direct",
+          "chacha-byte-base",
+          "chacha-chunks"
+        ],
+        [
+          "chacha-byte-base",
+          "OpenSSL",
+          "chacha-chunks",
+          "chacha-chunks-direct"
+        ],
+        [
+          "chacha-chunks-direct",
+          "OpenSSL",
+          "chacha-byte-base",
+          "chacha-chunks"
+        ],
+        [
+          "chacha-chunks",
+          "chacha-byte-base",
+          "OpenSSL",
+          "chacha-chunks-direct"
+        ],
+        [
+          "chacha-chunks",
+          "chacha-byte-base",
+          "chacha-chunks-direct",
+          "OpenSSL"
+        ],
+        [
+          "chacha-chunks-direct",
+          "chacha-byte-base",
+          "chacha-chunks",
+          "OpenSSL"
+        ],
+        [
+          "chacha-byte-base",
+          "OpenSSL",
+          "chacha-chunks-direct",
+          "chacha-chunks"
+        ],
+        [
+          "chacha-byte-base",
+          "OpenSSL",
+          "chacha-chunks",
+          "chacha-chunks-direct"
+        ],
+        [
+          "chacha-chunks",
+          "chacha-chunks-direct",
+          "chacha-byte-base",
+          "OpenSSL"
+        ],
+        [
+          "OpenSSL",
+          "chacha-byte-base",
+          "chacha-chunks-direct",
+          "chacha-chunks"
+        ]
+      ]
+    },
+    {
+      "algorithm": "chacha20-poly1305",
+      "bytes": 64,
+      "offset": 1,
+      "input_sha256": "e6147dcd81a6acd67e31bcd7542d14497d6264e4d25596b78fdc6c5590701ea9",
+      "output_sha256": "ea003d09885479aa011d305ba38a91fd088efd287427460c6327e960447e9249",
+      "samples": {
+        "OpenSSL": {
+          "iterations": 32614,
+          "wall": [
+            0.039838142,
+            0.039854507,
+            0.03984403,
+            0.039788356,
+            0.045163102,
+            0.039687474,
+            0.039827565,
+            0.039703098,
+            0.039890871,
+            0.040054488,
+            0.039722536
+          ],
+          "cpu": [
+            0.019658236,
+            0.019790883,
+            0.019752607,
+            0.019665507,
+            0.019762209,
+            0.019657647,
+            0.019748049,
+            0.019652407,
+            0.019814667,
+            0.020038062,
+            0.019696643
+          ]
+        },
+        "chacha-byte-base": {
+          "iterations": 39645,
+          "wall": [
+            0.040298676,
+            0.04507499,
+            0.045564077,
+            0.045879613,
+            0.045877199,
+            0.040357114,
+            0.047272443,
+            0.040207609,
+            0.049283275,
+            0.040906813,
+            0.047892029
+          ],
+          "cpu": [
+            0.020289827,
+            0.021028266,
+            0.02014602,
+            0.020233574,
+            0.021190658,
+            0.020333602,
+            0.023251025,
+            0.020153483,
+            0.025292144,
+            0.020884792,
+            0.023850057
+          ]
+        },
+        "chacha-chunks": {
+          "iterations": 37625,
+          "wall": [
+            0.039632842,
+            0.039835898,
+            0.039787996,
+            0.039797249,
+            0.040529013,
+            0.039827476,
+            0.051138984,
+            0.039069943,
+            0.039891441,
+            0.039298487,
+            0.040411066
+          ],
+          "cpu": [
+            0.019219132,
+            0.019774479,
+            0.019742861,
+            0.019749852,
+            0.020480712,
+            0.019862591,
+            0.025033832,
+            0.019042749,
+            0.019080076,
+            0.019314312,
+            0.019327763
+          ]
+        },
+        "chacha-chunks-direct": {
+          "iterations": 38334,
+          "wall": [
+            0.040212857,
+            0.039490468,
+            0.040010161,
+            0.045694573,
+            0.040768995,
+            0.039324998,
+            0.04029462,
+            0.047312344,
+            0.051716005,
+            0.036959229,
+            0.03936102
+          ],
+          "cpu": [
+            0.020194355,
+            0.019455483,
+            0.019942538,
+            0.02130596,
+            0.020683524,
+            0.019238011,
+            0.020285679,
+            0.022831362,
+            0.025223945,
+            0.02090369,
+            0.019338419
+          ]
+        }
+      },
+      "round_order": [
+        [
+          "chacha-byte-base",
+          "chacha-chunks-direct",
+          "chacha-chunks",
+          "OpenSSL"
+        ],
+        [
+          "chacha-chunks",
+          "chacha-chunks-direct",
+          "chacha-byte-base",
+          "OpenSSL"
+        ],
+        [
+          "OpenSSL",
+          "chacha-byte-base",
+          "chacha-chunks-direct",
+          "chacha-chunks"
+        ],
+        [
+          "chacha-chunks-direct",
+          "OpenSSL",
+          "chacha-byte-base",
+          "chacha-chunks"
+        ],
+        [
+          "OpenSSL",
+          "chacha-byte-base",
+          "chacha-chunks-direct",
+          "chacha-chunks"
+        ],
+        [
+          "chacha-chunks",
+          "OpenSSL",
+          "chacha-chunks-direct",
+          "chacha-byte-base"
+        ],
+        [
+          "chacha-chunks-direct",
+          "chacha-chunks",
+          "OpenSSL",
+          "chacha-byte-base"
+        ],
+        [
+          "chacha-chunks-direct",
+          "chacha-byte-base",
+          "chacha-chunks",
+          "OpenSSL"
+        ],
+        [
+          "OpenSSL",
+          "chacha-chunks-direct",
+          "chacha-byte-base",
+          "chacha-chunks"
+        ],
+        [
+          "chacha-chunks-direct",
+          "OpenSSL",
+          "chacha-byte-base",
+          "chacha-chunks"
+        ],
+        [
+          "chacha-chunks",
+          "chacha-chunks-direct",
+          "chacha-byte-base",
+          "OpenSSL"
+        ]
+      ]
+    },
+    {
+      "algorithm": "chacha20-poly1305",
+      "bytes": 255,
+      "offset": 1,
+      "input_sha256": "a1c9c8a2014702acda76aacec31ea2c754c5dbea60bfdccd9a3d43f636a8a45b",
+      "output_sha256": "382432ad9e7aaf22f8e2a8cdee91bdfb26d6a96acece587d93b6c9227f364468",
+      "samples": {
+        "OpenSSL": {
+          "iterations": 24995,
+          "wall": [
+            0.055841157,
+            0.040215641,
+            0.040491126,
+            0.067081538,
+            0.059728589,
+            0.059171089,
+            0.040923147,
+            0.06331022,
+            0.059812745,
+            0.040212707,
+            0.055317537
+          ],
+          "cpu": [
+            0.019993896,
+            0.020204379,
+            0.020403679,
+            0.02015135,
+            0.020040175,
+            0.020169477,
+            0.020873385,
+            0.023132038,
+            0.020393309,
+            0.020069699,
+            0.020323116
+          ]
+        },
+        "chacha-byte-base": {
+          "iterations": 18676,
+          "wall": [
+            0.039219188,
+            0.03933362,
+            0.054447535,
+            0.03567328,
+            0.040784549,
+            0.045862467,
+            0.03598476,
+            0.040054968,
+            0.040242772,
+            0.055422645,
+            0.05060581
+          ],
+          "cpu": [
+            0.019235436,
+            0.019315095,
+            0.019500921,
+            0.019621079,
+            0.01970206,
+            0.020610602,
+            0.019758946,
+            0.020056579,
+            0.020226663,
+            0.019270507,
+            0.01967123
+          ]
+        },
+        "chacha-chunks": {
+          "iterations": 17874,
+          "wall": [
+            0.038966136,
+            0.056276713,
+            0.040105806,
+            0.057529082,
+            0.059744302,
+            0.054233061,
+            0.057772189,
+            0.039666613,
+            0.054735368,
+            0.059514236,
+            0.039360882
+          ],
+          "cpu": [
+            0.018954506,
+            0.018487031,
+            0.019187405,
+            0.018585749,
+            0.019717243,
+            0.01851935,
+            0.022652787,
+            0.019648672,
+            0.018552519,
+            0.018837962,
+            0.019359581
+          ]
+        },
+        "chacha-chunks-direct": {
+          "iterations": 18637,
+          "wall": [
+            0.045885052,
+            0.052353486,
+            0.054490028,
+            0.039574884,
+            0.039600172,
+            0.068921923,
+            0.058397592,
+            0.059012659,
+            0.039767705,
+            0.039838031,
+            0.04583826
+          ],
+          "cpu": [
+            0.020562863,
+            0.019368172,
+            0.019421923,
+            0.01954086,
+            0.019534172,
+            0.033721197,
+            0.019453342,
+            0.020183538,
+            0.019739075,
+            0.019785545,
+            0.019980682
+          ]
+        }
+      },
+      "round_order": [
+        [
+          "chacha-byte-base",
+          "chacha-chunks-direct",
+          "OpenSSL",
+          "chacha-chunks"
+        ],
+        [
+          "chacha-chunks-direct",
+          "chacha-byte-base",
+          "chacha-chunks",
+          "OpenSSL"
+        ],
+        [
+          "chacha-chunks-direct",
+          "chacha-chunks",
+          "chacha-byte-base",
+          "OpenSSL"
+        ],
+        [
+          "chacha-byte-base",
+          "OpenSSL",
+          "chacha-chunks-direct",
+          "chacha-chunks"
+        ],
+        [
+          "chacha-byte-base",
+          "OpenSSL",
+          "chacha-chunks-direct",
+          "chacha-chunks"
+        ],
+        [
+          "chacha-byte-base",
+          "chacha-chunks",
+          "OpenSSL",
+          "chacha-chunks-direct"
+        ],
+        [
+          "chacha-chunks-direct",
+          "chacha-byte-base",
+          "OpenSSL",
+          "chacha-chunks"
+        ],
+        [
+          "chacha-byte-base",
+          "chacha-chunks-direct",
+          "chacha-chunks",
+          "OpenSSL"
+        ],
+        [
+          "OpenSSL",
+          "chacha-byte-base",
+          "chacha-chunks",
+          "chacha-chunks-direct"
+        ],
+        [
+          "chacha-chunks",
+          "chacha-chunks-direct",
+          "chacha-byte-base",
+          "OpenSSL"
+        ],
+        [
+          "OpenSSL",
+          "chacha-chunks-direct",
+          "chacha-byte-base",
+          "chacha-chunks"
+        ]
+      ]
+    },
+    {
+      "algorithm": "chacha20-poly1305",
+      "bytes": 256,
+      "offset": 1,
+      "input_sha256": "dbbb7ab18f6796b1efba0284a7801fb21d3d25c090f524be507f46b169510651",
+      "output_sha256": "2b4237da0a991678754d5ea745c226740f39a4a43c68ab0bce5815d772e5ca0f",
+      "samples": {
+        "OpenSSL": {
+          "iterations": 30802,
+          "wall": [
+            0.092111082,
+            0.039858572,
+            0.044933847,
+            0.039839474,
+            0.06365445,
+            0.062715524,
+            0.039926816,
+            0.06615408,
+            0.063001174,
+            0.039714355,
+            0.058959099
+          ],
+          "cpu": [
+            0.031314565,
+            0.019784292,
+            0.020434772,
+            0.019731786,
+            0.019686058,
+            0.019761639,
+            0.019679958,
+            0.019602222,
+            0.020275914,
+            0.019637753,
+            0.019979987
+          ]
+        },
+        "chacha-byte-base": {
+          "iterations": 24078,
+          "wall": [
+            0.050199528,
+            0.054202635,
+            0.057747281,
+            0.039632632,
+            0.053697253,
+            0.035963598,
+            0.037961151,
+            0.074125422,
+            0.050165998,
+            0.038076364,
+            0.038107292
+          ],
+          "cpu": [
+            0.017721983,
+            0.017654542,
+            0.017909033,
+            0.01807001,
+            0.017742632,
+            0.01973489,
+            0.017724054,
+            0.027181309,
+            0.01788805,
+            0.017928931,
+            0.01787452
+          ]
+        },
+        "chacha-chunks": {
+          "iterations": 27482,
+          "wall": [
+            0.045397365,
+            0.059578102,
+            0.065210966,
+            0.055201381,
+            0.065489347,
+            0.040352857,
+            0.046336222,
+            0.05542563,
+            0.0457253,
+            0.06581607,
+            0.046309501
+          ],
+          "cpu": [
+            0.02126612,
+            0.020623994,
+            0.021278168,
+            0.020260681,
+            0.021388111,
+            0.020306541,
+            0.022264378,
+            0.020467782,
+            0.020420871,
+            0.022586406,
+            0.020409355
+          ]
+        },
+        "chacha-chunks-direct": {
+          "iterations": 24805,
+          "wall": [
+            0.053951456,
+            0.039194831,
+            0.038474766,
+            0.054913882,
+            0.039140249,
+            0.054365511,
+            0.057542783,
+            0.049579538,
+            0.038240072,
+            0.057797937,
+            0.058902243
+          ],
+          "cpu": [
+            0.018880721,
+            0.018535776,
+            0.018505699,
+            0.018886026,
+            0.019080496,
+            0.018335376,
+            0.018501743,
+            0.025560625,
+            0.018239391,
+            0.018827588,
+            0.019933246
+          ]
+        }
+      },
+      "round_order": [
+        [
+          "OpenSSL",
+          "chacha-chunks-direct",
+          "chacha-chunks",
+          "chacha-byte-base"
+        ],
+        [
+          "OpenSSL",
+          "chacha-chunks",
+          "chacha-chunks-direct",
+          "chacha-byte-base"
+        ],
+        [
+          "chacha-chunks",
+          "OpenSSL",
+          "chacha-byte-base",
+          "chacha-chunks-direct"
+        ],
+        [
+          "chacha-chunks-direct",
+          "OpenSSL",
+          "chacha-chunks",
+          "chacha-byte-base"
+        ],
+        [
+          "OpenSSL",
+          "chacha-chunks-direct",
+          "chacha-byte-base",
+          "chacha-chunks"
+        ],
+        [
+          "chacha-byte-base",
+          "chacha-chunks-direct",
+          "chacha-chunks",
+          "OpenSSL"
+        ],
+        [
+          "chacha-chunks",
+          "OpenSSL",
+          "chacha-chunks-direct",
+          "chacha-byte-base"
+        ],
+        [
+          "chacha-byte-base",
+          "chacha-chunks-direct",
+          "chacha-chunks",
+          "OpenSSL"
+        ],
+        [
+          "chacha-chunks",
+          "chacha-byte-base",
+          "chacha-chunks-direct",
+          "OpenSSL"
+        ],
+        [
+          "OpenSSL",
+          "chacha-chunks-direct",
+          "chacha-byte-base",
+          "chacha-chunks"
+        ],
+        [
+          "chacha-byte-base",
+          "chacha-chunks-direct",
+          "OpenSSL",
+          "chacha-chunks"
+        ]
+      ]
+    },
+    {
+      "algorithm": "chacha20-poly1305",
+      "bytes": 257,
+      "offset": 1,
+      "input_sha256": "9cf03dccb1743e7e3fc56e902c853940058188470051cd8e9a170fec73097371",
+      "output_sha256": "7bbd463fc7debcfe186df9008ab66e4db31106b9f312873285bd83566db2f90e",
+      "samples": {
+        "OpenSSL": {
+          "iterations": 23931,
+          "wall": [
+            0.038429748,
+            0.061554894,
+            0.039087901,
+            0.057277693,
+            0.057489823,
+            0.034496095,
+            0.034424838,
+            0.055442936,
+            0.03471218,
+            0.054504861,
+            0.038830563
+          ],
+          "cpu": [
+            0.018322826,
+            0.018325632,
+            0.018300953,
+            0.018323768,
+            0.018486812,
+            0.018464858,
+            0.018384018,
+            0.018337801,
+            0.018632758,
+            0.018590235,
+            0.018581463
+          ]
+        },
+        "chacha-byte-base": {
+          "iterations": 21816,
+          "wall": [
+            0.039892765,
+            0.039568044,
+            0.040564627,
+            0.063532526,
+            0.068849986,
+            0.059024557,
+            0.047203109,
+            0.041086615,
+            0.065488622,
+            0.040329002,
+            0.060362546
+          ],
+          "cpu": [
+            0.019873856,
+            0.019510506,
+            0.020531788,
+            0.02051345,
+            0.022361081,
+            0.020048075,
+            0.02244179,
+            0.021064618,
+            0.021343745,
+            0.02031216,
+            0.02140579
+          ]
+        },
+        "chacha-chunks": {
+          "iterations": 19805,
+          "wall": [
+            0.054288054,
+            0.063534339,
+            0.058242709,
+            0.039483216,
+            0.038073611,
+            0.050051043,
+            0.038726305,
+            0.058149508,
+            0.059193472,
+            0.063307476,
+            0.063223661
+          ],
+          "cpu": [
+            0.018206584,
+            0.018505539,
+            0.018118883,
+            0.019478058,
+            0.018036261,
+            0.018024892,
+            0.01870807,
+            0.018417517,
+            0.020224008,
+            0.020439669,
+            0.01860643
+          ]
+        },
+        "chacha-chunks-direct": {
+          "iterations": 21803,
+          "wall": [
+            0.066579081,
+            0.046945791,
+            0.045355082,
+            0.035977529,
+            0.064971486,
+            0.040313949,
+            0.065798634,
+            0.040676887,
+            0.07766809,
+            0.040271255,
+            0.047361678
+          ],
+          "cpu": [
+            0.021260052,
+            0.022875397,
+            0.020474602,
+            0.019558227,
+            0.020210127,
+            0.019643063,
+            0.02093075,
+            0.019704805,
+            0.025097025,
+            0.020052024,
+            0.022808668
+          ]
+        }
+      },
+      "round_order": [
+        [
+          "chacha-chunks-direct",
+          "OpenSSL",
+          "chacha-chunks",
+          "chacha-byte-base"
+        ],
+        [
+          "chacha-chunks",
+          "chacha-byte-base",
+          "OpenSSL",
+          "chacha-chunks-direct"
+        ],
+        [
+          "OpenSSL",
+          "chacha-chunks",
+          "chacha-chunks-direct",
+          "chacha-byte-base"
+        ],
+        [
+          "chacha-byte-base",
+          "chacha-chunks-direct",
+          "OpenSSL",
+          "chacha-chunks"
+        ],
+        [
+          "chacha-byte-base",
+          "chacha-chunks-direct",
+          "chacha-chunks",
+          "OpenSSL"
+        ],
+        [
+          "OpenSSL",
+          "chacha-byte-base",
+          "chacha-chunks-direct",
+          "chacha-chunks"
+        ],
+        [
+          "chacha-chunks",
+          "chacha-chunks-direct",
+          "OpenSSL",
+          "chacha-byte-base"
+        ],
+        [
+          "chacha-chunks",
+          "chacha-byte-base",
+          "OpenSSL",
+          "chacha-chunks-direct"
+        ],
+        [
+          "chacha-chunks-direct",
+          "chacha-byte-base",
+          "OpenSSL",
+          "chacha-chunks"
+        ],
+        [
+          "chacha-chunks-direct",
+          "OpenSSL",
+          "chacha-byte-base",
+          "chacha-chunks"
+        ],
+        [
+          "chacha-chunks",
+          "chacha-chunks-direct",
+          "chacha-byte-base",
+          "OpenSSL"
+        ]
+      ]
+    },
+    {
+      "algorithm": "chacha20-poly1305",
+      "bytes": 512,
+      "offset": 1,
+      "input_sha256": "10151e753b1df20f3a6feba8fc712998674a6680fe4eef235f5e38af1426e7e3",
+      "output_sha256": "0c956e438eb380b118913c2a53e5038279efa8e401da60f60d0bb5c9f3ec2d0e",
+      "samples": {
+        "OpenSSL": {
+          "iterations": 17939,
+          "wall": [
+            0.031505845,
+            0.031355388,
+            0.050960906,
+            0.044673494,
+            0.051118634,
+            0.051834073,
+            0.045965193,
+            0.030294448,
+            0.030018833,
+            0.045158316,
+            0.038368195
+          ],
+          "cpu": [
+            0.015431962,
+            0.013779841,
+            0.013814453,
+            0.013738168,
+            0.014312925,
+            0.014374085,
+            0.013929956,
+            0.01373775,
+            0.013730969,
+            0.014209831,
+            0.018372208
+          ]
+        },
+        "chacha-byte-base": {
+          "iterations": 12281,
+          "wall": [
+            0.031139572,
+            0.030325845,
+            0.050359349,
+            0.030320478,
+            0.030511435,
+            0.050282053,
+            0.031014314,
+            0.030990748,
+            0.03143615,
+            0.030608382,
+            0.055844381
+          ],
+          "cpu": [
+            0.015127609,
+            0.013969183,
+            0.014229282,
+            0.013780824,
+            0.01448998,
+            0.01531589,
+            0.015001149,
+            0.014266615,
+            0.014314758,
+            0.014588055,
+            0.02088393
+          ]
+        },
+        "chacha-chunks": {
+          "iterations": 13426,
+          "wall": [
+            0.035861796,
+            0.045688624,
+            0.031066953,
+            0.030864287,
+            0.031121426,
+            0.031159893,
+            0.031638866,
+            0.031155296,
+            0.05039299,
+            0.031063469,
+            0.040714363
+          ],
+          "cpu": [
+            0.015618382,
+            0.014727181,
+            0.014670008,
+            0.014821602,
+            0.015116852,
+            0.015145265,
+            0.015634983,
+            0.015086639,
+            0.015394404,
+            0.015018025,
+            0.020605395
+          ]
+        },
+        "chacha-chunks-direct": {
+          "iterations": 13383,
+          "wall": [
+            0.059975031,
+            0.049906657,
+            0.031068667,
+            0.031678226,
+            0.031333155,
+            0.030956697,
+            0.050672241,
+            0.045876088,
+            0.03121023,
+            0.058169117,
+            0.041838879
+          ],
+          "cpu": [
+            0.019619577,
+            0.014947018,
+            0.015069,
+            0.015647833,
+            0.014625772,
+            0.014950255,
+            0.015190231,
+            0.014929042,
+            0.015216419,
+            0.017331891,
+            0.014880192
+          ]
+        }
+      },
+      "round_order": [
+        [
+          "chacha-chunks-direct",
+          "OpenSSL",
+          "chacha-chunks",
+          "chacha-byte-base"
+        ],
+        [
+          "chacha-chunks",
+          "OpenSSL",
+          "chacha-chunks-direct",
+          "chacha-byte-base"
+        ],
+        [
+          "chacha-chunks-direct",
+          "OpenSSL",
+          "chacha-chunks",
+          "chacha-byte-base"
+        ],
+        [
+          "chacha-byte-base",
+          "OpenSSL",
+          "chacha-chunks",
+          "chacha-chunks-direct"
+        ],
+        [
+          "chacha-chunks-direct",
+          "chacha-chunks",
+          "OpenSSL",
+          "chacha-byte-base"
+        ],
+        [
+          "chacha-byte-base",
+          "chacha-chunks-direct",
+          "OpenSSL",
+          "chacha-chunks"
+        ],
+        [
+          "chacha-byte-base",
+          "OpenSSL",
+          "chacha-chunks",
+          "chacha-chunks-direct"
+        ],
+        [
+          "OpenSSL",
+          "chacha-chunks",
+          "chacha-chunks-direct",
+          "chacha-byte-base"
+        ],
+        [
+          "chacha-chunks",
+          "OpenSSL",
+          "chacha-chunks-direct",
+          "chacha-byte-base"
+        ],
+        [
+          "chacha-chunks",
+          "OpenSSL",
+          "chacha-byte-base",
+          "chacha-chunks-direct"
+        ],
+        [
+          "chacha-chunks",
+          "chacha-byte-base",
+          "OpenSSL",
+          "chacha-chunks-direct"
+        ]
+      ]
+    },
+    {
+      "algorithm": "chacha20-poly1305",
+      "bytes": 1024,
+      "offset": 1,
+      "input_sha256": "7311fb0bdb03a2ad4957e5b8431c3acf9618869e56e321bb0a2170d1d6b8816a",
+      "output_sha256": "7d3091822504768109fe03cc8dd59a6802844f4bc56a2c4eb4f53395fd3c0c61",
+      "samples": {
+        "OpenSSL": {
+          "iterations": 25374,
+          "wall": [
+            0.05543912,
+            0.044204347,
+            0.045638239,
+            0.060959626,
+            0.059784473,
+            0.060011106,
+            0.046668403,
+            0.040951591,
+            0.059555528,
+            0.067164214,
+            0.065877944
+          ],
+          "cpu": [
+            0.020207554,
+            0.020074685,
+            0.019978623,
+            0.019934526,
+            0.020750971,
+            0.020864122,
+            0.021599768,
+            0.020786558,
+            0.020330358,
+            0.020183796,
+            0.021827595
+          ]
+        },
+        "chacha-byte-base": {
+          "iterations": 10447,
+          "wall": [
+            0.044535826,
+            0.058923505,
+            0.039842829,
+            0.040071524,
+            0.04607667,
+            0.046622454,
+            0.07013197,
+            0.06474223,
+            0.062040846,
+            0.065298239,
+            0.062675964
+          ],
+          "cpu": [
+            0.020521602,
+            0.019928839,
+            0.019839482,
+            0.020089008,
+            0.021180822,
+            0.021060744,
+            0.026078799,
+            0.020698966,
+            0.024593006,
+            0.022006952,
+            0.020668308
+          ]
+        },
+        "chacha-chunks": {
+          "iterations": 10864,
+          "wall": [
+            0.056365768,
+            0.039766463,
+            0.059976213,
+            0.058998849,
+            0.041047836,
+            0.068699258,
+            0.040378927,
+            0.065370248,
+            0.061773934,
+            0.039998013,
+            0.039793715
+          ],
+          "cpu": [
+            0.020368694,
+            0.01970129,
+            0.01990928,
+            0.020039152,
+            0.02101126,
+            0.024951459,
+            0.020362095,
+            0.021144809,
+            0.022385166,
+            0.019908048,
+            0.019759377
+          ]
+        },
+        "chacha-chunks-direct": {
+          "iterations": 11107,
+          "wall": [
+            0.066051055,
+            0.065690802,
+            0.05901332,
+            0.040170323,
+            0.066177806,
+            0.05920527,
+            0.050844551,
+            0.04341751,
+            0.046243462,
+            0.072510662,
+            0.040415683
+          ],
+          "cpu": [
+            0.032436436,
+            0.025886109,
+            0.020070381,
+            0.020160003,
+            0.021583234,
+            0.021955325,
+            0.025740243,
+            0.022045802,
+            0.020846678,
+            0.024663236,
+            0.020230928
+          ]
+        }
+      },
+      "round_order": [
+        [
+          "chacha-byte-base",
+          "OpenSSL",
+          "chacha-chunks-direct",
+          "chacha-chunks"
+        ],
+        [
+          "chacha-chunks",
+          "chacha-chunks-direct",
+          "chacha-byte-base",
+          "OpenSSL"
+        ],
+        [
+          "chacha-chunks",
+          "OpenSSL",
+          "chacha-chunks-direct",
+          "chacha-byte-base"
+        ],
+        [
+          "chacha-chunks-direct",
+          "OpenSSL",
+          "chacha-byte-base",
+          "chacha-chunks"
+        ],
+        [
+          "chacha-byte-base",
+          "chacha-chunks-direct",
+          "OpenSSL",
+          "chacha-chunks"
+        ],
+        [
+          "OpenSSL",
+          "chacha-byte-base",
+          "chacha-chunks-direct",
+          "chacha-chunks"
+        ],
+        [
+          "chacha-chunks",
+          "chacha-byte-base",
+          "chacha-chunks-direct",
+          "OpenSSL"
+        ],
+        [
+          "chacha-chunks",
+          "chacha-chunks-direct",
+          "chacha-byte-base",
+          "OpenSSL"
+        ],
+        [
+          "chacha-byte-base",
+          "chacha-chunks",
+          "chacha-chunks-direct",
+          "OpenSSL"
+        ],
+        [
+          "chacha-chunks-direct",
+          "chacha-byte-base",
+          "chacha-chunks",
+          "OpenSSL"
+        ],
+        [
+          "chacha-chunks-direct",
+          "OpenSSL",
+          "chacha-byte-base",
+          "chacha-chunks"
+        ]
+      ]
+    },
+    {
+      "algorithm": "chacha20-poly1305",
+      "bytes": 4096,
+      "offset": 1,
+      "input_sha256": "a54c44ad185f85ecee304d43ea3b8d30fb5a31820bd675f5a166c4334f9be6f7",
+      "output_sha256": "f0358632e41941b5e89e862c447adc1fd4fc8f6345b73721c38eede6877a8a95",
+      "samples": {
+        "OpenSSL": {
+          "iterations": 12203,
+          "wall": [
+            0.039964021,
+            0.039818823,
+            0.058675581,
+            0.068047746,
+            0.064071148,
+            0.059002024,
+            0.059068143,
+            0.042069697,
+            0.040415442,
+            0.039903721,
+            0.064701549
+          ],
+          "cpu": [
+            0.019698775,
+            0.019691584,
+            0.019742299,
+            0.019718177,
+            0.019888137,
+            0.020027044,
+            0.019913917,
+            0.020591014,
+            0.020356796,
+            0.019808189,
+            0.020544426
+          ]
+        },
+        "chacha-byte-base": {
+          "iterations": 3225,
+          "wall": [
+            0.058623683,
+            0.068077129,
+            0.039627114,
+            0.039658291,
+            0.062745389,
+            0.06498062,
+            0.040313609,
+            0.075975753,
+            0.077242002,
+            0.062868165,
+            0.040007046
+          ],
+          "cpu": [
+            0.019675823,
+            0.019646508,
+            0.019596272,
+            0.019656201,
+            0.019747208,
+            0.020704423,
+            0.020274124,
+            0.025865873,
+            0.026371182,
+            0.019824644,
+            0.019954726
+          ]
+        },
+        "chacha-chunks": {
+          "iterations": 3417,
+          "wall": [
+            0.039492069,
+            0.057603084,
+            0.058436822,
+            0.075160343,
+            0.03972411,
+            0.039502756,
+            0.037714909,
+            0.07004012,
+            0.042070388,
+            0.037013862,
+            0.040461622
+          ],
+          "cpu": [
+            0.019464116,
+            0.021519737,
+            0.019474051,
+            0.025958857,
+            0.019618456,
+            0.01948054,
+            0.021549243,
+            0.02458827,
+            0.019938733,
+            0.019766516,
+            0.020287193
+          ]
+        },
+        "chacha-chunks-direct": {
+          "iterations": 3399,
+          "wall": [
+            0.062643195,
+            0.069933068,
+            0.039338809,
+            0.07104831,
+            0.039530568,
+            0.039262003,
+            0.055974838,
+            0.035969107,
+            0.062438797,
+            0.070731113,
+            0.078219396
+          ],
+          "cpu": [
+            0.019640649,
+            0.022969998,
+            0.019248826,
+            0.024066281,
+            0.019504386,
+            0.019188237,
+            0.019699538,
+            0.019442874,
+            0.019487001,
+            0.024868144,
+            0.026154801
+          ]
+        }
+      },
+      "round_order": [
+        [
+          "chacha-byte-base",
+          "chacha-chunks",
+          "chacha-chunks-direct",
+          "OpenSSL"
+        ],
+        [
+          "chacha-chunks-direct",
+          "chacha-chunks",
+          "OpenSSL",
+          "chacha-byte-base"
+        ],
+        [
+          "chacha-chunks-direct",
+          "OpenSSL",
+          "chacha-byte-base",
+          "chacha-chunks"
+        ],
+        [
+          "chacha-chunks",
+          "chacha-byte-base",
+          "OpenSSL",
+          "chacha-chunks-direct"
+        ],
+        [
+          "chacha-chunks-direct",
+          "chacha-byte-base",
+          "chacha-chunks",
+          "OpenSSL"
+        ],
+        [
+          "chacha-chunks",
+          "chacha-byte-base",
+          "OpenSSL",
+          "chacha-chunks-direct"
+        ],
+        [
+          "OpenSSL",
+          "chacha-chunks",
+          "chacha-byte-base",
+          "chacha-chunks-direct"
+        ],
+        [
+          "chacha-chunks",
+          "chacha-chunks-direct",
+          "chacha-byte-base",
+          "OpenSSL"
+        ],
+        [
+          "chacha-chunks",
+          "chacha-chunks-direct",
+          "OpenSSL",
+          "chacha-byte-base"
+        ],
+        [
+          "chacha-chunks-direct",
+          "OpenSSL",
+          "chacha-chunks",
+          "chacha-byte-base"
+        ],
+        [
+          "chacha-chunks",
+          "OpenSSL",
+          "chacha-byte-base",
+          "chacha-chunks-direct"
+        ]
+      ]
+    },
+    {
+      "algorithm": "chacha20-poly1305",
+      "bytes": 4097,
+      "offset": 1,
+      "input_sha256": "be4f3460584f4e15f2e045f8db99b29165ead9eb1688433cf5f0e4a1387c606d",
+      "output_sha256": "59f9a6d93643722dbd3aa99b57d1f1c63f612f581ac875eb74a8de51e61ab3a7",
+      "samples": {
+        "OpenSSL": {
+          "iterations": 9147,
+          "wall": [
+            0.039347212,
+            0.032122365,
+            0.032228645,
+            0.032341716,
+            0.032371962,
+            0.036128948,
+            0.037285622,
+            0.05657313,
+            0.037789672,
+            0.032480065,
+            0.052253676
+          ],
+          "cpu": [
+            0.018298671,
+            0.01604849,
+            0.016177061,
+            0.016238762,
+            0.016324982,
+            0.015973438,
+            0.015945606,
+            0.01610284,
+            0.016187598,
+            0.016443427,
+            0.016212634
+          ]
+        },
+        "chacha-byte-base": {
+          "iterations": 2805,
+          "wall": [
+            0.070591503,
+            0.069226974,
+            0.057046935,
+            0.069188516,
+            0.053505163,
+            0.069788081,
+            0.050168431,
+            0.040405718,
+            0.05807128,
+            0.070911465,
+            0.05239579
+          ],
+          "cpu": [
+            0.022569931,
+            0.021343816,
+            0.018030331,
+            0.023079882,
+            0.017471259,
+            0.023482211,
+            0.018147986,
+            0.018172764,
+            0.018006787,
+            0.023910708,
+            0.025692662
+          ]
+        },
+        "chacha-chunks": {
+          "iterations": 3333,
+          "wall": [
+            0.065652153,
+            0.055875459,
+            0.03956508,
+            0.046350283,
+            0.05854204,
+            0.068958229,
+            0.036012682,
+            0.058884166,
+            0.063248939,
+            0.063138141,
+            0.058822243
+          ],
+          "cpu": [
+            0.020556934,
+            0.02013123,
+            0.019513299,
+            0.021814457,
+            0.019568412,
+            0.022161514,
+            0.019752126,
+            0.019905784,
+            0.020199251,
+            0.020194242,
+            0.019801419
+          ]
+        },
+        "chacha-chunks-direct": {
+          "iterations": 3197,
+          "wall": [
+            0.039872073,
+            0.057842495,
+            0.057717517,
+            0.039099277,
+            0.038906367,
+            0.05954351,
+            0.063366656,
+            0.039002371,
+            0.039343486,
+            0.039463847,
+            0.041025402
+          ],
+          "cpu": [
+            0.019857505,
+            0.018776983,
+            0.018753988,
+            0.019037121,
+            0.01887456,
+            0.018694299,
+            0.019303806,
+            0.018933616,
+            0.019248785,
+            0.018703694,
+            0.019070511
+          ]
+        }
+      },
+      "round_order": [
+        [
+          "chacha-byte-base",
+          "OpenSSL",
+          "chacha-chunks",
+          "chacha-chunks-direct"
+        ],
+        [
+          "chacha-chunks",
+          "chacha-byte-base",
+          "OpenSSL",
+          "chacha-chunks-direct"
+        ],
+        [
+          "chacha-chunks",
+          "chacha-byte-base",
+          "OpenSSL",
+          "chacha-chunks-direct"
+        ],
+        [
+          "OpenSSL",
+          "chacha-byte-base",
+          "chacha-chunks",
+          "chacha-chunks-direct"
+        ],
+        [
+          "chacha-chunks",
+          "chacha-chunks-direct",
+          "chacha-byte-base",
+          "OpenSSL"
+        ],
+        [
+          "chacha-chunks-direct",
+          "chacha-chunks",
+          "OpenSSL",
+          "chacha-byte-base"
+        ],
+        [
+          "chacha-chunks",
+          "chacha-byte-base",
+          "OpenSSL",
+          "chacha-chunks-direct"
+        ],
+        [
+          "chacha-byte-base",
+          "chacha-chunks",
+          "chacha-chunks-direct",
+          "OpenSSL"
+        ],
+        [
+          "chacha-chunks-direct",
+          "chacha-byte-base",
+          "chacha-chunks",
+          "OpenSSL"
+        ],
+        [
+          "chacha-byte-base",
+          "chacha-chunks-direct",
+          "chacha-chunks",
+          "OpenSSL"
+        ],
+        [
+          "chacha-chunks-direct",
+          "chacha-chunks",
+          "chacha-byte-base",
+          "OpenSSL"
+        ]
+      ]
+    },
+    {
+      "algorithm": "chacha20-poly1305",
+      "bytes": 4194304,
+      "offset": 1,
+      "input_sha256": "4ee2735a5e1ca0bd9393d207d8489acce6dcf269c676ab36dc04862aebbc2d0c",
+      "output_sha256": "307e0484e5a382246ad1247633ebdc5232d05a43aa61ee8623b8f66d2e2a7da6",
+      "samples": {
+        "OpenSSL": {
+          "iterations": 17,
+          "wall": [
+            0.058487797,
+            0.039746674,
+            0.058647739,
+            0.066199499,
+            0.052828623,
+            0.057939881,
+            0.058603512,
+            0.05850894,
+            0.059598403,
+            0.039731,
+            0.060402055
+          ],
+          "cpu": [
+            0.019300603,
+            0.019517546,
+            0.019643906,
+            0.021868989,
+            0.022734658,
+            0.020318978,
+            0.019308867,
+            0.019509645,
+            0.019531537,
+            0.019675322,
+            0.019756161
+          ]
+        },
+        "chacha-byte-base": {
+          "iterations": 3,
+          "wall": [
+            0.042067694,
+            0.053669802,
+            0.040331886,
+            0.058331001,
+            0.038466042,
+            0.061467332,
+            0.033374314,
+            0.056703787,
+            0.033143265,
+            0.033227492,
+            0.046093726
+          ],
+          "cpu": [
+            0.018180074,
+            0.017311369,
+            0.018825816,
+            0.018613014,
+            0.017747882,
+            0.023768958,
+            0.017373542,
+            0.017474372,
+            0.01710234,
+            0.017199114,
+            0.021483053
+          ]
+        },
+        "chacha-chunks": {
+          "iterations": 4,
+          "wall": [
+            0.050636509,
+            0.066208012,
+            0.069147184,
+            0.055709067,
+            0.088149742,
+            0.065005097,
+            0.095035968,
+            0.062228429,
+            0.075711475,
+            0.065390568,
+            0.046618217
+          ],
+          "cpu": [
+            0.022886572,
+            0.021615891,
+            0.021432328,
+            0.027444923,
+            0.031388936,
+            0.024082452,
+            0.039384301,
+            0.022168553,
+            0.027331435,
+            0.021534158,
+            0.021770362
+          ]
+        },
+        "chacha-chunks-direct": {
+          "iterations": 2,
+          "wall": [
+            0.043960218,
+            0.022765023,
+            0.024552779,
+            0.037569029,
+            0.022992937,
+            0.023706954,
+            0.023948087,
+            0.022938105,
+            0.022693325,
+            0.04996848,
+            0.041729063
+          ],
+          "cpu": [
+            0.010890207,
+            0.010749467,
+            0.010659445,
+            0.010594356,
+            0.010693494,
+            0.01089081,
+            0.011107513,
+            0.010853784,
+            0.010663961,
+            0.010644342,
+            0.010765353
+          ]
+        }
+      },
+      "round_order": [
+        [
+          "chacha-chunks-direct",
+          "OpenSSL",
+          "chacha-chunks",
+          "chacha-byte-base"
+        ],
+        [
+          "chacha-chunks",
+          "chacha-byte-base",
+          "chacha-chunks-direct",
+          "OpenSSL"
+        ],
+        [
+          "chacha-chunks",
+          "OpenSSL",
+          "chacha-chunks-direct",
+          "chacha-byte-base"
+        ],
+        [
+          "chacha-chunks",
+          "OpenSSL",
+          "chacha-chunks-direct",
+          "chacha-byte-base"
+        ],
+        [
+          "chacha-byte-base",
+          "OpenSSL",
+          "chacha-chunks",
+          "chacha-chunks-direct"
+        ],
+        [
+          "OpenSSL",
+          "chacha-byte-base",
+          "chacha-chunks-direct",
+          "chacha-chunks"
+        ],
+        [
+          "chacha-chunks",
+          "chacha-byte-base",
+          "chacha-chunks-direct",
+          "OpenSSL"
+        ],
+        [
+          "OpenSSL",
+          "chacha-chunks",
+          "chacha-chunks-direct",
+          "chacha-byte-base"
+        ],
+        [
+          "OpenSSL",
+          "chacha-chunks",
+          "chacha-chunks-direct",
+          "chacha-byte-base"
+        ],
+        [
+          "chacha-chunks-direct",
+          "OpenSSL",
+          "chacha-byte-base",
+          "chacha-chunks"
+        ],
+        [
+          "chacha-chunks-direct",
+          "chacha-byte-base",
+          "chacha-chunks",
+          "OpenSSL"
+        ]
+      ]
+    }
+  ]
+}

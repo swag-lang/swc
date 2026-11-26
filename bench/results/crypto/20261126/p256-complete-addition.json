@@ -1,0 +1,685 @@
+{
+  "utc": "2026-11-26T13:21:28.171560+00:00",
+  "system": "Linux-6.18.57-x86_64-with-glibc2.41",
+  "cpu": 4,
+  "affinity": [
+    4
+  ],
+  "workers": {
+    "jacobian": 1,
+    "homogeneous": 1
+  },
+  "processor": {
+    "model name": "AMD EPYC 9V74 80-Core Processor",
+    "microcode": "0x1000065",
+    "flags": "fpu vme de pse tsc msr pae mce cx8 apic sep mtrr pge mca cmov pat pse36 clflush mmx fxsr sse sse2 ht syscall nx mmxext fxsr_opt pdpe1gb rdtscp lm constant_tsc rep_good nopl xtopology nonstop_tsc cpuid extd_apicid tsc_known_freq pni pclmulqdq ssse3 fma cx16 pcid sse4_1 sse4_2 x2apic movbe popcnt tsc_deadline_timer aes xsave avx f16c rdrand hypervisor lahf_lm cmp_legacy cr8_legacy abm sse4a misalignsse 3dnowprefetch osvw topoext cpuid_fault vmmcall fsgsbase tsc_adjust bmi1 avx2 smep bmi2 erms invpcid avx512f avx512dq rdseed adx smap avx512ifma clflushopt clwb avx512cd sha_ni avx512bw avx512vl xsaveopt xsavec xgetbv1 xsaves avx512_bf16 clzero xsaveerptr arat npt nrip_save tsc_scale vmcb_clean flushbyasid pausefilter pfthreshold v_vmsave_vmload avx512vbmi umip avx512_vbmi2 gfni vaes vpclmulqdq avx512_vnni avx512_bitalg avx512_vpopcntdq rdpid fsrm arch_capabilities"
+  },
+  "reference_build": "OpenSSL 3.5.7 9 Jun 2026 | zlib 1.3.1 | BLAKE3 1.8.7 | libdeflate 1.26 | ISA-L 2.32.1 | liblzma 5.8.1",
+  "reference_sha256": "8f37abf88c91214513c647082710fefd454a6c6899c3e22c02a264354fdfe681",
+  "swag_builds": {
+    "jacobian": "f8ad144f8159a00d5ab648d07c52dd83ceac554c4143c9ecd31b603e72655208",
+    "homogeneous": "ed8f44890395af654dbef89ff83eff0e052c80c47a4420b766b692c18e9d39b1"
+  },
+  "rounds": 17,
+  "target_ms": 55,
+  "clock": "cpu",
+  "rows": [
+    {
+      "algorithm": "p256-public",
+      "bytes": 32,
+      "offset": 0,
+      "input_sha256": "2404657934fda9253c9d38499cb12ebdbbed5a27f47746fb93ed5d1b676bd395",
+      "output_sha256": "b83b76408d0c549e362e886b51d9124ffb9ba35e94380e3922f231c2fb99966d",
+      "samples": {
+        "OpenSSL": {
+          "iterations": 3849,
+          "wall": [
+            0.041682746,
+            0.041085796,
+            0.042507801,
+            0.041296684,
+            0.041252768,
+            0.041370916,
+            0.041245777,
+            0.041974048,
+            0.041766976,
+            0.044523164,
+            0.041141653,
+            0.041899567,
+            0.04463384,
+            0.043550386,
+            0.041631252,
+            0.044171052,
+            0.04172979
+          ],
+          "cpu": [
+            0.041493833,
+            0.041083413,
+            0.04250543,
+            0.041294587,
+            0.04124961,
+            0.04134321,
+            0.041228359,
+            0.04195443,
+            0.041751638,
+            0.041574755,
+            0.041139226,
+            0.04186705,
+            0.041333875,
+            0.043547192,
+            0.041571501,
+            0.041179665,
+            0.041701414
+          ]
+        },
+        "jacobian": {
+          "iterations": 446,
+          "wall": [
+            0.057701069,
+            0.054451398,
+            0.054707013,
+            0.054424307,
+            0.054455494,
+            0.054854295,
+            0.056018943,
+            0.055353349,
+            0.056231223,
+            0.054690538,
+            0.06608229,
+            0.062731216,
+            0.054754766,
+            0.055981556,
+            0.057722633,
+            0.056432636,
+            0.061491997
+          ],
+          "cpu": [
+            0.057686008,
+            0.05444433,
+            0.054257432,
+            0.054398762,
+            0.054452432,
+            0.054519603,
+            0.05600212,
+            0.055332493,
+            0.056228167,
+            0.054687993,
+            0.059138431,
+            0.059907696,
+            0.054752038,
+            0.055978235,
+            0.054675159,
+            0.056395007,
+            0.054520996
+          ]
+        },
+        "homogeneous": {
+          "iterations": 521,
+          "wall": [
+            0.054202453,
+            0.0553021,
+            0.054614463,
+            0.055993754,
+            0.055089599,
+            0.055433037,
+            0.054352721,
+            0.054670289,
+            0.054981758,
+            0.054262053,
+            0.061853743,
+            0.064029204,
+            0.057288708,
+            0.070462407,
+            0.062301559,
+            0.068795743,
+            0.054987387
+          ],
+          "cpu": [
+            0.054194938,
+            0.055299564,
+            0.054542436,
+            0.055566964,
+            0.055086997,
+            0.055412723,
+            0.054235409,
+            0.054660162,
+            0.054583688,
+            0.054259805,
+            0.054904166,
+            0.061068074,
+            0.057285792,
+            0.055535656,
+            0.055302612,
+            0.061800185,
+            0.054938061
+          ]
+        }
+      },
+      "round_order": [
+        [
+          "OpenSSL",
+          "jacobian",
+          "homogeneous"
+        ],
+        [
+          "homogeneous",
+          "OpenSSL",
+          "jacobian"
+        ],
+        [
+          "OpenSSL",
+          "jacobian",
+          "homogeneous"
+        ],
+        [
+          "jacobian",
+          "OpenSSL",
+          "homogeneous"
+        ],
+        [
+          "homogeneous",
+          "OpenSSL",
+          "jacobian"
+        ],
+        [
+          "OpenSSL",
+          "jacobian",
+          "homogeneous"
+        ],
+        [
+          "OpenSSL",
+          "homogeneous",
+          "jacobian"
+        ],
+        [
+          "OpenSSL",
+          "jacobian",
+          "homogeneous"
+        ],
+        [
+          "OpenSSL",
+          "jacobian",
+          "homogeneous"
+        ],
+        [
+          "homogeneous",
+          "jacobian",
+          "OpenSSL"
+        ],
+        [
+          "OpenSSL",
+          "homogeneous",
+          "jacobian"
+        ],
+        [
+          "jacobian",
+          "OpenSSL",
+          "homogeneous"
+        ],
+        [
+          "homogeneous",
+          "OpenSSL",
+          "jacobian"
+        ],
+        [
+          "OpenSSL",
+          "homogeneous",
+          "jacobian"
+        ],
+        [
+          "homogeneous",
+          "jacobian",
+          "OpenSSL"
+        ],
+        [
+          "homogeneous",
+          "jacobian",
+          "OpenSSL"
+        ],
+        [
+          "OpenSSL",
+          "jacobian",
+          "homogeneous"
+        ]
+      ]
+    },
+    {
+      "algorithm": "p256-sign",
+      "bytes": 64,
+      "offset": 0,
+      "input_sha256": "28f0a1a9fae78b5247ebe5b1919541c009f78cc2b79d276352a9c46251a02522",
+      "output_sha256": "e2cbc60db20a59ce0a3382f7ec0a49c6f05a1926fa27bdc958bc45cf890e8837",
+      "samples": {
+        "OpenSSL": {
+          "iterations": 1807,
+          "wall": [
+            0.062112413,
+            0.055588174,
+            0.054123355,
+            0.05525395,
+            0.055011544,
+            0.057758999,
+            0.055876319,
+            0.056794493,
+            0.054475166,
+            0.054215413,
+            0.054088172,
+            0.056683736,
+            0.054062833,
+            0.054102924,
+            0.054178287,
+            0.054685222,
+            0.054274623
+          ],
+          "cpu": [
+            0.055105767,
+            0.055493105,
+            0.054083673,
+            0.055183581,
+            0.055008711,
+            0.054828142,
+            0.055705569,
+            0.056791606,
+            0.054472542,
+            0.054212826,
+            0.054085656,
+            0.056681232,
+            0.054055401,
+            0.054100167,
+            0.0541758,
+            0.054682595,
+            0.054272455
+          ]
+        },
+        "jacobian": {
+          "iterations": 370,
+          "wall": [
+            0.054888578,
+            0.060661346,
+            0.055325568,
+            0.069373237,
+            0.066374323,
+            0.057213115,
+            0.053424771,
+            0.057087215,
+            0.054668747,
+            0.057459206,
+            0.053728409,
+            0.053820698,
+            0.058003568,
+            0.056073316,
+            0.053930944,
+            0.058532926,
+            0.053101493
+          ],
+          "cpu": [
+            0.054850365,
+            0.053690465,
+            0.055284641,
+            0.056773831,
+            0.058996561,
+            0.054277582,
+            0.053422478,
+            0.057072474,
+            0.054666351,
+            0.057456436,
+            0.053720883,
+            0.053817997,
+            0.057880627,
+            0.056063502,
+            0.053672311,
+            0.058530225,
+            0.053098737
+          ]
+        },
+        "homogeneous": {
+          "iterations": 406,
+          "wall": [
+            0.052202867,
+            0.059302547,
+            0.052252272,
+            0.064738005,
+            0.051973291,
+            0.057135708,
+            0.054802579,
+            0.052166043,
+            0.052331823,
+            0.052296449,
+            0.052343791,
+            0.060032888,
+            0.053976964,
+            0.060099148,
+            0.051522853,
+            0.051563584,
+            0.051548531
+          ],
+          "cpu": [
+            0.052135702,
+            0.052292028,
+            0.052213518,
+            0.053026486,
+            0.051970757,
+            0.05710335,
+            0.05480048,
+            0.05213433,
+            0.05232952,
+            0.052293758,
+            0.052341538,
+            0.06000453,
+            0.053974531,
+            0.060096878,
+            0.051512103,
+            0.051551792,
+            0.051519886
+          ]
+        }
+      },
+      "round_order": [
+        [
+          "homogeneous",
+          "jacobian",
+          "OpenSSL"
+        ],
+        [
+          "OpenSSL",
+          "homogeneous",
+          "jacobian"
+        ],
+        [
+          "homogeneous",
+          "jacobian",
+          "OpenSSL"
+        ],
+        [
+          "homogeneous",
+          "jacobian",
+          "OpenSSL"
+        ],
+        [
+          "jacobian",
+          "OpenSSL",
+          "homogeneous"
+        ],
+        [
+          "jacobian",
+          "homogeneous",
+          "OpenSSL"
+        ],
+        [
+          "jacobian",
+          "OpenSSL",
+          "homogeneous"
+        ],
+        [
+          "homogeneous",
+          "jacobian",
+          "OpenSSL"
+        ],
+        [
+          "homogeneous",
+          "OpenSSL",
+          "jacobian"
+        ],
+        [
+          "homogeneous",
+          "OpenSSL",
+          "jacobian"
+        ],
+        [
+          "jacobian",
+          "OpenSSL",
+          "homogeneous"
+        ],
+        [
+          "homogeneous",
+          "OpenSSL",
+          "jacobian"
+        ],
+        [
+          "homogeneous",
+          "jacobian",
+          "OpenSSL"
+        ],
+        [
+          "jacobian",
+          "homogeneous",
+          "OpenSSL"
+        ],
+        [
+          "homogeneous",
+          "OpenSSL",
+          "jacobian"
+        ],
+        [
+          "jacobian",
+          "OpenSSL",
+          "homogeneous"
+        ],
+        [
+          "jacobian",
+          "OpenSSL",
+          "homogeneous"
+        ]
+      ]
+    },
+    {
+      "algorithm": "p256-sign",
+      "bytes": 4096,
+      "offset": 0,
+      "input_sha256": "af26928ca7645ec0d0e3eb12ef41f86dcde5c1aaa8e8debc79011d0a002fa71c",
+      "output_sha256": "c2f33ab96ea19ab1dc75859bb6637222658f8e562d2eb0afc5f8719f09873058",
+      "samples": {
+        "OpenSSL": {
+          "iterations": 1655,
+          "wall": [
+            0.053420564,
+            0.053204089,
+            0.055029321,
+            0.053891045,
+            0.053593786,
+            0.053407034,
+            0.053708079,
+            0.054781237,
+            0.054109093,
+            0.054912005,
+            0.06167524,
+            0.053619375,
+            0.05323835,
+            0.053233533,
+            0.052970957,
+            0.053156377,
+            0.053253713
+          ],
+          "cpu": [
+            0.053418462,
+            0.053189161,
+            0.055025596,
+            0.053832289,
+            0.05359157,
+            0.053404642,
+            0.053585983,
+            0.054778728,
+            0.054106397,
+            0.054555265,
+            0.06161933,
+            0.053616317,
+            0.053224162,
+            0.053230993,
+            0.052968813,
+            0.053153839,
+            0.053223662
+          ]
+        },
+        "jacobian": {
+          "iterations": 373,
+          "wall": [
+            0.056738148,
+            0.055355484,
+            0.056393258,
+            0.055209853,
+            0.054851963,
+            0.054869099,
+            0.056121748,
+            0.054793946,
+            0.055031324,
+            0.055089682,
+            0.07560494,
+            0.054871353,
+            0.057146785,
+            0.058640708,
+            0.054755668,
+            0.054656288,
+            0.054527814
+          ],
+          "cpu": [
+            0.056710074,
+            0.055203631,
+            0.056390448,
+            0.055207066,
+            0.054842673,
+            0.054835413,
+            0.056119195,
+            0.054782714,
+            0.05502876,
+            0.055086537,
+            0.07521573,
+            0.054868202,
+            0.057036802,
+            0.058630864,
+            0.054741953,
+            0.054653712,
+            0.05452515
+          ]
+        },
+        "homogeneous": {
+          "iterations": 422,
+          "wall": [
+            0.055225647,
+            0.055952173,
+            0.058054784,
+            0.05501533,
+            0.059455257,
+            0.055613342,
+            0.056004322,
+            0.055605511,
+            0.054999766,
+            0.056117032,
+            0.056331165,
+            0.054538591,
+            0.054514756,
+            0.056998452,
+            0.060274493,
+            0.054395316,
+            0.054776771
+          ],
+          "cpu": [
+            0.055217212,
+            0.055949171,
+            0.058052234,
+            0.055011965,
+            0.059452429,
+            0.055610878,
+            0.056000347,
+            0.055597798,
+            0.054996743,
+            0.056114157,
+            0.056328506,
+            0.054473884,
+            0.054512442,
+            0.05699574,
+            0.060271989,
+            0.054392623,
+            0.054767001
+          ]
+        }
+      },
+      "round_order": [
+        [
+          "jacobian",
+          "OpenSSL",
+          "homogeneous"
+        ],
+        [
+          "jacobian",
+          "OpenSSL",
+          "homogeneous"
+        ],
+        [
+          "OpenSSL",
+          "jacobian",
+          "homogeneous"
+        ],
+        [
+          "OpenSSL",
+          "jacobian",
+          "homogeneous"
+        ],
+        [
+          "OpenSSL",
+          "jacobian",
+          "homogeneous"
+        ],
+        [
+          "jacobian",
+          "homogeneous",
+          "OpenSSL"
+        ],
+        [
+          "jacobian",
+          "homogeneous",
+          "OpenSSL"
+        ],
+        [
+          "jacobian",
+          "homogeneous",
+          "OpenSSL"
+        ],
+        [
+          "homogeneous",
+          "OpenSSL",
+          "jacobian"
+        ],
+        [
+          "homogeneous",
+          "jacobian",
+          "OpenSSL"
+        ],
+        [
+          "homogeneous",
+          "jacobian",
+          "OpenSSL"
+        ],
+        [
+          "homogeneous",
+          "jacobian",
+          "OpenSSL"
+        ],
+        [
+          "homogeneous",
+          "jacobian",
+          "OpenSSL"
+        ],
+        [
+          "jacobian",
+          "OpenSSL",
+          "homogeneous"
+        ],
+        [
+          "homogeneous",
+          "jacobian",
+          "OpenSSL"
+        ],
+        [
+          "jacobian",
+          "OpenSSL",
+          "homogeneous"
+        ],
+        [
+          "homogeneous",
+          "OpenSSL",
+          "jacobian"
+        ]
+      ]
+    }
+  ]
+}

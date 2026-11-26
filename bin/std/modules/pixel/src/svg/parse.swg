@@ -226,8 +226,9 @@ internal struct DrawingItem
     // A shape or a picture is measured once the document is parsed. Text is measured the
     // first time it is painted, because where a run lands depends on the shaping of the runs
     // before it, and shaping needs the painter's font cache.
-    hasBounds: bool
-    index:     u64
+    hasBounds:    bool
+    refineBounds: bool     // An instance starts with conservative bounds until first seen.
+    index:        u64
 
     // Zero for no clip, a positive shape index plus one, or a negative range index minus one.
     //
@@ -4926,7 +4927,7 @@ private impl Parser
             }
 
             if not shape.hidden do
-                .drawing.items.add(DrawingItem{kind: .Shape, index: shapeIndex})
+                .drawing.items.add(DrawingItem{kind: .Shape, index: shapeIndex, refineBounds: instance != 0})
         }
 
         result.count = .drawing.shapes.count - result.first
@@ -5051,10 +5052,14 @@ private impl Drawing
 
     // Returns the rectangle this shape can ink, its contours plus whatever a stroke adds
     // around them.
-    mtd const shapeInkBounds(shape: const *Shape)->Rectangle
+    mtd const shapeInkBounds(shape: const *Shape, materialized = false)->Rectangle
     {
         var result: #returntype
-        if shape.deferred != .None
+        if materialized
+        {
+            result = .materializeShape(shape).controlBounds()
+        }
+        elif shape.deferred != .None
         {
             var min, max: Vector2
             if shape.deferred == .Instance
@@ -5796,6 +5801,14 @@ impl Drawing
             return Rectangle{minimum.x, minimum.y, size.x, size.y}
         }
 
+        #[Swag.Inline]
+        func missesPaintViewport(bounds: Rectangle, transform: Transform2, visible: Rectangle, axisAligned: bool)->bool
+        {
+            var painted = axisAligned ? transformAxisAlignedBounds(transform, bounds) : transform.transformBounds(bounds)
+            painted.inflate(InkFringeMargin)
+            return not visible.intersects(painted)
+        }
+
         // A drawing is mostly stroke, and a stroke is mostly the bands extruded along it, so its
         // coverage is measured from the centre line instead: two triangles a segment rather than
         // eighteen vertices. On a 1724 by 15036 document fitted to a 4K window that is 4.53
@@ -5855,10 +5868,20 @@ impl Drawing
                 let item      = &.items[itemIndex]
                 if item.hasBounds
                 {
-                    var painted = useBlocks and axisAligned ? transformAxisAlignedBounds(tr, item.bounds) : tr.transformBounds(item.bounds)
-                    painted.inflate(InkFringeMargin)
-                    if not visible.intersects(painted) do
+                    if missesPaintViewport(item.bounds, tr, visible, useBlocks and axisAligned) do
                         continue
+
+                    // A conservative bound can make an offscreen reference exchange the active
+                    // clip. Use the bounds of an eager contour copy before changing the clip.
+                    if item.refineBounds
+                    {
+                        item.bounds = .shapeInkBounds(&.shapes[item.index], materialized: true)
+                        if item.clip do
+                            item.bounds.intersect(.clipRangeBounds(item.clip))
+                        item.refineBounds = false
+                        if missesPaintViewport(item.bounds, tr, visible, useBlocks and axisAligned) do
+                            continue
+                    }
                 }
 
                 if not .sameClip(item.clip, activeClip)

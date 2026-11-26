@@ -728,9 +728,9 @@ private func applyExtGState(parser: *PdfParser, page: const *Page, resourcesId: 
 //
 // The group's marks are read into a page of the same dimensions as the one being decoded, so its
 // coverage is expressed in the same coordinates as the marks it covers.
-private func softMaskGroup(parser: *PdfParser, page: const *Page, mask: const *SoftMaskRef, depth: u32)->*SoftMaskGroup fail
+private func softMaskGroup(parser: *PdfParser, page: const *Page, mask: const *SoftMaskRef, transform: Transform2, depth: u32)->*SoftMaskGroup fail
 {
-    let key    = mask.cacheKey()
+    let key    = SoftMaskKey{mask.groupId, transform, page.width, page.height, mask.backdrop, mask.kind}
     let cached = parser.softMaskCache.tryFind(key)
     if cached do
         return &cached.value
@@ -744,7 +744,7 @@ private func softMaskGroup(parser: *PdfParser, page: const *Page, mask: const *S
     group.page     = #move Page.create(page.width, page.height)
 
     var groupState: GraphicsState
-    groupState.ctm = mask.ctm
+    groupState.ctm = transform
     try appendForm(parser, &group.page, InvalidNode, &groupState, mask.groupId, depth + 1, .Complete)
 
     parser.softMaskCache.add(key, #move group)
@@ -873,14 +873,26 @@ private func maskItem(parser: *PdfParser, page: *Page, mask: const *SoftMaskRef,
 {
     if item.kind == .Text and item.invisibleText do
         return
-    let group = try softMaskGroup(parser, page, mask, depth)
+    let transform = mask.groupTransform()
+    let group = try softMaskGroup(parser, page, mask, transform, depth)
 
     item.refreshPaintBounds()
     let region = item.maskRegion()
     if not region.known do
         return
 
-    var coverage = try softMaskCoverage(group, region.rect)
+    // Page coordinates run downwards, so the PDF translation's y component reverses.
+    let shift = Math.Vector2{mask.ctm.tx - transform.tx, transform.ty - mask.ctm.ty}
+    var local = region.rect
+    local.x -= shift.x
+    local.y -= shift.y
+    if item.kind == .Image and local == group.cachedRegion and group.cachedCoverage.isValid()
+    {
+        maskImagePixels(item, &group.cachedCoverage, region.rect)
+        return
+    }
+
+    var coverage = try softMaskCoverage(group, local)
     if not coverage.isValid() do
         return
 
@@ -891,6 +903,11 @@ private func maskItem(parser: *PdfParser, page: *Page, mask: const *SoftMaskRef,
         // An image is already a raster, so its coverage belongs in its own samples: exact, and it
         // keeps the item a single draw with no second texture.
         maskImagePixels(item, &coverage, region.rect)
+        if parser.softMaskCache.count <= SoftMaskCoverageCacheGroupLimit and coverage.byteCount <= SoftMaskCoverageCacheByteLimit
+        {
+            group.cachedRegion = local
+            group.cachedCoverage = #move coverage
+        }
 
     case .Text:
 

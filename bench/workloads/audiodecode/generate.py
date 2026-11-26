@@ -13,6 +13,8 @@ import sys
 import tempfile
 import wave
 
+from verbatim_flac import write_verbatim_fixtures
+
 SECONDS = 12
 # name, source sample rate, source channel layout, encoder options
 CASES = (
@@ -114,6 +116,7 @@ def main():
                 "size_bytes": path.stat().st_size,
                 "sha256": hashlib.sha256(path.read_bytes()).hexdigest(),
             })
+    manifest["fixtures"].extend(write_verbatim_fixtures(args.output))
     (args.output / "manifest.json").write_text(json.dumps(manifest, indent=2) + "\n")
 
 

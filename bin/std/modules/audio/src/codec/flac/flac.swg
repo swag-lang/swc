@@ -100,6 +100,39 @@ private impl BitReader
         return cast(s64, cast(s32, (value - sign))) - cast(s64, sign)
     }
 
+    // Read fixed-width subframe data in groups from each available word.
+    mtd(Group: u32) readSignedRun(destination: [*] s64, count, width: u32)
+    {
+        let source   = unwrap .data
+        let limit    = (.size - Math.min(.size, 7)) * 8
+        let shift    = 64 - width
+        var position = .bitPos
+        var index    = 0'u32
+        while count - index >= Group and position < limit
+        {
+            let offset = cast(u32, position & 7)
+            let packed = cast(const [*] u64, source + (position >> 3))[0]
+            let word   = Math.bigEndianToNative(packed) << offset
+            destination[index] = cast #bit(s64, word) >> shift
+            #static if Group == 2 do
+                destination[index + 1] = cast #bit(s64, word << width) >> shift
+            position += Group * width
+            index    += Group
+        }
+
+        .bitPos = position
+        for tail in index until count do
+            destination[tail] = .readSigned(width)
+    }
+
+    mtd readSignedSamples(destination: [*] s64, count, width: u32)
+    {
+        if width <= 28 do
+            .readSignedRun'2(destination, count, width)
+        else do
+            .readSignedRun'1(destination, count, width)
+    }
+
     // Counts the zero bits before the next set bit, and consumes that set bit.
     //
     // This is the quotient of every Rice code in the stream, so it skips whole zero bytes
@@ -493,11 +526,17 @@ private impl Codec
             if param == escape
             {
                 let rawBits = reader.read(5)
-                while index < end
+                if rawBits
                 {
-                    output[index] = rawBits ? reader.readSigned(rawBits) : 0
-                    index         += 1
+                    reader.readSignedSamples(output + index, end - index, rawBits)
                 }
+                else
+                {
+                    for sample in index until end do
+                        output[sample] = 0
+                }
+
+                index = end
             }
             else
             {
@@ -537,8 +576,7 @@ private impl Codec
         }
         elif kind == 1
         {
-            for index in blockSize do
-                target[index] = reader.readSigned(depth)
+            reader.readSignedSamples(target, blockSize, depth)
         }
         elif kind >= 8 and kind <= 12
         {

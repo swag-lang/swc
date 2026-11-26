@@ -430,3 +430,27 @@ Times are milliseconds.
 
 The 43 supported cases retain the same Swag raster checksums. The
 PDF and PNG suites pass 131 and 52 tests respectively.
+
+
+## Reusing translated soft masks
+
+The decoder shares a mask group across integral translations when
+the transform preserves the axes at unit scale. Up to 16 cached groups
+can each keep one raster of at most 512 KiB. Repeated image placements
+with the same mask bounds in group coordinates reuse that coverage.
+The mode and backdrop are part of the key.
+
+Nine interleaved Release runs at each size on one AMD EPYC 7763 logical
+CPU compare Swag `3f81024a37` and PDFium 159.0.8149.0.
+Times are milliseconds.
+[Phase timings and corpus checksums](pdf-raster-linux-translated-masks.json)
+
+| PDF | Long side | Swag before | Swag after | PDFium | Load before | Load after | PDFium load |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| `perf_transparency_soft_masks.pdf` | 1200 | 173.91 | 112.68 | 93.51 | 69.34 | 38.07 | 0.32 |
+| `perf_transparency_soft_masks.pdf` | 2400 | 296.99 | 287.28 | 223.53 | 66.81 | 38.66 | 0.33 |
+
+All 43 supported cases retain their Swag bitmap checksums, with both
+focused sizes also exact. The 132 PDF tests include an image masked at two
+translations and a luminosity mask that references the same group as an
+alpha mask.

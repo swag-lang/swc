@@ -591,6 +591,53 @@ private func flacAssertLossless(name: string, sampleRate, channels: u32)
     audioAssertSamples(cast([..] u8, actual), expected)
 }
 
+// Verbatim side channels can contain an unaligned sequence of signed 33-bit samples.
+#test
+{
+    const Frames              = 5
+    const Left:  [Frames] s64 = [0x7FFF_FFFF, -0x8000_0000, -65537, 0, 65536]
+    const Right: [Frames] s64 = [-0x8000_0000, 0x7FFF_FFFF, 65536, -1, -65537]
+    const SideMask            = (1'u64 << 33) - 1
+
+    var config = flacWideStereoTestConfig()
+    config[1] = cast(u8, Frames)
+    config[3] = cast(u8, Frames)
+    flacTestSetTotalSamples(&config, Frames)
+
+    var frame: Array'u8
+    frame.add([0xFF'u8, 0xF9, 0x60, 0x80, 0, cast(u8, Frames - 1)])
+    frame.add(flacTestHeaderCrc8(frame.toSlice()))
+    var bits = frame.count * 8
+    flacTestAppendBits(&frame, &bits, 2, 8)     // Verbatim left subframe.
+    for sample in Left do
+        flacTestAppendBits(&frame, &bits, cast #wrap(u64, sample) & 0xFFFF_FFFF, 32)
+    flacTestAppendBits(&frame, &bits, 2, 8)     // Verbatim left-minus-right subframe.
+    for index in Frames do
+        flacTestAppendBits(&frame, &bits, cast #wrap(u64, Left[index] - Right[index]) & SideMask, 33)
+    while bits & 7 do
+        flacTestAppendBits(&frame, &bits, 0, 1)
+
+    let checksum = Flac.frameCrc16(frame.toSlice())
+    frame.add(cast(u8, checksum >> 8))
+    frame.add(cast(u8, checksum & 0xFF))
+
+    var codec:   Flac.Codec
+    let decoder: IPacketCodec = &codec
+    expect decoder.initialize(config.toSlice(), 48_000, 2)
+    var decoded: [Frames * 2] s16
+    let written = expect decoder.decodePacket(&decoded[0], #sizeof(decoded), frame.toSlice())
+    Swag.require(written == #sizeof(decoded))
+    for index in Frames
+    {
+        Swag.require(decoded[2 * index] == Left[index] >> 16)
+        Swag.require(decoded[2 * index + 1] == Right[index] >> 16)
+    }
+
+    var errorOutcome: Swag.Error
+    discard catch decoder.decodePacket(&decoded[0], #sizeof(decoded), frame.toSlice()[until frame.count - 6]) as errorOutcome
+    Swag.require(errorOutcome.value() is InvalidFormatError)
+}
+
 // A valid 17-bit side sample can outgrow the packed predictor midway through a block.
 #test
 {

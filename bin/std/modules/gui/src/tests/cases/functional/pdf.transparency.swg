@@ -271,3 +271,33 @@ private func markedPixels(frame: const *Image)->u64
         }
     }
 }
+
+// Translated placements share one mask without sharing different coverage modes.
+#test
+{
+    var objects: Array'u8
+    addObject(&objects, 5, "<< /Type /ExtGState /SMask << /S /Alpha /G 7 0 R >> >>")
+    addObject(&objects, 6, "<< /Type /ExtGState /SMask << /S /Luminosity /G 7 0 R /BC [0 0 0] >> >>")
+    addStreamObject(&objects, 7, "/Type /XObject /Subtype /Form /BBox [0 0 10 10] /Group << /S /Transparency /CS /DeviceRGB >>", cast(const [..] u8, "0 0 5 10 re f"))
+    addStreamObject(&objects, 8, "/Type /XObject /Subtype /Image /Width 2 /Height 1 /BitsPerComponent 8 /ColorSpace /DeviceRGB", [255'u8, 0, 0, 0, 255, 0])
+
+    const Resources = "/ExtGState << /A 5 0 R /L 6 0 R >> /XObject << /Im 8 0 R >>"
+    const Marks = """
+        q /A gs 10 0 0 10 0 0 cm /Im Do Q
+        q 1 0 0 1 12 4 cm /A gs 10 0 0 10 0 0 cm /Im Do Q
+        q /L gs 10 0 0 10 0 0 cm /Im Do Q
+        """
+    let document = transparencyDocument(Resources, Marks, objects.toSlice())
+    let page     = &document.pages[0]
+    Swag.require(page.items.count == 3)
+    for placed in 2
+    {
+        let image = unwrap page.items[placed].imageValue()
+        Swag.require(image.pixelColor(0, 0).a == 255)
+        Swag.require(image.pixelColor(1, 0).a == 0)
+    }
+
+    let luminosity = unwrap page.items[2].imageValue()
+    Swag.require(luminosity.pixelColor(0, 0).a == 0)
+    Swag.require(luminosity.pixelColor(1, 0).a == 0)
+}

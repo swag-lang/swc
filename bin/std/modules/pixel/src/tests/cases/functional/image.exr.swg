@@ -290,7 +290,7 @@ func exrUnalignedFloatFixture(names: const [..] string, width = 1'u32)->ConcatBu
 {
     const Values: [10] u32 = [0x0000_0001, 0x3F00_0000, 0x8000_0000, 0x4000_0000, 0xC000_0000,
                               0x7F7F_FFFF, 0x7F80_0000, 0x7FA0_0130, 0xFFC0_2203, 0xFF80_0000]
-    for format in [PixelFormat.RGBF32, PixelFormat.RGBAF32]
+    for format in [PixelFormat.GrayF32, PixelFormat.GrayAlphaF32, PixelFormat.RGBF32, PixelFormat.RGBAF32]
     {
         for width in [3, 4, 5, 9]
         {

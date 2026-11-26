@@ -448,7 +448,8 @@ impl Painter
     //
     // The renderer is borrowed for the painter's lifetime. Antialiased fills with explicit
     // winding rules and straight, flat-ended strokes on the main surface can be submitted
-    // as contours. Their edge coverage follows the device sample grid.
+    // as contours. Their edge coverage follows the device sample grid. Large axis-aligned
+    // texture spans reuse their bilinear sample coordinates across rows.
     func createScanline(renderer: *RenderCpu)->Painter
     {
         var result = create(renderer)

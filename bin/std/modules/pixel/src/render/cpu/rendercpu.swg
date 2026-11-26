@@ -2603,6 +2603,49 @@ private impl RenderCpu
         }
     }
 
+    struct LinearSample
+    {
+        low, high: s32
+        weight:    u32
+    }
+
+    #[Swag.Inline]
+    func linearSample(coordinate: f32, size: s32)->LinearSample
+    {
+        let whole = Math.floor(coordinate)
+        let low   = cast(s32, whole)
+        return {Math.clamp(low, 0, size - 1), Math.clamp(low + 1, 0, size - 1), bilinearWeight(coordinate - whole)}
+    }
+
+    #[Swag.Inline]
+    func(const Format: PixelFormat) writeLinearTexturePixel(pixel: [*] u8, ink: Color)
+    {
+        #static if Format == .BGR8 or Format == .RGB8
+        {
+            pixel[0] = ink.b
+            pixel[1] = ink.g
+            pixel[2] = ink.r
+        }
+        else do
+            blendAlphaBgra8(pixel, ink)
+    }
+
+    struct FilteredTextureRow
+    {
+        sourceY: s32 = -1
+        colors:  Array'u32
+    }
+
+    func(const Format: PixelFormat) filterTextureRow(cached: *FilteredTextureRow, pixels: const [*] u8, samples: const [..] LinearSample, sourceY: s32)
+    {
+        if sourceY == cached.sourceY do
+            return
+        cached.sourceY = sourceY
+        cached.colors.resize(samples.count)
+        for sample, index in samples do
+            cached.colors[index] = lerpBgra8(loadColor8'Format(pixels, sample.low), loadColor8'Format(pixels, sample.high), sample.weight)
+    }
+
     func(const Format: PixelFormat) drawLinearTextureTriangle(batch: *RasterBatch, source: *Image, triangle: const *TriangleSpan, paintRect: Vector4)
     {
         let paintWidth  = Math.max(paintRect.z - paintRect.x, 0.000001)
@@ -2615,6 +2658,29 @@ private impl RenderCpu
         let p1          = triangle.pos[1]
         let p2          = triangle.pos[2]
         let invArea     = triangle.invArea
+        // A transformed rectangle has a separable mapping when its axes are preserved.
+        // Its samples can share column weights even when the triangle's covered span moves.
+        let t        = batch.transform
+        let paintMin = t.transformPoint({paintRect.x, paintRect.y})
+        let deviceW  = t.m11 * paintWidth
+        let deviceH  = t.m22 * paintHeight
+        var columns: Array'LinearSample
+        if batch.painter!.useScanlineFills and t.m12 == 0 and t.m21 == 0 and paintMin.isFinite() and
+           Math.isFinite(deviceW) and Math.isFinite(deviceH) and deviceW != 0 and deviceH != 0 and
+           cast(u64, triangle.bounds.maxX - triangle.bounds.minX + 1) *
+           cast(u64, triangle.bounds.maxY - triangle.bounds.minY + 1) >= 4096
+        {
+            columns.resize(cast(u64, triangle.bounds.maxX - triangle.bounds.minX + 1))
+            for index in columns.count
+            {
+                let center = cast(f32, triangle.bounds.minX + cast(s32, index)) + 0.5
+                let u      = Math.saturate((center - paintMin.x) / deviceW)
+                columns[index] = linearSample(u * source.width - 0.5, source.width)
+            }
+        }
+
+        let cacheRows = columns.count and Math.abs(deviceH) >= 1.25 * source.height
+        var filteredTop, filteredBottom: FilteredTextureRow
         for y in triangle.bounds.minY until triangle.bounds.maxY + 1
         {
             let sy = cast(f32, y) + 0.5
@@ -2631,6 +2697,51 @@ private impl RenderCpu
             trimEdgeSpan(&x0, &x1, -dy[2], c2, origin[2].x, topLeft[2])
 
             let row = batch.pixels + cast(u64, batch.height - y - 1) * batch.rowStride
+            if columns.count
+            {
+                let v       = 1.0 - (sy - paintMin.y) / deviceH
+                let sampleY = linearSample((1.0 - Math.saturate(v)) * source.height - 0.5, source.height)
+                let pixels  = source.pixels.storage()
+                let top     = pixels + cast(u64, source.height - 1 - sampleY.low) * source.rowStride
+                let bottom  = pixels + cast(u64, source.height - 1 - sampleY.high) * source.rowStride
+                let twoRows = sampleY.weight and top != bottom
+                if cacheRows and x0 <= x1
+                {
+                    // Upscaling revisits the same horizontal samples on consecutive rows.
+                    if sampleY.low == filteredBottom.sourceY or (twoRows and sampleY.high == filteredTop.sourceY) do
+                        swap(&filteredTop, &filteredBottom)
+                    filterTextureRow'Format(&filteredTop, top, columns.toSlice(), sampleY.low)
+                    if twoRows do
+                        filterTextureRow'Format(&filteredBottom, bottom, columns.toSlice(), sampleY.high)
+
+                    for x in x0 until x1 + 1
+                    {
+                        let index = cast(u64, x - triangle.bounds.minX)
+                        let a     = filteredTop.colors[index]
+                        let value = twoRows ? lerpBgra8(a, filteredBottom.colors[index], sampleY.weight) : a
+                        writeLinearTexturePixel'Format(row + cast(u64, x) * 4, Color.fromArgb(value))
+                    }
+
+                    continue
+                }
+
+                for x in x0 until x1 + 1
+                {
+                    let sampleX = columns[cast(u64, x - triangle.bounds.minX)]
+                    let a = lerpBgra8(loadColor8'Format(top, sampleX.low), loadColor8'Format(top, sampleX.high), sampleX.weight)
+                    var value = a
+                    if twoRows
+                    {
+                        let b = lerpBgra8(loadColor8'Format(bottom, sampleX.low), loadColor8'Format(bottom, sampleX.high), sampleX.weight)
+                        value = lerpBgra8(a, b, sampleY.weight)
+                    }
+
+                    writeLinearTexturePixel'Format(row + cast(u64, x) * 4, Color.fromArgb(value))
+                }
+
+                continue
+            }
+
             for x in x0 until x1 + 1
             {
                 let sx = cast(f32, x) + 0.5
@@ -2654,15 +2765,7 @@ private impl RenderCpu
                 let yLo = Math.clamp(src, 0, source.height - 1)
                 let yHi = Math.clamp(src + 1, 0, source.height - 1)
                 let ink = sampleColor8Bilinear'Format(source, xLo, xHi, yLo, yHi, bilinearWeight(fx - ix), bilinearWeight(fy - iy))
-                let dst = row + cast(u64, x) * 4
-                #static if Format == .BGR8 or Format == .RGB8
-                {
-                    dst[0] = ink.b
-                    dst[1] = ink.g
-                    dst[2] = ink.r
-                }
-                else do
-                    blendAlphaBgra8(dst, ink)
+                writeLinearTexturePixel'Format(row + cast(u64, x) * 4, ink)
             }
         }
     }

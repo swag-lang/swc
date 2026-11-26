@@ -58,3 +58,61 @@ func blend(first, second: Color, weight: u32)->Color
         }
     }
 }
+
+
+// The scanline sampler uses device pixel centers on both axes, including mirrored draws.
+#test
+{
+    const Width  = 128
+    const Height = 64
+    const Bytes: [16] u8 = [229, 31, 149, 0, 17, 181, 83, 127,
+                            255, 3, 5, 255, 64, 192, 0, 1]
+    let source = Image.create(2, 2, .BGRA8, Bytes)
+    var cpu: RenderCpu
+    cpu.begin(Width, Height)
+    let renderer: IRenderer = &cpu
+    defer renderer.end()
+    var texture = renderer.addImage(source)
+    defer renderer.removeTexture(&texture)
+
+    var painter = Painter.createScanline(&cpu)
+    painter.begin()
+    painter.setColorMaskFull()
+    painter.clear(Color.fromArgb(Argb.White))
+    painter.setColorMaskColor()
+    painter.setAntialiased(false)
+    painter.setInterpolationMode(.Linear)
+    painter.setTransform(Math.Transform2{-Width, 0, 0, -Height, Width, Height})
+    painter.drawTexture({0, 0, 1, 1}, texture)
+    painter.end()
+    expect renderer.draw(&painter)
+    let image = cpu.surfaceImage()
+
+    func overWhite(channel, alpha: u8)->u8
+    {
+        return cast(u8, (cast(u32, channel) * alpha + 255 * (255'u32 - alpha)) / 255)
+    }
+
+    for y in Height
+    {
+        let py = (cast(f32, Height - y) - 0.5) / (Height / 2) - 0.5
+        let iy = cast(s32, Math.floor(py))
+        let wy = cast(u32, (py - Math.floor(py)) * 65536)
+        let y0 = Math.clamp(iy, 0, 1)
+        let y1 = Math.clamp(iy + 1, 0, 1)
+        for x in Width
+        {
+            let px = (cast(f32, Width - x) - 0.5) / (Width / 2) - 0.5
+            let ix = cast(s32, Math.floor(px))
+            let wx = cast(u32, (px - Math.floor(px)) * 65536)
+            let x0 = Math.clamp(ix, 0, 1)
+            let x1 = Math.clamp(ix + 1, 0, 1)
+            let upper = blend(source.pixelColor(x0, y0), source.pixelColor(x1, y0), wx)
+            let lower = blend(source.pixelColor(x0, y1), source.pixelColor(x1, y1), wx)
+            let sampled = blend(upper, lower, wy)
+            let expected = Color.fromArgb(255'u8, overWhite(sampled.r, sampled.a),
+                                          overWhite(sampled.g, sampled.a), overWhite(sampled.b, sampled.a))
+            Swag.require(image.pixelColor(cast(s32, x), cast(s32, y)) == expected)
+        }
+    }
+}

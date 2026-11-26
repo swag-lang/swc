@@ -402,6 +402,31 @@ func tiffDecodeFails(bytes: const [..] u8)->bool
     Swag.require(img.pixels.buffer[5] == 60'u8)
 }
 
+// Reconstruct a predicted short palette across a packed block and its tail.
+#test
+{
+    const Width = 21
+    const Palette: [6] u16 = [10 << 8, 40 << 8, 20 << 8, 50 << 8, 30 << 8, 60 << 8]
+    var samples: [Width] u8
+    for x in 1 until Width do
+        samples[x] = (x & 1) ? 1 : 255
+
+    let valid = buildTiff(false, Width, 1, 1, 3, 1, 1, 8, samples, Palette, false, 2)
+    let image = expect decodeTiff(nnBytes(valid.toSlice()))
+    for x in Width
+    {
+        let color = image.pixelColor(cast(s32, x), 0)
+        Swag.require(color == ((x & 1) ? Color.fromRgb(40, 50, 60) : Color.fromRgb(10, 20, 30)))
+    }
+
+    samples[Width - 1] = 2
+    let invalid = buildTiff(false, Width, 1, 1, 3, 1, 1, 8, samples, Palette, false, 2)
+    var discarded: Image
+    var outcome:   Swag.Error
+    catch { discarded = try decodeTiff(nnBytes(invalid.toSlice())) } as outcome
+    Swag.require(outcome.value() != null)
+}
+
 // Decode an RGBA image (extra alpha sample) into RGBA8.
 #test
 {

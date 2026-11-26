@@ -2,6 +2,41 @@
 
 using Swag, Core
 
+// Short opaque literals use the packed prefix table and longer ones retain both tree codes.
+#test
+{
+    const Lengths: [10] u32 = [1, 2, 3, 4, 5, 6, 7, 8, 9, 9]
+    var group: Webp.LosslessHuffmanGroup
+    expect group.trees[Webp.LOSSLESS_HUFF_RED].build(Lengths)
+    expect group.trees[Webp.LOSSLESS_HUFF_BLUE].build(Lengths)
+    expect group.trees[Webp.LOSSLESS_HUFF_ALPHA].buildSimple(1, [255'u32, 0], 256)
+    group.buildLiteralTable()
+    Swag.require(group.literalTable.count == 256 and group.literalTable[255] == 0)
+
+    for red in Lengths.count
+    {
+        for blue in Lengths.count
+        {
+            var writer: Webp.EncodeBitWriter
+            let redBits  = Lengths[red]
+            let blueBits = Lengths[blue]
+            writer.writeHuffman((1'u32 << redBits) - 2 + cast(u32, red == 9), redBits)
+            writer.writeHuffman((1'u32 << blueBits) - 2 + cast(u32, blue == 9), blueBits)
+            writer.writeBits(19, 5)
+            writer.finish()
+
+            let data   = cast(const [*] u8, writer.bytes.storage())
+            var reader = Webp.LosslessBitReader{ptr: data, last: data + writer.bytes.count}
+            reader.refill()
+            let decoded = expect group.readLiteral(&reader, 23)
+            let color   = 0xFF001700'u32 | cast(u32, red) | (cast(u32, blue) << 16)
+            Swag.require(decoded == color)
+            let suffix = expect reader.read(5)
+            Swag.require(suffix == 19)
+        }
+    }
+}
+
 // VP8L predictor tiles retain channel wrapping, edge handling and all predictor modes.
 #test
 {

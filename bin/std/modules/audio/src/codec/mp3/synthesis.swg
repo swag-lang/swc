@@ -186,6 +186,23 @@ private func(N: u64, T) dct(input: [*] T, output: [*] T)
         output[0] = input[0] + input[1]
         output[1] = (input[0] - input[1]) * 0.707106781
     }
+    elif N == 4
+    {
+        const Factors = #run buildCosineReciprocals'2(4'f64)
+        let a = input[0]
+        let b = input[1]
+        let c = input[2]
+        let d = input[3]
+        let evenLo = a + d
+        let evenHi = b + c
+        let oddLo = (a - d) * Factors[0]
+        let oddHi = (b - c) * Factors[1]
+        let last = (oddLo - oddHi) * 0.707106781
+        output[0] = evenLo + evenHi
+        output[1] = (oddLo + oddHi) + last
+        output[2] = (evenLo - evenHi) * 0.707106781
+        output[3] = last
+    }
     elif N == 3
     {
         let ends = input[0] + input[2]
@@ -617,6 +634,69 @@ private func synthesizeBlockPair(state: const *ChannelState, at: u64, destinatio
     }
 }
 
+// The four slots use the same window coefficients with consecutive history rows.
+private func synthesizeBlockFour(state: const *ChannelState, at: u64, destination: [*] f32)
+{
+    using Math.Simd
+    const Reverse = cast(U32x4, [3'u32, 2, 1, 0])
+    let history = cast(const [*] f32, &state.filter[at, 0])
+    for group in 4'u64
+    {
+        var aLeft, bLeft, cLeft, dLeft: F32x4
+        var aRight, bRight, cRight, dRight: F32x4
+        let lane = group * 4
+        let column = history + lane
+        var evenOlder = load(column + 32)
+        var evenNewer = load(column)
+        var oddOlder  = load(column + 80)
+        var oddNewer  = load(column + 48)
+        for pair in 8'u64
+        {
+            let tap  = 2 * pair
+            let even = column + pair * 64
+            let odd  = even + 48
+
+            // This tap's later two slots were the first two two taps earlier.
+            let leftEven  = MirroredWeights[0, tap, group]
+            let rightEven = MirroredWeights[1, tap, group]
+            cLeft  += evenOlder * leftEven
+            cRight += evenOlder * rightEven
+            dLeft  += evenNewer * leftEven
+            dRight += evenNewer * rightEven
+            evenOlder = load(even + 96)
+            evenNewer = load(even + 64)
+            aLeft  += evenOlder * leftEven
+            aRight += evenOlder * rightEven
+            bLeft  += evenNewer * leftEven
+            bRight += evenNewer * rightEven
+
+            let leftOdd  = MirroredWeights[0, tap + 1, group]
+            let rightOdd = MirroredWeights[1, tap + 1, group]
+            cLeft  += oddOlder * leftOdd
+            cRight += oddOlder * rightOdd
+            dLeft  += oddNewer * leftOdd
+            dRight += oddNewer * rightOdd
+            oddOlder = load(odd + 96)
+            oddNewer = load(odd + 64)
+            aLeft  += oddOlder * leftOdd
+            aRight += oddOlder * rightOdd
+            bLeft  += oddNewer * leftOdd
+            bRight += oddNewer * rightOdd
+        }
+
+        let left  = destination + 1 + lane
+        let right = destination + 28 - lane
+        store(left,       aLeft)
+        store(right,      permute(aRight, Reverse))
+        store(left + 32,  bLeft)
+        store(right + 32, permute(bRight, Reverse))
+        store(left + 64,  cLeft)
+        store(right + 64, permute(cRight, Reverse))
+        store(left + 96,  dLeft)
+        store(right + 96, permute(dRight, Reverse))
+    }
+}
+
 // The opposite subbands form the first DCT-II butterfly. Load them directly into
 // the two half-size transforms instead of staging a copy of all 32 subbands.
 #[Swag.Inline]
@@ -666,8 +746,14 @@ func synthesizeGranule(state: *ChannelState, lines: const *Granule576, destinati
             pcm[32] = starts[2]
             pcm[64] = starts[1]
             pcm[96] = starts[0]
-            synthesizeBlockPair(state, (at + 3) & FilterMask, destination + first * 32)
-            synthesizeBlockPair(state, (at + 2) & FilterMask, destination + (first + 1) * 32)
+            // The four starting rows and their taps fit one view when the mirror covers all of them.
+            if at <= FilterHistory - 3 do
+                synthesizeBlockFour(state, at, pcm)
+            else
+            {
+                synthesizeBlockPair(state, (at + 3) & FilterMask, pcm)
+                synthesizeBlockPair(state, (at + 2) & FilterMask, pcm + 32)
+            }
         }
         else
         {

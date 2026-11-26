@@ -25,6 +25,9 @@ CASES = (
     ("ac3-32k-stereo.ac3", 32000, "stereo", ("ac3", "-b:a", "160k")),
     ("ac3-44k-stereo.ac3", 44100, "stereo", ("ac3", "-b:a", "192k")),
     ("ac3-48k-stereo.ac3", 48000, "stereo", ("ac3", "-b:a", "192k")),
+    ("ac3-48k-3.0.ac3", 48000, "3.0", ("ac3", "-b:a", "256k")),
+    ("ac3-48k-quad.ac3", 48000, "quad", ("ac3", "-b:a", "320k")),
+    ("ac3-48k-5.0.ac3", 48000, "5.0", ("ac3", "-b:a", "384k")),
     ("ac3-48k-5.1.ac3", 48000, "5.1", ("ac3", "-b:a", "448k")),
     ("dts-48k-stereo.dts", 48000, "stereo", ("dca", "-strict", "experimental", "-b:a", "384k")),
     ("dts-48k-5.1.dts", 48000, "5.1", ("dca", "-strict", "experimental", "-b:a", "768k")),
@@ -43,11 +46,15 @@ CASES = (
     ("opus-20ms-48k-stereo.opus", 48000, "stereo", ("libopus", "-b:a", "128k", "-frame_duration", "20")),
     ("vorbis-32k-mono.ogg", 32000, "mono", ("libvorbis", "-q:a", "2")),
     ("vorbis-48k-stereo.ogg", 48000, "stereo", ("libvorbis", "-q:a", "5")),
+    ("vorbis-48k-3.0.ogg", 48000, "3.0", ("libvorbis", "-q:a", "5")),
+    ("vorbis-48k-quad.ogg", 48000, "quad", ("libvorbis", "-q:a", "5")),
+    ("vorbis-48k-5.0.ogg", 48000, "5.0", ("libvorbis", "-q:a", "5")),
     ("vorbis-48k-5.1.ogg", 48000, "5.1", ("libvorbis", "-q:a", "5")),
+    ("vorbis-48k-6.1.ogg", 48000, "6.1", ("libvorbis", "-q:a", "5")),
     ("vorbis-48k-7.1.ogg", 48000, "7.1", ("libvorbis", "-q:a", "5")),
     ("wav-48k-stereo-24.wav", 48000, "stereo", ("pcm_s24le",)),
 )
-CHANNELS = {"mono": 1, "stereo": 2, "5.1": 6, "7.1": 8}
+CHANNELS = {"mono": 1, "stereo": 2, "3.0": 3, "quad": 4, "5.0": 5, "5.1": 6, "6.1": 7, "7.1": 8}
 PHASE_BITS = 16
 
 
@@ -60,7 +67,8 @@ def sine_table():
 def write_pcm(path, rate, layout):
     channels = CHANNELS[layout]
     sine = sine_table()
-    # Multichannel order is FL, FR, FC, LFE, BL, BR, then SL and SR for 7.1.
+    # The LFE channel is fourth in the 5.1, 6.1 and 7.1 input layouts.
+    lfe = 3 if layout in ("5.1", "6.1", "7.1") else -1
     pitches = (167, 199, 241, 51, 337, 439, 523, 613)
     steps = [(hz << PHASE_BITS) // rate for hz in pitches[:channels]]
     phases = [2779 * c for c in range(channels)]
@@ -82,8 +90,8 @@ def write_pcm(path, rate, layout):
                     harmonic = sine[(3 * phase >> 4) & 4095]
                     state = (1664525 * state + 1013904223) & 0xFFFFFFFF
                     noise = (state >> 16) - 32768
-                    value = fundamental * gain + harmonic * (0 if channel == 3 else 3)
-                    value += noise * pulse * (0 if channel == 3 else 8) // (rate // 70)
+                    value = fundamental * gain + harmonic * (0 if channel == lfe else 3)
+                    value += noise * pulse * (0 if channel == lfe else 8) // (rate // 70)
                     samples.append(value * 1536)
             if sys.byteorder != "little":
                 samples.byteswap()

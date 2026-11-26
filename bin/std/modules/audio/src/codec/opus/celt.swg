@@ -320,8 +320,78 @@ private func celtExp2(x: f32)->f32  => cast(f32, Math.exp(0.6931471805599453 * c
 private func celtLog2(x: f32)->f32  => cast(f32, (1.4426950408889634 * Math.log(cast(f64, x))))
 private func celtRsqrt(x: f32)->f32 => cast(f32, (1.0 / Math.sqrt(cast(f64, x))))
 
+private const NoiseMultiplier = 1664525'u32
+private const NoiseIncrement  = 1013904223'u32
+
 #[Swag.Safety(.Overflow, false)]
-private func lcgRand(seed: u32)->u32 => 1664525 * seed + 1013904223
+private func lcgRand(seed: u32)->u32 => NoiseMultiplier * seed + NoiseIncrement
+
+private const CeltNoiseSteps = #run
+{
+    var result:     {multiplier: Simd.U32x4, increment: Simd.U32x4}
+    var multiplier: [4] u32
+    var increment:  [4] u32
+    var power = 1'u32
+    var value = 0'u32
+    for i in 4
+    {
+        power         = cast #wrap (u32, cast(u64, power) * NoiseMultiplier)
+        value         = lcgRand(value)
+        multiplier[i] = power
+        increment[i]  = value
+    }
+
+    result.multiplier = cast(Simd.U32x4, multiplier)
+    result.increment  = cast(Simd.U32x4, increment)
+    return result
+}
+
+#[Swag.NoInline]
+private func fillFoldingNoise(x: [*] f32, lowband: const [*] f32?, n: u32, seed: u32)->u32
+{
+    const Last = cast(Simd.U32x4, [3'u32, 3, 3, 3])
+    let vectorEnd = n & ~3'u32
+    var seeds     = Simd.splat(seed)
+    if lowband
+    {
+        for block in vectorEnd / 4
+        {
+            seeds = seeds * CeltNoiseSteps.multiplier + CeltNoiseSteps.increment
+            let sign   = ((seeds ^ 0x8000'u32) & 0x8000'u32) << 16
+            let noise  = cast #bit (Simd.F32x4, sign | 0x3B80_0000'u32)
+            let offset = 4 * block
+            Simd.store(x + offset, Simd.load(lowband + offset) + noise)
+            seeds = Swag.vecShuffle(seeds, Last)
+        }
+
+        var lastSeed = seeds[0]
+        for j in vectorEnd until n
+        {
+            lastSeed = lcgRand(lastSeed)
+            x[j]     = lowband[j] + (lastSeed & 0x8000 ? 1.0'f32 / 256.0'f32 : -1.0'f32 / 256.0'f32)
+        }
+
+        return lastSeed
+    }
+
+    for block in vectorEnd / 4
+    {
+        seeds = seeds * CeltNoiseSteps.multiplier + CeltNoiseSteps.increment
+        let signs    = cast #bit (Simd.S32x4, seeds) >> 20
+        let mantissa = cast #bit (Simd.U32x4, signs + 2048) | 0x4B00_0000'u32
+        Simd.store(x + 4 * block, cast #bit (Simd.F32x4, mantissa) - 8_390_656.0'f32)
+        seeds = Swag.vecShuffle(seeds, Last)
+    }
+
+    var lastSeed = seeds[0]
+    for j in vectorEnd until n
+    {
+        lastSeed = lcgRand(lastSeed)
+        x[j]     = cast(f32, cast #bit (s32, lastSeed) >> 20)
+    }
+
+    return lastSeed
+}
 
 // A cosine approximation shared with the encoder bit for bit, since it steers the allocation.
 private func bitexactCos(x: s32)->s32
@@ -374,7 +444,20 @@ private const CodedThetas: [129 * 129 - 1] CodedTheta = #run
 }
 
 // The f64 square root is precise enough to keep the integer floor for every u32.
-private func isqrt32(value: u32)->u32 => cast(u32, Math.sqrt(cast(f64, value)))
+// Rank the increasing half of the triangular CDF. The decreasing half
+// folds onto the same ranks, including the center bin for qn = 256.
+private const TriangularThetaRows: [129 * 130 / 2] u8 = #run
+{
+    var rows: [129 * 130 / 2] u8
+    for row in 129'u32
+    {
+        let first = row * (row + 1) / 2
+        for i in row + 1 do
+            rows[first + i] = cast(u8, row)
+    }
+
+    return rows
+}
 
 private func laplaceFreq1(fs0, decay: u32)->u32
 {
@@ -1636,25 +1719,18 @@ internal impl CeltDecoder
             }
             else
             {
-                let half = qn >> 1
-                let ft   = cast(u32, ((half + 1) * (half + 1)))
-                let fm   = cast(s32, dec.decode(ft))
-                var fl: s32
-                var fs: s32
-                if fm < (half * (half + 1) >> 1)
-                {
-                    itheta = (cast(s32, isqrt32(8 * cast(u32, fm) + 1)) - 1) >> 1
-                    fs     = itheta + 1
-                    fl     = itheta * (itheta + 1) >> 1
-                }
-                else
-                {
-                    itheta = (2 * (qn + 1) - cast(s32, isqrt32(8 * cast(u32, (cast(s32, ft) - fm - 1)) + 1))) >> 1
-                    fs     = qn + 1 - itheta
-                    fl     = cast(s32, ft) - ((qn + 1 - itheta) * (qn + 2 - itheta) >> 1)
-                }
-
-                dec.update(cast(u32, fl), cast(u32, (fl + fs)), ft)
+                let half    = qn >> 1
+                let ft      = cast(u32, ((half + 1) * (half + 1)))
+                let fm      = cast(s32, dec.decode(ft))
+                let forward = fm < (half * (half + 1) >> 1)
+                let rank    = forward ? fm : cast(s32, ft) - fm - 1
+                let row     = cast(s32, TriangularThetaRows[cast(u32, rank)])
+                let low     = row * (row + 1) >> 1
+                let high    = low + row + 1
+                itheta = forward ? row : qn - row
+                let from         = forward ? cast(u32, low) : ft - cast(u32, high)
+                let intervalHigh = forward ? cast(u32, high) : ft - cast(u32, low)
+                dec.update(from, intervalHigh, ft)
             }
 
             let row = qn >> 1
@@ -1810,33 +1886,12 @@ internal impl CeltDecoder
         let fillMask = fill & cmMask
         if not fillMask
         {
-            for j in n do
-                x[j] = 0
+            Memory.clear(x, cast(u64, n) * #sizeof(f32))
             return 0
         }
 
-        if not lowband
-        {
-            for j in n
-            {
-                ctx.seed = lcgRand(ctx.seed)
-                x[j]     = cast(f32, (cast #bit (s32, ctx.seed) >> 20))
-            }
-
-            cm = cmMask
-        }
-        else
-        {
-            for j in n
-            {
-                ctx.seed = lcgRand(ctx.seed)
-                let tmp = ctx.seed & 0x8000 ? 1.0 / 256.0 : -1.0 / 256.0
-                x[j] = lowband[j] + cast(f32, tmp)
-            }
-
-            cm = fillMask
-        }
-
+        ctx.seed = fillFoldingNoise(x, lowband, n, ctx.seed)
+        cm       = lowband ? fillMask : cmMask
         .renormaliseVector(x, n, gain)
         return cm
     }
@@ -1969,6 +2024,16 @@ internal impl CeltDecoder
         .computeTheta(ctx, &sctx, n, &bb, b, b, cast(s32, lm), true, &fill, dec)
         let mid  = (1.0 / 32768.0) * cast(f32, sctx.imid)
         let side = (1.0 / 32768.0) * cast(f32, sctx.iside)
+        if n > 2 and not sctx.itheta
+        {
+            // At zero angle the side has no bits or fill mask, so its band
+            // decode writes zeros without reading the coder or advancing the seed.
+            ctx.remainingBits -= sctx.qalloc
+            let mask = .quantBand(ctx, x, n, bb, b, lowband, lm, lowbandOut, 1.0, useScratch, fill, dec)
+            .copyIntensityBand(x, y, n, sctx.inv)
+            return mask
+        }
+
         var cm: u32
         if n == 2
         {
@@ -2031,6 +2096,28 @@ internal impl CeltDecoder
         }
 
         return cm
+    }
+
+    mtd copyIntensityBand(x, y: [*] f32, n: u32, inv: bool)
+    {
+        const Mid  = 32767.0'f32 / 32768.0'f32
+        const Gain = #run celtRsqrt(Mid * Mid)
+        let rightGain = inv ? -Gain : Gain
+        let vectorEnd = n & ~3'u32
+        for block in vectorEnd / 4
+        {
+            let offset = 4 * block
+            let mid    = Simd.load(x + offset) * Mid
+            Simd.store(x + offset, mid * Gain)
+            Simd.store(y + offset, mid * rightGain)
+        }
+
+        for offset in vectorEnd until n
+        {
+            let mid = x[offset] * Mid
+            x[offset] = mid * Gain
+            y[offset] = mid * rightGain
+        }
     }
 
     mtd stereoMerge(x, y: [*] f32, mid: f32, n: u32)

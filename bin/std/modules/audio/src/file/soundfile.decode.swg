@@ -219,14 +219,14 @@ private func readPcm16Packet(codec: IPacketCodec,
         fail InvalidFormatError{"compressed sound packet decoded to an unexpected size"}
 }
 
-private func publishAc3Batch(batch: *Dolby.Ac3DecodeBatch, range: *Pcm16Range, consumer: SoundPcm16Consumer)->bool
+private func publishAc3Batch(batch: *Dolby.Ac3DecodeBatch, range: *Pcm16Range, channels: u32, consumer: SoundPcm16Consumer)->bool
 {
-    const Samples = 2 * Dolby.Ac3PipelineFrames
-    let pcm = batch.pcm.storage()
+    let samples = channels * Dolby.Ac3PipelineFrames
+    let pcm     = batch.pcm.storage()
     for packet in batch.count
     {
-        let output = pcm + packet * Samples
-        if not range.publish(output[until Samples], 2, consumer) do
+        let output = pcm + packet * samples
+        if not range.publish(output[until samples], channels, consumer) do
             return false
     }
 
@@ -248,13 +248,16 @@ private impl SoundFile
             return
 
         if .encoding == .Ac3 and
-           .channelCount == 2 and
            frameCount >= 6 * Dolby.Ac3PipelineFrames and
            not Swag.jit() and
            Swag.workerCount() > 1 and
-           Dolby.isNativeAc3Codec(descriptor.type) and
-           (try .decodeAc3Pipeline(firstFrame, frameCount, consumer)) do
-            return
+           Dolby.isNativeAc3Codec(descriptor.type)
+        {
+            let decoded = .channelCount == 2 ? try .decodeAc3Pipeline'2(firstFrame, frameCount, consumer) :
+                          try .decodeAc3Pipeline'0(firstFrame, frameCount, consumer)
+            if decoded do
+                return
+        }
 
         // The registered FLAC codec has no state that carries over between native frames
         // or completed Ogg page runs. An alternate registered codec keeps the serial path.
@@ -358,12 +361,14 @@ private impl SoundFile
     }
 
     #[Swag.NoInline]
-    mtd const decodeAc3Pipeline(firstFrame, frameCount: u64, consumer: SoundPcm16Consumer)->bool fail
+    mtd(FixedChannels: u32) const decodeAc3Pipeline(firstFrame, frameCount: u64, consumer: SoundPcm16Consumer)->bool fail
     {
-        const PacketFrames  = Dolby.Ac3PipelineFrames
-        const PacketSamples = 2 * PacketFrames
-        let target = .leadingTrim + firstFrame
-        let end    = .packetAtDecodedFrame(target + frameCount - 1) + 1
+        const PacketFrames        = Dolby.Ac3PipelineFrames
+        const FirstPacketChannels = FixedChannels ? FixedChannels : 6
+        let channels      = FixedChannels ? FixedChannels : .channelCount
+        let packetSamples = PacketFrames * channels
+        let target        = .leadingTrim + firstFrame
+        let end           = .packetAtDecodedFrame(target + frameCount - 1) + 1
         for packet in .packets.toSlice()[until end]
         {
             // Caller-supplied packet maps may contain silence or different packet durations.
@@ -374,20 +379,20 @@ private impl SoundFile
         }
 
         var pipeline: Dolby.Ac3DecodePipeline
-        pipeline.initialize(.sampleRate)
+        pipeline.initialize(.sampleRate, channels)
         var source  = try ByteSource.openFile(.path.toString(), .ReadWrite)
         var range   = Pcm16Range{target, frameCount}
-        var first: [PacketSamples] s16
+        var first: [FirstPacketChannels * PacketFrames] s16
         let packet0 = .packets[0]
         try source.seek(packet0.sourceOffset)
         let window = try source.peek(packet0.byteSize)
         try pipeline.decode(window[until packet0.byteSize], &first[0])
-        if not range.publish(first[until PacketSamples], 2, consumer) do
+        if not range.publish(first[until packetSamples], channels, consumer) do
             return true
 
         var batches: [2] Dolby.Ac3DecodeBatch
-        batches[0].initialize()
-        batches[1].initialize()
+        batches[0].initialize(channels)
+        batches[1].initialize(channels)
         var next:  u64
         var index   = 1'u64
         var tasks: Swag.TaskGroup
@@ -413,13 +418,13 @@ private impl SoundFile
             }
 
             try tasks.join()
-            if not publishAc3Batch(pending, &range, consumer) do
+            if not publishAc3Batch(pending, &range, channels, consumer) do
                 return true
 
             if not error.isEmpty()
             {
                 decoder.synthesize(loading)
-                if not publishAc3Batch(loading, &range, consumer) do
+                if not publishAc3Batch(loading, &range, channels, consumer) do
                     return true
                 try error.raise()
             }
@@ -430,7 +435,7 @@ private impl SoundFile
         }
 
         try tasks.join()
-        discard publishAc3Batch(&batches[next ^ 1], &range, consumer)
+        discard publishAc3Batch(&batches[next ^ 1], &range, channels, consumer)
         return true
     }
 

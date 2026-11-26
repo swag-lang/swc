@@ -1256,3 +1256,69 @@ FFmpeg 9.1.
 
 Native Release passes 333 audio tests. Release-safe passes 47 focused
 Dolby, Opus, Ogg and Vorbis tests.
+
+## Thirty-ninth optimization pass
+
+Both Swag builds use the same native Release compiler, with audio sources
+based on `225e1e53e0`. The reference is FFmpeg 9.1 with native x86 assembly.
+FileSamples medians use 42 samples per engine. Generated-fixture medians use
+28 samples. Total time includes opening and materializing up to ten seconds
+of PCM16.
+
+[Raw stage times, PCM digests, and the fixture manifest](audio-decode-linux-round39.json)
+
+| FileSamples input | Before CPU 0 (ms) | Swag CPU 0 (ms) | FFmpeg CPU 0 (ms) | Before CPU 1 (ms) | Swag CPU 1 (ms) | FFmpeg CPU 1 (ms) | Before 4 cores (ms) | Swag 4 cores (ms) | FFmpeg 4 cores (ms) |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| `sample3.aac` | 6.16 | 6.17 | 6.04 | 6.49 | 6.56 | 6.51 | 4.54 | 4.29 | 6.50 |
+| `sample3.ac3` | 7.28 | 6.93 | 6.17 | 7.27 | 6.99 | 6.21 | 6.51 | 6.05 | 6.40 |
+| `sample3.mp3` | 7.71 | 7.39 | 7.20 | 8.22 | 7.87 | 7.48 | 4.95 | 4.83 | 6.81 |
+| `sample3.ogg` | 6.81 | 6.72 | 6.79 | 6.82 | 6.80 | 6.85 | 6.69 | 6.70 | 6.61 |
+| `sample3.opus` | 19.90 | 18.36 | 18.13 | 20.21 | 18.57 | 18.13 | 20.28 | 18.89 | 18.30 |
+
+| Generated input | Before 1 core (ms) | Swag 1 core (ms) | FFmpeg 9.1 1 core (ms) | Before 4 cores (ms) | Swag 4 cores (ms) | FFmpeg 9.1 4 cores (ms) |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| `aac-lc-32k-mono.aac` | 2.54 | 2.40 | 3.14 | 2.16 | 2.04 | 3.19 |
+| `aac-lc-48k-5.1.aac` | 19.08 | 18.75 | 17.23 | 10.09 | 10.25 | 16.92 |
+| `aac-lc-48k-stereo.aac` | 8.65 | 8.71 | 7.76 | 5.18 | 5.37 | 7.62 |
+| `ac3-32k-mono.ac3` | 4.42 | 4.33 | 3.58 | 4.41 | 3.36 | 3.66 |
+| `ac3-32k-stereo.ac3` | 7.31 | 6.83 | 6.27 | 6.78 | 6.50 | 6.12 |
+| `ac3-44k-stereo.ac3` | 8.90 | 8.38 | 7.44 | 8.25 | 8.06 | 7.57 |
+| `ac3-48k-3.0.ac3` | 15.37 | 15.14 | 11.56 | 15.16 | 11.58 | 11.22 |
+| `ac3-48k-5.0.ac3` | 24.86 | 24.16 | 18.11 | 25.03 | 18.34 | 18.80 |
+| `ac3-48k-5.1.ac3` | 21.45 | 20.67 | 20.27 | 21.27 | 16.34 | 21.20 |
+| `ac3-48k-quad.ac3` | 20.00 | 19.67 | 15.21 | 20.84 | 15.19 | 14.87 |
+| `ac3-48k-stereo.ac3` | 8.35 | 8.22 | 6.84 | 7.05 | 7.09 | 7.46 |
+| `eac3-48k-5.1.eac3` | 21.50 | 21.35 | 21.23 | 21.41 | 21.08 | 21.04 |
+| `mp3-24k-mono.mp3` | 2.52 | 2.45 | 2.61 | 1.73 | 1.58 | 2.50 |
+| `mp3-44k-stereo-cbr.mp3` | 8.01 | 7.65 | 7.32 | 4.07 | 4.91 | 6.91 |
+| `mp3-48k-stereo.mp3` | 9.42 | 8.77 | 8.17 | 6.04 | 4.96 | 8.33 |
+| `mp3-8k-mono.mp3` | 0.97 | 0.92 | 1.09 | 0.83 | 0.84 | 1.09 |
+| `vorbis-32k-mono.ogg` | 3.35 | 3.33 | 4.23 | 3.40 | 3.46 | 4.20 |
+| `vorbis-48k-3.0.ogg` | 14.83 | 14.14 | 13.48 | 15.14 | 14.64 | 13.57 |
+| `vorbis-48k-5.0.ogg` | 24.71 | 23.10 | 21.18 | 24.91 | 24.88 | 21.50 |
+| `vorbis-48k-5.1.ogg` | 26.51 | 26.83 | 25.64 | 19.91 | 16.41 | 26.56 |
+| `vorbis-48k-6.1.ogg` | 34.27 | 31.78 | 28.85 | 22.29 | 16.70 | 28.82 |
+| `vorbis-48k-7.1.ogg` | 31.90 | 31.87 | 31.81 | 22.90 | 17.40 | 32.91 |
+| `vorbis-48k-quad.ogg` | 20.15 | 18.67 | 17.16 | 20.35 | 17.97 | 17.47 |
+| `vorbis-48k-stereo.ogg` | 8.38 | 8.17 | 8.65 | 8.64 | 8.67 | 9.08 |
+| `opus-20ms-48k-stereo.opus` | 27.80 | 27.28 | 26.85 | 28.10 | 27.10 | 27.24 |
+| `opus-5ms-48k-stereo.opus` | 27.27 | 26.10 | 30.16 | 28.58 | 26.75 | 31.24 |
+| `opus-voip-16k-mono.opus` | 7.33 | 6.71 | 9.16 | 7.57 | 7.04 | 9.59 |
+| `opus-voip-48k-mono.opus` | 13.87 | 12.79 | 12.98 | 14.37 | 13.09 | 13.30 |
+
+AAC groups spectral band traversal and exploits sparse low-frequency effects
+input. The AC-3 pipeline retains its stereo specialization and supports
+other layouts with bounded buffers. MP3 reuses synthesis window terms and
+evaluates its deepest four-point transform directly. CELT skips intensity
+side bands whose angle yields zero, batches folding noise without changing
+the random state, and uses a shared triangular angle rank mapping. SILK
+computes its two resampling phases together. Vorbis supports up to four
+offline page lanes and packs PCM for additional speaker layouts.
+The setup lookup uses exact quotient and scaling operations.
+
+All 33 selected inputs produce byte-identical PCM to the preceding build
+and across worker budgets. The generated corpus now has 38 fixtures and keeps
+the preceding 31 digests unchanged.
+
+Native Release passes 336 audio tests. Release-safe passes 114 focused AAC,
+Dolby, MP3, Opus, Ogg and Vorbis tests.

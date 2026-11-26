@@ -11,6 +11,7 @@ internal const MaxChannels    = 8'u32
 private const MinBlockSize    = 64'u32
 private const MaxBlockSize    = 8192'u32
 private const MaxCodewordBits = 32'u32
+private const MaxPageWorkers  = 3'u64
 
 // Vorbis transmits a codeword's first bit in the low bit of the packet window.
 private const PrefixBits  = 8'u32
@@ -46,9 +47,9 @@ private func ilog(value: u32)->u32 => value ? 32 - cast(u32, Swag.leadingZeros(v
 // Unpacks the 32-bit floating-point representation the format uses for codebook scales.
 private func unpackFloat(raw: u32)->f32
 {
-    let mantissa = cast(f64, (raw & 0x1FFFFF))
-    let exponent = cast(f64, ((raw & 0x7FE00000) >> 21)) - 788.0
-    let value    = mantissa * Math.pow(2.0, exponent)
+    let mantissa = cast(f64, raw & 0x1FFFFF)
+    let exponent = cast(u64, (raw >> 21) & 0x3FF) + (1023 - 788)
+    let value    = mantissa * cast #bit(f64, exponent << 52)
     return cast(f32, (raw & 0x80000000 ? -value : value))
 }
 
@@ -444,14 +445,16 @@ private impl Codebook
         for entry in .entries
         {
             var last    = 0.0'f32
-            var divisor = 1'u64
+            var digits  = entry
             for dimension in .dimensions
             {
                 var index: u64
                 if .lookupType == 1
                 {
-                    index   = (cast(u64, entry) / divisor) % quantized
-                    divisor *= quantized
+                    let digitBase = cast(u32, quantized)
+                    let remaining = digits / digitBase
+                    index  = digits - remaining * digitBase
+                    digits = remaining
                 }
                 else
                 {
@@ -797,6 +800,7 @@ private struct Mode
 }
 
 private alias PcmPointer = [*] u16?
+private alias PageWorker = *Codec?
 
 // Offsets of one complete packet within its Ogg page body.
 private struct PagePacketSpan
@@ -843,7 +847,8 @@ private struct Codec
     entries:      Array's32                    // Codeword entries of one vector-sliced partition.
     output:       Array's16                    // Interleaved samples of the run being decoded.
     packet:       Array'u8                     // Packet being assembled across pages.
-    pageWorker:   *Codec?                     // Independent overlap state for a later packet batch.
+    pageWorkers: [MaxPageWorkers] PageWorker    // Independent overlap state for later packet batches.
+    pageWorkerCount: u64
 
     serial:                   u32
     firstAudioSequence:       u32
@@ -856,13 +861,23 @@ impl Codec
 {
     mtd opDrop()
     {
-        if let worker = .pageWorker do
-            Memory.delete(worker)
+        .clearPageWorkers()
     }
 }
 
 private impl Codec
 {
+    mtd clearPageWorkers()
+    {
+        for index in .pageWorkerCount do
+            if let worker = .pageWorkers[index]
+            {
+                Memory.delete(worker)
+                .pageWorkers[index] = null
+            }
+        .pageWorkerCount = 0
+    }
+
     mtd resetState()
     {
         for channel in MaxChannels do
@@ -1914,18 +1929,6 @@ private impl Codec
 
             if outputFrames
             {
-                #[Swag.Inline]
-                func toPcm16(value: f32)->s16
-                {
-                    // Add half a sample away from zero. The integer cast truncates it.
-                    let scaled = cast(f64, value) * 32767.0
-                    let biased = scaled + Math.copysign(0.5, scaled)
-                    return cast(s16, Math.clamp(biased, -32768.0, 32767.0))
-                }
-
-                let slot   = ChannelSlots[.channels, channel]
-                let output = pcm + slot
-
                 // Different block sizes leave samples to one side of the overlap. Compute
                 // that span once, then add the two windows without bounds checks per sample.
                 let shift        = cast(s64, n) / 4 - cast(s64, .previousSize) / 4
@@ -1966,22 +1969,13 @@ private impl Codec
                         frame += 4
                     }
                 }
-                elif .channels == 1 or .channels == 6 or .channels == 8
+                else
                 {
                     // Mono goes straight to the output. Surround PCM is
                     // interleaved after every channel plane is available.
                     let packed  = .channels == 1 ? cast([*] u16, pcm) : cast([*] u16, .spectrum[channel].storage())
                     let current = time + cast(u64, cast(s64, overlapStart) + shift)
                     writePcmPlane(packed, saved, current, overlapStart, overlapEnd, outputFrames)
-                }
-                else
-                {
-                    for frame in overlapStart do
-                        output[frame * .channels] = toPcm16(saved[frame])
-                    for frame in overlapStart until overlapEnd do
-                        output[frame * .channels] = toPcm16(saved[frame] + time[cast(u64, cast(s64, frame) + shift)])
-                    for frame in overlapEnd until outputFrames do
-                        output[frame * .channels] = toPcm16(time[cast(u64, cast(s64, frame) + shift)])
                 }
             }
 
@@ -2031,6 +2025,10 @@ private impl Codec
             }
         }
 
+        elif .channels == 4 and outputFrames
+        {
+            .interleaveQuadPcm(pcm, outputFrames)
+        }
         elif .channels == 6 and outputFrames
         {
             .interleaveSurroundPcm(pcm, outputFrames)
@@ -2039,9 +2037,53 @@ private impl Codec
         {
             .interleaveEightPcm(pcm, outputFrames)
         }
+        elif .channels > 2 and outputFrames
+        {
+            .interleaveOddPcm(pcm, outputFrames)
+        }
 
         .previousSize = n
         return outputFrames
+    }
+
+    mtd interleaveOddPcm(pcm: [*] s16, frames: u64)
+    {
+        let channels = .channels
+        let output = cast([*] u16, pcm)
+        for channel in channels
+        {
+            let source = cast(const [*] u16, .spectrum[channel].storage())
+            let target = output + ChannelSlots[channels, channel]
+            for frame in frames do
+                target[frame * channels] = source[frame]
+        }
+    }
+
+    mtd interleaveQuadPcm(pcm: [*] s16, outputFrames: u64)
+    {
+        let l0 = cast(const [*] u16, .spectrum[0].storage())
+        let l1 = cast(const [*] u16, .spectrum[1].storage())
+        let l2 = cast(const [*] u16, .spectrum[2].storage())
+        let l3 = cast(const [*] u16, .spectrum[3].storage())
+        let output = cast([*] u16, pcm)
+        var frame = 0'u64
+        while frame < outputFrames
+        {
+            let a = Simd.load(l0 + frame)
+            let b = Simd.load(l1 + frame)
+            let c = Simd.load(l2 + frame)
+            let d = Simd.load(l3 + frame)
+            let firstLow   = cast #bit(Simd.U32x4, Simd.interleaveLow(a, b))
+            let secondLow  = cast #bit(Simd.U32x4, Simd.interleaveLow(c, d))
+            let firstHigh  = cast #bit(Simd.U32x4, Simd.interleaveHigh(a, b))
+            let secondHigh = cast #bit(Simd.U32x4, Simd.interleaveHigh(c, d))
+            let target = output + 4 * frame
+            Simd.store(target,      cast #bit(Simd.U16x8, Simd.interleaveLow(firstLow, secondLow)))
+            Simd.store(target + 8,  cast #bit(Simd.U16x8, Simd.interleaveHigh(firstLow, secondLow)))
+            Simd.store(target + 16, cast #bit(Simd.U16x8, Simd.interleaveLow(firstHigh, secondHigh)))
+            Simd.store(target + 24, cast #bit(Simd.U16x8, Simd.interleaveHigh(firstHigh, secondHigh)))
+            frame += 8
+        }
     }
 
     mtd interleaveSurroundPcm(pcm: [*] s16, outputFrames: u64)
@@ -2111,11 +2153,8 @@ private impl Codec
     }
 
     mtd(Collect: bool) decodePage(body: const [..] u8, page: const *Ogg.PageHeader,
-                                 headersToSkip: u32, worker: *Codec?)->u64 fail
+                                 headersToSkip: u32)->u64 fail
     {
-        #static if not Collect do
-            discard worker
-
         const Capacity = Collect ? Ogg.MaxSegments : 1
         var packets: [Capacity] PagePacketSpan
         var produced    = 0'u64
@@ -2158,42 +2197,66 @@ private impl Codec
         if packetStart < at do
             .packet.add(body[packetStart until at])
         #static if Collect do
-            produced += try .decodeCompletePackets(unwrap worker, body, packets[0 until count])
+            produced += try .decodeCompletePackets(body, packets[0 until count])
         return produced
     }
 
-    mtd decodeCompletePackets(worker: *Codec, body: const [..] u8, packets: const [..] PagePacketSpan)->u64 fail
+    // Use one predecessor to reconstruct each worker's overlap without emitting a frame for it.
+    mtd decodeWorkerPackets(body: const [..] u8, packets: const [..] PagePacketSpan) fail
+    {
+        .output.clear()
+        .previousSize = 0
+        for span in packets do
+            discard try .decodeAudioPacket(body[span.begin until span.end])
+    }
+
+    mtd decodeCompletePackets(body: const [..] u8, packets: const [..] PagePacketSpan)->u64 fail
     {
         var produced = 0'u64
-        if packets.count < 16
+        let lanes    = Math.min(.pageWorkerCount + 1, Math.max(1'u64, packets.count / 8))
+        if lanes == 1
         {
             for span in packets do
                 produced += try .decodeAudioPacket(body[span.begin until span.end])
             return produced
         }
 
-        // The preceding packet restores the overlap without producing samples.
-        let split = packets.count / 2
-        let tail  = packets[split - 1 until packets.count]
+        var errors: [MaxPageWorkers] Swag.Error
         var jobs: Swag.TaskGroup
-        jobs.spawn(func|worker, tail, body|() fail
+        for index in lanes - 1
         {
-            worker.output.clear()
-            worker.previousSize = 0
-            for span in tail do
-                discard try worker.decodeAudioPacket(body[span.begin until span.end])
-        })
+            let worker = unwrap .pageWorkers[index]
+            let first  = packets.count * (index + 1) / lanes
+            let end    = packets.count * (index + 2) / lanes
+            let batch  = packets[first - 1 until end]
+            let error  = &errors[index]
+            jobs.spawn(func|worker, body, batch, error|()
+            {
+                catch worker.decodeWorkerPackets(body, batch) do
+                    error.capture(Swag.err)
+            })
+        }
 
-        for span in packets[0 until split] do
+        for span in packets[0 until packets.count / lanes] do
             produced += try .decodeAudioPacket(body[span.begin until span.end])
         try jobs.join()
 
-        produced += worker.output.count / .channels
-        .output.add(worker.output.toSlice())
-        .previousSize = worker.previousSize
+        // A failed batch is observed in packet order, independently of which thread finished first.
+        for index in lanes - 1 do
+            try errors[index].raise()
+
+        for index in lanes - 1
+        {
+            let worker = unwrap .pageWorkers[index]
+            produced += worker.output.count / .channels
+            .output.add(worker.output.toSlice())
+        }
+
+        let last = unwrap .pageWorkers[lanes - 2]
+        .previousSize = last.previousSize
         let savedBytes = cast(u64, .previousSize) / 2 * #sizeof(f32)
         for channel in .channels do
-            Memory.copy(.saved[channel].storage(), worker.saved[channel].storage(), savedBytes)
+            Memory.copy(.saved[channel].storage(), last.saved[channel].storage(), savedBytes)
         return produced
     }
 
@@ -2222,10 +2285,10 @@ private impl Codec
                     lastGranule = page.granule
                 let body          = run[offset + page.headerBytes until offset + pageBytes]
                 let headersToSkip = page.sequence == .firstAudioSequence ? .headerPacketsOnAudioPage : 0'u32
-                if let worker = .pageWorker where page.segments >= 32 do
-                    produced += try .decodePage'true(body, &page, headersToSkip, worker)
+                if .pageWorkerCount and page.segments >= 32 do
+                    produced += try .decodePage'true(body, &page, headersToSkip)
                 else do
-                    produced += try .decodePage'false(body, &page, headersToSkip, null)
+                    produced += try .decodePage'false(body, &page, headersToSkip)
             }
 
             offset += pageBytes
@@ -2497,12 +2560,16 @@ internal func enablePageBatches(decoder: IPacketCodec, config: const [..] u8) fa
         return
 
     let codec = try cast(*Codec, decoder)
-    if codec.pageWorker do
+    if codec.pageWorkerCount do
         return
 
-    let worker = Memory.new'Codec()
-    codec.pageWorker = worker
-    try worker.readConfig(config)
+    codec.pageWorkerCount = Math.min(MaxPageWorkers, cast(u64, Swag.workerCount()))
+    for index in codec.pageWorkerCount
+    {
+        let worker = Memory.new'Codec()
+        codec.pageWorkers[index] = worker
+        try worker.readConfig(config)
+    }
 }
 
 impl IPacketCodec for Codec
@@ -2515,11 +2582,7 @@ impl IPacketCodec for Codec
         if .sampleRate != sampleRateHz or .channels != channels do
             fail InvalidFormatError{"Vorbis stream shape differs from its container track"}
         .resetState()
-        if let worker = .pageWorker
-        {
-            Memory.delete(worker)
-            .pageWorker = null
-        }
+        .clearPageWorkers()
     }
 
     mtd impl reset() => .resetState()

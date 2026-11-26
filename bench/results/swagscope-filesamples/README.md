@@ -949,4 +949,134 @@ rotated samples on one core.
 The ordinary one-axis 1 × 2 control took 3.7% more time in the paired series.
 The transform for that sampling layout is unchanged. Swag output CRC64 was
 identical on the 17 timed workloads and on nine separately checked mixed
-sampling layouts. The build passed 47 native Release JPEG and ImageReader tests.
+sampling layouts. The build passed 47 native Release JPEG and ImageReader tests
+and 51 native Release JPEG Video tests.
+
+## TGA row spans and opaque 32-bit output
+
+The decoder at `dc6f621ff5` traverses raw pixels and RLE by row span, including
+packets that cross a row in any image origin. Repeated packets resolve their
+pixel once and use a packed fill. The table gives the median thread CPU time
+over 13 rotating samples on one pinned core. Pillow 12.3.0 and ImageMagick
+7.1.1-43 Q16 materialize the first image in RGB8 or RGBA8. A blank entry means
+the reader could not load that fixture with this harness.
+
+| Fixture | Swag before (ms) | Swag after (ms) | Pillow (ms) | ImageMagick (ms) |
+| --- | ---: | ---: | ---: | ---: |
+| FileSamples 24-bit TGA | 0.095 | 0.097 | 0.886 | 4.796 |
+| 24-bit photo, literal RLE packets | 1.747 | 1.476 | 7.474 | 50.912 |
+| 15-bit photo, right origin, literal RLE packets | 29.834 | 20.388 |  | 42.994 |
+| 16-bit color, repeated packets | 23.045 | 1.574 | 15.607 | 17.840 |
+| Gray and alpha, repeated packets | 19.498 | 1.474 | 7.796 | 13.507 |
+| Gray, right origin, repeated packets | 31.893 | 2.183 | 7.426 | 22.266 |
+| Indexed, right origin, repeated packets | 57.637 | 3.005 | 9.330 | 24.451 |
+| Indexed, noisy input | 59.176 | 49.365 | 6.980 | 49.062 |
+
+The follow-up at `b30bbdd6ff` sets alpha to opaque for 32-bit TGA output when
+the descriptor has no alpha bits. This uses SIMD loads and stores for either
+horizontal origin. The 1537 × 1031 raw photo went from 32.698 to 1.251 ms, with
+Pillow at 6.087 and ImageMagick at 59.908 ms. The right-origin RLE photo went
+from 33.436 to 3.497 ms, with Pillow at 8.964 and ImageMagick at 61.952 ms.
+
+Swag dimensions, pixel formats and CRC64 matched on the 15 inputs for row
+spans and seven for the opaque follow-up. Both builds passed 50 native Release
+TGA and ImageReader tests.
+
+## Parallel OpenEXR ZIP scanline blocks
+
+The build at `d115b1a010` validates the output range of each large ZIP block
+before dispatch. Workers write disjoint scanlines and retain file order when
+reporting errors. The gray HALF path can reconstruct samples directly from the
+two ZIP byte planes.
+
+The following wall times use four warmed Swag workers. OpenEXR 3.5.5 reads
+each file and the Python harness packs its NumPy channel arrays into the same
+output layout. The measured sizes use the same precision in all three cases.
+
+| Fixture | Swag before (ms) | Swag after (ms) | OpenEXR + NumPy (ms) |
+| --- | ---: | ---: | ---: |
+| FileSamples EXR | 0.432 | 0.423 | 13.758 |
+| Wide noisy RGBA FLOAT ZIP | 81.837 | 26.777 | 30.029 |
+| Wide noisy RGBA HALF ZIP | 36.221 | 19.626 | 13.482 |
+| Wide noisy gray HALF ZIP | 15.900 | 11.642 | 8.425 |
+| RGBA FLOAT ZIP | 34.464 | 19.147 | 16.770 |
+| RGBA HALF ZIP | 23.883 | 14.941 | 10.258 |
+
+The medium noisy gray control varied under load, from 2.595 to 5.049 ms wall
+in the reference series and 2.141 to 2.118 ms thread CPU in a separate serial
+check. All nine files matched OpenEXR 3.5.5 pixel bits and Swag CRC64.
+The 31 native Release EXR and ImageReader tests passed with one and four workers.
+
+## BMP packed bitfields, palettes and RLE
+
+The build at `fb57198d24` normalizes byte-aligned 32-bit bitfields with a
+shuffle and scales packed fields with vector integer arithmetic. Packed
+palette entries let the 1-, 4- and 8-bit paths write more pixels at once.
+RLE uses the same palette tables for literal packets and packed fills for runs.
+
+| Fixture | Swag before (ms CPU) | Swag after (ms CPU) |
+| --- | ---: | ---: |
+| FileSamples BMP | 0.181 | 0.186 |
+| 1-bit palette | 15.452 | 1.800 |
+| 4-bit palette, top-down | 16.650 | 2.417 |
+| 8-bit palette | 12.240 | 4.476 |
+| RLE4 literal packets | 22.583 | 3.635 |
+| RLE8 repeated packets | 9.969 | 2.337 |
+| 32-bit XRGB masks | 52.827 | 3.662 |
+| 32-bit permuted RGBA masks | 50.300 | 2.494 |
+| RGB10/A2 masks | 70.306 | 11.998 |
+
+A separate elapsed-time series compared the completed Swag decoder with
+ImageMagick 7.1.1-43 Q16 using one thread and including the pixel export.
+FileSamples measured 0.171 ms in Swag and 2.854 ms in ImageMagick.
+The 1-bit image measured 1.892 ms in Swag and 63.711 ms in ImageMagick.
+The literal RLE4 image measured 2.457 ms in Swag and 80.647 ms in ImageMagick.
+The RGB10/A2 image measured 17.329 ms in Swag and 53.132 ms in ImageMagick.
+
+The Swag CRC64 matched on 26 files, and 42 native Release BMP and
+ImageReader tests passed.
+
+## GIF small palettes and animation disposal rectangles
+
+The small-palette SIMD path at `bbf164d3c8` uses byte shuffles for up to 16
+colors. In a 27-sample series the patterned 16-color RGB fixture measured
+4.172 to 3.230 ms and the RGBA fixture measured 3.740 to 3.002 ms. The
+256-color FileSamples control measured 3.381 to 3.289 ms. In a separate
+comparison the random 16-color RGBA fixture measured 9.461 to 8.584 ms
+in Swag, 16.077 ms in Pillow and 40.194 ms in ImageMagick.
+
+The animation change at `e1d6924968` saves and restores the rectangle of a
+frame with Previous disposal. In a 15-sample series the GIF with 25 small
+restored patches measured 35.453 to 20.109 ms, the similar 15-frame APNG
+measured 15.044 to 9.730 ms, and the full-frame Previous control measured
+44.178 to 43.904 ms. A 21-frame GIF control measured 26.988 to 28.104 ms
+under shared load.
+
+CRC32 matched for all 14 palette scenarios and all seven disposal inputs.
+The palette build passed 39 native Release GIF and ImageReader tests. The
+disposal build passed 37, including APNG and animated seeking.
+
+## WebP canonical byte codes and simple filtering
+
+The build at `dbd9c9dc5e` uses the packed vertical and horizontal filter
+kernels on simple VP8 edges. VP8L can load byte literals directly when the
+canonical trees guarantee uniform eight-bit codes and the green stream has
+only literals. The same Release thread CPU workload as the vertical-filter
+comparison covers 16 files, with the following representative medians.
+
+| Fixture | Swag before (ms) | Swag after (ms) | libwebp 1.5.0 (ms) |
+| --- | ---: | ---: | ---: |
+| FileSamples opaque VP8 | 132.145 | 131.830 | 94.299 |
+| VP8 photo, low simple-filter strength | 30.539 | 19.076 | 13.938 |
+| VP8 photo, high simple-filter strength | 28.252 | 15.654 | 11.969 |
+| VP8 simple-filter test image | 6.129 | 4.437 | 3.395 |
+| VP8L noisy RGB, odd width | 7.749 | 1.203 | 5.139 |
+| VP8L noisy grayscale | 5.065 | 1.427 | 2.284 |
+| VP8L noisy RGBA, odd width | 6.066 | 6.379 | 4.349 |
+| VP8L photo, 4275 × 2451 | 348.875 | 359.224 | 264.515 |
+
+Some VP8L controls with nonuniform trees varied by up to 5.4% in paired
+measurements. All 16 files had the same Swag CRC64 and all eight lossless
+fixtures matched libwebp after reversing its rows. Native Release WebP and
+ImageReader tests passed all 42 cases, including a direct check of every
+bit alignment and the bits following the fast literal span.

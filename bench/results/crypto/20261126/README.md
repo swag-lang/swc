@@ -90,3 +90,4 @@ optimizations moved each result.
 - [Poly1305 paired block products](poly1305-paired.md)
 - [Ed25519 projective signature verification](ed25519-projective.md)
 - [Native-word P-256 field storage](p256-fullwords.md)
+- [BLAKE3 worker scaling](blake3-worker-scaling.md)

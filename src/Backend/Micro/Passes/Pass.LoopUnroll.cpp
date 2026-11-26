@@ -762,19 +762,23 @@ namespace
         if (signedAddress ? length < 7 : ((length != 4 && length != 5 && length != 6 && length != 8) || backCondition != MicroCond::Below))
             return false;
 
-        const bool     copiedQword    = !signedAddress && length == 6 && op[1] == MicroInstrOpcode::OpBinaryRegAmcMem;
-        const bool     qwords         = (!signedAddress && length == 4) || copiedQword;
-        const bool     filtered       = !signedAddress && length == 8;
-        const bool     copied         = !signedAddress && length == 6 && !copiedQword;
-        const uint32_t scalarAddIndex = qwords ? static_cast<uint32_t>(copiedQword) : filtered || copied ? 2
-                                                                                                         : 1;
-        const uint32_t addIndex       = signedAddress ? length - 4 : scalarAddIndex;
-        const uint32_t loadIndex      = signedAddress ? addIndex - 1 : static_cast<uint32_t>(copiedQword);
-        const bool     bytes          = op[loadIndex] == MicroInstrOpcode::LoadZeroExtAmcRegMem;
-        const uint64_t lanes          = bytes ? 16 : qwords ? 8
-                                                            : 4;
-        const auto*    load           = ops[loadIndex];
-        const auto*    add            = ops[addIndex];
+        const bool         copiedQword    = !signedAddress && length == 6 && op[1] == MicroInstrOpcode::OpBinaryRegAmcMem;
+        const bool         qwords         = (!signedAddress && length == 4) || copiedQword;
+        const bool         filtered       = !signedAddress && length == 8;
+        const bool         copied         = !signedAddress && length == 6 && !copiedQword;
+        const uint32_t     scalarAddIndex = qwords ? static_cast<uint32_t>(copiedQword) : filtered || copied ? 2
+                                                                                                             : 1;
+        const uint32_t     addIndex       = signedAddress ? length - 4 : scalarAddIndex;
+        const uint32_t     loadIndex      = signedAddress ? addIndex - 1 : static_cast<uint32_t>(copiedQword);
+        const bool         bytes          = op[loadIndex] == MicroInstrOpcode::LoadZeroExtAmcRegMem;
+        const auto*        load           = ops[loadIndex];
+        const auto*        add            = ops[addIndex];
+        constexpr uint64_t wideDwordLanes = 8;
+        const bool         groupedDwords  = !qwords && !filtered && !signedAddress && op[loadIndex] == MicroInstrOpcode::LoadAmcRegMem &&
+                                   !load[6].hasWideImmediateValue() && X64Immediate::canEncodeSigned32(load[6].valueU64) &&
+                                   X64Immediate::canEncodeSigned32(load[6].valueU64 + (wideDwordLanes - 2) * sizeof(uint32_t));
+        const uint64_t lanes = bytes ? 16 : qwords || groupedDwords ? 8
+                                                                    : 4;
         if (qwords)
         {
             // The ordinary scalar memory fold has already merged load and add.
@@ -1001,7 +1005,7 @@ namespace
         const uint64_t mainId   = builder.createLabel().get();
         const uint64_t doneId   = builder.createLabel().get();
         const uint64_t narrowId = signedAddress ? builder.createLabel().get() : 0;
-        const uint64_t reduceId = signedAddress ? builder.createLabel().get() : 0;
+        const uint64_t reduceId = signedAddress || groupedDwords ? builder.createLabel().get() : 0;
         const auto     emit     = [&](MicroInstrOpcode opcode, std::span<const MicroInstrOperand> args) {
             storage.insertDerivedBefore(operands, entryRef, opcode, args);
         };
@@ -1138,7 +1142,7 @@ namespace
         }
         for (MicroReg reg : {zero, sumLo, sumHi})
         {
-            if ((bytes && reg == sumHi) || (qwords && reg == zero))
+            if ((bytes && reg == sumHi) || ((qwords || groupedDwords) && reg == zero))
                 continue;
             MicroInstrOperand clear[2] = {};
             clear[0].reg               = reg;
@@ -1151,6 +1155,24 @@ namespace
             emitLengthCheck(vectorEnd, lanes);
             emitJump(MicroCond::Below, narrowId);
         }
+        const auto emitWidenedDwords = [&](uint64_t count) {
+            MicroInstrOperand widen[8] = {};
+            widen[0].reg               = data;
+            widen[1].reg               = base;
+            widen[2].reg               = counter;
+            widen[3].opBits            = MicroOpBits::B128;
+            widen[4].opBits            = MicroOpBits::B64;
+            widen[5].valueU64          = sizeof(uint32_t);
+            widen[7].microOp           = MicroOp::VecWidenLoU32;
+            for (uint64_t lane = 0; lane < count; lane += 2)
+            {
+                const MicroReg accumulator = lane % 4 == 0 ? sumLo : sumHi;
+                widen[6].valueU64          = address[6].valueU64 + lane * sizeof(uint32_t);
+                emit(MicroInstrOpcode::VecUnaryAmcRegMem, widen);
+                emitBinary(accumulator, accumulator, data, MicroOp::VecAdd64);
+            }
+        };
+
         emitLabel(mainId);
 
         if (qwords)
@@ -1171,6 +1193,10 @@ namespace
                 packedAdd[7].valueU64      = address[6].valueU64 + lane * sizeof(uint64_t);
                 emit(MicroInstrOpcode::OpBinaryRegRegAmcMem, packedAdd);
             }
+        }
+        else if (groupedDwords)
+        {
+            emitWidenedDwords(lanes);
         }
         else
         {
@@ -1235,6 +1261,21 @@ namespace
             emitCopy(data, vectorEnd, MicroOpBits::B64);
             emitBinary(data, data, zero, MicroOp::VecSadU8);
             emitBinary(sumLo, sumLo, data, MicroOp::VecAdd64);
+            vectorStep[3].setImmediateValue(ApInt(narrowLanes, 64));
+            emit(MicroInstrOpcode::OpBinaryRegImm, vectorStep);
+            emitLabel(reduceId);
+        }
+        if (groupedDwords)
+        {
+            // The full loop consumed a multiple of eight. This bit selects
+            // a complete group of four before entering the scalar tail.
+            MicroInstrOperand test[3] = {};
+            test[0].reg               = bound;
+            test[1].opBits            = MicroOpBits::B64;
+            test[2].setImmediateValue(ApInt(narrowLanes, 64));
+            emit(MicroInstrOpcode::TestRegImm, test);
+            emitJump(MicroCond::Equal, reduceId);
+            emitWidenedDwords(narrowLanes);
             vectorStep[3].setImmediateValue(ApInt(narrowLanes, 64));
             emit(MicroInstrOpcode::OpBinaryRegImm, vectorStep);
             emitLabel(reduceId);

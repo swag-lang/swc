@@ -189,3 +189,31 @@ func assertBlake3Output(output: const [..] u8, expected: const [..] string)
     discard catch hash.finalize(digest) as finalizeError
     Swag.require(finalizeError.value() is Errors.BadParameterError)
 }
+
+#test
+{
+    // Check the retained final block of partial SIMD batches before and after an update.
+    let input = blake3Pattern(7169)
+    let data  = input.toSlice()
+    assertBlake3(data[until 2048], "e776b6028c7cd22a4d0ba182a8bf62205d2ef576467e838ed6f2529b85fba24a")
+    assertBlake3(data[until 2049], "5f4d72f40d7a5f82b15ca2b2e44b1de3c2ef86c426c95c1af0b6879522563030")
+    assertBlake3(data[until 3072], "b98cb0ff3623be03326b373de6b9095218513e64f1ee2edd2525c7ad1e5cffd2")
+    assertBlake3(data[until 3073], "7124b49501012f81cc7f11ca069ec9226cecb8a2c850cfe644e327d22d3e1cd3")
+    assertBlake3(data[until 7168], "61da957ec2499a95d6b8023e2b0e604ec7f6b50e80a9678b89d2628e99ada77a")
+    assertBlake3(data[until 7169], "a003fc7a51754a9b3c7fae0367ab3d782dccf28855a03d435f8cfe74605e7817")
+
+    for fixture in [
+        {split: 2048'u64, expected: "5f4d72f40d7a5f82b15ca2b2e44b1de3c2ef86c426c95c1af0b6879522563030"},
+        {split: 3072'u64, expected: "7124b49501012f81cc7f11ca069ec9226cecb8a2c850cfe644e327d22d3e1cd3"},
+        {split: 7168'u64, expected: "a003fc7a51754a9b3c7fae0367ab3d782dccf28855a03d435f8cfe74605e7817"}]
+    {
+        let split = fixture.split
+        var hash = Hash.Blake3.create()
+        hash.update(data[until split])
+        hash.update(data[split until split + 1])
+        var actual: [32] u8
+        expect hash.finalize(actual)
+        let reference = blake3HexBytes(fixture.expected)
+        Swag.require(Crypto.constantTimeEqual(actual, reference.toSlice()))
+    }
+}

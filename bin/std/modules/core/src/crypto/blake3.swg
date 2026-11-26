@@ -234,7 +234,7 @@ private func(Round: u64) blake3MixChunkRound(a0, a1, a2, a3, b0, b1, b2, b3,
 }
 
 // When the final block stays buffered, return the last lane's chaining value before it.
-private func(Parent: bool) blake3FourCvs(input: const [*] u8, firstChunk: u64, key: [8] u32, flags: u32, keepLastInput = false)->[Blake3ChunksPerBatch][8] u32
+private func(Parent: bool, Chunks: u64) blake3BatchCvs(input: const [*] u8, firstChunk: u64, key: [8] u32, flags: u32, keepLastInput = false)->[Chunks][8] u32
 {
     // A leaf lane covers sixteen message blocks, while a parent combines two native chaining values.
     const Blocks        = Parent ? 1 : Blake3BlocksPerChunk
@@ -257,9 +257,12 @@ private func(Parent: bool) blake3FourCvs(input: const [*] u8, firstChunk: u64, k
         {
             let bytes = cast(const [*] u32, base + group * #sizeof(Blake3Vector))
             const WordStride = InputStride / #sizeof(u32)
+            const LastChunk  = Chunks - 1
+            const ThirdChunk = Chunks == 2 ? LastChunk : 2
+            // Unused lanes load the last complete chunk and their outputs are discarded.
             var rows: [4] Blake3Vector = [
                 Math.Simd.load(bytes), Math.Simd.load(bytes + WordStride),
-                Math.Simd.load(bytes + WordStride * 2), Math.Simd.load(bytes + WordStride * 3)]
+                Math.Simd.load(bytes + WordStride * ThirdChunk), Math.Simd.load(bytes + WordStride * LastChunk)]
             Math.Simd.transpose4x4(&rows)
             for index in 4
             {
@@ -317,7 +320,9 @@ private func(Parent: bool) blake3FourCvs(input: const [*] u8, firstChunk: u64, k
                                        b0 ^ d0, b1 ^ d1, b2 ^ d2, b3 ^ d3]
         if not Parent and keepLastInput and blockIndex == Blake3BlocksPerChunk - 1
         {
-            const RetainLast = cast(Blake3Vector, [0'u32, 0, 0, Swag.U32.Max])
+            const RetainLast = cast(Blake3Vector, [0'u32, Chunks == 2 ? Swag.U32.Max : 0,
+                                                  Chunks == 3 ? Swag.U32.Max : 0,
+                                                  Chunks == 4 ? Swag.U32.Max : 0])
             for index in 8 do
                 next[index] = Math.Simd.select(RetainLast, cv[index], next[index])
         }
@@ -330,7 +335,7 @@ private func(Parent: bool) blake3FourCvs(input: const [*] u8, firstChunk: u64, k
     {
         var words: [4] Blake3Vector = [cv[offset], cv[offset + 1], cv[offset + 2], cv[offset + 3]]
         Math.Simd.transpose4x4(&words)
-        for chunk in Blake3ChunksPerBatch do
+        for chunk in Chunks do
             Math.Simd.store(&result[chunk][offset], words[chunk])
     }
 
@@ -341,7 +346,7 @@ private const Blake3SubtreeChunks = 2 * Blake3ChunksPerBatch
 
 private func blake3EightChunkSubtreeCv(children: const [*] u32, key: [8] u32, flags: u32)->[8] u32
 {
-    let parents   = blake3FourCvs'true(cast(const [*] u8, children), 0, key, flags)
+    let parents   = blake3BatchCvs'(true, Blake3ChunksPerBatch)(cast(const [*] u8, children), 0, key, flags)
     let left      = blake3OutputCv(blake3ParentOutput(key, parents[0], parents[1], flags))
     let right     = blake3OutputCv(blake3ParentOutput(key, parents[2], parents[3], flags))
     return blake3OutputCv(blake3ParentOutput(key, left, right, flags))
@@ -353,7 +358,7 @@ private func blake3HashCompleteSubtree(input: const [*] u8, firstChunk: u64, key
     var leaves: [Blake3SubtreeChunks][8] u32
     for batch in 2
     {
-        let cvs = blake3FourCvs'false(input + batch * BatchSize,
+        let cvs = blake3BatchCvs'(false, Blake3ChunksPerBatch)(input + batch * BatchSize,
                                     firstChunk + batch * Blake3ChunksPerBatch, key, flags)
         Swag.memcpy(&leaves[batch * Blake3ChunksPerBatch][0], &cvs[0][0], #sizeof(cvs))
     }
@@ -365,7 +370,7 @@ private func blake3HashBatches(input: const [*] u8, output: [*] u32, batches, fi
     parallel for |input, output, firstChunk, key, flags| batch in batches
     {
         let chunk = batch * Blake3ChunksPerBatch
-        let cvs   = blake3FourCvs'false(input + chunk * Blake3ChunkSize, firstChunk + chunk, key, flags)
+        let cvs   = blake3BatchCvs'(false, Blake3ChunksPerBatch)(input + chunk * Blake3ChunkSize, firstChunk + chunk, key, flags)
         Swag.memcpy(output + chunk * Blake3WordsPerCv, &cvs[0][0], #sizeof(cvs))
     }
 }
@@ -485,24 +490,25 @@ public impl Blake3
                     continue
                 }
 
-                let retainLast     = remaining == BatchBytes
-                let cvs            = blake3FourCvs'false(input + offset, .chunkCounter, .key, .flags, retainLast)
-                let completeChunks = retainLast ? Blake3ChunksPerBatch - 1 : Blake3ChunksPerBatch
-                for chunk in completeChunks
-                {
-                    .pushSubtreeCv(cvs[chunk], .chunkCounter + 1)
-                    .chunkCounter += 1
-                }
-
-                if retainLast
-                {
-                    .chunkCv          = cvs[Blake3ChunksPerBatch - 1]
-                    .blocksCompressed = Blake3BlocksPerChunk - 1
-                    .blockSize        = Blake3BlockSize
-                    Swag.memcpy(&.block[0], input + offset + BatchBytes - Blake3BlockSize, Blake3BlockSize)
-                }
-
+                .pushLeafBatch'Blake3ChunksPerBatch(input + offset, remaining)
                 offset += BatchBytes
+                continue
+            }
+
+            const PairBytes   = 2 * Blake3ChunkSize
+            const TripleBytes = 3 * Blake3ChunkSize
+            if .blockSize == 0 and .blocksCompressed == 0 and remaining >= PairBytes
+            {
+                if remaining >= TripleBytes
+                {
+                    .pushLeafBatch'3(input + offset, remaining)
+                    offset += TripleBytes
+                }
+                else
+                {
+                    .pushLeafBatch'2(input + offset, remaining)
+                    offset += PairBytes
+                }
                 continue
             }
 
@@ -633,6 +639,28 @@ public impl Blake3
         try hash.finalize(destination)
     }
 
+    #[Swag.Inline]
+    private mtd(Chunks: u64) pushLeafBatch(input: const [*] u8, remaining: u64)
+    {
+        const BatchBytes   = Chunks * Blake3ChunkSize
+        let retainLast     = remaining == BatchBytes
+        let cvs            = blake3BatchCvs'(false, Chunks)(input, .chunkCounter, .key, .flags, retainLast)
+        let completeChunks = retainLast ? Chunks - 1 : Chunks
+        for chunk in completeChunks
+        {
+            .pushSubtreeCv(cvs[chunk], .chunkCounter + 1)
+            .chunkCounter += 1
+        }
+
+        if retainLast
+        {
+            .chunkCv          = cvs[Chunks - 1]
+            .blocksCompressed = Blake3BlocksPerChunk - 1
+            .blockSize        = Blake3BlockSize
+            Swag.memcpy(&.block[0], input + BatchBytes - Blake3BlockSize, Blake3BlockSize)
+        }
+    }
+
     private mtd pushParallelBatches(input: const [*] u8, batches: u64)
     {
         if batches >= 2 and .chunkCounter % Blake3SubtreeChunks == 0
@@ -651,7 +679,7 @@ public impl Blake3
             }
             if batches % 2 != 0
             {
-                let cvs = blake3FourCvs'false(input + subtrees * Blake3SubtreeChunks * Blake3ChunkSize,
+                let cvs = blake3BatchCvs'(false, Blake3ChunksPerBatch)(input + subtrees * Blake3SubtreeChunks * Blake3ChunkSize,
                                             .chunkCounter, .key, .flags)
                 for cv in cvs
                 {

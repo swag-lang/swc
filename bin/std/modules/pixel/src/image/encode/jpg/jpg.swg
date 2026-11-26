@@ -51,12 +51,6 @@ private
         b, g, r: u8
     }
 
-    struct BitString
-    {
-        length: u8
-        value:  u16
-    }
-
     struct DQTInfoType
     {
         marker:   u16
@@ -95,6 +89,10 @@ private
     // per full buffer.
     const OutBufSize        = 4096
     const MaxImageDimension = 65_528
+
+    // Standard prefixes use up to 16 bits and DC amplitudes up to 11 bits.
+    const PackedLengthShift = 27
+    const PackedBitsMask    = (1'u32 << PackedLengthShift) - 1
 
     const ZigZag: [?] u8 = [
         0, 1, 5, 6, 14, 15, 27, 28, 2, 4, 7, 13, 16, 26, 29, 42, 3, 8, 12, 17, 25, 30,
@@ -143,18 +141,6 @@ impl ColorRGB
     }
 }
 
-impl BitString
-{
-    mtd const opCompare(other: BitString)->s32
-    {
-        let lenCmp = .length <=> other.length
-        if lenCmp do
-            return lenCmp
-
-        return .value <=> other.value
-    }
-}
-
 // Encodes baseline JPEG images with configurable quality.
 //
 // The encoder is opaque; pass [[Pixel.Jpg.EncodeOptions]] through the generic image
@@ -181,15 +167,10 @@ internal struct Encoder
 
         scaleFactor: u8 = 10     // Quality scale applied to the quantization tables.
 
-        dqtInfo: DQTInfoType         // Quantization table segment.
-        dhtInfo: DHTInfoType         // Huffman table segment.
-        htYDC:   [12] BitString      // Luma DC code table.
-        htCbDC:  [12] BitString      // Chroma DC code table.
-        htYAC:   [256] BitString     // Luma AC code table.
-        htCbAC:  [256] BitString     // Chroma AC code table.
-
-        fdtblY:  [64] f32     // Scaled luma quantization table.
-        fdtblCb: [64] f32     // Scaled chroma quantization table.
+        dqtInfo: DQTInfoType     // Quantization table segment.
+        dhtInfo: DHTInfoType     // Huffman table segment.
+        fdtblY:  [64] f32        // Scaled luma quantization table.
+        fdtblCb: [64] f32        // Scaled chroma quantization table.
 
         // Samples of the current block, already level shifted.
         duY:  [64] s16     // Luma samples of the current block.
@@ -304,16 +285,16 @@ impl Encoder
                     let y     = componentOf(red, green, blue, CoeffYR, CoeffYG, CoeffYB, 32_768) - 128
                     let cb    = componentOf(red, green, blue, CoeffCbR, CoeffCbG, CoeffCbB, 32_767)
                     let cr    = componentOf(red, green, blue, CoeffCrR, CoeffCrG, CoeffCrB, 32_767)
-                    .writeFlatComponent(y, .fdtblY[0], &dcy, .htYDC, .htYAC)
-                    .writeFlatComponent(cb, .fdtblCb[0], &dccb, .htCbDC, .htCbAC)
-                    .writeFlatComponent(cr, .fdtblCb[0], &dccr, .htCbDC, .htCbAC)
+                    .writeFlatComponent(y, .fdtblY[0], &dcy, LumaDcCodes, LumaAcCodes)
+                    .writeFlatComponent(cb, .fdtblCb[0], &dccb, ChromaDcCodes, ChromaAcCodes)
+                    .writeFlatComponent(cr, .fdtblCb[0], &dccr, ChromaDcCodes, ChromaAcCodes)
                     continue
                 }
 
                 .loadFromRGB(xpos, ypos)
-                .processDU(.duY, .fdtblY, &dcy, .htYDC, .htYAC)
-                .processDU(.duCb, .fdtblCb, &dccb, .htCbDC, .htCbAC)
-                .processDU(.duCr, .fdtblCb, &dccr, .htCbDC, .htCbAC)
+                .processDU(.duY, .fdtblY, &dcy, LumaDcCodes, LumaAcCodes)
+                .processDU(.duCb, .fdtblCb, &dccb, ChromaDcCodes, ChromaAcCodes)
+                .processDU(.duCr, .fdtblCb, &dccr, ChromaDcCodes, ChromaAcCodes)
             }
         }
     }
@@ -348,7 +329,6 @@ internal impl IImageEncoder for Encoder
 
         .setDQTinfo()
         .setDHTinfo()
-        .initHuffmanTables()
         .prepareQuantTables()
 
         .writeWord(0xFFD8)     // SOI
@@ -366,7 +346,7 @@ internal impl IImageEncoder for Encoder
         // The last byte of the scan is padded with one bits, so a decoder cannot read the marker
         // that follows as entropy-coded data.
         let padding = 8 - (.bitCount & 7)
-        .writeBits(BitString{cast(u8, padding), cast(u16, ((1'u32 << padding) - 1))})
+        .appendEntropyBits(padding, (1'u32 << padding) - 1)
         .flushEntropyBytes()
 
         .writeWord(0xFFD9)     // EOI

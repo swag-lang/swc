@@ -220,7 +220,7 @@ impl Encoder
     }
 
     #[Swag.Inline]
-    mtd writeDc(dc: s16, prior: *s16, table: [*] BitString)
+    mtd writeDc(dc: s16, prior: *s16, table: const [*] u32)
     {
         let difference = dc - prior[]
         prior[] = dc
@@ -229,16 +229,16 @@ impl Encoder
     }
 
     #[Swag.Inline]
-    mtd writeFlatComponent(sample: s32, scale: f32, prior: *s16, dcTable, acTable: [*] BitString)
+    mtd writeFlatComponent(sample: s32, scale: f32, prior: *s16, dcTable, acTable: const [*] u32)
     {
         // A uniform block has one DC term, scaled by eight in each AAN pass.
         let scaled = cast(f32, sample * 64) * scale
         let value  = cast(s16, (cast(s16, (scaled + 16384.5)) - 16384))
         .writeDc(value, prior, dcTable)
-        .writeBits(acTable[0])
+        .writePackedCode(acTable[0])
     }
 
-    mtd processDU(componentDU: [*] s16, fdtbl: [*] f32, dC: *s16, hTDC, hTAC: [*] BitString)
+    mtd processDU(componentDU: [*] s16, fdtbl: [*] f32, dC: *s16, hTDC, hTAC: const [*] u32)
     {
         let eob       = hTAC[0x00]
         let m16Zeroes = hTAC[0xF0]
@@ -253,7 +253,7 @@ impl Encoder
 
         if end0pos == 0
         {
-            .writeBits(eob)
+            .writePackedCode(eob)
             return
         }
 
@@ -267,7 +267,7 @@ impl Encoder
             if nrzeroes >= 16
             {
                 for 1 to nrzeroes / 16 do
-                    .writeBits(m16Zeroes)
+                    .writePackedCode(m16Zeroes)
                 nrzeroes = nrzeroes % 16
             }
 
@@ -278,6 +278,6 @@ impl Encoder
         }
 
         if end0pos != 63 do
-            .writeBits(eob)
+            .writePackedCode(eob)
     }
 }

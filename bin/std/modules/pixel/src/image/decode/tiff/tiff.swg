@@ -163,7 +163,7 @@ func readScalar(base, last: const [*] u8, le: bool, ifd: *Ifd, tag: u32, defValu
 
 // Decodes literal and repeated PackBits packets. For bottom-up output, packets
 // that cross a source row are split between the corresponding destination rows.
-private func(REVERSE_ROWS: bool) unpackBitsRows(dst: [*] u8, expected: u64, src, last: const [*] u8, rowBytes: u64) fail
+private func(REVERSE_ROWS: bool, SHORT_RUNS: bool) unpackBitsRows(dst: [*] u8, expected: u64, src, last: const [*] u8, rowBytes: u64) fail
 {
     var remaining    = expected
     var row          = dst
@@ -208,10 +208,20 @@ private func(REVERSE_ROWS: bool) unpackBitsRows(dst: [*] u8, expected: u64, src,
         }
         else
         {
-            if literal do
+            if literal
+            {
                 Memory.copy(row, p, count)
-            else do
+            }
+            elif SHORT_RUNS and count <= 8 and remaining >= 8
+            {
+                // Later packets overwrite the extra bytes inside this strip.
+                cast(*u64, row)[] = cast(u64, p[0]) * 0x0101_0101_0101_0101'u64
+            }
+            else
+            {
                 Memory.set(row, p[0], count)
+            }
+
             row       += count
             remaining -= count
         }
@@ -222,10 +232,15 @@ private func(REVERSE_ROWS: bool) unpackBitsRows(dst: [*] u8, expected: u64, src,
 
 func unpackBits(dst: [*] u8, expected: u64, src, last: const [*] u8, reverseRowBytes: u64 = 0) fail
 {
+    // Short repeats store two to eight output bytes in two source bytes.
+    // Use the word fill when those packets could dominate the strip.
+    let compressed = cast(u64, (last - src))
     if reverseRowBytes do
-        try unpackBitsRows'true(dst, expected, src, last, reverseRowBytes)
+        try unpackBitsRows'(true, false)(dst, expected, src, last, reverseRowBytes)
+    elif compressed < expected and compressed >= expected / 4 do
+        try unpackBitsRows'(false, true)(dst, expected, src, last, expected)
     else do
-        try unpackBitsRows'false(dst, expected, src, last, expected)
+        try unpackBitsRows'(false, false)(dst, expected, src, last, expected)
 }
 
 // Expands grayscale while the samples are still in registers. The predictor carries

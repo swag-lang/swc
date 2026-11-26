@@ -583,6 +583,17 @@ func tiffDecodeFails(bytes: const [..] u8)->bool
         Swag.require(image.pixelColor(0, cast(s32, row)).argb == color)
 }
 
+// Contiguous PackBits writes stay inside the decoded strip, including small runs at the tail.
+#test
+{
+    const Encoded:  [11] u8 = [128, 254, 30, 254, 44, 254, 5, 254, 12, 0, 255]
+    const Expected: [17] u8 = [204, 204, 30, 30, 30, 44, 44, 44, 5, 5, 5, 12, 12, 12, 255, 204, 204]
+    var pixels: [Expected.count] u8
+    Memory.set(pixels.buffer, 204, pixels.count)
+    expect Tiff.unpackBits(pixels.buffer + 2, 13, Encoded.buffer, Encoded.buffer + Encoded.count)
+    Swag.require(Memory.compare(pixels.buffer, Expected.buffer, pixels.count) == 0)
+}
+
 // Decode a multi-strip image and verify the top-down to bottom-up flip.
 #test
 {

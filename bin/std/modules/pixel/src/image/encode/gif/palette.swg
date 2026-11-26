@@ -10,6 +10,8 @@ using Swag, Core, Core.Errors
 // Balanced 4x4 ordered offsets avoid a directional bias in smooth gradients.
 private const Dither: [16] s32 = [-8, 0, -6, 2, 4, -4, 6, -2, -5, 3, -7, 1, 7, -1, 5, -3]
 
+private const PaletteMapSize = 512'u32
+
 impl Encoder
 {
     func tableBitsForColorCount(count: u32)->u8
@@ -78,6 +80,46 @@ impl Encoder
     {
         data.tableBits      = tableBitsForColorCount(Math.max(data.count, 2'u32))
         data.lzwMinCodeSize = Math.max(data.tableBits, 2'u8)
+    }
+
+    // If the first row used every gray value, it determines the entire palette. The image's
+    // bytes can serve as LZW dictionary literals; only literal codes written to the file need
+    // translating to the palette order.
+    func tryBuildFullGrayPalette(data: *PaletteData, image: Image, order: *[256] u8)->bool
+    {
+        let first = image.pixels.storage() + cast(u64, image.height - 1) * image.rowStride
+        var seen:  [256] bool
+        var count: u32
+        for x in image.width
+        {
+            let gray = first[x]
+            if seen[gray] do
+                continue
+
+            seen[gray]         = true
+            order[][gray]      = cast(u8, count)
+            data.colors[count] = {gray, gray, gray}
+            count              += 1
+            if count == MaxPaletteColors do
+                break
+        }
+
+        if count != MaxPaletteColors do
+            return false
+
+        data.count = count
+        data.indexes.grow(image.byteCount)
+        data.indexes.count = image.byteCount
+        var destination = data.indexes.storage()
+        for y in image.height
+        {
+            let source = image.pixels.storage() + cast(u64, image.height - 1 - y) * image.rowStride
+            Memory.copy(destination, source, image.rowStride)
+            destination += image.rowStride
+        }
+
+        finishPaletteResult(data)
+        return true
     }
 
     func tryBuildExactPalette(data: *PaletteData, image: Image, hasTransparent: bool)->bool
@@ -416,51 +458,107 @@ impl Encoder
         return result
     }
 
-    // Rewrites frame indexes only when every frame colour exists in a shared GIF colour table.
-    func remapToColorTable(palette: *PaletteData, table: const [..] u8)->bool
-    {
-        var mapping: [256] u8
-        for local in palette.count
-        {
-            let color = palette.colors[local]
-            var found = false
-            for globalIndex in table.count / 3
-            {
-                let at = globalIndex * 3
-                if table[at] == color.r and table[at + 1] == color.g and table[at + 2] == color.b
-                {
-                    mapping[local] = cast(u8, globalIndex)
-                    found = true
-                    break
-                }
-            }
+    #[Inline]
+    func rgbKey(red, green, blue: u8)->u32 =>
+        (cast(u32, red) << 16) | (cast(u32, green) << 8) | blue
 
-            if not found do
-                return false
+    #[Inline]
+    func findColorSlot(table: const [*] u64, key: u32)->u32
+    {
+        var slot  = (key * #wrap 0x9E3779B9'u32) >> 23
+        var entry = table[slot]
+        while entry and (entry >> 9) != key
+        {
+            slot  = (slot + 1) & (PaletteMapSize - 1)
+            entry = table[slot]
         }
 
-        for i in palette.indexes.count do
-            palette.indexes[i] = mapping[palette.indexes[i]]
+        return slot
+    }
+
+    // Caches the first index for each color in the animation's global table.
+    func buildColorIndexMap(table: const [..] u8)->Array'u64
+    {
+        var result: #returntype
+        result.resize(PaletteMapSize)
+        let storage = result.storage()
+        for globalIndex in table.count / 3
+        {
+            let at   = globalIndex * 3
+            let key  = rgbKey(table[at], table[at + 1], table[at + 2])
+            let slot = findColorSlot(storage, key)
+            if not storage[slot] do
+                storage[slot] = (cast(u64, key) << 9) | (globalIndex + 1)
+        }
+
+        return result
+    }
+
+    // Rewrites frame indexes only when every frame colour exists in the shared colour table.
+    func remapToColorTable(palette: *PaletteData, table: const [..] u8, colorIndices: const [..] u64)->bool
+    {
+        var mapping: [256] u8
+        if colorIndices.count
+        {
+            let storage = colorIndices.buffer
+            for local in palette.count
+            {
+                let color = palette.colors[local]
+                let key   = rgbKey(color.r, color.g, color.b)
+                let entry = storage[findColorSlot(storage, key)]
+                if not entry do
+                    return false
+                mapping[local] = cast(u8, (entry & 0x1FF) - 1)
+            }
+        }
+        else
+        {
+            let globalCount = table.count / 3
+            for local in palette.count
+            {
+                let color = palette.colors[local]
+                var found = false
+                for globalIndex in globalCount
+                {
+                    let at = globalIndex * 3
+                    if table[at] == color.r and table[at + 1] == color.g and table[at + 2] == color.b
+                    {
+                        mapping[local] = cast(u8, globalIndex)
+                        found = true
+                        break
+                    }
+                }
+
+                if not found do
+                    return false
+            }
+        }
+
+        for local in palette.count
+        {
+            if mapping[local] == local do
+                continue
+            for i in palette.indexes.count do
+                palette.indexes[i] = mapping[palette.indexes[i]]
+            break
+        }
+
         return true
     }
 
     func writeColorTable(result: *ConcatBuffer, palette: PaletteData)
     {
         let tableSize = 1'u32 << palette.tableBits
-        for i in tableSize
+        var output    = result.reserveInPlace(cast(u64, tableSize) * 3)
+        for i in palette.count
         {
-            if i < palette.count
-            {
-                result.addNative(palette.colors[i].r)
-                result.addNative(palette.colors[i].g)
-                result.addNative(palette.colors[i].b)
-            }
-            else
-            {
-                result.addNative(0'u8)
-                result.addNative(0'u8)
-                result.addNative(0'u8)
-            }
+            let color = palette.colors[i]
+            output[0] = color.r
+            output[1] = color.g
+            output[2] = color.b
+            output    += 3
         }
+
+        Memory.clear(output, cast(u64, tableSize - palette.count) * 3)
     }
 }

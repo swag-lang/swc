@@ -192,7 +192,9 @@ ships; history lives in Git, not here.
 - Evidence: [stencil-bounded scan fills](../bench/workloads/svgraster/resvg-comparison.md#limiting-scan-fills-to-the-stencil-bounds)
   reduce the three narrow-mask fixtures from 104–136 ms to 4–13 ms at one worker
   with unchanged pixels. resvg takes 1–10 ms on the same fixtures.
-- Next: compare alternate path parsing, curve preparation and crossing order on
+- Evidence: [inline affine mapping in the parser](../bench/workloads/svgraster/resvg-comparison.md#mapping-path-coordinates-during-parsing)
+  reduces largest-original parse time from 66 to 59 ms on one logical CPU.
+- Next: compare curve preparation and crossing order on
   the original SVGs. Rerun the original
   Windows comparison at one worker and at the runtime default.
 - Done when: the original corpus meets agreed parse and raster budgets against resvg and the

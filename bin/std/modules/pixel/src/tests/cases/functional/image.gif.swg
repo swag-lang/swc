@@ -521,6 +521,28 @@ func wideGifPaletteFixture(withTransparency, invalidIndex: bool)->Array'u8
     assertGifPixelAt(alphaDecoded, 1, 0, 180'u8, 180'u8, 180'u8, 255'u8)
 }
 
+// A full grayscale ramp in the first row fixes the palette order for every row.
+#test
+{
+    let source = Image.create(263, 3, .Gray8)
+    for y in source.height
+    {
+        for x in source.width do
+            source.pixels.storage()[y * source.rowStride + x] = cast(u8, (x * 73 + y * 61) & 255)
+    }
+
+    let encoded = expect source.encodeToBytes("full-gray.gif")
+    let decoded = expect Image.decode("full-gray.gif", encoded.toSlice())
+    Swag.require(decoded.width == source.width and decoded.height == source.height)
+    Swag.require(decoded.pixelFormat == .RGB8)
+    for i in source.pixels.count
+    {
+        let gray  = source.pixels[i]
+        let pixel = decoded.pixels.storage() + 3 * i
+        Swag.require(pixel[0] == gray and pixel[1] == gray and pixel[2] == gray)
+    }
+}
+
 // Higher precision and floating point formats must fail instead of silently encoding as black.
 #test
 {

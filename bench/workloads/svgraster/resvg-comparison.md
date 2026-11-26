@@ -772,3 +772,20 @@ The CRC-64s match for all three fixtures, the original bitmaps and thumbnails,
 generated controls and thirteen public SVGs. A renderer regression compares a
 clipped fill and partial stencil clear with the same stencil held in larger
 bounds.
+
+## Mapping path coordinates during parsing
+
+The parser evaluates the two affine coordinates inline, in the same arithmetic
+order as `Transform2.transformPoint`. This removes the call for each endpoint
+and control point. The regression compares a transformed relative cubic and
+quadratic path with the same coordinates authored in drawing space.
+
+Nine interleaved Release runs used the largest original SVG and the Scope
+options. These medians measure parsing only, in milliseconds. The original
+bitmap and thumbnail and the generated and public controls keep their CRC-64s.
+
+| CPU budget | Swag before | Swag after | resvg 0.50.0 |
+| --- | ---: | ---: | ---: |
+| One logical CPU | 66.43 | 58.95 | 87.66 |
+| Two logical CPUs | 66.22 | 60.04 | 88.23 |
+| Four logical CPUs | 74.21 | 66.70 | 102.14 |

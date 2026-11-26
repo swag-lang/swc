@@ -75,8 +75,14 @@ internal impl IImageEncoder for Encoder
            image.pixelFormat != .GrayAlpha8 do
             fail UnsupportedFormatError{"unsupported pixel format"}
 
-        let palette = buildPalette(image)
-        let packed  = 0x80'u8 | ((palette.tableBits - 1) << 4) | (palette.tableBits - 1)
+        var palette:  PaletteData
+        var literals: [256] u8
+        let fullGray = image.pixelFormat == .Gray8 and
+                       image.width >= 256 and
+                       tryBuildFullGrayPalette(&palette, image, &literals)
+        if not fullGray do
+            palette = buildPalette(image)
+        let packed = 0x80'u8 | ((palette.tableBits - 1) << 4) | (palette.tableBits - 1)
 
         result.addBytes("GIF89a")
         Encoder.writeU16(result, cast(u16, image.width))
@@ -105,7 +111,8 @@ internal impl IImageEncoder for Encoder
         result.addNative(0'u8)
         result.addNative(palette.lzwMinCodeSize)
 
-        let compressed = lzwCompress(palette.indexes.toSlice(), palette.lzwMinCodeSize, palette.count == 1)
+        let compressed = fullGray ? lzwCompressGray(palette.indexes.toSlice(), &literals[0]) :
+                         lzwCompress(palette.indexes.toSlice(), palette.lzwMinCodeSize, palette.count == 1)
         Encoder.writeSubBlocks(result, compressed.toSlice())
 
         result.addNative(0x3B'u8)

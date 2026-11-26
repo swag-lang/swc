@@ -1093,6 +1093,9 @@ impl Deflate
         var pSrc       = d.inSrc
         var srcBufLeft = d.srcBufLeft
 
+        // Consuming a match advances the position and shortens lookahead by
+        // the same amount. The last appended bytes remain the hash window.
+        var window = 0'u32
         while srcBufLeft or d.lookaheadSize
         {
             // Refill lookahead and update the match indexes.
@@ -1100,13 +1103,6 @@ impl Deflate
             {
                 var dstPos: u32 = (d.lookaheadPos + d.lookaheadSize) & LzDictSizeMask
                 var insPos: u32 = d.lookaheadPos + d.lookaheadSize - 3
-
-                // The three bytes already in the dictionary at 'insPos'; the loop shifts the
-                // fourth one in before it hashes, so the window always names four bytes.
-                var window = Math.make32(0,
-                                         d.dict[insPos & LzDictSizeMask],
-                                         d.dict[(insPos + 1) & LzDictSizeMask],
-                                         d.dict[(insPos + 2) & LzDictSizeMask])
 
                 let numBytesToProcess = cast(u32, Math.min(cast(u32, srcBufLeft), cast(u32, (MaxMatchLen - d.lookaheadSize))))
 
@@ -1145,14 +1141,11 @@ impl Deflate
                     if dstPos < (MaxMatchLen - 1) do
                         d.dict[LzDictSize + dstPos] = c
                     d.lookaheadSize += 1
+                    window = (window << 8) | c
                     if (d.lookaheadSize + d.dictSize) >= MinMatchLen + 1
                     {
                         let insPos: u32 = d.lookaheadPos + (d.lookaheadSize - 1) - 3
-                        let window      = Math.make32(d.dict[insPos & LzDictSizeMask],
-                                                      d.dict[(insPos + 1) & LzDictSizeMask],
-                                                      d.dict[(insPos + 2) & LzDictSizeMask],
-                                                      c)
-                        let hash = (window * LzHashMultiplier) >> LzHashDiscard
+                        let hash        = (window * LzHashMultiplier) >> LzHashDiscard
                         d.next[insPos & LzDictSizeMask] = d.hash[hash]
                         d.hash[hash] = cast(u16, insPos)
                         let hash3 = ((window >> 8) * LzHash3Multiplier) >> LzHashDiscard

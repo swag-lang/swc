@@ -2882,6 +2882,56 @@ SWC_TEST_BEGIN(PostRAPeephole_DoesNotForwardB8SignedMultiplyImmediate)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(PostRAPeephole_ScaledIndexAbsorbsBaseAddition)
+{
+    const MicroReg     buffer = CallConv::get(CallConvKind::C).intArgRegs[0];
+    constexpr MicroReg base   = MicroReg::intReg(8);
+    constexpr MicroReg index  = MicroReg::intReg(9);
+    constexpr MicroReg result = MicroReg::intReg(10);
+    constexpr MicroReg scaled = MicroReg::intReg(11);
+    constexpr MicroReg flags  = MicroReg::intReg(0);
+    for (const MicroOpBits width : {MicroOpBits::B32, MicroOpBits::B64})
+        for (const uint64_t scale : {2ull, 4ull, 8ull})
+            for (uint32_t control = 0; control < 4; ++control)
+            {
+                std::array<uint64_t, 5> expected{};
+                for (const bool optimize : {false, true})
+                {
+                    MicroBuilder   builder(ctx);
+                    const MicroReg actualIndex = control == 3 ? result : index;
+                    builder.emitLoadRegMem(base, buffer, 24, width);
+                    builder.emitLoadRegMem(index, buffer, 32, width);
+                    builder.emitLoadRegReg(result, base, width);
+                    builder.emitLoadAddressAmcRegMem(scaled, width, MicroReg::noBase(), actualIndex, scale, static_cast<uint64_t>(-32), MicroOpBits::B64);
+                    builder.emitOpBinaryRegReg(result, scaled, MicroOp::Add, width);
+                    if (control == 1)
+                        builder.emitSetCondReg(flags, MicroCond::Overflow);
+                    builder.emitLoadMemReg(buffer, 0, result, MicroOpBits::B64);
+                    if (control == 1)
+                        builder.emitLoadMemReg(buffer, 8, flags, MicroOpBits::B8);
+                    if (control == 2)
+                        builder.emitLoadMemReg(buffer, 16, scaled, MicroOpBits::B64);
+                    builder.emitRet();
+
+                    std::array<uint64_t, 5> values{0, 0, 0, 0x7FFFFFFFFFFFFFFF, 33};
+                    SWC_RESULT(executeForwardingCase(ctx, builder, values.data(), optimize));
+                    if (!optimize)
+                        expected = values;
+                    else
+                    {
+                        const uint32_t adds = Backend::Unittest::countOpcode(builder, MicroInstrOpcode::OpBinaryRegReg);
+                        if (values != expected || (control != 3 && adds != (control == 1 || control == 2 ? 1u : 0u)))
+                        {
+                            Logger::print(ctx, std::format("[scaled-address] width={} scale={} control={} valuesMatch={} adds={}\n", getNumBits(width), scale, control, values == expected, adds));
+                            return Result::Error;
+                        }
+                    }
+                }
+            }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(PostRAPeephole_FoldsConstantMultiplyDestination)
 {
     struct Case

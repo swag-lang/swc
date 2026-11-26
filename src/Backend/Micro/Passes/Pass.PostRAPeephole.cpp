@@ -1473,7 +1473,7 @@ namespace
         r.add(MicroInstrOpcode::OpBinaryRegImm, tryNarrowShiftedBoolean);
         r.add(MicroInstrOpcode::LoadAddrRegMem, tryShortenAddressUnitOffset);
         r.add(MicroInstrOpcode::LoadAddrRegMem, tryFoldCarryOffset);
-        r.add(MicroInstrOpcode::LoadAddrAmcRegMem, tryFoldDoubledAddressAdd);
+        r.add(MicroInstrOpcode::LoadAddrAmcRegMem, tryFoldScaledOffsetAddressAdd);
         r.add(MicroInstrOpcode::LoadAddrAmcRegMem, tryShortenAddressAdd);
         r.add(MicroInstrOpcode::LoadAddrAmcRegMem, tryFoldScaledAdd);
         r.add(MicroInstrOpcode::LoadAddrAmcRegMem, tryFoldIndexedAddressIntoNextLoad);

@@ -130,7 +130,7 @@ namespace PostRaPeephole
     bool tryShortenAddressUnitOffset(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
     bool tryShortenAddressAdd(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
     bool tryFoldScaledAdd(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
-    bool tryFoldDoubledAddressAdd(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
+    bool tryFoldScaledOffsetAddressAdd(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
     bool tryFoldIndexedAddressIntoNextLoad(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
     bool tryFoldMaskedDoubleIntoAddress(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
     bool tryFoldPointerAddIntoNextLoad(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);

@@ -1942,20 +1942,27 @@ namespace PostRaPeephole
         return true;
     }
 
-    // A doubled value staged in a dead temporary can be added directly with
-    // the scaled address mode. Both forms compute modulo the selected width.
-    // The temporary may be the doubled value's own register: the scaled form
-    // then reads it before the doubling it replaces.
-    bool tryFoldDoubledAddressAdd(Context& ctx, const MicroInstrRef addressRef, const MicroInstr& addressInst)
+    // Add a base directly to a scaled index held in a dead temporary.
+    // The effective address uses the same wrapping width as the addition.
+    bool tryFoldScaledOffsetAddressAdd(Context& ctx, const MicroInstrRef addressRef, const MicroInstr& addressInst)
     {
         if (ctx.isClaimed(addressRef) || !ctx.encoder)
             return false;
         const auto* address = addressInst.ops(*ctx.operands);
-        if (!address || address[1].reg != address[2].reg ||
-            !address[0].reg.isInt() || !address[1].reg.isInt() ||
+        if (!address || !address[0].reg.isInt() || !address[2].reg.isInt() ||
             (address[3].opBits != MicroOpBits::B32 && address[3].opBits != MicroOpBits::B64) ||
-            address[4].opBits != MicroOpBits::B64 || address[5].valueU64 != 1 || address[6].valueU64 != 0)
+            address[4].opBits != MicroOpBits::B64 || address[6].hasWideImmediateValue())
             return false;
+
+        const MicroReg index = address[2].reg;
+        uint64_t       scale = address[5].valueU64;
+        if (!address[1].reg.isNoBase())
+        {
+            if (address[1].reg != index || scale != 1 || address[6].valueU64 != 0)
+                return false;
+            scale = 2;
+        }
+
         const MicroInstrRef addRef = ctx.nextRef(addressRef);
         const MicroInstr*   add    = ctx.instruction(addRef);
         const auto*         addOps = add ? add->ops(*ctx.operands) : nullptr;
@@ -1963,27 +1970,40 @@ namespace PostRaPeephole
             addOps[3].microOp != MicroOp::Add || addOps[1].reg != address[0].reg ||
             addOps[0].reg == address[0].reg || !addOps[0].reg.isInt() ||
             addOps[2].opBits != address[3].opBits ||
-            ctx.isPrivateFrameBase(address[0].reg) || ctx.isPrivateFrameBase(address[1].reg) ||
+            ctx.isPrivateFrameBase(address[0].reg) || ctx.isPrivateFrameBase(index) ||
             ctx.isPrivateFrameBase(addOps[0].reg) ||
             !ctx.isRegDeadAfter(address[0].reg, ctx.instructionIndex + 1) ||
             !ctx.areCpuFlagsDeadAfter(addRef))
             return false;
 
+        // The base copy can disappear when the index does not use its result.
+        const MicroReg      result   = addOps[0].reg;
+        const MicroInstrRef copyRef  = ctx.previousRef(addressRef);
+        const MicroInstr*   copy     = ctx.instruction(copyRef);
+        const auto*         copyOps  = copy && copy->op == MicroInstrOpcode::LoadRegReg ? copy->ops(*ctx.operands) : nullptr;
+        const bool          foldCopy = copyOps && copyOps[0].reg == result && copyOps[1].reg.isInt() &&
+                              copyOps[1].reg != result && !ctx.isPrivateFrameBase(copyOps[1].reg) &&
+                              copyOps[2].opBits == address[3].opBits && index != result && !ctx.isClaimed(copyRef);
+
         MicroInstrOperand folded[8] = {};
-        folded[0].reg               = addOps[0].reg;
-        folded[1].reg               = addOps[0].reg;
-        folded[2].reg               = address[1].reg;
+        folded[0].reg               = result;
+        folded[1].reg               = foldCopy ? copyOps[1].reg : result;
+        folded[2].reg               = index;
         folded[3].opBits            = address[3].opBits;
         folded[4].opBits            = MicroOpBits::B64;
-        folded[5].valueU64          = 2;
+        folded[5].valueU64          = scale;
+        folded[6].valueU64          = address[6].valueU64;
         MicroInstr probe;
         probe.op          = MicroInstrOpcode::LoadAddrAmcRegMem;
         probe.numOperands = 8;
         MicroConformanceIssue issue;
-        if (ctx.encoder->queryConformanceIssue(issue, probe, folded) || !ctx.claimAll({addressRef, addRef}))
+        if (ctx.encoder->queryConformanceIssue(issue, probe, folded) ||
+            !ctx.claimAll({addressRef, addRef, foldCopy ? copyRef : addressRef}))
             return false;
         ctx.emitRewrite(addressRef, probe.op, folded, true);
         ctx.emitErase(addRef);
+        if (foldCopy)
+            ctx.emitErase(copyRef);
         return true;
     }
 

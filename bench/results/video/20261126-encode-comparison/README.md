@@ -150,3 +150,27 @@ million decode to one after the rounding change, up from 48,296. The desktop,
 changing tiles and camera have similar or higher SSIM. Packet size changes stay
 below 0.83% across the sweep. The JPEG, AVI and MP4 Release selection passed 86 tests.
 [Individual measurements and saturation check](mjpeg-rounding.json)
+
+## Y4M planar output
+
+Swag now writes luma and accumulates chroma while reading each RGB pixel once. It
+keeps the original limited-range coefficients and averages the same rounded chroma
+samples within each layout's footprint. RGB8 and BGRA8 produced identical Y4M files,
+and the same files as the previous Swag writer.
+
+Process CPU time is the median of seven rotating runs encoding a 30-picture 640×360
+camera clip on one logical CPU. The libswscale comparison converts and copies planes
+in memory. Swag's measurements also include its in-memory container writes.
+
+| Chroma | Swag RGB8 before | Swag RGB8 after | FFmpeg RGB8 | Swag BGRA8 before | Swag BGRA8 after |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| 4:1:1 | 89.45 ms | 36.24 ms | 26.19 ms | 85.36 ms | 35.76 ms |
+| 4:2:0 | 90.33 ms | 37.33 ms | 27.40 ms | 88.46 ms | 38.49 ms |
+| 4:2:2 | 95.66 ms | 42.59 ms | 28.25 ms | 93.86 ms | 43.70 ms |
+| 4:4:4 | 108.97 ms | 46.30 ms | 20.62 ms | 107.81 ms | 48.99 ms |
+
+The optimized writer reduces CPU time by 53–60% on the camera clip. A second
+652×370 input exercises the layout tails. Across both inputs and all RGB8 layouts,
+every Swag sample differs from FFmpeg's conversion by at most one level. All 18
+focused native Release tests passed.
+[Timing samples and hashes](y4m-fused-conversion.json) · [Reproduction](../../../workloads/y4m/README.md)

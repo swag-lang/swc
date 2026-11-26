@@ -365,3 +365,28 @@ using Core
     Swag.require(actual.pixelColor(64, 56).a > 0)
     Swag.require(Memory.compare(actual.pixels.storage(), expected.pixels.storage(), actual.pixels.count) == 0)
 }
+
+
+// Four-lane compositing matches scalar tiles for fractional, transparent and opaque pixels.
+#test
+{
+    const Width = 2053
+    let drawing = expect Svg.Drawing.parse("""
+        <svg width='2053' height='14' fill='#4433a1'>
+          <path fill-opacity='.46' d='M.125 1.25h27.5v11.5h-27.5z'/>
+          <path fill-opacity='.37' d='M.625 2.375h18l8 8h-18z'/>
+          <path d='M6.25 4.75h16.5v5.25h-16.5z'/>
+        </svg>""", {preferScanFills: true})
+    var cpu: RenderCpu
+    let renderer: IRenderer = &cpu
+    renderer.init()
+    defer renderer.end()
+
+    let packed = drawing.rasterizeWithSampleTileSide(renderer, Width, 14, 1, 32, &cpu)
+    let scalar = drawing.rasterizeWithSampleTileSide(renderer, Width, 14, 1, 3, &cpu)
+    Swag.require(packed.isValid() and scalar.isValid())
+    Swag.require(packed.pixelColor(0, 7).a > 0)
+    Swag.require(packed.pixelColor(13, 7).a == 255)
+    Swag.require(packed.pixelColor(30, 7).argb == 0x00FF_FFFF)
+    Swag.require(Memory.compare(packed.pixels.storage(), scalar.pixels.storage(), packed.pixels.count) == 0)
+}

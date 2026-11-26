@@ -337,6 +337,7 @@ private impl ScanRows
         let bottomRow    = .bottomRow
         let evenOdd      = .evenOdd
         let composite    = .composite
+        let wideOutput   = image.width > 2048
         for row in firstRow until lastRow
         {
             let {values: coverage, first, end} = scratch.resolveRow(crossings, row, width, evenOdd, not composite)
@@ -344,7 +345,34 @@ private impl ScanRows
             if composite
             {
                 let output = cast([*] u32, pixels)
-                for column in first until end
+                let full       = Math.Simd.splat(255'u32)
+                let zero       = Math.Simd.splat(0'u32)
+                let rgb        = Math.Simd.splat(ink)
+                let opacity    = Math.Simd.splat(cast(f32, color.a))
+                let samples    = Math.Simd.splat(cast(f32, VerticalSamples))
+                var laneStart  = first
+                while wideOutput and end - laneStart >= 4
+                {
+                    let values = Math.Simd.load(coverage + laneStart)
+                    let scaled = Math.min(values, samples) / VerticalSamples * opacity
+                    let alpha  = roundScanAlpha4(scaled)
+                    let target = output + laneStart
+                    if Math.Simd.allTrue(alpha == full)
+                    {
+                        Math.Simd.store(target, rgb | 0xFF00_0000'u32)
+                    }
+                    elif Math.Simd.anyTrue(alpha != zero)
+                    {
+                        let previous = Math.Simd.load(target)
+                        // Add one to the rounded numerator for exact division by 255.
+                        let product  = (previous >> 24) * (full - alpha) + 128'u32
+                        let combined = alpha + ((product + (product >> 8)) >> 8)
+                        Math.Simd.store(target, Math.Simd.select(alpha != zero, rgb | (combined << 24), previous))
+                    }
+                    laneStart += 4
+                }
+
+                for column in laneStart until end
                 {
                     if coverage[column] <= 0 do
                         continue

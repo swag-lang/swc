@@ -220,6 +220,9 @@ ships; history lives in Git, not here.
 - Evidence: [matched CPU budgets](../bench/workloads/svgraster/resvg-comparison.md#matched-cpu-budgets-on-the-complete-originals)
   put all four Scope bitmaps ahead of resvg at one, two, and four logical CPUs.
   The largest full-size raster is slower at one CPU and faster at two and four.
+- Evidence: [packed monochrome compositing](../bench/workloads/svgraster/resvg-comparison.md#compositing-four-pixels-of-a-wide-monochrome-bitmap)
+  reduces the 5184-pixel native bitmap from 391 to 382 ms at one CPU and
+  from 180 to 172 ms at four, with identical pixels.
 - Next: reduce the remaining gradient, stroke, clip, and single-CPU full-size
   raster costs. Rerun the original Windows comparison at one worker and at
   the runtime default.

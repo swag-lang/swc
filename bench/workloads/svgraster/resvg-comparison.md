@@ -1101,3 +1101,26 @@ The largest original's 320 × 213 thumbnail uses two samples per axis.
 Its Swag medians are 152.70, 121.38, and 106.74 ms with one, two, and
 four workers. The generated corpus has 18 fixtures and the pinned
 public corpus has 13.
+
+## Compositing four pixels of a wide monochrome bitmap
+
+The same-ink scan path uses packed source-over for groups of four
+pixels when the output is wider than 2048 pixels. The scalar and
+packed loops share the original coverage rounding. Empty pixels keep
+their previous bytes and the packed integer division matches the
+scalar source-over formula. A test compares fractional and opaque
+overlaps on a 2053-pixel bitmap using regular and three-pixel tiles.
+
+Eleven interleaved Release runs at 5184 × 3456 gave these median
+parse-plus-raster times in milliseconds.
+
+| Logical CPUs | Swag before | Swag after | resvg 0.50.0 |
+| --- | ---: | ---: | ---: |
+| 1 | 391.28 | 381.61 | 350.52 |
+| 2 | 237.92 | 233.63 | 338.25 |
+| 4 | 180.44 | 172.23 | 348.75 |
+
+The output CRC-64 is identical. At 4096 × 2731, the same source takes
+310.90 ms before and 289.08 ms after on one CPU. The 2053- and
+3072-pixel comparisons also retain their checksums. Scope's default
+bitmap and thumbnail sizes still take the established scan path.

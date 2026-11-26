@@ -10,7 +10,7 @@ private const FieldLimbBits         = 51
 private const FieldLimbMask         = (1'u64 << FieldLimbBits) - 1
 private const FieldModulus: [5] u64 = [FieldLimbMask - 18, FieldLimbMask, FieldLimbMask, FieldLimbMask, FieldLimbMask]
 
-// Arithmetic keeps every limb below 2^51, with limb 1 allowed another 255.
+// Reduced values keep each limb below 2^51, with limb 1 allowed another 1023.
 internal struct X25519Field
 {
     limbs: [5] u64
@@ -39,7 +39,7 @@ private impl X25519Product
         .high += product.hi
     }
 
-    // Even the wrapped sums stay below 2^109, so the carry fits in u64.
+    // Even the wrapped sums stay below 2^112, so the carry fits in u64.
     #[Swag.Inline]
     mtd const carry() => (.low >> FieldLimbBits) | (.high << (64 - FieldLimbBits))
 }
@@ -48,7 +48,7 @@ private impl X25519Product
 private func x25519FoldCarry(value: *X25519Field, carry: u64)
 {
     // The low limb can keep its full carry by advancing only to limb 1.
-    // Even the product fold adds less than 128 radix-2^51 units there.
+    // Even the product fold adds less than 1024 radix-2^51 units there.
     value.limbs[0] += carry * 19
     value.limbs[1] += value.limbs[0] >> FieldLimbBits
     value.limbs[0] &= FieldLimbMask
@@ -70,21 +70,28 @@ private func x25519Normalize(value: X25519Field)->X25519Field
     return result
 }
 
-internal func x25519Add(left, right: X25519Field)->X25519Field
+// The loose sums and differences stay below 3*2^51 + 1024 per limb.
+// Use them directly only as product operands.
+#[Swag.Inline]
+private func x25519AddLoose(left, right: X25519Field)->X25519Field
 {
     var result: #returntype
     for index in result.limbs.count do
         result.limbs[index] = left.limbs[index] + right.limbs[index]
-    return x25519Normalize(result)
+    return result
 }
 
-internal func x25519Subtract(left, right: X25519Field)->X25519Field
+#[Swag.Inline]
+private func x25519SubtractLoose(left, right: X25519Field)->X25519Field
 {
     var result: #returntype
     for index in result.limbs.count do
         result.limbs[index] = left.limbs[index] + 2 * FieldModulus[index] - right.limbs[index]
-    return x25519Normalize(result)
+    return result
 }
+
+internal func x25519Add(left, right: X25519Field)->X25519Field => x25519Normalize(x25519AddLoose(left, right))
+internal func x25519Subtract(left, right: X25519Field)->X25519Field => x25519Normalize(x25519SubtractLoose(left, right))
 
 private func x25519ReduceProducts(products: *[5] X25519Product)->X25519Field
 {
@@ -296,19 +303,19 @@ private func x25519ScalarMult(privateKey, publicCoordinate: const [..] u8)->[X25
         x25519ConditionalSwap(&z2, &z3, swap)
         swap = bit
 
-        let a  = x25519Add(x2, z2)
+        let a  = x25519AddLoose(x2, z2)
         let aa = x25519Square(a)
-        let b  = x25519Subtract(x2, z2)
+        let b  = x25519SubtractLoose(x2, z2)
         let bb = x25519Square(b)
-        let e  = x25519Subtract(aa, bb)
-        let c  = x25519Add(x3, z3)
-        let d  = x25519Subtract(x3, z3)
+        let e  = x25519SubtractLoose(aa, bb)
+        let c  = x25519AddLoose(x3, z3)
+        let d  = x25519SubtractLoose(x3, z3)
         let da = x25519Multiply(d, a)
         let cb = x25519Multiply(c, b)
-        x3 = x25519Square(x25519Add(da, cb))
-        z3 = x25519Multiply(x1, x25519Square(x25519Subtract(da, cb)))
+        x3 = x25519Square(x25519AddLoose(da, cb))
+        z3 = x25519Multiply(x1, x25519Square(x25519SubtractLoose(da, cb)))
         x2 = x25519Multiply(aa, bb)
-        z2 = x25519Multiply(e, x25519Add(aa, x25519MultiplyBy121665(e)))
+        z2 = x25519Multiply(e, x25519AddLoose(aa, x25519MultiplyBy121665(e)))
     }
 
     x25519ConditionalSwap(&x2, &x3, swap)

@@ -104,3 +104,4 @@ optimizations moved each result.
 - [Packed AES key expansion](aes-key-expansion.md)
 - [Bounded Curve25519 field carries](curve25519-bounded-carries.md)
 - [X25519 public keys with the masked generator table](x25519-generator-comb.md)
+- [X25519 ladder with deferred carries](x25519-ladder-carries.md)

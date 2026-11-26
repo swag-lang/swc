@@ -1,0 +1,334 @@
+{
+  "utc": "2026-11-26T12:47:26.439420+00:00",
+  "system": "Linux-6.18.57-x86_64-with-glibc2.41",
+  "cpu": 1,
+  "affinity": [
+    1
+  ],
+  "workers": {
+    "baseline": 1,
+    "loose-ladder": 1
+  },
+  "processor": {
+    "model name": "AMD EPYC 9V74 80-Core Processor",
+    "microcode": "0x1000065",
+    "flags": "fpu vme de pse tsc msr pae mce cx8 apic sep mtrr pge mca cmov pat pse36 clflush mmx fxsr sse sse2 ht syscall nx mmxext fxsr_opt pdpe1gb rdtscp lm constant_tsc rep_good nopl xtopology nonstop_tsc cpuid extd_apicid tsc_known_freq pni pclmulqdq ssse3 fma cx16 pcid sse4_1 sse4_2 x2apic movbe popcnt tsc_deadline_timer aes xsave avx f16c rdrand hypervisor lahf_lm cmp_legacy cr8_legacy abm sse4a misalignsse 3dnowprefetch osvw topoext cpuid_fault vmmcall fsgsbase tsc_adjust bmi1 avx2 smep bmi2 erms invpcid avx512f avx512dq rdseed adx smap avx512ifma clflushopt clwb avx512cd sha_ni avx512bw avx512vl xsaveopt xsavec xgetbv1 xsaves avx512_bf16 clzero xsaveerptr arat npt nrip_save tsc_scale vmcb_clean flushbyasid pausefilter pfthreshold v_vmsave_vmload avx512vbmi umip avx512_vbmi2 gfni vaes vpclmulqdq avx512_vnni avx512_bitalg avx512_vpopcntdq rdpid fsrm arch_capabilities"
+  },
+  "reference_build": "OpenSSL 3.5.7 9 Jun 2026 | zlib 1.3.1 | BLAKE3 1.8.7 | libdeflate 1.26 | ISA-L 2.32.1 | liblzma 5.8.1",
+  "reference_sha256": "d6f36f4496d0434337b2936a7ff71c55c7ca395d52e0ae4222a2fc5b3d5a5f51",
+  "swag_builds": {
+    "baseline": "0ef5f9114d00e584bc9c62dda6cb762785adc5cf71eb53eb33a40e43c3894733",
+    "loose-ladder": "71d172f52bfb51c7dd918443c438ddacdb0c40c185c60891536bbad29aa26c57"
+  },
+  "rounds": 11,
+  "target_ms": 35,
+  "clock": "cpu",
+  "rows": [
+    {
+      "algorithm": "x25519-public",
+      "bytes": 32,
+      "offset": 0,
+      "input_sha256": "2404657934fda9253c9d38499cb12ebdbbed5a27f47746fb93ed5d1b676bd395",
+      "output_sha256": "82bc2c8f4e75b535a175120445ec22f7265a811b633ced733b9d06869c502c69",
+      "samples": {
+        "OpenSSL": {
+          "iterations": 980,
+          "wall": [
+            0.035250923,
+            0.071354373,
+            0.076220477,
+            0.074960631,
+            0.076433823,
+            0.083939452,
+            0.071316856,
+            0.078242255,
+            0.073008417,
+            0.089503803,
+            0.077598459
+          ],
+          "cpu": [
+            0.034955747,
+            0.035194284,
+            0.035166701,
+            0.035100183,
+            0.035403453,
+            0.035488462,
+            0.035197339,
+            0.035201212,
+            0.035131978,
+            0.036981285,
+            0.036983287
+          ]
+        },
+        "baseline": {
+          "iterations": 460,
+          "wall": [
+            0.035640762,
+            0.071238598,
+            0.070754628,
+            0.074401229,
+            0.078927934,
+            0.07088232,
+            0.070911449,
+            0.081931379,
+            0.081915449,
+            0.072236822,
+            0.083660882
+          ],
+          "cpu": [
+            0.035638173,
+            0.035225169,
+            0.034720947,
+            0.034686346,
+            0.038324094,
+            0.034724122,
+            0.034810381,
+            0.034806553,
+            0.03493047,
+            0.036163496,
+            0.035973793
+          ]
+        },
+        "loose-ladder": {
+          "iterations": 450,
+          "wall": [
+            0.070103767,
+            0.070133842,
+            0.066112117,
+            0.07186349,
+            0.070185059,
+            0.070190527,
+            0.070515326,
+            0.070274994,
+            0.074076467,
+            0.074153593,
+            0.075585914
+          ],
+          "cpu": [
+            0.034020024,
+            0.034036518,
+            0.033962168,
+            0.034248776,
+            0.033978532,
+            0.034059901,
+            0.034394354,
+            0.033997751,
+            0.034003798,
+            0.034334711,
+            0.035494187
+          ]
+        }
+      },
+      "round_order": [
+        [
+          "OpenSSL",
+          "baseline",
+          "loose-ladder"
+        ],
+        [
+          "loose-ladder",
+          "OpenSSL",
+          "baseline"
+        ],
+        [
+          "OpenSSL",
+          "baseline",
+          "loose-ladder"
+        ],
+        [
+          "baseline",
+          "OpenSSL",
+          "loose-ladder"
+        ],
+        [
+          "loose-ladder",
+          "OpenSSL",
+          "baseline"
+        ],
+        [
+          "OpenSSL",
+          "baseline",
+          "loose-ladder"
+        ],
+        [
+          "OpenSSL",
+          "loose-ladder",
+          "baseline"
+        ],
+        [
+          "OpenSSL",
+          "baseline",
+          "loose-ladder"
+        ],
+        [
+          "OpenSSL",
+          "baseline",
+          "loose-ladder"
+        ],
+        [
+          "loose-ladder",
+          "baseline",
+          "OpenSSL"
+        ],
+        [
+          "OpenSSL",
+          "loose-ladder",
+          "baseline"
+        ]
+      ]
+    },
+    {
+      "algorithm": "x25519-shared",
+      "bytes": 32,
+      "offset": 0,
+      "input_sha256": "2404657934fda9253c9d38499cb12ebdbbed5a27f47746fb93ed5d1b676bd395",
+      "output_sha256": "9cece8f62296730a835add7d412edfd57587a071fb99e1b937693a5159c24d5d",
+      "samples": {
+        "OpenSSL": {
+          "iterations": 504,
+          "wall": [
+            0.087890311,
+            0.097430178,
+            0.105170291,
+            0.087692422,
+            0.108142013,
+            0.095009868,
+            0.074371502,
+            0.090191331,
+            0.097995302,
+            0.095079434,
+            0.094510877
+          ],
+          "cpu": [
+            0.034947543,
+            0.035748238,
+            0.040106036,
+            0.036595711,
+            0.045200796,
+            0.035339147,
+            0.035261572,
+            0.035070958,
+            0.037633164,
+            0.036046373,
+            0.035272438
+          ]
+        },
+        "baseline": {
+          "iterations": 249,
+          "wall": [
+            0.08261909,
+            0.095023744,
+            0.066693181,
+            0.087325679,
+            0.095893731,
+            0.070446313,
+            0.073990438,
+            0.080545804,
+            0.086137138,
+            0.086437941,
+            0.086214645
+          ],
+          "cpu": [
+            0.033618825,
+            0.03444705,
+            0.034681045,
+            0.034287752,
+            0.037047931,
+            0.03383658,
+            0.033654639,
+            0.033842769,
+            0.033826634,
+            0.034343567,
+            0.034088926
+          ]
+        },
+        "loose-ladder": {
+          "iterations": 346,
+          "wall": [
+            0.090199968,
+            0.10166226,
+            0.091066751,
+            0.071685011,
+            0.092683059,
+            0.090100213,
+            0.090035015,
+            0.07090934,
+            0.086870924,
+            0.094660622,
+            0.092703881
+          ],
+          "cpu": [
+            0.035136819,
+            0.04147081,
+            0.036042244,
+            0.035607799,
+            0.035462132,
+            0.034688621,
+            0.034731684,
+            0.034777742,
+            0.034765263,
+            0.03562333,
+            0.034709231
+          ]
+        }
+      },
+      "round_order": [
+        [
+          "baseline",
+          "OpenSSL",
+          "loose-ladder"
+        ],
+        [
+          "loose-ladder",
+          "OpenSSL",
+          "baseline"
+        ],
+        [
+          "OpenSSL",
+          "loose-ladder",
+          "baseline"
+        ],
+        [
+          "loose-ladder",
+          "baseline",
+          "OpenSSL"
+        ],
+        [
+          "loose-ladder",
+          "baseline",
+          "OpenSSL"
+        ],
+        [
+          "OpenSSL",
+          "baseline",
+          "loose-ladder"
+        ],
+        [
+          "loose-ladder",
+          "baseline",
+          "OpenSSL"
+        ],
+        [
+          "OpenSSL",
+          "loose-ladder",
+          "baseline"
+        ],
+        [
+          "loose-ladder",
+          "baseline",
+          "OpenSSL"
+        ],
+        [
+          "loose-ladder",
+          "baseline",
+          "OpenSSL"
+        ],
+        [
+          "baseline",
+          "OpenSSL",
+          "loose-ladder"
+        ]
+      ]
+    }
+  ]
+}

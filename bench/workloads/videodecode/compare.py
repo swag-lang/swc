@@ -69,15 +69,19 @@ def run(command, log, *, env=None):
     return log.read_text()
 
 
-def swag(args, name, library, log, *values):
+def build_swag(args, name, library):
     output = args.output / name
-    command = [args.compiler.resolve(), "run", "-f", WORKLOAD / "src/videodecode.swg",
+    command = [args.compiler.resolve(), "build", "-f", WORKLOAD / "src/videodecode.swg",
                "--module-file", WORKLOAD / "module.swg", "-bc", "release", "--num-cores", "4",
                "--out-dir", output / "bin", "--work-dir", output / "work"]
-    for value in values:
-        command += ["--run-arg", str(value)]
-    return run(command, log, env={**os.environ, "SWAG_PATH": str(library.resolve()),
-                                  "SWAG_RUNTIME_THREADS": "1"})
+    run(command, args.output / f"{name}.build.log",
+        env={**os.environ, "SWAG_PATH": str(library.resolve())})
+    return output / "bin/videodecode"
+
+
+def swag(executable, log, *values):
+    return run([executable, *(str(value) for value in values)], log,
+               env={**os.environ, "SWAG_RUNTIME_THREADS": "1"})
 
 
 def fixture_timeline(path):
@@ -150,7 +154,7 @@ def compare_planes(path, stream, frames, planes):
             "psnr_db": 10 * math.log10(255**2 * samples * frames / squares) if squares else "inf"}
 
 
-def benchmark_fixture(args, reference, path, prefix):
+def benchmark_fixture(args, reference, executables, path, prefix):
     stream, times = fixture_timeline(path)
     frames = len(times) - args.warmup
     if not args.quality_only and frames <= 0:
@@ -158,15 +162,11 @@ def benchmark_fixture(args, reference, path, prefix):
 
     timeline = prefix.with_suffix(".pts")
     timeline.write_text("".join(f"{float(time):.12f}\n" for time in times))
-    libraries = {"candidate": args.library_bin}
-    if args.baseline_bin:
-        libraries["baseline"] = args.baseline_bin
-
     quality = {}
     picture_mode = "planes" if args.quality_only else "planes-dense"
-    for name, library in libraries.items():
+    for name, executable in executables.items():
         planes = prefix.with_suffix(f".{name}.yuv")
-        swag(args, name, library, prefix.with_suffix(f".{name}.planes.log"),
+        swag(executable, prefix.with_suffix(f".{name}.planes.log"),
              picture_mode, path, timeline, planes)
         quality[name] = compare_planes(path, stream, len(times), planes)
         planes.unlink()
@@ -178,14 +178,14 @@ def benchmark_fixture(args, reference, path, prefix):
     if args.quality_only:
         return result
 
-    timing = {name: [] for name in (*libraries, "ffmpeg", "ffmpeg_no_simd")}
+    timing = {name: [] for name in (*executables, "ffmpeg", "ffmpeg_no_simd")}
     native_cpu = {"ffmpeg": [], "ffmpeg_no_simd": []}
     order = list(timing)
     for repetition in range(args.repetitions):
         for name in order:
             log = prefix.with_suffix(f".{name}.{repetition + 1}.log")
-            if name in libraries:
-                text = swag(args, name, libraries[name], log, "time", path, 1, len(times), args.warmup)
+            if name in executables:
+                text = swag(executables[name], log, "time", path, 1, len(times), args.warmup)
                 count, ticks, frequency = map(int, SWAG_TIMING.findall(text)[0])
                 elapsed = ticks / frequency
             else:
@@ -215,9 +215,12 @@ def main():
     reference = None
     if not args.quality_only:
         reference = args.reference.resolve() if args.reference else build_reference(args.output)
+    executables = {"candidate": build_swag(args, "candidate", args.library_bin)}
+    if args.baseline_bin:
+        executables["baseline"] = build_swag(args, "baseline", args.baseline_bin)
     results = []
     for index, input_path in enumerate(args.input):
-        result = benchmark_fixture(args, reference, input_path.resolve(), args.output / f"fixture-{index}")
+        result = benchmark_fixture(args, reference, executables, input_path.resolve(), args.output / f"fixture-{index}")
         results.append(result)
         print(json.dumps(result), flush=True)
     version = subprocess.check_output(["ffmpeg", "-version"], text=True).splitlines()[0]

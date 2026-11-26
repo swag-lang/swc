@@ -35,9 +35,10 @@ taskset -c 4 python3 bench/workloads/videodecode/compare.py \
 ```
 
 `--baseline-bin` selects a preserved standard-module source tree and is optional.
-Both Swag variants use the same compiler and runtime. The output directory must be new and
-outside the source trees. It receives the picture hashes, timing samples, FFmpeg version,
-reference timestamps and individual run logs.
+Both Swag variants use the same compiler and runtime. Each variant is built once before
+its picture and timing passes. The output directory must be new and outside the source
+trees. It receives the picture hashes, timing samples, FFmpeg version, reference timestamps,
+compiler logs and individual run logs.
 
 Generate additional inputs with `generate.py`. The corpus covers gradient fades for weighted
 AVC prediction, temporal texture for CAVLC, AVC High 4:4:4, HEVC Main with WPP, and Main10

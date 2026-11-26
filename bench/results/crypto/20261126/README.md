@@ -116,3 +116,4 @@ optimizations moved each result.
 - [Signed affine Curve25519 generator tables](ed25519-signed-generator.md)
 - [AES software substitution with cached field logarithms](aes-software-logs.md)
 - [HMAC-SHA3 pad reuse](hmac-sha3-pads.md)
+- [BLAKE3 scaling against official C with oneTBB](blake3-tbb-scaling.md)

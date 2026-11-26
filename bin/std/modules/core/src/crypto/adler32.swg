@@ -23,11 +23,12 @@ private func updateAdlerBlock16(input: const [*] u8, byteSum, weightedSum: *u32)
 
 private func updateAdlerBlocks64(input: const [*] u8, count: u64, byteSum, weightedSum: *u32)
 {
-    // A pair's weight is at most 64 + 63, so its byte multiply-add cannot saturate.
-    const Weights64 = cast(Simd.S8x16, [64's8, 63, 62, 61, 60, 59, 58, 57, 56, 55, 54, 53, 52, 51, 50, 49])
-    const Weights48 = cast(Simd.S8x16, [48's8, 47, 46, 45, 44, 43, 42, 41, 40, 39, 38, 37, 36, 35, 34, 33])
+    // Center the byte weights so four partial pair sums fit in signed 16 bits.
     const Weights32 = cast(Simd.S8x16, [32's8, 31, 30, 29, 28, 27, 26, 25, 24, 23, 22, 21, 20, 19, 18, 17])
+    const Weights0 = cast(Simd.S8x16, [0's8, -1, -2, -3, -4, -5, -6, -7, -8, -9, -10, -11, -12, -13, -14, -15])
+    const WeightsMinus16 = cast(Simd.S8x16, [-16's8, -17, -18, -19, -20, -21, -22, -23, -24, -25, -26, -27, -28, -29, -30, -31])
     let zero = Simd.splat(0'u8)
+    let ones = Simd.splat(1's16)
     var sum, prefixes: Simd.U64x2
     var weighted:      Simd.S32x4
 
@@ -43,13 +44,18 @@ private func updateAdlerBlocks64(input: const [*] u8, count: u64, byteSum, weigh
         prefixes += sum
         sum      += Simd.absoluteDifferences(first, zero) + Simd.absoluteDifferences(second, zero) +
                     Simd.absoluteDifferences(third, zero) + Simd.absoluteDifferences(fourth, zero)
-        weighted += adlerWeights(first, Weights64) + adlerWeights(second, Weights48) +
-                    adlerWeights(third, Weights32) + adlerWeights(fourth, AdlerWeights16)
+        // Each signed pair total lies between -22,950 and 23,970.
+        let highPairs = Simd.mulAddPairs(first, Weights32) + Simd.mulAddPairs(second, AdlerWeights16)
+        let lowPairs  = Simd.mulAddPairs(third, Weights0) + Simd.mulAddPairs(fourth, WeightsMinus16)
+        weighted += Simd.mulAddPairs(highPairs + lowPairs, ones)
     }
 
+    let blockBytes = cast(u32, Simd.sum(sum))
+    // Restore the 32 removed from each byte's weight.
+    let blockWeights = Simd.sum(weighted) + cast(s32, 32 * blockBytes)
     weightedSum[] += 64 * (cast(u32, count) * byteSum[] + cast(u32, Simd.sum(prefixes))) +
-                     cast(u32, Simd.sum(weighted))
-    byteSum[] += cast(u32, Simd.sum(sum))
+                     cast(u32, blockWeights)
+    byteSum[] += blockBytes
 }
 
 #[Swag.Inline]

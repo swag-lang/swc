@@ -395,6 +395,10 @@ private struct Parser
     svgDepth:       u32
     inDefs:         bool     // Whether parsing currently sits inside a `defs` element.
     dimensionsOnly: bool
+
+    lastInlineStyle:    string = ""
+    inlineDeclarations: Array'StyleDeclaration
+    inlineCacheReady:   bool
 }
 
 private enum AttributeKind
@@ -2554,12 +2558,52 @@ private impl Parser
             .pos += 1
     }
 
+    mtd applyInlineStyle(state: *GroupState, value: string)
+    {
+        // Cache repeated styles with enough declarations to benefit from a saved scan.
+        if value.count < 32 or value.count > 1024
+        {
+            applyAttribute(state, "style", value)
+            return
+        }
+
+        if value != .lastInlineStyle
+        {
+            .lastInlineStyle  = .sourceView(value)
+            .inlineCacheReady = false
+        }
+
+        if not .inlineCacheReady and value.buffer == .lastInlineStyle.buffer
+        {
+            applyAttribute(state, "style", value)
+            return
+        }
+
+        // A second authored attribute uses the same declaration list.
+        if not .inlineCacheReady
+        {
+            .inlineDeclarations.clear()
+            var cursor = 0'u64
+            while cursor < value.count
+            {
+                let declaration = nextStyleDeclaration(value, &cursor)
+                if declaration.name.count do
+                    .inlineDeclarations.add(declaration)
+            }
+
+            .inlineCacheReady = true
+        }
+
+        for &declaration in .inlineDeclarations do
+            applyStyleProperty(state, declaration.name, declaration.value)
+    }
+
     mtd applyStyles(elementName: string, geo: *AttributeMap, state: *GroupState)
     {
         if .styles.rules.count do
             .styles.apply(elementName, geo, state)
         if let inlineStyle = geo.tryFind(.Style) do
-            applyAttribute(state, "style", inlineStyle.value)
+            .applyInlineStyle(state, inlineStyle.value)
     }
 
     // Applies presentation attributes and collects slices of the remaining supported attributes.
@@ -2624,7 +2668,7 @@ private impl Parser
 
             case .Style:
                 geo.add(kind, value)
-                applyAttribute(state, name, value)
+                .applyInlineStyle(state, value)
 
             default:
                 geo.add(kind, value)

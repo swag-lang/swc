@@ -114,6 +114,7 @@ optimizations moved each result.
 - [ChaCha20 key and nonce reuse across batches](chacha20-chunk-reuse.md)
 - [Packed BLAKE2 state initialization and feed-forward](blake2-state.md)
 - [BLAKE2b compression interleave and short final blocks](blake2b-paired-compression.md)
+- [BLAKE2s compression interleave and round schedule](blake2s-paired-compression.md)
 - [BLAKE3 streaming updates and full SIMD batches](blake3-stream-updates.md)
 - [Affine Curve25519 generator table](ed25519-affine-generator.md)
 - [Signed affine Curve25519 generator tables](ed25519-signed-generator.md)

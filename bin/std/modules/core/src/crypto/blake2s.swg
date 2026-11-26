@@ -26,17 +26,26 @@ private const Blake2sSigma: [160] u8 = [
     6, 15, 14, 9, 11, 3, 0, 8, 12, 2, 13, 7, 1, 4, 10, 5,
     10, 2, 8, 4, 7, 6, 1, 5, 15, 11, 9, 14, 3, 12, 13, 0]
 
+// Advances 2 independent G functions together.
 #[Swag.Inline]
-private func blake2sMix(state: *[16] u32, a, b, c, d, x, y: u32)
+private func blake2sMixPair(state: *[16] u32, a0, b0, c0, d0, a1, b1, c1, d1: u32, x0, y0, x1, y1: u32)
 {
-    state[][a] = (state[][a] + x) + state[][b]
-    state[][d] = Swag.ror(state[][d] ^ state[][a], 16'u8)
-    state[][c] += state[][d]
-    state[][b] = Swag.ror(state[][b] ^ state[][c], 12'u8)
-    state[][a] = (state[][a] + y) + state[][b]
-    state[][d] = Swag.ror(state[][d] ^ state[][a], 8'u8)
-    state[][c] += state[][d]
-    state[][b] = Swag.ror(state[][b] ^ state[][c], 7'u8)
+    state[][a0] = (state[][a0] + x0) + state[][b0]
+    state[][a1] = (state[][a1] + x1) + state[][b1]
+    state[][d0] = Swag.ror(state[][d0] ^ state[][a0], 16'u8)
+    state[][d1] = Swag.ror(state[][d1] ^ state[][a1], 16'u8)
+    state[][c0] += state[][d0]
+    state[][c1] += state[][d1]
+    state[][b0] = Swag.ror(state[][b0] ^ state[][c0], 12'u8)
+    state[][b1] = Swag.ror(state[][b1] ^ state[][c1], 12'u8)
+    state[][a0] = (state[][a0] + y0) + state[][b0]
+    state[][a1] = (state[][a1] + y1) + state[][b1]
+    state[][d0] = Swag.ror(state[][d0] ^ state[][a0], 8'u8)
+    state[][d1] = Swag.ror(state[][d1] ^ state[][a1], 8'u8)
+    state[][c0] += state[][d0]
+    state[][c1] += state[][d1]
+    state[][b0] = Swag.ror(state[][b0] ^ state[][c0], 7'u8)
+    state[][b1] = Swag.ror(state[][b1] ^ state[][c1], 7'u8)
 }
 
 // Computes a BLAKE2s digest incrementally, in unkeyed or keyed mode.
@@ -187,11 +196,23 @@ public impl Blake2s
 
     private mtd compress(input: const [*] u8, count: u64, last: bool)
     {
-        .counter += count
         let words = cast(const [*] u32, input)
-        var message: [16] u32
-        for index in 16 do
-            message[index] = Math.littleEndianToNative(words[index])
+        #static if BIG_ENDIAN
+        {
+            var converted: [16] u32
+            for index in 16 do
+                converted[index] = Math.littleEndianToNative(words[index])
+            .compressWords(converted.buffer, count, last)
+            Crypto.secureClear(converted)
+        }
+        else do
+            .compressWords(words, count, last)
+    }
+
+    #[Swag.Inline]
+    private mtd compressWords(message: const [*] u32, count: u64, last: bool)
+    {
+        .counter += count
 
         var state: [16] u32
         const WordsPerVector = 4
@@ -209,15 +230,15 @@ public impl Blake2s
 
         for round in 10
         {
-            let schedule = round * 16
-            blake2sMix(&state, 0, 4, 8, 12, message[Blake2sSigma[schedule + 0]], message[Blake2sSigma[schedule + 1]])
-            blake2sMix(&state, 1, 5, 9, 13, message[Blake2sSigma[schedule + 2]], message[Blake2sSigma[schedule + 3]])
-            blake2sMix(&state, 2, 6, 10, 14, message[Blake2sSigma[schedule + 4]], message[Blake2sSigma[schedule + 5]])
-            blake2sMix(&state, 3, 7, 11, 15, message[Blake2sSigma[schedule + 6]], message[Blake2sSigma[schedule + 7]])
-            blake2sMix(&state, 0, 5, 10, 15, message[Blake2sSigma[schedule + 8]], message[Blake2sSigma[schedule + 9]])
-            blake2sMix(&state, 1, 6, 11, 12, message[Blake2sSigma[schedule + 10]], message[Blake2sSigma[schedule + 11]])
-            blake2sMix(&state, 2, 7, 8, 13, message[Blake2sSigma[schedule + 12]], message[Blake2sSigma[schedule + 13]])
-            blake2sMix(&state, 3, 4, 9, 14, message[Blake2sSigma[schedule + 14]], message[Blake2sSigma[schedule + 15]])
+            let schedule = Blake2sSigma.buffer + round * 16
+            blake2sMixPair(&state, 0, 4, 8, 12, 1, 5, 9, 13,
+                           message[schedule[0]], message[schedule[1]], message[schedule[2]], message[schedule[3]])
+            blake2sMixPair(&state, 2, 6, 10, 14, 3, 7, 11, 15,
+                           message[schedule[4]], message[schedule[5]], message[schedule[6]], message[schedule[7]])
+            blake2sMixPair(&state, 0, 5, 10, 15, 1, 6, 11, 12,
+                           message[schedule[8]], message[schedule[9]], message[schedule[10]], message[schedule[11]])
+            blake2sMixPair(&state, 2, 7, 8, 13, 3, 4, 9, 14,
+                           message[schedule[12]], message[schedule[13]], message[schedule[14]], message[schedule[15]])
         }
 
         for group in 8 / WordsPerVector
@@ -230,7 +251,6 @@ public impl Blake2s
             Math.Simd.store(position, updated)
         }
 
-        Crypto.secureClear(message)
         Crypto.secureClear(state)
     }
 

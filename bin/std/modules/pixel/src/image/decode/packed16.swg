@@ -11,18 +11,66 @@ const Expand5Low  = cast(Simd.U8x16, [0_u8, 8, 16, 25, 33, 41, 49, 58, 66, 74, 8
 const Expand5High = cast(Simd.U8x16, [132_u8, 140, 148, 156, 165, 173, 181, 189, 197, 206, 214, 222, 230, 239, 247, 255])
 const ReverseU16  = cast(Simd.U8x16, [14_u8, 15, 12, 13, 10, 11, 8, 9, 6, 7, 4, 5, 2, 3, 0, 1])
 
-// Three output blocks interleave sixteen blue, green, and red channel values.
-const BgrB0 = cast(Simd.U8x16, [0_u8, 0x80, 0x80, 1, 0x80, 0x80, 2, 0x80, 0x80, 3, 0x80, 0x80, 4, 0x80, 0x80, 5])
-const BgrG0 = cast(Simd.U8x16, [0x80_u8, 0, 0x80, 0x80, 1, 0x80, 0x80, 2, 0x80, 0x80, 3, 0x80, 0x80, 4, 0x80, 0x80])
-const BgrR0 = cast(Simd.U8x16, [0x80_u8, 0x80, 0, 0x80, 0x80, 1, 0x80, 0x80, 2, 0x80, 0x80, 3, 0x80, 0x80, 4, 0x80])
+// Place the samples for one channel in one of the three adjacent RGB output vectors.
+#[Swag.ConstExpr]
+private func rgbShuffle(sampleBytes, channel, block: u64)->Simd.U8x16
+{
+    var table: [16] u8
+    for index in table.count
+    {
+        let component = (block * 16 + index) / sampleBytes
+        let pixel     = component / 3
+        table[index] = component % 3 == channel ? cast(u8, pixel * sampleBytes + index % sampleBytes) : 0x80
+    }
 
-const BgrB1 = cast(Simd.U8x16, [0x80_u8, 0x80, 6, 0x80, 0x80, 7, 0x80, 0x80, 8, 0x80, 0x80, 9, 0x80, 0x80, 10, 0x80])
-const BgrG1 = cast(Simd.U8x16, [5_u8, 0x80, 0x80, 6, 0x80, 0x80, 7, 0x80, 0x80, 8, 0x80, 0x80, 9, 0x80, 0x80, 10])
-const BgrR1 = cast(Simd.U8x16, [0x80_u8, 5, 0x80, 0x80, 6, 0x80, 0x80, 7, 0x80, 0x80, 8, 0x80, 0x80, 9, 0x80, 0x80])
+    return cast(Simd.U8x16, table)
+}
 
-const BgrB2 = cast(Simd.U8x16, [0x80_u8, 11, 0x80, 0x80, 12, 0x80, 0x80, 13, 0x80, 0x80, 14, 0x80, 0x80, 15, 0x80, 0x80])
-const BgrG2 = cast(Simd.U8x16, [0x80_u8, 0x80, 11, 0x80, 0x80, 12, 0x80, 0x80, 13, 0x80, 0x80, 14, 0x80, 0x80, 15, 0x80])
-const BgrR2 = cast(Simd.U8x16, [10_u8, 0x80, 0x80, 11, 0x80, 0x80, 12, 0x80, 0x80, 13, 0x80, 0x80, 14, 0x80, 0x80, 15])
+#[Swag.Inline]
+func(T, Pair) storeQuads(target: [*] u8, r, g, b, a: Simd.U8x16)
+{
+    let red    = cast #bit(T, r)
+    let green  = cast #bit(T, g)
+    let blue   = cast #bit(T, b)
+    let alpha  = cast #bit(T, a)
+    let rgLow  = cast #bit(Pair, Simd.interleaveLow(red, green))
+    let rgHigh = cast #bit(Pair, Simd.interleaveHigh(red, green))
+    let baLow  = cast #bit(Pair, Simd.interleaveLow(blue, alpha))
+    let baHigh = cast #bit(Pair, Simd.interleaveHigh(blue, alpha))
+    Simd.store(target, cast #bit(Simd.U8x16, Simd.interleaveLow(rgLow, baLow)))
+    Simd.store(target + 16, cast #bit(Simd.U8x16, Simd.interleaveHigh(rgLow, baLow)))
+    Simd.store(target + 32, cast #bit(Simd.U8x16, Simd.interleaveLow(rgHigh, baHigh)))
+    Simd.store(target + 48, cast #bit(Simd.U8x16, Simd.interleaveHigh(rgHigh, baHigh)))
+}
+
+#[Swag.Inline]
+func(SAMPLE_BYTES: u64) storeTriplets(target: [*] u8, r, g, b: Simd.U8x16)
+{
+    const RgbR0 = rgbShuffle(SAMPLE_BYTES, 0, 0)
+    const RgbG0 = rgbShuffle(SAMPLE_BYTES, 1, 0)
+    const RgbB0 = rgbShuffle(SAMPLE_BYTES, 2, 0)
+    const RgbR1 = rgbShuffle(SAMPLE_BYTES, 0, 1)
+    const RgbG1 = rgbShuffle(SAMPLE_BYTES, 1, 1)
+    const RgbB1 = rgbShuffle(SAMPLE_BYTES, 2, 1)
+    const RgbR2 = rgbShuffle(SAMPLE_BYTES, 0, 2)
+    const RgbG2 = rgbShuffle(SAMPLE_BYTES, 1, 2)
+    const RgbB2 = rgbShuffle(SAMPLE_BYTES, 2, 2)
+    Simd.store(target, Simd.shuffle(r, RgbR0) | Simd.shuffle(g, RgbG0) | Simd.shuffle(b, RgbB0))
+    Simd.store(target + 16, Simd.shuffle(r, RgbR1) | Simd.shuffle(g, RgbG1) | Simd.shuffle(b, RgbB1))
+    Simd.store(target + 32, Simd.shuffle(r, RgbR2) | Simd.shuffle(g, RgbG2) | Simd.shuffle(b, RgbB2))
+}
+
+#[Swag.Inline]
+func storeTriplets16(target: [*] u8, first, second, third: Simd.U8x16)
+{
+    storeTriplets!{1}(target, first, second, third)
+}
+
+#[Swag.Inline]
+func storeQuads16(target: [*] u8, first, second, third, fourth: Simd.U8x16)
+{
+    storeQuads!{Simd.U8x16, Simd.U16x8}(target, first, second, third, fourth)
+}
 
 #[Swag.Inline]
 func expand5(value: Simd.U8x16)->Simd.U8x16
@@ -76,10 +124,17 @@ func(REVERSE: bool, GREEN6: bool, RGBA: bool) decodeRgb16RowImpl(source: const [
         let redShift = GREEN6 ? 11 : 10
         let r        = expand5(Simd.packUnsigned(cast #bit(Simd.S16x8, ((lowPixels >> redShift) & 31_u16)),
                                                  cast #bit(Simd.S16x8, ((highPixels >> redShift) & 31_u16))))
-        Simd.store(dst, Simd.shuffle(b, BgrB0) | Simd.shuffle(g, BgrG0) | Simd.shuffle(r, BgrR0))
-        Simd.store(dst + 16, Simd.shuffle(b, BgrB1) | Simd.shuffle(g, BgrG1) | Simd.shuffle(r, BgrR1))
-        Simd.store(dst + 32, Simd.shuffle(b, BgrB2) | Simd.shuffle(g, BgrG2) | Simd.shuffle(r, BgrR2))
-        dst   += 48
+        #static if RGBA
+        {
+            storeQuads16(dst, r, g, b, Simd.splat(255_u8))
+            dst += 64
+        }
+        else
+        {
+            storeTriplets16(dst, b, g, r)
+            dst += 48
+        }
+
         count -= 16
     }
 
@@ -91,7 +146,20 @@ func(REVERSE: bool, GREEN6: bool, RGBA: bool) decodeRgb16RowImpl(source: const [
         }
 
         let pixel = cast(u32, cast(const *u16, src)[])
-        dst[0] = cast(u8, (((pixel & 0x1F) * 255 + 15) / 31))
+        let blue  = cast(u8, (((pixel & 0x1F) * 255 + 15) / 31))
+        let red   = cast(u8, ((((pixel >> (GREEN6 ? 11 : 10)) & 0x1F) * 255 + 15) / 31))
+        #static if RGBA
+        {
+            dst[0] = red
+            dst[2] = blue
+            dst[3] = 255
+        }
+        else
+        {
+            dst[0] = blue
+            dst[2] = red
+        }
+
         #static if GREEN6
         {
             dst[1] = cast(u8, (((((pixel >> 5) & 0x3F) * 259) + 33) >> 6))
@@ -101,30 +169,34 @@ func(REVERSE: bool, GREEN6: bool, RGBA: bool) decodeRgb16RowImpl(source: const [
             dst[1] = cast(u8, ((((pixel >> 5) & 0x1F) * 255 + 15) / 31))
         }
 
-        dst[2] = cast(u8, ((((pixel >> (GREEN6 ? 11 : 10)) & 0x1F) * 255 + 15) / 31))
         #static if not REVERSE
         {
             src += 2
         }
 
-        dst   += 3
+        dst   += RGBA ? 4 : 3
         count -= 1
     }
 }
 
 func decodeBgr555Row(source: const [*] u8, destination: [*] u8, pixelCount: u64)
 {
-    decodeBgr16RowImpl!{false, false}(source, destination, pixelCount)
+    decodeRgb16RowImpl!{false, false, false}(source, destination, pixelCount)
 }
 
 func decodeBgr555RowReversed(source: const [*] u8, destination: [*] u8, pixelCount: u64)
 {
-    decodeBgr16RowImpl!{true, false}(source, destination, pixelCount)
+    decodeRgb16RowImpl!{true, false, false}(source, destination, pixelCount)
 }
 
 func decodeBgr565Row(source: const [*] u8, destination: [*] u8, pixelCount: u64)
 {
-    decodeBgr16RowImpl!{false, true}(source, destination, pixelCount)
+    decodeRgb16RowImpl!{false, true, false}(source, destination, pixelCount)
+}
+
+func decodeRgb565ToRgbaRow(source: const [*] u8, destination: [*] u8, pixelCount: u64)
+{
+    decodeRgb16RowImpl!{false, true, true}(source, destination, pixelCount)
 }
 
 private struct Normalize16

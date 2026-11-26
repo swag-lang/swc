@@ -43,8 +43,6 @@ struct CabacReader
 // rebuilt one address for every table it touched, on every bin. Behind a single base they are
 // one address and a displacement, which the addressing of a memory operand already carries at no
 // cost, and the two registers this frees are two the loop no longer spills.
-const CabacLpsAt            = 0_u64       // Table 9-44, read as `2 * (range & 0xC0) + state`.
-const CabacStateAt          = 512_u64     // The state after a bin, read as `128 + state`.
 const CabacSigAt            = 768_u64     // Table 9-43 frame coding, significance context per 8x8 scan position.
 const CabacLastAt           = 832_u64     // Table 9-43 frame coding, last-coefficient context per 8x8 scan position.
 const CabacLevel1At         = 896_u64     // Context of a level's first bin, per level node.
@@ -56,24 +54,9 @@ func buildCabacTables()->[928] u8
 {
     var result: #returntype
 
-    // Table 9-44 laid out for one lookup from the packed state and the two range bits that
-    // select its column.
-    for column in 4_u64
+    for value, index in buildCabacDecisionTables()
     {
-        for state in 128_u64
-        {
-            result[CabacLpsAt + column * 128 + state] = CabacRangeLps[(state >> 1) * 4 + column]
-        }
-    }
-
-    // One table for both outcomes: `128 + state` on the MPS path and `128 + (state ^ -1)` on the
-    // LPS path, which flips valMPS at pStateIdx 0 as Table 9-45 says.
-    for state in 128_u64
-    {
-        let mps  = cast(u32, (state & 1))
-        let flip = (state >> 1) == 0 ? 1_u32 : 0_u32
-        result[CabacStateAt + 128 + state] = cast(u8, ((cast(u32, CabacTransMps[state >> 1]) << 1) | mps))
-        result[CabacStateAt + 127 - state] = cast(u8, ((cast(u32, CabacTransLps[state >> 1]) << 1) | (mps ^ flip)))
+        result[index] = value
     }
 
     for scan in 63_u64
@@ -125,31 +108,9 @@ impl CabacReader
     // Initializes the contexts for one slice, section 9.3.1.1.
     mtd initContexts(sliceQp: s32, sliceType: u32, cabacInitIdc: u32)
     {
-        for index in 1024_u64
-        {
-            var m, n: s32
-            if sliceType == SliceTypeI
-            {
-                m = cast(s32, CabacInitI[index * 2])
-                n = cast(s32, CabacInitI[index * 2 + 1])
-            }
-            else
-            {
-                let base = cast(u64, cabacInitIdc) * 2048 + index * 2
-                m = cast(s32, CabacInitPB[base])
-                n = cast(s32, CabacInitPB[base + 1])
-            }
-
-            let preState = Math.clamp(((m * Math.clamp(sliceQp, 0, 51)) >> 4) + n, 1, 126)
-            if preState <= 63
-            {
-                .contexts[index] = cast(u8, ((63 - preState) << 1))
-            }
-            else
-            {
-                .contexts[index] = cast(u8, (((preState - 64) << 1) | 1))
-            }
-        }
+        let set = sliceType == SliceTypeI ? 0_u64 : cast(u64, cabacInitIdc) + 1
+        let qp  = cast(u64, Math.clamp(sliceQp, 0, 51))
+        Memory.copy(.contexts.buffer, InitialCabacContexts.buffer + (set * 52 + qp) * 1024, #sizeof(.contexts))
     }
 
     // Starts the arithmetic engine on the byte-aligned slice data, section 9.3.1.2: nine bits of

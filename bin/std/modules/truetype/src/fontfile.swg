@@ -2,7 +2,7 @@ using Swag, Core
 
 // Larger fonts can contain megabytes of tables outside the selected face or instance.
 const MinFontCompactionSize = 1024_u64 * 1024
-private const TagGvar       = imageTag('g'u32, 'v'u32, 'a'u32, 'r'u32)
+private const TagGvar       = imageTag('g'_u32, 'v'_u32, 'a'_u32, 'r'_u32)
 
 private func isTrueTypeSfnt(signature: u32)->bool => signature == TAG_SFNT or signature == TAG_TRUE
 
@@ -87,11 +87,12 @@ private func compactSfnt(source: *FontInput, memberOffset: u64, header: const [.
 
     if (not collection and not omittedVariations) or
        memberSize >= source.length or
-       memberSize > Swag.U32.Max {
+       memberSize > Swag.U32.Max
+    {
         return {}
+    }
 
     // Read in file order even when the collection's directory is sorted by tag.
-    }
     tables.sort(func(a, b) => a.sourceOffset <=> b.sourceOffset)
     result.reserve(memberSize)
     let bytes  = unwrap result.buffer

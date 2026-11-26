@@ -549,7 +549,7 @@ img, video, table { max-width: 100% !important; }
         for index in .document.nodes.count
         {
             let node = .document.constNode(cast(u32, index))
-            if node.kind != .Element or node.tag!{.H1 or node.tag}.H6
+            if node.kind != .Element or node.tag < .H1 or node.tag > .H6
             {
                 continue
             }
@@ -727,7 +727,7 @@ img, video, table { max-width: 100% !important; }
             // The seek begins inside an arbitrary source line. Drop only that incomplete line;
             // keeping the rest of the look-behind makes the requested point land near the middle
             // of the resident window instead of immediately scheduling the same seek again.
-            let anchor = .virtualPreformatted ? Utf8.indexOf(chunk.toString(), "\n!{a ", 0, .Latin1NoCase) : Swag.U64.Max
+            let anchor = .virtualPreformatted ? Utf8.indexOf(chunk.toString(), "\n<a ", 0, .Latin1NoCase) : Swag.U64.Max
             if anchor != Swag.U64.Max
             {
                 begin = anchor + 1
@@ -745,7 +745,7 @@ img, video, table { max-width: 100% !important; }
         var end = Math.min(begin + HtmlVirtualWindowSize, chunk.length)
         if end < chunk.length
         {
-            let boundary = Utf8.indexOf(chunk.toString(), "\n!{a ", end, .Latin1NoCase)
+            let boundary = Utf8.indexOf(chunk.toString(), "\n<a ", end, .Latin1NoCase)
             if boundary != Swag.U64.Max
             {
                 end = boundary + 1
@@ -881,7 +881,7 @@ img, video, table { max-width: 100% !important; }
                     // Decoding can expand one bounded input chunk past the limit, even if that
                     // chunk also reaches EOF. Otherwise, an exact decoded-byte match is only a
                     // truncation when encoded source bytes remain unread.
-                    if .bytesRead } HtmlMaxDocumentSize or
+                    if .bytesRead > HtmlMaxDocumentSize or
                        (.bytesRead == HtmlMaxDocumentSize and .hasUnreadSourceBytes())
                     {
                         .finishSource("<p>This document is too large to be displayed in full; the rest of the file was not read.</p>")
@@ -1006,7 +1006,7 @@ img, video, table { max-width: 100% !important; }
         for index in .document.nodes.count
         {
             let node = .document.constNode(cast(u32, index))
-            if node.kind == .Document or node.sourceOffset } offset
+            if node.kind == .Document or node.sourceOffset > offset
             {
                 continue
             }

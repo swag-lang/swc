@@ -93,30 +93,7 @@ internal impl IImageEncoder for Encoder
         let padding = stride - rowBytes
         if not padding and (image.pixelFormat == .BGR8 or image.pixelFormat == .BGRA8)
         {
-            var converted: Array!{u8}
-            converted.resize(imageSize)
-            let src = image.pixels.storage()
-            for y in image.height
-            {
-                let srcRow = src + cast(u64, y) * rowBytes
-                let dstRow = converted.storage() + cast(u64, y) * stride
-                if image.pixelFormat == .RGB8
-                {
-                    PackedPixel.swapRedBlue24Row(srcRow, dstRow, image.width)
-                }
-                else
-                {
-                    PackedPixel.swapRedBlue32Row(srcRow, dstRow, image.width)
-                }
-
-                let padding = stride - rowBytes
-                if padding
-                {
-                    Memory.set(dstRow + rowBytes, 0, padding)
-                }
-            }
-
-            result.addBytes(converted.toSlice())
+            Memory.copy(target, source, imageSize)
             return
         }
 
@@ -132,13 +109,9 @@ internal impl IImageEncoder for Encoder
             default:            unreachable
             }
 
-            let padding = stride - rowBytes
             if padding
             {
-                for padding
-                {
-                    result.addNative(0_u8)
-                }
+                Memory.set(dst + rowBytes, 0, padding)
             }
         }
     }

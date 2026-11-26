@@ -62,23 +62,20 @@ func dequantise(block: *[64] s32, layer: const *Layer, quant: u32, intra: bool)
 {
     if not layer.quantType
     {
-        // The H.263 method, clause 7.4.4.2.
-        let odd = (quant & 1) != 0
-        for index in 64_u64
+        // The H.263 method, clause 7.4.4.2. Preserve the intra DC outside the AC scaling.
+        let dc    = block[][0]
+        let step  = Simd.splat(cast(s32, quant) * 2)
+        let bias  = Simd.splat(cast(s32, quant) - (quant & 1 ? 0 : 1))
+        let zero  = Simd.splat(0_s32)
+        let lower = Simd.splat(CoefficientFloor)
+        let upper = Simd.splat(CoefficientCeil)
+        for index in 16_u64
         {
-            if intra and not index
-            {
-                continue
-            }
-
-            let level = block[][index]
-            if not level
-            {
-                continue
-            }
-
-            let magnitude = cast(s32, quant) * (2 * Math.abs(level) + 1) - (odd ? 0 : 1)
-            block[][index] = Math.clamp(level < 0 ? -magnitude : magnitude, CoefficientFloor, CoefficientCeil)
+            let levels    = Simd.load(&block[][index * 4])
+            let sign      = levels >> 31_u32
+            let magnitude = Math.abs(levels) * step + bias
+            let scaled    = ((magnitude ^ sign) - sign) & cast #bit(Simd.S32x4, levels != zero)
+            Simd.store(&block[][index * 4], Math.clamp(scaled, lower, upper))
         }
 
         if intra
@@ -229,6 +226,7 @@ func inverseTransform(block: const *[64] s32, output: *[64] s16)
     var frequencies: [8] u64
     var activeRows = 0_u64
     let half       = Simd.splat(0.5_f32)
+    let zero       = Simd.splat(0_s32)
     for y in 8_u64
     {
         let row  = cast(const [*] s32, &block[][y * 8])
@@ -241,28 +239,19 @@ func inverseTransform(block: const *[64] s32, output: *[64] s16)
         }
 
         var lo, hi: Simd.F32x4
-        var active = false
-        for u in 8_u64
+        while mask
         {
-            let value = block[][y * 8 + u]
-            if not value
-            {
-                continue
-            }
-
-            active = true
-            let coefficient = Simd.splat(cast(f32, value))
+            let u = Swag.trailingZeros(mask)
+            mask &= mask - 1
+            let coefficient = Simd.splat(cast(f32, row[u]))
             lo += coefficient * Simd.load(&g_Cosines[u, 0])
             hi += coefficient * Simd.load(&g_Cosines[u, 4])
         }
 
-        if active
-        {
-            frequencies[activeRows] = y
-            left[activeRows]        = lo * half
-            right[activeRows]       = hi * half
-            activeRows              += 1
-        }
+        frequencies[activeRows] = y
+        left[activeRows]        = lo * half
+        right[activeRows]       = hi * half
+        activeRows              += 1
     }
 
     // Without vertical AC, each output row has the same samples.
@@ -277,19 +266,18 @@ func inverseTransform(block: const *[64] s32, output: *[64] s16)
             hi += right[v] * coefficient
         }
 
-        for x in 4_u64
-        {
-            output[][y * 8 + x]     = cast(s16, Math.clamp(cast(s32, Math.round(lo[x] * 0.5)), -512_s32, 511_s32))
-            output[][y * 8 + x + 4] = cast(s16, Math.clamp(cast(s32, Math.round(hi[x] * 0.5)), -512_s32, 511_s32))
-        }
+        let low     = Simd.truncateToS32(Math.round(lo * half))
+        let high    = Simd.truncateToS32(Math.round(hi * half))
+        let samples = Math.clamp(Simd.packSigned(low, high), Simd.splat(-512_s16), Simd.splat(511_s16))
+        Simd.store(&output[][y * 8], samples)
     }
 
     if rows == 1
     {
-        const RowBytes = 8 * #sizeof(s16)
+        let samples = Simd.load(&output[][0])
         for y in 1_u64 until 8_u64
         {
-            Memory.copy(&output[][y * 8], &output[][0], RowBytes)
+            Simd.store(&output[][y * 8], samples)
         }
     }
 }

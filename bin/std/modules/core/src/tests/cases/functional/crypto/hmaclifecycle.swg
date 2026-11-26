@@ -78,8 +78,8 @@ func(Hmac) verifySha2HmacLifecycle()
 
 #test
 {
-    verifySha2HmacLifecycle'Crypto.HmacSha224()
-    verifySha2HmacLifecycle'Crypto.HmacSha256()
-    verifySha2HmacLifecycle'Crypto.HmacSha384()
-    verifySha2HmacLifecycle'Crypto.HmacSha512()
+    verifySha2HmacLifecycle!{Crypto.HmacSha224}()
+    verifySha2HmacLifecycle!{Crypto.HmacSha256}()
+    verifySha2HmacLifecycle!{Crypto.HmacSha384}()
+    verifySha2HmacLifecycle!{Crypto.HmacSha512}()
 }

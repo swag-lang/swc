@@ -78,23 +78,19 @@ func dxgiFormat(dxgi: u32, pixelFormat: *PixelFormat, blocks: *TextureBlocks.For
 
 private struct MaskField
 {
-    if not mask
-    {
-        return fallback
-    }
-
-    let shift  = Math.trailingZeros(mask)
-    let bits   = Math.countOnes(mask)
-    let limit  = bits == 32 ? Swag.U32.Max : (1_u32 << bits) - 1
-    let sample = cast(u64, ((value & mask) >> shift))
-    return cast(u8, ((sample * 255 + limit / 2) / limit))
+    mask:     u32
+    shift:    u32
+    limit:    u32
+    fallback: u8
 }
 
 private func prepareField(mask: u32, fallback: u8)->MaskField
 {
-    if not mask {
+    if not mask
+    {
         return {0, 0, 1, fallback}
     }
+
     let shift = Math.trailingZeros(mask)
     let bits  = Math.countOnes(mask)
     let limit = bits == 32 ? Swag.U32.Max : (1_u32 << bits) - 1
@@ -104,9 +100,11 @@ private func prepareField(mask: u32, fallback: u8)->MaskField
 #[Swag.Inline]
 private func maskToByte(value: u32, field: MaskField)->u8
 {
-    if not field.mask {
+    if not field.mask
+    {
         return field.fallback
     }
+
     let sample = cast(u64, ((value & field.mask) >> field.shift))
     return cast(u8, ((sample * 255 + field.limit / 2) / field.limit))
 }
@@ -171,7 +169,8 @@ private func decodeRgb10Row(source: const [*] u8, target: [*] u8, width: u64, fi
     for i in x until width
     {
         let word = input[i]
-        for channel in 4 {
+        for channel in 4
+        {
             target[i * 4 + channel] = maskToByte(word, fields[][channel])
         }
     }
@@ -181,8 +180,8 @@ func decodeMasked(image: *Image, buffer: const [..] u8, offset, pitch: u64, bits
 {
     let width      = cast(u64, image.width)
     let pixelBytes = cast(u64, (bits + 7)) / 8
-    let rowBytes   = cast(u64, image.width) * pixelBytes
-    if pitch!{rowBytes or cast(u64, image.height)}(buffer.count - offset) / pitch
+    let rowBytes   = width * pixelBytes
+    if pitch < rowBytes or cast(u64, image.height) > (buffer.count - offset) / pitch
     {
         fail InvalidFormatError{"DDS pixel rows are truncated"}
     }
@@ -204,10 +203,11 @@ func decodeMasked(image: *Image, buffer: const [..] u8, offset, pitch: u64, bits
                         redMask == 255 and
                         ((bits == 8 and not alphaMask) or (bits == 16 and alphaMask == 0xFF00))
     var byteFields = not luminance
-    for field in fields {
+    for field in fields
+    {
         byteFields = byteFields and isByteField(field, bits)
-
     }
+
     var orderBytes:    [16] u8
     var fallbackBytes: [16] u8
     if byteFields
@@ -260,15 +260,15 @@ func decodeMasked(image: *Image, buffer: const [..] u8, offset, pitch: u64, bits
             var value = 0_u32
             for byte in pixelBytes
             {
-                value |= cast(u32, source[cast(u64, x) * pixelBytes + byte]) << (byte * 8)
+                value |= cast(u32, source[byte]) << (byte * 8)
             }
 
+            target[0] = maskToByte(value, fields[0])
             if luminance
             {
-                target[0] = maskToByte(value, redMask, 0)
                 if image.pixelFormat == .GrayAlpha8
                 {
-                    target[1] = maskToByte(value, alphaMask, 255)
+                    target[1] = maskToByte(value, fields[3])
                 }
             }
             else
@@ -287,7 +287,7 @@ func decodeMasked(image: *Image, buffer: const [..] u8, offset, pitch: u64, bits
 func copyRows(image: *Image, buffer: const [..] u8, offset, pitch: u64, forceOpaqueAlpha: bool) fail
 {
     let rowBytes = cast(u64, image.rowStride)
-    if pitch!{rowBytes or cast(u64, image.height)}(buffer.count - offset) / pitch
+    if pitch < rowBytes or cast(u64, image.height) > (buffer.count - offset) / pitch
     {
         fail InvalidFormatError{"DDS pixel rows are truncated"}
     }
@@ -299,9 +299,19 @@ func copyRows(image: *Image, buffer: const [..] u8, offset, pitch: u64, forceOpa
         Memory.copy(target, buffer.buffer + offset + cast(u64, y) * pitch, rowBytes)
         if forceOpaqueAlpha
         {
-            for x in image.width
+            using Math.Simd
+            let width = cast(u64, image.width)
+            let words = cast([*] u32, target)
+            var x     = 0_u64
+            while width - x >= 4
             {
-                target[cast(u64, x) * 4 + 3] = 255
+                store(words + x, load(words + x) | 0xFF000000_u32)
+                x += 4
+            }
+
+            for i in x until width
+            {
+                words[i] |= 0xFF000000_u32
             }
         }
     }

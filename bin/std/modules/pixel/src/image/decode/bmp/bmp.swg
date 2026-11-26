@@ -361,6 +361,7 @@ internal impl IImageDecoder for Decoder
             fail InvalidFormatError{"invalid source buffer"}
         }
 
+        try options.checkImage(result.width, result.height, result.pixelFormat)
         if not options.decodePixels
         {
             return result

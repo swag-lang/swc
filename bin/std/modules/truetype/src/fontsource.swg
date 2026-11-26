@@ -30,10 +30,10 @@ private struct FontSourceStorage
     type1Program:    *Type1Font?
     cffPrograms:     Array!{*CffFont}
     programTables:   *ProgramTables?
-    cmapSelections:  Array'CMapCacheEntry
-    verticalMetrics: Array'(*VerticalMetricTable)
-    postNames:       Array'PostNamesCacheEntry
-    glyphLocations:  Array'GlyphLocationCacheEntry
+    cmapSelections:  Array!{CMapCacheEntry}
+    verticalMetrics: Array!{*VerticalMetricTable}
+    postNames:       Array!{PostNamesCacheEntry}
+    glyphLocations:  Array!{GlyphLocationCacheEntry}
     parseMutex:      Swag.Mutex
 }
 
@@ -54,9 +54,14 @@ impl FontSourceStorage
         if let tables = .programTables
         {
             Memory.delete(tables, .allocator)
-        for table in .verticalMetrics do
+        }
+
+        for table in .verticalMetrics
+        {
             Memory.delete(table, .allocator)
-        for entry in .postNames do
+        }
+        for entry in .postNames
+        {
             Memory.delete(entry.names, .allocator)
         }
     }
@@ -259,8 +264,10 @@ impl FontSource
             if entry.bytes.buffer == bytes.buffer and
                entry.bytes.count == bytes.count and
                entry.glyphCount == glyphCount and
-               entry.longCount == longMetricCount do
+               entry.longCount == longMetricCount
+            {
                 return entry
+            }
         }
 
         let table = VerticalMetricTable.create(bytes, glyphCount, longMetricCount, storage.allocator)

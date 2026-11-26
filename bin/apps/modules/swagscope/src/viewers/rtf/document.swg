@@ -294,11 +294,7 @@ private impl Reader
 
         if word == "bin"
         {
-            if not hasNumber or
-               number!
-            {
-                0 or cast(u64, number)
-            }.bytes.count - .offset
+            if not hasNumber or number < 0 or cast(u64, number) > .bytes.count - .offset
             {
                 fail Errors.InvalidFormatError{texts().err_Invalid}
             }

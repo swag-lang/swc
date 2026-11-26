@@ -51,9 +51,8 @@ impl Encoder
     #[Swag.Inline]
     mtd writePackedCode(code: u32)
     {
-        let length = cast(u32, bs.length)
-        .bitBuffer = (.bitBuffer << #wrap length) | (cast(u32, bs.value) & ((1_u32 << length) - 1))
-        .bitCount  += length
+        .appendEntropyBits(code >> PackedLengthShift, code & PackedBitsMask)
+    }
 
     #[Swag.Inline]
     mtd writeAmplitude(code: u32, value: s32, category: u8)
@@ -68,7 +67,8 @@ impl Encoder
     {
         .bitBuffer = (.bitBuffer << length) | bits
         .bitCount  += length
-        if .bitCount >= 32 {
+        if .bitCount >= 32
+        {
             .writeEntropyWord()
         }
     }
@@ -77,7 +77,8 @@ impl Encoder
     private mtd writeEntropyByte(byte: u8)
     {
         .writeByte(byte)
-        if byte == 0xFF {
+        if byte == 0xFF
+        {
             .writeByte(0)
         }
     }
@@ -94,7 +95,8 @@ impl Encoder
         {
             cast([*] u32, &.outBuf[.outCount])[] = Math.nativeToBigEndian(word)
             .outCount += 4
-            if .outCount == OutBufSize {
+            if .outCount == OutBufSize
+            {
                 .flushStaged()
             }
         }
@@ -112,14 +114,7 @@ impl Encoder
         while .bitCount >= 8
         {
             .bitCount -= 8
-            let written = cast(u8, ((.bitBuffer >> .bitCount) & 0xFF))
-            .writeByte(written)
-
-            // A 0xFF inside entropy-coded data is stuffed, or a decoder reads it as a marker.
-            if written == 0xFF
-            {
-                .writeByte(0)
-            }
+            .writeEntropyByte(cast(u8, ((.bitBuffer >> .bitCount) & 0xFF)))
         }
     }
 

@@ -102,60 +102,6 @@ func localPaletteFlags(bytes: const [..] u8)->Array!{bool}
 // an unchanged frame lengthens the one before it.
 #test
 {
-    func localPaletteFlags(bytes: const [..] u8)->Array!{bool}
-    {
-        var result: #returntype
-        let packed = bytes[10]
-        var offset = 13_u64
-        if packed & 0x80
-        {
-            offset += 3_u64 * (1_u64 << ((packed & 7) + 1))
-        }
-
-        while offset < bytes.count
-        {
-            let marker = bytes[offset]
-            offset += 1
-            if marker == 0x3B
-            {
-                return result
-            }
-
-            if marker == 0x21
-            {
-                offset += 1     // Extension label.
-            }
-            else
-            {
-                Swag.require(marker == 0x2C)
-                let flags = bytes[offset + 8]
-                result.add((flags & 0x80) != 0)
-                offset += 9
-                if flags & 0x80
-                {
-                    offset += 3_u64 * (1_u64 << ((flags & 7) + 1))
-                }
-
-                offset += 1     // LZW minimum code size.
-            }
-
-            for
-            {
-                let size = bytes[offset]
-                offset += 1
-                if not size
-                {
-                    break
-                }
-
-                offset += size
-            }
-        }
-
-        Swag.require(false)
-        return result
-    }
-
     let folder = Path.combine(Env.getSpecialDirectory(.Temp).toString(), "swag-tests")
     if not Directory.exists(folder)
     {

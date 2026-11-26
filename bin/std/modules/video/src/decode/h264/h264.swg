@@ -84,7 +84,8 @@ struct Decoder
     spsSet:        Array!{Sps}
     ppsSet:        Array!{Pps}
     nalLengthSize: u32
-    rbsp:          Array!{u8}     // Unescape scratch, reused across NAL units.
+    rbsp:          Array!{u8}             // Unescape scratch, reused across NAL units.
+    preparedRbsp:  Array!{Array!{u8}}     // Owns the bytes of deferred slices until their lane decodes them.
 
     sps: *Sps?     // Active sequence set of the current picture.
     pps: *Pps?     // Active picture set of the current picture.
@@ -336,7 +337,8 @@ impl Decoder
     {
         .frameThreaded = true
         .inlineRecon   = false
-        if not .hasSinglePictureSlice(sample)
+        let sliceNals = .countPreparedSlices(sample)
+        if not sliceNals
         {
             return try .parseAccessUnit(sample, true)
         }
@@ -390,13 +392,37 @@ impl Decoder
     {
         if .preparedData
         {
-            Swag.assert(.pictureSlices.count == 1)
-            if .pictureSlices[0].header.type == SliceTypeB
+            if .inlineRecon
             {
-                try .awaitReferenceProgress(false)
+                let slice = &.pictureSlices[0]
+                if slice.header.type == SliceTypeB
+                {
+                    try .awaitReferenceProgress(false)
+                }
+
+                try slice.decodeData()
+            }
+            else
+            {
+                for &slice in .pictureSlices where slice.header.type == SliceTypeB
+                {
+                    try .awaitReferenceProgress(false)
+                    break
+                }
+
+                let activeSps = .sps
+                let activePps = .pps
+                for &slice in .pictureSlices
+                {
+                    .pps = slice.pps
+                    .sps = &.spsSet[.pps!.spsId]
+                    try slice.decodeData()
+                }
+
+                .sps = activeSps
+                .pps = activePps
             }
 
-            try .pictureSlices[0].decodeData()
             try .validatePicture()
             .current!.publishParse(1)
             .preparedData = false
@@ -599,7 +625,7 @@ impl Decoder
         {
             if offset + .nalLengthSize > sample.count
             {
-                return false
+                return 0
             }
 
             var size = 0_u64
@@ -611,17 +637,17 @@ impl Decoder
 
             if size < 1 or size > sample.count - offset
             {
-                return false
+                return 0
             }
 
             let nalType = sample[offset] & 0x1F
-            if nalType == 1 or nalType == 5 {
+            if nalType == 1 or nalType == 5
+            {
                 count += 1
-                if count > 1
-                {
-                    return false
-                }
             }
+            else if count and (nalType == 7 or nalType == 8)
+            {
+                return 0
             }
 
             offset += size
@@ -761,9 +787,19 @@ impl Decoder
         }
 
         .pictureSlices.add(#move slice)
+        let index = .pictureSlices.count - 1
         if decodeData
         {
-            try .pictureSlices[.pictureSlices.count - 1].decodeData()
+            try .pictureSlices[index].decodeData()
+        }
+        else if not .inlineRecon
+        {
+            if .preparedRbsp.count <= index
+            {
+                .preparedRbsp.resize(index + 1)
+            }
+
+            Core.swap(&.rbsp, &.preparedRbsp[index])
         }
     }
 

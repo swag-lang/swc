@@ -38,9 +38,13 @@ public impl Image
     {
         var storage: String
         let ext = normalizedImageExtension(fileName, &storage)
-        if not ext.count do
+        if not ext.count
+        {
             return null
-        for &encoder in encoders where encoder.format.matchesLowercaseExtension(ext) do
+        }
+
+        for &encoder in encoders where encoder.format.matchesLowercaseExtension(ext)
+        {
             return encoder
         }
 

@@ -115,9 +115,11 @@ impl Encoder
         {
             // Signature, 13-byte IHDR, and the framing of IHDR, IDAT, and IEND.
             const PngOverhead = #sizeof(PngSignature) + 13 + 3 * 12
-            if cmp.count <= MaxPngChunkLength {
+            if cmp.count <= MaxPngChunkLength
+            {
                 .stream!.grow(cmp.count + PngOverhead)
             }
+
             try .writeChunksBeforeIDat()
         }
 
@@ -181,7 +183,8 @@ impl Encoder
             {
                 let input  = cast(const [*] u16, src)
                 let output = cast([*] u16, dst)
-                for sample in .pixelSize / 2 {
+                for sample in .pixelSize / 2
+                {
                     output[sample] = Swag.byteSwap(input[sample])
                 }
             }
@@ -216,39 +219,20 @@ impl Encoder
         {
             if .encodeFlags.toBigEndian
             {
-                let scanline = unwrap .scanline
-                for var i = 0; i < scanlineWidth - 1; i += 2
-                {
-                    scanline[i]     = sl[i + 1]
-                    scanline[i + 1] = sl[i]
-                }
+                convert16Samples(sl, unwrap .scanline, (scanlineWidth - 1) / 2)
             }
             else if .swapRB and .bytesPerPixel == 3
             {
-                let scanline = unwrap .scanline
-                for var i = 0; i < scanlineWidth - 1; i += 3
-                {
-                    scanline[i]     = sl[i + 2]
-                    scanline[i + 1] = sl[i + 1]
-                    scanline[i + 2] = sl[i]
-                }
+                PackedPixel.swapRedBlue24Row(sl, unwrap .scanline, (scanlineWidth - 1) / 3)
             }
             else if .swapRB and .bytesPerPixel == 4
             {
-                // Swap R and B one whole 32-bit pixel at a time: a byte-wise swizzle
-                // of a full-desktop capture costs seconds in unoptimized builds.
-                let src   = cast(const [*] u32, sl)
-                let dst   = cast([*] u32, unwrap .scanline)
-                let count = (scanlineWidth - 1) / 4
-                for i in count
-                {
-                    let v = src[i]
-                    dst[i] = (v & 0xFF00FF00) | ((v & 0xFF) << 16) | ((v >> 16) & 0xFF)
-                }
+                PackedPixel.swapRedBlue32Row(sl, unwrap .scanline, (scanlineWidth - 1) / 4)
             }
             else
             {
                 Memory.copy(unwrap .scanline, sl, cast(u64, scanlineWidth) - 1)
+            }
         }
 
         let requiresPrevious = .encodeFlags.filterChoice & (.Up | .Average | .Paeth)
@@ -257,23 +241,19 @@ impl Encoder
             Memory.clear(cast([*] u8, unwrap .prevScanline), cast(u64, scanlineWidth))
         }
 
-        var filtered = cast([*] u8, unwrap .filteredScanline)
-        let filter   = .getBestFilter(scanlineWidth - 1)
+        let output = .bufferToCompress.storage() + .bufferToCompress.count
+        let filter = .getBestFilter(scanlineWidth - 1)
+        output[0] = cast(u8, filter)
         if filter == .None
         {
-            filtered = cast([*] u8, unwrap .scanline)
+            Memory.copy(output + 1, unwrap .scanline, cast(u64, scanlineWidth) - 1)
         }
-
-        filtered    -= 1
-        filtered[0] = cast(u8, filter)
-        filtered    += 1
-
-        if filter != .None
+        else
         {
-            .filterScanline(filtered, scanlineWidth - 1, filter)
+            .filterScanline(output + 1, scanlineWidth - 1, filter)
         }
 
-        try .writeIDatBytes(filtered - 1, scanlineWidth)
+        .bufferToCompress.count += scanlineWidth
 
         swap(&.prevScanline, &.scanline)
         return .updateRowInfo()

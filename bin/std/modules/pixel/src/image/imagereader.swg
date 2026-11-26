@@ -135,7 +135,8 @@ impl ImageReader
             for y in frame.height
             {
                 let row = cast([*] u32, (target + cast(u64, y) * stride))
-                for x in frame.width {
+                for x in frame.width
+                {
                     row[x] = packed
                 }
             }
@@ -147,7 +148,8 @@ impl ImageReader
         for y in frame.height
         {
             let row = target + cast(u64, y) * stride
-            for x in frame.width {
+            for x in frame.width
+            {
                 writePixelValue(row + cast(u64, x) * .canvas.bytesPerPixel, .canvas.pixelFormat, value)
             }
         }
@@ -170,12 +172,15 @@ impl ImageReader
         let previous = .previous.storage()
         if rowBytes == stride
         {
-            #static if SAVE {
+            #static if SAVE
+            {
                 Memory.copy(previous, canvas, bytes)
             }
-            else {
+            else
+            {
                 Memory.copy(canvas, previous, bytes)
             }
+
             return
         }
 
@@ -183,10 +188,12 @@ impl ImageReader
         {
             let canvasRow   = canvas + y * stride
             let previousRow = previous + y * rowBytes
-            #static if SAVE {
+            #static if SAVE
+            {
                 Memory.copy(previousRow, canvasRow, rowBytes)
             }
-            else {
+            else
+            {
                 Memory.copy(canvasRow, previousRow, rowBytes)
             }
         }
@@ -220,10 +227,10 @@ impl ImageReader
     func normalizedLaneBytes(values: Math.Simd.F32x4, nearTie: *Math.Simd.U32x4)->Math.Simd.U32x4
     {
         using Math.Simd
-        let scaled    = values * splat(255_f32)
-        let floor     = Math.floor(scaled)
-        let fraction  = scaled - floor
-        let halfway   = splat(0.5_f32)
+        let scaled   = values * splat(255_f32)
+        let floor    = Math.floor(scaled)
+        let fraction = scaled - floor
+        let halfway  = splat(0.5_f32)
         nearTie[] |= Math.abs(fraction - halfway) <= splat(0.0001220703125_f32)
         let increment = fraction >= halfway
         return cast #bit(U32x4, truncateToS32(floor)) - increment
@@ -291,6 +298,7 @@ impl ImageReader
                     pending &= pending - 1
                 }
             }
+
             x += 4
         }
 
@@ -330,12 +338,15 @@ impl ImageReader
             let target = start + cast(u64, y) * stride
             if packedCanvas and image.pixelFormat == .RGBA8
             {
-                if frame.blend == .Replace {
+                if frame.blend == .Replace
+                {
                     Memory.copy(target, source, cast(u64, image.rowStride))
                 }
-                else {
+                else
+                {
                     blendRgba8Row(source, target, frame.width)
                 }
+
                 continue
             }
 
@@ -350,9 +361,11 @@ impl ImageReader
                 let input  = source + cast(u64, x) * image.bytesPerPixel
                 let output = target + cast(u64, x) * .canvas.bytesPerPixel
                 var value  = readLogicalPixelValue(input, image.pixelFormat, image.alphaMode)
-                if frame.blend == .Over and value.a < 1 {
+                if frame.blend == .Over and value.a < 1
+                {
                     value = blendOver(value, readPixelValue(output, .canvas.pixelFormat))
                 }
+
                 writePixelValue(output, .canvas.pixelFormat, value)
             }
         }
@@ -532,7 +545,7 @@ public impl ImageReader
                 {
                 case .Keep:       break
                 case .Background: .clearRectangle(prior[])
-                case .Previous:   .copyPreviousRectangle'(false)(prior[])
+                case .Previous:   .copyPreviousRectangle!{false}(prior[])
                 }
             }
 
@@ -540,7 +553,7 @@ public impl ImageReader
             let descriptor = &.info.frames[current]
             if descriptor.disposal == .Previous
             {
-                .previous = .canvas
+                .copyPreviousRectangle!{true}(descriptor[])
             }
 
             let image = try multiple.readFrame(current, .options)

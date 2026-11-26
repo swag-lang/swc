@@ -196,6 +196,9 @@ internal impl IImageEncoder for Encoder
             result.addNative(0_u8)
         }
 
+        let target = result.reserveInPlace(image.byteCount)
+        let pixels = image.pixels.storage()
+        let stride = cast(u64, image.rowStride)
         for y in image.height
         {
             let storageY = image.height - y - 1

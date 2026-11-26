@@ -3,33 +3,33 @@ using Swag, Core
 #[ConstExpr]
 func imageTag(x1, x2, x3, x4: u32)->u32 => (x1 << 24) | (x2 << 16) | (x3 << 8) | x4
 
-const TAG_CMAP = imageTag('c'u32, 'm'u32, 'a'u32, 'p'u32)
-const TAG_GLYF = imageTag('g'u32, 'l'u32, 'y'u32, 'f'u32)
-const TAG_GPOS = imageTag('G'u32, 'P'u32, 'O'u32, 'S'u32)
-const TAG_HEAD = imageTag('h'u32, 'e'u32, 'a'u32, 'd'u32)
-const TAG_HHEA = imageTag('h'u32, 'h'u32, 'e'u32, 'a'u32)
-const TAG_HMTX = imageTag('h'u32, 'm'u32, 't'u32, 'x'u32)
-const TAG_VHEA = imageTag('v'u32, 'h'u32, 'e'u32, 'a'u32)
-const TAG_VMTX = imageTag('v'u32, 'm'u32, 't'u32, 'x'u32)
-const TAG_LOCA = imageTag('l'u32, 'o'u32, 'c'u32, 'a'u32)
-const TAG_MAXP = imageTag('m'u32, 'a'u32, 'x'u32, 'p'u32)
-const TAG_NAME = imageTag('n'u32, 'a'u32, 'm'u32, 'e'u32)
-const TAG_POST = imageTag('p'u32, 'o'u32, 's'u32, 't'u32)
-const TAG_KERN = imageTag('k'u32, 'e'u32, 'r'u32, 'n'u32)
-const TAG_COLR = imageTag('C'u32, 'O'u32, 'L'u32, 'R'u32)
-const TAG_CPAL = imageTag('C'u32, 'P'u32, 'A'u32, 'L'u32)
-const TAG_OS2  = imageTag('O'u32, 'S'u32, '/'u32, '2_u32)
-const TAG_CFF  = imageTag('C!{u32}, 'F'u32, 'F'u32, ' 'u32)
+const TAG_CMAP = imageTag('c'_u32, 'm'_u32, 'a'_u32, 'p'_u32)
+const TAG_GLYF = imageTag('g'_u32, 'l'_u32, 'y'_u32, 'f'_u32)
+const TAG_GPOS = imageTag('G'_u32, 'P'_u32, 'O'_u32, 'S'_u32)
+const TAG_HEAD = imageTag('h'_u32, 'e'_u32, 'a'_u32, 'd'_u32)
+const TAG_HHEA = imageTag('h'_u32, 'h'_u32, 'e'_u32, 'a'_u32)
+const TAG_HMTX = imageTag('h'_u32, 'm'_u32, 't'_u32, 'x'_u32)
+const TAG_VHEA = imageTag('v'_u32, 'h'_u32, 'e'_u32, 'a'_u32)
+const TAG_VMTX = imageTag('v'_u32, 'm'_u32, 't'_u32, 'x'_u32)
+const TAG_LOCA = imageTag('l'_u32, 'o'_u32, 'c'_u32, 'a'_u32)
+const TAG_MAXP = imageTag('m'_u32, 'a'_u32, 'x'_u32, 'p'_u32)
+const TAG_NAME = imageTag('n'_u32, 'a'_u32, 'm'_u32, 'e'_u32)
+const TAG_POST = imageTag('p'_u32, 'o'_u32, 's'_u32, 't'_u32)
+const TAG_KERN = imageTag('k'_u32, 'e'_u32, 'r'_u32, 'n'_u32)
+const TAG_COLR = imageTag('C'_u32, 'O'_u32, 'L'_u32, 'R'_u32)
+const TAG_CPAL = imageTag('C'_u32, 'P'_u32, 'A'_u32, 'L'_u32)
+const TAG_OS2  = imageTag('O'_u32, 'S'_u32, '/'_u32, '2'_u32)
+const TAG_CFF  = imageTag('C'_u32, 'F'_u32, 'F'_u32, ' '_u32)
 
 // Container signatures found at offset zero of a font file. The sfnt wrappers
 // carry TrueType or CFF outlines, and ttcf selects a collection member. WOFF1 is
 // rebuilt as sfnt; WOFF2 is recognized so the parser can report it unsupported.
 const TAG_SFNT = 0x0001_0000_u32
-const TAG_TRUE = imageTag('t'u32, 'r'u32, 'u'u32, 'e'u32)
-const TAG_TTCF = imageTag('t'u32, 't'u32, 'c'u32, 'f'u32)
-const TAG_OTTO = imageTag('O'u32, 'T'u32, 'T'u32, 'O'u32)
-const TAG_WOFF = imageTag('w'u32, 'O'u32, 'F'u32, 'F'u32)
-const TAG_WOF2 = imageTag('w'u32, 'O'u32, 'F'u32, '2_u32)
+const TAG_TRUE = imageTag('t'_u32, 'r'_u32, 'u'_u32, 'e'_u32)
+const TAG_TTCF = imageTag('t'_u32, 't'_u32, 'c'_u32, 'f'_u32)
+const TAG_OTTO = imageTag('O'_u32, 'T'_u32, 'T'_u32, 'O'_u32)
+const TAG_WOFF = imageTag('w'_u32, 'O'_u32, 'F'_u32, 'F'_u32)
+const TAG_WOF2 = imageTag('w'_u32, 'O'_u32, 'F'_u32, '2'_u32)
 
 // One ordered glyph layer from a version-0 `COLR` color glyph.
 public struct ColorGlyphLayer
@@ -170,7 +170,7 @@ struct VerticalMetricTable
     glyphCount:     u32
     longCount:      u32
     lastAdvance:    u16
-    values:         Array'GlyphVerticalMetrics
+    values:         Array!{GlyphVerticalMetrics}
     ready:          Swag.AtomicFlag
     lock:           Swag.Mutex
 }
@@ -179,7 +179,7 @@ impl VerticalMetricTable
 {
     func create(bytes: const [..] u8, glyphCount, longCount: u32, allocator: IAllocator)->*VerticalMetricTable
     {
-        let table = Memory.new'VerticalMetricTable(allocator)
+        let table = Memory.new!{VerticalMetricTable}(allocator)
         table.bytes      = bytes
         table.allocator  = allocator
         table.glyphCount = glyphCount
@@ -241,9 +241,9 @@ struct FaceImpl
 
     late allocationAllocator: IAllocator
 
-    fontData:               Array'u8
+    fontData:               Array!{u8}
     fontSource:             FontSource
-    tables:                 Array'TableRecord
+    tables:                 Array!{TableRecord}
     verticalMetrics:        *VerticalMetricTable?
     ownsVerticalMetrics:    bool
     glyphLocations:         const [..] u8?

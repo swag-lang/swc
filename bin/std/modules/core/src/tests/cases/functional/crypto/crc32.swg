@@ -133,19 +133,21 @@ func fillCrc32Pattern(buffer: [..] u8)
 {
     const TileBytes = 512 * 1024
     const PrefixBytes = 37
-    const Sizes = [8 * TileBytes - 1, 8 * TileBytes, 8 * TileBytes + 1,
-                   8 * TileBytes + 79, 8 * TileBytes + 80, 33 * TileBytes + 15]
-    var storage: Array'u8
+    const Sizes       = [8 * TileBytes - 1, 8 * TileBytes, 8 * TileBytes + 1,
+                         8 * TileBytes + 79, 8 * TileBytes + 80, 33 * TileBytes + 15]
+    var storage: Array!{u8}
     storage.resize(33 * TileBytes + 15 + PrefixBytes + 7)
-    for index in storage.count do
+    for index in storage.count
+    {
         storage[index] = cast(u8, (((index ^ (index >> 8) ^ (index >> 14)) * 47 + 13) & 0xFF))
+    }
 
     for size in Sizes
     {
         let input = storage.toSlice()[7 until size + PrefixBytes + 7]
         var serial: Hash.Crc32
-        serial.reset(0x1234_5678'u32)
-        var offset = 0'u64
+        serial.reset(0x1234_5678_u32)
+        var offset = 0_u64
         while offset < input.count
         {
             let end = Math.min(offset + TileBytes - 7, input.count)
@@ -154,7 +156,7 @@ func fillCrc32Pattern(buffer: [..] u8)
         }
 
         var checksum: Hash.Crc32
-        checksum.reset(0x1234_5678'u32)
+        checksum.reset(0x1234_5678_u32)
         checksum.update(input[until PrefixBytes])
         checksum.update(input[PrefixBytes until])
         Swag.require(checksum.value() == serial.value())

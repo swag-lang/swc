@@ -852,7 +852,8 @@ impl Reader
 
         var result: #returntype
         result.resize(info.storedSize)
-        if not (try .stream.readFileRange(info.offset, result.toSlice())) do
+        if not (try .stream.readFileRange(info.offset, result.toSlice()))
+        {
             fail InvalidFormatError{"SCC chunk payload is truncated"}
         }
 

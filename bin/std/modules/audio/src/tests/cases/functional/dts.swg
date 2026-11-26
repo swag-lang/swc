@@ -87,7 +87,7 @@ private func dtsVqPacket()->Array!{u8}
 
 // Builds one mono Core packet whose first scalar subband uses predictor vector zero. The first
 // residual is an impulse, so the following reconstructed samples exercise the four-tap feedback.
-private func dtsPredictionPacket(huffman = false)->Array!{u8}
+private func dtsPredictionPacket(huffman = false, frameBytes = 32_u32)->Array!{u8}
 {
     var bits: DtsTestBits
     bits.add(0x7FFE8001, 32)

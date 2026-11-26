@@ -224,6 +224,8 @@ impl Decoder
         if not data
         {
             fail SerializationError{"missing data for type value"}
+        }
+
         let found = try .serializer.beginElement(typedVal)
         scope
         {
@@ -533,6 +535,8 @@ impl Decoder
                     if not (.flags & .IgnoreStructFieldError)
                     {
                         fail Swag.err
+                    }
+
                     #static if T == Read.TagBin
                     {
                         .serializer.diag.fieldErrors += 1

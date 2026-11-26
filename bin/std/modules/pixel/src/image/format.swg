@@ -35,8 +35,10 @@ struct ImageFormat
 internal func normalizedImageExtension(fileName: string, storage: *String)->string
 {
     let extension = Path.extension(fileName)
-    if not extension do
+    if not extension
+    {
         return ""
+    }
 
     for i in extension.count
     {
@@ -72,14 +74,19 @@ impl ImageFormat
 
     internal mtd const matchesLowercaseExtension(ext: string)->bool
     {
-        if ext.count == 0 or ext.count > .extensions.count do
+        if ext.count == 0 or ext.count > .extensions.count
+        {
             return false
+        }
 
-        var start = 0'u64
+        var start = 0_u64
         for end in .extensions.count where .extensions[end] == ';'
         {
-            if ext == .extensions[start until end] do
+            if ext == .extensions[start until end]
+            {
                 return true
+            }
+
             start = end + 1
         }
 

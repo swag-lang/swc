@@ -91,9 +91,8 @@ impl Encoder
     // A symbol already determines the category. Keep the shifted prefix and combined bit count.
     func(Size: u64) compileCodes(counts, symbols: const [..] u8, ac: bool)->[Size] u32
     {
-        var codevalue  = 0_u16
-        var posInTable = 0
-        for k in 1 to 16
+        var packed: #returntype
+        if ac
         {
             // Undefined symbols still carry the amplitude bits, as with a zero-length prefix.
             for i in packed.count

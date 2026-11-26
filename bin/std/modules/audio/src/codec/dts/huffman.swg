@@ -458,3 +458,66 @@ const HuffmanNodes: [2635, 2] s16 = [
     [2623, 2624], [-13, -117], [-14, -116], [2626, -33], [2627, 2631], [2628, -24],
     [2629, 2630], [-15, -115], [-16, -114], [-106, 2632], [-20, -110], [-65, 2634],
     [-61, -69]]
+
+// Short codes finish in a single lookup. Longer prefixes retain their tree node.
+const HuffmanPrefixBits        = 6
+private const HuffmanBookCount = 48 + AllocationBookRoots.count + ScaleBookRoots.count
+
+struct HuffmanLookup
+{
+    rows:     [HuffmanNodes.count] u8     // Root node to one-based book row.
+    prefixes: [HuffmanBookCount, 1 << HuffmanPrefixBits] s16     // Terminal symbol and width, or -1 - continuation node.
+}
+
+const HuffmanCodes = #run buildHuffmanLookup()
+
+private func buildHuffmanLookup()->HuffmanLookup
+{
+    func addBook(table: *HuffmanLookup, root: u32, nextRow: *u32)
+    {
+        if table.rows[root]
+        {
+            return
+        }
+
+        let row = nextRow[]
+        nextRow[]        += 1
+        table.rows[root] = cast(u8, (row + 1))
+        for prefix in 1 << HuffmanPrefixBits
+        {
+            var node     = cast(s32, root)
+            var consumed = 0_u32
+            while consumed < HuffmanPrefixBits and node >= 0
+            {
+                let bit = (prefix >> (HuffmanPrefixBits - consumed - 1)) & 1
+                node     = HuffmanNodes[node, bit]
+                consumed += 1
+            }
+
+            let entry = -1 - node
+            table.prefixes[row, prefix] = cast(s16, (node < 0 ? (entry << 3) | cast(s32, consumed) : entry))
+        }
+    }
+
+    var result:  #returntype
+    var nextRow: u32
+    for group in 10
+    {
+        for book in 7
+        {
+            addBook(&result, QuantBookRoots[group, book], &nextRow)
+        }
+    }
+
+    for root in AllocationBookRoots
+    {
+        addBook(&result, root, &nextRow)
+    }
+
+    for root in ScaleBookRoots
+    {
+        addBook(&result, root, &nextRow)
+    }
+
+    return result
+}

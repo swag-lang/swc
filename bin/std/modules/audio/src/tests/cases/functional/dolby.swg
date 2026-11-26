@@ -21,7 +21,7 @@ private func ac3TestAppendBits(bytes: *Array!{u8}, bitCount: *u64, value: u32, c
     }
 }
 
-private func ac3TestFrameWithBandwidth(bandwidth, exponentStrategy: u32, invalidDelta: bool)->Array!{u8}
+private func ac3TestFrameWithBandwidth(bandwidth, exponentStrategy: u32, invalidDelta: bool, absoluteExponent = 12_u32, groupCode = 62_u32)->Array!{u8}
 {
     var frame: Array!{u8}
     var bits = 0_u64
@@ -53,8 +53,8 @@ private func ac3TestFrameWithBandwidth(bandwidth, exponentStrategy: u32, invalid
         let groups = cast(u32, ((end - 1 + 2) / 3))
         for groups
         {
-            ac3TestAppendBits(&frame, &bits, 62, 7)
-        }     // Keep every exponent at the absolute value.
+            ac3TestAppendBits(&frame, &bits, groupCode, 7)
+        }
         ac3TestAppendBits(&frame, &bits, 0, 2)     // Gain range.
     }
 

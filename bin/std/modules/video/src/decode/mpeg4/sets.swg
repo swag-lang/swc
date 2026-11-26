@@ -43,14 +43,7 @@ impl BitReader
         var result = 0_u32
         for count
         {
-            result <<= 1
-            if .bitPos < .bitEnd
-            {
-                let byte = .data![.bitPos >> 3]
-                result |= cast(u32, (byte >> (7 - cast(u32, (.bitPos & 7))))) & 1
-            }
-
-            .bitPos += 1
+            result = (result << 1) | .bit()
         }
 
         return result
@@ -73,7 +66,7 @@ impl BitReader
     // Reads the marker bit the format inserts to keep start codes out of a header.
     mtd marker() fail
     {
-        if .read(1) != 1
+        if .bit() != 1
         {
             fail InvalidFormatError{"MPEG-4 marker bit is not set"}
         }
@@ -87,7 +80,7 @@ impl BitReader
         var node = 0_s32
         for 24_u32
         {
-            let slot = cast(u64, (node * 2)) + cast(u64, .read(1))
+            let slot = cast(u64, (node * 2)) + cast(u64, .bit())
             if slot >= tree.count
             {
                 return -1
@@ -194,8 +187,8 @@ impl Layer
 
         if reader.read(4) == 15
         {
-            discard reader.read(16)
-        }     // pixel aspect ratio
+            discard reader.read(16)     // pixel aspect ratio
+        }
 
         if reader.bit() != 0
         {
@@ -245,8 +238,8 @@ impl Layer
 
         if reader.bit() != 0
         {
-            discard reader.read(.timeIncrementBits)
-        }     // fixed_vop_time_increment
+            discard reader.read(.timeIncrementBits)     // fixed_vop_time_increment
+        }
 
         try reader.marker()
         .width = reader.read(13)
@@ -275,7 +268,7 @@ impl Layer
             fail UnsupportedFormatError{"video decoder does not read overlapped block motion compensation"}
         }
 
-        .spriteEnable = .versionId == 1 ? reader.read(1) : reader.read(2)
+        .spriteEnable = .versionId == 1 ? reader.bit() : reader.read(2)
         if .spriteEnable
         {
             fail UnsupportedFormatError{"video decoder does not read MPEG-4 sprites or global motion compensation"}

@@ -51,7 +51,8 @@ private func buildCodePrefixes()->PrefixLookup
                     let branch = (prefix >> (PrefixBits - 1 - bit)) & 1
                     node   = CodeTree[node * 2 + branch]
                     length += 1
-                    if not node or node >= 0xF000 {
+                    if not node or node >= 0xF000
+                    {
                         break
                     }
                 }
@@ -79,22 +80,39 @@ impl Bits
             return 0
         }
 
-        if count > 32 or .position + count > .length * 8
+        if count > 32 or count > .length * 8 - .position
         {
             .broken = true
             return 0
         }
 
-        var result = 0_u32
-        for count
+        if not count
+        {
+            return 0
+        }
+
+        let byteIndex = .position >> 3
+        let skip      = cast(u32, .position & 7)
+        let first     = unwrap .data + byteIndex
+        .position += count
+        if skip + count <= 8
+        {
+            return (cast(u32, first[0]) >> (8 - skip - count)) & ((1_u32 << count) - 1)
+        }
+
+        let needed = (skip + count + 7) >> 3
+        var value: u64
+        if .length - byteIndex >= 8
         {
             value = Math.bigEndianToNative(cast(const [*] u64, first)[0]) >> (64 - skip - count)
         }
         else
         {
-            for index in needed {
+            for index in needed
+            {
                 value = (value << 8) | first[index]
             }
+
             value >>= needed * 8 - skip - count
         }
 
@@ -103,9 +121,11 @@ impl Bits
 
     mtd code(root: s32)->s32
     {
-        if .broken {
+        if .broken
+        {
             return 0
         }
+
         var node      = root
         var remaining = 24_u32
 
@@ -119,9 +139,11 @@ impl Bits
             let consumed = entry >> 16
             .position += consumed
             node      = cast(s32, entry & 0xFFFF)
-            if node >= 0xF000 {
+            if node >= 0xF000
+            {
                 return node ^ 0xFFFF
             }
+
             if not node
             {
                 .broken = true

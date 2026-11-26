@@ -11,7 +11,7 @@ internal struct AreaCell
 
 internal struct AreaScratch
 {
-    rows:     Array!{Array'AreaCell}
+    rows:     Array!{Array!{AreaCell}}
     coverage: Array!{f32}
 }
 
@@ -20,9 +20,11 @@ internal impl AreaScratch
     mtd rasterize(points: const [..] Vector2, width, height: s32, firstRow = 0_s32)
     {
         .rows.growResize(cast(u64, height))
-        for i in firstRow until height {
+        for i in firstRow until height
+        {
             .rows[i].clear()
         }
+
         .coverage.growResize(cast(u64, width))
 
         var previous = points[points.count - 1]
@@ -59,9 +61,11 @@ internal impl AreaScratch
     // vertical length is distributed in proportion to horizontal distance.
     func accumulateArea(cells: *Array!{AreaCell}, low, high, delta: f64, width: s32)
     {
-        if low >= cast(f64, width) {
+        if low >= cast(f64, width)
+        {
             return
         }
+
         if high <= 0
         {
             cells.add({0, delta, delta})
@@ -98,12 +102,14 @@ internal impl AreaScratch
     {
         let values = .coverage.storage()
         let cells  = &.rows[row]
-        if not cells.count {
+        if not cells.count
+        {
             return {values, 0, 0}
-
         }
+
         let entries = cells.storage()
-        if cells.count > 32 {
+        if cells.count > 32
+        {
             cells.sort(func||(lhs, rhs) => lhs.column <=> rhs.column)
         }
         else
@@ -117,47 +123,52 @@ internal impl AreaScratch
                     entries[slot] = entries[slot - 1]
                     slot -= 1
                 }
+
                 entries[slot] = entry
             }
         }
 
-        let first = entries[0].column
+        let first   = entries[0].column
         var current = first
         var position: u64
-        var running: f64
+        var running:  f64
         while position < cells.count
         {
             let column = entries[position].column
-            let fill = cast(f32, Math.min(Math.abs(running), 1.0_f64) * VerticalSamples)
+            let fill   = cast(f32, Math.min(Math.abs(running), 1.0_f64) * VerticalSamples)
             let packed = Math.Simd.splat(fill)
             while column - current >= 4
             {
                 Math.Simd.store(values + current, packed)
                 current += 4
             }
-            for x in current until column {
-                values[x] = fill
 
+            for x in current until column
+            {
+                values[x] = fill
             }
+
             var area, advance: f64
             while position < cells.count and entries[position].column == column
             {
-                area    += entries[position].area
-                advance += entries[position].advance
+                area     += entries[position].area
+                advance  += entries[position].advance
                 position += 1
             }
 
             values[column] = cast(f32, Math.min(Math.abs(running + area), 1.0_f64) * VerticalSamples)
-            running += advance
-            current = column + 1
+            running        += advance
+            current        = column + 1
         }
 
         if Math.abs(running) > 0.00001
         {
             let fill = cast(f32, Math.min(Math.abs(running), 1.0_f64) * VerticalSamples)
-            for x in current until width {
+            for x in current until width
+            {
                 values[x] = fill
             }
+
             current = width
         }
 
@@ -179,25 +190,34 @@ internal func isSimpleAreaContour(points: const [..] Vector2)->bool
     {
         let a = points[i]
         let b = points[(i + 1) % points.count]
-        if not a.isFinite() or Math.abs(a.x) > 16384 or Math.abs(a.y) > 16384 or a == b {
+        if not a.isFinite() or Math.abs(a.x) > 16384 or Math.abs(a.y) > 16384 or a == b
+        {
             return false
         }
+
         for j in i + 2 until points.count
         {
-            if i == 0 and j + 1 == points.count {
+            if i == 0 and j + 1 == points.count
+            {
                 break
             }
+
             let c = points[j]
             let d = points[(j + 1) % points.count]
-            if Math.max(a.x, b.x) < Math.min(c.x, d.x) or Math.max(c.x, d.x) < Math.min(a.x, b.x) or
-               Math.max(a.y, b.y) < Math.min(c.y, d.y) or Math.max(c.y, d.y) < Math.min(a.y, b.y) {
+            if Math.max(a.x, b.x) < Math.min(c.x, d.x) or
+               Math.max(c.x, d.x) < Math.min(a.x, b.x) or
+               Math.max(a.y, b.y) < Math.min(c.y, d.y) or
+               Math.max(c.y, d.y) < Math.min(a.y, b.y)
+            {
                 continue
             }
+
             let t0 = turn(a, b, c)
             let t1 = turn(a, b, d)
             let t2 = turn(c, d, a)
             let t3 = turn(c, d, b)
-            if t0 * t1 <= 0 and t2 * t3 <= 0 {
+            if t0 * t1 <= 0 and t2 * t3 <= 0
+            {
                 return false
             }
         }

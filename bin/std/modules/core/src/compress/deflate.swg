@@ -301,24 +301,32 @@ impl Deflate
     #[Swag.Inline, Swag.Safety(.All, false)]
     mtd canSkipConsecutiveProbes(pos, origin, maxDist, length: u32, boundary: u16)->bool
     {
-        if pos < 16 do
+        if pos < 16
+        {
             return false
+        }
 
         let d    = unwrap .state
         let next = d.next[pos]
-        if next < 16 or (next & LzDictSizeMask) != pos - 1 do
+        if next < 16 or (next & LzDictSizeMask) != pos - 1
+        {
             return false
+        }
 
         let distance = cast(u16, (origin - (next - 14)))
-        if distance <= 14 or distance > maxDist do
+        if distance <= 14 or distance > maxDist
+        {
             return false
+        }
 
-        const Offsets = cast(Simd.U16x8, [0'u16, 1, 2, 3, 4, 5, 6, 7])
-        let nearer    = Simd.load(&d.next[pos - 7])
-        let farther   = Simd.load(&d.next[pos - 15])
+        const Offsets = cast(Simd.U16x8, [0_u16, 1, 2, 3, 4, 5, 6, 7])
+        let nearer  = Simd.load(&d.next[pos - 7])
+        let farther = Simd.load(&d.next[pos - 15])
         if not Simd.allTrue(nearer == Simd.splat(cast(u16, (next - 7))) + Offsets) or
-           not Simd.allTrue(farther == Simd.splat(cast(u16, (next - 15))) + Offsets) do
+           not Simd.allTrue(farther == Simd.splat(cast(u16, (next - 15))) + Offsets)
+        {
             return false
+        }
 
         // The sixteen-byte loads include one leading byte before the first candidate.
         let ending  = Simd.load(&d.dict[pos - 16 + length])
@@ -336,7 +344,8 @@ impl Deflate
         let d = unwrap .state
 
         var matchLen = matchLenAddr[]
-        if maxMatchLen <= matchLen do
+        if maxMatchLen <= matchLen
+        {
             return
         }
 
@@ -377,7 +386,8 @@ impl Deflate
                     }
 
                     probePos = nextProbePos & LzDictSizeMask
-                    if cast(const [*] u16, &d.dict[probePos + matchLen - 1])[0] == boundary do
+                    if cast(const [*] u16, &d.dict[probePos + matchLen - 1])[0] == boundary
+                    {
                         break
                     }
                 }
@@ -434,6 +444,8 @@ impl Deflate
                 if matchLen == maxMatchLen
                 {
                     return
+                }
+
                 boundary = cast(const [*] u16, current + matchLen - 1)[0]
             }
         }
@@ -1122,8 +1134,10 @@ impl Deflate
             let count       = Math.min(cast(u64, d.totalLzBytes), cast(u64, (d.outputBufEndAddr - destination)))
             let first       = Math.min(count, cast(u64, LzDictSize - position))
             Memory.copy(destination, &d.dict[position], first)
-            if count > first do
+            if count > first
+            {
                 Memory.copy(destination + first, &d.dict[0], count - first)
+            }
             d.outputBufAddr += count
         }
         else if not compBlockSucceeded
@@ -1446,8 +1460,9 @@ impl Deflate
             }
             else
             {
-                .findMatch'(DETECT_RUNS)(d.lookaheadPos, d.dictSize, d.lookaheadSize, &curMatchDist, &curMatchLen)
-                if not curMatchDist and d.dictSize and d.lookaheadSize >= MinMatchLen do
+                .findMatch!{DETECT_RUNS}(d.lookaheadPos, d.dictSize, d.lookaheadSize, &curMatchDist, &curMatchLen)
+                if not curMatchDist and d.dictSize and d.lookaheadSize >= MinMatchLen
+                {
                     .findShortMatch(curPos, &curMatchDist, &curMatchLen)
                 }
             }

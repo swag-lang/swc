@@ -35,16 +35,60 @@ func addEntry(result: *ConcatBuffer, tag, type: u16, count, value: u32)
 
 private func nextPackBitsRun(source: const [*] u8, first, limit, count: u64)->u64
 {
-    var result: #returntype = 1
-    while result < 128 and index + result < count and src[index] == src[index + result]
+    let stop = Math.min(limit, count > 2 ? count - 2 : 0)
+    var i    = first
+    while i + 16 <= stop
     {
-        result += 1
+        let values = Math.Simd.load(source + i)
+        let pairs  = values == Math.Simd.load(source + i + 1)
+        let triple = pairs & (values == Math.Simd.load(source + i + 2))
+        let mask   = Math.Simd.bitmask(triple)
+        if mask
+        {
+            return i + Math.trailingZeros(mask)
+        }
+
+        i += 16
     }
 
-    return result
+    while i < stop
+    {
+        if source[i] == source[i + 1] and source[i] == source[i + 2]
+        {
+            return i
+        }
+
+        i += 1
+    }
+
+    return limit
 }
 
-func packBitsRow(result: *Array!{u8}, src: const [*] u8, count: u64)
+private func countPackBitsRun(source: const [*] u8, start, limit: u64)->u64
+{
+    let value = source[start]
+    let group = Math.Simd.splat(value)
+    var end   = start + 3
+    while end + 16 <= limit
+    {
+        let mask = Math.Simd.bitmask(Math.Simd.load(source + end) != group)
+        if mask
+        {
+            return end + Math.trailingZeros(mask) - start
+        }
+
+        end += 16
+    }
+
+    while end < limit and source[end] == value
+    {
+        end += 1
+    }
+
+    return end - start
+}
+
+func packBitsRow(result: *Array!{u8}, source: const [*] u8, count: u64)
 {
     var index: u64
     while index < count
@@ -61,14 +105,11 @@ func packBitsRow(result: *Array!{u8}, src: const [*] u8, count: u64)
         }
         else
         {
-            let nextRun = tiffRunLength(src, index, count)
-            if nextRun >= 3
-            {
-                break
-            }
-
-            let available = 128 - (index - literalStart)
-            index += Math.min(nextRun, available)
+            let end    = nextPackBitsRun(source, index + 1, limit, count)
+            let length = end - index
+            result.add(cast(u8, (length - 1)))
+            result.add(Swag.makeSlice(source + index, length))
+            index = end
         }
     }
 }
@@ -172,54 +213,8 @@ internal impl IImageEncoder for Encoder
             fail UnsupportedFormatError{"image is too big"}
         }
 
-        // Pixel data, top-down RGB(A). The internal buffer is bottom-up.
-        var rawData: Array!{u8}
-        rawData.reserve(rawDataLen)
-        for fileY in height
-        {
-            let srcY = height - fileY - 1
-            var psrc = cast(const [*] u8, image.pixels.storage()) + cast(u64, srcY) * image.rowStride
-
-            for width
-            {
-                switch image.pixelFormat
-                {
-                case .Gray8:
-                    rawData.add(psrc[0])
-
-                case .RGB8:
-                    rawData.add(psrc[0])
-                    rawData.add(psrc[1])
-                    rawData.add(psrc[2])
-
-                case .BGR8:
-                    rawData.add(psrc[2])
-                    rawData.add(psrc[1])
-                    rawData.add(psrc[0])
-
-                case .RGBA8:
-                    rawData.add(psrc[0])
-                    rawData.add(psrc[1])
-                    rawData.add(psrc[2])
-                    rawData.add(psrc[3])
-
-                case .BGRA8:
-                    rawData.add(psrc[2])
-                    rawData.add(psrc[1])
-                    rawData.add(psrc[0])
-                    rawData.add(psrc[3])
-
-                default:
-                    break
-                }
-
-                psrc += image.bytesPerPixel
-            }
-        }
-
         var packedData:   Array!{u8}
-        var storedData     = cast(const [*] u8, rawData.storage())
-        var storedLen      = rawData.count
+        var storedLen      = rawDataLen
         var compressionTag = COMPRESSION_NONE
         var hasPredictor: bool
         if userOptions.compression == .Lzw
@@ -236,12 +231,7 @@ internal impl IImageEncoder for Encoder
         }
         else if userOptions.compression == .PackBits
         {
-            for y in height
-            {
-                packBitsRow(&packedData, storedData + cast(u64, y) * rowBytes, rowBytes)
-            }
-
-            storedData     = cast(const [*] u8, packedData.storage())
+            encodePackBitsRows(&packedData, image, rowBytes)
             storedLen      = packedData.count
             compressionTag = COMPRESSION_PACKBITS
         }
@@ -294,8 +284,8 @@ internal impl IImageEncoder for Encoder
 
         if hasAlpha
         {
-            addEntry(result, TAG_EXTRA_SAMPLES, TYPE_SHORT, 1, 2)
-        }     // 2 = unassociated alpha
+            addEntry(result, TAG_EXTRA_SAMPLES, TYPE_SHORT, 1, 2)     // 2 = unassociated alpha
+        }
 
         result.addNative(0_u32)     // next IFD offset
 

@@ -413,6 +413,8 @@ private impl TagBin
         if count > .remainingPayload()
         {
             fail SerializationError{"string runs past the end of its section"}
+        }
+
         result.reserve(count + 1)
         let buffer = unwrap result.buffer
         try .stream.readBytes(buffer, count)
@@ -607,6 +609,8 @@ private impl TagBin
             if 8 > .remainingPayload()
             {
                 fail SerializationError{"fat table runs past the end of its section"}
+            }
+
             let seek = try .stream.readNative!{u64}()
             if seek < sec.payloadStart or seek >= sec.fatSeek
             {
@@ -616,7 +620,6 @@ private impl TagBin
             if sec.mapSeek.contains(key)
             {
                 fail SerializationError{"serialized field key is duplicated"}
-            }
             }
 
             sec.mapSeek.add(#move key, {seek: seek, shapeIndex: NoShapeIndex})
@@ -706,7 +709,6 @@ private impl TagBin
         {
             fail SerializationError{"invalid fat signature"}
         }
-        }
 
         let shapeId = try .stream.readNative!{u32}()
         if shapeId == Write.TagBinAdHocShape
@@ -722,7 +724,6 @@ private impl TagBin
             if fatSeek < payloadStart or fatSeek > enclosingEnd
             {
                 fail SerializationError{"fat table runs past the end of its section"}
-            }
             }
 
             if enclosingEnd - fatSeek < #sizeof(u32)
@@ -766,7 +767,6 @@ private impl TagBin
         if fatSeek < payloadStart or fatSeek > enclosingEnd
         {
             fail SerializationError{"fat table runs past the end of its section"}
-        }
         }
 
         if shape.fields.count > (enclosingEnd - fatSeek) / #sizeof(u32)
@@ -833,6 +833,8 @@ private impl TagBin
             if sec.mapSeek.contains(sf.key)
             {
                 fail SerializationError{"serialized field key is duplicated"}
+            }
+
             sec.mapSeek.add(sf.key, {seek: sec.payloadStart + off, shapeIndex: cast(u32, i), consumed: i < sec.posIndex})
         }
 
@@ -1057,7 +1059,6 @@ private impl TagBin
                                                     streamSchema,
                                                     wantedSchema))}
             }
-            }
         }
         else if not .schema.isEmpty() and streamSchema != .schema
         {
@@ -1154,7 +1155,6 @@ private impl TagBin
             {
                 fail SerializationError{"corrupted shape directory"}
             }
-            }
 
             shape.fields.reserve(fieldCount)
             while fieldCount
@@ -1245,12 +1245,13 @@ impl TagBin
         {
             fail SerializationError{"invalid root signature"}
         }
-        }
 
         let mark = try .stream.readNative!{u32}()
         if mark != Write.TagBinVersion1
         {
             fail SerializationError{"unsupported TagBin format version"}
+        }
+
         try .readShapedRoot(expectedRootType)
     }
 
@@ -1260,6 +1261,7 @@ impl TagBin
         if .stream.position() != .shapeDirOffset
         {
             fail SerializationError{"TagBin body does not end at its shape directory"}
+        }
     }
 
     // Opens a section of kind `kind`.

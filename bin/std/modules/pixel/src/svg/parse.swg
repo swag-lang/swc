@@ -217,6 +217,7 @@ struct Drawing
     contourCount:    u64
     patterns:        HashTable!{u64, Pattern}       // Resolved repeating paint servers by their interned identifier.
     filters:         HashTable!{u64, SvgFilter}     // Resolved filter primitive chains by their interned identifier.
+    preferScanFills: bool
 }
 
 private struct ClipRange
@@ -2569,6 +2570,11 @@ private func usesScanFill(list: const *LinePathList, state: const *GroupState, l
         return false
     }
 
+    if preferScanFills and not state.hasClip and not state.hasMarkers()
+    {
+        return true
+    }
+
     if list.paths.count >= 512 or linearSegments >= 8192
     {
         return true
@@ -4433,6 +4439,7 @@ private impl Parser
             if state.clipPathId.count
             {
                 state.clipTransform = state.transform
+                state.hasClip       = true
             }
 
             let firstShape = .drawing.shapes.count
@@ -6349,7 +6356,7 @@ impl Drawing
             {
                 painter.fillPath(paths, .gradientBrushAt(shape.fillGradient)[])
             }
-            else
+            else if not painter.recordScanFill(paths, shape.fillColor, shape.evenOdd ? .EvenOdd : .NonZero)
             {
                 painter.fillPath(paths, shape.fillColor)
             }
@@ -6887,19 +6894,6 @@ impl Drawing
     // Starting a region clears the previous mask. Resetting disables it.
     private mtd const setPaintClip(painter: *Painter, incoming: s64)
     {
-        let white = Brush.createSolid(Color.fromArgb(Argb.White))
-        if outgoing
-        {
-            let range = .clipRange(outgoing)
-            painter.startClippingRegion(.Clear)
-            for i in range.count
-            {
-                painter.fillPath(.pathsFor(&.shapes[range.first + i]), white)
-            }
-
-            painter.endClippingRegion()
-        }
-
         if not incoming
         {
             painter.resetClippingRegion()
@@ -6911,7 +6905,12 @@ impl Drawing
         painter.startClippingRegion(.Set)
         for i in range.count
         {
-            painter.fillPath(.pathsFor(&.shapes[range.first + i]), white)
+            let shape = &.shapes[range.first + i]
+            let paths = .pathsFor(shape)
+            if not painter.recordScanFill(paths, white.color, shape.evenOdd ? .EvenOdd : .NonZero)
+            {
+                painter.fillPath(paths, white)
+            }
         }
 
         painter.endClippingRegion()
@@ -6963,7 +6962,25 @@ impl Drawing
         Swag.assert(width > 0 and height > 0)
         Swag.assert(sampleTileSide > 0)
 
-        let ss            = cast(s32, Math.max(supersample, 1_u8))
+        let ss = cast(s32, Math.max(supersample, 1_u8))
+        if cpu and
+           .preferScanFills and
+           (ss == 1 or
+            (width <= sampleTileSide / ss and height <= sampleTileSide / ss))
+        {
+            let ink = .monochromeScanInk()
+            if ink != Swag.U32.Max
+            {
+                let samples = .rasterizeScanFills(width * ss, height * ss, sampleTileSide)
+                if ss == 1 or not samples.isValid()
+                {
+                    return samples
+                }
+
+                return resolveScanFillSamples(&samples, width, height, ss, ink)
+            }
+        }
+
         let tileWidth     = Math.min(width, Math.max(sampleTileSide / ss, 1))
         let tileHeight    = Math.min(height, Math.max(sampleTileSide / ss, 1))
         let sampledWidth  = tileWidth * ss
@@ -7000,6 +7017,38 @@ impl Drawing
         }
 
         if ss > 1 and not resolved.colorBuffer.isValid()
+        {
+            return {}
+        }
+
+        var whiteMatte: RenderTarget
+        if paired
+        {
+            whiteMatte = renderer.createRenderTarget(sampledWidth, sampledHeight)
+        }
+
+        defer if paired
+        {
+            renderer.deleteRenderTarget(&whiteMatte)
+        }
+
+        if paired and not whiteMatte.colorBuffer.isValid()
+        {
+            return {}
+        }
+
+        var whiteResolved: RenderTarget
+        if pairedResolve
+        {
+            whiteResolved = renderer.createRenderTarget(tileWidth, tileHeight)
+        }
+
+        defer if pairedResolve
+        {
+            renderer.deleteRenderTarget(&whiteResolved)
+        }
+
+        if pairedResolve and not whiteResolved.colorBuffer.isValid()
         {
             return {}
         }
@@ -7068,12 +7117,14 @@ impl Drawing
 
                     catch renderer.draw(&painter) { return {} }
 
-                    // Render-target readbacks and images share the bottom-up row convention. Copy
-                    // each tile into the matching bottom-up rows of the complete result.
-                    mattes[matte] = ss == 1 ? renderer.readRenderTarget(&sampled, 0, 0, copyWidth, copyHeight) : renderer.readRenderTarget(&resolved, 0, 0, copyWidth, copyHeight)
-                    if not mattes[matte].isValid()
+                    // Preserve a snapshot when the next draw will overwrite this target.
+                    if not cpu or matte + 1 < matteCount
                     {
-                        return {}
+                        mattes[matte] = renderer.readRenderTarget(readTarget, 0, 0, copyWidth, copyHeight)
+                        if not mattes[matte].isValid()
+                        {
+                            return {}
+                        }
                     }
                 }
 
@@ -7450,10 +7501,9 @@ impl Drawing
         if not result.isValid()
         {
             return result
-
-            // Keep the raster API's transparent white in pixels untouched by any fill.
         }
 
+        // Keep the raster API's transparent white in pixels untouched by any fill.
         result.fill(Color.fromArgb(0x00FF_FFFF))
         let scale     = cast(f32, width) / .width
         let transform = Transform2.createScale(scale, scale, 0, 0)
@@ -7568,24 +7618,41 @@ impl Drawing
         {
             if item.kind != .Shape
             {
-                return false
+                return .Color
             }
 
             let shape = &.shapes[item.index]
             if shape.filterId or shape.fillPaintId
             {
-                return false
+                return .Color
             }
 
-            if shape.hasFill and (shape.fillColor.argb & 0xFFFFFF) != 0xFFFFFF
+            if shape.hasFill
             {
-                return false
+                let rgb = shape.fillColor.argb & 0x00FF_FFFF
+                white = white and rgb == 0x00FF_FFFF
+                black = black and rgb == 0
             }
 
             let stroke = .strokeFor(shape)
-            if stroke and (stroke.paintId or (stroke.enabled and (stroke.color.argb & 0xFFFFFF) != 0xFFFFFF))
+            if stroke
             {
-                return false
+                if stroke.paintId
+                {
+                    return .Color
+                }
+
+                if stroke.enabled
+                {
+                    let rgb = stroke.color.argb & 0x00FF_FFFF
+                    white = white and rgb == 0x00FF_FFFF
+                    black = black and rgb == 0
+                }
+            }
+
+            if not white and not black
+            {
+                return .Color
             }
         }
 

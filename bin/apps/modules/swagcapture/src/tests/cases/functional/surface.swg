@@ -1107,7 +1107,8 @@ func testBeginInlineText(host: *Gui.Testing.HeadlessHost, main: *MainWnd, index:
         Swag.require(sections[0]!.entries[7].id == ActionGlobal.ShowLibrary)
         Swag.require(sections[1]!.entries.count == 3)
         Swag.require(sections[1]!.entries[0].id == ActionFile.SaveAsImage)
-        Swag.require(sections[1]!.entries[1].id == ActionCopyPaste.CopyAsImage)
+        Swag.require(sections[1]!.entries[1].id == ActionFile.Print)
+        Swag.require(sections[1]!.entries[2].id == ActionCopyPaste.CopyAsImage)
         if selected
         {
             Swag.require(not sections[2]!.entries.isEmpty())

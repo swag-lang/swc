@@ -273,10 +273,14 @@ func unwrapPfb(bytes: const [..] u8)->Array!{u8} fail
 private const HexDigits: [256] u8 = #run
 {
     var digits: [256] u8
-    for index in digits.count do
+    for index in digits.count
+    {
         digits[index] = 0xFF
-    for value in 10 do
+    }
+    for value in 10
+    {
         digits[cast(u32, '0') + value] = cast(u8, value)
+    }
     for value in 6
     {
         digits[cast(u32, 'A') + value] = cast(u8, value + 10)
@@ -292,50 +296,60 @@ private const HexDigits: [256] u8 = #run
 private func scanHexPairs(input: const [*] u8, output: [*] u8)->bool
 {
     let ascii = Math.Simd.load(input)
-    let lower = ascii | 0x20'u8
-    let digit = (ascii >= Math.Simd.splat(0x30'u8)) & (ascii <= Math.Simd.splat(0x39'u8))
-    let alpha = (lower >= Math.Simd.splat(0x61'u8)) & (lower <= Math.Simd.splat(0x66'u8))
-    if Swag.vecMask(digit | alpha) != 0xFFFF do
+    let lower = ascii | 0x20_u8
+    let digit = (ascii >= Math.Simd.splat(0x30_u8)) & (ascii <= Math.Simd.splat(0x39_u8))
+    let alpha = (lower >= Math.Simd.splat(0x61_u8)) & (lower <= Math.Simd.splat(0x66_u8))
+    if Swag.vecMask(digit | alpha) != 0xFFFF
+    {
         return false
-    const Weights = cast(Math.Simd.S8x16, [16's8, 1, 16, 1, 16, 1, 16, 1, 16, 1, 16, 1, 16, 1, 16, 1])
-    let nibbles = (ascii & 0x0F'u8) + (alpha & 9'u8)
+    }
+    const Weights = cast(Math.Simd.S8x16, [16_s8, 1, 16, 1, 16, 1, 16, 1, 16, 1, 16, 1, 16, 1, 16, 1])
+    let nibbles = (ascii & 0x0F_u8) + (alpha & 9_u8)
     let pairs   = Math.Simd.mulAddPairs(nibbles, Weights)
     Math.Simd.storeLow8(output, Math.Simd.packUnsigned(pairs, pairs))
     return true
 }
 
 // Recognizes and decrypts the hexadecimal form in one pass over its digits.
-private func decryptHexPrivateSection(data: const [..] u8)->{hex: bool, bytes: Array'u8}
+private func decryptHexPrivateSection(data: const [..] u8)->{hex: bool, bytes: Array!{u8}}
 {
-    var prefixEnd = 0'u64
-    var digits    = 0'u32
+    var prefixEnd = 0_u64
+    var digits    = 0_u32
     while prefixEnd < data.count and digits < 4
     {
         let c = data[prefixEnd]
         prefixEnd += 1
-        if isPostScriptSpace(c) do
+        if isPostScriptSpace(c)
+        {
             continue
-        if HexDigits[c] == 0xFF do
-            return {false, Array'u8{}}
+        }
+        if HexDigits[c] == 0xFF
+        {
+            return {false, Array!{u8}{}}
+        }
         digits += 1
     }
 
-    if digits < 4 do
-        return {false, Array'u8{}}
+    if digits < 4
+    {
+        return {false, Array!{u8}{}}
+    }
 
     let trailer = findBytes(data, 0, "cleartomark")
-    if trailer < prefixEnd do
-        return {false, Array'u8{}}
+    if trailer < prefixEnd
+    {
+        return {false, Array!{u8}{}}
+    }
 
     var result: #returntype
     result.bytes.reserve(data.count / 2)
     let output = unwrap result.bytes.buffer
-    var high   = 0'u8
+    var high   = 0_u8
     var have   = false
     var state  = cast(u32, EexecPrivateKey)
     var skip   = EexecPrivateSkip
-    var count  = 0'u64
-    var source = 0'u64
+    var count  = 0_u64
+    var source = 0_u64
     var block: [8] u8
     let input  = data.buffer
     while source < data.count
@@ -362,8 +376,10 @@ private func decryptHexPrivateSection(data: const [..] u8)->{hex: bool, bytes: A
         let value = HexDigits[c]
         if value == 0xFF
         {
-            if index < trailer and not isPostScriptSpace(c) do
-                return {false, Array'u8{}}
+            if index < trailer and not isPostScriptSpace(c)
+            {
+                return {false, Array!{u8}{}}
+            }
             continue
         }
 
@@ -702,10 +718,14 @@ func parseType1Font(bytes: const [..] u8)->Type1Font fail
     let encoded = try getSlice(flat, start, flat.count - start)
     var hex     = decryptHexPrivateSection(encoded)
 
-    if hex.hex do
+    if hex.hex
+    {
         result.privateSection = #move hex.bytes
-    else do
+    }
+    else
+    {
         result.privateSection = eexecDecrypt(encoded, EexecPrivateKey, EexecPrivateSkip)
+    }
 
     let decrypted = result.privateSection.toSlice()
     result.codeBytes.reserve(decrypted.count)

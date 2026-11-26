@@ -90,7 +90,7 @@ func writeMetadataU16(bytes: *Array!{u8}, offset: u64, value: u16)
 {
     var bytes  = loadFontBytes("arial.ttf")
     let record = metadataTableRecord(&bytes, TAG_POST)
-    writeBigU32(&bytes, record, imageTag('x'u32, 'o'u32, 's'u32, 't'u32))
+    writeBigU32(&bytes, record, imageTag('x'_u32, 'o'_u32, 's'_u32, 't'_u32))
 
     let metadata = expect Face.metadataAt(bytes.toSlice(), 0)
     Swag.require(not metadata.isFixedPitch and metadata.italicAngle == 0)

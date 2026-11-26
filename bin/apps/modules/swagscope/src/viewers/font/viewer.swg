@@ -204,7 +204,7 @@ private func saveFaceSelection(path, identity: string, memberIndex: u32) fail
 #[Swag.NoCopy]
 struct ViewerContent
 {
-    bytes:             Array!{u8}
+    source:            FontSource
     face:              *Face?
     typeFace:          *TypeFace?
     faceCount:         u32
@@ -253,7 +253,7 @@ private func loadViewerContent(fileName: string)->ViewerContent fail
     {
         var candidate:   *Face?
         var loadOutcome: Swag.Error
-        catch { candidate = try Face.loadAt(result.bytes.toSlice(), memberIndex) } as loadOutcome
+        catch { candidate = try result.source.loadFace(memberIndex) } as loadOutcome
         if loadOutcome.value() != null
         {
             continue
@@ -301,13 +301,6 @@ private func loadViewerContent(fileName: string)->ViewerContent fail
         fail InvalidFormatError{Errors.mkString(texts().ui_NoValidFaces)}
     }
 
-    result.selectedFaceIndex = 0
-    let rememberedIndex = selectedFaceMember(fileName, result.selectionIdentity)
-    for memberIndex, position in result.faceIndices where memberIndex == rememberedIndex
-    {
-        result.selectedFaceIndex = cast(u32, position)
-    }
-
     let selectedMember = result.faceIndices[result.selectedFaceIndex]
     if collectionCount > 1
     {
@@ -330,58 +323,11 @@ private func loadViewerContent(fileName: string)->ViewerContent fail
         result.details = Format.toString(texts().ui_CollectionFaces, collectionCount)
     }
 
-    var start = 0x20_u32
-    result.glyphCharacters.resize(result.face.glyphCount)
-    for glyphIndex in result.face.glyphCount
-    {
-        if let name = result.face.glyphName(cast(u32, glyphIndex))
-        {
-            result.glyphNames.add(GlyphName{String.from(name), cast(u32, glyphIndex)})
-        }
-    }
+    let face = unwrap result.face
+    buildGlyphNameIndex(face, &result.glyphNames)
+    buildCharacterIndex(face, &result.pageStarts, &result.glyphCharacters)
 
-    result.glyphNames.sort(func(a, b) => Text.compareNames(a.name.toSlice(), b.name.toSlice()))
-    while start < 0x110000
-    {
-        let page = characterPage(result.face, start)
-        if page.characters.isEmpty()
-        {
-            break
-        }
-
-        result.pageStarts.add(cast(u32, page.characters[0]))
-        for character in page.characters
-        {
-            let glyphIndex = result.face.glyphIndex(character)
-            if glyphIndex < result.glyphCharacters.count and not result.glyphCharacters[glyphIndex]
-            {
-                result.glyphCharacters[glyphIndex] = character
-            }
-        }
-
-        if not page.hasNext
-        {
-            break
-        }
-
-        start = page.end + 1
-    }
-
-    for &count, index in result.facts.coverage
-    {
-        for code in BlockFirst[index] to BlockLast[index] where result.face.hasChar(cast(rune, code))
-        {
-            count[] += 1
-        }
-    }
-
-    catch
-    {
-        let metadata = try Face.metadataAt(result.bytes.toSlice(), selectedMember)
-        result.facts.weight      = metadata.weight
-        result.facts.embedding   = metadata.embedding
-        result.facts.hasMetadata = true
-    }
+    result.facts.coverage = countBlockCoverage(face)
 
     return result
 }
@@ -727,16 +673,10 @@ private impl Panel
             face.destroy()
         }
 
-        let typeFace = try TypeFace.createAt(.cacheKey, .document.fontBytes.toSlice(), memberIndex)
+        let typeFace = try TypeFace.createFromSource(.cacheKey, &.document.fontSource, memberIndex)
 
         var facts: FaceFacts
-        for &count, block in facts.coverage
-        {
-            for code in BlockFirst[block] to BlockLast[block] where face.hasChar(cast(rune, code))
-            {
-                count[] += 1
-            }
-        }
+        facts.coverage = countBlockCoverage(face)
 
         catch
         {
@@ -863,7 +803,8 @@ private impl Panel
             while first < last
             {
                 let middle = first + (last - first) / 2
-                if Text.compareNames(.document.glyphNames[middle].name.toString(), query) < 0
+                if Text.compareNames(.document.glyphNames[middle].name, query) < 0
+
                 {
                     first = middle + 1
                 }
@@ -960,7 +901,7 @@ private impl IWnd for Panel
             return
         }
 
-        .document = DocumentView.create(me, unwrap content.face, unwrap content.typeFace, #move content.bytes, .sampleEdit)
+        .document = DocumentView.create(me, unwrap content.face, unwrap content.typeFace, #move content.source, .sampleEdit)
         .document.pageStarts      = #move content.pageStarts
         .document.glyphCharacters = #move content.glyphCharacters
         .document.glyphNames      = #move content.glyphNames

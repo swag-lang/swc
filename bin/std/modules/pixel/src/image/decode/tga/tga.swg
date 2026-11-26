@@ -462,43 +462,6 @@ func decodeRaw(result: *Image, header: Header, palette: Palette, src, last: cons
 {
     var p = src
     try checkBuffer(p, last, pixelCount * pixelBytes)
-    if header.imageTypeCode == TYPE_RGB and (header.bitsPerPixel == 15 or header.bitsPerPixel == 16)
-    {
-        let rightOrigin = (header.descriptorByte & DESC_ORIGIN_RIGHT) != 0
-        for y in result.height
-        {
-            let dstY = header.descriptorByte & DESC_ORIGIN_TOP ? result.height - y - 1 : y
-            let dst  = cast([*] u8, result.pixels.storage()) + cast(u64, dstY) * result.rowStride
-            if header.bitsPerPixel == 15
-            {
-                if rightOrigin
-                {
-                    decodeTga15RowReversed(p, dst, result.width)
-                }
-                else
-                {
-                    decodeTga15Row(p, dst, result.width)
-                }
-            }
-            else
-            {
-                let alphaFromBit = (header.descriptorByte & DESC_ALPHA_MASK) != 0
-                if rightOrigin
-                {
-                    decodeTga16RowReversed(p, dst, result.width, alphaFromBit)
-                }
-                else
-                {
-                    decodeTga16Row(p, dst, result.width, alphaFromBit)
-                }
-            }
-
-            p += cast(u64, result.width) * 2
-        }
-
-        return
-    }
-
     if header.imageTypeCode == TYPE_RGB and
        (header.bitsPerPixel == 24 or (header.bitsPerPixel == 32 and hasAttributeBits(header)))
     {
@@ -557,75 +520,6 @@ func decodeRle(result: *Image, header: Header, palette: Palette, src, last: cons
     var decoded: [4] u8
     var index:   u64
     var p           = src
-
-    if header.imageTypeCode == TYPE_RLE_RGB and
-       (header.bitsPerPixel == 24 or (header.bitsPerPixel == 32 and hasAttributeBits(header)))
-    {
-        let rightOrigin = (header.descriptorByte & DESC_ORIGIN_RIGHT) != 0
-        while index < pixelCount
-        {
-            try checkBuffer(p, last, 1)
-            let packet = p[0]
-            p += 1
-
-            let count = cast(u64, ((packet & 0x7F) + 1))
-            if index + count > pixelCount
-            {
-                fail InvalidFormatError{"invalid source buffer"}
-            }
-
-            let repeated = (packet & 0x80) != 0
-            try checkBuffer(p, last, repeated ? pixelBytes : count * pixelBytes)
-            var remaining = count
-            var source    = p
-            while remaining
-            {
-                let rowRemaining = cast(u64, header.width) - index % header.width
-                let segmentCount = Math.min(remaining, rowRemaining)
-                let dstIndex     = rightOrigin ? index + segmentCount - 1 : index
-                let dst          = dstPixel(result, header, dstIndex)
-                if repeated
-                {
-                    if header.bitsPerPixel == 24
-                    {
-                        PackedPixel.fillBgr24Row(source, dst, segmentCount)
-                    }
-                    else
-                    {
-                        PackedPixel.fillBgra32Row(source, dst, segmentCount)
-                    }
-                }
-                else
-                {
-                    if rightOrigin
-                    {
-                        if header.bitsPerPixel == 24
-                        {
-                            PackedPixel.reverseBgr24Row(source, dst, segmentCount)
-                        }
-                        else
-                        {
-                            PackedPixel.reverseBgra32Row(source, dst, segmentCount)
-                        }
-                    }
-                    else
-                    {
-                        Memory.copy(dst, source, segmentCount * pixelBytes)
-                    }
-
-                    source += segmentCount * pixelBytes
-                }
-
-                index     += segmentCount
-                remaining -= segmentCount
-            }
-
-            p += repeated ? pixelBytes : count * pixelBytes
-        }
-
-        return
-    }
-
     while index < pixelCount
     {
         try checkBuffer(p, last, 1)
@@ -780,6 +674,19 @@ internal impl IImageDecoder for Decoder
 
         result.allocPixels()
         let pixelCount = cast(u64, result.width) * result.height
+        var colors: Array!{u32}
+        if isMappedType(header.imageTypeCode) and pixelCount >= palette.count
+        {
+            colors.resize(palette.count)
+            let packed = cast([*] u8, colors.storage())
+            for i in palette.count
+            {
+                try writePalettePixel(packed + i * 4, palette, cast(u32, palette.first) + i, hasAttributeBits(header))
+            }
+
+            palette.colors = colors.storage()
+        }
+
         if isRleType(header.imageTypeCode)
         {
             try decodeRle(&result, header, palette, dataof, last, pixelBytes, pixelCount)

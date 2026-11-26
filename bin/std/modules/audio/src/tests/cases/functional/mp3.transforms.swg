@@ -152,15 +152,19 @@ using Core
     serial.reset()
     rotated.reset()
     rotated.filterAt = 2
-    for granule in 3'u64
+    for granule in 3_u64
     {
         var lines, actual, expected: Mp3.Granule576
-        for index in 576'u64 do
+        for index in 576_u64
+        {
             lines[index] = cast(f32, cast(s32, ((index * 41 + granule * 53) % 97)) - 48) / 64
+        }
 
         Mp3.synthesizeGranule(&serial, &lines, &expected[0])
         Mp3.synthesizeGranule(&rotated, &lines, &actual[0])
-        for index in 576'u64 do
+        for index in 576_u64
+        {
             Swag.require(actual[index] == expected[index])
+        }
     }
 }

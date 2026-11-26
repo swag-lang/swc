@@ -77,10 +77,14 @@ private func aesXtsCryptBlockSoftware(aes: *Aes, tweak: U8x16, input: const [*] 
     defer Crypto.secureClear(block)
     store(&block[0], load(input) ^ tweak)
     let result = Swag.makeSlice(output, AesXtsTweakSize)
-    if decrypt do
+    if decrypt
+    {
         try aes[].decryptBlock(block, result)
-    else do
+    }
+    else
+    {
         try aes[].encryptBlock(block, result)
+    }
     store(output, load(output) ^ tweak)
 }
 

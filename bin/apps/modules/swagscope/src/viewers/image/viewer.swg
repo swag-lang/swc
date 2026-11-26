@@ -203,7 +203,7 @@ private func loadViewerContent(fileName: string)->ViewerContent fail
     }
     else
     {
-        let jpeg = isJpegExtension(extension)
+        let jpeg = Jpg.matchesFileName(fileName)
         var originalMetadata: Array!{ImageMetadata}
 
         // JPEG has one still frame. Decode straight into the picture the view will own.

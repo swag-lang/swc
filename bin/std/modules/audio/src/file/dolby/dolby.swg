@@ -20,7 +20,9 @@ internal func openElementaryStream(path: string, encoding: SoundFileEncoding)->S
     var source    = try ByteSource.openFile(path)
     let fileBytes = source.size()
 
-    var packets: Array!{SoundPacket}
+    var packets:     Array!{SoundPacket}
+    var window:      const [..] u8 = []
+    var windowStart: u64
     var byteOffset   = 0_u64
     var totalFrames  = 0_u64
     var sampleRate   = 0_u32
@@ -45,9 +47,16 @@ internal func openElementaryStream(path: string, encoding: SoundFileEncoding)->S
             fail InvalidFormatError{"Dolby elementary stream ends with a partial sync header"}
         }
 
-        try source.seek(byteOffset)
-        let probe = try source.peek(HeaderBytes)
-        let info  = encoding == .Eac3 ? try eac3FrameInfo(probe) : try ac3FrameInfo(probe)
+        if byteOffset - windowStart + HeaderBytes > window.count
+        {
+            try source.seek(byteOffset)
+            window      = try source.peek(HeaderBytes)
+            windowStart = byteOffset
+        }
+
+        let header = byteOffset - windowStart
+        let probe  = window[header until header + HeaderBytes]
+        let info   = encoding == .Eac3 ? try eac3FrameInfo(probe) : try ac3FrameInfo(probe)
         if not info.frameBytes
         {
             fail InvalidFormatError{"Dolby sync frame has an invalid size"}

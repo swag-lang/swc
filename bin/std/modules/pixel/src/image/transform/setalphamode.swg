@@ -3,20 +3,28 @@ using Core
 private func allPackedAlphaOpaque(pixels: const [*] u32, count: u64)->bool
 {
     using Math.Simd
-    if pixels[0] >> 24 != 255 or pixels[count - 1] >> 24 != 255 do
+    if pixels[0] >> 24 != 255 or pixels[count - 1] >> 24 != 255
+    {
         return false
+    }
 
-    const Alpha = splat(0xFF000000'u32)
+    const Alpha = splat(0xFF000000_u32)
     var index: u64
     while count - index >= 4
     {
-        if not allTrue((load(pixels + index) & Alpha) == Alpha) do
+        if not allTrue((load(pixels + index) & Alpha) == Alpha)
+        {
             return false
+        }
+
         index += 4
     }
 
-    for i in index until count where pixels[i] >> 24 != 255 do
+    for i in index until count where pixels[i] >> 24 != 255
+    {
         return false
+    }
+
     return true
 }
 
@@ -48,7 +56,7 @@ impl Image
                 return
             }
 
-            const ParallelBytes = 64'u64 * 1024 * 1024
+            const ParallelBytes = 64_u64 * 1024 * 1024
             let workers = .byteCount >= ParallelBytes ? cast(u64, Swag.workerCount()) : 0
             if workers > 1
             {

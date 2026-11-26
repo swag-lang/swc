@@ -49,6 +49,36 @@ private func flacTestHeaderCrc8(bytes: const [..] u8)->u8
     return crc
 }
 
+// Long FLAC packets use the same CRC16 as short packets and preserve the running remainder.
+#test
+{
+    var bytes: [256] u8
+    for index in bytes.count
+    {
+        bytes[index] = cast(u8, (index * 37 + index / 16) & 0xFF)
+    }
+
+    const Initial = 0x926B_u16
+    for count in [15_u64, 16, 63, 64, 65, 127, 128, 137, 256]
+    {
+        let slice    = bytes[until count]
+        var expected = cast(u32, Initial)
+        for byte in slice
+        {
+            expected ^= cast(u32, byte) << 8
+            for 8
+            {
+                expected = ((expected << 1) ^ (expected & 0x8000 ? 0x8005 : 0)) & 0xFFFF
+            }
+        }
+
+        let half  = count / 2
+        let first = Flac.frameCrc16(slice[until half], Initial)
+        Swag.require(Flac.frameCrc16(slice[half until], first) == expected)
+        Swag.require(Flac.frameCrc16(slice, Initial) == expected)
+    }
+}
+
 private func flacTestAppendBits(bytes: *Array!{u8}, bitCount: *u64, value: u64, count: u32)
 {
     for bit in count
@@ -92,8 +122,9 @@ private func flacWideStereoTestConfig()->Array!{u8}
     config.add(1)     // Max block size: one sample.
     for 6
     {
-        config.add(0)
-    }     // Min/max frame sizes are unknown.
+        config.add(0)     // Min/max frame sizes are unknown.
+    }
+
     let description = (48_000_u64 << 44) | (1_u64 << 41) | (31_u64 << 36) | 1
     for byte in 8
     {
@@ -102,8 +133,9 @@ private func flacWideStereoTestConfig()->Array!{u8}
 
     for 16
     {
-        config.add(0)
-    }     // MD5 is not consulted by the frame decoder.
+        config.add(0)     // MD5 is not consulted by the frame decoder.
+    }
+
     return config
 }
 
@@ -116,8 +148,9 @@ private func flac24BitStereoTestConfig()->Array!{u8}
     config.add(6)     // Max block size: six samples.
     for 6
     {
-        config.add(0)
-    }     // Min/max frame sizes are unknown.
+        config.add(0)     // Min/max frame sizes are unknown.
+    }
+
     let description = (48_000_u64 << 44) | (1_u64 << 41) | (23_u64 << 36) | 6
     for byte in 8
     {
@@ -126,23 +159,25 @@ private func flac24BitStereoTestConfig()->Array!{u8}
 
     for 16
     {
-        config.add(0)
-    }     // MD5 is not consulted by the frame decoder.
+        config.add(0)     // MD5 is not consulted by the frame decoder.
+    }
+
     return config
 }
 
-private func flacLinearShiftTestConfig()->Array!{u8}
+private func flacMonoTestConfig(samples = 2_u8, depth = 16_u64)->Array!{u8}
 {
     var config: Array!{u8}
     config.add(0)
     config.add(samples)
     config.add(0)
-    config.add(2)     // Max block size: two samples.
+    config.add(samples)
     for 6
     {
-        config.add(0)
-    }     // Min/max frame sizes are unknown.
-    let description = (48_000_u64 << 44) | (15_u64 << 36) | 2
+        config.add(0)     // Min/max frame sizes are unknown.
+    }
+
+    let description = (48_000_u64 << 44) | ((depth - 1) << 36) | samples
     for byte in 8
     {
         config.add(cast(u8, (description >> (56 - byte * 8)) & 0xFF))
@@ -150,23 +185,25 @@ private func flacLinearShiftTestConfig()->Array!{u8}
 
     for 16
     {
-        config.add(0)
-    }     // MD5 is not consulted by the frame decoder.
+        config.add(0)     // MD5 is not consulted by the frame decoder.
+    }
+
     return config
 }
 
-private func flacLinearOverflowTestConfig()->Array!{u8}
+private func flacLinearOverflowTestConfig(samples = 33_u8)->Array!{u8}
 {
     var config: Array!{u8}
     config.add(0)
     config.add(samples)
     config.add(0)
-    config.add(33)     // Max block size: 33 samples.
+    config.add(samples)
     for 6
     {
-        config.add(0)
-    }     // Min/max frame sizes are unknown.
-    let description = (48_000_u64 << 44) | (31_u64 << 36) | 33
+        config.add(0)     // Min/max frame sizes are unknown.
+    }
+
+    let description = (48_000_u64 << 44) | (31_u64 << 36) | samples
     for byte in 8
     {
         config.add(cast(u8, (description >> (56 - byte * 8)) & 0xFF))
@@ -174,8 +211,9 @@ private func flacLinearOverflowTestConfig()->Array!{u8}
 
     for 16
     {
-        config.add(0)
-    }     // MD5 is not consulted by the frame decoder.
+        config.add(0)     // MD5 is not consulted by the frame decoder.
+    }
+
     return config
 }
 
@@ -235,6 +273,47 @@ private func flacOverflowingLinearShiftFrame()->Array!{u8}
     flacTestAppendBits(&frame, &bitCount, 0, 2)     // Rice residual coding.
     flacTestAppendBits(&frame, &bitCount, 0, 4)     // One partition, Rice parameter 0.
     flacTestAppendBits(&frame, &bitCount, 1, 1)     // Zero residual.
+    while bitCount & 7
+    {
+        flacTestAppendBits(&frame, &bitCount, 0, 1)
+    }
+
+    let checksum = Flac.frameCrc16(frame.toSlice())
+    frame.add(cast(u8, checksum >> 8))
+    frame.add(cast(u8, checksum & 0xFF))
+    return frame
+}
+
+private func flacOverflowingLinearAdditionFrame()->Array!{u8}
+{
+    var frame: Array!{u8}
+
+    // Variable-block strategy, six samples, with the sample format from STREAMINFO.
+    frame.add([0xFF_u8, 0xF9, 0x60, 0, 0, 5])
+    frame.add(flacTestHeaderCrc8(frame.toSlice()))
+
+    var bitCount = frame.count * 8
+    flacTestAppendBits(&frame, &bitCount, 0x48, 8)     // Order-five linear predictor.
+    flacTestAppendBits(&frame, &bitCount, 1, 32)
+    for 4
+    {
+        flacTestAppendBits(&frame, &bitCount, 0x8000_0000, 32)
+    }
+
+    flacTestAppendBits(&frame, &bitCount, 14, 4)           // Fifteen-bit coefficients.
+    flacTestAppendBits(&frame, &bitCount, 0b1_0000, 5)     // Signed QLP shift: -16.
+    for 4
+    {
+        flacTestAppendBits(&frame, &bitCount, 0x4000, 15)     // Coefficient -16,384.
+    }
+
+    flacTestAppendBits(&frame, &bitCount, 0x7FFF, 15)     // Coefficient -1.
+
+    // The prediction is 2^63 - 65,536. The residual of 65,536 then overflows the signed sum.
+    flacTestAppendBits(&frame, &bitCount, 1, 2)     // Rice coding with a five-bit parameter.
+    flacTestAppendBits(&frame, &bitCount, 0, 4)     // One partition.
+    flacTestAppendBits(&frame, &bitCount, 17, 5)
+    flacTestAppendBits(&frame, &bitCount, 1 << 17, 19)
     while bitCount & 7
     {
         flacTestAppendBits(&frame, &bitCount, 0, 1)

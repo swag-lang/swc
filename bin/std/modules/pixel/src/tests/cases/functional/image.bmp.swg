@@ -29,7 +29,8 @@ private func checkBmp16Masks(masks: Bmp.Masks)
         expected[3 + 3 * i + 2] = Bmp.maskToByte(value, masks.r)
     }
 
-    Bmp.decode16Row(source.storage() + 1, actual.storage() + 3, Pixels, masks)
+    let decoder = Bmp.prepareRowDecoder16(masks)
+    Bmp.decode16Row(source.storage() + 1, actual.storage() + 3, Pixels, &decoder)
     for i in actual.count
     {
         Swag.require(actual[i] == expected[i])
@@ -294,8 +295,9 @@ private func requireBmpDecodeFails(bytes: const [..] u8)
     cb.addNative(200_u8)
     for 12
     {
-        cb.addNative(0_u8)
-    }     // pixels 1-4
+        cb.addNative(0_u8)     // pixels 1-4
+    }
+
     cb.addNative(0_u8)     // pad
     // Rows 1-4 all zeros (4 rows x 16 bytes)
     for 64

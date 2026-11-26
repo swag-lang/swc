@@ -9,7 +9,7 @@ using Swag, Core
     var group: Webp.LosslessHuffmanGroup
     expect group.trees[Webp.LOSSLESS_HUFF_RED].build(Lengths)
     expect group.trees[Webp.LOSSLESS_HUFF_BLUE].build(Lengths)
-    expect group.trees[Webp.LOSSLESS_HUFF_ALPHA].buildSimple(1, [255'u32, 0], 256)
+    expect group.trees[Webp.LOSSLESS_HUFF_ALPHA].buildSimple(1, [255_u32, 0], 256)
     group.buildLiteralTable()
     Swag.require(group.literalTable.count == 256 and group.literalTable[255] == 0)
 
@@ -20,8 +20,8 @@ using Swag, Core
             var writer: Webp.EncodeBitWriter
             let redBits  = Lengths[red]
             let blueBits = Lengths[blue]
-            writer.writeHuffman((1'u32 << redBits) - 2 + cast(u32, red == 9), redBits)
-            writer.writeHuffman((1'u32 << blueBits) - 2 + cast(u32, blue == 9), blueBits)
+            writer.writeHuffman((1_u32 << redBits) - 2 + cast(u32, red == 9), redBits)
+            writer.writeHuffman((1_u32 << blueBits) - 2 + cast(u32, blue == 9), blueBits)
             writer.writeBits(19, 5)
             writer.finish()
 
@@ -29,7 +29,7 @@ using Swag, Core
             var reader = Webp.LosslessBitReader{ptr: data, last: data + writer.bytes.count}
             reader.refill()
             let decoded = expect group.readLiteral(&reader, 23)
-            let color   = 0xFF001700'u32 | cast(u32, red) | (cast(u32, blue) << 16)
+            let color   = 0xFF001700_u32 | cast(u32, red) | (cast(u32, blue) << 16)
             Swag.require(decoded == color)
             let suffix = expect reader.read(5)
             Swag.require(suffix == 19)
@@ -49,16 +49,18 @@ using Swag, Core
     {
         var transform = Webp.LosslessTransform{oldWidth: 9, bits: 3}
         transform.pixels.resize(16)
-        for tile in 4 {
+        for tile in 4
+        {
             transform.pixels[tile * 4 + 1] = cast(u8, ((mode + tile) % Expected.count))
-
         }
+
         var pixels: Array!{u8}
         pixels.resize(324)
-        for i in pixels.count {
+        for i in pixels.count
+        {
             pixels[i] = cast(u8, ((i * 29 + (i / 4) * 17 + i / 2) % 256))
-
         }
+
         Webp.losslessInversePredictor(&transform, &pixels, 9)
         Swag.require(Hash.Crc64.compute(pixels.toSlice()) == Expected[mode])
     }
@@ -73,14 +75,18 @@ using Swag, Core
     {
         for length in [1_u64, 7, 8, 9, 11, 16, 31, 60]
         {
-            for i in distance {
+            for i in distance
+            {
                 pixels[i] = (cast(u32, i) + 1) * 0x01030609_u32
             }
+
             pixels[distance + length] = Guard
             Webp.losslessCopyRun(&pixels[distance], distance, length)
-            for i in length {
+            for i in length
+            {
                 Swag.require(pixels[distance + i] == pixels[i % distance])
             }
+
             Swag.require(pixels[distance + length] == Guard)
         }
     }
@@ -127,9 +133,11 @@ using Swag, Core
         for i in 256
         {
             let bit = partition.readBit(Probabilities[i % Probabilities.count])
-            if partition.unexpectedEnd {
+            if partition.unexpectedEnd
+            {
                 break
             }
+
             code = (code << 1) | cast(u64, bit)
             bits += 1
         }
@@ -168,9 +176,11 @@ using Swag, Core
                 rgba |= cast(u32, Webp.losslessReverseByte(cast(u8, ((code >> 16) & 0xFF)))) << 16
             }
 
-            #static if CHANNELS == 4 {
+            #static if CHANNELS == 4
+            {
                 rgba |= cast(u32, Webp.losslessReverseByte(cast(u8, (code >> 24)))) << 24
             }
+
             Swag.require(actual[i + 1] == rgba)
         }
 
@@ -188,10 +198,11 @@ using Swag, Core
     }
 
     var source: [112] u8
-    for i in source.count {
+    for i in source.count
+    {
         source[i] = cast(u8, ((i * 173 + 19) & 0xFF))
-
     }
+
     for shift in 8_u32
     {
         check!{1}(&source[0], shift, 0xA042000F)
@@ -224,7 +235,8 @@ using Swag, Core
             Swag.require(reference.rangeM1 == faster.rangeM1)
             Swag.require(reference.bits == faster.bits and reference.bitCount == faster.bitCount)
             Swag.require(reference.offset == faster.offset and reference.unexpectedEnd == faster.unexpectedEnd)
-            if reference.unexpectedEnd {
+            if reference.unexpectedEnd
+            {
                 break
             }
         }
@@ -278,9 +290,11 @@ func webpMultiplyHigh(value, coefficient: s32)->s32 => (value * coefficient) >> 
     {
         let pixels = width * Height
         var expected: [33 * Height] u8
-        for i in pixels {
+        for i in pixels
+        {
             expected[i] = cast #wrap(u8, (i * 57 + (i / width) * 92))
         }
+
         for filter in 4
         {
             var payload: [1 + 33 * Height] u8
@@ -290,13 +304,16 @@ func webpMultiplyHigh(value, coefficient: s32)->s32 => (value * coefficient) >> 
                 var prediction: s32
                 if filter and i
                 {
-                    if i < width or (filter == 1 and i % width) {
+                    if i < width or (filter == 1 and i % width)
+                    {
                         prediction = expected[i - 1]
                     }
-                    else if filter == 2 or i % width == 0 {
+                    else if filter == 2 or i % width == 0
+                    {
                         prediction = expected[i - width]
                     }
-                    else {
+                    else
+                    {
                         prediction = Math.clamp(cast(s32, expected[i - 1]) + expected[i - width] - expected[i - width - 1], 0, 255)
                     }
                 }
@@ -305,9 +322,10 @@ func webpMultiplyHigh(value, coefficient: s32)->s32 => (value * coefficient) >> 
             }
 
             let container = Webp.Container{alpha: {data: &payload[0], size: cast(u32, pixels + 1)}}
-            var storage: Array'u8
+            var storage: Array!{u8}
             let decoded   = unwrap (expect Webp.vp8DecodeAlpha(container, width, Height, &storage))
-            for i in pixels {
+            for i in pixels
+            {
                 Swag.require(decoded[i] == expected[i])
             }
         }
@@ -511,8 +529,16 @@ func assertEncodedWebpRoundtrip(source: Image)
 // Backward-distance runs can span the VP8L maximum length and start a new run.
 #test
 {
-    var source = Image.create(5000, 1, .RGBA8)
+    var source = Image.create(5257, 1, .RGBA8)
     source.fill(Color.fromArgb(37_u8, 19_u8, 73_u8, 211_u8))
+    let pixels = cast([*] u32, source.pixels.storage())
+
+    // The distinct prefix exercises the direct-color run encoder.
+    for i in 257
+    {
+        let color = cast(u32, i)
+        pixels[i] = 0x25D34900_u32 + ((color >> 8) << 8) + (color & 0xFF)
+    }
 
     let buffer = expect source.encode("memory.webp")
     Swag.require(buffer.count() < 1024)
@@ -547,7 +573,8 @@ func assertEncodedWebpRoundtrip(source: Image)
         Swag.require(decoded.width == Width and decoded.height == Height)
         Swag.require(decoded.pixelFormat == .RGBA8)
         Swag.require(decoded.pixels.count == image.pixels.count)
-        for i in image.pixels.count {
+        for i in image.pixels.count
+        {
             Swag.require(decoded.pixels[i] == image.pixels[i])
         }
     }
@@ -578,7 +605,8 @@ func assertEncodedWebpRoundtrip(source: Image)
         let decoded = expect Image.decode("full-palette.webp", encoded.toSlice())
         Swag.require(decoded.width == Width and decoded.height == Height)
         Swag.require(decoded.pixels.count == image.pixels.count)
-        for i in image.pixels.count {
+        for i in image.pixels.count
+        {
             Swag.require(decoded.pixels[i] == image.pixels[i])
         }
     }

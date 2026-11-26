@@ -137,9 +137,11 @@ func assertSvgMaskRaster(renderer: IRenderer, sampleTileSide: s32, ink: string)
     {
         let image    = drawing.rasterizeWithSampleTileSide(renderer, 91, 75, samples, sampleTileSide)
         let expected = reference.rasterizeWithSampleTileSide(renderer, 91, 75, samples, sampleTileSide)
+        Swag.require(image.isValid() and expected.isValid())
+        Swag.require(image.pixels.count == expected.pixels.count)
         for value, index in image.pixels
         {
-            Swag.require(value == expected.pixels[index], Format.toString("SVG white mask differs at sample count %, byte %: got %, expected %", samples, index, value, expected.pixels[index]))
+            Swag.require(value == expected.pixels[index], Format.toString("SVG % mask differs at sample count %, byte %. Got %, expected %.", ink, samples, index, value, expected.pixels[index]))
         }
     }
 }

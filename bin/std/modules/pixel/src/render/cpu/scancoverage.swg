@@ -133,11 +133,10 @@ internal impl ScanScratch
         if .reorderLine(line)
         {
             return
-
-            // Sort the original indices by the nonnegative float's unsigned bits.
-            // The indices themselves are payload and do not take part in the sort.
         }
 
+        // Sort the original indices by the nonnegative float's unsigned bits.
+        // The indices themselves are payload and do not take part in the sort.
         .keys.growResize(line.count)
         .sorted.growResize(line.count)
         .order.resize(line.count)
@@ -275,17 +274,17 @@ internal impl ScanScratch
 #[Swag.Inline]
 internal func roundScanAlpha4(scaled: Math.Simd.F32x4)->Math.Simd.U32x4
 {
-    let whole  = Math.floor(scaled)
+    let whole = Math.floor(scaled)
 
     // Keep the scalar rounding at values just below a half-integer.
-    let roundUp = (scaled - whole >= Math.Simd.splat(0.5'f32)) & 1'u32
+    let roundUp = (scaled - whole >= Math.Simd.splat(0.5_f32)) & 1_u32
 
     // Integers this small map directly to the low mantissa bits at 2^23.
-    let biased = cast #bit(Math.Simd.U32x4, whole + Math.Simd.splat(8_388_608.0'f32))
-    return biased - 0x4B00_0000'u32 + roundUp
+    let biased = cast #bit(Math.Simd.U32x4, whole + Math.Simd.splat(8_388_608.0_f32))
+    return biased - 0x4B00_0000_u32 + roundUp
 }
 
-internal func addScanContour(crossings: [..] ScanSample, points: const [..] Vector2, transform: const *Transform2, density: f32, origin: Vector2, uniform: bool, width: f32, minimumX = 0.0'f32, firstRow = 0's32)
+internal func addScanContour(crossings: [..] ScanSample, points: const [..] Vector2, transform: const *Transform2, density: f32, origin: Vector2, uniform: bool, width: f32, minimumX = 0.0_f32, firstRow = 0_s32)
 {
     #[Swag.Inline]
     func project(point: Vector2, transform: const *Transform2, density: f32, origin: Vector2, uniform: bool)->Vector2
@@ -364,10 +363,9 @@ internal func addScanContour(crossings: [..] ScanSample, points: const [..] Vect
     if points.count < 2
     {
         return
-
-        // Adjacent edges share the projected vertex and its sample row.
     }
 
+    // Adjacent edges share the projected vertex and its sample row.
     var previous    = project(points[points.count - 1], transform, density, origin, uniform)
     var previousRow = sampleRow(previous, first, limit)
     for point in points

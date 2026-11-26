@@ -12,12 +12,14 @@ using Core.Errors
 // let packed = try Compress.Snappy.compress("hello, hello, hello")
 // let output = try Compress.Snappy.decompress(packed.toSlice(), maxOutputSize: 1024)
 // ```
-func compress(buffer: const [..] u8)->Array'u8 fail
+func compress(buffer: const [..] u8)->Array!{u8} fail
 {
-    if buffer.count > Swag.U32.Max do
+    if buffer.count > Swag.U32.Max
+    {
         fail UnsupportedFormatError{"Snappy input exceeds the block size limit"}
+    }
 
-    var result: Array'u8
+    var result: Array!{u8}
     var size = buffer.count
     while size >= 128
     {
@@ -27,7 +29,7 @@ func compress(buffer: const [..] u8)->Array'u8 fail
 
     result.add(cast(u8, size))
 
-    var literalStart = 0'u64
+    var literalStart = 0_u64
     if buffer.count >= 5
     {
         var finder: LzMatchFinder
@@ -36,8 +38,10 @@ func compress(buffer: const [..] u8)->Array'u8 fail
         while literalStart <= lastStart
         {
             let match = finder.find(buffer.buffer, literalStart, lastStart, buffer.count)
-            if not match.length do
+            if not match.length
+            {
                 break
+            }
 
             writeLiterals(&result, buffer[literalStart until match.at])
             writeCopies(&result, match.distance, match.length)
@@ -54,10 +58,10 @@ func compress(buffer: const [..] u8)->Array'u8 fail
 // `maxOutputSize` limits the bytes allocated for the result. A block that exceeds the limit
 // fails with [[Core.Errors.UnsupportedFormatError]]. Malformed blocks fail with
 // [[Core.Errors.InvalidFormatError]].
-func decompress(buffer: const [..] u8, maxOutputSize: u64 = Swag.U32.Max)->Array'u8 fail
+func decompress(buffer: const [..] u8, maxOutputSize: u64 = Swag.U32.Max)->Array!{u8} fail
 {
     let header = try readHeader(buffer, maxOutputSize)
-    var result: Array'u8
+    var result: Array!{u8}
     if header.size
     {
         result.reserve(header.size)
@@ -76,8 +80,10 @@ func decompress(buffer: const [..] u8, maxOutputSize: u64 = Swag.U32.Max)->Array
 // Bytes past the size in the preamble are left untouched.
 func decompressInto(output: [..] u8, buffer: const [..] u8)->u64 fail
 {
-    if lzBuffersOverlap(output, buffer) do
+    if lzBuffersOverlap(output, buffer)
+    {
         fail BadParameterError{}
+    }
 
     let header = try readHeader(buffer, output.count)
     try decode(output[until header.size], buffer, header.end)
@@ -86,21 +92,27 @@ func decompressInto(output: [..] u8, buffer: const [..] u8)->u64 fail
 
 private func readHeader(buffer: const [..] u8, maxOutputSize: u64)->{ size: u64, end: u64 } fail
 {
-    var size = 0'u64
-    for offset in Math.min(buffer.count, 5'u64)
+    var size = 0_u64
+    for offset in Math.min(buffer.count, 5_u64)
     {
         let byte = buffer[offset]
         size |= cast(u64, byte & 127) << (offset * 7)
         if byte < 128
         {
-            if size > Swag.U32.Max do
+            if size > Swag.U32.Max
+            {
                 fail InvalidFormatError{"Snappy decoded size overflows 32 bits"}
-            if size > maxOutputSize do
+            }
+            if size > maxOutputSize
+            {
                 fail UnsupportedFormatError{"Snappy decoded size exceeds the output limit"}
+            }
 
             // Even the densest copy emits fewer than 32 bytes per input byte.
-            if (size + 31) / 32 > buffer.count - offset - 1 do
+            if (size + 31) / 32 > buffer.count - offset - 1
+            {
                 fail InvalidFormatError{"Snappy block cannot produce its declared output size"}
+            }
             return {size: size, end: offset + 1}
         }
     }
@@ -111,7 +123,7 @@ private func readHeader(buffer: const [..] u8, maxOutputSize: u64)->{ size: u64,
 private func decode(output: [..] u8, buffer: const [..] u8, start: u64) fail
 {
     var offset  = start
-    var written = 0'u64
+    var written = 0_u64
     while offset < buffer.count
     {
         let tag = buffer[offset]
@@ -123,16 +135,22 @@ private func decode(output: [..] u8, buffer: const [..] u8, start: u64) fail
             if length > 60
             {
                 let width = length - 60
-                if width > buffer.count - offset do
+                if width > buffer.count - offset
+                {
                     fail InvalidFormatError{"Snappy block ends inside a literal length"}
+                }
                 length = 1
-                for index in width do
+                for index in width
+                {
                     length += cast(u64, buffer[offset + index]) << (index * 8)
+                }
                 offset += width
             }
 
-            if length > buffer.count - offset or length > output.count - written do
+            if length > buffer.count - offset or length > output.count - written
+            {
                 fail InvalidFormatError{"Snappy literals exceed the input or output size"}
+            }
             Memory.copy(output.buffer + written, buffer.buffer + offset, length)
             offset  += length
             written += length
@@ -142,17 +160,21 @@ private func decode(output: [..] u8, buffer: const [..] u8, start: u64) fail
         var length, distance: u64
         if kind == 1
         {
-            if offset == buffer.count do
+            if offset == buffer.count
+            {
                 fail InvalidFormatError{"Snappy block ends inside a copy offset"}
+            }
             length   = cast(u64, (tag >> 2) & 7) + 4
             distance = (cast(u64, tag & 0xE0) << 3) | cast(u64, buffer[offset])
             offset   += 1
         }
         else
         {
-            let width = kind == 2 ? 2'u64 : 4'u64
-            if width > buffer.count - offset do
+            let width = kind == 2 ? 2_u64 : 4_u64
+            if width > buffer.count - offset
+            {
                 fail InvalidFormatError{"Snappy block ends inside a copy offset"}
+            }
             length = cast(u64, tag >> 2) + 1
             let encoded = buffer.buffer + offset
             distance = kind == 2 ? cast(u64, Math.littleEndianToNative(cast(const [*] u16, encoded)[0])) :
@@ -160,20 +182,26 @@ private func decode(output: [..] u8, buffer: const [..] u8, start: u64) fail
             offset += width
         }
 
-        if not distance or distance > written or length > output.count - written do
+        if not distance or distance > written or length > output.count - written
+        {
             fail InvalidFormatError{"Snappy copy exceeds the available history or output size, or has a zero offset"}
+        }
         copyLzMatch(output.buffer + written, distance, length)
         written += length
     }
 
-    if written != output.count do
+    if written != output.count
+    {
         fail InvalidFormatError{"Snappy decoded size disagrees with the preamble"}
+    }
 }
 
-private func writeLiterals(result: *Array'u8, literals: const [..] u8)
+private func writeLiterals(result: *Array!{u8}, literals: const [..] u8)
 {
-    if not literals.count do
+    if not literals.count
+    {
         return
+    }
 
     let lengthField = cast(u32, literals.count - 1)
     if lengthField < 60
@@ -184,14 +212,16 @@ private func writeLiterals(result: *Array'u8, literals: const [..] u8)
     {
         let width = (39 - Math.leadingZeros(lengthField)) / 8
         result.add(cast(u8, (59 + width) << 2))
-        for index in width do
+        for index in width
+        {
             result.add(Math.byteAt(lengthField, index))
+        }
     }
 
     result.add(literals)
 }
 
-private func writeCopies(result: *Array'u8, distance, length: u64)
+private func writeCopies(result: *Array!{u8}, distance, length: u64)
 {
     // Each group of up to 64 bytes uses at most three bytes on the wire.
     result.grow(result.count + ((length + 63) / 64) * 3)
@@ -202,7 +232,7 @@ private func writeCopies(result: *Array'u8, distance, length: u64)
     var remaining = length
     while remaining
     {
-        let amount = Math.min(remaining, 64'u64)
+        let amount = Math.min(remaining, 64_u64)
         if distance < 2048 and amount >= 4 and amount <= 11
         {
             output[0] = cast(u8, ((distance >> 8) << 5) | ((amount - 4) << 2) | 1)

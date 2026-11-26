@@ -105,9 +105,13 @@ impl Image
     {
         var storage: String
         let ext = normalizedImageExtension(fileName, &storage)
-        if not ext.count do
+        if not ext.count
+        {
             return null
-        for &decoder in decoders where decoder.format.matchesLowercaseExtension(ext) do
+        }
+
+        for &decoder in decoders where decoder.format.matchesLowercaseExtension(ext)
+        {
             return decoder
         }
 
@@ -133,7 +137,10 @@ impl Image
             fail UnsupportedFormatError{"image exceeds the encoded byte limit"}
         }
 
-        if options.decodePixels and (options.maxPixels or options.maxDecodedBytes)
+        // Custom decoders may need a separate probe before they allocate pixels.
+        if not checksGeometry and
+           options.decodePixels and
+           (options.maxPixels or options.maxDecodedBytes)
         {
             var probeOptions = options
             probeOptions.decodePixels   = false
@@ -185,13 +192,7 @@ public impl Image
     // a decoding already in progress keeps using its selected type, including its metadata probe.
     func registerDecoder(type: const *TypeInfoStruct)
     {
-        for &decoder in decoders where decoder.type == type
-        {
-            return
-        }
-
-        let itf = unwrap Swag.makeInterface(null, type, IImageDecoder)
-        decoders.add(ImageDecoder{itf.format(), type})
+        registerDecoderEntry(type, false)
     }
 
     // Returns the format read by each registered decoder, in registration order.
@@ -248,7 +249,9 @@ public impl Image
             fail UnsupportedFormatError{"no matching image decoder"}
         }
 
-        var file = File.MappedFile.open(fileName)
+        let decoderType    = found.type
+        let checksGeometry = found.checksGeometry
+        var file           = File.MappedFile.open(fileName)
         if options.maxInputBytes and file.size() > options.maxInputBytes
         {
             fail UnsupportedFormatError{"image exceeds the encoded byte limit"}
@@ -304,17 +307,17 @@ public impl Image
 // Initialize predefined decoders
 #init
 {
-    Image.registerDecoder!{Bmp.Decoder}()
-    Image.registerDecoder!{Tga.Decoder}()
-    Image.registerDecoder!{Jpg.Decoder}()
-    Image.registerDecoder!{Png.Decoder}()
-    Image.registerDecoder!{Gif.SetDecoder}()
-    Image.registerDecoder!{Tiff.Decoder}()
-    Image.registerDecoder!{Ico.Decoder}()
-    Image.registerDecoder!{Webp.Decoder}()
-    Image.registerDecoder!{Qoi.Decoder}()
-    Image.registerDecoder!{Psd.Decoder}()
-    Image.registerDecoder!{Dds.Decoder}()
-    Image.registerDecoder!{Ktx2.Decoder}()
-    Image.registerDecoder!{Exr.Decoder}()
+    Image.registerDecoderEntry(#typeof(Bmp.Decoder), true)
+    Image.registerDecoderEntry(#typeof(Tga.Decoder), true)
+    Image.registerDecoderEntry(#typeof(Jpg.Decoder), true)
+    Image.registerDecoderEntry(#typeof(Png.Decoder), true)
+    Image.registerDecoderEntry(#typeof(Gif.SetDecoder), true)
+    Image.registerDecoderEntry(#typeof(Tiff.Decoder), true)
+    Image.registerDecoderEntry(#typeof(Ico.Decoder), true)
+    Image.registerDecoderEntry(#typeof(Webp.Decoder), true)
+    Image.registerDecoderEntry(#typeof(Qoi.Decoder), true)
+    Image.registerDecoderEntry(#typeof(Psd.Decoder), true)
+    Image.registerDecoderEntry(#typeof(Dds.Decoder), true)
+    Image.registerDecoderEntry(#typeof(Ktx2.Decoder), true)
+    Image.registerDecoderEntry(#typeof(Exr.Decoder), true)
 }

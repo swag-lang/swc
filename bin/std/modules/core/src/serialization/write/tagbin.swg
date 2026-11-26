@@ -159,8 +159,12 @@ private impl TagBin
         for buf in .freeTmpBuf
         {
             Memory.delete(buf)
-        for &element in .elemStack where element.tmpBuf do
+        }
+
+        for &element in .elemStack where element.tmpBuf
+        {
             Memory.delete(element.tmpBuf)
+        }
     }
 
     mtd acquireTmpBuf()->*ConcatBuffer
@@ -318,8 +322,10 @@ impl TagBin
         .shapeIds.clear()
         .shapePlans.clear()
         .outStack.clear()
-        for &element in .elemStack where element.tmpBuf do
+        for &element in .elemStack where element.tmpBuf
+        {
             .releaseTmpBuf(element.tmpBuf)
+        }
         .elemStack.clear()
         .sections.clear()
     }

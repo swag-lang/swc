@@ -141,11 +141,7 @@ impl YuvPlanarView
             Swag.panic("YUV conversion target has invalid pixel storage", #curlocation)
         }
 
-        if firstY < 0 or
-           endY!
-        {
-            firstY or endY
-        }.height
+        if firstY < 0 or endY < firstY or endY > .height
         {
             Swag.panic("YUV conversion row range is outside the image", #curlocation)
         }

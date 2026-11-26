@@ -58,10 +58,11 @@ impl TypeFace
         Sync.scopedLock(&lock)
 
         let key = TypeFaceCacheKey{String.from(fullName), faceIndex}
-        if let here = g_HashTypeFace.tryFind(key) {
+        if let here = g_HashTypeFace.tryFind(key)
+        {
             return here.value
-
         }
+
         let allocator = unwrap (Swag.getContext().defaultAllocator orelse Swag.getContext().allocator)
         let tf        = Memory.new!{TypeFace}(allocator)
         tf.allocationAllocator = allocator
@@ -147,24 +148,14 @@ public impl TypeFace
     func createAt(fullName: string, bytes: const [..] u8, faceIndex: u32)->*TypeFace fail =>
         try createCached(fullName, faceIndex, bytes)
 
-        let key = TypeFaceCacheKey{String.from(fullName), faceIndex}
-        if let here = g_HashTypeFace.tryFind(key)
-        {
-            return here.value
-        }
-
-        let allocator = unwrap (Swag.getContext().defaultAllocator orelse Swag.getContext().allocator)
-        let tf        = Memory.new!{TypeFace}(allocator)
-        tf.allocationAllocator = allocator
-        defer #fail Memory.delete(tf, allocator)
-        tf.fullName = fullName
-
-        tf.face       = faceIndex == 0 ? try Face.loadSubset(bytes, fullName, allocator) : try Face.loadAt(bytes, faceIndex, allocator)
-        tf.faceLoaded = true
-
-        g_HashTypeFace.add(key, tf)
-        return tf
-    }
+    // Returns the cached typeface for a zero-based face of an immutable font source.
+    //
+    // The first successful call for (`fullName`, `faceIndex`) loads a complete face through
+    // [[TrueType.FontSource.loadFace]]. The face retains the source bytes until Pixel shuts down,
+    // so the source allocator must live that long. Later calls with the same key reuse the face.
+    // Invalid input fails without creating a cache entry.
+    func createFromSource(fullName: string, source: const *FontSource, faceIndex: u32 = 0)->*TypeFace fail =>
+        try createCached(fullName, faceIndex, "", source)
 
     // Reports whether [[Pixel.TypeFace.load]] has a font to load for `fullName`.
     //
@@ -232,7 +223,6 @@ public impl TypeFace
         // The installed fonts belong to the machine, not to the program, so this looks past
         // any sandbox: a sandboxed run has no fonts of its own and would find nothing.
         // A name that is no file is an installed font, where the machine's fonts may answer.
-        var buffer: Array!{u8}
         if not File.exists(fullName) and FontFamily.hasSystemFontAccess()
         {
             let path = Path.combine(Env.realSpecialDirectory(.Font), fullName)
@@ -377,10 +367,9 @@ public impl TypeFace
         var result: #returntype
         let commands = .face.glyph.outline.decompose()
         addOutlineToPathList(&result.outline, commands.toSlice())
-
-        for i in prevIdx until result.outline.paths.count
+        for path in result.outline.paths
         {
-            result.outline.paths[i].assumeClosed()
+            path.assumeClosed()
         }
 
         result.advance = embolden + (.face.glyph.advance.x / 64.0)

@@ -68,20 +68,26 @@ impl Json
     {
         const Hex = "0123456789ABCDEF"
 
-        .output.addNative('"'u8)
+        .output.addNative('"'_u8)
         if value
         {
             var bytes = cast(const [..] u8, value)
-            if not Utf8.isValid(bytes) do
+            if not Utf8.isValid(bytes)
+            {
                 .invalidUtf8 = true
+            }
 
             while bytes.count
             {
                 let plain = jsonPlainByteCount(bytes)
-                if plain do
+                if plain
+                {
                     .output.addBytes(bytes[until plain], contiguous: false)
-                if plain == bytes.count do
+                }
+                if plain == bytes.count
+                {
                     break
+                }
 
                 let c = bytes[plain]
                 switch c

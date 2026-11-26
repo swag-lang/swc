@@ -177,7 +177,8 @@ private struct Decoder
     pcm:            Array!{f32}     // One frame of mixed output, interleaved.
     silkPcm:        Array!{s16}     // One frame of SILK output at 48 kHz, interleaved.
     redundant:      Array!{f32}     // The 5 ms redundant CELT frame of a transition.
-    output:         Array!{s16}     // Interleaved samples of the run being decoded.
+    output:         Array!{s16}     // Reusable storage for interleaved output.
+    outputCount:    u64             // Samples written in the current packet.
     packet:         Array!{u8}      // Packet being assembled across pages.
 
     serial:                   u32
@@ -325,13 +326,9 @@ private impl Decoder
         let CC        = .channels
         let frameSize = info.frameSize
         let mode      = info.mode
-        let base      = .output.count
-        .output.resize(base + cast(u64, frameSize) * CC)
-        let pcm = .pcm.storage()
-        for i in frameSize * CC
-        {
-            pcm[i] = 0
-        }
+        let base      = .outputCount
+        .outputCount += cast(u64, frameSize) * CC
+        .output.growResize(.outputCount)
 
         // A frame of one byte or none is a request for concealment; a file plays it as silence.
         if data.count <= 1
@@ -447,6 +444,14 @@ private impl Decoder
                 .celt.reset()
             }
 
+            if mode == ModeCelt and not .gainQ8
+            {
+                try .celt.decodeFrame(data[0 until usable], &dec, celtFrameSize, pcm, .output.storage() + base)
+                .prevMode       = mode
+                .prevRedundancy = false
+                return
+            }
+
             try .celt.decodeFrame(data[0 until usable], &dec, celtFrameSize, pcm)
         }
         else if .prevMode == ModeHybrid and not (redundancy and celtToSilk and .prevRedundancy)
@@ -498,9 +503,21 @@ private impl Decoder
 
         .prevMode       = mode
         .prevRedundancy = redundancy and not celtToSilk
-        for i in frameSize * CC
+        .writePcm16(base, frameSize * CC)
+    }
+
+    mtd writePcm16(base: u64, count: u32)
+    {
+        let source      = .pcm.storage()
+        let destination = .output.storage() + base
+
+        // Every Opus frame size is a multiple of eight samples.
+        for block in count / 8
         {
-            .output[base + i] = cast(s16, Math.clamp(Math.round(cast(f64, pcm[i]) * 32768.0), -32768.0, 32767.0))
+            let i    = block * 8
+            let low  = roundOpusPcm16(Simd.load(source + i) * 32768.0_f32)
+            let high = roundOpusPcm16(Simd.load(source + i + 4) * 32768.0_f32)
+            Simd.store(destination + i, Simd.packSigned(low, high))
         }
     }
 
@@ -659,10 +676,11 @@ private impl Decoder
                     lastGranule = page.granule
                 }
 
-                let body = run[offset + page.headerBytes until offset + pageBytes]
-                var at   = 0_u64
+                let body          = run[offset + page.headerBytes until offset + pageBytes]
+                var at            = 0_u64
+                var start         = 0_u64
                 var headersToSkip = page.sequence == .firstAudioSequence ? .headerPacketsOnAudioPage : 0_u32
-                for index in page.segments
+                for size in page.lacing[until page.segments]
                 {
                     at += size
                     if size == 255
@@ -673,16 +691,7 @@ private impl Decoder
                     let payload = body[start until at]
                     if headersToSkip
                     {
-                        if headersToSkip
-                        {
-                            headersToSkip -= 1
-                        }
-                        else if .packet.count
-                        {
-                            produced += try .decodePacketFrames(.packet.toSlice())
-                        }
-
-                        .packet.clear()
+                        headersToSkip -= 1
                     }
                     else if .packet.count
                     {
@@ -732,15 +741,9 @@ private impl Decoder
 
         if produced < expected
         {
-            .output.resize(expected * .channels)
-        }
-        else if produced < expected
-        {
-            .output.resize(expected * .channels)
-            for index in produced * .channels until expected * .channels
-            {
-                .output[index] = 0
-            }
+            .output.growResize(expected * .channels)
+            let padding = .output.storage() + produced * .channels
+            Memory.clear(padding, (expected - produced) * .channels * #sizeof(s16))
         }
 
         .granule      = lastGranule

@@ -262,12 +262,6 @@ private func currentPath(path: *LinePathList, current: *(*LinePath?), start: Vec
     return result
 }
 
-// How finely two clip shapes are flattened before they intersect.
-//
-// The intersection is polygonal, and it is stated in page points, so at this density its
-// facets stay far below what any zoom of a page can show.
-private const ClipIntersectionScale = 20.0_f32
-
 // Largest distance between two coordinates that still reads as the same edge of a rectangle.
 private const RectangleEpsilon = 0.001_f32
 
@@ -439,14 +433,16 @@ private func appendText(parser: *PdfParser, page: *Page, resourcesId: u32, state
     let index = fontIndex(parser, page, resourcesId, state.fontName.toString())
     let font  = index < page.fonts.count ? &page.fonts[index] : null
 
+    var item    = Item.createText()
     var advance = 0.0_f32
     if font
     {
-        advance = font.runAdvance(bytes, state.fontSize, state.charSpacing, state.wordSpacing)
+        advance = font.decodeRun(bytes, state.fontSize, state.charSpacing, state.wordSpacing, &item)
     }
     else
     {
-        advance = cast(f32, bytes.count) * state.fontSize * 0.5
+        advance   = cast(f32, bytes.count) * state.fontSize * 0.5
+        item.text = #move Text.decode(cast(const [..] u8, bytes), .Windows1252)
     }
 
     if not item.text.isEmpty()
@@ -460,22 +456,15 @@ private func appendText(parser: *PdfParser, page: *Page, resourcesId: u32, state
         let m22       = combined.m22
         let baselineY = page.height - baseline.y
 
-        var item = Item.createText()
-        item.invisibleText = invisible
-        item.text = #move text
-        if font
-        {
-            item.textCodes    = #move font.decodeCodes(bytes)
-            item.textAdvances = #move font.codeAdvances(bytes, state.fontSize, state.charSpacing, state.wordSpacing)
-        }
-
-        item.fontSize  = state.fontSize
-        item.fillColor = dimmed(state.fillColor, state.fillAlpha)
-        item.fontIndex = index
-        item.transform = Transform2{combined.m11, -combined.m12, m21, m22, baseline.x - state.fontSize * m21, baselineY - state.fontSize * m22}
-        item.clip      = state.clip
-        item.hasClip   = state.hasClip
-        item.clipPath  = state.clipPath
+        // Render modes 3 and 7 add no marks. Keep their text for search and selection.
+        item.invisibleText = state.renderMode == 3 or state.renderMode == 7
+        item.fontSize      = state.fontSize
+        item.fillColor     = dimmed(state.fillColor, state.fillAlpha)
+        item.fontIndex     = index
+        item.transform     = Transform2{combined.m11, -combined.m12, m21, m22, baseline.x - state.fontSize * m21, baselineY - state.fontSize * m22}
+        item.clip          = state.clip
+        item.hasClip       = state.hasClip
+        item.clipPath      = state.clipPath
         if font and font.hasStandard
         {
             item.standardFont = font.standard
@@ -912,12 +901,14 @@ private func meanCoverage(coverage: const *Image)->f32
 // stated at.
 private func maskImagePixels(item: *Item, coverage: const *Image, region: Math.Rectangle)
 {
-    if not item.image.isValid() or not coverage.isValid()
+    let stored = item.image.value()
+    if not stored or not stored.isValid() or not coverage.isValid()
     {
         return
     }
 
-    if item.image.pixelFormat != .RGBA8
+    Swag.assert(coverage.pixelFormat == .RGBA8)
+    if stored.pixelFormat != .RGBA8
     {
         var opaque = #move stored.convertedTo(.RGBA8)
         item.image = #move ImageReference.create(#move opaque)
@@ -1009,7 +1000,8 @@ private func maskItem(parser: *PdfParser, page: *Page, mask: const *SoftMaskRef,
         return
     }
 
-    let group = try softMaskGroup(parser, page, mask, depth)
+    let transform = mask.groupTransform()
+    let group     = try softMaskGroup(parser, page, mask, transform, depth)
 
     item.refreshPaintBounds()
     let region = item.maskRegion()
@@ -1018,7 +1010,18 @@ private func maskItem(parser: *PdfParser, page: *Page, mask: const *SoftMaskRef,
         return
     }
 
-    var coverage = try softMaskCoverage(group, region.rect)
+    // Page coordinates run downwards, so the PDF translation's y component reverses.
+    let shift = Math.Vector2{mask.ctm.tx - transform.tx, transform.ty - mask.ctm.ty}
+    var local = region.rect
+    local.x -= shift.x
+    local.y -= shift.y
+    if item.kind == .Image and local == group.cachedRegion and group.cachedCoverage.isValid()
+    {
+        maskImagePixels(item, &group.cachedCoverage, region.rect)
+        return
+    }
+
+    var coverage = try softMaskCoverage(group, local)
     if not coverage.isValid()
     {
         return
@@ -1386,7 +1389,8 @@ private func parseContent(parser: *PdfParser, page: *Page, resourcesId: u32, byt
         case "m":
             if ops.count >= 2
             {
-                discard currentPath(&path, &current, transformPoint(&state, page, operandNumber(&content, ops, ops.count - 2), operandNumber(&content, ops, ops.count - 1)))
+                let start = transformPoint(&state, page, operandNumber(&content, ops, ops.count - 2), operandNumber(&content, ops, ops.count - 1))
+                discard currentPath(&path, &current, start)
             }
 
         case "l":
@@ -1987,7 +1991,7 @@ internal func indexDocument(parser: *PdfParser, metadata: *Metadata, pages: *Arr
 
 func decodeDocument(bytes: const [..] u8)->Document fail
 {
-    var parser = PdfParser{bytes: bytes}
+    var parser = PdfParser{bytes: bytes, retainImageStreams: true}
     var sources: Array!{PageSource}
     var result:  #returntype = Document.create()
     try indexDocument(&parser, &result.metadata, &sources)

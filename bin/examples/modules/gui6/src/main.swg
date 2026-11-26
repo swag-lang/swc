@@ -396,10 +396,10 @@ func onPreviewEvent(view: *Wnd, evt: IEvent)->bool
         let font      = view.theme().createDefaultFont(14)
         let titleFont = view.theme().createDefaultFont(20, .Bold)
 
-        painter.fillRect(rect, colors.view_Bk)
-        let card = Math.Rectangle{24, 24, Math.max(rect.width - 48, 1.0), Math.max(rect.height - 48, 1.0)}
-        painter.fillRoundRect(card, 20, 20, Color.fromArgb(255, 246, 248, 250))
-        painter.drawRoundRect(card, 20, 20, Color.fromArgb(70_u8, Argb.Black), 1)
+        painter.fillRoundRect(rect, 8, 8, colors.ground)
+        const Inset = 20.0
+        let contentWidth = rect.width - 2 * Inset
+        painter.drawString(Inset, Inset, "Command State", titleFont, colors.text)
 
         let labels = [
             Format.toString("Grid %", boolWord(g_ShowGrid)),
@@ -412,75 +412,10 @@ func onPreviewEvent(view: *Wnd, evt: IEvent)->bool
         let width = (contentWidth - (columns - 1) * Gap) / columns
         for label, index in labels
         {
-            let pillWidth = (contentWidth - 3 * pillGap) * 0.25
-            drawStatePill(painter,
-                          Math.Rectangle{contentX, pillTop, pillWidth, pillHeight},
-                          Format.toString("grid %", boolWord(g_ShowGrid)),
-                          g_ShowGrid,
-                          font,
-                          colors)
-            drawStatePill(painter,
-                          Math.Rectangle{contentX + pillWidth + pillGap, pillTop, pillWidth, pillHeight},
-                          Format.toString("guides %", boolWord(g_ShowGuides)),
-                          g_ShowGuides,
-                          font,
-                          colors)
-            drawStatePill(painter,
-                          Math.Rectangle{contentX + 2 * (pillWidth + pillGap), pillTop, pillWidth, pillHeight},
-                          currentModeName(),
-                          true,
-                          font,
-                          colors)
-            drawStatePill(painter,
-                          Math.Rectangle{contentX + 3 * (pillWidth + pillGap), pillTop, pillWidth, pillHeight},
-                          g_DocumentDirty ? "dirty" : "saved",
-                          g_DocumentDirty,
-                          font,
-                          colors)
-            pillsBottom = pillTop + pillHeight
-        }
-        else
-        {
-            let pillWidth = (contentWidth - pillGap) * 0.5
-            let secondX   = contentX + pillWidth + pillGap
-            let secondRow = pillTop + pillHeight + 10
-            drawStatePill(painter,
-                          Math.Rectangle{contentX, pillTop, pillWidth, pillHeight},
-                          Format.toString("grid %", boolWord(g_ShowGrid)),
-                          g_ShowGrid,
-                          font,
-                          colors)
-            drawStatePill(painter,
-                          Math.Rectangle{secondX, pillTop, pillWidth, pillHeight},
-                          Format.toString("guides %", boolWord(g_ShowGuides)),
-                          g_ShowGuides,
-                          font,
-                          colors)
-            drawStatePill(painter,
-                          Math.Rectangle{contentX, secondRow, pillWidth, pillHeight},
-                          currentModeName(),
-                          true,
-                          font,
-                          colors)
-            drawStatePill(painter,
-                          Math.Rectangle{secondX, secondRow, pillWidth, pillHeight},
-                          g_DocumentDirty ? "dirty" : "saved",
-                          g_DocumentDirty,
-                          font,
-                          colors)
-            pillsBottom = secondRow + pillHeight
-        }
-
-        let lineY = card.bottom() - 52
-        if lineY > pillsBottom + 12
-        {
-            painter.drawLine(contentX, lineY, contentX + contentWidth, lineY, Color.fromArgb(60_u8, Argb.Black), 1)
-            drawWrappedText(painter,
-                            Math.Rectangle{contentX, lineY + 12, contentWidth, card.bottom() - lineY - 18},
-                            stateSummary(),
-                            font,
-                            Argb.DimGray,
-                            1)
+            let column = cast(s32, index) % columns
+            let row    = cast(s32, index) / columns
+            let chip   = Math.Rectangle{Inset + column * (width + Gap), 58 + row * 38, width, 30}
+            drawStatePill(painter, chip, label.toString(), active[index], font, colors)
         }
     }
 

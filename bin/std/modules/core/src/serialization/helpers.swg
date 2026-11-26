@@ -4,18 +4,20 @@
 internal func jsonPlainByteCount(bytes: const [..] u8)->u64
 {
     const VectorSize = #sizeof(Simd.U8x16)
-    var length = 0'u64
+    var length = 0_u64
     if bytes.count >= VectorSize
     {
-        let control   = Simd.splat(0x20'u8)
-        let quote     = Simd.splat('"'u8)
-        let backslash = Simd.splat('\\'u8)
+        let control   = Simd.splat(0x20_u8)
+        let quote     = Simd.splat('"'_u8)
+        let backslash = Simd.splat('\\'_u8)
         while bytes.count - length >= VectorSize
         {
             let block   = Simd.load(bytes.buffer + length)
             let special = Simd.bitmask((block < control) | (block == quote) | (block == backslash))
-            if special do
+            if special
+            {
                 return length + Math.trailingZeros(special)
+            }
             length += VectorSize
         }
     }
@@ -23,8 +25,10 @@ internal func jsonPlainByteCount(bytes: const [..] u8)->u64
     while length < bytes.count
     {
         let byte = bytes[length]
-        if byte < 0x20 or byte == '"' or byte == '\\' do
+        if byte < 0x20 or byte == '"' or byte == '\\'
+        {
             break
+        }
         length += 1
     }
 

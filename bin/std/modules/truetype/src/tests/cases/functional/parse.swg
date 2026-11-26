@@ -632,7 +632,7 @@ private func lookupCffName(thread: const *Threading.Thread)
     // Even an optional table the face parser does not otherwise consume must fit
     // within the font before its directory record is accepted.
     var bytes      = loadFontBytes("arial.ttf")
-    let dsigRecord = parseTestTableRecord(&bytes, imageTag('D'u32, 'S'u32, 'I'u32, 'G'u32))
+    let dsigRecord = parseTestTableRecord(&bytes, imageTag('D'_u32, 'S'_u32, 'I'_u32, 'G'_u32))
     writeBigU32(&bytes, dsigRecord + 8, cast(u32, bytes.count + 1))
 
     var rejected: Swag.Error

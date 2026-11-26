@@ -1305,7 +1305,7 @@ private impl View
         }
 
         let viewport = .scroll.paddedClientRect()
-        if .waitingScrollTarget.y!{.virtualOrigin or (.waitingScrollTarget.y + viewport.height}.contentHeight and .hasUnloadedSource())
+        if .waitingScrollTarget.y < .virtualOrigin or (.waitingScrollTarget.y + viewport.height > .contentHeight and .hasUnloadedSource())
         {
             return
         }

@@ -745,10 +745,7 @@ private impl Codec
         }
         else if kind == 1
         {
-            for index in blockSize
-            {
-                target[index] = reader.readSigned(depth)
-            }
+            reader.readSignedSamples(target, blockSize, depth)
         }
         else if kind >= 8 and kind <= 12
         {
@@ -1035,7 +1032,17 @@ private impl Codec
         for index in start until blockSize
         {
             var sum = 0_s64
-            for tap in order
+            for group in groups
+            {
+                let tap      = group * 4
+                let previous = index - 1 - tap
+                sum += coefficients[tap] * target[previous]
+                sum += coefficients[tap + 1] * target[previous - 1]
+                sum += coefficients[tap + 2] * target[previous - 2]
+                sum += coefficients[tap + 3] * target[previous - 3]
+            }
+
+            for tap in groupedTaps until order
             {
                 sum += coefficients[tap] * target[index - 1 - tap]
             }
@@ -1048,8 +1055,7 @@ private impl Codec
             else
             {
                 let amount = cast(u32, -shift)
-                if (sum > 0 and sum > (Swag.S64.Max >> amount)) or
-                   (sum < 0 and sum < (Swag.S64.Min >> amount))
+                if sum > (Swag.S64.Max >> amount) or sum < (Swag.S64.Min >> amount)
                 {
                     fail InvalidFormatError{"FLAC linear predictor overflows its accumulator"}
                 }
@@ -1058,13 +1064,16 @@ private impl Codec
             }
 
             let residual = source[index]
-            if (prediction > 0 and residual > Swag.S64.Max - prediction) or
-               (prediction < 0 and residual < Swag.S64.Min - prediction)
+
+            // Addition overflows if both operands have the opposite sign from the sum.
+            #[Swag.Safety(.Overflow, false)]
+            let sample = residual + prediction
+            if ((sample ^ residual) & (sample ^ prediction)) < 0
             {
                 fail InvalidFormatError{"FLAC linear predictor overflows its accumulator"}
             }
 
-            target[index] = residual + prediction
+            target[index] = sample
         }
     }
 
@@ -1362,6 +1371,37 @@ private impl Codec
     mtd writePcm16(destination: [*] s16, header: FrameHeader)
     {
         let shift = cast(s32, header.bitsPerSample) - 16
+        if shift >= 0 and header.channels == 2
+        {
+            if shift == 16 and header.channelAssignment == 1
+            {
+                .interleaveStereoPcm16!{1_u32, true, true}(destination, header.blockSize, 16)
+            }
+            else if shift
+            {
+                .writeStereoPcm16!{true}(destination, header, cast(u32, shift))
+            }
+            else
+            {
+                .writeStereoPcm16!{false}(destination, header, 0)
+            }
+
+            return
+        }
+
+        if not shift and header.channels == 6
+        {
+            .writeSixChannelPcm16(destination, header.blockSize)
+            return
+        }
+
+        if not shift and header.channels == 1
+        {
+            .writeMonoPcm16(destination, header.blockSize)
+            return
+        }
+
+        .undecorrelate(header.channelAssignment, header.blockSize)
         var index = 0_u64
         for sample in header.blockSize
         {
@@ -1426,8 +1466,9 @@ private impl Codec
                 continue
             }
 
-            var skip = page.sequence == .firstAudioSequence ? .headerPacketsOnAudioPage : 0_u32
-            for index in page.segments
+            var start = at
+            var skip  = page.sequence == .firstAudioSequence ? .headerPacketsOnAudioPage : 0_u32
+            for size in page.lacing[until page.segments]
             {
                 at += size
                 if size == 255
@@ -1437,21 +1478,12 @@ private impl Codec
 
                 if skip
                 {
-                    if size < 255
-                    {
-                        skip -= 1
-                    }
+                    skip -= 1
                 }
                 else
                 {
-                    // Native FLAC frames fit in STREAMINFO's 24-bit maximum frame size.
-                    if .oggFrame.count + size > 0xFF_FFFF
-                    {
-                        fail InvalidFormatError{"Ogg FLAC frame exceeds the FLAC frame-size limit"}
-                    }
-
-                    .oggFrame.add(pages[at until at + size])
-                    if size < 255
+                    var frame = pages[start until at]
+                    if not .oggFrame.isEmpty()
                     {
                         try .appendOggFrame(frame)
                         frame = .oggFrame.toSlice()

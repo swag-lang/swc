@@ -147,7 +147,7 @@ func readHeader(bytes: const [..] u8)->FrameHeader fail
     result.frameSamples  = result.isMpeg1 ? 1152 : 576
 
     let padding = cast(u64, (bytes[2] >> 1)) & 1
-    result.frameBytes = cast(u64, (result.frameSamples / 8)) * cast(u64, kbits) * 1000 / cast(u64, result.sampleRate) + padding
+    result.frameBytes = cast(u64, FrameBytes[versionRow, rate, bitrateIndex]) + padding
     if result.frameBytes < 4
     {
         fail InvalidFormatError{"MP3 frame states a size no frame can have"}
@@ -183,8 +183,10 @@ impl BitReader
     #[Swag.Inline]
     mtd const peek(count: u32)->u32
     {
-        var result = 0_u32
-        for count
+        let at        = .bitPos >> 3
+        let remaining = .bitEnd >> 3
+        var word: u32
+        if at + 4 <= remaining
         {
             let data = unwrap .data
             word = Math.bigEndianToNative(cast(const [*] u32, data + at)[0])
@@ -192,7 +194,8 @@ impl BitReader
         else if at < remaining
         {
             let data = unwrap .data
-            for i in remaining - at {
+            for i in remaining - at
+            {
                 word |= cast(u32, data[at + i]) << cast(u32, (24 - 8 * i))
             }
         }
@@ -210,9 +213,11 @@ impl BitReader
     #[Swag.Inline]
     mtd read(count: u32)->u32
     {
-        if not count {
+        if not count
+        {
             return 0
         }
+
         let value = .peek(count)
         .consume(count)
         return value
@@ -223,9 +228,11 @@ impl BitReader
     {
         let at = .bitPos
         .bitPos += 1
-        if at >= .bitEnd {
+        if at >= .bitEnd
+        {
             return 0
         }
+
         let data = unwrap .data
         return (cast(u32, data[at >> 3]) >> (7 - cast(u32, (at & 7)))) & 1
     }
@@ -239,15 +246,18 @@ impl BitReader
     mtd readMagnitude(value, escape: u32, gain: f32)->f32
     {
         var magnitude = value
-        if value == 15 and escape {
+        if value == 15 and escape
+        {
             magnitude += .read(escape)
         }
-        if not magnitude {
-            return 0
 
+        if not magnitude
+        {
+            return 0
         }
+
         let sample = Powers43[magnitude] * gain
-        let sign = .readBit() << 31
+        let sign   = .readBit() << 31
         return cast #bit(f32, cast #bit(u32, sample) ^ sign)
     }
 
@@ -324,29 +334,33 @@ func readSideInfo(header: const *FrameHeader, bytes: const [..] u8, granules: *[
     {
         for channel in header.channels
         {
-            let info = &granules[][cast(u64, granule), cast(u64, channel)]
-            info.part23Length = reader.read(12)
-            info.bigValues    = reader.read(9)
+            let info  = &granules[][cast(u64, granule), cast(u64, channel)]
+            let sizes = reader.read(21)
+            info.part23Length = sizes >> 9
+            info.bigValues    = sizes & 511
             if info.bigValues > 288
             {
                 fail InvalidFormatError{"MP3 granule codes more spectral lines than a granule holds"}
             }
 
-            info.globalGain       = reader.read(8)
-            info.scalefacCompress = reader.read(header.isMpeg1 ? 4 : 9)
+            let scaleBits = header.isMpeg1 ? 4_u32 : 9_u32
+            let scale     = reader.read(8 + scaleBits)
+            info.globalGain       = scale >> scaleBits
+            info.scalefacCompress = scale & ((1_u32 << scaleBits) - 1)
 
             info.longBands  = 22
             info.shortBands = 0
             info.bandKind   = 0
             if reader.readBit() != 0
             {
-                info.blockType = reader.read(2)
+                let windows = reader.read(3)
+                info.blockType = windows >> 1
                 if not info.blockType
                 {
                     fail InvalidFormatError{"MP3 granule switches windows and then states a normal block"}
                 }
 
-                info.mixedBlock = reader.read(1) != 0
+                info.mixedBlock = (windows & 1) != 0
 
                 info.regionBands[0] = 7
                 info.regionBands[1] = 255
@@ -367,28 +381,24 @@ func readSideInfo(header: const *FrameHeader, bytes: const [..] u8, granules: *[
                     }
                 }
 
-                for region in 2_u64
-                {
-                    info.tableSelect[region] = reader.read(5)
-                }
-
-                info.tableSelect[2] = 0
-                for window in 3_u64
-                {
-                    info.subblockGain[window] = reader.read(3)
-                }
+                let switches = reader.read(19)
+                info.tableSelect[0]  = switches >> 14
+                info.tableSelect[1]  = (switches >> 9) & 31
+                info.tableSelect[2]  = 0
+                info.subblockGain[0] = (switches >> 6) & 7
+                info.subblockGain[1] = (switches >> 3) & 7
+                info.subblockGain[2] = switches & 7
             }
             else
             {
-                info.blockType  = 0
-                info.mixedBlock = false
-                for region in 3_u64
-                {
-                    info.tableSelect[region] = reader.read(5)
-                }
-
-                info.regionBands[0] = reader.read(4)
-                info.regionBands[1] = reader.read(3)
+                let regions = reader.read(22)
+                info.blockType      = 0
+                info.mixedBlock     = false
+                info.tableSelect[0] = regions >> 17
+                info.tableSelect[1] = (regions >> 12) & 31
+                info.tableSelect[2] = (regions >> 7) & 31
+                info.regionBands[0] = (regions >> 3) & 15
+                info.regionBands[1] = regions & 7
                 info.regionBands[2] = 255
             }
 
@@ -429,22 +439,28 @@ struct PreparedFrame
 func prepareFrame(packet: const [..] u8, destinationSize: u64, sampleRate, channels: u32)->PreparedFrame fail
 {
     let header = try readHeader(packet)
-    if packet.count < header.frameBytes {
+    if packet.count < header.frameBytes
+    {
         fail InvalidFormatError{"MP3 frame is shorter than its header states"}
     }
-    if header.sampleRate != sampleRate or header.channels != channels {
+
+    if header.sampleRate != sampleRate or header.channels != channels
+    {
         fail InvalidFormatError{"MP3 frame does not match the stream its container declared"}
     }
-    if destinationSize < cast(u64, header.frameSamples) * channels * #sizeof(s16) {
-        fail BadParameterError{"MP3 destination buffer is too small"}
 
+    if destinationSize < cast(u64, header.frameSamples) * channels * #sizeof(s16)
+    {
+        fail BadParameterError{"MP3 destination buffer is too small"}
     }
+
     let sideOffset    = 4 + (header.hasCrc ? 2_u64 : 0)
     let payloadOffset = sideOffset + header.sideInfoBytes
-    if payloadOffset > header.frameBytes {
+    if payloadOffset > header.frameBytes
+    {
         fail InvalidFormatError{"MP3 frame is too short for its side information"}
-
     }
+
     var result: #returntype
     result.header        = header
     result.payloadOffset = payloadOffset
@@ -462,25 +478,28 @@ struct Codec
     // Every registered codec starts with the registry's own header.
     using base: Audio.Codec
 
-    sampleRate:   u32
-    channels:     u32
-    reservoir:    Array!{u8}
-    state:        [2] ChannelState
-    lines:        [2] Granule576
-    scalefac:     [2, 40] u8     // The previous granule's, for the bands `scfsi` shares.
-    intensityPos: [2, 40] u8
-    bandGain:     [2, 40] f32
-    output:       [2, 1152] f32
-    ready:        bool
+    sampleRate:    u32
+    channels:      u32
+    mainData:      Array!{u8}
+    reservoirSize: u64
+    state:         [2] ChannelState
+    lines:         [2] Granule576
+    scalefac:      [2, 40] u8     // The previous granule's, for the bands `scfsi` shares.
+    intensityPos:  [40] u8        // Intensity stereo takes positions from the right channel.
+    bandGain:      [2, 40] f32
+    output:        [2, 1152] f32
+    ready:         bool
 }
 
 // The largest Huffman magnitude is 15 plus a 13-bit escape value.
 private func buildPowers43()->[15 + (1 << 13)] f32
 {
     var powers: #returntype
-    for value in powers.count {
+    for value in powers.count
+    {
         powers[value] = cast(f32, Math.pow(cast(f64, value), 4.0_f64 / 3.0_f64))
     }
+
     return powers
 }
 
@@ -566,7 +585,8 @@ private func walkPrefix(tree: const [..] s16, prefix, bits: u32, start = 0_s16)-
     {
         let bit = (prefix >> (bits - length)) & 1
         node = tree[cast(u32, node) * 2 + bit]
-        if node < 0 {
+        if node < 0
+        {
             return {node, length}
         }
     }
@@ -609,7 +629,7 @@ private const SignedUnit: [4] f32 = [0.0, 1.0, 0.0, -1.0]
 
 private const PairPrefixBits = 10_u32
 private const PairTailBits   = 4_u32
-private const PairTailRows   = 149_u64 // Ten-bit prefixes that still name an internal node.
+private const PairTailRows   = 149_u64     // Ten-bit prefixes that still name an internal node.
 
 // Leaf entries carry two five-bit magnitudes with signs, the four-bit code length,
 // and the two-bit sign count. A sign count of three leaves the trailing bits to the
@@ -651,6 +671,7 @@ private func buildPairLookup()->PairLookup
                         result.tails[continuation, suffix] = cast(u16, next)
                     }
                 }
+
                 continuation += 1
                 continue
             }
@@ -690,29 +711,19 @@ private func buildPairLookup()->PairLookup
 private func buildSignedPowers()->[32] f32
 {
     var values: #returntype
-    for value in values.count {
+    for value in values.count
+    {
         values[value] = value & 16 ? -Powers43[value & 15] : Powers43[value & 15]
     }
+
     return values
 }
 
-private const PairCodes        = #run buildPairLookup()
-private const SignedPowers     = #run buildSignedPowers()
+private const PairCodes    = #run buildPairLookup()
+private const SignedPowers = #run buildSignedPowers()
 
 impl Codec
 {
-    // The magnitude of one quantized line, `|value| ^ (4 / 3)`.
-    #[Swag.Inline]
-    mtd const power43(value: u32)->f32
-    {
-        if value < 16
-        {
-            return Pow43Small[cast(u64, value)]
-        }
-
-        return cast(f32, Math.pow(cast(f64, value), 4.0_f64 / 3.0_f64))
-    }
-
     // Reads the scalefactors of one granule and folds them into one gain per band.
     //
     // What the decoder needs is not the scalefactor but the factor every line of its band is
@@ -782,6 +793,7 @@ impl Codec
         }
 
         var values: [40] u8
+        let saveLsfPosition = not header.isMpeg1 and channel == 1
         var at    = 0_u64
         var share = info.scfsi
         for partition in 4_u64
@@ -811,22 +823,10 @@ impl Codec
 
                     // A low sampling frequency granule marks an unusable intensity position by
                     // saturating the field.
-                    if not header.isMpeg1 and bits and value == full
+                    if saveLsfPosition
                     {
-                        .intensityPos[cast(u64, channel), at + index] = 255
+                        .intensityPos[at + index] = bits and value == full ? 255_u8 : cast(u8, value)
                     }
-                    else
-                    {
-                        .intensityPos[cast(u64, channel), at + index] = cast(u8, value)
-                    }
-                }
-            }
-
-            if header.isMpeg1
-            {
-                for index in count where at + index < 40
-                {
-                    .intensityPos[cast(u64, channel), at + index] = values[at + index]
                 }
             }
 
@@ -834,10 +834,11 @@ impl Codec
             share <<= 1
         }
 
-        if header.isMpeg1 and channel == 1 {
+        if header.isMpeg1 and channel == 1
+        {
             Memory.copy(&.intensityPos[0], &values[0], Math.min(at, 40))
-
         }
+
         while at < 40
         {
             values[at] = 0
@@ -888,8 +889,8 @@ impl Codec
 
         for index in 40_u64
         {
-            let power = cast(f64, (exponent - (scaled[index] << shift))) / 4.0_f64
-            .bandGain[cast(u64, channel), index] = cast(f32, Math.pow(2.0_f64, power))
+            let power = exponent - (scaled[index] << shift)
+            .bandGain[cast(u64, channel), index] = BandGains[cast(u64, (power - MinGainExponent))]
         }
     }
 
@@ -897,10 +898,10 @@ impl Codec
     #[Swag.Inline]
     mtd const decodeSymbolTail(tree: const [..] s16, start, axis: u32, reader: *BitReader)->s32
     {
-        var node = 0_s32
-        for 32_u32
+        var node = cast(s32, start)
+        for PairPrefixBits + PairTailBits until 32_u32
         {
-            let slot = cast(u64, (node * 2)) + cast(u64, reader.read(1))
+            let slot = cast(u64, (node * 2)) + cast(u64, reader.readBit())
             if slot >= tree.count
             {
                 return -1
@@ -909,7 +910,7 @@ impl Codec
             let next = tree[slot]
             if next < 0
             {
-                return cast(s32, (-next - 1))
+                return cast(s32, packSymbol(cast(u32, (-next - 1)), axis))
             }
 
             node = cast(s32, next)
@@ -926,10 +927,7 @@ impl Codec
     mtd decodeSpectrum(header: const *FrameHeader, info: const *GranuleInfo, reader: *BitReader, channel: u32, limit: u64)
     {
         let lines = &.lines[cast(u64, channel)]
-        for index in 576_u64
-        {
-            lines[][index] = 0
-        }
+        Memory.set(cast(*void, &lines[][0]), 0, #sizeof(Granule576))
 
         var line      = 0_u64
         var band      = 0_u64
@@ -985,9 +983,11 @@ impl Codec
                     let bits  = (token >> 10) & 15
                     if bits
                     {
-                        if reader.bitPos + bits > limit {
+                        if reader.bitPos + bits > limit
+                        {
                             return
                         }
+
                         let signs = token >> 14
                         if signs == 3
                         {
@@ -1006,37 +1006,29 @@ impl Codec
                         continue
                     }
 
-                    let symbol = .decodeSymbol(tree, reader)
+                    reader.consume(PairPrefixBits)
+                    let tail       = cast(u32, PairCodes.tails[token, reader.peek(PairTailBits)])
+                    let tailLength = tail >> 8
+                    var symbol     = cast(s32, (tail & 255))
+                    if tailLength
+                    {
+                        reader.consume(tailLength)
+                    }
+                    else
+                    {
+                        reader.consume(PairTailBits)
+                        symbol = .decodeSymbolTail(tree, tail, axis, reader)
+                    }
+
                     if symbol < 0 or reader.bitPos > limit
                     {
                         return
                     }
 
                     let pair = cast(u32, symbol)
-                    for component in 2_u32
-                    {
-                        var value = component == 0 ? pair / axis : pair % axis
-                        if value == 15 and escape
-                        {
-                            value += reader.read(escape)
-                        }
-
-                        var sample = 0_f32
-                        if value
-                        {
-                            sample = .power43(value) * gain
-                            if reader.read(1) != 0
-                            {
-                                sample = -sample
-                            }
-                        }
-
-                        if line < 576
-                        {
-                            lines[][line] = sample
-                            line += 1
-                        }
-                    }
+                    lines[][line]     = reader.readMagnitude(pair >> 4, escape, gain)
+                    lines[][line + 1] = reader.readMagnitude(pair & 15, escape, gain)
+                    line += 2
                 }
             }
         }
@@ -1045,13 +1037,15 @@ impl Codec
         // the granule independently of the sign bits.
         while line + 4 <= 576 and reader.bitPos < limit and not ended
         {
-            let symbol = .decodeSymbol(quadTree, reader)
-            if symbol < 0 or reader.bitPos > limit
+            let token = cast(u32, Count1Tokens[info.count1Table, reader.peek(Count1PrefixBits)])
+            if reader.bitPos + ((token >> 8) & 15) > limit
             {
                 break
             }
 
-            // A quadruple spans two pairs, and the band may change between them.
+            reader.consume(token >> 12)
+
+            // The scalefactor band can change between the quadruple's two pairs.
             for half in 2_u32
             {
                 if not pairsLeft
@@ -1066,31 +1060,13 @@ impl Codec
                     gain      = .bandGain[cast(u64, channel), band]
                     band      += 1
                     pairsLeft = cast(u64, width) / 2
-                    if not pairsLeft
-                    {
-                        continue
-                    }
                 }
 
                 pairsLeft -= 1
-                for component in 2_u32
-                {
-                    var sample = 0_f32
-                    if (cast(u32, symbol) & (8 >> (half * 2 + component))) != 0
-                    {
-                        sample = gain
-                        if reader.read(1) != 0
-                        {
-                            sample = -sample
-                        }
-                    }
-
-                    if line < 576
-                    {
-                        lines[][line] = sample
-                        line += 1
-                    }
-                }
+                let value = token >> (half * 4)
+                lines[][line]     = SignedUnit[value & 3] * gain
+                lines[][line + 1] = SignedUnit[(value >> 2) & 3] * gain
+                line += 2
             }
         }
     }
@@ -1104,10 +1080,34 @@ impl Codec
             [0.0, 1.0], [0.211324865, 0.788675135], [0.366025404, 0.633974596], [0.5, 0.5],
             [0.633974596, 0.366025404], [0.788675135, 0.211324865], [1.0, 0.0]]
 
-        let left     = &.lines[0]
-        let right    = &.lines[1]
+        let left      = &.lines[0]
+        let right     = &.lines[1]
+        let midSide   = header.isMidSide()
+        let intensity = header.isIntensity()
+        if not intensity
+        {
+            if not midSide
+            {
+                return
+            }
+
+            // Long and short band tables cover every line. Mixed bands may end sooner.
+            if info.bandKind != 2
+            {
+                for group in 144_u64
+                {
+                    let line = group * 4
+                    let a    = Math.Simd.load(&left[][line])
+                    let b    = Math.Simd.load(&right[][line])
+                    Math.Simd.store(&left[][line], a + b)
+                    Math.Simd.store(&right[][line], a - b)
+                }
+
+                return
+            }
+        }
+
         let maxPos   = header.isMpeg1 ? 7_u32 : 64_u32
-        let midSide  = header.isMidSide()
         let takeBack = midSide ? cast(f32, Math.sqrt(2.0_f64)) : 1.0_f32
 
         // The intensity region starts where the right channel stopped carrying anything.
@@ -1166,11 +1166,11 @@ impl Codec
 
                 if prev >= 0 and topBand[index] < cast(s32, prev)
                 {
-                    .intensityPos[1, top] = .intensityPos[1, cast(u64, prev)]
+                    .intensityPos[top] = .intensityPos[cast(u64, prev)]
                 }
                 else
                 {
-                    .intensityPos[1, top] = neutral
+                    .intensityPos[top] = neutral
                 }
             }
         }
@@ -1236,11 +1236,17 @@ impl Codec
         var longSubbands = 32_u32
         if shortBlock
         {
+            longSubbands = 0
+            if info.mixedBlock
+            {
+                longSubbands = header.rateIndex == 1 ? 4 : 2
+            }
+
             var firstLine = 0_u32
-            var firstBand = 0_u64
             for band in cast(u64, info.longBands)
             {
                 firstLine += info.bandWidth(header.rateIndex, band)
+            }
 
             var widths: [40] u8
             for band in 40_u64
@@ -1248,62 +1254,34 @@ impl Codec
                 widths[band] = cast(u8, info.bandWidth(header.rateIndex, band))
             }
 
-            reorderShortBlocks(lines, widths, cast(u32, firstBand), firstLine)
+            reorderShortBlocks(lines, widths, info.longBands, firstLine)
         }
 
-        // Only long blocks were aliased. A mixed block aliased its long part alone.
-        var aliased = 32_u32
-        if info.blockType == 2
+        // Only the long part was aliased.
+        if longSubbands > 1
         {
-            if info.mixedBlock
-            {
-                aliased = header.rateIndex == 1 ? 4 : 2
-            }
-            else
-            {
-                aliased = 1
-            }
+            reduceAlias(lines, longSubbands)
         }
 
-        reduceAlias(lines, aliased)
+        let state       = &.state[cast(u64, channel)]
+        let overlap     = &state.overlap
+        let previousEnd = state.overlapEnd
+        var currentEnd  = 0_u32
+        if longSubbands
+        {
+            let window = shortBlock ? 0_u32 : info.blockType
+            currentEnd = inverseTransformBands(lines, overlap, 0, longSubbands, window, previousEnd)
+        }
 
-        var longSubbands = 0_u32
-        if info.blockType == 2 and info.mixedBlock
+        if longSubbands < 32
         {
-            if header.rateIndex == 1
-            {
-                longSubbands = 4
-            }
-            else
-            {
-                longSubbands = 2
-            }
+            let end = inverseTransformBands(lines, overlap, longSubbands, 32, 2, previousEnd)
+            currentEnd = Math.max(currentEnd, end)
         }
-        else if info.blockType != 2
-        {
-            longSubbands = 32
-        }
+
         state.overlapEnd = currentEnd
 
-        for subband in 32_u32
-        {
-            var kind = 2_u32
-            if subband < longSubbands
-            {
-                if info.blockType == 2
-                {
-                    kind = 0
-                }
-                else
-                {
-                    kind = info.blockType
-                }
-            }
-
-            inverseTransform(lines, &.state[cast(u64, channel)].overlap, subband, kind)
-        }
-
-        invertFrequencies(lines)
+        invertFrequencies(lines, Math.max(previousEnd, state.overlapEnd))
 
         let base = cast(u64, granule) * 576
         synthesizeGranule(state, lines, &.output[cast(u64, channel), base])
@@ -1317,7 +1295,8 @@ impl Codec
             .state[channel].reset()
         }
 
-        .reservoir.clear()
+        .mainData.clear()
+        .reservoirSize = 0
         Memory.set(cast(*void, &.scalefac[0, 0]), 0, 2 * 40)
         Memory.set(cast(*void, &.intensityPos[0]), 0, 40)
         .ready = false
@@ -1326,52 +1305,25 @@ impl Codec
     // Decodes a validated frame's main data into `.output`.
     mtd decodeFrame(frame: const *PreparedFrame, payload: const [..] u8)
     {
-        let header = try readHeader(packet)
-        if packet.count < header.frameBytes
-        {
-            fail InvalidFormatError{"MP3 frame is shorter than its header states"}
-        }
+        let header        = &frame.header
+        let mainDataBegin = frame.mainDataBegin
 
-        if header.sampleRate != .sampleRate or header.channels != .channels
-        {
-            fail InvalidFormatError{"MP3 frame does not match the stream its container declared"}
-        }
-
-        var at = 4_u64
-        if header.hasCrc
-        {
-            at += 2
-        }
-
-        if at + header.sideInfoBytes > header.frameBytes
-        {
-            fail InvalidFormatError{"MP3 frame is too short for its side information"}
-        }
-
-        var granules: [2, 2] GranuleInfo
-        let mainDataBegin = try readSideInfo(&header, packet[at until at + header.sideInfoBytes], &granules)
-        at += header.sideInfoBytes
-
-        // The main data of this frame continues what the frames before it left in the reservoir.
-        let available = Math.min(mainDataBegin, .reservoir.count)
-        var main: Array!{u8}
-        main.reserve(available + header.frameBytes - at)
+        // Keep only the requested tail from the preceding frame, in the same reusable buffer.
+        let available = Math.min(mainDataBegin, .reservoirSize)
         if available
         {
-            main.add(.reservoir.toSlice()[.reservoir.count - available until .reservoir.count])
+            let data = .mainData.storage()
+            Memory.copyOverlapping(data, data + .mainData.count - available, available)
         }
 
-        main.add(packet[at until header.frameBytes])
+        .mainData.resize(available)
+        .mainData.add(payload)
 
         // A frame that reaches further back than what was kept cannot be decoded; every frame
         // after it can, so the stream restarts rather than failing.
         let usable = available >= mainDataBegin
         var reader = BitReader.create(.mainData.toSlice())
 
-        // The history taken is exactly what this frame asked for, so its own data starts at zero.
-        var reader = BitReader.create(main.toSlice())
-
-        var produced = 0_u32
         if usable
         {
             for granule in header.granules
@@ -1393,7 +1345,7 @@ impl Codec
 
                 for channel in header.channels
                 {
-                    .synthesizeChannel(&header, &granules[cast(u64, granule), cast(u64, channel)], channel, granule)
+                    .synthesizeChannel(header, &frame.granules[cast(u64, granule), cast(u64, channel)], channel, granule)
                 }
             }
         }
@@ -1413,27 +1365,9 @@ impl Codec
             }
         }
 
-        // What this frame did not consume is what the next one may reach back over.
-        var keptFrom = (reader.bitPos + 7) / 8
-        if keptFrom > main.count
-        {
-            keptFrom = main.count
-        }
-
-        var kept = main.count - keptFrom
-        if kept > ReservoirBytes
-        {
-            keptFrom += kept - ReservoirBytes
-            kept     = ReservoirBytes
-        }
-
-        .reservoir.clear()
-        if kept
-        {
-            .reservoir.add(main.toSlice()[keptFrom until keptFrom + kept])
-        }
-
-        return produced
+        // The unused suffix is the reservoir for the next frame.
+        let consumed = Math.min((reader.bitPos + 7) / 8, .mainData.count)
+        .reservoirSize = Math.min(.mainData.count - consumed, ReservoirBytes)
     }
 
     mtd const writePcm16(samples: [*] s16, frames: u32)
@@ -1494,37 +1428,10 @@ impl IPacketCodec for Codec
 
     mtd impl decodePacket(destination: [*] void, destinationSize: u64, packet: const [..] u8)->u64 fail
     {
-        let header = try readHeader(packet)
-        if packet.count < header.frameBytes
-        {
-            fail InvalidFormatError{"MP3 frame is shorter than its header states"}
-        }
-
-        if header.sampleRate != .sampleRate or header.channels != .channels
-        {
-            fail InvalidFormatError{"MP3 frame does not match the stream its container declared"}
-        }
-
-        let produced = cast(u64, header.frameSamples) * cast(u64, .channels) * #sizeof(s16)
-        if destinationSize < produced
-        {
-            fail BadParameterError{"MP3 destination buffer is too small"}
-        }
-
-        let frames  = try .decodeFrame(packet)
-        let samples = cast([*] s16, destination)
-        var at      = 0_u64
-        for index in cast(u64, frames)
-        {
-            for channel in cast(u64, .channels)
-            {
-                let value = .output[channel, index] * 32767.0
-                samples[at] = cast(s16, Math.clamp(value, -32768.0_f32, 32767.0_f32))
-                at += 1
-            }
-        }
-
-        return produced
+        let frame = try prepareFrame(packet, destinationSize, .sampleRate, .channels)
+        .decodeFrame(&frame, packet[frame.payloadOffset until frame.header.frameBytes])
+        .writePcm16(cast([*] s16, destination), frame.header.frameSamples)
+        return cast(u64, frame.header.frameSamples) * .channels * #sizeof(s16)
     }
 }
 

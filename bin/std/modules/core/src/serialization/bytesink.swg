@@ -227,7 +227,7 @@ impl ByteSink
         }
 
         let pendingStart = .written - .pendingCount
-        var committed    = 0'u64
+        var committed    = 0_u64
         if offset < pendingStart
         {
             // Only the prefix already in the file needs I/O. Keep the append position
@@ -236,10 +236,12 @@ impl ByteSink
             try .writeFileAllAt(offset, bytes[until committed], pendingStart)
         }
 
-        if committed < count do
+        if committed < count
+        {
             Memory.copy(.pending.storage() + (offset + committed - pendingStart),
                         bytes.buffer + committed,
                         count - committed)
+        }
     }
 
     // Hands every buffered byte to the file; a memory sink has nothing to flush.
@@ -273,7 +275,8 @@ impl ByteSink
     {
         var failure: Swag.Error
         catch .stream.writeAllAtKeepingPosition(offset, bytes, resume) as failure
-        if not failure.isEmpty() do
+        if not failure.isEmpty()
+        {
             try .failFileIo(&failure)
         }
     }

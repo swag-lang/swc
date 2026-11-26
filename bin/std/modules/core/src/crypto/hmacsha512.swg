@@ -23,7 +23,7 @@ internal func(Words: u64) writeSha512HmacDigest(digest: const [*] u64, output: [
 private func(Words: u64) sha512DigestBytes(digest: [Words] u64)->[Words * #sizeof(u64)] u8
 {
     var result: #returntype
-    writeSha512HmacDigest'Words(digest.buffer, result.buffer)
+    writeSha512HmacDigest!{Words}(digest.buffer, result.buffer)
     return result
 }
 
@@ -61,8 +61,10 @@ public impl HmacSha512
     // Replaces any previous keyed state and starts a new sequence for `key`.
     mtd reset(key: const [..] u8)
     {
-        if .initialized do
+        if .initialized
+        {
             .clear()
+        }
 
         var pad: [Hash.Sha512BlockSize] u8
         if key.count > Hash.Sha512BlockSize
@@ -77,13 +79,13 @@ public impl HmacSha512
         }
 
         .inner.reset()
-        xorSha512HmacPad'0x36(pad.buffer)
+        xorSha512HmacPad!{0x36}(pad.buffer)
         .inner.update(pad)
 
         .outer.reset()
 
         // Convert the inner pad into the outer pad in the same buffer.
-        xorSha512HmacPad'(0x36 ^ 0x5C)(pad.buffer)
+        xorSha512HmacPad!{0x36 ^ 0x5C}(pad.buffer)
         .outer.update(pad)
         .initialized = true
         secureClear(pad)
@@ -103,7 +105,7 @@ public impl HmacSha512
         let innerDigest = .inner.finishHmacInner()
         let outerDigest = .outer.finishHmacOuter(innerDigest)
         var result: #returntype
-        writeSha512HmacDigest'8(outerDigest, result.buffer)
+        writeSha512HmacDigest!{8}(outerDigest, result.buffer)
         .clear()
         return result
     }
@@ -125,8 +127,10 @@ public impl HmacSha512
     // Clears keyed state when this value leaves scope.
     mtd opDrop()
     {
-        if .initialized do
+        if .initialized
+        {
             .clear()
+        }
     }
 }
 
@@ -152,8 +156,10 @@ public impl HmacSha384
     // Replaces any previous keyed state and starts a new sequence for `key`.
     mtd reset(key: const [..] u8)
     {
-        if .initialized do
+        if .initialized
+        {
             .clear()
+        }
 
         var pad: [Hash.Sha512BlockSize] u8
         if key.count > Hash.Sha512BlockSize
@@ -168,13 +174,13 @@ public impl HmacSha384
         }
 
         .inner.reset()
-        xorSha512HmacPad'0x36(pad.buffer)
+        xorSha512HmacPad!{0x36}(pad.buffer)
         .inner.update(pad)
 
         .outer.reset()
 
         // Convert the inner pad into the outer pad in the same buffer.
-        xorSha512HmacPad'(0x36 ^ 0x5C)(pad.buffer)
+        xorSha512HmacPad!{0x36 ^ 0x5C}(pad.buffer)
         .outer.update(pad)
         .initialized = true
         secureClear(pad)
@@ -194,7 +200,7 @@ public impl HmacSha384
         let innerDigest = .inner.finishHmacInner()
         let outerDigest = .outer.finishHmacOuter(innerDigest)
         var result: #returntype
-        writeSha512HmacDigest'6(outerDigest, result.buffer)
+        writeSha512HmacDigest!{6}(outerDigest, result.buffer)
         .clear()
         return result
     }
@@ -216,7 +222,9 @@ public impl HmacSha384
     // Clears keyed state when this value leaves scope.
     mtd opDrop()
     {
-        if .initialized do
+        if .initialized
+        {
             .clear()
+        }
     }
 }

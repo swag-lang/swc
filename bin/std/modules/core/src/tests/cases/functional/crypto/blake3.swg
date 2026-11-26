@@ -209,9 +209,9 @@ func assertBlake3Output(output: const [..] u8, expected: const [..] string)
     assertBlake3(data[until 7169], "a003fc7a51754a9b3c7fae0367ab3d782dccf28855a03d435f8cfe74605e7817")
 
     for fixture in [
-        {split: 2048'u64, expected: "5f4d72f40d7a5f82b15ca2b2e44b1de3c2ef86c426c95c1af0b6879522563030"},
-        {split: 3072'u64, expected: "7124b49501012f81cc7f11ca069ec9226cecb8a2c850cfe644e327d22d3e1cd3"},
-        {split: 7168'u64, expected: "a003fc7a51754a9b3c7fae0367ab3d782dccf28855a03d435f8cfe74605e7817"}]
+        {split: 2048_u64, expected: "5f4d72f40d7a5f82b15ca2b2e44b1de3c2ef86c426c95c1af0b6879522563030"},
+        {split: 3072_u64, expected: "7124b49501012f81cc7f11ca069ec9226cecb8a2c850cfe644e327d22d3e1cd3"},
+        {split: 7168_u64, expected: "a003fc7a51754a9b3c7fae0367ab3d782dccf28855a03d435f8cfe74605e7817"}]
     {
         let split = fixture.split
         var hash = Hash.Blake3.create()

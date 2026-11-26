@@ -157,9 +157,11 @@ impl Capture
         var writer = try Frames.Writer.create(media, info.canvasWidth, info.canvasHeight, .RGBA8)
         defer #fail discard catch File.delete(media)
 
-        var time = 0_u64
-        for index in info.frames.count where info.frames[index].kind == .Animation
+        let frameCount = info.frames.count
+        var time       = 0_u64
+        for index in frameCount where reader.info.frames[index].kind == .Animation
         {
+            let seconds = reader.info.frames[index].durationSeconds
             var picture = try reader.read(cast(u32, index))
             if picture.pixelFormat != .RGBA8
             {
@@ -168,7 +170,6 @@ impl Capture
 
             try writer.add(picture, time)
 
-            let seconds = info.frames[index].durationSeconds
             time += seconds > 0 ? cast(u64, seconds * 1_000_000) : 100_000
         }
 

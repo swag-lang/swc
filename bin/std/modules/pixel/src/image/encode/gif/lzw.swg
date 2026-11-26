@@ -12,7 +12,7 @@ private
     struct BitWriter
     {
         bytes:    Array!{u8}
-        curBits:  u32
+        curBits:  u64
         bitCount: u32
     }
 
@@ -204,7 +204,7 @@ impl Encoder
     //
     // The dictionary maps a known string, as its code, followed by one more index to the code of
     // the longer string. It is reset with a clear code once every 12-bit code is taken.
-    func lzwCompress(indexes: const [..] u8, minCodeSize: u8)->Array!{u8}
+    func(RemapLiterals: bool, FirstTransition: bool) lzwCompressStream(indexes: const [..] u8, minCodeSize: u8, literals: const [*] u8?)->Array!{u8}
     {
         var enc: LzwEncoder
         enc.init(minCodeSize)
@@ -216,10 +216,14 @@ impl Encoder
             return enc.bits.bytes
         }
 
-        // One slot per (code, index) pair; zero means the longer string is not known yet.
-        var dictionary: Array!{u16}
-        dictionary.resize((MaxLzwCode + 1) * 256)
-        var nextCode = cast(u32, enc.endCode) + 1
+        // Pack the (prefix, index) key and its 12-bit code in a single table entry.
+        // A zero entry is empty. Each dictionary cycle stays below half capacity.
+        let capacity = Math.roundUpToPowerOf2(cast(u32, Math.min(indexes.count, 4096_u64)) * 2)
+        let shift    = Math.leadingZeros(capacity - 1)
+        var table: Array!{u32}
+        table.resize(capacity + (FirstTransition ? MaxLzwCode + 1 : 0))
+        let dictionary = table.storage()
+        var nextCode   = cast(u32, enc.endCode) + 1
 
         enc.writeCode(enc.clearCode)
         var prefix = cast(u32, indexes[0])
@@ -273,10 +277,7 @@ impl Encoder
             {
                 dictionary[slot] = key | nextCode
                 nextCode         += 1
-                if nextCode > (1_u32 << enc.codeSize) and enc.codeSize < 12
-                {
-                    enc.codeSize += 1
-                }
+                enc.growCodeSize(nextCode)
             }
             else
             {
@@ -296,15 +297,18 @@ impl Encoder
 
     func writeSubBlocks(result: *ConcatBuffer, bytes: const [..] u8)
     {
-        var offset = 0_u64
+        let blocks      = (bytes.count + 254) / 255
+        var destination = result.reserveInPlace(bytes.count + blocks + 1)
+        var offset      = 0_u64
         while offset < bytes.count
         {
             let blockSize = Math.min(255_u64, bytes.count - offset)
-            result.addNative(cast(u8, blockSize))
-            result.addBytes(Swag.makeSlice(bytes.buffer + offset, blockSize))
-            offset += blockSize
+            destination[0] = cast(u8, blockSize)
+            Memory.copy(destination + 1, bytes.buffer + offset, blockSize)
+            destination += 1 + blockSize
+            offset      += blockSize
         }
 
-        result.addNative(0_u8)
+        destination[0] = 0
     }
 }

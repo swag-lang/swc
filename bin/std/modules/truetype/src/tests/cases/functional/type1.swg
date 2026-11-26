@@ -84,8 +84,10 @@ func buildBinaryType1Fixture(firstCipher: const [4] u8,
     for index in start until lowercase.count
     {
         let c = lowercase[index]
-        if c >= 'A' and c <= 'F' do
+        if c >= 'A' and c <= 'F'
+        {
             lowercase[index] = c + 32
+        }
     }
 
     let lower = expect parseType1Font(lowercase.toSlice())

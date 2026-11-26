@@ -164,7 +164,7 @@ impl Xml
 
         let bytes  = cast(const [..] u8, value)
         let output = .getOutput()
-        var start  = 0'u64
+        var start  = 0_u64
         for c, index in bytes
         {
             var entity: string

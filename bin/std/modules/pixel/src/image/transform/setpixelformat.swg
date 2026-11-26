@@ -186,16 +186,8 @@ impl Image
             }
             else if dst.bytesPerPixel == 4
             {
-                let table     = swapColors ? ExpandSwap.buffer : ExpandKeep.buffer
-                let shuffle   = Math.Simd.load(table)
-                let alphaMask = cast(Math.Simd.U8x16, [0_u8, 0, 0, 255, 0, 0, 0, 255, 0, 0, 0, 255, 0, 0, 0, 255])
-                while src.width - x >= 6
-                {
-                    let source = srcRow + cast(u64, x) * 3
-                    let target = dstRow + cast(u64, x) * 4
-                    Math.Simd.store(target, Math.Simd.shuffle(Math.Simd.load(source), shuffle) | alphaMask)
-                    x += 4
-                }
+                expandRgb8Alpha(srcRow, dstRow, cast(u64, src.width), swapColors)
+                x = src.width
             }
             else
             {

@@ -411,8 +411,9 @@ private func requireTgaDecodeFails(bytes: const [..] u8, options: DecodeOptions)
             addTgaImageHeader(&cb, imageType, 32, alphaBits, 1, 1)
             if rle
             {
-                cb.addNative(0_u8)
-            }     // One raw RLE packet.
+                cb.addNative(0_u8)     // One raw RLE packet.
+            }
+
             cb.addNative(10_u8)
             cb.addNative(20_u8)
             cb.addNative(30_u8)
@@ -899,21 +900,34 @@ private func requireTgaDecodeFails(bytes: const [..] u8, options: DecodeOptions)
 // A grayscale run can cross a row in every origin mode.
 #test
 {
-    let path = makeTempTgaPath()
-    defer discard catch File.delete(path.toString())
-    var cb: ConcatBuffer
-    addTgaImageHeader(&cb, TGA_TYPE_RLE_MONO, 8_u8, 0_u8, 3_u16, 1_u16)
-    cb.addNative(0x02_u8)
-    cb.addNative(9_u8)
-    cb.addNative(10_u8)
-    cb.addNative(11_u8)
+    const Width   = 3_u16
+    const Height  = 2_u16
+    const Samples = [9_u8, 9, 9, 9, 10, 11]
+    for descriptor in [0_u8, TGA_DESC_TOP, TGA_DESC_RIGHT, TGA_DESC_TOP | TGA_DESC_RIGHT]
+    {
+        var cb: ConcatBuffer
+        addTgaImageHeader(&cb, TGA_TYPE_RLE_MONO, 8_u8, descriptor, Width, Height)
+        cb.addNative(0x83_u8)
+        cb.addNative(9_u8)
+        cb.addNative(0x01_u8)
+        cb.addNative(10_u8)
+        cb.addNative(11_u8)
 
-    discard expect File.writeAllBytes(path.toString(), cb)
-    let img = expect Image.load(path.toString())
-    Swag.require(img.pixels.buffer != null)
-    Swag.require(img.pixels.buffer[0] == 9_u8)
-    Swag.require(img.pixels.buffer[3] == 10_u8)
-    Swag.require(img.pixels.buffer[6] == 11_u8)
+        let img = expect Image.decode("memory.tga", nnBytes(cb.toSlice()), {})
+        Swag.require(img.pixelFormat == .BGR8)
+        for pixel in Samples.count
+        {
+            let x       = pixel % Width
+            let y       = pixel / Width
+            let targetX = descriptor & TGA_DESC_RIGHT ? Width - x - 1 : x
+            let targetY = descriptor & TGA_DESC_TOP ? Height - y - 1 : y
+            let offset  = (targetY * Width + targetX) * 3
+            for channel in 3
+            {
+                Swag.require(img.pixels.storage()[offset + channel] == Samples[pixel])
+            }
+        }
+    }
 }
 
 // Decode metadata without allocating pixels.

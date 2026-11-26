@@ -75,6 +75,7 @@ private
     struct CoeffBuf
     {
         values:    Array!{s16}
+        nonzeroAc: Array!{u64}     // Occupied AC positions in zigzag order for each block.
         blockNumX: s32
         blockNumY: s32
     }
@@ -255,7 +256,6 @@ internal struct Decoder
         quant:        [MaxQuantTables] Array!{s16}
         scanLine0:    Array!{u8}
         scanLine1:    Array!{u8}
-        quantBuf:     Array!{u8}
         sampleBuf:    Array!{u8}
         decOptions:   DecodeOptions
         metadata:     Array!{ImageMetadata}
@@ -300,9 +300,12 @@ impl Decoder
         var destination = buf + cast(u64, .imageSizeY - 1) * stride
         for .imageSizeY
         {
-            let source = try .decodeScanLine'false(direct ? destination : null)
-            if source != destination do
+            let source = try .decodeScanLine!{false}(direct ? destination : null)
+            if source != destination
+            {
                 Memory.copy(destination, source, stride)
+            }
+
             destination -= stride
         }
     }
@@ -327,7 +330,7 @@ impl Decoder
         let direct = .destBytesPerScanLine == .realDestBytesPerScanLine
         for .imageSizeY
         {
-            let source = try .decodeScanLine(direct ? destination : null)
+            let source = try .decodeScanLine!{Rgb}(direct ? destination : null)
             if source != destination
             {
                 Memory.copy(destination, source, stride)
@@ -420,10 +423,15 @@ internal impl IImageDecoder for Decoder
 
         result.allocPixels()
 
-        if format == .Gray8 do
+        if format == .Gray8
+        {
             try .decodeGrayPixels(result.pixels.storage())
-        else do
-            try .decodePixels'false(result.pixels.storage())
+        }
+        else
+        {
+            try .decodePixels!{false}(result.pixels.storage())
+        }
+
         result.metadata = #move .metadata
 
         return result

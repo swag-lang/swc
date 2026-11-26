@@ -247,7 +247,7 @@ private func(Parent: bool, Chunks: u64) blake3BatchCvs(input: const [*] u8, firs
 {
     // A leaf lane covers sixteen message blocks, while a parent combines two native chaining values.
     const Blocks        = Parent ? 1 : Blake3BlocksPerChunk
-    const CounterStride = Parent ? 0'u64 : 1
+    const CounterStride = Parent ? 0_u64 : 1
     const InputStride   = Parent ? Blake3BlockSize : Blake3ChunkSize
     var cv: [8] Blake3Vector
     for index in 8
@@ -277,22 +277,32 @@ private func(Parent: bool, Chunks: u64) blake3BatchCvs(input: const [*] u8, firs
             Math.Simd.transpose4x4(&rows)
             for index in 4
             {
-                #static if Parent do
+                #static if Parent
+                {
                     message[group * 4 + index] = rows[index]
-                else do
+                }
+                else
+                {
                     message[group * 4 + index] = Math.littleEndianToNative(rows[index])
+                }
             }
         }
 
         var blockFlags = flags
-        #static if Parent do
+        #static if Parent
+        {
             blockFlags |= Blake3Parent
+        }
         else
         {
-            if blockIndex == 0 do
+            if blockIndex == 0
+            {
                 blockFlags |= Blake3ChunkStart
-            if blockIndex == Blake3BlocksPerChunk - 1 do
+            }
+            if blockIndex == Blake3BlocksPerChunk - 1
+            {
                 blockFlags |= Blake3ChunkEnd
+            }
         }
         // Keep the round state in separate vector locals so mixes can reuse registers.
         var a0 = cv[0]
@@ -312,29 +322,30 @@ private func(Parent: bool, Chunks: u64) blake3BatchCvs(input: const [*] u8, firs
         var d2 = blockSize
         var d3 = Math.Simd.splat(blockFlags)
 
-        blake3MixChunkRound'0(&a0, &a1, &a2, &a3, &b0, &b1, &b2, &b3,
-                               &c0, &c1, &c2, &c3, &d0, &d1, &d2, &d3, &message)
-        blake3MixChunkRound'1(&a0, &a1, &a2, &a3, &b0, &b1, &b2, &b3,
-                               &c0, &c1, &c2, &c3, &d0, &d1, &d2, &d3, &message)
-        blake3MixChunkRound'2(&a0, &a1, &a2, &a3, &b0, &b1, &b2, &b3,
-                               &c0, &c1, &c2, &c3, &d0, &d1, &d2, &d3, &message)
-        blake3MixChunkRound'3(&a0, &a1, &a2, &a3, &b0, &b1, &b2, &b3,
-                               &c0, &c1, &c2, &c3, &d0, &d1, &d2, &d3, &message)
-        blake3MixChunkRound'4(&a0, &a1, &a2, &a3, &b0, &b1, &b2, &b3,
-                               &c0, &c1, &c2, &c3, &d0, &d1, &d2, &d3, &message)
-        blake3MixChunkRound'5(&a0, &a1, &a2, &a3, &b0, &b1, &b2, &b3,
-                               &c0, &c1, &c2, &c3, &d0, &d1, &d2, &d3, &message)
-        blake3MixChunkRound'6(&a0, &a1, &a2, &a3, &b0, &b1, &b2, &b3,
-                               &c0, &c1, &c2, &c3, &d0, &d1, &d2, &d3, &message)
+        blake3MixChunkRound!{0}(&a0, &a1, &a2, &a3, &b0, &b1, &b2, &b3,
+                                &c0, &c1, &c2, &c3, &d0, &d1, &d2, &d3, &message)
+        blake3MixChunkRound!{1}(&a0, &a1, &a2, &a3, &b0, &b1, &b2, &b3,
+                                &c0, &c1, &c2, &c3, &d0, &d1, &d2, &d3, &message)
+        blake3MixChunkRound!{2}(&a0, &a1, &a2, &a3, &b0, &b1, &b2, &b3,
+                                &c0, &c1, &c2, &c3, &d0, &d1, &d2, &d3, &message)
+        blake3MixChunkRound!{3}(&a0, &a1, &a2, &a3, &b0, &b1, &b2, &b3,
+                                &c0, &c1, &c2, &c3, &d0, &d1, &d2, &d3, &message)
+        blake3MixChunkRound!{4}(&a0, &a1, &a2, &a3, &b0, &b1, &b2, &b3,
+                                &c0, &c1, &c2, &c3, &d0, &d1, &d2, &d3, &message)
+        blake3MixChunkRound!{5}(&a0, &a1, &a2, &a3, &b0, &b1, &b2, &b3,
+                                &c0, &c1, &c2, &c3, &d0, &d1, &d2, &d3, &message)
+        blake3MixChunkRound!{6}(&a0, &a1, &a2, &a3, &b0, &b1, &b2, &b3,
+                                &c0, &c1, &c2, &c3, &d0, &d1, &d2, &d3, &message)
 
         var next: [8] Blake3Vector = [a0 ^ c0, a1 ^ c1, a2 ^ c2, a3 ^ c3,
                                        b0 ^ d0, b1 ^ d1, b2 ^ d2, b3 ^ d3]
         if not Parent and keepLastInput and blockIndex == Blake3BlocksPerChunk - 1
         {
-            const RetainLast = cast(Blake3Vector, [0'u32, Chunks == 2 ? Swag.U32.Max : 0,
-                                                  Chunks == 3 ? Swag.U32.Max : 0,
-                                                  Chunks == 4 ? Swag.U32.Max : 0])
-            for index in 8 do
+            const RetainLast = cast(Blake3Vector, [0_u32, Chunks == 2 ? Swag.U32.Max : 0,
+                                                   Chunks == 3 ? Swag.U32.Max : 0,
+                                                   Chunks == 4 ? Swag.U32.Max : 0])
+            for index in 8
+            {
                 next[index] = Math.Simd.select(RetainLast, cv[index], next[index])
             }
         }
@@ -347,7 +358,8 @@ private func(Parent: bool, Chunks: u64) blake3BatchCvs(input: const [*] u8, firs
     {
         var words: [4] Blake3Vector = [cv[offset], cv[offset + 1], cv[offset + 2], cv[offset + 3]]
         Math.Simd.transpose4x4(&words)
-        for chunk in Chunks do
+        for chunk in Chunks
+        {
             Math.Simd.store(&result[chunk][offset], words[chunk])
         }
     }
@@ -359,9 +371,9 @@ private const Blake3SubtreeChunks = 2 * Blake3ChunksPerBatch
 
 private func blake3EightChunkSubtreeCv(children: const [*] u32, key: [8] u32, flags: u32)->[8] u32
 {
-    let parents   = blake3BatchCvs'(true, Blake3ChunksPerBatch)(cast(const [*] u8, children), 0, key, flags)
-    let left      = blake3OutputCv(blake3ParentOutput(key, parents[0], parents[1], flags))
-    let right     = blake3OutputCv(blake3ParentOutput(key, parents[2], parents[3], flags))
+    let parents = blake3BatchCvs!{true, Blake3ChunksPerBatch}(cast(const [*] u8, children), 0, key, flags)
+    let left    = blake3OutputCv(blake3ParentOutput(key, parents[0], parents[1], flags))
+    let right   = blake3OutputCv(blake3ParentOutput(key, parents[2], parents[3], flags))
     return blake3OutputCv(blake3ParentOutput(key, left, right, flags))
 }
 
@@ -371,8 +383,8 @@ private func blake3HashCompleteSubtree(input: const [*] u8, firstChunk: u64, key
     var leaves: [Blake3SubtreeChunks][8] u32
     for batch in 2
     {
-        let cvs = blake3BatchCvs'(false, Blake3ChunksPerBatch)(input + batch * BatchSize,
-                                    firstChunk + batch * Blake3ChunksPerBatch, key, flags)
+        let cvs = blake3BatchCvs!{false, Blake3ChunksPerBatch}(input + batch * BatchSize,
+                                                               firstChunk + batch * Blake3ChunksPerBatch, key, flags)
         Swag.memcpy(&leaves[batch * Blake3ChunksPerBatch][0], &cvs[0][0], #sizeof(cvs))
     }
     return blake3EightChunkSubtreeCv(&leaves[0][0], key, flags)
@@ -383,7 +395,7 @@ private func blake3HashBatches(input: const [*] u8, output: [*] u32, batches, fi
     parallel for |input, output, firstChunk, key, flags| batch in batches
     {
         let chunk = batch * Blake3ChunksPerBatch
-        let cvs   = blake3BatchCvs'(false, Blake3ChunksPerBatch)(input + chunk * Blake3ChunkSize, firstChunk + chunk, key, flags)
+        let cvs   = blake3BatchCvs!{false, Blake3ChunksPerBatch}(input + chunk * Blake3ChunkSize, firstChunk + chunk, key, flags)
         Swag.memcpy(output + chunk * Blake3WordsPerCv, &cvs[0][0], #sizeof(cvs))
     }
 }
@@ -506,7 +518,7 @@ public impl Blake3
                     continue
                 }
 
-                .pushLeafBatch'Blake3ChunksPerBatch(input + offset, remaining)
+                .pushLeafBatch!{Blake3ChunksPerBatch}(input + offset, remaining)
                 offset += BatchBytes
                 continue
             }
@@ -517,12 +529,12 @@ public impl Blake3
             {
                 if remaining >= TripleBytes
                 {
-                    .pushLeafBatch'3(input + offset, remaining)
+                    .pushLeafBatch!{3}(input + offset, remaining)
                     offset += TripleBytes
                 }
                 else
                 {
-                    .pushLeafBatch'2(input + offset, remaining)
+                    .pushLeafBatch!{2}(input + offset, remaining)
                     offset += PairBytes
                 }
                 continue
@@ -667,7 +679,7 @@ public impl Blake3
     {
         const BatchBytes   = Chunks * Blake3ChunkSize
         let retainLast     = remaining == BatchBytes
-        let cvs            = blake3BatchCvs'(false, Chunks)(input, .chunkCounter, .key, .flags, retainLast)
+        let cvs            = blake3BatchCvs!{false, Chunks}(input, .chunkCounter, .key, .flags, retainLast)
         let completeChunks = retainLast ? Chunks - 1 : Chunks
         for chunk in completeChunks
         {
@@ -689,7 +701,7 @@ public impl Blake3
         if batches >= 2 and .chunkCounter % Blake3SubtreeChunks == 0
         {
             let subtrees = batches / 2
-            var chainingValues: Array'u32
+            var chainingValues: Array!{u32}
             chainingValues.resize(subtrees * Blake3WordsPerCv)
             let output = unwrap chainingValues.buffer
             blake3HashSubtrees(input, output, subtrees, .chunkCounter, .key, .flags)
@@ -702,8 +714,8 @@ public impl Blake3
             }
             if batches % 2 != 0
             {
-                let cvs = blake3BatchCvs'(false, Blake3ChunksPerBatch)(input + subtrees * Blake3SubtreeChunks * Blake3ChunkSize,
-                                            .chunkCounter, .key, .flags)
+                let cvs = blake3BatchCvs!{false, Blake3ChunksPerBatch}(input + subtrees * Blake3SubtreeChunks * Blake3ChunkSize,
+                                                                       .chunkCounter, .key, .flags)
                 for cv in cvs
                 {
                     .pushSubtreeCv(cv, .chunkCounter + 1)
@@ -713,7 +725,7 @@ public impl Blake3
             return
         }
 
-        var chainingValues: Array'u32
+        var chainingValues: Array!{u32}
         chainingValues.resize(batches * Blake3ChunksPerBatch * Blake3WordsPerCv)
         let output = unwrap chainingValues.buffer
         blake3HashBatches(input, output, batches, .chunkCounter, .key, .flags)

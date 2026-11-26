@@ -26,17 +26,157 @@ func readU32BigEndian(source: const [*] u8)->u32
 #[Swag.Inline]
 func hashWord(pixel: u32)->u8
 {
-    let sourceY = cast(s32, (sourceIndex / cast(u64, image.width)))
-    let sourceX = cast(s32, (sourceIndex % cast(u64, image.width)))
-    let targetY = image.height - sourceY - 1
-    let target  = image.pixels.storage() + cast(u64, targetY) * image.rowStride + cast(u64, sourceX) * image.bytesPerPixel
-    target[0] = pixel.r
-    target[1] = pixel.g
-    target[2] = pixel.b
-    if image.bytesPerPixel == 4
+    // Separate the channels into 16-bit lanes so the weighted sum fits in the high lane.
+    let even = (pixel & 0x00FF_00FF_u32) * #wrap 0x0003_0007_u32
+    let odd  = ((pixel >> 8) & 0x00FF_00FF_u32) * #wrap 0x0005_000B_u32
+    return cast(u8, (((even + #wrap odd) >> 16) & 63))
+}
+
+#[Swag.Inline]
+private func addRgbDeltas(pixel: u32, red, green, blue: s32)->u32
+{
+    let delta = cast(u32, cast #wrap(u8, red)) |
+                (cast(u32, cast #wrap(u8, green)) << 8) |
+                (cast(u32, cast #wrap(u8, blue)) << 16)
+
+    // Add each byte independently, including negative deltas reduced modulo 256.
+    let low = (pixel & 0x7F7F_7F7F_u32) + (delta & 0x7F7F_7F7F_u32)
+    return low ^ ((pixel ^ delta) & 0x8080_8080_u32)
+}
+
+private func(CHANNELS: u32) decodePayload(image: *Image, buffer: const [..] u8)->u64 fail
+{
+    let source     = buffer.buffer
+    let width      = cast(u64, image.width)
+    let height     = cast(u64, image.height)
+    var index: [64] u32
+    var previous   = 0xFF00_0000_u32
+    var input      = HeaderSize
+    var repeated   = 0_u64
+    let chunkLimit = buffer.count - EndMarkerSize
+
+    // Decode forward within each row while placing the rows bottom-up.
+    for y in height
     {
-        target[3] = pixel.a
+        var target = image.pixels.storage() + cast(u64, (height - y - 1)) * image.rowStride
+        var x      = 0_u64
+        while x < width
+        {
+            if repeated
+            {
+                let span = Math.min(repeated, width - x)
+                #static if CHANNELS == 4
+                {
+                    using Math.Simd
+                    let pattern = splat(previous)
+                    let words   = cast([*] u32, target)
+                    var filled  = 0_u64
+                    while span - filled >= 4
+                    {
+                        store(words + filled, pattern)
+                        filled += 4
+                    }
+
+                    for i in filled until span
+                    {
+                        words[i] = previous
+                    }
+                }
+                else
+                {
+                    let pixel = previous
+                    PackedPixel.fillBgr24Row(cast(const [*] u8, &pixel), target, span)
+                }
+
+                target   += span * CHANNELS
+                x        += span
+                repeated -= span
+                continue
+            }
+
+            if input >= chunkLimit
+            {
+                fail InvalidFormatError{"QOI data ends before every pixel is decoded"}
+            }
+
+            let tag = source[input]
+            input += 1
+            if tag == 0xFE
+            {
+                if input + 3 > chunkLimit
+                {
+                    fail InvalidFormatError{"QOI RGB chunk is truncated"}
+                }
+
+                // The mandatory end marker leaves room for the unused high byte.
+                let word = cast(const [*] u32, source + input)[0]
+                previous = (previous & 0xFF00_0000_u32) | (word & 0x00FF_FFFF_u32)
+                input    += 3
+            }
+            else if tag == 0xFF
+            {
+                if input + 4 > chunkLimit
+                {
+                    fail InvalidFormatError{"QOI RGBA chunk is truncated"}
+                }
+
+                previous = cast(const [*] u32, source + input)[0]
+                input    += 4
+            }
+            else
+            {
+                switch tag & 0xC0
+                {
+                case 0x00:
+                    previous = index[tag & 63]
+
+                case 0x40:
+                    previous = addRgbDeltas(previous, cast(s32, ((tag >> 4) & 3)) - 2, cast(s32, ((tag >> 2) & 3)) - 2, cast(s32, (tag & 3)) - 2)
+
+                case 0x80:
+                    if input >= chunkLimit
+                    {
+                        fail InvalidFormatError{"QOI luma chunk is truncated"}
+                    }
+
+                    let next = source[input]
+                    input += 1
+                    let greenDelta = cast(s32, (tag & 63)) - 32
+                    previous = addRgbDeltas(previous,
+                                            greenDelta + cast(s32, ((next >> 4) & 15)) - 8,
+                                            greenDelta,
+                                            greenDelta + cast(s32, (next & 15)) - 8)
+
+                case 0xC0:
+                    repeated = cast(u64, (tag & 63)) + 1
+                    let remaining = cast(u64, (height - y - 1)) * width + width - x
+                    if repeated > remaining
+                    {
+                        fail InvalidFormatError{"QOI run exceeds the image dimensions"}
+                    }
+
+                    index[hashWord(previous)] = previous
+                    continue
+                }
+            }
+
+            index[hashWord(previous)] = previous
+            #static if CHANNELS == 4
+            {
+                cast([*] u32, target)[0] = previous
+            }
+            else
+            {
+                cast([*] u16, target)[0] = cast #wrap(u16, previous)
+                target[2] = cast(u8, ((previous >> 16) & 255))
+            }
+
+            target += CHANNELS
+            x      += 1
+        }
     }
+
+    return input
 }
 
 internal impl IImageDecoder for Decoder
@@ -101,93 +241,14 @@ internal impl IImageDecoder for Decoder
         }
 
         result.allocPixels()
-        var index: [64] Pixel
-        var previous   = Pixel{0, 0, 0, 255}
-        var input      = HeaderSize
-        var output     = 0_u64
-        let pixelCount = cast(u64, width) * cast(u64, height)
-        let chunkLimit = buffer.count - EndMarkerSize
-
-        while output < pixelCount
+        var input: u64
+        if channels == 4
         {
-            if input >= chunkLimit
-            {
-                fail InvalidFormatError{"QOI data ends before every pixel is decoded"}
-            }
-
-            let tag = source[input]
-            input += 1
-            if tag == 0xFE
-            {
-                if input + 3 > chunkLimit
-                {
-                    fail InvalidFormatError{"QOI RGB chunk is truncated"}
-                }
-
-                previous.r = source[input]
-                previous.g = source[input + 1]
-                previous.b = source[input + 2]
-                input      += 3
-            }
-            else if tag == 0xFF
-            {
-                if input + 4 > chunkLimit
-                {
-                    fail InvalidFormatError{"QOI RGBA chunk is truncated"}
-                }
-
-                previous.r = source[input]
-                previous.g = source[input + 1]
-                previous.b = source[input + 2]
-                previous.a = source[input + 3]
-                input      += 4
-            }
-            else
-            {
-                switch tag & 0xC0
-                {
-                case 0x00:
-                    previous = index[tag & 63]
-
-                case 0x40:
-                    previous.r = addWrapped(previous.r, cast(s32, ((tag >> 4) & 3)) - 2)
-                    previous.g = addWrapped(previous.g, cast(s32, ((tag >> 2) & 3)) - 2)
-                    previous.b = addWrapped(previous.b, cast(s32, (tag & 3)) - 2)
-
-                case 0x80:
-                    if input >= chunkLimit
-                    {
-                        fail InvalidFormatError{"QOI luma chunk is truncated"}
-                    }
-
-                    let next = source[input]
-                    input += 1
-                    let greenDelta = cast(s32, (tag & 63)) - 32
-                    previous.r = addWrapped(previous.r, greenDelta + cast(s32, ((next >> 4) & 15)) - 8)
-                    previous.g = addWrapped(previous.g, greenDelta)
-                    previous.b = addWrapped(previous.b, greenDelta + cast(s32, (next & 15)) - 8)
-
-                case 0xC0:
-                    let run = cast(u64, (tag & 63)) + 1
-                    if run > pixelCount - output
-                    {
-                        fail InvalidFormatError{"QOI run exceeds the image dimensions"}
-                    }
-
-                    for run
-                    {
-                        writePixel(&result, output, previous)
-                        output += 1
-                    }
-
-                    index[hash(previous)] = previous
-                    continue
-                }
-            }
-
-            index[hash(previous)] = previous
-            writePixel(&result, output, previous)
-            output += 1
+            input = try decodePayload!{4}(&result, buffer)
+        }
+        else
+        {
+            input = try decodePayload!{3}(&result, buffer)
         }
 
         let expectedEnd: [8] u8 = [0, 0, 0, 0, 0, 0, 0, 1]

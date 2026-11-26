@@ -328,9 +328,10 @@ internal impl Page
             result += item.memoryUsage()
         }
 
-        for clip in .clipPaths
+        for value in .clipPaths
         {
-            result += clip!.path.memoryUsage()
+            let clip = unwrap value
+            result += clip.path.memoryUsage() + clip.intersection.memoryUsage()
         }
 
         return result
@@ -375,10 +376,9 @@ internal impl Page
         if leaf.hasIntersection
         {
             return {&leaf.intersection, PathFillRule.NonZero}
-
-            // Walk to the nearest cached ancestor, then populate descendants in clip order.
         }
 
+        // Walk to the nearest cached ancestor, then populate descendants in clip order.
         var pending: Array!{*ClipPath}
         var ancestor = leaf
         while ancestor.parent != InvalidClipPath and not ancestor.hasIntersection

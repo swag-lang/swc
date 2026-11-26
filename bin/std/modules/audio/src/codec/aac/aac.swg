@@ -25,8 +25,8 @@ private const SpectralCountShift = 4 * SpectralValueBits
 private const EscapePrefixBits   = 14
 private const EscapePrefixRows   = 256
 private const EscapeSuffixBits   = EscapePrefixBits - SpectralPrefixBits
-private const EscapeSuffixMask   = (1'u32 << EscapeSuffixBits) - 1
-private const SecondaryEscape    = 1'u32 << 31
+private const EscapeSuffixMask   = (1_u32 << EscapeSuffixBits) - 1
+private const SecondaryEscape    = 1_u32 << 31
 
 private struct BitReader
 {
@@ -80,9 +80,11 @@ private impl BitReader
     #[Swag.Inline]
     mtd ensure(count: s32)->bool
     {
-        if .valid >= count {
+        if .valid >= count
+        {
             return true
         }
+
         .refill()
         return .valid >= count
     }
@@ -99,23 +101,22 @@ private impl BitReader
 
     mtd get(count: s32)->u32
     {
-        if not count {
+        if not count
+        {
             return 0
         }
+
         let enough = .ensure(count)
         let value  = .peek(count)
         if enough
         {
-            let byteIndex = .bitPos >> 3
-            let bitIndex  = 7 - (.bitPos & 7)
-            if byteIndex >= .length
-            {
-                .overrun = true
-            }
-
-            value = (value << 1) |
-                    (byteIndex < .length ? (cast(u32, .data[byteIndex]) >> cast(u32, bitIndex)) & 1 : 0)
-            .bitPos += 1
+            .consume(count)
+        }
+        else
+        {
+            .word    = 0
+            .valid   = 0
+            .overrun = true
         }
 
         return value
@@ -139,13 +140,16 @@ private impl BitReader
         if .ensure(12)
         {
             let leading = cast(s32, Math.leadingZeros(~.word))
-            if leading > 11 {
+            if leading > 11
+            {
                 fail InvalidFormatError{"AAC escape coefficient is too large"}
+            }
+
             let bits  = leading + 4
             let count = leading + 1 + bits
             if .valid >= count
             {
-                let base   = 1'u32 << bits
+                let base   = 1_u32 << bits
                 let suffix = .peek(count) & (base - 1)
                 .consume(count)
                 return cast(s32, base + suffix)
@@ -156,12 +160,16 @@ private impl BitReader
         }
 
         var leading = 0_s32
-        while .get1() {
+        while .get1()
+        {
             leading += 1
         }
-        if leading > 11 {
+
+        if leading > 11
+        {
             fail InvalidFormatError{"AAC escape coefficient is too large"}
         }
+
         let bits = leading + 4
         return (1 << bits) + cast(s32, .get(bits))
     }
@@ -230,7 +238,8 @@ private impl HuffTree
             {
                 next = .child[next, (index >> (HuffPrefixBits - 1 - bit)) & 1]
                 .prefixes[index] = {cast(s16, next), cast(u8, bit + 1)}
-                if next <= 0 {
+                if next <= 0
+                {
                     break
                 }
             }
@@ -239,8 +248,21 @@ private impl HuffTree
 
     mtd const decode(reader: *BitReader)->s32
     {
-        var at = 0_s32
-        for 24
+        var at   = 0_s32
+        var used = 0_s32
+        if reader.ensure(HuffPrefixBits)
+        {
+            let prefix = .prefixes[reader.peek(HuffPrefixBits)]
+            reader.consume(cast(s32, prefix.bits))
+            at   = prefix.next
+            used = prefix.bits
+            if at <= 0
+            {
+                return ~at
+            }
+        }
+
+        for used until 24
         {
             let next = .child[at, reader.get1()]
             if next <= 0
@@ -275,12 +297,11 @@ private impl ImdctPlan
 {
     mtd init(size: s32)
     {
-        .size     = size
-        .quarter  = size / 4
-        .log2Size = 0
-        while (1 << .log2Size) < .quarter
+        let quarter = cast(u32, size / 4)
+        let shift   = Swag.leadingZeros(quarter) + 1
+        for i in quarter
         {
-            .log2Size += 1
+            .reverse[i] = Math.reverse(cast(u32, i)) >> shift
         }
 
         // Each stage stores adjacent twiddle factors for contiguous SIMD loads.
@@ -289,14 +310,12 @@ private impl ImdctPlan
         var butterfly = 1_u32
         while butterfly < quarter
         {
-            var value: u32
-            for bit in cast(u64, .log2Size)
+            for j in butterfly
             {
-                value = (value << 1) | ((cast(u32, i) >> cast(u32, bit)) & 1)
+                let angle = 2.0 * pi * cast(f64, j * stride) / cast(f64, quarter)
+                .fftReal[butterfly + j] = cast(f32, Math.cos(angle))
+                .fftImag[butterfly + j] = cast(f32, Math.sin(angle))
             }
-
-            .reverse[i] = cast(s32, value)
-        }
 
             stride    >>= 1
             butterfly <<= 1
@@ -483,21 +502,20 @@ private impl ImdctPlan
             }
         }
 
-        var butterfly = 4'u32
+        var butterfly = 4_u32
         #static if Quarter == 512 and not Sparse
         {
-            .runFftPair'(Quarter, 4)(re, im, cos, sin)
-            .runFftPair'(Quarter, 16)(re, im, cos, sin)
-            .runFftPair'(Quarter, 64)(re, im, cos, sin)
+            .runFftPair!{Quarter, 4}(re, im, cos, sin)
+            .runFftPair!{Quarter, 16}(re, im, cos, sin)
+            .runFftPair!{Quarter, 64}(re, im, cos, sin)
             butterfly = 256
         }
 
         while butterfly < Quarter
         {
-            let butterfly = length >> 1
-            let stride    = quarter / length
-            var base      = 0_s32
-            while base < quarter
+            let length = 2 * butterfly
+            var base   = 0_u32
+            while base < Quarter
             {
                 #static if Sparse
                 {
@@ -647,15 +665,19 @@ private func buildSpectralPrefixes(book: u64, code: u32, bits: u8, values: const
     var signCount = 0_u32
     if not signed
     {
-        for item in dimension where values[][item] {
+        for item in dimension where values[][item]
+        {
             signCount += 1
         }
     }
 
     let bitCount = cast(u32, bits) + signCount
-    if bitCount > SpectralPrefixBits and (book != 10 or bitCount > EscapePrefixBits) do
+    if bitCount > SpectralPrefixBits and (book != 10 or bitCount > EscapePrefixBits)
+    {
         return
-    for signs in 1'u32 << signCount
+    }
+
+    for signs in 1_u32 << signCount
     {
         var at     = signCount
         var packed = bitCount << SpectralCountShift
@@ -665,7 +687,8 @@ private func buildSpectralPrefixes(book: u64, code: u32, bits: u8, values: const
             if not signed and coefficient
             {
                 at -= 1
-                if (signs >> at) & 1 {
+                if (signs >> at) & 1
+                {
                     coefficient = -coefficient
                 }
             }
@@ -678,8 +701,10 @@ private func buildSpectralPrefixes(book: u64, code: u32, bits: u8, values: const
         {
             let remaining = SpectralPrefixBits - bitCount
             let first     = token << remaining
-            for suffix in 1'u32 << remaining do
+            for suffix in 1_u32 << remaining
+            {
                 g_SpectralPrefixes[book, first + suffix] = packed
+            }
         }
         else
         {
@@ -694,9 +719,11 @@ private func buildSpectralPrefixes(book: u64, code: u32, bits: u8, values: const
 
             let row       = primary[] & ~SecondaryEscape
             let remaining = EscapePrefixBits - bitCount
-            let first     = (token & ((1'u32 << extra) - 1)) << remaining
-            for suffix in 1'u32 << remaining do
+            let first     = (token & ((1_u32 << extra) - 1)) << remaining
+            for suffix in 1_u32 << remaining
+            {
                 g_EscapePrefixes[row, first + suffix] = packed
+            }
         }
     }
 }
@@ -706,12 +733,28 @@ private func initializeTables()
     for book in 11
     {
         g_SpectralTrees[book].reset()
-        let bits  = specBits(cast(u32, book))
-        let codes = specCodes(cast(u32, book))
+        let bits      = specBits(cast(u32, book))
+        let codes     = specCodes(cast(u32, book))
+        let dimension = cast(s32, BookDim[book])
+        let largest   = cast(s32, BookLav[book])
+        let signed    = BookSigned[book] != 0
+        let bias      = signed ? largest : 0
+        let radix     = signed ? 2 * largest + 1 : largest + 1
         for index in cast(u64, BookSize[book]) where bits[index] != 0
         {
             g_SpectralTrees[book].insert(codes[index], bits[index], cast(s32, index))
+
+            var packed = cast(s32, index)
+            for component in dimension
+            {
+                g_SpectralValues[book, index, dimension - 1 - component] = packed % radix - bias
+                packed /= radix
+            }
+
+            buildSpectralPrefixes(book, codes[index], bits[index], &g_SpectralValues[book, index])
         }
+
+        g_SpectralTrees[book].buildPrefixes()
     }
 
     g_ScaleTree.reset()
@@ -720,17 +763,34 @@ private func initializeTables()
         g_ScaleTree.insert(ScfCodes[index], ScfBits[index], cast(s32, index))
     }
 
+    g_ScaleTree.buildPrefixes()
+
+    for magnitude in g_QuantizedPowers.count
+    {
+        g_QuantizedPowers[magnitude] = Math.pow(cast(f64, magnitude), 4.0 / 3.0)
+    }
+
+    for value in g_SignedPowers.count
+    {
+        g_SignedPowers[value] = requantize(cast(s32, value) - SpectralValueBias, 1.0)
+    }
+
+    for index in g_BandGains.count
+    {
+        g_BandGains[index] = Math.pow(2.0, 0.25 * cast(f64, (cast(s32, index) - BandGainBias)))
+    }
+
     g_ImdctLong.init(2048)
     g_ImdctShort.init(256)
 
     for index in 1024
     {
-        g_LongWindows[0, index] = Math.sin(Math.ConstF64.Pi / 2048.0 * (cast(f64, index) + 0.5))
+        g_LongWindows[0, index] = cast(f32, Math.sin(Math.ConstF64.Pi / 2048.0 * (cast(f64, index) + 0.5)))
     }
 
     for index in 128
     {
-        g_ShortWindows[0, index] = Math.sin(Math.ConstF64.Pi / 256.0 * (cast(f64, index) + 0.5))
+        g_ShortWindows[0, index] = cast(f32, Math.sin(Math.ConstF64.Pi / 256.0 * (cast(f64, index) + 0.5)))
     }
 
     initializeKbdWindow(&g_LongWindows[1, 0], 4.0, 1024)
@@ -739,12 +799,16 @@ private func initializeTables()
     // The long-stop left window is also the long-start right window in reverse.
     for shape in 2
     {
-        for index in 128 {
+        for index in 128
+        {
             g_TransitionWindows[shape, 448 + index] = g_ShortWindows[shape, index]
         }
-        for index in 576 until 1024 {
+
+        for index in 576 until 1024
+        {
             g_TransitionWindows[shape, index] = 1
         }
+
         for index in 1024
         {
             g_RightLongWindows[shape, index]       = g_LongWindows[shape, 1023 - index]
@@ -777,7 +841,7 @@ private func initializeKbdWindow(window: [*] f32, alpha: f64, half: s32)
     sum += 1.0
     for index in cast(u64, half)
     {
-        window[index] = Math.sqrt(cumulative[index] / sum)
+        window[index] = cast(f32, Math.sqrt(cumulative[index] / sum))
     }
 }
 
@@ -886,38 +950,7 @@ private impl AacCodec
 
     mtd synthesizeNoiseBand(channel, scale, first, last: s32)
     {
-        if book == 0 or book == 14 or book == 15
-        {
-            for index in first until last
-            {
-                .coefficients[channel, index] = 0
-            }
-
-            return
-        }
-
-        if book == 13
-        {
-            var energy = 0_f64
-            for index in first until last
-            {
-                let noise = .randomNoise()
-                .coefficients[channel, index] = noise
-                energy += noise * noise
-            }
-
-            let width  = last - first
-            let target = Math.pow(2.0, 0.25 * cast(f64, (scale - 100)))
-            let norm   = energy > 0 ? target * Math.sqrt(cast(f64, width) / energy) : 0.0
-            for index in first until last
-            {
-                .coefficients[channel, index] *= norm
-            }
-
-            return
-        }
-
-        let gain = Math.pow(2.0, 0.25 * cast(f64, (scale - 100)))
+        var energy = 0_f64
         for index in first until last
         {
             let noise = .randomNoise()
@@ -928,7 +961,8 @@ private impl AacCodec
         let width  = last - first
         let target = bandGain(scale - 100)
         let norm   = energy > 0 ? target * Math.sqrt(cast(f64, width) / energy) : 0.0
-        for index in first until last {
+        for index in first until last
+        {
             .coefficients[channel, index] = cast(f32, cast(f64, .coefficients[channel, index]) * norm)
         }
     }
@@ -946,9 +980,11 @@ private impl AacCodec
                 for band in value.maxSfb
                 {
                     let width = cast(s32, (offsets[band + 1] - offsets[band])) * value.groupLength[group]
-                    if .books[channel, bandIndex] == 13 {
+                    if .books[channel, bandIndex] == 13
+                    {
                         .synthesizeNoiseBand(channel, .scaleFactors[channel, bandIndex], line, line + width)
                     }
+
                     line      += width
                     bandIndex += 1
                 }
@@ -957,18 +993,9 @@ private impl AacCodec
         else
         {
             let offsets = swbLong(.sampleRateIndex)
-            for band in value.maxSfb
+            for band in value.maxSfb where .books[channel, band] == 13
             {
-                .dequantizeBand(channel,
-                                .books[channel, band],
-                                .scaleFactors[channel, band],
-                                offsets[band],
-                                offsets[band + 1])
-            }
-
-            for line in offsets[value.maxSfb] until FrameSamples
-            {
-                .coefficients[channel, line] = 0
+                .synthesizeNoiseBand(channel, .scaleFactors[channel, band], offsets[band], offsets[band + 1])
             }
         }
     }
@@ -981,7 +1008,7 @@ private impl AacCodec
             return
         }
 
-        var natural: [FrameSamples] f64
+        var natural: [FrameSamples] f32
         let offsets    = swbShort(.sampleRateIndex)
         var line       = 0_s32
         var windowBase = 0_s32
@@ -1072,58 +1099,19 @@ private impl AacCodec
 
         if value.windowSequence != 2
         {
-            var transformed: [2048] f64
-            g_ImdctLong.run(&.coefficients[channel, 0], &transformed)
-            for index in 2048
+            let leftWindow = value.windowSequence == 3 ? cast(const [*] f32, &g_TransitionWindows[previousShape, 0]) :
+                             cast(const [*] f32, &g_LongWindows[previousShape, 0])
+            let rightWindow = value.windowSequence == 1 ? cast(const [*] f32, &g_RightTransitionWindows[currentShape, 0]) :
+                              cast(const [*] f32, &g_RightLongWindows[currentShape, 0])
+            let overlap = cast([*] f32, &.overlap[channel, 0])
+            let window: ImdctOverlap = {leftWindow, rightWindow, overlap}
+            if channel == 5 and not .pairStart[4] and swbLong(.sampleRateIndex)[value.maxSfb] <= 16
             {
-                var window = 0_f64
-                if index < 1024
-                {
-                    if value.windowSequence == 3
-                    {
-                        if index < 448
-                        {
-                            window = 0
-                        }
-                        else if index < 576
-                        {
-                            window = g_ShortWindows[previousShape, index - 448]
-                        }
-                        else
-                        {
-                            window = 1
-                        }
-                    }
-                    else
-                    {
-                        window = g_LongWindows[previousShape, index]
-                    }
-                }
-                else
-                {
-                    if value.windowSequence == 1
-                    {
-                        let offset = index - 1024
-                        if offset < 448
-                        {
-                            window = 1
-                        }
-                        else if offset < 576
-                        {
-                            window = g_ShortWindows[currentShape, 575 - offset]
-                        }
-                        else
-                        {
-                            window = 0
-                        }
-                    }
-                    else
-                    {
-                        window = g_LongWindows[currentShape, 2047 - index]
-                    }
-                }
-
-                time[index] = transformed[index] * window
+                g_ImdctLong.run!{512, true}(&.coefficients[channel, 0], output, &window)
+            }
+            else
+            {
+                g_ImdctLong.run!{512, false}(&.coefficients[channel, 0], output, &window)
             }
         }
         else
@@ -1296,16 +1284,20 @@ private impl AacCodec
         while index < count
         {
             var packed = 0_u32
-            if reader.ensure(SpectralPrefixBits) {
+            if reader.ensure(SpectralPrefixBits)
+            {
                 packed = prefixes[reader.peek(SpectralPrefixBits)]
-            #static if Escape do
+            }
+
+            #static if Escape
+            {
                 if packed & SecondaryEscape
                 {
                     let row = packed & ~SecondaryEscape
                     packed = reader.ensure(EscapePrefixBits) ? g_EscapePrefixes[row, reader.peek(EscapePrefixBits) & EscapeSuffixMask] : 0
                 }
-
             }
+
             if packed
             {
                 reader.consume(cast(s32, packed >> SpectralCountShift))
@@ -1329,14 +1321,18 @@ private impl AacCodec
             else
             {
                 let symbol = g_SpectralTrees[book].decode(reader)
-                if symbol < 0 or reader.overrun {
+                if symbol < 0 or reader.overrun
+                {
                     fail InvalidFormatError{"AAC spectral Huffman code is invalid"}
                 }
+
                 var values = g_SpectralValues[book, symbol]
                 if not BookSigned[book]
                 {
-                    for component in Dimension where values[component] != 0 {
-                        if reader.get1() {
+                    for component in Dimension where values[component] != 0
+                    {
+                        if reader.get1()
+                        {
                             values[component] = -values[component]
                         }
                     }
@@ -1351,7 +1347,8 @@ private impl AacCodec
                     }
                 }
 
-                for component in Dimension {
+                for component in Dimension
+                {
                     dest[index + component] = cast(f32, requantize(values[component], gain))
                 }
             }
@@ -1366,7 +1363,8 @@ private impl AacCodec
         let value   = &.ics[channel]
         let offsets = value.windowSequence == 2 ? swbShort(.sampleRateIndex) : swbLong(.sampleRateIndex)
         var line    = 0_s32
-        for band in bandCount
+        var band    = 0_s32
+        for group in value.numWindowGroups
         {
             let windows = value.groupLength[group]
             for scaleBand in value.maxSfb
@@ -1383,13 +1381,16 @@ private impl AacCodec
                     let dest = cast([*] f32, &.coefficients[channel, line])
 
                     // AAC's band boundaries are multiples of four for both window sizes.
-                    if book <= 4 {
+                    if book <= 4
+                    {
                         try .decodeSpectralBand!{4, false}(reader, book - 1, dest, width, gain)
                     }
-                    else if book == 11 {
+                    else if book == 11
+                    {
                         try .decodeSpectralBand!{2, true}(reader, book - 1, dest, width, gain)
                     }
-                    else {
+                    else
+                    {
                         try .decodeSpectralBand!{2, false}(reader, book - 1, dest, width, gain)
                     }
                 }
@@ -1397,80 +1398,6 @@ private impl AacCodec
                 line += width
                 band += 1
             }
-
-            let dimension = cast(s32, BookDim[book - 1])
-            let largest   = cast(s32, BookLav[book - 1])
-            let signed    = BookSigned[book - 1] != 0
-            let end       = line + width
-            var index     = line
-            while index < end
-            {
-                let symbol = g_SpectralTrees[book - 1].decode(reader)
-                if symbol < 0 or reader.overrun
-                {
-                    fail InvalidFormatError{"AAC spectral Huffman code is invalid"}
-                }
-
-                var values: [4] s32
-                var packed    = symbol
-                var component = dimension - 1
-                if signed
-                {
-                    while component >= 0
-                    {
-                        values[component] = packed % (2 * largest + 1) - largest
-                        packed            /= 2 * largest + 1
-                        component         -= 1
-                    }
-                }
-                else
-                {
-                    let radix = book == 11 ? 17 : largest + 1
-                    while component >= 0
-                    {
-                        values[component] = packed % radix
-                        packed            /= radix
-                        component         -= 1
-                    }
-
-                    for item in dimension where values[item] != 0
-                    {
-                        if reader.get1()
-                        {
-                            values[item] = -values[item]
-                        }
-                    }
-
-                    if book == 11
-                    {
-                        for item in dimension where Math.abs(values[item]) == 16
-                        {
-                            var leading = 0_s32
-                            while reader.get1()
-                            {
-                                leading += 1
-                            }
-
-                            if leading > 11
-                            {
-                                fail InvalidFormatError{"AAC escape coefficient is too large"}
-                            }
-
-                            let magnitude = (1 << (leading + 4)) + cast(s32, reader.get(leading + 4))
-                            values[item] = values[item] < 0 ? -magnitude : magnitude
-                        }
-                    }
-                }
-
-                for item in dimension where index + item < end
-                {
-                    .coefficients[channel, index + item] = values[item]
-                }
-
-                index += dimension
-            }
-
-            line = end
         }
     }
 
@@ -1555,7 +1482,7 @@ private impl AacCodec
             fail UnsupportedFormatError{"AAC gain control is not supported by the Low Complexity profile"}
         }
 
-        try .decodeSpectral(reader, channel, bandCount)
+        try .decodeSpectral(reader, channel)
     }
 
     mtd applyStereoPair(left: s32)
@@ -1609,10 +1536,10 @@ private impl AacCodec
                     sign = -sign
                 }
 
-                let scale = sign * Math.pow(2.0, 0.25 * cast(f64, .scaleFactors[right, band]))
+                let scale = sign * bandGain(.scaleFactors[right, band])
                 for index in line until line + width
                 {
-                    .coefficients[right, index] = scale * .coefficients[left, index]
+                    .coefficients[right, index] = cast(f32, scale * cast(f64, .coefficients[left, index]))
                 }
             }
 
@@ -1664,15 +1591,24 @@ private impl AacCodec
 
     mtd synthesizeChannel(channel: s32, output: [*] f32)
     {
+        .deinterleaveShort(channel)
+        .applyTns(channel)
+        .imdctChannel(channel, output)
+    }
+
+    mtd prepareSpectrum()
+    {
+        // Advance the noise generator only after the complete access unit has been validated.
         for channel in .channels
         {
-            .inverseQuantize(channel)
+            .synthesizeNoise(channel)
         }
 
         for channel in .channels where .pairStart[channel]
         {
             .applyStereoPair(channel)
         }
+    }
 
     #[Swag.NoInline]
     mtd reconstructMono(destination: [*] s16)
@@ -1693,10 +1629,11 @@ private impl AacCodec
     mtd reconstructSurround(destination: [*] s16)
     {
         var pcm: [6, FrameSamples] f32
-        for channel in 6 {
+        for channel in 6
+        {
             .synthesizeChannel(.sourceChannel(cast(s32, channel)), &pcm[channel, 0])
-
         }
+
         let source = cast(const [*] f32, &pcm[0, 0])
         for group in FrameSamples / 4
         {
@@ -1749,7 +1686,8 @@ private impl AacCodec
             var pcm: [FrameSamples] f32
             .synthesizeChannel(.sourceChannel(channel), &pcm)
             let output = destination + channel
-            for frame in FrameSamples {
+            for frame in FrameSamples
+            {
                 output[frame * .channels] = roundPcm16(pcm[frame])
             }
         }
@@ -1758,6 +1696,7 @@ private impl AacCodec
     mtd parseRaw(packet: const [..] u8) fail
     {
         var reader = BitReader.create(packet.buffer, packet.count)
+        .noiseSamples = 0
         var decodedChannels = 0_s32
         Memory.set(&.pairStart, 0, #sizeof(.pairStart))
         Memory.set(&.usesMs, 0, #sizeof(.usesMs))
@@ -1860,7 +1799,11 @@ private impl AacCodec
         {
             fail InvalidFormatError{"AAC access unit channel layout differs from its configuration"}
         }
+    }
 
+    mtd decodeRaw(packet: const [..] u8, destination: [*] s16) fail
+    {
+        try .parseRaw(packet)
         .reconstruct(destination)
     }
 }
@@ -1889,7 +1832,8 @@ private func roundNonStereoPcm32(samples: Simd.F32x4)->Simd.S32x4
         // Reuse that check only when SIMD reports a possibly out-of-range lane.
         if Simd.anyTrue(cast #bit(Simd.U32x4, roundedLanes) == Simd.splat(0x80000000_u32))
         {
-            for lane in 4 {
+            for lane in 4
+            {
                 discard roundPcm16(samples[lane])
             }
         }
@@ -1968,13 +1912,16 @@ private func applyNoiseJump(state: u32, transition: const [*] u32)->u32
 private func buildNoiseJumps()->NoiseJumpTable
 {
     var jumps: NoiseJumpTable
-    for bit in 32 {
+    for bit in 32
+    {
         jumps[0, bit] = nextNoiseState(1_u32 << bit)
     }
+
     for power in 1 until NoiseJumpBits
     {
         let previous = cast(const [*] u32, &jumps[power - 1, 0])
-        for bit in 32 {
+        for bit in 32
+        {
             jumps[power, bit] = applyNoiseJump(previous[bit], previous)
         }
     }
@@ -2001,7 +1948,8 @@ private func advanceNoise(state, count: u32)->u32
 
 private func parseChunk(states: [*] AacCodec, packets: const [..] const [..] u8, first, end: u64) fail
 {
-    for index in first until end {
+    for index in first until end
+    {
         try states[index].parseRaw(packets[index])
     }
 }
@@ -2019,7 +1967,8 @@ private func synthesizeChunk(states: [*] AacCodec, heads: [*] f32, initialShape:
 
         worker.prepareSpectrum()
         let head = heads + index * stride
-        for channel in worker.channels {
+        for channel in worker.channels
+        {
             worker.synthesizeChannel(channel, head + channel * FrameSamples)
         }
     }
@@ -2102,7 +2051,8 @@ private func mergeChunk(states: [*] AacCodec, heads: const [*] f32, initialOverl
                 let source  = worker.sourceChannel(channel)
                 let current = head + source * FrameSamples
                 let tail    = cast(const [*] f32, &prev[][source, 0])
-                for frame in FrameSamples {
+                for frame in FrameSamples
+                {
                     packetOutput[frame * worker.channels + channel] = roundPcm16(current[frame] + tail[frame])
                 }
             }
@@ -2117,7 +2067,8 @@ private func synthesizeMergeChunk(states: [*] AacCodec, heads: [*] f32, shape: c
         synthesizeChunk(states, heads, shape, index, index + 1, stride)
 
         // The first packet of a later lane still needs the adjacent lane's tail.
-        if not first or index > first {
+        if not first or index > first
+        {
             mergeChunk(states, heads, history, index, index + 1, stride, output)
         }
     }
@@ -2134,13 +2085,16 @@ internal func decodePacketBatch(decoder: IPacketCodec, packets: const [..] const
     if packets.count > MaxPacketBatchSize or
        output.count != packets.count * stride or
        not laneCount or
-       laneCount > MaxPacketBatchLanes {
+       laneCount > MaxPacketBatchLanes
+    {
         fail BadParameterError{"AAC packet batch dimensions are invalid"}
     }
-    if not packets.count {
-        return
 
+    if not packets.count
+    {
+        return
     }
+
     let capacity = Math.min(packets.count, BatchStateCount)
     var scratch: Array!{AacCodec}
     scratch.resize(capacity)
@@ -2225,9 +2179,11 @@ internal func decodePacketBatch(decoder: IPacketCodec, packets: const [..] const
 
         let final = states + count - 1
         overlap = final.overlap
-        for channel in initial.channels {
+        for channel in initial.channels
+        {
             previousShape[channel] = final.ics[channel].windowShape
         }
+
         position += count
     }
 
@@ -2341,7 +2297,8 @@ impl IPacketCodec for AacCodec
     }
 
     decoder.applyStereoPair(0)
-    for index in FrameSamples {
+    for index in FrameSamples
+    {
         Swag.require(decoder.coefficients[1, index] == 2)
     }
 }
@@ -2397,9 +2354,12 @@ impl IPacketCodec for AacCodec
             while position < end
             {
                 let count    = Math.min(end - position, (position % 16) + 1)
-                var expected = 0'u32
-                for offset in position until position + count do
+                var expected = 0_u32
+                for offset in position until position + count
+                {
                     expected = (expected << 1) | ((data[offset / 8] >> (7 - offset % 8)) & 1)
+                }
+
                 if position + count == end and count < 16 and skip & 1
                 {
                     Swag.require(reader.get(16) == (expected << (16 - count)))
@@ -2429,9 +2389,12 @@ impl IPacketCodec for AacCodec
         let second    = cast(s32, symbol % 17)
         let signCount = cast(u32, first != 0) + cast(u32, second != 0)
         let length    = lengths[symbol] + signCount
-        if length <= SpectralPrefixBits do
+        if length <= SpectralPrefixBits
+        {
             continue
-        for signs in 1'u32 << signCount
+        }
+
+        for signs in 1_u32 << signCount
         {
             let code       = (cast(u32, codes[symbol]) << signCount) | cast(u32, signs)
             let prefix     = code << (EscapePrefixBits - length)

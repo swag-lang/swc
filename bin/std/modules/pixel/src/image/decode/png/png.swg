@@ -173,7 +173,8 @@ impl Decoder
             fail InvalidFormatError{"invalid chunk"}
         }
 
-        result.datas = Swag.makeSlice(.stream.currentPointer(), ch.length)
+        let payload = unwrap .stream.currentPointer()
+        result.datas = Swag.makeSlice(payload, ch.length)
         .stream.advanceBytes(ch.length)
 
         // The four bytes immediately before the payload are its type in wire order.
@@ -186,7 +187,7 @@ impl Decoder
             fail InvalidFormatError{"PNG data ends before the chunk checksum"}
         }
 
-        if vcrc != crc.value()
+        if vcrc != crc
         {
             fail InvalidFormatError{"invalid checksum"}
         }
@@ -306,8 +307,10 @@ impl Decoder
             fail InvalidFormatError{"not a png"}
         }
 
-        var result:   #returntype
-        var iDataBuf: Array!{u8}
+        var result:    #returntype
+        var frameData: Array!{u8}
+        var firstIdat: const [..] u8?
+        var idatSize:  u64
 
         // Zero-initialized: on iterations where 'chIsHere' skips the peek, the header
         // was already loaded by the look-ahead; the flow analysis cannot prove it.
@@ -453,9 +456,9 @@ impl Decoder
 
                 sequence     += 1
                 frameHasData = true
-                if selected == currentFrame
+                if .decOptions.decodePixels and selected == currentFrame
                 {
-                    iDataBuf.add(data[4 to])
+                    frameData.add(data[4 to])
                 }
 
             case .TRNS:
@@ -605,9 +608,16 @@ impl Decoder
                 while ch.type == IDAT
                 {
                     let chunk = try .readChunk(ch)
-                    if selected < 0 or selected == currentFrame
+                    if .decOptions.decodePixels and
+                       (selected < 0 or selected == currentFrame) and
+                       ch.length
                     {
-                        iDataBuf.add(Decoder.safeDatas(chunk))
+                        if not firstIdat
+                        {
+                            firstIdat = Decoder.safeDatas(chunk)
+                        }
+
+                        idatSize += ch.length
                     }
 
                     if currentFrame >= 0
@@ -809,8 +819,8 @@ impl Decoder
             return result
         }
 
-        // Allocate destination: defilter directly into result pixels when channels match
-        // to avoid an extra full-image allocation and memcpy
+        // Native-depth rows can be defiltered in the final pixel buffer. For 16-bit samples,
+        // swap byte order once the filters no longer need the encoded byte order.
         let bytesPerSample = .header.bitDepth == 16 ? 2_u64 : 1_u64
         .dstPixelsSize = cast(u64, .header.width) * .header.height * .inChannels * bytesPerSample
         var ownsDestination = false
@@ -857,10 +867,9 @@ impl Decoder
                     if not remaining
                     {
                         break
-
-                        // IDAT chunks are consecutive and have already been checked for size and CRC.
                     }
 
+                    // IDAT chunks are consecutive and have already been checked for size and CRC.
                     payload += length + 12
                     length  = Decoder.read32Be(payload - 8)
                 }
@@ -872,7 +881,7 @@ impl Decoder
 
         var dec: Compress.ZLib
         let hintSize = .getExpectedDecompressedSize()
-        .dcmpBuf = try dec.decompress(iDataBuf.toSlice(), hintSize)
+        .dcmpBuf = try dec.decompress(compressed, hintSize)
         if .dcmpBuf.count != hintSize
         {
             fail InvalidFormatError{"invalid PNG decompressed scanline size"}
@@ -888,16 +897,20 @@ impl Decoder
         if .header.colorType & .Paletted and .paletteCount < (1 << .header.bitDepth)
         {
             let pixelCount = cast(u64, .header.width) * .header.height
-            let indices    = .safeDstPixels()
-            for pixel in pixelCount where indices[pixel] >= .paletteCount
+            if hasInvalidPaletteIndex(.safeDstPixels(), pixelCount, cast(u8, .paletteCount))
             {
                 fail InvalidFormatError{"PNG pixel index exceeds the palette"}
             }
         }
 
-        // Channels match: result.pixels was already populated directly by defilter
         if intoResult
         {
+            if is16Bit
+            {
+                let pixels = result.pixels.storage()
+                convert16Samples(pixels, pixels, .dstPixelsSize / 2)
+            }
+
             return result
         }
 

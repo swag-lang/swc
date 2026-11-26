@@ -366,7 +366,7 @@ struct Painter
         sharedContours:   Array!{u64}                  // Path indices of the list being filled, grouped by region.
         sharedRegions:    Array!{FillRegion}           // The regions those contours form.
         sharedDirections: HashTable!{u64, Vector2}     // Outward direction of each contour point of a region.
-        sharedRoundTmp:   Array!{{ factor: f32, pos: Vector2 } }     // Reusable stroke-rounding workspace.
+        sharedRoundTmp:   Array!{{ factor: f32, pos: Vector2 }}     // Reusable stroke-rounding workspace.
         tess: Poly2Tri.Tessellate                      // Reusable polygon tessellator.
 
         // Reusable shaped run for the immediate drawString path, so per-frame text drawing
@@ -1052,7 +1052,10 @@ impl Painter
 
     private mtd aaHalfPathSpace(normal: Vector2)->f32
     {
-        let sc = .curState.transform.transformVector(normal).length() * .curContentScale
+        let device = .curState.transform.transformVector(normal)
+        let length = device.x == 0 ? Math.abs(device.y) :
+                     device.y == 0 ? Math.abs(device.x) : device.length()
+        let sc = length * .curContentScale
         if sc <= 0.001
         {
             return AAHalf
@@ -1102,9 +1105,8 @@ impl Painter
 
         // Outward normal: perpendicular to the edge, pointing away from the centroid.
         let centroid = (v0[0].pos + v0[1].pos + v0[2].pos) * (1.0 / 3.0)
-        var n        = Vector2{q.y - p.y, p.x - q.x}
-        n.normalizeOrZero()
-        let mid = (p + q) * 0.5
+        var n        = strokeUnitVector({q.y - p.y, p.x - q.x})
+        let mid      = (p + q) * 0.5
         if n.dot(mid - centroid) < 0
         {
             n = -n
@@ -1129,8 +1131,7 @@ impl Painter
     #[Swag.Safety(.All, false)]
     private mtd addEdgeAAFlipped(p, q: Vector2, flip: bool, color: u32)
     {
-        var n = Vector2{q.y - p.y, p.x - q.x}
-        n.normalizeOrZero()
+        var n = strokeUnitVector({q.y - p.y, p.x - q.x})
         if flip
         {
             n = -n

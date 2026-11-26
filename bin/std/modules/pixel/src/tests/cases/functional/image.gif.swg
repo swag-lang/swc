@@ -376,10 +376,9 @@ func wideGifPaletteFixture(withTransparency, invalidIndex: bool)->Array!{u8}
         else if offset == 255
         {
             bytes.add(cast(u8, (PixelCount + 1 - 255)))
-
-            // Each byte has a four-bit clear code followed by a literal.
         }
 
+        // Each byte has a four-bit clear code followed by a literal.
         let paletteIndex = invalidIndex and offset == 16 ? 4 : (offset & 3)
         bytes.add(cast(u8, ((paletteIndex << 4) | 8)))
     }
@@ -505,21 +504,28 @@ func wideGifPaletteFixture(withTransparency, invalidIndex: bool)->Array!{u8}
 // GIF uniform fills use the same transparency threshold when source samples differ.
 #test
 {
-    for alpha in [127'u8, 128]
+    for alpha in [127_u8, 128]
     {
         var source = Image.create(7, 37, .BGRA8)
         source.fill(Color.fromArgb(alpha, 92, 174, 227))
         let pixels = source.pixels.storage()
         pixels[3] = alpha == 127 ? 42 : 199
-        if alpha == 127 do
+        if alpha == 127
+        {
             pixels[0] = 35
+        }
+
         let encoded = expect source.encodeToBytes("uniform-bgra.gif")
         let decoded = expect Image.decode("uniform-bgra.gif", encoded.toSlice())
         Swag.require(decoded.width == source.width and decoded.height == source.height)
-        if alpha == 127 do
+        if alpha == 127
+        {
             assertGifPixelAt(decoded, 6, 36, 0, 0, 0, 0)
-        else do
+        }
+        else
+        {
             assertGifPixelAt(decoded, 6, 36, 92, 174, 227, 255)
+        }
     }
 }
 

@@ -407,15 +407,23 @@ const PackedFormats: [18] PixelFormat = [
         var image = Image.create(41, 25, .RGBA8, alphaMode: .Premultiplied)
         let words = cast([*] u32, image.pixels.storage())
         let count = image.byteCount / 4
-        for i in count do
+        for i in count
+        {
             words[i] = 0xFF132F5C
-        if not opaque do
+        }
+
+        if not opaque
+        {
             words[count - 1] &= 0x00FFFFFF
+        }
 
         image.convertAlphaTo(.Straight)
         Swag.require(image.alphaMode == .Straight)
-        for i in count - 1 do
+        for i in count - 1
+        {
             Swag.require(words[i] == 0xFF132F5C)
-        Swag.require(words[count - 1] == (opaque ? 0xFF132F5C'u32 : 0'u32))
+        }
+
+        Swag.require(words[count - 1] == (opaque ? 0xFF132F5C_u32 : 0_u32))
     }
 }

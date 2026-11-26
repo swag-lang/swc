@@ -182,7 +182,7 @@ impl ViewerWindow
         if .currentView and
            not .choiceLoad.started and
            not .awaitingRetirement and
-           Viewers.Picture.isJpegExtension(Path.lowercaseExtension(.pendingFile))
+           Jpg.matchesFileName(.pendingFile)
         {
             .choiceLoad.start(&.index, .pendingFile, me, includeNeighbors: not .thumbnailMode)
         }

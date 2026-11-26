@@ -15,7 +15,7 @@ public const Poly1305BlockSize = 16
 // Stores a Poly1305 authentication tag.
 public alias Poly1305Tag = [Poly1305TagSize] u8
 
-private const LimbMask = 0x3FF_FFFF'u64
+private const LimbMask                 = 0x3FF_FFFF_u64
 private const ScalarWideBlockThreshold = 8
 private const IfmaBlockThreshold = 20
 private const TileBlockBits = 13
@@ -543,11 +543,11 @@ public impl Poly1305
                 let d0 = p00.lo + p11.lo
                 let carry0 = p00.hi + p11.hi + cast(u64, d0 < p00.lo)
                 let middle = p01.lo + p10.lo
-                let sub = middle + carry0
-                let d1 = sub + a2 * .wrapped
-                let d2 = a2 * .r[0] + p01.hi + p10.hi +
-                         cast(u64, middle < p01.lo) + cast(u64, sub < middle) + cast(u64, d1 < sub)
-                let first = d0 + ((d2 & ~3'u64) + (d2 >> 2))
+                let sub    = middle + carry0
+                let d1     = sub + a2 * .wrapped
+                let d2     = a2 * .r[0] + p01.hi + p10.hi +
+                             cast(u64, middle < p01.lo) + cast(u64, sub < middle) + cast(u64, d1 < sub)
+                let first  = d0 + ((d2 & ~3_u64) + (d2 >> 2))
                 let second = d1 + cast(u64, first < d0)
                 .h[0] = first
                 .h[1] = second

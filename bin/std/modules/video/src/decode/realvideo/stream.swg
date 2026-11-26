@@ -237,13 +237,13 @@ impl Stream
     {
         if let output = target
         {
-            output[] = #move .queue[at].planes
+            Core.swap(output, &.queue[at].planes)
         }
 
         .queued -= 1
         if at != .queued
         {
-            .queue[at] = #move .queue[.queued]
+            Core.swap(&.queue[at], &.queue[.queued])
         }
 
         .emitRank += 1

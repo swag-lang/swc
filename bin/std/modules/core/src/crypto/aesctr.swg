@@ -39,10 +39,14 @@ internal func aesGcmCounterBlock(initial: U64x2, index: u64)->U8x16
     var words = cast #bit (U32x4, initial)
 
     // GCM reserves counter one for its tag mask.
-    #static if BIG_ENDIAN do
+    #static if BIG_ENDIAN
+    {
         words[3] = cast(u32, index + 2)
-    else do
+    }
+    else
+    {
         words[3] = Swag.byteSwap(cast(u32, index + 2))
+    }
     return cast #bit (U8x16, words)
 }
 
@@ -83,14 +87,14 @@ internal func(CounterBits: u32) aesXorCounterBlocksHardware(aes: *Aes, prefix: U
         while block + 8 <= fullBlockEnd
         {
             let offset = block * AesBlockSize
-            aes[].xorEightCountersHardware(aesCounterBlock'CounterBits(prefix, low, block),
-                                           aesCounterBlock'CounterBits(prefix, low, block + 1),
-                                           aesCounterBlock'CounterBits(prefix, low, block + 2),
-                                           aesCounterBlock'CounterBits(prefix, low, block + 3),
-                                           aesCounterBlock'CounterBits(prefix, low, block + 4),
-                                           aesCounterBlock'CounterBits(prefix, low, block + 5),
-                                           aesCounterBlock'CounterBits(prefix, low, block + 6),
-                                           aesCounterBlock'CounterBits(prefix, low, block + 7),
+            aes[].xorEightCountersHardware(aesCounterBlock!{CounterBits}(prefix, low, block),
+                                           aesCounterBlock!{CounterBits}(prefix, low, block + 1),
+                                           aesCounterBlock!{CounterBits}(prefix, low, block + 2),
+                                           aesCounterBlock!{CounterBits}(prefix, low, block + 3),
+                                           aesCounterBlock!{CounterBits}(prefix, low, block + 4),
+                                           aesCounterBlock!{CounterBits}(prefix, low, block + 5),
+                                           aesCounterBlock!{CounterBits}(prefix, low, block + 6),
+                                           aesCounterBlock!{CounterBits}(prefix, low, block + 7),
                                            sourceBytes + offset,
                                            destinationBytes + offset)
             block += 8
@@ -100,19 +104,19 @@ internal func(CounterBits: u32) aesXorCounterBlocksHardware(aes: *Aes, prefix: U
     while block + 4 <= fullBlockEnd
     {
         let offset = block * AesBlockSize
-        aes[].xorFourHardware'(false, false)(aesCounterBlock'CounterBits(prefix, low, block),
-                              aesCounterBlock'CounterBits(prefix, low, block + 1),
-                              aesCounterBlock'CounterBits(prefix, low, block + 2),
-                              aesCounterBlock'CounterBits(prefix, low, block + 3),
-                              sourceBytes + offset,
-                              destinationBytes + offset)
+        aes[].xorFourHardware!{false, false}(aesCounterBlock!{CounterBits}(prefix, low, block),
+                                             aesCounterBlock!{CounterBits}(prefix, low, block + 1),
+                                             aesCounterBlock!{CounterBits}(prefix, low, block + 2),
+                                             aesCounterBlock!{CounterBits}(prefix, low, block + 3),
+                                             sourceBytes + offset,
+                                             destinationBytes + offset)
         block += 4
     }
 
     while block < fullBlockEnd
     {
         let offset = block * AesBlockSize
-        let stream = aes[].encryptBlockHardware(aesCounterBlock'CounterBits(prefix, low, block))
+        let stream = aes[].encryptBlockHardware(aesCounterBlock!{CounterBits}(prefix, low, block))
         store(destinationBytes + offset, stream ^ load(sourceBytes + offset))
         block += 1
     }
@@ -120,7 +124,7 @@ internal func(CounterBits: u32) aesXorCounterBlocksHardware(aes: *Aes, prefix: U
     if block < endBlock
     {
         var tail: [16] u8
-        store(&tail[0], aes[].encryptBlockHardware(aesCounterBlock'CounterBits(prefix, low, block)))
+        store(&tail[0], aes[].encryptBlockHardware(aesCounterBlock!{CounterBits}(prefix, low, block)))
         let offset = block * AesBlockSize
         for i in source.count - offset
         {
@@ -140,8 +144,8 @@ internal func(CounterBits: u32) aesXorCounterPairsSoftware(aes: *Aes, prefix: U6
     while block + 2 <= fullBlockEnd
     {
         let offset = block * AesBlockSize
-        aes[].xorTwoCountersSoftware(aesCounterBlock'CounterBits(prefix, low, block),
-                                     aesCounterBlock'CounterBits(prefix, low, block + 1),
+        aes[].xorTwoCountersSoftware(aesCounterBlock!{CounterBits}(prefix, low, block),
+                                     aesCounterBlock!{CounterBits}(prefix, low, block + 1),
                                      source.buffer + offset,
                                      destination.buffer + offset)
         block += 2

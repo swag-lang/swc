@@ -57,10 +57,10 @@ func(COUNT: u32) storeLevels(levels: const *[16] s16, coeffs: [*] s16, order: u6
 {
     using Core.Math.Simd
     let input   = cast(const [*] u16, levels)
-    let zero    = splat(0'u16)
+    let zero    = splat(0_u16)
     let low     = bitmask(load(input) != zero)
     let high    = bitmask(load(input + 8) != zero)
-    var present = (low | (high << 8)) & ((1'u32 << COUNT) - 1)
+    var present = (low | (high << 8)) & ((1_u32 << COUNT) - 1)
     while present
     {
         let index  = cast(u64, Swag.trailingZeros(present))

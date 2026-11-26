@@ -58,37 +58,43 @@ func roundTrip(input: const [..] u8, level: Compress.Deflate.CompressionLevel, s
 // ordinary match searches resume.
 #test
 {
-    var data: Array'u8
+    var data: Array!{u8}
     data.resize(80000)
     fillRandom(data.toSlice()[until 32644], 1337)
     fillRandom(data.toSlice()[66212 to], 17)
-    for value in [0'u8, 219]
+    for value in [0_u8, 219]
     {
-        for index in 32644 until 66212 do
+        for index in 32644 until 66212
+        {
             data[index] = value
-        for level in [Compress.Deflate.CompressionLevel.BestSpeed, .Default, .BestCompression] do
+        }
+        for level in [Compress.Deflate.CompressionLevel.BestSpeed, .Default, .BestCompression]
+        {
             Swag.require(roundTrip(data.toSlice(), level, .Default))
+        }
     }
 }
 
 // Probe batches preserve candidate order and the search limit across dictionary wraps.
 #test
 {
-    const RowBytes = 1025'u64
+    const RowBytes = 1025_u64
     const Rows     = 132
-    var data: Array'u8
+    var data: Array!{u8}
     data.resize(RowBytes * Rows)
     for row in Rows
     {
         let start = row * RowBytes
         data[start] = cast(u8, row % 5)
-        if row % 5 == 0 do
+        if row % 5 == 0
+        {
             fillRandom(data.toSlice()[start + 1 until start + RowBytes], cast(u32, row + 1))
+        }
     }
 
     var deflater: Compress.Deflate
     deflater.init(.Default)
-    var compressed: Array'u8
+    var compressed: Array!{u8}
     expect deflater.compress(&compressed, data.toSlice())
     Swag.require(Hash.Crc64.compute(compressed.toSlice()) == 0x4FE2E238BFEA4C70)
 }
@@ -97,8 +103,8 @@ func roundTrip(input: const [..] u8, level: Compress.Deflate.CompressionLevel, s
 // the match limit, the stored writer's block split, the 32 KiB window, and the 64 KiB format limit.
 #test
 {
-    const Sizes = [1'u64, 2, 3, 257, 258, 259, 21838, 21839, 21840, 32767, 32768, 32769, 65535, 65536, 65537, 200003]
-    var data: Array'u8
+    const Sizes = [1_u64, 2, 3, 257, 258, 259, 21838, 21839, 21840, 32767, 32768, 32769, 65535, 65536, 65537, 200003]
+    var data: Array!{u8}
     data.resize(200003)
 
     for kind in 3

@@ -454,9 +454,34 @@ impl Decoder
             }
 
             let first = source + cast(u64, (sourceY + cast(s32, FramePadding))) * sourceStride + cast(u64, (sourceX + cast(s32, FramePadding)))
-            for row in height
+
+            // Fixed row widths keep the common integer predictions in the caller's copy loop.
+            switch width
             {
-                Memory.copy(destination + cast(u64, row) * destinationStride, first + cast(u64, row) * sourceStride, cast(u64, width) * #sizeof(u16))
+            case 2:
+                copyRows!{2}(destination, first, destinationStride, sourceStride, height)
+
+            case 4:
+                copyRows!{4}(destination, first, destinationStride, sourceStride, height)
+
+            case 8:
+                copyRows!{8}(destination, first, destinationStride, sourceStride, height)
+
+            case 16:
+                copyRows!{16}(destination, first, destinationStride, sourceStride, height)
+
+            case 32:
+                copyRows!{32}(destination, first, destinationStride, sourceStride, height)
+
+            case 64:
+                copyRows!{64}(destination, first, destinationStride, sourceStride, height)
+
+            default:
+                let bytes = cast(u64, width) * #sizeof(u16)
+                for row in height
+                {
+                    Memory.copy(destination + cast(u64, row) * destinationStride, first + cast(u64, row) * sourceStride, bytes)
+                }
             }
 
             return

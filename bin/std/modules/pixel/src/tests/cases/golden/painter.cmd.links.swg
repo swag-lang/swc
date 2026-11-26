@@ -5,7 +5,7 @@ using Swag, Core
 // Styling and whitespace split draw runs without splitting a logical link's activation.
 #test
 {
-    var text = RichString.fromMarkup("<a>First <b>action</b></a> then <a>Second action!{/a}.")
+    var text = RichString.fromMarkup("<a>First <b>action</b></a> then <a>Second action</a>.")
     text.compute()
     var starts: Array!{u64}
     for &chunk in text.chunks where chunk.isUrl and not starts.contains(chunk.urlStart)
@@ -28,7 +28,7 @@ using Swag, Core
     let font = makeTextTestFont(&cache, 16, .Bitmap)
     for enabled in [true, false]
     {
-        var text = RichString.fromMarkup("Wait <a>15\u00A0minutes!{/a}.")
+        var text = RichString.fromMarkup("Wait <a>15\u00A0minutes</a>.")
         var format: RichStringFormat
         format.font.regular        = font
         format.palette[0]          = Color.fromRgb(150, 150, 150)

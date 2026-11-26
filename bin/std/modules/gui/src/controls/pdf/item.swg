@@ -127,7 +127,11 @@ internal impl Item
         result += .textAdvances.capacity * #sizeof(f32)
         result += .path.memoryUsage()
         result += .imageClip.memoryUsage()
-        result += .image.byteCount
+        if let pixels = .image.value()
+        {
+            result += pixels.byteCount + .image.encoded().bytes.count
+        }
+
         if .hasMask
         {
             result += .maskImage.byteCount

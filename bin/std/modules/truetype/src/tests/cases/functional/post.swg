@@ -129,7 +129,7 @@ using Swag, Core
         Memory.set(table.storage() + start + 1, cast(u8, 'A' + index), 255)
     }
 
-    table.add([4_u8, 'T'u8, 'a'u8, 'i'u8, 'l'u8])
+    table.add([4_u8, 'T'_u8, 'a'_u8, 'i'_u8, 'l'_u8])
 
     var faceData: FaceImpl
     faceData.face.setGlyphCount(5)

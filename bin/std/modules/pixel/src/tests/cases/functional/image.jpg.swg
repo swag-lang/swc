@@ -252,12 +252,15 @@ func assertEncodedJpgRoundtrip(src: Image, expectedB, expectedG, expectedR: u8, 
     for name in ["gray.jpg", "pillow-gray-1x1.jpg", "progressive-huffman-redefine.jpg"]
     {
         let expected = expect Image.load(getTestDataPath(name))
-        let actual = expect Image.load(getTestDataPath(name), options)
+        let actual   = expect Image.load(getTestDataPath(name), options)
         Swag.require(actual.isValid() and actual.pixelFormat == .Gray8)
         Swag.require(actual.width == expected.width and actual.height == expected.height)
-        for index in actual.byteCount do
+        for index in actual.byteCount
+        {
             Swag.require(actual.pixels.storage()[index] == expected.pixels.storage()[index * 3])
+        }
     }
+
     let rgb = expect Image.load(getTestDataPath("h1v1.jpg"), options)
     Swag.require(rgb.isValid() and rgb.pixelFormat == .BGR8)
 }

@@ -45,11 +45,11 @@ const SnappyBlock: [?] u8 = [50, 8, 'a', 'b', 'c', 166, 3, 0, 16, '1', '2', '3',
 #test
 {
     // Literal lengths, varint widths, and window boundaries all use different encodings.
-    const Sizes = [0'u64, 1, 4, 5, 12, 13, 15, 19, 59, 60, 61, 63, 64, 65, 127, 128, 255, 256, 270, 65535, 65536, 65537, 131137]
-    var data: Array'u8
+    const Sizes = [0_u64, 1, 4, 5, 12, 13, 15, 19, 59, 60, 61, 63, 64, 65, 127, 128, 255, 256, 270, 65535, 65536, 65537, 131137]
+    var data: Array!{u8}
     data.resize(131137)
 
-    var random = 117'u32
+    var random = 117_u32
     for index in data.count
     {
         random      ^= random << 13
@@ -58,13 +58,17 @@ const SnappyBlock: [?] u8 = [50, 8, 'a', 'b', 'c', 166, 3, 0, 16, '1', '2', '3',
         data[index] = Math.byteAt(random, 0)
     }
 
-    for size in Sizes do
+    for size in Sizes
+    {
         checkRoundTrip(data.toSlice()[until size])
+    }
 
     for distance in 1 to 17
     {
-        for index in data.count do
+        for index in data.count
+        {
             data[index] = cast(u8, index % distance)
+        }
         checkRoundTrip(data.toSlice())
     }
 }
@@ -87,7 +91,7 @@ func checkRoundTrip(input: const [..] u8)
     let shortDecoded = expect Snappy.decompress(ShortCopy)
     Swag.require(Slice.equals(shortDecoded.toSlice(), cast(const [..] u8, "xxxxx")))
 
-    var large: Array'u8
+    var large: Array!{u8}
     const Header: [?] u8 = [0x82, 0x80, 4, 0xF8, 0, 0, 1]
     large.add(Header)
     large.resize(Header.count + 65537)
@@ -127,8 +131,10 @@ func checkRoundTrip(input: const [..] u8)
     discard catch Snappy.decompress(SnappySizeOverflow) as overflow
     discard catch Snappy.decompress(SnappyExtraToken) as extraToken
     discard catch Snappy.decompress(SnappyBlock, maxOutputSize: Sample.count - 1) as limit
-    for &error in [zeroLz4, shortTail, zeroSnappy, overflow, extraToken] do
+    for &error in [zeroLz4, shortTail, zeroSnappy, overflow, extraToken]
+    {
         Swag.require(error.value() is Errors.InvalidFormatError)
+    }
     Swag.require(limit.value() is Errors.UnsupportedFormatError)
 }
 

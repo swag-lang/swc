@@ -46,7 +46,7 @@ private func oggRefreshTestChecksum(page: *Array!{u8})
         page[22 + index] = 0
     }
 
-    let checksum = Ogg.pageChecksum(page.toSlice(), Ogg.buildChecksumTable())
+    let checksum = Ogg.pageChecksum(page.toSlice())
     for index in 4
     {
         page[22 + index] = cast(u8, (checksum >> cast(u32, index * 8)) & 0xFF_u32)

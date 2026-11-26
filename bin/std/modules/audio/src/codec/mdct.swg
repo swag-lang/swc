@@ -16,8 +16,8 @@ struct Mdct
     n:          u32
     twiddleCos: Array!{f32}     // cos(2π (k + 1/8) / n), one entry per FFT point.
     twiddleSin: Array!{f32}     // sin(2π (k + 1/8) / n), one entry per FFT point.
-    fftCos:     Array!{f32}     // cos(2π j / m) for the first half of the FFT circle.
-    fftSin:     Array!{f32}     // sin(2π j / m) for the first half of the FFT circle.
+    fftCos:     Array!{f32}     // Cosines packed in butterfly order for every FFT stage.
+    fftSin:     Array!{f32}     // Sines packed in butterfly order for every FFT stage.
     reverse:    Array!{u32}     // Bit-reversed index of every FFT point.
     real:       Array!{f32}     // FFT scratch.
     imaginary:  Array!{f32}     // FFT scratch.
@@ -275,12 +275,9 @@ impl Mdct
         let quarter = m / 2
         let re      = .real.storage()
         let im      = .imaginary.storage()
-        for k in m
-        {
-            re[k], im[k] = 0
-        }
 
-        for k in quarter
+        // Each complex point receives exactly one sample from two quarters.
+        for point in quarter
         {
             let mirror = m - 1 - 2 * point
             let first  = 2 * point
@@ -362,15 +359,52 @@ impl Mdct
 
     private mtd fft(sign: f32, firstStages = true)
     {
-        let m      = .n / 4
-        let re     = .real.storage()
-        let im     = .imaginary.storage()
-        var length = 2_u32
-        while length <= m
+        let m   = .n / 4
+        let re  = .real.storage()
+        let im  = .imaginary.storage()
+        let cos = .fftCos.storage()
+        let sin = .fftSin.storage()
+
+        if firstStages
         {
-            let halfLength = length / 2
-            let stride     = m / length
-            var start      = 0_u32
+            // Fuse the first two stages inside each four-point group.
+            const Even       = cast(Simd.U32x4, [0_u32, 0, 2, 2])
+            const Odd        = cast(Simd.U32x4, [1_u32, 1, 3, 3])
+            const LowPair    = cast(Simd.U32x4, [0_u32, 1, 0, 1])
+            const HighPair   = cast(Simd.U32x4, [2_u32, 3, 2, 3])
+            const NegateOdd  = cast(Simd.U32x4, [0_u32, 0x8000_0000, 0, 0x8000_0000])
+            const NegateHigh = cast(Simd.U32x4, [0_u32, 0, 0x8000_0000, 0x8000_0000])
+            let quarterCos = cos[2]
+            let quarterSin = sign * sin[2]
+            let wr         = cast(Simd.F32x4, [1_f32, quarterCos, 1, quarterCos])
+            let wi         = cast(Simd.F32x4, [0_f32, quarterSin, 0, quarterSin])
+            var point      = 0_u32
+            while point < m
+            {
+                let real      = Simd.load(re + point)
+                let imag      = Simd.load(im + point)
+                let oddReal   = cast #bit(Simd.F32x4, cast #bit(Simd.U32x4, Simd.permute(real, Odd)) ^ NegateOdd)
+                let oddImag   = cast #bit(Simd.F32x4, cast #bit(Simd.U32x4, Simd.permute(imag, Odd)) ^ NegateOdd)
+                let firstReal = Simd.permute(real, Even) + oddReal
+                let firstImag = Simd.permute(imag, Even) + oddImag
+                let br        = Simd.permute(firstReal, HighPair)
+                let bi        = Simd.permute(firstImag, HighPair)
+                let tr        = cast #bit(Simd.F32x4, cast #bit(Simd.U32x4, br * wr - bi * wi) ^ NegateHigh)
+                let ti        = cast #bit(Simd.F32x4, cast #bit(Simd.U32x4, br * wi + bi * wr) ^ NegateHigh)
+                Simd.store(re + point, Simd.permute(firstReal, LowPair) + tr)
+                Simd.store(im + point, Simd.permute(firstImag, LowPair) + ti)
+                point += 4
+            }
+        }
+
+        // Later stages pair contiguous spans. Four butterflies use the same arithmetic
+        // as above, with four adjacent samples and twiddles in each vector.
+        var halfLength = 4_u32
+        while halfLength < m
+        {
+            let length = 2 * halfLength
+            let offset = halfLength - 1
+            var start  = 0_u32
             while start < m
             {
                 var j = 0_u32

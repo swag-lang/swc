@@ -14,20 +14,6 @@ using Swag, Core, Core.Errors
 
 private
 {
-    struct Entry
-    {
-        length: u16
-        prefix: u16
-        suffix: u8
-    }
-
-    struct Table
-    {
-        bulk:     s32
-        nentries: s32
-        entries:  Array!{Entry}
-    }
-
     struct Palette
     {
         size:   s32
@@ -41,26 +27,6 @@ private
         disposal:     u8
         input:        s32
         transparency: s32
-    }
-}
-
-impl Entry
-{
-    mtd const opCompare(other: Entry)->s32
-    {
-        let lenCmp = .length <=> other.length
-        if lenCmp
-        {
-            return lenCmp
-        }
-
-        let prefixCmp = .prefix <=> other.prefix
-        if prefixCmp
-        {
-            return prefixCmp
-        }
-
-        return .suffix <=> other.suffix
     }
 }
 
@@ -79,17 +45,10 @@ public struct Decoder
         width:     u16            // Width of the logical screen.
         height:    u16            // Height of the logical screen.
         loopCount: u16            // Loop count from the animation extension, zero for endless.
-        gce:       Gce            // Graphic control extension of the current frame.
-        palette:   *Palette?      // Palette the current frame resolves against.
-        lct:       Palette        // Local color table of the current frame.
+        gce:       Gce            // Graphic control extension attached to the next frame.
         gct:       Palette        // Global color table of the stream.
-        fx:        u16            // Left edge of the current frame in the logical screen.
-        fy:        u16            // Top edge of the current frame in the logical screen.
-        fw:        u16            // Width of the current frame.
-        fh:        u16            // Height of the current frame.
         bgIndex:   u8             // Background color index of the logical screen.
-        frame:     Array!{u8}     // Indices of the frame being decoded.
-        table:     Table          // LZW dictionary of the current frame.
+        frame:     Array!{u8}     // Palette indices of the frame in encoded row order.
 
         stream:           const [*] u8?     // Current read position in the input.
         streamLen:        u64     // Bytes remaining from 'stream'.
@@ -159,8 +118,8 @@ public impl Decoder
         // Aspect ratio
         discard .readU8()
 
-        .read(.gct.colors, 3_u64 * .gct.size)
-        .palette = &.gct
+        .gct.colors = .stream
+        .seek(3_u64 * .gct.size)
     }
 
     // Decodes the next composited frame into `image`.
@@ -202,8 +161,16 @@ public impl IImageDecoder for Decoder
     mtd impl decode(buffer: const [..] u8, options: DecodeOptions)->Image fail
     {
         var reader = try ImageReader.decode("image.gif", buffer, options)
-        var result: #returntype = try reader.read(0)
-        if options.decodePixels and reader.info.frames[0].pixelFormat == .RGB8
+        let frame  = reader.info.frames[0]
+
+        // An opaque still covering its canvas can retain the decoded RGB pixels directly.
+        let opaqueStill = options.decodePixels and
+                          reader.info.frames.count == 1 and
+                          frame.pixelFormat == .RGB8 and
+                          frame.width == reader.info.canvasWidth and
+                          frame.height == reader.info.canvasHeight
+        var result: #returntype = try reader.readFrame(0, composeAnimation: not opaqueStill)
+        if options.decodePixels and not opaqueStill and frame.pixelFormat == .RGB8
         {
             result.convertTo(.RGB8)
         }
@@ -275,10 +242,9 @@ impl IImageDecoder for SetDecoder
         if not (try .decoder.getFrame(&first))
         {
             fail InvalidFormatError{"image container has no representative image"}
-
-            // Later frame descriptors still participate in container validation and limits.
         }
 
+        // Later frame descriptors still participate in container validation and limits.
         var count = 1_u64
         try options.checkFrameCount(count)
         var skipped: IndexedFrame
@@ -377,42 +343,14 @@ impl IImageSetDecoder for SetDecoder
             fail InvalidFormatError{"GIF frame index is out of range"}
         }
 
-        .decoder.stream    = .decoder.streamStart + .frames[index].offset
-        .decoder.streamLen = .frames[index].remaining
-        .decoder.gce       = .frames[index].control
+        let indexed = &.frames[index]
+        var result: #returntype
+        result.init(indexed.width, indexed.height, indexed.control.transparency ? .RGBA8 : .RGB8)
         if options.decodePixels
         {
-            .decoder.frame.resize(cast(u64, .decoder.width) * .decoder.height)
-        }
-
-        try .decoder.readImage(options.decodePixels)
-        var result: #returntype
-        result.init(.decoder.fw, .decoder.fh, .decoder.gce.transparency ? .RGBA8 : .RGB8)
-        if not options.decodePixels
-        {
-            return result
-        }
-
-        result.allocPixels()
-        let palette = unwrap .decoder.palette
-        for y in result.height
-        {
-            for x in result.width
-            {
-                let value = .decoder.frame[cast(u64, (.decoder.fy + y)) * .decoder.width + .decoder.fx + x]
-                if value >= palette.size
-                {
-                    fail InvalidFormatError{"GIF palette index is out of range"}
-                }
-
-                let color  = &palette.colors[cast(u32, value) * 3]
-                let target = result.pixels.storage() + cast(u64, (result.height - y - 1)) * result.rowStride + cast(u64, x) * result.bytesPerPixel
-                Memory.copy(target, color, 3)
-                if result.bytesPerPixel == 4
-                {
-                    target[3] = value == .decoder.gce.tindex ? 0_u8 : 255_u8
-                }
-            }
+            try .decoder.decodeIndices(indexed)
+            result.allocPixels()
+            try .decoder.writePixels(indexed, result.pixels.storage(), result.rowStride, result.pixelFormat == .RGBA8, clearTransparent: false)
         }
 
         return result

@@ -23,7 +23,7 @@ struct ByteSource
         stream:       File.FileStream     // Open file, when the source reads from a file.
         memory:       const [..] u8?      // Borrowed bytes, when the source reads from memory.
         fileName:     String              // File the source reads, empty for a memory source.
-        window:       Array'u8            // Read-ahead window over the file.
+        window:       Array!{u8}          // Read-ahead window over the file.
         windowStart:  u64                 // Stream offset of the first byte held in the window.
         windowCount:  u64                 // Number of valid bytes in the window.
         filePosition: u64                 // Native cursor, or U64.Max after an incomplete read.
@@ -221,25 +221,29 @@ impl ByteSource
     mtd readLine(maxBytes: u64)->String fail
     {
         var result: #returntype
-        var consumed = 0'u64
+        var consumed = 0_u64
         while true
         {
             let bytes   = try .peek(1)
             let allowed = maxBytes - consumed
             let span    = allowed < bytes.count ? allowed + 1 : bytes.count
-            let newline = Slice.findLinear(bytes[until span], '\n'u8)
+            let newline = Slice.findLinear(bytes[until span], '\n'_u8)
             if newline != Swag.U64.Max
             {
                 result.append(Swag.makeString(bytes.buffer, newline))
                 .cursor += newline + 1
-                if not result.isEmpty() and result.back() == '\r' do
+                if not result.isEmpty() and result.back() == '\r'
+                {
                     result.removeBack()
+                }
                 return result
             }
 
             .cursor += span
-            if span > allowed do
+            if span > allowed
+            {
                 fail InvalidFormatError{"byte source line exceeds its maximum length"}
+            }
             result.append(Swag.makeString(bytes.buffer, span))
             consumed += span
         }
@@ -273,9 +277,11 @@ impl ByteSource
             return Swag.makeSlice(unwrap .memory.buffer + .cursor, .remaining())
         }
 
-        let needed = Math.max(1'u64, count)
-        if .cursor < .windowStart or .cursor + needed > .windowStart + .windowCount do
+        let needed = Math.max(1_u64, count)
+        if .cursor < .windowStart or .cursor + needed > .windowStart + .windowCount
+        {
             try .fillWindow(needed)
+        }
         return .window.toSlice()[.cursor - .windowStart until .windowCount]
     }
 
@@ -300,10 +306,14 @@ impl ByteSource
     {
         let needsSeek = .filePosition != .cursor
         .filePosition = Swag.U64.Max
-        if needsSeek do
+        if needsSeek
+        {
             try .stream.seek(.Begin, .cursor)
-        if not (try .stream.readExact(buffer)) do
+        }
+        if not (try .stream.readExact(buffer))
+        {
             fail InvalidFormatError{"byte source ends before the requested bytes"}
+        }
         .filePosition = .cursor + buffer.count
     }
 }

@@ -222,6 +222,12 @@ impl Painter
             return
         }
 
+        if .scanStroke
+        {
+            .recordStrokeContour(points)
+            return
+        }
+
         if outline > 0
         {
             expandConvexRing(points, outline)
@@ -1212,7 +1218,7 @@ impl Painter
             .drawOutlineButt(cxt, cxt.prev, cxt.dir)
         }
         // Handle AA and closing as before...
-        else if openEnd and (.curState.paintParams & .Antialiased)
+        else if openEnd and not .scanStroke and (.curState.paintParams & .Antialiased)
         {
             // Copy positions out before addEdgeAA: it appends geometry and may
             // reallocate the vertex buffer, invalidating pointers into it.
@@ -1487,17 +1493,15 @@ public impl Painter
             if points.count < 2
             {
                 return false
-
-                // Measure short two-point contours the same way as Polygon.recompute.
             }
 
+            // Measure short two-point contours the same way as Polygon.recompute.
             if points.count == 2 and points[0].distanceSquaredTo(points[1]) < 0.5 * 0.5
             {
                 return false
-
-                // One nonzero segment is enough when the caller only needs to reject empty ink.
             }
 
+            // One nonzero segment is enough when the caller only needs to reject empty ink.
             if not Math.isZeroEpsilon(points[0].distanceTo(points[1]))
             {
                 return true
@@ -1517,8 +1521,7 @@ public impl Painter
             return
         }
 
-        path.flatten(.curState.paintQuality, .curFlattenScale)
-        if Math.isZeroEpsilon(path.polygon.perimeter)
+        if not .prepareStrokePath(path, pen)
         {
             return
         }
@@ -1534,8 +1537,7 @@ public impl Painter
 
     private mtd strokePath(path: *LinePath, pen: Pen)
     {
-        path.flatten(.curState.paintQuality, .curFlattenScale)
-        if Math.isZeroEpsilon(path.polygon.perimeter)
+        if not .prepareStrokePath(path, pen)
         {
             return
         }

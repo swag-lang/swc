@@ -1,6 +1,7 @@
 #global private
 
 // A lifecycle intrinsic needs the pointed-to struct's completed operator registrations.
+// swc-expected-error@(+1,+15) {{sema_err_cyclic_dependency}}
 func repair(value: *Item?)
 {
     if value
@@ -15,7 +16,7 @@ func initialValue()->s64
     return 17
 }
 
-struct Item     // swc-expected-error {{sema_err_cyclic_dependency}}
+struct Item
 {
     value: s64 = #run initialValue()
 }

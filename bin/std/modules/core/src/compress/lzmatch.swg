@@ -3,7 +3,7 @@
 
 struct LzMatchFinder
 {
-    positions: Array'u32
+    positions: Array!{u32}
     shift:     u32
 }
 
@@ -11,19 +11,19 @@ impl LzMatchFinder
 {
     mtd init(size: u64)
     {
-        let slots = Math.roundUpToPowerOf2(cast(u32, Math.clamp(size, 256'u64, 16384'u64)))
+        let slots = Math.roundUpToPowerOf2(cast(u32, Math.clamp(size, 256_u64, 16384_u64)))
         .positions.resize(slots)
         .shift = Math.leadingZeros(slots) + 1
     }
 
     #[Swag.Inline, Swag.Safety(.Overflow, false)]
-    mtd const hash(word: u32)->u32 => (word * 0x9E3779B1'u32) >> .shift
+    mtd const hash(word: u32)->u32 => (word * 0x9E3779B1_u32) >> .shift
 
     mtd find(source: const [*] u8, start, lastStart, matchEnd: u64)->{ at: u64, distance: u64, length: u64 }
     {
         let positions = .positions.storage()
         var at        = start
-        var misses    = 32'u64
+        var misses    = 32_u64
         while at <= lastStart
         {
             let word     = cast(const [*] u32, source + at)[0]
@@ -48,7 +48,7 @@ impl LzMatchFinder
             }
 
             // Probe sparsely through long literal runs, resuming at full density after a match.
-            at     += Math.min(misses >> 5, 32'u64)
+            at     += Math.min(misses >> 5, 32_u64)
             misses += 1
         }
 
@@ -58,17 +58,21 @@ impl LzMatchFinder
 
 private func matchLength(current, previous: const [*] u8, limit: u64)->u64
 {
-    var length = 4'u64
+    var length = 4_u64
     while limit - length >= 8
     {
         let different = cast(const [*] u64, current + length)[0] ^ cast(const [*] u64, previous + length)[0]
-        if different do
+        if different
+        {
             return length + (Math.trailingZeros(Math.littleEndianToNative(different)) >> 3)
+        }
         length += 8
     }
 
-    while length < limit and current[length] == previous[length] do
+    while length < limit and current[length] == previous[length]
+    {
         length += 1
+    }
     return length
 }
 
@@ -79,7 +83,7 @@ func copyLzMatch(output: [*] u8, distance, length: u64)
     let from = output - distance
     if distance >= 8 and length >= 8
     {
-        var copied = 0'u64
+        var copied = 0_u64
         while length - copied >= 8
         {
             cast([*] u64, output + copied)[0] = cast(const [*] u64, from + copied)[0]
@@ -88,8 +92,10 @@ func copyLzMatch(output: [*] u8, distance, length: u64)
 
         // The last word may overwrite part of the preceding store. Its source has
         // already been produced because the distance is at least a word.
-        if copied < length do
+        if copied < length
+        {
             cast([*] u64, output + length - 8)[0] = cast(const [*] u64, from + length - 8)[0]
+        }
         return
     }
 

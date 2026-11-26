@@ -191,10 +191,40 @@ impl Decoder
             var hasOffsets = false
             for &parameters in .sao where parameters.typeIdx[component]
             {
-                let parameters = &.sao[cast(u64, ry) * cast(u64, sps.widthInCtbs) + cast(u64, rx)]
-                for component in 3_u32
+                hasOffsets = true
+                break
+            }
+
+            if not hasOffsets
+            {
+                continue
+            }
+
+            let plane   = component == 0 ? &frame.luma : component == 1 ? &frame.chromaB : &frame.chromaR
+            let scratch = component == 0 ? &.saoSource : component == 1 ? &.saoSourceChromaB : &.saoSourceChromaR
+            scratch.resize(plane.count)
+            Core.swap(scratch, plane)
+
+            for ry in sps.heightInCtbs
+            {
+                let row = .sao.storage() + cast(u64, ry) * columns
+                var rx  = 0_u64
+                while rx < columns
                 {
-                    .applySaoBlock(parameters, component, cast(s32, rx), cast(s32, ry))
+                    let parameters = row + rx
+                    var endRx      = rx + 1
+
+                    // Adjacent blocks without offsets can copy each row as one span.
+                    if not parameters.typeIdx[component]
+                    {
+                        while endRx < columns and not row[endRx].typeIdx[component]
+                        {
+                            endRx += 1
+                        }
+                    }
+
+                    .applySaoBlock(parameters, component, cast(s32, rx), cast(s32, endRx), cast(s32, ry))
+                    rx = endRx
                 }
             }
         }

@@ -217,7 +217,7 @@ impl Sha512Core
         const DigestSize   = DigestWords * #sizeof(u64)
         const LengthOffset = 112
         const BitLength    = (Sha512BlockSize + DigestSize) * 8
-        Crypto.writeSha512HmacDigest'DigestWords(digest, .data.buffer)
+        Crypto.writeSha512HmacDigest!{DigestWords}(digest, .data.buffer)
         .data[DigestSize] = 0x80
         Swag.memset(.data.buffer + DigestSize + 1, 0, LengthOffset - DigestSize - 1)
         let lengthWords = cast([*] u64, .data.buffer + LengthOffset)
@@ -318,7 +318,7 @@ impl Sha512
     }
 
     #[Swag.Inline]
-    mtd finishHmacOuter(digest: const [*] u64)->const [*] u64 => .core.finishHmacOuter'8(digest)
+    mtd finishHmacOuter(digest: const [*] u64)->const [*] u64 => .core.finishHmacOuter!{8}(digest)
 
     #[Swag.Inline]
     mtd const hmacPrefixState()->const *[8] u64 => &.core.state
@@ -391,7 +391,7 @@ impl Sha384
     }
 
     #[Swag.Inline]
-    mtd finishHmacOuter(digest: const [*] u64)->const [*] u64 => .core.finishHmacOuter'6(digest)
+    mtd finishHmacOuter(digest: const [*] u64)->const [*] u64 => .core.finishHmacOuter!{6}(digest)
 
     #[Swag.Inline]
     mtd const hmacPrefixState()->const *[8] u64 => &.core.state

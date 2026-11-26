@@ -46,18 +46,11 @@ impl Decoder
     // A marker read starts from the byte stream, with provenance for its own lookahead.
     mtd primeMarkerBits()
     {
-        let count = cast(u32, numBits)
-        let bits  = (.bitBuf >> (16 - count)) & ((1_u32 << count) - 1)
-        .bitsLeft -= numBits
-        if .bitsLeft <= 0
-        {
-            .refillEntropyBits(numBits)
-        }
-        else
-        {
-            .bitBuf = rol(.bitBuf, count)
-            .bitSyntheticMask = rol(.bitSyntheticMask, count)
-        }
+        .bitSyntheticMask = 0
+        .bitsLeft         = 16
+        .getBits1(16)
+        .getBits1(16)
+    }
 
     // The next bit is always in the high lane. Keep sixteen bits available for the next code.
     #[Swag.Inline]
@@ -65,7 +58,8 @@ impl Decoder
     {
         .entropyBits  <<= count
         .entropyCount -= count
-        if .entropyCount < 16 {
+        if .entropyCount < 16
+        {
             .refillEntropyBits()
         }
     }
@@ -115,14 +109,13 @@ impl Decoder
             }
         }
 
-        .bitBuf = (.bitBuf & 0xFFFF) | (c1 << 24) | (c2 << 16)
-        .bitSyntheticMask = (.bitSyntheticMask & 0xFFFF) |
-                            (c1Synthetic ? 0xFF000000_u32 : 0) |
-                            (c2Synthetic ? 0x00FF0000_u32 : 0)
-        let refillShift = cast(u32, -.bitsLeft)
-        .bitBuf           = rol(.bitBuf, refillShift)
-        .bitSyntheticMask = rol(.bitSyntheticMask, refillShift)
-        .bitsLeft         += 16
+        word = .getOctet()
+        for 3
+        {
+            word = (word << 8) | .getOctet()
+        }
+
+        return word
     }
 
     mtd getOctet()->u8
@@ -307,8 +300,10 @@ impl Decoder
     // A fully available payload can be read directly without walking those bits one at a time.
     mtd takeMarkerPayload(count: u32)->const [..] u8?
     {
-        if .streamLen > InBufSize do
+        if .streamLen > InBufSize
+        {
             return null
+        }
 
         let buffered = 2 + .bitsLeft / 8
         let offset   = .streamSeek - .inBufLeft - buffered
@@ -320,16 +315,21 @@ impl Decoder
            skipped > .inBufLeft or
            .bitSyntheticMask or
            offset < 0 or
-           count > .streamLen - offset do
+           count > .streamLen - offset
+        {
             return null
+        }
 
         let payload = Swag.makeSlice(unwrap .stream + offset, count)
         .inBufOfs  += skipped
         .inBufLeft -= skipped
 
         .primeMarkerBits()
-        if preceding do
+        if preceding
+        {
             .getBits1(8)
+        }
+
         return payload
     }
 
@@ -342,8 +342,10 @@ impl Decoder
         }
         else
         {
-            for offset in amount do
+            for offset in amount
+            {
                 destination[offset] = cast(u8, .getBits1(8))
+            }
         }
     }
 
@@ -366,21 +368,18 @@ impl Decoder
             var count = 0
             huffNumt[0] = 0
             .readMarkerBytes(&huffNumt[1], 16)
-            for i in 1 to 16 do
+            for i in 1 to 16
+            {
                 count += huffNumt[i]
+            }
 
             if count > 255
             {
                 fail InvalidFormatError{"bad dht counts"}
             }
 
-            for i in count
-            {
-                huffValt[i] = cast(u8, .getBits1(8))
-            }
-
-            let i = 1 + 16 + count
-            if left < i
+            let size = 1 + 16 + count
+            if left < size
             {
                 fail InvalidFormatError{"bad dht marker"}
             }
@@ -388,13 +387,18 @@ impl Decoder
             left -= size
             let tableClass = index >> 4
             let tableId    = index & 0x0F
-            if tableClass > 1 or tableId >= (MaxHuffTables >> 1) do
+            if tableClass > 1 or tableId >= (MaxHuffTables >> 1)
+            {
                 fail InvalidFormatError{"JPEG Huffman table class or identifier is invalid"}
+            }
+
             .readMarkerBytes(huffValt, cast(u32, count))
             if tableClass == 0
             {
-                for i in count where huffValt[i] >= ExtendTest.count do
+                for i in count where huffValt[i] >= ExtendTest.count
+                {
                     fail InvalidFormatError{"invalid JPEG DC Huffman symbol"}
+                }
             }
 
             index = tableId + tableClass * (MaxHuffTables >> 1)
@@ -429,7 +433,7 @@ impl Decoder
 
             .quant[n].resize(64)
             let qbuf   = .quant[n].storage()
-            let bytes  = prec ? 128'u32 : 64
+            let bytes  = prec ? 128_u32 : 64
             let values = left > bytes ? .takeMarkerPayload(bytes) : null
             if values
             {
@@ -458,14 +462,20 @@ impl Decoder
                 for i in 64
                 {
                     var value = .getBits1(8)
-                    if prec do
+                    if prec
+                    {
                         value = (value << 8) + .getBits1(8)
+                    }
+
                     qbuf[i] = cast(s16, value)
                 }
             }
 
-            if left <= bytes do
+            if left <= bytes
+            {
                 fail InvalidFormatError{"bad dqt length"}
+            }
+
             left -= bytes + 1
         }
     }
@@ -559,17 +569,51 @@ impl Decoder
 
             if .decOptions.decodeMetadata
             {
-                if not inValue and c == 0
+                let separator = Slice.findLinear(payload, 0_u8)
+                if separator < left
                 {
-                    inValue = true
-                }
-                else if inValue
-                {
-                    meta.value.add(c)
+                    meta.tag.add(payload[until separator])
+                    meta.value.add(payload[separator + 1 to])
                 }
                 else
                 {
-                    meta.tag.add(c)
+                    meta.tag.add(payload)
+                }
+            }
+
+            .streamSeek     = offset + cast(s32, left)
+            .totalBytesRead = .streamSeek
+            .eofReached     = 0
+            .prepareInBuffer()
+            .primeMarkerBits()
+        }
+        else
+        {
+            while left
+            {
+                let c = cast(u8, .getBits1(8))
+                left -= 1
+
+                if prefixCount < prefix.count
+                {
+                    prefix[prefixCount] = c
+                    prefixCount         += 1
+                }
+
+                if .decOptions.decodeMetadata
+                {
+                    if not inValue and c == 0
+                    {
+                        inValue = true
+                    }
+                    else if inValue
+                    {
+                        meta.value.add(c)
+                    }
+                    else
+                    {
+                        meta.tag.add(c)
+                    }
                 }
             }
         }

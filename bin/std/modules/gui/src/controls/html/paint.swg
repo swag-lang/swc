@@ -783,10 +783,7 @@ impl HtmlPainter
             return result
         }
 
-        if node!
-        {
-            .selStartNode or node
-        }.selEndNode
+        if node < .selStartNode or node > .selEndNode
         {
             return result
         }

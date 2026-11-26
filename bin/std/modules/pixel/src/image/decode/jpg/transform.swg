@@ -14,10 +14,10 @@ using Swag, Core, Core.Errors
 
 private
 {
-    const TripletLowBG  = cast(Math.Simd.U8x16, [0_u8, 8, 0x80, 1, 9, 0x80, 2, 10, 0x80, 3, 11, 0x80, 4, 12, 0x80, 5])
-    const TripletLowR   = cast(Math.Simd.U8x16, [0x80_u8, 0x80, 0, 0x80, 0x80, 1, 0x80, 0x80, 2, 0x80, 0x80, 3, 0x80, 0x80, 4, 0x80])
-    const TripletHighBG = cast(Math.Simd.U8x16, [13_u8, 0x80, 6, 14, 0x80, 7, 15, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80])
-    const TripletHighR  = cast(Math.Simd.U8x16, [0x80_u8, 5, 0x80, 0x80, 6, 0x80, 0x80, 7, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80])
+    const TripletLowFirstGreen  = cast(Math.Simd.U8x16, [0_u8, 8, 0x80, 1, 9, 0x80, 2, 10, 0x80, 3, 11, 0x80, 4, 12, 0x80, 5])
+    const TripletLowLast        = cast(Math.Simd.U8x16, [0x80_u8, 0x80, 0, 0x80, 0x80, 1, 0x80, 0x80, 2, 0x80, 0x80, 3, 0x80, 0x80, 4, 0x80])
+    const TripletHighFirstGreen = cast(Math.Simd.U8x16, [13_u8, 0x80, 6, 14, 0x80, 7, 15, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80])
+    const TripletHighLast       = cast(Math.Simd.U8x16, [0x80_u8, 5, 0x80, 0x80, 6, 0x80, 0x80, 7, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80])
 }
 
 // Replicates a row's luma samples across the three channels of the BGR image.
@@ -66,29 +66,6 @@ private struct ChromaBias
 
 private
 {
-    // Centers four chroma samples around zero, the way the conversion coefficients expect them.
-    func centeredChroma(source: const [*] u8)->Math.Simd.S32x4
-    {
-        let samples = cast #bit(Math.Simd.S32x4, Math.Simd.widenLow(Math.Simd.widenLow(Math.Simd.load(source))))
-        return (samples << 1) - Math.Simd.splat(256_s32)
-    }
-
-    // Centers the four low or four high chroma samples of an already widened group of eight.
-    func centeredChromaLow(samples: Math.Simd.U16x8)->Math.Simd.S32x4  => (cast #bit(Math.Simd.S32x4, Math.Simd.widenLow(samples)) << 1) - Math.Simd.splat(256_s32)
-    func centeredChromaHigh(samples: Math.Simd.U16x8)->Math.Simd.S32x4 => (cast #bit(Math.Simd.S32x4, Math.Simd.widenHigh(samples)) << 1) - Math.Simd.splat(256_s32)
-
-    // The three corrections, in the fixed point the decoded value is defined in.
-    func redBias(kr: Math.Simd.S32x4)->Math.Simd.S32x4       => (Math.Simd.splat(FixCrToR) * kr + Math.Simd.splat(1_s32 << 15)) >> 16
-    func blueBias(kb: Math.Simd.S32x4)->Math.Simd.S32x4      => (Math.Simd.splat(FixCbToB) * kb + Math.Simd.splat(1_s32 << 15)) >> 16
-    func greenBias(kr, kb: Math.Simd.S32x4)->Math.Simd.S32x4 => (Math.Simd.splat(FixCrToG) * kr + Math.Simd.splat(FixCbToG) * kb + Math.Simd.splat(1_s32 << 15)) >> 16
-
-    // Narrows four corrections to eight lanes, each repeated over the pixel pair it covers.
-    func duplicatedLanes(value: Math.Simd.S32x4)->Math.Simd.S16x8
-    {
-        let packed = cast #bit(Math.Simd.U16x8, Math.Simd.packSigned(value, value))
-        return cast #bit(Math.Simd.S16x8, Math.Simd.interleaveLow(packed, packed))
-    }
-
     // Joins the low eight bytes of two planes into one vector.
     func joinLow8(low, high: const [*] u8)->Math.Simd.U8x16
     {
@@ -130,10 +107,12 @@ private
     // Each sample of a chroma half serves two horizontally adjacent luma samples.
     func(High: bool) duplicateBias(bias: ChromaBias)->ChromaBias
     {
-        #static if High {
+        #static if High
+        {
             return {pairHigh(bias.rc, bias.rc), pairHigh(bias.gc, bias.gc), pairHigh(bias.bc, bias.bc)}
         }
-        else {
+        else
+        {
             return {pairLow(bias.rc, bias.rc), pairLow(bias.gc, bias.gc), pairLow(bias.bc, bias.bc)}
         }
     }
@@ -280,10 +259,12 @@ private
     func(Upper: bool) transformLowBandHalf(v: [*] Math.Simd.S16x8, result: [*] Math.Simd.S32x4)
     {
         let zero = Math.Simd.splat(0_s16)
-        #static if Upper {
+        #static if Upper
+        {
             transformHalf!{true}(pairHigh(v[0], zero), pairHigh(v[2], zero), pairHigh(v[1], v[3]), zero, result)
         }
-        else {
+        else
+        {
             transformHalf!{true}(pairLow(v[0], zero), pairLow(v[2], zero), pairLow(v[1], v[3]), zero, result)
         }
     }
@@ -315,7 +296,7 @@ impl Decoder
         }
         else
         {
-            idctFull(data, buf)
+            idctFull!{false}(data, buf)
         }
     }
 
@@ -338,21 +319,22 @@ impl Decoder
         var low:  [8] Math.Simd.S32x4
         var high: [8] Math.Simd.S32x4
 
-        for i in 8
-        {
-            v[i] = Math.Simd.load(cast(const [*] s16, (data + i * 8)))
-        }
-
-        transpose(v)
-        transformLines(v, low, high)
-
         // The pass over lines keeps the two extra fraction bits the second pass will remove.
         let linePass  = ConstBits - Pass1Bits
         let lineRound = Math.Simd.splat(1_s32 << (linePass - 1))
-        for i in 8
+        #static if LowBand
         {
-            v[i] = Math.Simd.packSigned((low[i] + lineRound) >> linePass, (high[i] + lineRound) >> linePass)
-        }
+            for i in 4
+            {
+                v[i] = Math.Simd.load(data + i * 8)
+            }
+
+            transformLowBandHalf!{false}(v, low)
+            let zero = Math.Simd.splat(0_s32)
+            for i in 8
+            {
+                v[i] = Math.Simd.packSigned((low[i] + lineRound) >> linePass, zero)
+            }
 
             transposeFirstFour(v)
             transformLowBandHalf!{false}(v, low)
@@ -360,14 +342,17 @@ impl Decoder
         }
         else
         {
-            for i in 8 {
+            for i in 8
+            {
                 v[i] = Math.Simd.load(data + i * 8)
             }
-            transformLines(v, low, high)
-            for i in 8 {
-                v[i] = Math.Simd.packSigned((low[i] + lineRound) >> linePass, (high[i] + lineRound) >> linePass)
 
+            transformLines(v, low, high)
+            for i in 8
+            {
+                v[i] = Math.Simd.packSigned((low[i] + lineRound) >> linePass, (high[i] + lineRound) >> linePass)
             }
+
             transpose(v)
             transformLines(v, low, high)
         }
@@ -376,8 +361,8 @@ impl Decoder
         // saturating narrowing that is exactly its clamp.
         let columnPass  = ConstBits + Pass1Bits + 3
         let columnRound = Math.Simd.splat(1_s32 << (columnPass - 1))
-        let levelShift  = Math.Simd.splat(128_s32)
-        for i in 8
+        let levelShift  = Math.Simd.splat(128_s16)
+        for pair in 4
         {
             let first  = pair * 2
             let second = first + 1
@@ -476,31 +461,19 @@ impl Decoder
             var firstGreen, last: Math.Simd.U8x16
             if chromatic
             {
-                var cyan    = cast(s32, s[x])
-                var magenta = cast(s32, s[64 + x])
-                var yellow  = cast(s32, s[128 + x])
-                var black   = cast(s32, s[192 + x])
-
-                if chromatic
-                {
-                    let luma = cyan
-                    let kb   = (magenta << 1) - 256
-                    let kr   = (yellow << 1) - 256
-                    cyan    = 255 - Math.clamp(luma + ((FixCrToR * kr + (1 << 15)) >> 16), 0, 255)
-                    magenta = 255 - Math.clamp(luma + ((FixCrToG * kr + FixCbToG * kb + (1 << 15)) >> 16), 0, 255)
-                    yellow  = 255 - Math.clamp(luma + ((FixCbToB * kb + (1 << 15)) >> 16), 0, 255)
-                }
-                else if inverse
-                {
-                    cyan    = 255 - cyan
-                    magenta = 255 - magenta
-                    yellow  = 255 - yellow
-                    black   = 255 - black
-                }
-
-                d[3 * x + 0] = cast(u8, (255 - Math.min(255, yellow + black)))
-                d[3 * x + 1] = cast(u8, (255 - Math.min(255, magenta + black)))
-                d[3 * x + 2] = cast(u8, (255 - Math.min(255, cyan + black)))
+                let luma  = cast #bit(Math.Simd.S16x8, Math.Simd.widenLow(Math.Simd.load(source)))
+                let bias  = chromaBias8(source + 64, source + 128)
+                let first = luma + (Rgb ? bias.rc : bias.bc)
+                let end   = luma + (Rgb ? bias.bc : bias.rc)
+                firstGreen = Math.Simd.packUnsigned(first, luma + bias.gc)
+                last       = Math.Simd.packUnsigned(end, end)
+            }
+            else
+            {
+                const First = Rgb ? 0 : 128
+                const Last  = 128 - First
+                firstGreen = joinLow8(source + First, source + 64) ^ colorMask
+                last       = Math.Simd.load(source + Last) ^ colorMask
             }
 
             // Each channel is the remaining light after subtracting the black ink.
@@ -630,9 +603,11 @@ impl Decoder
                 let x = group * 8
                 offsets[group][component] = rowOffset + ((x / horizontalRatio) >> 3) * 64
                 var lanes: [16] u8
-                for lane in 8 {
+                for lane in 8
+                {
                     lanes[lane] = cast(u8, (((x + lane) / horizontalRatio) & 7))
                 }
+
                 indices[group][component] = cast #bit(U8x16, lanes)
             }
 

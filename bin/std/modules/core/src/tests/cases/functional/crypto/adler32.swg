@@ -112,19 +112,21 @@ func fillAdlerPattern(buffer: [..] u8)
 {
     const TileBytes = 512 * 1024
     const PrefixBytes = 37
-    const Sizes = [4 * TileBytes - 1, 4 * TileBytes, 4 * TileBytes + 1,
-                   4 * TileBytes + 79, 4 * TileBytes + 80, 33 * TileBytes + 15]
-    var storage: Array'u8
+    const Sizes       = [4 * TileBytes - 1, 4 * TileBytes, 4 * TileBytes + 1,
+                         4 * TileBytes + 79, 4 * TileBytes + 80, 33 * TileBytes + 15]
+    var storage: Array!{u8}
     storage.resize(33 * TileBytes + 15 + PrefixBytes + 7)
-    for index in storage.count do
+    for index in storage.count
+    {
         storage[index] = cast(u8, (((index ^ (index >> 8) ^ (index >> 14)) * 47 + 13) & 0xFF))
+    }
 
     for size in Sizes
     {
         let input = storage.toSlice()[7 until size + PrefixBytes + 7]
         var serial: Hash.Adler32
         serial.reset()
-        var offset = 0'u64
+        var offset = 0_u64
         while offset < input.count
         {
             let end = Math.min(offset + TileBytes - 7, input.count)

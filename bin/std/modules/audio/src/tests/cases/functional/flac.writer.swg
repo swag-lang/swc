@@ -104,7 +104,7 @@ func assertFlacWriterSamples(path: string, expected: const [..] s16, channels, s
     let file = expect File.readAllBytes(path)
 
     // Every sample has two low zero bits, encoded as unary 01.
-    const Wasted = 2'u64
+    const Wasted = 2_u64
     let kind = file[66] & 0xFE
     Swag.require((file[66] & 1) and file[67] >> 6 == 1)
     Swag.require(kind == 0x12 or kind == 0x14)
@@ -196,7 +196,7 @@ func assertFlacWriterSamples(path: string, expected: const [..] s16, channels, s
 
         let file = expect File.readAllBytes(path)
         let kind = file[66]
-        Swag.require(kind == (pattern == 0 ? 0_u8 : (pattern == 1 ? 0x12_u8 : 0x02_u8)))
+        Swag.require(kind == (pattern == 0 ? 0_u8 : (pattern == 1 ? 0x14_u8 : 0x02_u8)))
         if pattern < 2
         {
             Swag.require(file.count < samples.count * 2 / 4)
@@ -482,7 +482,7 @@ func assertFlacWriterSamples(path: string, expected: const [..] s16, channels, s
     defer discard catch File.delete(path)
     const Frames = 4096
     var samples: [Frames * 2] s16
-    var state = 0x4893_8717'u32
+    var state = 0x4893_8717_u32
     for frame in Frames
     {
         state = cast #wrap(u32, cast(u64, state) * 1_664_525 + 1_013_904_223)
@@ -506,7 +506,7 @@ func assertFlacWriterSamples(path: string, expected: const [..] s16, channels, s
     expect resumed.end()
     let mixed = expect SoundFile.load(path.toString(), preloadData: false)
     Swag.require((expect mixed.packet(1)).byteSize > 16_000)
-    var decoded: Array's16
+    var decoded: Array!{s16}
     expect mixed.decodePcm16(Frames, Frames, func|&decoded|(part)
     {
         decoded.add(part)

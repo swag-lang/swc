@@ -580,8 +580,10 @@ private func renderCpuFontOnThread(thread: const *Threading.Thread)
     var gray = Image.create(201, 149, .Gray8)
     for y in gray.height
     {
-        for x in gray.width do
+        for x in gray.width
+        {
             gray.pixels[y * gray.width + x] = cast(u8, (x * 13 + y * 37 + x * y) & 255)
+        }
     }
 
     let rgb = gray.convertedTo(.RGB8)
@@ -593,7 +595,7 @@ private func renderCpuFontOnThread(thread: const *Threading.Thread)
     var results: [2] Image
     for index in results.count
     {
-        let source = index == 0 ? &gray : &rgb
+        let source  = index == 0 ? &gray : &rgb
         var texture = cpu.addBorrowedImage(source)
         var painter = Painter.createScanline(&cpu)
         painter.begin()
@@ -878,8 +880,8 @@ private func renderCpuFontOnThread(thread: const *Threading.Thread)
     Swag.setWorkerCount(4)
     defer Swag.setWorkerCount(workers)
 
-    let first = Color.fromArgb(0x4267_B431'u32)
-    let last  = Color.fromArgb(0xC80E_2DDE'u32)
+    let first = Color.fromArgb(0x4267_B431_u32)
+    let last  = Color.fromArgb(0xC80E_2DDE_u32)
     var paints: [3] Brush = [
         Brush.createLinearGradient(6.25, 4.75, 24.5, 15.25, first, last, .Repeat),
         Brush.createRadialGradient(33.75, 10.25, 9.125, first, last, .Mirror),
@@ -887,7 +889,7 @@ private func renderCpuFontOnThread(thread: const *Threading.Thread)
     for &paint in paints
     {
         paint.setOpacity(173)
-        paint.addGradientStop(0.375, Color.fromArgb(0xA018_A884'u32))
+        paint.addGradientStop(0.375, Color.fromArgb(0xA018_A884_u32))
     }
 
     var images: [2] Image
@@ -896,9 +898,12 @@ private func renderCpuFontOnThread(thread: const *Threading.Thread)
         var painter: Painter
         painter.begin()
         painter.setColorMaskFull()
-        painter.clear(Color.fromArgb(0xFF20_3040'u32))
-        if not scalar do
+        painter.clear(Color.fromArgb(0xFF20_3040_u32))
+        if not scalar
+        {
             painter.setColorMaskColor()
+        }
+
         painter.setClippingRect({9, 15, 195, 96})
         painter.scaleTransform(3)
         painter.translateTransform(0.25, 0.375)
@@ -914,6 +919,7 @@ private func renderCpuFontOnThread(thread: const *Threading.Thread)
             path.close()
             painter.fillPath(&path, paint[])
         }
+
         painter.end()
         images[scalar] = renderCpu(219, 129, &painter)
     }
@@ -1059,6 +1065,17 @@ private func renderCpuFontOnThread(thread: const *Threading.Thread)
     painter.fillRect(0, 0, 1024.0, 512.0, Color.fromArgb(128_u8, 255_u8, 0_u8, 0_u8))
     painter.fillRoundRect(0, 0, 960.0, 480.0, 24, 24, Color.fromArgb(128_u8, 0_u8, 255_u8, 0_u8))
     painter.fillRoundRect(0, 16, 900.0, 460.0, 40, 40, Color.fromArgb(96_u8, 0_u8, 0_u8, 255_u8))
+    for i in 160
+    {
+        painter.fillRect(1, cast(f32, (i * 79) % Height), 12, 5, Color.fromArgb(80_u8, 153_u8, 222_u8, 118_u8))
+    }
+
+    var path: LinePath
+    path.start(3.25, 4)
+    path.lineTo(7, 490)
+    path.lineTo(920, 18)
+    path.lineTo(4.1, 300)
+    painter.drawPath(&path, Pen.createSolid(Color.fromArgb(176_u8, 239_u8, 152_u8, 52_u8), 9))
     painter.end()
 
     let serial = renderCpu(Narrow, Height, &painter)

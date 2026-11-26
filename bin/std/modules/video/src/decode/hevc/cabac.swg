@@ -126,46 +126,42 @@ impl CabacReader
     #[Swag.Inline]
     private mtd const lookAhead(offset: u64)->u32
     {
-        // An empty buffer with a whole word of data left loads it in one swapped read.
-        if .bitCount <= 0 and .position + 8 <= .size
+        if offset >= .size
         {
-            .bitBuffer = Swag.byteSwap(cast(const [*] u64, unwrap .data + .position)[0])
-            .bitCount  = 64
-            .position  += 8
-            return
+            return 0
         }
 
-        while .bitCount <= 56
+        let remaining = .size - offset
+        let data      = unwrap .data + offset
+        if remaining >= 4
         {
-            var value = 0_u8
-            if .position < .size
-            {
-                value     = .data![.position]
-                .position += 1
-            }
-            else
-            {
-                .padBytes += 1
-            }
-
-            .bitBuffer |= cast(u64, value) << cast(u32, (56 - .bitCount))
-            .bitCount  += 8
+            return Swag.byteSwap(cast(const [*] u32, data)[0])
         }
+
+        return readTail(data, remaining)
     }
 
     // The last one to three bytes may be followed by another substream in the same buffer.
     #[Swag.NoInline]
     private func readTail(data: const [*] u8, count: u64)->u32
     {
-        if .bitCount < cast(s32, count)
+        var result = 0_u32
+        for index in count
         {
-            .refill()
+            result |= cast(u32, data[index]) << (24 - cast(u32, index) * 8)
         }
 
-        let bits = cast(u32, (.bitBuffer >> cast(u32, (64 - count))))
-        .bitBuffer <<= count
-        .bitCount  -= cast(s32, count)
-        return bits
+        return result
+    }
+
+    // Move the marker down by 32 and insert the next four bytes above it.
+    #[Swag.Inline]
+    private mtd reload(low: u64)->u64
+    {
+        let extra = cast(u32, Swag.trailingZeros(low)) - LookAheadBits
+        let bits  = cast(u64, .lookAhead(.position)) << 1
+        .position += 4
+        return low - #wrap (RefillMask << extra) + #wrap (bits << extra)
     }
 
     // Decodes one bin against the context at `contextIndex`, clause 9.3.4.3.2.
@@ -223,12 +219,24 @@ impl CabacReader
     #[Swag.Inline]
     mtd bypassBits(count: u32)->u32
     {
+        let range  = cast(u64, .range) << OffsetShift
+        var low    = .low
         var result = 0_u32
         for count
         {
-            result = (result << 1) | .bypass()
+            low <<= 1
+            if (low & RefillMask) == 0
+            {
+                low = .reload(low)
+            }
+
+            let offset = low - #wrap range
+            let one    = low >= range
+            low    = one ? offset : low
+            result = (result << 1) | (one ? 1_u32 : 0_u32)
         }
 
+        .low = low
         return result
     }
 
@@ -239,7 +247,7 @@ impl CabacReader
     mtd terminate()->u32
     {
         .range -= 2
-        if .low >= .range
+        if .low >= (cast(u64, .range) << OffsetShift)
         {
             return 1
         }

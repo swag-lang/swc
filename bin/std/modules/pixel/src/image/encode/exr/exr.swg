@@ -198,19 +198,24 @@ private func(INPUT, GRAY: bool) integerToHalf(value: INPUT)->u16
     #static if INPUT == u8
     {
         return ByteToHalf[value]
+    }
     else
     {
         // The first three positive 16-bit samples round to these exact HALF subnormals.
         if value < 4
         {
             return value << 8
+        }
+
         let unit = cast(f32, value) * Gray16Scale
         let bits = cast #bit(u32, unit)
         #static if GRAY
         {
             let fraction = bits & 0x1FFF
-            if fraction >= GrayMidpointStart and fraction <= GrayMidpointStart + GrayMidpointSpan do
+            if fraction >= GrayMidpointStart and fraction <= GrayMidpointStart + GrayMidpointSpan
+            {
                 return cast(u16, GrayMidpoints[(value >> 5) & 127])
+            }
         }
 
         let rounded = (bits + 0x0FFF + ((bits >> 13) & 1)) >> 13
@@ -228,16 +233,16 @@ private func encodeGray16Sample(value: u16)->u16
     return target
 }
 
-private const Gray16Scale       = 1.0'f32 / 65535'f32
-private const GrayMidpointStart = 0x0FF8'u32
-private const GrayMidpointSpan  = 16'u32
+private const Gray16Scale       = 1.0_f32 / 65535_f32
+private const GrayMidpointStart = 0x0FF8_u32
+private const GrayMidpointSpan  = 16_u32
 
 #[Swag.ConstExpr]
 private func makeGrayMidpointTable()->[128] u32
 {
     // Near-halfway words have distinct slots, so their exact values fit in 512 bytes.
     var samples: #returntype
-    for word in 65536'u64
+    for word in 65536_u64
     {
         let unit     = cast(f32, word) * Gray16Scale
         let fraction = cast #bit(u32, unit) & 0x1FFF
@@ -258,28 +263,29 @@ private const GrayMidpoints = makeGrayMidpointTable()
 private func(INPUT, GRAY: bool) unsignedSamplesToHalf(values: Simd.U32x4)->Simd.S32x4
 {
     // Adding the bits of 2^23 converts these unsigned words to exact floats.
-    let integral   = cast #bit(Simd.F32x4, values | Simd.splat(0x4B00_0000'u32)) - Simd.splat(8388608'f32)
-    const Scale    = INPUT == u8 ? 1.0'f32 / 255'f32 : Gray16Scale
+    let integral = cast #bit(Simd.F32x4, values | Simd.splat(0x4B00_0000_u32)) - Simd.splat(8388608_f32)
+    const Scale = INPUT == u8 ? 1.0_f32 / 255_f32 : Gray16Scale
     let unitVector = integral * Simd.splat(Scale)
     let vectorBits = cast #bit(Simd.U32x4, unitVector)
-    let rounded    = (vectorBits + Simd.splat(0x0FFF'u32) + ((vectorBits >> 13) & Simd.splat(1'u32))) >> 13
-    let normal     = rounded - Simd.splat(0x1C000'u32)
-    #static if INPUT == u8 do
+    let rounded    = (vectorBits + Simd.splat(0x0FFF_u32) + ((vectorBits >> 13) & Simd.splat(1_u32))) >> 13
+    let normal     = rounded - Simd.splat(0x1C000_u32)
+    #static if INPUT == u8
+    {
         return cast #bit(Simd.S32x4, normal)
     }
     else
     {
-        let tiny = values < Simd.splat(4'u32)
+        let tiny = values < Simd.splat(4_u32)
         let half = Simd.select(tiny, values << 8, normal)
         #static if GRAY
         {
             // Grayscale luminance can affect HALF rounding within eight binary32 ULPs of a midpoint.
-            let fraction = vectorBits & 0x1FFF'u32
+            let fraction = vectorBits & 0x1FFF_u32
             let nearTie  = (fraction - GrayMidpointStart) <= Simd.splat(GrayMidpointSpan)
             if Simd.anyTrue(nearTie)
             {
                 let table   = cast(const [*] s32, GrayMidpoints.buffer)
-                let slots   = (values >> 5) & 127'u32
+                let slots   = (values >> 5) & 127_u32
                 let samples = cast #bit(Simd.U32x4, Simd.gather(table, slots))
                 return cast #bit(Simd.S32x4, Simd.select(nearTie, samples, half))
             }
@@ -292,8 +298,8 @@ private func(INPUT, GRAY: bool) unsignedSamplesToHalf(values: Simd.U32x4)->Simd.
 #[Swag.Inline]
 private func(INPUT, GRAY: bool) packIntegerHalf(words: Simd.U16x8)->Simd.U16x8
 {
-    let low  = unsignedSamplesToHalf'(INPUT, GRAY)(Simd.widenLow(words))
-    let high = unsignedSamplesToHalf'(INPUT, GRAY)(Simd.widenHigh(words))
+    let low  = unsignedSamplesToHalf!{INPUT, GRAY}(Simd.widenLow(words))
+    let high = unsignedSamplesToHalf!{INPUT, GRAY}(Simd.widenHigh(words))
     return Simd.packUnsigned(low, high)
 }
 
@@ -321,15 +327,17 @@ private func(INPUT, CHANNELS: u64, BLUE_FIRST: bool) writeIntegerBlock(destinati
     #static if INPUT == u16 and CHANNELS < 3
     {
         let firstWords = Simd.load(cast(const [*] u16, source))
-        #static if CHANNELS == 1 do
-            Simd.store(cast([*] u16, destination), packIntegerHalf'(u16, true)(firstWords))
+        #static if CHANNELS == 1
+        {
+            Simd.store(cast([*] u16, destination), packIntegerHalf!{u16, true}(firstWords))
+        }
         else
         {
             let secondWords = Simd.load(cast(const [*] u16, source + 16))
             let gray        = Simd.deinterleaveEven(firstWords, secondWords)
             let alpha       = Simd.deinterleaveOdd(firstWords, secondWords)
-            Simd.store(cast([*] u16, destination), packIntegerHalf'(u16, false)(alpha))
-            Simd.store(cast([*] u16, destination + planeBytes), packIntegerHalf'(u16, true)(gray))
+            Simd.store(cast([*] u16, destination), packIntegerHalf!{u16, false}(alpha))
+            Simd.store(cast([*] u16, destination + planeBytes), packIntegerHalf!{u16, true}(gray))
         }
     }
     else
@@ -386,7 +394,7 @@ private func(INPUT, CHANNELS: u64, BLUE_FIRST: bool) writeIntegerPlanes(destinat
     var start: u64
     while width - start >= 8
     {
-        writeIntegerBlock'(INPUT, CHANNELS, BLUE_FIRST)(destination + start * 2, source + start * CHANNELS * #sizeof(INPUT), width * 2)
+        writeIntegerBlock!{INPUT, CHANNELS, BLUE_FIRST}(destination + start * 2, source + start * CHANNELS * #sizeof(INPUT), width * 2)
         start += 8
     }
 
@@ -440,10 +448,14 @@ private func(T, INPUT, CHANNELS: u64, BLUE_FIRST: bool) writeScanlineRange(desti
         header[0] = Math.nativeToLittleEndian(cast(u32, y))
         header[1] = Math.nativeToLittleEndian(cast(u32, rowBytes))
         let row = pixels + (rows - y - 1) * stride
-        #static if INPUT != void do
-            writeIntegerPlanes'(INPUT, CHANNELS, BLUE_FIRST)(chunk + 8, row, width)
-        else do
-            writeScanlinePlanes'(T, CHANNELS)(chunk + 8, row, width)
+        #static if INPUT != void
+        {
+            writeIntegerPlanes!{INPUT, CHANNELS, BLUE_FIRST}(chunk + 8, row, width)
+        }
+        else
+        {
+            writeScanlinePlanes!{T, CHANNELS}(chunk + 8, row, width)
+        }
     }
 }
 

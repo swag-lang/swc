@@ -19,7 +19,7 @@ using Swag, Core
 {
     var truncated: Array!{u8}
     truncated.resize(12)
-    writeBigU32(&truncated, 0, imageTag('t'u32, 't'u32, 'c'u32, 'f'u32))
+    writeBigU32(&truncated, 0, imageTag('t'_u32, 't'_u32, 'c'_u32, 'f'_u32))
 
     var emptyOutcome: Swag.Error
     discard catch Face.countFaces(truncated.toSlice()) as emptyOutcome
@@ -199,10 +199,10 @@ using Swag, Core
     var bytes    = loadFontBytes("arial.ttf")
     let original = expect Face.load(bytes.toSlice())
     defer original.destroy()
-    let record = parseTestTableRecord(&bytes, imageTag('D'u32, 'S'u32, 'I'u32, 'G'u32))
+    let record = parseTestTableRecord(&bytes, imageTag('D'_u32, 'S'_u32, 'I'_u32, 'G'_u32))
     let offset = bytes.count
     bytes.resize(offset + MinFontCompactionSize)
-    writeBigU32(&bytes, record, imageTag('g'u32, 'v'u32, 'a'u32, 'r'u32))
+    writeBigU32(&bytes, record, imageTag('g'_u32, 'v'_u32, 'a'_u32, 'r'_u32))
     writeBigU32(&bytes, record + 8, cast(u32, offset))
     writeBigU32(&bytes, record + 12, cast(u32, MinFontCompactionSize))
 

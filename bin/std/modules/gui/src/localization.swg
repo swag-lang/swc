@@ -124,7 +124,7 @@ struct Strings
         inspector_Tab: string = "Properties"     // Word on the edge tab of a folded inspector.
 
         about_Build:     string = "Build of %{f}"       // Application build date in the standard about dialog.
-        about_Source:    string = "% is open source and written in <a>Swag!{/a}. Its code is <a>here!{/a}."     // Markup: product and source links in the standard about dialog.
+        about_Source:    string = "% is open source and written in <a>Swag</a>. Its code is <a>here</a>."     // Markup: product and source links in the standard about dialog.
         about_Copyright: string = "Copyright © % %"     // Copyright year and holder in the standard about dialog.
 
         fileDlg_TitleSaveFile:     string = "Save File"                                       // File dialog title when saving a file.

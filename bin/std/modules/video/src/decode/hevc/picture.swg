@@ -578,7 +578,7 @@ impl Decoder
             fail InvalidFormatError{"HEVC slice segment substream is empty"}
         }
 
-        .cabac.start(.rbsp.storage() + first, last - first)
+        try .cabac.start(.rbsp.storage() + first, last - first)
     }
 
     // Decodes a full-picture wavefront slice using one private scratch decoder per row.

@@ -242,9 +242,8 @@ internal impl RangeDecoder
         {
             let shift  = bits - UintBits
             let high   = (limit >> shift) + 1
-            let symbol = .decode(high)
-            .update(symbol, symbol + 1, high)
-            let value = (symbol << shift) | .decodeBits(shift)
+            let symbol = .decodeUniform(high)
+            let value  = (symbol << shift) | .decodeBits(shift)
             if value <= limit
             {
                 return value
@@ -267,11 +266,27 @@ internal impl RangeDecoder
         {
             if .storage - .endOffset >= 4 and availableBits <= cast(s32, (WindowBits - SymBits))
             {
-                window        |= .readByteFromEnd() << cast(u32, availableBits)
-                availableBits += cast(s32, SymBits)
-                if availableBits > cast(s32, (WindowBits - SymBits))
+                // The window consumes the last byte first. Reverse one load and
+                // retain only the whole bytes that fit beside the pending bits.
+                let pending = cast(u32, availableBits)
+                let bytes   = (WindowBits - pending) / SymBits
+                let unused  = WindowBits - bytes * SymBits
+                let tail    = (unwrap .data) + .storage - .endOffset
+                let reverse = Swag.byteSwap(cast(const [*] u32, tail - 4)[0])
+                window        |= ((reverse << unused) >> unused) << pending
+                .endOffset    += bytes
+                availableBits += cast(s32, bytes * SymBits)
+            }
+            else
+            {
+                while true
                 {
-                    break
+                    window        |= .readByteFromEnd() << cast(u32, availableBits)
+                    availableBits += cast(s32, SymBits)
+                    if availableBits > cast(s32, (WindowBits - SymBits))
+                    {
+                        break
+                    }
                 }
             }
         }

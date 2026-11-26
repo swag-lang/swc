@@ -25,19 +25,31 @@ impl LzwBitWriter
         .pendingBits = total & 7
         let word = cast(u16, ((.pending >> .pendingBits) & 0xFFFF))
 
-        while .pendingBits >= 8
+        let count = .result.count
+        let end   = count + bytes
+        if end > .result.capacity
         {
-            .pendingBits -= 8
-            .result.add(cast(u8, (.pending >> .pendingBits)))
-            .pending &= (1_u64 << .pendingBits) - 1
+            .result.grow(end)
         }
+
+        let dst = .result.storage() + count
+        if bytes == 2
+        {
+            cast(*u16, dst)[] = Math.byteSwap(word)
+        }
+        else
+        {
+            dst[0] = cast(u8, (word & 255))
+        }
+
+        .result.count = end
     }
 
     mtd finish()
     {
         if .pendingBits
         {
-            .result.add(cast(u8, (.pending << (8 - .pendingBits))))
+            .result.add(cast(u8, ((.pending << (8 - .pendingBits)) & 255)))
         }
     }
 }
@@ -58,8 +70,11 @@ func packLzw(result: *Array!{u8}, src: const [*] u8, count: u64)
         return
     }
 
-    var dictionary: HashTable!{u32, u16}
-    dictionary.reserve(4096)
+    // A 12-bit prefix plus the next byte and the 12-bit code fit in one slot.
+    // The dictionary never holds more than 3838 entries at a time.
+    const Capacity = 8192
+    var dictionary: [Capacity] u32
+    let slots = cast([*] u32, &dictionary[0])
 
     var width    = 9_u32
     var nextCode = LZW_FIRST_CODE
@@ -90,10 +105,7 @@ func packLzw(result: *Array!{u8}, src: const [*] u8, count: u64)
             slots[slot] = (key << 12) | nextCode
             nextCode    += 1
 
-            if width!
-            {
-                12 and nextCode
-            }(1_u32 << width) - 1
+            if width < 12 and nextCode > (1_u32 << width) - 1
             {
                 width += 1
             }

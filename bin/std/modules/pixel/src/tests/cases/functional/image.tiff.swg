@@ -124,10 +124,8 @@ func packLiteralTiffLzw(data: const [..] u8)->Array!{u8}
     return #move writer.bytes
 }
 
-// Build a single-IFD TIFF. Pixel data is laid out top-down. When 'compression'
-// is 1 (none), data is split into strips of 'rowsPerStrip' rows; otherwise a
-// single strip is emitted holding 'pixelData' verbatim.
-func buildTiff(le: bool, width, height, spp, photo, compression, rowsPerStrip, bps: u32, pixelData: const [..] u8, palette: const [..] u16?, extraSamples: bool, predictor: u32 = 1, extraSampleType: u32 = 2, extraSamplesType: u16 = 3, extraSamplesCount: u32 = 1, includeBitsPerSample: bool = true, bitsPerSampleCount: u32 = 0, orientation: u32 = 1)->Array!{u8}
+// Builds a single-IFD TIFF from top-down rows or a stream of precompressed strips.
+func buildTiff(le: bool, width, height, spp, photo, compression, rowsPerStrip, bps: u32, pixelData: const [..] u8, palette: const [..] u16?, extraSamples: bool, predictor: u32 = 1, extraSampleType: u32 = 2, extraSamplesType: u16 = 3, extraSamplesCount: u32 = 1, includeBitsPerSample: bool = true, bitsPerSampleCount: u32 = 0, orientation: u32 = 1, stripByteCounts: const [..] u32 = [])->Array!{u8}
 {
     var cb: ConcatBuffer
 
@@ -1032,10 +1030,16 @@ func tiffDecodeFails(bytes: const [..] u8)->bool
     var writer: TestTiffLzwWriter
     writer.write(256, 9)
     writer.write(65, 9)
-    for code in 258 until 274 do
+    for code in 258 until 274
+    {
         writer.write(cast(u32, code), 9)
-    for 7 do
+    }
+
+    for 7
+    {
         writer.write(272, 9)
+    }
+
     writer.write(268, 9)
     writer.write(257, 9)
     writer.finish()
@@ -1044,12 +1048,14 @@ func tiffDecodeFails(bytes: const [..] u8)->bool
     Swag.require(writer.bytes.count <= Expected / 2)
     var bytes: [Expected + 2] u8
     bytes[0], bytes[Expected + 1] = 0xA5
-    var dictionary: Array'u64
+    var dictionary: Array!{u64}
     let destination = bytes.buffer + 1
     expect Tiff.unpackLzw(destination, Expected, writer.bytes.storage(), cast(u32, writer.bytes.count), &dictionary)
     Swag.require(bytes[0] == 0xA5 and bytes[Expected + 1] == 0xA5)
-    for i in Expected do
+    for i in Expected
+    {
         Swag.require(destination[i] == 65)
+    }
 }
 
 // Exercise independent literal streams across every TIFF LZW code-width edge.

@@ -381,32 +381,14 @@ func onPointer(_: *Env.Window, event: Env.WindowPointerEvent)
 func updateShortcuts()
 {
     g_Keyboard.update()
-    if g_Keyboard.isKeyJustPressed(Input.Key.F1)
+    if g_Keyboard.isKeyJustPressed(.F1)
     {
-        nextPage()
+        changePage(1)
     }
-}
-
-func updateTestMode()
-{
-    if not Env.isSmokeRun()
+    else if g_Keyboard.isKeyJustPressed(.F2)
     {
-        return
+        changePage(-1)
     }
-
-    g_TestFrame += 1
-    if g_TestFrame < TestFramesPerPage
-    {
-        return
-    }
-
-    g_TestFrame = 0
-    if g_Page + 1 >= PageCount
-    {
-        Env.exit(0)
-    }
-
-    nextPage()
 }
 
 #main
@@ -436,9 +418,9 @@ func updateTestMode()
 
     let smoke = Env.isSmokeRun()
     var loop: Env.WindowLoop
-    if Env.isSmokeRun()
+    if smoke
     {
-        loop.smokeFrames = cast(u32, PageCount) * cast(u32, TestFramesPerPage)
+        loop.smokeFrames = PageCount
     }
 
     while loop.next()

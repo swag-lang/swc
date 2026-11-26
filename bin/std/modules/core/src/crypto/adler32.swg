@@ -24,11 +24,11 @@ private func updateAdlerBlock16(input: const [*] u8, byteSum, weightedSum: *u32)
 private func updateAdlerBlocks64(input: const [*] u8, count: u64, byteSum, weightedSum: *u32)
 {
     // Center the byte weights so four partial pair sums fit in signed 16 bits.
-    const Weights32 = cast(Simd.S8x16, [32's8, 31, 30, 29, 28, 27, 26, 25, 24, 23, 22, 21, 20, 19, 18, 17])
-    const Weights0 = cast(Simd.S8x16, [0's8, -1, -2, -3, -4, -5, -6, -7, -8, -9, -10, -11, -12, -13, -14, -15])
-    const WeightsMinus16 = cast(Simd.S8x16, [-16's8, -17, -18, -19, -20, -21, -22, -23, -24, -25, -26, -27, -28, -29, -30, -31])
-    let zero = Simd.splat(0'u8)
-    let ones = Simd.splat(1's16)
+    const Weights32      = cast(Simd.S8x16, [32_s8, 31, 30, 29, 28, 27, 26, 25, 24, 23, 22, 21, 20, 19, 18, 17])
+    const Weights0       = cast(Simd.S8x16, [0_s8, -1, -2, -3, -4, -5, -6, -7, -8, -9, -10, -11, -12, -13, -14, -15])
+    const WeightsMinus16 = cast(Simd.S8x16, [-16_s8, -17, -18, -19, -20, -21, -22, -23, -24, -25, -26, -27, -28, -29, -30, -31])
+    let zero = Simd.splat(0_u8)
+    let ones = Simd.splat(1_s16)
     var sum, prefixes: Simd.U64x2
     var weighted:      Simd.S32x4
 
@@ -96,9 +96,9 @@ public struct Adler32
 
 private impl Adler32
 {
-    const Modulus = 65521
-    const TileBytes = 512 * 1024'u64
-    const MaxTiles = 32
+    const Modulus   = 65521
+    const TileBytes = 512 * 1024_u64
+    const MaxTiles  = 32
 
     func mergeTile(previous, tile: u32)->u32
     {
@@ -114,7 +114,7 @@ private impl Adler32
     mtd updateParallel(input: const [*] u8, byteCount: u64)
     {
         var checksum = .currentValue
-        var offset = 0'u64
+        var offset   = 0_u64
         var results: [MaxTiles] u32
         while byteCount - offset >= TileBytes
         {
@@ -126,14 +126,18 @@ private impl Adler32
                 local.updateLarge(source + tile * TileBytes, TileBytes)
                 results[tile] = local.currentValue
             }
-            for tile in tiles do
+            for tile in tiles
+            {
                 checksum = mergeTile(checksum, results[tile])
+            }
             offset += tiles * TileBytes
         }
 
         .currentValue = checksum
-        if offset != byteCount do
+        if offset != byteCount
+        {
             .updateLarge(input + offset, byteCount - offset)
+        }
     }
 
     #[Swag.NoInline]

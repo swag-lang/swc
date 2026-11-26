@@ -1190,21 +1190,7 @@ private impl Decoder
     // Decodes one Motion JPEG frame, which is a complete JPEG image.
     mtd decodeJpegFrame(payload: const [..] u8, target: *Image) fail
     {
-        var decoded = try Image.decode(JpegName, payload)
-        if decoded.width != .info.width or decoded.height != .info.height
-        {
-            fail InvalidFormatError{"AVI frame does not have the dimensions its stream declares"}
-        }
-
-        .prepareTarget(target)
-        if decoded.pixelFormat == .BGR8
-        {
-            copyBitmapRows!{3}(decoded.pixels.storage(), target, decoded.rowStride, false, 0, cast(u64, target.height))
-            return
-        }
-
-        decoded.convertTo(.RGB8)
-        Memory.copy(target.pixels.storage(), decoded.pixels.storage(), target.byteCount)
+        try Jpg.decodeRgbInto(target, payload, .info.width, .info.height)
     }
 
     // Decodes one uncompressed frame, whose rows are bitmap rows.
@@ -1278,10 +1264,10 @@ private const Bgra32ToRgb = cast(Math.Simd.U8x16, [2_u8, 1, 0, 6, 5, 4, 10, 9, 8
 private func storeRgb5558(target: [*] u8, pixels: Math.Simd.U16x8)
 {
     using Math.Simd
-    const LowRg  = cast(U8x16, [0'u8, 8, 128, 1, 9, 128, 2, 10, 128, 3, 11, 128, 4, 12, 128, 5])
-    const LowB   = cast(U8x16, [128'u8, 128, 0, 128, 128, 1, 128, 128, 2, 128, 128, 3, 128, 128, 4, 128])
-    const HighRg = cast(U8x16, [13'u8, 128, 6, 14, 128, 7, 15, 128, 128, 128, 128, 128, 128, 128, 128, 128])
-    const HighB  = cast(U8x16, [128'u8, 5, 128, 128, 6, 128, 128, 7, 128, 128, 128, 128, 128, 128, 128, 128])
+    const LowRg  = cast(U8x16, [0_u8, 8, 128, 1, 9, 128, 2, 10, 128, 3, 11, 128, 4, 12, 128, 5])
+    const LowB   = cast(U8x16, [128_u8, 128, 0, 128, 128, 1, 128, 128, 2, 128, 128, 3, 128, 128, 4, 128])
+    const HighRg = cast(U8x16, [13_u8, 128, 6, 14, 128, 7, 15, 128, 128, 128, 128, 128, 128, 128, 128, 128])
+    const HighB  = cast(U8x16, [128_u8, 5, 128, 128, 6, 128, 128, 7, 128, 128, 128, 128, 128, 128, 128, 128])
     let red   = ((pixels >> 7) & 248) | ((pixels >> 12) & 7)
     let green = ((pixels >> 2) & 248) | ((pixels >> 7) & 7)
     let blue  = ((pixels << 3) & 248) | ((pixels >> 2) & 7)

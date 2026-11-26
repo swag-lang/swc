@@ -753,10 +753,7 @@ impl TimelineBar
         }
 
         let span = .visibleDuration()
-        if time!
-        {
-            .viewStart or time
-        }.viewStart + span
+        if time < .viewStart or time > .viewStart + span
         {
             .viewStart = Math.min(time > span / 2 ? time - span / 2 : 0,
                                   capture.timeline.duration - span)

@@ -95,8 +95,10 @@ struct PdfParser
     // single largest cost of walking such a document, and the result is byte-identical every
     // time. The pair is the key because a named color space is defined by the resources in
     // force, so the same object under different resources is not the same image.
-    imageCache:      HashTable!{u64, Image}
-    imageCacheBytes: u64
+    retainImageStreams: bool
+    imageCache:         HashTable!{u64, ImageReference}
+    deviceImageCache:   HashTable!{u32, ImageReference}
+    imageCacheBytes:    u64
 
     // Fonts already decoded from this document, keyed by the font object.
     //
@@ -110,9 +112,9 @@ struct PdfParser
     // established under.
     //
     // A drop shadow is one mask group per shadowed object, and a template repeating a shadowed
-    // element pays the group's content parse once per page that shows it otherwise. The transform
-    // is part of the key because the same group placed twice is two different coverages.
-    softMaskCache: HashTable!{u64, SoftMaskGroup}
+    // element can reuse the decoded group. The key includes the transform that remains after
+    // extracting any integral translation, along with the coverage mode and backdrop.
+    softMaskCache: HashTable!{SoftMaskKey, SoftMaskGroup}
 }
 
 // How much decoded image data one document keeps.

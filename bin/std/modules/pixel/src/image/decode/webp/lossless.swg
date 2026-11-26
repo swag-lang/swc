@@ -13,15 +13,21 @@ using Core, Core.Errors
 // @NOTICE: /bin/THIRDPARTY.md#go-x-image
 
 const LOSSLESS_COLOR_CACHE_MULTIPLIER = 0x1E35A7BD_u32
-const LOSSLESS_LUT_BITS               = 7_u32
-const LOSSLESS_LUT_MASK               = (1 << LOSSLESS_LUT_BITS) - 1
-const LOSSLESS_LEAF_NODE              = -1_s32
-const LOSSLESS_MAX_CODE_LENGTH        = 15_u32
-const LOSSLESS_LITERAL_CODES          = 256_u32
-const LOSSLESS_LENGTH_CODES           = 24_u32
-const LOSSLESS_DISTANCE_CODES         = 40_u32
-const LOSSLESS_HUFFMAN_TREES          = 5
-const LOSSLESS_MAX_HUFFMAN_GROUPS     = 2600
+const LOSSLESS_LUT_BITS = 8_u32
+const LOSSLESS_LUT_MASK = (1 << LOSSLESS_LUT_BITS) - 1
+
+// The largest alphabet is green with 2,048 cache entries. A direct entry
+// therefore fits a 12-bit symbol with a 4-bit length plus one.
+const LOSSLESS_LUT_SYMBOL_BITS    = 12
+const LOSSLESS_LUT_SYMBOL_MASK    = 0xFFF
+const LOSSLESS_LUT_NODE_BASE      = (LOSSLESS_LUT_BITS + 2) << LOSSLESS_LUT_SYMBOL_BITS
+const LOSSLESS_LEAF_NODE          = -1_s32
+const LOSSLESS_MAX_CODE_LENGTH    = 15_u32
+const LOSSLESS_LITERAL_CODES      = 256_u32
+const LOSSLESS_LENGTH_CODES       = 24_u32
+const LOSSLESS_DISTANCE_CODES     = 40_u32
+const LOSSLESS_HUFFMAN_TREES      = 5
+const LOSSLESS_MAX_HUFFMAN_GROUPS = 2600
 
 const LOSSLESS_HUFF_GREEN    = 0
 const LOSSLESS_HUFF_RED      = 1
@@ -104,9 +110,7 @@ impl LosslessBitReader
                 fail InvalidFormatError{"WebP data ends inside the lossless bitstream"}
             }
 
-            .bits  |= cast(u64, .ptr[]) << .nBits
-            .ptr   += 1
-            .nBits += 8
+            .refill()
         }
 
         let mask  = count == 32 ? 0xFFFFFFFF_u64 : ((1_u64 << count) - 1)
@@ -145,34 +149,47 @@ impl LosslessHuffmanGroup
         let maxBits = .trees[LOSSLESS_HUFF_RED].maxLength +
                       .trees[LOSSLESS_HUFF_BLUE].maxLength +
                       .trees[LOSSLESS_HUFF_ALPHA].maxLength
-        if maxBits > LOSSLESS_LUT_BITS and .trees[LOSSLESS_HUFF_ALPHA].maxLength do
+        if maxBits > LOSSLESS_LUT_BITS and .trees[LOSSLESS_HUFF_ALPHA].maxLength
+        {
             return
+        }
 
         // Many opaque literals fit together in a short prefix even when
         // uncommon red and blue symbols need longer codes.
-        let count = 1'u32 << Math.min(maxBits, LOSSLESS_LUT_BITS)
+        let count = 1_u32 << Math.min(maxBits, LOSSLESS_LUT_BITS)
         var filled:  u32
         var entries: [1 << LOSSLESS_LUT_BITS] u32
         for prefix in count
         {
             var bits = cast(u32, prefix)
             let red  = .trees[LOSSLESS_HUFF_RED].lut[bits & LOSSLESS_LUT_MASK]
-            if not red or red >= LOSSLESS_LUT_NODE_BASE do
+            if not red or red >= LOSSLESS_LUT_NODE_BASE
+            {
                 continue
+            }
+
             let redBits = cast(u32, red >> LOSSLESS_LUT_SYMBOL_BITS) - 1
             bits >>= redBits
             let blue = .trees[LOSSLESS_HUFF_BLUE].lut[bits & LOSSLESS_LUT_MASK]
-            if not blue or blue >= LOSSLESS_LUT_NODE_BASE do
+            if not blue or blue >= LOSSLESS_LUT_NODE_BASE
+            {
                 continue
+            }
+
             let blueBits = cast(u32, blue >> LOSSLESS_LUT_SYMBOL_BITS) - 1
             bits >>= blueBits
             let alpha = .trees[LOSSLESS_HUFF_ALPHA].lut[bits & LOSSLESS_LUT_MASK]
-            if not alpha or alpha >= LOSSLESS_LUT_NODE_BASE do
+            if not alpha or alpha >= LOSSLESS_LUT_NODE_BASE
+            {
                 continue
+            }
+
             let length = redBits + blueBits + (alpha >> LOSSLESS_LUT_SYMBOL_BITS)
 
-            if length > LOSSLESS_LUT_BITS + 1 do
+            if length > LOSSLESS_LUT_BITS + 1
+            {
                 continue
+            }
 
             // The green byte stores the combined bit count plus one.
             filled += 1
@@ -181,8 +198,10 @@ impl LosslessHuffmanGroup
                               (cast(u32, alpha & LOSSLESS_LUT_SYMBOL_MASK) << 24)
         }
 
-        if not filled or filled < count / 2 do
+        if not filled or filled < count / 2
+        {
             return
+        }
 
         .literalMask = count - 1
         .literalTable.resize(count)
@@ -195,8 +214,9 @@ impl LosslessHuffmanGroup
         if not .literalTable.isEmpty()
         {
             let entry = .literalTable.storage()[reader.bits & .literalMask]
+
             // A zero entry falls back to the individual trees below.
-            let bits  = ((entry >> 8) & 0xFF) - #wrap 1
+            let bits = ((entry >> 8) & 0xFF) - #wrap 1
             if bits <= reader.nBits
             {
                 reader.bits  >>= bits
@@ -240,7 +260,7 @@ impl LosslessHuffmanTree
 {
     mtd insert(symbol, code, codeLength: u32) fail
     {
-        if symbol > 0xFFFF or codeLength > 0xFE
+        if symbol > LOSSLESS_LUT_SYMBOL_MASK or codeLength > LOSSLESS_MAX_CODE_LENGTH
         {
             try losslessTreeError()
         }
@@ -257,7 +277,7 @@ impl LosslessHuffmanTree
             let count = 1_u32 << (LOSSLESS_LUT_BITS - codeLength)
             for i in count
             {
-                .lut[baseCode | (i << codeLength)] = (symbol << 8) | (codeLength + 1)
+                .lut[baseCode | (i << codeLength)] = cast(u16, (((codeLength + 1) << LOSSLESS_LUT_SYMBOL_BITS) | symbol))
             }
         }
 
@@ -293,7 +313,7 @@ impl LosslessHuffmanTree
                 jump -= 1
                 if jump == 0 and .lut[baseCode] == 0
                 {
-                    .lut[baseCode] = node << 8
+                    .lut[baseCode] = cast(u16, LOSSLESS_LUT_NODE_BASE + node)
                 }
             }
         }
@@ -396,10 +416,11 @@ impl LosslessHuffmanTree
     mtd next(reader: *LosslessBitReader)->u32 fail
     {
         var node: u32
-        if reader.nBits < LOSSLESS_LUT_BITS and reader.ptr < reader.last {
+        if reader.nBits < LOSSLESS_LUT_BITS and reader.ptr < reader.last
+        {
             reader.refill()
-
         }
+
         if reader.nBits >= LOSSLESS_LUT_BITS
         {
             let entry = cast(u32, .lut[reader.bits & LOSSLESS_LUT_MASK])
@@ -738,10 +759,181 @@ func losslessDecodeHuffmanGroups(reader: *LosslessBitReader, groups: *Array!{Los
             try losslessDecodeHuffmanTree(reader, tree, alphabetSize)
         }
 
-        if group {
+        if group
+        {
             group.buildLiteralTable()
         }
     }
+}
+
+func losslessCopyRun(destination: [*] u32, distance, count: u64)
+{
+    let source = destination - distance
+    if count <= 8
+    {
+        for i in count
+        {
+            destination[i] = source[i]
+        }
+
+        return
+    }
+
+    if distance == 1
+    {
+        let pixel = source[0]
+        let block = Math.Simd.splat(pixel)
+        var i: u64
+        while count - i >= 4
+        {
+            Math.Simd.store(destination + i, block)
+            i += 4
+        }
+
+        for j in i until count
+        {
+            destination[j] = pixel
+        }
+
+        return
+    }
+
+    // Copy the available seed pixels, then expand the run in disjoint chunks.
+    var copied = Math.min(distance, count)
+    Memory.copy(destination, source, copied * 4)
+    while copied < count
+    {
+        let chunk = Math.min(copied, count - copied)
+        Memory.copy(destination + copied, destination, chunk * 4)
+        copied += chunk
+    }
+}
+
+// A single tree with no length or cache symbols can skip the general run loop.
+private func losslessHasOnlyLiterals(tree: *LosslessHuffmanTree)->bool
+{
+    let nodes = tree.nodes.storage()
+    for i in tree.nodeCount
+    {
+        if nodes[i].children == LOSSLESS_LEAF_NODE and nodes[i].symbol >= LOSSLESS_LITERAL_CODES
+        {
+            return false
+        }
+    }
+
+    return true
+}
+
+private func losslessUniformByteTree(tree: *LosslessHuffmanTree)->bool
+{
+    // An eight-level full tree with 256 byte symbols assigns code i to symbol i.
+    return tree.maxLength == 8 and tree.nodes.count == 511 and tree.nodeCount == 511
+}
+
+#[Swag.Inline]
+private func losslessLoadReversedBytes(source: const [*] u8, shift: u8)->Math.Simd.U8x16
+{
+    using Math.Simd
+    var bytes = load(source)
+    if shift
+    {
+        let mask = splat(0xFF_u8 >> shift)
+        let next = load(source + 1)
+        let low  = cast #bit(U8x16, (cast #bit(U16x8, bytes) >> shift))
+        let high = cast #bit(U8x16, (cast #bit(U16x8, next) << (8 - shift)))
+        bytes = (low & mask) | (high & ~mask)
+    }
+
+    var words = cast #bit(U16x8, bytes)
+    let mask1 = splat(0x5555_u16)
+    let mask2 = splat(0x3333_u16)
+    let mask4 = splat(0x0F0F_u16)
+    words = ((words & mask1) << 1) | ((words >> 1) & mask1)
+    words = ((words & mask2) << 2) | ((words >> 2) & mask2)
+    return cast #bit(U8x16, (((words & mask4) << 4) | ((words >> 4) & mask4)))
+}
+
+func(CHANNELS: u32) losslessDecodeByteLiterals(reader: *LosslessBitReader, output: [*] u32, count: u64, color: u32)->bool
+{
+    using Math.Simd
+
+    #[Swag.Inline]
+    func readByte(source: const [*] u8, shift: u8)->u32
+    {
+        var byte = cast(u16, source[0])
+        if shift
+        {
+            byte |= cast(u16, source[1]) << 8
+        }
+
+        return losslessReverseByte(cast(u8, ((byte >> shift) & 0xFF)))
+    }
+
+    // Prefetched data is still in the immutable source. Locate the current bit
+    // and preserve the final partial byte for the next nested image or field.
+    let shift  = cast(u8, ((8 - (reader.nBits & 7)) & 7))
+    let extra  = cast(u64, shift != 0)
+    let source = reader.ptr - ((reader.nBits + 7) >> 3)
+    let bytes  = count * CHANNELS
+    if reader.last - source < bytes + extra
+    {
+        return false
+    }
+
+    #static if CHANNELS != 4
+    {
+        let colors = splat(color)
+    }
+
+    var index: u64
+    while bytes - index * CHANNELS >= 16
+    {
+        let samples = losslessLoadReversedBytes(source + index * CHANNELS, shift)
+        #static if CHANNELS == 4
+        {
+            const Order: [16] u8 = [1, 0, 2, 3, 5, 4, 6, 7, 9, 8, 10, 11, 13, 12, 14, 15]
+            store(output + index, cast #bit(U32x4, shuffle(samples, cast #bit(U8x16, Order))))
+            index += 4
+        }
+        else if CHANNELS == 3
+        {
+            const Order: [16] u8 = [1, 0, 2, 0x80, 4, 3, 5, 0x80, 7, 6, 8, 0x80, 10, 9, 11, 0x80]
+            store(output + index, cast #bit(U32x4, shuffle(samples, cast #bit(U8x16, Order))) | colors)
+            index += 4
+        }
+        else
+        {
+            let lo = widenLow(samples)
+            let hi = widenHigh(samples)
+            store(output + index, colors | (widenLow(lo) << 8))
+            store(output + index + 4, colors | (widenHigh(lo) << 8))
+            store(output + index + 8, colors | (widenLow(hi) << 8))
+            store(output + index + 12, colors | (widenHigh(hi) << 8))
+            index += 16
+        }
+    }
+
+    for i in index until count
+    {
+        let next   = source + i * CHANNELS
+        var result = color | (readByte(next, shift) << 8)
+        #static if CHANNELS > 1
+        {
+            result |= readByte(next + 1, shift) | (readByte(next + 2, shift) << 16)
+        }
+
+        #static if CHANNELS == 4
+        {
+            result |= readByte(next + 3, shift) << 24
+        }
+
+        output[i] = result
+    }
+
+    reader.ptr   = source + bytes + extra
+    reader.bits  = shift ? cast(u64, source[bytes] >> shift) : 0
+    reader.nBits = shift ? 8 - cast(u32, shift) : 0
+    return true
 }
 
 func losslessDecodePixels(reader: *LosslessBitReader, result: *Array!{u8}, width, height, minimumCapacity: s32, topLevel: bool) fail
@@ -810,17 +1002,32 @@ func losslessDecodePixels(reader: *LosslessBitReader, result: *Array!{u8}, width
         let alpha  = &groupData[0].trees[LOSSLESS_HUFF_ALPHA]
         if losslessUniformByteTree(red) and losslessUniformByteTree(blue)
         {
-            if losslessUniformByteTree(alpha) and losslessDecodeByteLiterals!{4}(reader, target, pixelCount, 0) {
+            if losslessUniformByteTree(alpha) and
+               losslessDecodeByteLiterals!
+            {
+                4
+            }(reader, target, pixelCount, 0)
+            {
                 return
             }
-            if not alpha.maxLength and losslessDecodeByteLiterals!{3}(reader, target, pixelCount, alpha.nodes[0].symbol << 24) {
+
+            if not alpha.maxLength and
+               losslessDecodeByteLiterals!
+            {
+                3
+            }(reader, target, pixelCount, alpha.nodes[0].symbol << 24)
+            {
                 return
             }
         }
         else if not red.maxLength and not blue.maxLength and not alpha.maxLength
         {
             let color = red.nodes[0].symbol | (blue.nodes[0].symbol << 16) | (alpha.nodes[0].symbol << 24)
-            if losslessDecodeByteLiterals!{1}(reader, target, pixelCount, color) {
+            if losslessDecodeByteLiterals!
+            {
+                1
+            }(reader, target, pixelCount, color)
+            {
                 return
             }
         }
@@ -926,11 +1133,7 @@ func losslessDecodePixels(reader: *LosslessBitReader, result: *Array!{u8}, width
                 fail InvalidFormatError{"WebP lossless color-cache index is out of range"}
             }
 
-            let argb = colorCache[green]
-            output[offset + 0] = cast #wrap (u8, (argb >> 16))
-            output[offset + 1] = cast #wrap (u8, (argb >> 8))
-            output[offset + 2] = cast #wrap (u8, argb)
-            output[offset + 3] = cast(u8, (argb >> 24))
+            cast([*] u32, output + offset)[0] = colorCache[green]
             offset += 4
 
             x += 1
@@ -950,52 +1153,30 @@ func losslessWrap8(value: s32)->u8 => cast(u8, (value & 0xFF))
 #[Swag.Inline]
 private func losslessAverageDown(a, b: Math.Simd.U8x16)->Math.Simd.U8x16
 {
-    let value = cast(s32, a) + (cast(s32, a) - b) / 2
-    return cast(u8, Math.clamp(value, 0, 255))
-}
-
-func losslessAddAt(pixels: *Array!{u8}, offset: u64, value: u8)
-{
-    let data = cast([*] u8, pixels.storage())
-    data[offset] += #wrap value
+    using Math.Simd
+    return average(a, b) - ((a ^ b) & splat(1_u8))
 }
 
 func losslessInversePredictor(transform: *LosslessTransform, pixels: *Array!{u8}, height: s32)
 {
-    if transform.oldWidth == 0 or height == 0
-    {
-        return
-    }
+    using Math.Simd
 
-    losslessAddAt(pixels, 3, 0xFF)
-    let data   = cast([*] u8, pixels.storage())
-    var offset = 4_u64
-    let mask   = cast(s32, (1 << transform.bits)) - 1
-    for transform.oldWidth - 1
+    // The low seven bits of each channel add without carrying into the next channel.
+    #[Swag.Inline]
+    func addPixel(destination: [*] u32, prediction: u32)
     {
         let value = destination[0]
         let low   = (value & 0x7F7F7F7F_u32) + (prediction & 0x7F7F7F7F_u32)
         destination[0] = low ^ ((value ^ prediction) & 0x80808080_u32)
     }
 
-    var top         = 0_u64
-    let tilesPerRow = losslessTileCount(transform.oldWidth, transform.bits)
-    var y           = 1_s32
-    while y < height
+    #[Swag.Inline]
+    func averagePixel(a, b: u32)->u32 => (a & b) + (((a ^ b) & 0xFEFEFEFE_u32) >> 1)
+
+    func addFromLeft(row: [*] u32, start, end: s32)
     {
-        losslessAddAt(pixels, offset + 0, data[top + 0])
-        losslessAddAt(pixels, offset + 1, data[top + 1])
-        losslessAddAt(pixels, offset + 2, data[top + 2])
-        losslessAddAt(pixels, offset + 3, data[top + 3])
-        offset += 4
-        top    += 4
-
-        var transformOffset = cast(u64, (4 * (y >> transform.bits) * tilesPerRow))
-        var predictorMode   = transform.pixels[transformOffset + 1] & 0x0F
-        transformOffset += 4
-
-        var x = 1_s32
-        while x < transform.oldWidth
+        var column = start
+        if end - start >= 4
         {
             let zero  = splat(0_u8)
             var carry = row[start - 1]
@@ -1010,125 +1191,10 @@ func losslessInversePredictor(transform: *LosslessTransform, pixels: *Array!{u8}
                 carry  = pixels[3]
                 column += 4
             }
-
-            switch predictorMode
-            {
-            case 0:
-                losslessAddAt(pixels, offset + 3, 0xFF)
-
-            case 1:
-                for channel in 4
-                {
-                    losslessAddAt(pixels, offset + channel, data[offset + channel - 4])
-                }
-
-            case 2:
-                for channel in 4
-                {
-                    losslessAddAt(pixels, offset + channel, data[top + channel])
-                }
-
-            case 3:
-                for channel in 4
-                {
-                    losslessAddAt(pixels, offset + channel, data[top + channel + 4])
-                }
-
-            case 4:
-                for channel in 4
-                {
-                    losslessAddAt(pixels, offset + channel, data[top + channel - 4])
-                }
-
-            case 5:
-                for channel in 4
-                {
-                    let prediction = losslessAverage(losslessAverage(data[offset + channel - 4], data[top + channel + 4]), data[top + channel])
-                    losslessAddAt(pixels, offset + channel, prediction)
-                }
-
-            case 6:
-                for channel in 4
-                {
-                    losslessAddAt(pixels, offset + channel, losslessAverage(data[offset + channel - 4], data[top + channel - 4]))
-                }
-
-            case 7:
-                for channel in 4
-                {
-                    losslessAddAt(pixels, offset + channel, losslessAverage(data[offset + channel - 4], data[top + channel]))
-                }
-
-            case 8:
-                for channel in 4
-                {
-                    losslessAddAt(pixels, offset + channel, losslessAverage(data[top + channel - 4], data[top + channel]))
-                }
-
-            case 9:
-                for channel in 4
-                {
-                    losslessAddAt(pixels, offset + channel, losslessAverage(data[top + channel], data[top + channel + 4]))
-                }
-
-            case 10:
-                for channel in 4
-                {
-                    let leftAverage = losslessAverage(data[offset + channel - 4], data[top + channel - 4])
-                    let topAverage  = losslessAverage(data[top + channel], data[top + channel + 4])
-                    losslessAddAt(pixels, offset + channel, losslessAverage(leftAverage, topAverage))
-                }
-
-            case 11:
-                let left0        = cast(s32, data[offset - 4])
-                let left1        = cast(s32, data[offset - 3])
-                let left2        = cast(s32, data[offset - 2])
-                let left3        = cast(s32, data[offset - 1])
-                let corner0      = cast(s32, data[top - 4])
-                let corner1      = cast(s32, data[top - 3])
-                let corner2      = cast(s32, data[top - 2])
-                let corner3      = cast(s32, data[top - 1])
-                let upper0       = cast(s32, data[top + 0])
-                let upper1       = cast(s32, data[top + 1])
-                let upper2       = cast(s32, data[top + 2])
-                let upper3       = cast(s32, data[top + 3])
-                let leftDistance = Math.abs(corner0 - upper0) + Math.abs(corner1 - upper1) + Math.abs(corner2 - upper2) + Math.abs(corner3 - upper3)
-                let topDistance  = Math.abs(corner0 - left0) + Math.abs(corner1 - left1) + Math.abs(corner2 - left2) + Math.abs(corner3 - left3)
-                if leftDistance < topDistance
-                {
-                    losslessAddAt(pixels, offset + 0, cast(u8, left0))
-                    losslessAddAt(pixels, offset + 1, cast(u8, left1))
-                    losslessAddAt(pixels, offset + 2, cast(u8, left2))
-                    losslessAddAt(pixels, offset + 3, cast(u8, left3))
-                }
-                else
-                {
-                    losslessAddAt(pixels, offset + 0, cast(u8, upper0))
-                    losslessAddAt(pixels, offset + 1, cast(u8, upper1))
-                    losslessAddAt(pixels, offset + 2, cast(u8, upper2))
-                    losslessAddAt(pixels, offset + 3, cast(u8, upper3))
-                }
-
-            case 12:
-                for channel in 4
-                {
-                    losslessAddAt(pixels, offset + channel, losslessClampAddSubtractFull(data[offset + channel - 4], data[top + channel], data[top + channel - 4]))
-                }
-
-            case 13:
-                for channel in 4
-                {
-                    let average = losslessAverage(data[offset + channel - 4], data[top + channel])
-                    losslessAddAt(pixels, offset + channel, losslessClampAddSubtractHalf(average, data[top + channel - 4]))
-                }
-            }
-
-            offset += 4
-            top    += 4
-            x      += 1
         }
 
-        for x in column until end {
+        for x in column until end
+        {
             addPixel(row + x, row[x - 1])
         }
     }
@@ -1144,7 +1210,8 @@ func losslessInversePredictor(transform: *LosslessTransform, pixels: *Array!{u8}
             i += 4
         }
 
-        for j in i until count {
+        for j in i until count
+        {
             addPixel(destination + j, prediction[j])
         }
     }
@@ -1161,7 +1228,8 @@ func losslessInversePredictor(transform: *LosslessTransform, pixels: *Array!{u8}
             x += 4
         }
 
-        for i in x until count {
+        for i in x until count
+        {
             addPixel(destination + i, averagePixel(left[i], right[i]))
         }
     }
@@ -1177,7 +1245,8 @@ func losslessInversePredictor(transform: *LosslessTransform, pixels: *Array!{u8}
             x += 4
         }
 
-        for i in x until last {
+        for i in x until last
+        {
             addPixel(row + i, color)
         }
     }
@@ -1237,10 +1306,11 @@ func losslessInversePredictor(transform: *LosslessTransform, pixels: *Array!{u8}
     }
 
     let width = transform.oldWidth
-    if width == 0 or height == 0 {
+    if width == 0 or height == 0
+    {
         return
-
     }
+
     let data = cast([*] u32, pixels.storage())
     addPixel(data, 0xFF000000)
     addFromLeft(data, 1, width)
@@ -1278,20 +1348,23 @@ func losslessInversePredictor(transform: *LosslessTransform, pixels: *Array!{u8}
                 addSpan(row + x, top + x - 1, endX - x)
 
             case 5:
-                for column in x until endX {
+                for column in x until endX
+                {
                     addPixel(row + column, averagePixel(averagePixel(row[column - 1], top[column + 1]), top[column]))
-
                 }
+
             case 6:
-                for column in x until endX {
+                for column in x until endX
+                {
                     addPixel(row + column, averagePixel(row[column - 1], top[column - 1]))
-
                 }
+
             case 7:
-                for column in x until endX {
+                for column in x until endX
+                {
                     addPixel(row + column, averagePixel(row[column - 1], top[column]))
-
                 }
+
             case 8:
                 addAverages(row + x, top + x - 1, top + x, endX - x)
 
@@ -1299,15 +1372,16 @@ func losslessInversePredictor(transform: *LosslessTransform, pixels: *Array!{u8}
                 addAverages(row + x, top + x, top + x + 1, endX - x)
 
             case 10:
-                for column in x until endX {
+                for column in x until endX
+                {
                     addPixel(row + column, averagePixel(averagePixel(row[column - 1], top[column - 1]), averagePixel(top[column], top[column + 1])))
-
                 }
+
             case 11:
                 addSelected(row, top, x, endX)
 
             case 12:
-                addGradient'false(row, top, x, endX)
+                addGradient!{false}(row, top, x, endX)
 
             case 13:
                 addGradient!{true}(row, top, x, endX)
@@ -1415,44 +1489,31 @@ func losslessInverseColorIndexing(transform: *LosslessTransform, pixels: *Array!
     let palette = cast(const [*] u32, transform.pixels.storage())
     if transform.bits == 0
     {
-        var offset: u64
-        while offset < pixels.count
+        for i in pixels.count / 4
         {
-            let paletteOffset = 4_u64 * data[offset + 1]
-            data[offset + 0] = transform.pixels[paletteOffset + 0]
-            data[offset + 1] = transform.pixels[paletteOffset + 1]
-            data[offset + 2] = transform.pixels[paletteOffset + 2]
-            data[offset + 3] = transform.pixels[paletteOffset + 3]
-            offset += 4
+            data[i] = palette[(data[i] >> 8) & 0xFF]
         }
 
         return
     }
 
-    var valueMask: u32
-    var xMask:     s32
+    let width        = transform.oldWidth
+    let packedWidth  = losslessTileCount(width, transform.bits)
+    let groupSize    = 1_s32 << transform.bits
     let bitsPerPixel = 8_u32 >> transform.bits
-    switch transform.bits
-    {
-    case 1:
-        valueMask = 0x0F
-        xMask     = 0x01
-
-    case 2:
-        valueMask = 0x03
-        xMask     = 0x03
-
-    case 3:
-        valueMask = 0x01
-        xMask     = 0x07
-    }
-
+    let valueMask    = (1_u32 << bitsPerPixel) - 1
+    let byteCount    = 4_u64 * width * height
     var decoded: Array!{u8}
-    decoded.resize(4_u64 * transform.oldWidth * height)
-    var sourceOffset:      u64
-    var destinationOffset: u64
-    var packedValue:       u32
-    for height
+    decoded.grow(byteCount)
+    decoded.count = byteCount
+    let target = cast([*] u32, decoded.storage())
+
+    let zero     = splat(0_u32)
+    let first    = splat(palette[0])
+    let second   = splat(palette[1])
+    let lowBits  = cast(U32x4, [1_u32, 2, 4, 8])
+    let highBits = lowBits << 4
+    for y in height
     {
         let input  = data + cast(u64, y) * packedWidth
         let output = target + cast(u64, y) * width
@@ -1505,6 +1566,11 @@ func losslessDecode(source: const [..] u8, pixels: *Array!{u8}, width: *s32, hei
     var reader: LosslessBitReader
     try losslessDecodeHeader(&reader, source, width, height)
 
+    try losslessDecodeStream(&reader, pixels, width[], height[])
+}
+
+func losslessDecodeStream(reader: *LosslessBitReader, pixels: *Array!{u8}, width, height: s32) fail
+{
     var transforms:     Array!{LosslessTransform}
     var seenTransforms: [LOSSLESS_TRANSFORM_COUNT] bool
     let originalWidth    = width
@@ -1519,7 +1585,7 @@ func losslessDecode(source: const [..] u8, pixels: *Array!{u8}, width: *s32, hei
 
         transforms.resize(transforms.count + 1)
         let transform = &transforms[transforms.count - 1]
-        transformedWidth = try losslessDecodeTransform(&reader, transform, transformedWidth, height[])
+        transformedWidth = try losslessDecodeTransform(reader, transform, transformedWidth, height)
         if seenTransforms[transform.kind]
         {
             fail InvalidFormatError{"WebP lossless stream repeats a transform"}
@@ -1537,7 +1603,7 @@ func losslessDecode(source: const [..] u8, pixels: *Array!{u8}, width: *s32, hei
         losslessApplyInverseTransform(&transforms[index], pixels, height)
     }
 
-    let expectedSize = cast(u64, originalWidth) * height[] * 4
+    let expectedSize = cast(u64, originalWidth) * height * 4
     if pixels.count != expectedSize
     {
         fail InvalidFormatError{"WebP lossless transforms produce a pixel count different from the image dimensions"}

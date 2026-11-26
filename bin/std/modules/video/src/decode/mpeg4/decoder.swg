@@ -505,7 +505,7 @@ impl Decoder
         {
             // The packet repeats enough of the plane header to stand on its own.
             var guard = 0_u32
-            while reader.read(1) != 0
+            while reader.bit() != 0
             {
                 guard += 1
                 if guard > 64
@@ -553,7 +553,7 @@ impl Decoder
         }
 
         var coded = true
-        if header.codingType == VopPredicted and reader.read(1) != 0
+        if header.codingType == VopPredicted and reader.bit() != 0
         {
             coded = false
         }
@@ -596,7 +596,7 @@ impl Decoder
         var acPred = false
         if intra
         {
-            acPred = reader.read(1) != 0
+            acPred = reader.bit() != 0
         }
 
         let cbpyEntry = reader.decode(CbpyTree)
@@ -705,7 +705,7 @@ impl Decoder
                 {
                     kind = TypeInterpolated
                 }
-                else if reader.read(1) != 0
+                else if reader.bit() != 0
                 {
                     kind = TypeBackward
                 }
@@ -724,7 +724,7 @@ impl Decoder
             // The quantiser moves only when the macroblock carries something to quantise.
             if kind != TypeDirect and pattern and reader.bit() != 0
             {
-                let step = reader.read(1) != 0 ? 2_s32 : -2_s32
+                let step = reader.bit() != 0 ? 2_s32 : -2_s32
                 .quant = cast(u32, Math.clamp(cast(s32, .quant) + step, 1_s32, 31_s32))
             }
 
@@ -1226,11 +1226,12 @@ impl Decoder
         {
             let scan: const [..] u8 = not intra or not acPred ? ScanZigzag
                                       : (fromAbove ? ScanAlternateHorizontal : ScanAlternateVertical)
-            var at = separateDc ? 1_u64 : 0_u64
+            let prefixes = coefficientPrefixes(not intra)
+            var at       = separateDc ? 1_u64 : 0_u64
             for 64_u32
             {
                 var event: Coefficient
-                if not (try readCoefficient(reader, not intra, &event))
+                if not readCoefficientPrefix(reader, prefixes, &event) and not (try readCoefficient(reader, not intra, &event))
                 {
                     fail InvalidFormatError{"MPEG-4 block states an unknown coefficient"}
                 }
@@ -1332,18 +1333,14 @@ impl Decoder
     mtd writeBlock(mbX, mbY: s32, block: u64, samples: const *[64] s16, intra: bool)
     {
         let destination = .blockDestination(mbX, mbY, block)
-        let plane       = destination.pixels
         for row in 8_u64
         {
-            let line = row * destination.stride
-            for column in 8_u64
+            let line   = destination.pixels + row * destination.stride
+            var values = Math.Simd.load(&samples[][row * 8])
+            if not intra
             {
-                // Part 2 transforms the sample values themselves, with no level shift: what
-                // comes out of an intra block is the sample, and the default neighbour of an
-                // unpredicted block is mid grey by construction.
-                let value = cast(s32, samples[][row * 8 + column])
-                let final = intra ? value : cast(s32, plane[line + column]) + value
-                plane[line + column] = cast(u8, Math.clamp(final, 0_s32, 255_s32))
+                let prediction = Math.Simd.widenLow(loadPixels(line))
+                values += cast #bit(Math.Simd.S16x8, prediction)
             }
 
             // The unsigned pack clamps the reconstructed samples to the byte range.

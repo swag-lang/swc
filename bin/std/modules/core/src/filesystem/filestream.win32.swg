@@ -33,8 +33,10 @@ internal impl FileStream
     mtd writeAllAtKeepingPosition(offset: u64, buffer: const [..] u8, resume: u64) fail
     {
         try .writeAllAt(offset, buffer)
-        if offset + buffer.count != resume do
+        if offset + buffer.count != resume
+        {
             try .seek(.Begin, resume)
+        }
     }
 
     // Closes the underlying Windows handle; the caller must not reuse that handle.

@@ -118,40 +118,16 @@ private
     const RedLanes   = cast(Math.Simd.U8x16, [2_u8, 0x80, 0x80, 0x80, 5, 0x80, 0x80, 0x80, 8, 0x80, 0x80, 0x80, 11, 0x80, 0x80, 0x80])
     const GreenLanes = cast(Math.Simd.U8x16, [1_u8, 0x80, 0x80, 0x80, 4, 0x80, 0x80, 0x80, 7, 0x80, 0x80, 0x80, 10, 0x80, 0x80, 0x80])
     const BlueLanes  = cast(Math.Simd.U8x16, [0_u8, 0x80, 0x80, 0x80, 3, 0x80, 0x80, 0x80, 6, 0x80, 0x80, 0x80, 9, 0x80, 0x80, 0x80])
-}
 
-impl ColorRGB
-{
-    mtd const opCompare(other: ColorRGB)->s32
-    {
-        let bCmp = .b <=> other.b
-        if bCmp
-        {
-            return bCmp
-        }
+    // In a three-byte layout the second read begins eight bytes into the row, so it
+    // ends at the last pixel. Its first four lanes have higher byte offsets.
+    const RedLanesHigh   = cast(Math.Simd.U8x16, [6_u8, 0x80, 0x80, 0x80, 9, 0x80, 0x80, 0x80, 12, 0x80, 0x80, 0x80, 15, 0x80, 0x80, 0x80])
+    const GreenLanesHigh = cast(Math.Simd.U8x16, [5_u8, 0x80, 0x80, 0x80, 8, 0x80, 0x80, 0x80, 11, 0x80, 0x80, 0x80, 14, 0x80, 0x80, 0x80])
+    const BlueLanesHigh  = cast(Math.Simd.U8x16, [4_u8, 0x80, 0x80, 0x80, 7, 0x80, 0x80, 0x80, 10, 0x80, 0x80, 0x80, 13, 0x80, 0x80, 0x80])
 
-        let gCmp = .g <=> other.g
-        if gCmp
-        {
-            return gCmp
-        }
-
-        return .r <=> other.r
-    }
-}
-
-impl BitString
-{
-    mtd const opCompare(other: BitString)->s32
-    {
-        let lenCmp = .length <=> other.length
-        if lenCmp
-        {
-            return lenCmp
-        }
-
-        return .value <=> other.value
-    }
+    const RedLanes4   = cast(Math.Simd.U8x16, [2_u8, 0x80, 0x80, 0x80, 6, 0x80, 0x80, 0x80, 10, 0x80, 0x80, 0x80, 14, 0x80, 0x80, 0x80])
+    const GreenLanes4 = cast(Math.Simd.U8x16, [1_u8, 0x80, 0x80, 0x80, 5, 0x80, 0x80, 0x80, 9, 0x80, 0x80, 0x80, 13, 0x80, 0x80, 0x80])
+    const BlueLanes4  = cast(Math.Simd.U8x16, [0_u8, 0x80, 0x80, 0x80, 4, 0x80, 0x80, 0x80, 8, 0x80, 0x80, 0x80, 12, 0x80, 0x80, 0x80])
 }
 
 // Encodes baseline JPEG images with configurable quality.
@@ -166,9 +142,22 @@ internal struct Encoder
 
     private
     {
-        imageX:    u16     // Width of the padded source, a multiple of eight.
-        imageY:    u16     // Height of the padded source, a multiple of eight.
-        bufferRGB: Array!{ColorRGB}     // Padded source pixels.
+        imageX:     u16
+        imageY:     u16
+        pixels:     const [*] u8?
+        pixelSize:  u32
+        stride:     u64
+        redLanes:   Math.Simd.U8x16
+        greenLanes: Math.Simd.U8x16
+        blueLanes:  Math.Simd.U8x16
+
+        redLanesHigh:   Math.Simd.U8x16
+        greenLanesHigh: Math.Simd.U8x16
+        blueLanesHigh:  Math.Simd.U8x16
+        rightOffset:    u32
+
+        redOffset:  u32
+        blueOffset: u32
 
         stream: *ConcatBuffer?     // Output buffer segments are appended to.
 
@@ -201,96 +190,23 @@ impl Encoder
         .imageY = cast(u16, image.height)
         .pixels = image.pixels.storage()
 
-        var xDiv8, yDiv8: u32
-        if .imageX % 8 != 0
-        {
-            xDiv8 = (.imageX / 8) * 8_u32 + 8
-        }
-        else
-        {
-            xDiv8 = .imageX
-        }
-
-        if .imageY % 8 != 0
-        {
-            yDiv8 = (.imageY / 8) * 8_u32 + 8
-        }
-        else
-        {
-            yDiv8 = .imageY
-        }
-
-        // The conversion reads whole vectors, so the last pixels of the source are followed by
-        // enough slack for a sixteen-byte read that starts on them.
-        .bufferRGB.resize(cast(u64, xDiv8) * yDiv8 + 8)
-        let pdst = .bufferRGB.storage()
-        var pref = image.pixels.storage()
-
-        // The image rows are stored bottom up and a scan is coded top down, so each row is
-        // written straight to its mirrored position instead of being copied and then swapped.
-        for nrline in .imageY
-        {
-            let line = pdst + (cast(u32, .imageY) - 1 - nrline) * xDiv8
-            switch image.pixelFormat
-            {
-            case .BGR8:
-                for column in .imageX
-                {
-                    line[column].b = pref[0]
-                    line[column].g = pref[1]
-                    line[column].r = pref[2]
-                    pref += 3
-                }
-
-            case .RGB8:
-                for column in .imageX
-                {
-                    line[column].b = pref[2]
-                    line[column].g = pref[1]
-                    line[column].r = pref[0]
-                    pref += 3
-                }
-
-            case .BGRA8:
-                for column in .imageX
-                {
-                    line[column].b = pref[0]
-                    line[column].g = pref[1]
-                    line[column].r = pref[2]
-                    pref += 4
-                }
-
-            case .RGBA8:
-                for column in .imageX
-                {
-                    line[column].b = pref[2]
-                    line[column].g = pref[1]
-                    line[column].r = pref[0]
-                    pref += 4
-                }
-
-            default:
-                break
-            }
-
-            let lastcolor = line[.imageX - 1]
-            for var column = .imageX; column < xDiv8; column += 1
-            {
-                line[column] = lastcolor
-            }
-        }
-
-        .imageX = cast(u16, xDiv8)
-
-        // Height completion: the padded rows repeat the last coded row.
-        let dimline  = cast(u64, .imageX) * #sizeof(ColorRGB)
-        let lastLine = pdst + (cast(u32, .imageY) - 1) * cast(u32, .imageX)
-        for var nrLine = cast(u32, .imageY); nrLine < yDiv8; nrLine += 1
-        {
-            Memory.copy(pdst + nrLine * cast(u32, .imageX), lastLine, dimline)
-        }
-
-        .imageY = cast(u16, yDiv8)
+        let hasAlpha = image.pixelFormat == .BGRA8 or image.pixelFormat == .RGBA8
+        let redFirst = image.pixelFormat == .RGB8 or image.pixelFormat == .RGBA8
+        .pixelSize = hasAlpha ? 4 : 3
+        .stride    = cast(u64, .imageX) * .pixelSize
+        let redLanes  = hasAlpha ? RedLanes4 : RedLanes
+        let blueLanes = hasAlpha ? BlueLanes4 : BlueLanes
+        .greenLanes = hasAlpha ? GreenLanes4 : GreenLanes
+        .redLanes   = redFirst ? blueLanes : redLanes
+        .blueLanes  = redFirst ? redLanes : blueLanes
+        let redLanesHigh  = hasAlpha ? RedLanes4 : RedLanesHigh
+        let blueLanesHigh = hasAlpha ? BlueLanes4 : BlueLanesHigh
+        .greenLanesHigh = hasAlpha ? GreenLanes4 : GreenLanesHigh
+        .redLanesHigh   = redFirst ? blueLanesHigh : redLanesHigh
+        .blueLanesHigh  = redFirst ? redLanesHigh : blueLanesHigh
+        .rightOffset    = hasAlpha ? 16 : 8
+        .redOffset      = redFirst ? 0 : 2
+        .blueOffset     = 2 - .redOffset
     }
 
     mtd encoder()
@@ -298,8 +214,11 @@ impl Encoder
         var dcy:  s16 = 0
         var dccb: s16 = 0
         var dccr: s16 = 0
+        let pixels    = unwrap .pixels
         for var ypos = 0_u16; ypos < .imageY; ypos += 8
         {
+            let line = pixels + (cast(u32, .imageY) - 1 - ypos) * .stride
+            let rows = Math.min(8_u32, cast(u32, .imageY) - ypos)
             for var xpos = 0_u16; xpos < .imageX; xpos += 8
             {
                 let source  = line + cast(u64, xpos) * .pixelSize
@@ -380,8 +299,9 @@ internal impl IImageEncoder for Encoder
 
         // The last byte of the scan is padded with one bits, so a decoder cannot read the marker
         // that follows as entropy-coded data.
-        let padding = 8 - .bitCount
-        .writeBits(BitString{cast(u8, padding), cast(u16, ((1_u32 << padding) - 1))})
+        let padding = 8 - (.bitCount & 7)
+        .appendEntropyBits(padding, (1_u32 << padding) - 1)
+        .flushEntropyBytes()
 
         .writeWord(0xFFD9)     // EOI
         .flushStaged()

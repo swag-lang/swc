@@ -130,10 +130,10 @@ impl Decoder
     mtd huffDecode(ph: *HuffTables)->s32
     {
         // A short code carries its own length in the look-ahead table.
-        let symbol = ph.lookUp[(.bitBuf >> 8) & 0xFF]
+        let symbol = ph.lookUp[.entropyBits >> (64 - HuffLookupBits)]
         if symbol < 0
         {
-            return .decodeLongHuffCode(ph, symbol)
+            return .decodeLongHuffCode(ph, symbol, HuffLookupBits)
         }
 
         .skipEntropyBits(symbol >> 8)
@@ -147,7 +147,7 @@ impl Decoder
         var symbol = prefix
         for
         {
-            symbol = ph.tree[~symbol + (1 - .getBits2(1))]
+            symbol = ph.tree[~symbol + (1 - .readEntropyBits(1))]
             if symbol >= 0
             {
                 break
@@ -211,6 +211,8 @@ impl Decoder
             if .restartInterval and (.restartsLeft == 0)
             {
                 try .restartProcess()
+                bits  = .entropyBits
+                count = .entropyCount
             }
 
             for mcuBlock in .blocksPerMcu
@@ -252,37 +254,16 @@ impl Decoder
                     var run, amplitude: s32
                     if entry >= 1 << 24
                     {
-                        if r
-                        {
-                            if (k + r) > 63
-                            {
-                                fail InvalidFormatError{"decode error"}
-                            }
-
-                            k += r
-                        }
-
-                        let rbits = .getBits2(s)
-                        if s > 15
-                        {
-                            fail InvalidFormatError{"decode error"}
-                        }
-
-                        s = extendSign(rbits, s)
-                        let value = cast(s16, (s * q[k]))
-                        p[Zag[k]] = value
-                        ac        |= value
+                        // This prefix includes both the code and the amplitude bits.
+                        .skipLocalEntropyBits(&bits, &count, entry >> 24)
+                        run       = (entry >> 4) & 0x0F
+                        amplitude = (entry << 8) >> 24
                     }
                     else
                     {
                         if entry < 0
                         {
-                            if (k + 15) > 63
-                            {
-                                fail InvalidFormatError{"decode error"}
-                            }
-
-                            k += 15
+                            s = .readLocalLongCode(ph, entry, BaselineAcLookupBits, &bits, &count)
                         }
                         else
                         {
@@ -326,7 +307,16 @@ impl Decoder
                 // Keep the current coefficients hot and reuse their storage for the next block.
                 if ac
                 {
-                    idctFull(p, sample)
+                    // The first ten zigzag positions lie in the low-frequency 4x4 corner.
+                    if k <= 10
+                    {
+                        idctFull!{true}(p, sample)
+                    }
+                    else
+                    {
+                        idctFull!{false}(p, sample)
+                    }
+
                     Memory.clear(p, 64_u64 * #sizeof(s16))
                 }
                 else
@@ -382,11 +372,11 @@ impl Decoder
                              first - cast(u64, .realDestBytesPerScanLine) : .scanLine1.storage()
                 if .scanType == YH2V2
                 {
-                    .convertH2V2(first, second)
+                    .convertH2V2!{Rgb}(first, second)
                 }
                 else
                 {
-                    .convertH1V2(first, second)
+                    .convertH1V2!{Rgb}(first, second)
                 }
             }
             else
@@ -576,11 +566,6 @@ impl Decoder
         let scanLine1 = .scanLine1.storage()
         Memory.clear(scanLine1, cast(u64, .destBytesPerScanLine))
 
-        if .progressiveFlag
-        {
-            .quantBuf.resize(cast(u64, .maxBlocksPerRow) * 64 * #sizeof(s16) + 8)
-        }
-
         // The conversions read whole vectors, so the last sample of a row is followed by enough
         // slack for a sixteen-byte read that starts on it.
         .sampleBuf.resize(cast(u64, .maxBlocksPerRow) * 64 + 64)
@@ -752,10 +737,8 @@ impl Decoder
 
         // A prefix that no code covers only appears in a malformed stream. Reading it as a
         // one-bit symbol keeps the scan moving, where an entry consuming no bit would not.
-        for i in 256
-        {
-            hs.lookUp[i] = 1 << 8
-        }
+        let lookupCount = 1 << lookupBits
+        repeatHuffEntry(lookup, lookupCount, 1 << 8)
 
         var nextFreeEntry = -1
         p = 0
@@ -827,7 +810,7 @@ impl Decoder
                     currentEntry -= 1
                 }
 
-                hs.tree[-currentEntry - 1] = i
+                tree[-currentEntry - 1] = i
             }
 
             p += 1

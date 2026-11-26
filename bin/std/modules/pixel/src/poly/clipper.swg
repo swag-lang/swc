@@ -107,7 +107,7 @@ struct LocalMinimum
 
 impl LocalMinimum
 {
-    mtd const opCompare(other: LocalMinimum)->s32 => other.y!{=}.y
+    mtd const opCompare(other: LocalMinimum)->s32 => other.y <=> .y
 }
 
 struct Edge
@@ -216,7 +216,7 @@ public struct Transform
         useFullRange:      bool                        // Whether coordinates need the full integer range.
         preserveCollinear: bool                        // Whether collinear vertices survive the output.
         usingPolyTree:     bool                        // Whether the result is built as a hierarchy.
-        edgeList:          Array!{{ edge: [*] Edge, rank: u64 } }     // Edge pool of the input paths.
+        edgeList:          Array!{{ edge: [*] Edge, rank: u64 }}     // Edge pool of the input paths.
         minimaList:        Array!{LocalMinimum}        // Local minima, in scanbeam order.
         polyOuts:          Array!{*OutRec?}            // Output records being stitched.
         joinList:          Array!{*Join?}              // Pending joins between output points.

@@ -7,7 +7,12 @@ using Swag, Core
 {
     const Rings = "M2 2h12v12H2z M5 5h6v6H5z "
     var path = String.from(Rings)
-    for 512
+    for 64
+    {
+        path += "M-4 3h24v8H-4z M-4 3v8h24V3z "
+    }
+
+    for 384
     {
         path += "M18 18h1v1h-1z "
     }

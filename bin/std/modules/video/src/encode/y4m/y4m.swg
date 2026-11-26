@@ -214,42 +214,10 @@ impl IEncoder for Encoder
         let vPlane = uPlane + chromaSize
         switch .options.chroma
         {
-            let sourceRow = cast(u64, (image.height - y - 1)) * cast(u64, image.rowStride)
-            for x in image.width
-            {
-                let source    = image.pixels.storage() + sourceRow + cast(u64, x) * image.bytesPerPixel
-                let {r, g, b} = readRgb(image, source)
-                yPlane[cast(u64, y) * width + cast(u64, x)] = luma(r, g, b)
-            }
-        }
-
-        let stepX = .options.chroma == .Yuv444 ? 1_u64 :
-                    (.options.chroma == .Yuv411 ? 4_u64 : 2_u64)
-        let stepY = .options.chroma == .Yuv420 ? 2_u64 : 1_u64
-        for cy in chromaHeight
-        {
-            for cx in chromaWidth
-            {
-                var sumU, sumV: u32
-                for dy in stepY
-                {
-                    for dx in stepX
-                    {
-                        let x         = cx * stepX + dx
-                        let y         = cy * stepY + dy
-                        let sourceRow = (height - y - 1) * cast(u64, image.rowStride)
-                        let source    = image.pixels.storage() + sourceRow + x * image.bytesPerPixel
-                        let {r, g, b} = readRgb(image, source)
-                        sumU += cast(u32, cb(r, g, b))
-                        sumV += cast(u32, cr(r, g, b))
-                    }
-                }
-
-                let samples = stepX * stepY
-                let target  = cy * chromaWidth + cx
-                uPlane[target] = cast(u8, (sumU + cast(u32, samples / 2)) / cast(u32, samples))
-                vPlane[target] = cast(u8, (sumV + cast(u32, samples / 2)) / cast(u32, samples))
-            }
+        case .Yuv411: convertPlanes!{4, 1}(&image, width, height, chromaWidth, chromaHeight, yPlane, uPlane, vPlane)
+        case .Yuv420: convertPlanes!{2, 2}(&image, width, height, chromaWidth, chromaHeight, yPlane, uPlane, vPlane)
+        case .Yuv422: convertPlanes!{2, 1}(&image, width, height, chromaWidth, chromaHeight, yPlane, uPlane, vPlane)
+        case .Yuv444: convertPlanes!{1, 1}(&image, width, height, chromaWidth, chromaHeight, yPlane, uPlane, vPlane)
         }
 
         try sink.writeText(FrameMarker)

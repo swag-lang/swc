@@ -17,12 +17,17 @@ internal func openElementaryStream(path: string)->SoundFile fail
     var source    = try ByteSource.openFile(path)
     let fileBytes = source.size()
 
-    var packets: Array!{SoundPacket}
+    var packets:        Array!{SoundPacket}
     var byteOffset   = 0_u64
     var totalFrames  = 0_u64
     var sampleRate   = 0_u32
     var channelCount = 0_u32
     var speakerMask  = 0_u32
+    var window:         const [..] u8 = []
+    var windowStart:    u64
+    var previousHeader: [HeaderBytes] u8
+    var previousSize:   u64
+    var info:           FrameInfo
 
     for
     {
@@ -36,9 +41,27 @@ internal func openElementaryStream(path: string)->SoundFile fail
             break
         }
 
-        try source.seek(byteOffset)
-        let probe = try source.peek(Math.min(HeaderBytes, fileBytes - byteOffset))
-        let info  = try frameInfo(probe)
+        // Walk the borrowed read-ahead window until a header crosses its end.
+        let headerSize = Math.min(HeaderBytes, fileBytes - byteOffset)
+        if byteOffset - windowStart + headerSize > window.count
+        {
+            try source.seek(byteOffset)
+            window      = try source.peek(headerSize)
+            windowStart = byteOffset
+        }
+
+        let headerOffset = byteOffset - windowStart
+        let header       = window[headerOffset until headerOffset + headerSize]
+
+        // Repeated core headers carry the same decoded dimensions and packet size.
+        // Own the previous bytes so a window refill cannot invalidate the comparison.
+        if headerSize != previousSize or Memory.compare(header.buffer, &previousHeader[0], headerSize) != 0
+        {
+            info = try frameInfo(header)
+            Memory.copy(&previousHeader[0], header.buffer, headerSize)
+            previousSize = headerSize
+        }
+
         if not info.frameBytes or info.frameBytes > fileBytes - byteOffset
         {
             break

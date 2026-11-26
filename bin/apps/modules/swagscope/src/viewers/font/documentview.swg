@@ -45,7 +45,6 @@ private
 
     const CharacterPageSize = 192_u64
     const FirstCharacter    = 0x20_u32
-    const CharacterLimit    = 0x110000_u32
 }
 
 // Collects one page of mapped Unicode scalars without materializing the whole character map.
@@ -134,6 +133,27 @@ struct DocumentLayout
     height:             f32         // Total content height, which is what the scrollbar is given.
 }
 
+// A glyph name borrows bytes from the face that owns the index.
+struct GlyphName
+{
+    late name: string
+    id:        u32
+}
+
+func buildGlyphNameIndex(face: *Face, names: *Array!{GlyphName})
+{
+    names.clear()
+    for glyphIndex in face.glyphCount
+    {
+        if let name = face.glyphName(cast(u32, glyphIndex))
+        {
+            names.add({name, cast(u32, glyphIndex)})
+        }
+    }
+
+    names.sort(func(a, b) => Text.compareNames(a.name, b.name))
+}
+
 // Scrollable specimen and Unicode character map drawn with the inspected face.
 struct DocumentView
 {
@@ -149,8 +169,8 @@ struct DocumentView
         fontCode:   *Font
     }
 
-    fontBytes: Array!{u8}
-    face:      *Face?
+    fontSource: FontSource
+    face:       *Face?
 
     specimenGlyphs:  Array!{rune}
     specimenMark:    String
@@ -549,8 +569,8 @@ impl IWnd for DocumentView
 impl DocumentView
 {
     // Creates the scrollable specimen of `face` under `parent`, taking ownership of `face` and of
-    // the bytes it was loaded from; `sampleEdit` supplies the specimen text.
-    func create(parent: *Wnd, face: *Face, typeFace: *TypeFace, fontBytes: #move Array!{u8}, sampleEdit: *EditBox)->*DocumentView
+    // the source it was loaded from; `sampleEdit` supplies the specimen text.
+    func create(parent: *Wnd, face: *Face, typeFace: *TypeFace, fontSource: #move FontSource, sampleEdit: *EditBox)->*DocumentView
     {
         with let scroll = Wnd.create!{ScrollWnd}(parent, "scope.font.scroll", {})
         {
@@ -589,35 +609,8 @@ impl DocumentView
         .fontGlyph = .app().renderer.fontCache().createFont(typeFace, GlyphSize)
         .shown     = 0
         .pageIndex = 0
-        .pageStarts.clear()
-        .glyphCharacters.clear()
-        .glyphCharacters.resize(face.glyphCount)
-        var start = FirstCharacter
-        while start < 0x110000
-        {
-            let page = characterPage(face, start)
-            if page.characters.isEmpty()
-            {
-                break
-            }
-
-            .pageStarts.add(cast(u32, page.characters[0]))
-            for character in page.characters
-            {
-                let glyphIndex = face.glyphIndex(character)
-                if glyphIndex < .glyphCharacters.count and not .glyphCharacters[glyphIndex]
-                {
-                    .glyphCharacters[glyphIndex] = character
-                }
-            }
-
-            if not page.hasNext
-            {
-                break
-            }
-
-            start = page.end + 1
-        }
+        buildCharacterIndex(face, &.pageStarts, &.glyphCharacters)
+        buildGlyphNameIndex(face, &.glyphNames)
 
         .loadPage(FirstCharacter)
         .scroll.setScrollPos(0, 0)

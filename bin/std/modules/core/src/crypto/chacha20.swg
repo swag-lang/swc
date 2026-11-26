@@ -205,9 +205,9 @@ private func quarterRoundPair()
 #[Swag.Inline]
 private func roundRowsPair(zero, first: *[4] Simd.U32x4)
 {
-    const left1 = cast(Simd.U32x4, [1'u32, 2, 3, 0])
-    const left2 = cast(Simd.U32x4, [2'u32, 3, 0, 1])
-    const left3 = cast(Simd.U32x4, [3'u32, 0, 1, 2])
+    const left1 = cast(Simd.U32x4, [1_u32, 2, 3, 0])
+    const left2 = cast(Simd.U32x4, [2_u32, 3, 0, 1])
+    const left3 = cast(Simd.U32x4, [3_u32, 0, 1, 2])
     var a = zero[][0]
     var b = zero[][1]
     var c = zero[][2]
@@ -247,10 +247,14 @@ private func roundRowsPair(zero, first: *[4] Simd.U32x4)
 internal func chacha20SealShort(key, nonce, plaintext: const [..] u8, ciphertext: [..] u8,
                                 authKey: *[Poly1305KeySize] u8) fail
 {
-    if key.count != ChaCha20KeySize do
+    if key.count != ChaCha20KeySize
+    {
         fail Errors.BadParameterError{"ChaCha20 needs a 32-byte key"}
-    if nonce.count != ChaCha20NonceSize do
+    }
+    if nonce.count != ChaCha20NonceSize
+    {
         fail Errors.BadParameterError{"ChaCha20 needs a 12-byte nonce"}
+    }
 
     var scratch: struct
     {
@@ -261,10 +265,10 @@ internal func chacha20SealShort(key, nonce, plaintext: const [..] u8, ciphertext
     with scratch
     {
         loadChaChaKeyRows(key.buffer, &.initial)
-        .initial[3] = cast(Simd.U32x4, [0'u32, load32(nonce.buffer), load32(nonce.buffer + 4), load32(nonce.buffer + 8)])
-        let counterStep = cast(Simd.U32x4, [1'u32, 0, 0, 0])
-        .zero = .initial
-        .first = .initial
+        .initial[3] = cast(Simd.U32x4, [0_u32, load32(nonce.buffer), load32(nonce.buffer + 4), load32(nonce.buffer + 8)])
+        let counterStep = cast(Simd.U32x4, [1_u32, 0, 0, 0])
+        .zero     = .initial
+        .first    = .initial
         .first[3] += counterStep
         roundRowsPair(&.zero, &.first)
         .first[3] += counterStep
@@ -287,8 +291,10 @@ internal func chacha20SealShort(key, nonce, plaintext: const [..] u8, ciphertext
             let offset = rowCount * #sizeof(Simd.U8x16)
             let stream = swapWordBytesOnBigEndian(cast #bit(Simd.U8x16, .first[rowCount] + .initial[rowCount]))
             Simd.store(.tail.buffer, stream)
-            for byte in remaining do
+            for byte in remaining
+            {
                 ciphertext.buffer[offset + byte] = plaintext.buffer[offset + byte] ^ .tail[byte]
+            }
         }
     }
     secureClear(Swag.makeSlice(&scratch, 1))

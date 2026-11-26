@@ -245,11 +245,11 @@ private func aesCcmCryptBlocks(aes: *Aes, nonce: const [..] u8, source: const [.
     let prefix = cast #bit (U64x2, load(&initial[0]))
     if aes[].usesHardwareRounds()
     {
-        aesXorCounterBlocksHardware'64(aes, prefix, source, destination, firstBlock, blockCount)
+        aesXorCounterBlocksHardware!{64}(aes, prefix, source, destination, firstBlock, blockCount)
         return
     }
 
-    var block = aesXorCounterPairsSoftware'64(aes, prefix, source, destination, firstBlock, blockCount)
+    var block = aesXorCounterPairsSoftware!{64}(aes, prefix, source, destination, firstBlock, blockCount)
     while block < firstBlock + blockCount
     {
         var counter: [AesBlockSize] u8

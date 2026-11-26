@@ -258,6 +258,8 @@ public impl ByteStream
         if count > .remainingBytes().count
         {
             fail OverflowError{"sized string is longer than the remaining input"}
+        }
+
         result.reserve(count + 1)
         let buffer = unwrap result.buffer
         try .readBytes(buffer, count)

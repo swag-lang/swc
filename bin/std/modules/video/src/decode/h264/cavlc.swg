@@ -29,13 +29,12 @@ private func buildCoeffTokens()->CoeffTokenLookup
     var nextTail = 0_u32
     for table in 4_u64
     {
-        let length = cast(u32, lengths[index])
-        if length == 0
-        {
-            continue
-        }
+        let first = table * 256
+        let codes = table * 68
+        var widths: [256] u32
 
-        if (peek >> (16 - length)) == cast(u32, values[index])
+        // Only prefixes shared by codes longer than eight bits need a second lookup.
+        for symbol in 68_u64
         {
             let length = cast(u32, CoeffTokenLen[codes + symbol])
             if length > 8
@@ -91,32 +90,24 @@ private func buildCoeffTokens()->CoeffTokenLookup
 private func(const Rows: u64, const Width: u64) buildVlcLookup(lengths, codes: const [..] u8)->[Rows * (1 << Width)] u16
 {
     var result: #returntype
-    for table in 4_u64
+    let symbols = lengths.count / Rows
+    for row in Rows
     {
-        for prefix in 256_u64
+        for symbol in symbols
         {
-            for index in 68_u64
+            let index  = row * symbols + symbol
+            let length = cast(u64, lengths[index])
+            if not length
             {
-                let offset = table * 68 + index
-                let length = cast(u32, CoeffTokenLen[offset])
-                let value  = cast(u32, CoeffTokenBits[offset])
-                if not length
-                {
-                    continue
-                }
+                continue
+            }
 
-                if length > 8
-                {
-                    if value >> (length - 8) == prefix
-                    {
-                        break
-                    }
-                }
-                else if prefix >> (8 - length) == value
-                {
-                    result[table * 256 + prefix] = cast(u16, ((length << 8) | cast(u32, (index + 1))))
-                    break
-                }
+            let size  = 1_u64 << cast(u32, Width - length)
+            let first = (row << cast(u32, Width)) + cast(u64, codes[index]) * size
+            let leaf  = cast(u16, ((length << 8) | (symbol + 1)))
+            for suffix in size
+            {
+                result[first + suffix] = leaf
             }
         }
     }
@@ -163,17 +154,14 @@ func matchCoeffToken(bits: *BitReader, table: u64)->u64
 // table. Returns the number of nonzero coefficients.
 func(const MaxCoeffs: u32) residualCavlc(bits: *BitReader, nC: s32, coeffs: [*] s16)->u32 fail
 {
-    for index in cast(u64, maxCoeffs)
-    {
-        coeffs[index] = 0
-    }
+    Swag.memset(coeffs, 0, cast(u64, MaxCoeffs) * #sizeof(s16))
 
     // coeff_token: total coefficients and trailing ones.
     var totalCoeff   = 0_u32
     var trailingOnes = 0_u32
     if nC == -1
     {
-        let index = matchVlc(bits, ChromaDcCoeffTokenLen, ChromaDcCoeffTokenBits)
+        let index = readVlcLeaf(bits, ChromaTokens[bits.peek16() >> 8], 20)
         if index == ChromaDcCoeffTokenLen.count
         {
             fail InvalidFormatError{"H.264 chroma DC coefficient token does not decode"}
@@ -208,7 +196,7 @@ func(const MaxCoeffs: u32) residualCavlc(bits: *BitReader, nC: s32, coeffs: [*] 
         trailingOnes = cast(u32, (index % 4))
     }
 
-    if totalCoeff > maxCoeffs
+    if totalCoeff > MaxCoeffs
     {
         fail InvalidFormatError{"H.264 block declares more coefficients than it can hold"}
     }
@@ -229,13 +217,22 @@ func(const MaxCoeffs: u32) residualCavlc(bits: *BitReader, nC: s32, coeffs: [*] 
     for index in cast(u64, trailingOnes) until cast(u64, totalCoeff)
     {
         // level_prefix: leading zeros before a one.
-        var prefix = 0_u32
-        while bits.bit() == 0
+        let peek   = bits.peek16()
+        var prefix = Swag.leadingZeros(peek) - 16
+        if peek
         {
-            prefix += 1
-            if prefix > 31 or bits.overran
+            bits.skip(prefix + 1)
+        }
+        else
+        {
+            bits.skip(16)
+            while bits.bit() == 0
             {
-                fail InvalidFormatError{"H.264 coefficient level prefix does not decode"}
+                prefix += 1
+                if prefix > 31 or bits.overran
+                {
+                    fail InvalidFormatError{"H.264 coefficient level prefix does not decode"}
+                }
             }
         }
 
@@ -285,12 +282,12 @@ func(const MaxCoeffs: u32) residualCavlc(bits: *BitReader, nC: s32, coeffs: [*] 
 
     // total_zeros.
     var totalZeros = 0_u32
-    if totalCoeff < maxCoeffs
+    if totalCoeff < MaxCoeffs
     {
         if nC == -1
         {
-            let row   = cast(u64, (totalCoeff - 1)) * 4
-            let index = matchVlc(bits, ChromaDcTotalZerosLen[row until row + 4], ChromaDcTotalZerosBits[row until row + 4])
+            let row   = (totalCoeff - 1) * 8
+            let index = readVlcLeaf(bits, ChromaTotalZeros[row + (bits.peek16() >> 13)], 4)
             if index == 4
             {
                 fail InvalidFormatError{"H.264 chroma DC zero count does not decode"}
@@ -300,8 +297,10 @@ func(const MaxCoeffs: u32) residualCavlc(bits: *BitReader, nC: s32, coeffs: [*] 
         }
         else
         {
-            let row   = cast(u64, (totalCoeff - 1)) * 16
-            let index = matchVlc(bits, TotalZerosLen[row until row + 16], TotalZerosBits[row until row + 16])
+            let peek = bits.peek16()
+            let leaf = totalCoeff == 1 ? FirstTotalZeros[peek >> 7] :
+                       OtherTotalZeros[(totalCoeff - 2) * 64 + (peek >> 10)]
+            let index = readVlcLeaf(bits, leaf, 16)
             if index == 16
             {
                 fail InvalidFormatError{"H.264 zero count does not decode"}
@@ -317,7 +316,7 @@ func(const MaxCoeffs: u32) residualCavlc(bits: *BitReader, nC: s32, coeffs: [*] 
     var zerosLeft = totalZeros
     for index in cast(u64, totalCoeff)
     {
-        if position >= maxCoeffs
+        if position >= MaxCoeffs
         {
             fail InvalidFormatError{"H.264 coefficient runs place a coefficient out of range"}
         }
@@ -332,8 +331,10 @@ func(const MaxCoeffs: u32) residualCavlc(bits: *BitReader, nC: s32, coeffs: [*] 
         var run = 0_u32
         if zerosLeft > 0
         {
-            let row     = cast(u64, Math.min(zerosLeft - 1, 6)) * 16
-            let matched = matchVlc(bits, RunBeforeLen[row until row + 16], RunBeforeBits[row until row + 16])
+            let peek = bits.peek16()
+            let leaf = zerosLeft <= 6 ? ShortRuns[(zerosLeft - 1) * 8 + (peek >> 13)] :
+                       LongRuns[peek >> 5]
+            let matched = readVlcLeaf(bits, leaf, 16)
             if matched == 16
             {
                 fail InvalidFormatError{"H.264 coefficient run does not decode"}

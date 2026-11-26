@@ -78,8 +78,10 @@ internal impl FileStream
     private func checkFileRange(offset, count: u64) fail
     {
         const MaxOffset = cast(u64, Swag.S64.Max)
-        if offset > MaxOffset or count > MaxOffset - offset do
+        if offset > MaxOffset or count > MaxOffset - offset
+        {
             fail Errors.BadParameterError{"file transfer exceeds the supported offset range"}
+        }
     }
 
     // Reads a range on an ordinary open handle. The caller does not use the stream's cursor.
@@ -87,17 +89,21 @@ internal impl FileStream
     {
         try checkFileRange(offset, buffer.count)
         let descriptor = nativeFileDescriptor(.handle)
-        var total      = 0'u64
+        var total      = 0_u64
         while total < buffer.count
         {
             let count = Linux.pread(descriptor, buffer.buffer + total, buffer.count - total, cast(s64, offset + total))
-            if count == 0 do
+            if count == 0
+            {
                 return false
+            }
             if count < 0
             {
                 let error = Linux.errno()
-                if error != Linux.EINTR do
+                if error != Linux.EINTR
+                {
                     try Errors.failLinuxError(error, .name)
+                }
                 continue
             }
 
@@ -113,17 +119,21 @@ internal impl FileStream
         try checkFileRange(offset, buffer.count)
 
         let descriptor = nativeFileDescriptor(.handle)
-        var total      = 0'u64
+        var total      = 0_u64
         while total < buffer.count
         {
             let written = Linux.pwrite(descriptor, buffer.buffer + total, buffer.count - total, cast(s64, offset + total))
-            if written == 0 do
+            if written == 0
+            {
                 fail Swag.SystemError{"file write stopped before all bytes were written"}
+            }
             if written < 0
             {
                 let error = Linux.errno()
-                if error != Linux.EINTR do
+                if error != Linux.EINTR
+                {
                     try Errors.failLinuxError(error, .name)
+                }
                 continue
             }
 

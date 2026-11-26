@@ -272,7 +272,7 @@ func writeSourceFixture(name: string, count: u64)->String
 {
     let path = CoreTests.makeFilesystemTestPath("bytesource_split_line.txt")
     defer discard catch File.delete(path)
-    var bytes: Array'u8
+    var bytes: Array!{u8}
     bytes.resize(ByteSource.WindowSize + 3)
     bytes.fill('a')
     bytes[ByteSource.WindowSize - 1] = '\r'

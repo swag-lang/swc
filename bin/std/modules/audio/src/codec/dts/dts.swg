@@ -89,60 +89,13 @@ private impl BitReader
             fail InvalidFormatError{"DTS packet header is truncated"}
         }
 
-        let bigEndian16    = packet[0] == 0x7F and packet[1] == 0xFE and packet[2] == 0x80 and packet[3] == 0x01
-        let littleEndian16 = packet[0] == 0xFE and packet[1] == 0x7F and packet[2] == 0x01 and packet[3] == 0x80
-        let bigEndian14    = packet[0] == 0x1F and packet[1] == 0xFF and packet[2] == 0xE8 and packet[3] == 0x00
-        let littleEndian14 = packet[0] == 0xFF and packet[1] == 0x1F and packet[2] == 0x00 and packet[3] == 0xE8
-        if not bigEndian16 and not littleEndian16 and not bigEndian14 and not littleEndian14
+        var word: u32
+        Memory.copy(&word, packet.buffer, #sizeof(u32))
+        var result: #returntype = {data: packet.buffer, byteSize: packet.count}
+        switch Math.bigEndianToNative(word)
         {
-            fail InvalidFormatError{"DTS packet has no core sync word"}
-        }
-
-        let packed14 = bigEndian14 or littleEndian14
-        let bitSize  = packed14 ? (packet.count / 2) * 14 : packet.count * 8
-        return BitReader{packet.buffer, bitSize, 0, littleEndian16 or littleEndian14, packed14}
-    }
-
-    mtd read(count: u32)->u32
-    {
-        var result: u32
-        for count
-        {
-            result <<= 1
-            if .bitPosition >= .bitSize
-            {
-                .overrun = true
-            }
-            else
-            {
-                if .packed14
-                {
-                    let wordIndex = .bitPosition / 14
-                    let byteIndex = wordIndex * 2
-                    let word      = .littleEndianWords ?
-                                    cast(u32, .data[byteIndex]) | (cast(u32, .data[byteIndex + 1]) << 8) :
-                                    (cast(u32, .data[byteIndex]) << 8) | cast(u32, .data[byteIndex + 1])
-                    result |= (word >> cast(u32, (13 - .bitPosition % 14))) & 1
-                }
-                else
-                {
-                    var byteIndex = .bitPosition >> 3
-                    if .littleEndianWords
-                    {
-                        byteIndex ^= 1
-                    }
-
-                    if byteIndex >= .bitSize / 8
-                    {
-                        .overrun = true
-                    }
-                    else
-                    {
-                        let bitIndex = 7 - (.bitPosition & 7)
-                        result |= (cast(u32, .data[byteIndex]) >> cast(u32, bitIndex)) & 1
-                    }
-                }
-            }
+        case 0x7FFE8001:
+            break
 
         case 0xFE7F0180:
             result.littleEndianWords = true
@@ -259,9 +212,11 @@ private impl BitReader
         let lastPairByte = (position + 6 * width) >> 3
         if .packed14 or .littleEndianWords or .overrun or lastPairByte + 8 > .byteSize
         {
-            for index in SamplesPerSubband {
+            for index in SamplesPerSubband
+            {
                 output[][index] = .readSigned(width)
             }
+
             return
         }
 
@@ -287,9 +242,11 @@ private impl BitReader
 
     mtd readHuffman(root: u32)->s32 fail
     {
-        if .bitsBuffered < HuffmanPrefixBits {
+        if .bitsBuffered < HuffmanPrefixBits
+        {
             .refill(HuffmanPrefixBits)
         }
+
         var node = cast(s32, root)
         if .bitsBuffered >= HuffmanPrefixBits and not .overrun
         {
@@ -323,14 +280,18 @@ private impl BitReader
     // would run past the packet, so short valid codes may still end close to its boundary.
     mtd readTernaryBand(output: *[SamplesPerSubband] s32) fail
     {
-        if .bitsBuffered < 2 * TernaryPrefixBits {
+        if .bitsBuffered < 2 * TernaryPrefixBits
+        {
             .refill(2 * TernaryPrefixBits)
         }
+
         if .bitsBuffered < 2 * TernaryPrefixBits or .overrun
         {
-            for index in SamplesPerSubband {
+            for index in SamplesPerSubband
+            {
                 output[][index] = (try .readHuffman(QuantBookRoots[0, 0])) - QuantBookBias[0]
             }
+
             return
         }
 
@@ -349,24 +310,23 @@ private impl BitReader
 
     mtd readScale(selector: u32, index: *s32)->f64 fail
     {
+        if selector == 6
+        {
+            return ScaleFactors[.read(7)]
+        }
+
         if selector < 5
         {
             index[] += (try .readHuffman(ScaleBookRoots[selector])) - 64
         }
         else
         {
-            index[] = cast(s32, .read(selector + 1))
+            index[] = cast(s32, .read(6))
         }
 
-        let entries = selector == 6 ? 128 : 64
-        if index[] < 0 or index[] >= entries
+        if index[] < 0 or index[] >= 64
         {
             fail InvalidFormatError{"DTS scale-factor index exceeds its table"}
-        }
-
-        if selector == 6
-        {
-            return ScaleFactors[index[]]
         }
 
         if index[] == 63
@@ -379,11 +339,7 @@ private impl BitReader
 
     mtd skip(count: u32)
     {
-        .bitPosition += count
-        if .bitPosition > .bitSize
-        {
-            .overrun = true
-        }
+        discard .read(count)
     }
 }
 
@@ -427,15 +383,16 @@ private func parseFrameHeader(reader: *BitReader)->FrameHeader fail
         fail InvalidFormatError{"DTS packet has an invalid core sync word"}
     }
 
-    discard reader.read(1)
-    if reader.read(5) != 31
+    // Read the packed frame shape together so the same buffered bits serve all four fields.
+    let shape = reader.read(28)
+    if ((shape >> 22) & 31) != 31
     {
         fail UnsupportedFormatError{"DTS packet uses a partial first sample block"}
     }
 
     var result: #returntype
-    result.crc = reader.read(1) != 0
-    let blocks = reader.read(7) + 1
+    result.crc = (shape & (1_u32 << 21)) != 0
+    let blocks = ((shape >> 14) & 127) + 1
     if blocks < 8 or blocks > MaxSubbandSamples or blocks & 7
     {
         fail InvalidFormatError{"DTS packet has an invalid sample-block count"}
@@ -444,58 +401,52 @@ private func parseFrameHeader(reader: *BitReader)->FrameHeader fail
     result.frames = blocks * 32
     let unpackedFrameBytes = (shape & 0x3FFF) + 1
     result.frameBytes = reader.packed14 ? unpackedFrameBytes * 8 / 14 * 2 : unpackedFrameBytes
-    result.mode       = reader.read(6)
+
+    let format = reader.read(15)
+    result.mode = format >> 9
     if result.mode >= ModeChannels.count
     {
         fail UnsupportedFormatError{"DTS packet uses an unsupported channel arrangement"}
     }
 
     result.primaryChannels = ModeChannels[result.mode]
-    let rateIndex = reader.read(4)
-    result.sampleRate = SampleRates[rateIndex]
+    result.sampleRate      = SampleRates[(format >> 5) & 15]
     if not result.sampleRate
     {
         fail InvalidFormatError{"DTS packet states a reserved sampling frequency"}
     }
 
-    result.bitRateIndex = reader.read(5)
+    result.bitRateIndex = format & 31
     if result.bitRateIndex >= 25 and result.bitRateIndex != 29 and result.bitRateIndex != 31
     {
         fail InvalidFormatError{"DTS packet states a reserved transmission rate"}
     }
 
-    discard reader.read(1)
-    discard reader.read(1)
-    discard reader.read(1)
-    discard reader.read(1)
-    discard reader.read(1)
-    discard reader.read(3)
-    discard reader.read(1)
-    result.syncSubsubframes = reader.read(1) != 0
-    result.lfe = reader.read(2)
+    let flags = reader.read(13)
+    result.syncSubsubframes = (flags & 8) != 0
+    result.lfe = (flags >> 1) & 3
     if result.lfe == 3
     {
         fail InvalidFormatError{"DTS packet states a reserved LFE mode"}
     }
 
     result.channels         = result.primaryChannels + (result.lfe ? 1 : 0)
-    result.predictorHistory = reader.read(1) != 0
+    result.predictorHistory = (flags & 1) != 0
     if result.crc
     {
         reader.skip(16)
     }
 
-    result.perfectFilter = reader.read(1) != 0
-    reader.skip(6)
-    let resolution = reader.read(3)
+    let trailer = reader.read(16)
+    result.perfectFilter = (trailer & 0x8000) != 0
+    let resolution = (trailer >> 6) & 7
     if resolution == 4 or resolution == 7
     {
         fail InvalidFormatError{"DTS packet states a reserved PCM resolution"}
     }
 
-    result.sumDifference   = reader.read(1) != 0
-    result.surroundSumDiff = reader.read(1) != 0
-    reader.skip(4)
+    result.sumDifference   = (trailer & 0x20) != 0
+    result.surroundSumDiff = (trailer & 0x10) != 0
     if reader.overrun
     {
         fail InvalidFormatError{"DTS packet header is truncated"}
@@ -543,68 +494,13 @@ private impl Codec
             return reader.read(2)
         }
 
-        var code: u32
-        for length in 1_u32 until 4
-        {
-            code = (code << 1) | reader.read(1)
-            if selector == 0
-            {
-                if length == 1 and code == 0
-                {
-                    return 0
-                }
-
-                if length == 2 and code == 2
-                {
-                    return 1
-                }
-
-                if length == 3 and code >= 6
-                {
-                    return code - 4
-                }
-            }
-            else if selector == 1
-            {
-                if length == 1 and code == 0
-                {
-                    return 3
-                }
-
-                if length == 2 and code == 2
-                {
-                    return 0
-                }
-
-                if length == 3 and code >= 6
-                {
-                    return code - 5
-                }
-            }
-            else
-            {
-                if length == 1 and code == 0
-                {
-                    return 2
-                }
-
-                if length == 2 and code == 2
-                {
-                    return 3
-                }
-
-                if length == 3 and code >= 6
-                {
-                    return code - 6
-                }
-            }
-        }
-
         // The three variable-length books share the unary code order and rotate its symbols.
         var code: u32
-        while code < 3 and reader.read(1) {
+        while code < 3 and reader.read(1)
+        {
             code += 1
         }
+
         return (4 + code - selector) & 3
     }
 
@@ -700,45 +596,8 @@ private impl Codec
                         history[HistorySamples + 16 + index] = second
                     }
 
-                    transformed[output] = sum * 0.25
-                }
-
-                for index in 16
-                {
-                    .history[channel, index]      = transformed[index] - transformed[31 - index]
-                    .history[channel, 16 + index] = transformed[index] + transformed[31 - index]
-                }
-
-                let filter = header.perfectFilter ? BandFirPerfect : BandFirNonPerfect
-                for index in 16
-                {
-                    let reverse = 15 - index
-                    var first, second: f64
-                    var tap     = 0_u64
-                    while tap < 512
-                    {
-                        first  += .history[channel, index + tap] * filter[index + tap]
-                        second += .history[channel, reverse + tap] * filter[16 + index + tap]
-                        tap    += 64
-                    }
-
-                    tap = 32
-                    while tap < 512
-                    {
-                        first  += .history[channel, 16 + index + tap] * filter[index + tap]
-                        second += .history[channel, 16 + reverse + tap] * filter[16 + index + tap]
-                        tap    += 64
-                    }
-
-                    destination[(sample * 32 + index) * header.channels + outputChannel]      = cast(s16, Math.clamp(Math.round(first * OutputScale), -32_768.0, 32_767.0))
-                    destination[(sample * 32 + 16 + index) * header.channels + outputChannel] = cast(s16, Math.clamp(Math.round(second * OutputScale), -32_768.0, 32_767.0))
-                }
-
-                var index = 512_u64
-                while index > 32
-                {
-                    index -= 1
-                    .history[channel, index] = .history[channel, index - 32]
+                    let pcm = destination + (sample * 32 * header.channels + outputChannel)
+                    synthesisFir(history, filter, pcm, header.channels)
                 }
             }
 
@@ -777,53 +636,27 @@ private impl Codec
             return
         }
 
-        let factor           = header.lfe == 1 ? 128_u32 : 64
-        let coefficients     = header.lfe == 1 ? LfeFir128 : LfeFir64
-        let coefficientCount = header.lfe == 1 ? 4_u32 : 8
-        let outputChannel    = .lfeDestination(header)
-        for sample in sampleCount
-        {
-            for half in factor / 2
-            {
-                var first, second: f64
-                for tap in coefficientCount
-                {
-                    let source = cast(s32, sample) - cast(s32, tap)
-                    let value  = source < 0 ? .lfeHistory[8 + source] : samples[source]
-                    first  += coefficients[half * coefficientCount + tap] * value
-                    second += coefficients[255 - half * coefficientCount - tap] * value
-                }
-
         // Append the current samples to the preceding taps to remove history tests from the FIR.
         var history: [72] f64
         Memory.copy(&history[0], &.lfeHistory[0], #sizeof(.lfeHistory))
         Memory.copy(&history[8], samples, sampleCount * #sizeof(f64))
         let output = destination + .lfeDestination(header)
-        if header.lfe == 1 {
+        if header.lfe == 1
+        {
             synthesisLfe!{128, 4}(output, header.channels, &history[0], sampleCount)
         }
-        else {
+        else
+        {
             synthesisLfe!{64, 8}(output, header.channels, &history[0], sampleCount)
         }
+
         Memory.copy(&.lfeHistory[0], &history[sampleCount], #sizeof(.lfeHistory))
     }
 
     mtd decodeFrame(destination: [*] s16, reader: *BitReader, header: const *FrameHeader) fail
     {
-        var reader = try BitReader.create(packet)
-        var header = try parseFrameHeader(&reader)
-        if header.frameBytes != packet.count
-        {
-            fail InvalidFormatError{"DTS packet size does not match its core-frame header"}
-        }
-
-        if header.sampleRate != .sampleRate or header.channels != .channels
-        {
-            fail InvalidFormatError{"DTS packet shape differs from its container track"}
-        }
-
-        header.subframes = reader.read(4) + 1
-        let channels = reader.read(3) + 1
+        let subframes = reader.read(4) + 1
+        let channels  = reader.read(3) + 1
         if channels != header.primaryChannels
         {
             fail InvalidFormatError{"DTS primary-channel count differs from its channel arrangement"}
@@ -1055,11 +888,18 @@ private impl Codec
                         if not bits {}
                         else if bits <= 10 and quantSelector[channel, bits - 1] < QuantGroupSize[bits - 1]
                         {
-                            let root = QuantBookRoots[bits - 1, quantSelector[channel, bits - 1]]
-                            let bias = QuantBookBias[bits - 1]
-                            for index in SamplesPerSubband
+                            if bits == 1
                             {
-                                audio[index] = (try reader.readHuffman(root)) - bias
+                                try reader.readTernaryBand(&audio)
+                            }
+                            else
+                            {
+                                let root = QuantBookRoots[bits - 1, quantSelector[channel, bits - 1]]
+                                let bias = QuantBookBias[bits - 1]
+                                for index in SamplesPerSubband
+                                {
+                                    audio[index] = (try reader.readHuffman(root)) - bias
+                                }
                             }
 
                             adjustment = quantAdjust[channel, bits - 1]
@@ -1085,19 +925,17 @@ private impl Codec
                         }
                         else
                         {
-                            for index in SamplesPerSubband
-                            {
-                                audio[index] = reader.readSigned(bits - 3)
-                            }
+                            reader.readDirectBand(bits - 3, &audio)
                         }
 
                         let scale         = transition[channel, band] and subsubframe >= transition[channel, band] ? scales[channel, band, 1] : scales[channel, band, 0]
                         let step          = header.bitRateIndex == 31 ? StepSizeLossless[bits] : StepSizeLossy[bits]
-                        let adjustedScale = Math.min(Math.floor(scale * adjustment), 8_388_607.0)
+                        let adjustedScale = adjustment == 1.0 ? scale : Math.min(Math.floor(scale * adjustment), 8_388_607.0)
                         let factor        = step * adjustedScale / 4_194_304.0
+                        let samples       = subbands + channel * samplesPerChannel + band * samplesPerBand + subbandPosition + subsubframe * SamplesPerSubband
                         for index in SamplesPerSubband
                         {
-                            subbands[channel, band, subbandPosition + subsubframe * SamplesPerSubband + index] = cast(f64, audio[index]) * factor
+                            samples[index] = cast(f64, audio[index]) * factor
                         }
                     }
                 }
@@ -1163,9 +1001,10 @@ private impl Codec
         {
             for band in subbandCount[channel]
             {
+                let samples = subbands + channel * samplesPerChannel + band * samplesPerBand + subbandPosition - 4
                 for sample in 4
                 {
-                    .predictionHistory[channel, band, sample] = subbands[channel, band, subbandPosition - 4 + sample]
+                    .predictionHistory[channel, band, sample] = samples[sample]
                 }
             }
         }
@@ -1195,9 +1034,10 @@ impl IPacketCodec for Codec
 
     mtd impl decodePacket(destination: [*] void, destinationSize: u64, packet: const [..] u8)->u64 fail
     {
-        let info     = try frameInfo(packet)
-        let required = cast(u64, info.frames) * .channels * #sizeof(s16)
-        if info.frameBytes > packet.count
+        var reader   = try BitReader.create(packet)
+        let header   = try parseFrameHeader(&reader)
+        let required = cast(u64, header.frames) * .channels * #sizeof(s16)
+        if header.frameBytes > packet.count
         {
             fail InvalidFormatError{"DTS packet size does not match its core-frame header"}
         }
@@ -1216,9 +1056,11 @@ impl IPacketCodec for Codec
         }
 
         reader.byteSize = header.frameBytes
-        if header.sampleRate != .sampleRate or header.channels != .channels {
+        if header.sampleRate != .sampleRate or header.channels != .channels
+        {
             fail InvalidFormatError{"DTS packet shape differs from its container track"}
         }
+
         try .decodeFrame(cast([*] s16, destination), &reader, &header)
         return required
     }

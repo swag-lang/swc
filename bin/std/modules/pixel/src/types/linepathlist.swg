@@ -111,11 +111,48 @@ private func contoursIntersect(a, b: const *Polygon, blocks: *Array!{ContourEdge
         // for every possible neighbor, including the small holes inside a large outline.
         for block in (countA - 1) / ContourEdgeBlockSize + 1
         {
-            let b0 = b.points[j]
-            let b1 = b.points[(j + 1) % countB]
-            if Geometry.intersectSegments(a0, a1, b0, b1, 0.01).intersects
+            let first = block * ContourEdgeBlockSize
+            let end   = first + Math.min(ContourEdgeBlockSize, countA - first)
+            blocks.add(contourEdgeBounds(Swag.makeSlice(pointsA + first, end - first), pointsA[end == countA ? 0 : end]))
+        }
+    }
+
+    var probe: ContourEdgeBounds
+    if blocks.count
+    {
+        probe = contourEdgeBounds(Swag.makeSlice(pointsB, countB), pointsB[0])
+    }
+
+    for block in Math.max(blocks.count, 1)
+    {
+        var first = 0_u64
+        var end   = countA
+        if blocks.count
+        {
+            let bounds = &blocks[block]
+            if bounds.bounded and
+               probe.bounded and
+               (bounds.max.x < probe.min.x or probe.max.x < bounds.min.x or bounds.max.y < probe.min.y or probe.max.y < bounds.min.y)
             {
-                return true
+                continue
+            }
+
+            first = block * ContourEdgeBlockSize
+            end   = first + Math.min(ContourEdgeBlockSize, countA - first)
+        }
+
+        for i in first until end
+        {
+            let a0 = pointsA[i]
+            let a1 = pointsA[i + 1 == countA ? 0 : i + 1]
+            for j in countB
+            {
+                let b0 = pointsB[j]
+                let b1 = pointsB[j + 1 == countB ? 0 : j + 1]
+                if Geometry.intersectSegments(a0, a1, b0, b1, FillIntersectionTolerance).intersects
+                {
+                    return true
+                }
             }
         }
     }
@@ -158,7 +195,7 @@ private func pathListNeedsCleaning(pathList: const *LinePathList)->bool
         blocks.clear()
         for j in i + 1 until pathList.paths.count
         {
-            if contoursIntersect(&pathList.paths[i].polygon, &pathList.paths[j].polygon)
+            if contoursIntersect(&pathList.paths[i].polygon, &pathList.paths[j].polygon, &blocks)
             {
                 return true
             }

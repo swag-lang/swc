@@ -201,12 +201,12 @@ using Core, Pixel, Gui, Gui.Testing, Viewers
     let page = expect File.readAllBytes(scopeTestDataPath("viewer.png"))
     const Info = """<?xml version="1.0"?>
 <ComicInfo xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
-  <Title>The Potion of Flight!{/Title}
-  <Series>Pepper &amp; Carrot!{/Series}
-  <Number>1!{/Number}
-  <Writer>David Revoy!{/Writer}
-  <Year>2014!{/Year}
-  <Manga>YesAndRightToLeft!{/Manga}
+  <Title>The Potion of Flight</Title>
+  <Series>Pepper &amp; Carrot</Series>
+  <Number>1</Number>
+  <Writer>David Revoy</Writer>
+  <Year>2014</Year>
+  <Manga>YesAndRightToLeft</Manga>
 </ComicInfo>"""
     let bytes    = storedZipBytes([{name: "ComicInfo.xml", bytes: cast(const [..] u8, Info)}, {name: "01.png", bytes: page.toSlice()}, {name: "02.png", bytes: page.toSlice()}])
     let fileName = Gui.Testing.tempFilePath("scope-comic-info-", ".cbz")

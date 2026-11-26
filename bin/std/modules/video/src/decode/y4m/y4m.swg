@@ -246,26 +246,7 @@ private func framePayloadSize(width, height: s32, chromaMode: ChromaMode)->u64
 #[Swag.Inline]
 private func(T, Full: bool) convertRgb(y, u, v: T)->{r: T, g: T, b: T}
 {
-    let width       = header.info.width
-    let height      = header.info.height
-    let chromaMode  = header.chromaMode
-    let lumaSize    = cast(u64, width) * cast(u64, height)
-    let chromaWidth = chromaMode == .Yuv444 ? cast(u64, width) :
-                      (chromaMode == .Yuv411 ? (cast(u64, width) + 3) / 4 :
-                       (cast(u64, width) + 1) / 2)
-    let chromaHeight   = chromaMode == .Yuv420 ? (cast(u64, height) + 1) / 2 : cast(u64, height)
-    let chromaSize     = chromaMode == .Mono ? 0 : chromaWidth * chromaHeight
-    let chromaRowShift = chromaMode == .Yuv420 ? 1 : 0
-    let chromaColShift = chromaMode == .Yuv444 ? 0 : (chromaMode == .Yuv411 ? 2 : 1)
-
-    // Reusing the frame the caller already has is what keeps a whole stream at the memory cost
-    // of one frame; a fresh image is created only when it cannot hold this one.
-    if target.width != width or target.height != height or target.pixelFormat != .RGB8
-    {
-        target[] = Image.create(width, height, .RGB8)
-    }
-
-    for y in height
+    #static if Full
     {
         return {r: y + ((359 * v + 128) >> 8),
                 g: y - ((88 * u + 183 * v + 128) >> 8),
@@ -287,10 +268,12 @@ private func widenBytes(samples: Math.Simd.U8x16)->Math.Simd.S32x4 =>
 #[Swag.Inline]
 private func(Shift: u32) chroma4(source: const [*] u8)->Math.Simd.S32x4
 {
-    #static if Shift == 0 {
+    #static if Shift == 0
+    {
         return widenBytes(cast #bit(Math.Simd.U8x16, Math.Simd.splat(cast(const [*] u32, source)[0]))) - 128
     }
-    else {
+    else
+    {
         return Math.Simd.splat(cast(s32, source[0]) - 128)
     }
 }
@@ -457,7 +440,8 @@ private func(Full: bool, Pair: bool) decodeSubsampledRow(target: [*] u8, luma, c
     {
         let correction = chromaCorrection8!{Full}(cb + group * 4, cr + group * 4)
         convertSubsampled8!{Full}(target + group * 24, luma + group * 8, &correction)
-        #static if Pair {
+        #static if Pair
+        {
             convertSubsampled8!{Full}(target - stride + group * 24, luma + width + group * 8, &correction)
         }
     }
@@ -527,13 +511,17 @@ private func decodePayload(target: *Image, payload: const [..] u8, header: const
     let height = header.info.height
 
     // Reuse the caller's destination when it has the correct geometry and RGB layout.
-    if target.width != width or target.height != height or target.pixelFormat != .RGB8 {
+    if target.width != width or target.height != height or target.pixelFormat != .RGB8
+    {
         target[] = Image.create(width, height, .RGB8)
     }
-    if header.colorRange == .Full {
+
+    if header.colorRange == .Full
+    {
         decodeRowsForRange!{true}(target, payload, header)
     }
-    else {
+    else
+    {
         decodeRowsForRange!{false}(target, payload, header)
     }
 }

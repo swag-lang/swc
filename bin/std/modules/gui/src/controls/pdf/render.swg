@@ -108,10 +108,14 @@ private const MaxSubstituteCondense = 2.0_f32
 #[Swag.Opaque]
 internal struct RenderFontCache
 {
-    embedded:           Array!{*TypeFace?}     // Per page font index, once resolution was attempted.
-    embeddedResolved:   Array!{bool}
-    substitute:         Array!{*TypeFace?}     // Page fonts, followed by the standard faces for authored text.
-    substituteResolved: Array!{bool}
+    embedded:              Array!{*TypeFace?}     // Per page font index, once resolution was attempted.
+    embeddedResolved:      Array!{bool}
+    substitute:            Array!{*TypeFace?}     // Page fonts, followed by the standard faces for authored text.
+    substituteResolved:    Array!{bool}
+    rasterizeAtDeviceSize: bool
+    scanText:              bool
+    glyphOutlines:         HashTable!{u64, LinePathList}
+    outlineOrder:          Array!{u64}
 }
 
 internal impl RenderFontCache
@@ -445,7 +449,18 @@ private func drawTextItem(painter: *Painter, fonts: *RenderFontCache, cache: *Fo
         let embedded = fonts.embeddedFace(item.fontIndex, resource)
         if embedded
         {
-            let font = cache.createFont(embedded, fontSize)
+            let font = cache.createFont(embedded, fontSize, mode)
+            if fonts.scanText and
+               item.blend == .Alpha and
+               not item.hasMask and
+               (base.m12 or base.m21) and
+               effectiveSize >= 12 and
+               effectiveSize <= 128 and
+               drawEmbeddedOutlines(painter, fonts, item, resource, embedded, font, base)
+            {
+                return
+            }
+
             if drawEmbeddedRun(painter, item, resource, font)
             {
                 return
@@ -600,6 +615,7 @@ internal func drawPageItems(painter: *Painter, page: *Page, pageToSurface: Trans
     // A shaped clip is a clipping region, and consecutive items usually share one the same way
     // they share a rectangle, so it is written when the shape changes and held across the run.
     var activeRegion = InvalidClipPath
+    var clipPaths: Array!{ClippingPath}
     defer if activeRegion != InvalidClipPath
     {
         painter.resetClippingRegion()
@@ -654,7 +670,7 @@ internal func drawPageItems(painter: *Painter, page: *Page, pageToSurface: Trans
 
             if region != InvalidClipPath
             {
-                writeClipRegion(painter, unwrap page.clipPaths[region], pageToSurface)
+                writeClipRegion(painter, page, region, pageToSurface, scanClips, &clipPaths)
             }
 
             activeRegion = region
@@ -841,7 +857,16 @@ internal func renderPage(page: *Page, options: RenderOptions)->Image fail
 
     renderer.begin(context)
     renderer.init()
-    var target = renderer.createRenderTarget(width, height)
+
+    // Opaque pages can use the CPU surface already allocated by begin. A separate target is
+    // needed only to replay the coverage of a transparent page into its alpha channel.
+    let paintAlpha = options.background.a != 255
+    var target: RenderTarget
+    if paintAlpha
+    {
+        target = renderer.createRenderTarget(width, height)
+    }
+
     var textures: Array!{Texture}
     textures.reserve(page.items.count)
     for item in page.items
@@ -933,13 +958,17 @@ internal func renderPage(page: *Page, options: RenderOptions)->Image fail
 
     renderer.begin(context)
     expect painter.render()
-    var result: #returntype = renderer.readRenderTarget(&target, 0, 0, width, height)
+    var result: #returntype = paintAlpha ? renderer.readRenderTarget(&target, 0, 0, width, height) : cpu.surfaceImage()
     for &texture in textures
     {
         renderer.removeTexture(texture)
     }
 
-    renderer.deleteRenderTarget(&target)
+    if paintAlpha
+    {
+        renderer.deleteRenderTarget(&target)
+    }
+
     renderer.end()
     return result
 }

@@ -153,8 +153,8 @@ func assertJsonPayload(value: JsonPayload)->bool
 #test
 {
     let source:  String = "{\"wire\\u004eame\":42}"
-    var decoder: Serialization.Decoder'Serialization.Read.Json
-    let decoded         = expect decoder.readAll'JsonKeyPayload(source.toSlice())
+    var decoder: Serialization.Decoder!{Serialization.Read.Json}
+    let decoded         = expect decoder.readAll!{JsonKeyPayload}(source.toSlice())
     defer Memory.delete(decoded)
     Swag.require(decoded.sourceName == 42)
 }
@@ -369,7 +369,7 @@ func assertJsonPayload(value: JsonPayload)->bool
     const InvalidUtf8: [1] u8 = [0xFF]
     let value = JsonStringPayload{text: Swag.makeString(&InvalidUtf8[0], InvalidUtf8.count)}
 
-    var encoder: Serialization.Encoder'Serialization.Write.Json
+    var encoder: Serialization.Encoder!{Serialization.Write.Json}
     var output:  ConcatBuffer
     output.setBucketSize(4)
     output.addBytes("prefix")

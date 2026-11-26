@@ -28,7 +28,7 @@ private
 
     struct(T) HistogramCell
     {
-        count:            T
+        count: T
         red, green, blue: T
     }
 
@@ -94,9 +94,12 @@ internal impl IImageEncoder for Encoder
                          image.pixelFormat == .Gray8 and
                          image.width >= 256 and
                          tryBuildFullGrayPalette(&palette, image, &literals)
-        if not uniform and not fullGray do
+        if not uniform and not fullGray
+        {
             palette = buildPalette(image)
-        let packed = 0x80'u8 | ((palette.tableBits - 1) << 4) | (palette.tableBits - 1)
+        }
+
+        let packed = 0x80_u8 | ((palette.tableBits - 1) << 4) | (palette.tableBits - 1)
 
         result.addBytes("GIF89a")
         Encoder.writeU16(result, cast(u16, image.width))
@@ -125,13 +128,20 @@ internal impl IImageEncoder for Encoder
         result.addNative(0_u8)
         result.addNative(palette.lzwMinCodeSize)
 
-        var compressed: Array'u8
-        if uniform do
+        var compressed: Array!{u8}
+        if uniform
+        {
             compressed = lzwCompressRepeat(0, pixelCount, palette.lzwMinCodeSize)
-        elif fullGray do
+        }
+        else if fullGray
+        {
             compressed = lzwCompressGray(palette.indexes.toSlice(), &literals[0])
-        else do
+        }
+        else
+        {
             compressed = lzwCompress(palette.indexes.toSlice(), palette.lzwMinCodeSize, palette.count == 1)
+        }
+
         Encoder.writeSubBlocks(result, compressed.toSlice())
 
         result.addNative(0x3B_u8)

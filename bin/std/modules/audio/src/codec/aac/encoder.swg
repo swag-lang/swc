@@ -7,12 +7,12 @@
 
 using Core, Core.Errors, Core.Math
 
-private const EncoderFrames     = 1_024'u64
-private const VoiceLines        = 176'u64
-private const VoiceBands        = 23'u64
-private const FullLines         = 1_024'u64
-private const FullBands         = 49'u64
-private const MaximumBandBoost  = 48's32
+private const EncoderFrames     = 1_024_u64
+private const VoiceLines        = 176_u64
+private const VoiceBands        = 23_u64
+private const FullLines         = 1_024_u64
+private const FullBands         = 49_u64
+private const MaximumBandBoost  = 48_s32
 private const ShortLines        = EncoderFrames / 8
 private const ShortLead         = (EncoderFrames - ShortLines) / 2
 private const MaximumShortBands = 8 * 16
@@ -24,8 +24,11 @@ private const MaximumPacketBytes = 2 * (FullLines + 4 * MaximumShortBands + 32)
 private func buildShortWindow()->[2 * ShortLines] f32
 {
     var result: [2 * ShortLines] f32
-    for sample in result.count do
+    for sample in result.count
+    {
         result[sample] = cast(f32, Math.sin(Math.ConstF64.Pi / result.count * (cast(f64, sample) + 0.5)))
+    }
+
     return result
 }
 
@@ -101,10 +104,16 @@ private func buildMagnitudeThresholds()->MagnitudeThresholds
         {
             let factor   = Math.pow(2.0, 0.25 * (cast(f64, scale) - 100))
             var boundary = cast #bit(u32, cast(f32, midpoint * factor * 0.5))
-            while referenceMagnitude(boundary, factor) < magnitude do
+            while referenceMagnitude(boundary, factor) < magnitude
+            {
                 boundary += 1
-            while referenceMagnitude(boundary - 1, factor) >= magnitude do
+            }
+
+            while referenceMagnitude(boundary - 1, factor) >= magnitude
+            {
                 boundary -= 1
+            }
+
             thresholds[scale, magnitude] = boundary
         }
     }
@@ -115,28 +124,34 @@ private func buildMagnitudeThresholds()->MagnitudeThresholds
 private var g_FirstMagnitude: MagnitudeThresholds = #run buildMagnitudeThresholds()
 
 // Score the distortion and spectral cost of these increases in AAC gain units.
-private const PeakMantissaMask = 0x007F_FFFF'u32
-private const PeakGainAtOne    = 84's32
+private const PeakMantissaMask = 0x007F_FFFF_u32
+private const PeakGainAtOne    = 84_s32
 
 private func peakGainReference(peak: f32)->s32
 {
-    let limit = Math.pow(15.0'f64, 4.0'f64 / 3.0)
+    let limit = Math.pow(15.0_f64, 4.0_f64 / 3.0)
     return cast(s32, Math.ceil(100.0 + 4.0 * Math.log2(2.0 * cast(f64, peak) / limit)))
 }
 
 private func buildPeakGainCuts()->[4] u32
 {
-    let limit = Math.pow(15.0'f64, 4.0'f64 / 3.0)
+    let limit = Math.pow(15.0_f64, 4.0_f64 / 3.0)
     var cuts: [4] u32
     for step in cuts.count
     {
         let gain     = PeakGainAtOne + cast(s32, step)
         let boundary = (0.5 * limit) * Math.pow(2.0, (cast(f64, gain) - 100.0) / 4.0)
         var bits     = cast #bit(u32, cast(f32, boundary))
-        while peakGainReference(cast #bit(f32, bits)) <= gain do
+        while peakGainReference(cast #bit(f32, bits)) <= gain
+        {
             bits += 1
-        while peakGainReference(cast #bit(f32, bits - 1)) > gain do
+        }
+
+        while peakGainReference(cast #bit(f32, bits - 1)) > gain
+        {
             bits -= 1
+        }
+
         cuts[step] = bits & PeakMantissaMask
     }
 
@@ -148,8 +163,11 @@ private const PeakGainCuts = #run buildPeakGainCuts()
 #[Swag.Inline]
 private func gainForPeak(peak: f32)->s32
 {
-    if not peak do
+    if not peak
+    {
         return 100
+    }
+
     let bits     = cast #bit(u32, peak)
     let exponent = cast(s32, bits >> 23) - 127
     let mantissa = bits & PeakMantissaMask
@@ -158,7 +176,7 @@ private func gainForPeak(peak: f32)->s32
     return Math.clamp(PeakGainAtOne + 4 * exponent + fraction, 0, 255)
 }
 
-private const RateGainSteps   = [0's32, 2, 4, 8, 12, 20]
+private const RateGainSteps   = [0_s32, 2, 4, 8, 12, 20]
 private const RateChoiceCount = RateGainSteps.count + 1
 private alias RateGains = [2, FullBands] s32
 
@@ -174,14 +192,19 @@ private alias RateChoices = [2, FullBands, RateChoiceCount] RateChoice
 private func buildReconstructedMagnitudes()->[QuantizationGains, MaxMagnitude + 1] f32
 {
     var powers: [MaxMagnitude + 1] f64
-    for magnitude in powers.count do
+    for magnitude in powers.count
+    {
         powers[magnitude] = Math.pow(cast(f64, magnitude), 4.0 / 3.0)
+    }
+
     var values: [QuantizationGains, MaxMagnitude + 1] f32
     for gain in QuantizationGains
     {
         let scale = Math.pow(2.0, 0.25 * (cast(f64, gain) - 100.0))
-        for magnitude in powers.count do
+        for magnitude in powers.count
+        {
             values[gain, magnitude] = cast(f32, powers[magnitude] * scale)
+        }
     }
 
     return values
@@ -215,8 +238,9 @@ internal func planEncoderSections(active: const [..] bool,
 private func planSections(active: const [..] bool, codes: [..] EncoderSectionCode, lengthBits: u32)->u32
 {
     Swag.assert(codes.count >= active.count * 2)
-    var count = 0_u32
-    var band  = 0_u64
+    let escape = (1_u32 << lengthBits) - 1
+    var count  = 0_u32
+    var band   = 0_u64
     while band < active.count
     {
         let book = active[band] ? 11_u32 : 0_u32
@@ -266,17 +290,20 @@ struct Encoder
 {
     private
     {
-        transform:  Mdct
-        window:     [2 * EncoderFrames] f32
-        previous:   [2, 1_024] s16
-        silent:     SilenceEncoder
-        config:     [2] u8
-        channels:   u16
-        sampleRate: u32
-        lineCount:  u64
-        bandCount:  u64
-        bitCount:   u64
-        output:     Array!{u8}
+        transform:      Mdct
+        shortTransform: Mdct
+        window:         [2 * EncoderFrames] f32
+        previous:       [2, 1_024] s16
+        silent:         SilenceEncoder
+        config:         [2] u8
+        channels:       u16
+        sampleRate:     u32
+        lineCount:      u64
+        bandCount:      u64
+        bitWord:        u64
+        pendingBits:    u32
+        wordCount:      u64
+        output:         [MaximumPacketBytes / #sizeof(u32)] u32
     }
 }
 
@@ -327,6 +354,69 @@ impl Encoder
     // An invalid input count leaves the encoder state unchanged. `packet` may be reused by the
     // caller and is cleared before encoding. Do not alias it with internal encoder storage.
     mtd encode(samples: const [..] s16, packet: *Array!{u8}) fail
+    {
+        try .encodeWindowed!{false, false}(samples, packet, .Long)
+    }
+
+    internal mtd encodeLimited(samples: const [..] s16, packet: *Array!{u8}, maximumBytes: u64) fail
+    {
+        if samples.count != EncoderFrames * .channels
+        {
+            fail BadParameterError{"AAC software encoder needs exactly 1024 complete sample frames"}
+        }
+
+        var spectra: [2, FullLines] f32
+        for channel in .channels
+        {
+            .transformChannel!{false}(samples, channel, .Long, &spectra[channel, 0])
+        }
+
+        try .encodeWindowed!{false, true}(samples, packet, .Long, &spectra)
+        if packet.count > maximumBytes
+        {
+            var choices:     RateChoices
+            var initialGain: [2] s32
+            let reference = .prepareRateChoices(&spectra, &choices, &initialGain)
+            var selected:    RateGains
+            var lower     = 0_s32
+            var upper     = 128_s32
+            while upper - lower > 1
+            {
+                let middle = (upper + lower) / 2
+                if .chooseRateGains(&choices, &initialGain, reference, middle, &selected) <= maximumBytes
+                {
+                    lower = middle
+                }
+                else
+                {
+                    upper = middle
+                }
+            }
+
+            let expected = .chooseRateGains(&choices, &initialGain, reference, lower, &selected)
+            try .encodeWindowed!{false, true}(samples, packet, .Long, &spectra, &selected)
+            Swag.require(packet.count == expected and packet.count <= maximumBytes)
+        }
+
+        for channel in .channels
+        {
+            for sample in EncoderFrames
+            {
+                .previous[channel, sample] = samples[sample * .channels + channel]
+            }
+        }
+    }
+
+    internal mtd prepareShortWindows()
+    {
+        .shortTransform = Mdct.create(2 * cast(u32, ShortLines))
+    }
+
+    internal mtd(Adaptive: bool, Limited: bool) encodeWindowed(samples: const [..] s16,
+                                                               packet: *Array!{u8},
+                                                               sequence: EncodeWindow,
+                                                               spectra: const *[2, FullLines] f32? = null,
+                                                               choices: const *RateGains? = null) fail
     {
         if samples.count != EncoderFrames * .channels
         {
@@ -397,10 +487,18 @@ impl Encoder
         for channel in .channels
         {
             var transformed: [FullLines] f32
-            .transform.forward(&windowed[0], &transformed[0])
-            var spectrum: [FullLines] f64
-            var largest = 0.0_f64
-            for line in .lineCount
+            #static if Limited
+            {
+                Memory.copy(&transformed[0], &spectra![][channel, 0], #sizeof(transformed))
+            }
+            else
+            {
+                .transformChannel!{Adaptive}(samples, channel, sequence, &transformed[0])
+            }
+
+            var peaks: [MaximumShortBands] f32
+            var maximum = 0_f32
+            for group in windowCount
             {
                 let start = group * lineStride
                 for band in bandCount
@@ -423,49 +521,63 @@ impl Encoder
             let largest = 2.0 * cast(f64, maximum)
             let gain    = gainForPeak(maximum)
             var quantized: [FullLines] s32
-            var active:    [FullBands] bool
-            var bandGain:  [FullBands] s32
-            let rateIndex = .sampleRate == 48_000 ? 3_u32 : 4_u32
-            let offsets   = swbLong(rateIndex)
+            var active:    [MaximumShortBands] bool
+            var bandGain:  [MaximumShortBands] s32
 
             // Keep each band's quiet components above the global quantization floor. AAC
             // codes scalefactor differences in [-60, 60]; limiting the boost to 48 steps
             // also bounds every jump between active bands without extra side information.
             let minimumGain = Math.max(0_s32, gain - MaximumBandBoost)
-            for band in .bandCount
+            for group in windowCount
             {
-                var bandPeak = 0.0_f64
-                for line in offsets[band] until offsets[band + 1]
+                let base = group * lineStride
+                for scaleBand in bandCount
                 {
-                    bandPeak = Math.max(bandPeak, Math.abs(spectrum[line]))
-                }
+                    let band     = group * bandCount + scaleBand
+                    let first    = base + offsets[scaleBand]
+                    let end      = base + offsets[scaleBand + 1]
+                    let bandPeak = 2.0 * cast(f64, peaks[band])
+                    var selected = gain
 
                     // Ignore far-off leakage and numerical residue around a strong tone.
                     // A component 150x below the strongest band remains eligible.
-                    if bandPeak >= largest / 512.0 and bandPeak > 0 do
-                        selected = Math.clamp(gainForPeak(peaks[band]), minimumGain, gain)
-
-                // Ignore far-off leakage and numerical residue around a strong tone.
-                // A component 150x below the strongest band remains eligible.
-                if bandPeak >= largest / 512.0 and bandPeak > 0
-                {
-                    selected = Math.clamp(cast(s32,
-                                               Math.ceil(100.0 + 4.0 *
-                                                         Math.log2(bandPeak / Math.pow(15.0_f64, 4.0_f64 / 3.0)))),
-                                          minimumGain,
-                                          gain)
-                }
-
-                bandGain[band] = selected
-                let factor = Math.pow(2.0, 0.25 * cast(f64, selected - 100))
-                for line in offsets[band] until offsets[band + 1]
-                {
-                    let value     = spectrum[line]
-                    let magnitude = Math.min(15_s32, cast(s32, Math.round(Math.pow(Math.abs(value) / factor, 0.75))))
-                    quantized[line] = value < 0 ? -magnitude : magnitude
-                    if magnitude
+                    if bandPeak >= largest / 512.0 and bandPeak > 0
                     {
-                        active[band] = true
+                        selected = Math.clamp(gainForPeak(peaks[band]), minimumGain, gain)
+                    }
+
+                    #static if Limited
+                    {
+                        if choices
+                        {
+                            selected = choices![][channel, band]
+                            if selected < 0
+                            {
+                                continue
+                            }
+                        }
+                    }
+
+                    // Positive IEEE binary32 bit patterns have the same ordering as their values.
+                    let thresholds = cast(const [*] u32, &g_FirstMagnitude[selected, 0])
+
+                    // A band below the first magnitude uses the AAC zero codebook.
+                    if cast #bit(u32, peaks[band]) < thresholds[1]
+                    {
+                        continue
+                    }
+
+                    active[band]   = true
+                    bandGain[band] = selected
+                    for line in first until end
+                    {
+                        let bits      = cast #bit(u32, transformed[line])
+                        let absolute  = bits & 0x7FFF_FFFF
+                        var magnitude = 8 * cast(s32, absolute >= thresholds[8])
+                        magnitude       += 4 * cast(s32, absolute >= thresholds[magnitude + 4])
+                        magnitude       += 2 * cast(s32, absolute >= thresholds[magnitude + 2])
+                        magnitude       += cast(s32, absolute >= thresholds[magnitude + 1])
+                        quantized[line] = bits >> 31 != 0 ? -magnitude : magnitude
                     }
                 }
             }
@@ -486,11 +598,15 @@ impl Encoder
             }
 
             var sectionCodes: [2 * FullBands] EncoderSectionCode
-            let sectionCount = planEncoderSections(Swag.makeSlice(&active[0], .bandCount),
-                                                   Swag.makeSlice(&sectionCodes[0], sectionCodes.count))
-            for index in sectionCount
+            for group in windowCount
             {
-                .writeBits(sectionCodes[index].value, sectionCodes[index].width)
+                let sectionCount = planSections(Swag.makeSlice(&active[group * bandCount], bandCount),
+                                                Swag.makeSlice(&sectionCodes[0], sectionCodes.count),
+                                                isShort ? 3 : 5)
+                for index in sectionCount
+                {
+                    .writeBits(sectionCodes[index].value, sectionCodes[index].width)
+                }
             }
 
             var previousGain = gain
@@ -509,27 +625,22 @@ impl Encoder
                 let base = group * lineStride
                 for band in bandCount where active[group * bandCount + band]
                 {
-                    let first  = quantized[line]
-                    let second = quantized[line + 1]
-                    let symbol = cast(u64, Math.abs(first) * 17 + Math.abs(second))
-                    .writeBits(codes[symbol], bits[symbol])
-                    if first
+                    var line = base + offsets[band]
+                    while line < base + offsets[band + 1]
                     {
-                        .writeBits(first < 0 ? 1 : 0, 1)
+                        let pair = PackedSpectralPairs[quantized[line] + MaxMagnitude, quantized[line + 1] + MaxMagnitude]
+                        .writeBits(pair & 0xFFFF, pair >> 16)
+                        line += 2
                     }
-
-                    if second
-                    {
-                        .writeBits(second < 0 ? 1 : 0, 1)
-                    }
-
-                    line += 2
                 }
             }
 
-            for sample in EncoderFrames
+            #static if not Limited
             {
-                .previous[channel, sample] = samples[sample * .channels + channel]
+                for sample in EncoderFrames
+                {
+                    .previous[channel, sample] = samples[sample * .channels + channel]
+                }
             }
         }
 
@@ -588,8 +699,10 @@ private impl Encoder
                 let end      = cast(u64, offsets[band + 1])
                 let peak     = peaks[band]
                 var selected = globalGain
-                if peak >= largest / 512.0 and peak > 0 do
+                if peak >= largest / 512.0 and peak > 0
+                {
                     selected = Math.clamp(gainForPeak(cast(f32, peak * 0.5)), minimumGain, globalGain)
+                }
 
                 var energy = 0_f64
                 for line in first until end
@@ -803,15 +916,11 @@ private impl Encoder
         let factor = Math.pow(2.0, 0.25 * (cast(f64, scale) - 100.0))
         for magnitude in 1 until MaxMagnitude + 1
         {
-            if .bitCount == .output.count * 8
-            {
-                .output.add(0_u8)
-            }
-
-            .output[.bitCount >> 3] |= cast(u8,
-                                            ((value >> (count - index - 1)) & 1) <<
-                                            (7 - cast(u32, .bitCount & 7)))
-            .bitCount += 1
+            let first    = g_FirstMagnitude[scale, magnitude]
+            let inBand   = cast(f64, cast #bit(f32, first)) * 2.0
+            let previous = cast(f64, cast #bit(f32, first - 1)) * 2.0
+            Swag.require(Math.round(Math.pow(inBand / factor, 0.75)) == magnitude)
+            Swag.require(Math.round(Math.pow(previous / factor, 0.75)) == magnitude - 1)
         }
     }
 }
@@ -820,7 +929,7 @@ private impl Encoder
 #test
 {
     Swag.require(gainForPeak(0.0) == 100)
-    Swag.require(gainForPeak(cast #bit(f32, 1'u32)) == 0)
+    Swag.require(gainForPeak(cast #bit(f32, 1_u32)) == 0)
     for biasedExponent in 1 until 255
     {
         for cut in PeakGainCuts

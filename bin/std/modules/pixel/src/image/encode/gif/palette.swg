@@ -63,17 +63,22 @@ impl Encoder
         var pix  = image.pixels.storage()
         while end - pix >= 16
         {
-            var pix = image.pixels.storage() + cast(u64, y) * image.rowStride
-            for image.width
+            if (Math.Simd.bitmask(Math.Simd.load(pix)) & mask) != mask
             {
-                let col = readPixelColor(image, pix)
-                if col.a < 128
-                {
-                    return true
-                }
-
-                pix += image.bytesPerPixel
+                return true
             }
+
+            pix += 16
+        }
+
+        while pix < end
+        {
+            if pix[step - 1] < 128
+            {
+                return true
+            }
+
+            pix += step
         }
 
         return false
@@ -100,24 +105,31 @@ impl Encoder
     func(T) allMaskedSamplesEqual(pixels: const [*] T, count: u64, mask: T)->bool
     {
         let sample = pixels[0] & mask
-        if (pixels[count - 1] & mask) != sample do
+        if (pixels[count - 1] & mask) != sample
+        {
             return false
+        }
 
         let pattern  = Math.Simd.splat(sample)
         let channels = Math.Simd.splat(mask)
-        const Lanes  = 16 / #sizeof(T)
-        var i        = 0'u64
+        const Lanes = 16 / #sizeof(T)
+        var i = 0_u64
         while count - i >= Lanes
         {
-            if not Math.Simd.allTrue((Math.Simd.load(pixels + i) & channels) == pattern) do
+            if not Math.Simd.allTrue((Math.Simd.load(pixels + i) & channels) == pattern)
+            {
                 return false
+            }
+
             i += Lanes
         }
 
         for tail in i until count
         {
-            if (pixels[tail] & mask) != sample do
+            if (pixels[tail] & mask) != sample
+            {
                 return false
+            }
         }
 
         return true
@@ -132,33 +144,60 @@ impl Encoder
         switch step
         {
         case 1:
-            if not allMaskedSamplesEqual'u8(pixels, count, 0xFF) do
+            if not allMaskedSamplesEqual!
+            {
+                u8
+            }(pixels, count, 0xFF)
+            {
                 return false
+            }
+
         case 2:
+
             // GIF observes only the high alpha bit and discards fully hidden colors.
-            let mask = transparent ? 0x8000'u16 : 0x80FF'u16
-            if not allMaskedSamplesEqual'u16(cast(const [*] u16, pixels), count, mask) do
+            let mask = transparent ? 0x8000_u16 : 0x80FF_u16
+            if not allMaskedSamplesEqual!
+            {
+                u16
+            }(cast(const [*] u16, pixels), count, mask)
+            {
                 return false
+            }
+
         case 3:
             let last = pixels + (count - 1) * 3
-            if cast(const *u16, last)[] != cast(const *u16, pixels)[] or last[2] != pixels[2] or
-               PackedPixel.countSame24(pixels, pixels + 3, count - 1) != count - 1 do
+            if cast(const *u16, last)[] != cast(const *u16, pixels)[] or
+               last[2] != pixels[2] or
+               PackedPixel.countSame24(pixels, pixels + 3, count - 1) != count - 1
+            {
                 return false
+            }
+
         default:
             let words = cast(const [*] u32, pixels)
             if words[0] != words[count - 1] or PackedPixel.countSame32(pixels, pixels + 4, count - 1) != count - 1
             {
-                let mask = transparent ? 0x80000000'u32 : 0x80FFFFFF'u32
-                if not allMaskedSamplesEqual'u32(words, count, mask) do
+                let mask = transparent ? 0x80000000_u32 : 0x80FFFFFF_u32
+                if not allMaskedSamplesEqual!
+                {
+                    u32
+                }(words, count, mask)
+                {
                     return false
+                }
             }
         }
 
         let offsets = pixelChannelOffsets(image.pixelFormat, image.bytesPerPixel)
-        if transparent do
+        if transparent
+        {
             data.transparentIndex = 0
-        else do
+        }
+        else
+        {
             data.colors[0] = {pixels[offsets.red], pixels[offsets.green], pixels[offsets.blue]}
+        }
+
         data.count = 1
         finishPaletteResult(data)
         return true
@@ -175,23 +214,26 @@ impl Encoder
         for x in image.width
         {
             let gray = first[x]
-            if seen[gray] {
+            if seen[gray]
+            {
                 continue
-
             }
+
             seen[gray]         = true
             order[][gray]      = cast(u8, count)
             data.colors[count] = {gray, gray, gray}
             count              += 1
-            if count == MaxPaletteColors {
+            if count == MaxPaletteColors
+            {
                 break
             }
         }
 
-        if count != MaxPaletteColors {
+        if count != MaxPaletteColors
+        {
             return false
-
         }
+
         data.count = count
         data.indexes.grow(image.byteCount)
         data.indexes.count = image.byteCount
@@ -244,16 +286,18 @@ impl Encoder
                         let packed = cast(const *u32, pix)[]
                         key = ReverseChannels ? Math.byteSwap(packed) >> 8 : packed & 0x00FFFFFF
                     }
-                    elif PixelBytes == 3
+                    else if PixelBytes == 3
                     {
                         let first = cast(const *u16, pix)[]
                         key = ReverseChannels ? (cast(u32, Math.byteSwap(first)) << 8) | pix[2] :
-                                                cast(u32, first) | (cast(u32, pix[2]) << 16)
+                              cast(u32, first) | (cast(u32, pix[2]) << 16)
                     }
-                    else do
+                    else
+                    {
                         key = pix[0]
+                    }
 
-                    var slot  = PixelBytes < 3 ? key : (key * #wrap 0x9E3779B9'u32) >> 23
+                    var slot  = PixelBytes < 3 ? key : (key * #wrap 0x9E3779B9_u32) >> 23
                     var entry = colorMap[slot]
                     #static if PixelBytes >= 3
                     {
@@ -281,10 +325,13 @@ impl Encoder
                             let gray = cast(u8, key)
                             data.colors[paletteIndex] = {gray, gray, gray}
                         }
-                        else do
+                        else
+                        {
                             data.colors[paletteIndex] = {cast(u8, key >> 16), cast #wrap(u8, key >> 8), cast #wrap(u8, key)}
+                        }
+
                         colorMap[slot] = (cast(u64, key) << 9) | (data.count + 1)
-                        data.count    += 1
+                        data.count     += 1
                     }
                 }
 
@@ -302,19 +349,19 @@ impl Encoder
     {
         switch image.pixelFormat
         {
-        case .Gray8:      return tryBuildExactPalettePacked'(1, false)(data, image, hasTransparent)
-        case .GrayAlpha8: return tryBuildExactPalettePacked'(2, false)(data, image, hasTransparent)
-        case .BGR8:       return tryBuildExactPalettePacked'(3, false)(data, image, hasTransparent)
-        case .RGB8:       return tryBuildExactPalettePacked'(3, true)(data, image, hasTransparent)
-        case .BGRA8:      return tryBuildExactPalettePacked'(4, false)(data, image, hasTransparent)
-        default:         return tryBuildExactPalettePacked'(4, true)(data, image, hasTransparent)
+        case .Gray8:      return tryBuildExactPalettePacked!{1, false}(data, image, hasTransparent)
+        case .GrayAlpha8: return tryBuildExactPalettePacked!{2, false}(data, image, hasTransparent)
+        case .BGR8:       return tryBuildExactPalettePacked!{3, false}(data, image, hasTransparent)
+        case .RGB8:       return tryBuildExactPalettePacked!{3, true}(data, image, hasTransparent)
+        case .BGRA8:      return tryBuildExactPalettePacked!{4, false}(data, image, hasTransparent)
+        default:          return tryBuildExactPalettePacked!{4, true}(data, image, hasTransparent)
         }
     }
 
     func histogramIndex(red, green, blue: u8)->u32 =>
         (cast(u32, red >> 3) << 10) | (cast(u32, green >> 3) << 5) | (blue >> 3)
 
-    func(T) occupiedBox(region: ColorBox, histogram: const [*] HistogramCell'T)->ColorBox
+    func(T) occupiedBox(region: ColorBox, histogram: const [*] HistogramCell!{T})->ColorBox
     {
         var result = ColorBox{32, -1, 32, -1, 32, -1}
 
@@ -347,7 +394,7 @@ impl Encoder
         return result
     }
 
-    func(T) splitBox(boxes: *[256] ColorBox, boxCount: u32, histogram: const [*] HistogramCell'T)->bool
+    func(T) splitBox(boxes: *[256] ColorBox, boxCount: u32, histogram: const [*] HistogramCell!{T})->bool
     {
         var selected = -1
         var best     = 0_u64
@@ -434,8 +481,8 @@ impl Encoder
             right.minBlue = cut + 1
         }
 
-        boxes[][selected] = occupiedBox'T(left, histogram)
-        boxes[][boxCount] = occupiedBox'T(right, histogram)
+        boxes[][selected] = occupiedBox!{T}(left, histogram)
+        boxes[][boxCount] = occupiedBox!{T}(right, histogram)
         return true
     }
 
@@ -445,7 +492,7 @@ impl Encoder
         resetPaletteResult(data, pixelCount)
 
         // Five bits per channel keep the histogram bounded independently of image size.
-        var histogram: Array'(HistogramCell'T)
+        var histogram: Array!{HistogramCell!{T}}
         histogram.resize(32 * 32 * 32)
         let offsets = pixelChannelOffsets(image.pixelFormat, image.bytesPerPixel)
         for y in image.height
@@ -462,7 +509,7 @@ impl Encoder
                     #static if T == u32
                     {
                         let counters = cast([*] u32, cell)
-                        let add      = cast(Math.Simd.U32x4, [1'u32, cast(u32, r), cast(u32, g), cast(u32, b)])
+                        let add      = cast(Math.Simd.U32x4, [1_u32, cast(u32, r), cast(u32, g), cast(u32, b)])
                         Math.Simd.store(counters, Math.Simd.load(counters) + add)
                     }
                     else
@@ -479,10 +526,15 @@ impl Encoder
         }
 
         var boxes: [256] ColorBox
-        boxes[0] = occupiedBox'T(ColorBox{0, 31, 0, 31, 0, 31}, histogram.storage())
-        var boxCount  = 1'u32
-        let maxColors = MaxPaletteColors - (hasTransparent ? 1'u32 : 0'u32)
-        while boxCount < maxColors and splitBox'T(&boxes, boxCount, histogram.storage()) do
+        boxes[0] = occupiedBox!{T}(ColorBox{0, 31, 0, 31, 0, 31}, histogram.storage())
+        var boxCount  = 1_u32
+        let maxColors = MaxPaletteColors - (hasTransparent ? 1_u32 : 0_u32)
+        while boxCount < maxColors and
+              splitBox!
+        {
+            T
+        }(&boxes, boxCount, histogram.storage())
+        {
             boxCount += 1
         }
 
@@ -502,7 +554,57 @@ impl Encoder
                 cast(u8, (box.blueTotal + box.pixels / 2) / box.pixels)}
         }
 
-        // Map every histogram cell, including empty ones a dithered pixel may reach.
+        // A distance takes the high bits and the palette index breaks equal-distance ties.
+        // Precompute each channel's contribution for four palette colors at a time.
+        const Groups = MaxPaletteColors / 4
+        var redCosts, greenCosts, blueCosts: [32, Groups] Math.Simd.S32x4
+        let groups = (data.count - firstColor + 3) / 4
+        for group in groups
+        {
+            var reds, greens, blues, indices: [4] s32
+            for lane in 4
+            {
+                let index = Math.min(firstColor + group * 4 + lane, data.count - 1)
+                let color = data.colors[index]
+                reds[lane]    = color.r
+                greens[lane]  = color.g
+                blues[lane]   = color.b
+                indices[lane] = cast(s32, index)
+            }
+
+            for coordinate in 32
+            {
+                let center = Math.Simd.splat(cast(s32, coordinate * 8 + 4))
+                let dr     = center - cast(Math.Simd.S32x4, reds)
+                let dg     = center - cast(Math.Simd.S32x4, greens)
+                let db     = center - cast(Math.Simd.S32x4, blues)
+                redCosts[coordinate, group]   = dr * dr * 256 + cast(Math.Simd.S32x4, indices)
+                greenCosts[coordinate, group] = dg * dg * 256
+                blueCosts[coordinate, group]  = db * db * 256
+            }
+        }
+
+        // Each row of the grid tracks occupied blue bins for one red/green pair.
+        // A zero border also makes reads outside the color cube empty.
+        var occupied: [34, 34] u32
+        if dither
+        {
+            for red in 32
+            {
+                for green in 32
+                {
+                    let index = (red << 10) | (green << 5)
+                    var bits: u32
+                    for blue in 32
+                    {
+                        bits |= cast(u32, histogram[index + blue].count != 0) << blue
+                    }
+
+                    occupied[red + 1, green + 1] = bits
+                }
+            }
+        }
+
         var mapping: Array!{u8}
         mapping.resize(histogram.count)
         for red in 32
@@ -513,28 +615,35 @@ impl Encoder
                 if dither
                 {
                     let own = occupied[red + 1, green + 1]
+
                     // The same offset in [-8, 7] applies to all three channels. Each output
                     // bin can also be reached from the adjoining bins in either direction.
                     let lighter = own | occupied[red, green + 1] | occupied[red + 1, green] | occupied[red, green]
-                    let darker  = own | occupied[red + 2, green + 1] | occupied[red + 1, green + 2] | occupied[red + 2, green + 2]
+                    let darker  = own |
+                                  occupied[red + 2, green + 1] |
+                                  occupied[red + 1, green + 2] |
+                                  occupied[red + 2, green + 2]
                     needed = lighter | (lighter << 1) | darker | (darker >> 1)
-                    if not needed {
+                    if not needed
+                    {
                         continue
                     }
                 }
 
                 var rgCosts: [Groups] Math.Simd.S32x4
-                for group in groups {
+                for group in groups
+                {
                     rgCosts[group] = redCosts[red, group] + greenCosts[green, group]
-
                 }
+
                 for blue in 32
                 {
                     let index = (red << 10) | (green << 5) | blue
-                    if dither ? not (needed & (1_u32 << blue)) : not histogram[index].count {
+                    if dither ? not (needed & (1_u32 << blue)) : not histogram[index].count
+                    {
                         continue
-
                     }
+
                     var best = Math.Simd.splat(Swag.S32.Max)
                     for group in groups
                     {
@@ -587,11 +696,16 @@ impl Encoder
         if not tryBuildExactPalette(&result, pixels, hasTransparent)
         {
             // An individual cell's channel totals are bounded by 255 per pixel.
-            if cast(u64, width) * height <= Swag.U32.Max / 255 do
-                buildQuantizedPalette'u32(&result, pixels, hasTransparent, dither)
-            else do
-                buildQuantizedPalette'u64(&result, pixels, hasTransparent, dither)
+            if cast(u64, width) * height <= Swag.U32.Max / 255
+            {
+                buildQuantizedPalette!{u32}(&result, pixels, hasTransparent, dither)
+            }
+            else
+            {
+                buildQuantizedPalette!{u64}(&result, pixels, hasTransparent, dither)
+            }
         }
+
         return result
     }
 
@@ -599,15 +713,98 @@ impl Encoder
     func rgbKey(red, green, blue: u8)->u32 =>
         (cast(u32, red) << 16) | (cast(u32, green) << 8) | blue
 
-            if not found
+    #[Inline]
+    func findColorSlot(table: const [*] u64, key: u32)->u32
+    {
+        var slot  = (key * #wrap 0x9E3779B9_u32) >> 23
+        var entry = table[slot]
+        while entry and (entry >> 9) != key
+        {
+            slot  = (slot + 1) & (PaletteMapSize - 1)
+            entry = table[slot]
+        }
+
+        return slot
+    }
+
+    // Caches the first index for each color in the animation's global table.
+    func buildColorIndexMap(table: const [..] u8)->Array!{u64}
+    {
+        var result: #returntype
+        result.resize(PaletteMapSize)
+        let storage = result.storage()
+        for globalIndex in table.count / 3
+        {
+            let at   = globalIndex * 3
+            let key  = rgbKey(table[at], table[at + 1], table[at + 2])
+            let slot = findColorSlot(storage, key)
+            if not storage[slot]
             {
-                return false
+                storage[slot] = (cast(u64, key) << 9) | (globalIndex + 1)
             }
         }
 
-        for i in palette.indexes.count
+        return result
+    }
+
+    // Rewrites frame indexes only when every frame colour exists in the shared colour table.
+    func remapToColorTable(palette: *PaletteData, table: const [..] u8, colorIndices: const [..] u64)->bool
+    {
+        var mapping: [256] u8
+        if colorIndices.count
         {
-            palette.indexes[i] = mapping[palette.indexes[i]]
+            let storage = colorIndices.buffer
+            for local in palette.count
+            {
+                let color = palette.colors[local]
+                let key   = rgbKey(color.r, color.g, color.b)
+                let entry = storage[findColorSlot(storage, key)]
+                if not entry
+                {
+                    return false
+                }
+
+                mapping[local] = cast(u8, (entry & 0x1FF) - 1)
+            }
+        }
+        else
+        {
+            let globalCount = table.count / 3
+            for local in palette.count
+            {
+                let color = palette.colors[local]
+                var found = false
+                for globalIndex in globalCount
+                {
+                    let at = globalIndex * 3
+                    if table[at] == color.r and table[at + 1] == color.g and table[at + 2] == color.b
+                    {
+                        mapping[local] = cast(u8, globalIndex)
+                        found = true
+                        break
+                    }
+                }
+
+                if not found
+                {
+                    return false
+                }
+            }
+        }
+
+        for local in palette.count
+        {
+            if mapping[local] == local
+            {
+                continue
+            }
+
+            for i in palette.indexes.count
+            {
+                palette.indexes[i] = mapping[palette.indexes[i]]
+            }
+
+            break
         }
 
         return true
@@ -616,20 +813,14 @@ impl Encoder
     func writeColorTable(result: *ConcatBuffer, palette: PaletteData)
     {
         let tableSize = 1_u32 << palette.tableBits
-        for i in tableSize
+        var output    = result.reserveInPlace(cast(u64, tableSize) * 3)
+        for i in palette.count
         {
-            if i < palette.count
-            {
-                result.addNative(palette.colors[i].r)
-                result.addNative(palette.colors[i].g)
-                result.addNative(palette.colors[i].b)
-            }
-            else
-            {
-                result.addNative(0_u8)
-                result.addNative(0_u8)
-                result.addNative(0_u8)
-            }
+            let color = palette.colors[i]
+            output[0] = color.r
+            output[1] = color.g
+            output[2] = color.b
+            output    += 3
         }
 
         Memory.clear(output, cast(u64, tableSize - palette.count) * 3)

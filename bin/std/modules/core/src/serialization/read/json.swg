@@ -5,7 +5,7 @@ using Swag, Core.Errors
 
 internal struct JsonObject
 {
-    properties:  HashTable'(String, u64)
+    properties:  HashTable!{String, u64}
     endPosition: u64
 }
 
@@ -19,11 +19,11 @@ public struct Json
 {
     internal
     {
-        stream:         ByteStream           // Input cursor.
-        objects:        Array'JsonObject     // Active object indexes, outermost first.
-        containerKinds: [64] u8              // Zero for arrays and one for objects.
-        firstValues:    [64] bool            // Whether an active array has read no value yet.
-        containerDepth: u64                  // Number of active array and object scopes.
+        stream:         ByteStream             // Input cursor.
+        objects:        Array!{JsonObject}     // Active object indexes, outermost first.
+        containerKinds: [64] u8                // Zero for arrays and one for objects.
+        firstValues:    [64] bool              // Whether an active array has read no value yet.
+        containerDepth: u64                    // Number of active array and object scopes.
     }
 }
 
@@ -141,16 +141,20 @@ public impl Json
     internal mtd readString(result: *String?) fail
     {
         try .expectByte('"', "JSON string is missing its opening quote")
-        if result do
+        if result
+        {
             result.clear()
+        }
         while true
         {
             let bytes  = .stream.remainingBytes()
             let length = jsonPlainByteCount(bytes)
             if length
             {
-                if result do
+                if result
+                {
                     result.append(Swag.makeString(bytes.buffer, length))
+                }
                 .stream.advance(length)
             }
 
@@ -168,9 +172,13 @@ public impl Json
             if c < 0x20
             {
                 fail .getError("JSON string contains an unescaped control character")
+            }
+
             let escaped = try .readStringEscape()
-            if result do
+            if result
+            {
                 result.append(escaped)
+            }
         }
     }
 
@@ -280,7 +288,7 @@ public impl Json
 
         case '{':
             .stream.advance()
-            var properties: HashTable'(String, u64)
+            var properties: HashTable!{String, u64}
             try .scanObject(&properties, depth + 1)
 
         case '[':
@@ -328,7 +336,7 @@ public impl Json
         }
     }
 
-    private mtd scanObject(properties: *HashTable'(String, u64), depth: u32) fail
+    private mtd scanObject(properties: *HashTable!{String, u64}, depth: u32) fail
     {
         .zapBlanks()
         if .stream.peekU8() == '}'
@@ -342,8 +350,10 @@ public impl Json
         {
             try .readString(&name)
             let property = properties.findOrAdd(name)
-            if property.value do
+            if property.value
+            {
                 fail .getError("JSON object contains a duplicate property")
+            }
 
             .zapBlanks()
             try .expectByte(':', "JSON property is missing a colon after its name")
@@ -398,8 +408,10 @@ public impl Json
         .stream = ByteStream.openRead(input)
         .objects.clear()
         .containerDepth = 0
-        if not Utf8.isValid(input) do
+        if not Utf8.isValid(input)
+        {
             fail .getError("JSON document is not valid UTF-8")
+        }
     }
 
     // Begins an array.
@@ -474,7 +486,10 @@ public impl Json
         if not .containerDepth
         {
             fail .getError("JSON property is outside an object")
-        if .containerKinds[.containerDepth - 1] != 1 do
+        }
+
+        if .containerKinds[.containerDepth - 1] != 1
+        {
             fail .getError("JSON named property is inside an array")
         }
 

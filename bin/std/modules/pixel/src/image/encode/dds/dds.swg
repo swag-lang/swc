@@ -68,8 +68,6 @@ internal impl IImageEncoder for Encoder
             fail InvalidFormatError{"invalid image"}
         }
 
-        var converted: Image
-        var source:    const *Image = &image
         var dxgi  = 0_u32
         var flags = RgbFlag
         var bits  = cast(u32, image.bitsPerPixel)

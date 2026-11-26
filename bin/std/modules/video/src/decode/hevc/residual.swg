@@ -126,15 +126,10 @@ impl Decoder
                 continue
             }
 
-            // Significance of every coefficient of the sub-block, walked backwards.
-            var significant: [16] bool
-            var significantCount = 0_u32
-            var first = index == lastSubBlock ? cast(s32, lastScanPos) - 1 : 15_s32
-            if index == lastSubBlock
-            {
-                significant[lastScanPos] = true
-                significantCount         = 1
-            }
+            // A bit at the scan position marks each coefficient that needs a level.
+            let isLast      = index == lastSubBlock
+            var significant = isLast ? 1_u32 << lastScanPos : 0_u32
+            let first       = isLast ? cast(s32, lastScanPos) - 1 : 15_s32
 
             // The whole sub-block shares its context but for the position inside it, and the
             // first coefficient of the block is the one exception the clause carves out.
@@ -153,31 +148,10 @@ impl Decoder
             while position > 0
             {
                 let scanPos = cast(u32, position)
-                if position > 0 or not inferDcSignificant
-                {
-                    let inner   = (cast(u32, ScanY[2, scanIdx, scanPos]) << 2) + cast(u32, ScanX[2, scanIdx, scanPos])
-                    var context = mapped ? cast(u32, SigCtxMap4x4[inner]) + dcContext : cast(u32, SigCtxPattern[pattern, inner]) + base
-                    if not inner and dcBlock
-                    {
-                        context = dcContext
-                    }
-
-                    if .cabac.decision(CtxSigCoeffFlag + context) != 0
-                    {
-                        significant[scanPos] = true
-                        significantCount     += 1
-                        inferDcSignificant   = false
-                    }
-                }
-                else if position == 0
-                {
-                    // The last coefficient of a coded sub-block is significant by inference when
-                    // every other one turned out not to be.
-                    significant[0]   = true
-                    significantCount += 1
-                }
-
-                position -= 1
+                let inner   = (cast(u32, ScanY[2, scanIdx, scanPos]) << 2) + cast(u32, ScanX[2, scanIdx, scanPos])
+                let context = mapped ? cast(u32, SigCtxMap4x4[inner]) + dcContext : cast(u32, SigCtxPattern[pattern, inner]) + base
+                significant |= .cabac.decision(CtxSigCoeffFlag + context) << scanPos
+                position    -= 1
             }
 
             if first >= 0
@@ -200,16 +174,12 @@ impl Decoder
                 continue
             }
 
-            // Levels above one, for at most eight coefficients of the sub-block.
-            var greater1: [16] bool
-            var greater2            = false
-            var greater1Count       = 0_u32
-            var lastGreater1ScanPos = -1_s32
-            var firstSigScanPos     = 16_s32
-            var lastSigScanPos      = -1_s32
-
-            var ctxSet  = (index == 0 or component > 0) ? 0_u32 : 2_u32
-            var lastCtx = 1_u32
+            // Only the first eight significant coefficients have greater-than-one flags.
+            let significantCount = Swag.countOnes(significant)
+            let firstSigScanPos  = Swag.trailingZeros(significant)
+            let lastSigScanPos   = 31 - Swag.leadingZeros(significant)
+            var ctxSet           = (index == 0 or component > 0) ? 0_u32 : 2_u32
+            var lastCtx          = 1_u32
             if anySubBlockCoded
             {
                 lastCtx = previousGreater1Ctx
@@ -224,12 +194,13 @@ impl Decoder
                 ctxSet += 1
             }
 
-            var greater1Ctx  = 1_u32
-            var greater1Flag = false
-            var decodedAny   = false
-
-            position = 15
-            while position >= 0
+            let contextBase   = CtxCoeffAbsLevelGreater1Flag + ctxSet * 4 + (component > 0 ? 16_u32 : 0_u32)
+            var greater1Ctx   = 1_u32
+            var greater1Flag  = false
+            var greater1      = 0_u32
+            var firstGreater1 = 0_u32
+            var pending       = significant
+            for order in Math.min(significantCount, 8_u32)
             {
                 let scanPos = 31 - Swag.leadingZeros(pending)
                 let bit     = 1_u32 << scanPos
@@ -242,35 +213,12 @@ impl Decoder
                 greater1Flag = .cabac.decision(contextBase + Math.min(3_u32, greater1Ctx)) != 0
                 if greater1Flag
                 {
-                    if greater1Count < 8
+                    if not greater1
                     {
-                        if decodedAny and greater1Ctx > 0
-                        {
-                            greater1Ctx = greater1Flag ? 0 : greater1Ctx + 1
-                        }
-
-                        var context = ctxSet * 4 + Math.min(3_u32, greater1Ctx)
-                        if component > 0
-                        {
-                            context += 16
-                        }
-
-                        greater1Flag      = .cabac.decision(CtxCoeffAbsLevelGreater1Flag + context) != 0
-                        decodedAny        = true
-                        greater1[scanPos] = greater1Flag
-                        greater1Count     += 1
-                        if greater1Flag and lastGreater1ScanPos < 0
-                        {
-                            lastGreater1ScanPos = position
-                        }
+                        firstGreater1 = bit
                     }
 
-                    if lastSigScanPos < 0
-                    {
-                        lastSigScanPos = position
-                    }
-
-                    firstSigScanPos = position
+                    greater1 |= bit
                 }
             }
 
@@ -281,32 +229,16 @@ impl Decoder
             var greater2 = false
             if firstGreater1
             {
-                var context = ctxSet
-                if component > 0
-                {
-                    context += 4
-                }
-
+                let context = ctxSet + (component > 0 ? 4_u32 : 0_u32)
                 greater2 = .cabac.decision(CtxCoeffAbsLevelGreater2Flag + context) != 0
             }
 
-            var signs     = 0_u32
-            var signCount = 0_u32
-            position = 15
-            while position >= 0
-            {
-                let scanPos = cast(u32, position)
-                if significant[scanPos] and (not pps.signDataHiding or not signHidden or position != firstSigScanPos)
-                {
-                    signs     = (signs << 1) | .cabac.bypass()
-                    signCount += 1
-                }
+            // A hidden sign belongs to the lowest scan position, so it removes the final bin.
+            let signHidden = pps.signDataHiding and not bypass and lastSigScanPos - firstSigScanPos > 3
+            var signIndex  = significantCount - (signHidden ? 1_u32 : 0_u32)
+            let signs      = .cabac.bypassBits(signIndex)
 
-                position -= 1
-            }
-
-            // Remaining magnitude, and the levels themselves.
-            var signIndex      = signCount
+            // Decode the remaining magnitudes and write only the significant positions.
             var numSigCoeff    = 0_u32
             var sumAbsLevel    = 0_u32
             var riceParam      = 0_u32
@@ -320,13 +252,14 @@ impl Decoder
                 let bit     = 1_u32 << scanPos
                 pending ^= bit
 
-                var baseLevel = 1_u32
-                if greater1[scanPos]
+                let isFirstGreater1 = bit == firstGreater1
+                var baseLevel       = 1_u32
+                if greater1 & bit
                 {
                     baseLevel += 1
                 }
 
-                if position == lastGreater1ScanPos and greater2
+                if isFirstGreater1 and greater2
                 {
                     baseLevel += 1
                 }
@@ -335,7 +268,7 @@ impl Decoder
                 if numSigCoeff < 8
                 {
                     threshold = 2
-                    if position == lastGreater1ScanPos
+                    if isFirstGreater1
                     {
                         threshold = 3
                     }
@@ -369,10 +302,6 @@ impl Decoder
                 {
                     signIndex -= 1
                     sign      = ((signs >> signIndex) & 1) != 0
-                    if pps.signDataHiding and signHidden
-                    {
-                        sumAbsLevel += level
-                    }
                 }
 
                 let xC    = (xS << 2) + cast(u32, ScanX[2, scanIdx, scanPos])

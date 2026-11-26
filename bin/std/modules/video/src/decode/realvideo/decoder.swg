@@ -522,6 +522,7 @@ impl Decoder
             }
         }
 
+        let vectors = &.current.blocks[.blockAt].motion
         for channel in 3_s32
         {
             let chroma    = channel != 0
@@ -537,32 +538,9 @@ impl Decoder
                 let dst = plane.at(x, y)
                 if kind == Backward
                 {
-                    let part      = (y / (size / 2)) * 2 + x / (size / 2)
-                    let forward   = .current.blocks[.blockAt].motion[0][part]
-                    let backward  = .current.blocks[.blockAt].motion[1][part]
-                    let reference = .pictureKind == 2 ? &.future.planes[channel] : &.past.planes[channel]
-                    var value: s32
-                    if kind != Backward
-                    {
-                        value = motionPixel(reference, baseX + cast(s32, x), baseY + cast(s32, y), forward, channel != 0)
-                    }
-
-                    if two or kind == Backward
-                    {
-                        let next = motionPixel(&.future.planes[channel], baseX + cast(s32, x), baseY + cast(s32, y), backward, channel != 0)
-                        if kind == Backward
-                        {
-                            value = next
-                        }
-                        else if kind == Bidirectional or w1 == 8192
-                        {
-                            value = (value + next + 1) >> 1
-                        }
-                        else
-                        {
-                            value = (((w2 * value) >> 9) + ((w1 * next) >> 9) + 16) >> 5
-                        }
-                    }
+                    predictMotion(dst, plane.stride, &.future.planes[channel], x, y, size, vectors[][1][part], chroma)
+                    continue
+                }
 
                 predictMotion(dst, plane.stride, reference, x, y, size, vectors[][0][part], chroma)
                 if two
@@ -708,14 +686,20 @@ impl Decoder
                         available[pos] = true
                     }
 
-                    let shift = channel == 0 ? y * 4 + x : 16 + (channel - 1) * 4 + y * 2 + x
-                    var coeff: [16] s32
-                    if (pattern & (1_u32 << cast(u32, shift))) != 0
+                    let shift  = channel == 0 ? y * 4 + x : 16 + (channel - 1) * 4 + y * 2 + x
+                    let lumaDc = channel == 0 and is16
+                    if (pattern & (1_u32 << cast(u32, shift))) == 0
                     {
-                        coeff = .coefficients(channel == 0 ? luma : (intra ? 0 : 1), channel == 0 ? 0 : 1, dc, quant, quant)
+                        if lumaDc and dcBlock[y * 4 + x]
+                        {
+                            addDcResidual(dst, plane.stride, dcBlock[y * 4 + x])
+                        }
+
+                        continue
                     }
 
-                    if channel == 0 and is16
+                    var coeff = .coefficients(channel == 0 ? luma : (intra ? 0 : 1), channel == 0 ? 0 : 1, dc, quant, quant)
+                    if lumaDc
                     {
                         coeff[0] = dcBlock[y * 4 + x]
                     }
@@ -814,7 +798,7 @@ impl Decoder
                 end = following.start
             }
 
-            if end!{= next or end}.current.columns * .current.rows
+            if end <= next or end > .current.columns * .current.rows
             {
                 fail InvalidFormatError{"RealVideo slice has no macroblocks or exceeds the picture"}
             }

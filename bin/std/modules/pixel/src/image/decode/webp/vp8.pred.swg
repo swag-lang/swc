@@ -5,6 +5,8 @@
 //
 #global namespace Webp
 
+using Core
+
 const VP8_PRED_DC      = 0_u8
 const VP8_PRED_TM      = 1_u8
 const VP8_PRED_VE      = 2_u8
@@ -65,23 +67,21 @@ func vp8Predict4(decoder: *Vp8Decoder, y, x: s32, predictor: u8)
     switch predictor
     {
     case VP8_PRED_DC:
-        var sum   = 4 + b + c + d + e + p + q + r + s
-        let value = cast(u8, (sum / 8))
+        let total = 4 + b + c + d + e + p + q + r + s
+        let value = cast(u32, (total / 8)) * 0x01010101_u32
         for j in 4
         {
-            for i in 4
-            {
-                decoder.ybr[y + j][x + i] = value
-            }
+            cast([*] u32, &decoder.ybr[y + j][x])[0] = value
         }
 
     case VP8_PRED_TM:
+        let bytes = cast #bit(U8x16, splat(cast(const [*] u32, &decoder.ybr[y - 1][x])[0]))
+        let top   = cast #bit(S16x8, widenLow(bytes)) - cast(s16, a)
+        let zero  = splat(0_s16)
         for j in 4
         {
-            for i in 4
-            {
-                decoder.ybr[y + j][x + i] = cast(u8, vp8Clip(cast(s32, decoder.ybr[y + j][x - 1]) + decoder.ybr[y - 1][x + i] - a, 0, 255))
-            }
+            let left = cast(s16, decoder.ybr[y + j][x - 1])
+            storeLow4(&decoder.ybr[y + j][x], packUnsigned(top + left, zero))
         }
 
     case VP8_PRED_VE:
@@ -89,10 +89,11 @@ func vp8Predict4(decoder: *Vp8Decoder, y, x: s32, predictor: u8)
         let bcd = vp8Average3(b, c, d)
         let cde = vp8Average3(c, d, e)
         let def = vp8Average3(d, e, f)
-        for j in 4 {
+        for j in 4
+        {
             writeRow(&decoder.ybr[y + j][x], abc, bcd, cde, def)
-
         }
+
     case VP8_PRED_HE:
         let apq = vp8Average3(a, p, q)
         let pqr = vp8Average3(p, q, r)
@@ -184,18 +185,9 @@ func vp8Predict4(decoder: *Vp8Decoder, y, x: s32, predictor: u8)
         let pqr = vp8Average3(p, q, r)
         let qrs = vp8Average3(q, r, s)
         let rss = vp8Average3(r, s, s)
-        decoder.ybr[y + 0][x + 0] = pq
-        decoder.ybr[y + 0][x + 1] = pqr
-        decoder.ybr[y + 0][x + 2] = qr
-        decoder.ybr[y + 0][x + 3] = qrs
-        decoder.ybr[y + 1][x + 0] = qr
-        decoder.ybr[y + 1][x + 1] = qrs
-        decoder.ybr[y + 1][x + 2] = rs
-        decoder.ybr[y + 1][x + 3] = rss
-        decoder.ybr[y + 2][x + 0] = rs
-        decoder.ybr[y + 2][x + 1] = rss
-        decoder.ybr[y + 2][x + 2] = cast(u8, s)
-        decoder.ybr[y + 2][x + 3] = cast(u8, s)
+        writeRow(&decoder.ybr[y + 0][x], pq, pqr, qr, qrs)
+        writeRow(&decoder.ybr[y + 1][x], qr, qrs, rs, rss)
+        writeRow(&decoder.ybr[y + 2][x], rs, rss, cast(u8, s), cast(u8, s))
         for i in 4
         {
             decoder.ybr[y + 3][x + i] = cast(u8, s)
@@ -210,10 +202,12 @@ func vp8PredictLarge(decoder: *Vp8Decoder, y, x, size: s32, predictor: u8)
     #[Swag.Inline]
     func storeRow(destination: [*] u8, pixels: U8x16, size: s32)
     {
-        if size == 16 {
+        if size == 16
+        {
             store(destination, pixels)
         }
-        else {
+        else
+        {
             storeLow8(destination, pixels)
         }
     }
@@ -222,7 +216,8 @@ func vp8PredictLarge(decoder: *Vp8Decoder, y, x, size: s32, predictor: u8)
     func fillBlock(decoder: *Vp8Decoder, y, x, size: s32, value: u8)
     {
         let pixels = splat(value)
-        for row in size {
+        for row in size
+        {
             storeRow(&decoder.ybr[y + row][x], pixels, size)
         }
     }
@@ -230,94 +225,69 @@ func vp8PredictLarge(decoder: *Vp8Decoder, y, x, size: s32, predictor: u8)
     switch predictor
     {
     case VP8_PRED_DC:
-        var sum = size
+        var total = size
         for i in size
         {
-            sum += decoder.ybr[y - 1][x + i]
+            total += decoder.ybr[y - 1][x + i]
         }
 
         for i in size
         {
-            sum += decoder.ybr[y + i][x - 1]
+            total += decoder.ybr[y + i][x - 1]
         }
 
-        let value = cast(u8, (sum / (2 * size)))
-        for j in size
-        {
-            for i in size
-            {
-                decoder.ybr[y + j][x + i] = value
-            }
-        }
+        let value = cast(u8, (total / (2 * size)))
+        fillBlock(decoder, y, x, size, value)
 
     case VP8_PRED_TM:
-        let corner = cast(s32, decoder.ybr[y - 1][x - 1])
-        for j in size
+        let above  = &decoder.ybr[y - 1][x]
+        let bytes  = size == 16 ? load(above) : cast #bit(U8x16, splat(cast(const [*] u64, above)[0]))
+        let corner = cast(s16, decoder.ybr[y - 1][x - 1])
+        let low    = cast #bit(S16x8, widenLow(bytes)) - corner
+        let high   = cast #bit(S16x8, widenHigh(bytes)) - corner
+        for row in size
         {
-            for i in size
-            {
-                decoder.ybr[y + j][x + i] = cast(u8, vp8Clip(cast(s32, decoder.ybr[y + j][x - 1]) + decoder.ybr[y - 1][x + i] - corner, 0, 255))
-            }
+            let left = cast(s16, decoder.ybr[y + row][x - 1])
+            storeRow(&decoder.ybr[y + row][x], packUnsigned(low + left, high + left), size)
         }
 
     case VP8_PRED_VE:
-        for j in size
+        let above  = &decoder.ybr[y - 1][x]
+        let pixels = size == 16 ? load(above) : cast #bit(U8x16, splat(cast(const [*] u64, above)[0]))
+        for row in size
         {
-            for i in size
-            {
-                decoder.ybr[y + j][x + i] = decoder.ybr[y - 1][x + i]
-            }
+            storeRow(&decoder.ybr[y + row][x], pixels, size)
         }
 
     case VP8_PRED_HE:
-        for j in size
+        for row in size
         {
-            for i in size
-            {
-                decoder.ybr[y + j][x + i] = decoder.ybr[y + j][x - 1]
-            }
+            let pixels = splat(decoder.ybr[y + row][x - 1])
+            storeRow(&decoder.ybr[y + row][x], pixels, size)
         }
 
     case VP8_PRED_DC_TOP:
-        var sum = size / 2
+        var total = size / 2
         for i in size
         {
-            sum += decoder.ybr[y + i][x - 1]
+            total += decoder.ybr[y + i][x - 1]
         }
 
-        let value = cast(u8, (sum / size))
-        for j in size
-        {
-            for i in size
-            {
-                decoder.ybr[y + j][x + i] = value
-            }
-        }
+        let value = cast(u8, (total / size))
+        fillBlock(decoder, y, x, size, value)
 
     case VP8_PRED_DC_LEFT:
-        var sum = size / 2
+        var total = size / 2
         for i in size
         {
-            sum += decoder.ybr[y - 1][x + i]
+            total += decoder.ybr[y - 1][x + i]
         }
 
-        let value = cast(u8, (sum / size))
-        for j in size
-        {
-            for i in size
-            {
-                decoder.ybr[y + j][x + i] = value
-            }
-        }
+        let value = cast(u8, (total / size))
+        fillBlock(decoder, y, x, size, value)
 
     case VP8_PRED_DC_NONE:
-        for j in size
-        {
-            for i in size
-            {
-                decoder.ybr[y + j][x + i] = 0x80
-            }
-        }
+        fillBlock(decoder, y, x, size, 0x80)
     }
 }
 
@@ -329,7 +299,7 @@ func vp8ParsePredY16(decoder: *Vp8Decoder, mbX: s32)
     {
         predictor = partition.readBit(163) ? VP8_PRED_VE : VP8_PRED_DC
     }
-    else if not decoder.firstPart.readBit(128)
+    else if not partition.readBit(128)
     {
         predictor = VP8_PRED_HE
     }
@@ -347,15 +317,16 @@ func vp8ParsePredY16(decoder: *Vp8Decoder, mbX: s32)
 
 func vp8ParsePredC8(decoder: *Vp8Decoder)
 {
-    if not decoder.firstPart.readBit(142)
+    let partition = &decoder.firstPart
+    if not partition.readBit(142)
     {
         decoder.predC8 = VP8_PRED_DC
     }
-    else if not decoder.firstPart.readBit(114)
+    else if not partition.readBit(114)
     {
         decoder.predC8 = VP8_PRED_VE
     }
-    else if not decoder.firstPart.readBit(183)
+    else if not partition.readBit(183)
     {
         decoder.predC8 = VP8_PRED_HE
     }
@@ -368,84 +339,50 @@ func vp8ParsePredC8(decoder: *Vp8Decoder)
 #[Swag.Inline]
 private func vp8ReadPredY4(partition: *Vp8Partition, probability: const [*] u8)->u8
 {
-    if not partition.readBit(probability[0]) {
+    if not partition.readBit(probability[0])
+    {
         return VP8_PRED_DC
     }
-    if not partition.readBit(probability[1]) {
+
+    if not partition.readBit(probability[1])
+    {
         return VP8_PRED_TM
     }
-    if not partition.readBit(probability[2]) {
-        return VP8_PRED_VE
 
+    if not partition.readBit(probability[2])
+    {
+        return VP8_PRED_VE
     }
+
     if not partition.readBit(probability[3])
     {
-        if not partition.readBit(probability[4]) {
+        if not partition.readBit(probability[4])
+        {
             return VP8_PRED_HE
         }
+
         return partition.readBit(probability[5]) ? VP8_PRED_VR : VP8_PRED_RD
     }
 
-    if not partition.readBit(probability[6]) {
+    if not partition.readBit(probability[6])
+    {
         return VP8_PRED_LD
     }
-    if not partition.readBit(probability[7]) {
+
+    if not partition.readBit(probability[7])
+    {
         return VP8_PRED_VL
     }
+
     return partition.readBit(probability[8]) ? VP8_PRED_HU : VP8_PRED_HD
 }
 
 func vp8ParsePredY4(decoder: *Vp8Decoder, mbX: s32)
 {
-    for j in 4
-    {
-        var predictor = decoder.leftMb.predictor[j]
-        for i in 4
-        {
-            let probability = cast(u64, (decoder.upMb[mbX].predictor[i] * 10 + predictor)) * 9
-            if not decoder.firstPart.readBit(VP8_PRED_PROB[probability + 0])
-            {
-                predictor = VP8_PRED_DC
-            }
-            else if not decoder.firstPart.readBit(VP8_PRED_PROB[probability + 1])
-            {
-                predictor = VP8_PRED_TM
-            }
-            else if not decoder.firstPart.readBit(VP8_PRED_PROB[probability + 2])
-            {
-                predictor = VP8_PRED_VE
-            }
-            else if not decoder.firstPart.readBit(VP8_PRED_PROB[probability + 3])
-            {
-                if not decoder.firstPart.readBit(VP8_PRED_PROB[probability + 4])
-                {
-                    predictor = VP8_PRED_HE
-                }
-                else if not decoder.firstPart.readBit(VP8_PRED_PROB[probability + 5])
-                {
-                    predictor = VP8_PRED_RD
-                }
-                else
-                {
-                    predictor = VP8_PRED_VR
-                }
-            }
-            else if not decoder.firstPart.readBit(VP8_PRED_PROB[probability + 6])
-            {
-                predictor = VP8_PRED_LD
-            }
-            else if not decoder.firstPart.readBit(VP8_PRED_PROB[probability + 7])
-            {
-                predictor = VP8_PRED_VL
-            }
-            else if not decoder.firstPart.readBit(VP8_PRED_PROB[probability + 8])
-            {
-                predictor = VP8_PRED_HD
-            }
-            else
-            {
-                predictor = VP8_PRED_HU
-            }
+    let partition = &decoder.firstPart
+    let above     = cast([*] u8, &decoder.upMb[mbX].predictor[0])
+    let left      = cast([*] u8, &decoder.leftMb.predictor[0])
+    let modes     = cast([*] u32, &decoder.predY4[0][0])
 
     // Each top mode has ten left contexts of nine probabilities.
     let table = cast(const [*] u8, &VP8_PRED_PROB[0])

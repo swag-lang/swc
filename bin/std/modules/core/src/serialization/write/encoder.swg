@@ -424,9 +424,12 @@ impl Encoder
         let appending = ConcatBuffer.offsetOf(start) == result.count()
         defer #fail
         {
-            if appending do
+            if appending
+            {
                 result.truncate(start)
-            #static if T == Write.Xml do
+            }
+            #static if T == Write.Xml
+            {
                 .serializer.abortWrite()
             }
         }

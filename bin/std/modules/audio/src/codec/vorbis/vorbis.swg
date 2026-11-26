@@ -11,6 +11,14 @@ internal const MaxChannels    = 8_u32
 private const MinBlockSize    = 64_u32
 private const MaxBlockSize    = 8192_u32
 private const MaxCodewordBits = 32_u32
+private const MaxPageWorkers  = 3_u64
+
+// Vorbis transmits a codeword's first bit in the low bit of the packet window.
+private const PrefixBits  = 8_u32
+private const PrefixCount = 1_u32 << PrefixBits
+private const PrefixMask  = PrefixCount - 1
+private const LeafBits    = 4_u32
+private const LeafMask    = (1 << LeafBits) - 1
 
 // Speaker masks for the channel counts the format defines, in WAVE order.
 private const SpeakerMasks: [9] u32 = [0, 0x0004, 0x0003, 0x0007, 0x0033, 0x0037, 0x003F, 0x070F, 0x063F]
@@ -107,8 +115,9 @@ private struct Codebook
     usedEntries: u32
     lookupType:  u32
     lengths:     Array!{u8}
-    children:    Array!{s32}     // Two per node; a positive value names a node, a negative one a leaf holding entry `-value - 1`, zero is unassigned.
-    values:      Array!{f32}     // Lookup vectors, `dimensions` values per entry, empty without a lookup.
+    children:    Array!{s32}           // Two per node; a positive value names a node, a negative one a leaf holding entry `-value - 1`, zero is unassigned.
+    values:      Array!{f32}           // Lookup vectors, `dimensions` values per entry, empty without a lookup.
+    prefixes:    [PrefixCount] s32     // Continuation nodes, packed leaves, or zero for unassigned.
 }
 
 private impl Codebook
@@ -160,8 +169,8 @@ private impl Codebook
     // already visited. The path records node indices for the next codeword.
     mtd insert(codeword, length, entry, common: u32, path: *[33] u32) fail
     {
-        var node = 0_u32
-        var bit  = length
+        var node = path[][common]
+        var bit  = length - common
         while bit
         {
             bit -= 1
@@ -221,8 +230,13 @@ private impl Codebook
                 fail InvalidFormatError{"Vorbis codebook lengths overpopulate the tree"}
             }
 
-            try .insert(entry, bits, cast(u32, index))
-            .usedEntries += 1
+            let aligned = entry << (32 - bits)
+            let shared  = cast(u32, Swag.leadingZeros(previousCodeword ^ aligned))
+            let common  = Math.min(shared, previousDepth, bits - 1)
+            try .insert(entry, bits, cast(u32, index), common, &path)
+            previousCodeword = aligned
+            previousDepth    = bits - 1
+            .usedEntries     += 1
 
             // Advance the marker of this length, carrying into the shorter ones that shared the branch.
             var level = bits
@@ -313,9 +327,27 @@ private impl Codebook
     #[Swag.Inline]
     mtd const decode(reader: *BitReader)->s32
     {
-        if not .usedEntries
+        let position = reader.bitPos
+        let offset   = position >> 3
+        if reader.size - offset >= 2
         {
-            return -1
+            let data = unwrap reader.data
+            var window: u16
+            Memory.copy(&window, data + offset, #sizeof(u16))
+            let prefix = (cast(u32, Math.littleEndianToNative(window)) >> cast(u32, position & 7)) & PrefixMask
+            let child  = .prefixes[prefix]
+            if child < 0
+            {
+                let leaf = -child
+                reader.bitPos = position + cast(u64, leaf & LeafMask)
+                return leaf >> LeafBits
+            }
+
+            if child
+            {
+                reader.bitPos = position + PrefixBits
+                return .decodeTree(reader, cast(u32, child), PrefixBits)
+            }
         }
 
         return .decodeTree(reader, 0, 0)
@@ -323,8 +355,11 @@ private impl Codebook
 
     mtd const decodeTree(reader: *BitReader, startNode, depth: u32)->s32
     {
-        if not .usedEntries do
+        if not .usedEntries
+        {
             return -1
+        }
+
         let children = .children.storage()
         var node     = startNode
         let position = reader.bitPos
@@ -343,9 +378,11 @@ private impl Codebook
                     reader.bitPos = position + step - depth + 1
                     return child < 0 ? -child - 1 : -1
                 }
-                node  = cast(u32, child)
+
+                node = cast(u32, child)
                 bits >>= 1
             }
+
             reader.bitPos = position + MaxCodewordBits - depth
             return -1
         }
@@ -358,7 +395,7 @@ private impl Codebook
                 return -1
             }
 
-            let child = .children[cast(u64, node) * 2 + bit]
+            let child = children[cast(u64, node) * 2 + bit]
             if child < 0
             {
                 return -child - 1
@@ -475,8 +512,10 @@ private impl Codebook
         }
 
         try .buildTree()
-        if prepareSamples do
+        if prepareSamples
+        {
             .buildPrefixes()
+        }
 
         .lookupType = reader.read(4)
         if not .lookupType
@@ -504,13 +543,16 @@ private impl Codebook
         if not prepareSamples
         {
             // Framing still validates the lookup length but only reads modes from packets.
-            if reader.overran do
+            if reader.overran
+            {
                 fail InvalidFormatError{"Vorbis setup header is truncated"}
+            }
+
             reader.bitPos += quantizedBits
             return
         }
 
-        var quant: Array'f32
+        var quant: Array!{f32}
         quant.resize(quantized)
         for index in quantized
         {
@@ -526,8 +568,8 @@ private impl Codebook
         .values.resize(valueCount)
         for entry in .entries
         {
-            var last    = 0.0_f32
-            var divisor = 1_u64
+            var last   = 0.0_f32
+            var digits = entry
             for dimension in .dimensions
             {
                 var index: u64
@@ -806,8 +848,8 @@ private impl Residue
                 bits |= reader.read(5) << 3
             }
 
-            .cascade[cls] = bits
-            .stages       = Math.max(.stages, ilog(bits))
+            cascade[cls] = bits
+            .stages      = Math.max(.stages, ilog(bits))
         }
 
         for cls in .classifications
@@ -815,7 +857,7 @@ private impl Residue
             for stage in 8
             {
                 .books[cls, stage] = -1
-                if .cascade[cls] & (1_u32 << stage)
+                if cascade[cls] & (1_u32 << stage)
                 {
                     let book = reader.read(8)
                     if book >= codebooks.count
@@ -836,6 +878,38 @@ private impl Residue
         if reader.overran
         {
             fail InvalidFormatError{"Vorbis setup header is truncated"}
+        }
+
+        let book = &codebooks[.classbook]
+        .partitionValues = 1
+        for book.dimensions
+        {
+            if .partitionValues > Swag.U32.Max
+            {
+                break
+            }
+
+            .partitionValues *= .classifications
+        }
+
+        // Decode small classification words once. Large sparse books use the same base
+        // conversion while reading the packet, keeping setup allocation bounded.
+        let entries = Math.min(cast(u64, book.entries), .partitionValues)
+        let count   = entries * book.dimensions
+        if count <= 4096
+        {
+            .classDigits.resize(count)
+            for entry in entries
+            {
+                var value   = entry
+                var divisor = .partitionValues / .classifications
+                for digit in book.dimensions
+                {
+                    .classDigits[entry * book.dimensions + digit] = cast(u8, value / divisor)
+                    value   %= divisor
+                    divisor = Math.max(1_u64, divisor / .classifications)
+                }
+            }
         }
     }
 }
@@ -961,15 +1035,17 @@ private struct Codec
     saved:        [MaxChannels] Array!{f32}     // Right half of the previous windowed block.
     previousSize: u32                           // Zero before the first block has been decoded.
 
-    floorPosts:   [MaxChannels] Array!{s32}      // Floor 1 post values of every channel.
-    floorUsed:    [MaxChannels] Array!{bool}     // Whether each post takes part in the rendering.
-    floorCurve:   [MaxChannels] Array!{f32}      // Floor 0 coefficients, with the amplitude last.
-    floorPresent: [MaxChannels] bool             // The channel's floor was coded in the current block.
-    nonzero:      [MaxChannels] bool             // The channel carries residue, coded or through coupling.
-    classes:      Array!{u32}                    // Residue partition classes of the current pass.
-    entries:      Array!{s32}                    // Codeword entries of one vector-sliced partition.
-    output:       Array!{s16}                    // Interleaved samples of the run being decoded.
-    packet:       Array!{u8}                     // Packet being assembled across pages.
+    floorPosts:      [MaxChannels] Array!{s32}       // Floor 1 post values of every channel.
+    floorUsed:       [MaxChannels] Array!{bool}      // Whether each post takes part in the rendering.
+    floorCurve:      [MaxChannels] Array!{f32}       // Floor 0 coefficients, with the amplitude last.
+    floorPresent:    [MaxChannels] bool              // The channel's floor was coded in the current block.
+    nonzero:         [MaxChannels] bool              // The channel carries residue, coded or through coupling.
+    classes:         Array!{u32}                     // Residue partition classes of the current pass.
+    entries:         Array!{s32}                     // Codeword entries of one vector-sliced partition.
+    output:          Array!{s16}                     // Interleaved samples of the run being decoded.
+    packet:          Array!{u8}                      // Packet being assembled across pages.
+    pageWorkers:     [MaxPageWorkers] PageWorker     // Independent overlap state for later packet batches.
+    pageWorkerCount: u64
 
     serial:                   u32
     firstAudioSequence:       u32
@@ -1064,8 +1140,10 @@ private impl Codec
             fail InvalidFormatError{"Vorbis stream declares invalid block sizes"}
         }
 
-        if not prepareSamples do
+        if not prepareSamples
+        {
             return
+        }
 
         for which in 2
         {
@@ -1108,8 +1186,10 @@ private impl Codec
 
         let bookCount = reader.read(8) + 1
         .codebooks.resize(bookCount)
-        for index in bookCount do
+        for index in bookCount
+        {
             try .codebooks[index].parse(&reader, prepareSamples)
+        }
 
         let timeCount = reader.read(6) + 1
         for timeCount
@@ -1170,6 +1250,7 @@ private impl Codec
     mtd readConfig(config: const [..] u8, prepareSamples = true) fail
     {
         var headers: [3] Array!{u8}
+        var identification, setup: const [..] u8
         if config.count >= 4 and
            config[0] == 'O' and
            config[1] == 'g' and
@@ -1251,6 +1332,9 @@ private impl Codec
             {
                 fail InvalidFormatError{"Vorbis stream ends inside its header packets"}
             }
+
+            identification = headers[0].toSlice()
+            setup = headers[2].toSlice()
         }
         else if config.count >= 3 and config[0] == 2
         {
@@ -1585,9 +1669,10 @@ private impl Codec
             lowY = highY
         }
 
-        for line in highX until half
+        let gain = Floor1InverseDb[cast(u32, lowY)]
+        for line in highX until limit
         {
-            spectrum[line] *= Floor1InverseDb[cast(u32, lowY)]
+            spectrum[line] *= gain
         }
     }
 
@@ -1600,10 +1685,14 @@ private impl Codec
             try .decodeResidueKind!{0, false, false}(residue, reader, list, half)
 
         case 1:
-            if .channels >= 3 do
-                try .decodeResidueKind'(1, false, true)(residue, reader, list, half)
-            else do
-                try .decodeResidueKind'(1, false, false)(residue, reader, list, half)
+            if .channels >= 3
+            {
+                try .decodeResidueKind!{1, false, true}(residue, reader, list, half)
+            }
+            else
+            {
+                try .decodeResidueKind!{1, false, false}(residue, reader, list, half)
+            }
 
         default:
             if list.count == 2
@@ -1635,15 +1724,13 @@ private impl Codec
             return
         }
 
-        var vectors = used
-        if residue.kind == 2
+        let vectors = Kind == 2 ? 1_u32 : used
+        #static if Kind == 2
         {
             for channel, index in list
             {
                 active[index] = channel
             }
-
-            vectors = 1
         }
 
         let width      = Stereo ? 2_u64 : (Kind == 2 ? cast(u64, list.count) : 1)
@@ -1659,16 +1746,7 @@ private impl Codec
         let classbook       = &.codebooks[residue.classbook]
         let wordSize        = cast(u64, classbook.dimensions)
         let words           = (partitions + wordSize - 1) / wordSize
-        var partitionValues = 1_u64
-        for wordSize
-        {
-            if partitionValues > Swag.U32.Max
-            {
-                break
-            }
-
-            partitionValues *= residue.classifications
-        }
+        let partitionValues = residue.partitionValues
 
         .classes.resize(vectors * words * wordSize)
         let classes     = .classes.storage()
@@ -1689,16 +1767,24 @@ private impl Codec
                             return
                         }
 
-                        var value   = cast(u64, decoded)
-                        var divisor = partitionValues / residue.classifications
-                        for digit in wordSize
+                        let target = classes + (vector * words + word) * wordSize
+                        if residue.classDigits.count
                         {
-                            .classes[(vector * words + word) * wordSize + digit] = cast(u32, (value / divisor))
-                            value   %= divisor
-                            divisor /= residue.classifications
-                            if not divisor
+                            let digits = classDigits + cast(u64, decoded) * wordSize
+                            for digit in wordSize
                             {
-                                divisor = 1
+                                target[digit] = digits[digit]
+                            }
+                        }
+                        else
+                        {
+                            var value   = cast(u64, decoded)
+                            var divisor = partitionValues / residue.classifications
+                            for digit in wordSize
+                            {
+                                target[digit] = cast(u32, value / divisor)
+                                value         %= divisor
+                                divisor       = Math.max(1_u64, divisor / residue.classifications)
                             }
                         }
                     }
@@ -1710,22 +1796,37 @@ private impl Codec
                     {
                         let cls  = classes[(vector * words + word) * wordSize + digit]
                         let book = residue.books[cls, pass]
-                        if (residue.cascade[cls] & (1_u32 << pass)) and book >= 0
+                        if book >= 0
                         {
                             let offset   = limitBegin + partition * residue.partitionSize
                             let codebook = &.codebooks[cast(u32, book)]
                             var complete: bool
-                            if residue.kind == 0
+                            #static if Kind == 0
                             {
                                 complete = .decodeInterleaved(codebook, reader, .spectrum[active[vector]].storage() + offset, residue.partitionSize)
                             }
-                            else if residue.kind == 1
+                            else if Kind == 1
                             {
-                                complete = .decodeSequential(codebook, reader, .spectrum[active[vector]].storage() + offset, residue.partitionSize)
+                                let target = .spectrum[active[vector]].storage() + offset
+                                #static if Surround
+                                {
+                                    complete = .decodePackedSequential(codebook, reader, target, residue.partitionSize)
+                                }
+                                else
+                                {
+                                    complete = .decodeSequential(codebook, reader, target, residue.partitionSize)
+                                }
                             }
                             else
                             {
-                                complete = .decodeAcrossChannels(codebook, reader, active, cast(u32, list.count), offset, residue.partitionSize)
+                                if not Stereo and width == 5 and codebook.dimensions == 5
+                                {
+                                    complete = .decodeFiveAcrossChannels(codebook, reader, active, offset, residue.partitionSize)
+                                }
+                                else
+                                {
+                                    complete = .decodeAcrossChannels!{Stereo}(codebook, reader, active, cast(u32, list.count), offset, residue.partitionSize)
+                                }
                             }
 
                             if not complete
@@ -1815,8 +1916,200 @@ private impl Codec
     // An aligned partition can add one whole lookup vector at a time.
     mtd(Width: u32) decodeWholeVectors(book: *Codebook, reader: *BitReader, target: [*] f32, count: u32)->bool
     {
-        let limit   = (offset + count) / width
-        var index   = offset / width
+        let values       = book.values.storage()
+        let fastBoundary = reader.size < 8 ? 0 : (reader.size - 7) * 8
+        var output       = target
+        var cursorOffset = reader.bitPos
+        var windowBits   = 0_u64
+        var available    = 0_u32
+        for count / Width
+        {
+            if available < PrefixBits and cursorOffset < fastBoundary
+            {
+                let byteAt    = cursorOffset >> 3
+                let alignment = cast(u32, cursorOffset & 7)
+                var rawWindow: u64
+                Memory.copy(&rawWindow, unwrap reader.data + byteAt, #sizeof(u64))
+                windowBits = Math.littleEndianToNative(rawWindow) >> alignment
+                available  = 64 - alignment
+            }
+
+            let prefixLeaf = available >= PrefixBits ? book.prefixes[windowBits & PrefixMask] : 0
+            var entry: s32
+            if prefixLeaf < 0
+            {
+                let leaf = -prefixLeaf
+                let size = cast(u32, leaf & LeafMask)
+                windowBits   >>= size
+                available    -= size
+                cursorOffset += size
+                entry        = leaf >> LeafBits
+            }
+            else
+            {
+                reader.bitPos = cursorOffset
+                if prefixLeaf > 0
+                {
+                    reader.bitPos += PrefixBits
+                    entry         = book.decodeTree(reader, cast(u32, prefixLeaf), PrefixBits)
+                }
+                else
+                {
+                    entry = book.decode(reader)
+                }
+
+                if entry < 0
+                {
+                    return false
+                }
+
+                cursorOffset = reader.bitPos
+                available    = 0
+            }
+
+            let vector = values + cast(u64, entry) * Width
+            #static if Width == 2
+            {
+                output[0] += vector[0]
+                output[1] += vector[1]
+            }
+            else
+            {
+                Simd.store(output, Simd.load(output) + Simd.load(vector))
+            }
+
+            output += Width
+        }
+
+        reader.bitPos = cursorOffset
+        return true
+    }
+
+    // A five-value codeword fills one spectral bin in a five-channel submap.
+    mtd decodeFiveAcrossChannels(book: *Codebook, reader: *BitReader, active: const [MaxChannels] u32, partitionOffset: u64, count: u32)->bool
+    {
+        let first    = .spectrum[active[0]].storage()
+        let second   = .spectrum[active[1]].storage()
+        let third    = .spectrum[active[2]].storage()
+        let fourth   = .spectrum[active[3]].storage()
+        let fifth    = .spectrum[active[4]].storage()
+        let values   = book.values.storage()
+        let binLimit = (partitionOffset + count) / 5
+        let firstBin = partitionOffset / 5
+        for bin in firstBin until binLimit
+        {
+            let entry = book.decode(reader)
+            if entry < 0
+            {
+                return false
+            }
+
+            let vector = values + cast(u64, entry) * 5
+            first[bin]  += vector[0]
+            second[bin] += vector[1]
+            third[bin]  += vector[2]
+            fourth[bin] += vector[3]
+            fifth[bin]  += vector[4]
+        }
+
+        return true
+    }
+
+    // Residue type 2: the channels are interleaved into one vector before partitioning.
+    mtd(Stereo: bool) decodeAcrossChannels(book: *Codebook, reader: *BitReader, active: const [MaxChannels] u32, width: u32, offset: u64, count: u32)->bool
+    {
+        let channels = Stereo ? 2_u32 : width
+        let limit    = (offset + count) / channels
+        var index    = offset / channels
+        let values   = book.values.storage()
+
+        // A stereo codeword with an even dimension contains whole left/right pairs.
+        if Stereo and (book.dimensions & 1) == 0
+        {
+            let left  = .spectrum[active[0]].storage()
+            let right = .spectrum[active[1]].storage()
+            let pairs = book.dimensions / 2
+            if pairs == 1
+            {
+                while index < limit
+                {
+                    let entry = book.decodeStereo(reader)
+                    if entry < 0
+                    {
+                        return false
+                    }
+
+                    let vector = values + cast(u64, entry) * 2
+                    left[index]  += vector[0]
+                    right[index] += vector[1]
+                    index        += 1
+                }
+
+                return true
+            }
+
+            if pairs == 2
+            {
+                while index + 2 <= limit
+                {
+                    let entry = book.decodeStereo(reader)
+                    if entry < 0
+                    {
+                        return false
+                    }
+
+                    let vector = values + cast(u64, entry) * 4
+                    left[index]      += vector[0]
+                    right[index]     += vector[1]
+                    left[index + 1]  += vector[2]
+                    right[index + 1] += vector[3]
+                    index            += 2
+                }
+            }
+
+            if pairs == 4
+            {
+                while index + 4 <= limit
+                {
+                    let entry = book.decodeStereo(reader)
+                    if entry < 0
+                    {
+                        return false
+                    }
+
+                    let vector      = values + cast(u64, entry) * 8
+                    let first       = cast #bit(Simd.U32x4, Simd.load(vector))
+                    let second      = cast #bit(Simd.U32x4, Simd.load(vector + 4))
+                    let leftValues  = cast #bit(Simd.F32x4, Simd.deinterleaveEven(first, second))
+                    let rightValues = cast #bit(Simd.F32x4, Simd.deinterleaveOdd(first, second))
+                    Simd.store(left + index, Simd.load(left + index) + leftValues)
+                    Simd.store(right + index, Simd.load(right + index) + rightValues)
+                    index += 4
+                }
+            }
+
+            while index < limit
+            {
+                let entry = book.decodeStereo(reader)
+                if entry < 0
+                {
+                    return false
+                }
+
+                let vector = values + cast(u64, entry) * book.dimensions
+                let frames = Math.min(cast(u64, pairs), limit - index)
+                for frame in frames
+                {
+                    left[index + frame]  += vector[2 * frame]
+                    right[index + frame] += vector[2 * frame + 1]
+                }
+
+                index += frames
+            }
+
+            return true
+        }
+
         var channel = 0_u32
         while index < limit
         {
@@ -1826,6 +2119,7 @@ private impl Codec
                 return false
             }
 
+            let vector = values + cast(u64, entry) * book.dimensions
             for dimension in book.dimensions where index < limit
             {
                 .spectrum[active[channel]][index] += vector[dimension]
@@ -1940,31 +2234,14 @@ private impl Codec
             var line = 0_u32
             while line < bins
             {
-                let magnitude = magnitudes[line]
-                let angle     = angles[line]
-                if magnitude > 0
-                {
-                    if angle > 0
-                    {
-                        magnitudes[line] = magnitude
-                        angles[line]     = magnitude - angle
-                    }
-                    else
-                    {
-                        angles[line]     = magnitude
-                        magnitudes[line] = magnitude + angle
-                    }
-                }
-                else if angle > 0
-                {
-                    magnitudes[line] = magnitude
-                    angles[line]     = magnitude + angle
-                }
-                else
-                {
-                    angles[line]     = magnitude
-                    magnitudes[line] = magnitude - angle
-                }
+                let magnitude     = Simd.load(magnitudes + line)
+                let angle         = Simd.load(angles + line)
+                let positiveAngle = angle > zero
+                let addAngle      = (magnitude > zero) ^ positiveAngle
+                let combined      = Simd.select(addAngle, magnitude + angle, magnitude - angle)
+                Simd.store(magnitudes + line, Simd.select(positiveAngle, magnitude, combined))
+                Simd.store(angles + line, Simd.select(positiveAngle, combined, magnitude))
+                line += 4
             }
         }
 
@@ -1984,7 +2261,29 @@ private impl Codec
             }
             else
             {
-                .applyFloor1(floor, channel, half)
+                var limit = activeBins[channel]
+                if .channels == 8
+                {
+                    // The floor's positive gain leaves a positive zero unchanged.
+                    let spectrum = .spectrum[channel].storage()
+                    while limit >= 4
+                    {
+                        let bits = cast #bit(Simd.U64x2, Simd.load(spectrum + (limit - 4)))
+                        if bits[0] | bits[1]
+                        {
+                            break
+                        }
+
+                        limit -= 4
+                    }
+
+                    while limit and not cast #bit(u32, spectrum[limit - 1])
+                    {
+                        limit -= 1
+                    }
+                }
+
+                .applyFloor1(floor, channel, limit)
             }
         }
 
@@ -2023,28 +2322,8 @@ private impl Codec
         for channel in .channels
         {
             .transforms[which].inverse(.spectrum[channel].storage(), time)
-            for index in leftStart
-            {
-                time[index] = 0
-            }
-
-            for index in leftStart until leftEnd
-            {
-                time[index] *= .slopes[leftSlope][index - leftStart]
-            }
-
-            let rightLength = rightEnd - rightStart
-            for index in rightStart until rightEnd
-            {
-                time[index] *= .slopes[rightSlope][rightLength - 1 - (index - rightStart)]
-            }
-
-            for index in rightEnd until n
-            {
-                time[index] = 0
-            }
-
-            if outputFrames
+            let saved = .saved[channel].storage()
+            if not fusedLeft
             {
                 if leftStart
                 {
@@ -2054,20 +2333,10 @@ private impl Codec
                 var index = leftStart
                 while index < leftEnd
                 {
-                    var value         = 0.0_f32
-                    let previousIndex = previous / 2 + frame
-                    if previousIndex < previous
-                    {
-                        value += saved[previousIndex - previous / 2]
-                    }
-
-                    let current = cast(s64, frame) + shift
-                    if current >= 0 and current < cast(s64, n)
-                    {
-                        value += time[cast(u64, current)]
-                    }
-
-                    .output[(base + frame) * .channels + slot] = cast(s16, Math.clamp(Math.round(cast(f64, value) * 32767.0), -32768.0, 32767.0))
+                    let samples = Simd.load(time + index)
+                    let gain    = Simd.load(left + (index - leftStart))
+                    Simd.store(time + index, samples * gain)
+                    index += 4
                 }
             }
 
@@ -2189,15 +2458,15 @@ private impl Codec
         {
             .interleaveEightPcm(pcm, outputFrames)
         }
-        elif .channels == 3 and outputFrames
+        else if .channels == 3 and outputFrames
         {
             .interleaveThreePcm(pcm, outputFrames)
         }
-        elif .channels == 5 and outputFrames
+        else if .channels == 5 and outputFrames
         {
             .interleaveFivePcm(pcm, outputFrames)
         }
-        elif .channels == 7 and outputFrames
+        else if .channels == 7 and outputFrames
         {
             .interleaveSevenPcm(pcm, outputFrames)
         }
@@ -2213,19 +2482,19 @@ private impl Codec
         let right  = cast(const [*] u16, .spectrum[2].storage())
         let center = cast(const [*] u16, .spectrum[1].storage())
         let out    = cast([*] u16, pcm)
-        var frame  = 0'u64
+        var frame  = 0_u64
         while frame < frames
         {
-            let a = Simd.load(left + frame)
-            let b = Simd.load(right + frame)
-            let c = Simd.load(center + frame)
-            let low = Simd.interleaveLow(a, b)
-            let high = Simd.interleaveHigh(a, b)
-            let middle = Simd.permute2(low, high, cast(Simd.U16x8, [6'u16, 7, 8, 9, 10, 11, 12, 13]))
+            let a      = Simd.load(left + frame)
+            let b      = Simd.load(right + frame)
+            let c      = Simd.load(center + frame)
+            let low    = Simd.interleaveLow(a, b)
+            let high   = Simd.interleaveHigh(a, b)
+            let middle = Simd.permute2(low, high, cast(Simd.U16x8, [6_u16, 7, 8, 9, 10, 11, 12, 13]))
             let target = out + 3 * frame
-            Simd.store(target, Simd.permute2(low, c, cast(Simd.U16x8, [0'u16, 1, 8, 2, 3, 9, 4, 5])))
-            Simd.store(target + 8, Simd.permute2(middle, c, cast(Simd.U16x8, [10'u16, 0, 1, 11, 2, 3, 12, 4])))
-            Simd.store(target + 16, Simd.permute2(high, c, cast(Simd.U16x8, [3'u16, 13, 4, 5, 14, 6, 7, 15])))
+            Simd.store(target, Simd.permute2(low, c, cast(Simd.U16x8, [0_u16, 1, 8, 2, 3, 9, 4, 5])))
+            Simd.store(target + 8, Simd.permute2(middle, c, cast(Simd.U16x8, [10_u16, 0, 1, 11, 2, 3, 12, 4])))
+            Simd.store(target + 16, Simd.permute2(high, c, cast(Simd.U16x8, [3_u16, 13, 4, 5, 14, 6, 7, 15])))
             frame += 8
         }
     }
@@ -2236,10 +2505,10 @@ private impl Codec
         func storeFrames(target: [*] u16, first, second, last: Simd.U16x8)
         {
             // Insert the fifth channel after each of four already interleaved pairs of pairs.
-            let middle = Simd.permute2(first, second, cast(Simd.U16x8, [7'u16, 8, 9, 10, 11, 12, 0, 0]))
-            let tail   = Simd.permute2(second, last, cast(Simd.U16x8, [5'u16, 6, 7, 11, 0, 0, 0, 0]))
-            Simd.store(target, Simd.permute2(first, last, cast(Simd.U16x8, [0'u16, 1, 2, 3, 8, 4, 5, 6])))
-            Simd.store(target + 8, Simd.permute2(middle, last, cast(Simd.U16x8, [0'u16, 9, 1, 2, 3, 4, 10, 5])))
+            let middle = Simd.permute2(first, second, cast(Simd.U16x8, [7_u16, 8, 9, 10, 11, 12, 0, 0]))
+            let tail   = Simd.permute2(second, last, cast(Simd.U16x8, [5_u16, 6, 7, 11, 0, 0, 0, 0]))
+            Simd.store(target, Simd.permute2(first, last, cast(Simd.U16x8, [0_u16, 1, 2, 3, 8, 4, 5, 6])))
+            Simd.store(target + 8, Simd.permute2(middle, last, cast(Simd.U16x8, [0_u16, 9, 1, 2, 3, 4, 10, 5])))
             Simd.storeLow8(cast([*] u8, target + 16), cast #bit(Simd.U8x16, tail))
         }
 
@@ -2249,19 +2518,19 @@ private impl Codec
         let fourth = cast(const [*] u16, .spectrum[3].storage())
         let fifth  = cast(const [*] u16, .spectrum[4].storage())
         let out    = cast([*] u16, pcm)
-        var frame  = 0'u64
+        var frame  = 0_u64
         while frame < frames
         {
-            let a = Simd.load(first + frame)
-            let b = Simd.load(second + frame)
-            let c = Simd.load(third + frame)
-            let d = Simd.load(fourth + frame)
-            let e = Simd.load(fifth + frame)
+            let a      = Simd.load(first + frame)
+            let b      = Simd.load(second + frame)
+            let c      = Simd.load(third + frame)
+            let d      = Simd.load(fourth + frame)
+            let e      = Simd.load(fifth + frame)
             let abLow  = cast #bit(Simd.U32x4, Simd.interleaveLow(a, b))
             let cdLow  = cast #bit(Simd.U32x4, Simd.interleaveLow(c, d))
             let abHigh = cast #bit(Simd.U32x4, Simd.interleaveHigh(a, b))
             let cdHigh = cast #bit(Simd.U32x4, Simd.interleaveHigh(c, d))
-            let tail   = Simd.permute(e, cast(Simd.U16x8, [4'u16, 5, 6, 7, 0, 1, 2, 3]))
+            let tail   = Simd.permute(e, cast(Simd.U16x8, [4_u16, 5, 6, 7, 0, 1, 2, 3]))
             let target = out + 5 * frame
             storeFrames(target, cast #bit(Simd.U16x8, Simd.interleaveLow(abLow, cdLow)), cast #bit(Simd.U16x8, Simd.interleaveHigh(abLow, cdLow)), e)
             storeFrames(target + 20, cast #bit(Simd.U16x8, Simd.interleaveLow(abHigh, cdHigh)), cast #bit(Simd.U16x8, Simd.interleaveHigh(abHigh, cdHigh)), tail)
@@ -2275,41 +2544,43 @@ private impl Codec
         func storeFrames(target: [*] u16, group: {first, second, third: Simd.U16x8}, last: Simd.U16x8)
         {
             // Add the seventh channel to four frames whose first six channels are interleaved.
-            let second = Simd.permute2(group.first, group.second, cast(Simd.U16x8, [7'u16, 8, 9, 10, 11, 12, 13, 0]))
-            let third  = Simd.permute2(group.second, group.third, cast(Simd.U16x8, [6'u16, 7, 8, 9, 10, 11, 12, 0]))
-            let tail   = Simd.permute2(group.third, last, cast(Simd.U16x8, [5'u16, 6, 7, 11, 0, 0, 0, 0]))
-            Simd.store(target, Simd.permute2(group.first, last, cast(Simd.U16x8, [0'u16, 1, 2, 3, 4, 5, 8, 6])))
-            Simd.store(target + 8, Simd.permute2(second, last, cast(Simd.U16x8, [0'u16, 1, 2, 3, 4, 9, 5, 6])))
-            Simd.store(target + 16, Simd.permute2(third, last, cast(Simd.U16x8, [0'u16, 1, 2, 3, 10, 4, 5, 6])))
+            let second = Simd.permute2(group.first, group.second, cast(Simd.U16x8, [7_u16, 8, 9, 10, 11, 12, 13, 0]))
+            let third  = Simd.permute2(group.second, group.third, cast(Simd.U16x8, [6_u16, 7, 8, 9, 10, 11, 12, 0]))
+            let tail   = Simd.permute2(group.third, last, cast(Simd.U16x8, [5_u16, 6, 7, 11, 0, 0, 0, 0]))
+            Simd.store(target, Simd.permute2(group.first, last, cast(Simd.U16x8, [0_u16, 1, 2, 3, 4, 5, 8, 6])))
+            Simd.store(target + 8, Simd.permute2(second, last, cast(Simd.U16x8, [0_u16, 1, 2, 3, 4, 9, 5, 6])))
+            Simd.store(target + 16, Simd.permute2(third, last, cast(Simd.U16x8, [0_u16, 1, 2, 3, 10, 4, 5, 6])))
             Simd.storeLow8(cast([*] u8, target + 24), cast #bit(Simd.U8x16, tail))
         }
 
         var lanes: [7] PcmPointer
-        for channel in 7 do
+        for channel in 7
+        {
             lanes[ChannelSlots[7, channel]] = cast([*] u16, .spectrum[channel].storage())
+        }
 
-        let l0 = unwrap lanes[0]
-        let l1 = unwrap lanes[1]
-        let l2 = unwrap lanes[2]
-        let l3 = unwrap lanes[3]
-        let l4 = unwrap lanes[4]
-        let l5 = unwrap lanes[5]
-        let l6 = unwrap lanes[6]
+        let l0     = unwrap lanes[0]
+        let l1     = unwrap lanes[1]
+        let l2     = unwrap lanes[2]
+        let l3     = unwrap lanes[3]
+        let l4     = unwrap lanes[4]
+        let l5     = unwrap lanes[5]
+        let l6     = unwrap lanes[6]
         let output = cast([*] u16, pcm)
-        var frame  = 0'u64
+        var frame  = 0_u64
         while frame < frames
         {
-            let a = Simd.load(l0 + frame)
-            let b = Simd.load(l1 + frame)
-            let c = Simd.load(l2 + frame)
-            let d = Simd.load(l3 + frame)
-            let e = Simd.load(l4 + frame)
-            let f = Simd.load(l5 + frame)
-            let g = Simd.load(l6 + frame)
+            let a      = Simd.load(l0 + frame)
+            let b      = Simd.load(l1 + frame)
+            let c      = Simd.load(l2 + frame)
+            let d      = Simd.load(l3 + frame)
+            let e      = Simd.load(l4 + frame)
+            let f      = Simd.load(l5 + frame)
+            let g      = Simd.load(l6 + frame)
             let target = output + 7 * frame
-            let low = packSixOfSevenFrames(Simd.interleaveLow(a, b), Simd.interleaveLow(c, d), Simd.interleaveLow(e, f))
-            let high = packSixOfSevenFrames(Simd.interleaveHigh(a, b), Simd.interleaveHigh(c, d), Simd.interleaveHigh(e, f))
-            let tail = Simd.permute(g, cast(Simd.U16x8, [4'u16, 5, 6, 7, 0, 1, 2, 3]))
+            let low    = packSixOfSevenFrames(Simd.interleaveLow(a, b), Simd.interleaveLow(c, d), Simd.interleaveLow(e, f))
+            let high   = packSixOfSevenFrames(Simd.interleaveHigh(a, b), Simd.interleaveHigh(c, d), Simd.interleaveHigh(e, f))
+            let tail   = Simd.permute(g, cast(Simd.U16x8, [4_u16, 5, 6, 7, 0, 1, 2, 3]))
             storeFrames(target, low, g)
             storeFrames(target + 28, high, tail)
             frame += 8
@@ -2429,10 +2700,9 @@ private impl Codec
             if size == 255
             {
                 continue
-
-                // Borrow complete packets and join only those that span pages.
             }
 
+            // Borrow complete packets and join only those that span pages.
             let payload = body[packetStart until at]
             if skip
             {
@@ -2580,26 +2850,14 @@ private impl Codec
                 }
 
                 let body = run[offset + page.headerBytes until offset + pageBytes]
-                var at   = 0_u64
-                var headersToSkip = page.sequence == .firstAudioSequence ? .headerPacketsOnAudioPage : 0_u32
-                for index in page.segments
+                let headersToSkip = page.sequence == .firstAudioSequence ? .headerPacketsOnAudioPage : 0_u32
+                if .pageWorkerCount and page.segments >= 32
                 {
-                    let size = cast(u64, page.lacing[index])
-                    .packet.add(body[at until at + size])
-                    at += size
-                    if size < 255
-                    {
-                        if headersToSkip
-                        {
-                            headersToSkip -= 1
-                        }
-                        else if .packet.count
-                        {
-                            produced += try .decodeAudioPacket(.packet.toSlice())
-                        }
-
-                        .packet.clear()
-                    }
+                    produced += try .decodePage!{true}(body, &page, headersToSkip)
+                }
+                else
+                {
+                    produced += try .decodePage!{false}(body, &page, headersToSkip)
                 }
             }
 
@@ -2742,12 +3000,12 @@ private func packSixOfSevenFrames(a, b, c: Simd.U16x8)->{first, second, third: S
     let x      = cast #bit(Simd.U32x4, a)
     let y      = cast #bit(Simd.U32x4, b)
     let z      = cast #bit(Simd.U32x4, c)
-    let first  = Simd.permute2(x, y, cast(Simd.U32x4, [0'u32, 4, 1, 1]))
-    let middle = Simd.permute2(y, x, cast(Simd.U32x4, [1'u32, 1, 6, 2]))
-    let last   = Simd.permute2(x, y, cast(Simd.U32x4, [3'u32, 3, 7, 3]))
-    return {cast #bit(Simd.U16x8, Simd.permute2(first, z, cast(Simd.U32x4, [0'u32, 1, 4, 3]))),
-            cast #bit(Simd.U16x8, Simd.permute2(middle, z, cast(Simd.U32x4, [0'u32, 5, 2, 3]))),
-            cast #bit(Simd.U16x8, Simd.permute2(last, z, cast(Simd.U32x4, [6'u32, 1, 2, 7])))}
+    let first  = Simd.permute2(x, y, cast(Simd.U32x4, [0_u32, 4, 1, 1]))
+    let middle = Simd.permute2(y, x, cast(Simd.U32x4, [1_u32, 1, 6, 2]))
+    let last   = Simd.permute2(x, y, cast(Simd.U32x4, [3_u32, 3, 7, 3]))
+    return {cast #bit(Simd.U16x8, Simd.permute2(first, z, cast(Simd.U32x4, [0_u32, 1, 4, 3]))),
+            cast #bit(Simd.U16x8, Simd.permute2(middle, z, cast(Simd.U32x4, [0_u32, 5, 2, 3]))),
+            cast #bit(Simd.U16x8, Simd.permute2(last, z, cast(Simd.U32x4, [6_u32, 1, 2, 7])))}
 }
 
 // Interleaves four six-channel frames. Each lane holds one adjacent channel pair.
@@ -2802,13 +3060,12 @@ private const FloorReciprocals = #run buildFloorReciprocals()
 private func renderLine(limit: u32, x0, x1: u32, y0, y1: s32, target: [*] f32)
 {
     let end = Math.min(limit, x1)
-    if x < end
+    if end <= x0
     {
-        target[x] *= Floor1InverseDb[cast(u32, Math.clamp(y, 0, 255))]
+        return
     }
 
-    x += 1
-    while x < end
+    if y0 == y1
     {
         let gain  = Floor1InverseDb[cast(u32, y0)]
         let gain4 = Simd.splat(gain)

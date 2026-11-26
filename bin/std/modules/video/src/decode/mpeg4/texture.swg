@@ -73,18 +73,24 @@ private func buildCoefficientPrefixes(lengths: const [..] u8, codes: const [..] 
     var result: #returntype
     for index in lengths.count
     {
-        let length = cast(u32, lengths[index])
-        if length > 8
+        let length = cast(u32, lengths[index]) + 1
+        if length > 9
         {
             continue
         }
 
-        let rest  = 8 - length
-        let first = cast(u32, codes[index]) << rest
-        let entry = cast(u16, (length << 8) | cast(u32, index + 1))
-        for suffix in 1_u32 << rest
+        let rest      = 9 - length
+        let magnitude = cast(s32, levels[index])
+        let fields    = length | (cast(u32, runs[index]) << 4) | (cast(u32, lasts[index]) << 10)
+        for sign in 2_u32
         {
-            result[first + suffix] = entry
+            let level = sign ? -magnitude : magnitude
+            let entry = fields | ((cast #bit(u32, level) & 0xFFFF) << 16)
+            let first = ((cast(u32, codes[index]) << 1) | sign) << rest
+            for suffix in 1_u32 << rest
+            {
+                result[first + suffix] = entry
+            }
         }
     }
 
@@ -134,27 +140,11 @@ func readCoefficient(reader: *BitReader, inter: bool, result: *Coefficient)->boo
         reader.bitPos = mark
     }
 
+    let tree: const [..] s16 = inter ? TcoefInterTree : TcoefIntraTree
+    let entry = reader.decode(tree)
     if entry < 0
     {
-        // The escape code shares the code space of the table, so recognize it before
-        // walking the tree. This path also handles the short input at the end.
-        if reader.bitPos + TcoefEscapeLen <= reader.bitEnd
-        {
-            let mark = reader.bitPos
-            if reader.read(TcoefEscapeLen) == TcoefEscapeCod
-            {
-                return try readEscape(reader, inter, result)
-            }
-
-            reader.bitPos = mark
-        }
-
-        let tree: const [..] s16 = inter ? TcoefInterTree : TcoefIntraTree
-        entry = reader.decode(tree)
-        if entry < 0
-        {
-            return false
-        }
+        return false
     }
 
     let at = cast(u64, entry)
@@ -165,7 +155,7 @@ func readCoefficient(reader: *BitReader, inter: bool, result: *Coefficient)->boo
     result.last  = lastOf[at] != 0
     result.run   = cast(u32, runOf[at])
     result.level = cast(s32, levelOf[at])
-    if reader.read(1) != 0
+    if reader.bit() != 0
     {
         result.level = -result.level
     }
@@ -197,7 +187,7 @@ private func readEscape(reader: *BitReader, inter: bool, result: *Coefficient)->
         result.last  = lastOf[at] != 0
         result.run   = cast(u32, runOf[at])
         result.level = cast(s32, (cast(u32, levelOf[at]) + levelMax(inter, cast(u32, lastOf[at]), cast(u32, runOf[at]))))
-        if reader.read(1) != 0
+        if reader.bit() != 0
         {
             result.level = -result.level
         }
@@ -221,7 +211,7 @@ private func readEscape(reader: *BitReader, inter: bool, result: *Coefficient)->
         result.last  = lastOf[at] != 0
         result.run   = cast(u32, runOf[at]) + runMax(inter, cast(u32, lastOf[at]), cast(u32, levelOf[at])) + 1
         result.level = cast(s32, levelOf[at])
-        if reader.read(1) != 0
+        if reader.bit() != 0
         {
             result.level = -result.level
         }

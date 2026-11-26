@@ -161,9 +161,11 @@ func renderCurrentOutlineSdf(slot: *GlyphSlot, spread: u32) fail
     changes.resize(cast(u64, width))
     let windingChanges = changes.toSlice()
     let tileWidth      = width >= padding * 2 + 48 ? 16 : width
-    var tile: Array'SdfRowEdge
-    if tileWidth < width do
+    var tile: Array!{SdfRowEdge}
+    if tileWidth < width
+    {
         tile.reserve(edges.count)
+    }
 
     for py in rows
     {
@@ -186,8 +188,10 @@ func renderCurrentOutlineSdf(slot: *GlyphSlot, spread: u32) fail
                 for edge in rowEdges
                 {
                     let x1 = edge.x0 + edge.vx
-                    if Math.max(edge.x0, x1) >= minX and Math.min(edge.x0, x1) <= maxX do
+                    if Math.max(edge.x0, x1) >= minX and Math.min(edge.x0, x1) <= maxX
+                    {
                         tile.add(edge)
+                    }
                 }
 
                 candidates = tile.toSlice()

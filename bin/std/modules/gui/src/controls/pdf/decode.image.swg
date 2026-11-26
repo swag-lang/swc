@@ -41,7 +41,8 @@ private const GrayExpand1 = cast(Math.Simd.U8x16, [5_u8, 5, 6, 6, 6, 7, 7, 7, 8,
 private const GrayExpand2 = cast(Math.Simd.U8x16, [10_u8, 11, 11, 11, 12, 12, 12, 13, 13, 13, 14, 14, 14, 15, 15, 15])
 private const CmykGather  = cast(Math.Simd.U8x16, [0_u8, 1, 2, 4, 5, 6, 8, 9, 10, 12, 13, 14, 0x80, 0x80, 0x80, 0x80])
 private const CmykSpreadK = cast(Math.Simd.U8x16, [3_u8, 3, 3, 7, 7, 7, 11, 11, 11, 15, 15, 15, 0x80, 0x80, 0x80, 0x80])
-private const RgbaColors  = cast(Math.Simd.U8x16, [0_u8, 1, 2, 0x80, 3, 4, 5, 0x80, 6, 7, 8, 0x80, 9, 10, 11, 0x80])
+private const RgbToRgba   = cast(Math.Simd.U8x16, [0_u8, 1, 2, 0x80, 3, 4, 5, 0x80, 6, 7, 8, 0x80, 9, 10, 11, 0x80])
+private const BgrToRgba   = cast(Math.Simd.U8x16, [2_u8, 1, 0, 0x80, 5, 4, 3, 0x80, 8, 7, 6, 0x80, 11, 10, 9, 0x80])
 private const RgbaAlpha   = cast(Math.Simd.U8x16, [0x80_u8, 0x80, 0x80, 0, 0x80, 0x80, 0x80, 1, 0x80, 0x80, 0x80, 2, 0x80, 0x80, 0x80, 3])
 private const MaskBits    = cast(Math.Simd.U8x16, [128_u8, 64, 32, 16, 8, 4, 2, 1, 0, 0, 0, 0, 0, 0, 0, 0])
 
@@ -665,7 +666,7 @@ private func writeColor(kind: ImageSpaceKind, count: u32, components: const [8] 
         // Without evaluating the tint transform, the darkest colorant is the best neutral
         // approximation of the painted ink.
         var tint = 0.0_f32
-        for i in Math.min(space.components, 8_u32)
+        for i in Math.min(count, 8_u32)
         {
             tint = Math.max(tint, components[i])
         }
@@ -688,11 +689,12 @@ private func expandIndexedPlane(plane: *SamplePlane, space: const *ImageSpace, b
     {
         let entry = cast(u64, index) * space.baseComponents
         var base: [8] f32
-        for i in baseCount {
+        for i in baseCount
+        {
             base[i] = cast(f32, space.palette[entry + i]) / 255.0
+        }
 
         // Eight-bit Lab palette components encode the base space's own ranges.
-        }
         if space.baseKind == .Lab and baseCount >= 3
         {
             base[0] *= 100.0
@@ -777,20 +779,25 @@ private func decodeOpaqueSamples(image: *Image, bytes: const [..] u8, rowBytes: 
         let target = image.pixels.storage() + (height - y - 1) * stride
         if space == .Gray and bits == 1
         {
-            if invert {
+            if invert
+            {
                 expandMask1!{true}(target, source, width, 1, rowBytes)
             }
-            else {
+            else
+            {
                 expandMask1!{false}(target, source, width, 1, rowBytes)
             }
         }
-        else if space == .Cmyk {
+        else if space == .Cmyk
+        {
             expandCmyk8(target, source, width)
         }
-        else if bits == 16 {
+        else if bits == 16
+        {
             quantizeRgb16(target, source, stride)
         }
-        else {
+        else
+        {
             Memory.copy(target, source, stride)
         }
     }
@@ -864,12 +871,11 @@ private func readSamplePlane(parser: *PdfParser, nodeId, resourcesId: u32, direc
     }
 
     if direct and
-       ((space.kind == .Gray and space.components == 1 and depth == 1 and
-           ((lowest[0] == 0 and highest[0] == 1) or (lowest[0] == 1 and highest[0] == 0))) or
+       ((space.kind == .Gray and space.components == 1 and depth == 1 and ((lowest[0] == 0 and highest[0] == 1) or (lowest[0] == 1 and highest[0] == 0))) or
         (decodeId == InvalidNode and
-            ((space.kind == .Gray and depth == 8 and space.components == 1) or
-             (space.kind == .Rgb and space.components == 3 and (depth == 8 or depth == 16)) or
-             (space.kind == .Cmyk and depth == 8 and space.components == 4))))
+         ((space.kind == .Gray and depth == 8 and space.components == 1) or
+          (space.kind == .Rgb and space.components == 3 and (depth == 8 or depth == 16)) or
+          (space.kind == .Cmyk and depth == 8 and space.components == 4))))
     {
         decodeOpaqueSamples(direct, bytes.toSlice(), rowBytes, &result, space.kind, depth, lowest[0] == 1)
         return result
@@ -888,12 +894,15 @@ private func readSamplePlane(parser: *PdfParser, nodeId, resourcesId: u32, direc
        space.components == 1 and
        ((lowest[0] == 0 and highest[0] == 1) or (lowest[0] == 1 and highest[0] == 0))
     {
-        if lowest[0] == 1 {
+        if lowest[0] == 1
+        {
             expandGray1!{true}(result.rgb.storage(), bytes.storage(), cast(u64, width), cast(u64, height), rowBytes)
         }
-        else {
+        else
+        {
             expandGray1!{false}(result.rgb.storage(), bytes.storage(), cast(u64, width), cast(u64, height), rowBytes)
         }
+
         try applyColorKeyMask(parser, nodeId, &result, bytes.toSlice(), space, depth, rowBytes)
         return result
     }
@@ -910,12 +919,15 @@ private func readSamplePlane(parser: *PdfParser, nodeId, resourcesId: u32, direc
        space.components == 3 and
        (depth == 8 or depth == 16)
     {
-        if depth == 16 {
+        if depth == 16
+        {
             quantizeRgb16(result.rgb.storage(), bytes.storage(), result.rgb.count)
         }
-        else {
+        else
+        {
             Memory.copy(result.rgb.storage(), bytes.storage(), result.rgb.count)
         }
+
         try applyColorKeyMask(parser, nodeId, &result, bytes.toSlice(), space, depth, rowBytes)
         return result
     }
@@ -941,36 +953,7 @@ private func readSamplePlane(parser: *PdfParser, nodeId, resourcesId: u32, direc
             }
 
             let pixel = (y * cast(u64, width) + x) * 3
-            if space.kind != .Indexed
-            {
-                writeColor(&space, space.kind, components, target)
-                result.rgb[pixel + 0] = target[0]
-                result.rgb[pixel + 1] = target[1]
-                result.rgb[pixel + 2] = target[2]
-                continue
-            }
-
-            let index     = cast(u32, Math.clamp(cast(s32, Math.round(components[0])), 0, cast(s32, space.hival)))
-            let baseCount = Math.min(space.baseComponents, 8_u32)
-            let entry     = cast(u64, index) * cast(u64, space.baseComponents)
-            var base: [8] f32
-            for i in baseCount
-            {
-                base[i] = cast(f32, space.palette[entry + i]) / 255.0
-            }
-
-            // A palette entry is always eight bits wide, so a Lab base needs its own ranges
-            // restored before the entry becomes a color.
-            if space.baseKind == .Lab and baseCount >= 3
-            {
-                base[0] *= 100.0
-                base[1] = space.range[0] + base[1] * (space.range[1] - space.range[0])
-                base[2] = space.range[2] + base[2] * (space.range[3] - space.range[2])
-            }
-
-            var palette = space
-            palette.components = space.baseComponents
-            writeColor(&palette, space.baseKind, base, target)
+            writeColor(space.kind, space.components, components, target)
             result.rgb[pixel + 0] = target[0]
             result.rgb[pixel + 1] = target[1]
             result.rgb[pixel + 2] = target[2]
@@ -1051,7 +1034,8 @@ private func readMaskPlane(parser: *PdfParser, nodeId, _: u32, stencil: bool)->S
         {
             let source = decoded.pixels.storage() + (height - y - 1) * cast(u64, decoded.rowStride)
             let target = result.alpha.storage() + y * width
-            for x in width {
+            for x in width
+            {
                 target[x] = source[x * decoded.bytesPerPixel]
             }
         }
@@ -1235,50 +1219,68 @@ private func planeToImage(plane: const *SamplePlane, fill: const *Color?)->Image
 // Composes a JPEG and its same-size mask directly into bottom-up RGBA pixels.
 private func(const SwapRedBlue: bool) maskedJpegImage(decoded: const *Image, mask: const *SamplePlane)->Image
 {
-    if parser.imageCacheBytes + image.byteCount > ImageCacheBudget
+    var result = #move Image.create(decoded.width, decoded.height, .RGBA8)
+    let width  = cast(u64, decoded.width)
+    let height = cast(u64, decoded.height)
+    for row in height
     {
-        return
+        let colors   = decoded.pixels.storage() + row * cast(u64, decoded.rowStride)
+        let coverage = mask.alpha.storage() + (height - row - 1) * width
+        let target   = result.pixels.storage() + row * cast(u64, result.rowStride)
+        composeRgba8!{SwapRedBlue}(target, colors, coverage, width)
     }
 
-    parser.imageCacheBytes += image.byteCount
-    parser.imageCache[key] = image[]
+    return #move result
 }
 
 // Tests the already decoded frame's shape before carrying the original compressed samples
 // to an editable document. JPEG markers before the start of scan are length-prefixed.
 private func matchesJpegFrame(bytes: const [..] u8, width, height: s32, channels: u8)->bool
 {
-    if bytes.count < 4 or bytes[0] != 0xFF or bytes[1] != 0xD8 {
+    if bytes.count < 4 or bytes[0] != 0xFF or bytes[1] != 0xD8
+    {
         return false
     }
+
     var cursor = 2_u64
     while bytes.count - cursor >= 4
     {
-        if bytes[cursor] != 0xFF {
+        if bytes[cursor] != 0xFF
+        {
             return false
         }
+
         cursor += 1
-        while cursor < bytes.count and bytes[cursor] == 0xFF {
+        while cursor < bytes.count and bytes[cursor] == 0xFF
+        {
             cursor += 1
         }
-        if bytes.count - cursor < 3 {
-            return false
 
+        if bytes.count - cursor < 3
+        {
+            return false
         }
+
         let marker = bytes[cursor]
         cursor += 1
-        if marker == 0xDA or marker == 0xD9 {
+        if marker == 0xDA or marker == 0xD9
+        {
             return false
         }
+
         let length = (cast(u64, bytes[cursor]) << 8) | bytes[cursor + 1]
-        if length < 2 or length > bytes.count - cursor {
+        if length < 2 or length > bytes.count - cursor
+        {
             return false
         }
+
         if marker == 0xC0 or marker == 0xC1 or marker == 0xC2
         {
-            if length < 8 {
+            if length < 8
+            {
                 return false
             }
+
             let y = (cast(s32, bytes[cursor + 3]) << 8) | bytes[cursor + 4]
             let x = (cast(s32, bytes[cursor + 5]) << 8) | bytes[cursor + 6]
             return bytes[cursor + 2] == 8 and bytes[cursor + 7] == channels and x == width and y == height
@@ -1293,20 +1295,22 @@ private func matchesJpegFrame(bytes: const [..] u8, width, height: s32, channels
 private func retainedJpegChannels(parser: *PdfParser, nodeId: u32, raw: const [..] u8, image: const *Image)->u8
 {
     let colorBytes = image.pixelFormat == .Gray8 ? image.byteCount * 3 : image.byteCount
-    if not parser.retainImageStreams or raw.count >= colorBytes or
+    if not parser.retainImageStreams or
+       raw.count >= colorBytes or
        parser.dict(nodeId, "Decode") != InvalidNode or
        parser.dict(nodeId, "DecodeParms") != InvalidNode or
        parser.dict(nodeId, "Mask") != InvalidNode or
-       parser.dict(nodeId, "SMask") != InvalidNode {
+       parser.dict(nodeId, "SMask") != InvalidNode
+    {
         return 0
-
     }
+
     var channels: u8
     switch parser.name(parser.dict(nodeId, "ColorSpace"))
     {
     case "DeviceGray": channels = 1
     case "DeviceRGB":  channels = 3
-    default:           return 0
+    default: return 0
     }
 
     return matchesJpegFrame(raw, image.width, image.height, channels) ? channels : 0
@@ -1318,42 +1322,48 @@ private func retainLosslessImage(parser: *PdfParser, nodeId: u32, image: const *
     var result: #returntype
     if not parser.retainImageStreams or
        parser.dict(nodeId, "Decode") != InvalidNode or
-       parser.boolean(parser.dict(nodeId, "ImageMask"), false) {
+       parser.boolean(parser.dict(nodeId, "ImageMask"), false)
+    {
         return result
-
     }
-    let filter = parser.name(parser.dict(nodeId, "Filter"))
-    let bits = parser.integer(parser.dict(nodeId, "BitsPerComponent"), 8)
+
+    let filter     = parser.name(parser.dict(nodeId, "Filter"))
+    let bits       = parser.integer(parser.dict(nodeId, "BitsPerComponent"), 8)
     let parameters = parser.dict(nodeId, "DecodeParms")
-    if parameters != InvalidNode and parser.nodes[parameters].kind != .Dictionary {
+    if parameters != InvalidNode and parser.nodes[parameters].kind != .Dictionary
+    {
         return result
-
     }
-    let channels = colorName == "DeviceGray" ? 1 : (colorName == "DeviceCMYK" ? 4 : 3)
+
+    let channels  = colorName == "DeviceGray" ? 1 : (colorName == "DeviceCMYK" ? 4 : 3)
     var predictor = 1_s64
     var codec: EncodedImageFilter
-    var fax: EncodedFaxParameters
+    var fax:   EncodedFaxParameters
     switch filter
     {
     case "FlateDecode", "Fl":
-        codec = .Flate
+        codec     = .Flate
         predictor = parser.integer(parser.dict(parameters, "Predictor"), 1)
         if predictor != 1
         {
             if (predictor != 2 and (predictor < 10 or predictor > 15)) or
                parser.integer(parser.dict(parameters, "Columns"), 1) != image.width or
                parser.integer(parser.dict(parameters, "Colors"), 1) != channels or
-               parser.integer(parser.dict(parameters, "BitsPerComponent"), 8) != bits {
+               parser.integer(parser.dict(parameters, "BitsPerComponent"), 8) != bits
+            {
                 return result
             }
         }
 
     case "CCITTFaxDecode", "CCF":
         codec = .Ccitt
-        if channels != 1 or bits != 1 or
-           parser.integer(parser.dict(parameters, "Columns"), 1728) != image.width {
+        if channels != 1 or
+           bits != 1 or
+           parser.integer(parser.dict(parameters, "Columns"), 1728) != image.width
+        {
             return result
         }
+
         fax.k           = parser.integer(parser.dict(parameters, "K"), 0)
         fax.rows        = parser.integer(parser.dict(parameters, "Rows"), -1)
         fax.damagedRows = parser.integer(parser.dict(parameters, "DamagedRowsBeforeError"), 0)
@@ -1367,11 +1377,12 @@ private func retainLosslessImage(parser: *PdfParser, nodeId: u32, image: const *
     }
 
     let interpolate = parser.boolean(parser.dict(nodeId, "Interpolate"), false)
-    let data = parser.nodes[nodeId].stream.toSlice()
-    if not data.count or data.count >= image.byteCount {
+    let data        = parser.nodes[nodeId].stream.toSlice()
+    if not data.count or data.count >= image.byteCount
+    {
         return result
-
     }
+
     result.bytes.add(data)
     result.filter      = codec
     result.channels    = cast(u8, channels)
@@ -1391,15 +1402,17 @@ private func cacheDecodedImage(parser: *PdfParser, nodeId, resourcesId: u32, dev
 
 private func cacheDecodedImage(parser: *PdfParser, nodeId, resourcesId: u32, deviceOnly: bool, image: #move Image, encoded: #move EncodedImageStream)->ImageReference
 {
-    let size = image.byteCount + encoded.bytes.count
+    let size   = image.byteCount + encoded.bytes.count
     var result = #move ImageReference.create(#move image, #move encoded)
     if parser.imageCacheBytes + size <= ImageCacheBudget
     {
         parser.imageCacheBytes += size
-        if deviceOnly {
+        if deviceOnly
+        {
             parser.deviceImageCache[nodeId] = result
         }
-        else {
+        else
+        {
             parser.imageCache[imageCacheKey(nodeId, resourcesId)] = result
         }
     }
@@ -1433,9 +1446,9 @@ internal func decodeImage(parser: *PdfParser, nodeId, resourcesId: u32, fillColo
     }
 
     // A soft mask, or a stencil named through /Mask, supplies the alpha channel.
-    var maskId      = parser.dict(nodeId, "SMask")
+    var maskId       = parser.dict(nodeId, "SMask")
     let explicitMask = parser.dict(nodeId, "Mask")
-    var stencil     = false
+    var stencil      = false
     if maskId == InvalidNode
     {
         if explicitMask != InvalidNode and parser.nodes[explicitMask].kind == .Dictionary
@@ -1447,7 +1460,8 @@ internal func decodeImage(parser: *PdfParser, nodeId, resourcesId: u32, fillColo
 
     // Direct device samples have no named color space to resolve in page resources.
     let colorName  = parser.name(parser.dict(nodeId, "ColorSpace"))
-    let deviceOnly = maskId == InvalidNode and explicitMask == InvalidNode and
+    let deviceOnly = maskId == InvalidNode and
+                     explicitMask == InvalidNode and
                      (colorName == "DeviceRGB" or colorName == "DeviceGray" or colorName == "DeviceCMYK")
     let codec = #move parser.imageCodec(nodeId)
     var plane, mask: SamplePlane
@@ -1456,6 +1470,8 @@ internal func decodeImage(parser: *PdfParser, nodeId, resourcesId: u32, fillColo
         if codec != "DCTDecode" and codec != "DCT"
         {
             fail UnsupportedFormatError{"PDF image codec is not supported"}
+        }
+
         var raw     = #move try parser.decodeStream(nodeId, true)
         let options = DecodeOptions{keepJpegGrayscale: deviceOnly and colorName == "DeviceGray"}
         var decoded = #move try Image.decode(".jpg", raw.toSlice(), options)
@@ -1467,12 +1483,9 @@ internal func decodeImage(parser: *PdfParser, nodeId, resourcesId: u32, fillColo
         if maskId == InvalidNode
         {
             var result: Image
-            if decoded.pixelFormat == .Gray8 or decoded.pixelFormat == .RGB8 or decoded.pixelFormat == .BGR8 do
-                result = #move decoded
-            else do
-                result = decoded.convertedTo(.RGB8)
-            let channels = retainedJpegChannels(parser, nodeId, raw.toSlice(), &result)
-            if channels
+            if decoded.pixelFormat == .Gray8 or
+               decoded.pixelFormat == .RGB8 or
+               decoded.pixelFormat == .BGR8
             {
                 result = #move decoded
             }
@@ -1481,8 +1494,24 @@ internal func decodeImage(parser: *PdfParser, nodeId, resourcesId: u32, fillColo
                 result = decoded.convertedTo(.RGB8)
             }
 
-            cacheDecodedImage(parser, cacheKey, &result)
-            return #move result
+            let channels = retainedJpegChannels(parser, nodeId, raw.toSlice(), &result)
+            if channels
+            {
+                var encoded = EncodedImageStream{channels: channels}
+                encoded.bytes = #move raw
+                return cacheDecodedImage(parser, nodeId, resourcesId, deviceOnly, #move result, #move encoded)
+            }
+
+            return cacheDecodedImage(parser, nodeId, resourcesId, deviceOnly, #move result)
+        }
+
+        mask = #move try readMaskPlane(parser, maskId, resourcesId, stencil)
+        let sameSizeMask = mask.width == decoded.width and mask.height == decoded.height and mask.alpha.count
+        if sameSizeMask and (decoded.pixelFormat == .BGR8 or decoded.pixelFormat == .RGB8)
+        {
+            // JPEG pixels already have the destination row order.
+            var result = decoded.pixelFormat == .BGR8 ? maskedJpegImage!{true}(&decoded, &mask) : maskedJpegImage!{false}(&decoded, &mask)
+            return cacheDecodedImage(parser, nodeId, resourcesId, deviceOnly, #move result)
         }
 
         plane.width  = decoded.width
@@ -1515,7 +1544,9 @@ internal func decodeImage(parser: *PdfParser, nodeId, resourcesId: u32, fillColo
             var encoded = #move retainLosslessImage(parser, nodeId, &direct, colorName)
             return cacheDecodedImage(parser, nodeId, resourcesId, deviceOnly, #move direct, #move encoded)
         }
-        if maskId != InvalidNode {
+
+        if maskId != InvalidNode
+        {
             mask = #move try readMaskPlane(parser, maskId, resourcesId, stencil)
         }
     }
@@ -1526,23 +1557,19 @@ internal func decodeImage(parser: *PdfParser, nodeId, resourcesId: u32, fillColo
         let height = cast(u64, plane.height)
         if mask.width == plane.width and mask.height == plane.height
         {
-            let width  = cast(u64, plane.width)
-            let height = cast(u64, plane.height)
-            if mask.width == plane.width and mask.height == plane.height
-            {
-                plane.alpha = #move mask.alpha
-            }
-            else
-            {
-                plane.alpha.resize(width * height)
-                let sourceWidth  = cast(u64, mask.width)
-                let sourceHeight = cast(u64, mask.height)
-                let sourceStep   = sourceWidth / width
-                let sourceRest   = sourceWidth % width
-                let rowStep      = sourceHeight / height
-                let rowRest      = sourceHeight % height
-                var sourceY      = 0_u64
-                var rowRemainder = 0_u64
+            plane.alpha = #move mask.alpha
+        }
+        else
+        {
+            plane.alpha.resize(width * height)
+            let sourceWidth  = cast(u64, mask.width)
+            let sourceHeight = cast(u64, mask.height)
+            let sourceStep   = sourceWidth / width
+            let sourceRest   = sourceWidth % width
+            let rowStep      = sourceHeight / height
+            let rowRest      = sourceHeight % height
+            var sourceY      = 0_u64
+            var rowRemainder = 0_u64
 
             // Each index and remainder is the quotient and remainder of the destination
             // coordinate scaled by the corresponding source and destination dimensions.
@@ -1554,11 +1581,10 @@ internal func decodeImage(parser: *PdfParser, nodeId, resourcesId: u32, fillColo
                 var remainder   = 0_u64
                 for x in width
                 {
-                    let source      = mask.alpha.storage() + sourceY * sourceWidth
-                    let destination = plane.alpha.storage() + y * width
-                    var sourceX     = 0_u64
-                    var remainder   = 0_u64
-                    for x in width
+                    destination[x] = source[sourceX]
+                    sourceX        += sourceStep
+                    remainder      += sourceRest
+                    if remainder >= width
                     {
                         remainder -= width
                         sourceX   += 1
@@ -1582,5 +1608,6 @@ internal func decodeImage(parser: *PdfParser, nodeId, resourcesId: u32, fillColo
         var encoded = #move retainLosslessImage(parser, nodeId, &result, colorName)
         return cacheDecodedImage(parser, nodeId, resourcesId, deviceOnly, #move result, #move encoded)
     }
+
     return cacheDecodedImage(parser, nodeId, resourcesId, deviceOnly, #move result)
 }

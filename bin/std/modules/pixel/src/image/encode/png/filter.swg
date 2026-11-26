@@ -25,9 +25,8 @@ func residualScore(value: u8)->s32 => Math.abs(cast(s32, cast #bit(s8, value)))
 #[Swag.Inline]
 func accumulateResidual(total: Math.Simd.U64x2, residual, zero: Math.Simd.U8x16)->Math.Simd.U64x2
 {
-    let score  = Math.min(residual, Math.Simd.splat(0_u8) - residual)
-    let halves = cast #bit(Math.Simd.S16x8, Math.Simd.widenLow(score)) + cast #bit(Math.Simd.S16x8, Math.Simd.widenHigh(score))
-    return total + Math.Simd.mulAddPairs(halves, ones)
+    let magnitude = cast #bit(Math.Simd.U8x16, Math.abs(cast #bit(Math.Simd.S8x16, residual)))
+    return total + Math.Simd.absoluteDifferences(magnitude, zero)
 }
 
 func filterUpRow(source, previous: const [*] u8, destination: [*] u8, count: u64)
@@ -122,8 +121,8 @@ public func filterSubPredictorRows(input: const [..] u8, output: [..] u8, rowByt
 // Both read their predictor straight out of memory, which is what lets one loop serve them.
 func filterSumIndependent(source, previous: const [*] u8, count: u64, up: bool)->s32
 {
-    let ones   = Math.Simd.splat(1_s16)
-    var total  = Math.Simd.splat(0_s32)
+    let zero   = Math.Simd.splat(0_u8)
+    var total  = Math.Simd.splat(0_u64)
     var offset = 0_u64
     if up
     {
@@ -223,7 +222,7 @@ func filterAverageRow(source, previous: const [*] u8, destination: [*] u8, count
 
 func filterSumAverage(source, previous: const [*] u8, count, bytesPerPixel: u64)->s32
 {
-    let ones   = Math.Simd.splat(1_s16)
+    let zero   = Math.Simd.splat(0_u8)
     let prefix = Math.min(count, bytesPerPixel)
     var sum    = 0_s32
     for i in prefix
@@ -232,7 +231,7 @@ func filterSumAverage(source, previous: const [*] u8, count, bytesPerPixel: u64)
         sum += residualScore(cast #bit(u8, (source[i] - #wrap average)))
     }
 
-    var total  = Math.Simd.splat(0_s32)
+    var total  = Math.Simd.splat(0_u64)
     var offset = prefix
     while count - offset >= 16
     {
@@ -325,7 +324,7 @@ func filterPaethRow(source, previous: const [*] u8, destination: [*] u8, count, 
 
 func filterSumPaeth(source, previous: const [*] u8, count, bytesPerPixel: u64)->s32
 {
-    let ones   = Math.Simd.splat(1_s16)
+    let zero   = Math.Simd.splat(0_u8)
     let prefix = Math.min(count, bytesPerPixel)
     var sum    = 0_s32
     for i in prefix
@@ -333,7 +332,7 @@ func filterSumPaeth(source, previous: const [*] u8, count, bytesPerPixel: u64)->
         sum += residualScore(cast #bit(u8, (source[i] - #wrap previous[i])))
     }
 
-    var total  = Math.Simd.splat(0_s32)
+    var total  = Math.Simd.splat(0_u64)
     var offset = prefix
     while count - offset >= 16
     {

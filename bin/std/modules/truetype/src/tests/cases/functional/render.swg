@@ -133,7 +133,7 @@ func referenceSdfInside(edges: const [..] Edge, x, y: f64)->bool
     for pixelSize in [17_u32, 31, 64]
     {
         discard expect face.setPixelSize(0, pixelSize)
-        for character in ['A'rune, 'W', 'g']
+        for character in ['A'_rune, 'W', 'g']
         {
             discard expect face.loadChar(character, .Default)
 

@@ -182,23 +182,27 @@ impl SoundFile
     private mtd const decodeFilePcm16(firstFrame, frameCount: u64, consumer: SoundPcm16Consumer) fail
     {
         let bytesPerFrame = .channelCount * #sizeof(s16)
-        let chunkFrames   = Math.max(1'u64, SoundDecodeReadSize / bytesPerFrame)
+        let chunkFrames   = Math.max(1_u64, SoundDecodeReadSize / bytesPerFrame)
         var remaining     = frameCount
         var offset        = firstFrame * bytesPerFrame
         var stream        = try File.open(.path.toString(), .Open, .Read, .ReadWrite)
         try stream.seek(.Begin, .dataOffset + offset)
 
-        var pcm: Array's16
+        var pcm: Array!{s16}
         pcm.reserve(Math.min(frameCount, chunkFrames) * .channelCount)
         while remaining
         {
             let frames = Math.min(remaining, chunkFrames)
             let bytes  = frames * bytesPerFrame
             if offset >= .dataSize or bytes > .dataSize - offset or
-               not (try stream.readExact(Swag.makeSlice(cast([*] u8, pcm.storage()), bytes))) do
+               not (try stream.readExact(Swag.makeSlice(cast([*] u8, pcm.storage()), bytes)))
+            {
                 fail InvalidFormatError{"sound payload is truncated"}
-            if not consumer(Swag.makeSlice(pcm.storage(), frames * .channelCount)) do
+            }
+            if not consumer(Swag.makeSlice(pcm.storage(), frames * .channelCount))
+            {
                 return
+            }
 
             remaining -= frames
             offset    += bytes
@@ -605,7 +609,7 @@ private impl SoundFile
         let bytesPerFrame = .channelCount * #sizeof(s16)
         let config        = .decoderConfig.toSlice()
         let nativeFrames  = config.count >= 4 and config[until 4] == cast(const [..] u8, "fLaC")
-        let lanes         = cast(u64, workers) + (nativeFrames ? 1'u64 : 0)
+        let lanes         = cast(u64, workers) + (nativeFrames ? 1_u64 : 0)
         var range         = Pcm16Range{decodedTarget, frameCount}
         var pcm:  Array!{s16}
         var jobs: Array!{FlacDecodeJob}
@@ -637,7 +641,7 @@ private impl SoundFile
             }
 
             let batchFrame = .packetStarts[batchFirst]
-            let jobCount   = Math.min(lanes, batchEnd - batchFirst, Math.max(1'u64, batchFrames * bytesPerFrame / SoundDecodeReadSize))
+            let jobCount   = Math.min(lanes, batchEnd - batchFirst, Math.max(1_u64, batchFrames * bytesPerFrame / SoundDecodeReadSize))
             jobs.clear()
             jobs.resize(jobCount)
             var first = batchFirst
@@ -656,15 +660,17 @@ private impl SoundFile
             }
 
             // Successful jobs write every sample before its packet is published.
-            pcm.reserve(Math.max(1'u64, batchFrames * .channelCount))
+            pcm.reserve(Math.max(1_u64, batchFrames * .channelCount))
             let dst  = pcm.storage()
             let work = jobs.storage()
             if jobCount == 1
             {
-                catch .decodeFlacJob(work, dst, batchFrame) do
+                catch .decodeFlacJob(work, dst, batchFrame)
+                {
                     work.error.capture(Swag.err)
+                }
             }
-            elif nativeFrames
+            else if nativeFrames
             {
                 .decodeNativeFlacBatch(work, jobCount, dst, batchFrame)
             }
@@ -674,8 +680,10 @@ private impl SoundFile
                 parallel for |sound, work, dst, batchFrame| index in jobCount
                 {
                     let job = work + index
-                    catch sound.decodeFlacJob(job, dst, batchFrame) do
+                    catch sound.decodeFlacJob(job, dst, batchFrame)
+                    {
                         job.error.capture(Swag.err)
+                    }
                 }
             }
 
@@ -715,13 +723,17 @@ private impl SoundFile
             let job = work + index
             group.spawn(func|sound, job, dst, batchFrame|()
             {
-                catch sound.decodeFlacJob(job, dst, batchFrame) do
+                catch sound.decodeFlacJob(job, dst, batchFrame)
+                {
                     job.error.capture(Swag.err)
+                }
             })
         }
 
-        catch .decodeFlacJob(work, dst, batchFrame) do
+        catch .decodeFlacJob(work, dst, batchFrame)
+        {
             work.error.capture(Swag.err)
+        }
         group.wait()
     }
 

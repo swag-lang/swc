@@ -236,11 +236,7 @@ impl FragmentedPacketCursor
         try .source.seek(offset)
         let boxSize = try .source.readBigEndian!{u32}()
         let boxKind = try .source.readBigEndian!{u32}()
-        if boxKind != FragmentId or
-           boxSize!
-        {
-            BoxHeaderSize or boxSize
-        }.source.size() - offset
+        if boxKind != FragmentId or boxSize < BoxHeaderSize or boxSize > .source.size() - offset
         {
             fail BadParameterError{"fragmented MP4 cursor offset does not name a movie fragment"}
         }
@@ -364,10 +360,7 @@ private impl FragmentedPacketCursor
                 fail InvalidFormatError{"fragmented MP4 movie fragment is not followed by media data"}
             }
 
-            if dataSize!
-            {
-                BoxHeaderSize or dataSize
-            }.source.size() - box.end
+            if dataSize < BoxHeaderSize or dataSize > .source.size() - box.end
             {
                 if .scan.hasVideo
                 {

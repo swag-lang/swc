@@ -403,13 +403,16 @@ public impl Xml
                 let length = Math.min(bytes.count, Utf8.indexOfAny(bytes, "<&\r]"))
                 result.append(Swag.makeString(bytes.buffer, length))
                 .stream.advance(length)
-                if length == bytes.count or bytes[length] == '<' do
+                if length == bytes.count or bytes[length] == '<'
+                {
                     return result
+                }
 
                 let c = bytes[length]
                 if c == ']' and bytes.count - length >= 3
                 {
-                    if bytes[length + 1] == ']' and bytes[length + 2] == '>' do
+                    if bytes[length + 1] == ']' and bytes[length + 2] == '>'
+                    {
                         fail .getError("XML text contains the forbidden CDATA terminator")
                     }
                 }

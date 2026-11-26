@@ -811,11 +811,7 @@ private impl EditBox
                 catch { val = try StrConv.parseS64(.textStorage) } as errOutcome
                 let err = errOutcome.value()
                 res = .classifyParseResult(err, val.eat, val.ovf)
-                if res == .Valid and
-                   (val.value!
-                {
-                    .minMaxS64.min or val.value
-                }.minMaxS64.max)
+                if res == .Valid and (val.value < .minMaxS64.min or val.value > .minMaxS64.max)
                 {
                     res = .InvalidVisible
                 }
@@ -826,11 +822,7 @@ private impl EditBox
                 catch { val = try StrConv.parseU64(.textStorage) } as errOutcome
                 let err = errOutcome.value()
                 res = .classifyParseResult(err, val.eat, val.ovf)
-                if res == .Valid and
-                   (val.value!
-                {
-                    .minMaxU64.min or val.value
-                }.minMaxU64.max)
+                if res == .Valid and (val.value < .minMaxU64.min or val.value > .minMaxU64.max)
                 {
                     res = .InvalidVisible
                 }
@@ -841,11 +833,7 @@ private impl EditBox
                 catch { val = try StrConv.parseX64(.textStorage) } as errOutcome
                 let err = errOutcome.value()
                 res = .classifyParseResult(err, val.eat, val.ovf)
-                if res == .Valid and
-                   (val.value!
-                {
-                    .minMaxU64.min or val.value
-                }.minMaxU64.max)
+                if res == .Valid and (val.value < .minMaxU64.min or val.value > .minMaxU64.max)
                 {
                     res = .InvalidVisible
                 }
@@ -856,11 +844,7 @@ private impl EditBox
                 catch { val = try StrConv.parseF64(.textStorage) } as errOutcome
                 let err = errOutcome.value()
                 res = .classifyParseResult(err, val.eat, val.ovf)
-                if res == .Valid and
-                   (val.value!
-                {
-                    .minMaxF64.min or val.value
-                }.minMaxF64.max)
+                if res == .Valid and (val.value < .minMaxF64.min or val.value > .minMaxF64.max)
                 {
                     res = .InvalidVisible
                 }

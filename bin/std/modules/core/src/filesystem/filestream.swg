@@ -86,7 +86,8 @@ impl FileStream
             let chunk = cast(u32, Math.min(length - total, cast(u64, Swag.U32.Max)))
             let read  = try .readNative(bytes + total, chunk)
             total += read
-            if not read or (read < chunk and not exact) do
+            if not read or (read < chunk and not exact)
+            {
                 break
             }
         }

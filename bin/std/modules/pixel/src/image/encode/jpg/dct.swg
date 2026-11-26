@@ -34,6 +34,9 @@ impl Encoder
         let blue   = cast([*] s16, &.duCb[0])
         let red    = cast([*] s16, &.duCr[0])
 
+        let redLanes   = .redLanes
+        let greenLanes = .greenLanes
+        let blueLanes  = .blueLanes
         let levelShift = Math.Simd.splat(128_s32)
         var pos        = 0
 
@@ -153,8 +156,11 @@ impl Encoder
             for bits in 256
             {
                 var mask: u64
-                for col in 8 where bits & (1 << col) do
-                    mask |= 1'u64 << ZigZag[row * 8 + col]
+                for col in 8 where bits & (1 << col)
+                {
+                    mask |= 1_u64 << ZigZag[row * 8 + col]
+                }
+
                 result[row * 256 + bits] = mask
             }
         }
@@ -165,8 +171,11 @@ impl Encoder
     func makeZigzagToBlock()->[64] u8
     {
         var result: #returntype
-        for offset in 64 do
+        for offset in 64
+        {
             result[ZigZag[offset]] = cast(u8, offset)
+        }
+
         return result
     }
 
@@ -177,13 +186,8 @@ impl Encoder
     func quantization(data: [*] s16, fdtbl: [*] f32, outData: [*] s16)->u64
     {
         var dataFloat: [64] f32
-        for i in 64
-        {
-            dataFloat[i] = data[i]
-        }
-
-        var dataptr = cast([*] f32, &dataFloat[0])
-        for _ in rangeTo(0, 7).reversed()
+        let coefficients = cast([*] f32, &dataFloat[0])
+        for group in 2
         {
             var lanes: [8] Math.Simd.F32x4
             let block = cast([*] Math.Simd.F32x4, lanes)
@@ -218,8 +222,8 @@ impl Encoder
         transformFourLines(right)
 
         var occupied: u64
-        let zero     = Math.Simd.splat(0's16)
-        let rounding = Math.Simd.splat(16384.5'f32)
+        let zero     = Math.Simd.splat(0_s16)
+        let rounding = Math.Simd.splat(16384.5_f32)
         for row in 8
         {
             let offset = row * 8
@@ -234,7 +238,7 @@ impl Encoder
             occupied |= ZigzagOccupancyMasks[row * 256 + rowMask]
         }
 
-        return occupied & ~1'u64
+        return occupied & ~1_u64
     }
 
     // A coefficient category is the number of bits needed for its absolute magnitude.
@@ -334,7 +338,7 @@ impl Encoder
 
         .writeDc(.du[0], dC, hTDC)
 
-        var next = 1'u64
+        var next = 1_u64
         while occupied
         {
             let index = Math.trailingZeros(occupied)
@@ -352,7 +356,9 @@ impl Encoder
             occupied &= occupied - 1
         }
 
-        if next < 64 do
+        if next < 64
+        {
             .writePackedCode(hTAC[0])
+        }
     }
 }

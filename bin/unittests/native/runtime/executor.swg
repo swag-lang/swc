@@ -10,14 +10,43 @@ struct ExecutorFailure
 
 var g_ClosingExecutorNode: Swag.WorkNode
 
-func awaitExecutorFlag(flag: *Swag.AtomicFlag)->bool
+struct ExecutorSignal
 {
-    for 1_000_000
+    mutex:     Swag.Mutex
+    condition: Swag.Condition
+    raised:    bool
+}
+
+impl ExecutorSignal
+{
+    mtd raise()
     {
-        if flag.isRaised() do
-            return true
+        .mutex.lock()
+        .raised = true
+        .mutex.unlock()
+        .condition.wakeAll()
     }
-    return flag.isRaised()
+
+    mtd wait()
+    {
+        .mutex.lock()
+        defer .mutex.unlock()
+        while not .raised do
+            .condition.wait(&.mutex)
+    }
+
+    mtd waitFor()->bool
+    {
+        .mutex.lock()
+        defer .mutex.unlock()
+        for 5000
+        {
+            if .raised do
+                return true
+            discard .condition.waitFor(&.mutex, 1)
+        }
+        return .raised
+    }
 }
 
 func awaitExecutorStopping(executor: *Swag.Executor)->bool
@@ -132,7 +161,7 @@ struct ExecutorCloseProbe
         return
 
     Swag.setWorkerCount(2)
-    var started, release, closeStarted: Swag.AtomicFlag
+    var started, release, closeStarted: ExecutorSignal
     var blocker:  Swag.Task
     var executor: Swag.Executor
     var closer:   Swag.Task
@@ -148,16 +177,16 @@ struct ExecutorCloseProbe
     blocker.submit(func|&started, &release|()
     {
         started.raise()
-        while not release.isRaised() {}
+        release.wait()
     }, executor: &executor)
-    Swag.require(awaitExecutorFlag(&started))
+    Swag.require(started.waitFor())
 
     closer.submit(func|&executor, &closeStarted|()
     {
         closeStarted.raise()
         executor.close()
     })
-    Swag.require(awaitExecutorFlag(&closeStarted))
+    Swag.require(closeStarted.waitFor())
     Swag.require(awaitExecutorStopping(&executor))
     Swag.require(blocker.isPending())
 

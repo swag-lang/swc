@@ -16,12 +16,8 @@ impl City32
     const C1 = 0xCC9E2D51
     const C2 = 0x1B873593
 
-    func fetch(buf: const [*] u8)->u32
-    {
-        var chunk: u32
-        Memory.copy(cast([*] void, &chunk), cast(const [*] void, buf), #sizeof(chunk))
-        return Math.littleEndianToNative(chunk)
-    }
+    #[Swag.Inline]
+    func fetch(buf: const [*] u8)->u32 => Math.littleEndianToNative(cast(const [*] u32, buf)[0])
 
     #[Swag.Safety(.Overflow, false)]
     mtd len0to4(data: const [..] u8)
@@ -138,8 +134,10 @@ impl City32
             h  += a4 * 5
             h  = Math.byteSwap(h)
             f  += a0
-            swap(&f, &h)
-            swap(&f, &g)
+            let previousF = f
+            f = g
+            g = h
+            h = previousF
             s += 20
         }
 

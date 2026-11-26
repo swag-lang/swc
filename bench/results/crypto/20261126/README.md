@@ -71,3 +71,4 @@ optimizations moved each result.
 - [P-256 fixed-base generator comb](p256-comb.md)
 - [AES-GCM four-counter encryption](aes-batched.md)
 - [Four-product reciprocal GHASH](aes-reciprocal.md)
+- [CityHash32 word loads and state rotation](cityhash32.md)

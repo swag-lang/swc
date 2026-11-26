@@ -243,6 +243,23 @@ func assertEncodedJpgRoundtrip(src: Image, expectedB, expectedG, expectedR: u8, 
     Swag.require(Hash.Crc64.compute(image.pixels.toSlice()) == 15585297770857937225'u64)
 }
 
+// Compact rows match expanded output for baseline and progressive single-component JPEGs.
+#test
+{
+    let options = DecodeOptions{keepJpegGrayscale: true}
+    for name in ["gray.jpg", "pillow-gray-1x1.jpg", "progressive-huffman-redefine.jpg"]
+    {
+        let expected = expect Image.load(getTestDataPath(name))
+        let actual = expect Image.load(getTestDataPath(name), options)
+        Swag.require(actual.isValid() and actual.pixelFormat == .Gray8)
+        Swag.require(actual.width == expected.width and actual.height == expected.height)
+        for index in actual.byteCount do
+            Swag.require(actual.pixels.storage()[index] == expected.pixels.storage()[index * 3])
+    }
+    let rgb = expect Image.load(getTestDataPath("h1v1.jpg"), options)
+    Swag.require(rgb.isValid() and rgb.pixelFormat == .BGR8)
+}
+
 // A four-component frame is the ink layout a print-ready photograph is written in.
 //
 // The fixture is a red, green and blue band saved as CMYK, so a correct decode returns exactly

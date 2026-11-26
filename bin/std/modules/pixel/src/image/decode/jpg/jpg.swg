@@ -289,6 +289,20 @@ impl Decoder
             try .initFirstScan()
     }
 
+    mtd decodeGrayPixels(buf: [*] u8) fail
+    {
+        let stride      = cast(u64, .imageSizeX)
+        let direct      = .destBytesPerScanLine == .realDestBytesPerScanLine
+        var destination = buf + cast(u64, .imageSizeY - 1) * stride
+        for .imageSizeY
+        {
+            let source = try .decodeScanLine'false(direct ? destination : null)
+            if source != destination do
+                Memory.copy(destination, source, stride)
+            destination -= stride
+        }
+    }
+
     mtd(Rgb: bool) decodePixels(buf: [*] u8) fail
     {
         let stride      = cast(u64, .imageSizeX) * 3
@@ -378,11 +392,11 @@ internal impl IImageDecoder for Decoder
 
         var result: #returntype
         try .init(buffer, options)
-        try options.checkImage(.imageSizeX, .imageSizeY, .BGR8)
+        let format = options.keepJpegGrayscale and .compsInFrame == 1 ? PixelFormat.Gray8 : PixelFormat.BGR8
+        try options.checkImage(.imageSizeX, .imageSizeY, format)
         try .start()
 
-        // Creates image
-        result.init(.imageSizeX, .imageSizeY, PixelFormat.BGR8)
+        result.init(.imageSizeX, .imageSizeY, format)
         if not options.decodePixels
         {
             result.metadata = #move .metadata
@@ -391,7 +405,10 @@ internal impl IImageDecoder for Decoder
 
         result.allocPixels()
 
-        try .decodePixels'false(cast([*] u8, result.pixels.storage()))
+        if format == .Gray8 do
+            try .decodeGrayPixels(result.pixels.storage())
+        else do
+            try .decodePixels'false(result.pixels.storage())
         result.metadata = #move .metadata
 
         return result

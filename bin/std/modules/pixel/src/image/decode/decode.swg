@@ -26,6 +26,8 @@ public struct DecodeOptions
         maxPixels:       u64 = 134217728     // Maximum pixels in one decoded image or animation canvas; zero removes the limit.
         maxDecodedBytes: u64 = 536870912     // Maximum bytes in one decoded pixel buffer; zero removes the limit.
         maxInputBytes:   u64 = 536870912     // Maximum encoded bytes accepted by an image reader; zero removes the limit.
+
+        keepJpegGrayscale = false     // Decode single-component JPEG frames into [[Pixel.PixelFormat.Gray8]].
     }
 }
 

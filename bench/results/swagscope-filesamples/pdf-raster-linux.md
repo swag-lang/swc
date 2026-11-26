@@ -169,3 +169,46 @@ Compared with the published baseline, 30 of 31 pages kept their CRC-32.
 Only the nested-clip fixture changed. Its mean absolute 8-bit RGB difference
 from PDFium was 3.0642 before and 3.0618 after at 1200 px. The mean difference
 also decreased at 600 and 2400 px.
+
+## Axis-aligned image resampling
+
+On opaque CPU bitmaps, Swag computes bilinear coordinates by axis for large
+axis-aligned texture spans. It reuses column indices and weights across the scan
+lines and caches horizontally filtered source rows for enlargements. The
+existing quantized horizontal and vertical color interpolation is applied
+to those separable samples.
+
+The corpus now has 41 files and 44 cases. The 12 additional public files
+cover progressive grayscale JPEG, CMYK, long-axis JPEG downscaling,
+inline and indexed rasters, one-bit and sixteen-bit samples, image masks,
+and real publication pages. Swag rejects `cmykjpeg.pdf` during load because
+its four-component JPEG uses 2 × 2 sampling. That page has a PDFium timing
+and no Swag timing. The supported CMYK stress page has a mean RGB difference
+of around 20 levels from PDFium, so its timing needs that fidelity context.
+
+Release builds used one logical AMD EPYC 7763 CPU, with `d9bfeae85f` as
+the Swag baseline and PDFium 159.0.8149.0 as the reference. Times are
+medians in milliseconds from ten interleaved measurements at 1200 px and
+five at 2400 px. The full corpus uses three measurements per case.
+[Raw timings and RGB measurements](pdf-raster-linux-image-spans.json)
+
+| PDF | Long side | Swag before | Swag after | PDFium | Render before | Render after | PDFium render |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| `sample1.pdf` | 1200 | 60.93 | 45.57 | 29.30 | 44.32 | 30.83 | 26.24 |
+| `sample2.pdf` | 1200 | 16.16 | 12.34 | 4.72 | 13.29 | 9.62 | 3.81 |
+| `sample3.pdf` | 1200 | 41.83 | 41.24 | 11.59 | 33.96 | 33.37 | 6.32 |
+| `pdfbox-jpeg.pdf` | 1200 | 37.95 | 12.12 | 4.08 | 36.95 | 11.18 | 3.95 |
+| `pdfbox-scan.pdf` | 1200 | 46.36 | 10.81 | 1.74 | 45.97 | 10.25 | 1.65 |
+| `perf_images_jpeg_large.pdf` | 1200 | 155.29 | 107.24 | 110.99 | 85.60 | 36.21 | 110.43 |
+| `perf_images_scan_gray.pdf` | 1200 | 141.16 | 81.82 | 41.84 | 88.07 | 31.35 | 40.45 |
+| `large_jpeg_downscale.pdf` | 1200 | 117.22 | 77.83 | 70.34 | 38.98 | 18.99 | 70.15 |
+| `pdfbox-jpeg.pdf` | 2400 | 145.68 | 39.99 | 6.12 | 144.70 | 38.86 | 6.01 |
+| `pdfbox-scan.pdf` | 2400 | 180.95 | 39.97 | 5.67 | 180.53 | 39.47 | 5.57 |
+| `perf_images_jpeg_large.pdf` | 2400 | 425.85 | 238.34 | 124.81 | 335.07 | 152.45 | 124.27 |
+| `perf_images_scan_gray.pdf` | 2400 | 391.17 | 201.46 | 50.72 | 326.28 | 128.83 | 49.42 |
+
+Separable coordinates change float rounding before the existing fixed-width
+color lerps. Across the 20 pixel comparisons, the maximum channel delta was
+2 levels out of 255 and the largest per-case mean absolute RGB change
+was 0.0165. The focused Pixel regression exercises clamped samples,
+straight-alpha composition and mirroring on both axes.

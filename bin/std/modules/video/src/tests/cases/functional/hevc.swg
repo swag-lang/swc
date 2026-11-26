@@ -3,6 +3,43 @@
 
 using Core, Core.Errors, Pixel
 
+// CABAC look-ahead must zero-pad at a substream boundary, regardless of the bytes
+// that follow it in the same RBSP. Check both the initial load and a refill.
+#test
+{
+    const Lengths    = [2'u64, 4, 6]
+    const Bins       = [24'u64, 1_616_276, 105_924_311_481]
+    const PaddedBins = [43305'u32, 47417, 47417]
+    let bytes = [0x31'u8, 0x21, 0xD6, 0x49, 0xFF, 0xFF, 0xF4, 0xFA]
+    for size, index in Lengths
+    {
+        var reader: Hevc.CabacReader
+        expect reader.start(bytes.buffer, size)
+        let available  = cast(u32, (size * 8 - 9))
+        let firstCount = Math.min(available, 24'u32)
+        let remaining  = available - firstCount
+        let first      = cast(u64, reader.bypassBits(firstCount))
+        let decoded    = (first << remaining) | reader.bypassBits(remaining)
+        Swag.require(decoded == Bins[index] and not reader.hasOverrun())
+
+        let padded = reader.bypassBits(16)
+        Swag.require(padded == PaddedBins[index] and reader.hasOverrun())
+    }
+}
+
+// The two reserved nine-bit offsets exceed the initial arithmetic range.
+#test
+{
+    for second in [0'u8, 0x80]
+    {
+        let bytes = [0xFF'u8, second]
+        var reader:   Hevc.CabacReader
+        var rejected: Swag.Error
+        catch reader.start(bytes.buffer, bytes.count) as rejected
+        Swag.require(rejected.value() is InvalidFormatError)
+    }
+}
+
 // The VUI stores standard aspect ratios as an id and other ratios as two 16-bit values.
 #test
 {

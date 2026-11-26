@@ -351,6 +351,12 @@ struct Painter
     scanClipShapes:   Array'ScanFillBatch
     useScanlineFills: bool
 
+    // The stroke walk collects consistently wound fragments before emitting one fill.
+    scanStroke:     bool
+    scanStrokeLow:  Vector2
+    scanStrokeHigh: Vector2
+    scanStrokeArc:  Array'Vector2
+
     // Reusable workspaces. They only hold intermediate results of the call in progress.
 
     private
@@ -447,8 +453,7 @@ impl Painter
     // Creates a CPU painter that scan-converts eligible solid paths.
     //
     // The renderer is borrowed for the painter's lifetime. Antialiased fills with explicit
-    // winding rules and straight, flat-ended strokes on the main surface can be submitted
-    // as contours. Their edge coverage follows the device sample grid. Large axis-aligned
+    // winding rules and solid strokes on the main surface can be submitted as contours. Their edge coverage follows the device sample grid. Large axis-aligned
     // texture spans reuse their bilinear sample coordinates across rows.
     func createScanline(renderer: *RenderCpu)->Painter
     {

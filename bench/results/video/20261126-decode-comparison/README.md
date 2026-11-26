@@ -84,6 +84,34 @@ final variant derives the active planes from the stored SAO parameters before fi
 Reproduce the grayscale input by adding `-vf hue=s=0` to the 1080p Main10 generation
 command and setting `-frames:v 120`.
 
+## HEVC CABAC look-ahead
+
+The CABAC decoder now shifts the arithmetic offset and the next 32 input bits together.
+A marker tracks how many bits remain and triggers a four-byte refill. The reader pads
+at the current substream boundary, including WPP row boundaries. Focused tests cover
+short refills, overrun detection and reserved initial offsets.
+
+The baseline is `85189292c3`. The initial three-run series found a 3.1% reduction on
+4K Main10, a 2.0% reduction on all-intra Main10 and a 7.5% reduction on Main WPP.
+Grayscale changed by +0.2% and the camera clip by +1.5%. The first texture measurement
+varied from 5.78 to 9.18 ms per picture with the new decoder.
+
+For the WPP and texture clips, five paired repetitions alternated which build ran
+first on the same logical CPU. Each invocation used one warm pass followed by four
+timed passes. Wall time is the median across the 20 timed observations per build.
+Process CPU time is the median across invocations, including warm-up.
+
+| HEVC stream | Before (ms/picture) | After (ms/picture) | Wall time change | Process CPU time change |
+| --- | ---: | ---: | ---: | ---: |
+| Main10 texture | 5.21 | 4.91 | -5.7% | -3.2% |
+| Main 720p WPP | 5.22 | 4.88 | -6.6% | -2.6% |
+
+All 1,073 compared pictures matched FFmpeg across nine inputs. The six new generated
+inputs contribute 630 pictures and cover AVC Baseline, High, High 4:4:4 and HEVC WPP,
+Main10 all-intra and Main10 texture. The targeted native Release selection passed
+111 tests. The first 16-bit look-ahead trial regressed WPP and was dropped.
+[Raw observations, quality hashes and fixture commands](cabac.json).
+
 ## Reproduce
 
 The [workload](../../../workloads/videodecode/README.md) contains the benchmark and generation

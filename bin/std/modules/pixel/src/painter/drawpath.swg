@@ -149,12 +149,51 @@ private func expandConvexRing(points: [..] Math.Vector2, outline: f32)
 
 impl Painter
 {
+    // All fragments enter the same nonzero fill with the same orientation. This
+    // makes crossing stroke segments combine once even when their coverage overlaps.
+    private mtd recordStrokeContour(points: const [..] Math.Vector2)
+    {
+        let origin = points[0]
+        var signedArea: f32
+        for index in 1 until points.count - 1
+        {
+            let a = points[index] - origin
+            let b = points[index + 1] - origin
+            signedArea += a.x * b.y - a.y * b.x
+        }
+
+        if signedArea == 0 or not Math.isFinite(signedArea) do
+            return
+        if signedArea > 0
+        {
+            .scanPoints.add(points)
+        }
+        else
+        {
+            for index in reversed(points.count) do
+                .scanPoints.add(points[index])
+        }
+
+        .scanContourEnds.add(.scanPoints.count)
+        for point in points
+        {
+            .scanStrokeLow  = Math.Vector2.min(.scanStrokeLow, point)
+            .scanStrokeHigh = Math.Vector2.max(.scanStrokeHigh, point)
+        }
+    }
+
     // Lays down one convex cap outline, expanded by the border width when this walk paints one.
     mtd fillCapRing(points: [..] Math.Vector2, outline: f32, pen: Pen)
     {
         let count = points.count
         if count < 3 do
             return
+        if .scanStroke
+        {
+            .recordStrokeContour(points)
+            return
+        }
+
         if outline > 0 do
             expandConvexRing(points, outline)
 
@@ -354,6 +393,12 @@ impl Painter
             v2 = Math.Vector2{p.x + d2.x, p.y + d2.y}
         }
 
+        if .scanStroke
+        {
+            .recordStrokeContour([v0, v1, v2])
+            return
+        }
+
         let prim1 = .pushTriangle(v0, v1, v2, pen.brush.color)
         if .curState.paintParams & .Antialiased do
             .addEdgeAA(prim1, v1, v2)
@@ -389,6 +434,16 @@ impl Painter
 
             .sharedRoundTmp.insertAt(cast(u64, i) + 1, {factor: angle, pos: point})
             i -= 1
+        }
+
+        if .scanStroke
+        {
+            .scanStrokeArc.clear()
+            .scanStrokeArc.add(center)
+            for sample in .sharedRoundTmp do
+                .scanStrokeArc.add(sample.pos)
+            .recordStrokeContour(.scanStrokeArc.toSlice())
+            return
         }
 
         // Every triangle of the fan meets the others on the centre, and a pixel sitting exactly
@@ -478,6 +533,12 @@ impl Painter
             v3 = Math.Vector2{p.x + d2.x, p.y + d2.y}
         }
 
+        if .scanStroke
+        {
+            .recordStrokeContour([v0, v1, v2, v3])
+            return
+        }
+
         let prim1 = .pushTriangle(v0, v1, v3, pen.brush.color)
         discard .pushTriangle(v1, v3, v2, pen.brush.color)
         if .curState.paintParams & .Antialiased
@@ -527,7 +588,7 @@ impl Painter
         // AA end edge if no cap. Copy the positions out first: addEdgeAA appends
         // fringe geometry, which may reallocate the vertex buffer, and invalidate
         // any pointer into it.
-        if .curState.paintParams & .Antialiased
+        if not .scanStroke and .curState.paintParams & .Antialiased
         {
             let prim2p = .vertexBuffer.storage() + cxt.prim2
             let p      = prim2p.pos
@@ -599,7 +660,11 @@ impl Painter
         let v2 = newPos + cxt.normal
 
         let antialiased = .curState.paintParams & .Antialiased
-        if antialiased and .curState.paintParams & .DistanceStrokes
+        if .scanStroke
+        {
+            .recordStrokeContour([v0, v1, v2, v3])
+        }
+        elif antialiased and .curState.paintParams & .DistanceStrokes
         {
             // One quad reaching past the contour by the antialiasing margin, carrying the signed
             // distance to the centre line. Two triangles replace the quad and the two bands.
@@ -640,7 +705,7 @@ impl Painter
         // If we are starting a line, and the line does not have a cap before, then
         // we must AA the corresponding edge. The measured quad carries no distance along the
         // segment, so its butt end needs the band just as the banded one does.
-        if antialiased and
+        if not .scanStroke and antialiased and
            flatBegin and
            cxt.beginLine and
            (not cxt.firstLine or cxt.pen.begCapStyle == .None or cxt.path.isClosed) do
@@ -1040,7 +1105,7 @@ impl Painter
             .drawOutlineButt(cxt, cxt.prev, cxt.dir)
         }
         // Handle AA and closing as before...
-        elif openEnd and (.curState.paintParams & .Antialiased)
+        elif openEnd and not .scanStroke and (.curState.paintParams & .Antialiased)
         {
             // Copy positions out before addEdgeAA: it appends geometry and may
             // reallocate the vertex buffer, invalidating pointers into it.
@@ -1239,6 +1304,22 @@ public impl Painter
         .setMinifiedStrokeLimits(&cxt, pen)
         if pen.dashStyle != .None do
             preparePattern(&cxt)
+
+        if outline == 0 and not strokeHasOutline(pen) and pen.plotOffset == 0 and
+           pen.brush.type == .SolidColor and .canRecordScanPath()
+        {
+            if not pen.brush.color.a or .isEmptyClippingRect() do
+                return
+
+            let first = .scanContourEnds.count
+            .scanStroke     = true
+            .scanStrokeLow  = Math.Vector2.Max
+            .scanStrokeHigh = Math.Vector2.Min
+            defer .scanStroke = false
+            .drawPath(&cxt)
+            .emitScanFill(first, .scanStrokeLow, .scanStrokeHigh, pen.brush.color, .NonZero)
+            return
+        }
 
         var bvMin = path.minBounds
         var bvMax = path.maxBounds

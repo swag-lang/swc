@@ -6,7 +6,7 @@
 #global namespace Hevc
 #global internal
 
-using Core
+using Core, Core.Errors
 
 // The saved context state of one slice segment, clause 9.3.2.4.
 //
@@ -27,19 +27,16 @@ struct CabacState
 // state transitions and the same renormalization. What differs is which contexts exist and how
 // they are initialized, so this reads the shared tables and keeps its own context array.
 //
-// Slice bits stream through a 64-bit buffer refilled a word at a time, and renormalization shifts
-// in one step, so the cost of a bin stays flat whatever the bin rate.
+// The offset carries its look-ahead bits and a marker. Renormalization advances both the
+// offset and its input in one shift. Refilling is needed only when the marker reaches bit 32.
 struct CabacReader
 {
-    data:      const [*] u8?     // Substream bytes, with emulation prevention already removed.
-    size:      u64
-    position:  u64     // Next byte to load into the bit buffer.
-    padBytes:  u64     // Synthetic zero bytes loaded past the end of the data.
-    bitBuffer: u64     // Raw bits, most significant first.
-    bitCount:  s32     // Valid bits at the top of `bitBuffer`.
-    low:       u32     // ivlOffset.
-    range:     u32     // ivlCurrRange.
-    contexts:  [ContextCount] u8     // Packed state: `(pStateIdx << 1) | valMps`.
+    data:     const [*] u8?     // Substream bytes, with emulation prevention already removed.
+    size:     u64
+    position: u64     // Next byte to load, including synthetic zero bytes beyond size.
+    low:      u64     // ivlOffset << 33, then look-ahead bits and the marker.
+    range:    u32     // ivlCurrRange.
+    contexts: [ContextCount] u8     // Packed state: `(pStateIdx << 1) | valMps`.
 
     // Clause 9.3.2.3: the Rice parameter each of the four coefficient statistics starts from.
     // Persistent Rice adaptation belongs to the range extensions; Main 10 leaves these at zero.
@@ -47,6 +44,9 @@ struct CabacReader
 }
 
 private const CabacDecisionTables = #run buildCabacDecisionTables()
+private const LookAheadBits       = 32'u32
+private const OffsetShift         = LookAheadBits + 1
+private const RefillMask          = 0xFFFFFFFF'u64
 
 impl CabacReader
 {
@@ -95,62 +95,56 @@ impl CabacReader
     }
 
     // Starts the arithmetic engine on byte-aligned substream data, clause 9.3.2.5.
-    mtd start(data: const [*] u8, size: u64)
+    mtd start(data: const [*] u8, size: u64) fail
     {
-        .data      = data
-        .size      = size
-        .position  = 0
-        .padBytes  = 0
-        .bitBuffer = 0
-        .bitCount  = 0
-        .range     = 510
-        .low       = .takeBits(9)
+        .data     = data
+        .size     = size
+        .position = 5
+        .range    = 510
+        let head = .lookAhead(0)
+        if head >> (LookAheadBits - 9) >= .range do
+            fail InvalidFormatError{"HEVC CABAC initial offset is outside the range 0 through 509"}
+
+        let tail = size > 4 ? cast(u64, data[4]) : 0'u64
+        .low = (cast(u64, head) << 10) | (tail << 2) | 2
     }
 
-    // Reports whether decoding consumed bits past the end of the substream.
+    // The marker starts at bit one with 31 unread bits. Its position and the loaded byte
+    // count record consumption even after the substream supplies only synthetic zeros.
     #[Swag.Inline]
-    mtd const hasOverrun()->bool => (.position + .padBytes) * 8 - cast(u64, .bitCount) > .size * 8
+    mtd const hasOverrun()->bool => .position * 8 + cast(u64, Swag.trailingZeros(.low)) > .size * 8 + LookAheadBits
 
-    // Refills the top of the bit buffer, padding with zero bytes past the end of the data.
-    private mtd refill()
+    // A WPP row or tile ends inside the RBSP. Its look-ahead zero-pads at that boundary.
+    #[Swag.Inline]
+    private mtd const lookAhead(offset: u64)->u32
     {
-        // An empty buffer with a whole word of data left loads it in one swapped read.
-        if .bitCount <= 0 and .position + 8 <= .size
-        {
-            .bitBuffer = Swag.byteSwap(cast(const [*] u64, unwrap .data + .position)[0])
-            .bitCount  = 64
-            .position  += 8
-            return
-        }
-
-        while .bitCount <= 56
-        {
-            var value = 0'u8
-            if .position < .size
-            {
-                value     = .data![.position]
-                .position += 1
-            }
-            else
-            {
-                .padBytes += 1
-            }
-
-            .bitBuffer |= cast(u64, value) << cast(u32, (56 - .bitCount))
-            .bitCount  += 8
-        }
+        if offset >= .size do
+            return 0
+        let remaining = .size - offset
+        let data      = unwrap .data + offset
+        if remaining >= 4 do
+            return Swag.byteSwap(cast(const [*] u32, data)[0])
+        return readTail(data, remaining)
     }
 
-    // Takes `count` raw bits, most significant first; `count` is 1 to 9.
-    #[Swag.Inline]
-    private mtd takeBits(count: u32)->u32
+    // The last one to three bytes may be followed by another substream in the same buffer.
+    #[Swag.NoInline]
+    private func readTail(data: const [*] u8, count: u64)->u32
     {
-        if .bitCount < cast(s32, count) do
-            .refill()
-        let bits = cast(u32, (.bitBuffer >> cast(u32, (64 - count))))
-        .bitBuffer <<= count
-        .bitCount  -= cast(s32, count)
-        return bits
+        var result = 0'u32
+        for index in count do
+            result |= cast(u32, data[index]) << (24 - cast(u32, index) * 8)
+        return result
+    }
+
+    // Move the marker down by 32 and insert the next four bytes above it.
+    #[Swag.Inline]
+    private mtd reload(low: u64)->u64
+    {
+        let extra = cast(u32, Swag.trailingZeros(low)) - LookAheadBits
+        let bits  = cast(u64, .lookAhead(.position)) << 1
+        .position += 4
+        return low - #wrap (RefillMask << extra) + #wrap (bits << extra)
     }
 
     // Decodes one bin against the context at `contextIndex`, clause 9.3.4.3.2.
@@ -166,19 +160,19 @@ impl CabacReader
         var range = .range - lps
         var low   = .low
 
-        let isLps  = low >= range
-        let offset = low - #wrap range
+        let scaledRange = cast(u64, range) << OffsetShift
+        let isLps       = low >= scaledRange
+        let offset      = low - #wrap scaledRange
         low   = isLps ? offset : low
         range = isLps ? lps : range
         let symbol = isLps ? ~state : state
         .contexts[contextIndex] = CabacDecisionTables[CabacStateAt + cast(u64, (128 + symbol))]
 
         let shift = Swag.leadingZeros(range) - 23
-        if shift != 0
-        {
-            range <<= shift
-            low   = (low << shift) | .takeBits(shift)
-        }
+        range <<= shift
+        low   <<= shift
+        if (low & RefillMask) == 0 do
+            low = .reload(low)
 
         .range = range
         .low   = low
@@ -189,9 +183,13 @@ impl CabacReader
     #[Swag.Inline]
     mtd bypass()->u32
     {
-        let low    = (.low << 1) | .takeBits(1)
-        let offset = low - #wrap .range
-        let one    = low >= .range
+        var low = .low << 1
+        if (low & RefillMask) == 0 do
+            low = .reload(low)
+
+        let range  = cast(u64, .range) << OffsetShift
+        let offset = low - #wrap range
+        let one    = low >= range
         .low = one ? offset : low
         return one ? 1'u32 : 0'u32
     }
@@ -200,12 +198,14 @@ impl CabacReader
     #[Swag.Inline]
     mtd bypassBits(count: u32)->u32
     {
-        let range  = .range
+        let range  = cast(u64, .range) << OffsetShift
         var low    = .low
         var result = 0'u32
         for count
         {
-            low = (low << 1) | .takeBits(1)
+            low <<= 1
+            if (low & RefillMask) == 0 do
+                low = .reload(low)
             let offset = low - #wrap range
             let one    = low >= range
             low    = one ? offset : low
@@ -223,14 +223,15 @@ impl CabacReader
     mtd terminate()->u32
     {
         .range -= 2
-        if .low >= .range do
+        if .low >= (cast(u64, .range) << OffsetShift) do
             return 1
 
-        let shift = Math.max(cast(s32, Swag.leadingZeros(.range)) - 23, 0)
-        if shift != 0
+        if .range < 256
         {
-            .range <<= cast(u32, shift)
-            .low   = (.low << cast(u32, shift)) | .takeBits(cast(u32, shift))
+            .range <<= 1
+            .low   <<= 1
+            if (.low & RefillMask) == 0 do
+                .low = .reload(.low)
         }
 
         return 0

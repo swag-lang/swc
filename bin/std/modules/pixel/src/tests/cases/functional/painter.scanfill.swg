@@ -109,3 +109,49 @@ using Core
     Swag.require(image.pixelColor(4, 4).argb == 0xFF00_0000)
     Swag.require(image.pixelColor(5, 4).argb == 0xFFFF_FFFF)
 }
+
+// Self-crossing strokes composite once and preserve the gaps in a rounded dash pattern.
+#test
+{
+    var cpu: RenderCpu
+    cpu.begin(30, 28)
+    let renderer: IRenderer = &cpu
+    defer renderer.end()
+    var painter = Painter.createScanline(&cpu)
+    painter.begin()
+    painter.setColorMaskFull()
+    painter.clear(Color.fromArgb(Argb.White))
+    painter.setColorMaskColor()
+
+    var crossed: LinePath
+    crossed.start(3, 6)
+    crossed.lineTo(16, 6)
+    crossed.lineTo(16, 15)
+    crossed.lineTo(8, 15)
+    crossed.lineTo(8, 3)
+    var pen = Pen.createSolid(Color.fromArgb(0x8000_0000'u32), 4)
+    pen.begCapStyle, pen.endCapStyle = .None
+    painter.drawPath(&crossed, pen)
+
+    var dashed: LinePath
+    dashed.start(3, 21)
+    dashed.lineTo(24, 21)
+    pen = Pen.createSolid(Color.fromArgb(Argb.Black), 2)
+    pen.begCapStyle, pen.endCapStyle = .None
+    pen.dashStyle       = .Pattern
+    pen.dashBegCapStyle = .Round
+    pen.dashEndCapStyle = .Round
+    pen.pattern.add(2)
+    pen.pattern.add(2)
+    painter.drawPath(&dashed, pen)
+
+    painter.end()
+    expect renderer.draw(&painter)
+    let image = cpu.surfaceImage()
+    Swag.require(image.pixelColor(5, 6).argb == 0xFF7F_7F7F)
+    Swag.require(image.pixelColor(8, 6).argb == 0xFF7F_7F7F)
+    Swag.require(image.pixelColor(16, 6).argb == 0xFF7F_7F7F)
+    Swag.require(image.pixelColor(4, 21).argb == 0xFF00_0000)
+    Swag.require(image.pixelColor(8, 21).argb == 0xFFFF_FFFF)
+    Swag.require(image.pixelColor(12, 21).argb == 0xFF00_0000)
+}

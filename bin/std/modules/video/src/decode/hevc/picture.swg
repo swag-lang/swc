@@ -497,7 +497,7 @@ impl Decoder
         let last  = bounds[index + 1]
         if last <= first do
             fail InvalidFormatError{"HEVC slice segment substream is empty"}
-        .cabac.start(.rbsp.storage() + first, last - first)
+        try .cabac.start(.rbsp.storage() + first, last - first)
     }
 
     // Decodes a full-picture wavefront slice using one private scratch decoder per row.
@@ -662,7 +662,7 @@ impl Decoder
         .isCuQpDeltaCoded = false
         let first = job.bounds![row]
         let last  = job.bounds[row + 1]
-        .cabac.start(job.owner!.rbsp.storage() + first, last - first)
+        try .cabac.start(job.owner!.rbsp.storage() + first, last - first)
 
         if row
         {

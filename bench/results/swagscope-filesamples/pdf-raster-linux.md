@@ -212,3 +212,45 @@ color lerps. Across the 20 pixel comparisons, the maximum channel delta was
 2 levels out of 255 and the largest per-case mean absolute RGB change
 was 0.0165. The focused Pixel regression exercises clamped samples,
 straight-alpha composition and mirroring on both axes.
+
+## Joined and dashed stroke spans
+
+The opaque CPU bitmap painter converts the bodies, joins and caps of an eligible
+stroke to consistently wound contours. It merges their covered intervals before
+blending the stroke. The existing dash walker retains the dash placement and cap
+sizes. At a self-intersection, translucent ink is composited once. A flat
+one-segment stroke still uses its four-edge recording path.
+
+PDFium's AGG path driver also passes complete stroked contours to its scanline
+rasterizer, which accumulates subpixel cell area. Swag integrates four vertical
+samples and still builds all the dash bodies and joins, leaving more work on dense
+artwork. [PDFium path driver](https://github.com/chromium/pdfium/blob/main/core/fxge/agg/cfx_agg_devicedriver.cpp)
+
+These one-core Release medians use five interleaved measurements at 1200 and
+2400 px against Swag `8890aed342` and PDFium 159.0.8149.0. The flat
+hairline recheck uses ten pairs of two samples. Times are milliseconds.
+[Phase timings, corpus and RGB measurements](pdf-raster-linux-joined-strokes.json)
+
+| PDF | Long side | Swag before | Swag after | PDFium | Render before | Render after | PDFium render |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| `sample1.pdf` | 1200 | 46.99 | 43.27 | 26.93 | 30.42 | 28.90 | 24.34 |
+| `sample2.pdf` | 1200 | 11.63 | 11.21 | 4.48 | 8.98 | 8.71 | 3.67 |
+| `sample3.pdf` | 1200 | 42.72 | 35.82 | 11.70 | 35.12 | 27.86 | 6.33 |
+| `pdfbox-tiger.pdf` | 1200 | 29.59 | 25.72 | 13.54 | 27.45 | 23.53 | 10.52 |
+| `perf_paths_operators.pdf` | 1200 | 188.64 | 125.76 | 71.97 | 173.29 | 108.14 | 56.99 |
+| `perf_paths_curves.pdf` | 1200 | 1530.54 | 897.77 | 342.88 | 1517.24 | 874.74 | 320.59 |
+| `perf_paths_map.pdf` | 1200 | 290.34 | 208.26 | 142.85 | 276.18 | 191.99 | 130.82 |
+| `sample3.pdf` | 2400 | 74.78 | 68.44 | 14.42 | 67.05 | 59.70 | 9.44 |
+| `perf_paths_curves.pdf` | 2400 | 2731.97 | 1806.67 | 626.39 | 2718.57 | 1792.61 | 614.58 |
+| `perf_paths_map.pdf` | 2400 | 511.23 | 339.88 | 203.83 | 498.46 | 328.54 | 193.30 |
+| `perf_paths_hairlines.pdf` | 1200 | 151.24 | 154.45 | 147.26 | 117.06 | 120.80 | 129.90 |
+
+Of 43 supported cases in the full corpus, 33 retained their Swag CRC-32.
+On the dense curves at 1200 px, 40.91% of pixels changed, and mean absolute
+RGB error from PDFium decreased from 16.55 to 15.46 out of 255. The map,
+PDF operators page and tiger also moved closer to PDFium at both sizes.
+Across the original FileSamples pages at 1200 px, fewer than 0.62% of pixels
+changed on each page. The mean difference from PDFium fell on `sample1.pdf`
+and rose by 0.003 and 0.035 on `sample2.pdf` and `sample3.pdf`, respectively.
+The flat hairline fixture matched pixel for pixel at both sizes. The focused
+painter test covers a crossing translucent stroke and round-capped dashes.

@@ -47,13 +47,14 @@ the sampling layouts used by ffmpeg's 4:2:0, 4:2:2, and 4:4:4 Motion JPEG output
 
 ### std.video.005 — Reduce the measured serial cost of H.265 decoding
 
-- Evidence: [the follow-up comparison](../bench/results/video/20261126-decode-comparison/README.md#prediction-and-sao-follow-up) measures serial Main10 at
-  1.46× native single-threaded FFmpeg at 3840×2076. The residual coding routine still accounts
-  for about a quarter of samples. The remaining generic copies are predominantly in SAO.
-  The Main and Main10 conformance digests and container reference planes are the correctness
-  boundary.
-- Next: profile significance context selection and the arithmetic loop separately, then
-  compare a targeted residual change on motion, all-intra and WPP streams.
+- Evidence: [the follow-up comparison](../bench/results/video/20261126-decode-comparison/README.md#prediction-and-sao-follow-up) measured serial Main10 at
+  1.46× native single-threaded FFmpeg at 3840×2076. In a separate run,
+  [32-bit CABAC look-ahead](../bench/results/video/20261126-decode-comparison/README.md#hevc-cabac-look-ahead)
+  lowered 4K time by 3.1%. Alternating runs found 5.7% lower wall time on Main10 texture
+  and 6.6% on Main WPP. The residual coding routine accounted for about a quarter of samples
+  before the CABAC change. The Main and Main10 conformance digests and container reference
+  planes remain the correctness boundary.
+- Next: measure significance context selection on motion, all-intra and WPP streams.
 - Measurement: warm and decode forward without seeking back inside a measured window; prove
   which threads carry decoding; compare small stage changes by alternating implementations in
   one process on the same blocks, not by disabling stages.

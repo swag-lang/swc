@@ -21,6 +21,8 @@ and measures the multi-band color path. `tall-bands` overlaps two fills made
 of tall, narrow contours that touch most scan bands.
 `mask-band`, `mask-column`, and `mask-compact` clip the same large translucent
 curves through a narrow horizontal, vertical, or compact opening.
+`folded-bands` makes neighboring contours cross repeatedly over long row ranges.
+`gradient-fills` stacks translucent linear, radial, repeated, and reflected paints.
 
 Add `--public` to include 13 fixtures from the pinned resvg 0.50.0 test suite.
 They exercise clip paths, fill rules, acute and round joins, square caps,

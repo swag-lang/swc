@@ -945,7 +945,7 @@ func tiffDecodeFails(bytes: const [..] u8)->bool
         Swag.require(dst[index] == value)
 }
 
-// A vector-sized LZW copy must stay inside both the decoded history and the strip tail.
+// Medium LZW phrases preserve the guard bytes at both ends of the strip.
 #test
 {
     var writer: TestTiffLzwWriter

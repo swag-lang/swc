@@ -57,7 +57,7 @@ impl LzwBitReader
 
 // TIFF LZW uses MSB-first codes and the early code-width transition used by
 // Aldus TIFF writers. Each strip owns an independent dictionary.
-private func(LITERAL_PAIRS: bool, VECTOR_PHRASES: bool) unpackLzwStrip(dst: [*] u8, expected: u64, src: const [*] u8, srcCount: u32, dictionary: *Array'u64) fail
+private func(LITERAL_PAIRS: bool) unpackLzwStrip(dst: [*] u8, expected: u64, src: const [*] u8, srcCount: u32, dictionary: *Array'u64) fail
 {
     var reader = LzwBitReader{src, src + srcCount, 0, 0}
 
@@ -166,12 +166,26 @@ private func(LITERAL_PAIRS: bool, VECTOR_PHRASES: bool) unpackLzwStrip(dst: [*] 
                     cast([*] u32, target)[0] = cast(const [*] u32, source)[0]
 
                 default:
-                    #static if VECTOR_PHRASES
+                    #static if not LITERAL_PAIRS
                     {
-                        if wordLength <= 16 and sourceOffset + 16 <= output and expected - output >= 16 do
-                            Math.Simd.store(target, Math.Simd.load(source))
-                        else do
+                        // Two overlapping words cover the phrase without reading
+                        // or writing outside it, even for a reference to the last word.
+                        if wordLength <= 8
+                        {
+                            let tail = wordLength - 4
+                            cast(*u32, target)[] = cast(const *u32, source)[]
+                            cast(*u32, (target + tail))[] = cast(const *u32, (source + tail))[]
+                        }
+                        elif wordLength <= 16
+                        {
+                            let tail = wordLength - 8
+                            cast(*u64, target)[] = cast(const *u64, source)[]
+                            cast(*u64, (target + tail))[] = cast(const *u64, (source + tail))[]
+                        }
+                        else
+                        {
                             Memory.copy(target, source, wordLength)
+                        }
                     }
                     else do
                         Memory.copy(target, source, wordLength)
@@ -207,11 +221,8 @@ private func(LITERAL_PAIRS: bool, VECTOR_PHRASES: bool) unpackLzwStrip(dst: [*] 
 func unpackLzw(dst: [*] u8, expected: u64, src: const [*] u8, srcCount: u32, dictionary: *Array'u64) fail
 {
     // Significant expansion indicates that few input bytes used dictionary phrases.
-    // Strong compression makes medium phrases frequent enough for the vector path.
     if expected >= 256 and srcCount > expected + expected / 8 do
-        try unpackLzwStrip'(true, false)(dst, expected, src, srcCount, dictionary)
-    elif expected >= 256 and srcCount <= expected / 2 do
-        try unpackLzwStrip'(false, true)(dst, expected, src, srcCount, dictionary)
+        try unpackLzwStrip'true(dst, expected, src, srcCount, dictionary)
     else do
-        try unpackLzwStrip'(false, false)(dst, expected, src, srcCount, dictionary)
+        try unpackLzwStrip'false(dst, expected, src, srcCount, dictionary)
 }

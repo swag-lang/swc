@@ -5,7 +5,56 @@
 //
 #global namespace Y4m
 
-using Core, Core.Errors, Pixel
+using Core, Core.Errors, Core.Math, Pixel
+
+// Unpack one channel from four RGB24 or RGB32 pixels into the low lanes.
+private const First24  = cast(Simd.U8x16, [0'u8, 3, 6, 9, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128])
+private const Second24 = cast(Simd.U8x16, [1'u8, 4, 7, 10, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128])
+private const Third24  = cast(Simd.U8x16, [2'u8, 5, 8, 11, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128])
+private const First32  = cast(Simd.U8x16, [0'u8, 4, 8, 12, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128])
+private const Second32 = cast(Simd.U8x16, [1'u8, 5, 9, 13, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128])
+private const Third32  = cast(Simd.U8x16, [2'u8, 6, 10, 14, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128])
+
+#[Swag.Inline]
+private func convertPixels4(source: const [*] u8, target: [*] u8, redMask, greenMask, blueMask: Simd.U8x16)->{cb: Simd.S16x8, cr: Simd.S16x8}
+{
+    let packed = Simd.load(source)
+    let red    = Simd.widenLow(Simd.shuffle(packed, redMask))
+    let green  = Simd.widenLow(Simd.shuffle(packed, greenMask))
+    let blue   = Simd.widenLow(Simd.shuffle(packed, blueMask))
+
+    // The luma accumulator is unsigned and fits in 16 bits. Both chroma sums fit in signed lanes.
+    let y = cast #bit(Simd.S16x8, ((66 * red + 129 * green + 25 * blue + 128) >> 8) + 16)
+    Simd.storeLow4(target, Simd.packUnsigned(y, y))
+    let r = cast #bit(Simd.S16x8, red)
+    let g = cast #bit(Simd.S16x8, green)
+    let b = cast #bit(Simd.S16x8, blue)
+    return {cb: ((-38 * r - 74 * g + 112 * b + 128) >> 8) + 128,
+            cr: ((112 * r - 94 * g - 18 * b + 128) >> 8) + 128}
+}
+
+#[Swag.Inline]
+private func(StepX: u64, StepY: u64) storeChroma4(target: [*] u8, samples: Simd.S16x8)
+{
+    #static if StepX == 1
+    {
+        Simd.storeLow4(target, Simd.packUnsigned(samples, samples))
+    }
+    else
+    {
+        let pairs = Simd.mulAddPairs(samples, Simd.splat(1's16))
+        #static if StepX == 4
+        {
+            target[0] = cast(u8, (pairs[0] + pairs[1] + 2) >> 2)
+        }
+        else
+        {
+            const Count = cast(s32, StepX * StepY)
+            target[0] = cast(u8, (pairs[0] + Count / 2) / Count)
+            target[1] = cast(u8, (pairs[1] + Count / 2) / Count)
+        }
+    }
+}
 
 private func(StepX: u64, StepY: u64) convertPlanes(image: const *Image, width, height, chromaWidth, chromaHeight: u64, luma, cb, cr: [*] u8)
 {
@@ -14,12 +63,41 @@ private func(StepX: u64, StepY: u64) convertPlanes(image: const *Image, width, h
     let pixelSize = image.bytesPerPixel
     let stride    = cast(u64, image.rowStride)
     const Samples = StepX * StepY
+    let firstMask = pixelSize == 4 ? First32 : First24
+    let greenMask = pixelSize == 4 ? Second32 : Second24
+    let thirdMask = pixelSize == 4 ? Third32 : Third24
+    let redMask   = red == 0 ? firstMask : thirdMask
+    let blueMask  = red == 0 ? thirdMask : firstMask
+
+    // RGB24 needs at least 16 readable bytes for a packed load. The scalar tail handles
+    // any complete chroma footprints left at the end of that row.
+    let groups = (pixelSize == 4 ? width : Math.max(width, 2'u64) - 2) / 4
+
     for cy in chromaHeight
     {
         let y      = cy * StepY
         let input  = image.pixels.storage() + (height - 1 - y) * stride
         let output = luma + y * width
-        for cx in chromaWidth
+        let cbRow  = cb + cy * chromaWidth
+        let crRow  = cr + cy * chromaWidth
+        for group in groups
+        {
+            let x      = group * 4
+            let source = input + x * pixelSize
+            let dest   = output + x
+            var chroma = convertPixels4(source, dest, redMask, greenMask, blueMask)
+            #static if StepY == 2
+            {
+                let next = convertPixels4(source - stride, dest + width, redMask, greenMask, blueMask)
+                chroma.cb += next.cb
+                chroma.cr += next.cr
+            }
+
+            storeChroma4'(StepX, StepY)(cbRow + x / StepX, chroma.cb)
+            storeChroma4'(StepX, StepY)(crRow + x / StepX, chroma.cr)
+        }
+
+        for cx in groups * 4 / StepX until chromaWidth
         {
             let x = cx * StepX
             var sumCb, sumCr: s32
@@ -41,9 +119,8 @@ private func(StepX: u64, StepY: u64) convertPlanes(image: const *Image, width, h
                 }
             }
 
-            let at = cy * chromaWidth + cx
-            cb[at] = cast(u8, ((sumCb + cast(s32, Samples / 2)) / cast(s32, Samples)))
-            cr[at] = cast(u8, ((sumCr + cast(s32, Samples / 2)) / cast(s32, Samples)))
+            cbRow[cx] = cast(u8, ((sumCb + cast(s32, Samples / 2)) / cast(s32, Samples)))
+            crRow[cx] = cast(u8, ((sumCr + cast(s32, Samples / 2)) / cast(s32, Samples)))
         }
     }
 }

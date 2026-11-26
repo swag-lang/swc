@@ -188,3 +188,23 @@ Paired CPU time fell by 18–28% on the desktop, 78–79% on the changing tiles 
 direction. All 480 encoded pictures and their FFmpeg decodes matched byte for byte.
 The JPEG, AVI and MP4 Release selection passed 86 tests.
 [Individual results](mjpeg-flat-blocks.json)
+
+### Packed Y4M conversion
+
+Four source pixels share the channel unpacking and color arithmetic. Chroma sums
+and rounds the same one, two or four samples as the fused scalar version. The
+final scalar group also handles RGB24 rows with fewer than 16 readable bytes.
+All four packed RGB input orders and varying alpha values agree in the focused test.
+
+| Chroma | Scalar RGB8 | Packed RGB8 | FFmpeg RGB8 | Scalar BGRA8 | Packed BGRA8 |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| 4:1:1 | 35.48 ms | 16.34 ms | 25.35 ms | 35.94 ms | 16.62 ms |
+| 4:2:0 | 35.53 ms | 15.12 ms | 26.22 ms | 36.30 ms | 16.06 ms |
+| 4:2:2 | 47.74 ms | 18.41 ms | 28.65 ms | 42.75 ms | 19.40 ms |
+| 4:4:4 | 46.43 ms | 21.40 ms | 21.83 ms | 47.26 ms | 23.95 ms |
+
+The medians from seven one-CPU runs on the same 30-picture camera clip show a
+further 49–61% CPU reduction. The RGB8 4:1:1, 4:2:0 and 4:2:2 cases are 1.55–1.73×
+as fast as the measured libswscale reference. The two 4:4:4 timings are close.
+The 640×360 and 652×370 Y4M files are byte-identical to the scalar writer. The
+19 focused Release tests passed. [Timing samples and hashes](y4m-packed-conversion.json)

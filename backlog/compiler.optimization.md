@@ -511,8 +511,9 @@ SIMD work is owned by the compiler, platform, or consuming module according to t
   preserved registers. Lower acyclic callees first; use conservative fixed points or the
   ordinary ABI inside recursive components, preserving the existing leaf path.
 - Expansion: measure internal worker conventions with argument/result placement chosen for a call
-  cluster, redundant save/restore removal, and legal sibling/tail calls. Preserve platform unwind
-  requirements and canonical ABI entries for external/indirect/address-taken uses.
+  cluster and remove redundant saves. Extend the simple register-only Linux sibling calls to
+  wrappers with frames, stack arguments or other target ABIs when their unwind and stack contracts
+  can be proved. Keep canonical ABI entries for external, indirect and address-taken uses.
 - Stability: invalidate callers when contracts change, avoid allocation oscillation, and do not
   infer preservation through unknown calls, instrumentation, or patchable targets. Bound the
   compilation serialization introduced by bottom-up lowering.

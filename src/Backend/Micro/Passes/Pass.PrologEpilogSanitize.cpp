@@ -1427,6 +1427,64 @@ namespace
         return true;
     }
 
+    // A thin wrapper with register arguments allocates one slot only to align
+    // the nested call. The original caller's return address gives a jump target
+    // the same incoming stack shape as the call, without consuming another slot.
+    bool formStackFreeTailCall(MicroPassContext& context, const CallConv& conv)
+    {
+        if (!context.builder || context.forceFramePointer || !context.preservePersistentRegs ||
+            !context.builder->backendBuildCfg().optimizes() || context.builder->backendBuildCfg().debugInfo ||
+            context.builder->ctx().cmdLine().targetOs != Runtime::TargetOs::Linux || conv.stackShadowSpace)
+            return false;
+
+        auto& storage  = *context.instructions;
+        auto& operands = *context.operands;
+        if (storage.count() < 4)
+            return false;
+        const MicroInstrRef retRef = storage.lastInstructionRef();
+        if (storage.ptr(retRef)->op != MicroInstrOpcode::Ret)
+            return false;
+        const MicroInstrRef releaseRef = storage.findPreviousInstructionRef(retRef);
+        const MicroInstrRef callRef    = storage.findPreviousInstructionRef(releaseRef);
+        MicroInstr*         call       = storage.ptr(callRef);
+        if (call->op != MicroInstrOpcode::CallLocal && call->op != MicroInstrOpcode::CallExtern)
+            return false;
+        const auto* callOps = call->ops(operands);
+        if (call->numOperands != 4 || callOps[0].callConv != context.callConvKind ||
+            (conv.isSystemVAMD64 && !(callOps[2].valueU32 & MicroInstr::K_CALL_FIXED_SYSTEM_V_PROTOTYPE)))
+            return false;
+
+        auto                body         = storage.view().begin();
+        const MicroInstrRef reserveRef   = body.current;
+        const MicroInstr&   release      = *storage.ptr(releaseRef);
+        const MicroReg      stackPointer = conv.stackPointer;
+        uint64_t            reserveBytes = 0;
+        uint64_t            releaseBytes = 0;
+        if (!isStackAdjustWithOp(*body, body->ops(operands), stackPointer, MicroOp::Subtract, reserveBytes) ||
+            !isStackAdjustWithOp(release, release.ops(operands), stackPointer, MicroOp::Add, releaseBytes) ||
+            reserveBytes != conv.stackSlotSize() || releaseBytes != reserveBytes)
+            return false;
+
+        for (++body; body.current != callRef; ++body)
+        {
+            const auto& inst = *body;
+            const auto& info = MicroInstr::info(inst.op);
+            const auto* ops  = inst.ops(operands);
+            if (inst.op == MicroInstrOpcode::Label || inst.op == MicroInstrOpcode::Push || inst.op == MicroInstrOpcode::Pop ||
+                info.flags.has(MicroInstrFlagsE::JumpInstruction) || info.flags.has(MicroInstrFlagsE::TerminatorInstruction) ||
+                info.flags.has(MicroInstrFlagsE::IsCallInstruction) || MicroPassHelpers::instructionActuallyUsesCpuFlags(inst, ops) ||
+                hasStackPointerOperand(info, ops, stackPointer, false) || hasStackPointerOperand(info, ops, conv.framePointer, false))
+                return false;
+        }
+
+        call->op = MicroInstrOpcode::TailCall;
+        storage.erase(reserveRef);
+        storage.erase(releaseRef);
+        storage.erase(retRef);
+        context.builder->invalidateControlFlowGraph();
+        return true;
+    }
+
     bool shareIdenticalReturnTails(MicroPassContext& context, const CallConv& conv)
     {
         if (!context.builder)
@@ -1505,8 +1563,9 @@ Result MicroPrologEpilogSanitizePass::run(MicroPassContext& context)
     const bool      changedLoopCallFrame      = hoistLoopCallFrame(context, conv);
     const bool      changedStackProbeProlog   = expandLargePrologueStackAdjustments(context, conv);
     const bool      changedStackProbeBody     = expandLargeBodyStackAdjustments(context, conv);
+    const bool      changedTailCall           = formStackFreeTailCall(context, conv);
     const bool      changedReturnTails        = shareIdenticalReturnTails(context, conv);
-    const bool      changed                   = changedFramePointerProlog || changedStackProlog || changedStackProbeProlog || changedStackProbeBody || changedStackEpilogue || changedUnusedSaves || changedUnusedFrame || changedCompactFrame || changedReservedCallFrame || changedLoopCallFrame || changedReturnTails;
+    const bool      changed                   = changedFramePointerProlog || changedStackProlog || changedStackProbeProlog || changedStackProbeBody || changedStackEpilogue || changedUnusedSaves || changedUnusedFrame || changedCompactFrame || changedReservedCallFrame || changedLoopCallFrame || changedTailCall || changedReturnTails;
     context.passChanged                       = changed;
     return Result::Continue;
 }

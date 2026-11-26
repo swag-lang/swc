@@ -190,6 +190,7 @@ namespace
         {
             case MicroInstrOpcode::CallLocal:
             case MicroInstrOpcode::CallExtern:
+            case MicroInstrOpcode::TailCall:
             case MicroInstrOpcode::LoadRegPtrReloc:
                 return true;
 
@@ -249,6 +250,7 @@ namespace
                 return 3;
 
             case MicroInstrOpcode::CallAlignedIndirect:
+            case MicroInstrOpcode::TailCall:
             case MicroInstrOpcode::TestMemReg:
             case MicroInstrOpcode::TestMemImm:
             case MicroInstrOpcode::LoadRegMem:
@@ -380,6 +382,7 @@ namespace
             case MicroInstrOpcode::CallExtern:
             case MicroInstrOpcode::CallIndirect:
             case MicroInstrOpcode::CallAlignedIndirect:
+            case MicroInstrOpcode::TailCall:
                 if (!isValidCallConvKind(ops[MicroInstr::info(inst.op).callConvIndex].callConv))
                     return reportError(context, phase, std::format("call instruction #{} uses unsupported calling convention {}", instructionIndex, static_cast<uint32_t>(ops[MicroInstr::info(inst.op).callConvIndex].callConv)));
                 break;
@@ -540,6 +543,11 @@ namespace
             case MicroInstrOpcode::CallExtern:
                 if (relocation.kind != MicroRelocation::Kind::ForeignFunctionAddress)
                     return reportError(context, phase, std::format("call-extern instruction uses relocation kind {}", static_cast<uint32_t>(relocation.kind)));
+                break;
+
+            case MicroInstrOpcode::TailCall:
+                if (relocation.kind != MicroRelocation::Kind::LocalFunctionAddress && relocation.kind != MicroRelocation::Kind::ForeignFunctionAddress)
+                    return reportError(context, phase, std::format("tail-call relocation #{} needs a function target, found kind {}", relocationIndex, static_cast<uint32_t>(relocation.kind)));
                 break;
 
             case MicroInstrOpcode::LoadRegPtrReloc:

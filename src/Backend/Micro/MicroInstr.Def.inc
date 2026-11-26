@@ -1170,3 +1170,10 @@ SWC_MICRO_INSTR_DEF(
         .opBitsMask            = (1 << 2),
         .fixedMemoryBytes      = 32,
     })
+
+// Retain the direct call's operands and relocation. The callee returns to the original caller.
+SWC_MICRO_INSTR_DEF(
+    TailCall,
+    MicroInstrDef{
+        .flags = MicroInstrFlagsE::IsCallInstruction | MicroInstrFlagsE::TerminatorInstruction | MicroInstrFlagsE::RegisterDefsAtOutput,
+    })

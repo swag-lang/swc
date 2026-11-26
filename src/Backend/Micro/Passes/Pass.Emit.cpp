@@ -315,6 +315,7 @@ void MicroEmitPass::encodeInstruction(const MicroPassContext& context, MicroInst
             break;
         case MicroInstrOpcode::CallLocal:
         case MicroInstrOpcode::CallExtern:
+        case MicroInstrOpcode::TailCall:
         {
             uint32_t   relocationIndex = 0;
             const bool hasRelocation   = findRelocationIndex(relocationIndex, instructionRef);
@@ -325,16 +326,27 @@ void MicroEmitPass::encodeInstruction(const MicroPassContext& context, MicroInst
             MicroRelocation& relocation = context.builder->codeRelocations()[relocationIndex];
             if (inst.op == MicroInstrOpcode::CallLocal)
                 SWC_ASSERT(relocation.kind == MicroRelocation::Kind::LocalFunctionAddress);
-            else
+            else if (inst.op == MicroInstrOpcode::CallExtern)
                 SWC_ASSERT(relocation.kind == MicroRelocation::Kind::ForeignFunctionAddress);
+            else
+                SWC_ASSERT(relocation.kind == MicroRelocation::Kind::LocalFunctionAddress || relocation.kind == MicroRelocation::Kind::ForeignFunctionAddress);
 
+            const bool              tail           = inst.op == MicroInstrOpcode::TailCall;
             const CompilerInstance& compiler       = context.builder->ctx().compiler();
             const bool              nativeArtifact = !compiler.cmdLine().scriptMode && Runtime::backendKindProducesNativeArtifact(compiler.buildCfg().backendKind);
             if (nativeArtifact)
             {
                 const uint32_t callStart = encoder.size();
                 relocation.form          = MicroRelocation::Form::Relative32;
-                encoder.encodeCallRelative(relocation.targetSymbol, ops[0].callConv);
+                if (tail)
+                {
+                    MicroJump jump;
+                    encoder.encodeJump(jump, MicroCond::Unconditional, MicroOpBits::B32);
+                }
+                else
+                {
+                    encoder.encodeCallRelative(relocation.targetSymbol, ops[0].callConv);
+                }
                 bindRel32RelocationOffset(context, instructionRef, callStart, encoder.size());
                 break;
             }
@@ -343,7 +355,10 @@ void MicroEmitPass::encodeInstruction(const MicroPassContext& context, MicroInst
             const uint32_t  loadStart = encoder.size();
             encoder.encodeLoadRegImm(conv.intReturn, ApInt(relocation.targetAddress, 64), MicroOpBits::B64);
             bindAbs64RelocationOffset(context, relocationIndex, loadStart, encoder.size());
-            encoder.encodeCallReg(conv.intReturn, ops[0].callConv);
+            if (tail)
+                encoder.encodeJumpReg(conv.intReturn);
+            else
+                encoder.encodeCallReg(conv.intReturn, ops[0].callConv);
             break;
         }
         case MicroInstrOpcode::CallIndirect:

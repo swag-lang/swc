@@ -5,10 +5,12 @@
 #include "Backend/ABI/CallConv.h"
 #include "Backend/Encoder/Encoder.X64.h"
 #include "Backend/Micro/MicroBuilder.h"
+#include "Backend/Micro/MicroControlFlowGraph.h"
 #include "Backend/Micro/MicroPassContext.h"
 #include "Backend/Micro/MicroPassManager.h"
 #include "Backend/Micro/Passes/Pass.PrologEpilog.h"
 #include "Backend/Micro/Passes/Pass.PrologEpilogSanitize.h"
+#include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Main/Command/CommandLine.h"
 #include "Main/CompilerInstance.h"
 #include "Main/TaskContext.h"
@@ -1109,6 +1111,69 @@ SWC_TEST_BEGIN(MicroPrologEpilogSanitize_SharesIdenticalFloatRestoreTails)
             return Result::Error;
     }
     return Result::Continue;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(MicroPrologEpilogSanitize_TailCallsOnlyDeallocateUnusedAlignmentSlots)
+{
+    enum class Shape
+    {
+        Direct,
+        StackArgument,
+        DifferentAbi,
+        UnknownPrototype,
+        LiveFlags,
+        Debug,
+        Windows,
+    };
+
+    for (auto shape : {Shape::Direct, Shape::StackArgument, Shape::DifferentAbi, Shape::UnknownPrototype,
+                       Shape::LiveFlags, Shape::Debug, Shape::Windows})
+    {
+        using enum Shape;
+        CommandLine command = ctx.cmdLine();
+        command.targetOs    = shape == Windows ? Runtime::TargetOs::Windows : Runtime::TargetOs::Linux;
+        CompilerInstance         compiler(ctx.global(), command);
+        TaskContext              targetContext(compiler);
+        MicroBuilder             builder(targetContext);
+        Runtime::BuildCfgBackend backend{};
+        backend.optimLevel = Runtime::BuildCfgBackendOptimLevel::O1;
+        backend.debugInfo  = shape == Debug;
+        builder.setBackendBuildCfg(backend);
+
+        constexpr MicroReg rsp = MicroReg::intReg(4);
+        constexpr MicroReg rdi = MicroReg::intReg(7);
+        SymbolFunction     callee(nullptr, TokenRef::invalid(), IdentifierRef::invalid(), SymbolFlagsE::Zero);
+        builder.emitOpBinaryRegImm(rsp, ApInt(8, 64), MicroOp::Subtract, MicroOpBits::B64);
+        builder.emitLoadRegImm(rdi, ApInt(42, 64), MicroOpBits::B64);
+        if (shape == StackArgument)
+            builder.emitLoadMemReg(rsp, 0, rdi, MicroOpBits::B64);
+        if (shape == LiveFlags)
+            builder.emitLoadCondRegReg(rdi, MicroReg::intReg(6), MicroCond::Equal, MicroOpBits::B64);
+        builder.emitCallLocal(&callee, shape == DifferentAbi ? CallConvKind::Swag : CallConvKind::SystemVAMD64, 1, 0, shape != UnknownPrototype);
+        const auto callRef = builder.instructions().lastInstructionRef();
+        builder.emitOpBinaryRegImm(rsp, ApInt(8, 64), MicroOp::Add, MicroOpBits::B64);
+        builder.emitRet();
+
+        MicroPrologEpilogSanitizePass pass;
+        MicroPassManager              manager;
+        manager.addStartPass(pass);
+        MicroPassContext context;
+        context.callConvKind           = CallConvKind::SystemVAMD64;
+        context.preservePersistentRegs = true;
+        SWC_RESULT(builder.runPasses(manager, nullptr, context));
+        const auto* call     = builder.instructions().ptr(callRef);
+        const auto  expected = shape == Direct ? MicroInstrOpcode::TailCall : MicroInstrOpcode::CallLocal;
+        if (!call || call->op != expected || builder.codeRelocations().size() != 1 || builder.codeRelocations().front().instructionRef != callRef)
+            return Result::Error;
+        if (shape == Direct)
+        {
+            const auto& graph = builder.controlFlowGraph();
+            if (builder.instructions().count() != 2 || builder.instructions().lastInstructionRef() != callRef ||
+                !graph.supportsDeadCodeLiveness() || !graph.successors(graph.indexOf(callRef)).empty())
+                return Result::Error;
+        }
+    }
 }
 SWC_TEST_END()
 

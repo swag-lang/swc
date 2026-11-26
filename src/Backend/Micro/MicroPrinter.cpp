@@ -1070,7 +1070,8 @@ namespace
 
             case MicroInstrOpcode::CallLocal:
             case MicroInstrOpcode::CallExtern:
-                return std::format("{} {}", tagInstructionToken("call"), relocValue.empty() ? "<reloc>" : tagNaturalToken(NaturalTagKind::Function, relocValue));
+            case MicroInstrOpcode::TailCall:
+                return std::format("{} {}", tagInstructionToken(inst.op == MicroInstrOpcode::TailCall ? "jump" : "call"), relocValue.empty() ? "<reloc>" : tagNaturalToken(NaturalTagKind::Function, relocValue));
             case MicroInstrOpcode::CallAlignedIndirect:
             case MicroInstrOpcode::CallIndirect:
                 return std::format("{} {}", tagInstructionToken("call"), regName(ops[0].reg, regPrintMode, encoder));
@@ -1794,14 +1795,9 @@ Utf8 MicroPrinter::format(const TaskContext& ctx, const MicroStorage& instructio
         const auto             relocIt               = relocationByInstructionRef.find(instRef);
         const MicroRelocation* instructionRelocation = relocIt != relocationByInstructionRef.end() ? relocIt->second : nullptr;
 
-        const bool hasInlineRelocation = instructionRelocation != nullptr &&
-                                         (inst.op == MicroInstrOpcode::LoadRegPtrReloc ||
-                                          inst.op == MicroInstrOpcode::CallLocal ||
-                                          inst.op == MicroInstrOpcode::CallExtern);
-
-        const bool hasInlineCallRelocation = instructionRelocation != nullptr &&
-                                             (inst.op == MicroInstrOpcode::CallLocal ||
-                                              inst.op == MicroInstrOpcode::CallExtern);
+        const bool hasInlineCallRelocation = instructionRelocation &&
+                                             (inst.op == MicroInstrOpcode::CallLocal || inst.op == MicroInstrOpcode::CallExtern || inst.op == MicroInstrOpcode::TailCall);
+        const bool               hasInlineRelocation     = hasInlineCallRelocation || (instructionRelocation && inst.op == MicroInstrOpcode::LoadRegPtrReloc);
         const Utf8               inlineRelocNaturalValue = hasInlineRelocation ? relocationTargetNaturalValue(ctx, *instructionRelocation) : Utf8{};
         const Utf8               inlineCallRelocValue    = hasInlineCallRelocation ? relocationTargetCallAddressValue(*instructionRelocation) : Utf8{};
         auto                     natural                 = naturalInstruction(inst, ops, regPrintMode, encoder, inlineRelocNaturalValue);
@@ -1913,6 +1909,7 @@ Utf8 MicroPrinter::format(const TaskContext& ctx, const MicroStorage& instructio
 
             case MicroInstrOpcode::CallLocal:
             case MicroInstrOpcode::CallExtern:
+            case MicroInstrOpcode::TailCall:
                 out += callConvName(ops[0].callConv);
                 appendSep(out);
                 appendImmediate(out, inlineCallRelocValue.empty() ? "reloc" : inlineCallRelocValue, hasInlineRelocation);

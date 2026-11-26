@@ -8,6 +8,11 @@ SWC_BEGIN_NAMESPACE();
 namespace
 {
     constexpr uint32_t K_INVALID_INSTRUCTION_INDEX = std::numeric_limits<uint32_t>::max();
+
+    bool exitsFunction(MicroInstrOpcode op)
+    {
+        return op == MicroInstrOpcode::Ret || op == MicroInstrOpcode::Trap || op == MicroInstrOpcode::TailCall;
+    }
 }
 
 uint32_t MicroControlFlowGraph::indexOf(const MicroInstrRef ref) const
@@ -154,7 +159,7 @@ void MicroControlFlowGraph::build(const MicroStorage& storage, const MicroOperan
             controlFlowSites.push_back({&inst, instructionIndex});
         if ((inst.op == MicroInstrOpcode::JumpReg && inst.numOperands < 2) || inst.op == MicroInstrOpcode::JumpCondImm)
             hasUnsupportedControlFlowForCfgLiveness_ = true;
-        if (isTerminator && inst.op != MicroInstrOpcode::Ret && inst.op != MicroInstrOpcode::Trap && !isJump)
+        if (isTerminator && !exitsFunction(inst.op) && !isJump)
             supportsDeadCodeLiveness_ = false;
 
         if (inst.op == MicroInstrOpcode::Label)
@@ -253,7 +258,7 @@ void MicroControlFlowGraph::build(const MicroStorage& storage, const MicroOperan
             continue;
         }
 
-        if (inst->op == MicroInstrOpcode::Ret || inst->op == MicroInstrOpcode::Trap)
+        if (exitsFunction(inst->op))
             continue;
 
         if (MicroInstrInfo::isTerminatorInstruction(*inst))

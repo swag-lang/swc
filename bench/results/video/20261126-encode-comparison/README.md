@@ -285,6 +285,26 @@ libjpeg-turbo reach 52.96 dB on that clip. The CPU ratios describe the selected
 PSNR points, so the camera ratio against FFmpeg spans 42.90–44.03 dB, while the
 camera comparison against libjpeg-turbo spans 42.90–48.30 dB.
 
+### Motion JPEG matrix-order coefficient storage
+
+Revision `33cc72370a` writes quantized coefficients in matrix order. It builds
+an entropy-order nonzero mask during quantization and visits only the set bits.
+On the same clips and quantizers, all 48 cells preserve packet and decoded RGB
+hashes, including all 480 Swag pictures. The separate dense-mask prototype also
+preserved those packets. The integrated encoder passed 47 Pixel and 51 Video
+native Release tests.
+
+Seven rotating single-CPU runs give the following CPU ratios at the same RGB PSNR
+midpoints as above. The packet-size ratios stay the same.
+[Measurements](mjpeg-matrix-order.json)
+
+| Input | Swag / libjpeg-turbo 3.2.1 CPU | Swag / FFmpeg 9.1 CPU |
+| --- | ---: | ---: |
+| Scrolling desktop | 1.26× | 0.52× |
+| Changing tiles | 0.19× | |
+| Animated test pattern | 0.56× | 0.31× |
+| Camera | 1.52× | 0.61× |
+
 ## Y4M planar output
 
 Swag now writes luma and accumulates chroma while reading each RGB pixel once. It

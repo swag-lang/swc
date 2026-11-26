@@ -1,0 +1,1342 @@
+{
+  "utc": "2026-11-26T13:51:17.351040+00:00",
+  "system": "Linux-6.18.57-x86_64-with-glibc2.41",
+  "cpu": 4,
+  "affinity": [
+    4
+  ],
+  "workers": {
+    "platform-clear": 1,
+    "inline-stores": 1
+  },
+  "processor": {
+    "model name": "AMD EPYC 9V74 80-Core Processor",
+    "microcode": "0x1000065",
+    "flags": "fpu vme de pse tsc msr pae mce cx8 apic sep mtrr pge mca cmov pat pse36 clflush mmx fxsr sse sse2 ht syscall nx mmxext fxsr_opt pdpe1gb rdtscp lm constant_tsc rep_good nopl xtopology nonstop_tsc cpuid extd_apicid tsc_known_freq pni pclmulqdq ssse3 fma cx16 pcid sse4_1 sse4_2 x2apic movbe popcnt tsc_deadline_timer aes xsave avx f16c rdrand hypervisor lahf_lm cmp_legacy cr8_legacy abm sse4a misalignsse 3dnowprefetch osvw topoext cpuid_fault vmmcall fsgsbase tsc_adjust bmi1 avx2 smep bmi2 erms invpcid avx512f avx512dq rdseed adx smap avx512ifma clflushopt clwb avx512cd sha_ni avx512bw avx512vl xsaveopt xsavec xgetbv1 xsaves avx512_bf16 clzero xsaveerptr arat npt nrip_save tsc_scale vmcb_clean flushbyasid pausefilter pfthreshold v_vmsave_vmload avx512vbmi umip avx512_vbmi2 gfni vaes vpclmulqdq avx512_vnni avx512_bitalg avx512_vpopcntdq rdpid fsrm arch_capabilities"
+  },
+  "reference_build": "OpenSSL 3.5.7 9 Jun 2026 | zlib 1.3.1 | BLAKE3 1.8.7 | libdeflate 1.26 | ISA-L 2.32.1 | liblzma 5.8.1",
+  "reference_sha256": "d4e65472b7100d0cc6d30282f39e88470091100c48da75f1ed2a6399111629b9",
+  "swag_builds": {
+    "platform-clear": "d2de060dd0f8e8f187084c48871b1e67ae9df97539ef7213ad3eef35f959d456",
+    "inline-stores": "e76742bd91ed982c561b0098d764ec1499a5668e9fc32eca43785e53328077bf"
+  },
+  "rounds": 17,
+  "target_ms": 40,
+  "clock": "cpu",
+  "rows": [
+    {
+      "algorithm": "p256-public",
+      "bytes": 32,
+      "offset": 0,
+      "input_sha256": "2404657934fda9253c9d38499cb12ebdbbed5a27f47746fb93ed5d1b676bd395",
+      "output_sha256": "b83b76408d0c549e362e886b51d9124ffb9ba35e94380e3922f231c2fb99966d",
+      "samples": {
+        "OpenSSL": {
+          "iterations": 3733,
+          "wall": [
+            0.040296384,
+            0.04032713,
+            0.039916691,
+            0.040201751,
+            0.039959836,
+            0.040143923,
+            0.040300068,
+            0.039892154,
+            0.039799715,
+            0.039822188,
+            0.039783049,
+            0.039875699,
+            0.043219501,
+            0.045833633,
+            0.040043942,
+            0.040042659,
+            0.042938887
+          ],
+          "cpu": [
+            0.040211735,
+            0.040310601,
+            0.03988499,
+            0.040166806,
+            0.039944849,
+            0.040105696,
+            0.040137144,
+            0.039872209,
+            0.039779281,
+            0.039787481,
+            0.039761224,
+            0.039842535,
+            0.043051204,
+            0.045760728,
+            0.040009706,
+            0.04001429,
+            0.042920838
+          ]
+        },
+        "platform-clear": {
+          "iterations": 373,
+          "wall": [
+            0.039641876,
+            0.039449136,
+            0.039157996,
+            0.046028618,
+            0.040192417,
+            0.040113808,
+            0.039260997,
+            0.038917654,
+            0.038868029,
+            0.050666287,
+            0.039233821,
+            0.039368964,
+            0.043688338,
+            0.039498048,
+            0.046441299,
+            0.039455995,
+            0.039800454
+          ],
+          "cpu": [
+            0.039619885,
+            0.039433596,
+            0.039141219,
+            0.043062099,
+            0.040175581,
+            0.040093488,
+            0.039169887,
+            0.038894735,
+            0.03883898,
+            0.050633371,
+            0.0392136,
+            0.039321489,
+            0.043659119,
+            0.039257603,
+            0.039096543,
+            0.039438081,
+            0.03977879
+          ]
+        },
+        "inline-stores": {
+          "iterations": 380,
+          "wall": [
+            0.038925175,
+            0.038851464,
+            0.038485722,
+            0.038304559,
+            0.038535677,
+            0.038759516,
+            0.038865736,
+            0.038145439,
+            0.038093852,
+            0.044598622,
+            0.038110166,
+            0.038802079,
+            0.038310128,
+            0.04058653,
+            0.038340183,
+            0.038159941,
+            0.038883071
+          ],
+          "cpu": [
+            0.038900302,
+            0.038809706,
+            0.038466835,
+            0.038264863,
+            0.03851711,
+            0.038720154,
+            0.038767013,
+            0.038124217,
+            0.038078487,
+            0.04456791,
+            0.038081191,
+            0.038781254,
+            0.038293348,
+            0.040433565,
+            0.038252728,
+            0.038138406,
+            0.038880703
+          ]
+        }
+      },
+      "round_order": [
+        [
+          "OpenSSL",
+          "platform-clear",
+          "inline-stores"
+        ],
+        [
+          "inline-stores",
+          "OpenSSL",
+          "platform-clear"
+        ],
+        [
+          "OpenSSL",
+          "platform-clear",
+          "inline-stores"
+        ],
+        [
+          "platform-clear",
+          "OpenSSL",
+          "inline-stores"
+        ],
+        [
+          "inline-stores",
+          "OpenSSL",
+          "platform-clear"
+        ],
+        [
+          "OpenSSL",
+          "platform-clear",
+          "inline-stores"
+        ],
+        [
+          "OpenSSL",
+          "inline-stores",
+          "platform-clear"
+        ],
+        [
+          "OpenSSL",
+          "platform-clear",
+          "inline-stores"
+        ],
+        [
+          "OpenSSL",
+          "platform-clear",
+          "inline-stores"
+        ],
+        [
+          "inline-stores",
+          "platform-clear",
+          "OpenSSL"
+        ],
+        [
+          "OpenSSL",
+          "inline-stores",
+          "platform-clear"
+        ],
+        [
+          "platform-clear",
+          "OpenSSL",
+          "inline-stores"
+        ],
+        [
+          "inline-stores",
+          "OpenSSL",
+          "platform-clear"
+        ],
+        [
+          "OpenSSL",
+          "inline-stores",
+          "platform-clear"
+        ],
+        [
+          "inline-stores",
+          "platform-clear",
+          "OpenSSL"
+        ],
+        [
+          "inline-stores",
+          "platform-clear",
+          "OpenSSL"
+        ],
+        [
+          "OpenSSL",
+          "platform-clear",
+          "inline-stores"
+        ]
+      ]
+    },
+    {
+      "algorithm": "p256-ecdh",
+      "bytes": 32,
+      "offset": 0,
+      "input_sha256": "2404657934fda9253c9d38499cb12ebdbbed5a27f47746fb93ed5d1b676bd395",
+      "output_sha256": "9f19db4a34bdab8c558b51da260bb0bd943ee8e56ba114ac5bb8ce5f75500720",
+      "samples": {
+        "OpenSSL": {
+          "iterations": 867,
+          "wall": [
+            0.040034427,
+            0.040011392,
+            0.040009008,
+            0.040416624,
+            0.040215049,
+            0.040319867,
+            0.040008798,
+            0.040388822,
+            0.040057573,
+            0.040139266,
+            0.040270824,
+            0.040349372,
+            0.040551828,
+            0.040018743,
+            0.040178414,
+            0.040100166,
+            0.040991381
+          ],
+          "cpu": [
+            0.040031877,
+            0.040008442,
+            0.040006489,
+            0.040389139,
+            0.040212746,
+            0.040317653,
+            0.039972578,
+            0.040386555,
+            0.040055071,
+            0.040136733,
+            0.040268449,
+            0.040132948,
+            0.040549378,
+            0.039999378,
+            0.0401621,
+            0.040097274,
+            0.040982492
+          ]
+        },
+        "platform-clear": {
+          "iterations": 127,
+          "wall": [
+            0.038712734,
+            0.038268524,
+            0.037823412,
+            0.04185934,
+            0.03826599,
+            0.04018189,
+            0.03796735,
+            0.037954009,
+            0.038862911,
+            0.038584541,
+            0.039006426,
+            0.041709073,
+            0.039706162,
+            0.038149935,
+            0.052678275,
+            0.038291639,
+            0.038428905
+          ],
+          "cpu": [
+            0.038710569,
+            0.038265737,
+            0.037820794,
+            0.041856364,
+            0.038178907,
+            0.040103253,
+            0.037964598,
+            0.037951248,
+            0.038847743,
+            0.038581606,
+            0.039004267,
+            0.040993711,
+            0.039703427,
+            0.038147961,
+            0.041420485,
+            0.038289192,
+            0.038425985
+          ]
+        },
+        "inline-stores": {
+          "iterations": 137,
+          "wall": [
+            0.039643407,
+            0.039632631,
+            0.039290685,
+            0.039596937,
+            0.039486821,
+            0.039759212,
+            0.039789267,
+            0.039597598,
+            0.039790008,
+            0.039617308,
+            0.0399165,
+            0.040335562,
+            0.043517199,
+            0.040385477,
+            0.039991022,
+            0.039491318,
+            0.039621865
+          ],
+          "cpu": [
+            0.039604319,
+            0.039629958,
+            0.039287978,
+            0.039594735,
+            0.039484151,
+            0.039757098,
+            0.039786862,
+            0.039547334,
+            0.039785459,
+            0.039614405,
+            0.039913931,
+            0.040304382,
+            0.043345502,
+            0.04038299,
+            0.039981771,
+            0.039488748,
+            0.039619332
+          ]
+        }
+      },
+      "round_order": [
+        [
+          "inline-stores",
+          "platform-clear",
+          "OpenSSL"
+        ],
+        [
+          "OpenSSL",
+          "inline-stores",
+          "platform-clear"
+        ],
+        [
+          "inline-stores",
+          "platform-clear",
+          "OpenSSL"
+        ],
+        [
+          "inline-stores",
+          "platform-clear",
+          "OpenSSL"
+        ],
+        [
+          "platform-clear",
+          "OpenSSL",
+          "inline-stores"
+        ],
+        [
+          "platform-clear",
+          "inline-stores",
+          "OpenSSL"
+        ],
+        [
+          "platform-clear",
+          "OpenSSL",
+          "inline-stores"
+        ],
+        [
+          "inline-stores",
+          "platform-clear",
+          "OpenSSL"
+        ],
+        [
+          "inline-stores",
+          "OpenSSL",
+          "platform-clear"
+        ],
+        [
+          "inline-stores",
+          "OpenSSL",
+          "platform-clear"
+        ],
+        [
+          "platform-clear",
+          "OpenSSL",
+          "inline-stores"
+        ],
+        [
+          "inline-stores",
+          "OpenSSL",
+          "platform-clear"
+        ],
+        [
+          "inline-stores",
+          "platform-clear",
+          "OpenSSL"
+        ],
+        [
+          "platform-clear",
+          "inline-stores",
+          "OpenSSL"
+        ],
+        [
+          "inline-stores",
+          "OpenSSL",
+          "platform-clear"
+        ],
+        [
+          "platform-clear",
+          "OpenSSL",
+          "inline-stores"
+        ],
+        [
+          "platform-clear",
+          "OpenSSL",
+          "inline-stores"
+        ]
+      ]
+    },
+    {
+      "algorithm": "p256-sign",
+      "bytes": 64,
+      "offset": 0,
+      "input_sha256": "28f0a1a9fae78b5247ebe5b1919541c009f78cc2b79d276352a9c46251a02522",
+      "output_sha256": "e2cbc60db20a59ce0a3382f7ec0a49c6f05a1926fa27bdc958bc45cf890e8837",
+      "samples": {
+        "OpenSSL": {
+          "iterations": 1327,
+          "wall": [
+            0.04001649,
+            0.040081538,
+            0.040515563,
+            0.040010341,
+            0.040147318,
+            0.039655546,
+            0.043711844,
+            0.039944322,
+            0.039729207,
+            0.040017713,
+            0.043322738,
+            0.039815478,
+            0.045459009,
+            0.042702863,
+            0.039585801,
+            0.039550799,
+            0.039675557
+          ],
+          "cpu": [
+            0.040014141,
+            0.040060439,
+            0.040313014,
+            0.040007691,
+            0.040145145,
+            0.039652442,
+            0.04078586,
+            0.039942063,
+            0.039727283,
+            0.039936965,
+            0.043320084,
+            0.039804507,
+            0.045456475,
+            0.042700591,
+            0.039582087,
+            0.039548387,
+            0.039673212
+          ]
+        },
+        "platform-clear": {
+          "iterations": 314,
+          "wall": [
+            0.040046936,
+            0.040454891,
+            0.040050952,
+            0.039815877,
+            0.047917626,
+            0.043624552,
+            0.040060357,
+            0.03994361,
+            0.039818202,
+            0.039862539,
+            0.04240254,
+            0.039993306,
+            0.040553061,
+            0.041166325,
+            0.041093926,
+            0.042245553,
+            0.039757901
+          ],
+          "cpu": [
+            0.040017995,
+            0.040437691,
+            0.040048251,
+            0.039807994,
+            0.047906264,
+            0.043620711,
+            0.040057815,
+            0.03994019,
+            0.039815945,
+            0.039835295,
+            0.042400104,
+            0.039990705,
+            0.040550099,
+            0.041164263,
+            0.041091775,
+            0.04224299,
+            0.039755375
+          ]
+        },
+        "inline-stores": {
+          "iterations": 308,
+          "wall": [
+            0.038273702,
+            0.039315934,
+            0.038177567,
+            0.038736931,
+            0.037845937,
+            0.03840507,
+            0.038101053,
+            0.038961735,
+            0.038036074,
+            0.03806632,
+            0.038382517,
+            0.045209273,
+            0.038204448,
+            0.037738616,
+            0.037728912,
+            0.037906489,
+            0.037942102
+          ],
+          "cpu": [
+            0.038270975,
+            0.039304354,
+            0.038175181,
+            0.038734375,
+            0.037843758,
+            0.038402951,
+            0.038098587,
+            0.038959244,
+            0.03803304,
+            0.038064256,
+            0.038380227,
+            0.042482726,
+            0.038202352,
+            0.037736539,
+            0.037703049,
+            0.037892171,
+            0.037939711
+          ]
+        }
+      },
+      "round_order": [
+        [
+          "platform-clear",
+          "OpenSSL",
+          "inline-stores"
+        ],
+        [
+          "platform-clear",
+          "OpenSSL",
+          "inline-stores"
+        ],
+        [
+          "OpenSSL",
+          "platform-clear",
+          "inline-stores"
+        ],
+        [
+          "OpenSSL",
+          "platform-clear",
+          "inline-stores"
+        ],
+        [
+          "OpenSSL",
+          "platform-clear",
+          "inline-stores"
+        ],
+        [
+          "platform-clear",
+          "inline-stores",
+          "OpenSSL"
+        ],
+        [
+          "platform-clear",
+          "inline-stores",
+          "OpenSSL"
+        ],
+        [
+          "platform-clear",
+          "inline-stores",
+          "OpenSSL"
+        ],
+        [
+          "inline-stores",
+          "OpenSSL",
+          "platform-clear"
+        ],
+        [
+          "inline-stores",
+          "platform-clear",
+          "OpenSSL"
+        ],
+        [
+          "inline-stores",
+          "platform-clear",
+          "OpenSSL"
+        ],
+        [
+          "inline-stores",
+          "platform-clear",
+          "OpenSSL"
+        ],
+        [
+          "inline-stores",
+          "platform-clear",
+          "OpenSSL"
+        ],
+        [
+          "platform-clear",
+          "OpenSSL",
+          "inline-stores"
+        ],
+        [
+          "inline-stores",
+          "platform-clear",
+          "OpenSSL"
+        ],
+        [
+          "platform-clear",
+          "OpenSSL",
+          "inline-stores"
+        ],
+        [
+          "inline-stores",
+          "OpenSSL",
+          "platform-clear"
+        ]
+      ]
+    },
+    {
+      "algorithm": "p256-sign",
+      "bytes": 4096,
+      "offset": 0,
+      "input_sha256": "af26928ca7645ec0d0e3eb12ef41f86dcde5c1aaa8e8debc79011d0a002fa71c",
+      "output_sha256": "c2f33ab96ea19ab1dc75859bb6637222658f8e562d2eb0afc5f8719f09873058",
+      "samples": {
+        "OpenSSL": {
+          "iterations": 1233,
+          "wall": [
+            0.039934026,
+            0.040679381,
+            0.039864953,
+            0.039792754,
+            0.03971727,
+            0.039721647,
+            0.039875199,
+            0.039874016,
+            0.039945494,
+            0.040392288,
+            0.039930602,
+            0.039820395,
+            0.040717058,
+            0.040010472,
+            0.041280908,
+            0.040838711,
+            0.042137139
+          ],
+          "cpu": [
+            0.039847662,
+            0.040677218,
+            0.039848905,
+            0.039763948,
+            0.039714874,
+            0.039719141,
+            0.039840441,
+            0.039747494,
+            0.039907841,
+            0.040361146,
+            0.039910538,
+            0.039787132,
+            0.040693703,
+            0.039989804,
+            0.041010575,
+            0.040810167,
+            0.042107868
+          ]
+        },
+        "platform-clear": {
+          "iterations": 306,
+          "wall": [
+            0.039569857,
+            0.039550198,
+            0.041409512,
+            0.043461768,
+            0.039487694,
+            0.039897041,
+            0.040358246,
+            0.039689709,
+            0.042030248,
+            0.041803246,
+            0.040191825,
+            0.041742915,
+            0.040073988,
+            0.043265241,
+            0.040275872,
+            0.040454843,
+            0.041066484
+          ],
+          "cpu": [
+            0.03955717,
+            0.039542809,
+            0.041407185,
+            0.043399803,
+            0.039485193,
+            0.039894592,
+            0.04034251,
+            0.039674225,
+            0.042010323,
+            0.041763015,
+            0.040173076,
+            0.041721682,
+            0.040057713,
+            0.043237701,
+            0.0401959,
+            0.040427656,
+            0.041039308
+          ]
+        },
+        "inline-stores": {
+          "iterations": 318,
+          "wall": [
+            0.039990422,
+            0.039627134,
+            0.04004183,
+            0.041728993,
+            0.039851152,
+            0.042306996,
+            0.039685211,
+            0.039709408,
+            0.039828688,
+            0.039800425,
+            0.040289794,
+            0.055611004,
+            0.040137193,
+            0.040788405,
+            0.040650437,
+            0.04058561,
+            0.040361942
+          ],
+          "cpu": [
+            0.039964847,
+            0.039624641,
+            0.040028742,
+            0.04172632,
+            0.039848734,
+            0.042304461,
+            0.03965163,
+            0.039677551,
+            0.0398112,
+            0.03977825,
+            0.040259674,
+            0.055578812,
+            0.040102722,
+            0.040769255,
+            0.040634394,
+            0.040548114,
+            0.040319774
+          ]
+        }
+      },
+      "round_order": [
+        [
+          "OpenSSL",
+          "inline-stores",
+          "platform-clear"
+        ],
+        [
+          "platform-clear",
+          "inline-stores",
+          "OpenSSL"
+        ],
+        [
+          "OpenSSL",
+          "inline-stores",
+          "platform-clear"
+        ],
+        [
+          "OpenSSL",
+          "platform-clear",
+          "inline-stores"
+        ],
+        [
+          "platform-clear",
+          "inline-stores",
+          "OpenSSL"
+        ],
+        [
+          "OpenSSL",
+          "inline-stores",
+          "platform-clear"
+        ],
+        [
+          "platform-clear",
+          "OpenSSL",
+          "inline-stores"
+        ],
+        [
+          "inline-stores",
+          "OpenSSL",
+          "platform-clear"
+        ],
+        [
+          "OpenSSL",
+          "platform-clear",
+          "inline-stores"
+        ],
+        [
+          "platform-clear",
+          "OpenSSL",
+          "inline-stores"
+        ],
+        [
+          "inline-stores",
+          "OpenSSL",
+          "platform-clear"
+        ],
+        [
+          "OpenSSL",
+          "platform-clear",
+          "inline-stores"
+        ],
+        [
+          "inline-stores",
+          "OpenSSL",
+          "platform-clear"
+        ],
+        [
+          "inline-stores",
+          "OpenSSL",
+          "platform-clear"
+        ],
+        [
+          "inline-stores",
+          "platform-clear",
+          "OpenSSL"
+        ],
+        [
+          "OpenSSL",
+          "platform-clear",
+          "inline-stores"
+        ],
+        [
+          "inline-stores",
+          "OpenSSL",
+          "platform-clear"
+        ]
+      ]
+    },
+    {
+      "algorithm": "p256-verify",
+      "bytes": 64,
+      "offset": 0,
+      "input_sha256": "28f0a1a9fae78b5247ebe5b1919541c009f78cc2b79d276352a9c46251a02522",
+      "output_sha256": "33ffd26580e8fab6e6ebe5b4a3b04295a754b6e12351c7766be862414efeae29",
+      "samples": {
+        "OpenSSL": {
+          "iterations": 569,
+          "wall": [
+            0.042185272,
+            0.040181781,
+            0.039624861,
+            0.040120959,
+            0.0401619,
+            0.040776147,
+            0.047412726,
+            0.040265296,
+            0.042977036,
+            0.039699283,
+            0.04018817,
+            0.040079196,
+            0.041326567,
+            0.040209682,
+            0.040952723,
+            0.040522584,
+            0.040987436
+          ],
+          "cpu": [
+            0.042156029,
+            0.040158564,
+            0.039607826,
+            0.039516621,
+            0.040130855,
+            0.040741455,
+            0.047382141,
+            0.04022449,
+            0.04295444,
+            0.039675525,
+            0.040163673,
+            0.040061131,
+            0.041284713,
+            0.040188301,
+            0.040862384,
+            0.040478062,
+            0.040945359
+          ]
+        },
+        "platform-clear": {
+          "iterations": 99,
+          "wall": [
+            0.040416354,
+            0.040653342,
+            0.039898994,
+            0.039943972,
+            0.040459739,
+            0.040565419,
+            0.040054849,
+            0.044521756,
+            0.040729747,
+            0.039948559,
+            0.042907862,
+            0.039923461,
+            0.04010194,
+            0.040609345,
+            0.039904632,
+            0.040843929,
+            0.040792341
+          ],
+          "cpu": [
+            0.040394276,
+            0.040607544,
+            0.03987299,
+            0.039906683,
+            0.040361689,
+            0.040546013,
+            0.040031527,
+            0.044360121,
+            0.040298013,
+            0.039931286,
+            0.042876724,
+            0.039907551,
+            0.040068662,
+            0.040580274,
+            0.039884706,
+            0.040826689,
+            0.040771848
+          ]
+        },
+        "inline-stores": {
+          "iterations": 103,
+          "wall": [
+            0.039688327,
+            0.040481272,
+            0.039483718,
+            0.03956465,
+            0.040174489,
+            0.039949159,
+            0.040227289,
+            0.047565116,
+            0.039610528,
+            0.041011833,
+            0.040731479,
+            0.040839172,
+            0.040267069,
+            0.039728868,
+            0.040162161,
+            0.039912625,
+            0.045862358
+          ],
+          "cpu": [
+            0.039669408,
+            0.040472594,
+            0.039481297,
+            0.039548749,
+            0.040156463,
+            0.039917415,
+            0.04020856,
+            0.047434471,
+            0.039592494,
+            0.040991527,
+            0.040712682,
+            0.04051756,
+            0.040242701,
+            0.039713764,
+            0.040121783,
+            0.039891328,
+            0.045735299
+          ]
+        }
+      },
+      "round_order": [
+        [
+          "OpenSSL",
+          "inline-stores",
+          "platform-clear"
+        ],
+        [
+          "OpenSSL",
+          "platform-clear",
+          "inline-stores"
+        ],
+        [
+          "inline-stores",
+          "OpenSSL",
+          "platform-clear"
+        ],
+        [
+          "OpenSSL",
+          "inline-stores",
+          "platform-clear"
+        ],
+        [
+          "OpenSSL",
+          "inline-stores",
+          "platform-clear"
+        ],
+        [
+          "inline-stores",
+          "OpenSSL",
+          "platform-clear"
+        ],
+        [
+          "inline-stores",
+          "platform-clear",
+          "OpenSSL"
+        ],
+        [
+          "inline-stores",
+          "platform-clear",
+          "OpenSSL"
+        ],
+        [
+          "platform-clear",
+          "inline-stores",
+          "OpenSSL"
+        ],
+        [
+          "OpenSSL",
+          "inline-stores",
+          "platform-clear"
+        ],
+        [
+          "OpenSSL",
+          "platform-clear",
+          "inline-stores"
+        ],
+        [
+          "OpenSSL",
+          "platform-clear",
+          "inline-stores"
+        ],
+        [
+          "platform-clear",
+          "OpenSSL",
+          "inline-stores"
+        ],
+        [
+          "OpenSSL",
+          "inline-stores",
+          "platform-clear"
+        ],
+        [
+          "inline-stores",
+          "OpenSSL",
+          "platform-clear"
+        ],
+        [
+          "inline-stores",
+          "platform-clear",
+          "OpenSSL"
+        ],
+        [
+          "OpenSSL",
+          "platform-clear",
+          "inline-stores"
+        ]
+      ]
+    },
+    {
+      "algorithm": "p256-verify",
+      "bytes": 4096,
+      "offset": 0,
+      "input_sha256": "af26928ca7645ec0d0e3eb12ef41f86dcde5c1aaa8e8debc79011d0a002fa71c",
+      "output_sha256": "fe4e48698b2f80d71244b5f0d37742de29bae854d58b53efff7bca34975f9d7f",
+      "samples": {
+        "OpenSSL": {
+          "iterations": 533,
+          "wall": [
+            0.038927238,
+            0.038237308,
+            0.038243377,
+            0.038590581,
+            0.049605643,
+            0.049264258,
+            0.040455243,
+            0.038650031,
+            0.040180559,
+            0.048000127,
+            0.039288824,
+            0.038771273,
+            0.04192223,
+            0.038249336,
+            0.038036004,
+            0.038212731,
+            0.038439663
+          ],
+          "cpu": [
+            0.038882653,
+            0.038218235,
+            0.038107562,
+            0.038558541,
+            0.049187923,
+            0.03815891,
+            0.040416656,
+            0.038622667,
+            0.039788674,
+            0.047953308,
+            0.039264954,
+            0.038744627,
+            0.038965569,
+            0.038213709,
+            0.038033631,
+            0.038181049,
+            0.038345294
+          ]
+        },
+        "platform-clear": {
+          "iterations": 100,
+          "wall": [
+            0.041642854,
+            0.040022,
+            0.040344506,
+            0.040092907,
+            0.051017672,
+            0.046535844,
+            0.040297385,
+            0.040627663,
+            0.04261537,
+            0.041071943,
+            0.042412725,
+            0.043734618,
+            0.045426225,
+            0.040089,
+            0.04010886,
+            0.039981037,
+            0.041102529
+          ],
+          "cpu": [
+            0.0416199,
+            0.039984407,
+            0.040319765,
+            0.04006016,
+            0.050971769,
+            0.046180264,
+            0.040273986,
+            0.040604889,
+            0.0425783,
+            0.04104746,
+            0.042377799,
+            0.043686059,
+            0.045394045,
+            0.040079448,
+            0.040106908,
+            0.039967542,
+            0.041099987
+          ]
+        },
+        "inline-stores": {
+          "iterations": 103,
+          "wall": [
+            0.040073147,
+            0.040226388,
+            0.040151786,
+            0.039991504,
+            0.041443052,
+            0.044649899,
+            0.043309437,
+            0.046368371,
+            0.041075028,
+            0.051333229,
+            0.041706099,
+            0.040478578,
+            0.040080117,
+            0.039614615,
+            0.039516166,
+            0.039642107,
+            0.04134171
+          ],
+          "cpu": [
+            0.040040341,
+            0.040204905,
+            0.040013479,
+            0.039959118,
+            0.041410089,
+            0.044322489,
+            0.040426734,
+            0.04633251,
+            0.041046368,
+            0.051284044,
+            0.041663256,
+            0.04045792,
+            0.04004684,
+            0.039587874,
+            0.039514016,
+            0.039639903,
+            0.041339244
+          ]
+        }
+      },
+      "round_order": [
+        [
+          "OpenSSL",
+          "platform-clear",
+          "inline-stores"
+        ],
+        [
+          "inline-stores",
+          "OpenSSL",
+          "platform-clear"
+        ],
+        [
+          "inline-stores",
+          "OpenSSL",
+          "platform-clear"
+        ],
+        [
+          "inline-stores",
+          "platform-clear",
+          "OpenSSL"
+        ],
+        [
+          "inline-stores",
+          "OpenSSL",
+          "platform-clear"
+        ],
+        [
+          "platform-clear",
+          "inline-stores",
+          "OpenSSL"
+        ],
+        [
+          "OpenSSL",
+          "inline-stores",
+          "platform-clear"
+        ],
+        [
+          "OpenSSL",
+          "inline-stores",
+          "platform-clear"
+        ],
+        [
+          "platform-clear",
+          "inline-stores",
+          "OpenSSL"
+        ],
+        [
+          "OpenSSL",
+          "inline-stores",
+          "platform-clear"
+        ],
+        [
+          "inline-stores",
+          "OpenSSL",
+          "platform-clear"
+        ],
+        [
+          "inline-stores",
+          "platform-clear",
+          "OpenSSL"
+        ],
+        [
+          "OpenSSL",
+          "platform-clear",
+          "inline-stores"
+        ],
+        [
+          "OpenSSL",
+          "inline-stores",
+          "platform-clear"
+        ],
+        [
+          "inline-stores",
+          "OpenSSL",
+          "platform-clear"
+        ],
+        [
+          "inline-stores",
+          "OpenSSL",
+          "platform-clear"
+        ],
+        [
+          "OpenSSL",
+          "platform-clear",
+          "inline-stores"
+        ]
+      ]
+    }
+  ]
+}

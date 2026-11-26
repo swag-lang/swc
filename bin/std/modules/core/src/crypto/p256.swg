@@ -125,8 +125,14 @@ private func(IsField: bool) p256MontgomeryMultiply(left, right: [4] u64)->[4] u6
     for index in 4 do
         result[index] = (difference[index] & mask) | (temporary[index] & ~mask)
 
-    Crypto.secureClear(temporary)
-    Crypto.secureClear(difference)
+    // These local words are aligned. Atomic stores survive dead-store elimination.
+    for word in 4
+    {
+        Swag.atomicStore(&temporary[word], 0)
+        Swag.atomicStore(&difference[word], 0)
+    }
+
+    Swag.atomicStore(&temporary[4], 0)
     return result
 }
 

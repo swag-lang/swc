@@ -154,3 +154,4 @@ optimizations moved each result.
 - [SHA-512 round groups at fixed schedule offsets](sha512-fixed-round-groups.md)
 - [Cumulative KDF comparison against libargon2, libsodium, Nettle and OpenSSL](kdf-replay.md)
 - [Interleaved AES-CCM authentication and counter rounds](aes-ccm-interleaved.md)
+- [P-256 aligned local word clearing](p256-aligned-wipes.md)

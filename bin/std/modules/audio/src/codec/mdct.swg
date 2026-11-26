@@ -100,37 +100,97 @@ impl Mdct
         let sin   = .twiddleSin.storage()
         let order = .reverse.storage()
         const Reverse = cast(Simd.U32x4, [3'u32, 2, 1, 0])
-        var k = 0'u32
-        while k < m
+
+        #[Swag.Inline]
+        func rotate(spectrum, cos, sin: const [*] f32, half, k: u32)->{re, im: Simd.F32x4}
         {
-            let front       = spectrum + 2 * k
-            let back        = spectrum + (half - 2 * k - 8)
-            let front0      = cast #bit(Simd.U32x4, Simd.load(front))
-            let front1      = cast #bit(Simd.U32x4, Simd.load(front + 4))
-            let back0       = cast #bit(Simd.U32x4, Simd.load(back))
-            let back1       = cast #bit(Simd.U32x4, Simd.load(back + 4))
-            let first       = cast #bit(Simd.F32x4, Simd.deinterleaveEven(front0, front1))
-            let second      = Simd.permute(cast #bit(Simd.F32x4, Simd.deinterleaveOdd(back0, back1)), Reverse)
-            let c           = Simd.load(cos + k)
-            let s           = Simd.load(sin + k)
-            let rotatedReal = first * c + second * s
-            let rotatedImag = second * c - first * s
-            let firstIndex  = order[k]
-            let secondIndex = order[k + 1]
-            let thirdIndex  = order[k + 2]
-            let fourthIndex = order[k + 3]
-            re[firstIndex]  = rotatedReal[0]
-            im[firstIndex]  = rotatedImag[0]
-            re[secondIndex] = rotatedReal[1]
-            im[secondIndex] = rotatedImag[1]
-            re[thirdIndex]  = rotatedReal[2]
-            im[thirdIndex]  = rotatedImag[2]
-            re[fourthIndex] = rotatedReal[3]
-            im[fourthIndex] = rotatedImag[3]
-            k += 4
+            let front  = spectrum + 2 * k
+            let back   = spectrum + (half - 2 * k - 8)
+            let front0 = cast #bit(Simd.U32x4, Simd.load(front))
+            let front1 = cast #bit(Simd.U32x4, Simd.load(front + 4))
+            let back0  = cast #bit(Simd.U32x4, Simd.load(back))
+            let back1  = cast #bit(Simd.U32x4, Simd.load(back + 4))
+            let first  = cast #bit(Simd.F32x4, Simd.deinterleaveEven(front0, front1))
+            let second = Simd.permute(cast #bit(Simd.F32x4, Simd.deinterleaveOdd(back0, back1)), Reverse)
+            let c      = Simd.load(cos + k)
+            let s      = Simd.load(sin + k)
+            return {first * c + second * s, second * c - first * s}
         }
 
-        .fft(-1)
+        var k = 0'u32
+        let fuseFirstStages = m >= 16
+        if fuseFirstStages
+        {
+            #[Swag.Inline]
+            func storeFourGroups(target: [*] f32, order: const [*] u32, a, b, c, d: Simd.F32x4)
+            {
+                let av     = cast #bit(Simd.U32x4, a)
+                let bv     = cast #bit(Simd.U32x4, b)
+                let cv     = cast #bit(Simd.U32x4, c)
+                let dv     = cast #bit(Simd.U32x4, d)
+                let abLow  = cast #bit(Simd.U64x2, Simd.interleaveLow(av, bv))
+                let cdLow  = cast #bit(Simd.U64x2, Simd.interleaveLow(cv, dv))
+                let abHigh = cast #bit(Simd.U64x2, Simd.interleaveHigh(av, bv))
+                let cdHigh = cast #bit(Simd.U64x2, Simd.interleaveHigh(cv, dv))
+                Simd.store(target + order[0], cast #bit(Simd.F32x4, Simd.interleaveLow(abLow, cdLow)))
+                Simd.store(target + order[1], cast #bit(Simd.F32x4, Simd.interleaveHigh(abLow, cdLow)))
+                Simd.store(target + order[2], cast #bit(Simd.F32x4, Simd.interleaveLow(abHigh, cdHigh)))
+                Simd.store(target + order[3], cast #bit(Simd.F32x4, Simd.interleaveHigh(abHigh, cdHigh)))
+            }
+
+            // Bit reversal puts points from the four quarters into each group in
+            // 0, 2, 1, 3 order. Rotate four groups at once, then transpose the SIMD
+            // lanes after their first two butterfly stages.
+            let span       = m / 4
+            let quarterCos = .fftCos[2]
+            let quarterSin = -.fftSin[2]
+            let zero       = Simd.splat(0'f32)
+            while k < span
+            {
+                let a        = rotate(spectrum, cos, sin, half, k)
+                let b        = rotate(spectrum, cos, sin, half, k + 2 * span)
+                let c        = rotate(spectrum, cos, sin, half, k + span)
+                let d        = rotate(spectrum, cos, sin, half, k + 3 * span)
+                let sumReal  = a.re + b.re
+                let sumImag  = a.im + b.im
+                let diffReal = a.re - b.re
+                let diffImag = a.im - b.im
+
+                let dcReal = c.re + d.re
+                let dcImag = c.im + d.im
+                let dcR    = dcReal - dcImag * zero
+                let dcI    = dcReal * zero + dcImag
+                let acReal = c.re - d.re
+                let acImag = c.im - d.im
+                let acR    = acReal * quarterCos - acImag * quarterSin
+                let acI    = acReal * quarterSin + acImag * quarterCos
+                storeFourGroups(re, order + k, sumReal + dcR, diffReal + acR, sumReal - dcR, diffReal - acR)
+                storeFourGroups(im, order + k, sumImag + dcI, diffImag + acI, sumImag - dcI, diffImag - acI)
+                k += 4
+            }
+        }
+        else
+        {
+            while k < m
+            {
+                let rotated     = rotate(spectrum, cos, sin, half, k)
+                let firstIndex  = order[k]
+                let secondIndex = order[k + 1]
+                let thirdIndex  = order[k + 2]
+                let fourthIndex = order[k + 3]
+                re[firstIndex]  = rotated.re[0]
+                im[firstIndex]  = rotated.im[0]
+                re[secondIndex] = rotated.re[1]
+                im[secondIndex] = rotated.im[1]
+                re[thirdIndex]  = rotated.re[2]
+                im[thirdIndex]  = rotated.im[2]
+                re[fourthIndex] = rotated.re[3]
+                im[fourthIndex] = rotated.im[3]
+                k += 4
+            }
+        }
+
+        .fft(-1, not fuseFirstStages)
 
         let quarter = m / 2
         if quarter >= 4
@@ -257,7 +317,7 @@ impl Mdct
         }
     }
 
-    private mtd fft(sign: f32)
+    private mtd fft(sign: f32, firstStages = true)
     {
         let m   = .n / 4
         let re  = .real.storage()
@@ -265,33 +325,36 @@ impl Mdct
         let cos = .fftCos.storage()
         let sin = .fftSin.storage()
 
-        // Fuse the first two stages inside each four-point group.
-        const Even       = cast(Simd.U32x4, [0'u32, 0, 2, 2])
-        const Odd        = cast(Simd.U32x4, [1'u32, 1, 3, 3])
-        const LowPair    = cast(Simd.U32x4, [0'u32, 1, 0, 1])
-        const HighPair   = cast(Simd.U32x4, [2'u32, 3, 2, 3])
-        const NegateOdd  = cast(Simd.U32x4, [0'u32, 0x8000_0000, 0, 0x8000_0000])
-        const NegateHigh = cast(Simd.U32x4, [0'u32, 0, 0x8000_0000, 0x8000_0000])
-        let quarterCos = cos[2]
-        let quarterSin = sign * sin[2]
-        let wr         = cast(Simd.F32x4, [1'f32, quarterCos, 1, quarterCos])
-        let wi         = cast(Simd.F32x4, [0'f32, quarterSin, 0, quarterSin])
-        var point      = 0'u32
-        while point < m
+        if firstStages
         {
-            let real      = Simd.load(re + point)
-            let imag      = Simd.load(im + point)
-            let oddReal   = cast #bit(Simd.F32x4, cast #bit(Simd.U32x4, Simd.permute(real, Odd)) ^ NegateOdd)
-            let oddImag   = cast #bit(Simd.F32x4, cast #bit(Simd.U32x4, Simd.permute(imag, Odd)) ^ NegateOdd)
-            let firstReal = Simd.permute(real, Even) + oddReal
-            let firstImag = Simd.permute(imag, Even) + oddImag
-            let br        = Simd.permute(firstReal, HighPair)
-            let bi        = Simd.permute(firstImag, HighPair)
-            let tr        = cast #bit(Simd.F32x4, cast #bit(Simd.U32x4, br * wr - bi * wi) ^ NegateHigh)
-            let ti        = cast #bit(Simd.F32x4, cast #bit(Simd.U32x4, br * wi + bi * wr) ^ NegateHigh)
-            Simd.store(re + point, Simd.permute(firstReal, LowPair) + tr)
-            Simd.store(im + point, Simd.permute(firstImag, LowPair) + ti)
-            point += 4
+            // Fuse the first two stages inside each four-point group.
+            const Even       = cast(Simd.U32x4, [0'u32, 0, 2, 2])
+            const Odd        = cast(Simd.U32x4, [1'u32, 1, 3, 3])
+            const LowPair    = cast(Simd.U32x4, [0'u32, 1, 0, 1])
+            const HighPair   = cast(Simd.U32x4, [2'u32, 3, 2, 3])
+            const NegateOdd  = cast(Simd.U32x4, [0'u32, 0x8000_0000, 0, 0x8000_0000])
+            const NegateHigh = cast(Simd.U32x4, [0'u32, 0, 0x8000_0000, 0x8000_0000])
+            let quarterCos = cos[2]
+            let quarterSin = sign * sin[2]
+            let wr         = cast(Simd.F32x4, [1'f32, quarterCos, 1, quarterCos])
+            let wi         = cast(Simd.F32x4, [0'f32, quarterSin, 0, quarterSin])
+            var point      = 0'u32
+            while point < m
+            {
+                let real      = Simd.load(re + point)
+                let imag      = Simd.load(im + point)
+                let oddReal   = cast #bit(Simd.F32x4, cast #bit(Simd.U32x4, Simd.permute(real, Odd)) ^ NegateOdd)
+                let oddImag   = cast #bit(Simd.F32x4, cast #bit(Simd.U32x4, Simd.permute(imag, Odd)) ^ NegateOdd)
+                let firstReal = Simd.permute(real, Even) + oddReal
+                let firstImag = Simd.permute(imag, Even) + oddImag
+                let br        = Simd.permute(firstReal, HighPair)
+                let bi        = Simd.permute(firstImag, HighPair)
+                let tr        = cast #bit(Simd.F32x4, cast #bit(Simd.U32x4, br * wr - bi * wi) ^ NegateHigh)
+                let ti        = cast #bit(Simd.F32x4, cast #bit(Simd.U32x4, br * wi + bi * wr) ^ NegateHigh)
+                Simd.store(re + point, Simd.permute(firstReal, LowPair) + tr)
+                Simd.store(im + point, Simd.permute(firstImag, LowPair) + ti)
+                point += 4
+            }
         }
 
         // Later stages pair contiguous spans. Four butterflies use the same arithmetic

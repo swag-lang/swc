@@ -307,3 +307,32 @@ one PCM16 unit from the original Swag output.
 
 Native Release passes 39 focused AAC tests. Release-safe passes the same
 39 tests.
+
+## Ninth optimization pass
+
+This follow-up compares the changed codecs with commit `2b741a0e65` and native FFmpeg.
+Each median uses 56 samples and includes opening and materializing ten seconds of PCM16.
+[Raw stage times and PCM deltas](audio-decode-linux-round9.json)
+
+| Format | R8 CPU 0 (ms) | Swag CPU 0 (ms) | FFmpeg CPU 0 (ms) | R8 CPU 1 (ms) | Swag CPU 1 (ms) | FFmpeg CPU 1 (ms) |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| Ogg Vorbis | 8.05 | 7.71 | 7.38 | 7.92 | 7.68 | 7.51 |
+
+| Format | R8 4 cores (ms) | Swag 4 cores (ms) | FFmpeg 4 cores (ms) |
+| --- | ---: | ---: | ---: |
+| Ogg Vorbis | 8.17 | 7.54 | 7.96 |
+
+The inverse MDCT combines pre-rotation with the first two FFT stages for Vorbis blocks.
+It writes each four-point result together after transposing the SIMD lanes.
+FileSamples PCM matches the eighth-pass output exactly.
+
+The 70-sample one-core repeat on CPU 3 measures 7.79 ms for R8, 7.34 ms for this
+build and 7.29 ms for FFmpeg. The 70-sample repeat on CPUs 1–4 gives 7.89 ms,
+7.61 ms and 7.60 ms. The four-core comparison ranges from a Swag lead to near
+parity between the two CPU sets.
+
+The PCM matches between the one-core and four-core runs, with a peak difference of
+one PCM16 unit from the original Swag output.
+
+Native Release passes 314 functional and stress tests. Release-safe passes
+27 focused Vorbis, MDCT, Ogg and AAC encoder tests.

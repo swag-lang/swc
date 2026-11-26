@@ -22,7 +22,7 @@ private func mdctDirect(spectrum: const [..] f32, output: [*] f64)
     }
 }
 
-// The folded transform agrees with the defining sum at every length a Vorbis block may take.
+// The folded transform agrees with the defining sum for both sizes below 64 and for Vorbis blocks.
 private func mdctAssertMatchesDefinition(n: u32)
 {
     var random: Random.Generator
@@ -56,6 +56,8 @@ private func mdctAssertMatchesDefinition(n: u32)
 
 #test
 {
+    mdctAssertMatchesDefinition(16)
+    mdctAssertMatchesDefinition(32)
     mdctAssertMatchesDefinition(64)
     mdctAssertMatchesDefinition(256)
     mdctAssertMatchesDefinition(2048)

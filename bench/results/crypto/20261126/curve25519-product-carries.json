@@ -1,0 +1,993 @@
+{
+  "utc": "2026-11-26T13:06:18.028197+00:00",
+  "system": "Linux-6.18.57-x86_64-with-glibc2.41",
+  "cpu": 1,
+  "affinity": [
+    1
+  ],
+  "workers": {
+    "buffered": 1,
+    "curve-stream-final": 1
+  },
+  "processor": {
+    "model name": "AMD EPYC 9V74 80-Core Processor",
+    "microcode": "0x1000065",
+    "flags": "fpu vme de pse tsc msr pae mce cx8 apic sep mtrr pge mca cmov pat pse36 clflush mmx fxsr sse sse2 ht syscall nx mmxext fxsr_opt pdpe1gb rdtscp lm constant_tsc rep_good nopl xtopology nonstop_tsc cpuid extd_apicid tsc_known_freq pni pclmulqdq ssse3 fma cx16 pcid sse4_1 sse4_2 x2apic movbe popcnt tsc_deadline_timer aes xsave avx f16c rdrand hypervisor lahf_lm cmp_legacy cr8_legacy abm sse4a misalignsse 3dnowprefetch osvw topoext cpuid_fault vmmcall fsgsbase tsc_adjust bmi1 avx2 smep bmi2 erms invpcid avx512f avx512dq rdseed adx smap avx512ifma clflushopt clwb avx512cd sha_ni avx512bw avx512vl xsaveopt xsavec xgetbv1 xsaves avx512_bf16 clzero xsaveerptr arat npt nrip_save tsc_scale vmcb_clean flushbyasid pausefilter pfthreshold v_vmsave_vmload avx512vbmi umip avx512_vbmi2 gfni vaes vpclmulqdq avx512_vnni avx512_bitalg avx512_vpopcntdq rdpid fsrm arch_capabilities"
+  },
+  "reference_build": "OpenSSL 3.5.7 9 Jun 2026 | zlib 1.3.1 | BLAKE3 1.8.7 | libdeflate 1.26 | ISA-L 2.32.1 | liblzma 5.8.1 | libsodium 1.0.18",
+  "reference_sha256": "af4dc235b4cf07c4c859cba8bb217bc0aff1a8c7dd7fd5af1fc116a57e27e799",
+  "swag_builds": {
+    "buffered": "7b97fa664609d78e9faacf838d1fc81270dd9f1137cc2dbdd7a9c12b8e3de5b3",
+    "curve-stream-final": "fd962f3ae14e6c7269bf0c563adfa9b1ca491bf8336bbae982c2600f0593db2a"
+  },
+  "rounds": 11,
+  "target_ms": 30,
+  "clock": "cpu",
+  "rows": [
+    {
+      "algorithm": "x25519-public",
+      "bytes": 32,
+      "offset": 0,
+      "input_sha256": "2404657934fda9253c9d38499cb12ebdbbed5a27f47746fb93ed5d1b676bd395",
+      "output_sha256": "82bc2c8f4e75b535a175120445ec22f7265a811b633ced733b9d06869c502c69",
+      "samples": {
+        "OpenSSL": {
+          "iterations": 834,
+          "wall": [
+            0.030498446,
+            0.031265994,
+            0.030383523,
+            0.03044121,
+            0.030884959,
+            0.033381574,
+            0.031391113,
+            0.031360496,
+            0.030930258,
+            0.030671176,
+            0.030530975
+          ],
+          "cpu": [
+            0.03047256,
+            0.031247585,
+            0.030366022,
+            0.030406403,
+            0.030882631,
+            0.033379429,
+            0.031388665,
+            0.031357929,
+            0.030927799,
+            0.030669114,
+            0.030509966
+          ]
+        },
+        "libsodium": {
+          "iterations": 1048,
+          "wall": [
+            0.030513118,
+            0.029906043,
+            0.029525128,
+            0.036527879,
+            0.030235099,
+            0.029887474,
+            0.030771778,
+            0.029930309,
+            0.030496833,
+            0.030789605,
+            0.029980365
+          ],
+          "cpu": [
+            0.030500162,
+            0.029890124,
+            0.029523077,
+            0.036525434,
+            0.030214506,
+            0.029869774,
+            0.03075348,
+            0.02992838,
+            0.030494543,
+            0.030787269,
+            0.029978234
+          ]
+        },
+        "buffered": {
+          "iterations": 615,
+          "wall": [
+            0.025703696,
+            0.025509983,
+            0.026780049,
+            0.02654339,
+            0.027128603,
+            0.026832217,
+            0.025735022,
+            0.026120563,
+            0.026247655,
+            0.026054815,
+            0.026129827
+          ],
+          "cpu": [
+            0.025645752,
+            0.025507837,
+            0.026761504,
+            0.026528186,
+            0.027110965,
+            0.026803187,
+            0.025732862,
+            0.026118637,
+            0.026245385,
+            0.026052809,
+            0.026110224
+          ]
+        },
+        "curve-stream-final": {
+          "iterations": 859,
+          "wall": [
+            0.030163952,
+            0.048891996,
+            0.029909618,
+            0.031403972,
+            0.030685908,
+            0.031931197,
+            0.030491346,
+            0.030667792,
+            0.030638978,
+            0.030180457,
+            0.029927205
+          ],
+          "cpu": [
+            0.030140495,
+            0.032274094,
+            0.029881731,
+            0.031375867,
+            0.030683846,
+            0.031907257,
+            0.030488845,
+            0.030665358,
+            0.030636846,
+            0.030177601,
+            0.029917083
+          ]
+        }
+      },
+      "round_order": [
+        [
+          "buffered",
+          "OpenSSL",
+          "libsodium",
+          "curve-stream-final"
+        ],
+        [
+          "libsodium",
+          "OpenSSL",
+          "buffered",
+          "curve-stream-final"
+        ],
+        [
+          "libsodium",
+          "OpenSSL",
+          "buffered",
+          "curve-stream-final"
+        ],
+        [
+          "OpenSSL",
+          "curve-stream-final",
+          "libsodium",
+          "buffered"
+        ],
+        [
+          "OpenSSL",
+          "libsodium",
+          "curve-stream-final",
+          "buffered"
+        ],
+        [
+          "curve-stream-final",
+          "buffered",
+          "libsodium",
+          "OpenSSL"
+        ],
+        [
+          "libsodium",
+          "OpenSSL",
+          "buffered",
+          "curve-stream-final"
+        ],
+        [
+          "curve-stream-final",
+          "libsodium",
+          "OpenSSL",
+          "buffered"
+        ],
+        [
+          "buffered",
+          "libsodium",
+          "OpenSSL",
+          "curve-stream-final"
+        ],
+        [
+          "OpenSSL",
+          "buffered",
+          "curve-stream-final",
+          "libsodium"
+        ],
+        [
+          "OpenSSL",
+          "buffered",
+          "curve-stream-final",
+          "libsodium"
+        ]
+      ]
+    },
+    {
+      "algorithm": "x25519-shared",
+      "bytes": 32,
+      "offset": 0,
+      "input_sha256": "2404657934fda9253c9d38499cb12ebdbbed5a27f47746fb93ed5d1b676bd395",
+      "output_sha256": "9cece8f62296730a835add7d412edfd57587a071fb99e1b937693a5159c24d5d",
+      "samples": {
+        "OpenSSL": {
+          "iterations": 422,
+          "wall": [
+            0.029903729,
+            0.031308247,
+            0.029954305,
+            0.029337155,
+            0.029532729,
+            0.038288685,
+            0.031159874,
+            0.029244164,
+            0.029343976,
+            0.029443846,
+            0.029277304
+          ],
+          "cpu": [
+            0.02990167,
+            0.031306042,
+            0.029951886,
+            0.029320866,
+            0.029507323,
+            0.038286057,
+            0.031134587,
+            0.029214637,
+            0.029331001,
+            0.029425963,
+            0.029275347
+          ]
+        },
+        "libsodium": {
+          "iterations": 989,
+          "wall": [
+            0.030643695,
+            0.041406978,
+            0.030083119,
+            0.03042139,
+            0.030009178,
+            0.030459307,
+            0.029929188,
+            0.029986835,
+            0.030850286,
+            0.030001737,
+            0.030139795
+          ],
+          "cpu": [
+            0.030641903,
+            0.04140447,
+            0.030066606,
+            0.030419281,
+            0.029988391,
+            0.030215148,
+            0.029910884,
+            0.029962181,
+            0.030822711,
+            0.029973347,
+            0.030123191
+          ]
+        },
+        "buffered": {
+          "iterations": 268,
+          "wall": [
+            0.03041475,
+            0.030051983,
+            0.039863719,
+            0.037319763,
+            0.028744942,
+            0.02871725,
+            0.029369733,
+            0.029004443,
+            0.029416845,
+            0.028817922,
+            0.029142021
+          ],
+          "cpu": [
+            0.030412712,
+            0.030045063,
+            0.039861473,
+            0.037317154,
+            0.0287265,
+            0.028700162,
+            0.029338532,
+            0.029001921,
+            0.029269168,
+            0.028781151,
+            0.029125646
+          ]
+        },
+        "curve-stream-final": {
+          "iterations": 417,
+          "wall": [
+            0.030513128,
+            0.030326676,
+            0.033689018,
+            0.032626856,
+            0.02945999,
+            0.030769735,
+            0.029860173,
+            0.03001092,
+            0.030016889,
+            0.029963719,
+            0.029763668
+          ],
+          "cpu": [
+            0.030479292,
+            0.0303243,
+            0.033662192,
+            0.032606359,
+            0.029432692,
+            0.030236999,
+            0.029716524,
+            0.029977182,
+            0.029997363,
+            0.029925586,
+            0.029749775
+          ]
+        }
+      },
+      "round_order": [
+        [
+          "curve-stream-final",
+          "libsodium",
+          "OpenSSL",
+          "buffered"
+        ],
+        [
+          "buffered",
+          "curve-stream-final",
+          "libsodium",
+          "OpenSSL"
+        ],
+        [
+          "libsodium",
+          "buffered",
+          "curve-stream-final",
+          "OpenSSL"
+        ],
+        [
+          "curve-stream-final",
+          "buffered",
+          "libsodium",
+          "OpenSSL"
+        ],
+        [
+          "buffered",
+          "OpenSSL",
+          "curve-stream-final",
+          "libsodium"
+        ],
+        [
+          "buffered",
+          "curve-stream-final",
+          "libsodium",
+          "OpenSSL"
+        ],
+        [
+          "OpenSSL",
+          "curve-stream-final",
+          "buffered",
+          "libsodium"
+        ],
+        [
+          "buffered",
+          "libsodium",
+          "curve-stream-final",
+          "OpenSSL"
+        ],
+        [
+          "curve-stream-final",
+          "OpenSSL",
+          "buffered",
+          "libsodium"
+        ],
+        [
+          "curve-stream-final",
+          "OpenSSL",
+          "buffered",
+          "libsodium"
+        ],
+        [
+          "OpenSSL",
+          "curve-stream-final",
+          "buffered",
+          "libsodium"
+        ]
+      ]
+    },
+    {
+      "algorithm": "ed25519-public",
+      "bytes": 32,
+      "offset": 0,
+      "input_sha256": "2404657934fda9253c9d38499cb12ebdbbed5a27f47746fb93ed5d1b676bd395",
+      "output_sha256": "3344782b88b6be16a0976a28edf521b9b260851a6101822efc7a840f23d015d9",
+      "samples": {
+        "OpenSSL": {
+          "iterations": 817,
+          "wall": [
+            0.030357693,
+            0.030542913,
+            0.030039824,
+            0.030291534,
+            0.031395609,
+            0.030226997,
+            0.032958481,
+            0.030012003,
+            0.030089629,
+            0.029831601,
+            0.042358668
+          ],
+          "cpu": [
+            0.030313474,
+            0.030540832,
+            0.029976572,
+            0.030262338,
+            0.031374063,
+            0.030224671,
+            0.032954682,
+            0.029996932,
+            0.030058584,
+            0.029805308,
+            0.042356034
+          ]
+        },
+        "libsodium": {
+          "iterations": 1886,
+          "wall": [
+            0.030065483,
+            0.030082449,
+            0.031877865,
+            0.032337719,
+            0.030194367,
+            0.031861041,
+            0.039331728,
+            0.030206046,
+            0.030372746,
+            0.036376481,
+            0.033376195
+          ],
+          "cpu": [
+            0.030063501,
+            0.030057513,
+            0.031850141,
+            0.032318099,
+            0.030192153,
+            0.031858695,
+            0.039329151,
+            0.030186985,
+            0.030356378,
+            0.030946235,
+            0.033374022
+          ]
+        },
+        "buffered": {
+          "iterations": 718,
+          "wall": [
+            0.03012311,
+            0.03093891,
+            0.030139875,
+            0.030526518,
+            0.031889904,
+            0.030846211,
+            0.032492142,
+            0.029941676,
+            0.030986832,
+            0.034027869,
+            0.031967471
+          ],
+          "cpu": [
+            0.030121438,
+            0.03092186,
+            0.030137823,
+            0.03051229,
+            0.031858645,
+            0.030830624,
+            0.032463285,
+            0.029939396,
+            0.030875662,
+            0.033998813,
+            0.031965474
+          ]
+        },
+        "curve-stream-final": {
+          "iterations": 855,
+          "wall": [
+            0.030027376,
+            0.030076379,
+            0.030525847,
+            0.031378844,
+            0.030249931,
+            0.030543654,
+            0.036878318,
+            0.031140985,
+            0.030088237,
+            0.034681765,
+            0.032101323
+          ],
+          "cpu": [
+            0.03000189,
+            0.030067998,
+            0.030509396,
+            0.031376156,
+            0.030226784,
+            0.030519871,
+            0.036875406,
+            0.03112301,
+            0.030086395,
+            0.034678975,
+            0.032099293
+          ]
+        }
+      },
+      "round_order": [
+        [
+          "OpenSSL",
+          "libsodium",
+          "buffered",
+          "curve-stream-final"
+        ],
+        [
+          "curve-stream-final",
+          "buffered",
+          "OpenSSL",
+          "libsodium"
+        ],
+        [
+          "curve-stream-final",
+          "buffered",
+          "OpenSSL",
+          "libsodium"
+        ],
+        [
+          "libsodium",
+          "buffered",
+          "OpenSSL",
+          "curve-stream-final"
+        ],
+        [
+          "curve-stream-final",
+          "libsodium",
+          "OpenSSL",
+          "buffered"
+        ],
+        [
+          "curve-stream-final",
+          "libsodium",
+          "buffered",
+          "OpenSSL"
+        ],
+        [
+          "buffered",
+          "OpenSSL",
+          "curve-stream-final",
+          "libsodium"
+        ],
+        [
+          "buffered",
+          "curve-stream-final",
+          "libsodium",
+          "OpenSSL"
+        ],
+        [
+          "curve-stream-final",
+          "libsodium",
+          "OpenSSL",
+          "buffered"
+        ],
+        [
+          "libsodium",
+          "buffered",
+          "OpenSSL",
+          "curve-stream-final"
+        ],
+        [
+          "OpenSSL",
+          "buffered",
+          "libsodium",
+          "curve-stream-final"
+        ]
+      ]
+    },
+    {
+      "algorithm": "ed25519-sign",
+      "bytes": 64,
+      "offset": 0,
+      "input_sha256": "28f0a1a9fae78b5247ebe5b1919541c009f78cc2b79d276352a9c46251a02522",
+      "output_sha256": "9c8f8181fbe97f479f7785703ecbc0cab97207354af556437d8555d43db6c3e4",
+      "samples": {
+        "OpenSSL": {
+          "iterations": 356,
+          "wall": [
+            0.037146958,
+            0.027466474,
+            0.027564812,
+            0.026332373,
+            0.027065448,
+            0.030121557,
+            0.026577171,
+            0.027104417,
+            0.026722531,
+            0.026782662,
+            0.026892878
+          ],
+          "cpu": [
+            0.037144061,
+            0.027464421,
+            0.027562206,
+            0.026300888,
+            0.027052286,
+            0.030119235,
+            0.026557761,
+            0.027102162,
+            0.026704579,
+            0.026780362,
+            0.026876646
+          ]
+        },
+        "libsodium": {
+          "iterations": 908,
+          "wall": [
+            0.030990929,
+            0.030392226,
+            0.030502863,
+            0.031129167,
+            0.032406293,
+            0.030766219,
+            0.030322891,
+            0.030115648,
+            0.030230932,
+            0.030467429,
+            0.031172373
+          ],
+          "cpu": [
+            0.030988739,
+            0.030390609,
+            0.030501044,
+            0.031127236,
+            0.032403947,
+            0.03074798,
+            0.030307835,
+            0.030089159,
+            0.030214687,
+            0.030454584,
+            0.031152854
+          ]
+        },
+        "buffered": {
+          "iterations": 350,
+          "wall": [
+            0.031569371,
+            0.031202107,
+            0.032697072,
+            0.030043259,
+            0.031951878,
+            0.030629715,
+            0.03034831,
+            0.029456144,
+            0.030496874,
+            0.030437163,
+            0.030702554
+          ],
+          "cpu": [
+            0.031567251,
+            0.031194005,
+            0.03269486,
+            0.030040427,
+            0.031919215,
+            0.030607732,
+            0.030330128,
+            0.029454435,
+            0.030494583,
+            0.030434695,
+            0.030685837
+          ]
+        },
+        "curve-stream-final": {
+          "iterations": 400,
+          "wall": [
+            0.034385894,
+            0.030245254,
+            0.0289426,
+            0.029306408,
+            0.029240148,
+            0.028426631,
+            0.029763187,
+            0.029568143,
+            0.028978914,
+            0.028954187,
+            0.029217253
+          ],
+          "cpu": [
+            0.034340956,
+            0.030242898,
+            0.028933579,
+            0.029304021,
+            0.029224452,
+            0.02842408,
+            0.029761061,
+            0.029550028,
+            0.028976272,
+            0.028937754,
+            0.029215418
+          ]
+        }
+      },
+      "round_order": [
+        [
+          "curve-stream-final",
+          "OpenSSL",
+          "buffered",
+          "libsodium"
+        ],
+        [
+          "buffered",
+          "OpenSSL",
+          "libsodium",
+          "curve-stream-final"
+        ],
+        [
+          "curve-stream-final",
+          "libsodium",
+          "OpenSSL",
+          "buffered"
+        ],
+        [
+          "buffered",
+          "curve-stream-final",
+          "libsodium",
+          "OpenSSL"
+        ],
+        [
+          "curve-stream-final",
+          "OpenSSL",
+          "libsodium",
+          "buffered"
+        ],
+        [
+          "libsodium",
+          "buffered",
+          "OpenSSL",
+          "curve-stream-final"
+        ],
+        [
+          "OpenSSL",
+          "libsodium",
+          "curve-stream-final",
+          "buffered"
+        ],
+        [
+          "curve-stream-final",
+          "libsodium",
+          "OpenSSL",
+          "buffered"
+        ],
+        [
+          "OpenSSL",
+          "libsodium",
+          "curve-stream-final",
+          "buffered"
+        ],
+        [
+          "buffered",
+          "libsodium",
+          "OpenSSL",
+          "curve-stream-final"
+        ],
+        [
+          "OpenSSL",
+          "buffered",
+          "libsodium",
+          "curve-stream-final"
+        ]
+      ]
+    },
+    {
+      "algorithm": "ed25519-sign",
+      "bytes": 4096,
+      "offset": 0,
+      "input_sha256": "af26928ca7645ec0d0e3eb12ef41f86dcde5c1aaa8e8debc79011d0a002fa71c",
+      "output_sha256": "5fb065a8305f9f8dc739bd71873612b54349bf73a998f162669da4d97f6ee281",
+      "samples": {
+        "OpenSSL": {
+          "iterations": 362,
+          "wall": [
+            0.030675283,
+            0.032031398,
+            0.030427499,
+            0.030216922,
+            0.030321639,
+            0.030848244,
+            0.031213334,
+            0.03066694,
+            0.030754813,
+            0.03118365,
+            0.030655233
+          ],
+          "cpu": [
+            0.030658659,
+            0.032016931,
+            0.030365101,
+            0.030214116,
+            0.030302647,
+            0.030845617,
+            0.031211111,
+            0.030664977,
+            0.030723976,
+            0.031180726,
+            0.030632428
+          ]
+        },
+        "libsodium": {
+          "iterations": 603,
+          "wall": [
+            0.028864341,
+            0.044281973,
+            0.029021158,
+            0.029136632,
+            0.028593823,
+            0.028907617,
+            0.029306379,
+            0.029120909,
+            0.029203343,
+            0.028948779,
+            0.028474694
+          ],
+          "cpu": [
+            0.028824057,
+            0.030198191,
+            0.029019286,
+            0.029134408,
+            0.02859186,
+            0.028904636,
+            0.02930375,
+            0.029118564,
+            0.029201118,
+            0.028896715,
+            0.028472753
+          ]
+        },
+        "buffered": {
+          "iterations": 283,
+          "wall": [
+            0.03020297,
+            0.030401981,
+            0.030617154,
+            0.030229201,
+            0.030040024,
+            0.029878321,
+            0.030550404,
+            0.030635402,
+            0.030473749,
+            0.030041477,
+            0.030597055
+          ],
+          "cpu": [
+            0.030201027,
+            0.030380413,
+            0.030615103,
+            0.030226855,
+            0.030027798,
+            0.02984777,
+            0.030548103,
+            0.030585959,
+            0.030471439,
+            0.030014097,
+            0.030594892
+          ]
+        },
+        "curve-stream-final": {
+          "iterations": 324,
+          "wall": [
+            0.030498045,
+            0.030530103,
+            0.029706571,
+            0.030069719,
+            0.029985031,
+            0.030071002,
+            0.030819841,
+            0.030193286,
+            0.029998272,
+            0.032159972,
+            0.029876498
+          ],
+          "cpu": [
+            0.030495855,
+            0.030527903,
+            0.029704347,
+            0.030067848,
+            0.029965957,
+            0.030068589,
+            0.030803103,
+            0.030165063,
+            0.02999529,
+            0.032125893,
+            0.029873969
+          ]
+        }
+      },
+      "round_order": [
+        [
+          "libsodium",
+          "buffered",
+          "OpenSSL",
+          "curve-stream-final"
+        ],
+        [
+          "buffered",
+          "libsodium",
+          "OpenSSL",
+          "curve-stream-final"
+        ],
+        [
+          "buffered",
+          "libsodium",
+          "curve-stream-final",
+          "OpenSSL"
+        ],
+        [
+          "OpenSSL",
+          "libsodium",
+          "curve-stream-final",
+          "buffered"
+        ],
+        [
+          "libsodium",
+          "OpenSSL",
+          "buffered",
+          "curve-stream-final"
+        ],
+        [
+          "OpenSSL",
+          "curve-stream-final",
+          "libsodium",
+          "buffered"
+        ],
+        [
+          "buffered",
+          "libsodium",
+          "curve-stream-final",
+          "OpenSSL"
+        ],
+        [
+          "OpenSSL",
+          "libsodium",
+          "curve-stream-final",
+          "buffered"
+        ],
+        [
+          "libsodium",
+          "OpenSSL",
+          "curve-stream-final",
+          "buffered"
+        ],
+        [
+          "libsodium",
+          "OpenSSL",
+          "curve-stream-final",
+          "buffered"
+        ],
+        [
+          "OpenSSL",
+          "buffered",
+          "curve-stream-final",
+          "libsodium"
+        ]
+      ]
+    }
+  ]
+}

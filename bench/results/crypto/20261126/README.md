@@ -122,3 +122,4 @@ optimizations moved each result.
 - [Reusable HKDF expansion prefixes](hkdf-prefix-reuse.md)
 - [Four-block AES-XTS](aes-xts-four-blocks.md)
 - [CRC-32 short inputs and bounded SIMD tails](crc32-padded-tail.md)
+- [Streaming Curve25519 product carries](curve25519-product-carries.md)

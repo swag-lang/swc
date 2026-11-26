@@ -39,9 +39,16 @@ private impl X25519Product
         .high += product.hi
     }
 
-    // Even the wrapped sums stay below 2^112, so the carry fits in u64.
+    // Finish one convolution column and pass its carry as the next low word.
+    // The largest wrapped sum stays below 2^112.
     #[Swag.Inline]
-    mtd const carry() => (.low >> FieldLimbBits) | (.high << (64 - FieldLimbBits))
+    mtd reduceLimb()->u64
+    {
+        let limb = .low & FieldLimbMask
+        .low = (.low >> FieldLimbBits) | (.high << (64 - FieldLimbBits))
+        .high = 0
+        return limb
+    }
 }
 
 #[Swag.Inline]
@@ -93,20 +100,6 @@ private func x25519SubtractLoose(left, right: X25519Field)->X25519Field
 internal func x25519Add(left, right: X25519Field)->X25519Field => x25519Normalize(x25519AddLoose(left, right))
 internal func x25519Subtract(left, right: X25519Field)->X25519Field => x25519Normalize(x25519SubtractLoose(left, right))
 
-private func x25519ReduceProducts(products: *[5] X25519Product)->X25519Field
-{
-    var result: #returntype
-    for index in 4
-    {
-        result.limbs[index] = products[][index].low & FieldLimbMask
-        products[][index + 1].add(products[][index].carry())
-    }
-
-    result.limbs[4] = products[][4].low & FieldLimbMask
-    x25519FoldCarry(&result, products[][4].carry())
-    return result
-}
-
 internal func x25519Multiply(left, right: X25519Field)->X25519Field
 {
     // A product past limb four wraps around with a factor of 19.
@@ -116,64 +109,78 @@ internal func x25519Multiply(left, right: X25519Field)->X25519Field
     let scaled2 = 19 * b[2]
     let scaled3 = 19 * b[3]
     let scaled4 = 19 * b[4]
-    var products: [5] X25519Product
-    products[0].addProduct(a[0], b[0])
-    products[0].addProduct(a[1], scaled4)
-    products[0].addProduct(a[2], scaled3)
-    products[0].addProduct(a[3], scaled2)
-    products[0].addProduct(a[4], scaled1)
+    var result: #returntype
+    var column: X25519Product
+    column.addProduct(a[0], b[0])
+    column.addProduct(a[1], scaled4)
+    column.addProduct(a[2], scaled3)
+    column.addProduct(a[3], scaled2)
+    column.addProduct(a[4], scaled1)
+    result.limbs[0] = column.reduceLimb()
 
-    products[1].addProduct(a[0], b[1])
-    products[1].addProduct(a[1], b[0])
-    products[1].addProduct(a[2], scaled4)
-    products[1].addProduct(a[3], scaled3)
-    products[1].addProduct(a[4], scaled2)
+    column.addProduct(a[0], b[1])
+    column.addProduct(a[1], b[0])
+    column.addProduct(a[2], scaled4)
+    column.addProduct(a[3], scaled3)
+    column.addProduct(a[4], scaled2)
+    result.limbs[1] = column.reduceLimb()
 
-    products[2].addProduct(a[0], b[2])
-    products[2].addProduct(a[1], b[1])
-    products[2].addProduct(a[2], b[0])
-    products[2].addProduct(a[3], scaled4)
-    products[2].addProduct(a[4], scaled3)
+    column.addProduct(a[0], b[2])
+    column.addProduct(a[1], b[1])
+    column.addProduct(a[2], b[0])
+    column.addProduct(a[3], scaled4)
+    column.addProduct(a[4], scaled3)
+    result.limbs[2] = column.reduceLimb()
 
-    products[3].addProduct(a[0], b[3])
-    products[3].addProduct(a[1], b[2])
-    products[3].addProduct(a[2], b[1])
-    products[3].addProduct(a[3], b[0])
-    products[3].addProduct(a[4], scaled4)
+    column.addProduct(a[0], b[3])
+    column.addProduct(a[1], b[2])
+    column.addProduct(a[2], b[1])
+    column.addProduct(a[3], b[0])
+    column.addProduct(a[4], scaled4)
+    result.limbs[3] = column.reduceLimb()
 
-    products[4].addProduct(a[0], b[4])
-    products[4].addProduct(a[1], b[3])
-    products[4].addProduct(a[2], b[2])
-    products[4].addProduct(a[3], b[1])
-    products[4].addProduct(a[4], b[0])
-    return x25519ReduceProducts(&products)
+    column.addProduct(a[0], b[4])
+    column.addProduct(a[1], b[3])
+    column.addProduct(a[2], b[2])
+    column.addProduct(a[3], b[1])
+    column.addProduct(a[4], b[0])
+    result.limbs[4] = column.reduceLimb()
+    x25519FoldCarry(&result, column.low)
+    return result
 }
 
 internal func x25519Square(value: X25519Field)->X25519Field
 {
     // Count each off-diagonal pair twice and apply the same modular wrap as multiplication.
     let a = value.limbs
-    var products: [5] X25519Product
-    products[0].addProduct(a[0], a[0])
-    products[0].addProduct(a[1], 38 * a[4])
-    products[0].addProduct(a[2], 38 * a[3])
+    var result: #returntype
+    var column: X25519Product
+    column.addProduct(a[0], a[0])
+    column.addProduct(a[1], 38 * a[4])
+    column.addProduct(a[2], 38 * a[3])
+    result.limbs[0] = column.reduceLimb()
 
-    products[1].addProduct(a[0], 2 * a[1])
-    products[1].addProduct(a[2], 38 * a[4])
-    products[1].addProduct(a[3], 19 * a[3])
+    column.addProduct(a[0], 2 * a[1])
+    column.addProduct(a[2], 38 * a[4])
+    column.addProduct(a[3], 19 * a[3])
+    result.limbs[1] = column.reduceLimb()
 
-    products[2].addProduct(a[0], 2 * a[2])
-    products[2].addProduct(a[1], a[1])
-    products[2].addProduct(a[3], 38 * a[4])
+    column.addProduct(a[0], 2 * a[2])
+    column.addProduct(a[1], a[1])
+    column.addProduct(a[3], 38 * a[4])
+    result.limbs[2] = column.reduceLimb()
 
-    products[3].addProduct(a[0], 2 * a[3])
-    products[3].addProduct(a[1], 2 * a[2])
-    products[3].addProduct(a[4], 19 * a[4])
+    column.addProduct(a[0], 2 * a[3])
+    column.addProduct(a[1], 2 * a[2])
+    column.addProduct(a[4], 19 * a[4])
+    result.limbs[3] = column.reduceLimb()
 
-    products[4].addProduct(a[0], 2 * a[4])
-    products[4].addProduct(a[1], 2 * a[3])
-    products[4].addProduct(a[2], a[2])
-    return x25519ReduceProducts(&products)
+    column.addProduct(a[0], 2 * a[4])
+    column.addProduct(a[1], 2 * a[3])
+    column.addProduct(a[2], a[2])
+    result.limbs[4] = column.reduceLimb()
+    x25519FoldCarry(&result, column.low)
+    return result
 }
 
 private func x25519SquareRepeated(value: X25519Field, count: u32)->X25519Field
@@ -341,10 +348,16 @@ private func x25519ScalarMult(privateKey, publicCoordinate: const [..] u8)->[X25
 
 private func x25519MultiplyBy121665(value: X25519Field)->X25519Field
 {
-    var products: [5] X25519Product
-    for index in products.count do
-        products[index].addProduct(value.limbs[index], 121665)
-    return x25519ReduceProducts(&products)
+    var result: #returntype
+    var column: X25519Product
+    for index in result.limbs.count
+    {
+        column.addProduct(value.limbs[index], 121665)
+        result.limbs[index] = column.reduceLimb()
+    }
+
+    x25519FoldCarry(&result, column.low)
+    return result
 }
 
 // Computes an X25519 public key from a 32-byte private scalar.

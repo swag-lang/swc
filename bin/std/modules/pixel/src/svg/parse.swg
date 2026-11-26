@@ -129,21 +129,22 @@ struct Shape
         geometry: u64     // Index plus one of the contour list, primitive or instance.
         scanFill: u64     // Index plus one of the raster cache for a dense solid fill.
 
-        fillGradient: u64         // Index plus one of the resolved gradient, or zero for solid paint.
-        fillColor:    Color       // Solid fill color, including opacity once resolved.
-        fillPaintId:  u64         // Interned fill paint identifier, or zero for a solid fill.
-        fillOpacity:  f32 = 1     // Fill-only opacity multiplier.
-        hasFill:      bool        // Whether the shape is filled.
-        evenOdd:      bool        // Whether the fill uses the even-odd rule.
+        fillGradient: u64     // Resolved gradient index plus one, or zero for solid paint.
+        #[Swag.Offset("fillGradient")]
+        paintTransform: u64     // Transform index during parsing, before brushes are resolved.
 
+        fillColor: Color     // Resolved solid fill color, including opacity.
+        #[Swag.Offset("fillColor")]
+        fillOpacity: f32     // Opacity of a referenced fill before paint resolution.
+
+        hasFill:  bool             // Whether the shape is filled.
+        evenOdd:  bool             // Whether the fill uses the even-odd rule.
         hidden:   bool             // Whether the shape is a reusable definition, not painted directly.
         deferred: DeferredKind     // Selects the stored bounds and the contour builder.
 
-        stroke: u64     // Index plus one of authored stroke properties.
-
-        paintTransform: u64     // Index plus one of the user-space paint transform, or zero for identity.
-
-        filterId: u64     // Interned filter identifier, or zero without a reference.
+        fillPaintId: u64     // Interned fill paint identifier, or zero for a solid fill.
+        stroke:      u64     // Index plus one of authored stroke properties.
+        filterId:    u64     // Interned filter identifier, or zero without a reference.
     }
 }
 
@@ -2525,10 +2526,13 @@ private impl Parser
         shape.hasFill = state.hasFill
         if state.hasFill
         {
-            shape.fillColor   = state.fillColor
             shape.fillPaintId = .internReference(state.fillPaintId)
-            shape.fillOpacity = state.fillOpacity * state.opacity
             shape.evenOdd     = state.evenOdd
+            let opacity = state.fillOpacity * state.opacity
+            if shape.fillPaintId do
+                shape.fillOpacity = opacity
+            else do
+                shape.fillColor = applyPaintOpacity(state.fillColor, opacity)
         }
 
         if state.hasStroke do
@@ -4399,9 +4403,9 @@ private impl Parser
         return result
     }
 
-    mtd const paintTransformFor(shape: const *Shape)->Math.Transform2
+    mtd const paintTransformAt(index: u64)->Math.Transform2
     {
-        return shape.paintTransform ? .paintTransforms[shape.paintTransform - 1] : Math.Transform2.Identity
+        return index ? .paintTransforms[index - 1] : Math.Transform2.Identity
     }
 
     mtd storePaintTransform(transform: const *Math.Transform2)->u64
@@ -4600,7 +4604,7 @@ private impl Parser
         }
     }
 
-    mtd storeGradient(gradient: *Gradient, shape: *Shape, opacity: f32)->u64
+    mtd storeGradient(gradient: *Gradient, shape: *Shape, opacity: f32, paintTransform: u64)->u64
     {
         var min = Vector2.Max
         var max = Vector2.Min
@@ -4628,7 +4632,7 @@ private impl Parser
             }
         }
 
-        let transform = .paintTransformFor(shape)
+        let transform = .paintTransformAt(paintTransform)
 
         // User-space coordinates depend on the transform, independently of the shape bounds.
         if gradient.userSpace and
@@ -4667,12 +4671,13 @@ private impl Parser
     {
         for &shape in .drawing.shapes
         {
-            if shape.hasFill
+            let paintTransform = shape.paintTransform
+            if paintTransform do
+                shape.fillGradient = 0
+            if shape.hasFill and shape.fillPaintId
             {
-                if not shape.fillPaintId do
-                    shape.fillColor = applyPaintOpacity(shape.fillColor, shape.fillOpacity)
-                elif let gradient = .gradients.tryFind(.referenceNames[shape.fillPaintId - 1]) do
-                    shape.fillGradient = .storeGradient(&gradient.value, shape, shape.fillOpacity)
+                if let gradient = .gradients.tryFind(.referenceNames[shape.fillPaintId - 1]) do
+                    shape.fillGradient = .storeGradient(&gradient.value, shape, shape.fillOpacity, paintTransform)
                 elif .patterns.tryFind(shape.fillPaintId) do
                     shape.fillColor = applyPaintOpacity(Color.fromArgb(Argb.White), shape.fillOpacity)
                 else do
@@ -4683,7 +4688,7 @@ private impl Parser
             if stroke and stroke.paintId
             {
                 if let gradient = .gradients.tryFind(.referenceNames[stroke.paintId - 1]) do
-                    stroke.gradient = .storeGradient(&gradient.value, shape, stroke.opacity)
+                    stroke.gradient = .storeGradient(&gradient.value, shape, stroke.opacity, paintTransform)
                 else do
                     stroke.enabled = false
             }
@@ -4778,12 +4783,14 @@ private impl Parser
             scope
             {
                 let src = &.drawing.shapes[first + i]
-                fillColor   = src.fillColor
                 fillPaintId = src.fillPaintId
                 filterId    = src.filterId
-                fillOpacity = src.fillOpacity
-                hasFill     = src.hasFill
-                evenOdd     = src.evenOdd
+                if fillPaintId do
+                    fillOpacity = src.fillOpacity
+                else do
+                    fillColor = src.fillColor
+                hasFill = src.hasFill
+                evenOdd = src.evenOdd
                 var hasPaintReference = fillPaintId != 0
                 if let original = .drawing.strokeFor(src)
                 {
@@ -4816,7 +4823,7 @@ private impl Parser
                 if hasPaintReference
                 {
                     // Compose the definition's paint space with the instance's, including its offset.
-                    var transform = .paintTransformFor(src)
+                    var transform = .paintTransformAt(src.paintTransform)
                     transform.multiply(state.transform)
                     paintTransform = .storePaintTransform(&transform)
                 }
@@ -4837,9 +4844,11 @@ private impl Parser
             let shapeIndex = .drawing.shapes.count
             with let shape = .drawing.shapes.emplaceInitAddress()
             {
-                .fillColor      = fillColor
-                .fillPaintId    = fillPaintId
-                .fillOpacity    = fillOpacity
+                .fillPaintId = fillPaintId
+                if fillPaintId do
+                    .fillOpacity = fillOpacity
+                else do
+                    .fillColor = fillColor
                 .hasFill        = hasFill
                 .evenOdd        = evenOdd
                 .stroke         = strokeIndex

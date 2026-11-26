@@ -94,7 +94,8 @@ private func scryptRomix(block: [..] u8, costN: u32, blockR: u32, blockSize: u64
 {
     let vectorSize  = blockSize * costN
     let scratchSize = vectorSize + blockSize
-    let storage     = cast([*] u8, Memory.alloc(scratchSize))
+    // Keep each Salsa chunk within its own cache line.
+    let storage     = cast([*] u8, Memory.alloc(scratchSize, alignment: 64))
     defer
     {
         Crypto.secureClear(Swag.makeSlice(storage, scratchSize))

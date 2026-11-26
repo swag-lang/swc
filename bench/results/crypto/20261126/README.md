@@ -210,3 +210,4 @@ optimizations moved each result.
 - [RSA Montgomery multiplication with fused carries](rsa-multiply-addends.md)
 - [Redundant low-word masks in Argon2id](argon2-mask-elision.md)
 - [Centered Adler-32 byte weights](adler-centered-weights.md)
+- [scrypt ROMix storage alignment](scrypt-romix-alignment.md)

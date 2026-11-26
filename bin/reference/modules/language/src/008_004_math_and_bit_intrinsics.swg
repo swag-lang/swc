@@ -18,6 +18,20 @@ unsigned widths from 'u8' through 'u64'.
 }
 
 /**
+# Wide Unsigned Multiplication
+
+'Swag.mulWide' computes the exact product of two 'u64' values. It returns the low 64 bits
+and writes the high 64 bits through the provided pointer.
+*/
+#test
+{
+    var high: u64
+    let low = Swag.mulWide(0x8000000000000000'u64, 3'u64, &high)
+    Swag.require(low == 0x8000000000000000'u64)
+    Swag.require(high == 1)
+}
+
+/**
 # Byte Order and Rotation
 
 'Swag.byteSwap' reverses bytes within an integer. 'Swag.rol' and 'Swag.ror' rotate bits

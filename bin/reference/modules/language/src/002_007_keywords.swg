@@ -118,7 +118,8 @@ Math and bit intrinsics:
 ```swag
 Swag.abs  Swag.acos  Swag.asin  Swag.atan  Swag.atan2  Swag.byteSwap  Swag.ceil  Swag.cos
 Swag.cosh  Swag.countOnes  Swag.exp  Swag.exp2  Swag.floor  Swag.leadingZeros  Swag.log
-Swag.log10  Swag.log2  Swag.max  Swag.min  Swag.mulAdd  Swag.pow  Swag.rol  Swag.ror  Swag.round
+Swag.log10  Swag.log2  Swag.max  Swag.min  Swag.mulAdd  Swag.mulWide  Swag.pow
+Swag.rol  Swag.ror  Swag.round
 Swag.sin  Swag.sinh  Swag.sqrt  Swag.tan  Swag.tanh  Swag.trailingZeros  Swag.trunc
 ```
 

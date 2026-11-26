@@ -57,6 +57,7 @@ namespace
             case MicroOp::MultiplySigned:
             case MicroOp::MultiplyUnsigned:
             case MicroOp::MultiplyWideSigned:
+            case MicroOp::MultiplyWideUnsigned:
             case MicroOp::ShiftLeft:
             case MicroOp::ShiftRight:
             case MicroOp::ShiftArithmeticLeft:

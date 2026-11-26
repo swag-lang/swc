@@ -189,6 +189,8 @@ namespace
                 return "mul";
             case MicroOp::MultiplyWideSigned:
                 return "imulwide";
+            case MicroOp::MultiplyWideUnsigned:
+                return "mulwide";
             case MicroOp::Negate:
                 return "neg";
             case MicroOp::Or:

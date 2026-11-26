@@ -97,3 +97,4 @@ optimizations moved each result.
 - [Sparse P-256 prime reduction](p256-sparse.md)
 - [AES-256-GCM with associated data only](aes-gcm-aad.md)
 - [Four-round Keccak state alternation](sha3-four-rounds.md)
+- [Full-width unsigned multiplication intrinsic](wide-multiply-instruction.md)

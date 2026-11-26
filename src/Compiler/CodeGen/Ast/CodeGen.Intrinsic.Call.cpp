@@ -768,6 +768,29 @@ namespace
         return Result::Continue;
     }
 
+    Result codeGenMulWide(CodeGen& codeGen, const AstIntrinsicCallExpr& node)
+    {
+        const auto children = codeGen.ast().nodeRefs(node.spanChildrenRef);
+        SWC_ASSERT(children.size() == 3);
+
+        const MicroReg left  = materializeIntrinsicIntArgReg(codeGen, codeGen.payload(children[0]), MicroOpBits::B64);
+        const MicroReg right = materializeIntrinsicIntArgReg(codeGen, codeGen.payload(children[1]), MicroOpBits::B64);
+        const MicroReg high  = materializeIntrinsicIntArgReg(codeGen, codeGen.payload(children[2]), MicroOpBits::B64);
+        SWC_RESULT(CodeGenSafety::emitValueBorrowWrite(codeGen, high, sizeof(uint64_t)));
+
+        constexpr MicroReg rax     = MicroReg::intReg(0);
+        constexpr MicroReg rdx     = MicroReg::intReg(3);
+        MicroBuilder&      builder = codeGen.builder();
+        builder.emitLoadRegReg(rax, left, MicroOpBits::B64);
+        builder.emitOpBinaryRegReg(rax, right, MicroOp::MultiplyWideUnsigned, MicroOpBits::B64);
+        builder.emitLoadMemReg(high, 0, rdx, MicroOpBits::B64);
+
+        CodeGenNodePayload& result = codeGen.setPayloadValue(codeGen.curNodeRef(), codeGen.curViewType().typeRef());
+        result.reg                 = codeGen.nextVirtualIntRegister();
+        builder.emitLoadRegReg(result.reg, rax, MicroOpBits::B64);
+        return Result::Continue;
+    }
+
     Result codeGenPrefetch(CodeGen& codeGen, const AstIntrinsicCallExpr& node)
     {
         const AstNodeRef argumentRef = codeGen.ast().oneNode(node.spanChildrenRef);
@@ -2786,6 +2809,8 @@ Result AstIntrinsicCallExpr::codeGenPostNode(CodeGen& codeGen) const
 
         case TokenId::IntrinsicMulAdd:
             return codeGenMulAdd(codeGen, *this);
+        case TokenId::IntrinsicMulWide:
+            return codeGenMulWide(codeGen, *this);
 
         case TokenId::IntrinsicFloor:
             return codeGenFloatRoundIntrinsic(codeGen, *this, FloatRoundKind::Floor);

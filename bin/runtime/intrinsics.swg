@@ -225,6 +225,9 @@ func atomicStore(addr: *u64, value: u64)
     func byteSwap(value: u32)->u32
     func byteSwap(value: u64)->u64
 
+    // Returns the low 64 bits of the unsigned product and writes the high 64 bits to `high`.
+    func mulWide(left, right: u64, high: *u64)->u64
+
     // Returns the number of bits set to 1.
     func countOnes(value: u8)->u8
     func countOnes(value: u16)->u16

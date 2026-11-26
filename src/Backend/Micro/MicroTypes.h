@@ -120,7 +120,8 @@ enum class MicroOp : uint8_t
     MultiplyHighUnsigned,
     MultiplySigned,
     MultiplyUnsigned,
-    MultiplyWideSigned, // Legalized signed multiply with both implicit result halves.
+    MultiplyWideSigned,   // Signed multiply with both implicit result halves.
+    MultiplyWideUnsigned, // Unsigned multiply with both implicit result halves.
     Negate,
     Or,
     PopCount,

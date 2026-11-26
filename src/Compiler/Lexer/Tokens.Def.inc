@@ -341,6 +341,7 @@ SWC_TOKEN_DEF(IntrinsicExp, "Swag.exp", TokenIdKindE::Intrinsic | TokenIdKindE::
 SWC_TOKEN_DEF(IntrinsicExp2, "Swag.exp2", TokenIdKindE::Intrinsic | TokenIdKindE::Return | TokenIdKindE::Portable)
 SWC_TOKEN_DEF(IntrinsicPow, "Swag.pow", TokenIdKindE::Intrinsic | TokenIdKindE::Return | TokenIdKindE::Portable)
 SWC_TOKEN_DEF(IntrinsicMulAdd, "Swag.mulAdd", TokenIdKindE::Intrinsic | TokenIdKindE::Return | TokenIdKindE::Portable)
+SWC_TOKEN_DEF(IntrinsicMulWide, "Swag.mulWide", TokenIdKindE::Intrinsic | TokenIdKindE::Return | TokenIdKindE::Portable)
 
 // INTRINSICS - MEMORY
 //

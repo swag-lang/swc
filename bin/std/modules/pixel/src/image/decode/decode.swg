@@ -93,8 +93,9 @@ impl Image
     // Returns the registered decoder claiming `fileName`, or `null` when none does.
     func getDecoder(fileName: string)->*ImageDecoder?
     {
-        let ext = Path.lowercaseExtension(fileName)
-        if ext.isEmpty() do
+        var storage: String
+        let ext = normalizedImageExtension(fileName, &storage)
+        if not ext.count do
             return null
         for &decoder in decoders where decoder.format.matchesLowercaseExtension(ext) do
             return decoder

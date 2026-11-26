@@ -494,6 +494,34 @@ impl Encoder
         writeColorImage(writer, deltas, channels, false)
     }
 
+    func paletteIndexChannel(palette: *EncodePalette, indices: *[256] u8)->s32
+    {
+        // A channel that distinguishes every color can index a byte table directly.
+        for lane in 4
+        {
+            var used: [256] bool
+            let shift  = 8 * lane
+            var unique = true
+            for index in palette.count
+            {
+                let value = (palette.colors[index] >> shift) & 0xFF
+                if used[value]
+                {
+                    unique = false
+                    break
+                }
+
+                used[value]      = true
+                indices[][value] = cast(u8, index)
+            }
+
+            if unique do
+                return cast(s32, shift)
+        }
+
+        return -1
+    }
+
     func packPalette(palette: *EncodePalette, pixels: const [..] u32, width, height, packedWidth: s32, bits: u32)->Array'u8
     {
         using Math.Simd
@@ -509,6 +537,9 @@ impl Encoder
         var paletteIndex: u32
 
         let binaryColor = splat(palette.colors[1])
+
+        var indices: [256] u8
+        let channel = bits == 3 ? -1 : paletteIndexChannel(palette, &indices)
 
         for y in height
         {
@@ -547,7 +578,11 @@ impl Encoder
                 for i in span
                 {
                     let color = inputRow[x + i]
-                    if color != previous
+                    if channel >= 0
+                    {
+                        paletteIndex = indices[(color >> channel) & 0xFF]
+                    }
+                    elif color != previous
                     {
                         paletteIndex = cast(u32, palette.indexOf(color))
                         previous     = color

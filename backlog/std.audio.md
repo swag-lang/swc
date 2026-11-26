@@ -213,4 +213,17 @@ owned by `bin/std/modules/audio` together. [README.md](README.md) has the whole 
   a stream slaved to a clock drifting 100 ppm stays within one millisecond over four hours.
 - Related: std.audio.011, app.capture.013
 
+### std.audio.017 — FLAC, DTS, MP3 and OGA decode need stage profiles against FFmpeg
+
+- Evidence: a Release Filesamples comparison decoded the first 10 seconds to PCM16. Scope took
+  478 ms for FLAC and 381 ms for DTS versus 11.8 ms and 37.5 ms through PyAV/FFmpeg; MP3 took
+  82 ms versus 20.7 ms, and OGA took 98 ms versus 11.9 ms. PyAV's Python conversion adds work,
+  so confirm the native gap before setting a target. Raw samples and limits are in the
+  [comparison report](../bench/results/swagscope-filesamples/README.md).
+- Next: profile container indexing and codec decode separately for the four inputs, then compare
+  the PCM16 path with a native in-process FFmpeg harness using the same ten-second window.
+- Done when: the measured gap is attributed to stages and either closed on the dominant paths or
+  documented with a bounded reason, while decoded samples retain their accepted reference error.
+- Related: app.scope.viewers.009.
+
 ---

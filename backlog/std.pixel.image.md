@@ -307,12 +307,14 @@ ships; history lives in Git, not here.
 ### std.pixel.image.055 — WebP reconstruction and transforms remain mostly scalar
 
 - Evidence: the VP8 DC-only 4x4 transform has a packed saturated row path with a scalar
-  boundary fallback. Its effect on decode performance remains unmeasured; the other
-  reconstruction and transform stages still need profiling and vectorization.
-- Next: vectorize VP8 inverse transforms, predictors, deblocking, YUV conversion, alpha filters,
-  and lossless subtract-green/cross-color/predictor transforms.
-- Done when: lossy and lossless fixture pixels remain identical where specified, predictor and
-  boundary modes are exhaustive, and stage benchmarks show the retained gains.
+  boundary fallback. A Release API comparison on the 4275 × 2451 FileSamples WebP took 362 ms
+  versus 262 ms for ImageMagick's in-process RGBA export (1.38×). The report's reference includes
+  output conversion, so the gap needs stage profiles before it is assigned to the VP8 kernels.
+- Next: profile container read, VP8/VP8L reconstruction, transforms, filtering and YUV conversion
+  separately on the FileSamples image; optimize the dominant stage before widening vectorization.
+- Done when: the measured gap is explained or closed, lossy and lossless fixture pixels remain
+  identical where specified, predictor and boundary modes are exhaustive, and stage benchmarks
+  show the retained gains.
 - Related: std.core.043, compiler.codegen.022.
 
 ### std.pixel.image.056 — Remaining palette lookups need a profitable packed strategy
@@ -329,3 +331,15 @@ ships; history lives in Git, not here.
 - Done when: each remaining indexed path has a measured dispatch decision and covers palette
   size, transparency and tails without invalid reads or changes to decoded pixels.
 - Related: std.core.044.
+
+### std.pixel.image.058 — EXR and GIF image decoding trail ImageMagick on FileSamples
+
+- Evidence: Release `Image.load` medians for the 640 × 426 EXR and GIF fixtures were 18.962 ms
+  and 14.751 ms; ImageMagick's in-process RGBF32 EXR export and RGBA8 GIF export took 6.700 ms
+  and 10.679 ms. The comparison and its output-conversion limits are recorded in
+  [the FileSamples report](../bench/results/swagscope-filesamples/README.md).
+- Next: profile EXR channel unpacking and GIF palette/frame composition separately, then retain
+  only a change that improves the same decoded output in an interleaved Release comparison.
+- Done when: each codec's dominant cost has a measured decision and no retained path is slower
+  than the reference on these fixtures without improving a separately stated quality or memory
+  requirement.

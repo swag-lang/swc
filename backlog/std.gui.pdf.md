@@ -467,3 +467,14 @@ PDF-specific evidence, investigations, and intended outcomes stay together here.
 - Done when: PDF image fixtures preserve pixels across remaining bit depths, masks, decode
   arrays, and indexed spaces, with separate conversion benchmarks.
 - Related: std.core.042, std.core.044, std.core.047.
+
+### std.gui.pdf.045 — First-page rendering trails PDFium on FileSamples
+
+- Evidence: opening each PDF, loading page 1 and rendering its long side to 1200 px took 19.8–83.8 ms
+  in Release; PDFium took 9.0–27.8 ms on the same three fixtures (2.19–3.59×). The timings and
+  binding overhead are recorded in the [comparison report](../bench/results/swagscope-filesamples/README.md).
+- Next: profile file parsing, page preparation, image/font decoding and raster stages separately on
+  all three PDFs, then compare the dominant work against PDFium without the Python image-copy cost.
+- Done when: the first-page gap has a stage-level explanation and the dominant work is within 1.25×
+  of an equivalent PDFium render, or a concrete fidelity or safety tradeoff justifies the remainder.
+- Related: app.scope.viewers.009.

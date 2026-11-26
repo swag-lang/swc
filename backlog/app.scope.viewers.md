@@ -95,6 +95,11 @@ product capabilities. [File Viewer Plus coverage](https://fileviewerplus.com/sup
   subtitles, HTML and CSV. Their source, licence or generation steps and SHA-256 hashes are recorded
   in the fixture guide. Text covers queued encoding changes, cancellation and CRLF search offsets; shared
   document outlines have their own [integration suite](../bin/apps/modules/swagscope/src/tests/cases/functional/viewer.outline.swg).
+  A Release API comparison now covers the FileSamples image, sound, video, PDF and font readers;
+  its matched decoder timings and raw samples are in the
+  [format comparison report](../bench/results/swagscope-filesamples/README.md). It does not measure
+  application first-content latency or the DOCX, XLSX, PPTX, ODT, ODS, ODP, RTF, EPUB, HTML, CSV,
+  source-code or text transformations.
   These tests still do not declare a complete matrix for real-world variants,
   malformed input, large files, cancellation, keyboard-only use, themes, DPI, memory ceilings, or
   selection-to-first-content latency under rapid adjacent-file browsing.
@@ -104,8 +109,9 @@ product capabilities. [File Viewer Plus coverage](https://fileviewerplus.com/sup
   the delivery plan. For DOCX, require content assertions across generated and real Word-authored
   documents, each implemented or disclosed-unsupported feature in the DOCX backlog, its allowed
   external hyperlink schemes and unsafe-target cases, malformed package/relationship/optional-part
-  cases, and bounded-load and replacement cases. Compare DOCX, XLSX, PPTX and PDF against File
-  Viewer Plus 7 on the same machine and inputs.
+  cases, and bounded-load and replacement cases. Add matched open/render measurements for the
+  unmeasured structured readers and compare DOCX, XLSX, PPTX and PDF against File Viewer Plus 7 on
+  the same machine and inputs. Keep decoder timings separate from application first-content latency.
   Measure cold and warm first-content latency, replacement cancellation, peak resident
   memory and bytes read before first content; set absolute thresholds before making performance a
   regression gate.

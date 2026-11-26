@@ -80,3 +80,4 @@ optimizations moved each result.
 - [Portable AES substitution with register shuffles](aes-software.md)
 - [CityHash32 short inputs and MurmurHash64A pointer walking](noncryptohash.md)
 - [Ed25519 coordinate square-root chain](ed25519-sqrt.md)
+- [P-256 mixed affine and projective addition](p256-affine.md)

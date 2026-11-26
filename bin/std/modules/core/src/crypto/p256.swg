@@ -622,14 +622,32 @@ private func p256PointAdd(left, right, doubled: P256Point)->P256Point
     let u2        = p256FieldMultiply(right.x, z1Squared)
     let s1        = p256FieldMultiply(left.y, p256FieldMultiply(right.z, z2Squared))
     let s2        = p256FieldMultiply(right.y, p256FieldMultiply(left.z, z1Squared))
-    let h         = p256FieldSubtract(u2, u1)
-    let r         = p256FieldSubtract(s2, s1)
-    let hSquared  = p256FieldSquare(h)
-    let hCubed    = p256FieldMultiply(h, hSquared)
-    let u1h2      = p256FieldMultiply(u1, hSquared)
-    let x3        = p256FieldSubtract(p256FieldSubtract(p256FieldSquare(r), hCubed), p256FieldDouble(u1h2))
-    let y3        = p256FieldSubtract(p256FieldMultiply(r, p256FieldSubtract(u1h2, x3)), p256FieldMultiply(s1, hCubed))
-    let z3        = p256FieldMultiply(h, p256FieldMultiply(left.z, right.z))
+    let zProduct  = p256FieldMultiply(left.z, right.z)
+    return p256FinishPointAdd(left, right, doubled, u1, u2, s1, s2, zProduct)
+}
+
+private func p256PointAddAffine(left, right, doubled: P256Point)->P256Point
+{
+    // Generator table points have Montgomery Z = 1. A zero selection is
+    // still recognized by the complete addition's masked infinity handling.
+    let zSquared = p256FieldSquare(left.z)
+    let u2       = p256FieldMultiply(right.x, zSquared)
+    let zCubed   = p256FieldMultiply(left.z, zSquared)
+    let s2       = p256FieldMultiply(right.y, zCubed)
+    return p256FinishPointAdd(left, right, doubled, left.x, u2, left.y, s2, left.z)
+}
+
+#[Swag.Inline]
+private func p256FinishPointAdd(left, right, doubled: P256Point, u1, u2, s1, s2, zProduct: P256Field)->P256Point
+{
+    let h        = p256FieldSubtract(u2, u1)
+    let r        = p256FieldSubtract(s2, s1)
+    let hSquared = p256FieldSquare(h)
+    let hCubed   = p256FieldMultiply(h, hSquared)
+    let u1h2     = p256FieldMultiply(u1, hSquared)
+    let x3       = p256FieldSubtract(p256FieldSubtract(p256FieldSquare(r), hCubed), p256FieldDouble(u1h2))
+    let y3       = p256FieldSubtract(p256FieldMultiply(r, p256FieldSubtract(u1h2, x3)), p256FieldMultiply(s1, hCubed))
+    let z3       = p256FieldMultiply(h, zProduct)
     var sum: P256Point
     sum.x = x3
     sum.y = y3
@@ -743,7 +761,7 @@ private func p256MultiplyGenerator(scalar: const *P256Field)->P256Point
         selection.z = p256FieldSelect(P256Field{}, one, digit != 0)
 
         var doubled = p256PointDouble(result)
-        result = p256PointAdd(result, selection, doubled)
+        result = p256PointAddAffine(result, selection, doubled)
         Crypto.secureClear(Swag.makeSlice(&selection, 1))
         Crypto.secureClear(Swag.makeSlice(&doubled, 1))
     }

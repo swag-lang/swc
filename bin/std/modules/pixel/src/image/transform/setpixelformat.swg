@@ -5,10 +5,96 @@ private const DropSwap   = [2'u8, 1, 0, 6, 5, 4, 10, 9, 8, 14, 13, 12, 128, 128,
 private const ExpandKeep = [0'u8, 1, 2, 128, 3, 4, 5, 128, 6, 7, 8, 128, 9, 10, 11, 128]
 private const ExpandSwap = [2'u8, 1, 0, 128, 5, 4, 3, 128, 8, 7, 6, 128, 11, 10, 9, 128]
 
+private func(HALF: bool) expandRgb16Alpha(source: const [*] u8, target: [*] u8, count: u64)
+{
+    using Math.Simd
+    const Alpha  = HALF ? 0x3C00'u16 : 0xFFFF'u16
+    const Expand = cast(U8x16, [0'u8, 1, 2, 3, 4, 5, 128, 128, 6, 7, 8, 9, 10, 11, 128, 128])
+    const Opaque = cast(U16x8, [0'u16, 0, 0, Alpha, 0, 0, 0, Alpha])
+    var x = 0'u64
+    while count - x >= 3
+    {
+        var block = cast #bit(U16x8, shuffle(load(source + x * 6), Expand))
+        #static if HALF
+        {
+            // The generic HALF round-trip canonicalizes NaNs and preserves their sign.
+            let nan = (block & 0x7FFF'u16) > splat(0x7C00'u16)
+            block = select(nan, (block & 0x8000'u16) | 0x7E00'u16, block)
+        }
+
+        store(cast([*] u16, target + x * 8), block | Opaque)
+        x += 2
+    }
+
+    for i in x until count
+    {
+        let input  = cast(const [*] u16, source + i * 6)
+        let output = cast([*] u16, target + i * 8)
+        for channel in 3
+        {
+            var value = input[channel]
+            #static if HALF do
+                value = (value & 0x7FFF) > 0x7C00 ? ((value & 0x8000) | 0x7E00) : value
+            output[channel] = value
+        }
+
+        output[3] = Alpha
+    }
+}
+
+private func expandRgb32Alpha(source: const [*] u8, target: [*] u8, count: u64)
+{
+    using Math.Simd
+    const Color  = cast(U32x4, [0xFFFF_FFFF'u32, 0xFFFF_FFFF, 0xFFFF_FFFF, 0])
+    const Opaque = cast(U32x4, [0'u32, 0, 0, 0x3F80_0000])
+    let input  = cast(const [*] u32, source)
+    let output = cast([*] u32, target)
+    var x      = 0'u64
+    while count - x >= 2
+    {
+        store(output + x * 4, (load(input + x * 3) & Color) | Opaque)
+        x += 1
+    }
+
+    for i in x until count
+    {
+        let at  = output + 4 * i
+        let rgb = input + 3 * i
+        at[0] = rgb[0]
+        at[1] = rgb[1]
+        at[2] = rgb[2]
+        at[3] = 0x3F80_0000
+    }
+}
+
 impl Image
 {
     mtd const doChangePf(dstImage: *Image)
     {
+        let format = .pixelFormat
+        if (format == .RGB16 and dstImage.pixelFormat == .RGBA16) or
+           (format == .RGBF16 and dstImage.pixelFormat == .RGBAF16) or
+           (format == .RGBF32 and dstImage.pixelFormat == .RGBAF32)
+        {
+            let src = me
+            let dst = dstImage
+            parallel for |src, dst, format| row in cast(u64, .height)
+            {
+                let input  = src.pixels.storage() + row * src.rowStride
+                let output = dst.pixels.storage() + row * dst.rowStride
+                let width  = cast(u64, src.width)
+                switch format
+                {
+                case .RGB16:  expandRgb16Alpha'false(input, output, width)
+                case .RGBF16: expandRgb16Alpha'true(input, output, width)
+                case .RGBF32: expandRgb32Alpha(input, output, width)
+                default:      unreachable
+                }
+            }
+
+            return
+        }
+
         let srcLegacy = .pixelFormat == .BGR8 or
                         .pixelFormat == .BGRA8 or
                         .pixelFormat == .RGB8 or

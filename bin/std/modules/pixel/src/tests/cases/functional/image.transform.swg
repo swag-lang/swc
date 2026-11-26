@@ -113,3 +113,44 @@ func sameImage(a, b: Image)->bool
     Swag.require(grown.pixelColor(1, 2) == img.pixelColor(0, 0))
     Swag.require(grown.pixelColor(0, 0) == Color.fromArgb(Argb.Red))
 }
+
+// Adding opaque alpha keeps integer and float samples at their original precision.
+#test
+{
+    const Width  = 257
+    const Height = 256
+    const Count  = Width * Height
+    for sourceFormat in [PixelFormat.RGB16, PixelFormat.RGBF16]
+    {
+        var source = Image.create(Width, Height, sourceFormat)
+        let input  = cast([*] u16, source.pixels.storage())
+        for i in 3 * Count do
+            input[i] = cast #wrap(u16, i)
+
+        let half   = sourceFormat == .RGBF16
+        let result = source.convertedTo(half ? .RGBAF16 : .RGBA16)
+        let output = cast(const [*] u16, result.pixels.storage())
+        for i in Count
+        {
+            for channel in 3
+            {
+                let value = input[3 * i + channel]
+                Swag.require(output[4 * i + channel] == (half ? floatToHalf(halfToFloat(value)) : value))
+            }
+
+            Swag.require(output[4 * i + 3] == (half ? 0x3C00'u16 : 0xFFFF'u16))
+        }
+    }
+
+    const Words: [9] u32 = [0, 0x8000_0000, 0x7F80_0000, 0xFF80_0000, 0x7FC0_ABCD, 0xFFC0_EFAB, 1, 0x4000_0000, 0xBF80_0000]
+    let bytes  = Swag.makeSlice(cast(const [*] u8, &Words[0]), #sizeof(Words))
+    let source = Image.create(3, 1, .RGBF32, bytes)
+    let result = source.convertedTo(.RGBAF32)
+    let output = cast(const [*] u32, result.pixels.storage())
+    for i in 3
+    {
+        for channel in 3 do
+            Swag.require(output[4 * i + channel] == Words[3 * i + channel])
+        Swag.require(output[4 * i + 3] == 0x3F80_0000)
+    }
+}

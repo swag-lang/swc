@@ -1996,18 +1996,12 @@ internal impl CeltDecoder
             freq[i] = 0
     }
 
-    mtd combFilter(y, x: [*] f32, t0In, t1In: s32, n: u32, g0, g1: f32, tapset0, tapset1: u32, overlap: u32)
+    // Every call covers whole four-sample groups. The pitch taps precede the
+    // group being overwritten because the lag is at least fifteen samples.
+    mtd combFilter(samples: [*] f32, t0In, t1In: s32, n: u32, g0, g1: f32, tapset0, tapset1: u32, overlap: u32)
     {
-        if g0 == 0 and g1 == 0
-        {
-            if y != x
-            {
-                for i in n do
-                    y[i] = x[i]
-            }
-
+        if g0 == 0 and g1 == 0 do
             return
-        }
 
         let t0  = cast(u32, Math.max(t0In, CombMinPeriod))
         let t1  = cast(u32, Math.max(t1In, CombMinPeriod))
@@ -2018,53 +2012,37 @@ internal impl CeltDecoder
         let g11 = g1 * CombGains[tapset1, 1]
         let g12 = g1 * CombGains[tapset1, 2]
 
-        // The filters read up to two samples around each period back, which the decode buffer
-        // keeps in front of the block being filtered.
-        let past0 = x - (t0 + 2)
-        let past1 = x - (t1 + 2)
-        var x1    = past1[3]
-        var x2    = past1[2]
-        var x3    = past1[1]
-        var x4    = past1[0]
-        var fade  = overlap
-        if g0 == g1 and t0 == t1 and tapset0 == tapset1 do
-            fade = 0
-        var i = 0'u32
-        while i < fade
+        // The decode buffer retains the two extra taps on either side of the pitch lag.
+        let past0  = samples - (t0 + 2)
+        let past1  = samples - (t1 + 2)
+        let fade   = g0 == g1 and t0 == t1 and tapset0 == tapset1 ? 0 : overlap
+        let window = cast(const [*] f32, &CeltWindow[0])
+        for block in fade / 4
         {
-            let x0 = past1[i + 4]
-            let f  = CeltWindow[i] * CeltWindow[i]
-            y[i] = x[i] + (1.0 - f) * g00 * past0[i + 2] +
-                   (1.0 - f) * g01 * (past0[i + 3] + past0[i + 1]) +
-                   (1.0 - f) * g02 * (past0[i + 4] + past0[i]) +
-                   f * g10 * x2 + f * g11 * (x1 + x3) + f * g12 * (x0 + x4)
-            x4 = x3
-            x3 = x2
-            x2 = x1
-            x1 = x0
-            i  += 1
+            let i      = 4 * block
+            let w      = Simd.load(window + i)
+            let f      = w * w
+            let old    = Simd.splat(1.0'f32) - f
+            let result = Simd.load(samples + i) +
+                         old * g00 * Simd.load(past0 + i + 2) +
+                         old * g01 * (Simd.load(past0 + i + 3) + Simd.load(past0 + i + 1)) +
+                         old * g02 * (Simd.load(past0 + i + 4) + Simd.load(past0 + i)) +
+                         f * g10 * Simd.load(past1 + i + 2) +
+                         f * g11 * (Simd.load(past1 + i + 3) + Simd.load(past1 + i + 1)) +
+                         f * g12 * (Simd.load(past1 + i + 4) + Simd.load(past1 + i))
+            Simd.store(samples + i, result)
         }
 
-        if g1 == 0
-        {
-            if y != x
-            {
-                for j in fade until n do
-                    y[j] = x[j]
-            }
-
+        if g1 == 0 do
             return
-        }
-
-        while i < n
+        for block in fade / 4 until n / 4
         {
-            let x0 = past1[i + 4]
-            y[i] = x[i] + g10 * x2 + g11 * (x1 + x3) + g12 * (x0 + x4)
-            x4   = x3
-            x3   = x2
-            x2   = x1
-            x1   = x0
-            i    += 1
+            let i      = 4 * block
+            let result = Simd.load(samples + i) +
+                         g10 * Simd.load(past1 + i + 2) +
+                         g11 * (Simd.load(past1 + i + 3) + Simd.load(past1 + i + 1)) +
+                         g12 * (Simd.load(past1 + i + 4) + Simd.load(past1 + i))
+            Simd.store(samples + i, result)
         }
     }
 
@@ -2275,7 +2253,6 @@ internal impl CeltDecoder
             .postfilterPeriod    = Math.max(.postfilterPeriod, CombMinPeriod)
             .postfilterPeriodOld = Math.max(.postfilterPeriodOld, CombMinPeriod)
             .combFilter(outSyn,
-                        outSyn,
                         .postfilterPeriodOld,
                         .postfilterPeriod,
                         CeltShortSize,
@@ -2286,7 +2263,6 @@ internal impl CeltDecoder
                         CeltOverlap)
             if lm != 0 do
                 .combFilter(outSyn + CeltShortSize,
-                            outSyn + CeltShortSize,
                             .postfilterPeriod,
                             postfilterPitch,
                             N - CeltShortSize,

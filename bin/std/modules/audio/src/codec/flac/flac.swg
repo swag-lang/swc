@@ -151,6 +151,67 @@ private impl BitReader
         return (cast(u64, quotient) << parameter) | cast(u64, .read(parameter))
     }
 
+    // Read one partition, decoding four short codes from each word when they fit.
+    mtd readRiceRun(destination: [*] s64, count, parameter: u32)
+    {
+        #[Swag.Inline]
+        func signedResidual(code: u64)->s64 => cast(s64, code >> 1) ^ -cast(s64, code & 1)
+
+        let source    = unwrap .data
+        let wideLimit = (.size - Math.min(.size, 7)) * 8
+        let mask      = (1'u64 << parameter) - 1
+
+        // At most thirteen remainder bits leave room for four codes even across byte boundaries.
+        let bulkCount = parameter <= 13 ? count & ~3'u32 : 0
+        var position  = .bitPos
+        var index     = 0'u32
+        while index < bulkCount and position < wideLimit
+        {
+            let bitOffset = cast(u32, position & 7)
+            let packed    = cast(const [*] u64, source + (position >> 3))[0]
+            let word0     = Math.bigEndianToNative(packed) << bitOffset
+            let quotient0 = cast(u32, Swag.leadingZeros(word0))
+            let width0    = quotient0 + 1 + parameter
+            let word1     = word0 << (width0 & 63)
+            let quotient1 = cast(u32, Swag.leadingZeros(word1))
+            let width1    = quotient1 + 1 + parameter
+            let word2     = word1 << (width1 & 63)
+            let quotient2 = cast(u32, Swag.leadingZeros(word2))
+            let width2    = quotient2 + 1 + parameter
+            let word3     = word2 << (width2 & 63)
+            let quotient3 = cast(u32, Swag.leadingZeros(word3))
+            let width3    = quotient3 + 1 + parameter
+            let used      = width0 + width1 + width2 + width3
+
+            // A masked speculative shift can wrap. Its code is used only when the full group fits.
+            if used <= 64 - bitOffset
+            {
+                let code0 = (cast(u64, quotient0) << parameter) | ((word0 >> (64 - width0)) & mask)
+                let code1 = (cast(u64, quotient1) << parameter) | ((word1 >> (64 - width1)) & mask)
+                let code2 = (cast(u64, quotient2) << parameter) | ((word2 >> (64 - width2)) & mask)
+                let code3 = (cast(u64, quotient3) << parameter) | ((word3 >> (64 - width3)) & mask)
+                destination[index]     = signedResidual(code0)
+                destination[index + 1] = signedResidual(code1)
+                destination[index + 2] = signedResidual(code2)
+                destination[index + 3] = signedResidual(code3)
+                position += used
+            }
+            else
+            {
+                .bitPos = position
+                for lane in 4 do
+                    destination[index + lane] = signedResidual(.readRice(parameter, mask))
+                position = .bitPos
+            }
+
+            index += 4
+        }
+
+        .bitPos = position
+        for tail in index until count do
+            destination[tail] = signedResidual(.readRice(parameter, mask))
+    }
+
     // Advances to the next byte boundary.
     mtd alignByte()
     {
@@ -390,14 +451,8 @@ private impl Codec
             }
             else
             {
-                let mask = (1'u64 << param) - 1
-                while index < end
-                {
-                    // Residuals are zig-zag coded: the low bit is the sign.
-                    let value = reader.readRice(param, mask)
-                    output[index] = cast(s64, value >> 1) ^ -cast(s64, value & 1)
-                    index         += 1
-                }
+                reader.readRiceRun(output + index, end - index, param)
+                index = end
             }
         }
     }

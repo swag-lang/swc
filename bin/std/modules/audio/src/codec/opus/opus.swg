@@ -148,7 +148,8 @@ private struct Decoder
     pcm:            Array'f32     // One frame of mixed output, interleaved.
     silkPcm:        Array's16     // One frame of SILK output at 48 kHz, interleaved.
     redundant:      Array'f32     // The 5 ms redundant CELT frame of a transition.
-    output:         Array's16     // Interleaved samples of the run being decoded.
+    output:         Array's16     // Reusable storage for interleaved output.
+    outputCount:    u64           // Samples written in the current packet.
     packet:         Array'u8      // Packet being assembled across pages.
 
     serial:                   u32
@@ -277,8 +278,9 @@ private impl Decoder
         let CC        = .channels
         let frameSize = info.frameSize
         let mode      = info.mode
-        let base      = .output.count
-        .output.resize(base + cast(u64, frameSize) * CC)
+        let base      = .outputCount
+        .outputCount += cast(u64, frameSize) * CC
+        .output.growResize(.outputCount)
 
         // A frame of one byte or none is a request for concealment; a file plays it as silence.
         if data.count <= 1
@@ -562,23 +564,38 @@ private impl Decoder
                     firstSequence = page.sequence
                 if page.granule != Ogg.NoGranule do
                     lastGranule = page.granule
-                let body = run[offset + page.headerBytes until offset + pageBytes]
-                var at   = 0'u64
+                let body          = run[offset + page.headerBytes until offset + pageBytes]
+                var at            = 0'u64
+                var start         = 0'u64
                 var headersToSkip = page.sequence == .firstAudioSequence ? .headerPacketsOnAudioPage : 0'u32
-                for index in page.segments
+                for size in page.lacing[until page.segments]
                 {
-                    let size = cast(u64, page.lacing[index])
-                    .packet.add(body[at until at + size])
                     at += size
-                    if size < 255
+                    if size == 255 do
+                        continue
+
+                    let payload = body[start until at]
+                    if headersToSkip
                     {
-                        if headersToSkip do
-                            headersToSkip -= 1
-                        elif .packet.count do
-                            produced += try .decodePacketFrames(.packet.toSlice())
-                        .packet.clear()
+                        headersToSkip -= 1
                     }
+                    elif .packet.count
+                    {
+                        .packet.add(payload)
+                        produced += try .decodePacketFrames(.packet.toSlice())
+                    }
+                    elif payload.count
+                    {
+                        produced += try .decodePacketFrames(payload)
+                    }
+
+                    .packet.clear()
+                    start = at
                 }
+
+                // Only a packet that crosses pages needs a contiguous copy.
+                if start < at do
+                    .packet.add(body[start until at])
             }
 
             offset += pageBytes
@@ -601,15 +618,11 @@ private impl Decoder
             expected = lastGranule - .granule
         }
 
-        if produced > expected
+        if produced < expected
         {
-            .output.resize(expected * .channels)
-        }
-        elif produced < expected
-        {
-            .output.resize(expected * .channels)
-            for index in produced * .channels until expected * .channels do
-                .output[index] = 0
+            .output.growResize(expected * .channels)
+            let padding = .output.storage() + produced * .channels
+            Memory.clear(padding, (expected - produced) * .channels * #sizeof(s16))
         }
 
         .granule      = lastGranule
@@ -639,7 +652,7 @@ impl IPacketCodec for Decoder
 
     mtd impl decodePacket(destination: [*] void, destinationSize: u64, packet: const [..] u8)->u64 fail
     {
-        .output.clear()
+        .outputCount = 0
         var frames: u64
         if packet.count >= 4 and
            packet[0] == 'O' and

@@ -15,15 +15,6 @@ private const CodeExtra  = 7'u32
 private const WindowBits = 32'u32
 private const UintBits   = 8'u32
 
-// Ceiling of the 32-bit reciprocal, allowing one exact correction after multiplication.
-private const RangeReciprocals: [257] u32 = #run
-{
-    var result: [257] u32
-    for divisor in 2 until result.count do
-        result[divisor] = cast(u32, ((1'u64 << 32) + divisor - 1) / divisor)
-    return result
-}
-
 // Each interval of 4096 normalized range values has one possible eighth-bit correction.
 private const TellBoundaries: [8] u32 = #run
 {
@@ -123,20 +114,8 @@ internal impl RangeDecoder
     // Returns the cumulative frequency of the next symbol out of `total`; [[update]] consumes it.
     mtd decode(total: u32)->u32
     {
-        var extent: u32
-        if total >= 2 and total < RangeReciprocals.count
-        {
-            // The estimate can only be one above the exact quotient.
-            extent = cast(u32, (cast(u64, .range) * RangeReciprocals[total]) >> 32)
-            extent -= cast(u32, extent * total > .range)
-        }
-        else
-        {
-            extent = .range / total
-        }
-
-        .extent = extent
-        let scaledValue = .value / extent
+        .extent = .range / total
+        let scaledValue = .value / .extent
         return total - Math.min(scaledValue + 1, total)
     }
 

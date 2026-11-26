@@ -468,3 +468,67 @@ private func aacTonePower(samples: const [*] s16, firstFrame, frameCount, channe
     discard catch SoundFile.load(temporary) as error
     Swag.require(error.value() is Errors.UnsupportedFormatError)
 }
+
+// Long offline ranges deliver the serial PCM in order, including after a failed speculative batch.
+#test
+{
+    const Config: [2] u8 = [0x12, 0x10]
+    const PacketCount    = 560'u64
+    const Damaged        = 530'u64
+    let path    = audioGetTestDataPath("aac-lc-stereo-44100.aac")
+    let fixture = expect aacTestPackets(path)
+    var packets: Array'SoundPacket
+    for PacketCount do
+        packets.add(fixture[10])
+
+    var sound = expect SoundFile.openPacketStream(path, .AacLc, 44_100, 2, PacketCount * 1024, packets.toSlice(), Config)
+    discard expect createNoSoundEngine()
+    defer destroyEngine()
+    let voice = expect Voice.create(&sound)
+    defer voice.destroy()
+    var serial: Array's16
+    for
+    {
+        let chunk = expect voice.readBuffer()
+        if not chunk.size do
+            break
+        serial.add(cast(const [*] s16, unwrap chunk.buffer)[until chunk.size / #sizeof(s16)])
+    }
+
+    Swag.require(serial.count == PacketCount * 2048)
+    let expected  = serial.storage()
+    let context   = Swag.getContext()
+    var delivered = 0'u64
+    expect sound.decodePcm16(func|expected, context, delivered = &delivered|(samples: const [..] s16)->bool
+    {
+        Swag.require(Swag.getContext() == context)
+        Swag.require(samples.count == 2048)
+        let start = delivered[] * 2048
+        Swag.require(Slice.equals(samples, expected[start until start + 2048]))
+        delivered[] += 1
+        return true
+    })
+
+    Swag.require(delivered == PacketCount)
+    packets[Damaged].byteSize = 1
+    let damaged = expect SoundFile.openPacketStream(path, .AacLc, 44_100, 2, PacketCount * 1024, packets.toSlice(), Config)
+    delivered = 0
+    expect damaged.decodePcm16(func|delivered = &delivered|(_: const [..] s16)->bool
+    {
+        delivered[] += 1
+        return delivered[] < Damaged - 1
+    })
+    Swag.require(delivered == Damaged - 1)
+
+    delivered = 0
+    var error: Swag.Error
+    catch damaged.decodePcm16(func|expected, delivered = &delivered|(samples: const [..] s16)->bool
+    {
+        let start = delivered[] * 2048
+        Swag.require(Slice.equals(samples, expected[start until start + 2048]))
+        delivered[] += 1
+        return true
+    }) as error
+    Swag.require(error.value() is InvalidFormatError)
+    Swag.require(delivered == Damaged)
+}

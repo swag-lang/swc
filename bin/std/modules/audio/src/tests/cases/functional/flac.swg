@@ -131,16 +131,16 @@ private func flac24BitStereoTestConfig()->Array'u8
     return config
 }
 
-private func flacLinearShiftTestConfig()->Array'u8
+private func flac16BitMonoTestConfig(samples = 2'u8)->Array'u8
 {
     var config: Array'u8
     config.add(0)
-    config.add(2)     // Min block size: two samples.
+    config.add(samples)
     config.add(0)
-    config.add(2)     // Max block size: two samples.
+    config.add(samples)
     for 6 do
         config.add(0)     // Min/max frame sizes are unknown.
-    let description = (48_000'u64 << 44) | (15'u64 << 36) | 2
+    let description = (48_000'u64 << 44) | (15'u64 << 36) | samples
     for byte in 8 do
         config.add(cast(u8, (description >> (56 - byte * 8)) & 0xFF))
     for 16 do
@@ -384,6 +384,49 @@ private func flacAssertLossless(name: string, sampleRate, channels: u32)
     flacAssertLossless("flac-5.1-48000", 48_000, 6)
 }
 
+// A Rice code wider than one word falls back between groups of short codes.
+#test
+{
+    const Samples: [21] s16 = [0, 1, -1, 2, 511, -4, 6, -2, 8, -5, 5, -6, -7, 4, -6, 2, -5, 4, -2, 4, 3]
+    var frame: Array'u8
+    frame.add([0xFF'u8, 0xF9, 0x60, 0, 0, cast(u8, Samples.count - 1)])
+    frame.add(flacTestHeaderCrc8(frame.toSlice()))
+
+    // A zero-order fixed predictor leaves the Rice residuals as the output samples.
+    var bitCount = frame.count * 8
+    flacTestAppendBits(&frame, &bitCount, 0x10, 8)
+    flacTestAppendBits(&frame, &bitCount, 0, 6)     // Rice coding, one partition.
+    flacTestAppendBits(&frame, &bitCount, 2, 4)     // Two remainder bits.
+    for sample in Samples
+    {
+        let twice = cast(u64, Math.abs(cast(s32, sample))) * 2
+        let code  = sample < 0 ? twice - 1 : twice
+        for code >> 2 do
+            flacTestAppendBits(&frame, &bitCount, 0, 1)
+        flacTestAppendBits(&frame, &bitCount, 1, 1)
+        flacTestAppendBits(&frame, &bitCount, code & 3, 2)
+    }
+
+    while bitCount & 7 do
+        flacTestAppendBits(&frame, &bitCount, 0, 1)
+    let checksum = Flac.frameCrc16(frame.toSlice())
+    frame.add(cast(u8, checksum >> 8))
+    frame.add(cast(u8, checksum & 0xFF))
+
+    var codec:   Flac.Codec
+    let decoder: IPacketCodec = &codec
+    let config = flac16BitMonoTestConfig(cast(u8, Samples.count))
+    expect decoder.initialize(config.toSlice(), 48_000, 1)
+    var decoded: [Samples.count] s16
+    let bytes = expect decoder.decodePacket(cast([*] void, &decoded[0]), #sizeof(decoded), frame.toSlice())
+    Swag.require(bytes == #sizeof(decoded))
+    audioAssertSamples(cast([..] u8, decoded), Samples)
+
+    var error: Swag.Error
+    discard catch decoder.decodePacket(cast([*] void, &decoded[0]), #sizeof(decoded), frame.toSlice()[until frame.count - 9]) as error
+    Swag.require(error.value() is InvalidFormatError)
+}
+
 // The side subframe of 32-bit mid/side stereo needs 33 bits to reconstruct the full PCM range.
 #test
 {
@@ -425,7 +468,7 @@ private func flacAssertLossless(name: string, sampleRate, channels: u32)
 {
     var codec:   Flac.Codec
     let decoder: IPacketCodec = &codec
-    let config = flacLinearShiftTestConfig()
+    let config = flac16BitMonoTestConfig()
     expect decoder.initialize(config.toSlice(), 48_000, 1)
 
     var decoded: [2] s16
@@ -699,4 +742,91 @@ private func flacAssertLossless(name: string, sampleRate, channels: u32)
     let count  = Math.min(cast(u64, decoded.size), wanted.count)
     for index in count do
         Swag.require(bytes[index] == wanted[index])
+}
+
+// A range through several FLAC decode batches keeps the packet callback boundaries on the caller.
+#test
+{
+    for name in ["flac-stereo-44100.flac", "flac-stereo-44100.oga"]
+    {
+        let original = expect SoundFile.load(audioGetTestDataPath(name), preloadData: false)
+        let packet   = expect original.packet(0)
+        let channels = original.numChannels()
+        let frames   = cast(u64, packet.sampleFrameCount)
+        let samples  = frames * channels
+        var reference: Array's16
+        expect original.decodePcm16(0, frames, func|&reference|(part)
+        {
+            reference.add(part)
+            return true
+        })
+        Swag.require(reference.count == samples)
+
+        // More than two MiB of PCM exercises multiple bounded read-ahead batches.
+        var packets: Array'SoundPacket
+        let packetCount = 2 * 1024 * 1024'u64 / (samples * #sizeof(s16)) + 8
+        for packetCount do
+            packets.add(packet)
+        let source = expect SoundFile.openPacketStream(original.sourcePath(),
+                                                       .Flac,
+                                                       original.sampleRateHz(),
+                                                       channels,
+                                                       frames * packetCount,
+                                                       packets.toSlice(),
+                                                       original.decoderConfig.toSlice())
+
+        var callbacks = 0'u64
+        let caller    = Swag.getContext()
+        let expected  = reference.toSlice()
+        expect source.decodePcm16(1, frames * packetCount - 2, func|&callbacks, caller, expected, channels, packetCount|(part)
+        {
+            Swag.require(Swag.getContext() == caller)
+            let first = callbacks == 0 ? cast(u64, channels) : 0
+            let last  = callbacks + 1 == packetCount ? expected.count - channels : expected.count
+            Swag.require(Slice.equals(part, expected[first until last]))
+            callbacks += 1
+            return true
+        })
+        Swag.require(callbacks == packetCount)
+    }
+}
+
+// A failure from speculative read-ahead is observed only after earlier callbacks accept the data.
+#test
+{
+    let original    = expect SoundFile.load(audioGetTestDataPath("flac-stereo-44100.flac"), preloadData: false)
+    let packet      = expect original.packet(0)
+    let frames      = cast(u64, packet.sampleFrameCount)
+    let channels    = original.numChannels()
+    var packets: Array'SoundPacket
+    let packetCount = 1024 * 1024'u64 / (frames * channels * #sizeof(s16)) + 8
+    for packetCount do
+        packets.add(packet)
+    let invalidAt = packetCount / 2
+    packets[invalidAt].byteSize = 1
+    let source = expect SoundFile.openPacketStream(original.sourcePath(),
+                                                   .Flac,
+                                                   original.sampleRateHz(),
+                                                   channels,
+                                                   frames * packetCount,
+                                                   packets.toSlice(),
+                                                   original.decoderConfig.toSlice())
+
+    var callbacks = 0'u64
+    expect source.decodePcm16(func|&callbacks|(_)
+    {
+        callbacks += 1
+        return callbacks == 1
+    })
+    Swag.require(callbacks == 2)
+
+    callbacks = 0
+    var outcome: Swag.Error
+    catch source.decodePcm16(func|&callbacks|(_)
+    {
+        callbacks += 1
+        return true
+    }) as outcome
+    Swag.require(callbacks == invalidAt)
+    Swag.require(outcome.value() is InvalidFormatError)
 }

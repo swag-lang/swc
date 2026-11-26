@@ -366,6 +366,37 @@ func readSideInfo(header: const *FrameHeader, bytes: const [..] u8, granules: *[
     return mainDataBegin
 }
 
+// Header and side information validated against the stream and the output buffer.
+struct PreparedFrame
+{
+    header:        FrameHeader
+    granules:      [2, 2] GranuleInfo
+    payloadOffset: u64
+    mainDataBegin: u64
+}
+
+func prepareFrame(packet: const [..] u8, destinationSize: u64, sampleRate, channels: u32)->PreparedFrame fail
+{
+    let header = try readHeader(packet)
+    if packet.count < header.frameBytes do
+        fail InvalidFormatError{"MP3 frame is shorter than its header states"}
+    if header.sampleRate != sampleRate or header.channels != channels do
+        fail InvalidFormatError{"MP3 frame does not match the stream its container declared"}
+    if destinationSize < cast(u64, header.frameSamples) * channels * #sizeof(s16) do
+        fail BadParameterError{"MP3 destination buffer is too small"}
+
+    let sideOffset    = 4 + (header.hasCrc ? 2'u64 : 0)
+    let payloadOffset = sideOffset + header.sideInfoBytes
+    if payloadOffset > header.frameBytes do
+        fail InvalidFormatError{"MP3 frame is too short for its side information"}
+
+    var result: #returntype
+    result.header        = header
+    result.payloadOffset = payloadOffset
+    result.mainDataBegin = try readSideInfo(&header, packet[sideOffset until payloadOffset], &result.granules)
+    return result
+}
+
 // Decodes one Layer III elementary stream, one frame at a time.
 //
 // The instance belongs to one voice: a frame reaches back into the main data of the frames before
@@ -1068,18 +1099,11 @@ impl Codec
         .ready = false
     }
 
-    // Decodes a validated frame into `.output`.
-    mtd decodeFrame(packet: const [..] u8, header: const *FrameHeader) fail
+    // Decodes a validated frame's main data into `.output`.
+    mtd decodeFrame(frame: const *PreparedFrame, payload: const [..] u8)
     {
-        var at = 4'u64
-        if header.hasCrc do
-            at += 2
-        if at + header.sideInfoBytes > header.frameBytes do
-            fail InvalidFormatError{"MP3 frame is too short for its side information"}
-
-        var granules: [2, 2] GranuleInfo
-        let mainDataBegin = try readSideInfo(header, packet[at until at + header.sideInfoBytes], &granules)
-        at += header.sideInfoBytes
+        let header        = &frame.header
+        let mainDataBegin = frame.mainDataBegin
 
         // Keep only the requested tail from the preceding frame, in the same reusable buffer.
         let available = Math.min(mainDataBegin, .reservoirSize)
@@ -1090,7 +1114,7 @@ impl Codec
         }
 
         .mainData.resize(available)
-        .mainData.add(packet[at until header.frameBytes])
+        .mainData.add(payload)
 
         // A frame that reaches further back than what was kept cannot be decoded; every frame
         // after it can, so the stream restarts rather than failing.
@@ -1103,7 +1127,7 @@ impl Codec
             {
                 for channel in header.channels
                 {
-                    let info  = &granules[cast(u64, granule), cast(u64, channel)]
+                    let info  = &frame.granules[cast(u64, granule), cast(u64, channel)]
                     let start = reader.bitPos
                     .readScalefactors(header, info, &reader, channel)
                     .decodeSpectrum(header, info, &reader, channel, start + cast(u64, info.part23Length))
@@ -1112,12 +1136,12 @@ impl Codec
 
                 if header.channels == 2 and header.mode == 1
                 {
-                    let next = &granules[cast(u64, granule), 1]
-                    .processStereo(header, &granules[cast(u64, granule), 0], next.scalefacCompress & 1)
+                    let next = &frame.granules[cast(u64, granule), 1]
+                    .processStereo(header, &frame.granules[cast(u64, granule), 0], next.scalefacCompress & 1)
                 }
 
                 for channel in header.channels do
-                    .synthesizeChannel(header, &granules[cast(u64, granule), cast(u64, channel)], channel, granule)
+                    .synthesizeChannel(header, &frame.granules[cast(u64, granule), cast(u64, channel)], channel, granule)
             }
         }
         else
@@ -1134,6 +1158,31 @@ impl Codec
         // The unused suffix is the reservoir for the next frame.
         let consumed = Math.min((reader.bitPos + 7) / 8, .mainData.count)
         .reservoirSize = Math.min(.mainData.count - consumed, ReservoirBytes)
+    }
+
+    mtd const writePcm16(samples: [*] s16, frames: u32)
+    {
+        let groups = cast(u64, frames) / 8
+        if .channels == 1
+        {
+            for index in groups
+            {
+                let at = index * 8
+                Math.Simd.store(samples + at, packPcm16(&.output[0, at]))
+            }
+        }
+        else
+        {
+            using Math.Simd
+            for index in groups
+            {
+                let at    = index * 8
+                let left  = cast #bit(U16x8, packPcm16(&.output[0, at]))
+                let right = cast #bit(U16x8, packPcm16(&.output[1, at]))
+                store(samples + 2 * at, cast #bit(S16x8, interleaveLow(left, right)))
+                store(samples + 2 * at + 8, cast #bit(S16x8, interleaveHigh(left, right)))
+            }
+        }
     }
 }
 
@@ -1166,41 +1215,10 @@ impl IPacketCodec for Codec
 
     mtd impl decodePacket(destination: [*] void, destinationSize: u64, packet: const [..] u8)->u64 fail
     {
-        let header = try readHeader(packet)
-        if packet.count < header.frameBytes do
-            fail InvalidFormatError{"MP3 frame is shorter than its header states"}
-        if header.sampleRate != .sampleRate or header.channels != .channels do
-            fail InvalidFormatError{"MP3 frame does not match the stream its container declared"}
-
-        let produced = cast(u64, header.frameSamples) * cast(u64, .channels) * #sizeof(s16)
-        if destinationSize < produced do
-            fail BadParameterError{"MP3 destination buffer is too small"}
-
-        try .decodeFrame(packet, &header)
-        let samples = cast([*] s16, destination)
-        let groups  = cast(u64, header.frameSamples) / 8
-        if .channels == 1
-        {
-            for index in groups
-            {
-                let at = index * 8
-                Math.Simd.store(samples + at, packPcm16(&.output[0, at]))
-            }
-        }
-        else
-        {
-            using Math.Simd
-            for index in groups
-            {
-                let at    = index * 8
-                let left  = cast #bit(U16x8, packPcm16(&.output[0, at]))
-                let right = cast #bit(U16x8, packPcm16(&.output[1, at]))
-                store(samples + 2 * at, cast #bit(S16x8, interleaveLow(left, right)))
-                store(samples + 2 * at + 8, cast #bit(S16x8, interleaveHigh(left, right)))
-            }
-        }
-
-        return produced
+        let frame = try prepareFrame(packet, destinationSize, .sampleRate, .channels)
+        .decodeFrame(&frame, packet[frame.payloadOffset until frame.header.frameBytes])
+        .writePcm16(cast([*] s16, destination), frame.header.frameSamples)
+        return cast(u64, frame.header.frameSamples) * .channels * #sizeof(s16)
     }
 }
 

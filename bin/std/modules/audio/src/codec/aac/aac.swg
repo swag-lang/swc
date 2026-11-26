@@ -11,6 +11,10 @@ private const FrameSamples = 1024
 private const MaxBands     = 8 * 52
 private const MaxChannels  = 6
 
+internal const MaxPacketBatchSize  = 512'u64
+internal const MaxPacketBatchLanes = 4'u64
+private const BatchStateCount      = 64'u64
+
 // A nonzero lookup entry packs four biased six-bit coefficients followed by the number
 // of bits consumed. Long words, and prefixes near the end of the packet, use the tree.
 private const SpectralPrefixBits = 11
@@ -557,6 +561,7 @@ private struct AacCodec
     overlap:         [MaxChannels, FrameSamples] f32
     previousShape:   [MaxChannels] s32
     pnsState:        u32
+    noiseSamples:    u32
 }
 
 private impl AacCodec
@@ -612,9 +617,7 @@ private impl AacCodec
 
     mtd randomNoise()->f64
     {
-        .pnsState ^= .pnsState << 13
-        .pnsState ^= .pnsState >> 17
-        .pnsState ^= .pnsState << 5
+        .pnsState = nextNoiseState(.pnsState)
         return cast(f64, (.pnsState >> 8)) * (2.0 / 16777216.0) - 1.0
     }
 
@@ -989,6 +992,8 @@ private impl AacCodec
 
             if not book or book >= 12
             {
+                if book == 13 do
+                    .noiseSamples += cast(u32, width)
                 line += width
                 continue
             }
@@ -1149,14 +1154,18 @@ private impl AacCodec
         .imdctChannel(channel, output)
     }
 
-    mtd reconstruct(destination: [*] s16)
+    mtd prepareSpectrum()
     {
         // Advance the noise generator only after the complete access unit has been validated.
         for channel in .channels do
             .synthesizeNoise(channel)
         for channel in .channels where .pairStart[channel] do
             .applyStereoPair(channel)
+    }
 
+    mtd reconstruct(destination: [*] s16)
+    {
+        .prepareSpectrum()
         if .channels == 2
         {
             var left, right: [FrameSamples] f32
@@ -1164,17 +1173,12 @@ private impl AacCodec
             .synthesizeChannel(1, &right)
             let leftPcm  = cast(const [*] f32, &left[0])
             let rightPcm = cast(const [*] f32, &right[0])
-            let half     = Simd.splat(0.5'f32)
             for group in FrameSamples / 4
             {
                 let index = 4 * group
                 let l     = Simd.load(leftPcm + index)
                 let r     = Simd.load(rightPcm + index)
-                let li    = cast #bit (Simd.U32x4, Simd.truncateToS32(l + Math.copysign(half, l)))
-                let ri    = cast #bit (Simd.U32x4, Simd.truncateToS32(r + Math.copysign(half, r)))
-                let low   = cast #bit (Simd.S32x4, Simd.interleaveLow(li, ri))
-                let high  = cast #bit (Simd.S32x4, Simd.interleaveHigh(li, ri))
-                Simd.store(destination + 2 * index, Simd.packSigned(low, high))
+                Simd.store(destination + 2 * index, packStereoPcm16(l, r))
             }
 
             return
@@ -1185,18 +1189,15 @@ private impl AacCodec
             var pcm: [FrameSamples] f32
             .synthesizeChannel(.sourceChannel(channel), &pcm)
             let output = destination + channel
-            for frame in FrameSamples
-            {
-                let scaled  = pcm[frame]
-                let rounded = Math.trunc(scaled + Math.copysign(0.5, scaled))
-                output[frame * .channels] = cast(s16, Math.clamp(cast(s32, rounded), -32768, 32767))
-            }
+            for frame in FrameSamples do
+                output[frame * .channels] = roundPcm16(pcm[frame])
         }
     }
 
-    mtd decodeRaw(packet: const [..] u8, destination: [*] s16) fail
+    mtd parseRaw(packet: const [..] u8) fail
     {
         var reader = BitReader.create(packet.buffer, packet.count)
+        .noiseSamples = 0
         var decodedChannels = 0's32
         Memory.set(&.pairStart, 0, #sizeof(.pairStart))
         Memory.set(&.usesMs, 0, #sizeof(.usesMs))
@@ -1271,8 +1272,235 @@ private impl AacCodec
             fail InvalidFormatError{"AAC access unit is truncated"}
         if decodedChannels != .channels do
             fail InvalidFormatError{"AAC access unit channel layout differs from its configuration"}
+    }
+
+    mtd decodeRaw(packet: const [..] u8, destination: [*] s16) fail
+    {
+        try .parseRaw(packet)
         .reconstruct(destination)
     }
+}
+
+#[Swag.Inline]
+private func packStereoPcm16(left, right: Simd.F32x4)->Simd.S16x8
+{
+    let half = Simd.splat(0.5'f32)
+    let li   = cast #bit (Simd.U32x4, Simd.truncateToS32(left + Math.copysign(half, left)))
+    let ri   = cast #bit (Simd.U32x4, Simd.truncateToS32(right + Math.copysign(half, right)))
+    let low  = cast #bit (Simd.S32x4, Simd.interleaveLow(li, ri))
+    let high = cast #bit (Simd.S32x4, Simd.interleaveHigh(li, ri))
+    return Simd.packSigned(low, high)
+}
+
+#[Swag.Inline]
+private func roundPcm16(sample: f32)->s16
+{
+    let rounded = Math.trunc(sample + Math.copysign(0.5, sample))
+    return cast(s16, Math.clamp(cast(s32, rounded), -32768, 32767))
+}
+
+#[Swag.Inline]
+private func nextNoiseState(state: u32)->u32
+{
+    var value = state
+    value ^= value << 13
+    value ^= value >> 17
+    value ^= value << 5
+    return value
+}
+
+// Applying a power of the linear xorshift transition jumps the same number of
+// samples as repeatedly generating noise. One access unit uses at most 6144.
+private const NoiseJumpBits = 13
+private alias NoiseJumpTable = [NoiseJumpBits, 32] u32
+#assert(1 << NoiseJumpBits > MaxChannels * FrameSamples)
+
+private func applyNoiseJump(state: u32, transition: const [*] u32)->u32
+{
+    var bits = state
+    var result: u32
+    while bits
+    {
+        result ^= transition[Swag.trailingZeros(bits)]
+        bits   &= bits - 1
+    }
+
+    return result
+}
+
+private func buildNoiseJumps()->NoiseJumpTable
+{
+    var jumps: NoiseJumpTable
+    for bit in 32 do
+        jumps[0, bit] = nextNoiseState(1'u32 << bit)
+    for power in 1 until NoiseJumpBits
+    {
+        let previous = cast(const [*] u32, &jumps[power - 1, 0])
+        for bit in 32 do
+            jumps[power, bit] = applyNoiseJump(previous[bit], previous)
+    }
+
+    return jumps
+}
+
+private var g_NoiseJumps: NoiseJumpTable = #run buildNoiseJumps()
+
+private func advanceNoise(state, count: u32)->u32
+{
+    var result = state
+    var skip   = count
+    while skip
+    {
+        let power  = Swag.trailingZeros(skip)
+        let jumped = cast(const [*] u32, &g_NoiseJumps[power, 0])
+        result = applyNoiseJump(result, jumped)
+        skip   &= skip - 1
+    }
+
+    return result
+}
+
+private func parseChunk(states: [*] AacCodec, packets: const [..] const [..] u8, first, end: u64) fail
+{
+    for index in first until end do
+        try states[index].parseRaw(packets[index])
+}
+
+private func synthesizeChunk(states: [*] AacCodec, heads: [*] f32, initialShape: const *[MaxChannels] s32, first, end, stride: u64)
+{
+    for index in first until end
+    {
+        let worker = states + index
+        for channel in worker.channels
+        {
+            worker.previousShape[channel] = index ? states[index - 1].ics[channel].windowShape : initialShape[][channel]
+            Memory.clear(&worker.overlap[channel, 0], FrameSamples * #sizeof(f32))
+        }
+
+        worker.prepareSpectrum()
+        let head = heads + index * stride
+        for channel in worker.channels do
+            worker.synthesizeChannel(channel, head + channel * FrameSamples)
+    }
+}
+
+private func mergeChunk(states: [*] AacCodec, heads: const [*] f32, initialOverlap: const *[MaxChannels, FrameSamples] f32, count, stride: u64, output: [*] s16)
+{
+    for index in count
+    {
+        let worker       = states + index
+        let prev         = index ? &states[index - 1].overlap : initialOverlap
+        let head         = heads + index * stride
+        let packetOutput = output + stride * index
+        if worker.channels == 2
+        {
+            let left      = head
+            let right     = head + FrameSamples
+            let leftTail  = cast(const [*] f32, &prev[][0, 0])
+            let rightTail = cast(const [*] f32, &prev[][1, 0])
+            for group in FrameSamples / 4
+            {
+                let frame = 4 * group
+                let l     = Simd.load(left + frame) + Simd.load(leftTail + frame)
+                let r     = Simd.load(right + frame) + Simd.load(rightTail + frame)
+                Simd.store(packetOutput + 2 * frame, packStereoPcm16(l, r))
+            }
+        }
+        else
+        {
+            for channel in worker.channels
+            {
+                let source  = worker.sourceChannel(channel)
+                let current = head + source * FrameSamples
+                let tail    = cast(const [*] f32, &prev[][source, 0])
+                for frame in FrameSamples do
+                    packetOutput[frame * worker.channels + channel] = roundPcm16(current[frame] + tail[frame])
+            }
+        }
+    }
+}
+
+internal func canDecodePacketBatch(decoder: IPacketCodec)->bool => decoder is AacCodec
+
+// Synthesizes bounded batches in packet order and publishes the decoder's history
+// only when every packet succeeds. Discard partial PCM before replaying a failed batch.
+internal func decodePacketBatch(decoder: IPacketCodec, packets: const [..] const [..] u8, output: [..] s16, laneCount: u64) fail
+{
+    let initial = try cast(*AacCodec, decoder)
+    let stride  = cast(u64, initial.channels) * FrameSamples
+    if packets.count > MaxPacketBatchSize or
+       output.count != packets.count * stride or
+       not laneCount or
+       laneCount > MaxPacketBatchLanes do
+        fail BadParameterError{"AAC packet batch dimensions are invalid"}
+    if not packets.count do
+        return
+
+    let capacity = Math.min(packets.count, BatchStateCount)
+    var scratch: Array'AacCodec
+    scratch.resize(capacity)
+    let states = scratch.storage()
+    var samples: Array'f32
+    samples.reserve(capacity * stride)
+    let heads = samples.storage()
+    for index in capacity
+    {
+        states[index].sampleRateIndex = initial.sampleRateIndex
+        states[index].channels        = initial.channels
+    }
+
+    var seed          = initial.pnsState
+    var overlap       = initial.overlap
+    var previousShape = initial.previousShape
+    var position: u64
+    while position < packets.count
+    {
+        let count  = Math.min(capacity, packets.count - position)
+        let input  = packets[position until position + count]
+        let target = output.buffer + stride * position
+        let lanes  = Math.min(laneCount, count)
+        var group: Swag.TaskGroup
+
+        // Entropy parsing has no overlap or noise-generator dependency.
+        for lane in 1 until lanes
+        {
+            let first = count * lane / lanes
+            let end   = count * (lane + 1) / lanes
+            group.spawn(func|states, input, first, end|() fail { try parseChunk(states, input, first, end) })
+        }
+
+        try parseChunk(states, input, 0, count / lanes)
+        try group.join()
+
+        // Seed each unit from the noise samples consumed by all preceding units.
+        for index in count
+        {
+            states[index].pnsState = seed
+            seed = advanceNoise(seed, states[index].noiseSamples)
+        }
+
+        // Adjacent window shapes are now known. Workers write head and tail contributions.
+        let shape = &previousShape
+        for lane in 1 until lanes
+        {
+            let first = count * lane / lanes
+            let end   = count * (lane + 1) / lanes
+            group.spawn(func|states, heads, shape, first, end, stride|() { synthesizeChunk(states, heads, shape, first, end, stride) })
+        }
+
+        synthesizeChunk(states, heads, shape, 0, count / lanes, stride)
+        try group.join()
+        mergeChunk(states, heads, &overlap, count, stride, target)
+        let final = states + count - 1
+        overlap = final.overlap
+        for channel in initial.channels do
+            previousShape[channel] = final.ics[channel].windowShape
+        position += count
+    }
+
+    initial.pnsState      = seed
+    initial.previousShape = previousShape
+    initial.overlap       = overlap
 }
 
 impl IPacketCodec for AacCodec

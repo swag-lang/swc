@@ -147,3 +147,48 @@ Ogg Vorbis differs from original Swag PCM by at most 1 PCM16 unit (RMS 0.020).
 Opus differs from original Swag PCM by at most 1 PCM16 unit (RMS 0.023).
 The original and current Swag PCM match bit for bit for AC-3, FLAC, OGA (FLAC) and WAV.
 The native Release audio module passed 306 functional and stress tests.
+
+## Fourth optimization pass
+
+The one-core comparison uses the previous method. A second comparison allows both
+programs four cores on the same host and requests four decoder threads from FFmpeg.
+The Swag scheduler receives the same budget. Both measure file opening plus
+materialization of the first ten seconds of interleaved PCM16. Each measurement
+uses the same fixtures and five rounds of seven samples on the same CPU set.
+[Raw stage times and PCM deltas](audio-decode-linux-round4.json)
+
+| Format | Swag 1 core (ms) | FFmpeg 1 core (ms) | Swag 4 cores (ms) | FFmpeg 4 cores (ms) |
+| --- | ---: | ---: | ---: | ---: |
+| AAC | 8.92 | 6.41 | 6.92 | 7.43 |
+| AC-3 | 13.96 | 8.10 | 15.38 | 9.21 |
+| DTS | 14.06 | 14.97 | 15.06 | 15.94 |
+| FLAC | 10.57 | 11.51 | 7.88 | 8.99 |
+| MP3 | 13.30 | 8.12 | 7.04 | 8.46 |
+| OGA (FLAC) | 9.86 | 11.31 | 7.67 | 8.62 |
+| Ogg Vorbis | 8.80 | 8.19 | 8.75 | 8.00 |
+| Opus | 25.01 | 22.18 | 24.00 | 21.95 |
+| WAV | 1.90 | 29.62 | 1.98 | 27.03 |
+
+The FLAC decoder consumes four short Rice codes per load when they fit. The offline
+SoundFile path decodes independent FLAC frames or Ogg FLAC page runs in bounded
+batches. The caller receives each packet in order and can cancel before an error
+from later read-ahead is exposed. Existing packet validation still applies.
+
+MP3 splits long offline ranges into lanes seeded with the bit reservoir and the
+transform and synthesis history. AAC parses independent access units in parallel,
+then reconstructs them from the preserved noise-generator and overlap state.
+Both publish the original packet boundaries on the calling thread. Opus speeds up
+the CELT pitch comb, reuses PCM scratch and avoids copying complete Ogg packets.
+
+FLAC, OGA and DTS are ahead of FFmpeg on one core in this series. AAC and MP3
+also lead with four cores. AC-3, Vorbis and Opus still trail at both budgets.
+The single-core AAC and MP3 gaps remain open.
+
+The third and fourth pass PCM matches exactly for every fixture except Opus, whose
+output changes by one PCM16 unit in 24 of 960,000 samples. Across all four passes
+the largest change from the original output remains one PCM16 unit. FLAC and OGA
+also match FFmpeg PCM byte for byte.
+
+The one-core and four-core Swag output hashes match for every fixture. Native Release
+passes all 312 functional and stress tests at both worker budgets. A focused
+Release-safe run passes 79 tests with four workers.

@@ -384,3 +384,139 @@ private func mp3AssertCloseTo(name: string, sampleRate, channels: u32)
         }
     }
 }
+
+private func mp3ChunkTestSound(name: string)->SoundFile
+{
+    let path   = audioGetTestDataPath(name)
+    let source = expect SoundFile.load(path.toString())
+    var packets: Array'SoundPacket
+    var frames = 0'u64
+    for index in 174'u64
+    {
+        var packet = expect source.packet(index % source.packetCount())
+        if index == 31 or index == 96 do
+            packet.byteSize = 0
+        packets.add(packet)
+        frames += packet.sampleFrameCount
+    }
+
+    return expect SoundFile.openPacketStream(path.toString(), .Mp3, source.sampleRateHz(), source.numChannels(), frames, packets.toSlice(), source.decoderConfig.toSlice(), {leadingTrimFrames: 123, trailingTrimFrames: 76})
+}
+
+private func mp3SerialRange(sound: const *SoundFile, firstFrame, frameCount: u64)->{pcm: Array's16, chunks: Array'u64}
+{
+    let bytes    = expect File.readAllBytes(sound.sourcePath())
+    var codec:   Mp3.Codec
+    let decoder: IPacketCodec = &codec
+    let channels = sound.numChannels()
+    expect decoder.initialize(sound.decoderConfig.toSlice(), sound.sampleRateHz(), channels)
+    let first = sound.leadingTrim + firstFrame
+    let end   = first + frameCount
+    var result: #returntype
+    var pcm:    [2304] s16
+    var start = 0'u64
+    for index in sound.packetCount()
+    {
+        let packet = expect sound.packet(index)
+        if packet.byteSize
+        {
+            let payload = bytes.toSlice()[packet.sourceOffset until packet.sourceOffset + packet.byteSize]
+            let written = expect decoder.decodePacket(&pcm[0], pcm.count * #sizeof(s16), payload)
+            Swag.require(written == cast(u64, packet.sampleFrameCount) * channels * #sizeof(s16))
+        }
+        else
+        {
+            Memory.clear(&pcm[0], pcm.count * #sizeof(s16))
+        }
+
+        let next   = start + packet.sampleFrameCount
+        let from   = Math.max(first, start)
+        let finish = Math.min(end, next)
+        if from < finish
+        {
+            result.pcm.add(pcm[(from - start) * channels until (finish - start) * channels])
+            result.chunks.add((finish - from) * channels)
+        }
+
+        if next >= end do
+            break
+        start = next
+    }
+
+    return result
+}
+
+// Cross several seams and timestamp gaps from a nonzero range for MPEG-1 and LSF.
+#test
+{
+    for name in ["mp3-stereo-44100.mp3", "mp3-mono-22050.mp3"]
+    {
+        let sound  = mp3ChunkTestSound(name)
+        let packet = expect sound.packet(0)
+        let first  = 23'u64 * packet.sampleFrameCount + 39
+        let count  = 147'u64 * packet.sampleFrameCount + 58
+        let wanted = mp3SerialRange(&sound, first, count)
+        let caller = Env.Process.currentThreadId()
+        for lanes in [2'u64, 4]
+        {
+            var actual: Array's16
+            var sizes:  Array'u64
+            expect Mp3.decodeChunks(&sound, first, count, lanes, func|&actual, &sizes, caller|(part)
+            {
+                Swag.require(Env.Process.currentThreadId() == caller)
+                actual.add(part)
+                sizes.add(part.count)
+                return true
+            })
+            Swag.require(Slice.equals(actual.toSlice(), wanted.pcm.toSlice()))
+            Swag.require(Slice.equals(sizes.toSlice(), wanted.chunks.toSlice()))
+        }
+
+        var actual: Array's16
+        expect sound.decodePcm16(first, count, func|&actual|(part)
+        {
+            actual.add(part)
+            return true
+        })
+        Swag.require(Slice.equals(actual.toSlice(), wanted.pcm.toSlice()))
+    }
+}
+
+// A speculative read failure is delivered in order, and is invisible after early cancellation.
+#test
+{
+    var sound = mp3ChunkTestSound("mp3-stereo-44100.mp3")
+    sound.packets[65].sourceOffset = 0
+    var calls = 0'u64
+    expect Mp3.decodeChunks(&sound, 0, sound.sampleFrameCount(), 4, func|&calls|(_)
+    {
+        calls += 1
+        return false
+    })
+    Swag.require(calls == 1)
+
+    var error: Swag.Error
+    calls = 0
+    catch Mp3.decodeChunks(&sound, 0, sound.sampleFrameCount(), 4, func|&calls|(_)
+    {
+        calls += 1
+        return true
+    }) as error
+    Swag.require(error.value() is InvalidFormatError and calls == 65)
+    let latePacket = expect sound.packet(80)
+    let afterError = sound.packetStarts[80] - sound.leadingTrim + latePacket.sampleFrameCount / 2
+    calls = 0
+    catch Mp3.decodeChunks(&sound, afterError, sound.sampleFrameCount() - afterError, 4, func|&calls|(_)
+    {
+        calls += 1
+        return true
+    }) as error
+    Swag.require(error.value() is InvalidFormatError and calls == 0)
+
+    expect sound.decodePcm16(sound.sampleFrameCount(), 0, func|&calls|(_)
+    {
+        calls += 1
+        return true
+    })
+    Swag.require(calls == 0)
+}

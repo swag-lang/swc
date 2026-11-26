@@ -12,22 +12,6 @@ private func(T) restorePbkdf2Hmac(hmac: *T, prefix: const *T)
 }
 
 #[Swag.Inline]
-private func(DigestSize: u64) pbkdf2AccumulateDigest(result, current: [*] u8)
-{
-    const VectorSize  = #sizeof(Math.Simd.U8x16)
-    const VectorCount = DigestSize / VectorSize
-    for index in VectorCount
-    {
-        let offset = index * VectorSize
-        Math.Simd.store(result + offset, Math.Simd.load(result + offset) ^ Math.Simd.load(current + offset))
-    }
-
-    const TailOffset = VectorCount * VectorSize
-    for index in TailOffset until DigestSize do
-        result[index] ^= current[index]
-}
-
-#[Swag.Inline]
 private func(DigestWords: u64, Accumulate: bool) pbkdf2Sha2Encode(words: const [*] u32, block, result: [*] u32)
 {
     const VectorWords = 4
@@ -85,6 +69,43 @@ private func(DigestSize: u64) repeatPbkdf2Sha2(inner, outer: const *[8] u32, fir
     }
 }
 
+#[Swag.Inline]
+private func(DigestSize: u64, Accumulate: bool) pbkdf2Sha512Encode(words: const [*] u64, block, result: [*] u64)
+{
+    const PairCount = DigestSize / #sizeof(Math.Simd.U64x2)
+    for pair in PairCount
+    {
+        let word   = pair * 2
+        let digest = Math.nativeToBigEndian(Math.Simd.load(words + word))
+        Math.Simd.store(block + word, digest)
+        #static if Accumulate do
+            Math.Simd.store(result + word, Math.Simd.load(result + word) ^ digest)
+    }
+}
+
+// Both SHA-384 and SHA-512 fit their repeated HMAC digest in one final block.
+private func(DigestSize: u64) repeatPbkdf2Sha512(inner, outer: const *[8] u64, first: const *[DigestSize] u8, result: *[DigestSize] u8, rounds: u32)
+{
+    const FinalLength = (Hash.Sha512BlockSize + DigestSize) * 8
+    var block: [Hash.Sha512BlockSize] u8
+    defer secureClear(block)
+    Swag.memcpy(block.buffer, first[].buffer, DigestSize)
+    block[DigestSize] = 0x80
+    cast([*] u64, block.buffer)[15] = Math.nativeToBigEndian(FinalLength)
+
+    var hash: Hash.Sha512
+    defer hash.clear()
+    let words  = cast([*] u64, block.buffer)
+    let output = cast([*] u64, result[].buffer)
+    for rounds
+    {
+        let innerDigest = hash.compressHmacDigestBlock(inner, block)
+        pbkdf2Sha512Encode'(DigestSize, false)(innerDigest, words, output)
+        let outerDigest = hash.compressHmacDigestBlock(outer, block)
+        pbkdf2Sha512Encode'(DigestSize, true)(outerDigest, words, output)
+    }
+}
+
 private func(Hmac, DigestSize: u64) derivePbkdf2(password, salt: const [..] u8, iterations: u32, destination: [..] u8) fail
 {
     if not iterations do
@@ -114,24 +135,19 @@ private func(Hmac, DigestSize: u64) derivePbkdf2(password, salt: const [..] u8, 
         hmac.update(Swag.makeSlice(cast(const [*] u8, &suffix), #sizeof(u32)))
         var current = hmac.finalize()
         var result  = current
-        #static if Hmac == HmacSha224
+        if iterations > 1
         {
-            if iterations > 1 do
-                repeatPbkdf2Sha2'DigestSize(keyed.inner.hmacPrefixState(), keyed.outer.hmacPrefixState(), &current, &result, iterations - 1)
-        }
-        elif Hmac == HmacSha256
-        {
-            if iterations > 1 do
-                repeatPbkdf2Sha2'DigestSize(&keyed.inner.state, &keyed.outer.state, &current, &result, iterations - 1)
-        }
-        else
-        {
-            for iterations - 1
+            #static if Hmac == HmacSha224
             {
-                restorePbkdf2Hmac(&hmac, &keyed)
-                hmac.update(current)
-                current = hmac.finalize()
-                pbkdf2AccumulateDigest'DigestSize(result.buffer, current.buffer)
+                repeatPbkdf2Sha2'DigestSize(keyed.inner.hmacPrefixState(), keyed.outer.hmacPrefixState(), &current, &result, iterations - 1)
+            }
+            elif Hmac == HmacSha256
+            {
+                repeatPbkdf2Sha2'DigestSize(&keyed.inner.state, &keyed.outer.state, &current, &result, iterations - 1)
+            }
+            else
+            {
+                repeatPbkdf2Sha512'DigestSize(keyed.inner.hmacPrefixState(), keyed.outer.hmacPrefixState(), &current, &result, iterations - 1)
             }
         }
 

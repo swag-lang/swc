@@ -250,6 +250,20 @@ public struct Sha512
     private core: Sha512Core
 }
 
+impl Sha512
+{
+    #[Swag.Inline]
+    mtd const hmacPrefixState()->const *[8] u64 => &.core.state
+
+    #[Swag.Inline]
+    mtd compressHmacDigestBlock(prefix: const *[8] u64, block: const [*] u8)->const [*] u64
+    {
+        .core.state = prefix[]
+        .core.transformBlock(block)
+        return .core.state.buffer
+    }
+}
+
 public impl Sha512
 {
     // Stores SHA-512 output as eight 64-bit words in digest order.
@@ -291,6 +305,12 @@ public impl Sha512
 public struct Sha384
 {
     private core: Sha512Core
+}
+
+impl Sha384
+{
+    #[Swag.Inline]
+    mtd const hmacPrefixState()->const *[8] u64 => &.core.state
 }
 
 public impl Sha384

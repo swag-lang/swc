@@ -105,3 +105,4 @@ optimizations moved each result.
 - [Bounded Curve25519 field carries](curve25519-bounded-carries.md)
 - [X25519 public keys with the masked generator table](x25519-generator-comb.md)
 - [X25519 ladder with deferred carries](x25519-ladder-carries.md)
+- [Fixed PBKDF2 blocks for SHA-384 and SHA-512](pbkdf2-sha512-blocks.md)

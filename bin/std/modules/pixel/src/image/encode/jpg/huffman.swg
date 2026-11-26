@@ -86,37 +86,6 @@ impl Encoder
         computeHuffmanTable(StdAcChrominanceNrCodes, StdAcChrominanceValues, .htCbAC)
     }
 
-    mtd setNumbersCategoryAndBitcode()
-    {
-        .categoryAlloc.resize(65535)
-        .bitcodeAlloc.resize(65535)
-        .category = cast([*] u8, .categoryAlloc.storage()) + 32767
-        .bitcode  = cast([*] BitString, .bitcodeAlloc.storage()) + 32767
-
-        var nrlower = 1
-        var nrupper = 2
-        for cat in 1 to 15
-        {
-            for nr in nrlower until nrupper
-            {
-                .category[nr]       = cast(u8, cat)
-                .bitcode[nr].length = cast(u8, cat)
-                .bitcode[nr].value  = cast(u16, nr)
-            }
-
-            for nr in -(nrupper - 1) to -nrlower
-            {
-                let nof = cast #bit (u64, cast(s64, nr))
-                .category[nof]       = cast(u8, cat)
-                .bitcode[nof].length = cast(u8, cat)
-                .bitcode[nof].value  = cast(u16, (nrupper - 1 + nr))
-            }
-
-            nrlower <<= 1
-            nrupper <<= 1
-        }
-    }
-
     mtd prepareQuantTables()
     {
         const AanSf: [8] f64 = [1.0, 1.387039845, 1.306562965, 1.175875602, 1.0, 0.785694958, 0.541196100, 0.275899379]

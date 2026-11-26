@@ -22,6 +22,7 @@ def main():
     parser.add_argument('--slices', type=int, default=4)
     parser.add_argument('--output', type=Path, required=True, help='new evidence directory outside the checkout')
     parser.add_argument('--skip-x264', action='store_true', help='measure only a new Swag candidate')
+    parser.add_argument('--x264-native', type=Path, help='prebuilt x264_native for encode-only wall and CPU timing')
     parser.add_argument('--timeout', type=int, default=1200, help='seconds per command, including initial dependency builds')
     parser.add_argument('--quality-only', action='store_true', help='omit timing results; collect deterministic size and quality under other machine load')
     args = parser.parse_args()
@@ -41,6 +42,7 @@ def main():
     if len(set(args.qp)) != len(args.qp):
         parser.error('a QP value is already specified')
     output.mkdir(parents=True)
+    x264_native = args.x264_native.resolve() if args.x264_native else None
     environment = os.environ.copy()
     library = args.library_bin.resolve() if args.library_bin else repo / 'bin'
     environment['SWAG_PATH'] = str(library)
@@ -158,18 +160,28 @@ def main():
                                       ('ultrafast', 'baseline', 'crf')]:
             name = prefix + f'x264-{preset}-{profile}-{mode}{qp}'
             video = output / (name + '.mp4')
-            options = ['-qp', str(qp)] if mode == 'qp' else ['-crf', str(qp)]
-            log, elapsed = run(['ffmpeg', '-hide_banner', '-nostdin', *raw_options('nv12'), '-i', str(source),
-                                '-c:v', 'libx264', '-threads', '3', '-preset', preset, '-profile:v', profile,
-                                '-pix_fmt', 'yuv420p', '-g', '120', *options,
-                                '-x264-params', f'scenecut=0:slices={args.slices}', str(video)], name)
+            native_times = {}
+            if x264_native:
+                log, _ = run([str(x264_native), str(source), str(video), str(args.width), str(args.height),
+                              str(args.frames), '3', str(args.slices), preset, profile, mode, str(qp)], name)
+                measured = re.search(r'^H264 frames=(\d+) us=(\d+) cpu_us=(\d+) bytes=(\d+)$', log, re.M)
+                if not measured or int(measured[1]) != args.frames:
+                    raise RuntimeError('missing native x264 encoder measurements')
+                native_times = dict(encode_us=None if args.quality_only else int(measured[2]),
+                                    encode_cpu_us=None if args.quality_only else int(measured[3]))
+                elapsed = None
+            else:
+                log, elapsed = run(['ffmpeg', '-hide_banner', '-nostdin', *raw_options('nv12'), '-i', str(source),
+                                    '-c:v', 'libx264', '-threads', '3', '-preset', preset, '-profile:v', profile,
+                                    '-pix_fmt', 'yuv420p', '-g', '120', f'-{mode}', str(qp),
+                                    '-x264-params', f'scenecut=0:slices={args.slices}', str(video)], name)
             packets, _ = run(['ffprobe', '-v', 'error', '-select_streams', 'v:0', '-show_entries',
                               'packet=size', '-of', 'csv=p=0', str(video)], name + '-packets')
             row = dict(input=input_path.name, encoder='x264', preset=preset, profile=profile, mode=mode, quality=qp,
                        slices=args.slices, frames=args.frames,
                        process_seconds=None if args.quality_only else elapsed,
                        packet_bytes=sum(int(size) for size in packets.splitlines()),
-                       file_bytes=video.stat().st_size, **quality(video, source, name))
+                       file_bytes=video.stat().st_size, **native_times, **quality(video, source, name))
             rows.append(row)
             print(json.dumps(row), flush=True)
 
@@ -182,6 +194,7 @@ def main():
         driver_sha256=hashlib.sha256((workload / 'src/h264.swg').read_bytes()).hexdigest(),
         compiler_sha256=hashlib.sha256(args.compiler.read_bytes()).hexdigest(),
         ffmpeg=version.splitlines()[0], quality_only=args.quality_only,
+        x264_native=str(x264_native) if x264_native else None,
         metric_alignment='raw planar samples, frame order', metric_self_check=checked,
         inputs=[dict(path=str(path.resolve()), sha256=hashlib.sha256(path.read_bytes()).hexdigest()) for path in args.input],
         rows=rows, commands=commands), indent=2) + '\n')

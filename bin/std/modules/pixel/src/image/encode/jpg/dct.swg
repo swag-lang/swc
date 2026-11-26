@@ -164,6 +164,15 @@ impl Encoder
         }
     }
 
+    // A coefficient category is the number of bits needed for its absolute magnitude.
+    #[Swag.Inline]
+    func magnitudeCategory(value: s32)->u8
+    {
+        let sign      = value >> 31
+        let magnitude = cast(u32, ((value ^ sign) - sign))
+        return cast(u8, (32 - Math.leadingZeros(magnitude)))
+    }
+
     mtd processDU(componentDU: [*] s16, fdtbl: [*] f32, dC: *s16, hTDC, hTAC: [*] BitString)
     {
         let eob       = hTAC[0x00]
@@ -174,18 +183,8 @@ impl Encoder
         let diff = .du[0] - dC[]
         dC[] = .du[0]
 
-        if diff == 0
-        {
-            .writeBits(hTDC[0])
-        }
-        else
-        {
-            let diffc    = cast #bit (u64, cast(s64, diff))     // If negative
-            let category = unwrap .category
-            let bitcode  = unwrap .bitcode
-            .writeBits(hTDC[category[diffc]])
-            .writeBits(bitcode[diffc])
-        }
+        let dcCategory = magnitudeCategory(diff)
+        .writeAmplitude(hTDC[dcCategory], diff, dcCategory)
 
         var end0pos = 63
         while (end0pos > 0) and (.du[end0pos] == 0) do
@@ -211,11 +210,9 @@ impl Encoder
                 nrzeroes = nrzeroes % 16
             }
 
-            let offc     = cast #bit (u64, cast(s64, .du[i]))     // If negative
-            let category = unwrap .category
-            let bitcode  = unwrap .bitcode
-            .writeBits(hTAC[nrzeroes * 16 + category[offc]])
-            .writeBits(bitcode[offc])
+            let coefficient = .du[i]
+            let category    = magnitudeCategory(coefficient)
+            .writeAmplitude(hTAC[nrzeroes * 16 + category], coefficient, category)
             i += 1
         }
 

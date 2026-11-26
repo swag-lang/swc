@@ -183,8 +183,11 @@ ships; history lives in Git, not here.
 - Evidence: [parallel scan bands](../bench/workloads/svgraster/resvg-comparison.md#parallel-processing-of-scan-bands)
   cut the colored compound fill from 104 to 45 ms at four workers with matching
   pixels. resvg takes 55 ms with the same CPU affinity.
-- Next: measure contour lookup and crossing resolution on dense colored paths.
-  Rerun the original Windows comparison at one worker and at the runtime default.
+- Evidence: [horizontal contour rejection](../bench/workloads/svgraster/resvg-comparison.md#rejecting-contours-outside-the-horizontal-clip)
+  reduces the colored compound fill from 99 to 64 ms at one worker and from 48 to
+  39 ms at four workers with matching pixels.
+- Next: measure contour lookup and stroke fragment recording. Rerun the original
+  Windows comparison at one worker and at the runtime default.
 - Done when: the original corpus meets agreed parse and raster budgets against resvg and the
   renderer's verified output behavior is preserved.
 - Related: std.pixel.image.039, app.scope.image.010

@@ -1,0 +1,3083 @@
+{
+  "source_commit": "2276babc39d40f1907c1c2d4256b19ed306f7b53",
+  "compiler_sha256": "5659528de80fb045eb0e62904ae5b9f4d76d554655b0e1288488c0afa4b38be0",
+  "driver_sha256": "ba7c35ce361010bde41a264d34461ecc504fd5ea57e95b7859643cf752e4f12c",
+  "encoder_source_sha256": "954de2617f2b9f2311b55d0d1700dc631d1ba12fd510a2ae1fb55a890a7fca0c",
+  "reference_source_sha256": "fa4a70d9ec93e611e5cabd0002a361f49bf47a7d00020a09ccef0819d0ce04e2",
+  "reference_sha256": "cc01c7c399a11c4d8ceee7ca2245658b729da93192291f0eb0c85a83170c50d0",
+  "ffmpeg": "ffmpeg version 7.1.5-0+deb13u1 Copyright (c) 2000-2026 the FFmpeg developers",
+  "x264": "core 164 r3108 31e19f9",
+  "cpu": "AMD EPYC 9V74",
+  "dimensions": [
+    640,
+    360
+  ],
+  "pictures_per_input": 30,
+  "frames_per_second": 30,
+  "threads": 3,
+  "slices": 4,
+  "key_interval": 120,
+  "affinity_for_repeated_timing": [
+    0,
+    1,
+    2
+  ],
+  "qp_or_crf": [
+    21,
+    25,
+    29,
+    33
+  ],
+  "camera_fixture": "bin/std/modules/video/src/tests/datas/cogliati-turning-pages.avi",
+  "camera_sha256": "1948b50bb9195bdd2007e3362d77f2c5f39df09dc314dc8b7c9d126621581f06",
+  "font": "DejaVuSansMono.ttf",
+  "font_sha256": "54bf827eb99404e8f430c330ad30f063334f637eba0109b6a18d4f566a8e9dd8",
+  "input_sha256": {
+    "street.rgb": "4164fb5fe343bc315d46c9afcb10e27a3402c5df44bc724f3b963f459a05c89b",
+    "testsrc.rgb": "9ac40841514c267f598d864af454c59e05516db6e012bf9a619e65f7029bf0b2",
+    "gradient.rgb": "d8e376f1e83fffead807c15db80adfe8f208a210e5a4b01537701997a5c2bd18",
+    "desktop.rgb": "6cee0b175252228fe0da29f99c812c079513df88a090cb346d3be5613a10e032"
+  },
+  "metric_alignment": "raw planar samples, frame order",
+  "metric_self_check": {
+    "psnr_y": "inf",
+    "psnr_u": "inf",
+    "psnr_v": "inf",
+    "psnr_average": "inf",
+    "ssim_y": 1.0,
+    "ssim_u": 1.0,
+    "ssim_v": 1.0,
+    "ssim_all": 1.0
+  },
+  "swag_decoded_bytes_match_ffmpeg": true,
+  "picture_count_verified": 480,
+  "rate_quality_and_timing": [
+    {
+      "input": "desktop.rgb",
+      "swag_encode_at_25": {
+        "min_us": 43773,
+        "median_us": 48190,
+        "max_us": 103524,
+        "median_cpu_us": null
+      },
+      "references": [
+        {
+          "preset": "veryfast",
+          "profile": "baseline",
+          "mode": "qp",
+          "equal_quality": {
+            "psnr_y": 40.0675,
+            "swag_bytes": 81775,
+            "reference_bytes": 102843,
+            "swag_byte_difference_percent": -20.486
+          },
+          "encode_at_25": {
+            "min_us": 17951,
+            "median_us": 21789,
+            "max_us": 53518,
+            "median_cpu_us": 42172
+          },
+          "swag_over_reference_time": 2.212
+        },
+        {
+          "preset": "veryfast",
+          "profile": "high",
+          "mode": "crf",
+          "equal_quality": {
+            "psnr_y": 38.1104,
+            "swag_bytes": 71437,
+            "reference_bytes": 64592,
+            "swag_byte_difference_percent": 10.597
+          },
+          "encode_at_25": {
+            "min_us": 37543,
+            "median_us": 45522,
+            "max_us": 251954,
+            "median_cpu_us": 74272
+          },
+          "swag_over_reference_time": 1.059
+        },
+        {
+          "preset": "ultrafast",
+          "profile": "baseline",
+          "mode": "crf",
+          "equal_quality": {
+            "psnr_y": 40.5867,
+            "swag_bytes": 84625,
+            "reference_bytes": 120642,
+            "swag_byte_difference_percent": -29.854
+          },
+          "encode_at_25": {
+            "min_us": 12596,
+            "median_us": 15776,
+            "max_us": 25060,
+            "median_cpu_us": 28172
+          },
+          "swag_over_reference_time": 3.055
+        }
+      ]
+    },
+    {
+      "input": "gradient.rgb",
+      "swag_encode_at_25": {
+        "min_us": 103578,
+        "median_us": 111392,
+        "max_us": 136518,
+        "median_cpu_us": null
+      },
+      "references": [
+        {
+          "preset": "veryfast",
+          "profile": "baseline",
+          "mode": "qp",
+          "equal_quality": {
+            "psnr_y": 44.7639,
+            "swag_bytes": 78266,
+            "reference_bytes": 83928,
+            "swag_byte_difference_percent": -6.746
+          },
+          "encode_at_25": {
+            "min_us": 36178,
+            "median_us": 45703,
+            "max_us": 62861,
+            "median_cpu_us": 116147
+          },
+          "swag_over_reference_time": 2.437
+        },
+        {
+          "preset": "veryfast",
+          "profile": "high",
+          "mode": "crf",
+          "equal_quality": null,
+          "encode_at_25": {
+            "min_us": 59760,
+            "median_us": 65155,
+            "max_us": 80769,
+            "median_cpu_us": 132442
+          },
+          "swag_over_reference_time": 1.71
+        },
+        {
+          "preset": "ultrafast",
+          "profile": "baseline",
+          "mode": "crf",
+          "equal_quality": {
+            "psnr_y": 44.7639,
+            "swag_bytes": 78266,
+            "reference_bytes": 41071,
+            "swag_byte_difference_percent": 90.562
+          },
+          "encode_at_25": {
+            "min_us": 12569,
+            "median_us": 16720,
+            "max_us": 23437,
+            "median_cpu_us": 31174
+          },
+          "swag_over_reference_time": 6.662
+        }
+      ]
+    },
+    {
+      "input": "testsrc.rgb",
+      "swag_encode_at_25": {
+        "min_us": 49255,
+        "median_us": 56659,
+        "max_us": 67166,
+        "median_cpu_us": null
+      },
+      "references": [
+        {
+          "preset": "veryfast",
+          "profile": "baseline",
+          "mode": "qp",
+          "equal_quality": {
+            "psnr_y": 46.2233,
+            "swag_bytes": 163937,
+            "reference_bytes": 144581,
+            "swag_byte_difference_percent": 13.388
+          },
+          "encode_at_25": {
+            "min_us": 18970,
+            "median_us": 21707,
+            "max_us": 29179,
+            "median_cpu_us": 42994
+          },
+          "swag_over_reference_time": 2.61
+        },
+        {
+          "preset": "veryfast",
+          "profile": "high",
+          "mode": "crf",
+          "equal_quality": {
+            "psnr_y": 42.3765,
+            "swag_bytes": 116195,
+            "reference_bytes": 95294,
+            "swag_byte_difference_percent": 21.934
+          },
+          "encode_at_25": {
+            "min_us": 46848,
+            "median_us": 52046,
+            "max_us": 163764,
+            "median_cpu_us": 96503
+          },
+          "swag_over_reference_time": 1.089
+        },
+        {
+          "preset": "ultrafast",
+          "profile": "baseline",
+          "mode": "crf",
+          "equal_quality": {
+            "psnr_y": 46.2578,
+            "swag_bytes": 164409,
+            "reference_bytes": 172594,
+            "swag_byte_difference_percent": -4.743
+          },
+          "encode_at_25": {
+            "min_us": 10599,
+            "median_us": 15027,
+            "max_us": 20733,
+            "median_cpu_us": 27608
+          },
+          "swag_over_reference_time": 3.77
+        }
+      ]
+    },
+    {
+      "input": "street.rgb",
+      "swag_encode_at_25": {
+        "min_us": 143031,
+        "median_us": 158751,
+        "max_us": 175398,
+        "median_cpu_us": null
+      },
+      "references": [
+        {
+          "preset": "veryfast",
+          "profile": "baseline",
+          "mode": "qp",
+          "equal_quality": {
+            "psnr_y": 40.7615,
+            "swag_bytes": 150572,
+            "reference_bytes": 143579,
+            "swag_byte_difference_percent": 4.87
+          },
+          "encode_at_25": {
+            "min_us": 49812,
+            "median_us": 65519,
+            "max_us": 140409,
+            "median_cpu_us": 125779
+          },
+          "swag_over_reference_time": 2.423
+        },
+        {
+          "preset": "veryfast",
+          "profile": "high",
+          "mode": "crf",
+          "equal_quality": {
+            "psnr_y": 39.832,
+            "swag_bytes": 111080,
+            "reference_bytes": 89468,
+            "swag_byte_difference_percent": 24.157
+          },
+          "encode_at_25": {
+            "min_us": 89509,
+            "median_us": 105567,
+            "max_us": 254840,
+            "median_cpu_us": 194107
+          },
+          "swag_over_reference_time": 1.504
+        },
+        {
+          "preset": "ultrafast",
+          "profile": "baseline",
+          "mode": "crf",
+          "equal_quality": {
+            "psnr_y": 39.0974,
+            "swag_bytes": 86562,
+            "reference_bytes": 191859,
+            "swag_byte_difference_percent": -54.883
+          },
+          "encode_at_25": {
+            "min_us": 19904,
+            "median_us": 22590,
+            "max_us": 234825,
+            "median_cpu_us": 46478
+          },
+          "swag_over_reference_time": 7.027
+        }
+      ]
+    }
+  ],
+  "points": [
+    {
+      "input": "desktop.rgb",
+      "encoder": "swag",
+      "qp": 21,
+      "slices": 4,
+      "frames": 30,
+      "encode_us": 78531,
+      "packet_bytes": 121479,
+      "file_bytes": 125566,
+      "source_sha256": "ff4ded4125ea54d81bee4eafe99f8cea8fc05f4667e6802cfa83461ae723fc61",
+      "decoded_sha256": "fcd366b1c7cc84e6ace0b15eae22e9c41fe883b397ead12f86a06ba52e476e0a",
+      "psnr_y": 45.697681,
+      "psnr_u": 46.487576,
+      "psnr_v": 47.383805,
+      "psnr_average": 46.066143,
+      "ssim_y": 0.998286,
+      "ssim_u": 0.980044,
+      "ssim_v": 0.985083,
+      "ssim_all": 0.993045
+    },
+    {
+      "input": "desktop.rgb",
+      "encoder": "x264",
+      "preset": "veryfast",
+      "profile": "baseline",
+      "mode": "qp",
+      "quality": 21,
+      "slices": 4,
+      "frames": 30,
+      "process_seconds": null,
+      "packet_bytes": 145342,
+      "file_bytes": 146318,
+      "encode_us": 31271,
+      "encode_cpu_us": 54618,
+      "psnr_y": 44.659391,
+      "psnr_u": 46.044642,
+      "psnr_v": 45.789537,
+      "psnr_average": 45.039031,
+      "ssim_y": 0.998249,
+      "ssim_u": 0.978195,
+      "ssim_v": 0.978856,
+      "ssim_all": 0.991674
+    },
+    {
+      "input": "desktop.rgb",
+      "encoder": "x264",
+      "preset": "veryfast",
+      "profile": "high",
+      "mode": "crf",
+      "quality": 21,
+      "slices": 4,
+      "frames": 30,
+      "process_seconds": null,
+      "packet_bytes": 77398,
+      "file_bytes": 78590,
+      "encode_us": 43545,
+      "encode_cpu_us": 75241,
+      "psnr_y": 40.745158,
+      "psnr_u": 42.727888,
+      "psnr_v": 43.7235,
+      "psnr_average": 41.419436,
+      "ssim_y": 0.99635,
+      "ssim_u": 0.956322,
+      "ssim_v": 0.969889,
+      "ssim_all": 0.985269
+    },
+    {
+      "input": "desktop.rgb",
+      "encoder": "x264",
+      "preset": "ultrafast",
+      "profile": "baseline",
+      "mode": "crf",
+      "quality": 21,
+      "slices": 4,
+      "frames": 30,
+      "process_seconds": null,
+      "packet_bytes": 176324,
+      "file_bytes": 177300,
+      "encode_us": 14256,
+      "encode_cpu_us": 27180,
+      "psnr_y": 46.626537,
+      "psnr_u": 46.625956,
+      "psnr_v": 47.15174,
+      "psnr_average": 46.709679,
+      "ssim_y": 0.998781,
+      "ssim_u": 0.980704,
+      "ssim_v": 0.984346,
+      "ssim_all": 0.993362
+    },
+    {
+      "input": "desktop.rgb",
+      "encoder": "swag",
+      "qp": 25,
+      "slices": 4,
+      "frames": 30,
+      "encode_us": 53843,
+      "packet_bytes": 96324,
+      "file_bytes": 100411,
+      "source_sha256": "ff4ded4125ea54d81bee4eafe99f8cea8fc05f4667e6802cfa83461ae723fc61",
+      "decoded_sha256": "782de43c582732d896d2ac984d172e5f5139d168093e260cd0dc5d851f003457",
+      "psnr_y": 42.548524,
+      "psnr_u": 44.115595,
+      "psnr_v": 45.10582,
+      "psnr_average": 43.126733,
+      "ssim_y": 0.997222,
+      "ssim_u": 0.966154,
+      "ssim_v": 0.976188,
+      "ssim_all": 0.988538
+    },
+    {
+      "input": "desktop.rgb",
+      "encoder": "x264",
+      "preset": "veryfast",
+      "profile": "baseline",
+      "mode": "qp",
+      "quality": 25,
+      "slices": 4,
+      "frames": 30,
+      "process_seconds": null,
+      "packet_bytes": 113690,
+      "file_bytes": 114666,
+      "encode_us": 20917,
+      "encode_cpu_us": 39050,
+      "psnr_y": 41.446094,
+      "psnr_u": 43.685038,
+      "psnr_v": 43.795918,
+      "psnr_average": 42.084889,
+      "ssim_y": 0.996679,
+      "ssim_u": 0.964416,
+      "ssim_v": 0.96947,
+      "ssim_all": 0.986767
+    },
+    {
+      "input": "desktop.rgb",
+      "encoder": "x264",
+      "preset": "veryfast",
+      "profile": "high",
+      "mode": "crf",
+      "quality": 25,
+      "slices": 4,
+      "frames": 30,
+      "process_seconds": null,
+      "packet_bytes": 60040,
+      "file_bytes": 61231,
+      "encode_us": 66764,
+      "encode_cpu_us": 106370,
+      "psnr_y": 37.04594,
+      "psnr_u": 41.5043,
+      "psnr_v": 42.007624,
+      "psnr_average": 38.127535,
+      "ssim_y": 0.991592,
+      "ssim_u": 0.941559,
+      "ssim_v": 0.956543,
+      "ssim_all": 0.977412
+    },
+    {
+      "input": "desktop.rgb",
+      "encoder": "x264",
+      "preset": "ultrafast",
+      "profile": "baseline",
+      "mode": "crf",
+      "quality": 25,
+      "slices": 4,
+      "frames": 30,
+      "process_seconds": null,
+      "packet_bytes": 138602,
+      "file_bytes": 139578,
+      "encode_us": 17502,
+      "encode_cpu_us": 29545,
+      "psnr_y": 42.963999,
+      "psnr_u": 44.206099,
+      "psnr_v": 44.882347,
+      "psnr_average": 43.426247,
+      "ssim_y": 0.997289,
+      "ssim_u": 0.966871,
+      "ssim_v": 0.975571,
+      "ssim_all": 0.9886
+    },
+    {
+      "input": "desktop.rgb",
+      "encoder": "swag",
+      "qp": 29,
+      "slices": 4,
+      "frames": 30,
+      "encode_us": 38289,
+      "packet_bytes": 74618,
+      "file_bytes": 78705,
+      "source_sha256": "ff4ded4125ea54d81bee4eafe99f8cea8fc05f4667e6802cfa83461ae723fc61",
+      "decoded_sha256": "ee11ca64bfbedc1f2b8d90493f7e9aae9ceb8628bd645fbb3b8b768238864f64",
+      "psnr_y": 38.679869,
+      "psnr_u": 42.066594,
+      "psnr_v": 42.704833,
+      "psnr_average": 39.600104,
+      "ssim_y": 0.993337,
+      "ssim_u": 0.94702,
+      "ssim_v": 0.961489,
+      "ssim_all": 0.98031
+    },
+    {
+      "input": "desktop.rgb",
+      "encoder": "x264",
+      "preset": "veryfast",
+      "profile": "baseline",
+      "mode": "qp",
+      "quality": 29,
+      "slices": 4,
+      "frames": 30,
+      "process_seconds": null,
+      "packet_bytes": 85984,
+      "file_bytes": 86960,
+      "encode_us": 33871,
+      "encode_cpu_us": 47739,
+      "psnr_y": 37.60587,
+      "psnr_u": 41.511,
+      "psnr_v": 41.633857,
+      "psnr_average": 38.572755,
+      "ssim_y": 0.991869,
+      "ssim_u": 0.943269,
+      "ssim_v": 0.956362,
+      "ssim_all": 0.977851
+    },
+    {
+      "input": "desktop.rgb",
+      "encoder": "x264",
+      "preset": "veryfast",
+      "profile": "high",
+      "mode": "crf",
+      "quality": 29,
+      "slices": 4,
+      "frames": 30,
+      "process_seconds": null,
+      "packet_bytes": 45126,
+      "file_bytes": 46317,
+      "encode_us": 63594,
+      "encode_cpu_us": 123837,
+      "psnr_y": 33.397898,
+      "psnr_u": 40.949652,
+      "psnr_v": 40.968393,
+      "psnr_average": 34.793833,
+      "ssim_y": 0.981376,
+      "ssim_u": 0.936311,
+      "ssim_v": 0.944561,
+      "ssim_all": 0.967729
+    },
+    {
+      "input": "desktop.rgb",
+      "encoder": "x264",
+      "preset": "ultrafast",
+      "profile": "baseline",
+      "mode": "crf",
+      "quality": 29,
+      "slices": 4,
+      "frames": 30,
+      "process_seconds": null,
+      "packet_bytes": 109460,
+      "file_bytes": 110436,
+      "encode_us": 13075,
+      "encode_cpu_us": 27079,
+      "psnr_y": 38.920508,
+      "psnr_u": 41.942652,
+      "psnr_v": 42.305177,
+      "psnr_average": 39.74953,
+      "ssim_y": 0.992535,
+      "ssim_u": 0.946206,
+      "ssim_v": 0.960395,
+      "ssim_all": 0.979457
+    },
+    {
+      "input": "desktop.rgb",
+      "encoder": "swag",
+      "qp": 33,
+      "slices": 4,
+      "frames": 30,
+      "encode_us": 39701,
+      "packet_bytes": 58395,
+      "file_bytes": 62482,
+      "source_sha256": "ff4ded4125ea54d81bee4eafe99f8cea8fc05f4667e6802cfa83461ae723fc61",
+      "decoded_sha256": "e891dc8bff191a6cc9e17b9a18b98b086291e4bb6fdac7e990f65affaeee3944",
+      "psnr_y": 35.475676,
+      "psnr_u": 41.206304,
+      "psnr_v": 41.292119,
+      "psnr_average": 36.696882,
+      "ssim_y": 0.987306,
+      "ssim_u": 0.93911,
+      "ssim_v": 0.946171,
+      "ssim_all": 0.972418
+    },
+    {
+      "input": "desktop.rgb",
+      "encoder": "x264",
+      "preset": "veryfast",
+      "profile": "baseline",
+      "mode": "qp",
+      "quality": 33,
+      "slices": 4,
+      "frames": 30,
+      "process_seconds": null,
+      "packet_bytes": 65899,
+      "file_bytes": 66875,
+      "encode_us": 27329,
+      "encode_cpu_us": 48286,
+      "psnr_y": 34.548852,
+      "psnr_u": 40.82934,
+      "psnr_v": 40.649265,
+      "psnr_average": 35.816687,
+      "ssim_y": 0.98447,
+      "ssim_u": 0.936343,
+      "ssim_v": 0.944338,
+      "ssim_all": 0.96976
+    },
+    {
+      "input": "desktop.rgb",
+      "encoder": "x264",
+      "preset": "veryfast",
+      "profile": "high",
+      "mode": "crf",
+      "quality": 33,
+      "slices": 4,
+      "frames": 30,
+      "process_seconds": null,
+      "packet_bytes": 33084,
+      "file_bytes": 34276,
+      "encode_us": 86021,
+      "encode_cpu_us": 139469,
+      "psnr_y": 29.738628,
+      "psnr_u": 40.579518,
+      "psnr_v": 39.961313,
+      "psnr_average": 31.311082,
+      "ssim_y": 0.957177,
+      "ssim_u": 0.933144,
+      "ssim_v": 0.930733,
+      "ssim_all": 0.948764
+    },
+    {
+      "input": "desktop.rgb",
+      "encoder": "x264",
+      "preset": "ultrafast",
+      "profile": "baseline",
+      "mode": "crf",
+      "quality": 33,
+      "slices": 4,
+      "frames": 30,
+      "process_seconds": null,
+      "packet_bytes": 84882,
+      "file_bytes": 85858,
+      "encode_us": 14365,
+      "encode_cpu_us": 27328,
+      "psnr_y": 35.40959,
+      "psnr_u": 41.022667,
+      "psnr_v": 41.130084,
+      "psnr_average": 36.618171,
+      "ssim_y": 0.983831,
+      "ssim_u": 0.937701,
+      "ssim_v": 0.948112,
+      "ssim_all": 0.97019
+    },
+    {
+      "input": "gradient.rgb",
+      "encoder": "swag",
+      "qp": 21,
+      "slices": 4,
+      "frames": 30,
+      "encode_us": 156487,
+      "packet_bytes": 131497,
+      "file_bytes": 135584,
+      "source_sha256": "949eed15ec671acecf7632a9ee99e84cac3884a49d71549517f1adae69b1cf80",
+      "decoded_sha256": "c91839cf08190d4c2ec51719a0a2dea2a85e89355a0cbcb8ce78e82b00b3229d",
+      "psnr_y": 46.996673,
+      "psnr_u": 53.374067,
+      "psnr_v": 50.118117,
+      "psnr_average": 48.040929,
+      "ssim_y": 0.985061,
+      "ssim_u": 0.996495,
+      "ssim_v": 0.991378,
+      "ssim_all": 0.988019
+    },
+    {
+      "input": "gradient.rgb",
+      "encoder": "x264",
+      "preset": "veryfast",
+      "profile": "baseline",
+      "mode": "qp",
+      "quality": 21,
+      "slices": 4,
+      "frames": 30,
+      "process_seconds": null,
+      "packet_bytes": 169334,
+      "file_bytes": 170310,
+      "encode_us": 51592,
+      "encode_cpu_us": 100231,
+      "psnr_y": 48.443401,
+      "psnr_u": 54.188811,
+      "psnr_v": 52.008363,
+      "psnr_average": 49.49802,
+      "ssim_y": 0.990741,
+      "ssim_u": 0.996844,
+      "ssim_v": 0.994463,
+      "ssim_all": 0.992378
+    },
+    {
+      "input": "gradient.rgb",
+      "encoder": "x264",
+      "preset": "veryfast",
+      "profile": "high",
+      "mode": "crf",
+      "quality": 21,
+      "slices": 4,
+      "frames": 30,
+      "process_seconds": null,
+      "packet_bytes": 65254,
+      "file_bytes": 66454,
+      "encode_us": 94751,
+      "encode_cpu_us": 190147,
+      "psnr_y": 70.70064,
+      "psnr_u": 86.965157,
+      "psnr_v": 63.331866,
+      "psnr_average": 68.714219,
+      "ssim_y": 0.999925,
+      "ssim_u": 0.999999,
+      "ssim_v": 0.999544,
+      "ssim_all": 0.999874
+    },
+    {
+      "input": "gradient.rgb",
+      "encoder": "x264",
+      "preset": "ultrafast",
+      "profile": "baseline",
+      "mode": "crf",
+      "quality": 21,
+      "slices": 4,
+      "frames": 30,
+      "process_seconds": null,
+      "packet_bytes": 116670,
+      "file_bytes": 117646,
+      "encode_us": 38426,
+      "encode_cpu_us": 54120,
+      "psnr_y": 50.643272,
+      "psnr_u": 59.525552,
+      "psnr_v": 53.630666,
+      "psnr_average": 51.767103,
+      "ssim_y": 0.999179,
+      "ssim_u": 0.999442,
+      "ssim_v": 0.996373,
+      "ssim_all": 0.998755
+    },
+    {
+      "input": "gradient.rgb",
+      "encoder": "swag",
+      "qp": 25,
+      "slices": 4,
+      "frames": 30,
+      "encode_us": 116928,
+      "packet_bytes": 83992,
+      "file_bytes": 88079,
+      "source_sha256": "949eed15ec671acecf7632a9ee99e84cac3884a49d71549517f1adae69b1cf80",
+      "decoded_sha256": "635ba6862f065cc272938326f0b823e62f8a1a713ce88378dcbe51256dc80fcf",
+      "psnr_y": 44.983121,
+      "psnr_u": 49.540714,
+      "psnr_v": 48.218258,
+      "psnr_average": 45.929739,
+      "ssim_y": 0.978575,
+      "ssim_u": 0.994936,
+      "ssim_v": 0.988388,
+      "ssim_all": 0.982937
+    },
+    {
+      "input": "gradient.rgb",
+      "encoder": "x264",
+      "preset": "veryfast",
+      "profile": "baseline",
+      "mode": "qp",
+      "quality": 25,
+      "slices": 4,
+      "frames": 30,
+      "process_seconds": null,
+      "packet_bytes": 126715,
+      "file_bytes": 127691,
+      "encode_us": 40564,
+      "encode_cpu_us": 92013,
+      "psnr_y": 46.257417,
+      "psnr_u": 50.821454,
+      "psnr_v": 49.367519,
+      "psnr_average": 47.192037,
+      "ssim_y": 0.984636,
+      "ssim_u": 0.995183,
+      "ssim_v": 0.991004,
+      "ssim_all": 0.987455
+    },
+    {
+      "input": "gradient.rgb",
+      "encoder": "x264",
+      "preset": "veryfast",
+      "profile": "high",
+      "mode": "crf",
+      "quality": 25,
+      "slices": 4,
+      "frames": 30,
+      "process_seconds": null,
+      "packet_bytes": 56182,
+      "file_bytes": 57381,
+      "encode_us": 79489,
+      "encode_cpu_us": 143546,
+      "psnr_y": 64.877842,
+      "psnr_u": 67.300417,
+      "psnr_v": 56.711282,
+      "psnr_average": 62.194905,
+      "ssim_y": 0.999723,
+      "ssim_u": 0.999857,
+      "ssim_v": 0.998148,
+      "ssim_all": 0.999483
+    },
+    {
+      "input": "gradient.rgb",
+      "encoder": "x264",
+      "preset": "ultrafast",
+      "profile": "baseline",
+      "mode": "crf",
+      "quality": 25,
+      "slices": 4,
+      "frames": 30,
+      "process_seconds": null,
+      "packet_bytes": 54044,
+      "file_bytes": 55020,
+      "encode_us": 26174,
+      "encode_cpu_us": 40492,
+      "psnr_y": 47.483621,
+      "psnr_u": 49.262536,
+      "psnr_v": 49.596343,
+      "psnr_average": 48.039863,
+      "ssim_y": 0.998299,
+      "ssim_u": 0.996414,
+      "ssim_v": 0.993871,
+      "ssim_all": 0.997247
+    },
+    {
+      "input": "gradient.rgb",
+      "encoder": "swag",
+      "qp": 29,
+      "slices": 4,
+      "frames": 30,
+      "encode_us": 92676,
+      "packet_bytes": 54177,
+      "file_bytes": 58264,
+      "source_sha256": "949eed15ec671acecf7632a9ee99e84cac3884a49d71549517f1adae69b1cf80",
+      "decoded_sha256": "423220f2da0546d94d5fa29cfa03014378d017a08a39b8331dc4b87863f311ad",
+      "psnr_y": 43.621445,
+      "psnr_u": 46.617355,
+      "psnr_v": 46.32117,
+      "psnr_average": 44.379751,
+      "ssim_y": 0.973475,
+      "ssim_u": 0.991032,
+      "ssim_v": 0.984797,
+      "ssim_all": 0.978288
+    },
+    {
+      "input": "gradient.rgb",
+      "encoder": "x264",
+      "preset": "veryfast",
+      "profile": "baseline",
+      "mode": "qp",
+      "quality": 29,
+      "slices": 4,
+      "frames": 30,
+      "process_seconds": null,
+      "packet_bytes": 50502,
+      "file_bytes": 51478,
+      "encode_us": 29665,
+      "encode_cpu_us": 67942,
+      "psnr_y": 42.922398,
+      "psnr_u": 46.288256,
+      "psnr_v": 45.690162,
+      "psnr_average": 43.723416,
+      "ssim_y": 0.972948,
+      "ssim_u": 0.990239,
+      "ssim_v": 0.981056,
+      "ssim_all": 0.977181
+    },
+    {
+      "input": "gradient.rgb",
+      "encoder": "x264",
+      "preset": "veryfast",
+      "profile": "high",
+      "mode": "crf",
+      "quality": 29,
+      "slices": 4,
+      "frames": 30,
+      "process_seconds": null,
+      "packet_bytes": 45282,
+      "file_bytes": 46481,
+      "encode_us": 57992,
+      "encode_cpu_us": 112132,
+      "psnr_y": 54.738202,
+      "psnr_u": 61.308454,
+      "psnr_v": 56.001487,
+      "psnr_average": 55.558,
+      "ssim_y": 0.998502,
+      "ssim_u": 0.999405,
+      "ssim_v": 0.99773,
+      "ssim_all": 0.998524
+    },
+    {
+      "input": "gradient.rgb",
+      "encoder": "x264",
+      "preset": "ultrafast",
+      "profile": "baseline",
+      "mode": "crf",
+      "quality": 29,
+      "slices": 4,
+      "frames": 30,
+      "process_seconds": null,
+      "packet_bytes": 37163,
+      "file_bytes": 38139,
+      "encode_us": 16091,
+      "encode_cpu_us": 30722,
+      "psnr_y": 43.773021,
+      "psnr_u": 48.309107,
+      "psnr_v": 47.280943,
+      "psnr_average": 44.74416,
+      "ssim_y": 0.99466,
+      "ssim_u": 0.995613,
+      "ssim_v": 0.988765,
+      "ssim_all": 0.993836
+    },
+    {
+      "input": "gradient.rgb",
+      "encoder": "swag",
+      "qp": 33,
+      "slices": 4,
+      "frames": 30,
+      "encode_us": 80276,
+      "packet_bytes": 37468,
+      "file_bytes": 41555,
+      "source_sha256": "949eed15ec671acecf7632a9ee99e84cac3884a49d71549517f1adae69b1cf80",
+      "decoded_sha256": "77359f1436f13bc8f7a0ab58b066c30438f96d2103a51b2e47e4f7eb242bcc80",
+      "psnr_y": 42.531045,
+      "psnr_u": 43.632162,
+      "psnr_v": 44.57768,
+      "psnr_average": 42.988406,
+      "ssim_y": 0.970011,
+      "ssim_u": 0.986736,
+      "ssim_v": 0.982326,
+      "ssim_all": 0.974851
+    },
+    {
+      "input": "gradient.rgb",
+      "encoder": "x264",
+      "preset": "veryfast",
+      "profile": "baseline",
+      "mode": "qp",
+      "quality": 33,
+      "slices": 4,
+      "frames": 30,
+      "process_seconds": null,
+      "packet_bytes": 30705,
+      "file_bytes": 31681,
+      "encode_us": 30152,
+      "encode_cpu_us": 56805,
+      "psnr_y": 40.410932,
+      "psnr_u": 43.489504,
+      "psnr_v": 44.306763,
+      "psnr_average": 41.290508,
+      "ssim_y": 0.965712,
+      "ssim_u": 0.986071,
+      "ssim_v": 0.976099,
+      "ssim_all": 0.970837
+    },
+    {
+      "input": "gradient.rgb",
+      "encoder": "x264",
+      "preset": "veryfast",
+      "profile": "high",
+      "mode": "crf",
+      "quality": 33,
+      "slices": 4,
+      "frames": 30,
+      "process_seconds": null,
+      "packet_bytes": 43422,
+      "file_bytes": 44622,
+      "encode_us": 98463,
+      "encode_cpu_us": 176208,
+      "psnr_y": 50.847093,
+      "psnr_u": 54.283355,
+      "psnr_v": 50.912063,
+      "psnr_average": 51.273863,
+      "ssim_y": 0.994762,
+      "ssim_u": 0.997879,
+      "ssim_v": 0.993606,
+      "ssim_all": 0.995089
+    },
+    {
+      "input": "gradient.rgb",
+      "encoder": "x264",
+      "preset": "ultrafast",
+      "profile": "baseline",
+      "mode": "crf",
+      "quality": 33,
+      "slices": 4,
+      "frames": 30,
+      "process_seconds": null,
+      "packet_bytes": 26878,
+      "file_bytes": 27854,
+      "encode_us": 13721,
+      "encode_cpu_us": 26753,
+      "psnr_y": 40.070968,
+      "psnr_u": 44.968807,
+      "psnr_v": 44.623755,
+      "psnr_average": 41.155332,
+      "ssim_y": 0.992802,
+      "ssim_u": 0.993556,
+      "ssim_v": 0.983624,
+      "ssim_all": 0.991398
+    },
+    {
+      "input": "testsrc.rgb",
+      "encoder": "swag",
+      "qp": 21,
+      "slices": 4,
+      "frames": 30,
+      "encode_us": 53202,
+      "packet_bytes": 234133,
+      "file_bytes": 238220,
+      "source_sha256": "fd217b69535398b797006cb3bf87303d0a5487f8724d49d6e64c3c36f0c11a7e",
+      "decoded_sha256": "a2611ae24a7fe2baea9114f985e2530122ca3eb6c6515d23fe0661e7daec5ee3",
+      "psnr_y": 51.021635,
+      "psnr_u": 48.079483,
+      "psnr_v": 48.270705,
+      "psnr_average": 49.852839,
+      "ssim_y": 0.998151,
+      "ssim_u": 0.995978,
+      "ssim_v": 0.996501,
+      "ssim_all": 0.997514
+    },
+    {
+      "input": "testsrc.rgb",
+      "encoder": "x264",
+      "preset": "veryfast",
+      "profile": "baseline",
+      "mode": "qp",
+      "quality": 21,
+      "slices": 4,
+      "frames": 30,
+      "process_seconds": null,
+      "packet_bytes": 223243,
+      "file_bytes": 224219,
+      "encode_us": 23452,
+      "encode_cpu_us": 39150,
+      "psnr_y": 52.657083,
+      "psnr_u": 49.590377,
+      "psnr_v": 50.041024,
+      "psnr_average": 51.488468,
+      "ssim_y": 0.998882,
+      "ssim_u": 0.998227,
+      "ssim_v": 0.99862,
+      "ssim_all": 0.998729
+    },
+    {
+      "input": "testsrc.rgb",
+      "encoder": "x264",
+      "preset": "veryfast",
+      "profile": "high",
+      "mode": "crf",
+      "quality": 21,
+      "slices": 4,
+      "frames": 30,
+      "process_seconds": null,
+      "packet_bytes": 114967,
+      "file_bytes": 116183,
+      "encode_us": 50380,
+      "encode_cpu_us": 89886,
+      "psnr_y": 44.32853,
+      "psnr_u": 42.550054,
+      "psnr_v": 42.835379,
+      "psnr_average": 43.711248,
+      "ssim_y": 0.99664,
+      "ssim_u": 0.994483,
+      "ssim_v": 0.997134,
+      "ssim_all": 0.996363
+    },
+    {
+      "input": "testsrc.rgb",
+      "encoder": "x264",
+      "preset": "ultrafast",
+      "profile": "baseline",
+      "mode": "crf",
+      "quality": 21,
+      "slices": 4,
+      "frames": 30,
+      "process_seconds": null,
+      "packet_bytes": 260569,
+      "file_bytes": 261545,
+      "encode_us": 26762,
+      "encode_cpu_us": 40464,
+      "psnr_y": 52.431231,
+      "psnr_u": 49.883355,
+      "psnr_v": 50.157707,
+      "psnr_average": 51.470295,
+      "ssim_y": 0.998667,
+      "ssim_u": 0.998231,
+      "ssim_v": 0.998846,
+      "ssim_all": 0.998624
+    },
+    {
+      "input": "testsrc.rgb",
+      "encoder": "swag",
+      "qp": 25,
+      "slices": 4,
+      "frames": 30,
+      "encode_us": 59323,
+      "packet_bytes": 186041,
+      "file_bytes": 190128,
+      "source_sha256": "fd217b69535398b797006cb3bf87303d0a5487f8724d49d6e64c3c36f0c11a7e",
+      "decoded_sha256": "26d125130be5ce3587a7ac7e7f8cb0f022d5005689d878958717eea8ebfc4a71",
+      "psnr_y": 47.743517,
+      "psnr_u": 44.914201,
+      "psnr_v": 44.900927,
+      "psnr_average": 46.580426,
+      "ssim_y": 0.997135,
+      "ssim_u": 0.993279,
+      "ssim_v": 0.993998,
+      "ssim_all": 0.995969
+    },
+    {
+      "input": "testsrc.rgb",
+      "encoder": "x264",
+      "preset": "veryfast",
+      "profile": "baseline",
+      "mode": "qp",
+      "quality": 25,
+      "slices": 4,
+      "frames": 30,
+      "process_seconds": null,
+      "packet_bytes": 179811,
+      "file_bytes": 180787,
+      "encode_us": 22262,
+      "encode_cpu_us": 42113,
+      "psnr_y": 49.21147,
+      "psnr_u": 46.259245,
+      "psnr_v": 46.655502,
+      "psnr_average": 48.086102,
+      "ssim_y": 0.998203,
+      "ssim_u": 0.996575,
+      "ssim_v": 0.997653,
+      "ssim_all": 0.99784
+    },
+    {
+      "input": "testsrc.rgb",
+      "encoder": "x264",
+      "preset": "veryfast",
+      "profile": "high",
+      "mode": "crf",
+      "quality": 25,
+      "slices": 4,
+      "frames": 30,
+      "process_seconds": null,
+      "packet_bytes": 81043,
+      "file_bytes": 82258,
+      "encode_us": 60229,
+      "encode_cpu_us": 110873,
+      "psnr_y": 40.691637,
+      "psnr_u": 39.951645,
+      "psnr_v": 39.850892,
+      "psnr_average": 40.411782,
+      "ssim_y": 0.993053,
+      "ssim_u": 0.990117,
+      "ssim_v": 0.994753,
+      "ssim_all": 0.992847
+    },
+    {
+      "input": "testsrc.rgb",
+      "encoder": "x264",
+      "preset": "ultrafast",
+      "profile": "baseline",
+      "mode": "crf",
+      "quality": 25,
+      "slices": 4,
+      "frames": 30,
+      "process_seconds": null,
+      "packet_bytes": 206020,
+      "file_bytes": 206996,
+      "encode_us": 13806,
+      "encode_cpu_us": 26375,
+      "psnr_y": 48.577008,
+      "psnr_u": 45.952272,
+      "psnr_v": 46.12065,
+      "psnr_average": 47.555763,
+      "ssim_y": 0.997404,
+      "ssim_u": 0.995982,
+      "ssim_v": 0.997025,
+      "ssim_all": 0.997104
+    },
+    {
+      "input": "testsrc.rgb",
+      "encoder": "swag",
+      "qp": 29,
+      "slices": 4,
+      "frames": 30,
+      "encode_us": 56766,
+      "packet_bytes": 135818,
+      "file_bytes": 139905,
+      "source_sha256": "fd217b69535398b797006cb3bf87303d0a5487f8724d49d6e64c3c36f0c11a7e",
+      "decoded_sha256": "791cc40efa17aee24eac3f90fc04b232d2587ff62461352ca64168d83ceab6b8",
+      "psnr_y": 43.961758,
+      "psnr_u": 41.020477,
+      "psnr_v": 40.770723,
+      "psnr_average": 42.683448,
+      "ssim_y": 0.994524,
+      "ssim_u": 0.98533,
+      "ssim_v": 0.984692,
+      "ssim_all": 0.991353
+    },
+    {
+      "input": "testsrc.rgb",
+      "encoder": "x264",
+      "preset": "veryfast",
+      "profile": "baseline",
+      "mode": "qp",
+      "quality": 29,
+      "slices": 4,
+      "frames": 30,
+      "process_seconds": null,
+      "packet_bytes": 134604,
+      "file_bytes": 135580,
+      "encode_us": 17458,
+      "encode_cpu_us": 37927,
+      "psnr_y": 45.243557,
+      "psnr_u": 42.083701,
+      "psnr_v": 42.378556,
+      "psnr_average": 43.991854,
+      "ssim_y": 0.996515,
+      "ssim_u": 0.991834,
+      "ssim_v": 0.994048,
+      "ssim_all": 0.995324
+    },
+    {
+      "input": "testsrc.rgb",
+      "encoder": "x264",
+      "preset": "veryfast",
+      "profile": "high",
+      "mode": "crf",
+      "quality": 29,
+      "slices": 4,
+      "frames": 30,
+      "process_seconds": null,
+      "packet_bytes": 53191,
+      "file_bytes": 54406,
+      "encode_us": 90812,
+      "encode_cpu_us": 140353,
+      "psnr_y": 37.36795,
+      "psnr_u": 37.649192,
+      "psnr_v": 37.499074,
+      "psnr_average": 37.435387,
+      "ssim_y": 0.985461,
+      "ssim_u": 0.984062,
+      "ssim_v": 0.990976,
+      "ssim_all": 0.986147
+    },
+    {
+      "input": "testsrc.rgb",
+      "encoder": "x264",
+      "preset": "ultrafast",
+      "profile": "baseline",
+      "mode": "crf",
+      "quality": 29,
+      "slices": 4,
+      "frames": 30,
+      "process_seconds": null,
+      "packet_bytes": 157851,
+      "file_bytes": 158827,
+      "encode_us": 12026,
+      "encode_cpu_us": 23707,
+      "psnr_y": 45.08805,
+      "psnr_u": 42.015562,
+      "psnr_v": 42.051767,
+      "psnr_average": 43.816545,
+      "ssim_y": 0.995198,
+      "ssim_u": 0.991439,
+      "ssim_v": 0.993622,
+      "ssim_all": 0.994309
+    },
+    {
+      "input": "testsrc.rgb",
+      "encoder": "swag",
+      "qp": 33,
+      "slices": 4,
+      "frames": 30,
+      "encode_us": 54729,
+      "packet_bytes": 95883,
+      "file_bytes": 99970,
+      "source_sha256": "fd217b69535398b797006cb3bf87303d0a5487f8724d49d6e64c3c36f0c11a7e",
+      "decoded_sha256": "de7c6012d9602a4cd02953bd7d7680c3b23a64b5cb3e381ad6000a1508c08d35",
+      "psnr_y": 40.42441,
+      "psnr_u": 38.832969,
+      "psnr_v": 38.27967,
+      "psnr_average": 39.704855,
+      "ssim_y": 0.989598,
+      "ssim_u": 0.979352,
+      "ssim_v": 0.978146,
+      "ssim_all": 0.985982
+    },
+    {
+      "input": "testsrc.rgb",
+      "encoder": "x264",
+      "preset": "veryfast",
+      "profile": "baseline",
+      "mode": "qp",
+      "quality": 33,
+      "slices": 4,
+      "frames": 30,
+      "process_seconds": null,
+      "packet_bytes": 96035,
+      "file_bytes": 97011,
+      "encode_us": 21501,
+      "encode_cpu_us": 36207,
+      "psnr_y": 41.425032,
+      "psnr_u": 39.669378,
+      "psnr_v": 39.321385,
+      "psnr_average": 40.680917,
+      "ssim_y": 0.99245,
+      "ssim_u": 0.986435,
+      "ssim_v": 0.987883,
+      "ssim_all": 0.990687
+    },
+    {
+      "input": "testsrc.rgb",
+      "encoder": "x264",
+      "preset": "veryfast",
+      "profile": "high",
+      "mode": "crf",
+      "quality": 33,
+      "slices": 4,
+      "frames": 30,
+      "process_seconds": null,
+      "packet_bytes": 36297,
+      "file_bytes": 37513,
+      "encode_us": 78893,
+      "encode_cpu_us": 149735,
+      "psnr_y": 34.680555,
+      "psnr_u": 36.041185,
+      "psnr_v": 35.724815,
+      "psnr_average": 35.044796,
+      "ssim_y": 0.97248,
+      "ssim_u": 0.977817,
+      "ssim_v": 0.987139,
+      "ssim_all": 0.975812
+    },
+    {
+      "input": "testsrc.rgb",
+      "encoder": "x264",
+      "preset": "ultrafast",
+      "profile": "baseline",
+      "mode": "crf",
+      "quality": 33,
+      "slices": 4,
+      "frames": 30,
+      "process_seconds": null,
+      "packet_bytes": 116425,
+      "file_bytes": 117401,
+      "encode_us": 15636,
+      "encode_cpu_us": 26059,
+      "psnr_y": 41.494024,
+      "psnr_u": 39.69423,
+      "psnr_v": 39.421436,
+      "psnr_average": 40.74763,
+      "ssim_y": 0.991356,
+      "ssim_u": 0.986334,
+      "ssim_v": 0.989571,
+      "ssim_all": 0.990221
+    },
+    {
+      "input": "street.rgb",
+      "encoder": "swag",
+      "qp": 21,
+      "slices": 4,
+      "frames": 30,
+      "encode_us": 169450,
+      "packet_bytes": 419113,
+      "file_bytes": 423200,
+      "source_sha256": "fe552c8ff64b765cdaee2c29711ed42fb1a7e0c85d8f014a8a170d837b6a4c3a",
+      "decoded_sha256": "3d1fe9b7d780055374528d07db572db14506208fc2bd5918ca37ddfbdd53a70f",
+      "psnr_y": 44.273394,
+      "psnr_u": 46.705272,
+      "psnr_v": 47.681994,
+      "psnr_average": 45.041459,
+      "ssim_y": 0.978023,
+      "ssim_u": 0.980675,
+      "ssim_v": 0.98459,
+      "ssim_all": 0.979559
+    },
+    {
+      "input": "street.rgb",
+      "encoder": "x264",
+      "preset": "veryfast",
+      "profile": "baseline",
+      "mode": "qp",
+      "quality": 21,
+      "slices": 4,
+      "frames": 30,
+      "process_seconds": null,
+      "packet_bytes": 419700,
+      "file_bytes": 420676,
+      "encode_us": 75217,
+      "encode_cpu_us": 162647,
+      "psnr_y": 44.959067,
+      "psnr_u": 46.479008,
+      "psnr_v": 47.733622,
+      "psnr_average": 45.553409,
+      "ssim_y": 0.98097,
+      "ssim_u": 0.979476,
+      "ssim_v": 0.984919,
+      "ssim_all": 0.981379
+    },
+    {
+      "input": "street.rgb",
+      "encoder": "x264",
+      "preset": "veryfast",
+      "profile": "high",
+      "mode": "crf",
+      "quality": 21,
+      "slices": 4,
+      "frames": 30,
+      "process_seconds": null,
+      "packet_bytes": 183989,
+      "file_bytes": 185229,
+      "encode_us": 111367,
+      "encode_cpu_us": 227522,
+      "psnr_y": 42.414449,
+      "psnr_u": 44.679387,
+      "psnr_v": 45.941729,
+      "psnr_average": 43.173808,
+      "ssim_y": 0.969777,
+      "ssim_u": 0.971517,
+      "ssim_v": 0.979482,
+      "ssim_all": 0.971685
+    },
+    {
+      "input": "street.rgb",
+      "encoder": "x264",
+      "preset": "ultrafast",
+      "profile": "baseline",
+      "mode": "crf",
+      "quality": 21,
+      "slices": 4,
+      "frames": 30,
+      "process_seconds": null,
+      "packet_bytes": 319342,
+      "file_bytes": 320318,
+      "encode_us": 30739,
+      "encode_cpu_us": 53381,
+      "psnr_y": 40.945313,
+      "psnr_u": 44.15085,
+      "psnr_v": 45.640892,
+      "psnr_average": 41.89887,
+      "ssim_y": 0.954559,
+      "ssim_u": 0.965871,
+      "ssim_v": 0.976394,
+      "ssim_all": 0.960084
+    },
+    {
+      "input": "street.rgb",
+      "encoder": "swag",
+      "qp": 25,
+      "slices": 4,
+      "frames": 30,
+      "encode_us": 144467,
+      "packet_bytes": 222327,
+      "file_bytes": 226414,
+      "source_sha256": "fe552c8ff64b765cdaee2c29711ed42fb1a7e0c85d8f014a8a170d837b6a4c3a",
+      "decoded_sha256": "e017b1d322bca38b19e97d68aa0fce85406ae266cfd4e91c6ab0fda46b957540",
+      "psnr_y": 41.952263,
+      "psnr_u": 44.537521,
+      "psnr_v": 45.828503,
+      "psnr_average": 42.778062,
+      "ssim_y": 0.964565,
+      "ssim_u": 0.970478,
+      "ssim_v": 0.978633,
+      "ssim_all": 0.967895
+    },
+    {
+      "input": "street.rgb",
+      "encoder": "x264",
+      "preset": "veryfast",
+      "profile": "baseline",
+      "mode": "qp",
+      "quality": 25,
+      "slices": 4,
+      "frames": 30,
+      "process_seconds": null,
+      "packet_bytes": 231231,
+      "file_bytes": 232207,
+      "encode_us": 61814,
+      "encode_cpu_us": 127650,
+      "psnr_y": 42.413779,
+      "psnr_u": 44.636794,
+      "psnr_v": 46.042271,
+      "psnr_average": 43.176991,
+      "ssim_y": 0.96785,
+      "ssim_u": 0.97085,
+      "ssim_v": 0.979558,
+      "ssim_all": 0.970302
+    },
+    {
+      "input": "street.rgb",
+      "encoder": "x264",
+      "preset": "veryfast",
+      "profile": "high",
+      "mode": "crf",
+      "quality": 25,
+      "slices": 4,
+      "frames": 30,
+      "process_seconds": null,
+      "packet_bytes": 86621,
+      "file_bytes": 87860,
+      "encode_us": 91691,
+      "encode_cpu_us": 195778,
+      "psnr_y": 39.716192,
+      "psnr_u": 43.276118,
+      "psnr_v": 44.636127,
+      "psnr_average": 40.719196,
+      "ssim_y": 0.946776,
+      "ssim_u": 0.963465,
+      "ssim_v": 0.97448,
+      "ssim_all": 0.954175
+    },
+    {
+      "input": "street.rgb",
+      "encoder": "x264",
+      "preset": "ultrafast",
+      "profile": "baseline",
+      "mode": "crf",
+      "quality": 25,
+      "slices": 4,
+      "frames": 30,
+      "process_seconds": null,
+      "packet_bytes": 165905,
+      "file_bytes": 166881,
+      "encode_us": 25002,
+      "encode_cpu_us": 45093,
+      "psnr_y": 38.570307,
+      "psnr_u": 43.028601,
+      "psnr_v": 44.384956,
+      "psnr_average": 39.705044,
+      "ssim_y": 0.927677,
+      "ssim_u": 0.95852,
+      "ssim_v": 0.970896,
+      "ssim_all": 0.940021
+    },
+    {
+      "input": "street.rgb",
+      "encoder": "swag",
+      "qp": 29,
+      "slices": 4,
+      "frames": 30,
+      "encode_us": 116122,
+      "packet_bytes": 94547,
+      "file_bytes": 98634,
+      "source_sha256": "fe552c8ff64b765cdaee2c29711ed42fb1a7e0c85d8f014a8a170d837b6a4c3a",
+      "decoded_sha256": "4b637def7467cacd27b4a63894d43aedbd40c139434d3d7d6685c13957905825",
+      "psnr_y": 39.339584,
+      "psnr_u": 42.968298,
+      "psnr_v": 44.424296,
+      "psnr_average": 40.359871,
+      "ssim_y": 0.940049,
+      "ssim_u": 0.96069,
+      "ssim_v": 0.97303,
+      "ssim_all": 0.948986
+    },
+    {
+      "input": "street.rgb",
+      "encoder": "x264",
+      "preset": "veryfast",
+      "profile": "baseline",
+      "mode": "qp",
+      "quality": 29,
+      "slices": 4,
+      "frames": 30,
+      "process_seconds": null,
+      "packet_bytes": 95243,
+      "file_bytes": 96219,
+      "encode_us": 41275,
+      "encode_cpu_us": 99821,
+      "psnr_y": 39.338293,
+      "psnr_u": 43.009428,
+      "psnr_v": 44.422884,
+      "psnr_average": 40.362432,
+      "ssim_y": 0.940341,
+      "ssim_u": 0.961159,
+      "ssim_v": 0.973197,
+      "ssim_all": 0.949287
+    },
+    {
+      "input": "street.rgb",
+      "encoder": "x264",
+      "preset": "veryfast",
+      "profile": "high",
+      "mode": "crf",
+      "quality": 29,
+      "slices": 4,
+      "frames": 30,
+      "process_seconds": null,
+      "packet_bytes": 37529,
+      "file_bytes": 38768,
+      "encode_us": 107148,
+      "encode_cpu_us": 188186,
+      "psnr_y": 37.312586,
+      "psnr_u": 42.27894,
+      "psnr_v": 43.624427,
+      "psnr_average": 38.511626,
+      "ssim_y": 0.91147,
+      "ssim_u": 0.957634,
+      "ssim_v": 0.971224,
+      "ssim_all": 0.929123
+    },
+    {
+      "input": "street.rgb",
+      "encoder": "x264",
+      "preset": "ultrafast",
+      "profile": "baseline",
+      "mode": "crf",
+      "quality": 29,
+      "slices": 4,
+      "frames": 30,
+      "process_seconds": null,
+      "packet_bytes": 73285,
+      "file_bytes": 74261,
+      "encode_us": 17150,
+      "encode_cpu_us": 33104,
+      "psnr_y": 36.510961,
+      "psnr_u": 42.112113,
+      "psnr_v": 43.62977,
+      "psnr_average": 37.789892,
+      "ssim_y": 0.893689,
+      "ssim_u": 0.952889,
+      "ssim_v": 0.968523,
+      "ssim_all": 0.916028
+    },
+    {
+      "input": "street.rgb",
+      "encoder": "swag",
+      "qp": 33,
+      "slices": 4,
+      "frames": 30,
+      "encode_us": 97177,
+      "packet_bytes": 44144,
+      "file_bytes": 48231,
+      "source_sha256": "fe552c8ff64b765cdaee2c29711ed42fb1a7e0c85d8f014a8a170d837b6a4c3a",
+      "decoded_sha256": "db45fa6f824fb34ce3ef910d458ad4a10095ea16e1f79c400f0152091b4a8d78",
+      "psnr_y": 37.249574,
+      "psnr_u": 42.070886,
+      "psnr_v": 43.656495,
+      "psnr_average": 38.443122,
+      "ssim_y": 0.907602,
+      "ssim_u": 0.9559,
+      "ssim_v": 0.971354,
+      "ssim_all": 0.926277
+    },
+    {
+      "input": "street.rgb",
+      "encoder": "x264",
+      "preset": "veryfast",
+      "profile": "baseline",
+      "mode": "qp",
+      "quality": 33,
+      "slices": 4,
+      "frames": 30,
+      "process_seconds": null,
+      "packet_bytes": 43630,
+      "file_bytes": 44606,
+      "encode_us": 25367,
+      "encode_cpu_us": 56204,
+      "psnr_y": 36.895524,
+      "psnr_u": 42.121203,
+      "psnr_v": 43.535258,
+      "psnr_average": 38.128537,
+      "ssim_y": 0.901306,
+      "ssim_u": 0.956365,
+      "ssim_v": 0.97072,
+      "ssim_all": 0.922051
+    },
+    {
+      "input": "street.rgb",
+      "encoder": "x264",
+      "preset": "veryfast",
+      "profile": "high",
+      "mode": "crf",
+      "quality": 33,
+      "slices": 4,
+      "frames": 30,
+      "process_seconds": null,
+      "packet_bytes": 17288,
+      "file_bytes": 18528,
+      "encode_us": 82962,
+      "encode_cpu_us": 156254,
+      "psnr_y": 34.895152,
+      "psnr_u": 41.524918,
+      "psnr_v": 42.643897,
+      "psnr_average": 36.256759,
+      "ssim_y": 0.854789,
+      "ssim_u": 0.954594,
+      "ssim_v": 0.968612,
+      "ssim_all": 0.890394
+    },
+    {
+      "input": "street.rgb",
+      "encoder": "x264",
+      "preset": "ultrafast",
+      "profile": "baseline",
+      "mode": "crf",
+      "quality": 33,
+      "slices": 4,
+      "frames": 30,
+      "process_seconds": null,
+      "packet_bytes": 31259,
+      "file_bytes": 32235,
+      "encode_us": 29288,
+      "encode_cpu_us": 45034,
+      "psnr_y": 34.548288,
+      "psnr_u": 41.524898,
+      "psnr_v": 42.999907,
+      "psnr_average": 35.951463,
+      "ssim_y": 0.84562,
+      "ssim_u": 0.951268,
+      "ssim_v": 0.968125,
+      "ssim_all": 0.883645
+    }
+  ],
+  "repeated_encode_timing": [
+    {
+      "clip": "desktop",
+      "encoder": "swag",
+      "config": null,
+      "repeat": 0,
+      "encode_us": 48190,
+      "encode_cpu_us": null,
+      "bytes": 96324
+    },
+    {
+      "clip": "desktop",
+      "encoder": "x264",
+      "config": [
+        "veryfast",
+        "baseline",
+        "qp"
+      ],
+      "repeat": 0,
+      "encode_us": 23703,
+      "encode_cpu_us": 45319,
+      "bytes": 113599
+    },
+    {
+      "clip": "desktop",
+      "encoder": "x264",
+      "config": [
+        "veryfast",
+        "high",
+        "crf"
+      ],
+      "repeat": 0,
+      "encode_us": 37543,
+      "encode_cpu_us": 74272,
+      "bytes": 59949
+    },
+    {
+      "clip": "desktop",
+      "encoder": "x264",
+      "config": [
+        "ultrafast",
+        "baseline",
+        "crf"
+      ],
+      "repeat": 0,
+      "encode_us": 12626,
+      "encode_cpu_us": 26137,
+      "bytes": 138511
+    },
+    {
+      "clip": "gradient",
+      "encoder": "swag",
+      "config": null,
+      "repeat": 0,
+      "encode_us": 113370,
+      "encode_cpu_us": null,
+      "bytes": 83992
+    },
+    {
+      "clip": "gradient",
+      "encoder": "x264",
+      "config": [
+        "veryfast",
+        "baseline",
+        "qp"
+      ],
+      "repeat": 0,
+      "encode_us": 36178,
+      "encode_cpu_us": 89834,
+      "bytes": 126624
+    },
+    {
+      "clip": "gradient",
+      "encoder": "x264",
+      "config": [
+        "veryfast",
+        "high",
+        "crf"
+      ],
+      "repeat": 0,
+      "encode_us": 65155,
+      "encode_cpu_us": 123804,
+      "bytes": 56091
+    },
+    {
+      "clip": "gradient",
+      "encoder": "x264",
+      "config": [
+        "ultrafast",
+        "baseline",
+        "crf"
+      ],
+      "repeat": 0,
+      "encode_us": 12569,
+      "encode_cpu_us": 29591,
+      "bytes": 53953
+    },
+    {
+      "clip": "testsrc",
+      "encoder": "swag",
+      "config": null,
+      "repeat": 0,
+      "encode_us": 50415,
+      "encode_cpu_us": null,
+      "bytes": 186041
+    },
+    {
+      "clip": "testsrc",
+      "encoder": "x264",
+      "config": [
+        "veryfast",
+        "baseline",
+        "qp"
+      ],
+      "repeat": 0,
+      "encode_us": 21707,
+      "encode_cpu_us": 42994,
+      "bytes": 179720
+    },
+    {
+      "clip": "testsrc",
+      "encoder": "x264",
+      "config": [
+        "veryfast",
+        "high",
+        "crf"
+      ],
+      "repeat": 0,
+      "encode_us": 163764,
+      "encode_cpu_us": 325880,
+      "bytes": 80952
+    },
+    {
+      "clip": "testsrc",
+      "encoder": "x264",
+      "config": [
+        "ultrafast",
+        "baseline",
+        "crf"
+      ],
+      "repeat": 0,
+      "encode_us": 20733,
+      "encode_cpu_us": 35283,
+      "bytes": 205929
+    },
+    {
+      "clip": "street",
+      "encoder": "swag",
+      "config": null,
+      "repeat": 0,
+      "encode_us": 158751,
+      "encode_cpu_us": null,
+      "bytes": 222327
+    },
+    {
+      "clip": "street",
+      "encoder": "x264",
+      "config": [
+        "veryfast",
+        "baseline",
+        "qp"
+      ],
+      "repeat": 0,
+      "encode_us": 71221,
+      "encode_cpu_us": 121472,
+      "bytes": 231140
+    },
+    {
+      "clip": "street",
+      "encoder": "x264",
+      "config": [
+        "veryfast",
+        "high",
+        "crf"
+      ],
+      "repeat": 0,
+      "encode_us": 89509,
+      "encode_cpu_us": 181197,
+      "bytes": 86530
+    },
+    {
+      "clip": "street",
+      "encoder": "x264",
+      "config": [
+        "ultrafast",
+        "baseline",
+        "crf"
+      ],
+      "repeat": 0,
+      "encode_us": 20978,
+      "encode_cpu_us": 40350,
+      "bytes": 165814
+    },
+    {
+      "clip": "desktop",
+      "encoder": "x264",
+      "config": [
+        "ultrafast",
+        "baseline",
+        "crf"
+      ],
+      "repeat": 1,
+      "encode_us": 18102,
+      "encode_cpu_us": 35464,
+      "bytes": 138511
+    },
+    {
+      "clip": "desktop",
+      "encoder": "x264",
+      "config": [
+        "veryfast",
+        "high",
+        "crf"
+      ],
+      "repeat": 1,
+      "encode_us": 45522,
+      "encode_cpu_us": 73801,
+      "bytes": 59949
+    },
+    {
+      "clip": "desktop",
+      "encoder": "x264",
+      "config": [
+        "veryfast",
+        "baseline",
+        "qp"
+      ],
+      "repeat": 1,
+      "encode_us": 19304,
+      "encode_cpu_us": 37321,
+      "bytes": 113599
+    },
+    {
+      "clip": "desktop",
+      "encoder": "swag",
+      "config": null,
+      "repeat": 1,
+      "encode_us": 45786,
+      "encode_cpu_us": null,
+      "bytes": 96324
+    },
+    {
+      "clip": "gradient",
+      "encoder": "x264",
+      "config": [
+        "ultrafast",
+        "baseline",
+        "crf"
+      ],
+      "repeat": 1,
+      "encode_us": 16720,
+      "encode_cpu_us": 31174,
+      "bytes": 53953
+    },
+    {
+      "clip": "gradient",
+      "encoder": "x264",
+      "config": [
+        "veryfast",
+        "high",
+        "crf"
+      ],
+      "repeat": 1,
+      "encode_us": 61537,
+      "encode_cpu_us": 132442,
+      "bytes": 56091
+    },
+    {
+      "clip": "gradient",
+      "encoder": "x264",
+      "config": [
+        "veryfast",
+        "baseline",
+        "qp"
+      ],
+      "repeat": 1,
+      "encode_us": 51546,
+      "encode_cpu_us": 116147,
+      "bytes": 126624
+    },
+    {
+      "clip": "gradient",
+      "encoder": "swag",
+      "config": null,
+      "repeat": 1,
+      "encode_us": 103578,
+      "encode_cpu_us": null,
+      "bytes": 83992
+    },
+    {
+      "clip": "testsrc",
+      "encoder": "x264",
+      "config": [
+        "ultrafast",
+        "baseline",
+        "crf"
+      ],
+      "repeat": 1,
+      "encode_us": 15027,
+      "encode_cpu_us": 23116,
+      "bytes": 205929
+    },
+    {
+      "clip": "testsrc",
+      "encoder": "x264",
+      "config": [
+        "veryfast",
+        "high",
+        "crf"
+      ],
+      "repeat": 1,
+      "encode_us": 52046,
+      "encode_cpu_us": 82218,
+      "bytes": 80952
+    },
+    {
+      "clip": "testsrc",
+      "encoder": "x264",
+      "config": [
+        "veryfast",
+        "baseline",
+        "qp"
+      ],
+      "repeat": 1,
+      "encode_us": 18970,
+      "encode_cpu_us": 38349,
+      "bytes": 179720
+    },
+    {
+      "clip": "testsrc",
+      "encoder": "swag",
+      "config": null,
+      "repeat": 1,
+      "encode_us": 49340,
+      "encode_cpu_us": null,
+      "bytes": 186041
+    },
+    {
+      "clip": "street",
+      "encoder": "x264",
+      "config": [
+        "ultrafast",
+        "baseline",
+        "crf"
+      ],
+      "repeat": 1,
+      "encode_us": 19904,
+      "encode_cpu_us": 38401,
+      "bytes": 165814
+    },
+    {
+      "clip": "street",
+      "encoder": "x264",
+      "config": [
+        "veryfast",
+        "high",
+        "crf"
+      ],
+      "repeat": 1,
+      "encode_us": 254840,
+      "encode_cpu_us": 498210,
+      "bytes": 86530
+    },
+    {
+      "clip": "street",
+      "encoder": "x264",
+      "config": [
+        "veryfast",
+        "baseline",
+        "qp"
+      ],
+      "repeat": 1,
+      "encode_us": 59042,
+      "encode_cpu_us": 133649,
+      "bytes": 231140
+    },
+    {
+      "clip": "street",
+      "encoder": "swag",
+      "config": null,
+      "repeat": 1,
+      "encode_us": 158471,
+      "encode_cpu_us": null,
+      "bytes": 222327
+    },
+    {
+      "clip": "desktop",
+      "encoder": "swag",
+      "config": null,
+      "repeat": 2,
+      "encode_us": 43773,
+      "encode_cpu_us": null,
+      "bytes": 96324
+    },
+    {
+      "clip": "desktop",
+      "encoder": "x264",
+      "config": [
+        "veryfast",
+        "baseline",
+        "qp"
+      ],
+      "repeat": 2,
+      "encode_us": 19316,
+      "encode_cpu_us": 36088,
+      "bytes": 113599
+    },
+    {
+      "clip": "desktop",
+      "encoder": "x264",
+      "config": [
+        "veryfast",
+        "high",
+        "crf"
+      ],
+      "repeat": 2,
+      "encode_us": 43685,
+      "encode_cpu_us": 72708,
+      "bytes": 59949
+    },
+    {
+      "clip": "desktop",
+      "encoder": "x264",
+      "config": [
+        "ultrafast",
+        "baseline",
+        "crf"
+      ],
+      "repeat": 2,
+      "encode_us": 12596,
+      "encode_cpu_us": 22947,
+      "bytes": 138511
+    },
+    {
+      "clip": "gradient",
+      "encoder": "swag",
+      "config": null,
+      "repeat": 2,
+      "encode_us": 103764,
+      "encode_cpu_us": null,
+      "bytes": 83992
+    },
+    {
+      "clip": "gradient",
+      "encoder": "x264",
+      "config": [
+        "veryfast",
+        "baseline",
+        "qp"
+      ],
+      "repeat": 2,
+      "encode_us": 36768,
+      "encode_cpu_us": 92263,
+      "bytes": 126624
+    },
+    {
+      "clip": "gradient",
+      "encoder": "x264",
+      "config": [
+        "veryfast",
+        "high",
+        "crf"
+      ],
+      "repeat": 2,
+      "encode_us": 64356,
+      "encode_cpu_us": 123606,
+      "bytes": 56091
+    },
+    {
+      "clip": "gradient",
+      "encoder": "x264",
+      "config": [
+        "ultrafast",
+        "baseline",
+        "crf"
+      ],
+      "repeat": 2,
+      "encode_us": 15753,
+      "encode_cpu_us": 32102,
+      "bytes": 53953
+    },
+    {
+      "clip": "testsrc",
+      "encoder": "swag",
+      "config": null,
+      "repeat": 2,
+      "encode_us": 49255,
+      "encode_cpu_us": null,
+      "bytes": 186041
+    },
+    {
+      "clip": "testsrc",
+      "encoder": "x264",
+      "config": [
+        "veryfast",
+        "baseline",
+        "qp"
+      ],
+      "repeat": 2,
+      "encode_us": 21575,
+      "encode_cpu_us": 44830,
+      "bytes": 179720
+    },
+    {
+      "clip": "testsrc",
+      "encoder": "x264",
+      "config": [
+        "veryfast",
+        "high",
+        "crf"
+      ],
+      "repeat": 2,
+      "encode_us": 46848,
+      "encode_cpu_us": 87005,
+      "bytes": 80952
+    },
+    {
+      "clip": "testsrc",
+      "encoder": "x264",
+      "config": [
+        "ultrafast",
+        "baseline",
+        "crf"
+      ],
+      "repeat": 2,
+      "encode_us": 13246,
+      "encode_cpu_us": 27608,
+      "bytes": 205929
+    },
+    {
+      "clip": "street",
+      "encoder": "swag",
+      "config": null,
+      "repeat": 2,
+      "encode_us": 163468,
+      "encode_cpu_us": null,
+      "bytes": 222327
+    },
+    {
+      "clip": "street",
+      "encoder": "x264",
+      "config": [
+        "veryfast",
+        "baseline",
+        "qp"
+      ],
+      "repeat": 2,
+      "encode_us": 49812,
+      "encode_cpu_us": 117427,
+      "bytes": 231140
+    },
+    {
+      "clip": "street",
+      "encoder": "x264",
+      "config": [
+        "veryfast",
+        "high",
+        "crf"
+      ],
+      "repeat": 2,
+      "encode_us": 89722,
+      "encode_cpu_us": 165904,
+      "bytes": 86530
+    },
+    {
+      "clip": "street",
+      "encoder": "x264",
+      "config": [
+        "ultrafast",
+        "baseline",
+        "crf"
+      ],
+      "repeat": 2,
+      "encode_us": 234825,
+      "encode_cpu_us": 440803,
+      "bytes": 165814
+    },
+    {
+      "clip": "desktop",
+      "encoder": "x264",
+      "config": [
+        "ultrafast",
+        "baseline",
+        "crf"
+      ],
+      "repeat": 3,
+      "encode_us": 15776,
+      "encode_cpu_us": 28172,
+      "bytes": 138511
+    },
+    {
+      "clip": "desktop",
+      "encoder": "x264",
+      "config": [
+        "veryfast",
+        "high",
+        "crf"
+      ],
+      "repeat": 3,
+      "encode_us": 41862,
+      "encode_cpu_us": 72667,
+      "bytes": 59949
+    },
+    {
+      "clip": "desktop",
+      "encoder": "x264",
+      "config": [
+        "veryfast",
+        "baseline",
+        "qp"
+      ],
+      "repeat": 3,
+      "encode_us": 17951,
+      "encode_cpu_us": 34626,
+      "bytes": 113599
+    },
+    {
+      "clip": "desktop",
+      "encoder": "swag",
+      "config": null,
+      "repeat": 3,
+      "encode_us": 47459,
+      "encode_cpu_us": null,
+      "bytes": 96324
+    },
+    {
+      "clip": "gradient",
+      "encoder": "x264",
+      "config": [
+        "ultrafast",
+        "baseline",
+        "crf"
+      ],
+      "repeat": 3,
+      "encode_us": 14322,
+      "encode_cpu_us": 26893,
+      "bytes": 53953
+    },
+    {
+      "clip": "gradient",
+      "encoder": "x264",
+      "config": [
+        "veryfast",
+        "high",
+        "crf"
+      ],
+      "repeat": 3,
+      "encode_us": 59760,
+      "encode_cpu_us": 114270,
+      "bytes": 56091
+    },
+    {
+      "clip": "gradient",
+      "encoder": "x264",
+      "config": [
+        "veryfast",
+        "baseline",
+        "qp"
+      ],
+      "repeat": 3,
+      "encode_us": 39603,
+      "encode_cpu_us": 89084,
+      "bytes": 126624
+    },
+    {
+      "clip": "gradient",
+      "encoder": "swag",
+      "config": null,
+      "repeat": 3,
+      "encode_us": 108642,
+      "encode_cpu_us": null,
+      "bytes": 83992
+    },
+    {
+      "clip": "testsrc",
+      "encoder": "x264",
+      "config": [
+        "ultrafast",
+        "baseline",
+        "crf"
+      ],
+      "repeat": 3,
+      "encode_us": 10599,
+      "encode_cpu_us": 23281,
+      "bytes": 205929
+    },
+    {
+      "clip": "testsrc",
+      "encoder": "x264",
+      "config": [
+        "veryfast",
+        "high",
+        "crf"
+      ],
+      "repeat": 3,
+      "encode_us": 50717,
+      "encode_cpu_us": 90751,
+      "bytes": 80952
+    },
+    {
+      "clip": "testsrc",
+      "encoder": "x264",
+      "config": [
+        "veryfast",
+        "baseline",
+        "qp"
+      ],
+      "repeat": 3,
+      "encode_us": 21818,
+      "encode_cpu_us": 38332,
+      "bytes": 179720
+    },
+    {
+      "clip": "testsrc",
+      "encoder": "swag",
+      "config": null,
+      "repeat": 3,
+      "encode_us": 56659,
+      "encode_cpu_us": null,
+      "bytes": 186041
+    },
+    {
+      "clip": "street",
+      "encoder": "x264",
+      "config": [
+        "ultrafast",
+        "baseline",
+        "crf"
+      ],
+      "repeat": 3,
+      "encode_us": 22077,
+      "encode_cpu_us": 46478,
+      "bytes": 165814
+    },
+    {
+      "clip": "street",
+      "encoder": "x264",
+      "config": [
+        "veryfast",
+        "high",
+        "crf"
+      ],
+      "repeat": 3,
+      "encode_us": 105567,
+      "encode_cpu_us": 189581,
+      "bytes": 86530
+    },
+    {
+      "clip": "street",
+      "encoder": "x264",
+      "config": [
+        "veryfast",
+        "baseline",
+        "qp"
+      ],
+      "repeat": 3,
+      "encode_us": 66862,
+      "encode_cpu_us": 125083,
+      "bytes": 231140
+    },
+    {
+      "clip": "street",
+      "encoder": "swag",
+      "config": null,
+      "repeat": 3,
+      "encode_us": 175398,
+      "encode_cpu_us": null,
+      "bytes": 222327
+    },
+    {
+      "clip": "desktop",
+      "encoder": "swag",
+      "config": null,
+      "repeat": 4,
+      "encode_us": 50001,
+      "encode_cpu_us": null,
+      "bytes": 96324
+    },
+    {
+      "clip": "desktop",
+      "encoder": "x264",
+      "config": [
+        "veryfast",
+        "baseline",
+        "qp"
+      ],
+      "repeat": 4,
+      "encode_us": 21789,
+      "encode_cpu_us": 42172,
+      "bytes": 113599
+    },
+    {
+      "clip": "desktop",
+      "encoder": "x264",
+      "config": [
+        "veryfast",
+        "high",
+        "crf"
+      ],
+      "repeat": 4,
+      "encode_us": 251954,
+      "encode_cpu_us": 325645,
+      "bytes": 59949
+    },
+    {
+      "clip": "desktop",
+      "encoder": "x264",
+      "config": [
+        "ultrafast",
+        "baseline",
+        "crf"
+      ],
+      "repeat": 4,
+      "encode_us": 25060,
+      "encode_cpu_us": 36029,
+      "bytes": 138511
+    },
+    {
+      "clip": "gradient",
+      "encoder": "swag",
+      "config": null,
+      "repeat": 4,
+      "encode_us": 111392,
+      "encode_cpu_us": null,
+      "bytes": 83992
+    },
+    {
+      "clip": "gradient",
+      "encoder": "x264",
+      "config": [
+        "veryfast",
+        "baseline",
+        "qp"
+      ],
+      "repeat": 4,
+      "encode_us": 62861,
+      "encode_cpu_us": 118241,
+      "bytes": 126624
+    },
+    {
+      "clip": "gradient",
+      "encoder": "x264",
+      "config": [
+        "veryfast",
+        "high",
+        "crf"
+      ],
+      "repeat": 4,
+      "encode_us": 78803,
+      "encode_cpu_us": 137528,
+      "bytes": 56091
+    },
+    {
+      "clip": "gradient",
+      "encoder": "x264",
+      "config": [
+        "ultrafast",
+        "baseline",
+        "crf"
+      ],
+      "repeat": 4,
+      "encode_us": 16769,
+      "encode_cpu_us": 30977,
+      "bytes": 53953
+    },
+    {
+      "clip": "testsrc",
+      "encoder": "swag",
+      "config": null,
+      "repeat": 4,
+      "encode_us": 67166,
+      "encode_cpu_us": null,
+      "bytes": 186041
+    },
+    {
+      "clip": "testsrc",
+      "encoder": "x264",
+      "config": [
+        "veryfast",
+        "baseline",
+        "qp"
+      ],
+      "repeat": 4,
+      "encode_us": 20552,
+      "encode_cpu_us": 42504,
+      "bytes": 179720
+    },
+    {
+      "clip": "testsrc",
+      "encoder": "x264",
+      "config": [
+        "veryfast",
+        "high",
+        "crf"
+      ],
+      "repeat": 4,
+      "encode_us": 57654,
+      "encode_cpu_us": 107675,
+      "bytes": 80952
+    },
+    {
+      "clip": "testsrc",
+      "encoder": "x264",
+      "config": [
+        "ultrafast",
+        "baseline",
+        "crf"
+      ],
+      "repeat": 4,
+      "encode_us": 12649,
+      "encode_cpu_us": 24533,
+      "bytes": 205929
+    },
+    {
+      "clip": "street",
+      "encoder": "swag",
+      "config": null,
+      "repeat": 4,
+      "encode_us": 143031,
+      "encode_cpu_us": null,
+      "bytes": 222327
+    },
+    {
+      "clip": "street",
+      "encoder": "x264",
+      "config": [
+        "veryfast",
+        "baseline",
+        "qp"
+      ],
+      "repeat": 4,
+      "encode_us": 140409,
+      "encode_cpu_us": 259196,
+      "bytes": 231140
+    },
+    {
+      "clip": "street",
+      "encoder": "x264",
+      "config": [
+        "veryfast",
+        "high",
+        "crf"
+      ],
+      "repeat": 4,
+      "encode_us": 106219,
+      "encode_cpu_us": 203482,
+      "bytes": 86530
+    },
+    {
+      "clip": "street",
+      "encoder": "x264",
+      "config": [
+        "ultrafast",
+        "baseline",
+        "crf"
+      ],
+      "repeat": 4,
+      "encode_us": 23329,
+      "encode_cpu_us": 48627,
+      "bytes": 165814
+    },
+    {
+      "clip": "desktop",
+      "encoder": "x264",
+      "config": [
+        "ultrafast",
+        "baseline",
+        "crf"
+      ],
+      "repeat": 5,
+      "encode_us": 14813,
+      "encode_cpu_us": 27087,
+      "bytes": 138511
+    },
+    {
+      "clip": "desktop",
+      "encoder": "x264",
+      "config": [
+        "veryfast",
+        "high",
+        "crf"
+      ],
+      "repeat": 5,
+      "encode_us": 72359,
+      "encode_cpu_us": 131456,
+      "bytes": 59949
+    },
+    {
+      "clip": "desktop",
+      "encoder": "x264",
+      "config": [
+        "veryfast",
+        "baseline",
+        "qp"
+      ],
+      "repeat": 5,
+      "encode_us": 53518,
+      "encode_cpu_us": 88247,
+      "bytes": 113599
+    },
+    {
+      "clip": "desktop",
+      "encoder": "swag",
+      "config": null,
+      "repeat": 5,
+      "encode_us": 56645,
+      "encode_cpu_us": null,
+      "bytes": 96324
+    },
+    {
+      "clip": "gradient",
+      "encoder": "x264",
+      "config": [
+        "ultrafast",
+        "baseline",
+        "crf"
+      ],
+      "repeat": 5,
+      "encode_us": 23437,
+      "encode_cpu_us": 42953,
+      "bytes": 53953
+    },
+    {
+      "clip": "gradient",
+      "encoder": "x264",
+      "config": [
+        "veryfast",
+        "high",
+        "crf"
+      ],
+      "repeat": 5,
+      "encode_us": 80769,
+      "encode_cpu_us": 148636,
+      "bytes": 56091
+    },
+    {
+      "clip": "gradient",
+      "encoder": "x264",
+      "config": [
+        "veryfast",
+        "baseline",
+        "qp"
+      ],
+      "repeat": 5,
+      "encode_us": 45703,
+      "encode_cpu_us": 122395,
+      "bytes": 126624
+    },
+    {
+      "clip": "gradient",
+      "encoder": "swag",
+      "config": null,
+      "repeat": 5,
+      "encode_us": 136518,
+      "encode_cpu_us": null,
+      "bytes": 83992
+    },
+    {
+      "clip": "testsrc",
+      "encoder": "x264",
+      "config": [
+        "ultrafast",
+        "baseline",
+        "crf"
+      ],
+      "repeat": 5,
+      "encode_us": 18227,
+      "encode_cpu_us": 33413,
+      "bytes": 205929
+    },
+    {
+      "clip": "testsrc",
+      "encoder": "x264",
+      "config": [
+        "veryfast",
+        "high",
+        "crf"
+      ],
+      "repeat": 5,
+      "encode_us": 49922,
+      "encode_cpu_us": 98261,
+      "bytes": 80952
+    },
+    {
+      "clip": "testsrc",
+      "encoder": "x264",
+      "config": [
+        "veryfast",
+        "baseline",
+        "qp"
+      ],
+      "repeat": 5,
+      "encode_us": 27589,
+      "encode_cpu_us": 50670,
+      "bytes": 179720
+    },
+    {
+      "clip": "testsrc",
+      "encoder": "swag",
+      "config": null,
+      "repeat": 5,
+      "encode_us": 62310,
+      "encode_cpu_us": null,
+      "bytes": 186041
+    },
+    {
+      "clip": "street",
+      "encoder": "x264",
+      "config": [
+        "ultrafast",
+        "baseline",
+        "crf"
+      ],
+      "repeat": 5,
+      "encode_us": 22590,
+      "encode_cpu_us": 46394,
+      "bytes": 165814
+    },
+    {
+      "clip": "street",
+      "encoder": "x264",
+      "config": [
+        "veryfast",
+        "high",
+        "crf"
+      ],
+      "repeat": 5,
+      "encode_us": 97845,
+      "encode_cpu_us": 194107,
+      "bytes": 86530
+    },
+    {
+      "clip": "street",
+      "encoder": "x264",
+      "config": [
+        "veryfast",
+        "baseline",
+        "qp"
+      ],
+      "repeat": 5,
+      "encode_us": 65519,
+      "encode_cpu_us": 125779,
+      "bytes": 231140
+    },
+    {
+      "clip": "street",
+      "encoder": "swag",
+      "config": null,
+      "repeat": 5,
+      "encode_us": 156639,
+      "encode_cpu_us": null,
+      "bytes": 222327
+    },
+    {
+      "clip": "desktop",
+      "encoder": "swag",
+      "config": null,
+      "repeat": 6,
+      "encode_us": 103524,
+      "encode_cpu_us": null,
+      "bytes": 96324
+    },
+    {
+      "clip": "desktop",
+      "encoder": "x264",
+      "config": [
+        "veryfast",
+        "baseline",
+        "qp"
+      ],
+      "repeat": 6,
+      "encode_us": 40913,
+      "encode_cpu_us": 71828,
+      "bytes": 113599
+    },
+    {
+      "clip": "desktop",
+      "encoder": "x264",
+      "config": [
+        "veryfast",
+        "high",
+        "crf"
+      ],
+      "repeat": 6,
+      "encode_us": 74498,
+      "encode_cpu_us": 130547,
+      "bytes": 59949
+    },
+    {
+      "clip": "desktop",
+      "encoder": "x264",
+      "config": [
+        "ultrafast",
+        "baseline",
+        "crf"
+      ],
+      "repeat": 6,
+      "encode_us": 18377,
+      "encode_cpu_us": 33735,
+      "bytes": 138511
+    },
+    {
+      "clip": "gradient",
+      "encoder": "swag",
+      "config": null,
+      "repeat": 6,
+      "encode_us": 123678,
+      "encode_cpu_us": null,
+      "bytes": 83992
+    },
+    {
+      "clip": "gradient",
+      "encoder": "x264",
+      "config": [
+        "veryfast",
+        "baseline",
+        "qp"
+      ],
+      "repeat": 6,
+      "encode_us": 47116,
+      "encode_cpu_us": 118069,
+      "bytes": 126624
+    },
+    {
+      "clip": "gradient",
+      "encoder": "x264",
+      "config": [
+        "veryfast",
+        "high",
+        "crf"
+      ],
+      "repeat": 6,
+      "encode_us": 70901,
+      "encode_cpu_us": 139316,
+      "bytes": 56091
+    },
+    {
+      "clip": "gradient",
+      "encoder": "x264",
+      "config": [
+        "ultrafast",
+        "baseline",
+        "crf"
+      ],
+      "repeat": 6,
+      "encode_us": 20047,
+      "encode_cpu_us": 33281,
+      "bytes": 53953
+    },
+    {
+      "clip": "testsrc",
+      "encoder": "swag",
+      "config": null,
+      "repeat": 6,
+      "encode_us": 64746,
+      "encode_cpu_us": null,
+      "bytes": 186041
+    },
+    {
+      "clip": "testsrc",
+      "encoder": "x264",
+      "config": [
+        "veryfast",
+        "baseline",
+        "qp"
+      ],
+      "repeat": 6,
+      "encode_us": 29179,
+      "encode_cpu_us": 50455,
+      "bytes": 179720
+    },
+    {
+      "clip": "testsrc",
+      "encoder": "x264",
+      "config": [
+        "veryfast",
+        "high",
+        "crf"
+      ],
+      "repeat": 6,
+      "encode_us": 58880,
+      "encode_cpu_us": 96503,
+      "bytes": 80952
+    },
+    {
+      "clip": "testsrc",
+      "encoder": "x264",
+      "config": [
+        "ultrafast",
+        "baseline",
+        "crf"
+      ],
+      "repeat": 6,
+      "encode_us": 15622,
+      "encode_cpu_us": 28984,
+      "bytes": 205929
+    },
+    {
+      "clip": "street",
+      "encoder": "swag",
+      "config": null,
+      "repeat": 6,
+      "encode_us": 174693,
+      "encode_cpu_us": null,
+      "bytes": 222327
+    },
+    {
+      "clip": "street",
+      "encoder": "x264",
+      "config": [
+        "veryfast",
+        "baseline",
+        "qp"
+      ],
+      "repeat": 6,
+      "encode_us": 58386,
+      "encode_cpu_us": 143233,
+      "bytes": 231140
+    },
+    {
+      "clip": "street",
+      "encoder": "x264",
+      "config": [
+        "veryfast",
+        "high",
+        "crf"
+      ],
+      "repeat": 6,
+      "encode_us": 113024,
+      "encode_cpu_us": 239192,
+      "bytes": 86530
+    },
+    {
+      "clip": "street",
+      "encoder": "x264",
+      "config": [
+        "ultrafast",
+        "baseline",
+        "crf"
+      ],
+      "repeat": 6,
+      "encode_us": 103150,
+      "encode_cpu_us": 158860,
+      "bytes": 165814
+    }
+  ]
+}

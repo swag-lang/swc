@@ -14,6 +14,47 @@ private const FullLines        = 1_024'u64
 private const FullBands        = 49'u64
 private const MaximumBandBoost = 48's32
 
+private const MaxMagnitude     = 15
+private const SignedMagnitudes = 2 * MaxMagnitude + 1
+private alias SpectralPairCodes = [SignedMagnitudes, SignedMagnitudes] u32
+
+private func buildSpectralPairCodes()->SpectralPairCodes
+{
+    var entries: SpectralPairCodes
+    let codes  = specCodes(10)
+    let widths = specBits(10)
+    for left in SignedMagnitudes
+    {
+        let first = cast(s32, left) - MaxMagnitude
+        for right in SignedMagnitudes
+        {
+            let second = cast(s32, right) - MaxMagnitude
+            let symbol = Math.abs(first) * 17 + Math.abs(second)
+            var code   = cast(u32, codes[symbol])
+            var width  = cast(u32, widths[symbol])
+            if first
+            {
+                code  = (code << 1) | cast(u32, first < 0)
+                width += 1
+            }
+
+            if second
+            {
+                code  = (code << 1) | cast(u32, second < 0)
+                width += 1
+            }
+
+            Swag.require(width <= 16)
+            entries[left, right] = (width << 16) | code
+        }
+    }
+
+    return entries
+}
+
+// Book 11 puts the sign bits after the Huffman word, in coefficient order.
+private const PackedSpectralPairs = #run buildSpectralPairCodes()
+
 internal struct EncoderSectionCode
 {
     value: u32
@@ -73,17 +114,18 @@ struct Encoder
 {
     private
     {
-        transform:  Mdct
-        window:     [2 * EncoderFrames] f32
-        previous:   [2, 1_024] s16
-        silent:     SilenceEncoder
-        config:     [2] u8
-        channels:   u16
-        sampleRate: u32
-        lineCount:  u64
-        bandCount:  u64
-        bitCount:   u64
-        output:     Array'u8
+        transform:   Mdct
+        window:      [2 * EncoderFrames] f32
+        previous:    [2, 1_024] s16
+        silent:      SilenceEncoder
+        config:      [2] u8
+        channels:    u16
+        sampleRate:  u32
+        lineCount:   u64
+        bandCount:   u64
+        bitWord:     u32
+        pendingBits: u32
+        output:      Array'u8
     }
 }
 
@@ -161,7 +203,8 @@ impl Encoder
         }
 
         .output.clear()
-        .bitCount = 0
+        .bitWord     = 0
+        .pendingBits = 0
         if .channels == 2
         {
             .writeBits(1, 3)     // Channel pair element.
@@ -229,8 +272,15 @@ impl Encoder
                 let factor = Math.pow(2.0, 0.25 * cast(f64, selected - 100))
                 for line in offsets[band] until offsets[band + 1]
                 {
-                    let value     = spectrum[line]
-                    let magnitude = Math.min(15's32, cast(s32, Math.round(Math.pow(Math.abs(value) / factor, 0.75))))
+                    let value  = spectrum[line]
+                    let scaled = Math.abs(value) / factor
+
+                    // Near a half-integer, retain the reference rounding decision.
+                    let powered = Math.sqrt(scaled * Math.sqrt(scaled))
+                    var rounded = Math.round(powered)
+                    if powered < MaxMagnitude and Math.abs(powered - rounded) >= 0.5 - 1e-12 do
+                        rounded = Math.round(Math.pow(scaled, 0.75))
+                    let magnitude = Math.min(MaxMagnitude, cast(s32, rounded))
                     quantized[line] = value < 0 ? -magnitude : magnitude
                     if magnitude do
                         active[band] = true
@@ -259,21 +309,13 @@ impl Encoder
             .writeBits(0, 1)     // No pulse data.
             .writeBits(0, 1)     // No TNS.
             .writeBits(0, 1)     // No gain control.
-            let bits  = specBits(10)
-            let codes = specCodes(10)
             for band in .bandCount where active[band]
             {
                 var line = cast(u64, offsets[band])
                 while line < offsets[band + 1]
                 {
-                    let first  = quantized[line]
-                    let second = quantized[line + 1]
-                    let symbol = cast(u64, Math.abs(first) * 17 + Math.abs(second))
-                    .writeBits(codes[symbol], bits[symbol])
-                    if first do
-                        .writeBits(first < 0 ? 1 : 0, 1)
-                    if second do
-                        .writeBits(second < 0 ? 1 : 0, 1)
+                    let pair = PackedSpectralPairs[quantized[line] + MaxMagnitude, quantized[line + 1] + MaxMagnitude]
+                    .writeBits(pair & 0xFFFF, pair >> 16)
                     line += 2
                 }
             }
@@ -283,6 +325,8 @@ impl Encoder
         }
 
         .writeBits(7, 3)     // End element.
+        if .pendingBits do
+            .output.add(cast(u8, (.bitWord << (8 - .pendingBits)) & 255))
         packet.add(.output.toSlice())
     }
 }
@@ -291,14 +335,13 @@ private impl Encoder
 {
     mtd writeBits(value: u32, count: u32)
     {
-        for index in count
+        // An AAC word is at most 19 bits and at most seven bits are pending.
+        .bitWord     = (.bitWord << count) | value
+        .pendingBits += count
+        while .pendingBits >= 8
         {
-            if .bitCount == .output.count * 8 do
-                .output.add(0'u8)
-            .output[.bitCount >> 3] |= cast(u8,
-                                            ((value >> (count - index - 1)) & 1) <<
-                                            (7 - cast(u32, .bitCount & 7)))
-            .bitCount += 1
+            .pendingBits -= 8
+            .output.add(cast(u8, (.bitWord >> .pendingBits) & 255))
         }
     }
 }

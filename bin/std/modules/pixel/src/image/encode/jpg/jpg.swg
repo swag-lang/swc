@@ -173,7 +173,7 @@ internal struct Encoder
 
         stream: *ConcatBuffer?     // Output buffer segments are appended to.
 
-        bitBuffer: u32     // Pending entropy bits, right-aligned in the accumulator.
+        bitBuffer: u64     // Pending entropy bits, right-aligned in the accumulator.
         bitCount:  u32     // Number of valid bits held in 'bitBuffer'.
 
         outBuf:   [OutBufSize] u8     // Bytes staged before they reach 'stream'.
@@ -196,11 +196,6 @@ internal struct Encoder
         duCb: [64] s16     // Blue-chroma samples of the current block.
         duCr: [64] s16     // Red-chroma samples of the current block.
         du:   [64] s16     // Quantized coefficients of the current block, in zigzag order.
-
-        categoryAlloc: Array'u8            // Storage for the magnitude-category table.
-        category:      [*] u8?             // Magnitude-category table, biased to signed input.
-        bitcodeAlloc:  Array'BitString     // Storage for the magnitude-code table.
-        bitcode:       [*] BitString?      // Magnitude-code table, biased to signed input.
     }
 }
 
@@ -338,7 +333,6 @@ internal impl IImageEncoder for Encoder
         .setDQTinfo()
         .setDHTinfo()
         .initHuffmanTables()
-        .setNumbersCategoryAndBitcode()
         .prepareQuantTables()
 
         .writeWord(0xFFD8)     // SOI

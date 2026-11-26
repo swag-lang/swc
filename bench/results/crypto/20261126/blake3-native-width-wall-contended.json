@@ -1,0 +1,579 @@
+{
+  "utc": "2026-11-26T15:12:00.116970+00:00",
+  "system": "Linux-6.18.57-x86_64-with-glibc2.41",
+  "cpu": 0,
+  "affinity": [
+    0,
+    1,
+    2,
+    3
+  ],
+  "workers": {
+    "narrow": 4,
+    "wide": 4,
+    "hybrid": 4
+  },
+  "processor": {
+    "model name": "AMD EPYC 9V74 80-Core Processor",
+    "microcode": "0x1000065",
+    "flags": "fpu vme de pse tsc msr pae mce cx8 apic sep mtrr pge mca cmov pat pse36 clflush mmx fxsr sse sse2 ht syscall nx mmxext fxsr_opt pdpe1gb rdtscp lm constant_tsc rep_good nopl xtopology nonstop_tsc cpuid extd_apicid tsc_known_freq pni pclmulqdq ssse3 fma cx16 pcid sse4_1 sse4_2 x2apic movbe popcnt tsc_deadline_timer aes xsave avx f16c rdrand hypervisor lahf_lm cmp_legacy cr8_legacy abm sse4a misalignsse 3dnowprefetch osvw topoext cpuid_fault vmmcall fsgsbase tsc_adjust bmi1 avx2 smep bmi2 erms invpcid avx512f avx512dq rdseed adx smap avx512ifma clflushopt clwb avx512cd sha_ni avx512bw avx512vl xsaveopt xsavec xgetbv1 xsaves avx512_bf16 clzero xsaveerptr arat npt nrip_save tsc_scale vmcb_clean flushbyasid pausefilter pfthreshold v_vmsave_vmload avx512vbmi umip avx512_vbmi2 gfni vaes vpclmulqdq avx512_vnni avx512_bitalg avx512_vpopcntdq rdpid fsrm arch_capabilities"
+  },
+  "reference_build": "BLAKE3 C 1.8.7 | dispatch width 16 | oneTBB 2022.1.0",
+  "reference_sha256": "3ba7dd0d836e87dbeeaf113e677d1fb016965c869e2cd4eb3b44e46964da76be",
+  "swag_builds": {
+    "narrow": "1248e0e982f5dbef09effd28917e1e083233bafb7930241d4b455d77953561d9",
+    "wide": "0bacb1aeb5b2b5c0e33b0fd82e48b4565e5251787dbe53d36c14f267e956f390",
+    "hybrid": "80c78c9e9ff7aa6ed14d4a4a95a81da2907a7c08594f150af68642f176582d65"
+  },
+  "rounds": 11,
+  "target_ms": 17,
+  "clock": "wall",
+  "rows": [
+    {
+      "algorithm": "blake3",
+      "bytes": 8388608,
+      "offset": 0,
+      "input_sha256": "ade1e9c1570b805b0b6bb760a570b3db94883af4443f42fb63a15e0904251298",
+      "output_sha256": "d82f87dfcb44bad2a6ac04ea48601a1aa611e855c3ceaec164233d651e984be3",
+      "samples": {
+        "BLAKE3 C": {
+          "iterations": 13,
+          "wall": [
+            0.025370813,
+            0.017103043,
+            0.018093618,
+            0.028111247,
+            0.032555419,
+            0.033947138,
+            0.025939201,
+            0.030298695,
+            0.030318996,
+            0.030266236,
+            0.029723999
+          ],
+          "cpu": [
+            0.017333283,
+            0.017074538,
+            0.018053295,
+            0.017648895,
+            0.018146547,
+            0.021876299,
+            0.017770704,
+            0.017778517,
+            0.017766288,
+            0.017497919,
+            0.017708182
+          ]
+        },
+        "BLAKE3 C TBB 2": {
+          "iterations": 7,
+          "wall": [
+            0.006844493,
+            0.011258961,
+            0.010097388,
+            0.01271108,
+            0.015463852,
+            0.027471122,
+            0.009956937,
+            0.013030032,
+            0.012659964,
+            0.00999242,
+            0.013086527
+          ],
+          "cpu": [
+            0.006841639,
+            0.008728519,
+            0.010090567,
+            0.00974988,
+            0.0101728,
+            0.01958247,
+            0.010372717,
+            0.010078218,
+            0.009687617,
+            0.010113943,
+            0.009980282
+          ]
+        },
+        "BLAKE3 C TBB 4": {
+          "iterations": 11,
+          "wall": [
+            0.009786139,
+            0.021858607,
+            0.016857574,
+            0.025050971,
+            0.024927174,
+            0.0167357,
+            0.014095999,
+            0.022411661,
+            0.014860151,
+            0.017865114,
+            0.015981232
+          ],
+          "cpu": [
+            0.014601445,
+            0.01713725,
+            0.016766189,
+            0.014997015,
+            0.016793419,
+            0.013433672,
+            0.014005146,
+            0.016455077,
+            0.016431801,
+            0.013369611,
+            0.016130052
+          ]
+        },
+        "narrow": {
+          "iterations": 2,
+          "wall": [
+            0.005273193,
+            0.011969261,
+            0.008111543,
+            0.009229139,
+            0.015974683,
+            0.00907774,
+            0.008644648,
+            0.012653603,
+            0.012714175,
+            0.011166981,
+            0.011128643
+          ],
+          "cpu": [
+            0.011856536,
+            0.0117932,
+            0.011638203,
+            0.011906872,
+            0.017993396,
+            0.014391124,
+            0.011302492,
+            0.011260079,
+            0.011613276,
+            0.011216424,
+            0.010916226
+          ]
+        },
+        "wide": {
+          "iterations": 9,
+          "wall": [
+            0.031288918,
+            0.048429279,
+            0.035907113,
+            0.040247339,
+            0.048353766,
+            0.052123101,
+            0.041230012,
+            0.038184058,
+            0.032010768,
+            0.040056822,
+            0.046920605
+          ],
+          "cpu": [
+            0.047740747,
+            0.04345288,
+            0.043581577,
+            0.041236159,
+            0.062929807,
+            0.061632336,
+            0.044592728,
+            0.043811741,
+            0.043085703,
+            0.041401427,
+            0.043426237
+          ]
+        },
+        "hybrid": {
+          "iterations": 6,
+          "wall": [
+            0.030508491,
+            0.014560069,
+            0.024571378,
+            0.023157886,
+            0.034362305,
+            0.034283625,
+            0.025641862,
+            0.0225439,
+            0.023003383,
+            0.023938504,
+            0.043927941
+          ],
+          "cpu": [
+            0.035529228,
+            0.02787957,
+            0.02994874,
+            0.028131814,
+            0.032936028,
+            0.041913366,
+            0.028514045,
+            0.028063811,
+            0.029207698,
+            0.028233942,
+            0.030618568
+          ]
+        }
+      },
+      "round_order": [
+        [
+          "BLAKE3 C TBB 4",
+          "BLAKE3 C TBB 2",
+          "BLAKE3 C",
+          "hybrid",
+          "narrow",
+          "wide"
+        ],
+        [
+          "hybrid",
+          "BLAKE3 C",
+          "BLAKE3 C TBB 4",
+          "narrow",
+          "BLAKE3 C TBB 2",
+          "wide"
+        ],
+        [
+          "BLAKE3 C",
+          "BLAKE3 C TBB 2",
+          "hybrid",
+          "narrow",
+          "BLAKE3 C TBB 4",
+          "wide"
+        ],
+        [
+          "wide",
+          "BLAKE3 C TBB 2",
+          "BLAKE3 C",
+          "narrow",
+          "BLAKE3 C TBB 4",
+          "hybrid"
+        ],
+        [
+          "BLAKE3 C TBB 2",
+          "BLAKE3 C",
+          "BLAKE3 C TBB 4",
+          "hybrid",
+          "wide",
+          "narrow"
+        ],
+        [
+          "narrow",
+          "wide",
+          "BLAKE3 C TBB 2",
+          "hybrid",
+          "BLAKE3 C",
+          "BLAKE3 C TBB 4"
+        ],
+        [
+          "BLAKE3 C",
+          "wide",
+          "hybrid",
+          "narrow",
+          "BLAKE3 C TBB 2",
+          "BLAKE3 C TBB 4"
+        ],
+        [
+          "BLAKE3 C TBB 4",
+          "BLAKE3 C",
+          "hybrid",
+          "wide",
+          "narrow",
+          "BLAKE3 C TBB 2"
+        ],
+        [
+          "BLAKE3 C TBB 2",
+          "wide",
+          "hybrid",
+          "narrow",
+          "BLAKE3 C",
+          "BLAKE3 C TBB 4"
+        ],
+        [
+          "BLAKE3 C TBB 4",
+          "narrow",
+          "hybrid",
+          "wide",
+          "BLAKE3 C TBB 2",
+          "BLAKE3 C"
+        ],
+        [
+          "wide",
+          "BLAKE3 C",
+          "narrow",
+          "hybrid",
+          "BLAKE3 C TBB 2",
+          "BLAKE3 C TBB 4"
+        ]
+      ]
+    },
+    {
+      "algorithm": "blake3",
+      "bytes": 33554432,
+      "offset": 0,
+      "input_sha256": "918b2032f3b6c2f026d357c78de1b3bfa182ef66a681c2cd92527db549fde2b1",
+      "output_sha256": "9989b8f3e5334b320e626eb20d8ab2572231a5ba9eb4f84053625b99d7f15b26",
+      "samples": {
+        "BLAKE3 C": {
+          "iterations": 1,
+          "wall": [
+            0.016919627,
+            0.016786527,
+            0.012981759,
+            0.011839536,
+            0.012814145,
+            0.007026407,
+            0.011880588,
+            0.016737593,
+            0.010968011,
+            0.016724824,
+            0.011113551
+          ],
+          "cpu": [
+            0.006998222,
+            0.007091882,
+            0.008911812,
+            0.007127033,
+            0.007724603,
+            0.006999935,
+            0.007227574,
+            0.007025573,
+            0.006950471,
+            0.007289495,
+            0.007108245
+          ]
+        },
+        "BLAKE3 C TBB 2": {
+          "iterations": 2,
+          "wall": [
+            0.011995181,
+            0.018909328,
+            0.012377468,
+            0.021187078,
+            0.01789646,
+            0.014668403,
+            0.013056491,
+            0.015676863,
+            0.01294973,
+            0.013940704,
+            0.014597185
+          ],
+          "cpu": [
+            0.01459855,
+            0.013175813,
+            0.014947981,
+            0.019309742,
+            0.014967159,
+            0.014639702,
+            0.011962665,
+            0.013131355,
+            0.011031608,
+            0.013938718,
+            0.014594755
+          ]
+        },
+        "BLAKE3 C TBB 4": {
+          "iterations": 2,
+          "wall": [
+            0.015983566,
+            0.01456734,
+            0.011814507,
+            0.011970914,
+            0.011948751,
+            0.013681063,
+            0.013674442,
+            0.014460248,
+            0.011783091,
+            0.015985247,
+            0.011887098
+          ],
+          "cpu": [
+            0.012932081,
+            0.014949384,
+            0.015259847,
+            0.013624851,
+            0.015189021,
+            0.016136831,
+            0.013151336,
+            0.007620979,
+            0.011879721,
+            0.015018014,
+            0.015314977
+          ]
+        },
+        "narrow": {
+          "iterations": 1,
+          "wall": [
+            0.020129318,
+            0.019370825,
+            0.023470127,
+            0.017979166,
+            0.01595312,
+            0.019073016,
+            0.017364999,
+            0.020469991,
+            0.029226377,
+            0.012926134,
+            0.020195748
+          ],
+          "cpu": [
+            0.023647647,
+            0.023497465,
+            0.023466758,
+            0.023383894,
+            0.023397535,
+            0.023426778,
+            0.02417513,
+            0.024237887,
+            0.024584103,
+            0.023666606,
+            0.024497531
+          ]
+        },
+        "wide": {
+          "iterations": 1,
+          "wall": [
+            0.016946157,
+            0.020228668,
+            0.015721681,
+            0.015857296,
+            0.015158311,
+            0.021895953,
+            0.011779214,
+            0.019761753,
+            0.020064019,
+            0.019510755,
+            0.024384876
+          ],
+          "cpu": [
+            0.019747986,
+            0.019551837,
+            0.020107735,
+            0.01943273,
+            0.020329396,
+            0.020110999,
+            0.019399709,
+            0.020340171,
+            0.019150519,
+            0.020101616,
+            0.021044369
+          ]
+        },
+        "hybrid": {
+          "iterations": 1,
+          "wall": [
+            0.022012048,
+            0.022744633,
+            0.016737323,
+            0.015686478,
+            0.19594572,
+            0.015818687,
+            0.016535117,
+            0.015846089,
+            0.017440904,
+            0.019107347,
+            0.020549201
+          ],
+          "cpu": [
+            0.020309185,
+            0.019896019,
+            0.019680479,
+            0.019751104,
+            0.281026664,
+            0.019379723,
+            0.019750417,
+            0.019774138,
+            0.019156319,
+            0.019705937,
+            0.020440379
+          ]
+        }
+      },
+      "round_order": [
+        [
+          "BLAKE3 C TBB 2",
+          "narrow",
+          "wide",
+          "BLAKE3 C TBB 4",
+          "BLAKE3 C",
+          "hybrid"
+        ],
+        [
+          "BLAKE3 C TBB 4",
+          "BLAKE3 C TBB 2",
+          "hybrid",
+          "BLAKE3 C",
+          "narrow",
+          "wide"
+        ],
+        [
+          "hybrid",
+          "narrow",
+          "BLAKE3 C TBB 4",
+          "BLAKE3 C",
+          "BLAKE3 C TBB 2",
+          "wide"
+        ],
+        [
+          "hybrid",
+          "narrow",
+          "BLAKE3 C TBB 4",
+          "BLAKE3 C TBB 2",
+          "BLAKE3 C",
+          "wide"
+        ],
+        [
+          "BLAKE3 C TBB 2",
+          "BLAKE3 C TBB 4",
+          "BLAKE3 C",
+          "wide",
+          "narrow",
+          "hybrid"
+        ],
+        [
+          "BLAKE3 C TBB 4",
+          "wide",
+          "narrow",
+          "BLAKE3 C",
+          "hybrid",
+          "BLAKE3 C TBB 2"
+        ],
+        [
+          "narrow",
+          "wide",
+          "BLAKE3 C",
+          "BLAKE3 C TBB 4",
+          "hybrid",
+          "BLAKE3 C TBB 2"
+        ],
+        [
+          "BLAKE3 C TBB 4",
+          "BLAKE3 C TBB 2",
+          "hybrid",
+          "narrow",
+          "wide",
+          "BLAKE3 C"
+        ],
+        [
+          "BLAKE3 C TBB 4",
+          "narrow",
+          "hybrid",
+          "BLAKE3 C",
+          "BLAKE3 C TBB 2",
+          "wide"
+        ],
+        [
+          "narrow",
+          "wide",
+          "BLAKE3 C TBB 2",
+          "hybrid",
+          "BLAKE3 C",
+          "BLAKE3 C TBB 4"
+        ],
+        [
+          "BLAKE3 C",
+          "BLAKE3 C TBB 4",
+          "wide",
+          "narrow",
+          "BLAKE3 C TBB 2",
+          "hybrid"
+        ]
+      ]
+    }
+  ]
+}

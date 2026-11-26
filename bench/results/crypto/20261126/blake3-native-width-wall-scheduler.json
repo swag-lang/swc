@@ -1,0 +1,207 @@
+{
+  "cgroup_cpu_max": "400000 100000",
+  "report-wall": {
+    "snapshots": {
+      "before": {
+        "time": "2026-11-26T16:12:00,034785502+01:00",
+        "cpu": {
+          "usage_usec": 47384581876,
+          "user_usec": 44122987874,
+          "system_usec": 3261594002,
+          "nice_usec": 6410034338,
+          "nr_periods": 140762,
+          "nr_throttled": 52971,
+          "throttled_usec": 3615629236,
+          "nr_bursts": 0,
+          "burst_usec": 0
+        },
+        "compiler_process_states": {
+          "R    swc": 1,
+          "SN   g++-14": 4,
+          "RN   cc1plus": 4
+        }
+      },
+      "after": {
+        "time": "2026-11-26T16:12:09,469409814+01:00",
+        "cpu": {
+          "usage_usec": 47422013519,
+          "user_usec": 44156260057,
+          "system_usec": 3265753461,
+          "nice_usec": 6429805797,
+          "nr_periods": 140856,
+          "nr_throttled": 53001,
+          "throttled_usec": 3615831372,
+          "nr_bursts": 0,
+          "burst_usec": 0
+        },
+        "compiler_process_states": {
+          "R    swc": 2,
+          "SN   g++-14": 4,
+          "RN   cc1plus": 4
+        }
+      }
+    },
+    "cpu_deltas": {
+      "usage_usec": 37431643,
+      "user_usec": 33272183,
+      "system_usec": 4159459,
+      "nice_usec": 19771459,
+      "nr_periods": 94,
+      "nr_throttled": 30,
+      "throttled_usec": 202136,
+      "nr_bursts": 0,
+      "burst_usec": 0
+    },
+    "rows": [
+      {
+        "size": 8388608,
+        "rates": {
+          "BLAKE3 C": 3.668816702624704,
+          "BLAKE3 C TBB 2": 4.638264058254826,
+          "BLAKE3 C TBB 4": 5.4737821705543155,
+          "narrow": 1.507570689436259,
+          "wide": 1.8758376050650205,
+          "hybrid": 2.048385239118457
+        },
+        "active_workers": {
+          "BLAKE3 C": 0.6278232694551047,
+          "BLAKE3 C TBB 2": 0.7734607251923863,
+          "BLAKE3 C TBB 4": 0.8026955550111439,
+          "narrow": 1.1263695185688505,
+          "wide": 1.1473830518484966,
+          "hybrid": 1.2147833355773494
+        },
+        "hybrid_ratio": {
+          "value": 1.1955934578829865,
+          "low": 0.7600157949583844,
+          "high": 1.6838616654616103
+        }
+      },
+      {
+        "size": 33554432,
+        "rates": {
+          "BLAKE3 C": 2.6185463017626223,
+          "BLAKE3 C TBB 2": 4.597383947658401,
+          "BLAKE3 C TBB 4": 4.907612610445091,
+          "narrow": 1.7322149159883482,
+          "wide": 1.7197915713666643,
+          "hybrid": 1.9238929358248862
+        },
+        "active_workers": {
+          "BLAKE3 C": 0.6028184478948849,
+          "BLAKE3 C TBB 2": 0.9162235856479356,
+          "BLAKE3 C TBB 4": 1.0262260646075398,
+          "narrow": 1.2130337763105081,
+          "wide": 1.0302838613882446,
+          "hybrid": 1.1758438909256876
+        },
+        "hybrid_ratio": {
+          "value": 1.0501890612567182,
+          "low": 0.6765007198539913,
+          "high": 1.4022628947293423
+        }
+      }
+    ]
+  },
+  "report-wall-repeat": {
+    "snapshots": {
+      "before": {
+        "time": "2026-11-26T16:16:40,041915799+01:00",
+        "cpu": {
+          "usage_usec": 48354965852,
+          "user_usec": 45015081976,
+          "system_usec": 3339883876,
+          "nice_usec": 6887888521,
+          "nr_periods": 143419,
+          "nr_throttled": 54036,
+          "throttled_usec": 3648921801,
+          "nr_bursts": 0,
+          "burst_usec": 0
+        },
+        "compiler_process_states": {
+          "TN   g++-14": 4,
+          "TN   cc1plus": 4
+        }
+      },
+      "after": {
+        "time": "2026-11-26T16:16:47,375896149+01:00",
+        "cpu": {
+          "usage_usec": 48366668817,
+          "user_usec": 45022907417,
+          "system_usec": 3343761400,
+          "nice_usec": 6887888521,
+          "nr_periods": 143492,
+          "nr_throttled": 54036,
+          "throttled_usec": 3648921801,
+          "nr_bursts": 0,
+          "burst_usec": 0
+        },
+        "compiler_process_states": {
+          "TN   g++-14": 4,
+          "TN   cc1plus": 4
+        }
+      }
+    },
+    "cpu_deltas": {
+      "usage_usec": 11702965,
+      "user_usec": 7825441,
+      "system_usec": 3877524,
+      "nice_usec": 0,
+      "nr_periods": 73,
+      "nr_throttled": 0,
+      "throttled_usec": 0,
+      "nr_bursts": 0,
+      "burst_usec": 0
+    },
+    "rows": [
+      {
+        "size": 8388608,
+        "rates": {
+          "BLAKE3 C": 6.195974249514714,
+          "BLAKE3 C TBB 2": 12.0731790020436,
+          "BLAKE3 C TBB 4": 20.177648659248018,
+          "narrow": 3.1491906475881177,
+          "wide": 3.942292230016408,
+          "hybrid": 3.856277834675286
+        },
+        "active_workers": {
+          "BLAKE3 C": 0.9998486395948502,
+          "BLAKE3 C TBB 2": 1.830550542973508,
+          "BLAKE3 C TBB 4": 3.9113931702583793,
+          "narrow": 2.408891097208602,
+          "wide": 2.2289868775018404,
+          "hybrid": 2.2571489997444116
+        },
+        "hybrid_ratio": {
+          "value": 1.2116931578797343,
+          "low": 1.1154633637143043,
+          "high": 1.2860348306689506
+        }
+      },
+      {
+        "size": 33554432,
+        "rates": {
+          "BLAKE3 C": 4.9592023877289915,
+          "BLAKE3 C TBB 2": 10.166990943937739,
+          "BLAKE3 C TBB 4": 17.7310208020021,
+          "narrow": 3.43933952493261,
+          "wide": 3.8038510520255016,
+          "hybrid": 3.914567764263317
+        },
+        "active_workers": {
+          "BLAKE3 C": 0.9997473600598603,
+          "BLAKE3 C TBB 2": 1.8062378345559127,
+          "BLAKE3 C TBB 4": 3.6242470972044734,
+          "narrow": 2.5624866269214817,
+          "wide": 2.434433023168771,
+          "hybrid": 2.3641717065461854
+        },
+        "hybrid_ratio": {
+          "value": 1.1595277156495742,
+          "low": 1.0725600481589859,
+          "high": 1.349702409611934
+        }
+      }
+    ]
+  }
+}

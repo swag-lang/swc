@@ -72,7 +72,7 @@ int main(int argc, char **argv)
         return EXIT_SUCCESS;
     }
 
-    require(argc == 7, "expected mode, font path, face index, glyph, size and sample count");
+    require(argc == 7 || argc == 8, "expected mode, font path, face index, glyph, size, sample count and optional warmups");
     enum source_kind source = FILE_PATH;
     if (strcmp(argv[1], "snapshot") == 0)
         source = OWNED_SNAPSHOT;
@@ -111,7 +111,9 @@ int main(int argc, char **argv)
     unsigned long open_bytes = 0;
     unsigned long glyph_bytes = 0;
     unsigned long glyph = 0;
-    const unsigned long warmups = 5;
+    char *warmup_end = NULL;
+    const unsigned long warmups = argc == 8 ? strtoul(argv[7], &warmup_end, 0) : 5;
+    require(warmups <= 100000 && (!warmup_end || (warmup_end != argv[7] && !*warmup_end)), "invalid warmup count");
     FT_Size_RequestRec size = {FT_SIZE_REQUEST_TYPE_NOMINAL, 0, pixels * 64, 0, 0};
     for (unsigned long i = 0; i < samples + warmups; ++i)
     {

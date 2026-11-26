@@ -31,6 +31,10 @@ using Swag, Core
     let partial = expect readParallelFontRange(&stream, Start, destination.toSlice(), 4)
     Swag.require(partial.ok and partial.count == original.count - Start)
     Swag.require(Slice.equals(original.toSlice()[Start to], destination.toSlice()[0 until partial.count]))
+    destination.resize(original.count + 101)
+    let short = expect readParallelFontRange(&stream, 0, destination.toSlice(), 4)
+    Swag.require(short.ok and short.count == original.count)
+    Swag.require(Slice.equals(original.toSlice(), destination.toSlice()[0 until short.count]))
     Swag.require(expect stream.position() == 11)
 
     let snapshot = expect FontSource.loadFile(path)

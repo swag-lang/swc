@@ -683,3 +683,31 @@ points, tags, contour ends, and rendered bitmap bytes.
 In the 11-batch repeat on three files, Open Sans at 64 px moves from 2.632
 to 2.001 µs per outline. Gowun Batang moves from 11.954 to 8.624 µs and
 Noto Sans SC from 6.895 to 4.822 µs at the same size.
+
+## First positional font read
+
+Large Linux reads submit their independent ranges before reading the first
+range on the caller. Each task writes its own part of the same buffer. The
+join preserves the contiguous prefix and the file stream's position.
+
+Each timed run opens and renders one face in a fresh process from a warmed
+filesystem cache. The Swag probes request four workers and are pinned to
+four logical CPUs. Both build variants use the same worker setup. One
+series includes lazy pool startup and the other prestarts it. The medians
+use 21 interleaved cases per face. FreeType 2.14.3 also opens one face in
+a fresh process. The baseline is `08cc42d7d8`.
+[Raw timings, WOFF controls, and one-worker repeat](font-decode-linux-first-read.json)
+
+| Fixture | First before (ms) | First after (ms) | Prestarted before (ms) | Prestarted after (ms) | FreeType first (ms) |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| `NotoSansCJK-Regular.ttc` | 9.856 | 6.205 | 7.532 | 5.067 | 1.532 |
+| `NotoSansCJKjp-Regular.otf` | 9.197 | 5.981 | 7.442 | 5.756 | 1.549 |
+| `NotoSerifCJK-Regular.ttc` | 13.259 | 10.428 | 10.887 | 7.387 | 1.702 |
+| `GowunBatang-Regular.ttf` | 4.122 | 3.300 | 3.996 | 2.488 | 1.237 |
+| `NotoSerifCJKjp-Regular.otf` | 11.930 | 8.287 | 11.186 | 7.872 | 1.739 |
+
+The first opens above improve by 20–37%, and the prestarted runs by 23–38%.
+The WOFF controls include a 12% increase on Noto Sans SC with lazy worker
+startup and a 0.5% increase with the prestarted pool. Glyph indices,
+advances, dimensions, and CRC-64 agree across the two Swag builds for
+every run. FreeType selects the same glyph indices.

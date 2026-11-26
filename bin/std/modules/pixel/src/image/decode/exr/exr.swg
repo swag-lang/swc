@@ -829,7 +829,7 @@ impl Part
     }
 
     #[Swag.NoInline]
-    mtd const decodeZipBatches(buffer: const [..] u8, index: u32, multipart: bool, linesPerChunk: u64, options: DecodeOptions, image: *Image, layout: const *ScanlineLayout, seenRows: [..] bool) fail
+    mtd const decodeScanlineBatches(buffer: const [..] u8, index: u32, multipart: bool, linesPerChunk: u64, largePacking: bool, options: DecodeOptions, image: *Image, layout: const *ScanlineLayout, seenRows: [..] bool) fail
     {
         var chunks: Array'ScanlineChunk
         chunks.reserve(.chunkCount)
@@ -848,7 +848,7 @@ impl Part
                 break
         }
 
-        let workers = chunks.count >= 2 and compressedBytes >= 512 * 1024 ? Swag.workerCount() : 0
+        let workers = chunks.count >= 2 and (largePacking or compressedBytes >= 512 * 1024) ? Swag.workerCount() : 0
         if workers <= 1
         {
             var scratch: ScanlineScratch = {}
@@ -938,15 +938,20 @@ impl Part
         seenRows.resize(cast(u64, .info.height))
         var layout: ScanlineLayout = {channelOffsets, grayBytes, alphaBytes, halfChannels, grayscale, grayHalf, halfColor, floatColor, alphaFirst}
 
+        // Wide images can spend enough time packing stored samples to benefit from workers.
+        const LargeImageBytes = 64'u64 * 1024 * 1024
+        let largePacking = .rowBytes >= 8 * 1024 and
+                           buffer.count >= LargeImageBytes and
+                           result.byteCount >= LargeImageBytes
+
         // A fully stored single part needs a table entry and a scanline header per block.
-        // Let the serial path copy these blocks without an auxiliary chunk index.
-        if .compression and
-           .chunkCount >= 8 and
-           buffer.count >= 512 * 1024 and
-           result.byteCount >= 1024 * 1024 and
-           (multipart or buffer.count < .tableOffset + .chunkCount * 16 + result.byteCount)
+        let compressed = .compression and
+                         buffer.count >= 512 * 1024 and
+                         result.byteCount >= 1024 * 1024 and
+                         (multipart or buffer.count < .tableOffset + .chunkCount * 16 + result.byteCount)
+        if .chunkCount >= 8 and (largePacking or compressed)
         {
-            try .decodeZipBatches(buffer, index, multipart, linesPerChunk, options, &result, &layout, seenRows.toSlice())
+            try .decodeScanlineBatches(buffer, index, multipart, linesPerChunk, largePacking, options, &result, &layout, seenRows.toSlice())
             return result
         }
 

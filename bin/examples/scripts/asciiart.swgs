@@ -40,24 +40,23 @@ func setImage(image: Image)
         g_Lines.add(line)
     }
 
-    let dlg = FileDlg.create(unwrap surface, opt)
-    if dlg.doModal() != Dialog.BtnOk
-    {
-        return
-    }
-
-    var errOutcome: Swag.Error
-    catch { g_Img = try Image.load(dlg.selectedPath()) } as errOutcome
-    let err = errOutcome.value()
-    if err != null
-    {
-        MessageDlg.error(surface, "Failed to load image", err)
-    }
+    g_TextSize = {columns * cellWidth, rows * lineHeight}
 }
 
 func openImage(wnd: *Wnd)
 {
-    if not g_Img.isValid()
+    let surface = unwrap wnd.surface
+    with var options: FileDlgOptions
+    {
+        .mode              = .SelectFile
+        .title             = "Open Image"
+        .confirmButtonText = "Open"
+        .shortcuts.add({type: Env.SpecialDirectory.UserPictures, name: "Pictures"})
+        .filters.add({name: "Images", extensions: ".png;.jpg;.jpeg;.bmp;.tga;.gif;.webp;.tiff"})
+    }
+
+    let dialog = FileDlg.create(surface, options)
+    if dialog.doModal() != Dialog.BtnOk
     {
         return
     }
@@ -104,28 +103,8 @@ func onEvent(wnd: *Wnd, evt: IEvent)->bool
         g_Font = wnd.theme().createDefaultFontFs(14)
         setImage(expect Image.decode(".jpg", #include("../assets/balloon.jpg")))
 
-    case PaintEvent as paintEvt:
-        if not g_Img.isValid()
-        {
-            break
-        }
-
-        let painter = paintEvt.paintContext.painter
-
-        const GrayRamp = "$@B%8&WM#*oahkbdpqwmZO0QLCJUYXzcvunxrjft/|()1{}[?]?-_+~<>i!lI;:,\"^`\'. "
-
-        let size = cast(f32, g_Font.size) * 0.8
-
-        for x in g_Img.width
-        {
-            for y in g_Img.height
-            {
-                let col = g_Img.pixelColor(x, y)
-                let idx = Math.map(cast(f32, col.r), 0, 255, 0, cast(f32, GrayRamp.count))
-                let v   = Swag.makeString(GrayRamp.buffer + cast(s32, idx), 1)
-                painter.drawString(x * size, y * size, v, g_Font, Argb.White)
-            }
-        }
+    case PaintEvent as paint:
+        drawPreview(wnd, paint.paintContext.painter)
     }
 
     return false

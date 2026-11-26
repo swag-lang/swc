@@ -98,7 +98,13 @@ func onEvent(wnd: *Wnd, evt: IEvent)->bool
 
         if g_Texture.isValid()
         {
-            painter.drawTexture(0, 0, cast(f32, width), cast(f32, height), g_Texture)
+            let client = wnd.clientRect()
+            let room   = Math.Rectangle{24, 64, client.width - 48, client.height - 88}
+            if room.width > 0 and room.height > 0
+            {
+                let dest = Math.Rectangle.fittedWithin({0, 0, g_Image.width, g_Image.height}, room)
+                painter.drawTexture(dest, g_Texture)
+            }
         }
 
         return true

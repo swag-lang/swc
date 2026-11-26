@@ -107,7 +107,11 @@ func onEvent(wnd: *Wnd, evt: IEvent)->bool
 
         if g_Texture.isValid()
         {
-            painter.drawTexture(cast(f32, UX), 0, cast(f32, W), cast(f32, H), g_Texture)
+            let client = wnd.clientRect()
+            let left   = SettingsWidth + 2 * Margin
+            let room   = Math.Rectangle{left, Margin, client.width - left - Margin, client.height - 2 * Margin}
+            let dest   = Math.Rectangle.fittedWithin({0, 0, Resolution, Resolution}, room)
+            painter.drawTexture(dest, g_Texture)
         }
     }
 

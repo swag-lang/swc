@@ -15,6 +15,7 @@ var counter = 0
 var currentColor: Color
 var drops:        Array!{*Drop}
 var lastPos:      Vector2
+late var g_HintFont: *Font
 
 #init
 {
@@ -172,9 +173,17 @@ func onEvent(wnd: *Wnd, evt: IEvent)->bool
             newDrop = true
         }
 
-        for drop in drops
+        if drops.isEmpty()
         {
-            drop.show(painter)
+            let bounds = wnd.clientRect()
+            painter.drawStringCenter(bounds.horzCenter(), bounds.vertCenter(), "Drag to add ink", g_HintFont, wnd.themeColors().softText)
+        }
+        else
+        {
+            for drop in drops
+            {
+                drop.show(painter)
+            }
         }
 
         wnd.invalidate()

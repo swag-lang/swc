@@ -76,6 +76,32 @@ private struct Ac3Block
 // `chbwcod` is defined from 0 through 60; larger six-bit values are reserved.
 private const MaxChannelBandwidthCode = 60'u32
 
+private const DitherMultiplier = 1_664_525'u32
+private const DitherIncrement  = 1_013_904_223'u32
+
+private struct DitherSteps
+{
+    multipliers: [4] u32
+    increments:  [4] u32
+}
+
+private const DitherQuads: DitherSteps = #run
+{
+    var result: DitherSteps
+    var multiplier = 1'u32
+    var increment  = 0'u32
+    for lane in 4
+    {
+        multiplier               *= #wrap DitherMultiplier
+        increment                *= #wrap DitherMultiplier
+        increment                += #wrap DitherIncrement
+        result.multipliers[lane] = multiplier
+        result.increments[lane]  = increment
+    }
+
+    return result
+}
+
 // A block reusing its bit allocation also reuses the matching dequantization gains.
 private struct Ac3MantissaGains
 {
@@ -233,9 +259,38 @@ private impl Ac3Codec
     #[Swag.Inline]
     mtd ditherWithGain(gain: f64)->f64
     {
-        .ditherState *= #wrap 1_664_525
-        .ditherState += #wrap 1_013_904_223
+        .ditherState *= #wrap DitherMultiplier
+        .ditherState += #wrap DitherIncrement
         return cast(f64, cast(s32, (.ditherState >> 8)) - 8_388_608) * gain
+    }
+
+    // Four consecutive BAP-zero bins consume four dither states in order.
+    #[Swag.Inline]
+    mtd(Scaled: bool) writeDitherQuad(destination: [*] f64, gains: const [*] f64, couplingScale: f64)
+    {
+        const Advance   = cast(Simd.U32x4, DitherQuads.multipliers)
+        const Increment = cast(Simd.U32x4, DitherQuads.increments)
+        const Bias      = cast(Simd.U32x4, [0x4330_0000'u32, 0x4330_0000, 0x4330_0000, 0x4330_0000])
+        const Center    = cast(Simd.F64x2, [4_503_599_635_759_104.0'f64, 4_503_599_635_759_104.0])
+        let states = Simd.splat(.ditherState) * Advance + Increment
+        .ditherState = states[3]
+
+        // Put the 24-bit integer beside the exponent for 2^52, then subtract
+        // 2^52 + 2^23 to recover the exact centered dither integers.
+        let fractions = states >> 8
+        let low       = cast #bit(Simd.F64x2, Simd.interleaveLow(fractions, Bias))
+        let high      = cast #bit(Simd.F64x2, Simd.interleaveHigh(fractions, Bias))
+        var first     = (low - Center) * Simd.load(gains)
+        var second    = (high - Center) * Simd.load(gains + 2)
+        if Scaled
+        {
+            let scale = Simd.splat(couplingScale)
+            first  *= scale
+            second *= scale
+        }
+
+        Simd.store(destination, first)
+        Simd.store(destination + 2, second)
     }
 
     mtd readCoupling(reader: *BitReader, bsi: const *Ac3Bsi) fail
@@ -463,15 +518,34 @@ private impl Ac3Codec
         var couplingMantissas: [216] f64
         for channel in bsi.nfchans
         {
-            Memory.set(&.coefficients[channel, 0], 0, SamplesPerBlock * #sizeof(f64))
-            for bin in cast(u64, block.channelEnd[channel])
+            let output = cast([*] f64, &.coefficients[channel, 0])
+            let codes  = cast(const [*] s32, &block.channelBap[channel, 0])
+            let gains  = cast(const [*] f64, &.mantissaGains.channel[channel, 0])
+            let end    = cast(u64, block.channelEnd[channel])
+            let dither = block.dither[channel]
+            let zero   = Simd.splat(0's32)
+            Memory.set(output, 0, SamplesPerBlock * #sizeof(f64))
+            var bin = 0'u64
+            while bin < end
             {
-                let code = block.channelBap[channel, bin]
-                let gain = .mantissaGains.channel[channel, bin]
-                if code do
-                    .coefficients[channel, bin] = mantissas.getPrepared(code, gain)
-                elif block.dither[channel] do
-                    .coefficients[channel, bin] = .ditherWithGain(gain)
+                let code = codes[bin]
+                if code
+                {
+                    output[bin] = mantissas.getPrepared(code, gains[bin])
+                }
+                elif dither
+                {
+                    if bin + 4 <= end and Simd.allTrue(Simd.load(codes + bin) == zero)
+                    {
+                        .writeDitherQuad'false(output + bin, gains + bin, 1.0)
+                        bin += 4
+                        continue
+                    }
+
+                    output[bin] = .ditherWithGain(gains[bin])
+                }
+
+                bin += 1
             }
 
             if block.coupling and block.channelCoupled[channel] and not couplingRead
@@ -492,18 +566,34 @@ private impl Ac3Codec
 
         if block.coupling
         {
+            let couplingCodes = cast(const [*] s32, &block.couplingBap)
+            let zero = Simd.splat(0's32)
             for channel in bsi.nfchans where block.channelCoupled[channel]
             {
+                let dither      = block.dither[channel]
+                let destination = cast([*] f64, &.coefficients[channel, block.couplingStart])
                 for subband in block.couplingSubbands
                 {
-                    for bin in 12
+                    let scale = block.couplingCoord[channel, subband] * 8.0
+                    let first = subband * 12
+                    for quad in 3
                     {
-                        let source = subband * 12 + bin
-                        var value  = couplingMantissas[source]
-                        if not value and block.dither[channel] do
-                            value = .ditherWithGain(PreparedMantissaGain[0, block.couplingExponents[source]])
-                        let destination = (subband + block.couplingBegin) * 12 + bin + 37
-                        .coefficients[channel, destination] = value * block.couplingCoord[channel, subband] * 8.0
+                        let source = first + quad * 4
+                        if dither and Simd.allTrue(Simd.load(couplingCodes + source) == zero)
+                        {
+                            .writeDitherQuad'true(destination + source, &.mantissaGains.coupling[source], scale)
+                        }
+                        else
+                        {
+                            for offset in 4
+                            {
+                                let index = source + offset
+                                var value = couplingMantissas[index]
+                                if not value and dither do
+                                    value = .ditherWithGain(PreparedMantissaGain[0, block.couplingExponents[index]])
+                                destination[index] = value * scale
+                            }
+                        }
                     }
                 }
             }

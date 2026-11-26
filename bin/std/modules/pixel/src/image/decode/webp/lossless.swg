@@ -13,15 +13,21 @@ using Core, Core.Errors
 // @NOTICE: /bin/THIRDPARTY.md#go-x-image
 
 const LOSSLESS_COLOR_CACHE_MULTIPLIER = 0x1E35A7BD'u32
-const LOSSLESS_LUT_BITS               = 7'u32
-const LOSSLESS_LUT_MASK               = (1 << LOSSLESS_LUT_BITS) - 1
-const LOSSLESS_LEAF_NODE              = -1's32
-const LOSSLESS_MAX_CODE_LENGTH        = 15'u32
-const LOSSLESS_LITERAL_CODES          = 256'u32
-const LOSSLESS_LENGTH_CODES           = 24'u32
-const LOSSLESS_DISTANCE_CODES         = 40'u32
-const LOSSLESS_HUFFMAN_TREES          = 5
-const LOSSLESS_MAX_HUFFMAN_GROUPS     = 2600
+const LOSSLESS_LUT_BITS = 8'u32
+const LOSSLESS_LUT_MASK = (1 << LOSSLESS_LUT_BITS) - 1
+
+// The largest alphabet is green with 2,048 cache entries. A direct entry
+// therefore fits a 12-bit symbol with a 4-bit length plus one.
+const LOSSLESS_LUT_SYMBOL_BITS    = 12
+const LOSSLESS_LUT_SYMBOL_MASK    = 0xFFF
+const LOSSLESS_LUT_NODE_BASE      = (LOSSLESS_LUT_BITS + 2) << LOSSLESS_LUT_SYMBOL_BITS
+const LOSSLESS_LEAF_NODE          = -1's32
+const LOSSLESS_MAX_CODE_LENGTH    = 15'u32
+const LOSSLESS_LITERAL_CODES      = 256'u32
+const LOSSLESS_LENGTH_CODES       = 24'u32
+const LOSSLESS_DISTANCE_CODES     = 40'u32
+const LOSSLESS_HUFFMAN_TREES      = 5
+const LOSSLESS_MAX_HUFFMAN_GROUPS = 2600
 
 const LOSSLESS_HUFF_GREEN    = 0
 const LOSSLESS_HUFF_RED      = 1
@@ -121,7 +127,7 @@ struct LosslessHuffmanTree
     nodes:     Array'LosslessHuffmanNode
     nodeCount: u32
     maxLength: u32
-    lut:       [1 << LOSSLESS_LUT_BITS] u32
+    lut:       [1 << LOSSLESS_LUT_BITS] u16
 }
 
 struct LosslessHuffmanGroup
@@ -147,22 +153,24 @@ impl LosslessHuffmanGroup
         {
             var bits = cast(u32, prefix)
             let red  = .trees[LOSSLESS_HUFF_RED].lut[bits & LOSSLESS_LUT_MASK]
-            if not (red & 0xFF) do
+            if not red or red >= LOSSLESS_LUT_NODE_BASE do
                 return
-            let redBits = (red & 0xFF) - 1
+            let redBits = cast(u32, red >> LOSSLESS_LUT_SYMBOL_BITS) - 1
             bits >>= redBits
             let blue = .trees[LOSSLESS_HUFF_BLUE].lut[bits & LOSSLESS_LUT_MASK]
-            if not (blue & 0xFF) do
+            if not blue or blue >= LOSSLESS_LUT_NODE_BASE do
                 return
-            let blueBits = (blue & 0xFF) - 1
+            let blueBits = cast(u32, blue >> LOSSLESS_LUT_SYMBOL_BITS) - 1
             bits >>= blueBits
             let alpha = .trees[LOSSLESS_HUFF_ALPHA].lut[bits & LOSSLESS_LUT_MASK]
-            if not (alpha & 0xFF) do
+            if not alpha or alpha >= LOSSLESS_LUT_NODE_BASE do
                 return
-            let length = redBits + blueBits + (alpha & 0xFF)
+            let length = redBits + blueBits + (alpha >> LOSSLESS_LUT_SYMBOL_BITS)
 
             // The green byte stores the combined bit count plus one.
-            entries[prefix] = (red >> 8) | (length << 8) | ((blue >> 8) << 16) | ((alpha >> 8) << 24)
+            entries[prefix] = cast(u32, red & LOSSLESS_LUT_SYMBOL_MASK) | (length << 8) |
+                              (cast(u32, blue & LOSSLESS_LUT_SYMBOL_MASK) << 16) |
+                              (cast(u32, alpha & LOSSLESS_LUT_SYMBOL_MASK) << 24)
         }
 
         .literalMask = count - 1
@@ -219,7 +227,7 @@ impl LosslessHuffmanTree
 {
     mtd insert(symbol, code, codeLength: u32) fail
     {
-        if symbol > 0xFFFF or codeLength > 0xFE do
+        if symbol > LOSSLESS_LUT_SYMBOL_MASK or codeLength > LOSSLESS_MAX_CODE_LENGTH do
             try losslessTreeError()
 
         var baseCode: u32
@@ -233,7 +241,7 @@ impl LosslessHuffmanTree
             baseCode = cast(u32, losslessReverseByte(cast(u8, (code & 0xFF)))) >> (8 - codeLength)
             let count = 1'u32 << (LOSSLESS_LUT_BITS - codeLength)
             for i in count do
-                .lut[baseCode | (i << codeLength)] = (symbol << 8) | (codeLength + 1)
+                .lut[baseCode | (i << codeLength)] = cast(u16, (((codeLength + 1) << LOSSLESS_LUT_SYMBOL_BITS) | symbol))
         }
 
         var node      = 0'u32
@@ -262,7 +270,7 @@ impl LosslessHuffmanTree
             {
                 jump -= 1
                 if jump == 0 and .lut[baseCode] == 0 do
-                    .lut[baseCode] = node << 8
+                    .lut[baseCode] = cast(u16, LOSSLESS_LUT_NODE_BASE + node)
             }
         }
 
@@ -359,17 +367,16 @@ impl LosslessHuffmanTree
 
         if reader.nBits >= LOSSLESS_LUT_BITS
         {
-            let entry    = .lut[reader.bits & LOSSLESS_LUT_MASK]
-            let bitCount = entry & 0xFF
-            if bitCount
+            let entry = cast(u32, .lut[reader.bits & LOSSLESS_LUT_MASK])
+            if entry and entry < LOSSLESS_LUT_NODE_BASE
             {
-                let consumed = bitCount - 1
+                let consumed = (entry >> LOSSLESS_LUT_SYMBOL_BITS) - 1
                 reader.bits  >>= consumed
                 reader.nBits -= consumed
-                return entry >> 8
+                return entry & LOSSLESS_LUT_SYMBOL_MASK
             }
 
-            node         = entry >> 8
+            node         = entry ? entry - LOSSLESS_LUT_NODE_BASE : 0
             reader.bits  >>= LOSSLESS_LUT_BITS
             reader.nBits -= LOSSLESS_LUT_BITS
         }
@@ -782,6 +789,7 @@ func losslessDecodePixels(reader: *LosslessBitReader, result: *Array'u8, width, 
             while cachedOffset < offset
             {
                 let rgba = cast(const [*] u32, output + cachedOffset)[0]
+
                 // The WebP hash uses ARGB, while the decoded pixels are stored as RGBA.
                 let argb = (rgba & 0xFF00FF00'u32) | ((rgba & 0xFF) << 16) | ((rgba >> 16) & 0xFF)
                 colorCache[(argb * #wrap LOSSLESS_COLOR_CACHE_MULTIPLIER) >> colorCacheShift] = rgba

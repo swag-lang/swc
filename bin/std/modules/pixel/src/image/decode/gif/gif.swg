@@ -17,7 +17,7 @@ private
     struct Palette
     {
         size:   s32
-        colors: [0x100 * 3] u8
+        colors: const [*] u8?
     }
 
     struct Gce
@@ -42,37 +42,25 @@ public struct Decoder
 
     private
     {
-        width:      u16           // Width of the logical screen.
-        height:     u16           // Height of the logical screen.
-        loopCount:  u16           // Loop count from the animation extension, zero for endless.
-        gce:        Gce           // Graphic control extension of the current frame.
-        palette:    *Palette?     // Palette the current frame resolves against.
-        lct:        Palette       // Local color table of the current frame.
-        gct:        Palette       // Global color table of the stream.
-        fx:         u16           // Left edge of the current frame in the logical screen.
-        fy:         u16           // Top edge of the current frame in the logical screen.
-        fw:         u16           // Width of the current frame.
-        fh:         u16           // Height of the current frame.
-        bgIndex:    u8            // Background color index of the logical screen.
-        interlaced: bool          // Whether the current frame stores rows in four passes.
-        frame:      Array'u8      // Palette indices of the frame in encoded row order.
+        width:     u16          // Width of the logical screen.
+        height:    u16          // Height of the logical screen.
+        loopCount: u16          // Loop count from the animation extension, zero for endless.
+        gce:       Gce          // Graphic control extension attached to the next frame.
+        gct:       Palette      // Global color table of the stream.
+        bgIndex:   u8           // Background color index of the logical screen.
+        frame:     Array'u8     // Palette indices of the frame in encoded row order.
 
-        streamStart:         const [*] u8?     // Start of the input, kept for looping.
-        stream:              const [*] u8?     // Current read position in the input.
-        streamLen:           u64     // Bytes remaining from 'stream'.
-        descriptorOffset:    u64
-        descriptorRemaining: u64
-        hasLoopExtension:    bool
-        reader:              ImageReader
-        nextIndex:           u32
+        stream:           const [*] u8?     // Current read position in the input.
+        streamLen:        u64     // Bytes remaining from 'stream'.
+        hasLoopExtension: bool
+        reader:           ImageReader
+        nextIndex:        u32
     }
 }
 
 impl Decoder
 {
-    mtd safeStream()->const [*] u8      => cast(const [*] u8, unwrap .stream)
-    mtd safeStreamStart()->const [*] u8 => cast(const [*] u8, unwrap .streamStart)
-    mtd safePalette()->*Palette         => cast(*Palette, unwrap .palette)
+    mtd safeStream()->const [*] u8 => cast(const [*] u8, unwrap .stream)
 }
 
 public impl Decoder
@@ -94,7 +82,7 @@ public impl Decoder
         Swag.drop(me, 1)
         Swag.init(me, 1)
 
-        .streamStart, .stream = buffer.buffer
+        .stream    = buffer.buffer
         .streamLen = buffer.count
 
         // Header
@@ -126,8 +114,8 @@ public impl Decoder
         // Aspect ratio
         discard .readU8()
 
-        .read(.gct.colors, 3'u64 * .gct.size)
-        .palette = &.gct
+        .gct.colors = .stream
+        .seek(3'u64 * .gct.size)
     }
 
     // Decodes the next composited frame into `image`.
@@ -185,9 +173,16 @@ public impl IImageDecoder for Decoder
 
 struct IndexedFrame
 {
-    offset:    u64
-    remaining: u64
-    control:   Gce
+    data:            const [*] u8?
+    palette:         Palette
+    control:         Gce
+    x:               u16
+    y:               u16
+    width:           u16
+    height:          u16
+    minKeySize:      u8
+    interlaced:      bool
+    copyLzwPrefixes: bool
 }
 
 struct SetDecoder
@@ -207,29 +202,22 @@ impl IImageDecoder for SetDecoder
         if info.frames.isEmpty() do
             fail InvalidFormatError{"image container has no representative image"}
 
-        // The one-shot caller keeps the input alive until this first frame is returned.
         let descriptor = &info.frames[0]
-        var rectangle  = try .readRectangle(0, options, clearTransparent: true)
-        if not options.decodePixels
-        {
-            var result: #returntype
-            result.init(info.canvasWidth, info.canvasHeight, .RGBA8)
-            result.metadata = rectangle.metadata
+        var result: #returntype
+        result.init(info.canvasWidth, info.canvasHeight, options.decodePixels ? descriptor.pixelFormat : .RGBA8)
+        if not options.decodePixels do
             return result
-        }
 
-        if rectangle.width == info.canvasWidth and rectangle.height == info.canvasHeight do
-            return #move rectangle
+        let indexed = &.frames[0]
+        try .decoder.decodeIndices(indexed)
+        result.allocPixels()
+        if descriptor.width != info.canvasWidth or descriptor.height != info.canvasHeight do
+            result.fill(info.background)
 
-        // GIF's first frame draws opaque colors onto a solid background and leaves transparent pixels empty.
-        var result = Image.create(info.canvasWidth, info.canvasHeight, rectangle.pixelFormat)
-        result.fill(info.background)
-        result.metadata = rectangle.metadata
-        let bottom = result.height - descriptor.y - rectangle.height
+        // The decoded rectangle can be expanded directly into the final, bottom-up canvas.
+        let bottom = result.height - descriptor.y - descriptor.height
         let target = result.pixels.storage() + cast(u64, bottom) * result.rowStride + cast(u64, descriptor.x) * result.bytesPerPixel
-        let source = rectangle.pixels.storage()
-        for y in rectangle.height do
-            Memory.copy(target + cast(u64, y) * result.rowStride, source + cast(u64, y) * rectangle.rowStride, cast(u64, rectangle.rowStride))
+        try .decoder.writePixels(indexed, target, result.rowStride, result.pixelFormat == .RGBA8, clearTransparent: true)
         return result
     }
 }
@@ -246,15 +234,16 @@ impl IImageSetDecoder for SetDecoder
         result.canvasHeight = .decoder.height
         if .decoder.bgIndex < .decoder.gct.size
         {
-            let color = cast(const [*] u8, &.decoder.gct.colors[cast(u32, .decoder.bgIndex) * 3])
+            let color = cast(const [*] u8, unwrap .decoder.gct.colors) + cast(u32, .decoder.bgIndex) * 3
             result.background = {r: color[0], g: color[1], b: color[2], a: 255}
         }
 
-        while try .decoder.getFrame(false)
+        var indexed: IndexedFrame
+        while try .decoder.getFrame(&indexed)
         {
             try options.checkFrameCount(.frames.count + 1)
-            .frames.add(IndexedFrame{.decoder.descriptorOffset, .decoder.descriptorRemaining, .decoder.gce})
-            let control = .decoder.gce
+            .frames.add(indexed)
+            let control = indexed.control
             var disposal: ImageDisposal
             if control.disposal == 3 do
                 disposal = .Previous
@@ -265,10 +254,10 @@ impl IImageSetDecoder for SetDecoder
 
             let frame: ImageFrameInfo = ImageFrameInfo{
                 kind: .Animation,
-                width: .decoder.fw,
-                height: .decoder.fh,
-                x: .decoder.fx,
-                y: .decoder.fy,
+                width: indexed.width,
+                height: indexed.height,
+                x: indexed.x,
+                y: indexed.y,
                 pixelFormat: control.transparency ? .RGBA8 : .RGB8,
                 durationSeconds: cast(f64, control.delay) / 100,
                 disposal: disposal,
@@ -282,50 +271,56 @@ impl IImageSetDecoder for SetDecoder
         return result
     }
 
-    mtd impl readFrame(index: u32, options: DecodeOptions)->Image fail => try .readRectangle(index, options, clearTransparent: false)
-}
-
-impl SetDecoder
-{
-    mtd readRectangle(index: u32, options: DecodeOptions, clearTransparent: bool)->Image fail
+    mtd impl readFrame(index: u32, options: DecodeOptions)->Image fail
     {
         if index >= .frames.count do
             fail InvalidFormatError{"GIF frame index is out of range"}
-        .decoder.stream    = .decoder.streamStart + .frames[index].offset
-        .decoder.streamLen = .frames[index].remaining
-        .decoder.gce       = .frames[index].control
-        try .decoder.readImage(options.decodePixels)
+
+        let indexed = &.frames[index]
         var result: #returntype
-        result.init(.decoder.fw, .decoder.fh, .decoder.gce.transparency ? .RGBA8 : .RGB8)
-        if not options.decodePixels do
-            return result
-        result.allocPixels()
-        let palette   = unwrap .decoder.palette
-        let hasAlpha  = result.pixelFormat == .RGBA8
+        result.init(indexed.width, indexed.height, indexed.control.transparency ? .RGBA8 : .RGB8)
+        if options.decodePixels
+        {
+            try .decoder.decodeIndices(indexed)
+            result.allocPixels()
+            try .decoder.writePixels(indexed, result.pixels.storage(), result.rowStride, result.pixelFormat == .RGBA8, clearTransparent: false)
+        }
+
+        return result
+    }
+}
+
+impl Decoder
+{
+    mtd writePixels(indexed: const *IndexedFrame, pixels: [*] u8, stride: s32, hasAlpha, clearTransparent: bool) fail
+    {
+        let palette   = &indexed.palette
+        let colors    = cast(const [*] u8, unwrap palette.colors)
         let alphaMask = hasAlpha ? 0xFF000000'u32 : 0
         var packed: [256] u32
         for paletteIndex in palette.size
         {
-            let color = cast(const [*] u8, &palette.colors[paletteIndex * 3])
+            let color = colors + paletteIndex * 3
             packed[paletteIndex] = cast(u32, color[0]) | (cast(u32, color[1]) << 8) |
                                    (cast(u32, color[2]) << 16) | alphaMask
         }
 
         if hasAlpha do
-            packed[.decoder.gce.tindex] &= clearTransparent ? 0 : 0xFFFFFF
+            packed[indexed.control.tindex] &= clearTransparent ? 0 : 0xFFFFFF
 
-        let indices         = .decoder.frame.storage()
-        let pixels          = result.pixels.storage()
+        let width           = cast(s32, indexed.width)
+        let height          = cast(s32, indexed.height)
+        let indices         = .frame.storage()
         var combinedIndices = 0'u8
-        for y in result.height
+        for y in height
         {
-            let source = indices + cast(u64, y) * result.width
-            let row    = .decoder.interlaced ? Decoder.interlacedLineIndex(result.height, y) : y
-            let target = pixels + cast(u64, (result.height - row - 1)) * result.rowStride
+            let source = indices + cast(u64, y) * width
+            let row    = indexed.interlaced ? Decoder.interlacedLineIndex(height, y) : y
+            let target = pixels + cast(u64, (height - row - 1)) * stride
             if hasAlpha
             {
                 let words = cast([*] u32, target)
-                for x in result.width
+                for x in width
                 {
                     let paletteIndex = source[x]
                     words[x]        = packed[paletteIndex]
@@ -335,7 +330,7 @@ impl SetDecoder
             else
             {
                 // Each wide store overlaps the next pixel. Write exactly three bytes at the row end.
-                let lastX = result.width - 1
+                let lastX = width - 1
                 for x in lastX
                 {
                     let paletteIndex = source[x]
@@ -355,7 +350,5 @@ impl SetDecoder
         // GIF palette sizes are powers of two, so any index with a high bit is out of range.
         if combinedIndices >= palette.size do
             fail InvalidFormatError{"GIF palette index is out of range"}
-
-        return result
     }
 }

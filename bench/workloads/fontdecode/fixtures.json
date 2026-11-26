@@ -224,6 +224,49 @@
     ]
   },
   {
+    "file": "NotoSerifCJK-Regular.ttc",
+    "url": "https://raw.githubusercontent.com/notofonts/noto-cjk/9b0f1436e455d902de067a2501422e5dc71ad16b/Serif/OTC/NotoSerifCJK-Regular.ttc",
+    "sha256": "5d9c31a059600193c9d7968a998bde886ccdc77e934006ad243b41794c496a7d",
+    "cases": [
+      {
+        "face": 0,
+        "character": 26085,
+        "profile": "Serif CJK collection, Japanese"
+      },
+      {
+        "face": 1,
+        "character": 54620,
+        "profile": "Serif CJK collection, Korean"
+      },
+      {
+        "face": 2,
+        "character": 20013,
+        "profile": "Serif CJK collection, Simplified Chinese"
+      },
+      {
+        "face": 3,
+        "character": 40845,
+        "profile": "Serif CJK collection, Traditional Chinese"
+      },
+      {
+        "face": 4,
+        "character": 131083,
+        "profile": "Serif CJK collection, Hong Kong supplementary plane"
+      }
+    ]
+  },
+  {
+    "file": "NotoSansSC-Variable.ttf",
+    "url": "https://raw.githubusercontent.com/google/fonts/6ebe737e44fd64ee736bbc6feed6136a6dbfd222/ofl/notosanssc/NotoSansSC%5Bwght%5D.ttf",
+    "sha256": "a3041811a78c361b1de50f953c805e0244951c21c5bd412f7232ef0d899af0da",
+    "cases": [
+      {
+        "character": 40845,
+        "profile": "TrueType CJK, default variable-font instance"
+      }
+    ]
+  },
+  {
     "file": "NotoSerifCJKjp-Regular.otf",
     "url": "https://raw.githubusercontent.com/notofonts/noto-cjk/9b0f1436e455d902de067a2501422e5dc71ad16b/Serif/OTF/Japanese/NotoSerifCJKjp-Regular.otf",
     "sha256": "d9854c7a8ef170b5a7932558856fd64eb8de0b007cd823fed6f9f514ad2803d3",

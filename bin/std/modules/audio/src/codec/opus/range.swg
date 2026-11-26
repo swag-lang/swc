@@ -15,6 +15,32 @@ private const CodeExtra  = 7'u32
 private const WindowBits = 32'u32
 private const UintBits   = 8'u32
 
+// Uniform CELT symbols have totals up to 256. For non-power-of-two totals,
+// this precision keeps the reciprocal error below 1 / total at CodeTop.
+// That is smaller than the gap from any nonintegral quotient to the next integer.
+private const UniformDivision: [257] u64 = #run
+{
+    var result: [257] u64
+    for total in 1'u32 until result.count
+    {
+        let shift = (total & (total - 1)) ? 63 - cast(u32, Swag.leadingZeros(total)) : 31
+        let scale = 1'u64 << shift
+        let magic = (scale + total - 1) / total
+        result[total] = magic | (cast(u64, shift) << 32)
+    }
+
+    return result
+}
+
+#[Swag.Inline]
+private func divideUniformRange(range, total: u32)->u32
+{
+    let plan  = UniformDivision[total]
+    let magic = cast #wrap(u32, plan)
+    let shift = cast(u32, plan >> 32)
+    return cast(u32, (cast(u64, range) * magic) >> shift)
+}
+
 // Each interval of 4096 normalized range values has one possible eighth-bit correction.
 private const TellBoundaries: [8] u32 = #run
 {
@@ -114,7 +140,7 @@ internal impl RangeDecoder
     // Returns the cumulative frequency of the next symbol out of `total`; [[update]] consumes it.
     mtd decode(total: u32)->u32
     {
-        .extent = .range / total
+        .extent = total < UniformDivision.count ? divideUniformRange(.range, total) : .range / total
         let scaledValue = .value / .extent
         return total - Math.min(scaledValue + 1, total)
     }
@@ -171,28 +197,38 @@ internal impl RangeDecoder
         return index
     }
 
+    // Range decoding with uniform frequencies consumes one interval of the same width.
+    #[Swag.Inline]
+    mtd decodeUniform(total: u32)->u32
+    {
+        let extent = divideUniformRange(.range, total)
+        let last   = total - 1
+        let top    = Math.min(.value / extent, last)
+        let offset = top * extent
+        .value -= offset
+        .range = top == last ? .range - offset : extent
+        .normalize()
+        return last - top
+    }
+
     // Decodes a uniformly distributed integer below `total`, which is at least two.
     mtd decodeUint(total: u32)->u32
     {
-        var limit = total - 1
+        let limit = total - 1
         let bits  = ilog(limit)
         if bits > UintBits
         {
             let shift  = bits - UintBits
             let high   = (limit >> shift) + 1
-            let symbol = .decode(high)
-            .update(symbol, symbol + 1, high)
-            let value = (symbol << shift) | .decodeBits(shift)
+            let symbol = .decodeUniform(high)
+            let value  = (symbol << shift) | .decodeBits(shift)
             if value <= limit do
                 return value
             .error = true
             return limit
         }
 
-        limit += 1
-        let symbol = .decode(limit)
-        .update(symbol, symbol + 1, limit)
-        return symbol
+        return .decodeUniform(total)
     }
 
     // Reads `bits` raw bits from the end of the frame, least significant first.

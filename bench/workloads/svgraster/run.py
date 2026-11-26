@@ -65,6 +65,31 @@ def fixtures(scratch, filesamples):
             svg.write("</svg>\n")
         yield path, width, height
 
+    width, height = 2048, 1365
+    path = scratch / "sparse-curves.svg"
+    sparse_random = random.Random(59)
+    with path.open("w", encoding="ascii", newline="\n") as svg:
+        svg.write(f'<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}">\n')
+        svg.write('<path fill="#4068a9" d="\n')
+        for row in range(192):
+            x = sparse_random.randrange(24, width - 48)
+            y = 8 + row * 7
+            svg.write(f"M{x} {y}c4 -1 15 -1 18 0l-1 2 -15 0Z\n")
+        svg.write('"/></svg>\n')
+    yield path, width, height
+
+    path = scratch / "thin-edges.svg"
+    with path.open("w", encoding="ascii", newline="\n") as svg:
+        svg.write(f'<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}">\n')
+        svg.write('<path fill="#4068a9" d="\n')
+        for row in range(32):
+            y = 16 + row * 39
+            for column in range(48):
+                x = 28 + ((column * 17) % 48) * 41
+                svg.write(f"M{x}.125 {y}.0625h2l.75 .1875h-2Z\n")
+        svg.write('"/></svg>\n')
+    yield path, width, height
+
 
 def build(compiler, bin_root, build_root, *, scope=False):
     build_root.mkdir()

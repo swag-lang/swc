@@ -36,102 +36,6 @@ func vp8Filter2(pixels: [*] u8, level, index, iStep, jStep: s32)
 }
 
 #[Swag.Inline]
-func vp8LoadEight(source: const [*] u8)->U16x8
-{
-    let bytes = cast #bit(U8x16, splat(cast(const [*] u64, source)[0]))
-    return widenLow(bytes)
-}
-
-#[Swag.Inline]
-func vp8StoreEight(destination: [*] u8, values: U16x8)
-{
-    storeLow8(destination, packUnsigned(cast #bit(S16x8, values), splat(0's16)))
-}
-
-#[Swag.Inline]
-func vp8FilterSamples(samples: [*] U16x8, edgeLimit, inLimit, hevLimit: S16x8, fourNotSix: bool)->bool
-{
-    let zero = splat(0's16)
-    let p3   = cast #bit(S16x8, samples[0])
-    let p2   = cast #bit(S16x8, samples[1])
-    let p1   = cast #bit(S16x8, samples[2])
-    let p0   = cast #bit(S16x8, samples[3])
-    let q0   = cast #bit(S16x8, samples[4])
-    let q1   = cast #bit(S16x8, samples[5])
-    let q2   = cast #bit(S16x8, samples[6])
-    let q3   = cast #bit(S16x8, samples[7])
-
-    let pGap     = Math.abs(p1 - p0)
-    let qGap     = Math.abs(q1 - q0)
-    let crossGap = q0 - p0
-    let across   = 2 * Math.abs(crossGap) + (Math.abs(p1 - q1) >> 1)
-    let insideP  = Math.max(pGap, Math.max(Math.abs(p3 - p2), Math.abs(p2 - p1)))
-    let insideQ  = Math.max(qGap, Math.max(Math.abs(q3 - q2), Math.abs(q2 - q1)))
-    let active   = (across <= edgeLimit) & (Math.max(insideP, insideQ) <= inLimit)
-    if not anyTrue(active) do
-        return false
-
-    let hev   = (pGap > hevLimit) | (qGap > hevLimit)
-    let extra = Math.clamp(p1 - q1, splat(-128's16), splat(127's16))
-    var a     = 3 * crossGap
-    a += fourNotSix ? select(hev, extra, zero) : extra
-
-    let a1   = Math.clamp((a + 4) >> 3, splat(-16's16), splat(15's16))
-    let a2   = Math.clamp((a + 3) >> 3, splat(-16's16), splat(15's16))
-    let wide = active & ~hev
-    if fourNotSix
-    {
-        let a3 = select(wide, (a1 + 1) >> 1, zero)
-        samples[2] = cast #bit(U16x8, (p1 + a3))
-        samples[3] = cast #bit(U16x8, (p0 + select(active, a2, zero)))
-        samples[4] = cast #bit(U16x8, (q0 - select(active, a1, zero)))
-        samples[5] = cast #bit(U16x8, (q1 - a3))
-    }
-    else
-    {
-        let saturated   = Math.clamp(a, splat(-128's16), splat(127's16))
-        let wide0       = select(wide, (27 * saturated + 63) >> 7, zero)
-        let wide1       = select(wide, (18 * saturated + 63) >> 7, zero)
-        let wide2       = select(wide, (9 * saturated + 63) >> 7, zero)
-        let narrow      = active & hev
-        let pAdjustment = wide0 + select(narrow, a2, zero)
-        let qAdjustment = wide0 + select(narrow, a1, zero)
-        samples[1] = cast #bit(U16x8, (p2 + wide2))
-        samples[2] = cast #bit(U16x8, (p1 + wide1))
-        samples[3] = cast #bit(U16x8, (p0 + pAdjustment))
-        samples[4] = cast #bit(U16x8, (q0 - qAdjustment))
-        samples[5] = cast #bit(U16x8, (q1 - wide1))
-        samples[6] = cast #bit(U16x8, (q2 - wide2))
-    }
-
-    return true
-}
-
-// Each tile transposes eight rows into the samples on either side of the edge.
-func vp8FilterVertical(edge: [*] u8, count, stride, level, iLevel, hLevel: s32, fourNotSix: bool)
-{
-    let edgeLimit = splat(cast(s16, level))
-    let inLimit   = splat(cast(s16, iLevel))
-    let hevLimit  = splat(cast(s16, hLevel))
-    let first     = edge - 4
-    for block in count / 8
-    {
-        let tile = first + block * 8 * stride
-        var samples: [8] U16x8
-        for row in 8 do
-            samples[row] = vp8LoadEight(tile + row * stride)
-
-        transpose8x8(&samples)
-        if not vp8FilterSamples(&samples[0], edgeLimit, inLimit, hevLimit, fourNotSix) do
-            continue
-
-        transpose8x8(&samples)
-        for row in 8 do
-            vp8StoreEight(tile + row * stride, samples[row])
-    }
-}
-
-#[Swag.Inline]
 func vp8ByteDifference(first, second: U8x16)->U8x16
 {
     return subSaturating(first, second) | subSaturating(second, first)
@@ -263,62 +167,115 @@ func(INNER: bool) vp8FilterHorizontalChroma(cb, cr: [*] u8, stride, level, iLeve
     }
 }
 
-// The three interior edges share four columns with their neighbors. Load the
-// macroblock once, keep earlier updates in the transposed tiles, then store the tiles.
+// A byte tile holds eight rows, with two rows in each vector. Its transpose
+// has the same layout, with each row becoming one edge sample position.
+#[Swag.Inline]
+private func vp8TransposeByteTile(tile: *[4] U8x16)
+{
+    let a           = cast #bit(U16x8, interleaveLow(tile[][0], align(tile[][0], tile[][0], 8)))
+    let b           = cast #bit(U16x8, interleaveLow(tile[][1], align(tile[][1], tile[][1], 8)))
+    let c           = cast #bit(U16x8, interleaveLow(tile[][2], align(tile[][2], tile[][2], 8)))
+    let d           = cast #bit(U16x8, interleaveLow(tile[][3], align(tile[][3], tile[][3], 8)))
+    let leftTop     = cast #bit(U32x4, interleaveLow(a, b))
+    let rightTop    = cast #bit(U32x4, interleaveHigh(a, b))
+    let leftBottom  = cast #bit(U32x4, interleaveLow(c, d))
+    let rightBottom = cast #bit(U32x4, interleaveHigh(c, d))
+    tile[][0] = cast #bit(U8x16, interleaveLow(leftTop, leftBottom))
+    tile[][1] = cast #bit(U8x16, interleaveHigh(leftTop, leftBottom))
+    tile[][2] = cast #bit(U8x16, interleaveLow(rightTop, rightBottom))
+    tile[][3] = cast #bit(U8x16, interleaveHigh(rightTop, rightBottom))
+}
+
+#[Swag.Inline]
+private func vp8LoadByteRows(base: const [*] u8, stride: s32)->U8x16
+{
+    let first  = cast(const [*] u64, base)[0]
+    let second = cast(const [*] u64, base + stride)[0]
+    return cast #bit(U8x16, interleaveLow(splat(first), splat(second)))
+}
+
+#[Swag.Inline]
+private func vp8StoreByteRows(base: [*] u8, stride: s32, pair: U8x16)
+{
+    storeLow8(base, pair)
+    storeLow8(base + stride, align(pair, pair, 8))
+}
+
+// Pack corresponding columns from the two eight-row tiles into one vector.
+#[Swag.Inline]
+private func vp8LoadVerticalBytes(top, bottom: const [*] u8, stride: s32, samples: [*] U8x16)
+{
+    var upper, lower: [4] U8x16
+    for pair in 4
+    {
+        let offset = pair * 2 * stride
+        upper[pair] = vp8LoadByteRows(top + offset, stride)
+        lower[pair] = vp8LoadByteRows(bottom + offset, stride)
+    }
+
+    vp8TransposeByteTile(&upper)
+    vp8TransposeByteTile(&lower)
+    for pair in 4
+    {
+        let a = cast #bit(U64x2, upper[pair])
+        let b = cast #bit(U64x2, lower[pair])
+        samples[2 * pair]     = cast #bit(U8x16, interleaveLow(a, b))
+        samples[2 * pair + 1] = cast #bit(U8x16, interleaveHigh(a, b))
+    }
+}
+
+#[Swag.Inline]
+private func vp8StoreVerticalBytes(top, bottom: [*] u8, stride: s32, samples: [*] U8x16)
+{
+    var upper, lower: [4] U8x16
+    for pair in 4
+    {
+        let a = cast #bit(U64x2, samples[2 * pair])
+        let b = cast #bit(U64x2, samples[2 * pair + 1])
+        upper[pair] = cast #bit(U8x16, interleaveLow(a, b))
+        lower[pair] = cast #bit(U8x16, interleaveHigh(a, b))
+    }
+
+    vp8TransposeByteTile(&upper)
+    vp8TransposeByteTile(&lower)
+    for pair in 4
+    {
+        let offset = pair * 2 * stride
+        vp8StoreByteRows(top + offset, stride, upper[pair])
+        vp8StoreByteRows(bottom + offset, stride, lower[pair])
+    }
+}
+
+// Luma supplies two consecutive eight-row tiles and chroma supplies one per plane.
+private func(INNER: bool) vp8FilterVerticalPair(top, bottom: [*] u8, stride, level, iLevel, hLevel: s32)
+{
+    let first  = top - 4
+    let second = bottom - 4
+    var samples: [8] U8x16
+    vp8LoadVerticalBytes(first, second, stride, &samples[0])
+    if vp8FilterByteSamples'INNER(&samples[0], splat(cast(u8, level)), splat(cast(u8, iLevel)), splat(cast(u8, hLevel))) do
+        vp8StoreVerticalBytes(first, second, stride, &samples[0])
+}
+
+// All three inside edges share the sixteen columns of one macroblock. The
+// byte filter saturates each update before the next edge reads the same column.
 func vp8FilterVerticalLumaInner(pixels: [*] u8, level, iLevel, hLevel, stride: s32)
 {
-    let edgeLimit = splat(cast(s16, level))
-    let inLimit   = splat(cast(s16, iLevel))
-    let hevLimit  = splat(cast(s16, hLevel))
-    for band in 2
-    {
-        let base = pixels + band * 8 * stride
-        var samples: [16] U16x8
-        for row in 8
-        {
-            let bytes = load(base + row * stride)
-            samples[row]     = widenLow(bytes)
-            samples[row + 8] = widenHigh(bytes)
-        }
+    let edgeLimit = splat(cast(u8, level))
+    let inLimit   = splat(cast(u8, iLevel))
+    let hevLimit  = splat(cast(u8, hLevel))
+    let lower     = pixels + stride * 8
+    var samples: [16] U8x16
+    vp8LoadVerticalBytes(pixels, lower, stride, &samples[0])
+    vp8LoadVerticalBytes(pixels + 8, lower + 8, stride, &samples[8])
 
-        let left  = cast(*[8] U16x8, &samples[0])
-        let right = cast(*[8] U16x8, &samples[8])
-        transpose8x8(left)
-        transpose8x8(right)
-
-        // The next edge reads the previous edge's clipped q0 and q1.
-        let changed4 = vp8FilterSamples(&samples[0], edgeLimit, inLimit, hevLimit, true)
-        if changed4
-        {
-            let clipped = packUnsigned(cast #bit(S16x8, samples[4]), cast #bit(S16x8, samples[5]))
-            samples[4] = widenLow(clipped)
-            samples[5] = widenHigh(clipped)
-        }
-
-        let changed8 = vp8FilterSamples(&samples[4], edgeLimit, inLimit, hevLimit, true)
-        if changed8
-        {
-            let clipped = packUnsigned(cast #bit(S16x8, samples[8]), cast #bit(S16x8, samples[9]))
-            samples[8] = widenLow(clipped)
-            samples[9] = widenHigh(clipped)
-        }
-
-        let changed12 = vp8FilterSamples(&samples[8], edgeLimit, inLimit, hevLimit, true)
-
-        if changed4 or changed8
-        {
-            transpose8x8(left)
-            for row in 8 do
-                vp8StoreEight(base + row * stride, samples[row])
-        }
-
-        if changed8 or changed12
-        {
-            transpose8x8(right)
-            for row in 8 do
-                vp8StoreEight(base + row * stride + 8, samples[row + 8])
-        }
-    }
+    let changed4  = vp8FilterByteSamples'true(&samples[0], edgeLimit, inLimit, hevLimit)
+    let changed8  = vp8FilterByteSamples'true(&samples[4], edgeLimit, inLimit, hevLimit)
+    let changed12 = vp8FilterByteSamples'true(&samples[8], edgeLimit, inLimit, hevLimit)
+    if changed4 or changed8 do
+        vp8StoreVerticalBytes(pixels, lower, stride, &samples[0])
+    if changed8 or changed12 do
+        vp8StoreVerticalBytes(pixels + 8, lower + 8, stride, &samples[8])
 }
 
 func vp8ComputeFilterParams(decoder: *Vp8Decoder)
@@ -414,16 +371,15 @@ func vp8NormalFilter(decoder: *Vp8Decoder, mbY: s32)
         let cOffset = (mbY * decoder.cStride + mbX) * 8
         if mbX
         {
-            vp8FilterVertical(yData + yOffset, 16, decoder.yStride, level + 4, iLevel, hLevel, false)
-            vp8FilterVertical(cbData + cOffset, 8, decoder.cStride, level + 4, iLevel, hLevel, false)
-            vp8FilterVertical(crData + cOffset, 8, decoder.cStride, level + 4, iLevel, hLevel, false)
+            let edge = yData + yOffset
+            vp8FilterVerticalPair'false(edge, edge + 8 * decoder.yStride, decoder.yStride, level + 4, iLevel, hLevel)
+            vp8FilterVerticalPair'false(cbData + cOffset, crData + cOffset, decoder.cStride, level + 4, iLevel, hLevel)
         }
 
         if parameter.inner
         {
             vp8FilterVerticalLumaInner(yData + yOffset, level, iLevel, hLevel, decoder.yStride)
-            vp8FilterVertical(cbData + cOffset + 4, 8, decoder.cStride, level, iLevel, hLevel, true)
-            vp8FilterVertical(crData + cOffset + 4, 8, decoder.cStride, level, iLevel, hLevel, true)
+            vp8FilterVerticalPair'true(cbData + cOffset + 4, crData + cOffset + 4, decoder.cStride, level, iLevel, hLevel)
         }
 
         if mbY

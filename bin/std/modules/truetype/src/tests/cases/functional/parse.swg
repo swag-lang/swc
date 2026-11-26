@@ -787,3 +787,47 @@ private func lookupCffName(thread: const *Threading.Thread)
     let err8 = err8Outcome.value()
     Swag.require(err8 != null)
 }
+
+// Separate workers share the first CFF parse and the last face releases it.
+#test
+{
+    let bytes = buildCffExpertEncoding()
+    var allocator: Swag.Allocator
+    allocator.setup()
+    defer allocator.releaseAll()
+    let allocatorView: IAllocator = &allocator
+    let baseline = allocator.stats().countAlloc
+
+    var source = FontSource.copy(bytes.toSlice(), allocatorView)
+    var ready:   u32
+    var tasks:   [2] Swag.Task'(*Face?)
+    var workers: [2] Swag.Executor
+    for &task, index in tasks
+    {
+        workers[index].start()
+        task.submit(func|source = &source, ready = &ready|()->*Face?
+        {
+            discard Atomic.add(ready, 1)
+            while Atomic.get(ready) != 2 do
+                Threading.Thread.yield()
+
+            return expect source.loadFace()
+        },
+                    executor: &workers[index])
+    }
+
+    let first  = unwrap (expect tasks[0].take())
+    let second = unwrap (expect tasks[1].take())
+    source = {}
+
+    let firstImpl  = expect getFaceImpl(first)
+    let secondImpl = expect getFaceImpl(second)
+    Swag.require(firstImpl.cffFont() == secondImpl.cffFont())
+    Swag.require(firstImpl.cffFont().charStrings.count() == first.glyphCount)
+    Swag.require(first.size.metrics.xPpem == second.size.metrics.xPpem)
+    expect first.setPixelSize(0, 20)
+    Swag.require(first.size.metrics.xPpem != second.size.metrics.xPpem)
+    first.destroy()
+    second.destroy()
+    Swag.require(allocator.stats().countAlloc == baseline)
+}

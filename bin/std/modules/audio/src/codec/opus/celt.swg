@@ -2272,9 +2272,61 @@ internal impl CeltDecoder
         }
     }
 
+    // A block's four de-emphasis steps form a weighted prefix sum. The next
+    // block depends only on the final lane, so both channels can stay packed.
+    mtd deemphasizePcm16(left, right: const [*] f32, count: u32, pcm: [*] s16)
+    {
+        #[Swag.Inline]
+        func filter(input, memory: Simd.F32x4)->Simd.F32x4
+        {
+            const DecaySquared = CeltPreemphasis * CeltPreemphasis
+            const Decay        = cast(Simd.F32x4, [1.0'f32, CeltPreemphasis, DecaySquared, DecaySquared * CeltPreemphasis])
+            const PreviousOne  = cast(Simd.U32x4, [4'u32, 0, 1, 2])
+            const PreviousTwo  = cast(Simd.U32x4, [4'u32, 4, 0, 1])
+            let zero   = Simd.splat(0.0'f32)
+            let values = input + 1e-30'f32
+            let pairs  = values + Swag.vecShuffle2(values, zero, PreviousOne) * CeltPreemphasis
+            return pairs + Swag.vecShuffle2(pairs, zero, PreviousTwo) * DecaySquared + memory * Decay
+        }
+
+        const Last       = cast(Simd.U32x4, [3'u32, 3, 3, 3])
+        const Interleave = cast(Simd.U16x8, [0'u16, 4, 1, 5, 2, 6, 3, 7])
+        var leftMemory = Simd.splat(.preemphasisMemory[0])
+        if .channels == 2
+        {
+            var rightMemory = Simd.splat(.preemphasisMemory[1])
+            for block in count / 4
+            {
+                let at = 4 * block
+                let l  = filter(Simd.load(left + at), leftMemory)
+                let r  = filter(Simd.load(right + at), rightMemory)
+                leftMemory  = CeltPreemphasis * Swag.vecShuffle(l, Last)
+                rightMemory = CeltPreemphasis * Swag.vecShuffle(r, Last)
+                let packed = Simd.packSigned(roundOpusPcm16(l), roundOpusPcm16(r))
+                Simd.store(pcm + 2 * at, Swag.vecShuffle(packed, Interleave))
+            }
+
+            .preemphasisMemory[1] = rightMemory[0]
+        }
+        else
+        {
+            for block in count / 8
+            {
+                let at   = 8 * block
+                let low  = filter(Simd.load(left + at), leftMemory)
+                let high = filter(Simd.load(left + at + 4), CeltPreemphasis * Swag.vecShuffle(low, Last))
+                leftMemory = CeltPreemphasis * Swag.vecShuffle(high, Last)
+                Simd.store(pcm + at, Simd.packSigned(roundOpusPcm16(low), roundOpusPcm16(high)))
+            }
+        }
+
+        .preemphasisMemory[0] = leftMemory[0]
+    }
+
     // Decodes one frame of `frameSize` samples through `dec`, which reads `data`, and writes the
-    // de-emphasized output interleaved over the output channels.
-    mtd decodeFrame(data: const [..] u8, dec: *RangeDecoder, frameSize: u32, pcm: [*] f32) fail
+    // de-emphasized output interleaved over the output channels. A CELT-only
+    // frame without gain can write directly to the caller's PCM16 buffer.
+    mtd decodeFrame(data: const [..] u8, dec: *RangeDecoder, frameSize: u32, pcm: [*] f32, direct: [*] s16? = null) fail
     {
         var lm = 0'u32
         while lm <= CeltMaxLM and (CeltShortSize << lm) != frameSize do
@@ -2554,35 +2606,43 @@ internal impl CeltDecoder
 
         .rng = dec.range
 
-        // The stereo recurrences are independent. Advance both while writing interleaved PCM.
-        var leftMemory = .preemphasisMemory[0]
-        if CC == 2
+        if direct
         {
-            let right       = .decodeMemory[1].storage() + CeltDecodeBuffer - N
-            var rightMemory = .preemphasisMemory[1]
-            for j in N
-            {
-                let l = leftOut[j] + 1e-30'f32 + leftMemory
-                let r = right[j] + 1e-30'f32 + rightMemory
-                leftMemory     = CeltPreemphasis * l
-                rightMemory    = CeltPreemphasis * r
-                pcm[2 * j]     = l * (1.0 / 32768.0)
-                pcm[2 * j + 1] = r * (1.0 / 32768.0)
-            }
-
-            .preemphasisMemory[1] = rightMemory
+            let rightOut = .decodeMemory[1].storage() + CeltDecodeBuffer - N
+            .deemphasizePcm16(leftOut, rightOut, N, direct)
         }
         else
         {
-            for j in N
+            // The stereo recurrences are independent. Advance both while writing interleaved PCM.
+            var leftMemory = .preemphasisMemory[0]
+            if CC == 2
             {
-                let sample = leftOut[j] + 1e-30'f32 + leftMemory
-                leftMemory = CeltPreemphasis * sample
-                pcm[j]     = sample * (1.0 / 32768.0)
-            }
-        }
+                let right       = .decodeMemory[1].storage() + CeltDecodeBuffer - N
+                var rightMemory = .preemphasisMemory[1]
+                for j in N
+                {
+                    let l = leftOut[j] + 1e-30'f32 + leftMemory
+                    let r = right[j] + 1e-30'f32 + rightMemory
+                    leftMemory     = CeltPreemphasis * l
+                    rightMemory    = CeltPreemphasis * r
+                    pcm[2 * j]     = l * (1.0 / 32768.0)
+                    pcm[2 * j + 1] = r * (1.0 / 32768.0)
+                }
 
-        .preemphasisMemory[0] = leftMemory
+                .preemphasisMemory[1] = rightMemory
+            }
+            else
+            {
+                for j in N
+                {
+                    let sample = leftOut[j] + 1e-30'f32 + leftMemory
+                    leftMemory = CeltPreemphasis * sample
+                    pcm[j]     = sample * (1.0 / 32768.0)
+                }
+            }
+
+            .preemphasisMemory[0] = leftMemory
+        }
 
         if dec.tell() > 8 * len do
             fail InvalidFormatError{"Opus CELT frame reads past its end"}

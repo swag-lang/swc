@@ -287,6 +287,9 @@ profiles Swag's CFF setup. [CJK ownership and parsing results](font-decode-linux
 Sharing one immutable source cuts the ten-member CJK open-and-render pass from
 25.63 to 12.07 ms, including the initial file read. [Shared source results](font-decode-linux.md#shared-font-source)
 
+The parsed CFF cache adds Noto Serif CJK TTC and a variable TrueType control to the
+memory comparison. [Parsed CFF results](font-decode-linux.md#reusing-a-parsed-cff-program)
+
 ### SVG results already reported
 
 The prior four-file comparison measured Scope's SVG parse plus CPU rasterization against resvg
@@ -804,3 +807,91 @@ whole-image results across three FileSamples runs.
 Dimensions, pixel format and CRC64 matched across the two Swag builds on all
 13 fixtures. The combined build passed 41 native Release WebP and ImageReader tests.
 Three Swag Scope goldens passed with the lossy-path changes.
+
+## WebP vertical filtering and eight-bit Huffman lookup
+
+The Release builds at `9c999a8ae5` and `8cf6d9fc38` used the same Linux compiler and
+one worker. The comparison rotates Swag and libwebp 1.5.0 on one pinned core,
+with 11 samples per reader and timings from the thread CPU clock. Swag measures
+warmed `Image.load`. The libwebp measurement includes the file read and
+`WebPDecodeRGBAInto` with default chroma upsampling and a reused output buffer.
+
+| Fixture | Swag before (ms) | Swag after (ms) | libwebp (ms) | Paired change |
+| --- | ---: | ---: | ---: | ---: |
+| FileSamples opaque VP8 | 177.811 | 174.281 | 121.091 | -2.4% |
+| VP8 photo with compressed alpha | 43.478 | 42.391 | 31.311 | -2.4% |
+| VP8 flower with compressed alpha | 2.638 | 2.539 | 1.802 | -3.6% |
+| VP8 normal filter | 5.384 | 5.069 | 3.851 | -5.3% |
+| VP8 simple filter | 5.970 | 5.983 | 3.230 | +0.8% |
+| VP8 with filtering disabled | 4.215 | 4.163 | 3.106 | -0.5% |
+| VP8 video frame | 0.603 | 0.595 | 0.415 | -4.8% |
+| VP8L noisy RGBA | 22.010 | 7.330 | 4.943 | -66.6% |
+| VP8L noisy grayscale | 8.513 | 4.677 | 2.215 | -43.0% |
+| VP8L photo, 1254 × 1254 | 68.660 | 65.992 | 40.928 | -2.8% |
+| VP8L interface | 18.173 | 17.655 | 10.997 | -4.5% |
+| VP8L smaller interface with alpha | 4.020 | 3.862 | 2.423 | -4.1% |
+| VP8L photo, 4275 × 2451 | 357.391 | 387.625 | 252.581 | +3.7% |
+| VP8L expanded corpus photo | 33.209 | 29.902 | 20.260 | -8.8% |
+
+The VP8 vertical filter now transposes bytes and runs the packed filter on
+all 16 luma rows or both chroma planes at a time. VP8L widens each primary
+Huffman table from seven to eight prefix bits while packing its entries into
+16 bits. This keeps the per-tree table at 512 bytes and covers more literal
+symbols without walking the tree. The largest VP8L photo was 3.7% slower in
+the paired comparison. The first isolated lookup run measured 304.725 to
+302.355 ms on that photo.
+
+Dimensions, pixel formats and CRC64 matched on all 14 inputs. The seven VP8L
+images also matched libwebp's RGBA bytes after reversing the reference rows.
+The combined build passed 41 native Release WebP and ImageReader tests.
+
+## TIFF horizontal prediction into the output row
+
+The TIFF decoder now expands RGB and RGBA horizontal differences with the same
+packed byte routine used for PNG Sub filtering. It writes the reconstructed
+samples into the bottom-up output row. The baseline is `88cbe356f6` and the
+candidate is `6f7af42687`. The table gives the median process CPU time over 11
+rotating samples per reader on one pinned core. Swag used one worker. LibTIFF
+4.7.0 opens each file, decodes its strips and writes the same output layout.
+
+| Fixture | Swag before (ms) | Swag after (ms) | LibTIFF (ms) | Paired change |
+| --- | ---: | ---: | ---: | ---: |
+| RGB LZW with predictor, 2051 × 1549 | 83.161 | 75.069 | 62.702 | -10.5% |
+| RGBA LZW with predictor, previous corpus | 23.869 | 19.284 | 16.486 | -19.2% |
+| Gray LZW with predictor, 2051 × 1549 | 2.836 | 2.618 | 12.121 | -0.4% |
+| RGB photo, LZW with predictor, 1537 × 883 | 34.361 | 30.784 | 25.460 | -8.9% |
+| Big-endian RGB photo, one strip, 1537 × 883 | 33.102 | 30.868 | 25.818 | -7.0% |
+| Big-endian RGBA noise, LZW with predictor, 1537 × 929 | 49.309 | 38.438 | 33.801 | -22.1% |
+| RGB stripes, LZW with predictor, 1537 × 929 | 7.140 | 4.945 | 11.662 | -27.4% |
+| RGB photo, unpredicted LZW control, 1537 × 883 | 35.281 | 32.734 | 27.197 | -6.6% |
+| RGB stripes, PackBits control, 1537 × 929 | 0.970 | 0.972 | 2.154 | -3.8% |
+
+The corpus includes a photograph and synthetic stripes and noise, both byte
+orders, and single- and multi-strip input. All nine sequences matched dimensions,
+pixel format, alpha association and CRC64 across the three readers. The build
+passed 107 native Release TIFF, PNG, and ImageReader tests.
+
+## GIF frame indexing and long LZW prefixes
+
+The Release build at `ff47a1fd99` retains the validated frame descriptors,
+palettes, and compressed data offsets. The first frame can expand its palette
+directly into the final canvas. Highly compressed frames can copy long
+dictionary prefixes from previously decoded pixels. The comparison uses
+`9c999a8ae5` as its baseline, one pinned core and 27 samples per Swag build.
+
+| Workload | Swag before (ms CPU) | Swag after (ms CPU) |
+| --- | ---: | ---: |
+| FileSamples, 640 × 426, first image | 3.451 | 3.234 |
+| Flat image, 2305 × 1537 | 16.263 | 6.614 |
+| Noise with alpha, 1537 × 1025 | 23.073 | 21.423 |
+| Interlaced stripes, 1029 × 779 | 3.119 | 1.905 |
+| Partial transparent frame on a 1661 × 1009 canvas | 7.072 | 5.131 |
+| Transparent animation, 12 frames, 1021 × 767 | 21.783 | 13.474 |
+| Opaque partial-frame animation, 12 frames, 321 × 217 | 3.123 | 1.981 |
+
+A separate 21-sample comparison decoded the first FileSamples image in RGB8.
+Swag measured 3.449 to 3.186 ms, Pillow 12.3.0 measured 5.082 ms, and ImageMagick
+7.1.1-43 Q16 measured 10.739 ms. The reference readers produced the same
+top-down RGB digest and both Swag builds produced its corresponding bottom-up
+CRC32. The Swag CRC32 matched across all 21 scenarios from 20 distinct GIFs.
+The build passed 37 native Release GIF and ImageReader tests.

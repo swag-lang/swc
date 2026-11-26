@@ -155,7 +155,7 @@ func fillSolidPngImage(img: *Image, r, g, b, a: u8)
                 expected[3 + i] = cast(u8, (value & 0xFF))
             }
 
-            Png.defilterSubRow(&source[1], &actual[3], count, bytesPerPixel)
+            PackedPixel.restoreHorizontalDeltas(&source[1], &actual[3], count, bytesPerPixel)
             for i in Capacity do
                 Swag.require(actual[i] == expected[i])
         }

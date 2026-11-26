@@ -35,69 +35,64 @@ impl Decoder
         return row * 2 + 1
     }
 
-    mtd readImage(decodePixels = true) fail
+    mtd readImage()->IndexedFrame fail
     {
-        .descriptorOffset    = cast(u64, (.stream - .streamStart))
-        .descriptorRemaining = .streamLen
-
-        // Image descriptor
-        .fx = try .readU16()
-        .fy = try .readU16()
-        if .fx >= .width or .fy >= .height do
+        var result: #returntype
+        result.x = try .readU16()
+        result.y = try .readU16()
+        if result.x >= .width or result.y >= .height do
             fail InvalidFormatError{"invalid frame size"}
 
-        .fw = try .readU16()
-        .fh = try .readU16()
-        if not .fw or not .fh or .fw > .width - .fx or .fh > .height - .fy do
+        result.width  = try .readU16()
+        result.height = try .readU16()
+        if not result.width or
+           not result.height or
+           result.width > .width - result.x or
+           result.height > .height - result.y do
             fail InvalidFormatError{"GIF frame rectangle lies outside its canvas"}
 
-        let fisrz = try .readU8()
-        .interlaced = (fisrz & 0x40) != 0
-
-        // Ignore Sort Flag
-        // Local Color Table?
-        if fisrz & 0x80
+        let flags = try .readU8()
+        result.interlaced = (flags & 0x40) != 0
+        result.palette    = .gct
+        if flags & 0x80
         {
-            /* Read LCT */
-            .lct.size = 1 << ((fisrz & 0x07) + 1)
-            try .read(.lct.colors, 3'u64 * .lct.size)
-            .palette = &.lct
-        }
-        else
-        {
-            .palette = &.gct
+            result.palette = {size: 1 << ((flags & 0x07) + 1), colors: .stream}
+            try .seek(3'u64 * result.palette.size)
         }
 
-        if not .palette.size do
+        if not result.palette.size do
             fail InvalidFormatError{"GIF frame has no color table"}
-        if decodePixels
-        {
-            try .readImageData()
-        }
-        else
-        {
-            let codeSize = try .readU8()
-            if codeSize < 2 or codeSize > 8 do
-                fail InvalidFormatError{"GIF LZW code size is invalid"}
-            try .discardSubBlocks()
-        }
+
+        result.minKeySize = try .readU8()
+        if result.minKeySize < 2 or result.minKeySize > 8 do
+            fail InvalidFormatError{"GIF LZW code size is invalid"}
+
+        result.data = .stream
+        let remaining = .streamLen
+        try .discardSubBlocks()
+
+        // Longer dictionary strings favor copying already decoded prefixes.
+        result.copyLzwPrefixes = remaining - .streamLen <= cast(u64, result.width) * result.height * 3 / 16
+
+        result.control = .gce
+        return result
     }
 
-    mtd getFrame(decodePixels: bool)->s32 fail
+    mtd getFrame(indexed: *IndexedFrame)->bool fail
     {
         .gce = {}
         var sep = try .readU8()
         while sep != ','
         {
             if sep == ';' do
-                return 0
+                return false
             if sep != '!' do
                 fail InvalidFormatError{"invalid format"}
             try .readExt()
             sep = try .readU8()
         }
 
-        try .readImage(decodePixels)
-        return 1
+        indexed[] = try .readImage()
+        return true
     }
 }

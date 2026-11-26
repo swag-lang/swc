@@ -5,6 +5,17 @@ private struct FontSourceStorage
     late allocator: IAllocator
     references:     s64 = 1
     bytes:          Array'u8
+    cffPrograms:    Array'(*CffFont)
+    cffMutex:       Swag.Mutex
+}
+
+impl FontSourceStorage
+{
+    mtd opDrop()
+    {
+        for program in .cffPrograms do
+            Memory.delete(program, .allocator)
+    }
 }
 
 // Owns immutable font bytes shared by one or more independently loaded faces.
@@ -40,11 +51,38 @@ impl FontSource
         }
     }
 
+    // Different faces of a collection can reference the same CFF byte range.
+    mtd const cachedCff(bytes: const [..] u8)->*CffFont? fail
+    {
+        if not .storage do
+            return null
+
+        let storage = .storage
+        Sync.scopedLock(&storage.cffMutex)
+        for program in storage.cffPrograms
+        {
+            if program.block.buffer == bytes.buffer and program.block.count == bytes.count do
+                return program
+        }
+
+        let context = Swag.getContext()
+        let previousAllocator = context.allocator
+        context.allocator = storage.allocator
+        defer context.allocator = previousAllocator
+
+        var parsed  = try parseCffFont(bytes)
+        let program = Memory.new'CffFont(storage.allocator)
+        program[] = #move parsed
+        storage.cffPrograms.add(program)
+        return program
+    }
+
     private func takeBytes(bytes: #move Array'u8, allocator: IAllocator)->FontSource
     {
         let storage = Memory.new'FontSourceStorage(allocator)
         storage.allocator = allocator
         storage.bytes     = #move bytes
+        storage.cffPrograms.allocator = allocator
         return {storage: storage}
     }
 }
@@ -93,7 +131,8 @@ public impl FontSource
 
     // Loads one zero-based face while retaining this snapshot.
     //
-    // Formats, index checks, and face allocator follow [[TrueType.Face.loadAt]]. A default
+    // Formats and index checks follow [[TrueType.Face.loadAt]]. The face allocator covers
+    // per-face state, and the source allocator covers shared CFF data. A default
     // source or invalid input fails. WOFF1 is expanded into storage owned by the face.
     // Destroy the face with [[TrueType.Face.destroy]]. It can outlive this source value.
     mtd const loadFace(faceIndex: u32 = 0, allocator: IAllocator? = null)->*Face fail =>

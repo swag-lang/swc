@@ -14,11 +14,12 @@ using Swag, Core, Core.Errors
 
 private
 {
-    const LzwDictionaryLimit = 1 << 12
-    const LzwPrefixMask      = LzwDictionaryLimit - 1
-    const LzwSuffixMask      = 0xFF'u32
-    const LzwPrefixShift     = 8
-    const LzwLengthShift     = 20
+    const LzwDictionaryLimit  = 1 << 12
+    const LzwPrefixMask       = LzwDictionaryLimit - 1
+    const LzwSuffixMask       = 0xFF'u32
+    const LzwPrefixShift      = 8
+    const LzwLengthShift      = 20
+    const LzwCopyPrefixLength = 8     // Eight bytes amortize the copy over dependent dictionary reads.
 }
 
 private struct LzwBits
@@ -69,18 +70,15 @@ impl LzwBits
 
 impl Decoder
 {
-    mtd readImageData() fail
+    mtd(COPY_PREFIX: bool) readImageData(indexed: const *IndexedFrame) fail
     {
-        let minKeySize = cast(s32, (try .readU8()))
-        if minKeySize < 2 or minKeySize > 8 do
-            fail InvalidFormatError{"invalid frame"}
+        let minKeySize = cast(s32, indexed.minKeySize)
+        let start      = cast(const [*] u8, unwrap indexed.data)
+        var bits       = LzwBits{cursor: start, blockEnd: start}
 
-        let start = .safeStream()
-        var bits  = LzwBits{cursor: start, blockEnd: start}
-        try .discardSubBlocks()
-
-        let frameSize = cast(u32, .fw) * .fh
-        .frame.resize(frameSize)
+        let frameSize = cast(u32, indexed.width) * indexed.height
+        .frame.grow(frameSize)
+        .frame.count = frameSize
         let frame = .frame.storage()
 
         let clear       = 1 << minKeySize
@@ -93,6 +91,8 @@ impl Decoder
 
         // An entry stores an 8-bit suffix, a 12-bit prefix and a 12-bit length minus one.
         var entries: [LzwDictionaryLimit] u32
+        const OffsetCount = COPY_PREFIX ? LzwDictionaryLimit : 1
+        var prefixOffsets: [OffsetCount] u32
         for literal in clear do
             entries[literal] = cast(u32, literal)
 
@@ -112,8 +112,10 @@ impl Decoder
             {
                 // If the next code names this new entry, its suffix is the previous string's first index.
                 entries[nextCode] = (length << LzwLengthShift) | (cast(u32, key) << LzwPrefixShift) | first
-                nextCode          += 1
-                addedEntry        = true
+                if COPY_PREFIX and length >= LzwCopyPrefixLength do
+                    prefixOffsets[nextCode] = frameOffset - length
+                nextCode   += 1
+                addedEntry = true
             }
 
             key = bits.readKey(keySize)
@@ -131,17 +133,28 @@ impl Decoder
             if length > frameSize - frameOffset do
                 fail InvalidFormatError{"GIF LZW string exceeds its frame"}
 
-            // Each dictionary entry links to a previously decoded, shorter string.
-            var target = frame + frameOffset + length - 1
-            for length - 1
+            if COPY_PREFIX and length > LzwCopyPrefixLength
             {
-                target[0] = cast(u8, (entry & LzwSuffixMask))
-                target    -= 1
-                entry     = entries[(entry >> LzwPrefixShift) & LzwPrefixMask]
+                // The prefix was written before this string, with no overlap.
+                let prefix = frame + prefixOffsets[key]
+                let target = frame + frameOffset
+                Memory.copy(target, prefix, length - 1)
+                first = prefix[0]
+                target[length - 1] = cast(u8, (entry & LzwSuffixMask))
             }
+            else
+            {
+                var target = frame + frameOffset + length - 1
+                for length - 1
+                {
+                    target[0] = cast(u8, (entry & LzwSuffixMask))
+                    target    -= 1
+                    entry     = entries[(entry >> LzwPrefixShift) & LzwPrefixMask]
+                }
 
-            first     = entry & LzwSuffixMask
-            target[0] = cast(u8, first)
+                first     = entry & LzwSuffixMask
+                target[0] = cast(u8, first)
+            }
 
             frameOffset += length
             if addedEntry and nextCode < LzwDictionaryLimit
@@ -157,5 +170,13 @@ impl Decoder
             fail InvalidFormatError{"GIF LZW frame has too few pixels"}
         if key != stop do
             fail InvalidFormatError{"GIF LZW stream needs an end code"}
+    }
+
+    mtd decodeIndices(indexed: const *IndexedFrame) fail
+    {
+        if indexed.copyLzwPrefixes do
+            try .readImageData'(true)(indexed)
+        else do
+            try .readImageData'(false)(indexed)
     }
 }

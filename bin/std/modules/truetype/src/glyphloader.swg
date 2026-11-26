@@ -313,7 +313,7 @@ func appendCharstringGlyph(faceData: *FaceImpl, glyphIndex: u32, xPpem, yPpem: u
 {
     var builder = OutlineBuilder.create(faceData, xPpem, yPpem, faceData.unitsPerEm)
     if faceData.outlineSource == .Cff do
-        discard try runType2Charstring(&faceData.cff, glyphIndex, &builder)
+        discard try runType2Charstring(faceData.cffFont(), glyphIndex, &builder)
     else do
         discard try runType1Charstring(&faceData.type1, glyphIndex, &builder)
 }

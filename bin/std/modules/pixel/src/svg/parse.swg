@@ -137,7 +137,7 @@ struct Drawing
     images:          Array'SvgImage                 // Raster placements referenced by the paint-order list.
     rasterImages:    Array'Image                    // Decoded bitmaps shared by their placements.
     items:           Array'DrawingItem              // Visible elements in paint order.
-    paintBins:       Array'PaintBin                 // Spatial buckets of paint item indices.
+    paintIndex:      Array'PaintIndex               // Owned spatial index, mutable when text is first measured.
     paintBlocks:     Array'PaintBlock               // Bounds of consecutive runs of paint items.
     strokes:         Array'ShapeStroke              // Paint and line style for stroked shapes.
     dashValues:      Array'f32                      // Resolved dash lengths, shared where possible.
@@ -239,6 +239,11 @@ private enum FontFamilyKind
     Sans
     Serif
     Mono
+}
+
+private struct PaintIndex
+{
+    bins: Array'PaintBin
 }
 
 private struct SvgTextRun
@@ -4628,7 +4633,14 @@ impl Drawing
 
         result.measureItems()
         result.measurePaintBlocks()
-        result.measurePaintBins()
+        if result.items.count >= PaintBlockSize * 64
+        {
+            var index: PaintIndex
+            result.measurePaintBins(&index.bins)
+            if not index.bins.isEmpty() or result.texts.count do
+                result.paintIndex.add(#move index)
+        }
+
         return result
     }
 
@@ -4715,11 +4727,8 @@ impl Drawing
     }
 
     // Bucket widely dispersed items by centre, using both axes for near-square drawings.
-    private mtd measurePaintBins()
+    private mtd const measurePaintBins(bins: *Array'PaintBin, measuredText = false)
     {
-        if .items.count < PaintBlockSize * 64 do
-            return
-
         var minimum = Vector2.Max
         var maximum = Vector2.Min
         var spanX, spanY: f64
@@ -4744,17 +4753,18 @@ impl Drawing
             return
 
         // Near-square drawings spread through their authored runs on both axes.
-        let useGrid = width > 0 and
-                      height > 0 and
-                      width <= height * 4 and
-                      height <= width * 4 and
-                      spanX >= width * spread and
-                      spanY >= height * spread
+        let square  = width > 0 and height > 0 and width <= height * 4 and height <= width * 4
+        let useGrid = square and spanX >= width * spread and spanY >= height * spread
+
+        // Text arranged in rows or columns is already culled by its measured runs.
+        if measuredText and square and not useGrid do
+            return
+
         const GridRows = PaintBinCount / PaintGridColumns
         let densityX = useGrid ? cast(f64, PaintGridColumns) / width : 0.0
         let densityY = useGrid ? cast(f64, GridRows) / height : 0.0
 
-        .paintBins.resize(PaintBinCount)
+        bins.resize(PaintBinCount)
         let density  = cast(f64, PaintBinCount) / extent
         var occupied = 0
         for &item, index in .items
@@ -4776,7 +4786,7 @@ impl Drawing
                 bucket = cast(u64, Math.clamp((centre - origin) * density, 0.0'f64, cast(f64, PaintBinCount - 1)))
             }
 
-            let bin   = &.paintBins[bucket]
+            let bin   = &bins[bucket]
             let lower = Vector2.min(first, last)
             let upper = Vector2.max(first, last)
             if bin.indices.isEmpty()
@@ -4794,18 +4804,21 @@ impl Drawing
         }
 
         if occupied <= 1 do
-            .paintBins.free()
+            bins.free()
     }
 
     // Collect the spatial candidates in authored order when only a small portion is visible.
     private mtd const collectPaintCandidates(transform: Transform2, visible: Rectangle, candidates: *Array'u64)->bool
     {
-        if .paintBins.isEmpty() do
+        if .paintIndex.isEmpty() do
+            return false
+        let bins = .paintIndex[0].bins.toSlice()
+        if not bins.count do
             return false
 
         var selected: StaticArray'(u64, PaintBinCount)
         var count = 0'u64
-        for &bin, index in .paintBins where bin.indices.count and not bin.bounds.misses(transform, visible)
+        for &bin, index in bins where bin.indices.count and not bin.bounds.misses(transform, visible)
         {
             count += bin.indices.count
             if count > .items.count / 4 do
@@ -4815,7 +4828,7 @@ impl Drawing
 
         candidates.reserve(count)
         for index in selected do
-            candidates.add(.paintBins[index].indices.toSlice())
+            candidates.add(bins[index].indices.toSlice())
         if selected.count > 1 do
             candidates.sort()
         return true
@@ -5260,11 +5273,13 @@ impl Drawing
 
         .exchangeClip(painter, activeFirst, activeCount, 0, 0)
 
-        // Use the new text bounds to cull blocks on subsequent paints.
+        // Use the new text bounds to cull both authored runs and spatial bins.
         if measuredText
         {
             for &block, index in .paintBlocks where not block.bounded do
                 block[] = .measurePaintBlock(index * PaintBlockSize)
+            if .paintIndex.count and .paintIndex[0].bins.isEmpty() do
+                .measurePaintBins(&.paintIndex[0].bins, measuredText: true)
         }
     }
 

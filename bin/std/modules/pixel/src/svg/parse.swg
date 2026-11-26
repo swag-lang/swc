@@ -6282,21 +6282,29 @@ impl Drawing
                     let destination = result.pixels.storage() + cast(u64, resultRow) * cast(u64, result.rowStride) + cast(u64, tileX) * result.bytesPerPixel
                     let output      = cast([*] u32, destination)
 
-                    // Mask ink leaves the same-colored matte unchanged through overlaps.
-                    // The other matte carries the coverage, even when strokes use alpha scratch.
-                    if mask == .White
+                    // A monochrome matte keeps its color in a single byte. Expand
+                    // four coverage values to straight-alpha pixels together.
+                    if mask != .Color
                     {
-                        for column in copyWidth do
-                            output[column] = 0x00FF_FFFF | (cast(u32, firstMatte[column * 4]) << 24)
-                        continue
-                    }
-
-                    if mask == .Black
-                    {
-                        for column in copyWidth
+                        let firstWords = cast(const [*] u32, firstMatte)
+                        let whiteRgb = Math.Simd.splat(0x00FF_FFFF'u32)
+                        let full = Math.Simd.splat(255'u32)
+                        var column = 0's32
+                        while copyWidth - column >= 4
                         {
-                            let alpha = 255'u32 - firstMatte[column * 4]
-                            output[column] = alpha == 0 ? 0x00FF_FFFF : alpha << 24
+                            let values = Math.Simd.load(firstWords + column) & full
+                            let packed = mask == .White ? whiteRgb | (values << 24) :
+                                         Math.Simd.select(values == full, whiteRgb, (full - values) << 24)
+                            Math.Simd.store(output + column, packed)
+                            column += 4
+                        }
+
+                        for index in column until copyWidth
+                        {
+                            let value = cast(u32, firstMatte[index * 4])
+                            let alpha = mask == .White ? value : 255 - value
+                            let rgb   = mask == .White or not alpha ? 0x00FF_FFFF'u32 : 0'u32
+                            output[index] = rgb | (alpha << 24)
                         }
 
                         continue
@@ -6306,7 +6314,16 @@ impl Drawing
                     let white      = second.pixels.storage() + cast(u64, second.height - copyHeight + cast(s32, row)) * cast(u64, second.rowStride)
                     let blackWords = cast(const [*] u32, black)
                     let whiteWords = cast(const [*] u32, white)
-                    for column in copyWidth
+                    var start = 0's32
+                    while copyWidth - start >= 4
+                    {
+                        let a = Math.Simd.load(blackWords + start)
+                        let b = Math.Simd.load(whiteWords + start)
+                        Math.Simd.store(output + start, resolveMatte4(a, b))
+                        start += 4
+                    }
+
+                    for column in start until copyWidth
                     {
                         // Identical matte colors have full coverage. Strokes may have
                         // used the black matte's alpha byte as scratch.
@@ -6342,6 +6359,53 @@ impl Drawing
         }
 
         return result
+    }
+
+    #[Swag.Inline]
+    func resolveMatte4(black, white: Math.Simd.U32x4)->Math.Simd.U32x4
+    {
+        #[Swag.Inline]
+        func smallFloat(value: Math.Simd.U32x4)->Math.Simd.F32x4
+        {
+            return cast #bit(Math.Simd.F32x4, value | 0x4B00_0000'u32) - 8_388_608.0
+        }
+
+        #[Swag.Inline]
+        func recoverChannel(premultiplied, alpha: Math.Simd.U32x4, divisor: Math.Simd.F32x4)->Math.Simd.U32x4
+        {
+            // The smallest nonzero fraction is 1/255, wider than the float
+            // rounding at these quotients, so truncating gives the integer division.
+            let amount = smallFloat(premultiplied * 255'u32 + (alpha >> 1)) / divisor
+            let limited = Math.min(amount, Math.Simd.splat(255.0'f32))
+            return cast #bit(Math.Simd.U32x4, Math.Simd.truncateToS32(limited))
+        }
+
+        let rgb = Math.Simd.splat(0x00FF_FFFF'u32)
+        let a = black & rgb
+        let b = white & rgb
+        let solid = a == b
+        let empty = (a == Math.Simd.splat(0'u32)) & (b == rgb)
+        if Math.Simd.bitwiseAnd(solid | empty) do
+            return Math.Simd.select(solid, a | 0xFF00_0000'u32, rgb)
+
+        let blue    = a & 255'u32
+        let green   = (a >> 8) & 255'u32
+        let red     = a >> 16
+        let blackSum = blue + green + red
+        let whiteSum = (b & 255'u32) + ((b >> 8) & 255'u32) + (b >> 16)
+
+        // The signed difference fits in the float mantissa after adding 1024.
+        let uncovered = smallFloat(whiteSum + 1025'u32 - blackSum) - 1024.0
+        let rounded = Math.Simd.truncateToS32(uncovered / 3.0)
+        let opacity = 255's32 - rounded
+        let limited = Math.Simd.select(opacity > Math.Simd.splat(255's32), Math.Simd.splat(255's32), opacity)
+        let alpha = cast #bit(Math.Simd.U32x4, limited)
+        let visible = alpha > Math.Simd.splat(0'u32)
+        let divisor = smallFloat(Math.Simd.select(visible, alpha, Math.Simd.splat(1'u32)))
+        let outBlue = recoverChannel(blue, alpha, divisor)
+        let outGreen = recoverChannel(green, alpha, divisor)
+        let outRed = recoverChannel(red, alpha, divisor)
+        return Math.Simd.select(visible, outBlue | (outGreen << 8) | (outRed << 16) | (alpha << 24), rgb)
     }
 
     // All visible items must be unclipped scan fills of the same solid color.

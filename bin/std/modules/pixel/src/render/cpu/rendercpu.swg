@@ -3741,14 +3741,60 @@ private impl RenderCpu
         }
     }
 
-    func gatherProjectedRows(scratch: *ScanScratch, painter: const *Painter, fill: const *ScanFillBatch, projected: const *ProjectedContours, origin: Vector2, width, height: s32)->[..] ScanSample
+    func indexProjectedContours(projected: const *ProjectedContours, top, bottom, bandHeight: s32, count: u64)->Array'(Array'u32)
+    {
+        var bands: #returntype
+        // The index relies on every device band origin being representable as f32.
+        if bottom > 16_777_216 or count > 4096 do
+            return bands
+
+        bands.resize(count)
+        var references = 0'u64
+        let y0         = cast(f64, top)
+        let y1         = cast(f64, bottom)
+        let limit      = cast(f64, bottom - top - 1)
+        let rows       = cast(u64, bandHeight)
+
+        // Keep insertion order within each band and abandon the index for mostly tall contours.
+        for &bounds, index in projected.bounds
+        {
+            if not bounds.finite do
+                return {}
+            if bounds.outside or bounds.high < y0 or bounds.low > y1 do
+                continue
+
+            let first = cast(u64, Math.clamp(cast(f64, bounds.low) - y0, 0.0'f64, limit)) / rows
+            let last  = cast(u64, Math.clamp(cast(f64, bounds.high) - y0, 0.0'f64, limit)) / rows
+            references += last - first + 1
+            if references > projected.bounds.count * 8 do
+                return {}
+            for band in first until last + 1 do
+                bands[band].add(cast(u32, index))
+        }
+
+        return bands
+    }
+
+    func gatherProjectedRows(scratch: *ScanScratch, painter: const *Painter, fill: const *ScanFillBatch, projected: const *ProjectedContours, origin: Vector2, width, height: s32, indices: const *Array'u32?)->[..] ScanSample
     {
         let crossings = scratch.startRows(height)
         let points    = projected.points.toSlice()
         let ends      = painter.scanContourEnds.toSlice()[fill.first until fill.end]
         let first     = firstScanPoint(painter, fill)
         let identity  = Transform2.Identity
-        var point     = 0'u64
+        if indices
+        {
+            for contour in indices[]
+            {
+                let start = contour ? ends[contour - 1] - first : 0'u64
+                let end   = ends[contour] - first
+                addScanContour(crossings, points[start until end], &identity, 1, origin, true, cast(f32, width))
+            }
+
+            return crossings
+        }
+
+        var point = 0'u64
         for terminal, index in ends
         {
             let end    = terminal - first
@@ -3882,6 +3928,7 @@ private impl RenderCpu
         let firstPoint = firstScanPoint(painter, fill)
         let pointCount = painter.scanContourEnds[fill.end - 1] - firstPoint
         let bandHeight = scanBandHeight(pointCount)
+        let bandCount  = cast(u64, (bottom - top - 1) / bandHeight + 1)
         if .stencilWrite and .stencilMode == .Set do
             .markStencilDirty({left, top, right - 1, bottom - 1})
 
@@ -3893,22 +3940,21 @@ private impl RenderCpu
            bottom - top > bandHeight * 2 do
             projectContours(&projected, painter, fill, &transform, firstPoint, pointCount, left, right)
 
+        var indexed = projected.bounds.count ? indexProjectedContours(&projected, top, bottom, bandHeight, bandCount) : {}
         if projected.bounds.count and Swag.workerCount() > 1
         {
-            let count = cast(u64, (bottom - top - 1) / bandHeight + 1)
-
             // Each worker holds one band's crossings. Bound their total on machines with many workers.
             let bandCapacity = pointCount * VerticalSamples * cast(u64, bandHeight)
             let scratchJobs  = Math.max(1'u64, 4 * ScanBandCrossingBudget / bandCapacity)
-            let jobs         = Math.min(count, cast(u64, Swag.workerCount()), scratchJobs)
+            let jobs         = Math.min(bandCount, cast(u64, Swag.workerCount()), scratchJobs)
             if jobs > 1
             {
                 let renderer = me
                 var bands    = {image: image, fill: fill, painter: painter, left: left, top: top, bottom: bottom,
-                                width: width, height: bandHeight, count: count, jobs: jobs}
+                                width: width, height: bandHeight, count: bandCount, jobs: jobs}
 
                 // A tile row belongs to one worker, and this join keeps fills in submission order.
-                parallel for |renderer, &bands, &projected| job in jobs
+                parallel for |renderer, &bands, &projected, &indexed| job in jobs
                 {
                     var scratch: ScanScratch
                     for var band = job; band < bands.count; band += bands.jobs
@@ -3916,7 +3962,8 @@ private impl RenderCpu
                         let y         = bands.top + cast(s32, band) * bands.height
                         let height    = Math.min(bands.height, bands.bottom - y)
                         let origin    = Vector2{cast(f32, bands.left), cast(f32, y)}
-                        let crossings = gatherProjectedRows(&scratch, bands.painter, bands.fill, &projected, origin, bands.width, height)
+                        let indices   = indexed.count ? &indexed[band] : null
+                        let crossings = gatherProjectedRows(&scratch, bands.painter, bands.fill, &projected, origin, bands.width, height, indices)
                         renderer.drawScanFillBand(&scratch, crossings, bands.image, bands.fill, bands.left, y, bands.width, height)
                     }
                 }
@@ -3925,11 +3972,13 @@ private impl RenderCpu
             }
         }
 
-        for var y = top; y < bottom; y += bandHeight
+        for band in bandCount
         {
+            let y         = top + cast(s32, band) * bandHeight
             let height    = Math.min(bandHeight, bottom - y)
             let origin    = Vector2{cast(f32, left), cast(f32, y)}
-            let crossings = projected.bounds.count ? gatherProjectedRows(&.scanScratch, painter, fill, &projected, origin, width, height) :
+            let indices   = indexed.count ? &indexed[band] : null
+            let crossings = projected.bounds.count ? gatherProjectedRows(&.scanScratch, painter, fill, &projected, origin, width, height, indices) :
                             .gatherScanRows(painter, fill, &transform, origin, width, height)
 
             .drawScanFillBand(&.scanScratch, crossings, image, fill, left, y, width, height)

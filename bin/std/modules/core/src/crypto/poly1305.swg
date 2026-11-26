@@ -57,20 +57,19 @@ private func(T) poly1305Multiply(h, r, scaled: [5] T, result: *[5] T)
 }
 
 #[Swag.Inline]
-private func poly1305Carry(h, products: *[5] u64)
+private func poly1305Carry(h: *[5] u64, products: const *[5] u64)
 {
-    var carry = 0'u64
-    for i in 5
-    {
-        products[][i] += carry
-        carry         = products[][i] >> 26
-        h[][i]        = products[][i] & LimbMask
-    }
-
-    h[][0] += carry * 5
-    carry  = h[][0] >> 26
-    h[][0] &= LimbMask
-    h[][1] += carry
+    let first  = products[][0]
+    let second = products[][1] + (first >> 26)
+    let third  = products[][2] + (second >> 26)
+    let fourth = products[][3] + (third >> 26)
+    let fifth  = products[][4] + (fourth >> 26)
+    let low = (first & LimbMask) + (fifth >> 26) * 5
+    h[][0] = low & LimbMask
+    h[][1] = (second & LimbMask) + (low >> 26)
+    h[][2] = third & LimbMask
+    h[][3] = fourth & LimbMask
+    h[][4] = fifth & LimbMask
 }
 
 #[Swag.Inline]
@@ -346,18 +345,7 @@ public impl Poly1305
                 .d[3] = .h[0] * me.r[3] + .h[1] * me.r[2] + .h[2] * me.r[1] + .h[3] * me.r[0] + .h[4] * .scaled[4]
                 .d[4] = .h[0] * me.r[4] + .h[1] * me.r[3] + .h[2] * me.r[2] + .h[3] * me.r[1] + .h[4] * me.r[0]
 
-                var carry = 0'u64
-                for i in 5
-                {
-                    .d[i]  += carry
-                    carry = .d[i] >> 26
-                    .h[i]  = .d[i] & LimbMask
-                }
-
-                .h[0]  += carry * 5
-                carry = .h[0] >> 26
-                .h[0]  &= LimbMask
-                .h[1]  += carry
+                poly1305Carry(&.h, &.d)
             }
 
             me.accumulator = .h

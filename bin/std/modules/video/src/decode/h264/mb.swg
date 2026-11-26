@@ -2140,7 +2140,8 @@ impl Slice
                     let nC    = .chromaNc(mb, cast(u32, plane), block & 1, block >> 1)
                     var levels: [16] s16
                     let count = try residualCavlc'15(&.bits, nC, levels.buffer)
-                    storeLevels(levels.buffer, 15, (mb.residual!.chromaAc).buffer + plane * 64 + cast(u64, block) * 16, ResidualOrderAc, scale, 4)
+                    if count do
+                        storeLevels'15(&levels, (mb.residual!.chromaAc).buffer + plane * 64 + cast(u64, block) * 16, ResidualOrderAc, scale, 4)
                     if plane == 0 do
                         mb.nzCb[cast(u64, block)] = cast(u8, count)
                     else do
@@ -2191,7 +2192,8 @@ impl Slice
                 if isIntra16
                 {
                     count = try residualCavlc'15(&.bits, nC, levels.buffer)
-                    storeLevels(levels.buffer, 15, storage.ac + cast(u64, raster) * 16, ResidualOrderAc, scale4, 4)
+                    if count do
+                        storeLevels'15(&levels, storage.ac + cast(u64, raster) * 16, ResidualOrderAc, scale4, 4)
                 }
                 elif mb.transform8x8
                 {
@@ -2211,7 +2213,8 @@ impl Slice
                 else
                 {
                     count = try residualCavlc'16(&.bits, nC, levels.buffer)
-                    storeLevels(levels.buffer, 16, storage.ac + cast(u64, raster) * 16, ResidualOrder4x4, scale4, 4)
+                    if count do
+                        storeLevels'16(&levels, storage.ac + cast(u64, raster) * 16, ResidualOrder4x4, scale4, 4)
                 }
 
                 storage.nz[cast(u64, raster)] = cast(u8, count)

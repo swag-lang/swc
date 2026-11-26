@@ -50,10 +50,11 @@ the sampling layouts used by ffmpeg's 4:2:0, 4:2:2, and 4:4:4 Motion JPEG output
 
 - Evidence: [the current comparison](../bench/results/video/20261126-decode-comparison/README.md#ffmpeg-91-reference) measures one-slice 1080p Baseline at
   2.50× native single-threaded FFmpeg 9.1 and High at 1.67×. The Baseline profile attributes about a
-  fifth of samples to CAVLC residuals and VLC lookup. High's CABAC residual loop remains the
-  largest sampled kernel.
-- Next: profile Baseline coefficient and motion decoding after the prefix lookups and isolate
-  the High CABAC residual cost. Keep decoded planes byte-exact across the Baseline, Main, High
+  fifth of samples to CAVLC residuals and VLC lookup. A
+  [coefficient mask](../bench/results/video/20261126-decode-comparison/README.md#avc-cavlc-nonzero-coefficient-stores)
+  cuts paired time by 19.0% on the textured Baseline fixture, which still takes 2.28× the
+  FFmpeg time. High's CABAC residual loop remains the largest sampled kernel.
+- Next: profile Baseline motion compensation and isolate the High CABAC residual cost. Keep decoded planes byte-exact across the Baseline, Main, High
   and 4:4:4 corpus.
 - Measurement: use one VCL slice per picture, one AVC lane, warm references, decode forward, and
   interleave identical input against single-threaded FFmpeg. Measure the decoding thread and caller;

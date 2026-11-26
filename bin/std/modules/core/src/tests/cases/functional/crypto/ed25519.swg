@@ -45,6 +45,10 @@ func ed25519HexBytes(text: string)->Array'u8
     noncanonicalPublic[31] = 0x7F
     Swag.require(not (expect Crypto.ed25519Verify(noncanonicalPublic, "", signature)))
 
+    // The all-zero encoding is a nonidentity low-order point.
+    var lowOrderPublic: [32] u8
+    Swag.require(not (expect Crypto.ed25519Verify(lowOrderPublic, "", signature)))
+
     var noncanonicalR = signature
     noncanonicalR[0] = 0xED
     for index in 1 until 31 do

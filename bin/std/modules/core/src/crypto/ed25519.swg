@@ -29,6 +29,12 @@ private struct Ed25519Affine
     yMinusX, yPlusX, twiceDT: X25519Field
 }
 
+private struct Ed25519Cached
+{
+    affine: Ed25519Affine
+    twiceZ: X25519Field
+}
+
 private func ed25519FieldConstant(limbs: [5] u64)->X25519Field
 {
     var result: #returntype
@@ -76,13 +82,34 @@ private func ed25519Add(left, right: Ed25519Point)->Ed25519Point
     return ed25519CompleteAddition(a, b, c2, d)
 }
 
+private func ed25519Cache(point: Ed25519Point)->Ed25519Cached
+{
+    var result: #returntype
+    result.affine.yMinusX = x25519Subtract(point.y, point.x)
+    result.affine.yPlusX = x25519Add(point.y, point.x)
+    let dt = x25519Multiply(ed25519D(), point.t)
+    result.affine.twiceDT = x25519Add(dt, dt)
+    result.twiceZ = x25519Add(point.z, point.z)
+    return result
+}
+
+#[Swag.Inline]
+private func ed25519AddPrepared(left: Ed25519Point, right: Ed25519Affine, twiceZ: X25519Field)->Ed25519Point
+{
+    let a  = x25519Multiply(x25519Subtract(left.y, left.x), right.yMinusX)
+    let b  = x25519Multiply(x25519Add(left.y, left.x), right.yPlusX)
+    let c2 = x25519Multiply(left.t, right.twiceDT)
+    return ed25519CompleteAddition(a, b, c2, twiceZ)
+}
+
 private func ed25519AddAffine(left: Ed25519Point, right: Ed25519Affine)->Ed25519Point
 {
-    let a   = x25519Multiply(x25519Subtract(left.y, left.x), right.yMinusX)
-    let b   = x25519Multiply(x25519Add(left.y, left.x), right.yPlusX)
-    let c2  = x25519Multiply(left.t, right.twiceDT)
-    let d   = x25519Add(left.z, left.z)
-    return ed25519CompleteAddition(a, b, c2, d)
+    return ed25519AddPrepared(left, right, x25519Add(left.z, left.z))
+}
+
+private func ed25519AddCached(left: Ed25519Point, right: Ed25519Cached)->Ed25519Point
+{
+    return ed25519AddPrepared(left, right.affine, x25519Multiply(left.z, right.twiceZ))
 }
 
 #[Swag.Inline]
@@ -100,7 +127,7 @@ private func ed25519CompleteAddition(a, b, c2, d: X25519Field)->Ed25519Point
     return result
 }
 
-private func ed25519Double(point: Ed25519Point)->Ed25519Point
+private func(UpdateT: bool) ed25519Double(point: Ed25519Point)->Ed25519Point
 {
     let a  = x25519Square(point.x)
     let b  = x25519Square(point.y)
@@ -115,49 +142,64 @@ private func ed25519Double(point: Ed25519Point)->Ed25519Point
     var result: #returntype
     result.x = x25519Multiply(e, f)
     result.y = x25519Multiply(g, h)
-    result.t = x25519Multiply(e, h)
+    #static if UpdateT do
+        result.t = x25519Multiply(e, h)
     result.z = x25519Multiply(f, g)
     return result
 }
 
-private func ed25519SelectMultiple(multiples: const [..] Ed25519Point, nibble: u8)->Ed25519Point
+// A subsequent doubling consumes X, Y and Z. A point addition also needs T.
+private func ed25519DoubleRepeated(point: Ed25519Point, count: u32)->Ed25519Point
+{
+    var result = point
+    for count - 1 do
+        result = ed25519Double'(false)(result)
+    return ed25519Double'(true)(result)
+}
+
+private func ed25519BuildMultiples(point: Ed25519Point)->[16] Ed25519Cached
+{
+    var result: #returntype
+    result[0] = ed25519Cache(ed25519Identity())
+    result[1] = ed25519Cache(point)
+    var multiple = point
+    for index in 2 until result.count
+    {
+        multiple = ed25519AddCached(multiple, result[1])
+        result[index] = ed25519Cache(multiple)
+    }
+    return result
+}
+
+private func ed25519SelectMultiple(multiples: const [..] Ed25519Cached, digit: u8)->Ed25519Cached
 {
     var result: #returntype
     for index in 16
     {
-        let mask = 0'u64 - cast(u64, index == nibble)
-        for limb in result.x.limbs.count
+        let mask = 0'u64 - cast(u64, index == digit)
+        for limb in result.twiceZ.limbs.count
         {
-            result.x.limbs[limb] |= multiples[index].x.limbs[limb] & mask
-            result.y.limbs[limb] |= multiples[index].y.limbs[limb] & mask
-            result.z.limbs[limb] |= multiples[index].z.limbs[limb] & mask
-            result.t.limbs[limb] |= multiples[index].t.limbs[limb] & mask
+            result.affine.yMinusX.limbs[limb] |= multiples[index].affine.yMinusX.limbs[limb] & mask
+            result.affine.yPlusX.limbs[limb]  |= multiples[index].affine.yPlusX.limbs[limb] & mask
+            result.affine.twiceDT.limbs[limb] |= multiples[index].affine.twiceDT.limbs[limb] & mask
+            result.twiceZ.limbs[limb]         |= multiples[index].twiceZ.limbs[limb] & mask
         }
     }
-
     return result
 }
 
-private func ed25519ScalarMultiply(point: Ed25519Point, scalar: const [..] u8)->Ed25519Point
+private func ed25519ScalarMultiply(multiples: const [..] Ed25519Cached, scalar: const [..] u8)->Ed25519Point
 {
-    // The table depends on the point alone. Every scalar nibble scans all entries.
-    var multiples: [16] Ed25519Point
-    multiples[0] = ed25519Identity()
-    multiples[1] = point
-    for index in 2 until multiples.count do
-        multiples[index] = ed25519Add(multiples[index - 1], point)
-
     var result = ed25519Identity()
+    var selected: Ed25519Cached
+    defer Crypto.secureClear(Swag.makeSlice(&selected, 1))
     for window in 2 * Ed25519KeySize
     {
-        for 4 do
-            result = ed25519Double(result)
-
+        result = ed25519DoubleRepeated(result, 4)
         let nibbleIndex = 2 * Ed25519KeySize - 1 - window
-        let nibble      = (scalar[nibbleIndex / 2] >> (4 * (nibbleIndex & 1))) & 15
-        var selected    = ed25519SelectMultiple(multiples, nibble)
-        result = ed25519Add(result, selected)
-        Crypto.secureClear(Swag.makeSlice(&selected, 1))
+        let digit = (scalar[nibbleIndex / 2] >> (4 * (nibbleIndex & 1))) & 15
+        selected = ed25519SelectMultiple(multiples, digit)
+        result   = ed25519AddCached(result, selected)
     }
 
     return result
@@ -188,11 +230,8 @@ private func ed25519BuildGeneratorRadix16()->[256] Ed25519Affine
         points[start] = base
         for column in 1 until 8 do
             points[start + column] = ed25519Add(points[start + column - 1], base)
-        if row < 31
-        {
-            for 8 do
-                base = ed25519Double(base)
-        }
+        if row < 31 do
+            base = ed25519DoubleRepeated(base, 8)
     }
 
     // Normalize the public points with one inversion.
@@ -288,11 +327,8 @@ private func ed25519MultiplyGenerator(scalar: const [..] u8)->Ed25519Point
             selected = ed25519SelectAffine(table, digits[row * 2 + 1 - pass])
             result = ed25519AddAffine(result, selected)
         }
-        if pass == 0
-        {
-            for 4 do
-                result = ed25519Double(result)
-        }
+        if pass == 0 do
+            result = ed25519DoubleRepeated(result, 4)
     }
 
     return result
@@ -544,17 +580,24 @@ private func ed25519IsIdentity(point: Ed25519Point)->bool
            ed25519FieldEqual(point.y, point.z)
 }
 
-private func ed25519IsPrimeSubgroup(point: Ed25519Point)->bool
+private func ed25519IsPrimeSubgroup(point: Ed25519Point, multiples: const [..] Ed25519Cached)->bool
 {
-    if ed25519IsIdentity(point) do
-        return false
+    // The public group order starts with digit one. Its remaining digits can
+    // index the table directly, with only doublings for a zero digit.
+    var result = point
+    for window in 1 until 2 * Ed25519KeySize
+    {
+        for 3 do
+            result = ed25519Double'(false)(result)
+        let nibbleIndex = 2 * Ed25519KeySize - 1 - window
+        let digit = (Ed25519Order[nibbleIndex / 16] >> (4 * (nibbleIndex & 15))) & 15
+        if digit do
+            result = ed25519AddCached(ed25519Double'(true)(result), multiples[digit])
+        else do
+            result = ed25519Double'(false)(result)
+    }
 
-    var order: [32] u8
-    let words = cast([*] u64, order.buffer)
-    for index in 4 do
-        words[index] = Math.nativeToLittleEndian(Ed25519Order[index])
-
-    return ed25519IsIdentity(ed25519ScalarMultiply(point, order))
+    return ed25519IsIdentity(result)
 }
 
 private func ed25519PublicKeyFromExpanded(expanded: [64] u8)->[32] u8
@@ -662,8 +705,12 @@ func ed25519Verify(publicKey, message, signature: const [..] u8)->bool fail
     let (rPoint, validR) = ed25519DecodePoint(encodedR)
     if not validPublic or
        not validR or
-       not ed25519IsPrimeSubgroup(publicPoint) or
+       ed25519IsIdentity(publicPoint) or
        ed25519IsIdentity(rPoint) do
+        return false
+
+    let multiples = ed25519BuildMultiples(publicPoint)
+    if not ed25519IsPrimeSubgroup(publicPoint, multiples) do
         return false
 
     var challengeHash: Hash.Sha512
@@ -674,7 +721,7 @@ func ed25519Verify(publicKey, message, signature: const [..] u8)->bool fail
     let challengeDigest = ed25519HashFinalize(&challengeHash)
     let challenge       = ed25519Reduce(challengeDigest)
     let left            = ed25519MultiplyGenerator(encodedS)
-    let right           = ed25519Add(rPoint, ed25519ScalarMultiply(publicPoint, challenge))
+    let right           = ed25519Add(rPoint, ed25519ScalarMultiply(multiples, challenge))
 
     // The exact group equation forces R into the same subgroup as both scalar
     // multiples. Cross-products compare projective coordinates without inversions.

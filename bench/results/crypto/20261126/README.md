@@ -124,3 +124,4 @@ optimizations moved each result.
 - [CRC-32 short inputs and bounded SIMD tails](crc32-padded-tail.md)
 - [Streaming Curve25519 product carries](curve25519-product-carries.md)
 - [Poly1305 packed tag output](poly1305-tag-stores.md)
+- [Reusable Ed25519 verification table](ed25519-verification-table.md)

@@ -842,7 +842,8 @@ Huffman table from seven to eight prefix bits while packing its entries into
 16 bits. This keeps the per-tree table at 512 bytes and covers more literal
 symbols without walking the tree. The largest VP8L photo was 3.7% slower in
 the paired comparison. The first isolated lookup run measured 304.725 to
-302.355 ms on that photo.
+302.355 ms. A dedicated 13-sample repeat measured 357.244 to 323.170 ms,
+with libwebp at 230.119 ms and a 4.7% paired improvement.
 
 Dimensions, pixel formats and CRC64 matched on all 14 inputs. The seven VP8L
 images also matched libwebp's RGBA bytes after reversing the reference rows.
@@ -898,3 +899,54 @@ Swag measured 3.449 to 3.186 ms, Pillow 12.3.0 measured 5.082 ms, and ImageMagic
 top-down RGB digest and both Swag builds produced its corresponding bottom-up
 CRC32. The Swag CRC32 matched across all 21 scenarios from 20 distinct GIFs.
 The build passed 37 native Release GIF and ImageReader tests.
+
+## TIFF LZW dictionary loop
+
+The build at `a18026a344` carries the preceding word as one packed offset and
+length. The first decoded word after a clear can use an otherwise unused entry,
+so the hot loop has one fewer state check. The baseline includes the horizontal
+predictor change at `6f7af42687`. The measurements use one worker and a single
+pinned core, with a process CPU clock and 15 rotating samples per reader.
+
+| Fixture | Swag before (ms) | Swag after (ms) | LibTIFF 4.7.0 (ms) | Paired change |
+| --- | ---: | ---: | ---: | ---: |
+| RGB LZW, 2051 × 1549 | 85.304 | 80.280 | 70.987 | -6.5% |
+| RGB LZW with predictor, 2051 × 1549 | 73.950 | 71.977 | 59.446 | -2.4% |
+| RGBA LZW with predictor, previous corpus | 19.545 | 18.142 | 17.357 | -7.8% |
+| RGB noise, single strip | 30.173 | 26.866 | 25.333 | -10.0% |
+| RGB noise, 41 rows per strip | 29.746 | 27.594 | 22.677 | -6.1% |
+| Big-endian RGBA noise with predictor | 40.774 | 36.133 | 35.174 | -10.6% |
+| RGB photo, LZW | 34.777 | 32.318 | 29.210 | -7.2% |
+| Gray noise, one row per strip | 10.083 | 9.758 | 10.896 | -5.8% |
+| FileSamples TIFF control | 0.171 | 0.175 | 0.476 | +2.9% |
+
+The 15 TIFF fixtures include raw and PackBits controls. Dimensions, format,
+alpha association and CRC64 matched across both Swag builds and LibTIFF.
+The 55 TIFF and ImageReader tests passed in native Release.
+
+## JPEG unusual sampling ratios
+
+The build at `c417e804c2` computes component offsets and byte permutations
+once per output row, then repeats samples in SIMD and emits eight BGR pixels
+at a time. The new fixture exercises a layout in which Cb determines the
+horizontal grid and Cr determines the vertical grid.
+
+The comparison includes file reads and BGR8 output allocation. libjpeg-turbo
+2.1.5 uses nearest chroma upsampling. Times are the thread CPU medians from
+rotated samples on one core.
+
+| Fixture | Swag before (ms) | Swag after (ms) | libjpeg-turbo (ms) |
+| --- | ---: | ---: | ---: |
+| FileSamples JPG | 2.296 | 2.242 | 2.267 |
+| FileSamples JFIF | 2.692 | 2.626 | 2.607 |
+| Photo, luma sampling 1 × 3 | 80.102 | 20.774 | 18.655 |
+| Photo, luma sampling 1 × 4 | 78.221 | 19.589 | 17.268 |
+| Photo, luma sampling 3 × 1 | 77.750 | 20.211 | 18.723 |
+| Photo, luma sampling 4 × 1 | 79.633 | 20.037 | 18.139 |
+| Sequential CMYK/YCCK photo | 51.859 | 51.831 | 63.523 |
+| Progressive CMYK/YCCK photo | 171.543 | 174.388 | 182.807 |
+
+The ordinary one-axis 1 × 2 control took 3.7% more time in the paired series.
+The transform for that sampling layout is unchanged. Swag output CRC64 was
+identical on the 17 timed workloads and on nine separately checked mixed
+sampling layouts. The build passed 47 native Release JPEG and ImageReader tests.

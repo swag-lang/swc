@@ -807,3 +807,48 @@ bit for bit.
 
 Native Release passes 321 audio tests. Release-safe passes
 48 focused MP3, Opus and Vorbis tests.
+
+## Twenty-second optimization pass
+
+This follow-up compares the changed codecs with commit `c7bac1acde` and native FFmpeg.
+Each median uses 56 samples and includes opening and materializing ten seconds of PCM16.
+[Raw stage times and PCM deltas](audio-decode-linux-round22.json)
+
+| Format | R21 CPU 0 (ms) | Swag CPU 0 (ms) | FFmpeg CPU 0 (ms) | R21 CPU 1 (ms) | Swag CPU 1 (ms) | FFmpeg CPU 1 (ms) |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| FLAC | 11.10 | 10.96 | 13.14 | 10.07 | 9.93 | 12.14 |
+| Ogg FLAC | 9.26 | 9.31 | 11.72 | 9.43 | 9.29 | 11.80 |
+| MP3 | 9.10 | 9.16 | 8.51 | 9.08 | 8.96 | 8.47 |
+
+| Format | R21 4 cores (ms) | Swag 4 cores (ms) | FFmpeg 4 cores (ms) |
+| --- | ---: | ---: | ---: |
+| FLAC | 7.07 | 7.07 | 8.21 |
+| Ogg FLAC | 6.84 | 6.89 | 8.43 |
+| MP3 | 4.87 | 5.01 | 8.67 |
+
+
+The generated-fixture medians use 42 samples per worker budget.
+
+| Fixture | R21 1 core (ms) | Swag 1 core (ms) | FFmpeg 1 core (ms) | R21 4 cores (ms) | Swag 4 cores (ms) | FFmpeg 4 cores (ms) |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| `flac-44k-stereo-16.flac` | 6.59 | 6.56 | 12.58 | 3.59 | 3.56 | 7.95 |
+| `flac-48k-5.1-16.flac` | 21.42 | 21.37 | 38.80 | 11.29 | 10.88 | 20.82 |
+| `flac-96k-stereo-24.flac` | 19.19 | 18.19 | 28.50 | 9.63 | 9.82 | 16.10 |
+| `mp3-24k-mono.mp3` | 3.03 | 3.09 | 3.31 | 2.15 | 2.14 | 2.93 |
+| `mp3-48k-stereo.mp3` | 10.59 | 10.90 | 9.75 | 5.93 | 5.91 | 9.41 |
+| `mp3-8k-mono.mp3` | 1.10 | 1.06 | 1.33 | 0.85 | 0.84 | 1.28 |
+| `ogg-flac-48k-mono-16.oga` | 4.34 | 3.78 | 6.95 | 2.70 | 2.31 | 5.17 |
+
+FLAC groups wider Rice residuals, simplifies the mid-side combination,
+and reuses the mono output pointer. MP3 mirrors the history prefix used
+across the ring boundary and writes each transform half straight to history.
+The original MP3 results varied by CPU. The 84-sample CPU 2 repeat measured
+8.66 to 8.60 ms on FileSamples and 10.63 to 10.46 ms on the generated
+48 kHz stereo fixture. PCM is byte-identical across these changes.
+
+The PCM matches between the one-core and four-core runs, with a peak difference of
+one PCM16 unit from the original Swag output. All files match the preceding build
+bit for bit.
+
+Native Release passes 321 audio tests. Release-safe passes
+59 focused FLAC and MP3 tests.

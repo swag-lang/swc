@@ -151,12 +151,12 @@ private impl BitReader
         return (cast(u64, quotient) << parameter) | cast(u64, .read(parameter))
     }
 
+    #[Swag.Inline]
+    func signedResidual(code: u64)->s64 => cast(s64, code >> 1) ^ -cast(s64, code & 1)
+
     // Read one partition, decoding four short codes from each word when they fit.
     mtd readRiceRun(destination: [*] s64, count, parameter: u32)
     {
-        #[Swag.Inline]
-        func signedResidual(code: u64)->s64 => cast(s64, code >> 1) ^ -cast(s64, code & 1)
-
         let source    = unwrap .data
         let wideLimit = (.size - Math.min(.size, 7)) * 8
         let mask      = (1'u64 << parameter) - 1
@@ -205,6 +205,56 @@ private impl BitReader
             }
 
             index += 4
+        }
+
+        .bitPos = position
+        for tail in index until count do
+            destination[tail] = signedResidual(.readRice(parameter, mask))
+    }
+
+    // Read pairs when the wider remainder makes four codes impractical.
+    mtd readRicePairs(destination: [*] s64, count, parameter: u32)
+    {
+        #[Swag.Inline]
+        func wordResidual(word: u64, quotient, width, parameter: u32, mask: u64)->s64
+        {
+            let code = (cast(u64, quotient) << parameter) | ((word >> ((128 - width) & 63)) & mask)
+            return signedResidual(code)
+        }
+
+        let source    = unwrap .data
+        let wideLimit = (.size - Math.min(.size, 7)) * 8
+        let mask      = (1'u64 << parameter) - 1
+        var position  = .bitPos
+        var index     = 0'u32
+        while count - index >= 2 and position < wideLimit
+        {
+            let bitOffset = cast(u32, position & 7)
+            let packed    = cast(const [*] u64, source + (position >> 3))[0]
+            let word0     = Math.bigEndianToNative(packed) << bitOffset
+            let quotient0 = cast(u32, Swag.leadingZeros(word0))
+            let width0    = quotient0 + 1 + parameter
+            let word1     = word0 << (width0 & 63)
+            let quotient1 = cast(u32, Swag.leadingZeros(word1))
+            let width1    = quotient1 + 1 + parameter
+
+            // Both stores target residual scratch. A pair crossing the word is read again.
+            destination[index]     = wordResidual(word0, quotient0, width0, parameter, mask)
+            destination[index + 1] = wordResidual(word1, quotient1, width1, parameter, mask)
+            let used = width0 + width1
+            if used <= 64 - bitOffset
+            {
+                position += used
+            }
+            else
+            {
+                .bitPos                = position
+                destination[index]     = signedResidual(.readRice(parameter, mask))
+                destination[index + 1] = signedResidual(.readRice(parameter, mask))
+                position               = .bitPos
+            }
+
+            index += 2
         }
 
         .bitPos = position
@@ -451,7 +501,10 @@ private impl Codec
             }
             else
             {
-                reader.readRiceRun(output + index, end - index, param)
+                if param >= 14 and param <= 27 do
+                    reader.readRicePairs(output + index, end - index, param)
+                else do
+                    reader.readRiceRun(output + index, end - index, param)
                 index = end
             }
         }
@@ -858,9 +911,10 @@ private impl Codec
                 }
                 elif Assignment == 10
                 {
-                    let mid = (left << 1) | (right & One)
-                    left  = (mid + right) >> 1
-                    right = (mid - right) >> 1
+                    // The arithmetic shift floors half the side value, including odd negative values.
+                    let restoredRight = left - (right >> 1)
+                    left  = restoredRight + right
+                    right = restoredRight
                 }
 
                 #static if ScaleDown
@@ -942,6 +996,13 @@ private impl Codec
         }
     }
 
+    mtd writeMonoPcm16(destination: [*] s16, blockSize: u32)
+    {
+        let source = .channels[0].storage()
+        for sample in blockSize do
+            destination[sample] = cast(s16, Math.clamp(source[sample], -32768's64, 32767's64))
+    }
+
     // Writes the decoded block as interleaved 16-bit PCM.
     mtd writePcm16(destination: [*] s16, header: FrameHeader)
     {
@@ -958,6 +1019,12 @@ private impl Codec
         if not shift and header.channels == 6
         {
             .writeSixChannelPcm16(destination, header.blockSize)
+            return
+        }
+
+        if not shift and header.channels == 1
+        {
+            .writeMonoPcm16(destination, header.blockSize)
             return
         }
 

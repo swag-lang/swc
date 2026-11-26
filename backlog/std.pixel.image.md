@@ -197,7 +197,10 @@ ships; history lives in Git, not here.
 - Evidence: [direct bounds updates on flattened points](../bench/workloads/svgraster/resvg-comparison.md#updating-bounds-as-curve-samples-are-emitted)
   reduce the largest-original raster time from 174 to 157 ms on one logical CPU
   and from 124 to 116 ms on four, with unchanged pixels.
-- Next: measure ordered batches of small fills and crossing order on the
+- Evidence: [parallel batches of color fills](../bench/workloads/svgraster/resvg-comparison.md#processing-consecutive-color-fills-by-row-range)
+  reduce the 16,000-shape fixture from 233 to 120 ms and the stroke fixture from
+  64 to 44 ms at four workers with unchanged pixels.
+- Next: measure batches of single-ink fills and crossing order on the
   original SVGs. Rerun the original
   Windows comparison at one worker and at the runtime default.
 - Done when: the original corpus meets agreed parse and raster budgets against resvg and the

@@ -73,6 +73,43 @@ private func writePixelChunk(target: [*] u8, pixel, previous: u32, index: *[64] 
     return 5
 }
 
+private func(CHANNELS: u64, SWAP: bool) writeUniformChunks(result: *ConcatBuffer, pixels: const [*] u8, count: u64)->bool
+{
+    if count < 256 do
+        return false
+
+    let pixel = readPixel'(CHANNELS, SWAP)(pixels)
+    if readPixel'(CHANNELS, SWAP)(pixels + CHANNELS) != pixel or
+       readPixel'(CHANNELS, SWAP)(pixels + (count - 1) * CHANNELS) != pixel do
+        return false
+
+    var matched: u64
+    #static if CHANNELS == 4 do
+        matched = PackedPixel.countSame32(pixels, pixels + CHANNELS, count - 1)
+    else do
+        matched = PackedPixel.countSame24(pixels, pixels + CHANNELS, count - 1)
+    if matched != count - 1 do
+        return false
+
+    const InitialPixel = 0xFF00_0000'u32
+    var runs = count
+    if pixel != InitialPixel
+    {
+        var first: [5] u8
+        var index: [64] u32
+        let used = writePixelChunk(first.buffer, pixel, InitialPixel, &index)
+        result.addBytes(Swag.makeSlice(first.buffer, used))
+        runs -= 1
+    }
+
+    let full = runs / 62
+    Memory.set(result.reserveInPlace(full), 0xFD, full)
+    let tail = runs % 62
+    if tail do
+        result.addNative(cast(u8, (0xC0 | (tail - 1))))
+    return true
+}
+
 private func(CHANNELS: u64, SWAP: bool) writeChunks(result: *ConcatBuffer, image: const *Image)
 {
     const BatchSize = 4096
@@ -83,6 +120,9 @@ private func(CHANNELS: u64, SWAP: bool) writeChunks(result: *ConcatBuffer, image
     let width    = cast(u64, image.width)
     let height   = cast(u64, image.height)
     let pixels   = image.pixels.storage()
+    if writeUniformChunks'(CHANNELS, SWAP)(result, pixels, width * height) do
+        return
+
     var previous = 0xFF00_0000'u32
     var index: [64] u32
     var run:   u8

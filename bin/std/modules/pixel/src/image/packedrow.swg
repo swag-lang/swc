@@ -17,6 +17,33 @@ private const ShiftBytes12  = cast(Math.Simd.U8x16, [0x80'u8, 0x80, 0x80, 0x80, 
 private const CarryBytes6   = cast(Math.Simd.U8x16, [0'u8, 1, 2, 3, 4, 5, 0, 1, 2, 3, 4, 5, 0, 1, 2, 3])
 private const CarryBytes3   = cast(Math.Simd.U8x16, [12'u8, 13, 14, 12, 13, 14, 12, 13, 14, 12, 13, 14, 12, 13, 14, 12])
 
+func countSame24(pixel, source: const [*] u8, pixelCount: u64)->u64
+{
+    using Math.Simd
+    let pair    = cast(const *u16, pixel)[]
+    let last    = pixel[2]
+    let word    = cast(u32, pair) | (cast(u32, last) << 16)
+    let pattern = shuffle(cast #bit(U8x16, splat(word)), RepeatBgr24)
+    var x       = 0'u64
+    while pixelCount - x >= 6
+    {
+        let matches = bitmask(load(source + x * 3) == pattern)
+        if (matches & 0xFFF) != 0xFFF do
+            break
+        x += 4
+    }
+
+    while x < pixelCount
+    {
+        let at = source + x * 3
+        if cast(const *u16, at)[] != pair or at[2] != last do
+            break
+        x += 1
+    }
+
+    return x
+}
+
 func countSame32(pixel, source: const [*] u8, pixelCount: u64)->u64
 {
     let pattern = Math.Simd.splat(cast(const *u32, pixel)[])

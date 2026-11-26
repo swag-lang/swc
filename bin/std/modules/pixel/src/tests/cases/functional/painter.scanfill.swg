@@ -274,3 +274,56 @@ using Core
     for byte, index in images[0].pixels do
         Swag.require(byte == images[1].pixels[index])
 }
+
+// Separating translucent fills with transform commands gives the same pixels as grouped fills.
+#[Swag.TestTag("parallel")]
+#test
+{
+    const Width  = 144
+    const Height = 256
+    let workers = Swag.workerCount()
+    Swag.setWorkerCount(4)
+    defer Swag.setWorkerCount(workers)
+    var images: [2] Image
+    for serial in 2
+    {
+        var cpu: RenderCpu
+        cpu.begin(Width, Height)
+        let renderer: IRenderer = &cpu
+        defer renderer.end()
+        var painter = Painter.createScanline(&cpu)
+        painter.begin()
+        painter.setColorMaskFull()
+        painter.clear(Color.fromArgb(Argb.White))
+        painter.setColorMaskColor()
+
+        var paths: LinePathList
+        for pass in 2
+        {
+            let transform = Math.Transform2.createTranslation(0.25 + cast(f32, pass), 0.375)
+            painter.setTransform(transform)
+            painter.setClippingRect({5, 11 + cast(f32, pass) * 3, 133, 231})
+            for index in 384
+            {
+                let x     = cast(f32, 4 + (index * 13) % 96) + 0.125
+                let y     = cast(f32, 6 + (index * 17) % 220) + 0.25
+                let size  = cast(f32, 24 + index % 14)
+                let color = Color.fromArgb(0x9000_0000 | (cast(u32, index * 173_387 + pass * 3_521) & 0x00FF_FFFF))
+                paths.newPath().setRectRaw(x, y, size, size + 11.5)
+                if serial do
+                    painter.setTransform(transform)
+                painter.fillPath(&paths, color, .NonZero)
+                paths.clear()
+            }
+        }
+
+        painter.end()
+        expect renderer.draw(&painter)
+        images[serial] = cpu.surfaceImage()
+    }
+
+    Swag.require(images[0].pixelColor(35, 128).argb != 0xFFFF_FFFF)
+    Swag.require(images[0].pixelColor(1, 128).argb == 0xFFFF_FFFF)
+    for byte, index in images[0].pixels do
+        Swag.require(byte == images[1].pixels[index])
+}

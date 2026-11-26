@@ -3812,9 +3812,9 @@ private impl RenderCpu
         return crossings
     }
 
-    mtd gatherScanRows(painter: const *Painter, fill: const *ScanFillBatch, transform: const *Transform2, origin: Vector2, minX, maxX: f32, height: s32)->[..] ScanSample
+    func gatherScanRows(scratch: *ScanScratch, painter: const *Painter, fill: const *ScanFillBatch, transform: const *Transform2, origin: Vector2, minX, maxX: f32, height: s32)->[..] ScanSample
     {
-        let crossings = .scanScratch.startRows(height)
+        let crossings = scratch.startRows(height)
         let points    = painter.scanPoints.toSlice()
         let ends      = painter.scanContourEnds.toSlice()
         var point     = firstScanPoint(painter, fill)
@@ -3925,9 +3925,14 @@ private impl RenderCpu
 
         let transform = .deviceTransform()
         let area      = .scanBounds(image, fill, &transform)
-        if area.isEmpty() do
-            return
+        if not area.isEmpty() do
+            .rasterScanFill(&.scanScratch, &.areaScratch, painter, fill, image, &transform, area, 0, image.height, true)
+    }
 
+    mtd rasterScanFill(scratch: *ScanScratch, areaScratch: *AreaScratch, painter: *Painter, fill: const *ScanFillBatch, image: *Image,
+                       transform: const *Transform2, area: Rectangle, startRow, endRow: s32, allowParallel: bool)
+    {
+        // Each row range keeps the same origin and sample grid as the full fill.
         let left       = cast(s32, Math.floor(area.x))
         let top        = cast(s32, Math.floor(area.y))
         let right      = cast(s32, Math.ceil(area.right()))
@@ -3935,6 +3940,31 @@ private impl RenderCpu
         let width      = right - left
         let firstPoint = firstScanPoint(painter, fill)
         let pointCount = painter.scanContourEnds[fill.end - 1] - firstPoint
+        let bandHeight = scanBandHeight(pointCount)
+        if .stencilWrite and .stencilMode == .Set do
+            .markStencilDirty({left, top, right - 1, bottom - 1})
+
+        var visibleLeft   = left
+        var visibleRight  = right
+        var visibleTop    = Math.max(top, startRow)
+        var visibleBottom = Math.min(bottom, endRow)
+        if .stencilOn and (not .stencilWrite or .stencilMode == .Clear)
+        {
+            let dirty = .currentStencil().dirty
+            if dirty.isEmpty() or dirty.maxX < left or dirty.minX >= right do
+                return
+            // Keep a whole pixel representable at either end of the coverage interval.
+            if width <= 16_777_216
+            {
+                visibleLeft  = Math.max(left, dirty.minX)
+                visibleRight = Math.min(right, dirty.maxX + 1)
+            }
+            visibleTop    = Math.max(visibleTop, dirty.minY)
+            visibleBottom = Math.min(visibleBottom, dirty.maxY + 1)
+        }
+        if visibleTop >= visibleBottom do
+            return
+
         if fill.end == fill.first + 1 and pointCount >= 3 and pointCount <= 32 and
            (cast(u64, width) + cast(u64, bottom - top)) * pointCount <= ScanBandCrossingBudget and not .stencilWrite
         {
@@ -3947,44 +3977,19 @@ private impl RenderCpu
             let points = local[until final]
             if final >= 3 and isSimpleAreaContour(points)
             {
-                .areaScratch.rasterize(points, width, bottom - top)
+                areaScratch.rasterize(points, width, visibleBottom - top, visibleTop - top)
                 let color = fill.color
                 let tint = cast #bit(Math.Simd.U8x16, Math.Simd.splat(color.argb))
                 let alphaScale = Math.Simd.splat(cast(f32, color.a) / VerticalSamples)
                 let stencil = .stencilOn ? .currentStencil().pixels.storage() : null
-                for deviceY in top until bottom
+                for deviceY in visibleTop until visibleBottom
                 {
-                    let {values: coverage, first: lo, end: hi} = .areaScratch.resolve(deviceY - top, width)
+                    let {values: coverage, first: lo, end: hi} = areaScratch.resolve(deviceY - top, width)
                     .drawScanCoverageRow(image, left, deviceY, color, tint, alphaScale, stencil, coverage, lo, hi)
                 }
 
                 return
             }
-        }
-
-        let bandHeight = scanBandHeight(pointCount)
-        if .stencilWrite and .stencilMode == .Set do
-            .markStencilDirty({left, top, right - 1, bottom - 1})
-
-        var visibleLeft   = left
-        var visibleRight  = right
-        var visibleTop    = top
-        var visibleBottom = bottom
-        if .stencilOn and (not .stencilWrite or .stencilMode == .Clear)
-        {
-            let dirty = .currentStencil().dirty
-            if dirty.isEmpty() or dirty.maxX < left or dirty.minX >= right do
-                return
-            // Keep a whole pixel representable at either end of the coverage interval.
-            if width <= 16_777_216
-            {
-                visibleLeft  = Math.max(left, dirty.minX)
-                visibleRight = Math.min(right, dirty.maxX + 1)
-            }
-            visibleTop    = Math.max(top, dirty.minY)
-            visibleBottom = Math.min(bottom, dirty.maxY + 1)
-            if visibleTop >= visibleBottom do
-                return
         }
 
         // Keep the original subrow origin in the first band touching the stencil.
@@ -4001,10 +4006,10 @@ private impl RenderCpu
         if fill.end - fill.first >= 128 and
            pointCount <= ScanBandCrossingBudget and
            visibleBottom - firstBand > bandHeight * 2 do
-            projectContours(&projected, painter, fill, &transform, firstPoint, pointCount, visibleLeft, visibleRight)
+            projectContours(&projected, painter, fill, transform, firstPoint, pointCount, visibleLeft, visibleRight)
 
         var indexed = projected.bounds.count ? indexProjectedContours(&projected, firstBand, visibleBottom, bandHeight, bandCount) : {}
-        if projected.bounds.count and Swag.workerCount() > 1
+        if allowParallel and projected.bounds.count and Swag.workerCount() > 1
         {
             // Each worker holds one band's crossings. Bound their total on machines with many workers.
             let bandCapacity = pointCount * VerticalSamples * cast(u64, bandHeight)
@@ -4020,15 +4025,15 @@ private impl RenderCpu
                 // A tile row belongs to one worker, and this join keeps fills in submission order.
                 parallel for |renderer, &bands, &projected, &indexed| job in jobs
                 {
-                    var scratch: ScanScratch
+                    var localScratch: ScanScratch
                     for var band = job; band < bands.count; band += bands.jobs
                     {
                         let y         = bands.top + cast(s32, band) * bands.height
                         let height    = Math.min(bands.height, bands.bottom - y)
                         let origin    = Vector2{cast(f32, bands.left), cast(f32, y)}
                         let indices   = indexed.count ? &indexed[band] : null
-                        let crossings = gatherProjectedRows(&scratch, bands.painter, bands.fill, &projected, origin, bands.minX, bands.maxX, height, indices)
-                        renderer.drawScanFillBand(&scratch, crossings, bands.image, bands.fill, bands.left, y, bands.width, height, Math.max(0, bands.visibleTop - y))
+                        let crossings = gatherProjectedRows(&localScratch, bands.painter, bands.fill, &projected, origin, bands.minX, bands.maxX, height, indices)
+                        renderer.drawScanFillBand(&localScratch, crossings, bands.image, bands.fill, bands.left, y, bands.width, height, Math.max(0, bands.visibleTop - y))
                     }
                 }
 
@@ -4042,11 +4047,86 @@ private impl RenderCpu
             let height    = Math.min(bandHeight, visibleBottom - y)
             let origin    = Vector2{cast(f32, left), cast(f32, y)}
             let indices   = indexed.count ? &indexed[band] : null
-            let crossings = projected.bounds.count ? gatherProjectedRows(&.scanScratch, painter, fill, &projected, origin, minX, maxX, height, indices) :
-                            .gatherScanRows(painter, fill, &transform, origin, minX, maxX, height)
+            let crossings = projected.bounds.count ? gatherProjectedRows(scratch, painter, fill, &projected, origin, minX, maxX, height, indices) :
+                            gatherScanRows(scratch, painter, fill, transform, origin, minX, maxX, height)
 
-            .drawScanFillBand(&.scanScratch, crossings, image, fill, left, y, width, height, Math.max(0, visibleTop - y))
+            .drawScanFillBand(scratch, crossings, image, fill, left, y, width, height, Math.max(0, visibleTop - y))
         }
+    }
+
+    struct ScanFillWork
+    {
+        fill:        const *ScanFillBatch
+        area:        Rectangle
+        top, bottom: s32
+    }
+
+    mtd tryDrawScanGroup(painter: *Painter, commands: const [..] Command)->bool
+    {
+        let image = .currentImage()
+        if not image do
+            return true
+        let transform = .deviceTransform()
+        const MaxBands = 8
+        let workers = Math.min(cast(u64, Swag.workerCount()), commands.count / 128, cast(u64, MaxBands))
+        if workers < 2 do
+            return false
+
+        var work: Array'ScanFillWork
+        work.reserve(commands.count)
+        var top = image.height
+        var bottom: s32
+        for &cmd in commands
+        {
+            if not (cmd.op is .DrawScanFill) do
+                return false
+            let fill = &cmd.scanFill
+            let area = .scanBounds(image, fill, &transform)
+            if area.isEmpty() do
+                continue
+            let first = cast(s32, Math.floor(area.y))
+            let last  = cast(s32, Math.ceil(area.bottom()))
+            work.add({fill, area, first, last})
+            top    = Math.min(top, first)
+            bottom = Math.max(bottom, last)
+        }
+
+        if not work.count do
+            return true
+        if bottom - top < 32 do
+            return false
+
+        let bandHeight = (bottom - top - 1) / cast(s32, workers) + 1
+        let bandCount  = cast(u64, (bottom - top - 1) / bandHeight + 1)
+        var bands: [MaxBands] Array'u32
+        var references = 0'u64
+        for &item, index in work
+        {
+            let first = (item.top - top) / bandHeight
+            let last  = (item.bottom - top - 1) / bandHeight
+            references += cast(u64, last - first + 1)
+            if references > work.count * 4 do
+                return false
+            for band in first to last do
+                bands[band].add(cast(u32, index))
+        }
+
+        // Each row job follows the original compositing order for the pixels it owns.
+        let renderer = me
+        var state    = {painter: painter, image: image, transform: transform, top: top, bottom: bottom, height: bandHeight}
+        parallel for |renderer, &state, &work, &bands| job in bandCount
+        {
+            var scratch:     ScanScratch
+            var areaScratch: AreaScratch
+            let first = state.top + cast(s32, job) * state.height
+            let last = first + Math.min(state.bottom - first, state.height)
+            for index in bands[job]
+            {
+                let item = &work[index]
+                renderer.rasterScanFill(&scratch, &areaScratch, state.painter, item.fill, state.image, &state.transform, item.area, first, last, false)
+            }
+        }
+        return true
     }
 
     mtd drawScanClip(painter: *Painter, first, end: u64)
@@ -4091,7 +4171,7 @@ private impl RenderCpu
             var covered = true
             for &shape, index in shapes
             {
-                let crossings = .gatherScanRows(painter, shape, &transform, origin, 0, cast(f32, width), height)
+                let crossings = gatherScanRows(&.scanScratch, painter, shape, &transform, origin, 0, cast(f32, width), height)
                 covered = .scanClip.intersect(&.scanScratch, crossings, shape.rule == .EvenOdd, index == 0)
                 if not covered do
                     break
@@ -4926,10 +5006,28 @@ impl RenderCpu
 
         .resetDrawState()
         .contentScale = painter.contentScale()
-        for &cmd, idx in painter.commandBuffer
+        let commands = painter.commandBuffer.toSlice()
+        while nextCommand < commands.count
         {
-            .executeCommand(painter, cmd, cast(u64, idx))
-            nextCommand = cast(u64, idx) + 1
+            let cmd = &commands[nextCommand]
+            if not .stencilOn and not .stencilWrite and cmd.op is .DrawScanFill
+            {
+                var end   = nextCommand + 1
+                let limit = Math.min(nextCommand + 65_536, commands.count)
+                while end < limit and commands[end].op is .DrawScanFill do
+                    end += 1
+                if end - nextCommand < 256 or not .tryDrawScanGroup(painter, commands[nextCommand until end])
+                {
+                    for index in nextCommand until end do
+                        .executeCommand(painter, &commands[index], index)
+                }
+
+                nextCommand = end
+                continue
+            }
+
+            .executeCommand(painter, cmd, nextCommand)
+            nextCommand += 1
         }
     }
 

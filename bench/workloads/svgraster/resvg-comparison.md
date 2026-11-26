@@ -819,3 +819,29 @@ most one in premultiplied RGB and alpha. At its fixed dimensions, nine
 alternating Release runs measured 9.00 ms before and 8.72 ms after,
 with resvg 0.50.0 at 8.90 ms.
 [Timings and comparisons](resvg-edge-area.json)
+
+## Processing consecutive color fills by row range
+
+Consecutive solid fills under the same painter state can share a parallel
+pass. Each job owns a disjoint range of destination rows, uses its own
+crossing storage, and composites the fills in submission order on each
+fill's original sample grid. The area rasterizer also restricts edge
+integration to the rows a job owns. Painter state changes end a group,
+and the group runs with the stencil disabled.
+
+Nine interleaved Release runs used matching CPU affinities and the Scope
+options. These medians include parsing and rasterization, in milliseconds.
+
+| Fixture | CPU budget | Swag before | Swag after | resvg 0.50.0 |
+| --- | --- | ---: | ---: | ---: |
+| `large` | One logical CPU | 257.69 | 243.48 | 276.49 |
+| `large` | Two logical CPUs | 240.75 | 163.57 | 292.37 |
+| `large` | Four logical CPUs | 233.28 | 120.18 | 271.82 |
+| `strokes` | One logical CPU | 63.55 | 65.92 | 15.84 |
+| `strokes` | Two logical CPUs | 62.85 | 58.30 | 15.10 |
+| `strokes` | Four logical CPUs | 63.87 | 43.96 | 16.23 |
+
+The original bitmaps use the separate single-ink path. Their CRC-64s and
+those of the thumbnails, generated controls and public SVGs remain equal.
+A painter test compares overlapping translucent fills across several row
+ranges with the same fills separated by explicit painter commands.

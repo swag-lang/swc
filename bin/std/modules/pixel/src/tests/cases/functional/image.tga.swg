@@ -837,24 +837,35 @@ private func requireTgaDecodeFails(bytes: const [..] u8, options: DecodeOptions)
     Swag.require(img.pixels.buffer[6] == 7'u8)
 }
 
-// Decode RLE grayscale packets.
+// A grayscale run can cross a row in every origin mode.
 #test
 {
-    let path = makeTempTgaPath()
-    defer discard catch File.delete(path.toString())
-    var cb: ConcatBuffer
-    addTgaImageHeader(&cb, TGA_TYPE_RLE_MONO, 8'u8, 0'u8, 3'u16, 1'u16)
-    cb.addNative(0x02'u8)
-    cb.addNative(9'u8)
-    cb.addNative(10'u8)
-    cb.addNative(11'u8)
+    const Width   = 3'u16
+    const Height  = 2'u16
+    const Samples = [9'u8, 9, 9, 9, 10, 11]
+    for descriptor in [0'u8, TGA_DESC_TOP, TGA_DESC_RIGHT, TGA_DESC_TOP | TGA_DESC_RIGHT]
+    {
+        var cb: ConcatBuffer
+        addTgaImageHeader(&cb, TGA_TYPE_RLE_MONO, 8'u8, descriptor, Width, Height)
+        cb.addNative(0x83'u8)
+        cb.addNative(9'u8)
+        cb.addNative(0x01'u8)
+        cb.addNative(10'u8)
+        cb.addNative(11'u8)
 
-    discard expect File.writeAllBytes(path.toString(), cb)
-    let img = expect Image.load(path.toString())
-    Swag.require(img.pixels.buffer != null)
-    Swag.require(img.pixels.buffer[0] == 9'u8)
-    Swag.require(img.pixels.buffer[3] == 10'u8)
-    Swag.require(img.pixels.buffer[6] == 11'u8)
+        let img = expect Image.decode("memory.tga", nnBytes(cb.toSlice()), {})
+        Swag.require(img.pixelFormat == .BGR8)
+        for pixel in Samples.count
+        {
+            let x = pixel % Width
+            let y = pixel / Width
+            let targetX = descriptor & TGA_DESC_RIGHT ? Width - x - 1 : x
+            let targetY = descriptor & TGA_DESC_TOP ? Height - y - 1 : y
+            let offset  = (targetY * Width + targetX) * 3
+            for channel in 3 do
+                Swag.require(img.pixels.storage()[offset + channel] == Samples[pixel])
+        }
+    }
 }
 
 // Decode metadata without allocating pixels.

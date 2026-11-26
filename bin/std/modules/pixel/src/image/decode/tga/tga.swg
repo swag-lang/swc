@@ -204,10 +204,8 @@ func writePalettePixel(dst: [*] u8, palette: Palette, index: u32, alphaFromBit: 
     }
 }
 
-func writeSourcePixel(result: *Image, header: Header, palette: Palette, pixelIndex: u64, src: const [*] u8) fail
+func writeSourcePixel(dst: [*] u8, header: Header, palette: Palette, src: const [*] u8) fail
 {
-    let dst = dstPixel(result, header, pixelIndex)
-
     if isMappedType(header.imageTypeCode)
     {
         try writePalettePixel(dst, palette, paletteIndex(src, header.bitsPerPixel), hasAttributeBits(header))
@@ -231,6 +229,14 @@ func writeSourcePixel(result: *Image, header: Header, palette: Palette, pixelInd
     case 24: writeBgrPixel(dst, src[0], src[1], src[2])
     case 32: writeBgraPixel(dst, src[0], src[1], src[2], hasAttributeBits(header) ? src[3] : 255'u8)
     }
+}
+
+private func writeSourceSpan(destination: [*] u8, source: const [*] u8, count: u64, header: Header, palette: Palette, sourceBytes: u8, destinationBytes: s32, rightOrigin: bool) fail
+{
+    let step  = rightOrigin ? -destinationBytes : destinationBytes
+    let first = destination + (rightOrigin ? (count - 1) * destinationBytes : 0)
+    for x in count do
+        try writeSourcePixel(first + cast(s64, x) * step, header, palette, source + x * sourceBytes)
 }
 
 func decodeRaw(result: *Image, header: Header, palette: Palette, src, last: const [*] u8, pixelBytes: u8, pixelCount: u64) fail
@@ -293,76 +299,27 @@ func decodeRaw(result: *Image, header: Header, palette: Palette, src, last: cons
         return
     }
 
-    for i in pixelCount
+    let rightOrigin = (header.descriptorByte & DESC_ORIGIN_RIGHT) != 0
+    let sourceStride = cast(u64, header.width) * pixelBytes
+    let output = result.pixels.storage()
+    for y in result.height
     {
-        try writeSourcePixel(result, header, palette, i, p)
-        p += pixelBytes
+        let dstY = header.descriptorByte & DESC_ORIGIN_TOP ? result.height - y - 1 : y
+        let dst = output + cast(u64, dstY) * result.rowStride
+        try writeSourceSpan(dst, p, header.width, header, palette, pixelBytes, result.bytesPerPixel, rightOrigin)
+        p += sourceStride
     }
 }
 
 func decodeRle(result: *Image, header: Header, palette: Palette, src, last: const [*] u8, pixelBytes: u8, pixelCount: u64) fail
 {
+    let plain = header.imageTypeCode == TYPE_RLE_RGB and
+                (header.bitsPerPixel == 24 or (header.bitsPerPixel == 32 and hasAttributeBits(header)))
+    let rightOrigin = (header.descriptorByte & DESC_ORIGIN_RIGHT) != 0
+    let outputBytes = result.bytesPerPixel
+    var decoded: [4] u8
     var index: u64
     var p = src
-
-    if header.imageTypeCode == TYPE_RLE_RGB and
-       (header.bitsPerPixel == 24 or (header.bitsPerPixel == 32 and hasAttributeBits(header)))
-    {
-        let rightOrigin = (header.descriptorByte & DESC_ORIGIN_RIGHT) != 0
-        while index < pixelCount
-        {
-            try checkBuffer(p, last, 1)
-            let packet = p[0]
-            p += 1
-
-            let count = cast(u64, ((packet & 0x7F) + 1))
-            if index + count > pixelCount do
-                fail InvalidFormatError{"invalid source buffer"}
-
-            let repeated = (packet & 0x80) != 0
-            try checkBuffer(p, last, repeated ? pixelBytes : count * pixelBytes)
-            var remaining = count
-            var source    = p
-            while remaining
-            {
-                let rowRemaining = cast(u64, header.width) - index % header.width
-                let segmentCount = Math.min(remaining, rowRemaining)
-                let dstIndex     = rightOrigin ? index + segmentCount - 1 : index
-                let dst          = dstPixel(result, header, dstIndex)
-                if repeated
-                {
-                    if header.bitsPerPixel == 24 do
-                        PackedPixel.fillBgr24Row(source, dst, segmentCount)
-                    else do
-                        PackedPixel.fillBgra32Row(source, dst, segmentCount)
-                }
-                else
-                {
-                    if rightOrigin
-                    {
-                        if header.bitsPerPixel == 24 do
-                            PackedPixel.reverseBgr24Row(source, dst, segmentCount)
-                        else do
-                            PackedPixel.reverseBgra32Row(source, dst, segmentCount)
-                    }
-                    else
-                    {
-                        Memory.copy(dst, source, segmentCount * pixelBytes)
-                    }
-
-                    source += segmentCount * pixelBytes
-                }
-
-                index     += segmentCount
-                remaining -= segmentCount
-            }
-
-            p += repeated ? pixelBytes : count * pixelBytes
-        }
-
-        return
-    }
-
     while index < pixelCount
     {
         try checkBuffer(p, last, 1)
@@ -373,27 +330,45 @@ func decodeRle(result: *Image, header: Header, palette: Palette, src, last: cons
         if index + count > pixelCount do
             fail InvalidFormatError{"invalid source buffer"}
 
-        if packet & 0x80
+        let repeated = (packet & 0x80) != 0
+        try checkBuffer(p, last, repeated ? pixelBytes : count * pixelBytes)
+        if repeated and not plain do
+            try writeSourcePixel(&decoded[0], header, palette, p)
+
+        var remaining = count
+        var source    = p
+        while remaining
         {
-            try checkBuffer(p, last, pixelBytes)
-            for count
+            let rowRemaining = cast(u64, header.width) - index % header.width
+            let segmentCount = Math.min(remaining, rowRemaining)
+            let dstIndex     = rightOrigin ? index + segmentCount - 1 : index
+            let dst          = dstPixel(result, header, dstIndex)
+            if repeated
             {
-                try writeSourcePixel(result, header, palette, index, p)
-                index += 1
+                let color = plain ? p : cast(const [*] u8, &decoded[0])
+                if outputBytes == 3 do
+                    PackedPixel.fillBgr24Row(color, dst, segmentCount)
+                else do
+                    PackedPixel.fillBgra32Row(color, dst, segmentCount)
+            }
+            else
+            {
+                if not plain do
+                    try writeSourceSpan(dst, source, segmentCount, header, palette, pixelBytes, outputBytes, rightOrigin)
+                elif not rightOrigin do
+                    Memory.copy(dst, source, segmentCount * pixelBytes)
+                elif outputBytes == 3 do
+                    PackedPixel.reverseBgr24Row(source, dst, segmentCount)
+                else do
+                    PackedPixel.reverseBgra32Row(source, dst, segmentCount)
+                source += segmentCount * pixelBytes
             }
 
-            p += pixelBytes
+            index     += segmentCount
+            remaining -= segmentCount
         }
-        else
-        {
-            try checkBuffer(p, last, count * pixelBytes)
-            for count
-            {
-                try writeSourcePixel(result, header, palette, index, p)
-                index += 1
-                p     += pixelBytes
-            }
-        }
+
+        p += repeated ? pixelBytes : count * pixelBytes
     }
 }
 

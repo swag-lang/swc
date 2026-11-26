@@ -307,15 +307,15 @@ public impl Blake2b
 
         for round in 12
         {
-            let s = round * 16
+            let schedule = Sigma.buffer + round * 16
             mixPair(&v, 0, 4, 8, 12, 1, 5, 9, 13,
-                    m[Sigma[s + 0]], m[Sigma[s + 1]], m[Sigma[s + 2]], m[Sigma[s + 3]])
+                    m[schedule[0]], m[schedule[1]], m[schedule[2]], m[schedule[3]])
             mixPair(&v, 2, 6, 10, 14, 3, 7, 11, 15,
-                    m[Sigma[s + 4]], m[Sigma[s + 5]], m[Sigma[s + 6]], m[Sigma[s + 7]])
+                    m[schedule[4]], m[schedule[5]], m[schedule[6]], m[schedule[7]])
             mixPair(&v, 0, 5, 10, 15, 1, 6, 11, 12,
-                    m[Sigma[s + 8]], m[Sigma[s + 9]], m[Sigma[s + 10]], m[Sigma[s + 11]])
+                    m[schedule[8]], m[schedule[9]], m[schedule[10]], m[schedule[11]])
             mixPair(&v, 2, 7, 8, 13, 3, 4, 9, 14,
-                    m[Sigma[s + 12]], m[Sigma[s + 13]], m[Sigma[s + 14]], m[Sigma[s + 15]])
+                    m[schedule[12]], m[schedule[13]], m[schedule[14]], m[schedule[15]])
         }
 
         for group in 8 / WordsPerVector

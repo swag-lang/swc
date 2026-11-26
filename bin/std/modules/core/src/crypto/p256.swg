@@ -32,9 +32,6 @@ private const P256MontgomeryOne: [4] u64 = [
 private const P256MontgomeryR2: [4] u64 = [
     0x0000000000000003, 0xFFFFFFFBFFFFFFFF, 0xFFFFFFFFFFFFFFFE, 0x00000004FFFFFFFD]
 
-private const P256OrderMontgomeryOne: [4] u64 = [
-    0x0C46353D039CDAAF, 0x4319055258E8617B, 0x0000000000000000, 0x00000000FFFFFFFF]
-
 private const P256OrderMontgomeryR2: [4] u64 = [
     0x83244C95BE79EEA2, 0x4699799C49BD6FA6, 0x2845B2392B6BEC59, 0x66E12D94F3D95620]
 
@@ -279,18 +276,27 @@ private func p256OrderFromMontgomery(value: P256Field)->P256Field
     return result
 }
 
-private func p256OrderPower(value: P256Field, exponent: [4] u64)->P256Field
+private func p256OrderInverse(value: P256Field)->P256Field
 {
-    var result: P256Field
-    result.limbs = P256OrderMontgomeryOne
-    for step in 256
+    var powers: [16] P256Field
+    powers[1] = value
+    for index in 2 until powers.count do
+        powers[index] = p256OrderMultiply(powers[index - 1], value)
+
+    // Every table index comes from the public exponent n - 2.
+    var result = powers[P256OrderInverseExponent[3] >> 60]
+    for window in 63
     {
-        let bit = 255 - step
-        result = p256OrderMultiply(result, result)
-        if (exponent[bit / 64] >> (bit % 64)) & 1 do
-            result = p256OrderMultiply(result, value)
+        for 4 do
+            result = p256OrderMultiply(result, result)
+
+        let nibbleIndex = 62 - window
+        let digit       = (P256OrderInverseExponent[nibbleIndex / 16] >> ((nibbleIndex % 16) * 4)) & 15
+        if digit do
+            result = p256OrderMultiply(result, powers[digit])
     }
 
+    Crypto.secureClear(powers)
     return result
 }
 
@@ -702,7 +708,7 @@ func p256EcdsaSign(privateKey, message: const [..] u8, signature: [..] u8) fail
     var zMontgomery = p256OrderToMontgomery(z)
     defer Crypto.secureClear(Swag.makeSlice(&zMontgomery, 1))
 
-    var inverseNonce = p256OrderPower(nonceMontgomery, P256OrderInverseExponent)
+    var inverseNonce = p256OrderInverse(nonceMontgomery)
     defer Crypto.secureClear(Swag.makeSlice(&inverseNonce, 1))
     var rd = p256OrderMultiply(rMontgomery, privateMontgomery)
     defer Crypto.secureClear(Swag.makeSlice(&rd, 1))
@@ -761,7 +767,7 @@ func p256EcdsaVerify(publicKey, message, signature: const [..] u8)->bool fail
     defer Crypto.secureClear(Swag.makeSlice(&rMontgomery, 1))
     var sMontgomery = p256OrderToMontgomery(s)
     defer Crypto.secureClear(Swag.makeSlice(&sMontgomery, 1))
-    var inverseS = p256OrderPower(sMontgomery, P256OrderInverseExponent)
+    var inverseS = p256OrderInverse(sMontgomery)
     defer Crypto.secureClear(Swag.makeSlice(&inverseS, 1))
     var zMontgomery = p256OrderToMontgomery(z)
     defer Crypto.secureClear(Swag.makeSlice(&zMontgomery, 1))

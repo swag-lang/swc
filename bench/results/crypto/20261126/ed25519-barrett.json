@@ -1,0 +1,962 @@
+{
+  "utc": "2026-11-26T13:02:33.322190+00:00",
+  "system": "Linux-6.18.57-x86_64-with-glibc2.41",
+  "cpu": 1,
+  "affinity": [
+    1
+  ],
+  "workers": {
+    "radix16": 1,
+    "ed-barrett-fast": 1,
+    "ed-scalar-wide": 1
+  },
+  "processor": {
+    "model name": "AMD EPYC 9V74 80-Core Processor",
+    "microcode": "0x1000065",
+    "flags": "fpu vme de pse tsc msr pae mce cx8 apic sep mtrr pge mca cmov pat pse36 clflush mmx fxsr sse sse2 ht syscall nx mmxext fxsr_opt pdpe1gb rdtscp lm constant_tsc rep_good nopl xtopology nonstop_tsc cpuid extd_apicid tsc_known_freq pni pclmulqdq ssse3 fma cx16 pcid sse4_1 sse4_2 x2apic movbe popcnt tsc_deadline_timer aes xsave avx f16c rdrand hypervisor lahf_lm cmp_legacy cr8_legacy abm sse4a misalignsse 3dnowprefetch osvw topoext cpuid_fault vmmcall fsgsbase tsc_adjust bmi1 avx2 smep bmi2 erms invpcid avx512f avx512dq rdseed adx smap avx512ifma clflushopt clwb avx512cd sha_ni avx512bw avx512vl xsaveopt xsavec xgetbv1 xsaves avx512_bf16 clzero xsaveerptr arat npt nrip_save tsc_scale vmcb_clean flushbyasid pausefilter pfthreshold v_vmsave_vmload avx512vbmi umip avx512_vbmi2 gfni vaes vpclmulqdq avx512_vnni avx512_bitalg avx512_vpopcntdq rdpid fsrm arch_capabilities"
+  },
+  "reference_build": "OpenSSL 3.5.7 9 Jun 2026 | zlib 1.3.1 | BLAKE3 1.8.7 | libdeflate 1.26 | ISA-L 2.32.1 | liblzma 5.8.1 | libsodium 1.0.18",
+  "reference_sha256": "af4dc235b4cf07c4c859cba8bb217bc0aff1a8c7dd7fd5af1fc116a57e27e799",
+  "swag_builds": {
+    "radix16": "c286f60eac6e66f8963016e16ac3876dc53a417d360f0ff1f3d1c7225689bb70",
+    "ed-barrett-fast": "7b97fa664609d78e9faacf838d1fc81270dd9f1137cc2dbdd7a9c12b8e3de5b3",
+    "ed-scalar-wide": "68f4efcb1a403d4746241fcca377b66d7f51555e6c5aa6833872187808935fb5"
+  },
+  "rounds": 11,
+  "target_ms": 30,
+  "clock": "cpu",
+  "rows": [
+    {
+      "algorithm": "x25519-public",
+      "bytes": 32,
+      "offset": 0,
+      "input_sha256": "2404657934fda9253c9d38499cb12ebdbbed5a27f47746fb93ed5d1b676bd395",
+      "output_sha256": "82bc2c8f4e75b535a175120445ec22f7265a811b633ced733b9d06869c502c69",
+      "samples": {
+        "OpenSSL": {
+          "iterations": 837,
+          "wall": [
+            0.03117033,
+            0.030572878,
+            0.0317669,
+            0.030711799,
+            0.030677838,
+            0.030455112,
+            0.034969189,
+            0.030540991,
+            0.034143124,
+            0.029964642,
+            0.03007641
+          ],
+          "cpu": [
+            0.031167867,
+            0.030571067,
+            0.031749793,
+            0.030705187,
+            0.030666279,
+            0.030452741,
+            0.034966473,
+            0.030538358,
+            0.034112741,
+            0.02995534,
+            0.030056442
+          ]
+        },
+        "libsodium": {
+          "iterations": 1055,
+          "wall": [
+            0.029868637,
+            0.030441341,
+            0.029935047,
+            0.030197333,
+            0.03054662,
+            0.031720159,
+            0.02963914,
+            0.030119534,
+            0.03363033,
+            0.029618119,
+            0.029586772
+          ],
+          "cpu": [
+            0.029857185,
+            0.030439552,
+            0.029919789,
+            0.030184662,
+            0.030544528,
+            0.031684115,
+            0.029615134,
+            0.030117512,
+            0.033560771,
+            0.029585059,
+            0.029554824
+          ]
+        },
+        "radix16": {
+          "iterations": 701,
+          "wall": [
+            0.03051391,
+            0.030460089,
+            0.02961874,
+            0.03038846,
+            0.030260007,
+            0.036731157,
+            0.030969426,
+            0.030696175,
+            0.03772783,
+            0.033037756,
+            0.030422021
+          ],
+          "cpu": [
+            0.030482465,
+            0.030457348,
+            0.029601233,
+            0.030386473,
+            0.03025736,
+            0.036727787,
+            0.030967047,
+            0.030693891,
+            0.037699102,
+            0.032999284,
+            0.030419872
+          ]
+        },
+        "ed-barrett-fast": {
+          "iterations": 689,
+          "wall": [
+            0.028443607,
+            0.030064211,
+            0.029815206,
+            0.028912255,
+            0.02938702,
+            0.029328272,
+            0.036337988,
+            0.028628016,
+            0.03044074,
+            0.03166761,
+            0.028493974
+          ],
+          "cpu": [
+            0.028441827,
+            0.030061639,
+            0.029782513,
+            0.028909984,
+            0.029385141,
+            0.029326113,
+            0.036335296,
+            0.028615585,
+            0.030396558,
+            0.031644576,
+            0.028475616
+          ]
+        },
+        "ed-scalar-wide": {
+          "iterations": 707,
+          "wall": [
+            0.029623467,
+            0.030293037,
+            0.030634612,
+            0.029891932,
+            0.030320909,
+            0.051882087,
+            0.030039494,
+            0.033072258,
+            0.033518081,
+            0.02947967,
+            0.033116154
+          ],
+          "cpu": [
+            0.029602936,
+            0.03029067,
+            0.0306197,
+            0.029879698,
+            0.030318611,
+            0.035799839,
+            0.030016771,
+            0.033069949,
+            0.033501051,
+            0.029464689,
+            0.033112271
+          ]
+        }
+      },
+      "round_order": [
+        [
+          "radix16",
+          "OpenSSL",
+          "libsodium",
+          "ed-barrett-fast",
+          "ed-scalar-wide"
+        ],
+        [
+          "radix16",
+          "OpenSSL",
+          "ed-scalar-wide",
+          "libsodium",
+          "ed-barrett-fast"
+        ],
+        [
+          "OpenSSL",
+          "ed-barrett-fast",
+          "libsodium",
+          "radix16",
+          "ed-scalar-wide"
+        ],
+        [
+          "ed-scalar-wide",
+          "libsodium",
+          "OpenSSL",
+          "ed-barrett-fast",
+          "radix16"
+        ],
+        [
+          "libsodium",
+          "OpenSSL",
+          "radix16",
+          "ed-scalar-wide",
+          "ed-barrett-fast"
+        ],
+        [
+          "ed-barrett-fast",
+          "ed-scalar-wide",
+          "libsodium",
+          "OpenSSL",
+          "radix16"
+        ],
+        [
+          "ed-barrett-fast",
+          "ed-scalar-wide",
+          "OpenSSL",
+          "radix16",
+          "libsodium"
+        ],
+        [
+          "ed-barrett-fast",
+          "libsodium",
+          "OpenSSL",
+          "radix16",
+          "ed-scalar-wide"
+        ],
+        [
+          "ed-scalar-wide",
+          "libsodium",
+          "OpenSSL",
+          "radix16",
+          "ed-barrett-fast"
+        ],
+        [
+          "libsodium",
+          "ed-scalar-wide",
+          "radix16",
+          "ed-barrett-fast",
+          "OpenSSL"
+        ],
+        [
+          "ed-barrett-fast",
+          "ed-scalar-wide",
+          "radix16",
+          "libsodium",
+          "OpenSSL"
+        ]
+      ]
+    },
+    {
+      "algorithm": "ed25519-public",
+      "bytes": 32,
+      "offset": 0,
+      "input_sha256": "2404657934fda9253c9d38499cb12ebdbbed5a27f47746fb93ed5d1b676bd395",
+      "output_sha256": "3344782b88b6be16a0976a28edf521b9b260851a6101822efc7a840f23d015d9",
+      "samples": {
+        "OpenSSL": {
+          "iterations": 819,
+          "wall": [
+            0.029953956,
+            0.030890348,
+            0.03010937,
+            0.03061349,
+            0.030355041,
+            0.030977199,
+            0.031556322,
+            0.030419147,
+            0.030486769,
+            0.030220788,
+            0.030927393
+          ],
+          "cpu": [
+            0.029918026,
+            0.030879066,
+            0.030091352,
+            0.030598499,
+            0.030335767,
+            0.030958022,
+            0.03155339,
+            0.030417038,
+            0.030484599,
+            0.030218783,
+            0.030925094
+          ]
+        },
+        "libsodium": {
+          "iterations": 1081,
+          "wall": [
+            0.017253832,
+            0.017635647,
+            0.019381521,
+            0.024461691,
+            0.020849304,
+            0.018662997,
+            0.017517479,
+            0.01772368,
+            0.017268363,
+            0.017593634,
+            0.017428785
+          ],
+          "cpu": [
+            0.017247685,
+            0.017617406,
+            0.019370317,
+            0.024452915,
+            0.020841519,
+            0.018655902,
+            0.017515545,
+            0.017721732,
+            0.017266804,
+            0.017591408,
+            0.017427213
+          ]
+        },
+        "radix16": {
+          "iterations": 707,
+          "wall": [
+            0.030071141,
+            0.030815455,
+            0.029874155,
+            0.029904731,
+            0.030574061,
+            0.031598115,
+            0.030136882,
+            0.031434157,
+            0.030725429,
+            0.033014963,
+            0.029755266
+          ],
+          "cpu": [
+            0.029766329,
+            0.030797076,
+            0.029856844,
+            0.029890723,
+            0.030550566,
+            0.03157205,
+            0.030134527,
+            0.031431759,
+            0.030723124,
+            0.033012252,
+            0.029753049
+          ]
+        },
+        "ed-barrett-fast": {
+          "iterations": 702,
+          "wall": [
+            0.029945073,
+            0.029444107,
+            0.029475443,
+            0.029748326,
+            0.030223742,
+            0.030066941,
+            0.029982268,
+            0.029880355,
+            0.029865222,
+            0.033839556,
+            0.029415283
+          ],
+          "cpu": [
+            0.029903133,
+            0.029423177,
+            0.029463769,
+            0.029736985,
+            0.030213796,
+            0.030036927,
+            0.029980337,
+            0.029878035,
+            0.029863073,
+            0.033837502,
+            0.029413443
+          ]
+        },
+        "ed-scalar-wide": {
+          "iterations": 712,
+          "wall": [
+            0.029960345,
+            0.03070684,
+            0.030480068,
+            0.030441,
+            0.030655343,
+            0.037546927,
+            0.031812038,
+            0.032180183,
+            0.030204073,
+            0.030423914,
+            0.030180407
+          ],
+          "cpu": [
+            0.029950163,
+            0.030691377,
+            0.03045336,
+            0.030419833,
+            0.030635594,
+            0.03248712,
+            0.031796713,
+            0.032178261,
+            0.030202108,
+            0.030422266,
+            0.030178242
+          ]
+        }
+      },
+      "round_order": [
+        [
+          "ed-barrett-fast",
+          "ed-scalar-wide",
+          "libsodium",
+          "radix16",
+          "OpenSSL"
+        ],
+        [
+          "libsodium",
+          "ed-barrett-fast",
+          "ed-scalar-wide",
+          "OpenSSL",
+          "radix16"
+        ],
+        [
+          "ed-scalar-wide",
+          "libsodium",
+          "ed-barrett-fast",
+          "OpenSSL",
+          "radix16"
+        ],
+        [
+          "radix16",
+          "ed-barrett-fast",
+          "libsodium",
+          "ed-scalar-wide",
+          "OpenSSL"
+        ],
+        [
+          "libsodium",
+          "ed-barrett-fast",
+          "radix16",
+          "OpenSSL",
+          "ed-scalar-wide"
+        ],
+        [
+          "libsodium",
+          "ed-barrett-fast",
+          "radix16",
+          "OpenSSL",
+          "ed-scalar-wide"
+        ],
+        [
+          "OpenSSL",
+          "libsodium",
+          "ed-barrett-fast",
+          "radix16",
+          "ed-scalar-wide"
+        ],
+        [
+          "libsodium",
+          "radix16",
+          "OpenSSL",
+          "ed-barrett-fast",
+          "ed-scalar-wide"
+        ],
+        [
+          "ed-barrett-fast",
+          "radix16",
+          "OpenSSL",
+          "ed-scalar-wide",
+          "libsodium"
+        ],
+        [
+          "radix16",
+          "ed-scalar-wide",
+          "OpenSSL",
+          "libsodium",
+          "ed-barrett-fast"
+        ],
+        [
+          "radix16",
+          "ed-scalar-wide",
+          "OpenSSL",
+          "ed-barrett-fast",
+          "libsodium"
+        ]
+      ]
+    },
+    {
+      "algorithm": "ed25519-sign",
+      "bytes": 64,
+      "offset": 0,
+      "input_sha256": "28f0a1a9fae78b5247ebe5b1919541c009f78cc2b79d276352a9c46251a02522",
+      "output_sha256": "9c8f8181fbe97f479f7785703ecbc0cab97207354af556437d8555d43db6c3e4",
+      "samples": {
+        "OpenSSL": {
+          "iterations": 404,
+          "wall": [
+            0.030782845,
+            0.030128899,
+            0.03028813,
+            0.031092993,
+            0.030229561,
+            0.030717767,
+            0.030705229,
+            0.030380128,
+            0.033397309,
+            0.030283232,
+            0.029599641
+          ],
+          "cpu": [
+            0.030780078,
+            0.030118433,
+            0.030285973,
+            0.031065343,
+            0.030227476,
+            0.030715112,
+            0.030702593,
+            0.030354023,
+            0.033378098,
+            0.030280734,
+            0.029597698
+          ]
+        },
+        "libsodium": {
+          "iterations": 901,
+          "wall": [
+            0.030045784,
+            0.03006996,
+            0.03143614,
+            0.030488141,
+            0.030425286,
+            0.030734001,
+            0.031198893,
+            0.031768542,
+            0.030088689,
+            0.030859281,
+            0.030156411
+          ],
+          "cpu": [
+            0.030037653,
+            0.030067898,
+            0.031433632,
+            0.03048598,
+            0.030350099,
+            0.030731917,
+            0.031165893,
+            0.030522193,
+            0.030086346,
+            0.030857023,
+            0.030154507
+          ]
+        },
+        "radix16": {
+          "iterations": 230,
+          "wall": [
+            0.030542133,
+            0.029935027,
+            0.031248709,
+            0.030603285,
+            0.030982777,
+            0.030704076,
+            0.073006156,
+            0.031254197,
+            0.030748573,
+            0.029811231,
+            0.030800722
+          ],
+          "cpu": [
+            0.030540142,
+            0.029933438,
+            0.031246653,
+            0.030601442,
+            0.030980256,
+            0.030702053,
+            0.045631256,
+            0.031027518,
+            0.030746518,
+            0.029809363,
+            0.03078778
+          ]
+        },
+        "ed-barrett-fast": {
+          "iterations": 355,
+          "wall": [
+            0.030253918,
+            0.03083896,
+            0.032491292,
+            0.031260235,
+            0.031328118,
+            0.030654583,
+            0.03062641,
+            0.031110259,
+            0.031491243,
+            0.031440257,
+            0.031087544
+          ],
+          "cpu": [
+            0.030251822,
+            0.030836753,
+            0.032489104,
+            0.031258161,
+            0.031325881,
+            0.030652319,
+            0.030610205,
+            0.031101107,
+            0.031489244,
+            0.031437948,
+            0.030185924
+          ]
+        },
+        "ed-scalar-wide": {
+          "iterations": 351,
+          "wall": [
+            0.030882256,
+            0.031715041,
+            0.032306384,
+            0.031416301,
+            0.03030909,
+            0.031478284,
+            0.030874985,
+            0.030158795,
+            0.030822015,
+            0.030491266,
+            0.030373448
+          ],
+          "cpu": [
+            0.030873177,
+            0.031712427,
+            0.032302867,
+            0.031414153,
+            0.030307095,
+            0.031476265,
+            0.030872747,
+            0.03015656,
+            0.030819678,
+            0.030438951,
+            0.03037158
+          ]
+        }
+      },
+      "round_order": [
+        [
+          "ed-scalar-wide",
+          "OpenSSL",
+          "ed-barrett-fast",
+          "radix16",
+          "libsodium"
+        ],
+        [
+          "libsodium",
+          "ed-scalar-wide",
+          "ed-barrett-fast",
+          "radix16",
+          "OpenSSL"
+        ],
+        [
+          "ed-barrett-fast",
+          "ed-scalar-wide",
+          "libsodium",
+          "OpenSSL",
+          "radix16"
+        ],
+        [
+          "OpenSSL",
+          "radix16",
+          "ed-barrett-fast",
+          "ed-scalar-wide",
+          "libsodium"
+        ],
+        [
+          "ed-scalar-wide",
+          "OpenSSL",
+          "radix16",
+          "libsodium",
+          "ed-barrett-fast"
+        ],
+        [
+          "libsodium",
+          "OpenSSL",
+          "ed-scalar-wide",
+          "radix16",
+          "ed-barrett-fast"
+        ],
+        [
+          "OpenSSL",
+          "ed-barrett-fast",
+          "ed-scalar-wide",
+          "libsodium",
+          "radix16"
+        ],
+        [
+          "radix16",
+          "libsodium",
+          "ed-scalar-wide",
+          "ed-barrett-fast",
+          "OpenSSL"
+        ],
+        [
+          "ed-scalar-wide",
+          "ed-barrett-fast",
+          "libsodium",
+          "OpenSSL",
+          "radix16"
+        ],
+        [
+          "ed-scalar-wide",
+          "libsodium",
+          "ed-barrett-fast",
+          "radix16",
+          "OpenSSL"
+        ],
+        [
+          "OpenSSL",
+          "ed-scalar-wide",
+          "ed-barrett-fast",
+          "libsodium",
+          "radix16"
+        ]
+      ]
+    },
+    {
+      "algorithm": "ed25519-sign",
+      "bytes": 4096,
+      "offset": 0,
+      "input_sha256": "af26928ca7645ec0d0e3eb12ef41f86dcde5c1aaa8e8debc79011d0a002fa71c",
+      "output_sha256": "5fb065a8305f9f8dc739bd71873612b54349bf73a998f162669da4d97f6ee281",
+      "samples": {
+        "OpenSSL": {
+          "iterations": 346,
+          "wall": [
+            0.05083625,
+            0.028978875,
+            0.028774917,
+            0.028725453,
+            0.028943592,
+            0.029766433,
+            0.029085956,
+            0.029450967,
+            0.029051464,
+            0.02862442,
+            0.029960515
+          ],
+          "cpu": [
+            0.029802132,
+            0.028956473,
+            0.028760822,
+            0.028701834,
+            0.02894088,
+            0.029743716,
+            0.029072606,
+            0.029448215,
+            0.029046066,
+            0.028621945,
+            0.029957844
+          ]
+        },
+        "libsodium": {
+          "iterations": 591,
+          "wall": [
+            0.030881404,
+            0.031931237,
+            0.028102924,
+            0.028284748,
+            0.028676876,
+            0.028436146,
+            0.028464258,
+            0.058985645,
+            0.028329606,
+            0.028578441,
+            0.027961621
+          ],
+          "cpu": [
+            0.030873898,
+            0.031912104,
+            0.028084945,
+            0.028260466,
+            0.028675219,
+            0.028419593,
+            0.028441717,
+            0.043682985,
+            0.028327746,
+            0.028575986,
+            0.027959658
+          ]
+        },
+        "radix16": {
+          "iterations": 189,
+          "wall": [
+            0.036398886,
+            0.028496217,
+            0.030477665,
+            0.029322814,
+            0.029302994,
+            0.028591811,
+            0.029196022,
+            0.034297256,
+            0.030094808,
+            0.028835979,
+            0.028257086
+          ],
+          "cpu": [
+            0.036396573,
+            0.028481005,
+            0.030442406,
+            0.029302157,
+            0.029299794,
+            0.028579151,
+            0.029161767,
+            0.033026755,
+            0.030090641,
+            0.028833539,
+            0.028227828
+          ]
+        },
+        "ed-barrett-fast": {
+          "iterations": 279,
+          "wall": [
+            0.030536755,
+            0.029928618,
+            0.029745771,
+            0.029451458,
+            0.029623817,
+            0.02942588,
+            0.030317774,
+            0.036526087,
+            0.038698664,
+            0.043642631,
+            0.02951274
+          ],
+          "cpu": [
+            0.030481394,
+            0.029909242,
+            0.029730556,
+            0.029432221,
+            0.029588703,
+            0.029411311,
+            0.030308717,
+            0.034372311,
+            0.030296639,
+            0.043639319,
+            0.029510198
+          ]
+        },
+        "ed-scalar-wide": {
+          "iterations": 282,
+          "wall": [
+            0.037855592,
+            0.030011492,
+            0.030265676,
+            0.031447888,
+            0.029797819,
+            0.033345119,
+            0.029610217,
+            0.030320178,
+            0.030233376,
+            0.030011533,
+            0.029585299
+          ],
+          "cpu": [
+            0.03785166,
+            0.029992216,
+            0.030251882,
+            0.031432871,
+            0.029761452,
+            0.033329465,
+            0.029596576,
+            0.03031825,
+            0.030230791,
+            0.030008329,
+            0.029582665
+          ]
+        }
+      },
+      "round_order": [
+        [
+          "ed-barrett-fast",
+          "OpenSSL",
+          "libsodium",
+          "radix16",
+          "ed-scalar-wide"
+        ],
+        [
+          "OpenSSL",
+          "ed-scalar-wide",
+          "libsodium",
+          "ed-barrett-fast",
+          "radix16"
+        ],
+        [
+          "radix16",
+          "ed-scalar-wide",
+          "OpenSSL",
+          "libsodium",
+          "ed-barrett-fast"
+        ],
+        [
+          "ed-scalar-wide",
+          "ed-barrett-fast",
+          "OpenSSL",
+          "radix16",
+          "libsodium"
+        ],
+        [
+          "OpenSSL",
+          "libsodium",
+          "ed-scalar-wide",
+          "radix16",
+          "ed-barrett-fast"
+        ],
+        [
+          "libsodium",
+          "OpenSSL",
+          "radix16",
+          "ed-barrett-fast",
+          "ed-scalar-wide"
+        ],
+        [
+          "ed-scalar-wide",
+          "OpenSSL",
+          "libsodium",
+          "ed-barrett-fast",
+          "radix16"
+        ],
+        [
+          "OpenSSL",
+          "ed-scalar-wide",
+          "ed-barrett-fast",
+          "radix16",
+          "libsodium"
+        ],
+        [
+          "ed-barrett-fast",
+          "OpenSSL",
+          "libsodium",
+          "radix16",
+          "ed-scalar-wide"
+        ],
+        [
+          "ed-scalar-wide",
+          "libsodium",
+          "ed-barrett-fast",
+          "OpenSSL",
+          "radix16"
+        ],
+        [
+          "ed-scalar-wide",
+          "radix16",
+          "OpenSSL",
+          "libsodium",
+          "ed-barrett-fast"
+        ]
+      ]
+    }
+  ]
+}

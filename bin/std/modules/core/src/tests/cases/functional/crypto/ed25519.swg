@@ -76,6 +76,10 @@ func ed25519HexBytes(text: string)->Array'u8
     for index in 32 until invalidSignature.count do
         invalidSignature[index] = 0xFF
     Swag.require(not (expect Crypto.ed25519Verify(publicKey, message.toSlice(), invalidSignature)))
+    // The order itself is outside the canonical range for S.
+    let order = ed25519HexBytes("edd3f55c1a631258d69cf7a2def9de1400000000000000000000000000000010")
+    Memory.copy(invalidSignature.buffer + 32, order.toSlice().buffer, 32)
+    Swag.require(not (expect Crypto.ed25519Verify(publicKey, message.toSlice(), invalidSignature)))
     Swag.require(not (expect Crypto.ed25519Verify(publicKey, "wrong message", signature)))
 }
 

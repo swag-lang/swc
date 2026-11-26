@@ -118,3 +118,4 @@ optimizations moved each result.
 - [HMAC-SHA3 pad reuse](hmac-sha3-pads.md)
 - [BLAKE3 scaling against official C with oneTBB](blake3-tbb-scaling.md)
 - [SHA-3 bulk kernel alternatives](sha3-bulk-experiments.md)
+- [Fixed-width Barrett reduction for Ed25519 scalars](ed25519-barrett.md)

@@ -8,9 +8,13 @@ public const Ed25519KeySize = 32
 // Ed25519 signature size in bytes.
 public const Ed25519SignatureSize = 64
 
-private const Ed25519Order: [16] u32 = [
-    0xD3ED, 0x5CF5, 0x631A, 0x5812, 0x9CD6, 0xA2F7, 0xF9DE, 0x14DE,
-    0, 0, 0, 0, 0, 0, 0, 0x1000]
+private const Ed25519Order: [5] u64 = [
+    0x5812_631A_5CF5_D3ED, 0x14DE_F9DE_A2F7_9CD6, 0, 0x1000_0000_0000_0000, 0]
+
+// Floor(2^512 / Ed25519Order), in radix 2^64.
+private const Ed25519Reciprocal: [5] u64 = [
+    0xED9C_E5A3_0A2C_131B, 0x2106_215D_0863_29A7, 0xFFFF_FFFF_FFFF_FFEB,
+    0xFFFF_FFFF_FFFF_FFFF, 0x0000_0000_0000_000F]
 
 private struct Ed25519Point
 {
@@ -408,43 +412,73 @@ private func ed25519HashFinalize(hash: *Hash.Sha512)->[64] u8
     return result
 }
 
+// Multiplies little-endian words into a zeroed result of the requested width.
+private func ed25519MultiplyWords(left, right: const [..] u64, result: [..] u64)
+{
+    for row in Math.min(left.count, result.count)
+    {
+        let word  = left[row]
+        let count = Math.min(right.count, result.count - row)
+        var carry = 0'u64
+        for column in count
+        {
+            let product = Math.mulU64(word, right[column])
+            let partial = result[row + column] + product.lo
+            let sum     = partial + carry
+            carry = product.hi + cast(u64, partial < product.lo) + cast(u64, sum < partial)
+            result[row + column] = sum
+        }
+
+        if row + count < result.count do
+            result[row + count] = carry
+    }
+}
+
+private func ed25519SubtractWords(left, right: [5] u64, result: *[5] u64)->u64
+{
+    var borrow = 0'u64
+    for index in 5
+    {
+        let difference = left[index] - right[index]
+        result[][index] = difference - borrow
+        borrow = cast(u64, left[index] < right[index]) | cast(u64, difference < borrow)
+    }
+
+    return borrow
+}
+
 private func ed25519Reduce(digest: const [..] u8)->[32] u8
 {
-    var remainder: [16] u32
-    var bit = digest.count * 8
-    while bit
+    var scratch: struct
     {
-        bit -= 1
-        var carry = cast(u32, (digest[bit / 8] >> (bit & 7)) & 1)
-        for index in 16
-        {
-            let value = (remainder[index] << 1) | carry
-            remainder[index] = value & 0xFFFF
-            carry = value >> 16
-        }
+        input: [8] u64
+        reciprocalProduct: [10] u64
+        product, remainder, difference: [5] u64
+    }
+    defer Crypto.secureClear(Swag.makeSlice(&scratch, 1))
 
-        var difference: [16] u32
-        var borrow = 0'u32
-        for index in 16
-        {
-            let sub       = Ed25519Order[index] + borrow
-            let underflow = remainder[index] < sub
-            difference[index] = (remainder[index] - sub) & 0xFFFF
-            borrow = cast(u32, underflow)
-        }
+    let words = cast(const [*] u64, digest.buffer)
+    for index in 8 do
+        scratch.input[index] = Math.littleEndianToNative(words[index])
 
-        let mask = 0'u32 - (1 - borrow)
-        for index in 16 do
-            remainder[index] = (difference[index] & mask) | (remainder[index] & ~mask)
+    // Barrett's quotient estimate uses the high five input words and the
+    // reciprocal. The resulting remainder is in [0, 3*Ed25519Order).
+    ed25519MultiplyWords(scratch.input[3 until 8], Ed25519Reciprocal, scratch.reciprocalProduct)
+    ed25519MultiplyWords(scratch.reciprocalProduct[5 until 10], Ed25519Order[until 4], scratch.product)
+    discard ed25519SubtractWords(cast(*[5] u64, scratch.input.buffer)[], scratch.product, &scratch.remainder)
+
+    for 2
+    {
+        let borrow = ed25519SubtractWords(scratch.remainder, Ed25519Order, &scratch.difference)
+        let keep = 0'u64 - borrow
+        for index in 5 do
+            scratch.remainder[index] = (scratch.remainder[index] & keep) | (scratch.difference[index] & ~keep)
     }
 
     var result: #returntype
-    for index in 16
-    {
-        result[index * 2]     = cast(u8, remainder[index] & 0xFF)
-        result[index * 2 + 1] = cast(u8, remainder[index] >> 8)
-    }
-
+    let destination = cast([*] u64, result.buffer)
+    for index in 4 do
+        destination[index] = Math.nativeToLittleEndian(scratch.remainder[index])
     return result
 }
 
@@ -495,10 +529,11 @@ private func ed25519ScalarMultiplyAdd(left, right, addend: const [..] u8)->[32] 
 
 private func ed25519IsCanonicalScalar(value: const [..] u8)->bool
 {
-    var wide: [64] u8
-    Swag.memcpy(&wide[0], value.buffer, 32)
-    let reduced = ed25519Reduce(wide)
-    return Crypto.constantTimeEqual(value, reduced)
+    var words, difference: [5] u64
+    let source = cast(const [*] u64, value.buffer)
+    for index in 4 do
+        words[index] = Math.littleEndianToNative(source[index])
+    return ed25519SubtractWords(words, Ed25519Order, &difference) != 0
 }
 
 private func ed25519IsIdentity(point: Ed25519Point)->bool
@@ -515,11 +550,9 @@ private func ed25519IsPrimeSubgroup(point: Ed25519Point)->bool
         return false
 
     var order: [32] u8
-    for index in 16
-    {
-        order[index * 2]     = cast(u8, Ed25519Order[index] & 0xFF)
-        order[index * 2 + 1] = cast(u8, Ed25519Order[index] >> 8)
-    }
+    let words = cast([*] u64, order.buffer)
+    for index in 4 do
+        words[index] = Math.nativeToLittleEndian(Ed25519Order[index])
 
     return ed25519IsIdentity(ed25519ScalarMultiply(point, order))
 }

@@ -92,7 +92,7 @@ private func p256MontgomeryMultiply(left, right, modulus: [8] u32, n0Inverse: u3
         borrow = word >> 63
     }
 
-    let useDifference = cast(u32, (temporary[8] != 0) or (borrow == 0))
+    let useDifference = cast(u32, temporary[8] != 0) | cast(u32, borrow == 0)
     let mask = 0'u32 - useDifference
     var result: #returntype
     for index in 8 do
@@ -137,7 +137,7 @@ private func p256FieldAdd(left, right: P256Field)->P256Field
         borrow = word >> 63
     }
 
-    let useDifference = cast(u32, (carry != 0) or (borrow == 0))
+    let useDifference = cast(u32, carry != 0) | cast(u32, borrow == 0)
     let mask = 0'u32 - useDifference
     var result: #returntype
     for index in 8 do
@@ -239,7 +239,7 @@ private func p256OrderAdd(left, right: P256Field)->P256Field
         borrow = word >> 63
     }
 
-    let mask = 0'u32 - cast(u32, (carry != 0) or (borrow == 0))
+    let mask = 0'u32 - (cast(u32, carry != 0) | cast(u32, borrow == 0))
     var result: #returntype
     for index in 8 do
         result.limbs[index] = (difference[index] & mask) | (sum[index] & ~mask)
@@ -593,58 +593,42 @@ private func p256PointAdd(left, right, doubled: P256Point)->P256Point
     sum.z = z3
 
     let infinity = p256Infinity()
-    let sameX    = p256FieldEqual(u1, u2)
-    let sameY    = p256FieldEqual(s1, s2)
-    var result   = p256PointSelect(sum, doubled, sameX and sameY)
-    result = p256PointSelect(result, infinity, sameX and not sameY)
+    let sameX    = cast(u32, p256FieldEqual(u1, u2))
+    let sameY    = cast(u32, p256FieldEqual(s1, s2))
+    var result   = p256PointSelect(sum, doubled, (sameX & sameY) != 0)
+    result = p256PointSelect(result, infinity, (sameX & (sameY ^ 1)) != 0)
     result = p256PointSelect(result, right, p256FieldEqual(left.z, P256Field{}))
     result = p256PointSelect(result, left, p256FieldEqual(right.z, P256Field{}))
     return result
 }
 
-private func p256ConditionalSwap(left, right: *P256Point, swap: u32)
-{
-    let mask = 0'u32 - swap
-    for index in 8
-    {
-        var difference = (left[].x.limbs[index] ^ right[].x.limbs[index]) & mask
-        left[].x.limbs[index]  ^= difference
-        right[].x.limbs[index] ^= difference
-        difference             = (left[].y.limbs[index] ^ right[].y.limbs[index]) & mask
-        left[].y.limbs[index]  ^= difference
-        right[].y.limbs[index] ^= difference
-        difference             = (left[].z.limbs[index] ^ right[].z.limbs[index]) & mask
-        left[].z.limbs[index]  ^= difference
-        right[].z.limbs[index] ^= difference
-    }
-}
-
 private func p256ScalarMultiply(scalar: const *P256Field, point: P256Point)->P256Point
 {
-    var low         = p256Infinity()
-    var high        = point
-    var previousBit = 0'u32
-    for step in 256
-    {
-        let bitIndex = 255 - step
-        let bit      = (scalar[].limbs[bitIndex / 32] >> (bitIndex % 32)) & 1
+    // The table depends only on the input point. Each window scans every entry.
+    var multiples: [16] P256Point
+    multiples[1] = point
+    let doubledPoint = p256PointDouble(point)
+    for index in 2 until multiples.count do
+        multiples[index] = p256PointAdd(point, multiples[index - 1], doubledPoint)
 
-        // Undo the previous swap and apply the next with a single masked selection.
-        p256ConditionalSwap(&low, &high, previousBit ^ bit)
-        var doubled = p256PointDouble(low)
-        var sum     = p256PointAdd(low, high, doubled)
-        low         = doubled
-        high        = sum
-        previousBit = bit
-        Crypto.secureClear(Swag.makeSlice(&sum, 1))
+    var result = p256Infinity()
+    for window in 64
+    {
+        for 4 do
+            result = p256PointDouble(result)
+
+        let nibbleIndex = 63 - window
+        let nibble      = (scalar[].limbs[nibbleIndex / 8] >> ((nibbleIndex % 8) * 4)) & 15
+        var selected    = p256Infinity()
+        for index in 1 until multiples.count do
+            selected = p256PointSelect(selected, multiples[index], index == nibble)
+
+        var doubled = p256PointDouble(result)
+        result = p256PointAdd(result, selected, doubled)
+        Crypto.secureClear(Swag.makeSlice(&selected, 1))
         Crypto.secureClear(Swag.makeSlice(&doubled, 1))
     }
 
-    p256ConditionalSwap(&low, &high, previousBit)
-
-    var result = low
-    Crypto.secureClear(Swag.makeSlice(&low, 1))
-    Crypto.secureClear(Swag.makeSlice(&high, 1))
     return result
 }
 

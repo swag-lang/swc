@@ -62,3 +62,4 @@ optimizations moved each result.
 - [P-256 ladder arithmetic](p256-ladder.md)
 - [SHA-512 round-state rotation](sha512-rounds.md)
 - [Curve25519 field inversion and squaring](curve25519-inverse.md)
+- [P-256 four-bit scalar multiplication](p256-window.md)

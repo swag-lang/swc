@@ -362,6 +362,28 @@ private func writeSourceSpan(destination: [*] u8, source: const [*] u8, count: u
         return
     }
 
+    if isRgbType(header.imageTypeCode)
+    {
+        if header.bitsPerPixel == 15
+        {
+            if rightOrigin do
+                decodeTga15RowReversed(source, destination, count)
+            else do
+                decodeTga15Row(source, destination, count)
+            return
+        }
+
+        if header.bitsPerPixel == 16
+        {
+            let alpha = hasAttributeBits(header)
+            if rightOrigin do
+                decodeTga16RowReversed(source, destination, count, alpha)
+            else do
+                decodeTga16Row(source, destination, count, alpha)
+            return
+        }
+    }
+
     let step  = rightOrigin ? -destinationBytes : destinationBytes
     let first = destination + (rightOrigin ? (count - 1) * destinationBytes : 0)
     for x in count do
@@ -372,35 +394,6 @@ func decodeRaw(result: *Image, header: Header, palette: Palette, src, last: cons
 {
     var p = src
     try checkBuffer(p, last, pixelCount * pixelBytes)
-    if header.imageTypeCode == TYPE_RGB and (header.bitsPerPixel == 15 or header.bitsPerPixel == 16)
-    {
-        let rightOrigin = (header.descriptorByte & DESC_ORIGIN_RIGHT) != 0
-        for y in result.height
-        {
-            let dstY = header.descriptorByte & DESC_ORIGIN_TOP ? result.height - y - 1 : y
-            let dst  = cast([*] u8, result.pixels.storage()) + cast(u64, dstY) * result.rowStride
-            if header.bitsPerPixel == 15
-            {
-                if rightOrigin do
-                    decodeTga15RowReversed(p, dst, result.width)
-                else do
-                    decodeTga15Row(p, dst, result.width)
-            }
-            else
-            {
-                let alphaFromBit = (header.descriptorByte & DESC_ALPHA_MASK) != 0
-                if rightOrigin do
-                    decodeTga16RowReversed(p, dst, result.width, alphaFromBit)
-                else do
-                    decodeTga16Row(p, dst, result.width, alphaFromBit)
-            }
-
-            p += cast(u64, result.width) * 2
-        }
-
-        return
-    }
-
     if header.imageTypeCode == TYPE_RGB and
        (header.bitsPerPixel == 24 or (header.bitsPerPixel == 32 and hasAttributeBits(header)))
     {

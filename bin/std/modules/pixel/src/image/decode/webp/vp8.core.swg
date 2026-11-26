@@ -96,38 +96,30 @@ impl Vp8Partition
         if .bitCount < 8 and not .refill() do
             return false
 
-        let split = ((.rangeM1 * probability) >> 8) + 1
-        let bit   = cast(u32, .bits >> 56) >= split
-        var range = split
-        var bits  = .bits
-        if bit
-        {
-            range = .rangeM1 - split + 1
-            bits  -= cast(u64, split) << 56
-        }
-
-        let shift = Math.leadingZeros(range) - 24
-        .bits     = bits << shift
-        .rangeM1  = (range << shift) - 1
-        .bitCount -= cast(u8, shift)
+        var rangeM1  = .rangeM1
+        var bits     = .bits
+        var bitCount = .bitCount
+        let bit      = vp8AdvanceBit(probability)
+        .rangeM1  = rangeM1
+        .bits     = bits
+        .bitCount = bitCount
         return bit
     }
 
-    // A coefficient sign follows a magnitude token, so the normalized range is
-    // already below 255 and either half needs exactly one normalization bit.
     #[Swag.Inline]
     mtd readCoefficientSign(value: s32)->s32
     {
         if .bitCount < 8 and not .refill() do
             return value
 
-        let split = .rangeM1 >> 1
-        let mask  = (cast(s32, split) - cast(s32, .bits >> 56)) >> 31
-        let delta = (split + 1) & cast #bit(u32, mask)
-        .bits     = (.bits - (cast(u64, delta) << 56)) << 1
-        .rangeM1  = (.rangeM1 - cast(u32, -mask)) | 1
-        .bitCount -= 1
-        return (value ^ mask) - mask
+        var rangeM1     = .rangeM1
+        var bits        = .bits
+        var bitCount    = .bitCount
+        let signedValue = vp8AdvanceSign(value)
+        .rangeM1  = rangeM1
+        .bits     = bits
+        .bitCount = bitCount
+        return signedValue
     }
 
     mtd readUint(probability, count: u8)->u32
@@ -156,6 +148,39 @@ impl Vp8Partition
             return 0
         return .readInt(probability, count)
     }
+}
+
+// Update the caller's rangeM1, bits and bitCount after a successful refill.
+#[Swag.Mixin]
+func vp8AdvanceBit(probability: u8)->bool
+{
+    let #uniq0 = ((rangeM1 * probability) >> 8) + 1
+    let #uniq1 = cast(u32, bits >> 56) >= #uniq0
+    var #uniq2 = #uniq0
+    if #uniq1
+    {
+        #uniq2 = rangeM1 - #uniq0 + 1
+        bits   -= cast(u64, #uniq0) << 56
+    }
+
+    let #uniq3 = Math.leadingZeros(#uniq2) - 24
+    bits     <<= #uniq3
+    rangeM1  = (#uniq2 << #uniq3) - 1
+    bitCount -= cast(u8, #uniq3)
+    return #uniq1
+}
+
+// A coefficient sign follows a magnitude token. Either half normalizes by one bit.
+#[Swag.Mixin]
+func vp8AdvanceSign(value: s32)->s32
+{
+    let #uniq0 = rangeM1 >> 1
+    let #uniq1 = (cast(s32, #uniq0) - cast(s32, bits >> 56)) >> 31
+    let #uniq2 = (#uniq0 + 1) & cast #bit(u32, #uniq1)
+    bits     = (bits - (cast(u64, #uniq2) << 56)) << 1
+    rangeM1  = (rangeM1 - cast(u32, -#uniq1)) | 1
+    bitCount -= 1
+    return (value ^ #uniq1) - #uniq1
 }
 
 struct Vp8FrameHeader

@@ -137,11 +137,8 @@ func copyBigEndianWords(target: [*] u8, source: const [*] u8, count: u64)
     }
 }
 
-private func(CHANNELS: u64) storeWordRow(destination: [*] u8, first: const [*] u8, width, planeBytes: u64)
+private func(CHANNELS: u64) storeWordRow(destination: [*] u8, first, second, third, fourth: const [*] u8, width: u64)
 {
-    let second = first + planeBytes
-    let third  = second + planeBytes
-    let fourth = third + planeBytes
     var target = cast([*] u16, destination)
     var x: u64
     while width - x >= 8
@@ -186,11 +183,8 @@ private func(CHANNELS: u64) storeWordRow(destination: [*] u8, first: const [*] u
     }
 }
 
-private func(CHANNELS: u64) storeByteRow(destination: [*] u8, first: const [*] u8, width, planeBytes: u64)
+private func(CHANNELS: u64) storeByteRow(destination: [*] u8, first, second, third, fourth: const [*] u8, width: u64)
 {
-    let second = first + planeBytes
-    let third  = second + planeBytes
-    let fourth = third + planeBytes
     var x: u64
     while width - x >= 16
     {
@@ -226,22 +220,27 @@ private func(CHANNELS: u64) storeByteRow(destination: [*] u8, first: const [*] u
     }
 }
 
-private func storeCompositeRow(image: *Image, y: s32, source: const [*] u8, planeBytes: u64)
+private func storePlanarRow(image: *Image, y: s32, first, second, third, fourth: const [*] u8)
 {
     let target = image.pixels.storage() + cast(u64, (image.height - y - 1)) * image.rowStride
     let width  = cast(u64, image.width)
     switch image.pixelFormat
     {
-    case .Gray8:       Memory.copy(target, source, width)
-    case .Gray16:      copyBigEndianWords(target, source, width)
-    case .GrayAlpha8:  storeByteRow'2(target, source, width, planeBytes)
-    case .GrayAlpha16: storeWordRow'2(target, source, width, planeBytes)
-    case .RGB8:        storeByteRow'3(target, source, width, planeBytes)
-    case .RGB16:       storeWordRow'3(target, source, width, planeBytes)
-    case .RGBA8:       storeByteRow'4(target, source, width, planeBytes)
-    case .RGBA16:      storeWordRow'4(target, source, width, planeBytes)
+    case .Gray8:       Memory.copy(target, first, width)
+    case .Gray16:      copyBigEndianWords(target, first, width)
+    case .GrayAlpha8:  storeByteRow'2(target, first, second, third, fourth, width)
+    case .GrayAlpha16: storeWordRow'2(target, first, second, third, fourth, width)
+    case .RGB8:        storeByteRow'3(target, first, second, third, fourth, width)
+    case .RGB16:       storeWordRow'3(target, first, second, third, fourth, width)
+    case .RGBA8:       storeByteRow'4(target, first, second, third, fourth, width)
+    case .RGBA16:      storeWordRow'4(target, first, second, third, fourth, width)
     default:          unreachable
     }
+}
+
+private func storeCompositeRow(image: *Image, y: s32, source: const [*] u8, planeBytes: u64)
+{
+    storePlanarRow(image, y, source, source + planeBytes, source + planeBytes * 2, source + planeBytes * 3)
 }
 
 func storeRawComposite(image: *Image, source: const [*] u8, rowBytes: u64)
@@ -510,6 +509,34 @@ private func restorePredictedWords(row: [*] u8, width: u64)
 
 impl Layer
 {
+    mtd const storeRawPlanes(result: *Image, alpha: u16, rowBytes, planeBytes: u64)->bool
+    {
+        var present: u8
+        let unused = cast(const [*] u8, result.pixels.storage())
+        var planes = [unused, unused, unused, unused]
+        for channel in .channels where channel.id >= -1 and channel.id < cast(s16, alpha)
+        {
+            let component = channel.id == -1 ? alpha : cast(u16, channel.id)
+            let bytes     = unwrap channel.bytes
+            if bytes.count < 2 or bytes.count - 2 != planeBytes or readU16(bytes.buffer) != 0 do
+                return false
+            present |= 1'u8 << component
+            planes[component] = bytes.buffer + 2
+        }
+
+        if present != (1'u8 << (alpha + 1)) - 1 do
+            return false
+
+        for y in result.height
+        {
+            let offset = cast(u64, y) * rowBytes
+            storePlanarRow(result, y, planes[0] + offset, planes[1] + offset,
+                           planes[2] + offset, planes[3] + offset)
+        }
+
+        return true
+    }
+
     mtd decode(depth: u16, options: DecodeOptions)->Image fail
     {
         var result: #returntype
@@ -520,6 +547,9 @@ impl Layer
         let rowBytes = cast(u64, result.width) * (depth / 8)
         let required = rowBytes * cast(u64, result.height)
         let alpha    = result.pixelFormat.isGrayscale() ? 1'u16 : 3'u16
+        if .storeRawPlanes(&result, alpha, rowBytes, required) do
+            return result
+
         var present: u8
         for channel in .channels where channel.id >= -1 and channel.id < cast(s16, alpha)
         {

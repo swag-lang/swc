@@ -2,6 +2,31 @@
 
 using Swag, Core
 
+// VP8L predictor tiles retain channel wrapping, edge handling and all predictor modes.
+#test
+{
+    const Expected: [14] u64 = [
+        0x4E8A69F98A21294B, 0xA8F09B5ED627982D, 0x03034165F509E4B2, 0x3C417BA0F4DB8777,
+        0x9140D68A61B4CEE9, 0x2A31D4FA2818B53D, 0x9ABD0FAFE277E019, 0x3787FD7E8FBC5ABF,
+        0x6DD168EBBA6F91EC, 0xFB09D2EDD0D4AD6F, 0x837866FBA9355227, 0xEC7FCEE8645680AB,
+        0x596112689177F1E9, 0x6027CB1A5335C96B]
+    for mode in Expected.count
+    {
+        var transform = Webp.LosslessTransform{oldWidth: 5, bits: 2}
+        transform.pixels.resize(16)
+        for tile in 4 do
+            transform.pixels[tile * 4 + 1] = cast(u8, ((mode + tile) % Expected.count))
+
+        var pixels: Array'u8
+        pixels.resize(100)
+        for i in pixels.count do
+            pixels[i] = cast(u8, ((i * 29 + (i / 4) * 17 + i / 2) % 256))
+
+        Webp.losslessInversePredictor(&transform, &pixels, 5)
+        Swag.require(Hash.Crc64.compute(pixels.toSlice()) == Expected[mode])
+    }
+}
+
 // VP8L matches can repeat an overlapping source before reaching the end of the run.
 #test
 {

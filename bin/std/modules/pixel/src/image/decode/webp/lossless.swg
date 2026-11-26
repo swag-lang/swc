@@ -757,155 +757,112 @@ func losslessClampAddSubtractHalf(a, b: u8)->u8
     return cast(u8, Math.clamp(value, 0, 255))
 }
 
-func losslessAddAt(pixels: *Array'u8, offset: u64, value: u8)
-{
-    let data = cast([*] u8, pixels.storage())
-    data[offset] += #wrap value
-}
-
 func losslessInversePredictor(transform: *LosslessTransform, pixels: *Array'u8, height: s32)
 {
-    if transform.oldWidth == 0 or height == 0 do
-        return
-
-    losslessAddAt(pixels, 3, 0xFF)
-    let data   = cast([*] u8, pixels.storage())
-    var offset = 4'u64
-    let mask   = cast(s32, (1 << transform.bits)) - 1
-    for transform.oldWidth - 1
+    // The low seven bits of each channel add without carrying into the next channel.
+    #[Swag.Inline]
+    func addPixel(destination: [*] u32, prediction: u32)
     {
-        losslessAddAt(pixels, offset + 0, data[offset - 4])
-        losslessAddAt(pixels, offset + 1, data[offset - 3])
-        losslessAddAt(pixels, offset + 2, data[offset - 2])
-        losslessAddAt(pixels, offset + 3, data[offset - 1])
-        offset += 4
+        let value = destination[0]
+        let low   = (value & 0x7F7F7F7F'u32) + (prediction & 0x7F7F7F7F'u32)
+        destination[0] = low ^ ((value ^ prediction) & 0x80808080'u32)
     }
 
-    var top         = 0'u64
-    let tilesPerRow = losslessTileCount(transform.oldWidth, transform.bits)
-    var y           = 1's32
-    while y < height
+    #[Swag.Inline]
+    func averagePixel(a, b: u32)->u32 => (a & b) + (((a ^ b) & 0xFEFEFEFE'u32) >> 1)
+
+    let width = transform.oldWidth
+    if width == 0 or height == 0 do
+        return
+
+    let data = cast([*] u32, pixels.storage())
+    addPixel(data, 0xFF000000)
+    for x in 1 until width do
+        addPixel(data + x, data[x - 1])
+
+    let mask        = cast(s32, (1 << transform.bits)) - 1
+    let tilesPerRow = losslessTileCount(width, transform.bits)
+    let parameters  = transform.pixels.storage()
+    for y in 1 until height
     {
-        losslessAddAt(pixels, offset + 0, data[top + 0])
-        losslessAddAt(pixels, offset + 1, data[top + 1])
-        losslessAddAt(pixels, offset + 2, data[top + 2])
-        losslessAddAt(pixels, offset + 3, data[top + 3])
-        offset += 4
-        top    += 4
+        let row = data + cast(u64, y) * width
+        let top = row - width
+        addPixel(row, top[0])
 
-        var transformOffset = cast(u64, (4 * (y >> transform.bits) * tilesPerRow))
-        var predictorMode   = transform.pixels[transformOffset + 1] & 0x0F
-        transformOffset += 4
-
-        var x = 1's32
-        while x < transform.oldWidth
+        var tile = cast(u64, (4 * (y >> transform.bits) * tilesPerRow)) + 1
+        var predictorMode = parameters[tile] & 0x0F
+        tile += 4
+        for x in 1 until width
         {
             if (x & mask) == 0
             {
-                predictorMode   = transform.pixels[transformOffset + 1] & 0x0F
-                transformOffset += 4
+                predictorMode = parameters[tile] & 0x0F
+                tile += 4
             }
 
+            let destination = row + x
             switch predictorMode
             {
             case 0:
-                losslessAddAt(pixels, offset + 3, 0xFF)
+                addPixel(destination, 0xFF000000)
 
             case 1:
-                for channel in 4 do
-                    losslessAddAt(pixels, offset + channel, data[offset + channel - 4])
+                addPixel(destination, row[x - 1])
 
             case 2:
-                for channel in 4 do
-                    losslessAddAt(pixels, offset + channel, data[top + channel])
+                addPixel(destination, top[x])
 
             case 3:
-                for channel in 4 do
-                    losslessAddAt(pixels, offset + channel, data[top + channel + 4])
+                addPixel(destination, top[x + 1])
 
             case 4:
-                for channel in 4 do
-                    losslessAddAt(pixels, offset + channel, data[top + channel - 4])
+                addPixel(destination, top[x - 1])
 
             case 5:
-                for channel in 4
-                {
-                    let prediction = losslessAverage(losslessAverage(data[offset + channel - 4], data[top + channel + 4]), data[top + channel])
-                    losslessAddAt(pixels, offset + channel, prediction)
-                }
+                addPixel(destination, averagePixel(averagePixel(row[x - 1], top[x + 1]), top[x]))
 
             case 6:
-                for channel in 4 do
-                    losslessAddAt(pixels, offset + channel, losslessAverage(data[offset + channel - 4], data[top + channel - 4]))
+                addPixel(destination, averagePixel(row[x - 1], top[x - 1]))
 
             case 7:
-                for channel in 4 do
-                    losslessAddAt(pixels, offset + channel, losslessAverage(data[offset + channel - 4], data[top + channel]))
+                addPixel(destination, averagePixel(row[x - 1], top[x]))
 
             case 8:
-                for channel in 4 do
-                    losslessAddAt(pixels, offset + channel, losslessAverage(data[top + channel - 4], data[top + channel]))
+                addPixel(destination, averagePixel(top[x - 1], top[x]))
 
             case 9:
-                for channel in 4 do
-                    losslessAddAt(pixels, offset + channel, losslessAverage(data[top + channel], data[top + channel + 4]))
+                addPixel(destination, averagePixel(top[x], top[x + 1]))
 
             case 10:
-                for channel in 4
-                {
-                    let leftAverage = losslessAverage(data[offset + channel - 4], data[top + channel - 4])
-                    let topAverage  = losslessAverage(data[top + channel], data[top + channel + 4])
-                    losslessAddAt(pixels, offset + channel, losslessAverage(leftAverage, topAverage))
-                }
+                addPixel(destination, averagePixel(averagePixel(row[x - 1], top[x - 1]), averagePixel(top[x], top[x + 1])))
 
             case 11:
-                let left0        = cast(s32, data[offset - 4])
-                let left1        = cast(s32, data[offset - 3])
-                let left2        = cast(s32, data[offset - 2])
-                let left3        = cast(s32, data[offset - 1])
-                let corner0      = cast(s32, data[top - 4])
-                let corner1      = cast(s32, data[top - 3])
-                let corner2      = cast(s32, data[top - 2])
-                let corner3      = cast(s32, data[top - 1])
-                let upper0       = cast(s32, data[top + 0])
-                let upper1       = cast(s32, data[top + 1])
-                let upper2       = cast(s32, data[top + 2])
-                let upper3       = cast(s32, data[top + 3])
-                let leftDistance = Math.abs(corner0 - upper0) + Math.abs(corner1 - upper1) + Math.abs(corner2 - upper2) + Math.abs(corner3 - upper3)
-                let topDistance  = Math.abs(corner0 - left0) + Math.abs(corner1 - left1) + Math.abs(corner2 - left2) + Math.abs(corner3 - left3)
-                if leftDistance < topDistance
-                {
-                    losslessAddAt(pixels, offset + 0, cast(u8, left0))
-                    losslessAddAt(pixels, offset + 1, cast(u8, left1))
-                    losslessAddAt(pixels, offset + 2, cast(u8, left2))
-                    losslessAddAt(pixels, offset + 3, cast(u8, left3))
-                }
-                else
-                {
-                    losslessAddAt(pixels, offset + 0, cast(u8, upper0))
-                    losslessAddAt(pixels, offset + 1, cast(u8, upper1))
-                    losslessAddAt(pixels, offset + 2, cast(u8, upper2))
-                    losslessAddAt(pixels, offset + 3, cast(u8, upper3))
-                }
-
-            case 12:
-                for channel in 4 do
-                    losslessAddAt(pixels, offset + channel, losslessClampAddSubtractFull(data[offset + channel - 4], data[top + channel], data[top + channel - 4]))
-
-            case 13:
+                let left   = cast(const [*] u8, row + x - 1)
+                let above  = cast(const [*] u8, top + x)
+                let corner = cast(const [*] u8, top + x - 1)
+                var leftDistance, topDistance: s32
                 for channel in 4
                 {
-                    let average = losslessAverage(data[offset + channel - 4], data[top + channel])
-                    losslessAddAt(pixels, offset + channel, losslessClampAddSubtractHalf(average, data[top + channel - 4]))
+                    leftDistance += Math.abs(cast(s32, corner[channel]) - above[channel])
+                    topDistance  += Math.abs(cast(s32, corner[channel]) - left[channel])
+                }
+
+                addPixel(destination, leftDistance < topDistance ? row[x - 1] : top[x])
+
+            case 12, 13:
+                let target = cast([*] u8, destination)
+                let left   = cast(const [*] u8, row + x - 1)
+                let above  = cast(const [*] u8, top + x)
+                let corner = cast(const [*] u8, top + x - 1)
+                for channel in 4
+                {
+                    let prediction = predictorMode == 12
+                                     ? losslessClampAddSubtractFull(left[channel], above[channel], corner[channel])
+                                     : losslessClampAddSubtractHalf(losslessAverage(left[channel], above[channel]), corner[channel])
+                    target[channel] += #wrap prediction
                 }
             }
-
-            offset += 4
-            top    += 4
-            x      += 1
         }
-
-        y += 1
     }
 }
 

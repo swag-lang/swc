@@ -152,6 +152,20 @@ The single-CPU results use nine rotated runs and FFmpeg 9.1 with libswscale.
 | 4:2:2 limited range, 720p | 1.345 | 0.980 | −27.6% | 0.634 |
 | 4:4:4, 720p control | 1.698 | 1.355 | −2.9% | 5.008 |
 
+### Y4M 16-bit colour arithmetic
+
+The 4:2:0 and 4:2:2 converters keep eight luma samples in sixteen-bit lanes. Limited-range
+conversion splits the luma and chroma terms at 256 and adds the low-byte carry before
+clamping. This preserves the original rounding. An exhaustive arithmetic check covered
+the 16,777,216 eight-bit Y, Cb and Cr combinations in each range. All 216 fixture pictures
+and all 20 native Release tests passed. [Timing samples](y4m-narrow-matrix.json)
+
+| Stream | Before, ms/picture | Sixteen-bit lanes, ms/picture | Paired time change | FFmpeg 9.1, ms/picture |
+| --- | ---: | ---: | ---: | ---: |
+| 4:2:0 full range, 651×371 | 0.187 | 0.150 | −22.4% | 1.035 |
+| 4:2:0 limited range, 1080p | 1.771 | 1.713 | −5.9% | 1.196 |
+| 4:2:2 limited range, 720p | 0.925 | 0.914 | −0.3% | 0.582 |
+
 ### AVC CABAC slice initialization
 
 The AVC decoder copies precomputed initial CABAC contexts for the slice's QP and

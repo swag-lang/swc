@@ -311,11 +311,50 @@ private func(Shift: u32, Mono: bool, Full: bool) decodeRows(target: *Image, payl
 
 private struct ChromaCorrection
 {
-    red, green, blue: Math.Simd.S32x4
+    red, green, blue: Math.Simd.S16x8
+    redFraction, greenFraction, blueFraction: Math.Simd.S16x8
 }
 
 #[Swag.Inline]
-private func(Full: bool) convertSubsampled8(target: [*] u8, luma: const [*] u8, correction: ChromaCorrection)
+private func duplicateChroma4(source: const [*] u8)->Math.Simd.S16x8
+{
+    using Math.Simd
+    let bytes = cast #bit(U8x16, splat(cast(const [*] u32, source)[0]))
+    let words = widenLow(bytes)
+    return cast #bit(S16x8, interleaveLow(words, words)) - 128
+}
+
+#[Swag.Inline]
+private func(Full: bool) chromaCorrection8(cb, cr: const [*] u8)->ChromaCorrection
+{
+    let u = duplicateChroma4(cb)
+    let v = duplicateChroma4(cr)
+    var result: #returntype
+    #static if Full
+    {
+        result.red   = v + ((103 * v + 128) >> 8)
+        result.green = -v - ((88 * u - 73 * v + 128) >> 8)
+        result.blue  = u + ((198 * u + 128) >> 8)
+    }
+    else
+    {
+        // Split coefficients at 256 so each correction and its fraction fit signed lanes.
+        let red   = 153 * v
+        let green = -100 * u + 48 * v
+        let blue  = 4 * u
+        result.red           = v + (red >> 8)
+        result.green         = (green >> 8) - v
+        result.blue          = (u << 1) + (blue >> 8)
+        result.redFraction   = red & 255
+        result.greenFraction = green & 255
+        result.blueFraction  = blue & 255
+    }
+
+    return result
+}
+
+#[Swag.Inline]
+private func(Full: bool) convertSubsampled8(target: [*] u8, luma: const [*] u8, correction: const *ChromaCorrection)
 {
     using Math.Simd
     const TripletLowRg  = cast(U8x16, [0'u8, 8, 128, 1, 9, 128, 2, 10, 128, 3, 11, 128, 4, 12, 128, 5])
@@ -323,39 +362,31 @@ private func(Full: bool) convertSubsampled8(target: [*] u8, luma: const [*] u8, 
     const TripletHighRg = cast(U8x16, [13'u8, 128, 6, 14, 128, 7, 15, 128, 128, 128, 128, 128, 128, 128, 128, 128])
     const TripletHighB  = cast(U8x16, [128'u8, 5, 128, 128, 6, 128, 128, 7, 128, 128, 128, 128, 128, 128, 128, 128])
     let lumaBytes = cast #bit(U8x16, splat(cast(const [*] u64, luma)[0]))
-    let wide      = widenLow(lumaBytes)
-    var left      = cast #bit(S32x4, widenLow(wide))
-    var right     = cast #bit(S32x4, widenHigh(wide))
+    var y         = cast #bit(S16x8, widenLow(lumaBytes))
+    var fraction: S16x8
     #static if not Full
     {
-        let zero = splat(0's32)
-        left  = 298 * Math.max(left - 16, zero) + 128
-        right = 298 * Math.max(right - 16, zero) + 128
+        y = Math.max(y - 16, splat(0's16))
+        let remainder = 42 * y + 128
+        y        += remainder >> 8
+        fraction = remainder & 255
     }
 
-    let red   = packSubsampled'Full(left, right, correction.red)
-    let green = packSubsampled'Full(left, right, correction.green)
-    let blue  = packSubsampled'Full(left, right, correction.blue)
-    let rg    = packUnsigned(red, green)
-    let b     = packUnsigned(blue, blue)
+    var red   = y + correction.red
+    var green = y + correction.green
+    var blue  = y + correction.blue
+    #static if not Full
+    {
+        // Carry the low byte into the combined value before clamping to an RGB sample.
+        red   += (fraction + correction.redFraction) >> 8
+        green += (fraction + correction.greenFraction) >> 8
+        blue  += (fraction + correction.blueFraction) >> 8
+    }
+
+    let rg = packUnsigned(red, green)
+    let b  = packUnsigned(blue, blue)
     store(target, shuffle(rg, TripletLowRg) | shuffle(b, TripletLowB))
     storeLow8(target + 16, shuffle(rg, TripletHighRg) | shuffle(b, TripletHighB))
-}
-
-#[Swag.Inline]
-private func(Full: bool) packSubsampled(left, right, chroma: Math.Simd.S32x4)->Math.Simd.S16x8
-{
-    using Math.Simd
-    let weights = cast #bit(U32x4, chroma)
-    var first   = left + cast #bit(S32x4, interleaveLow(weights, weights))
-    var last    = right + cast #bit(S32x4, interleaveHigh(weights, weights))
-    #static if not Full
-    {
-        first >>= 8
-        last  >>= 8
-    }
-
-    return packSigned(first, last)
 }
 
 private func(Full: bool, Pair: bool) decodeSubsampledRow(target: [*] u8, luma, cb, cr: const [*] u8, width, stride: u64)
@@ -364,22 +395,10 @@ private func(Full: bool, Pair: bool) decodeSubsampledRow(target: [*] u8, luma, c
     let groups = width / 8
     for group in groups
     {
-        let u = widenBytes(cast #bit(U8x16, splat(cast(const [*] u32, cb + group * 4)[0]))) - 128
-        let v = widenBytes(cast #bit(U8x16, splat(cast(const [*] u32, cr + group * 4)[0]))) - 128
-        var correction: ChromaCorrection
-        #static if Full
-        {
-            let rgb = convertRgb'(S32x4, true)(splat(0's32), u, v)
-            correction = {rgb.r, rgb.g, rgb.b}
-        }
-        else
-        {
-            correction = {409 * v, -100 * u - 208 * v, 516 * u}
-        }
-
-        convertSubsampled8'Full(target + group * 24, luma + group * 8, correction)
+        let correction = chromaCorrection8'Full(cb + group * 4, cr + group * 4)
+        convertSubsampled8'Full(target + group * 24, luma + group * 8, &correction)
         #static if Pair do
-            convertSubsampled8'Full(target - stride + group * 24, luma + width + group * 8, correction)
+            convertSubsampled8'Full(target - stride + group * 24, luma + width + group * 8, &correction)
     }
 
     const Rows = Pair ? 2'u64 : 1'u64

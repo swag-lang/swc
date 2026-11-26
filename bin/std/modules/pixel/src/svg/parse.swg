@@ -433,6 +433,12 @@ private struct Parser
 
     paintTransforms: Array'Math.Transform2     // Element transforms used to resolve paint references.
 
+    lastTransform:       string = ""
+    lastTransformParent: Math.Transform2
+    lastTransformResult: Math.Transform2
+    transformMisses:     u8
+    transformCooldown:   u8
+
     lastInlineStyle:    string = ""
     inlineDeclarations: Array'StyleDeclaration
     inlineCacheReady:   bool
@@ -484,6 +490,7 @@ private enum AttributeKind
     RefY
     Orient
     MarkerUnits
+    Transform
     Style
 }
 
@@ -578,6 +585,7 @@ private func attributeKind(name: string)->AttributeKind
     case "refY":                return .RefY
     case "orient":              return .Orient
     case "markerUnits":         return .MarkerUnits
+    case "transform":           return .Transform
     case "style":               return .Style
     default:                    return .Unknown
     }
@@ -2763,6 +2771,43 @@ private impl Parser
             .applyInlineStyle(state, inlineStyle.value)
     }
 
+    mtd applyTransform(state: *GroupState, value: string)
+    {
+        // Simple translations and scales are cheap to parse. Cache longer lists while
+        // successive elements reuse them, with a short pause if their values keep changing.
+        if value.count < 24 or value.count > 1024
+        {
+            state.transform = composeTransformList(value, state.transform)
+            return
+        }
+
+        if .transformCooldown
+        {
+            .transformCooldown -= 1
+            state.transform    = composeTransformList(value, state.transform)
+            return
+        }
+
+        if value == .lastTransform and
+           Memory.compare(&state.transform, &.lastTransformParent, #sizeof(Math.Transform2)) == 0
+        {
+            state.transform  = .lastTransformResult
+            .transformMisses = 0
+            return
+        }
+
+        .lastTransform       = .sourceView(value)
+        .lastTransformParent = state.transform
+        state.transform      = composeTransformList(value, state.transform)
+        .lastTransformResult = state.transform
+        .transformMisses     += 1
+        if .transformMisses == 4
+        {
+            .transformCooldown = 16
+            .transformMisses   = 0
+        }
+    }
+
     // Applies presentation attributes and collects slices of the remaining supported attributes.
     // Each nesting level reuses its map for siblings.
     mtd scanAttributes(state: *GroupState, geo: *AttributeMap)->{ selfClosed: bool }
@@ -2826,6 +2871,9 @@ private impl Parser
             case .Style:
                 geo.add(kind, value)
                 .applyInlineStyle(state, value)
+
+            case .Transform:
+                .applyTransform(state, value)
 
             default:
                 geo.add(kind, value)

@@ -80,7 +80,7 @@ private func x25519Normalize(value: X25519Field)->X25519Field
 // The loose sums and differences stay below 3*2^51 + 1024 per limb.
 // Use them directly only as product operands.
 #[Swag.Inline]
-private func x25519AddLoose(left, right: X25519Field)->X25519Field
+internal func x25519AddLoose(left, right: X25519Field)->X25519Field
 {
     var result: #returntype
     for index in result.limbs.count do
@@ -89,7 +89,7 @@ private func x25519AddLoose(left, right: X25519Field)->X25519Field
 }
 
 #[Swag.Inline]
-private func x25519SubtractLoose(left, right: X25519Field)->X25519Field
+internal func x25519SubtractLoose(left, right: X25519Field)->X25519Field
 {
     var result: #returntype
     for index in result.limbs.count do

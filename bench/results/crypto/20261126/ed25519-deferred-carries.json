@@ -1,0 +1,993 @@
+{
+  "utc": "2026-11-26T13:13:32.362127+00:00",
+  "system": "Linux-6.18.57-x86_64-with-glibc2.41",
+  "cpu": 1,
+  "affinity": [
+    1
+  ],
+  "workers": {
+    "ed-verify-final": 1,
+    "ed-loose-products": 1
+  },
+  "processor": {
+    "model name": "AMD EPYC 9V74 80-Core Processor",
+    "microcode": "0x1000065",
+    "flags": "fpu vme de pse tsc msr pae mce cx8 apic sep mtrr pge mca cmov pat pse36 clflush mmx fxsr sse sse2 ht syscall nx mmxext fxsr_opt pdpe1gb rdtscp lm constant_tsc rep_good nopl xtopology nonstop_tsc cpuid extd_apicid tsc_known_freq pni pclmulqdq ssse3 fma cx16 pcid sse4_1 sse4_2 x2apic movbe popcnt tsc_deadline_timer aes xsave avx f16c rdrand hypervisor lahf_lm cmp_legacy cr8_legacy abm sse4a misalignsse 3dnowprefetch osvw topoext cpuid_fault vmmcall fsgsbase tsc_adjust bmi1 avx2 smep bmi2 erms invpcid avx512f avx512dq rdseed adx smap avx512ifma clflushopt clwb avx512cd sha_ni avx512bw avx512vl xsaveopt xsavec xgetbv1 xsaves avx512_bf16 clzero xsaveerptr arat npt nrip_save tsc_scale vmcb_clean flushbyasid pausefilter pfthreshold v_vmsave_vmload avx512vbmi umip avx512_vbmi2 gfni vaes vpclmulqdq avx512_vnni avx512_bitalg avx512_vpopcntdq rdpid fsrm arch_capabilities"
+  },
+  "reference_build": "OpenSSL 3.5.7 9 Jun 2026 | zlib 1.3.1 | BLAKE3 1.8.7 | libdeflate 1.26 | ISA-L 2.32.1 | liblzma 5.8.1 | libsodium 1.0.22",
+  "reference_sha256": "47fdd10ebedfa79447c6fcddbd7b2bfd69ca30cf78231e5c6b61e747be1d2980",
+  "swag_builds": {
+    "ed-verify-final": "dec4ef89e77ffb78429617f370d890503f14cb21a7101881b1bc53c46563b351",
+    "ed-loose-products": "366974addb82200db8ffd8d521b6f037c99dbfb8ded25d6bc86f33e3be87cf97"
+  },
+  "rounds": 11,
+  "target_ms": 30,
+  "clock": "cpu",
+  "rows": [
+    {
+      "algorithm": "x25519-public",
+      "bytes": 32,
+      "offset": 0,
+      "input_sha256": "2404657934fda9253c9d38499cb12ebdbbed5a27f47746fb93ed5d1b676bd395",
+      "output_sha256": "82bc2c8f4e75b535a175120445ec22f7265a811b633ced733b9d06869c502c69",
+      "samples": {
+        "OpenSSL": {
+          "iterations": 833,
+          "wall": [
+            0.063946981,
+            0.058017258,
+            0.07128618,
+            0.06228189,
+            0.059943353,
+            0.06348845,
+            0.064926068,
+            0.073435873,
+            0.063587428,
+            0.063497453,
+            0.064685055
+          ],
+          "cpu": [
+            0.031069689,
+            0.02992863,
+            0.033129565,
+            0.030204804,
+            0.030651489,
+            0.030144783,
+            0.0308279,
+            0.037343093,
+            0.030138224,
+            0.031029279,
+            0.030407825
+          ]
+        },
+        "libsodium": {
+          "iterations": 1895,
+          "wall": [
+            0.058532676,
+            0.064851987,
+            0.058911297,
+            0.065550109,
+            0.064887099,
+            0.063829234,
+            0.069805812,
+            0.064432754,
+            0.070532468,
+            0.072896518,
+            0.062631888
+          ],
+          "cpu": [
+            0.030453812,
+            0.030017683,
+            0.029910864,
+            0.031351008,
+            0.031304389,
+            0.030441034,
+            0.032618429,
+            0.032343967,
+            0.034168429,
+            0.035440755,
+            0.02997496
+          ]
+        },
+        "ed-verify-final": {
+          "iterations": 863,
+          "wall": [
+            0.060717491,
+            0.0628914,
+            0.070985271,
+            0.06345539,
+            0.063698657,
+            0.063545226,
+            0.062096592,
+            0.087400423,
+            0.076769505,
+            0.069563002,
+            0.05805788
+          ],
+          "cpu": [
+            0.030549965,
+            0.030105434,
+            0.035614731,
+            0.031158703,
+            0.031617042,
+            0.031455476,
+            0.030003453,
+            0.043143331,
+            0.039275692,
+            0.0329149,
+            0.029918354
+          ]
+        },
+        "ed-loose-products": {
+          "iterations": 1044,
+          "wall": [
+            0.062600481,
+            0.062144253,
+            0.065336878,
+            0.063744435,
+            0.062337955,
+            0.06303777,
+            0.062166155,
+            0.062283984,
+            0.06588179,
+            0.071240311,
+            0.061908788
+          ],
+          "cpu": [
+            0.029872167,
+            0.029937454,
+            0.033218992,
+            0.031579009,
+            0.03021703,
+            0.030940338,
+            0.030093144,
+            0.030194143,
+            0.030674752,
+            0.035019,
+            0.029824956
+          ]
+        }
+      },
+      "round_order": [
+        [
+          "ed-verify-final",
+          "OpenSSL",
+          "libsodium",
+          "ed-loose-products"
+        ],
+        [
+          "libsodium",
+          "OpenSSL",
+          "ed-verify-final",
+          "ed-loose-products"
+        ],
+        [
+          "libsodium",
+          "OpenSSL",
+          "ed-verify-final",
+          "ed-loose-products"
+        ],
+        [
+          "OpenSSL",
+          "ed-loose-products",
+          "libsodium",
+          "ed-verify-final"
+        ],
+        [
+          "OpenSSL",
+          "libsodium",
+          "ed-loose-products",
+          "ed-verify-final"
+        ],
+        [
+          "ed-loose-products",
+          "ed-verify-final",
+          "libsodium",
+          "OpenSSL"
+        ],
+        [
+          "libsodium",
+          "OpenSSL",
+          "ed-verify-final",
+          "ed-loose-products"
+        ],
+        [
+          "ed-loose-products",
+          "libsodium",
+          "OpenSSL",
+          "ed-verify-final"
+        ],
+        [
+          "ed-verify-final",
+          "libsodium",
+          "OpenSSL",
+          "ed-loose-products"
+        ],
+        [
+          "OpenSSL",
+          "ed-verify-final",
+          "ed-loose-products",
+          "libsodium"
+        ],
+        [
+          "OpenSSL",
+          "ed-verify-final",
+          "ed-loose-products",
+          "libsodium"
+        ]
+      ]
+    },
+    {
+      "algorithm": "x25519-shared",
+      "bytes": 32,
+      "offset": 0,
+      "input_sha256": "2404657934fda9253c9d38499cb12ebdbbed5a27f47746fb93ed5d1b676bd395",
+      "output_sha256": "9cece8f62296730a835add7d412edfd57587a071fb99e1b937693a5159c24d5d",
+      "samples": {
+        "OpenSSL": {
+          "iterations": 434,
+          "wall": [
+            0.063245184,
+            0.068328749,
+            0.081221023,
+            0.07934219,
+            0.07770456,
+            0.065015873,
+            0.078239628,
+            0.080806769,
+            0.076698943,
+            0.08190953,
+            0.063559616
+          ],
+          "cpu": [
+            0.030182641,
+            0.030656936,
+            0.030825087,
+            0.030589726,
+            0.030349497,
+            0.030235208,
+            0.031187126,
+            0.030749342,
+            0.030500315,
+            0.030669435,
+            0.031427844
+          ]
+        },
+        "libsodium": {
+          "iterations": 985,
+          "wall": [
+            0.069645806,
+            0.067557487,
+            0.068452136,
+            0.089976277,
+            0.077730008,
+            0.084506648,
+            0.08021098,
+            0.073648061,
+            0.073254519,
+            0.061312688,
+            0.063473136
+          ],
+          "cpu": [
+            0.030004314,
+            0.03257282,
+            0.030232553,
+            0.034764001,
+            0.029890222,
+            0.032276717,
+            0.030847989,
+            0.030482295,
+            0.030169028,
+            0.030307725,
+            0.031924003
+          ]
+        },
+        "ed-verify-final": {
+          "iterations": 416,
+          "wall": [
+            0.064612755,
+            0.066373351,
+            0.062221389,
+            0.058664395,
+            0.080598404,
+            0.08249812,
+            0.074397532,
+            0.063480779,
+            0.078183793,
+            0.073219644,
+            0.058105732
+          ],
+          "cpu": [
+            0.029576966,
+            0.029561554,
+            0.029656646,
+            0.030549526,
+            0.030575242,
+            0.029884526,
+            0.030793087,
+            0.029874329,
+            0.030533752,
+            0.030181496,
+            0.030054708
+          ]
+        },
+        "ed-loose-products": {
+          "iterations": 416,
+          "wall": [
+            0.061998433,
+            0.070211408,
+            0.072756849,
+            0.074265323,
+            0.057742495,
+            0.076648988,
+            0.078895857,
+            0.070228075,
+            0.063211122,
+            0.058130929,
+            0.057671196
+          ],
+          "cpu": [
+            0.029609656,
+            0.033914656,
+            0.029724307,
+            0.029845567,
+            0.029660101,
+            0.029636573,
+            0.031445068,
+            0.030191964,
+            0.029835714,
+            0.029990715,
+            0.029585317
+          ]
+        }
+      },
+      "round_order": [
+        [
+          "ed-loose-products",
+          "libsodium",
+          "OpenSSL",
+          "ed-verify-final"
+        ],
+        [
+          "ed-verify-final",
+          "ed-loose-products",
+          "libsodium",
+          "OpenSSL"
+        ],
+        [
+          "libsodium",
+          "ed-verify-final",
+          "ed-loose-products",
+          "OpenSSL"
+        ],
+        [
+          "ed-loose-products",
+          "ed-verify-final",
+          "libsodium",
+          "OpenSSL"
+        ],
+        [
+          "ed-verify-final",
+          "OpenSSL",
+          "ed-loose-products",
+          "libsodium"
+        ],
+        [
+          "ed-verify-final",
+          "ed-loose-products",
+          "libsodium",
+          "OpenSSL"
+        ],
+        [
+          "OpenSSL",
+          "ed-loose-products",
+          "ed-verify-final",
+          "libsodium"
+        ],
+        [
+          "ed-verify-final",
+          "libsodium",
+          "ed-loose-products",
+          "OpenSSL"
+        ],
+        [
+          "ed-loose-products",
+          "OpenSSL",
+          "ed-verify-final",
+          "libsodium"
+        ],
+        [
+          "ed-loose-products",
+          "OpenSSL",
+          "ed-verify-final",
+          "libsodium"
+        ],
+        [
+          "OpenSSL",
+          "ed-loose-products",
+          "ed-verify-final",
+          "libsodium"
+        ]
+      ]
+    },
+    {
+      "algorithm": "ed25519-public",
+      "bytes": 32,
+      "offset": 0,
+      "input_sha256": "2404657934fda9253c9d38499cb12ebdbbed5a27f47746fb93ed5d1b676bd395",
+      "output_sha256": "3344782b88b6be16a0976a28edf521b9b260851a6101822efc7a840f23d015d9",
+      "samples": {
+        "OpenSSL": {
+          "iterations": 803,
+          "wall": [
+            0.061932632,
+            0.058925848,
+            0.058327425,
+            0.063431804,
+            0.057896365,
+            0.064375667,
+            0.058401667,
+            0.057664606,
+            0.05814424,
+            0.06367497,
+            0.064985667
+          ],
+          "cpu": [
+            0.029514064,
+            0.030712598,
+            0.029569296,
+            0.029683346,
+            0.029741951,
+            0.030194377,
+            0.029774483,
+            0.029581224,
+            0.03002015,
+            0.029936644,
+            0.029936222
+          ]
+        },
+        "libsodium": {
+          "iterations": 1839,
+          "wall": [
+            0.065957092,
+            0.061949869,
+            0.058011609,
+            0.063254626,
+            0.058251531,
+            0.063101756,
+            0.058262217,
+            0.063219183,
+            0.058461568,
+            0.061763388,
+            0.062978399
+          ],
+          "cpu": [
+            0.030139774,
+            0.029960869,
+            0.029876484,
+            0.030233025,
+            0.030108398,
+            0.030928088,
+            0.030230099,
+            0.030152136,
+            0.029806239,
+            0.029965038,
+            0.030205956
+          ]
+        },
+        "ed-verify-final": {
+          "iterations": 846,
+          "wall": [
+            0.062508881,
+            0.08516495,
+            0.063107324,
+            0.063757675,
+            0.063884526,
+            0.062229841,
+            0.062756986,
+            0.062406767,
+            0.062999972,
+            0.058761169,
+            0.062585477
+          ],
+          "cpu": [
+            0.030508425,
+            0.034659775,
+            0.031047737,
+            0.030350757,
+            0.029991695,
+            0.0301493,
+            0.03062757,
+            0.029757927,
+            0.031369377,
+            0.029640182,
+            0.029928089
+          ]
+        },
+        "ed-loose-products": {
+          "iterations": 1025,
+          "wall": [
+            0.062052694,
+            0.062297363,
+            0.06263385,
+            0.065140971,
+            0.062530193,
+            0.062581921,
+            0.062385766,
+            0.06233529,
+            0.057775343,
+            0.062599068,
+            0.057986031
+          ],
+          "cpu": [
+            0.029834191,
+            0.029728682,
+            0.030553692,
+            0.03010949,
+            0.030174196,
+            0.030492811,
+            0.030300534,
+            0.030236508,
+            0.02965815,
+            0.030534863,
+            0.029894249
+          ]
+        }
+      },
+      "round_order": [
+        [
+          "OpenSSL",
+          "libsodium",
+          "ed-verify-final",
+          "ed-loose-products"
+        ],
+        [
+          "ed-loose-products",
+          "ed-verify-final",
+          "OpenSSL",
+          "libsodium"
+        ],
+        [
+          "ed-loose-products",
+          "ed-verify-final",
+          "OpenSSL",
+          "libsodium"
+        ],
+        [
+          "libsodium",
+          "ed-verify-final",
+          "OpenSSL",
+          "ed-loose-products"
+        ],
+        [
+          "ed-loose-products",
+          "libsodium",
+          "OpenSSL",
+          "ed-verify-final"
+        ],
+        [
+          "ed-loose-products",
+          "libsodium",
+          "ed-verify-final",
+          "OpenSSL"
+        ],
+        [
+          "ed-verify-final",
+          "OpenSSL",
+          "ed-loose-products",
+          "libsodium"
+        ],
+        [
+          "ed-verify-final",
+          "ed-loose-products",
+          "libsodium",
+          "OpenSSL"
+        ],
+        [
+          "ed-loose-products",
+          "libsodium",
+          "OpenSSL",
+          "ed-verify-final"
+        ],
+        [
+          "libsodium",
+          "ed-verify-final",
+          "OpenSSL",
+          "ed-loose-products"
+        ],
+        [
+          "OpenSSL",
+          "ed-verify-final",
+          "libsodium",
+          "ed-loose-products"
+        ]
+      ]
+    },
+    {
+      "algorithm": "ed25519-sign",
+      "bytes": 64,
+      "offset": 0,
+      "input_sha256": "28f0a1a9fae78b5247ebe5b1919541c009f78cc2b79d276352a9c46251a02522",
+      "output_sha256": "9c8f8181fbe97f479f7785703ecbc0cab97207354af556437d8555d43db6c3e4",
+      "samples": {
+        "OpenSSL": {
+          "iterations": 399,
+          "wall": [
+            0.06117454,
+            0.066796348,
+            0.061778862,
+            0.058020253,
+            0.057748283,
+            0.063125072,
+            0.058209618,
+            0.06323637,
+            0.061947896,
+            0.063027855,
+            0.062705219
+          ],
+          "cpu": [
+            0.030172765,
+            0.032081585,
+            0.029598048,
+            0.029961489,
+            0.029636914,
+            0.029843292,
+            0.030099916,
+            0.029993317,
+            0.02986959,
+            0.030425722,
+            0.030695702
+          ]
+        },
+        "libsodium": {
+          "iterations": 904,
+          "wall": [
+            0.059763421,
+            0.063889624,
+            0.063212814,
+            0.062271735,
+            0.062823057,
+            0.067126926,
+            0.064730103,
+            0.064646577,
+            0.073854394,
+            0.059232582,
+            0.063628652
+          ],
+          "cpu": [
+            0.030955069,
+            0.030621923,
+            0.030366113,
+            0.030410368,
+            0.030507541,
+            0.03240501,
+            0.030300395,
+            0.030722904,
+            0.037755656,
+            0.031148217,
+            0.030572189
+          ]
+        },
+        "ed-verify-final": {
+          "iterations": 419,
+          "wall": [
+            0.062003109,
+            0.066023783,
+            0.062854333,
+            0.058695522,
+            0.062473019,
+            0.070403179,
+            0.06571006,
+            0.062565098,
+            0.072710599,
+            0.060685322,
+            0.06266631
+          ],
+          "cpu": [
+            0.029912214,
+            0.030166204,
+            0.030768663,
+            0.030232527,
+            0.030290239,
+            0.031778023,
+            0.030747312,
+            0.030449056,
+            0.036691244,
+            0.030535404,
+            0.030020789
+          ]
+        },
+        "ed-loose-products": {
+          "iterations": 499,
+          "wall": [
+            0.06254748,
+            0.057704356,
+            0.062325236,
+            0.057823316,
+            0.062165065,
+            0.06215551,
+            0.061990822,
+            0.062305036,
+            0.062783977,
+            0.062397164,
+            0.066082192
+          ],
+          "cpu": [
+            0.029624098,
+            0.029591208,
+            0.029735252,
+            0.029632701,
+            0.029630657,
+            0.030044663,
+            0.029868752,
+            0.029763274,
+            0.03084148,
+            0.030327874,
+            0.030749794
+          ]
+        }
+      },
+      "round_order": [
+        [
+          "ed-loose-products",
+          "OpenSSL",
+          "ed-verify-final",
+          "libsodium"
+        ],
+        [
+          "ed-verify-final",
+          "OpenSSL",
+          "libsodium",
+          "ed-loose-products"
+        ],
+        [
+          "ed-loose-products",
+          "libsodium",
+          "OpenSSL",
+          "ed-verify-final"
+        ],
+        [
+          "ed-verify-final",
+          "ed-loose-products",
+          "libsodium",
+          "OpenSSL"
+        ],
+        [
+          "ed-loose-products",
+          "OpenSSL",
+          "libsodium",
+          "ed-verify-final"
+        ],
+        [
+          "libsodium",
+          "ed-verify-final",
+          "OpenSSL",
+          "ed-loose-products"
+        ],
+        [
+          "OpenSSL",
+          "libsodium",
+          "ed-loose-products",
+          "ed-verify-final"
+        ],
+        [
+          "ed-loose-products",
+          "libsodium",
+          "OpenSSL",
+          "ed-verify-final"
+        ],
+        [
+          "OpenSSL",
+          "libsodium",
+          "ed-loose-products",
+          "ed-verify-final"
+        ],
+        [
+          "ed-verify-final",
+          "libsodium",
+          "OpenSSL",
+          "ed-loose-products"
+        ],
+        [
+          "OpenSSL",
+          "ed-verify-final",
+          "libsodium",
+          "ed-loose-products"
+        ]
+      ]
+    },
+    {
+      "algorithm": "ed25519-sign",
+      "bytes": 4096,
+      "offset": 0,
+      "input_sha256": "af26928ca7645ec0d0e3eb12ef41f86dcde5c1aaa8e8debc79011d0a002fa71c",
+      "output_sha256": "5fb065a8305f9f8dc739bd71873612b54349bf73a998f162669da4d97f6ee281",
+      "samples": {
+        "OpenSSL": {
+          "iterations": 361,
+          "wall": [
+            0.058414217,
+            0.062908706,
+            0.063625566,
+            0.063389921,
+            0.063422768,
+            0.065687473,
+            0.067132492,
+            0.058493294,
+            0.07412606,
+            0.067030529,
+            0.063175269
+          ],
+          "cpu": [
+            0.030373953,
+            0.030762364,
+            0.030562313,
+            0.030070702,
+            0.030004352,
+            0.030612028,
+            0.03058018,
+            0.030438359,
+            0.038093179,
+            0.032985923,
+            0.030389681
+          ]
+        },
+        "libsodium": {
+          "iterations": 631,
+          "wall": [
+            0.062817538,
+            0.067156422,
+            0.063365985,
+            0.064442088,
+            0.073289972,
+            0.067136268,
+            0.065529215,
+            0.062560778,
+            0.064699022,
+            0.06382209,
+            0.062881231
+          ],
+          "cpu": [
+            0.03068107,
+            0.031364899,
+            0.030999876,
+            0.030744607,
+            0.037189093,
+            0.030398331,
+            0.030458238,
+            0.030503568,
+            0.030373974,
+            0.03103182,
+            0.030043942
+          ]
+        },
+        "ed-verify-final": {
+          "iterations": 317,
+          "wall": [
+            0.06370676,
+            0.061825573,
+            0.062429463,
+            0.062601322,
+            0.061762094,
+            0.062881391,
+            0.064984844,
+            0.05736304,
+            0.080462695,
+            0.058811603,
+            0.053125078
+          ],
+          "cpu": [
+            0.030839156,
+            0.029835161,
+            0.030430307,
+            0.031007035,
+            0.029436225,
+            0.02984088,
+            0.029530467,
+            0.029324019,
+            0.035893945,
+            0.029810916,
+            0.029013297
+          ]
+        },
+        "ed-loose-products": {
+          "iterations": 352,
+          "wall": [
+            0.056892952,
+            0.060608136,
+            0.056693282,
+            0.056484716,
+            0.056330121,
+            0.056154707,
+            0.061954933,
+            0.056233245,
+            0.070707599,
+            0.056668072,
+            0.056082708
+          ],
+          "cpu": [
+            0.028848651,
+            0.028539902,
+            0.02839152,
+            0.028347096,
+            0.028224974,
+            0.028045696,
+            0.028806891,
+            0.028186066,
+            0.034641123,
+            0.028585209,
+            0.027992696
+          ]
+        }
+      },
+      "round_order": [
+        [
+          "libsodium",
+          "ed-verify-final",
+          "OpenSSL",
+          "ed-loose-products"
+        ],
+        [
+          "ed-verify-final",
+          "libsodium",
+          "OpenSSL",
+          "ed-loose-products"
+        ],
+        [
+          "ed-verify-final",
+          "libsodium",
+          "ed-loose-products",
+          "OpenSSL"
+        ],
+        [
+          "OpenSSL",
+          "libsodium",
+          "ed-loose-products",
+          "ed-verify-final"
+        ],
+        [
+          "libsodium",
+          "OpenSSL",
+          "ed-verify-final",
+          "ed-loose-products"
+        ],
+        [
+          "OpenSSL",
+          "ed-loose-products",
+          "libsodium",
+          "ed-verify-final"
+        ],
+        [
+          "ed-verify-final",
+          "libsodium",
+          "ed-loose-products",
+          "OpenSSL"
+        ],
+        [
+          "OpenSSL",
+          "libsodium",
+          "ed-loose-products",
+          "ed-verify-final"
+        ],
+        [
+          "libsodium",
+          "OpenSSL",
+          "ed-loose-products",
+          "ed-verify-final"
+        ],
+        [
+          "libsodium",
+          "OpenSSL",
+          "ed-loose-products",
+          "ed-verify-final"
+        ],
+        [
+          "OpenSSL",
+          "ed-verify-final",
+          "ed-loose-products",
+          "libsodium"
+        ]
+      ]
+    }
+  ]
+}

@@ -73,8 +73,8 @@ private func ed25519FieldEqual(left, right: X25519Field)->bool
 
 private func ed25519Add(left, right: Ed25519Point)->Ed25519Point
 {
-    let a  = x25519Multiply(x25519Subtract(left.y, left.x), x25519Subtract(right.y, right.x))
-    let b  = x25519Multiply(x25519Add(left.y, left.x), x25519Add(right.y, right.x))
+    let a  = x25519Multiply(x25519SubtractLoose(left.y, left.x), x25519SubtractLoose(right.y, right.x))
+    let b  = x25519Multiply(x25519AddLoose(left.y, left.x), x25519AddLoose(right.y, right.x))
     let c  = x25519Multiply(ed25519D(), x25519Multiply(left.t, right.t))
     let c2 = x25519Add(c, c)
     let z  = x25519Multiply(left.z, right.z)
@@ -96,8 +96,8 @@ private func ed25519Cache(point: Ed25519Point)->Ed25519Cached
 #[Swag.Inline]
 private func ed25519AddPrepared(left: Ed25519Point, right: Ed25519Affine, twiceZ: X25519Field)->Ed25519Point
 {
-    let a  = x25519Multiply(x25519Subtract(left.y, left.x), right.yMinusX)
-    let b  = x25519Multiply(x25519Add(left.y, left.x), right.yPlusX)
+    let a  = x25519Multiply(x25519SubtractLoose(left.y, left.x), right.yMinusX)
+    let b  = x25519Multiply(x25519AddLoose(left.y, left.x), right.yPlusX)
     let c2 = x25519Multiply(left.t, right.twiceDT)
     return ed25519CompleteAddition(a, b, c2, twiceZ)
 }
@@ -115,10 +115,10 @@ private func ed25519AddCached(left: Ed25519Point, right: Ed25519Cached)->Ed25519
 #[Swag.Inline]
 private func ed25519CompleteAddition(a, b, c2, d: X25519Field)->Ed25519Point
 {
-    let e  = x25519Subtract(b, a)
-    let f  = x25519Subtract(d, c2)
-    let g  = x25519Add(d, c2)
-    let h  = x25519Add(b, a)
+    let e  = x25519SubtractLoose(b, a)
+    let f  = x25519SubtractLoose(d, c2)
+    let g  = x25519AddLoose(d, c2)
+    let h  = x25519AddLoose(b, a)
     var result: #returntype
     result.x = x25519Multiply(e, f)
     result.y = x25519Multiply(g, h)
@@ -135,10 +135,10 @@ private func(UpdateT: bool) ed25519Double(point: Ed25519Point)->Ed25519Point
     let c2 = x25519Add(c, c)
     var zero:   X25519Field
     let d  = x25519Subtract(zero, a)
-    let e  = x25519Subtract(x25519Subtract(x25519Square(x25519Add(point.x, point.y)), a), b)
+    let e  = x25519SubtractLoose(x25519Subtract(x25519Square(x25519AddLoose(point.x, point.y)), a), b)
     let g  = x25519Add(d, b)
-    let f  = x25519Subtract(g, c2)
-    let h  = x25519Subtract(d, b)
+    let f  = x25519SubtractLoose(g, c2)
+    let h  = x25519SubtractLoose(d, b)
     var result: #returntype
     result.x = x25519Multiply(e, f)
     result.y = x25519Multiply(g, h)

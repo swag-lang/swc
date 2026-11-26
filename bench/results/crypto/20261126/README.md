@@ -131,3 +131,4 @@ optimizations moved each result.
 - [P-256 generator comb with four tables](p256-generator-tables.md)
 - [Packed AES-XTS tweak doubling](aes-xts-doubling.md)
 - [Direct AES-CMAC blocks](aes-cmac-direct.md)
+- [Deferred carries in Edwards formulas](ed25519-deferred-carries.md)

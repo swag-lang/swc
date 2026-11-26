@@ -29,7 +29,9 @@ def arguments():
     parser.add_argument("--baseline-bin", type=Path)
     parser.add_argument("--exact-baseline", action="store_true")
     parser.add_argument("--reference", type=Path, help="prebuilt native FFmpeg encoder benchmark")
-    parser.add_argument("--reference-setting", type=int, help="AAC bitrate or FLAC compression level")
+    parser.add_argument("--reference-setting", type=int, help="AAC bitrate or FFmpeg FLAC compression level")
+    parser.add_argument("--libflac", type=int, choices=range(9), metavar="LEVEL",
+                        help="also compare the system libFLAC stream encoder at this compression level")
     parser.add_argument("--ffmpeg", default="ffmpeg", help="FFmpeg CLI used for untimed quality checks")
     parser.add_argument("--rounds", type=int, default=6)
     parser.add_argument("--repetitions", type=int, default=3)
@@ -45,6 +47,8 @@ def arguments():
         parser.error("--rounds and --repetitions must be positive")
     if args.exact_baseline and not args.baseline_bin:
         parser.error("--exact-baseline needs --baseline-bin")
+    if args.libflac is not None and args.codec != "flac":
+        parser.error("--libflac applies to FLAC")
     if args.codec != "aac" and args.bandwidth != "full":
         parser.error("--bandwidth applies to AAC")
     if sys.byteorder != "little":
@@ -88,8 +92,9 @@ def build_reference(output):
 
 
 def run(args, binary, setting, output, log, repetitions, frames):
-    command = [binary, args.codec, args.input, str(args.rate), str(args.channels),
-               str(setting), output, str(repetitions)]
+    command = [sys.executable, binary] if binary.suffix == ".py" else [binary]
+    command += [args.codec, args.input, str(args.rate), str(args.channels),
+                str(setting), output, str(repetitions)]
     env = {**os.environ, "SWAG_RUNTIME_THREADS": "1"}
     env.pop("AUDIO_ENCODE_CUTOFF", None)
     if isinstance(setting, int) and args.codec == "aac" and args.bandwidth == "voice":
@@ -207,6 +212,9 @@ def main():
         settings["baseline"] = args.bandwidth
     binaries.update(candidate=candidate, ffmpeg=reference)
     settings.update(candidate=args.bandwidth, ffmpeg=setting)
+    if args.libflac is not None:
+        binaries["libflac"] = WORKLOAD / "libflac_native.py"
+        settings["libflac"] = args.libflac
     outputs = {engine: args.output / f"{engine}.{args.codec}" for engine in binaries}
     rows = {engine: [] for engine in binaries}
     orders = list(permutations(binaries))
@@ -228,6 +236,10 @@ def main():
                   "sha256": hashlib.sha256(input_pcm).hexdigest()},
         "engines": {},
     }
+    if args.libflac is not None:
+        report["protocol"]["libflac"] = subprocess.check_output(
+            [sys.executable, binaries["libflac"], "--version"], text=True,
+        ).strip()
     for engine, stages in rows.items():
         delay = stages[0][5]
         if any(row[5] != delay for row in stages):

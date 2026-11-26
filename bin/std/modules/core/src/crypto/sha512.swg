@@ -242,10 +242,16 @@ impl Sha512Core
 
             // The first two groups consume the original sixteen words. Each later
             // group extends the schedule just before consuming its words.
-            for group in 2 do
-                compressGroup'false(group * 8, schedule, &a, &b, &c, &d, &e, &f, &g, &h)
-            for group in 2 until 10 do
-                compressGroup'true(group * 8, schedule, &a, &b, &c, &d, &e, &f, &g, &h)
+            compressGroup'false(0, schedule, &a, &b, &c, &d, &e, &f, &g, &h)
+            compressGroup'false(8, schedule, &a, &b, &c, &d, &e, &f, &g, &h)
+            compressGroup'true(16, schedule, &a, &b, &c, &d, &e, &f, &g, &h)
+            compressGroup'true(24, schedule, &a, &b, &c, &d, &e, &f, &g, &h)
+            compressGroup'true(32, schedule, &a, &b, &c, &d, &e, &f, &g, &h)
+            compressGroup'true(40, schedule, &a, &b, &c, &d, &e, &f, &g, &h)
+            compressGroup'true(48, schedule, &a, &b, &c, &d, &e, &f, &g, &h)
+            compressGroup'true(56, schedule, &a, &b, &c, &d, &e, &f, &g, &h)
+            compressGroup'true(64, schedule, &a, &b, &c, &d, &e, &f, &g, &h)
+            compressGroup'true(72, schedule, &a, &b, &c, &d, &e, &f, &g, &h)
 
             .state[0]     += a
             .state[1]     += b

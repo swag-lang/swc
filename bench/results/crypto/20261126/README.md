@@ -151,3 +151,4 @@ optimizations moved each result.
 - [Explicit Poly1305 limb reduction](poly1305-five-limb-carries.md)
 - [CRC-32 and reflected CRC-64 with paired 256-bit products](crc-wide-instructions.md)
 - [Worker scaling for reflected CRC-64 with VPCLMULQDQ](crc-wide-workers.md)
+- [SHA-512 round groups at fixed schedule offsets](sha512-fixed-round-groups.md)

@@ -1139,7 +1139,7 @@ impl Painter
         Swag.assert(.drawingBegin)
         for texture in .transientTextures
         {
-            .newCommand(.ReleaseTexture, true).op = .ReleaseTexture{texture: texture}
+            .newCommand(.ReleaseTexture).op = .ReleaseTexture{texture: texture}
         }
 
         for target in .transientTargets

@@ -320,6 +320,36 @@ private func renderCpuFontOnThread(thread: const *Threading.Thread)
         assertPixel(image, cast(s32, idx) * 2, 0, value)
 }
 
+// Each transient texture gets a cleanup command after the frame consumes it.
+#test
+{
+    var cpu: RenderCpu
+    cpu.begin(4, 2)
+    let renderer: IRenderer = &cpu
+    let source   = Image.create(2, 2, .RGBA8)
+    let textures = [renderer.addImage(source), renderer.addImage(source)]
+    var painter  = Painter.create(renderer)
+    painter.begin()
+    for texture, index in textures
+    {
+        painter.drawTexture({cast(f32, index * 2), 0, 2, 2}, texture)
+        painter.releaseTexture(texture)
+    }
+
+    painter.end()
+    var released: u64
+    for command in painter.commandBuffer where command.op is .ReleaseTexture
+    {
+        Swag.require(released < textures.count)
+        Swag.require(command.texture0.texture.handle == textures[released].handle)
+        released += 1
+    }
+
+    Swag.require(released == textures.count)
+    discard expect renderer.draw(&painter)
+    renderer.end()
+}
+
 // Nearest-neighbor texture sampling preserves the source quadrants.
 #test
 {

@@ -26,11 +26,13 @@ class ToolTests(unittest.TestCase):
             (self.root / 'bin/unittests/workspace/modules' / module).mkdir(parents=True)
         self.stages = []
         self.environment = {}
+        self.keep_going = False
 
     def invoke(self, arguments, windows=False, environment=None, result=0):
         def execute(stages, env, *, keep_going=False):
             self.stages = stages
             self.environment = env
+            self.keep_going = keep_going
             return result
         with patch.object(tool, '__file__', str(self.root / 'tools/tool.py')), \
              patch.object(tool.sys, 'platform', 'win32' if windows else 'linux'), \
@@ -65,17 +67,117 @@ class ToolTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             self.invoke(['goldens', 'unexpected'])
 
-    def test_full_campaign_uses_same_suites_on_both_hosts(self):
+    def test_functional_pass_uses_same_suites_on_both_hosts(self):
+        for workspace, tag in (('std', 'stress'), ('apps', 'golden')):
+            path = self.root / f'bin/{workspace}/modules/fixture/src/tests/cases/special.swg'
+            path.parent.mkdir(parents=True)
+            path.write_text(f'#[Swag.TestTag("{tag}")]\n#test {{}}\n', encoding='utf-8')
         for windows in (False, True):
-            self.assertEqual(self.invoke(['tests', 'dm'], windows=windows), 0)
+            self.assertEqual(self.invoke(['tests', 'dm', 'functional', '-bc', 'release'], windows=windows), 0)
             names = [stage.name for stage in self.stages]
             self.assertEqual(names[:13], ['cpp', 'lexer', 'errors-lexer', 'parser', 'errors-parser',
                                          'sema', 'errors-sema', 'jit', 'safety', 'sanity', 'native',
                                          'errors-native-owning', 'errors-native-pointer'])
             self.assertEqual(names[-4:], list(tool.WORKSPACES))
             self.assertTrue(self.stages[0].command[0].endswith('swc.dm.exe' if windows else 'swc.dm'))
+            for stage in self.stages[:-4]:
+                self.assertNotIn('--test-tag', stage.command)
+            for stage in self.stages[-4:]:
+                tags = ['!golden', '!stress'] if stage.name in ('std', 'apps') else []
+                self.assertEqual(list(tool.option_values(stage.command, ('--test-tag',))), tags)
         self.invoke(['tests'])
         self.assertNotIn('cpp', [stage.name for stage in self.stages])
+        self.assertIn('!stress', self.stages[-2].command)
+
+    def test_tagged_passes_use_case_owners_and_keep_independent_stages(self):
+        for workspace, case, tag in (('std', 'scene.swg', 'golden'), ('examples', 'example.swg', 'golden'),
+                                     ('apps', 'large.swg', 'stress'), ('reference', 'stress.swg', 'stress')):
+            path = self.root / f'bin/{workspace}/modules/fixture/src/tests/cases/nested' / case
+            path.parent.mkdir(parents=True)
+            path.write_text(f'#[Swag.TestTag("{tag}")]\n#test {{}}\n', encoding='utf-8')
+        prose = self.root / 'bin/reference/modules/fixture/src/guide.swg'
+        prose.write_text('#[Swag.TestTag("golden")]\n', encoding='utf-8')
+
+        self.assertEqual(self.invoke(['tests', 'goldens', '--num-cores', '2'], windows=True), 0)
+        self.assertEqual([stage.name for stage in self.stages], ['std-fixture', 'examples-fixture'])
+        for stage in self.stages:
+            self.assertEqual(tool.option_value(stage.command, ('-bc',), ''), 'release')
+            self.assertEqual(list(tool.option_values(stage.command, ('--test-tag',))), ['golden'])
+        self.assertTrue(self.keep_going)
+        self.assertEqual(self.invoke(['goldens', 'dm', 'test'], windows=True, result=7), 1)
+        self.assertEqual([stage.name for stage in self.stages], ['std-fixture', 'examples-fixture'])
+        self.assertTrue(self.stages[0].command[0].endswith('swc.dm.exe'))
+        self.assertTrue(self.keep_going)
+
+        self.invoke(['tests', 'stress', '-bc', 'release'])
+        self.assertEqual([stage.name for stage in self.stages], ['apps-fixture', 'reference-fixture'])
+        self.assertTrue(self.keep_going)
+        self.invoke(['tests', 'stress', '--test-file', 'large.swg'])
+        self.assertEqual([stage.name for stage in self.stages], ['apps-fixture'])
+        with self.assertRaisesRegex(ValueError, 'match the selected files'):
+            self.invoke(['tests', 'stress', '--test-file', 'absent.swg'])
+        with self.assertRaisesRegex(ValueError, 'needs -bc release'):
+            self.invoke(['tests', 'goldens', '-bc', 'devmode'])
+
+    def test_integrations_default_and_explicit_tags_are_host_specific(self):
+        fixtures = (
+            ('std', 'pixel', 'parity.swg', 'integration.renderer.opengl'),
+            ('std', 'pixel', 'reset.swg', 'integration.renderer.reset'),
+            ('std', 'gui', 'host.win32.swg', 'integration.host.windows'),
+            ('std', 'gui', 'host.linux.swg', 'integration.host.linux'),
+            ('apps', 'scope', 'journey.swg', 'integration.application.journey'),
+            ('apps', 'scope', 'input.swg', 'integration.desktop.input'),
+            ('apps', 'vault', 'resident.win32.swg', 'integration.application.journey'),
+        )
+        for workspace, module, case, tag in fixtures:
+            path = self.root / f'bin/{workspace}/modules/{module}/src/tests/cases' / case
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text(f'#[Swag.TestTag("{tag}")]\n#test {{}}\n', encoding='utf-8')
+        guarded_case = self.root / 'bin/apps/modules/vault/src/tests/cases/mount.swg'
+        guarded_case.write_text('#global if #os == Swag.TargetOs.Linux and #command == Swag.CompilerCommand.Test\n'
+                                '#[Swag.TestTag("integration.filesystem.fuse")]\n#test {}\n', encoding='utf-8')
+
+        for windows in (False, True):
+            self.invoke(['tests', 'integrations'], windows=windows)
+            tags = {stage.name: list(tool.option_values(stage.command, ('--test-tag',))) for stage in self.stages}
+            self.assertEqual(tags['std-gui'], ['integration.host.windows' if windows else 'integration.host.linux'])
+            self.assertEqual(tags['std-pixel'], ['integration.renderer.opengl'])
+            self.assertEqual(tags['apps-scope'], ['integration.application.journey', 'integration.desktop.input'])
+            self.assertEqual('apps-vault' in tags, windows)
+            self.assertTrue(self.keep_going)
+
+        self.invoke(['tests', 'integrations', '--test-tag=integration.renderer.reset', '--run-timeout', '30'])
+        self.assertEqual([stage.name for stage in self.stages], ['std-pixel'])
+        self.assertEqual(list(tool.option_values(self.stages[0].command, ('--test-tag',))), ['integration.renderer.reset'])
+        self.assertEqual(tool.option_value(self.stages[0].command, ('--run-timeout',), ''), '30')
+        with self.assertRaisesRegex(ValueError, 'no integration tests declare'):
+            self.invoke(['tests', 'integrations', '--test-tag', 'integration.host.windows'])
+        with self.assertRaisesRegex(ValueError, 'no integration tests declare'):
+            self.invoke(['tests', 'integrations', '--test-tag', 'integration.filesystem.fuse'], windows=True)
+        with self.assertRaisesRegex(ValueError, 'accepts test tags'):
+            self.invoke(['tests', 'integrations', '--test-tag', 'stress'])
+
+        output = io.StringIO()
+        for compiler in (self.root / 'bin').glob('swc*'):
+            compiler.unlink()
+        with redirect_stdout(output):
+            self.assertEqual(self.invoke(['tests', 'integrations', '--list']), 0)
+        self.assertIn('integration.renderer.reset [explicit]: std/pixel', output.getvalue())
+        self.assertIn('integration.desktop.input [default]: apps/scope', output.getvalue())
+        self.assertNotIn('integration.host.windows', output.getvalue())
+
+    def test_smoke_pass_routes_windows_scripts_and_both_native_workspaces(self):
+        scripts = self.root / 'bin/examples/scripts'
+        scripts.mkdir(parents=True)
+        (scripts / 'example.swgs').touch()
+        for windows in (False, True):
+            self.invoke(['tests', 'smoke', '-bc', 'release'], windows=windows)
+            names = [stage.name for stage in self.stages]
+            self.assertEqual(names, ['smoke-example', 'examples', 'apps'] if windows else ['examples', 'apps'])
+            for stage in self.stages:
+                self.assertEqual(stage.command[1], 'smoke')
+                self.assertNotIn('--test-tag', stage.command)
+            self.assertNotIn('SWAG_RUNTIME_THREADS', self.environment)
 
     def test_cpp_does_not_receive_program_configuration(self):
         for cfg in (['-bc', 'release'], ['--build-cfg', 'devmode'], ['--build-cfg=release']):

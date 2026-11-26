@@ -47,8 +47,10 @@ exit /b 0
 
     $env:SWAG_COVERAGE_LOG = Join-Path $scratch 'calls.txt'
     $env:SWAG_COVERAGE_FAILURE = $null
-    $calls = Invoke-Launcher @('-Suite', 'fast', '-Configuration', 'release')
-    Assert-Calls $calls @('std|test --test-tag !golden --test-tag !stress', 'apps|test --test-tag !golden --test-tag !stress') 'The fast pass'
+    $functionalCalls = @('std|test --test-tag !golden --test-tag !stress', 'apps|test --test-tag !golden --test-tag !stress')
+    Assert-Calls (Invoke-Launcher @('-Configuration', 'release')) $functionalCalls 'The default functional pass'
+    Assert-Calls (Invoke-Launcher @('-Suite', 'functional', '-Configuration', 'release')) $functionalCalls 'The functional pass'
+    Assert-Calls (Invoke-Launcher @('-Suite', 'fast', '-Configuration', 'release')) $functionalCalls 'The fast alias'
 
     # A full Release pass includes goldens; a DevMode full pass leaves snapshots to Release.
     Assert-Calls (Invoke-Launcher @('-Suite', 'full', '-Configuration', 'release')) @('std|test -bc release ', 'apps|test -bc release ') 'The full pass'
@@ -67,7 +69,7 @@ exit /b 0
     $null = Invoke-Launcher @('-Suite', 'parity', '-Sweep') 1
 
     $env:SWAG_COVERAGE_FAILURE = 'std'
-    $calls = Invoke-Launcher @('-Suite', 'fast') 1
+    $calls = Invoke-Launcher @('-Suite', 'functional') 1
     if (!($calls | Where-Object { $_.StartsWith('apps|') })) { throw 'A failure prevented the remaining workspace from running.' }
     Write-Output 'Coverage runner: suite selection, parity discovery and failure propagation passed.'
 } finally {

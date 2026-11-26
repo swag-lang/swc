@@ -27,16 +27,17 @@ python3 tools/tool.py unittests dm sema
 python3 tools/tool.py std test core
 python3 tools/tool.py apps test swagcapture
 python3 tools/tool.py examples test gui1
-python3 tools/tool.py tests dm
+python3 tools/tool.py tests functional -bc release
 ```
 
 The default compiler is the checkout's `bin/swc[.exe]` or `bin/swc.dm[.exe]` with `dm`.
 `SWC_COMPILER` and `SWC_DEVMODE_COMPILER` can select an external installation with its runtime.
 These direct commands use normal workspace outputs and caches. Tests detect the available processor
 count; explicit compiler options retain precedence. An existing `SWAG_RUNTIME_THREADS` is preserved.
-The complete `tests` campaign includes C++ tests with `dm`, then every compiler input suite,
-workspace fixtures, standard modules, examples, applications and reference tests. It stops on
-failure and preserves the failing exit status. Dynamic-library fixtures use the host extension;
+The default `tests` pass is `functional`. It includes C++ tests with `dm`, compiler input suites,
+workspace fixtures and the ordinary tests of the standard modules, examples, applications and
+reference. It stops on failure by default and preserves the failing exit status. Dynamic-library
+fixtures use the host extension.
 WinFsp packaging runs only on Windows. Python routing tests cover both host command plans;
 the PowerShell probes under `tools/tests` exercise the Windows entry points themselves.
 
@@ -395,37 +396,49 @@ runtime before they honor the variable.
 
 ## Compiler suites and campaigns
 
-### Frequent application and rendering coverage
-
-`coverage.bat` separates frequent functional feedback from deliberate stress cases, complete CPU
-image references and driver parity checks. It runs existing tests and retains their assertions; no
-image tolerance or golden is changed by choosing a suite.
+### Repository test passes
 
 ```text
-tools\coverage.bat -Configuration release
-tools\coverage.bat -Configuration release -Workspace apps -Module swagscope
-tools\coverage.bat -Configuration release -Suite stress
-tools\coverage.bat -Configuration release -Suite goldens
-tools\coverage.bat -Configuration release -Suite parity
-tools\coverage.bat -Configuration release -Suite full
+tools\tests.bat functional -bc release
+tools\tests.bat goldens
+tools\tests.bat smoke -bc release
+tools\tests.bat integrations -bc release
+tools\tests.bat stress -bc release
 ```
 
-| Suite | Backend and coverage | Environment / frequency |
-| --- | --- | --- |
-| `fast` (default) | Ordinary standard-module and application tests, excluding `golden` and `stress` | Workstation or CI, frequent iteration |
-| `stress` | Tests tagged `stress`, including large inputs and scale boundaries | Scheduled or focused performance and scale checks |
-| `goldens` | Every `golden` test, using exact CPU references recorded in Release | Rendering changes and scheduled Release runs |
-| `parity` | Tests tagged `integration.renderer.opengl`: one scene drawn by the CPU and the GPU renderer, compared with a contrast-following tolerance | GPU machine, renderer changes and scheduled runs |
-| `full` | Ordinary, stress and (in Release) golden tests, with CPU rendering for headless fixtures | Complete functional and visual pass before integration |
+| Pass | Coverage |
+| --- | --- |
+| `functional` (default) | Compiler suites and ordinary workspace tests. Workspace selection excludes `golden`, `stress` and opt-in integrations. |
+| `goldens` | Every `golden` case, with exact CPU references in Release. |
+| `smoke` | Bounded startup of the examples and applications, plus the example scripts on Windows. |
+| `integrations` | OpenGL, native host tests, application journeys and desktop input. |
+| `stress` | Cases tagged `stress`, including large inputs and scale boundaries. |
 
-`-Workspace std|apps -Module <name>` and `-TestFile <substring>` focus the functional suites.
-`-Configuration devmode|release` selects the program preset for coverage. Goldens run only in Release;
-when `full` is explicitly run in DevMode, golden-tagged tests are excluded. If no configuration is
-specified, `goldens` and `full` select Release while other suites select DevMode. An explicit
-DevMode configuration for the `goldens` suite is rejected.
-Each workspace reports elapsed wall time including compilation. Integration
-tests for native windows, application journeys, networks and drivers
-keep their explicit launchers; `full` is not the compiler or privileged integration campaign.
+On Linux, use `python3 tools/tool.py tests` with the same pass and options. `--keep-going` continues
+independent stages after a failure. The tagged passes `goldens`, `integrations` and `stress` always
+continue with the other modules. Use `--test-file <substring>` to focus these passes.
+
+`tools\tests.bat integrations --list` lists integration tags and their source modules for the host.
+The default groups need a compatible graphical session. Use `--test-tag integration.<name>` to
+select explicit groups in place of the defaults. The compiler applies the case guards at build time.
+Specialized integrations may also need fixtures, compile-time `--tag` options, privileges or hardware.
+Use their documented launchers for GPU reset, capture fixtures and privileged Vault scenarios.
+
+### Focused application and rendering coverage
+
+`coverage.bat` selects `functional` by default. Use `-Workspace std|apps -Module <name>` and
+`-TestFile <substring>` to focus `functional`, `goldens`, `stress` or `parity`.
+
+```text
+tools\coverage.bat -Configuration release -Suite functional -Workspace apps -Module swagscope
+tools\coverage.bat -Configuration release -Suite goldens -Workspace std -Module gui
+tools\coverage.bat -Configuration release -Suite stress
+tools\coverage.bat -Configuration release -Suite parity
+```
+
+`-Configuration devmode|release` selects the program preset for coverage. Goldens use Release.
+The compatibility alias `fast` selects `functional`. The legacy `full` suite still combines
+functional and stress tests, plus goldens in Release, for `std` and `apps`.
 
 `HeadlessHost` always uses `RenderCpu`. This also applies to direct compiler invocations.
 Native application scenarios and dedicated OpenGL integrations create their own graphics
@@ -517,8 +530,8 @@ tools/std.bat dm test gui --test-file devicereset.win32.swg --test-tag integrati
 | --- | --- |
 | `unittests.bat [dm] [suite] [options...]` | C++, lexer, parser, semantic, JIT, safety, sanity, native, and workspace input suites |
 | `build.bat [dm] [options...]` | Build the standard library, examples, applications, and reference |
-| `tests.bat [dm] [options...]` | Run compiler input suites and workspace tests |
-| `integrations.bat [dm] [opengl\|windows\|smoke] [options...]` | Run selected tagged integrations or smoke programs |
+| `tests.bat [dm] [functional\|goldens\|smoke\|integrations\|stress] [options...]` | Run a repository test pass |
+| `integrations.bat [dm] [all\|opengl\|windows\|smoke] [options...]` | Run the integration pass or use the focused OpenGL, Windows host and smoke commands |
 | `portability.bat` | Check that no Swag script launcher remains under `tools/` |
 | `vault.bat [dm]` | Build, launch, and restore the Swag Vault integration |
 

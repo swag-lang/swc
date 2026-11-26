@@ -86,31 +86,31 @@ Apply these reductions:
 
 ### Use The Development Coverage Modes
 
-For routine `bin/std` and `bin/apps` feedback, use the `fast` campaign. It selects headless
+For routine `bin/std` and `bin/apps` feedback, use the `functional` pass. It selects headless
 functional tests and excludes tests tagged `golden` or `stress`. Narrow a wider feedback run to
 the owning workspace and module:
 
 ```text
-tools\coverage.bat -Configuration release -Suite fast -Workspace std -Module gui
-tools\coverage.bat -Configuration release -Suite fast -Workspace apps -Module swagscope
+tools\coverage.bat -Configuration release -Suite functional -Workspace std -Module gui
+tools\coverage.bat -Configuration release -Suite functional -Workspace apps -Module swagscope
 ```
 
-During a change, prefer the exact test file first; run the module's `fast` selection when several
+During a change, prefer the exact test file first. Run the module's `functional` selection when several
 test families or shared state changed. These modes do not replace the compiler suites under
 `tools/unittests.bat` when compiler behavior changed.
 
 Tag a test `stress` when its contract depends on deliberately large synthetic inputs, scale limits,
 large corpora, dimensions, memory bounds or sustained streaming work. Keep its smallest useful
-functional counterpart in `fast` when one can prove the ordinary behavior. Run the changed stress
+functional counterpart in `functional` when one can prove the ordinary behavior. Run the changed stress
 boundary with `tools/coverage.bat -Configuration release -Suite stress`, narrowed to its workspace,
 module and file. Run the broader stress selection on a scheduled or cross-cutting pass. Do not tag
 a test as stress solely because it is new or somewhat slower.
 
 `HeadlessHost` always uses the CPU renderer in coverage suites and direct compiler tests.
 Use `goldens` when changes can reach snapshots beyond a confidently bounded set.
-`full` selects ordinary, golden and stress tests in one pass per workspace. Run native application
-and OpenGL integrations explicitly. The `parity` suite selects tests tagged
-`integration.renderer.opengl` that exercise the renderers directly.
+Use `tools/tests.bat` with `functional`, `goldens`, `smoke`, `integrations` or `stress` for a
+repository-wide campaign. Select each pass for the behavior it covers. The `parity` coverage suite
+selects tests tagged `integration.renderer.opengl` that exercise the renderers directly.
 
 ### Generated-code optimizations
 

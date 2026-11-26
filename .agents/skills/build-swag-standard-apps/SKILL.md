@@ -498,7 +498,7 @@ different contracts; none replaces the other two. Keep maintained snapshots in
    several test families changed:
 
    ```text
-   tools\coverage.bat -Suite fast -Workspace apps -Module <application>
+   tools\coverage.bat -Suite functional -Workspace apps -Module <application>
    ```
 
    Run related scale cases separately with `-Suite stress` when their boundary changed.

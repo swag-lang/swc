@@ -319,7 +319,7 @@ check, read and follow
 [validate-swag-changes](../validate-swag-changes/SKILL.md). It owns the validation matrix and the
 stopping rule.
 
-`tools/tests.bat` runs the compiler input suites and the standard workspace tests. It no longer
+`tools/tests.bat functional` runs the compiler input suites and ordinary workspace tests. It no longer
 runs the backlog, third-party-notice, native-import, or bespoke workspace cache/layout audits.
 Use the focused suites and their `--file-filter` or `--test-file` controls for change validation.
 

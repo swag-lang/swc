@@ -22,7 +22,7 @@ if /i "%campaign%"=="opengl" goto opengl
 if /i "%campaign%"=="windows" goto windows
 if /i "%campaign%"=="smoke" goto smoke
 if /i "%campaign%"=="all" goto all
-echo error: use opengl, windows, or smoke
+echo error: choose all, opengl, windows, or smoke
 exit /b 1
 :opengl
 call "%~dp0std.bat" %dm% test pixel --test-tag integration.renderer.opengl %compilerArgs%
@@ -31,19 +31,12 @@ exit /b %errorlevel%
 call "%~dp0std.bat" %dm% test gui --test-tag integration.host.windows %compilerArgs%
 exit /b %errorlevel%
 :smoke
-call "%~dp0scripts.bat" %dm% smoke %compilerArgs%
-if errorlevel 1 exit /b 1
-call "%~dp0examples.bat" %dm% smoke %compilerArgs%
-if errorlevel 1 exit /b 1
-call "%~dp0apps.bat" %dm% smoke %compilerArgs%
+call "%~dp0tests.bat" %dm% smoke %compilerArgs%
 exit /b %errorlevel%
 :all
-call "%~dp0integrations.bat" %dm% opengl %compilerArgs%
-if errorlevel 1 exit /b 1
-call "%~dp0integrations.bat" %dm% windows %compilerArgs%
-if errorlevel 1 exit /b 1
-call "%~dp0integrations.bat" %dm% smoke %compilerArgs%
+call "%~dp0tests.bat" %dm% integrations %compilerArgs%
 exit /b %errorlevel%
 :usage
-echo Usage: integrations.bat [dm] [opengl^|windows^|smoke] [swc options]
+echo Usage: integrations.bat [dm] [all^|opengl^|windows^|smoke] [swc options]
+echo Use tests.bat integrations --list to list integration tags and modules.
 exit /b 0

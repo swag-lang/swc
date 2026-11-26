@@ -1,11 +1,11 @@
 <#
 .SYNOPSIS
-Run fast functional, stress, golden, full, or renderer parity coverage for standard modules and applications.
+Run functional, stress, golden, or renderer parity coverage for standard modules and applications.
 .DESCRIPTION
-Headless tests use the CPU renderer. Fast excludes golden and stress tests. Stress selects scale-boundary
-tests. Full runs ordinary and stress tests, plus Release-only goldens. A DevMode full pass excludes
-golden-tagged tests. The -DevMode switch selects the DevMode compiler executable; -Configuration selects
-the program configuration independently.
+Functional coverage excludes goldens and stress tests. Stress selects scale-boundary tests.
+The fast alias selects functional coverage. The legacy full suite selects functional and stress tests,
+plus goldens in Release. The -DevMode switch selects the DevMode compiler executable. -Configuration
+selects the program configuration independently.
 
 Goldens uses CPU pixels for its references. Parity checks a GPU against the CPU: its tests draw one scene
 with both renderers and compare them with a tolerance that follows local contrast. Both campaigns
@@ -24,8 +24,8 @@ tools\coverage.bat -DevMode -Suite parity
 #>
 [CmdletBinding()]
 param(
-    [ValidateSet('fast', 'full', 'stress', 'goldens', 'parity')]
-    [string] $Suite = 'fast',
+    [ValidateSet('functional', 'goldens', 'stress', 'parity', 'fast', 'full')]
+    [string] $Suite = 'functional',
     [ValidateSet('all', 'std', 'apps')]
     [string] $Workspace = 'all',
     [string] $Module,
@@ -39,6 +39,7 @@ param(
 
 $ErrorActionPreference = 'Stop'
 $ParityTag = 'integration.renderer.opengl'
+if ($Suite -eq 'fast') { $Suite = 'functional' }
 if ($Suite -in @('goldens', 'full') -and !$PSBoundParameters.ContainsKey('Configuration')) {
     $Configuration = 'release'
 }
@@ -94,7 +95,7 @@ if ($Suite -eq 'parity') {
 } else {
     $options = @()
     if ($Module) { $options += $Module }
-    if ($Suite -eq 'fast') { $options += @('--test-tag', '!golden', '--test-tag', '!stress') }
+    if ($Suite -eq 'functional') { $options += @('--test-tag', '!golden', '--test-tag', '!stress') }
     if ($Suite -eq 'stress') { $options += @('--test-tag', 'stress') }
     if ($Suite -eq 'full' -and $Configuration -eq 'devmode') { $options += @('--test-tag', '!golden') }
     foreach ($file in $TestFile) { $options += @('--test-file', $file) }

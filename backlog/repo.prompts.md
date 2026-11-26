@@ -179,11 +179,11 @@ Shared build and test pass
       scripts and expected diagnostics are covered at the test or smoke boundary that
       knows how to validate them.
 
-   B. Run the compiler suites, examples and reference, then the full module coverage.
+   B. Run the functional, golden and stress passes separately.
       Run lexer, parser, sema, jit, safety, sanity, native and workspace fixtures with the
       Release compiler. The launcher schedules C++ unit tests only with the DevMode
       compiler. Use those tests as a focused check for a suspected compiler defect.
-      Run ordinary, stress and golden tests together. Headless fixtures always render on CPU.
+      Headless fixtures always render on CPU.
       Clear any golden-continue override. Finish independent groups after a failure, then narrow
       the failing or unvisited scope.
 
@@ -191,21 +191,18 @@ Shared build and test pass
 
      A. MSBuild.exe swc.sln /t:Build /m /p:Configuration=Release /p:Platform=x64
         tools\build.bat -bc release
-     B. tools\unittests.bat -bc release --keep-going
-        tools\examples.bat test -bc release
-        tools\reference.bat test -bc release
-        tools\coverage.bat -Suite full -Configuration release
+     B. tools\tests.bat functional -bc release --keep-going
+        tools\tests.bat goldens
+        tools\tests.bat stress -bc release
 
    In WSL 2
 
      A. tools\linux.bat --release build
         tools\linux.bat exec python3 tools/tool.py <workspace> build -bc release
         Run the workspace command in order for std, examples, apps and reference.
-     B. tools\linux.bat exec python3 tools/tool.py unittests -bc release --keep-going
-        tools\linux.bat exec python3 tools/tool.py examples test -bc release
-        tools\linux.bat exec python3 tools/tool.py reference test -bc release
-        For std, then apps, run the full workspace once:
-          tools\linux.bat exec python3 tools/tool.py <workspace> test -bc release
+     B. tools\linux.bat exec python3 tools/tool.py tests functional -bc release --keep-going
+        tools\linux.bat exec python3 tools/tool.py tests goldens
+        tools\linux.bat exec python3 tools/tool.py tests stress -bc release
 
    The WSL wrapper sets the compiler and runtime paths. The shared tool uses the Linux
    checkout's normal incremental outputs for both builds and tests. On a native Linux
@@ -253,24 +250,21 @@ Failure diagnosis and reruns
 Host integrations
 
    Run these once per host, after its Release pass. Use a compatible graphical session for
-   native application and OpenGL integration tests.
+   smoke, native application and OpenGL tests.
 
    On Windows, run these in order.
 
-     tools\std.bat test -bc release --test-tag integration.renderer.opengl
-     tools\std.bat test -bc release --test-tag integration.host.windows
-     tools\integrations.bat smoke -bc release
+     tools\tests.bat smoke -bc release --keep-going
+     tools\tests.bat integrations -bc release
 
    On Linux, run these in order.
 
-     tools\linux.bat exec python3 tools/tool.py std test -bc release --test-tag integration.renderer.opengl
-     tools\linux.bat exec python3 tools/tool.py std test -bc release --test-tag integration.host.linux
-     tools\linux.bat exec python3 tools/tool.py examples smoke -bc release
-     tools\linux.bat exec python3 tools/tool.py apps smoke -bc release
+     tools\linux.bat exec python3 tools/tool.py tests smoke -bc release --keep-going
+     tools\linux.bat exec python3 tools/tool.py tests integrations -bc release
 
-   The tag selections start at the standard workspace level. The smoke commands check
-   bounded startup for examples and apps, plus scripts on Windows. If a smoke command
-   stops early, resume unvisited groups, then select individual targets as needed.
+   The integration pass selects OpenGL, native host tests, application journeys and desktop input.
+   The smoke pass checks bounded startup for examples and apps, plus scripts on Windows.
+   Select individual targets to diagnose failures.
    Record missing prerequisites as blockers. Add a specialized integration when a
    discovered failure or changed contract needs it.
 

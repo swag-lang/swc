@@ -1,7 +1,10 @@
 """Shared Windows/Linux commands behind the repository's workspace and test launchers.
 
 Usage: tool.py <tests|unittests|std|apps|examples|reference|goldens> [dm] [action|suite] [module] [swc options]
-Use `tool.py goldens accept` to promote reviewed pending snapshots without a compiler.
+Use `tool.py tests [dm] [functional|goldens|smoke|integrations|stress] [swc options]` to run a pass.
+The default pass is functional. Use `tests integrations --list` to list integration tags and their modules.
+Use `tests integrations --test-tag <tag>` to select a specific integration. Repeat the option to select more tags.
+Use `tool.py goldens accept` to promote reviewed pending snapshots.
 Set SWC_COMPILER or SWC_DEVMODE_COMPILER to select an externally built compiler.
 Use --keep-going to continue independent test stages after a failure.
 """
@@ -9,6 +12,7 @@ Use --keep-going to continue independent test stages after a failure.
 from dataclasses import dataclass, field
 import os
 from pathlib import Path
+import re
 import shutil
 import subprocess
 import sys
@@ -17,6 +21,9 @@ import sys
 SOURCE_SUITES = ('lexer', 'parser', 'sema', 'jit', 'safety', 'sanity', 'native')
 WORKSPACES = ('std', 'examples', 'apps', 'reference')
 COMPILER_SUITES = ('cpp', *SOURCE_SUITES, 'workspace')
+TEST_PASSES = ('functional', 'goldens', 'smoke', 'integrations', 'stress')
+TEST_TAG = re.compile(r'^\s*#\[\s*Swag\.TestTag\(\s*"([^"]+)"\s*\)\s*\]', re.MULTILINE)
+FILE_GUARD = re.compile(r'^#global if ([^\r\n]+)', re.MULTILINE)
 
 
 @dataclass
@@ -26,16 +33,21 @@ class Stage:
     requires: list[str] = field(default_factory=list)
 
 
-def option_value(options, names, default):
-    value = default
+def option_values(options, names):
     for index, option in enumerate(options):
         if option in names:
             if index + 1 == len(options):
                 raise ValueError(f'option {option!r} needs a value')
-            value = options[index + 1]
+            yield options[index + 1]
         for name in names:
             if option.startswith(name + '='):
-                value = option[len(name) + 1:]
+                yield option[len(name) + 1:]
+
+
+def option_value(options, names, default):
+    value = default
+    for option in option_values(options, names):
+        value = option
     return value
 
 
@@ -181,6 +193,101 @@ def compiler_stages(compiler, bin_root, suite, options, *, devmode=False, window
     return stages
 
 
+def tagged_modules(bin_root, *, windows, files=()):
+    foreign_suffix = '.linux.swg' if windows else '.win32.swg'
+    foreign_os = ('#os == Swag.TargetOs.Linux', 'LINUX') if windows else ('#os == Swag.TargetOs.Windows', 'WINDOWS')
+    files = tuple(part.replace('\\', '/').lower() if windows else part for part in files)
+    for workspace in WORKSPACES:
+        for cases in sorted((bin_root / workspace / 'modules').glob('*/src/tests/cases')):
+            tags = set()
+            for case in cases.rglob('*.swg'):
+                path = case.as_posix().lower() if windows else case.as_posix()
+                if case.name.endswith(foreign_suffix) or (files and not any(part in path for part in files)):
+                    continue
+                source = case.read_text(encoding='utf-8-sig')
+                # Recognize simple file-wide host requirements. The compiler evaluates other guards.
+                if any(' or ' not in guard and any(os_test in guard.split(' and ') for os_test in foreign_os)
+                       for guard in FILE_GUARD.findall(source)):
+                    continue
+                tags.update(TEST_TAG.findall(source))
+            if tags:
+                yield workspace, cases.parents[2].name, tags
+
+
+def default_integration_tags(windows):
+    host = 'windows' if windows else 'linux'
+    return ('integration.renderer.opengl', f'integration.host.{host}',
+            'integration.application.journey', 'integration.desktop.input')
+
+
+def list_integrations(bin_root, *, windows):
+    modules_by_tag = {}
+    for workspace, module, tags in tagged_modules(bin_root, windows=windows):
+        for tag in tags:
+            if tag.startswith('integration.'):
+                modules_by_tag.setdefault(tag, []).append(f'{workspace}/{module}')
+    defaults = default_integration_tags(windows)
+    for tag, modules in sorted(modules_by_tag.items()):
+        mode = 'default' if tag in defaults else 'explicit'
+        print(f'{tag} [{mode}]: {", ".join(modules)}')
+
+
+def test_pass_stages(compiler, bin_root, test_pass, options, *, devmode, windows):
+    selected_tags = tuple(dict.fromkeys(option_values(options, ('--test-tag',))))
+    if selected_tags and test_pass != 'integrations':
+        raise ValueError(f'the {test_pass!r} pass selects its own test tags')
+
+    if test_pass == 'functional':
+        stages = compiler_stages(compiler, bin_root, None, options, devmode=devmode, windows=windows)
+        tagged_workspaces = {workspace for workspace, _, tags in tagged_modules(bin_root, windows=windows)
+                             if tags.intersection(('golden', 'stress'))}
+        functional_options = [*options, '--test-tag', '!golden', '--test-tag', '!stress']
+        # An explicit filter that selects zero tests fails. Some workspaces only compile examples.
+        return stages + [module_stage(compiler, bin_root, workspace, 'test', None,
+                                      functional_options if workspace in tagged_workspaces else options)
+                         for workspace in WORKSPACES]
+
+    if test_pass == 'smoke':
+        stages = []
+        if windows:
+            for script in sorted((bin_root / 'examples/scripts').glob('*.swgs')):
+                command = [str(compiler), 'smoke', '-f', str(script), '--num-cores', '0', *options]
+                stages.append(Stage(f'smoke-{script.stem}', command))
+        return stages + [module_stage(compiler, bin_root, workspace, 'smoke', None, options)
+                         for workspace in ('examples', 'apps')]
+
+    if test_pass == 'goldens':
+        config = option_value(options, ('-bc', '--build-cfg'), None)
+        if config not in (None, 'release'):
+            raise ValueError('the goldens pass needs -bc release')
+        if config is None:
+            options = [*options, '-bc', 'release']
+
+    if test_pass == 'integrations':
+        if any(not tag.startswith('integration.') for tag in selected_tags):
+            raise ValueError("the integrations pass accepts test tags starting with 'integration.'")
+        tags = selected_tags or default_integration_tags(windows)
+        options = without_options(options, ('--test-tag',))
+    else:
+        tags = ('golden',) if test_pass == 'goldens' else ('stress',)
+
+    files = tuple(option_values(options, ('--test-file',)))
+    stages = []
+    found = set()
+    for workspace, module, available in tagged_modules(bin_root, windows=windows, files=files):
+        module_tags = [tag for tag in tags if tag in available]
+        if module_tags:
+            found.update(module_tags)
+            filters = [arg for tag in module_tags for arg in ('--test-tag', tag)]
+            stages.append(module_stage(compiler, bin_root, workspace, 'test', module, [*options, *filters]))
+    for tag in selected_tags:
+        if tag not in found:
+            raise ValueError(f'no integration tests declare {tag!r} in the selected files on this host')
+    if files and not stages:
+        raise ValueError(f'no tests in the {test_pass!r} pass match the selected files')
+    return stages
+
+
 def portability_check(root):
     scripts = sorted((root / 'tools').rglob('*.swgs'))
     if scripts:
@@ -259,24 +366,40 @@ def main(arguments=None):
     arguments = [argument for argument in arguments if argument != '--keep-going']
     root = Path(__file__).resolve().parent.parent
     bin_root = root / 'bin'
-    if tool == 'goldens':
-        if arguments != ['accept']:
-            raise ValueError('use goldens accept to promote reviewed snapshots')
+    if tool == 'goldens' and len(arguments) == 1 and arguments[0].lower() == 'accept':
         return accept_goldens(bin_root)
     windows = sys.platform == 'win32'
+    test_pass = None
+    if tool == 'tests':
+        test_pass = arguments.pop(0).lower() if arguments and not arguments[0].startswith('-') else 'functional'
+        if test_pass not in TEST_PASSES:
+            raise ValueError(f'unknown test pass {test_pass!r} (choose {", ".join(TEST_PASSES)})')
+    elif tool == 'goldens':
+        if arguments and not arguments[0].startswith('-'):
+            if arguments.pop(0).lower() != 'test':
+                raise ValueError('choose goldens test or goldens accept')
+        test_pass = 'goldens'
+    if test_pass and arguments and arguments[0] in ('-h', '--help'):
+        print(__doc__)
+        return 0
+    if test_pass == 'integrations' and arguments == ['--list']:
+        list_integrations(bin_root, windows=windows)
+        return 0
     default = bin_root / (('swc.dm' if devmode else 'swc') + ('.exe' if windows else ''))
     compiler = Path(os.environ.get('SWC_DEVMODE_COMPILER' if devmode else 'SWC_COMPILER', str(default))).absolute()
     if not compiler.is_file():
         raise ValueError(f'compiler not found: {compiler}')
     environment = os.environ.copy()
     action, module = 'test', None
-    if tool in ('tests', 'unittests'):
-        suite = arguments.pop(0) if tool == 'unittests' and arguments and not arguments[0].startswith('-') else None
-        if tool == 'tests':
+    if test_pass:
+        if test_pass == 'functional':
             portability_check(root)
+        stages = test_pass_stages(compiler, bin_root, test_pass, arguments, devmode=devmode, windows=windows)
+        action = 'smoke' if test_pass == 'smoke' else 'test'
+        keep_going = keep_going or test_pass in ('goldens', 'integrations', 'stress')
+    elif tool == 'unittests':
+        suite = arguments.pop(0) if arguments and not arguments[0].startswith('-') else None
         stages = compiler_stages(compiler, bin_root, suite, arguments, devmode=devmode, windows=windows)
-        if tool == 'tests':
-            stages += [module_stage(compiler, bin_root, workspace, 'test', None, arguments) for workspace in WORKSPACES]
     else:
         action = 'test' if tool == 'reference' else 'build'
         if arguments and arguments[0] in ('build', 'test', 'run', 'smoke'):
@@ -293,7 +416,7 @@ def main(arguments=None):
     result = execute(stages, environment, keep_going=keep_going)
     if result == 0 and windows and tool == 'apps' and action == 'build':
         package_vault(bin_root, module, arguments)
-    return result
+    return int(bool(result)) if tool == 'goldens' else result
 
 
 if __name__ == '__main__':

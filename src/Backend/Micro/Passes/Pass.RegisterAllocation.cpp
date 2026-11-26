@@ -2238,7 +2238,8 @@ void MicroRegisterAllocationPass::analyzeLiveness()
                 const uint32_t regIndex = denseVirtualRegs_.ensure(reg, &inserted);
                 if (inserted)
                 {
-                    usePositionsByDenseVirtual_.resize(regIndex + 1);
+                    if (regIndex >= usePositionsByDenseVirtual_.size())
+                        usePositionsByDenseVirtual_.resize(regIndex + 1);
                     definitionCounts_.resize(regIndex + 1, 0);
                     states_.resize(regIndex + 1);
                 }
@@ -2249,7 +2250,7 @@ void MicroRegisterAllocationPass::analyzeLiveness()
             {
                 bool           inserted = false;
                 const uint32_t regIndex = denseConcreteRegs_.ensure(reg, &inserted);
-                if (inserted)
+                if (inserted && regIndex >= concreteTouchPositionsByDenseIndex_.size())
                     concreteTouchPositionsByDenseIndex_.resize(regIndex + 1);
                 if (appendUniqueDenseIndex(usesC, regIndex))
                     appendUniquePosition(concreteTouchPositionsByDenseIndex_[regIndex], idx);
@@ -2264,7 +2265,8 @@ void MicroRegisterAllocationPass::analyzeLiveness()
                 const uint32_t regIndex = denseVirtualRegs_.ensure(reg, &inserted);
                 if (inserted)
                 {
-                    usePositionsByDenseVirtual_.resize(regIndex + 1);
+                    if (regIndex >= usePositionsByDenseVirtual_.size())
+                        usePositionsByDenseVirtual_.resize(regIndex + 1);
                     definitionCounts_.resize(regIndex + 1, 0);
                     states_.resize(regIndex + 1);
                 }
@@ -2275,7 +2277,7 @@ void MicroRegisterAllocationPass::analyzeLiveness()
             {
                 bool           inserted = false;
                 const uint32_t regIndex = denseConcreteRegs_.ensure(reg, &inserted);
-                if (inserted)
+                if (inserted && regIndex >= concreteTouchPositionsByDenseIndex_.size())
                     concreteTouchPositionsByDenseIndex_.resize(regIndex + 1);
                 if (appendUniqueDenseIndex(defsC, regIndex))
                     appendUniquePosition(concreteTouchPositionsByDenseIndex_[regIndex], idx);
@@ -2307,10 +2309,10 @@ void MicroRegisterAllocationPass::analyzeLiveness()
     const auto&    virtualRegs       = denseVirtualRegs_.regs();
     const auto&    concreteRegs      = denseConcreteRegs_.regs();
 
-    // Each new dense index already grows its side table in insertion order.
-    // Only the empty concrete case needs to discard a prior function's lists.
-    if (concreteRegs.empty())
-        concreteTouchPositionsByDenseIndex_.clear();
+    // Keep prior capacity for positions that the current function reused.
+    // Discard unused lists only after all dense indices are known.
+    usePositionsByDenseVirtual_.resize(virtualRegs.size());
+    concreteTouchPositionsByDenseIndex_.resize(concreteRegs.size());
 
     nextUsePositionCursor_.assign(virtualRegs.size(), 0);
     nextConcreteTouchCursor_.assign(concreteRegs.size(), 0);

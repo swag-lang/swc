@@ -781,22 +781,17 @@ func losslessDecodePixels(reader: *LosslessBitReader, result: *Array'u8, width, 
         default:
             while cachedOffset < offset
             {
-                let argb = (cast(u32, output[cachedOffset + 0]) << 16) |
-                           (cast(u32, output[cachedOffset + 1]) << 8) |
-                           output[cachedOffset + 2] |
-                           (cast(u32, output[cachedOffset + 3]) << 24)
-                colorCache[(argb * #wrap LOSSLESS_COLOR_CACHE_MULTIPLIER) >> colorCacheShift] = argb
+                let rgba = cast(const [*] u32, output + cachedOffset)[0]
+                // The WebP hash uses ARGB, while the decoded pixels are stored as RGBA.
+                let argb = (rgba & 0xFF00FF00'u32) | ((rgba & 0xFF) << 16) | ((rgba >> 16) & 0xFF)
+                colorCache[(argb * #wrap LOSSLESS_COLOR_CACHE_MULTIPLIER) >> colorCacheShift] = rgba
                 cachedOffset += 4
             }
 
             green -= LOSSLESS_LITERAL_CODES + LOSSLESS_LENGTH_CODES
             if green >= colorCache.count do
                 fail InvalidFormatError{"WebP lossless color-cache index is out of range"}
-            let argb = colorCache[green]
-            output[offset + 0] = cast #wrap (u8, (argb >> 16))
-            output[offset + 1] = cast #wrap (u8, (argb >> 8))
-            output[offset + 2] = cast #wrap (u8, argb)
-            output[offset + 3] = cast(u8, (argb >> 24))
+            cast([*] u32, output + offset)[0] = colorCache[green]
             offset += 4
 
             x += 1

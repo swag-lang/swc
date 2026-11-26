@@ -100,7 +100,7 @@ func assertFlacWriterSamples(path: string, expected: const [..] s16, channels, s
 
         let file = expect File.readAllBytes(path)
         let kind = file[66]
-        Swag.require(kind == (pattern == 0 ? 0'u8 : (pattern == 1 ? 0x12'u8 : 0x02'u8)))
+        Swag.require(kind == (pattern == 0 ? 0'u8 : (pattern == 1 ? 0x14'u8 : 0x02'u8)))
         if pattern < 2 do
             Swag.require(file.count < samples.count * 2 / 4)
     }

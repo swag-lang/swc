@@ -1,5 +1,5 @@
 //! Format: Native FLAC PCM16 streaming writer.
-//! Supported: One to eight channels, independent variable-block frames, constant, verbatim, and first-order fixed subframes.
+//! Supported: One to eight channels, independent variable-block frames, constant, verbatim, and first- or second-order fixed subframes.
 //! Role: This file writes bounded PCM blocks and keeps every flushed file prefix playable.
 //
 #global namespace Flac
@@ -16,7 +16,7 @@ private const WriterPrologueBytes = 58'u64
 // The writer buffers at most 4096 sample frames and one encoded frame. A flush completes a
 // partial frame, updates STREAMINFO (including its PCM MD5), and makes the prefix playable.
 // Input samples are interleaved and owned by the caller. Each channel chooses constant,
-// first-order fixed/Rice, or verbatim coding for each block.
+// first- or second-order fixed/Rice, or verbatim coding for each block.
 #[Swag.NoCopy]
 struct Writer
 {
@@ -453,60 +453,27 @@ private impl Writer
             return
         }
 
-        var residuals: [WriterBlockFrames - 1] u32
-        var foldedSum     = 0'u32
-        var previous      = first
-        let residualCount = count - 1
-        for index in changed - 1 until residualCount
-        {
-            let current = cast(s32, samples[cast(u64, (index + 1)) * stride])
-            let delta   = current - previous
-            let folded  = (cast #bit(u32, delta) << 1) ^ cast #bit(u32, delta >> 31)
-            residuals[index] = folded
-            foldedSum        += folded
-            previous         = current
-        }
+        var residual1: [WriterBlockFrames - 1] u32
+        var residual2: [WriterBlockFrames - 2] u32
+        let sums = fillFixedPairs(.pending.storage(), channel, stride, count, cast([*] u32, &residual1[0]), cast([*] u32, &residual2[0]))
 
         let verbatimBits = cast(u64, count) * 16 + 8
-        var bestBits     = verbatimBits
-        var bestRice     = 15'u32
-
-        // The cost difference for increasing k is N minus the sum of ceil((folded >> k) / 2).
-        // It increases with k. If 2^b <= the mean < 2^(b+1), it is negative below b-1 and
-        // positive from b+1. Testing b-1 through b+1 preserves the exact minimum and tie order.
-        let mean  = foldedSum / residualCount
-        let b     = mean ? 31 - cast(u32, Swag.leadingZeros(mean)) : 0
-        let start = b ? Math.min(b - 1, 14'u32) : 0
-        let stop  = Math.min(b + 2, 15'u32)
-        for rice in start until stop
+        var order        = 1'u32
+        var chosen       = Swag.makeSlice(&residual1[0], count - 1)
+        var selected     = selectRice(chosen, sums[0], order, verbatimBits)
+        if count > 2
         {
-            // Rounding each of N quotients separately can lose at most N - 1 bits.
-            let lowerBound = 35'u64 + cast(u64, residualCount) * rice + (foldedSum >> rice)
-            if lowerBound >= bestBits do
-                continue
-            const Zero = cast(Math.Simd.U32x4, [0'u32, 0, 0, 0])
-            var sums   = Zero
-            let limit  = residualCount & ~3'u32
-            let values = cast(const [*] u32, &residuals[0])
-            var index  = 0'u32
-            while index < limit
+            let candidate = Swag.makeSlice(&residual2[0], count - 2)
+            let size      = selectRice(candidate, sums[1], 2, selected.bits)
+            if size.rice < 15
             {
-                sums  += Math.Simd.load(values + index) >> rice
-                index += 4
-            }
-
-            var quotients = Math.Simd.sum(sums)
-            for tail in index until residualCount do
-                quotients += residuals[tail] >> rice
-            let bits = 34'u64 + cast(u64, residualCount) * (1 + rice) + quotients
-            if bits < bestBits
-            {
-                bestBits = bits
-                bestRice = rice
+                order    = 2
+                chosen   = candidate
+                selected = size
             }
         }
 
-        if bestRice == 15
+        if selected.rice == 15
         {
             .writeBits(0x02, 8)
             if not (.bufferedBits & 7)
@@ -528,42 +495,212 @@ private impl Writer
             return
         }
 
-        .writeBits(0x12, 8)     // First-order fixed predictor.
-        .writeBits(cast #bit(u16, cast(s16, first)), 16)
+        .writeBits(0x10 + 2 * order, 8)
+        for warmup in order do
+            .writeBits(cast #bit(u16, samples[cast(u64, warmup) * stride]), 16)
         .writeBits(0, 6)     // Rice method 0 and one partition.
-        .writeBits(bestRice, 4)
-        for index in residualCount
+        .writeBits(selected.rice, 4)
+        .writeRiceRun(chosen, selected.rice, selected.bits - (18'u64 + 16 * order))
+    }
+
+    // Fold both fixed predictors together. Mono and stereo use contiguous loads.
+    // Other layouts copy one channel into a bounded sample plane first.
+    func fillFixedPairs(input: const [*] s16, channel, stride: u64, count: u32, first, second: [*] u32)->[2] u32
+    {
+        var plane: [WriterBlockFrames] s16
+        var inputBase    = input
+        var inputStride  = stride
+        var inputChannel = channel
+        if stride > 2
         {
-            let folded = residuals[index]
-            .writeRice(folded, bestRice)
+            var cursor  = input + channel
+            let compact = cast([*] s16, &plane[0])
+            for frame in count
+            {
+                compact[frame] = cursor[0]
+                cursor         += stride
+            }
+
+            inputBase    = cast(const [*] s16, compact)
+            inputStride  = 1
+            inputChannel = 0
         }
+
+        let source = inputBase + inputChannel
+
+        // The second predictor starts after the same first difference as the first.
+        let initial = cast(s32, source[inputStride]) - cast(s32, source[0])
+        var sum1    = foldDelta(initial)
+        var sum2    = 0'u32
+        first[0] = sum1
+        var frame   = 2'u32
+        var last    = Math.Simd.splat(source[inputStride])
+        var delta   = Math.Simd.splat(initial)
+        var totals1 = Math.Simd.splat(0'u32)
+        var totals2 = Math.Simd.splat(0'u32)
+        while count - frame >= 8
+        {
+            let samples = inputBase + cast(u64, frame) * inputStride
+            var current = Math.Simd.load(samples)
+            if inputStride == 2
+            {
+                let lower  = cast #bit(Math.Simd.U16x8, current)
+                let upper  = cast #bit(Math.Simd.U16x8, Math.Simd.load(samples + 8))
+                let column = inputChannel ? Math.Simd.deinterleaveOdd(lower, upper) : Math.Simd.deinterleaveEven(lower, upper)
+                current = cast #bit(Math.Simd.S16x8, column)
+            }
+
+            let predecessor = Swag.vecAlign(last, current, 14)
+            let low1        = Math.Simd.widenLow(current) - Math.Simd.widenLow(predecessor)
+            let high1       = Math.Simd.widenHigh(current) - Math.Simd.widenHigh(predecessor)
+            let low2        = low1 - Swag.vecAlign(delta, low1, 12)
+            let high2       = high1 - Swag.vecAlign(low1, high1, 12)
+            let foldedLow1  = foldDeltaVector(low1)
+            let foldedHigh1 = foldDeltaVector(high1)
+            let foldedLow2  = foldDeltaVector(low2)
+            let foldedHigh2 = foldDeltaVector(high2)
+            Math.Simd.store(first + frame - 1, foldedLow1)
+            Math.Simd.store(first + frame + 3, foldedHigh1)
+            Math.Simd.store(second + frame - 2, foldedLow2)
+            Math.Simd.store(second + frame + 2, foldedHigh2)
+            totals1 += foldedLow1 + foldedHigh1
+            totals2 += foldedLow2 + foldedHigh2
+            last    = current
+            delta   = high1
+            frame   += 8
+        }
+
+        sum1 += Math.Simd.sum(totals1)
+        sum2 += Math.Simd.sum(totals2)
+
+        var previous      = cast(s32, source[cast(u64, (frame - 1)) * inputStride])
+        var previousDelta = previous - cast(s32, source[cast(u64, (frame - 2)) * inputStride])
+        for at in frame until count
+        {
+            let current = cast(s32, source[cast(u64, at) * inputStride])
+            let delta   = current - previous
+            let folded1 = foldDelta(delta)
+            let folded2 = foldDelta(delta - previousDelta)
+            first[at - 1]  = folded1
+            second[at - 2] = folded2
+            sum1           += folded1
+            sum2           += folded2
+            previous       = current
+            previousDelta  = delta
+        }
+
+        return [sum1, sum2]
     }
 
     #[Swag.Inline]
-    mtd writeRice(value, parameter: u32)
+    func foldDeltaVector(value: Math.Simd.S32x4)->Math.Simd.U32x4
+        => (cast #bit(Math.Simd.U32x4, value) << 1) ^ cast #bit(Math.Simd.U32x4, value >> 31)
+
+    // Scores the exact size of a single Rice partition, including fixed warmup.
+    func selectRice(residuals: const [..] u32, foldedSum, order: u32, limitBits: u64)->{bits: u64, rice: u32}
     {
-        var zeros  = value >> parameter
-        let width  = zeros + 1 + parameter
-        let marker = 1'u32 << parameter
-        let suffix = marker | (value & (marker - 1))
-        if width <= 32
+        let overhead      = 18'u64 + 16 * order
+        let residualCount = cast(u32, residuals.count)
+        var bestBits      = limitBits
+        var bestRice      = 15'u32
+
+        // The cost difference for increasing k is N minus the sum of ceil((folded >> k) / 2).
+        // It increases with k. If 2^b <= the mean < 2^(b+1), it is negative below b-1 and
+        // positive from b+1. Testing b-1 through b+1 preserves the exact minimum and tie order.
+        let mean  = foldedSum / residualCount
+        let b     = mean ? 31 - cast(u32, Swag.leadingZeros(mean)) : 0
+        let start = b ? Math.min(b - 1, 14'u32) : 0
+        let stop  = Math.min(b + 2, 15'u32)
+        for rice in start until stop
         {
-            .writeBits(suffix, width)
-            return
+            // Rounding each of N quotients separately can lose at most N - 1 bits.
+            let lowerBound = (overhead + 1) + cast(u64, residualCount) * rice + (foldedSum >> rice)
+            if lowerBound >= bestBits do
+                continue
+            const Zero = cast(Math.Simd.U32x4, [0'u32, 0, 0, 0])
+            var sums   = Zero
+            let limit  = residualCount & ~3'u32
+            let values = residuals.buffer
+            var index  = 0'u32
+            while index < limit
+            {
+                sums  += Math.Simd.load(values + index) >> rice
+                index += 4
+            }
+
+            var quotients = Math.Simd.sum(sums)
+            for tail in index until residualCount do
+                quotients += residuals[tail] >> rice
+            let bits = overhead + cast(u64, residualCount) * (1 + rice) + quotients
+            if bits < bestBits
+            {
+                bestBits = bits
+                bestRice = rice
+            }
         }
 
-        let available = 32 - .bufferedBits
-        if zeros >= available
+        return {bestBits, bestRice}
+    }
+
+    #[Swag.Inline]
+    func foldDelta(delta: s32)->u32 => (cast #bit(u32, delta) << 1) ^ cast #bit(u32, delta >> 31)
+
+    // The exact Rice cost lets us allocate all complete output words once.
+    mtd writeRiceRun(residuals: const [..] u32, parameter: u32, encodedBits: u64)
+    {
+        let wordCount  = (encodedBits + .bufferedBits) >> 5
+        let output     = cast([*] u32, .frame.emplaceAddress(cast(u32, wordCount * 4)))
+        let marker     = 1'u64 << parameter
+        let mask       = marker - 1
+        let suffixBits = 1 + parameter
+        var queued     = .bitBuffer
+        var buffered   = .bufferedBits
+        var cursor     = 0'u64
+        for value in residuals
         {
-            .writeBits(0, available)
-            zeros -= available
-            let zeroBytes = (zeros >> 5) * 4
-            .frame.resize(.frame.count + zeroBytes)
-            zeros &= 31
+            let zeros = value >> parameter
+            var width = zeros + suffixBits
+            if width > 32
+            {
+                let room = 32 - buffered
+                if zeros >= room
+                {
+                    output[cursor] = Math.nativeToBigEndian(cast #wrap(u32, queued << room))
+                    cursor         += 1
+                    let remaining = zeros - room
+                    let clear     = remaining >> 5
+                    if clear
+                    {
+                        Memory.clear(output + cursor, cast(u64, clear) * 4)
+                        cursor += clear
+                    }
+
+                    queued   = 0
+                    buffered = remaining & 31
+                }
+                else
+                {
+                    queued   <<= zeros
+                    buffered += zeros
+                }
+
+                width = suffixBits
+            }
+
+            let bits = marker | (cast(u64, value) & mask)
+            queued   = (queued << width) | bits
+            buffered += width
+            if buffered >= 32
+            {
+                buffered       -= 32
+                output[cursor] = Math.nativeToBigEndian(cast #wrap(u32, queued >> buffered))
+                cursor         += 1
+            }
         }
 
-        .writeBits(0, zeros)
-        .writeBits(suffix, 1 + parameter)
+        Swag.assert(cursor == wordCount)
+        .bitBuffer    = queued
+        .bufferedBits = buffered
     }
 
     mtd writeByte(value: u8)

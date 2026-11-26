@@ -726,3 +726,41 @@ func exrUnalignedFloatFixture(names: const [..] string, width = 1'u32)->ConcatBu
             Swag.require(pixels[cast(u64, row) * Width + x] == expected)
     }
 }
+
+// Equal-size ZIPS streams may share a checksum and still describe different scanlines.
+#test
+{
+    const Width = 4096'u32
+    // Zlib header and a nonfinal stored block header for 4096 literal bytes.
+    const ZlibStored: [7] u8 = [0x78, 0x9C, 0, 0, 0x10, 0xFF, 0xEF]
+    // A final Deflate block of 4096 repetitions of 128, followed by the Adler-32.
+    const Deflate: [20] u8 = [
+        0xED, 0xC1, 0x01, 0x0D, 0x00, 0x00, 0x00, 0xC2, 0xA0, 0xEA,
+        0x8F, 0x6E, 0x0F, 0x07, 0x14, 0x00, 0x00, 0x00, 0xF0, 0x6E]
+    const Checksum: [4] u8 = [0x20, 0x69, 0x00, 0x71]
+
+    var packed: [2] Array'u8
+    for &block, index in packed
+    {
+        var prefix: [Width] u8
+        for i in 1 until prefix.count do
+            prefix[i] = 128
+        let changed = 45 + index
+        prefix[changed]     = 129
+        prefix[changed + 1] = 126
+        prefix[changed + 2] = 129
+        block.add(ZlibStored)
+        block.add(prefix)
+        block.add(Deflate)
+        block.add(Checksum)
+        Swag.require(block.count > Width and block.count < 2 * Width)
+    }
+
+    let input  = exrZipFixture(Width, packed[0].toSlice(), blocks: 4, alternate: packed[1].toSlice())
+    let bytes  = input.toArray()
+    let output = expect Image.decode("zip-trailer.exr", bytes.toSlice())
+    assertImage(output, cast(s32, Width), 4, .GrayF16)
+    let samples = cast(const [*] u16, output.pixels.storage())
+    for row in 4'u64 do
+        Swag.require(samples[row * Width + 45] == (row & 1))
+}

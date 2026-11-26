@@ -887,5 +887,35 @@
         "profile": "Korean Gothic TrueType"
       }
     ]
+  },
+  {
+    "file": "NimbusSans-Regular.pfa",
+    "source": "NimbusSans-Regular.t1",
+    "sha256": "1f5435af49a92df88d4708d833e5d142310deb163c1cb468904f8451b8a1c7b0",
+    "cases": [
+      {
+        "character": 65,
+        "profile": "PostScript Type 1 PFA hex eexec"
+      },
+      {
+        "character": 103,
+        "profile": "PostScript Type 1 PFA hex eexec"
+      }
+    ]
+  },
+  {
+    "file": "P052-Roman.pfb",
+    "source": "P052-Roman.t1",
+    "sha256": "2756d2aaa13b587c8555196c36864da8267e9c595d8455fef9decf16ebba203b",
+    "cases": [
+      {
+        "character": 103,
+        "profile": "PostScript Type 1 PFB container"
+      },
+      {
+        "character": 69,
+        "profile": "PostScript Type 1 PFB container"
+      }
+    ]
   }
 ]

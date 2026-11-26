@@ -42,3 +42,8 @@ helper renames. Six paired rebuilds of the same packed workload showed
 no detectable compiler CPU or peak RSS change. The candidate/baseline
 ratios were 0.965 [0.929, 1.041] for CPU and 0.992 [0.789, 1.033] for
 maximum RSS. [Raw timing, tags, and compiler samples](argon2-packed.json)
+
+A follow-up restricted the masked-product matcher to built-in operators. All 16 native
+SIMD cases passed, including explicit conversion of an overloaded AND result. The 12
+standard benchmark checksums and normalized Micro listings matched, as did the Argon2
+compression listing.

@@ -484,6 +484,10 @@ namespace
         if (!binary || codeGen.token(binary->codeRef()).id != TokenId::SymAmpersand)
             return false;
 
+        const auto* specialOp = codeGen.sema().semaPayload<BinarySpecOpPayload>(ref);
+        if ((specialOp && specialOp->calledFn) || codeGen.sema().currentNodePayloadContext().hasResolvedCallArguments(ref))
+            return false;
+
         return isU32LaneMask(codeGen, binary->nodeLeftRef) || isU32LaneMask(codeGen, binary->nodeRightRef);
     }
 

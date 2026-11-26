@@ -354,3 +354,30 @@ var g_Vector = cast(#simd [4] s32, [7, 8, 9, 10])
     let high  = cast([2] u64, ((HighWord & highA) * (b & LowWords)))
     Swag.require(high[0] == 0xFFFF_FFFE and high[1] == 0)
 }
+
+struct MaskedPair
+{
+    value: #simd [2] u64
+}
+
+impl MaskedPair
+{
+    #[Swag.NoInline]
+    mtd(op: Swag.Operator) const opBinary(_: #simd [2] u64)->MaskedPair
+        where op == .BitAnd
+    {
+        return me[]
+    }
+
+    #[Swag.Implicit, Swag.NoInline]
+    mtd const opCast()->#simd [2] u64 => .value
+}
+
+#test
+{
+    const LowWords: #simd [2] u64 = [0xFFFF_FFFF, 0xFFFF_FFFF]
+    let left    = MaskedPair{[0x1_0000_0002, 2]}
+    let right   = MaskedPair{[0xFFFF_FFFF, 3]}
+    let product = cast([2] u64, (cast(#simd [2] u64, left & LowWords) * (right.value & LowWords)))
+    Swag.require(product[0] == 0xFFFF_FFFE and product[1] == 6)
+}

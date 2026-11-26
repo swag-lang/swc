@@ -1,0 +1,379 @@
+{
+  "utc": "2026-11-26T14:27:27.410524+00:00",
+  "system": "Linux-6.18.57-x86_64-with-glibc2.41",
+  "cpu": 4,
+  "affinity": [
+    4
+  ],
+  "workers": {
+    "unsigned": 1,
+    "signed8": 1
+  },
+  "processor": {
+    "model name": "AMD EPYC 9V74 80-Core Processor",
+    "microcode": "0x1000065",
+    "flags": "fpu vme de pse tsc msr pae mce cx8 apic sep mtrr pge mca cmov pat pse36 clflush mmx fxsr sse sse2 ht syscall nx mmxext fxsr_opt pdpe1gb rdtscp lm constant_tsc rep_good nopl xtopology nonstop_tsc cpuid extd_apicid tsc_known_freq pni pclmulqdq ssse3 fma cx16 pcid sse4_1 sse4_2 x2apic movbe popcnt tsc_deadline_timer aes xsave avx f16c rdrand hypervisor lahf_lm cmp_legacy cr8_legacy abm sse4a misalignsse 3dnowprefetch osvw topoext cpuid_fault vmmcall fsgsbase tsc_adjust bmi1 avx2 smep bmi2 erms invpcid avx512f avx512dq rdseed adx smap avx512ifma clflushopt clwb avx512cd sha_ni avx512bw avx512vl xsaveopt xsavec xgetbv1 xsaves avx512_bf16 clzero xsaveerptr arat npt nrip_save tsc_scale vmcb_clean flushbyasid pausefilter pfthreshold v_vmsave_vmload avx512vbmi umip avx512_vbmi2 gfni vaes vpclmulqdq avx512_vnni avx512_bitalg avx512_vpopcntdq rdpid fsrm arch_capabilities"
+  },
+  "reference_build": "OpenSSL 4.1.0 23 Oct 2026 | zlib 1.3.1 | BLAKE3 1.8.7 | libdeflate 1.26 | ISA-L 2.32.1 | liblzma 5.8.1",
+  "reference_sha256": "711b8f569020ac48e5eb5f12794431065962c1247e7bf50f28124ebac77d9c69",
+  "swag_builds": {
+    "unsigned": "329c7df349174d626f826c5ab26ad9d59a8a4fce1d958c5a5d4ca84499e747f1",
+    "signed8": "6a4016a2374a9831efc6e5add958238b9b23dcd7f05f74890c2d6df706752034"
+  },
+  "rounds": 29,
+  "target_ms": 55,
+  "clock": "cpu",
+  "rows": [
+    {
+      "algorithm": "p256-public",
+      "bytes": 32,
+      "offset": 0,
+      "input_sha256": "2404657934fda9253c9d38499cb12ebdbbed5a27f47746fb93ed5d1b676bd395",
+      "output_sha256": "b83b76408d0c549e362e886b51d9124ffb9ba35e94380e3922f231c2fb99966d",
+      "samples": {
+        "OpenSSL": {
+          "iterations": 5059,
+          "wall": [
+            0.074771673,
+            0.077036884,
+            0.055145225,
+            0.057697566,
+            0.076651142,
+            0.080253376,
+            0.073482738,
+            0.055534499,
+            0.059702405,
+            0.055952138,
+            0.075645951,
+            0.073748429,
+            0.072897015,
+            0.056719235,
+            0.073018738,
+            0.053813302,
+            0.073674447,
+            0.058595405,
+            0.080794937,
+            0.077766455,
+            0.077056193,
+            0.074496082,
+            0.054285167,
+            0.073378987,
+            0.073865691,
+            0.071370788,
+            0.076623631,
+            0.064879748,
+            0.077521355
+          ],
+          "cpu": [
+            0.055698667,
+            0.054087959,
+            0.054749194,
+            0.057614351,
+            0.057443136,
+            0.057335896,
+            0.05454512,
+            0.055517668,
+            0.05969528,
+            0.055864023,
+            0.056374224,
+            0.05477285,
+            0.053955903,
+            0.0565527,
+            0.054071495,
+            0.053804077,
+            0.054745159,
+            0.058381694,
+            0.060959194,
+            0.058552498,
+            0.057807691,
+            0.054924396,
+            0.054194557,
+            0.054427135,
+            0.054921921,
+            0.05628348,
+            0.057682572,
+            0.054769326,
+            0.054565942
+          ]
+        },
+        "unsigned": {
+          "iterations": 576,
+          "wall": [
+            0.077944307,
+            0.070439984,
+            0.053472552,
+            0.075359043,
+            0.054400653,
+            0.070660847,
+            0.072397212,
+            0.07209155,
+            0.053621894,
+            0.076564126,
+            0.053144574,
+            0.051997443,
+            0.074702638,
+            0.071427198,
+            0.061378512,
+            0.072152292,
+            0.069905553,
+            0.097148797,
+            0.070659756,
+            0.052063598,
+            0.05258907,
+            0.0709148,
+            0.072011104,
+            0.052346503,
+            0.071580755,
+            0.07223383,
+            0.073202592,
+            0.077543198,
+            0.071993538
+          ],
+          "cpu": [
+            0.058785912,
+            0.051499355,
+            0.053398301,
+            0.052190474,
+            0.054312313,
+            0.051432054,
+            0.052989824,
+            0.053136873,
+            0.053454867,
+            0.057228796,
+            0.052992488,
+            0.051930756,
+            0.05175825,
+            0.052484921,
+            0.06113187,
+            0.052990816,
+            0.050934133,
+            0.074151443,
+            0.051703018,
+            0.052060761,
+            0.052527345,
+            0.051955583,
+            0.052909395,
+            0.052055724,
+            0.052393637,
+            0.053174419,
+            0.053977785,
+            0.05182569,
+            0.052781615
+          ]
+        },
+        "signed8": {
+          "iterations": 645,
+          "wall": [
+            0.080711777,
+            0.052669512,
+            0.073257024,
+            0.072849127,
+            0.078647453,
+            0.053095564,
+            0.074500663,
+            0.083335938,
+            0.078628809,
+            0.075325668,
+            0.071431104,
+            0.071704077,
+            0.052828566,
+            0.05293643,
+            0.076977289,
+            0.0818448,
+            0.052868868,
+            0.083417472,
+            0.07665814,
+            0.076226792,
+            0.07314247,
+            0.056934273,
+            0.075888813,
+            0.071591501,
+            0.053866205,
+            0.053538161,
+            0.054210406,
+            0.076716491,
+            0.072673232
+          ],
+          "cpu": [
+            0.06144834,
+            0.05256439,
+            0.054319074,
+            0.053907291,
+            0.055699279,
+            0.052978647,
+            0.055390238,
+            0.059180693,
+            0.05463335,
+            0.056383509,
+            0.052494898,
+            0.052611741,
+            0.052467496,
+            0.052845198,
+            0.054020099,
+            0.062901725,
+            0.052440316,
+            0.060473459,
+            0.055946417,
+            0.05317554,
+            0.054184373,
+            0.056779988,
+            0.056816353,
+            0.052634445,
+            0.053863546,
+            0.053507145,
+            0.054207888,
+            0.056386434,
+            0.052513104
+          ]
+        }
+      },
+      "round_order": [
+        [
+          "OpenSSL",
+          "unsigned",
+          "signed8"
+        ],
+        [
+          "signed8",
+          "OpenSSL",
+          "unsigned"
+        ],
+        [
+          "OpenSSL",
+          "unsigned",
+          "signed8"
+        ],
+        [
+          "unsigned",
+          "OpenSSL",
+          "signed8"
+        ],
+        [
+          "signed8",
+          "OpenSSL",
+          "unsigned"
+        ],
+        [
+          "OpenSSL",
+          "unsigned",
+          "signed8"
+        ],
+        [
+          "OpenSSL",
+          "signed8",
+          "unsigned"
+        ],
+        [
+          "OpenSSL",
+          "unsigned",
+          "signed8"
+        ],
+        [
+          "OpenSSL",
+          "unsigned",
+          "signed8"
+        ],
+        [
+          "signed8",
+          "unsigned",
+          "OpenSSL"
+        ],
+        [
+          "OpenSSL",
+          "signed8",
+          "unsigned"
+        ],
+        [
+          "unsigned",
+          "OpenSSL",
+          "signed8"
+        ],
+        [
+          "signed8",
+          "OpenSSL",
+          "unsigned"
+        ],
+        [
+          "OpenSSL",
+          "signed8",
+          "unsigned"
+        ],
+        [
+          "signed8",
+          "unsigned",
+          "OpenSSL"
+        ],
+        [
+          "signed8",
+          "unsigned",
+          "OpenSSL"
+        ],
+        [
+          "OpenSSL",
+          "unsigned",
+          "signed8"
+        ],
+        [
+          "signed8",
+          "unsigned",
+          "OpenSSL"
+        ],
+        [
+          "OpenSSL",
+          "signed8",
+          "unsigned"
+        ],
+        [
+          "signed8",
+          "unsigned",
+          "OpenSSL"
+        ],
+        [
+          "signed8",
+          "unsigned",
+          "OpenSSL"
+        ],
+        [
+          "unsigned",
+          "OpenSSL",
+          "signed8"
+        ],
+        [
+          "unsigned",
+          "signed8",
+          "OpenSSL"
+        ],
+        [
+          "unsigned",
+          "OpenSSL",
+          "signed8"
+        ],
+        [
+          "signed8",
+          "unsigned",
+          "OpenSSL"
+        ],
+        [
+          "signed8",
+          "OpenSSL",
+          "unsigned"
+        ],
+        [
+          "signed8",
+          "OpenSSL",
+          "unsigned"
+        ],
+        [
+          "unsigned",
+          "OpenSSL",
+          "signed8"
+        ],
+        [
+          "signed8",
+          "OpenSSL",
+          "unsigned"
+        ]
+      ]
+    }
+  ]
+}

@@ -171,3 +171,6 @@ optimizations moved each result.
 - [Integrated Core crypto validation at 15:22 CET](integrated-validation-1522.md)
 
 - [SHA-512/t, HMAC-SHA3 and KMACXOF against OpenSSL 4.1](extended-openssl-4.1.md)
+
+- [Preserve stack stores at frame object boundaries](blake3-compiler-frame-objects.md)
+- [Signed P-256 generator comb](p256-signed-comb.md)

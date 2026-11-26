@@ -153,7 +153,7 @@ func inverseTransform(block: const *[64] s32, output: *[64] s16)
     var left, right: [8] Simd.F32x4
     var frequencies: [8] u64
     var activeRows = 0'u64
-    let half = Simd.splat(0.5'f32)
+    let half       = Simd.splat(0.5'f32)
     for y in 8'u64
     {
         var lo, hi: Simd.F32x4
@@ -174,7 +174,7 @@ func inverseTransform(block: const *[64] s32, output: *[64] s16)
             frequencies[activeRows] = y
             left[activeRows]        = lo * half
             right[activeRows]       = hi * half
-            activeRows += 1
+            activeRows              += 1
         }
     }
 
@@ -190,17 +190,16 @@ func inverseTransform(block: const *[64] s32, output: *[64] s16)
             hi += right[v] * coefficient
         }
 
-        for x in 4'u64
-        {
-            output[][y * 8 + x]     = cast(s16, Math.clamp(cast(s32, Math.round(lo[x] * 0.5)), -512's32, 511's32))
-            output[][y * 8 + x + 4] = cast(s16, Math.clamp(cast(s32, Math.round(hi[x] * 0.5)), -512's32, 511's32))
-        }
+        let low     = Simd.truncateToS32(Math.round(lo * half))
+        let high    = Simd.truncateToS32(Math.round(hi * half))
+        let samples = Math.clamp(Simd.packSigned(low, high), Simd.splat(-512's16), Simd.splat(511's16))
+        Simd.store(&output[][y * 8], samples)
     }
 
     if rows == 1
     {
-        const RowBytes = 8 * #sizeof(s16)
+        let samples = Simd.load(&output[][0])
         for y in 1'u64 until 8'u64 do
-            Memory.copy(&output[][y * 8], &output[][0], RowBytes)
+            Simd.store(&output[][y * 8], samples)
     }
 }

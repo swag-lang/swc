@@ -1071,11 +1071,12 @@ impl Decoder
         {
             let scan: const [..] u8 = not intra or not acPred ? ScanZigzag
                                       : (fromAbove ? ScanAlternateHorizontal : ScanAlternateVertical)
-            var at = separateDc ? 1'u64 : 0'u64
+            let prefixes = coefficientPrefixes(not intra)
+            var at       = separateDc ? 1'u64 : 0'u64
             for 64'u32
             {
                 var event: Coefficient
-                if not (try readCoefficient(reader, not intra, &event)) do
+                if not readCoefficientPrefix(reader, prefixes, &event) and not (try readCoefficient(reader, not intra, &event)) do
                     fail InvalidFormatError{"MPEG-4 block states an unknown coefficient"}
                 at += cast(u64, event.run)
                 if at >= 64 do
@@ -1160,19 +1161,18 @@ impl Decoder
     mtd writeBlock(mbX, mbY: s32, block: u64, samples: const *[64] s16, intra: bool)
     {
         let destination = .blockDestination(mbX, mbY, block)
-        let plane       = destination.pixels
         for row in 8'u64
         {
-            let line = row * destination.stride
-            for column in 8'u64
+            let line   = destination.pixels + row * destination.stride
+            var values = Math.Simd.load(&samples[][row * 8])
+            if not intra
             {
-                // Part 2 transforms the sample values themselves, with no level shift: what
-                // comes out of an intra block is the sample, and the default neighbour of an
-                // unpredicted block is mid grey by construction.
-                let value = cast(s32, samples[][row * 8 + column])
-                let final = intra ? value : cast(s32, plane[line + column]) + value
-                plane[line + column] = cast(u8, Math.clamp(final, 0's32, 255's32))
+                let prediction = Math.Simd.widenLow(loadPixels(line))
+                values += cast #bit(Math.Simd.S16x8, prediction)
             }
+
+            // The unsigned pack clamps the reconstructed samples to the byte range.
+            Math.Simd.storeLow8(line, Math.Simd.packUnsigned(values, values))
         }
     }
 }

@@ -1,6 +1,7 @@
 # Single-lane video decoding against FFmpeg
 
-`compare.py` compares H.264 and HEVC planar video through `Video.Reader` in Release.
+`compare.py` compares planar H.264, HEVC, MPEG-4 Part 2 and RealVideo 4.0 through
+`Video.Reader` in Release.
 It needs the built Swag compiler and its runtime, Python 3.11 or newer with NumPy, and FFmpeg
 and ffprobe. Timing also needs a C compiler, pkg-config and the FFmpeg development libraries
 `libavformat`, `libavcodec` and `libavutil`. Use `--quality-only` for the picture comparison
@@ -38,15 +39,21 @@ Both Swag variants use the same compiler and runtime. The output directory must 
 outside the source trees. It receives the picture hashes, timing samples, FFmpeg version,
 reference timestamps and individual run logs.
 
-Generate six more inputs with `generate.py`. The corpus covers gradient fades for weighted
+Generate additional inputs with `generate.py`. The corpus covers gradient fades for weighted
 AVC prediction, temporal texture for CAVLC, AVC High 4:4:4, HEVC Main with WPP, and Main10
-intra-only and textured inter pictures. The manifest records each command and input hash.
+intra-only and textured inter pictures. The MPEG-4 inputs include Simple Profile at 720p,
+textured intra pictures, and B pictures with MPEG quantization matrices.
+The manifest records each command and input hash.
 
 ```sh
 python3 bench/workloads/videodecode/generate.py --output /tmp/swag-video-expanded
 python3 bench/workloads/videodecode/compare.py \
     --compiler /absolute/build/release/swc --quality-only \
     --output /tmp/swag-video-expanded-quality /tmp/swag-video-expanded/*.mp4
+
+taskset -c 4 python3 bench/workloads/videodecode/compare.py \
+    --compiler /absolute/build/release/swc --mpeg4-max-sample-difference 3 \
+    --output /tmp/swag-video-mpeg4 /tmp/swag-video-expanded/*.avi
 ```
 
 The quality pass uses FFmpeg's best-effort presentation timestamps relative to the earliest
@@ -59,6 +66,11 @@ and reports the maximum difference and PSNR. For Main10 the reference is first d
 native ten-bit samples, then rounded and saturated to the same eight-bit presentation
 layout that `Reader` exposes. The module's separate HEVC conformance tests check the native
 Main10 picture digests.
+
+By default every codec requires exact sample equality. MPEG-4 Part 2 implementations
+use different inverse transforms, so its comparison accepts an explicit
+`--mpeg4-max-sample-difference` in eight-bit sample levels. The report always includes
+the observed sample differences, PSNR and Swag plane hash.
 
 Timed inputs need a known frame count on open and one picture per display rank. Each timed
 pass opens the file, decodes the first 30 pictures, and decodes the remaining pictures

@@ -112,6 +112,7 @@ func mpeg4AssertTable(name: string, lengths: const [..] u8, codes: const [..] u1
         let runs:    const [..] u8  = table ? Mpeg4.TcoefInterRun : Mpeg4.TcoefIntraRun
         let levels:  const [..] u16 = table ? Mpeg4.TcoefInterLevel : Mpeg4.TcoefIntraLevel
         let lasts:   const [..] u8  = table ? Mpeg4.TcoefInterLast : Mpeg4.TcoefIntraLast
+        let prefixes = Mpeg4.coefficientPrefixes(table != 0)
         for index in lengths.count
         {
             let length = cast(u32, lengths[index])
@@ -131,7 +132,10 @@ func mpeg4AssertTable(name: string, lengths: const [..] u8, codes: const [..] u1
                         var reader = Mpeg4.BitReader.create(bytes[until size])
                         reader.bitPos = offset
                         var coefficient: Mpeg4.Coefficient
-                        Swag.require(expect Mpeg4.readCoefficient(&reader, table != 0, &coefficient))
+                        let shortCode = Mpeg4.readCoefficientPrefix(&reader, prefixes, &coefficient)
+                        Swag.require(shortCode == (length <= 8 and offset + 16 <= size * 8))
+                        if not shortCode do
+                            Swag.require(expect Mpeg4.readCoefficient(&reader, table != 0, &coefficient))
                         Swag.require(reader.bitPos == end)
                         Swag.require(coefficient.run == runs[index] and coefficient.last == (lasts[index] != 0))
                         let magnitude = cast(s32, levels[index])

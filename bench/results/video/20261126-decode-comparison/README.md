@@ -1,4 +1,4 @@
-# H.264 and HEVC decode comparison
+# Video decode comparison
 
 Release Swag and FFmpeg 7.1.5 ran under Linux x86-64 on an AMD EPYC 9V74 host.
 Each comparison series was pinned to one logical CPU. The Swag baseline is `6ba8702c7b`. Both Swag variants used the same
@@ -111,6 +111,32 @@ inputs contribute 630 pictures and cover AVC Baseline, High, High 4:4:4 and HEVC
 Main10 all-intra and Main10 texture. The targeted native Release selection passed
 111 tests. The first 16-bit look-ahead trial regressed WPP and was dropped.
 [Raw observations, quality hashes and fixture commands](cabac.json).
+
+## MPEG-4 Part 2 coefficient decoding and reconstruction
+
+The profile of Simple Profile at 720p assigned 35% of samples to the inverse transform
+and 21% to thread-local lookups on the fallible coefficient path. The short coefficient
+lookup now returns the run, signed level and final flag directly. Long codes, escapes
+and short input tails use the fallible path. Reconstruction rounds, clips and writes
+eight samples at a time. Thread-local lookups dropped to 2% of the follow-up profile.
+
+The timings are medians of seven repetitions pinned to one logical CPU, in milliseconds
+per picture against baseline `e01b764115`.
+
+| MPEG-4 Part 2 stream | Before | After | FFmpeg | Swag time change | Swag after / FFmpeg |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Simple Profile 720p | 3.77 | 1.96 | 0.55 | -48.1% | 3.59× |
+| Textured intra 640×360 | 3.62 | 2.50 | 0.65 | -31.1% | 3.86× |
+
+Across 420 MPEG-4 pictures, the maximum difference from FFmpeg is three eight-bit
+levels and PSNR ranges from 59.94 to 71.95 dB. Those bounds are the same as baseline.
+The new Swag build changes 19 of 268,081,920 samples by one level. The Release
+compiler fuses an additional multiply-add in the vertical inverse transform after
+packing the rounding and changing register allocation.
+
+The same comparison also matched all 42 RealVideo 4.0 pictures from four inputs and
+180 AVC and HEVC pictures. The focused native Release selection passed 94 tests.
+[Raw timings, picture quality, profile counts and fixture commands](mpeg4.json).
 
 ## Reproduce
 

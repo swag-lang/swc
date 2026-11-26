@@ -117,7 +117,7 @@ private func reduceChroma(sum, span: s32, table: const [..] u8)->s32
 private const BlockSize = 8'u64
 
 #[Swag.Inline]
-private func loadPixels(source: const [*] u8)->Math.Simd.U8x16
+func loadPixels(source: const [*] u8)->Math.Simd.U8x16
 {
     return cast #bit(Math.Simd.U8x16, Math.Simd.splat(cast(const [*] u64, source)[0]))
 }

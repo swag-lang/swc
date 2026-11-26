@@ -45,10 +45,8 @@ private const P256OrderWordInverse = 0xCCD1C8AAEE00BC4F'u64
 #[Swag.Inline]
 private func p256MultiplyAdd(left, right, addend, carry: u64)->{word: u64, carry: u64}
 {
-    let product = Math.mulU64(left, right)
-    let sum     = product.lo + addend
-    let word    = sum + carry
-    let high    = product.hi + cast(u64, sum < product.lo) + cast(u64, word < sum)
+    var high: u64
+    let word = Swag.mulWide(left, right, addend, carry, &high)
     return {word, high}
 }
 

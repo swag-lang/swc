@@ -204,3 +204,5 @@ optimizations moved each result.
 - [SIMD whitening in software AES-XTS](aes-xts-software-vectors.md)
 
 - [Full-width multiplication with two additive words](wide-multiply-addends.md)
+
+- [P-256 Montgomery multiplication with fused carries](p256-multiply-addends.md)

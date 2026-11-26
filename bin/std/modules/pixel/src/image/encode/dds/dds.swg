@@ -149,11 +149,15 @@ internal impl IImageEncoder for Encoder
         }
 
         bits = source.bitsPerPixel
+        result.grow((dxgi ? HeaderSize + 20 : HeaderSize) + source.byteCount)
         writeHeader(result, source[], dxgi, flags, bits, redMask, greenMask, blueMask, alphaMask)
+        let target = result.reserveInPlace(source.byteCount)
+        let pixels = source.pixels.storage()
+        let stride = cast(u64, source.rowStride)
         for y in source.height
         {
             let storageY = source.height - y - 1
-            result.addBytes(Swag.makeSlice(source.pixels.storage() + cast(u64, storageY) * source.rowStride, cast(u64, source.rowStride)))
+            Memory.copy(target + cast(u64, y) * stride, pixels + cast(u64, storageY) * stride, stride)
         }
     }
 }

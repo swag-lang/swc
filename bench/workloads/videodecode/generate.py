@@ -68,19 +68,36 @@ def avc_slice_fixtures():
     )
 
 
+def raw_avi_fixtures():
+    return (
+        ("raw-bgr24.avi", "1280x720", 32, None, ["-c:v", "rawvideo", "-pix_fmt", "bgr24"]),
+        ("raw-bgra-odd.avi", "652x370", 32, "scale=653:371:flags=neighbor",
+         ["-c:v", "rawvideo", "-pix_fmt", "bgra"]),
+        ("raw-rgb555.avi", "960x540", 32, None, ["-c:v", "rawvideo", "-pix_fmt", "rgb555le"]),
+    )
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output", required=True, type=Path)
     profile = parser.add_mutually_exclusive_group()
     profile.add_argument("--rgb", action="store_true", help="generate Y4M and Motion JPEG fixtures")
     profile.add_argument("--avc-slices", action="store_true", help="generate 1080p H.264 with one, eight and 32 slices")
+    profile.add_argument("--raw-avi", action="store_true", help="generate uncompressed AVI in three RGB layouts")
     args = parser.parse_args()
     output = args.output.resolve()
     if output == REPO or REPO in output.parents:
         parser.error("--output must be outside the checkout")
     output.mkdir(parents=True)
     records = []
-    selected = rgb_fixtures() if args.rgb else avc_slice_fixtures() if args.avc_slices else fixtures()
+    if args.rgb:
+        selected = rgb_fixtures()
+    elif args.avc_slices:
+        selected = avc_slice_fixtures()
+    elif args.raw_avi:
+        selected = raw_avi_fixtures()
+    else:
+        selected = fixtures()
     for name, size, count, filters, encoder in selected:
         path = output / name
         command = ["ffmpeg", "-nostdin", "-v", "error", "-filter_threads", "1",

@@ -1,0 +1,85 @@
+{
+  "ffmpeg": "ffmpeg version 7.1.5-0+deb13u1 Copyright (c) 2000-2026 the FFmpeg developers",
+  "fixtures": [
+    {
+      "file": "raw-bgr24.avi",
+      "sha256": "c3abd73912d33a1d864831324e3a9269204d50b3b7314a3cf50e24cb829f0c40",
+      "command": [
+        "ffmpeg",
+        "-nostdin",
+        "-v",
+        "error",
+        "-filter_threads",
+        "1",
+        "-f",
+        "lavfi",
+        "-i",
+        "testsrc2=size=1280x720:rate=30",
+        "-frames:v",
+        "32",
+        "-an",
+        "-threads",
+        "1",
+        "-c:v",
+        "rawvideo",
+        "-pix_fmt",
+        "bgr24",
+        "raw-bgr24.avi"
+      ]
+    },
+    {
+      "file": "raw-bgra-odd.avi",
+      "sha256": "6e30807e0267e784c5177cb3f5b56d129f0e001dac66a1dc8a0e1557a0b5f904",
+      "command": [
+        "ffmpeg",
+        "-nostdin",
+        "-v",
+        "error",
+        "-filter_threads",
+        "1",
+        "-f",
+        "lavfi",
+        "-i",
+        "testsrc2=size=652x370:rate=30",
+        "-vf",
+        "scale=653:371:flags=neighbor",
+        "-frames:v",
+        "32",
+        "-an",
+        "-threads",
+        "1",
+        "-c:v",
+        "rawvideo",
+        "-pix_fmt",
+        "bgra",
+        "raw-bgra-odd.avi"
+      ]
+    },
+    {
+      "file": "raw-rgb555.avi",
+      "sha256": "17ed88575a05b0aa52ebfa8a88fe79286d2f2869abb65a947b9bbd4027134846",
+      "command": [
+        "ffmpeg",
+        "-nostdin",
+        "-v",
+        "error",
+        "-filter_threads",
+        "1",
+        "-f",
+        "lavfi",
+        "-i",
+        "testsrc2=size=960x540:rate=30",
+        "-frames:v",
+        "32",
+        "-an",
+        "-threads",
+        "1",
+        "-c:v",
+        "rawvideo",
+        "-pix_fmt",
+        "rgb555le",
+        "raw-rgb555.avi"
+      ]
+    }
+  ]
+}

@@ -1652,3 +1652,121 @@ The generated PCM24 control varies by less than 0.02 ms in paired
 medians. libsndfile remains faster on FileSamples at about 0.12 ms
 in the confirmation run. Native Release and Release-safe each pass
 342 audio tests.
+
+## Final FileSamples and generated audio comparison
+
+The native Linux Release build uses audio sources from `2ce1dc8ee8` and
+the compiler and SDK from `b768af2f89`. FFmpeg 9.1 uses native x86
+assembly. Each engine opens the file and materializes the first ten seconds
+of PCM16. FileSamples medians use 56 observations. Generated medians use 28.
+
+[Raw timing samples, all 47 fixtures and PCM digests](audio-decode-linux-final.json)
+
+| FileSamples input | Swag CPU 0 (ms) | FFmpeg CPU 0 (ms) | Swag CPU 1 (ms) | FFmpeg CPU 1 (ms) | Swag CPU 2 (ms) | FFmpeg CPU 2 (ms) | Swag 4 cores (ms) | FFmpeg 4 cores (ms) |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| `sample1.flac` | 9.59 | 10.29 | 8.59 | 10.03 | — | — | 5.77 | 6.49 |
+| `sample1.oga` | 8.31 | 9.43 | 8.44 | 9.52 | — | — | 6.09 | 6.47 |
+| `sample3.aac` | 6.19 | 6.59 | 5.74 | 6.04 | 5.91 | 6.25 | 4.25 | 6.35 |
+| `sample3.ac3` | 7.08 | 7.20 | 6.06 | 6.00 | 6.20 | 6.29 | 5.77 | 6.29 |
+| `sample3.dts` | 11.78 | 12.83 | 11.12 | 12.12 | — | — | 11.75 | 12.58 |
+| `sample3.mp3` | 6.75 | 7.16 | 6.39 | 6.76 | 6.87 | 7.06 | 3.91 | 6.98 |
+| `sample3.ogg` | 6.42 | 6.55 | 6.36 | 6.61 | — | — | 6.48 | 6.51 |
+| `sample3.opus` | 17.57 | 18.00 | 17.53 | 18.28 | — | — | 17.89 | 18.58 |
+| `sample3.wav` | 0.86 | 8.33 | 0.81 | 8.13 | 0.83 | 8.12 | 0.86 | 8.53 |
+
+| Generated input | Swag 1 core (ms) | FFmpeg 9.1 1 core (ms) | Swag 4 cores (ms) | FFmpeg 9.1 4 cores (ms) |
+| --- | ---: | ---: | ---: | ---: |
+| `aac-lc-32k-mono.aac` | 2.37 | 3.30 | 2.03 | 3.20 |
+| `aac-lc-48k-5.1.aac` | 18.04 | 17.65 | 9.41 | 16.42 |
+| `aac-lc-48k-stereo.aac` | 8.06 | 7.84 | 4.95 | 7.62 |
+| `ac3-32k-mono.ac3` | 4.01 | 3.61 | 3.16 | 3.45 |
+| `ac3-32k-stereo.ac3` | 6.31 | 6.31 | 6.22 | 6.57 |
+| `ac3-44k-stereo.ac3` | 7.57 | 7.50 | 7.12 | 7.44 |
+| `ac3-48k-3.0.ac3` | 11.75 | 11.49 | 9.07 | 11.03 |
+| `ac3-48k-5.0.ac3` | 18.71 | 19.11 | 14.16 | 18.53 |
+| `ac3-48k-5.1.ac3` | 20.07 | 21.06 | 18.05 | 21.59 |
+| `ac3-48k-quad.ac3` | 14.16 | 15.59 | 13.07 | 15.57 |
+| `ac3-48k-stereo.ac3` | 7.64 | 7.37 | 7.58 | 7.02 |
+| `dts-48k-5.1.dts` | 32.72 | 32.61 | 31.53 | 32.72 |
+| `dts-48k-stereo.dts` | 12.93 | 13.47 | 13.04 | 13.04 |
+| `eac3-48k-5.1.eac3` | 19.84 | 20.35 | 19.84 | 20.59 |
+| `flac-44k-stereo-16.flac` | 6.00 | 9.97 | 2.17 | 6.52 |
+| `flac-48k-5.1-16.flac` | 19.03 | 32.23 | 7.02 | 17.93 |
+| `flac-96k-stereo-24.flac` | 16.60 | 22.22 | 7.15 | 13.29 |
+| `flac-verbatim-48k-stereo-16.flac` | 1.22 | 3.68 | 1.08 | 3.76 |
+| `flac-verbatim-48k-stereo-24.flac` | 1.56 | 4.05 | 1.57 | 4.53 |
+| `flac-verbatim-48k-stereo-32.flac` | 2.21 | 4.89 | 2.06 | 6.30 |
+| `mp3-24k-mono.mp3` | 2.24 | 2.54 | 1.61 | 2.50 |
+| `mp3-44k-stereo-cbr.mp3` | 6.66 | 6.82 | 3.40 | 7.12 |
+| `mp3-48k-stereo.mp3` | 7.87 | 7.98 | 4.78 | 8.27 |
+| `mp3-8k-mono.mp3` | 0.86 | 1.07 | 0.80 | 1.14 |
+| `ogg-flac-48k-mono-16.oga` | 3.43 | 5.77 | 1.78 | 4.69 |
+| `vorbis-32k-mono.ogg` | 3.32 | 4.25 | 3.26 | 4.24 |
+| `vorbis-48k-3.0.ogg` | 12.21 | 13.47 | 12.16 | 13.74 |
+| `vorbis-48k-5.0.ogg` | 20.43 | 21.09 | 20.37 | 20.99 |
+| `vorbis-48k-5.1.ogg` | 25.88 | 25.92 | 16.20 | 25.86 |
+| `vorbis-48k-6.1.ogg` | 28.13 | 28.08 | 15.81 | 28.74 |
+| `vorbis-48k-7.1.ogg` | 32.39 | 33.01 | 19.17 | 31.16 |
+| `vorbis-48k-quad.ogg` | 16.84 | 17.78 | 16.79 | 17.62 |
+| `vorbis-48k-stereo.ogg` | 8.26 | 8.75 | 8.54 | 8.89 |
+| `opus-20ms-48k-stereo.opus` | 25.74 | 26.31 | 26.17 | 26.48 |
+| `opus-5ms-48k-stereo.opus` | 25.39 | 30.48 | 26.07 | 30.71 |
+| `opus-voip-16k-mono.opus` | 6.69 | 9.33 | 6.82 | 9.39 |
+| `opus-voip-48k-mono.opus` | 12.39 | 12.97 | 12.37 | 13.32 |
+| `wav-48k-stereo-24.wav` | 0.63 | 1.23 | 0.70 | 1.33 |
+
+Swag has the lower median on 9 of nine FileSamples on CPU 0,
+8 on CPU 1 and 9 on four cores. It has the lower median on
+30 of 38 generated cases on one core and 36 on four cores.
+Small differences can change sign across the pinned cores.
+
+All 47 outputs match byte for byte across worker budgets. Against the first
+Swag baseline, 3 of the nine FileSamples are byte-identical. Differences
+on `sample3.aac`, `sample3.ac3`, `sample3.dts`, `sample3.mp3`, `sample3.ogg`, `sample3.opus` stay within one PCM16 unit per sample.
+
+The native test suite passes 342 tests in Release and 342
+in Release-safe.
+
+## Independent native codec libraries
+
+Each cohort opens the same input and materializes up to ten seconds of
+PCM16 on one pinned core. The library-specific cohorts use Swag builds from
+the last optimization passes and have their own FFmpeg measurements. The
+WAV comparison uses libsndfile directly.
+
+[Raw native reference timings and PCM checks](audio-native-library-references-linux.json)
+
+| Codec and input | Swag (ms) | Native codec library (ms) | FFmpeg 9.1 (ms) |
+| --- | ---: | ---: | ---: |
+| AAC `sample3.aac` | 6.62 | 31.58 | 8.12 |
+| AAC `aac-lc-32k-mono.aac` | 2.43 | 10.96 | 3.37 |
+| AAC `aac-lc-48k-stereo.aac` | 7.84 | 34.63 | 8.10 |
+| AAC `aac-lc-48k-5.1.aac` | 17.97 | 103.24 | 18.64 |
+| MP3 `mp3-44k-stereo-cbr.mp3` | 7.17 | 7.30 | 7.27 |
+| MP3 `mp3-48k-stereo.mp3` | 8.43 | 8.56 | 8.35 |
+| MP3 `sample3.mp3` | 6.97 | 7.58 | 7.07 |
+| Vorbis `sample3.ogg` | 6.29 | 15.95 | 6.51 |
+| Vorbis `vorbis-48k-5.1.ogg` | 29.50 | 67.90 | 30.95 |
+| Vorbis `vorbis-48k-7.1.ogg` | 30.94 | 67.42 | 31.20 |
+| Opus `sample3.opus` | 17.78 | 21.34 | 18.32 |
+| Opus `opus-voip-48k-mono.opus` | 12.72 | 14.67 | 13.35 |
+| Opus `opus-20ms-48k-stereo.opus` | 26.77 | 28.89 | 27.09 |
+| Opus `opus-5ms-48k-stereo.opus` | 25.86 | 29.68 | 31.06 |
+| Opus `opus-voip-16k-mono.opus` | 6.81 | 8.75 | 9.37 |
+| WAV `sample3.wav` | 0.92 | 0.12 | — |
+| WAV `wav-48k-stereo-24.wav` | 0.55 | 0.52 | — |
+
+
+The references are FDK AAC 2.0.3, libmpg123 1.32.10 with AVX, Xiph
+libvorbisfile 1.3.7, libopusfile 0.12 with host-tuned libopus 1.6.1,
+and libsndfile 1.2.2. The host-tuned build uses x86 intrinsics and
+omits runtime CPU detection. The Opus driver decodes to float and
+uses the same rounding and integer clipping as Swag. All 3,840,000
+output samples in those five inputs agree within one PCM16 unit.
+
+Both WAV inputs match libsndfile PCM byte for byte. The FileSamples
+WAV gap is in materialization. The sequential path reduces FileSamples
+from 0.880 to 0.799 ms in the confirmation cohort against 0.122 ms for
+libsndfile. Generated 24-bit WAV remains close to the library in the
+earlier comparison.
+[Sequential PCM16 timings](audio-decode-linux-round45.json)

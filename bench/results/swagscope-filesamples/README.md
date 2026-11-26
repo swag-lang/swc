@@ -1510,7 +1510,7 @@ equal decoded texels before and after.
 ### Cumulative FileSamples raster retest
 
 Both Swag builds use the same Linux Release compiler at `52f76fab9d`.
-The earlier raster source is `335b91f31e`; the later checkpoint is
+The earlier raster source is `335b91f31e` and the later checkpoint is
 `a484a59e32`. Decoding uses 17 rotating trials with one worker and times
 the load through the public image API. The encode comparison uses
 13 rotating trials, two encodes per trial, the public byte-array output,
@@ -1641,3 +1641,24 @@ The integrated checkpoint `0a0eb99044` passed 446 native Pixel raster,
 validation uses the compiler at `52f76fab9d` and its compatible CRC32,
 CRC64, Poly1305, P-256 and RSA sources in the scratch checkout. The image
 and compression sources are those of the checkpoint.
+
+At comparable FileSamples PNG sizes, one additional series measures
+Swag level 3 at 27.897 ms for 523,757 bytes and libpng with zlib-ng
+level 6 at 28.883 ms for 528,897 bytes, with exact decoded pixels.
+The final Deflate chain on the RGBA bands control gives 36.850 ms at
+level 6 versus 46.792 ms with libpng-zlib and 33.465 ms with
+libpng-zlib-ng, for files within 1,210 bytes of each other.
+
+The integrated raster release at `603c85d567` passed 451 Pixel, 67 Core
+compression and buffer, and seven WOFF tests using the compatible
+compiler and crypto sources described above. The later TIFF LZW
+fixed-width copy pass also passed 124 focused native tests. Its final
+paired series preserves every decoded CRC and measures 9.395 ms
+versus 10.205 ms before and 10.079 ms with upstream LibTIFF 4.7.1 on
+the single-strip RGB stripes.
+
+The latest JPEG decode series on `23deaef561` kept 55 Swag CRCs. Its
+medians against libjpeg-turbo 3.2.1 are 1.207 versus 1.453 ms for
+FileSamples JPG, 1.376 versus 1.705 ms for FileSamples JFIF, and
+119.783 versus 152.022 ms for the large progressive photo. The series
+uses the current registry lookup and includes the native SIMD path.

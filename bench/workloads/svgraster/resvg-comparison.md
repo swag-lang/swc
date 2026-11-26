@@ -1124,3 +1124,14 @@ The output CRC-64 is identical. At 4096 × 2731, the same source takes
 310.90 ms before and 289.08 ms after on one CPU. The 2053- and
 3072-pixel comparisons also retain their checksums. Scope's default
 bitmap and thumbnail sizes still take the established scan path.
+
+A one-CPU profile of the full-size bitmap before this change attributed
+13% of samples to computing edge intersections, 11% to sorting crossings,
+and 10% to gathering contours. The output compositing loop accounted
+for 4%. tiny-skia advances active edges by their fixed-point slopes,
+so more of this bitmap's remaining cost lies in coverage generation
+than in writing the pixels.
+
+The final checksum pass matched 78 raster pairs across the 35 generated,
+public, and original SVGs and the four original thumbnails, with one
+and four Swag workers.

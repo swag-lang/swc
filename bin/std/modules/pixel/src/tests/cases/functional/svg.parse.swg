@@ -383,6 +383,29 @@ private const ManyStopSvg = """\
     Swag.require(offsetImage.pixelColor(18, 10).a > 0)
 }
 
+// Calibrating one instance leaves the definition and the shared dash pattern intact.
+#test
+{
+    const Source    = """\
+        <svg width='100' height='32'><defs>\
+        <path id='line' d='M0 0H80' fill='none' stroke='blue' stroke-width='2' stroke-dasharray='3 2' stroke-dashoffset='2'/>\
+        </defs><use href='#line' x='10' y='8' pathLength='40'/><use href='#line' x='10' y='16'/>\
+        <path d='M10 24H90' fill='none' stroke='blue' stroke-width='2' stroke-dasharray='3 2' stroke-dashoffset='2'/>\
+        </svg>"""
+    const Reference = """\
+        <svg width='100' height='32'><g fill='none' stroke='blue' stroke-width='2'>\
+        <path d='M10 8H90' stroke-dasharray='6 4' stroke-dashoffset='4'/>\
+        <path d='M10 16H90' stroke-dasharray='3 2' stroke-dashoffset='2'/>\
+        <path d='M10 24H90' stroke-dasharray='3 2' stroke-dashoffset='2'/>\
+        </g></svg>"""
+
+    let drawing   = expect Svg.Drawing.parse(Source)
+    let reference = expect Svg.Drawing.parse(Reference)
+    let image     = drawing.rasterize(100, 32, 1)
+    let expected  = reference.rasterize(100, 32, 1)
+    Swag.require(Memory.compare(image.pixels.storage(), expected.pixels.storage(), expected.byteCount) == 0)
+}
+
 // Sample-aligned tiles preserve every resolved byte when geometry crosses both tile axes.
 #test
 {

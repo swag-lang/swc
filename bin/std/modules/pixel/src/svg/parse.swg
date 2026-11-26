@@ -50,6 +50,11 @@ private struct DeferredGeometry
     min, max: Vector2
 }
 
+private struct DashRange
+{
+    first, count: u64
+}
+
 private struct ShapeStroke
 {
     gradient: u64
@@ -58,13 +63,14 @@ private struct ShapeStroke
     opacity:  f32 = 1
 
     width:   f32 = 1
-    pattern: Array'f32
+    pattern: DashRange
     offset:  f32
     miter:   f32 = 3
 
-    enabled:   bool         = true
-    capStyle:  LineCapStyle = None
-    joinStyle: JoinStyle    = Miter
+    sharedPattern: bool
+    enabled:       bool         = true
+    capStyle:      LineCapStyle = None
+    joinStyle:     JoinStyle    = Miter
 }
 
 // Describes one filled or stroked shape of a parsed [[Pixel.Svg.Drawing]].
@@ -134,6 +140,7 @@ struct Drawing
     paintBins:       Array'PaintBin                 // Spatial buckets of paint item indices.
     paintBlocks:     Array'PaintBlock               // Bounds of consecutive runs of paint items.
     strokes:         Array'ShapeStroke              // Paint and line style for stroked shapes.
+    dashValues:      Array'f32                      // Resolved dash lengths, shared where possible.
     gradientBrushes: Array'SvgGradientBrush         // Resolved gradient geometry and tint.
     gradientStops:   Array'Array'GradientStop       // Stops shared by placements of the same gradient.
     scanFills:       Array'ScanFill                 // Raster caches for dense solid fills.
@@ -388,6 +395,14 @@ private struct CachedExternalRaster
     index:   u64
 }
 
+private struct ParsedDashPattern
+{
+    lengths:          Array'SvgLength
+    resolved:         DashRange
+    geometryScale:    u32
+    viewportDiagonal: u32
+}
+
 private struct Parser
 {
     text:    string     // Whole document.
@@ -407,8 +422,7 @@ private struct Parser
     patterns:       HashTable'(u64, Pattern)
     filters:        HashTable'(u64, SvgFilter)
     styles:         StyleSheet
-    dashPatterns:   HashTable'(string, Array'SvgLength)
-    dashScratch:    Array'SvgLength
+    dashPatterns:   HashTable'(string, ParsedDashPattern)
     embeddedImages: HashTable'(string, u64)     // Raster indices plus one, keyed by the authored URI.
     externalImages: HashTable'(string, CachedExternalRaster)     // Encoded bytes and raster indices for small files.
     options:        ParseOptions
@@ -2038,25 +2052,87 @@ private func(Candidates) appendHoles(group: *LinePathList, paths: const *LinePat
 
 private impl Parser
 {
-    mtd strokeDashes(value: string)->const *Array'SvgLength?
+    mtd appendDashValues(lengths: const [..] SvgLength, geometryScale, viewportDiagonal: f32)->DashRange
     {
-        if not value.count do
-            return null
-
-        let key = .sourceView(value)
-        if let existing = .dashPatterns.tryFind(key) do
-            return &existing.value
-
-        var parsed = parseDashPattern(key)
-
-        // Keep the cache small even when every shape declares a different dash array.
-        if .dashPatterns.count >= 64 or parsed.count > 64
+        let first = .drawing.dashValues.count
+        .drawing.dashValues.resize(first + lengths.count)
+        for value, index in lengths
         {
-            .dashScratch = #move parsed
-            return &.dashScratch
+            let length = value.isPercent ? value.value * viewportDiagonal : value.value
+            .drawing.dashValues[first + index] = length * geometryScale
         }
 
-        return &.dashPatterns.add(key, #move parsed).value
+        return DashRange{first, lengths.count}
+    }
+
+    mtd resolveStrokePattern(stroke: *ShapeStroke, value: string, geometryScale, viewportDiagonal: f32)
+    {
+        if not value.count do
+            return
+
+        let key   = .sourceView(value)
+        var entry = .dashPatterns.tryFind(key)
+        if not entry
+        {
+            var lengths = parseDashPattern(key)
+
+            // Bound the cache for artwork with a unique pattern on each shape.
+            if .dashPatterns.count >= 64 or lengths.count > 64
+            {
+                stroke.pattern = .appendDashValues(lengths.toSlice(), geometryScale, viewportDiagonal)
+                return
+            }
+
+            entry = .dashPatterns.add(key, {lengths: #move lengths})
+        }
+
+        let pattern = &entry.value
+        if pattern.lengths.isEmpty() do
+            return
+
+        let scaleBits    = cast #bit(u32, geometryScale)
+        let diagonalBits = cast #bit(u32, viewportDiagonal)
+
+        // Keep the first resolution of each pattern so calibration has a single stable
+        // source even when successive shapes use different transforms.
+        if not pattern.resolved.count
+        {
+            pattern.resolved         = .appendDashValues(pattern.lengths.toSlice(), geometryScale, viewportDiagonal)
+            pattern.geometryScale    = scaleBits
+            pattern.viewportDiagonal = diagonalBits
+        }
+
+        if pattern.geometryScale == scaleBits and pattern.viewportDiagonal == diagonalBits
+        {
+            stroke.pattern       = pattern.resolved
+            stroke.sharedPattern = true
+        }
+        else
+        {
+            stroke.pattern = .appendDashValues(pattern.lengths.toSlice(), geometryScale, viewportDiagonal)
+        }
+    }
+
+    mtd scaleDashValues(stroke: *ShapeStroke, scale: f32)
+    {
+        let range = stroke.pattern
+        if not range.count do
+            return
+
+        if stroke.sharedPattern
+        {
+            let first = .drawing.dashValues.count
+            .drawing.dashValues.resize(first + range.count)
+            for i in range.count do
+                .drawing.dashValues[first + i] = .drawing.dashValues[range.first + i] * scale
+            stroke.pattern.first = first
+            stroke.sharedPattern = false
+        }
+        else
+        {
+            for i in range.count do
+                .drawing.dashValues[range.first + i] *= scale
+        }
     }
 
     mtd emitShape(list: #move LinePathList, state: *GroupState)
@@ -2165,15 +2241,7 @@ private impl Parser
             let viewportDiagonal = Math.sqrt(.drawing.width * .drawing.width + .drawing.height * .drawing.height) / Math.ConstF32.Sqrt2
             stroke.offset = (state.strokeOffset.isPercent ? state.strokeOffset.value * viewportDiagonal : state.strokeOffset.value) * geometryScale
             stroke.miter  = state.strokeMiter
-            if let dashes = .strokeDashes(state.strokePattern)
-            {
-                stroke.pattern.reserve(dashes.count)
-                for value in dashes
-                {
-                    let length = value.isPercent ? value.value * viewportDiagonal : value.value
-                    stroke.pattern.add(length * geometryScale)
-                }
-            }
+            .resolveStrokePattern(stroke, state.strokePattern, geometryScale, viewportDiagonal)
 
             stroke.capStyle  = state.capStyle
             stroke.joinStyle = state.joinStyle
@@ -2791,8 +2859,7 @@ private impl Parser
             let shape = &.drawing.shapes[first + i]
             if let stroke = .drawing.strokeFor(shape)
             {
-                for &value in stroke.pattern do
-                    value[] *= scale
+                .scaleDashValues(stroke, scale)
                 stroke.offset *= scale
             }
         }
@@ -4210,9 +4277,16 @@ private impl Parser
                     let scale  = transformScale(state.transform)
                     stroke.width  *= scale
                     stroke.offset *= scale
-                    for &value in stroke.pattern do
-                        value[] *= scale
-                    .drawing.strokes.add(#move stroke)
+                    if stroke.pattern.count
+                    {
+                        stroke.sharedPattern = true
+                        if scale == 1 do
+                            original.sharedPattern = true
+                        else do
+                            .scaleDashValues(&stroke, scale)
+                    }
+
+                    .drawing.strokes.add(stroke)
                     strokeIndex = .drawing.strokes.count
                 }
 
@@ -4702,9 +4776,10 @@ impl Drawing
             pen.joinStyle      = stroke.joinStyle
             pen.joinMiterLimit = stroke.miter
             pen.dashOffset     = stroke.offset
-            if not stroke.pattern.isEmpty()
+            if stroke.pattern.count
             {
-                pen.pattern = stroke.pattern
+                let range = stroke.pattern
+                pen.pattern.add(.dashValues.toSlice()[range.first until range.first + range.count])
                 if Math.abs(stroke.width) > 0.000001
                 {
                     for &value in pen.pattern do

@@ -158,6 +158,8 @@ private impl TagBin
     {
         for buf in .freeTmpBuf do
             Memory.delete(buf)
+        for &element in .elemStack where element.tmpBuf do
+            Memory.delete(element.tmpBuf)
     }
 
     mtd acquireTmpBuf()->*ConcatBuffer
@@ -297,6 +299,8 @@ impl TagBin
         .shapeIds.clear()
         .shapePlans.clear()
         .outStack.clear()
+        for &element in .elemStack where element.tmpBuf do
+            .releaseTmpBuf(element.tmpBuf)
         .elemStack.clear()
         .sections.clear()
     }
@@ -309,6 +313,7 @@ impl TagBin
         header.addNative(TagBinVersion1)
 
         let schema = .rootType ? wireSchema(.rootType) : .schema.toString()
+        .rootType = null
         .writeVarintTo(header, schema.count)
         header.addBytes(schema)
 
@@ -388,7 +393,6 @@ impl TagBin
         }
 
         .body.clear()
-        .rootType = null
     }
 
     // Opens a section of kind `kind`.

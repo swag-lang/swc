@@ -4187,14 +4187,7 @@ private impl RenderCpu
     func scanAlpha4(values: const [*] f32, scale: Math.Simd.F32x4)->Math.Simd.U32x4
     {
         let scaled = Math.Simd.load(values) * scale
-        let whole  = Math.floor(scaled)
-
-        // Keep the scalar rounding at values just below a half-integer.
-        let roundUp = (scaled - whole >= Math.Simd.splat(0.5'f32)) & 1'u32
-
-        // Integers this small map directly to the low mantissa bits at 2^23.
-        let biased = cast #bit(Math.Simd.U32x4, whole + Math.Simd.splat(8_388_608.0'f32))
-        return biased - 0x4B00_0000'u32 + roundUp
+        return roundScanAlpha4(scaled)
     }
 
     mtd drawScanFillBand(scratch: *ScanScratch, crossings: [..] ScanSample, image: *Image, fill: const *ScanFillBatch, left, y, width, height, firstRow: s32)

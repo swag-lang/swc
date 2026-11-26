@@ -50,3 +50,20 @@ JPEG stream per page. Each stream contains a different JPEG comment.
 python3 bench/workloads/pdfwrite/repeated_fixture.py \
   /tmp/pdfraster/perf_images_jpeg_large.pdf /tmp/pdfwrite/many-jpeg-16.pdf --distinct 16
 ```
+
+## Many empty pages
+
+Use the same pypdfium2 installation as the benchmark to make the
+2,000-page fixture. Pass its path to the runner as `--case`.
+
+```sh
+python3 - /tmp/pdfwrite/pdfium-blank-pages-2000.pdf <<'PYCODE'
+import sys
+from pypdfium2 import PdfDocument
+
+with PdfDocument.new() as document:
+    for _ in range(2000):
+        document.new_page(10, 10).close()
+    document.save(sys.argv[1])
+PYCODE
+```

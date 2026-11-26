@@ -3,6 +3,12 @@
 
 using Swag, Core.Errors
 
+internal struct JsonObject
+{
+    properties:  HashTable'(String, u64)
+    endPosition: u64
+}
+
 // Reads declaration-driven JSON objects independently of property order.
 //
 // Missing fields retain their initialized value and unknown properties are ignored.
@@ -13,13 +19,11 @@ public struct Json
 {
     internal
     {
-        stream:         ByteStream     // Input cursor.
-        propName:       String         // Reusable decoded property name.
-        containerKinds: [64] u8        // Zero for arrays and one for objects.
-        contentStarts:  [64] u64       // First byte inside each active object.
-        endPositions:   [64] u64       // First byte after each active object.
-        firstValues:    [64] bool      // Whether an active array has read no value yet.
-        containerDepth: u64            // Number of active array and object scopes.
+        stream:         ByteStream           // Input cursor.
+        objects:        Array'JsonObject     // Active object indexes, outermost first.
+        containerKinds: [64] u8              // Zero for arrays and one for objects.
+        firstValues:    [64] bool            // Whether an active array has read no value yet.
+        containerDepth: u64                  // Number of active array and object scopes.
     }
 }
 
@@ -115,12 +119,22 @@ public impl Json
         return 0x10000 + ((firstCodeUnit - 0xD800) << 10) + lowSurrogate - 0xDC00
     }
 
-    internal mtd readString(result: *String) fail
+    internal mtd readString(result: *String?) fail
     {
         try .expectByte('"', "JSON string is missing its opening quote")
-        result.clear()
+        if result do
+            result.clear()
         while true
         {
+            let bytes  = .stream.remainingBytes()
+            let length = jsonPlainByteCount(bytes)
+            if length
+            {
+                if result do
+                    result.append(Swag.makeString(bytes.buffer, length))
+                .stream.advance(length)
+            }
+
             let c = .stream.readU8()
             if not c do
                 fail .getError("JSON string is missing its closing quote")
@@ -128,25 +142,25 @@ public impl Json
                 return
             if c < 0x20 do
                 fail .getError("JSON string contains an unescaped control character")
-            if c != '\\'
-            {
-                result.append(c)
-                continue
-            }
+            let escaped = try .readStringEscape()
+            if result do
+                result.append(escaped)
+        }
+    }
 
-            switch .stream.readU8()
-            {
-            case '"':  result.append('"'u8)
-            case '\\': result.append('\\'u8)
-            case '/':  result.append('/'u8)
-            case 'b':  result.append('\b'u8)
-            case 'f':  result.append('\f'u8)
-            case 'n':  result.append('\n'u8)
-            case 'r':  result.append('\r'u8)
-            case 't':  result.append('\t'u8)
-            case 'u':  result.append(cast(rune, (try .readUnicodeEscape())))
-            default:   fail .getError("JSON string contains an unknown escape sequence")
-            }
+    private mtd readStringEscape()->rune fail
+    {
+        let c = .stream.readU8()
+        switch c
+        {
+        case '"', '\\', '/': return cast(rune, c)
+        case 'b': return '\b'
+        case 'f': return '\f'
+        case 'n': return '\n'
+        case 'r': return '\r'
+        case 't': return '\t'
+        case 'u': return cast(rune, (try .readUnicodeEscape()))
+        default:  fail .getError("JSON string contains an unknown escape sequence")
         }
     }
 
@@ -204,7 +218,7 @@ public impl Json
         }
     }
 
-    internal mtd skipValue(depth = 0'u32) fail
+    internal mtd skipValue(depth: u32) fail
     {
         if depth >= 64 do
             fail .getError("JSON nesting is too deep")
@@ -212,12 +226,12 @@ public impl Json
         switch .stream.peekU8()
         {
         case '"':
-            var ignored: String
-            try .readString(&ignored)
+            try .readString(null)
 
         case '{':
             .stream.advance()
-            try .skipObjectContent(depth + 1)
+            var properties: HashTable'(String, u64)
+            try .scanObject(&properties, depth + 1)
 
         case '[':
             .stream.advance()
@@ -256,7 +270,7 @@ public impl Json
         }
     }
 
-    internal mtd skipObjectContent(depth = 0'u32) fail
+    private mtd scanObject(properties: *HashTable'(String, u64), depth: u32) fail
     {
         .zapBlanks()
         if .stream.peekU8() == '}'
@@ -265,17 +279,18 @@ public impl Json
             return
         }
 
-        var names:   HashSet'String
-        var ignored: String
+        var name: String
         while true
         {
-            try .readString(&ignored)
-            if names.contains(ignored) do
+            try .readString(&name)
+            let property = properties.findOrAdd(name)
+            if property.value do
                 fail .getError("JSON object contains a duplicate property")
-            names.add(ignored)
 
             .zapBlanks()
             try .expectByte(':', "JSON property is missing a colon after its name")
+            .zapBlanks()
+            property.value = .stream.position()
             try .skipValue(depth)
 
             .zapBlanks()
@@ -296,28 +311,26 @@ public impl Json
             fail .getError("JSON nesting is too deep")
         .zapBlanks()
         try .expectByte('{', "JSON object is missing its opening brace")
+        let contentStart = .stream.position()
 
-        let index = .containerDepth
-        .containerKinds[index] = 1
-        .contentStarts[index]  = .stream.position()
-
-        // Validate the whole object, then rewind so fields can be requested in any order.
-        try .skipObjectContent(1)
-        .endPositions[index] = .stream.position()
-        .stream.setPosition(.contentStarts[index])
+        // Validate even unknown properties while indexing values in this object once.
+        var object: JsonObject
+        try .scanObject(&object.properties, 1)
+        object.endPosition = .stream.position()
+        .objects.add(#move object)
+        .stream.setPosition(contentStart)
+        .containerKinds[.containerDepth] = 1
         .containerDepth += 1
     }
-
-    internal mtd propertyMatches(val: TypeValue)->bool => .propName == wireFieldKey(val)
 
     // Starts reading a borrowed JSON buffer.
     mtd startRead(input: const [..] u8) fail
     {
         .stream = ByteStream.openRead(input)
+        .objects.clear()
+        .containerDepth = 0
         if not Utf8.isValid(input) do
             fail .getError("JSON document is not valid UTF-8")
-        .propName.clear()
-        .containerDepth = 0
     }
 
     // Begins an array.
@@ -366,7 +379,8 @@ public impl Json
     // Ends an object section.
     mtd endSection() fail
     {
-        .stream.setPosition(.endPositions[.containerDepth - 1])
+        .stream.setPosition(.objects.backPtr().endPosition)
+        .objects.removeBack()
         .containerDepth -= 1
     }
 
@@ -385,48 +399,18 @@ public impl Json
     {
         if not .containerDepth do
             fail .getError("JSON property is outside an object")
-        let index = .containerDepth - 1
-        if .containerKinds[index] != 1 do
+        if .containerKinds[.containerDepth - 1] != 1 do
             fail .getError("JSON named property is inside an array")
 
-        .stream.setPosition(.contentStarts[index])
-        .zapBlanks()
-        if .stream.peekU8() == '}' do
-            return false
-
-        // Remember the match while checking the remaining properties for duplicates.
-        var foundPosition = Swag.U64.Max
-        while true
+        let object   = .objects.backPtr()
+        let property = object.properties.tryFind(String.from(wireFieldKey(val)))
+        if not property
         {
-            try .readString(&.propName)
-            .zapBlanks()
-            try .expectByte(':', "JSON property is missing a colon after its name")
-            .zapBlanks()
-            let valuePosition = .stream.position()
-            if .propertyMatches(val)
-            {
-                if foundPosition != Swag.U64.Max do
-                    fail .getError("JSON object contains a duplicate property")
-                foundPosition = valuePosition
-            }
-
-            try .skipValue()
-            .zapBlanks()
-            let separator = .stream.readU8()
-            if separator == '}' do
-                break
-            if separator != ',' do
-                fail .getError("JSON object needs a comma between properties")
-            .zapBlanks()
-        }
-
-        if foundPosition == Swag.U64.Max
-        {
-            .stream.setPosition(.endPositions[index])
+            .stream.setPosition(object.endPosition)
             return false
         }
 
-        .stream.setPosition(foundPosition)
+        .stream.setPosition(property.value)
         return true
     }
 

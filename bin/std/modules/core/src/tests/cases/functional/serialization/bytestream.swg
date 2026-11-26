@@ -223,15 +223,17 @@ using Swag
 {
     var buffer: Array'u8
     var writer = ByteStream.openWrite(&buffer)
-    writer.writeSizedString("sample")
+    writer.writeSizedString("sample with 16 B")
     writer.writeSizedString("")
 
     // A 32-bit little-endian byte count precedes the bytes.
-    Swag.require(buffer.count == 4 + 6 + 4)
-    Swag.require(Slice.equals(buffer[0 until 4], [6, 0, 0, 0]))
+    Swag.require(buffer.count == 4 + 16 + 4)
+    Swag.require(Slice.equals(buffer[0 until 4], [16, 0, 0, 0]))
 
-    var reader = ByteStream.openRead(buffer.toSlice())
-    Swag.require(expect reader.readSizedString() == "sample")
+    var reader  = ByteStream.openRead(buffer.toSlice())
+    let decoded = expect reader.readSizedString()
+    Swag.require(decoded == "sample with 16 B")
+    Swag.require(decoded.capacity > decoded.count and decoded.buffer![decoded.count] == 0)
     Swag.require((expect reader.readSizedString()).isEmpty())
     Swag.require(reader.isEof() or reader.position() == buffer.count)
 }

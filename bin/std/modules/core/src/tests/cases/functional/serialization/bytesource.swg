@@ -219,6 +219,14 @@ func writeSourceFixture(name: string, count: u64)->String
     Swag.require(sourceMatches(head, 0))
     Swag.require(source.position() == 0)
 
+    // A zero minimum still exposes the read window at an exact boundary.
+    expect source.seek(ByteSource.WindowSize)
+    let next = expect source.peek(0)
+    Swag.require(next.count == ByteSource.WindowSize)
+    Swag.require(sourceMatches(next, ByteSource.WindowSize))
+    expect source.seek(0)
+    discard expect source.peek(16)
+
     // A scanner that advances inside the window keeps reading the same fill.
     expect source.skip(1000)
     let inside = expect source.peek(16)
@@ -251,6 +259,27 @@ func writeSourceFixture(name: string, count: u64)->String
     var bytes: [3] u8
     expect source.readExact(bytes)
     Swag.require(sourceMatches(bytes, Count - 3))
+    Swag.require(source.isAtEnd())
+}
+
+// CR and LF can land on opposite sides of a window, even at the exact byte limit.
+#test
+{
+    let path = CoreTests.makeFilesystemTestPath("bytesource_split_line.txt")
+    defer discard catch File.delete(path)
+    var bytes: Array'u8
+    bytes.resize(ByteSource.WindowSize + 3)
+    bytes.fill('a')
+    bytes[ByteSource.WindowSize - 1] = '\r'
+    bytes[ByteSource.WindowSize]     = '\n'
+    bytes[ByteSource.WindowSize + 2] = '\n'
+    discard expect File.writeAllBytes(path, bytes.toSlice())
+
+    var source = expect ByteSource.openFile(path)
+    let line   = expect source.readLine(ByteSource.WindowSize)
+    Swag.require(Slice.equals(line.toSlice(), bytes.toSlice()[until ByteSource.WindowSize - 1]))
+    Swag.require(source.position() == ByteSource.WindowSize + 1)
+    Swag.require(expect source.readLine(1) == "a")
     Swag.require(source.isAtEnd())
 }
 

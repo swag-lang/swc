@@ -366,17 +366,22 @@ impl Encoder
     // Writes the struct `value` as a complete document to `result`.
     //
     // This is [[Core.Serialization.Encoder.start]], [[Core.Serialization.Encoder.writeValue]],
-    // then [[Core.Serialization.Encoder.end]].
+    // then [[Core.Serialization.Encoder.end]]. When appending, a returned error leaves the
+    // existing bytes and cursor intact.
     mtd writeAll(result: *ConcatBuffer, value: any) fail
     {
         Swag.assert(Reflection.isStruct(Swag.kindOf(value)))
-        try .start(result, Swag.kindOf(value))
+        let start     = result.position()
+        let appending = ConcatBuffer.offsetOf(start) == result.count()
         defer #fail
         {
+            if appending do
+                result.truncate(start)
             #static if T == Write.Xml do
                 .serializer.abortWrite()
         }
 
+        try .start(result, Swag.kindOf(value))
         try .writeValue(value.buffer, Swag.kindOf(value))
         try .end()
     }

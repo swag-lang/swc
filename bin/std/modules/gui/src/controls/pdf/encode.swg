@@ -694,8 +694,25 @@ private impl Writer
         let xref = .position()
         .append(Format.toString("xref\n0 %\n", nextObject).toString())
         .append("0000000000 65535 f \n")
-        for number in 1'u32 until nextObject do
-            .append(Format.toString("%{D010} 00000 n \n", .offsets[number]).toString())
+        // Classic in-use entries occupy 20 bytes, including the final line feed.
+        var entry: [20] u8
+        const InUse = " 00000 n \n"
+        Memory.copy(&entry[10], InUse.buffer, InUse.count)
+        for number in 1'u32 until nextObject
+        {
+            var offset = .offsets[number]
+            if offset >= 10_000_000_000'u64
+            {
+                .append(Format.toString("%{D010} 00000 n \n", offset).toString())
+                continue
+            }
+            for digit in 10
+            {
+                entry[9 - digit] = '0'u8 + cast(u8, offset % 10)
+                offset /= 10
+            }
+            .bytes.add(cast(const [..] u8, entry))
+        }
         .append(Format.toString("trailer\n<< /Size % /Root % 0 R /Info % 0 R >>\nstartxref\n%\n%%EOF\n", nextObject, CatalogObject, InfoObject, xref).toString())
     }
 

@@ -236,6 +236,20 @@ internal impl ScanScratch
     }
 }
 
+// Quantizes four nonnegative coverage values with the scalar half-up rule.
+#[Swag.Inline]
+internal func roundScanAlpha4(scaled: Math.Simd.F32x4)->Math.Simd.U32x4
+{
+    let whole  = Math.floor(scaled)
+
+    // Keep the scalar rounding at values just below a half-integer.
+    let roundUp = (scaled - whole >= Math.Simd.splat(0.5'f32)) & 1'u32
+
+    // Integers this small map directly to the low mantissa bits at 2^23.
+    let biased = cast #bit(Math.Simd.U32x4, whole + Math.Simd.splat(8_388_608.0'f32))
+    return biased - 0x4B00_0000'u32 + roundUp
+}
+
 internal func addScanContour(crossings: [..] ScanSample, points: const [..] Vector2, transform: const *Transform2, density: f32, origin: Vector2, uniform: bool, width: f32, minimumX = 0.0'f32, firstRow = 0's32)
 {
     #[Swag.Inline]

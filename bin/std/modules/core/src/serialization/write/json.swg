@@ -58,48 +58,54 @@ impl Json
 
     internal mtd writeString(value: string?)
     {
-        if value and not Utf8.isValid(cast(const [..] u8, value)) do
-            .invalidUtf8 = true
-
         const Hex = "0123456789ABCDEF"
 
         .output.addNative('"'u8)
-        for c in value
+        if value
         {
-            switch c
+            var bytes = cast(const [..] u8, value)
+            if not Utf8.isValid(bytes) do
+                .invalidUtf8 = true
+
+            while bytes.count
             {
-            case '"':
-                .output.addBytes("\\\"")
+                let plain = jsonPlainByteCount(bytes)
+                if plain do
+                    .output.addBytes(bytes[until plain], contiguous: false)
+                if plain == bytes.count do
+                    break
 
-            case '\\':
-                .output.addBytes("\\\\")
-
-            case '\b':
-                .output.addBytes("\\b")
-
-            case '\f':
-                .output.addBytes("\\f")
-
-            case '\n':
-                .output.addBytes("\\n")
-
-            case '\r':
-                .output.addBytes("\\r")
-
-            case '\t':
-                .output.addBytes("\\t")
-
-            default:
-                if c < 0x20
+                let c = bytes[plain]
+                switch c
                 {
+                case '"':
+                    .output.addBytes("\\\"")
+
+                case '\\':
+                    .output.addBytes("\\\\")
+
+                case '\b':
+                    .output.addBytes("\\b")
+
+                case '\f':
+                    .output.addBytes("\\f")
+
+                case '\n':
+                    .output.addBytes("\\n")
+
+                case '\r':
+                    .output.addBytes("\\r")
+
+                case '\t':
+                    .output.addBytes("\\t")
+
+                default:
                     .output.addBytes("\\u00")
                     .output.addNative(Hex[c >> 4])
                     .output.addNative(Hex[c & 0x0F])
                 }
-                else
-                {
-                    .output.addNative(c)
-                }
+
+                bytes = bytes[plain + 1 until bytes.count]
             }
         }
 

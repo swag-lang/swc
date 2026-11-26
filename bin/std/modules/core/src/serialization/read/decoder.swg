@@ -204,8 +204,15 @@ impl Decoder
             fail SerializationError{"missing type value pointed type"}
         if not data do
             fail SerializationError{"missing data for type value"}
-        discard try .serializer.beginElement(typedVal)
-        try .readTypedContent(data, typedVal.pointedType)
+        let found = try .serializer.beginElement(typedVal)
+        scope
+        {
+            defer #fail catch .serializer.endElement(typedVal)
+            if not found do
+                fail SerializationError{"serialized type value is missing"}
+            try .readTypedContent(data, typedVal.pointedType)
+        }
+
         try .serializer.endElement(typedVal)
     }
 
@@ -221,6 +228,7 @@ impl Decoder
 
         try .serializer.beginValue()
         defer #nofail try .serializer.endValue()
+        defer #fail catch .serializer.endValue()
 
         // Native
         if type.kind == .Native
@@ -307,6 +315,7 @@ impl Decoder
 
             try .serializer.beginSection(.Raw)
             defer #nofail try .serializer.endSection()
+            defer #fail catch .serializer.endSection()
 
             var objType, itfType: typeinfo?
             var typeVal: TypeValue
@@ -371,6 +380,7 @@ impl Decoder
                 var count   = 0'u64
                 let treated = try .serializer.beginSequence(type, data, &count)
                 defer #nofail try .serializer.endSequence()
+                defer #fail catch .serializer.endSequence()
 
                 if not treated
                 {
@@ -402,6 +412,7 @@ impl Decoder
             let structType = assume cast(const *TypeInfoStruct, type)
             let treated    = try .serializer.beginStruct(structType, data)
             defer #nofail try .serializer.endStruct()
+            defer #fail catch .serializer.endStruct()
             if treated
             {
                 if itf do
@@ -441,19 +452,31 @@ impl Decoder
                     continue
                 }
 
-                defer #nofail try .serializer.endElement(field.value)
-                if not readField do
+                if not readField
+                {
+                    try .serializer.endElement(field.value)
                     continue
+                }
 
-                catch .readTypedContent(fieldData, fieldType)
+                catch
+                {
+                    defer #fail catch .serializer.endElement(field.value)
+                    try .readTypedContent(fieldData, fieldType)
+                }
                 {
                     if not (.flags & .IgnoreStructFieldError) do
                         fail Swag.err
-                    #static if T == Read.TagBin do
+                    #static if T == Read.TagBin
+                    {
                         .serializer.diag.fieldErrors += 1
+                        .serializer.recoverElement()
+                    }
+
                     Reflection.reset(fieldData, fieldType)
                     continue
                 }
+
+                try .serializer.endElement(field.value)
             }
 
             // Rebuild derived state after all fields have been read.
@@ -474,6 +497,7 @@ impl Decoder
             var count    = typeArr.count
             let treated  = try .serializer.beginSequence(elemType, data, &count)
             defer #nofail try .serializer.endSequence()
+            defer #fail catch .serializer.endSequence()
             if treated
             {
                 try validateDecodedEnumOrBoolean(enumType, data)
@@ -535,7 +559,7 @@ impl Decoder
         .readAllAllocations.clear()
         .trackReadAllAllocations = true
         var decoded = false
-        defer #fail
+        defer
         {
             .trackReadAllAllocations = false
             if not decoded
@@ -575,8 +599,13 @@ impl IDecoder for Decoder
 
     mtd impl beginField(val: Swag.TypeValue)->bool fail
     {
-        if not (try .serializer.beginElement(val)) do
+        if not (try .serializer.beginElement(val))
+        {
+            try .serializer.endElement(val)
             return false
+        }
+
+        defer #fail catch .serializer.endElement(val)
         try .serializer.beginValue()
         return true
     }

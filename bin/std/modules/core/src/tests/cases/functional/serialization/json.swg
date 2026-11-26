@@ -152,7 +152,7 @@ func assertJsonPayload(value: JsonPayload)->bool
 
 #test
 {
-    let source:  String = "{\"wireName\":42}"
+    let source:  String = "{\"wire\\u004eame\":42}"
     var decoder: Serialization.Decoder'Serialization.Read.Json
     let decoded         = expect decoder.readAll'JsonKeyPayload(source.toSlice())
     defer Memory.delete(decoded)
@@ -327,6 +327,7 @@ func assertJsonPayload(value: JsonPayload)->bool
 {
     const InvalidJson = [
         "{\"id\":1,\"id\":2}",
+        "{\"id\":1,\"\\u0069d\":2}",
         "{\"id\":01}",
         "{\"id\":1,}",
         "{\"id\":1} trailing",
@@ -339,6 +340,8 @@ func assertJsonPayload(value: JsonPayload)->bool
         "{\"unknown\":1.}",
         "{\"unknown\":1e+}",
         "{\"unknown\":truex}",
+        "{\"unknown\":\"skipped\\uD800\"}",
+        "{\"unknown\":{\"x\":1,\"\\u0078\":2}}",
         "{\"unknown\" 1,\"id\":2}",
         "{\"unknown\":1\f,\"id\":2}"]
 
@@ -366,9 +369,14 @@ func assertJsonPayload(value: JsonPayload)->bool
     const InvalidUtf8: [1] u8 = [0xFF]
     let value = JsonStringPayload{text: Swag.makeString(&InvalidUtf8[0], InvalidUtf8.count)}
 
-    var encoder:      Serialization.Encoder'Serialization.Write.Json
-    var output:       ConcatBuffer
+    var encoder: Serialization.Encoder'Serialization.Write.Json
+    var output:  ConcatBuffer
+    output.setBucketSize(4)
+    output.addBytes("prefix")
     var errorOutcome: Swag.Error
     discard catch encoder.writeAll(&output, value) as errorOutcome
     Swag.require(errorOutcome.value() is Errors.SerializationError)
+    Swag.require(output.toString() == "prefix")
+    expect encoder.writeAll(&output, JsonStringPayload{text: "good"})
+    Swag.require(output.toString() == "prefix{\"text\":\"good\"}")
 }

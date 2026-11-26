@@ -209,20 +209,22 @@ impl ByteSink
             return
         }
 
-        // Container headers are usually still in the write window. Patch them in place instead
-        // of turning each box size into a flush, positional write and seek back to the end.
         let pendingStart = .written - .pendingCount
-        if offset >= pendingStart
+        var committed    = 0'u64
+        if offset < pendingStart
         {
-            Memory.copy(.pending.storage() + offset - pendingStart, bytes.buffer, count)
-            return
+            // Only the prefix already in the file needs I/O. Restore the native cursor to
+            // where the pending window starts so it can still be written as one batch.
+            committed = Math.min(count, pendingStart - offset)
+            try .writeFileAllAt(offset, bytes[until committed])
+            if offset + committed != pendingStart do
+                try .seekFile(pendingStart)
         }
 
-        // An older or straddling patch reaches the file. Flush first so pending bytes cannot
-        // overwrite its new contents later, then restore the append cursor.
-        try .flush()
-        try .writeFileAllAt(offset, bytes)
-        try .seekFile(.written)
+        if committed < count do
+            Memory.copy(.pending.storage() + (offset + committed - pendingStart),
+                        bytes.buffer + committed,
+                        count - committed)
     }
 
     // Hands every buffered byte to the file; a memory sink has nothing to flush.

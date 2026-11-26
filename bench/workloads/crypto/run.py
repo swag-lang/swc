@@ -36,6 +36,7 @@ REFERENCES = {
     "chacha20-poly1305": {"OpenSSL": "chacha20-poly1305"},
     "aes-256-ctr": {"OpenSSL": "aes-256-ctr"},
     "aes-256-gcm": {"OpenSSL": "aes-256-gcm"},
+    "aes-256-gcm-aad": {"OpenSSL": "aes-256-gcm-aad"},
 }
 DEFAULT_ALGORITHMS = tuple(REFERENCES)
 REFERENCES.update({name: {"OpenSSL": name} for name in ("hmac-sha384", "hmac-sha512")})

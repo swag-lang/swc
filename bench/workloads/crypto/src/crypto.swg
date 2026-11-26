@@ -70,6 +70,9 @@ func aes256Ctr(input: const [..] u8, output: [..] u8) =>
 func aes256Gcm(input: const [..] u8, output: [..] u8) =>
     expect Crypto.aesGcmEncrypt(Key, Nonce, AssociatedData, input, output[until input.count], output[input.count until output.count])
 
+func aes256GcmAad(input: const [..] u8, output: [..] u8) =>
+    expect Crypto.aesGcmEncrypt(Key, Nonce, input, "", output[until 0], output)
+
 func x25519Public(input: const [..] u8, output: [..] u8) =>
     expect Crypto.x25519PublicKey(input, output)
 
@@ -114,6 +117,7 @@ func selectOperation(name: string, size: u64)->{operation: Operation, outputSize
     case "chacha20-poly1305": return {&chacha20Poly1305, size + 16}
     case "aes-256-ctr":       return {&aes256Ctr, size}
     case "aes-256-gcm":       return {&aes256Gcm, size + 16}
+    case "aes-256-gcm-aad":   return {&aes256GcmAad, 16}
     case "x25519-public":     return {&x25519Public, 32}
     case "x25519-shared":     return {&x25519Shared, 32}
     case "ed25519-public":    return {&ed25519Public, 32}

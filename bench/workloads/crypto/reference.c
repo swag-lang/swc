@@ -142,6 +142,16 @@ static void encrypt_evp(const unsigned char *p, size_t n, unsigned char *out)
                 "OpenSSL authentication tag failed");
 }
 
+static void authenticate_aad_evp(const unsigned char *p, size_t n, unsigned char *out)
+{
+    int used = 0;
+    require(EVP_EncryptInit_ex2(cipher_context, cipher, key, nonce, NULL) &&
+            EVP_EncryptUpdate(cipher_context, NULL, &used, p, (int)n) &&
+            EVP_EncryptFinal_ex(cipher_context, out, &used) && used == 0 &&
+            EVP_CIPHER_CTX_ctrl(cipher_context, EVP_CTRL_AEAD_GET_TAG, 16, out),
+            "OpenSSL AAD authentication failed");
+}
+
 static EVP_PKEY *import_private(const char *name, const unsigned char *bytes, size_t size)
 {
     EVP_PKEY *private_key = EVP_PKEY_new_raw_private_key_ex(NULL, name, NULL, bytes, size);
@@ -316,6 +326,15 @@ static operation select_operation(const char *name, size_t input_size, size_t *r
         mac_size = poly1305 ? 16 : hmac384 ? 48 : 64;
         *result_size = mac_size;
         return mac_evp;
+    }
+
+    if (!strcmp(name, "aes-256-gcm-aad")) {
+        cipher = EVP_CIPHER_fetch(NULL, "aes-256-gcm", NULL);
+        require(cipher != NULL, "OpenSSL could not fetch AES-256-GCM");
+        cipher_context = EVP_CIPHER_CTX_new();
+        require(cipher_context != NULL, "OpenSSL could not allocate a cipher context");
+        *result_size = 16;
+        return authenticate_aad_evp;
     }
 
     if (!strcmp(name, "chacha20") || !strcmp(name, "chacha20-poly1305") ||

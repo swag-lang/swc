@@ -6138,7 +6138,8 @@ impl Drawing
         let sampledWidth  = tileWidth * ss
         let sampledHeight = tileHeight * ss
         let mask          = .rasterMask()
-        let paired        = cpu != null and ss == 1 and mask == .Color and .canShareMatteCoverage()
+        let paired        = cpu != null and ss <= 8 and mask == .Color and .canShareMatteCoverage()
+        let pairedResolve = paired and ss > 1
 
         // Strokes use destination alpha as scratch. Recover source-over coverage from two
         // opaque mattes instead: white minus black is the uncovered fraction. Each matte
@@ -6166,6 +6167,14 @@ impl Drawing
         defer if paired do
             renderer.deleteRenderTarget(&whiteMatte)
         if paired and not whiteMatte.colorBuffer.isValid() do
+            return {}
+
+        var whiteResolved: RenderTarget
+        if pairedResolve do
+            whiteResolved = renderer.createRenderTarget(tileWidth, tileHeight)
+        defer if pairedResolve do
+            renderer.deleteRenderTarget(&whiteResolved)
+        if pairedResolve and not whiteResolved.colorBuffer.isValid() do
             return {}
 
         var tileY = 0
@@ -6205,7 +6214,7 @@ impl Drawing
 
                     // Average each matte before recovering straight RGB; averaging straight
                     // translucent colors would introduce a fringe along antialiased contours.
-                    if ss > 1
+                    if ss > 1 and not paired
                     {
                         let dstRect = Math.Rectangle{0, 0, cast(f32, tileWidth), cast(f32, tileHeight)}
                         let srcRect = Math.Rectangle{0, 0, cast(f32, sampledWidth), cast(f32, sampledHeight)}
@@ -6235,6 +6244,14 @@ impl Drawing
                     }
                 }
 
+                if pairedResolve
+                {
+                    // Both mattes are complete before either target is sampled.
+                    let software = unwrap cpu
+                    software.resolveSvgTarget(&sampled, &resolved, ss)
+                    software.resolveSvgTarget(&whiteMatte, &whiteResolved, ss)
+                }
+
                 var first:  const *Image = &mattes[0]
                 var second: const *Image = &mattes[1]
                 if cpu
@@ -6249,7 +6266,7 @@ impl Drawing
                         second = target
                     if paired
                     {
-                        let white = cpu.renderTargetImage(&whiteMatte)
+                        let white = cpu.renderTargetImage(pairedResolve ? &whiteResolved : &whiteMatte)
                         if not white or not white.isValid() do
                             return {}
                         second = white

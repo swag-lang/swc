@@ -41,7 +41,7 @@ using Swag, Core
     renderer.init()
     defer renderer.end()
 
-    for samples in [1'u8, 2]
+    for samples in [1'u8, 2, 4, 8]
     {
         let drawing   = expect Svg.Drawing.parse(Source)
         let reference = expect Svg.Drawing.parse(Source)
@@ -49,9 +49,10 @@ using Swag, Core
         let readback  = reference.rasterizeWithSampleTileSide(renderer, 91, 73, samples, 32)
         Swag.require(direct.isValid() and readback.isValid())
         Swag.require(direct.pixelColor(0, 0).a == 0)
-        Swag.require(direct.pixelColor(89, 72).a == 102)
+        if samples <= 2 do
+            Swag.require(direct.pixelColor(89, 72).a == 102)
         for byte, index in direct.pixels do
-            Swag.require(byte == readback.pixels[index])
+            Swag.require(byte == readback.pixels[index], Format.toString("SVG matte sample count %, byte %, got %, expected %.", samples, index, byte, readback.pixels[index]))
     }
 }
 

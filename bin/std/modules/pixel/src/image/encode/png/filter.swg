@@ -350,6 +350,17 @@ impl Encoder
         if .encodeFlags.filterChoice == .Disabled do
             return .None
 
+        if .encodeFlags.filterChoice == .All and size <= Swag.S32.Max / 128
+        {
+            let scanline = unwrap .scanline
+            if Memory.compare(scanline, unwrap .prevScanline, size) == 0
+            {
+                // All-zero rows tie at None. Other identical rows score zero
+                // with Up, while the first nonzero byte rules out None and Sub.
+                return isZeroScanline(scanline, size) ? .None : .Up
+            }
+        }
+
         let chl = cast(s32, .encodeFlags.filterChoice)
         if not (chl & (chl - 1))
         {

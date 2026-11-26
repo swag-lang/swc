@@ -27,12 +27,11 @@ the sampling layouts used by ffmpeg's 4:2:0, 4:2:2, and 4:4:4 Motion JPEG output
 
 ### std.video.042 — Narrow the Motion JPEG decoding gap on textured 4:2:2
 
-- Evidence: [Six-byte entropy refill](../bench/results/video/20261126-decode-comparison/README.md#motion-jpeg-six-byte-entropy-refill)
-  preserves all 240 RGB pictures. The textured 4:2:2 result is 3.05 ms per picture for
-  Swag, 3.08 ms for FFmpeg 9.1 and 2.64 ms for libjpeg-turbo 3.2.1. Swag leads both
-  references on the measured 4:2:0 and 4:4:4 inputs.
-- Next: profile the AC coefficient loop and inverse transform on the textured 4:2:2
-  packets. Compare the same packets and chroma sampling mode with libjpeg-turbo.
+- Evidence: [The RGB comparison](../bench/results/video/20261126-decode-comparison/README.md#motion-jpeg-direct-rgb-output)
+  measures 3.05 ms per 720p picture for Swag and 2.66 ms for libjpeg-turbo. Swag leads on
+  the measured 4:2:0 and 4:4:4 inputs using the same RGB destination format.
+- Next: profile the textured 4:2:2 entropy loop and inverse transform after removing the
+  BGR copy. Compare the same packets and chroma sampling mode with libjpeg-turbo.
 - Done when: the measured gap shrinks with identical RGB relative to the current Swag decoder
   across 4:2:0, 4:2:2 and 4:4:4 in the video readers.
 

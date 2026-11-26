@@ -91,22 +91,6 @@ impl Decoder
     private mtd readEntropyWord()->u32
     {
         let input = unwrap .inBufOfs
-        if .inBufLeft >= 8
-        {
-            // Six bytes fit above the low end with up to fifteen bits already buffered.
-            // Keep the marker and stuffed-byte handling in the existing short refill.
-            let word    = cast(const [*] u64, input)[0] & 0x0000_FFFF_FFFF_FFFF'u64
-            let lowBits = word & 0x7F7F_7F7F_7F7F_7F7F'u64
-            if ((lowBits + 0x0101_0101_0101_0101'u64) & word & 0x8080_8080_8080_8080'u64) == 0
-            {
-                .inBufOfs     += 6
-                .inBufLeft    -= 6
-                .entropyBits  |= Math.bigEndianToNative(word) >> cast(u32, .entropyCount)
-                .entropyCount += 48
-                return
-            }
-        }
-
         var word: u32
         if .inBufLeft >= 4
         {

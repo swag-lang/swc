@@ -134,28 +134,6 @@ was the independent picture reference. [Timing samples](mjpeg-direct-rgb.json)
 | 4:2:2 texture, 720p | 3.363 | 3.054 | −6.4% | 3.174 | 2.659 |
 | 4:4:4, 720p | 1.818 | 1.704 | −4.6% | 8.233 | 1.865 |
 
-### Motion JPEG six-byte entropy refill
-
-The JPEG bit reader refills from six bytes at once when the input window has eight
-readable bytes and none of the six contains a marker prefix. The previous refill
-still handles marker prefixes, escaped bytes and the end of the input window.
-All 216 AVI pictures and 24 MP4 pictures matched the preceding Swag decoder byte for
-byte. The MP4 fixtures used baseline and progressive JPEG with one restart marker
-per five MCUs. Against FFmpeg 9.1, the largest RGB difference stayed at four sample
-values in AVI and three in MP4. The focused native Release run passed 46 Pixel
-and 51 Video tests.
-
-Seven rotating runs used one logical CPU and the same three streams. The paired
-change compares runs at the same index. On textured 4:2:2, the independent medians
-are almost unchanged despite a lower paired median.
-[Timing samples](mjpeg-entropy-refill.json)
-
-| Stream | Before, ms/picture | Six-byte refill, ms/picture | Paired time change | FFmpeg 9.1 | libjpeg-turbo 3.2.1 |
-| --- | ---: | ---: | ---: | ---: | ---: |
-| 4:2:0, 1080p | 1.985 | 1.902 | −5.3% | 3.560 | 2.804 |
-| 4:2:2 texture, 720p | 3.058 | 3.047 | −5.4% | 3.083 | 2.643 |
-| 4:4:4, 720p | 1.612 | 1.569 | −2.9% | 7.558 | 1.908 |
-
 ### Y4M shared chroma correction
 
 The subsampled path computes a colour correction for eight pixels at a time and reuses

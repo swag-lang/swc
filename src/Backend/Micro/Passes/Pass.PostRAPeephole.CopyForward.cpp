@@ -1131,6 +1131,32 @@ namespace PostRaPeephole
         const MicroInstr*   producer    = ctx.instruction(producerRef);
         if (!producer || ctx.isClaimed(producerRef))
             return false;
+        // After a condition folds to an immediate, a narrowing cast may
+        // still extend that immediate again to pack it into a wider result.
+        // Both instructions preserve flags and the second overwrites the
+        // entire register, so the final value can be loaded in one step.
+        if (producer->op == MicroInstrOpcode::LoadRegImm && extend[0].reg == extend[1].reg)
+        {
+            const auto*       constant = producer->ops(*ctx.operands);
+            const MicroOpBits input    = extend[3].opBits;
+            const MicroOpBits output   = extend[2].opBits;
+            if (!constant || constant[0].reg != extend[1].reg || constant[2].hasWideImmediateValue() ||
+                getNumBits(constant[1].opBits) < getNumBits(input) || !ctx.claimAll({producerRef, ref}))
+                return false;
+
+            const uint64_t original = constant[2].valueU64 & getBitsMask(constant[1].opBits);
+            const uint64_t result   = original & getBitsMask(input);
+            if (getNumBits(constant[1].opBits) < 32 || original != result)
+            {
+                MicroInstrOperand load[3] = {constant[0], constant[1], constant[2]};
+                load[1].opBits            = output;
+                load[2].setImmediateValue(ApInt(result, getNumBits(output)));
+                ctx.emitRewrite(producerRef, MicroInstrOpcode::LoadRegImm, load);
+            }
+            ctx.emitErase(ref);
+            return true;
+        }
+
         uint32_t widthIndex;
         switch (producer->op)
         {

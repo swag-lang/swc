@@ -3213,6 +3213,42 @@ SWC_TEST_BEGIN(PostRAPeephole_RepeatedZeroExtendUsesKnownWidth)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(PostRAPeephole_ConstantZeroExtendPreservesTheRequestedWidth)
+{
+    constexpr MicroReg value = MicroReg::intReg(0);
+    constexpr uint64_t raw   = 0xFEDCBA98;
+    for (const auto written : {MicroOpBits::B8, MicroOpBits::B16, MicroOpBits::B32, MicroOpBits::B64})
+    {
+        for (const auto read : {MicroOpBits::B8, MicroOpBits::B16, MicroOpBits::B32})
+        {
+            MicroBuilder builder(ctx);
+            builder.emitLoadRegImm(value, ApInt(raw, getNumBits(written)), written);
+            const auto source = builder.instructions().lastInstructionRef();
+            builder.emitLoadZeroExtendRegReg(value, value, MicroOpBits::B64, read);
+            const auto extension = builder.instructions().lastInstructionRef();
+            builder.emitRet();
+
+            SWC_RESULT(runPostRaPeepholePass(builder));
+            const auto* after = builder.instructions().ptr(extension);
+            if (getNumBits(written) < getNumBits(read))
+            {
+                if (!after || after->op != MicroInstrOpcode::LoadZeroExtRegReg)
+                    return Result::Error;
+                continue;
+            }
+
+            const auto* load = builder.instructions().ptr(source);
+            if (after || !load || load->op != MicroInstrOpcode::LoadRegImm)
+                return Result::Error;
+            const auto* ops = load->ops(builder.operands());
+            if (ops[0].reg != value || getNumBits(ops[1].opBits) < 32 || ops[2].valueU64 != (raw & getBitsMask(read)))
+                return Result::Error;
+        }
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(PostRAPeephole_RepeatedZeroExtendKeepsPartialAndChangedValues)
 {
     constexpr MicroReg value = MicroReg::intReg(8);

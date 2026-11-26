@@ -43,6 +43,14 @@ optimizations moved each result.
 
 [Integrated 19-operation replay with OpenSSL 4.1 and 3.5.9](integrated-replay-1517.md).
 
+[Final integrated comparison on the original 19 operations](integrated-final.md).
+
+[Final integrated compiler, language and Core validation](integrated-validation-final.md).
+
+[Integrated replay and validation at 16:19 CET](integrated-validation-1619.md).
+
+[Asymmetric replay](asymmetric-cumulative.md) · [RSA replay](rsa-cumulative.md).
+
 ## Optimization campaigns
 
 - [CRC-64 portable slicing-by-eight](crc64-portable.md)
@@ -218,3 +226,10 @@ optimizations moved each result.
 - [Parallel CRC-32 on large buffers](crc32-workers.md)
 - [Direct HMAC-SHA-384 and SHA-512 outer blocks](hmac-sha384-sha512-outer.md)
 - [Cumulative AES comparison with OpenSSL 4.1](aes-cumulative.md)
+- [BLAKE3 native AVX2 widths and fallback](blake3-native-width.md)
+- [BLAKE3 parent subtree processing in workers](blake3-parallel-parent.md)
+- [BLAKE3 partial SIMD leaves](blake3-partial-leaves.md)
+- [BLAKE2b direct round schedule addressing](blake2b-round-schedule.md)
+- [BLAKE2s vector rounds and keyed initialization alternatives](blake2s-alternatives.md)
+- [RSA and P-256 window width comparisons](modular-window-widths.md)
+- [Eight-lane AVX2 ChaCha20 experiment](chacha20-native-width.md)

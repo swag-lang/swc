@@ -71,3 +71,7 @@ On the 1280 × 853 input, segment intersection tests took about 80% of the basel
 profile. Contour edge bounds reject disjoint groups before those tests run. All four drawings
 use black ink, so one white matte recovers their coverage. Releasing oversized tessellation
 and fill scratch tables reduces the cost of small regions that follow large compound paths.
+
+The [comparison with the resvg and tiny-skia code](resvg-comparison.md) measures the effect
+of selecting scan conversion, keeping a drawing for a second render and changing the tile
+size. It also compares the resulting alpha coverage.

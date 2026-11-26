@@ -128,8 +128,13 @@ ships; history lives in Git, not here.
   uses the same four originals. Its one-worker medians are 14.36×, 6.39×, 3.95× and 5.93×
   resvg. The largest remaining absolute gap is the 7.9 MiB sample. Its raster profile spans
   triangle drawing, contour intersection tests, transforms and scan edge construction.
-- Next: attribute the 7.9 MiB sample's raster cost by path and measure the remaining triangle and
-  scan fill work separately. Rerun the original Windows comparison with the current renderer.
+- Evidence: the [resvg code comparison](../bench/workloads/svgraster/resvg-comparison.md)
+  attributes most of the remaining gap to the ordinary fill path. Routing eligible black fills
+  through the existing scan converter closes 68–98% of the time gap on these inputs and
+  changes alpha coverage. The two largest paths in the 7.9 MiB file already scan-convert.
+- Next: prototype solid SVG span compositing into the CPU bitmap target and measure the
+  remaining crossing collection and sorting costs. Validate authored winding, edge coverage,
+  overlaps and tile boundaries before changing dispatch. Rerun the original Windows comparison.
 - Done when: the original corpus meets agreed parse and raster budgets against resvg and the
   renderer's verified output behavior is preserved.
 - Related: std.pixel.image.039, app.scope.image.010

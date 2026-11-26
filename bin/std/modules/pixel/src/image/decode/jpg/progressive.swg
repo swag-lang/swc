@@ -29,7 +29,7 @@ impl Decoder
         var s = .huffDecode(&.h[.compDcTab[cmpId]])
         if s != 0
         {
-            s = extendSign(.getBits2(s), s)
+            s = extendSign(.readEntropyBits(s), s)
         }
 
         s    += .lastDcVal[cmpId]
@@ -39,7 +39,7 @@ impl Decoder
 
     mtd decodeBlockDcRefine(cmpId: u32, blkX, blkY: s32) fail
     {
-        if .getBits2(1)
+        if .readEntropyBits(1)
         {
             var p = coeffBufGetp(.coefficients[cmpId], blkX, blkY)
             p[0] |= (1's16 << .successiveLow)
@@ -66,7 +66,7 @@ impl Decoder
                 k += r
                 if k > 63 do
                     fail InvalidFormatError{"decode error"}
-                let rbits = .getBits2(s)
+                let rbits = .readEntropyBits(s)
                 if s > 15 do
                     fail InvalidFormatError{"decode error"}
 
@@ -88,7 +88,7 @@ impl Decoder
                 {
                     .eobRun = 1 << r
                     if r do
-                        .eobRun += .getBits2(r)
+                        .eobRun += .readEntropyBits(r)
                     .eobRun -= 1
                     break
                 }
@@ -102,7 +102,7 @@ impl Decoder
     mtd refineCoefficient(coeff: *s16, bit: s16)
     {
         let value = coeff[]
-        if .getBits2(1) and (value & bit) == 0 do
+        if .readEntropyBits(1) and (value & bit) == 0 do
             coeff[] = value + (value < 0 ? -bit : bit)
     }
 
@@ -125,11 +125,11 @@ impl Decoder
             {
                 if size != 1 do
                     fail InvalidFormatError{"decode error"}
-                coefficient = .getBits2(1) ? bit : -bit
+                coefficient = .readEntropyBits(1) ? bit : -bit
             }
             elif run != 15
             {
-                .eobRun = (1 << run) + (run ? .getBits2(run) : 0)
+                .eobRun = (1 << run) + (run ? .readEntropyBits(run) : 0)
                 break
             }
 

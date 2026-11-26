@@ -403,6 +403,66 @@ func assertEncodedJpgRoundtrip(src: Image, expectedB, expectedG, expectedR: u8, 
     Swag.require(errorOutcome.value() != null)
 }
 
+// The baseline and progressive fixtures encode the same noise pattern with a one-MCU
+// restart interval. An inserted JPEG comment moves a marker across the input-buffer boundary.
+#test
+{
+    const ExpectedPixels = 17371034535124610586'u64
+    for name in ["restart-sequential.jpg", "restart-progressive.jpg"]
+    {
+        let bytes = expect File.readAllBytes(getTestDataPath(name))
+        for marker in [0'u8, 0xD0]
+        {
+            var offset = U64.Max
+            for i in bytes.count - 1
+            {
+                if bytes[i] == 0xFF and bytes[i + 1] == marker
+                {
+                    offset = i
+                    break
+                }
+            }
+
+            Swag.require(offset < 4091)
+            var padding: Array'u8
+            padding.resize(4091 - offset)
+            let length  = padding.count + 2
+            let comment = [0xFF'u8, 0xFE, cast(u8, length >> 8), cast(u8, length & 0xFF)]
+            var padded: ConcatBuffer
+            padded.addBytes(bytes.toSlice()[until 2])
+            padded.addBytes(comment)
+            padded.addBytes(padding.toSlice())
+            padded.addBytes(bytes.toSlice()[2 to])
+
+            let contiguous = padded.toArray()
+            let image      = expect Image.decode(name, contiguous.toSlice())
+            Swag.require(image.width == 29 and image.height == 19 and image.pixelFormat == .BGR8)
+            Swag.require(Hash.Crc64.compute(image.pixels.toSlice()) == ExpectedPixels)
+        }
+    }
+}
+
+// A DC Huffman symbol can request at most fifteen amplitude bits.
+#test
+{
+    var bytes  = expect File.readAllBytes(getTestDataPath("restart-sequential.jpg"))
+    var symbol = U64.Max
+    for i in bytes.count - 21
+    {
+        if bytes[i] == 0xFF and bytes[i + 1] == 0xC4 and bytes[i + 4] == 0
+        {
+            symbol = i + 21
+            break
+        }
+    }
+
+    Swag.require(symbol != U64.Max)
+    bytes[symbol] = 16
+    var errorOutcome: Swag.Error
+    catch { discard try Image.decode("dc-symbol.jpg", bytes.toSlice()) } as errorOutcome
+    Swag.require(errorOutcome.value() is InvalidFormatError)
+}
+
 // The final MCU must be followed by an actual EOI marker, not synthetic EOF padding.
 #test
 {

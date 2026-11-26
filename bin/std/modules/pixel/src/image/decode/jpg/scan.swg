@@ -110,32 +110,29 @@ impl Decoder
         .eobRun         = 0
         .restartsLeft   = .restartInterval
         .nextRestartNum = (.nextRestartNum + 1) & 7
-        .bitsLeft       = 16
-
-        .getBits2(16)
-        .getBits2(16)
+        .primeEntropyBits()
     }
 
     #[Swag.Inline]
     mtd huffDecode(ph: *HuffTables)->s32
     {
         // A short code carries its own length in the look-ahead table.
-        let symbol = ph.lookUp[(.bitBuf >> (16 - HuffLookupBits)) & (HuffLookupCount - 1)]
+        let symbol = ph.lookUp[.entropyBits >> (64 - HuffLookupBits)]
         if symbol < 0 do
             return .decodeLongHuffCode(ph, symbol, HuffLookupBits)
 
-        .getBits2(symbol >> 8)
+        .skipEntropyBits(symbol >> 8)
         return symbol & 0xFF
     }
 
     #[Swag.NoInline]
     private mtd decodeLongHuffCode(ph: *HuffTables, prefix, prefixBits: s32)->s32
     {
-        .getBits2(prefixBits)
+        .skipEntropyBits(prefixBits)
         var symbol = prefix
         for
         {
-            symbol = ph.tree[~symbol + (1 - .getBits2(1))]
+            symbol = ph.tree[~symbol + (1 - .readEntropyBits(1))]
             if symbol >= 0 do
                 break
         }
@@ -166,7 +163,7 @@ impl Decoder
                 var s = .huffDecode(unwrap block.dc)
                 if s != 0
                 {
-                    s = extendSign(.getBits2(s), s)
+                    s = extendSign(.readEntropyBits(s), s)
                 }
 
                 s += previousDc[]
@@ -180,12 +177,12 @@ impl Decoder
                 var ac = 0's16
                 while k < 64
                 {
-                    let entry = lookup[(.bitBuf >> (16 - BaselineAcLookupBits)) & (BaselineAcLookupCount - 1)]
+                    let entry = lookup[.entropyBits >> (64 - BaselineAcLookupBits)]
                     var run, amplitude: s32
                     if entry >= 1 << 24
                     {
                         // This prefix includes both the code and the amplitude bits.
-                        .getBits2(entry >> 24)
+                        .skipEntropyBits(entry >> 24)
                         run       = (entry >> 4) & 0x0F
                         amplitude = (entry << 8) >> 24
                     }
@@ -197,7 +194,7 @@ impl Decoder
                         }
                         else
                         {
-                            .getBits2(entry >> 8)
+                            .skipEntropyBits(entry >> 8)
                             s = entry & 0xFF
                         }
 
@@ -213,7 +210,7 @@ impl Decoder
                             continue
                         }
 
-                        amplitude = extendSign(.getBits2(s), s)
+                        amplitude = extendSign(.readEntropyBits(s), s)
                     }
 
                     k += run
@@ -512,10 +509,7 @@ impl Decoder
 
         .stuffChar(cast(u8, (.bitBuf & 0xFF)))
         .stuffChar(cast(u8, ((.bitBuf >> 8) & 0xFF)))
-        .bitsLeft = 16
-
-        .getBits2(16)
-        .getBits2(16)
+        .primeEntropyBits()
     }
 
     mtd checkQuantTables() fail

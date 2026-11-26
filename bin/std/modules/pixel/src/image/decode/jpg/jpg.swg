@@ -188,6 +188,8 @@ internal struct Decoder
         streamLen:           s32
         streamSeek:          s32
         bitBuf:              u32
+        entropyBits:         u64
+        entropyCount:        s32
         bitSyntheticMask:    u32
         lastBitsSynthetic:   bool
         lastCharSynthetic:   bool

@@ -52,53 +52,58 @@ impl Decoder
         .getBits1(16)
     }
 
-    #[Discardable, Swag.Inline]
-    mtd getBits2(numBits: s32)->u32
+    // The next bit is always in the high lane. Keep sixteen bits available for the next code.
+    #[Swag.Inline]
+    mtd skipEntropyBits(count: s32)
     {
-        let count = cast(u32, numBits)
-        let bits  = (.bitBuf >> (16 - count)) & ((1'u32 << count) - 1)
-        .bitsLeft -= numBits
-        if .bitsLeft <= 0
-        {
-            .refillEntropyBits(numBits)
-        }
-        else
-        {
-            .bitBuf = rol(.bitBuf, count)
-        }
+        .entropyBits  <<= count
+        .entropyCount -= count
+        if .entropyCount < 16 do
+            .refillEntropyBits()
+    }
 
+    #[Swag.Inline]
+    mtd readEntropyBits(count: s32)->u32
+    {
+        let bits = cast(u32, .entropyBits >> (64 - count))
+        .skipEntropyBits(count)
         return bits
     }
 
-    #[Swag.NoInline]
-    private mtd refillEntropyBits(numBits: s32)
+    mtd primeEntropyBits()
     {
-        let shift = cast(u32, (numBits + .bitsLeft))
-        .bitBuf = rol(.bitBuf, shift)
+        .entropyBits  = 0
+        .entropyCount = 0
+        .refillEntropyBits()
+    }
 
-        var c1, c2: u32
-        let inBufOfs = unwrap .inBufOfs
-
-        // Two bytes that are neither a marker nor a stuffed 0xFF are what entropy-coded data
-        // is almost entirely made of, and taking them here keeps the marker rules, the buffer
-        // refill and their two calls out of the inner decoding loop.
-        if .inBufLeft >= 2 and inBufOfs[0] != 0xFF and inBufOfs[1] != 0xFF
+    #[Swag.NoInline]
+    private mtd refillEntropyBits()
+    {
+        let input = unwrap .inBufOfs
+        var word: u32
+        if .inBufLeft >= 4
         {
-            c1         = inBufOfs[0]
-            c2         = inBufOfs[1]
-            .inBufOfs  += 2
-            .inBufLeft -= 2
-        }
-        else
-        {
-            c1 = .getOctet()
-            c2 = .getOctet()
+            word = cast(const [*] u32, input)[]
+
+            // Adding one to each low seven-bit field identifies bytes whose low bits are all
+            // set. A set high bit then identifies 0xFF, which must go through the marker reader.
+            let lowBits = word & 0x7F7F7F7F'u32
+            if ((lowBits + 0x01010101'u32) & word & 0x80808080'u32) == 0
+            {
+                .inBufOfs     += 4
+                .inBufLeft    -= 4
+                .entropyBits  |= cast(u64, Math.bigEndianToNative(word)) << (32 - .entropyCount)
+                .entropyCount += 32
+                return
+            }
         }
 
-        .bitBuf = (.bitBuf & 0xFFFF) | (c1 << 24) | (c2 << 16)
-        let refillShift = cast(u32, -.bitsLeft)
-        .bitBuf   = rol(.bitBuf, refillShift)
-        .bitsLeft += 16
+        word = .getOctet()
+        for 3 do
+            word = (word << 8) | .getOctet()
+        .entropyBits  |= cast(u64, word) << (32 - .entropyCount)
+        .entropyCount += 32
     }
 
     mtd getOctet()->u8
@@ -283,20 +288,22 @@ impl Decoder
 
             if count > 255 do
                 fail InvalidFormatError{"bad dht counts"}
-            for i in count
-            {
-                huffValt[i] = cast(u8, .getBits1(8))
-            }
-
-            let i = 1 + 16 + count
-            if left < i do
+            let size = 1 + 16 + count
+            if left < size do
                 fail InvalidFormatError{"bad dht marker"}
 
-            left -= i
+            left -= size
             let tableClass = index >> 4
             let tableId    = index & 0x0F
             if tableClass > 1 or tableId >= (MaxHuffTables >> 1) do
                 fail InvalidFormatError{"JPEG Huffman table class or identifier is invalid"}
+            for i in count
+            {
+                let symbol = .getBits1(8)
+                if tableClass == 0 and symbol >= ExtendTest.count do
+                    fail InvalidFormatError{"invalid JPEG DC Huffman symbol"}
+                huffValt[i] = cast(u8, symbol)
+            }
 
             index = tableId + tableClass * (MaxHuffTables >> 1)
             .h[index].ready = false

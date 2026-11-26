@@ -4076,20 +4076,6 @@ private impl Parser
         return result
     }
 
-    mtd shapeBounds(shape: const *Shape)->{ min, max: Vector2 }
-    {
-        var result: #returntype
-        result.min = Vector2.Max
-        result.max = Vector2.Min
-        for path in shape.pathList.paths
-        {
-            result.min = Vector2.min(result.min, path.minBounds)
-            result.max = Vector2.max(result.max, path.maxBounds)
-        }
-
-        return result
-    }
-
     mtd const paintTransformFor(shape: const *Shape)->Math.Transform2
     {
         return shape.paintTransform ? .paintTransforms[shape.paintTransform - 1] : Math.Transform2.Identity
@@ -4132,13 +4118,12 @@ private impl Parser
         return Vector2{boundsMin.x + unit.x * boundsSize.x, boundsMin.y + unit.y * boundsSize.y}
     }
 
-    mtd gradientBrush(gradient: const *Gradient, shape: const *Shape, transform: const *Math.Transform2)->Brush
+    mtd gradientBrush(gradient: const *Gradient, transform: const *Math.Transform2, min, max: Vector2)->Brush
     {
         if gradient.stops.isEmpty() do
             return Brush.createSolid(Color.fromArgb(Argb.Zero))
 
-        let {min, max} = .shapeBounds(shape)
-        let size       = max - min
+        let size = max - min
 
         var result: #returntype
         result.color = Color.fromArgb(Argb.White)
@@ -4294,7 +4279,26 @@ private impl Parser
 
     mtd storeGradient(gradient: *Gradient, shape: *Shape, opacity: f32)->u64
     {
-        shape.pathList.flatten(.Normal)
+        var min = Vector2.Max
+        var max = Vector2.Min
+        if gradient.userSpace
+        {
+            // Preserve the decode-time curve tolerance for the first paint at draft quality.
+            for path in shape.pathList.paths where path.hasCurves() do
+                path.flattenPoints(.Normal, 1)
+        }
+        else
+        {
+            // A bounding-box gradient needs the flattened bounds. Polygon simplicity, winding
+            // and tessellation are only needed when the contour is actually painted.
+            for path in shape.pathList.paths
+            {
+                path.flattenPoints(.Normal, 1)
+                min = Vector2.min(min, path.minBounds)
+                max = Vector2.max(max, path.maxBounds)
+            }
+        }
+
         let transform = .paintTransformFor(shape)
 
         // User-space coordinates depend on the transform, independently of the shape bounds.
@@ -4305,7 +4309,7 @@ private impl Parser
             return gradient.cachedBrush
 
         var entry: SvgGradientBrush
-        entry.brush = .gradientBrush(gradient, shape, &transform)
+        entry.brush = .gradientBrush(gradient, &transform, min, max)
         entry.brush.multiplyOpacity(opacity)
         if gradient.stops.count
         {

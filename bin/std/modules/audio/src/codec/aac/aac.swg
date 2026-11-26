@@ -26,38 +26,85 @@ private const SpectralCountShift = 4 * SpectralValueBits
 private struct BitReader
 {
     data:    const [*] u8
-    length:  s32
-    bitPos:  s32
+    length:  u64
+    offset:  u64
+    word:    u64
+    valid:   s32
     overrun: bool
 }
 
 private impl BitReader
 {
-    func create(data: const [*] u8, length: u64)->BitReader => BitReader{data, cast(s32, length), 0, false}
+    func create(data: const [*] u8, length: u64)->BitReader => BitReader{data, length}
 
-    mtd const left()->s32 => .length * 8 - .bitPos
+    mtd const left()->u64 => (.length - .offset) * 8 + cast(u64, .valid)
+
+    // Requests are at most sixteen bits. The high bits are valid, so each refill
+    // can append up to six bytes while leaving the unused low bits zero.
+    #[Swag.NoInline]
+    mtd refill()
+    {
+        let bytes = .length - .offset
+        if bytes >= 8
+        {
+            let next = Math.bigEndianToNative(cast(const [*] u64, .data + .offset)[0])
+            .valid  += 48
+            .word   |= (next >> 16) << (64 - .valid)
+            .offset += 6
+            return
+        }
+
+        if bytes >= 4
+        {
+            let next = Math.bigEndianToNative(cast(const [*] u32, .data + .offset)[0])
+            .valid  += 32
+            .word   |= cast(u64, next) << (64 - .valid)
+            .offset += 4
+            return
+        }
+
+        for bytes
+        {
+            .valid  += 8
+            .word   |= cast(u64, .data[.offset]) << (64 - .valid)
+            .offset += 1
+        }
+    }
+
+    #[Swag.Inline]
+    mtd ensure(count: s32)->bool
+    {
+        if .valid >= count do
+            return true
+        .refill()
+        return .valid >= count
+    }
+
+    #[Swag.Inline]
+    mtd const peek(count: s32)->u32 => cast(u32, (.word >> (64 - count)))
+
+    #[Swag.Inline]
+    mtd consume(count: s32)
+    {
+        .word  <<= count
+        .valid -= count
+    }
 
     mtd get(count: s32)->u32
     {
-        let available = Math.min(count, Math.max(.left(), 0))
-        var remaining = available
-        var value: u32
-        while remaining
+        if not count do
+            return 0
+        let enough = .ensure(count)
+        let value  = .peek(count)
+        if enough
         {
-            let byteBits = 8 - (.bitPos & 7)
-            let take     = Math.min(remaining, byteBits)
-            let bits     = cast(u32, .data[.bitPos >> 3]) >> (byteBits - take)
-            value     = (value << take) | (bits & ((1'u32 << take) - 1))
-            .bitPos   += take
-            remaining -= take
+            .consume(count)
         }
-
-        let missing = count - available
-        if missing
+        else
         {
+            .word    = 0
+            .valid   = 0
             .overrun = true
-            .bitPos  += missing
-            value    <<= missing
         }
 
         return value
@@ -65,15 +112,15 @@ private impl BitReader
 
     mtd get1()->u32
     {
-        let pos = .bitPos
-        .bitPos += 1
-        if pos >> 3 >= .length
+        if not .ensure(1)
         {
             .overrun = true
             return 0
         }
 
-        return (cast(u32, .data[pos >> 3]) >> (7 - (pos & 7))) & 1
+        let bit = cast(u32, (.word >> 63))
+        .consume(1)
+        return bit
     }
 
     mtd readEscapeMagnitude()->s32 fail
@@ -85,23 +132,6 @@ private impl BitReader
             fail InvalidFormatError{"AAC escape coefficient is too large"}
         let bits = leading + 4
         return (1 << bits) + cast(s32, .get(bits))
-    }
-
-    // The caller has checked that a complete 32-bit word remains.
-    mtd const peekSpectralPrefix()->u32
-    {
-        let word = Math.bigEndianToNative(cast(const [*] u32, .data + (.bitPos >> 3))[0])
-        return (word >> (32 - SpectralPrefixBits - (.bitPos & 7))) & ((1'u32 << SpectralPrefixBits) - 1)
-    }
-
-    // The caller has checked that eight bits remain.
-    mtd const peekByte()->u32
-    {
-        let index  = .bitPos >> 3
-        let offset = .bitPos & 7
-        if not offset do
-            return .data[index]
-        return ((cast(u32, .data[index]) << offset) & 0xFF) | (cast(u32, .data[index + 1]) >> (8 - offset))
     }
 }
 
@@ -175,10 +205,10 @@ private impl HuffTree
     {
         var at   = 0's32
         var used = 0's32
-        if reader.left() >= HuffPrefixBits
+        if reader.ensure(HuffPrefixBits)
         {
-            let prefix = .prefixes[reader.peekByte()]
-            reader.bitPos += prefix.bits
+            let prefix = .prefixes[reader.peek(HuffPrefixBits)]
+            reader.consume(cast(s32, prefix.bits))
             at   = prefix.next
             used = prefix.bits
             if at <= 0 do
@@ -917,12 +947,12 @@ private impl AacCodec
         while index < count
         {
             var packed = 0'u32
-            if reader.left() >= 32 do
-                packed = prefixes[reader.peekSpectralPrefix()]
+            if reader.ensure(SpectralPrefixBits) do
+                packed = prefixes[reader.peek(SpectralPrefixBits)]
 
             if packed
             {
-                reader.bitPos += cast(s32, packed >> SpectralCountShift)
+                reader.consume(cast(s32, packed >> SpectralCountShift))
                 for component in Dimension
                 {
                     let value       = (packed >> (component * SpectralValueBits)) & SpectralValueMask

@@ -192,3 +192,32 @@ also match FFmpeg PCM byte for byte.
 The one-core and four-core Swag output hashes match for every fixture. Native Release
 passes all 312 functional and stress tests at both worker budgets. A focused
 Release-safe run passes 79 tests with four workers.
+
+## Fifth optimization pass
+
+The changed codecs were compared with commit `6e878a404b` and native FFmpeg. Each series
+pins both decoders to one core and times opening plus materializing ten seconds of PCM16.
+The table shows the median of 56 samples on each CPU.
+[Raw stage times and PCM deltas](audio-decode-linux-round5.json)
+
+| Format | R4 CPU 0 (ms) | R5 CPU 0 (ms) | FFmpeg CPU 0 (ms) | R4 CPU 1 (ms) | R5 CPU 1 (ms) | FFmpeg CPU 1 (ms) |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| AAC | 9.29 | 9.31 | 7.10 | 10.31 | 9.70 | 7.33 |
+| AC-3 | 14.02 | 12.95 | 8.29 | 13.96 | 12.95 | 8.28 |
+| Ogg Vorbis | 8.40 | 7.90 | 7.62 | 8.11 | 7.83 | 7.43 |
+
+Dolby stores grouped mantissas in compact tables and folds the first FFT butterfly into
+the long IMDCT input rotation. Vorbis limits inverse coupling and floor 1 to the bins
+residue can populate. AAC reads entropy prefixes from a rolling bit window.
+
+A radix-8 Opus experiment changed total time by less than 1% on all three pinned
+CPUs in the combined build.
+
+With four cores, AAC takes 6.21 ms (R4 6.32 ms, FFmpeg
+7.02 ms). The PCM matches the one-core run exactly.
+
+The original Swag PCM stays within one PCM16 unit for all three fixtures.
+All three fixtures match the R4 PCM exactly.
+
+Native Release passes all 312 functional and stress tests. A focused
+Release-safe run passes 72 tests.

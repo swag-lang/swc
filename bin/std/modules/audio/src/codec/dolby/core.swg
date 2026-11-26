@@ -210,21 +210,24 @@ private func(Size: u64, Half: u64) inverseFftStage(real, imaginary: [*] f64)
     }
 }
 
-private func(Size: u64) inverseFft(real, imaginary: [*] f64)
+private func(Size: u64, FirstStageDone: bool = false) inverseFft(real, imaginary: [*] f64)
 {
-    // The first stage has a unit twiddle and one butterfly per block.
-    for pair in Size / 2
+    #static if not FirstStageDone
     {
-        let left      = pair * 2
-        let right     = left + 1
-        let leftReal  = real[left]
-        let leftImag  = imaginary[left]
-        let rightReal = real[right]
-        let rightImag = imaginary[right]
-        real[left]       = leftReal + rightReal
-        imaginary[left]  = leftImag + rightImag
-        real[right]      = leftReal - rightReal
-        imaginary[right] = leftImag - rightImag
+        // The first stage has a unit twiddle and one butterfly per block.
+        for pair in Size / 2
+        {
+            let left      = pair * 2
+            let right     = left + 1
+            let leftReal  = real[left]
+            let leftImag  = imaginary[left]
+            let rightReal = real[right]
+            let rightImag = imaginary[right]
+            real[left]       = leftReal + rightReal
+            imaginary[left]  = leftImag + rightImag
+            real[right]      = leftReal - rightReal
+            imaginary[right] = leftImag - rightImag
+        }
     }
 
     inverseFftStage'(Size, 2)(real, imaginary)
@@ -246,16 +249,27 @@ private func writeSynthesisSample(output: [*] s16, offset: u64, value, window, p
 private func imdctLong(coefficients: const [*] f64, output: [*] s16, stride: u32, delay: [*] f64)
 {
     var real, imaginary: [128] f64
-    for k in 128
+    for k in 64
     {
-        let a     = coefficients[255 - 2 * k]
-        let b     = coefficients[2 * k]
+        // The high bit of the coefficient index becomes the low bit in FFT order.
+        // Build the first butterfly directly while the two rotated inputs are live.
+        let j     = k + 64
+        let a0    = coefficients[255 - 2 * k]
+        let b0    = coefficients[2 * k]
+        let a1    = coefficients[255 - 2 * j]
+        let b1    = coefficients[2 * j]
+        let r0    = a0 * g_LongCos[k] - b0 * g_LongSin[k]
+        let i0    = b0 * g_LongCos[k] + a0 * g_LongSin[k]
+        let r1    = a1 * g_LongCos[j] - b1 * g_LongSin[j]
+        let i1    = b1 * g_LongCos[j] + a1 * g_LongSin[j]
         let index = g_FftReverse[k]
-        real[index]      = a * g_LongCos[k] - b * g_LongSin[k]
-        imaginary[index] = b * g_LongCos[k] + a * g_LongSin[k]
+        real[index]          = r0 + r1
+        real[index + 1]      = r0 - r1
+        imaginary[index]     = i0 + i1
+        imaginary[index + 1] = i0 - i1
     }
 
-    inverseFft'128(&real, &imaginary)
+    inverseFft'(128, true)(&real, &imaginary)
 
     for index in 64
     {
@@ -528,20 +542,60 @@ private func bitAllocation(fscod: u32, start, end: s32, exponents: const [*] s32
 // Dolby mantissa exponents are small integers, so their powers of two are exact.
 internal func mantissaScale(exponent: s32)->f64 => cast #bit (f64, cast(u64, (1023 - exponent)) << 52)
 
+// Shift out one signed digit at a time. The trailing 1 marks the empty group.
+// Reserved codes retain the full group length with zero-valued digits.
+private func(Bits: u32, Levels: u32, Digits: u32) packedMantissaCodes()->[1 << Bits] u32
+{
+    var result: [1 << Bits] u32
+    var validCodes = 1'u32
+    for Digits do
+        validCodes *= Levels
+
+    for code in result.count
+    {
+        var packed = 1'u32 << (8 * Digits)
+        if code < validCodes
+        {
+            var remaining = cast(u32, code)
+            for digit in Digits
+            {
+                let centered = cast(s32, remaining % Levels) - cast(s32, Levels / 2)
+                packed    |= cast(u32, cast #wrap(u8, centered)) << (8 * (Digits - 1 - digit))
+                remaining /= Levels
+            }
+        }
+
+        result[code] = packed
+    }
+
+    return result
+}
+
+private const Bap1Packed = #run packedMantissaCodes'(5, 3, 3)()
+private const Bap2Packed = #run packedMantissaCodes'(7, 5, 3)()
+private const Bap4Packed = #run packedMantissaCodes'(7, 11, 2)()
+
 private struct MantissaReader
 {
     reader: *BitReader
-    bap1:   [3] f64
-    bap2:   [3] f64
-    bap4:   [2] f64
-    bap1At: u32 = 3
-    bap2At: u32 = 3
-    bap4At: u32 = 2
+    bap1:   u32 = 1
+    bap2:   u32 = 1
+    bap4:   u32 = 1
 }
 
 impl MantissaReader
 {
     func create(reader: *BitReader)->MantissaReader => MantissaReader{reader}
+
+    #[Swag.Inline]
+    mtd readPacked(bits: u32, packed: *u32, table: const [*] u32)->s32
+    {
+        if packed[] == 1 do
+            packed[] = table[.reader.read(bits)]
+        let value = cast(s32, cast #wrap(s8, packed[]))
+        packed[] >>= 8
+        return value
+    }
 
     #[Swag.Inline]
     mtd getScaled(bap, exponent: s32)->f64
@@ -566,49 +620,17 @@ impl MantissaReader
             return 0
 
         case 1:
-            if .bap1At >= 3
-            {
-                let code = .reader.read(5)
-                .bap1[0] = code < 27 ? (cast(f64, (code / 9)) - 1.0) * (2.0 / 3.0) : 0
-                .bap1[1] = code < 27 ? (cast(f64, ((code / 3) % 3)) - 1.0) * (2.0 / 3.0) : 0
-                .bap1[2] = code < 27 ? (cast(f64, (code % 3)) - 1.0) * (2.0 / 3.0) : 0
-                .bap1At  = 0
-            }
-
-            let result = .bap1[.bap1At]
-            .bap1At += 1
-            return result
+            return cast(f64, .readPacked(5, &.bap1, &Bap1Packed[0])) * (2.0 / 3.0)
 
         case 2:
-            if .bap2At >= 3
-            {
-                let code = .reader.read(7)
-                .bap2[0] = code < 125 ? (cast(f64, (code / 25)) - 2.0) * (2.0 / 5.0) : 0
-                .bap2[1] = code < 125 ? (cast(f64, ((code / 5) % 5)) - 2.0) * (2.0 / 5.0) : 0
-                .bap2[2] = code < 125 ? (cast(f64, (code % 5)) - 2.0) * (2.0 / 5.0) : 0
-                .bap2At  = 0
-            }
-
-            let result = .bap2[.bap2At]
-            .bap2At += 1
-            return result
+            return cast(f64, .readPacked(7, &.bap2, &Bap2Packed[0])) * (2.0 / 5.0)
 
         case 3:
             let code = .reader.read(3)
             return code < 7 ? (cast(f64, code) - 3.0) * (2.0 / 7.0) : 0
 
         case 4:
-            if .bap4At >= 2
-            {
-                let code = .reader.read(7)
-                .bap4[0] = code < 121 ? (cast(f64, (code / 11)) - 5.0) * (2.0 / 11.0) : 0
-                .bap4[1] = code < 121 ? (cast(f64, (code % 11)) - 5.0) * (2.0 / 11.0) : 0
-                .bap4At  = 0
-            }
-
-            let result = .bap4[.bap4At]
-            .bap4At += 1
-            return result
+            return cast(f64, .readPacked(7, &.bap4, &Bap4Packed[0])) * (2.0 / 11.0)
 
         case 5:
             let code = .reader.read(4)

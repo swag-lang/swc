@@ -1240,8 +1240,10 @@ private impl Codec
     }
 
     // Multiplies the spectrum of a channel by the piecewise curve its floor 1 posts describe.
-    mtd applyFloor1(floor: *Floor, channel: u32, half: u32)
+    mtd applyFloor1(floor: *Floor, channel: u32, limit: u32)
     {
+        if not limit do
+            return
         let posts    = .floorPosts[channel].storage()
         let used     = .floorUsed[channel].storage()
         let spectrum = .spectrum[channel].storage()
@@ -1255,13 +1257,15 @@ private impl Codec
                 continue
             highX = floor.posts[current]
             let highY = Math.clamp(posts[current] * cast(s32, floor.multiplier), 0, 255)
-            renderLine(half, lowX, highX, lowY, highY, spectrum)
+            renderLine(limit, lowX, highX, lowY, highY, spectrum)
+            if highX >= limit do
+                return
             lowX = highX
             lowY = highY
         }
 
         let gain = Floor1InverseDb[cast(u32, lowY)]
-        for line in highX until half do
+        for line in highX until limit do
             spectrum[line] *= gain
     }
 
@@ -1578,6 +1582,9 @@ private impl Codec
             }
         }
 
+        // Residue cannot write beyond the coded range. Keep this upper bound
+        // through coupling so floor reconstruction skips guaranteed zero bins.
+        var activeBins: [MaxChannels] u32
         for submap in mapping.submaps
         {
             var list: [MaxChannels] u32
@@ -1588,21 +1595,34 @@ private impl Codec
                 count       += 1
             }
 
-            try .decodeResidue(&.residues[mapping.submapResidue[submap]], &reader, list[0 until count], half)
+            if not count do
+                continue
+
+            let residue = &.residues[mapping.submapResidue[submap]]
+            let width   = residue.kind == 2 ? count : 1
+            let bins    = Math.min(half, (residue.end + width - 1) / width)
+            for channel in list[0 until count] do
+                activeBins[channel] = bins
+            try .decodeResidue(residue, &reader, list[0 until count], half)
         }
 
         var step = mapping.couplingSteps
         while step
         {
             step -= 1
-            let magnitudes = .spectrum[mapping.magnitude[step]].storage()
-            let angles     = .spectrum[mapping.angle[step]].storage()
+            let magnitudeChannel = mapping.magnitude[step]
+            let angleChannel     = mapping.angle[step]
+            let bins             = Math.max(activeBins[magnitudeChannel], activeBins[angleChannel])
+            activeBins[magnitudeChannel] = bins
+            activeBins[angleChannel]     = bins
+            let magnitudes = .spectrum[magnitudeChannel].storage()
+            let angles     = .spectrum[angleChannel].storage()
             let zero       = Simd.splat(0'f32)
 
             // The signs select the reconstructed value and the channel that receives it.
-            // Half a Vorbis block is a multiple of four, including the smallest block.
+            // At most three extra zero bins finish the last vector inside the block.
             var line = 0'u32
-            while line < half
+            while line < bins
             {
                 let magnitude     = Simd.load(magnitudes + line)
                 let angle         = Simd.load(angles + line)
@@ -1628,7 +1648,7 @@ private impl Codec
             if floor.kind == 0 do
                 .applyFloor0(floor, which, channel, half)
             else do
-                .applyFloor1(floor, channel, half)
+                .applyFloor1(floor, channel, activeBins[channel])
         }
 
         // Window the block, add it to the tail of the previous one, and keep its own tail.

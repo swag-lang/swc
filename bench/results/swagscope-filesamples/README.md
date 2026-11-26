@@ -304,7 +304,7 @@ The Linux A/B rerun verified all four original files and preserved Swag's raster
 With one worker, the revised renderer took **14.36×, 6.39×, 3.95× and 5.93×** as long as resvg.
 On this host, the 1280 × 853 sample fell from 1427 ms to 136 ms against the Swag baseline.
 See the [SVG benchmark](../../workloads/svgraster/README.md#original-filesamples-svgs) for the
-one-worker and four-worker measurements.
+measurements on one and four logical CPUs.
 
 ## FileSamples coverage and remaining comparisons
 

@@ -335,14 +335,15 @@ same descriptor. The reads fill disjoint parts of the owned buffer. Completion
 returns the contiguous prefix in file order, and a failed positional read falls
 back to the ordinary stream path. The parallel path uses the existing worker budget.
 
-Four-worker runs use four logical CPUs, and one-worker runs pin to one CPU.
+The runs pin to one or four logical CPUs. With four CPUs, the automatic runtime
+starts three pool workers and the submitting thread also participates.
 The table reports medians of 11 interleaved batches of 21 fresh file opens and
 one rendered glyph at 20 px. The warm-cache baseline is `d8325e8d9e`.
 Glyph indices, advances, bitmap dimensions, and CRC-64 agree across all four runs.
 Separate one-worker repeats on the three variable controls ranged from a 3.3%
 gain to a 0.4% slowdown. [Raw timings and controls](font-decode-linux-parallel-read.json)
 
-| Fixture | Face | Before, 1 worker (µs) | After, 1 worker (µs) | Before, 4 workers (µs) | After, 4 workers (µs) |
+| Fixture | Face | Before, 1 worker (µs) | After, 1 worker (µs) | Before, 4 CPUs (µs) | After, 4 CPUs (µs) |
 | --- | ---: | ---: | ---: | ---: | ---: |
 | `NotoSansCJK-Regular.ttc` | 0 | 1891.21 | 1854.06 | 1897.67 | 1344.06 |
 | `NotoSansCJK-Regular.ttc` | 1 | 1859.76 | 1851.97 | 1867.81 | 1339.43 |
@@ -363,7 +364,7 @@ Each collection pass includes the initial read into `FontSource`, opening every
 member, rendering U+65E5 at 20 px, and destroying each face. The medians below
 use 11 interleaved batches of 11 passes.
 
-| Collection | Members | Before, 4 workers (ms) | After, 4 workers (ms) |
+| Collection | Members | Before, 4 CPUs (ms) | After, 4 CPUs (ms) |
 | --- | ---: | ---: | ---: |
 | `NotoSansCJK-Regular.ttc` | 10 | 13.74 | 5.89 |
 | `NotoSerifCJK-Regular.ttc` | 5 | 15.42 | 6.90 |
@@ -430,11 +431,12 @@ The corpus adds WOFF1 variants of Noto Sans JP and TC variable TrueType, for 56
 scenarios on 49 files. The baseline is `29663c04fe`. Each row measures a fresh
 pathname open and one rendered glyph at 20 px with a warm filesystem cache.
 Results are medians of 11 interleaved batches of seven opens after five warmups.
+The four-CPU run uses the automatic pool of three workers.
 The Swag builds return identical glyph indices, advances, bitmap dimensions,
 and CRC-64. FreeType 2.14.3 agrees on the glyph indices.
 [Raw samples](font-decode-linux-woff-parallel.json)
 
-| Fixture | Before, 1 worker (ms) | After, 1 worker (ms) | Before, 4 workers (ms) | After, 4 workers (ms) | FreeType file (ms) |
+| Fixture | Before, 1 worker (ms) | After, 1 worker (ms) | Before, 4 CPUs (ms) | After, 4 CPUs (ms) | FreeType file (ms) |
 | --- | ---: | ---: | ---: | ---: | ---: |
 | `DejaVuSans.woff` | 4.014 | 4.104 | 4.091 | 3.880 | 5.001 |
 | `Inter-Variable.woff` | 4.810 | 4.770 | 4.771 | 4.869 | 7.615 |
@@ -538,3 +540,41 @@ Every page count and both CRC-64 values match the baseline.
 | `fontawesome-webfont.ttf` | 5.7881 | 0.0044 |
 | `OpenSans-Regular.otf` | 5.2105 | 0.0057 |
 | `SourceCodePro-Regular.ttf` | 5.2968 | 0.0043 |
+
+## Packed SFNT scans
+
+The metrics parser converts eight short vertical records together, interleaving
+their bearings with the last advance height. Legacy kerning validates four
+ordered records at a time before using the packed pair table. The glyph-name
+parser groups Pascal strings when the remaining bytes cover four maximum-size
+records and checks the rest individually.
+
+The probe compares nine cases with `2fe9e5e5b8`. Each measurement uses one
+CPU and a glyph at 20 px, with medians from 11 interleaved batches after five
+warmups. The source mode opens 251 faces per batch from a retained snapshot.
+The file mode uses 21 independent pathname opens and includes the bytes read.
+Glyph indices, advances, dimensions, and CRC-64 agree across Swag builds.
+FreeType 2.14.3 selects the same glyphs.
+[Raw timings and phase measurements](font-decode-linux-sfnt-scans.json)
+
+| Fixture | Source before (µs) | Source after (µs) | File before (µs) | File after (µs) |
+| --- | ---: | ---: | ---: | ---: |
+| `DejaVuSans.ttf` | 58.01 | 37.95 | 135.45 | 122.88 |
+| `DejaVuSerif.ttf` | 49.84 | 41.14 | 85.26 | 72.65 |
+| `Inter-Variable.ttf` | 30.80 | 28.26 | 123.08 | 137.80 |
+| `NimbusSans-Regular.otf` | 13.12 | 12.81 | 45.07 | 43.62 |
+| `ZenKakuGothicNew-Regular.ttf` | 79.25 | 55.53 | 409.17 | 433.34 |
+| `MaShanZheng-Regular.ttf` | 102.77 | 89.74 | 814.81 | 858.67 |
+| `GowunBatang-Regular.ttf` | 137.35 | 106.11 | 1297.48 | 1271.88 |
+| `NotoSansSC-Variable.ttf` | 53.82 | 55.98 | 1478.27 | 1389.73 |
+| `NotoSerifCJKjp-Regular.otf` | 34.02 | 35.82 | 4063.82 | 3968.45 |
+
+In the separate phase probe, median kerning validation for DejaVu Sans moves
+from 13.87 to 3.21 µs. Gowun Batang's metrics move from 31.03 to 2.47 µs and its
+glyph-name parse from 40.64 to 28.34 µs. Each phase measurement uses 21 opens
+from a retained source after five warmups.
+
+A full pathname repeat before this pass uses Pillow 12.3.0 Basic layout with
+FreeType 2.14.3. Swag wins 46 of 59 cases across 52 files on one CPU. The
+remaining cases include eleven CJK CFF faces, Gowun Batang, and DejaVu Sans.
+[Full corpus repeat](font-decode-linux-59-cases.json)

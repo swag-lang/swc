@@ -11,14 +11,6 @@ const Magic: [4] u8 = ['q', 'o', 'i', 'f']
 const HeaderSize    = 14'u64
 const EndMarkerSize = 8'u64
 
-struct Pixel
-{
-    r: u8
-    g: u8
-    b: u8
-    a: u8
-}
-
 // Decodes QOI images into RGB8 or RGBA8 storage.
 internal struct Decoder {}
 
@@ -32,16 +24,13 @@ func readU32BigEndian(source: const [*] u8)->u32
 }
 
 #[Swag.Inline]
-private func hashWord(pixel: u32)->u8
+func hashWord(pixel: u32)->u8
 {
     // Separate the channels into 16-bit lanes so the weighted sum fits in the high lane.
     let even = (pixel & 0x00FF_00FF'u32) * #wrap 0x0003_0007'u32
     let odd  = ((pixel >> 8) & 0x00FF_00FF'u32) * #wrap 0x0005_000B'u32
     return cast(u8, (((even + #wrap odd) >> 16) & 63))
 }
-
-#[Swag.Inline]
-func hash(pixel: Pixel)->u8 => cast(u8, ((cast(u32, pixel.r) * 3 + cast(u32, pixel.g) * 5 + cast(u32, pixel.b) * 7 + cast(u32, pixel.a) * 11) & 63))
 
 #[Swag.Inline]
 private func addRgbDeltas(pixel: u32, red, green, blue: s32)->u32

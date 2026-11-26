@@ -323,3 +323,44 @@ func makeGposKernFixture()->Array'u8
     Swag.require(lookupLegacyKerning(&faceData, 0x0001_0001) == 4)
     Swag.require(lookupLegacyKerning(&faceData, 0x0001_0002) == -2)
 }
+
+// Packed validation keeps key zero, tests group boundaries, and sees nonzero values in the group.
+#test
+{
+    const Pairs     = 9'u32
+    const PairStart = 18'u64
+    var bytes: Array'u8
+    bytes.resize(PairStart + Pairs * 6)
+    writeBigU16(&bytes, 2, 1)
+    writeBigU16(&bytes, 6, 14 + Pairs * 6)
+    writeBigU16(&bytes, 8, 1)
+    writeBigU16(&bytes, 10, Pairs)
+    for index in Pairs do
+        writeBigU32(&bytes, PairStart + index * 6, cast(u32, index))
+    writeBigU16(&bytes, PairStart + 4, 0xFFF0)
+
+    for duplicate in 2
+    {
+        if duplicate
+        {
+            writeBigU32(&bytes, PairStart + 4 * 6, 3)
+            writeBigU16(&bytes, PairStart + 4 * 6 + 4, 9)
+        }
+
+        var faceData: FaceImpl
+        faceData.fontData.add(bytes.toSlice())
+        faceData.tables.add({tag: TAG_KERN, length: cast(u32, bytes.count)})
+        expect parseKern(&faceData)
+        if duplicate
+        {
+            Swag.require(faceData.kernData == null)
+            Swag.require(faceData.kernPairs.getOrDefault(3, 0) == 9)
+        }
+        else
+        {
+            let packed = unwrap faceData.kernData
+            Swag.require((expect readS16(packed, 4)) == -16)
+            Swag.require(faceData.kernPairs.isEmpty())
+        }
+    }
+}

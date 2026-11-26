@@ -1,6 +1,7 @@
 {
   "baseline_commit": "d8325e8d9e",
   "platform": "Linux-6.18.57-x86_64-with-glibc2.41",
+  "worker_pool": {"cpu_1": 1, "cpu_4": 3},
   "cpu_model": "INTEL(R) XEON(R) PLATINUM 8573C",
   "pixel_size": 20,
   "batches": 11,

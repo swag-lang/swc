@@ -141,29 +141,42 @@ func hasNoVerticalMetrics(face: *Face)->bool fail => (try face.getVerticalMetric
     Swag.require(outcome.value() != null)
 }
 
-// A full group of long records, a scalar tail, and a short record retain their signed bearings.
+// A full group of long records, both scalar tails, and a group of short records retain their signed bearings.
 #test
 {
-    const ExtraMetrics: [14] u8 = [
+    const ExtraMetrics: [12] u8 = [
         0x03, 0x20, 0xFF, 0x9C,
         0x02, 0xBC, 0x00, 0x21,
-        0x02, 0x58, 0xFF, 0x38,
-        0xFF, 0xE9]
+        0x02, 0x58, 0xFF, 0x38]
+    const ShortBearings: [9] s16 = [-23, 0, 8192, -8192, Swag.S16.Min, Swag.S16.Max, 17, -37, 53]
     var faceData: FaceImpl
-    faceData.face.setGlyphCount(6)
+    faceData.face.setGlyphCount(5 + ShortBearings.count)
     faceData.fontData.add(VerticalHeaderFixture)
     writeTestU16(&faceData.fontData, 34, 5)
     faceData.fontData.add(VerticalLongMetricsFixture)
     faceData.fontData.add(ExtraMetrics)
+    for bearing in ShortBearings
+    {
+        let offset = faceData.fontData.count
+        faceData.fontData.resize(offset + 2)
+        writeTestU16(&faceData.fontData, offset, cast #bit(u16, bearing))
+    }
+
     faceData.tables.add({tag: TAG_VHEA, offset: 0, length: VerticalHeaderFixture.count})
-    faceData.tables.add({tag: TAG_VMTX, offset: VerticalHeaderFixture.count, length: VerticalLongMetricsFixture.count + ExtraMetrics.count})
+    faceData.tables.add({tag: TAG_VMTX, offset: VerticalHeaderFixture.count, length: VerticalLongMetricsFixture.count + ExtraMetrics.count + ShortBearings.count * 2})
     expect buildVerticalGlyphMetrics(&faceData)
 
-    const Advances: [6] u16 = [1000, 900, 800, 700, 600, 600]
-    const Bearings: [6] s16 = [100, 200, -100, 33, -200, -23]
+    const Advances: [5] u16 = [1000, 900, 800, 700, 600]
+    const Bearings: [5] s16 = [100, 200, -100, 33, -200]
     for index in Advances.count
     {
         let metrics = unwrap (expect faceData.face.getVerticalMetrics(cast(u32, index)))
         Swag.require(metrics.advanceHeight == Advances[index] and metrics.topSideBearing == Bearings[index])
+    }
+
+    for bearing, index in ShortBearings
+    {
+        let metrics = unwrap (expect faceData.face.getVerticalMetrics(cast(u32, Advances.count + index)))
+        Swag.require(metrics.advanceHeight == 600 and metrics.topSideBearing == bearing)
     }
 }

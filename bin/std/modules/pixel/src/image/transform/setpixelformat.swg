@@ -5,7 +5,7 @@ private const DropSwap   = [2'u8, 1, 0, 6, 5, 4, 10, 9, 8, 14, 13, 12, 128, 128,
 private const ExpandKeep = [0'u8, 1, 2, 128, 3, 4, 5, 128, 6, 7, 8, 128, 9, 10, 11, 128]
 private const ExpandSwap = [2'u8, 1, 0, 128, 5, 4, 3, 128, 8, 7, 6, 128, 11, 10, 9, 128]
 
-private func(HALF: bool) expandRgb16Alpha(source: const [*] u8, target: [*] u8, count: u64)
+internal func(HALF: bool) expandRgb16Alpha(source: const [*] u8, target: [*] u8, count: u64)
 {
     using Math.Simd
     const Alpha  = HALF ? 0x3C00'u16 : 0xFFFF'u16
@@ -42,7 +42,7 @@ private func(HALF: bool) expandRgb16Alpha(source: const [*] u8, target: [*] u8, 
     }
 }
 
-private func expandRgb32Alpha(source: const [*] u8, target: [*] u8, count: u64)
+internal func expandRgb32Alpha(source: const [*] u8, target: [*] u8, count: u64)
 {
     using Math.Simd
     const Color  = cast(U32x4, [0xFFFF_FFFF'u32, 0xFFFF_FFFF, 0xFFFF_FFFF, 0])

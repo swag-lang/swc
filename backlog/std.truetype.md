@@ -177,6 +177,10 @@ here. Compiler issues belong in [compiler.frontend.md](compiler.frontend.md), [c
 - Evidence: ordinary SDF already evaluates two F64 sample positions through
   `closestEdgeDistances` and `insideMask`; MSDF and analytic raster coverage remain separate scalar
   implementations.
+- Evidence: grayscale scanline bands cull unrelated edges while preserving
+  contour order, and the 64 px raster workload takes 12–50% less time across
+  TrueType and CFF fixtures. The measured bitmap bytes are unchanged.
+  [Raster timings and golden comparison](../bench/results/swagscope-filesamples/font-decode-linux.md#raster-scanline-bands)
 - Next: vectorize analytic coverage conversion and process multiple sample points in MSDF
   distance evaluation, using vector math and gathers only where edge traversal remains profitable.
 - Done when: glyph goldens stay within a declared coverage/distance tolerance and raster and

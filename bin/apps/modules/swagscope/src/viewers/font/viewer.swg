@@ -264,13 +264,7 @@ private func loadViewerContent(fileName: string)->ViewerContent fail
     elif collectionCount > 1 do
         result.details = Format.toString(texts().ui_CollectionFaces, collectionCount)
     let face = unwrap result.face
-    for glyphIndex in face.glyphCount
-    {
-        if let name = face.glyphName(cast(u32, glyphIndex)) do
-            result.glyphNames.add(GlyphName{String.from(name), cast(u32, glyphIndex)})
-    }
-
-    result.glyphNames.sort(func(a, b) => Text.compareNames(a.name.toSlice(), b.name.toSlice()))
+    buildGlyphNameIndex(face, &result.glyphNames)
     buildCharacterIndex(face, &result.pageStarts, &result.glyphCharacters)
 
     for &count, index in result.facts.coverage
@@ -688,7 +682,7 @@ private impl Panel
             while first < last
             {
                 let middle = first + (last - first) / 2
-                if Text.compareNames(.document.glyphNames[middle].name.toString(), query) < 0
+                if Text.compareNames(.document.glyphNames[middle].name, query) < 0
                     do
                     first = middle + 1
                 else do
@@ -696,9 +690,9 @@ private impl Panel
             }
 
             if first < .document.glyphNames.count and
-               Text.compareNames(.document.glyphNames[first].name.toString(), query) == 0
+               Text.compareNames(.document.glyphNames[first].name, query) == 0
             {
-                let name       = .document.glyphNames[first].name.toString()
+                let name       = .document.glyphNames[first].name
                 let glyphIndex = .document.glyphNames[first].id
                 let mapped     = glyphIndex < .document.glyphCharacters.count and .document.glyphCharacters[glyphIndex] != 0
                 let character  = mapped ? .document.glyphCharacters[glyphIndex] : cast(rune, 0)

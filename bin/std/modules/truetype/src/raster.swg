@@ -286,48 +286,70 @@ func renderCurrentOutline(slot: *GlyphSlot) fail
     let leftF = cast(f64, left)
     let topF  = cast(f64, top)
 
-    for py in rows
+    // Retain contour order while discarding edges outside a group of rows.
+    const BandRows = 8
+    let rowsPerBand = rows > 2 * BandRows ? BandRows : rows
+    var bandStart   = 0's32
+    var active: Array'Edge
+    while bandStart < rows
     {
-        Memory.clear(areaBuffer, area.count * #sizeof(f64))
-        Memory.clear(coverBuffer, cover.count * #sizeof(f64))
-
-        // Glyph-space y band for this row (y points up; row 0 is the top).
-        let bandHi = topF - cast(f64, py)
-        let bandLo = bandHi - 1.0
-
-        for edge in edges
+        let bandEnd   = Math.min(rows, bandStart + rowsPerBand)
+        let bandLo    = topF - bandEnd
+        let bandHi    = topF - bandStart
+        var bandEdges = edges.toSlice()
+        if rowsPerBand < rows
         {
-            // Horizontal edges carry no winding; skip non-overlapping ones.
-            if edge.y0 == edge.y1 do
-                continue
-            if edge.maxY <= bandLo or edge.minY >= bandHi do
-                continue
-
-            let s   = edge.y1 > edge.y0 ? 1.0 : -1.0
-            let elo = Math.max(edge.minY, bandLo)
-            let ehi = Math.min(edge.maxY, bandHi)
-            if ehi <= elo do
-                continue
-
-            let inv   = 1.0 / (edge.y1 - edge.y0)
-            let xAtLo = edge.x0 + (edge.x1 - edge.x0) * (elo - edge.y0) * inv
-            let xAtHi = edge.x0 + (edge.x1 - edge.x0) * (ehi - edge.y0) * inv
-
-            accumulateSpan(areaBuffer, coverBuffer, width, xAtLo - leftF, elo, xAtHi - leftF, ehi, s)
+            active.clear()
+            for edge in edges where edge.maxY > bandLo and edge.minY < bandHi and edge.y0 != edge.y1 do
+                active.add(edge)
+            bandEdges = active.toSlice()
         }
 
-        var running: f64 = 0.0
-        for px in width
+        for py in bandStart until bandEnd
         {
-            let val = running + coverBuffer[px] - areaBuffer[px]
-            running += coverBuffer[px]
+            Memory.clear(areaBuffer, area.count * #sizeof(f64))
+            Memory.clear(coverBuffer, cover.count * #sizeof(f64))
 
-            var c = Math.abs(val)
-            if c > 1.0 do
-                c = 1.0
-            dst[] = cast(u8, (c * 255.0 + 0.5))
-            dst   += 1
+            // Glyph-space y band for this row (y points up; row 0 is the top).
+            let bandHi = topF - cast(f64, py)
+            let bandLo = bandHi - 1.0
+
+            for edge in bandEdges
+            {
+                // Horizontal edges carry no winding; skip non-overlapping ones.
+                if edge.y0 == edge.y1 do
+                    continue
+                if edge.maxY <= bandLo or edge.minY >= bandHi do
+                    continue
+
+                let s   = edge.y1 > edge.y0 ? 1.0 : -1.0
+                let elo = Math.max(edge.minY, bandLo)
+                let ehi = Math.min(edge.maxY, bandHi)
+                if ehi <= elo do
+                    continue
+
+                let inv   = 1.0 / (edge.y1 - edge.y0)
+                let xAtLo = edge.x0 + (edge.x1 - edge.x0) * (elo - edge.y0) * inv
+                let xAtHi = edge.x0 + (edge.x1 - edge.x0) * (ehi - edge.y0) * inv
+
+                accumulateSpan(areaBuffer, coverBuffer, width, xAtLo - leftF, elo, xAtHi - leftF, ehi, s)
+            }
+
+            var running: f64 = 0.0
+            for px in width
+            {
+                let val = running + coverBuffer[px] - areaBuffer[px]
+                running += coverBuffer[px]
+
+                var c = Math.abs(val)
+                if c > 1.0 do
+                    c = 1.0
+                dst[] = cast(u8, (c * 255.0 + 0.5))
+                dst   += 1
+            }
         }
+
+        bandStart = bandEnd
     }
 
     safeSlot.setBitmap(rows, width, cast(s32, width), bitmapBuffer, .Gray, left, top)

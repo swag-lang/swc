@@ -1,0 +1,1654 @@
+{
+  "baseline_commit": "0cacd90c1f",
+  "platform": "Linux-6.18.57-x86_64-with-glibc2.41",
+  "cpu": 4,
+  "samples": 3,
+  "batches": 9,
+  "codepoint_seed_base": 5973,
+  "cases": [
+    {
+      "file": "DejaVuSans.ttf",
+      "face": 0,
+      "pixels": 24,
+      "font_sha256": "3fdf69cabf06049ea70a00b5919340e2ce1e6d02b0cc3c4b44fb6801bd1e0d22",
+      "codepoints_sha256": "b7666c73d65c07f3fa7dc1b5e795ada6a92e64595f7c420c1de613760157ef1e",
+      "codepoints": 64,
+      "batches_ns": {
+        "bitmap": {
+          "before": [
+            6881,
+            7848,
+            7521,
+            7003,
+            9167,
+            7152,
+            7939,
+            9889,
+            7838
+          ],
+          "after": [
+            7761,
+            6538,
+            7231,
+            8652,
+            8271,
+            7963,
+            9357,
+            7789,
+            8346
+          ]
+        }
+      },
+      "fingerprints": {
+        "bitmap": [
+          2304,
+          15543654246416802335
+        ]
+      }
+    },
+    {
+      "file": "DejaVuSans.ttf",
+      "face": 0,
+      "pixels": 64,
+      "font_sha256": "3fdf69cabf06049ea70a00b5919340e2ce1e6d02b0cc3c4b44fb6801bd1e0d22",
+      "codepoints_sha256": "b7666c73d65c07f3fa7dc1b5e795ada6a92e64595f7c420c1de613760157ef1e",
+      "codepoints": 64,
+      "batches_ns": {
+        "bitmap": {
+          "before": [
+            16879,
+            18041,
+            20806,
+            24239,
+            17362,
+            14397,
+            15865,
+            58872,
+            16392
+          ],
+          "after": [
+            13627,
+            11907,
+            11635,
+            12021,
+            16140,
+            16881,
+            16610,
+            12696,
+            12080
+          ]
+        }
+      },
+      "fingerprints": {
+        "bitmap": [
+          2304,
+          15952149083849329832
+        ]
+      }
+    },
+    {
+      "file": "GowunBatang-Regular.ttf",
+      "face": 0,
+      "pixels": 24,
+      "font_sha256": "466c593e7147412e748af4856d5ad14709b5a860bdf62b9c2546f2c5874e9849",
+      "codepoints_sha256": "d85b591be69e509513810caff5287317194f00136a7811c32a785d3a320d9551",
+      "codepoints": 513,
+      "batches_ns": {
+        "bitmap": {
+          "after": [
+            73592,
+            51013,
+            61208,
+            66758,
+            52802,
+            51289,
+            55677,
+            53035,
+            78257
+          ],
+          "before": [
+            78067,
+            79443,
+            76062,
+            87674,
+            64429,
+            64417,
+            69422,
+            61702,
+            82577
+          ]
+        }
+      },
+      "fingerprints": {
+        "bitmap": [
+          125637,
+          8555128057868430733
+        ]
+      }
+    },
+    {
+      "file": "GowunBatang-Regular.ttf",
+      "face": 0,
+      "pixels": 64,
+      "font_sha256": "466c593e7147412e748af4856d5ad14709b5a860bdf62b9c2546f2c5874e9849",
+      "codepoints_sha256": "d85b591be69e509513810caff5287317194f00136a7811c32a785d3a320d9551",
+      "codepoints": 513,
+      "batches_ns": {
+        "bitmap": {
+          "after": [
+            103413,
+            96126,
+            88074,
+            122336,
+            99453,
+            93211,
+            104497,
+            93041,
+            97373
+          ],
+          "before": [
+            216930,
+            170266,
+            160482,
+            220651,
+            179821,
+            160872,
+            214901,
+            175368,
+            209859
+          ]
+        }
+      },
+      "fingerprints": {
+        "bitmap": [
+          125637,
+          12610481703079538538
+        ]
+      }
+    },
+    {
+      "file": "Lato-Regular.ttf",
+      "face": 0,
+      "pixels": 24,
+      "font_sha256": "df2b989a95bcba598069e96fbc43d591b299029fc322ef5baf53d75bc1098daa",
+      "codepoints_sha256": "8a50882440ae88b38d542e895190d3337a6d0e0397c1ae2bea4171395b6675ee",
+      "codepoints": 258,
+      "batches_ns": {
+        "bitmap": {
+          "before": [
+            12139,
+            11414,
+            11673,
+            11096,
+            13559,
+            12214,
+            14079,
+            14304,
+            14934
+          ],
+          "after": [
+            11071,
+            12166,
+            13237,
+            33291,
+            11324,
+            14114,
+            11514,
+            11701,
+            19694
+          ]
+        }
+      },
+      "fingerprints": {
+        "bitmap": [
+          10206,
+          2670602003381741952
+        ]
+      }
+    },
+    {
+      "file": "Lato-Regular.ttf",
+      "face": 0,
+      "pixels": 64,
+      "font_sha256": "df2b989a95bcba598069e96fbc43d591b299029fc322ef5baf53d75bc1098daa",
+      "codepoints_sha256": "8a50882440ae88b38d542e895190d3337a6d0e0397c1ae2bea4171395b6675ee",
+      "codepoints": 258,
+      "batches_ns": {
+        "bitmap": {
+          "before": [
+            29551,
+            29215,
+            30219,
+            30800,
+            30633,
+            33199,
+            29598,
+            48980,
+            31873
+          ],
+          "after": [
+            42843,
+            21311,
+            41059,
+            20587,
+            21902,
+            20508,
+            20276,
+            20727,
+            23537
+          ]
+        }
+      },
+      "fingerprints": {
+        "bitmap": [
+          10206,
+          1776597859503201049
+        ]
+      }
+    },
+    {
+      "file": "MaShanZheng-Regular.ttf",
+      "face": 0,
+      "pixels": 24,
+      "font_sha256": "6d2546bb189c732a8ca29af9e22457b152387d158aa459e4ac2ce1e51788b7fb",
+      "codepoints_sha256": "1d89cf4bb4e835c26926be7208ddcaae66f4a2e853d8d249123805a8dc16c233",
+      "codepoints": 513,
+      "batches_ns": {
+        "bitmap": {
+          "after": [
+            80685,
+            81059,
+            85191,
+            83143,
+            71916,
+            71979,
+            71897,
+            70016,
+            94404
+          ],
+          "before": [
+            111871,
+            108074,
+            191298,
+            106344,
+            86749,
+            84397,
+            87777,
+            88221,
+            111520
+          ]
+        }
+      },
+      "fingerprints": {
+        "bitmap": [
+          148700,
+          51998147319349638
+        ]
+      }
+    },
+    {
+      "file": "MaShanZheng-Regular.ttf",
+      "face": 0,
+      "pixels": 64,
+      "font_sha256": "6d2546bb189c732a8ca29af9e22457b152387d158aa459e4ac2ce1e51788b7fb",
+      "codepoints_sha256": "1d89cf4bb4e835c26926be7208ddcaae66f4a2e853d8d249123805a8dc16c233",
+      "codepoints": 513,
+      "batches_ns": {
+        "bitmap": {
+          "before": [
+            303488,
+            290846,
+            244739,
+            245196,
+            240492,
+            242363,
+            275240,
+            255675,
+            286952
+          ],
+          "after": [
+            158156,
+            148119,
+            128972,
+            125652,
+            127248,
+            150388,
+            126290,
+            124001,
+            144190
+          ]
+        }
+      },
+      "fingerprints": {
+        "bitmap": [
+          148700,
+          771087968182542423
+        ]
+      }
+    },
+    {
+      "file": "NotoSansJP-Variable.ttf",
+      "face": 0,
+      "pixels": 24,
+      "font_sha256": "c2f3b4d463500a2ddcd3849cded1fceeb9fd6d1c32e6cbecd568453ba50fc68f",
+      "codepoints_sha256": "128a3e01b669f479ef9ed280f67c7dd3476285c954efdd174281ef83987da6b7",
+      "codepoints": 513,
+      "batches_ns": {
+        "bitmap": {
+          "after": [
+            24958,
+            24510,
+            34414,
+            32576,
+            33943,
+            25867,
+            25894,
+            24787,
+            31755
+          ],
+          "before": [
+            30392,
+            43910,
+            40676,
+            50586,
+            28997,
+            30918,
+            30446,
+            32326,
+            37768
+          ]
+        }
+      },
+      "fingerprints": {
+        "bitmap": [
+          54189,
+          7777765915188730914
+        ]
+      }
+    },
+    {
+      "file": "NotoSansJP-Variable.ttf",
+      "face": 0,
+      "pixels": 64,
+      "font_sha256": "c2f3b4d463500a2ddcd3849cded1fceeb9fd6d1c32e6cbecd568453ba50fc68f",
+      "codepoints_sha256": "128a3e01b669f479ef9ed280f67c7dd3476285c954efdd174281ef83987da6b7",
+      "codepoints": 513,
+      "batches_ns": {
+        "bitmap": {
+          "after": [
+            56098,
+            50906,
+            48130,
+            64644,
+            47077,
+            48796,
+            49693,
+            49512,
+            66863
+          ],
+          "before": [
+            84011,
+            72068,
+            70983,
+            93711,
+            70939,
+            71930,
+            73583,
+            74019,
+            94518
+          ]
+        }
+      },
+      "fingerprints": {
+        "bitmap": [
+          54189,
+          6563396611388937275
+        ]
+      }
+    },
+    {
+      "file": "NotoSansSC-Variable.ttf",
+      "face": 0,
+      "pixels": 24,
+      "font_sha256": "a3041811a78c361b1de50f953c805e0244951c21c5bd412f7232ef0d899af0da",
+      "codepoints_sha256": "2edb2d24197c00f962b6a6693543f87a781689555290f5ab304f74f72d0b7e3f",
+      "codepoints": 513,
+      "batches_ns": {
+        "bitmap": {
+          "before": [
+            38255,
+            33342,
+            31597,
+            62338,
+            38165,
+            32676,
+            31487,
+            34158,
+            32754
+          ],
+          "after": [
+            49212,
+            27915,
+            27553,
+            34488,
+            26538,
+            28111,
+            29392,
+            29037,
+            28595
+          ]
+        }
+      },
+      "fingerprints": {
+        "bitmap": [
+          57275,
+          15757457229892463787
+        ]
+      }
+    },
+    {
+      "file": "NotoSansSC-Variable.ttf",
+      "face": 0,
+      "pixels": 64,
+      "font_sha256": "a3041811a78c361b1de50f953c805e0244951c21c5bd412f7232ef0d899af0da",
+      "codepoints_sha256": "2edb2d24197c00f962b6a6693543f87a781689555290f5ab304f74f72d0b7e3f",
+      "codepoints": 513,
+      "batches_ns": {
+        "bitmap": {
+          "before": [
+            89027,
+            78646,
+            78131,
+            87957,
+            74133,
+            76572,
+            82522,
+            77021,
+            84516
+          ],
+          "after": [
+            65005,
+            222156,
+            49388,
+            74906,
+            52802,
+            50531,
+            54570,
+            53730,
+            67220
+          ]
+        }
+      },
+      "fingerprints": {
+        "bitmap": [
+          57275,
+          10063682870590553506
+        ]
+      }
+    },
+    {
+      "file": "NotoSansTC-Variable.ttf",
+      "face": 0,
+      "pixels": 24,
+      "font_sha256": "864727d210d54f2537bbe23b3a839436c3992af72de9322af5270897246bd44f",
+      "codepoints_sha256": "a148867ad4a57e3c3d60b249406d4d1bec9162f122a8d121ff6d0b281692eb53",
+      "codepoints": 513,
+      "batches_ns": {
+        "bitmap": {
+          "before": [
+            47446,
+            33191,
+            31592,
+            31396,
+            33871,
+            36154,
+            33278,
+            33727,
+            42144
+          ],
+          "after": [
+            38028,
+            27766,
+            28144,
+            29227,
+            26968,
+            25574,
+            28055,
+            26448,
+            28467
+          ]
+        }
+      },
+      "fingerprints": {
+        "bitmap": [
+          57321,
+          14726171289630404412
+        ]
+      }
+    },
+    {
+      "file": "NotoSansTC-Variable.ttf",
+      "face": 0,
+      "pixels": 64,
+      "font_sha256": "864727d210d54f2537bbe23b3a839436c3992af72de9322af5270897246bd44f",
+      "codepoints_sha256": "a148867ad4a57e3c3d60b249406d4d1bec9162f122a8d121ff6d0b281692eb53",
+      "codepoints": 513,
+      "batches_ns": {
+        "bitmap": {
+          "after": [
+            50640,
+            55700,
+            59454,
+            54478,
+            52699,
+            52167,
+            52159,
+            66917,
+            74288
+          ],
+          "before": [
+            166781,
+            77812,
+            84990,
+            81421,
+            73521,
+            77652,
+            95284,
+            80867,
+            85911
+          ]
+        }
+      },
+      "fingerprints": {
+        "bitmap": [
+          57321,
+          3780533725904044862
+        ]
+      }
+    },
+    {
+      "file": "OpenSans-Regular.ttf",
+      "face": 0,
+      "pixels": 24,
+      "font_sha256": "1f9d93c3d72caba9122fe384cdc35b98bdc6bdc4d5ce98fa564d4d0f9782dde2",
+      "codepoints_sha256": "b80adb8df745b6b03a6aea919ea7dedc46120cc118c95d23e52e839e4e21cc39",
+      "codepoints": 513,
+      "batches_ns": {
+        "bitmap": {
+          "after": [
+            14256,
+            12802,
+            13989,
+            14870,
+            12242,
+            14162,
+            12258,
+            12647,
+            20244
+          ],
+          "before": [
+            24148,
+            14557,
+            14700,
+            30915,
+            13834,
+            14446,
+            16298,
+            13092,
+            16472
+          ]
+        }
+      },
+      "fingerprints": {
+        "bitmap": [
+          15135,
+          16150974432864451574
+        ]
+      }
+    },
+    {
+      "file": "OpenSans-Regular.ttf",
+      "face": 0,
+      "pixels": 64,
+      "font_sha256": "1f9d93c3d72caba9122fe384cdc35b98bdc6bdc4d5ce98fa564d4d0f9782dde2",
+      "codepoints_sha256": "b80adb8df745b6b03a6aea919ea7dedc46120cc118c95d23e52e839e4e21cc39",
+      "codepoints": 513,
+      "batches_ns": {
+        "bitmap": {
+          "before": [
+            44576,
+            33838,
+            32730,
+            41955,
+            34088,
+            37547,
+            34653,
+            35666,
+            47429
+          ],
+          "after": [
+            26032,
+            23100,
+            24781,
+            31963,
+            22446,
+            23806,
+            27230,
+            25514,
+            37909
+          ]
+        }
+      },
+      "fingerprints": {
+        "bitmap": [
+          15135,
+          9287875442153913214
+        ]
+      }
+    },
+    {
+      "file": "ZenKakuGothicNew-Regular.ttf",
+      "face": 0,
+      "pixels": 24,
+      "font_sha256": "b840cd07a67d89cacca44249ae49aa99ee7640eb5ce623be8d8983d6aabac801",
+      "codepoints_sha256": "2312817b74796c44c7a645a733cdd0ce71cdd73e0b0dd6a519ff31c1674770be",
+      "codepoints": 513,
+      "batches_ns": {
+        "bitmap": {
+          "before": [
+            44001,
+            29685,
+            42940,
+            30163,
+            28191,
+            28534,
+            29798,
+            31485,
+            45208
+          ],
+          "after": [
+            37604,
+            37740,
+            37230,
+            25248,
+            26194,
+            26292,
+            35242,
+            27046,
+            33556
+          ]
+        }
+      },
+      "fingerprints": {
+        "bitmap": [
+          54097,
+          5763932043125122542
+        ]
+      }
+    },
+    {
+      "file": "ZenKakuGothicNew-Regular.ttf",
+      "face": 0,
+      "pixels": 64,
+      "font_sha256": "b840cd07a67d89cacca44249ae49aa99ee7640eb5ce623be8d8983d6aabac801",
+      "codepoints_sha256": "2312817b74796c44c7a645a733cdd0ce71cdd73e0b0dd6a519ff31c1674770be",
+      "codepoints": 513,
+      "batches_ns": {
+        "bitmap": {
+          "after": [
+            58004,
+            47189,
+            59840,
+            48368,
+            44946,
+            47037,
+            44790,
+            77382,
+            52214
+          ],
+          "before": [
+            81105,
+            71039,
+            84993,
+            80002,
+            66178,
+            71221,
+            69347,
+            126214,
+            71458
+          ]
+        }
+      },
+      "fingerprints": {
+        "bitmap": [
+          54097,
+          6978734822539847173
+        ]
+      }
+    },
+    {
+      "file": "NimbusSans-Regular.otf",
+      "face": 0,
+      "pixels": 24,
+      "font_sha256": "7c25be4d78155523080ab85b10277150657ff7dabbcad7037bdd536c9b6d0d08",
+      "codepoints_sha256": "3de1e65d59dd982dbdb35325dea29f0b8fea38a19656f87dfb0d34331fcec1cf",
+      "codepoints": 513,
+      "batches_ns": {
+        "bitmap": {
+          "before": [
+            10126,
+            10041,
+            9983,
+            12070,
+            9773,
+            18210,
+            10069,
+            11263,
+            21405
+          ],
+          "after": [
+            23340,
+            10643,
+            9081,
+            10595,
+            9651,
+            9988,
+            9169,
+            13008,
+            9944
+          ]
+        }
+      },
+      "fingerprints": {
+        "bitmap": [
+          13966,
+          715594416839417089
+        ]
+      }
+    },
+    {
+      "file": "NimbusSans-Regular.otf",
+      "face": 0,
+      "pixels": 64,
+      "font_sha256": "7c25be4d78155523080ab85b10277150657ff7dabbcad7037bdd536c9b6d0d08",
+      "codepoints_sha256": "3de1e65d59dd982dbdb35325dea29f0b8fea38a19656f87dfb0d34331fcec1cf",
+      "codepoints": 513,
+      "batches_ns": {
+        "bitmap": {
+          "after": [
+            21338,
+            17986,
+            18172,
+            16963,
+            17106,
+            15851,
+            16960,
+            18314,
+            20500
+          ],
+          "before": [
+            43584,
+            21852,
+            21551,
+            35515,
+            22548,
+            23061,
+            21563,
+            20330,
+            21227
+          ]
+        }
+      },
+      "fingerprints": {
+        "bitmap": [
+          13966,
+          15081357790515444253
+        ]
+      }
+    },
+    {
+      "file": "NotoSansCJK-Regular.ttc",
+      "face": 1,
+      "pixels": 24,
+      "font_sha256": "b76b0433203017ca80401b2ee0dd69350349871c4b19d504c34dbdd80541690a",
+      "codepoints_sha256": "0a859da61b11ce4e56676f79032553c1a512fa0c8de867aaebbd9766c17b7cce",
+      "codepoints": 513,
+      "batches_ns": {
+        "bitmap": {
+          "before": [
+            39292,
+            26620,
+            37093,
+            31318,
+            26800,
+            26783,
+            25846,
+            26949,
+            25690
+          ],
+          "after": [
+            37599,
+            20073,
+            37314,
+            28613,
+            21313,
+            22366,
+            22235,
+            24149,
+            27992
+          ]
+        }
+      },
+      "fingerprints": {
+        "bitmap": [
+          46473,
+          10940577058221585975
+        ]
+      }
+    },
+    {
+      "file": "NotoSansCJK-Regular.ttc",
+      "face": 1,
+      "pixels": 64,
+      "font_sha256": "b76b0433203017ca80401b2ee0dd69350349871c4b19d504c34dbdd80541690a",
+      "codepoints_sha256": "0a859da61b11ce4e56676f79032553c1a512fa0c8de867aaebbd9766c17b7cce",
+      "codepoints": 513,
+      "batches_ns": {
+        "bitmap": {
+          "before": [
+            70175,
+            54583,
+            64344,
+            67949,
+            51083,
+            55297,
+            53572,
+            87500,
+            56111
+          ],
+          "after": [
+            53344,
+            41408,
+            53729,
+            40206,
+            38488,
+            39012,
+            43161,
+            41062,
+            41671
+          ]
+        }
+      },
+      "fingerprints": {
+        "bitmap": [
+          46473,
+          12514784169358129920
+        ]
+      }
+    },
+    {
+      "file": "NotoSansCJKjp-Regular.otf",
+      "face": 0,
+      "pixels": 24,
+      "font_sha256": "68a3fc98800b2a27b371f2fb79991daf3633bd89309d4ffaa6946fd587f375b5",
+      "codepoints_sha256": "f12f875361837ccc001346ca6aac843e35e6a7f53b7dbcb9313aa045ee76ce0e",
+      "codepoints": 513,
+      "batches_ns": {
+        "bitmap": {
+          "after": [
+            21100,
+            20829,
+            21571,
+            22349,
+            21861,
+            25060,
+            22621,
+            25216,
+            21534
+          ],
+          "before": [
+            25545,
+            35778,
+            32446,
+            27730,
+            25494,
+            27001,
+            23462,
+            28315,
+            30212
+          ]
+        }
+      },
+      "fingerprints": {
+        "bitmap": [
+          46494,
+          17410110746040320827
+        ]
+      }
+    },
+    {
+      "file": "NotoSansCJKjp-Regular.otf",
+      "face": 0,
+      "pixels": 64,
+      "font_sha256": "68a3fc98800b2a27b371f2fb79991daf3633bd89309d4ffaa6946fd587f375b5",
+      "codepoints_sha256": "f12f875361837ccc001346ca6aac843e35e6a7f53b7dbcb9313aa045ee76ce0e",
+      "codepoints": 513,
+      "batches_ns": {
+        "bitmap": {
+          "before": [
+            61887,
+            61636,
+            65717,
+            53125,
+            58230,
+            53858,
+            52355,
+            54622,
+            71023
+          ],
+          "after": [
+            55410,
+            39815,
+            51265,
+            38288,
+            40582,
+            40983,
+            40472,
+            77311,
+            55220
+          ]
+        }
+      },
+      "fingerprints": {
+        "bitmap": [
+          46494,
+          5230706124315099107
+        ]
+      }
+    },
+    {
+      "file": "NotoSerifCJK-Regular.ttc",
+      "face": 4,
+      "pixels": 24,
+      "font_sha256": "5d9c31a059600193c9d7968a998bde886ccdc77e934006ad243b41794c496a7d",
+      "codepoints_sha256": "48548c0a7635de3644698004b16e06033f7c591c9b4e174cf5f5ba09309be0e0",
+      "codepoints": 513,
+      "batches_ns": {
+        "bitmap": {
+          "before": [
+            58605,
+            43889,
+            90497,
+            139480,
+            42016,
+            45887,
+            46982,
+            43638,
+            47706
+          ],
+          "after": [
+            35806,
+            49180,
+            65457,
+            200478,
+            37395,
+            36913,
+            39596,
+            38275,
+            40694
+          ]
+        }
+      },
+      "fingerprints": {
+        "bitmap": [
+          86413,
+          3082433799895755687
+        ]
+      }
+    },
+    {
+      "file": "NotoSerifCJK-Regular.ttc",
+      "face": 4,
+      "pixels": 64,
+      "font_sha256": "5d9c31a059600193c9d7968a998bde886ccdc77e934006ad243b41794c496a7d",
+      "codepoints_sha256": "48548c0a7635de3644698004b16e06033f7c591c9b4e174cf5f5ba09309be0e0",
+      "codepoints": 513,
+      "batches_ns": {
+        "bitmap": {
+          "after": [
+            77701,
+            63853,
+            86519,
+            60501,
+            63524,
+            65551,
+            62775,
+            108787,
+            89488
+          ],
+          "before": [
+            113790,
+            84100,
+            113096,
+            88018,
+            105091,
+            86981,
+            90677,
+            127861,
+            90723
+          ]
+        }
+      },
+      "fingerprints": {
+        "bitmap": [
+          86413,
+          229305529147409565
+        ]
+      }
+    },
+    {
+      "file": "NotoSerifCJKjp-Regular.otf",
+      "face": 0,
+      "pixels": 24,
+      "font_sha256": "d9854c7a8ef170b5a7932558856fd64eb8de0b007cd823fed6f9f514ad2803d3",
+      "codepoints_sha256": "018b13ed4d3c1cc349500afc2520ab84634605e3ae938728b30586083770e2a3",
+      "codepoints": 513,
+      "batches_ns": {
+        "bitmap": {
+          "after": [
+            36093,
+            38601,
+            34610,
+            52690,
+            38241,
+            39645,
+            39828,
+            37273,
+            43058
+          ],
+          "before": [
+            54590,
+            53335,
+            54089,
+            82538,
+            42037,
+            40568,
+            42655,
+            42435,
+            55516
+          ]
+        }
+      },
+      "fingerprints": {
+        "bitmap": [
+          83896,
+          827746439294650268
+        ]
+      }
+    },
+    {
+      "file": "NotoSerifCJKjp-Regular.otf",
+      "face": 0,
+      "pixels": 64,
+      "font_sha256": "d9854c7a8ef170b5a7932558856fd64eb8de0b007cd823fed6f9f514ad2803d3",
+      "codepoints_sha256": "018b13ed4d3c1cc349500afc2520ab84634605e3ae938728b30586083770e2a3",
+      "codepoints": 513,
+      "batches_ns": {
+        "bitmap": {
+          "before": [
+            97899,
+            103845,
+            103634,
+            121418,
+            93485,
+            86206,
+            87722,
+            160529,
+            89781
+          ],
+          "after": [
+            77160,
+            61431,
+            82051,
+            82981,
+            65195,
+            61125,
+            60954,
+            64526,
+            62700
+          ]
+        }
+      },
+      "fingerprints": {
+        "bitmap": [
+          83896,
+          12330174460063010537
+        ]
+      }
+    },
+    {
+      "file": "SourceSans3-Regular.otf",
+      "face": 0,
+      "pixels": 24,
+      "font_sha256": "08df266400933d3178d081a45f94a08814c3e55b4b7dd2e0ff69cb1329f13ab6",
+      "codepoints_sha256": "290223703be5f3d2445e043cb47447474ce06c0481c9b9f490dd25d1ed21e8e3",
+      "codepoints": 513,
+      "batches_ns": {
+        "bitmap": {
+          "after": [
+            10748,
+            11649,
+            10234,
+            11327,
+            12794,
+            11769,
+            11066,
+            10455,
+            19331
+          ],
+          "before": [
+            10011,
+            11076,
+            11418,
+            10994,
+            12088,
+            12849,
+            14298,
+            12094,
+            11192
+          ]
+        }
+      },
+      "fingerprints": {
+        "bitmap": [
+          16551,
+          16107852795815599560
+        ]
+      }
+    },
+    {
+      "file": "SourceSans3-Regular.otf",
+      "face": 0,
+      "pixels": 64,
+      "font_sha256": "08df266400933d3178d081a45f94a08814c3e55b4b7dd2e0ff69cb1329f13ab6",
+      "codepoints_sha256": "290223703be5f3d2445e043cb47447474ce06c0481c9b9f490dd25d1ed21e8e3",
+      "codepoints": 513,
+      "batches_ns": {
+        "bitmap": {
+          "before": [
+            21910,
+            34636,
+            33631,
+            38836,
+            22817,
+            24004,
+            23972,
+            22413,
+            23147
+          ],
+          "after": [
+            33175,
+            19026,
+            19807,
+            34101,
+            21086,
+            28019,
+            22383,
+            19770,
+            18862
+          ]
+        }
+      },
+      "fingerprints": {
+        "bitmap": [
+          16551,
+          18206302443966188820
+        ]
+      }
+    }
+  ],
+  "repeat": {
+    "baseline_commit": "0cacd90c1f",
+    "platform": "Linux-6.18.57-x86_64-with-glibc2.41",
+    "cpu": 4,
+    "samples": 5,
+    "batches": 15,
+    "codepoint_seed_base": 5973,
+    "cases": [
+      {
+        "file": "DejaVuSans.ttf",
+        "face": 0,
+        "pixels": 24,
+        "font_sha256": "3fdf69cabf06049ea70a00b5919340e2ce1e6d02b0cc3c4b44fb6801bd1e0d22",
+        "codepoints_sha256": "b7666c73d65c07f3fa7dc1b5e795ada6a92e64595f7c420c1de613760157ef1e",
+        "codepoints": 64,
+        "batches_ns": {
+          "bitmap": {
+            "after": [
+              7155,
+              8357,
+              8137,
+              6965,
+              7654,
+              12204,
+              7921,
+              9176,
+              7122,
+              8257,
+              7435,
+              8196,
+              12435,
+              11105,
+              7783
+            ],
+            "before": [
+              8820,
+              7101,
+              8817,
+              8082,
+              7073,
+              11304,
+              8368,
+              7939,
+              6908,
+              8107,
+              8966,
+              8668,
+              8127,
+              10934,
+              7392
+            ]
+          }
+        },
+        "fingerprints": {
+          "bitmap": [
+            2304,
+            15543654246416802335
+          ]
+        }
+      },
+      {
+        "file": "DejaVuSans.ttf",
+        "face": 0,
+        "pixels": 64,
+        "font_sha256": "3fdf69cabf06049ea70a00b5919340e2ce1e6d02b0cc3c4b44fb6801bd1e0d22",
+        "codepoints_sha256": "b7666c73d65c07f3fa7dc1b5e795ada6a92e64595f7c420c1de613760157ef1e",
+        "codepoints": 64,
+        "batches_ns": {
+          "bitmap": {
+            "after": [
+              13122,
+              12570,
+              16172,
+              13751,
+              13263,
+              22564,
+              12260,
+              12179,
+              14302,
+              12239,
+              14333,
+              15175,
+              15307,
+              12678,
+              11685
+            ],
+            "before": [
+              16603,
+              15284,
+              14757,
+              15166,
+              19005,
+              25886,
+              16949,
+              17283,
+              16752,
+              20203,
+              16179,
+              14340,
+              18001,
+              14773,
+              22493
+            ]
+          }
+        },
+        "fingerprints": {
+          "bitmap": [
+            2304,
+            15952149083849329832
+          ]
+        }
+      },
+      {
+        "file": "GowunBatang-Regular.ttf",
+        "face": 0,
+        "pixels": 24,
+        "font_sha256": "466c593e7147412e748af4856d5ad14709b5a860bdf62b9c2546f2c5874e9849",
+        "codepoints_sha256": "d85b591be69e509513810caff5287317194f00136a7811c32a785d3a320d9551",
+        "codepoints": 513,
+        "batches_ns": {
+          "bitmap": {
+            "after": [
+              54416,
+              56625,
+              56506,
+              50535,
+              61800,
+              52883,
+              66175,
+              52123,
+              55524,
+              55113,
+              52978,
+              52341,
+              53683,
+              53391,
+              55667
+            ],
+            "before": [
+              73114,
+              69039,
+              67789,
+              65709,
+              68261,
+              65702,
+              66417,
+              68899,
+              64461,
+              73792,
+              66102,
+              70721,
+              67605,
+              71421,
+              65949
+            ]
+          }
+        },
+        "fingerprints": {
+          "bitmap": [
+            125637,
+            8555128057868430733
+          ]
+        }
+      },
+      {
+        "file": "GowunBatang-Regular.ttf",
+        "face": 0,
+        "pixels": 64,
+        "font_sha256": "466c593e7147412e748af4856d5ad14709b5a860bdf62b9c2546f2c5874e9849",
+        "codepoints_sha256": "d85b591be69e509513810caff5287317194f00136a7811c32a785d3a320d9551",
+        "codepoints": 513,
+        "batches_ns": {
+          "bitmap": {
+            "after": [
+              93295,
+              99007,
+              96454,
+              94769,
+              107686,
+              123307,
+              92749,
+              96195,
+              95342,
+              99213,
+              97172,
+              97359,
+              93773,
+              101652,
+              105824
+            ],
+            "before": [
+              199696,
+              168565,
+              172698,
+              165627,
+              180264,
+              201120,
+              172303,
+              168622,
+              168519,
+              168848,
+              180924,
+              167127,
+              173872,
+              167264,
+              181747
+            ]
+          }
+        },
+        "fingerprints": {
+          "bitmap": [
+            125637,
+            12610481703079538538
+          ]
+        }
+      },
+      {
+        "file": "ZenKakuGothicNew-Regular.ttf",
+        "face": 0,
+        "pixels": 24,
+        "font_sha256": "b840cd07a67d89cacca44249ae49aa99ee7640eb5ce623be8d8983d6aabac801",
+        "codepoints_sha256": "2312817b74796c44c7a645a733cdd0ce71cdd73e0b0dd6a519ff31c1674770be",
+        "codepoints": 513,
+        "batches_ns": {
+          "bitmap": {
+            "before": [
+              36283,
+              30866,
+              32726,
+              33210,
+              35494,
+              33119,
+              35059,
+              30875,
+              31565,
+              32139,
+              30818,
+              30195,
+              34310,
+              32132,
+              33461
+            ],
+            "after": [
+              30448,
+              31620,
+              26752,
+              25339,
+              27840,
+              28419,
+              25393,
+              27092,
+              26909,
+              25969,
+              24788,
+              25682,
+              26435,
+              26550,
+              27320
+            ]
+          }
+        },
+        "fingerprints": {
+          "bitmap": [
+            54097,
+            5763932043125122542
+          ]
+        }
+      },
+      {
+        "file": "ZenKakuGothicNew-Regular.ttf",
+        "face": 0,
+        "pixels": 64,
+        "font_sha256": "b840cd07a67d89cacca44249ae49aa99ee7640eb5ce623be8d8983d6aabac801",
+        "codepoints_sha256": "2312817b74796c44c7a645a733cdd0ce71cdd73e0b0dd6a519ff31c1674770be",
+        "codepoints": 513,
+        "batches_ns": {
+          "bitmap": {
+            "before": [
+              73114,
+              72858,
+              78328,
+              70748,
+              79789,
+              124081,
+              82446,
+              71853,
+              80149,
+              71625,
+              73558,
+              72121,
+              71516,
+              72498,
+              72248
+            ],
+            "after": [
+              50251,
+              48884,
+              47255,
+              48361,
+              49400,
+              52919,
+              50562,
+              49808,
+              49653,
+              74229,
+              48653,
+              46644,
+              55128,
+              49658,
+              52986
+            ]
+          }
+        },
+        "fingerprints": {
+          "bitmap": [
+            54097,
+            6978734822539847173
+          ]
+        }
+      },
+      {
+        "file": "NotoSansCJKjp-Regular.otf",
+        "face": 0,
+        "pixels": 24,
+        "font_sha256": "68a3fc98800b2a27b371f2fb79991daf3633bd89309d4ffaa6946fd587f375b5",
+        "codepoints_sha256": "f12f875361837ccc001346ca6aac843e35e6a7f53b7dbcb9313aa045ee76ce0e",
+        "codepoints": 513,
+        "batches_ns": {
+          "bitmap": {
+            "before": [
+              25343,
+              24841,
+              26123,
+              26075,
+              28465,
+              33702,
+              26635,
+              27373,
+              26930,
+              28324,
+              26849,
+              25649,
+              28559,
+              25916,
+              34278
+            ],
+            "after": [
+              29095,
+              23819,
+              25769,
+              24979,
+              24343,
+              22290,
+              23096,
+              38764,
+              23209,
+              22040,
+              23138,
+              21504,
+              24270,
+              21363,
+              33316
+            ]
+          }
+        },
+        "fingerprints": {
+          "bitmap": [
+            46494,
+            17410110746040320827
+          ]
+        }
+      },
+      {
+        "file": "NotoSansCJKjp-Regular.otf",
+        "face": 0,
+        "pixels": 64,
+        "font_sha256": "68a3fc98800b2a27b371f2fb79991daf3633bd89309d4ffaa6946fd587f375b5",
+        "codepoints_sha256": "f12f875361837ccc001346ca6aac843e35e6a7f53b7dbcb9313aa045ee76ce0e",
+        "codepoints": 513,
+        "batches_ns": {
+          "bitmap": {
+            "before": [
+              60457,
+              54459,
+              55202,
+              57319,
+              57536,
+              56556,
+              53211,
+              54859,
+              59700,
+              54650,
+              57412,
+              57810,
+              58872,
+              54068,
+              60629
+            ],
+            "after": [
+              43242,
+              43154,
+              39954,
+              47958,
+              44573,
+              41585,
+              43284,
+              42063,
+              40805,
+              49460,
+              43424,
+              47239,
+              43660,
+              42334,
+              47993
+            ]
+          }
+        },
+        "fingerprints": {
+          "bitmap": [
+            46494,
+            5230706124315099107
+          ]
+        }
+      }
+    ]
+  },
+  "golden_controls": {
+    "reference_commit": "0cacd90c1f",
+    "std_gui_passed": 123,
+    "std_pixel_passed": 93,
+    "apps_swagvault_passed": 21,
+    "apps_swagscope_passed": 195,
+    "apps_swagscope_preexisting_failures": 6,
+    "apps_swagscope_unchanged_actual_sha256": {
+      "bin/apps/modules/swagscope/src/tests/goldens/home.files-folder.paper.actual.png": "45b3f2efa4d5e76c70fc07149432cd8d27a971de5ca7a45ee28dd0dfcc9dda93",
+      "bin/apps/modules/swagscope/src/tests/goldens/home.files-folders.encre.actual.png": "a8c204d5bec966144e292858297c48c6b68fb1b47cf88a73989d1ebea3fb6203",
+      "bin/apps/modules/swagscope/src/tests/goldens/home.files.encre.actual.png": "f7190e015240c69e91cce0e00adf8a72c3c0dbf93077b40b8b45dca759a0711e",
+      "bin/apps/modules/swagscope/src/tests/goldens/home.hover.paper.actual.png": "0b902bf843592ee81e156c6a51d3a2ad4fdbf216eb2a18273f69f80c08fda394",
+      "bin/apps/modules/swagscope/src/tests/goldens/home.paper.actual.png": "6e3639372208e4c6a6c3b0f6a014cbdc97fb42b5ebf8673ead14e46fe5b7b97a",
+      "bin/apps/modules/swagscope/src/tests/goldens/menus.home.clear.actual.png": "8ac40980ea9162cc92d94a447b3ab0be24090948edcd5c4054c854434a61c5f5",
+      "bin/apps/modules/swagscope/src/tests/goldens/viewer.pdf.pages.encre.actual.png": "6cec91adf2af9a9384e60acfc449ff170d5ca19f8cfcedcf3d348853a78d0eee"
+    },
+    "apps_swagcapture_preexisting_diagnostic": "sanity_err_borrow_invalidated in capture.timeline.swg"
+  }
+}

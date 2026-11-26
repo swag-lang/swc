@@ -127,13 +127,26 @@ struct DocumentLayout
     height:             f32         // Total content height, which is what the scrollbar is given.
 }
 
-// Scrollable specimen and Unicode character map drawn with the inspected face.
+// A glyph name borrows bytes from the face that owns the index.
 struct GlyphName
 {
-    name: String
-    id:   u32
+    late name: string
+    id:        u32
 }
 
+func buildGlyphNameIndex(face: *Face, names: *Array'GlyphName)
+{
+    names.clear()
+    for glyphIndex in face.glyphCount
+    {
+        if let name = face.glyphName(cast(u32, glyphIndex)) do
+            names.add({name, cast(u32, glyphIndex)})
+    }
+
+    names.sort(func(a, b) => Text.compareNames(a.name, b.name))
+}
+
+// Scrollable specimen and Unicode character map drawn with the inspected face.
 struct DocumentView
 {
     using wnd: Wnd
@@ -552,6 +565,7 @@ impl DocumentView
         .shown     = 0
         .pageIndex = 0
         buildCharacterIndex(face, &.pageStarts, &.glyphCharacters)
+        buildGlyphNameIndex(face, &.glyphNames)
 
         .loadPage(FirstCharacter)
         .scroll.setScrollPos(0, 0)

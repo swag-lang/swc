@@ -28,7 +28,9 @@ def arguments():
     parser.add_argument("--library-bin", type=Path, default=WORKLOAD.parents[2] / "bin")
     parser.add_argument("--baseline-bin", type=Path)
     parser.add_argument("--exact-baseline", action="store_true")
-    parser.add_argument("--reference", type=Path, help="prebuilt native FFmpeg encoder benchmark")
+    parser.add_argument("--aac-reference", choices=("ffmpeg", "fdk"), default="ffmpeg",
+                        help="AAC encoder reference implementation")
+    parser.add_argument("--reference", type=Path, help="prebuilt native reference encoder benchmark")
     parser.add_argument("--reference-setting", type=int, help="AAC bitrate or FFmpeg FLAC compression level")
     parser.add_argument("--libflac", type=int, choices=range(9), metavar="LEVEL",
                         help="also compare the system libFLAC stream encoder at this compression level")
@@ -47,6 +49,8 @@ def arguments():
         parser.error("--rounds and --repetitions must be positive")
     if args.exact_baseline and not args.baseline_bin:
         parser.error("--exact-baseline needs --baseline-bin")
+    if args.aac_reference == "fdk" and args.codec != "aac":
+        parser.error("--aac-reference fdk applies to AAC")
     if args.libflac is not None and args.codec != "flac":
         parser.error("--libflac applies to FLAC")
     if args.codec != "aac" and args.bandwidth != "full":
@@ -81,7 +85,15 @@ def build_swag(args, name, library):
     return build / "bin" / WORKLOAD.name
 
 
-def build_reference(output):
+def build_reference(output, aac_reference):
+    if aac_reference == "fdk":
+        version = subprocess.check_output(["pkg-config", "--modversion", "fdk-aac"], text=True).strip()
+        options = subprocess.check_output(["pkg-config", "--cflags", "--libs", "--static", "fdk-aac"], text=True)
+        executable = output / "fdk_native"
+        subprocess.run(["cc", "-O2", f'-DFDK_VERSION="{version}"', WORKLOAD / "fdk_native.c", "-o", executable,
+                        *shlex.split(options)], check=True)
+        return executable
+
     options = subprocess.check_output([
         "pkg-config", "--cflags", "--libs", "libavformat", "libavcodec", "libavutil",
     ], text=True)
@@ -203,15 +215,18 @@ def main():
         raise ValueError("PCM input must contain complete, nonempty frames")
     args.output.mkdir(parents=True, exist_ok=False)
     candidate = build_swag(args, "candidate", args.library_bin)
-    reference = args.reference.resolve() if args.reference else build_reference(args.output)
+    reference = args.reference.resolve() if args.reference else build_reference(args.output, args.aac_reference)
+    reference_name = "fdk_aac" if args.aac_reference == "fdk" else "ffmpeg"
     setting, calibration = reference_setting(args, candidate, reference, frames)
     binaries = {}
     settings = {}
     if args.baseline_bin:
         binaries["baseline"] = build_swag(args, "baseline", args.baseline_bin)
         settings["baseline"] = args.bandwidth
-    binaries.update(candidate=candidate, ffmpeg=reference)
-    settings.update(candidate=args.bandwidth, ffmpeg=setting)
+    binaries.update(candidate=candidate)
+    binaries[reference_name] = reference
+    settings.update(candidate=args.bandwidth)
+    settings[reference_name] = setting
     if args.libflac is not None:
         binaries["libflac"] = WORKLOAD / "libflac_native.py"
         settings["libflac"] = args.libflac
@@ -229,7 +244,7 @@ def main():
             "units": "microseconds", "sample_fields": ["open", "feed", "finish", "total"],
             "rounds": args.rounds, "repetitions": args.repetitions, "threads": 1,
             "affinity": sorted(os.sched_getaffinity(0)), "system": platform.platform(),
-            "ffmpeg": subprocess.check_output([reference, "--version"], text=True).strip(),
+            reference_name: subprocess.check_output([reference, "--version"], text=True).strip(),
             "codec": args.codec, "calibration": calibration,
         },
         "input": {"name": args.input.name, "frames": frames, "rate": args.rate, "channels": args.channels,

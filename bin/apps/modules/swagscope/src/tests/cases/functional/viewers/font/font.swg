@@ -40,6 +40,19 @@ func containsCharacter(characters: const [..] rune, expected: rune)->bool
     Swag.require(bold.styleName == "Bold" and view.document.hasCharacter('ع'))
     Swag.require(view.faceButton.text() == view.faceNames[1] and view.faceIndex == 1)
 
+    // The name index borrows the current member's bytes after the old face is released.
+    let glyphIndex = bold.glyphIndex('ع')
+    let name       = unwrap bold.glyphName(glyphIndex)
+    var found      = false
+    for indexed in view.document.glyphNames where indexed.id == glyphIndex
+    {
+        Swag.require(indexed.name == name and indexed.name.buffer == name.buffer)
+        found = true
+        break
+    }
+
+    Swag.require(found)
+
     expect view.selectFace(0)
     Swag.require(not view.document.typeFace.isBold() and view.faceIndex == 0)
 }

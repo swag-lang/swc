@@ -194,8 +194,11 @@ ships; history lives in Git, not here.
   with unchanged pixels. resvg takes 1–10 ms on the same fixtures.
 - Evidence: [inline affine mapping in the parser](../bench/workloads/svgraster/resvg-comparison.md#mapping-path-coordinates-during-parsing)
   reduces largest-original parse time from 66 to 59 ms on one logical CPU.
-- Next: compare curve preparation and crossing order on
-  the original SVGs. Rerun the original
+- Evidence: [direct bounds updates on flattened points](../bench/workloads/svgraster/resvg-comparison.md#updating-bounds-as-curve-samples-are-emitted)
+  reduce the largest-original raster time from 174 to 157 ms on one logical CPU
+  and from 124 to 116 ms on four, with unchanged pixels.
+- Next: measure ordered batches of small fills and crossing order on the
+  original SVGs. Rerun the original
   Windows comparison at one worker and at the runtime default.
 - Done when: the original corpus meets agreed parse and raster budgets against resvg and the
   renderer's verified output behavior is preserved.

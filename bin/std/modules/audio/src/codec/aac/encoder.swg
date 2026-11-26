@@ -316,10 +316,16 @@ impl Encoder
                                                          Math.log2(bandPeak / Math.pow(15.0'f64, 4.0'f64 / 3.0)))),
                                           minimumGain,
                                           gain)
-                bandGain[band] = selected
 
                 // Positive IEEE binary32 bit patterns have the same ordering as their values.
                 let thresholds = cast(const [*] u32, &g_FirstMagnitude[selected, 0])
+
+                // A band below the first magnitude uses the AAC zero codebook.
+                if cast #bit(u32, peaks[band]) < thresholds[1] do
+                    continue
+
+                active[band]   = true
+                bandGain[band] = selected
                 for line in offsets[band] until offsets[band + 1]
                 {
                     let bits      = cast #bit(u32, transformed[line])
@@ -329,8 +335,6 @@ impl Encoder
                     magnitude       += 2 * cast(s32, absolute >= thresholds[magnitude + 2])
                     magnitude       += cast(s32, absolute >= thresholds[magnitude + 1])
                     quantized[line] = bits >> 31 != 0 ? -magnitude : magnitude
-                    if magnitude do
-                        active[band] = true
                 }
             }
 

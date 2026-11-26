@@ -1904,7 +1904,9 @@ func buildPng16(width, height: s32, colorType: u8, interlace: bool, samples: con
     opts.filtering        = false
     opts.compressionLevel = .NoCompression
 
+    let sourceChecksum = Hash.Crc64.compute(src.pixels.toSlice())
     let cb = expect src.encode("memory.png", opts)
+    Swag.require(Hash.Crc64.compute(src.pixels.toSlice()) == sourceChecksum)
     discard expect File.writeAllBytes(path.toString(), cb)
     let img = expect Image.load(path.toString())
     Swag.require(img.pixelFormat == .RGB8)
@@ -1918,7 +1920,9 @@ func buildPng16(width, height: s32, colorType: u8, interlace: bool, samples: con
     var src = Image.create(64, 64, .RGB8)
     fillSolidPngImage(&src, 24'u8, 48'u8, 96'u8, 255'u8)
 
-    let compressed = expect src.encode("memory.png")
+    let sourceChecksum = Hash.Crc64.compute(src.pixels.toSlice())
+    let compressed     = expect src.encode("memory.png")
+    Swag.require(Hash.Crc64.compute(src.pixels.toSlice()) == sourceChecksum)
     var options: Png.EncodeOptions
     options.filtering        = false
     options.compressionLevel = .NoCompression

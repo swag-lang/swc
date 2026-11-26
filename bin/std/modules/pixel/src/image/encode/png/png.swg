@@ -161,30 +161,28 @@ internal struct Encoder
 
     private
     {
-        stream:              *ConcatBuffer?     // Output buffer chunks are appended to.
-        stored:              ChunkBitfield      // Chunks already written, to keep their order legal.
-        ihdr:                Ihdr               // Image header being written.
-        currentChunk:        Chunk              // Chunk currently open.
-        tmpBuf:              [256] u8           // Scratch for small chunk payloads.
-        writePtr:            [*] u8?            // Write cursor inside 'tmpBuf'.
-        crc:                 Hash.Crc32         // Running CRC of the chunk being written.
-        subimage:            [7] SubImage       // Geometry of the seven Adam7 passes.
-        widestPass:          s32                // Widest pass, sizing the scanline buffers.
-        lastPass:            s32                // Index of the last pass to write.
-        bytesPerPixel:       u32                // Bytes per pixel of the output format.
-        scanlineBuf:         [*] u8?            // Storage for the current scanline.
-        prevScanlineBuf:     [*] u8?            // Storage for the previous scanline.
-        row_buf:             [*] u8?            // Source row converted to the output format.
-        filteredScanlineBuf: [*] u8?            // Storage for the filtered scanline.
-        filteredScanline:    [*] u8?            // Filtered scanline being emitted.
-        scanline:            [*] u8?            // Current scanline, aliasing 'scanlineBuf'.
-        prevScanline:        [*] u8?            // Previous scanline, for the filter predictors.
-        encodeFlags:         EncodeFlags        // Flags derived from the requested options.
-        rowInfo:             RowInfo            // Geometry of the row being filtered.
-        pixelSize:           u32                // Size of one source pixel, in bytes.
-        bufferToCompress:    Array'u8           // Filtered image data handed to Deflate.
-        swapRB:              bool               // Whether the source needs its red and blue swapped.
-        userOptions:         EncodeOptions      // Options the caller asked for.
+        stream:           *ConcatBuffer?     // Output buffer chunks are appended to.
+        stored:           ChunkBitfield      // Chunks already written, to keep their order legal.
+        ihdr:             Ihdr               // Image header being written.
+        currentChunk:     Chunk              // Chunk currently open.
+        tmpBuf:           [256] u8           // Scratch for small chunk payloads.
+        writePtr:         [*] u8?            // Write cursor inside 'tmpBuf'.
+        crc:              Hash.Crc32         // Running CRC of the chunk being written.
+        subimage:         [7] SubImage       // Geometry of the seven Adam7 passes.
+        widestPass:       s32                // Widest pass, sizing the scanline buffers.
+        lastPass:         s32                // Index of the last pass to write.
+        bytesPerPixel:    u32                // Bytes per pixel of the output format.
+        scanlineBuf:      [*] u8?            // Storage for the current scanline.
+        prevScanlineBuf:  [*] u8?            // Storage for the previous scanline.
+        row_buf:          [*] u8?            // Source row converted to the output format.
+        scanline:         [*] u8?            // Current scanline, borrowed from the image or held in scratch.
+        prevScanline:     [*] u8?            // Previous scanline, for the filter predictors.
+        encodeFlags:      EncodeFlags        // Flags derived from the requested options.
+        rowInfo:          RowInfo            // Geometry of the row being filtered.
+        pixelSize:        u32                // Size of one source pixel, in bytes.
+        bufferToCompress: Array'u8           // Filtered image data handed to Deflate.
+        swapRB:           bool               // Whether the source needs its red and blue swapped.
+        userOptions:      EncodeOptions      // Options the caller asked for.
     }
 }
 
@@ -349,24 +347,31 @@ internal impl IImageEncoder for Encoder
         if image.pixelFormat.hasAlpha() do
             .ihdr.colorType |= .Alpha
 
-        try .writeChunksBeforeIDat()
-        try .writeMetadata(image)
+        let deferHeader = image.metadata.isEmpty() and not result.count()
+        if not deferHeader
+        {
+            try .writeChunksBeforeIDat()
+            try .writeMetadata(image)
+        }
+
         try .calculateSubImages()
+
+        var filteredBytes = 0'u64
+        for pass in .subimage do
+            filteredBytes += cast(u64, pass.scanlineWidth) * pass.height
+        .bufferToCompress.reserve(filteredBytes)
 
         .bytesPerPixel = .numChannels() * (.ihdr.bitDepth / 8)
         var scanlineBufSize = .subimage[.widestPass].scanlineWidth
         scanlineBufSize += 32
 
-        .scanlineBuf         = Memory.alloc(cast(u64, scanlineBufSize))
-        .prevScanlineBuf     = Memory.alloc(cast(u64, scanlineBufSize))
-        .filteredScanlineBuf = Memory.alloc(cast(u64, scanlineBufSize))
+        .scanlineBuf     = Memory.alloc(cast(u64, scanlineBufSize))
+        .prevScanlineBuf = Memory.alloc(cast(u64, scanlineBufSize))
         defer Memory.free(.scanlineBuf, cast(u64, scanlineBufSize))
         defer Memory.free(.prevScanlineBuf, cast(u64, scanlineBufSize))
-        defer Memory.free(.filteredScanlineBuf, cast(u64, scanlineBufSize))
 
-        .scanline         = .scanlineBuf + 16
-        .prevScanline     = .prevScanlineBuf + 16
-        .filteredScanline = .filteredScanlineBuf + 16
+        .scanline     = .scanlineBuf + 16
+        .prevScanline = .prevScanlineBuf + 16
 
         .pixelSize = image.bytesPerPixel
         .encodeFlags.toBigEndian  = image.pixelFormat.bitDepth() == 16
@@ -374,14 +379,21 @@ internal impl IImageEncoder for Encoder
         if .userOptions.filtering and .userOptions.compressionLevel != .NoCompression do
             .encodeFlags.filterChoice = .All
 
-        let srcPixels = cast([*] u8, image.pixels.storage())
+        let srcPixels  = cast([*] u8, image.pixels.storage())
+        let directRows = not .ihdr.interlaceMethod and not .swapRB and not .encodeFlags.toBigEndian
         for
         {
             let ioffset = (image.height - .rowInfo.rowNum - 1) * image.width * image.bytesPerPixel
-            if try .encodeRow(srcPixels + ioffset) do
+            let row     = srcPixels + ioffset
+
+            // Reuse input rows in encoded channel and byte order.
+            if directRows do
+                .scanline = row
+            if try .encodeRow(row) do
                 break
         }
 
+        try .finishIDat(deferHeader)
         discard try .writeHeader(TypeIEnd, 0)
         .finishChunk()
     }

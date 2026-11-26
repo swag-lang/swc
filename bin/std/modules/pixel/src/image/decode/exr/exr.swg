@@ -103,6 +103,27 @@ func restoreZipPlanes(data: [..] u8)
     const Last = Simd.splat(15'u8)
     var carry  = Zero
     var offset = 0'u64
+    // Larger blocks can amortize the extra setup for four independent prefixes.
+    if data.count >= 96 * 1024
+    {
+        while data.count - offset >= 64
+        {
+            let first  = zipPrefix16(Simd.load(data.buffer + offset))
+            let second = zipPrefix16(Simd.load(data.buffer + offset + 16))
+            let third  = zipPrefix16(Simd.load(data.buffer + offset + 32))
+            let fourth = zipPrefix16(Simd.load(data.buffer + offset + 48))
+            let carrySecond = carry + Simd.shuffle(first, Last)
+            let carryThird  = carrySecond + Simd.shuffle(second, Last)
+            let carryFourth = carryThird + Simd.shuffle(third, Last)
+            Simd.store(data.buffer + offset, (first + carry) ^ Bias)
+            Simd.store(data.buffer + offset + 16, (second + carrySecond) ^ Bias)
+            Simd.store(data.buffer + offset + 32, (third + carryThird) ^ Bias)
+            Simd.store(data.buffer + offset + 48, (fourth + carryFourth) ^ Bias)
+            carry  = carryFourth + Simd.shuffle(fourth, Last)
+            offset += 64
+        }
+    }
+
     while data.count - offset >= 32
     {
         let first  = zipPrefix16(Simd.load(data.buffer + offset))

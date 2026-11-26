@@ -315,11 +315,12 @@ ships; history lives in Git, not here.
 ### std.pixel.image.055 — Remaining WebP decode stages need performance decisions
 
 - Evidence: the lossy FileSamples path uses batched entropy input, packed normal deblocking
-  and YUV conversion, and dedicated DC-only reconstruction. Full inverse transforms and VP8L
-  transforms still need measurements against representative inputs. The original Windows comparison
-  and the Linux follow-ups are in [the FileSamples report](../bench/results/swagscope-filesamples/README.md).
-- Next: rerun the Windows comparison, then profile the remaining VP8 stages and VP8L transforms
-  on lossy and lossless fixtures before widening vectorization.
+  and YUV conversion, and dedicated DC-only reconstruction. Lossless decoding uses batched
+  Huffman input, packed copies and subtract-green, and still takes about 1.9–3.2× libwebp's time
+  on the three tested VP8L fixtures. See [the FileSamples report](../bench/results/swagscope-filesamples/README.md).
+- Next: profile the remaining VP8 stages and VP8L transform costs on the photo and interface
+  fixtures from the [raster decode workload](../bench/workloads/rasterdecode/README.md), and
+  rerun the original Windows comparison.
 - Done when: remaining hot stages have measured decisions and lossy and lossless output is
   preserved at the tested predictor, filter, and image boundaries.
 - Related: std.core.043, compiler.codegen.022.

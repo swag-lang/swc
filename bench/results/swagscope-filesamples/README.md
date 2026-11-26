@@ -341,3 +341,66 @@ matches ImageMagick's RGBA output byte for byte. For a comparison at equal outpu
 only source block addressing in the baseline gave 3.577 ms, versus 1.518 ms for the revised
 kernel. A KTX2 control containing the same BC1 blocks went from 3.387 to 1.510 ms. The timed
 DDS and KTX2 outputs matched that corrected baseline, as did five small BC1–BC5 controls.
+
+## Raster decode with varied fixtures on Linux
+
+The next Release comparison used `c0fa4362c2` as the baseline and `b86060795a` as the
+candidate. The [raster decode workload](../../workloads/rasterdecode/README.md) includes a corpus
+generator and records fixture SHA-256, pixel checksums, and raw samples. The table uses seven
+warmed, interleaved elapsed samples per implementation on a pinned Xeon Platinum 8573C CPU.
+The Swag builds produced the same dimensions, format, and pixel CRC64 on these cases. The
+MagickWand reference is ImageMagick 7.1.1-43 Q16-HDRI. The optional still WebP reference is
+libwebp 1.5.0 with `WebPDecodeRGBAInto` and its default color conversion.
+
+| Fixture | Swag before (ms) | Swag after (ms) | ImageMagick (ms) | libwebp (ms) |
+| --- | ---: | ---: | ---: | ---: |
+| FileSamples PSD RGB8 | 0.477 | 0.206 | 6.089 | |
+| Raw PSD gray16, 1023 × 677 | 1.299 | 0.276 | 33.010 | |
+| Raw PSD RGBA8, 1601 × 1073 | 1.987 | 1.422 | 34.910 | |
+| PNG palette with transparency, 1152 × 768 | 3.796 | 3.275 | 25.329 | |
+| PNG RGB16 Adam7, 639 × 425 | 12.090 | 11.969 | 19.045 | |
+| Two-frame GIF, first image | 9.153 | 1.765 | 6.504 | |
+| Transparent GIF, 1537 × 1025 | 58.293 | 10.209 | 37.784 | |
+| TIFF gray LZW with predictor, 2051 × 1549 | 19.464 | 9.922 | 24.359 | |
+| TIFF RGB LZW, 2051 × 1549 | 102.659 | 74.227 | 125.710 | |
+| FileSamples JPEG | 2.349 | 2.326 | 4.798 | |
+| JPEG 4:2:0, 4275 × 2451 | 48.507 | 43.589 | 203.635 | |
+| Progressive JPEG, 4275 × 2451 | 165.764 | 155.176 | 249.498 | |
+| JPEG CMYK, 1024 × 587 | 14.775 | 10.628 | 19.492 | |
+| Lossless WebP interface, 1280 × 800 | 30.680 | 23.749 | 17.869 | 7.466 |
+| Lossless WebP photo, 1254 × 1254 | 77.348 | 60.640 | 47.704 | 29.439 |
+| Lossless WebP photo, 4275 × 2451 | 419.373 | 309.495 | 343.684 | 165.146 |
+| Lossy WebP with compressed alpha, 1921 × 1081 | 73.119 | 63.941 | 50.662 | 22.912 |
+
+The PNG palette gain repeated in a 19-pair run, from 5.235 to 3.775 ms. The FileSamples PNG
+and APNG were close in that run. The grain PNG showed a small elapsed slowdown, from 20.648
+to 21.215 ms, while a separate CPU-time profile showed a gain. A 21-pair retest with and without
+the shared Inflate change returned matching CRC64 values and mixed timings on five PNGs.
+
+A separate seven-pair run measured libjpeg-turbo 2.1.5 directly. The reference opened each
+file with `jpeg_stdio_src` and materialized the full image in BGR8. This avoids the ImageMagick
+wrapper and export overhead. The native library and Swag use their own chroma reconstruction.
+
+| Fixture | Swag (ms) | libjpeg-turbo (ms) |
+| --- | ---: | ---: |
+| FileSamples JPEG | 2.131 | 1.927 |
+| JPEG 4:2:0, 4275 × 2451 | 43.555 | 45.666 |
+| JPEG 4:4:4, 4275 × 2451 | 67.442 | 61.997 |
+| Progressive JPEG, 4275 × 2451 | 162.407 | 117.843 |
+
+The previous EXR ZIP decoder reversed the byte predictor after deinterleaving and rejected raw
+blocks stored under ZIPS compression. OpenEXR reverses the predictor before restoring byte order.
+OpenEXR 3.1.13 verified both cases. The ZIP timings
+below use a scalar baseline with the order and stored-block handling corrected, so the two Swag
+outputs are identical. These EXR elapsed times come from a separate nine-pair run with the same
+MagickWand version.
+
+| EXR fixture | Swag before (ms) | Swag after (ms) | ImageMagick (ms) |
+| --- | ---: | ---: | ---: |
+| RGB FLOAT, uncompressed, 319 × 207 | 0.694 | 0.251 | 1.883 |
+| RGBA FLOAT, uncompressed, 319 × 207 | 0.960 | 0.213 | 2.567 |
+| RGBA HALF ZIP, 1024 × 513 | 74.256 | 9.802 | 80.999 |
+| RGBA FLOAT ZIP | 22.642 | 7.318 | 10.827 |
+
+ImageMagick rejected the 1 × 3 ZIPS fixture with stored rows. The native OpenEXR reference
+decoded it correctly at 30.5 µs of CPU time, compared with 18 µs for Swag.

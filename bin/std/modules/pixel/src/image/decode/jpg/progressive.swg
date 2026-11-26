@@ -46,32 +46,39 @@ impl Decoder
         }
     }
 
-    mtd decodeBlockAcFirst(p: [*] s16, present: *u64, table: *HuffTables) fail
+    // A short AC prefix can carry both its Huffman symbol and its signed amplitude.
+    #[Swag.Inline]
+    mtd decodeProgressiveAc(table: *HuffTables)->s32
     {
-        if .eobRun
+        let entry = table.lookUp[.entropyBits >> (64 - HuffLookupBits)]
+        if entry < 0 do
+            return .decodeLongHuffCode(table, entry, HuffLookupBits)
+        if entry >= 1 << 24
         {
-            .eobRun -= 1
-            return
+            .skipEntropyBits(entry >> 24)
+            return entry
         }
 
+        .skipEntropyBits(entry >> 8)
+        return entry & 255
+    }
+
+    mtd decodeBlockAcFirst(p: [*] s16, present: *u64, table: *HuffTables) fail
+    {
         var mask = present[]
         for var k = .spectralStart; k <= .spectralEnd; k += 1
         {
-            var s = .huffDecode(table)
-            var r = s >> 4
-            s &= 0x0F
+            let symbol = .decodeProgressiveAc(table)
+            let r      = (symbol >> 4) & 15
+            let s      = symbol & 15
 
             if s
             {
                 k += r
                 if k > 63 do
                     fail InvalidFormatError{"decode error"}
-                let rbits = .readEntropyBits(s)
-                if s > 15 do
-                    fail InvalidFormatError{"decode error"}
-
-                s = extendSign(rbits, s)
-                let coefficient = cast(s16, (s << .successiveLow))
+                let amplitude   = symbol >= 1 << 24 ? (symbol << 8) >> 24 : extendSign(.readEntropyBits(s), s)
+                let coefficient = cast(s16, (amplitude << .successiveLow))
                 p[ZigzagToTransposed[k]] = coefficient
                 let bit = 1'u64 << k
                 mask = (mask & ~bit) | (coefficient != 0 ? bit : 0)
@@ -109,26 +116,25 @@ impl Decoder
         }
     }
 
-    mtd decodeBlockAcRefine(p: [*] s16, present: *u64, table: *HuffTables) fail
+    mtd decodeBlockAcRefine(p: [*] s16, present: *u64, table: *HuffTables, band: u64, bit: s16) fail
     {
-        let bit       = cast(s16, 1 << .successiveLow)
         let first     = .spectralStart
         let last      = .spectralEnd
-        let band      = (Swag.U64.Max << first) & (Swag.U64.Max >> (63 - last))
         var remaining = present[] & band
         var k         = first
 
         while .eobRun == 0 and k <= last
         {
-            let symbol = .huffDecode(table)
-            var run    = symbol >> 4
+            let symbol = .decodeProgressiveAc(table)
+            var run    = (symbol >> 4) & 15
             let size   = symbol & 15
             var coefficient: s16
             if size
             {
                 if size != 1 do
                     fail InvalidFormatError{"decode error"}
-                coefficient = .readEntropyBits(1) ? bit : -bit
+                let positive = symbol >= 1 << 24 ? (symbol & 0x00800000) == 0 : .readEntropyBits(1) != 0
+                coefficient = positive ? bit : -bit
             }
             elif run != 15
             {
@@ -174,29 +180,51 @@ impl Decoder
     }
 
     // An AC scan always visits one component in coefficient-block order.
-    mtd decodeAcScan(refinementScan: bool) fail
+    mtd(REFINE: bool) decodeAcScan() fail
     {
         let component    = .compList[0]
         let table        = &.h[.compAcTab[component]]
         let coefficients = &.coefficients[component]
         let stride       = cast(u64, coefficients.blockNumX) * 64
+        let band         = (Swag.U64.Max << .spectralStart) & (Swag.U64.Max >> (63 - .spectralEnd))
+        let bit          = cast(s16, 1 << .successiveLow)
         var row          = coefficients.values.storage()
         var presenceRow  = coefficients.nonzeroAc.storage()
         for .mcusPerCol
         {
             var block    = row
             var presence = presenceRow
-            for .mcusPerRow
+            var columns  = .mcusPerRow
+            while columns
             {
                 if .restartInterval and .restartsLeft == 0 do
                     try .restartProcess()
-                if refinementScan do
-                    try .decodeBlockAcRefine(block, &presence[0], table)
-                else do
-                    try .decodeBlockAcFirst(block, &presence[0], table)
-                .restartsLeft -= 1
-                block         += 64
-                presence      += 1
+                var count = 1
+                #static if REFINE
+                {
+                    try .decodeBlockAcRefine(block, &presence[0], table, band, bit)
+                }
+                else
+                {
+                    if .eobRun
+                    {
+                        // A run in the first pass touches no coefficients. Consume it up to
+                        // the next row or restart marker, whichever comes first.
+                        count = Math.min(.eobRun, columns)
+                        if .restartInterval do
+                            count = Math.min(count, .restartsLeft)
+                        .eobRun -= count
+                    }
+                    else
+                    {
+                        try .decodeBlockAcFirst(block, &presence[0], table)
+                    }
+                }
+
+                .restartsLeft -= count
+                columns       -= count
+                block         += 64 * count
+                presence      += count
             }
 
             row         += stride
@@ -292,8 +320,10 @@ impl Decoder
             let refinementScan = .successiveHigh != 0
             if .spectralStart == 0 do
                 try .decodeDcScan(refinementScan)
+            elif refinementScan do
+                try .decodeAcScan'true()
             else do
-                try .decodeAcScan(refinementScan)
+                try .decodeAcScan'false()
 
             .primeMarkerBits()
         }

@@ -222,6 +222,9 @@ void MicroInstr::collectUseDef(MicroInstrUseDef& useDef, const MicroOperandStora
         SWC_ASSERT(std::ranges::all_of(callConv.intTransientRegs, &MicroReg::isInt));
         SWC_ASSERT(std::ranges::all_of(callConv.floatTransientRegs, &MicroReg::isFloat));
         const uint64_t clobbers = callClobbersFromOperands(*this, opcodeInfo, ops);
+        // The full ABI clobber set contains both register banks.
+        if (clobbers == MicroInstr::K_CALL_CLOBBERS_ALL)
+            useDef.defs.reserve(callConv.intTransientRegs.size() + callConv.floatTransientRegs.size());
         addClobberedRegs(useDef, callConv.intTransientRegs, clobbers);
         addClobberedRegs(useDef, callConv.floatTransientRegs, clobbers);
     }

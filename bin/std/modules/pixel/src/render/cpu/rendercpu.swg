@@ -3579,10 +3579,12 @@ private impl RenderCpu
         return fill.first == 0 ? 0'u64 : painter.scanContourEnds[fill.first - 1]
     }
 
+    const ScanBandCrossingBudget = 1_048_576'u64
+
     // Limit live crossing storage even for dense paths spanning the entire surface.
     func scanBandHeight(pointCount: u64)->s32
     {
-        return cast(s32, Math.clamp(1_048_576'u64 / (pointCount * VerticalSamples), 1, 256))
+        return cast(s32, Math.clamp(ScanBandCrossingBudget / (pointCount * VerticalSamples), 1, 256))
     }
 
     // Device-space points and row bounds shared by the bands of a compound fill.
@@ -3622,9 +3624,9 @@ private impl RenderCpu
         }
     }
 
-    mtd gatherProjectedRows(painter: const *Painter, fill: const *ScanFillBatch, projected: const *ProjectedContours, origin: Vector2, width, height: s32)->[..] ScanSample
+    func gatherProjectedRows(scratch: *ScanScratch, painter: const *Painter, fill: const *ScanFillBatch, projected: const *ProjectedContours, origin: Vector2, width, height: s32)->[..] ScanSample
     {
-        let crossings = .scanScratch.startRows(height)
+        let crossings = scratch.startRows(height)
         let points    = projected.points.toSlice()
         let ends      = painter.scanContourEnds.toSlice()[fill.first until fill.end]
         let first     = firstScanPoint(painter, fill)
@@ -3664,11 +3666,82 @@ private impl RenderCpu
     {
         let scaled = Math.Simd.load(values) * scale
         let whole  = Math.floor(scaled)
+
         // Keep the scalar rounding at values just below a half-integer.
         let roundUp = (scaled - whole >= Math.Simd.splat(0.5'f32)) & 1'u32
+
         // Integers this small map directly to the low mantissa bits at 2^23.
         let biased = cast #bit(Math.Simd.U32x4, whole + Math.Simd.splat(8_388_608.0'f32))
         return biased - 0x4B00_0000'u32 + roundUp
+    }
+
+    mtd drawScanFillBand(scratch: *ScanScratch, crossings: [..] ScanSample, image: *Image, fill: const *ScanFillBatch, left, y, width, height: s32)
+    {
+        let color      = fill.color
+        let tint       = cast #bit(Math.Simd.U8x16, Math.Simd.splat(color.argb))
+        let alphaScale = Math.Simd.splat(cast(f32, color.a) / VerticalSamples)
+        let evenOdd    = fill.rule == .EvenOdd
+        let stencil    = .stencilOn ? .currentStencil().pixels.storage() : null
+        for row in height
+        {
+            let deviceY = y + cast(s32, row)
+            let {values: coverage, first: firstX, end: endX} = scratch.resolveRow(crossings, cast(s32, row), width, evenOdd, false)
+            let maskRow = stencil ? stencil + cast(u64, deviceY) * image.width + left : null
+            if .stencilWrite
+            {
+                let stencilPixels = unwrap maskRow
+                for x in firstX until endX where coverage[x] > 0
+                {
+                    let alpha = coverageAlpha(color.a, coverage[x] / VerticalSamples)
+                    if .stencilMode == .Set do
+                        stencilPixels[x] = Math.max(stencilPixels[x], alpha)
+                    else do
+                        stencilPixels[x] = cast(u8, (cast(u32, stencilPixels[x]) * (255 - cast(u32, alpha))) / 255)
+                }
+
+                continue
+            }
+
+            let dstOffset = cast(u64, image.height - deviceY - 1) * image.rowStride + cast(u64, left) * 4
+            let dst       = image.pixels.storage() + dstOffset
+            var x         = firstX
+            while endX - x >= 4
+            {
+                var weight = scanAlpha4(coverage + x, alphaScale)
+                if maskRow
+                {
+                    let clip = cast(Math.Simd.U32x4, [cast(u32, maskRow[x]), cast(u32, maskRow[x + 1]),
+                                                      cast(u32, maskRow[x + 2]), cast(u32, maskRow[x + 3])])
+                    let product = weight * clip + 1'u32
+                    weight = (product + (product >> 8)) >> 8
+                }
+
+                let weights = cast #bit(Math.Simd.U8x16, weight * 0x0101_0101'u32)
+                let target  = dst + x * 4
+                Math.Simd.store(target, blendAlphaBgra8x4(tint, Math.Simd.load(target), weights))
+                if let matte = .whiteMatte
+                {
+                    let white = matte + dstOffset + x * 4
+                    Math.Simd.store(white, blendAlphaBgra8x4(tint, Math.Simd.load(white), weights))
+                }
+
+                x += 4
+            }
+
+            for column in x until endX where coverage[column] > 0
+            {
+                var ink = color
+                ink.a = coverageAlpha(color.a, coverage[column] / VerticalSamples)
+                if maskRow do
+                    ink.a = cast(u8, (cast(u32, ink.a) * maskRow[column]) / 255)
+                if not ink.a do
+                    continue
+
+                blendAlphaBgra8(dst + column * 4, ink)
+                if let matte = .whiteMatte do
+                    blendAlphaBgra8(matte + dstOffset + column * 4, ink)
+            }
+        }
     }
 
     mtd drawScanFill(painter: *Painter, fill: const *ScanFillBatch)
@@ -3690,87 +3763,57 @@ private impl RenderCpu
         let firstPoint = firstScanPoint(painter, fill)
         let pointCount = painter.scanContourEnds[fill.end - 1] - firstPoint
         let bandHeight = scanBandHeight(pointCount)
-        let color      = fill.color
-        let tint       = cast #bit(Math.Simd.U8x16, Math.Simd.splat(color.argb))
-        let alphaScale = Math.Simd.splat(cast(f32, color.a) / VerticalSamples)
-        let evenOdd    = fill.rule == .EvenOdd
-        let stencil    = .stencilOn ? .currentStencil().pixels.storage() : null
         if .stencilWrite and .stencilMode == .Set do
             .markStencilDirty({left, top, right - 1, bottom - 1})
 
         var projected: ProjectedContours
 
         // Keep the device-point cache within the same order as a band's crossing storage.
-        if fill.end - fill.first >= 128 and pointCount <= 1_048_576 and bottom - top > bandHeight * 2 do
+        if fill.end - fill.first >= 128 and
+           pointCount <= ScanBandCrossingBudget and
+           bottom - top > bandHeight * 2 do
             projectContours(&projected, painter, fill, &transform, firstPoint, pointCount)
+
+        if projected.bounds.count and Swag.workerCount() > 1
+        {
+            let count = cast(u64, (bottom - top - 1) / bandHeight + 1)
+
+            // Each worker holds one band's crossings. Bound their total on machines with many workers.
+            let bandCapacity = pointCount * VerticalSamples * cast(u64, bandHeight)
+            let scratchJobs  = Math.max(1'u64, 4 * ScanBandCrossingBudget / bandCapacity)
+            let jobs         = Math.min(count, cast(u64, Swag.workerCount()), scratchJobs)
+            if jobs > 1
+            {
+                let renderer = me
+                var bands    = {image: image, fill: fill, painter: painter, left: left, top: top, bottom: bottom,
+                                width: width, height: bandHeight, count: count, jobs: jobs}
+
+                // A tile row belongs to one worker, and this join keeps fills in submission order.
+                parallel for |renderer, &bands, &projected| job in jobs
+                {
+                    var scratch: ScanScratch
+                    for var band = job; band < bands.count; band += bands.jobs
+                    {
+                        let y         = bands.top + cast(s32, band) * bands.height
+                        let height    = Math.min(bands.height, bands.bottom - y)
+                        let origin    = Vector2{cast(f32, bands.left), cast(f32, y)}
+                        let crossings = gatherProjectedRows(&scratch, bands.painter, bands.fill, &projected, origin, bands.width, height)
+                        renderer.drawScanFillBand(&scratch, crossings, bands.image, bands.fill, bands.left, y, bands.width, height)
+                    }
+                }
+
+                return
+            }
+        }
 
         for var y = top; y < bottom; y += bandHeight
         {
             let height    = Math.min(bandHeight, bottom - y)
             let origin    = Vector2{cast(f32, left), cast(f32, y)}
-            let crossings = projected.bounds.count ? .gatherProjectedRows(painter, fill, &projected, origin, width, height) :
+            let crossings = projected.bounds.count ? gatherProjectedRows(&.scanScratch, painter, fill, &projected, origin, width, height) :
                             .gatherScanRows(painter, fill, &transform, origin, width, height)
 
-            for row in height
-            {
-                let deviceY  = y + cast(s32, row)
-                let {values: coverage, first: firstX, end: endX} = .scanScratch.resolveRow(crossings, cast(s32, row), width, evenOdd, false)
-                let maskRow  = stencil ? stencil + cast(u64, deviceY) * image.width + left : null
-                if .stencilWrite
-                {
-                    let stencilPixels = unwrap maskRow
-                    for x in firstX until endX where coverage[x] > 0
-                    {
-                        let alpha = coverageAlpha(color.a, coverage[x] / VerticalSamples)
-                        if .stencilMode == .Set do
-                            stencilPixels[x] = Math.max(stencilPixels[x], alpha)
-                        else do
-                            stencilPixels[x] = cast(u8, (cast(u32, stencilPixels[x]) * (255 - cast(u32, alpha))) / 255)
-                    }
-
-                    continue
-                }
-
-                let dstOffset = cast(u64, image.height - deviceY - 1) * image.rowStride + cast(u64, left) * 4
-                let dst = image.pixels.storage() + dstOffset
-                var x   = firstX
-                while endX - x >= 4
-                {
-                    var weight = scanAlpha4(coverage + x, alphaScale)
-                    if maskRow
-                    {
-                        let clip = cast(Math.Simd.U32x4, [cast(u32, maskRow[x]), cast(u32, maskRow[x + 1]),
-                                                         cast(u32, maskRow[x + 2]), cast(u32, maskRow[x + 3])])
-                        let product = weight * clip + 1'u32
-                        weight = (product + (product >> 8)) >> 8
-                    }
-
-                    let weights = cast #bit(Math.Simd.U8x16, weight * 0x0101_0101'u32)
-                    let target  = dst + x * 4
-                    Math.Simd.store(target, blendAlphaBgra8x4(tint, Math.Simd.load(target), weights))
-                    if let matte = .whiteMatte
-                    {
-                        let white = matte + dstOffset + x * 4
-                        Math.Simd.store(white, blendAlphaBgra8x4(tint, Math.Simd.load(white), weights))
-                    }
-
-                    x += 4
-                }
-
-                for column in x until endX where coverage[column] > 0
-                {
-                    var ink = color
-                    ink.a   = coverageAlpha(color.a, coverage[column] / VerticalSamples)
-                    if maskRow do
-                        ink.a = cast(u8, (cast(u32, ink.a) * maskRow[column]) / 255)
-                    if not ink.a do
-                        continue
-
-                    blendAlphaBgra8(dst + column * 4, ink)
-                    if let matte = .whiteMatte do
-                        blendAlphaBgra8(matte + dstOffset + column * 4, ink)
-                }
-            }
+            .drawScanFillBand(&.scanScratch, crossings, image, fill, left, y, width, height)
         }
     }
 

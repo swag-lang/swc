@@ -653,3 +653,24 @@ The thirteen public fixtures also kept their CRC-64s at four samples
 per axis. After the embedded-image sampling change, the 16-bit PNG case
 kept its CRC and went from 1041 to 686 ms at four workers on the same
 four-sample setting.
+
+## Parallel processing of scan bands
+
+A projected compound fill can give disjoint row bands to different CPU
+workers. Each worker reuses its own crossing scratch. The scratch
+budget limits concurrent work, and a fill joins before the next paint
+command starts. The per-band transform, winding and blend rules stay
+identical to the serial path.
+
+Nine interleaved Release runs measured the colored compound fixture
+with Scope's options. The table gives median parse-plus-raster times
+in milliseconds under matching CPU affinities.
+
+| CPU budget | Swag before | Swag after | resvg 0.50.0 |
+| --- | ---: | ---: | ---: |
+| One logical CPU | 98.69 | 98.96 | 50.44 |
+| Two logical CPUs | 98.67 | 71.54 | 52.13 |
+| Four logical CPUs | 104.06 | 44.83 | 55.04 |
+
+Swag kept the same CRC-64 across the three worker counts. A four-worker
+prototype's process peak on this fixture rose from 24,880 to 25,904 KiB.

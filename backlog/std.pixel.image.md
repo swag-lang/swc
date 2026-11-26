@@ -180,9 +180,11 @@ ships; history lives in Git, not here.
   and the existing color-and-clip case keeps its CRC-64.
 - Evidence: [shared supersampled mattes](../bench/workloads/svgraster/resvg-comparison.md#sharing-supersampled-color-coverage)
   reduce duplicate raster work in the colored stroke and clip fixtures at two samples per axis.
-- Next: measure parallel band processing, contour lookup, and crossing resolution
-  on dense colored paths. Rerun the original Windows comparison at one worker
-  and at the runtime default.
+- Evidence: [parallel scan bands](../bench/workloads/svgraster/resvg-comparison.md#parallel-processing-of-scan-bands)
+  cut the colored compound fill from 104 to 45 ms at four workers with matching
+  pixels. resvg takes 55 ms with the same CPU affinity.
+- Next: measure contour lookup and crossing resolution on dense colored paths.
+  Rerun the original Windows comparison at one worker and at the runtime default.
 - Done when: the original corpus meets agreed parse and raster budgets against resvg and the
   renderer's verified output behavior is preserved.
 - Related: std.pixel.image.039, app.scope.image.010

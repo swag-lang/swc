@@ -501,5 +501,65 @@
       1
     ],
     "sha256": "d40f31f182cf254ab134826d379875acacb1f7b48bf1a57bce2e30b38d16628e"
+  },
+  {
+    "file": "bug1065245.pdf",
+    "url": "https://raw.githubusercontent.com/mozilla/pdf.js/ac7d3717e478133747f47819816c743b296a2e9c/test/pdfs/bug1065245.pdf",
+    "source": "Mozilla PDF.js",
+    "workload": "inline JPEG images",
+    "pages": [
+      1
+    ],
+    "sha256": "00beff9834bc18913a93f0c7bc0572187845c665e29a1ff3aa0bc3b8121feee5"
+  },
+  {
+    "file": "issue3584.pdf",
+    "url": "https://raw.githubusercontent.com/mozilla/pdf.js/ac7d3717e478133747f47819816c743b296a2e9c/test/pdfs/issue3584.pdf",
+    "source": "Mozilla PDF.js",
+    "workload": "clipped embedded CFF glyphs",
+    "pages": [
+      1
+    ],
+    "sha256": "b3fdd74779209c148220be77a21b4873d5c356e15f3f2895856177e05742e1b0"
+  },
+  {
+    "file": "bigboundingbox.pdf",
+    "url": "https://raw.githubusercontent.com/mozilla/pdf.js/ac7d3717e478133747f47819816c743b296a2e9c/test/pdfs/bigboundingbox.pdf",
+    "source": "Mozilla PDF.js",
+    "workload": "form with a large transformed bounding box",
+    "pages": [
+      1
+    ],
+    "sha256": "6cd3d57b85891021af2de75ac304a6efc2894793dab7594968b0b5efcd1d0013"
+  },
+  {
+    "file": "type3_d0_alpha.pdf",
+    "url": "https://raw.githubusercontent.com/mozilla/pdf.js/ac7d3717e478133747f47819816c743b296a2e9c/test/pdfs/type3_d0_alpha.pdf",
+    "source": "Mozilla PDF.js",
+    "workload": "colored Type 3 glyphs with transparency",
+    "pages": [
+      1
+    ],
+    "sha256": "b8a2e8d2db695d263b678638b6171b37a33da5a8231a6ba8c4df75a2986b020a"
+  },
+  {
+    "file": "tiling_pattern_cell_state.pdf",
+    "url": "https://raw.githubusercontent.com/mozilla/pdf.js/ac7d3717e478133747f47819816c743b296a2e9c/test/pdfs/tiling_pattern_cell_state.pdf",
+    "source": "Mozilla PDF.js",
+    "workload": "tiling patterns with stroke state",
+    "pages": [
+      1
+    ],
+    "sha256": "e004f97d05a0312209376bac5296edfe6c1c3676efc498f909d834082683a182"
+  },
+  {
+    "file": "pattern_text_rotated_fallback_glyphs.pdf",
+    "url": "https://raw.githubusercontent.com/mozilla/pdf.js/ac7d3717e478133747f47819816c743b296a2e9c/test/pdfs/pattern_text_rotated_fallback_glyphs.pdf",
+    "source": "Mozilla PDF.js",
+    "workload": "pattern-filled, rotated fallback glyphs",
+    "pages": [
+      1
+    ],
+    "sha256": "e51c73c89e82e0f715a6404d783809d2c459bd75cc1885c5b1974955a78ad1bf"
   }
 ]

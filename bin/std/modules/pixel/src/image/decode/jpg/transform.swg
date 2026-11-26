@@ -257,8 +257,8 @@ impl Decoder
     //
     // This is the integer transform of the specification, run on all eight lines at once: the pass
     // over lines keeps two extra fraction bits, and the pass over columns removes them together
-    // with the eight bits of the transform itself. Since a pass combines the values of one line,
-    // the block is transposed between the two so that every line lives in its own lane.
+    // with the eight bits of the transform itself. The entropy stage already transposes the
+    // coefficients, so the second pass needs the only transpose here.
     func idct(data: [*] s16, buf: [*] u8)
     {
         // A block that carries nothing but its average is the common case of a photograph, and the
@@ -295,7 +295,6 @@ impl Decoder
         for i in 8 do
             v[i] = Math.Simd.load(cast(const [*] s16, (data + i * 8)))
 
-        transpose(v)
         transformLines(v, low, high)
 
         // The pass over lines keeps the two extra fraction bits the second pass will remove.

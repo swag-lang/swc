@@ -207,6 +207,7 @@ namespace
             case MicroInstrOpcode::Trap:
             case MicroInstrOpcode::Breakpoint:
             case MicroInstrOpcode::CpuId:
+            case MicroInstrOpcode::XGetBv:
             case MicroInstrOpcode::Ret:
                 return 0;
 
@@ -274,6 +275,7 @@ namespace
             case MicroInstrOpcode::OpBinaryRegRegImm:
             case MicroInstrOpcode::VecUnaryRegMem:
             case MicroInstrOpcode::VecClmulXorPair:
+            case MicroInstrOpcode::VecClmulXorQuad:
                 return 5;
 
             case MicroInstrOpcode::LoadSignedExtRegMem:

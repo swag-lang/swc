@@ -673,6 +673,29 @@ namespace
         store.pushU8(static_cast<uint8_t>((wide ? 0x80 : 0) | (vvvv << 3) | (vector256 ? 4 : 0) | pp));
     }
 
+    enum class EvexVectorLength : uint8_t
+    {
+        Xmm = 0,
+        Ymm = 1,
+        Zmm = 2,
+    };
+
+    // Unmasked EVEX in the existing 16-register file. Bits R' and X' are set
+    // because there is no fifth register bit or extended SIB index here.
+    void emitEvex(PagedStore& store, uint8_t mandatoryPrefix, uint8_t map, X64Reg dst, X64Reg src1, X64Reg src2, EvexVectorLength length, bool wide = false)
+    {
+        const uint8_t pp   = vexPrefixBits(mandatoryPrefix);
+        const uint8_t vvvv = static_cast<uint8_t>(~x64RegNumber(src1) & 0x0F);
+        const uint8_t r    = isExtendedReg(dst) ? 0 : 0x80;
+        const uint8_t b    = isExtendedReg(src2) ? 0 : 0x20;
+        const uint8_t w    = wide ? 0x80 : 0;
+
+        store.pushU8(0x62);
+        store.pushU8(static_cast<uint8_t>(r | 0x50 | b | map));
+        store.pushU8(static_cast<uint8_t>(w | (vvvv << 3) | 0x04 | pp));
+        store.pushU8(static_cast<uint8_t>((static_cast<uint8_t>(length) << 5) | 0x08));
+    }
+
     struct VecOpEncoding
     {
         uint8_t map;
@@ -1198,10 +1221,18 @@ void X64Encoder::updateRegUseDef(const MicroInstr& inst, const MicroInstrOperand
         return;
     }
 
+    if (inst.op == MicroInstrOpcode::XGetBv)
+    {
+        info.addUse(x64RegToMicroReg(X64Reg::Rcx));
+        info.addDef(x64RegToMicroReg(X64Reg::Rax));
+        info.addDef(x64RegToMicroReg(X64Reg::Rdx));
+        return;
+    }
+
     if (!ops)
         return;
 
-    if (inst.op == MicroInstrOpcode::VecClmulXorPair)
+    if (inst.op == MicroInstrOpcode::VecClmulXorPair || inst.op == MicroInstrOpcode::VecClmulXorQuad)
     {
         info.addDef(x64RegToMicroReg(X64Reg::Xmm0));
         info.addDef(x64RegToMicroReg(X64Reg::Xmm1));
@@ -2704,6 +2735,45 @@ void X64Encoder::encodeVecClmulXorPair(MicroReg value, MicroReg factor, MicroReg
 
     // No upper halves are live outside this instruction. End the wide run
     // before the next potential call or legacy SSE instruction.
+    store_.pushU8(0xC5);
+    store_.pushU8(0xF8);
+    store_.pushU8(0x77);
+}
+
+void X64Encoder::encodeVecClmulXorQuad(MicroReg value, MicroReg factor, MicroReg addend, uint8_t first, uint8_t second)
+{
+    SWC_ASSERT(value.isInt() && factor.isInt() && addend.isInt());
+    constexpr auto     length = EvexVectorLength::Zmm;
+    constexpr MicroReg zmm0   = MicroReg::floatReg(0);
+    constexpr MicroReg zmm1   = MicroReg::floatReg(1);
+    constexpr MicroReg zmm2   = MicroReg::floatReg(2);
+
+    const auto load = [this](MicroReg dst, MicroReg src) {
+        emitEvex(store_, 0xF3, VEX_MAP_0F, microRegToX64Reg(dst), X64Reg::Rax, microRegToX64Reg(src), length, true);
+        emitCpuOp(store_, 0x6F);
+        emitMemoryOperand(store_, 0, dst, src);
+    };
+    const auto multiply = [this](MicroReg dst, uint8_t selector) {
+        emitEvex(store_, 0x66, VEX_MAP_0F3A, microRegToX64Reg(dst), X64Reg::Xmm0, X64Reg::Xmm1, length);
+        emitCpuOp(store_, 0x44);
+        emitModRm(store_, dst, zmm1);
+        store_.pushU8(selector);
+    };
+
+    load(zmm0, value);
+    load(zmm1, factor);
+    multiply(zmm2, second);
+    multiply(zmm0, first);
+
+    // A ternary XOR combines the two products and the memory addend.
+    emitEvex(store_, 0x66, VEX_MAP_0F3A, X64Reg::Xmm0, X64Reg::Xmm2, microRegToX64Reg(addend), length);
+    emitCpuOp(store_, 0x25);
+    emitMemoryOperand(store_, 0, zmm0, addend);
+    store_.pushU8(0x96);
+
+    emitEvex(store_, 0xF3, VEX_MAP_0F, X64Reg::Xmm0, X64Reg::Rax, microRegToX64Reg(value), length, true);
+    emitCpuOp(store_, 0x7F);
+    emitMemoryOperand(store_, 0, zmm0, value);
     store_.pushU8(0xC5);
     store_.pushU8(0xF8);
     store_.pushU8(0x77);
@@ -4516,6 +4586,13 @@ void X64Encoder::encodeCpuId()
 }
 
 // prefetcht0 [memReg]: 0F 18 /1, the hint FFmpeg's prefetch_motion uses.
+void X64Encoder::encodeXGetBv()
+{
+    store_.pushU8(0x0F);
+    store_.pushU8(0x01);
+    store_.pushU8(0xD0);
+}
+
 void X64Encoder::encodePrefetch(MicroReg memReg)
 {
     SWC_ASSERT(memReg.isInt());

@@ -231,12 +231,16 @@ up the four partial products of their halves.
 }
 
 /**
-# Carry-less Pairs
+# Carry-less Products Across Lanes
 
 'Swag.vecCarrylessMul2XorPair' selects halves of two 32-byte inputs and computes
 two carry-less products per 128-bit lane. Each lane is updated with both products
 and the matching lane of the addend combined by XOR. Use the runtime
 '.WideCarrylessMultiply' feature check before calling it.
+
+'Swag.vecCarrylessMul2XorQuad' works on four lanes in 64 bytes. Guard it with
+'.CarrylessMultiply512', which includes the operating system's support for
+saving the 512-bit register state.
 */
 #test
 {
@@ -248,6 +252,19 @@ and the matching lane of the addend combined by XOR. Use the runtime
         Swag.vecCarrylessMul2XorPair(&value, &factor, &addend, 0x00, 0x11)
         Swag.require(value[0] == (1 ^ 4 ^ 16) and value[1] == 2)
         Swag.require(value[2] == (3 ^ 64 ^ 256) and value[3] == 4)
+    }
+}
+
+#test
+{
+    if Swag.hasCpuFeature(.CarrylessMultiply512)
+    {
+        var value: [8] u64 = [1, 2, 2, 4, 4, 8, 8, 16]
+        let factor: [8] u64 = [2, 4, 2, 4, 2, 4, 2, 4]
+        let addend: [8] u64 = [0, 0, 0, 0, 0, 0, 0, 0]
+        Swag.vecCarrylessMul2XorQuad(&value, &factor, &addend, 0x00, 0x11)
+        for lane in 4 do
+            Swag.require(value[lane * 2] == (10'u64 << lane) and value[lane * 2 + 1] == 0)
     }
 }
 

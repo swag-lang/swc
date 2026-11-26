@@ -351,6 +351,7 @@ SWC_TOKEN_DEF(IntrinsicMemSet, "Swag.memset", TokenIdKindE::Intrinsic | TokenIdK
 SWC_TOKEN_DEF(IntrinsicMemCmp, "Swag.memcmp", TokenIdKindE::Intrinsic | TokenIdKindE::Return | TokenIdKindE::Portable)
 SWC_TOKEN_DEF(IntrinsicPrefetch, "Swag.prefetch", TokenIdKindE::Intrinsic | TokenIdKindE::Portable)
 SWC_TOKEN_DEF(IntrinsicX64CpuId, "Swag.__x64CpuId", TokenIdKindE::Intrinsic | TokenIdKindE::ArgumentStorageOnly)
+SWC_TOKEN_DEF(IntrinsicX64ReadXcr0, "Swag.__x64ReadXcr0", TokenIdKindE::Intrinsic | TokenIdKindE::Return | TokenIdKindE::ArgumentStorageOnly)
 
 // INTRINSICS - ATOMIC
 
@@ -377,6 +378,7 @@ SWC_TOKEN_DEF(IntrinsicVecWidenHi, "Swag.vecWidenHi", TokenIdKindE::Intrinsic | 
 SWC_TOKEN_DEF(IntrinsicVecAvgR, "Swag.vecAvgRound", TokenIdKindE::Intrinsic | TokenIdKindE::Return | TokenIdKindE::Portable)
 SWC_TOKEN_DEF(IntrinsicVecClmul, "Swag.vecCarrylessMul", TokenIdKindE::Intrinsic | TokenIdKindE::Return | TokenIdKindE::Portable)
 SWC_TOKEN_DEF(IntrinsicVecClmul2XorPair, "Swag.vecCarrylessMul2XorPair", TokenIdKindE::Intrinsic | TokenIdKindE::ArgumentStorageOnly)
+SWC_TOKEN_DEF(IntrinsicVecClmul2XorQuad, "Swag.vecCarrylessMul2XorQuad", TokenIdKindE::Intrinsic | TokenIdKindE::ArgumentStorageOnly)
 SWC_TOKEN_DEF(IntrinsicVecSha1Schedule1, "Swag.vecSha1Schedule1", TokenIdKindE::Intrinsic | TokenIdKindE::Return | TokenIdKindE::Portable)
 SWC_TOKEN_DEF(IntrinsicVecSha1Schedule2, "Swag.vecSha1Schedule2", TokenIdKindE::Intrinsic | TokenIdKindE::Return | TokenIdKindE::Portable)
 SWC_TOKEN_DEF(IntrinsicVecSha1NextE, "Swag.vecSha1NextE", TokenIdKindE::Intrinsic | TokenIdKindE::Return | TokenIdKindE::Portable)

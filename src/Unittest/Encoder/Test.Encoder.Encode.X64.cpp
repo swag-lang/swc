@@ -597,7 +597,10 @@ namespace
         ENCODE_CASE("sha1rounds4phase3", "45 0F 3A CC CA 03", b.emitOpBinaryRegReg(XMM9, XMM10, MicroOp::VecSha1Rounds4Phase3, MicroOpBits::B128););
         ENCODE_CASE("vec_clmul_vex", "C4 E3 69 44 CB 11", b.emitOpTernaryRegRegRegImm(XMM1, XMM2, XMM3, 0x11, MicroOp::VecClmul, MicroOpBits::B128););
         ENCODE_CASE("vec_clmul_xor_pair", "C4 C1 7E 6F 02 C4 C1 7E 6F 0C 24 C4 E3 7D 44 D1 11 C4 E3 7D 44 C1 00 C5 FD EF C2 C4 C1 7D EF 01 C4 C1 7E 7F 02 C5 F8 77",
-                    b.emitVecClmulXorPair(R10, R12, R9, 0x00, 0x11););
+                    b.emitVecClmulXor(R10, R12, R9, 0x00, 0x11, false););
+        ENCODE_CASE("vec_clmul_xor_quad", "62 D1 FE 48 6F 02 62 D1 FE 48 6F 0C 24 62 F3 7D 48 44 D1 11 62 F3 7D 48 44 C1 00 62 D3 6D 48 25 01 96 62 D1 FE 48 7F 02 C5 F8 77",
+                    b.emitVecClmulXor(R10, R12, R9, 0x00, 0x11, true););
+        ENCODE_CASE("xgetbv", "0F 01 D0", b.emitXGetBv(););
         ENCODE_CASE("vec_aesenc_vex", "C4 E2 69 DC CB", b.emitOpBinaryRegRegReg(XMM1, XMM2, XMM3, MicroOp::VecAesEncryptRound, MicroOpBits::B128););
         ENCODE_CASE("vec_aesenclast_vex", "C4 E2 69 DD CB", b.emitOpBinaryRegRegReg(XMM1, XMM2, XMM3, MicroOp::VecAesEncryptLastRound, MicroOpBits::B128););
         ENCODE_CASE("vec_aesdec_vex", "C4 E2 69 DE CB", b.emitOpBinaryRegRegReg(XMM1, XMM2, XMM3, MicroOp::VecAesDecryptRound, MicroOpBits::B128););
@@ -915,6 +918,23 @@ SWC_TEST_END()
 SWC_TEST_BEGIN(EncodeX64_TernaryAndConvert)
 {
     SWC_RESULT(runCase(ctx, buildTernaryAndConvert));
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(EncodeX64_XGetBvTracksImplicitRegisters)
+{
+    MicroBuilder builder(ctx);
+    builder.emitXGetBv();
+
+    X64Encoder encoder(ctx);
+    const auto* inst = builder.instructions().ptr(builder.instructions().lastInstructionRef());
+    const auto useDef = inst->collectUseDef(builder.operands(), &encoder);
+    if (useDef.uses.size() != 1 || useDef.uses[0] != RCX ||
+        useDef.defs.size() != 2 ||
+        std::ranges::find(useDef.defs, RAX) == useDef.defs.end() ||
+        std::ranges::find(useDef.defs, RDX) == useDef.defs.end())
+        return Result::Error;
+    return Result::Continue;
 }
 SWC_TEST_END()
 

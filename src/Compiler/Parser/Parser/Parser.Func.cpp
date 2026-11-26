@@ -619,6 +619,7 @@ AstNodeRef Parser::lowerSwagIntrinsicCall(const AstNodeRef nodeExpr, const SpanR
             {
                 case TokenId::IntrinsicBreakpoint:
                 case TokenId::IntrinsicGetContext:
+                case TokenId::IntrinsicX64ReadXcr0:
                 case TokenId::IntrinsicCompiler:
                 case TokenId::IntrinsicRtFlags:
                 case TokenId::IntrinsicProcessInfo:
@@ -742,6 +743,7 @@ AstNodeRef Parser::lowerSwagIntrinsicCall(const AstNodeRef nodeExpr, const SpanR
                     break;
 
                 case TokenId::IntrinsicVecClmul2XorPair:
+                case TokenId::IntrinsicVecClmul2XorQuad:
                     numRequiredArgs = 5;
                     break;
 

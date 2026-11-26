@@ -743,7 +743,7 @@ namespace
         return Result::Continue;
     }
 
-    Result codeGenVecClmulXorPair(CodeGen& codeGen, const AstIntrinsicCallExpr& node)
+    Result codeGenVecClmulXor(CodeGen& codeGen, const AstIntrinsicCallExpr& node)
     {
         const auto children = codeGen.ast().nodeRefs(node.spanChildrenRef);
         SWC_ASSERT(children.size() == 5);
@@ -758,8 +758,23 @@ namespace
         const MicroReg value  = materializeIntrinsicIntArgReg(codeGen, codeGen.payload(children[0]), MicroOpBits::B64);
         const MicroReg factor = materializeIntrinsicIntArgReg(codeGen, codeGen.payload(children[1]), MicroOpBits::B64);
         const MicroReg addend = materializeIntrinsicIntArgReg(codeGen, codeGen.payload(children[2]), MicroOpBits::B64);
-        SWC_RESULT(CodeGenSafety::emitValueBorrowWrite(codeGen, value, 4 * sizeof(uint64_t)));
-        codeGen.builder().emitVecClmulXorPair(value, factor, addend, first, second);
+        const bool quad = node.intrinsicId == TokenId::IntrinsicVecClmul2XorQuad;
+        SWC_RESULT(CodeGenSafety::emitValueBorrowWrite(codeGen, value, (quad ? 8 : 4) * sizeof(uint64_t)));
+        codeGen.builder().emitVecClmulXor(value, factor, addend, first, second, quad);
+        return Result::Continue;
+    }
+
+    Result codeGenX64ReadXcr0(CodeGen& codeGen)
+    {
+        constexpr MicroReg eax = MicroReg::intReg(0);
+        constexpr MicroReg ecx = MicroReg::intReg(2);
+        MicroBuilder& builder  = codeGen.builder();
+        builder.emitLoadRegImm(ecx, ApInt(uint64_t{0}, 32), MicroOpBits::B32);
+        builder.emitXGetBv();
+
+        CodeGenNodePayload& result = codeGen.setPayloadValue(codeGen.curNodeRef(), codeGen.curViewType().typeRef());
+        result.reg                 = codeGen.nextVirtualIntRegister();
+        builder.emitLoadRegReg(result.reg, eax, MicroOpBits::B32);
         return Result::Continue;
     }
 
@@ -2852,7 +2867,11 @@ Result AstIntrinsicCallExpr::codeGenPostNode(CodeGen& codeGen) const
         case TokenId::IntrinsicPrefetch:
             return codeGenPrefetch(codeGen, *this);
         case TokenId::IntrinsicVecClmul2XorPair:
-            return codeGenVecClmulXorPair(codeGen, *this);
+        case TokenId::IntrinsicVecClmul2XorQuad:
+            return codeGenVecClmulXor(codeGen, *this);
+
+        case TokenId::IntrinsicX64ReadXcr0:
+            return codeGenX64ReadXcr0(codeGen);
 
         case TokenId::IntrinsicX64CpuId:
             return codeGenX64CpuId(codeGen, *this);

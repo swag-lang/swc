@@ -1128,8 +1128,12 @@ namespace
                 return tagInstructionToken("breakpoint");
             case MicroInstrOpcode::CpuId:
                 return tagInstructionToken("cpuid");
+            case MicroInstrOpcode::XGetBv:
+                return tagInstructionToken("xgetbv");
             case MicroInstrOpcode::VecClmulXorPair:
-                return std::format("{} [{}], [{}], [{}], {}, {}", tagInstructionToken("vclmulxor2x128"),
+            case MicroInstrOpcode::VecClmulXorQuad:
+                return std::format("{} [{}], [{}], [{}], {}, {}",
+                                   tagInstructionToken(inst.op == MicroInstrOpcode::VecClmulXorQuad ? "vclmulxor4x128" : "vclmulxor2x128"),
                                    regName(ops[0].reg, regPrintMode, encoder), regName(ops[1].reg, regPrintMode, encoder),
                                    regName(ops[2].reg, regPrintMode, encoder), ops[3].valueU64, ops[4].valueU64);
             case MicroInstrOpcode::Prefetch:
@@ -1888,6 +1892,7 @@ Utf8 MicroPrinter::format(const TaskContext& ctx, const MicroStorage& instructio
             case MicroInstrOpcode::Ret:
             case MicroInstrOpcode::Trap:
             case MicroInstrOpcode::CpuId:
+            case MicroInstrOpcode::XGetBv:
             case MicroInstrOpcode::Breakpoint:
                 break;
 
@@ -1898,6 +1903,7 @@ Utf8 MicroPrinter::format(const TaskContext& ctx, const MicroStorage& instructio
                 break;
 
             case MicroInstrOpcode::VecClmulXorPair:
+            case MicroInstrOpcode::VecClmulXorQuad:
                 for (uint8_t operandIndex = 0; operandIndex < 3; ++operandIndex)
                 {
                     appendRegister(out, ops[operandIndex].reg, regPrintMode, encoder);

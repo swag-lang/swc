@@ -911,6 +911,7 @@ AstNodeRef Parser::parsePrimaryExpression()
             return parseIntrinsicCallConstantExpr();
 
         case TokenId::IntrinsicGetContext:
+        case TokenId::IntrinsicX64ReadXcr0:
             return parseIntrinsicCallExpr(0);
 
         case TokenId::IntrinsicAbs:
@@ -1006,6 +1007,7 @@ AstNodeRef Parser::parsePrimaryExpression()
             return parseIntrinsicCallExpr(3);
 
         case TokenId::IntrinsicVecClmul2XorPair:
+        case TokenId::IntrinsicVecClmul2XorQuad:
             return parseIntrinsicCallExpr(5);
 
         case TokenId::NumberInteger:

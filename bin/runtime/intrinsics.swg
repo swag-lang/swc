@@ -433,6 +433,12 @@ func atomicStore(addr: *u64, value: u64)
     // Call only when [[hasCpuFeature]] reports `.WideCarrylessMultiply`.
     func vecCarrylessMul2XorPair(value: *[4] u64, factor, addend: const *[4] u64, first, second: u8)
 
+    // Updates each of four 128-bit lanes with two carry-less products XORed with the addend.
+    //
+    // The constant selectors and overlapping pointer rules match [[vecCarrylessMul2XorPair]].
+    // Each pointer names 64 bytes. Call only when [[hasCpuFeature]] reports `.CarrylessMultiply512`.
+    func vecCarrylessMul2XorQuad(value: *[8] u64, factor, addend: const *[8] u64, first, second: u8)
+
     // Starts extending four SHA-1 message words from the first two message vectors.
     //
     // Each vector holds its earlier words in higher-numbered lanes. Call only when

@@ -432,9 +432,14 @@ void MicroBuilder::emitCpuId()
     addInstruction(MicroInstrOpcode::CpuId, 0);
 }
 
-void MicroBuilder::emitVecClmulXorPair(MicroReg value, MicroReg factor, MicroReg addend, uint8_t first, uint8_t second)
+void MicroBuilder::emitXGetBv()
 {
-    const auto& inst = addInstruction(MicroInstrOpcode::VecClmulXorPair, 5);
+    addInstruction(MicroInstrOpcode::XGetBv, 0);
+}
+
+void MicroBuilder::emitVecClmulXor(MicroReg value, MicroReg factor, MicroReg addend, uint8_t first, uint8_t second, bool quad)
+{
+    const auto& inst = addInstruction(quad ? MicroInstrOpcode::VecClmulXorQuad : MicroInstrOpcode::VecClmulXorPair, 5);
     auto* ops        = inst.ops(operands_);
     ops[0].reg       = value;
     ops[1].reg       = factor;

@@ -172,6 +172,39 @@ original Swag decoder and FFmpeg exactly. The focused native Release selection p
 Generate the 1080p cases with `generate.py --avc-slices`. For the 4K case, retain the
 first 48 pictures of the default generator's six-slice clip with FFmpeg stream copy.
 
+## FFmpeg 9.1 reference
+
+The current reference uses FFmpeg `n9.1` (`74e4393`), built on Linux x86-64 with runtime
+CPU selection and NASM 2.16.03. Both `ffprobe`/`ffmpeg` picture validation and the native
+libavcodec timing program use this release. The seven-run medians start after eight
+warm-up pictures. The one-lane runs use CPU 4. The four-lane runs use CPUs 0–3 and include
+the AVC slice-context cache. Picture digests and all observations are in
+[ffmpeg-9-1.json](ffmpeg-9-1.json).
+
+| Stream | Swag, one lane | FFmpeg, one lane | Swag, four lanes | FFmpeg, four lanes | Maximum difference |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| AVC Baseline, 1080p | 5.392 ms | 2.158 ms | | | 0 |
+| AVC High, 1080p | 7.909 ms | 4.744 ms | 4.561 ms | 1.616 ms | 0 |
+| HEVC Main10, 1080p | 14.435 ms | 8.210 ms | | | 0 |
+| HEVC Main WPP, 720p | 5.865 ms | 2.968 ms | 3.440 ms | 1.388 ms | 0 |
+| AVC High, six slices, 4K | 29.212 ms | 15.790 ms | 12.341 ms | 4.958 ms | 0 |
+| HEVC Main10, 3840×2076 | 51.902 ms | 30.256 ms | 29.460 ms | 9.524 ms | 0 |
+| MPEG-4 Part 2 Simple, 720p | 1.504 ms | 0.572 ms | | | 3 |
+| MPEG-4 Part 2 MPEG quantization, 720p | 1.220 ms | 0.514 ms | | | 4 |
+| RealVideo 4.0 I/P/B, 96×64 | 0.129 ms | 0.044 ms | | | 0 |
+
+Times are per decoded picture. Of the 1,680 pictures in the one-lane comparison, all
+1,440 AVC, HEVC and RealVideo pictures match exactly. The MPEG-4 Part 2 clips have 68.67
+and 68.72 dB PSNR. All 360 pictures in the four-lane comparison match exactly, with
+the same hashes as the one-lane output. FFmpeg Main10 is rounded to Swag's eight-bit
+public plane format for this comparison.
+
+Build the native helper against FFmpeg 9.1 and put that release's `ffmpeg` and `ffprobe`
+on `PATH`. The fixture definitions are in this report and `generate.py`. Repeat the
+checked-in RealVideo clip with `repeat-rv40.py`. Use stream copy to retain 48 pictures
+of the AVC 4K clip and 42 of the Main10 4K clip. Time with `--warmup 8 --repetitions 7`
+and use `--mpeg4-max-sample-difference 4` for the MPEG-4 fixtures.
+
 ## HEVC CABAC look-ahead
 
 The CABAC decoder now shifts the arithmetic offset and the next 32 input bits together.

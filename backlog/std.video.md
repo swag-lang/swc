@@ -49,8 +49,8 @@ the sampling layouts used by ffmpeg's 4:2:0, 4:2:2, and 4:4:4 Motion JPEG output
 
 ### std.video.001 — Reduce the remaining serial cost of H.264 decoding
 
-- Evidence: [the follow-up comparison](../bench/results/video/20261126-decode-comparison/README.md#prediction-and-sao-follow-up) measures one-slice 1080p Baseline at
-  2.27× native single-threaded FFmpeg and High at 1.47×. The Baseline profile attributes about a
+- Evidence: [the current comparison](../bench/results/video/20261126-decode-comparison/README.md#ffmpeg-91-reference) measures one-slice 1080p Baseline at
+  2.50× native single-threaded FFmpeg 9.1 and High at 1.67×. The Baseline profile attributes about a
   fifth of samples to CAVLC residuals and VLC lookup. High's CABAC residual loop remains the
   largest sampled kernel.
 - Next: profile Baseline coefficient and motion decoding after the prefix lookups and isolate
@@ -68,8 +68,8 @@ the sampling layouts used by ffmpeg's 4:2:0, 4:2:2, and 4:4:4 Motion JPEG output
 
 ### std.video.005 — Reduce the measured serial cost of H.265 decoding
 
-- Evidence: [the follow-up comparison](../bench/results/video/20261126-decode-comparison/README.md#prediction-and-sao-follow-up) measured serial Main10 at
-  1.46× native single-threaded FFmpeg at 3840×2076. In a separate run,
+- Evidence: [the current comparison](../bench/results/video/20261126-decode-comparison/README.md#ffmpeg-91-reference) measures Main10 at 3840×2076 at
+  1.72× FFmpeg 9.1 with one lane and 3.09× with four. In a separate run,
   [32-bit CABAC look-ahead](../bench/results/video/20261126-decode-comparison/README.md#hevc-cabac-look-ahead)
   lowered 4K time by 3.1%. Alternating runs found 5.7% lower wall time on Main10 texture
   and 6.6% on Main WPP. The residual coding routine accounted for about a quarter of samples
@@ -147,8 +147,10 @@ the sampling layouts used by ffmpeg's 4:2:0, 4:2:2, and 4:4:4 Motion JPEG output
   before that change and 5.22 ms in FFmpeg at four threads. Single-thread medians on the
   three tested streams stayed within 5.2% and all picture planes matched.
   [Deferred-slice measurements](../bench/results/video/20261126-decode-comparison/README.md#avc-multi-slice-frame-lanes)
-- Next: measure how much time multi-slice frames wait for reference pixels after entropy
-  parsing, and expose completed rows where reconstruction and deblocking permit it.
+  The [FFmpeg 9.1 comparison](../bench/results/video/20261126-decode-comparison/README.md#ffmpeg-91-reference)
+  puts the first 48 4K pictures at 12.34 ms for Swag and 4.96 ms for FFmpeg at four lanes.
+- Next: measure waiting time and cache misses across frame lanes. Publishing rows from a
+  serial raster reconstruction reproduced all output but left the 4K median unchanged.
 - Done when: multi-slice pictures decode exactly with bounded queues and forward progress,
   measured scheduling overhead improves on the same fixture, and the one-slice path does not regress.
 - Related: std.video.001, language.parallelism.001

@@ -1,6 +1,8 @@
 #global public
 #global namespace Crypto
 
+using Math
+
 // Size in bytes of a ChaCha20 key.
 const ChaCha20KeySize = 32
 
@@ -10,10 +12,7 @@ const ChaCha20NonceSize = 12
 // Size in bytes of one ChaCha20 key-stream block.
 const ChaCha20BlockSize = 64
 
-#[Swag.Inline]
-private func add32(left, right: u32)->u32 => cast(u32, ((cast(u64, left) + right) & 0xFFFF_FFFF))
-
-// Read and write little-endian words without assuming byte-buffer alignment.
+// Reads a little-endian word without assuming byte-buffer alignment.
 #[Swag.Inline]
 private func load32(data: const [*] u8)->u32
 {
@@ -22,63 +21,94 @@ private func load32(data: const [*] u8)->u32
     return Math.littleEndianToNative(value)
 }
 
+private const ChaChaConstants = cast(Simd.U32x4, [0x61707865'u32, 0x3320646E, 0x79622D32, 0x6B206574])
+
 #[Swag.Inline]
-private func store32(data: [*] u8, value: u32)
+private func swapWordBytesOnBigEndian(bytes: Simd.U8x16)->Simd.U8x16
 {
-    let encoded = Math.nativeToLittleEndian(value)
-    Memory.copy(cast([*] void, data), cast(const [*] void, &encoded), #sizeof(encoded))
+    #static if BIG_ENDIAN
+    {
+        const order = cast(Simd.U8x16, [3'u8, 2, 1, 0, 7, 6, 5, 4, 11, 10, 9, 8, 15, 14, 13, 12])
+        return Simd.permute(bytes, order)
+    }
+    else
+    {
+        return bytes
+    }
 }
 
 #[Swag.Inline]
-private func load64(data: const [*] u8)->u64
+private func rotate32By16(value: Simd.U32x4)->Simd.U32x4
 {
-    var value: u64
-    Memory.copy(cast([*] void, &value), cast(const [*] void, data), #sizeof(value))
-    return Math.littleEndianToNative(value)
+    #static if BIG_ENDIAN
+    {
+        return Math.rol(value, 16)
+    }
+    else
+    {
+        const order = cast(Simd.U8x16, [2'u8, 3, 0, 1, 6, 7, 4, 5, 10, 11, 8, 9, 14, 15, 12, 13])
+        return cast #bit (Simd.U32x4, Simd.permute(cast #bit (Simd.U8x16, value), order))
+    }
+}
+
+// Operates on the four vector registers a, b, c and d at the call site.
+#[Swag.Mixin]
+private func quarterRoundLanes()
+{
+    a += b
+    d = rotate32By16(d ^ a)
+    c += d
+    b = Math.rol(b ^ c, 12)
+    a += b
+    d = Math.rol(d ^ a, 8)
+    c += d
+    b = Math.rol(b ^ c, 7)
 }
 
 #[Swag.Inline]
-private func store64(data: [*] u8, value: u64)
+private func quarterRound(first, second, third, fourth: *Simd.U32x4)
 {
-    let encoded = Math.nativeToLittleEndian(value)
-    Memory.copy(cast([*] void, data), cast(const [*] void, &encoded), #sizeof(encoded))
+    var a = first[]
+    var b = second[]
+    var c = third[]
+    var d = fourth[]
+
+    quarterRoundLanes()
+
+    first[]  = a
+    second[] = b
+    third[]  = c
+    fourth[] = d
 }
 
 #[Swag.Inline]
-private func quarterRound(state: *[16] u32, a, b, c, d: u32)
+private func roundRows(rows: *[4] Simd.U32x4)
 {
-    state[][a] = add32(state[][a], state[][b])
-    state[][d] ^= state[][a]
-    state[][d] = Swag.rol(state[][d], 16)
-    state[][c] = add32(state[][c], state[][d])
-    state[][b] ^= state[][c]
-    state[][b] = Swag.rol(state[][b], 12)
-    state[][a] = add32(state[][a], state[][b])
-    state[][d] ^= state[][a]
-    state[][d] = Swag.rol(state[][d], 8)
-    state[][c] = add32(state[][c], state[][d])
-    state[][b] ^= state[][c]
-    state[][b] = Swag.rol(state[][b], 7)
-}
+    const left1 = cast(Simd.U32x4, [1'u32, 2, 3, 0])
+    const left2 = cast(Simd.U32x4, [2'u32, 3, 0, 1])
+    const left3 = cast(Simd.U32x4, [3'u32, 0, 1, 2])
+    var a = rows[][0]
+    var b = rows[][1]
+    var c = rows[][2]
+    var d = rows[][3]
+    for 10
+    {
+        quarterRoundLanes()
 
-#[Swag.Inline]
-private func rotate32(value: Math.Simd.U32x4, bits: u8)->Math.Simd.U32x4 => (value << bits) | (value >> (32 - bits))
+        // Rotate the rows so each lane sees one diagonal, then restore the column order.
+        b = Simd.permute(b, left1)
+        c = Simd.permute(c, left2)
+        d = Simd.permute(d, left3)
+        quarterRoundLanes()
+        b = Simd.permute(b, left3)
+        c = Simd.permute(c, left2)
+        d = Simd.permute(d, left1)
+    }
 
-#[Swag.Inline]
-private func quarterRound4(state: *[16] Math.Simd.U32x4, a, b, c, d: u32)
-{
-    state[][a] += state[][b]
-    state[][d] ^= state[][a]
-    state[][d] = rotate32(state[][d], 16)
-    state[][c] += state[][d]
-    state[][b] ^= state[][c]
-    state[][b] = rotate32(state[][b], 12)
-    state[][a] += state[][b]
-    state[][d] ^= state[][a]
-    state[][d] = rotate32(state[][d], 8)
-    state[][c] += state[][d]
-    state[][b] ^= state[][c]
-    state[][b] = rotate32(state[][b], 7)
+    rows[][0] = a
+    rows[][1] = b
+    rows[][2] = c
+    rows[][3] = d
 }
 
 // Produces one IETF ChaCha20 key-stream block for `counter`.
@@ -91,34 +121,23 @@ func chacha20Block(key: const [..] u8, counter: u32, nonce: const [..] u8)->[Cha
     if nonce.count != ChaCha20NonceSize do
         fail Errors.BadParameterError{"ChaCha20 needs a 12-byte nonce"}
 
-    var initial: [16] u32
-    initial[0] = 0x61707865
-    initial[1] = 0x3320646E
-    initial[2] = 0x79622D32
-    initial[3] = 0x6B206574
-    for i in 8 do
-        initial[4 + i] = load32(key.buffer + i * 4)
-    initial[12] = counter
-    initial[13] = load32(nonce.buffer)
-    initial[14] = load32(nonce.buffer + 4)
-    initial[15] = load32(nonce.buffer + 8)
+    var initial: [4] Simd.U32x4
+    initial[0] = ChaChaConstants
+    initial[1] = cast #bit (Simd.U32x4, swapWordBytesOnBigEndian(Simd.load(key.buffer)))
+    initial[2] = cast #bit (Simd.U32x4, swapWordBytesOnBigEndian(Simd.load(key.buffer + 16)))
+    initial[3] = cast(Simd.U32x4,
+                      [counter, load32(nonce.buffer), load32(nonce.buffer + 4), load32(nonce.buffer + 8)])
 
     var state = initial
-    for 10
-    {
-        quarterRound(&state, 0, 4, 8, 12)
-        quarterRound(&state, 1, 5, 9, 13)
-        quarterRound(&state, 2, 6, 10, 14)
-        quarterRound(&state, 3, 7, 11, 15)
-        quarterRound(&state, 0, 5, 10, 15)
-        quarterRound(&state, 1, 6, 11, 12)
-        quarterRound(&state, 2, 7, 8, 13)
-        quarterRound(&state, 3, 4, 9, 14)
-    }
+    roundRows(&state)
 
     var result: #returntype
-    for i in 16 do
-        store32(&result[i * 4], add32(state[i], initial[i]))
+    for i in 4
+    {
+        let words = cast #bit (Simd.U8x16, state[i] + initial[i])
+        Simd.store(result.buffer + i * #sizeof(Simd.U8x16), swapWordBytesOnBigEndian(words))
+    }
+
     secureClear(initial)
     secureClear(state)
     return result
@@ -132,33 +151,16 @@ internal func hchacha20(key: const [..] u8, nonce: const [..] u8)->[ChaCha20KeyS
     if nonce.count != 16 do
         fail Errors.BadParameterError{"HChaCha20 needs a 16-byte nonce"}
 
-    var state: [16] u32
-    state[0] = 0x61707865
-    state[1] = 0x3320646E
-    state[2] = 0x79622D32
-    state[3] = 0x6B206574
-    for i in 8 do
-        state[4 + i] = load32(key.buffer + i * 4)
-    for i in 4 do
-        state[12 + i] = load32(nonce.buffer + i * 4)
-
-    for 10
-    {
-        quarterRound(&state, 0, 4, 8, 12)
-        quarterRound(&state, 1, 5, 9, 13)
-        quarterRound(&state, 2, 6, 10, 14)
-        quarterRound(&state, 3, 7, 11, 15)
-        quarterRound(&state, 0, 5, 10, 15)
-        quarterRound(&state, 1, 6, 11, 12)
-        quarterRound(&state, 2, 7, 8, 13)
-        quarterRound(&state, 3, 4, 9, 14)
-    }
+    var state: [4] Simd.U32x4
+    state[0] = ChaChaConstants
+    state[1] = cast #bit (Simd.U32x4, swapWordBytesOnBigEndian(Simd.load(key.buffer)))
+    state[2] = cast #bit (Simd.U32x4, swapWordBytesOnBigEndian(Simd.load(key.buffer + 16)))
+    state[3] = cast #bit (Simd.U32x4, swapWordBytesOnBigEndian(Simd.load(nonce.buffer)))
+    roundRows(&state)
 
     var subkey: #returntype
-    for i in 4 do
-        store32(&subkey[i * 4], state[i])
-    for i in 4 do
-        store32(&subkey[(i + 4) * 4], state[i + 12])
+    Simd.store(subkey.buffer, swapWordBytesOnBigEndian(cast #bit (Simd.U8x16, state[0])))
+    Simd.store(subkey.buffer + 16, swapWordBytesOnBigEndian(cast #bit (Simd.U8x16, state[3])))
     secureClear(state)
     return subkey
 }
@@ -176,52 +178,50 @@ func chacha20Xor(key, nonce, source: const [..] u8, destination: [..] u8, initia
 {
     func chacha20XorFour(key, nonce: const [..] u8, counter: u32, source: const [*] u8, destination: [*] u8)
     {
-        var initial: [16] Math.Simd.U32x4
-        initial[0] = Math.Simd.splat(0x61707865'u32)
-        initial[1] = Math.Simd.splat(0x3320646E'u32)
-        initial[2] = Math.Simd.splat(0x79622D32'u32)
-        initial[3] = Math.Simd.splat(0x6B206574'u32)
+        var initial: [16] Simd.U32x4
+        initial[0] = Simd.splat(0x61707865'u32)
+        initial[1] = Simd.splat(0x3320646E'u32)
+        initial[2] = Simd.splat(0x79622D32'u32)
+        initial[3] = Simd.splat(0x6B206574'u32)
         for i in 8 do
-            initial[4 + i] = Math.Simd.splat(load32(key.buffer + i * 4))
-        initial[12] = cast(Math.Simd.U32x4, [counter, counter + 1, counter + 2, counter + 3])
-        initial[13] = Math.Simd.splat(load32(nonce.buffer))
-        initial[14] = Math.Simd.splat(load32(nonce.buffer + 4))
-        initial[15] = Math.Simd.splat(load32(nonce.buffer + 8))
+            initial[4 + i] = Simd.splat(load32(key.buffer + i * 4))
+        initial[12] = cast(Simd.U32x4, [counter, counter + 1, counter + 2, counter + 3])
+        initial[13] = Simd.splat(load32(nonce.buffer))
+        initial[14] = Simd.splat(load32(nonce.buffer + 4))
+        initial[15] = Simd.splat(load32(nonce.buffer + 8))
 
         var state = initial
         for 10
         {
-            quarterRound4(&state, 0, 4, 8, 12)
-            quarterRound4(&state, 1, 5, 9, 13)
-            quarterRound4(&state, 2, 6, 10, 14)
-            quarterRound4(&state, 3, 7, 11, 15)
-            quarterRound4(&state, 0, 5, 10, 15)
-            quarterRound4(&state, 1, 6, 11, 12)
-            quarterRound4(&state, 2, 7, 8, 13)
-            quarterRound4(&state, 3, 4, 9, 14)
+            quarterRound(&state[0], &state[4], &state[8], &state[12])
+            quarterRound(&state[1], &state[5], &state[9], &state[13])
+            quarterRound(&state[2], &state[6], &state[10], &state[14])
+            quarterRound(&state[3], &state[7], &state[11], &state[15])
+            quarterRound(&state[0], &state[5], &state[10], &state[15])
+            quarterRound(&state[1], &state[6], &state[11], &state[12])
+            quarterRound(&state[2], &state[7], &state[8], &state[13])
+            quarterRound(&state[3], &state[4], &state[9], &state[14])
         }
 
-        var stream: [4 * ChaCha20BlockSize] u8
-        for word in 16
+        // Transpose each four-word group from lanes of independent blocks into
+        // consecutive words, so it can be applied directly to the input.
+        var words: [4] Simd.U32x4
+        for group in 4
         {
-            let value = state[word] + initial[word]
-            for lane in 4
+            for word in 4 do
+                words[word] = state[group * 4 + word] + initial[group * 4 + word]
+            Simd.transpose4x4(&words)
+            for block in 4
             {
-                let offset = lane * ChaCha20BlockSize + word * 4
-                store32(&stream[offset], value[lane])
+                let offset = block * ChaCha20BlockSize + group * #sizeof(Simd.U8x16)
+                let stream = swapWordBytesOnBigEndian(cast #bit (Simd.U8x16, words[block]))
+                Simd.store(destination + offset, Simd.load(source + offset) ^ stream)
             }
-        }
-
-        var offset = 0
-        while offset < 4 * ChaCha20BlockSize
-        {
-            Math.Simd.store(destination + offset, Math.Simd.load(source + offset) ^ Math.Simd.load(&stream[offset]))
-            offset += #sizeof(Math.Simd.U8x16)
         }
 
         secureClear(initial)
         secureClear(state)
-        secureClear(stream)
+        secureClear(words)
     }
 
     if key.count != ChaCha20KeySize do
@@ -258,17 +258,14 @@ func chacha20Xor(key, nonce, source: const [..] u8, destination: [..] u8, initia
         var block = try chacha20Block(key, counter, nonce)
         let count = Math.min(source.count - offset, ChaCha20BlockSize)
 
-        // Apply the key stream a word at a time; the tail of the final
-        // partial block falls back to bytes.
+        // Apply complete vectors first, then finish the last partial vector by bytes.
         let src = source.buffer + offset
         let dst = destination.buffer + offset
         var i   = 0'u64
-        while i + 8 <= count
+        while count - i >= #sizeof(Simd.U8x16)
         {
-            let sourceWord = load64(src + i)
-            let streamWord = load64(&block[i])
-            store64(dst + i, sourceWord ^ streamWord)
-            i += 8
+            Simd.store(dst + i, Simd.load(src + i) ^ Simd.load(block.buffer + i))
+            i += #sizeof(Simd.U8x16)
         }
 
         while i < count

@@ -505,10 +505,24 @@ impl IDecoder for Decoder
         try source.seek(entry.offset)
         if .isJpeg
         {
-            if .payload.count != size do
-                .payload.resize(size)
-            try source.readExact(.payload.toSlice())
-            try .decodeJpegFrame(target)
+            // The input buffer already contains the complete encoded sample.
+            let borrowed = not source.path().count
+            var payload: const [..] u8
+            if borrowed
+            {
+                payload = (try source.peek(size))[until size]
+            }
+            else
+            {
+                if .payload.count != size do
+                    .payload.resize(size)
+                try source.readExact(.payload.toSlice())
+                payload = .payload.toSlice()
+            }
+
+            try .decodeJpegFrame(payload, target)
+            if borrowed do
+                try source.skip(size)
         }
         else
         {
@@ -1021,9 +1035,9 @@ private impl Decoder
     }
 
     // Decodes one Motion JPEG frame, which is a complete JPEG image.
-    mtd decodeJpegFrame(target: *Image) fail
+    mtd decodeJpegFrame(payload: const [..] u8, target: *Image) fail
     {
-        var decoded = try Image.decode(JpegName, .payload.toSlice())
+        var decoded = try Image.decode(JpegName, payload)
         if decoded.width != .info.width or decoded.height != .info.height do
             fail InvalidFormatError{"AVI frame does not have the dimensions its stream declares"}
 

@@ -125,3 +125,4 @@ optimizations moved each result.
 - [Streaming Curve25519 product carries](curve25519-product-carries.md)
 - [Poly1305 packed tag output](poly1305-tag-stores.md)
 - [Reusable Ed25519 verification table](ed25519-verification-table.md)
+- [Reusable Argon2id lane-segment workspace](argon2-workspace.md)

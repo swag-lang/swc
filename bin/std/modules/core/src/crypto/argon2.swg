@@ -106,36 +106,33 @@ private func(Stride: u64) permute(block: [*] Argon2Pair)
 
 // Argon2's compression function. Writes `G(x, y)` to `destination`, or XORs it
 // into `destination` when `accumulate` is set, which is what the second and
-// later passes do.
-private func compress(destination: [*] u64, x, y: const [*] u64, accumulate: bool)
+// later passes do. Each call replaces the segment scratch before using it.
+private func compress(destination: [*] u64, x, y: const [*] u64, scratch: [*] Argon2Pair, accumulate: bool)
 {
     let left   = cast(const [*] Argon2Pair, x)
     let right  = cast(const [*] Argon2Pair, y)
     let target = cast([*] Argon2Pair, destination)
-    var result: [Argon2Pairs] Argon2Pair
 
     for i in Argon2Pairs do
-        result[i] = left[i] ^ right[i]
+        scratch[i] = left[i] ^ right[i]
 
     for i in 8 do
-        permute'1(&result[i * 8])
+        permute'1(&scratch[i * 8])
     for i in 8 do
-        permute'8(&result[i])
+        permute'8(&scratch[i])
 
     // Address generation can overwrite its right operand. Read each pair's
     // inputs before publishing the corresponding output.
     if accumulate
     {
         for i in Argon2Pairs do
-            target[i] ^= result[i] ^ left[i] ^ right[i]
+            target[i] ^= scratch[i] ^ left[i] ^ right[i]
     }
     else
     {
         for i in Argon2Pairs do
-            target[i] = result[i] ^ left[i] ^ right[i]
+            target[i] = scratch[i] ^ left[i] ^ right[i]
     }
-
-    secureClear(result)
 }
 
 // RFC 9106 variable-length hash `H'`. BLAKE2b caps its digest at 64 bytes, so a
@@ -185,11 +182,11 @@ private func variableHash(input: const [..] u8, destination: [..] u8) fail
 // Regenerates the block of pseudo-random addresses used by the data-independent passes.
 //
 // The address counter in `input` advances first, so each call yields the next block of addresses.
-private func nextAddresses(addresses, input: [*] u64, zero: const [*] u64)
+private func nextAddresses(addresses, input: [*] u64, zero: const [*] u64, scratch: [*] Argon2Pair)
 {
     input[6] += 1
-    compress(addresses, zero, input, false)
-    compress(addresses, zero, addresses, false)
+    compress(addresses, zero, input, scratch, false)
+    compress(addresses, zero, addresses, scratch, false)
 }
 
 // A segment owns its destination blocks and scratch. References into other lanes only
@@ -199,8 +196,10 @@ private func fillSegment(blocks: [*] u64, lanes, passes, segmentLength, laneLeng
     var zero:      [Argon2Words] u64
     var input:     [Argon2Words] u64
     var addresses: [Argon2Words] u64
+    var scratch:   [Argon2Pairs] Argon2Pair
     defer secureClear(input)
     defer secureClear(addresses)
+    defer secureClear(scratch)
 
     // Argon2id takes its addresses from a counter for the first half
     // of the first pass, and from the previous block afterwards.
@@ -221,7 +220,7 @@ private func fillSegment(blocks: [*] u64, lanes, passes, segmentLength, laneLeng
     let laneStart  = lane * laneLength
     let firstStep  = firstSlice ? 2 : 0
     if firstSlice do
-        nextAddresses(&addresses[0], &input[0], &zero[0])
+        nextAddresses(addresses.buffer, input.buffer, zero.buffer, scratch.buffer)
 
     // During the first pass only earlier slices are visible in other lanes.
     // Later passes have all three previous slices available.
@@ -240,7 +239,7 @@ private func fillSegment(blocks: [*] u64, lanes, passes, segmentLength, laneLeng
         {
             let address = step % Argon2AddressCount
             if address == 0 do
-                nextAddresses(&addresses[0], &input[0], &zero[0])
+                nextAddresses(addresses.buffer, input.buffer, zero.buffer, scratch.buffer)
             random = addresses[address]
         }
         else
@@ -266,7 +265,7 @@ private func fillSegment(blocks: [*] u64, lanes, passes, segmentLength, laneLeng
             offset -= laneLength
 
         let reference = blocks + ((referenceLane * laneLength + offset) * Argon2Words)
-        compress(current, previous, reference, pass != 0)
+        compress(current, previous, reference, scratch.buffer, pass != 0)
         previous = current
         current  += Argon2Words
     }

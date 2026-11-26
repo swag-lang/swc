@@ -1507,3 +1507,43 @@ ten cases.
 | `NimbusSans-Regular.pfa` | U+0067 | 4175.67 | 1671.51 |
 | `P052-Roman.pfb` | U+0067 | 1081.91 | 1279.26 |
 | `P052-Roman.pfb` | U+0045 | 1063.15 | 1007.79 |
+
+## Vertical metrics decoded when needed
+
+Font opening validates and retains the packed vertical metrics table.
+Loading a glyph reads its pair directly. A caller that asks for a
+borrowed metric pointer materializes the entries once. The entries
+retain their address for the lifetime of the face, and retained faces
+share them when they use the same table.
+
+Nine interleaved batches compare with `06343223ad`. Opening the full
+Noto CJK faces from a newly created source takes 8–20% less time,
+with acquisition outside the timed region. Pathname opens still
+include the input copy. All 21 glyph fingerprints agree. Native
+tests cover both long and short records, deferred materialization,
+stable addresses and retained-source lifetimes.
+[Raw timings and pathname controls](font-decode-linux-vertical-packed.json)
+
+| Fixture | Face | Character | Fresh source open before (µs) | After |
+| --- | ---: | ---: | ---: | ---: |
+| `DejaVuSans.ttf` | 0 | U+0041 | 30.23 | 32.74 |
+| `NotoSansCJK-Regular.ttc` | 0 | U+65E5 | 107.01 | 94.60 |
+| `NotoSansCJK-Regular.ttc` | 1 | U+D55C | 105.94 | 91.98 |
+| `NotoSansCJK-Regular.ttc` | 2 | U+4E2D | 105.71 | 93.71 |
+| `NotoSansCJK-Regular.ttc` | 7 | U+FF21 | 110.27 | 91.80 |
+| `NotoSansCJKjp-Regular.otf` | 0 | U+65E5 | 108.64 | 94.03 |
+| `NotoSerifCJK-Regular.ttc` | 0 | U+65E5 | 120.50 | 100.52 |
+| `NotoSerifCJK-Regular.ttc` | 1 | U+D55C | 119.02 | 109.91 |
+| `NotoSerifCJK-Regular.ttc` | 2 | U+4E2D | 120.58 | 107.28 |
+| `NotoSerifCJK-Regular.ttc` | 3 | U+9F8D | 123.54 | 99.27 |
+| `NotoSerifCJK-Regular.ttc` | 4 | U+2000B | 116.08 | 100.60 |
+| `NotoSansSC-Variable.ttf` | 0 | U+9F8D | 39.73 | 31.80 |
+| `NotoSerifCJKjp-Regular.otf` | 0 | U+672C | 122.27 | 104.56 |
+| `NotoSansJP-Regular.otf` | 0 | U+3042 | 147.76 | 147.41 |
+| `NotoSansJP-Regular.otf` | 0 | U+65E5 | 149.25 | 145.45 |
+| `NotoSansHK-Regular.otf` | 0 | U+9AA8 | 183.42 | 174.71 |
+| `NotoSansHK-Regular.otf` | 0 | U+9F8D | 183.29 | 173.16 |
+| `NotoSerifKR-Regular.otf` | 0 | U+D55C | 152.56 | 164.43 |
+| `NotoSerifKR-Regular.otf` | 0 | U+570B | 157.71 | 151.56 |
+| `NotoSerifSC-Regular.otf` | 0 | U+4E2D | 240.32 | 228.10 |
+| `NotoSerifSC-Regular.otf` | 0 | U+6587 | 232.61 | 224.19 |

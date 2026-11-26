@@ -155,6 +155,72 @@ impl GlyphNames
     }
 }
 
+// Retains validated vertical metrics in their packed form until a caller needs
+// stable addresses for the individual entries.
+struct VerticalMetricTable
+{
+    late bytes:     const [..] u8
+    late allocator: IAllocator
+    glyphCount:     u32
+    longCount:      u32
+    lastAdvance:    u16
+    values:         Array'GlyphVerticalMetrics
+    ready:          Swag.AtomicFlag
+    lock:           Swag.Mutex
+}
+
+impl VerticalMetricTable
+{
+    func create(bytes: const [..] u8, glyphCount, longCount: u32, allocator: IAllocator)->*VerticalMetricTable
+    {
+        let table = Memory.new'VerticalMetricTable(allocator)
+        table.bytes      = bytes
+        table.allocator  = allocator
+        table.glyphCount = glyphCount
+        table.longCount  = longCount
+        let last = bytes.buffer + cast(u64, longCount - 1) * 4
+        table.lastAdvance = Math.make16(last[0], last[1])
+        return table
+    }
+
+    #[Swag.Inline]
+    mtd const glyph(glyphIndex: u32)->GlyphVerticalMetrics
+    {
+        var result: #returntype
+        if glyphIndex < .longCount
+        {
+            let entry   = .bytes.buffer + cast(u64, glyphIndex) * 4
+            let advance = Math.make16(entry[0], entry[1])
+            let bearing = cast #bit(s16, Math.make16(entry[2], entry[3]))
+            result.set(advance, bearing)
+        }
+        else
+        {
+            let offset  = cast(u64, .longCount) * 4 + cast(u64, glyphIndex - .longCount) * 2
+            let entry   = .bytes.buffer + offset
+            let bearing = cast #bit(s16, Math.make16(entry[0], entry[1]))
+            result.set(.lastAdvance, bearing)
+        }
+
+        return result
+    }
+
+    mtd entries()->const [..] GlyphVerticalMetrics
+    {
+        if not .ready.isRaised()
+        {
+            Sync.scopedLock(&.lock)
+            if not .ready.isRaised()
+            {
+                .values = decodeVerticalMetrics(.bytes, .glyphCount, .longCount, .allocator)
+                .ready.raise()
+            }
+        }
+
+        return .values.toSlice()
+    }
+}
+
 struct ProgramTables
 {
     advances: Array'u16
@@ -172,8 +238,8 @@ struct FaceImpl
     fontData:               Array'u8
     fontSource:             FontSource
     tables:                 Array'TableRecord
-    verticalGlyphMetrics:   Array'GlyphVerticalMetrics
-    verticalMetrics:        const [..] GlyphVerticalMetrics?
+    verticalMetrics:        *VerticalMetricTable?
+    ownsVerticalMetrics:    bool
     glyphLocations:         const [..] u8?
     late horizontalMetrics: const [..] u8
     late chosenCMap:        const [..] u8
@@ -238,7 +304,13 @@ impl FaceImpl
         // These buffers belong to the face, so release capacity instead of only
         // clearing elements; the reusable glyph workspace dies with the face too.
         .tables.free()
-        .verticalGlyphMetrics.free()
+        if .ownsVerticalMetrics
+        {
+            let metrics   = unwrap .verticalMetrics
+            let allocator = metrics.allocator
+            Memory.delete(metrics, allocator)
+        }
+
         .outlinePoints.free()
         .outlineTags.free()
         .outlineContours.free()

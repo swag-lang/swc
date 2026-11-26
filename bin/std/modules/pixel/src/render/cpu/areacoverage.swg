@@ -17,10 +17,10 @@ internal struct AreaScratch
 
 internal impl AreaScratch
 {
-    mtd rasterize(points: const [..] Vector2, width, height: s32)
+    mtd rasterize(points: const [..] Vector2, width, height: s32, firstRow = 0's32)
     {
         .rows.growResize(cast(u64, height))
-        for i in height do
+        for i in firstRow until height do
             .rows[i].clear()
         .coverage.growResize(cast(u64, width))
 
@@ -32,7 +32,7 @@ internal impl AreaScratch
                 let low    = previous.y < next.y ? previous : next
                 let high   = previous.y < next.y ? next : previous
                 let sign   = previous.y < next.y ? 1.0'f64 : -1.0'f64
-                let top    = Math.max(0.0'f64, cast(f64, low.y))
+                let top    = Math.max(cast(f64, firstRow), cast(f64, low.y))
                 let bottom = Math.min(cast(f64, height), cast(f64, high.y))
                 if top < bottom
                 {

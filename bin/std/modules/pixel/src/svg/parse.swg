@@ -83,6 +83,12 @@ struct Shape
     }
 }
 
+private struct SvgGradientBrush
+{
+    brush: Brush
+    stops: u64
+}
+
 // Holds a parsed vector document, ready to paint at any scale.
 //
 // [[Pixel.Svg.Drawing.parse]] reads the SVG subset used by standalone artwork and the
@@ -114,7 +120,8 @@ struct Drawing
     paintBins:       Array'PaintBin                 // Spatial buckets of paint item indices.
     paintBlocks:     Array'PaintBlock               // Bounds of consecutive runs of paint items.
     strokes:         Array'ShapeStroke              // Paint and line style for stroked shapes.
-    gradientBrushes: Array'Brush                    // Resolved fill and stroke gradient brushes.
+    gradientBrushes: Array'SvgGradientBrush         // Resolved gradient geometry and tint.
+    gradientStops:   Array'Array'GradientStop       // Stops shared by placements of the same gradient.
     scanFills:       Array'ScanFill                 // Raster caches for dense solid fills.
     patterns:        HashTable'(u64, Pattern)       // Resolved repeating paint servers by their interned identifier.
     filters:         HashTable'(u64, SvgFilter)     // Resolved filter primitive chains by their interned identifier.
@@ -647,6 +654,8 @@ private struct Gradient
     spread:    GradientSpread  = Clamp
     transform: Math.Transform2 = Math.Transform2.Identity
     stops:     Array'GradientStop
+
+    cachedStops: u64     // Index plus one of the stop list shared by the gradient's brushes.
 
     // Most user-space references in a group share one transform and opacity.
     cachedBrush:     u64
@@ -3883,8 +3892,6 @@ private impl Parser
             }
         }
 
-        // Parsing already clamps the offsets and keeps them in nondecreasing order.
-        result.gradientStops = gradient.stops
         return result
     }
 
@@ -4016,9 +4023,21 @@ private impl Parser
            Memory.compare(&gradient.cachedTransform, &shape.paintTransform, #sizeof(Math.Transform2)) == 0 do
             return gradient.cachedBrush
 
-        var brush = .gradientBrush(gradient, shape)
-        brush.multiplyOpacity(opacity)
-        .drawing.gradientBrushes.add(#move brush)
+        var entry: SvgGradientBrush
+        entry.brush = .gradientBrush(gradient, shape)
+        entry.brush.multiplyOpacity(opacity)
+        if gradient.stops.count
+        {
+            if not gradient.cachedStops
+            {
+                .drawing.gradientStops.add(gradient.stops)
+                gradient.cachedStops = .drawing.gradientStops.count
+            }
+
+            entry.stops = gradient.cachedStops
+        }
+
+        .drawing.gradientBrushes.add(#move entry)
         let index = .drawing.gradientBrushes.count
         if gradient.userSpace
         {
@@ -4516,6 +4535,15 @@ impl Drawing
         .paintImpl(painter, x, y, scale)
     }
 
+    // Materializes the shared stops when this placement first reaches the painter.
+    private mtd const gradientBrushAt(index: u64)->*Brush
+    {
+        let entry = &.gradientBrushes[index - 1]
+        if entry.stops and entry.brush.gradientStops.isEmpty() do
+            entry.brush.gradientStops = .gradientStops[entry.stops - 1]
+        return &entry.brush
+    }
+
     private mtd const paintShapeCore(painter: *Painter, shape: *Shape, paintFill = true)
     {
         if paintFill and shape.hasFill
@@ -4525,7 +4553,7 @@ impl Drawing
             if shape.scanFill do
                 .scanFills[shape.scanFill - 1].paint(painter, &shape.pathList, shape.fillColor, shape.evenOdd)
             elif shape.fillGradient do
-                painter.fillPath(&shape.pathList, .gradientBrushes[shape.fillGradient - 1])
+                painter.fillPath(&shape.pathList, .gradientBrushAt(shape.fillGradient)[])
             else do
                 painter.fillPath(&shape.pathList, shape.fillColor)
         }
@@ -4535,7 +4563,7 @@ impl Drawing
         {
             var pen: Pen
             if stroke.gradient do
-                pen.brush = .gradientBrushes[stroke.gradient - 1]
+                pen.brush = .gradientBrushAt(stroke.gradient)[]
             else do
                 pen.brush.color = stroke.color
 

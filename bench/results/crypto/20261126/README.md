@@ -129,3 +129,4 @@ optimizations moved each result.
 - [Register-local BLAKE3 vector state](blake3-vector-locals.md)
 - [AES-CCM hardware CBC-MAC and CTR](aes-ccm-hardware.md)
 - [P-256 generator comb with four tables](p256-generator-tables.md)
+- [Packed AES-XTS tweak doubling](aes-xts-doubling.md)

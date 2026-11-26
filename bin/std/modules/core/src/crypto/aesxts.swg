@@ -23,13 +23,13 @@ private func aesXtsMultiplyTweak(tweak: *[AesXtsTweakSize] u8)
 #[Swag.Inline]
 private func aesXtsMultiplyTweak(tweak: U8x16)->U8x16
 {
-    const Zero       = cast(U64x2, [0'u64, 0])
-    const Polynomial = cast(U64x2, [0x87'u64, 0])
-    const HighLanes  = cast(U64x2, [1'u64, 1])
-    let value = cast #bit (U64x2, tweak)
-    let carry = value >> 63
-    let mask  = Zero - permute(carry, HighLanes)
-    return cast #bit (U8x16, (value << 1) ^ align(Zero, carry, 8) ^ (mask & Polynomial))
+    // The top bits of the second and fourth dwords carry into the next word and into reduction.
+    const CarryOrder = cast(U32x4, [3'u32, 0, 1, 0])
+    const Polynomial = cast(U64x2, [0x87'u64, 1])
+    let value     = cast #bit (U64x2, tweak)
+    let signBits  = cast #bit (S32x4, tweak) >> 31
+    let carryMask = cast #bit (U64x2, permute(signBits, CarryOrder))
+    return cast #bit (U8x16, (value << 1) ^ (carryMask & Polynomial))
 }
 
 #[Swag.Inline]

@@ -9,7 +9,8 @@
 
 using Core, Core.Errors, Core.Math
 
-const Magic = 20000630'u32
+const Magic            = 20000630'u32
+const ParallelZipBytes = 512'u64 * 1024
 
 struct Channel
 {
@@ -838,6 +839,14 @@ impl Part
         }
     }
 
+    mtd const parallelCompressedBytes()->u64
+    {
+        // ZIPS invests in a separate Deflate stream and Huffman tables for every row.
+        if .compression == 2 and .chunkCount >= 128 do
+            return 192 * 1024
+        return ParallelZipBytes
+    }
+
     #[Swag.NoInline]
     mtd const decodeScanlineBatches(buffer: const [..] u8, index: u32, multipart: bool, linesPerChunk: u64, largePacking: bool, options: DecodeOptions, image: *Image, layout: const *ScanlineLayout, seenRows: [..] bool) fail
     {
@@ -858,7 +867,7 @@ impl Part
                 break
         }
 
-        let workers = chunks.count >= 2 and (largePacking or compressedBytes >= 512 * 1024) ? Swag.workerCount() : 0
+        let workers = chunks.count >= 2 and (largePacking or compressedBytes >= .parallelCompressedBytes()) ? Swag.workerCount() : 0
         if workers <= 1
         {
             var scratch: ScanlineScratch = {}
@@ -956,10 +965,12 @@ impl Part
 
         // A fully stored single part needs a table entry and a scanline header per block.
         let compressed = .compression and
-                         buffer.count >= 512 * 1024 and
+                         buffer.count >= .parallelCompressedBytes() and
                          result.byteCount >= 1024 * 1024 and
                          (multipart or buffer.count < .tableOffset + .chunkCount * 16 + result.byteCount)
-        if .chunkCount >= 8 and (largePacking or compressed)
+        // Only index the smaller ZIPS files when workers can split their scanlines.
+        let parallelCompression = compressed and (buffer.count >= ParallelZipBytes or Swag.workerCount() > 1)
+        if .chunkCount >= 8 and (largePacking or parallelCompression)
         {
             try .decodeScanlineBatches(buffer, index, multipart, linesPerChunk, largePacking, options, &result, &layout, seenRows.toSlice())
             return result

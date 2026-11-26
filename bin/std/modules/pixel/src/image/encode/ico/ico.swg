@@ -156,40 +156,6 @@ private func expandIconPixels(source: const [*] u8, destination: [*] u8, count: 
     }
 }
 
-// Eight-bit alpha conversion is independent for each channel. Use the same normalized
-// rounding as Image.convertAlphaTo, including zeroing RGB when the alpha sample is zero.
-private func buildIconStraightChannelTable()->[65536] u8
-{
-    var result: #returntype
-    for alpha in 1 until 256
-    {
-        let a = cast(f32, alpha) / 255.0
-        for channel in 256
-            do
-            result[(alpha << 8) | channel] = normalizedToU8((cast(f32, channel) / 255.0) / a)
-    }
-
-    return result
-}
-
-private const IconStraightChannels = #run buildIconStraightChannelTable()
-
-private func writePremultipliedIconPixels(source: const [*] u8, target: [*] u8, count: u64, swapRedBlue: bool)
-{
-    let blue = swapRedBlue ? 2 : 0
-    let red  = 2 - blue
-    for i in count
-    {
-        let input  = source + i * 4
-        let output = target + i * 4
-        let values = IconStraightChannels.buffer + (cast(u32, input[3]) << 8)
-        output[0] = values[input[blue]]
-        output[1] = values[input[1]]
-        output[2] = values[input[red]]
-        output[3] = input[3]
-    }
-}
-
 private func writeDib(destination: [*] u8, image: Image)
 {
     let count    = cast(u64, image.width) * image.height
@@ -211,7 +177,7 @@ private func writeDib(destination: [*] u8, image: Image)
     let source = image.pixels.storage()
     if image.alphaMode == .Premultiplied
     {
-        writePremultipliedIconPixels(source, pixels, count, image.pixelFormat == .RGBA8)
+        PackedPixel.writeStraightAlpha8(source, pixels, count, image.pixelFormat == .RGBA8)
     }
     else
     {

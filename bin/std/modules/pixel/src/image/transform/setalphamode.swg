@@ -14,6 +14,16 @@ impl Image
         if newMode == .alphaMode do
             return
 
+        if .alphaMode == .Premultiplied and
+           newMode == .Straight and
+           (.pixelFormat == .RGBA8 or .pixelFormat == .BGRA8)
+        {
+            let pixels = .pixels.storage()
+            PackedPixel.writeStraightAlpha8(pixels, pixels, .byteCount / 4, false)
+            .alphaMode = newMode
+            return
+        }
+
         var context = {image: me, oldMode: .alphaMode, newMode: newMode}
         parallel for |&context| parIndex in cast(u64, .height)
         {

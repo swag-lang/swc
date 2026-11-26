@@ -2,7 +2,8 @@
 
 The [fixture manifest](fixtures.json) pins public PDF.js and Apache PDFBox files by upstream
 revision and SHA-256. It includes a research paper, dense vector paths, hairlines, fonts, photos,
-scans, clipping, forms, and transparency. The three original FileSamples PDFs are optional.
+scans, clipping, forms, transparency, repeated resources, and graphics state changes. The three
+original FileSamples PDFs are optional.
 The manifest selects pages explicitly, using one-based page numbers.
 
 Prepare the corpus and build the driver in an external work directory. An externally built Linux

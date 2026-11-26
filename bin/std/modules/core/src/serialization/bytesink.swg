@@ -213,12 +213,10 @@ impl ByteSink
         var committed    = 0'u64
         if offset < pendingStart
         {
-            // Only the prefix already in the file needs I/O. Restore the native cursor to
-            // where the pending window starts so it can still be written as one batch.
+            // Only the prefix already in the file needs I/O. Keep the append position
+            // at the start of the pending window so it can still be written as one batch.
             committed = Math.min(count, pendingStart - offset)
-            try .writeFileAllAt(offset, bytes[until committed])
-            if offset + committed != pendingStart do
-                try .seekFile(pendingStart)
+            try .writeFileAllAt(offset, bytes[until committed], pendingStart)
         }
 
         if committed < count do
@@ -249,18 +247,10 @@ impl ByteSink
             try .failFileIo(&failure)
     }
 
-    private mtd writeFileAllAt(offset: u64, bytes: const [..] u8) fail
+    private mtd writeFileAllAt(offset: u64, bytes: const [..] u8, resume: u64) fail
     {
         var failure: Swag.Error
-        catch .stream.writeAllAt(offset, bytes) as failure
-        if not failure.isEmpty() do
-            try .failFileIo(&failure)
-    }
-
-    private mtd seekFile(offset: u64) fail
-    {
-        var failure: Swag.Error
-        catch .stream.seek(.Begin, offset) as failure
+        catch .stream.writeAllAtKeepingPosition(offset, bytes, resume) as failure
         if not failure.isEmpty() do
             try .failFileIo(&failure)
     }

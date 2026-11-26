@@ -64,6 +64,63 @@ internal impl FileStream
         }
     }
 
+    // A native positional transfer uses signed offsets measured from the start of the file.
+    private func checkFileRange(offset, count: u64) fail
+    {
+        const MaxOffset = cast(u64, Swag.S64.Max)
+        if offset > MaxOffset or count > MaxOffset - offset do
+            fail Errors.BadParameterError{"file transfer exceeds the supported offset range"}
+    }
+
+    // Reads a range on an ordinary open handle. The caller does not use the stream's cursor.
+    mtd readFileRange(offset: u64, buffer: [..] u8)->bool fail
+    {
+        try checkFileRange(offset, buffer.count)
+        let descriptor = nativeFileDescriptor(.handle)
+        var total      = 0'u64
+        while total < buffer.count
+        {
+            let count = Linux.pread(descriptor, buffer.buffer + total, buffer.count - total, cast(s64, offset + total))
+            if count == 0 do
+                return false
+            if count < 0
+            {
+                let error = Linux.errno()
+                if error != Linux.EINTR do
+                    try Errors.failLinuxError(error, .name)
+                continue
+            }
+
+            total += cast(u64, count)
+        }
+
+        return true
+    }
+
+    // Rewrites a file range without disturbing the caller's known append position.
+    mtd writeAllAtKeepingPosition(offset: u64, buffer: const [..] u8, _: u64) fail
+    {
+        try checkFileRange(offset, buffer.count)
+
+        let descriptor = nativeFileDescriptor(.handle)
+        var total      = 0'u64
+        while total < buffer.count
+        {
+            let written = Linux.pwrite(descriptor, buffer.buffer + total, buffer.count - total, cast(s64, offset + total))
+            if written == 0 do
+                fail Swag.SystemError{"file write stopped before all bytes were written"}
+            if written < 0
+            {
+                let error = Linux.errno()
+                if error != Linux.EINTR do
+                    try Errors.failLinuxError(error, .name)
+                continue
+            }
+
+            total += cast(u64, written)
+        }
+    }
+
     mtd closeNative()
     {
         // Linux releases the descriptor even when close reports EINTR. Retrying could close

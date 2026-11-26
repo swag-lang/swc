@@ -33,6 +33,15 @@
                  recovered[1] == 22 and
                  recovered[2] == 33 and
                  recovered[3] == 47)
+
+    // Positioned transfers keep the native cursor even for a short read beyond 4 GiB.
+    expect stream.seek(.Begin, 1)
+    expect stream.writeAllAtKeepingPosition(LargeOffset + 1, [73'u8], 1)
+    Swag.require(not (expect stream.readFileRange(LargeOffset, recovered)))
+    Swag.require(Slice.equals(recovered, [11'u8, 73, 33, 47]))
+    Swag.require(expect stream.position() == 1)
+
+    expect stream.seek(.End, 0)
     expect stream.resize(2)
     let truncatedSize     = expect stream.size()
     let truncatedPosition = expect stream.position()

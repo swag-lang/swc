@@ -705,7 +705,7 @@ impl Reader
 
         var result: #returntype
         result.resize(info.storedSize)
-        if not (try .stream.readExactAt(info.offset, result.toSlice())) do
+        if not (try .stream.readFileRange(info.offset, result.toSlice())) do
             fail InvalidFormatError{"SCC chunk payload is truncated"}
         if Hash.Crc32.compute(result.toSlice()) != info.storedChecksum do
             fail InvalidFormatError{"SCC stored chunk checksum does not match its bytes"}

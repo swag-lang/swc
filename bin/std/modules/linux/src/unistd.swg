@@ -31,5 +31,6 @@ const SEEK_END = 2's32
     func lseek(fd: s32, offset: s64, whence: s32)->s64
     func fsync(fd: s32)->s32
     func write(fd: s32, buf: const *void, count: u64)->s64
+    func pwrite(fd: s32, buf: const *void, count: u64, offset: s64)->s64
     func close(fd: s32)->s32
 }

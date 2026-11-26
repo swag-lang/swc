@@ -58,6 +58,11 @@ impl FileStream
     // every requested byte is required. `buffer` must be non-null, including when `length` is zero.
     mtd read(buffer: *void, length: u64)->u64 fail
     {
+        return try .readImpl(buffer, length, exact: false)
+    }
+
+    private mtd readImpl(buffer: *void, length: u64, exact: bool)->u64 fail
+    {
         Swag.assert(.isOpen())
         Swag.assert(.canRead)
         if not length do
@@ -67,7 +72,7 @@ impl FileStream
         {
             var stream = try File.open(.name, .Open, .Read, .ReadWrite | .Delete)
             try stream.seek(.Begin, .livePosition)
-            let count = try stream.read(buffer, length)
+            let count = try stream.readImpl(buffer, length, exact)
             .livePosition += count
             return count
         }
@@ -79,7 +84,7 @@ impl FileStream
             let chunk = cast(u32, Math.min(length - total, cast(u64, Swag.U32.Max)))
             let read  = try .readNative(bytes + total, chunk)
             total += read
-            if read < chunk do
+            if not read or (read < chunk and not exact) do
                 break
         }
 
@@ -318,8 +323,9 @@ impl FileStream
 
     // Reads `buffer` and returns whether the read supplied every byte it holds.
     //
-    // If fewer bytes are read, the stream position advances by the number that were available.
-    mtd readExact(buffer: [..] u8)->bool fail => try .read(buffer) == buffer.count
+    // Short reads are retried until the buffer is full or the stream ends. The position
+    // advances by the number of bytes read.
+    mtd readExact(buffer: [..] u8)->bool fail => try .readImpl(buffer.buffer, buffer.count, exact: true) == buffer.count
 
     // Moves to `offset`, reads `buffer`, and returns whether the read supplied every byte it holds.
     //

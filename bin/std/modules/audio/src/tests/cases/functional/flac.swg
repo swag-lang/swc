@@ -540,6 +540,57 @@ private func flacAssertLossless(name: string, sampleRate, channels: u32)
     audioAssertSamples(cast([..] u8, decoded), [4687's16, -2735, 7812, -3907, -6934, 829, -2735, -1355, 3680, 1080, 648, 1651, -907])
 }
 
+// Channel interleaving preserves clipping for predictor output wider than signed 32 bits.
+#test
+{
+    const Channels      = 6
+    const Wide: [5] s64 = [0x1_0000_0001, -0x1_0000_0002, 0x8000_0000, -0x8000_0001, 43]
+    const Frames        = Wide.count
+    const Parameter     = 30
+    const Mask          = (1'u64 << Parameter) - 1
+
+    var config = flacMonoTestConfig(cast(u8, Frames))
+    config[12] |= cast(u8, (Channels - 1) << 1)
+
+    var frame: Array'u8
+    frame.add([0xFF'u8, 0xF9, 0x60, 0x50, 0, cast(u8, Frames - 1)])
+    frame.add(flacTestHeaderCrc8(frame.toSlice()))
+    var bits = frame.count * 8
+    var expected: [Frames * Channels] s16
+    for channel in Channels
+    {
+        flacTestAppendBits(&frame, &bits, 0x10, 8)     // Order-zero fixed predictor.
+        flacTestAppendBits(&frame, &bits, 1, 2)        // Rice2 residuals.
+        flacTestAppendBits(&frame, &bits, 0, 4)        // One partition.
+        flacTestAppendBits(&frame, &bits, Parameter, 5)
+        for sample in Frames
+        {
+            let value = channel ? cast(s64, channel * 10 + sample) - 20 : Wide[sample]
+            let code  = value < 0 ? cast(u64, -value) * 2 - 1 : cast(u64, value) * 2
+            for code >> Parameter do
+                flacTestAppendBits(&frame, &bits, 0, 1)
+            flacTestAppendBits(&frame, &bits, 1, 1)
+            flacTestAppendBits(&frame, &bits, code & Mask, Parameter)
+            expected[sample * Channels + channel] = cast(s16, Math.clamp(value, -32768's64, 32767's64))
+        }
+    }
+
+    while bits & 7 do
+        flacTestAppendBits(&frame, &bits, 0, 1)
+
+    let checksum = Flac.frameCrc16(frame.toSlice())
+    frame.add(cast(u8, checksum >> 8))
+    frame.add(cast(u8, checksum & 0xFF))
+
+    var codec:   Flac.Codec
+    let decoder: IPacketCodec = &codec
+    expect decoder.initialize(config.toSlice(), 48_000, Channels)
+    var actual: [Frames * Channels] s16
+    let written = expect decoder.decodePacket(&actual[0], #sizeof(actual), frame.toSlice())
+    Swag.require(written == #sizeof(actual))
+    audioAssertSamples(cast([..] u8, actual), expected)
+}
+
 // A valid 17-bit side sample can outgrow the packed predictor midway through a block.
 #test
 {

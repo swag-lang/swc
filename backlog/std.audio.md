@@ -218,6 +218,7 @@ owned by `bin/std/modules/audio` together. [README.md](README.md) has the whole 
   · [MP3 clearing, Opus PVQ and Vorbis residue follow-up](../bench/results/swagscope-filesamples/audio-decode-linux.md#twenty-first-optimization-pass)
   · [FLAC Rice and MP3 history follow-up](../bench/results/swagscope-filesamples/audio-decode-linux.md#twenty-second-optimization-pass)
   · [AAC batch merge, Vorbis setup and Ogg checksums](../bench/results/swagscope-filesamples/audio-decode-linux.md#twenty-third-optimization-pass)
+  · [FLAC output and CELT history follow-up](../bench/results/swagscope-filesamples/audio-decode-linux.md#twenty-fourth-optimization-pass)
   · [Generated audio comparison](../bench/results/swagscope-filesamples/audio-decode-expanded-linux.md)
 - Next: reduce AC-3 block parsing and synthesis, MP3 spectrum and polyphase work,
   AAC spectral decoding, and Opus CELT allocation.

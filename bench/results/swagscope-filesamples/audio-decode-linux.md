@@ -899,3 +899,47 @@ bit for bit.
 
 Native Release passes 322 audio tests. Release-safe passes
 69 focused AAC, Ogg, Opus and Vorbis tests.
+
+## Twenty-fourth optimization pass
+
+This follow-up compares the changed codecs with commit `408651d6bd` and native FFmpeg.
+Each median uses 56 samples and includes opening and materializing ten seconds of PCM16.
+[Raw stage times and PCM deltas](audio-decode-linux-round24.json)
+
+| Format | R23 CPU 0 (ms) | Swag CPU 0 (ms) | FFmpeg CPU 0 (ms) | R23 CPU 1 (ms) | Swag CPU 1 (ms) | FFmpeg CPU 1 (ms) |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| FLAC | 8.84 | 8.82 | 11.00 | 8.91 | 9.42 | 11.63 |
+| Ogg FLAC | 7.90 | 7.82 | 10.46 | 8.16 | 8.23 | 11.11 |
+| Opus | 19.79 | 19.63 | 19.35 | 20.03 | 19.65 | 19.52 |
+
+| Format | R23 4 cores (ms) | Swag 4 cores (ms) | FFmpeg 4 cores (ms) |
+| --- | ---: | ---: | ---: |
+| FLAC | 6.62 | 6.38 | 7.69 |
+| Ogg FLAC | 6.83 | 6.98 | 8.04 |
+| Opus | 20.21 | 19.84 | 20.29 |
+
+
+The generated-fixture medians use 42 samples per worker budget.
+
+| Fixture | R23 1 core (ms) | Swag 1 core (ms) | FFmpeg 1 core (ms) | R23 4 cores (ms) | Swag 4 cores (ms) | FFmpeg 4 cores (ms) |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| `flac-44k-stereo-16.flac` | 6.04 | 5.95 | 11.38 | 3.45 | 3.42 | 7.48 |
+| `flac-48k-5.1-16.flac` | 20.03 | 18.86 | 35.31 | 10.01 | 9.41 | 19.47 |
+| `flac-96k-stereo-24.flac` | 16.62 | 16.58 | 26.08 | 9.53 | 9.00 | 15.29 |
+| `ogg-flac-48k-mono-16.oga` | 3.68 | 3.35 | 6.59 | 2.48 | 2.08 | 5.82 |
+| `opus-20ms-48k-stereo.opus` | 28.25 | 28.46 | 29.88 | 30.43 | 29.41 | 29.46 |
+| `opus-5ms-48k-stereo.opus` | 28.31 | 28.45 | 32.30 | 27.81 | 27.37 | 32.27 |
+| `opus-voip-48k-mono.opus` | 15.72 | 15.92 | 13.64 | 16.00 | 16.39 | 14.38 |
+
+FLAC packs mono and six-channel PCM16 with exact saturation even for wide
+intermediate values. Opus reserves space for two maximum CELT frames before
+moving the pitch and overlap history. The larger window uses 7,200 more bytes
+for a stereo decoder. The generated voice fixture took 0.20 ms longer on
+one core and 0.39 ms longer at the four-core budget in this series.
+
+The PCM matches between the one-core and four-core runs, with a peak difference of
+one PCM16 unit from the original Swag output. All files match the preceding build
+bit for bit.
+
+Native Release passes 323 audio tests. Release-safe passes
+43 focused FLAC and Opus tests.

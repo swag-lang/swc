@@ -90,3 +90,15 @@ func fillMd5Pattern(buffer: [..] u8)
     assertMd5Split(data[until 65], 1, 64, "5949948F26E35203661075214FAA3966")
     assertMd5Split(data[until 130], 7, 73, "8A2682A4B1A920CCCC7C09422B233D76")
 }
+
+
+// A split update completes its pending block before consuming unaligned full blocks.
+#test
+{
+    var backing: [4098] u8
+    fillMd5Pattern(backing)
+    let data = backing[1 until backing.count]
+    const Expected = "2A92DF8FF6521FCB633132F11E93082F"
+    assertMd5(data, Expected)
+    assertMd5Split(data, 7, 2781, Expected)
+}

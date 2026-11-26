@@ -140,3 +140,4 @@ optimizations moved each result.
 - [Integrated Core crypto validation at 14:26 CET](integrated-validation-1426.md)
 - [Poly1305 parallel tiles](poly1305-worker-tiles.md)
 - [Portable GHASH with wide integer products](ghash-wide-integer.md)
+- [MD5 direct block batches](md5-block-batches.md)

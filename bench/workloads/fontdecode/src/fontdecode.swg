@@ -2,38 +2,46 @@ using Core, TrueType
 
 #main
 {
-    let args       = Env.arguments()
-    let fromMemory = args.count == 7 and args[6] == "memory"
-    let fromSource = args.count == 7 and args[6] == "source"
-    Swag.require(args.count == 6 or fromMemory or fromSource)
+    let args = Env.arguments()
+    Swag.require(args.count >= 6 and args.count <= 10)
+    let mode = args.count >= 7 ? args[6] : "file"
+    Swag.require(mode == "file" or mode == "memory" or mode == "source")
     let path      = args[1]
     let faceIndex = expect StrConv.toU32(args[2])
     let character = cast(rune, expect StrConv.toU32(args[3]))
     let pixels    = expect StrConv.toU32(args[4])
     let samples   = expect StrConv.toU32(args[5])
-    Swag.require(samples > 0)
+    let warmups   = args.count >= 9 ? (expect StrConv.toU32(args[8])) : 5
+    Swag.require(samples > 0 and warmups <= Swag.U32.Max - samples)
+
+    if args.count >= 8 do
+        Swag.setWorkerCount(expect StrConv.toU32(args[7]))
+    if args.count == 10
+    {
+        Swag.require(args[9] == "prestart")
+        Swag.startWorkers()
+    }
 
     var input:  Array'u8
     var source: FontSource
-    if fromMemory do
+    if mode == "memory" do
         input = expect File.readAllBytes(path)
-    elif fromSource do
+    elif mode == "source" do
         source = expect FontSource.loadFile(path)
 
-    const Warmups = 5
     var openTicks, renderTicks:  u64
     var glyphIndex, width, rows: u32
     var bitmapCrc:               u64
     var advance:                 s32
-    for sample in samples + Warmups
+    for sample in samples + warmups
     {
         let start = Time.monotonicTicks()
         var loaded: *Face?
         catch
         {
-            if fromMemory do
+            if mode == "memory" do
                 loaded = try Face.loadAt(input.toSlice(), faceIndex)
-            elif fromSource do
+            elif mode == "source" do
                 loaded = try source.loadFace(faceIndex)
             else do
                 loaded = try Face.loadFile(path, faceIndex)
@@ -51,12 +59,12 @@ using Core, TrueType
         let opened = Time.monotonicTicks()
         expect face.loadChar(character, .Render)
         let rendered = Time.monotonicTicks()
-        if sample < Warmups do
+        if sample < warmups do
             continue
         openTicks   += opened - start
         renderTicks += rendered - opened
 
-        if sample + 1 == samples + Warmups
+        if sample + 1 == samples + warmups
         {
             glyphIndex = face.glyphIndex(character)
             advance    = face.glyph.advance.x

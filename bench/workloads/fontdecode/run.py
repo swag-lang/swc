@@ -64,9 +64,13 @@ def prepare(args, entries):
                 font.save(args.corpus / entry["file"])
 
 
-def measure_swag(executable, path, face, character, size, count, from_memory):
+def measure_swag(executable, path, face, character, size, count, from_memory, workers, warmups, prestart):
     command = [str(executable), str(path), str(face), str(character), str(size), str(count)]
-    if from_memory:
+    if workers != 1 or warmups != 5 or prestart:
+        command.extend(["memory" if from_memory else "file", str(workers), str(warmups)])
+        if prestart:
+            command.append("prestart")
+    elif from_memory:
         command.append("memory")
     output = subprocess.check_output(command, text=True).strip()
     if output == "rejected":
@@ -77,19 +81,19 @@ def measure_swag(executable, path, face, character, size, count, from_memory):
     return elapsed_open, elapsed_render, glyph
 
 
-def measure_pillow(load, path, face, character, size, count):
+def measure_pillow(load, path, face, character, size, count, warmups):
     character = chr(character)
     elapsed_open = elapsed_render = 0
-    for sample in range(5 + count):
+    for sample in range(warmups + count):
         start = time.perf_counter_ns()
         font = load(path, size, index=face)
         opened = time.perf_counter_ns()
         mask = font.getmask(character, mode="L")
         rendered = time.perf_counter_ns()
-        if sample >= 5:
+        if sample >= warmups:
             elapsed_open += opened - start
             elapsed_render += rendered - opened
-        if sample + 1 == 5 + count and not mask.getbbox():
+        if sample + 1 == warmups + count and not mask.getbbox():
             raise ValueError(f"{path} face {face}: empty Pillow glyph mask")
         del mask, font
     return elapsed_open // count, elapsed_render // count
@@ -98,7 +102,7 @@ def measure_pillow(load, path, face, character, size, count):
 def compare(args, entries):
     if args.cpu is not None:
         os.sched_setaffinity(0, {args.cpu})
-    os.environ["SWAG_RUNTIME_THREADS"] = "1"
+    os.environ["SWAG_RUNTIME_THREADS"] = str(args.workers)
     engines = {"baseline": args.baseline.resolve(), "candidate": args.candidate.resolve()}
     metadata = {"source": "memory"}
     load_pillow = None
@@ -138,9 +142,10 @@ def compare(args, entries):
                     continue
                 executable = engines[engine]
                 if executable is None:
-                    opened, rendered = measure_pillow(load_pillow, *params)
+                    opened, rendered = measure_pillow(load_pillow, *params, args.warmups)
                 else:
-                    result = measure_swag(executable, *params, from_memory=args.collection_memory)
+                    result = measure_swag(executable, *params, from_memory=args.collection_memory,
+                                          workers=args.workers, warmups=args.warmups, prestart=args.prestart_workers)
                     if result is None:
                         expected = engine == "baseline" and case["file"] in args.allow_baseline_rejection
                         if not expected or engine in case["batches"]:
@@ -156,6 +161,8 @@ def compare(args, entries):
     result = {
         "platform": platform.platform(), "cpu": args.cpu, "pixel_size": args.size,
         "small_batch_size": args.samples, "large_batch_size": args.large_samples,
+        "swag_workers_requested": args.workers, "warmups": args.warmups,
+        "swag_prestarts_workers": args.prestart_workers,
         **metadata, "cases": cases,
     }
     args.output.write_text(json.dumps(result, indent=2) + "\n", encoding="utf-8")
@@ -175,6 +182,13 @@ def positive_count(value):
     return result
 
 
+def warmup_count(value):
+    result = int(value)
+    if not 0 <= result <= 100_000:
+        raise argparse.ArgumentTypeError("expected a warmup count from 0 to 100000")
+    return result
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     commands = parser.add_subparsers(required=True)
@@ -186,6 +200,9 @@ def main():
     for arg in ("corpus", "baseline", "candidate", "output"):
         run.add_argument(f"--{arg}", type=Path, required=True)
     run.add_argument("--cpu", type=int)
+    run.add_argument("--workers", type=positive_count, default=1)
+    run.add_argument("--warmups", type=warmup_count, default=5)
+    run.add_argument("--prestart-workers", action="store_true")
     run.add_argument("--collection-memory", action="store_true",
                      help="compare Swag builds on file collections already in memory")
     run.add_argument("--allow-baseline-rejection", action="append", default=[], metavar="FILENAME")

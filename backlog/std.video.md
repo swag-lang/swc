@@ -118,8 +118,13 @@ the sampling layouts used by ffmpeg's 4:2:0, 4:2:2, and 4:4:4 Motion JPEG output
   [The reproducible six-slice 4K workload](../bench/results/video/20261126-decode-comparison/README.md#decoder-thread-budgets)
   scales from 31.42 to 22.98 ms per picture as the thread budget rises from one to four.
   FFmpeg scales from 19.15 to 5.68 ms and the decoded pictures match.
-- Next: time the caller's complete multi-slice entropy parse and move it to the frame lane
-  where the headers and retained RBSP permit earlier prediction-state publication.
+  Deferred entropy parsing now publishes headers from the owner and retains unescaped slices
+  on the frame lane. The 4K fixture takes 13.92 ms per picture versus 18.48 ms immediately
+  before that change and 5.22 ms in FFmpeg at four threads. Single-thread medians on the
+  three tested streams stayed within 5.2% and all picture planes matched.
+  [Deferred-slice measurements](../bench/results/video/20261126-decode-comparison/README.md#avc-multi-slice-frame-lanes)
+- Next: measure how much time multi-slice frames wait for reference pixels after entropy
+  parsing, and expose completed rows where reconstruction and deblocking permit it.
 - Done when: multi-slice pictures decode exactly with bounded queues and forward progress,
   measured scheduling overhead improves on the same fixture, and the one-slice path does not regress.
 - Related: std.video.001, language.parallelism.001

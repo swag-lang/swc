@@ -84,7 +84,8 @@ struct Decoder
     spsSet:        Array'Sps
     ppsSet:        Array'Pps
     nalLengthSize: u32
-    rbsp:          Array'u8     // Unescape scratch, reused across NAL units.
+    rbsp:          Array'u8             // Unescape scratch, reused across NAL units.
+    preparedRbsp:  Array'(Array'u8)     // Owns the bytes of deferred slices until their lane decodes them.
 
     sps: *Sps?     // Active sequence set of the current picture.
     pps: *Pps?     // Active picture set of the current picture.
@@ -159,7 +160,7 @@ struct Decoder
     isIdrPicture:    bool
     isRefPicture:    bool
     referencesHeld:  bool     // Slice reference pictures are pinned until reconstruction finishes.
-    preparedData:    bool     // A single slice has published setup but has not parsed its macroblocks.
+    preparedData:    bool     // The picture has published setup but has not parsed its macroblocks.
     frameThreaded:   bool     // This picture may overlap complete neighboring pictures.
 
     // A single-slice picture reconstructs, filters and publishes each macroblock row as the
@@ -297,19 +298,19 @@ impl Decoder
         return try .finishAccessUnit()
     }
 
-    // Publishes a picture's prediction state before its single-slice entropy data is decoded.
-    // This is the setup boundary that lets the next frame thread start without waiting for the
-    // current CABAC stream. Multi-slice pictures keep the proven complete-parse fallback.
+    // Publishes a picture's prediction state before its entropy data is decoded. This is the
+    // setup boundary that lets the next frame thread start while this picture's slices decode.
     mtd prepareAccessUnit(sample: const [..] u8)->bool fail
     {
         .frameThreaded = true
         .inlineRecon   = false
-        if not .hasSinglePictureSlice(sample) do
+        let sliceNals = .countPreparedSlices(sample)
+        if not sliceNals do
             return try .parseAccessUnit(sample, true)
 
         .current       = null
         .markingParsed = false
-        .inlineRecon   = true
+        .inlineRecon   = sliceNals == 1
         .mmcoOps.clear()
         .pipelineSingleSlice = false
         .pipelineBandCount   = 0
@@ -347,10 +348,34 @@ impl Decoder
     {
         if .preparedData
         {
-            Swag.assert(.pictureSlices.count == 1)
-            if .pictureSlices[0].header.type == SliceTypeB do
-                try .awaitReferenceProgress(false)
-            try .pictureSlices[0].decodeData()
+            if .inlineRecon
+            {
+                let slice = &.pictureSlices[0]
+                if slice.header.type == SliceTypeB do
+                    try .awaitReferenceProgress(false)
+                try slice.decodeData()
+            }
+            else
+            {
+                for &slice in .pictureSlices where slice.header.type == SliceTypeB
+                {
+                    try .awaitReferenceProgress(false)
+                    break
+                }
+
+                let activeSps = .sps
+                let activePps = .pps
+                for &slice in .pictureSlices
+                {
+                    .pps = slice.pps
+                    .sps = &.spsSet[.pps!.spsId]
+                    try slice.decodeData()
+                }
+
+                .sps = activeSps
+                .pps = activePps
+            }
+
             try .validatePicture()
             .current!.publishParse(1)
             .preparedData = false
@@ -384,7 +409,7 @@ impl Decoder
         .markingParsed = false
         .inlineRecon   = false
         .mmcoOps.clear()
-        .pipelineSingleSlice = not deferReconstruction and .hasSinglePictureSlice(sample)
+        .pipelineSingleSlice = not deferReconstruction and .countPreparedSlices(sample) == 1
         .pipelineBandCount   = 0
         .pipelineScheduled   = 0
         .preparedData        = false
@@ -518,16 +543,16 @@ impl Decoder
         }
     }
 
-    // Reports whether the access unit has exactly one coded-picture NAL. Multiple slices can
-    // grow pictureSlices while parsing, so they keep the post-parse reconstruction path.
-    private mtd const hasSinglePictureSlice(sample: const [..] u8)->bool
+    // Counts coded-picture NAL units that can be prepared together. If a parameter set follows
+    // a slice, parse each slice immediately to keep its parameter-set pointers valid.
+    private mtd const countPreparedSlices(sample: const [..] u8)->u32
     {
         var count  = 0'u32
         var offset = 0'u64
         while offset < sample.count
         {
             if offset + .nalLengthSize > sample.count do
-                return false
+                return 0
             var size = 0'u64
             for .nalLengthSize
             {
@@ -536,19 +561,17 @@ impl Decoder
             }
 
             if size < 1 or size > sample.count - offset do
-                return false
+                return 0
             let nalType = sample[offset] & 0x1F
-            if nalType == 1 or nalType == 5
-            {
+            if nalType == 1 or nalType == 5 do
                 count += 1
-                if count > 1 do
-                    return false
-            }
+            elif count and (nalType == 7 or nalType == 8) do
+                return 0
 
             offset += size
         }
 
-        return count == 1
+        return count
     }
 
     // Returns the first stored sequence parameter set, which carries the stream geometry.
@@ -659,8 +682,17 @@ impl Decoder
         if slice.header.type != SliceTypeI do
             try slice.buildLists()
         .pictureSlices.add(#move slice)
-        if decodeData do
-            try .pictureSlices[.pictureSlices.count - 1].decodeData()
+        let index = .pictureSlices.count - 1
+        if decodeData
+        {
+            try .pictureSlices[index].decodeData()
+        }
+        elif not .inlineRecon
+        {
+            if .preparedRbsp.count <= index do
+                .preparedRbsp.resize(index + 1)
+            Core.swap(&.rbsp, &.preparedRbsp[index])
+        }
     }
 
     // Parses one sequence parameter set and stores it under its identifier.

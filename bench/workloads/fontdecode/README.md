@@ -40,6 +40,10 @@ Each run reports the median of interleaved batches. The filesystem cache stays w
 engine renders 20 px by default, and each batch discards five warm-up renders. Destruction is
 outside the timed spans. The results file records per-batch nanoseconds and fixture hashes.
 Set `--cpu` to a CPU available to the process on Linux. Omit it on other platforms.
+Use `--workers` to request a Swag worker count and apply CPU affinity outside the runner
+for multi-CPU runs. `--warmups 0 --samples 1 --large-samples 1` measures the first face
+opened by each Swag probe. Add `--prestart-workers` to start the worker pool before timing.
+Rebuild both probes from the current workload source to use these options.
 
 When comparing with a release that rejects a known valid fixture, pass its filename with
 `--allow-baseline-rejection`. The runner labels the rejected baseline and still checks the
@@ -64,8 +68,8 @@ do
 done
 ```
 
-Each mode opens a fresh face, sets its size, and renders one glyph. Five warmups are
-excluded. The six output fields are mean input acquisition, face opening with size setup,
+Each mode opens a fresh face, sets its size, and renders one glyph. The optional final
+argument selects the warmup count, which defaults to five. The six output fields are mean input acquisition, face opening with size setup,
 and glyph loading with rendering in nanoseconds, followed by bytes requested during open,
 bytes requested for the glyph, and the glyph index.
 
